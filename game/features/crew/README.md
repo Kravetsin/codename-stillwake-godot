@@ -95,7 +95,7 @@ the sim.
 - **Rammed** (0103) **or crossed by an arc** (`Rams.Crosses`, once): `HitBy`/`Bolted` sent, thrown, keys masked a while.
 - **Surfaces** (0076): `Ship.Of` rules: nothing floats on a planet, gravity the kind's `Fall`; fog glides, `FogMove`
   across a seam (fog-edges).
-- **Camera:** leads, eases, snaps. **Markers** (0061): home, own newest body, friends heard.
+- **Camera:** leads, eases, snaps. **Markers** (0061): home, own newest body, friends.
 - **Jetpack and swim** (0047): afloat the hero swims, tethered, through floors; a jetpack, untied, Shift thrusts,
   `Thrust` sent while unlike the sim's.
 - **A canister** (0047, 0081): right click or R sends `Refill`, V `SuitMode` (regen-suit), if the sim takes it; V's
@@ -112,7 +112,7 @@ the sim.
 - Sent (`SentHero`) every 50 ms while it changes, each second still, at once on a rod's change (0002, 0065); hands
   by item id and `Busy` kind (0037).
 - Drawn 150 ms behind (0013), walking 100 ms past the last, hidden after 3 silent s; only those
-  on this surface (0076). A friend's struck tool strikes per number heard (0038); its rod plays out by `RemoteRod`
+  on this surface (0076). A friend's tool strikes per number heard, from the hero sent with it; its rod plays out by `RemoteRod`
   (0065); its drill or power driver runs as the sim says (0055).
 
 ## The hands
@@ -124,9 +124,9 @@ the sim.
 - **One aim** (`Aiming.AimAt`): a plan (back walls first), machine (its rise, 0099), tank, door or valve (E), a wreck under the
   pointer, else the nearest small piece. Outlined green or red, `UsePrompt` says why; plan in hand, E idle. Armed, small pieces.
 - **Hits are rays from the shoulder** (tool-reach, hits-pass-wrecks): the fan (`ToolRays`), each to a wall, hitting all
-  wrecks it crosses; the ground met rings, sparks.
-- **Struck tools** (0038, salvage-tools, the-pickaxe): axe, hammer, spear, pick, each at its pace; a swing hits as its blade
-  crosses the aim, its fan a shoulder's sweep (`ShapeFor`).
+  wrecks it crosses; ground met rings, sparks.
+- **Struck tools** (0038, swing-motions): the row's motion for the aim's sector (gc/`SwingMotions.cs`), picked at the
+  press, its aim an offset the hero carries; hits as the blade crosses it.
 - **Harpoon, grapple** (0044, grapple-climbs): reel pieces, pull to walls; hung, refire; Space/RMB let go.
 - **A gun** (hold-to-fire): left held fires each cooldown; with `Charge` it charges then, fires let go
   full; flat, clicks dry, sends nothing. Afloat it kicks back (`Recoil`); a guest flies it.
@@ -134,9 +134,9 @@ the sim.
   (`ToolEdges`), sparking where it touches (`ToolWork`).
 - **The power driver** (driver-at-work, driver-order): charged, a 2×2 square over plans or marks
   (`WorkedSquare`), heard (`BiteLoop`). Right click toggles; mode by the arrow (mode-glyph).
-- **Seated** (`Seating.Held`): no tool works; E leaves.
+- **Seated** (`Seating.Held`): no tool; E leaves.
 - **Ladders and ledges** (0092): grab, climb, slide, leap off; an open hatch is climbable, a closed one a floor
-  (0112). A jump a foot short is mantled.
+  (0112). A jump a foot short mantles.
 
 ## Deliberately not handled
 

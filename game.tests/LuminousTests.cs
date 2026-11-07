@@ -195,8 +195,8 @@ public class LuminousTests
     {
         double stop = AxeSwing.StopMs / AxeSwing.Ms;
         Assert.Equal(0.2, AxeSwing.Shown(0.2), 9);
-        Assert.Equal(AxeSwing.HitAt, AxeSwing.Shown(AxeSwing.HitAt + stop / 2), 9);
-        Assert.Equal(AxeSwing.HitAt, AxeSwing.Shown(AxeSwing.HitAt + stop), 9);
+        Assert.Equal(Overhand.HitAt, AxeSwing.Shown(Overhand.HitAt + stop / 2), 9);
+        Assert.Equal(Overhand.HitAt, AxeSwing.Shown(Overhand.HitAt + stop), 9);
         Assert.Equal(1, AxeSwing.Shown(1), 9);
         // Never backwards, never a jump.
         double last = 0;

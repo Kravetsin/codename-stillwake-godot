@@ -16,7 +16,7 @@ public class StrokesTests
         var (hits, phases) = (new List<double>(), new List<double?>());
         for (double at = 0; at < ms; at += Frame)
         {
-            if (swing.Advance(Frame, true, default, stroke).Hits) hits.Add(at);
+            if (swing.Advance(Frame, true, stroke: stroke).Hits) hits.Add(at);
             phases.Add(swing.Phase);
         }
         return (hits, phases);
@@ -36,8 +36,9 @@ public class StrokesTests
     [Fact]
     public void TheAxeIsAsItWasAStrokeItsPaceLong()
     {
-        Assert.Equal((AxeSwing.Ms, AxeSwing.Ms, AxeSwing.HitAt), (Strokes.Axe.Ms, Strokes.Axe.PaceMs, Strokes.Axe.HitShare));
-        Assert.Equal(AxeSwing.WhooshMs, Strokes.Axe.WhooshMs, 9);
+        Assert.Equal((AxeSwing.Ms, AxeSwing.Ms, Overhand.HitAt), (Strokes.Axe.Ms, Strokes.Axe.PaceMs, Strokes.Axe.HitShare));
+        // Its whoosh read from its row: loudest in the middle of the downstroke, as it always was.
+        Assert.Equal((Overhand.WindShare + Overhand.StrikeShare / 2) * AxeSwing.Ms - Sound.SwingPeakS * 1000, Strokes.Axe.WhooshMs, 9);
     }
 
     [Fact]
@@ -46,7 +47,7 @@ public class StrokesTests
         var (hits, _) = Held(Strokes.Pick, 3000);
         Assert.Equal(10, hits.Count);
         Assert.InRange(hits[1] - hits[0], 300 - Frame, 300 + Frame);
-        Assert.Equal((StrokeKind.Swing, AxeSwing.HitAt), (Strokes.Pick.Kind, Strokes.Pick.HitShare));
+        Assert.Equal((StrokeKind.Swing, Overhand.HitAt), (Strokes.Pick.Kind, Strokes.Pick.HitShare));
         Assert.Equal(Strokes.Pick.Ms, Strokes.Pick.PaceMs);
         Assert.True(Strokes.Pick.PaceMs < Strokes.Axe.PaceMs);
     }

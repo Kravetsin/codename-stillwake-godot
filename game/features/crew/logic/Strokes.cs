@@ -8,15 +8,21 @@ public enum StrokeKind { Swing, Thrust }
 /// <summary>
 /// One melee tool's strokes (salvage-tools), in real time: each plays through <paramref name="Ms"/>, striking at
 /// <paramref name="HitShare"/> of it, and the next may begin <paramref name="PaceMs"/> after it began, its weapon's pace, so a
-/// stroke shorter than the pace rests between. Its whoosh's loudest moment lies <paramref name="PeakS"/> into its file. A swing
-/// sweeps its weapon's fan, <paramref name="Half"/> radians either side of its line (tool-reach).
+/// stroke shorter than the pace rests between. It plays the motion of the sector it is aimed in (<paramref name="Motions"/>,
+/// swing-motions), <paramref name="Look"/> in the hand. Its whoosh's loudest moment lies <paramref name="PeakS"/> into its file. A
+/// swing sweeps its weapon's fan, <paramref name="Half"/> radians either side of its line (tool-reach).
 /// </summary>
-public sealed record Stroke(StrokeKind Kind, double Ms, double PaceMs, double HitShare, double PeakS = Stillwake.Game.Sound.SwingPeakS, double Half = 0)
+public sealed record Stroke(
+    SectorMotions Motions, HeldLook Look, double Ms, double PaceMs, double HitShare, double PeakS = Stillwake.Game.Sound.SwingPeakS, double Half = 0)
 {
-    /// <summary>When in a stroke its whoosh begins: its loudest moment (<see cref="PeakS"/> in) as the blade comes down, or the spear goes out.</summary>
-    public double WhooshMs => Kind == StrokeKind.Swing
-        ? (AxeSwing.WindShare + AxeSwing.StrikeShare / 2) * Ms - PeakS * 1000
-        : Math.Max(0, HitShare * Ms - PeakS * 1000);
+    /// <summary>How it moves the arm, swung or thrust, as its motions do.</summary>
+    public StrokeKind Kind => Motions.Straight.Kind;
+
+    /// <summary>When in a stroke playing <paramref name="motion"/> its whoosh begins: its loudest moment (<see cref="PeakS"/> in) at the motion's.</summary>
+    public double WhooshMsOf(SwingMotion motion) => Math.Max(0, (motion.WhooshShare ?? HitShare) * Ms - PeakS * 1000);
+
+    /// <summary>When in a stroke aimed straight ahead its whoosh begins.</summary>
+    public double WhooshMs => WhooshMsOf(Motions.Straight);
 }
 
 /// <summary>Every tool struck with by hand, by its item: the axe, the sledgehammer, the spear and the pickaxe.</summary>
@@ -27,17 +33,20 @@ public static class Strokes
     /// <summary>Half <paramref name="weapon"/>'s fan, in radians: how far either side of its line its rays go.</summary>
     public static double HalfOf(Content.Weapon weapon) => Math.PI * weapon.Arc / Content.Headings.Turn;
 
+    /// <summary>The overhand in every sector: the axe's, the pickaxe's and the sledgehammer's.</summary>
+    private static readonly SectorMotions Overhanded = SectorMotions.All(Overhand.Motion);
+
     /// <summary>The fire axe's: a stroke its pace long (0040).</summary>
-    public static readonly Stroke Axe = new(StrokeKind.Swing, PaceMs(Content.Weapons.Axe), PaceMs(Content.Weapons.Axe), AxeSwing.HitAt, Half: HalfOf(Content.Weapons.Axe));
+    public static readonly Stroke Axe = new(Overhanded, HeldLook.FireAxe, PaceMs(Content.Weapons.Axe), PaceMs(Content.Weapons.Axe), Overhand.HitAt, Half: HalfOf(Content.Weapons.Axe));
 
     /// <summary>
     /// The sledgehammer's: the axe's swing slowed so the blow lands <see cref="HammerBlowMs"/> into it, then rest till its pace of
     /// three seconds is out.
     /// </summary>
-    public static readonly Stroke Hammer = new(StrokeKind.Swing, HammerBlowMs / AxeSwing.HitAt, PaceMs(Content.Weapons.Sledgehammer), AxeSwing.HitAt, Stillwake.Game.Sound.HammerSwingPeakS, HalfOf(Content.Weapons.Sledgehammer));
+    public static readonly Stroke Hammer = new(Overhanded, HeldLook.Sledgehammer, HammerBlowMs / Overhand.HitAt, PaceMs(Content.Weapons.Sledgehammer), Overhand.HitAt, Stillwake.Game.Sound.HammerSwingPeakS, HalfOf(Content.Weapons.Sledgehammer));
 
     /// <summary>The pickaxe's (the-pickaxe): the axe's swing played over its own pace, quicker, a blow every 0.3 s.</summary>
-    public static readonly Stroke Pick = new(StrokeKind.Swing, PaceMs(Content.Weapons.Pickaxe), PaceMs(Content.Weapons.Pickaxe), AxeSwing.HitAt, Half: HalfOf(Content.Weapons.Pickaxe));
+    public static readonly Stroke Pick = new(Overhanded, HeldLook.Pickaxe, PaceMs(Content.Weapons.Pickaxe), PaceMs(Content.Weapons.Pickaxe), Overhand.HitAt, Half: HalfOf(Content.Weapons.Pickaxe));
 
     /// <summary>How long the sledgehammer's swing takes to its blow: a heavy wind-up, slower than the axe's whole swing.</summary>
     public const double HammerBlowMs = 800;
@@ -46,7 +55,7 @@ public static class Strokes
     /// The spear's, the user's pick «Короткий укол» (jab): <see cref="JabMs"/>, the elbow cocked and straightened, the hit at 215 ms;
     /// played its whole pace, the arm held aimed at rest after the jab, so a held thrust never drops the spear between.
     /// </summary>
-    public static readonly Stroke Spear = new(StrokeKind.Thrust, PaceMs(Content.Weapons.Spear), PaceMs(Content.Weapons.Spear), 215 / PaceMs(Content.Weapons.Spear), Stillwake.Game.Sound.SpearThrustPeakS);
+    public static readonly Stroke Spear = new(SectorMotions.All(Jab.Motion), HeldLook.Spear, PaceMs(Content.Weapons.Spear), PaceMs(Content.Weapons.Spear), 215 / PaceMs(Content.Weapons.Spear), Stillwake.Game.Sound.SpearThrustPeakS);
 
     /// <summary>How long the jab itself takes, out and back.</summary>
     public const double JabMs = 450;
