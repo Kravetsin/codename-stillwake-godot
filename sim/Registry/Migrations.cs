@@ -155,6 +155,22 @@ public static class Migrations
                 foreach (var grant in granted.Where(g => g!.GetValue<string>() == gone).ToList()) granted.Remove(grant);
             return root;
         },
+        // 51 → 52 (2026-11-07-radar-mast): the radar antenna is a mast six cells tall where it stood four; one built or planned
+        // keeps the roof it stood on, its top two cells up.
+        root =>
+        {
+            foreach (var slices in new[] { root["slices"]! }.Concat((root["surfaces"]?.AsArray() ?? []).Select(s => s!["slices"]!)))
+            {
+                int width = slices["grid"]!["width"]!.GetValue<int>();
+                int Up(string? kind) => kind switch { "radarAntenna" => 2 * width, _ => 0 };
+                foreach (var machine in slices["grid"]!["machines"]!.AsArray())
+                    machine!["cell"] = machine["cell"]!.GetValue<int>() - Up(machine["kind"]!.GetValue<string>());
+                foreach (var plan in slices["building"]?["plans"]?.AsArray() ?? [])
+                    if (plan!["place"] is { } place && place["layer"]?.GetValue<string>() == "machine")
+                        plan["cell"] = plan["cell"]!.GetValue<int>() - Up(place["kind"]?.GetValue<string>());
+            }
+            return root;
+        },
     ];
 
     /// <summary><paramref name="old"/> with each end at a moved port's old cell at its new one, in order, a span made twice or made a point gone.</summary>

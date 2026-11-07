@@ -11,6 +11,7 @@ public class ShipComputerTests
     /// <summary>A panel and the antenna out on the roof, the computer in the room under them, both cabled to the panel.</summary>
     private static readonly string[] Rows =
     [
+        "    NN      ",
         "PPP NN      ",
         "    NN      ",
         "############",
@@ -18,7 +19,7 @@ public class ShipComputerTests
         "#UUU.......#",
         "############",
     ];
-    private static readonly (int X, int Y) Panel = (0, 0), Antenna = (4, 1), Computer = (1, 3);
+    private static readonly (int X, int Y) Panel = (0, 1), Antenna = (4, 2), Computer = (1, 4);
 
     private static readonly Pairs Cables = [(Panel, Antenna), (Panel, Computer)];
 
@@ -49,11 +50,11 @@ public class ShipComputerTests
     {
         var w = new Scenario(Layout.Parse(Rows, null, Cables) with { Known = Content.Research.StartKnown }, doubled: true);
         var computer = new Placement("machine", "computer");
-        Assert.Equal("building.unknown", w.M.Building.Problem(w.At(6, 3), computer));
+        Assert.Equal("building.unknown", w.M.Building.Problem(w.At(6, 4), computer));
         Assert.All(["computer", "radarAntenna"], kind => Assert.False(w.M.Research.Knows(kind)));
         Assert.All(["computer", "radarAntenna"], kind => Assert.Equal(MenuTabs.Ship, Machines.Get(kind).Menu!.Tab));
         // A world granted everything plans them at once, creative or not.
-        Assert.Null(World().M.Building.Problem(w.At(6, 3), computer));
+        Assert.Null(World().M.Building.Problem(w.At(6, 4), computer));
     }
 
     [Fact]
