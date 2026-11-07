@@ -44,7 +44,7 @@ Shared: `game/shared/` (`Ui`, `Hands`, `PointerTip`, `Tablet`, `TabletMotion`, `
   (`FocusOf`); the middle button or a layer's `PlanKey` turns it, each layer keeping its card in hand. Menu and search show the
   focused layer's cards. A card in hand, the right (or Esc) lets it go (right-lets-go); with none it marks or
   cancels in the focused layer (`RemovalIn`): begun on a plan of that layer it cancels its plans in the rectangle, else
-  marks all of that layer built there, each piece once. The other layer at 35% (`AlphasOf`). Off the ship
+  marks all of that layer built there, each piece once. Back at 35%; focused, front hidden, back unlit (back-focus-clear). Off the ship
   (`PlanHand.Aboard`) nothing fades, no see-through (`SeesThrough`). No removal card; no grid drawn.
 - **The plan's modes** (plan-modes, `PlanHand.Mode`): building, wiring, piping, by Z X C or the left wing's keys; kept
   while the plan is away. Wiring and piping show their cards alone, no search, layers or pipette (`CardsOf`); the card picked
@@ -76,12 +76,12 @@ Shared: `game/shared/` (`Ui`, `Hands`, `PointerTip`, `Tablet`, `TabletMotion`, `
 - **Plans are ghosts** (0064, `PlanTiles`): greyed, unlit, joined to what is planned and built beside them; back
   walls fainter, just over the rooms' air (`PlanBacks`), the rest over the ship, under the heroes (driver-order). The
   ghost in hand is green where the sim takes it, red where not (0022).
-- **Dashes** (0064): round each group of plans (each machine alone) marching
+- **Dashes** (0064): round each group of plans (a machine alone) marching
   dashes run along the silhouette, shared sides cancelled; a planned machine has a "+". Pipes and
-  valves are not outlined, unless marked. Rebuilt only on a change of plans, grid or view.
-- **A blueprint turns real as worked** (0063): from the bottom up (floors and conduits from the left), the cut at
+  valves unoutlined unless marked. Rebuilt on a change of plans, grid or view.
+- **A blueprint turns real as worked** (0063): bottom up (floors and conduits from the left), the cut at
   `Progress / TicksFor`, by ticks; the real share lit, the
-  rest the ghost. No bars. No node, material or shader parameter per plan (`PlanCut`, `BuiltParts`).
+  rest the ghost. No bars. No node, material or shader parameter a plan (`PlanCut`, `BuiltParts`).
 - **A mark** (0064) keeps its own picture in red dashes and turns into its red ghost from the top as worked.
 - **A repair** (magnetic-flare): drawn as its machine's blueprint being built, by `RepairProgress`.
 - **Work's light** (0075, 0094, `BuildGlow`, `Tools.SparksOf`): sparks burst from the side facing the nearest hero
@@ -92,5 +92,5 @@ Shared: `game/shared/` (`Ui`, `Hands`, `PointerTip`, `Tablet`, `TabletMotion`, `
 ## Deliberately not handled
 
 - An iron back wall planned is always the plain panel, never the grille.
-- The cut does not smooth between ticks: guessing ahead would overshoot a stalled part.
-- Who works a plan is not told by the sim, so sparks face the nearest hero.
+- The cut does not smooth between ticks: a guess would overshoot a stalled part.
+- The sim does not tell who works a plan: sparks face the nearest hero.

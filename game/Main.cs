@@ -615,9 +615,9 @@ public partial class Main : Node2D, ITogether
         }
         foreach (var scenario in _scenarios) scenario.Frame(client, _m, Log);
         _hands.Frame(client, _m, _bodies, elapsedMs);
-        // The open plan draws its focused layer whole and the other faded, aboard only (0110).
+        // The open plan draws its focused layer whole and the other faded, the front hidden for the back's, aboard only (0110, back-focus-clear).
         var fade = Features.Building.Tools.AlphasOf(_hands.Plan.Shown);
-        _grid?.Fade(fade);
+        _grid?.Fade(fade, Features.Building.Tools.BackUnlit(_hands.Plan.Shown));
         foreach (var view in _faded) view.Modulate = new Color(1, 1, 1, fade.Front);
     }
 

@@ -115,7 +115,7 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [0107](0107-left-is-front-right-is-back.md) | Left is the front, right is the back; the menu plans, the hands build | accepted | 0108, 0109, fan-of-rays (in part) |
 | [0108](0108-left-plans-right-removes.md) | In the plan menu the left button plans and the right removes; the stripper lays cables | accepted | 0107, 0109, 0110, plan-modes, right-lets-go (in part) |
 | [0109](0109-pipes-are-spans.md) | Pipes are straight spans, laid with the wrench | accepted | 0110, plan-modes (in part) |
-| [0110](0110-the-plan-has-a-focused-layer.md) | The open plan has a focused layer; the hand tools have card menus | accepted | plan-modes (in part) |
+| [0110](0110-the-plan-has-a-focused-layer.md) | The open plan has a focused layer; the hand tools have card menus | accepted | plan-modes, back-focus-clear (in part) |
 | [0111](0111-doors-and-hatches.md) | Doors and hatches are two things | accepted |  |
 | [0112](0112-structure-traits.md) | Systems ask a structure's traits, not its kind | accepted | 0113 (in part) |
 | [0113](0113-machine-traits.md) | Systems ask a machine's traits, not its kind | accepted | 0114 (in part) |
@@ -268,6 +268,7 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [the-power-chain](2026-11-06-the-power-chain.md) | The power chain | accepted |  |
 | [trade-station-later](2026-11-06-trade-station-later.md) | The trade station comes with circuits | accepted |  |
 | [air-feedback](2026-11-07-air-feedback.md) | Air and power answer the player loudly | accepted |  |
+| [back-focus-clear](2026-11-07-back-focus-clear.md) | The back walls' focus hides the front | accepted |  |
 | [battery-workbench](2026-11-07-battery-workbench.md) | The workbench makes batteries | accepted |  |
 | [board-search-related](2026-11-07-board-search-related.md) | The board's search finds what is tied | accepted |  |
 | [board-search](2026-11-07-board-search.md) | The board has its own search | accepted |  |

@@ -233,8 +233,12 @@ public class BuildingToolsTests
         Assert.Equal((Focus.Front, null), (plan.Focus.Get(), What(plan.Selected.Get())));
         // Only the focused layer is whole.
         Assert.Equal((1f, 1f), Tools.AlphasOf(null));
-        Assert.Equal((Tools.Faded, 1f), Tools.AlphasOf(Focus.Back));
         Assert.Equal((1f, Tools.Faded), Tools.AlphasOf(Focus.Front));
+        // The back walls focused, the front is hidden and they are drawn out of the light, as painted (back-focus-clear).
+        Assert.Equal((0f, 1f), Tools.AlphasOf(Focus.Back));
+        Assert.True(Tools.BackUnlit(Focus.Back));
+        Assert.False(Tools.BackUnlit(Focus.Front));
+        Assert.False(Tools.BackUnlit(null));
     }
 
     [Fact]
