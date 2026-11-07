@@ -36,9 +36,9 @@ public class StrokesTests
     [Fact]
     public void TheAxeIsAsItWasAStrokeItsPaceLong()
     {
-        Assert.Equal((AxeSwing.Ms, AxeSwing.Ms, Overhand.HitAt), (Strokes.Axe.Ms, Strokes.Axe.PaceMs, Strokes.Axe.HitShare));
+        Assert.Equal((Strokes.Axe.Ms, Strokes.Axe.Ms, Overhand.HitAt), (Strokes.Axe.Ms, Strokes.Axe.PaceMs, Strokes.Axe.HitShare));
         // Its whoosh read from its row: loudest in the middle of the downstroke, as it always was.
-        Assert.Equal((Overhand.WindShare + Overhand.StrikeShare / 2) * AxeSwing.Ms - Sound.SwingPeakS * 1000, Strokes.Axe.WhooshMs, 9);
+        Assert.Equal((Overhand.WindShare + Overhand.StrikeShare / 2) * Strokes.Axe.Ms - Sound.SwingPeakS * 1000, Strokes.Axe.WhooshMsOf(Overhand.Motion), 9);
     }
 
     [Fact]
@@ -47,7 +47,7 @@ public class StrokesTests
         var (hits, _) = Held(Strokes.Pick, 3000);
         Assert.Equal(10, hits.Count);
         Assert.InRange(hits[1] - hits[0], 300 - Frame, 300 + Frame);
-        Assert.Equal((StrokeKind.Swing, Overhand.HitAt), (Strokes.Pick.Kind, Strokes.Pick.HitShare));
+        Assert.Equal(Overhand.HitAt, Strokes.Pick.HitShare);
         Assert.Equal(Strokes.Pick.Ms, Strokes.Pick.PaceMs);
         Assert.True(Strokes.Pick.PaceMs < Strokes.Axe.PaceMs);
     }
@@ -87,6 +87,13 @@ public class StrokesTests
         Assert.Equal(Strokes.RestElbow, Strokes.ElbowAt(Strokes.JabMs / Strokes.Spear.Ms), 9);
         Assert.Equal(Strokes.RestElbow, Strokes.ElbowAt(0.99), 9);
     }
+
+    [Theory]
+    [InlineData("fireAxe")]
+    [InlineData("pickaxe")]
+    [InlineData("sledgehammer")]
+    [InlineData("spear")]
+    public void EveryStrokeIsDrawnWithTheLookItsItemIsHeldIn(string item) => Assert.Same(HeldLook.Of(item), Strokes.Of(item)!.Look);
 
     [Fact]
     public void ABiteStopsTheDrawnStrokeAtItsOwnHit()

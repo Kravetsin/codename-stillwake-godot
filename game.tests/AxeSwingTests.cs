@@ -11,7 +11,7 @@ namespace Stillwake.Game.Tests;
 public class AxeSwingTests
 {
     private const double Frame = 1000.0 / 60;
-    private static readonly double HitMs = Overhand.HitAt * AxeSwing.Ms;
+    private static readonly double HitMs = Overhand.HitAt * Strokes.Axe.Ms;
 
     /// <summary>What each frame did, the phase it drew and its time, from frames <paramref name="frames"/> ms long.</summary>
     private static List<(double At, SwingStep Step, double? Phase)> Play(int count, Func<double, bool> wanted, double frame = Frame)
@@ -48,7 +48,7 @@ public class AxeSwingTests
         var played = Play(120, at => at % 125 < 60);
         var hits = Hits(played);
         Assert.Equal(4, hits.Count);
-        for (int i = 1; i < hits.Count; i++) Assert.True(hits[i] - hits[i - 1] >= AxeSwing.Ms - Frame, $"hits {hits[i - 1]} and {hits[i]}");
+        for (int i = 1; i < hits.Count; i++) Assert.True(hits[i] - hits[i - 1] >= Strokes.Axe.Ms - Frame, $"hits {hits[i - 1]} and {hits[i]}");
         Assert.Equal(hits, Strikes(played));
         // The swing began on the first click, and the clicks during it began none.
         Assert.Equal(4, played.Count(p => p.Step.Begun));
@@ -60,9 +60,9 @@ public class AxeSwingTests
         var played = Play(180, _ => true);
         var hits = Hits(played);
         // Three seconds: the first hit part way into the first swing, then one a swing.
-        Assert.Equal((int)((180 * Frame - HitMs) / AxeSwing.Ms) + 1, hits.Count);
+        Assert.Equal((int)((180 * Frame - HitMs) / Strokes.Axe.Ms) + 1, hits.Count);
         Assert.InRange(hits[0], HitMs - Frame, HitMs + Frame);
-        for (int i = 1; i < hits.Count; i++) Assert.InRange(hits[i] - hits[i - 1], AxeSwing.Ms - Frame, AxeSwing.Ms + Frame);
+        for (int i = 1; i < hits.Count; i++) Assert.InRange(hits[i] - hits[i - 1], Strokes.Axe.Ms - Frame, Strokes.Axe.Ms + Frame);
         Assert.Equal(hits, Strikes(played));
         // Held, no frame passes between swings: the axe never rests.
         Assert.All(played, p => Assert.NotNull(p.Phase));
@@ -76,9 +76,9 @@ public class AxeSwingTests
         var whooshes = held.Where(p => p.Step.Whooshes).Select(p => p.At).ToList();
         Assert.Equal(held.Count(p => p.Step.Begun), whooshes.Count);
         Assert.Single(Play(60, at => at < Frame), p => p.Step.Whooshes);
-        Assert.InRange(whooshes[0], Strokes.Axe.WhooshMs - Frame, Strokes.Axe.WhooshMs + Frame);
+        Assert.InRange(whooshes[0], Strokes.Axe.WhooshMsOf(Overhand.Motion) - Frame, Strokes.Axe.WhooshMsOf(Overhand.Motion) + Frame);
         // Its peak falls in the downstroke, before the blade crosses the line.
-        double peak = (Strokes.Axe.WhooshMs + Sound.SwingPeakS * 1000) / AxeSwing.Ms;
+        double peak = (Strokes.Axe.WhooshMsOf(Overhand.Motion) + Sound.SwingPeakS * 1000) / Strokes.Axe.Ms;
         Assert.InRange(peak, Overhand.WindShare, Overhand.HitAt);
         // Stopped before it, a swing makes none.
         var swing = new AxeSwing();
@@ -94,7 +94,7 @@ public class AxeSwingTests
     {
         int frames = (int)(60_000 / frame);
         var hits = Hits(Play(frames, _ => true, frame));
-        Assert.Equal((int)((frames * frame - HitMs) / AxeSwing.Ms) + 1, hits.Count);
+        Assert.Equal((int)((frames * frame - HitMs) / Strokes.Axe.Ms) + 1, hits.Count);
     }
 
     [Fact]
@@ -104,7 +104,7 @@ public class AxeSwingTests
         var played = Play(60, at => at < Frame);
         Assert.Equal([played.First(p => p.Phase >= Overhand.HitAt).At], Hits(played));
         Assert.Equal(0, played[0].Phase);
-        Assert.Null(played.First(p => p.At >= AxeSwing.Ms).Phase);
+        Assert.Null(played.First(p => p.At >= Strokes.Axe.Ms).Phase);
         Assert.Single(played, p => p.Step.Begun);
     }
 
@@ -120,7 +120,7 @@ public class AxeSwingTests
         Assert.Null(swing.Phase);
         // Put away and taken back, it still rests out its own pace; wanted after it, a new swing begins from the top.
         Assert.False(swing.Advance(Frame, true).Begun);
-        swing.Advance(AxeSwing.Ms, false);
+        swing.Advance(Strokes.Axe.Ms, false);
         Assert.True(swing.Advance(Frame, true).Begun);
         Assert.Equal((2, 0.0), (swing.Count, swing.Phase));
     }
@@ -161,8 +161,8 @@ public class AxeSwingTests
                 double upper = AxeSwing.ArmAt(AngleAt(stroke, degrees * Math.PI / 180, phase)).Upper;
                 (highest, lowest) = (Math.Max(highest, upper), Math.Min(lowest, upper));
             }
-            Assert.True(highest <= AxeSwing.Overhead + 1e-9, $"{degrees}°: raised to {highest * 180 / Math.PI:F0}°");
-            Assert.True(lowest >= -AxeSwing.Behind - 1e-9, $"{degrees}°: brought through to {lowest * 180 / Math.PI:F0}°");
+            Assert.True(highest <= Overhand.Overhead + 1e-9, $"{degrees}°: raised to {highest * 180 / Math.PI:F0}°");
+            Assert.True(lowest >= -Overhand.Behind - 1e-9, $"{degrees}°: brought through to {lowest * 180 / Math.PI:F0}°");
             // Raised less, it is still raised, and its blade crosses the line when the hit goes.
             Assert.True(highest > AxeSwing.ArmAt(line).Upper + 0.5);
             Assert.Equal(line, AngleAt(stroke, degrees * Math.PI / 180, Overhand.HitAt), 9);
@@ -239,7 +239,7 @@ public class AxeSwingTests
         swing.Advance(Frame, true);
         // Five seconds lost to a stall move the swing on as one long frame would, and no further.
         Assert.False(swing.Advance(5000, true).Hits);
-        Assert.Equal(AxeSwing.MostPerFrameMs / AxeSwing.Ms, swing.Phase);
+        Assert.Equal(AxeSwing.MostPerFrameMs / Strokes.Axe.Ms, swing.Phase);
         Assert.Equal(1, swing.Count);
     }
 
@@ -265,7 +265,7 @@ public class AxeSwingTests
                 sinceHit += Math.Min(ms, AxeSwing.MostPerFrameMs);
                 if (!step.Hits) continue;
                 hits++;
-                Assert.True(sinceHit > AxeSwing.Ms - AxeSwing.MostPerFrameMs, $"two hits {sinceHit} ms apart");
+                Assert.True(sinceHit > Strokes.Axe.Ms - AxeSwing.MostPerFrameMs, $"two hits {sinceHit} ms apart");
                 sinceHit = 0;
                 // Drawn this frame with the blade through the line to the wreck; the frame before, short of it.
                 Assert.True(swing.Phase >= Overhand.HitAt);
@@ -293,16 +293,16 @@ public class AxeSwingTests
         Run(Frame, 1);
         Assert.Equal((1, 0.0), (begun, swing.Phase));
         // Still sent as the swing ends, the same swing is not swung again.
-        Run(AxeSwing.Ms + 100, 1);
+        Run(Strokes.Axe.Ms + 100, 1);
         Assert.Equal(1, begun);
         Assert.Null(swing.Phase);
         // The next sent while one plays waits for it to end; two passed meanwhile are swung as one.
         Run(Frame, 2);
         Run(100, 3);
         Assert.Equal(2, begun);
-        Run(AxeSwing.Ms, 4);
+        Run(Strokes.Axe.Ms, 4);
         Assert.Equal(3, begun);
-        Run(AxeSwing.Ms + 100, null);
+        Run(Strokes.Axe.Ms + 100, null);
         Assert.Null(swing.Phase);
         Assert.Equal(3, begun);
     }
@@ -318,7 +318,7 @@ public class AxeSwingTests
         Assert.True(swing.Advance(Frame, true, Ahead).Begun);
         Assert.Equal(Ahead, swing.At);
         // The pointer moved, the button held or pressed again: the swing playing keeps its point.
-        for (double t = Frame; t < AxeSwing.Ms - 2 * Frame; t += Frame) swing.Advance(Frame, true, Above);
+        for (double t = Frame; t < Strokes.Axe.Ms - 2 * Frame; t += Frame) swing.Advance(Frame, true, Above);
         Assert.Equal(Ahead, swing.At);
         // Held as it ends, the next is aimed where the pointer is then.
         swing.Advance(3 * Frame, true, Below);
@@ -338,24 +338,20 @@ public class AxeSwingTests
     /// <summary>The arm's angle at <paramref name="phase"/> of the axe's stroke along <paramref name="line"/> from the shoulder.</summary>
     private static double ArmAngle(AxeSwing swing, double line, double phase) => swing.Play!.AngleAt(line, phase);
 
-    private static double LineOf(Point toward, Hero hero)
-    {
-        var hand = Aiming.HandOf(hero);
-        return Math.Atan2(toward.Y - hand.Y, toward.X - hand.X);
-    }
-
     [Fact]
     public void AHeroCarriedAwayMidSwingStrikesWithTheArmAndFanItWasPressedWith()
     {
         var swing = new AxeSwing();
-        Swing(ref swing, true, new Point(Pressed.X + 2_500, Pressed.Y - 3_000), Pressed);
-        double line = LineOf(Toward(swing, Pressed), Pressed);
-        int heading = ToolRays.HeadingOf(Pressed, (Toward(swing, Pressed).X, Toward(swing, Pressed).Y));
+        var press = new Point(Pressed.X + 2_500, Pressed.Y - 3_000);
+        Swing(ref swing, true, press, Pressed);
+        var offset = new Point(press.X - Pressed.X, press.Y - Pressed.Y);
+        int heading = ToolRays.HeadingOf(Pressed, (press.X, press.Y));
         // Knocked three cells along and one down before the blade comes down.
         var hero = Pressed with { X = Pressed.X + 3_000, Y = Pressed.Y + 1_000 };
         while (!Swing(ref swing, false, default, hero).Hits) { }
-        double phase = swing.Phase!.Value, now = LineOf(Toward(swing, hero), hero);
-        Assert.Equal(ArmAngle(swing, line, phase), ArmAngle(swing, now, phase), 9);
+        double phase = swing.Phase!.Value;
+        Assert.Equal(offset, swing.Aim);
+        Assert.Equal(ArmAngle(swing, AxeSwing.AngleOf(offset), phase), ArmAngle(swing, AxeSwing.AngleOf(AxeSwing.OffsetOf(Toward(swing, hero), AxeSwing.PlaceOf(hero))), phase), 9);
         Assert.Equal(heading, ToolRays.HeadingOf(hero, (Toward(swing, hero).X, Toward(swing, hero).Y)));
     }
 
@@ -414,7 +410,7 @@ public class AxeSwingTests
     public void SwingsTheArmStraightAboutTheShoulderAndStrikesWithTheSwingsOwnArm()
     {
         // Held from rest, three swings, toward a point ahead and a little below.
-        var frames = Arm(3 * AxeSwing.Ms, _ => true, _ => new Point(3_000, 500));
+        var frames = Arm(3 * Strokes.Axe.Ms, _ => true, _ => new Point(3_000, 500));
         int downstroke = 0;
         for (int i = 0; i < frames.Count; i++)
         {

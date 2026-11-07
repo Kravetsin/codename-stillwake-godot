@@ -38,19 +38,31 @@ public class SwingMotionsTests
             if (phase < over) return through * (phase - HitAt) / (over - HitAt);
             return through * (1 + Math.Cos((phase - over) / (1 - over) * Math.PI)) / 2;
         }
+
+        /// <summary>The jab's elbow <paramref name="ms"/> into its 450 ms, as main drew it.</summary>
+        public static double JabElbow(double ms)
+        {
+            const double Cocked = 1.75;
+            double rest = HeldLook.Spear.Elbow;
+            static double Smooth(double t) => t * t * (3 - 2 * t);
+            static double Mix(double a, double b, double t) => a + (b - a) * t;
+            if (ms < 150) return Mix(rest, Cocked, Smooth(ms / 150));
+            if (ms < 215) return Mix(Cocked, 0, Math.Pow((ms - 150) / 65, 2));
+            if (ms < 265) return 0;
+            return ms < 450 ? Mix(0, rest, Smooth((ms - 265) / (450 - 265))) : rest;
+        }
     }
 
-    private static readonly (Stroke Stroke, HeldLook Look)[] Swung =
-        [(Strokes.Axe, HeldLook.FireAxe), (Strokes.Pick, HeldLook.Pickaxe), (Strokes.Hammer, HeldLook.Sledgehammer)];
+    private static readonly Stroke[] Swung = [Strokes.Axe, Strokes.Pick, Strokes.Hammer];
 
     /// <summary>Aims every 5В° over the front half, in radians.</summary>
     private static IEnumerable<double> FrontAims() => Enumerable.Range(-18, 37).Select(d => d * 5 * Math.PI / 180);
 
     /// <summary>The arm's angle at <paramref name="phase"/> of <paramref name="stroke"/> aimed <paramref name="aim"/>, as played now.</summary>
-    private static double ArmAngle(Stroke stroke, HeldLook look, double aim, double phase) => MotionPlay.Of(stroke, aim).AngleAt(aim, phase);
+    private static double ArmAngle(Stroke stroke, double aim, double phase) => MotionPlay.Of(stroke, aim).AngleAt(aim, phase);
 
     /// <summary>The share at which the edge is <paramref name="turn"/> from the aim line, as played now.</summary>
-    private static double ShareAt(Stroke stroke, HeldLook look, double aim, double turn) => MotionPlay.Of(stroke, aim).ShareAt(turn);
+    private static double ShareAt(Stroke stroke, double aim, double turn) => MotionPlay.Of(stroke, aim).ShareAt(turn);
 
     /// <summary>The jab's elbow at <paramref name="phase"/>, as played now.</summary>
     private static double JabElbow(double phase) => MotionPlay.Of(Strokes.Spear, 0).ElbowAt(phase);
@@ -58,20 +70,20 @@ public class SwingMotionsTests
     [Fact]
     public void EverySwungWeaponPlaysTodaysSwingExactlyAtEveryAimAndPhase()
     {
-        foreach (var (stroke, look) in Swung)
+        foreach (var stroke in Swung)
             foreach (double aim in FrontAims())
             {
-                double line = aim + AxeSwing.Lead(look);
+                double line = aim + AxeSwing.Lead(stroke.Look);
                 for (int i = 0; i <= 100; i++)
                 {
                     double phase = i / 100.0;
-                    Assert.True(Math.Abs(Reference.AngleAt(line, phase, stroke.Half) - ArmAngle(stroke, look, aim, phase)) < 1e-9,
-                        $"{look.Picture} at {aim * 180 / Math.PI:F0}В°, phase {phase}");
+                    Assert.True(Math.Abs(Reference.AngleAt(line, phase, stroke.Half) - ArmAngle(stroke, aim, phase)) < 1e-9,
+                        $"{stroke.Look.Picture} at {aim * 180 / Math.PI:F0}В°, phase {phase}");
                 }
                 var shape = Reference.ShapeFor(line, stroke.Half);
                 foreach (double turn in new[] { -stroke.Half, stroke.Half, -0.3, 0.3, -2.0, 2.0 })
-                    Assert.True(Math.Abs(Reference.ShareAt(turn, shape) - ShareAt(stroke, look, aim, turn)) < 1e-9,
-                        $"{look.Picture} at {aim * 180 / Math.PI:F0}В°, turn {turn}");
+                    Assert.True(Math.Abs(Reference.ShareAt(turn, shape) - ShareAt(stroke, aim, turn)) < 1e-9,
+                        $"{stroke.Look.Picture} at {aim * 180 / Math.PI:F0}В°, turn {turn}");
             }
     }
 
@@ -79,7 +91,7 @@ public class SwingMotionsTests
     public void TheSpearsJabKeepsItsElbowCurve()
     {
         for (double ms = 0; ms <= Strokes.Spear.Ms; ms += 5)
-            Assert.Equal(Strokes.ElbowAt(ms / Strokes.Spear.Ms), JabElbow(ms / Strokes.Spear.Ms), 12);
+            Assert.Equal(Reference.JabElbow(ms), JabElbow(ms / Strokes.Spear.Ms), 12);
     }
 
     // Rows: every weapon's motions.
@@ -98,11 +110,10 @@ public class SwingMotionsTests
     {
         foreach (var stroke in new[] { Strokes.Axe, Strokes.Pick, Strokes.Hammer, Strokes.Spear })
         {
-            Assert.All(stroke.Motions.Each, m => Assert.Equal(stroke.Kind, m.Kind));
             foreach (double aim in FrontAims())
             {
                 var play = MotionPlay.Of(stroke, aim);
-                if (play.Motion.Kind == StrokeKind.Thrust)
+                if (play.Motion.Kind == MotionKind.Thrust)
                 {
                     Assert.Equal(play.ElbowAt(0), play.ElbowAt(1), 9);
                     continue;
@@ -140,12 +151,14 @@ public class SwingMotionsTests
     [InlineData(90, Sector.Under)]
     [InlineData(180 + 45, Sector.Up)]
     [InlineData(180 - 30, Sector.Down)]
+    [InlineData(160, Sector.Straight)]
+    [InlineData(120, Sector.Down)]
     [InlineData(-180, Sector.Straight)]
     public void ABoundBelongsToTheSmallerAngleAndTheBackHalfIsMirrored(double degrees, Sector sector) =>
         Assert.Equal(sector, Sectors.Of(degrees * Math.PI / 180));
 
     /// <summary>A motion of fixed keys, the overhand's own as aimed straight, for every sector: none such is played yet.</summary>
-    private static readonly SwingMotion Fixed = new(StrokeKind.Swing, 0.41, Overhand.KeysFor((Overhand.Raised, Overhand.Through), 0));
+    private static readonly SwingMotion Fixed = new(MotionKind.Swing, 0.41, Overhand.KeysFor((Overhand.Raised, Overhand.Through), 0));
 
     private static readonly Stroke FixedAxe = Strokes.Axe with { Motions = SectorMotions.All(Fixed) };
 
@@ -188,6 +201,17 @@ public class SwingMotionsTests
         Assert.Same(Overhand.Motion, swing.Play.Motion);
     }
 
+    [Fact]
+    public void TheAngleGivenAtThePressChoosesTheMotionNotTheOffsetsOwn()
+    {
+        // Aimed behind by the offset, level by the figure's shoulder: the figure's angle shapes the stroke.
+        var swing = new AxeSwing();
+        swing.Advance(Frame, true, new Point(-3_000, 0), default, Strokes.Axe, 0);
+        Assert.Equal(new Point(-3_000, 0), swing.Aim);
+        Assert.Equal(Overhand.ShapeFor(0 + AxeSwing.Lead(Strokes.Axe.Look), Strokes.Axe.Half), swing.Play!.Shape);
+        Assert.NotEqual(Overhand.ShapeFor(AxeSwing.AngleOf(swing.Aim) + AxeSwing.Lead(Strokes.Axe.Look), Strokes.Axe.Half), swing.Play.Shape);
+    }
+
     // Others' heroes: each swing aimed from the hero sent with it.
 
     private const double Frame = 1000.0 / 60;
@@ -202,7 +226,7 @@ public class SwingMotionsTests
     {
         var remote = new RemoteHeroes();
         var swing = new AxeSwing();
-        (Busy? Last, Point Place) heard = default;
+        HeardChop heard = default;
         var begun = new List<(double, Point, Hero, Hero)>();
         double nextSend = 0;
         Busy? busy = null;
@@ -223,7 +247,7 @@ public class SwingMotionsTests
                 heard = Busy.Hear(heard, seen);
                 nextSend += RemoteHeroes.SendMs;
             }
-            if (swing.Follow(Frame, heard.Last, heard.Place).Begun) begun.Add((t, swing.Aim, remote.At(t)[0].Seen.Hero, sent));
+            if (swing.Follow(Frame, heard.Last, heard.From).Begun) begun.Add((t, swing.Aim, remote.At(t)[0].Seen.Hero, sent));
         }
         return begun;
     }
@@ -242,9 +266,19 @@ public class SwingMotionsTests
     public void AHeldRunOfThreeSwingsReplaysBackToBackEachWithItsOwnOffset()
     {
         Point a = new(3_000, -500), b = new(-2_500, 1_000), c = new(1_500, -4_000);
-        var begun = Replay(2500, (300, a), (300 + AxeSwing.Ms, b), (300 + 2 * AxeSwing.Ms, c));
+        var begun = Replay(2500, (300, a), (300 + Strokes.Axe.Ms, b), (300 + 2 * Strokes.Axe.Ms, c));
         Assert.Equal([a, b, c], begun.Select(x => x.Aim));
-        for (int i = 1; i < begun.Count; i++) Assert.InRange(begun[i].At - begun[i - 1].At, AxeSwing.Ms - 2 * Frame, AxeSwing.Ms + 2 * Frame);
+        for (int i = 1; i < begun.Count; i++) Assert.InRange(begun[i].At - begun[i - 1].At, Strokes.Axe.Ms - 2 * Frame, Strokes.Axe.Ms + 2 * Frame);
+    }
+
+    [Fact]
+    public void ASwingHeardWhileTheLastStillPlaysIsAimedFromThePacketThatBroughtItNotTheOnesAfter()
+    {
+        // The second arrives 400 ms into the first's 500 and waits: packets meanwhile carry the hero on, not its swing.
+        Point a = new(3_000, -500), b = new(-2_500, 1_000);
+        var begun = Replay(1500, (300, a), (700, b));
+        Assert.Equal([a, b], begun.Select(x => x.Aim));
+        Assert.True(begun[1].At - 700 >= RemoteHeroes.SendMs, $"begun at {begun[1].At}");
     }
 
     [Fact]
