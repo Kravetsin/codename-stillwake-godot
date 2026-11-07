@@ -36,7 +36,9 @@ harpoon as the 5 s gun that reels debris, and for a line that a movement key doe
 - **A grip from a hang pulls on with no click**, toward `PullStop` short of the new hook. A miss lets the hero fall; a piece the
   harpoon hooks from a hang lets it fall too, the rod left in the piece to reel. A jump while the new rod flies lets go of the old
   hook, the rod flying on as a shot from the ground.
-- **Only a jump lets go** (`HarpoonShot.LetsGoBy`): A and D on the line do nothing, so a jump off it can be steered.
+- **Only a jump lets go** (`HarpoonShot.LetsGoBy`): A and D on the line do nothing, so a jump off it can be steered. Played, the
+  user asked for a way off without a jump: **a right click lets go** of a gun in hand at any time the line holds the hero, mid-pull too,
+  the hero falling on with the pull's speed (`GunHold.Drops`).
 - **The line is footing.** `Hero.Pulled` starts the coyote's steps afresh and keeps a Space pressed on the line in the jump
   buffer (0089), so the step after the line lets go jumps as from the floor: a hero hung by a ledge's lip jumps onto it.
 - **Others see it** (0065): a rod heard stuck and then flying is a shot; a friend's gun is drawn loaded after its own cooldown.
