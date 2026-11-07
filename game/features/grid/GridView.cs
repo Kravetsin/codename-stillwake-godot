@@ -33,6 +33,10 @@ public partial class GridView : Node2D
     private readonly IGridQueries _grid;
     private readonly ShipTiles _tiles = ShipTiles.Shared;
     private readonly ShadowTiles _shadows = ShadowTiles.Shared;
+    /// <summary>The back walls' lit material, put back once they are no longer drawn out of the light; and the unlit one, as painted.</summary>
+    private static readonly CanvasItemMaterial Unlit = new() { LightMode = CanvasItemMaterial.LightModeEnum.Unshaded };
+    private readonly Godot.Material _backLit;
+    private bool _backUnlit;
     private readonly TileMapLayer _back, _shade, _walls, _details, _edges, _dress, _tops, _topsFront, _fixtures, _doors, _machines;
     /// <summary>The layers a cell is drawn in; machines are drawn apart, over their footprints.</summary>
     private readonly TileMapLayer[] _cellLayers;
@@ -57,6 +61,7 @@ public partial class GridView : Node2D
         _groundAt = GroundOf16;
         // Walls and doors take the share of light a wall keeps of what reaches its face; the rest all of it.
         _back = Layer(Layers.BackWalls);
+        _backLit = _back.Material;
         // The ground's soft shadow on natural back walls, multiplying them as lit (0088).
         _shade = new TileMapLayer
         {
@@ -84,10 +89,19 @@ public partial class GridView : Node2D
         foreach (var player in (Node[])[_opens, _closes]) AddChild(player);
     }
 
-    /// <summary>The front and the back walls drawn as opaque as the open plan's focus has them (0110); all whole with the plan away.</summary>
-    public void Fade((float Front, float Back) alpha)
+    /// <summary>
+    /// The front and the back walls drawn as opaque as the open plan's focus has them (0110), the back walls out of the light
+    /// and unshaded while <paramref name="backUnlit"/> (back-focus-clear); all whole and lit with the plan away.
+    /// </summary>
+    public void Fade((float Front, float Back) alpha, bool backUnlit)
     {
-        foreach (var layer in (CanvasItem[])[_back, _shade]) layer.Modulate = new Color(1, 1, 1, alpha.Back);
+        if (backUnlit != _backUnlit)
+        {
+            _backUnlit = backUnlit;
+            _back.Material = backUnlit ? Unlit : _backLit;
+        }
+        _back.Modulate = new Color(1, 1, 1, alpha.Back);
+        _shade.Modulate = new Color(1, 1, 1, backUnlit ? 0 : alpha.Back);
         foreach (var layer in (CanvasItem[])[_walls, _details, _edges, _dress, _tops, _topsFront]) layer.Modulate = new Color(1, 1, 1, alpha.Front);
         foreach (var layer in (CanvasItem[])[_fixtures, _doors, _machines, _sockets]) layer.Modulate = new Color(1, 1, 1, alpha.Front);
     }

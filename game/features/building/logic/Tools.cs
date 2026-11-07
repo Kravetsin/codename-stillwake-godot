@@ -152,16 +152,22 @@ public static class Tools
     public static Act? ActOf(Tool? tool, bool right, Focus focus) =>
         right ? tool == null ? RemovalIn(focus) : null : tool is PlaceTool place && FocusOf(place) == focus ? place : null;
 
-    /// <summary>How opaque a layer out of focus is drawn while the plan is open (0110).</summary>
+    /// <summary>How opaque the back walls are drawn with the front focused (0110).</summary>
     public const float Faded = 0.35f;
 
-    /// <summary>How opaque the front and the back walls are drawn: the focused layer whole, the other <see cref="Faded"/>; both whole with no focus.</summary>
+    /// <summary>How opaque the front is drawn with the back walls focused: hidden, so a back wall's material reads whole (back-focus-clear).</summary>
+    public const float FrontInBack = 0f;
+
+    /// <summary>How opaque the front and the back walls are drawn: the focused layer whole, the other faded or hidden; both whole with no focus.</summary>
     public static (float Front, float Back) AlphasOf(Focus? focus) => focus switch
     {
         Focus.Front => (1, Faded),
-        Focus.Back => (Faded, 1),
+        Focus.Back => (FrontInBack, 1),
         _ => (1, 1),
     };
+
+    /// <summary>Whether the back walls are drawn as painted, out of the light: while focused, so a dark room's still read (back-focus-clear).</summary>
+    public static bool BackUnlit(Focus? focus) => focus == Focus.Back;
 
     /// <summary>The wiring's card (0110): a cable, a wire each.</summary>
     public static readonly HandCard Cable = new("cable", "tool.cable", "wire", Content.Power.CableCost);
