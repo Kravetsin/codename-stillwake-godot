@@ -129,6 +129,17 @@ public sealed class PlanHand
     }
 
 
+    /// <summary>
+    /// The right button or Esc with a card in hand (right-lets-go): the card let go, the plan kept out. Whether there was one,
+    /// so Esc goes on to put the plan away only with none.
+    /// </summary>
+    public bool LetGo()
+    {
+        if (Selected.Get() == null) return false;
+        Selected.Set(null);
+        return true;
+    }
+
     /// <summary>Puts the plan away: the menu goes and the card with it.</summary>
     public void PutPlanAway() => PlanOut.Set(false);
 

@@ -436,7 +436,7 @@ public partial class BuildMenu : CanvasLayer
             m.Building.Plans.Count > 0, _builder)));
         var mouse = GetViewport().GetMousePosition();
         bool overMenu = Covers is { } covers && covers.HasPoint(mouse);
-        var line = _hovered == null && !overMenu && !_ui.MenuOpen.Get() ? Hints.PointerOf(_hand.ModeShown, _hand.PointerOver) : null;
+        var line = _hovered == null && !overMenu && !_ui.MenuOpen.Get() ? Hints.PointerOf(_hand.ModeShown, _hand.PointerOver, _hand.Selected.Get() != null) : null;
         var at = _hand.PointerAt is { } p ? GetViewport().GetCanvasTransform() * (new Vector2((float)p.X, (float)p.Y) * ShipCamera.Cell) : mouse;
         _pointerHint.Show(line, at);
     }

@@ -146,10 +146,11 @@ public static class Tools
 
     /// <summary>
     /// What a drag in the open plan does (0110): the left button places what the card in hand places, if one is of the
-    /// <paramref name="focus"/>ed layer; the <paramref name="right"/> marks or cancels in that layer, a card in hand or not.
+    /// <paramref name="focus"/>ed layer; the <paramref name="right"/> marks or cancels in that layer with no card in hand,
+    /// and with one does nothing in the world, for it lets the card go (right-lets-go).
     /// </summary>
     public static Act? ActOf(Tool? tool, bool right, Focus focus) =>
-        right ? RemovalIn(focus) : tool is PlaceTool place && FocusOf(place) == focus ? place : null;
+        right ? tool == null ? RemovalIn(focus) : null : tool is PlaceTool place && FocusOf(place) == focus ? place : null;
 
     /// <summary>How opaque a layer out of focus is drawn while the plan is open (0110).</summary>
     public const float Faded = 0.35f;
