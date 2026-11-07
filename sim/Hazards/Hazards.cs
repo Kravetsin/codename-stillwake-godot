@@ -16,7 +16,10 @@ public sealed record Meteor(int Cell, int Power, int Left);
 /// </summary>
 public sealed class HazardsState
 {
-    /// <summary>A world whose map did not ask for hazards (<c>Layout.Meteors</c>): a test's, a dev world's. No meteors, no flares drawn. Off, not written.</summary>
+    /// <summary>
+    /// No meteors, no flares drawn: a world whose map did not ask for hazards (<c>Layout.Meteors</c>), a test's, a dev world's, or one
+    /// calmed from the dev panel (<see cref="SetCalm"/>). Off, not written.
+    /// </summary>
     [JsonInclude, JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)] internal bool Calm { get; set; }
     /// <summary>Ticks till the next meteor is seen coming; 0 before the first is drawn.</summary>
     [JsonInclude, JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)] internal int NextIn { get; set; }
@@ -28,6 +31,12 @@ public sealed class HazardsState
 
 /// <summary>A meteor hits the wall at <paramref name="Cell"/>: from the dev panel, to try a breach and its repair. It always breaks it.</summary>
 public sealed record MeteorHit(int Cell) : Command;
+
+/// <summary>
+/// The world calmed, or stirred again, from the dev panel: <c>On</c>, no meteors fall and no flares are drawn till it is turned off.
+/// Either way the meteor seen coming and the flare drawn are dropped and the countdowns start over, as in a new world.
+/// </summary>
+public sealed record SetCalm(bool On) : Command;
 
 /// <summary>Meteors breaking the hull (packages/sim/src/modules/hazards; 2026-10-28-hull-meteors), magnetic flares breaking machines (2026-10-30-magnetic-flare).</summary>
 public sealed partial class HazardsModule : Module<HazardsState>
@@ -54,11 +63,15 @@ public sealed partial class HazardsModule : Module<HazardsState>
         _items = items;
         Handles<MeteorHit>(c => HitProblem(c.Cell), c => Break(c.Cell));
         Handles<FlareNow>(FlareNowProblem, c => State.FlareIn = c.Ticks);
+        Handles<SetCalm>(_ => null, c => (State.Calm, State.Incoming, State.NextIn, State.FlareIn) = (c.On, null, 0, 0));
         // In construction, as a command would: building drops a mark on the broken wall and the rooms see the hole on its tick.
         System(Phase.Construction, Fall);
         // A flare too, so Power's derivation sees what it broke on its tick.
         System(Phase.Construction, Flare);
     }
+
+    /// <summary>Whether no meteors fall and no flares are drawn: a calm map, or calmed from the dev panel.</summary>
+    public bool Calm => State.Calm;
 
     /// <summary>The meteor seen coming, for its streak; null while none is.</summary>
     public Meteor? Incoming => State.Incoming;
@@ -239,12 +252,13 @@ public sealed partial class HazardsModule : Module<HazardsState>
     /// <summary>
     /// Meteors by hand, rarely: every hit opens the world a little more. Mostly at a standing wall, now
     /// and then anywhere: off the grid, into space, at a wall already gone. As rarely a flare striking at once, so the
-    /// suites' short runs see machines broken.
+    /// suites' short runs see machines broken, and the world calmed or stirred.
     /// </summary>
     public override Command? Fuzz(Rng rng, int from)
     {
         ulong roll = rng.Below(64);
         if (roll == 1) return new FlareNow(1) { From = from };
+        if (roll == 2) return new SetCalm(rng.Below(2) == 0) { From = from };
         if (roll != 0) return null;
         var structure = _grid.StructureLayer;
         var walls = new List<int>();

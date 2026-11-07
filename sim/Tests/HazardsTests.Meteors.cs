@@ -77,6 +77,29 @@ public partial class HazardsTests
     }
 
     [Fact]
+    public void FallNoneWhileCalmedFromTheDevPanelThenStartOverOnceStirred()
+    {
+        var w = Hull().Run(Weak.First);
+        Assert.False(w.M.Hazards.Calm);
+        Assert.NotNull(w.M.Hazards.Incoming);
+        // Calmed with a meteor seen coming: it never strikes, none other is drawn, and a save keeps it calm.
+        w.Do(new SetCalm(true)).Run().Reload();
+        Assert.True(w.M.Hazards.Calm);
+        for (int t = 0; t < Weak.First + Weak.EveryMax + Weak.Warning; t++)
+        {
+            Assert.Null(w.M.Hazards.Incoming);
+            w.Run();
+        }
+        Assert.Empty(w.Refusals);
+        // Stirred: the first is seen coming a whole First on, the command's tick counted, as in a new world.
+        w.Do(new SetCalm(false)).Run(Weak.First - 1);
+        Assert.False(w.M.Hazards.Calm);
+        Assert.Null(w.M.Hazards.Incoming);
+        w.Run();
+        Assert.NotNull(w.M.Hazards.Incoming);
+    }
+
+    [Fact]
     public void FallWeakTillAPlanetIsOpenedThenAsTheLandedShower()
     {
         var w = Hull();
