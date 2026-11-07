@@ -8,9 +8,10 @@ public enum StrokeKind { Swing, Thrust }
 /// <summary>
 /// One melee tool's strokes (salvage-tools), in real time: each plays through <paramref name="Ms"/>, striking at
 /// <paramref name="HitShare"/> of it, and the next may begin <paramref name="PaceMs"/> after it began, its weapon's pace, so a
-/// stroke shorter than the pace rests between. Its whoosh's loudest moment lies <paramref name="PeakS"/> into its file.
+/// stroke shorter than the pace rests between. Its whoosh's loudest moment lies <paramref name="PeakS"/> into its file. A swing
+/// sweeps its weapon's fan, <paramref name="Half"/> radians either side of its line (tool-reach).
 /// </summary>
-public sealed record Stroke(StrokeKind Kind, double Ms, double PaceMs, double HitShare, double PeakS = Stillwake.Game.Sound.SwingPeakS)
+public sealed record Stroke(StrokeKind Kind, double Ms, double PaceMs, double HitShare, double PeakS = Stillwake.Game.Sound.SwingPeakS, double Half = 0)
 {
     /// <summary>When in a stroke its whoosh begins: its loudest moment (<see cref="PeakS"/> in) as the blade comes down, or the spear goes out.</summary>
     public double WhooshMs => Kind == StrokeKind.Swing
@@ -23,14 +24,17 @@ public static class Strokes
 {
     private static double PaceMs(Content.Weapon weapon) => weapon.Pace * 1000.0 / Sim.World.TicksPerSecond;
 
+    /// <summary>Half <paramref name="weapon"/>'s fan, in radians: how far either side of its line its rays go.</summary>
+    public static double HalfOf(Content.Weapon weapon) => Math.PI * weapon.Arc / Content.Headings.Turn;
+
     /// <summary>The fire axe's: a stroke its pace long (0040).</summary>
-    public static readonly Stroke Axe = new(StrokeKind.Swing, PaceMs(Content.Weapons.Axe), PaceMs(Content.Weapons.Axe), AxeSwing.HitAt);
+    public static readonly Stroke Axe = new(StrokeKind.Swing, PaceMs(Content.Weapons.Axe), PaceMs(Content.Weapons.Axe), AxeSwing.HitAt, Half: HalfOf(Content.Weapons.Axe));
 
     /// <summary>
     /// The sledgehammer's: the axe's swing slowed so the blow lands <see cref="HammerBlowMs"/> into it, then rest till its pace of
     /// three seconds is out.
     /// </summary>
-    public static readonly Stroke Hammer = new(StrokeKind.Swing, HammerBlowMs / AxeSwing.HitAt, PaceMs(Content.Weapons.Sledgehammer), AxeSwing.HitAt, Stillwake.Game.Sound.HammerSwingPeakS);
+    public static readonly Stroke Hammer = new(StrokeKind.Swing, HammerBlowMs / AxeSwing.HitAt, PaceMs(Content.Weapons.Sledgehammer), AxeSwing.HitAt, Stillwake.Game.Sound.HammerSwingPeakS, HalfOf(Content.Weapons.Sledgehammer));
 
     /// <summary>How long the sledgehammer's swing takes to its blow: a heavy wind-up, slower than the axe's whole swing.</summary>
     public const double HammerBlowMs = 800;

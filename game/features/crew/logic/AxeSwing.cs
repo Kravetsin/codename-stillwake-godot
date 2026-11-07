@@ -168,28 +168,50 @@ public struct AxeSwing
     /// </summary>
     public const double Overhead = 3.6;
 
-    /// <summary>The least share of its full turn a swing keeps aimed however high, so a stroke straight up still swings.</summary>
-    public const double LeastScale = 0.4;
+    /// <summary>The farthest behind hanging a swing brings the straight arm through, in radians: a swing aimed low goes on less.</summary>
+    public const double Behind = 1.0;
+
+    /// <summary>The least a swing is raised, and brought through, however it is aimed, in radians.</summary>
+    public const double LeastRaised = 0.5, LeastThrough = 0.1;
+
+    /// <summary>How fast the arm comes down, in radians a share of the swing: its whole turn over the downstroke.</summary>
+    public const double DownSpeed = (Raised + Through) / StrikeShare;
 
     /// <summary>
-    /// The share of its full turn (<see cref="Lift"/>) a swing along <paramref name="line"/>, radians from straight ahead of the
-    /// shoulder, down positive, makes: whole, unless raised whole it would take the arm past <see cref="Overhead"/>. Raised and
-    /// brought through alike, so the blade crosses the line at <see cref="HitAt"/> however far it was raised.
+    /// How far a swing along <paramref name="line"/>, radians from straight ahead of the shoulder, down positive, is raised and
+    /// brought through for a fan <paramref name="half"/> radians either side: through the whole fan, at least <see cref="Through"/>,
+    /// raised <see cref="Raised"/>, each cut short so the arm passes neither <see cref="Overhead"/> nor <see cref="Behind"/>.
     /// </summary>
-    public static double ScaleFor(double line) => Math.Clamp((Overhead - Math.PI / 2 + line) / Raised, LeastScale, 1);
-
-    /// <summary>The arm's angle from straight ahead at <paramref name="phase"/> of a swing along <paramref name="line"/> (<see cref="ArmAt"/>).</summary>
-    public static double AngleAt(double line, double phase) => line + ScaleFor(line) * Lift(phase);
-
-    /// <summary>
-    /// The axe's turn from the line to its point at <paramref name="phase"/> of a swing, back (negative)
-    /// or through (positive): eased up, brought down hard, eased back to the line, still at either end, so
-    /// a swing leaves the arm at rest and the next held begins from it unbroken.
-    /// </summary>
-    public static double Lift(double phase)
+    public static (double Raised, double Through) ShapeFor(double line, double half)
     {
-        if (phase < WindShare) return -Raised * (1 - Math.Cos(phase / WindShare * Math.PI)) / 2;
-        if (phase < WindShare + StrikeShare) return -Raised + (Raised + Through) * ((phase - WindShare) / StrikeShare);
-        return Through * (1 + Math.Cos((phase - WindShare - StrikeShare) / (1 - WindShare - StrikeShare) * Math.PI)) / 2;
+        double level = Math.PI / 2 - line;
+        return (Math.Clamp(Overhead - level, LeastRaised, Raised), Math.Clamp(level + Behind, LeastThrough, Math.Max(Through, half)));
+    }
+
+    /// <summary>The arm's angle from straight ahead at <paramref name="phase"/> of a swing along <paramref name="line"/> over a fan <paramref name="half"/> either side (<see cref="ArmAt"/>).</summary>
+    public static double AngleAt(double line, double phase, double half) => line + Lift(phase, ShapeFor(line, half));
+
+    /// <summary>
+    /// The share of a swing shaped <paramref name="shape"/> at which the falling blade is <paramref name="turn"/> radians from its
+    /// line, back (negative) or through (positive): held to the downstroke and the follow-through.
+    /// </summary>
+    public static double ShareAt(double turn, (double Raised, double Through) shape) => turn < 0
+        ? WindShare + (HitAt - WindShare) * Math.Max(0, 1 + turn / shape.Raised)
+        : HitAt + Math.Min(turn, shape.Through) / DownSpeed;
+
+    /// <summary>
+    /// The turn from the line to its point at <paramref name="phase"/> of a swing shaped <paramref name="shape"/> (the axe's whole by
+    /// default), back (negative) or through (positive): eased up, brought down hard across the line at <see cref="HitAt"/> however it
+    /// is shaped, carried on through at <see cref="DownSpeed"/>, eased back to the line, still at either end, so a swing leaves the
+    /// arm at rest and the next held begins from it unbroken.
+    /// </summary>
+    public static double Lift(double phase, (double Raised, double Through)? shape = null)
+    {
+        var (raised, through) = shape ?? (Raised, Through);
+        double over = HitAt + through / DownSpeed;
+        if (phase < WindShare) return -raised * (1 - Math.Cos(phase / WindShare * Math.PI)) / 2;
+        if (phase < HitAt) return -raised * (1 - (phase - WindShare) / (HitAt - WindShare));
+        if (phase < over) return through * (phase - HitAt) / (over - HitAt);
+        return through * (1 + Math.Cos((phase - over) / (1 - over) * Math.PI)) / 2;
     }
 }

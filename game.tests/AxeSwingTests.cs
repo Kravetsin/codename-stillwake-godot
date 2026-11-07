@@ -142,19 +142,52 @@ public class AxeSwingTests
     [InlineData(0)]
     [InlineData(45)]
     [InlineData(90)]
-    public void ASwingAimedAnywhereAheadNeverRaisesTheArmBehindTheBackAndStillMeetsItsLine(int degrees)
+    public void ASwingAimedAnywhereAheadKeepsTheArmWithinTheShoulderAndStillMeetsItsLine(int degrees)
     {
-        foreach (var look in new[] { HeldLook.FireAxe, HeldLook.Sledgehammer })
+        foreach (var (look, stroke) in new[] { (HeldLook.FireAxe, Strokes.Axe), (HeldLook.Sledgehammer, Strokes.Hammer) })
         {
-            double line = degrees * Math.PI / 180 + AxeSwing.Lead(look), highest = double.MinValue;
-            for (double phase = 0; phase <= 1; phase += 0.005) highest = Math.Max(highest, AxeSwing.ArmAt(AxeSwing.AngleAt(line, phase)).Upper);
+            double line = degrees * Math.PI / 180 + AxeSwing.Lead(look), highest = double.MinValue, lowest = double.MaxValue;
+            for (double phase = 0; phase <= 1; phase += 0.002)
+            {
+                double upper = AxeSwing.ArmAt(AxeSwing.AngleAt(line, phase, stroke.Half)).Upper;
+                (highest, lowest) = (Math.Max(highest, upper), Math.Min(lowest, upper));
+            }
             Assert.True(highest <= AxeSwing.Overhead + 1e-9, $"{degrees}°: raised to {highest * 180 / Math.PI:F0}°");
+            Assert.True(lowest >= -AxeSwing.Behind - 1e-9, $"{degrees}°: brought through to {lowest * 180 / Math.PI:F0}°");
             // Raised less, it is still raised, and its blade crosses the line when the hit goes.
             Assert.True(highest > AxeSwing.ArmAt(line).Upper + 0.5);
-            Assert.Equal(line, AxeSwing.AngleAt(line, AxeSwing.HitAt), 9);
+            Assert.Equal(line, AxeSwing.AngleAt(line, AxeSwing.HitAt, stroke.Half), 9);
         }
-        // Aimed level or lower, the swing is whole.
-        if (degrees >= 0) Assert.Equal(1, AxeSwing.ScaleFor(degrees * Math.PI / 180 + AxeSwing.Lead(HeldLook.FireAxe)));
+    }
+
+    [Theory]
+    [InlineData(-30)]
+    [InlineData(0)]
+    [InlineData(30)]
+    public void ASwingAimedAheadSweepsItsWeaponsWholeFanTheHammersWiderThanTheAxes(int degrees)
+    {
+        foreach (var (look, stroke) in new[] { (HeldLook.FireAxe, Strokes.Axe), (HeldLook.Sledgehammer, Strokes.Hammer) })
+        {
+            double line = degrees * Math.PI / 180 + AxeSwing.Lead(look), back = 0, through = 0;
+            for (double phase = 0; phase <= 1; phase += 0.002)
+            {
+                double turn = AxeSwing.AngleAt(line, phase, stroke.Half) - line;
+                (back, through) = (Math.Min(back, turn), Math.Max(through, turn));
+            }
+            Assert.True(back <= -stroke.Half && through >= stroke.Half - 0.02, $"{look.Picture} at {degrees}°: {back:F2}..{through:F2}");
+        }
+        Assert.True(Strokes.Hammer.Half > Strokes.Axe.Half);
+    }
+
+    [Fact]
+    public void TheWholeSwingStillFallsAtItsOwnSpeedAndAimedPlainlyIsTheAxesOld()
+    {
+        // The default shape is the swing as it always was: down at one speed across the line, through 0.3 by the downstroke's end.
+        Assert.Equal(AxeSwing.Through, AxeSwing.Lift(AxeSwing.WindShare + AxeSwing.StrikeShare), 9);
+        // A longer follow-through carries on at that speed, not faster.
+        var wide = (AxeSwing.Raised, 1.2);
+        double dt = 0.001, after = AxeSwing.Lift(AxeSwing.HitAt + dt, wide) / dt;
+        Assert.Equal(AxeSwing.DownSpeed, after, 3);
     }
 
     [Fact]
@@ -285,7 +318,7 @@ public class AxeSwingTests
         for (double t = 0; t < ms; t += frame)
         {
             bool begun = swing.Advance(frame, wanted(t), toward(t)).Begun;
-            (double, double)? swung = swing.Phase is double phase ? (AxeSwing.AngleAt(Math.Atan2(swing.At.Y, swing.At.X) + lead, phase), phase) : null;
+            (double, double)? swung = swing.Phase is double phase ? (AxeSwing.AngleAt(Math.Atan2(swing.At.Y, swing.At.X) + lead, phase, Strokes.Axe.Half), phase) : null;
             drawn.Add(new(arm.Next(Resting, swung, frame), swing.Phase, swung is var (angle, _) ? AxeSwing.ArmAt(angle) : null, begun));
         }
         return drawn;
