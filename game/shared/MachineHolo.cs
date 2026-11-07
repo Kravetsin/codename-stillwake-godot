@@ -21,8 +21,14 @@ public partial class MachineHolo : Node2D
     /// <summary>The beam's sections along its length, each its own shimmer.</summary>
     private const int Sections = 14;
 
-    /// <summary>The beam's three bands, the reference's: width at the machine, extra width at the window when it touches, alpha.</summary>
-    private static readonly (float From, float Grows, float Alpha)[] Bands = [(6, 6, 0.1f), (2.5f, 3, 0.3f), (1, 0, 0.6f)];
+    /// <summary>The beam's width at the machine, and the extra at the window when it touches, the reference's outer band's.</summary>
+    private const float BeamFrom = 6, BeamGrows = 6;
+
+    /// <summary>
+    /// Across the beam, the reference's three bands (a bright core, a middle, a faint outer) as one soft profile: drawn as a
+    /// texture, filtered, so its edges fade instead of stepping as a polygon's do.
+    /// </summary>
+    private static readonly ImageTexture Profile = BeamProfile();
 
     private static readonly Color Core = new(240 / 255f, 252 / 255f, 1);
 
@@ -33,6 +39,7 @@ public partial class MachineHolo : Node2D
     private readonly StyleBoxFlat _glow = Glow();
     private readonly Vector2[] _quad = new Vector2[4];
     private readonly Color[] _colours = new Color[4];
+    private readonly Vector2[] _uvs = new Vector2[4];
     private Rect2 _window, _box;
     /// <summary>This frame's, from <see cref="Place"/>: the window, the touch point, the emitter and the layer's pixels to the node's.</summary>
     private HoloRect _shownWindow;
@@ -45,6 +52,7 @@ public partial class MachineHolo : Node2D
     public MachineHolo()
     {
         Visible = false;
+        TextureFilter = TextureFilterEnum.Linear;
         _ground.SetBorderWidthAll(1);
         AddChild(_emitter);
     }
@@ -173,17 +181,17 @@ public partial class MachineHolo : Node2D
         if (length < 1) return;
         var across = (to - from).Orthogonal() / length;
         float reach = (float)_motion.Beam;
-        foreach (var (start, grows, alpha) in Bands)
+        float wide = BeamFrom + BeamGrows * reach;
+        for (int i = 0; i < Sections; i++)
         {
-            float end = start + grows * reach;
-            for (int i = 0; i < Sections; i++)
-            {
-                float s0 = (float)i / Sections, s1 = (float)(i + 1) / Sections;
-                Vector2 c0 = from.Lerp(to, s0), c1 = from.Lerp(to, s1);
-                Vector2 h0 = across * Mathf.Lerp(start, end, s0) / 2, h1 = across * Mathf.Lerp(start, end, s1) / 2;
-                Color a0 = _light with { A = alpha * Shimmer(s0, length) }, a1 = _light with { A = alpha * Shimmer(s1, length) };
-                Quad(c0 + h0, c1 + h1, c1 - h1, c0 - h0, a0, a1, a1, a0);
-            }
+            float s0 = (float)i / Sections, s1 = (float)(i + 1) / Sections;
+            Vector2 c0 = from.Lerp(to, s0), c1 = from.Lerp(to, s1);
+            Vector2 h0 = across * Mathf.Lerp(BeamFrom, wide, s0) / 2, h1 = across * Mathf.Lerp(BeamFrom, wide, s1) / 2;
+            Color a0 = _light with { A = Shimmer(s0, length) }, a1 = _light with { A = Shimmer(s1, length) };
+            (_quad[0], _quad[1], _quad[2], _quad[3]) = (c0 + h0, c1 + h1, c1 - h1, c0 - h0);
+            (_colours[0], _colours[1], _colours[2], _colours[3]) = (a0, a1, a1, a0);
+            (_uvs[0], _uvs[1], _uvs[2], _uvs[3]) = (new(0, 0), new(1, 0), new(1, 1), new(0, 1));
+            DrawPolygon(_quad, _colours, _uvs, Profile);
         }
     }
 
@@ -196,6 +204,23 @@ public partial class MachineHolo : Node2D
         (_quad[0], _quad[1], _quad[2], _quad[3]) = (a, b, c, d);
         (_colours[0], _colours[1], _colours[2], _colours[3]) = (ca, cb, cc, cd);
         DrawPolygon(_quad, _colours);
+    }
+
+    private static ImageTexture BeamProfile()
+    {
+        // About the beam's width on the screen, so filtering does not thin the core away.
+        const int across = 12;
+        var image = Image.CreateEmpty(1, across, false, Image.Format.Rgba8);
+        for (int y = 0; y < across; y++)
+        {
+            // From the middle, 0, to the edge, 1: the core a sixth wide, the middle half, the outer all of it.
+            float d = Math.Abs((y + 0.5f) / across - 0.5f) * 2;
+            float a = 0.6f * Bell(d, 1 / 6f) + 0.3f * Bell(d, 0.45f) + 0.1f * Bell(d, 1);
+            image.SetPixel(0, y, Colors.White with { A = Math.Min(1, a) });
+        }
+        return ImageTexture.CreateFromImage(image);
+
+        static float Bell(float d, float half) => d >= half ? 0 : 0.5f + 0.5f * MathF.Cos(MathF.PI * d / half);
     }
 
     private static StyleBoxFlat Glow()
