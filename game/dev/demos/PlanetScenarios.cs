@@ -13,9 +13,10 @@ namespace Stillwake.Game.Dev;
 /// </summary>
 [Dev("--planet", "a planet grown from its seed, the hero beamed down with the axe, the drill and the helmet lamp (0077)", Order = 5)]
 [Dev("--strip", "the test strip (0076); with --autopilot played by a script (HeroAutopilot.PlanetRun)", Order = 5)]
+[Dev("--dusk", "with --planet or --strip, the planet's dusk starting two seconds in, its night a minute on (2026-11-07-night-chills)", Order = 5)]
 public sealed class PlanetScenario : DevScenario
 {
-    private bool _beamedBack;
+    private bool _beamedBack, _dusk;
 
     private bool Strip => Args.Has("--strip");
 
@@ -31,10 +32,16 @@ public sealed class PlanetScenario : DevScenario
         client.Send(new Transfer(client.World.Surfaces.Count));
     }
 
-    /// <summary><c>--beam-back</c>: back aboard two seconds in, to see the switch both ways.</summary>
+    /// <summary><c>--beam-back</c>: back aboard two seconds in, to see the switch both ways; <c>--dusk</c>: the planet's dusk then.</summary>
     public override void Frame(Client client, Registry m, Action<string> log)
     {
-        if (_beamedBack || !Args.Has("--beam-back") || client.World.Tick < 2 * World.TicksPerSecond) return;
+        if (client.World.Tick < 2 * World.TicksPerSecond) return;
+        if (!_dusk && Args.Has("--dusk") && m.Rules.Cycle is { } day)
+        {
+            _dusk = true;
+            client.Send(new Sim.Sky.SetTime(day.Length - day.Night - Daylight.Dusk));
+        }
+        if (_beamedBack || !Args.Has("--beam-back")) return;
         _beamedBack = true;
         client.Send(new Transfer(0));
     }

@@ -122,6 +122,9 @@ A living document: what is decided about the game and what is still open. Techni
   the far field's derelicts, which pounce at a hero near and strike one farther with an arc of static, aimed a moment
   before, at once; at the bottom of each spire, two guards that fly fists first at a hero, stick where they land, and fall with
   the shard, so a hero kills them for circuits or takes the shard and leaves. Which others is open.
+- **Night on a planet:** a day of twenty minutes, the last six of them night. At night the open sky chills: a hero with no
+  back wall behind pays a unit of air more every five seconds, the cape sparing a fifth; caves, tunnels and back walls
+  shelter. Dusk dims the light a minute before, and the dark is lit by the helmet lamp ([night-chills](decisions/2026-11-07-night-chills.md)).
 - **Hunting:** a planet's grazers, met in small herds of one kind, drop what they are made of, by their size: biomass, now and then a seed, hide and fat;
   sentries, scrap. Fat burns twice as long as a plank, or ferments into biofuel as biomass does, so hunting
   fuels the ship; hide goes with the ruins' cloth into the cape, which spares a fifth of blows and of the cold. Both are a
