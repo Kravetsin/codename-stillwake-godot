@@ -95,7 +95,7 @@ public class BuildingDeliveryTests
         Assert.Equal("plate", tank.Cost[0].Item);
         var w = new Scenario(Open);
         w.GiveItems(5, ("plate", 1));
-        PlacePlan(w, At(1, 1), Tank);
+        PlacePlan(w, At(1, 2), Tank);
         Assert.Equal((0, parts), w.M.Building.Parts(1));
         Press(w, 1, 5);
         Assert.Equal([("plate", 1)], Delivered(PlanOf(w, 1)));
@@ -122,7 +122,7 @@ public class BuildingDeliveryTests
         Hold(w, 1, tank.BuildTicks - second - 1, 5);
         Assert.Single(w.Refusals);
         Assert.All(tank.Cost, c => Assert.Equal(0, Count(w, c.Item, 5)));
-        Assert.Equal("tank", w.M.Grid.MachineAt(At(1, 1))?.Kind);
+        Assert.Equal("tank", w.M.Grid.MachineAt(At(1, 2))?.Kind);
         Assert.Empty(w.M.Building.Plans);
     }
 
@@ -217,7 +217,7 @@ public class BuildingDeliveryTests
         var w = new Scenario(Open);
         w.GiveItems(5, ("plate", 1));
         w.GiveItems(6, tank.Cost.ToArray());
-        PlacePlan(w, At(1, 1), Tank);
+        PlacePlan(w, At(1, 2), Tank);
         Hold(w, 1, second, 5);
         Assert.Equal((0, second), (Count(w, "plate", 5), PlanOf(w, 1)!.Progress));
         // Out of plates at the second part: the hero who brought what it had cannot work on.
@@ -236,19 +236,19 @@ public class BuildingDeliveryTests
         Press(w, 1, 5);
         Assert.Equal(["items.notEnough"], Reasons(w));
         Hold(w, 1, tank.BuildTicks - third, 6);
-        Assert.Equal("tank", w.M.Grid.MachineAt(At(1, 1))?.Kind);
+        Assert.Equal("tank", w.M.Grid.MachineAt(At(1, 2))?.Kind);
         Assert.Equal((1, 0), (Count(w, "plate", 6), Count(w, "tube", 6)));
     }
 
     [Fact]
     public void BlueprintsBuildAMachineOverItsWholeFootprintOnceItIsPaidAndWorked()
     {
-        var w = PlacePlan(Stocked(Open), At(1, 1), Tank);
+        var w = PlacePlan(Stocked(Open), At(1, 2), Tank);
         Hold(w, 1, Machines.Get("tank").BuildTicks);
         Assert.Empty(w.Refusals);
         var machine = Assert.Single(w.M.Grid.Machines);
-        Assert.Equal(("tank", At(1, 1)), (machine.Kind, machine.Cell));
-        foreach (int cell in Enumerable.Range(0, 16).Select(i => At(1, 1) + i / 4 * 18 + i % 4))
+        Assert.Equal(("tank", At(1, 2)), (machine.Kind, machine.Cell));
+        foreach (int cell in Enumerable.Range(0, 16).Select(i => At(1, 2) + i / 4 * 18 + i % 4))
             Assert.Equal(machine.Id, w.M.Grid.MachineAt(cell)?.Id);
         var cost = Machines.Get("tank").Cost;
         Assert.Equal((StockPlate - CostIn(cost, "plate"), StockTube - CostIn(cost, "tube")), (Count(w, "plate"), Count(w, "tube")));
@@ -298,7 +298,7 @@ public class BuildingDeliveryTests
     {
         var w = new Scenario(Open);
         w.GiveItems(5, ("plate", 9), ("tube", 9));
-        PlacePlan(w, At(1, 1), Tank);
+        PlacePlan(w, At(1, 2), Tank);
         // Into the tank's second part: two plates put in, the rest not yet.
         Hold(w, 1, Begins(Machines.Get("tank"), 1) + 1, 5);
         Assert.Equal([("plate", 2)], Delivered(PlanOf(w, 1)));
