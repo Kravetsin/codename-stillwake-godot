@@ -43,6 +43,17 @@ public sealed class TabletHands(Node owner)
         }
     }
 
+    /// <summary>Types <paramref name="text"/> into the field with the keys, a key a character.</summary>
+    public static void Type(string text)
+    {
+        foreach (char c in text)
+        {
+            var key = char.IsAsciiLetter(c) ? Key.A + (char.ToUpperInvariant(c) - 'A') : Key.None;
+            Input.ParseInputEvent(new InputEventKey { PhysicalKeycode = key, Keycode = key, Unicode = c, Pressed = true });
+            Input.ParseInputEvent(new InputEventKey { PhysicalKeycode = key, Keycode = key, Unicode = c, Pressed = false });
+        }
+    }
+
     public static void Press(Key key)
     {
         Input.ParseInputEvent(new InputEventKey { PhysicalKeycode = key, Keycode = key, Pressed = true });

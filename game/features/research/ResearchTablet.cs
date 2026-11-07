@@ -144,9 +144,13 @@ public partial class ResearchTablet : CanvasLayer
     {
         if (Shown) _keep.Seen.Closed();
         _ui.TreeOpen.Set(false);
+        _board.DropSearch();
         _page.LetGo();
         KeepBoard();
     }
+
+    /// <summary>Esc, before it puts the tablet away: the board's search typed or shown is emptied, the tablet staying out. Answers whether there was one.</summary>
+    public bool DropSearch() => Shown && _page == _board && _board.DropSearch();
 
     /// <summary>Writes what was moved on the board: as it is put away, and on every way out of the world.</summary>
     public void KeepBoard()
@@ -248,13 +252,19 @@ public partial class ResearchTablet : CanvasLayer
     /// <summary>Tab, E and B put it away and go on to what they do.</summary>
     public override void _Input(InputEvent e)
     {
-        if (e is not InputEventKey { Pressed: true, Echo: false } key || !Shown) return;
+        if (e is not InputEventKey { Pressed: true, Echo: false } key || !Shown || _board.Typing) return;
         if (key.Is(Bind.Inventory) || key.Is(Bind.Use) || key.Is(Bind.Build)) Close();
     }
 
-    /// <summary>T does what the tablet's key does, M what the market's does, in a world with the menu shut.</summary>
+    /// <summary>T does what the tablet's key does, M what the market's does, in a world with the menu shut; on the board Search (/) types in its search.</summary>
     public override void _UnhandledInput(InputEvent e)
     {
+        if (e is InputEventKey { Pressed: true, Echo: false } search && search.Is(Bind.Search) && Shown && _page == _board && !_ui.MenuOpen.Get())
+        {
+            _board.TypeSearch();
+            GetViewport().SetInputAsHandled();
+            return;
+        }
         if (e is not InputEventKey { Pressed: true, Echo: false } key || !(key.Is(Bind.Tablet) || key.Is(Bind.Market))) return;
         if (!_inWorld() || _ui.MenuOpen.Get()) return;
         if (key.Is(Bind.Market)) ToggleMarket();

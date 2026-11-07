@@ -109,7 +109,7 @@ public static class BoardInk
     /// <summary>
     /// A stroke as one list of triangles, <paramref name="drawn"/> of the way along: each piece a band as thick as the stylus pressed (never under
     /// <paramref name="least"/>, thinner at the ends), its edges fading to nothing over <paramref name="feather"/>, which smooths them; lifted pieces left out.
-    /// One list draws in one call, where a line a piece cost the renderer a command each, every frame.
+    /// One list draws in one call, where a line a piece cost the renderer a command each, every frame (2.5 ms a frame on the board).
     /// </summary>
     public static InkMesh Mesh(InkPoint[] stroke, float width, float least, float feather, float drawn = 1)
     {

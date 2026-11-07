@@ -38,6 +38,7 @@ public partial class StationScreens : Node2D
         _grid = grid;
         _trade = trade;
         ZIndex = Layers.Screens;
+        // A screen gives its own light: no lamp of the room shades it.
         Material = new CanvasItemMaterial { LightMode = CanvasItemMaterial.LightModeEnum.Unshaded };
     }
 

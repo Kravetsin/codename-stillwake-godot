@@ -350,8 +350,8 @@ public partial class Main : Node2D, ITogether
             busy: () => (_items?.Panel.Shown ?? false) || handbook.Shown || computer.Shown || tech.Shown || lookEditor.Shown || keyCard.Shown || _hands.Plan.PlanOut.Get() || dev.Searching,
             putAway: () =>
             {
-                // A search in the build menu or the dev panel goes first, what else is open staying so.
-                if (dev.DropSearch() || _hands.Menu.DropSearch()) return;
+                // A search in the build menu, on the research board or the dev panel goes first, what else is open staying so.
+                if (dev.DropSearch() || _hands.Menu.DropSearch() || tech.DropSearch()) return;
                 _items?.Panel.Close();
                 handbook.Close();
                 computer.Close();

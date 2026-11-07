@@ -48,6 +48,8 @@ public sealed class BoardPage : ITabletPage
     private const float NoteFrom = 0.55f, CardLeast = 0.3f, CardFrom = 90;
     /// <summary>A note's width in flight as it lands, against the card it was.</summary>
     private const float NoteLands = 72;
+    /// <summary>Seconds of the glide to what the search picked.</summary>
+    private const double Found = 0.3;
 
     /// <summary>What a thing on the board is made of, kept so a read only restyles it.</summary>
     private sealed record NoteView(Control Root, Control Box, TextureRect Picture, Label Name, Line2D Mark, HBoxContainer Lack, Label LackWords)
@@ -117,6 +119,7 @@ public sealed class BoardPage : ITabletPage
     private float _share;
     // The press that flipped may still be held as the side goes, and its motion must not take the board.
     private bool _flipHeld;
+    private readonly BoardFind _find;
 
     private bool Words => _camera.Zoom >= WordsFrom;
 
@@ -148,6 +151,8 @@ public sealed class BoardPage : ITabletPage
         BuildSide();
         view.AddChild(_side);
         view.AddChild(_flyers);
+        _find = new BoardFind(Findable, _strip.Picture, Find) { Visible = false };
+        view.AddChild(_find);
     }
 
     /// <summary>The unread beside the board, built once: what is shown changes under the pointer, what takes its press never does.</summary>
@@ -194,6 +199,7 @@ public sealed class BoardPage : ITabletPage
         _takeAll.Position = new Vector2(_stack.Position.X - TakeOver, top + StackTall + SideGap);
         _takeAll.Size = new Vector2(StackWide + 2 * TakeOver, TakeTall);
         _board.Size = new Vector2(Wide, _view.Size.Y);
+        _find.Lay(_view.Size.X);
     }
 
     /// <summary>The outlines of the unread, one behind another up and to the right.</summary>
@@ -401,7 +407,12 @@ public sealed class BoardPage : ITabletPage
     {
         _out = _map.Visible = _front.Visible = _flyers.Visible = shown;
         if (shown) _strip.Action.Visible = false;
-        else _picked = null;
+        else
+        {
+            _picked = null;
+            _find.Drop();
+            _find.Visible = false;
+        }
         Reset();
         _key = null;
     }
@@ -511,6 +522,7 @@ public sealed class BoardPage : ITabletPage
         _had = [.. drawn.Found, .. drawn.Granted];
         if (_pile.Top is { } top) _had.Add(top);
         Restyle();
+        ShowFind();
         Grow();
         if (Reading)
         {
@@ -735,6 +747,40 @@ public sealed class BoardPage : ITabletPage
         _picked = ThingAt(at);
         _readSoon();
     }
+
+    /// <summary>The search over the board while anything stands on it and no entry is being read; it lets go of the keys as it goes.</summary>
+    private void ShowFind()
+    {
+        bool shown = _out && !Reading && _notes.Values.Any(v => v.Root.Visible);
+        if (!shown && _find.Typing) _find.Drop();
+        _find.Visible = shown;
+    }
+
+    /// <summary>What the search can find: whatever the board shows now, by the name it goes by.</summary>
+    private IEnumerable<BoardFound> Findable() =>
+        _picture.Shows.Where(s => s.Value != BoardShow.Unseen && _notes.ContainsKey(s.Key)).Select(s => new BoardFound(s.Key, _strip.NameOf(s.Key), s.Value == BoardShow.Note));
+
+    /// <summary>What the search picked: picked as by a click, on top of the rest, and the board glides to it at a size with words.</summary>
+    private void Find(string id)
+    {
+        if (Reading || !_notes.TryGetValue(id, out var view) || !view.Root.Visible) return;
+        _picked = id;
+        view.Root.MoveToFront();
+        GlideTo(SpotOf(id).X, SpotOf(id).Y, Math.Max(_camera.Zoom, WordsFrom), Found);
+        _readSoon();
+    }
+
+    /// <summary>Whether the board's search has the keys.</summary>
+    public bool Typing => _find.Typing;
+
+    /// <summary>The Search key (/): puts the keys in the board's search, while it shows.</summary>
+    public void TypeSearch()
+    {
+        if (_find.Visible) _find.Type();
+    }
+
+    /// <inheritdoc cref="BoardFind.Drop"/>
+    public bool DropSearch() => _find.Drop();
 
     /// <summary>What is shown at a point of the view, the topmost; none if nothing is.</summary>
     private string? ThingAt(Vector2 at)
