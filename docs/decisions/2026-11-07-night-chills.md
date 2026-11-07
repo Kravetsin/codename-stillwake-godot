@@ -24,6 +24,9 @@ the ground for storms, rain once liquids exist, hostile creatures that may act a
   through dusk to night, about a tenth of day, so the light warns before the chill; dawn fades back over the night's last
   minute. One `sky` uniform scales the baked starlight, lamps untouched; the backdrop and the fog at a planet's sides are
   multiplied by one colour, `Daylight.Backdrop`, which the backdrop's redraw consumes.
+- **The look, picked by the user** from five on a page through a whole day: "ochre and slate", an ochre dusk (sky
+  0.88, 0.64, 0.40; backdrop 0.90, 0.66, 0.44) into a cold blue-grey night (sky 0.09, 0.105, 0.14; backdrop 0.16, 0.19,
+  0.26), over violet into ink-green, rust into teal, ash into slate, and bile into indigo.
 - **Dev:** `SetTime` sets the hour, refused `sky.noDay` aboard; the dev panel's "dusk" and "day", and `--dusk` with
   `--planet` or `--strip`.
 - **Saves: format 54** adds the slice, `{"time": 0}`, right after `grid` in every slices object.

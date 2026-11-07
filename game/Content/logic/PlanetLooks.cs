@@ -20,12 +20,13 @@ public static class PlanetLooks
     {
         /// <summary>
         /// Its dusk and night (2026-11-07-night-chills), as <see cref="Daylight"/> fades through them: what the light through the
-        /// open sky is multiplied by, and what the backdrop and the fog at its sides are.
+        /// open sky is multiplied by, and what the backdrop and the fog at its sides are. By default the user's pick for the
+        /// first planet, "ochre and slate": an ochre dusk into a cold blue-grey night.
         /// </summary>
-        public (float R, float G, float B) DuskSky { get; init; } = (0.7f, 0.5f, 0.4f);
-        public (float R, float G, float B) NightSky { get; init; } = (0.09f, 0.1f, 0.14f);
-        public (float R, float G, float B) DuskBackdrop { get; init; } = (0.75f, 0.55f, 0.45f);
-        public (float R, float G, float B) NightBackdrop { get; init; } = (0.12f, 0.14f, 0.2f);
+        public (float R, float G, float B) DuskSky { get; init; } = (0.88f, 0.64f, 0.4f);
+        public (float R, float G, float B) NightSky { get; init; } = (0.09f, 0.105f, 0.14f);
+        public (float R, float G, float B) DuskBackdrop { get; init; } = (0.9f, 0.66f, 0.44f);
+        public (float R, float G, float B) NightBackdrop { get; init; } = (0.16f, 0.19f, 0.26f);
     }
 
     /// <summary>The pictures a backdrop set holds, <c>art/{Backdrop}/{name}.png</c>: the layers <c>Render.PlanetSky</c> draws.</summary>
