@@ -133,8 +133,10 @@ public sealed class ShipTiles
             }
             fine.FixAlphaEdges();
             var box = new Rect2I(at * S, diffuse.GetSize() * S);
-            // A valve is centred in its padded cells (see Picture), so its smaller drawing is too.
-            atlas.BlitRect(fine, new Rect2I(Vector2I.Zero, fine.GetSize()), box.Position + (box.Size - fine.GetSize()) / 2);
+            // A valve is centred in its padded cells (see Picture), so its smaller drawing is too; every other lies from the top-left
+            // as its padded picture does, or a floor 4 px thick would sink 2 px below where heroes and machines stand on it.
+            var inset = name.StartsWith("valve_", StringComparison.Ordinal) ? (box.Size - fine.GetSize()) / 2 : Vector2I.Zero;
+            atlas.BlitRect(fine, new Rect2I(Vector2I.Zero, fine.GetSize()), box.Position + inset);
             Extrude(atlas, box, Cell * S / 2);
         }
         atlas.GenerateMipmaps();

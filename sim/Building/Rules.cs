@@ -88,7 +88,7 @@ public sealed partial class BuildingModule
         if (layer == "machine" && _grid.MachineAt(at) is { } machine)
         {
             if (IsFixed(machine.Kind)) return "building.fixed";
-            if (Machines.Get(machine.Kind).Strength != null) return "building.needsAxe";
+            if (Machines.Get(machine.Kind).Hp != null) return "building.needsAxe";
         }
         if (IsMarked(layer, at)) return "building.planned";
         return InUse(at, layer) ?? HoldsMachine(at, layer);

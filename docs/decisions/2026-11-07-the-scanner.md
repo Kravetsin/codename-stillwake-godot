@@ -19,7 +19,7 @@ reached only with the jetpack, so it is sold early on the black market.
   which comes only from asteroids and ruins, the very things a player skips at first.
 - **A readout, client only** (`features/scanner`): while this player wears it and the pointer is over a wreck (in the box the
   hands aim by, `WreckAim`), a hologram over the middle of the wreck's top edge shows `left / max` hit points, the sim's
-  `HpOf` less its `Damage`, following the wreck as it drifts. Nothing over a small piece, empty space, or while a menu,
+  `HpOf` less its `Damage`, following the wreck as it drifts. A pile in the hold is read the same way ([pile-hit-points](2026-11-07-pile-hit-points.md)). Nothing over a small piece, empty space, or while a menu,
   computer or the tree is open. Only the wearer sees it.
 - **Its look**, the user's picks of five each on a page: the **crest**, a swept fin along the helmet's crown hugging each
   helmet's dome, its front edge dark glass with three green dots running down it, one lit at a time

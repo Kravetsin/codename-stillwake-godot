@@ -193,6 +193,7 @@ public static partial class Ru
         ["item.jetpack.key"] = "{key:sprint}",
         ["item.helmetLamp.kind"] = "Снаряжение · Крепление",
         ["item.scanner.kind"] = "Снаряжение · Крепление",
+        ["item.scanner.about"] = "Носится на шлеме вместо фонаря. Наведи на обломок или кучу хлама — голограмма покажет, сколько у них осталось прочности.",
         ["item.helmet.kind"] = "Снаряжение · Голова",
         ["item.heavyHelmet.kind"] = "Снаряжение · Голова",
         ["item.suit.kind"] = "Снаряжение · Скафандр",

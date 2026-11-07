@@ -52,16 +52,17 @@ Also digging, what grows (0077, 0079, 0080), the ruins' pieces (0085, 0091, 0096
   So does a last tick the grid, `SeatProblem` or a floor still unlaid refuses.
 - **`Hew(Tool, X, Y, Heading)`** (fan-of-rays), only where `ToolsBreak` (else `building.notHere`): the weapon's fan
   (`Rays`) from the hand; a ray stops at a wall or what stops a body, striking it if it breaks (not bedrock or lava; a
-  piece by its first cell, at its `Build.Strength`), and passes ladders, open doors and plants, striking them (`Struck`).
+  piece by its first cell), and passes ladders, open doors and plants, striking them (`Struck`).
   `HewCells(Tool, Cells)` (tool-edge) strikes each listed cell as a ray does, once.
-  Each takes `BlockDamage` (0098) once (0: none, no shock): at its strength a wall goes for its `Cost` and held growths, a piece whole.
+  Each takes `BlockDamage` (0098) once (0: none, no shock), a pile `Damage` at its `Hp` (pile-hit-points): at its strength a wall
+  goes for its `Cost` and held growths, a piece whole.
   `building.nothingToDig`, then `items.flat` / `items.notRunning`. `Hit`, a shot's, strikes one cell `ShotTakes` allows,
   true if it broke, its yield the shooter's here, else anyone's. No tool hits back walls.
 - **Cracks heal** (0077): one not hit for `Builds.CrackHeals` ticks of Building's `Clock` is dropped, as, in derivation,
   one whose wall or plant is gone.
 - **Growths** (0079, 0080) grow from the seed with `Terrain`, each held by an `Anchor` (floor, ceiling, rock, back).
   A hit on any open cell of one cracks it by its own cell; at its kind's `Strength` it is felled for its `Yields`; one in
-  the rock goes with its stone. Hold gone or own cell built over: felled in derivation, round the grid log's cells (0051). Nothing grows back.
+  the rock goes with its stone. Hold gone or own cell built over: felled in derivation (0051). Nothing grows back.
 - **Felled by nobody** (0085): built over or lost to a meteor, a growth drops its `Yields` at its cell, anyone's.
 - **Ruins** (0085, 0091): caches, lenses and the homes' pieces are growths set by `Terrain`. `Behind` pieces have a
   layer of their own, the front hit first; `Fixed` ones no hit takes; a piece standing on another falls with it.

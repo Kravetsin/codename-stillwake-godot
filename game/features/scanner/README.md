@@ -8,14 +8,16 @@ the item only as gear; the readout is the client's, read from the debris module'
 
 | File | Holds |
 | --- | --- |
-| `logic/Scan.cs` | `Readout` (a point, a value left, a maximum) and `Scan.Of`: the wreck under the pointer and its hit points left |
+| `logic/Scan.cs` | `Readout` (a point, a value left, a maximum); `Scan.Of`, `OfPile`: the wreck or pile under the pointer and its hit points left |
 | `logic/Phosphor.cs` | the picked readout's 3 by 5 digits, its box over the point, its grain's noise |
 | `ScannerView.cs` | the readout over the wreck's top edge: dark glass, its digits added with scanlines, grain; in and out as the pointer comes and goes |
 
 ## Rules
 
 - **Only while worn** by this player (`Items.Equipped(own, Helmet.Scanner)`); a friend's scanner shows nothing here.
-- **Over a wreck only**, by the box the hands aim by (`game/shared/logic/WreckAim.cs`: its picture and half a cell), the
+- **Over a pile** in the hold, failing a wreck (`Scan.OfPile`): its `Hp` less its crack, over the middle of its top
+  (2026-11-07-pile-hit-points); a pile's readout id is `-1 - cell`, a wreck's its piece's.
+- **Over a wreck**, by the box the hands aim by (`game/shared/logic/WreckAim.cs`: its picture and half a cell), the
   first in spawn order where wrecks overlap. Nothing over a small piece, empty space, or while the hero's pointer is off (a
   menu, a computer or the tree open).
 - **`left / max`**: the kind's `Wreckage.HpOf` less the piece's `Damage`, never below 0; at the middle of the wreck's

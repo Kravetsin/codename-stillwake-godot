@@ -196,6 +196,7 @@ public static partial class En
         ["item.jetpack.key"] = "{key:sprint}",
         ["item.helmetLamp.kind"] = "Equipment · Mount",
         ["item.scanner.kind"] = "Equipment · Mount",
+        ["item.scanner.about"] = "Worn on the helmet in the lamp's place. Point at a wreck or a pile: a hologram shows how much of its strength is left.",
         ["item.helmet.kind"] = "Equipment · Head",
         ["item.heavyHelmet.kind"] = "Equipment · Head",
         ["item.suit.kind"] = "Equipment · Suit",
