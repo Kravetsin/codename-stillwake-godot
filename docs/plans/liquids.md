@@ -1,40 +1,47 @@
 # Design: Liquids — water and lava that flow in a planet's cells
 
-Status: design (design-author, cut by design-reviewer, cost measured), waiting for the user's go. Then a plan per stage.
+Status: design accepted by the user (2026-11-07) for stage 1, water; the plan for it below. Lava and the rest follow as
+their own stages.
+
+**Decided with the user** (2026-11-07):
+- Water first. Lakes lie in the middle bands, the garden and the amber deep: ice is above them, lava below. Big lakes of
+  some 100×60 cells and medium ones.
+- Heroes swim in water from the first PR, with the pose they float in space with (`Pose.Floating`).
+- Water is heard from the first PR: a player who finds water in a cave jumps in. The sounds are picked by the user.
+- Nothing takes water from a lake yet (no bottle, no pump): the link to the water chain comes later.
+- Water and lava meeting (steam, lava cooling to stone) is later, but it will be done.
+- The core band stays a solid wall while water is built.
 
 ## Problem
-A planet's caves are dry and its lava is a wall: nothing is let loose by digging, and the water chain has only melted ice.
+A planet's caves are dry and its lava is a wall: nothing is let loose by digging.
 
 ## Player experience
-1. A hero drills into a cave wall and breaks into a lake's side: water pours out of the hole, falls down the shaft beside
-   it and pools at the bottom; the lake's surface sinks.
-2. A wall built across the stream dams it.
-3. The hero points at the lake with the use key and fills a `water` bottle, carries it aboard and pours it into a cistern
-   as today.
-4. (Stage 2) Wading in, the hero walks slower and swims up with Space.
-5. (Stage 3) Deep in the ember band a crust gives and glowing lava creeps out, slowly, burning the suit as the core does.
+1. Deep in the caves, a hero finds a lake, still, its surface flat. It jumps in with a splash and swims: floating as in
+   space, sinking slowly, Space up, out at the surface with a jump.
+2. It drills into a cave wall and breaks into a lake's side: water pours out of the hole, rushing, falls down the shaft
+   beside it and pools at the bottom; the lake's surface sinks.
+3. A wall built across the stream dams it.
+4. (Stage 2) Deep in the ember band a crust gives and glowing lava creeps out, slowly, burning the suit as the core does.
 
-Goes wrong: a hero digs under a lake, the floor gives, water falls round it. Stage 1: it walks on through the water as
-through air (nothing in the sim cares). Stage 3: digging up into a lava pocket, lava drops on the hero; the suit gauge falls
-in some three seconds, it passes out and wakes at the pod, its body left by the lava (0061).
+Goes wrong: a hero digs under a lake, the floor gives, water falls round it: it is swimming, and swims out.
 
 ## Out of scope (deliberate omissions)
 - **The core band stays a solid wall** (0087): open cells along the bottom would join every cave and wake 4×4000 cells
   beside any deep dig.
-- **Water and lava never react:** a cell holds one kind; neither flows into a cell of the other; water rests on the core
-  wall. No steam, no lava cooling to stone: nobody asked, and it needs a grid write from Liquids.
+- **Water and lava meeting** (later, promised): stage 1 has no liquid lava; stage 2 keeps them apart (a cell holds one
+  kind, neither flows into the other) until the meeting is designed.
+- **Taking water from a lake** (a bottle, a pump): later; the first planet allows no machines.
 - **Rain, weather, evaporation:** the weather design's; it adds the op it calls (`Add(cell, kind, amount)`) and says how
   rain stays bounded, since nothing evaporates. Liquid in sky cells (surface ponds) comes with it.
-- **Pumps and pipes on planets:** the first planet allows no machines (`PlanetTypes.First.Builds`).
 - **Pressure:** water never rises in a U-tube; a body is levelled only by falling and side moves.
-- **Liquid on the ship** (no source, vacuum); pouring a bottle back out into the world.
+- **Liquid on the ship** (no source, vacuum).
 - **Creatures, floor stacks, bodies in liquid:** they move as through air.
-- **A breath rule under water:** the suit is sealed; drowning is not asked for.
-- **Sound** of flowing water and lava: a later pick.
+- **Drowning, any breath rule under water:** the suit is sealed.
+- **Wading:** water under a hero's middle changes nothing; it swims once its middle is in water.
 
 ## Scale
-- World: First is 4096×1536, 6.3M cells. A grown lake is at most `Liquids.LakeMost` (2048) cells, a lava pocket
-  `PocketMost` (512). Lakes per planet: the user's call (open question).
+- World: First is 4096×1536, 6.3M cells. A big lake is at most `Liquids.Big` (6,000) cells, a medium one `Medium`
+  (1,500). How many per band: `Content`, tuned on a look.
 - **Measured** (throwaway console run in Release: 4096×1536, awake 16×16 chunks, a lake drained through one dug cell into a
   600-row chasm and a 1200-wide cave below):
 
@@ -43,16 +50,16 @@ in some three seconds, it passes out and wakes at the pod, its body left by the 
   | 8 | mean 0.06 ms, max 0.41; ≤ 96 chunks awake; settled after ~5,000 ticks | mean 0.13 ms, max 0.67; ≤ 128 awake |
   | 240 | mean 0.06 ms; never settled in 30,000 ticks | mean 0.26 ms, max 0.96; never settled |
 
-  About 1 µs a tick per awake chunk; nothing awake, 0.01 ms; every unit conserved. Four heroes draining four lakes stay
-  far under 2 ms. 240 levels never settle (a ramp of 240 steps creeps for ever), so **`Full` is 8**.
+  About 1 µs a tick per awake chunk; nothing awake, 0.01 ms; every unit conserved. Four heroes draining four big lakes
+  stay far under 2 ms. 240 levels never settle (a ramp of 240 steps creeps for ever), so **`Full` is 8**.
 - A settled planet has nothing awake; on the ship the layer is never allocated.
-- Frequency: grid changes at digging pace (a drill hits 10 a second); a bottle a key press.
+- Frequency: grid changes at digging pace (a drill hits 10 a second).
 
 ## Approach
-A new module `Liquids` (nothing owns liquid in cells: Water owns cisterns, Atmosphere air). Depends on Grid's queries and
-Items' ops; registered after Items, before Crew.
+A new module `Liquids` (nothing owns liquid in cells: Water owns cisterns, Atmosphere air). Depends on Grid's queries;
+registered after Grid's dependants that build (Building), before Crew.
 
-- **State:** per cell a kind (none, water; lava in stage 3) and an amount 0..`Full` (8: a pixel a unit in an 8 px cell).
+- **State:** per cell a kind (none, water; lava in stage 2) and an amount 0..`Full` (8: a pixel a unit in an 8 px cell).
   Byte layers, allocated when the first liquid appears. **Saved:** the cells that differ from the grown liquid, ascending
   (Grid's edits pattern, 0077). Everything else derived.
 - **Flow** (simulation phase): rows bottom-up; in a row, cells left to right or right to left by the tick's parity. A cell
@@ -65,25 +72,22 @@ Items' ops; registered after Items, before Crew.
   result. `Rebuild()` scans the layer once and wakes every chunk with a cell that can move (some 25 ms on a planet, at load).
 - **Grid changes** (`ChangedSince`): a cell now blocking loses its liquid; each change wakes the chunks round it. When the
   log no longer reaches back (null), every chunk is scanned as in `Rebuild()`.
-- **The surface drawn flat:** with 8 levels a settled pool may keep 1 unit between neighbours; the client draws a run of
-  top cells at its mean level, so a lake reads flat.
-- **Command** `Bottle(Cell)`: takes `Full` water from that cell, gives `Water.Item` (`GiveOrDrop`). Refused
-  `liquids.noWater`, `liquids.tooShallow` (under `Full`). A lake is a source of bottles, as ice veins are.
-- **Queries:** `KindAt`, `AmountAt`; the layers read-only for the client.
-- **Grown lakes** (Terrain, after the ruins, so basins are final; carried in `Layout.Liquids`): pockets drawn on a lattice
-  every `LakeWave` cells by a chance per band; from a pocket's floor the level rises row by row while the open cells
-  connected below it stay under the cap, inside the zone, clear of ruins and other lakes. Every cell full: settled by
-  construction.
-- **Client** (`game/features/liquids`): a shader quad over a texture of the cells in view, updated for changed cells; the
-  look is a new one, **picked by the user on an Artifact page** before it is built.
+- **Queries:** `AmountAt(cell)`, `KindAt(cell)`; `ChangedSince(version)` for the client to redraw only what moved; the
+  layer read-only.
+- **Grown lakes** (Terrain, last, so basins are final; carried in `Layout.Liquids`): pockets drawn on a lattice every
+  `LakeWave` cells in the garden and amber bands, each by a chance big or medium; from a pocket's floor the level rises row
+  by row while the open cells connected below it stay under its cap, inside the zone, clear of ruins and other lakes.
+  Every cell full: settled by construction.
+- **Client** (`game/features/liquids`): a shader quad over a texture of the cells in view, updated for changed cells; a
+  run of top cells drawn at its mean level, so a settled lake reads flat (8 levels may leave a pixel between neighbours).
+  The hero controller swims where its middle cell holds water. Sounds: a splash in and out, strokes, a stream pouring.
+  **The look and the sounds are picked by the user** on Artifact pages before they are built.
 
 ## Determinism and co-op
-- Inputs: the seed, `Bottle`, grid writes (from commands). Integer units; a side move rounds down, the giver keeps the odd
-  unit.
+- Inputs: the seed and grid writes (from commands). Integer units; a side move rounds down, the giver keeps the odd unit.
 - Order fixed as above; the awake set is an optimisation over a whole sweep, so a loaded world and one kept running agree.
 - Joining: the edits; the seed grows the rest again; `Rebuild()` wakes what can move.
-- Client-authoritative: swimming (stage 2) is hero movement; a burn (stage 3) reads the reported cell, a second late as
-  today.
+- Client-authoritative: swimming is hero movement, read from each peer's own copy of the liquid.
 
 ## Trade-offs accepted
 - A wall or a closed door built into a liquid cell destroys up to `Full` there: damming will be common, the loss a cell.
@@ -92,29 +96,59 @@ Items' ops; registered after Items, before Crew.
 - Liquid passes machines (the drop pod) and is drawn through them: planets have almost no machines.
 - A big body drained through a one-cell hole takes minutes (8 units a tick through it); a wider hole drains faster.
 
-## Tests
-- Scenarios: a pool's wall dug, the water falls and pools, the level drops; water passes ladders, floors and open doors,
-  stops at a closed one; a wall built into water removes that cell's only; two basins joined end within 1 unit; a U-tube
-  does not rise; out of the zone gone; water stops beside lava (stage 3); `Bottle` and its two refusals; a fresh Small
-  planet unchanged by a tick; the ship never allocates the layer.
-- Invariants (FsCheck): flow conserves the total (nothing leaving the zone); random closed maps settle within a bound,
-  then stay still; every chunk with a cell that can move is awake; no liquid in a blocking cell, amounts within
-  0..`Full`; grown lakes full, settled, within the cap and the zone; a world saved and loaded mid-flow equals one kept
-  running (the generic suites too); Liquids' `Fuzz` draws `Bottle`.
-
 ## Stages
-1. **Water.** The module, grown lakes, `Bottle`, the client's look (picked first) — one PR. Heroes walk through water.
-2. **Swimming.** The hero controller (`game/features/crew` logic): slower in water, Space swims up. One PR.
-3. **Lava.** Grown lava pockets in the ember band, lava moving every `Every` ticks, `Crew.Burns` reading liquid lava, the
+1. **Water:** the module, grown lakes, the look, swimming, the sounds. One PR.
+2. **Lava:** grown lava pockets in the ember band, lava moving every `Every` ticks, `Crew.Burns` reading liquid lava, the
    glow through `LightView`. One PR.
+3. **Water meets lava;** taking water from lakes; rain with the weather. Each designed when it comes.
 
-## Cost
-- Modules: new `sim/Liquids`; changed `Terrain`/`Layout`, Registry (a format bump), then Crew (stage 3) and the hero
-  controller (stage 2); new `game/features/liquids`.
-- Content: `Content/Liquids.cs`: `Full`, `Fall`, `LakeMost`, `LakeWave`, the chance per band; later `Every`, `PocketMost`.
-- Estimated diff, stage 1: some 600 lines of sim, 500 of tests, 300 of client.
+## Plan: stage 1, water
 
-## Open questions (for the user)
-- How many lakes, and how big: `LakeMost` 2048 cells (a pocket some 60×35), in which bands?
-- A bottle a full cell (a 2048-cell lake holds 2048 bottles; ice gives one each)?
-- Swimming and lava as stages 2 and 3, or swimming in the first PR?
+Branch `claude/liquids-c190ea`, one PR. Tasks in order; the look and sounds are picked while L-1 to L-3 are built.
+
+### L-1 — The `Liquids` module
+`sim/Liquids` (skill `new-module`): `LiquidsModule : Module<LiquidsState>`, `ILiquidsQueries`, Registry after Building and
+before Crew, a save format bump with its empty step and fixture. `Content/Liquids.cs`: `Full` 8, `Fall` 4, `Chunk` 16.
+State: `Kind` and `Amount` byte layers (null until liquid), saved as `Edits` against the grown layer (a drawn map saves
+every wet cell). Derived: awake chunk flags, the grid version read, a change log for the client (as Grid's `ChangeLog`).
+The flow system as Approach says; the grid-change step first in the same system. Legend: `w` a cell of water at `Full`
+(`Layout.Liquids`). README with Rules, API, Invariants, Deliberately not handled; `docs/map.md` line; glossary "вода,
+озеро".
+Tests (`LiquidsTests`): every scenario below the plan; FsCheck: conservation on closed maps, settling within a bound and
+staying still, no liquid in a blocking cell, amounts in 0..Full, every chunk with a movable cell awake, saved and loaded
+mid-flow equals kept running. The generic suites cover it once registered; its `Fuzz` has no commands.
+
+### L-2 — Grown lakes
+`Terrain` fills `Layout.Liquids` last: lattice points every `LakeWave` in the garden and amber bands, each a lake by
+`LakeChance`‰, big (`Big` 6000 cells) by `BigChance`‰ else medium (`Medium` 1500); the fill as Approach says, within
+`PlanetType` numbers (none in `Ground`'s generic part unless First and Small differ). `Small` gets a lake or two so tests
+and the fuzz meet water. Tests: grown lakes full, settled (a tick changes nothing), within caps and the zone, in the bands,
+none on a ruin; growing is pure (same seed, same lakes); `Terrain.Generate` time on First before and after, stated in the
+PR.
+
+### L-3 — Water drawn
+`game/features/liquids/LiquidsView.cs` in `SurfaceViews.cs` (after the ground, before heroes? by the picked look), a
+shader over an R8 texture of the cells in view, redrawn for cells the module names changed; the surface run drawn at its
+mean; the picked look exported through `tools/anime-art` if it is a picture. A dev room `--lake` (skill `new-demo`): a
+grown planet's lake by the spawn, or a drawn map with a lake, a wall to dig and a chasm.
+
+### L-4 — Swimming
+`game/features/crew/logic/Hero.cs`: the controller's `Ship` gains the liquid lookup; a hero whose middle cell holds water
+swims: keys at `Hero.WaterSwim`, sinking at `Hero.WaterSink` with none, Space up; at the surface (its middle cell dry
+above the water) a jump leaves the water. `Pose`: floating (`Floating`) while in water. Unit tests in `game.tests`.
+Numbers in `sim/Content/Hero.cs`.
+
+### L-5 — Sounds
+The picked sounds cut, levelled and credited (`game/audio/CREDITS.md`), cues in `gc/Sound.cs`: a splash when a hero's
+middle enters water and when it leaves, strokes while swimming, a loop of pouring heard near awake falling water (the
+module's awake chunks with a fall in them, nearest first, one loop).
+
+### L-6 — Review and PR
+`/review-implementation`; the user plays `--lake`; ADR `2026-11-07-liquids.md` (what stays true), this plan's stage 1
+removed once merged.
+
+### Scenarios (L-1)
+A pool's wall dug: the water falls and pools, the level drops; water passes ladders, floors and open doors and stops at a
+closed one; a wall built into water removes that cell's only; two basins joined end within 1 unit; a U-tube does not
+rise; out of the zone gone; a fresh Small planet unchanged by a tick, nothing awake; the ship never allocates the layer;
+the grid log overrun (null) wakes every wet chunk.
