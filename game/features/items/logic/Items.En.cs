@@ -86,8 +86,6 @@ public static partial class En
         ["item.sledgehammer"] = "Sledgehammer",
         ["item.pickaxe"] = "Pickaxe",
         ["item.plasmaCutter"] = "Plasma cutter",
-        ["effect.salvage"] = "Clean cut",
-        ["effect.salvage.about"] = "A wreck it cuts apart may give half as much again",
         ["item.jetpack"] = "Oxygen jetpack",
         ["item.helmetLamp"] = "Helmet lamp",
         ["item.scanner"] = "Scanner",

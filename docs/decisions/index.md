@@ -269,6 +269,7 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [trade-station-later](2026-11-06-trade-station-later.md) | The trade station comes with circuits | accepted |  |
 | [air-feedback](2026-11-07-air-feedback.md) | Air and power answer the player loudly | accepted |  |
 | [battery-workbench](2026-11-07-battery-workbench.md) | The workbench makes batteries | accepted |  |
+| [board-search-related](2026-11-07-board-search-related.md) | The board's search finds what is tied | accepted |  |
 | [board-search](2026-11-07-board-search.md) | The board has its own search | accepted |  |
 | [cracks-to-end](2026-11-07-cracks-to-end.md) | A wreck's cracks run on until they cover it at the break | accepted |  |
 | [creative-per-player](2026-11-07-creative-per-player.md) | Creative mode is each player's | accepted |  |
@@ -286,3 +287,4 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [swing-motions](2026-11-07-swing-motions.md) | Swing motions | accepted |  |
 | [the-pickaxe](2026-11-07-the-pickaxe.md) | The pickaxe | accepted |  |
 | [the-scanner](2026-11-07-the-scanner.md) | The scanner reads a wreck's hit points | accepted |  |
+| [tool-card-rows](2026-11-07-tool-card-rows.md) | A tool's card lists its numbers as rows with icons | accepted |  |
