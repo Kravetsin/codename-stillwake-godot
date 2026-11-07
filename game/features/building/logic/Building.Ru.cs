@@ -159,6 +159,7 @@ public static partial class Ru
         ["material.plaster"] = "штукатурка",
         ["material.copperVein"] = "медная жила",
         ["material.iceVein"] = "ледяная жила",
+        ["material.ironVein"] = "железная жила",
         ["tool.tradeStation.about"] = "Отправляет вложенное капсулой: кредиты, когда она вернётся.",
         ["tool.autoTradeStation.about"] = "Торговая станция, что сама шлёт капсулу, как только есть что продать.",
         ["tool.workbench.about"] = "Простые детали вручную, сборка инструментов, джетпака, бура и плаща. Энергии не нужно.",

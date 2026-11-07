@@ -438,6 +438,7 @@ public static class Sound
         ["stone"] = (HitStone, BreakStone),
         ["copperVein"] = (HitStone, BreakStone),
         ["iceVein"] = (HitStone, BreakStone),
+        ["ironVein"] = (HitStone, BreakStone),
         ["plaster"] = (HitStone, BreakStone),
         ["alloy"] = (Chop, Break),
     };

@@ -214,6 +214,7 @@ public static class HitLooks
         ["stone"] = Impact.Stone,
         ["copperVein"] = Impact.Stone,
         ["iceVein"] = Impact.Stone,
+        ["ironVein"] = Impact.Stone,
         ["plaster"] = Impact.Plaster,
         ["alloy"] = Impact.Alloy,
     };

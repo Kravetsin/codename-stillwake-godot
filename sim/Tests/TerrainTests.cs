@@ -308,7 +308,8 @@ public class TerrainTests
             if (!IsVein(l.Materials![cell])) continue;
             var vein = t.Veins.Single(v => Materials.Get(v.Material).Code == l.Materials[cell]);
             Assert.Equal('#', l.At(cell));
-            Assert.True(vein.Widths[Terrain.BandOf(t, cell / l.Width)] > 0, $"{vein.Material} at row {cell / l.Width}");
+            int band = Terrain.BandOf(t, cell / l.Width);
+            Assert.True(vein.Widths[band] > 0 || vein.Pockets?.Marks[band] > 0, $"{vein.Material} at row {cell / l.Width}");
             seen.Add(vein.Material);
         }
         Assert.Equal(t.Veins.Select(v => v.Material).Order(StringComparer.Ordinal), seen.Order(StringComparer.Ordinal));
@@ -317,8 +318,8 @@ public class TerrainTests
     [Fact]
     public void AVeinIsALineOfCellsNotScatteredDots()
     {
-        // Nearly every vein cell has another of its vein beside it, across or corner to corner.
-        var l = PlanetTesting.First(1).Layout;
+        // Nearly every lode vein cell has another of its vein beside it, across or corner to corner: pockets aside.
+        var l = PlanetTesting.FirstLodesOnly;
         int w = l.Width, cells = 0, joined = 0;
         for (int y = 1; y < l.Height - 1; y++)
             for (int x = 1; x < w - 1; x++)
@@ -339,7 +340,7 @@ public class TerrainTests
     [Fact]
     public void WithoutLodesThereAreNoVeinsNorCrystalsButTheRestOfTheCavesStillGrow()
     {
-        var bare = PlanetTypes.Small with { LodeOver = 65535 };
+        var bare = PlanetTesting.WithoutPockets(PlanetTypes.Small) with { LodeOver = 65535 };
         foreach (uint seed in new uint[] { 1, 2, 3, 4 })
         {
             var l = Terrain.Generate(bare, seed);
@@ -354,7 +355,7 @@ public class TerrainTests
     public void CrystalsGatherByTheVeinsInRichCavesWithBareOnesBetween()
     {
         // Within a lode's reach of a vein cell: a crystal or a geode far more often than any growth that grows by the patches.
-        var l = PlanetTesting.First(1).Layout;
+        var l = PlanetTesting.FirstLodesOnly;
         int w = l.Width, reach = PlanetTypes.First.LodeWave / 2;
         var near = new bool[l.Width * l.Height];
         for (int cell = 0; cell < near.Length; cell++)

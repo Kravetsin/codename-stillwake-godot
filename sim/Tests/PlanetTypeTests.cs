@@ -69,6 +69,7 @@ public class PlanetTypeTests
         {
             if (!Materials.TryGet(v.Material, out var m) || m.In != t.Stone || !m.Breaks) return $"{v.Material}: no vein in its stone";
             if (v.Wave < 1 || v.Tall < 1 || v.Widths.Count != t.Bands.Count + 1 || v.Widths.Any(n => n is < 0 or >= 32768)) return $"{v.Material}: a width for each band";
+            if (v.Pockets is { } p && (p.Wave < 1 || p.Tall < 1 || p.Marks.Count != t.Bands.Count + 1 || p.Marks.Any(n => n is < 0 or > 65536))) return $"{v.Material}: a pocket mark for each band";
         }
         if (t.LodeWave < 1 || t.LodeOver is < 0 or >= 65536 || t.LodeMost < 0) return "its lodes";
         foreach (var on in Enum.GetValues<Flora.Anchor>())
@@ -98,6 +99,11 @@ public class PlanetTypeTests
         Assert.NotNull(Wrong(PlanetTypes.Small with { Bands = [600, 250] }));
         Assert.NotNull(Wrong(PlanetTypes.Small with { Veins = [new("stone", 40, 24, [0, 0, 0, 0])] }));
         Assert.NotNull(Wrong(PlanetTypes.Small with { Veins = [new("iceVein", 40, 24, [900])] }));
+        Assert.NotNull(Wrong(PlanetTypes.Small with { Veins = [new("ironVein", 40, 24, [0, 0, 0, 0], new(6, 4, [62000, 62000, 62000]))] }));
+        Assert.NotNull(Wrong(PlanetTypes.Small with { Veins = [new("ironVein", 40, 24, [0, 0, 0, 0], new(6, 4, [62000, 62000, 65537, 62000]))] }));
+        Assert.NotNull(Wrong(PlanetTypes.Small with { Veins = [new("ironVein", 40, 24, [0, 0, 0, 0], new(6, 4, [-1, 62000, 62000, 62000]))] }));
+        Assert.NotNull(Wrong(PlanetTypes.Small with { Veins = [new("ironVein", 40, 24, [0, 0, 0, 0], new(0, 4, [0, 0, 0, 0]))] }));
+        Assert.Null(Wrong(PlanetTypes.Small with { Veins = [new("ironVein", 40, 24, [0, 0, 0, 0], new(6, 4, [0, 0, 65536, 62000]))] }));
         Assert.NotNull(Wrong(PlanetTypes.Small with { Bands = [250, 600] }));
         Assert.NotNull(Wrong(PlanetTypes.Small with { Plants = [Plant("acacia", 600), Plant("bush", 600)] }));
         Assert.NotNull(Wrong(PlanetTypes.Small with { Plants = [Plant("acacia", 100) with { Yields = [("planks", 99)] }] }));

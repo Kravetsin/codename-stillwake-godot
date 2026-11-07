@@ -61,7 +61,7 @@ public partial class ContentTests
             Assert.All(Weapons.All, w => Assert.True(w.BlockDamage < m.Strength || m.Id == "soil", $"{w.Item} on {m.Id}"));
             Assert.All(m.Cost, c => Assert.True(Content.Items.TryGet(c.Item, out _), c.Item));
         }
-        Assert.Equal(["soil", "stone", "bedrock", "lava", "alloy", "plaster", "copperVein", "iceVein"], Materials.All.Where(m => m.Natural).Select(m => m.Id));
+        Assert.Equal(["soil", "stone", "bedrock", "lava", "alloy", "plaster", "copperVein", "iceVein", "ironVein"], Materials.All.Where(m => m.Natural).Select(m => m.Id));
         // The ruins' alloy (0085), a cell of it: seven and a half seconds of the axe, a second and a half of the drill, under one
         // fitted (0098).
         int Tenths(Weapon w) => Materials.Get("alloy").Strength * 10 / (w.BlockDamage * World.TicksPerSecond / w.Pace);

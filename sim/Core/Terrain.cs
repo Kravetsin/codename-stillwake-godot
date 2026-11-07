@@ -19,6 +19,9 @@ public static class Terrain
         CavernsFine = 9, ChasmAt = 10, ChasmWander = 11, HallAt = 12, Plants = 13, CaveRoll = 14, CavePatch = 17, MouthFade = 18,
         SpireAt = 19, HomeAt = 20, Regions = 21, Lodes = 22, Veins = 23;
 
+    /// <summary>Each ore's pockets hashed apart, one from here for each of <c>Veins</c>, clear of the veins' own two each.</summary>
+    private const uint PocketSalt = 100;
+
     public static Layout Generate(PlanetType t, uint seed) => Generate(t, seed, out _, out _, out _);
 
     /// <param name="hall">Each cell a great hall opened, where the caves' growth is densest (0080): for tests.</param>
@@ -168,7 +171,8 @@ public static class Terrain
         var spawn = SpawnOf(rows, w, h, g.Clear);
         var surfaceTop = TopsOf(rows, w, h);
         var flora = Flora(t, seed, rows, codes, soil, spawn % w, surfaceTop);
-        CaveFlora(t, seed, rows, codes, hall, surfaceTop, flora);
+        var grown = CaveFlora(t, seed, rows, codes, hall, surfaceTop, flora);
+        PaintPockets(t, seed, kind, codes, stone, grown);
         spires = Spires(g, seed, top, rows, codes, flora);
         homes = Homes(g, seed, top, rows, codes, flora, spires);
         // Found column by column and row by row; kept by cell, as every list of cells is.
@@ -204,12 +208,13 @@ public static class Terrain
         {
             int band = BandOf(t, y);
             lodes.Row(y, lode);
-            // The veins' noise only where a cell asks it: stone in a lode, a few of a row's.
-            foreach (var v in veins)
-            {
-                v.Coarse.Start(y);
-                v.Fine.Start(y);
-            }
+            // The veins' noise only where a cell asks it: stone in a lode, a few of a row's, of a vein running in its band.
+            for (int i = 0; i < veins.Length; i++)
+                if (t.Veins[i].Widths[band] > 0)
+                {
+                    veins[i].Coarse.Start(y);
+                    veins[i].Fine.Start(y);
+                }
             for (int x = g.BedrockSide; x < w - g.BedrockSide; x++)
             {
                 int cell = y * w + x;
@@ -217,10 +222,49 @@ public static class Terrain
                 long into = Math.Min(Whole, (long)(lode[x] - t.LodeOver) * 2 * Whole / (Whole - t.LodeOver));
                 for (int i = 0; i < veins.Length; i++)
                 {
+                    if (t.Veins[i].Widths[band] == 0) continue;
                     int width = (int)(t.Veins[i].Widths[band] * into / Whole);
                     if (Math.Abs(((3 * veins[i].Coarse.At(x) + veins[i].Fine.At(x)) >> 2) - Whole / 2) >= width) continue;
                     codes[cell] = veins[i].Code;
                     break;
+                }
+            }
+        }
+    }
+
+    /// <summary>
+    /// The ores' pockets (<see cref="Vein.Pockets"/>), painted after the caves' growths so every growth stays where it grew: row by
+    /// row from the top, each row from the left, a solid cell still of plain stone, no vein's and no growth's, is an ore's where
+    /// that ore's pocket noise reaches its band's mark; the first ore in the list that takes it has it. Only which material a
+    /// solid cell is changes, never whether it is open.
+    /// </summary>
+    private static void PaintPockets(PlanetType t, uint seed, byte[] kind, int[] codes, int stone, bool[] taken)
+    {
+        var g = t.Ground;
+        int w = g.Width, floor = g.Height - g.CoreRows;
+        var ores = new List<(int Code, IReadOnlyList<int> Marks, int Wave, Field Noise)>();
+        for (int i = 0; i < t.Veins.Count; i++)
+            if (t.Veins[i].Pockets is { } p)
+                ores.Add((Materials.Get(t.Veins[i].Material).Code, p.Marks, p.Wave, new Field(seed, PocketSalt + (uint)i, p.Wave, p.Tall, w)));
+        int from = g.BedrockSide, to = w - g.BedrockSide;
+        for (int y = 1; y < floor; y++)
+        {
+            int band = BandOf(t, y);
+            // An ore at a time, in the list's order: a cell the one before took is no longer stone, so the first that passes has it.
+            // Only between lattice columns where the noise may reach the mark: most of a row's lie under it.
+            foreach (var (code, marks, wave, noise) in ores)
+            {
+                int mark = marks[band];
+                if (mark <= 0 || mark >= Whole) continue;
+                noise.Start(y);
+                for (int i = from / wave; i * wave < to; i++)
+                {
+                    if (!noise.Reaches(i, mark)) continue;
+                    for (int x = Math.Max(from, i * wave); x < Math.Min(to, (i + 1) * wave); x++)
+                    {
+                        int cell = y * w + x;
+                        if (kind[cell] == 1 && codes[cell] == stone && !taken[cell] && noise.At(x) >= mark) codes[cell] = code;
+                    }
                 }
             }
         }
@@ -301,7 +345,8 @@ public static class Terrain
     /// where it has room (<see cref="Content.Flora.CaveKind"/>). Only in the caves: an open cell under the sky is no slot, nor a
     /// wall beside only the sky.
     /// </summary>
-    private static void CaveFlora(PlanetType t, uint seed, char[][] rows, int[] codes, bool[] hall, int[] top, List<(int, string)> into)
+    /// <returns>Each cell a growth took: its own, and those it lies, stands or hangs in.</returns>
+    private static bool[] CaveFlora(PlanetType t, uint seed, char[][] rows, int[] codes, bool[] hall, int[] top, List<(int, string)> into)
     {
         var g = t.Ground;
         int w = g.Width, h = g.Height, floor = h - g.CoreRows, stone = Materials.Get(t.Stone).Code;
@@ -347,6 +392,7 @@ public static class Terrain
                     Try(Content.Flora.Anchor.Rock, x, y, cell);
             }
         }
+        return taken;
 
         void Try(Content.Flora.Anchor on, int x, int y, int cell)
         {
@@ -749,6 +795,12 @@ public static class Terrain
             int i = _lattice[x];
             return Mix(_column[i], _column[i + 1], _ease[x]);
         }
+
+        /// <summary>
+        /// Whether the noise may reach <paramref name="mark"/> anywhere between lattice columns <paramref name="i"/> and the next
+        /// in the row last <see cref="Start"/>ed: <see cref="At"/> never passes the larger of the two it blends.
+        /// </summary>
+        public bool Reaches(int i, int mark) => Math.Max(_column[i], _column[i + 1]) >= mark;
     }
 
     /// <summary>a and b weighed by <paramref name="t"/> of <see cref="Whole"/>: both weights non-negative, rounded down.</summary>
