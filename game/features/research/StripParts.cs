@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using Godot;
+using Stillwake.Game.I18n;
 using Stillwake.Game.Render;
 using Stillwake.Game.Shared;
 using Stillwake.Sim.Grid;
@@ -14,6 +15,9 @@ public sealed class StripParts(TipSpots tips)
 {
     public static readonly Color Line = new("1a1e25"), Faint = new("7a8090"), Bought = new("6fe08a"),
         Picked = new("ffffff"), From = new("5eead4"), MadeAt = new("f28fd0"), UsedIn = new("7dd3fc");
+
+    /// <summary>The colour of a thread of <paramref name="tie"/>: the board's and the search's.</summary>
+    public static Color ColourOf(Tie tie) => tie switch { Tie.MadeAt => MadeAt, Tie.From => From, _ => UsedIn };
 
     /// <summary>Pixels the pointer may move in a press still meant as a click.</summary>
     public const float ClickSlack = 4;
@@ -162,8 +166,11 @@ public sealed class StripParts(TipSpots tips)
         return picture;
     }
 
-    public string NameOf(string id) =>
-        Content.Upgrades.Of(id) is { } upgrade ? T($"upgrade.{upgrade.Kind}") : _placements.ContainsKey(id) ? ItemCards.NameOf(id, _placements[id]) : T($"item.{id}");
+    public string NameOf(string id) => NameIn(Speaking, id);
+
+    /// <summary><see cref="NameOf"/> in <paramref name="language"/>: the board's search finds a thing by either.</summary>
+    public string NameIn(Language language, string id) =>
+        Content.Upgrades.Of(id) is { } upgrade ? In(language, $"upgrade.{upgrade.Kind}") : ItemCards.NameIn(language, id, _placements.GetValueOrDefault(id));
 
     /// <summary>The pictures of <paramref name="ids"/>, smaller the more of them there are, each named by the pointer through <paramref name="tip"/>, those <paramref name="pale"/> says pale.</summary>
     public Control Pictures(IReadOnlyList<string> ids, Func<string, Tip> tip, Func<string, bool>? pale = null)

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Godot;
 using Stillwake.Content;
+using Stillwake.Game.I18n;
 using Stillwake.Game.Render;
 using Stillwake.Game.Shared;
 using Stillwake.Sim;
@@ -21,7 +22,7 @@ namespace Stillwake.Game.Features.Research;
 public sealed class BoardPage : ITabletPage
 {
     private static readonly Color Light = new("d8e0ec"), Drawn = new("b4bfd0"), NoteFill = new("172033"), CardFill = new("131b2c"), Pressed = new("2a3550"),
-        Behind = new("55617a"), Dim = new("94a3b8"), Fresh = new("dbe3ef"), Plain = new("7f8ba0"), New = new("f2b84b");
+        Behind = new("55617a"), Dim = new("94a3b8"), Fresh = new("dbe3ef"), Plain = new("7f8ba0"), New = new("f2b84b"), Dimmed = new(1, 1, 1, 0.3f);
 
     /// <summary>Under this zoom words would be too small to read, and only pictures show.</summary>
     private const double WordsFrom = 0.5;
@@ -121,6 +122,9 @@ public sealed class BoardPage : ITabletPage
     private bool _flipHeld;
     private readonly BoardFind _find;
 
+    /// <summary>What the search's open list shows: lit on the board, the rest dimmed; none while it is closed.</summary>
+    private IReadOnlyCollection<string>? _listed;
+
     private bool Words => _camera.Zoom >= WordsFrom;
 
     /// <summary>What of the view the board has: all of it, unless unread stand beside it.</summary>
@@ -151,7 +155,7 @@ public sealed class BoardPage : ITabletPage
         BuildSide();
         view.AddChild(_side);
         view.AddChild(_flyers);
-        _find = new BoardFind(Findable, _strip.Picture, Find) { Visible = false };
+        _find = new BoardFind(Findable, _strip.Picture, Find, Listed) { Visible = false };
         view.AddChild(_find);
     }
 
@@ -568,7 +572,7 @@ public sealed class BoardPage : ITabletPage
             if (!note) SayLack(view, BoardThings.All.First(t => t.Id == id));
             if (note) view.Picture.Material = null;
             else Sketched(view.Picture, pencil);
-            view.Root.Modulate = _picked == null || Tie(id) != null ? Colors.White : new Color(1, 1, 1, 0.3f);
+            view.Root.Modulate = Lit(id) ? Colors.White : Dimmed;
         }
     }
 
@@ -758,7 +762,18 @@ public sealed class BoardPage : ITabletPage
 
     /// <summary>What the search can find: whatever the board shows now, by the name it goes by.</summary>
     private IEnumerable<BoardFound> Findable() =>
-        _picture.Shows.Where(s => s.Value != BoardShow.Unseen && _notes.ContainsKey(s.Key)).Select(s => new BoardFound(s.Key, _strip.NameOf(s.Key), s.Value == BoardShow.Note));
+        _picture.Shows.Where(s => s.Value != BoardShow.Unseen && _notes.ContainsKey(s.Key)).Select(s => new BoardFound(s.Key, _strip.NameOf(s.Key), _strip.NameIn(Speaking == Language.Russian ? Language.English : Language.Russian, s.Key), s.Value == BoardShow.Note));
+
+    /// <summary>The search's list opened, changed or closed: the board lights what it lists, or what the pick ties to again.</summary>
+    private void Listed(IReadOnlyCollection<string>? ids)
+    {
+        _listed = ids;
+        foreach (var (id, view) in _notes) view.Root.Modulate = Lit(id) ? Colors.White : Dimmed;
+        _back.QueueRedraw();
+    }
+
+    /// <summary>Whether <paramref name="id"/> stands out: listed by the open search, else tied to the pick, else everything does.</summary>
+    private bool Lit(string id) => _listed?.Contains(id) ?? (_picked == null || Tie(id) != null);
 
     /// <summary>What the search picked: picked as by a click, on top of the rest, and the board glides to it at a size with words.</summary>
     private void Find(string id)
@@ -984,9 +999,7 @@ public sealed class BoardPage : ITabletPage
     private Color? Tie(string id)
     {
         if (_picked is not { } picked) return null;
-        if (picked == id) return Picked;
-        var link = TechLinks.Of(picked);
-        return link.MadeAt.Contains(id) ? MadeAt : link.Takes.Any(t => t.Item == id) || link.From.Contains(id) ? From : link.UsedIn.Contains(id) ? UsedIn : null;
+        return picked == id ? Picked : TechLinks.TieOf(picked, id) is { } tie ? ColourOf(tie) : null;
     }
 
     /// <summary>Where <paramref name="id"/> stands on the board: where it was moved to, else its slot.</summary>
@@ -1014,10 +1027,10 @@ public sealed class BoardPage : ITabletPage
         {
             bool fresh = _keep.Seen.Fresh(note);
             float drawn = _growing.GetValueOrDefault(note, 1);
-            var tip = InkDraw.Stroke(_back, ThreadOf(note, shape), (fresh ? Fresh : Plain) with { A = _picked == null ? 1 : 0.3f }, (fresh ? 1.5f : 1.1f) * seen, InkDraw.Least * seen, drawn);
+            var tip = InkDraw.Stroke(_back, ThreadOf(note, shape), (fresh ? Fresh : Plain) with { A = (_listed != null ? Lit(note) && Lit(shape) : _picked == null) ? 1 : 0.3f }, (fresh ? 1.5f : 1.1f) * seen, InkDraw.Least * seen, drawn);
             if (drawn < 1) InkDraw.Nib(_back, tip, Light, seen);
         }
-        if (_picked == null || !_slots.ContainsKey(_picked)) return;
+        if (_listed != null || _picked == null || !_slots.ContainsKey(_picked)) return;
         foreach (var (id, show) in _picture.Shows)
             if (show != BoardShow.Unseen && id != _picked && Tie(id) is { } colour) InkDraw.Stroke(_back, ThreadOf(_picked, id), colour with { A = 0.7f }, 2 * seen, InkDraw.Least * seen);
     }
