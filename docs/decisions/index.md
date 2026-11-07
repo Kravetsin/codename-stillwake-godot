@@ -270,3 +270,4 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [air-feedback](2026-11-07-air-feedback.md) | Air and power answer the player loudly | accepted |  |
 | [board-search](2026-11-07-board-search.md) | The board has its own search | accepted |  |
 | [no-charge-flash](2026-11-07-no-charge-flash.md) | A flat press blinks the energy tab red | accepted |  |
+| [radar-mast](2026-11-07-radar-mast.md) | The radar antenna is a guyed mast | accepted |  |
