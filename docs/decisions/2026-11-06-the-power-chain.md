@@ -19,9 +19,10 @@ wheel a hero runs in.
 3. **The biofuel generator**, 6×4, of a planet's fuel pump, frame, plate, coils and tube: a fuel burner whose slot takes biofuel
    alone, making 16 a tick for the 1600 ticks a biofuel burns, 25 600 a biofuel against the burner generator's 9 600. It
    breathes its room's air and lights only while its network wants a fire, as every burner does (0101).
-4. **The treadmill wheel**, 6×6, of planks, gears, a coil and scrap: the first power there is. A hero gets in with E and holds a
-   move key to run; while an awake rider runs, it makes 4, anywhere, in a room or out. Empty, still or its rider passed out, it
-   makes nothing. Running, the hero breathes as a runner does.
+4. **The treadmill wheel**, 6×6, of six planks, a gear and a coil: the first power there is, at a quarter of the burner
+   generator's iron and scrap, since it costs a hero's time instead. A hero gets in with E and holds a move key to run; while
+   an awake rider runs, it makes 4, anywhere, in a room or out. Empty, still or its rider passed out, it makes nothing.
+   Running, the hero breathes as a runner does.
 
 ## Decisions
 

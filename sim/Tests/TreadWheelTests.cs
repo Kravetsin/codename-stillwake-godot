@@ -47,11 +47,11 @@ public class TreadWheelTests
         w.Do(new Enter(w.At(5, 4)) { From = peer }).Run().Do(new Board(Wheel(w)) { From = peer }).Run();
 
     [Fact]
-    public void IsASixBySixDrumOfPlanksGearsACoilAndScrapThatSeatsAHeroAndMakesFourAnywhere()
+    public void IsASixBySixDrumOfPlanksAGearAndACoilThatSeatsAHeroAndMakesFourAnywhere()
     {
         var spec = Machines.Get("treadWheel");
         Assert.Equal((6, 6, 4, true), (spec.Width, spec.Height, Makes, spec.Anywhere));
-        Assert.Equal(["planks", "gear", "coil", "scrap"], spec.Cost.Select(c => c.Item));
+        Assert.Equal([("planks", 6), ("gear", 1), ("coil", 1)], spec.Cost);
         Assert.Equal(MachineTrait.Seats, spec.Traits);
         Assert.Equal(MenuTabs.Power, spec.Menu!.Tab);
     }
