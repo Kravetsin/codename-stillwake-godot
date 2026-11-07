@@ -221,6 +221,9 @@ public readonly record struct Hero(
         var wraps = before.Anchor == anchor ? before.Wraps : null;
         var at = after.Middle;
         while (wraps != null && Passes(ship, wraps.Next?.At ?? anchor, at)) wraps = wraps.Next;
+        // Hauled onto its last bend, or stopped short of it, the line goes on from there: a door shut since it bent would else hold it
+        // there for good, the way on past the bend never passing again.
+        if (hauled && wraps != null && (at == wraps.At || at == before.Middle)) wraps = wraps.Next;
         var last = wraps?.At ?? anchor;
         // Bent only by the body's own move round the hull: a door shut or a wall built across the line it already had (it still
         // passes nowhere from where it was) bends nothing, and a haul goes on to it.
