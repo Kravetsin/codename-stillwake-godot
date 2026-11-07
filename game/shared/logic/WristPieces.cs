@@ -35,7 +35,7 @@ public sealed record WristPiece(string Texture, Bezel Patch, Bezel Window, (int 
 /// <summary>
 /// The wrist computer's pieces (0074), exported from the concept's drawing code (inventory-look variant B) in the build
 /// tablet's metal: the cuff round the hotbar and the gauges' tabs under it, always shown; the forearm display round
-/// the bag, the open machine's module under it, and the equipment's unit.
+/// the bag, and the equipment's unit. An open machine's window is a hologram, not metal (machine-holograms).
 /// </summary>
 public static class WristPieces
 {
@@ -48,14 +48,8 @@ public static class WristPieces
     /// <summary>A gauge's tab under the cuff, its top outline the cuff's bottom one; the suit's and the energy bar.</summary>
     public static readonly WristPiece Gauge = new("res://art/wrist_gauge.png", new(4, 3, 4, 4), new(4, 3, 4, 4));
 
-    /// <summary>Round the bag, nothing open under it: bumpers, a warning stripe, screws, signal pips and a lamp.</summary>
+    /// <summary>Round the bag: bumpers, a warning stripe, screws, signal pips and a lamp.</summary>
     public static readonly WristPiece Display = new("res://art/wrist_display.png", new(54, 9, 34, 9), new(5, 6, 5, 5), (16, 4));
-
-    /// <summary>Round the bag with a machine open under it: its bottom edge square, where the machine's module meets it.</summary>
-    public static readonly WristPiece DisplayDocked = Display with { Texture = "res://art/wrist_display_docked.png", Patch = new(54, 9, 34, 4), Window = new(5, 6, 5, 4) };
-
-    /// <summary>Round the open machine under the bag (the items' and the Fabricator's): square on top, bumpers below.</summary>
-    public static readonly WristPiece Dock = new("res://art/wrist_dock.png", new(13, 3, 13, 9), new(5, 3, 5, 5));
 
     /// <summary>Round the equipment at the right edge.</summary>
     public static readonly WristPiece Body = new("res://art/wrist_body.png", new(13, 9, 19, 9), new(5, 6, 5, 5), (16, 4));
