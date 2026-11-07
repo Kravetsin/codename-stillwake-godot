@@ -20,27 +20,36 @@ Four ways back were weighed, for 800 cells:
 | A lift or the pod's winch | ~40 s, once built | power, a machine, 800 cells of building | kept | a module; moving floors under client-run heroes |
 
 The user picked the grapple: it saves the player who did not prepare, needs nothing new on the wire, and the deep stays a trip.
+Played, the first version made the harpoon itself the climber; the user asked for a tool of its own instead, since players know the
+harpoon as the 5 s gun that reels debris, and for a line that a movement key does not drop.
 
 ## Decision
 
-- **A click while hanging fires again** at once, the cooldown not checked but restarted, as every shot does. The hero stays held
-  where it hangs while the new rod flies (`PullTo` kept through `Flying`).
-- **A grip from a hang pulls on with no click**, toward `Harpoon.PullStop` short of the new hook. A miss lets the hero fall and
-  the next shot waits for the cooldown; a piece hooked from a hang lets it fall too, the rod left in the piece to reel. A jump or a
-  movement key while the new rod flies lets go of the old hook, the rod flying on as a shot from the ground.
+- **The grappling gun** (`Content.Grapple`, item `grapple`) is the harpoon's machine (`HarpoonShot.Grapple()`) made to climb:
+  its rod grips only structure, never a piece; **every grip pulls at once**, no click; it pulls at 30 cells a second, half again
+  the harpoon's, and reloads in 1 s, so a miss costs a moment. Range, rod speeds and `PullStop` are the harpoon's. Made at the
+  workbench from ship parts, pricier than the harpoon: 2 tubes, 2 gears, a coil, 8 wire. Its look is its own, picked by the user.
+- **Hanging, a click fires again** once the gun is reloaded, the hero held where it hangs while the new rod flies (`PullTo` kept
+  through `Flying`). The harpoon keeps the same tricks but waits out its 5 s: it climbs, slowly, and makes the grapple worth making.
+- **A grip from a hang pulls on with no click**, toward `PullStop` short of the new hook. A miss lets the hero fall; a piece the
+  harpoon hooks from a hang lets it fall too, the rod left in the piece to reel. A jump while the new rod flies lets go of the old
+  hook, the rod flying on as a shot from the ground.
+- **Only a jump lets go** (`HarpoonShot.LetsGoBy`): A and D on the line do nothing, so a jump off it can be steered.
 - **The line is footing.** `Hero.Pulled` starts the coyote's steps afresh and keeps a Space pressed on the line in the jump
-  buffer (0089), so the step after the harpoon lets go jumps as from the floor: a hero hung by a ledge's lip jumps onto it.
-- **Others hear it** (0065): a rod heard stuck and then flying is a shot, its sound, puff and empty gun drawn.
-- A hop is at most the range less `PullStop`, ~39 cells, in ~2.5 s: 800 cells in about 55 s up a shaft (`GrappleClimbTests`).
-- **Nothing in the sim:** the pull stays the controller's (0044), heroes client-authoritative (0002). `PullSpeed`, the range and the
-  cooldown are unchanged; the pull is also the hero's way round the ship.
+  buffer (0089), so the step after the line lets go jumps as from the floor: a hero hung by a ledge's lip jumps onto it.
+- **Others see it** (0065): a rod heard stuck and then flying is a shot; a friend's gun is drawn loaded after its own cooldown.
+- Up an 800-cell shaft (`GrappleClimbTests`): the grappling gun in about 40 s, a hop of ~36 cells each 1.7 s; the harpoon in about
+  two minutes, a hop each reload.
+- **Nothing in the sim** but the item and its recipe: the pull stays the controller's (0044), heroes client-authoritative (0002).
 
 ## Consequences
 
 - **The route must offer a hook within the range.** Straight up a shaft the rod flies out and misses: the player aims at the
   wall high up. A hall wider than 40 cells is crossed along its walls; a miss over lava can kill.
 - Ladders no longer hold their place as the only quick way up: they stay the shared, keyless route of a mine heroes come back to.
-- Clicks while the hero is pulled are dropped, as before: a click chains once it hangs. A shot fired falling still falls.
+- Clicks while the hero is pulled are dropped: a click chains once it hangs. A shot fired falling still falls.
 - While the new rod flies the old hook is not asked whether it still holds: a wall taken down under it holds the hero for the
   flight's half second. In space the chain stops at the tether.
-- Dev: `--climb` beams the hero to the bottom of the first planet's deepest chasm, harpoon in hand, the drill to dig deeper.
+- Two guns in the belt keep two cooldowns; the one put away seats its rod and reloads.
+- Dev: `--climb` beams the hero to the bottom of the first planet's deepest chasm, the grappling gun in hand, the harpoon beside
+  it, the drill to dig deeper.

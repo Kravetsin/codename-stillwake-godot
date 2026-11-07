@@ -106,7 +106,8 @@ A living document: what is decided about the game and what is still open. Techni
   shoots a rod on a line up to 20 cells into a piece, small or a wreck, and a second click reels it in to just before
   the gun, to catch with E or chop with the axe; it fires again 5 s after its shot
   ([0044](decisions/0044-the-harpoon-reels-a-piece-to-a-point.md)). Shot into a wall it pulls the hero there, and hanging it
-  fires on at once, so a hero climbs out of a planet's deep shot by shot ([grapple-climbs](decisions/2026-11-07-grapple-climbs.md)); a net hung on the bow holds ten small pieces drifting into
+  fires on once reloaded; a grappling gun made of ship parts grips only walls, pulls at once and fast and reloads in a second,
+  so a hero climbs out of a planet's deep shot by shot ([grapple-climbs](decisions/2026-11-07-grapple-climbs.md)); a net hung on the bow holds ten small pieces drifting into
   it till a hero empties it with E ([the-debris-net](decisions/2026-11-03-debris-net.md)).
 - **Wreckage** drifts among the small debris, too big to catch: a hull section, a cargo container,
   a machine block, an electronics rack, oxygen tanks, a shield slab and, rarely, a soil clod, each broken with the fire axe

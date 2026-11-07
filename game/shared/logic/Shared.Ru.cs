@@ -17,6 +17,7 @@ public static partial class Ru
         ["card.range"] = "ДАЛЬНОСТЬ",
         ["card.reload"] = "ПЕРЕЗАРЯД",
         ["card.reel"] = "ЛЕБЁДКА",
+        ["card.pull"] = "ПОДТЯЖКА",
         ["card.perSecond"] = "{n}/с",
         ["card.smeltsHere"] = "Плавится здесь",
         ["card.burnsHere"] = "Горит здесь",

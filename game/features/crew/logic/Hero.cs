@@ -18,7 +18,8 @@ public readonly record struct Point(int X, int Y);
 /// held, runs aboard; in space it only thrusts, with a jetpack worn. <see cref="Swings"/>, the axe
 /// mid-swing (0039) or the harpoon aimed (0044): it faces <see cref="Face"/> swimming too, so the blade comes down where the swing was aimed and the gun
 /// points at the pointer. <see cref="Pull"/>, the harpoon's grapple (0044): the body's middle is pulled
-/// toward that point, keys and gravity aside, and held there once it is. <see cref="Jetpack"/>, a jetpack worn
+/// toward that point, keys and gravity aside, and held there once it is, <see cref="PullBy"/> a step (the gun's;
+/// none: the harpoon's, <see cref="Hero.PullStep"/>). <see cref="Jetpack"/>, a jetpack worn
 /// (0047): in space the hero keeps its speed, ties no tether, and while <see cref="Thrust"/> is set, a unit
 /// vector in thousandths, gains <c>Jetpack.Accel</c> a step that way up to <c>Jetpack.Top</c>; else it slows
 /// by <c>Jetpack.Drag</c> a step toward what the keys swim. <see cref="JumpHeld"/>, Space held down: let go while a
@@ -27,7 +28,7 @@ public readonly record struct Point(int X, int Y);
 /// </summary>
 public readonly record struct HeroInput(
     int X, int Y, bool Jump, int? Face = null, bool Sprint = false, bool Swings = false, Point? Pull = null,
-    bool Jetpack = false, Point? Thrust = null, bool JumpHeld = false, bool Reeling = false);
+    bool Jetpack = false, Point? Thrust = null, bool JumpHeld = false, bool Reeling = false, int PullBy = 0);
 
 /// <summary>
 /// The cells the hero moves against; which of them are space, where the
@@ -234,6 +235,9 @@ public readonly record struct Hero(
     /// <summary>How far the grapple pulls the body a step: <c>Harpoon.PullSpeed</c> a tick, rounded to whole thousandths.</summary>
     public const int PullStep = (Stillwake.Content.Harpoon.PullSpeed * Stillwake.Sim.World.TicksPerSecond + 30) / 60;
 
+    /// <summary>The grappling gun's pull a step: <c>Grapple.PullSpeed</c> a tick, rounded to whole thousandths (grapple-climbs).</summary>
+    public const int GrapplePullStep = (Stillwake.Content.Grapple.PullSpeed * Stillwake.Sim.World.TicksPerSecond + 30) / 60;
+
     private static Hero Move(Hero hero, HeroInput input, Ship ship)
     {
         int facing = input.Face ?? (input.X == 0 ? hero.Facing : input.X);
@@ -243,7 +247,7 @@ public readonly record struct Hero(
         // In a planet's fog the hero glides, the harpoon let go as it went in (fog-edges).
         if (ship.Glides(hero.X) || hero.Gliding && ship.Carries(hero.X)) return Glide(ship, hero);
         hero = hero with { Gliding = false };
-        if (input.Pull is Point to) return Pulled(ship, hero, to, facing, input.Jump);
+        if (input.Pull is Point to) return Pulled(ship, hero, to, facing, input.Jump, input.PullBy > 0 ? input.PullBy : PullStep);
         // Swimming, the hero faces the way it swims, whatever the pointer does, unless it swings the axe.
         if (space) return Swim(ship, hero, input, input.X == 0 || input.Swings ? facing : input.X);
         if (input.Reeling)
@@ -462,17 +466,17 @@ public readonly record struct Hero(
     }
 
     /// <summary>
-    /// The body's middle pulled straight toward <paramref name="to"/> by <see cref="PullStep"/>, landing on it,
+    /// The body's middle pulled straight toward <paramref name="to"/> by <paramref name="by"/>, landing on it,
     /// walls and closed doors stopping it as anything does; no gravity, so pulled there it stays. The line is footing
     /// (grapple-climbs): the coyote's steps start afresh off it, and a jump pressed on it is kept in the buffer, so the
     /// step after the line lets go jumps as from the floor.
     /// </summary>
-    private static Hero Pulled(Ship ship, Hero hero, Point to, int facing, bool jump)
+    private static Hero Pulled(Ship ship, Hero hero, Point to, int facing, bool jump, int by)
     {
         var middle = hero.Middle;
         int dx = to.X - middle.X, dy = to.Y - middle.Y;
         double far = Distance(dx, dy);
-        if (far > PullStep) (dx, dy) = ((int)Math.Round(dx / far * PullStep), (int)Math.Round(dy / far * PullStep));
+        if (far > by) (dx, dy) = ((int)Math.Round(dx / far * by), (int)Math.Round(dy / far * by));
         int nx = MoveX(ship, hero.X, hero.Y, dx);
         int ny = MoveY(ship, nx, hero.Y, dy, false);
         if (!Clear(ship, nx, ny)) (nx, ny) = Clear(ship, nx, hero.Y) ? (nx, hero.Y) : (hero.X, hero.Y);

@@ -10,10 +10,10 @@ namespace Stillwake.Game.Dev;
 
 /// <summary>
 /// The grapple's climb out of a planet's deep (grapple-climbs): the first planet opened and the hero beamed to the bottom of its
-/// deepest chasm, open to the sky hundreds of rows up, with the harpoon in hand, the drill with a battery to dig deeper, the axe and
-/// the helmet lamp, in creative mode so the climb is never cut short by the air.
+/// deepest chasm, open to the sky hundreds of rows up, with the grappling gun in hand, the harpoon beside it, the drill with a battery to dig
+/// deeper and the helmet lamp, in creative mode so the climb is never cut short by the air.
 /// </summary>
-[Dev("--climb", "the first planet, the hero at the bottom of its deepest chasm with the harpoon in hand, the drill, the axe and the lamp, creative (grapple-climbs)", Order = 5)]
+[Dev("--climb", "the first planet, the hero at the bottom of its deepest chasm with the grappling gun in hand, the harpoon, the drill and the lamp, creative (grapple-climbs)", Order = 5)]
 public sealed class ClimbScenario : DevScenario
 {
     private bool _beamed, _creative;
@@ -26,9 +26,9 @@ public sealed class ClimbScenario : DevScenario
         var slots = new JsonArray();
         int lamp = Spec.Inventory.Slots + Spec.Inventory.Equipment.ToList().IndexOf(Spec.Helmet.Mount), belt = Spec.Inventory.Slots + 2;
         for (int i = 0; i < Spec.Inventory.Total; i++)
-            slots.Add(i == 0 ? Stack(Spec.Harpoon.Item)
-                : i == 1 ? Stack(Spec.Weapons.Drill.Item)
-                : i == 2 ? Stack(Spec.Weapons.Axe.Item)
+            slots.Add(i == 0 ? Stack(Spec.Grapple.Item)
+                : i == 1 ? Stack(Spec.Harpoon.Item)
+                : i == 2 ? Stack(Spec.Weapons.Drill.Item)
                 : i == lamp ? Stack(Spec.HelmetLamp.Item)
                 : i == belt ? new JsonObject { ["item"] = "battery", ["count"] = 1, ["charge"] = Spec.Charge.Battery }
                 : null);

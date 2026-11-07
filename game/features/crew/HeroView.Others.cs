@@ -35,7 +35,7 @@ public partial class HeroView
                 shown.Figure.Visible = false;
                 (shown.Tether, shown.Busy, shown.Work) = (null, null, null);
                 shown.Swing.Stop();
-                ShowRod(id, shown, null, false, elapsedMs);
+                ShowRod(id, shown, null, null, false, elapsedMs);
             }
         foreach (var (id, seen) in others)
         {
@@ -78,7 +78,7 @@ public partial class HeroView
             shown.Driver.Step(HeldLook.Drives(running) && seen.Busy is { Work: Handwork.Work }, seen.Busy is { Work: Handwork.Work, At: var worked } ? Pixels(worked) : null,
                 elapsedMs / 1000);
             if (Busy.BeamsAnew(shown.Busy, seen.Busy)) shown.Figure.Beam([Pixels(seen.Busy!.Value.At)]);
-            shown.Figure.Loaded = shown.Rod.Loaded;
+            shown.Figure.Loaded = shown.Rod.LoadedAfter(seen.Wields == Content.Grapple.Item ? HarpoonShot.MsOf(Content.Grapple.CooldownTicks) : HarpoonShot.CooldownMs);
             shown.Figure.Jetpack = m.Items.Equipped(id, Content.Jetpack.Item);
             shown.Figure.HeadLamp = m.Items.Equipped(id, Content.HelmetLamp.Item);
             shown.Figure.Scanner = m.Items.Equipped(id, Content.Helmet.Scanner);
@@ -108,7 +108,7 @@ public partial class HeroView
             }
             // Its thrust is not sent: the plume blows against the way it moves, down while it is still.
             Plume(id, shown.Figure, crew.HeroOf(id)?.Thrusting == true ? (hero.Vx, hero.Vy) : null, elapsedMs);
-            ShowRod(id, shown, seen.Rod, afloat, elapsedMs);
+            ShowRod(id, shown, seen.Rod, seen.Wields, afloat, elapsedMs);
             (shown.Tether, shown.Busy) = (Tie(shown.Tether, id, hero.Anchor, Tether.ClipOf(hero.X, hero.Y), elapsedMs), seen.Busy);
         }
         _canisters.Sweep();
@@ -153,7 +153,7 @@ public partial class HeroView
     /// as the rod leaves, the bite where it sticks (the chop, or the glove's thump on a crate or pod), the drum
     /// at the gun while it reels or is pulled.
     /// </summary>
-    private void ShowRod(int peer, Other shown, RodSeen? sent, bool afloat, double elapsedMs)
+    private void ShowRod(int peer, Other shown, RodSeen? sent, string? wields, bool afloat, double elapsedMs)
     {
         var figure = shown.Figure;
         var rod = shown.Rod;
@@ -177,7 +177,7 @@ public partial class HeroView
             if (drums) shown.Drum.Play();
             else shown.Drum.Stop();
         }
-        DrawRod(rod.Rod, rod.Tip, rod.Heading, figure.Muzzle, ref shown.Line, shown.RodPicture, shown.Light, peer, elapsedMs);
+        DrawRod(rod.Rod, rod.Tip, rod.Heading, figure.Muzzle, ref shown.Line, shown.RodPicture, RodLook.Of(wields), shown.Light, peer, elapsedMs);
     }
 
     /// <summary>A point in thousandths of a cell, in the world's pixels.</summary>
@@ -186,12 +186,10 @@ public partial class HeroView
     /// <summary>A point in the world's pixels, in thousandths of a cell.</summary>
     private static (double X, double Y) Thousandths(Vector2 at) => (at.X / Rig.Cell * Hero.Unit, at.Y / Rig.Cell * Hero.Unit);
 
-    /// <summary>The rod's eye this far behind its point, in thousandths of a cell, as its picture is drawn.</summary>
-    private static readonly double RodLength = (RodLook.Tip.X - RodLook.Eye.X) / Rig.Cell * Hero.Unit;
-
     /// <summary>This hero's rod and line as the harpoon has them this frame, from the muzzle the figure was just drawn with.</summary>
     private void ShowHarpoon(double elapsedMs) =>
-        DrawRod(_harpoon.Rod, _harpoon.Tip, _harpoon.Heading, _figure.Muzzle, ref _line, _rod, _rodLight, 0, elapsedMs);
+        DrawRod(_harpoon.Rod, _harpoon.Tip, _harpoon.Heading, _figure.Muzzle, ref _line, _rod,
+            RodLook.Of(_grappling ? Content.Grapple.Item : Content.Harpoon.Item), _rodLight, 0, elapsedMs);
 
     /// <summary>
     /// A rod and its line where <paramref name="rod"/> says, its point at <paramref name="tip"/>, from a gun's
@@ -200,7 +198,7 @@ public partial class HeroView
     /// hanging and winding back. Nothing while the rod is in the gun. This hero's and the others' alike.
     /// </summary>
     private static void DrawRod(Rod rod, (double X, double Y) tip, (double X, double Y) heading, Vector2? muzzle,
-        ref HarpoonLine? line, Sprite2D picture, RodLight light, int seed, double elapsedMs)
+        ref HarpoonLine? line, Sprite2D picture, RodLook look, RodLight light, int seed, double elapsedMs)
     {
         if (rod == Rod.Seated || muzzle is not { } at)
         {
@@ -208,13 +206,18 @@ public partial class HeroView
             light.Step(rod, default, default, default, muzzle, elapsedMs);
             return;
         }
+        // One sprite draws either gun's rod: its picture follows the gun in hand, set only when it changes.
+        var texture = HeldArt.Of(look.Picture, []);
+        if (picture.Texture != texture) (picture.Texture, picture.Offset) = (texture, -new Vector2((float)look.Eye.X, (float)look.Eye.Y));
         var gun = Thousandths(at);
         var pointing = heading;
         double far = Math.Sqrt((tip.X - gun.X) * (tip.X - gun.X) + (tip.Y - gun.Y) * (tip.Y - gun.Y));
         // Stuck in the structure it keeps the way it flew in; riding a piece or winding back, it points along the line.
         if (rod is Rod.Reeling or Rod.Returning && far > 1) pointing = ((tip.X - gun.X) / far, (tip.Y - gun.Y) / far);
-        var eye = (tip.X - pointing.X * RodLength, tip.Y - pointing.Y * RodLength);
-        var end = HarpoonLine.EndOf(gun, tip, pointing, RodLength);
+        // The rod's eye this far behind its point, in thousandths of a cell, as its picture is drawn.
+        double length = (look.Tip.X - look.Eye.X) / Rig.Cell * Hero.Unit;
+        var eye = (tip.X - pointing.X * length, tip.Y - pointing.Y * length);
+        var end = HarpoonLine.EndOf(gun, tip, pointing, length);
         line ??= new HarpoonLine(gun, end, seed);
         line.Update(gun, end, HarpoonShot.Taut(rod), elapsedMs);
         // Flying or winding back, none of it shows over the gun while its eye is in there; stuck, a hero hanging may be that close.

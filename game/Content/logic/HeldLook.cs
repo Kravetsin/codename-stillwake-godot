@@ -40,6 +40,9 @@ public sealed record HeldLook(
     public static readonly HeldLook Harpoon = new(
         "res://art/hero_harpoon.png", (4.5, 8), 0, (9, 3.5), (25, 3.5), Loaded: "res://art/hero_harpoon_loaded.png", Aimed: true, Clamp: (10.5, 4));
 
+    /// <summary>The grappling gun (grapple-climbs): drawn as the harpoon till its own look is picked.</summary>
+    public static readonly HeldLook Grapple = Harpoon;
+
     /// <summary>
     /// The nailer, <c>art/hero_nailer.png</c> (shots-are-the-sims), the user's pick, «Самоделка»: a pipe barrel bound with copper
     /// wire on a wooden grip, as the harpoon's, a brass spring and a tin-can magazine under it; held as a pistol is, one-handed,
@@ -148,7 +151,7 @@ public sealed record HeldLook(
 
     /// <summary>How <paramref name="item"/> looks in the hand, plain: its modules are laid over it (<see cref="HeldParts"/>, 0098); none for an item held as no picture.</summary>
     public static HeldLook? Of(string? item) =>
-        item == Content.Weapons.Axe.Item ? FireAxe : item == Content.Harpoon.Item ? Harpoon : item == Content.Weapons.Drill.Item ? Drill
+        item == Content.Weapons.Axe.Item ? FireAxe : item == Content.Harpoon.Item ? Harpoon : item == Content.Grapple.Item ? Grapple : item == Content.Weapons.Drill.Item ? Drill
         : item == Content.Weapons.Grinder.Item ? Grinder : item == Content.Weapons.PlasmaCutter.Item ? PlasmaCutter
         : item == Content.Weapons.Spear.Item ? Spear : item == Content.Weapons.Sledgehammer.Item ? Sledgehammer
         : item == Content.Weapons.Pickaxe.Item ? Pickaxe
@@ -163,11 +166,17 @@ public sealed record HeldLook(
 }
 
 /// <summary>
-/// The harpoon's rod as it flies, <c>art/hero_harpoon_rod.png</c>, its point along +x: where the line ties
-/// on (<see cref="Eye"/>) and its point (<see cref="Tip"/>), in pixels of its picture.
+/// A gun's rod as it flies, its point along +x: its picture, where the line ties on (<see cref="Eye"/>) and its point
+/// (<see cref="Tip"/>), in pixels of its picture.
 /// </summary>
-public static class RodLook
+public sealed record RodLook(string Picture, (double X, double Y) Eye, (double X, double Y) Tip)
 {
-    public const string Picture = "res://art/hero_harpoon_rod.png";
-    public static readonly (double X, double Y) Eye = (3, 2.5), Tip = (23, 2.5);
+    /// <summary>The harpoon's rod, <c>art/hero_harpoon_rod.png</c> (0044).</summary>
+    public static readonly RodLook Harpoon = new("res://art/hero_harpoon_rod.png", (3, 2.5), (23, 2.5));
+
+    /// <summary>The grappling gun's hook (grapple-climbs): drawn as the harpoon's rod till its own look is picked.</summary>
+    public static readonly RodLook Grapple = Harpoon;
+
+    /// <summary>The rod of the gun <paramref name="item"/>: the grappling gun's, else the harpoon's.</summary>
+    public static RodLook Of(string? item) => item == Content.Grapple.Item ? Grapple : Harpoon;
 }

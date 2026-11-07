@@ -168,6 +168,20 @@ public class RemoteRodTests
     }
 
     [Fact]
+    public void AFriendsGrapplingGunIsDrawnLoadedAfterItsOwnShorterCooldown()
+    {
+        var rod = new RemoteRod();
+        Step(rod, 10, Flying);
+        Step(rod, 10, null);
+        double grapple = HarpoonShot.Grapple().FullCooldownMs;
+        Run(rod, grapple - 30, null);
+        Assert.False(rod.LoadedAfter(grapple));
+        Run(rod, 20, null);
+        Assert.True(rod.LoadedAfter(grapple));
+        Assert.False(rod.Loaded);
+    }
+
+    [Fact]
     public void AimsTheGunWhereTheRodFliesSticksOrIsAndNowhereInTheGun()
     {
         var rod = new RemoteRod();

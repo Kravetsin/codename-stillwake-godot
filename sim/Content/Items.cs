@@ -204,6 +204,7 @@ public static class Items
         new("screwdriver", 1, Gear: true, Group: ItemGroup.Tool),
         new("fireAxe", 1, Gear: true, Group: ItemGroup.Tool),
         new("harpoon", 1, Gear: true, Group: ItemGroup.Tool),
+        new("grapple", 1, Gear: true, Group: ItemGroup.Tool),
         // A gun (Content.Shots): one nail a shot.
         new("nailer", 1, Gear: true, Group: ItemGroup.Tool),
         // A gun of a sky shard (2026-10-27-the-railgun): a nail a shot and the belt's charge for it.

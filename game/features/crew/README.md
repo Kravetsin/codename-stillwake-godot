@@ -20,7 +20,7 @@ the sim.
 | `logic/SwingArc.cs` | its angle kept |
 | `logic/SwingArm.cs` | the front arm swung |
 | `logic/ArmUp.cs` | when an aim is up |
-| `logic/HarpoonShot.cs` | the hand harpoon (0044) |
+| `logic/HarpoonShot.cs` | harpoon, grapple (0044) |
 | `logic/HarpoonLine.cs` | its line |
 | `logic/Prompt.cs` | what E does |
 | `logic/Seating.cs` | seats; hands tied |
@@ -127,7 +127,7 @@ the sim.
   wrecks it crosses; the ground met rings, sparks.
 - **Struck tools** (0038, salvage-tools, the-pickaxe): axe, hammer, spear, pick, each at its pace; a swing hits as its blade
   crosses the aim, its fan a shoulder's sweep (`ShapeFor`).
-- **The harpoon** (0044, grapple-climbs): clicks fire, then reel a piece or pull to structure; hanging, fire on.
+- **Harpoon, grapple** (0044, grapple-climbs): reel a piece, pull to a wall; hung, fire reloaded; Space lets go.
 - **A gun** (hold-to-fire): left held fires each cooldown; with `Charge` it charges then, fires let go
   full; flat, clicks dry, sends nothing. Afloat it kicks back (`Recoil`); a guest flies it.
 - **Drill, grinder, cutter** (0054, 0055): left held runs it (`Run`), hitting each `Pace` ticks, the cutter by its beam

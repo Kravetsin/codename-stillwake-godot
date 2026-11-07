@@ -8,7 +8,7 @@ using Surfaces = Stillwake.Content.Surfaces;
 namespace Stillwake.Game.Tests;
 
 /// <summary>
-/// Climbing out of a planet's deep by the harpoon (grapple-climbs): the hero and its harpoon stepped together as the
+/// Climbing out of a planet's deep by the grappling gun or the harpoon (grapple-climbs): the hero and its gun stepped together as the
 /// hero's view steps them, a click each time it hangs, the barrel at the shaft's wall high up; Space at the top jumps it
 /// off the line onto the ground.
 /// </summary>
@@ -37,18 +37,18 @@ public class GrappleClimbTests
         (from, to) => Aiming.Grapples(ship, from, to) is var (at, _) ? new RodHit(null, at) : null,
         _ => null, _ => false, _ => false, at => Aiming.Grips(ship, at));
 
-    [Fact]
-    public void EightHundredCellsUpAShaftTakeUnderSeventySecondsOfClicksAndAJumpOffTheLineLandsOnTheGround()
+    /// <summary>
+    /// Climbs the shaft with <paramref name="shot"/>, a click whenever it is ready, hooked or hanging, at the left wall
+    /// <see cref="Aim"/> higher, never over the ground's top: the hero hanging near the top, the seconds, the shots.
+    /// </summary>
+    private static (Hero Hero, double Seconds, int Shots) Climb(Ship ship, HarpoonShot shot, int seconds)
     {
-        var ship = Shaft();
         var world = WorldOf(ship);
         var hero = new Hero((Left * Unit + (Right + 1) * Unit) / 2, (Height - 1) * Unit, 0, 0, false, -1);
-        var shot = new HarpoonShot();
         int steps = 0, shots = 0;
-        // Up: a click whenever the gun is ready, hooked or hanging, at the left wall Aim higher, never over the ground's top.
-        for (; steps < 70 * 60 && !(shot.Rod == Rod.Hanging && hero.Y < (Ground + 6) * Unit); steps++)
+        for (; steps < seconds * 60 && !(shot.Rod == Rod.Hanging && hero.Y < (Ground + 6) * Unit); steps++)
         {
-            hero = hero.Step(new HeroInput(0, 0, false) { Pull = shot.PullTo }, ship);
+            hero = hero.Step(new HeroInput(0, 0, false) { Pull = shot.PullTo, PullBy = shot.PullBy }, ship);
             var middle = hero.Middle;
             (double X, double Y) muzzle = (middle.X, middle.Y - Unit);
             (double X, double Y) target = (Left * Unit - 1, Math.Max(muzzle.Y - Aim, Ground * Unit + Unit / 2));
@@ -59,13 +59,31 @@ public class GrappleClimbTests
         Assert.True(hero.Y < (Ground + 6) * Unit, $"after {steps / 60.0:F1} s the feet are at row {hero.Y / Unit}");
         // A hop a click, near the most the range allows: no shot missed.
         Assert.InRange(shots, Deep / 40, Deep / 34);
+        return (hero, steps / 60.0, shots);
+    }
+
+    [Fact]
+    public void TheGrapplingGunClimbsEightHundredCellsInUnderFortyFiveSecondsAndAJumpOffTheLineLandsOnTheGround()
+    {
+        var ship = Shaft();
+        var shot = HarpoonShot.Grapple();
+        var (hero, seconds, _) = Climb(ship, shot, 45);
+        Assert.InRange(seconds, 30, 45);
 
         // Space on the line, then a jump held toward the ground on the left: up over the lip, onto it.
-        hero = hero.Step(new HeroInput(0, 0, true) { Pull = shot.PullTo }, ship);
+        hero = hero.Step(new HeroInput(0, 0, true) { Pull = shot.PullTo, PullBy = shot.PullBy }, ship);
         var free = new HeroInput(-1, 0, false) { JumpHeld = true };
         for (int i = 0; i < 300 && !(hero.Y == Ground * Unit && hero.X < Left * Unit); i++) hero = hero.Step(free, ship);
         Assert.Equal(Ground * Unit, hero.Y);
         Assert.True(hero.X < Left * Unit);
+    }
+
+    [Fact]
+    public void TheHarpoonClimbsTooButEachHopWaitsOutItsReload()
+    {
+        var (_, seconds, shots) = Climb(Shaft(), HarpoonShot.Harpoon(), 180);
+        double reload = HarpoonShot.CooldownMs / 1000;
+        Assert.InRange(seconds, (shots - 1) * reload, (shots + 1) * reload);
     }
 
     [Fact]
