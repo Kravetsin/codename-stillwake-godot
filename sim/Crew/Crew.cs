@@ -3,6 +3,7 @@ using Stillwake.Sim.Grid;
 using Stillwake.Sim.Items;
 using Stillwake.Sim.Knowledge;
 using Stillwake.Sim.Players;
+using Stillwake.Sim.Sky;
 
 namespace Stillwake.Sim.Crew;
 
@@ -73,7 +74,8 @@ public interface ICrewQueries
     int CanisterRefill { get; }
     /// <summary>
     /// What the cold takes from hero <paramref name="peer"/>'s air a breath where it was last reported: the edge's cold, and
-    /// with no body worn where the air is not aired <c>Crew.BareCold</c> (on thin air paid on fewer breaths than this says); 0 with no
+    /// with no body worn where the air is not aired <c>Crew.BareCold</c>, and at night with no back wall the sky's chill (each paid on
+    /// its beat, fewer breaths than this says); 0 with no
     /// hero. What the frost is drawn at; the lava burns besides.
     /// </summary>
     int Cold(int peer);
@@ -123,16 +125,18 @@ public sealed partial class CrewModule : Module<CrewState>, ICrewQueries, ICrewO
     private readonly IPlayersQueries _players;
     private readonly IPlayersOps _playersOps;
     private readonly IKnowledgeQueries _knowledge;
+    private readonly ISkyQueries _sky;
 
     private static readonly IReadOnlyList<(string Item, int Count)> Canister = [(Content.Crew.Canister, 1)];
 
     public CrewModule(
         IAtmosphereQueries air, IAtmosphereOps atmosphere, IGridQueries grid, IItemsQueries items, IItemsOps itemsOps, IPlayersQueries players, IPlayersOps playersOps,
-        IKnowledgeQueries knowledge)
+        IKnowledgeQueries knowledge, ISkyQueries sky)
     {
         _players = players;
         _playersOps = playersOps;
         _knowledge = knowledge;
+        _sky = sky;
         _air = air;
         _grid = grid;
         _items = items;
@@ -239,7 +243,9 @@ public sealed partial class CrewModule : Module<CrewState>, ICrewQueries, ICrewO
                     if (_itemsOps.Drain(hero.Id, made * Content.Suit.RegenCost)) net += made;
                     covered = net >= 0;
                 }
-                int cold = Soften(hero, ColdAt(hero.Id, hero.Cell, bare: beat), Content.Cape.Warmth);
+                // The night's chill under the open sky (2026-11-07-night-chills) on its own beat, thin air or not.
+                bool chill = Rules.Cycle is { } day && State.Clock / Content.Crew.BreathEvery % day.Every == 0;
+                int cold = Soften(hero, ColdAt(hero.Id, hero.Cell, bare: beat, chill), Content.Cape.Warmth);
                 int burn = Burns(hero.Cell) ? Content.Lava.Burn : 0;
                 int left = hero.Air + net - cold;
                 hero.Air = Math.Max(0, left - burn);
@@ -416,12 +422,14 @@ public sealed partial class CrewModule : Module<CrewState>, ICrewQueries, ICrewO
 
     /// <summary>
     /// What the cold at <paramref name="cell"/> takes from <paramref name="peer"/>'s air a breath: the edge's, and, when
-    /// <paramref name="bare"/> counts, <c>Crew.BareCold</c> with no body worn where the cell is not aired.
+    /// <paramref name="bare"/> counts, <c>Crew.BareCold</c> with no body worn where the cell is not aired; when <paramref name="chill"/>
+    /// counts, the night's chill where the cell has no back wall, suit or none (2026-11-07-night-chills).
     /// </summary>
-    private int ColdAt(int peer, int cell, bool bare)
+    private int ColdAt(int peer, int cell, bool bare, bool chill)
     {
         int cold = EdgeCost(cell);
         if (bare && _items.WornIn(peer, Content.Suit.Slot) == null && !_air.AiredAt(cell)) cold += Content.Crew.BareCold;
+        if (chill && _grid.BackAt(cell) == null) cold += _sky.Now.Chill;
         return cold;
     }
 
@@ -447,7 +455,7 @@ public sealed partial class CrewModule : Module<CrewState>, ICrewQueries, ICrewO
     public int CanisterRefill =>
         Content.Crew.CanisterRefill + Content.Crew.CanisterUp * Content.Upgrades.Added(Content.Upgrades.Canister, _knowledge.Granted);
 
-    public int Cold(int peer) => HeroOf(peer) is { } hero ? ColdAt(peer, hero.Cell, bare: true) : 0;
+    public int Cold(int peer) => HeroOf(peer) is { } hero ? ColdAt(peer, hero.Cell, bare: true, chill: true) : 0;
 
     public int Warmth(int peer) => _items.Equipped(peer, Content.Cape.Item) ? Content.Cape.Warmth : 0;
 

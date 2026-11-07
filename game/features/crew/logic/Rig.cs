@@ -79,12 +79,13 @@ public static class Rig
 
     /// <summary>
     /// The turn of <paramref name="look"/>'s picture, clockwise, held in the fist of an arm bent as
-    /// <paramref name="arm"/>: its handle leaves the fist <c>Hold</c> back from the forearm (0040).
+    /// <paramref name="arm"/>: its handle leaves the fist <c>Hold</c> back from the forearm (0040), turned
+    /// <paramref name="wrist"/> radians more by the wrist, clockwise (a swing's <see cref="MotionKey.Wrist"/>).
     /// </summary>
-    public static double HeldTurn(Bend arm, HeldLook look)
+    public static double HeldTurn(Bend arm, HeldLook look, double wrist = 0)
     {
         double turn = arm.Upper + arm.Lower;
-        return Math.Atan2(Math.Cos(turn), Math.Sin(turn)) - look.Hold;
+        return Math.Atan2(Math.Cos(turn), Math.Sin(turn)) - look.Hold + wrist;
     }
 
     /// <summary>
@@ -102,12 +103,13 @@ public static class Rig
 
     /// <summary>
     /// Where <paramref name="pixel"/> of <paramref name="look"/>'s picture is, from the shoulder, held in
-    /// the fist of an arm bent as <paramref name="arm"/>: its grip on the fist's middle, turned by <see cref="HeldTurn"/>.
+    /// the fist of an arm bent as <paramref name="arm"/>: its grip on the fist's middle, turned by <see cref="HeldTurn"/>, the
+    /// wrist turned <paramref name="wrist"/>.
     /// </summary>
-    public static Vec HeldAt(Bend arm, HeldLook look, (double X, double Y) pixel)
+    public static Vec HeldAt(Bend arm, HeldLook look, (double X, double Y) pixel, double wrist = 0)
     {
         var fist = FistOf(arm);
-        double turn = HeldTurn(arm, look), cos = Math.Cos(turn), sin = Math.Sin(turn);
+        double turn = HeldTurn(arm, look, wrist), cos = Math.Cos(turn), sin = Math.Sin(turn);
         double x = pixel.X - look.Grip.X, y = pixel.Y - look.Grip.Y;
         return new Vec(fist.X + x * cos - y * sin, fist.Y + x * sin + y * cos);
     }

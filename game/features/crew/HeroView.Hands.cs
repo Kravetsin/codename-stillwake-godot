@@ -98,10 +98,15 @@ public partial class HeroView
         bool swings = acts && stroke != null && !working && Poses.HoldsIn(pose);
         if (!swings) _swing.Stop();
         bool wanted = swings && pointer != null && !grabbed && !_grabHeld && (_mouse.Buttons.HoldsLeft || clicked);
-        var swung = _swing.Advance(elapsedMs, wanted, pointer is { } aimed ? Aiming.PointOf(aimed) : default, stroke);
+        // Aimed from the hero as an offset it carries along, its motion picked at the press by the angle the figure, faced to
+        // strike, sees: asked only while a stroke is wanted.
+        var swingAt = pointer is { } aimed ? Aiming.PointOf(aimed) : default;
+        var place = AxeSwing.PlaceOf(_current);
+        double? angle = wanted ? AimAngle(_figure, AxeSwing.OffsetOf(swingAt, place), _current) : null;
+        var swung = _swing.Advance(elapsedMs, wanted, swingAt, place, stroke, angle);
         if (swung.Begun)
         {
-            _swingFace = Poses.FaceOf(pointer, _current) ?? _current.Facing;
+            _swingFace = AxeSwing.FaceOf(_swing.Aim, _current);
             _current = _current with { Facing = _swingFace };
         }
         if (swung.Whooshes && S.SwingOf(struck) is var whoosh) (whoosh == S.HammerSwing ? _hammerSwing : whoosh == S.SpearThrust ? _spearThrust : _swingSound).Play();
@@ -109,7 +114,7 @@ public partial class HeroView
         {
             // What the stroke's fan of rays from the shoulder meets as it lands (tool-reach): the cells, wrecks and
             // creatures the sim would take its hits on; a creature's flinch and a wreck's chop are theirs to show (0102, DebrisView).
-            var hit = StrokeOf(m, _current, _swing.At, struck!);
+            var hit = StrokeOf(m, _current, _swing.Toward(_current), struck!);
             var sent = ToolEdges.CommandsOf(m, client.Id, struck!, hit);
             if (sent.Cells is { } cells) client.Send(cells);
             if (sent.Pieces is { } pieces) client.Send(pieces);
@@ -148,7 +153,7 @@ public partial class HeroView
         _aimsGun = (wieldsGun || wieldsShooter) && pointer != null;
         // An aimed item comes up while used and a moment after, else it hangs (aim-on-use): held, clicked, running, its rod out or
         // thrust. A click waits till the arm is up, so a shot leaves along the aim, never the hanging barrel.
-        bool held = _mouse.Buttons.HoldsLeft && !_grabHeld, thrusts = swings && stroke?.Kind == StrokeKind.Thrust;
+        bool held = _mouse.Buttons.HoldsLeft && !_grabHeld, thrusts = swings && ReferenceEquals(_swing.Stroke, stroke) && _swing.Play?.Motion.Kind == MotionKind.Thrust;
         bool fresh = clicked && !grabbed || _clickWaits;
         bool used = (_aimsGun || _aimsDrill) && (held || fresh || runs || gun && _harpoon.Rod != Rod.Seated) || thrusts && (wanted || _swing.Phase != null);
         _armUp = _arm.Step(used, elapsedMs) && (_aimsGun || _aimsDrill || thrusts);
@@ -192,7 +197,7 @@ public partial class HeroView
             : _beamLeftMs > 0 && !handFree && !passedOut ? new Busy(Handwork.Beam, _beamAt)
             : null;
         _driverHeard.Step(drives && working, _busy is { Work: Handwork.Work, At: var worked } ? Pixels(worked) : null, elapsedMs / 1000);
-        ShowHands(_figure, _wields, FittedOf(m, client.Id, _wields), _busy, _swing.Phase is double phase ? (_swing.At, phase) : null);
+        ShowHands(_figure, _wields, FittedOf(m, client.Id, _wields), _busy, _swing);
         // The computer opens its own window; every other machine its slots under the inventory.
         if (uses.Open is int open && m.Grid.MachineById(open) is { } machine)
         {
@@ -424,14 +429,20 @@ public partial class HeroView
     }
 
     /// <summary>
-    /// A figure's hands as <paramref name="wields"/> and <paramref name="busy"/> say, the axe swung toward
-    /// <paramref name="swing"/>'s point as far as it is through: this machine's hero's and the others' alike.
+    /// The aim angle of a stroke aimed <paramref name="aim"/> from <paramref name="hero"/>, as <paramref name="figure"/>, faced to
+    /// strike it (<see cref="AxeSwing.FaceOf"/>), sees it: what picks the stroke's motion at the press (swing-motions).
     /// </summary>
-    private static void ShowHands(Figure figure, string? wields, IReadOnlyList<Content.ModuleSpec> fitted, Busy? busy, (Point At, double Phase)? swing)
+    private static double AimAngle(Figure figure, Point aim, Hero hero) => figure.AimAngleOf(Pixels(aim), AxeSwing.FaceOf(aim, hero));
+
+    /// <summary>
+    /// A figure's hands as <paramref name="wields"/> and <paramref name="busy"/> say, the stroke playing aimed
+    /// <paramref name="swing"/>'s offset from where the figure is now (swing-motions): this machine's hero's and the others' alike.
+    /// </summary>
+    private static void ShowHands(Figure figure, string? wields, IReadOnlyList<Content.ModuleSpec> fitted, Busy? busy, AxeSwing swing)
     {
         figure.Wields = wields;
         figure.Fitted = fitted;
-        figure.Chop(swing is { At: var point, Phase: var phase } ? (Pixels(point), phase) : null);
+        figure.Chop(swing is { Phase: double phase, Play: { } play } ? (Pixels(swing.Aim), phase, play) : null);
         figure.Work(busy is { Work: Handwork.Work, At: var plan } ? Pixels(plan) : null);
     }
 

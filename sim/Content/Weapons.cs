@@ -52,11 +52,11 @@ public static class Weapons
     public static readonly Weapon PlasmaCutter = new("plasmaCutter", Damage: 1, BlockDamage: 0, Pace: 4, Arc: 8, Rays: 3, Range: 8000, Effects: [Salvage]);
 
     /// <summary>
-    /// The sledgehammer (salvage tools): 12 a blow every 3 s, 4 a second as the axe, but each blow bursts every wreck of 12 hit
-    /// points or fewer at once; 6 on blocks, under the weakest ground and plant, so a wall still cracks first; its fan 135° wide and
+    /// The sledgehammer (salvage tools): 12 a blow every 1.8 s (swing-motions: never an arm idle over a second), 6.7 a second, more
+    /// than the axe's 4, and each blow bursts every wreck of 12 hit points or fewer at once; 6 on blocks, under the weakest ground and plant, so a wall still cracks first; its fan 135° wide and
     /// 5.5 cells from the shoulder, 13 rays, wider and longer than the axe's: a heavy sweep past its own head, 4.5 cells out.
     /// </summary>
-    public static readonly Weapon Sledgehammer = new("sledgehammer", Damage: 12, BlockDamage: 6, Pace: 60, Arc: 96, Rays: 13, Range: 5500, Effects: []);
+    public static readonly Weapon Sledgehammer = new("sledgehammer", Damage: 12, BlockDamage: 6, Pace: 36, Arc: 96, Rays: 13, Range: 5500, Effects: []);
 
     /// <summary>
     /// The pickaxe (the-pickaxe): the drill's fallback underground, needing no charge. 6 on blocks a blow every 6 ticks, 20 a second, half

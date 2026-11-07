@@ -34,12 +34,14 @@ public class BuildHintsTests
     [Fact]
     public void ACardSaysHowItsDragLaysIt()
     {
-        Assert.Equal(["hint.place", "hint.fill", "hint.takeDown", "hint.close"], Says(Now(held: Card("wallScrap"))));
+        // With a card in hand the right lets it go (right-lets-go).
+        Assert.Equal(["hint.place", "hint.fill", "hint.letGo", "hint.close"], Says(Now(held: Card("wallScrap"))));
+        Assert.Equal(new MousePress(Mouse.Right), Hints.LinesOf(Now(held: Card("wallScrap")))[2].Presses.Single());
         Assert.Equal("hint.fill", Says(Now(held: Card("backWallScrap")))[1]);
         Assert.Equal("hint.row", Says(Now(held: Card("ladder")))[1]);
         Assert.Equal("hint.row", Says(Now(held: Card("floor")))[1]);
         // A machine goes where the click is: no drag to tell.
-        Assert.Equal(["hint.place", "hint.takeDown", "hint.close"], Says(Now(held: Card("lamp"))));
+        Assert.Equal(["hint.place", "hint.letGo", "hint.close"], Says(Now(held: Card("lamp"))));
     }
 
     [Fact]
@@ -88,10 +90,12 @@ public class BuildHintsTests
     [Fact]
     public void ThePointerSaysWhatTheRightOrDropDoesOverIt()
     {
-        Assert.Equal(("hint.cancel", (Press)new MousePress(Mouse.Right)), Pair(Hints.PointerOf(PlanMode.Build, Over.Plan)));
-        Assert.Equal(("hint.same", (Press)new KeyPress(Bind.Drop)), Pair(Hints.PointerOf(PlanMode.Build, Over.Built)));
-        Assert.Null(Hints.PointerOf(PlanMode.Build, Over.Nothing));
-        Assert.Null(Hints.PointerOf(PlanMode.Piping, Over.Built));
+        Assert.Equal(("hint.cancel", (Press)new MousePress(Mouse.Right)), Pair(Hints.PointerOf(PlanMode.Build, Over.Plan, holding: false)));
+        // With a card in hand the right lets it go there, cancelling nothing (right-lets-go).
+        Assert.Null(Hints.PointerOf(PlanMode.Build, Over.Plan, holding: true));
+        Assert.Equal(("hint.same", (Press)new KeyPress(Bind.Drop)), Pair(Hints.PointerOf(PlanMode.Build, Over.Built, holding: true)));
+        Assert.Null(Hints.PointerOf(PlanMode.Build, Over.Nothing, holding: false));
+        Assert.Null(Hints.PointerOf(PlanMode.Piping, Over.Built, holding: false));
     }
 
     [Fact]
@@ -100,7 +104,7 @@ public class BuildHintsTests
         var lines = Tools.Modes.SelectMany(mode => Tools.All.Concat<Tool?>(Tools.CardsOf(mode)).Append(null)
             .SelectMany(held => Hints.LinesOf(Now(mode, held, planned: true)).Concat(Hints.LinesOf(Now(mode, held))).Concat(Hints.LinesOf(Now(mode, held, typing: true)))))
             .Concat(Hints.LinesOf(Now(planned: true, builder: new Builder("screwdriver", 1))))
-            .Concat(Enum.GetValues<Over>().SelectMany(o => Tools.Modes.Select(m => Hints.PointerOf(m, o))).OfType<KeyHint>());
+            .Concat(Enum.GetValues<Over>().SelectMany(o => Tools.Modes.Select(m => Hints.PointerOf(m, o, holding: false))).OfType<KeyHint>());
         foreach (string says in lines.Select(l => l.Says).Distinct())
         {
             Assert.True(En.Table.ContainsKey(says), says);

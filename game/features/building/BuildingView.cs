@@ -73,6 +73,8 @@ public partial class BuildingView : Node2D
     private int _peer;
     /// <summary>The drag under way: what it does, whether the right button began it, the point it began at, in cells, and the card it began with.</summary>
     private (Act Act, bool Right, (double X, double Y) From, Tool? Card)? _drag;
+    /// <summary>Whether the right button held let a card go: till it is released it shows no removal (right-lets-go).</summary>
+    private bool _letGo;
 
     /// <summary>Each plan's work done when last seen, and the sparks owed: work sparks only as it goes on.</summary>
     private Dictionary<int, int> _worked = [];
@@ -111,6 +113,10 @@ public partial class BuildingView : Node2D
         var building = m.Building;
         int width = _width = grid.Width, height = grid.Height;
         DrawPlans(grid, building, m.Rooms, m.Power);
+        // With the back walls focused the front's plans hide with the front (back-focus-clear).
+        float front = Tools.AlphasOf(_hand.Shown).Front;
+        _plans.FadeFront(front);
+        _outline.Modulate = Dashes with { A = Dashes.A * front };
 
         var tool = _hand.Selected.Get();
         string? overlay = _ui.OverlayOn;
@@ -139,9 +145,12 @@ public partial class BuildingView : Node2D
 
         void DragWith(ButtonEvent button, bool back)
         {
+            // A card in hand, the right lets it go and does nothing else till released (right-lets-go).
+            if (back) _letGo = button.Down && _drag == null && _hand.PlanOut.Get() && _hand.LetGo();
+            if (_letGo) return;
             if (button.Down)
             {
-                // The first button down has the drag; another pressed meanwhile is let be. The right removes in the focused layer, card or none (0110).
+                // The first button down has the drag; another pressed meanwhile is let be. The right removes in the focused layer, with no card in hand (0110).
                 if (_drag == null && _hand.PlanOut.Get() && Tools.ActOf(tool, back, _hand.Focus.Get()) is { } act && Drag.OnGrid(width, height, button.At))
                     _drag = (act, back, TakesMachines(act) ? Over(button.At) : button.At, tool);
                 return;
@@ -170,7 +179,8 @@ public partial class BuildingView : Node2D
         ShowTray(under, grid, building);
         _hand.PointerOver = OverOf(under, grid, building, m.Research);
         _hand.PointerAt = pointer;
-        var hovered = _hand.PlanOut.Get() ? Tools.ActOf(tool, holdsRight, _hand.Focus.Get()) : null;
+        _letGo &= holdsRight;
+        var hovered = _hand.PlanOut.Get() && !_letGo ? Tools.ActOf(tool, holdsRight, _hand.Focus.Get()) : null;
         Ghost(tool, (_drag?.Act ?? hovered) is { } shown && TakesMachines(shown) && pointer is { } ptr ? Over(ptr) : pointer, onGrid, grid, building, hovered);
         bool shafts = _hand.PlanOut.Get() && _hand.Builds;
         _shafts.Show(shafts ? grid : null, shafts ? PlatformsOf(grid, building) : [], shafts ? _ghostPlatform : []);

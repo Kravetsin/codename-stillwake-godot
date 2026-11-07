@@ -352,8 +352,9 @@ public partial class Main : Node2D, ITogether
             busy: () => (_items?.Panel.Shown ?? false) || handbook.Shown || computer.Shown || tech.Shown || lookEditor.Shown || keyCard.Shown || _hands.Plan.PlanOut.Get() || dev.Searching,
             putAway: () =>
             {
-                // A search in the build menu, on the research board or the dev panel goes first, what else is open staying so.
-                if (dev.DropSearch() || _hands.Menu.DropSearch() || tech.DropSearch()) return;
+                // A search in the build menu, on the research board or the dev panel goes first, then a card in hand (right-lets-go),
+                // what else is open staying so.
+                if (dev.DropSearch() || _hands.Menu.DropSearch() || tech.DropSearch() || _hands.Plan.LetGo()) return;
                 _items?.Panel.Close();
                 handbook.Close();
                 computer.Close();
@@ -558,6 +559,7 @@ public partial class Main : Node2D, ITogether
         _heroes += heard.Count;
         DevTick(client, before);
         ShowWorld();
+        ShowDaylight();
         SeeArrivals(client, delta);
         _frameLog?.Mark("sim");
         if (client.World.Tick != before) SyncLight();
@@ -614,10 +616,27 @@ public partial class Main : Node2D, ITogether
         }
         foreach (var scenario in _scenarios) scenario.Frame(client, _m, Log);
         _hands.Frame(client, _m, _bodies, elapsedMs);
-        // The open plan draws its focused layer whole and the other faded, aboard only (0110).
+        // The open plan draws its focused layer whole and the other faded, the front hidden for the back's, aboard only (0110, back-focus-clear).
         var fade = Features.Building.Tools.AlphasOf(_hands.Plan.Shown);
-        _grid?.Fade(fade);
+        _grid?.Fade(fade, Features.Building.Tools.BackUnlit(_hands.Plan.Shown));
         foreach (var view in _faded) view.Modulate = new Color(1, 1, 1, fade.Front);
+    }
+
+    /// <summary>
+    /// The planet's hour as light (2026-11-07-night-chills): the light through its open sky, its backdrop and the fog at its sides
+    /// at <see cref="Daylight"/>'s colours of the moment; whole aboard.
+    /// </summary>
+    private void ShowDaylight()
+    {
+        (float R, float G, float B) sky = (1f, 1f, 1f), tint = sky;
+        if (_m.Rules.Cycle is { } cycle && PlanetLooks.Of.TryGetValue(_m.Rules.Id, out var look))
+        {
+            int time = _m.Sky.Now.Time;
+            (sky, tint) = (Daylight.Sky(look, time, cycle), Daylight.Backdrop(look, time, cycle));
+        }
+        Lit.Sky(sky);
+        _stars.Tint = tint;
+        if (View<Features.Fog.FogView>() is { } fog) fog.Tint = tint;
     }
 
     /// <summary>The surface's view of type <typeparamref name="T"/>; none where this surface has none (lava aboard).</summary>
