@@ -85,7 +85,7 @@ public partial class HeroView
             shown.Figure.WearsCape = m.Items.Equipped(id, Content.Cape.Item);
             shown.Figure.FloorRoom = FloorRoom(m.Grid, hero);
             shown.Figure.Footing = FootingOf(m, hero, shown.Figure.Footing);
-            shown.Figure.InWater = ship.Wet(hero.BodyCell(ship.Width));
+            shown.Figure.InWater = ship.Wading(hero.FeetCell(ship.Width));
             shown.Figure.Ledge = LedgeOf(ship, hero);
             bool afloat = ship.Space(hero.BodyCell(ship.Width));
             // A charge ended by it: it was rammed, its own peer says so; here it flinches, its air knocked out, heard where it is.

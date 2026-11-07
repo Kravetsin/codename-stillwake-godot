@@ -96,13 +96,14 @@ the sim.
 - **Surfaces** (0076): `Ship.Of` rules: nothing floats on a planet, gravity the kind's `Fall`; fog glides, `FogMove`
   across a seam (fog-edges).
 - **Camera:** leads, eases, snaps. **Markers** (0061): home, newest body, friends heard.
-- **Water** (liquids): swum `SwimDepth` deep at its middle; Space at the top leaps out; heard (`Splashes`).
+- **Water** (liquids): swum `SwimDepth` deep at the middle, up to the top; Space or a shore leaps out; feet
+  `WadeDepth` deep splash (`Splashes`).
 - **Swim, haul, jetpack** (0047, tether-haul): afloat, through floors, tied where the middle left the hull (0007, 0104);
   Shift hauls in along the tether's bends (`Wraps`); a jetpack unties, Shift thrusts, `Thrust` sent while unlike the sim's.
 - **A canister** (0047, 0081): right click or R sends `Refill`, V `SuitMode` (regen-suit), if the sim takes it; V's
   key on the tablet's edge, dim if refused.
-- **The crew module:** made at `Spawn`; passed out: no orders, lies at the sim's cell, picks nothing up (0061). `Enter` goes when the sim's room or field side differs, every `Crew.ReportEvery`
-  ticks off its cell, each tick while threatened; none while out (0050). A closed link's host sends `Leave`.
+- **The crew module:** made at `Spawn`; passed out: no orders, lies at the sim's cell, takes nothing (0061). `Enter` goes when the sim's room or field side
+  differs, every `Crew.ReportEvery` ticks off its cell, each tick if threatened; none out (0050). A closed link's host sends `Leave`.
 - **Dressed as worn**: helmet, body, hair, clothes, a lamp; the colour on the near shin; a switched body lit by
   `SuitOn` and charge (`SuitGlow`), lit round (hero-lights).
 
@@ -120,19 +121,18 @@ the sim.
 - **Left is the front, right the back** (0107, 0108): a screwdriver works plans or repairs on the left;
   the plan, wiring, lays cables; a tool on the right, nothing.
 - **One aim** (`Aiming.AimAt`): a plan (back walls first), machine (its rise, 0099), tank, door or valve (E), a wreck under the
-  pointer, else the nearest small piece. Outlined green or red (`UsePrompt` says why); plan in hand, E idle. Armed, small pieces.
+  pointer, else the nearest small piece. Outlined green or red (`UsePrompt` why); plan in hand, E idle. Armed, small pieces.
 - **Hits: rays from the shoulder** (tool-reach, hits-pass-wrecks): the fan (`ToolRays`), each to a wall, hitting all
-  wrecks it crosses; the ground met rings, sparks.
+  wrecks crossed; ground met rings, sparks.
 - **Struck tools** (0038, salvage-tools, the-pickaxe): axe, hammer, spear, pick, each at its pace; a swing hits as the blade
   crosses the aim, its fan a shoulder's sweep (`ShapeFor`).
 - **Harpoon, grapple** (0044, grapple-climbs): reel pieces, pull to walls; hung, refire; Space/RMB lets go.
-- **A gun** (hold-to-fire): left held fires each cooldown; with `Charge` it charges then, fires let go
-  full; flat, clicks dry, sends nothing. Afloat it kicks back (`Recoil`); a guest flies it.
+- **A gun** (hold-to-fire): left held fires each cooldown; with `Charge` it charges, fires let go; flat, clicks dry, sends nothing. Afloat it kicks back (`Recoil`); a guest flies it.
 - **Drill, grinder, cutter** (0054, 0055): left held runs it (`Run`), hitting each `Pace` ticks, the cutter by its beam
   (`ToolEdges`), sparking (`ToolWork`).
 - **The power driver** (driver-at-work, driver-order): charged, a 2×2 square over plans or marks
   (`WorkedSquare`), heard (`BiteLoop`). Right click toggles; mode by the arrow (mode-glyph).
-- **Seated** (`Seating.Held`): no tool works; E leaves. **Ladders and ledges** (0092): grab, climb, slide, leap off; an open hatch is climbable, a shut one a floor
+- **Seated** (`Seating.Held`): no tool works; E leaves. **Ladders and ledges** (0092): grab, climb, slide, leap off; an open hatch climbed, a shut one a floor
   (0112). A jump a foot short is mantled.
 
 ## Deliberately not handled

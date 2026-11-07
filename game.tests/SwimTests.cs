@@ -59,6 +59,10 @@ public class SwimTests
         return [.. l.Liquids!.Select(b => b & 15)];
     }
 
+    /// <summary>The box <see cref="Map"/> with the rows <paramref name="row"/> gives redrawn, the rest as they are.</summary>
+    private static string Reshaped(Func<int, string?> row) =>
+        string.Join('\n', Map.Split('\n').Select((line, r) => row(r) ?? line));
+
     private static Ship PoolShip() => ShipOf(Map, Amounts(Pool) is var a ? c => a[c] : null!);
 
     /// <summary>A hero with its feet at the bottom of row <paramref name="row"/>, its body over columns 5 and 6.</summary>
@@ -97,9 +101,11 @@ public class SwimTests
         {
             h = h.Step(up, ship);
             highest = Math.Min(highest, h.Y);
+            Assert.True(ship.Wet(h.BodyCell(ship.Width)), $"out of the water at step {i}");
         }
-        // The middle comes up to the surface, row 7's top, and a little past it before it sinks back: never the feet out.
-        Assert.InRange(highest - Hero.MiddleUp, 6 * Unit, 7 * Unit + Unit / 2);
+        // The middle comes up to the surface, row 7's top, and stays there while Up is held.
+        Assert.Equal(7 * Unit, highest - Hero.MiddleUp);
+        Assert.Equal(7 * Unit, h.Y - Hero.MiddleUp);
         Assert.False(h.Climbing, "the ladder in the water is swum past");
     }
 
@@ -119,6 +125,43 @@ public class SwimTests
         }
         // The feet clear the surface, row 7's top, till the head meets the box's roof; swimming up alone they never do.
         Assert.True(highest < 7 * Unit, $"the feet stayed in the water: {highest}");
+    }
+
+    [Fact]
+    public void ASwimmerSwimsUpAStepOfACellAsItWalksOne()
+    {
+        var map = Reshaped(r => r == 12 ? "#H.....#####" : null);
+        var ship = ShipOf(map, Amounts(Pool) is var a ? c => a[c] : null!);
+        var h = At(12);
+        for (int i = 0; i < 40; i++) h = h.Step(Still with { X = 1 }, ship);
+        Assert.True(h.X > 8 * Unit, $"stuck at the step: {h.X}");
+        Assert.Equal(12 * Unit, h.Y);
+    }
+
+    [Fact]
+    public void PushedAgainstAShoreAtTheSurfaceTheSwimmerClimbsOut()
+    {
+        var map = Reshaped(r => r >= 7 && r <= 12 ? "#H......####" : null);
+        var ship = ShipOf(map, Amounts(Pool) is var a ? c => a[c] : null!);
+        var h = At(12);
+        for (int i = 0; i < 300; i++) h = h.Step(Still with { X = 1, Y = -1 }, ship);
+        Assert.False(ship.Wet(h.BodyCell(ship.Width)), "still in the water");
+        Assert.Equal(7 * Unit, h.Y);
+        Assert.True(h.X > 8 * Unit, $"not on the shore: {h.X}");
+    }
+
+    [Fact]
+    public void WaterAtTheFeetIsWadedNotSwumAndAFilmIsWalkedDry()
+    {
+        var amounts = new int[Amounts(Pool).Length];
+        var ship = ShipOf(Map, c => amounts[c]);
+        var h = HeroTests.Settle(ship, At(12), Still);
+        amounts[h.FeetCell(ship.Width)] = Spec.WadeDepth - 1;
+        Assert.False(ship.Wading(h.FeetCell(ship.Width)));
+        amounts[h.FeetCell(ship.Width)] = Spec.WadeDepth;
+        Assert.True(ship.Wading(h.FeetCell(ship.Width)));
+        Assert.False(ship.Wet(h.BodyCell(ship.Width)));
+        Assert.Equal(Spec.Walk, HeroTests.Until(ship, h, Still with { X = 1 }, x => x.Vx == Spec.Walk).Vx);
     }
 
     [Fact]

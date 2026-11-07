@@ -78,6 +78,9 @@ public static class Hero
     /// </summary>
     public const int SwimDepth = 4;
 
+    /// <summary>The units in the cell of the feet that splash and slosh (liquids): a quarter of a cell, so a film is walked dry.</summary>
+    public const int WadeDepth = 2;
+
     public const int WaterSwim = 100;
 
     public const int WaterSink = 25;

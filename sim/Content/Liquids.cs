@@ -21,6 +21,11 @@ public static class Liquids
     /// <summary>The most cells liquid falls in a tick through an empty shaft: 80 cells a second.</summary>
     public const int Fall = 4;
 
+    /// <summary>
+    /// The most units a body moves a tick to level itself (<c>LiquidsModule.Press</c>): a cell a tick, 20 a second, up a U-tube's far side.
+    /// </summary>
+    public const int Press = 8;
+
     /// <summary>The side of a square of cells that sleeps or wakes as one, when none of it can move.</summary>
     public const int Chunk = 16;
 

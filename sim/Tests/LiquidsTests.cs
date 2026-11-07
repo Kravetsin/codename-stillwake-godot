@@ -121,7 +121,7 @@ public class LiquidsTests
     }
 
     [Fact]
-    public void WaterNeverRisesInAUTube()
+    public void AUTubeLevelsItsTwoSides()
     {
         var w = Wet("""
             #####
@@ -138,9 +138,71 @@ public class LiquidsTests
             .w...
             """).Run(200);
         Assert.Equal(32, Total(w));
-        Assert.Equal(0, Amount(w, 3, 1) + Amount(w, 3, 2) + Amount(w, 3, 3));
-        // At rest a pool may keep a unit between neighbours: 8, 7, 6 under the column still holding the rest.
-        Assert.InRange(Row(w, 4, 1, 3).Sum(), 21, 24);
+        Assert.Equal([8, 8, 8], Row(w, 4, 1, 3));
+        // The rest, 8 units over the bottom, shared between the sides within a unit, and the tube at rest.
+        Assert.InRange(Amount(w, 1, 3), 3, 5);
+        Assert.Equal(8, Amount(w, 1, 3) + Amount(w, 3, 3));
+        Assert.Equal(0, Amount(w, 1, 2) + Amount(w, 3, 2));
+        Assert.Equal(0, w.M.Liquids.AwakeChunks);
+    }
+
+    [Fact]
+    public void ALakeJoinedAtItsBottomToAShaftFillsItToItsOwnLevel()
+    {
+        // A lake on the left joined along its bottom to a shaft as tall as it.
+        var w = Wet("""
+            ##########
+            #....###.#
+            #....###.#
+            #....###.#
+            #....###.#
+            #........#
+            ##########
+            """, """
+            ..........
+            .wwww.....
+            .wwww.....
+            .wwww.....
+            .wwww.....
+            ..........
+            ..........
+            """).Run(600);
+        Assert.Equal(16 * L.Full, Total(w));
+        // Over the full bottom row the rest stands in the lake and the shaft alike, within a unit.
+        int Level(int x)
+        {
+            int units = 0;
+            for (int y = 1; y <= 4; y++) units += Amount(w, x, y);
+            return units;
+        }
+        Assert.InRange(Level(8) - Level(1), -1, 1);
+        Assert.True(Level(8) > L.Full, "the shaft filled past its bottom row");
+        Assert.Equal(0, w.M.Liquids.AwakeChunks);
+    }
+
+    [Fact]
+    public void ALoneUnitOnAStepRunsOffItAndNoFilmIsLeft()
+    {
+        var w = Wet("""
+            #######
+            #.....#
+            #.....#
+            #.....#
+            ###...#
+            ####..#
+            #######
+            """, """
+            .......
+            .......
+            .......
+            ..1....
+            .......
+            .......
+            .......
+            """).Run(60);
+        Assert.Equal(0, Amount(w, 2, 3) + Amount(w, 3, 4));
+        Assert.Equal(1, Amount(w, 4, 5) + Amount(w, 5, 5));
+        Assert.Equal(0, w.M.Liquids.AwakeChunks);
     }
 
     [Fact]

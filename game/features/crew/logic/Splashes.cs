@@ -3,9 +3,9 @@ using S = Stillwake.Game.Sound;
 namespace Stillwake.Game.Features.Crew;
 
 /// <summary>
-/// What a hero in water sets off, frame by frame (liquids): a splash going in and one coming out, at most one every
-/// <c>Sound.SplashGapS</c>, so bobbing at the surface does not chatter; and a stroke every <c>Sound.StrokeEveryS</c> while it
-/// swims and moves. The first frame splashes nothing: a hero loaded in water was not seen going in.
+/// What a hero's feet in water set off, frame by frame (liquids): a splash going in and one coming out, at most one every
+/// <c>Sound.SplashGapS</c>, so a foot at the surface does not chatter; and a stroke every <c>Sound.StrokeEveryS</c> while it
+/// wades or swims and moves. The first frame splashes nothing: a hero loaded in water was not seen going in.
 /// </summary>
 public sealed class Splashes
 {

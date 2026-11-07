@@ -4,7 +4,8 @@ namespace Stillwake.Sim.Liquids;
 
 /// <summary>
 /// The flow (docs/plans/liquids.md, Approach): whole rows from the bottom up, along each in the way the clock gives; a cell
-/// falls through up to <c>Fall</c> cells, then spreads half its lead to a side neighbour at least 2 lower. Sleeping chunks
+/// falls through up to <c>Fall</c> cells, then spreads half its lead to a side neighbour at least 2 lower, or a lone unit
+/// runs off a ledge; then each body levels (<see cref="Press"/>). Sleeping chunks
 /// are skipped, which never changes the result: a chunk sleeps only while none of its cells can move, and any change wakes
 /// the chunks round it at once, ahead of the sweep too.
 /// </summary>
@@ -45,6 +46,7 @@ public sealed partial class LiquidsModule
         Sweep(layer, dir);
         foreach (int cell in _given) layer[cell] &= unchecked((byte)~Given);
         _given.Clear();
+        Press(layer);
         Settle(layer);
     }
 
@@ -81,6 +83,7 @@ public sealed partial class LiquidsModule
                 _awake[chunk] = true;
                 _awakeInRow[chunk / _chunksAcross]++;
             }
+        WakeUneven(layer);
     }
 
     private void Sweep(byte[] layer, int dir)
@@ -120,7 +123,19 @@ public sealed partial class LiquidsModule
             Pour(layer, to, kind, f, false);
             _falls.Add(to);
         }
-        if (a < 2 || given) return;
+        if (a == 0 || given) return;
+        if (a == 1)
+        {
+            // A lone unit cannot be halved: it runs off a ledge whole, toward an empty side over room to fall, so no film is left.
+            for (int side = 0, s = dir; side < 2; side++, s = -s)
+                if (Drips(layer, x + s, y, kind))
+                {
+                    Put(layer, cell, kind, 0, false);
+                    Pour(layer, cell + s, kind, 1, true);
+                    return;
+                }
+            return;
+        }
         for (int side = 0, s = dir; side < 2; side++, s = -s)
         {
             int nx = x + s, n = cell + s;
@@ -145,9 +160,17 @@ public sealed partial class LiquidsModule
         if (a == 0) return false;
         byte kind = L.KindOf(layer[cell]);
         if (y + 1 < _height && Takes(layer, cell + _width, kind) && L.AmountOf(layer[cell + _width]) < L.Full) return true;
-        if (a < 2) return false;
+        if (a < 2) return Drips(layer, x - 1, y, kind) || Drips(layer, x + 1, y, kind);
         return x > 0 && Takes(layer, cell - 1, kind) && L.AmountOf(layer[cell - 1]) <= a - 2
             || x + 1 < _width && Takes(layer, cell + 1, kind) && L.AmountOf(layer[cell + 1]) <= a - 2;
+    }
+
+    /// <summary>Whether a lone unit runs off into column <paramref name="nx"/> of row <paramref name="y"/>: open and empty there, with room to fall under it.</summary>
+    private bool Drips(byte[] layer, int nx, int y, byte kind)
+    {
+        if (nx < 0 || nx >= _width || y + 1 >= _height) return false;
+        int n = y * _width + nx;
+        return Takes(layer, n, kind) && L.AmountOf(layer[n]) == 0 && Takes(layer, n + _width, kind) && L.AmountOf(layer[n + _width]) < L.Full;
     }
 
     private bool AnyCanMove(byte[] layer, int cx, int cy)
@@ -228,7 +251,7 @@ public sealed partial class LiquidsModule
         if (State.Layer is not { } layer) return true;
         for (int chunk = 0; chunk < _awake.Length; chunk++)
             if (!_awake[chunk] && AnyCanMove(layer, chunk % _chunksAcross, chunk / _chunksAcross)) return false;
-        return true;
+        return UnevenAwake(layer);
     }
 
     private void WakeChunk(int x, int y)

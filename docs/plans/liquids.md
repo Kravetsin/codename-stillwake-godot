@@ -35,12 +35,10 @@ Goes wrong: a hero digs under a lake, the floor gives, water falls round it: it 
   and this module reads `ISkyQueries.Now` (Sky has no dependencies and registers early) and pours water into open-sky
   columns itself (the day-night design). How rain stays bounded, since nothing evaporates, is decided then. Liquid in sky
   cells (surface ponds) comes with it.
-- **Pressure:** water never rises in a U-tube; a body is levelled only by falling and side moves (a body levelled as a
-  whole needs bodies tracked as entities, and nothing in play asks for it).
 - **Liquid on the ship** (no source, vacuum).
 - **Creatures, floor stacks, bodies in liquid:** they move as through air.
 - **Drowning, any breath rule under water:** the suit is sealed.
-- **Wading:** water under a hero's middle changes nothing; it swims once its middle is in water.
+- **Wading:** water under a hero's middle changes nothing but the sound; it swims once its middle is in water.
 
 ## Scale
 - World: First is 4096×1536, 6.3M cells. A big lake is at most `Big` (6,000) cells, a medium one `Medium` (1,500). How
