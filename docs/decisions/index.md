@@ -63,7 +63,7 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [0055](0055-an-electric-tool-draws-while-it-runs.md) | An electric tool draws while it runs | accepted |  |
 | [0056](0056-rich-finds-far-out.md) | Rich finds far out | accepted |  |
 | [0057](0057-stations-one-model-for-every-crafting-machine.md) | Stations: one model for every crafting machine | accepted |  |
-| [0058](0058-one-place-for-every-machine-window.md) | One place for every machine window; equipment at the right edge | accepted |  |
+| [0058](0058-one-place-for-every-machine-window.md) | One place for every machine window; equipment at the right edge | accepted | machine-holograms (in part) |
 | [0059](0059-machines-heard-at-work.md) | Machines heard at work, and the suit heard over space | accepted |  |
 | [0060](0060-the-farm-a-grow-capsule-is-a-fed-station.md) | The farm: a grow capsule is a fed station | accepted |  |
 | [0061](0061-death-leaves-a-body.md) | Death leaves a body | accepted | body-bag (in part) |
@@ -79,7 +79,7 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [0071](0071-a-door-command-says-the-state-it-wants.md) | A door command says the state it wants | accepted |  |
 | [0072](0072-air-shows-under-every-build-tab.md) | Air shows under every build tab | accepted |  |
 | [0073](0073-the-build-menu-is-a-docked-catalogue.md) | The build menu is a docked catalogue | accepted |  |
-| [0074](0074-the-inventory-is-a-wrist-computer.md) | The inventory is a wrist computer | accepted |  |
+| [0074](0074-the-inventory-is-a-wrist-computer.md) | The inventory is a wrist computer | accepted | machine-holograms (in part) |
 | [0075](0075-effects-are-light-not-shapes.md) | Effects are light, not shapes | accepted | arcs-are-hairlines, effects-on-their-layer, head-tally (in part) |
 | [0076](0076-a-world-is-made-of-surfaces.md) | A world is made of surfaces | accepted |  |
 | [0077](0077-a-planets-ground-grows-from-its-seed-and-is-dug-by-hits.md) | A planet's ground grows from its seed and is dug by hits | accepted | fan-of-rays, veins-and-stairs, tool-edge (in part) |
@@ -275,6 +275,7 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [creative-per-player](2026-11-07-creative-per-player.md) | Creative mode is each player's | accepted |  |
 | [grapple-climbs](2026-11-07-grapple-climbs.md) | The grapple climbs | accepted |  |
 | [hits-pass-wrecks](2026-11-07-hits-pass-wrecks.md) | A tool's rays pass through wrecks and hit all they cross | accepted |  |
+| [machine-holograms](2026-11-07-machine-holograms.md) | Machine windows are station holograms | accepted |  |
 | [machines-stand](2026-11-07-machines-stand.md) | Machines stand on a floor | accepted |  |
 | [no-charge-flash](2026-11-07-no-charge-flash.md) | A flat press blinks the energy tab red | accepted |  |
 | [ore-pockets](2026-11-07-ore-pockets.md) | Ore lies at every depth, in pockets, and glints now and then | accepted |  |
