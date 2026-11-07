@@ -3,13 +3,16 @@ using Spec = Stillwake.Content.Creatures;
 namespace Stillwake.Sim.Creatures;
 
 /// <summary>
-/// The lunge, a ram along the ground (0103): crouched its wind-up, counted once it stands, then charging the hero nearest as
-/// the wind-up ends, never leaping, till it is past it, at a wall or a drop, or out of time. A hero farther than its run, or
-/// none, is let be. However it ends, the drive that began it is told which way the creature goes on.
+/// The lunge, a ram along the ground (0103): crouched its wind-up, counted once it stands, then charging the awake hero nearest
+/// as the wind-up ends, never leaping, till it is past it, at a wall or a drop, or out of time. A hero farther than its run, or
+/// none awake, is let be. However it ends, the drive that began it is told which way the creature goes on.
 /// </summary>
 internal sealed class LungeMove : MoveRule
 {
     internal override Type Serves => typeof(Spec.Lunge);
+
+    /// <summary>A steady lunge (the geode snail's) goes on through a blow: neither its crouch nor its charge is cut.</summary>
+    internal override bool Interruptible(Spec.Move mv) => !((Spec.Lunge)mv).Steady;
 
     internal override void Begin(CreaturesModule m, Creature c, Spec.Species spec, int at)
     {
@@ -29,8 +32,8 @@ internal sealed class LungeMove : MoveRule
             m.EndAct(c, spec, m.FleeWay(c), hop: false);
             return;
         }
-        // At the hero nearest now, by its reported cell: none, level with it or past a charge's run, nothing to charge at.
-        var (target, far) = m.Nearest(c);
+        // At the awake hero nearest now, by its reported cell: none, level with it or past a charge's run, nothing to charge at.
+        var (target, far) = m.Nearest(c, awake: true);
         int at = target is { } hero && far <= lunge.Ticks * lunge.Speed / CreaturesModule.Unit ? Math.Sign(m.Middle(hero.X) - c.X) : 0;
         if (at == 0) m.EndAct(c, spec, m.FleeWay(c), hop: false);
         else (act.Phase, act.Left, c.VX) = (ActPhase.Active, lunge.Ticks, at * lunge.Speed);
@@ -48,7 +51,7 @@ internal sealed class LungeMove : MoveRule
         var lunge = (Spec.Lunge)mv;
         int way = c.VX >= 0 ? 1 : -1;
         if (WalkerBody.Blocked(m, c, (Spec.Walker)spec.Body, way, lunge.Speed)) m.EndAct(c, spec, -way, hop: false);
-        else if (m.Nearest(c).Hero is { } hero && (c.X - m.Middle(hero.X)) * way >= lunge.Past * CreaturesModule.Unit) m.EndAct(c, spec, way, hop: false);
+        else if (m.Nearest(c, awake: true).Hero is { } hero && (c.X - m.Middle(hero.X)) * way >= lunge.Past * CreaturesModule.Unit) m.EndAct(c, spec, way, hop: false);
         else c.VX = way * lunge.Speed;
     }
 

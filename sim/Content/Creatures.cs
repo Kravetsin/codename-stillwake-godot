@@ -95,21 +95,27 @@ public static class Creatures
     /// <summary>
     /// A ram along the ground (0103): it crouches <paramref name="WindUp"/> ticks once grounded, then charges the nearest hero at
     /// <paramref name="Speed"/> a tick, never leaping, till it is <paramref name="Past"/> cells past it, a wall or a drop, or
-    /// <paramref name="Ticks"/>: a hero farther than that run as the wind-up ends is let be. A blow cuts it short.
+    /// <paramref name="Ticks"/>: a hero farther than that run as the wind-up ends is let be. A blow cuts it short, unless it is
+    /// <paramref name="Steady"/> (the geode snail's roll, cave-hostiles): then neither its crouch nor its charge is cut, so a drill held on
+    /// it cannot keep it crouching.
     /// </summary>
-    public sealed record Lunge(int WindUp, int Speed, int Ticks, int Past, int Damage) : Move(Damage);
+    public sealed record Lunge(int WindUp, int Speed, int Ticks, int Past, int Damage, bool Steady = false) : Move(Damage);
 
-    /// <summary>The factions a creature may be of: heroes and what is theirs are <see cref="Crew"/>.</summary>
-    public const string Crew = "crew", Grazer = "grazer", Machines = "machines";
+    /// <summary>
+    /// The factions a creature may be of: heroes and what is theirs are <see cref="Crew"/>; <see cref="Beasts"/>, wild creatures that
+    /// hunt heroes (cave-hostiles): the cave lurkers now, the carapace pack and the loper's predator next.
+    /// </summary>
+    public const string Crew = "crew", Grazer = "grazer", Machines = "machines", Beasts = "beasts";
 
-    public static readonly IReadOnlyList<string> Factions = [Crew, Grazer, Machines];
+    public static readonly IReadOnlyList<string> Factions = [Crew, Grazer, Machines, Beasts];
 
     /// <summary>How one faction stands to another: none listed, it ignores it.</summary>
     public enum Stance { Ignore, Fear, Hunt }
 
     public sealed record Relation(string From, string To, Stance Stance);
 
-    public static readonly IReadOnlyList<Relation> Relations = [new(Grazer, Crew, Stance.Ignore), new(Machines, Crew, Stance.Hunt)];
+    public static readonly IReadOnlyList<Relation> Relations =
+        [new(Grazer, Crew, Stance.Ignore), new(Machines, Crew, Stance.Hunt), new(Beasts, Crew, Stance.Hunt)];
 
     /// <summary>
     /// A pounce: crouched <paramref name="WindUp"/> ticks, then a flight straight at its target at <paramref name="Speed"/> a tick on
@@ -213,7 +219,31 @@ public static class Creatures
         Moves: [new Pounce(WindUp: 16, Speed: 1800, Ticks: 28, Damage: 5)],
         Yields: [new("circuit", 2, 3), new("alloyScrap", 1, 2)]);
 
-    public static readonly IReadOnlyList<Species> All = [Loper, Tapir, Sixleg, Sentry, Warden];
+    /// <summary>
+    /// The capback («Шляпоспин», cave-hostiles): a low beetle of the teal garden whose shell grows glowcaps, four cells by three, lurking
+    /// among the real ones. An awake hero in line within 14 cells alerts it; alerted half a second, one within 10 and it crouches 0.6 s,
+    /// then springs straight at them at 32 cells a second for 0.4 s, some 13 cells, four units of a suit if it hits; then it lands and,
+    /// the hero still near, alerts and crouches again: about a second to strike back. A blow is answered at once the same way. It never
+    /// walks off its spot and never chases. Ten hit points, five of the axe's. Placeholder numbers, for a play pass.
+    /// </summary>
+    public static readonly Species Capback = new("capback", Look: "capback",
+        Body: new Walker(Width: 4, Height: 3, Walk: 100, Run: 100, Jump: 0, JumpAcross: 0), Life: new(Hp: 10, Knock: 300, Hop: 200),
+        Faction: Beasts, Lifetime: Lifetime.Wild, Brain: [new Guard(Notice: 14, Strike: 10, AlertTicks: 10)],
+        Moves: [new Pounce(WindUp: 12, Speed: 1600, Ticks: 8, Damage: 4)], Yields: [new("biomass", 2, 3), new("spore", 1, 1, OneIn: 2)]);
+
+    /// <summary>
+    /// The geode snail («Жеодник», cave-hostiles): a snail of the amber deep whose shell is a geode, four cells by three. An awake hero
+    /// in line within 24 cells alerts it; alerted a second, one within 16 and it shuts its lid and rocks 0.8 s, then rolls along the
+    /// floor at the hero at 24 cells a second, under a sprint, for up to 1.5 s, six past them, at a wall or a drop: six units of a suit
+    /// if it hits. Its roll is steady: a blow cuts neither the crouch nor the roll, so it is jumped, not held. Twenty-four hit points,
+    /// never knocked. Placeholder numbers, for a play pass.
+    /// </summary>
+    public static readonly Species GeodeSnail = new("geodeSnail", Look: "geodeSnail",
+        Body: new Walker(Width: 4, Height: 3, Walk: 30, Run: 30, Jump: 0, JumpAcross: 0), Life: new(Hp: 24, Knock: 0, Hop: 0),
+        Faction: Beasts, Lifetime: Lifetime.Wild, Brain: [new Guard(Notice: 24, Strike: 16, AlertTicks: 20)],
+        Moves: [new Lunge(WindUp: 16, Speed: 1200, Ticks: 30, Past: 6, Damage: 6, Steady: true)], Yields: [new("crystal", 2, 3), new("biomass", 1, 1)]);
+
+    public static readonly IReadOnlyList<Species> All = [Loper, Tapir, Sixleg, Sentry, Warden, Capback, GeodeSnail];
 
     /// <summary>
     /// A species that comes with debris pieces of some kinds as they drift in, clamped to a perch on one's top (<c>Wreckage.Perches</c>):

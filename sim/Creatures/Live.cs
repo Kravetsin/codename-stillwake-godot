@@ -243,6 +243,23 @@ public sealed partial class CreaturesModule
     }
 
     /// <summary>
+    /// Whether nothing solid lies on the straight line from <paramref name="c"/>'s middle to the middle of cell <paramref name="at"/>,
+    /// walked as a shot's step is (<see cref="Rays.Walk"/>): what a lurker on the ground sees by (cave-hostiles).
+    /// </summary>
+    internal bool InLine(Creature c, Spec.Species spec, (int X, int Y) at)
+    {
+        int x = c.X, y = c.Y - spec.Body.Height * Unit / 2;
+        bool clear = true;
+        Rays.Walk(_grid.Width, _grid.Height, x, y, Middle(at.X) - x, Middle(at.Y) - y, cell =>
+        {
+            if (!Solid(cell)) return false;
+            clear = false;
+            return true;
+        });
+        return clear;
+    }
+
+    /// <summary>
     /// Away from the hero nearest <paramref name="c"/> by box distance in cells, the first in id order at a tie; level with it, or
     /// with none, the way it was going.
     /// </summary>
