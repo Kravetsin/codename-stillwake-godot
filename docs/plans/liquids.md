@@ -31,8 +31,10 @@ Goes wrong: a hero digs under a lake, the floor gives, water falls round it: it 
 - **Water and lava meeting** (later, promised): stage 1 has no liquid lava; stage 2 keeps them apart (a cell holds one
   kind, neither flows into the other) until the meeting is designed.
 - **Taking water from a lake** (a bottle, a pump): later; the first planet allows no machines.
-- **Rain, weather, evaporation:** the weather design's; it adds the op it calls (`Add(cell, kind, amount)`) and says how
-  rain stays bounded, since nothing evaporates. Liquid in sky cells (surface ponds) comes with it.
+- **Rain, weather, evaporation:** a later user of this module. Rain is pulled, not pushed: a storm is a field on `Sky.Storm`,
+  and this module reads `ISkyQueries.Now` (Sky has no dependencies and registers early) and pours water into open-sky
+  columns itself (the day-night design). How rain stays bounded, since nothing evaporates, is decided then. Liquid in sky
+  cells (surface ponds) comes with it.
 - **Pressure:** water never rises in a U-tube; a body is levelled only by falling and side moves (a body levelled as a
   whole needs bodies tracked as entities, and nothing in play asks for it).
 - **Liquid on the ship** (no source, vacuum).
