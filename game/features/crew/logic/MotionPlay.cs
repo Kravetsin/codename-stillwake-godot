@@ -53,10 +53,10 @@ public static class Overhand
     public static MotionKey[] KeysFor((double Raised, double Through) shape, double elbow) =>
     [
         new(0, 0, elbow),
-        new(WindShare, -shape.Raised, elbow, Ease.Sine),
+        new(WindShare, -shape.Raised, elbow, Ease: Ease.Sine),
         new(HitAt, 0, elbow),
         new(HitAt + shape.Through / DownSpeed, shape.Through, elbow),
-        new(1, 0, elbow, Ease.Sine),
+        new(1, 0, elbow, Ease: Ease.Sine),
     ];
 
     /// <summary>
@@ -73,6 +73,58 @@ public static class Jab
 {
     /// <summary>The jab: no shoulder keys, its elbow on <see cref="Strokes.ElbowAt"/>, its whoosh loudest at the hit.</summary>
     public static readonly SwingMotion Motion = new(MotionKind.Thrust, null, [], Strokes.ElbowAt);
+}
+
+/// <summary>
+/// The fixed-key motions the user picked (swing-motions), each drawn for its sector's middle and turned to the aim: struck at
+/// <see cref="Overhand.HitAt"/>, the stroke's hit, with the shoulder on the aim line, the elbow as held and the wrist straight,
+/// so the item's <see cref="AxeSwing.Lead"/> holds; at rest so at either end.
+/// </summary>
+public static class FixedMotions
+{
+    private const double Hit = Overhand.HitAt;
+
+    /// <summary>«Короткая рубка», the axe's and the pickaxe's under the feet: raised a little ahead, the wrist cocking the blade up, then chopped down, the wrist driving it into the floor.</summary>
+    public static readonly SwingMotion Chop = Of(
+    [
+        new(0, 0, 0), new(0.3, -1.25, 0.15, -0.55, Ease.Sine), new(Hit, 0, 0, 0, Ease.In), new(0.53, 0.1, 0, 0.35), new(1, 0, 0, 0, Ease.Sine),
+    ]);
+
+    /// <summary>«Плечо подаёт», the pickaxe's peck up, straight and down: mostly the elbow, the shoulder lifting a little and driving the blow.</summary>
+    public static readonly SwingMotion Peck = Of(
+    [
+        new(0, 0, 0), new(0.3, -0.45, 1.15, -0.15, Ease.Sine), new(Hit, 0, 0, 0, Ease.In), new(0.56, 0.18, 0, 0.2), new(1, 0, 0, 0, Ease.Sine),
+    ]);
+
+    /// <summary>«Цепь», the axe's straight and down: laid back over the shoulder, then shoulder, elbow and wrist in turn, the wrist throwing the blade last.</summary>
+    public static readonly SwingMotion Chain = Of(
+    [
+        new(0, 0, 0), new(0.33, -1.55, 1.0, -0.55, Ease.Sine), new(0.405, -0.75, 0.9, -0.5, Ease.In), new(0.435, -0.2, 0.35, -0.4),
+        new(Hit, 0, 0, 0), new(0.56, 0.3, 0, 0.4), new(1, 0, 0, 0, Ease.Sine),
+    ]);
+
+    /// <summary>«Тяжёлый подъём», the sledgehammer's straight: swung back low and paused, heaved onto the shoulder and held, then brought down.</summary>
+    public static readonly SwingMotion HeaveStraight = Of(
+    [
+        new(0, 0, 0), new(0.12, 1.2, 0.1, 0.7, Ease.Sine), new(0.18, 1.25, 0.1, 0.75), new(0.32, -1.7, 1.1, -0.4, Ease.Sine),
+        new(0.38, -1.8, 1.15, -0.45), new(Hit, 0, 0, 0, Ease.In), new(0.52, 0.3, 0, 0.25), new(1, 0, 0, 0, Ease.Sine),
+    ]);
+
+    /// <summary>The heave aimed down: back less far, heaved higher over the shoulder.</summary>
+    public static readonly SwingMotion HeaveDown = Of(
+    [
+        new(0, 0, 0), new(0.12, 0.62, 0.1, 0.7, Ease.Sine), new(0.18, 0.65, 0.1, 0.75), new(0.32, -2.6, 0.9, -0.4, Ease.Sine),
+        new(0.38, -2.7, 0.95, -0.45), new(Hit, 0, 0, 0, Ease.In), new(0.52, 0.3, 0, 0.25), new(1, 0, 0, 0, Ease.Sine),
+    ]);
+
+    /// <summary>A swing of <paramref name="keys"/>, its whoosh loudest halfway from the key the arm is furthest back at to the hit.</summary>
+    private static SwingMotion Of(MotionKey[] keys)
+    {
+        var back = keys[0];
+        foreach (var key in keys)
+            if (key.Shoulder < back.Shoulder) back = key;
+        return new(MotionKind.Swing, (back.Share + Hit) / 2, keys);
+    }
 }
 
 /// <summary>
@@ -98,7 +150,8 @@ public sealed record MotionPlay(Sector Sector, SwingMotion Motion, IReadOnlyList
             var shape = Overhand.ShapeFor(aim + lead, stroke.Half);
             return new(sector, motion, Overhand.KeysFor(shape, stroke.Look.Elbow), lead, shape);
         }
-        return new(sector, motion, motion.Keys, lead, null, (Sampled(motion.Keys, -stroke.Half), Sampled(motion.Keys, stroke.Half)));
+        var turns = Turns(motion.Keys, stroke.Look, lead);
+        return new(sector, motion, motion.Keys, lead, null, (Sampled(turns, -stroke.Half), Sampled(turns, stroke.Half)));
     }
 
     /// <summary>
@@ -109,6 +162,9 @@ public sealed record MotionPlay(Sector Sector, SwingMotion Motion, IReadOnlyList
 
     /// <summary>The elbow's bend at <paramref name="phase"/>, in radians.</summary>
     public double ElbowAt(double phase) => Motion.Elbow?.Invoke(phase) ?? (Keys.Count > 0 ? Along(Keys, phase, k => k.Elbow) : 0);
+
+    /// <summary>The item's turn against the forearm at <paramref name="phase"/>, in radians, down positive (<see cref="Rig.HeldTurn"/>).</summary>
+    public double WristAt(double phase) => Keys.Count > 0 ? Along(Keys, phase, k => k.Wrist) : 0;
 
     /// <summary>
     /// The share at which the edge's middle is <paramref name="turn"/> radians from the aim line, back (negative) or through: the
@@ -127,27 +183,52 @@ public sealed record MotionPlay(Sector Sector, SwingMotion Motion, IReadOnlyList
             var (was, to) = (keys[i - 1], keys[i]);
             if (phase >= to.Share) continue;
             double t = (phase - was.Share) / (to.Share - was.Share);
-            double eased = to.Ease == Ease.Sine ? (1 - Math.Cos(t * Math.PI)) / 2 : t;
-            return of(was) + (of(to) - of(was)) * eased;
+            return of(was) + (of(to) - of(was)) * Eased(to.Ease, t);
         }
         return of(keys[^1]);
     }
 
-    /// <summary>The first share, every 1/<see cref="Samples"/>, after the arm is furthest back, at which it has come down to <paramref name="turn"/>, or as far as it goes.</summary>
-    private static double Sampled(IReadOnlyList<MotionKey> keys, double turn)
+    /// <summary><paramref name="t"/> of the way from one key to the next, eased by <paramref name="ease"/>.</summary>
+    internal static double Eased(Ease ease, double t) => ease switch
     {
-        double back = 0, most = double.MinValue, least = double.MaxValue;
-        for (int i = 0; i < keys.Count; i++)
-        {
-            if (keys[i].Shoulder < least) (least, back) = (keys[i].Shoulder, keys[i].Share);
-            most = Math.Max(most, keys[i].Shoulder);
-        }
+        Ease.Sine => (1 - Math.Cos(t * Math.PI)) / 2,
+        Ease.In => t * t,
+        _ => t,
+    };
+
+    /// <summary>
+    /// How far the middle of <paramref name="look"/>'s edge is from the aim line at <paramref name="phase"/> of
+    /// <paramref name="keys"/>, in radians, down positive: the shoulder, the elbow and the wrist together, held as drawn (0040).
+    /// </summary>
+    internal static double EdgeTurnAt(IReadOnlyList<MotionKey> keys, HeldLook look, double lead, double phase)
+    {
+        var (from, to) = AxeSwing.EdgeAt(look, 0, Along(keys, phase, k => k.Elbow), Along(keys, phase, k => k.Wrist));
+        double held = Math.Atan2((from.Y + to.Y) / 2, (from.X + to.X) / 2);
+        return ShoulderAt(keys, phase) + Math.IEEERemainder(lead + held, 2 * Math.PI);
+    }
+
+    /// <summary>The edge's turn from the aim line (<see cref="EdgeTurnAt"/>) every 1/<see cref="Samples"/> of the stroke.</summary>
+    private static double[] Turns(IReadOnlyList<MotionKey> keys, HeldLook look, double lead)
+    {
+        var turns = new double[Samples + 1];
+        for (int i = 0; i <= Samples; i++) turns[i] = EdgeTurnAt(keys, look, lead, (double)i / Samples);
+        return turns;
+    }
+
+    /// <summary>
+    /// The first share of <paramref name="turns"/>, after the edge is furthest back, at which it has come down to
+    /// <paramref name="turn"/>, or as far through as it goes after.
+    /// </summary>
+    private static double Sampled(double[] turns, double turn)
+    {
+        int back = 0;
+        for (int i = 1; i < turns.Length; i++)
+            if (turns[i] < turns[back]) back = i;
+        double most = double.MinValue;
+        for (int i = back; i < turns.Length; i++) most = Math.Max(most, turns[i]);
         double wanted = Math.Min(turn, most);
-        for (int i = 0; i <= Samples; i++)
-        {
-            double share = (double)i / Samples;
-            if (share >= back && ShoulderAt(keys, share) >= wanted) return share;
-        }
+        for (int i = back; i < turns.Length; i++)
+            if (turns[i] >= wanted) return (double)i / Samples;
         return 1;
     }
 }

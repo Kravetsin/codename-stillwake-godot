@@ -1036,7 +1036,7 @@ public partial class Figure : Node2D
             frontArm = Rig.Reach(new Vec(Math.Cos(work) * reach + ux * TwistLift * rise, Math.Sin(work) * reach + uy * TwistLift * rise), Rig.Arm, 1);
         }
         (double Angle, double Phase)? swung = null;
-        double elbow = item?.Elbow ?? 0;
+        double elbow = item?.Elbow ?? 0, wrist = 0;
         if (chopping && _chop is { Aim: var aimed, Phase: var phase, Play: var play })
         {
             // Toward its aim from where the hero is now, from the shoulder: the motion chosen at the press, played along it till
@@ -1044,7 +1044,7 @@ public partial class Figure : Node2D
             if (phase < _lastPhase) _bit = false;
             _lastPhase = phase;
             double drawn = _bit ? AxeSwing.Shown(phase, stroke!) : phase;
-            elbow = play.ElbowAt(drawn);
+            (elbow, wrist) = (play.ElbowAt(drawn), play.WristAt(drawn));
             // The spear: aimed as a gun is, the shaft's line through the point, the elbow cocked and straightened (the jab).
             if (play.Motion.Kind == MotionKind.Thrust)
             {
@@ -1151,7 +1151,7 @@ public partial class Figure : Node2D
             }
             _held.Position = new Vector2((float)fist.X, (float)(-Rig.Shoulder + fist.Y));
             // Carried trailing on a run, the hand turns the item along itself (Rig.Carried).
-            _held.Rotation = (float)(Rig.HeldTurn(frontArm, item) + item.Hold * carry);
+            _held.Rotation = (float)(Rig.HeldTurn(frontArm, item, wrist) + item.Hold * carry);
             if (item.Aimed)
             {
                 Vector2 At((double X, double Y) p) => _held.ToGlobal(new Vector2((float)p.X, (float)p.Y) + _held.Offset);
@@ -1174,7 +1174,7 @@ public partial class Figure : Node2D
             double start = jab ? stroke!.HitShare : cutPlay.ShareAt(-half);
             if (_cutPhase < start && cutPhase >= start)
             {
-                var edge = Rig.HeldAt(frontArm, item!, item!.EdgeTo);
+                var edge = Rig.HeldAt(frontArm, item!, item!.EdgeTo, wrist);
                 double reach = Math.Sqrt(edge.X * edge.X + edge.Y * edge.Y);
                 double sweep = jab ? WorkLooks.ThrustSweepMs : (cutPlay.ShareAt(half) - start) * stroke!.Ms;
                 _air.Strike(jab, AimAngleOf(cutAim, hero.Facing), half, weapon.Range * Rig.Cell / Hero.Unit, jab ? reach : reach - 4, sweep,

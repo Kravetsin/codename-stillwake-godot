@@ -34,6 +34,16 @@ public class StrokesTests
     }
 
     [Fact]
+    public void EachWeaponPlaysTheMotionsPickedForItsSectors()
+    {
+        var o = Overhand.Motion;
+        Assert.Equal(new SectorMotions(o, FixedMotions.Chain, FixedMotions.Chain, FixedMotions.Chop), Strokes.Axe.Motions);
+        Assert.Equal(new SectorMotions(FixedMotions.Peck, FixedMotions.Peck, FixedMotions.Peck, FixedMotions.Chop), Strokes.Pick.Motions);
+        Assert.Equal(new SectorMotions(o, FixedMotions.HeaveStraight, FixedMotions.HeaveDown, o), Strokes.Hammer.Motions);
+        Assert.Equal(SectorMotions.All(Jab.Motion), Strokes.Spear.Motions);
+    }
+
+    [Fact]
     public void TheAxeIsAsItWasAStrokeItsPaceLong()
     {
         Assert.Equal((Strokes.Axe.Ms, Strokes.Axe.Ms, Overhand.HitAt), (Strokes.Axe.Ms, Strokes.Axe.PaceMs, Strokes.Axe.HitShare));
@@ -62,15 +72,16 @@ public class StrokesTests
     }
 
     [Fact]
-    public void HeldTheSledgehammerBlowsEveryThreeSecondsEightTenthsIntoItsSwingAndRestsBetween()
+    public void HeldTheSledgehammerBlowsEveryOnePointEightSecondsItsBlowAtItsHitShareAndNeverRests()
     {
         var (hits, phases) = Held(Strokes.Hammer, 9000);
-        Assert.Equal(3, hits.Count);
-        Assert.InRange(hits[0], Strokes.HammerBlowMs - Frame, Strokes.HammerBlowMs + Frame);
-        Assert.InRange(hits[1] - hits[0], 3000 - Frame, 3000 + Frame);
-        // Swung for its stroke, then at rest, no phase, till its pace is out.
-        Assert.Contains(null, phases.Take((int)(3000 / Frame) - 1));
-        Assert.True(Strokes.Hammer.Ms < Strokes.Hammer.PaceMs);
+        Assert.Equal(5, hits.Count);
+        double blow = Overhand.HitAt * 1800;
+        Assert.InRange(hits[0], blow - Frame, blow + Frame);
+        Assert.InRange(hits[1] - hits[0], 1800 - Frame, 1800 + Frame);
+        // A stroke its pace long, as the axe's: the arm swings on from one blow into the next, never idle between.
+        Assert.Equal((1800.0, 1800.0, Overhand.HitAt), (Strokes.Hammer.Ms, Strokes.Hammer.PaceMs, Strokes.Hammer.HitShare));
+        Assert.DoesNotContain(null, phases);
     }
 
     [Fact]

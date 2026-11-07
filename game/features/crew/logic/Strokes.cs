@@ -24,23 +24,20 @@ public static class Strokes
     /// <summary>Half <paramref name="weapon"/>'s fan, in radians: how far either side of its line its rays go.</summary>
     public static double HalfOf(Content.Weapon weapon) => Math.PI * weapon.Arc / Content.Headings.Turn;
 
-    /// <summary>The overhand in every sector: the axe's, the pickaxe's and the sledgehammer's.</summary>
-    private static readonly SectorMotions Overhanded = SectorMotions.All(Overhand.Motion);
-
-    /// <summary>The fire axe's: a stroke its pace long (0040).</summary>
-    public static readonly Stroke Axe = new(Overhanded, HeldLook.FireAxe, PaceMs(Content.Weapons.Axe), PaceMs(Content.Weapons.Axe), Overhand.HitAt, Half: HalfOf(Content.Weapons.Axe));
+    /// <summary>The fire axe's: a stroke its pace long (0040), overhand up, the chain straight and down, the chop under the feet (swing-motions).</summary>
+    public static readonly Stroke Axe = new(new(Overhand.Motion, FixedMotions.Chain, FixedMotions.Chain, FixedMotions.Chop), HeldLook.FireAxe,
+        PaceMs(Content.Weapons.Axe), PaceMs(Content.Weapons.Axe), Overhand.HitAt, Half: HalfOf(Content.Weapons.Axe));
 
     /// <summary>
-    /// The sledgehammer's: the axe's swing slowed so the blow lands <see cref="HammerBlowMs"/> into it, then rest till its pace of
-    /// three seconds is out.
+    /// The sledgehammer's: a stroke its pace long, 1.8 s, the blow 0.82 s in; heaved straight and down, overhand up and under the
+    /// feet (swing-motions).
     /// </summary>
-    public static readonly Stroke Hammer = new(Overhanded, HeldLook.Sledgehammer, HammerBlowMs / Overhand.HitAt, PaceMs(Content.Weapons.Sledgehammer), Overhand.HitAt, Stillwake.Game.Sound.HammerSwingPeakS, HalfOf(Content.Weapons.Sledgehammer));
+    public static readonly Stroke Hammer = new(new(Overhand.Motion, FixedMotions.HeaveStraight, FixedMotions.HeaveDown, Overhand.Motion), HeldLook.Sledgehammer,
+        PaceMs(Content.Weapons.Sledgehammer), PaceMs(Content.Weapons.Sledgehammer), Overhand.HitAt, Stillwake.Game.Sound.HammerSwingPeakS, HalfOf(Content.Weapons.Sledgehammer));
 
-    /// <summary>The pickaxe's (the-pickaxe): the axe's swing played over its own pace, quicker, a blow every 0.3 s.</summary>
-    public static readonly Stroke Pick = new(Overhanded, HeldLook.Pickaxe, PaceMs(Content.Weapons.Pickaxe), PaceMs(Content.Weapons.Pickaxe), Overhand.HitAt, Half: HalfOf(Content.Weapons.Pickaxe));
-
-    /// <summary>How long the sledgehammer's swing takes to its blow: a heavy wind-up, slower than the axe's whole swing.</summary>
-    public const double HammerBlowMs = 800;
+    /// <summary>The pickaxe's (the-pickaxe): a stroke its pace long, a blow every 0.3 s; the peck up, straight and down, the chop under the feet (swing-motions).</summary>
+    public static readonly Stroke Pick = new(new(FixedMotions.Peck, FixedMotions.Peck, FixedMotions.Peck, FixedMotions.Chop), HeldLook.Pickaxe,
+        PaceMs(Content.Weapons.Pickaxe), PaceMs(Content.Weapons.Pickaxe), Overhand.HitAt, Half: HalfOf(Content.Weapons.Pickaxe));
 
     /// <summary>
     /// The spear's, the user's pick «Короткий укол» (jab): <see cref="JabMs"/>, the elbow cocked and straightened, the hit at <see cref="JabHitMs"/>;

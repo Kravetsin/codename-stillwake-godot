@@ -129,8 +129,12 @@ public class AxeSwingTests
     private static double Lift(double phase, (double Raised, double Through)? shape = null) =>
         MotionPlay.ShoulderAt(Overhand.KeysFor(shape ?? (Overhand.Raised, Overhand.Through), 0), phase);
 
-    /// <summary>The arm's angle at <paramref name="phase"/> of <paramref name="stroke"/> pressed and played aimed <paramref name="aim"/>.</summary>
-    private static double AngleAt(Stroke stroke, double aim, double phase) => MotionPlay.Of(stroke, aim).AngleAt(aim, phase);
+    /// <summary>
+    /// The arm's angle at <paramref name="phase"/> of <paramref name="stroke"/> pressed and played aimed <paramref name="aim"/>, swung
+    /// overhand in every sector: the picked fixed motions are held to the shoulder's limits by their rows' own test.
+    /// </summary>
+    private static double AngleAt(Stroke stroke, double aim, double phase) =>
+        MotionPlay.Of(stroke with { Motions = SectorMotions.All(Overhand.Motion) }, aim).AngleAt(aim, phase);
 
     [Fact]
     public void TheBladeMeetsTheWreckWhenTheHitGoes()

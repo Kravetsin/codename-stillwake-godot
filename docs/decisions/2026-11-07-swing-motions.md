@@ -1,6 +1,7 @@
 # Swing motions
 
-- Status: accepted; supersedes in part [0039](0039-melee-by-contact.md): a stroke's aim is kept against the hero's place, not the world
+- Status: accepted; supersedes in part [0039](0039-melee-by-contact.md): a stroke's aim is kept against the hero's place, not the
+  world; and [salvage-tools](2026-11-04-salvage-tools.md): the sledgehammer's pace is 1.8 s, not 3 s
 - Date: 2026-11-07
 
 ## Context
@@ -15,9 +16,29 @@ moves differently meant new code each time.
 - **A motion is apart from a weapon** (`SwingMotion`, data in `game/Content/logic/SwingMotions.cs`; played as `MotionPlay`,
   with the shaped `Overhand` and the `Jab`, in `game/features/crew/logic/MotionPlay.cs`): a weapon's row (`Stroke.Motions`)
   names one motion for each **aim sector**, as Terraria's items name a use style. A new weapon that moves like an old one is a
-  row of data. A motion is keys of `(Share, Shoulder, Elbow, Ease)`, the shoulder relative to the aim line, every motion at
-  rest at shares 0 and 1, so a held stroke runs into the next whatever its sector. A motion swings or thrusts (`MotionKind`):
+  row of data. A motion is keys of `(Share, Shoulder, Elbow, Wrist, Ease)`, the shoulder relative to the aim line, every motion
+  at rest at shares 0 and 1, so a held stroke runs into the next whatever its sector. A motion swings or thrusts (`MotionKind`):
   the stroke's kind is the kind of the motion its press chose.
+- **The wrist** (`MotionKey.Wrist`): the item's extra turn against the forearm, in radians, down (clockwise) positive as the
+  shoulder, added to `Rig.HeldTurn`. The drawn item, `AxeSwing.EdgeAt` and the edge sampled at the press for the fan's sides
+  (`MotionPlay.EdgeTurnAt`) all take it, so the hit still follows the drawn edge (0040). Every row strikes with the wrist
+  straight and the elbow as held, so the item's `Lead` is unchanged.
+- **Eases:** `Linear`, `Sine`, and `In` (t², slow off the key before, fastest into its own), the downstroke into a strike.
+- **The picks** (`FixedMotions`, the user's, one page of candidates per subject); every other sector keeps the overhand:
+
+  | Weapon       | Up       | Straight        | Down        | Under |
+  | ------------ | -------- | --------------- | ----------- | ----- |
+  | Fire axe     | overhand | chain «Цепь»    | chain       | chop «Короткая рубка» |
+  | Pickaxe      | peck «Плечо подаёт» | peck | peck        | chop  |
+  | Sledgehammer | overhand | heave «Тяжёлый подъём», straight keys | heave, down keys | overhand |
+  | Spear        | jab      | jab             | jab         | jab   |
+
+  Each row strikes at the stroke's `HitShare` (`Overhand.HitAt`), its whoosh loudest halfway from the arm furthest back to the
+  strike. A row test holds every row to rest at its ends, strike on the aim and keep the upper arm within the overhand's limits.
+- **The sledgehammer swings every 1.8 s** (`Pace` 36 ticks, was 60), a stroke its pace long as the axe's, the blow 0.82 s in.
+  At 3 s the arm stood idle 1.2 s after each swing, and the user found the hammer felt artificially slowed. Its damage stays
+  12 and 6 on blocks (its one-blow break of light wrecks is its point), so it now deals 6.7 a second, more than the axe's 4:
+  accepted.
 - **Four sectors** (`Sectors`), by the aim angle from the front shoulder in the arms' frame, without the item's `Lead`: up to
   −45°, to 20°, to 60°, to 90°; a bound goes to the smaller angle; an angle behind is mirrored to the front. A fixed-key motion is
   turned to the exact aim within half its sector.
@@ -37,10 +58,12 @@ moves differently meant new code each time.
 ## Consequences
 
 - A hero pushed off mid-swing keeps striking the same point relative to itself; the old twist is gone.
-- New motions (step 2 of the plan) are rows of keys, one pick each; only the overhand is shaped by its aim.
+- New motions are rows of keys, one pick each; only the overhand is shaped by its aim.
+- A fixed motion's follow-through is its own, not stretched to the weapon's fan as the overhand's is: the chain or the heave
+  is drawn short of the fan's far side. The hits are still cast over the whole fan at the strike.
 - A friend's offset is exact up to the 50 ms between its packets: a running friend's stroke may be a fraction of a cell off.
   It is only drawn; their hits are their own client's.
 - A friend's place comes from the first packet with the swing number, up to about 50 ms after the press, and its angle from
   this screen's figure of it: near a sector bound another screen may draw another motion. We accept it: it is only drawn.
 - A body turning under the stroke (afloat) does not turn it: the offset keeps the world's axes.
-- No combos, no wrist, no torso lean: one motion per sector, each added with the first motion that needs it.
+- No combos, no torso lean, no legs: one motion per sector, each added with the first motion that needs it.

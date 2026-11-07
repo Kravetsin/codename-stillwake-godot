@@ -160,14 +160,14 @@ no longer twists. Step 2 adds new motions, one pick each.
 
 ## Step 2: new motions, one pick each
 
-Each motion goes through an Artifact page of candidates, drawn from the current rig, with frames looked at before publishing.
-Then it becomes a row of keys.
-- **Under the feet:** a short chop down between the feet, body upright. It replaces the overhand in Under for the axe and the
-  pickaxe.
-- **The pickaxe's peck:** from the elbow, the shoulder nearly still.
-- **The axe's chop with a wrist:** the first motion that needs the item turned against the forearm. It adds a `Wrist` to the key
-  and to `Rig.HeldAt`/`EdgeAt`, so the hit still follows the drawn edge (0040).
-- **The sledgehammer's circle:** back low behind the body, up over the head, down.
+Built: the user picked one candidate per subject on an Artifact page; each is a row of keys in `FixedMotions` (`MotionPlay.cs`).
+- **Under the feet:** «Короткая рубка» (`Chop`), in Under for the axe and the pickaxe.
+- **The pickaxe's peck:** «Плечо подаёт» (`Peck`), in Up, Straight and Down.
+- **The axe's chop with a wrist:** «Цепь» (`Chain`), in Straight and Down; the axe keeps the overhand Up. It added
+  `MotionKey.Wrist`, taken by `Rig.HeldTurn`/`HeldAt`, `AxeSwing.EdgeAt` and the press's edge sampling
+  (`MotionPlay.EdgeTurnAt`), so the hit still follows the drawn edge (0040); and `Ease.In` (t²) for the downstrokes.
+- **The sledgehammer's circle:** «Тяжёлый подъём» (`HeaveStraight`, `HeaveDown`), in Straight and Down; overhand Up and Under.
+- **The sledgehammer's pace:** 60 → 36 ticks (1.8 s), a stroke its pace long, so the arm no longer stands idle 1.2 s.
 
 ## Docs
 
@@ -182,7 +182,7 @@ Then it becomes a row of keys.
 ## Deliberately not handled
 
 - **Combos:** the user set them aside. There is one motion per sector, and nothing counts strokes to pick a motion.
-- **The wrist, torso lean, legs, the back arm:** none of today's strokes uses them; each comes with the first motion that does.
+- **Torso lean, legs, the back arm:** no picked motion uses them; each comes with the first motion that does.
 - **Reworking the hit-stop:** it is kept as it is. The user may want it done better later, not here.
 - **A body that turns mid-swing** (afloat): the offset keeps the world's axes, so the stroke keeps its world direction while the
   body turns under it, as today.

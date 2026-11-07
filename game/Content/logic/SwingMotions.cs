@@ -6,15 +6,19 @@ namespace Stillwake.Game;
 /// <summary>How a motion moves the arm: swung through its keys, or thrust, the arm aimed as a gun is.</summary>
 public enum MotionKind { Swing, Thrust }
 
-/// <summary>How a motion's key is eased into from the one before: evenly, or (1 − cos πt) / 2.</summary>
-public enum Ease { Linear, Sine }
+/// <summary>
+/// How a motion's key is eased into from the one before: evenly, by (1 − cos πt) / 2, or by t², slow off the key before and
+/// fastest into this one.
+/// </summary>
+public enum Ease { Linear, Sine, In }
 
 /// <summary>
 /// One key of a swung motion (swing-motions): at <paramref name="Share"/> of the stroke, the shoulder turned
-/// <paramref name="Shoulder"/> radians from the aim line, down positive, the elbow bent <paramref name="Elbow"/>, eased in from the
-/// key before by <paramref name="Ease"/>.
+/// <paramref name="Shoulder"/> radians from the aim line, down positive, the elbow bent <paramref name="Elbow"/>, the item turned
+/// <paramref name="Wrist"/> radians against the forearm, down (clockwise) positive as the shoulder, eased in from the key before
+/// by <paramref name="Ease"/>.
 /// </summary>
-public readonly record struct MotionKey(double Share, double Shoulder, double Elbow, Ease Ease = Ease.Linear);
+public readonly record struct MotionKey(double Share, double Shoulder, double Elbow, double Wrist = 0, Ease Ease = Ease.Linear);
 
 /// <summary>Where a stroke is aimed, by its aim angle from straight ahead of the shoulder: each sector plays its own motion.</summary>
 public enum Sector { Up, Straight, Down, Under }

@@ -68,10 +68,10 @@ public class SwingMotionsTests
     private static double JabElbow(double phase) => MotionPlay.Of(Strokes.Spear, 0).ElbowAt(phase);
 
     [Fact]
-    public void EverySwungWeaponPlaysTodaysSwingExactlyAtEveryAimAndPhase()
+    public void EverySwungWeaponPlaysTodaysSwingExactlyInTheSectorsItKeepsTheOverhand()
     {
         foreach (var stroke in Swung)
-            foreach (double aim in FrontAims())
+            foreach (double aim in FrontAims().Where(a => ReferenceEquals(stroke.Motions[Sectors.Of(a)], Overhand.Motion)))
             {
                 double line = aim + AxeSwing.Lead(stroke.Look);
                 for (int i = 0; i <= 100; i++)
@@ -105,25 +105,76 @@ public class SwingMotionsTests
         return keys.Skip(back).First(k => k.Shoulder == 0);
     }
 
+    /// <summary>Aims every half degree over the front half, in radians: every sector, its bounds and many between.</summary>
+    private static IEnumerable<double> FineAims() => Enumerable.Range(-180, 361).Select(d => d * 0.5 * Math.PI / 180);
+
+    /// <summary>
+    /// Every row of every weapon, aimed anywhere ahead: at rest at shares 0 and 1, its elbow and wrist there the strike's; struck
+    /// at its stroke's hit with the shoulder on the line, the elbow as held and the wrist straight; shares rising; the upper arm
+    /// never past <see cref="Overhand.Overhead"/> nor <see cref="Overhand.Behind"/>; the edge's middle on the aim at the strike.
+    /// </summary>
     [Fact]
-    public void EveryWeaponsMotionsBeginAndEndAtRestAndASwingStrikesAtItsHit()
+    public void EveryRowRestsAtItsEndsStrikesOnTheAimAtItsHitAndKeepsTheArmWithinTheShoulder()
     {
         foreach (var stroke in new[] { Strokes.Axe, Strokes.Pick, Strokes.Hammer, Strokes.Spear })
         {
-            foreach (double aim in FrontAims())
+            foreach (double aim in FineAims())
             {
                 var play = MotionPlay.Of(stroke, aim);
+                string at = $"{stroke.Look.Picture} at {aim * 180 / Math.PI:F1}°, {play.Sector}";
                 if (play.Motion.Kind == MotionKind.Thrust)
                 {
                     Assert.Equal(play.ElbowAt(0), play.ElbowAt(1), 9);
                     continue;
                 }
-                var (first, last, strike) = (play.Keys[0], play.Keys[^1], StrikeOf(play.Keys));
-                Assert.Equal((0.0, 0.0, 1.0, 0.0), (first.Share, first.Shoulder, last.Share, last.Shoulder));
-                Assert.Equal((strike.Elbow, strike.Elbow), (first.Elbow, last.Elbow));
-                Assert.Equal(stroke.HitShare, strike.Share, 12);
+                var (keys, look) = (play.Keys, stroke.Look);
+                var (first, last, strike) = (keys[0], keys[^1], StrikeOf(keys));
+                Assert.True((first.Share, first.Shoulder, last.Share, last.Shoulder) == (0.0, 0.0, 1.0, 0.0), at);
+                Assert.True((first.Elbow, last.Elbow, first.Wrist, last.Wrist) == (strike.Elbow, strike.Elbow, strike.Wrist, strike.Wrist), at);
+                Assert.True(Math.Abs(stroke.HitShare - strike.Share) < 1e-12, at);
+                Assert.True((strike.Elbow, strike.Wrist) == (look.Elbow, 0.0), at);
+                for (int i = 1; i < keys.Count; i++) Assert.True(keys[i].Share > keys[i - 1].Share, at);
+                foreach (double phase in Enumerable.Range(0, 1001).Select(i => i / 1000.0).Concat(keys.Select(k => k.Share)))
+                {
+                    double upper = AxeSwing.ArmAt(play.AngleAt(aim, phase)).Upper;
+                    Assert.True(upper <= Overhand.Overhead + 1e-9 && upper >= -Overhand.Behind - 1e-9, $"{at}, phase {phase}: upper arm {upper:F3}");
+                }
+                double hit = stroke.HitShare;
+                var (from, to) = AxeSwing.EdgeAt(look, play.AngleAt(aim, hit), play.ElbowAt(hit), play.WristAt(hit));
+                double off = Math.IEEERemainder(Math.Atan2((from.Y + to.Y) / 2, (from.X + to.X) / 2) - aim, 2 * Math.PI);
+                Assert.True(Math.Abs(off) < 1e-6, $"{at}: the edge off the aim by {off}");
             }
         }
+    }
+
+    [Fact]
+    public void TheWristTurnsTheDrawnItemAndTheEdgeItHitsWithAlike()
+    {
+        // The axe aimed straight plays the chain; a third through, it is laid back, the wrist turned 0.55 up.
+        double aim = 0.2, phase = 0.33;
+        var play = MotionPlay.Of(Strokes.Axe, aim);
+        var look = Strokes.Axe.Look;
+        Assert.Same(FixedMotions.Chain, play.Motion);
+        double wrist = play.WristAt(phase), angle = play.AngleAt(aim, phase), elbow = play.ElbowAt(phase);
+        Assert.Equal(-0.55, wrist, 12);
+        var arm = AxeSwing.ArmAt(angle, elbow);
+        double drawn = Rig.HeldTurn(arm, look, wrist);
+        Assert.Equal(wrist, Math.IEEERemainder(drawn - Rig.HeldTurn(arm, look), 2 * Math.PI), 12);
+        // The fire axe's edge lies level in its picture: the edge hit with runs as the drawn item is turned, from where it is drawn.
+        var (from, to) = AxeSwing.EdgeAt(look, angle, elbow, wrist);
+        Assert.Equal(0, Math.IEEERemainder(Math.Atan2(to.Y - from.Y, to.X - from.X) - drawn, 2 * Math.PI), 9);
+        Assert.Equal(Rig.HeldAt(arm, look, look.EdgeFrom, wrist), from);
+        // And the edge sampled through the swing for the fan's sides is that one.
+        double middle = Math.Atan2((from.Y + to.Y) / 2, (from.X + to.X) / 2);
+        Assert.Equal(Math.IEEERemainder(middle - aim, 2 * Math.PI), MotionPlay.EdgeTurnAt(play.Keys, look, play.Lead, phase), 9);
+    }
+
+    [Fact]
+    public void EaseInIsSlowOffTheKeyBeforeAndFastestIntoItsOwn()
+    {
+        Assert.Equal((0.0, 0.25, 1.0), (MotionPlay.Eased(Ease.In, 0), MotionPlay.Eased(Ease.In, 0.5), MotionPlay.Eased(Ease.In, 1)));
+        MotionKey[] keys = [new(0, 0, 0), new(1, -2, 0, Ease: Ease.In)];
+        Assert.Equal(-0.5, MotionPlay.ShoulderAt(keys, 0.5), 12);
     }
 
     // Sectors.
@@ -204,11 +255,12 @@ public class SwingMotionsTests
     [Fact]
     public void TheAngleGivenAtThePressChoosesTheMotionNotTheOffsetsOwn()
     {
-        // Aimed behind by the offset, level by the figure's shoulder: the figure's angle shapes the stroke.
+        // Level behind by the offset, a straight chain; high by the figure's shoulder: the figure's angle picks the overhand and shapes it.
         var swing = new AxeSwing();
-        swing.Advance(Frame, true, new Point(-3_000, 0), default, Strokes.Axe, 0);
+        swing.Advance(Frame, true, new Point(-3_000, 0), default, Strokes.Axe, -1.2);
         Assert.Equal(new Point(-3_000, 0), swing.Aim);
-        Assert.Equal(Overhand.ShapeFor(0 + AxeSwing.Lead(Strokes.Axe.Look), Strokes.Axe.Half), swing.Play!.Shape);
+        Assert.Same(Overhand.Motion, swing.Play!.Motion);
+        Assert.Equal(Overhand.ShapeFor(-1.2 + AxeSwing.Lead(Strokes.Axe.Look), Strokes.Axe.Half), swing.Play.Shape);
         Assert.NotEqual(Overhand.ShapeFor(AxeSwing.AngleOf(swing.Aim) + AxeSwing.Lead(Strokes.Axe.Look), Strokes.Axe.Half), swing.Play.Shape);
     }
 
