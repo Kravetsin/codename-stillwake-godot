@@ -81,42 +81,69 @@ function groundSheet(look, seed, dim) {
   } };
 }
 
-/** Ice flecks over a wall of stone, in a few clusters, as the vein's sheet draws them. */
+// The finish draws a repeating sheet nine times, a copy at a time, the whole picture each time: a later copy's stone, reaching a few
+// pixels past the sheet's edge, would paint over ore an earlier copy left near that edge. What is drawn through on() goes out shifted
+// so its every image inside the sheet comes from the last copy, over all the stone.
+const NUM = /-?\d*\.?\d+(?:e-?\d+)?/g;
+const shiftPath = (d, dx, dy) => { let i = 0; return d.replace(NUM, (v) => String(+(+v + (i++ % 2 ? dy : dx)).toFixed(3))); };
+const SHIFTED = ['shade', 'deep', 'lite', 'spec', 'lines'];
+function on(a, W = 128, H = 64) {
+  const sh = (v, dx, dy) => (typeof v === 'string' ? shiftPath(v, dx, dy) : Array.isArray(v) ? v.map((q) => sh(q, dx, dy)) : v);
+  const emit = (d, fn) => {
+    const n = d.match(NUM).map(Number);
+    let x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity;
+    for (let i = 0; i + 1 < n.length; i += 2) { x0 = Math.min(x0, n[i]); x1 = Math.max(x1, n[i]); y0 = Math.min(y0, n[i + 1]); y1 = Math.max(y1, n[i + 1]); }
+    for (let j = -1; j <= 1; j++) for (let i = -1; i <= 1; i++)
+      if (x1 + i * W > 0 && x0 + i * W < W && y1 + j * H > 0 && y0 + j * H < H) fn((i - 1) * W, (j - 1) * H);
+  };
+  return {
+    shape(d, m, o = {}) { emit(d, (dx, dy) => { const p = { ...o }; for (const k of SHIFTED) if (k in o) p[k] = sh(o[k], dx, dy); a.shape(shiftPath(d, dx, dy), m, p); }); },
+    flat(d, c, o) { emit(d, (dx, dy) => a.flat(shiftPath(d, dx, dy), c, o)); },
+  };
+}
+
+/** The middle of each of a vein sheet's 16 × 8 cells, row by row: ore is laid in every one, so any vein cell cut from the sheet holds some. */
+const CELLS = [];
+for (let j = 0; j < 8; j++) for (let i = 0; i < 16; i++) CELLS.push([i * 8 + 4, j * 8 + 4]);
+
+/** Flecks of ore over a wall of stone (ice by default, copper with its paint): a small cluster in every cell of the sheet. */
 function veined(base, paint = VEIN, seed = 0x1ce) {
   return { ...base, draw(a) {
     base.draw(a);
+    a = on(a);
     const r = rng(seed);
-    for (const [cx, cy, n] of [[30, 18, 14], [84, 40, 18], [112, 12, 9], [58, 54, 10]])
-      for (let i = 0; i < n; i++) {
-        const x = cx + (r() - .5) * 18, y = cy + (r() - .5) * 13, s = .9 + r() * 1.3;
+    for (const [cx, cy] of CELLS) {
+      const x0 = cx + (r() - .5) * 4.6, y0 = cy + (r() - .5) * 4.4;
+      for (let i = 0, n = 2 + (r() < .5 ? 1 : 0); i < n; i++) {
+        const x = x0 + (r() - .5) * 4.4, y = y0 + (r() - .5) * 3.6, s = .8 + r() * .9;
         a.shape(poly(x, y - s, x + s * .8, y, x, y + s, x - s * .8, y), paint, { outer: false, shade: poly(x, y - s, x + s * .8, y, x, y + s), spec: poly(x - .3, y - s * .5, x, y - s * .7, x, y) });
       }
+    }
   } };
 }
 
-// Iron (the user's pick, 2026-11-07: kidney ore): clumps of dark red-grey bubbles, each with a hard metallic highlight. Commoner
-// than copper, so more clusters, spread so a vein cell often holds some.
+// Iron (the user's pick, 2026-11-07: kidney ore): clumps of dark red-grey bubbles, each with a hard metallic highlight, a clump in
+// every cell of the sheet.
 const IRON_VEIN = { base: '#4c3438', shade: '#2e1e22', deep: '#1e1416', lite: '#8a6c70', spec: '#e0d0d4', ink: '#140a0c' };
-const IRON_CLUSTERS = [[16, 10, 12], [50, 12, 14], [82, 8, 10], [114, 13, 12], [30, 32, 12], [64, 34, 14], [98, 30, 12], [124, 38, 8], [12, 54, 10], [46, 55, 12], [80, 52, 12], [110, 56, 14]];
 
-/** Kidney ore over a wall of stone: per cluster, a few groups of bubbles on a dark stain, the upper ones drawn first. */
+/** Kidney ore over a wall of stone: per cell, a group of bubbles on a dark stain, the upper ones drawn first. */
 function ironVeined(base, seed = 0x1a3) {
   return { ...base, draw(a) {
     base.draw(a);
+    a = on(a);
     const r = rng(seed);
     const torn = (x, y, rx, ry, n, j) => {
       const p = [];
       for (let i = 0; i < n; i++) { const t = (i / n) * Math.PI * 2 + (r() - .5) * .5, k = 1 - j + r() * j * 1.6; p.push(x + Math.cos(t) * rx * k, y + Math.sin(t) * ry * k); }
       return poly(p);
     };
-    for (const [cx, cy, n] of IRON_CLUSTERS)
-      for (let g = 0, groups = 2 + Math.floor(n / 6); g < groups; g++) {
-        const gx = cx + (r() - .5) * 18, gy = cy + (r() - .5) * 13, bub = [];
-        for (let i = 0, m = 3 + Math.floor(r() * 3); i < m; i++) bub.push([gx + (r() - .5) * 4.2, gy + (r() - .5) * 2.4, .7 + r() * 1.05]);
-        a.flat(torn(gx, gy + .3, 3.2, 2, 9, .3), '#33262a');
-        bub.sort((p, q) => p[1] - q[1]);
-        for (const [x, y, s] of bub) a.shape(ell(x, y, s, s * .9), IRON_VEIN, { outer: false, shade: s * .45, lite: ell(x - s * .3, y - s * .35, s * .42, s * .3), spec: ell(x - s * .38, y - s * .42, s * .16, s * .11) });
-      }
+    for (const [cx, cy] of CELLS) {
+      const gx = cx + (r() - .5) * 4.4, gy = cy + (r() - .5) * 4.4, bub = [];
+      for (let i = 0, m = 3 + Math.floor(r() * 2); i < m; i++) bub.push([gx + (r() - .5) * 3.8, gy + (r() - .5) * 2.4, .7 + r() * .6]);
+      a.flat(torn(gx, gy + .3, 3, 1.9, 9, .3), '#33262a');
+      bub.sort((p, q) => p[1] - q[1]);
+      for (const [x, y, s] of bub) a.shape(ell(x, y, s, s * .9), IRON_VEIN, { outer: false, shade: s * .45, lite: ell(x - s * .3, y - s * .35, s * .42, s * .3), spec: ell(x - s * .38, y - s * .42, s * .16, s * .11) });
+    }
   } };
 }
 
