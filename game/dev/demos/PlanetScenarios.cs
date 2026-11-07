@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.Text.Json.Nodes;
 using Stillwake.Game.Features.Crew;
 using Stillwake.Net;
@@ -129,5 +130,81 @@ public sealed class PickaxeScenario : DevScenario
         int? cave = GroundDemo.CaveUnder(ground);
         client.Send(cave is int at ? new Transfer(planet, at) : new Transfer(planet));
         log($"pickaxe: beamed down to {(cave is int c ? $"({c % ground.Grid.Width}, {c / ground.Grid.Width})" : "the spawn")}");
+    }
+}
+
+/// <summary>
+/// Ore shining in lamp light (2026-11-07-ore-pockets): the first planet, the hero beamed onto a dark cave's floor facing the cave's wall
+/// richest in copper and iron at head height, the helmet lamp on, creative so the air never runs out; <c>=off</c> without the lamp, to
+/// see the same ore as dark as its rock.
+/// </summary>
+[Dev("--ore-shine", "a dark cave's floor facing copper and iron veins, the helmet lamp on (=off without), creative (2026-11-07-ore-pockets)", Shape = DevShape.Either)]
+public sealed class OreShineScenario : DevScenario
+{
+    private bool _beamed, _creative;
+    private int _planet;
+
+    public override World Seed(World world, DevSeed seed)
+    {
+        var root = JsonNode.Parse(world.Save())!;
+        var slots = new JsonArray();
+        int Worn(string slot) => Content.Inventory.Slots + Content.Inventory.Equipment.ToList().IndexOf(slot);
+        // A lamp shines only on a helmet: both worn, or the helmet alone.
+        for (int i = 0; i < Content.Inventory.Total; i++)
+            slots.Add(i == Worn(Content.Helmet.Slot) ? new JsonObject { ["item"] = Content.Helmet.Basic, ["count"] = 1 }
+                : i == Worn(Content.Helmet.Mount) && Args.Given("--ore-shine") != "off" ? new JsonObject { ["item"] = Content.HelmetLamp.Item, ["count"] = 1 }
+                : null);
+        root["slices"]!["items"]!["inventories"] = new JsonArray(new JsonObject { ["id"] = 0, ["slots"] = slots });
+        return World.Load(root.ToJsonString(), seed.Modules());
+    }
+
+    public override void Started(Client client) => client.Send(new OpenSurface(Content.PlanetTypes.First.Id));
+
+    public override void Frame(Client client, Registry m, Action<string> log)
+    {
+        var world = client.World;
+        if (_beamed && !_creative && world.SurfaceOf(client.Id) == _planet)
+        {
+            _creative = true;
+            client.Send(new Sim.Items.SetCreative(true));
+        }
+        if (_beamed || world.Surfaces.Count < 2) return;
+        _beamed = true;
+        _planet = world.Surfaces.Count - 1;
+        var ground = Registry.On(world, _planet);
+        if (Spot(ground) is not var (at, copper, iron))
+        {
+            client.Send(new Transfer(_planet));
+            log("ore shine: no cave wall with ore found; beamed to the spawn");
+            return;
+        }
+        client.Send(new Transfer(_planet, at));
+        log($"ore shine: beamed to ({at % ground.Grid.Width}, {at / ground.Grid.Width}), facing {copper} copper and {iron} iron cells");
+    }
+
+    /// <summary>
+    /// A floor cell with room for the hero over it, at least 20 rows under the sky, whose wall to the right holds the most copper and iron
+    /// vein cells within reach of the beam (both kinds counted first); null if no such wall has any.
+    /// </summary>
+    private static (int At, int Copper, int Iron)? Spot(Registry m)
+    {
+        var grid = m.Grid;
+        int w = grid.Width, h = grid.Height, fog = ((Content.PlanetType)m.Rules).Ground.Fog + 8;
+        bool Open(int x, int y) => x >= 0 && y >= 0 && x < w && y < h && grid.StructureAt(y * w + x) == Content.Structure.Empty;
+        var sky = new int[w];
+        for (int x = 0; x < w; x++) sky[x] = Enumerable.Range(0, h).FirstOrDefault(y => !Open(x, y));
+        (int At, int Copper, int Iron, int Score)? best = null;
+        for (int y = 8; y < h - 1; y++)
+            for (int x = fog; x < w - fog; x++)
+            {
+                if (y < sky[x] + 20 || Open(x, y + 1) || Enumerable.Range(0, 6).Any(k => !Open(x, y - k))) continue;
+                int copper = 0, iron = 0;
+                for (int dy = -7; dy <= 1; dy++)
+                    for (int dx = 1; dx <= 5; dx++)
+                        if (grid.WallAt((y + dy) * w + x + dx)?.Id is { } id) (copper, iron) = id == "copperVein" ? (copper + 1, iron) : id == "ironVein" ? (copper, iron + 1) : (copper, iron);
+                int score = Math.Min(copper, iron) * 100 + copper + iron;
+                if (score > 0 && (best == null || score > best.Value.Score)) best = (y * w + x, copper, iron, score);
+            }
+        return best is var (at, c, i, _) ? (at, c, i) : null;
     }
 }
