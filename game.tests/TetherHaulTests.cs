@@ -147,6 +147,22 @@ public class TetherHaulTests
     }
 
     [Fact]
+    public void TheDoorShutAfterTheTetherBentAtItsLipTheHaulStillGoesOnToTheDoor()
+    {
+        // Out, and up past the door's lip: the tether bends there, the body too wide to pass the lip on the diagonal.
+        var (open, inside) = Room();
+        var (shut, _) = Room('D');
+        var out_ = Until(open, inside, Right, h => h.Anchor != null);
+        var up = Until(open, Until(open, out_, Right, h => h.X > 15 * Block), Up, h => h.Y < 5 * Block);
+        Assert.NotNull(up.Wraps);
+        // The door shut, the haul goes past the bend on to the door, flush against it level with where the tether is tied.
+        var hauled = Settle(shut, up.Step(Still, shut), Haul);
+        Assert.Equal(14 * Block + Spec.Width / 2, hauled.X);
+        Assert.InRange(hauled.Middle.Y, out_.Anchor!.Value.Y - 10, out_.Anchor!.Value.Y + 10);
+        Assert.Null(hauled.Wraps);
+    }
+
+    [Fact]
     public void FromOverTheDoorItIsHauledRoundTheLipAndIn()
     {
         var (ship, inside) = Room();
