@@ -836,6 +836,68 @@ public static class Poses
     public static bool SwimmingFast(Hero hero) =>
         Math.Abs(hero.Vx) > Stillwake.Content.Hero.Swim || Math.Abs(hero.Vy) > Stillwake.Content.Hero.Swim;
 
+    /// <summary>Whether the hero hauls itself in along its tether (tether-haul): on one, moving faster than it swims. Every peer has both.</summary>
+    public static bool Hauling(Hero hero) => hero.Anchor != null && SwimmingFast(hero);
+
+    /// <summary>The look a haul is drawn with while the candidates are picked: a, b or c (tether-haul). Dev only; one stays.</summary>
+    public static char HaulLook = 'a';
+
+    /// <summary>How long a hand takes over a grip and a pull along the line, and the share of it spent reaching out.</summary>
+    public static class Haul
+    {
+        public const double GripMs = 360, Reach = 0.35, RowMs = 520, QuickMs = 240;
+    }
+
+    /// <summary>
+    /// Hauled in along the tether (tether-haul), the hands on the line the way the body goes: <see cref="HaulLook"/> (a) hand over hand,
+    /// the arms by turns reaching along the line and drawing back past the chest, the legs trailing; (b) both hands together, a
+    /// rowing stroke, the knees drawn up on the pull; (c) the body turned head first along the way, short quick grips by the visor.
+    /// </summary>
+    private static Limbs Hauled(Hero hero, double timeMs, bool wields, double drift)
+    {
+        // The way the body goes, from straight down, forward positive: the line the hands hold. An arm at that angle from the body
+        // turned forward by a tilt points along it at the angle plus the tilt.
+        double way = Math.Atan2(hero.Vx * hero.Facing, hero.Vy);
+        double Phase(double ms, double lag) => ((timeMs / ms + lag) % 1 + 1) % 1;
+        // How far out a hand is through a grip: out along the line over the first part, eased, then drawn back over the rest.
+        static double Out(double p) => p < Haul.Reach ? Eased(p / Haul.Reach) : Eased(1 - (p - Haul.Reach) / (1 - Haul.Reach));
+        static double Eased(double t) => t * t * (3 - 2 * t);
+        // One arm through a grip: straight out along the line, then drawn back by pull radians toward the hip, the elbow bent mid-pull.
+        Bend Arm(double p, double line, double pull) => B(line - pull * (1 - Out(p)), 0.15 + 1.1 * Math.Sin(Math.PI * (1 - Out(p))) * (p < Haul.Reach ? 0.4 : 1));
+        Bend Trail(double lag) => B(-0.15 + 0.06 * Math.Sin(timeMs / Adrift.PaddleFastMs * 2 * Math.PI + lag), -0.3);
+        double along = Math.Sign(hero.Vx) * hero.Facing;
+        var held = B(0.35, 0.35);
+        switch (HaulLook)
+        {
+            case 'b':
+                {
+                    double tilt = along * Adrift.Lean, p = Phase(Haul.RowMs, 0), tuck = 1 - Out(p);
+                    var arm = Arm(p, way + tilt, 1.4);
+                    Bend Leg(double lag) => B(0.1 + 0.75 * tuck + lag, -(0.25 + 1.1 * tuck));
+                    return new Limbs(wields ? held : arm, arm with { Upper = arm.Upper - 0.12 }, Leg(0.08), Leg(-0.12), tilt, 0.5 * drift, false);
+                }
+            case 'c':
+                {
+                    // Head first: the body turned along the way, upright going up, lying forward going along; going down it turns back
+                    // upright, feet first, as no diver goes head down on a line.
+                    double w = Math.Abs(way), tilt = Math.Min(1.25, w >= Math.PI / 2 ? Math.PI - w : w), line = Math.Abs(way) + tilt, p = Phase(Haul.QuickMs, 0);
+                    Bend Grip(double lag)
+                    {
+                        double s = Math.Sin((p + lag) * 2 * Math.PI);
+                        return B(line - 0.35 * (0.5 + 0.5 * s), 0.45 + 0.35 * (0.5 - 0.5 * s));
+                    }
+                    return new Limbs(wields ? held : Grip(0), Grip(0.5), Trail(0) with { Upper = -0.05 }, Trail(Math.PI) with { Upper = -0.15 },
+                        tilt, 0.5 * drift, false);
+                }
+            default:
+                {
+                    double tilt = along * Adrift.Lean;
+                    return new Limbs(wields ? held : Arm(Phase(Haul.GripMs, 0), way + tilt, 1.6), Arm(Phase(Haul.GripMs, 0.5), way + tilt, 1.6),
+                        Trail(0), Trail(Math.PI), tilt, 0.5 * drift, false);
+                }
+        }
+    }
+
     /// <summary>
     /// Afloat in no gravity, upright (0036): still, it drifts, arms floating a little up, knees loose, the
     /// body rocking slowly; blended by <paramref name="swim"/> into swimming, and that by
@@ -849,6 +911,7 @@ public static class Poses
             B(0.25 + 0.1 * sway, -(0.5 + 0.1 * drift)), B(-0.08 * sway, -(0.35 - 0.1 * drift)),
             0.03 * sway, 2 * drift, false);
         if (swim <= 0) return still;
+        if (Hauling(hero)) return Hauled(hero, timeMs, wields, drift);
         var swimming = Paddling(hero, timeMs / Adrift.PaddleMs, Adrift.Lean, Adrift.Trail, wields, drift);
         if (fast > 0) swimming = Mix(swimming, Paddling(hero, timeMs / Adrift.PaddleFastMs, Adrift.LeanFast, Adrift.TrailFast, wields, drift), fast);
         return swim >= 1 ? swimming : Mix(still, swimming, swim);

@@ -29,6 +29,21 @@ public sealed class JetpackScenario : TestbedScenario
     }
 }
 
+[Dev("--haul", "the testbed's hero in the airlock, no jetpack, creative: out into space and Shift held to haul back in (tether-haul)", Order = 1)]
+public sealed class HaulScenario : TestbedScenario
+{
+    /// <summary>Inside the airlock, by its outer door: block (47, 7) of the testbed's map, doubled.</summary>
+    public override Func<Registry, int>? Start => m => (2 * 7 + 1) * m.Grid.Width + 2 * 47;
+
+    public override void Attach(DevContext c) => Poses.HaulLook = Args.Value("--haul-look") is [var look] ? look : 'a';
+}
+
+[Dev("--haul-sheet", "the haul's candidate looks drawn alone and saved to that folder, then it quits (HaulSheetDemo, tether-haul)", Shape = DevShape.Equals, Order = 1)]
+public sealed class HaulSheetScenario : TestbedScenario
+{
+    public override void Attach(DevContext c) => c.Add(new HaulSheetDemo(Args.Value("--haul-sheet")!));
+}
+
 [Dev("--charge", "the testbed's charger filling a battery (ChargeDemo)", Order = 1)]
 public sealed class ChargeScenario : TestbedScenario
 {
