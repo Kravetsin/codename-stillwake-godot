@@ -157,7 +157,7 @@ public partial class HeroView
         Shoot(client, m, shooter, wieldsShooter, fresh && ready, held && ready, _hosts, elapsedMs);
         var middle = _current.Middle;
         var hold = new GunHold(wieldsGun, _figure.Muzzle is { } muzzle ? Thousandths(muzzle) : null, (_figure.Barrel.X, _figure.Barrel.Y),
-            (middle.X, middle.Y), _letsGo);
+            (middle.X, middle.Y), _letsGo, Drops: rightClicked && wieldsGun);
         _letsGo = false;
         var shot = _harpoon.Step(elapsedMs, fresh && ready, hold, _grappling ? _grappleWorld : _harpoonWorld);
         (_grappling ? _harpoonGun : _grappleGun).Step(elapsedMs, false, default, _harpoonWorld);

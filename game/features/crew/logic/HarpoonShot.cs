@@ -48,10 +48,12 @@ public sealed record HarpoonWorld(
 /// The gun as the hero holds it this frame: whether it <see cref="Wields"/> it (in the hand, the hand free,
 /// awake, not climbing), its <see cref="Muzzle"/> and the way its <see cref="Barrel"/> points, a unit vector,
 /// as the figure last drew it (no muzzle before it has), the hero's body <see cref="Middle"/>, and whether the
-/// player <see cref="LetsGo"/>: jumped in the steps since the last frame (<see cref="HarpoonShot.LetsGoBy"/>).
+/// player <see cref="LetsGo"/>: jumped in the steps since the last frame (<see cref="HarpoonShot.LetsGoBy"/>), or <see cref="Drops"/>
+/// off the line: right-clicked, which lets go even while the line still pulls.
 /// </summary>
 public readonly record struct GunHold(
-    bool Wields, (double X, double Y)? Muzzle, (double X, double Y) Barrel, (double X, double Y) Middle = default, bool LetsGo = false);
+    bool Wields, (double X, double Y)? Muzzle, (double X, double Y) Barrel, (double X, double Y) Middle = default, bool LetsGo = false,
+    bool Drops = false);
 
 /// <summary>
 /// What one frame of the harpoon did: the shot <see cref="Fired"/>, the piece the rod <see cref="Hooked"/>,
@@ -204,7 +206,7 @@ public sealed class HarpoonShot(int cooldownTicks = Spec.CooldownTicks, bool pul
     /// <summary>The rod in flight; fired from a hang, a let-go meanwhile drops the hold, and a grip pulls on at once (grapple-climbs).</summary>
     private ShotStep Fly(double ms, GunHold hold, HarpoonWorld world)
     {
-        if (hold.LetsGo) PullTo = null;
+        if (hold.LetsGo || hold.Drops) PullTo = null;
         double flown = Distance(_from, Tip) + Spec.RodSpeed * PerMs * ms;
         bool spent = flown >= Spec.Range;
         if (spent) flown = Spec.Range;
@@ -243,12 +245,12 @@ public sealed class HarpoonShot(int cooldownTicks = Spec.CooldownTicks, bool pul
 
     /// <summary>
     /// Pulled toward the hook, then hanging there: there once the hero's middle is at <see cref="PullTo"/> or
-    /// stopped short of it, by a wall or the tether; let go by a jump while hanging. A press while hanging with the
-    /// cooldown over fires again, <see cref="PullTo"/> kept so the hero hangs on while the rod flies (grapple-climbs).
+    /// stopped short of it, by a wall or the tether; let go by a jump while hanging, by a right click at any time. A press
+    /// while hanging with the cooldown over fires again, <see cref="PullTo"/> kept so the hero hangs on while the rod flies (grapple-climbs).
     /// </summary>
     private ShotStep Pulled(bool pressed, GunHold hold, HarpoonWorld world)
     {
-        if (!world.Grips(Tip) || PullTo is not { } to) return Free(default);
+        if (!world.Grips(Tip) || PullTo is not { } to || hold.Drops) return Free(default);
         if (Rod == Rod.Hanging)
             return hold.LetsGo ? Free(default) : pressed && _cooldownMs <= 0 && hold.Muzzle is { } muzzle ? Fire(muzzle, hold.Barrel) : default;
         var now = hold.Middle;

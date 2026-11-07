@@ -45,8 +45,8 @@ public class HarpoonTests
     private static readonly (double X, double Y) Muzzle = (0, 0);
 
     /// <summary>Held at <see cref="Muzzle"/>, the barrel pointing right, the hero's middle where it says.</summary>
-    private static GunHold Out((double X, double Y)? muzzle = null, (double X, double Y) middle = default, bool letsGo = false) =>
-        new(true, muzzle ?? Muzzle, (1, 0), middle, letsGo);
+    private static GunHold Out((double X, double Y)? muzzle = null, (double X, double Y) middle = default, bool letsGo = false, bool drops = false) =>
+        new(true, muzzle ?? Muzzle, (1, 0), middle, letsGo, drops);
 
     private static readonly GunHold PutAway = new(false, Muzzle, (1, 0));
 
@@ -538,6 +538,27 @@ public class HarpoonTests
         shot.Step(10, true, Out(middle: middle), world.World);
         shot.Step(10, false, PutAway, world.World);
         Assert.Equal((Rod.Seated, (Point?)null), (shot.Rod, shot.PullTo));
+    }
+
+    [Fact]
+    public void ARightClickLetsGoOfTheLineMidPullHangingOrWhileTheNextRodFlies()
+    {
+        // Mid-pull, where a jump does nothing, the line lets go and snaps back.
+        var (pulled, a) = Gripping();
+        pulled.Step(10, true, Out(middle: Behind), a.World);
+        Assert.Equal(Rod.Pulling, pulled.Rod);
+        pulled.Step(10, false, Out(middle: Behind, drops: true), a.World);
+        Assert.Equal((Rod.Returning, (Point?)null), (pulled.Rod, pulled.PullTo));
+
+        var (hung, b, middle) = Hung();
+        hung.Step(10, false, Out(middle: middle, drops: true), b.World);
+        Assert.Equal((Rod.Returning, (Point?)null), (hung.Rod, hung.PullTo));
+
+        // While the next rod flies from a hang, the hero drops and the rod flies on as a shot from the ground.
+        var (flying, c, at) = Hung();
+        flying.Step(10, true, Out(middle: at), c.World);
+        flying.Step(10, false, Out(middle: at, drops: true), c.World);
+        Assert.Equal((Rod.Flying, (Point?)null), (flying.Rod, flying.PullTo));
     }
 
     [Fact]
