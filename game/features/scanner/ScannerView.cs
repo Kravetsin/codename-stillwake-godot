@@ -6,28 +6,34 @@ namespace Stillwake.Game.Features.Scanner;
 
 /// <summary>
 /// The scanner's readout over the wreck it reads (2026-11-07-the-scanner), phosphor: a dark glass, then its digits added with the
-/// edge keys' scanlines (holo.gdshader), grain and a rolling line, then dark grain over it; the value flares white as it falls.
-/// On a layer that follows the camera: in world pixels, unlit by the world's lights.
+/// edge keys' glow (holo.gdshader) and a slow rolling line, then scanlines of the box's own over it; the value flares white as it
+/// falls. On a layer that follows the camera, unlit by the world's lights, drawn in whole screen pixels (2026-11-07-steady-scanner).
 /// </summary>
 public partial class ScannerView : CanvasLayer
 {
-    private static readonly Color Green = new("7cf096"), Flare = new("fffaeb"), Glass = new("030a05"), Grain = new("030e06");
+    private static readonly Color Green = new("7cf096"), Flare = new("fffaeb"), Glass = new("030a05");
     /// <summary>How long it takes to show and to fade, and how long a fall's flare lasts, in ms.</summary>
     private const double InMs = 130, OutMs = 160, FlareMs = 220;
-    /// <summary>A rolling line's lap, the grain's and the flicker's beats, the flicker while it comes on, in ms.</summary>
-    private const double RollMs = 1700, GrainMs = 42, FlickMs = 33, ComingMs = 30;
+    /// <summary>A rolling line's lap, in ms.</summary>
+    private const double RollMs = 1700;
+    /// <summary>How much a scanline dims what is under it.</summary>
+    private const float Scanline = 0.35f;
 
     private readonly Node2D _base = new(), _light = new(), _over = new();
     private Readout? _shown;
     private string _left = "", _max = "";
-    private double _shows, _level, _timeMs, _hitAt = double.NegativeInfinity;
+    private double _shows, _timeMs, _hitAt = double.NegativeInfinity;
+    private int _scale = 1;
 
     public ScannerView()
     {
         Layer = ScreenLayers.Hud;
         Visible = false;
         FollowViewportEnabled = true;
-        _light.Material = new ShaderMaterial { Shader = GD.Load<Shader>("res://shared/holo.gdshader") };
+        // Its own scanlines, fixed to the box: the shader's run along the screen's rows and shimmer as the box moves over them.
+        var material = new ShaderMaterial { Shader = GD.Load<Shader>("res://shared/holo.gdshader") };
+        material.SetShaderParameter("scan", 0f);
+        _light.Material = material;
         _base.Draw += DrawBase;
         _light.Draw += DrawLight;
         _over.Draw += DrawOver;
@@ -49,61 +55,63 @@ public partial class ScannerView : CanvasLayer
             _shown = read;
         }
         _shows = Math.Clamp(_shows + (now != null ? elapsedMs / InMs : -elapsedMs / OutMs), 0, 1);
-        bool coming = _shows < 1 && now != null && Phosphor.Noise(Math.Floor(_timeMs / ComingMs)) < 0.35;
-        _level = _shows * (coming ? 0.35 : 1);
-        Visible = _level > 0.01 && _shown != null;
+        Visible = _shows > 0.01 && _shown != null;
         if (!Visible) return;
-        _base.QueueRedraw();
-        _light.QueueRedraw();
-        _over.QueueRedraw();
-    }
-
-    private (int X, int Y, int W, int H) Box(out int pointX)
-    {
+        // Drawn in screen pixels from the point it reads, each of its pixels a whole number of them.
+        float zoom = Math.Max(0.01f, GetViewport().GetCanvasTransform().X.Length());
+        _scale = Phosphor.Scale(zoom);
         var r = _shown!.Value;
-        pointX = (int)Math.Round(r.X * Camera.Cell, MidpointRounding.AwayFromZero);
-        return Phosphor.Box(pointX, (int)Math.Round(r.Y * Camera.Cell, MidpointRounding.AwayFromZero), _left, _max);
+        var at = new Vector2((float)(r.X * Camera.Cell), (float)(r.Y * Camera.Cell));
+        foreach (var layer in (Node2D[])[_base, _light, _over])
+        {
+            layer.Position = at;
+            layer.Scale = Vector2.One / zoom;
+            layer.QueueRedraw();
+        }
     }
 
-    private double Flicker => 0.9 + 0.1 * Phosphor.Noise(Math.Floor(_timeMs / FlickMs) * 1.3 + 3);
+    private (int X, int Y, int W, int H) Box => Phosphor.Box(0, 0, _max);
     private double Heat => Math.Exp(-(_timeMs - _hitAt) / FlareMs);
     private static Color Of(Color c, double a) => new(c, (float)Math.Clamp(a, 0, 1));
+
+    /// <summary>A rectangle in the readout's pixels, each <see cref="_scale"/> screen pixels.</summary>
+    private void Rect(Node2D on, int x, int y, int w, int h, Color colour) =>
+        on.DrawRect(new Rect2(x * _scale, y * _scale, w * _scale, h * _scale), colour);
 
     private void DrawBase()
     {
         if (_shown == null) return;
-        var (x, y, w, h) = Box(out _);
-        double level = _level * Flicker;
-        _base.DrawRect(new Rect2(x, y, w, h), Of(Glass, 0.84 * Math.Min(1, level * 1.5)));
-        _base.DrawRect(new Rect2(x + 0.5f, y + 0.5f, w - 1, h - 1), Of(Green, 0.5 * level), false, 1);
+        var (x, y, w, h) = Box;
+        Rect(_base, x, y, w, h, Of(Glass, 0.84 * Math.Min(1, _shows * 1.5)));
+        // The edge, a readout pixel thick, as four strips: an unfilled rectangle's line would straddle its edge.
+        var edge = Of(Green, 0.5 * _shows);
+        Rect(_base, x, y, w, 1, edge);
+        Rect(_base, x, y + h - 1, w, 1, edge);
+        Rect(_base, x, y + 1, 1, h - 2, edge);
+        Rect(_base, x + w - 1, y + 1, 1, h - 2, edge);
     }
 
     private void DrawLight()
     {
         if (_shown == null) return;
-        var (x, y, w, h) = Box(out int pointX);
-        double heat = Heat, level = _level * Flicker * (1 + 0.4 * heat);
-        Text(_left, x + Phosphor.Inset, y + Phosphor.Inset, Of(Green.Lerp(Flare, (float)(0.6 * heat)), level));
-        Text(_max, x + Phosphor.Inset + Phosphor.Width(_left) + 1, y + Phosphor.Inset, Of(Green, 0.55 * level));
+        var (x, y, w, h) = Box;
+        double heat = Heat, level = _shows * (1 + 0.4 * heat);
+        int room = Phosphor.LeftWidth(_max);
+        Text(_left, x + Phosphor.Inset + room - Phosphor.Width(_left), y + Phosphor.Inset, Of(Green.Lerp(Flare, (float)(0.6 * heat)), level));
+        Text(_max, x + Phosphor.Inset + room + 1, y + Phosphor.Inset, Of(Green, 0.55 * level));
         double roll = _timeMs / RollMs % 1;
-        _light.DrawRect(new Rect2(x + 1, y + 1 + (int)(roll * (h - 2)), w - 2, 1), Of(Green, 0.22 * level));
-        Specks(_light, x, y, w, h, 1, Of(Green, 0.35 * level));
-        _light.DrawRect(new Rect2(pointX, y + h, 1, 3), Of(Green, 0.5 * level));
+        _light.DrawRect(new Rect2((x + 1) * _scale, (y + 1) * _scale + (int)(roll * (h - 2) * _scale), (w - 2) * _scale, _scale), Of(Green, 0.22 * level));
+        Rect(_light, 0, y + h, 1, 3, Of(Green, 0.5 * level));
     }
 
+    /// <summary>Every other screen row of the box dimmed, counted from its own top, so they move with it.</summary>
     private void DrawOver()
     {
-        if (_shown == null) return;
-        var (x, y, w, h) = Box(out _);
-        Specks(_over, x, y, w, h, 0, Of(Grain, 0.55 * Math.Min(1, _level * 1.5)));
-    }
-
-    /// <summary>Six pixels of grain inside the box, moving every beat: the odd ones lit, the even ones dark.</summary>
-    private void Specks(Node2D on, int x, int y, int w, int h, int first, Color colour)
-    {
-        double beat = Math.Floor(_timeMs / GrainMs);
-        for (int i = first; i < 12; i += 2)
-            on.DrawRect(new Rect2(x + 1 + (int)(Phosphor.Noise(beat * 17.3 + i * 3.1) * (w - 2)), y + 1 + (int)(Phosphor.Noise(beat * 11.9 + i * 5.7) * (h - 2)), 1, 1), colour);
+        if (_shown == null || _scale < 2) return;
+        var (x, y, w, h) = Box;
+        var dim = Of(Glass, Scanline * _shows);
+        for (int row = 1; row < h * _scale; row += 2)
+            _over.DrawRect(new Rect2(x * _scale, y * _scale + row, w * _scale, 1), dim);
     }
 
     private void Text(string text, int x, int y, Color colour)
@@ -111,6 +119,6 @@ public partial class ScannerView : CanvasLayer
         for (int i = 0; i < text.Length; i++)
             for (int row = 0; row < 5; row++)
                 for (int col = 0; col < 3; col++)
-                    if (Phosphor.Lit(text[i], col, row)) _light.DrawRect(new Rect2(x + i * 4 + col, y + row, 1, 1), colour);
+                    if (Phosphor.Lit(text[i], col, row)) Rect(_light, x + i * 4 + col, y + row, 1, 1, colour);
     }
 }
