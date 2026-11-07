@@ -107,6 +107,10 @@ const CELLS = [];
 for (let j = 0; j < 8; j++) for (let i = 0; i < 16; i++) CELLS.push([i * 8 + 4, j * 8 + 4]);
 
 /** Flecks of ore over a wall of stone (ice by default, copper with its paint): a small cluster in every cell of the sheet. */
+/** A coordinate kept so a mark reaching `reach` round it, its ink too, stays inside its 8 px cell about `centre`: an ore cell beside
+ * plain stone shows its marks whole, never cut at the cell's edge. */
+const inCell = (v, centre, reach) => Math.max(centre - 3.3 + reach, Math.min(centre + 3.3 - reach, v));
+
 function veined(base, paint = VEIN, seed = 0x1ce) {
   return { ...base, draw(a) {
     base.draw(a);
@@ -115,7 +119,7 @@ function veined(base, paint = VEIN, seed = 0x1ce) {
     for (const [cx, cy] of CELLS) {
       const x0 = cx + (r() - .5) * 4.6, y0 = cy + (r() - .5) * 4.4;
       for (let i = 0, n = 2 + (r() < .5 ? 1 : 0); i < n; i++) {
-        const x = x0 + (r() - .5) * 4.4, y = y0 + (r() - .5) * 3.6, s = .8 + r() * .9;
+        const s = .8 + r() * .9, x = inCell(x0 + (r() - .5) * 4.4, cx, s * .8), y = inCell(y0 + (r() - .5) * 3.6, cy, s);
         a.shape(poly(x, y - s, x + s * .8, y, x, y + s, x - s * .8, y), paint, { outer: false, shade: poly(x, y - s, x + s * .8, y, x, y + s), spec: poly(x - .3, y - s * .5, x, y - s * .7, x, y) });
       }
     }
@@ -138,9 +142,12 @@ function ironVeined(base, seed = 0x1a3) {
       return poly(p);
     };
     for (const [cx, cy] of CELLS) {
-      const gx = cx + (r() - .5) * 4.4, gy = cy + (r() - .5) * 4.4, bub = [];
-      for (let i = 0, m = 3 + Math.floor(r() * 2); i < m; i++) bub.push([gx + (r() - .5) * 3.8, gy + (r() - .5) * 2.4, .7 + r() * .6]);
-      a.flat(torn(gx, gy + .3, 3, 1.9, 9, .3), '#33262a');
+      const gx = inCell(cx + (r() - .5) * 4.4, cx, 2.6), gy = inCell(cy + (r() - .5) * 4.4, cy, 2), bub = [];
+      for (let i = 0, m = 3 + Math.floor(r() * 2); i < m; i++) {
+        const s = .7 + r() * .6;
+        bub.push([inCell(gx + (r() - .5) * 3.8, cx, s), inCell(gy + (r() - .5) * 2.4, cy, s * .9), s]);
+      }
+      a.flat(torn(gx, gy + .3, 2.2, 1.5, 9, .3), '#33262a');
       bub.sort((p, q) => p[1] - q[1]);
       for (const [x, y, s] of bub) a.shape(ell(x, y, s, s * .9), IRON_VEIN, { outer: false, shade: s * .45, lite: ell(x - s * .3, y - s * .35, s * .42, s * .3), spec: ell(x - s * .38, y - s * .42, s * .16, s * .11) });
     }
