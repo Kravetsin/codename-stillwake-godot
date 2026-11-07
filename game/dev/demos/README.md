@@ -12,7 +12,7 @@ effect, so a release build has none of this folder and no `*Demo.cs` anywhere.
 | `StoreScenario.cs` | `--store` |
 | `AnimeScenario.cs` | `--anime`, `=bare`, `=bag`, `=walk`, `=door`, `=cave`, `=colours`, `=colours-dark`: the anime slice's frames (tools/anime-art) |
 | `PlatformScenario.cs` | `--platform`: launch platforms, a run cabled and lit green, one uncabled and red, a piece alone; `--descent`: the pod down and back |
-| `TestbedScenarios.cs` | `--testbed`, and the scenarios played on it: `--jetpack`, `--charge`, `--dust`, `--wheel`, `--signs` |
+| `TestbedScenarios.cs` | `--testbed`, and the scenarios played on it: `--jetpack`, `--haul`, `--charge`, `--dust`, `--wheel`, `--signs` |
 | `WreckScenarios.cs` | `--wreck`, `--wrecks`, `--harpoon` (seeded hosting too), `--grapple` |
 | `GroundScenario.cs` | `--ground=<mode>` with its modifiers (`--axe`, `--precise`, `--take-at`, `--ground-offset`, `--sprint`) |
 | `GroundHands.cs` | `--ground`'s hands: the tool held on the cell `GroundDemo` names |

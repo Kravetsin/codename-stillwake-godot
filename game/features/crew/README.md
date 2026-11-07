@@ -90,20 +90,19 @@ the sim.
 - **Holes and floors:** the body falls into a hole it fits; a step-deep one is walked down (0106). Down drops through
   floors, never a wall, door, hatch or ladder; jump wins over down.
 - **Steps** (0106): a walk steps a cell up or down where it fits; two up stop it, drawn eased.
-- **Jump feel** (0089): coyote time, buffer, short hop, eased apex, `AirControl` aloft.
+- **Jump feel** (0089): coyote time, buffer, short hop, eased apex, `AirControl`.
 - **The figure answers its motion** (0090, hero-gait), as sent.
 - **Rammed** (0103) **or crossed by an arc** (`Rams.Crosses`, once): `HitBy`/`Bolted` sent, thrown, keys masked a while.
 - **Surfaces** (0076): `Ship.Of` rules: nothing floats on a planet, gravity the kind's `Fall`; fog glides, `FogMove`
   across a seam (fog-edges).
-- **Camera:** leads, eases, snaps. **Markers** (0061): home, own newest body, friends heard.
-- **Jetpack and swim** (0047): afloat the hero swims, tethered, through floors; a jetpack, untied, Shift thrusts,
-  `Thrust` sent while unlike the sim's.
+- **Camera:** leads, eases, snaps. **Markers** (0061): home, newest body, friends heard.
+- **Swim, haul, jetpack** (0047, tether-haul): afloat, through floors, tied where the middle left the hull (0007, 0104);
+  Shift hauls in along the tether's bends (`Wraps`); a jetpack unties, Shift thrusts, `Thrust` sent while unlike the sim's.
 - **A canister** (0047, 0081): right click or R sends `Refill`, V `SuitMode` (regen-suit), if the sim takes it; V's
   key on the tablet's edge, dim if refused.
 - **The crew module:** made at `Spawn`; passed out it takes no orders, lies at the sim's cell, picks nothing
   up (0061). `Enter` goes when the sim's room or field side differs, every `Crew.ReportEvery`
-  ticks off its cell, each tick while threatened; none while out (0050). The tether is tied where the
-  body's middle last was in the hull (0007, 0104); a closed link's host sends `Leave`.
+  ticks off its cell, each tick while threatened; none while out (0050). A closed link's host sends `Leave`.
 - **Dressed as worn**: helmet, body, hair, clothes, a lamp; the colour on the near shin; a switched body lit by
   `SuitOn` and charge (`SuitGlow`), both light round (hero-lights).
 

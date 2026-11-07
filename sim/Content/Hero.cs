@@ -8,7 +8,7 @@ namespace Stillwake.Content;
 /// the middle of the body the middle of a cell may be for the hero to act on it. <see cref="Swim"/> is the
 /// speed along each axis with the body in space, where there is no gravity and no inertia: slow, about 3.6
 /// cells a second, so the jetpack (<see cref="Jetpack"/>) is what crosses space. Held aboard, Shift runs at
-/// <see cref="Run"/> rather than <see cref="Walk"/>; in space it only thrusts, with a jetpack worn.
+/// <see cref="Run"/> rather than <see cref="Walk"/>; in space it thrusts with a jetpack worn and with none hauls in along the tether (<see cref="Haul"/>).
 /// <see cref="Tether"/> is how far the middle of the body may get from where the tether is fixed, under
 /// the wreck's 32 cells of space round the hull, so a hero never reaches the grid's edge (0007).
 /// The jump's grace, height and fall and the walk's start and stop are tuned for feel (0089).
@@ -70,6 +70,12 @@ public static class Hero
     public const int Reach = 12000;
     public const int Tether = 24000;
     public const int Swim = 60;
+
+    /// <summary>
+    /// Hauling in along the tether (tether-haul): Shift held afloat with no jetpack pulls the body straight toward where the tether
+    /// is tied, 12 cells a second, slower than a tool's pull, a pull by hand.
+    /// </summary>
+    public const int Haul = 200;
 
     /// <summary>
     /// Thousandths of a kick out in space (a gun's <c>Recoil</c>) kept each step, rounded toward zero: the railgun's 220 carries the
