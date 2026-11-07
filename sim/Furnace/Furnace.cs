@@ -75,8 +75,9 @@ public sealed class FurnaceModule : Module<FurnaceState>
                 if (fire is not { Fuel: > 0 }) continue;
                 // A fire with inputs smelts them (a furnace), not one that makes power.
                 if (spec.Inputs > 0) _craftingOps.Heat(m.Id, blown ? Content.Furnace.Blown * 1000 / Content.Furnace.BlownOf : 1000);
-                // Atmosphere, registered first, cleared last tick's reserves in this phase.
-                if (!blown && AiredCell(m) is int cell and >= 0) _airOps.Reserve(cell);
+                // Atmosphere, registered first, cleared last tick's reserves in this phase. A fire burning unblown has air in
+                // its room, or it would have gone out: its own cell names the room.
+                if (!blown) _airOps.Reserve(m.Cell);
             }
         });
         System(Phase.Simulation, Burn);

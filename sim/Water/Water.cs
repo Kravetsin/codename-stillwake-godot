@@ -56,6 +56,7 @@ public sealed partial class WaterModule : Module<WaterState>, IWaterQueries
 
     private readonly IGridQueries _grid;
     private readonly IItemsQueries _items;
+    private readonly IItemsOps _itemsOps;
     private readonly IPipesQueries _pipes;
     private readonly IPowerQueries _power;
     private readonly IAtmosphereQueries _air;
@@ -69,6 +70,7 @@ public sealed partial class WaterModule : Module<WaterState>, IWaterQueries
     {
         _grid = grid;
         _items = items;
+        _itemsOps = itemsOps;
         _pipes = pipes;
         _power = power;
         _air = air;
@@ -76,19 +78,14 @@ public sealed partial class WaterModule : Module<WaterState>, IWaterQueries
         Handles<PourWater>(c => PourProblem(c.Cistern, c.From), c =>
         {
             itemsOps.Take(c.From, Bottle);
-            var held = State.Cisterns.Find(h => h.Machine == c.Cistern);
-            if (held != null) held.Amount += Content.Water.Bottle;
-            else
-            {
-                State.Cisterns.Add(new Held { Machine = c.Cistern, Amount = Content.Water.Bottle });
-                State.Cisterns.Sort((a, b) => a.Machine.CompareTo(b.Machine));
-            }
+            AddBottle(c.Cistern);
         });
         // A cistern taken apart takes its water with it: a few cisterns at most, looked at every tick.
         System(Phase.Construction, () => State.Cisterns.RemoveAll(h => _grid.MachineById(h.Machine) == null));
         System(Phase.Simulation, () =>
         {
             Pour();
+            PourHoppers();
             Electrolyse();
         });
     }
@@ -100,8 +97,39 @@ public sealed partial class WaterModule : Module<WaterState>, IWaterQueries
     public string? PourProblem(int machine, int peer)
     {
         if (_grid.MachineById(machine) is not { } m || !Machines.Get(m.Kind).Is(MachineTrait.HoldsWater)) return "water.noCistern";
-        if (WaterIn(machine) + Content.Water.Bottle > Content.Water.CisternCapacity) return "water.full";
+        if (!BottleFits(machine)) return "water.full";
         return _items.ShortOf(peer, Bottle);
+    }
+
+    /// <summary>Whether a bottle fits in cistern <paramref name="machine"/>: poured by hand or from its hopper alike.</summary>
+    private bool BottleFits(int machine) => WaterIn(machine) + Content.Water.Bottle <= Content.Water.CisternCapacity;
+
+    /// <summary>A bottle's water into cistern <paramref name="machine"/>.</summary>
+    private void AddBottle(int machine)
+    {
+        var held = State.Cisterns.Find(h => h.Machine == machine);
+        if (held != null) held.Amount += Content.Water.Bottle;
+        else
+        {
+            State.Cisterns.Add(new Held { Machine = machine, Amount = Content.Water.Bottle });
+            State.Cisterns.Sort((a, b) => a.Machine.CompareTo(b.Machine));
+        }
+    }
+
+    /// <summary>
+    /// Each cistern in id order pours the bottle in its hopper (<c>SlotTakes</c>) when it fits, as one poured by hand
+    /// (industrial-oxygen): one a tick at most, after the line pours.
+    /// </summary>
+    private void PourHoppers()
+    {
+        foreach (var m in _grid.MachinesWith(MachineTrait.HoldsWater))
+        {
+            if (Machines.Get(m.Kind).SlotTakes is not (int slot, string item)) continue;
+            var slots = _items.Crate(m.Id);
+            if (slot >= slots.Count || slots[slot]?.Item != item || !BottleFits(m.Id)) continue;
+            _itemsOps.Consume(m.Id, slot);
+            AddBottle(m.Id);
+        }
     }
 
     public string? Stalled(int machine)

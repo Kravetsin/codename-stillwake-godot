@@ -45,8 +45,8 @@ once, and smelting has moved to `Crafting`.
     less, its fire goes out and the fuel left is lost. Otherwise it burns a tick of fuel, smelting or
     not. Its last tick of fuel burnt, it is lit again on the same tick if it can be, so a fire fed in
     time never goes out between two fuels.
-  - **reserving**: in the construction phase, each fire burning unblown reserves its room's budget at its first aired
-    cell (`IAtmosphereOps.Reserve`, industrial-oxygen), so its room's air pulls back while it burns.
+  - **reserving**: in the construction phase, each fire burning unblown reserves the budget of the room its machine's
+    cell is in (`IAtmosphereOps.Reserve`, industrial-oxygen), so its room's air pulls back while it burns.
 - **Blown** (industrial-oxygen): each machine with a fire has a liquid-oxygen input port. A fire lights blown when the
   tanks behind it (`IAtmosphereQueries.LiquidFor`) hold `Content.Furnace.BlownBreath`, with or without room air. Each
   breath decides it: `IAtmosphereOps.BurnLiquid` takes `BlownBreath` from those tanks, blown, or the fire breathes room

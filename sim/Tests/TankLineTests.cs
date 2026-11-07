@@ -35,6 +35,29 @@ public class TankLineTests
     private static int[] Tanks(Scenario w) => [.. w.M.Grid.MachinesOf("tank").Select(m => m.Id)];
     private static int[] Held(Scenario w) => [.. Tanks(w).Select(w.M.Atmosphere.OxygenIn)];
 
+    /// <summary>A tank's hopper pours a canister put into it when it fits, as one loaded by hand, and waits while full (industrial-oxygen).</summary>
+    [Fact]
+    public void ItsHopperPoursACanisterWhenItFitsAndWaitsWhileFull()
+    {
+        var w = World();
+        int tank = Tanks(w)[0], slot = Content.Machines.Get("tank").SlotTakes!.Value.Slot;
+        Hop(w, tank, slot).Run();
+        Assert.Empty(w.Refusals);
+        Assert.Equal(Air.Canister, w.M.Atmosphere.OxygenIn(tank));
+        Assert.Null(w.M.Items.Crate(tank)[slot]);
+        for (int i = 1; i < Air.TankCapacity / Air.Canister; i++) w.Do(new LoadCanister(tank));
+        Hop(w.Run(), tank, slot).Run(5);
+        Assert.Equal(Air.TankCapacity, w.M.Atmosphere.OxygenIn(tank));
+        Assert.Equal(1, w.M.Items.Crate(tank)[slot]?.Count);
+    }
+
+    /// <summary>Peer 0 moves a canister into <paramref name="slot"/> of <paramref name="tank"/>.</summary>
+    private static Scenario Hop(Scenario w, int tank, int slot)
+    {
+        int from = w.M.Items.Inventory(0).ToList().FindIndex(s => s?.Item == "canister");
+        return w.Do(new Items.Move(new Items.Place(from), new Items.Target(slot, tank), 1));
+    }
+
     [Fact]
     public void PoursALineIntoItsLastTankTankFlowATick()
     {

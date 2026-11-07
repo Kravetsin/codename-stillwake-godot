@@ -116,7 +116,11 @@ public partial class ContentTests
         Assert.Equal(5, bay.Slots);
         Assert.Equal((4, Content.Crew.Canister), bay.SlotTakes);
         Assert.Null(Content.Items.Get(Content.Crew.Canister).Capacity);
-        Assert.All(Machines.All.Where(m => m.Kind != Content.Logistics.Bay), m => Assert.Null(m.SlotTakes));
+        // The hoppers of a tank and a cistern (industrial-oxygen); no other machine has such a slot.
+        Assert.Equal((0, Content.Crew.Canister), Machines.Get("tank").SlotTakes);
+        Assert.Equal((0, Content.Water.Item), Machines.Get("cistern").SlotTakes);
+        string[] hoppers = [Content.Logistics.Bay, "tank", "cistern"];
+        Assert.All(Machines.All.Where(m => !hoppers.Contains(m.Kind)), m => Assert.Null(m.SlotTakes));
     }
 
     // Air

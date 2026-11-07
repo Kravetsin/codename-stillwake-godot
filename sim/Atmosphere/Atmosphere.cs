@@ -64,7 +64,7 @@ public interface IAtmosphereOps
     int Fill(int tank, int amount);
 
     /// <summary>
-    /// A fire burning at aired <paramref name="cell"/> this tick reserves <c>Furnace.Reserve</c> of its room's budget
+    /// A fire burning unblown in machine cell <paramref name="cell"/> this tick reserves <c>Furnace.Reserve</c> of its room's budget
     /// (industrial-oxygen); called in the construction phase, cleared at its start.
     /// </summary>
     void Reserve(int cell);
@@ -86,6 +86,7 @@ public sealed partial class AtmosphereModule : Module<AtmosphereState>, IAtmosph
 
     private readonly IGridQueries _grid;
     private readonly IItemsQueries _items;
+    private readonly IItemsOps _itemsOps;
     private readonly IRoomsQueries _rooms;
     private readonly IPipesQueries _pipes;
     private readonly IPowerQueries _power;
@@ -118,17 +119,11 @@ public sealed partial class AtmosphereModule : Module<AtmosphereState>, IAtmosph
         _rooms = rooms;
         _pipes = pipes;
         _power = power;
+        _itemsOps = itemsOps;
         Handles<LoadCanister>(c => CanisterProblem(c.Tank, c.From), c =>
         {
             itemsOps.Take(c.From, Canister);
-            _readFor = null;
-            var held = State.Tanks.Find(t => t.Tank == c.Tank);
-            if (held != null) held.Oxygen += Content.Air.Canister;
-            else
-            {
-                State.Tanks.Add(new TankAir { Tank = c.Tank, Oxygen = Content.Air.Canister });
-                State.Tanks.Sort((a, b) => a.Tank.CompareTo(b.Tank));
-            }
+            Fill(c.Tank, Content.Air.Canister);
         });
         // A tank taken apart takes its oxygen with it; ids are never reused, so this is only tidying.
         // Only a machine taken apart leaves a tank with none: looked for when the grid's log names a machine's cell.
@@ -343,8 +338,27 @@ public sealed partial class AtmosphereModule : Module<AtmosphereState>, IAtmosph
     public string? CanisterProblem(int tank, int peer)
     {
         if (!IsTank(tank)) return "atmosphere.noTank";
-        if (OxygenIn(tank) + Content.Air.Canister > Content.Air.TankCapacity) return "atmosphere.tankFull";
+        if (!CanisterFits(tank)) return "atmosphere.tankFull";
         return _items.ShortOf(peer, Canister);
+    }
+
+    /// <summary>Whether a canister's liquid fits in tank <paramref name="tank"/>: by hand or from its hopper alike.</summary>
+    private bool CanisterFits(int tank) => OxygenIn(tank) + Content.Air.Canister <= Content.Air.TankCapacity;
+
+    /// <summary>
+    /// Each tank in id order pours the canister in its hopper (<c>SlotTakes</c>) when it fits, as one loaded by hand
+    /// (industrial-oxygen): one a tick at most.
+    /// </summary>
+    private void PourHoppers()
+    {
+        foreach (var m in _grid.MachinesWith(MachineTrait.Gas))
+        {
+            if (Content.Machines.Get(m.Kind).SlotTakes is not (int slot, string item)) continue;
+            var slots = _items.Crate(m.Id);
+            if (slot >= slots.Count || slots[slot]?.Item != item || !CanisterFits(m.Id)) continue;
+            _itemsOps.Consume(m.Id, slot);
+            Fill(m.Id, Content.Air.Canister);
+        }
     }
 
     public RoomStatus StatusOf(int room)

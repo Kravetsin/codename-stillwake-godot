@@ -49,6 +49,29 @@ public class WaterTests
         Assert.Equal("smelt", ice.Process);
     }
 
+    /// <summary>A cistern's hopper pours a bottle put into it when it fits, as one poured by hand, and waits while full (industrial-oxygen).</summary>
+    [Fact]
+    public void ItsHopperPoursABottleWhenItFitsAndWaitsWhileFull()
+    {
+        var w = World();
+        int cistern = Id(w, "cistern"), slot = Content.Machines.Get("cistern").SlotTakes!.Value.Slot;
+        Hop(w, cistern, slot).Run();
+        Assert.Empty(w.Refusals);
+        Assert.Equal(WaterContent.Bottle, w.M.Water.WaterIn(cistern));
+        Assert.Null(w.M.Items.Crate(cistern)[slot]);
+        for (int i = 1; i < WaterContent.CisternBottles; i++) w.Do(new PourWater(cistern));
+        Hop(w.Run(), cistern, slot).Run(5);
+        Assert.Equal(WaterContent.CisternCapacity, w.M.Water.WaterIn(cistern));
+        Assert.Equal(1, w.M.Items.Crate(cistern)[slot]?.Count);
+    }
+
+    /// <summary>Peer 0 moves a bottle into <paramref name="slot"/> of <paramref name="cistern"/>.</summary>
+    private static Scenario Hop(Scenario w, int cistern, int slot)
+    {
+        int from = w.M.Items.Inventory(0).ToList().FindIndex(s => s?.Item == WaterContent.Item);
+        return w.Do(new Items.Move(new Items.Place(from), new Items.Target(slot, cistern), 1));
+    }
+
     [Fact]
     public void PoursBottlesIntoACisternTillFullAndOnlyIntoACistern()
     {

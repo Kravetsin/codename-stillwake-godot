@@ -111,6 +111,21 @@ public class LogisticsTests
     /// <summary>A third of the planks wanted and a few more: three slots of it hold a little over what is wanted.</summary>
     private static readonly int PlanksThird = PlanksWanted / 3 + 2, PlanksOver = 3 * PlanksThird - PlanksWanted;
 
+    /// <summary>
+    /// A tank's hopper wants canisters though it holds none: drones bring them from a crate, and the tank pours them in
+    /// (industrial-oxygen).
+    /// </summary>
+    [Fact]
+    public void DronesFillATanksEmptyHopperWithCanistersFromACrate()
+    {
+        // In the right room by its door, near its vent: drones fly only through air, and its far end has none.
+        int at = 2 * 48 + 22;
+        var w = TwoRooms().FillCrate(Left, ("canister", 10)).Do(new Place(at, new Placement("machine", "tank"))).Run();
+        Assert.Empty(w.Refusals);
+        int tank = w.M.Grid.MachineAt(at)!.Id;
+        Assert.True(RunUntil(w, () => w.M.Atmosphere.OxygenIn(tank) > 0, 1200));
+    }
+
     [Fact]
     public void AnInputHoldingChunksIsRefilledToAStackFromACrateOnceUnderHalf()
     {

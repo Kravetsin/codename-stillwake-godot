@@ -60,8 +60,9 @@ Oxygen: liquid in tanks, turned into gas by vaporizers (liquid-oxygen), and the 
 - **Draws** take only from the stores of the vaporizers feeding the network, in id order; emptied ones leave `Tanks`
   at the tick's end.
 - **Canisters:** a tank holds up to `Air.TankCapacity` of liquid; `LoadCanister` takes a canister from the sender (free
-  in creative) and adds `Air.Canister`, refused if the tank would spill. A tank taken apart takes its oxygen with it.
-- **The survey** (vents, stores, the tanks behind each vaporizer and fire, aired cells, leaks) is kept between ticks,
+  in creative) and adds `Air.Canister`, refused if it would spill; its hopper (`SlotTakes`) pours one alike,
+  after the line. A tank taken apart takes its oxygen with it, not as canisters.
+- **The survey** (vents, stores, tanks behind sources and fires, aired cells, leaks) is kept between ticks,
   redone for changed rooms (all, once the pipes' `Version` moved); what is held, reread after any change to it.
   Machines are walked by trait (0113), ports in spec order.
 
@@ -94,4 +95,4 @@ Oxygen: liquid in tanks, turned into gas by vaporizers (liquid-oxygen), and the 
 - An owed part under a unit is dropped when its room's cells change.
 - A vent in a venting room drains its whole network, aired rooms on it included: cut it with a valve.
 - A wall facing a one-cell gap is no hull: the gap is a tiny room open to space (`Rooms`), so it leaks nothing.
-- A vaporizer cannot be switched off. A valve under a tank is not worked with E; a tank taken apart refunds no canisters.
+- A vaporizer cannot be switched off. A valve under a tank is not worked with E.

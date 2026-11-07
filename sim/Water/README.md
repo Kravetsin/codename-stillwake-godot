@@ -20,6 +20,8 @@ electrolyser, which splits it into the liquid oxygen of the tanks on its output.
 - **Pouring.** `PourWater(Cistern)` takes a bottle (`Water.Item`) from the sender (free in creative) and adds `Water.Bottle`.
   Refused, nothing changed: `water.noCistern` (not a machine with `MachineTrait.HoldsWater`), `water.full` (it would spill
   over `Water.CisternCapacity`), `items.notEnough`. Two pours on one tick apply in stamped order.
+- **A hopper** (industrial-oxygen): a cistern's one slot takes only bottles (`SlotTakes`); after the line pours, each
+  cistern in id order pours the bottle there when it fits, as `PourWater` would. Drones fill it from crates.
 - **Cisterns in a line** (tanks-in-a-line), first in the simulation phase: each cistern holding water, in id order, pours up
   to `Water.CisternFlow` a tick into the cisterns whose input is on its output's network, in id order, as each has room; a
   later one pours on in the same tick, so a line fills from its last cistern.

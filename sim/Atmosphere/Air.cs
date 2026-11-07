@@ -664,6 +664,7 @@ public sealed partial class AtmosphereModule
     private void StepAir()
     {
         Pour(Gather());
+        PourHoppers();
         Produce(Gather());
         // What the vaporizers made and took is read again: a store may be new, a tank emptied.
         _readFor = null;

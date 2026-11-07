@@ -179,7 +179,10 @@ public static class Aiming
     }
 
     /// <summary>Whether a machine of <paramref name="kind"/> opens on E: one holding items (a crate, a furnace) or the ship's computer.</summary>
-    public static bool Opens(string kind) => Spec.Machines.TryGet(kind, out var spec) && (spec.Slots != null || spec.Is(Spec.MachineTrait.Computer));
+    public static bool Opens(string kind) => Spec.Machines.TryGet(kind, out var spec) && ((spec.Slots != null && !Pours(spec)) || spec.Is(Spec.MachineTrait.Computer));
+
+    /// <summary>A tank or a cistern: the hand loads or pours into it on E, and its hopper is the drones' (industrial-oxygen).</summary>
+    private static bool Pours(Spec.MachineSpec spec) => spec.Is(Spec.MachineTrait.Gas) || spec.Is(Spec.MachineTrait.HoldsWater);
 
     /// <summary>Whether a crate, a furnace or a computer <paramref name="id"/> still stands with a cell of it within the hero's reach.</summary>
     public static bool CrateInReach(IGridQueries grid, Hero hero, int id)
