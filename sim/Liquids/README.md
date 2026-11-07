@@ -16,8 +16,9 @@ lava, rain and taking water out come later.
   by a save, the cells differing from the base as `cell, byte` pairs, ascending. Derived: `Layer`, a byte a cell
   (`Content.Liquids.Of`: amount in bits 0–3, kind in 4–6), null on a surface that has held none; the awake chunks; the
   base of every cell written since; the cells liquid fell into last tick.
-- **Base:** a grown surface's liquid grows again with its ground (`Layout.Liquids`), so a save holds only what changed; a
-  drawn map's base is none, so a save holds all of it.
+- **Base:** a grown surface's liquid grows again with its ground (`Layout.Liquids`, the lakes of sim/Core `Lakes.cs`), so a
+  save holds only what changed; a drawn map's base is none, so a save holds all of it. A save from before the lakes gets
+  them at its load, flowing into whatever was dug beside them.
 
 ## Rules
 

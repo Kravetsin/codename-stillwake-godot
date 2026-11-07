@@ -9,7 +9,7 @@ namespace Stillwake.Sim;
 /// same ground. It runs when the surface opens and again when a save of it loads, which holds only what was changed
 /// since (Grid's edits), so it is worked out a row at a time: each noise's lattice blended down once a row, then along.
 /// </summary>
-public static class Terrain
+public static partial class Terrain
 {
     /// <summary>Noise values run from 0 below <see cref="Whole"/>; weights from 0 to it.</summary>
     private const int Whole = 65536;
@@ -183,7 +183,8 @@ public static class Terrain
         rows[spawn / w][spawn % w] = 'S';
         // Nothing is dug or built in the fog (fog-edges): the build zone is the columns between the bands.
         var zone = new Box(g.Fog, 0, w - 1 - g.Fog, h - 1);
-        return new Layout(w, h, [.. rows.Select(r => new string(r))], Materials: codes, Zone: zone) { Grown = true, Flora = flora };
+        var water = Lakes(t, seed, rows, zone, spires, homes);
+        return new Layout(w, h, [.. rows.Select(r => new string(r))], Materials: codes, Zone: zone) { Grown = true, Flora = flora, Liquids = water };
     }
 
     /// <summary>

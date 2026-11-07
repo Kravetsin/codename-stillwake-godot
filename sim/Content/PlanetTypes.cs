@@ -44,6 +44,27 @@ public sealed record PlanetType(string Id, Ground Ground) : Surfaces.Kind(Id, []
     /// <summary>In a great hall chances are this many percent of a tunnel's.</summary>
     public required int Hall { get; init; }
 
+    /// <summary>
+    /// Lakes (docs/plans/liquids.md): a lattice point every this many cells across and down may hold one, at the floor under it,
+    /// filled up as far as it stays within its cap; 0 for none.
+    /// </summary>
+    public int LakeWave { get; init; }
+
+    /// <summary>The depth bands (<see cref="Bands"/>) a lake's point may lie in: under the ice, over the lava.</summary>
+    public IReadOnlyList<int> LakeBands { get; init; } = [];
+
+    /// <summary>Thousandths of open lattice points in <see cref="LakeBands"/> that hold a lake.</summary>
+    public int LakeChance { get; init; }
+
+    /// <summary>Thousandths of lakes capped at <see cref="LakeBig"/> cells; the others at <see cref="LakeMedium"/>.</summary>
+    public int BigChance { get; init; }
+
+    /// <summary>The most cells a big lake fills.</summary>
+    public int LakeBig { get; init; }
+
+    /// <summary>The most cells a medium lake fills.</summary>
+    public int LakeMedium { get; init; }
+
     /// <summary>The veins of ore in its rock, painted in this order: kinds of <see cref="Vein"/>.</summary>
     public IReadOnlyList<Vein> Veins { get; init; } = [];
 
@@ -142,6 +163,13 @@ public static class PlanetTypes
         PatchWave = 24,
         PatchMost = 220,
         Hall = 700,
+        // Big and medium lakes between the ice and the lava (the user's word): a big one about 100 by 60 cells.
+        LakeWave = 128,
+        LakeBands = [1, 2],
+        LakeChance = 450,
+        BigChance = 250,
+        LakeBig = 6000,
+        LakeMedium = 1500,
         // Ice veins in the cold band, copper below it, richest in the amber deep: as their growths were (0080). Copper and iron
         // in pockets at every depth too, specks near the surface, more and bigger deeper (2026-11-07-ore-pockets); iron last, so
         // the others' salts stay.
@@ -173,6 +201,11 @@ public static class PlanetTypes
     {
         Id = "smallPlanet",
         LodeWave = 24,
+        // Lakes of its size at every open point, so the tests and the fuzz meet them.
+        LakeWave = 16,
+        LakeChance = 1000,
+        LakeBig = 200,
+        LakeMedium = 80,
         Ground = First.Ground with
         {
             Width = 128,

@@ -158,8 +158,8 @@ awake; saved and loaded mid-flow equals kept running. The generic suites cover i
 commands): Small's lake (L-2) lies where the fuzz's digs reach it, or a drawn map with water joins the suites' maps.
 
 ### L-2 — Grown lakes
-`Terrain` fills `Layout.Liquids` last, after the ruins. Numbers on `PlanetType` (First's and Small's own): `LakeWave`,
-`LakeChance`‰, `BigChance`‰, `Big` 6,000 and `Medium` 1,500 cells.
+`Terrain` fills `Layout.Liquids` last, after the ruins (sim/Core `Lakes.cs`). Numbers on `PlanetType` (First's and Small's
+own): `LakeWave`, `LakeBands` [1, 2], `LakeChance`‰, `BigChance`‰, `LakeBig` 6,000 and `LakeMedium` 1,500 cells.
 - Lattice points every `LakeWave` cells across and down, each moved within its square by the seed, visited row by row
   from the top, left to right; a point counts if its row is in band 1 or 2, it is open, and the seed's draw passes
   `LakeChance`.
