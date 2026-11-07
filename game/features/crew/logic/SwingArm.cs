@@ -49,4 +49,10 @@ public struct SwingArm
         _drawn = drawn;
         return drawn;
     }
+
+    /// <summary>
+    /// The arm drawn in the end, <paramref name="arm"/>, after what moves it beside a swing (an item carried on a run): the next
+    /// hand-over eases from there, so a swing begun on the run never snaps the arm out of its trail.
+    /// </summary>
+    public void Drew(Bend arm) => _drawn = arm;
 }
