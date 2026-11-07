@@ -120,24 +120,25 @@ public partial class DigView : Node2D
         {
             string name = $"machine_{pile.Kind}";
             var texture = PixelArt.Picture(name);
-            var size = texture.GetSize() / HiRes.Scale;
-            // Its picture lies from its cell's corner, as the ship's tiles lay it; the network is laid out in world pixels from its middle.
+            var size = texture.GetSize();
+            // Its picture, in world pixels, lies from its cell's corner as the ship's tiles lay it; the network runs from its middle.
             var clip = new Sprite2D
             {
                 Texture = texture,
                 Centered = false,
-                Scale = Vector2.One / HiRes.Scale,
                 ClipChildren = ClipChildrenMode.Only,
                 Position = new Vector2(pile.Cell % _grid.Width * Cell, pile.Cell / _grid.Width * Cell),
             };
-            Lit.Set(clip, Stillwake.Game.Light.WallIn);
-            var ink = new WreckInk { Position = texture.GetSize() / 2, Scale = Vector2.One * HiRes.Scale };
+            // Lit itself: a clipping picture under the light's material clips nothing.
+            var ink = new WreckInk { Position = size / 2, UseParentMaterial = false };
+            Lit.Set(ink, Stillwake.Game.Light.WallIn);
             clip.AddChild(ink);
             AddChild(clip);
             var image = HiRes.Load(name)!;
             bool Solid(double x, double y)
             {
-                int ix = (int)System.Math.Floor((x + size.X / 2) * HiRes.Scale), iy = (int)System.Math.Floor((y + size.Y / 2) * HiRes.Scale);
+                double per = image.GetWidth() / (double)size.X;
+                int ix = (int)System.Math.Floor((x + size.X / 2) * per), iy = (int)System.Math.Floor((y + size.Y / 2) * per);
                 return ix >= 0 && iy >= 0 && ix < image.GetWidth() && iy < image.GetHeight() && image.GetPixel(ix, iy).A > DamageLooks.Opaque;
             }
             var blows = new List<Blow> { WreckCracks.Unseen(pile.Cell, size.X, size.Y) };
