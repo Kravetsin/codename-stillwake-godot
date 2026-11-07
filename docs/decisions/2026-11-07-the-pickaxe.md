@@ -1,6 +1,6 @@
 # The pickaxe
 
-- Status: accepted
+- Status: accepted; its fan amended by [pick-reach](2026-11-07-pick-reach.md)
 - Date: 2026-11-07
 
 ## Context
@@ -18,8 +18,7 @@ than the axe on stone.
 - **Never a cell at a blow.** A blow of 12 every 12 ticks gives the same 20 a second and a slower, heavier swing, but breaks
   stone with no crack seen first, against the rule `NaturalGroundBreaksInMoreThanOneHitOfAnyWeapon` keeps. So the swing is quick,
   a blow every 0.3 s, as a pick pecks at a face.
-- **Its fan the drill's, a cell longer**: an eighth of a turn, 7 rays, 9 cells from the shoulder against the drill's 8. The same
-  shape, so the face it takes a blow is the drill's, and reach is the "slightly larger radius" asked for.
+- **Its fan** first the drill's, a cell longer (9 cells); now wider and as short as the axe's ([pick-reach](2026-11-07-pick-reach.md)).
 - **Made at the workbench**, a row of its own, of two plates and a tube, `Ticks: 90`: understood as its parts are
   obtained (the board's rule), all of them from the first wrecks, so it is there before the first landing, the drill long after.
   Not sold, as no tool is (`Market.Unsold`).

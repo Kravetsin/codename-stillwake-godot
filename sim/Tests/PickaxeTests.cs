@@ -7,7 +7,7 @@ namespace Stillwake.Sim.Tests;
 
 /// <summary>
 /// The pickaxe (the-pickaxe): the drill's fallback underground, swung, needing no charge. Half the drill on stone and ore, two and a half
-/// times the axe, its fan the drill's a cell longer.
+/// times the axe, its fan wider than the drill's and as short as the axe's.
 /// </summary>
 public class PickaxeTests
 {
@@ -29,7 +29,7 @@ public class PickaxeTests
 
     private static int At(Scenario w, int x, int y) => y * w.M.Grid.Width + x;
 
-    // A face of three cells, column 12; the hand 8.5 cells before it, past the drill's 8 and inside the pickaxe's 9.
+    // A face of three cells, column 12.
     private const string Face = """
         ................
         ................
@@ -82,20 +82,35 @@ public class PickaxeTests
         }
     }
 
+    // A tall face, column 12, to see how much of it a fan takes.
+    private const string Tall = """
+        ............####
+        ............####
+        ............####
+        ............####
+        ............####
+        ............####
+        ............####
+        ............####
+        ............####
+        """;
+
+    private static int[] Rows(Scenario w, Weapon tool, (int X, int Y) at) =>
+        [.. w.M.Building.Struck(tool.Item, at.X, at.Y, Right).Cells.Select(c => c / w.M.Grid.Width)];
+
     [Fact]
-    public void ThePickaxesFanReachesAFaceACellBeyondTheDrillsAndStrikesAsWideAFaceAsItsCloser()
+    public void ThePickaxesFanTakesAWiderFaceThanTheDrillsCloseByAndReachesNoFartherThanTheAxe()
     {
-        var w = World(Face, Of('t'));
-        var far = Mid(3, 3);
-        int[] face = [At(w, 12, 2), At(w, 12, 3), At(w, 12, 4)];
-        Assert.Empty(w.M.Building.Struck(Drill.Item, far.X, far.Y, Right).Cells);
-        Assert.Empty(w.M.Building.Struck(Axe.Item, far.X, far.Y, Right).Cells);
-        Assert.Contains(At(w, 12, 3), w.M.Building.Struck(Pick.Item, far.X, far.Y, Right).Cells);
-        // Five cells off, both fans the same eighth of a turn: the face's three cells, none behind them.
-        var near = Mid(7, 3);
-        Assert.Equal(face, w.M.Building.Struck(Drill.Item, near.X, near.Y, Right).Cells);
-        Assert.Equal(face, w.M.Building.Struck(Pick.Item, near.X, near.Y, Right).Cells);
-        Assert.True(Pick.Range > Drill.Range && Pick.Range - Drill.Range <= 1000);
+        var w = World(Tall, Tall.Replace('#', 't'));
+        // 3.5 cells off: five rows of the face against the drill's three.
+        Assert.Equal([2, 3, 4, 5, 6], Rows(w, Pick, Mid(8, 4)));
+        Assert.Equal([3, 4, 5], Rows(w, Drill, Mid(8, 4)));
+        // 4.5 cells off: past the pickaxe's reach, as past the axe's; the drill's goes on.
+        Assert.Empty(Rows(w, Pick, Mid(7, 4)));
+        Assert.Empty(Rows(w, Axe, Mid(7, 4)));
+        Assert.Equal([2, 3, 4, 5, 6], Rows(w, Drill, Mid(7, 4)));
+        Assert.Equal(Axe.Range, Pick.Range);
+        Assert.True(Pick.Arc > Drill.Arc && Pick.Arc < Axe.Arc);
     }
 
     [Fact]
