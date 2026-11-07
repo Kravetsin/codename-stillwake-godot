@@ -30,6 +30,9 @@ public partial class CaveView : Node2D, ILightSource
     private readonly IGridQueries _grid;
     private readonly BuildingModule _building;
     private readonly Spec.PlanetType _type;
+    private readonly uint _seed;
+    /// <summary>The chunks in view found with no growth and no vein glint: none drawn, till the grid changes there.</summary>
+    private readonly HashSet<int> _bare = [];
     private readonly Func<IReadOnlyList<(Vector2 At, Vector2 Toward, Vector2 Head)>> _lamps;
     private readonly int _across;
     /// <summary>The standing cave growths by chunk, and the cells of all of them.</summary>
@@ -57,9 +60,10 @@ public partial class CaveView : Node2D, ILightSource
     private readonly Heard2D _drip = Cues.Player2D(Game.Sound.CaveDrip, Game.Sound.World, voices: 2);
     private double _dripQuietS;
 
-    public CaveView(IGridQueries grid, BuildingModule building, Spec.PlanetType type, Func<IReadOnlyList<(Vector2 At, Vector2 Toward, Vector2 Head)>> lamps)
+    /// <param name="seed">The planet's seed: which of its vein cells glint (<see cref="VeinGlints"/>).</param>
+    public CaveView(IGridQueries grid, BuildingModule building, Spec.PlanetType type, Func<IReadOnlyList<(Vector2 At, Vector2 Toward, Vector2 Head)>> lamps, uint seed)
     {
-        (_grid, _building, _type, _lamps) = (grid, building, type, lamps);
+        (_grid, _building, _type, _lamps, _seed) = (grid, building, type, lamps, seed);
         _across = (grid.Width + Chunk - 1) / Chunk;
         AddChild(_sparkles);
         AddChild(_falls);
@@ -145,6 +149,8 @@ public partial class CaveView : Node2D, ILightSource
         if (log == null)
         {
             foreach (int chunk in _shown.Keys.ToList()) Redraw(chunk);
+            _bare.Clear();
+            _range = default;
             return;
         }
         int w = _grid.Width;
@@ -157,6 +163,8 @@ public partial class CaveView : Node2D, ILightSource
 
     private void Redraw(int chunk)
     {
+        // A dig may open a vein's face in a chunk that showed nothing.
+        if (_bare.Remove(chunk)) _range = default;
         if (!_shown.Remove(chunk, out var patch)) return;
         patch.QueueFree();
         _range = default;
@@ -176,7 +184,11 @@ public partial class CaveView : Node2D, ILightSource
             for (int c = c0; c <= c1; c++)
             {
                 int chunk = r * _across + c;
-                if (!_shown.ContainsKey(chunk) && _byChunk.TryGetValue(chunk, out var list) && list.Count > 0) AddChild(_shown[chunk] = Build(list));
+                if (_shown.ContainsKey(chunk) || _bare.Contains(chunk)) continue;
+                var plants = _byChunk.GetValueOrDefault(chunk);
+                var veins = VeinFaces(chunk);
+                if (plants is not { Count: > 0 } && veins.Count == 0) _bare.Add(chunk);
+                else AddChild(_shown[chunk] = Build(plants ?? [], veins));
             }
         // The glints over the pictures of the same layer: drawn last of it.
         MoveChild(_sparkles, -1);
@@ -194,10 +206,34 @@ public partial class CaveView : Node2D, ILightSource
     private (int, int, int, int) _range;
     private readonly List<int> _far = [];
 
-    /// <summary>A chunk's growths as pictures, glows, lights, glints and what drifts from them.</summary>
-    private Patch Build(List<Plant> plants)
+    /// <summary>Each vein's fleck by its material's code, null for any other: what colour a vein's face glints.</summary>
+    private static readonly Color?[] VeinFleck = [.. Enumerable.Range(0, Spec.Materials.All.Max(m => m.Code) + 1)
+        .Select(code => Spec.Materials.ByCode(code) is { In: not null } vein && GroundLooks.Of.TryGetValue(vein.Id, out var look) ? Colour(look.Fleck) : (Color?)null)];
+
+    /// <summary>
+    /// The glints on the open faces of the vein cells in <paramref name="chunk"/>, a pixel in: only the cells
+    /// <see cref="VeinGlints"/> picks, in their ore's fleck. Found as the chunk is drawn, never a frame at a time.
+    /// </summary>
+    private List<(Vector2 At, Color Colour, int Own)> VeinFaces(int chunk)
+    {
+        var glints = new List<(Vector2 At, Color Colour, int Own)>();
+        int w = _grid.Width, x0 = chunk % _across * Chunk, y0 = chunk / _across * Chunk;
+        var walls = _grid.MaterialLayer;
+        for (int y = y0; y < Math.Min(_grid.Height, y0 + Chunk); y++)
+            for (int x = x0; x < Math.Min(w, x0 + Chunk); x++)
+            {
+                int cell = y * w + x, code = walls[cell];
+                if (code <= 0 || code >= VeinFleck.Length || VeinFleck[code] is not { } fleck || !VeinGlints.Picks(_seed, cell)) continue;
+                if (FacePoint(cell, 1, 1, VeinGlints.Hash(_seed, cell) >> 8) is { } point) glints.Add((point, fleck, cell));
+            }
+        return glints;
+    }
+
+    /// <summary>A chunk's growths as pictures, glows, lights, glints and what drifts from them, and its veins' glints.</summary>
+    private Patch Build(List<Plant> plants, List<(Vector2 At, Color Colour, int Own)> veins)
     {
         var patch = new Patch();
+        patch.Glints.AddRange(veins);
         int w = _grid.Width;
         foreach (var plant in plants)
         {
@@ -303,28 +339,13 @@ public partial class CaveView : Node2D, ILightSource
 
     /// <summary>
     /// A point a pixel inside an open face of the stone block <paramref name="across"/> by <paramref name="tall"/> cells at
-    /// <paramref name="cell"/>, by <paramref name="hash"/>; null for none open.
+    /// <paramref name="cell"/>, by <paramref name="hash"/> (<see cref="VeinGlints.FacePoint"/>); null for none open.
     /// </summary>
     private Vector2? FacePoint(int cell, int across, int tall, uint hash)
     {
-        int w = _grid.Width, x = cell % w, y = cell / w;
-        var open = FacesOpen(cell, across, tall);
-        Span<int> faces = stackalloc int[4];
-        int n = 0;
-        if ((open & Planting.Faces.Up) != 0) faces[n++] = 0;
-        if ((open & Planting.Faces.Down) != 0) faces[n++] = 1;
-        if ((open & Planting.Faces.Left) != 0) faces[n++] = 2;
-        if ((open & Planting.Faces.Right) != 0) faces[n++] = 3;
-        if (n == 0) return null;
-        // Along a face of its 16 pixels, a few from either end.
-        int along = 2 + (int)(hash / 4 % 12), inward = 1 + (int)(hash / 64 % 2);
-        return faces[(int)(hash % (uint)n)] switch
-        {
-            0 => new Vector2(x * Cell + along, y * Cell + inward),
-            1 => new Vector2(x * Cell + along, (y + tall) * Cell - 1 - inward),
-            2 => new Vector2(x * Cell + inward, y * Cell + along),
-            _ => new Vector2((x + across) * Cell - 1 - inward, y * Cell + along),
-        } + new Vector2(0.5f, 0.5f);
+        int w = _grid.Width;
+        return VeinGlints.FacePoint(cell % w, cell / w, across, tall, FacesOpen(cell, across, tall), hash, Cell) is { } p
+            ? new Vector2(p.X, p.Y) : null;
     }
 
     /// <summary>The lights of the chunks near the view, the nearest its middle first, at most <see cref="CaveLooks.MostLights"/>.</summary>

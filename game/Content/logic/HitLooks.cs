@@ -207,16 +207,20 @@ public static class HitLooks
     /// <summary>The tuft a creature struck with <paramref name="impact"/> throws dying, every way.</summary>
     public static Luminous TuftOf(Impact impact) => impact == Impact.CoolFlesh ? CoolTuft : Tuft;
 
-    /// <summary>A natural wall hit, by its material, as <see cref="Sound.Ground"/> hears it: bedrock and lava never break, so never are.</summary>
+    /// <summary>
+    /// A natural wall hit, by its material, as <see cref="Sound.Ground"/> hears it: a vein as the stone it runs in (<see cref="GroundOf"/>);
+    /// bedrock and lava never break, so never are.
+    /// </summary>
     public static readonly IReadOnlyDictionary<string, Impact> Ground = new Dictionary<string, Impact>
     {
         ["soil"] = Impact.Soil,
         ["stone"] = Impact.Stone,
-        ["copperVein"] = Impact.Stone,
-        ["iceVein"] = Impact.Stone,
         ["plaster"] = Impact.Plaster,
         ["alloy"] = Impact.Alloy,
     };
+
+    /// <summary>How a natural wall of <paramref name="material"/> looks hit, a vein's as its stone's; none for one never struck.</summary>
+    public static Impact? GroundOf(Stillwake.Content.Material material) => Ground.TryGetValue(material.In ?? material.Id, out var impact) ? impact : null;
 
     /// <summary>
     /// A growth hit, by its kind, as <see cref="Sound.Growths"/> hears it; what lies in the rock (<see cref="Sound.Unheard"/>) is

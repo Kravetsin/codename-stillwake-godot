@@ -118,6 +118,9 @@ public class GroundSoundsTests
         Assert.Equal((S.HitStone, S.BreakStone), Of("stone"));
         Assert.Equal((S.HitStone, S.BreakStone), Of("plaster"));
         Assert.Equal((S.Chop, S.Break), Of("alloy"));
+        // A vein sounds as the stone it runs in: a new ore needs no line of its own.
+        Assert.Equal((S.HitStone, S.BreakStone), Of("ironVein"));
+        Assert.False(S.Ground.ContainsKey("copperVein"));
         Assert.Equal((null, null), Of("bedrock"));
         Assert.Equal((null, null), Of(Spec.Lava.Material));
         // Every natural material a weapon breaks sounds.
