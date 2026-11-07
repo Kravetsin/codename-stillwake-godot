@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
+using Stillwake.Game.I18n;
 using Stillwake.Sim;
 using Stillwake.Sim.Grid;
 using Stillwake.Sim.Items;
@@ -217,9 +218,12 @@ public static class ItemCards
     ];
 
     /// <summary>A craft's name, its item; a blueprint's, its tool and material: "Wall: iron".</summary>
-    public static string NameOf(string id, Placement? placement) => placement is { } p
-        ? p.Material is { } m ? $"{T($"tool.{p.Kind}")}: {T($"material.{m}")}" : T($"tool.{p.Kind}")
-        : T($"item.{id}");
+    public static string NameOf(string id, Placement? placement) => NameIn(Speaking, id, placement);
+
+    /// <summary><see cref="NameOf"/> in <paramref name="language"/>: the board's search finds a thing by its name in either.</summary>
+    public static string NameIn(Language language, string id, Placement? placement) => placement is { } p
+        ? p.Material is { } m ? $"{In(language, $"tool.{p.Kind}")}: {In(language, $"material.{m}")}" : In(language, $"tool.{p.Kind}")
+        : In(language, $"item.{id}");
 
     /// <summary><paramref name="n"/> with one decimal at most, half rounded up: 4, 5.3, 0.5.</summary>
     public static string Number(double n) =>
