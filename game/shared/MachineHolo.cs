@@ -47,6 +47,7 @@ public partial class MachineHolo : Node2D
     private Vector2 _from;
     private Transform2D _toLocal = Transform2D.Identity;
     private Color _light = Colors.White;
+    private HoloTone? _tone;
     private double _now;
 
     public MachineHolo()
@@ -54,7 +55,9 @@ public partial class MachineHolo : Node2D
         Visible = false;
         TextureFilter = TextureFilterEnum.Linear;
         _ground.SetBorderWidthAll(1);
+        _emitter.Size = new Vector2(2 * HoloLook.EmitterRadius, 2 * HoloLook.EmitterRadius);
         AddChild(_emitter);
+        (_uvs[0], _uvs[1], _uvs[2], _uvs[3]) = (new(0, 0), new(1, 0), new(1, 1), new(0, 1));
     }
 
     /// <summary>
@@ -89,7 +92,6 @@ public partial class MachineHolo : Node2D
         // The glow on the machine, breathing.
         _toLocal = GetGlobalTransform().AffineInverse();
         float k = (float)((0.5 + 0.5 * _motion.Beam) * (0.88 + 0.12 * Math.Sin(_now * 2.2)));
-        _emitter.Size = new Vector2(2 * HoloLook.EmitterRadius, 2 * HoloLook.EmitterRadius);
         _emitter.Position = _toLocal * _from - _emitter.Size / 2;
         _emitter.Modulate = _light with { A = k };
         QueueRedraw();
@@ -113,6 +115,9 @@ public partial class MachineHolo : Node2D
 
     private void Tone(HoloTone tone)
     {
+        // Every style box setter emits a change and redraws: only when the tone does.
+        if (_tone == tone) return;
+        _tone = tone;
         var tint = HoloLook.Of(tone);
         _light = new Color(tint.Light);
         _ground.BgColor = new Color(tint.Ground) with { A = HoloLook.GroundAlpha };
@@ -190,7 +195,6 @@ public partial class MachineHolo : Node2D
             Color a0 = _light with { A = Shimmer(s0, length) }, a1 = _light with { A = Shimmer(s1, length) };
             (_quad[0], _quad[1], _quad[2], _quad[3]) = (c0 + h0, c1 + h1, c1 - h1, c0 - h0);
             (_colours[0], _colours[1], _colours[2], _colours[3]) = (a0, a1, a1, a0);
-            (_uvs[0], _uvs[1], _uvs[2], _uvs[3]) = (new(0, 0), new(1, 0), new(1, 1), new(0, 1));
             DrawPolygon(_quad, _colours, _uvs, Profile);
         }
     }
