@@ -30,7 +30,7 @@ small deposits near the top, richer deeper, iron besides copper, and an occasion
 - **Glint.** One open vein face in three (`CaveLooks.VeinGlintEvery`), picked by the planet's seed and the cell,
   glints in a helmet's beam in the vein's fleck colour, as mica does; the rest stay dark, so a glint means ore.
 - **Shine** (playtest 2026-11-07: ore did not stand out in the dark). A vein's ore shines past whole in lamp light — lamps,
-  beams, fires, glows, never starlight or daylight — in its fleck colour, `Light.OreShine` (3) times the light, the pixel's
+  beams, fires, glows, never starlight or daylight — in its fleck colour, `Light.OreShine` (6) times the light, the pixel's
   brightness and a mask; unlit it stays as black as its rock, and stone looks as before. The mask is the atlas's specular map,
   made at load as what a vein's picture adds to its host's sheet (`OreMask`): the vein is drawn over that very sheet, so it
   needs no art of its own and cannot drift from the drawing. Every one of a vein sheet's 128 cells holds ore, a small
