@@ -276,6 +276,7 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [machines-stand](2026-11-07-machines-stand.md) | Machines stand on a floor | accepted |  |
 | [no-charge-flash](2026-11-07-no-charge-flash.md) | A flat press blinks the energy tab red | accepted |  |
 | [ore-pockets](2026-11-07-ore-pockets.md) | Ore lies at every depth, in pockets, and glints now and then | accepted |  |
+| [pick-reach](2026-11-07-pick-reach.md) | The pickaxe cuts close by | accepted |  |
 | [pile-crack-net](2026-11-07-pile-crack-net.md) | A pile cracks as a wreck | accepted |  |
 | [pile-hit-points](2026-11-07-pile-hit-points.md) | The hold's piles have hit points | accepted |  |
 | [pile-hits-felt](2026-11-07-pile-hits-felt.md) | A hit on a pile is seen and heard | accepted |  |
