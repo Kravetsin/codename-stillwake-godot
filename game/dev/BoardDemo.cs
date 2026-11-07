@@ -14,7 +14,7 @@ namespace Stillwake.Game.Dev;
 /// Bare it is blank; <c>=first</c>, <c>=near</c>, <c>=burst</c>, <c>=circuit</c> and <c>=late</c> are stills along the way. Script: finds
 /// that light the key (with something seeded; 6 with <c>=burst</c>, 15 with <c>=late</c>), T, three entries clicked down, the rest taken at once, a click on the first note, a
 /// click on a shape, the wheel out, a click off everything, the first note dragged away, the board itself dragged, T again, a press on the key; each step is printed with its time.
-/// <c>=bought</c> has everything found and the solar panel bought: T, a click on it, the wheel all the way out, the first note carried to the edge.
+/// <c>=bought</c> has everything found and the solar panel bought: T, a click on it, the wheel all the way out, the first note carried to the edge. <c>=search</c>, the same world: the board's search typed in, a pick by the arrows and Enter, a name not there, Esc.
 /// </summary>
 public partial class BoardDemo(Func<Registry> m, string? value) : Node
 {
@@ -37,7 +37,7 @@ public partial class BoardDemo(Func<Registry> m, string? value) : Node
         "burst" => [("scrap", Plenty), ("iron", Plenty)],
         "circuit" => [("frame", 2), ("solarCell", 6), ("wire", 4), ("circuit", 1), ("photoPanel", 1)],
         "late" => [.. InSpace.SkipLast(Finds(value)).Select(i => (i, Plenty))],
-        "bought" => [.. InSpace.Select(i => (i, Plenty))],
+        "bought" or "search" => [.. InSpace.Select(i => (i, Plenty))],
         _ => [],
     };
 
@@ -60,7 +60,7 @@ public partial class BoardDemo(Func<Registry> m, string? value) : Node
         }
         var root = JsonNode.Parse(world.Save())!;
         root["slices"]!["knowledge"]!["obtained"] = new JsonArray([.. Found(value).Select(f => (JsonNode)new JsonObject { ["item"] = f.Item, ["count"] = f.Count })]);
-        if (value == "bought") root["slices"]!["knowledge"]!["granted"] = new JsonArray("solarPanel");
+        if (value is "bought" or "search") root["slices"]!["knowledge"]!["granted"] = new JsonArray("solarPanel");
         return World.Load(root.ToJsonString(), modules());
     }
 
@@ -156,6 +156,20 @@ public partial class BoardDemo(Func<Registry> m, string? value) : Node
                 (5.1, "carry it", () => Drag(new Vector2(400, 200))),
                 (5.2, "on, past the edge", () => Drag(new Vector2(400, 200))),
                 (5.3, "let go: it stands at the edge", LetGo),
+            ];
+        if (value == "search")
+            script =
+            [
+                (0.5, "T opens it on the board", () => TabletHands.Press(Key.T)),
+                (1.0, "take all", () => PressWhileReading(_tablet.TakeAllAt)),
+                (2.5, "wheel all the way out", () => _hands.Wheel(GetViewport().GetVisibleRect().GetCenter(), MouseButton.WheelDown, 30)),
+                (3.0, "/ puts the keys in the board's search", () => TabletHands.Press(Key.Slash)),
+                (3.3, "type the start of the plate's name: the list of what is so named", () => TabletHands.Type(I18n.En.T("item.plate")[..3].ToLowerInvariant())),
+                (4.2, "down", () => TabletHands.Press(Key.Down)),
+                (4.8, "down again", () => TabletHands.Press(Key.Down)),
+                (5.6, "Enter: picked, the board glides to it", () => TabletHands.Press(Key.Enter)),
+                (7.5, "/ and a name not on the board", () => { TabletHands.Press(Key.Slash); TabletHands.Type("zzz"); }),
+                (8.5, "Esc empties the search, the tablet stays out", () => TabletHands.Press(Key.Escape)),
             ];
         while (_step < script.Length && _t >= script[_step].At)
         {

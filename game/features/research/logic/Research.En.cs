@@ -45,6 +45,8 @@ public static partial class En
         ["research.locked"] = "Not open yet",
         ["research.noCredits"] = "Not enough credits",
         ["research.board.hint"] = "Click anything on the board to see what it is made from, where, and what is made from it",
+        ["research.search"] = "Find on the board",
+        ["research.search.none"] = "Nothing on the board by that name",
         ["research.board.part"] = "{what} {have}/{enough}",
         ["research.board.partDone"] = "{what} ✓",
         ["research.board.more"] = "{n} more",

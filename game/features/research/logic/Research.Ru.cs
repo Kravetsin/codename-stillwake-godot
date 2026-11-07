@@ -45,6 +45,8 @@ public static partial class Ru
         ["research.locked"] = "Ещё закрыто",
         ["research.noCredits"] = "Мало кредитов",
         ["research.board.hint"] = "Нажми на любую вещь на доске: из чего она делается, где и что из неё делают",
+        ["research.search"] = "Найти на доске",
+        ["research.search.none"] = "На доске нет ничего с таким именем",
         ["research.board.part"] = "{what} {have}/{enough}",
         ["research.board.partDone"] = "{what} ✓",
         ["research.pile.hint"] = "Нажми на запись, чтобы положить её на доску",
