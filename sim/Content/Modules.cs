@@ -80,7 +80,7 @@ public static class Modules
     /// </summary>
     public static readonly ModuleSpec Arc = new("arcModule", "arc",
     [
-        new(["smelter", "former", "assembler"], [new Trade(Stat.Speed, 1000), new Trade(Stat.Draw, 1000)]),
+        new(["smelter", "crusher", "former", "assembler"], [new Trade(Stat.Speed, 1000), new Trade(Stat.Draw, 1000)]),
         new(["drill", "grinder"], [new Trade(Stat.Damage, 1000), new Trade(Stat.Draw, 1000)]),
         // A tool with no draw (salvage tools): twice the damage, paid by the module alone.
         new(["spear"], [new Trade(Stat.Damage, 1000)]),
