@@ -83,9 +83,8 @@ the sim.
 ## Guarantees
 
 - Lengths, speeds: thousandths of a cell (`Content.Hero`); a step each 1000/60 ms (`Net.Clock`), drawn between.
-- A step never ends inside a wall, closed door or hatch, or past the grid; afloat without a jetpack the body's middle
-  stays within `Hero.Tether` of its anchor. A door shut on the hero pushes it a `Hero.PushStep` to the
-  nearest fit, carrying no speed (0089); out of the hull, tethered.
+- A step never ends in a wall, shut door or hatch, or past the grid; afloat with no jetpack the middle stays within
+  `Hero.Tether` of its anchor. A door shut on the hero pushes it `Hero.PushStep` to the nearest fit, no speed (0089).
 - Doors are walked as this peer shows them (0014); a press sends `SetDoor`/`SetValve` (0071), `SetPlatform`.
 - **Holes and floors:** the body falls into a hole it fits; a step-deep one is walked down (0106). Down drops through
   floors, never a wall, door, hatch or ladder; jump wins over down.
@@ -96,12 +95,12 @@ the sim.
 - **Surfaces** (0076): `Ship.Of` rules: nothing floats on a planet, gravity the kind's `Fall`; fog glides, `FogMove`
   across a seam (fog-edges).
 - **Camera:** leads, eases, snaps. **Markers** (0061): home, newest body, friends heard.
+- **Water** (liquids): swum while the middle's cell is `SwimDepth` deep; Space at the top leaps out.
 - **Swim, haul, jetpack** (0047, tether-haul): afloat, through floors, tied where the middle left the hull (0007, 0104);
   Shift hauls in along the tether's bends (`Wraps`); a jetpack unties, Shift thrusts, `Thrust` sent while unlike the sim's.
 - **A canister** (0047, 0081): right click or R sends `Refill`, V `SuitMode` (regen-suit), if the sim takes it; V's
   key on the tablet's edge, dim if refused.
-- **The crew module:** made at `Spawn`; passed out it takes no orders, lies at the sim's cell, picks nothing
-  up (0061). `Enter` goes when the sim's room or field side differs, every `Crew.ReportEvery`
+- **The crew module:** made at `Spawn`; passed out: no orders, lies at the sim's cell, picks nothing up (0061). `Enter` goes when the sim's room or field side differs, every `Crew.ReportEvery`
   ticks off its cell, each tick while threatened; none while out (0050). A closed link's host sends `Leave`.
 - **Dressed as worn**: helmet, body, hair, clothes, a lamp; the colour on the near shin; a switched body lit by
   `SuitOn` and charge (`SuitGlow`), both light round (hero-lights).
@@ -110,8 +109,7 @@ the sim.
 
 - Sent (`SentHero`) every 50 ms while it changes, each second still, at once on a rod's change (0002, 0065); hands
   by item id and `Busy` kind (0037).
-- Drawn 150 ms behind (0013), walking 100 ms past the last, hidden after 3 silent s; only those
-  on this surface (0076). A friend's struck tool strikes per number heard (0038); its rod plays out by `RemoteRod`
+- Drawn 150 ms behind (0013), walking 100 ms past the last, hidden after 3 silent s; this surface's (0076). A friend's struck tool strikes per number heard (0038); its rod plays out by `RemoteRod`
   (0065); its drill or power driver runs as the sim says (0055).
 
 ## The hands
@@ -130,11 +128,10 @@ the sim.
 - **A gun** (hold-to-fire): left held fires each cooldown; with `Charge` it charges then, fires let go
   full; flat, clicks dry, sends nothing. Afloat it kicks back (`Recoil`); a guest flies it.
 - **Drill, grinder, cutter** (0054, 0055): left held runs it (`Run`), hitting each `Pace` ticks, the cutter by its beam
-  (`ToolEdges`), sparking where it touches (`ToolWork`).
+  (`ToolEdges`), sparking (`ToolWork`).
 - **The power driver** (driver-at-work, driver-order): charged, a 2×2 square over plans or marks
   (`WorkedSquare`), heard (`BiteLoop`). Right click toggles; mode by the arrow (mode-glyph).
-- **Seated** (`Seating.Held`): no tool works; E leaves.
-- **Ladders and ledges** (0092): grab, climb, slide, leap off; an open hatch is climbable, a closed one a floor
+- **Seated** (`Seating.Held`): no tool works; E leaves. **Ladders and ledges** (0092): grab, climb, slide, leap off; an open hatch is climbable, a closed one a floor
   (0112). A jump a foot short is mantled.
 
 ## Deliberately not handled

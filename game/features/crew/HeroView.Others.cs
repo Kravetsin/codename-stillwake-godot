@@ -95,7 +95,7 @@ public partial class HeroView
                 _air.Leak(new Vector2(cx, cy), rammedFrom);
                 _othersThud.Play(S.RamHits.GetValueOrDefault(rammer, S.RamThud), new Vector2(cx, cy));
             }
-            shown.Figure.Show(hero, Poses.PoseOf(hero, afloat || ship.Glides(hero.X), out_), out_ ? 0 : seen.Look ?? 0,
+            shown.Figure.Show(hero, Poses.PoseOf(hero, afloat || ship.Glides(hero.X) || ship.Wet(hero.BodyCell(ship.Width)), out_), out_ ? 0 : seen.Look ?? 0,
                 seen.HoldsPlan, elapsedMs);
             for (int burnt = shown.Burns.Due(elapsedMs, Burns(m, crew.HeroOf(id)), 1 / S.LavaBurnEveryS); burnt > 0; burnt--)
                 _othersBurn.PlayAt(shown.Figure.GlobalPosition);
