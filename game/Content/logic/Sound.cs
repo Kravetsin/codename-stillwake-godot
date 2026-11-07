@@ -429,15 +429,14 @@ public static class Sound
     };
 
     /// <summary>
-    /// A natural wall hit by any tool and broken out, by its material: soil and stone their own, the homes' plaster as stone, the
-    /// ruins' alloy as a wreck's metal (<see cref="Chop"/>, <see cref="Break"/>). Bedrock and lava never break, so never sound.
+    /// A natural wall hit by any tool and broken out, by its material: soil and stone their own, a vein as the stone it runs in
+    /// (<c>Material.In</c>), the homes' plaster as stone, the ruins' alloy as a wreck's metal (<see cref="Chop"/>, <see cref="Break"/>).
+    /// Bedrock and lava never break, so never sound.
     /// </summary>
     public static readonly IReadOnlyDictionary<string, (Cue Hit, Cue Break)> Ground = new Dictionary<string, (Cue, Cue)>
     {
         ["soil"] = (HitSoil, BreakSoil),
         ["stone"] = (HitStone, BreakStone),
-        ["copperVein"] = (HitStone, BreakStone),
-        ["iceVein"] = (HitStone, BreakStone),
         ["plaster"] = (HitStone, BreakStone),
         ["alloy"] = (Chop, Break),
     };

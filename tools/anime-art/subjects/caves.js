@@ -94,6 +94,32 @@ function veined(base, paint = VEIN, seed = 0x1ce) {
   } };
 }
 
+// Iron (the user's pick, 2026-11-07: kidney ore): clumps of dark red-grey bubbles, each with a hard metallic highlight. Commoner
+// than copper, so more clusters, spread so a vein cell often holds some.
+const IRON_VEIN = { base: '#4c3438', shade: '#2e1e22', deep: '#1e1416', lite: '#8a6c70', spec: '#e0d0d4', ink: '#140a0c' };
+const IRON_CLUSTERS = [[16, 10, 12], [50, 12, 14], [82, 8, 10], [114, 13, 12], [30, 32, 12], [64, 34, 14], [98, 30, 12], [124, 38, 8], [12, 54, 10], [46, 55, 12], [80, 52, 12], [110, 56, 14]];
+
+/** Kidney ore over a wall of stone: per cluster, a few groups of bubbles on a dark stain, the upper ones drawn first. */
+function ironVeined(base, seed = 0x1a3) {
+  return { ...base, draw(a) {
+    base.draw(a);
+    const r = rng(seed);
+    const torn = (x, y, rx, ry, n, j) => {
+      const p = [];
+      for (let i = 0; i < n; i++) { const t = (i / n) * Math.PI * 2 + (r() - .5) * .5, k = 1 - j + r() * j * 1.6; p.push(x + Math.cos(t) * rx * k, y + Math.sin(t) * ry * k); }
+      return poly(p);
+    };
+    for (const [cx, cy, n] of IRON_CLUSTERS)
+      for (let g = 0, groups = 2 + Math.floor(n / 6); g < groups; g++) {
+        const gx = cx + (r() - .5) * 18, gy = cy + (r() - .5) * 13, bub = [];
+        for (let i = 0, m = 3 + Math.floor(r() * 3); i < m; i++) bub.push([gx + (r() - .5) * 4.2, gy + (r() - .5) * 2.4, .7 + r() * 1.05]);
+        a.flat(torn(gx, gy + .3, 3.2, 2, 9, .3), '#33262a');
+        bub.sort((p, q) => p[1] - q[1]);
+        for (const [x, y, s] of bub) a.shape(ell(x, y, s, s * .9), IRON_VEIN, { outer: false, shade: s * .45, lite: ell(x - s * .3, y - s * .35, s * .42, s * .3), spec: ell(x - s * .38, y - s * .42, s * .16, s * .11) });
+      }
+  } };
+}
+
 /** A pebble of the ground: a chipped lump with a shadow crescent. */
 const lump = (a, cx, cy, w, h, m, r) => {
   const pts = [];
@@ -356,13 +382,15 @@ Subjects.caves = function () {
   out('back_iceVein', bake(groundSheet(GROUNDS.stone, 0x5702, true)));
   out('wall_copperVein', bake(veined(stone, COPPER_VEIN, 0x2c7)));
   out('back_copperVein', bake(groundSheet(GROUNDS.stone, 0x5702, true)));
+  out('wall_ironVein', bake(ironVeined(stone)));
+  out('back_ironVein', bake(groundSheet(GROUNDS.stone, 0x5702, true)));
   out('wall_soil', bake(groundSheet(GROUNDS.soil, 0x5703, false)));
   out('back_soil', bake(groundSheet(GROUNDS.soil, 0x5704, true)));
   const edges = {
-    stone: { lite: '#7c8290', shade: '#2f3244', ink: '#0f111b' }, iceVein: { lite: '#7c8290', shade: '#2f3244', ink: '#0f111b' }, copperVein: { lite: '#7c8290', shade: '#2f3244', ink: '#0f111b' }, soil: { lite: '#7c6654', shade: '#33242a', ink: '#140c0e' },
+    stone: { lite: '#7c8290', shade: '#2f3244', ink: '#0f111b' }, iceVein: { lite: '#7c8290', shade: '#2f3244', ink: '#0f111b' }, copperVein: { lite: '#7c8290', shade: '#2f3244', ink: '#0f111b' }, ironVein: { lite: '#7c8290', shade: '#2f3244', ink: '#0f111b' }, soil: { lite: '#7c6654', shade: '#33242a', ink: '#140c0e' },
   };
   for (const [name, look] of Object.entries(edges)) for (let open = 1; open < 16; open++) out(`wall-edge_${name}_${open}`, AnimeEdge(open, look));
-  for (const [name, look] of [['stone', GROUNDS.stone], ['iceVein', GROUNDS.stone], ['copperVein', GROUNDS.stone], ['soil', GROUNDS.soil]]) {
+  for (const [name, look] of [['stone', GROUNDS.stone], ['iceVein', GROUNDS.stone], ['copperVein', GROUNDS.stone], ['ironVein', GROUNDS.stone], ['soil', GROUNDS.soil]]) {
     for (let v = 0; v < 4; v++) for (const front of [false, true]) for (let half = 0; half < 2; half++) out(`top_${name}_${v}_${front ? 'front' : 'back'}_${half}`, topOf(look, v, front, half));
     for (let k = 0; k < 11; k++) out(`detail_${name}_${k}`, detailOf(look, k));
   }

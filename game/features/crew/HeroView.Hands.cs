@@ -32,7 +32,9 @@ public partial class HeroView
         // A tool struck with by hand, the axe, the sledgehammer or the spear: its strokes (Strokes).
         string? struck = handFree && Strokes.Of(_ui.Wielded.Get()) != null ? _ui.Wielded.Get() : null;
         var stroke = Strokes.Of(struck);
-        bool gun = handFree && _ui.Wielded.Get() == Content.Harpoon.Item;
+        // The harpoon or the grappling gun: the one in the hand is the machine played this frame, the other seated (grapple-climbs).
+        _grappling = _ui.Wielded.Get() == Content.Grapple.Item;
+        bool gun = handFree && (_grappling || _ui.Wielded.Get() == Content.Harpoon.Item);
         var shooter = GunInHand(handFree);
         string? drill = handFree && HeldLook.IsDrill(_ui.Wielded.Get()) ? _ui.Wielded.Get() : null;
         var driver = handFree ? Content.Screwdrivers.Of(_ui.Wielded.Get()) : null;
@@ -155,9 +157,10 @@ public partial class HeroView
         Shoot(client, m, shooter, wieldsShooter, fresh && ready, held && ready, _hosts, elapsedMs);
         var middle = _current.Middle;
         var hold = new GunHold(wieldsGun, _figure.Muzzle is { } muzzle ? Thousandths(muzzle) : null, (_figure.Barrel.X, _figure.Barrel.Y),
-            (middle.X, middle.Y), _letsGo);
+            (middle.X, middle.Y), _letsGo, Drops: rightClicked && wieldsGun);
         _letsGo = false;
-        var shot = _harpoon.Step(elapsedMs, fresh && ready, hold, _harpoonWorld);
+        var shot = _harpoon.Step(elapsedMs, fresh && ready, hold, _grappling ? _grappleWorld : _harpoonWorld);
+        (_grappling ? _harpoonGun : _grappleGun).Step(elapsedMs, false, default, _harpoonWorld);
         if (shot.Fired)
         {
             _shot.Play();

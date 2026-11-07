@@ -23,7 +23,7 @@ public static class Impacts
     public static Impact? At(IGridQueries grid, BuildingModule building, int cell)
     {
         if (grid.WallAt(cell) is { } wall)
-            return !wall.Natural ? Impact.Alloy : HitLooks.Ground.TryGetValue(wall.Id, out var ground) ? ground : null;
+            return !wall.Natural ? Impact.Alloy : HitLooks.GroundOf(wall);
         if (Shared.Piles.At(grid, cell) != null) return Impact.Wreck;
         return building.PlantAt(cell) is { } plant && HitLooks.Growths.TryGetValue(plant.Kind, out var growth) ? growth : null;
     }

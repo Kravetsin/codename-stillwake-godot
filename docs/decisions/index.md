@@ -49,7 +49,7 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [0041](0041-wreckage-of-many-kinds-and-circuits.md) | Wreckage of many kinds, and circuits | accepted |  |
 | [0042](0042-what-is-heard-in-space.md) | What is heard in space | accepted | 0059 (in part) |
 | [0043](0043-a-solar-panel-needs-the-stars.md) | A solar panel needs the stars | accepted |  |
-| [0044](0044-the-harpoon-reels-a-piece-to-a-point.md) | The harpoon reels a piece to a point | accepted | 0046, 0065, 0068 (in part) |
+| [0044](0044-the-harpoon-reels-a-piece-to-a-point.md) | The harpoon reels a piece to a point | accepted | 0046, 0065, 0068, grapple-climbs (in part) |
 | [0045](0045-a-burner-generator-shares-the-furnaces-fire.md) | A burner generator shares the furnace's fire | accepted | 0046, 0057 (in part) |
 | [0046](0046-recipes-show-what-a-thing-is-made-of.md) | Recipes show what a thing is made of | accepted | 0068 (in part) |
 | [0047](0047-equipment-the-jetpack-and-the-slower-swim.md) | Equipment, the jetpack and the slower swim | accepted | 0058, 0068 (in part) |
@@ -127,7 +127,7 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [the-drop-pod](2026-10-25-the-drop-pod.md) | The drop pod is a bell a hero boards on a launch platform | accepted |  |
 | [the-engine-through-the-hull](2026-10-25-the-engine-through-the-hull.md) | The engine stands at the stern, its nozzle out through the hull | accepted |  |
 | [title-scene](2026-10-25-title-scene.md) | The title is a drawn scene of despair | accepted |  |
-| [veins-and-stairs](2026-10-25-veins-and-stairs.md) | A planet's ground is a stair, with veins of ore in its lodes | accepted |  |
+| [veins-and-stairs](2026-10-25-veins-and-stairs.md) | A planet's ground is a stair, with veins of ore in its lodes | accepted | ore-pockets (in part) |
 | [compact-wire](2026-10-26-compact-wire.md) | A compact wire | accepted |  |
 | [creatures-are-composed](2026-10-26-creatures-are-composed.md) | Creatures are composed | accepted |  |
 | [fog-edges](2026-10-26-fog-edges.md) | Fog at a planet's edges | accepted |  |
@@ -273,9 +273,11 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [board-search](2026-11-07-board-search.md) | The board has its own search | accepted |  |
 | [cracks-to-end](2026-11-07-cracks-to-end.md) | A wreck's cracks run on until they cover it at the break | accepted |  |
 | [creative-per-player](2026-11-07-creative-per-player.md) | Creative mode is each player's | accepted |  |
+| [grapple-climbs](2026-11-07-grapple-climbs.md) | The grapple climbs | accepted |  |
 | [hits-pass-wrecks](2026-11-07-hits-pass-wrecks.md) | A tool's rays pass through wrecks and hit all they cross | accepted |  |
 | [machines-stand](2026-11-07-machines-stand.md) | Machines stand on a floor | accepted |  |
 | [no-charge-flash](2026-11-07-no-charge-flash.md) | A flat press blinks the energy tab red | accepted |  |
+| [ore-pockets](2026-11-07-ore-pockets.md) | Ore lies at every depth, in pockets, and glints now and then | accepted |  |
 | [pick-reach](2026-11-07-pick-reach.md) | The pickaxe cuts close by | accepted |  |
 | [pile-crack-net](2026-11-07-pile-crack-net.md) | A pile cracks as a wreck | accepted |  |
 | [pile-hit-points](2026-11-07-pile-hit-points.md) | The hold's piles have hit points | accepted |  |

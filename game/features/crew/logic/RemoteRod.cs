@@ -35,8 +35,11 @@ public sealed class RemoteRod
     /// <summary>The piece the rod is stuck in, by id; none in flight, on the way back or in the structure.</summary>
     public int? Piece { get; private set; }
 
-    /// <summary>Whether the gun is drawn with its rod in: back in the gun and the cooldown since the shot seen here over.</summary>
-    public bool Loaded => Rod == Rod.Seated && _sinceFiredMs >= HarpoonShot.CooldownMs;
+    /// <summary>Whether the harpoon is drawn with its rod in: back in the gun and its cooldown since the shot seen here over.</summary>
+    public bool Loaded => LoadedAfter(HarpoonShot.CooldownMs);
+
+    /// <summary>Whether a gun whose cooldown is <paramref name="cooldownMs"/> is drawn with its rod in: the grappling gun's is its own.</summary>
+    public bool LoadedAfter(double cooldownMs) => Rod == Rod.Seated && _sinceFiredMs >= cooldownMs;
 
     /// <summary>Whether the line is drawn wound taut: reeling, pulled, hanging or on the way back; slack in flight and hooked.</summary>
     public bool Taut => HarpoonShot.Taut(Rod);
@@ -72,8 +75,8 @@ public sealed class RemoteRod
             Seat();
             return default;
         }
-        // A rod out where none was is a shot: one heard first on its way back is not.
-        bool fired = was == null && now.Rod != Rod.Returning;
+        // A rod out where none was is a shot: one heard first on its way back is not. One flying from a hook is fired again (grapple-climbs).
+        bool fired = was == null && now.Rod != Rod.Returning || was is { Rod: not (Rod.Flying or Rod.Returning) } && now.Rod == Rod.Flying;
         if (fired) _sinceFiredMs = 0;
         bool bit = false;
         switch (now.Rod)

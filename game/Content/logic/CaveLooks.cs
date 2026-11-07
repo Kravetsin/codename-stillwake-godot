@@ -86,6 +86,12 @@ public static class CaveLooks
     public const double GlintTwinkle = 1.6;
 
     /// <summary>
+    /// One vein cell in this many glints on an open face, in its ore's fleck (2026-11-07-ore-pockets): picked by the planet's seed
+    /// and the cell, so dark stretches of rock stay dark and a glint means ore.
+    /// </summary>
+    public const int VeinGlintEvery = 3;
+
+    /// <summary>
     /// What drifts in the caves, from what is in view only (0075's toolkit): spores up from glowcaps, drips from one stalactite
     /// in <see cref="DripShare"/> every <see cref="DripEvery"/> seconds, faint embers up from the heat's cracks; made at
     /// <see cref="MotesASecond"/>, at most <see cref="MostMotes"/> alive together.

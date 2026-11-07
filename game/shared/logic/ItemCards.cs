@@ -22,7 +22,7 @@ namespace Stillwake.Game.Shared;
 public static class ItemCards
 {
     /// <summary>Whether <paramref name="item"/> is a tool: a weapon (the fire axe, the drill), a gun (the nailer) or the harpoon.</summary>
-    public static bool IsTool(string item) => Spec.Weapons.Of(item) != null || Spec.Shots.GunOf(item) != null || item == Spec.Harpoon.Item;
+    public static bool IsTool(string item) => Spec.Weapons.Of(item) != null || Spec.Shots.GunOf(item) != null || item == Spec.Harpoon.Item || item == Spec.Grapple.Item;
 
     /// <summary>Whether <paramref name="item"/> is some gun's ammo (the nail): its card has tiles too, though it is no tool.</summary>
     public static bool IsAmmo(string item) => Spec.Shots.Guns.Any(gun => gun.Ammo.Contains(item));
@@ -45,6 +45,7 @@ public static class ItemCards
             return Spec.Items.Get(item).Equip == null ? card : Worn(card);
         }
         if (item == Spec.Harpoon.Item) return new ItemCard(item, name, kind, HarpoonTiles(), [], key, price);
+        if (item == Spec.Grapple.Item) return new ItemCard(item, name, kind, GrappleTiles(), [], key, price);
         if (Spec.Shots.GunOf(item) is { } gun) return new ItemCard(item, name, kind, GunTiles(gun), [], key, price);
         var weapon = Spec.Weapons.Of(item)!;
         return new ItemCard(
@@ -206,6 +207,14 @@ public static class ItemCards
         new(Number(Spec.Harpoon.Range / 1000.0), T("card.range")),
         new(T("card.seconds", ("n", Number((double)Spec.Harpoon.CooldownTicks / World.TicksPerSecond))), T("card.reload")),
         new(T("card.perSecond", ("n", Number(Spec.Harpoon.ReelSpeed * World.TicksPerSecond / 1000.0))), T("card.reel")),
+    ];
+
+    /// <summary>The grappling gun's tiles (grapple-climbs): how far its hook flies, in cells; the seconds till it fires again; the cells a second it pulls.</summary>
+    private static List<CardTile> GrappleTiles() =>
+    [
+        new(Number(Spec.Harpoon.Range / 1000.0), T("card.range")),
+        new(T("card.seconds", ("n", Number((double)Spec.Grapple.CooldownTicks / World.TicksPerSecond))), T("card.reload")),
+        new(T("card.perSecond", ("n", Number(Spec.Grapple.PullSpeed * World.TicksPerSecond / 1000.0))), T("card.pull")),
     ];
 
     /// <summary>A craft's name, its item; a blueprint's, its tool and material: "Wall: iron".</summary>

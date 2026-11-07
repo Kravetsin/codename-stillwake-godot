@@ -26,6 +26,8 @@ public static class GroundLooks
         // Veins of ore: their chips the ore's colour and glint; edged as stone.
         ["copperVein"] = new((190, 112, 62), (255, 186, 120), (26, 28, 36), (138, 146, 160)),
         ["iceVein"] = new((132, 204, 236), (232, 250, 255), (26, 28, 36), (138, 146, 160)),
+        // Kidney iron (the user's pick, 2026-11-07): dark red-grey bubbles, a hard metallic highlight.
+        ["ironVein"] = new((76, 52, 56), (236, 206, 210), (26, 28, 36), (138, 146, 160)),
     };
 
     /// <summary>The dust and the chips of a break; a hit's are <see cref="HitLooks"/>'.</summary>
