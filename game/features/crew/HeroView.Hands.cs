@@ -69,7 +69,8 @@ public partial class HeroView
         bool clicked = _mouse.Buttons.TakeClick();
         // With the harpoon's rod out of the gun, a click is the gun's: hooked, it reels, even on a piece in reach.
         bool grab = clicked && aim?.Piece != null && !(gun && _harpoon.Rod != Rod.Seated);
-        bool acts = !passedOut && handFree;
+        // Seated or flying, what is in hand works nothing: no swing, run, shot or canister's breath (Seating.Held).
+        bool acts = !passedOut && !Seating.Held(m, client.Id) && handFree;
         bool builds = acts && driver != null && _mouse.Buttons.HoldsLeft;
         if (seated && pressed && !passedOut)
         {

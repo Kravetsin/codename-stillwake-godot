@@ -95,6 +95,7 @@ public partial class Main : Node2D, ITogether
     private FabricatorPanel? _fabricator;
     private DebrisView _debris = null!;
     private Features.Creatures.CreaturesView _creatures = null!;
+    private readonly Features.Scanner.ScannerView _scanner = new();
     private Hands _hands = null!;
     private FrameLog? _frameLog;
     private AllocationSampler? _allocs;
@@ -207,6 +208,7 @@ public partial class Main : Node2D, ITogether
         _debris = new DebrisView(_hands.Ui);
         AddChild(_stars = new Stars());
         AddChild(_debris);
+        AddChild(_scanner);
         AddChild(_camera = new ShipCamera());
         _debris.Nudged += _camera.Nudge;
         AddChild(_creatures = new Features.Creatures.CreaturesView(_hands.Ui));
@@ -577,6 +579,9 @@ public partial class Main : Node2D, ITogether
         _frameLog?.Mark("items");
         _debris.Frame(client, _m.Debris, _camera.View(), session.Drift, delta * 1000);
         _frameLog?.Mark("debris");
+        bool scanning = _m.Items.Equipped(client.Id, Stillwake.Content.Helmet.Scanner);
+        _scanner.Frame(scanning && _hero?.Pointer() is { } pointer
+            ? Features.Scanner.Scan.Of(_m.Debris.Pieces, pointer, true, session.Drift) ?? Features.Scanner.Scan.OfPile(_m.Grid, _m.Building.Cracks, pointer) : null, delta * 1000);
         // After the hero, so a strike it sent this frame flinches its creature at once (0102).
         _creatures.Frame(client, _m.Creatures, _m.Debris, _m.Building, _m.Grid, _m.Rooms, _m.Rules, _camera.View(), session.Progress, delta * 1000, _seed);
         _frameLog?.Mark("creatures");

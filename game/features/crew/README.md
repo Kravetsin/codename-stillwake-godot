@@ -23,7 +23,7 @@ the sim.
 | `logic/HarpoonShot.cs` | the hand harpoon (0044) |
 | `logic/HarpoonLine.cs` | its line |
 | `logic/Prompt.cs` | what E does |
-| `logic/Seating.cs` | seats in a drop pod |
+| `logic/Seating.cs` | seats; hands tied |
 | `logic/FogMove.cs` | across fog (fog-edges) |
 | `SeatedHeroes.cs` | behind the porthole |
 | `UsePrompt.cs` | that prompt shown |
@@ -117,24 +117,24 @@ the sim.
 
 ## The hands
 
-- **What the hand holds shows** (`HeldLook`); a builder twists a plan or a motor (`Twist`, `Driven`); the driver's
-  mode by the arrow (mode-glyph).
+- **What the hand holds shows** (`HeldLook`); a builder twists a plan or a motor (`Twist`, `Driven`).
 - **Aimed only in use** (aim-on-use): up while used and `LingerMs` after, facing the pointer; shots and hits wait for it.
 - **Left is the front, right the back** (0107, 0108): a screwdriver works plans or repairs on the left;
   the plan, wiring, lays cables; a tool on the right, nothing.
 - **One aim** (`Aiming.AimAt`): a plan (back walls first), machine (its rise, 0099), tank, door or valve (E), a wreck under the
   pointer, else the nearest small piece. Outlined green or red, `UsePrompt` says why; plan in hand, E idle. Armed, small pieces.
 - **Hits are rays from the shoulder** (tool-reach, hits-pass-wrecks): the fan (`ToolRays`), each to a wall, hitting all
-  wrecks it crosses; the ground met rings, sparks. Its reach shows in use.
+  wrecks it crosses; the ground met rings, sparks; reach shown.
 - **Struck tools** (0038, salvage-tools): axe, hammer, spear, each its own pace; a swing hits as its blade crosses the aim,
-  its fan swept as far as a shoulder goes (`ShapeFor`).
+  its fan a shoulder's sweep (`ShapeFor`).
 - **The harpoon** (0044): a click fires; stuck in a piece the next sends `Reel`, in structure it pulls the hero.
-- **A gun** (hold-to-fire): left held fires as its cooldown runs out; with `Charge` it charges then, fires let go
+- **A gun** (hold-to-fire): left held fires each cooldown; with `Charge` it charges then, fires let go
   full; flat, clicks dry, sends nothing. Afloat it kicks back (`Recoil`); a guest flies it.
 - **Drill, grinder, cutter** (0054, 0055): left held runs it (`Run`), hitting each `Pace` ticks, the cutter by its beam
   (`ToolEdges`), sparking where it touches (`ToolWork`).
-- **The power driver** (driver-at-work, driver-order): charged, at work a 2×2 square over plans or marks
-  (`WorkedSquare`), heard (`BiteLoop`). Right click toggles.
+- **The power driver** (driver-at-work, driver-order): charged, a 2×2 square over plans or marks
+  (`WorkedSquare`), heard (`BiteLoop`). Right click toggles; mode by the arrow (mode-glyph).
+- **Seated** (`Seating.Held`): no tool works; E leaves.
 - **Ladders and ledges** (0092): grab, climb, slide, leap off; an open hatch is climbable, a closed one a floor
   (0112). A jump a foot short is mantled.
 

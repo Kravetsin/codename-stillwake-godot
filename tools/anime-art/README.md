@@ -51,11 +51,12 @@ finish is `wash.js`, one for every subject; these are the rules a drawing must f
 | `cavelife` | `caves/` crystals, dripstone, fungi, threads, roots, cracks, geodes, fossils, the spire's cache and lamp, their `_glow`: dim |
 | `homes`, `homeskeep`, `homeslights`, `homeswall`, `homesruin` | `homes/*` and their `_dark`, `_fed`, `_glow`; `ruins/spireLens_*`. `homes.js` exposes `HomeKit`; the others sort after it |
 | `debris` | `debris/*`: rocks lit hard from one side, crates, plates, pods, scrap, derelicts; no lettering: they turn |
-| `net` | `machine_net` (booms), `net_mount` (plates left of it), `net_front_<n>` (holding n), `features/debris/logic/NetInk.cs` |
-| `bay`, `salvage` | `machine_droneBay`, `droneBay_*`, `salvage_*`, `items/salvageDrone`: the picked bay and salvage drone; `logistics/logic/BayInk.cs`, `SalvageInk.cs` |
-| `bulb` | `bulb_drawing_*`, `bulb_glass`, `bulb_fire_*`, `bulb_stump`: the bulb at the screen's top, straight ink, no finish |
+| `net` | `machine_net` (booms), `net_mount`, `net_front_<n>` (holding n), `features/debris/logic/NetInk.cs` |
+| `bay`, `salvage` | `machine_droneBay`, `droneBay_*`, `salvage_*`, `items/salvageDrone`; `logistics/logic/BayInk.cs`, `SalvageInk.cs` |
+| `scanner` | `hero_scanner`, `hero_heavyHelmet_scanner`, `_lit_<n>`, `items/scanner`; `ScannerInk.cs` |
+| `bulb` | `bulb_drawing_*`, `bulb_glass`, `bulb_fire_*`, `bulb_stump`: the screen's bulb, straight ink, no finish |
 | `edgekeys` | `holo_<key>`, `holo_<key>_glow`: the edge keys' white masks and glows |
-| `signs`, `credit`, `capsule`, `gauge` | `sign_*`: bolts, plug, wrench, tips; `credit`: the chip (credit-counter); `capsule`, `capsule_flame_<n>`: the trade capsule; `gauge_lamp[Wide]_<shape>_<tone>`: air lamps |
+| `signs`, `credit`, `capsule`, `gauge` | `sign_*`: bolts, plug, wrench, tips; `credit`: the chip; `capsule`, `capsule_flame_<n>`: the trade capsule; `gauge_lamp[Wide]_<shape>_<tone>`: air lamps |
 | `upgrades` | `upgrade_bag`, `upgrade_belt`, `upgrade_tradeSlots`, `upgrade_canister`: what the market sells that is no item |
 | `zleftovers` | the arc bench's and lamp's glows, `machine_emergencyLamp`, `module_arc_coil`, the pod's lit state and porthole, `wrist_*`, `tablet_*`: frames repeat, so a 9-slice has no seam |
 
@@ -72,7 +73,7 @@ Needs Node 22+ and Edge or Chrome (`ANIME_BROWSER` for another). Then `tools/sna
 
 A file `subjects/<name>.js` setting `Subjects.<name>`, which calls `out('<picture>', canvas)` for each picture, the
 canvas from `Anime.bake({ w, h, draw })`: `w` and `h` the logical picture's pixels, drawn at 4 times. Line weights
-and the light are the engine's, one for every subject (`engine.js`), per world pixel; use them, not numbers of your own.
+and the light are the engine's (`engine.js`), per world pixel; use them, not numbers of your own.
 `wash.js` loads after the engine and replaces `bake`; a picture drawn straight on a canvas skips the finish.
 
 - A picture is exactly 4 times the logical one; the game lays out by that.

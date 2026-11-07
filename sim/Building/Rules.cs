@@ -88,17 +88,44 @@ public sealed partial class BuildingModule
         if (layer == "machine" && _grid.MachineAt(at) is { } machine)
         {
             if (IsFixed(machine.Kind)) return "building.fixed";
-            if (Machines.Get(machine.Kind).Strength != null) return "building.needsAxe";
+            if (Machines.Get(machine.Kind).Hp != null) return "building.needsAxe";
         }
         if (IsMarked(layer, at)) return "building.planned";
-        return InUse(at, layer);
+        return InUse(at, layer) ?? HoldsMachine(at, layer);
     }
 
     /// <summary>
-    /// Why <paramref name="place"/> cannot be planned at <paramref name="cell"/>: a machine built into the ship, one its surface's kind
-    /// does not allow (0076), a blueprint not known (ADR 0024), what the grid says, a plan already claiming its slot in a cell it covers,
-    /// then, building instantly, a wall on a hero.
+    /// Why taking the structure out of <paramref name="cell"/> would leave a machine standing on nothing (2026-11-07-machines-stand):
+    /// <c>building.holdsMachine</c> when a standing machine stands on any cell of its piece.
     /// </summary>
+    private string? HoldsMachine(int cell, string layer)
+    {
+        if (layer != "structure") return null;
+        int width = _grid.Width;
+        foreach (int c in _grid.PieceOf(cell) is { Count: > 0 } piece ? piece : [cell])
+            if (c >= width && _grid.MachineAt(c - width) is { } machine && Machines.Stands(machine.Kind)) return "building.holdsMachine";
+        return null;
+    }
+
+    /// <summary>
+    /// Why a standing machine <paramref name="place"/> at <paramref name="cell"/> has nothing to stand on (2026-11-07-machines-stand):
+    /// <c>building.noFloor</c> unless every cell of the row under its footprint is footing, built or, when <paramref name="planned"/>
+    /// counts, a blueprint of one. Null for anything else.
+    /// </summary>
+    private string? FootingProblem(int cell, Placement place, bool planned)
+    {
+        if (place.Layer != "machine" || !Machines.Stands(place.Kind)) return null;
+        var spec = Machines.Get(place.Kind);
+        int below = cell + spec.Height * _grid.Width;
+        for (int dx = 0; dx < spec.Width; dx++)
+            if (!_grid.Footing(below + dx) && !(planned && FootingPlanned(below + dx))) return "building.noFloor";
+        return null;
+    }
+
+    /// <summary>Whether a blueprint of a footing structure (a wall, a floor) covers <paramref name="cell"/>.</summary>
+    private bool FootingPlanned(int cell) => State.Plans.Exists(p =>
+        p.Place is { Layer: "structure" } s && Structures.Placed(s.Kind) is int code && Structures.Footing(code) && Covers(p).Contains(cell));
+
     /// <summary>
     /// Why <paramref name="place"/> may not be planned at <paramref name="cell"/> for the shafts planned platforms keep, as the grid
     /// keeps built ones': under one (<c>grid.underPlatform</c>), or a platform over a solid plan (<c>grid.shaftBlocked</c>). Back walls
@@ -120,6 +147,12 @@ public sealed partial class BuildingModule
         return null;
     }
 
+    /// <summary>
+    /// Why <paramref name="place"/> cannot be planned at <paramref name="cell"/>: a machine built into the ship, one its surface's kind
+    /// does not allow (0076), a blueprint <paramref name="peer"/> does not know (ADR 0024), what the grid says, the shafts, a standing
+    /// machine with no footing under it built or planned (built only, building instantly), a plan already claiming its slot in a cell
+    /// it covers, its ports, then, building instantly, a wall on a hero.
+    /// </summary>
     private string? PlaceProblem(int cell, Placement place, int peer)
     {
         if (place.Layer == "machine" && IsFixed(place.Kind)) return "building.fixed";
@@ -128,6 +161,7 @@ public sealed partial class BuildingModule
         var gridProblem = _grid.PlacementProblem(cell, place);
         if (gridProblem != null) return gridProblem;
         if (PlannedShaftProblem(cell, place) is { } shaft) return shaft;
+        if (FootingProblem(cell, place, planned: !State.Instant) is { } footing) return footing;
         string slot = SlotOf(place.Layer);
         var wanted = Covers(cell, place);
         bool taken = State.Plans.Exists(p =>
@@ -220,13 +254,15 @@ public sealed partial class BuildingModule
     {
         var plan = State.Plans.Find(p => p.Id == id);
         if (plan == null) return "building.noPlan";
-        if (plan.Clear is { } layer) return Rules.ToolsBreak ? "building.notHere" : InUse(plan.Cell, layer);
+        if (plan.Clear is { } layer) return Rules.ToolsBreak ? "building.notHere" : InUse(plan.Cell, layer) ?? HoldsMachine(plan.Cell, layer);
         bool last = plan.Progress + 1 >= Costs.TicksFor(_grid, plan);
         // A wall's last tick waits while a hero stands in its cell, so nobody walls themselves in (0077); it finishes once they step out.
         if (plan.Place is { Kind: "wall" } && last && HeroIn(plan.Cell)) return "building.heroInside";
         // So does any last tick over what stands there now: a drop pod docks or lands where it finds room, plans or not.
         if (plan.Place is { } place && last && _grid.PlacementProblem(plan.Cell, place) is { } blocked)
             return blocked;
+        // A standing machine finishes only on footing built by then, a floor planned under it not yet laid (2026-11-07-machines-stand).
+        if (plan.Place is { } standing && last && FootingProblem(plan.Cell, standing, planned: false) is { } floor) return floor;
         // Nor over pipes its ports no longer fit, piped since it was planned (2026-10-29-typed-ports).
         if (plan.Place is { Layer: "machine" } machine && last && _pipes.SeatProblem(machine.Kind, plan.Cell) is { } seat)
             return seat;

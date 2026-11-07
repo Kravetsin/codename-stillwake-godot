@@ -13,7 +13,7 @@
 | `Rules.cs` | Which plans may be made and worked. |
 | `State.cs` | The saved slice: `Plan`, `Crack`, `Repairing`, `BuildingState`. |
 
-Plans and the work that turns them into the ship: a blueprint puts something in a cell, a mark takes something apart.
+A blueprint puts something in a cell, a mark takes something apart.
 Also digging, what grows (0077, 0079, 0080), the ruins' pieces (0085, 0091, 0096) and repairs (magnetic-flare).
 
 - **Depends on:** `Grid` (queries, ops); `Items` (queries, ops); `Crew` (`Heroes`; `Shock`, 0091, 0096); `Power`
@@ -27,13 +27,14 @@ Also digging, what grows (0077, 0079, 0080), the ruins' pieces (0085, 0091, 0096
 
 - **Blueprint checks, in order:** `building.fixed` (the lifepod, 0028); `building.needsAxe` (a pile, marked); `building.notHere`
   (`Surfaces.Kind.Builds`, 0076); `building.unknown` (unknown but to a creative sender, 0024; bedrock and machines with no card always, 0077); the
-  grid's `PlacementProblem` keys; plans' shaft keys too; `building.planned`; ports (`SeatProblem`, `pipes.*`). Structure
-  and machines share a solid slot, a back wall has its own. A machine covers its footprint; a ladder's or door segment's
-  2×2, a hatch's 2×1 (0104, 0111). Placing costs nothing. Soil and stone walls are blueprints too (0084).
+  grid's `PlacementProblem` keys; plans' shaft keys too; `building.noFloor` (machines-stand: `Footing` under a
+  standing machine, built or, not instant, planned); `building.planned`; ports (`SeatProblem`, `pipes.*`). Structure
+  and machines share a slot, back walls their own. A machine covers its footprint, a ladder or door segment 2×2, a hatch
+  2×1 (0104, 0111). Soil and stone walls are blueprints too (0084).
 - **Marks** (no ADR): one thing takes one mark and needs something in that layer; none at all where the surface's tools
   break things (`ToolsBreak`, a planet: `building.notHere`, its old marks not worked, fan-of-rays). A
   machine holding items, a fitted module (0086) or queued crafts (0057) is marked only empty, `building.notEmpty`,
-  checked again when worked. A machine's mark is kept at its top-left, a piece's at its first cell (`PieceOf`, 0104);
+  checked again when worked, as is `building.holdsMachine` (under a standing machine). A machine's mark is kept at its top-left, a piece's at its first cell (`PieceOf`, 0104);
   taking it apart takes the whole piece. Its cables stay on a peg (`Unplug`); a machine built is `Plug`ged in (0110).
 - **`Work`** is one tick of one hero's work, sent `Screwdriver.Work` times a tick while a builder is held on a
   plan (0107, power-driver); no tool checked. A blueprint takes its `BuildTicks`; a mark takes those
@@ -42,26 +43,26 @@ Also digging, what grows (0077, 0079, 0080), the ruins' pieces (0085, 0091, 0096
 - **Paid a part at a time** (0063): N parts for N cost items, part k starting at tick `BuildTicks * k / N`, rounded
   down. The tick that starts an unpaid part takes from the sender's stock (own slots, then crates) the first item in cost
   order still lacking, else is refused `items.notEnough`. Within a paid part anyone works; a creative worker pays from nothing.
-- **Repair** (free-repair): a tick of work as `Work` is, taking nothing; the last `Mend`s. A broken machine taken apart
-  refunds its whole cost.
-- **Instant** (`SetInstant`, dev): a blueprint built as placed, free; new surfaces keep it.
+- **Repair** (free-repair): a tick of work as `Work`, free; the last `Mend`s. A broken machine refunds in full.
+- **Instant** (`SetInstant`, dev): blueprints built free, removals refunded, at once; new surfaces keep it.
 - **Cancelling** a blueprint drops exactly what was put in (`DropAt`); a mark drops nothing (0063). Anyone may cancel
   or work any plan; a mark whose thing a meteor broke is dropped in derivation, refunding nothing.
 - **A wall does not finish on a hero** (0077): the `Work` that would complete a wall (instant: placing) is refused `building.heroInside`
   while its cell is in a standing body round a hero's reported middle (3 rows up, 2 down, 1 aside). Building runs before crew.
-  So does a last tick the grid or `SeatProblem` refuses (a pod or pipe since).
+  So does a last tick the grid, `SeatProblem` or a floor still unlaid refuses.
 - **`Hew(Tool, X, Y, Heading)`** (fan-of-rays), only where `ToolsBreak` (else `building.notHere`): the weapon's fan
   (`Rays`) from the hand; a ray stops at a wall or what stops a body, striking it if it breaks (not bedrock or lava; a
-  piece by its first cell, at its `Build.Strength`), and passes ladders, open doors and plants, striking them (`Struck`).
+  piece by its first cell), and passes ladders, open doors and plants, striking them (`Struck`).
   `HewCells(Tool, Cells)` (tool-edge) strikes each listed cell as a ray does, once.
-  Each takes `BlockDamage` (0098) once (0: none, no shock): at its strength a wall goes for its `Cost` and held growths, a piece whole.
+  Each takes `BlockDamage` (0098) once (0: none, no shock), a pile `Damage` at its `Hp` (pile-hit-points): at its strength a wall
+  goes for its `Cost` and held growths, a piece whole.
   `building.nothingToDig`, then `items.flat` / `items.notRunning`. `Hit`, a shot's, strikes one cell `ShotTakes` allows,
   true if it broke, its yield the shooter's here, else anyone's. No tool hits back walls.
-- **Cracks heal** (0077): one not hit for `Builds.CrackHeals` ticks of Building's `Clock` is dropped; one whose wall or
-  plant is gone is dropped in derivation.
+- **Cracks heal** (0077): one not hit for `Builds.CrackHeals` ticks of Building's `Clock` is dropped, as, in derivation,
+  one whose wall or plant is gone.
 - **Growths** (0079, 0080) grow from the seed with `Terrain`, each held by an `Anchor` (floor, ceiling, rock, back).
   A hit on any open cell of one cracks it by its own cell; at its kind's `Strength` it is felled for its `Yields`; one in
-  the rock goes with its stone. Hold gone or own cell built over: felled in derivation, round the grid log's cells (0051). Nothing grows back; only `Felled` is saved.
+  the rock goes with its stone. Hold gone or own cell built over: felled in derivation (0051). Nothing grows back.
 - **Felled by nobody** (0085): built over or lost to a meteor, a growth drops its `Yields` at its cell, anyone's.
 - **Ruins** (0085, 0091): caches, lenses and the homes' pieces are growths set by `Terrain`. `Behind` pieces have a
   layer of their own, the front hit first; `Fixed` ones no hit takes; a piece standing on another falls with it.
@@ -73,7 +74,7 @@ Also digging, what grows (0077, 0079, 0080), the ruins' pieces (0085, 0091, 0096
 ## Commands
 
 `PlacePlan(Cell, Placement)`, `Deconstruct(Cell, Layer)` (`building.nothingThere` besides), `CancelPlan(Id)`
-(`building.noPlan`), `Work(Plan)` (`building.noPlan`, `items.notEnough`, `building.notEmpty`, `building.heroInside`, `pipes.*`),
+(`building.noPlan`), `Work(Plan)` (`building.noPlan`, `items.notEnough` and the keys above),
 `Hew(Tool, X, Y, Heading)`, `HewCells(Tool, Cells)`, `SetInstant(On)`, `Repair(Machine)` (`building.notBroken`). Previews ask
 `Problem`, `WorkProblem`, `HewProblem`, `HewCellsProblem`, `Struck`, `RepairProblem`.
 

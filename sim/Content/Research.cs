@@ -53,6 +53,7 @@ public static class Research
     [
         // Open from the start, its later rows by what is sold (docs/decisions/2026-11-05-the-board.md); the solar panel once circuits sell, for its cells come from the same bench (market-decrypt).
         // The heavy helmet with the frames the jetpack is made of, the canisters' upgrade a row later (2026-11-03-the-heavy-helmet);
+        // the scanner with the plates its order wants, before the jetpack's far wrecks (2026-11-07-the-scanner);
         // the regen suit beside the belt's third slot, the charge it runs on, eight times its worth: 12000 (2026-11-03-the-regen-suit).
         new(Market,
             new TechRing(null, [],
@@ -68,6 +69,7 @@ public static class Research
                 Up("bag6"),
                 Up("belt1"),
                 ("powerDriver", 4),
+                ("scanner", 3),
                 Up("tradeSlots3"),
                 Up("tradeSlots4")),
             new("order3", [("glass", 20), ("silicon", 20), ("frame", 10)],

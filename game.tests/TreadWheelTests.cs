@@ -60,6 +60,8 @@ public class TreadWheelTests
         Assert.Equal((7 * Hero.Unit, 10 * Hero.Unit), (held.X, held.Y));
         // A wheel holds no air of its own: the rider hears what the room around it holds, and its move keys run it.
         Assert.Equal((true, false, "treadWheel"), (Seating.InWheel(w.M, 0), Seating.InPod(w.M, 0), Seating.KindOf(w.M, 0)));
+        // Its hands on the rail, it works no tool.
+        Assert.True(Seating.Held(w.M, 0));
         Assert.Equal("[A/D] Run · [E] Get out", I18n.En.T(Prompts.SeatedIn("treadWheel").Action));
         Assert.Equal("use.alight", Prompts.SeatedIn("dropPod").Action);
     }

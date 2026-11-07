@@ -273,14 +273,14 @@ public class DescentTests
     }
 
     /// <summary>
-    /// A friend plans a crate where the pod stood while it is down; the pod docks over it first. The plan's last tick waits on what
+    /// A friend plans a lamp where the pod stood while it is down (a standing machine needs a floor there); the pod docks over it first. The plan's last tick waits on what
     /// stands there, as a wall's on a hero, rather than building into it: the world goes on.
     /// </summary>
     [Fact]
     public void APlanOverTheHomeOfAPodBackFirstWaitsOnItsLastTick()
     {
         var w = Ready().Do(new Launch()).Run(Down + 1);
-        w.Do(new SetCreative(true) { From = 1 }).Do(new Stillwake.Sim.Building.PlacePlan(LeftHome, new Placement("machine", "crate")) { From = 1 }).Run();
+        w.Do(new SetCreative(true) { From = 1 }).Do(new Stillwake.Sim.Building.PlacePlan(LeftHome, new Placement("machine", "lamp")) { From = 1 }).Run();
         int plan = Assert.Single(w.M.Building.Plans).Id;
         w.Do(new Launch { Surface = 1 }).Run(Up + 1);
         Assert.Equal(PodAt(w, LeftHome), w.M.Landing.SeatOf(0));

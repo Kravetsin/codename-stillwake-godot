@@ -261,6 +261,17 @@ public class PowerTests
     }
 
     [Fact]
+    public void AWiredMachineTakenApartInstantlyLeavesItsCableOnAPegToo()
+    {
+        var w = World().Do(new SetInstant(true));
+        w.Do(new Deconstruct(Generator, "machine")).Run();
+        Assert.Empty(w.Refusals);
+        Assert.Empty(w.M.Building.Plans);
+        Assert.Null(w.M.Grid.MachineAt(Generator));
+        Assert.Equal([(Panel, Generator + 2, true)], CablesOf(w));
+    }
+
+    [Fact]
     public void RefusesCablesAwayFromTheShip()
     {
         var w = new Scenario(Layout.Parse(["........", ".######.", ".#.S..#.", ".######."]));
