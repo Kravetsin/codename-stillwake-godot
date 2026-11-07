@@ -31,6 +31,8 @@ electrolyser, which splits it into the liquid oxygen of the tanks on its output.
   At full power it makes one a tick. What it puts in is breathed from next tick: Atmosphere has already run.
 - **A cistern taken apart** takes its water with it, in the construction phase.
 - **Melting** is content: ice smelts into a bottle of water (`Items.cs`), at the furnace in 40 ticks.
+- **A planet stage:** ice and copper come only of planets, and the electrolyser's electrodes are copper
+  (industrial-oxygen), so it is understood and built there first.
 
 ## API
 

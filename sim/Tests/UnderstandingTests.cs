@@ -60,6 +60,18 @@ public class UnderstandingTests
         Assert.True(w.Run().M.Research.Knows("furnace"));
     }
 
+    /// <summary>The electrolyser's electrodes are a planet's copper (industrial-oxygen): every other part found is not enough.</summary>
+    [Fact]
+    public void TheElectrolyserWaitsForCopper()
+    {
+        var w = Room();
+        foreach (var (item, _) in CostOf(w, "electrolyser").Where(p => p.Item != "copper"))
+            w.M.Knowledge.Obtain(item, Understanding.Enough(item));
+        Assert.False(w.Run(5).M.Research.Knows("electrolyser"));
+        w.M.Knowledge.Obtain("copper", Understanding.Enough("copper"));
+        Assert.True(w.Run().M.Research.Knows("electrolyser"));
+    }
+
     [Fact]
     public void ACraftWaitsForAMachineThatMakesIt()
     {
