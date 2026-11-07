@@ -55,10 +55,10 @@ public static class Testbed
     public static IEnumerable<string> InSupply => [HelmetLamp.Item, Helmet.Scanner, "accumulator", .. ComputerParts, "deckDrive", .. EngineParts, Shots.Nailer.Item, Shots.Railgun.Item, Shots.Nail.Id];
 
     /// <summary>
-    /// What the tools crate on the lifepod holds, the others being full: the salvage tools (salvage-tools), the pickaxe (the-pickaxe), and an arc
+    /// What the tools crate on the lifepod holds, the others being full: the salvage tools (salvage-tools), the pickaxe (the-pickaxe), the grappling gun (grapple-climbs), and an arc
     /// module for each machine and tool it fits (0086, 0098, 0100), which takes a spire's relic to make.
     /// </summary>
-    public static IEnumerable<string> InTools => [Weapons.Grinder.Item, Weapons.Spear.Item, Weapons.Sledgehammer.Item, Weapons.PlasmaCutter.Item, Weapons.Pickaxe.Item, .. Modules.Arc.Hosts.Select(_ => Modules.Arc.Item)];
+    public static IEnumerable<string> InTools => [Weapons.Grinder.Item, Weapons.Spear.Item, Weapons.Sledgehammer.Item, Weapons.PlasmaCutter.Item, Weapons.Pickaxe.Item, Grapple.Item, .. Modules.Arc.Hosts.Select(_ => Modules.Arc.Item)];
 
     /// <summary>What the bay holds beside its drones, the crates being full: a salvage drone, charged, its fuel slot empty, so it never flies here (salvage-drones).</summary>
     public static readonly IReadOnlyList<string> InBay = [Logistics.SalvageDrone];

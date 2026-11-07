@@ -130,11 +130,18 @@ public partial class HeroView : Node2D
     private bool _grabHeld;
     /// <summary>Whether the swing under way was begun with the right button: it digs the back walls (0107).</summary>
     /// <summary>
-    /// The harpoon (0044): this hero's rod and the cooldown every harpoon it holds waits for, the line to the
-    /// rod, the rod as drawn, and whether the arm aims the gun, so the hero keeps facing the pointer.
+    /// The harpoon (0044) and the grappling gun (grapple-climbs): each one's rod and the cooldown every gun of its kind
+    /// waits for, the line to the rod, the rod as drawn, and whether the arm aims the gun, so the hero keeps facing the
+    /// pointer. <see cref="_harpoon"/> is the one in the hand, the harpoon's when neither is; the grappling gun's world
+    /// offers it walls only.
     /// </summary>
-    private HarpoonShot _harpoon = new();
-    private readonly HarpoonWorld _harpoonWorld;
+    private HarpoonShot _harpoonGun = HarpoonShot.Harpoon(), _grappleGun = HarpoonShot.Grapple();
+    private bool _grappling;
+    private HarpoonShot _harpoon => _grappling ? _grappleGun : _harpoonGun;
+    private readonly HarpoonWorld _harpoonWorld, _grappleWorld;
+
+    /// <summary>Both guns' rods back in them, their cooldowns over: moved to another surface or across the fog.</summary>
+    private void ResetGuns() => (_harpoonGun, _grappleGun) = (HarpoonShot.Harpoon(), HarpoonShot.Grapple());
     private HarpoonLine? _line;
     private readonly RodLight _rodLight = new();
     private bool _aimsGun;
@@ -273,6 +280,10 @@ public partial class HeroView : Node2D
             Reelable: id => _m!.Debris.ReelProblem(_client!.Id, id) == null,
             Reeled: id => ReelInFlight(id) || PieceOf(id)?.Reel?.By == _client!.Id,
             Grips: at => Aiming.Grips(_ship!, at));
+        _grappleWorld = _harpoonWorld with
+        {
+            Touches = (from, to) => Aiming.Grapples(_ship!, from, to) is { } wall ? new RodHit(null, wall.At) : null,
+        };
     }
 
     /// <summary>A harpoon rod's picture, over the heroes, lit, hidden till a rod is out.</summary>
@@ -283,8 +294,6 @@ public partial class HeroView : Node2D
             Centered = false,
             Visible = false,
             ZIndex = Layers.Hero,
-            Texture = HeldArt.Of(RodLook.Picture, []),
-            Offset = -new Vector2((float)RodLook.Eye.X, (float)RodLook.Eye.Y),
         };
         Lit.Set(rod);
         AddChild(rod);
@@ -397,7 +406,7 @@ public partial class HeroView : Node2D
         // Moved to another surface, the harpoon's rod is back in the gun: what it stuck in is another grid's (0076).
         if (moved)
         {
-            _harpoon = new HarpoonShot();
+            ResetGuns();
             _guns.Drop();
         }
         // Waking from passing out, the sim has put the hero at the spawn: so does the client. Moved to another surface, it
@@ -438,7 +447,7 @@ public partial class HeroView : Node2D
             // Swinging, it faces where the swing began toward, swimming too: the blade comes down there. Aiming
             // the harpoon, it faces the pointer, swimming the other way too. With no pointer, a script faces where it says.
             bool swinging = _swing.Phase != null;
-            _letsGo |= taken.Jump || taken.X != 0 || taken.Y != 0;
+            _letsGo |= HarpoonShot.LetsGoBy(taken);
             // Pulled by the grapple or hanging from it, the line moves the hero, not the keys; pulled, it faces the hook.
             var pull = passedOut ? null : _harpoon.PullTo;
             int? faces = _harpoon.Rod == Rod.Pulling ? (_harpoon.Tip.X < _current.X ? -1 : 1) : swinging ? _swingFace : face ?? taken.Face;
@@ -450,7 +459,7 @@ public partial class HeroView : Node2D
             if (thrust != null) _thrust = thrust;
             var input = passedOut || seat != null
                 ? new HeroInput(0, 0, false, Jetpack: jetpack)
-                : taken with { Face = faces, Swings = swinging || _armUp, Pull = pull, Jetpack = jetpack, Thrust = thrust };
+                : taken with { Face = faces, Swings = swinging || _armUp, Pull = pull, PullBy = _harpoon.PullBy, Jetpack = jetpack, Thrust = thrust };
             // Rammed, the hero is thrown, not walked: no keys, no ladder, a held Up or Space taken by nothing (0103).
             if (_reel > 0)
             {
@@ -556,10 +565,10 @@ public partial class HeroView : Node2D
     /// </summary>
     private void Fogged(Ship ship, bool seated)
     {
-        if (ship.Glides(_current.X) && !ship.Glides(_previous.X)) _harpoon = new HarpoonShot();
+        if (ship.Glides(_current.X) && !ship.Glides(_previous.X)) ResetGuns();
         if (FogMove.Of(ship, _previous, _current, seated) is not { } moved) return;
         _previous = _current = moved;
-        _harpoon = new HarpoonShot();
+        ResetGuns();
         _snap = true;
         _reportedAt = int.MinValue / 2;
     }

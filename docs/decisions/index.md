@@ -49,7 +49,7 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [0041](0041-wreckage-of-many-kinds-and-circuits.md) | Wreckage of many kinds, and circuits | accepted |  |
 | [0042](0042-what-is-heard-in-space.md) | What is heard in space | accepted | 0059 (in part) |
 | [0043](0043-a-solar-panel-needs-the-stars.md) | A solar panel needs the stars | accepted |  |
-| [0044](0044-the-harpoon-reels-a-piece-to-a-point.md) | The harpoon reels a piece to a point | accepted | 0046, 0065, 0068 (in part) |
+| [0044](0044-the-harpoon-reels-a-piece-to-a-point.md) | The harpoon reels a piece to a point | accepted | 0046, 0065, 0068, grapple-climbs (in part) |
 | [0045](0045-a-burner-generator-shares-the-furnaces-fire.md) | A burner generator shares the furnace's fire | accepted | 0046, 0057 (in part) |
 | [0046](0046-recipes-show-what-a-thing-is-made-of.md) | Recipes show what a thing is made of | accepted | 0068 (in part) |
 | [0047](0047-equipment-the-jetpack-and-the-slower-swim.md) | Equipment, the jetpack and the slower swim | accepted | 0058, 0068 (in part) |
@@ -272,6 +272,7 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [board-search](2026-11-07-board-search.md) | The board has its own search | accepted |  |
 | [cracks-to-end](2026-11-07-cracks-to-end.md) | A wreck's cracks run on until they cover it at the break | accepted |  |
 | [creative-per-player](2026-11-07-creative-per-player.md) | Creative mode is each player's | accepted |  |
+| [grapple-climbs](2026-11-07-grapple-climbs.md) | The grapple climbs | accepted |  |
 | [hits-pass-wrecks](2026-11-07-hits-pass-wrecks.md) | A tool's rays pass through wrecks and hit all they cross | accepted |  |
 | [machines-stand](2026-11-07-machines-stand.md) | Machines stand on a floor | accepted |  |
 | [no-charge-flash](2026-11-07-no-charge-flash.md) | A flat press blinks the energy tab red | accepted |  |

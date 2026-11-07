@@ -25,6 +25,8 @@ public static class Crafts
         new("screwdriver", [], Ticks: 20),
         // A tube and its line of wire, no coil: the first ring's, so salvage comes in from the first iron on (first-hour-pace).
         new("harpoon", [("tube", 1), ("wire", 8)], Ticks: 100),
+        // The climber's harpoon (grapple-climbs): a sturdier tube, a geared winch and its motor's coil.
+        new("grapple", [("tube", 2), ("gear", 2), ("coil", 1), ("wire", 8)], Ticks: 120),
         // The first gun (shots-are-the-sims): after the harpoon, as what it fights is only met flying; the axe's time.
         new("nailer", [("tube", 1), ("plate", 2), ("wire", 2)], Ticks: 60),
         // Two scrap a nail, so the scrap a hero has too much of goes into nails made ahead: a second a nail at the pod.
