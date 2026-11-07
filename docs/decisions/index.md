@@ -247,7 +247,7 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [build-from-crates](2026-11-05-build-from-crates.md) | Building, pipes and cables pay from every crate on the ship | accepted |  |
 | [build-hints](2026-11-05-build-hints.md) | Build hints: a screen of key caps that changes with the hand | accepted |  |
 | [craft-from-crates](2026-11-05-craft-from-crates.md) | A paid craft takes from every crate on the ship | accepted |  |
-| [damage-looks](2026-11-05-damage-looks.md) | Damage and work drawn in ink | accepted | tool-reach (in part) |
+| [damage-looks](2026-11-05-damage-looks.md) | Damage and work drawn in ink | accepted | tool-reach, cracks-to-end (in part) |
 | [hologram-keys](2026-11-05-hologram-keys.md) | The edge's keys are holograms of what can be used, and the bulb bursts at the screen's top | accepted |  |
 | [melee-edge](2026-11-05-melee-edge.md) | A stroke hits with its swept blade | accepted | tool-reach (in part) |
 | [the-board](2026-11-05-the-board.md) | Things are learned by having them, on the scavenger's board | accepted |  |
@@ -255,7 +255,7 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [tip-signs](2026-11-05-tip-signs.md) | Tips speak in signs and the bubble's numbers | accepted |  |
 | [tool-contact](2026-11-05-tool-contact.md) | A running tool is seen at work all along | accepted | damage-looks, tool-edge (in part) |
 | [tool-edge](2026-11-05-tool-edge.md) | A running tool hits with what is drawn | accepted | tool-reach (in part) |
-| [tool-reach](2026-11-05-tool-reach.md) | A tool hits by a fan of rays from the shoulder and shows its reach in use | accepted |  |
+| [tool-reach](2026-11-05-tool-reach.md) | A tool hits by a fan of rays from the shoulder and shows its reach in use | accepted | hits-pass-wrecks (in part) |
 | [creatures-in-herds](2026-11-06-creatures-in-herds.md) | Wild creatures come in small herds of one kind | accepted |  |
 | [energy-ring](2026-11-06-energy-ring.md) | The energy tab's ring and beating bolt | accepted |  |
 | [gain-spots](2026-11-06-gain-spots.md) | What a hero gains, counted beside where it came from | accepted |  |
@@ -268,6 +268,10 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [the-power-chain](2026-11-06-the-power-chain.md) | The power chain | accepted |  |
 | [trade-station-later](2026-11-06-trade-station-later.md) | The trade station comes with circuits | accepted |  |
 | [air-feedback](2026-11-07-air-feedback.md) | Air and power answer the player loudly | accepted |  |
+| [battery-workbench](2026-11-07-battery-workbench.md) | The workbench makes batteries | accepted |  |
 | [board-search](2026-11-07-board-search.md) | The board has its own search | accepted |  |
 | [machines-stand](2026-11-07-machines-stand.md) | Machines stand on a floor | accepted |  |
+| [cracks-to-end](2026-11-07-cracks-to-end.md) | A wreck's cracks run on until they cover it at the break | accepted |  |
+| [hits-pass-wrecks](2026-11-07-hits-pass-wrecks.md) | A tool's rays pass through wrecks and hit all they cross | accepted |  |
 | [no-charge-flash](2026-11-07-no-charge-flash.md) | A flat press blinks the energy tab red | accepted |  |
+| [radar-mast](2026-11-07-radar-mast.md) | The radar antenna is a guyed mast | accepted |  |

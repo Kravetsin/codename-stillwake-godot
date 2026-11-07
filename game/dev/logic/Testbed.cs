@@ -107,7 +107,7 @@ public static class Testbed
     /// </summary>
     public static readonly Layout Map = Layout.Parse(
         [
-            new string(' ', 96),
+            "   NN".PadRight(96),
             "   NN",
             "   NN  PPP  PPPPPP PPPPPPPPP PPP PPP PPP PPP PPP PPP PPP",
             "  ###############################################",

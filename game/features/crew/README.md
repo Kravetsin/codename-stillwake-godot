@@ -27,9 +27,9 @@ the sim.
 | `logic/FogMove.cs` | across fog (fog-edges) |
 | `SeatedHeroes.cs` | behind the porthole |
 | `UsePrompt.cs` | that prompt shown |
-| `logic/Tether.cs` | tether drawn, reeled |
+| `logic/Tether.cs` | the tether |
 | `logic/DrillPace.cs` | when the drill hits (0054) |
-| `logic/RunSounds.cs` | tools heard running |
+| `logic/RunSounds.cs` | tools heard |
 | `logic/ToolEdge.cs` | the cutter's beam |
 | `logic/ToolRays.cs` | what a tool hits |
 | `WreckPixels.cs` | wrecks' opaque pixels |
@@ -49,8 +49,8 @@ the sim.
 | `CapeView.cs` | it drawn, lined |
 | `HeroView.cs` | keys, steps, rams, camera |
 | `HeroView.Hands.cs` | its hands |
-| `HeroView.Guns.cs` | its gun, a guest's shots |
-| `logic/GunHand.cs` | a gun's cooldown and shots |
+| `HeroView.Guns.cs` | its gun |
+| `logic/GunHand.cs` | a gun's cooldown |
 | `HeroView.Others.cs` | others' heroes |
 | `logic/CameraFollow.cs` | the camera's aim |
 | `JetPlume.cs` | a jetpack's plume |
@@ -63,14 +63,14 @@ the sim.
 | `Frost.cs` | frost past the field (0050) |
 | `logic/Danger.cs` | the gauge's read |
 | `logic/AirCues.cs` | air back (0081) |
-| `logic/CanistersSeen.cs` | friends' canisters |
+| `logic/CanistersSeen.cs` | others' tanks |
 | `AirSwirl.cs` | fling, breath, leak (0081, 0103) |
 | `SuitGauge.cs` | the suit gauge (0081) |
 | `logic/Tunnel.cs` | the last breath |
 | `TunnelView.cs` | it drawn |
 | `logic/VisorFog.cs` | a low suit's fog |
 | `VisorFogView.cs` | it drawn |
-| `SuitColours.cs` | menu's suit colours |
+| `SuitColours.cs` | menu's colours |
 | `LookEditor.cs` | the look editor |
 | `logic/Markers.cs` | markers |
 | `MarkerLayer.cs` | edge arrows |
@@ -124,9 +124,10 @@ the sim.
   the plan, wiring, lays cables; a tool on the right, nothing.
 - **One aim** (`Aiming.AimAt`): a plan (back walls first), machine (its rise, 0099), tank, door or valve (E), a wreck under the
   pointer, else the nearest small piece. Outlined green or red, `UsePrompt` says why; plan in hand, E idle. Armed, small pieces.
-- **Hits are rays from the shoulder** (tool-reach): the weapon's fan (`ToolRays`), each stopped by a wall or wreck pixel;
-  the ground met rings and sparks. Its reach shows in use (`AirCuts`).
-- **Struck tools** (0038, salvage-tools): axe, hammer, spear, paced; a swing hits as its blade crosses the aim.
+- **Hits are rays from the shoulder** (tool-reach, hits-pass-wrecks): the fan (`ToolRays`), each to a wall, hitting all
+  wrecks it crosses; the ground met rings, sparks. Its reach shows in use.
+- **Struck tools** (0038, salvage-tools): axe, hammer, spear, each its own pace; a swing hits as its blade crosses the aim,
+  its fan swept as far as a shoulder goes (`ShapeFor`).
 - **The harpoon** (0044): a click fires; stuck in a piece the next sends `Reel`, in structure it pulls the hero.
 - **A gun** (hold-to-fire): left held fires as its cooldown runs out; with `Charge` it charges then, fires let go
   full; flat, clicks dry, sends nothing. Afloat it kicks back (`Recoil`); a guest flies it.
