@@ -127,7 +127,7 @@ the sim.
 - **Hits are rays from the shoulder** (tool-reach): the weapon's fan (`ToolRays`), each stopped by a wall or wreck pixel;
   the ground met rings and sparks. Its reach shows in use (`AirCuts`).
 - **Struck tools** (0038, salvage-tools): axe, hammer, spear, paced; a swing hits as its blade crosses the aim,
-  never raised past `AxeSwing.Overhead`, eased from the arm drawn.
+  its fan swept as far as a shoulder goes (`ShapeFor`).
 - **The harpoon** (0044): a click fires; stuck in a piece the next sends `Reel`, in structure it pulls the hero.
 - **A gun** (hold-to-fire): left held fires as its cooldown runs out; with `Charge` it charges then, fires let go
   full; flat, clicks dry, sends nothing. Afloat it kicks back (`Recoil`); a guest flies it.

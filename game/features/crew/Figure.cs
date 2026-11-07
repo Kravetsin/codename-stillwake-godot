@@ -981,7 +981,7 @@ public partial class Figure : Node2D
                 swung = (HarpoonShot.ArmFor(item! with { Elbow = elbow }, dx, dy), drawn);
             }
             // How far past the line to its point the arm swings for the blade, not the hand, to meet it (0040).
-            else swung = (AxeSwing.AngleAt(Math.Atan2(dy, dx) + AxeSwing.Lead(item!), drawn), drawn);
+            else swung = (AxeSwing.AngleAt(Math.Atan2(dy, dx) + AxeSwing.Lead(item!), drawn, stroke.Half), drawn);
         }
         else if (aiming && Aim is { } target && item != null)
         {
@@ -1101,14 +1101,14 @@ public partial class Figure : Node2D
         {
             bool jab = stroke!.Kind == StrokeKind.Thrust;
             var (aimX, aimY) = FromShoulder(cutAt);
-            double half = Math.PI * weapon.Arc / Stillwake.Content.Headings.Turn, scale = AxeSwing.ScaleFor(Math.Atan2(aimY, aimX) + AxeSwing.Lead(item!));
-            double span = scale * (AxeSwing.Raised + AxeSwing.Through);
-            double start = jab ? stroke.HitShare : AxeSwing.WindShare + AxeSwing.StrikeShare * Math.Max(0, scale * AxeSwing.Raised - half) / span;
+            double half = Strokes.HalfOf(weapon);
+            var shape = AxeSwing.ShapeFor(Math.Atan2(aimY, aimX) + AxeSwing.Lead(item!), half);
+            double start = jab ? stroke.HitShare : AxeSwing.ShareAt(-half, shape);
             if (_cutPhase < start && cutPhase >= start)
             {
                 var edge = Rig.HeldAt(frontArm, item!, item!.EdgeTo);
                 double reach = Math.Sqrt(edge.X * edge.X + edge.Y * edge.Y);
-                double sweep = jab ? WorkLooks.ThrustSweepMs : AxeSwing.StrikeShare * Math.Min(2 * half, span) / span * stroke.Ms;
+                double sweep = jab ? WorkLooks.ThrustSweepMs : (AxeSwing.ShareAt(half, shape) - start) * stroke.Ms;
                 _air.Strike(jab, Math.Atan2(aimY, aimX), half, weapon.Range * Rig.Cell / Hero.Unit, jab ? reach : reach - 4, sweep,
                     WorkLooks.CutFadeOf(Wields));
             }
