@@ -16,7 +16,7 @@ public static partial class En
         ["bind.up"] = "Up, climb",
         ["bind.down"] = "Down",
         ["bind.jump"] = "Jump",
-        ["bind.sprint"] = "Sprint, jetpack",
+        ["bind.sprint"] = "Sprint, jetpack, haul in",
         ["bind.use"] = "Use, open",
         ["bind.breathe"] = "Breathe a canister",
         ["bind.suit"] = "Suit mode",

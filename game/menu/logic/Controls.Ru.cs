@@ -16,7 +16,7 @@ public static partial class Ru
         ["bind.up"] = "Вверх, лезть",
         ["bind.down"] = "Вниз",
         ["bind.jump"] = "Прыжок",
-        ["bind.sprint"] = "Бег, джетпак",
+        ["bind.sprint"] = "Бег, джетпак, подтягивание",
         ["bind.use"] = "Использовать, открыть",
         ["bind.breathe"] = "Вдохнуть из баллона",
         ["bind.suit"] = "Режим костюма",
