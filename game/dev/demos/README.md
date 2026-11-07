@@ -28,6 +28,7 @@ effect, so a release build has none of this folder and no `*Demo.cs` anywhere.
 | `TabletHands.cs` | A script's hands on the research tablet: `--tree`, `--board` |
 | `CreatureHands.cs` | `--creatures`'s hands: the hero hunting the creatures with the axe, then the drill |
 | `ClimbScenario.cs` | `--climb`: the first planet, the hero at the bottom of its deepest chasm, grappling gun in hand, the harpoon beside, creative (grapple-climbs) |
+| `MeleeScenario.cs` | `--melee`: the hero in space by a hull, still pieces all round, the axe, pickaxe, sledgehammer and spear on 1-4, creative (swing-motions) |
 
 ## How a run is put together
 
