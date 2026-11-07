@@ -11,7 +11,8 @@ namespace Stillwake.Game.Render;
 /// Every picture of the ship's cells packed into one atlas, with one normal map beside it, as the single
 /// source of one <see cref="TileSet"/>: a layer's piece of the screen is then one draw, whatever
 /// pictures it holds. A picture is cut into cells (walls, scrap back walls) or laid whole from a cell's
-/// top-left (doors, pipes, machines); a valve, smaller than a cell, sits in the middle of one.
+/// top-left (doors, pipes, machines); a valve, smaller than a cell, sits in the middle of one. Its specular map is black but where a
+/// vein's ore is (<see cref="OreMask"/>), for <c>render/Lit.cs</c>'s shine.
 /// </summary>
 public sealed class ShipTiles
 {
@@ -120,6 +121,9 @@ public sealed class ShipTiles
         var atlas = Image.CreateEmpty(Across * Cell * S, down * Cell * S, false, Image.Format.Rgba8);
         var normals = Image.CreateEmpty(Across * Cell, down * Cell, false, Image.Format.Rgba8);
         normals.Fill(Flat);
+        // Black but where a vein's ore lies: what its picture adds to its host's sheet, in its fleck's colour.
+        var ores = Image.CreateEmpty(atlas.GetWidth(), atlas.GetHeight(), false, Image.Format.Rgba8);
+        ores.Fill(Colors.Black);
         foreach (var (name, diffuse, normal) in pictures)
         {
             var at = _placed[name].At * Cell;
@@ -138,10 +142,16 @@ public sealed class ShipTiles
             var inset = name.StartsWith("valve_", StringComparison.Ordinal) ? (box.Size - fine.GetSize()) / 2 : Vector2I.Zero;
             atlas.BlitRect(fine, new Rect2I(Vector2I.Zero, fine.GetSize()), box.Position + inset);
             Extrude(atlas, box, Cell * S / 2);
+            if (OreOf(name, fine) is { } ore)
+            {
+                ores.BlitRect(ore, new Rect2I(Vector2I.Zero, ore.GetSize()), box.Position);
+                Extrude(ores, box, Cell * S / 2);
+            }
         }
         atlas.GenerateMipmaps();
+        ores.GenerateMipmaps();
 
-        Texture = HiRes.Sampled(ImageTexture.CreateFromImage(atlas), new Vector2I(Across * Cell, down * Cell), ImageTexture.CreateFromImage(normals));
+        Texture = HiRes.Sampled(ImageTexture.CreateFromImage(atlas), new Vector2I(Across * Cell, down * Cell), ImageTexture.CreateFromImage(normals), ImageTexture.CreateFromImage(ores));
         var source = new TileSetAtlasSource
         {
             Texture = Texture,
@@ -171,6 +181,18 @@ public sealed class ShipTiles
             int rise = spec != null ? Mathf.Max(0, size.Y - spec.Height) : 0, reach = spec?.Exhaust ?? 0;
             source.GetTileData(at, 0).TextureOrigin = -(size - Vector2I.One) * Cell / 2 + new Vector2I(reach * Cell, rise * Cell);
         }
+    }
+
+    /// <summary>
+    /// The ore of picture <paramref name="name"/>, drawn <paramref name="fine"/>, if it is a vein's wall (any <c>Material.In</c>): what it adds
+    /// to its host's wall, in its fleck; none for every other picture, or a vein whose sheet is not its host's size.
+    /// </summary>
+    private static Image? OreOf(string name, Image fine)
+    {
+        if (!name.StartsWith("wall_", StringComparison.Ordinal) || !Materials.TryGet(name["wall_".Length..], out var vein) || vein.In == null) return null;
+        if (HiRes.Load(WallName(vein.In)) is not { } host || host.GetSize() != fine.GetSize()) return null;
+        var mask = OreMask.Of(fine.GetData(), host.GetData(), GroundLooks.Of[vein.Id].Fleck);
+        return Image.CreateFromData(fine.GetWidth(), fine.GetHeight(), false, Image.Format.Rgba8, mask);
     }
 
     /// <summary>A door's panel part way open from the hi-res pictures, its panel told by what differs between shut and open; none unless all of them are drawn.</summary>

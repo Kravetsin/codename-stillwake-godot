@@ -51,8 +51,7 @@ The wrist's metal, screens, keys and gauge (0074, 0081) are `game/shared/`'s (`W
   empty input); else quick equip (0047) for a worn kind, swapping with the first worn when none is free; else between
   bag and hotbar (no ADR), onto the first alike stack with room or empty slot, the slot shaking when there is none.
   The sim decides; a refused move changes nothing.
-- **Every shift that sends flies** (0075): `Clicks.On`/`OnSocket` decide its `Flight` (`ShiftFlightsTests`), at most
-  `Fx.MostRibbons`.
+- **Every shift that sends flies** (0075): `Clicks.On`/`OnSocket` decide its `Flight`, at most `Fx.MostRibbons`.
 - **One hand** (0022): 1–9 and the wheel choose a hotbar slot and free the hand; Tab opens the inventory; Q throws the
   chosen stack (not while a card is in hand). `Ui.Wielded` is the chosen item while the hand is free (0034).
   Esc or passing out closes the inventory and crate, before the menu. `Ui.OpenCrate` is set by crew's E within reach.
@@ -61,11 +60,12 @@ The wrist's metal, screens, keys and gauge (0074, 0081) are `game/shared/`'s (`W
   `Slots.TintOf`: tools amber, worn items green.
 - **Equipment** (0047, 0058): head, back, belt rows; while a stack is carried, slots that would wear it glow, others
   dim. The screwdriver is a hotbar item (0107): no hands row.
-- **Look** (0074): every panel a screen in the wrist's metal; content fades in, closing is instant.
+- **Look** (0074): hotbar, bag, equipment in the wrist's metal, content fading in; a machine's window a hologram in
+  its station's tone, beamed from it (`MachineHolo`, machine-holograms).
 - **One machine frame** (0058): name, and for a powered one a bolt with its power (`IPowerQueries.Draw`, modules in),
   lit while it works. Furnace and burner generator say why they stand (`furnace.*`, from `At`); smelter, grow capsule
   and charger panels follow 0057, 0060, 0053. Too cold: the mark turns blue, its tip names a station hot enough (0057).
-  Queued stations dock at `Ui.InventoryFoot`, their input slots lent by `Lend` (0058).
+  Queued stations open at `Ui.InventoryFoot`, inputs lent by `Lend` (0058).
 - **Module sockets** (0086): one per module a host takes, empty showing its tech's ghost, glowing while one that fits
   is carried; fit by drop, click or shift; take out by press. Slots holding a fitting module show its tech icon.
 - **Icons** (0097): glowing lines, a hexagon a tech, a ring a station's work; only seen ones move. Inventory actions click
@@ -79,10 +79,10 @@ The wrist's metal, screens, keys and gauge (0074, 0081) are `game/shared/`'s (`W
 - **Stash** (2026-11-06-quick-stash): `Bind.Stash` or the key under sort sends `Stash` when `StashPlan` moves anything;
   icons fly from the chest to each crate. Alt+click marks an item kept (`Ui.Favourites`, this machine's): a star on it.
 - **The one tooltip** (0073): a stack's card follows the pointer, never covering its slot. A tool shows its `ToolStats`
-  numbers as rows with icons under groups, no damage a second (2026-11-07-tool-card-rows), boosted ones in the module's colour (0098); equipment its picture and one number; a battery its
+  numbers as icon rows in groups, no damage a second (2026-11-07-tool-card-rows), boosted ones in the module's colour (0098); equipment its picture and one number; a battery its
   charge in power units, never time (0053).
 - **Charge** (0053): a battery slot draws a bar (amber under a quarter); an empty one its own picture. The energy tab
-  (0081) is `features/energy`'s.
+  (0081) is energy's.
 - **Floor stacks** (0075, 0106): drawn unlit with a breathing rim, resting on the sim's point (`ClearBelow`), level,
   between the last two ticks, side by side when still; over machines, under heroes. Flying they spin; landing they
   squash, hop and clink (`FloorFeel`); a seed glints (2026-10-29-kill-feel). Loot still in its creature

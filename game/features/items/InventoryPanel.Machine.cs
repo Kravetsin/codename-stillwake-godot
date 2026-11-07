@@ -31,7 +31,7 @@ public partial class InventoryPanel
             _chargerLines.Clear();
         }
         if (want is not var (crate, kind)) return;
-        // A queued station (the lifepod's Fabricator, the Former) docks in the same place, the crafting feature's own panel.
+        // A queued station (the lifepod's Fabricator, the Former) opens in the same place, the crafting feature's own panel.
         if (Content.Stations.TryGet(kind, out var station) && !station.Fed) return;
         var spec = MachineSpecs.Get(kind);
         // Its bolt the power it makes, or else what it draws.
@@ -39,7 +39,11 @@ public partial class InventoryPanel
         {
             // As wide as the wrist's column, as the bag over it (0081).
             CustomMinimumSize = new Vector2(Slots.Column(_ui.Slot), 0),
+            Tone = HoloShape.ToneOf(spec),
+            // Its contents come in as its hologram grows (machine-holograms).
+            Modulate = Colors.White with { A = 0 },
         };
+        _holoBox = MachineHolo.BoxOf(_grid, crate);
         // A crate sorts, its button in the header beside the drone badge (0008).
         if (spec.Is(Content.MachineTrait.Container)) _frame.Head.AddChild(_crateKey = Sorter(crate));
         // Whether drones serve it, at the right of its header (0062).
@@ -156,7 +160,7 @@ public partial class InventoryPanel
             charged.SetAnchorsPreset(Control.LayoutPreset.FullRect);
             (charged.OffsetLeft, charged.OffsetTop, charged.OffsetRight, charged.OffsetBottom) = (1, 1, 0, -1);
             right.AddChild(track);
-            var station = new Label { LabelSettings = Style.Text(Style.Mono, 11, Style.Slate400) };
+            var station = _frame!.Dim(new Label { LabelSettings = Style.Text(Style.Mono, 11, Style.Slate400) });
             right.AddChild(station);
             bay.AddChild(right);
             lines.AddChild(bay);
@@ -188,6 +192,19 @@ public partial class InventoryPanel
         stack.AddChild(line);
         stack.AddChild(_problem = new Label { LabelSettings = Trouble, Visible = false });
         return stack;
+    }
+
+    /// <summary>
+    /// The open machine's hologram, a frame on: its window's contents faded in as it grows. A machine another feature shows (a
+    /// queued station's) makes it go at once; shut, it shrinks and pulls back where the window was.
+    /// </summary>
+    private void Hologram(double delta)
+    {
+        if (_holo == null) return;
+        if (_frame != null && Crate is int open)
+            _frame.Modulate = Colors.White with { A = _holo.Step(delta, new MachineHolo.Target(open, _frame.GetGlobalRect(), _holoBox, _frame.Tone)) };
+        else if (Crate != null) _holo.Snap();
+        else _holo.Step(delta, null);
     }
 
     /// <summary>

@@ -13,7 +13,7 @@ public enum Bind
     Up,
     Down,
     Jump,
-    /// <summary>Sprint on foot, the jetpack in space.</summary>
+    /// <summary>Sprint on foot; in space the jetpack, or with none a haul in along the tether.</summary>
     Sprint,
     Use,
     Breathe,

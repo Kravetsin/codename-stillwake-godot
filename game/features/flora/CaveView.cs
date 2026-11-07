@@ -241,7 +241,7 @@ public partial class CaveView : Node2D, ILightSource
             var kind = Spec.Flora.Get(plant.Kind);
             int x = plant.Cell % w, y = plant.Cell / w, band = Terrain.BandOf(_type, y);
             uint hash = Hash(plant.Cell);
-            var pictures = new List<(string Name, Vector2 At, Rect2I? Part, bool Front)>();
+            var pictures = new List<(string Name, Vector2 At, Rect2I? Part, Rect2I? Place, bool Front)>();
             if (plant.Kind == "moss")
             {
                 // On each face of its stone open now: its top a floor's tufts, its bottom a ceiling's strands, its sides a film.
@@ -255,10 +255,13 @@ public partial class CaveView : Node2D, ILightSource
                 void Face(Planting.Faces face, string name, int before, int after)
                 {
                     if ((open & face) == 0) return;
-                    bool Runs(int n) => _moss.Contains(n) && (FacesOpen(n, across, tall) & face) != 0;
-                    // Its pieces join at their blocks' edges, drawn to meet there.
-                    var (px, py, pw, ph) = Planting.Piece(face, Runs(own + before), Runs(own + after));
-                    pictures.Add((name, corner, new Rect2I(px, py, pw, ph), face == Planting.Faces.Up));
+                    var (first, second, start, end) = Planting.Along(face, own, w, Open);
+                    bool Runs(int n, bool last) => _moss.Contains(n) && (last ? Planting.Along(face, n, w, Open).Second : Planting.Along(face, n, w, Open).First);
+                    Planting.End Edge(bool past, int n, bool last) => !past ? Planting.End.Wall : Runs(n, last) ? Planting.End.Joins : Planting.End.Open;
+                    // Its pieces join at their blocks' edges, drawn to meet there; along only the cells the face is open beside, its
+                    // ends tapering into a wall where the stone goes on.
+                    var (part, place) = Planting.Piece(face, Edge(start, own + before, true), Edge(end, own + after, false), first, second);
+                    pictures.Add((name, corner, new Rect2I(part.X, part.Y, part.W, part.H), new Rect2I(place.X, place.Y, place.W, place.H), face == Planting.Faces.Up));
                 }
                 Face(Planting.Faces.Up, $"caves/{tone}_top_{v}", -across, across);
                 Face(Planting.Faces.Down, $"caves/{tone}_bottom_{(v + 1) % look.Variants}", -across, across);
@@ -270,25 +273,28 @@ public partial class CaveView : Node2D, ILightSource
                 int v = (int)(hash % (uint)look.Variants);
                 string name = look.ByBand ? $"caves/{plant.Kind}_{band}_{v}" : $"caves/{plant.Kind}_{v}";
                 var size = Atlas.At[name].Size;
-                if (kind.On == Spec.Flora.Anchor.Rock) pictures.Add((name, new Vector2(x * Cell - 4, y * Cell - 4), null, false));
+                if (kind.On == Spec.Flora.Anchor.Rock) pictures.Add((name, new Vector2(x * Cell - 4, y * Cell - 4), null, null, false));
                 else
                 {
                     // Planted: its base sunk under the ground's top edge, or its top up into the ceiling, those rows not drawn.
                     var (top, bottom) = Atlas.Used[name];
                     var (px, py, from, rows) = Planting.Picture(kind.On, x, y, Cell, kind.Across, (int)size.X, (int)size.Y, top, bottom, look.Sink);
-                    pictures.Add((name, new Vector2(px, py), new Rect2I(0, from, (int)size.X, Math.Max(0, rows)), false));
+                    pictures.Add((name, new Vector2(px, py), new Rect2I(0, from, (int)size.X, Math.Max(0, rows)), null, false));
                     if (plant.Kind == "stalactite" && hash / 7 % CaveLooks.DripShare == 0) Drip(patch, new Vector2(px + size.X / 2, py + bottom + 1));
                 }
             }
             Vector2? glowAt = null;
-            foreach (var (name, at, part, front) in pictures)
+            foreach (var (name, at, part, onto, front) in pictures)
             {
                 var region = Atlas.At[name];
-                var into = front ? patch.Front : patch.Pictures;
-                if (part is not { } cut) into.Items.Add((new Rect2(at, region.Size), region));
-                else if (cut.Size.Y > 0) into.Items.Add((new Rect2(at + cut.Position, cut.Size), new Rect2(region.Position + cut.Position, cut.Size)));
+                // A part cuts the picture and its glow alike, drawn where it is or squeezed onto its place: a glow drawn whole
+                // would shine on the stone the picture was cut from.
+                var (place, from) = part is { } cut
+                    ? (new Rect2(at + (onto ?? cut).Position, (onto ?? cut).Size), new Rect2(region.Position + cut.Position, cut.Size))
+                    : (new Rect2(at, region.Size), region);
+                if (place.Size.X > 0 && place.Size.Y > 0) (front ? patch.Front : patch.Pictures).Items.Add((place, from));
                 if (GlowOf(name) is not { } glow) continue;
-                (front ? patch.FrontShine : patch.Shine).Items.Add((new Rect2(at, region.Size), region));
+                if (place.Size.X > 0 && place.Size.Y > 0) (front ? patch.FrontShine : patch.Shine).Items.Add((place, from));
                 glowAt ??= at + glow.Middle;
                 if (look.Glints > 0 && kind.On != Spec.Flora.Anchor.Rock)
                     foreach (var point in glow.Brightest.Take(look.Glints)) patch.Glints.Add((at + point, Colour(look.GlintColour), plant.Cell));

@@ -18,7 +18,8 @@ namespace Stillwake.Game.Render;
 /// <see cref="Light.ParticleMost"/> by their brightest colour, so an ember by a fire still lights the
 /// wall behind it. A wall takes <see cref="Light.WallIn"/> of what reaches its face. A normal-mapped
 /// picture is shaded toward the way the lamps' light comes from — up the main lightmap's slope, tilted
-/// 45 degrees up — within that cap; one without a normal map faces the screen and is shaded flat.
+/// 45 degrees up — within that cap; one without a normal map faces the screen and is shaded flat. A vein's ore on the walls' layer
+/// shines past whole in the lamps' and spots' light, not the stars', by the atlas's specular mask (<see cref="Light.OreShine"/>).
 /// </summary>
 public static class Lit
 {
@@ -54,6 +55,8 @@ public static class Lit
             uniform vec2 see_at = vec2(0.0);
             uniform float see_radius = 0.0;
             uniform float see_least = 0.35;
+            // Ore shines in the lamps' light by its atlas's specular mask, past whole (Light.OreShine); only the walls' layer asks.
+            uniform float ore_shine = 0.0;
             varying vec2 world;
             """;
 
@@ -128,14 +131,17 @@ public static class Lit
                 float scale = min(1.0, min(fits.r, min(fits.g, fits.b)));
                 float brightest = max(spots.r, max(spots.g, spots.b));
                 vec3 lit = min(star * scale + lamps * scale * mix(1.0, facing, relief), 1.0 - ambient);
-                vec3 light = lit + spots * min(1.0, spot_most / max(brightest, 0.0001));
-                COLOR.rgb *= ambient + light * share;
+                vec3 spotted = spots * min(1.0, spot_most / max(brightest, 0.0001));
+                vec3 light = lit + spotted;
+                // Lamps, fires and glows only, never the stars: unlit ore stays as dark as its rock.
+                vec3 shine = SPECULAR_SHININESS.rgb * dot(COLOR.rgb, LUMA) * (lamps + spotted) * share * ore_shine;
+                COLOR.rgb = COLOR.rgb * (ambient + light * share) + shine;
                 if (blocks && see_radius > 0.0)
                     COLOR.a *= mix(see_least, 1.0, smoothstep(see_radius * 0.5, see_radius, distance(world, see_at)));
             }
             """;
 
-    private static readonly Dictionary<float, ShaderMaterial> Made = new();
+    private static readonly Dictionary<(float Share, bool Shines), ShaderMaterial> Made = new();
     private static (Texture2DArray Tiles, Rect2 Rect, Vector2I Cells, int Tile)? _starlight;
     private static (Texture2D Main, Texture2D Spots)? _lightmaps;
     private static (Vector2 At, float Texel) _placed = (Vector2.Zero, 1);
@@ -164,9 +170,10 @@ public static class Lit
     /// <summary>
     /// Lights <paramref name="item"/> from now on, by the lamps and the stars. One that takes less than
     /// the whole <paramref name="share"/> — a wall's, an edge's, a door's <see cref="Light.WallIn"/> — is
-    /// drawn in wall cells and takes the stars' light from its own side.
+    /// drawn in wall cells and takes the stars' light from its own side. One that <paramref name="shines"/> (the walls' layer) has its ore
+    /// shine in the lamps' light, by its texture's specular mask (<see cref="Light.OreShine"/>); others have none.
     /// </summary>
-    public static void Set(CanvasItem item, float share = 1f) => item.Material = MaterialOf(share);
+    public static void Set(CanvasItem item, float share = 1f, bool shines = false) => item.Material = MaterialOf(share, shines);
 
     private static Vector3 _ambient = new(Light.Ambient.R, Light.Ambient.G, Light.Ambient.B);
 
@@ -180,19 +187,20 @@ public static class Lit
         foreach (var (_, material) in Made) material.SetShaderParameter("ambient", _ambient);
     }
 
-    private static ShaderMaterial MaterialOf(float share)
+    private static ShaderMaterial MaterialOf(float share, bool shines)
     {
-        if (Made.TryGetValue(share, out var kept)) return kept;
+        if (Made.TryGetValue((share, shines), out var kept)) return kept;
         kept = new ShaderMaterial { Shader = Plain };
         kept.SetShaderParameter("share", share);
         kept.SetShaderParameter("blocks", share < 1f);
         kept.SetShaderParameter("ambient", _ambient);
         kept.SetShaderParameter("spot_most", Light.ParticleMost);
+        kept.SetShaderParameter("ore_shine", shines ? Light.OreShine : 0f);
         if (_starlight is { } stars) ShowStars(kept, stars);
         if (_lightmaps is var (main, spots)) ShowMaps(kept, main, spots);
         Place(kept);
         See(kept);
-        return Made[share] = kept;
+        return Made[(share, shines)] = kept;
     }
 
     /// <summary>

@@ -148,4 +148,10 @@ public static class Light
     public const float HeadGlow = 0.4f, HeadGlowKeep = 0.707f;
     public const int HeadGlowReach = 4;
     public static readonly (float R, float G, float B) Ambient = (0.04f, 0.045f, 0.06f);
+
+    /// <summary>
+    /// How bright a vein's ore shines in the lamps' light (2026-11-07-ore-pockets), past whole, as metal catches it: its pixels gain the
+    /// lamps' and spots' light times this, their brightness and their <c>GroundLooks</c> fleck. Starlight and daylight give none.
+    /// </summary>
+    public const float OreShine = 6f;
 }

@@ -177,8 +177,8 @@ public partial class ContentTests
     {
         (int, int, int, int) Adds(string host) =>
             (Modules.Arc.Adds(host, Stat.Speed), Modules.Arc.Adds(host, Stat.Draw), Modules.Arc.Adds(host, Stat.Damage), Modules.Arc.Adds(host, Stat.Heat));
-        Assert.Equal(["smelter", "former", "assembler", "drill", "grinder", "spear", "charger"], Modules.Arc.Hosts);
-        foreach (var station in new[] { "smelter", "former", "assembler" }) Assert.Equal((1000, 1000, 0, 0), Adds(station));
+        Assert.Equal(["smelter", "crusher", "former", "assembler", "drill", "grinder", "spear", "charger"], Modules.Arc.Hosts);
+        foreach (var station in new[] { "smelter", "crusher", "former", "assembler" }) Assert.Equal((1000, 1000, 0, 0), Adds(station));
         Assert.Equal((0, 1000, 1000, 0), Adds(Weapons.Drill.Item));
         Assert.Equal((0, 1000, 1000, 0), Adds(Weapons.Grinder.Item));
         Assert.Equal((0, 0, 1000, 0), Adds(Weapons.Spear.Item));

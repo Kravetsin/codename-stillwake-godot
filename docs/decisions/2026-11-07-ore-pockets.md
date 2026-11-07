@@ -29,6 +29,12 @@ small deposits near the top, richer deeper, iron besides copper, and an occasion
   (`tools/anime-art/subjects/caves.js`).
 - **Glint.** One open vein face in three (`CaveLooks.VeinGlintEvery`), picked by the planet's seed and the cell,
   glints in a helmet's beam in the vein's fleck colour, as mica does; the rest stay dark, so a glint means ore.
+- **Shine** (playtest 2026-11-07: ore did not stand out in the dark). A vein's ore shines past whole in lamp light — lamps,
+  beams, fires, glows, never starlight or daylight — in its fleck colour, `Light.OreShine` (6) times the light, the pixel's
+  brightness and a mask; unlit it stays as black as its rock, and stone looks as before. The mask is the atlas's specular map,
+  made at load as what a vein's picture adds to its host's sheet (`OreMask`): the vein is drawn over that very sheet, so it
+  needs no art of its own and cannot drift from the drawing. Every one of a vein sheet's 128 cells holds ore, a small
+  cluster each, drawn so no copy of the sheet covers another's ore at its edges: a pocket of one cell shows ore too.
 - **Old planets** regrow with the new ore in rock nobody dug: no format bump, as 0085 and 0091. Nothing is buried or
   moved; the growths their players saw and felled stay where they were.
 
@@ -44,3 +50,4 @@ small deposits near the top, richer deeper, iron besides copper, and an occasion
 - Iron lode veins; ore on the open surface; scanners, detectors, map markers.
 - Pocket size drawn per pocket: the mark sets it, so pockets of a band look alike; a few neighbouring pockets join.
 - Other planet types: Frost keeps no copper and gains no iron.
+- The shine has no highlight that moves with the light's angle: it follows how much light falls, not where from.

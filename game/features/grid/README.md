@@ -51,6 +51,7 @@ Draws the grid's cells and machines in pixel art, a pixel of art a pixel of the 
   looked at every time. `BuiltBoundsTests` checks this against a whole-grid compare. Light follows the world, not
   toggles in flight.
 - **Pictures** (no ADR): every PNG of `game/art` cells use is packed at start into one atlas with one normal map
+  and one specular map, black but a vein's ore (`render/logic/OreMask.cs`), which shines on the walls' layer alone
   (`render/ShipTiles.cs`), a layer one draw call. Walls, edges, doors, machines and sockets are lit with relief; back
   walls, pipes, floors and ladders flat (`render/Lit.cs`).
 - **A planet's ground** (0077, 0079, 0088): soil, stone and bedrock walls and back walls from `art/planet/wall_*` and
