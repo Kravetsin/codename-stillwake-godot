@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 
 namespace Stillwake.Game.Features.Crew;
 
@@ -59,6 +60,9 @@ public struct AxeSwing
 
     private double? _ms;
     private bool _struck, _whooshed;
+    /// <summary>Real time run, in ms, and when each stroke last began by it: every tool keeps its own pace, none another's.</summary>
+    private double _clock;
+    private Dictionary<Stroke, double>? _begunAt;
     /// <summary>The stroke playing: the axe's, or the tool's it began with (<see cref="Strokes"/>).</summary>
     private Stroke? _stroke;
 
@@ -87,9 +91,12 @@ public struct AxeSwing
     public SwingStep Advance(double elapsedMs, bool wanted, Point at = default, Stroke? stroke = null)
     {
         bool begun = false, hits = false, whooshes = false;
+        _clock += elapsedMs;
         double ms;
+        // A stroke of another tool than the one playing ends it: its pace is its own, the next tool's waits for none of it.
+        if (_ms != null && stroke != null && stroke != _stroke) _ms = null;
         if (_ms is double playing) ms = playing + Math.Min(elapsedMs, MostPerFrameMs);
-        else if (wanted) (ms, begun) = (0, Begin(at, stroke));
+        else if (wanted && Ready(stroke ?? Strokes.Axe)) (ms, begun) = (0, Begin(at, stroke));
         else return default;
         var now = Stroke;
         if (!_whooshed && ms >= now.WhooshMs) whooshes = _whooshed = true;
@@ -103,7 +110,7 @@ public struct AxeSwing
             }
             // Held, the next begins where this one's pace ended, so the rhythm keeps the tool's pace exactly.
             ms -= now.PaceMs;
-            begun = Begin(at, stroke);
+            begun = Begin(at, stroke, ms);
         }
         _ms = ms;
         return new(begun, hits, whooshes);
@@ -125,9 +132,13 @@ public struct AxeSwing
     /// <summary>Ends a swing at once, unstruck: the axe put away, the hand taken, the hero out.</summary>
     public void Stop() => _ms = null;
 
-    private bool Begin(Point at, Stroke? stroke)
+    /// <summary>Whether <paramref name="stroke"/>'s tool has rested out its pace since its own last stroke began, whatever was swung since.</summary>
+    public readonly bool Ready(Stroke stroke) => _begunAt?.GetValueOrDefault(stroke, double.NegativeInfinity) is not double at || _clock - at >= stroke.PaceMs;
+
+    private bool Begin(Point at, Stroke? stroke, double agoMs = 0)
     {
         _stroke = stroke ?? Strokes.Axe;
+        (_begunAt ??= [])[_stroke] = _clock - agoMs;
         Count++;
         At = at;
         _struck = _whooshed = false;
