@@ -70,6 +70,9 @@ public partial class DebrisView(Ui ui) : Node2D
     /// <summary>The blows seen landing on each wreck still out, kept while it drifts out of view and back (<see cref="WreckCracks"/>).</summary>
     private readonly Dictionary<int, List<Blow>> _blows = new();
 
+    /// <summary>Each cracked wreck's network, laid out once from its first blow (<see cref="WreckCracks.Network"/>).</summary>
+    private readonly Dictionary<int, CrackNet> _nets = new();
+
     /// <summary>The pieces read last frame: for scripted runs.</summary>
     public IReadOnlyList<Piece> Pieces { get; private set; } = [];
     /// <summary>The pictures drawn last frame, and the most ever made: for the frame log and scripted runs.</summary>
@@ -132,7 +135,11 @@ public partial class DebrisView(Ui ui) : Node2D
         _gone.Clear();
         foreach (int id in _blows.Keys)
             if (!_out.Contains(id)) _gone.Add(id);
-        foreach (int id in _gone) _blows.Remove(id);
+        foreach (int id in _gone)
+        {
+            _blows.Remove(id);
+            _nets.Remove(id);
+        }
 
         var aimed = ui.AimedPiece.Get();
         _turns.Clear();
@@ -349,7 +356,32 @@ public partial class DebrisView(Ui ui) : Node2D
     private void ShowCracks(Shown one, Piece piece)
     {
         if (Wreckage.HpOf(piece.Item) is int hp && one.Cracks is { } cracks)
-            cracks.Show(BlowsOf(piece, one.Picture.Texture.GetSize() * one.Picture.Scale), (double)piece.Damage / hp, piece.Id);
+        {
+            var size = one.Picture.Texture.GetSize() * one.Picture.Scale;
+            var blows = BlowsOf(piece, size);
+            cracks.Show(blows, NetOf(piece, blows, size), (double)piece.Damage / hp, piece.Id);
+        }
+    }
+
+    /// <summary>
+    /// The crack network of <paramref name="piece"/>, laid out once out of its first blow over its picture's own pixels (its box, if
+    /// the picture will not load); none before a blow.
+    /// </summary>
+    private CrackNet? NetOf(Piece piece, IReadOnlyList<Blow> blows, Vector2 size)
+    {
+        if (blows.Count == 0) return null;
+        if (_nets.TryGetValue(piece.Id, out var net)) return net;
+        var image = DebrisLooks.NameOf(piece.Item, piece.Id) is { } name ? HiRes.Load(name) : null;
+        Func<double, double, bool> solid = image == null
+            ? (x, y) => Math.Abs(x) <= size.X / 2 && Math.Abs(y) <= size.Y / 2
+            : (x, y) =>
+            {
+                // The hi-res picture is the drawn one at its own scale, so a point from the middle is read at its share across.
+                double perX = image.GetWidth() / (double)size.X, perY = image.GetHeight() / (double)size.Y;
+                int ix = (int)Math.Floor((x + size.X / 2) * perX), iy = (int)Math.Floor((y + size.Y / 2) * perY);
+                return ix >= 0 && iy >= 0 && ix < image.GetWidth() && iy < image.GetHeight() && image.GetPixel(ix, iy).A > DamageLooks.Opaque;
+            };
+        return _nets[piece.Id] = WreckCracks.Network(blows[0], solid, piece.Id);
     }
 
     /// <summary>The blows seen on <paramref name="piece"/>; one seen damaged first, with none, struck in its middle (<see cref="WreckCracks.Unseen"/>).</summary>
