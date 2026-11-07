@@ -85,10 +85,8 @@ public static class AimOutline
     /// <summary>The box round <paramref name="cells"/>, in pixels.</summary>
     private static Rect2 BoxOf(IReadOnlyList<int> cells, int width)
     {
-        int left = int.MaxValue, top = int.MaxValue, right = 0, bottom = 0;
-        foreach (int c in cells)
-            (left, top, right, bottom) = (Math.Min(left, c % width), Math.Min(top, c / width), Math.Max(right, c % width), Math.Max(bottom, c / width));
-        return new Rect2(left * Cell, top * Cell, (right - left + 1) * Cell, (bottom - top + 1) * Cell);
+        var (x, y, w, h) = HoloShape.BoxOf(cells, width);
+        return new Rect2(x * Cell, y * Cell, w * Cell, h * Cell);
     }
 
     /// <summary>A cell's square.</summary>

@@ -424,9 +424,8 @@ public partial class BuildingView : Node2D
     /// <summary>The rectangle around <paramref name="cells"/>, in pixels of the world.</summary>
     private static Rect2 BoxOf(IReadOnlyList<int> cells, int width)
     {
-        int x = cells.Min(c => c % width), y = cells.Min(c => c / width);
-        int right = cells.Max(c => c % width), bottom = cells.Max(c => c / width);
-        return new Rect2(x * Cell, y * Cell, (right - x + 1) * Cell, (bottom - y + 1) * Cell);
+        var (x, y, w, h) = HoloShape.BoxOf(cells, width);
+        return new Rect2(x * Cell, y * Cell, w * Cell, h * Cell);
     }
 
     /// <summary>What <paramref name="box"/>, the footprint of a thing of <paramref name="kind"/>, is as drawn: a picture may rise over it or reach out of it.</summary>

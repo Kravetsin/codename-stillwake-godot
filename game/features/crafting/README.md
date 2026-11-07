@@ -28,10 +28,10 @@ assembler|lifepod|furnace>` opens a machine for a recording; `--arc` plays the a
 
 ## The panel
 
-- **Shown** while E has a queued station open (`Ui.OpenCrate`, `StationOf`) and the inventory is shown, docked under
+- **Shown** while E has a queued station open (`Ui.OpenCrate`, `StationOf`) and the inventory is shown, opened under
   its grid (`Ui.InventoryFoot`, 0058); it serves every queued station, the pod's first (0057). The items feature gives
   a queued station no crate panel of its own.
-- **Header** in the machine frame (`Shared.MachineFrame`, 0058, 0074): the station's name, for one that draws power its
+- **Header** in the machine frame (`Shared.MachineFrame`, 0058), a hologram in the station's tone (machine-holograms): its name, for one that draws power its
   bolt and draw with its modules (`Draw`), lit while it works and dark otherwise, the draw still shown (tip-signs), and its screen, dark without
   power (0057). No status line: the screen, the queue and the outputs say it (no ADR).
 - **Recipes** (no ADR), four a row, two rows at least, in their content places: one not known is a dark silhouette
