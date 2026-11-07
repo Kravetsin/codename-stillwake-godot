@@ -393,6 +393,64 @@ public class BuildingDeliveryTests
     }
 
     [Fact]
+    public void TakesApartAtOnceWhileInstantRefundingTheSender()
+    {
+        // A floor and a ladder built instantly, free; the map's wall at the left and the room's back walls drawn.
+        var w = Stocked(Open).Do(new SetInstant(true)).Run();
+        int ladder = At(4, 1);
+        PlacePlan(w, At(3, 1), new Placement("structure", "floor"));
+        PlacePlan(w, ladder, new Placement("structure", "ladder"));
+        var refunds = new[] { Scrap.Cost, Scrap.Cost, Builds.Get("floor").Cost, Builds.Get("ladder").Cost }.SelectMany(c => c).ToList();
+        var before = refunds.Select(r => r.Item).Distinct().ToDictionary(item => item, item => Count(w, item));
+        // The ladder by its bottom-right cell: the whole piece comes apart.
+        w.Do(new Deconstruct(At(0, 1), "structure")).Do(new Deconstruct(At(1, 1), "back"))
+            .Do(new Deconstruct(At(3, 1), "structure")).Do(new Deconstruct(ladder + 19, "structure")).Run();
+        Assert.Empty(w.Refusals);
+        Assert.Empty(w.M.Building.Plans);
+        Assert.Equal(Structure.Empty, w.M.Grid.StructureAt(At(0, 1)));
+        Assert.Null(w.M.Grid.BackAt(At(1, 1)));
+        Assert.Equal(Structure.Empty, w.M.Grid.StructureAt(At(3, 1)));
+        Assert.All(new[] { ladder, ladder + 1, ladder + 18, ladder + 19 }, c => Assert.Equal(Structure.Empty, w.M.Grid.StructureAt(c)));
+        foreach (var (item, had) in before) Assert.Equal(had + refunds.Where(r => r.Item == item).Sum(r => r.Count), Count(w, item));
+        Assert.Empty(w.M.Items.Floor);
+        // Switched off, a mark is a plan again, its id the first: none was taken by what came apart at once.
+        w.Do(new SetInstant(false)).Do(new Deconstruct(At(8, 1), "structure")).Run();
+        Assert.Equal([1], w.M.Building.Plans.Select(p => p.Id));
+    }
+
+    [Fact]
+    public void LetsWhatDoesNotFitFallWhereTheThingStoodTakenApartInstantly()
+    {
+        var w = Stocked(Open).Do(new SetInstant(true));
+        w.GiveItems(0, ("iron", Content.Items.Get("iron").Stack - StockIron), ("plate", Content.Items.Get("plate").Stack - StockPlate));
+        w.GiveItems(0, ("gear", Content.Items.Get("gear").Stack - StockGear), ("tube", Content.Items.Get("tube").Stack - StockTube));
+        w.GiveItems(0, ("scrap", (Inventory.Slots - 4) * Content.Items.Get("scrap").Stack - StockScrap));
+        w.Do(new Deconstruct(At(0, 1), "structure")).Run();
+        Assert.Empty(w.Refusals);
+        var lying = Assert.Single(w.M.Items.Floor);
+        Assert.Equal((ScrapPatch.Item, ScrapPatch.Count, At(0, 1)), (lying.Item, lying.Count, lying.Cell));
+    }
+
+    [Fact]
+    public void RefusesAnInstantRemovalWhereAMarkWouldBe()
+    {
+        var w = Stocked(Layout.Parse(["#KK.#"]));
+        // A wall marked before instant was switched on stays a mark, and a second is refused as ever.
+        w.Do(new Deconstruct(0, "structure")).Do(new SetInstant(true)).Run();
+        w.Do(new Move(new Items.Place(1), new Target(Crate: 1), 5) { From = 1 }).Run();
+        w.Do(new Deconstruct(2, "machine")).Do(new Deconstruct(0, "structure")).Run();
+        Assert.Equal(["building.notEmpty", "building.planned"], Reasons(w));
+        Assert.Equal("crate", w.M.Grid.MachineAt(2)?.Kind);
+        Assert.Equal(Structure.Wall, w.M.Grid.StructureAt(0));
+        Assert.Equal([1], w.M.Building.Plans.Select(p => p.Id));
+        // Emptied, the crate comes apart at once.
+        w.Do(new Move(new Items.Place(0, 1), new Target(), 99) { From = 1 }).Run();
+        w.Do(new Deconstruct(2, "machine")).Run();
+        Assert.Empty(w.M.Grid.Machines);
+        Assert.Equal(StockIron + CostIn(Machines.Get("crate").Cost, "iron"), Count(w, "iron"));
+    }
+
+    [Fact]
     public void RefusesToWorkOnACrateHoldingSomethingUntilItIsEmptied()
     {
         var w = Stocked(Layout.Parse(["#KK.#"]));

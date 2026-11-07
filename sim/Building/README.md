@@ -43,9 +43,8 @@ Also digging, what grows (0077, 0079, 0080), the ruins' pieces (0085, 0091, 0096
 - **Paid a part at a time** (0063): N parts for N cost items, part k starting at tick `BuildTicks * k / N`, rounded
   down. The tick that starts an unpaid part takes from the sender's stock (own slots, then crates) the first item in cost
   order still lacking, else is refused `items.notEnough`. Within a paid part anyone works; creative mode takes nothing.
-- **Repair** (free-repair): a tick of work as `Work`, free; the last `Mend`s. A broken machine taken apart
-  refunds its whole cost.
-- **Instant** (`SetInstant`, dev): a blueprint built as placed, free; new surfaces keep it.
+- **Repair** (free-repair): a tick of work as `Work`, free; the last `Mend`s. A broken machine refunds in full.
+- **Instant** (`SetInstant`, dev): blueprints built free, removals refunded, at once; new surfaces keep it.
 - **Cancelling** a blueprint drops exactly what was put in (`DropAt`); a mark drops nothing (0063). Anyone may cancel
   or work any plan; a mark whose thing a meteor broke is dropped in derivation, refunding nothing.
 - **A wall does not finish on a hero** (0077): the `Work` that would complete a wall (instant: placing) is refused `building.heroInside`
