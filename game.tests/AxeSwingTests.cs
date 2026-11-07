@@ -135,6 +135,41 @@ public class AxeSwingTests
         Assert.Equal(0, AxeSwing.Lift(1), 9);
     }
 
+    [Theory]
+    [InlineData(-90)]
+    [InlineData(-60)]
+    [InlineData(-30)]
+    [InlineData(0)]
+    [InlineData(45)]
+    [InlineData(90)]
+    public void ASwingAimedAnywhereAheadNeverRaisesTheArmBehindTheBackAndStillMeetsItsLine(int degrees)
+    {
+        foreach (var look in new[] { HeldLook.FireAxe, HeldLook.Sledgehammer })
+        {
+            double line = degrees * Math.PI / 180 + AxeSwing.Lead(look), highest = double.MinValue;
+            for (double phase = 0; phase <= 1; phase += 0.005) highest = Math.Max(highest, AxeSwing.ArmAt(AxeSwing.AngleAt(line, phase)).Upper);
+            Assert.True(highest <= AxeSwing.Overhead + 1e-9, $"{degrees}°: raised to {highest * 180 / Math.PI:F0}°");
+            // Raised less, it is still raised, and its blade crosses the line when the hit goes.
+            Assert.True(highest > AxeSwing.ArmAt(line).Upper + 0.5);
+            Assert.Equal(line, AxeSwing.AngleAt(line, AxeSwing.HitAt), 9);
+        }
+        // Aimed level or lower, the swing is whole.
+        if (degrees >= 0) Assert.Equal(1, AxeSwing.ScaleFor(degrees * Math.PI / 180 + AxeSwing.Lead(HeldLook.FireAxe)));
+    }
+
+    [Fact]
+    public void ASwingBegunOnTheRunEasesFromTheArmCarriedNotFromWhereItWouldRest()
+    {
+        var arm = new SwingArm();
+        var rest = new Bend(0.1, 0.3);
+        arm.Next(rest, null, Frame);
+        var carried = Rig.Carried(0);
+        arm.Drew(carried);
+        var first = arm.Next(rest, (0.0, 0.0), Frame);
+        // The first frame of the swing is the arm as it was drawn trailing, not a jump to the swing or the rest.
+        Assert.Equal(carried.Upper, first.Upper, 1);
+    }
+
     [Fact]
     public void AStallOwesNoBurstOfHits()
     {
@@ -250,7 +285,7 @@ public class AxeSwingTests
         for (double t = 0; t < ms; t += frame)
         {
             bool begun = swing.Advance(frame, wanted(t), toward(t)).Begun;
-            (double, double)? swung = swing.Phase is double phase ? (Math.Atan2(swing.At.Y, swing.At.X) + lead + AxeSwing.Lift(phase), phase) : null;
+            (double, double)? swung = swing.Phase is double phase ? (AxeSwing.AngleAt(Math.Atan2(swing.At.Y, swing.At.X) + lead, phase), phase) : null;
             drawn.Add(new(arm.Next(Resting, swung, frame), swing.Phase, swung is var (angle, _) ? AxeSwing.ArmAt(angle) : null, begun));
         }
         return drawn;

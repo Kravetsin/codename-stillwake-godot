@@ -163,6 +163,25 @@ public struct AxeSwing
     }
 
     /// <summary>
+    /// The farthest back over the head a swing raises the straight arm, in radians from hanging (<see cref="Bend.Upper"/>): a
+    /// little past straight up, as far as a shoulder goes. A swing aimed high is raised less, so it never twists behind the back.
+    /// </summary>
+    public const double Overhead = 3.6;
+
+    /// <summary>The least share of its full turn a swing keeps aimed however high, so a stroke straight up still swings.</summary>
+    public const double LeastScale = 0.4;
+
+    /// <summary>
+    /// The share of its full turn (<see cref="Lift"/>) a swing along <paramref name="line"/>, radians from straight ahead of the
+    /// shoulder, down positive, makes: whole, unless raised whole it would take the arm past <see cref="Overhead"/>. Raised and
+    /// brought through alike, so the blade crosses the line at <see cref="HitAt"/> however far it was raised.
+    /// </summary>
+    public static double ScaleFor(double line) => Math.Clamp((Overhead - Math.PI / 2 + line) / Raised, LeastScale, 1);
+
+    /// <summary>The arm's angle from straight ahead at <paramref name="phase"/> of a swing along <paramref name="line"/> (<see cref="ArmAt"/>).</summary>
+    public static double AngleAt(double line, double phase) => line + ScaleFor(line) * Lift(phase);
+
+    /// <summary>
     /// The axe's turn from the line to its point at <paramref name="phase"/> of a swing, back (negative)
     /// or through (positive): eased up, brought down hard, eased back to the line, still at either end, so
     /// a swing leaves the arm at rest and the next held begins from it unbroken.
