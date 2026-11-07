@@ -126,6 +126,23 @@ public class MagneticFlareTests
     }
 
     [Fact]
+    public void NoneWhileCalmedFromTheDevPanelNotEvenOneComingThenDrawnAgainOnceStirred()
+    {
+        var w = World(meteors: true).Do(new FlareNow(Starting.Warning)).Run();
+        Assert.True(w.M.Hazards.FlareComing);
+        // Calmed during the warning: the flare is dropped and none other is drawn.
+        w.Do(new SetCalm(true)).Run();
+        Assert.False(w.M.Hazards.FlareComing);
+        Assert.Equal(0, FlareIn(w));
+        Assert.Null(UntilComing(w, Starting.EveryMax + 10));
+        Assert.Empty(w.M.Power.Broken);
+        // Stirred: the next is drawn on the command's tick, a whole interval on.
+        w.Do(new SetCalm(false)).Run();
+        Assert.InRange(FlareIn(w), Starting.EveryMin, Starting.EveryMax);
+        Assert.Empty(w.Refusals);
+    }
+
+    [Fact]
     public void FlareNowReplacesAFlareDrawnButNotYetComing()
     {
         var w = World(meteors: true).Run();
