@@ -522,6 +522,63 @@ const rod = (a) => {
   a.line('M4.2 1.7L4.4 3.3M4.8 1.9L5 3.1', { w: 1 });
   a.shape('M19.8 1.6L21.4 1.6L21 .7L23.8 2.5L21 4.3L21.4 3.4L19.8 3.4Z', BLADE, { lite: 'M19.8 1.6L21.4 1.6L21 .7L23 1.9L19.8 2.1Z', spec: band(20.4, 1.8, 22, 2.1), shade: 'M19.8 2.7L23.4 2.5L21 4.3L21.4 3.4L19.8 3.4Z' });
 };
+/** A spur gear face on: n square teeth round a rim of radius r, turned by `turn` of a tooth. */
+const gearPath = (cx, cy, r, n, turn = 0, depth = .5) => {
+  const pts = [], s = (2 * Math.PI) / n;
+  for (let i = 0; i < n; i++) for (const [f, q] of [[0, r - depth], [.22, r - depth], [.32, r], [.68, r], [.78, r - depth]]) {
+    const t = (i + f + turn) * s;
+    pts.push(cx + Math.cos(t) * q, cy + Math.sin(t) * q);
+  }
+  return poly(pts);
+};
+const gear = (a, cx, cy, r, n, m, turn = 0) => {
+  a.shape(gearPath(cx, cy, r, n, turn), m, { lite: band(cx - r, cy - r, cx + r, cy - r * .45), shade: band(cx - r, cy + r * .4, cx + r, cy + r), lines: [`M${cx - r * .62} ${cy}L${cx + r * .62} ${cy}`] });
+  a.shape(ell(cx, cy, r * .36), DARK(), { outer: false, lite: band(cx - r, cy - r * .36, cx + r, cy - r * .1) });
+  a.flat(ell(cx, cy, r * .14), SLOT);
+};
+// The grappling gun (grapple-climbs), the user's pick, «Кошка»: the harpoon's family grown heavier. The plank stock, a fat spring tube
+// with two steel hoops and a bell mouth, a gear pair and a crank under it driving the spool slung forward; ready, the grapnel's crown out.
+const grapple = (loaded) => (a) => {
+  a.shape(rr(8.4, 5.4, 7.6, 4.6, .6), DARK(), { lite: band(8.6, 5.5, 15.8, 6) });
+  gear(a, 11.1, 8, 2.2, 10, STEEL(), .1);
+  gear(a, 14.5, 7.1, 1.35, 7, BRASS, .3);
+  a.tube('M11.1 8L9.2 10.7', .5, GUN());
+  a.shape(ell(9.1, 10.9, .6), WOOD, { lite: band(8.5, 10.3, 9.7, 10.7) });
+  a.shape(rr(20, 5.8, 1.6, 1.8, .2), GUN(), { shade: band(20, 6.9, 21.6, 7.6) });
+  a.shape(rr(17, 7.2, 7.6, 3.4, 1.1), ROPE, { lite: band(17.4, 7.3, 24.2, 8), shade: band(17, 9.4, 24.6, 10.6), lines: ['M18 7.3L18.6 10.5', 'M19.1 7.3L19.5 10.6', 'M20.2 7.2L20.8 10.6', 'M21.3 7.3L21.6 10.5', 'M22.4 7.3L22.9 10.4', 'M23.5 7.4L23.8 10.3'] });
+  a.shape(rr(16.4, 7.5, 1, 2.8, .25), DARK(), { lite: band(16.5, 7.6, 17.3, 8) });
+  a.shape(rr(24.2, 7.5, 1, 2.8, .25), DARK(), { lite: band(24.3, 7.6, 25.1, 8) });
+  stock(a);
+  // The tube: a window on the spring, the slot the grapnel's shank lies in, two hoops, a bell mouth.
+  a.shape(rr(7, 1, 19.2, 5, .5), GUN(), { lite: band(7.2, 1.1, 26, 1.8), shade: band(7, 5.2, 26.2, 6), rim: .22 });
+  a.flat(rr(8.2, 2.1, 8.6, 2.8, .2), SLOT);
+  for (let x = 8.7; x < 16.4; x += 1.05) { a.flat(poly(x, 2.1, x + .7, 2.1, x + .32, 4.9, x - .38, 4.9), '#a7afbc'); a.flat(poly(x, 2.1, x + .28, 2.1, x - .1, 4.9, x - .38, 4.9), '#d4dae2'); }
+  a.flat(band(17.2, 3.05, 26, 3.95), SLOT);
+  for (const x of [17.6, 22.4]) { a.shape(rr(x, .5, 1.4, 6, .25), STEEL(), { outer: false, lite: band(x, .6, x + 1.4, 1.2), shade: band(x, 5.6, x + 1.4, 6.5) }); stud(a, x + .7, 1.6, .32); }
+  a.shape(poly(25.8, .7, 27.6, .1, 27.6, 6.9, 25.8, 6.3), GUN(), { lite: band(25.8, 0, 27.6, 1.1), shade: band(25.8, 5.6, 27.6, 7) });
+  a.flat(band(26.3, 2.5, 27.6, 4.5), SLOT);
+  a.flat('M19.6 5.1L20.9 5L21.1 5.8L20 5.9Z', RUST);
+  a.line('M13.4 1.4C13.8 1.8 13.8 2.2 13.5 2.5', { w: .9 });
+  if (!loaded) return;
+  a.shape(rr(27.2, 2.1, .9, 2.8, .2), STEEL(), { outer: false, lite: band(27.2, 2.1, 28.1, 2.6) });
+  a.shape('M27.9 2.3L30.6 2.5L32.8 3.5L30.6 4.5L27.9 4.7Z', BLADE, { lite: 'M27.9 2.3L30.6 2.5L32.2 3.2L27.9 3.3Z', spec: band(28.6, 2.6, 30.2, 2.85), shade: 'M27.9 3.9L32.4 3.6L30.6 4.5L27.9 4.7Z', lines: ['M28.2 2.9L30.8 3.15', 'M28.2 4.1L30.8 3.85'] });
+};
+// The grapnel in flight (RodLook.Grapple): an eye, a shank, a crown with a nose, three prongs sprung open and swept back.
+const grapnel = (a) => {
+  a.shape(rr(3.2, 4.9, 8.8, 1.2, .3), STEEL(), { lite: band(3.4, 4.9, 11.8, 5.3), shade: band(3.2, 5.7, 12, 6.1) });
+  a.shape(ell(2.2, 5.5, 1.6, 1.5), STEEL(), { lite: 'M1 4.6C1.6 4 2.8 4 3.4 4.6L3 5.1L1.4 5.1Z', shade: 'M.4 6L4 6L4 7.2L.4 7.2Z' });
+  a.flat(ell(2.1, 5.5, .62, .55), SLOT);
+  a.line('M3.8 4.8L4 6.2M4.4 4.9L4.6 6.1', { w: 1 });
+  for (const s of [1, -1]) {
+    const y = (v) => 5.5 + s * (v - 5.5);
+    a.shape(`M11.9 ${y(4.6)}C12.1 ${y(2.6)} 10.8 ${y(1.1)} 8.2 ${y(.6)}L7.2 ${y(.4)}L8 ${y(1.5)}C9.6 ${y(2)} 10.4 ${y(3.1)} 10.4 ${y(4.7)}Z`, BLADE,
+      { lite: s > 0 ? 'M11.9 4.6C12.1 2.6 10.8 1.1 8.2 .6L7.2 .4L8 1L9.8 1.6L11 3Z' : undefined, shade: s < 0 ? 'M11.9 6.4C12.1 8.4 10.8 9.9 8.2 10.4L7.2 10.6L8 10L9.8 9.4L11 8Z' : undefined });
+  }
+  a.shape(ell(12.3, 5.5, 1.5, 1.7), GUN(), { lite: band(10.8, 3.8, 13.8, 4.7), shade: band(10.8, 6.3, 13.8, 7.2) });
+  stud(a, 12.1, 4.5, .3); stud(a, 12.1, 6.5, .3);
+  a.shape('M11.6 5.4L8.6 7L9.1 7.6L12 6.2Z', BLADE, { shade: 'M11.6 5.9L8.8 7.3L9.1 7.6L12 6.2Z' });
+  a.shape('M13.4 4.6L15.9 5.5L13.4 6.4Z', BLADE, { lite: 'M13.4 4.6L15.9 5.5L13.4 5.4Z' });
+};
 const nailer = (loaded) => (a) => {
   stock(a);
   // Under the pipe, a spring in a brass sleeve, and the tin the nails come from, its label peeling.
@@ -838,6 +895,10 @@ Subjects.hero = function () {
   icon('hero_harpoon', { w: 26, h: 11, draw: harpoon(false) });
   out('hero_harpoon_loaded', plain(30, 11, harpoon(true)));
   out('hero_harpoon_rod', plain(24, 5, rod));
+  out('hero_grapple', crop(plain(33, 11, grapple(false)), 28, 11));
+  icon('hero_grapple', { w: 28, h: 11, draw: grapple(false) });
+  out('hero_grapple_loaded', plain(33, 11, grapple(true)));
+  out('hero_grapple_hook', plain(16, 11, grapnel));
   out('hero_nailer', plain(26, 11, nailer(false)));
   icon('hero_nailer', { w: 26, h: 11, draw: nailer(false) });
   out('hero_nailer_loaded', plain(26, 11, nailer(true)));

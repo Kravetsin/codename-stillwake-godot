@@ -28,7 +28,9 @@ harpoon as the 5 s gun that reels debris, and for a line that a movement key doe
 - **The grappling gun** (`Content.Grapple`, item `grapple`) is the harpoon's machine (`HarpoonShot.Grapple()`) made to climb:
   its rod grips only structure, never a piece; **every grip pulls at once**, no click; it pulls at 30 cells a second, half again
   the harpoon's, and reloads in 1 s, so a miss costs a moment. Range, rod speeds and `PullStop` are the harpoon's. Made at the
-  workbench from ship parts, pricier than the harpoon: 2 tubes, 2 gears, a coil, 8 wire. Its look is its own, picked by the user.
+  workbench from ship parts, pricier than the harpoon: 2 tubes, 2 gears, a coil, 8 wire.
+- **Its look**, picked by the user from five, is «Кошка»: the harpoon's plank stock under a fat spring tube with hoops and a
+  bell mouth, a gear pair and crank driving the spool, firing a three-prong grapnel (`tools/anime-art/subjects/hero.js`).
 - **Hanging, a click fires again** once the gun is reloaded, the hero held where it hangs while the new rod flies (`PullTo` kept
   through `Flying`). The harpoon keeps the same tricks but waits out its 5 s: it climbs, slowly, and makes the grapple worth making.
 - **A grip from a hang pulls on with no click**, toward `PullStop` short of the new hook. A miss lets the hero fall; a piece the

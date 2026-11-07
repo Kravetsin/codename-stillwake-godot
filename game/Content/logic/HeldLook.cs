@@ -40,8 +40,13 @@ public sealed record HeldLook(
     public static readonly HeldLook Harpoon = new(
         "res://art/hero_harpoon.png", (4.5, 8), 0, (9, 3.5), (25, 3.5), Loaded: "res://art/hero_harpoon_loaded.png", Aimed: true, Clamp: (10.5, 4));
 
-    /// <summary>The grappling gun (grapple-climbs): drawn as the harpoon till its own look is picked.</summary>
-    public static readonly HeldLook Grapple = Harpoon;
+    /// <summary>
+    /// The grappling gun, <c>art/hero_grapple.png</c> (grapple-climbs), the user's pick, «Кошка»: the harpoon's plank stock under a
+    /// fatter spring tube with two hoops and a bell mouth, a gear pair and crank driving the spool; held as the harpoon is, the edge
+    /// the grapnel's shank seated in the tube, to the bell. Loaded, the grapnel's folded crown shows out of the bell.
+    /// </summary>
+    public static readonly HeldLook Grapple = new(
+        "res://art/hero_grapple.png", (4.5, 8), 0, (9, 3.5), (27.5, 3.5), Loaded: "res://art/hero_grapple_loaded.png", Aimed: true, Clamp: (10.5, 4));
 
     /// <summary>
     /// The nailer, <c>art/hero_nailer.png</c> (shots-are-the-sims), the user's pick, «Самоделка»: a pipe barrel bound with copper
@@ -174,8 +179,8 @@ public sealed record RodLook(string Picture, (double X, double Y) Eye, (double X
     /// <summary>The harpoon's rod, <c>art/hero_harpoon_rod.png</c> (0044).</summary>
     public static readonly RodLook Harpoon = new("res://art/hero_harpoon_rod.png", (3, 2.5), (23, 2.5));
 
-    /// <summary>The grappling gun's hook (grapple-climbs): drawn as the harpoon's rod till its own look is picked.</summary>
-    public static readonly RodLook Grapple = Harpoon;
+    /// <summary>The grappling gun's grapnel, <c>art/hero_grapple_hook.png</c> (grapple-climbs): three prongs sprung open, swept back.</summary>
+    public static readonly RodLook Grapple = new("res://art/hero_grapple_hook.png", (2.2, 5.5), (15.9, 5.5));
 
     /// <summary>The rod of the gun <paramref name="item"/>: the grappling gun's, else the harpoon's.</summary>
     public static RodLook Of(string? item) => item == Content.Grapple.Item ? Grapple : Harpoon;
