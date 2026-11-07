@@ -26,6 +26,10 @@ back for one who has none.
 - **It comes in at speed**, as off the harpoon's line: aboard, the tether comes off and the feet brake it in about a cell.
 - **What wins**: the grapple's pull; a jetpack; rammed, passed out or seated (no Shift reaches the step). A gun's kick is
   taken by the hands on the line. The tool in hand still works.
+- **Hand over hand** («Перехват», picked by the user from three drawn by the game's own figure on a published page, over a rowing
+  stroke of both hands and a head-first pull): afloat the arms by turns reach out along the way the body goes and draw back
+  past the chest, a grip each `Poses.Haul.GripMs`; the legs trail, the body leans in as a fast swim does. The tether is still drawn
+  from the air pack.
 - **Nothing on the wire or in the sim** (0002): the haul is the controller's, and others see the hero move as it is sent. Its
   figure (`Poses.Hauling`: on a tether, faster than a swim) every peer reads from what it has.
 
