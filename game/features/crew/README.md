@@ -124,8 +124,8 @@ the sim.
   the plan, wiring, lays cables; a tool on the right, nothing.
 - **One aim** (`Aiming.AimAt`): a plan (back walls first), machine (its rise, 0099), tank, door or valve (E), a wreck under the
   pointer, else the nearest small piece. Outlined green or red, `UsePrompt` says why; plan in hand, E idle. Armed, small pieces.
-- **Hits are rays from the shoulder** (tool-reach): the weapon's fan (`ToolRays`), each stopped by a wall or wreck pixel;
-  the ground met rings and sparks. Its reach shows in use (`AirCuts`).
+- **Hits are rays from the shoulder** (tool-reach, hits-pass-wrecks): the fan (`ToolRays`), each to a wall, hitting all
+  wrecks it crosses; the ground met rings, sparks. Its reach shows in use.
 - **Struck tools** (0038, salvage-tools): axe, hammer, spear, each its own pace; a swing hits as its blade crosses the aim,
   its fan swept as far as a shoulder goes (`ShapeFor`).
 - **The harpoon** (0044): a click fires; stuck in a piece the next sends `Reel`, in structure it pulls the hero.
