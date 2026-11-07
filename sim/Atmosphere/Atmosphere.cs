@@ -59,6 +59,12 @@ public interface IAtmosphereOps
     /// electrolyser's, water); returns how much. None into anything but a tank.
     /// </summary>
     int Fill(int tank, int amount);
+
+    /// <summary>
+    /// A fire burning at aired <paramref name="cell"/> this tick reserves <c>Furnace.Reserve</c> of its room's budget
+    /// (industrial-oxygen); called in the construction phase, cleared at its start.
+    /// </summary>
+    void Reserve(int cell);
 }
 
 /// <summary>
@@ -81,6 +87,9 @@ public sealed partial class AtmosphereModule : Module<AtmosphereState>, IAtmosph
 
     /// <summary>Scratch for the live vents listed each tick, so a tick in which none turned allocates nothing.</summary>
     private readonly List<int> _liveNow = [];
+
+    /// <summary>Derived: the cells of the fires burning this tick, each reserving its share of its room's budget, in call order.</summary>
+    private readonly List<int> _reserves = [];
 
     /// <summary>
     /// Derived: what each cell of a room leaks while it holds air, its back wall and the hull cells given to it, found for the
@@ -117,6 +126,8 @@ public sealed partial class AtmosphereModule : Module<AtmosphereState>, IAtmosph
         _standing = t => _grid.MachineById(t.Tank) != null;
         System(Phase.Construction, () =>
         {
+            // Before Furnace's construction, which reserves anew for the fires burning now.
+            _reserves.Clear();
             if (_tanksCheckedAt == _grid.Version) return;
             bool moved = _tanksCheckedAt is not int at || MachinesMoved(_grid.ChangedSince(at));
             _tanksCheckedAt = _grid.Version;
@@ -357,4 +368,6 @@ public sealed partial class AtmosphereModule : Module<AtmosphereState>, IAtmosph
         }
         return added;
     }
+
+    public void Reserve(int cell) => _reserves.Add(cell);
 }

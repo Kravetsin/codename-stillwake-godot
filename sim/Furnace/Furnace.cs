@@ -62,9 +62,14 @@ public sealed class FurnaceModule : Module<FurnaceState>
         System(Phase.Construction, () =>
         {
             RestCold();
-            // A fire with inputs smelts them (a furnace), not one that makes power.
             foreach (var m in _grid.MachinesWith(Content.MachineTrait.Fire))
-                if (Content.Machines.Get(m.Kind).Inputs > 0 && Burning(m.Id)) _craftingOps.Heat(m.Id);
+            {
+                if (!Burning(m.Id)) continue;
+                // A fire with inputs smelts them (a furnace), not one that makes power.
+                if (Content.Machines.Get(m.Kind).Inputs > 0) _craftingOps.Heat(m.Id);
+                // Atmosphere, registered first, cleared last tick's reserves in this phase (industrial-oxygen).
+                if (AiredCell(m) is int cell and >= 0) _airOps.Reserve(cell);
+            }
         });
         System(Phase.Simulation, Burn);
     }

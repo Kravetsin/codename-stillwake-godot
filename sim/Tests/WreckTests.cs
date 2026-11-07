@@ -361,19 +361,22 @@ public class WreckTests
         Assert.Equal("pipes.fixed", Assert.Single(w.Refusals).Reason);
     }
 
-    /// <summary>What closes the dead ends: a lit fire and a breathing hero together take less than the pod makes.</summary>
+    /// <summary>
+    /// What closes the dead ends: a lit fire pulls A's air back from its far edge by its reserve (industrial-oxygen), but
+    /// it burns on and a hero by it breathes the room's air.
+    /// </summary>
     [Fact]
-    public void HoldsItsAirWithAHeroBreathingAndAFurnaceLit()
+    public void HoldsMostOfItsAirWithAHeroBreathingAndAFurnaceLit()
     {
         var w = AiredWreck();
         int id = BuildFurnace(w, ("planks", 5), ("scrapChunk", 5));
         w.Do(new Move(new Slot(SlotOf(w, "planks")), new Target(Machines.Get("furnace").FuelSlot, id), 5)).Run();
         w.Do(new Move(new Slot(SlotOf(w, "scrapChunk")), new Target(Crate: id), 5)).Run();
-        // Out of the pod's reach, whose air would pay its breaths.
-        w.Do(new Enter(At(44, 19)) { From = 1 });
+        // Out of the pod's reach, whose air would pay its breaths, but near it: the far edge of A goes first.
+        w.Do(new Enter(At(48, 19)) { From = 1 });
         w.Run(12 * 20);
         Assert.True(w.M.Furnace.At(id).Burning);
-        Assert.Equal(A.Length, AiredIn(w, A));
+        Assert.InRange(AiredIn(w, A), A.Length - 20, A.Length - 1);
         Assert.Equal(Scenario.Full, w.M.Crew.HeroOf(1)?.Air);
     }
 

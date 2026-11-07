@@ -18,7 +18,7 @@ once, and smelting has moved to `Crafting`.
 - **Depends on:** `Grid` (`IGridQueries`: which machines have a fire, `MachinesWith(Fire)` (0113): with inputs it smelts, else it makes power;
   and their cells), `Items` (`IItemsQueries`: their slots; `IItemsOps`: `Consume`, a fuel lit),
   `Atmosphere` (`IAtmosphereQueries`: `AiredAt`; `IAtmosphereOps`: `Breathe`, the air their fire
-  breathes), `Power` (`IPowerOps`: `Rest`, a cold generator makes nothing; `IPowerQueries`: `Needed`, whether its
+  breathes, and `Reserve`, its share of its room's budget while it burns), `Power` (`IPowerOps`: `Rest`, a cold generator makes nothing; `IPowerQueries`: `Needed`, whether its
   network wants a fire), `Crafting`
   (`ICraftingQueries`: `CanSmelt`, whether a furnace has what it can smelt, and `Progress` for its panel;
   `ICraftingOps`: `Heat`, a furnace's fire burns).
@@ -45,6 +45,8 @@ once, and smelting has moved to `Crafting`.
     less, its fire goes out and the fuel left is lost. Otherwise it burns a tick of fuel, smelting or
     not. Its last tick of fuel burnt, it is lit again on the same tick if it can be, so a fire fed in
     time never goes out between two fuels.
+  - **reserving**: in the construction phase, each fire burning reserves its room's budget at its first aired cell
+    (`IAtmosphereOps.Reserve`, industrial-oxygen), so its room's air pulls back while it burns.
 - **A furnace's fire heats it:** in the construction phase, before crafting's simulation, each furnace
   whose fire burns is told to `Crafting` (`ICraftingOps.Heat`), which smelts in it that tick at its
   station's speed. The fire is read as the last tick left it, so a furnace starts smelting the tick after

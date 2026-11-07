@@ -164,6 +164,24 @@ public class FurnaceTests
         Assert.Equal(4 * FurnaceContent.Breath, TankOxygen(cold.W) - TankOxygen(fired.W));
     }
 
+    /// <summary>A lit fire reserves its breaths a period from its room's budget, and gives them back once out (industrial-oxygen).</summary>
+    [Fact]
+    public void ReservesItsShareOfItsRoomsBudgetWhileItBurns()
+    {
+        var (w, id) = SetUp();
+        int room = w.M.Rooms.RoomAt(FurnaceAt)!.Value;
+        int Budget() => w.M.Atmosphere.RoomsAir().Single(r => r.Room == room).Budget;
+        int full = Budget();
+        Assert.Equal(FurnaceContent.Breath * Content.Air.LeakEvery / FurnaceContent.BreathEvery, FurnaceContent.Reserve);
+        Put(w, id, "planks", Fuel);
+        Put(w, id, "scrapChunk", 0).Run();
+        Assert.True(w.M.Furnace.At(id).Burning);
+        Assert.Equal(full - FurnaceContent.Reserve, Budget());
+        w.Run(Plank.BurnTicks!.Value);
+        Assert.False(w.M.Furnace.At(id).Burning);
+        Assert.Equal(full, w.Run().M.Atmosphere.RoomsAir().Single(r => r.Room == room).Budget);
+    }
+
     [Fact]
     public void DoesNotLightWithoutAirAndGoesOutWhenTheAirGoesItsFuelLost()
     {

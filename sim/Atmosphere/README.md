@@ -37,7 +37,8 @@ Oxygen: liquid in tanks, turned into gas by vaporizers (liquid-oxygen), and the 
   not asked) or the pod; **supplied** when a store feeding it holds gas or a vaporizer feeding it is powered with liquid.
 - **A room's budget**, thousandths of a unit per `Air.LeakEvery`: for each live vent's network, each source's rate ×
   its satisfaction on it (the pod's in full), split evenly over the live vents in sealed rooms on it,
-  rounded down; summed. **Its bubble**: aired cells whose leak × 1000 fits the budget, settling round the vents.
+  rounded down; summed; less each burning fire's `Furnace.Reserve` × 1000, never below none. **Its bubble**: aired
+  cells whose leak × 1000 fits the budget, settling round the vents.
 - **A cell's leak**, per `Air.LeakEvery` (0020): its back wall's `Leak` and each hull cell given to it (its first
   neighbour in the room, up, left, right, down, then diagonals); a closed door in the hull, `Air.DoorLeak`. A
   back wall behind a wall leaks nothing.
@@ -63,7 +64,7 @@ Oxygen: liquid in tanks, turned into gas by vaporizers (liquid-oxygen), and the 
 - **The survey** — vents, fills, stores, tanks, aired cells and their leak, by room and network — is kept between
   ticks, redone for changed rooms (all, once the pipes' `Version` moved); what is held is reread after a canister, a
   tank taken apart or the tick's start. Machines are walked by trait (0113), ports in spec order.
-- **`Aired` is edited in place** for up to 32 cells changed (a binary search each), merged into a new list for more.
+- **`Aired` is edited in place** for up to 32 cells changed, else merged into a new list.
 
 ## API
 
@@ -71,9 +72,10 @@ Oxygen: liquid in tanks, turned into gas by vaporizers (liquid-oxygen), and the 
   room, thousandths of a unit a tick; `CanisterProblem(tank, peer)`; `Fed(vent)`; `Supplied(vent)`;
   `StatusOf(room)`; `AiredAt(cell)`; `HoldsAir(cell)` — its room holds any (where drones fly); `AiredCells` — sorted,
   live; `RoomsAir()` — each room's `RoomAir` for the overlay (`State.cs`), its `Budget` its share of the making, with why a room falls short
-  (`atmosphere.noVent`, `.notPiped`, `.dry`, `.unpowered`; `.leaky` when a bubble stops short of its room); on a timer.
+  (`atmosphere.noVent`, `.notPiped`, `.dry`, `.unpowered`; `.leaky` when a bubble stops short of its room, `.burning` by fires' reserves); on a timer.
 - **Operations** (`IAtmosphereOps`): `Breathe(cell, amount)` — `amount` for a hero's head or a fire in `cell` if it
   holds air, drawn from its room's networks, else none (crew, furnace). `Fill(tank, amount)` — liquid, up to capacity.
+  `Reserve(cell)` — a fire burning there, each construction phase.
 - **Commands:** `LoadCanister(Tank)`, refused with `atmosphere.noTank` (a vaporizer too), `atmosphere.tankFull`
   or `items.notEnough`.
 - **Fuzz:** mostly a canister into a tank the grid has, else into ids 0–5, mostly no tank.

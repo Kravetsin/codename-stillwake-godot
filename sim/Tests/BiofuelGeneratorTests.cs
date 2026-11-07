@@ -99,7 +99,8 @@ public class BiofuelGeneratorTests
     {
         var w = SetUp();
         var cold = SetUp();
-        foreach (var x in new[] { w, cold }) x.Run(200);
+        // Glass behind the room: one at its budget forgives the breaths its store lacks (scarce-oxygen).
+        foreach (var x in new[] { w, cold }) x.Glassed(Generator).Run(200);
         Assert.Equal(ChainOxygen(cold), ChainOxygen(w));
         Feed(w, "biofuel");
         cold.Run();

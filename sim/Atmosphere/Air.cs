@@ -410,7 +410,9 @@ public sealed partial class AtmosphereModule
             long rate = Math.Min(draw, made);
             int? lasts = oxygen is int liquid && rate > 0 ? (int)Math.Min(int.MaxValue, (long)liquid * Content.Air.LeakEvery / rate) : null;
             string? problem =
-                now == RoomStatus.Filling ? (AtItsLimit(s, room) ? "atmosphere.leaky" : null)
+                now == RoomStatus.Filling && _reserved.ContainsKey(room.Id) && (AtItsLimit(s, room) || !_budget.ContainsKey(room.Id))
+                    ? "atmosphere.burning"
+                : now == RoomStatus.Filling ? (AtItsLimit(s, room) ? "atmosphere.leaky" : null)
                 : now != RoomStatus.Vacuum ? null
                 : !standing.Contains(room.Id) ? "atmosphere.noVent"
                 : vaporizers.Count == 0 ? "atmosphere.notPiped"
@@ -639,9 +641,10 @@ public sealed partial class AtmosphereModule
         return null;
     }
 
-    /// <summary>Scratch, reused every tick: each sealed room's budget, and the live vents sharing each network.</summary>
+    /// <summary>Scratch, reused every tick: each sealed room's budget, the live vents sharing each network, and what fires reserve by room.</summary>
     private readonly Dictionary<int, long> _budget = new();
     private readonly Dictionary<int, int> _sharers = new();
+    private readonly Dictionary<int, long> _reserved = new();
 
     /// <summary>
     /// One tick of air (2026-11-05-air-bubbles): tanks pour and vaporizers make into their stores; an open room loses
@@ -709,12 +712,18 @@ public sealed partial class AtmosphereModule
     /// <summary>
     /// Into <see cref="_budget"/>: each sealed room's budget, thousandths of a unit per <c>Air.LeakEvery</c> ticks, from its
     /// live vents: each network makes the <see cref="RateOf"/> × the satisfaction of each source feeding it (the pod in
-    /// full), split evenly over the live vents in sealed rooms on it, rounded down (2026-11-05-air-bubbles).
+    /// full), split evenly over the live vents in sealed rooms on it, rounded down (2026-11-05-air-bubbles); less what the
+    /// fires burning in it reserve, never below none (industrial-oxygen).
     /// </summary>
     private void Budgets(Survey s, IReadOnlyList<Room> zones)
     {
         _budget.Clear();
         _sharers.Clear();
+        _reserved.Clear();
+        // Each fire's room found now, so a wall built this tick counts.
+        var roomOf = _rooms.RoomOfCells;
+        foreach (int cell in _reserves)
+            _reserved[roomOf[cell]] = _reserved.GetValueOrDefault(roomOf[cell]) + Content.Furnace.Reserve * 1000L;
         foreach (var zone in zones)
         {
             if (zone.Openings.Count > 0) continue;
@@ -728,6 +737,7 @@ public sealed partial class AtmosphereModule
             foreach (var (_, network) in ListAt(s.FillsIn, zone.Id))
                 if (_sharers.TryGetValue(network, out int sharers) && Holds(s, network))
                     budget += (long)s.MadeOn.GetValueOrDefault(network) / sharers;
+            budget -= _reserved.GetValueOrDefault(zone.Id);
             if (budget > 0) _budget[zone.Id] = budget;
         }
     }

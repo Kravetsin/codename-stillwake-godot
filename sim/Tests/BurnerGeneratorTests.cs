@@ -1,5 +1,4 @@
 using Stillwake.Sim.Furnace;
-using Stillwake.Sim.Grid;
 using Stillwake.Sim.Items;
 using Xunit;
 using FurnaceContent = Stillwake.Content.Furnace;
@@ -118,7 +117,7 @@ public class BurnerGeneratorTests
         var cold = SetUp();
         // The room aired whole and the vaporizer's store stocked, so every breath is paid from the chain (liquid-oxygen). Glass
         // behind it: a room whose leak takes all its vaporizer makes forgives the breaths its store lacks (scarce-oxygen).
-        foreach (var x in new[] { w, cold }) Glassed(x).Run(200);
+        foreach (var x in new[] { w, cold }) x.Glassed(Generator).Run(200);
         Assert.Equal(ChainOxygen(cold), ChainOxygen(w));
         Feed(w, 1);
         cold.Run();
@@ -127,16 +126,31 @@ public class BurnerGeneratorTests
         Assert.Equal(4 * FurnaceContent.Breath, ChainOxygen(cold) - ChainOxygen(w));
     }
 
-    /// <summary>The room with glass back walls, laid in creative: it leaks less than its vaporizer makes.</summary>
-    private static Scenario Glassed(Scenario w)
+    /// <summary>
+    /// In a room whose air takes all its vaporizer makes, a lit fire's reserve pulls the air back from its far edge, and the
+    /// room says why; out, the air grows back (industrial-oxygen).
+    /// </summary>
+    [Fact]
+    public void ShrinksItsRoomsAirWhileItBurnsAndItGrowsBackOnceOut()
     {
+        // Settled, and short of the run that would dry its one canister: such a room takes its vaporizer's whole rate.
+        var w = SetUp().Run(600);
         int room = w.M.Rooms.RoomAt(Generator)!.Value;
-        var cells = Enumerable.Range(0, w.M.Rooms.RoomOfCells.Length).Where(c => w.M.Rooms.RoomAt(c) == room).ToList();
-        w.Do(new SetCreative(true));
-        foreach (int cell in cells) w.Do(new ClearAt(cell, "back"));
-        w.Run();
-        foreach (int cell in cells) w.Do(new Place(cell, Placement.BackWall("glass")));
-        return w.Do(new SetCreative(false)).Run();
+        int full = w.M.Atmosphere.AiredCells.Count;
+        Feed(w, 1);
+        int least = full;
+        string? why = null;
+        for (int i = 0; i < 200; i++)
+        {
+            w.Run();
+            least = Math.Min(least, w.M.Atmosphere.AiredCells.Count);
+            why ??= w.M.Atmosphere.RoomsAir().Single(r => r.Room == room).Problem;
+        }
+        Assert.InRange(least, 1, full - 1);
+        Assert.Equal("atmosphere.burning", why);
+        w.Run(PlankTicks + 100);
+        Assert.False(w.M.Furnace.At(IdAt(w, Generator)).Burning);
+        Assert.Equal(full, w.M.Atmosphere.AiredCells.Count);
     }
 
     /// <summary>The oxygen the chain holds: the tank's liquid and the vaporizer's gas (liquid-oxygen).</summary>

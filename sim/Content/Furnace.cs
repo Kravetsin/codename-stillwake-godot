@@ -10,4 +10,10 @@ public static class Furnace
 {
     public const int BreathEvery = 20;
     public const int Breath = 3;
+
+    /// <summary>
+    /// What a lit fire reserves of its room's budget, units every <see cref="Air.LeakEvery"/> ticks: its breaths over that
+    /// time, so its room's air pulls back while it burns (industrial-oxygen).
+    /// </summary>
+    public const int Reserve = Breath * Air.LeakEvery / BreathEvery;
 }
