@@ -13,16 +13,17 @@ public partial class WreckInk : Node2D
     private readonly Ink _ink = new();
     private readonly InkCanvas _canvas = new();
     private IReadOnlyList<Blow> _blows = [];
+    private CrackNet? _net;
     private double _share;
     private int _seed;
     private float _pixel;
 
     public WreckInk() => UseParentMaterial = true;
 
-    /// <summary>Shows <paramref name="blows"/> with <paramref name="share"/> of its hit points lost, laid out by <paramref name="seed"/>.</summary>
-    public void Show(IReadOnlyList<Blow> blows, double share, int seed)
+    /// <summary>Shows <paramref name="blows"/> and <paramref name="net"/> with <paramref name="share"/> of its hit points lost, laid out by <paramref name="seed"/>.</summary>
+    public void Show(IReadOnlyList<Blow> blows, CrackNet? net, double share, int seed)
     {
-        (_blows, _share, _seed) = (blows, share, seed);
+        (_blows, _net, _share, _seed) = (blows, net, share, seed);
         if (GetParent() is CanvasItem picture)
             picture.ClipChildren = blows.Count > 0 ? ClipChildrenMode.AndDraw : ClipChildrenMode.Disabled;
         QueueRedraw();
@@ -40,7 +41,7 @@ public partial class WreckInk : Node2D
         _pixel = InkCanvas.PixelOf(this);
         _ink.Clear();
         _ink.Feather = _pixel;
-        WreckCracks.Draw(_ink, _blows, _share, _seed);
+        WreckCracks.Draw(_ink, _blows, _net, _share, _seed);
         _canvas.Draw(this, _ink);
     }
 }
