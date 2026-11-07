@@ -26,7 +26,7 @@ public partial class JetpackDemo : Control
     {
         var root = JsonNode.Parse(world.Save())!;
         var items = root["slices"]!["items"]!;
-        items["creative"] = false;
+        items["creative"] = new JsonArray();
         var slots = new JsonArray();
         for (int i = 0; i < Spec.Inventory.Total; i++)
             slots.Add(i == JetpackSlot ? new JsonObject { ["item"] = Spec.Jetpack.Item, ["count"] = 1 }
