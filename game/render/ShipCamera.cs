@@ -5,7 +5,7 @@ namespace Stillwake.Game.Render;
 
 /// <summary>
 /// The camera over the ship (render/camera.ts): it centres a world point, zooms in steps with
-/// <c>-</c> and <c>=</c> or Ctrl and the wheel from the farthest, <see cref="Farthest"/> on any screen, to twice as near, and answers which cells
+/// <c>-</c> and <c>=</c> or Ctrl and the wheel from the farthest, <see cref="Farthest"/> on any screen, to three times as near, and answers which cells
 /// are on screen and which cell the pointer is over. Until the hero is ported it is moved by hand: the
 /// arrow keys and a middle-button drag pan it, the wheel zooms.
 /// </summary>
@@ -22,7 +22,7 @@ public partial class ShipCamera : Camera2D
     public static readonly Vector2 Farthest = new(192, 108);
 
     /// <summary>How near the player may zoom, as a multiple of the farthest, and one key press's step.</summary>
-    public const float LevelMax = 2, LevelStep = 0.2f;
+    public const float LevelMax = 3, LevelStep = 0.2f;
 
     /// <summary>How far <see cref="Fit"/> may zoom out to frame a whole world in development.</summary>
     private const float FitMin = 0.1f;
