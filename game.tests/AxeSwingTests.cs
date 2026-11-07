@@ -118,7 +118,9 @@ public class AxeSwingTests
         Assert.Null(swing.Phase);
         Assert.False(swing.Advance(Frame, false).Hits);
         Assert.Null(swing.Phase);
-        // Wanted again, a new swing begins from the top.
+        // Put away and taken back, it still rests out its own pace; wanted after it, a new swing begins from the top.
+        Assert.False(swing.Advance(Frame, true).Begun);
+        swing.Advance(AxeSwing.Ms, false);
         Assert.True(swing.Advance(Frame, true).Begun);
         Assert.Equal((2, 0.0), (swing.Count, swing.Phase));
     }
@@ -201,6 +203,26 @@ public class AxeSwingTests
         var first = arm.Next(rest, (0.0, 0.0), Frame);
         // The first frame of the swing is the arm as it was drawn trailing, not a jump to the swing or the rest.
         Assert.Equal(carried.Upper, first.Upper, 1);
+    }
+
+    [Fact]
+    public void EachToolKeepsItsOwnPaceSoTheAxeSwingsAtOnceAfterTheHammersBlowAndTheHammerStillWaitsItsOwn()
+    {
+        var swing = new AxeSwing();
+        Assert.True(swing.Advance(Frame, true, default, Strokes.Hammer).Begun);
+        double ms = Frame;
+        while (!swing.Advance(Frame, false, default, Strokes.Hammer).Hits) ms += Frame;
+        // The blow has landed; the hammer rests out its three seconds. The axe taken now swings the next frame.
+        Assert.True(swing.Advance(Frame, true, default, Strokes.Axe).Begun);
+        ms += 2 * Frame;
+        Assert.Same(Strokes.Axe, swing.Stroke);
+        // The axe swung out and the hammer taken back before its own pace is out: it waits, as it would have.
+        while (swing.Phase != null) { swing.Advance(Frame, false, default, Strokes.Axe); ms += Frame; }
+        Assert.True(ms < Strokes.Hammer.PaceMs);
+        Assert.False(swing.Advance(Frame, true, default, Strokes.Hammer).Begun);
+        ms += Frame;
+        while (ms < Strokes.Hammer.PaceMs - Frame) { Assert.False(swing.Advance(Frame, true, default, Strokes.Hammer).Begun); ms += Frame; }
+        Assert.True(swing.Advance(2 * Frame, true, default, Strokes.Hammer).Begun);
     }
 
     [Fact]
