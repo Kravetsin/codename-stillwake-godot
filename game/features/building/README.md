@@ -84,10 +84,10 @@ Shared: `game/shared/` (`Ui`, `Hands`, `PointerTip`, `Tablet`, `TabletMotion`, `
   rest the ghost. No bars. No node, material or shader parameter per plan (`PlanCut`, `BuiltParts`).
 - **A mark** (0064) keeps its own picture in red dashes and turns into its red ghost from the top as worked.
 - **A repair** (magnetic-flare): drawn as its machine's blueprint being built, by `RepairProgress`.
-- **Work's light** (0075, 0094, `BuildGlow`, `Tools.SparksOf`): sparks burst from the side facing the nearest hero,
-  not the worker, so every peer sees the same; a molten spot, smoke, shimmer; the cut glows; finished, swept by light. The
-  ratchet there; by a running power driver, its motor (`Ui.Driven`).
-- **Digging** (0077, 0079, damage-looks): a fault's stage is its share of the wall's strength; a hit's look is the crew's (0094).
+- **Work's light** (0075, 0094, `BuildGlow`, `Tools.SparksOf`): sparks burst from the side facing the nearest hero
+  (every peer sees the same); a molten spot, smoke, shimmer; the cut glows; done, swept by light. The
+  ratchet there; by a power driver, its motor (`Ui.Driven`).
+- **Digging** (0077, 0079, damage-looks): a fault's stage is its share of strength; a hit's look is the crew's (0094); a pile cracks as a wreck (pile-crack-net).
 
 ## Deliberately not handled
 

@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using Stillwake.Game.Render;
 using static Stillwake.Game.Render.Ink.Draw;
 
-namespace Stillwake.Game.Features.Debris;
+namespace Stillwake.Game.Shared;
 
 /// <summary>
 /// A blow landed on a wreck: where on its picture, from its middle, in pixels, the share of its hit points lost before it, and

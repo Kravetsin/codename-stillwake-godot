@@ -6,6 +6,7 @@ using Stillwake.Game.Features.Building;
 using Stillwake.Game.Features.Crew;
 using Stillwake.Game.Features.Debris;
 using Stillwake.Game.Render;
+using Stillwake.Game.Shared;
 using Xunit;
 using static Stillwake.Game.Render.Ink.Draw;
 

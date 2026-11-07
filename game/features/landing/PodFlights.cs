@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using Godot;
 using Stillwake.Game.Render;
+using Stillwake.Game.Shared;
 using Stillwake.Sim.Crew;
 using Stillwake.Sim.Grid;
 using Stillwake.Sim.Landing;

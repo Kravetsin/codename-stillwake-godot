@@ -2,7 +2,7 @@ using System.Collections.Generic;
 using Godot;
 using Stillwake.Game.Render;
 
-namespace Stillwake.Game.Features.Debris;
+namespace Stillwake.Game.Shared;
 
 /// <summary>
 /// A wreck's cracks drawn over its picture (<see cref="WreckCracks"/>, damage-looks): a child of the picture, lit as it is, the
@@ -24,7 +24,8 @@ public partial class WreckInk : Node2D
     public void Show(IReadOnlyList<Blow> blows, CrackNet? net, double share, int seed)
     {
         (_blows, _net, _share, _seed) = (blows, net, share, seed);
-        if (GetParent() is CanvasItem picture)
+        // A picture that only clips, drawn elsewhere (a pile's, in the ship's tiles), keeps its mode.
+        if (GetParent() is CanvasItem picture && picture.ClipChildren != ClipChildrenMode.Only)
             picture.ClipChildren = blows.Count > 0 ? ClipChildrenMode.AndDraw : ClipChildrenMode.Disabled;
         QueueRedraw();
     }
