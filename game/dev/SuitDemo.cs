@@ -33,7 +33,7 @@ public partial class SuitDemo : Control
     public static World Seed(World world, Func<IReadOnlyList<Module>> modules)
     {
         var root = JsonNode.Parse(world.Save())!;
-        root["slices"]!["items"]!["creative"] = false;
+        root["slices"]!["items"]!["creative"] = new JsonArray();
         return World.Load(root.ToJsonString(), modules());
     }
 

@@ -37,7 +37,7 @@ public partial class MarksDemo : Control
         }
         var items = root["slices"]!["items"]!;
         items["inventories"] = new JsonArray(new JsonObject { ["id"] = 0, ["slots"] = slots });
-        items["creative"] = false;
+        items["creative"] = new JsonArray();
         if (root["slices"]!["research"] is JsonObject research) research["analysed"] = new JsonArray();
         var emptied = new HashSet<int>();
         foreach (var machine in root["slices"]!["grid"]!["machines"]!.AsArray())
