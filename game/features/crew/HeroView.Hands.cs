@@ -390,7 +390,10 @@ public partial class HeroView
         var middle = hero.Middle;
         var at = Impacts.On(m.Grid, cell, (double)middle.X / Hero.Unit, (double)middle.Y / Hero.Unit);
         var point = new Vector2((float)(at.X * Rig.Cell), (float)(at.Y * Rig.Cell));
-        int damage = m.Items.BlockDamage(peer, tool);
+        // A pile takes the weapon's damage, as a wreck does, but a tool dealing no block damage, the cutter, never hits one (pile-hit-points).
+        bool pile = Shared.Piles.At(m.Grid, cell) != null;
+        if (pile && m.Items.BlockDamage(peer, tool) == 0) return;
+        int damage = pile ? m.Items.Damage(peer, tool) : m.Items.BlockDamage(peer, tool);
         if (GroundSounds.HitAt(m.Grid, m.Building, cell, damage, tool) is { } hit)
             voices.Play(hit, point, offsetDb: GroundSounds.HitDbOf(tool));
         if (Impacts.At(m.Grid, m.Building, cell) is not { } impact) return;

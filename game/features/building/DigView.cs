@@ -29,7 +29,7 @@ public partial class DigView : Node2D
 
     /// <summary>A pile cracks and bursts as the metal it is, at its own hit points.</summary>
     private Material? PileMaterial(int cell) =>
-        _grid.MachineAt(cell) is { } machine && Stillwake.Content.Machines.Get(machine.Kind).Hp is int hp
+        Piles.At(_grid, cell) is var (_, hp)
             ? Stillwake.Content.Materials.Get("alloy") with { Strength = hp } : null;
 
     /// <summary>The stages of cracks, three (0079).</summary>
