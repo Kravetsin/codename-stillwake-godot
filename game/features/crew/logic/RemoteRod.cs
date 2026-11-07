@@ -72,8 +72,8 @@ public sealed class RemoteRod
             Seat();
             return default;
         }
-        // A rod out where none was is a shot: one heard first on its way back is not.
-        bool fired = was == null && now.Rod != Rod.Returning;
+        // A rod out where none was is a shot: one heard first on its way back is not. One flying from a hook is fired again (grapple-climbs).
+        bool fired = was == null && now.Rod != Rod.Returning || was is { Rod: not (Rod.Flying or Rod.Returning) } && now.Rod == Rod.Flying;
         if (fired) _sinceFiredMs = 0;
         bool bit = false;
         switch (now.Rod)

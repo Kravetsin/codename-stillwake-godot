@@ -185,6 +185,7 @@ public static partial class Ru
         ["item.plasmaCutter.kind"] = "Инструмент · Резак",
         ["item.plasmaCutter.key"] = "ЛКМ",
         ["item.harpoon.key"] = "ЛКМ",
+        ["item.harpoon.about"] = "Выстрели в обломок и кликни ещё раз — подтянешь его. Выстрели в стену и кликни — тебя подтянет к ней; вися на тросе, кликни выше, чтобы стрелять дальше и карабкаться, или оттолкнись от него прыжком.",
         ["item.nailer.kind"] = "Инструмент · Гвоздомёт",
         ["item.nailer.key"] = "ЛКМ",
         ["item.railgun.kind"] = "Инструмент · Рельсотрон",

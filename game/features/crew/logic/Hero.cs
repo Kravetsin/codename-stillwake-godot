@@ -243,7 +243,7 @@ public readonly record struct Hero(
         // In a planet's fog the hero glides, the harpoon let go as it went in (fog-edges).
         if (ship.Glides(hero.X) || hero.Gliding && ship.Carries(hero.X)) return Glide(ship, hero);
         hero = hero with { Gliding = false };
-        if (input.Pull is Point to) return Pulled(ship, hero, to, facing);
+        if (input.Pull is Point to) return Pulled(ship, hero, to, facing, input.Jump);
         // Swimming, the hero faces the way it swims, whatever the pointer does, unless it swings the axe.
         if (space) return Swim(ship, hero, input, input.X == 0 || input.Swings ? facing : input.X);
         if (input.Reeling)
@@ -463,9 +463,11 @@ public readonly record struct Hero(
 
     /// <summary>
     /// The body's middle pulled straight toward <paramref name="to"/> by <see cref="PullStep"/>, landing on it,
-    /// walls and closed doors stopping it as anything does; no gravity, so pulled there it stays.
+    /// walls and closed doors stopping it as anything does; no gravity, so pulled there it stays. The line is footing
+    /// (grapple-climbs): the coyote's steps start afresh off it, and a jump pressed on it is kept in the buffer, so the
+    /// step after the line lets go jumps as from the floor.
     /// </summary>
-    private static Hero Pulled(Ship ship, Hero hero, Point to, int facing)
+    private static Hero Pulled(Ship ship, Hero hero, Point to, int facing, bool jump)
     {
         var middle = hero.Middle;
         int dx = to.X - middle.X, dy = to.Y - middle.Y;
@@ -474,7 +476,8 @@ public readonly record struct Hero(
         int nx = MoveX(ship, hero.X, hero.Y, dx);
         int ny = MoveY(ship, nx, hero.Y, dy, false);
         if (!Clear(ship, nx, ny)) (nx, ny) = Clear(ship, nx, hero.Y) ? (nx, hero.Y) : (hero.X, hero.Y);
-        return new Hero(nx, ny, nx - hero.X, ny - hero.Y, false, facing);
+        return new Hero(nx, ny, nx - hero.X, ny - hero.Y, false, facing,
+            Airborne: 0, Buffered: jump ? Spec.JumpBuffer : Math.Max(0, hero.Buffered - 1));
     }
 
     /// <summary>

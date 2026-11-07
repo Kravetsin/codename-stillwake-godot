@@ -127,7 +127,7 @@ the sim.
   wrecks it crosses; the ground met rings, sparks; reach shown.
 - **Struck tools** (0038, salvage-tools): axe, hammer, spear, each its own pace; a swing hits as its blade crosses the aim,
   its fan a shoulder's sweep (`ShapeFor`).
-- **The harpoon** (0044): a click fires; stuck in a piece the next sends `Reel`, in structure it pulls the hero.
+- **The harpoon** (0044, grapple-climbs): clicks fire, then reel a piece or pull to structure; hanging, fire on.
 - **A gun** (hold-to-fire): left held fires each cooldown; with `Charge` it charges then, fires let go
   full; flat, clicks dry, sends nothing. Afloat it kicks back (`Recoil`); a guest flies it.
 - **Drill, grinder, cutter** (0054, 0055): left held runs it (`Run`), hitting each `Pace` ticks, the cutter by its beam

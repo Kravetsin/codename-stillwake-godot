@@ -139,6 +139,21 @@ public class RemoteRodTests
     }
 
     [Fact]
+    public void FlyingFromAHangIsASecondShotFromTheGunTheGunDrawnEmptyAgain()
+    {
+        var rod = new RemoteRod();
+        var hanging = new RodSeen(Rod.Hanging, new Point(9_000, 2_000));
+        Step(rod, 10, Flying);
+        Run(rod, HarpoonShot.CooldownMs, hanging);
+        Assert.Equal(new RodCues(Fired: true), Step(rod, 10, Flying));
+        Assert.Equal(Rod.Flying, rod.Rod);
+        Assert.Equal(1_000 + 10 * Flies, rod.Tip.X, 6);
+        Assert.All(Run(rod, 100, Flying), c => Assert.False(c.Fired));
+        Step(rod, 10, null);
+        Assert.False(rod.Loaded);
+    }
+
+    [Fact]
     public void IsDrawnLoadedOnlyOnceTheCooldownSinceTheShotSeenIsOver()
     {
         var rod = new RemoteRod();

@@ -188,6 +188,7 @@ public static partial class En
         ["item.plasmaCutter.kind"] = "Tool · Cutter",
         ["item.plasmaCutter.key"] = "LMB",
         ["item.harpoon.key"] = "LMB",
+        ["item.harpoon.about"] = "Shoot a piece, click again to reel it in. Shoot a wall, click to be pulled to it; hanging there, click higher to shoot on and climb, or jump off the line.",
         ["item.nailer.kind"] = "Tool · Nailer",
         ["item.nailer.key"] = "LMB",
         ["item.railgun.kind"] = "Tool · Railgun",

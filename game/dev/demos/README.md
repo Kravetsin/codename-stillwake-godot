@@ -27,6 +27,7 @@ effect, so a release build has none of this folder and no `*Demo.cs` anywhere.
 | `PlanetScenarios.cs` | `--planet`, `--strip` (with `--beam-back`), `--creatures` and its modifiers, `--nailer`, `--railgun`, `--hitboxes` |
 | `TabletHands.cs` | A script's hands on the research tablet: `--tree`, `--board` |
 | `CreatureHands.cs` | `--creatures`'s hands: the hero hunting the creatures with the axe, then the drill |
+| `ClimbScenario.cs` | `--climb`: the first planet, the hero at the bottom of its deepest chasm, harpoon in hand, creative (grapple-climbs) |
 
 ## How a run is put together
 
