@@ -13,7 +13,7 @@
 | `logic/Sources.cs` | What the shader reads: walls and doors light stops at, and each light. |
 | `logic/StarField.cs` | Starlight cell by cell (0019, 0070). |
 | `Starlight.cs` | The starlight, tiles of a texel a cell, for `render/Lit.cs`. |
-| `logic/StarTiles.cs` | Starlight tiles: those a change wrote. |
+| `logic/StarTiles.cs` | Starlight and occupancy tiles: those a change wrote. |
 
 A dim ship lit by its lamps, fires, whatever glows, and the stars, whole in open space and falling off
 within a few cells of a hole (0019, 0029, 0070). Drawn only: nothing reaches the sim. Tuned at the 8 px
@@ -23,13 +23,13 @@ the reaches of fire, particles, screens.
 - **Reads:** `IGridQueries` (walls and closed doors stop light, every wall whole, 0106; walls' and back walls'
   materials, machines, the change log); `Glims`, `Flares`, `Bolts` (0075); every `render/Glow` in the tree.
 - **Costs the cells changed, not the world** (0051). `LightView.Sync` does nothing while the grid's
-  `Version` stands; else the grid's log names the changed cells. A changed structure cell resets its
-  occupancy texel (`Lightmap.Follow`); one past the texture lays it out anew over `Built`. Lamps are
-  relaid when a machine's cell changed. Starlight is redone only within `StarField.Reach` and the
-  sky's reach of changed structure, back wall or machine cells (`StarField.Follow`), byte for byte a full
-  redo (`BuiltBoundsTests`); only tiles it wrote are sent. A first look, or one past the log, redoes all over `Built` and
-  `StarField.Margin`; beyond is open stars at full, and `Lit` reads the edge texel there.
-- **No Godot lights** (0029): they light a thing by at most 15.
+  `Version` stands; else its log names the changed cells. A changed structure cell resets its occupancy
+  texel, sending its tile (`Lightmap.Follow`); one past the texture lays it out anew over `Built`.
+  Lamps relaid when a machine moved. Starlight is redone round changed structure, back or
+  machine cells within its reach and the sky's, down apart from across (`StarField.Follow`,
+  planet-frame-rate) as a full redo would (`BuiltBoundsTests`); only tiles it wrote are sent. A first look
+  or one past the log redoes all over `Built` and `StarField.Margin`; beyond, open stars, `Lit` reading the edge texel.
+- **No Godot lights** (0029): at most 15 light a thing.
 - **Lightmap:** two HDR `SubViewport`s over the view and a margin, a texel spare so the camera never
   resizes them; cleared each frame, a texel a world pixel (more past
   `MostTexels`). *Main* takes lamps and fires; *Spots* embers, sparks, glows, capped apart by `Lit`. Each

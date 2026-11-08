@@ -66,6 +66,8 @@ public partial class HomesView : Node2D, ILightSource
         AddChild(_tine = Cues.Player2D(Game.Sound.MusicBox, Game.Sound.World, voices: 4));
         AddChild(_zap = Cues.Player2D(Game.Sound.Zap, Game.Sound.World, voices: 2));
         AddChild(_falls);
+        // The atlas of every ruin's pictures, read and packed as the planet loads: made at the first ruin seen, it froze that frame 240 ms (planet-frame-rate).
+        _ = Atlas.Pictures;
     }
 
     /// <summary>The mean time this view took a frame since it was last asked, in milliseconds: for <c>--measure</c>.</summary>

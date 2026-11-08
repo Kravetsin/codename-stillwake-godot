@@ -39,6 +39,7 @@ public sealed class StarField
     {
         (_sky, _shares, _down) = (sky ?? L.Star, SharesOf(keep, L.WallDeep), SharesOf(down > 0 ? down : keep, soak > 0 ? soak : L.WallDeep));
         Reach = ReachOf(_shares.Zip(_down, Math.Max).ToArray());
+        (_side, _deep) = (Math.Min(Reach, StepsUnder(_shares.Max())), Math.Min(Reach, StepsUnder(_down.Max())));
     }
 
     private readonly float[] _shares, _down;
@@ -79,6 +80,23 @@ public sealed class StarField
     /// way keeps it all.
     /// </summary>
     public int Reach { get; }
+
+    /// <summary>
+    /// How many cells across or up (<see cref="_side"/>) and down (<see cref="_deep"/>) light may still show from where it starts,
+    /// within <see cref="Reach"/>: each step that way keeps at most the largest share of it, whatever the other steps keep. Under a
+    /// planet's sky light falls far down a shaft but dies within a few cells round a bend, so a dig is worked out in a tall narrow
+    /// box rather than a square as wide as it is tall: a fifth of the cells.
+    /// </summary>
+    private readonly int _side, _deep;
+
+    /// <summary>The steps each keeping <paramref name="most"/> after which light keeps under <see cref="Faint"/>, as <see cref="ReachOf"/> counts them.</summary>
+    private static int StepsUnder(float most)
+    {
+        if (most >= 1) return int.MaxValue;
+        int steps = 0;
+        for (double kept = 1; kept >= Faint * 0.999; kept *= most) steps++;
+        return steps;
+    }
 
     private static int ReachOf(float[] shares)
     {
@@ -140,23 +158,27 @@ public sealed class StarField
             return;
         }
         if (region != Region) Move(region);
-        // A change alters the sky of cells within Sky of it, whose light shows within Reach of them; that light
-        // starts within Reach again. Changes near each other are worked out together: a box each, grown by each cell within that spread.
+        // A change alters the sky of cells within Sky of it, whose light shows within _side across and up of them and _deep down;
+        // that light starts within _side across, _deep over and _side under them again. Changes near each other are worked out
+        // together: a box each, grown by each cell within that spread.
         var boxes = new List<Box>();
-        int w = grid.Width, shows = Reach + Sky, spread = 2 * Reach + Sky;
+        int w = grid.Width, across = Sky + _side, over = Sky + _side, under = Sky + _deep;
+        int spreadAcross = across + _side, spreadOver = over + _deep, spreadUnder = under + _side;
         foreach (int cell in cells)
         {
             int x = cell % w, y = cell / w, near = -1;
             for (int i = 0; i < boxes.Count && near < 0; i++)
             {
                 var b = boxes[i];
-                if (x >= b.Left - spread && x <= b.Right + spread && y >= b.Top - spread && y <= b.Bottom + spread) near = i;
+                if (x >= b.Left - spreadAcross && x <= b.Right + spreadAcross && y >= b.Top - spreadOver - spreadUnder && y <= b.Bottom + spreadOver + spreadUnder) near = i;
             }
             if (near < 0) boxes.Add(new Box(x, y, x, y));
             else boxes[near] = boxes[near].Union(new Box(x, y, x, y));
         }
+        Box Shows(Box b) => Within(Grown(b, across, over, under), region);
+        Box From(Box b) => Within(Grown(b, spreadAcross, spreadOver, spreadUnder), region);
         long worked = 0;
-        foreach (var b in boxes) worked += (long)Within(Grown(b, spread), region).Width * Within(Grown(b, spread), region).Height;
+        foreach (var b in boxes) worked += (long)From(b).Width * From(b).Height;
         if (worked >= (long)region.Width * region.Height)
         {
             Work(grid, region);
@@ -165,14 +187,15 @@ public sealed class StarField
         _written.Clear();
         foreach (var b in boxes)
         {
-            var write = Within(Grown(b, shows), region);
+            var write = Shows(b);
             if (write.IsEmpty) continue;
-            Compute(grid, Within(Grown(b, spread), region), write, machinesListed: false);
+            Compute(grid, From(b), write, machinesListed: false);
             _written.Add(write);
         }
     }
 
-    private static Box Grown(Box b, int by) => new(b.Left - by, b.Top - by, b.Right + by, b.Bottom + by);
+    /// <summary><paramref name="b"/> grown by <paramref name="across"/> each side, <paramref name="over"/> up and <paramref name="under"/> down.</summary>
+    private static Box Grown(Box b, int across, int over, int under) => new(b.Left - across, b.Top - over, b.Right + across, b.Bottom + under);
 
     private static Box Within(Box b, Box region)
     {

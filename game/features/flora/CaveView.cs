@@ -35,9 +35,9 @@ public partial class CaveView : Node2D, ILightSource
     private readonly HashSet<int> _bare = [];
     private readonly Func<IReadOnlyList<(Vector2 At, Vector2 Toward, Vector2 Head)>> _lamps;
     private readonly int _across;
-    /// <summary>The standing cave growths by chunk, and the cells of all of them.</summary>
+    /// <summary>The standing cave growths by chunk; the cells of every plant standing, cave or not, ascending (<see cref="Felling"/>); those just felled.</summary>
     private readonly Dictionary<int, List<Plant>> _byChunk = new();
-    private readonly HashSet<int> _standing = [];
+    private readonly List<int> _standing = [], _felled = [];
     /// <summary>The cells of the moss standing: a run of it joins.</summary>
     private readonly HashSet<int> _moss = [];
     private readonly Dictionary<int, Patch> _shown = new();
@@ -106,25 +106,25 @@ public partial class CaveView : Node2D, ILightSource
     {
         bool first = _count < 0;
         _count = _building.Plants.Count;
-        var now = new HashSet<int>();
-        foreach (var plant in _building.Plants)
-        {
-            if (!CaveLooks.Of.ContainsKey(plant.Kind)) continue;
-            now.Add(plant.Cell);
-            if (first && plant.Kind == "moss") _moss.Add(plant.Cell);
-            if (first) Of(ChunkOf(plant.Cell)).Add(plant);
-        }
         if (first)
         {
-            _standing.UnionWith(now);
+            foreach (var plant in _building.Plants)
+            {
+                _standing.Add(plant.Cell);
+                if (!CaveLooks.Of.ContainsKey(plant.Kind)) continue;
+                if (plant.Kind == "moss") _moss.Add(plant.Cell);
+                Of(ChunkOf(plant.Cell)).Add(plant);
+            }
             return;
         }
-        foreach (int cell in _standing.Where(c => !now.Contains(c)).ToList())
+        _felled.Clear();
+        Felling.Take(_standing, _building.Plants, _felled);
+        foreach (int cell in _felled)
         {
-            _standing.Remove(cell);
             _moss.Remove(cell);
             int chunk = ChunkOf(cell);
-            var list = Of(chunk);
+            // Not a cave growth: one on the surface, or a ruin's piece.
+            if (!_byChunk.TryGetValue(chunk, out var list)) continue;
             int at = list.FindIndex(p => p.Cell == cell);
             if (at < 0) continue;
             Felled(list[at]);

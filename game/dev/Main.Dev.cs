@@ -105,6 +105,7 @@ public partial class Main
         }
         if (Has("--fx-bench")) AddChild(new Dev.FxBench());
         if (Has("--frames") || Has("--frames=vsync")) AddChild(_frameLog = new Dev.FrameLog(vsync: Has("--frames=vsync")));
+        if (_dev.Given("--ablate") is { } ablate) AddChild(new Dev.ProcessAblation(ablate == "" ? null : ablate));
         if (Has("--allocs")) _allocs = new Dev.AllocationSampler();
         if (_dev.Value("--sweep") is { } sweep)
             AddChild(new Dev.CameraSweep(_camera, () => _m != _ship ? new Vector2(_m.Crew.Spawn % _m.Grid.Width, _m.Crew.Spawn / _m.Grid.Width) : null, int.Parse(sweep)));
@@ -152,7 +153,7 @@ public partial class Main
     {
         _roster = Platform.Roster.Empty();
         var (host, client) = LocalSession.Create(world, Build, _roster.SeatOf(_playerKey));
-        _session = new Session(host, client);
+        _session = new Session(host, client) { Speed = double.TryParse(_dev.Given("--speed"), System.Globalization.CultureInfo.InvariantCulture, out double speed) ? speed : 1 };
         foreach (var scenario in _scenarios) scenario.Started(client);
         ShowWorld();
         AimCamera(aimAt);

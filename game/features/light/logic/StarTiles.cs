@@ -5,9 +5,9 @@ using Stillwake.Sim;
 namespace Stillwake.Game.Features.Light;
 
 /// <summary>
-/// The starlight's texels (<see cref="StarField"/>) cut into square tiles of <see cref="Size"/> cells, row by row from the
+/// The starlight's texels (<see cref="StarField"/>), and the cells a light stops at (<see cref="Lightmap"/>), cut into square tiles of <see cref="Size"/> cells, row by row from the
 /// region's top-left, a layer each of one texture array: a change sends the few tiles it wrote, not the whole region, which
-/// on a planet is 25 MB. A tile past the region's right or bottom edge is padded with nothing; the shader never reads there.
+/// on a planet is 25 MB (6 MB of stops). A tile past the region's right or bottom edge is padded with nothing; the shader never reads there.
 /// </summary>
 public static class StarTiles
 {
@@ -33,14 +33,14 @@ public static class StarTiles
         return [.. layers];
     }
 
-    /// <summary>Copies tile <paramref name="layer"/> of <paramref name="texels"/>, four bytes a cell of <paramref name="region"/>, into <paramref name="tile"/>, four bytes a cell of the tile.</summary>
-    public static void Copy(byte[] texels, Box region, int layer, byte[] tile)
+    /// <summary>Copies tile <paramref name="layer"/> of <paramref name="texels"/>, <paramref name="bytes"/> a cell of <paramref name="region"/>, into <paramref name="tile"/>, as many a cell of the tile.</summary>
+    public static void Copy(byte[] texels, int bytes, Box region, int layer, byte[] tile)
     {
         var (across, _) = Of(region);
         int x0 = layer % across * Size, y0 = layer / across * Size;
         int width = Math.Min(Size, region.Width - x0), height = Math.Min(Size, region.Height - y0);
         if (width < Size || height < Size) Array.Clear(tile);
         for (int y = 0; y < height; y++)
-            Array.Copy(texels, ((y0 + y) * region.Width + x0) * 4, tile, y * Size * 4, width * 4);
+            Array.Copy(texels, ((y0 + y) * region.Width + x0) * bytes, tile, y * Size * bytes, width * bytes);
     }
 }

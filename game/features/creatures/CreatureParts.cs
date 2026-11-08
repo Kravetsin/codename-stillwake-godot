@@ -29,6 +29,31 @@ public static class CreatureParts
     private static readonly Dictionary<string, int[]> Markings = new();
     private static readonly Dictionary<string, (int W, int H, byte[] Data)> Drawings = new();
 
+    /// <summary>
+    /// Every design's parts read and made, of each kind, unmarked: a kind's first sight read its pictures from disk and made them in
+    /// its frame, 30 ms (planet-frame-rate). Once a run, while a planet with creatures loads; an individual's markings stay to its first sight.
+    /// </summary>
+    public static void Warm()
+    {
+        if (_warm) return;
+        _warm = true;
+        void Parts(string id, IReadOnlyDictionary<string, CreatureArt.Part> parts)
+        {
+            foreach (var (part, p) in parts)
+            {
+                Ink(id, part, Kind.Colour);
+                Ink(id, part, Kind.White);
+                if (p.Glow) Ink(id, part, Kind.Glow);
+            }
+        }
+        foreach (var design in CreatureArt.InkDesigns.Values) Parts(design.Id, design.Parts);
+        foreach (var design in CreatureArt.Lurkers.Values) Parts(design.Id, design.Parts);
+        Parts(CreatureArt.InkIstukan.Id, CreatureArt.InkIstukan.Parts);
+        Parts(CreatureArt.InkTick.Id, CreatureArt.InkTick.Parts);
+    }
+
+    private static bool _warm;
+
     /// <summary>Part <paramref name="part"/> of <paramref name="design"/>, as <paramref name="kind"/>, on <paramref name="one"/>.</summary>
     public static Texture2D Of(CreatureArt.Design design, string part, Kind kind, CreatureVariety.Individual one) => Inked(design.Id, part, kind, one);
 

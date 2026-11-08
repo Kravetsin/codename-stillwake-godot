@@ -7,6 +7,7 @@
 | `CaveTint.cs` | The stone's colour by depth band (0080), multiplied over the ground drawn under it. |
 | `CaveView.cs` | What grows in a planet's caves, seen (0080): chunks of growths, their glows, lights, glints and drift. |
 | `FloraView.cs` | What grows on a planet's surface, seen (0079): a sprite per plant standing, its glow, lights and motes. |
+| `logic/Felling.cs` | Which plants were felled since the cave view last looked: the cells it kept and those standing halved by binary search, not a set of all. |
 | `logic/Planting.cs` | Where what grows is drawn against what holds it (0079, 0080), in world pixels, plain C# so it is tested. |
 | `logic/VeinGlints.cs` | Which vein cells glint on their open faces: one in `CaveLooks.VeinGlintEvery`, by the planet's seed and the cell. |
 

@@ -127,6 +127,7 @@ public partial class EffectsView : Node2D
     private void DrawMatter(Node2D on, bool low)
     {
         long began = Stopwatch.GetTimestamp();
+        _chips = 0;
         foreach (var g in _glims.Live)
         {
             if (!g.Look.Matter || g.Look.Low != low) continue;
@@ -145,11 +146,12 @@ public partial class EffectsView : Node2D
                     Wisp(on, g, c);
                     break;
                 case Glimmer.Chip:
-                    Chip(on, g, c);
+                    Chip(g, c);
                     break;
             }
         }
         on.DrawSetTransform(Vector2.Zero);
+        DrawChips(on);
         _spentMs += Stopwatch.GetElapsedTime(began).TotalMilliseconds;
     }
 
@@ -163,15 +165,32 @@ public partial class EffectsView : Node2D
         on.DrawTextureRect(SoftDots.Puff, new Rect2(-r, -r, r * 2, r * 2), false, ColourOf(c, g.Look.Alpha * g.Bright * swell));
     }
 
-    private static readonly Vector2[] ChipShape = [new(-1, -0.6f), new(1.2f, -0.3f), new(0, 0.9f)];
-    private readonly Vector2[] _chip = new Vector2[3];
+    private static readonly int[] InOrder = [];
+    private Vector2[] _chipPoints = new Vector2[3 * 64];
+    private Color[] _chipColours = new Color[3 * 64];
+    private int _chips;
 
-    private void Chip(Node2D on, Glim g, (double R, double G, double B) c)
+    private void Chip(Glim g, (double R, double G, double B) c)
     {
-        double q = g.Age;
-        on.DrawSetTransform(Screen(g.X, g.Y), (float)g.Turn, Vector2.One * _zoom * (float)(g.Size / g.Look.Size));
-        for (int i = 0; i < 3; i++) _chip[i] = ChipShape[i];
-        on.DrawColoredPolygon(_chip, ColourOf(c, 1 - q * q));
+        if (3 * (_chips + 1) > _chipPoints.Length)
+        {
+            Array.Resize(ref _chipPoints, _chipPoints.Length * 2);
+            Array.Resize(ref _chipColours, _chipColours.Length * 2);
+        }
+        Span<(float X, float Y)> corners = stackalloc (float, float)[3];
+        var at = Screen(g.X, g.Y);
+        ChipShape.Place(at.X, at.Y, g.Turn, _zoom * g.Size / g.Look.Size, corners);
+        var colour = ColourOf(c, 1 - g.Age * g.Age);
+        for (int i = 0; i < 3; i++) (_chipPoints[3 * _chips + i], _chipColours[3 * _chips + i]) = (new Vector2(corners[i].X, corners[i].Y), colour);
+        _chips++;
+    }
+
+    /// <summary>The frame's chips as one list of triangles; the slots past them fold to a point, so the arrays are kept frame to frame.</summary>
+    private void DrawChips(Node2D on)
+    {
+        if (_chips == 0) return;
+        Array.Clear(_chipPoints, 3 * _chips, _chipPoints.Length - 3 * _chips);
+        RenderingServer.CanvasItemAddTriangleArray(on.GetCanvasItem(), InOrder, _chipPoints, _chipColours);
     }
 
     /// <summary>

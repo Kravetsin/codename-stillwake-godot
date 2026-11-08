@@ -22,6 +22,7 @@ public partial class LiquidsView : Node2D
 
     private readonly IGridQueries _grid;
     private readonly ILiquidsQueries _liquids;
+    private readonly Func<int, bool> _blocks;
     private readonly Sprite2D _look = new()
     {
         Centered = false,
@@ -39,7 +40,7 @@ public partial class LiquidsView : Node2D
 
     public LiquidsView(IGridQueries grid, ILiquidsQueries liquids)
     {
-        (_grid, _liquids) = (grid, liquids);
+        (_grid, _liquids, _blocks) = (grid, liquids, grid.Blocks);
         ((ShaderMaterial)_look.Material).SetShaderParameter("cell", (float)Cell);
         AddChild(_look);
         AddChild(_pour);
@@ -64,7 +65,7 @@ public partial class LiquidsView : Node2D
             return;
         }
         if (_texels.Length != wide * tall * 4) _texels = new byte[wide * tall * 4];
-        WaterCells.Write(layer, _grid.Width, _grid.Height, _grid.Blocks, left, top, wide, tall, _texels);
+        WaterCells.Write(layer, _grid.Width, _grid.Height, _blocks, left, top, wide, tall, _texels);
         bool wet = _ease.Step(_texels, left, top, wide, tall, delta);
         _look.Visible = wet;
         if (!wet) return;

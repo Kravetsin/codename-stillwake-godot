@@ -76,6 +76,14 @@ public partial class FrameLog : Node
     /// <summary>Starts timing a frame's sections: <c>Main</c> calls it first thing in its <c>_Process</c>.</summary>
     public void Start() => (_mark, _markBytes) = (Stopwatch.GetTimestamp(), GC.GetAllocatedBytesForCurrentThread());
 
+    /// <summary>The frames counted afresh from now, as if the warm-up ended here: a scripted run measuring what comes after its start.</summary>
+    public void Restart()
+    {
+        Array.Clear(_sections, 0, Math.Min(_n + 1, Capacity) * Sections.Length);
+        Array.Clear(_sectionBytes);
+        _n = Warm;
+    }
+
     /// <summary>The time since the last mark goes to <paramref name="section"/>, one of <see cref="Sections"/>.</summary>
     public void Mark(string section)
     {

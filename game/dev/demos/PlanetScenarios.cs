@@ -16,9 +16,12 @@ namespace Stillwake.Game.Dev;
 [Dev("--strip", "the test strip (0076); with --autopilot played by a script (HeroAutopilot.PlanetRun)", Order = 5)]
 [Dev("--dusk", "with --planet or --strip, the planet's dusk starting two seconds in, its night a minute on (2026-11-07-night-chills)", Order = 5)]
 [Dev("--valley", "with --planet, the hero beamed down into the planet's deepest valley rather than at the pod, to see the land behind follow (composed-backdrops)", Order = 5)]
+[Dev("--dig", "with --planet, the ground under the hero hewn at the drill's pace from four seconds in, so it digs down: to measure what digging costs a frame; =SECONDS stops then, --frames counting afresh, to measure the depth reached", Order = 5, Shape = DevShape.Either)]
 public sealed class PlanetScenario : DevScenario
 {
     private bool _beamedBack, _dusk, _valley;
+    private int _dug;
+    private bool _stopped;
 
     private bool Strip => Args.Has("--strip");
 
@@ -61,6 +64,7 @@ public sealed class PlanetScenario : DevScenario
             Valley(client, log);
         }
         if (client.World.Tick < 2 * World.TicksPerSecond) return;
+        Dig(client, m);
         if (!_dusk && Args.Has("--dusk") && m.Rules.Cycle is { } day)
         {
             _dusk = true;
@@ -69,6 +73,26 @@ public sealed class PlanetScenario : DevScenario
         if (_beamedBack || !Args.Has("--beam-back")) return;
         _beamedBack = true;
         client.Send(new Transfer(0));
+    }
+
+    /// <summary><c>--dig</c>: a pickaxe's hit on the cells under the hero's body, three across and four down, at the drill's pace: what a hit costs, without the drill run by hand.</summary>
+    private void Dig(Client client, Registry m)
+    {
+        int tick = client.World.Tick;
+        if (Args.Given("--dig") is not { } given || tick < 4 * World.TicksPerSecond || tick - _dug < Content.Weapons.Drill.Pace || m.Crew.HeroOf(client.Id) is not { } hero) return;
+        if (int.TryParse(given, out int seconds) && tick > (4 + seconds) * World.TicksPerSecond)
+        {
+            if (!_stopped) Dev.FrameLog.Active?.Restart();
+            _stopped = true;
+            return;
+        }
+        _dug = tick;
+        int w = m.Grid.Width, x = hero.Cell % w, y = hero.Cell / w;
+        var cells = new List<int>();
+        for (int dy = 1; dy <= 4; dy++)
+            for (int dx = -1; dx <= 1; dx++)
+                if (y + dy < m.Grid.Height && x + dx >= 0 && x + dx < w && m.Grid.WallAt((y + dy) * w + x + dx) != null) cells.Add((y + dy) * w + x + dx);
+        if (cells.Count > 0) client.Send(new Sim.Building.HewCells(Content.Weapons.Pickaxe.Item, cells));
     }
 }
 

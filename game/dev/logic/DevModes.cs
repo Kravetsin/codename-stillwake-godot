@@ -102,8 +102,10 @@ public static class DevModes
         new("--snap", DevShape.Next, "the screen saved to that PNG once the world has played --snap-at seconds, then quits"),
         new("--snap-at", DevShape.Next, "with --snap, the seconds; 6 by default"),
         new("--for", DevShape.Equals, "quits after that many seconds"),
+        new("--speed", DevShape.Equals, "the world run that many times faster, as the dev panel's ×4"),
         new("--measure", DevShape.Flag, "prints what frames cost (PerfReadout)"),
         new("--frames", DevShape.Either, "logs every frame and prints the worst with their causes on quitting, =vsync with it (FrameLog)"),
+        new("--ablate", DevShape.Either, "each node's processing switched off in turn, the frame time it saves printed, then quits; =Name for that node's children (ProcessAblation)"),
         new("--allocs", DevShape.Flag, "with --frames, what was allocated, by type (AllocationSampler)"),
         new("--fx-bench", DevShape.Flag, "a busy scene of luminous effects round the view's middle to measure (FxBench)"),
     ];
