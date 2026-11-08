@@ -17,9 +17,11 @@ Draws and hears what `sim/Liquids` decides (docs/plans/liquids.md); sends nothin
 - **Each frame** only the cells in view, a cell round them; on a surface that never held liquid, nothing.
 - **A surface** across a cell is blended with its neighbour's toward the side it is nearer, so a pool at rest, whose cells
   may differ by a unit, reads flat; the edge wanders a little as wet paint does.
-- **A stream** is drawn whole: the cells that fall (open under, not full there) and the empty ones a fall of `Fall` skips,
-  each as wide as the units falling past it over `WaterCells.Window` rows either way, so it reads as one even rope. Its
-  ends in the air are rounded, a drop's bottom round; a drop falling alone trails over the `Fall` cells above it, thinning.
+- **A stream** is water in the air, drawn whole: a cell over an open, empty one, where such a fall lands, and the empty
+  cells a fall of `Fall` skips, each as wide as the units falling past it over `WaterCells.Window` rows either way, so it
+  reads as one even rope down to the surface it falls on. Its ends in the air are rounded: a lump falling alone is a drop.
+- **Lying water is drawn settled** in its column, a cell full before the one over it: water just spread over a pool's
+  surface, with nothing falling onto it, swells the pool rather than standing on it as a spike.
 - **Eased:** each cell's drawn amount closes on the sim's at `WaterEase.Rate` a second, so 20 ticks a second glide; a
   stream's is drawn as the sim has it, since it jumps a fall a tick.
 - **Heard:** `Sound.WaterPour` loops at the stream nearest the view's middle within `Sound.PourReach` cells. The

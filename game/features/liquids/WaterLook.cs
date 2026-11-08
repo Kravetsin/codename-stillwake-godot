@@ -26,8 +26,6 @@ public static class WaterLook
             const vec2 EDGE_DRIFT = vec2(-3.5, 0.0), EDGE_SWELL = vec2(1.75, 0.0);
             // How many cells down the water is darkest.
             const float DARKEST = 6.0;
-            // The most cells water falls a tick (Content.Liquids.Fall): how long a drop's trail is.
-            const int FALL = 4;
 
             float hash(vec2 p) {
                 vec3 p3 = fract(vec3(p.xyx) * 0.1031);
@@ -45,6 +43,16 @@ public static class WaterLook
                 return texelFetch(cells, ivec2(c), 0);
             }
 
+            // Half a stream's width, in pixels, for the water falling past it: its sides trembling.
+            float stream_half(float r, vec2 px, float cx, float t) {
+                return cell * (0.15 + 0.35 * r) + (noise(vec2(px.y * 0.4 - t * 9.0, cx)) - 0.5) * 1.2;
+            }
+
+            vec4 stream_colour(vec2 px, float t, float grain) {
+                float streak = smoothstep(0.55, 0.75, noise(vec2(px.x * 0.6, px.y * 0.12 - t * 6.0)));
+                return vec4(mix(WASH, TIDE, streak * 0.7), (0.45 + 0.25 * streak) * grain);
+            }
+
             void fragment() {
                 ivec2 size = textureSize(TEXTURE, 0);
                 vec2 local = UV * vec2(size) * cell, px = local + origin;
@@ -55,29 +63,14 @@ public static class WaterLook
                 vec2 pigment = px - DRIFT * TIME;
                 float grain = 0.7 + 0.6 * noise(pigment * 0.85);
                 if (own.g > 0.5) {
-                    // A stream: as wide as the water falling past, its sides trembling, streaks running down it.
-                    float half_wide = cell * (0.15 + 0.35 * own.r) + (noise(vec2(px.y * 0.4 - t * 9.0, c.x)) - 0.5) * 1.2;
-                    float fade = 1.0;
+                    // A stream: as wide as the water falling past, streaks running down it.
+                    float half_wide = stream_half(own.r, px, c.x, t);
                     vec4 up = cell_at(TEXTURE, c - vec2(0.0, 1.0), size), down = cell_at(TEXTURE, c + vec2(0.0, 1.0), size);
-                    if (own.b > 0.5) {
-                        // The trail over a drop: thinning and fading up the cells it fell through.
-                        float gap = 1.0;
-                        for (int i = 1; i <= FALL; i++) {
-                            vec4 under = cell_at(TEXTURE, c + vec2(0.0, float(i)), size);
-                            if (under.g > 0.5 && under.b < 0.5) { gap = float(i); break; }
-                        }
-                        float above = clamp((gap - f.y) / float(FALL), 0.0, 1.0);
-                        half_wide *= 0.45 * (1.0 - above);
-                        fade = (1.0 - above) * 0.7;
-                    } else {
-                        // Its ends in the air rounded: the top drawn in to a point unless a trail or water is over it, the
-                        // bottom a drop's round end unless water is under it.
-                        if (up.a < 0.5) half_wide *= sqrt(clamp(f.y * 2.0, 0.0, 1.0));
-                        if (down.a < 0.5 && f.y > 0.5) half_wide *= sqrt(max(0.0, 1.0 - pow((f.y - 0.5) * 2.0, 2.0)));
-                    }
+                    // Its ends in the air rounded, as a drop's: the top unless water is over it, the bottom unless under it.
+                    if (up.a < 0.5 && f.y < 0.5) half_wide *= sqrt(max(0.0, 1.0 - pow((0.5 - f.y) * 2.0, 2.0)));
+                    if (down.a < 0.5 && f.y > 0.5) half_wide *= sqrt(max(0.0, 1.0 - pow((f.y - 0.5) * 2.0, 2.0)));
                     if (abs(f.x - 0.5) * cell > half_wide) discard;
-                    float streak = smoothstep(0.55, 0.75, noise(vec2(px.x * 0.6, px.y * 0.12 - t * 6.0)));
-                    COLOR = vec4(mix(WASH, TIDE, streak * 0.7), (0.45 + 0.25 * streak) * grain * fade);
+                    COLOR = stream_colour(px, t, grain);
                 } else {
                     // The surface across this cell, blended with the neighbour's toward the side it is nearer, so a run reads flat.
                     float side = f.x < 0.5 ? -1.0 : 1.0;
@@ -89,7 +82,13 @@ public static class WaterLook
                     float wander = own.b > 0.5 ? 0.0 : (noise((px - EDGE_DRIFT * TIME) * 0.23) - 0.5) * 0.14
                         + (noise((px - EDGE_SWELL * TIME) * 0.05 + 3.1) - 0.5) * 0.12;
                     float under = (surface + wander - (1.0 - f.y)) * cell;
-                    if (under < 0.0) discard;
+                    if (under < 0.0) {
+                        // Over the surface, a stream falling onto it drawn on down to it.
+                        vec4 up = cell_at(TEXTURE, c - vec2(0.0, 1.0), size);
+                        if (up.g < 0.5 || abs(f.x - 0.5) * cell > stream_half(up.r, px, c.x, t)) discard;
+                        COLOR = stream_colour(px, t, grain);
+                        return;
+                    }
                     // How deep: this cell's part and every wet cell over it, a few at most.
                     float above = 0.0;
                     for (int i = 1; i <= int(DARKEST); i++) {

@@ -47,7 +47,7 @@ public class WaterDrawnTests
     }
 
     [Fact]
-    public void ADropFallingAloneLeavesATrailOverTheCellsItFellThrough()
+    public void ADropFallingAloneIsDrawnAloneWithNothingOverIt()
     {
         int w = 3, h = 12;
         var layer = new byte[w * h];
@@ -56,10 +56,47 @@ public class WaterDrawnTests
         var texels = new byte[w * h * 4];
         WaterCells.Write(layer, w, h, Blocks, 0, 0, w, h, texels);
         byte[] At(int y) => texels[((y * w + 1) * 4)..((y * w + 1) * 4 + 4)];
-        Assert.Equal([255, 0], At(8)[1..3]);
-        Assert.All(Enumerable.Range(8 - L.Fall, L.Fall), y => Assert.Equal(new byte[] { At(8)[0], 255, 255, 255 }, At(y)));
-        Assert.Equal(new byte[] { 0, 0, 0, 0 }, At(8 - L.Fall - 1));
+        Assert.Equal([255, 0, 255], At(8)[1..4]);
+        Assert.All(Enumerable.Range(0, 8), y => Assert.Equal(new byte[] { 0, 0, 0, 0 }, At(y)));
         Assert.Equal(new byte[] { 0, 0, 0, 0 }, At(9));
+    }
+
+    [Fact]
+    public void WaterArrivingOverAPoolsSurfaceIsDrawnSettledIntoItNotAsAFall()
+    {
+        // A shaft a cell wide: a full cell at the bottom, 5 over it, and 3 just spread over that, nothing falling above.
+        int w = 3, h = 6;
+        var layer = new byte[w * h];
+        layer[5 * w + 1] = L.Of(L.Water, 8);
+        layer[4 * w + 1] = L.Of(L.Water, 5);
+        layer[3 * w + 1] = L.Of(L.Water, 3);
+        bool Blocks(int cell) => cell % w != 1;
+        var texels = new byte[w * h * 4];
+        WaterCells.Write(layer, w, h, Blocks, 0, 0, w, h, texels);
+        byte[] At(int y) => texels[((y * w + 1) * 4)..((y * w + 1) * 4 + 4)];
+        Assert.Equal(new byte[] { 0, 0, 0, 0 }, At(3));
+        Assert.Equal(new byte[] { 255, 0, 0, 255 }, At(4));
+        Assert.Equal(new byte[] { 255, 0, 255, 255 }, At(5));
+    }
+
+    [Fact]
+    public void WhereAFallLandsOnAPoolItIsDrawnAsAStreamDownToTheSurface()
+    {
+        // As above, a drop falling through the air over the 3: it falls onto the pool, so the 3 is the fall's last cell.
+        int w = 3, h = 6;
+        var layer = new byte[w * h];
+        layer[5 * w + 1] = L.Of(L.Water, 8);
+        layer[4 * w + 1] = L.Of(L.Water, 5);
+        layer[3 * w + 1] = L.Of(L.Water, 3);
+        layer[0 * w + 1] = L.Of(L.Water, 2);
+        bool Blocks(int cell) => cell % w != 1;
+        var texels = new byte[w * h * 4];
+        WaterCells.Write(layer, w, h, Blocks, 0, 0, w, h, texels);
+        byte[] At(int y) => texels[((y * w + 1) * 4)..((y * w + 1) * 4 + 4)];
+        Assert.Equal(255, At(0)[1]);
+        Assert.Equal(255, At(3)[1]);
+        // The pool under it keeps its own level, the stream drawn on down to it.
+        Assert.Equal(new byte[] { 5 * 255 / L.Full, 0, 0, 255 }, At(4));
     }
 
     [Fact]
