@@ -11,7 +11,7 @@ charge will be made of. The charge must arrive while the descent is still long, 
 
 ## Decision
 
-- **Sulfur in pockets** (ore-pockets' one row): `sulfurVein` (code 17, legend `y`), Strength 10 and Armour 4 as iron's, its lump
+- **Sulfur in pockets** (ore-pockets' one row): `sulfurVein` (code 18, legend `y`), Strength 10 and Armour 4 as iron's, its lump
   `sulfur`, stack 250, sold for 40 (`Market.Raw`). Its `Vein` on the first planet is pockets only, appended after iron so no
   other ore or growth moves: none in the cold band, rare in the garden band (about 0.1 % of its stone), more in the amber deep
   (0.6 %), most over the lava (1 %). A test pins the shares over 16 seeds and that only plain stone turned to sulfur.

@@ -104,7 +104,7 @@ Two answers: an ore that turns into a faster way down, and finds worth digging t
 
 Each slice its own PR; numbers in `sim/Content`, every rule and refusal a scenario test.
 
-1. **Sulfur** (done). `sulfurVein` in `Materials.cs` (code 17, or the next free one if `feat/planet-layers` takes it first),
+1. **Sulfur** (done). `sulfurVein` in `Materials.cs` (code 18: the vessels' hull took 17),
    `sulfur` in `Items.cs`, `Market.Raw`, a `Vein` with `Pockets` appended last in `PlanetTypes.First.Veins`. Tests: shares
    per band over 16 seeds, none in band 0, pockets on the rift's walls in band 2, existing ores identical before and after.
    Its look: the user's pick (an Artifact page), then `tools/anime-art`.

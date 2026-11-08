@@ -220,6 +220,31 @@ public class PlanetOresTests(ITestOutputHelper output)
             Assert.True(sulfur > 0, $"seed {seed}: no sulfur");
         }
     }
+
+    [Fact]
+    public void TheRiftsWallsShowSulfurInTheAmberDeepBeforeItsBottom()
+    {
+        var seen = new List<int>();
+        for (uint seed = 1; seed <= Seeds; seed++)
+        {
+            var l = PlanetTesting.First(seed).Layout;
+            int w = l.Width, top = Enumerable.Range(0, l.Height).First(y => Terrain.BandOf(First, y) == 2);
+            int bottom = Enumerable.Range(top, l.Height - top).First(y => Terrain.BandOf(First, y) == 3);
+            // The rift: the column, off the fog at the sides, open most of the way through the amber deep.
+            int fog = First.Ground.Fog + 20, rift = Enumerable.Range(fog, w - 2 * fog).MaxBy(x => Enumerable.Range(top, bottom - top).Count(y => l.Rows[y][x] is ' ' or '.'));
+            int faces = 0;
+            for (int y = top; y < bottom; y++)
+                for (int x = Math.Max(1, rift - 16); x <= Math.Min(w - 2, rift + 16); x++)
+                {
+                    int cell = y * w + x;
+                    if (l.At(cell) == '#' && l.Materials![cell] == Sulfur && (l.At(cell - 1) != '#' || l.At(cell + 1) != '#' || l.At(cell - w) != '#' || l.At(cell + w) != '#')) faces++;
+                }
+            seen.Add(faces);
+        }
+        output.WriteLine($"sulfur faces along the rift in the amber deep: {string.Join(" ", seen)}");
+        // Measured: faces on 13 seeds of 16, up to 9 a seed: a few glints on the way down, more where the rift crosses a pocket.
+        Assert.True(seen.Count(n => n >= 1) >= 12, $"sulfur seen along the rift on {seen.Count(n => n >= 1)} seeds of {Seeds}");
+    }
 }
 
 /// <summary>
