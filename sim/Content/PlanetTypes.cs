@@ -127,7 +127,7 @@ public static class PlanetTypes
         Chasms = 4,
         ChasmWide = 24,
         ChasmDeep = 520,
-        // Into the ember band, which begins some 1030 rows under the surface's middle: a rift a hero falls down to the magnetite.
+        // Into the ember band, which begins some 1030 rows under the surface's middle: a rift a hero falls down to the heat's cracks.
         RiftDeep = 1060,
         Halls = 6,
         HallWide = 144,
@@ -175,14 +175,12 @@ public static class PlanetTypes
         LakeMedium = 1500,
         // Ice veins in the cold band, copper below it, richest in the amber deep: as their growths were (0080). Copper and iron
         // in pockets at every depth too, specks near the surface, more and bigger deeper (2026-11-07-ore-pockets); iron last, so
-        // the others' salts stay. Magnetite after it, a trail down to the core: none above the amber deep, specks there, more
-        // over the core (2026-11-08-planet-layers).
+        // the others' salts stay.
         Veins =
         [
             new("iceVein", Wave: 40, Tall: 24, Widths: [1800, 0, 0, 0]),
             new("copperVein", Wave: 40, Tall: 24, Widths: [0, 1400, 2400, 1800], new(Wave: 6, Tall: 4, Marks: [63900, 64500, 64000, 65000])),
             new("ironVein", Wave: 40, Tall: 24, Widths: [0, 0, 0, 0], new(Wave: 6, Tall: 4, Marks: [63500, 61800, 62200, 62800])),
-            new("magnetiteVein", Wave: 40, Tall: 24, Widths: [0, 0, 0, 0], new(Wave: 6, Tall: 4, Marks: [0, 0, 64200, 62000])),
         ],
         LodeWave = 96,
         LodeOver = 42000,

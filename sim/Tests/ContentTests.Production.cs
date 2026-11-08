@@ -517,15 +517,10 @@ public partial class ContentTests
         Assert.Equal([("copper", 1)], Content.Items.Get("copperOre").Yields);
         Assert.Equal(1, Content.Items.Get("copperOre").Heat);
         Assert.Contains("magnetite", Crafts.Get("motor").Cost.Select(c => c.Item));
-        // Magnetite lies in the heat's cracks, only in the band over the bedrock, and in its vein's pockets, none above the amber
-        // deep (2026-11-08-planet-layers): a trail down, never a find near the surface.
+        // Magnetite lies only in the heat's cracks, and they only in the band over the bedrock.
         var magnetic = Flora.Cave.Where(k => k.Yields.Any(y => y.Item == "magnetite")).ToList();
         Assert.Equal(["heatCrack"], magnetic.Select(k => k.Id));
         Assert.All(magnetic, k => Assert.Equal([0, 0, 0], k.Chances.Take(PlanetTypes.First.Bands.Count)));
-        Assert.Equal(["magnetiteVein"], Materials.All.Where(m => m.Cost.Any(c => c.Item == "magnetite")).Select(m => m.Id));
-        var vein = PlanetTypes.First.Veins.Single(v => v.Material == "magnetiteVein");
-        Assert.Equal([0, 0, 0, 0], vein.Widths);
-        Assert.Equal([0, 0], vein.Pockets!.Marks.Take(2));
     }
 
     /// <summary>

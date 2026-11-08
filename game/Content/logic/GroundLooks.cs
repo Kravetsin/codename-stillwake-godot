@@ -28,8 +28,6 @@ public static class GroundLooks
         ["iceVein"] = new((132, 204, 236), (232, 250, 255), (26, 28, 36), (138, 146, 160)),
         // Kidney iron (the user's pick, 2026-11-07): dark red-grey bubbles, a hard metallic highlight.
         ["ironVein"] = new((76, 52, 56), (236, 206, 210), (26, 28, 36), (138, 146, 160)),
-        // Lodestone (2026-11-08-planet-layers): near-black ore, a cold steel glint; its picture the user's pick.
-        ["magnetiteVein"] = new((40, 42, 50), (176, 190, 214), (26, 28, 36), (138, 146, 160)),
     };
 
     /// <summary>The dust and the chips of a break; a hit's are <see cref="HitLooks"/>'.</summary>

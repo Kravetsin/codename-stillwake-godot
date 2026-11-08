@@ -111,8 +111,6 @@ public static class Materials
         new("iceVein", Code: 10, Strength: 12, Leak: 270, Cost: [("ice", 1)], BuildTicks: 0, Natural: true, Footing: Tread.Stone, In: "stone", Armour: 4),
         // Iron in pockets through the stone (2026-11-07-ore-pockets): a little softer than copper's, its lump the furnace smelts to iron.
         new("ironVein", Code: 16, Strength: 10, Leak: 270, Cost: [("ironOre", 1)], BuildTicks: 0, Natural: true, Footing: Tread.Stone, In: "stone", Armour: 4),
-        // Lodestone in pockets, specks in the amber deep and more over the core (2026-11-08-planet-layers): a magnetite a cell, as hard as copper's.
-        new("magnetiteVein", Code: 17, Strength: 12, Leak: 270, Cost: [("magnetite", 1)], BuildTicks: 0, Natural: true, Footing: Tread.Stone, In: "stone", Armour: 4),
     ];
 
     /// <summary>What a <c>#</c> on a map is built of.</summary>

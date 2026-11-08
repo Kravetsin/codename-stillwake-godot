@@ -161,7 +161,6 @@ public static partial class En
         ["material.copperVein"] = "copper vein",
         ["material.iceVein"] = "ice vein",
         ["material.ironVein"] = "iron vein",
-        ["material.magnetiteVein"] = "magnetite vein",
         ["tool.tradeStation.about"] = "Sends what is put in it off by capsule: credits when it comes back.",
         ["tool.autoTradeStation.about"] = "A trade station that sends its capsule by itself, whenever it holds something to sell.",
         ["tool.workbench.about"] = "Makes the basic parts by hand, and assembles the tools, the jetpack, the drill and the cape. Needs no power.",
