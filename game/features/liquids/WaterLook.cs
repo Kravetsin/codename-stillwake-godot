@@ -43,14 +43,21 @@ public static class WaterLook
                 return texelFetch(cells, ivec2(c), 0);
             }
 
-            // Half a stream's width, in pixels, for the water falling past it: its sides trembling.
+            // How fast a stream's streaks, grain and swells run down it, in pixels a second: about half the sim's fall (Fall cells
+            // a tick), so they read as water falling yet can still be followed.
+            const float FLOW = 320.0;
+
+            // Half a stream's width, in pixels, for the water falling past it: swelling and thinning as it runs down.
             float stream_half(float r, vec2 px, float cx, float t) {
-                return cell * (0.15 + 0.35 * r) + (noise(vec2(px.y * 0.4 - t * 9.0, cx)) - 0.5) * 1.2;
+                return cell * (0.15 + 0.35 * r) + (noise(vec2((px.y - t * FLOW) * 0.12, cx * 3.7)) - 0.5) * 1.6;
             }
 
-            vec4 stream_colour(vec2 px, float t, float grain) {
-                float streak = smoothstep(0.55, 0.75, noise(vec2(px.x * 0.6, px.y * 0.12 - t * 6.0)));
-                return vec4(mix(WASH, TIDE, streak * 0.7), (0.45 + 0.25 * streak) * grain);
+            // A stream's paint: long streaks and grain carried down with it.
+            vec4 stream_colour(vec2 px, float t) {
+                float y = px.y - t * FLOW;
+                float streak = smoothstep(0.5, 0.75, noise(vec2(px.x * 0.6, y * 0.04)));
+                float grain = 0.75 + 0.5 * noise(vec2(px.x * 0.85, y * 0.1));
+                return vec4(mix(WASH, TIDE, streak * 0.7), (0.5 + 0.25 * streak) * grain);
             }
 
             void fragment() {
@@ -63,14 +70,18 @@ public static class WaterLook
                 vec2 pigment = px - DRIFT * TIME;
                 float grain = 0.7 + 0.6 * noise(pigment * 0.85);
                 if (own.g > 0.5) {
-                    // A stream: as wide as the water falling past, streaks running down it.
-                    float half_wide = stream_half(own.r, px, c.x, t);
+                    // A stream: as wide as the water falling past, the width eased from cell to cell so it never steps,
+                    // streaks running down it.
                     vec4 up = cell_at(TEXTURE, c - vec2(0.0, 1.0), size), down = cell_at(TEXTURE, c + vec2(0.0, 1.0), size);
+                    float r = own.r;
+                    if (f.y < 0.5 && up.g > 0.5) r = mix(up.r, own.r, f.y + 0.5);
+                    if (f.y >= 0.5 && down.g > 0.5) r = mix(own.r, down.r, f.y - 0.5);
+                    float half_wide = stream_half(r, px, c.x, t);
                     // Its ends in the air rounded, as a drop's: the top unless water is over it, the bottom unless under it.
                     if (up.a < 0.5 && f.y < 0.5) half_wide *= sqrt(max(0.0, 1.0 - pow((0.5 - f.y) * 2.0, 2.0)));
                     if (down.a < 0.5 && f.y > 0.5) half_wide *= sqrt(max(0.0, 1.0 - pow((f.y - 0.5) * 2.0, 2.0)));
                     if (abs(f.x - 0.5) * cell > half_wide) discard;
-                    COLOR = stream_colour(px, t, grain);
+                    COLOR = stream_colour(px, t);
                 } else {
                     // The surface across this cell, blended with the neighbour's toward the side it is nearer, so a run reads flat.
                     float side = f.x < 0.5 ? -1.0 : 1.0;
@@ -86,7 +97,7 @@ public static class WaterLook
                         // Over the surface, a stream falling onto it drawn on down to it.
                         vec4 up = cell_at(TEXTURE, c - vec2(0.0, 1.0), size);
                         if (up.g < 0.5 || abs(f.x - 0.5) * cell > stream_half(up.r, px, c.x, t)) discard;
-                        COLOR = stream_colour(px, t, grain);
+                        COLOR = stream_colour(px, t);
                     } else {
                         // How deep: this cell's part and every wet cell over it, a few at most.
                         float above = 0.0;
