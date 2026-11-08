@@ -51,8 +51,7 @@ public class PowerDriverTests
 
         w.Refusals.Clear();
         w.M.Knowledge.Earn(Prices.Of(Tree.Node(Driver)!));
-        foreach (string order in (string[])["order1", "order2"])
-            foreach (var (item, count) in Tree.Node(order)!.Order) w.M.Knowledge.Sell(item, count);
+        Mafia.Reach(w, 2);
         w.Do(new BuyBlock(Driver)).Do(new Craft(Bench, Driver, 1)).Run();
         Assert.Empty(w.Refusals);
         Assert.Single(w.M.Crafting.Queue(Bench));

@@ -24,6 +24,7 @@ effect, so a release build has none of this folder and no `*Demo.cs` anywhere.
 | `VesselScenario.cs` | `--vessel`: a generated vessel beside the new game's wreck, `=class`, `=class,wrecked` |
 | `PilesScenario.cs` | `--piles`: the hold with an axe in hand, a sledgehammer, the scanner worn; `--autopilot` breaks the piles. |
 | `CapsuleScenario.cs` | The wreck with its trade station's capsule just gone or about to come home (--capsule) |
+| `MarketScenario.cs` | `--market`: a trade station, credits and the first two levels' goods with scrap, to raise the mafia's reputation |
 | `FlareScenario.cs` | `--flare`: the new game's wreck with a magnetic flare's warning begun at once; `=repair` a lamp half repaired |
 | `PlanetScenarios.cs` | `--planet` (with `--valley`), `--strip` (with `--beam-back`), `--creatures` and its modifiers, `--nailer`, `--railgun`, `--hitboxes`, `--pickaxe`, `--ore-shine` (`=off` without the lamp), `--lake`, `--pour` |
 | `TabletHands.cs` | A script's hands on the research tablet: `--tree`, `--board` |

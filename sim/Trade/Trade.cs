@@ -77,7 +77,7 @@ public sealed class TradeModule : Module<TradeState>
         for (int i = 0; i < slots.Count; i++)
             if (slots[i] is { } held && Market.PriceOf(held.Item) != null)
             {
-                _knowledge.Sell(held.Item, held.Count);
+                _knowledge.Sell(held.Item, held.Count, (long)held.Count * Market.WorthOf(held.Item));
                 _itemsOps.TakeFrom(machine, i, held.Count);
             }
         State.Flights.Add(new Flight(machine, Market.CapsuleFlight, credits));
