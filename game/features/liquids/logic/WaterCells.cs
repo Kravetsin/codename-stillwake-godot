@@ -179,18 +179,32 @@ public static class WaterCells
     }
 
     /// <summary>
-    /// Whether the empty <paramref name="cell"/> lies inside a stream: water falls in an open cell above it, and lies below it,
-    /// each within <c>Liquids.Fall</c> open cells.
+    /// Whether the empty <paramref name="cell"/> lies inside a stream, each within <c>Liquids.Fall</c> open cells of it: water
+    /// falls above it and lies below it (a fall skips it), or water lies above it or beside a cell from it up (the pool or ledge
+    /// a stream leaves) and falls below it, so a stream is drawn from where it starts, not from where its last lump is.
     /// </summary>
     private static bool Skipped(Cells cells, int cell)
     {
-        bool above = false, below = false;
         int width = cells.Width;
-        for (int k = 1, c = cell - width; k <= L.Fall && c >= 0 && !cells.Blocks(c) && !above; k++, c -= width)
-            above = cells.Amount(c) > 0 && Falls(cells, c);
-        for (int k = 1, c = cell + width; k <= L.Fall && cells.Inside(c) && !cells.Blocks(c) && above && !below; k++, c += width)
-            below = cells.Amount(c) > 0;
-        return above && below;
+        bool fed = false, falls = false;
+        for (int k = 0, c = cell; k <= L.Fall && c >= 0 && !cells.Blocks(c); k++, c -= width)
+        {
+            if (k > 0 && cells.Amount(c) > 0)
+            {
+                (fed, falls) = (true, Falls(cells, c));
+                break;
+            }
+            int x = c % width;
+            if (x > 0 && cells.Amount(c - 1) > 0 || x + 1 < width && cells.Amount(c + 1) > 0)
+            {
+                fed = true;
+                break;
+            }
+        }
+        if (!fed) return false;
+        for (int k = 1, c = cell + width; k <= L.Fall && cells.Inside(c) && !cells.Blocks(c); k++, c += width)
+            if (cells.Amount(c) > 0) return falls || Falls(cells, c);
+        return false;
     }
 
     /// <summary>
