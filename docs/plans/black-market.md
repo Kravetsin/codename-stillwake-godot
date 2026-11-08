@@ -139,7 +139,9 @@ holding a powerDriver or a scanner, one in thirty a plasmaCutter.
 2. Deliveries: parcels and crates with the icon and the edge marker; the looks picked first.
 3. Gear becomes items, with its migration. After 2, or gear could not be had.
 4. The confiscated container.
-5. Contraband, a PR an item.
+5. Contraband, a PR an item: deferred by the user until the base plays well.
+
+Steps 2–4 ship as one PR: [black-market-deliveries.md](black-market-deliveries.md).
 
 ## Settled with the user
 
