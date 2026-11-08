@@ -4,7 +4,6 @@
 
 | File | Purpose |
 | --- | --- |
-| `CaveTint.cs` | The stone's colour by depth band (0080), multiplied over the ground drawn under it. |
 | `CaveView.cs` | What grows in a planet's caves, seen (0080): chunks of growths, their glows, lights, glints and drift. |
 | `FloraView.cs` | What grows on a planet's surface, seen (0079): a sprite per plant standing, its glow, lights and motes. |
 | `logic/BoxesByLeft.cs` | Boxes kept sorted by their left edge: the glowing plants near the view found each frame without walking every plant (planet-frame-rate). |
@@ -14,7 +13,7 @@
 
 What grows on a planet, seen: on its surface (0079) and in its caves (0080). The plants are Building's
 (`sim/Building/Flora.cs`): grown from the seed with the ground, felled by a hit or with what holds them. This feature
-only draws them — the surface's in `FloraView`, the caves' in `CaveView` — and tints the caves' stone by depth (`CaveTint`).
+only draws them — the surface's in `FloraView`, the caves' in `CaveView`; the stone by depth is the grid's (`Strata`).
 
 ## Surface (0079)
 
@@ -67,9 +66,6 @@ warm amber and red near the bottom.
 - **Drift** (0075): spores up from glowcaps; drips from one stalactite in `DripShare`, landing on the first solid
   cell under its tip within `DripRows` and splashing (`Planting.DripFloor`), none with no open cell under it; faint
   embers from heat cracks. `MotesASecond` from the sources in view, at most `MostMotes` alive, none off the screen.
-- **Tint** (`CaveTint.cs`): one colour per depth band, multiplied over all drawn under `Layers.Edges` in its rows, so
-  growths and light keep their colours; blended from each band's middle to the next, from `TintFrom` rows under the
-  surface's middle, by the planet type's look (`PlanetLooks`, 0095). A quad a band across the view.
 
 ## Deliberately not handled
 

@@ -125,6 +125,8 @@ Game words → code. One line a term: Russian / English → identifiers → modu
 - жила, руда / vein, ore → `Vein` (`c/Veins.cs`), materials `copperVein`, `iceVein`, `ironVein`, `sulfurVein` (сера, item `sulfur`; `Material.In`), drawn in `Terrain` → Core
 - залежь, рудный карман / ore pocket → `Pockets` (`c/Veins.cs`), `Terrain.PaintPockets` → Core
 - рудная зона / lode → `PlanetType.LodeWave`, `LodeOver`, `CaveKind.Lode` (crystals by the veins) → Core
+- расщелина, разлом / chasm, rift → `Ground.Chasms`, `ChasmDeep`, `RiftDeep` (one chasm down to the band over the core), `Terrain.Landmarks` → Core
+- слой планеты, пласт / depth band, stratum **≠** a grid layer → `PlanetType.Bands`, `Terrain.BandOf` → Core
 - равнина, нагорье / plain, highland → `Ground.RegionWave`, `RegionLeast`, `RegionLift` → Core
 - мох / moss **≠** → `Grass` (f/grid `Grass.cs`, the living edge); `Sound.StepMoss` → Grid (client only)
 - растение / plant → `Plant` (sim/Building `Flora.cs`), `c/Flora.cs` → Building
@@ -150,6 +152,10 @@ Game words → code. One line a term: Russian / English → identifiers → modu
 - вода в пещерах, озеро / water, lake **≠** → liquid in the cells (`Content.Liquids.Water`), `LiquidsModule`, `ILiquidsQueries.AmountAt`; not the item `water` → Liquids
 - лава / lava → `c/Lava.cs`, f/grid `LavaView` → planets
 - вылазка / sortie → `OpenSurface`, `Transfer` (sim/Core `Surface.cs`) → Core
+- корабль, корабль-находка / vessel **≠** → `Vessel`, `Shipyard` (sim/Core `Vessels/`), `Content.Vessels`; written beside the ship → Places
+- находка на корабле / salvage aboard → `Vessels.Salvage`, `VesselSalvage`, a pile (`salvageTanks`, …) copied from a debris piece, five times its loot → Places, Building
+- разбитый корабль / wrecked vessel → a vessel after `Shipyard.Damage` (`VesselCause.Breach`); not the starting wreck, nor wreckage → Places
+- контакт, прыжок / contact, jump → `Contact`, `Find`, `Jump` → Places
 
 ## Game
 

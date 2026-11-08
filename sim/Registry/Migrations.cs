@@ -220,6 +220,13 @@ public static class Migrations
                 surface!["slices"] = Inserted56(surface["slices"]!.AsObject());
             return root;
         },
+        // 56 → 57 (generated-vessels): the places module joins last, on the ship and every surface: no contact found, no vessel out.
+        root =>
+        {
+            foreach (var slices in new[] { root["slices"]! }.Concat((root["surfaces"]?.AsArray() ?? []).Select(s => s!["slices"]!)))
+                slices["places"] = new JsonObject { ["contacts"] = new JsonArray(), ["nextContactId"] = 1 };
+            return root;
+        },
     ];
 
     /// <summary>The slices with liquids' empty one after building's, where its module runs: a save holds them in that order.</summary>

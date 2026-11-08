@@ -127,6 +127,8 @@ public static class PlanetTypes
         Chasms = 4,
         ChasmWide = 24,
         ChasmDeep = 520,
+        // Into the ember band, which begins some 1030 rows under the surface's middle: a rift a hero falls down to the heat's cracks.
+        RiftDeep = 1060,
         Halls = 6,
         HallWide = 144,
         HallTall = 56,
@@ -227,6 +229,7 @@ public static class PlanetTypes
             Chasms = 1,
             ChasmWide = 6,
             ChasmDeep = 32,
+            RiftDeep = 0,
             Halls = 1,
             HallWide = 12,
             HallTall = 8,
