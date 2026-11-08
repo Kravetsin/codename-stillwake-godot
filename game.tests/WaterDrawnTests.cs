@@ -24,7 +24,7 @@ public class WaterDrawnTests
         Assert.Equal(new byte[] { 255, 0, 0, 255 }, texels[(1 * 4)..(1 * 4 + 4)]);
         Assert.Equal(new byte[] { 255, 0, 255, 255 }, texels[(4 * 4)..(4 * 4 + 4)]);
         // Falling, it is a stream: its 4 units over the 3 open rows of its column, falling Fall a tick.
-        Assert.Equal(new byte[] { 4 * L.Fall / 3 * 255 / L.Full, 255, 0, 255 }, texels[(2 * 4)..(2 * 4 + 4)]);
+        Assert.Equal(new byte[] { 4 * L.Fall * 255 / (3 * L.Full), 255, 0, 255 }, texels[(2 * 4)..(2 * 4 + 4)]);
         Assert.Equal(new byte[] { 0, 0, 0, 0 }, texels[0..4]);
         Assert.False(WaterCells.Write(new byte[w * h], w, h, Blocks, 0, 0, w, h, texels));
     }
@@ -44,6 +44,23 @@ public class WaterDrawnTests
         var widths = Enumerable.Range(WaterCells.Window, 12 - 2 * WaterCells.Window + 1).Select(y => texels[(y * w + 1) * 4]).ToArray();
         Assert.All(Enumerable.Range(0, 12), y => Assert.Equal(255, texels[(y * w + 1) * 4 + 1]));
         Assert.InRange(widths.Max() - widths.Min(), 0, 255 / L.Full);
+    }
+
+    [Fact]
+    public void AStreamLetOutEveryOtherTickIsDrawnWholeToo()
+    {
+        // A source on a ledge lets a lump out each second tick (the sweep turns each tick): lumps two falls apart.
+        int w = 3, h = 30;
+        var layer = new byte[w * h];
+        for (int y = 2; y < 26; y += 2 * L.Fall) layer[y * w + 1] = L.Of(L.Water, 4);
+        bool Blocks(int cell) => cell % w != 1 || cell / w == h - 1;
+        var texels = new byte[w * h * 4];
+        WaterCells.Write(layer, w, h, Blocks, 0, 0, w, h, texels);
+        Assert.All(Enumerable.Range(2, 2 * L.Fall * 2 + 1), y =>
+        {
+            Assert.Equal(255, texels[(y * w + 1) * 4 + 1]);
+            Assert.True(texels[(y * w + 1) * 4] > 0, $"row {y} has no width");
+        });
     }
 
     [Fact]
@@ -73,6 +90,11 @@ public class WaterDrawnTests
         var texels = new byte[w * h * 4];
         WaterCells.Write(layer, w, h, Blocks, 0, 0, w, h, texels);
         Assert.All(Enumerable.Range(3, 5), y => Assert.Equal(255, texels[(y * w + 3) * 4 + 1]));
+        // A unit falling over eight rows is a thin stream, never none: a cell drawn with no width is not drawn at all.
+        Assert.All(Enumerable.Range(3, 5), y => Assert.True(texels[(y * w + 3) * 4] > 0, $"row {y} has no width"));
+        var eased = texels.ToArray();
+        new WaterEase().Step(eased, 0, 0, w, h, 1.0 / 60);
+        Assert.All(Enumerable.Range(3, 5), y => Assert.Equal(255, eased[(y * w + 3) * 4 + 3]));
         // Nothing over the spill is drawn, nor under the drop till it lands.
         Assert.Equal(0, texels[(2 * w + 3) * 4 + 3]);
         Assert.Equal(0, texels[(8 * w + 3) * 4 + 3]);

@@ -19,8 +19,9 @@ Draws and hears what `sim/Liquids` decides (docs/plans/liquids.md); sends nothin
   may differ by a unit, reads flat; the edge wanders a little as wet paint does.
 - **A stream** is water in the air, drawn whole: a cell over an open, empty one, or alone in its row over water in the air
   (lumps falling one on another; a pool over the hole it drains through lies), where such a fall lands, and the empty
-  cells a fall of `Fall` skips or that lie between it and the pool or ledge it leaves (so it hangs from its source), each as wide as the units falling past it over `WaterCells.Window` rows either way, so it
-  reads as one even rope down to the surface it falls on. Its ends in the air are rounded: a lump falling alone is a drop.
+  cells between its lumps, up to two falls apart (a ledge lets one out each second tick), or between it and the pool or
+  ledge it leaves (so it hangs from its source), each as wide as the units falling past it over `WaterCells.Window` rows
+  either way, never none (a texel of none is not drawn), so it reads as one even rope down to the surface it falls on. Its ends in the air are rounded: a lump falling alone is a drop.
   A steady stream's lumps sit in the same cells every tick, so its motion is drawn: the width eased from cell to cell, and
   streaks, grain and swells running down at `FLOW` pixels a second. Streams side by side are drawn as one sheet. Lumps
   falling side by side are in the air too; a cell beside one resting (a pool round its drain) is not.

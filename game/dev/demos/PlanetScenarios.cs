@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Text.Json.Nodes;
 using Stillwake.Game.Features.Crew;
@@ -214,10 +215,15 @@ public sealed class OreShineScenario : DevScenario
 /// nearest the middle, the pickaxe and the drill in hand's reach, the helmet lamp on, creative so the air never runs out.
 /// </summary>
 [Dev("--lake", "the first planet's lake nearest the middle, the hero on its bank with the pickaxe, the drill and the lamp, creative (liquids)")]
+[Dev("--pour", "--lake with a shaft dug down beside the lake at once, so it pours: streams to look at (liquids)")]
 public sealed class LakeScenario : DevScenario
 {
+    /// <summary>How deep the --pour shaft is dug at most, in cells.</summary>
+    private const int ShaftDeep = 60;
+
     private bool _beamed, _creative;
     private int _planet;
+    private List<int>? _shaft;
 
     public override World Seed(World world, DevSeed seed)
     {
@@ -244,25 +250,40 @@ public sealed class LakeScenario : DevScenario
             _creative = true;
             client.Send(new Sim.Items.SetCreative(true));
         }
+        if (_creative && _shaft is { Count: > 0 } shaft)
+        {
+            // Hewn with the pickaxe in hand till every cell is open: a cell takes a few hits.
+            var grid = Registry.On(world, _planet).Grid;
+            shaft.RemoveAll(c => !grid.Blocks(c));
+            if (shaft.Count > 0) client.Send(new Sim.Building.HewCells(Content.Weapons.Pickaxe.Item, [.. shaft]));
+        }
         if (_beamed || world.Surfaces.Count < 2) return;
         _beamed = true;
         _planet = world.Surfaces.Count - 1;
         var ground = Registry.On(world, _planet);
-        if (Bank(ground) is not int at)
+        if (Bank(ground) is not var (at, edge, row))
         {
             client.Send(new Transfer(_planet));
             log("lake: no lake with a bank found; beamed to the spawn");
             return;
         }
         client.Send(new Transfer(_planet, at));
-        log($"lake: beamed to ({at % ground.Grid.Width}, {at / ground.Grid.Width})");
+        int w = ground.Grid.Width;
+        if (Args.Has("--pour"))
+        {
+            // Down to the first open cell under the ground, a cave the water pours into, or ShaftDeep cells with none.
+            _shaft = [];
+            for (int y = row; y < Math.Min(ground.Grid.Height - 1, row + ShaftDeep) && (y <= row + 1 || ground.Grid.Blocks(y * w + edge)); y++)
+                _shaft.Add(y * w + edge);
+        }
+        log($"lake: beamed to ({at % w}, {at / w}){(_shaft != null ? $", a shaft dug down from ({edge}, {row})" : "")}");
     }
 
     /// <summary>
     /// A dry floor cell with room for the hero over it beside the surface of the lake nearest the middle's column, within 16 columns
-    /// of the surface's end and a few rows of it; null for none.
+    /// of the surface's end and a few rows of it, with the column just past that end and the surface's row; null for none.
     /// </summary>
-    private static int? Bank(Registry m)
+    private static (int At, int Edge, int Row)? Bank(Registry m)
     {
         var grid = m.Grid;
         var layer = m.Liquids.Layer.ToArray();
@@ -280,7 +301,7 @@ public sealed class LakeScenario : DevScenario
                 while (Wet(end + way, y0)) end += way;
                 for (int x = end + way; Math.Abs(x - end) <= 16; x += way)
                     for (int y = y0 - 6; y <= y0; y++)
-                        if (Open(x, y) && !Wet(x, y) && !Open(x, y + 1) && Enumerable.Range(1, 6).All(k => Open(x, y - k))) return y * w + x;
+                        if (Open(x, y) && !Wet(x, y) && !Open(x, y + 1) && Enumerable.Range(1, 6).All(k => Open(x, y - k))) return (y * w + x, end + way, y0);
             }
         }
         return null;

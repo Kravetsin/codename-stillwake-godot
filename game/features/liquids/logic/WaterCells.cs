@@ -20,8 +20,14 @@ public static class WaterCells
     /// </summary>
     public const int Window = L.Fall;
 
-    /// <summary>The rows over and under the box whose cells in the air a stream in it reads: a window, and a fall over that.</summary>
-    private const int Margin = Window + L.Fall;
+    /// <summary>
+    /// The most rows between lumps of one stream: two falls, since a ledge lets a lump out only each second tick (the sweep
+    /// turns each tick). Farther apart they are drops.
+    /// </summary>
+    private const int Gap = 2 * L.Fall;
+
+    /// <summary>The rows over and under the box whose cells in the air a stream in it reads: a window, and a gap over that.</summary>
+    private const int Margin = Window + Gap;
 
     /// <summary>The world's liquid and walls, and which cells of a box round the drawn one are in the air.</summary>
     private readonly ref struct Cells(ReadOnlySpan<byte> layer, int width, int height, Func<int, bool> blocks, bool[] air, int left, int top, int wide, int tall)
@@ -95,7 +101,7 @@ public static class WaterCells
                     int cell = gy * width + gx, a = cells.Amount(cell);
                     bool stream = a > 0 ? Falls(cells, cell) : !blocks(cell) && Skipped(cells, cell);
                     if (a == 0 && !stream) continue;
-                    texels[at] = (byte)Math.Min(255, (stream ? Falling(cells, cell) : a) * 255 / L.Full);
+                    texels[at] = stream ? Falling(cells, cell) : (byte)(a * 255 / L.Full);
                     texels[at + 1] = stream ? (byte)255 : (byte)0;
                     texels[at + 3] = 255;
                 }
@@ -188,19 +194,19 @@ public static class WaterCells
         return any;
     }
 
-    /// <summary>Whether the liquid in <paramref name="cell"/> falls: in the air, or where water in the air within a fall lands.</summary>
+    /// <summary>Whether the liquid in <paramref name="cell"/> falls: in the air, or where water in the air within a <see cref="Gap"/> lands.</summary>
     private static bool Falls(Cells cells, int cell)
     {
         if (cells.Amount(cell) == 0) return false;
         if (cells.Air(cell)) return true;
         if (!cells.Open(cell)) return false;
-        for (int k = 1, c = cell - cells.Width; k <= L.Fall && c >= 0 && !cells.Blocks(c); k++, c -= cells.Width)
+        for (int k = 1, c = cell - cells.Width; k <= Gap && c >= 0 && !cells.Blocks(c); k++, c -= cells.Width)
             if (cells.Air(c)) return true;
         return false;
     }
 
     /// <summary>
-    /// Whether the empty <paramref name="cell"/> lies inside a stream, each within <c>Liquids.Fall</c> open cells of it: water
+    /// Whether the empty <paramref name="cell"/> lies inside a stream, each within <see cref="Gap"/> open cells of it: water
     /// falls above it and lies below it (a fall skips it), or water lies above it or beside a cell from it up (the pool or ledge
     /// a stream leaves) and falls below it, so a stream is drawn from where it starts, not from where its last lump is.
     /// </summary>
@@ -208,7 +214,7 @@ public static class WaterCells
     {
         int width = cells.Width;
         bool fed = false, falls = false;
-        for (int k = 0, c = cell; k <= L.Fall && c >= 0 && !cells.Blocks(c); k++, c -= width)
+        for (int k = 0, c = cell; k <= Gap && c >= 0 && !cells.Blocks(c); k++, c -= width)
         {
             if (k > 0 && cells.Amount(c) > 0)
             {
@@ -223,17 +229,18 @@ public static class WaterCells
             }
         }
         if (!fed) return false;
-        for (int k = 1, c = cell + width; k <= L.Fall && cells.Inside(c) && !cells.Blocks(c); k++, c += width)
+        for (int k = 1, c = cell + width; k <= Gap && cells.Inside(c) && !cells.Blocks(c); k++, c += width)
             if (cells.Amount(c) > 0) return falls || Falls(cells, c);
         return false;
     }
 
     /// <summary>
-    /// The units falling past <paramref name="cell"/> a tick: those falling in its column within <see cref="Window"/> rows of it,
-    /// over the rows there the stream runs through (open, and empty or falling; not the pool it pours from or into), times
-    /// the <c>Liquids.Fall</c> cells they fall a tick.
+    /// The units falling past <paramref name="cell"/> a tick, as a texel's red (255 for <c>Liquids.Full</c>): those falling in its
+    /// column within <see cref="Window"/> rows of it, over the rows there the stream runs through (open, and empty or falling;
+    /// not the pool it pours from or into), times the <c>Liquids.Fall</c> cells they fall a tick. Never less than 1: a thin
+    /// stream is drawn thin, and a texel of none would not be drawn.
     /// </summary>
-    private static int Falling(Cells cells, int cell)
+    private static byte Falling(Cells cells, int cell)
     {
         int units = 0, rows = 0;
         for (int k = -Window; k < Window; k++)
@@ -245,6 +252,6 @@ public static class WaterCells
             units += a;
             rows++;
         }
-        return rows == 0 ? 0 : units * L.Fall / rows;
+        return (byte)(rows == 0 ? 1 : Math.Clamp(units * L.Fall * 255 / (rows * L.Full), 1, 255));
     }
 }
