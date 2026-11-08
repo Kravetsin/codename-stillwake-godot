@@ -17,12 +17,14 @@ public static class Impacts
 {
     /// <summary>
     /// A hit at <paramref name="cell"/>: the natural wall's material there decides; the ship's hull, never broken, sparks as metal,
-    /// so a shot is seen to land; else the growth's kind; none for what is never struck.
+    /// so a shot is seen to land; a pile in the hold as a wreck (2026-11-07-pile-hits-felt); else the growth's kind; none for what is
+    /// never struck.
     /// </summary>
     public static Impact? At(IGridQueries grid, BuildingModule building, int cell)
     {
         if (grid.WallAt(cell) is { } wall)
-            return !wall.Natural ? Impact.Alloy : HitLooks.Ground.TryGetValue(wall.Id, out var ground) ? ground : null;
+            return !wall.Natural ? Impact.Alloy : HitLooks.GroundOf(wall);
+        if (Shared.Piles.At(grid, cell) != null) return Impact.Wreck;
         return building.PlantAt(cell) is { } plant && HitLooks.Growths.TryGetValue(plant.Kind, out var growth) ? growth : null;
     }
 
@@ -41,6 +43,7 @@ public static class Impacts
     public static double ShareAt(IGridQueries grid, BuildingModule building, int cell, string tool, int damage)
     {
         if (grid.WallAt(cell) is { Natural: true } wall) return CrackAt(building, cell) + damage >= wall.Strength ? 1 : ShareOf(tool);
+        if (Shared.Piles.At(grid, cell) is var (pile, hp)) return CrackAt(building, pile.Cell) + damage >= hp ? 1 : ShareOf(tool);
         if (building.PlantAt(cell) is not { } plant) return ShareOf(tool);
         return CrackAt(building, plant.Cell) + damage >= Spec.Flora.Get(plant.Kind).Strength ? 1 : ShareOf(tool);
     }

@@ -11,12 +11,14 @@ using Stillwake.Sim.Hazards;
 using Stillwake.Sim.Items;
 using Stillwake.Sim.Knowledge;
 using Stillwake.Sim.Landing;
+using Stillwake.Sim.Liquids;
 using Stillwake.Sim.Logistics;
 using Stillwake.Sim.Pipes;
 using Stillwake.Sim.Players;
 using Stillwake.Sim.Power;
 using Stillwake.Sim.Research;
 using Stillwake.Sim.Rooms;
+using Stillwake.Sim.Sky;
 using Stillwake.Sim.Trade;
 using Stillwake.Sim.Water;
 
@@ -36,6 +38,8 @@ public sealed class Registry
     /// <summary>The world's, one for all its surfaces: what is granted and analysed.</summary>
     public KnowledgeModule Knowledge { get; }
     public GridModule Grid { get; }
+    /// <summary>The planet's day and night (2026-11-07-night-chills): right after the grid, before the crew that feels its chill.</summary>
+    public SkyModule Sky { get; }
     public RoomsModule Rooms { get; }
     public ItemsModule Items { get; }
     public PowerModule Power { get; }
@@ -53,6 +57,7 @@ public sealed class Registry
     public CreaturesModule Creatures { get; }
     public TradeModule Trade { get; }
     public WaterModule Water { get; }
+    public LiquidsModule Liquids { get; }
 
     /// <summary>The rules of the kind of surface this registry runs (0076): what the client draws and allows by.</summary>
     public Surfaces.Kind Rules => Grid.Rules;
@@ -72,14 +77,17 @@ public sealed class Registry
         Players = ship?.Players ?? new PlayersModule();
         Knowledge = ship?.Knowledge ?? new KnowledgeModule(ResearchModule.Ids);
         Grid = new GridModule();
+        Sky = new SkyModule();
         Rooms = new RoomsModule(Grid);
         Items = new ItemsModule(Grid, Rooms, Knowledge, Knowledge);
         Power = new PowerModule(Grid, Rooms, Items, Items);
         Research = new ResearchModule(Grid, Items, Knowledge, Knowledge);
         Crafting = new CraftingModule(Grid, Items, Items, Research, Power, Power);
+        // Liquids: water in the cells, after building digs and builds, before what will read it; new to format 56.
+        Liquids = new LiquidsModule(Grid);
         Pipes = new PipesModule(Grid, Items, Items);
         Atmosphere = new AtmosphereModule(Grid, Items, Items, Rooms, Pipes, Power);
-        Crew = new CrewModule(Atmosphere, Atmosphere, Grid, Items, Items, Players, Players, Knowledge);
+        Crew = new CrewModule(Atmosphere, Atmosphere, Grid, Items, Items, Players, Players, Knowledge, Sky);
         // Building reads where heroes are and the pipes only as its commands apply, never in a system, so it keeps its place in
         // the run order and the saves', before pipes and crew (0077: a wall does not finish on a hero; 2026-10-29-typed-ports).
         Building = new BuildingModule(Grid, Grid, Items, Items, Power, Power, Research, Crafting, Crew, Crew, Pipes);
@@ -94,7 +102,7 @@ public sealed class Registry
         Trade = new TradeModule(Grid, Items, Items, Knowledge);
         // Water: cisterns and electrolysers, after the air, whose tanks it fills; new to format 45, run and saved last.
         Water = new WaterModule(Grid, Items, Items, Pipes, Power, Atmosphere, Atmosphere);
-        Module[] surface = [Grid, Rooms, Items, Power, Research, Crafting, Building, Pipes, Atmosphere, Crew, Hazards, Debris, Furnace, Logistics, Creatures, Landing, Trade, Water];
+        Module[] surface = [Grid, Sky, Rooms, Items, Power, Research, Crafting, Building, Liquids, Pipes, Atmosphere, Crew, Hazards, Debris, Furnace, Logistics, Creatures, Landing, Trade, Water];
         All = new Set(this, ship == null ? [Players, Knowledge, .. surface] : surface);
     }
 

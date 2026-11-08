@@ -446,7 +446,7 @@ public sealed class GroundDemo(string mode)
     }
 
     /// <summary>The open cell nearest under the spawn, at least twenty rows down, standing on ground with room above: in a cave.</summary>
-    private static int? CaveUnder(Registry m)
+    internal static int? CaveUnder(Registry m)
     {
         var grid = m.Grid;
         int w = grid.Width, spawn = m.Crew.Spawn, sx = spawn % w, sy = spawn / w;

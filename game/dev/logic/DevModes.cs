@@ -85,6 +85,7 @@ public static class DevModes
         new("--axe", DevShape.Flag, "with --ground=hit-…, the axe instead of the drill (0094)"),
         new("--held", DevShape.Equals, "with --asteroid, that item on the first slot instead of the drill (salvage-tools)"),
         new("--belt", DevShape.Flag, "with --asteroid, all three belt slots open and worn, the grinder and a spare battery on the hotbar (energy-ring)"),
+        new("--scanner", DevShape.Flag, "with --asteroid, the scanner on the helmet and a big asteroid and an engine block beside the hero (the-scanner)"),
         new("--take-at", DevShape.Next, "with --ground at a spire, the second its nearest relic is struck from (0096)"),
         new("--ground-offset", DevShape.Next, "with --ground, the hero stood N columns right of its mode's spot"),
         new("--sprint", DevShape.Next, "with --ground=sprint --autopilot, cells run; 300 by default"),
@@ -101,8 +102,10 @@ public static class DevModes
         new("--snap", DevShape.Next, "the screen saved to that PNG once the world has played --snap-at seconds, then quits"),
         new("--snap-at", DevShape.Next, "with --snap, the seconds; 6 by default"),
         new("--for", DevShape.Equals, "quits after that many seconds"),
+        new("--speed", DevShape.Equals, "the world run that many times faster, as the dev panel's ×4"),
         new("--measure", DevShape.Flag, "prints what frames cost (PerfReadout)"),
         new("--frames", DevShape.Either, "logs every frame and prints the worst with their causes on quitting, =vsync with it (FrameLog)"),
+        new("--ablate", DevShape.Either, "each node's processing switched off in turn, the frame time it saves printed, then quits; =Name for that node's children (ProcessAblation)"),
         new("--allocs", DevShape.Flag, "with --frames, what was allocated, by type (AllocationSampler)"),
         new("--fx-bench", DevShape.Flag, "a busy scene of luminous effects round the view's middle to measure (FxBench)"),
     ];

@@ -29,6 +29,13 @@ public sealed class JetpackScenario : TestbedScenario
     }
 }
 
+[Dev("--haul", "the testbed's hero in the airlock, no jetpack, creative: out into space and Shift held to haul back in (tether-haul)", Order = 1)]
+public sealed class HaulScenario : TestbedScenario
+{
+    /// <summary>Inside the airlock, by its outer door: block (47, 7) of the testbed's map, doubled.</summary>
+    public override Func<Registry, int>? Start => m => (2 * 7 + 1) * m.Grid.Width + 2 * 47;
+}
+
 [Dev("--charge", "the testbed's charger filling a battery (ChargeDemo)", Order = 1)]
 public sealed class ChargeScenario : TestbedScenario
 {

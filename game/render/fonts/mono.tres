@@ -8,3 +8,4 @@ subpixel_positioning = 0
 [resource]
 base_font = SubResource("SystemFont_mono")
 variation_embolden = 0.35
+baseline_offset = 0.22

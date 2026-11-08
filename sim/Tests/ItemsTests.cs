@@ -79,7 +79,7 @@ public class ItemsTests
     {
         var w = new Scenario(Layout.Empty);
         Assert.Equal(Empty(Inventory.Total), w.M.Items.Inventory(3));
-        Assert.False(w.M.Items.Creative);
+        Assert.False(w.M.Items.Creative(0));
         Assert.Empty(w.Stored().Inventories);
         Assert.Empty(w.Stored().Crates);
     }
@@ -156,7 +156,7 @@ public class ItemsTests
     }
 
     [Fact]
-    public void InventoriesTakeNothingInCreativeModeAndStillGive()
+    public void InventoriesTakeNothingFromACreativePeerAndStillGive()
     {
         var w = Stocked(out var trader)
             .Do(new SetCreative(true))
@@ -165,8 +165,8 @@ public class ItemsTests
             .Run();
         Assert.Empty(w.Refusals);
         Assert.Equal(new[] { Scrap + 2, Iron, 0 }, Totals(w));
-        // Nothing was paid, so a refund of what was paid gives nothing back.
-        Assert.Empty(Assert.Single(trader().Paid));
+        // A creative peer pays as if it had the items: nothing left its slots, and all of it is recorded paid.
+        Assert.Equal([("iron", Iron + 50), ("canister", 3)], Assert.Single(trader().Paid));
         Assert.Null(w.M.Items.ShortOf(0, [("iron", 9999)]));
         w.Do(new SetCreative(false)).Run();
         Assert.Equal("items.notEnough", w.M.Items.ShortOf(0, [("iron", 9999)]));
@@ -209,7 +209,7 @@ public class ItemsTests
             from cost in Costs
             from peer in Gen.Choose(0, 2)
             select new Step(type, cost, peer, false),
-            from isOn in Gen.Elements(true, false) select new Step("creative", [], 0, isOn));
+            from isOn in Gen.Elements(true, false) from peer in Gen.Choose(0, 2) select new Step("creative", [], peer, isOn));
         var steps = from n in Gen.Choose(0, 60) from s in step.ArrayOf(n) select s;
         return Prop.ForAll(steps.ToArbitrary(), all =>
         {
@@ -220,7 +220,7 @@ public class ItemsTests
                 int refused = w.Refusals.Count;
                 Command c = s.Type switch
                 {
-                    "creative" => new SetCreative(s.On),
+                    "creative" => new SetCreative(s.On) { From = s.From },
                     "buy" => new Buy(s.Cost) { From = s.From },
                     _ => new Refund(s.Cost) { From = s.From },
                 };
@@ -234,7 +234,7 @@ public class ItemsTests
                         if (slot != null) Assert.InRange(slot.Count, 1, StackOf(slot.Item));
                     int sign = s.Type == "creative" || !accepted || peer != s.From ? 0
                         : s.Type == "refund" ? 1
-                        : w.M.Items.Creative ? 0 : -1;
+                        : w.M.Items.Creative(s.From) ? 0 : -1;
                     var change = All.Select(i => s.Cost.Where(e => e.Item == i).Sum(e => e.Count) * sign);
                     Assert.Equal(before[peer].Zip(change, (a, b) => a + b), Totals(w, peer));
                 }
@@ -539,7 +539,7 @@ public class ItemsTests
         var before = w.World.Save();
         w.Reload();
         Assert.Equal(before, w.World.Save());
-        Assert.True(w.M.Items.Creative);
+        Assert.True(w.M.Items.Creative(0));
         Assert.Equal(new Stack("iron", 5), w.M.Items.Inventory(2)[0]);
         Assert.Equal(new Stack("canister", Canisters), Crate(w, 1)[2]);
         Assert.Equal(2, w.M.Items.Floor.Count);

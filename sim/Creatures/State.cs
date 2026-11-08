@@ -169,7 +169,14 @@ public sealed class CreaturesState
     [JsonInclude, JsonPropertyName("arcs"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     internal List<Arc>? SavedArcs { get => Arcs.Count > 0 ? Arcs : null; set => Arcs = value ?? []; }
 
-    /// <summary>The shots ever fired and arcs ever struck: the next one's id is one more. Ids are never reused.</summary>
+    /// <summary>The patches lying, in id order (lurker-attacks).</summary>
+    [JsonIgnore] internal List<Patch> Patches { get; set; } = [];
+
+    /// <summary>The patches as saved: none written while none lie.</summary>
+    [JsonInclude, JsonPropertyName("patches"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    internal List<Patch>? SavedPatches { get => Patches.Count > 0 ? Patches : null; set => Patches = value ?? []; }
+
+    /// <summary>The shots ever fired, arcs ever struck and patches ever laid: the next one's id is one more. Ids are never reused.</summary>
     [JsonInclude, JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)] internal int Fired { get; set; }
 }
 
@@ -244,6 +251,10 @@ public sealed class Arc
     [JsonInclude] public int X1 { get; internal set; }
     [JsonInclude] public int Y1 { get; internal set; }
     [JsonInclude] public int Left { get; internal set; }
+    /// <summary>The ticks it lingers in all: a lob's whole flight (lurker-attacks); 0 in a save from before it was kept.</summary>
+    [JsonInclude] public int Lingers { get; internal set; }
+    /// <summary>The patch it lays where it ends once its lingering is over, a lob landing (the capback's slime); null for none.</summary>
+    [JsonInclude, JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] public string? Leaves { get; internal set; }
     /// <summary>The peers whose heroes it has hurt, in order; none written while none.</summary>
     [JsonInclude, JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] internal List<int>? Paid { get; set; }
 }

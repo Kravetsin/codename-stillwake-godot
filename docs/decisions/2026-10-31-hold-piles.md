@@ -1,6 +1,6 @@
 # The hold's piles
 
-- Status: accepted; its way through blocks bought amended by [the-board](2026-11-05-the-board.md): the trade station, furnace and workbench are understood from what is caught
+- Status: accepted; its way through blocks bought amended by [the-board](2026-11-05-the-board.md): the trade station, furnace and workbench are understood from what is caught; its strength replaced by hit points in [pile-hit-points](2026-11-07-pile-hit-points.md)
 - Date: 2026-10-31
 - Extends [the-scoop](2026-10-31-the-scoop.md), and changes its panel on the roof
 

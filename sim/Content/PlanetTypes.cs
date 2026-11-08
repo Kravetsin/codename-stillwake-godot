@@ -44,6 +44,27 @@ public sealed record PlanetType(string Id, Ground Ground) : Surfaces.Kind(Id, []
     /// <summary>In a great hall chances are this many percent of a tunnel's.</summary>
     public required int Hall { get; init; }
 
+    /// <summary>
+    /// Lakes (flowing-liquids): a lattice point every this many cells across and down may hold one, at the floor under it,
+    /// filled up as far as it stays within its cap; 0 for none.
+    /// </summary>
+    public int LakeWave { get; init; }
+
+    /// <summary>The depth bands (<see cref="Bands"/>) a lake's point may lie in: under the ice, over the lava.</summary>
+    public IReadOnlyList<int> LakeBands { get; init; } = [];
+
+    /// <summary>Thousandths of open lattice points in <see cref="LakeBands"/> that hold a lake.</summary>
+    public int LakeChance { get; init; }
+
+    /// <summary>Thousandths of lakes capped at <see cref="LakeBig"/> cells; the others at <see cref="LakeMedium"/>.</summary>
+    public int BigChance { get; init; }
+
+    /// <summary>The most cells a big lake fills.</summary>
+    public int LakeBig { get; init; }
+
+    /// <summary>The most cells a medium lake fills.</summary>
+    public int LakeMedium { get; init; }
+
     /// <summary>The veins of ore in its rock, painted in this order: kinds of <see cref="Vein"/>.</summary>
     public IReadOnlyList<Vein> Veins { get; init; } = [];
 
@@ -129,6 +150,7 @@ public static class PlanetTypes
         Gravity = 700,
         ThinAir = 5,
         Sky = new Surfaces.Light(1000, 970, 900),
+        Cycle = Content.Sky.First,
         Debris = false,
         Builds = ["wall", "floor", "ladder", "door", "hatch"],
         ToolsBreak = true,
@@ -142,22 +164,35 @@ public static class PlanetTypes
         PatchWave = 24,
         PatchMost = 220,
         Hall = 700,
-        // Ice veins in the cold band, copper below it, richest in the amber deep: as their growths were (0080).
+        // Big and medium lakes between the ice and the lava (the user's word): a big one about 100 by 60 cells.
+        LakeWave = 128,
+        LakeBands = [1, 2],
+        LakeChance = 450,
+        BigChance = 250,
+        LakeBig = 6000,
+        LakeMedium = 1500,
+        // Ice veins in the cold band, copper below it, richest in the amber deep: as their growths were (0080). Copper and iron
+        // in pockets at every depth too, specks near the surface, more and bigger deeper (2026-11-07-ore-pockets); iron last, so
+        // the others' salts stay.
         Veins =
         [
             new("iceVein", Wave: 40, Tall: 24, Widths: [1800, 0, 0, 0]),
-            new("copperVein", Wave: 40, Tall: 24, Widths: [0, 1400, 2400, 1800]),
+            new("copperVein", Wave: 40, Tall: 24, Widths: [0, 1400, 2400, 1800], new(Wave: 6, Tall: 4, Marks: [63900, 64500, 64000, 65000])),
+            new("ironVein", Wave: 40, Tall: 24, Widths: [0, 0, 0, 0], new(Wave: 6, Tall: 4, Marks: [63500, 61800, 62200, 62800])),
         ],
         LodeWave = 96,
         LodeOver = 42000,
         LodeMost = 1000,
-        // Neutral creatures only on the first planet (the user's word), spawned by habitat (the user's rule, 2026-10-22): the
-        // loper, the tapir and the sixleg on the open ground. Nothing yet in the caves: their kinds come later.
+        // Spawned by habitat (the user's rule, 2026-10-22), each hero's herd of its own depth band: the neutral loper, tapir and
+        // sixleg on the open ground; hostile lurkers below (cave-hostiles): the capback in the teal garden, the geode snail in the
+        // amber deep. The cold band and the core wait for their kinds.
         Creatures =
         [
             new(Content.Creatures.Loper.Id, Content.Creatures.Place.Surface, 3),
             new(Content.Creatures.Tapir.Id, Content.Creatures.Place.Surface, 2),
             new(Content.Creatures.Sixleg.Id, Content.Creatures.Place.Surface, 2),
+            new(Content.Creatures.Capback.Id, Content.Creatures.Place.Band, 1, Band: 1),
+            new(Content.Creatures.GeodeSnail.Id, Content.Creatures.Place.Band, 1, Band: 2),
         ],
     };
 
@@ -170,6 +205,11 @@ public static class PlanetTypes
     {
         Id = "smallPlanet",
         LodeWave = 24,
+        // Lakes of its size at every open point, so the tests and the fuzz meet them.
+        LakeWave = 16,
+        LakeChance = 1000,
+        LakeBig = 200,
+        LakeMedium = 80,
         Ground = First.Ground with
         {
             Width = 128,

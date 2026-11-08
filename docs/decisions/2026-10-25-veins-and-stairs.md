@@ -1,7 +1,8 @@
 # A planet's ground is a stair, with veins of ore in its lodes
 
 - Status: accepted; supersedes the terraces' cliffs of [0077](0077-a-planets-ground-grows-from-its-seed-and-is-dug-by-hits.md)
-  and the ice and copper vein growths of [0080](0080-caves-glow-by-depth.md)
+  and the ice and copper vein growths of [0080](0080-caves-glow-by-depth.md); its "no new ores, no ore under the soil, no
+  glint" superseded by [ore-pockets](2026-11-07-ore-pockets.md)
 - Date: 2026-10-25
 
 ## Context

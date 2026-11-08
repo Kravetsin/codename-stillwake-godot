@@ -10,7 +10,7 @@ belt's stores hold and whether a tool is drawing on them. It reads the sim throu
 
 | File | Holds |
 | --- | --- |
-| `EnergyBar.cs` | the tab: its screen, the ring, the bolt and the number drawn; its light added over them |
+| `EnergyBar.cs` | the tab: its screen, the ring and the number drawn when they change, the bolt every frame; its light added over them |
 | `logic/EnergyRead.cs` | what it reads: the belt summed, each open belt slot's store, the running tool's draw |
 | `logic/EnergyCount.cs` | the number's count between reads |
 | `logic/EnergyRing.cs` | the ring: an arc a slot, the store drained, a store put on, the hop to the next |

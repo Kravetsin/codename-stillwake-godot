@@ -41,6 +41,14 @@ public sealed record HeldLook(
         "res://art/hero_harpoon.png", (4.5, 8), 0, (9, 3.5), (25, 3.5), Loaded: "res://art/hero_harpoon_loaded.png", Aimed: true, Clamp: (10.5, 4));
 
     /// <summary>
+    /// The grappling gun, <c>art/hero_grapple.png</c> (grapple-climbs), the user's pick, «Кошка»: the harpoon's plank stock under a
+    /// fatter spring tube with two hoops and a bell mouth, a gear pair and crank driving the spool; held as the harpoon is, the edge
+    /// the grapnel's shank seated in the tube, to the bell. Loaded, the grapnel's folded crown shows out of the bell.
+    /// </summary>
+    public static readonly HeldLook Grapple = new(
+        "res://art/hero_grapple.png", (4.5, 8), 0, (9, 3.5), (27.5, 3.5), Loaded: "res://art/hero_grapple_loaded.png", Aimed: true, Clamp: (10.5, 4));
+
+    /// <summary>
     /// The nailer, <c>art/hero_nailer.png</c> (shots-are-the-sims), the user's pick, «Самоделка»: a pipe barrel bound with copper
     /// wire on a wooden grip, as the harpoon's, a brass spring and a tin-can magazine under it; held as a pistol is, one-handed,
     /// the barrel along the forearm; the edge the barrel, the nail leaving its muzzle. Its loaded picture shows the nail's point
@@ -127,6 +135,13 @@ public sealed record HeldLook(
     public static readonly HeldLook Sledgehammer = new(
         "res://art/hero_sledgehammer.png", (6.6, 8), System.Math.PI / 2, (21.4, 15), (31.4, 15), Clamp: (14.5, 8));
 
+    /// <summary>
+    /// The pickaxe, <c>art/hero_pickaxe.png</c> (the-pickaxe), the user's pick, «Шип из шпангоута»: a ship's rib in old primer, its lightening
+    /// hole kept, torch-cut into a spike and welded to a pipe haft gripped in rubber; held square to the forearm as the axe is; the edge
+    /// the spike's point. Clamped by the pipe, its spike hanging past the table.
+    /// </summary>
+    public static readonly HeldLook Pickaxe = new("res://art/hero_pickaxe.png", (5.5, 9), System.Math.PI / 2, (28.1, 17.3), (29.1, 17.3), Clamp: (14, 10));
+
     /// <summary>How long an item that spins takes to spin up to full speed and to wind down, in milliseconds: its picture and its motor's sound alike.</summary>
     public const double SpinUpMs = 120, SpinDownMs = 700;
 
@@ -141,9 +156,10 @@ public sealed record HeldLook(
 
     /// <summary>How <paramref name="item"/> looks in the hand, plain: its modules are laid over it (<see cref="HeldParts"/>, 0098); none for an item held as no picture.</summary>
     public static HeldLook? Of(string? item) =>
-        item == Content.Weapons.Axe.Item ? FireAxe : item == Content.Harpoon.Item ? Harpoon : item == Content.Weapons.Drill.Item ? Drill
+        item == Content.Weapons.Axe.Item ? FireAxe : item == Content.Harpoon.Item ? Harpoon : item == Content.Grapple.Item ? Grapple : item == Content.Weapons.Drill.Item ? Drill
         : item == Content.Weapons.Grinder.Item ? Grinder : item == Content.Weapons.PlasmaCutter.Item ? PlasmaCutter
         : item == Content.Weapons.Spear.Item ? Spear : item == Content.Weapons.Sledgehammer.Item ? Sledgehammer
+        : item == Content.Weapons.Pickaxe.Item ? Pickaxe
         : item == Content.Shots.Nailer.Item ? Nailer : item == Content.Shots.Railgun.Item ? Railgun
         : item == Content.Screwdrivers.PowerDriver.Item ? PowerDriver : Content.Screwdrivers.Of(item) != null ? Screwdriver : null;
 
@@ -155,11 +171,17 @@ public sealed record HeldLook(
 }
 
 /// <summary>
-/// The harpoon's rod as it flies, <c>art/hero_harpoon_rod.png</c>, its point along +x: where the line ties
-/// on (<see cref="Eye"/>) and its point (<see cref="Tip"/>), in pixels of its picture.
+/// A gun's rod as it flies, its point along +x: its picture, where the line ties on (<see cref="Eye"/>) and its point
+/// (<see cref="Tip"/>), in pixels of its picture.
 /// </summary>
-public static class RodLook
+public sealed record RodLook(string Picture, (double X, double Y) Eye, (double X, double Y) Tip)
 {
-    public const string Picture = "res://art/hero_harpoon_rod.png";
-    public static readonly (double X, double Y) Eye = (3, 2.5), Tip = (23, 2.5);
+    /// <summary>The harpoon's rod, <c>art/hero_harpoon_rod.png</c> (0044).</summary>
+    public static readonly RodLook Harpoon = new("res://art/hero_harpoon_rod.png", (3, 2.5), (23, 2.5));
+
+    /// <summary>The grappling gun's grapnel, <c>art/hero_grapple_hook.png</c> (grapple-climbs): three prongs sprung open, swept back.</summary>
+    public static readonly RodLook Grapple = new("res://art/hero_grapple_hook.png", (2.2, 5.5), (15.9, 5.5));
+
+    /// <summary>The rod of the gun <paramref name="item"/>: the grappling gun's, else the harpoon's.</summary>
+    public static RodLook Of(string? item) => item == Content.Grapple.Item ? Grapple : Harpoon;
 }

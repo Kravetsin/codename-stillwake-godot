@@ -25,6 +25,8 @@ public static class Crafts
         new("screwdriver", [], Ticks: 20),
         // A tube and its line of wire, no coil: the first ring's, so salvage comes in from the first iron on (first-hour-pace).
         new("harpoon", [("tube", 1), ("wire", 8)], Ticks: 100),
+        // The climber's harpoon (grapple-climbs): a sturdier tube, a geared winch and its motor's coil.
+        new("grapple", [("tube", 2), ("gear", 2), ("coil", 1), ("wire", 8)], Ticks: 120),
         // The first gun (shots-are-the-sims): after the harpoon, as what it fights is only met flying; the axe's time.
         new("nailer", [("tube", 1), ("plate", 2), ("wire", 2)], Ticks: 60),
         // Two scrap a nail, so the scrap a hero has too much of goes into nails made ahead: a second a nail at the pod.
@@ -42,6 +44,8 @@ public static class Crafts
         new("battery", [("plate", 2), ("coil", 2), ("wire", 4), ("circuit", 1)], Ticks: 120),
         // A plate bent into a band, wire and a coil for its glowing bulb: the workbench's, so it comes before the first cave (0077).
         new("helmetLamp", [("plate", 1), ("wire", 2), ("coil", 1)], Ticks: 60),
+        // The lamp's plate, coil and wire and a circuit, all from early wrecks (2026-11-07-the-scanner); its blueprint only the black market sells.
+        new("scanner", [("plate", 1), ("coil", 1), ("circuit", 1), ("wire", 2)], Ticks: 60),
         new("drill", [("frame", 1), ("rotor", 2), ("coil", 2), ("gear", 4), ("tube", 2), ("circuit", 2)], Ticks: 240),
         // Bought on the black market (power-driver): a motor of a rotor and a coil, geared down, a circuit to drive it.
         new("powerDriver", [("plate", 2), ("gear", 2), ("rotor", 1), ("coil", 1), ("wire", 2), ("circuit", 1)], Ticks: 120),
@@ -50,6 +54,8 @@ public static class Crafts
         new("grinder", [("motor", 1), ("plate", 2), ("gear", 2), ("coil", 1), ("circuit", 2)], Ticks: 240),
         new("spear", [("tube", 2), ("plate", 2), ("wire", 2)], Ticks: 120),
         new("sledgehammer", [("plate", 4), ("tube", 1), ("planks", 1)], Ticks: 120),
+        // The drill's fallback underground (the-pickaxe): two plates for its spike, cut from a rib, and a tube for its haft, all of the first wrecks.
+        new("pickaxe", [("plate", 2), ("tube", 1)], Ticks: 90),
         new("plasmaCutter", [("canister", 1), ("coil", 2), ("circuit", 2), ("tube", 2), ("plate", 1)], Ticks: 240),
         // Electronics, at the circuit assembler: of silicon and wire, and with glass, a solar cell.
         new("circuit", [("silicon", 1), ("wire", 3)], Ticks: 120),

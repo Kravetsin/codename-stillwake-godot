@@ -157,7 +157,7 @@ public sealed record Reading(
         bool tunes = kind != null && Content.Machines.TryGet(kind, out var spec) && spec.Tunes;
         IReadOnlyList<string> modules = tunes ? slots is { Count: > 0 } && slots[0]?.Module is { } on ? [on] : [] : crate is int open ? items.FittedTo(open) : [];
         (var inventory, slots, var fitted) = Fitting(shown.Inventory, slots, modules, inFlight, crate, tunes);
-        return new Reading(inventory, slots, items.Creative, kind) { Fitted = fitted, Open = items.SlotOpen };
+        return new Reading(inventory, slots, items.Creative(peer), kind) { Fitted = fitted, Open = p => items.SlotOpen(peer, p) };
     }
 
     /// <summary>

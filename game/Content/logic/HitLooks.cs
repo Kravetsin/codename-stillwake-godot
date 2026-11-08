@@ -56,13 +56,6 @@ public static class HitLooks
 {
     private static (int, int, int) Lighter((int R, int G, int B) c, int by) => (System.Math.Min(255, c.R + by), System.Math.Min(255, c.G + by), System.Math.Min(255, c.B + by));
 
-    /// <summary>A material's chips, falling as matter does on a planet and bouncing, in its fleck and colour.</summary>
-    private static Luminous ChipsOf(string material, double size = 1.4)
-    {
-        var look = GroundLooks.Of[material];
-        return Luminous.Chip with { Ramp = [look.Fleck, look.Colour], Gravity = 420, Bounce = 0.25, Size = size };
-    }
-
     /// <summary>A material's dust, a little paler than it, settling slowly.</summary>
     private static Luminous DustOf(string material) =>
         Luminous.HitDust with { Ramp = [Lighter(GroundLooks.Of[material].Colour, 50)], Gravity = 6, LifeMs = (900, 1700) };
@@ -133,19 +126,15 @@ public static class HitLooks
         [Impact.Alloy] = new([
             new(FallingSpark, 12, (60, 160), 0.8, Up: 0.3),
             new(DustOf("alloy"), 6, (4, 20), 1.6, Up: 0.4, Size: (0.4, 0.65)),
-            new(ChipsOf("alloy", 1.2), 3, (30, 70), 0.7, Up: 0.6),
         ], Glint: 8, GlintColour: Warm, Shock: 0.25, Flash: 0.2, FlashColour: WarmLight),
         [Impact.Stone] = new([
             new(StoneSpark, 4, (50, 130), 0.9, Up: 0.3),
-            new(ChipsOf("stone"), 5, (30, 75), 0.7, Up: 0.7),
             new(DustOf("stone"), 5, (3, 16), 1.6, Up: 0.5, Size: (0.4, 0.7)),
         ], Flash: 0.06, FlashColour: WarmLight),
         [Impact.Soil] = new([
-            new(ChipsOf("soil", 1.3), 6, (30, 75), 0.7, Up: 0.7),
             new(DustOf("soil"), 7, (3, 18), 1.7, Up: 0.5, Size: (0.45, 0.75)),
         ]),
         [Impact.Plaster] = new([
-            new(ChipsOf("plaster", 1.3), 4, (30, 75), 0.7, Up: 0.7),
             new(DustOf("plaster"), 9, (3, 20), 1.8, Up: 0.5, Size: (0.45, 0.8)),
         ]),
         [Impact.Wood] = new([
@@ -202,21 +191,27 @@ public static class HitLooks
         [Stillwake.Content.Creatures.Sixleg.Id] = Impact.CoolFlesh,
         [Stillwake.Content.Creatures.Sentry.Id] = Impact.Wreck,
         [Stillwake.Content.Creatures.Warden.Id] = Impact.Wreck,
+        [Stillwake.Content.Creatures.Capback.Id] = Impact.CoolFlesh,
+        [Stillwake.Content.Creatures.GeodeSnail.Id] = Impact.Crystal,
     };
 
     /// <summary>The tuft a creature struck with <paramref name="impact"/> throws dying, every way.</summary>
     public static Luminous TuftOf(Impact impact) => impact == Impact.CoolFlesh ? CoolTuft : Tuft;
 
-    /// <summary>A natural wall hit, by its material, as <see cref="Sound.Ground"/> hears it: bedrock and lava never break, so never are.</summary>
+    /// <summary>
+    /// A natural wall hit, by its material, as <see cref="Sound.Ground"/> hears it: a vein as the stone it runs in (<see cref="GroundOf"/>);
+    /// bedrock and lava never break, so never are.
+    /// </summary>
     public static readonly IReadOnlyDictionary<string, Impact> Ground = new Dictionary<string, Impact>
     {
         ["soil"] = Impact.Soil,
         ["stone"] = Impact.Stone,
-        ["copperVein"] = Impact.Stone,
-        ["iceVein"] = Impact.Stone,
         ["plaster"] = Impact.Plaster,
         ["alloy"] = Impact.Alloy,
     };
+
+    /// <summary>How a natural wall of <paramref name="material"/> looks hit, a vein's as its stone's; none for one never struck.</summary>
+    public static Impact? GroundOf(Stillwake.Content.Material material) => Ground.TryGetValue(material.In ?? material.Id, out var impact) ? impact : null;
 
     /// <summary>
     /// A growth hit, by its kind, as <see cref="Sound.Growths"/> hears it; what lies in the rock (<see cref="Sound.Unheard"/>) is

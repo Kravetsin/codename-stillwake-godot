@@ -170,14 +170,17 @@ public sealed class TreeScenario : DevScenario
     public override void Attach(DevContext c) => c.Add(new TreeDemo(c.M));
 }
 
-[Dev("--board", "the board on the tablet, blank or with =first, =near, =burst, =circuit, =late, =bought or =search seeded (BoardDemo)", Shape = DevShape.Either)]
+[Dev("--board", "the board on the tablet, blank or with =first, =near, =burst, =circuit, =late, =bought or =search seeded (BoardDemo); with --manual, played by hand", Shape = DevShape.Either)]
 public sealed class BoardScenario : DevScenario
 {
     public override Layout? Map => Registry.Wreck;
 
     public override World Seed(World world, DevSeed seed) => BoardDemo.Seed(world, seed.Modules, Args.Given("--board"));
 
-    public override void Attach(DevContext c) => c.Add(new BoardDemo(c.M, Args.Given("--board")));
+    public override void Attach(DevContext c)
+    {
+        if (!Args.Has("--manual")) c.Add(new BoardDemo(c.M, Args.Given("--board")));
+    }
 }
 
 [Dev("--bulb", "the bulb at the screen's top as a note starts waiting, the find flying into the research key; =two with a second find after the burst, =open with T mid-flight, =early while it heats (BulbDemo)", Shape = DevShape.Either)]
@@ -188,7 +191,7 @@ public sealed class BulbScenario : DevScenario
     public override void Attach(DevContext c) => c.Add(new BulbDemo(c.M, Args.Given("--bulb")));
 }
 
-[Dev("--tool-cards", "the axe's, the drill's plain and fitted, the nailer's, the railgun's and the nail's cards side by side, every tool in a slot under them (ToolCardsDemo)")]
+[Dev("--tool-cards", "every hand tool's card, the drill's fitted too, the nailer's and the railgun's, every tool in a slot under them (ToolCardsDemo)")]
 public sealed class ToolCardsScenario : DevScenario
 {
     public override void Attach(DevContext c) => c.Add(new ToolCardsDemo());

@@ -3,6 +3,7 @@ using Stillwake.Sim.Grid;
 using Stillwake.Sim.Items;
 using Stillwake.Sim.Knowledge;
 using Stillwake.Sim.Players;
+using Stillwake.Sim.Sky;
 
 namespace Stillwake.Sim.Crew;
 
@@ -73,7 +74,8 @@ public interface ICrewQueries
     int CanisterRefill { get; }
     /// <summary>
     /// What the cold takes from hero <paramref name="peer"/>'s air a breath where it was last reported: the edge's cold, and
-    /// with no body worn where the air is not aired <c>Crew.BareCold</c> (on thin air paid on fewer breaths than this says); 0 with no
+    /// with no body worn where the air is not aired <c>Crew.BareCold</c>, and at night with no back wall the sky's chill (each paid on
+    /// its beat, fewer breaths than this says); 0 with no
     /// hero. What the frost is drawn at; the lava burns besides.
     /// </summary>
     int Cold(int peer);
@@ -97,14 +99,15 @@ public interface ICrewOps
     /// <summary>
     /// Hero <paramref name="peer"/>'s air pays <paramref name="units"/> at once, as the cold and the lava take it:
     /// a ruin's resonator zapping it (0091). Air run dry starts its last breath, which the rest cuts; nothing in creative mode, nor for a hero out or none.
+    /// Counted as a hurt of <paramref name="harm"/> (2026-11-08-hurts-are-shown).
     /// </summary>
-    void Shock(int peer, int units);
+    void Shock(int peer, int units, Harm harm);
 
     /// <summary>
     /// An enemy's blow of <paramref name="units"/> on hero <paramref name="peer"/>: a creature's ram or pounce, its bolt. A worn
-    /// cape spares its share (<c>Cape.Guard</c>); the rest is paid as <see cref="Shock"/> pays (2026-10-27-the-cape-is-worn).
+    /// cape spares its share (<c>Cape.Guard</c>); the rest is paid as <see cref="Shock"/> pays (2026-10-27-the-cape-is-worn). A hurt of <paramref name="harm"/>.
     /// </summary>
-    void Blow(int peer, int units);
+    void Blow(int peer, int units, Harm harm);
 }
 
 /// <summary>
@@ -123,16 +126,18 @@ public sealed partial class CrewModule : Module<CrewState>, ICrewQueries, ICrewO
     private readonly IPlayersQueries _players;
     private readonly IPlayersOps _playersOps;
     private readonly IKnowledgeQueries _knowledge;
+    private readonly ISkyQueries _sky;
 
     private static readonly IReadOnlyList<(string Item, int Count)> Canister = [(Content.Crew.Canister, 1)];
 
     public CrewModule(
         IAtmosphereQueries air, IAtmosphereOps atmosphere, IGridQueries grid, IItemsQueries items, IItemsOps itemsOps, IPlayersQueries players, IPlayersOps playersOps,
-        IKnowledgeQueries knowledge)
+        IKnowledgeQueries knowledge, ISkyQueries sky)
     {
         _players = players;
         _playersOps = playersOps;
         _knowledge = knowledge;
+        _sky = sky;
         _air = air;
         _grid = grid;
         _items = items;
@@ -203,9 +208,9 @@ public sealed partial class CrewModule : Module<CrewState>, ICrewQueries, ICrewO
                 int capacity = CapacityOf(hero.Id);
                 hero.Air = Math.Min(hero.Air, capacity);
                 Thrusts(hero);
-                if (_items.Creative)
+                if (_items.Creative(hero.Id))
                 {
-                    // Creative mode: the air is endless, and a hero takes no room's air.
+                    // A creative peer's air is endless, and its hero takes no room's air.
                     hero.Air = capacity;
                     hero.Gasp = 0;
                     continue;
@@ -239,8 +244,11 @@ public sealed partial class CrewModule : Module<CrewState>, ICrewQueries, ICrewO
                     if (_itemsOps.Drain(hero.Id, made * Content.Suit.RegenCost)) net += made;
                     covered = net >= 0;
                 }
-                int cold = Soften(hero, ColdAt(hero.Id, hero.Cell, bare: beat), Content.Cape.Warmth);
+                // The night's chill under the open sky (2026-11-07-night-chills) on its own beat, thin air or not.
+                bool chill = Rules.Cycle is { } day && State.Clock / Content.Crew.BreathEvery % day.Every == 0;
+                int cold = Soften(hero, ColdAt(hero.Id, hero.Cell, bare: beat, chill), Content.Cape.Warmth);
                 int burn = Burns(hero.Cell) ? Content.Lava.Burn : 0;
+                if (burn > 0) Hurt(hero, Harm.Burn);
                 int left = hero.Air + net - cold;
                 hero.Air = Math.Max(0, left - burn);
                 if (hero.Air > 0)
@@ -267,6 +275,13 @@ public sealed partial class CrewModule : Module<CrewState>, ICrewQueries, ICrewO
         if (hero.Gasp == 0) PassOut(hero);
     }
 
+    /// <summary>A hurt taken, counted with its kind, for the client to show (2026-11-08-hurts-are-shown).</summary>
+    private static void Hurt(Hero hero, Harm harm)
+    {
+        hero.Hurts += 1;
+        hero.Hurt = harm;
+    }
+
     /// <summary>Passing out is death (0061): what it carried stays where it fell, off the grid at the spawn.</summary>
     private void PassOut(Hero hero)
     {
@@ -279,19 +294,20 @@ public sealed partial class CrewModule : Module<CrewState>, ICrewQueries, ICrewO
         _itemsOps.LeaveBody(hero.Id, onGrid ? hero.Cell : State.Spawn);
     }
 
-    public void Shock(int peer, int units)
+    public void Shock(int peer, int units, Harm harm)
     {
-        if (HeroOf(peer) is not { Out: 0 } hero || _items.Creative || units <= 0) return;
+        if (HeroOf(peer) is not { Out: 0 } hero || _items.Creative(peer) || units <= 0) return;
+        Hurt(hero, harm);
         // The air pays what it holds; the last breath, what it falls short by.
         int beyond = units - hero.Air;
         hero.Air = Math.Max(0, hero.Air - units);
         if (hero.Air == 0) Gasps(hero, beyond);
     }
 
-    public void Blow(int peer, int units)
+    public void Blow(int peer, int units, Harm harm)
     {
-        if (HeroOf(peer) is not { Out: 0 } hero || _items.Creative || units <= 0) return;
-        Shock(peer, Soften(hero, units, Content.Cape.Guard));
+        if (HeroOf(peer) is not { Out: 0 } hero || _items.Creative(peer) || units <= 0) return;
+        Shock(peer, Soften(hero, units, Content.Cape.Guard), harm);
     }
 
     /// <summary>
@@ -416,12 +432,14 @@ public sealed partial class CrewModule : Module<CrewState>, ICrewQueries, ICrewO
 
     /// <summary>
     /// What the cold at <paramref name="cell"/> takes from <paramref name="peer"/>'s air a breath: the edge's, and, when
-    /// <paramref name="bare"/> counts, <c>Crew.BareCold</c> with no body worn where the cell is not aired.
+    /// <paramref name="bare"/> counts, <c>Crew.BareCold</c> with no body worn where the cell is not aired; when <paramref name="chill"/>
+    /// counts, the night's chill where the cell has no back wall, suit or none (2026-11-07-night-chills).
     /// </summary>
-    private int ColdAt(int peer, int cell, bool bare)
+    private int ColdAt(int peer, int cell, bool bare, bool chill)
     {
         int cold = EdgeCost(cell);
         if (bare && _items.WornIn(peer, Content.Suit.Slot) == null && !_air.AiredAt(cell)) cold += Content.Crew.BareCold;
+        if (chill && _grid.BackAt(cell) == null) cold += _sky.Now.Chill;
         return cold;
     }
 
@@ -447,7 +465,7 @@ public sealed partial class CrewModule : Module<CrewState>, ICrewQueries, ICrewO
     public int CanisterRefill =>
         Content.Crew.CanisterRefill + Content.Crew.CanisterUp * Content.Upgrades.Added(Content.Upgrades.Canister, _knowledge.Granted);
 
-    public int Cold(int peer) => HeroOf(peer) is { } hero ? ColdAt(peer, hero.Cell, bare: true) : 0;
+    public int Cold(int peer) => HeroOf(peer) is { } hero ? ColdAt(peer, hero.Cell, bare: true, chill: true) : 0;
 
     public int Warmth(int peer) => _items.Equipped(peer, Content.Cape.Item) ? Content.Cape.Warmth : 0;
 

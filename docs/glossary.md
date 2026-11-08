@@ -13,6 +13,7 @@ Game words → code. One line a term: Russian / English → identifiers → modu
 - бортовой компьютер / ship computer → machine `computer` (`MachineTrait.Computer`), f/computer `ComputerPanel`; радарная антенна / radar antenna → `radarAntenna`; программа / program, радар / radar → c/`Programs.cs`, f/computer `RadarScreen`; их детали / their parts → items `processor`, `display`, `transceiver` (circuit assembler) → Crafting
 - двигатель / engine → machine `engine` (`Exhaust`, `Takes`: biofuel), its nozzle out through the stern's wall (`grid.noExhaust`); сопло / nozzle, топливный насос / fuel pump, запал / igniter → items `nozzle`, `fuelPump` (Former), `igniter` (circuit assembler) → Crafting
 - платформа / platform **≠** → `Structure.Floor`, `tool.floor`, build `"floor"` → Grid
+- опора, «стоит на полу» / footing **≠** → `Structures.Footing`, `IGridQueries.Footing` (wall, floor, grate; no doorway); standing machines `Machines.Stands`, hung ones `MachineTrait.Hangs` (lamps, vent); `building.noFloor`, `building.holdsMachine` → Building, Grid
 - открывающаяся (посадочная) платформа / launch platform **≠** → `Structure.PlatformClosed`, `Structure.PlatformOpen`, build `Builds.Platform` = `"launchPlatform"`, a run doorway (`StructureGroup.Platform`, `Join.Run`), command `SetPlatform`; f/power `PlatformLamps`; item `deckDrive` → Landing, Grid
 - капсула / посадочная капсула / колокол / drop pod **≠** → machine `"dropPod"` (`MachineTrait.Seats`, `Lands`), commands `Board`, `Alight`, `Launch` (descend / return), `LandingModule.Seats`, `Flights`, `Owners`; art `machine_dropPod.png`, `dropPod_porthole.png`, `dropPod_lit.png`; f/landing `PodSeats`, f/crew `SeatedHeroes` → Landing
 - беговое колесо / колесо / treadmill wheel → machine `"treadWheel"` (`Seats` without `Lands`, `MachineSpec.Anywhere`): makes 4 while its rider runs (`Exert`), rested by `LandingModule.Turning`; f/crew `SeatedHeroes` → Landing, Power
@@ -97,8 +98,10 @@ Game words → code. One line a term: Russian / English → identifiers → modu
 - джетпак / jetpack → item `jetpack`, `Thrust`, `c/Jetpack.cs` → Crew
 - гарпун / harpoon → item `harpoon`, `c/Harpoon.cs`, f/crew `HarpoonShot`, `HarpoonLine`; `Reel` → Crew, Debris
 - топор / fire axe → item `fireAxe`, f/crew `AxeSwing`, `HeldLook.FireAxe` → Crew
+- движение удара / swing motion **≠** → `SwingMotion` (keys `MotionKey`), a weapon's `Stroke.Motions`, played as `MotionPlay` with `Overhand`, `Jab` (f/crew `MotionPlay.cs`), its `MotionKind` in gc/`SwingMotions.cs`; the offset the hero carries `AxeSwing.Aim` → Crew
+- сектор удара / aim sector **≠** → `Sector`, `Sectors` (up, straight, down, under) in gc/`SwingMotions.cs` → Crew
 - бур / drill → item `drill`, `c/Weapons.cs`, f/crew `DrillPace`, `Motor` → Crew
-- трос / tether → f/crew `Tether` → Crew
+- трос / tether → f/crew `Tether` → Crew; подтягивание по тросу / haul → `Hero.Haul`, `Hero.Wraps` (tether-haul)
 - скафандр / suit → helmet `helmet` or `heavyHelmet` (`Content.Helmet`, slot `head`, `Tank`) + body `suit` or `regenSuit` (`Content.Suit`, slot `suit`; its mode `SuitMode`, `Hero.SuitOn`), `Hero.Air`, `CapacityOf`; `SuitGauge`, `Suits` (colours), `Danger` (f/crew) → Crew, Items
 - голый, без скафандра / bare → no helmet: `Crew.Lungs`; no body: `Crew.BareCold` → Crew
 - внешность, облик, редактор персонажа / look → `Look`, `ChooseLook`, `LookOf`, `HeroLooks`, `LookEditor` (f/crew) → Players, Crew
@@ -115,8 +118,12 @@ Game words → code. One line a term: Russian / English → identifiers → modu
 - сломан, поломка / broken → `IPowerQueries.IsBroken`, `IPowerOps.Break` → Power
 - ремонт, починить / repair → `Repair`, `RepairProgress`, `RepairRules` (sim/Building `Repairs.cs`) → Building
 - планета / planet → `PlanetType` (`c/PlanetTypes.cs`), `Surface`, `Terrain` (sim/Core) → Core, Building
+- фон, задний план, параллакс / backdrop, the land behind → `PlanetSky` (r/, the sky), `BackdropView`, `BackdropPlan` (f/backdrop, the land), `BackdropLooks` (gc) → client only
+- сутки, день, ночь, время суток / day, night, hour → `Sky.Cycle` (`c/Sky.cs`), `SkyNow`, `SetTime` (sim/Sky); fades `Daylight` (gc) → Sky
+- ночной холод, мороз / the night's chill → `Cycle.Chill`, `ColdAt` (sim/Crew), frost `Report.Cold` → Crew
 - копать / dig → `Dig`, `Crack` (sim/Building `Digging.cs`) → Building
-- жила, руда / vein, ore → `Vein` (`c/Veins.cs`), materials `copperVein`, `iceVein` (`Material.In`), drawn in `Terrain` → Core
+- жила, руда / vein, ore → `Vein` (`c/Veins.cs`), materials `copperVein`, `iceVein`, `ironVein` (`Material.In`), drawn in `Terrain` → Core
+- залежь, рудный карман / ore pocket → `Pockets` (`c/Veins.cs`), `Terrain.PaintPockets` → Core
 - рудная зона / lode → `PlanetType.LodeWave`, `LodeOver`, `CaveKind.Lode` (crystals by the veins) → Core
 - равнина, нагорье / plain, highland → `Ground.RegionWave`, `RegionLeast`, `RegionLift` → Core
 - мох / moss **≠** → `Grass` (f/grid `Grass.cs`, the living edge); `Sound.StepMoss` → Grid (client only)
@@ -131,10 +138,16 @@ Game words → code. One line a term: Russian / English → identifiers → modu
 - побуждение / drive **≠** → `Drive` (`Graze`, `Flee`, `Retaliate`, `Escape`), its rule a `DriveRule`; a creature's `Drive`, `DriveLeft`, `Step` → Creatures
 - действие / act **≠** → `Act` (`Move`, `Phase`, `Left`), a move's rule a `MoveRule` (`Lunge`, the ram) → Creatures
 - фракция / faction → `Species.Faction`, `Content.Creatures.Factions`, `Relations` (`Stance`) → Creatures
+- шляпоспин / capback → `Creatures.Capback` = `"capback"`: a cave lurker of the garden, a `Walker` on `Guard`; `Vent` (gas), `Shoot` (slime) → Creatures
+- жеодник / geode snail → `Creatures.GeodeSnail` = `"geodeSnail"`: a cave lurker of the amber deep, a `Walker` on `Guard` and `Shell`, a steady `Lunge` (its bite) → Creatures
+- засадник / lurker → a cave hostile on `Guard` (cave-hostiles), faction `beasts` → Creatures
+- облако газа, лужа слизи / gas cloud, slime puddle → a `Patch` of `Creatures.Gas`, `Creatures.Slime` (`PatchKind`), lurker-attacks → Creatures
+- раковина / shell → `Creatures.Shell`: the snail shut, hurt by nothing; open, by melee only → Creatures
 - поза / posture **≠** → `Posture`, derived from the drive or act in charge, what the client draws by → Creatures
 - руины / ruins → `c/Ruins.cs`, f/ruins `HomesView` (ruin pieces as plants) → Building, Ruins
 - шпиль / spire → f/ruins `SpiresView`, its cradle a `Relic` → Ruins
 - реликвия / relic → `Relic` (sim/Building `Flora.cs`), `RelicArt`, `RelicSparks` → Ruins
+- вода в пещерах, озеро / water, lake **≠** → liquid in the cells (`Content.Liquids.Water`), `LiquidsModule`, `ILiquidsQueries.AmountAt`; not the item `water` → Liquids
 - лава / lava → `c/Lava.cs`, f/grid `LavaView` → planets
 - вылазка / sortie → `OpenSurface`, `Transfer` (sim/Core `Surface.cs`) → Core
 

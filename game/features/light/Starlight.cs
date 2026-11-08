@@ -53,7 +53,7 @@ public partial class Starlight : Node
             var images = new Godot.Collections.Array<Image>();
             for (int layer = 0; layer < across * down; layer++)
             {
-                StarTiles.Copy(_field.Texels, r, layer, _tile);
+                StarTiles.Copy(_field.Texels, 4, r, layer, _tile);
                 images.Add(Image.CreateFromData(StarTiles.Size, StarTiles.Size, false, Image.Format.Rgba8, _tile));
             }
             _tiles = new Texture2DArray();
@@ -65,7 +65,7 @@ public partial class Starlight : Node
         _tileImage ??= Image.CreateEmpty(StarTiles.Size, StarTiles.Size, false, Image.Format.Rgba8);
         foreach (int layer in StarTiles.Touched(r, _field.Written))
         {
-            StarTiles.Copy(_field.Texels, r, layer, _tile);
+            StarTiles.Copy(_field.Texels, 4, r, layer, _tile);
             _tileImage.SetData(StarTiles.Size, StarTiles.Size, false, Image.Format.Rgba8, _tile);
             _tiles.UpdateLayer(_tileImage, layer);
         }

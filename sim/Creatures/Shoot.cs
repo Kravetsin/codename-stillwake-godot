@@ -6,7 +6,7 @@ namespace Stillwake.Sim.Creatures;
 /// The arc (the sentry's, 2026-10-27-sentry-arc): crouched its wind-up where it clings, its eye flickering; <c>Lock</c> ticks before
 /// its end it takes its target's reported cell as it is then — its grudge wherever it is, else the nearest awake hero within its
 /// reach — and holds it; none, and it strikes nothing. At the end its arc strikes that cell at once (<see
-/// cref="CreaturesModule.StrikeArc"/>). Then it recovers, still clamped; never cut short by a blow. However it ends, the drive
+/// cref="CreaturesModule.StrikeArc"/>). Then it recovers, still clamped; never cut short by a blow. One that leaves a patch (the capback's slime) is a lob, landing on the floor under its end as its lingering ends. However it ends, the drive
 /// that began it is told.
 /// </summary>
 internal sealed class ShootMove : MoveRule
@@ -16,7 +16,7 @@ internal sealed class ShootMove : MoveRule
 
     internal override Type Serves => typeof(Spec.Shoot);
 
-    internal override bool Interruptible => false;
+    internal override bool Interruptible(Spec.Move mv) => false;
 
     internal override void Begin(CreaturesModule m, Creature c, Spec.Species spec, int at)
     {

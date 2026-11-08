@@ -25,5 +25,6 @@ public static partial class En
         ["hazards.neverBreaks"] = "This never breaks",
         ["hazards.flareComing"] = "A flare is coming already",
         ["hazards.badTicks"] = "A flare strikes a tick on at the soonest",
+        ["sky.noDay"] = "There is no day out here",
     };
 }

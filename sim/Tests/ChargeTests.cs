@@ -72,6 +72,21 @@ public class ChargeTests
         Assert.Equal(new Stack(Battery, 1, 0), w.M.Items.Crate(assembler)[Machines.Get("assembler").Inputs!.Value]);
     }
 
+    /// <summary>The workbench makes it too, unpowered and five times slower, so it comes with the drill (battery-workbench).</summary>
+    [Fact]
+    public void ABatteryIsCraftedEmptyAtTheWorkbenchWithNoPower()
+    {
+        string[] rows = ["         ", "         ", "#########", "#.II....#", "#.II....#", "#.II....#", "#########"];
+        var w = new Scenario(Layout.Parse(rows), doubled: true).GiveItems(0, Crafts.Get(Battery).Cost.ToArray());
+        int bench = w.M.Grid.MachinesOf("workbench").Single().Id;
+        int ticks = Crafts.Get(Battery).Ticks * 1000 / Content.Stations.Get("workbench").Speed;
+        w.Do(new Stillwake.Sim.Crafting.Craft(bench, Battery, 1) { From = 0 }).Run(ticks - 1);
+        Assert.DoesNotContain(w.M.Items.Crate(bench), s => s?.Item == Battery);
+        w.Run(2);
+        Assert.Empty(w.Refusals);
+        Assert.Contains(new Stack(Battery, 1, 0), w.M.Items.Crate(bench));
+    }
+
     [Fact]
     public void BatteriesGoIntoBeltSlotsOnlyEachOfTheThree()
     {
@@ -279,12 +294,12 @@ public class ChargeTests
     }
 
     [Fact]
-    public void DrainsNothingInCreativeModeAndStillWorks()
+    public void DrainsNothingFromACreativePeerAndStillWorksAndAnotherAsEver()
     {
         var w = new Scenario(Layout.Empty).Put(Belt, Charged(10));
         w.Do(new SetCreative(true)).Run();
         Assert.True(w.M.Items.Drain(0, 3));
-        Assert.True(w.M.Items.Drain(1, 3));
+        Assert.False(w.M.Items.Drain(1, 3));
         Assert.Equal(Charged(10), w.M.Items.Inventory(0)[Belt]);
     }
 

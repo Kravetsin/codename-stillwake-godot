@@ -29,7 +29,8 @@ namespace Stillwake.Game.Features.Items;
 /// hands' tool: a stack carried lights the slots that would wear it and dims the rest; a right click on a
 /// canister of the hero's own breathes it (<see cref="Ui.Breathe"/>). Every slot is <see cref="Ui.Slot"/> wide,
 /// and all of it is built again when that changes. It is the wrist computer (0074): the hotbar on the cuff, the bag on
-/// the forearm display with the machine's module under it, the equipment on its unit (<see cref="WristScreen"/>).
+/// the forearm display, the equipment on its unit (<see cref="WristScreen"/>); the open machine's window is a hologram in
+/// its station's colour, a beam from the machine to it (<see cref="MachineHolo"/>, machine-holograms).
 /// </summary>
 public partial class InventoryPanel : CanvasLayer
 {
@@ -66,6 +67,9 @@ public partial class InventoryPanel : CanvasLayer
     private readonly TabletMotion _motion = new();
     /// <summary>The open machine's frame, under the inventory.</summary>
     private MachineFrame? _frame;
+    /// <summary>The open machine's hologram under every panel, and the machine's box in world pixels it beams from.</summary>
+    private MachineHolo? _holo;
+    private Rect2 _holoBox;
     /// <summary>The bag's grid and the open crate's, which a sort's light crosses (<see cref="SortSweep"/>, 0081).</summary>
     private GridContainer _bag = null!;
     private GridContainer? _crateGrid;
@@ -201,6 +205,8 @@ public partial class InventoryPanel : CanvasLayer
     private void Build()
     {
         int size = _ui.Slot;
+        // First: the open machine's hologram draws over the world and under every panel.
+        _root.AddChild(_holo = new MachineHolo());
         var top = Style.Gap(new HBoxContainer(), 8);
         top.AddChild(Grid(Enumerable.Range(0, Hotbar.Row).Select(i => new Place(i)), keys: true));
         top.AddChild(_creative = new Label
@@ -277,6 +283,8 @@ public partial class InventoryPanel : CanvasLayer
     {
         bool fresh = _items != items || _client != client;
         (_client, _items, _grid, _hero) = (client, items, grid, hero);
+        // A load or a resync: the hologram goes at once.
+        if (fresh) _holo?.Snap();
         _sinceRead += elapsedMs;
         if (fresh || _sinceRead >= RefreshMs) Read();
     }
@@ -502,6 +510,7 @@ public partial class InventoryPanel : CanvasLayer
         if (Input.MouseMode != mode) Input.MouseMode = mode;
         _ui.OnPointer.Set(carrying ? _held.Size.X : 0);
         Power(delta);
+        Hologram(delta);
         // The equipment keeps its margin from the right edge, whatever the window's width and its own.
         _body.Position = new Vector2(_root.GetViewportRect().Size.X - Slots.Margin - _body.Size.X, Slots.InventoryTop(_ui.Slot));
         var grid = _inventory.GetGlobalRect();
@@ -524,7 +533,7 @@ public partial class InventoryPanel : CanvasLayer
         {
             var p = box.Place;
             // A slot waiting on an upgrade is not there yet (2026-10-30-room-upgrades).
-            box.Visible = _items!.SlotOpen(p);
+            box.Visible = _items!.SlotOpen(_client!.Id, p);
             var stack = reading.At(p);
             box.Kept = p.Crate != null ? Kept?.Invoke(p) : null;
             box.Favourite = p.Crate == null && stack != null && _ui.Favourites.Get().Has(stack.Item);
@@ -551,8 +560,6 @@ public partial class InventoryPanel : CanvasLayer
             _heldCount.Text = "";
         }
         ShowMachine(reading);
-        // A machine open under the bag squares the display's bottom edge, where the machine's module meets it (0074).
-        _inventory.Piece = _built != null ? WristPieces.DisplayDocked : WristPieces.Display;
         Power(0);
     }
 

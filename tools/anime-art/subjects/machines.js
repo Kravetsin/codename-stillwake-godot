@@ -359,12 +359,6 @@ const engine = (a) => {
   box(a, 36, 26.8, 34, 2.6, STEEL, { spec: true });
   feet(a, 29.4, 2.4, [38.4, 4.4], [62.6, 4.4]);
 };
-const radarBase = (a) => {
-  a.tube('M16 20L16 25', 1.8, GUN);
-  box(a, 11.4, 23.6, 9.2, 4, GUN);
-  a.flat(band(12.6, 25, 19.4, 26), '#a8693c');
-  box(a, 8, 27.8, 16, 4.2, STEEL, { spec: true });
-};
 const solarPanel = (a) => {
   a.shape(rr(.4, .6, 47.2, 11.8, .4), DARK, { lite: band(.6, .7, 47.4, 1.1) });
   for (let j = 0; j < 2; j++) for (let i = 0; i < 8; i++) {
@@ -473,16 +467,79 @@ const fill = (n) => (a) => {
   a.flat(band(13, top, 19, top + Math.min(.8, n)), '#a8ecff');
   a.flat(band(13.6, top + .8, 14.6, 21), '#6cc8f0');
 };
-/** The radar's dish, seen turning: from edge on at frames 0 and 4 to face on at 2 and 6. */
-const dish = (f) => (a) => {
-  const k = Math.abs(Math.cos(((f % 8) / 8) * Math.PI * 2 + Math.PI / 2)), w = 2.4 + k * 6.2, cx = 16.4;
-  a.tube('M16 13L16 20.4', 1.8, GUN);
-  a.shape(ell(cx, 10.6, w, 8.4), STEEL, { lite: ell(cx - w * .2, 8.4, w * .6, 5), shade: .9, spec: ell(cx - w * .3, 5.8, w * .22, 1.4) });
-  a.flat(ell(cx, 11, w * .24, 1.4), '#a8693c');
-  a.flat(ell(cx - w * .04, 10.8, w * .1, .6), '#f4c896');
+// ---------- the radar antenna, 4 x 6 cells (radar-mast): a guyed lattice mast, a dish four cells across at its head, a red light on top ----------
+const WIRE = { base: '#8a92a2', shade: '#8a92a2' };
+const CONCRETE = { base: '#7a7a80', shade: '#55555e', deep: '#3e3e46', lite: '#9c9ca2', spec: '#c8c8cc', rim: '#9c9ca2' };
+const BOWL = { base: '#bcc3ce', shade: '#7a8098', deep: '#5a5f78', lite: '#e0e5ec', spec: '#ffffff', rim: '#bcc3ce' };
+const RADAR_LAMP = [16, 1.75];
+/** The turn of frame f: c how much the dish faces us (+ front, - back), s how far it swings aside. Frames 0 and 4 edge on, 2 front, 6 back. */
+const radarTurn = (f) => { const t = ((f % 8) / 8) * Math.PI * 2; return { c: Math.sin(t), s: Math.cos(t) }; };
+const radarRust = (a, x, y, w, h) => { a.flat(poly(x, y, x + w * .4, y - h * .2, x + w, y + h * .1, x + w * .8, y + h, x + w * .3, y + h * .8), RUST.base); a.flat(ell(x + w * .5, y + h * .4, w * .18, h * .22), RUST.deep); };
+const mastHalf = (y) => 1.9 - ((45.6 - y) / 29.6) * .9;
+/** The still part: four guy wires to poured anchors, the tapering mast with its faded warning bands, the junction box with the plug at (13, 42). */
+const radarMast = (a) => {
+  const anchors = [[2.2, 45.6, 19], [29.8, 45.6, 19], [7.6, 46.2, 31.4], [24.4, 46.2, 31.4]];
+  for (const [x, y, to] of anchors) {
+    const mx = x < 16 ? 16 - mastHalf(to) : 16 + mastHalf(to);
+    a.tube(`M${x} ${y}L${mx} ${to}`, .3, WIRE, { bare: true, spec: false });
+    const tx = x + (mx - x) * .12, ty = y + (to - y) * .12;
+    a.shape(rr(tx - .35, ty - .7, .7, 1.4, .3), GUN, { outer: false });
+  }
+  for (const [x, y] of anchors) {
+    a.shape(rr(x - 1.7, y - .4, 3.4, 48 - y + .4, .5), CONCRETE, { lite: band(x - 1.6, y - .4, x + 1.6, y + .1), shade: band(x + .9, y - .4, x + 1.7, 48) });
+    a.flat(ell(x, y - .1, .5), '#3a3e50');
+  }
+  const m = poly(16 - mastHalf(45.6), 45.6, 16 + mastHalf(45.6), 45.6, 16 + mastHalf(16), 16, 16 - mastHalf(16), 16);
+  const lat = [];
+  for (let y = 45; y > 17; y -= 2.6) lat.push(`M${16 - mastHalf(y)} ${y}L${16 + mastHalf(y - 1.3)} ${y - 1.3}L${16 - mastHalf(y - 2.6)} ${y - 2.6}`);
+  a.shape(m, GUN, { lite: poly(16 - mastHalf(45.6), 45.6, 16 - mastHalf(45.6) + .7, 45.6, 16 - mastHalf(16) + .5, 16, 16 - mastHalf(16), 16),
+    shade: poly(16 + mastHalf(45.6) - .8, 45.6, 16 + mastHalf(45.6), 45.6, 16 + mastHalf(16), 16, 16 + mastHalf(16) - .5, 16), lines: lat });
+  for (const [y0, y1] of [[16.4, 19.6], [22.4, 25.4]]) a.flat(poly(16 - mastHalf(y1), y1, 16 + mastHalf(y1), y1, 16 + mastHalf(y0), y0, 16 - mastHalf(y0), y0), '#94443a', { clip: m });
+  for (let y = 43; y > 20; y -= 2.8) a.flat(band(y % 5.6 < 2.8 ? 16 - mastHalf(y) - .8 : 16 + mastHalf(y), y, y % 5.6 < 2.8 ? 16 - mastHalf(y) : 16 + mastHalf(y) + .8, y + .35), '#868fa2');
+  for (const y of [19, 31.4]) a.shape(rr(16 - mastHalf(y) - .6, y - .6, mastHalf(y) * 2 + 1.2, 1.3, .3), STEEL, { lite: band(16 - mastHalf(y) - .5, y - .6, 16 + mastHalf(y) + .5, y - .25) });
+  a.tube('M17.6 16.6L18.2 37Q18.4 39.6 15.4 40', .45, DARK, { spec: false });
+  a.shape(poly(13.6, 45.6, 18.4, 45.6, 17.2, 42.4, 14.8, 42.4), GUN, { outer: false, shade: poly(17, 42.4, 17.2, 42.4, 18.4, 45.6, 17.6, 45.6) });
+  box(a, 11.4, 45.4, 9.2, 2.6, STEEL, { spec: true });
+  rivets(a, [12.4, 46.6], [19.6, 46.6]);
+  box(a, 10.2, 38.8, 5.8, 5.6, GUN);
+  inner(a, 11.6, 40.6, 2.8, 2.8, COPPER);
+  a.flat(ell(13, 42, .72), '#262a42');
+  a.flat(ell(12.8, 41.8, .3), '#868fa2');
+  a.flat(band(14.6, 39.6, 15.2, 43.6), '#383c58');
+  radarRust(a, 11, 43.6, 1.2, .8);
+  radarRust(a, 2.6, 46.4, 1, .8);
 };
-const mast = (a) => radarBase(a);
-const beacon = (a) => { a.flat(ell(18, 24, 1.4), '#ff5040'); a.flat(ell(18, 24, .7), '#ffd0c0'); };
+/** The turning part at frame f: the dish, four cells across face on, tilted to the sky, its horn on three struts; the back's ribs; the light's dark glass on the axis. */
+const radarDish = (f) => (a) => {
+  const { c, s } = radarTurn(f), k = Math.abs(c), cx = 16, cy = 9.2, R = 15.4, ry = 6.8, hw = 1.8 + (R - 1.8) * k, front = c > -1e-6, F = [cx + s * 9.4, cy - .5];
+  a.tube('M16 2.6L16 12', .45, STEEL, { spec: false });
+  a.shape(rr(13.6, 14.6, 4.8, 2.6, .5), GUN, { lite: band(13.8, 14.6, 18.2, 15.1), shade: band(17.4, 14.6, 18.4, 17.2) });
+  if (c > .2) a.flat(band(16 + s * 1.8 - .25, 15.2, 16 + s * 1.8 + .25, 16.6), COPPER.lite);
+  a.tube('M16 14.8L16 10.8', 1.5, GUN);
+  const feed = () => {
+    for (const [x, y] of [[cx - hw * .84, cy + ry * .5], [cx + hw * .84, cy + ry * .5], [cx, cy - ry * .88]]) a.tube(`M${x} ${y}L${F[0]} ${F[1]}`, .55, GUN);
+    a.shape(rr(F[0] - 1.3, F[1] - 1.1, 2.6, 2.2, .5), COPPER, { lite: band(F[0] - 1.3, F[1] - 1.1, F[0] + 1.3, F[1] - .55), shade: .4 });
+    a.flat(ell(F[0] - s * .25, F[1] + .1, .6, .65), '#1a1c2a');
+  };
+  if (!front) feed();
+  if (front) {
+    a.shape(ell(cx, cy, hw, ry), STEEL, { shade: .6, spec: ell(cx - hw * .55, cy - ry * .72, hw * .16, .45) });
+    const bx = cx + s * hw * .1, bw = hw * .88, bh = ry * .86;
+    a.shape(ell(bx, cy + .25, bw, bh), BOWL, { outer: false, shade: -1.4, deep: -.55, lines: [ell(bx, cy + .25, bw * .4, bh * .4), ell(bx, cy + .25, bw * .72, bh * .72)] });
+    if (k > .4) { a.flat(ell(bx - bw * .3, cy + bh * .76, bw * .08, .4), RUST.base); a.flat(ell(bx + bw * .55, cy + bh * .5, bw * .05, .35), RUST.base); }
+    feed();
+  } else {
+    const ribs = Array.from({ length: 8 }, (_, i) => { const t = (i / 8) * Math.PI * 2 + .3; return `M${cx + Math.cos(t) * hw * .3} ${cy + Math.sin(t) * ry * .3}L${cx + Math.cos(t) * hw * .98} ${cy + Math.sin(t) * ry * .98}`; });
+    a.shape(ell(cx, cy, hw, ry), { ...STEEL, base: '#949cab' }, { shade: .8, lines: [...ribs, ell(cx, cy, hw * .62, ry * .62)] });
+    a.shape(rr(cx - hw * .22, cy - ry * .28, hw * .44, ry * .56, .4), GUN, { outer: false });
+  }
+  const [lx, ly] = RADAR_LAMP;
+  a.shape(rr(lx - 1.35, ly - 1.6, 2.7, 3.3, .9), DARK, { lite: band(lx - 1.2, ly - 1.6, lx + 1.2, ly - 1.1) });
+  a.flat(ell(lx, ly, .95), '#3c1c1e');
+  a.flat(ell(lx - .25, ly - .3, .3), '#6a3436');
+};
+/** The red light on top, lit: over the dark glass the dish carries. */
+const radarBeacon = (a) => { const [x, y] = RADAR_LAMP; a.glow(ell(x, y, 1.05), '#ff5040', { core: ell(x - .2, y - .25, .45) }); };
 const computerLights = (f) => (a) => {
   for (let i = 0; i < 9; i++) { const on = (i * 5 + f * 3) % 4 !== 0; a.flat(rr(5.4 + (i % 3) * 2, 21.4 + Math.floor(i / 3) * 2, .9, .9, .2), on ? '#54ba74' : '#1a5040'); }
   a.flat(rr(29.8, 13, 1, .6, .1), f ? '#54ba74' : '#f0c460');
@@ -782,10 +839,10 @@ Subjects.machines = function () {
     fermenter: [32, 32, fermenter], biofuelGenerator: [48, 32, blowable(biofuelGenerator)], treadWheel: [48, 48, treadWheel] };
   for (const [kind, [w, h, draw]] of Object.entries(whole)) out(`machine_${kind}`, bake({ w, h, draw }));
   out('machine_arcLamp_lit', flat(16, 16, arcLampBody(true)));
-  out('machine_radarAntenna', flat(32, 32, (a) => { radarBase(a); dish(2)(a); }));
-  out('radarAntenna_mast', flat(32, 32, mast));
-  out('radarAntenna_beacon', flat(32, 32, beacon));
-  for (let f = 0; f < 8; f++) { out(`radarAntenna_dish_${f}`, flat(32, 32, dish(f))); out(`computer_radar_${f}`, flat(48, 32, computerRadar(f))); }
+  out('machine_radarAntenna', flat(32, 48, (a) => { radarMast(a); radarDish(2)(a); }));
+  out('radarAntenna_mast', flat(32, 48, radarMast));
+  out('radarAntenna_beacon', flat(32, 48, radarBeacon));
+  for (let f = 0; f < 8; f++) { out(`radarAntenna_dish_${f}`, flat(32, 48, radarDish(f))); out(`computer_radar_${f}`, flat(48, 32, computerRadar(f))); }
   for (let f = 0; f < 4; f++) {
     out(`former_work_${f}`, flat(32, 32, former_work(f)));
     out(`crusher_work_${f}`, flat(32, 32, crusher_work(f)));

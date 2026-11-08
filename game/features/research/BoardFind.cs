@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using Godot;
 using Stillwake.Game.Render;
 using Stillwake.Game.Shared;
@@ -8,14 +9,15 @@ using static Stillwake.Game.I18n.En;
 namespace Stillwake.Game.Features.Research;
 
 /// <summary>
-/// The board's search (board-search), at the view's top right: what is typed lists what on the board is so named
-/// (<see cref="BoardSearch"/>), a row a thing; a click on a row, or Enter on the one lit by the arrows, picks it on the board.
+/// The board's search (board-search, board-search-related), at the view's top right: what is typed lists what on the board is so
+/// named and what that is tied to (<see cref="BoardSearch"/>), a row a thing, a tied one saying why under its name; while the list
+/// shows, the board lights its rows and dims the rest. A click on a row, or Enter on the one lit by the arrows, picks it on the board.
 /// The list shows only while the field is typed in. It is not the build menu's search: that one finds cards to build.
 /// </summary>
 public partial class BoardFind : Control
 {
     /// <summary>The field's width, a row's height and its picture, and the gap from the view's edge.</summary>
-    private const int Wide = 240, Row = 26, Icon = 20, Edge = 8;
+    private const int Wide = 240, Row = 26, TiedRow = 36, Icon = 20, Edge = 8;
 
     private readonly SearchField _field = new(T("research.search"));
     private readonly PanelContainer _list = new() { MouseFilter = MouseFilterEnum.Stop, Visible = false };
@@ -23,16 +25,18 @@ public partial class BoardFind : Control
     private readonly Func<IEnumerable<BoardFound>> _shown;
     private readonly Func<string, int, TextureRect> _picture;
     private readonly Action<string> _pick;
-    private IReadOnlyList<BoardFound> _found = [];
+    private readonly Action<IReadOnlyCollection<string>?> _listed;
+    private IReadOnlyList<BoardHit> _found = [];
     private readonly List<PanelContainer> _boxes = [];
     private int? _lit;
 
     /// <param name="shown">What the board shows now, named.</param>
     /// <param name="picture">A thing's picture, so many pixels across.</param>
     /// <param name="pick">Picks a thing on the board.</param>
-    public BoardFind(Func<IEnumerable<BoardFound>> shown, Func<string, int, TextureRect> picture, Action<string> pick)
+    /// <param name="listed">Tells the board what the open list shows, to light; none once it closes or finds nothing.</param>
+    public BoardFind(Func<IEnumerable<BoardFound>> shown, Func<string, int, TextureRect> picture, Action<string> pick, Action<IReadOnlyCollection<string>?> listed)
     {
-        (_shown, _picture, _pick) = (shown, picture, pick);
+        (_shown, _picture, _pick, _listed) = (shown, picture, pick, listed);
         MouseFilter = MouseFilterEnum.Ignore;
         AddChild(_field);
         var box = Style.Box(Style.Slate950, Style.Slate700);
@@ -43,7 +47,7 @@ public partial class BoardFind : Control
         AddChild(_list);
         _field.TextChanged += _ => List();
         _field.FocusEntered += List;
-        _field.FocusExited += () => _list.Visible = false;
+        _field.FocusExited += () => Show(false);
         _field.TextSubmitted += _ =>
         {
             if (_lit is { } lit) Pick(lit);
@@ -85,7 +89,7 @@ public partial class BoardFind : Control
     /// <summary>The rows for what is typed now, the first lit.</summary>
     private void List()
     {
-        _found = BoardSearch.Matching(_shown(), _field.Text);
+        _found = BoardSearch.Matching(_shown(), _field.Text, TechLinks.TieOf);
         foreach (var child in _rows.GetChildren())
         {
             _rows.RemoveChild(child);
@@ -94,7 +98,7 @@ public partial class BoardFind : Control
         _boxes.Clear();
         if (_field.Text.Trim() == "")
         {
-            _list.Visible = false;
+            Show(false);
             return;
         }
         if (_found.Count == 0)
@@ -109,13 +113,20 @@ public partial class BoardFind : Control
         Paint();
         // Shrunk to its rows once they are laid out: fewer rows than before leave it as tall till then.
         Callable.From(() => _list.Size = new Vector2(Wide, 0)).CallDeferred();
-        _list.Visible = _field.HasFocus();
+        Show(_field.HasFocus());
+    }
+
+    /// <summary>Shows or hides the list, and tells the board what to light: its rows while it shows any.</summary>
+    private void Show(bool shown)
+    {
+        _list.Visible = shown;
+        _listed(shown && _found.Count > 0 ? _found.Select(h => h.Found.Id).ToHashSet(StringComparer.Ordinal) : null);
     }
 
     private PanelContainer RowOf(int index)
     {
-        var found = _found[index];
-        var box = new PanelContainer { MouseFilter = MouseFilterEnum.Stop, CustomMinimumSize = new Vector2(0, Row) };
+        var (found, tie, named) = _found[index];
+        var box = new PanelContainer { MouseFilter = MouseFilterEnum.Stop, CustomMinimumSize = new Vector2(0, tie == null ? Row : TiedRow) };
         var line = Style.Gap(new HBoxContainer { MouseFilter = MouseFilterEnum.Ignore }, 6);
         var picture = _picture(found.Id, Icon);
         picture.CustomMinimumSize = new Vector2(Icon, Icon);
@@ -127,7 +138,17 @@ public partial class BoardFind : Control
         var name = Tablet.Text(found.Name, found.Note ? Style.Slate100 : Style.Slate500);
         name.ClipText = true;
         name.SizeFlagsHorizontal = SizeFlags.ExpandFill;
-        line.AddChild(name);
+        if (tie is { } why && named != null)
+        {
+            // Why it is listed, in its thread's colour: "makes Iron".
+            var words = Style.Gap(new VBoxContainer { MouseFilter = MouseFilterEnum.Ignore, SizeFlagsHorizontal = SizeFlags.ExpandFill, Alignment = BoxContainer.AlignmentMode.Center }, 0);
+            words.AddChild(name);
+            var reason = Tablet.Text(T(BoardSearch.WhyOf(why), ("what", named.Name)), StripParts.ColourOf(why) with { A = 0.8f }, Tablet.HintSize);
+            reason.ClipText = true;
+            words.AddChild(reason);
+            line.AddChild(words);
+        }
+        else line.AddChild(name);
         box.AddChild(line);
         box.MouseEntered += () =>
         {
@@ -169,7 +190,7 @@ public partial class BoardFind : Control
     private void Pick(int index)
     {
         if (index >= _found.Count) return;
-        string id = _found[index].Id;
+        string id = _found[index].Found.Id;
         _field.ReleaseFocus();
         _pick(id);
     }

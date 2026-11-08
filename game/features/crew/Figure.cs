@@ -75,6 +75,13 @@ public partial class Figure : Node2D
     private readonly Node2D _frontHip, _backHip;
     private readonly Node2D _body, _helmet;
     private readonly Sprite2D _headLamp, _lens;
+    /// <summary>The scanner in the lamp's mount (2026-11-07-the-scanner), and its glass's dot lit, drawn again unlit over it.</summary>
+    private readonly Sprite2D _scanner, _scannerDot;
+    /// <summary>The scanner's dots on the helmet worn, lit one at a time down its glass.</summary>
+    private readonly Texture2D?[] _scannerDots = new Texture2D?[3];
+    /// <summary>How long each dot stays lit, and the dark beat after the last, in ms.</summary>
+    private const double ScannerDotMs = 220;
+    private bool _scannerWorn;
     /// <summary>The parts shown by what is worn: the air pack with the body; the helmet's shell and glass, else the hair and beard.</summary>
     private readonly Sprite2D _pack, _shell, _visor, _hair, _beard, _headPart, _facePart;
     /// <summary>The head and face again, added unlit under the helmet's glass while its lamp is on: the face lit by its spill.</summary>
@@ -193,8 +200,13 @@ public partial class Figure : Node2D
 
     /// <summary>The charge's own light on the held stage, held while it charges, the brighter the fuller (2026-10-27-the-railgun).</summary>
     private static readonly (int R, int G, int B) ChargeLight = (95, 216, 255);
-    /// <summary>Chopping wreckage (0034): the wreck swung at, and how far through its swing the axe is (<see cref="AxeSwing"/>).</summary>
-    private (Vector2 At, double Phase)? _chop;
+    /// <summary>
+    /// A stroke playing (<see cref="AxeSwing"/>, swing-motions): where it is aimed from the feet, in pixels of the world's axes,
+    /// how far through it is, and the motion it plays.
+    /// </summary>
+    private (Vector2 Aim, double Phase, MotionPlay Play)? _chop;
+    /// <summary>How far the feet are stepped up or down as the figure was last drawn, in pixels (<see cref="StepEase"/>).</summary>
+    private double _stepLift;
     /// <summary>The front arm straight through a swing and eased into and out of it (0040).</summary>
     private SwingArm _swingArm;
     /// <summary>How far into carrying its item trailing on a run the figure is, 0 to 1; and the spring its arm swings on (<see cref="HeroMotion.Carry"/>).</summary>
@@ -230,6 +242,11 @@ public partial class Figure : Node2D
 
     /// <summary>What the boots stand on, or last stood on while in the air (0093): what its steps, jumps and landings sound like.</summary>
     public S.Footing Footing { get; set; } = S.Footing.Deck;
+
+    /// <summary>Whether its hero's feet are in water now (liquids): splashes going in and out, and strokes, not steps, as it moves.</summary>
+    public bool InWater { get; set; }
+
+    private readonly Splashes _splashes = new();
 
     /// <param name="own">Whether it is this player's hero, heard the same anywhere rather than from where it is.</param>
     public Figure(int colour, bool own)
@@ -276,6 +293,10 @@ public partial class Figure : Node2D
         _lens = new Sprite2D { Texture = _lensPicture, Position = _headLamp.Offset + HeadLampArt.Lens, Material = new CanvasItemMaterial { LightMode = CanvasItemMaterial.LightModeEnum.Unshaded } };
         _headLamp.AddChild(_lens);
         _helmet.AddChild(_headLamp);
+        _scanner = new Sprite2D { Centered = false, Visible = false };
+        Lit.Set(_scanner);
+        _scanner.AddChild(_scannerDot = new Sprite2D { Centered = false, Material = Unshaded });
+        _helmet.AddChild(_scanner);
         _plan = Part("sheet");
         _plan.Visible = false;
         // The planner's screen glows: drawn unlit over it, so it shows in the dark.
@@ -345,10 +366,33 @@ public partial class Figure : Node2D
     public void Work(Vector2? at) => _workAt = at;
 
     /// <summary>
-    /// Has the hero swing the axe it wields at the wreck at <paramref name="swing"/>'s point, in pixels of
-    /// the world, as far through the swing as its phase says; null between swings.
+    /// A point <paramref name="aim"/> pixels from the feet, in the world's axes, from the front shoulder in the arms' own frame,
+    /// the body as last drawn but faced <paramref name="facing"/>; straight ahead for none (swing-motions).
     /// </summary>
-    public void Chop((Vector2 At, double Phase)? swing) => _chop = swing;
+    private (double X, double Y) FromShoulder(Vector2 aim, int facing)
+    {
+        if (aim == Vector2.Zero) return (1, 0);
+        // Never shown, the body has no place yet: the offset as it is, faced.
+        if (_shown == null) return (aim.X * facing, aim.Y);
+        var local = _frame.Transform.AffineInverse() * (_body.Transform.AffineInverse() * new Vector2(aim.X * facing, aim.Y - (float)_stepLift));
+        return (local.X, local.Y + Rig.Shoulder);
+    }
+
+    /// <summary>
+    /// The aim angle of a stroke aimed <paramref name="aim"/> pixels from the feet, the figure faced <paramref name="facing"/> to
+    /// strike it: radians from straight ahead of the shoulder, down positive, as last drawn. Its sector picks the motion (<see cref="Sectors"/>).
+    /// </summary>
+    public double AimAngleOf(Vector2 aim, int facing)
+    {
+        var (dx, dy) = FromShoulder(aim, facing);
+        return Math.Atan2(dy, dx);
+    }
+
+    /// <summary>
+    /// Has the hero play the stroke of the tool it wields aimed <paramref name="swing"/>'s offset from its feet, in pixels of the
+    /// world's axes, as far through as its phase says, the motion it plays; null between strokes.
+    /// </summary>
+    public void Chop((Vector2 Aim, double Phase, MotionPlay Play)? swing) => _chop = swing;
 
     /// <summary>The swing playing bit something: its arm is drawn stopped on contact for a moment (0075), the sim untouched.</summary>
     public void Bit() => _bit = true;
@@ -426,6 +470,31 @@ public partial class Figure : Node2D
             _lampWorn = value;
             _headLamp.Visible = _faceLight.Visible = _lampWorn && _helmetWorn != null;
         }
+    }
+
+    /// <summary>Whether the hero wears the scanner (2026-11-07-the-scanner): along the helmet's crown, in the lamp's mount; only on a helmet.</summary>
+    public bool Scanner
+    {
+        get => _scanner.Visible;
+        set
+        {
+            if (value == _scannerWorn) return;
+            _scannerWorn = value;
+            ShowScanner();
+        }
+    }
+
+    /// <summary>The scanner's pictures for the helmet worn, at its mount: each helmet's hugs its dome.</summary>
+    private void ShowScanner()
+    {
+        _scanner.Visible = _scannerWorn && _helmetWorn != null;
+        if (!_scanner.Visible) return;
+        bool heavy = _helmetWorn == Stillwake.Content.Helmet.Heavy;
+        string name = heavy ? "hero_heavyHelmet_scanner" : "hero_scanner";
+        var (x, y) = heavy ? ScannerInk.OnHeavy : ScannerInk.On;
+        _scanner.Texture = PixelArt.Picture(name);
+        _scanner.Offset = _scannerDot.Offset = new Vector2((float)x - ScannerInk.Margin, (float)y - ScannerInk.Margin) - Joints["helmet"];
+        for (int i = 0; i < _scannerDots.Length; i++) _scannerDots[i] = PixelArt.Picture($"{name}_lit_{i}");
     }
 
     /// <summary>The helmet lamp's lens as drawn, in pixels of the world: where its light shines from, turning with the head.</summary>
@@ -659,6 +728,7 @@ public partial class Figure : Node2D
         _beard.Visible = helmet == null && HeroLooks.Wrap(look.Beard, HeroLooks.Beards + 1) > 0;
         (_headLit.Texture, _faceLit.Texture) = (_headPart.Texture, _facePart.Texture);
         HeadLamp = _lampWorn;
+        ShowScanner();
     }
 
     /// <summary>
@@ -842,6 +912,12 @@ public partial class Figure : Node2D
     public void Show(Hero hero, Pose pose, double look, bool holdsPlan, double elapsedMs)
     {
         _timeMs += elapsedMs;
+        if (_scanner.Visible)
+        {
+            int lit = (int)(_timeMs / ScannerDotMs) % (_scannerDots.Length + 1);
+            _scannerDot.Visible = lit < _scannerDots.Length;
+            if (_scannerDot.Visible) _scannerDot.Texture = _scannerDots[lit];
+        }
         ShowSuit();
         // Walking backwards, away from where it faces, the stride runs backwards too. On the ground only the
         // way along counts, so a stair keeps the stride of the flat; on a ladder only the way up or down.
@@ -858,10 +934,14 @@ public partial class Figure : Node2D
         // Where the feet are, in pixels of the world.
         double feetX = (double)hero.X / Hero.Unit * Rig.Cell, feetY = (double)hero.Y / Hero.Unit * Rig.Cell;
         bool walking = pose is Pose.Stand or Pose.Walk or Pose.Run, walked = _wasPose is Pose.Stand or Pose.Walk or Pose.Run;
-        double lift = _steps.Offset(feetX, feetY, walking && walked, elapsedMs);
+        double lift = _stepLift = _steps.Offset(feetX, feetY, walking && walked, elapsedMs);
         var cues = _motion.Step(hero, pose, elapsedMs);
-        if (cues.Jumped) Boots(GroundSounds.JumpOf(Footing));
-        if (cues.Landed is int fall)
+        if (cues.Jumped && !InWater) Boots(GroundSounds.JumpOf(Footing));
+        var water = _splashes.Step(InWater, hero.Vx != 0 || hero.Vy < 0, elapsedMs / 1000);
+        if (water.In) Boots(S.SplashIn);
+        if (water.Out) Boots(S.SplashOut);
+        if (water.Stroke) Boots(S.SwimStroke);
+        if (cues.Landed is int fall && !InWater)
         {
             var (landing, louder, tune) = GroundSounds.LandOf(Footing, fall);
             Boots(landing, tune, louder);
@@ -871,7 +951,7 @@ public partial class Figure : Node2D
         // A foot comes down at the end of each half stride, a quarter stride in: heard walking and running,
         // kicking up dust only running.
         int? stepping = pose is Pose.Walk or Pose.Run ? (int)Math.Floor((_cycle - 0.25) / 0.5) : null;
-        if (stepping != null && _step != null && stepping != _step)
+        if (stepping != null && _step != null && stepping != _step && !InWater)
         {
             Boots(GroundSounds.StepOf(Footing));
             if (pose == Pose.Run) Kick(feetX + hero.Facing * Rig.W * 0.3, feetY, hero.Facing);
@@ -965,23 +1045,22 @@ public partial class Figure : Node2D
             frontArm = Rig.Reach(new Vec(Math.Cos(work) * reach + ux * TwistLift * rise, Math.Sin(work) * reach + uy * TwistLift * rise), Rig.Arm, 1);
         }
         (double Angle, double Phase)? swung = null;
-        double elbow = item?.Elbow ?? 0;
-        if (chopping && _chop is { At: var wreck, Phase: var phase })
+        double elbow = item?.Elbow ?? 0, wrist = 0;
+        if (chopping && _chop is { Aim: var aimed, Phase: var phase, Play: var play })
         {
-            // Toward the point, from the shoulder: raised back over it, then brought down till the blade,
-            // not the hand, crosses the line to it (0040).
-            var (dx, dy) = FromShoulder(wreck);
+            // Toward its aim from where the hero is now, from the shoulder: the motion chosen at the press, played along it till
+            // the blade, not the hand, crosses the line to it (0040, swing-motions).
             if (phase < _lastPhase) _bit = false;
             _lastPhase = phase;
-            double drawn = _bit ? AxeSwing.Shown(phase, stroke) : phase;
-            if (stroke!.Kind == StrokeKind.Thrust)
+            double drawn = _bit ? AxeSwing.Shown(phase, stroke!) : phase;
+            (elbow, wrist) = (play.ElbowAt(drawn), play.WristAt(drawn));
+            // The spear: aimed as a gun is, the shaft's line through the point, the elbow cocked and straightened (the jab).
+            if (play.Motion.Kind == MotionKind.Thrust)
             {
-                // The spear: aimed as a gun is, the shaft's line through the point, the elbow cocked and straightened (the jab).
-                elbow = Strokes.ElbowAt(drawn);
+                var (dx, dy) = FromShoulder(aimed, hero.Facing);
                 swung = (HarpoonShot.ArmFor(item! with { Elbow = elbow }, dx, dy), drawn);
             }
-            // How far past the line to its point the arm swings for the blade, not the hand, to meet it (0040).
-            else swung = (Math.Atan2(dy, dx) + AxeSwing.Lead(item!) + AxeSwing.Lift(drawn), drawn);
+            else swung = (play.AngleAt(AimAngleOf(aimed, hero.Facing), drawn), drawn);
         }
         else if (aiming && Aim is { } target && item != null)
         {
@@ -1007,6 +1086,7 @@ public partial class Figure : Node2D
         // The spring only round a run and a while after it: a landing or a pose's own swing moves the arm as it is.
         if (carried && _sinceCarryMs < HeroMotion.Carry.SpringAfterMs) frontArm = frontArm with { Upper = _armSpring.Follow(frontArm.Upper, elapsedMs) };
         else _armSpring.Hold(frontArm.Upper);
+        _swingArm.Drew(frontArm);
         var backArm = shown.BackArm;
         _frontArm.Bend(frontArm);
         _backArm.Bend(backArm);
@@ -1080,7 +1160,7 @@ public partial class Figure : Node2D
             }
             _held.Position = new Vector2((float)fist.X, (float)(-Rig.Shoulder + fist.Y));
             // Carried trailing on a run, the hand turns the item along itself (Rig.Carried).
-            _held.Rotation = (float)(Rig.HeldTurn(frontArm, item) + item.Hold * carry);
+            _held.Rotation = (float)(Rig.HeldTurn(frontArm, item, wrist) + item.Hold * carry);
             if (item.Aimed)
             {
                 Vector2 At((double X, double Y) p) => _held.ToGlobal(new Vector2((float)p.X, (float)p.Y) + _held.Offset);
@@ -1096,18 +1176,17 @@ public partial class Figure : Node2D
             }
         }
         // The air the tool works shows its reach while it is used (tool-reach): a stroke's cut, a running drill's or grinder's zone.
-        if (chopping && _chop is { At: var cutAt, Phase: var cutPhase } && Stillwake.Content.Weapons.Of(Wields) is { } weapon)
+        if (chopping && _chop is { Aim: var cutAim, Phase: var cutPhase, Play: var cutPlay } && Stillwake.Content.Weapons.Of(Wields) is { } weapon)
         {
-            bool jab = stroke!.Kind == StrokeKind.Thrust;
-            double half = Math.PI * weapon.Arc / Stillwake.Content.Headings.Turn, span = AxeSwing.Raised + AxeSwing.Through;
-            double start = jab ? stroke.HitShare : AxeSwing.WindShare + AxeSwing.StrikeShare * (AxeSwing.Raised - half) / span;
+            bool jab = cutPlay.Motion.Kind == MotionKind.Thrust;
+            double half = Strokes.HalfOf(weapon);
+            double start = jab ? stroke!.HitShare : cutPlay.ShareAt(-half);
             if (_cutPhase < start && cutPhase >= start)
             {
-                var (dx, dy) = FromShoulder(cutAt);
-                var edge = Rig.HeldAt(frontArm, item!, item!.EdgeTo);
+                var edge = Rig.HeldAt(frontArm, item!, item!.EdgeTo, wrist);
                 double reach = Math.Sqrt(edge.X * edge.X + edge.Y * edge.Y);
-                double sweep = jab ? WorkLooks.ThrustSweepMs : AxeSwing.StrikeShare * 2 * half / span * stroke.Ms;
-                _air.Strike(jab, Math.Atan2(dy, dx), half, weapon.Range * Rig.Cell / Hero.Unit, jab ? reach : reach - 4, sweep,
+                double sweep = jab ? WorkLooks.ThrustSweepMs : (cutPlay.ShareAt(half) - start) * stroke!.Ms;
+                _air.Strike(jab, AimAngleOf(cutAim, hero.Facing), half, weapon.Range * Rig.Cell / Hero.Unit, jab ? reach : reach - 4, sweep,
                     WorkLooks.CutFadeOf(Wields));
             }
             _cutPhase = cutPhase;

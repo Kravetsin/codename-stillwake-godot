@@ -59,6 +59,7 @@ public partial class InventoryPanel
             VerticalAlignment = VerticalAlignment.Center,
             MouseFilter = Control.MouseFilterEnum.Ignore,
         };
+        _frame?.Dim(words);
         row.AddChild(words);
         row.MoveChild(words, 0);
         return row;

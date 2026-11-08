@@ -273,6 +273,25 @@ public class PoseTests
     }
 
     [Fact]
+    public void HauledInAlongItsTetherTheHandsGoHandOverHandAlongTheWayItGoes()
+    {
+        // On a tether, faster than a swim: hauled (tether-haul); a jetpack's flight as fast, untied, is not.
+        var hauled = Standing with { Vx = Spec.Haul, Anchor = new Point(40000, 20000) };
+        Assert.True(Poses.Hauling(hauled));
+        Assert.False(Poses.Hauling(hauled with { Anchor = null }));
+        Assert.False(Poses.Hauling(hauled with { Vx = Spec.Swim }));
+        // Reaching out along the line, the front hand straight ahead (leaning in), while the back one draws back by the chest.
+        var out_ = LimbsOf(Pose.Float, hauled, At(0, Poses.Haul.Reach * Poses.Haul.GripMs));
+        Close(Math.PI / 2 + Adrift.Lean, out_.FrontArm.Upper);
+        Assert.True(out_.BackArm.Upper < out_.FrontArm.Upper - 0.5);
+        // Half a grip on, the hands have changed over.
+        var on = LimbsOf(Pose.Float, hauled, At(0, (Poses.Haul.Reach + 0.5) * Poses.Haul.GripMs));
+        Close(Math.PI / 2 + Adrift.Lean, on.BackArm.Upper);
+        // Hauled straight up, the hand reaches up.
+        Close(Math.PI, LimbsOf(Pose.Float, hauled with { Vx = 0, Vy = -Spec.Haul }, At(0, Poses.Haul.Reach * Poses.Haul.GripMs)).FrontArm.Upper);
+    }
+
+    [Fact]
     public void LeansFurtherSwimmingFastTowardTheWayItSwimsWhicheverWayItFaces()
     {
         Close(Adrift.LeanFast, LimbsOf(Pose.Float, Standing with { Vx = 2 * Spec.Swim }, At(0)).Tilt);

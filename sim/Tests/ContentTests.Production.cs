@@ -163,7 +163,7 @@ public partial class ContentTests
     /// <summary>
     /// Every craft is made at some queued station (0057): the pod gives what a castaway is given, the suit and the
     /// screwdriver (0046, 0107); the workbench the basic parts and what is assembled, the jetpack, the drill and the cape
-    /// among them (2026-10-27-the-cape-is-worn); the Former those parts again, and alone frames, soil (0060), the motor of a
+    /// among them (2026-10-27-the-cape-is-worn), and the battery, which the assembler makes too (battery-workbench); the Former those parts again, and alone frames, soil (0060), the motor of a
     /// planet's copper and the nozzle; the electronics, circuits, solar cells and the deck drive, and the fuel pump, the circuit
     /// assembler alone; the arc crafts the arc bench (0099, 2026-10-27-the-railgun).
     /// </summary>
@@ -172,12 +172,12 @@ public partial class ContentTests
     {
         string[] pod = [Content.Helmet.Basic, Content.Suit.Basic, Screwdrivers.Basic.Item];
         string[] parts = ["wire", "plate", "gear", "tube", "coil", "rotor"];
-        string[] tools = ["fireAxe", "harpoon", "nailer", "nail", "helmetLamp", "jetpack", "drill", "powerDriver", "cape", "heavyHelmet", "regenSuit", "grinder", "spear", "sledgehammer", "plasmaCutter"];
+        string[] tools = ["fireAxe", "harpoon", "nailer", "nail", "helmetLamp", "jetpack", "drill", "powerDriver", "cape", "heavyHelmet", "regenSuit", "scanner", "grinder", "spear", "sledgehammer", "plasmaCutter", "pickaxe", "grapple"];
         string[] electronics = ["circuit", "solarCell", "battery", "drone", "salvageDrone", "deckDrive", "processor", "display", "transceiver", "igniter", "fuelPump"], arc = ["arcModule", "accumulator", "railgun"];
         string[] formed = ["frame", "motor", "soil", "nozzle"];
         Assert.Empty(Crafts.All.Select(c => c.Item).Except([.. pod, .. parts, .. tools, .. formed, .. electronics, .. arc]));
         Assert.Equal(pod, Stations.Get("lifepod").Rows.SelectMany(r => r));
-        Assert.Equal(parts.Concat(tools).Order(StringComparer.Ordinal), Stations.Get("workbench").Rows.SelectMany(r => r).Order(StringComparer.Ordinal));
+        Assert.Equal(parts.Concat(tools).Append("battery").Order(StringComparer.Ordinal), Stations.Get("workbench").Rows.SelectMany(r => r).Order(StringComparer.Ordinal));
         Assert.Equal(parts.Concat(formed).Order(StringComparer.Ordinal), Stations.Get("former").Rows.SelectMany(r => r).Order(StringComparer.Ordinal));
         Assert.All(tools, item => Assert.Equal(["workbench"], Stations.All.Where(s => s.Rows.Any(r => r.Contains(item))).Select(s => s.Machine)));
         Assert.Equal(arc, Stations.Get("arcBench").Rows.SelectMany(r => r));
@@ -438,7 +438,7 @@ public partial class ContentTests
     }
 
     /// <summary>What no one buys: wreckage whole, tools, what is worn, what stores or flies by itself, the arc's, the photosensitive panel nothing makes.</summary>
-    private static readonly string[] Unpriced = ["arcShard", "arcModule", "supplyPod", "cargoCrate", "hullSection", "cargoContainer", "machineBlock", "cableRack", "tankCluster", "shieldSlab", "soilClod", "asteroid", "asteroidSmall", "asteroidLarge", "asteroidRich", "engineBlock", "cargoHold", "podCluster", "photoPanel", "drone", "salvageDrone", "screwdriver", "fireAxe", "harpoon", "nailer", "railgun", "drill", "powerDriver", "grinder", "plasmaCutter", "spear", "sledgehammer", "jetpack", "helmetLamp", "battery", "accumulator", "helmet", "suit", "heavyHelmet", "regenSuit", "cape"];
+    private static readonly string[] Unpriced = ["arcShard", "arcModule", "supplyPod", "cargoCrate", "hullSection", "cargoContainer", "machineBlock", "cableRack", "tankCluster", "shieldSlab", "soilClod", "asteroid", "asteroidSmall", "asteroidLarge", "asteroidRich", "engineBlock", "cargoHold", "podCluster", "photoPanel", "drone", "salvageDrone", "screwdriver", "fireAxe", "harpoon", "grapple", "nailer", "railgun", "drill", "powerDriver", "grinder", "plasmaCutter", "spear", "sledgehammer", "pickaxe", "jetpack", "helmetLamp", "scanner", "battery", "accumulator", "helmet", "suit", "heavyHelmet", "regenSuit", "cape"];
 
     /// <summary>Everything is priced or named here as what no one buys; raw salvage is, so the first credits need nothing made.</summary>
     [Fact]

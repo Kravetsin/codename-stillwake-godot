@@ -42,8 +42,8 @@ public static class Weapons
     /// <summary>The spear (salvage tools): 3 a thrust every 12 ticks, 5 a second, a little over the axe's, 6 cells out; the arc doubles it for no power.</summary>
     public static readonly Weapon Spear = new("spear", Damage: 3, BlockDamage: 2, Pace: 12, Arc: 8, Rays: 3, Range: 6000, Effects: []);
 
-    /// <summary>The chip that marks a weapon whose cuts give more loot (salvage tools): its card's, and Debris's test of it.</summary>
-    public static readonly HitEffect Salvage = new("salvage", "b49aff", "221a3a");
+    /// <summary>What marks a weapon whose cuts give more loot (salvage tools): its card's row, and Debris's test of it.</summary>
+    public static readonly HitEffect Salvage = new("salvage");
 
     /// <summary>
     /// The plasma cutter (salvage tools): 1 a hit every 4 ticks, 5 a second, nothing on blocks; a wreck it took its hit points
@@ -52,17 +52,27 @@ public static class Weapons
     public static readonly Weapon PlasmaCutter = new("plasmaCutter", Damage: 1, BlockDamage: 0, Pace: 4, Arc: 8, Rays: 3, Range: 8000, Effects: [Salvage]);
 
     /// <summary>
-    /// The sledgehammer (salvage tools): 12 a blow every 3 s, 4 a second as the axe, but each blow bursts every wreck of 12 hit
-    /// points or fewer at once; 6 on blocks, under the weakest ground and plant, so a wall still cracks first; a third of a turn wide, 4 cells out.
+    /// The sledgehammer (salvage tools): 12 a blow every 1.8 s (swing-motions: never an arm idle over a second), 6.7 a second, more
+    /// than the axe's 4, and each blow bursts every wreck of 12 hit points or fewer at once; 6 on blocks, under the weakest ground and plant, so a wall still cracks first; its fan 135° wide and
+    /// 5.5 cells from the shoulder, 13 rays, wider and longer than the axe's: a heavy sweep past its own head, 4.5 cells out.
     /// </summary>
-    public static readonly Weapon Sledgehammer = new("sledgehammer", Damage: 12, BlockDamage: 6, Pace: 60, Arc: 32, Rays: 5, Range: 4000, Effects: []);
+    public static readonly Weapon Sledgehammer = new("sledgehammer", Damage: 12, BlockDamage: 6, Pace: 36, Arc: 96, Rays: 13, Range: 5500, Effects: []);
 
-    public static readonly IReadOnlyList<Weapon> All = [Axe, Drill, Grinder, Spear, PlasmaCutter, Sledgehammer];
+    /// <summary>
+    /// The pickaxe (the-pickaxe): the drill's fallback underground, needing no charge. 6 on blocks a blow every 6 ticks, 20 a second, half
+    /// the drill's 40 and two and a half times the axe's 8: stone and ore at the second blow, 0.6 s, where the drill takes 0.3 s and
+    /// the axe 1.5 s; never at the first, so a wall still cracks first. 1 a blow on wrecks, under the axe. Its fan 48 steps (three
+    /// sixteenths of a turn) wide, 9 rays, 4.5 cells from the shoulder, the axe's: wider than the drill's and close by, so its cut runs
+    /// along its point's path (pick-reach).
+    /// </summary>
+    public static readonly Weapon Pickaxe = new("pickaxe", Damage: 1, BlockDamage: 6, Pace: 6, Arc: 48, Rays: 9, Range: 4500, Effects: []);
 
-    /// <summary>Whether <paramref name="weapon"/>'s cuts give a wreck more loot: it carries <see cref="Salvage"/>.</summary>
+    public static readonly IReadOnlyList<Weapon> All = [Axe, Drill, Grinder, Spear, PlasmaCutter, Sledgehammer, Pickaxe];
+
     /// <summary>What a cut wreck's loot comes to when its bonus is won, in thousandths of each line, rounded down: half again.</summary>
     public const int CutBonus = 1500;
 
+    /// <summary>Whether <paramref name="weapon"/>'s cuts give a wreck more loot: it carries <see cref="Salvage"/>.</summary>
     public static bool Salvages(Weapon weapon) => weapon.Effects.Contains(Salvage);
 
     /// <summary>The weapon that is <paramref name="item"/>, or null for an item that deals no damage.</summary>
@@ -75,8 +85,6 @@ public static class Weapons
 }
 
 /// <summary>
-/// Something a weapon's hit does besides its damage, named in the client's words <c>effect.&lt;Id&gt;</c> and
-/// told in <c>effect.&lt;Id&gt;.about</c>; its card's chip is <paramref name="Colour"/> on
-/// <paramref name="Ground"/>, "rrggbb" (the card mockup's fire was ff7a2e on 3a1a0c, its ice 6fd3ff on 0c2a3a).
+/// Something a weapon's hit does besides its damage: a row of its card in the client, the cutter's loot (2026-11-07-tool-card-rows).
 /// </summary>
-public sealed record HitEffect(string Id, string Colour, string Ground);
+public sealed record HitEffect(string Id);

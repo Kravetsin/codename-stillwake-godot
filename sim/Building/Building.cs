@@ -35,7 +35,10 @@ public sealed record CancelPlan(int Id) : Command;
 /// </summary>
 public sealed record Work(int Plan) : Command;
 
-/// <summary>Switches instant building, from the dev panel: a blueprint placed is built at once, with no plan, work or cost.</summary>
+/// <summary>
+/// Switches instant building, from the dev panel: a blueprint placed is built at once, with no plan, work or cost,
+/// and a removal taken apart at once, refunded to its sender.
+/// </summary>
 public sealed record SetInstant(bool On) : Command;
 
 /// <summary>What another module may read of what stands on the grid.</summary>
@@ -109,7 +112,7 @@ public sealed partial class BuildingModule : Module<BuildingState>, IBuildingQue
         _crew = crew;
         _crewOps = crewOps;
         _pipes = pipes;
-        Handles<PlacePlan>(c => PlaceProblem(c.Cell, c.Placement), ApplyPlacePlan);
+        Handles<PlacePlan>(c => PlaceProblem(c.Cell, c.Placement, c.From), ApplyPlacePlan);
         Handles<Deconstruct>(c => MarkProblem(c.Cell, c.Layer), ApplyDeconstruct);
         Handles<CancelPlan>(c => State.Plans.Exists(p => p.Id == c.Id) ? null : "building.noPlan", ApplyCancelPlan);
         Handles<Work>(c => WorkProblemOf(c.Plan, c.From), ApplyWork);
@@ -135,7 +138,7 @@ public sealed partial class BuildingModule : Module<BuildingState>, IBuildingQue
 
     // Queries.
 
-    /// <summary>Instant building (dev panel): a blueprint placed is built at once, free, and no plan is kept.</summary>
+    /// <summary>Instant building (dev panel): a blueprint placed is built at once, free, a removal taken apart at once, and no plan is kept.</summary>
     public bool Instant => State.Instant;
 
     /// <summary>Every plan, in the order they were made; live and read-only.</summary>
@@ -150,8 +153,8 @@ public sealed partial class BuildingModule : Module<BuildingState>, IBuildingQue
     /// </summary>
     public (string Layer, int Cell)? ClearAt(int cell, IReadOnlyList<string>? layers = null) => NextToClear(cell, layers);
 
-    /// <summary>Why a blueprint for <paramref name="placement"/> at <paramref name="cell"/> would be refused: what a ghost shows before the command is sent.</summary>
-    public string? Problem(int cell, Placement placement) => PlaceProblem(cell, placement);
+    /// <summary>Why a blueprint for <paramref name="placement"/> at <paramref name="cell"/> would be refused, placed by <paramref name="peer"/>: what a ghost shows before the command is sent.</summary>
+    public string? Problem(int cell, Placement placement, int peer) => PlaceProblem(cell, placement, peer);
 
     /// <summary>Why a mark on <paramref name="layer"/> of <paramref name="cell"/> would be refused: what a removal ghost shows.</summary>
     public string? Problem(int cell, string layer) => MarkProblem(cell, layer);
@@ -159,12 +162,12 @@ public sealed partial class BuildingModule : Module<BuildingState>, IBuildingQue
     /// <summary>Why peer <paramref name="peer"/>'s work on plan <paramref name="id"/> would be refused: what the client shows first.</summary>
     public string? WorkProblem(int id, int peer) => WorkProblemOf(id, peer);
 
-    /// <summary>What blueprint <paramref name="id"/> still lacks of its cost, paid an item a part as it is worked: none for a mark or no plan, nor in creative mode.</summary>
+    /// <summary>What blueprint <paramref name="id"/> still lacks of its cost, paid an item a part as it is worked: none for a mark or no plan.</summary>
     public Cost Lacking(int id) => State.Plans.Find(p => p.Id == id) is { } plan ? LackOf(plan) : [];
 
     /// <summary>
     /// How many parts of blueprint <paramref name="id"/> are put in, of all its parts, one an item of its cost: those
-    /// paid for, or in creative mode those its work has begun. Null for a mark or no plan.
+    /// paid for, or those its work has begun if more (a plan worked in a save from before creative mode was a peer's). Null for a mark or no plan.
     /// </summary>
     public (int In, int Of)? Parts(int id)
     {
@@ -209,7 +212,14 @@ public sealed partial class BuildingModule : Module<BuildingState>, IBuildingQue
 
     private void ApplyDeconstruct(Deconstruct c)
     {
-        State.Plans.Add(Plan.Mark(State.NextPlanId, MarkedCell(c.Cell, c.Layer) ?? c.Cell, c.Layer));
+        // Validation found the layer holding something there.
+        int at = MarkedCell(c.Cell, c.Layer)!.Value;
+        if (State.Instant)
+        {
+            TakeApart(at, c.Layer, c.From);
+            return;
+        }
+        State.Plans.Add(Plan.Mark(State.NextPlanId, at, c.Layer));
         State.NextPlanId += 1;
     }
 
@@ -254,15 +264,22 @@ public sealed partial class BuildingModule : Module<BuildingState>, IBuildingQue
     {
         // Plans claim their slots, and a last tick waits on what a pod set down there since: a refusal here is our bug.
         if (plan.Place is { } place) Build(plan.Cell, place);
-        else if (Refund(plan.Cell, plan.Clear!) is { } refund)
-        {
-            // What a mark names may be gone already, to a meteor: then there is nothing to refund. RefundOf tells the same.
-            // A ladder or a doorway comes apart whole, as it was built (0104); a machine's cables stay, on a peg (0110).
-            if (plan.Clear == "machine" && _grid.MachineAt(plan.Cell) is { } machine) _powerOps.Unplug(machine.Id);
-            foreach (int cell in plan.Clear == "structure" ? _grid.PieceOf(plan.Cell) : [plan.Cell]) _gridOps.Clear(cell, plan.Clear!);
-            _itemsOps.GiveOrDrop(from, refund, plan.Cell);
-        }
+        else TakeApart(plan.Cell, plan.Clear!, from);
         State.Plans.RemoveAll(p => p.Id == plan.Id);
+    }
+
+    /// <summary>
+    /// Takes <paramref name="layer"/> out of <paramref name="cell"/>, a mark's cell, refunding its cost to the hero of peer
+    /// <paramref name="from"/>, what does not fit falling there.
+    /// </summary>
+    private void TakeApart(int cell, string layer, int from)
+    {
+        // What a mark names may be gone already, to a meteor: then there is nothing to refund. RefundOf tells the same.
+        if (Refund(cell, layer) is not { } refund) return;
+        // A ladder or a doorway comes apart whole, as it was built (0104); a machine's cables stay, on a peg (0110).
+        if (layer == "machine" && _grid.MachineAt(cell) is { } machine) _powerOps.Unplug(machine.Id);
+        foreach (int part in layer == "structure" ? _grid.PieceOf(cell) : [cell]) _gridOps.Clear(part, layer);
+        _itemsOps.GiveOrDrop(from, refund, cell);
     }
 
     /// <summary>Puts <paramref name="place"/> into the grid at <paramref name="cell"/>, a slot validation found free.</summary>

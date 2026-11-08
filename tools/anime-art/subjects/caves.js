@@ -81,16 +81,76 @@ function groundSheet(look, seed, dim) {
   } };
 }
 
-/** Ice flecks over a wall of stone, in a few clusters, as the vein's sheet draws them. */
+// The finish draws a repeating sheet nine times, a copy at a time, the whole picture each time: a later copy's stone, reaching a few
+// pixels past the sheet's edge, would paint over ore an earlier copy left near that edge. What is drawn through on() goes out shifted
+// so its every image inside the sheet comes from the last copy, over all the stone.
+const NUM = /-?\d*\.?\d+(?:e-?\d+)?/g;
+const shiftPath = (d, dx, dy) => { let i = 0; return d.replace(NUM, (v) => String(+(+v + (i++ % 2 ? dy : dx)).toFixed(3))); };
+const SHIFTED = ['shade', 'deep', 'lite', 'spec', 'lines'];
+function on(a, W = 128, H = 64) {
+  const sh = (v, dx, dy) => (typeof v === 'string' ? shiftPath(v, dx, dy) : Array.isArray(v) ? v.map((q) => sh(q, dx, dy)) : v);
+  const emit = (d, fn) => {
+    const n = d.match(NUM).map(Number);
+    let x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity;
+    for (let i = 0; i + 1 < n.length; i += 2) { x0 = Math.min(x0, n[i]); x1 = Math.max(x1, n[i]); y0 = Math.min(y0, n[i + 1]); y1 = Math.max(y1, n[i + 1]); }
+    for (let j = -1; j <= 1; j++) for (let i = -1; i <= 1; i++)
+      if (x1 + i * W > 0 && x0 + i * W < W && y1 + j * H > 0 && y0 + j * H < H) fn((i - 1) * W, (j - 1) * H);
+  };
+  return {
+    shape(d, m, o = {}) { emit(d, (dx, dy) => { const p = { ...o }; for (const k of SHIFTED) if (k in o) p[k] = sh(o[k], dx, dy); a.shape(shiftPath(d, dx, dy), m, p); }); },
+    flat(d, c, o) { emit(d, (dx, dy) => a.flat(shiftPath(d, dx, dy), c, o)); },
+  };
+}
+
+/** The middle of each of a vein sheet's 16 × 8 cells, row by row: ore is laid in every one, so any vein cell cut from the sheet holds some. */
+const CELLS = [];
+for (let j = 0; j < 8; j++) for (let i = 0; i < 16; i++) CELLS.push([i * 8 + 4, j * 8 + 4]);
+
+/** Flecks of ore over a wall of stone (ice by default, copper with its paint): a small cluster in every cell of the sheet. */
+/** A coordinate kept so a mark reaching `reach` round it, its ink too, stays inside its 8 px cell about `centre`: an ore cell beside
+ * plain stone shows its marks whole, never cut at the cell's edge. */
+const inCell = (v, centre, reach) => Math.max(centre - 3.3 + reach, Math.min(centre + 3.3 - reach, v));
+
 function veined(base, paint = VEIN, seed = 0x1ce) {
   return { ...base, draw(a) {
     base.draw(a);
+    a = on(a);
     const r = rng(seed);
-    for (const [cx, cy, n] of [[30, 18, 14], [84, 40, 18], [112, 12, 9], [58, 54, 10]])
-      for (let i = 0; i < n; i++) {
-        const x = cx + (r() - .5) * 18, y = cy + (r() - .5) * 13, s = .9 + r() * 1.3;
+    for (const [cx, cy] of CELLS) {
+      const x0 = cx + (r() - .5) * 4.6, y0 = cy + (r() - .5) * 4.4;
+      for (let i = 0, n = 2 + (r() < .5 ? 1 : 0); i < n; i++) {
+        const s = .8 + r() * .9, x = inCell(x0 + (r() - .5) * 4.4, cx, s * .8), y = inCell(y0 + (r() - .5) * 3.6, cy, s);
         a.shape(poly(x, y - s, x + s * .8, y, x, y + s, x - s * .8, y), paint, { outer: false, shade: poly(x, y - s, x + s * .8, y, x, y + s), spec: poly(x - .3, y - s * .5, x, y - s * .7, x, y) });
       }
+    }
+  } };
+}
+
+// Iron (the user's pick, 2026-11-07: kidney ore): clumps of dark red-grey bubbles, each with a hard metallic highlight, a clump in
+// every cell of the sheet.
+const IRON_VEIN = { base: '#4c3438', shade: '#2e1e22', deep: '#1e1416', lite: '#8a6c70', spec: '#e0d0d4', ink: '#140a0c' };
+
+/** Kidney ore over a wall of stone: per cell, a group of bubbles on a dark stain, the upper ones drawn first. */
+function ironVeined(base, seed = 0x1a3) {
+  return { ...base, draw(a) {
+    base.draw(a);
+    a = on(a);
+    const r = rng(seed);
+    const torn = (x, y, rx, ry, n, j) => {
+      const p = [];
+      for (let i = 0; i < n; i++) { const t = (i / n) * Math.PI * 2 + (r() - .5) * .5, k = 1 - j + r() * j * 1.6; p.push(x + Math.cos(t) * rx * k, y + Math.sin(t) * ry * k); }
+      return poly(p);
+    };
+    for (const [cx, cy] of CELLS) {
+      const gx = inCell(cx + (r() - .5) * 4.4, cx, 2.6), gy = inCell(cy + (r() - .5) * 4.4, cy, 2), bub = [];
+      for (let i = 0, m = 3 + Math.floor(r() * 2); i < m; i++) {
+        const s = .7 + r() * .6;
+        bub.push([inCell(gx + (r() - .5) * 3.8, cx, s), inCell(gy + (r() - .5) * 2.4, cy, s * .9), s]);
+      }
+      a.flat(torn(gx, gy + .3, 2.2, 1.5, 9, .3), '#33262a');
+      bub.sort((p, q) => p[1] - q[1]);
+      for (const [x, y, s] of bub) a.shape(ell(x, y, s, s * .9), IRON_VEIN, { outer: false, shade: s * .45, lite: ell(x - s * .3, y - s * .35, s * .42, s * .3), spec: ell(x - s * .38, y - s * .42, s * .16, s * .11) });
+    }
   } };
 }
 
@@ -356,13 +416,15 @@ Subjects.caves = function () {
   out('back_iceVein', bake(groundSheet(GROUNDS.stone, 0x5702, true)));
   out('wall_copperVein', bake(veined(stone, COPPER_VEIN, 0x2c7)));
   out('back_copperVein', bake(groundSheet(GROUNDS.stone, 0x5702, true)));
+  out('wall_ironVein', bake(ironVeined(stone)));
+  out('back_ironVein', bake(groundSheet(GROUNDS.stone, 0x5702, true)));
   out('wall_soil', bake(groundSheet(GROUNDS.soil, 0x5703, false)));
   out('back_soil', bake(groundSheet(GROUNDS.soil, 0x5704, true)));
   const edges = {
-    stone: { lite: '#7c8290', shade: '#2f3244', ink: '#0f111b' }, iceVein: { lite: '#7c8290', shade: '#2f3244', ink: '#0f111b' }, copperVein: { lite: '#7c8290', shade: '#2f3244', ink: '#0f111b' }, soil: { lite: '#7c6654', shade: '#33242a', ink: '#140c0e' },
+    stone: { lite: '#7c8290', shade: '#2f3244', ink: '#0f111b' }, iceVein: { lite: '#7c8290', shade: '#2f3244', ink: '#0f111b' }, copperVein: { lite: '#7c8290', shade: '#2f3244', ink: '#0f111b' }, ironVein: { lite: '#7c8290', shade: '#2f3244', ink: '#0f111b' }, soil: { lite: '#7c6654', shade: '#33242a', ink: '#140c0e' },
   };
   for (const [name, look] of Object.entries(edges)) for (let open = 1; open < 16; open++) out(`wall-edge_${name}_${open}`, AnimeEdge(open, look));
-  for (const [name, look] of [['stone', GROUNDS.stone], ['iceVein', GROUNDS.stone], ['copperVein', GROUNDS.stone], ['soil', GROUNDS.soil]]) {
+  for (const [name, look] of [['stone', GROUNDS.stone], ['iceVein', GROUNDS.stone], ['copperVein', GROUNDS.stone], ['ironVein', GROUNDS.stone], ['soil', GROUNDS.soil]]) {
     for (let v = 0; v < 4; v++) for (const front of [false, true]) for (let half = 0; half < 2; half++) out(`top_${name}_${v}_${front ? 'front' : 'back'}_${half}`, topOf(look, v, front, half));
     for (let k = 0; k < 11; k++) out(`detail_${name}_${k}`, detailOf(look, k));
   }

@@ -80,16 +80,31 @@ public class ResearchTests
         Assert.Equal(100_000 - 5000, w.M.Research.Credits);
     }
 
+    /// <summary>The scanner (2026-11-07-the-scanner): three times its worth rounded, 1500, on the second order's row, before the jetpack's far wrecks.</summary>
+    [Fact]
+    public void TheScannerIsSoldOnTheSecondOrdersRowAndBoughtIsCraftable()
+    {
+        Assert.Equal(Node("powerDriver").Ring, Node("scanner").Ring);
+        Assert.Equal(1500, Prices.Of(Node("scanner")));
+        var w = SetUp(credits: 100_000);
+        Assert.Equal("research.locked", w.M.Research.BuyProblem(Node("scanner")));
+        foreach (var (item, count) in ResearchSpec.Nodes.Where(n => n.Gate && n.Ring <= Node("scanner").Ring).SelectMany(n => n.Order)) w.M.Knowledge.Sell(item, count);
+        w.Do(new BuyBlock("scanner")).Run();
+        Assert.Empty(w.Refusals);
+        Assert.True(w.M.Research.Knows("scanner"));
+        Assert.Equal(100_000 - Prices.Of(Node("scanner")), w.M.Research.Credits);
+    }
+
     [Fact]
     public void WhatABlockOpensIsPlannedOnceBought()
     {
         var w = SetUp(credits: 100_000);
         var panel = new Placement("machine", "solarPanel");
-        Assert.Equal("building.unknown", w.M.Building.Problem(At(5, 1), panel));
+        Assert.Equal("building.unknown", w.M.Building.Problem(At(5, 1), panel, 0));
         foreach (var (item, count) in ResearchSpec.Nodes.Where(n => n.Gate && n.Ring <= ResearchSpec.Node("solarPanel")!.Ring).SelectMany(n => n.Order)) w.M.Knowledge.Sell(item, count);
         w.Do(new BuyBlock("solarPanel")).Run();
         Assert.Empty(w.Refusals);
-        Assert.NotEqual("building.unknown", w.M.Building.Problem(At(5, 1), panel));
+        Assert.NotEqual("building.unknown", w.M.Building.Problem(At(5, 1), panel, 0));
     }
 
     /// <summary>The tablet needs no machine (2026-10-30-tablet-tree): a world with none buys all the same.</summary>
@@ -157,14 +172,15 @@ public class ResearchTests
     }
 
     [Fact]
-    public void CreativeModeKnowsAndOpensEverythingAndChargesNothing()
+    public void ACreativePeerKnowsAndSeesEverythingDoneWhileTheWorldAndAnotherPeerDoNot()
     {
         var w = SetUp(credits: 3);
         w.Do(new SetCreative(true)).Run();
-        Assert.True(w.M.Research.Knows("engine"));
-        Assert.All(ResearchSpec.Nodes, n => Assert.True(w.M.Research.Done(n), n.Id));
-        w.Do(new BuyBlock("solarPanel")).Run();
-        Assert.Equal(["research.bought"], w.Refusals.Select(r => r.Reason));
+        Assert.True(w.M.Research.Knows(0, "engine"));
+        Assert.All(ResearchSpec.Nodes, n => Assert.True(w.M.Research.Done(0, n), n.Id));
+        Assert.False(w.M.Research.Knows("engine"));
+        Assert.False(w.M.Research.Knows(1, "engine"));
+        Assert.Contains(ResearchSpec.Nodes, n => !w.M.Research.Done(n) && !w.M.Research.Done(1, n));
         Assert.Equal(3, w.M.Research.Credits);
     }
 
@@ -227,7 +243,7 @@ public class ResearchTests
         var wall = Placement.Wall("iron");
         w.Do(new PlacePlan(At(6, 1), wall)).Run();
         Assert.Equal(new[] { "building.unknown" }, w.Refusals.Select(r => r.Reason));
-        Assert.Equal("building.unknown", w.M.Building.Problem(At(6, 1), wall));
+        Assert.Equal("building.unknown", w.M.Building.Problem(At(6, 1), wall, 0));
         w.Do(new SetCreative(true)).Run();
         w.Do(new PlacePlan(At(6, 1), wall)).Run();
         Assert.Equal(new[] { "building.unknown" }, w.Refusals.Select(r => r.Reason));
@@ -236,7 +252,7 @@ public class ResearchTests
 
     /// <summary>The names building asks <c>Knows</c> by.</summary>
     [Fact]
-    public void KnowsAPlacementByItsBlueprintNameAndEveryOneInCreativeMode()
+    public void KnowsAPlacementByItsBlueprintNameAndEveryOneForACreativePeer()
     {
         var w = SetUp(known: ["wallScrap"]);
         Assert.Equal("wallIron", Blueprints.Of(Placement.Wall("iron")));
@@ -246,8 +262,11 @@ public class ResearchTests
         Assert.True(w.M.Research.Knows(Placement.Wall("scrap")));
         Assert.False(w.M.Research.Knows(Placement.Wall("iron")));
         w.Do(new SetCreative(true)).Run();
-        Assert.True(w.M.Research.Knows(Placement.Wall("iron")));
-        Assert.True(w.M.Research.Knows("rotor"));
+        Assert.True(w.M.Research.Knows(0, Placement.Wall("iron")));
+        Assert.True(w.M.Research.Knows(0, "rotor"));
+        // The world knows no more for it, nor does another peer.
+        Assert.False(w.M.Research.Knows(Placement.Wall("iron")));
+        Assert.False(w.M.Research.Knows(1, "rotor"));
     }
 
     [Fact]

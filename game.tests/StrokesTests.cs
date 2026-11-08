@@ -16,39 +16,72 @@ public class StrokesTests
         var (hits, phases) = (new List<double>(), new List<double?>());
         for (double at = 0; at < ms; at += Frame)
         {
-            if (swing.Advance(Frame, true, default, stroke).Hits) hits.Add(at);
+            if (swing.Advance(Frame, true, stroke: stroke).Hits) hits.Add(at);
             phases.Add(swing.Phase);
         }
         return (hits, phases);
     }
 
     [Fact]
-    public void OnlyTheAxeTheSledgehammerAndTheSpearAreStruckWith()
+    public void OnlyTheAxeTheSledgehammerTheSpearAndThePickaxeAreStruckWith()
     {
         Assert.Same(Strokes.Axe, Strokes.Of(Spec.Weapons.Axe.Item));
         Assert.Same(Strokes.Hammer, Strokes.Of(Spec.Weapons.Sledgehammer.Item));
         Assert.Same(Strokes.Spear, Strokes.Of(Spec.Weapons.Spear.Item));
+        Assert.Same(Strokes.Pick, Strokes.Of(Spec.Weapons.Pickaxe.Item));
         Assert.All(new[] { Spec.Weapons.Drill, Spec.Weapons.Grinder, Spec.Weapons.PlasmaCutter }, w => Assert.Null(Strokes.Of(w.Item)));
         Assert.Null(Strokes.Of(null));
     }
 
     [Fact]
-    public void TheAxeIsAsItWasAStrokeItsPaceLong()
+    public void EachWeaponPlaysTheMotionsPickedForItsSectors()
     {
-        Assert.Equal((AxeSwing.Ms, AxeSwing.Ms, AxeSwing.HitAt), (Strokes.Axe.Ms, Strokes.Axe.PaceMs, Strokes.Axe.HitShare));
-        Assert.Equal(AxeSwing.WhooshMs, Strokes.Axe.WhooshMs, 9);
+        var o = Overhand.Motion;
+        Assert.Equal(new SectorMotions(o, FixedMotions.Chain, FixedMotions.Chain, FixedMotions.Chop), Strokes.Axe.Motions);
+        Assert.Equal(new SectorMotions(FixedMotions.Peck, FixedMotions.Peck, FixedMotions.Peck, FixedMotions.Chop), Strokes.Pick.Motions);
+        Assert.Equal(new SectorMotions(o, FixedMotions.HeaveStraight, FixedMotions.HeaveDown, o), Strokes.Hammer.Motions);
+        Assert.Equal(SectorMotions.All(Jab.Motion), Strokes.Spear.Motions);
     }
 
     [Fact]
-    public void HeldTheSledgehammerBlowsEveryThreeSecondsEightTenthsIntoItsSwingAndRestsBetween()
+    public void TheAxeIsAsItWasAStrokeItsPaceLong()
+    {
+        Assert.Equal((Strokes.Axe.Ms, Strokes.Axe.Ms, Overhand.HitAt), (Strokes.Axe.Ms, Strokes.Axe.PaceMs, Strokes.Axe.HitShare));
+        // Its whoosh read from its row: loudest in the middle of the downstroke, as it always was.
+        Assert.Equal((Overhand.WindShare + Overhand.StrikeShare / 2) * Strokes.Axe.Ms - Sound.SwingPeakS * 1000, Strokes.Axe.WhooshMsOf(Overhand.Motion), 9);
+    }
+
+    [Fact]
+    public void HeldThePickaxeSwingsAsTheAxeAtItsOwnQuickerPaceABlowEveryThreeTenthsOfASecond()
+    {
+        var (hits, _) = Held(Strokes.Pick, 3000);
+        Assert.Equal(10, hits.Count);
+        Assert.InRange(hits[1] - hits[0], 300 - Frame, 300 + Frame);
+        Assert.Equal(Overhand.HitAt, Strokes.Pick.HitShare);
+        Assert.Equal(Strokes.Pick.Ms, Strokes.Pick.PaceMs);
+        Assert.True(Strokes.Pick.PaceMs < Strokes.Axe.PaceMs);
+    }
+
+    [Fact]
+    public void ThePickaxesCutRunsAlongItsPointsPathAThinBandWithinACellOutsideIt()
+    {
+        // A swing's dust lies from the blade's reach out to its weapon's range (AirCuts): the pick's range is its point's, a cell at most past it.
+        var point = Rig.HeldAt(AxeSwing.ArmAt(0), HeldLook.Pickaxe, HeldLook.Pickaxe.EdgeTo);
+        double reach = Math.Sqrt(point.X * point.X + point.Y * point.Y), range = Spec.Weapons.Pickaxe.Range * Rig.Cell / 1000.0;
+        Assert.InRange(range - reach, 0, Rig.Cell);
+    }
+
+    [Fact]
+    public void HeldTheSledgehammerBlowsEveryOnePointEightSecondsItsBlowAtItsHitShareAndNeverRests()
     {
         var (hits, phases) = Held(Strokes.Hammer, 9000);
-        Assert.Equal(3, hits.Count);
-        Assert.InRange(hits[0], Strokes.HammerBlowMs - Frame, Strokes.HammerBlowMs + Frame);
-        Assert.InRange(hits[1] - hits[0], 3000 - Frame, 3000 + Frame);
-        // Swung for its stroke, then at rest, no phase, till its pace is out.
-        Assert.Contains(null, phases.Take((int)(3000 / Frame) - 1));
-        Assert.True(Strokes.Hammer.Ms < Strokes.Hammer.PaceMs);
+        Assert.Equal(5, hits.Count);
+        double blow = Overhand.HitAt * 1800;
+        Assert.InRange(hits[0], blow - Frame, blow + Frame);
+        Assert.InRange(hits[1] - hits[0], 1800 - Frame, 1800 + Frame);
+        // A stroke its pace long, as the axe's: the arm swings on from one blow into the next, never idle between.
+        Assert.Equal((1800.0, 1800.0, Overhand.HitAt), (Strokes.Hammer.Ms, Strokes.Hammer.PaceMs, Strokes.Hammer.HitShare));
+        Assert.DoesNotContain(null, phases);
     }
 
     [Fact]
@@ -65,6 +98,13 @@ public class StrokesTests
         Assert.Equal(Strokes.RestElbow, Strokes.ElbowAt(Strokes.JabMs / Strokes.Spear.Ms), 9);
         Assert.Equal(Strokes.RestElbow, Strokes.ElbowAt(0.99), 9);
     }
+
+    [Theory]
+    [InlineData("fireAxe")]
+    [InlineData("pickaxe")]
+    [InlineData("sledgehammer")]
+    [InlineData("spear")]
+    public void EveryStrokeIsDrawnWithTheLookItsItemIsHeldIn(string item) => Assert.Same(HeldLook.Of(item), Strokes.Of(item)!.Look);
 
     [Fact]
     public void ABiteStopsTheDrawnStrokeAtItsOwnHit()

@@ -1,4 +1,5 @@
 using Stillwake.Content;
+using Stillwake.Sim.Crew;
 using Stillwake.Sim.Grid;
 using Stillwake.Sim.Items;
 
@@ -97,7 +98,7 @@ public sealed partial class BuildingModule
     }
 
     /// <summary>The machine tools break at <paramref name="cell"/>, a pile (the-scoop); none for any other.</summary>
-    private Machine? PileAt(int cell) => _grid.MachineAt(cell) is { } machine && Machines.Get(machine.Kind).Strength != null ? machine : null;
+    private Machine? PileAt(int cell) => _grid.MachineAt(cell) is { } machine && Machines.Get(machine.Kind).Hp != null ? machine : null;
 
     /// <summary>The built piece at <paramref name="cell"/>, a floor, ladder, door or hatch: its first cell, kept by, and its build; none for a wall or nothing.</summary>
     private (int Head, Build Build)? PieceAt(int cell)
@@ -127,8 +128,8 @@ public sealed partial class BuildingModule
         hewn.IsEmpty ? (Rules.ToolsBreak ? "building.nothingToDig" : "building.notHere") : _items.WeaponProblem(peer, tool, running);
 
     /// <summary>
-    /// The weapon's block damage added once to each wall, piece and plant the fan strikes, walls and pieces first: one at its
-    /// strength goes, what it is made of given to the sender, a wall's held growths' yields too; a plant at its strength is
+    /// The weapon's block damage added once to each wall, piece and plant the fan strikes, its damage to each pile, walls and pieces
+    /// first: one at its strength goes, what it is made of given to the sender, a wall's held growths' yields too; a plant at its strength is
     /// felled. A relic's cradle among them discharges into the sender once (0096).
     /// </summary>
     private void ApplyHew(Hew c) => HitAll(Struck(c.Tool, c.X, c.Y, c.Heading), c.Tool, c.From);
@@ -138,13 +139,13 @@ public sealed partial class BuildingModule
     private void HitAll(Hewn hewn, string tool, int from)
     {
         int hit = _items.BlockDamage(from, tool);
-        // A tool that cuts wrecks only (the plasma cutter) touches no block: no crack, no felling, no cradle's shock.
+        // A tool that cuts wrecks only (the plasma cutter) touches no block nor pile: no crack, no felling, no cradle's shock.
         if (hit <= 0) return;
         // A relic's cradle discharges into whoever strikes it (0096), the felling hit too, before it gives its shards.
-        if (hewn.Plants.Any(p => p.Kind == Ruins.Cradle)) _crewOps.Shock(from, ShockOf(tool));
+        if (hewn.Plants.Any(p => p.Kind == Ruins.Cradle)) _crewOps.Shock(from, ShockOf(tool), Harm.Shock);
         foreach (int cell in hewn.Cells)
         {
-            if (PileAt(cell) is { } pile) HitPile(from, pile, hit);
+            if (PileAt(cell) is { } pile) HitPile(from, pile, _items.Damage(from, tool));
             else if (_grid.WallAt(cell) != null) HitWall(from, cell, hit);
             else HitPiece(from, cell, hit);
         }
@@ -209,11 +210,14 @@ public sealed partial class BuildingModule
         return true;
     }
 
-    /// <summary>A hit of <paramref name="hit"/> on <paramref name="pile"/>: at its strength it goes, and gives <paramref name="peer"/> what it holds.</summary>
+    /// <summary>
+    /// A hit of <paramref name="hit"/>, the weapon's damage as on a wreck, on <paramref name="pile"/> (2026-11-07-pile-hit-points): at its hit
+    /// points it goes, and gives <paramref name="peer"/> what it holds.
+    /// </summary>
     private void HitPile(int peer, Machine pile, int hit)
     {
         var spec = Machines.Get(pile.Kind);
-        if (!Cracked(pile.Cell, spec.Strength!.Value, hit)) return;
+        if (!Cracked(pile.Cell, spec.Hp!.Value, hit)) return;
         _gridOps.Clear(pile.Cell, "machine");
         Yield(peer, spec.Cost, pile.Cell);
     }

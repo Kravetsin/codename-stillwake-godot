@@ -4,13 +4,13 @@
 
 | File | Purpose |
 | --- | --- |
-| `CreatureBody.cs` | One creature's body (0102) in the design its species names: its rig's parts, posed. |
+| `CreatureBody.cs` | One creature's body (0102): its rig's parts, posed. |
 | `logic/CreatureGait.cs` | How fast a creature's legs go (0102). |
-| `logic/CreatureMotion.cs` | How one creature's body reacts (0102) to what the sim decided and to blows. |
-| `CreatureParts.cs` | The creatures' parts as pictures (0102), drawn in ink (`art/hd/creatures`): each read once and shared by every individual, … |
-| `logic/CreaturePose.cs` | What each node of a creature's rig does this frame (0102), the loper page's pose ported (its `pose()`, the user's … |
+| `logic/CreatureMotion.cs` | How a body reacts (0102) to the sim and to blows. |
+| `CreatureParts.cs` | The creatures' parts as pictures in ink (0102), read once, shared; all read as a planet loads. |
+| `logic/CreaturePose.cs` | What each node of a creature's rig does this frame (0102). |
 | `logic/CreatureVariety.cs` | How one creature differs from the next of its kind (0102). |
-| `CreaturesView.cs` | The creatures: each drawn between ticks where the sim put it, facing the way it goes, its … |
+| `CreaturesView.cs` | The creatures, drawn between ticks where the sim put them. |
 | `logic/Creatures.En.cs` | Its player text |
 | `logic/Creatures.Ru.cs` | Russian |
 | `logic/OwnShots.cs` | The creatures this player's own shots hit, heard as its blows. |
@@ -22,6 +22,13 @@
 | `logic/IstukanMotion.cs` | How it moves and its moments, read off the sim. |
 | `logic/IstukanFate.cs` | Why one is gone: calmed, killed or shut down. |
 | `logic/IstukanRig.cs` | Where its parts go in a pose, in ink: plain C#, tested. |
+| `LurkerBodies.cs` | The cave lurkers: rigs, lights, hits. |
+| `LurkerFxView.cs` | A capback's gas, glob and puddle, heard. |
+| `logic/LurkerFx.cs` | Their sprites and lights: tested. |
+| `logic/GlobFlight.cs` | A glob's lob: tested. |
+| `logic/LurkerArt.cs` | Its pose and colours. |
+| `logic/LurkerMotion.cs` | How it moves, off the sim. |
+| `logic/LurkerRig.cs` | Where its parts go in a pose: tested. |
 | `TickBodies.cs` | The tick (the sentry), drawn at `TickRig.Size`: sprite, lamp, arcs, burner, sparks, death. |
 | `ShotsView.cs` | Every peer's shots but a guest's own, drawn a tick behind; heard fired; their hits; the sentry's arcs. |
 | `logic/TickArt.cs` | The tick's pose and anchors, the page's leg sums. |
@@ -57,18 +64,20 @@ fan of rays from the shoulder and the cutter's beam are tested against each crea
   twice). A white flash, a squash, a flinch the way it is knocked, a shake. A drill's hit is its share of the axe's (`Impacts.ShareOf`).
 - **A ram's tell** (0103), read off `WindUp` and `Charge`: it faces the hero and crouches (`CreatureMotion.Bracing`), trembling; it snorts
   (`Sound.Snort`, a placeholder). Charging it gallops. Its hit on a hero is `features/crew`'s.
-- **Jumps** (no ADR), read off the sim: a crouch, a spring; on landing a squash as hard as the fall.
+- **Jumps** (no ADR): a crouch, a spring; landing, a squash as hard as the fall.
 - **Seen and heard by what it is** (0093, 0094): `HitLooks.Creatures` names each species' `Impact` (`Flesh`, `CoolFlesh`;
   no blood), thrown from the side facing the hero, its share for a drill; `Sound.Creatures` its hit, thump and death,
   an own (struck or shot) on Suit heard far (`Sound.Felt`), a friend's on World.
 - **Death** (2026-10-29-kills-crumble): a glint, shock ring and death sound (`Sound.CreatureDeath`); held white `KillLooks.PopMs`, then it
   stands as its pixels, crumbling top down (`shared/PixelBursts`), loot sprayed (`features/items`).
 - **The tick**: `TickRig` places its pictures from its pose (`TickArt`), lit; eye, cracks and a blow's white over it unlit. `TickMotion` reads the sim: `Clamped` grips,
-  else legs folded, nose along its flight. Eye teal, yellow `Alerted` or flying home, red from its crouch on, cyan aiming an arc. Winding up: red arcs. Flying: a burner,
-  sparks, smoke. `CutLeft`: it faces the line and saws; `LastCut`: sparks down the line, a recoil. Killed: cracks, sparks, its pixels crumbling. Heard on Suit (`Sound.Ticks`).
-- **The Istukan** ([spire-guards](../../../docs/decisions/2026-10-31-spire-guards.md)): drawn as the tick is. Asleep a column, lamp dark; woken
-  teal, waiting yellow, red from its crouch on; flying fists first, a thin streak behind; stuck, shivering. Gone: `IstukanFate`. Heard on World (`Sound.Istukans`). `--ground=spire-guards`, with `--take-at` the cradle.
-- **The guards in ink** ([their ADR](../../../docs/decisions/2026-11-01-guards-in-ink.md)): `TickRig` or `IstukanRig` place `InkRig`'s sprites.
+  else legs folded, nose along its flight. Eye teal, yellow `Alerted` or homing, red crouched, cyan aiming. Winding up: red arcs. Flying: a burner.
+  `CutLeft`: it saws at the line; `LastCut`: sparks, a recoil. Killed: cracks, crumbling. Heard on Suit (`Sound.Ticks`).
+- **The Istukan** ([spire-guards](../../../docs/decisions/2026-10-31-spire-guards.md)): drawn as the tick is. Asleep, lamp dark; woken
+  teal, waiting yellow, red from its crouch on; flying fists first, a thin streak behind; stuck, shivering. Gone: `IstukanFate`. Heard on World. `--ground=spire-guards`.
+- **Guards and lurkers in ink** ([guards](../../../docs/decisions/2026-11-01-guards-in-ink.md), [lurkers](../../../docs/decisions/2026-11-07-cave-hostiles.md)): `TickRig`, `IstukanRig`, `LurkerRig` place `InkRig`s.
+  A capback dims noticing, flares crouched, puffs venting; a snail shuts. Killed, they sag or crack. Its gas, glob and puddle are
+  `LurkerFx`, the user's picks ([attacks](../../../docs/decisions/2026-11-08-lurker-attacks.md)); the puddle waits for its glob.
 - **A surface left or a world loaded** (no ADR): every body put away at once, no puff.
 
 ## Dev

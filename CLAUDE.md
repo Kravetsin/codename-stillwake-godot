@@ -157,6 +157,11 @@ running, and a sim tick under 2 ms. Measure render time with Godot's own monitor
 (`RenderingServer.ViewportGetMeasuredRenderTimeCpu`) and the sim with a `Stopwatch` in a test, never
 in the sim.
 
+A frame costs what is in view, a change what it changed: never the planet (4096×1536 cells, 6 M). Client code walks a
+whole layer, list of plants or atlas only while a surface loads, never each frame or each change; a picture first needed
+mid-play is read then too. Every such walk has cost a frame 2–240 ms ([planet-frame-rate](docs/decisions/2026-11-08-planet-frame-rate.md)).
+Measure with `-- --planet --dig --speed=4 --frames`.
+
 ## Tests
 
 - **Scenario tests** are the default: `new Scenario(map)` in `sim/Tests` builds a world from an ASCII

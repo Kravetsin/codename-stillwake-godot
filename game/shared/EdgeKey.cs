@@ -6,7 +6,7 @@ namespace Stillwake.Game.Shared;
 
 /// <summary>
 /// A key on the tablet's edge (<see cref="TabletEdge"/>) as a small green phosphor screen floating over it (hologram-keys): its motif glowing on
-/// dark glass, grain and a rolling line through it, dim unless the pointer nears the screen's foot. Brighter under the pointer, sunk a pixel and
+/// dark glass, grain and a rolling line through it, dim and still unless the pointer nears the screen's foot. Brighter under the pointer, sunk a pixel and
 /// dimmer while held; while what it switches is on the glass lights and the motif shows dark on it; amber while it tells of something waiting.
 /// A number it carries stands on a plate at its foot, counted to and flared (<see cref="CountFlare"/>).
 /// </summary>
@@ -31,6 +31,8 @@ public partial class EdgeKey : Control
     private readonly float _seed;
     private bool _down, _hover, _counted;
     private double _t;
+    private (float, Color, bool, bool, int, double, bool) _drawn;
+    private readonly StyleBoxFlat _box = new() { AntiAliasing = true };
 
     /// <param name="name">Its motif's pictures: <c>holo_&lt;name&gt;</c> and its glow, drawn by <c>tools/anime-art/subjects/edgekeys.js</c>.</param>
     /// <param name="pressed">What a press does.</param>
@@ -45,6 +47,8 @@ public partial class EdgeKey : Control
         MouseFilter = MouseFilterEnum.Stop;
         _lit = new Light(this) { Material = _light ??= new ShaderMaterial { Shader = GD.Load<Shader>("res://shared/holo.gdshader") } };
         _over = new Over(this);
+        _box.SetCornerRadiusAll(3);
+        _box.SetBorderWidthAll(1);
         AddChild(_lit);
         AddChild(_over);
         MouseEntered += () => _hover = true;
@@ -66,13 +70,17 @@ public partial class EdgeKey : Control
 
     public override void _Process(double delta)
     {
-        _t += delta;
         _amberGlow.Step(delta, _amber());
         _count.Step(delta);
         // A number not shown reads as 0, so it counts up from there when it comes back.
         int? n = _number?.Invoke();
         _count.Read(n ?? 0);
         _counted = n != null;
+        // Its flicker, rolling line and grain run only while the pointer is near: still, it is drawn again only when what it shows changes.
+        if (_hover || _down || Near > 0) _t += delta;
+        var drawn = (Level, Colour, _on(), _counted, _count.Shown, _t, _down);
+        if (drawn == _drawn) return;
+        _drawn = drawn;
         QueueRedraw();
         _lit.QueueRedraw();
         _over.QueueRedraw();
@@ -100,15 +108,9 @@ public partial class EdgeKey : Control
         if (b <= 0.01f) return;
         var col = Colour;
         bool on = _on();
-        var box = new StyleBoxFlat
-        {
-            BgColor = on ? col with { A = 0.62f * b } : (col * 0.1f) with { A = Mathf.Min(0.75f, 0.25f + 0.5f * b) },
-            BorderColor = col with { A = 0.5f * b },
-            AntiAliasing = true,
-        };
-        box.SetCornerRadiusAll(3);
-        box.SetBorderWidthAll(1);
-        DrawStyleBox(box, Screen.Grow(-0.5f));
+        _box.BgColor = on ? col with { A = 0.62f * b } : (col * 0.1f) with { A = Mathf.Min(0.75f, 0.25f + 0.5f * b) };
+        _box.BorderColor = col with { A = 0.5f * b };
+        DrawStyleBox(_box, Screen.Grow(-0.5f));
     }
 
     /// <summary>What it gives off: the motif and its glow, the rolling line and the grain's bright grains, added over the glass.</summary>

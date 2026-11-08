@@ -26,4 +26,10 @@ public static class Seating
 
     /// <summary>Whether hero <paramref name="peer"/> stands in a seat that never lands (a treadmill wheel), where a held move key runs it.</summary>
     public static bool InWheel(Registry m, int peer) => KindOf(m, peer) is { } kind && !Content.Machines.Is(kind, Content.MachineTrait.Lands);
+
+    /// <summary>
+    /// Whether hero <paramref name="peer"/> sits in a seat or flies in a pod, its hands tied: whatever it holds swings, runs or
+    /// shoots at nothing, and E is its only key there.
+    /// </summary>
+    public static bool Held(Registry m, int peer) => m.Landing.SeatOf(peer) != null || m.Landing.FlightOf(peer) != null;
 }

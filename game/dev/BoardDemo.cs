@@ -164,7 +164,7 @@ public partial class BoardDemo(Func<Registry> m, string? value) : Node
                 (1.0, "take all", () => PressWhileReading(_tablet.TakeAllAt)),
                 (2.5, "wheel all the way out", () => _hands.Wheel(GetViewport().GetVisibleRect().GetCenter(), MouseButton.WheelDown, 30)),
                 (3.0, "/ puts the keys in the board's search", () => TabletHands.Press(Key.Slash)),
-                (3.3, "type the start of the plate's name: the list of what is so named", () => TabletHands.Type(I18n.En.T("item.plate")[..3].ToLowerInvariant())),
+                (3.3, "type iron's name: iron, then what it ties to, the board lit by the list", () => TabletHands.Type(I18n.En.T("item.iron").ToLowerInvariant())),
                 (4.2, "down", () => TabletHands.Press(Key.Down)),
                 (4.8, "down again", () => TabletHands.Press(Key.Down)),
                 (5.6, "Enter: picked, the board glides to it", () => TabletHands.Press(Key.Enter)),

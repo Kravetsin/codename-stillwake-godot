@@ -35,7 +35,7 @@ public partial class HeroView
                 shown.Figure.Visible = false;
                 (shown.Tether, shown.Busy, shown.Work) = (null, null, null);
                 shown.Swing.Stop();
-                ShowRod(id, shown, null, false, elapsedMs);
+                ShowRod(id, shown, null, null, false, elapsedMs);
             }
         foreach (var (id, seen) in others)
         {
@@ -53,13 +53,18 @@ public partial class HeroView
             var (helmet, body) = Suits.WornBy(m.Items, id);
             shown.Figure.Wear(Suits.Of(m.Players, id), helmet, body, m.Players.LookOf(id));
             shown.Figure.Suit = SuitGlow.Of(crew, m.Items, id, _client.World.Tick);
-            var (strikes, chop) = _heardChops.GetValueOrDefault(id);
+            var (strikes, heard) = _heardChops.GetValueOrDefault(id);
+            var chop = heard.Last;
             var stroke = Strokes.Of(strikes);
             if (stroke == null) shown.Swing.Stop();
+            // Aimed from the hero as it was sent with the swing, its body drawn behind; the figure faced to strike sees its sector.
+            double? angle = stroke != null && chop is { At: var sentAt } ? AimAngle(shown.Figure, AxeSwing.OffsetOf(sentAt, heard.From), hero) : null;
             // Its blade heard and seen where it bites the ground as it is played here, as its own peer strikes it (0093, tool-reach),
             // in the front layer: which button its peer swings with is not sent.
-            if (shown.Swing.Follow(elapsedMs, stroke != null ? chop : null, stroke).Hits)
-                StruckBy(m, id, hero, shown.Swing.At, strikes!);
+            bool hits = shown.Swing.Follow(elapsedMs, stroke != null ? chop : null, heard.From, stroke, angle).Hits;
+            // Swinging, it faces the side its stroke is aimed at, however its delayed body was turned.
+            if (shown.Swing.Phase != null) hero = hero with { Facing = AxeSwing.FaceOf(shown.Swing.Aim, hero) };
+            if (hits) StruckBy(m, id, hero, shown.Swing.Toward(hero), strikes!);
             // Its drill's hits likewise, at its pace where the sim says it runs and it sends its bit: what its edge touches, as drawn here.
             string? running = m.Items.Running(id);
             bool drills = HeldLook.IsDrill(running) && seen.Busy is { Work: Handwork.Drill };
@@ -68,7 +73,9 @@ public partial class HeroView
             if (shown.Drill.Due(_client.World.Tick, drills, Content.Weapons.Of(running)?.Pace ?? 1) && edged != null
                 && m.Items.BlockDamage(id, running!) != 0 && ToolEdges.LeadOf(m, edged) is int lead)
                 Struck(_othersGroundHits, m, lead, running!, hero, id);
-            ShowHands(shown.Figure, seen.Wields, FittedOf(m, id, seen.Wields), seen.Busy, shown.Swing.Phase is double phase ? (shown.Swing.At, phase) : null);
+            // Its stroke shown only while the body drawn, 150 ms behind, holds the tool it was heard swinging.
+            var drawnSwing = ReferenceEquals(Strokes.Of(seen.Wields), shown.Swing.Stroke) ? shown.Swing : default;
+            ShowHands(shown.Figure, seen.Wields, FittedOf(m, id, seen.Wields), seen.Busy, drawnSwing);
             // A friend's drill running points where it drills, its harpoon where its rod flies or sticks, else
             // either hangs; the drill spins while the sim says it runs.
             var rodAim = shown.Rod.AimAt(seen.Rod, PieceDrawnAt);
@@ -78,12 +85,14 @@ public partial class HeroView
             shown.Driver.Step(HeldLook.Drives(running) && seen.Busy is { Work: Handwork.Work }, seen.Busy is { Work: Handwork.Work, At: var worked } ? Pixels(worked) : null,
                 elapsedMs / 1000);
             if (Busy.BeamsAnew(shown.Busy, seen.Busy)) shown.Figure.Beam([Pixels(seen.Busy!.Value.At)]);
-            shown.Figure.Loaded = shown.Rod.Loaded;
+            shown.Figure.Loaded = shown.Rod.LoadedAfter(seen.Wields == Content.Grapple.Item ? HarpoonShot.MsOf(Content.Grapple.CooldownTicks) : HarpoonShot.CooldownMs);
             shown.Figure.Jetpack = m.Items.Equipped(id, Content.Jetpack.Item);
             shown.Figure.HeadLamp = m.Items.Equipped(id, Content.HelmetLamp.Item);
+            shown.Figure.Scanner = m.Items.Equipped(id, Content.Helmet.Scanner);
             shown.Figure.WearsCape = m.Items.Equipped(id, Content.Cape.Item);
             shown.Figure.FloorRoom = FloorRoom(m.Grid, hero);
             shown.Figure.Footing = FootingOf(m, hero, shown.Figure.Footing);
+            shown.Figure.InWater = ship.Wading(hero.FeetCell(ship.Width));
             shown.Figure.Ledge = LedgeOf(ship, hero);
             bool afloat = ship.Space(hero.BodyCell(ship.Width));
             // A charge ended by it: it was rammed, its own peer says so; here it flinches, its air knocked out, heard where it is.
@@ -94,7 +103,7 @@ public partial class HeroView
                 _air.Leak(new Vector2(cx, cy), rammedFrom);
                 _othersThud.Play(S.RamHits.GetValueOrDefault(rammer, S.RamThud), new Vector2(cx, cy));
             }
-            shown.Figure.Show(hero, Poses.PoseOf(hero, afloat || ship.Glides(hero.X), out_), out_ ? 0 : seen.Look ?? 0,
+            shown.Figure.Show(hero, Poses.PoseOf(hero, afloat || ship.Glides(hero.X) || ship.Wet(hero.BodyCell(ship.Width)), out_), out_ ? 0 : seen.Look ?? 0,
                 seen.HoldsPlan, elapsedMs);
             for (int burnt = shown.Burns.Due(elapsedMs, Burns(m, crew.HeroOf(id)), 1 / S.LavaBurnEveryS); burnt > 0; burnt--)
                 _othersBurn.PlayAt(shown.Figure.GlobalPosition);
@@ -107,7 +116,7 @@ public partial class HeroView
             }
             // Its thrust is not sent: the plume blows against the way it moves, down while it is still.
             Plume(id, shown.Figure, crew.HeroOf(id)?.Thrusting == true ? (hero.Vx, hero.Vy) : null, elapsedMs);
-            ShowRod(id, shown, seen.Rod, afloat, elapsedMs);
+            ShowRod(id, shown, seen.Rod, seen.Wields, afloat, elapsedMs);
             (shown.Tether, shown.Busy) = (Tie(shown.Tether, id, hero.Anchor, Tether.ClipOf(hero.X, hero.Y), elapsedMs), seen.Busy);
         }
         _canisters.Sweep();
@@ -152,7 +161,7 @@ public partial class HeroView
     /// as the rod leaves, the bite where it sticks (the chop, or the glove's thump on a crate or pod), the drum
     /// at the gun while it reels or is pulled.
     /// </summary>
-    private void ShowRod(int peer, Other shown, RodSeen? sent, bool afloat, double elapsedMs)
+    private void ShowRod(int peer, Other shown, RodSeen? sent, string? wields, bool afloat, double elapsedMs)
     {
         var figure = shown.Figure;
         var rod = shown.Rod;
@@ -176,7 +185,7 @@ public partial class HeroView
             if (drums) shown.Drum.Play();
             else shown.Drum.Stop();
         }
-        DrawRod(rod.Rod, rod.Tip, rod.Heading, figure.Muzzle, ref shown.Line, shown.RodPicture, shown.Light, peer, elapsedMs);
+        DrawRod(rod.Rod, rod.Tip, rod.Heading, figure.Muzzle, ref shown.Line, shown.RodPicture, RodLook.Of(wields), shown.Light, peer, elapsedMs);
     }
 
     /// <summary>A point in thousandths of a cell, in the world's pixels.</summary>
@@ -185,12 +194,10 @@ public partial class HeroView
     /// <summary>A point in the world's pixels, in thousandths of a cell.</summary>
     private static (double X, double Y) Thousandths(Vector2 at) => (at.X / Rig.Cell * Hero.Unit, at.Y / Rig.Cell * Hero.Unit);
 
-    /// <summary>The rod's eye this far behind its point, in thousandths of a cell, as its picture is drawn.</summary>
-    private static readonly double RodLength = (RodLook.Tip.X - RodLook.Eye.X) / Rig.Cell * Hero.Unit;
-
     /// <summary>This hero's rod and line as the harpoon has them this frame, from the muzzle the figure was just drawn with.</summary>
     private void ShowHarpoon(double elapsedMs) =>
-        DrawRod(_harpoon.Rod, _harpoon.Tip, _harpoon.Heading, _figure.Muzzle, ref _line, _rod, _rodLight, 0, elapsedMs);
+        DrawRod(_harpoon.Rod, _harpoon.Tip, _harpoon.Heading, _figure.Muzzle, ref _line, _rod,
+            RodLook.Of(_grappling ? Content.Grapple.Item : Content.Harpoon.Item), _rodLight, 0, elapsedMs);
 
     /// <summary>
     /// A rod and its line where <paramref name="rod"/> says, its point at <paramref name="tip"/>, from a gun's
@@ -199,7 +206,7 @@ public partial class HeroView
     /// hanging and winding back. Nothing while the rod is in the gun. This hero's and the others' alike.
     /// </summary>
     private static void DrawRod(Rod rod, (double X, double Y) tip, (double X, double Y) heading, Vector2? muzzle,
-        ref HarpoonLine? line, Sprite2D picture, RodLight light, int seed, double elapsedMs)
+        ref HarpoonLine? line, Sprite2D picture, RodLook look, RodLight light, int seed, double elapsedMs)
     {
         if (rod == Rod.Seated || muzzle is not { } at)
         {
@@ -207,13 +214,18 @@ public partial class HeroView
             light.Step(rod, default, default, default, muzzle, elapsedMs);
             return;
         }
+        // One sprite draws either gun's rod: its picture follows the gun in hand, set only when it changes.
+        var texture = HeldArt.Of(look.Picture, []);
+        if (picture.Texture != texture) (picture.Texture, picture.Offset) = (texture, -new Vector2((float)look.Eye.X, (float)look.Eye.Y));
         var gun = Thousandths(at);
         var pointing = heading;
         double far = Math.Sqrt((tip.X - gun.X) * (tip.X - gun.X) + (tip.Y - gun.Y) * (tip.Y - gun.Y));
         // Stuck in the structure it keeps the way it flew in; riding a piece or winding back, it points along the line.
         if (rod is Rod.Reeling or Rod.Returning && far > 1) pointing = ((tip.X - gun.X) / far, (tip.Y - gun.Y) / far);
-        var eye = (tip.X - pointing.X * RodLength, tip.Y - pointing.Y * RodLength);
-        var end = HarpoonLine.EndOf(gun, tip, pointing, RodLength);
+        // The rod's eye this far behind its point, in thousandths of a cell, as its picture is drawn.
+        double length = (look.Tip.X - look.Eye.X) / Rig.Cell * Hero.Unit;
+        var eye = (tip.X - pointing.X * length, tip.Y - pointing.Y * length);
+        var end = HarpoonLine.EndOf(gun, tip, pointing, length);
         line ??= new HarpoonLine(gun, end, seed);
         line.Update(gun, end, HarpoonShot.Taut(rod), elapsedMs);
         // Flying or winding back, none of it shows over the gun while its eye is in there; stuck, a hero hanging may be that close.

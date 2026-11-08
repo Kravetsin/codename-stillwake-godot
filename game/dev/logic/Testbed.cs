@@ -9,8 +9,8 @@ namespace Stillwake.Game.Dev;
 
 /// <summary>
 /// A ready ship for checking things by eye (<c>-- --testbed</c>, or the title's Testbed button in a debug
-/// build): every machine once, two rooms aired, an airlock out to space, every user powered, creative
-/// mode on, a crate with a full stack of every item but the farm's and a charged battery, the furnace and the burner
+/// build): every machine once, two rooms aired, an airlock out to space, every user powered, the host
+/// in creative mode, a crate with a full stack of every item but the farm's and a charged battery, the furnace and the burner
 /// generator lit, a battery charging beside a full one, the Former pressing plates endlessly from the iron in its
 /// inputs, the electric smelter smelting quartz, the circuit assembler making circuits, a grow capsule growing seeds beside a crate of
 /// the farm's items, seeds, what the crusher takes and gives, planks, and what a planet's caves give; and drones (0062): two in a powered bay in room one beside a supply crate of
@@ -48,17 +48,17 @@ public static class Testbed
     public static bool InFarmCrate(string item) => Farm.Contains(item) || Crushed.Contains(item) || Planet.Contains(item) || Unmade.Contains(item) || Spare.Contains(item);
 
     /// <summary>
-    /// What the supply crate by the door holds besides its supplies, the first crate being full: the helmet lamp (0077), an empty accumulator
+    /// What the supply crate by the door holds besides its supplies, the first crate being full: the helmet lamp (0077), the scanner (2026-11-07-the-scanner), an empty accumulator
     /// (0099), a part of each of the computer's (<see cref="ComputerParts"/>), a launch platform's deck drive and the engine's parts
     /// (<see cref="EngineParts"/>), the nailer and its nails, the full crate having no slot left. A drill with the arc fitted lies there too (0098); a plain one is on the arc bench, to be fitted there (0099).
     /// </summary>
-    public static IEnumerable<string> InSupply => [HelmetLamp.Item, "accumulator", .. ComputerParts, "deckDrive", .. EngineParts, Shots.Nailer.Item, Shots.Railgun.Item, Shots.Nail.Id];
+    public static IEnumerable<string> InSupply => [HelmetLamp.Item, Helmet.Scanner, "accumulator", .. ComputerParts, "deckDrive", .. EngineParts, Shots.Nailer.Item, Shots.Railgun.Item, Shots.Nail.Id];
 
     /// <summary>
-    /// What the tools crate on the lifepod holds, the others being full: the salvage tools (salvage-tools), and an arc
+    /// What the tools crate on the lifepod holds, the others being full: the salvage tools (salvage-tools), the pickaxe (the-pickaxe), the grappling gun (grapple-climbs), and an arc
     /// module for each machine and tool it fits (0086, 0098, 0100), which takes a spire's relic to make.
     /// </summary>
-    public static IEnumerable<string> InTools => [Weapons.Grinder.Item, Weapons.Spear.Item, Weapons.Sledgehammer.Item, Weapons.PlasmaCutter.Item, .. Modules.Arc.Hosts.Select(_ => Modules.Arc.Item)];
+    public static IEnumerable<string> InTools => [Weapons.Grinder.Item, Weapons.Spear.Item, Weapons.Sledgehammer.Item, Weapons.PlasmaCutter.Item, Weapons.Pickaxe.Item, Grapple.Item, .. Modules.Arc.Hosts.Select(_ => Modules.Arc.Item)];
 
     /// <summary>What the bay holds beside its drones, the crates being full: a salvage drone, charged, its fuel slot empty, so it never flies here (salvage-drones).</summary>
     public static readonly IReadOnlyList<string> InBay = [Logistics.SalvageDrone];
@@ -107,7 +107,7 @@ public static class Testbed
     /// </summary>
     public static readonly Layout Map = Layout.Parse(
         [
-            new string(' ', 96),
+            "   NN".PadRight(96),
             "   NN",
             "   NN  PPP  PPPPPP PPPPPPPPP PPP PPP PPP PPP PPP PPP PPP",
             "  ###############################################",
@@ -210,7 +210,7 @@ public static class Testbed
         foreach (var tank in save["slices"]!["atmosphere"]!["tanks"]!.AsArray())
             if (machines.Any(m => (int)m!["id"]! == (int)tank!["tank"]! && (string?)m["kind"] == "tank")) tank!["oxygen"] = Air.TankCapacity;
         var items = save["slices"]!["items"]!;
-        items["creative"] = true;
+        items["creative"] = new JsonArray(0);
         var held = new List<JsonObject>
         {
             new() { ["id"] = At(Full), ["slots"] = Slots("crate", [.. Carried.Where(i => !InFarmCrate(i.Id) && !InSupply.Contains(i.Id) && !InTools.Contains(i.Id) && !InBay.Contains(i.Id)).Select(i => Stack(i.Id, i.Stack)), Battery(1000)]) },

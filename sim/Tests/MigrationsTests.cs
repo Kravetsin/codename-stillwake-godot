@@ -58,6 +58,17 @@ public class MigrationsTests
         Assert.Equal(["loper"], kept.Select(c => c!["species"]!.GetValue<string>()));
     }
 
+    [Fact]
+    public void ACapbackMidPounceStopsOnUpgradingAndOtherCreaturesActOn()
+    {
+        var old = JsonNode.Parse("""{"slices":{},"surfaces":[{"slices":{"creatures":{"creatures":[{"species":"capback","act":{"move":0,"left":3},"vx":900,"vy":-40},{"species":"loper","act":{"move":0,"left":3},"vx":900}]}}}]}""")!.AsObject();
+        var kept = Migrations.Steps[54 - Migrations.Oldest](old)["surfaces"]![0]!["slices"]!["creatures"]!["creatures"]!.AsArray();
+        Assert.Null(kept[0]!["act"]);
+        Assert.Equal((0, 0), (kept[0]!["vx"]!.GetValue<int>(), kept[0]!["vy"]!.GetValue<int>()));
+        Assert.Equal(3, kept[1]!["act"]!["left"]!.GetValue<int>());
+        Assert.Equal(900, kept[1]!["vx"]!.GetValue<int>());
+    }
+
     /// <summary>What a gate held goes and what it opened stays: granted things, the credits, a bought bag's slot.</summary>
     [Fact]
     public void TheGatesDepositsAreGoneOnUpgradingAndWhatTheyOpenedStays()
@@ -76,7 +87,7 @@ public class MigrationsTests
 
         var m = new Registry();
         World.Load(Migrations.Upgrade(old.ToJsonString()), m.All);
-        Assert.True(m.Items.SlotOpen(new Items.Place(Content.Inventory.Start)));
+        Assert.True(m.Items.SlotOpen(0, new Items.Place(Content.Inventory.Start)));
     }
 
     [Fact]
@@ -162,6 +173,24 @@ public class MigrationsTests
         {
             Assert.Equal([32, 66, 44], slices["grid"]!["machines"]!.AsArray().Select(m => m!["cell"]!.GetValue<int>()));
             Assert.Equal([132, 170, 144, 166], slices["building"]!["plans"]!.AsArray().Select(p => p!["cell"]!.GetValue<int>()));
+        }
+    }
+
+    [Fact]
+    public void StandsARadarAntennaBuiltOrPlannedAsATallMastOnTheRoofItStoodOn()
+    {
+        // Format-51 antennas four cells tall at row 6, a planned one at row 16, a crate left where it was; on a surface too.
+        static JsonObject Slices() => JsonNode.Parse(
+            """
+            {"grid":{"width":10,"machines":[{"id":1,"kind":"radarAntenna","cell":62},{"id":2,"kind":"crate","cell":66}]},
+             "building":{"plans":[{"id":1,"cell":162,"place":{"layer":"machine","kind":"radarAntenna"}},{"id":2,"cell":170,"place":{"layer":"machine","kind":"crate"}},{"id":3,"cell":166,"clear":"machine"}]}}
+            """)!.AsObject();
+        var old = new JsonObject { ["slices"] = Slices(), ["surfaces"] = new JsonArray(new JsonObject { ["slices"] = Slices() }) };
+        var upgraded = Migrations.Steps[51 - Migrations.Oldest](old);
+        foreach (var slices in new[] { upgraded["slices"]!, upgraded["surfaces"]![0]!["slices"]! })
+        {
+            Assert.Equal([42, 66], slices["grid"]!["machines"]!.AsArray().Select(m => m!["cell"]!.GetValue<int>()));
+            Assert.Equal([142, 170, 166], slices["building"]!["plans"]!.AsArray().Select(p => p!["cell"]!.GetValue<int>()));
         }
     }
 

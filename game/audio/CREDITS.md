@@ -33,6 +33,16 @@ tail match best, encoded as OGG; each levelled to the max momentary loudness of 
 the loops as the power driver's (−23.5 LUFS), the grinder's bite and the cutter's strike −24.5, its cut-off −26, the whooshes as
 the axe's swing (−23.4), the spear's hit as the chop (−24.9), the sledgehammer's blow as the break (−21).
 
+The water's sounds (liquids) are the water audition's picks, cut there from the Freesound HQ previews: a one-shot from 5 ms before
+its attack to the length given, faded in over 3 ms and its last share out, levelled so its loudest 100 ms RMS is −20 dBFS, peaks at
+−1 dBFS at most (the drip hits the cap, about 4 dB under the rest), decoded to mono 48 kHz WAV here; the pour a 5.5 s loop closed on
+itself by a 0.5 s equal-power crossfade, −26 dBFS RMS, OGG.
+
+The cave lurkers' attack sounds (lurker-attacks) are their pick page's picks: the capback's hiss, its slime's splat, the snail's
+shut shell struck; each mono 48 kHz WAV from its attack (a −45 dB gate), its last 60 ms faded, normalised to −3 dBFS peak; the cue sets the mix.
+The hero's hurt (hurts-are-shown) is its pick page's «oof», cut and levelled as those; its three takes then matched by mean loudness,
+the louder turned down.
+
 | File | Source | Author | Licence |
 | ---- | ------ | ------ | ------- |
 | `atmosphere/hiss-1.ogg` | generated for Stillwake | Stillwake team | CC0 |
@@ -86,6 +96,9 @@ the axe's swing (−23.4), the spear's hit as the chop (−24.9), the sledgehamm
 | `creatures/sentry-death-1.wav` | Freesound, "POWER06.WAV", https://freesound.org/people/mad-monkey/sounds/66692/, mixed with Freesound, "Heavy metal clatter.wav" (from 0.029 s), https://freesound.org/people/EntoClash/sounds/626811/ | mad-monkey, EntoClash | CC0 |
 | `creatures/sentry-punch-1.wav` | Freesound, "Metal Gauntlet Punch 4", https://freesound.org/people/Hoggington/sounds/536258/ | Hoggington | CC0 |
 | `creatures/sentry-charge-1.wav` | Freesound, "Laser Charge Up" (0.6 s from its attack, the last 0.18 s faded), https://freesound.org/people/magnuswaker/sounds/588242/ | magnuswaker | CC0 |
+| `creatures/capback-hiss-1.wav` | Freesound, "Pressure Hiss" (the first 1.1 s, from its attack, the last 60 ms faded), https://freesound.org/people/magnuswaker/sounds/581083/ | magnuswaker | CC0 |
+| `creatures/capback-splat-1.wav` | Freesound, "Slime 28.wav" (all of it from its attack, the last 60 ms faded), https://freesound.org/people/Archos/sounds/433839/ | Archos | CC0 |
+| `creatures/snail-shell-clink-1.wav` | Impact Sounds, `impactMining_001.ogg` (all of it from its attack, the last 60 ms faded), https://kenney.nl/assets/impact-sounds | Kenney | CC0 |
 | `creatures/sentry-arc-hit-1.wav` | Freesound, "Civilian Stun Gun 1/10s zap" (all of it from its attack, the last 0.12 s faded), https://freesound.org/people/AnthonyChan0/sounds/264779/ | AnthonyChan0 | CC0 |
 | `crew/air-fill-1.wav` | generated for Stillwake: white noise (mulberry32 seed 47) through two band-passes, Q 1.1, their centre rising from 2.6 to 4.8 kHz, 0.55 s: in over 50 ms, held, falling away over the last 38 %, to −3 dBFS peak (a placeholder till an audition) | Stillwake team | CC0 |
 | `crew/alarm-1.wav` | generated for Stillwake | Stillwake team | CC0 |
@@ -127,6 +140,9 @@ the axe's swing (−23.4), the spear's hit as the chop (−24.9), the sledgehamm
 | `crew/land-hard-3.wav` | Freesound, "Footsteps_Mountain_Boots_Rock_Jump_Sequence_Mono.wav" (0.4 s from 6.508 s), https://freesound.org/people/Nox_Sound/sounds/558477/ | Nox_Sound | CC0 |
 | `crew/land-soft-1.wav` | Freesound, "land a jump.wav" (0.307 s from 0.001 s), https://freesound.org/people/zepurple/sounds/540272/ | zepurple | CC0 |
 | `crew/lava-burn-1.wav` | Freesound, "Pressure Hiss" (0.8 s), https://freesound.org/people/unfa/sounds/211096/ | unfa | CC0 |
+| `crew/hurt-1.wav` | Freesound, "Oof (original)" (all of it from its attack, band 130 Hz–2 kHz, echoes at 7 and 15 ms), https://freesound.org/people/unfa/sounds/719053/ | unfa | CC0 |
+| `crew/hurt-2.wav` | the same, raised 6% in pitch at its length | unfa | CC0 |
+| `crew/hurt-3.wav` | the same, lowered 7% in pitch at its length | unfa | CC0 |
 | `crew/step-alloy-1.wav` | Freesound, "Boots_On_Hollow_Metal_Light_01" (0.3 s), https://freesound.org/people/BlondPanda/sounds/778413/ | BlondPanda | CC0 |
 | `crew/step-alloy-2.wav` | Freesound, "Boots_On_Hollow_Metal_Light_02" (0.3 s), https://freesound.org/people/BlondPanda/sounds/778414/ | BlondPanda | CC0 |
 | `crew/step-alloy-3.wav` | Freesound, "Boots_On_Hollow_Metal_Light_04" (0.3 s), https://freesound.org/people/BlondPanda/sounds/778415/ | BlondPanda | CC0 |
@@ -160,6 +176,10 @@ the axe's swing (−23.4), the spear's hit as the chop (−24.9), the sledgehamm
 | `debris/hammer-blow-1.wav` | Freesound, "Big stereo metal hit" (2 s), https://freesound.org/people/LPA134/sounds/329515/ | LPA134 | CC0 |
 | `debris/spear-hit-1.wav` | Freesound, "knife and metal beam vibrations clicks dings and sfx-133.wav" (0.37 s), https://freesound.org/people/CVLTIV8R/sounds/801736/ | CVLTIV8R | CC0 |
 | `flora/bush-1.wav` | Freesound, "bushhit.wav" (0.6 s from 0.003 s), https://freesound.org/people/j1987/sounds/106113/ | j1987 | CC0 |
+| `crew/splash-in-1.wav` | Freesound, "Foley_Natural_Water_Jump_Mono.wav" (the second jump: 1.4 s from 5.211 s, last 45% faded), https://freesound.org/people/Nox_Sound/sounds/585744/ | Nox_Sound | CC0 |
+| `crew/splash-out-1.wav` | Freesound, "water movement body step out of pool splash drips.flac" (1.8 s from 1.751 s, last 30% faded, +13 dB), https://freesound.org/people/kyles/sounds/637948/ | kyles | CC0 |
+| `crew/swim-stroke-1.wav` | Freesound, "G54-26-Person Swimming.wav" (0.5 s from 2.468 s, last 40% faded), https://freesound.org/people/craigsmith/sounds/438845/ | craigsmith | CC0 |
+| `grid/water-pour-1.ogg` | Freesound, "water flowing from a pipe into the sewer.mp3" (a loop: 5.5 s from 2.0 s, 0.5 s crossfade), https://freesound.org/people/FartMuffin/sounds/571551/ | FartMuffin | CC0 |
 | `flora/cave-drip-1.wav` | Freesound, "Water Drop 01" (0.187 s from 0.003 s), https://freesound.org/people/LilMati/sounds/348022/ | LilMati | CC0 |
 | `flora/cave-drip-2.wav` | Freesound, "Water Drop 02" (0.119 s), https://freesound.org/people/LilMati/sounds/349873/ | LilMati | CC0 |
 | `flora/chop-wood-1.wav` | Freesound, "Chopping wood 01" (0.226 s from 0.045 s), https://freesound.org/people/micahlg/sounds/421928/ | micahlg | CC0 |

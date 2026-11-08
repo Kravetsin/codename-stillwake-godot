@@ -48,10 +48,11 @@ public sealed partial class CreaturesModule
         // Those killed by this tick's commands go first, as if gone the moment they died.
         s.Creatures.RemoveAll(c => c.Dead);
         if (Rules.Guards.Count > 0 && _debris.Pieces.Count > 0 && _debris.Pieces[^1].Id > s.Watermark) GuardNewPieces();
-        // A surface with no life and none let out runs nothing and draws nothing: aboard, only a guarded kind drifting in draws.
-        if (s.Creatures.Count == 0 && Habitats.Count == 0 && _built.Posts.Count == 0) return;
+        // A surface with no life, none let out and no patch left runs nothing and draws nothing: aboard, only a guarded kind drifting in draws.
+        if (s.Creatures.Count == 0 && s.Patches.Count == 0 && Habitats.Count == 0 && _built.Posts.Count == 0) return;
         s.Clock += 1;
         FindHeroes();
+        Fume();
         var all = s.Creatures;
         int kept = 0;
         for (int i = 0; i < all.Count; i++)
@@ -240,6 +241,23 @@ public sealed partial class CreaturesModule
             (best, nearest) = (d, at);
         }
         return (nearest, best);
+    }
+
+    /// <summary>
+    /// Whether nothing solid lies on the straight line from <paramref name="c"/>'s middle to the middle of cell <paramref name="at"/>,
+    /// walked as a shot's step is (<see cref="Rays.Walk"/>): what a lurker on the ground sees by (cave-hostiles).
+    /// </summary>
+    internal bool InLine(Creature c, Spec.Species spec, (int X, int Y) at)
+    {
+        int x = c.X, y = c.Y - spec.Body.Height * Unit / 2;
+        bool clear = true;
+        Rays.Walk(_grid.Width, _grid.Height, x, y, Middle(at.X) - x, Middle(at.Y) - y, cell =>
+        {
+            if (!Solid(cell)) return false;
+            clear = false;
+            return true;
+        });
+        return clear;
     }
 
     /// <summary>

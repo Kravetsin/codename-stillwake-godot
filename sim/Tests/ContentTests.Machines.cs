@@ -168,6 +168,28 @@ public partial class ContentTests
         Assert.All(Machines.All.Where(m => m.Is(MachineTrait.Seats) && m.Makes != null), m =>
             Assert.True(m is { Draws: null, FuelSlot: null, Anywhere: true, Store: null }, m.Kind));
 
+    /// <summary>The wheel is paid for in a hero's time, so in iron and scrap it costs at most a quarter of the burner generator.</summary>
+    [Fact]
+    public void TheTreadmillWheelCostsAtMostAQuarterOfTheBurnersIronAndScrap()
+    {
+        var wheel = Raw(Machines.Get("treadWheel").Cost);
+        var burner = Raw(Machines.Get("burnerGenerator").Cost);
+        Assert.All(new[] { "iron", "scrap" }, m => Assert.True(wheel.GetValueOrDefault(m) * 4 <= burner[m], m));
+    }
+
+    /// <summary>A cost broken down through its crafts into what is not crafted.</summary>
+    private static Dictionary<string, int> Raw(IEnumerable<(string Item, int Count)> cost)
+    {
+        var raw = new Dictionary<string, int>(StringComparer.Ordinal);
+        foreach (var (item, count) in cost)
+            if (Crafts.TryGet(item, out var craft))
+                foreach (var (part, n) in Raw(craft.Cost))
+                    raw[part] = raw.GetValueOrDefault(part) + n * count;
+            else
+                raw[item] = raw.GetValueOrDefault(item) + count;
+        return raw;
+    }
+
     [Fact]
     public void PowerLetsASolarPanelRunAGeneratorInFull() =>
         Assert.True(Machines.Get("solarPanel").Makes >= Machines.Get("generator").Draws);

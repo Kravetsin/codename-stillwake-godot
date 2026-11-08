@@ -22,7 +22,8 @@ namespace Stillwake.Game.Features.Crafting;
 /// the outputs, a click taking a stack into the inventory; a tool's recipe tinted amber, a worn item's green. A click on a
 /// recipe queues one, a shift-click five, a click on a short one pulses what it lacks; a click on an
 /// entry cancels it. Read on a timer, and at once after a click; everything else said in the one
-/// tooltip, a recipe's as its item's card with the craft block.
+/// tooltip, a recipe's as its item's card with the craft block. The window is a hologram in its station's colour, a beam
+/// from the station to it (<see cref="MachineHolo"/>, machine-holograms).
 /// </summary>
 public partial class FabricatorPanel : CanvasLayer
 {
@@ -82,6 +83,9 @@ public partial class FabricatorPanel : CanvasLayer
     private readonly FabricatorScreen _screen = new() { SizeFlagsVertical = Control.SizeFlags.ShrinkCenter };
     /// <summary>The machine frame every machine opens in: the station's name, a powered one's bolt, and the screen in its header.</summary>
     private MachineFrame _panel = null!;
+    /// <summary>The open station's hologram under the panel, and the station's box in world pixels it beams from.</summary>
+    private readonly MachineHolo _holo = new();
+    private Rect2 _holoBox;
     /// <summary>A slot's side, <see cref="Ui.Slot"/> as the slots were last built.</summary>
     private int _slot;
     /// <summary>The slots, each saying what it is in the one tooltip.</summary>
@@ -160,7 +164,7 @@ public partial class FabricatorPanel : CanvasLayer
     public override void _Ready()
     {
         Layer = ScreenLayers.Hud;
-        _panel = new MachineFrame("", null) { Visible = false };
+        _panel = new MachineFrame("", null) { Visible = false, Modulate = Colors.White with { A = 0 } };
         _panel.Head.AddChild(_screen);
         _panel.Head.AddChild(_served);
         // The recipes on the left, the queue and the outputs on the right: the whole Tab screen fits 720 px at the large slot size.
@@ -183,6 +187,8 @@ public partial class FabricatorPanel : CanvasLayer
         body.AddChild(left);
         body.AddChild(right);
         _panel.Add(body);
+        // First: the hologram draws under the panel.
+        AddChild(_holo);
         AddChild(_panel);
         _ui.InventoryFoot.Subscribe(Dock);
         _ui.OpenCrate.Subscribe(Dock);
@@ -218,6 +224,20 @@ public partial class FabricatorPanel : CanvasLayer
             _pulse = time + delta < Beat * Beats ? (craft, time + delta) : null;
             foreach (var cell in _cells.Where(c => c.Craft == craft)) Paint(cell);
         }
+        Hologram(delta);
+    }
+
+    /// <summary>
+    /// The open station's hologram, a frame on: the panel's contents faded in as it grows. A machine the items feature shows
+    /// makes it go at once; shut, it shrinks and pulls back where the panel was.
+    /// </summary>
+    private void Hologram(double delta)
+    {
+        float shown = 0;
+        if (_panel.Visible && Open is var (pod, _)) shown = _holo.Step(delta, new MachineHolo.Target(pod, _panel.GetGlobalRect(), _holoBox, _panel.Tone));
+        else if (_ui.OpenCrate.Get() != null) _holo.Snap();
+        else _holo.Step(delta, null);
+        _panel.Modulate = Colors.White with { A = shown };
     }
 
     /// <summary>Reads the client's world on a timer, through the current registry: a load or a resync brings new modules.</summary>
@@ -225,6 +245,8 @@ public partial class FabricatorPanel : CanvasLayer
     {
         bool fresh = _crafting != crafting || _client != client;
         (_client, _crafting, _research, _items, _grid) = (client, crafting, research, items, grid);
+        // A load or a resync: the hologram goes at once.
+        if (fresh) _holo.Snap();
         _sinceRead += elapsedMs;
         if (fresh) Dock();
         else if (_sinceRead >= RefreshMs) Read();
@@ -247,7 +269,7 @@ public partial class FabricatorPanel : CanvasLayer
         if (Open is not var (pod, station) || _client == null || _crafting == null || _research == null || _items == null) return;
         int peer = _client.Id;
         _carried = _items.StockTotals(peer);
-        _creative = _items.Creative;
+        _creative = _items.Creative(peer);
         var queue = _crafting.Queue(pod);
         int progress = _crafting.Progress(pod);
         // The outputs as this peer's own takes in flight leave them, so a stack goes on the click (0014).
@@ -274,7 +296,7 @@ public partial class FabricatorPanel : CanvasLayer
     }
 
     private Look LookOf(string craft) =>
-        Crafts.LookOf(_research!.Knows(craft), Crafts.Lines(craft, _carried), _creative, _fed is { } fed ? Crafts.Lines(craft, fed) : null);
+        Crafts.LookOf(_research!.Knows(_client!.Id, craft), Crafts.Lines(craft, _carried), _creative, _fed is { } fed ? Crafts.Lines(craft, fed) : null);
 
     private void Send(Sim.Command command)
     {
@@ -296,6 +318,8 @@ public partial class FabricatorPanel : CanvasLayer
 
         _slot = _ui.Slot;
         _panel.Describe(T($"station.{station.Machine}"), Content.Machines.Get(station.Machine).Draws);
+        _panel.Tone = HoloShape.ToneOf(Content.Machines.Get(station.Machine));
+        _holoBox = MachineHolo.BoxOf(_grid, pod);
         var places = Crafts.Places(station);
         foreach (var place in places) _recipes.AddChild(place is { } craft ? RecipeSlot(pod, station, craft) : EmptySlot());
         var crafts = places.OfType<string>().ToList();
@@ -404,7 +428,7 @@ public partial class FabricatorPanel : CanvasLayer
     /// <summary>A recipe's tip: its item's card with the craft block (<see cref="Crafts.Block"/>); a closed one, what opens it.</summary>
     private Tip TipOf(string craft, Content.Station station)
     {
-        if (_research?.Knows(craft) != true) return new Tip("???", new TipLine(T("crafts.notOpened"), Tone.Unknown));
+        if (_client == null || _research?.Knows(_client.Id, craft) != true) return new Tip("???", new TipLine(T("crafts.notOpened"), Tone.Unknown));
         return CardTip(craft, Crafts.Block(craft, station, _carried, _creative, _fed));
     }
 
@@ -542,12 +566,12 @@ public partial class FabricatorPanel : CanvasLayer
         return label;
     }
 
-    /// <summary>A heading over a section: its name, and on the right a word in grey.</summary>
-    private static HBoxContainer Heading(string name, Label aside)
+    /// <summary>A heading over a section: its name, and on the right a word in grey; both in the station's tone.</summary>
+    private HBoxContainer Heading(string name, Label aside)
     {
         var row = Style.Gap(new HBoxContainer { MouseFilter = Control.MouseFilterEnum.Ignore }, 8);
-        row.AddChild(new Label { Text = name, LabelSettings = HeadingText, SizeFlagsHorizontal = Control.SizeFlags.ExpandFill });
-        row.AddChild(aside);
+        row.AddChild(_panel.Heading(new Label { Text = name, LabelSettings = HeadingText, SizeFlagsHorizontal = Control.SizeFlags.ExpandFill }));
+        row.AddChild(_panel.Dim(aside));
         return row;
     }
 

@@ -17,7 +17,7 @@ public class PilesTests
 
     private static Hew Hit(Scenario w, string kind, string tool) => HewTesting.Dig(w, PileOf(w, kind).Cell, tool);
 
-    private static int Hits(string kind) => (Machines.Get(kind).Strength!.Value + Weapons.Axe.BlockDamage - 1) / Weapons.Axe.BlockDamage;
+    private static int Hits(string kind) => (Machines.Get(kind).Hp!.Value + Weapons.Axe.Damage - 1) / Weapons.Axe.Damage;
 
     private static Dictionary<string, int> Stock() =>
         Kinds.SelectMany(k => Machines.Get(k).Cost).GroupBy(c => c.Item, StringComparer.Ordinal).ToDictionary(g => g.Key, g => g.Sum(c => c.Count), StringComparer.Ordinal);
@@ -70,6 +70,31 @@ public class PilesTests
         foreach (var (item, count) in Machines.Get(kind).Cost) Assert.Equal(count, w.M.Items.Totals(0).Single(t => t.Item == item).Count);
     }
 
+    /// <summary>A pile has hit points as a wreck does (2026-11-07-pile-hit-points): the sledgehammer's one blow breaks any.</summary>
+    [Theory]
+    [InlineData("pileHull")]
+    [InlineData("pileScrap")]
+    [InlineData("pileCargo")]
+    [InlineData("pileBits")]
+    public void TheSledgehammerBreaksAnyInOneBlow(string kind)
+    {
+        var w = new Scenario(Wreck).GiveItems(0, (Weapons.Sledgehammer.Item, 1));
+        w.Do(Hit(w, kind, Weapons.Sledgehammer.Item)).Run();
+        Assert.Empty(w.Refusals);
+        Assert.DoesNotContain(w.M.Grid.Machines, m => m.Kind == kind);
+    }
+
+    /// <summary>A hit takes the weapon's damage, not its block damage: the spear's 3 breaks the odds and ends' 6 in two, where its 2 on blocks would take three.</summary>
+    [Fact]
+    public void AHitTakesTheWeaponsDamageNotItsBlockDamage()
+    {
+        var w = new Scenario(Wreck).GiveItems(0, (Weapons.Spear.Item, 1));
+        w.Do(Hit(w, "pileBits", Weapons.Spear.Item)).Run();
+        Assert.Equal(Weapons.Spear.Damage, Assert.Single(w.M.Building.Cracks).Damage);
+        w.Do(Hit(w, "pileBits", Weapons.Spear.Item)).Run();
+        Assert.DoesNotContain(w.M.Grid.Machines, m => m.Kind == "pileBits");
+    }
+
     /// <summary>The way to a pile is by the first axe: a screwdriver's mark is refused, by a reason that says so.</summary>
     [Fact]
     public void AMarkIsRefused()
@@ -118,7 +143,7 @@ public class PilesTests
     public void AnEmergencyLampDrawsNothingAndComesApartByAMarkAloneLeavingTheOther()
     {
         Assert.Null(Machines.Get("emergencyLamp").Draws);
-        Assert.Null(Machines.Get("emergencyLamp").Strength);
+        Assert.Null(Machines.Get("emergencyLamp").Hp);
         var w = new Scenario(Wreck);
         w.Do(new Deconstruct(w.M.Grid.MachinesOf("emergencyLamp")[0].Cell, "machine")).Run();
         int plan = Assert.Single(w.M.Building.Plans).Id;

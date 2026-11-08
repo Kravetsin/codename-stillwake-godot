@@ -23,7 +23,7 @@ public static class DieDemo
     {
         var root = JsonNode.Parse(world.Save())!;
         var items = root["slices"]!["items"]!;
-        items["creative"] = false;
+        items["creative"] = new JsonArray();
         (string Item, int Count)?[] own = [("fireAxe", 1), ("drill", 1), ("scrap", 120), ("iron", 40), ("canister", 2), ("planks", 12), ("circuit", 3)];
         var slots = new JsonArray();
         for (int i = 0; i < Spec.Inventory.Total; i++)

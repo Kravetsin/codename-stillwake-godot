@@ -866,9 +866,10 @@ public class CreaturesTests
     }
 
     [Fact]
-    public void TheFirstPlanetsKindsSpawnByHabitatTheWalkersUnderTheSkyNoneInTheCaves()
+    public void TheFirstPlanetsKindsSpawnByHabitatTheGrazersUnderTheSkyNoneInTheColdCaves()
     {
-        // The user's rule: by habitat. Under the sky the loper, the tapir and the sixleg, each drawn; in the caves none yet.
+        // The user's rule: by habitat. Under the sky the loper, the tapir and the sixleg, each drawn; in the cold caves none yet: the
+        // hostile lurkers live deeper, in their own bands (cave-hostiles).
         string[] Spawned(Layout map)
         {
             var w = CreaturesTesting.Planet(map).Breathing();
@@ -882,7 +883,8 @@ public class CreaturesTests
         }
         Assert.Equal([Tune.Loper.Id, Tune.Sixleg.Id, Tune.Tapir.Id], Spawned(Wide(700, 12)));
         Assert.Empty(Spawned(Wide(700, 12, '.')));
-        Assert.All(Spec.PlanetTypes.First.Creatures, h => Assert.Equal(Tune.Place.Surface, h.Place));
+        Assert.All(Spec.PlanetTypes.First.Creatures, h => Assert.Equal(h.Place == Tune.Place.Surface ? Tune.Grazer : Tune.Beasts, Tune.Get(h.Species).Faction));
+        Assert.All(Spec.PlanetTypes.First.Creatures.Where(h => h.Place == Tune.Place.Band), h => Assert.True(h.Band > 0, h.Species));
     }
 
     [Fact]

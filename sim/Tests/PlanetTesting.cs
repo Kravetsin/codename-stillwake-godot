@@ -20,4 +20,12 @@ public static class PlanetTesting
         var l = Terrain.Generate(PlanetTypes.First, s, out _, out var surface, out var spires, out var homes);
         return new(l, surface, spires, homes);
     })).Value;
+
+    /// <summary><paramref name="t"/> with no ore pockets: its lode veins alone, the ground, caves and growths as they are.</summary>
+    public static PlanetType WithoutPockets(PlanetType t) => t with { Veins = [.. t.Veins.Select(v => v with { Pockets = null })] };
+
+    private static readonly Lazy<Layout> Lodes = new(() => Terrain.Generate(WithoutPockets(PlanetTypes.First), 1));
+
+    /// <summary>The first planet of seed 1 with no ore pockets, for the tests of its lode veins alone.</summary>
+    public static Layout FirstLodesOnly => Lodes.Value;
 }

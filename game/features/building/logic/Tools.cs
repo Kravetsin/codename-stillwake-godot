@@ -146,21 +146,28 @@ public static class Tools
 
     /// <summary>
     /// What a drag in the open plan does (0110): the left button places what the card in hand places, if one is of the
-    /// <paramref name="focus"/>ed layer; the <paramref name="right"/> marks or cancels in that layer, a card in hand or not.
+    /// <paramref name="focus"/>ed layer; the <paramref name="right"/> marks or cancels in that layer with no card in hand,
+    /// and with one does nothing in the world, for it lets the card go (right-lets-go).
     /// </summary>
     public static Act? ActOf(Tool? tool, bool right, Focus focus) =>
-        right ? RemovalIn(focus) : tool is PlaceTool place && FocusOf(place) == focus ? place : null;
+        right ? tool == null ? RemovalIn(focus) : null : tool is PlaceTool place && FocusOf(place) == focus ? place : null;
 
-    /// <summary>How opaque a layer out of focus is drawn while the plan is open (0110).</summary>
+    /// <summary>How opaque the back walls are drawn with the front focused (0110).</summary>
     public const float Faded = 0.35f;
 
-    /// <summary>How opaque the front and the back walls are drawn: the focused layer whole, the other <see cref="Faded"/>; both whole with no focus.</summary>
+    /// <summary>How opaque the front is drawn with the back walls focused: hidden, so a back wall's material reads whole (back-focus-clear).</summary>
+    public const float FrontInBack = 0f;
+
+    /// <summary>How opaque the front and the back walls are drawn: the focused layer whole, the other faded or hidden; both whole with no focus.</summary>
     public static (float Front, float Back) AlphasOf(Focus? focus) => focus switch
     {
         Focus.Front => (1, Faded),
-        Focus.Back => (Faded, 1),
+        Focus.Back => (FrontInBack, 1),
         _ => (1, 1),
     };
+
+    /// <summary>Whether the back walls are drawn as painted, out of the light: while focused, so a dark room's still read (back-focus-clear).</summary>
+    public static bool BackUnlit(Focus? focus) => focus == Focus.Back;
 
     /// <summary>The wiring's card (0110): a cable, a wire each.</summary>
     public static readonly HandCard Cable = new("cable", "tool.cable", "wire", Content.Power.CableCost);
@@ -207,7 +214,7 @@ public static class Tools
     public static readonly IReadOnlyList<string> FrontLayers = ["machine", "structure"];
 
     /// <summary>Whether <paramref name="tool"/> is a card the world knows (0024): its blueprint.</summary>
-    public static bool Known(Tool tool, IResearchQueries research) => tool is not PlaceTool p || research.Knows(p.Placement);
+    public static bool Known(Tool tool, IResearchQueries research, int peer) => tool is not PlaceTool p || research.Knows(peer, p.Placement);
 
     /// <summary>Whether <paramref name="tool"/> builds what the kind of surface it is on allows (0076).</summary>
     public static bool Allowed(Tool tool, Surfaces.Kind rules) => tool is not PlaceTool p || rules.Allows(p.Placement.Kind);
@@ -287,12 +294,12 @@ public static class Tools
     /// The pipette's card for <paramref name="cell"/>: the card that places what is there, planned or built, in
     /// <see cref="Layers"/>, if its blueprint is known.
     /// </summary>
-    public static Tool? CardAt(int cell, IGridQueries grid, BuildingModule building, IResearchQueries research)
+    public static Tool? CardAt(int cell, IGridQueries grid, BuildingModule building, IResearchQueries research, int peer)
     {
         if (PlacementAt(cell, Layers, grid, building) is not { } placed) return null;
         bool Places(Placement p) => p.Layer == placed.Layer && p.Kind == placed.Kind && p.Material == placed.Material;
         var card = All.OfType<PlaceTool>().FirstOrDefault(each => Places(each.Placement));
         // What is not known, or not built here, is not picked: it could not be planned.
-        return card != null && Known(card, research) && Allowed(card, building.Rules) ? card : null;
+        return card != null && Known(card, research, peer) && Allowed(card, building.Rules) ? card : null;
     }
 }

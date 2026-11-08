@@ -94,9 +94,24 @@ public class ImpactsTests
     public void EveryNaturalMaterialThatBreaksHasItsLookAndEveryObjectALookToThrow()
     {
         foreach (var material in Spec.Materials.All.Where(x => x.Breaks))
-            Assert.True(HitLooks.Ground.ContainsKey(material.Id), $"{material.Id} breaks but has no hit look");
+            Assert.True(HitLooks.GroundOf(material) != null, $"{material.Id} breaks but has no hit look");
         foreach (Impact impact in Enum.GetValues<Impact>())
             Assert.NotEmpty(HitLooks.Of[impact].Throws);
+        // A vein is struck as its stone, with no line of its own.
+        Assert.Equal(Impact.Stone, HitLooks.GroundOf(Spec.Materials.Get("ironVein")));
+        Assert.DoesNotContain(Spec.Materials.All, m => m.In != null && HitLooks.Ground.ContainsKey(m.Id));
+    }
+
+    [Fact]
+    public void EveryVeinHasItsOwnColoursAndFleck() =>
+        Assert.All(Spec.Materials.All.Where(m => m.In != null), m => Assert.True(GroundLooks.Of.ContainsKey(m.Id), $"{m.Id} has no ground look"));
+
+    /// <summary>Chips off the ground lay in a sheet at the hit's floor, hanging over any step: the ground throws none (planet-frame-rate).</summary>
+    [Fact]
+    public void TheGroundThrowsNoChips()
+    {
+        foreach (var impact in HitLooks.Ground.Values)
+            Assert.DoesNotContain(HitLooks.Of[impact].Throws, t => t.Look.Kind == Glimmer.Chip);
     }
 
     [Fact]

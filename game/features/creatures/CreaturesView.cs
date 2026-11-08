@@ -93,9 +93,11 @@ public partial class CreaturesView(Ui ui) : Node2D, ILightSource
         AddChild(_worldHits);
         AddChild(_ticks);
         AddChild(_istukans);
+        AddChild(_lurkers);
         AddChild(_bursts);
         _ticks.Bursts = _bursts;
         _istukans.Bursts = _bursts;
+        _lurkers.Bursts = _bursts;
     }
 
     /// <summary>What every killed creature bursts into, the tick too (2026-10-29-kill-feel).</summary>
@@ -110,6 +112,11 @@ public partial class CreaturesView(Ui ui) : Node2D, ILightSource
     private readonly IstukanBodies _istukans = new();
 
     private readonly List<Creature> _posted = [];
+
+    /// <summary>The creatures drawn as cave lurkers (<see cref="CreatureLooks.Lurkers"/>): rigs in ink posed as they act.</summary>
+    private readonly LurkerBodies _lurkers = new();
+
+    private readonly List<Creature> _lurked = [];
 
     /// <summary>The creatures this player's own shots hit this tick (<see cref="OwnShots"/>).</summary>
     private readonly HashSet<int> _shotByOwn = [];
@@ -133,7 +140,9 @@ public partial class CreaturesView(Ui ui) : Node2D, ILightSource
             _bursts.Clear();
             _ticks.Reset();
             _istukans.Reset();
+            _lurkers.Reset();
             _of = creatures;
+            if (rules is Spec.PlanetType { Creatures.Count: > 0 }) CreatureParts.Warm();
         }
         _seed = seed;
         _bursts.On(grid, rooms, rules);
@@ -147,6 +156,7 @@ public partial class CreaturesView(Ui ui) : Node2D, ILightSource
         _drawn.Clear();
         _ticked.Clear();
         _posted.Clear();
+        _lurked.Clear();
         for (int i = 0; i < all.Count; i++)
         {
             var c = all[i];
@@ -155,6 +165,7 @@ public partial class CreaturesView(Ui ui) : Node2D, ILightSource
             if (CreatureLooks.Varieties.ContainsKey(c.Species)) _drawn.Add(c.Id);
             else if (CreatureLooks.Ticks.Contains(Spec.Creatures.Get(c.Species).Look)) _ticked.Add(c);
             else if (CreatureLooks.Istukans.Contains(Spec.Creatures.Get(c.Species).Look)) _posted.Add(c);
+            else if (CreatureLooks.Lurkers.Contains(Spec.Creatures.Get(c.Species).Look)) _lurked.Add(c);
         }
         _gone.Clear();
         foreach (int id in _shown.Keys)
@@ -204,6 +215,7 @@ public partial class CreaturesView(Ui ui) : Node2D, ILightSource
                 CreatureLooks.LightKeep, 1));
         _ticks.Frame(creatures, debris, _ticked, client.World.Tick, progress, elapsedMs, ui.Heroes, _sources, _shotByOwn);
         _istukans.Frame(creatures, built, grid, _posted, client.World.Tick, progress, elapsedMs, ui.Heroes, _sources, _shotByOwn);
+        _lurkers.Frame(creatures, _lurked, client.World.Tick, progress, elapsedMs, ui.Heroes, _sources, _shotByOwn);
         if (Trace != null) Traced(all);
     }
 
@@ -254,7 +266,7 @@ public partial class CreaturesView(Ui ui) : Node2D, ILightSource
             if (_flying.Contains(strike)) continue;
             if (!_shown.TryGetValue(strike.Creature, out var one))
             {
-                if (!_ticks.OwnStrike(strike.Creature, strike.Tool)) _istukans.OwnStrike(strike.Creature, strike.Tool);
+                if (!_ticks.OwnStrike(strike.Creature, strike.Tool) && !_istukans.OwnStrike(strike.Creature, strike.Tool)) _lurkers.OwnStrike(strike.Creature);
                 continue;
             }
             one.OwnAt = _clockMs;

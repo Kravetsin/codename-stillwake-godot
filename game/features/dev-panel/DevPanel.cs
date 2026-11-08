@@ -40,7 +40,7 @@ public partial class DevPanel : CanvasLayer
     private readonly GridContainer _readings = new() { Columns = 2 };
     private readonly VBoxContainer _slices = new();
     private readonly HFlowContainer _sounds = Style.Gap(new HFlowContainer { Visible = false }, 4);
-    private readonly Button _speed, _creative, _instant, _items;
+    private readonly Button _speed, _creative, _instant, _calm, _items;
     private readonly VBoxContainer _picker = Style.Gap(new VBoxContainer { Visible = false }, 4);
     private readonly LineEdit _search = new() { PlaceholderText = "find an item…", ContextMenuEnabled = false, CaretBlink = true, SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
     private readonly Label _pickerNote = Text(Style.Amber400);
@@ -79,13 +79,19 @@ public partial class DevPanel : CanvasLayer
         _readings.AddThemeConstantOverride("v_separation", 4);
         column.AddChild(_readings);
 
-        var buttons = Style.Gap(new HBoxContainer(), 8);
+        // Flowing: in one row they would widen the panel off the screen.
+        var buttons = Style.Gap(new HFlowContainer(), 8);
         buttons.AddChild(_speed = Style.Button("×4", ToggleSpeed));
         buttons.AddChild(_creative = Style.Button("creative", ToggleCreative));
         buttons.AddChild(_instant = Style.Button("instant", ToggleInstant));
         buttons.AddChild(Style.Button("meteor", Meteor));
         // A magnetic flare from its aurora, its whole warning first (magnetic-flare).
         buttons.AddChild(Style.Button("flare", () => Send(new Sim.Hazards.FlareNow(_modules().Hazards.FlareRules.Warning))));
+        // Read at the click, as creative is: two quick clicks must switch it back.
+        buttons.AddChild(_calm = Style.Button("calm", () => Send(new SetCalm(!_modules().Hazards.Calm))));
+        // The planet's hour (2026-11-07-night-chills): dusk starting, night a minute on; or the day's start. Refused aboard.
+        buttons.AddChild(Style.Button("dusk", () => Send(new Sim.Sky.SetTime(_modules().Rules.Cycle is { } day ? day.Length - day.Night - Daylight.Dusk : 0))));
+        buttons.AddChild(Style.Button("day", () => Send(new Sim.Sky.SetTime(0))));
         column.AddChild(buttons);
         // Surfaces (0076): a planet (0077) or the test strip opened, and this hero beamed between the last opened and the ship.
         var surfaces = Style.Gap(new HBoxContainer(), 8);
@@ -157,7 +163,7 @@ public partial class DevPanel : CanvasLayer
     {
         if (_session() is not Session s) return;
         // Read now, not from the last reading: two quick clicks must switch it back.
-        s.Client.Send(new SetCreative(!_modules().Items.Creative));
+        s.Client.Send(new SetCreative(!_modules().Items.Creative(s.Client.Id)));
     }
 
     private void ToggleInstant()
@@ -234,7 +240,7 @@ public partial class DevPanel : CanvasLayer
     {
         if (_session() is not Session s) return;
         // Read now: creative switched on a moment ago may not be in the last reading.
-        if (!_modules().Items.Creative)
+        if (!_modules().Items.Creative(s.Client.Id))
         {
             _pickerNote.Text = "Creative mode is off: switch it on first.";
             return;
@@ -348,10 +354,12 @@ public partial class DevPanel : CanvasLayer
         }
         ShowReadings(lines);
         _speed.Text = s.Speed == 1 ? "×4" : "×1";
-        bool creative = m.Items.Creative;
+        bool creative = m.Items.Creative(client.Id);
         Style.Paint(_creative, creative ? Style.Amber700 : Style.Slate700, creative ? Amber600 : Style.Slate600);
         bool instant = m.Building.Instant;
         Style.Paint(_instant, instant ? Style.Amber700 : Style.Slate700, instant ? Amber600 : Style.Slate600);
+        bool calm = m.Hazards.Calm;
+        Style.Paint(_calm, calm ? Style.Amber700 : Style.Slate700, calm ? Amber600 : Style.Slate600);
         ShowSlices(client.World, client.World.SurfaceOf(client.Id), m);
     }
 

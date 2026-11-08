@@ -68,8 +68,13 @@ public partial class BuildingView : Node2D
     private string _drawn = "", _outlined = "", _takingKey = "";
     private List<Rect2> _machines = [];
     private int _width;
+
+    /// <summary>This player's peer, set each frame: what it may place is what it knows, all of it in its creative mode.</summary>
+    private int _peer;
     /// <summary>The drag under way: what it does, whether the right button began it, the point it began at, in cells, and the card it began with.</summary>
     private (Act Act, bool Right, (double X, double Y) From, Tool? Card)? _drag;
+    /// <summary>Whether the right button held let a card go: till it is released it shows no removal (right-lets-go).</summary>
+    private bool _letGo;
 
     /// <summary>Each plan's work done when last seen, and the sparks owed: work sparks only as it goes on.</summary>
     private Dictionary<int, int> _worked = [];
@@ -103,10 +108,15 @@ public partial class BuildingView : Node2D
     public void Frame(Client client, Registry m, IReadOnlyList<ButtonEvent> left, IReadOnlyList<ButtonEvent> right, bool holdsRight,
         (double X, double Y)? pointer)
     {
+        _peer = client.Id;
         var grid = m.Grid;
         var building = m.Building;
         int width = _width = grid.Width, height = grid.Height;
         DrawPlans(grid, building, m.Rooms, m.Power);
+        // With the back walls focused the front's plans hide with the front (back-focus-clear).
+        float front = Tools.AlphasOf(_hand.Shown).Front;
+        _plans.FadeFront(front);
+        _outline.Modulate = Dashes with { A = Dashes.A * front };
 
         var tool = _hand.Selected.Get();
         string? overlay = _ui.OverlayOn;
@@ -122,7 +132,7 @@ public partial class BuildingView : Node2D
         void Send(Act act, (double X, double Y) from, (double X, double Y) to)
         {
             var planned = new List<int>();
-            foreach (var verdict in Drag.Judge(act, Drag.StrokeOf(width, height, act, from, to), building))
+            foreach (var verdict in Drag.Judge(act, Drag.StrokeOf(width, height, act, from, to), building, _peer))
                 foreach (var c in verdict.Commands)
                 {
                     client.Send(c);
@@ -135,9 +145,12 @@ public partial class BuildingView : Node2D
 
         void DragWith(ButtonEvent button, bool back)
         {
+            // A card in hand, the right lets it go and does nothing else till released (right-lets-go).
+            if (back) _letGo = button.Down && _drag == null && _hand.PlanOut.Get() && _hand.LetGo();
+            if (_letGo) return;
             if (button.Down)
             {
-                // The first button down has the drag; another pressed meanwhile is let be. The right removes in the focused layer, card or none (0110).
+                // The first button down has the drag; another pressed meanwhile is let be. The right removes in the focused layer, with no card in hand (0110).
                 if (_drag == null && _hand.PlanOut.Get() && Tools.ActOf(tool, back, _hand.Focus.Get()) is { } act && Drag.OnGrid(width, height, button.At))
                     _drag = (act, back, TakesMachines(act) ? Over(button.At) : button.At, tool);
                 return;
@@ -153,7 +166,7 @@ public partial class BuildingView : Node2D
         {
             _hand.PickWanted = false;
             if (pointer is { } at && Drag.OnGrid(width, height, at)
-                && Tools.CardAt(CellAt(Over(at)), grid, building, m.Research) is { } card)
+                && Tools.CardAt(CellAt(Over(at)), grid, building, m.Research, _peer) is { } card)
             {
                 _hand.Tab.Set(Tools.TabOf(card));
                 _hand.Selected.Set(card);
@@ -166,7 +179,8 @@ public partial class BuildingView : Node2D
         ShowTray(under, grid, building);
         _hand.PointerOver = OverOf(under, grid, building, m.Research);
         _hand.PointerAt = pointer;
-        var hovered = _hand.PlanOut.Get() ? Tools.ActOf(tool, holdsRight, _hand.Focus.Get()) : null;
+        _letGo &= holdsRight;
+        var hovered = _hand.PlanOut.Get() && !_letGo ? Tools.ActOf(tool, holdsRight, _hand.Focus.Get()) : null;
         Ghost(tool, (_drag?.Act ?? hovered) is { } shown && TakesMachines(shown) && pointer is { } ptr ? Over(ptr) : pointer, onGrid, grid, building, hovered);
         bool shafts = _hand.PlanOut.Get() && _hand.Builds;
         _shafts.Show(shafts ? grid : null, shafts ? PlatformsOf(grid, building) : [], shafts ? _ghostPlatform : []);
@@ -420,9 +434,8 @@ public partial class BuildingView : Node2D
     /// <summary>The rectangle around <paramref name="cells"/>, in pixels of the world.</summary>
     private static Rect2 BoxOf(IReadOnlyList<int> cells, int width)
     {
-        int x = cells.Min(c => c % width), y = cells.Min(c => c / width);
-        int right = cells.Max(c => c % width), bottom = cells.Max(c => c / width);
-        return new Rect2(x * Cell, y * Cell, (right - x + 1) * Cell, (bottom - y + 1) * Cell);
+        var (x, y, w, h) = HoloShape.BoxOf(cells, width);
+        return new Rect2(x * Cell, y * Cell, w * Cell, h * Cell);
     }
 
     /// <summary>What <paramref name="box"/>, the footprint of a thing of <paramref name="kind"/>, is as drawn: a picture may rise over it or reach out of it.</summary>
@@ -493,7 +506,7 @@ public partial class BuildingView : Node2D
         if (cell is not int c || !_hand.PlanOut.Get() || !_hand.Builds) return Over.Nothing;
         var layers = Tools.RemovalIn(_hand.Focus.Get()).Layers;
         if (building.PlansAt(c).Any(p => layers.Contains(p.Place?.Layer ?? p.Clear!))) return Over.Plan;
-        return Tools.CardAt(c, grid, building, research) != null ? Over.Built : Over.Nothing;
+        return Tools.CardAt(c, grid, building, research, _peer) != null ? Over.Built : Over.Nothing;
     }
 
     /// <summary>Every launch platform cell built or planned, scanned again only when the grid or the plans change.</summary>
@@ -546,7 +559,7 @@ public partial class BuildingView : Node2D
         // Before a press, what the button held would do: the card's, the focused layer's removal while the right is held (0110).
         Act? act = _drag?.Act ?? hovered;
         if (act == null || pointer is not { } p || (_drag == null && !onGrid)) return;
-        var verdicts = Drag.Judge(act, Drag.StrokeOf(width, height, act, _drag?.From ?? p, p), building);
+        var verdicts = Drag.Judge(act, Drag.StrokeOf(width, height, act, _drag?.From ?? p, p), building, _peer);
         if (act is PlaceTool place)
         {
             // The ghost joins the rest of its drag, what is planned and what is built, as a plan would.

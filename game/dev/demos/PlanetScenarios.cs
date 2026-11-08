@@ -1,4 +1,7 @@
 using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text.Json.Nodes;
 using Stillwake.Game.Features.Crew;
 using Stillwake.Net;
 using Stillwake.Sim;
@@ -11,11 +14,18 @@ namespace Stillwake.Game.Dev;
 /// </summary>
 [Dev("--planet", "a planet grown from its seed, the hero beamed down with the axe, the drill and the helmet lamp (0077)", Order = 5)]
 [Dev("--strip", "the test strip (0076); with --autopilot played by a script (HeroAutopilot.PlanetRun)", Order = 5)]
+[Dev("--dusk", "with --planet or --strip, the planet's dusk starting two seconds in, its night a minute on (2026-11-07-night-chills)", Order = 5)]
+[Dev("--valley", "with --planet, the hero beamed down into the planet's deepest valley rather than at the pod, to see the land behind follow (composed-backdrops)", Order = 5)]
+[Dev("--dig", "with --planet, the ground under the hero hewn at the drill's pace from four seconds in, so it digs down: to measure what digging costs a frame; =SECONDS stops then, --frames counting afresh, to measure the depth reached", Order = 5, Shape = DevShape.Either)]
 public sealed class PlanetScenario : DevScenario
 {
-    private bool _beamedBack;
+    private bool _beamedBack, _dusk, _valley;
+    private int _dug;
+    private bool _stopped;
 
     private bool Strip => Args.Has("--strip");
+
+    private bool Valleys => Args.Has("--valley") && !Strip;
 
     // The hero carries the axe and the drill and wears the helmet lamp, to try the caves; --ground seeds the same.
     public override World Seed(World world, DevSeed seed) =>
@@ -26,15 +36,63 @@ public sealed class PlanetScenario : DevScenario
     public override void Started(Client client)
     {
         client.Send(new OpenSurface((Strip ? Content.Surfaces.TestStrip : Content.PlanetTypes.First).Id));
-        client.Send(new Transfer(client.World.Surfaces.Count));
+        if (!Valleys) client.Send(new Transfer(client.World.Surfaces.Count));
     }
 
-    /// <summary><c>--beam-back</c>: back aboard two seconds in, to see the switch both ways.</summary>
+    /// <summary>
+    /// <c>--valley</c>: the hero beamed into the middle of the planet's deepest valley, the column out of the fog whose surface,
+    /// averaged as the land behind averages it, lies lowest; on its ground there.
+    /// </summary>
+    private static void Valley(Client client, Action<string> log)
+    {
+        int planet = client.World.Surfaces.Count - 1;
+        var on = Registry.On(client.World, planet);
+        var grid = on.Grid;
+        int w = grid.Width, reach = BackdropLooks.First.Reach, margin = ((Content.PlanetType)on.Rules).Ground.Fog + reach;
+        var tops = Features.Backdrop.GroundLine.Tops(grid.StructureLayer, grid.BackLayer, w, grid.Height);
+        int best = Enumerable.Range(margin, w - 2 * margin).MaxBy(x => Features.Backdrop.GroundLine.Mean(tops, x, reach));
+        client.Send(new Transfer(planet, (tops[best] - 1) * w + best));
+        log($"valley: beamed to column {best}, its ground at row {tops[best]}, the land round it at {Features.Backdrop.GroundLine.Mean(tops, best, reach):F0}");
+    }
+
+    /// <summary><c>--beam-back</c>: back aboard two seconds in, to see the switch both ways; <c>--dusk</c>: the planet's dusk then.</summary>
     public override void Frame(Client client, Registry m, Action<string> log)
     {
-        if (_beamedBack || !Args.Has("--beam-back") || client.World.Tick < 2 * World.TicksPerSecond) return;
+        if (Valleys && !_valley && client.World.Surfaces.Count > 1)
+        {
+            _valley = true;
+            Valley(client, log);
+        }
+        if (client.World.Tick < 2 * World.TicksPerSecond) return;
+        Dig(client, m);
+        if (!_dusk && Args.Has("--dusk") && m.Rules.Cycle is { } day)
+        {
+            _dusk = true;
+            client.Send(new Sim.Sky.SetTime(day.Length - day.Night - Daylight.Dusk));
+        }
+        if (_beamedBack || !Args.Has("--beam-back")) return;
         _beamedBack = true;
         client.Send(new Transfer(0));
+    }
+
+    /// <summary><c>--dig</c>: a pickaxe's hit on the cells under the hero's body, three across and four down, at the drill's pace: what a hit costs, without the drill run by hand.</summary>
+    private void Dig(Client client, Registry m)
+    {
+        int tick = client.World.Tick;
+        if (Args.Given("--dig") is not { } given || tick < 4 * World.TicksPerSecond || tick - _dug < Content.Weapons.Drill.Pace || m.Crew.HeroOf(client.Id) is not { } hero) return;
+        if (int.TryParse(given, out int seconds) && tick > (4 + seconds) * World.TicksPerSecond)
+        {
+            if (!_stopped) Dev.FrameLog.Active?.Restart();
+            _stopped = true;
+            return;
+        }
+        _dug = tick;
+        int w = m.Grid.Width, x = hero.Cell % w, y = hero.Cell / w;
+        var cells = new List<int>();
+        for (int dy = 1; dy <= 4; dy++)
+            for (int dx = -1; dx <= 1; dx++)
+                if (y + dy < m.Grid.Height && x + dx >= 0 && x + dx < w && m.Grid.WallAt((y + dy) * w + x + dx) != null) cells.Add((y + dy) * w + x + dx);
+        if (cells.Count > 0) client.Send(new Sim.Building.HewCells(Content.Weapons.Pickaxe.Item, cells));
     }
 }
 
@@ -97,4 +155,210 @@ public sealed class RailgunScenario : DevScenario
     }
 
     public override void Frame(Client client, Registry m, Action<string> log) => _demo?.Frame(client, m);
+}
+
+/// <summary>
+/// The pickaxe (the-pickaxe) to try by hand beside the drill and the axe: the hero beamed into a cave under the spawn, the pickaxe in the first
+/// slot, the drill on a full battery in the second, the axe in the third, the helmet lamp worn.
+/// </summary>
+[Dev("--pickaxe", "a planet's cave with the pickaxe, the drill on a full battery and the axe in slots 1 to 3, to dig stone by hand (the-pickaxe)")]
+public sealed class PickaxeScenario : DevScenario
+{
+    private bool _beamed;
+
+    public override World Seed(World world, DevSeed seed)
+    {
+        var root = JsonNode.Parse(GroundDemo.Seed(world, seed.Modules).Save())!;
+        var slots = root["slices"]!["items"]!["inventories"]![0]!["slots"]!.AsArray();
+        string[] tools = [Content.Weapons.Pickaxe.Item, Content.Weapons.Drill.Item, Content.Weapons.Axe.Item];
+        for (int i = 0; i < tools.Length; i++) slots[i] = new JsonObject { ["item"] = tools[i], ["count"] = 1 };
+        return World.Load(root.ToJsonString(), seed.Modules());
+    }
+
+    public override void Started(Client client) => client.Send(new OpenSurface(Content.PlanetTypes.First.Id));
+
+    public override void Frame(Client client, Registry m, Action<string> log)
+    {
+        if (_beamed || client.World.Surfaces.Count < 2) return;
+        _beamed = true;
+        int planet = client.World.Surfaces.Count - 1;
+        var ground = Registry.On(client.World, planet);
+        int? cave = GroundDemo.CaveUnder(ground);
+        client.Send(cave is int at ? new Transfer(planet, at) : new Transfer(planet));
+        log($"pickaxe: beamed down to {(cave is int c ? $"({c % ground.Grid.Width}, {c / ground.Grid.Width})" : "the spawn")}");
+    }
+}
+
+/// <summary>
+/// Ore shining in lamp light (2026-11-07-ore-pockets): the first planet, the hero beamed onto a dark cave's floor facing the cave's wall
+/// richest in copper and iron at head height, the helmet lamp on, creative so the air never runs out; <c>=off</c> without the lamp, to
+/// see the same ore as dark as its rock.
+/// </summary>
+[Dev("--ore-shine", "a dark cave's floor facing copper and iron veins, the helmet lamp on (=off without), creative (2026-11-07-ore-pockets)", Shape = DevShape.Either)]
+public sealed class OreShineScenario : DevScenario
+{
+    private bool _beamed, _creative;
+    private int _planet;
+
+    public override World Seed(World world, DevSeed seed)
+    {
+        var root = JsonNode.Parse(world.Save())!;
+        var slots = new JsonArray();
+        int Worn(string slot) => Content.Inventory.Slots + Content.Inventory.Equipment.ToList().IndexOf(slot);
+        // A lamp shines only on a helmet: both worn, or the helmet alone.
+        for (int i = 0; i < Content.Inventory.Total; i++)
+            slots.Add(i == Worn(Content.Helmet.Slot) ? new JsonObject { ["item"] = Content.Helmet.Basic, ["count"] = 1 }
+                : i == Worn(Content.Helmet.Mount) && Args.Given("--ore-shine") != "off" ? new JsonObject { ["item"] = Content.HelmetLamp.Item, ["count"] = 1 }
+                : null);
+        root["slices"]!["items"]!["inventories"] = new JsonArray(new JsonObject { ["id"] = 0, ["slots"] = slots });
+        return World.Load(root.ToJsonString(), seed.Modules());
+    }
+
+    public override void Started(Client client) => client.Send(new OpenSurface(Content.PlanetTypes.First.Id));
+
+    public override void Frame(Client client, Registry m, Action<string> log)
+    {
+        var world = client.World;
+        if (_beamed && !_creative && world.SurfaceOf(client.Id) == _planet)
+        {
+            _creative = true;
+            client.Send(new Sim.Items.SetCreative(true));
+        }
+        if (_beamed || world.Surfaces.Count < 2) return;
+        _beamed = true;
+        _planet = world.Surfaces.Count - 1;
+        var ground = Registry.On(world, _planet);
+        if (Spot(ground) is not var (at, copper, iron))
+        {
+            client.Send(new Transfer(_planet));
+            log("ore shine: no cave wall with ore found; beamed to the spawn");
+            return;
+        }
+        client.Send(new Transfer(_planet, at));
+        log($"ore shine: beamed to ({at % ground.Grid.Width}, {at / ground.Grid.Width}), facing {copper} copper and {iron} iron cells");
+    }
+
+    /// <summary>
+    /// A floor cell with room for the hero over it, at least 20 rows under the sky, whose wall to the right holds the most copper and iron
+    /// vein cells within reach of the beam (both kinds counted first); null if no such wall has any.
+    /// </summary>
+    private static (int At, int Copper, int Iron)? Spot(Registry m)
+    {
+        var grid = m.Grid;
+        int w = grid.Width, h = grid.Height, fog = ((Content.PlanetType)m.Rules).Ground.Fog + 8;
+        bool Open(int x, int y) => x >= 0 && y >= 0 && x < w && y < h && grid.StructureAt(y * w + x) == Content.Structure.Empty;
+        var sky = new int[w];
+        for (int x = 0; x < w; x++) sky[x] = Enumerable.Range(0, h).FirstOrDefault(y => !Open(x, y));
+        (int At, int Copper, int Iron, int Score)? best = null;
+        for (int y = 8; y < h - 1; y++)
+            for (int x = fog; x < w - fog; x++)
+            {
+                if (y < sky[x] + 20 || Open(x, y + 1) || Enumerable.Range(0, 6).Any(k => !Open(x, y - k))) continue;
+                int copper = 0, iron = 0;
+                for (int dy = -7; dy <= 1; dy++)
+                    for (int dx = 1; dx <= 5; dx++)
+                        if (grid.WallAt((y + dy) * w + x + dx)?.Id is { } id) (copper, iron) = id == "copperVein" ? (copper + 1, iron) : id == "ironVein" ? (copper, iron + 1) : (copper, iron);
+                int score = Math.Min(copper, iron) * 100 + copper + iron;
+                if (score > 0 && (best == null || score > best.Value.Score)) best = (y * w + x, copper, iron, score);
+            }
+        return best is var (at, c, i, _) ? (at, c, i) : null;
+    }
+}
+
+/// <summary>
+/// A grown lake to swim in and dig open (flowing-liquids): the first planet, the hero beamed onto the floor beside the lake
+/// nearest the middle, the pickaxe and the drill in hand's reach, the helmet lamp on, creative so the air never runs out.
+/// </summary>
+[Dev("--lake", "the first planet's lake nearest the middle, the hero on its bank with the pickaxe, the drill and the lamp, creative (liquids)")]
+[Dev("--pour", "--lake with a shaft dug down beside the lake at once, so it pours: streams to look at (liquids)")]
+public sealed class LakeScenario : DevScenario
+{
+    /// <summary>How deep the --pour shaft is dug at most, in cells.</summary>
+    private const int ShaftDeep = 60;
+
+    private bool _beamed, _creative;
+    private int _planet;
+    private List<int>? _shaft;
+
+    public override World Seed(World world, DevSeed seed)
+    {
+        var root = JsonNode.Parse(world.Save())!;
+        var slots = new JsonArray();
+        int Worn(string slot) => Content.Inventory.Slots + Content.Inventory.Equipment.ToList().IndexOf(slot);
+        string[] tools = [Content.Weapons.Pickaxe.Item, Content.Weapons.Drill.Item];
+        for (int i = 0; i < Content.Inventory.Total; i++)
+            slots.Add(i < tools.Length ? new JsonObject { ["item"] = tools[i], ["count"] = 1 }
+                : i == Worn(Content.Helmet.Slot) ? new JsonObject { ["item"] = Content.Helmet.Basic, ["count"] = 1 }
+                : i == Worn(Content.Helmet.Mount) ? new JsonObject { ["item"] = Content.HelmetLamp.Item, ["count"] = 1 }
+                : null);
+        root["slices"]!["items"]!["inventories"] = new JsonArray(new JsonObject { ["id"] = 0, ["slots"] = slots });
+        return World.Load(root.ToJsonString(), seed.Modules());
+    }
+
+    public override void Started(Client client) => client.Send(new OpenSurface(Content.PlanetTypes.First.Id));
+
+    public override void Frame(Client client, Registry m, Action<string> log)
+    {
+        var world = client.World;
+        if (_beamed && !_creative && world.SurfaceOf(client.Id) == _planet)
+        {
+            _creative = true;
+            client.Send(new Sim.Items.SetCreative(true));
+        }
+        if (_creative && _shaft is { Count: > 0 } shaft)
+        {
+            // Hewn with the pickaxe in hand till every cell is open: a cell takes a few hits.
+            var grid = Registry.On(world, _planet).Grid;
+            shaft.RemoveAll(c => !grid.Blocks(c));
+            if (shaft.Count > 0) client.Send(new Sim.Building.HewCells(Content.Weapons.Pickaxe.Item, [.. shaft]));
+        }
+        if (_beamed || world.Surfaces.Count < 2) return;
+        _beamed = true;
+        _planet = world.Surfaces.Count - 1;
+        var ground = Registry.On(world, _planet);
+        if (Bank(ground) is not var (at, edge, row))
+        {
+            client.Send(new Transfer(_planet));
+            log("lake: no lake with a bank found; beamed to the spawn");
+            return;
+        }
+        client.Send(new Transfer(_planet, at));
+        int w = ground.Grid.Width;
+        if (Args.Has("--pour"))
+        {
+            // Down to the first open cell under the ground, a cave the water pours into, or ShaftDeep cells with none.
+            _shaft = [];
+            for (int y = row; y < Math.Min(ground.Grid.Height - 1, row + ShaftDeep) && (y <= row + 1 || ground.Grid.Blocks(y * w + edge)); y++)
+                _shaft.Add(y * w + edge);
+        }
+        log($"lake: beamed to ({at % w}, {at / w}){(_shaft != null ? $", a shaft dug down from ({edge}, {row})" : "")}");
+    }
+
+    /// <summary>
+    /// A dry floor cell with room for the hero over it beside the surface of the lake nearest the middle's column, within 16 columns
+    /// of the surface's end and a few rows of it, with the column just past that end and the surface's row; null for none.
+    /// </summary>
+    private static (int At, int Edge, int Row)? Bank(Registry m)
+    {
+        var grid = m.Grid;
+        var layer = m.Liquids.Layer.ToArray();
+        if (layer.Length == 0) return null;
+        int w = grid.Width, h = grid.Height;
+        bool Open(int x, int y) => x >= 0 && y >= 0 && x < w && y < h && grid.StructureAt(y * w + x) == Content.Structure.Empty;
+        bool Wet(int x, int y) => x >= 0 && y >= 0 && x < w && y < h && m.Liquids.AmountAt(y * w + x) > 0;
+        var surfaces = Enumerable.Range(0, layer.Length).Where(c => layer[c] != 0 && !Wet(c % w, c / w - 1) && Open(c % w, c / w - 1));
+        foreach (int top in surfaces.OrderBy(c => Math.Abs(c % w - w / 2)).Take(64))
+        {
+            int x0 = top % w, y0 = top / w;
+            foreach (int way in (int[])[-1, 1])
+            {
+                int end = x0;
+                while (Wet(end + way, y0)) end += way;
+                for (int x = end + way; Math.Abs(x - end) <= 16; x += way)
+                    for (int y = y0 - 6; y <= y0; y++)
+                        if (Open(x, y) && !Wet(x, y) && !Open(x, y + 1) && Enumerable.Range(1, 6).All(k => Open(x, y - k))) return (y * w + x, end + way, y0);
+            }
+        }
+        return null;
+    }
 }

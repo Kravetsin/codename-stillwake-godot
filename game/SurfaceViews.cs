@@ -19,10 +19,11 @@ namespace Stillwake.Game;
 /// <param name="Peer">This player's peer, and the world's tick (<paramref name="Tick"/>): what a view of the sim's shots reads.</param>
 /// <param name="Hosts">Whether this peer hosts its world, so draws its own shots as the sim flies them (<c>ShotDraws</c>).</param>
 /// <param name="Arrivals">The drop pods still coming down on this surface (the landing feature's): held out of the grid's drawing till they stand.</param>
+/// <param name="Seed">The surface's seed, 0 for the ship: what its ground grew from.</param>
 public sealed record SurfaceContext(
     Registry M, Hands Hands, Func<double> Progress, Func<IReadOnlyList<(Vector2 At, Vector2 Toward, Vector2 Head)>> HeadLamps,
     Func<IReadOnlyList<Vector2>> HeroBodies, bool Homes, bool? HomesMood, Func<int> Peer, Func<int> Tick, Func<bool> Hosts,
-    Features.Landing.Arrivals Arrivals);
+    Features.Landing.Arrivals Arrivals, uint Seed);
 
 /// <summary>One view of a surface: how it is made, null where it has nothing to draw; whether it fades with the plan's front layer.</summary>
 public sealed record SurfaceView(Func<SurfaceContext, Node?> Make, bool Fades = false);
@@ -43,7 +44,7 @@ public static class SurfaceViews
         new(c => new Features.Flora.FloraView(c.M.Grid, c.M.Building)),
         // A planet's caves: their stone tinted by depth under their growth (0080).
         new(c => c.M.Rules is Content.PlanetType p ? new Features.Flora.CaveTint(p, PlanetLooks.Of[p.Id]) : null),
-        new(c => c.M.Rules is Content.PlanetType p ? new Features.Flora.CaveView(c.M.Grid, c.M.Building, p, c.HeadLamps) : null),
+        new(c => c.M.Rules is Content.PlanetType p ? new Features.Flora.CaveView(c.M.Grid, c.M.Building, p, c.HeadLamps, c.Seed) : null),
         // The arc makers' homes in its ground (0091), and the spires alight round their relics, dark once taken (0096).
         new(c => c.M.Rules is Content.PlanetType && c.Homes ? new Features.Ruins.HomesView(c.M.Grid, c.M.Building, c.HeroBodies) { Mood = c.HomesMood } : null),
         new(c => c.M.Rules is Content.PlanetType && c.Homes ? new Features.Ruins.SpiresView(c.M.Grid, c.M.Building, c.HeroBodies) : null),
@@ -68,8 +69,12 @@ public static class SurfaceViews
         new(c => new StationView(c.M.Grid, c.M.Crafting, c.M.Items), Fades: true),
         new(c => new BenchView(c.M.Grid, c.M.Items), Fades: true),
         new(Drones),
+        // Water in the cells (flowing-liquids): over the heroes swimming in it, by its z.
+        new(c => new Features.Liquids.LiquidsView(c.M.Grid, c.M.Liquids)),
         // Every peer's shots but this player's own, which its hero's hands draw ahead of the sim's (shots-are-the-sims).
         new(c => new Features.Creatures.ShotsView(c.M, c.Progress, c.Peer, c.Tick, c.Hosts)),
+        // A capback's gas and slime over it and the heroes, and its glob flying (lurker-attacks).
+        new(c => new Features.Creatures.LurkerFxView(c.M, c.Progress, c.Tick)),
         // Meteors seen coming and striking the hull, where its place has them (2026-10-28-hull-meteors).
         new(c => c.M.Rules.Meteors != null ? new Features.Hazards.MeteorView(c.M.Grid, c.M.Hazards, c.Progress, c.Tick) : null),
         // A magnetic flare's aurora over the stars and its flash, wherever one may strike: by hand on any surface (magnetic-flare).

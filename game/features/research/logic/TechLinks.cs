@@ -32,6 +32,17 @@ public enum Origin
     None,
 }
 
+/// <summary>How one thing ties to a picked one, in the colour of its thread.</summary>
+public enum Tie
+{
+    /// <summary>The picked thing is made, smelted or grown at it.</summary>
+    MadeAt,
+    /// <summary>The picked thing takes it or comes out of it.</summary>
+    From,
+    /// <summary>It takes the picked thing, is made at it or comes out of it.</summary>
+    UsedIn,
+}
+
 /// <summary>Every thing's <see cref="TechLink"/>: an item, a blueprint, a craft or a block of the tree.</summary>
 public static class TechLinks
 {
@@ -44,6 +55,13 @@ public static class TechLinks
 
     /// <summary>How <paramref name="id"/> ties to the others, worked out the first time it is asked.</summary>
     public static TechLink Of(string id) => ById.GetOrAdd(id, Worked);
+
+    /// <summary>How <paramref name="id"/> ties to <paramref name="picked"/>, as the board lights it and the search lists it; none if not directly.</summary>
+    public static Tie? TieOf(string picked, string id)
+    {
+        var link = Of(picked);
+        return link.MadeAt.Contains(id) ? Tie.MadeAt : link.Takes.Any(t => t.Item == id) || link.From.Contains(id) ? Tie.From : link.UsedIn.Contains(id) ? Tie.UsedIn : null;
+    }
 
     /// <summary>What <paramref name="id"/> costs to make or build.</summary>
     public static IReadOnlyList<(string Item, int Count)> CostOf(string id) => Upgrades.Of(id) != null ? [] : Crafts.TryGet(id, out var craft) ? craft.Cost : Prints.TryGetValue(id, out var print) ? print.Cost : [];

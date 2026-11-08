@@ -7,8 +7,6 @@
 | `logic/Fading.cs` | `Broken`: whether a wreck gone from the world was broken or drifted off. |
 | `logic/OwnHits.cs` | Which pieces this peer's own hits were just sent at and ran on, and with which weapon. |
 | `DebrisView.cs` | The layer: pieces and the outline of the one aimed at. |
-| `WreckInk.cs` | A wreck's cracks over its picture. |
-| `logic/WreckCracks.cs` | Where blows landed, and the ink cracks out of them (damage-looks). |
 | `BreakView.cs` | A broken wreck's pieces flying apart, their torn edges glowing (0075). |
 | `DebrisDemo.cs` | The world and the script of `--debris`. |
 | `WreckDemo.cs` | The world and the script of `--wreck`, `--wrecks`, `--harpoon` and `--grapple`. |
@@ -45,9 +43,9 @@ breaking wreckage with a weapon is the hands too, sending `Hit` (0034, 0054).
   (`Shared.PieceDrawn`, 0044).
 - **Motion** (no ADR): a small piece tumbles a turn every 4 s, each its own way; a wreck only rocks (`Rock`, `RockMs`),
   so its picture stays where the aim tests it. Full strength from the first frame: it spawns out of sight (0052).
-- **Damage** (damage-looks): ink cracks out of each blow seen (`WreckCracks`; `WreckInk` on the picture, lit as it, clipped
-  to it): a dent and six pen lines over lit ones, grown over the next 0.45 lost; a blow within 3 px of one deepens it,
-  8 at most; one first seen damaged is struck in its middle. Kept out of view; blows there go unseen.
+- **Damage** (cracks-to-end): a dent per blow seen, one within 3 px deepening it, and one network out of the first
+  (`game/shared`'s `WreckCracks`, `WreckInk` on the picture, lit, clipped) run on with the share lost to cover it by 0.92; one first
+  seen damaged is struck in its middle. Kept out of view; blows there go unseen.
 - **A hit** (a rise in `Damage`) jolts the piece away from the nearest hero, turning it a little and settling, and
   throws `HitLooks.Of[Impact.Wreck]` by `HitBurst` where it was struck, the picture flaring warm (0075, 0094). The
   axe's lands on the side facing the nearest hero. One under a running tool's bit (`Ui.Bits`, within 4 px of the box) only

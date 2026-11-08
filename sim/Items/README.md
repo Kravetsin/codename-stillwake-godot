@@ -17,11 +17,11 @@
 | `Stock.cs` | A peer's stock: its own slots, then every crate. |
 | `ToolStats.cs` | What a tool works with (0098): damage, pace, draw. |
 
-Every stack of items; creative mode takes nothing (0008).
+Every stack of items (0008).
 
 - **Depends on:** `Grid` (machines, what holds a stack up), `Rooms` (space, open room cells), `Knowledge` (`Obtain`).
 - **State** (all saved, as sorted lists; derived only `Gains`): `Inventories`, those changed at least once, by peer;
-  `Crates`, machines holding something, by id; `Creative`; `Floor` (`FloorStack`, id order) and `NextFloorId`; `Ticks`;
+  `Crates`, machines holding something, by id; `Creative`, peers; `Floor` (`FloorStack`, id order) and `NextFloorId`; `Ticks`;
   `Kept` (0062); `Running`, one `Runner` a peer (0055); `Fitted`, by machine then module (0086), saved only when set.
 - **Start:** all empty; `Kit` gives `Inventory.Kit` (the screwdriver; 0107) to a peer's first hero.
 
@@ -34,13 +34,13 @@ Every stack of items; creative mode takes nothing (0008).
   when `Alike` (item, charge, module); a whole stack onto one not alike swaps. Stacks made from a cost hold none, and no
   cost names an item with a capacity or a drill (`ContentTests`). Saved only when set.
 - **A tool works with its stack** (0098): `ToolStack(peer, item)` is the first carried, a fitted one first.
-  `ToolStats.Of(stack)`, shared with the client, folds the modules' trades (`Boost.Plus`, 0100): damage a gain rounded
+  `ToolStats.Of(stack)` folds the modules' trades (`Boost.Plus`, 0100): damage a gain rounded
   down, draw a cost rounded up, pace the weapon's. `Damage(peer, tool)` is that stack's, the weapon's own if none.
 - **Equipment** holds only an item whose `Equip` is its kind: `items.notEquipment` (0047). Worn items
   are never taken nor counted (`Totals`). `WornIn(peer, kind)`: what is worn (2026-10-27-suits-are-worn).
 - **Obtained** (the-board): `Output`, `Smelt`, `GiveOrDrop`, `Spray`, `Caught`, `DropAt` for `Nobody` count, `GiveWhatFits`
   what it gave; the rest moves or refunds.
-- **Gains** (2026-11-06-head-tally): `GiveOrDrop` notes what went in at its cell in the unsaved `Gains`, for the client.
+- **Gains** (2026-11-06-head-tally): `GiveOrDrop` notes what went in at its cell in the unsaved `Gains`.
   A grab passes `noted: false`.
 - **Give and take** all of a cost or none (0008): giving fills stacks of the item in slot order, then empty
   own slots; taking empties own slots from the last, the hotbar last. `Spawn` (creative) gives what
@@ -56,7 +56,8 @@ Every stack of items; creative mode takes nothing (0008).
 - **Stash** (2026-11-06-quick-stash): bag stacks not in `Keep` move into each `Container` within `StashReach` of
   `Cell`, through walls, that holds the item, nearest then by id.
 - **Charge** (0053): `Power` fills it through `Charge`, never past full; `Drain(peer, amount)` takes it whole from the
-  first belt battery holding it; creative takes nothing.
+  first belt battery holding it; creative, nothing.
+- **Creative**, a peer's (creative-per-player): `Take*` take nothing, return it whole; `ShortOf*` pass; its slots open.
 - **Running an electric tool** (0055): `Run(Item, On)`; a hero runs one thing. Each tick, each
   run in peer order draws its stack's boosted `Draw` through `Drain`; one its belt cannot pay or its peer no longer
   carries stops. `Crew` stops a run as its hero passes out or leaves (`StopRunning`).
@@ -67,16 +68,16 @@ Every stack of items; creative mode takes nothing (0008).
 - **Deliveries** (0062): a fuel only into a `FuelSlot`, else inputs, a crate's all slots, a charger only what
   has a capacity, a `Takes` only its item. Outputs are the slots past the inputs (0057).
 - **Surfaces** (0076): `Depart`/`Arrive` (`ICarries`) carry a peer's inventory, charge and run to the next surface;
-  the rest stays. Creative mode is a surface's (`Inherit`).
+  the rest stays; `Inherit` keeps `Creative`.
 - **The floor**: a drop is thrown the way its hero faces. Each tick, by id: a stack
   inside anything built is pushed out breadth-first through built cells to `PushReach`, a room's open cell
-  first, ties by index, else rises a cell. Afloat it flies on, drifting only outside with no back wall; else it falls by gravity times its surface's `Fall` and slides to rest. Gone past the grid's edge or `Lasts`
+  first, ties by index, else rises a cell. Afloat it flies on, drifting only outside with no back wall; else falls (`Fall`) and slides to rest. Gone past the grid's edge or `Lasts`
   after a drop. Alike stacks resting in a cell merge, the later time kept.
   `Spray` (2026-10-29-kill-feel): a kill's loot, a unit a piece up to `SprayMost`, thrown away from the striker.
 - **Machines and ladders hold no stack**: one falls through. A stack is a point on a cell's top, never climbing (0106).
 - **Picking up** gives as much as fits; the dropper waits `OwnPickupDelay` ticks; a drone's `Lift` takes one whole.
 - **Bodies** (0061): `LeaveBody(peer, cell)` drops every non-`Gear` stack of the peer's own slots, still, by
-  `FloorStack.Nobody`, tagged `Body(Peer, Died)`. Gear and worn items stay; creative mode leaves none. Each is gone
+  `FloorStack.Nobody`, tagged `Body(Peer, Died)`. Gear and worn items stay; creative, none. Each is gone
   `BodyLasts` after death; stacks merge only within one body or outside any.
 
 ## Commands
@@ -84,7 +85,7 @@ Every stack of items; creative mode takes nothing (0008).
 `Move` (`items.noCrate`, `noSlot`, `takeOnly`, `notEquipment`, `notBattery`, `notTool`, `notTaken`, `empty`, `full`); `Drop`
 (`noCrate`, `noSlot`, `empty`, `noCell`); `PickUp` (`gone`, `tooSoon`, `full`); `Sort` (`noCrate`, `notCrate`); `Run`
 (`notElectric`; on: `notHeld`, `flat`); `Fit` (`noMachine`, `noCrate`, `noSlot`, `empty`, `notModule`, `fitted`,
-`noTool`); `Unfit` (`notFitted`, `noTool`, `noSlot`, `full`); `SetCreative`; `Stash`, never refused; `Spawn` (`notCreative`, `full`). A negative
+`noTool`); `Unfit` (`notFitted`, `noTool`, `noSlot`, `full`); `SetCreative` (sender's); `Stash`, never refused; `Spawn` (`notCreative`, `full`). A negative
 cost throws.
 
 ## Invariants

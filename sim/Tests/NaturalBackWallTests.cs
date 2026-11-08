@@ -45,7 +45,7 @@ public class NaturalBackWallTests
         var w = Down(items: ("soil", 1));
         var m = w.On(1);
         int cell = m.Crew.Spawn - m.Grid.Width;
-        Assert.Equal("building.notHere", m.Building.Problem(cell, Placement.BackWall("soil")));
+        Assert.Equal("building.notHere", m.Building.Problem(cell, Placement.BackWall("soil"), 0));
         w.Do(new PlacePlan(cell, Placement.BackWall("soil"))).Run();
         Assert.Equal(["building.notHere"], w.Refusals.Select(r => r.Reason));
         Assert.Null(m.Grid.BackAt(cell));
@@ -69,7 +69,7 @@ public class NaturalBackWallTests
         Assert.Equal("grid.occupied", m.Grid.PlacementProblem(under, Placement.BackWall("stone")));
 
         // Nor is any back wall built over the sky there.
-        Assert.Equal("building.notHere", m.Building.Problem(sky, Placement.BackWall("soil")));
+        Assert.Equal("building.notHere", m.Building.Problem(sky, Placement.BackWall("soil"), 0));
     }
 
     [Fact]

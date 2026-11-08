@@ -104,6 +104,17 @@ public static class CreatureLooks
     public static readonly IReadOnlySet<string> Istukans = new HashSet<string> { Stillwake.Content.Creatures.Warden.Look };
 
     /// <summary>
+    /// The looks drawn as cave lurkers, the cave page's picks «Кочка» and «Жернов» (<see cref="CreatureArt.Lurkers"/>, <c>LurkerMotion</c>);
+    /// their lights at this strength times the page's, out to their radius and two cells more.
+    /// </summary>
+    public static readonly IReadOnlySet<string> Lurkers = new HashSet<string> { Stillwake.Content.Creatures.Capback.Look, Stillwake.Content.Creatures.GeodeSnail.Look };
+
+    public const float LurkerLight = 0.6f;
+
+    /// <summary>A blow on a shut shell (lurker-attacks): it glances in the ruins' alloy's sparks, never the creature's own hit.</summary>
+    public const Impact Glance = Impact.Alloy;
+
+    /// <summary>
     /// A tick's eye lamp's light: its colour at this strength times its brightness (half the page's 0.85, a third more acting), out
     /// to <see cref="LightReach"/> cells; its burner's, orange, at <see cref="TickBurnerLight"/> times its thrust, out to
     /// <see cref="TickBurnerReach"/>.

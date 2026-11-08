@@ -169,4 +169,30 @@ public class CrusherTests
         var crusher = w.M.Research.Recipes().Single(r => r.Id == "crusher");
         Assert.False(crusher.Known);
     }
+
+    /// <summary>
+    /// The arc module fits it as the other electric stations (0100): twice the speed for twice the draw. Two panels cabled
+    /// to it, their 10 over the 8 it then draws.
+    /// </summary>
+    [Fact]
+    public void WithTheArcModuleCrushesTwiceAsFastDrawingTwiceTheDraw()
+    {
+        string[] rows = ["PPPPPP    ", "          ", "##########", "#kk......#", "#kk......#", "##########"];
+        var w = new Scenario(Layout.Parse(rows, null, [((0, 0), (3, 0)), ((0, 0), (1, 3))]), doubled: true)
+            .GiveItems(0, ("arcModule", 1), ("asteroidOre", 4)).Run(2);
+        int crusher = Crusher(w), speed = 2 * Speed;
+        int arc = w.M.Items.Inventory(0).ToList().FindIndex(s => s?.Item == "arcModule");
+        w.Do(new Fit(new Slot(arc), crusher)).Run();
+        Assert.Equal(["arcModule"], w.M.Items.FittedTo(crusher));
+        Assert.Equal(speed, w.M.Crafting.StationOf(crusher)!.Speed);
+        Put(w, crusher, "asteroidOre");
+        Assert.Equal(speed, w.M.Crafting.Progress(crusher));
+        w.Run();
+        Assert.Equal(2 * Draws, Demand(w));
+        // An ore's work at the doubled speed: the ticks it takes, rounded up.
+        w.Run((Work("asteroidOre") + speed - 1) / speed - 3);
+        Assert.Equal(0, Held(w, crusher, "gravel"));
+        w.Run();
+        Assert.Equal((1, 2), (Held(w, crusher, "ironOre"), Held(w, crusher, "gravel")));
+    }
 }

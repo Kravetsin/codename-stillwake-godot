@@ -172,10 +172,10 @@ public class SurfacesTests
     {
         var w = new Scenario(Ship);
         w.Do(new SetCreative(true)).Do(new Building.SetInstant(true)).Do(new OpenSurface(Strip)).Run();
-        Assert.True(w.On(1).Items.Creative);
+        Assert.True(w.On(1).Items.Creative(0));
         Assert.True(w.On(1).Building.Instant);
         w.Do(new SetCreative(false)).Do(new Building.SetInstant(false)).Do(new OpenSurface(Strip)).Run();
-        Assert.False(w.On(2).Items.Creative);
+        Assert.False(w.On(2).Items.Creative(0));
         Assert.False(w.On(2).Building.Instant);
     }
 
@@ -195,7 +195,7 @@ public class SurfacesTests
         w.Run();
         Assert.Equal([Surface.Ship, Content.Landing.Planet], w.World.Surfaces.Select(s => s.Kind));
         Assert.Equal(id, w.World.SurfaceOf(0));
-        Assert.True(w.On(id).Items.Creative);
+        Assert.True(w.On(id).Items.Creative(0));
     }
 
     [Fact]

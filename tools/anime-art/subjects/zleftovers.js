@@ -99,7 +99,7 @@ const cornerTR = (a, W, wear) => bumper(a, [W - 8.1, .1, W - 1, .1, W - .1, 1, W
 const cornerBL = (a, y0, wear) => bumper(a, [1, y0 + .1, 5, y0, 5.1, y0 + 4, 9.1, y0 + 5, 9.1, y0 + 8, 8, y0 + 8.9, 1, y0 + 8.9, .1, y0 + 8, .1, y0 + 1], band(.8, y0 + .1, 4.8, y0 + 1), [band(.1, y0 + 7.4, 9.1, y0 + 9), band(3.8, y0, 5.1, y0 + 4)], [`M2.1 ${y0 + 1.6}L2.2 ${y0 + 6}`, `M2.4 ${y0 + 6.3}L8.2 ${y0 + 6.2}`], wear);
 const cornerBR = (a, W, y0, wear) => bumper(a, [W - 5, y0, W - 1, y0 + .1, W - .1, y0 + 1, W - .1, y0 + 8, W - 1, y0 + 8.9, W - 8, y0 + 8.9, W - 9.1, y0 + 8, W - 9.1, y0 + 5, W - 5.1, y0 + 4], band(W - 4.8, y0 + .1, W - .8, y0 + 1), [band(W - 9.1, y0 + 7.4, W, y0 + 9), band(W - 1.3, y0, W, y0 + 8.9)], [`M${W - 2.1} ${y0 + 1.6}L${W - 2.2} ${y0 + 6}`, `M${W - 8.2} ${y0 + 6.2}L${W - 2.4} ${y0 + 6.3}`], wear);
 
-/** The display's top, the same open and docked: hazard paint worn back, a screw each end, three signal pips of four, its lamp. */
+/** The display's top: hazard paint worn back, a screw each end, three signal pips of four, its lamp. */
 const displayTop = (a) => {
   a.shape(band(8, 1.5, 16, 5), PLATE, { outer: false, lite: band(8, 1.5, 16, 2.5), shade: band(8, 4, 16, 5) });
   a.flat(band(15, 1.6, 51.4, 5.2), INK);
@@ -137,27 +137,6 @@ function wristDisplay() {
     displayTop(a);
     chip(a, 96, 22.2, 2.4);
     rust(a, 10.4, 23.1, .8);
-  });
-}
-
-function wristDocked() {
-  const W = 112, H = 21;
-  const top = sheetX(24, 9, topRail(24, 1, (a) => quiet(a, 5, 2.6, 6)));
-  // Square along its foot, where the machine's module meets it.
-  const foot = sheetX(24, 4, runX(24, [[0, 3, INK], [0, 1, LIP], [.95, 2.3, SHADE]], null));
-  const left = sheetY(6, 8, leftRail(8, 1)), right = sheetY(6, 8, rightRail(8, 1, null));
-  return lay(W, H, { l: 54, t: 9, r: 34, b: 4 }, [
-    { run: left, at: 0, from: 5, to: 19 }, { run: right, at: 106, from: 5, to: 19 },
-    { run: top, at: 0, from: 4, to: 108 }, { run: foot, at: 17, from: 3, to: 109 },
-  ], (a) => {
-    a.flat(band(106.1, 5, 107, 6), LIP);
-    cornerTL(a, 0, (q) => { chip(q, 1.4, 1, 1.8, '#4c5066'); q.line('M5.6 3L7 3.5', { w: .8 }); });
-    cornerTR(a, W, (q) => { chip(q, 108, 5.4, 1.2, '#4c5066'); });
-    displayTop(a);
-    a.flat(poly(1, 16.6, 3, 16.6, 3.2, 20, 1.4, 19.9), INK);
-    a.flat(band(2, 16.6, 3, 19), LIT);
-    a.flat(poly(109, 16.6, 111, 16.6, 110.7, 19.9, 109, 20), INK);
-    a.flat(band(109, 16.6, 110, 19), SHADE);
   });
 }
 
@@ -220,26 +199,6 @@ function wristGauge() {
     a.flat(band(29, 2, 30, 3), LIT);
     a.flat(poly(1.2, 5, 3, 5, 3, 7, 2, 7), INK);
     a.flat(poly(29, 5, 30.9, 5, 30.8, 6, 30, 7, 29, 7), INK);
-  });
-}
-
-function wristDock() {
-  const W = 50, H = 20;
-  const top = sheetX(24, 3, runX(24, [[1, 3, INK], [1.5, 1.9, DEEP]], null, .05));
-  const foot = sheetX(24, 9, footRail(24, 4, (a) => quiet(a, 11, 5.2, 5)));
-  const left = sheetY(5, 8, leftRail(8, 1)), right = sheetY(6, 8, rightRail(8, 1));
-  return lay(W, H, { l: 13, t: 3, r: 13, b: 9 }, [
-    { run: left, at: 0, from: 2, to: 13 }, { run: right, at: 44, from: 2, to: 16 },
-    { run: top, at: 0, from: 1, to: 49 }, { run: foot, at: 11, from: 4, to: 46 },
-  ], (a) => {
-    a.flat(band(2, 2, 4, 3), LIT);
-    a.flat(band(45, 2, 48, 3), LIP);
-    chip(a, 2.3, 8, .7);
-    cornerBL(a, 11, (q) => { q.line('M1.4 15L2 17', { w: .8 }); });
-    cornerBR(a, W, 11, (q) => { chip(q, 44.6, 17.4, 1.8, '#4c5066'); });
-    screw(a, 10.6, 16.4, 1.1);
-    screw(a, 38.6, 16.4, 2.6);
-    rust(a, 12.2, 17, .6);
   });
 }
 
@@ -404,11 +363,9 @@ Subjects.zleftovers = function () {
   out('dropPod_lit', bake({ w: 32, h: 56, draw: podLit }));
   out('dropPod_porthole', bake({ w: 32, h: 56, draw: podPorthole }));
   out('wrist_display', wristDisplay());
-  out('wrist_display_docked', wristDocked());
   out('wrist_body', wristBody());
   out('wrist_cuff', wristCuff());
   out('wrist_gauge', wristGauge());
-  out('wrist_dock', wristDock());
   out('tablet_frame', tabletFrame());
   out('tablet_plate', bake({ w: 34, h: 6, draw: tabletPlate }));
   out('tablet_stylus', bake({ w: 9, h: 78, draw: tabletStylus }));

@@ -87,11 +87,11 @@ public static class GroundSounds
         return (cue, S.LandSoftestDb * (1 - share), 1 - (1 - S.LandHardestTune) * share);
     }
 
-    /// <summary>The axe's hit on a natural wall of <paramref name="material"/>; none for one that never breaks.</summary>
-    public static S.Cue? HitOf(Material material) => S.Ground.TryGetValue(material.Id, out var sounds) ? sounds.Hit : null;
+    /// <summary>The axe's hit on a natural wall of <paramref name="material"/>, a vein's its stone's; none for one that never breaks.</summary>
+    public static S.Cue? HitOf(Material material) => S.Ground.TryGetValue(material.In ?? material.Id, out var sounds) ? sounds.Hit : null;
 
     /// <summary>A natural wall of <paramref name="material"/> broken out; none for one that never breaks.</summary>
-    public static S.Cue? BreakOf(Material material) => S.Ground.TryGetValue(material.Id, out var sounds) ? sounds.Break : null;
+    public static S.Cue? BreakOf(Material material) => S.Ground.TryGetValue(material.In ?? material.Id, out var sounds) ? sounds.Break : null;
 
     /// <summary>A growth of <paramref name="kind"/> felled; none for one with no sound of its own (<see cref="S.Unheard"/>).</summary>
     public static S.Cue? FallOf(string kind) => S.Growths.TryGetValue(kind, out var sounds) ? sounds.Fall : null;
@@ -105,7 +105,7 @@ public static class GroundSounds
     public static S.Cue? HitAt(IGridQueries grid, BuildingModule building, int cell, int damage, string? tool = null)
     {
         if (grid.WallAt(cell) is { } wall) return wall.Natural ? HitOf(wall) : S.WreckHitOf(tool);
-        if (grid.MachineAt(cell) is { } machine && Spec.Machines.Get(machine.Kind).Strength != null) return S.Chop;
+        if (Shared.Piles.At(grid, cell) != null) return S.WreckHitOf(tool);
         if (building.PlantAt(cell) is not { } plant || !S.Growths.TryGetValue(plant.Kind, out var sounds) || sounds.Hit is not { } hit)
             return null;
         if (hit != sounds.Fall) return hit;

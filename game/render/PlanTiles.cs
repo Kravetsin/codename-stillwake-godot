@@ -71,6 +71,14 @@ public partial class PlanTiles : Node2D
         }
     }
 
+    /// <summary>Every layer but the back walls' drawn <paramref name="alpha"/> opaque: hidden with the back walls focused (back-focus-clear).</summary>
+    public void FadeFront(float alpha)
+    {
+        for (int i = 0; i < _layers.Length; i++)
+            if (i != (int)TileLayer.Back)
+                foreach (CanvasItem item in (CanvasItem[])[_layers[i], _cut[i]]) item.Modulate = new Color(1, 1, 1, alpha);
+    }
+
     /// <summary>Starts a drawing: what was laid before is erased.</summary>
     public void Begin()
     {

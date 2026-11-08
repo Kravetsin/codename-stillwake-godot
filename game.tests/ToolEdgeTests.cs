@@ -194,7 +194,7 @@ public class ToolEdgeTests
     }
 
     [Fact]
-    public void ARayStopsAtTheFirstWrecksPixelsSoAWreckBehindItIsNotHit()
+    public void ARayHitsEveryWreckItCrossesSoOneLyingOnOrBehindAnotherIsHitToo()
     {
         var (w, near, far) = Wrecks();
         var (halfW, _) = Aiming.PictureOf(near.Item);
@@ -203,10 +203,11 @@ public class ToolEdgeTests
         var hero = new Hero(near.X - halfW - Unit, near.Y + shoulderUp, 0, 0, false, 1);
         Assert.True(Aiming.HandOf(hero).X + Spec.Weapons.Drill.Range > far.X - halfW);
         var hit = Right(w, hero, Drill, outside: true);
-        Assert.Equal([near], hit.Wrecks);
-        // The middle ray lands on the near wreck's side.
+        Assert.Equal([near, far], hit.Wrecks);
+        // Each is touched where a ray first meets it; the middle ray's end is where it meets the near one's side.
+        Assert.Equal(2, hit.Touches.Count(t => t.Wreck != null));
         Assert.Equal(near.X - halfW, hit.End.X, ToolEdges.Step);
-        // Over its box but off its pixels, the rays pass on: the far one is met instead.
+        // Over its box but off its pixels, the rays pass it untouched: only the far one is met.
         var bare = Right(w, hero, Drill, outside: true, (p, x, y) => p.Id == far.Id && Opaque(p, x, y));
         Assert.Equal([far], bare.Wrecks);
         // Aboard, no wreck is touched.
@@ -233,5 +234,38 @@ public class ToolEdgeTests
             double hits = (double)Sim.World.TicksPerSecond / weapon.Pace * Features.Effects.Impacts.ShareOf(weapon.Item);
             Assert.Equal(hits, WorkLooks.ShareOf(weapon.Item) * WorkLooks.ThrowsPerSecond, 9);
         }
+    }
+
+    [Fact]
+    public void ARayThroughAPileTouchesItSoItSparksAndRingsAsAWreck()
+    {
+        // A pile of odds and ends aboard, a hero beside it striking its middle (2026-11-07-pile-hits-felt): the rays touch it.
+        var w = new TestWorld(Layout.Parse("""
+            ################################
+            #..............................#
+            #..............................#
+            #..............................#
+            #..............................#
+            #..............................#
+            #..............................#
+            #..........................ff..#
+            #..........................ff..#
+            ################################
+            """));
+        var pile = w.M.Grid.Machines.Single(x => x.Kind == "pileBits");
+        int width = w.M.Grid.Width, px = pile.Cell % width, py = pile.Cell / width;
+        var hero = new Hero((px - 3) * Unit, 9 * Unit, 0, 0, false, 1);
+        foreach (string tool in new[] { Axe, Spec.Weapons.Sledgehammer.Item })
+        {
+            var hit = ToolRays.Fan(w.M, hero, tool, ToolRays.HeadingOf(hero, ((px + 1) * Unit, (py + 1) * Unit)), outside: false, 0, Opaque);
+            Assert.True(hit.Ground?.Cell is int cell && w.M.Grid.MachineAt(cell)?.Cell == pile.Cell, $"{tool} touched {hit.Ground?.Cell % width},{hit.Ground?.Cell / width} not {px},{py}; cells {string.Join(" ", hit.Cells.Select(c => $"{c % width},{c / width}"))}");
+            int touched = hit.Ground!.Value.Cell!.Value;
+            Assert.Equal(Impact.Wreck, Features.Effects.Impacts.At(w.M.Grid, w.M.Building, touched));
+            Assert.Equal(Sound.WreckHitOf(tool), Features.Sound.GroundSounds.HitAt(w.M.Grid, w.M.Building, touched, 1, tool));
+        }
+        // The blow that breaks it throws the whole look, as a wreck's last.
+        int any = pile.Cell;
+        Assert.Equal(1, Features.Effects.Impacts.ShareAt(w.M.Grid, w.M.Building, any, Axe, 6));
+        Assert.Equal(Features.Effects.Impacts.ShareOf(Axe), Features.Effects.Impacts.ShareAt(w.M.Grid, w.M.Building, any, Axe, 2));
     }
 }

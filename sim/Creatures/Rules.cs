@@ -8,9 +8,10 @@ internal enum Gait { Still, Walk, Run }
 /// <summary>
 /// A hit taking hold (2026-10-26-creatures-are-composed): by peer <paramref name="Peer"/>'s hero, the way across away from it,
 /// the weapon's pace (0098), and <paramref name="Answered"/>, the debris clock through which a blow on its wreck is answered with
-/// it: the clock and one from a command, which lands before the debris drifts, the clock from a system, which lands after.
+/// it: the clock and one from a command, which lands before the debris drifts, the clock from a system, which lands after;
+/// <paramref name="Shot"/>, a gun's shot rather than a blow in hand.
 /// </summary>
-internal readonly record struct Hit(int Peer, int Away, int Pace, int Answered);
+internal readonly record struct Hit(int Peer, int Away, int Pace, int Answered, bool Shot = false);
 
 /// <summary>
 /// The rule of one kind of drive (<see cref="Spec.Drive"/>). Rules hold no state: what a creature needs remembered is on it.
@@ -38,6 +39,9 @@ internal abstract class DriveRule
 
     /// <summary>Its ticks ran out: false yields, so the brain asks again from the top.</summary>
     internal abstract bool Next(CreaturesModule m, Creature c, Spec.Species spec, Spec.Drive d);
+
+    /// <summary>Whether it turns <paramref name="hit"/> aside, asked of every drive before anything else: no damage, no knock, no answer (a shut shell).</summary>
+    internal virtual bool Shields(Creature c, Spec.Drive d, in Hit hit) => false;
 
     /// <summary>Told of a hit, in brain order till one claims the creature: whether it did.</summary>
     internal virtual bool Hurt(CreaturesModule m, Creature c, Spec.Species spec, Spec.Drive d, int at, in Hit hit) => false;
@@ -91,8 +95,11 @@ internal abstract class MoveRule
     /// <summary>Its steering, on the ground.</summary>
     internal abstract void Steer(CreaturesModule m, Creature c, Spec.Species spec, Spec.Move mv);
 
-    /// <summary>Whether a blow cuts it short.</summary>
-    internal virtual bool Interruptible => true;
+    /// <summary>Whether <paramref name="c"/> may begin <paramref name="mv"/> now: not while it cools down from the last (a vent).</summary>
+    internal virtual bool Ready(CreaturesModule m, Creature c, Spec.Move mv) => true;
+
+    /// <summary>Whether a blow cuts <paramref name="mv"/>, a move of its kind, short.</summary>
+    internal virtual bool Interruptible(Spec.Move mv) => true;
 
     /// <summary>Whether a hero may be hit by it now (<see cref="HitBy"/>).</summary>
     internal abstract bool Hits(Act a);

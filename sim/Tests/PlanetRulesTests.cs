@@ -213,9 +213,9 @@ public class PlanetRulesTests
             .Do(new PlacePlan(cell, new Placement("machine", "vent")))
             .Run();
         Assert.Equal(["building.notHere", "building.notHere"], w.Refusals.Select(r => r.Reason));
-        Assert.Equal("building.notHere", m.Building.Problem(cell, new Placement("machine", "vent")));
+        Assert.Equal("building.notHere", m.Building.Problem(cell, new Placement("machine", "vent"), 0));
         // Aboard, the ship allows a furnace: whatever stops one there, it is not the kind.
-        Assert.NotEqual("building.notHere", w.M.Building.Problem(w.At(2, 2), new Placement("machine", "furnace")));
+        Assert.NotEqual("building.notHere", w.M.Building.Problem(w.At(2, 2), new Placement("machine", "furnace"), 0));
 
         w.Refusals.Clear();
         // A ladder piece, two by two (0104), over the ground from the block's top-left.

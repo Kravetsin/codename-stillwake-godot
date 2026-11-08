@@ -45,7 +45,7 @@ public static class StoreWorld
         var machines = save["slices"]!["grid"]!["machines"]!.AsArray();
         int Id(string kind) => (int)machines.First(m => (string?)m!["kind"] == kind)!["id"]!;
         var items = save["slices"]!["items"]!;
-        items["creative"] = true;
+        items["creative"] = new JsonArray(0);
         var slots = new JsonArray();
         for (int i = 0; i < Spec.Inventory.Total; i++) slots.Add(i == QuartzSlot ? new JsonObject { ["item"] = "quartz", ["count"] = Quartz } : null);
         items["inventories"] = new JsonArray(new JsonObject { ["id"] = 0, ["slots"] = slots });

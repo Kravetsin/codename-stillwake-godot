@@ -43,4 +43,7 @@ public static class Helmet
 
     /// <summary>The kind of slot for what is fixed onto whatever helmet is worn: a lamp now, later a sensor or the like.</summary>
     public static readonly string Mount = "mount";
+
+    /// <summary>The scanner (2026-11-07-the-scanner): worn on the mount instead of the lamp, it shows a wreck's hit points under the pointer; its blueprint sold on the black market.</summary>
+    public static readonly string Scanner = "scanner";
 }

@@ -109,6 +109,8 @@ public static class Materials
         // Veins of ore in a planet's stone: as hard as it, a lump of ore or ice a cell, never built.
         new("copperVein", Code: 9, Strength: 12, Leak: 270, Cost: [("copperOre", 1)], BuildTicks: 0, Natural: true, Footing: Tread.Stone, In: "stone", Armour: 4),
         new("iceVein", Code: 10, Strength: 12, Leak: 270, Cost: [("ice", 1)], BuildTicks: 0, Natural: true, Footing: Tread.Stone, In: "stone", Armour: 4),
+        // Iron in pockets through the stone (2026-11-07-ore-pockets): a little softer than copper's, its lump the furnace smelts to iron.
+        new("ironVein", Code: 16, Strength: 10, Leak: 270, Cost: [("ironOre", 1)], BuildTicks: 0, Natural: true, Footing: Tread.Stone, In: "stone", Armour: 4),
     ];
 
     /// <summary>What a <c>#</c> on a map is built of.</summary>

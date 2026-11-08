@@ -26,7 +26,7 @@ public class SpawnTests
     {
         int asked = StackOf("scrap") + 7;
         var w = new Scenario(Layout.Empty)
-            .Do(new SetCreative(true))
+            .Do(new SetCreative(true) { From = 2 })
             .Do(new Spawn("scrap", asked) { From = 2 })
             .Run();
         Assert.Empty(w.Refusals);

@@ -204,6 +204,7 @@ public static class Items
         new("screwdriver", 1, Gear: true, Group: ItemGroup.Tool),
         new("fireAxe", 1, Gear: true, Group: ItemGroup.Tool),
         new("harpoon", 1, Gear: true, Group: ItemGroup.Tool),
+        new("grapple", 1, Gear: true, Group: ItemGroup.Tool),
         // A gun (Content.Shots): one nail a shot.
         new("nailer", 1, Gear: true, Group: ItemGroup.Tool),
         // A gun of a sky shard (2026-10-27-the-railgun): a nail a shot and the belt's charge for it.
@@ -218,10 +219,14 @@ public static class Items
         new("plasmaCutter", 1, Draw: 1, Gear: true, Group: ItemGroup.Tool),
         new("spear", 1, Gear: true, Group: ItemGroup.Tool),
         new("sledgehammer", 1, Gear: true, Group: ItemGroup.Tool),
+        // Swung as the axe, for stone once the drill is flat (the-pickaxe).
+        new("pickaxe", 1, Gear: true, Group: ItemGroup.Tool),
         // Equipment, worn in a slot of its kind (Inventory.Equipment).
         new("jetpack", 1, Equip: "back", Gear: true, Group: ItemGroup.Wearable),
         // A soft warm light round the head (0077): free, drawing no power.
         new("helmetLamp", 1, Equip: Helmet.Mount, Gear: true, Group: ItemGroup.Wearable),
+        // Shows a wreck's hit points under the pointer (2026-11-07-the-scanner): on the mount, so worn the lamp comes off.
+        new(Helmet.Scanner, 1, Equip: Helmet.Mount, Gear: true, Group: ItemGroup.Wearable),
         // Holds charge for any electric tool, worn on the belt; filled at a charging station.
         new("battery", 1, Equip: "belt", Capacity: Charge.Battery, Gear: true, Group: ItemGroup.Wearable),
         // A battery wound round a sky shard at the arc bench (0099): three batteries' charge, worn and filled as one is.

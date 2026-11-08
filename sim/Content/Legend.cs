@@ -43,9 +43,22 @@ public static class Legend
         ('p', "plaster"),
         ('c', "copperVein"),
         ('i', "iceVein"),
+        ('r', "ironVein"),
         ('n', "iron"),
         ('w', "wreckScrap"),
     ];
+
+    /// <summary>
+    /// A map may come with a fourth, of the liquid in its cells (flowing-liquids): space or <c>.</c> for none, <c>w</c> a
+    /// full cell of water, a digit 1 to 8 that many units of it.
+    /// </summary>
+    public static byte? LiquidOf(char c) => c switch
+    {
+        ' ' or '.' => Content.Liquids.None,
+        'w' => Content.Liquids.Of(Content.Liquids.Water, Content.Liquids.Full),
+        >= '1' and <= '8' => Content.Liquids.Of(Content.Liquids.Water, c - '0'),
+        _ => null,
+    };
 
     /// <summary>The material a material map's <paramref name="c"/> names; null for the default hull, or a character none names.</summary>
     public static string? MaterialOf(char c)

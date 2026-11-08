@@ -372,7 +372,7 @@ public partial class BuildMenu : CanvasLayer
             ? [new Tab(_hand.ModeShown.ToString().ToLowerInvariant(), [.. _hand.ToolCards])]
             : Tools.Tabs
                 // The focused layer's cards alone (0110): the back walls' in the back, every other in the front.
-                .Select(t => t with { Tools = t.Tools.Where(each => Tools.FocusOf(each) == _hand.Focus.Get() && Tools.Known(each, m.Research) && Tools.Allowed(each, m.Rules)).ToList() })
+                .Select(t => t with { Tools = t.Tools.Where(each => Tools.FocusOf(each) == _hand.Focus.Get() && Tools.Known(each, m.Research, peer) && Tools.Allowed(each, m.Rules)).ToList() })
                 // A tab with nothing known is not shown, but the ship's.
                 .Where(Tools.Shown)
                 .ToList();
@@ -436,7 +436,7 @@ public partial class BuildMenu : CanvasLayer
             m.Building.Plans.Count > 0, _builder)));
         var mouse = GetViewport().GetMousePosition();
         bool overMenu = Covers is { } covers && covers.HasPoint(mouse);
-        var line = _hovered == null && !overMenu && !_ui.MenuOpen.Get() ? Hints.PointerOf(_hand.ModeShown, _hand.PointerOver) : null;
+        var line = _hovered == null && !overMenu && !_ui.MenuOpen.Get() ? Hints.PointerOf(_hand.ModeShown, _hand.PointerOver, _hand.Selected.Get() != null) : null;
         var at = _hand.PointerAt is { } p ? GetViewport().GetCanvasTransform() * (new Vector2((float)p.X, (float)p.Y) * ShipCamera.Cell) : mouse;
         _pointerHint.Show(line, at);
     }

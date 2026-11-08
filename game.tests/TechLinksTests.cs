@@ -43,6 +43,15 @@ public class TechLinksTests
     }
 
     [Fact]
+    public void ATieIsNamedFromThePickedThingsSide()
+    {
+        Assert.Equal(Tie.MadeAt, TechLinks.TieOf("iron", "furnace"));
+        Assert.Equal(Tie.From, TechLinks.TieOf("coil", "wire"));
+        Assert.Equal(Tie.UsedIn, TechLinks.TieOf("workbench", "wire"));
+        Assert.Null(TechLinks.TieOf("coil", "furnace"));
+    }
+
+    [Fact]
     public void ABlueprintNamesTheBuildMenuTabItSitsIn()
     {
         Assert.Equal(MenuTabs.Production, TechLinks.MenuTabOf("furnace"));

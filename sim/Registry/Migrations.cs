@@ -155,7 +155,86 @@ public static class Migrations
                 foreach (var grant in granted.Where(g => g!.GetValue<string>() == gone).ToList()) granted.Remove(grant);
             return root;
         },
+        // 51 → 52 (2026-11-07-radar-mast): the radar antenna is a mast six cells tall where it stood four; one built or planned
+        // keeps the roof it stood on, its top two cells up.
+        root =>
+        {
+            foreach (var slices in new[] { root["slices"]! }.Concat((root["surfaces"]?.AsArray() ?? []).Select(s => s!["slices"]!)))
+            {
+                int width = slices["grid"]!["width"]!.GetValue<int>();
+                int Up(string? kind) => kind switch { "radarAntenna" => 2 * width, _ => 0 };
+                foreach (var machine in slices["grid"]!["machines"]!.AsArray())
+                    machine!["cell"] = machine["cell"]!.GetValue<int>() - Up(machine["kind"]!.GetValue<string>());
+                foreach (var plan in slices["building"]?["plans"]?.AsArray() ?? [])
+                    if (plan!["place"] is { } place && place["layer"]?.GetValue<string>() == "machine")
+                        plan["cell"] = plan["cell"]!.GetValue<int>() - Up(place["kind"]?.GetValue<string>());
+            }
+            return root;
+        },
+        // 52 → 53 (2026-11-07-creative-per-player): creative mode is each peer's; a world in creative mode keeps it for every peer
+        // that has an inventory on any surface.
+        root =>
+        {
+            var all = new[] { root["slices"]! }.Concat((root["surfaces"]?.AsArray() ?? []).Select(s => s!["slices"]!)).ToList();
+            var peers = all.SelectMany(s => s["items"]!["inventories"]!.AsArray().Select(h => h!["id"]!.GetValue<int>())).Distinct().Order().ToList();
+            foreach (var slices in all)
+            {
+                if (slices["items"]!["creative"] is JsonArray) continue;
+                bool on = slices["items"]!["creative"]?.GetValue<bool>() == true;
+                slices["items"]!["creative"] = new JsonArray([.. (on ? peers : []).Select(p => (JsonNode)p)]);
+            }
+            return root;
+        },
+        // 53 → 54 (2026-11-07-night-chills): the sky, a module added right after the grid; a planet in an older save wakes at the
+        // start of its day. Loading reads slices in the modules' order, so each slices object is rebuilt with it in its place.
+        root =>
+        {
+            foreach (var slices in new[] { root["slices"]! }.Concat((root["surfaces"]?.AsArray() ?? []).Select(s => s!["slices"]!)))
+            {
+                var obj = slices.AsObject();
+                var kept = obj.ToList();
+                obj.Clear();
+                foreach (var (name, slice) in kept)
+                {
+                    obj[name] = slice;
+                    if (name == "grid") obj["sky"] = new JsonObject { ["time"] = 0 };
+                }
+            }
+            return root;
+        },
+        // 54 → 55 (2026-11-08-lurker-attacks): a capback's first move is a vent where it was a pounce; one mid-pounce stops where it is.
+        root =>
+        {
+            foreach (var slices in new[] { root["slices"]! }.Concat((root["surfaces"]?.AsArray() ?? []).Select(s => s!["slices"]!)))
+                foreach (var creature in slices["creatures"]?["creatures"]?.AsArray() ?? [])
+                    if (creature!["species"]?.GetValue<string>() == "capback")
+                        (creature["act"], creature["vx"], creature["vy"]) = (null, 0, 0);
+            return root;
+        },
+        // 55 → 56 (flowing-liquids): a module added, its slice where it runs, after building, on the ship and every
+        // surface: no clock run, no cell changed; a planet grows its lakes again from its seed as it loads.
+        root =>
+        {
+            root["slices"] = Inserted56(root["slices"]!.AsObject());
+            foreach (var surface in (root["surfaces"]?.AsArray() ?? []))
+                surface!["slices"] = Inserted56(surface["slices"]!.AsObject());
+            return root;
+        },
     ];
+
+    /// <summary>The slices with liquids' empty one after building's, where its module runs: a save holds them in that order.</summary>
+    private static JsonObject Inserted56(JsonObject slices)
+    {
+        var all = slices.ToList();
+        slices.Clear();
+        var inserted = new JsonObject();
+        foreach (var (id, slice) in all)
+        {
+            inserted[id] = slice;
+            if (id == "building") inserted["liquids"] = new JsonObject { ["clock"] = 0, ["cells"] = new JsonArray() };
+        }
+        return inserted;
+    }
 
     /// <summary><paramref name="old"/> with each end at a moved port's old cell at its new one, in order, a span made twice or made a point gone.</summary>
     private static JsonArray SpansOf46(JsonNode grid, JsonArray old)
