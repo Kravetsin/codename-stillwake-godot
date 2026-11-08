@@ -47,8 +47,9 @@ A living document: what is decided about the game and what is still open. Techni
   ([trade-station-later](decisions/2026-11-06-trade-station-later.md)), sends what is put in it off by capsule, thirty seconds till its credits come back, however
   much it carries, at prices that never fall and always pay more for what is refined; drones keep it stocked. What things are worth
   is worked out from their recipes ([trade-and-tech](decisions/2026-10-30-trade-and-tech.md)). Credits buy only on the black market,
-  the tablet's other page: room, and what cannot be made. Its later rings open by orders, filled only by what is sold
-  ([market-grid](decisions/2026-11-03-market-grid.md)).
+  the tablet's other page: room, and what cannot be made. Every good is shown, its price ciphered until the mafia's
+  reputation reaches its level; a level rises by selling, what it wants at full worth and anything else at a seventh
+  ([market-grid](decisions/2026-11-03-market-grid.md), [mafia-reputation](decisions/2026-11-08-mafia-reputation.md)).
   Every electric thing
   is built of circuits, and only those: the press, the crusher and the jetpack need none. Found circuits are rare, a rack
   drifting by now and then and two or three off each sentry on the derelicts; the rest are made at the circuit
@@ -72,7 +73,7 @@ A living document: what is decided about the game and what is still open. Techni
   The regen suit, a body sold there with the belt's third slot, turns belt charge into air while its mode is on (V): a
   unit a breath at most, so it holds the air at rest and only slows its fall in flight ([regen-suit](decisions/2026-11-03-the-regen-suit.md)).
 - **Parts are made by machines only,** as in Subnautica and RimWorld: wire of scrap; plates, gears and
-  tubes of iron; and of those parts a rotor (a gear and wire), a frame (plates) and a coil (wire). A
+  tubes of iron, which any furnace also smelts of four scrap, at a loss ([scrap-to-iron](decisions/2026-11-08-scrap-to-iron.md)); and of those parts a rotor (a gear and wire), a frame (plates) and a coil (wire). A
   recipe shows what a thing is made of: the harpoon is a tube and its line of wire
   ([0046](decisions/0046-recipes-show-what-a-thing-is-made-of.md), [first-hour-pace](decisions/2026-10-31-first-hour-pace.md)). The pod's
   Fabricator, opened with E under the inventory, where every machine opens ([0058](decisions/0058-one-place-for-every-machine-window.md)), gives only the suit and the

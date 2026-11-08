@@ -84,7 +84,8 @@ public static class Items
 {
     public static readonly IReadOnlyList<ItemSpec> All =
     [
-        new("scrap", 999),
+        // Four smelted into an iron at any furnace (2026-11-08-scrap-to-iron): where scrap piles up, at a loss on purpose.
+        new("scrap", 999, Yields: [("iron", 1)], SmeltTicks: 80, SmeltTakes: 4),
         // What the nailer fires (Content.Shots), made of scrap at the pod.
         new("nail", 250),
         new("iron", 999),
@@ -174,7 +175,7 @@ public static class Items
         // Two circuits driving a rotor through a coil, made at the circuit assembler: what slides a launch platform's deck
         // open, the last part built of what space gives (the drop pod's, to come).
         new("deckDrive", 50),
-        // The ship computer's and the radar's parts, at the circuit assembler of what space gives: the last made before a planet.
+        // The ship computer's, the radar's and the drop pod's parts, at the circuit assembler of what space gives: the last made before a planet.
         new("processor", 50),
         new("display", 50),
         new("transceiver", 50),

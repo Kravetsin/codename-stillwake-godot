@@ -67,7 +67,7 @@ public partial class AirView : Node2D
     private double _breaths;
     private const double BreathsPerSecond = 1.6;
     private readonly Random _random = new();
-    private readonly AudioStreamPlayer2D _hiss = Cues.Player2D(S.Hiss, S.World), _hum = Cues.Player2D(S.VentHum, S.World);
+    private readonly Heard2D _hiss = Cues.Player2D(S.Hiss, S.World), _hum = Cues.Player2D(S.VentHum, S.World);
     /// <summary>Where a vent of <paramref name="kind"/> has its middle, in cells from its top-left cell.</summary>
     private static (double X, double Y) Middle(string kind) => (Machines.Get(kind).Width / 2.0, Machines.Get(kind).Height / 2.0);
     /// <summary>Vents with oxygen behind them, in pixels: the ship's hum comes from them.</summary>
@@ -202,7 +202,7 @@ public partial class AirView : Node2D
     }
 
     /// <summary>A loop at the source nearest the middle of the screen, while there is any; stopped without: the hiss of venting, the hum of vents.</summary>
-    private void Nearest(AudioStreamPlayer2D loop, IEnumerable<Vector2> sources)
+    private void Nearest(Heard2D loop, IEnumerable<Vector2> sources)
     {
         var ear = GetViewport().GetCamera2D()?.GetScreenCenterPosition() ?? Vector2.Zero;
         Vector2? nearest = null;

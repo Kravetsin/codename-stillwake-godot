@@ -113,9 +113,9 @@ the sim.
 
 - Sent (`SentHero`) every 50 ms while it changes, each second still, at once on a rod's change (0002, 0065); hands by
   item and `Busy` (0037).
-- Drawn 150 ms behind (0013), walking 100 ms past the last, hidden after 3 silent s; only those
-  on this surface (0076). A friend's tool strikes per number heard (0038), from the hero sent with it; its rod plays out by `RemoteRod`
-  (0065); its drill or power driver runs as the sim says (0055).
+- Drawn 150 ms behind (0013), drill aim and all, walking 100 ms past the last, hidden after 3 silent s; only those
+  here (0076). A friend's tool strikes per number heard (0038), from the hero sent with it; its rod plays out by `RemoteRod`
+  (0065); its drill or driver runs as the sim says (0055).
 
 ## The hands
 

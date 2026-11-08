@@ -1,6 +1,6 @@
 # The edge's keys are holograms of what can be used, and the bulb bursts at the screen's top
 
-- Status: accepted
+- Status: accepted; the bulb and the find's flight superseded by [edge-flash](2026-11-08-edge-flash.md)
 - Date: 2026-11-05
 - Supersedes [tablet-key](2026-10-31-tablet-key.md) and [bulb-signal](2026-11-02-bulb-signal.md); the looks of [key-lens](2026-11-02-key-lens.md),
   [edge-lenses](2026-11-03-edge-lenses.md) and [market-key](2026-11-03-market-key.md); the saddle and credit display of market-key; where

@@ -17,7 +17,7 @@ and the flight are `Content/Market.cs`; what the ground gives for a swing, soil 
 
 - A machine with `MachineTrait.Sells` is a trade station. `SendCapsule` takes everything priced from its slots at once, however
   much, for what it is worth at that moment, and `Market.CapsuleFlight` ticks on, launch tick counted, earns that sum. What
-  left is sold from that tick (`Knowledge.Sell`), by hand or from an auto station.
+  left is sold from that tick, with its worth (`Knowledge.Sell`), by hand or from an auto station.
 - One capsule a station. Slots fill as usual while it is away, for the next one. Two are open at first, the rest by upgrades
   (`Items.SlotOpen`).
 - `MachineTrait.AutoSends`: the station launches by itself in the simulation phase whenever `SendCapsule` would be taken, so

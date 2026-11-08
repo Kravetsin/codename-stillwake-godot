@@ -81,6 +81,8 @@ public partial class EffectsView : Node2D
     public override void _Process(double delta)
     {
         _clock.Restart();
+        // Every frame counts, an idle one too: else a stage's one cold frame reads as its cost every frame.
+        _frames++;
         if (InWorld) GlobalTransform = Transform2D.Identity;
         double ms = delta * 1000;
         _glims.Step(ms);
@@ -89,7 +91,11 @@ public partial class EffectsView : Node2D
         _bolts.Step(ms);
         // An empty stage, drawn empty once, draws nothing more till something is thrown on it.
         bool empty = _stage.Empty;
-        if (empty && _drewNothing) return;
+        if (empty && _drewNothing)
+        {
+            _spentMs += _clock.Elapsed.TotalMilliseconds;
+            return;
+        }
         _drewNothing = empty;
         // A pixel of the world on the screen here: the camera's zoom.
         _zoom = Math.Max(0.01f, GetGlobalTransformWithCanvas().X.Length());
@@ -100,7 +106,6 @@ public partial class EffectsView : Node2D
         _light.QueueRedraw();
         Stroke();
         _spentMs += _clock.Elapsed.TotalMilliseconds;
-        _frames++;
     }
 
     private static Color ColourOf((int R, int G, int B) c, double alpha) =>

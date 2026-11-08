@@ -50,10 +50,10 @@ finish is `wash.js`, one for every subject; these are the rules a drawing must f
 | `cavelife` | `caves/` crystals, dripstone, fungi, threads, roots, cracks, geodes, fossils, the spire's cache and lamp, their `_glow`: dim |
 | `homes`, `homeskeep`, `homeslights`, `homeswall`, `homesruin` | `homes/*` and their `_dark`, `_fed`, `_glow`; `ruins/spireLens_*`. `homes.js` exposes `HomeKit`; the others sort after it |
 | `debris` | `debris/*`: rocks lit hard from one side, crates, plates, pods, scrap, derelicts; no lettering: they turn |
+| `aboard` | `machine_salvage*`: a vessel's salvage, its debris pieces whole, standing on the deck |
 | `net` | `machine_net` (booms), `net_mount`, `net_front_<n>` (holding n), `features/debris/logic/NetInk.cs` |
 | `bay`, `salvage` | `machine_droneBay`, `droneBay_*`, `salvage_*`, `items/salvageDrone`; `logistics/logic/BayInk.cs`, `SalvageInk.cs` |
 | `scanner` | `hero_scanner`, `hero_heavyHelmet_scanner`, `_lit_<n>`, `items/scanner`; `ScannerInk.cs` |
-| `bulb` | `bulb_drawing_*`, `bulb_glass`, `bulb_fire_*`, `bulb_stump`: the screen's bulb, straight ink, no finish |
 | `edgekeys` | `holo_<key>`, `holo_<key>_glow`: the edge keys' white masks and glows |
 | `signs`, `credit`, `capsule`, `gauge` | `sign_*`: bolts, plug, wrench, tips; `credit`: the chip; `capsule`, `capsule_flame_<n>`: the trade capsule; `gauge_lamp[Wide]_<shape>_<tone>`: air lamps |
 | `upgrades` | `upgrade_bag`, `upgrade_belt`, `upgrade_tradeSlots`, `upgrade_canister`: what the market sells that is no item |

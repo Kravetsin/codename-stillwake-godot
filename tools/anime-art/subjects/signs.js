@@ -1,5 +1,5 @@
 // The power signs over machines and before power numbers, as picked (the ink-signs ADR): glyphs a screen lights in hard steps,
-// drawn straight on the canvas at 4 times their logical pixels, no finish (as bulb.js). The bolt short of power, none, unplugged, broken;
+// drawn straight on the canvas at 4 times their logical pixels, no finish (as edgekeys.js). The bolt short of power, none, unplugged, broken;
 // the tips' oxygen made and air leaked (tip-signs), sky, or red where their line is short.
 (function () {
 'use strict';

@@ -89,6 +89,20 @@ public class UpgradesTests
         Assert.Equal("wire", w.M.Items.Crate(id)[2]?.Item);
     }
 
+    /// <summary>A shift-click names no slot: it filled the closed ones too, unseen, and they sold.</summary>
+    [Fact]
+    public void AMoveIntoATradeStationAsAWholeFillsItsOpenSlotsAlone()
+    {
+        int stack = Content.Items.Get("wire").Stack;
+        var w = World().GiveItems(0, ("wire", stack), ("wire", stack), ("wire", stack));
+        int id = Station(w);
+        var inventory = w.M.Items.Inventory(0).ToList();
+        foreach (int bag in Enumerable.Range(0, inventory.Count).Where(i => inventory[i]?.Item == "wire"))
+            w.Do(new Move(new Slot(bag), new Target(Crate: id), stack)).Run();
+        Assert.Equal(new[] { "items.full" }, Reasons(w));
+        Assert.Equal(Upgrades.TradeStart, w.M.Items.Crate(id).Count(s => s != null));
+    }
+
     [Fact]
     public void CreativeModeOpensEverySlotOfItsPeerAloneAndNoMachines()
     {

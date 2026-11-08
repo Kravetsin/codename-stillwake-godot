@@ -121,6 +121,24 @@ public class WaterDrawnTests
         Assert.Equal(63, t[0]);
     }
 
+    /// <summary>Settled water is what the view skips making again (planet-frame-rate): only once nothing a step could move is left.</summary>
+    [Fact]
+    public void ItIsSettledOnlyOnceEveryCellIsDrawnAtTheSimsLevelAndThenAStepMovesNothing()
+    {
+        var ease = new WaterEase();
+        byte[] Two(byte a, byte b) => [a, 0, 0, 255, b, 0, 0, 255];
+        ease.Step(Two(0, 100), 0, 0, 2, 1, 1.0 / 60);
+        Assert.True(ease.Settled);
+        var t = Two(255, 100);
+        ease.Step(t, 0, 0, 2, 1, 1.0 / 60);
+        Assert.False(ease.Settled);
+        for (int i = 0; i < 60 && !ease.Settled; i++) ease.Step(t = Two(255, 100), 0, 0, 2, 1, 1.0 / 60);
+        Assert.True(ease.Settled);
+        Assert.Equal(Two(255, 100), t);
+        ease.Step(t = Two(255, 100), 0, 0, 2, 1, 1.0 / 60);
+        Assert.Equal(Two(255, 100), t);
+    }
+
     [Fact]
     public void TheDrawnAmountGlidesToTheSimsAndADriedCellGoesAtOnce()
     {

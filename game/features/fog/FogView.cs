@@ -101,11 +101,17 @@ public partial class FogView : CanvasLayer
     /// <param name="edges">The planet's bands (<see cref="FogEdges.Of"/>).</param>
     /// <param name="colour">Its fog's colour (<c>PlanetLooks.Look.Fog</c>).</param>
     private readonly (float R, float G, float B) _colour;
+    private (float R, float G, float B) _tint = (1, 1, 1);
 
     /// <summary>The daylight of the moment (<see cref="Daylight.Backdrop"/>, 2026-11-07-night-chills): the fog's colour multiplied by it, so the far land darkens at night.</summary>
     public (float R, float G, float B) Tint
     {
-        set => _material.SetShaderParameter("colour", new Vector3(_colour.R * value.R, _colour.G * value.G, _colour.B * value.B));
+        set
+        {
+            if (value == _tint) return;
+            _tint = value;
+            _material.SetShaderParameter("colour", new Vector3(_colour.R * value.R, _colour.G * value.G, _colour.B * value.B));
+        }
     }
 
     public FogView(FogEdges edges, (float R, float G, float B) colour)

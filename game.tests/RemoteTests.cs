@@ -83,6 +83,38 @@ public class RemoteTests
     }
 
     [Fact]
+    public void SweepTheirDrillBetweenSamplesAsTheirBodiesMove()
+    {
+        // The drill in hand points at its bit: stepped at the send rate, it would stutter beside a smooth body.
+        var heroes = new RemoteHeroes();
+        heroes.Add(2, new SentHero(new Seen(HeroAt(0), Busy: new Busy(Handwork.Drill, new Point(1_000, 2_000))), 1000), 1000);
+        heroes.Add(2, new SentHero(new Seen(HeroAt(1000), Busy: new Busy(Handwork.Drill, new Point(3_000, 2_400))), 1050), 1050);
+        Assert.Equal(new Busy(Handwork.Drill, new Point(2_000, 2_200)), heroes.At(1000 + BehindMs + 25)[0].Seen.Busy);
+    }
+
+    [Theory]
+    [InlineData(Handwork.Chop)]
+    [InlineData(Handwork.Work)]
+    [InlineData(Handwork.Beam)]
+    public void KeepOtherWorkWhereItWasSentBetweenSamples(Handwork work)
+    {
+        // A swing's aim, a plan's square and a beam are points of their own, each news when it changes: never a sweep.
+        var heroes = new RemoteHeroes();
+        heroes.Add(2, new SentHero(new Seen(HeroAt(0), Busy: new Busy(work, new Point(1_000, 2_000))), 1000), 1000);
+        heroes.Add(2, new SentHero(new Seen(HeroAt(1000), Busy: new Busy(work, new Point(3_000, 2_400))), 1050), 1050);
+        Assert.Equal(new Busy(work, new Point(1_000, 2_000)), heroes.At(1000 + BehindMs + 25)[0].Seen.Busy);
+    }
+
+    [Fact]
+    public void StartOrStopDrillingAtTheSampleThatSaysSo()
+    {
+        var heroes = new RemoteHeroes();
+        heroes.Add(2, Sent(HeroAt(0), at: 1000), 1000);
+        heroes.Add(2, new SentHero(new Seen(HeroAt(1000), Busy: new Busy(Handwork.Drill, new Point(3_000, 2_400))), 1050), 1050);
+        Assert.Null(heroes.At(1000 + BehindMs + 25)[0].Seen.Busy);
+    }
+
+    [Fact]
     public void MoveAtThePaceTheyWereSentHoweverUnevenlyTheLinkDeliversThem()
     {
         var heroes = new RemoteHeroes();

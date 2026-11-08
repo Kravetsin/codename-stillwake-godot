@@ -207,8 +207,26 @@ public class PlanetOresInvariantTests
 
     private static Arbitrary<uint> AnySeed => Gen.Choose(0, int.MaxValue).Select(s => (uint)s * 2654435761u).ToArbitrary();
 
+    /// <summary>A small planet that grows no pocket at all: its marks are reached only off its few stone cells (some 1,750), about one seed in 600.</summary>
+    private const uint Pocketless = 3230174845u;
+
     [Property(MaxTest = 40)]
-    public Property PocketsChangeOnlyPlainStoneAndNeitherTheGroundNorTheLodeVeinsNorTheGrowths() => Prop.ForAll(AnySeed, seed =>
+    public Property PocketsChangeOnlyPlainStoneAndNeitherTheGroundNorTheLodeVeinsNorTheGrowths() =>
+        Prop.ForAll(AnySeed, seed => true.ToProperty().Classify(Changed(seed) > 0, "pockets"));
+
+    [Fact]
+    public void ASmallPlanetMayGrowNoPocketAtAllAndMostGrowSome()
+    {
+        // The property cannot ask every seed for a pocket: these show it checks some, and that none at all is a planet too.
+        Assert.Equal(0, Changed(Pocketless));
+        Assert.All(new uint[] { 1, 2, 3, 4, 5 }, seed => Assert.True(Changed(seed) > 0, $"seed {seed} grew no pocket"));
+    }
+
+    /// <summary>
+    /// How many cells the pockets turned to ore on the small planet of <paramref name="seed"/>, each checked: plain stone, solid, no
+    /// growth's, now copper or iron; the ground and the growths as they were without pockets.
+    /// </summary>
+    private static int Changed(uint seed)
     {
         var on = Terrain.Generate(PlanetTypes.Small, seed);
         var off = Terrain.Generate(PlanetTesting.WithoutPockets(PlanetTypes.Small), seed);
@@ -228,6 +246,6 @@ public class PlanetOresInvariantTests
             Assert.True(was == Stone && !footprint[cell] && on.At(cell) == '#' && (now == Copper || now == Iron), $"seed {seed}: cell {cell} {was} -> {now}");
             changed++;
         }
-        return changed > 0;
-    });
+        return changed;
+    }
 }

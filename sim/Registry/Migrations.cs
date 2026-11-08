@@ -19,6 +19,26 @@ public static class Migrations
     /// <summary>The oldest format a save may have and still load: the tech tree's first.</summary>
     public const int Oldest = 39;
 
+    /// <summary>The market's five orders as format 57 had them, in turn.</summary>
+    private static readonly (string Item, int Count)[][] OldOrders58 =
+    [
+        [("scrapChunk", 40), ("iron", 20), ("planks", 20)],
+        [("plate", 30), ("gear", 20)],
+        [("glass", 20), ("silicon", 20), ("frame", 10)],
+        [("circuit", 20)],
+        [("copper", 20), ("mica", 10), ("hide", 5)],
+    ];
+
+    /// <summary>What each level wants as format 58 first had it: the goods its base counts.</summary>
+    private static readonly (string Item, int Count)[][] NewOrders58 =
+    [
+        [("scrapChunk", 40), ("iron", 20), ("planks", 20)],
+        [("plate", 30), ("gear", 20), ("wire", 30)],
+        [("glass", 20), ("silicon", 20), ("frame", 10)],
+        [("circuit", 15), ("coil", 10), ("tube", 30)],
+        [("copper", 40), ("mica", 20), ("hide", 15)],
+    ];
+
     /// <summary>Step <c>i</c> turns a save of format <c>Oldest + i</c> into one of the next format.</summary>
     public static readonly IReadOnlyList<Func<JsonObject, JsonObject>> Steps =
     [
@@ -218,6 +238,41 @@ public static class Migrations
             root["slices"] = Inserted56(root["slices"]!.AsObject());
             foreach (var surface in (root["surfaces"]?.AsArray() ?? []))
                 surface!["slices"] = Inserted56(surface["slices"]!.AsObject());
+            return root;
+        },
+        // 56 → 57 (generated-vessels): the places module joins last, on the ship and every surface: no contact found, no vessel out.
+        root =>
+        {
+            foreach (var slices in new[] { root["slices"]! }.Concat((root["surfaces"]?.AsArray() ?? []).Select(s => s!["slices"]!)))
+                slices["places"] = new JsonObject { ["contacts"] = new JsonArray(), ["nextContactId"] = 1 };
+            return root;
+        },
+        // 57 → 58 (2026-11-08-mafia-reputation): orders give way to reputation; the world's level is the old orders met in turn, the
+        // next counted from now. Both order lists frozen here, so a later change to the market's never changes what this step makes.
+        root =>
+        {
+            var knowledge = root["slices"]!["knowledge"]!.AsObject();
+            var sold = (knowledge["sold"]?.AsArray() ?? []).ToDictionary(s => s!["item"]!.GetValue<string>(), s => s!["count"]!.GetValue<int>(), StringComparer.Ordinal);
+            int level = 0;
+            while (level < OldOrders58.Length && OldOrders58[level].All(d => sold.GetValueOrDefault(d.Item) >= d.Count)) level++;
+            var start = level < NewOrders58.Length ? NewOrders58[level] : [];
+            knowledge["soldWorth"] = 0;
+            knowledge["reputation"] = new JsonObject
+            {
+                ["level"] = level,
+                ["base"] = new JsonArray([.. start.Select(d => d.Item).Order(StringComparer.Ordinal)
+                    .Select(item => (JsonNode)new JsonObject { ["item"] = item, ["count"] = sold.GetValueOrDefault(item) })]),
+                ["baseWorth"] = 0,
+            };
+            return root;
+        },
+        // 58 → 59 (2026-11-08-radar-contacts): a contact has a place on the orbit and a time left. One held already lies at the
+        // nearest, right of the ship, and stays the whole 15 min (numbers frozen here); the radar's own first comes 15 min on.
+        root =>
+        {
+            foreach (var slices in new[] { root["slices"]! }.Concat((root["surfaces"]?.AsArray() ?? []).Select(s => s!["slices"]!)))
+                foreach (var contact in slices["places"]?["contacts"]?.AsArray() ?? [])
+                    (contact!["offset"], contact["left"]) = (25, 18_000);
             return root;
         },
     ];

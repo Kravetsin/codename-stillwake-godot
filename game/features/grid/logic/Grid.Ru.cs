@@ -6,6 +6,9 @@ public static partial class Ru
     {
         ["grid.outOfBounds"] = "За пределами корабля",
         ["grid.outsideZone"] = "За пределами стройки",
+        ["grid.reserved"] = "Здесь стоит чужой корабль: на нём не строят",
+        // A vessel is written only inside its own box: the sim's bug if ever seen.
+        ["grid.outsideReserved"] = "За пределами чужого корабля",
         ["grid.occupied"] = "Здесь уже что-то есть",
         ["grid.machineInTheWay"] = "Мешает машина",
         ["grid.blocked"] = "Что-то мешает",
