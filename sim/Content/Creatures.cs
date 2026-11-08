@@ -138,7 +138,8 @@ public static class Creatures
     /// at once from its middle to that point, at most <paramref name="Reach"/> cells off, or to the first wall between; a hero it
     /// crossed may say so for <paramref name="Lingers"/> ticks; then <paramref name="Recover"/> ticks before it moves again. The arc
     /// hits, the body never: its damage is the projectile's. Never at a hero nearer than <paramref name="From"/> cells; where it ends
-    /// <paramref name="Leaves"/>, a patch's kind, lies on the floor.
+    /// <paramref name="Leaves"/>, a patch's kind, lies on the floor: such an arc is a lob, hurting no one, flying its <paramref name="Lingers"/>
+    /// ticks and laying its patch as it lands (lurker-attacks).
     /// </summary>
     public sealed record Shoot(int WindUp, int Lock, int Recover, string Projectile, int Reach, int Lingers, int From = 0, string? Leaves = null) : Move(Damage: 0);
 
@@ -265,13 +266,13 @@ public static class Creatures
     /// by three, lurking among the real ones. An awake hero in line within 20 cells alerts it, and it only watches. Alerted a quarter
     /// second, one within 4, about touching, and it vents at once: its gas (<see cref="Gas"/>) round it, then 10 s before it vents
     /// again. Venting, or struck, it is provoked 30 s: then a hero 8 to 20 cells off is spat at, a crouch of 0.6 s, its aim held the
-    /// last 0.2 s, the glob's puddle (<see cref="Slime"/>) where it lands, 3 s before the next. It never walks off its spot. Ten hit
+    /// last 0.2 s, the glob lobbed 0.6 s to the floor there, its puddle (<see cref="Slime"/>) laid as it lands, 3 s before the next. It never walks off its spot. Ten hit
     /// points, five of the axe's. Placeholder numbers, for a play pass.
     /// </summary>
     public static readonly Species Capback = new("capback", Look: "capback",
         Body: new Walker(Width: 4, Height: 3, Walk: 100, Run: 100, Jump: 0, JumpAcross: 0), Life: new(Hp: 10, Knock: 300, Hop: 200),
         Faction: Beasts, Lifetime: Lifetime.Wild, Brain: [new Guard(Notice: 20, Strike: 4, AlertTicks: 5, Provokes: 600)],
-        Moves: [new Vent("gas", Ticks: 10, Cooldown: 200), new Shoot(WindUp: 12, Lock: 4, Recover: 60, Projectile: "slime", Reach: 20, Lingers: 1, From: 8, Leaves: "slime")],
+        Moves: [new Vent("gas", Ticks: 10, Cooldown: 200), new Shoot(WindUp: 12, Lock: 4, Recover: 60, Projectile: "slime", Reach: 20, Lingers: 12, From: 8, Leaves: "slime")],
         Yields: [new("biomass", 2, 3), new("spore", 1, 1, OneIn: 2)]);
 
     /// <summary>

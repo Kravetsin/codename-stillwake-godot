@@ -12,10 +12,10 @@ using Spec = Stillwake.Content.Creatures;
 namespace Stillwake.Game.Features.Creatures;
 
 /// <summary>
-/// The capback's attacks (lurker-attacks), as <see cref="LurkerFx"/> draws them: its gas over every gas patch, aged by the sim's ticks,
-/// heard hissing when laid; its glob flown from its mouth to its puddle (<see cref="GlobFlight"/>), heard hissing as it leaves and
-/// splatting as it lands; its puddle over every slime patch, from the glob's landing. The sim lays the puddle as it strikes the arc,
-/// so the client holds it back while the glob flies. Lit parts lit as the world, light masks over them unlit, and their lights.
+/// The capback's attacks (lurker-attacks), as <see cref="LurkerFx"/> draws them, every one off the sim: its gas over every gas
+/// patch, aged by the sim's ticks, over the creatures and the heroes in it, heard hissing when laid; its glob along its lob
+/// (<see cref="GlobFlight"/>) while the sim's arc flies, heard hissing as it leaves; its puddle over every slime patch, on the floor
+/// under the heroes, heard splatting when laid. Lit parts lit as the world, light masks over them unlit, and their lights.
 /// </summary>
 public partial class LurkerFxView : Node2D, ILightSource
 {
@@ -26,23 +26,21 @@ public partial class LurkerFxView : Node2D, ILightSource
     private readonly Registry _m;
     private readonly Func<double> _progress;
     private readonly Func<int> _tick;
-    private readonly Node2D _lit = new(), _shines = new();
-    private readonly List<Sprite2D> _litPool = [], _shinePool = [];
+    private readonly Layer _low = new(Layers.Creatures), _high = new(Layers.Gas);
     private readonly Voices _voices = new(S.World, voices: 4);
-    private readonly List<LurkerFx.Sprite> _sprites = [];
     private readonly List<LurkerArt.Light> _glows = [];
     private readonly List<LightSource> _lights = [];
 
-    /// <summary>The gas patches heard hissing, by id; the slime arcs flown, by id.</summary>
-    private readonly HashSet<int> _hissed = [], _flown = [];
-    /// <summary>The globs flying or landed, each with its puddle's patch, or -1 for none.</summary>
-    private readonly List<Glob> _globs = [];
-    private double _clock;
+    /// <summary>The patches heard laid, by id; the lobs heard leaving, by id.</summary>
+    private readonly HashSet<int> _heardLaid = [], _heardLobbed = [];
     private int _seenTick = -1;
 
-    private sealed record Glob(int Patch, Vector2 From, Vector2 To, double At, double Seconds)
+    /// <summary>A depth it draws at: its sprites this frame, its lit sprites and its light masks over them, each from a pool.</summary>
+    private sealed class Layer(int z)
     {
-        public bool Landed { get; set; }
+        public readonly List<LurkerFx.Sprite> Sprites = [];
+        public readonly Node2D Lit = new() { ZIndex = z }, Shines = new() { ZIndex = z };
+        public readonly List<Sprite2D> LitPool = [], ShinePool = [];
     }
 
     public IReadOnlyList<LightSource> Lights => _lights;
@@ -50,14 +48,16 @@ public partial class LurkerFxView : Node2D, ILightSource
     public LurkerFxView(Registry m, Func<double> progress, Func<int> tick)
     {
         (_m, _progress, _tick) = (m, progress, tick);
-        AddChild(_lit);
-        AddChild(_shines);
+        foreach (var layer in new[] { _low, _high })
+        {
+            AddChild(layer.Lit);
+            AddChild(layer.Shines);
+        }
         AddChild(_voices);
     }
 
     public override void _Process(double delta)
     {
-        _clock += delta;
         var creatures = _m.Creatures;
         int tick = _tick();
         if (tick != _seenTick)
@@ -65,7 +65,8 @@ public partial class LurkerFxView : Node2D, ILightSource
             _seenTick = tick;
             Heard(creatures);
         }
-        _sprites.Clear();
+        _low.Sprites.Clear();
+        _high.Sprites.Clear();
         _glows.Clear();
         double progress = Math.Clamp(_progress(), 0, 1);
         foreach (var patch in creatures.Patches)
@@ -77,69 +78,36 @@ public partial class LurkerFxView : Node2D, ILightSource
             {
                 // Its feet a cell under the box's middle, its caps a cell and a half over them: the box is laid round its middle cell.
                 double feet = (patch.Top + patch.Height / 2.0) * Cell + Cell;
-                LurkerFx.Gas(_sprites, _glows, ageS, going, x, feet, x, feet - 1.5 * Cell);
+                LurkerFx.Gas(_high.Sprites, _glows, ageS, going, x, feet, x, feet - 1.5 * Cell);
             }
-            else LurkerFx.Puddle(_sprites, _glows, Landed(patch.Id) is { } at ? _clock - at : ageS, going, x, (patch.Top + patch.Height) * Cell);
+            else LurkerFx.Puddle(_low.Sprites, _glows, ageS, going, x, (patch.Top + patch.Height) * Cell);
         }
-        foreach (var glob in _globs)
+        float k = Cell / 1000f;
+        foreach (var arc in creatures.Arcs)
         {
-            if (glob.Landed) continue;
-            double t = _clock - glob.At;
-            if (t >= glob.Seconds)
-            {
-                glob.Landed = true;
-                _voices.Play(S.CapbackSplat, glob.To);
-                continue;
-            }
-            var (gx, gy, heading) = GlobFlight.At(glob.From.X, glob.From.Y, glob.To.X, glob.To.Y, t / glob.Seconds);
-            LurkerFx.Glob(_sprites, _glows, gx, gy, heading, t);
+            if (arc.Leaves == null || arc.Lingers <= 0) continue;
+            double t = (arc.Lingers - arc.Left + progress) / arc.Lingers;
+            var (gx, gy, heading) = GlobFlight.At(arc.X0 * k, arc.Y0 * k, arc.X1 * k, arc.Y1 * k, t);
+            LurkerFx.Glob(_high.Sprites, _glows, gx, gy, heading, t * arc.Lingers / World.TicksPerSecond);
         }
-        _globs.RemoveAll(g => g.Landed && _clock - g.At > 1 && !Lies(creatures, g.Patch));
-        Place();
+        Place(_low);
+        Place(_high);
+        Glow();
     }
 
-    /// <summary>A tick seen: each new gas patch heard hissing; each new slime arc flown toward the puddle laid with it, heard leaving.</summary>
+    /// <summary>A tick seen: each patch new since heard laid, gas hissing, slime splatting; each lob new since heard leaving.</summary>
     private void Heard(CreaturesModule creatures)
     {
-        _hissed.RemoveWhere(id => !Lies(creatures, id));
+        _heardLaid.RemoveWhere(id => !Lies(creatures, id));
         foreach (var patch in creatures.Patches)
-            if (patch.Kind == Spec.Gas.Id && patch.Ticks >= Spec.Gas.Lasts - 1 && _hissed.Add(patch.Id))
-                _voices.Play(S.CapbackHiss, new Vector2((patch.Left + patch.Width / 2f) * Cell, (patch.Top + patch.Height / 2f) * Cell));
-        float k = Cell / 1000f;
+            if (patch.Ticks >= Spec.PatchOf(patch.Kind).Lasts - 1 && _heardLaid.Add(patch.Id))
+                _voices.Play(patch.Kind == Spec.Gas.Id ? S.CapbackHiss : S.CapbackSplat,
+                    new Vector2((patch.Left + patch.Width / 2f) * Cell, (patch.Top + patch.Height / 2f) * Cell));
         var arcs = creatures.Arcs;
-        _flown.RemoveWhere(id => !Struck(arcs, id));
+        _heardLobbed.RemoveWhere(id => !Flies(arcs, id));
         foreach (var arc in arcs)
-        {
-            if (arc.Projectile != Stillwake.Content.Shots.Glob.Id || !_flown.Add(arc.Id)) continue;
-            var from = new Vector2(arc.X0, arc.Y0) * k;
-            var (patch, to) = PuddleOf(creatures, new Vector2(arc.X1, arc.Y1) * k);
-            _globs.Add(new Glob(patch, from, to, _clock, GlobFlight.Seconds(from.X, from.Y, to.X, to.Y)));
-            _voices.Play(S.CapbackHiss, from, 1.25f, -4);
-        }
-    }
-
-    /// <summary>The slime patch just laid that no glob flies to yet, and where on its floor the glob lands; none, where the arc ended.</summary>
-    private (int Patch, Vector2 To) PuddleOf(CreaturesModule creatures, Vector2 end)
-    {
-        Patch? found = null;
-        foreach (var patch in creatures.Patches)
-            if (patch.Kind == Spec.Slime.Id && patch.Ticks >= Spec.Slime.Lasts - 1 && !Flies(patch.Id)) found = patch;
-        return found == null ? (-1, end) : (found.Id, new Vector2((found.Left + found.Width / 2f) * Cell, (found.Top + found.Height) * Cell - 1));
-    }
-
-    /// <summary>When the glob flying to puddle <paramref name="patch"/> lands, by this view's clock; null for a puddle with none (one lying before it was seen).</summary>
-    private double? Landed(int patch)
-    {
-        foreach (var glob in _globs)
-            if (glob.Patch == patch) return glob.At + glob.Seconds;
-        return null;
-    }
-
-    private bool Flies(int patch)
-    {
-        foreach (var glob in _globs)
-            if (glob.Patch == patch) return true;
-        return false;
+            if (arc.Leaves != null && _heardLobbed.Add(arc.Id))
+                _voices.Play(S.CapbackHiss, new Vector2(arc.X0, arc.Y0) * (Cell / 1000f), 1.25f, -4);
     }
 
     private static bool Lies(CreaturesModule creatures, int id)
@@ -149,29 +117,34 @@ public partial class LurkerFxView : Node2D, ILightSource
         return false;
     }
 
-    private static bool Struck(IReadOnlyList<Arc> arcs, int id)
+    private static bool Flies(IReadOnlyList<Arc> arcs, int id)
     {
         foreach (var arc in arcs)
             if (arc.Id == id) return true;
         return false;
     }
 
-    /// <summary>This frame's sprites placed, from the pools, the rest hidden; and their lights.</summary>
-    private void Place()
+    /// <summary>A layer's sprites this frame placed, from its pools, the rest hidden.</summary>
+    private static void Place(Layer layer)
     {
         int lit = 0, shines = 0;
-        foreach (var s in _sprites)
+        foreach (var s in layer.Sprites)
         {
             if (s.A <= 0.005) continue;
-            var sprite = s.Shine is { } c ? Take(_shinePool, _shines, ref shines, true) : Take(_litPool, _lit, ref lit, false);
+            var sprite = s.Shine != null ? Take(layer.ShinePool, layer.Shines, ref shines, true) : Take(layer.LitPool, layer.Lit, ref lit, false);
             var part = CreatureArt.LurkerFx[s.Part];
             sprite.Texture = PixelArt.Picture(Folder + s.Part);
             sprite.Offset = new Vector2(-part.PivotX, -part.PivotY);
             (sprite.Position, sprite.Rotation, sprite.Scale) = (new Vector2((float)s.X, (float)s.Y), (float)s.R, new Vector2((float)s.Sx, (float)s.Sy));
             sprite.Modulate = s.Shine is { } tint ? new Color((float)tint.R / 255, (float)tint.G / 255, (float)tint.B / 255, (float)s.A) : new Color(1, 1, 1, (float)s.A);
         }
-        for (int i = lit; i < _litPool.Count; i++) _litPool[i].Visible = false;
-        for (int i = shines; i < _shinePool.Count; i++) _shinePool[i].Visible = false;
+        for (int i = lit; i < layer.LitPool.Count; i++) layer.LitPool[i].Visible = false;
+        for (int i = shines; i < layer.ShinePool.Count; i++) layer.ShinePool[i].Visible = false;
+    }
+
+    /// <summary>This frame's lights, for the light feature.</summary>
+    private void Glow()
+    {
         _lights.Clear();
         foreach (var l in _glows)
             if (l.K > 0.01)

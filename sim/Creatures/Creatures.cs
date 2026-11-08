@@ -251,7 +251,7 @@ public sealed partial class CreaturesModule : Module<CreaturesState>
         var creature = State.Creatures[Alive(c.Creature)];
         var spec = Spec.Get(creature.Species);
         // A ram may take the suit's last unit: the hero passes out, as the cold or the lava would leave it.
-        _crewOps.Blow(c.From, spec.Moves[creature.Act!.Move].Damage);
+        _crewOps.Blow(c.From, spec.Moves[creature.Act!.Move].Damage, Harm.Blow);
         // It recoils off the hero it struck, hopping back the way it came, its act spent: the hero thrown on, the two part at
         // once. Read from the creature alone.
         EndAct(creature, spec, creature.VX >= 0 ? -1 : 1, hop: true);

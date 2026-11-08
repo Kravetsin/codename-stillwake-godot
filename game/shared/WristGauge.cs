@@ -34,6 +34,8 @@ public partial class WristGauge : Control
     private readonly GaugeWash _wash = new();
     private readonly Over _over, _light;
     private Vector2 _at;
+    private Color _hurtTint = Colors.White;
+    private double _hurt = -1;
 
     /// <param name="icon">What it measures: the canister, the bolt.</param>
     /// <param name="iconAt">Where the picture is drawn in the tab.</param>
@@ -89,11 +91,15 @@ public partial class WristGauge : Control
     /// <summary>Room air breathed again: one wave of pale light across the lamps, lit or not.</summary>
     public void Wave() => _wave = 0;
 
+    /// <summary>A hurt (2026-11-08-hurts-are-shown): the part just lost blinks in <paramref name="tint"/>, the kind's colour, and the tab washes in it.</summary>
+    public void Hurt(Color tint) => (_hurtTint, _hurt) = (tint, 0);
+
     public override void _Process(double delta)
     {
         _clock += delta;
         _surge = Math.Max(0, _surge - delta);
         if (_wave >= 0) _wave = _wave + delta < Look.WaveS ? _wave + delta : -1;
+        if (_hurt >= 0) _hurt = _hurt + delta < HurtLook.BlinkS ? _hurt + delta : -1;
         Motion.Step(delta);
         // The leading edge shows while the fill moves, either way, and fades once it rests.
         _moving = Math.Abs(Motion.Fill - _shownFill) > 1e-6 ? 1 : Math.Max(0, _moving - delta / Look.EdgeFadeS);
@@ -119,7 +125,7 @@ public partial class WristGauge : Control
     /// <paramref name="lamp"/> laid over <paramref name="cell"/>, its line's margin round it, only the screen's columns from
     /// <paramref name="from"/> to <paramref name="to"/> of it: what a lamp lit part way shows.
     /// </summary>
-    private static void DrawLamp(CanvasItem on, Texture2D lamp, Rect2 cell, float from, float to, float alpha)
+    private static void DrawLamp(CanvasItem on, Texture2D lamp, Rect2 cell, float from, float to, float alpha, Color? tint = null)
     {
         if (alpha <= 0.004f) return;
         var size = lamp.GetSize();
@@ -129,7 +135,7 @@ public partial class WristGauge : Control
         to = Math.Min(to, left + size.X * kx);
         if (to <= from) return;
         on.DrawTextureRectRegion(lamp, new Rect2(from, cell.Position.Y - ky, to - from, size.Y * ky),
-            new Rect2((from - left) / kx, 0, (to - from) / kx, size.Y), Colors.White with { A = alpha });
+            new Rect2((from - left) / kx, 0, (to - from) / kx, size.Y), (tint ?? Colors.White) with { A = alpha });
     }
 
     /// <summary>A lamp lit to <paramref name="to"/>: whole pixels at <paramref name="alpha"/>, the next as bright as the share of it lit.</summary>
@@ -146,6 +152,7 @@ public partial class WristGauge : Control
         var m = Motion;
         // A hit washes the whole tab light for its flash.
         if (m.Flash > 0) DrawRect(new Rect2(Vector2.Zero, Size), Colors.White with { A = 0.1f * (float)m.Flash });
+        if (_hurt >= 0) DrawRect(new Rect2(Vector2.Zero, Size), _hurtTint with { A = 0.2f * (1 - (float)(_hurt / HurtLook.BlinkS)) });
         // A canister floods the tab sky after a white flash, fading as it goes.
         float surge = (float)(_surge / Look.SurgeS);
         if (_wash.Flood > 0) DrawRect(new Rect2(Vector2.Zero, Size), _colour with { A = (float)_wash.Flood });
@@ -193,8 +200,9 @@ public partial class WristGauge : Control
                 DrawLamp(this, pale, cell, x0 - 2, all, a);
             }
             if (lost <= share) continue;
-            // The part just lost, from the fill to the trail's edge: white, whole while a hit flashes.
-            DrawLamp(this, Lamp(shape, "white"), cell, litTo, lost >= 1 ? all : x0 + cw * lost, (0.85f + 0.15f * (float)m.Flash) * Bright);
+            // The part just lost, from the fill to the trail's edge: white, whole while a hit flashes; a hurt blinks it in its colour.
+            var tint = _hurt >= 0 ? Colors.White.Lerp(_hurtTint, (float)HurtLook.Blink(_hurt)) : Colors.White;
+            DrawLamp(this, Lamp(shape, "white"), cell, litTo, lost >= 1 ? all : x0 + cw * lost, (0.85f + 0.15f * (float)m.Flash) * Bright, tint);
         }
         if (_cells.Count == 0) return;
         int meter = _cells[^1].X + _cells[^1].Width;

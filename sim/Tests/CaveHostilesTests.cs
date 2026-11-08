@@ -1,4 +1,5 @@
 using Stillwake.Sim.Creatures;
+using Stillwake.Sim.Crew;
 using Xunit;
 using Spec = Stillwake.Content;
 using Tune = Stillwake.Content.Creatures;
@@ -176,19 +177,51 @@ public class CaveHostilesTests
     }
 
     [Fact]
-    public void ProvokedItSpitsAtAHeroGoneFarAndItsSlimeLiesOnTheFloorUnderWhereItLanded()
+    public void ProvokedItLobsAGlobAtAHeroGoneFarAndItsSlimeLiesOnTheFloorWhereItLands()
     {
         var (w, c) = Lurker(Capback);
         w.HeroAt(5, 3).Run(CapGuard.AlertTicks + 1);
         // Gone 12 cells off: past the spit's least, within its reach.
         var arc = FirstArc(w.HeroAt(9, 3), Vent.Ticks + CapGuard.AlertTicks + Spit.WindUp + 4);
         Assert.NotNull(arc);
-        Assert.Equal(Spit.Projectile, arc.Projectile);
+        Assert.Equal((Spit.Projectile, Tune.Slime.Id, Spit.Lingers), (arc.Projectile, arc.Leaves, arc.Lingers));
+        // Its end dropped to the floor: the bottom of row 7 of the doubled map, the last open one.
+        Assert.Equal(8 * Unit - 1, arc.Y1);
+        // It flies: no slime till it lands, its whole lingering on.
+        Assert.DoesNotContain(w.M.Creatures.Patches, p => p.Kind == Tune.Slime.Id);
+        w.Run(Spit.Lingers - 1);
+        Assert.DoesNotContain(w.M.Creatures.Patches, p => p.Kind == Tune.Slime.Id);
+        w.Run();
+        Assert.Empty(w.M.Creatures.Arcs);
         var slime = w.M.Creatures.Patches.Single(p => p.Kind == Tune.Slime.Id);
-        Assert.Equal((Tune.Slime.Width, Tune.Slime.Height), (slime.Width, slime.Height));
-        // On the floor: its bottom row the last open one, row 7 of the doubled map, under where the glob landed.
+        // Laid as the tick began, it is one of that tick's.
+        Assert.Equal((Tune.Slime.Width, Tune.Slime.Height, Tune.Slime.Lasts - 1), (slime.Width, slime.Height, slime.Ticks));
         Assert.Equal(7, slime.Top + slime.Height - 1);
         Assert.True(slime.Holds(CreaturesModule.Down(arc.X1, Unit), 7));
+    }
+
+    [Fact]
+    public void ItsGlobHitsNoOneAHeroThatStaysIsStungAndOneThatStepsAsideIsNot()
+    {
+        foreach (var (stays, stung) in new[] { (true, true), (false, false) })
+        {
+            var (w, c) = Lurker(Capback);
+            Suits(w.HeroAt(5, 3).HeroAt(27, 3, peer: 1)).Run(CapGuard.AlertTicks + 1);
+            var arc = FirstArc(w.HeroAt(9, 3), Vent.Ticks + CapGuard.AlertTicks + Spit.WindUp + 4)!;
+            // The glob is no arc that strikes: a hero under it has nothing to say.
+            Assert.Equal("creatures.gone", w.M.Creatures.BoltedProblem(0, arc.Id));
+            w.Do(new Bolted(arc.Id)).Run();
+            Assert.Equal("creatures.gone", w.Refusals.Single().Reason);
+            // Stepped 6 cells on while it flies, or standing where it was aimed.
+            if (!stays) w.HeroAt(12, 3);
+            w.Run(Spit.Lingers - 1);
+            var (hx, hy) = w.M.Creatures.HeroAt(0)!.Value;
+            Assert.Equal(stung, w.M.Creatures.Stings(hx, hy));
+            int start = Suit(w) - Suit(w, 1);
+            w.Run(Spec.Crew.BreathEvery);
+            Assert.Equal(stung ? Tune.Slime.Damage : 0, start - (Suit(w) - Suit(w, 1)));
+            Assert.Equal(stung ? Harm.Poison : Harm.None, w.M.Crew.HeroOf(0)!.Hurt);
+        }
     }
 
     [Fact]

@@ -1,6 +1,6 @@
 # Lurker attacks
 
-- Status: accepted; supersedes the lurkers' attacks of [cave-hostiles](2026-11-07-cave-hostiles.md)
+- Status: accepted; supersedes the lurkers' attacks of [cave-hostiles](2026-11-07-cave-hostiles.md); the spit and its looks' layering superseded by [lobbed-glob](2026-11-08-lobbed-glob.md)
 - Date: 2026-11-08
 
 ## Context

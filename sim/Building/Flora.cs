@@ -1,5 +1,6 @@
 using System.Text.Json;
 using Stillwake.Content;
+using Stillwake.Sim.Crew;
 using Stillwake.Sim.Grid;
 using Stillwake.Sim.Items;
 
@@ -269,6 +270,6 @@ public sealed partial class BuildingModule
     {
         if (_resonators.Count == 0 || State.Clock % Content.Crew.BreathEvery != 0) return;
         foreach (var hero in _crew.Heroes)
-            if (hero.Out == 0 && Zaps(hero.Cell)) _crewOps.Shock(hero.Id, Ruins.Zap);
+            if (hero.Out == 0 && Zaps(hero.Cell)) _crewOps.Shock(hero.Id, Ruins.Zap, Harm.Shock);
     }
 }

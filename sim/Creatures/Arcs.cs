@@ -1,3 +1,4 @@
+using Stillwake.Sim.Crew;
 using Spec = Stillwake.Content.Creatures;
 
 namespace Stillwake.Sim.Creatures;
@@ -45,6 +46,8 @@ public sealed partial class CreaturesModule
         {
             if (n * den > num * d) (num, den) = (n, d);
         }
+        int x1 = (int)(x + run * num / den), y1 = (int)(y + rise * num / den);
+        if (shoot.Leaves != null) (x1, y1) = Landing(x, y, x1, y1);
         State.Fired += 1;
         State.Arcs.Add(new Arc
         {
@@ -52,33 +55,53 @@ public sealed partial class CreaturesModule
             Projectile = shoot.Projectile,
             X0 = x,
             Y0 = y,
-            X1 = (int)(x + run * num / den),
-            Y1 = (int)(y + rise * num / den),
+            X1 = x1,
+            Y1 = y1,
             Left = shoot.Lingers,
+            Lingers = shoot.Lingers,
+            Leaves = shoot.Leaves,
         });
         return true;
     }
 
-    /// <summary>Each arc a tick older, those whose lingering is over gone; before the creatures strike this tick's.</summary>
+    /// <summary>
+    /// Where a lob from (<paramref name="x0"/>, <paramref name="y0"/>) aimed at (<paramref name="x1"/>, <paramref name="y1"/>) lands: on
+    /// the floor under its end, a hair back from what stopped it, at the bottom of that open cell.
+    /// </summary>
+    private (int X, int Y) Landing(int x0, int y0, int x1, int y1)
+    {
+        int x = Down(x1 - Math.Sign(x1 - x0), Unit), y = Down(y1 - Math.Sign(y1 - y0), Unit);
+        return (x1 - Math.Sign(x1 - x0), (FloorUnder(x, y) + 1) * Unit - 1);
+    }
+
+    /// <summary>
+    /// Each arc a tick older, those whose lingering is over gone, a lob laying its patch where it ends as it lands; before the creatures
+    /// strike this tick's.
+    /// </summary>
     private void Linger()
     {
         var arcs = State.Arcs;
-        foreach (var arc in arcs) arc.Left -= 1;
+        foreach (var arc in arcs)
+        {
+            arc.Left -= 1;
+            if (arc.Left <= 0 && arc.Leaves is { } leaves) LayPatch(leaves, Down(arc.X1, Unit), Down(arc.Y1, Unit), floor: true);
+        }
         arcs.RemoveAll(a => a.Left <= 0);
     }
 
     /// <summary>
     /// Why peer <paramref name="peer"/>'s hero being crossed by arc <paramref name="id"/> (<see cref="Bolted"/>) would be refused: it
-    /// lingers no longer, was never struck, or hurt that hero already (<c>creatures.gone</c>). What the client asks before it sends.
+    /// lingers no longer, was never struck, hurt that hero already, or is a lob, which hurts only by the patch it lays (<c>creatures.gone</c>).
+    /// What the client asks before it sends.
     /// </summary>
     public string? BoltedProblem(int peer, int id) =>
-        ArcIndex(id) is int at && State.Arcs[at].Paid?.Contains(peer) != true ? null : "creatures.gone";
+        ArcIndex(id) is int at && State.Arcs[at] is { Leaves: null } arc && arc.Paid?.Contains(peer) != true ? null : "creatures.gone";
 
     private void Apply(Bolted c)
     {
         var arc = State.Arcs[ArcIndex(c.Arc)!.Value];
         // It may take the suit's last unit: the hero passes out, as a ram would leave it.
-        _crewOps.Blow(c.From, Content.Shots.DamageOf(null, arc.Projectile));
+        _crewOps.Blow(c.From, Content.Shots.DamageOf(null, arc.Projectile), Harm.Shock);
         arc.Paid ??= [];
         arc.Paid.Add(c.From);
     }

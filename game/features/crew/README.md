@@ -71,6 +71,8 @@ the sim.
 | `TunnelView.cs` | it drawn |
 | `logic/VisorFog.cs` | a low suit's fog |
 | `VisorFogView.cs` | it drawn |
+| `logic/HurtSeen.cs` | hurt |
+| `HurtView.cs` | shown |
 | `SuitColours.cs` | menu's colours |
 | `LookEditor.cs` | the look editor |
 | `logic/Markers.cs` | markers |
@@ -83,24 +85,24 @@ the sim.
 
 ## Guarantees
 
-- Lengths, speeds: thousandths of a cell (`Content.Hero`); a step each 1000/60 ms (`Net.Clock`), drawn between.
+- Lengths, speeds: thousandths of a cell (`Content.Hero`); a step each 1000/60 ms (`Net.Clock`).
 - A step never ends inside a wall, closed door or hatch, or past the grid; afloat without a jetpack the body's middle
-  stays within `Hero.Tether` of its anchor. A door shut on the hero pushes it a `Hero.PushStep` to the
-  nearest fit, carrying no speed (0089); out of the hull, tethered.
+  stays within `Hero.Tether` of its anchor. A door shut on it pushes it to the nearest fit
+  (`Hero.PushStep`, no speed, 0089); out of the hull, tethered.
 - Doors are walked as this peer shows them (0014); a press sends `SetDoor`/`SetValve` (0071), `SetPlatform`.
-- **Holes and floors:** the body falls into a hole it fits. Down drops through floors, never a wall, door, hatch or
-  ladder; jump wins over down.
+- **Holes and floors:** the body falls into a hole it fits; down drops through floors, never walls, doors,
+  hatches, ladders; jump wins.
 - **Steps** (0106): a walk steps a cell up or down where it fits; two up stop it, drawn eased.
-- **Jump feel** (0089): coyote time, buffer, short hop, eased apex, `AirControl`.
+- **Jump feel** (0089): coyote time, buffer, short hop, eased apex.
 - **The figure answers its motion** (0090, hero-gait), as sent.
-- **Rammed** (0103) **or crossed by an arc** (`Rams.Crosses`, once): `HitBy`/`Bolted` sent, thrown, keys masked a while.
+- **Rammed** (0103) **or crossed by an arc** (`Rams.Crosses`, once): `HitBy`/`Bolted` sent, thrown, keys masked.
 - **Surfaces** (0076): `Ship.Of` rules: nothing floats on a planet, gravity the kind's `Fall`; fog glides, `FogMove`
   across a seam (fog-edges).
-- **Camera:** leads, eases, snaps. **Markers** (0061): home, newest body, friends heard.
+- **Camera:** leads, eases, snaps. **Markers** (0061): home, newest body, friends heard. **Hurts** (hurts-are-shown)
+  wash the edges, blink the gauge.
 - **Swim, haul, jetpack** (0047, tether-haul): afloat, through floors, tied where the middle left the hull (0007, 0104);
   Shift hauls in along the tether's bends (`Wraps`); a jetpack unties, Shift thrusts, `Thrust` sent while unlike the sim's.
-- **A canister** (0047, 0081): right click or R sends `Refill`, V `SuitMode` (regen-suit), if the sim takes it; V's
-  key on the tablet's edge, dim if refused.
+- **A canister** (0047, 0081): right click or R sends `Refill`, V `SuitMode` (regen-suit) if the sim takes it.
 - **The crew module:** made at `Spawn`; passed out it takes no orders, lies at the sim's cell, picks nothing
   up (0061). `Enter` goes when the sim's room or field side differs, every `Crew.ReportEvery`
   ticks off its cell, each tick while threatened; none while out (0050). A closed link's host sends `Leave`.
@@ -109,8 +111,8 @@ the sim.
 
 ## Others' heroes
 
-- Sent (`SentHero`) every 50 ms while it changes, each second still, at once on a rod's change (0002, 0065); hands
-  by item id and `Busy` kind (0037).
+- Sent (`SentHero`) every 50 ms while it changes, each second still, at once on a rod's change (0002, 0065); hands by
+  item and `Busy` (0037).
 - Drawn 150 ms behind (0013), walking 100 ms past the last, hidden after 3 silent s; only those
   on this surface (0076). A friend's tool strikes per number heard (0038), from the hero sent with it; its rod plays out by `RemoteRod`
   (0065); its drill or power driver runs as the sim says (0055).

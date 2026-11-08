@@ -251,6 +251,10 @@ public sealed class Arc
     [JsonInclude] public int X1 { get; internal set; }
     [JsonInclude] public int Y1 { get; internal set; }
     [JsonInclude] public int Left { get; internal set; }
+    /// <summary>The ticks it lingers in all: a lob's whole flight (lurker-attacks); 0 in a save from before it was kept.</summary>
+    [JsonInclude] public int Lingers { get; internal set; }
+    /// <summary>The patch it lays where it ends once its lingering is over, a lob landing (the capback's slime); null for none.</summary>
+    [JsonInclude, JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] public string? Leaves { get; internal set; }
     /// <summary>The peers whose heroes it has hurt, in order; none written while none.</summary>
     [JsonInclude, JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] internal List<int>? Paid { get; set; }
 }

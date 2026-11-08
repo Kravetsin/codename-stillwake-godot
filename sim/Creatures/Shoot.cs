@@ -6,7 +6,7 @@ namespace Stillwake.Sim.Creatures;
 /// The arc (the sentry's, 2026-10-27-sentry-arc): crouched its wind-up where it clings, its eye flickering; <c>Lock</c> ticks before
 /// its end it takes its target's reported cell as it is then — its grudge wherever it is, else the nearest awake hero within its
 /// reach — and holds it; none, and it strikes nothing. At the end its arc strikes that cell at once (<see
-/// cref="CreaturesModule.StrikeArc"/>). Then it recovers, still clamped; never cut short by a blow. One that leaves a patch (the capback's slime) lays it on the floor under the arc's end. However it ends, the drive
+/// cref="CreaturesModule.StrikeArc"/>). Then it recovers, still clamped; never cut short by a blow. One that leaves a patch (the capback's slime) is a lob, landing on the floor under its end as its lingering ends. However it ends, the drive
 /// that began it is told.
 /// </summary>
 internal sealed class ShootMove : MoveRule
@@ -47,7 +47,6 @@ internal sealed class ShootMove : MoveRule
             return;
         }
         c.Keep(Aim, 0);
-        if (shoot.Leaves is { } leaves) Leave(m, leaves);
         (act.Phase, act.Left) = (ActPhase.Active, shoot.Recover);
     }
 
@@ -59,14 +58,6 @@ internal sealed class ShootMove : MoveRule
     private static (int X, int Y)? AimOf(CreaturesModule m, Creature c, int reach) =>
         c.Target is { Kind: RefKind.Hero } target && m.HeroAt(target.Id, awake: true) is { } grudge ? grudge
         : m.Nearest(c, awake: true) is ({ } hero, int far) && far <= reach ? hero : null;
-
-    /// <summary>The patch an arc leaves (the capback's slime): on the floor under its end, a hair back from what stopped it.</summary>
-    private static void Leave(CreaturesModule m, string leaves)
-    {
-        var arc = m.Arcs[^1];
-        int x = CreaturesModule.Down(arc.X1 - Math.Sign(arc.X1 - arc.X0), CreaturesModule.Unit), y = CreaturesModule.Down(arc.Y1 - Math.Sign(arc.Y1 - arc.Y0), CreaturesModule.Unit);
-        m.LayPatch(leaves, x, m.FloorUnder(x, y), floor: true);
-    }
 
     internal override void Steer(CreaturesModule m, Creature c, Spec.Species spec, Spec.Move mv) { }
 
