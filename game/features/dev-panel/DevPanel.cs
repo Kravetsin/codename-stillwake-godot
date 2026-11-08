@@ -92,6 +92,8 @@ public partial class DevPanel : CanvasLayer
         // The planet's hour (2026-11-07-night-chills): dusk starting, night a minute on; or the day's start. Refused aboard.
         buttons.AddChild(Style.Button("dusk", () => Send(new Sim.Sky.SetTime(_modules().Rules.Cycle is { } day ? day.Length - day.Night - Daylight.Dusk : 0))));
         buttons.AddChild(Style.Button("day", () => Send(new Sim.Sky.SetTime(0))));
+        // A radar contact at once (2026-11-08-radar-contacts), on either side in turn, farther each time round.
+        buttons.AddChild(Style.Button("contact", () => Send(new Sim.Contacts.ContactNow(Content.Contacts.Wreck, NextContact()))));
         column.AddChild(buttons);
         // Surfaces (0076): a planet (0077) or the test strip opened, and this hero beamed between the last opened and the ship.
         var surfaces = Style.Gap(new HBoxContainer(), 8);
@@ -253,6 +255,16 @@ public partial class DevPanel : CanvasLayer
     private void Send(Command command)
     {
         if (_session() is Session s) s.Client.Send(command);
+    }
+
+    private int _contacts;
+
+    /// <summary>Where the next contact from the panel lies: left, then right, a third of the way farther each pair, round again.</summary>
+    private int NextContact()
+    {
+        int n = _contacts++;
+        int distance = Content.Contacts.Nearest + n / 2 % 4 * (Content.Contacts.Reach - Content.Contacts.Nearest) / 3;
+        return n % 2 == 0 ? -distance : distance;
     }
 
     /// <summary>Beams this hero down to the surface opened last, a planet or a strip; says so when none is.</summary>

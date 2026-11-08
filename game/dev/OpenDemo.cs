@@ -37,6 +37,8 @@ public partial class OpenDemo(Ui ui, string kind, Func<Registry> m, double openA
         {
             ui.OpenComputer.Set(machine.Id);
             ui.ComputerProgram.Set(program);
+            // The radar's demo: the first of the contacts its scenario placed, selected.
+            if (program == Content.Programs.Radar) ui.RadarContact.Set(0);
         }
         else ui.OpenCrate.Set(machine.Id);
     }

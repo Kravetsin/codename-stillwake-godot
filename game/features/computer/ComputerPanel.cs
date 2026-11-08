@@ -61,6 +61,14 @@ public partial class ComputerPanel : CanvasLayer
         _radar.SetAnchorsPreset(Control.LayoutPreset.FullRect);
         _screen.AddChild(_radar);
         _screen.AddChild(_text);
+        // A click on the radar selects the contact under it; on empty screen, none.
+        _screen.GuiInput += e =>
+        {
+            if (e is not InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.Left } || !_radar.IsVisibleInTree()) return;
+            _ui.RadarContact.Set(_radar.ContactAt(_screen.GetViewport().GetMousePosition()));
+            _radar.Selected = _ui.RadarContact.Get();
+            _screen.AcceptEvent();
+        };
         foreach (var program in Programs.All) AddButton(program);
         _frame.Visible = false;
         ui.OpenComputer.Subscribe(() =>
@@ -122,10 +130,15 @@ public partial class ComputerPanel : CanvasLayer
         _reading = Readout.Of(_world()!.Grid, _world()!.Power, _ui.OpenComputer.Get()!.Value);
         // A program that stops being ready is put away: the screen says why instead.
         if (!Readout.Ready(_reading, _ui.ComputerProgram.Get())) _ui.ComputerProgram.Set(null);
+        // The world's contacts, wherever the hero stands; a selected one gone is let go.
+        var contacts = _world()!.Contacts;
+        _radar.Contacts = [.. contacts.All];
+        if (_ui.RadarContact.Get() is { } id && contacts.Find(id) == null) _ui.RadarContact.Set(null);
+        _radar.Selected = _ui.RadarContact.Get();
         Paint();
     }
 
-    /// <summary>The one tooltip: what the radar shows under the pointer, my ship or the planet; else a button's program; none behind the menu.</summary>
+    /// <summary>The one tooltip: what the radar shows under the pointer, a contact, my ship or the planet; else a button's program; none behind the menu.</summary>
     private void Tips()
     {
         if (_ui.MenuOpen.Get())

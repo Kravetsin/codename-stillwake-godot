@@ -220,6 +220,20 @@ public static class Migrations
                 surface!["slices"] = Inserted56(surface["slices"]!.AsObject());
             return root;
         },
+        // 56 → 57 (2026-11-08-radar-contacts): a global module added after knowledge, on the ship's slices only: no contact up, the
+        // first counted down from its start as in a new world.
+        root =>
+        {
+            var slices = root["slices"]!.AsObject();
+            var all = slices.ToList();
+            slices.Clear();
+            foreach (var (id, slice) in all)
+            {
+                slices[id] = slice;
+                if (id == "knowledge") slices["contacts"] = new JsonObject { ["contacts"] = new JsonArray() };
+            }
+            return root;
+        },
     ];
 
     /// <summary>The slices with liquids' empty one after building's, where its module runs: a save holds them in that order.</summary>

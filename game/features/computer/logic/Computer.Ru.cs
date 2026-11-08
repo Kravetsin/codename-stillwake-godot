@@ -11,6 +11,9 @@ public static partial class Ru
         ["computer.program.radar"] = "Радар",
         ["computer.radar.ship"] = "Мой корабль",
         ["computer.radar.planet"] = "Планета",
+        ["computer.radar.wreck"] = "Заброшенный корабль",
+        ["contacts.unknownKind"] = "Нет такого вида точек на радаре",
+        ["contacts.outOfReach"] = "Вне досягаемости радара",
         ["use.open.computer"] = "[{key:use}] Бортовой компьютер",
     };
 }
