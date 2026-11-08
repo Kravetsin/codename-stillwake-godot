@@ -16,6 +16,9 @@ public sealed class WaterEase
     private float[] _shown = [], _next = [];
     private int _left, _top, _wide, _tall;
 
+    /// <summary>Whether, after the last step, every cell is drawn at the sim's level: stepped again on the same texels, nothing would move.</summary>
+    public bool Settled { get; private set; }
+
     /// <summary>
     /// Eases <paramref name="texels"/>, as <see cref="WaterCells.Write"/> wrote them for the box at (<paramref name="left"/>,
     /// <paramref name="top"/>), <paramref name="elapsedS"/> after the last frame; returns whether any cell is drawn.
@@ -25,6 +28,7 @@ public sealed class WaterEase
         if (_next.Length != wide * tall) _next = new float[wide * tall];
         float k = (float)(1 - Math.Exp(-Math.Max(0, elapsedS) * Rate));
         bool any = false;
+        bool settled = true;
         for (int y = 0; y < tall; y++)
             for (int x = 0; x < wide; x++)
             {
@@ -38,12 +42,14 @@ public sealed class WaterEase
                 float target = texels[at * 4];
                 float shown = seen ? _shown[gy * _wide + gx] + (target - _shown[gy * _wide + gx]) * k : target;
                 if (Math.Abs(target - shown) < 1) shown = target;
+                settled &= shown == target;
                 _next[at] = shown;
                 texels[at * 4] = (byte)Math.Round(shown);
                 any = true;
             }
         (_shown, _next) = (_next, _shown);
         (_left, _top, _wide, _tall) = (left, top, wide, tall);
+        Settled = settled;
         return any;
     }
 }

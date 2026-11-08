@@ -51,6 +51,17 @@ The sim tick was never the cause: 0.14 ms idle, 0.24 ms digging (a test with a S
   step. Sparks and dust in the air stay.
 - **The hologram keys stay still unless the pointer nears** (the user's idea) and draw again only when what they show changes;
   the energy tab draws its ring and count when they change, the bolt, whose beat shows the draw, every frame.
+- **Idle on the surface, the rest was spread thin** (2.30 → 2.03 ms, 435 → 493 fps, 45 s of `--planet --frames`). A sample
+  profile named no lion's share; five views each cost 4 to 14% of the managed samples and now cost under 1.1%:
+  - *Flora walked every plant for their light* each frame, two engine calls a plant. `BoxesByLeft` keeps the glowing ones'
+    boxes sorted by their left edge, so a frame looks only at those near the view: flora 0.127 → 0.007 ms.
+  - *Water still in a still view* was eased and its texture uploaded each frame. The view keeps what it wrote; the same cells,
+    the same bytes and an ease `Settled` skip the frame.
+  - *A sound placed in the world* set its volume each frame, playing or not, some 70 on a planet. Only one playing does; one
+    starting is heard as it starts (`Heard2D.Play`).
+  - *The hologram keys flickered* while the pointer was off the window under its foot, drawn each frame; off the window they
+    go out.
+  - *The daylight* set the same colour on the sky's layers and the fog each frame; it is set when it changes, per tick.
 - **Budget tests** (`FrameBudgetTests`, run apart from the others) hold each fix to a fraction of a frame on a desk, times
   `STILLWAKE_BUDGET_SLACK` on CI.
 
@@ -61,6 +72,9 @@ The sim tick was never the cause: 0.14 ms idle, 0.24 ms digging (a test with a S
   same `HewCells` at the drill's pace with the pickaxe.
 - The dev run uses the Debug build, about 2.4 times slower than Release for this code in tests. A release build plays faster;
   we do not optimise the Debug build.
+- The hero sets its parts' textures, visibility and colours each frame, the same ones mostly: 0.08 ms, and it always moves,
+  breathing. The wrist gauge draws each frame, for it shimmers. A sound's voices still process each frame to ask whether they
+  play, 0.04 ms. Not chased.
 - The remaining matter (dust motes, wisps) is still drawn a rectangle at a time: under a millisecond at ×4.
 - No chunks are unloaded: depth and ground explored add about half a millisecond (2.6 ms standing on the surface, 3.1 deep
   down); Godot culls what is out of view and the sim's whole-world tick is 0.03 ms. The costs that grew with the world were

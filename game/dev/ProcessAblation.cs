@@ -6,7 +6,7 @@ using Godot;
 namespace Stillwake.Game.Dev;
 
 /// <summary>
-/// What each node's own processing costs a frame, for development (<c>-- --ablate</c>, <c>=Name</c> for that child's children):
+/// What each node's own processing costs a frame, for development (<c>-- --ablate</c>, <c>=Name</c> for the children of the first node of that name or type):
 /// vsync off, after a warm-up each of the parent's children in turn has its processing switched off for a window of frames, between
 /// windows with every node on; a line on stdout per node, the frame time saved, then the game quits. What a node draws stays drawn,
 /// so the saving is its <c>_Process</c> and <c>_PhysicsProcess</c> and what they make the renderer redo.
@@ -33,6 +33,17 @@ public partial class ProcessAblation : Node
         ProcessMode = ProcessModeEnum.Always;
     }
 
+    /// <summary>The first node under <paramref name="from"/> named <paramref name="name"/> or of that type, depth first: most views go unnamed.</summary>
+    private static Node? Find(Node from, string name)
+    {
+        foreach (var child in from.GetChildren())
+        {
+            if (child.Name == name || child.GetType().Name == name) return child;
+            if (Find(child, name) is { } found) return found;
+        }
+        return null;
+    }
+
     public override void _Process(double delta)
     {
         long now = Stopwatch.GetTimestamp();
@@ -41,7 +52,7 @@ public partial class ProcessAblation : Node
         if (++_frame < Warm) return;
         if (_frame == Warm)
         {
-            var root = _under == null ? GetParent() : GetParent().FindChild(_under, recursive: true, owned: false);
+            var root = _under == null ? GetParent() : Find(GetParent(), _under) ?? GetParent();
             _nodes = [.. root.GetChildren().Where(n => n != this)];
             return;
         }

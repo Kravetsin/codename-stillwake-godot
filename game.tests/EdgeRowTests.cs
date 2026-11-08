@@ -36,10 +36,14 @@ public class EdgeRowTests
     [InlineData(699 - EdgeRow.NearBand, false)]
     [InlineData(100, false)]
     public void ThePointerNearTheFootBrightensThemAnywhereAlongIt(float y, bool bright) =>
-        Assert.Equal(bright, EdgeRow.Bright(y, rowTop: 700, overTablet: false));
+        Assert.Equal(bright, EdgeRow.Bright(y, rowTop: 700, overTablet: false, inWindow: true));
 
     [Fact]
-    public void OverATabletThatIsUpTheyAreBrightHoweverHigh() => Assert.True(EdgeRow.Bright(10, rowTop: 700, overTablet: true));
+    public void OverATabletThatIsUpTheyAreBrightHoweverHigh() => Assert.True(EdgeRow.Bright(10, rowTop: 700, overTablet: true, inWindow: true));
+
+    /// <summary>A pointer gone under the window's foot, to the taskbar, lights nothing: the keys flickered on, each drawn every frame (planet-frame-rate).</summary>
+    [Fact]
+    public void APointerOffTheWindowLightsThemNot() => Assert.False(EdgeRow.Bright(900, rowTop: 700, overTablet: true, inWindow: false));
 
     [Fact]
     public void TheyGrowWithTheInterfacesSize()
