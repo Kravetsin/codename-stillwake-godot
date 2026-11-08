@@ -1,7 +1,7 @@
 # Deep digging: sulfur, the blasting charge, deep caches (design and plan)
 
-Status: design for the user's review (2026-11-08), drafted by `design-author`, cut by `design-reviewer`. Nothing built.
-The open questions at the end are the user's to answer before slice 1.
+Status: accepted by the user (2026-11-08), drafted by `design-author`, cut by `design-reviewer`. Nothing built; slice 1
+is next.
 
 ## Problem
 
@@ -83,7 +83,7 @@ Two answers: an ore that turns into a faster way down, and finds worth digging t
 ## Deliberately not handled
 
 - Harm to heroes from a burst; area harm to creatures (a direct hit only).
-- Built walls, back walls, doors, machines: never broken by a burst (see open question 1).
+- Built walls, back walls, doors, machines: never broken by a burst (decision 1).
 - A placed charge, a timed fuse, chain reactions between charges.
 - Sulfur in anything but the charge; gunpowder, ammunition, fertiliser.
 - Rock from a crater; ruin walls' alloy from a crater (lost, the price of blasting a ruin instead of cutting it).
@@ -93,16 +93,12 @@ Two answers: an ore that turns into a faster way down, and finds worth digging t
 - Principle 7: the charge needs a planet, so nothing up to the drop pod uses it; `ContentTests`' list of what needs a planet
   gains it.
 
-## Open questions for the user
+## Decided with the user (2026-11-08)
 
-1. **Built walls.** Should a burst break built walls too (a friend's base, your own hull next to a wreck)? Recommended:
-   no, natural ground only: in space charges go off next to the ship's hull.
-2. **Sulfur in the garden band.** Rare specks from band 1, or only from band 2 near the heat (your first idea)? Recommended:
-   band 1 rare, so the charge arrives while the descent is still long.
-3. **One opal or four goods.** One `opal`, the caches differing by look and how many they hold; or each band its own good?
-   Recommended: one.
-4. **Thrown or placed.** Thrown on an arc, bursting where it lands; or placed with a fuse? Recommended: thrown: heroes take no
-   harm, so a fuse buys nothing.
+1. **Built walls stay.** A burst breaks natural ground only: in space charges go off next to the ship's hull.
+2. **Sulfur from the garden band**, rare there, so the charge arrives while the descent is still long.
+3. **One `opal`** for every band; the caches differ by look and by how many they hold.
+4. **Thrown**, bursting where it lands; no placed charge or fuse: heroes take no harm, so a fuse buys nothing.
 
 ## Plan
 
