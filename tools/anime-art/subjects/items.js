@@ -257,6 +257,26 @@ PICS.push({ id: 'iron', draw(a) {
 } });
 
 // Scrap: torn plate, a bent bar and a bolt in a heap.
+// Sulfur (the user's pick, 2026-11-08: bloom): a crumbly pale yellow lump, pores in its crust, on a sliver of the stone it grew on.
+const SULFUR = { base: '#d8c66c', shade: '#aa9c58', deep: '#7c7244', lite: '#eee2a4', spec: '#f4ecc0', ink: '#29251a' };
+const SULFUR_STONE = { base: '#5e6472', shade: '#434855', deep: '#2f3340', lite: '#747a88', spec: '#8e94a0', ink: '#0f111b' };
+PICS.push({ id: 'sulfur', draw(a) {
+  a.shape('M6 122L28 108L62 116L74 138L56 154L20 150Z', SULFUR_STONE, { lite: 'M6 122L28 108L62 116L40 124Z', shade: 'M62 116L74 138L56 154L46 132Z', lines: ['M40 124L46 132'] });
+  a.shape('M18 108C14 88 28 72 48 70C56 52 78 44 98 50C118 44 142 58 144 80C156 90 156 114 142 126C130 142 100 146 78 142C52 148 24 134 18 108Z', SULFUR, {
+    lite: 'M18 108C14 88 28 72 48 70C56 52 78 44 98 50C86 62 70 70 56 84C42 92 28 100 18 108Z',
+    shade: 'M144 80C156 90 156 114 142 126C130 142 100 146 78 142C96 132 120 120 130 100Z',
+    deep: 'M142 126C130 142 100 146 78 142C100 140 124 132 136 120Z',
+    lines: ['M60 96L72 106L68 120', 'M104 78L112 92', 'M120 110L110 124'] });
+  // Pores in the crust, a lit lip on the far side of each.
+  for (const [x, y, rx] of [[82, 88, 7], [118, 104, 5], [52, 112, 4], [96, 124, 4]]) {
+    a.flat(ell(x, y, rx, rx * .7), SULFUR.deep);
+    a.line(`M${x - rx * .7} ${y + rx * .5}C${x} ${y + rx * .9} ${x + rx * .6} ${y + rx * .6} ${x + rx} ${y}`, { c: SULFUR.lite, w: 1.3 });
+  }
+  for (const [x, y, s] of [[40, 86, 2.6], [70, 64, 2.2], [108, 62, 2.4], [132, 88, 2], [88, 106, 2.2], [62, 132, 2]]) a.flat(ell(x, y, s), SULFUR.spec);
+  a.shape('M124 146L132 138L142 142L138 152Z', SULFUR, { shade: 'M132 138L142 142L138 152Z' });
+  a.shape('M144 136L150 132L154 138L148 142Z', SULFUR, { shade: 'M150 132L154 138L148 142Z' });
+} });
+
 PICS.push({ id: 'scrap', draw(a) {
   a.tube('M18 110C40 74 60 66 96 60', 11, M.gun, { spec: false });
   a.shape('M40 74L64 40L104 26L132 58L120 76L136 96L104 118L84 100L58 112L46 96Z', M.steel, {
