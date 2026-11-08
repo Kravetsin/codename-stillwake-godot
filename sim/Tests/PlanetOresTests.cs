@@ -208,12 +208,13 @@ public class PlanetOresTests(ITestOutputHelper output)
 /// </summary>
 public class PlanetOresInvariantTests
 {
-    private static readonly int Stone = Materials.Get("stone").Code, Copper = Materials.Get("copperVein").Code, Iron = Materials.Get("ironVein").Code;
+    private static readonly int Stone = Materials.Get("stone").Code, Copper = Materials.Get("copperVein").Code, Iron = Materials.Get("ironVein").Code,
+        Magnetite = Materials.Get("magnetiteVein").Code;
 
     private static Arbitrary<uint> AnySeed => Gen.Choose(0, int.MaxValue).Select(s => (uint)s * 2654435761u).ToArbitrary();
 
-    /// <summary>A small planet that grows no pocket at all: its marks are reached only off its few stone cells (some 1,750), about one seed in 600.</summary>
-    private const uint Pocketless = 3230174845u;
+    /// <summary>A small planet that grows no pocket at all: its marks are reached only off its few stone cells (some 1,750); found by a search of seeds.</summary>
+    private const uint Pocketless = 1591163867u;
 
     [Property(MaxTest = 40)]
     public Property PocketsChangeOnlyPlainStoneAndNeitherTheGroundNorTheLodeVeinsNorTheGrowths() =>
@@ -229,7 +230,7 @@ public class PlanetOresInvariantTests
 
     /// <summary>
     /// How many cells the pockets turned to ore on the small planet of <paramref name="seed"/>, each checked: plain stone, solid, no
-    /// growth's, now copper or iron; the ground and the growths as they were without pockets.
+    /// growth's, now copper, iron or magnetite; the ground and the growths as they were without pockets.
     /// </summary>
     private static int Changed(uint seed)
     {
@@ -248,7 +249,7 @@ public class PlanetOresInvariantTests
         {
             int was = off.Materials![cell], now = on.Materials![cell];
             if (was == now) continue;
-            Assert.True(was == Stone && !footprint[cell] && on.At(cell) == '#' && (now == Copper || now == Iron), $"seed {seed}: cell {cell} {was} -> {now}");
+            Assert.True(was == Stone && !footprint[cell] && on.At(cell) == '#' && (now == Copper || now == Iron || now == Magnetite), $"seed {seed}: cell {cell} {was} -> {now}");
             changed++;
         }
         return changed;
