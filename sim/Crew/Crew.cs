@@ -99,14 +99,15 @@ public interface ICrewOps
     /// <summary>
     /// Hero <paramref name="peer"/>'s air pays <paramref name="units"/> at once, as the cold and the lava take it:
     /// a ruin's resonator zapping it (0091). Air run dry starts its last breath, which the rest cuts; nothing in creative mode, nor for a hero out or none.
+    /// Counted as a hurt of <paramref name="harm"/> (2026-11-08-hurts-are-shown).
     /// </summary>
-    void Shock(int peer, int units);
+    void Shock(int peer, int units, Harm harm);
 
     /// <summary>
     /// An enemy's blow of <paramref name="units"/> on hero <paramref name="peer"/>: a creature's ram or pounce, its bolt. A worn
-    /// cape spares its share (<c>Cape.Guard</c>); the rest is paid as <see cref="Shock"/> pays (2026-10-27-the-cape-is-worn).
+    /// cape spares its share (<c>Cape.Guard</c>); the rest is paid as <see cref="Shock"/> pays (2026-10-27-the-cape-is-worn). A hurt of <paramref name="harm"/>.
     /// </summary>
-    void Blow(int peer, int units);
+    void Blow(int peer, int units, Harm harm);
 }
 
 /// <summary>
@@ -247,6 +248,7 @@ public sealed partial class CrewModule : Module<CrewState>, ICrewQueries, ICrewO
                 bool chill = Rules.Cycle is { } day && State.Clock / Content.Crew.BreathEvery % day.Every == 0;
                 int cold = Soften(hero, ColdAt(hero.Id, hero.Cell, bare: beat, chill), Content.Cape.Warmth);
                 int burn = Burns(hero.Cell) ? Content.Lava.Burn : 0;
+                if (burn > 0) Hurt(hero, Harm.Burn);
                 int left = hero.Air + net - cold;
                 hero.Air = Math.Max(0, left - burn);
                 if (hero.Air > 0)
@@ -273,6 +275,13 @@ public sealed partial class CrewModule : Module<CrewState>, ICrewQueries, ICrewO
         if (hero.Gasp == 0) PassOut(hero);
     }
 
+    /// <summary>A hurt taken, counted with its kind, for the client to show (2026-11-08-hurts-are-shown).</summary>
+    private static void Hurt(Hero hero, Harm harm)
+    {
+        hero.Hurts += 1;
+        hero.Hurt = harm;
+    }
+
     /// <summary>Passing out is death (0061): what it carried stays where it fell, off the grid at the spawn.</summary>
     private void PassOut(Hero hero)
     {
@@ -285,19 +294,20 @@ public sealed partial class CrewModule : Module<CrewState>, ICrewQueries, ICrewO
         _itemsOps.LeaveBody(hero.Id, onGrid ? hero.Cell : State.Spawn);
     }
 
-    public void Shock(int peer, int units)
+    public void Shock(int peer, int units, Harm harm)
     {
         if (HeroOf(peer) is not { Out: 0 } hero || _items.Creative(peer) || units <= 0) return;
+        Hurt(hero, harm);
         // The air pays what it holds; the last breath, what it falls short by.
         int beyond = units - hero.Air;
         hero.Air = Math.Max(0, hero.Air - units);
         if (hero.Air == 0) Gasps(hero, beyond);
     }
 
-    public void Blow(int peer, int units)
+    public void Blow(int peer, int units, Harm harm)
     {
         if (HeroOf(peer) is not { Out: 0 } hero || _items.Creative(peer) || units <= 0) return;
-        Shock(peer, Soften(hero, units, Content.Cape.Guard));
+        Shock(peer, Soften(hero, units, Content.Cape.Guard), harm);
     }
 
     /// <summary>

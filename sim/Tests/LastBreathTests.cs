@@ -99,9 +99,9 @@ public class LastBreathTests
     public void AShockCutsItAUnitABreathAndOnePastWhatIsLeftPassesTheHeroOut()
     {
         var w = Dry();
-        w.M.Crew.Shock(0, 3);
+        w.M.Crew.Shock(0, 3, Harm.Shock);
         Assert.Equal((Content.Crew.LastBreath - 3 * Content.Crew.LastBreathPerUnit, 0), (HeroOf(w).Gasp, HeroOf(w).Out));
-        w.M.Crew.Shock(0, HeroOf(w).Gasp / Content.Crew.LastBreathPerUnit);
+        w.M.Crew.Shock(0, HeroOf(w).Gasp / Content.Crew.LastBreathPerUnit, Harm.Shock);
         Assert.Equal((0, Content.Crew.PassOut), (HeroOf(w).Gasp, HeroOf(w).Out));
     }
 
@@ -110,11 +110,11 @@ public class LastBreathTests
     {
         var w = new Scenario(PodRoom).Do(new Enter(Beyond) { From = 0 }).Run();
         int air = HeroOf(w).Air;
-        w.M.Crew.Shock(0, air + 2);
+        w.M.Crew.Shock(0, air + 2, Harm.Shock);
         Assert.Equal((0, Content.Crew.LastBreath - 2 * Content.Crew.LastBreathPerUnit), (HeroOf(w).Air, HeroOf(w).Gasp));
         // A blow far past the air passes it out at once.
         w = new Scenario(PodRoom).Do(new Enter(Beyond) { From = 0 }).Run();
-        w.M.Crew.Shock(0, 10 * Scenario.Full);
+        w.M.Crew.Shock(0, 10 * Scenario.Full, Harm.Shock);
         Assert.Equal(Content.Crew.PassOut, HeroOf(w).Out);
     }
 

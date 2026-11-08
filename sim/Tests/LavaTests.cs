@@ -77,6 +77,17 @@ public class LavaTests
     }
 
     [Fact]
+    public void EachBreathOnLavaIsCountedAsABurn()
+    {
+        var w = World();
+        while (w.Crew().Clock % Content.Crew.BreathEvery != Content.Crew.BreathEvery - 1) w.Run();
+        w.Do(new Enter(OnLava) { From = 0 }).Run();
+        Assert.Equal((1, Harm.Burn), (HeroOf(w).Hurts, HeroOf(w).Hurt));
+        w.Run(Content.Crew.BreathEvery);
+        Assert.Equal(2, HeroOf(w).Hurts);
+    }
+
+    [Fact]
     public void ACapeSparesNoneOfTheLavasBurnItIsHeatNotCold()
     {
         var w = World().Wear(0, Content.Cape.Item);

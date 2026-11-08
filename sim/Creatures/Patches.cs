@@ -1,4 +1,5 @@
 using System.Text.Json.Serialization;
+using Stillwake.Sim.Crew;
 using Spec = Stillwake.Content.Creatures;
 
 namespace Stillwake.Sim.Creatures;
@@ -43,6 +44,14 @@ public sealed partial class CreaturesModule
         State.Patches.Add(new Patch { Id = State.Fired, Kind = kind, Left = left, Top = top, Width = right - left, Height = bottom - top, Ticks = k.Lasts });
     }
 
+    /// <summary>Whether a hero in cell (<paramref name="x"/>, <paramref name="y"/>) pays a patch each breath: one holds the cell and sees it. What the client shows as stinging.</summary>
+    public bool Stings(int x, int y)
+    {
+        foreach (var p in State.Patches)
+            if (p.Holds(x, y) && Sees(p, x, y)) return true;
+        return false;
+    }
+
     /// <summary>The open row on the floor under cell (<paramref name="x"/>, <paramref name="y"/>): the last open one falling from it, at most a patch's fall.</summary>
     internal int FloorUnder(int x, int y)
     {
@@ -69,7 +78,7 @@ public sealed partial class CreaturesModule
             if (hero.Out != 0 || hero.Cell < 0 || hero.Cell >= cells) continue;
             int hx = hero.Cell % width, hy = hero.Cell / width;
             foreach (var p in patches)
-                if (p.Holds(hx, hy) && Sees(p, hx, hy)) _crewOps.Shock(hero.Id, Spec.PatchOf(p.Kind).Damage);
+                if (p.Holds(hx, hy) && Sees(p, hx, hy)) _crewOps.Shock(hero.Id, Spec.PatchOf(p.Kind).Damage, Harm.Poison);
         }
     }
 

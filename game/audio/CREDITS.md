@@ -40,6 +40,8 @@ itself by a 0.5 s equal-power crossfade, −26 dBFS RMS, OGG.
 
 The cave lurkers' attack sounds (lurker-attacks) are their pick page's picks: the capback's hiss, its slime's splat, the snail's
 shut shell struck; each mono 48 kHz WAV from its attack (a −45 dB gate), its last 60 ms faded, normalised to −3 dBFS peak; the cue sets the mix.
+The hero's hurt (hurts-are-shown) is its pick page's «oof», cut and levelled as those; its three takes then matched by mean loudness,
+the louder turned down.
 
 | File | Source | Author | Licence |
 | ---- | ------ | ------ | ------- |
@@ -138,6 +140,9 @@ shut shell struck; each mono 48 kHz WAV from its attack (a −45 dB gate), its l
 | `crew/land-hard-3.wav` | Freesound, "Footsteps_Mountain_Boots_Rock_Jump_Sequence_Mono.wav" (0.4 s from 6.508 s), https://freesound.org/people/Nox_Sound/sounds/558477/ | Nox_Sound | CC0 |
 | `crew/land-soft-1.wav` | Freesound, "land a jump.wav" (0.307 s from 0.001 s), https://freesound.org/people/zepurple/sounds/540272/ | zepurple | CC0 |
 | `crew/lava-burn-1.wav` | Freesound, "Pressure Hiss" (0.8 s), https://freesound.org/people/unfa/sounds/211096/ | unfa | CC0 |
+| `crew/hurt-1.wav` | Freesound, "Oof (original)" (all of it from its attack, band 130 Hz–2 kHz, echoes at 7 and 15 ms), https://freesound.org/people/unfa/sounds/719053/ | unfa | CC0 |
+| `crew/hurt-2.wav` | the same, raised 6% in pitch at its length | unfa | CC0 |
+| `crew/hurt-3.wav` | the same, lowered 7% in pitch at its length | unfa | CC0 |
 | `crew/step-alloy-1.wav` | Freesound, "Boots_On_Hollow_Metal_Light_01" (0.3 s), https://freesound.org/people/BlondPanda/sounds/778413/ | BlondPanda | CC0 |
 | `crew/step-alloy-2.wav` | Freesound, "Boots_On_Hollow_Metal_Light_02" (0.3 s), https://freesound.org/people/BlondPanda/sounds/778414/ | BlondPanda | CC0 |
 | `crew/step-alloy-3.wav` | Freesound, "Boots_On_Hollow_Metal_Light_04" (0.3 s), https://freesound.org/people/BlondPanda/sounds/778415/ | BlondPanda | CC0 |

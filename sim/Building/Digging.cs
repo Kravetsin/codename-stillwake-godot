@@ -1,4 +1,5 @@
 using Stillwake.Content;
+using Stillwake.Sim.Crew;
 using Stillwake.Sim.Grid;
 using Stillwake.Sim.Items;
 
@@ -141,7 +142,7 @@ public sealed partial class BuildingModule
         // A tool that cuts wrecks only (the plasma cutter) touches no block nor pile: no crack, no felling, no cradle's shock.
         if (hit <= 0) return;
         // A relic's cradle discharges into whoever strikes it (0096), the felling hit too, before it gives its shards.
-        if (hewn.Plants.Any(p => p.Kind == Ruins.Cradle)) _crewOps.Shock(from, ShockOf(tool));
+        if (hewn.Plants.Any(p => p.Kind == Ruins.Cradle)) _crewOps.Shock(from, ShockOf(tool), Harm.Shock);
         foreach (int cell in hewn.Cells)
         {
             if (PileAt(cell) is { } pile) HitPile(from, pile, _items.Damage(from, tool));

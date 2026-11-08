@@ -300,7 +300,7 @@ public class SuitsTests
                 if (s.Type == "enter") w.Do(EnterAt(s.Cell, s.Hero));
                 else if (s.Type == "thrust") w.Do(new Thrust(s.Ticks == 1) { From = s.Hero });
                 else if (s.Type == "refill") w.Do(new Refill { From = s.Hero });
-                else if (s.Type == "shock") w.M.Crew.Shock(s.Hero, s.Ticks);
+                else if (s.Type == "shock") w.M.Crew.Shock(s.Hero, s.Ticks, Harm.Shock);
                 else if (s.Type == "upgrade") w.M.Knowledge.Grant("canister1");
                 else if (s.Type == "swap")
                 {

@@ -58,10 +58,10 @@ by one rule here. Grazers on planets, lurkers in caves, the sentry on wrecks, th
   one farther; a blow on it or its wreck it answers so. The pounce crouches `WindUp`, flies `Ticks` at `Speed` at its grudge or the
   nearest awake hero in its run; `Return` flies it home. The arc: aimed `Lock` before its wind-up ends, to the first wall, `Lingers`.
   `CutTether` lets a reel go. Its wreck gone, it dies.
-- **Lurkers** (lurker-attacks): still walkers on `Guard`, seeing a hero only in line. The capback `Vent`s at one within `Strike`
-  (`Cooldown`); provoked `Provokes` ticks by answering, it spits at one `From` to `Reach`, a puddle where it lands (`Leaves`).
-  The snail's `Shell` opens `Hold` past a hero within `Reach`; it bites, a steady lunge.
-- **Patches** (`PatchKind`) last `Lasts`; each breath an awake hero in one, seen from its middle, pays `Damage` (`Shock`).
+- **Lurkers** (lurker-attacks): still walkers on `Guard`, seeing only in line. The capback `Vent`s at one within `Strike`
+  (`Cooldown`); provoked `Provokes` ticks by answering, it lobs at one `From` to `Reach`, a puddle (`Leaves`) laid as it lands
+  `Lingers` on, harmless. The snail's `Shell` opens `Hold` past a hero within `Reach`; it bites, a short lunge.
+- **Patches** (`PatchKind`) last `Lasts`; each breath an awake hero in one seen from its middle pays `Damage` (`Shock`, `Stings`).
 - **The warden** (`Posted`, `Ward`): on the beat at a standing post with a standing relic in its arena, a hero in its keep box,
   none tied to it. Woken by an awake hero in the arena, a blow or a sibling, it pounces if no sibling acts (`Flies`: to the first
   solid cell), then `Stuck`. **Kept loop, no drop, never `Dead`:** post or relic gone, or `Calm`. Killed, it fells its post.
@@ -70,11 +70,11 @@ by one rule here. Grazers on planets, lurkers in caves, the sentry on wrecks, th
 - **Shots:** `Fire` takes an ammo and its gun's `Energy`; each tick, in id order, one steps, hitting a cell's solid, lowest-id
   creature, wreck (not `Passed`), on through what its gun `Pierces`. It falls (`ShotFlight.Gravity`).
 - **The dead** are gone to all from the blow, swept within the tick.
-- **`HitBy(Creature)`** (0103), **`Bolted(Arc)`**, as the hit hero's client saw it: a `Blow` of the move's `Damage`, the act ends; or
+- **`HitBy(Creature)`** (0103), **`Bolted(Arc)`**, as the hero's client saw it: a `Blow` of the move's `Damage`, the act ends; or
   the arc's projectile's, once a hero.
 - **`Release`** (dev): `Place`.
 - **`Threatens(peer)`**: one within `ThreatReach` acts or hunts the crew.
-- **Kept or gone** (0102): in a hero's keep box; out of all, gone `Linger` after; out of every hard box, at once. **Spawning:** on the beat a herd of the hero's band's kind (surface: 0), `Spacing` apart outward, all or none (`PerKeep`, `Max`, `Apart`). **Guards** (`Kind.Guards`): each
+- **Kept or gone** (0102): in a hero's keep box; out of all, gone `Linger` after; out of every hard box, at once. **Spawning:** on the beat a herd of the hero's band's kind, `Spacing` apart outward, all or none (`PerKeep`, `Max`, `Apart`). **Guards** (`Kind.Guards`): each
   piece past `Watermark` with a perch draws once: sentries on half.
 
 ## Commands
@@ -88,7 +88,7 @@ by one rule here. Grazers on planets, lurkers in caves, the sentry on wrecks, th
 
 - Every creature is on the grid, a walker out of everything solid; damage below hit points; ids only grow; never more than
   `Max`; a drive's or act's ticks never past its length; a charge, or an arc a hero, hurts at most once; suits in range; a
-  shut shell never hurt; a patch on the grid within `Lasts` (`CreaturesInvariantTests`). Every shot on the grid, within reach, never through a cell left solid (`ShotsInvariantTests`).
+  shut shell never hurt; a patch on the grid within `Lasts` (`CreaturesInvariantTests`). Every shot on the grid, in reach, never through solid (`ShotsInvariantTests`).
 - No habitats, creatures or new guarded piece: nothing drawn; only `Watermark` moves.
 
 ## Deliberately not handled

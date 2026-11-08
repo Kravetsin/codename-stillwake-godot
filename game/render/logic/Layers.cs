@@ -81,6 +81,9 @@ public static class Layers
     /// <summary>Drones flying with what they carry, over the heroes they pass (logistics, 0062).</summary>
     public const int Drones = 18;
 
+    /// <summary>A capback's gas and its glob flying (lurker-attacks), over the creatures and the heroes in it.</summary>
+    public const int Gas = Drones;
+
     /// <summary>Water in a planet's cells (liquids): over the heroes, so one in it is seen through it.</summary>
     public const int Water = 18;
 
@@ -136,6 +139,9 @@ public static class ScreenLayers
 
     /// <summary>A low suit's fogged visor (<c>Features.Crew.VisorFogView</c>), over the world and the frost it blurs, under all that is read (2026-11-05-the-last-breath).</summary>
     public const int VisorFog = 3;
+
+    /// <summary>A hurt's wash at the screen's edges (<c>Features.Crew.HurtView</c>), with the visor's fog, under all that is read (2026-11-08-hurts-are-shown).</summary>
+    public const int Hurt = VisorFog;
 
     /// <summary>The top of the screen: the suit's gauge, the hotbar, the inventory and crafts, pick-ups over a head.</summary>
     public const int Hud = 4;

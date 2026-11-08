@@ -59,6 +59,16 @@ public partial class SuitGauge : CanvasLayer
     /// <summary>This player's hero breathes room air again, out of thin air or vacuum: the hero's visor puffs.</summary>
     public event Action? BreathesAgain;
 
+    /// <summary>
+    /// A hurt of this player's hero (2026-11-08-hurts-are-shown): the sim is read at once, so the loss shows with the hurt, and
+    /// blinks in <paramref name="tint"/>, the kind's colour.
+    /// </summary>
+    public void Hurt(Color tint)
+    {
+        _sinceRead = RefreshS;
+        _gauge.Hurt(tint);
+    }
+
     /// <summary>Where the gauge lies on the screen: what the markers keep out of.</summary>
     public Rect2 Covers => _gauge.GetGlobalRect();
 

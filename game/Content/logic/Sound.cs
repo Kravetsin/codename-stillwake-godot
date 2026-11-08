@@ -408,6 +408,12 @@ public static class Sound
     public static readonly double LavaBurnEveryS = (double)Stillwake.Content.Crew.BreathEvery / Stillwake.Sim.World.TicksPerSecond;
 
     /// <summary>
+    /// The hero's own «oof» on each of its hurts (2026-11-08-hurts-are-shown), under the source's own sound: the user's pick, three
+    /// takes of one voice a few tones apart, never one twice running, each ±10% in pitch so a train of them never repeats. Heard in the helmet.
+    /// </summary>
+    public static readonly Cue Hurt = new(Shots("crew/hurt", 3), -6, Pitch: 0.1f);
+
+    /// <summary>
     /// A drip off a stalactite landing in a cave (0080), where it splashes: a water drop, at most one every
     /// <see cref="CaveDripLeastS"/> to <see cref="CaveDripMostS"/> s however many fall, up to <see cref="CaveDripLowDb"/> under its cue's.
     /// </summary>
@@ -694,7 +700,7 @@ public static class Sound
     /// <summary>The descent's cues, made from others declared above.</summary>
     public static readonly IReadOnlyList<Cue> Pod = [PodThrust, PodRelease, PodTouchdown, PodRumble, PodFlash, PodBlast];
 
-    public static readonly IReadOnlyList<Cue> All = [Title, Space, Step, Land, Jump, Alarm, Screwdriver, PowerDriverBite, PowerDriverLoop, PowerDriverOff, Hiss, Click, Clink, VentHum, DoorOpen, DoorClose, Valve, Act, ActInSpace, Fire, Swing, Chop, Break, Shot, Drum, Ready, NailShot, DryClick, NailHit, NailReady, RailCharge, RailReady, RailShot, ArcStruck, ArcHit, CapbackHiss, CapbackSplat, ShellClink,AirFill, Inhale, Thrust, ChargerHum, ChargeFull, DrillWhir, FormerStroke, FormerMotor, SmelterHum, SmelterCrackle, DroneWhir, DroneDock, DroneGrab, SalvageThrust, MusicBox, Zap,
+    public static readonly IReadOnlyList<Cue> All = [Title, Space, Step, Land, Jump, Alarm, Screwdriver, PowerDriverBite, PowerDriverLoop, PowerDriverOff, Hiss, Click, Clink, VentHum, DoorOpen, DoorClose, Valve, Act, ActInSpace, Fire, Swing, Chop, Break, Shot, Drum, Ready, NailShot, DryClick, NailHit, NailReady, RailCharge, RailReady, RailShot, ArcStruck, ArcHit, CapbackHiss, CapbackSplat, ShellClink, Hurt, AirFill, Inhale, Thrust, ChargerHum, ChargeFull, DrillWhir, FormerStroke, FormerMotor, SmelterHum, SmelterCrackle, DroneWhir, DroneDock, DroneGrab, SalvageThrust, MusicBox, Zap,
         StepGrass, StepSoil, StepStone, StepAlloy, LandSoft, LandHard, LandAlloy, HitSoil, HitStone, BreakSoil, BreakStone,
         ChopWood, TreeFall, Bush, Grass, Crystal, Glowcap, WoodBreak, ClothTear, GlassBreak, MetalBreak, CeramicBreak, LavaBed,
         LavaBubble, LavaBurn, CaveDrip, SplashIn, SplashOut, SwimStroke, WaterPour, CreatureDeath, .. Ticks.Values.SelectMany(t => new[] { t.Alert, t.WindUp, t.Unclamp, t.Clamp, t.Snap, t.Death }), .. Istukans.Values.SelectMany(g => new[] { g.Wake, g.Alert, g.WindUp, g.Pounce, g.Killed, g.ShutDown }), .. RamHits.Values, .. Pod];

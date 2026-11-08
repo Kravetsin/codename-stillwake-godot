@@ -6,17 +6,17 @@
 | --- | --- |
 | `Crew.cs` | The module, its commands, `ICrewQueries`, `ICrewOps`. |
 | `Fuzz.cs` | The commands the desync suite draws. |
+| `Harm.cs` | What hurt a hero: `Harm`. |
 | `State.cs` | The saved slice and its records: `Hero`, `CrewState`. |
 
-Heroes inside the sim: where each is, as its client says, and how it breathes: the lifepod's air beside it
-(0028), room air in a cell holding it, its own air elsewhere, then its last breath;
-passing out, made again at the pod.
+Heroes in the sim: where each is, as its client says, and how it breathes: the pod's air by it (0028),
+a room's, its own, then its last breath; passing out, made again at the pod.
 
 - **Depends on:** `Atmosphere` (`Breathe`, `AiredAt`); `Grid` (`Width`, `Height`, `Zone`, `WallAt`, `BackAt`); `Items` (`Equipped`, `WornIn`,
   `ShortOf`, `Creative`; ops `Take`, `Drain`, `StopRunning`, `LeaveBody`, `Kit`); `Players` (`Worn`, `IPlayersOps`); `Knowledge` (`Granted`); `Sky` (`Now`).
 - **State** (`CrewState`, all saved): `Spawn` — the first lifepod's hatch (`Content.Crew.PodHatch`), else the
-  first `S`, else cell 0; `Pod` — that pod's top-left, or null (`Fixed`); `Clock`; `Heroes` — by peer id, in id
-  order (`Hero`, each field told on it).
+  first `S`, else cell 0; `Pod` — its top-left or null (`Fixed`); `Clock`; `Heroes` — by peer id, in id
+  order (`Hero`, fields told on it).
 
 ## Rules
 
@@ -41,12 +41,11 @@ passing out, made again at the pod.
   freed, its tool stopped, its inventory kept for its seat. Off the ship the seat goes aboard (`ISurfaces.Send`).
 - **Surfaces** (0076, `ICarries`): `Depart` gives up the `Hero`, `Arrive` takes it at the cell given or
   the spawn. A hero waking off the ship wakes aboard, its body left behind.
-- **Exertion:** `Exert(On)`, sent on a change of running by speed (not for a swim, 0047); in a wheel, of a move key held. Then a
+- **Exertion:** `Exert(On)`, sent as running by speed changes (no swim, 0047), in a wheel as a move key is held. Then a
   breath costs `Crew.Exerted` units, room air or suit alike. Passing out ends it.
 - **The jetpack** (0047): `Thrust(On)` is sent while the client's thrust differs from the sim's. Each tick before
-  the breath a conscious hero thrusting with a jetpack counts a tick; every `Jetpack.TicksPerUnit` its suit pays a
-  unit, down to nothing. Thrust stops with the jetpack off, on a planet (0076) or out, one
-  landing on a hero out cleared; the flight is the client's.
+  the breath an awake hero thrusting counts one; every `Jetpack.TicksPerUnit` its suit pays a unit. Thrust stops with the jetpack off, on a planet (0076) or out
+  (one landing then cleared); the flight is the client's.
 - **Electric tools** (0055): `Items` owns runs; crew stops one (`StopRunning`) while a hero is out.
 - **The suit's mode** (regen-suit): `SuitMode(On)` sets `Hero.SuitOn`, working in a body with `Switch`. The regen
   suit on, after the thin-air clamp, gives back what a breath took, up to `Suit.RegenMost`, for `Suit.RegenCost`
@@ -66,11 +65,12 @@ passing out, made again at the pod.
   `Crew.BareCold` more, on thin air's beat; at night with no `BackAt`, `Chill` more on its own beat (night-chills).
 - **Lava burns** (0087): `Burns(cell)`: lava at the reported cell or up to `Lava.Reach` rows under it; each breath the suit
   alone pays `Lava.Burn` more.
-- **A shock** (0091): `ICrewOps.Shock(peer, units)` takes units from a conscious hero's air at once, the rest from
-  its last breath; nothing in creative. **A blow** (0103): `Blow`, from `Creatures` (a ram, a bolt), the same.
+- **A shock** (0091): `ICrewOps.Shock(peer, units, harm)` takes units from a conscious hero's air at once, the rest from
+  its last breath; nothing in creative. **A blow** (0103): `Blow`, from `Creatures` (a ram, a bolt), the same. These and
+  lava are hurts (hurts-are-shown): counted in `Hero.Hurts`, the last's `Harm` in `Hero.Hurt`.
 - **The cape** (2026-10-27-the-cape-is-worn) spares `Cape.Guard`‰ of a blow, `Cape.Warmth`‰ of the cold (not the
   breath or lava), rounded down, the rest in `Hero.Spared` for either; a blow lands before the breath.
-- **Creative mode** (`Items`): a conscious hero's air is full each tick, taking no pod or room air; one out wakes as ever.
+- **Creative mode** (`Items`): an awake hero's air fills each tick, drawing no pod or room air; one out wakes as ever.
 - **Order:** breaths run in the simulation phase after `Atmosphere`'s and `Sky`'s, reading this tick's air.
 
 ## API

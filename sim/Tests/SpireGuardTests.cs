@@ -285,7 +285,7 @@ public class SpireGuardTests
         w.BesideWall().Run(2 * Ward.Calm);
         Assert.Equal(2, Guards(w).Count);
         // Passed out where it stood, it is no one in the hall.
-        M(w).Crew.Blow(1, 10 * Scenario.Full);
+        M(w).Crew.Blow(1, 10 * Scenario.Full, Harm.Blow);
         Assert.True(M(w).Crew.HeroOf(1)!.Out > 0);
         w.Run(Ward.Calm + 2);
         Assert.Empty(Guards(w));
