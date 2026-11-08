@@ -10,7 +10,8 @@ namespace Stillwake.Game.Features.Crafting;
 /// <summary>
 /// A station heard at work where it stands, on the World bus (0059), told by <see cref="StationView"/> every frame what it shows:
 /// the Former's press strikes each time its head comes down in its pictures, over its motor spinning up, dipping at each stroke
-/// and running down after; the electric smelter's coils hum, risen and fallen, and its melt pops at random moments. Each
+/// and running down after; the electric smelter's coils hum, risen and fallen, and its melt pops at random moments; the crusher's
+/// rollers rumble, risen and fallen. Each
 /// machine has its own players, its loop begun somewhere along it, so two never sound in step.
 /// </summary>
 public partial class StationSounds : Node2D
@@ -36,12 +37,14 @@ public partial class StationSounds : Node2D
     /// </summary>
     public void Hear(int id, string kind, Vector2 at, bool works, long step, int frames, int? down, double elapsedS)
     {
-        if (kind is not ("former" or "smelter")) return;
+        if (kind is not ("former" or "smelter" or "crusher")) return;
         if (!_heard.TryGetValue(id, out var heard)) _heard[id] = heard = Made(kind);
         heard.Seen = true;
-        heard.Loop!.Position = heard.Shots!.Position = at;
+        heard.Loop!.Position = at;
+        if (heard.Shots != null) heard.Shots.Position = at;
         if (kind == "former") Press(heard, works, step, frames, down ?? 0, elapsedS);
-        else Smelt(heard, works, elapsedS);
+        else if (kind == "smelter") Smelt(heard, works, elapsedS);
+        else Crush(heard, works, elapsedS);
     }
 
     /// <summary>Every machine not heard this frame, gone from the grid, silenced at once.</summary>
@@ -54,18 +57,21 @@ public partial class StationSounds : Node2D
         foreach (int id in _gone)
         {
             _heard[id].Loop!.QueueFree();
-            _heard[id].Shots!.QueueFree();
+            _heard[id].Shots?.QueueFree();
             _heard.Remove(id);
         }
     }
 
     private Heard Made(string kind)
     {
-        var heard = kind == "former"
-            ? new Heard { Loop = Cues.Player2D(S.FormerMotor, S.World), Shots = Cues.Player2D(S.FormerStroke, S.World, voices: 2) }
-            : new Heard { Loop = Cues.Player2D(S.SmelterHum, S.World), Shots = Cues.Player2D(S.SmelterCrackle, S.World, voices: 3) };
+        var heard = kind switch
+        {
+            "former" => new Heard { Loop = Cues.Player2D(S.FormerMotor, S.World), Shots = Cues.Player2D(S.FormerStroke, S.World, voices: 2) },
+            "smelter" => new Heard { Loop = Cues.Player2D(S.SmelterHum, S.World), Shots = Cues.Player2D(S.SmelterCrackle, S.World, voices: 3) },
+            _ => new Heard { Loop = Cues.Player2D(S.CrusherRun, S.World) },
+        };
         AddChild(heard.Loop);
-        AddChild(heard.Shots);
+        if (heard.Shots != null) AddChild(heard.Shots);
         return heard;
     }
 
@@ -97,6 +103,14 @@ public partial class StationSounds : Node2D
             var (pitch, _) = StrikeTrain.Vary(_random, S.SmelterCracklePitch, 0);
             heard.Shots!.PlayAt(heard.Shots.GlobalPosition, pitch, (float)(_random.NextDouble() * S.SmelterCrackleLowDb));
         }
+    }
+
+    /// <summary>The crusher: its rollers' rumble risen while it works and fallen after.</summary>
+    private void Crush(Heard heard, bool works, double elapsedS)
+    {
+        heard.Envelope.Step(works, elapsedS, S.CrusherRunInS, S.CrusherRunOutS);
+        Loop(heard.Loop!, heard.Envelope.Playing);
+        heard.Loop!.OffsetDb = heard.Envelope.GainDb;
     }
 
     /// <summary>A loop started somewhere along it while heard, stopped once not.</summary>
