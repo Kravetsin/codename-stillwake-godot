@@ -304,3 +304,4 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [lobbed-glob](2026-11-08-lobbed-glob.md) | Lobbed glob | accepted |  |
 | [lurker-attacks](2026-11-08-lurker-attacks.md) | Lurker attacks | accepted | lobbed-glob (in part) |
 | [planet-frame-rate](2026-11-08-planet-frame-rate.md) | Planet frame rate | accepted |  |
+| [switched-off-sign](2026-11-08-switched-off-sign.md) | Switched-off sign | accepted |  |
