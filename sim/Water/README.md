@@ -36,6 +36,8 @@ electrolyser, which splits it into the liquid oxygen of the tanks on its output.
 - **A planet stage:** ice and copper come only of planets, and the electrolyser's electrodes are copper
   (industrial-oxygen), so it is understood and built there first.
 - **Liquids in cisterns** (liquids-in-tanks): a bottle stacks to 5 and a cistern holds `Water.CisternBottles`, 50.
+- **Drawing:** `DrawWater(Cistern, Count)` gives the sender `Count` bottles of its water, one at least; refused with
+  `water.noCistern`, `water.low` (less in it) or `items.full`, nothing changed (`DrawProblem`). E opens a cistern.
 
 ## API
 

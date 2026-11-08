@@ -48,6 +48,7 @@ public static partial class En
         ["use.open.autoTradeStation"] = "[{key:use}] Open auto trade station",
         ["use.open.charger"] = "[{key:use}] Open charging station",
         ["use.open.tank"] = "[{key:use}] Open oxygen tank",
+        ["use.open.cistern"] = "[{key:use}] Open cistern",
         ["use.open.lifepod"] = "[{key:use}] Fabricator",
         ["use.open.former"] = "[{key:use}] Former",
         ["use.open.smelter"] = "[{key:use}] Open electric smelter",

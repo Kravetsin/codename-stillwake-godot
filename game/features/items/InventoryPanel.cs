@@ -160,6 +160,9 @@ public partial class InventoryPanel : CanvasLayer
     /// <summary>The air, for an open tank: what it holds and whether a canister can be drawn out (industrial-oxygen).</summary>
     public Stillwake.Sim.Atmosphere.AtmosphereModule? Air { get; set; }
 
+    /// <summary>The water, for an open cistern: what it holds and whether bottles can be drawn out (industrial-oxygen).</summary>
+    public Stillwake.Sim.Water.WaterModule? Water { get; set; }
+
     /// <summary>The stations, for an electric smelter's or a grow capsule's panel: how far its work is, whether it works, whether it is too cold.</summary>
     public CraftingModule? Crafting { get; set; }
 

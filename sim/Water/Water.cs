@@ -11,6 +11,9 @@ namespace Stillwake.Sim.Water;
 /// <summary>Pours a bottle of water from the sender's inventory into cistern <c>Cistern</c>.</summary>
 public sealed record PourWater(int Cistern) : Command;
 
+/// <summary>Takes <c>Count</c> bottles' water out of cistern <c>Cistern</c> as bottles into the sender's inventory, one at least (industrial-oxygen).</summary>
+public sealed record DrawWater(int Cistern, int Count = 1) : Command;
+
 /// <summary>The water a cistern holds, by its machine id.</summary>
 internal sealed class Held
 {
@@ -41,6 +44,8 @@ public interface IWaterQueries
     int WaterIn(int machine);
     /// <summary>Why peer <paramref name="peer"/>'s bottle would not go into machine <paramref name="machine"/>: what the client shows first.</summary>
     string? PourProblem(int machine, int peer);
+    /// <summary>Why peer <paramref name="peer"/> could not draw <paramref name="count"/> bottles out of machine <paramref name="machine"/>: no cistern, less water in it, or no room.</summary>
+    string? DrawProblem(int machine, int peer, int count = 1);
     /// <summary>Why electrolyser <paramref name="machine"/> makes nothing, as an i18n key: no water behind it, its tanks full, or no power; null while it works.</summary>
     string? Stalled(int machine);
 }
@@ -80,6 +85,14 @@ public sealed partial class WaterModule : Module<WaterState>, IWaterQueries
             itemsOps.Take(c.From, Bottle);
             AddBottle(c.Cistern);
         });
+        Handles<DrawWater>(c => DrawProblem(c.Cistern, c.From, c.Count), c =>
+        {
+            int count = Math.Max(1, c.Count);
+            itemsOps.Give(c.From, [(Content.Water.Item, count)]);
+            var held = State.Cisterns.Find(h => h.Machine == c.Cistern)!;
+            held.Amount -= count * Content.Water.Bottle;
+            if (held.Amount == 0) State.Cisterns.Remove(held);
+        });
         // A cistern taken apart takes its water with it: a few cisterns at most, looked at every tick.
         System(Phase.Construction, () => State.Cisterns.RemoveAll(h => _grid.MachineById(h.Machine) == null));
         System(Phase.Simulation, () =>
@@ -99,6 +112,15 @@ public sealed partial class WaterModule : Module<WaterState>, IWaterQueries
         if (_grid.MachineById(machine) is not { } m || !Machines.Get(m.Kind).Is(MachineTrait.HoldsWater)) return "water.noCistern";
         if (!BottleFits(machine)) return "water.full";
         return _items.ShortOf(peer, Bottle);
+    }
+
+    public string? DrawProblem(int machine, int peer, int count = 1)
+    {
+        // A count under one is no rule of the game: it is taken as one.
+        count = Math.Max(1, count);
+        if (_grid.MachineById(machine) is not { } m || !Machines.Get(m.Kind).Is(MachineTrait.HoldsWater)) return "water.noCistern";
+        if ((long)WaterIn(machine) < (long)count * Content.Water.Bottle) return "water.low";
+        return _items.FullFor(peer, [(Content.Water.Item, count)]);
     }
 
     /// <summary>Whether a bottle fits in cistern <paramref name="machine"/>: poured by hand or from its hopper alike.</summary>

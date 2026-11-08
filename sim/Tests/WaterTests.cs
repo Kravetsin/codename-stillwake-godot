@@ -87,6 +87,26 @@ public class WaterTests
         Assert.Equal(1, Bottles(w, 0));
     }
 
+    /// <summary>Bottles drawn out of a cistern, several at once, as a tank's canisters are (industrial-oxygen).</summary>
+    [Fact]
+    public void DrawsBottlesOutOfACisternOrSaysWhyNot()
+    {
+        var w = World();
+        int cistern = Id(w, "cistern"), carried = Bottles(w, 0);
+        for (int i = 0; i < 3; i++) w.Do(new PourWater(cistern));
+        w.Run().Do(new DrawWater(cistern, 2)).Run();
+        Assert.Empty(w.Refusals);
+        Assert.Equal(WaterContent.Bottle, w.M.Water.WaterIn(cistern));
+        Assert.Equal(carried - 1, Bottles(w, 0));
+        w.Do(new DrawWater(Id(w, "tank"))).Do(new DrawWater(cistern, 2)).Run();
+        w.GiveItems(2, ("planks", Content.Inventory.Slots * Content.Items.Get("planks").Stack));
+        w.Do(new DrawWater(cistern) { From = 2 }).Run();
+        Assert.Equal(["water.noCistern", "water.low", "items.full"], Reasons(w));
+        Assert.Equal(WaterContent.Bottle, w.M.Water.WaterIn(cistern));
+        w.Do(new DrawWater(cistern)).Run();
+        Assert.Equal(0, w.M.Water.WaterIn(cistern));
+    }
+
     [Fact]
     public void RefusesAPourWithNoBottleAndTheSecondOfTwoThatWouldSpillOnOneTick()
     {

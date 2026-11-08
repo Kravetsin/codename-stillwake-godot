@@ -54,6 +54,7 @@ public partial class InventoryPanel
         {
             _ when spec.Is(Content.MachineTrait.Sells) => TradeBody(crate, spec),
             _ when spec.Is(Content.MachineTrait.Gas) => DrawBody(crate, spec, n => new Stillwake.Sim.Atmosphere.DrawCanister(crate, n)),
+            _ when spec.Is(Content.MachineTrait.HoldsWater) => DrawBody(crate, spec, n => new Stillwake.Sim.Water.DrawWater(crate, n)),
             _ when spec.Is(Content.MachineTrait.Fire) && spec.Inputs > 0 => FurnaceBody(crate, spec),
             _ when spec.Is(Content.MachineTrait.Fire) => GeneratorBody(crate, spec),
             _ when station is { Fed: true } => FedBody(crate, kind),
@@ -302,6 +303,15 @@ public partial class InventoryPanel
         if (_draw.Text != said) _draw.Text = said;
     }
 
+    /// <summary>The cistern's draw key: bottles out of what it holds, of its capacity (industrial-oxygen).</summary>
+    private void ShowCistern(int cistern)
+    {
+        if (Water == null || _client == null) return;
+        int held = Water.WaterIn(cistern), peer = _client.Id;
+        ShowDraw(held / Content.Water.Bottle, n => Water.DrawProblem(cistern, peer, n),
+            n => T("cistern.draw", ("n", n), ("held", held), ("all", Content.Water.CisternCapacity)));
+    }
+
     /// <summary>The tank's draw key: canisters out of what it holds, of its capacity.</summary>
     private void ShowTank(int tank)
     {
@@ -332,6 +342,7 @@ public partial class InventoryPanel
         var spec = reading.Kind is string kind && MachineSpecs.TryGet(kind, out var s) ? s : null;
         if (spec?.Is(Content.MachineTrait.Sells) == true && Crate is int sells) ShowCapsule(sells);
         if (spec?.Is(Content.MachineTrait.Gas) == true && Crate is int tank) ShowTank(tank);
+        if (spec?.Is(Content.MachineTrait.HoldsWater) == true && Crate is int cistern) ShowCistern(cistern);
         bool zone = spec?.Is(Content.MachineTrait.Zone) == true;
         if (spec is { Charges: true } && !zone && Crate is int station) ShowCharger(reading, station, Charger?.Invoke(station) == true);
         // A bay's bolt lit while it charges a drone docked in it.
