@@ -25,6 +25,7 @@ public partial class SoundView : Node
     private AudioEffectLowShelfFilter _suitLows = null!;
     private int _world, _suit;
     private bool _heard;
+    private int _flips;
     private ulong _clickedOn = ulong.MaxValue;
     private double _sinceRead = ReadS, _muffle, _fog, _fogTo;
 
@@ -62,7 +63,9 @@ public partial class SoundView : Node
         if ((_sinceRead += delta) >= ReadS)
         {
             _sinceRead = 0;
-            _heard = _floats();
+            bool heard = _floats();
+            if (heard != _heard) _flips++;
+            _heard = heard;
             _fogTo = _fogged();
         }
         double muffleS = S.MuffleMs / 1000.0;
@@ -73,6 +76,14 @@ public partial class SoundView : Node
         Play(_music, _musicShare, S.Title.VolumeDb);
         _spaceShare = Hearing.Ease(_spaceShare, _heard, delta, S.SpaceInS, S.SpaceOutS);
         Play(_space, _spaceShare, S.Space.VolumeDb);
+    }
+
+    /// <summary>The hearing for the log (<see cref="AudioCensus"/>): how muffled and fogged now, and how often floating flipped since asked last.</summary>
+    public string Census()
+    {
+        var line = $"muffle {_muffle:F2}, fog {_fog:F2}, floating flipped {_flips}×";
+        _flips = 0;
+        return line;
     }
 
     /// <summary>A loop at <paramref name="share"/> of its volume: playing while heard at all, stopped once silent.</summary>
