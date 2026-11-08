@@ -42,6 +42,14 @@ public static class DebrisLooks
     public static string? NameOf(string item, int id) =>
         Of.TryGetValue(item, out var look) ? $"debris/{look.Look}_{Content.Looks.Of(item, id) + 1:00}" : null;
 
+    /// <summary>
+    /// The picture a vessel's salvage object (<c>machine_&lt;kind&gt;</c>) wears: its debris piece's first look, as it drifts (plan V-1b),
+    /// so it reads as what it gives; null for any other picture.
+    /// </summary>
+    public static string? SalvagePicture(string name) =>
+        name.StartsWith("machine_", System.StringComparison.Ordinal) && Content.Vessels.SalvageOf(name["machine_".Length..]) is { } salvage
+            ? NameOf(salvage.From, 0) : null;
+
     /// <summary>Every picture of a look by the name <c>PixelArt.Picture</c> takes.</summary>
     public static IEnumerable<string> NamesOf((string Look, int Count) look) =>
         Enumerable.Range(1, look.Count).Select(n => $"debris/{look.Look}_{n:00}");

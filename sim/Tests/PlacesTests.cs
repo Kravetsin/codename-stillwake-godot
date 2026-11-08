@@ -188,6 +188,28 @@ public class PlacesTests
     }
 
     [Fact]
+    public void TheSledgehammerBreaksAVesselsSalvageForItsCostCountedObtained()
+    {
+        var (w, box) = Jumped(intact: true);
+        int width = w.M.Grid.Width;
+        string hammer = Weapons.Sledgehammer.Item;
+        var salvage = w.M.Grid.Machines.First(m => box.Contains(m.Cell % width, m.Cell / width)
+            && Vessels.SalvageOf(m.Kind) != null && Machines.Get(m.Kind).Hp <= Weapons.Sledgehammer.Damage);
+        var cost = Machines.Get(salvage.Kind).Cost;
+        var before = cost.Select(c => w.M.Knowledge.ObtainedOf(c.Item)).ToList();
+        w.GiveItems(0, (hammer, 1)).Do(new Enter(salvage.Cell)).Run();
+        // A blow from inside its top-left cell, straight up: the first thing every ray meets is the pile.
+        w.Do(new Hew(hammer, salvage.Cell % width * 1000 + 500, salvage.Cell / width * 1000 + 500, HewTesting.Up)).Run();
+        Assert.Empty(w.Refusals);
+        Assert.Null(w.M.Grid.MachineById(salvage.Id));
+        for (int i = 0; i < cost.Count; i++)
+        {
+            Assert.Equal(cost[i].Count, w.M.Items.Inventory(0).Sum(s => s?.Item == cost[i].Item ? s.Count : 0));
+            Assert.Equal(before[i] + cost[i].Count, w.M.Knowledge.ObtainedOf(cost[i].Item));
+        }
+    }
+
+    [Fact]
     public void AMapWithNoRoomRightOfTheShipRefusesTheJumpAndChangesNothing()
     {
         var w = new Scenario("""

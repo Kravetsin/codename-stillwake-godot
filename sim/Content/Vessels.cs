@@ -54,6 +54,17 @@ public sealed record VesselInterior(string Id, VesselRole Role, IReadOnlyList<st
 /// <summary>What a crate in a compartment of a role may hold: an item and how many, least and most, drawn per stack.</summary>
 public sealed record VesselLoot(string Item, int Min, int Max);
 
+/// <summary>
+/// A salvage object aboard a vessel (plan V-1b): a pile (hold-piles) copied from the piece of debris <c>From</c> that drifts by,
+/// its size, hit points and picture that piece's, giving <c>Times</c> what the piece gives on average (<see cref="Vessels.SalvageCost"/>),
+/// so its look says what it gives. It stands in compartments of its <c>Roles</c>; none for one only a breach leaves.
+/// </summary>
+/// <param name="Size">Its footprint for a piece that is no wreckage (a crate, a pod), whose size the sim does not keep; else the wreck's.</param>
+/// <param name="Hp">Its hit points for a piece that is no wreckage; else the wreck's.</param>
+public sealed record VesselSalvage(
+    string Kind, string From, char Char, IReadOnlyList<VesselRole> Roles, int Times = Vessels.SalvageTimes,
+    (int W, int H)? Size = null, int? Hp = null);
+
 /// <summary>Generated vessels and their wrecks (generated-vessels): classes, interiors, loot and where a vessel lies.</summary>
 public static class Vessels
 {
@@ -75,8 +86,63 @@ public static class Vessels
     /// <summary>What a vessel's walls and back walls are made of (<see cref="Materials"/>): never built.</summary>
     public const string Hull = "hull";
 
+    /// <summary>How many times its piece's loot a salvage object gives, unless it says otherwise.</summary>
+    public const int SalvageTimes = 5;
+
+    /// <summary>Items salvage never multiplies: what is kept rare (stamped-and-assembled) is given as its piece gives it.</summary>
+    public static readonly IReadOnlyList<string> Unmultiplied = ["circuit"];
+
+    /// <summary>Salvage aboard (plan V-1b): a pile for each piece of debris a vessel holds whole, where it stands.</summary>
+    public static readonly IReadOnlyList<VesselSalvage> Salvage =
+    [
+        new("salvageContainer", "cargoContainer", 'j', [VesselRole.Hold]),
+        new("salvageCrate", "cargoCrate", 'l', [VesselRole.Hold, VesselRole.Quarters], Size: (3, 2), Hp: 6),
+        new("salvagePod", "supplyPod", 'm', [VesselRole.Quarters, VesselRole.Life], Size: (2, 2), Hp: 6),
+        new("salvageTanks", "tankCluster", 'p', [VesselRole.Life]),
+        new("salvageMachine", "machineBlock", 'r', [VesselRole.Engine]),
+        // An engine's piece already gives much; five of it would flood the hold with gears.
+        new("salvageEngine", "engineBlock", 's', [VesselRole.Engine], Times: 2),
+        new("salvageRack", "cableRack", 't', [VesselRole.Bridge]),
+        new("salvageClod", "soilClod", 'z', [VesselRole.Quarters]),
+        // What tore the hull, left by a breach on the deck by its crater.
+        new("salvageSection", "hullSection", '1', []),
+        new("salvageSlab", "shieldSlab", '2', []),
+    ];
+
+    /// <summary>
+    /// What <paramref name="s"/> gives: for each entry of its piece's loot (<see cref="Loot"/>), <c>Times</c> × its mean count ×
+    /// its chance, rounded down, an entry under one dropped; an <see cref="Unmultiplied"/> item its own mean, rounded up.
+    /// </summary>
+    public static IReadOnlyList<(string Item, int Count)> SalvageCost(VesselSalvage s)
+    {
+        var cost = new List<(string Item, int Count)>();
+        foreach (var e in global::Stillwake.Content.Loot.Of(s.From) ?? throw new InvalidOperationException($"vessels: {s.From} has no loot"))
+        {
+            int odds = e.OneIn ?? 1;
+            int count = Unmultiplied.Contains(e.Item) ? (e.Min + e.Max + 2 * odds - 1) / (2 * odds) : s.Times * (e.Min + e.Max) / (2 * odds);
+            if (count > 0) cost.Add((e.Item, count));
+        }
+        return cost;
+    }
+
+    /// <summary>The salvage that is <paramref name="kind"/>; null for any other machine.</summary>
+    public static VesselSalvage? SalvageOf(string kind)
+    {
+        foreach (var s in Salvage) if (s.Kind == kind) return s;
+        return null;
+    }
+
+    /// <summary>The machine rows of <see cref="Salvage"/>, piles with no menu card, joined to <c>Machines.All</c>.</summary>
+    public static readonly IReadOnlyList<MachineSpec> SalvageRows = Salvage.Select(s =>
+    {
+        var (w, h) = s.Size ?? Wreckage.Sizes.Where(z => z.Item == s.From).Select(z => (z.W, z.H)).First();
+        int hp = s.Hp ?? Wreckage.HpOf(s.From) ?? throw new InvalidOperationException($"vessels: {s.From} has no hit points");
+        return new MachineSpec(s.Kind, w, h, [], SalvageCost(s), BuildTicks: 160, Hp: hp, Char: s.Char,
+            Means: $"salvage, a {s.From} {s.Times} times over: draw its whole footprint");
+    }).ToList();
+
     /// <summary>The machines a vessel may hold: fair loot that keeps no state in another module by its id.</summary>
-    public static readonly IReadOnlyList<string> Machines = ["crate", "lamp"];
+    public static readonly IReadOnlyList<string> Machines = ["crate", "lamp", .. Salvage.Select(s => s.Kind)];
 
     public static readonly IReadOnlyList<VesselClass> Classes =
     [
@@ -100,90 +166,110 @@ public static class Vessels
 
     public static readonly IReadOnlyList<VesselInterior> Interiors =
     [
+        // Salvage stands on the deck, its bottom row the interior's last: j container, l crate, m pod, p tanks, r machine
+        // block, s engine block, t cable rack, z soil clod; K a storage crate, L a lamp, = a shelf or bunk.
+        new("holdContainer", VesselRole.Hold,
+        [
+            "............LL..",
+            "............LL..",
+            "..jjjjjjjj......",
+            "..jjjjjjjj......",
+            "..jjjjjjjj.lll..",
+            "..jjjjjjjj.lll..",
+        ]),
         new("holdCrates", VesselRole.Hold,
         [
-            "..........LL....",
-            "..........LL....",
+            "....LL......LL..",
+            "....LL......LL..",
             "................",
             "................",
-            "..KKKKKKKK..KKKK",
-            "..KKKKKKKK..KKKK",
+            "..lll.lll.KKKK..",
+            "..lll.lll.KKKK..",
         ]),
-        new("holdRacks", VesselRole.Hold,
+        new("holdContainers", VesselRole.Hold,
         [
-            "....LL..........",
-            "....LL..........",
-            "..======..======",
-            "..KKKK....KKKK..",
-            "..KKKK....KKKK..",
-            "................",
+            "..........LL..........",
+            "..........LL..........",
+            "..jjjjjjjj..jjjjjjjj..",
+            "..jjjjjjjj..jjjjjjjj..",
+            "..jjjjjjjj..jjjjjjjj..",
+            "..jjjjjjjj..jjjjjjjj..",
         ]),
         new("quartersBunks", VesselRole.Quarters,
         [
             "......LL........",
             "......LL........",
-            "..=====...=====.",
-            "................",
-            "..=====...KKKK..",
-            "..........KKKK..",
+            "..=====...zzzz..",
+            "..........zzzz..",
+            "..=====mm.zzzz..",
+            ".......mm.zzzz..",
         ]),
-        new("quartersMess", VesselRole.Quarters,
+        new("quartersStores", VesselRole.Quarters,
         [
             "....LL....LL....",
             "....LL....LL....",
             "................",
             "................",
-            "..KKKK..........",
-            "..KKKK..........",
-        ]),
-        new("engineRoom", VesselRole.Engine,
-        [
-            "....LL..........",
-            "....LL..........",
-            "..=====..=====..",
-            "................",
-            "..KKKK....KKKK..",
-            "..KKKK....KKKK..",
-        ]),
-        new("lifeSupport", VesselRole.Life,
-        [
-            "......LL........",
-            "......LL........",
-            "................",
-            "..=====.........",
-            "..KKKK....KKKK..",
-            "..KKKK....KKKK..",
-        ]),
-        new("bridge", VesselRole.Bridge,
-        [
-            "....LL......",
-            "....LL......",
-            "............",
-            "..========..",
-            "..KKKK......",
-            "..KKKK......",
+            "..lll..mm.KKKK..",
+            "..lll..mm.KKKK..",
         ]),
         new("cabin", VesselRole.Quarters,
         [
             "....LL......",
             "....LL......",
-            "............",
             "..====......",
-            "......KKKK..",
-            "......KKKK..",
+            "............",
+            "..lll..mm...",
+            "..lll..mm...",
+        ]),
+        new("engineRoom", VesselRole.Engine,
+        [
+            "....LL..........",
+            "....LL..........",
+            "..rrrrrr..======",
+            "..rrrrrr........",
+            "..rrrrrr..KKKK..",
+            "..rrrrrr..KKKK..",
+        ]),
+        new("engineHall", VesselRole.Engine,
+        [
+            "..ssssssssss....LL..",
+            "..ssssssssss....LL..",
+            "..ssssssssssrrrrrr..",
+            "..ssssssssssrrrrrr..",
+            "..ssssssssssrrrrrr..",
+            "..ssssssssssrrrrrr..",
         ]),
         new("engineCell", VesselRole.Engine,
         [
             "..LL........",
             "..LL........",
-            "............",
-            "............",
-            "..KKKK......",
-            "..KKKK......",
+            "..rrrrrr....",
+            "..rrrrrr....",
+            "..rrrrrr.mm.",
+            "..rrrrrr.mm.",
+        ]),
+        new("lifeSupport", VesselRole.Life,
+        [
+            "......LL........",
+            "......LL........",
+            "..pppp..pppp....",
+            "..pppp..pppp....",
+            "..pppp..pppp.mm.",
+            "..pppp..pppp.mm.",
+        ]),
+        new("bridge", VesselRole.Bridge,
+        [
+            "....LL......",
+            "....LL......",
+            "..tttt..====",
+            "..tttt......",
+            "..tttt.KKKK.",
+            "..tttt.KKKK.",
         ]),
     ];
 
-    /// <summary>What a crate in a compartment of each role may hold: one to three stacks, each drawn from its role's list.</summary>
+    /// <summary>What a storage crate in a compartment of each role may hold: a stack or two, each drawn from its role's list; salvage holds the rest.</summary>
     public static readonly IReadOnlyDictionary<VesselRole, IReadOnlyList<VesselLoot>> Loot = new Dictionary<VesselRole, IReadOnlyList<VesselLoot>>
     {
         [VesselRole.Hold] = [new("plate", 2, 8), new("scrapChunk", 6, 20), new("planks", 4, 12), new("wire", 4, 10), new("tube", 1, 4)],

@@ -14,7 +14,7 @@ internal static class Png
 
     /// <summary>The file of the hi-res picture <paramref name="name"/> (<c>items/arcLamp</c>, or a <c>res://art/…png</c> path).</summary>
     public static string Of(string name) =>
-        Path.Combine(Hd, (name.StartsWith("res://art/", StringComparison.Ordinal) ? name["res://art/".Length..^".png".Length] : name) + ".png");
+        Path.Combine(Hd, (name.StartsWith("res://art/", StringComparison.Ordinal) ? name["res://art/".Length..^".png".Length] : DebrisLooks.SalvagePicture(name) ?? name) + ".png");
 
     /// <summary>Whether <paramref name="name"/> has a hi-res picture.</summary>
     public static bool Has(string name) => File.Exists(Of(name));

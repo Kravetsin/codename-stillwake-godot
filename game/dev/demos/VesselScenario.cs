@@ -7,7 +7,7 @@ namespace Stillwake.Game.Dev;
 /// <summary>
 /// The new game's world with a generated vessel beside the ship (generated-vessels): <c>--vessel=class</c> finds one of that class and
 /// jumps to it on the first ticks, wrecked by a breach; <c>--vessel=class,intact</c> as built; <c>--vessel</c> alone a freighter. The
-/// hero starts over the vessel's middle, so the camera holds it whole.
+/// hero starts in the vessel's middle, so the camera holds it whole and its compartments up close.
 /// </summary>
 [Dev("--vessel", "the new game's world with a vessel beside the ship: =class, =class,intact as built (VesselScenario)", Shape = DevShape.Either)]
 public sealed class VesselScenario : DevScenario
@@ -24,5 +24,5 @@ public sealed class VesselScenario : DevScenario
     }
 
     public override Func<Registry, int>? Start => m =>
-        m.Grid.Reserved is { } box ? (box.Top - 8) * m.Grid.Width + box.Left + box.Width / 2 : m.Crew.Spawn;
+        m.Grid.Reserved is { } box ? (box.Top + box.Height / 2) * m.Grid.Width + box.Left + box.Width / 2 : m.Crew.Spawn;
 }

@@ -199,7 +199,11 @@ freighter 2,881–6,765, nearly all hull scrap; the bands hold them with margin,
   zone's edge, has been looked at by the user, and a hero has flown over, gone in by a door and taken a wall and a
   crate apart.
 
-### V-1b — Salvage aboard: what drifts by, found inside
+### V-1b — Salvage aboard: what drifts by, found inside ✅
+
+Built as below. Yield measured over 200 seeds with salvage in: a shuttle 469–1,265 items (2–9 salvage objects), a
+freighter 3,212–7,400 (16–44); both bands hold. A breach leaves its debris on about two shuttles in three, every freighter
+but one in twenty-five.
 
 A vessel's compartments hold too little to read: crates and lamps only. The user's rule: the debris that drifts by looks
 like pieces of ships, so a vessel holds the same things whole, each giving **five times** what its broken piece gives, and

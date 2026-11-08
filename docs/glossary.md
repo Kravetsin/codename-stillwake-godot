@@ -151,6 +151,7 @@ Game words → code. One line a term: Russian / English → identifiers → modu
 - лава / lava → `c/Lava.cs`, f/grid `LavaView` → planets
 - вылазка / sortie → `OpenSurface`, `Transfer` (sim/Core `Surface.cs`) → Core
 - корабль, корабль-находка / vessel **≠** → `Vessel`, `Shipyard` (sim/Core `Vessels/`), `Content.Vessels`; written beside the ship → Places
+- находка на корабле / salvage aboard → `Vessels.Salvage`, `VesselSalvage`, a pile (`salvageTanks`, …) copied from a debris piece, five times its loot → Places, Building
 - разбитый корабль / wrecked vessel → a vessel after `Shipyard.Damage` (`VesselCause.Breach`); not the starting wreck, nor wreckage → Places
 - контакт, прыжок / contact, jump → `Contact`, `Find`, `Jump` → Places
 

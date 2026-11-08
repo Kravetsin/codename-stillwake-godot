@@ -87,13 +87,19 @@ public class VesselTests
     }
 
     [Property]
-    public Property ABreachTakesThingsWholeAndAddsNothing() => Prop.ForAll(Vessels(), v =>
+    public Property ABreachTakesThingsWholeAndAddsOnlyWhatToreTheHull() => Prop.ForAll(Vessels(), v =>
     {
         var vessel = Shipyard.Describe(v.Class, v.Seed);
         var intact = Shipyard.Stamp(vessel);
         var wrecked = Shipyard.Damage(intact, vessel, VesselCause.Breach);
         Assert.True(wrecked.Count < intact.Count);
-        Assert.All(wrecked, p => Assert.Contains(p, intact));
+        // Only what tore the hull is new: a salvage object of no role, lying where nothing else is.
+        var added = wrecked.Where(p => !intact.Contains(p)).ToList();
+        Assert.All(added, p => Assert.True(Content.Vessels.SalvageOf(p.Kind) is { Roles.Count: 0 }, p.Kind));
+        Assert.InRange(added.Count, 0, 2);
+        var taken = new HashSet<(int, int)>();
+        foreach (var p in wrecked.Where(p => p.Layer != "back"))
+            foreach (var c in Shipyard.Covers(p)) Assert.True(taken.Add(c), $"{p} over another at {c}");
     });
 
     // Content.
@@ -146,6 +152,39 @@ public class VesselTests
 
     [Fact]
     public void NoDroneBayOfTheShipReachesAVessel() => Assert.True(Content.Vessels.Gap > Content.Logistics.Reach);
+
+    [Fact]
+    public void SalvageGivesTimesItsPiecesMeanLootAndKeepsTheCircuitRare()
+    {
+        Assert.Equal([("canister", 12), ("scrapChunk", 5)], Machines.Get("salvageTanks").Cost);
+        Assert.Equal([("planks", 50), ("scrapChunk", 7), ("gear", 1), ("wire", 3)], Machines.Get("salvageContainer").Cost);
+        Assert.Equal([("wire", 40), ("scrapChunk", 7), ("circuit", 1)], Machines.Get("salvageRack").Cost);
+        foreach (var s in Content.Vessels.Salvage)
+        {
+            var spec = Machines.Get(s.Kind);
+            foreach (var e in Loot.Of(s.From)!)
+            {
+                int odds = e.OneIn ?? 1;
+                int want = Content.Vessels.Unmultiplied.Contains(e.Item) ? (e.Min + e.Max + 2 * odds - 1) / (2 * odds) : s.Times * (e.Min + e.Max) / (2 * odds);
+                Assert.Equal(want, spec.Cost.Where(c => c.Item == e.Item).Sum(c => c.Count));
+            }
+            Assert.Equal(s.Hp ?? Wreckage.HpOf(s.From), spec.Hp);
+            if (s.Size == null) Assert.Contains((s.From, spec.Width, spec.Height), Wreckage.Sizes);
+            Assert.InRange(spec.Height, 1, Content.Vessels.Open);
+            Assert.Null(spec.Menu);
+            Assert.Contains(s.Kind, Content.Vessels.Machines);
+        }
+    }
+
+    [Fact]
+    public void EveryRoleHoldsSalvageOfItsOwnAndEverySalvageOfARoleStandsInSomeInterior()
+    {
+        var drawn = Content.Vessels.Interiors.SelectMany(i => Layout.Parse(i.Rows).Machines().Select(m => (i.Role, m.Kind))).ToList();
+        foreach (var s in Content.Vessels.Salvage.Where(s => s.Roles.Count > 0))
+            Assert.Contains(drawn, d => d.Kind == s.Kind && s.Roles.Contains(d.Role));
+        foreach (var role in Enum.GetValues<VesselRole>())
+            Assert.Contains(drawn, d => d.Role == role && Content.Vessels.SalvageOf(d.Kind) != null);
+    }
 
     [Fact]
     public void EachClassGivesWhatItsBandSaysTakenApartWhole()

@@ -45,10 +45,14 @@ possible and the wreck made from it.
   field is still worked in); Building's axe and drill strike aboard inside the box only, each ray stopping at its edge.
 - **Its hull** is a material of its own, `hull` (code 17): as strong and slow to take apart as iron, a scrap chunk a cell,
   drawn as iron (`As`); never built, so never a blueprint (no card in the build menu).
-- **What a vessel holds is a whitelist** (`Vessels.Machines`: the crate, the lamp): machines that are fair loot and keep no
+- **What a vessel holds is a whitelist** (`Vessels.Machines`: the crate, the lamp, its salvage): machines that are fair loot and keep no
   state in another module by their id, so a wipe leaves nothing behind. `Gap` is more than a drone bay's reach.
 - **Yield is bounded per class** (`VesselClass.Yield`, a content test over seeds): a first pass of 300–1,300 items for a
   shuttle and 2,400–8,000 for a freighter, nearly all of it scrap chunks of the hull, to be tuned in play.
+- **Salvage aboard** (V-1b): a compartment holds piles (hold-piles) copied from the debris that drifts by, `Content.Vessels.Salvage`,
+  each its piece's size, hit points and picture and `SalvageCost`: `Times` (5) its piece's mean loot, the circuit not
+  multiplied. Its look says what it gives: a tank cluster in life support is air. A breach leaves a hull section or a shield
+  slab by its crater. The user's idea; the pictures are the drifting pieces' till standing ones are picked.
 - Save format 57: the module joins every surface with no contact and no vessel out. A crate's loot is counted obtained
   (the-board) as it is written.
 
@@ -57,6 +61,7 @@ possible and the wreck made from it.
 | Slice | Delivers | Status |
 | --- | --- | --- |
 | V-1 | The shuttle and the freighter, the breach, `Find` and `Jump` by the dev flag `--vessel=class[,intact]` | built |
+| V-1b | Salvage aboard: piles copied from the debris that drifts by, five times its loot; the breach leaves plates | built |
 | V-2 | Blast, cut in two and scavenged; the corvette and the frigate; antennas, radiators and docking ports | planned |
 | V-3 | The cruiser, and its write spread over ticks only if the hitch shows | planned |
 | V-4 | The radar finds contacts in range, the engine's jump paid in biofuel, the radar's screen | needs the user's rules |

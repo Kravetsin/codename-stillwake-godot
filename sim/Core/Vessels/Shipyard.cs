@@ -96,11 +96,11 @@ public static class Shipyard
         return new(deck, left, width, top, role, interior);
     }
 
-    /// <summary>A crate's contents in a compartment of <paramref name="role"/>: one to three stacks of its role's loot.</summary>
+    /// <summary>A storage crate's contents in a compartment of <paramref name="role"/>: a stack or two of its role's loot.</summary>
     private static IReadOnlyList<(string Item, int Count)> Loot(Rng rng, VesselRole role)
     {
         var table = Vessels.Loot[role];
-        int stacks = 1 + (int)rng.Below(3);
+        int stacks = 1 + (int)rng.Below(2);
         var loot = new List<(string, int)>();
         for (int k = 0; k < stacks; k++)
         {
@@ -198,15 +198,20 @@ public static class Shipyard
                 if (In(x, y)) parts.Add(new(x, y, "back", "backWall", Vessels.Hull));
                 if (solid[y * w + x] == 1) parts.Add(new(x, y, "structure", "wall", Vessels.Hull));
             }
-        parts.Sort((p, q) => p.Y != q.Y ? p.Y.CompareTo(q.Y) : p.X != q.X ? p.X.CompareTo(q.X) : Rank(p.Layer).CompareTo(Rank(q.Layer)));
+        parts.Sort(InReadingOrder);
         return parts;
     }
 
     private static int Rank(string layer) => layer switch { "back" => 0, "structure" => 1, _ => 2 };
 
+    /// <summary>Parts by their top-left cells in reading order, back walls, then structures, then machines in a cell: how they are laid.</summary>
+    private static int InReadingOrder(VesselPart p, VesselPart q) =>
+        p.Y != q.Y ? p.Y.CompareTo(q.Y) : p.X != q.X ? p.X.CompareTo(q.X) : Rank(p.Layer).CompareTo(Rank(q.Layer));
+
     /// <summary>
     /// <paramref name="parts"/> of <paramref name="v"/> after <paramref name="cause"/>: as they are for none. A breach is a crater of
-    /// the class's radius, from above, below or the bow: every thing with a cell in it gone whole, a crate with what it held.
+    /// the class's radius, from above, below or the bow: every thing with a cell in it gone whole, a crate with what it held; what
+    /// tore the hull left on a deck by it (<see cref="LeaveDebris"/>).
     /// </summary>
     public static IReadOnlyList<VesselPart> Damage(IReadOnlyList<VesselPart> parts, Vessel v, VesselCause cause)
     {
@@ -224,7 +229,61 @@ public static class Shipyard
             _ => (v.Width - 1, (body.Top + body.Bottom) / 2),
         };
         int r2 = cls.Crater * cls.Crater;
-        return [.. parts.Where(p => !Covers(p).Any(c => (c.X - cx) * (c.X - cx) + (c.Y - cy) * (c.Y - cy) <= r2))];
+        var left = parts.Where(p => !Covers(p).Any(c => (c.X - cx) * (c.X - cx) + (c.Y - cy) * (c.Y - cy) <= r2)).ToList();
+        LeaveDebris(left, v, rng, cx, cy, cls.Crater);
+        left.Sort(InReadingOrder);
+        return left;
+    }
+
+    /// <summary>How far past a crater's edge what tore the hull may lie, in cells.</summary>
+    private const int DebrisReach = 12;
+
+    /// <summary>
+    /// What tore the hull, left by a breach (plan V-1b): one or two salvage objects of no role (a hull section, a shield slab), each
+    /// on a deck's floor the nearest it fits to the crater: inside the hull (a back wall in every cell), clear of every structure
+    /// and machine, a wall under each column, within <see cref="DebrisReach"/> of its edge. None where none fits.
+    /// </summary>
+    private static void LeaveDebris(List<VesselPart> parts, Vessel v, Rng rng, int cx, int cy, int crater)
+    {
+        var taken = new HashSet<(int, int)>();
+        var walls = new HashSet<(int, int)>();
+        var backs = new HashSet<(int, int)>();
+        foreach (var p in parts)
+        {
+            if (p.Layer == "back") backs.Add((p.X, p.Y));
+            else foreach (var c in Covers(p)) taken.Add(c);
+            if (p.Kind == "wall") walls.Add((p.X, p.Y));
+        }
+        var debris = Vessels.Salvage.Where(s => s.Roles.Count == 0).ToList();
+        int reach = (crater + DebrisReach) * (crater + DebrisReach);
+        for (int n = 1 + (int)rng.Below(2); n > 0; n--)
+        {
+            var spec = Machines.Get(debris[(int)rng.Below((uint)debris.Count)].Kind);
+            (int X, int Y, int D)? best = null;
+            foreach (var deck in v.Decks)
+                for (int x = 0, y = deck.Floor - spec.Height; x + spec.Width <= v.Width; x++)
+                {
+                    int dx = x + spec.Width / 2 - cx, dy = y + spec.Height / 2 - cy, d = dx * dx + dy * dy;
+                    if (d > reach || best is { } b && b.D <= d) continue;
+                    if (Lies(x, y, spec.Width, spec.Height, deck.Floor, taken, walls, backs)) best = (x, y, d);
+                }
+            if (best is not { } at) continue;
+            parts.Add(new(at.X, at.Y, "machine", spec.Kind));
+            for (int dy = 0; dy < spec.Height; dy++)
+                for (int dx = 0; dx < spec.Width; dx++) taken.Add((at.X + dx, at.Y + dy));
+        }
+    }
+
+    /// <summary>Whether a thing <paramref name="w"/> by <paramref name="h"/> from (<paramref name="x"/>, <paramref name="y"/>) lies free inside the hull on the floor at <paramref name="floor"/>.</summary>
+    private static bool Lies(int x, int y, int w, int h, int floor, HashSet<(int, int)> taken, HashSet<(int, int)> walls, HashSet<(int, int)> backs)
+    {
+        for (int dx = 0; dx < w; dx++)
+        {
+            if (!walls.Contains((x + dx, floor))) return false;
+            for (int dy = 0; dy < h; dy++)
+                if (taken.Contains((x + dx, y + dy)) || !backs.Contains((x + dx, y + dy))) return false;
+        }
+        return true;
     }
 
     /// <summary>The cells <paramref name="p"/> covers: a machine's footprint, a piece's (a ladder's, a door's), else its own.</summary>
