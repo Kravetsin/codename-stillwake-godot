@@ -22,4 +22,7 @@ public static class RadarOrbit
         float coreY = shipY + radius;
         return (shipX + radius * MathF.Sin(angle), coreY - radius * MathF.Cos(angle));
     }
+
+    /// <summary>How far, in kilometres, a contact at <paramref name="offset"/> lies from the ship, whichever side.</summary>
+    public static int Km(int offset) => Math.Abs(offset) * Contacts.KmPerUnit;
 }

@@ -15,7 +15,8 @@ whichever surface a hero stands on. Nothing acts on a contact yet: the jump will
 - **State** (`ContactsState`, members internal, saved): `NextIn` — ticks till the next contact, 0 before the first is
   counted down; `NextId` — the id the next takes; `Contacts` — `Contact(Id, Kind, Offset, Left)` for every contact up, in
   id order.
-- **Tunables:** `c/Contacts.cs` — `First`, `EveryMin`, `EveryMax`, `Lasts`, `Reach`, `Nearest`, `Kinds`.
+- **Tunables:** `c/Contacts.cs` — `First`, `EveryMin`, `EveryMax`, `Lasts`, `Reach`, `Nearest`, `Kinds`; and
+  `KmPerUnit`, the kilometres a unit stands for, only for the radar to name a distance.
 
 ## Rules
 

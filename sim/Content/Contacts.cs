@@ -27,4 +27,6 @@ public static class Contacts
     public const int Reach = 100;
     /// <summary>A contact drawn is never nearer the ship than this.</summary>
     public const int Nearest = 25;
+    /// <summary>Kilometres a radar unit stands for, as the radar names a contact's distance: 250 to 1 000 km.</summary>
+    public const int KmPerUnit = 10;
 }

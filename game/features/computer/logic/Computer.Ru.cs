@@ -12,6 +12,7 @@ public static partial class Ru
         ["computer.radar.ship"] = "Мой корабль",
         ["computer.radar.planet"] = "Планета",
         ["computer.radar.wreck"] = "Заброшенный корабль",
+        ["computer.radar.km"] = "{n} км",
         ["computer.radar.setOff"] = "Отправиться",
         ["contacts.unknownKind"] = "Нет такого вида точек на радаре",
         ["contacts.outOfReach"] = "Вне досягаемости радара",

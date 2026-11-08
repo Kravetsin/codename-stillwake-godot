@@ -10,7 +10,7 @@ its screen. Only the radar so far: the ship, its planet and the places the sim's
 | `logic/Readout.cs` | A computer as its screen reads it: powered or not, its programs' buttons, what the screen shows |
 | `logic/Computer.En.cs` | Its player text (`En`) |
 | `logic/Computer.Ru.cs` | Russian |
-| `logic/RadarOrbit.cs` | Where the radar draws a contact: on the ship's orbit, the farthest 45 % of the screen from the ship |
+| `logic/RadarOrbit.cs` | Where the radar draws a contact: on the ship's orbit, the farthest 45 % of the screen from the ship; its distance in km |
 | `ComputerPanel.cs` | The window: the monitor, the side panel's buttons, the screen's line or program |
 | `RadarScreen.cs` | The radar program: the ship in the middle, rings, the sweep, a planet's curve below, the contacts on the orbit |
 | `ComputerScreens.cs` | Each computer's screen in the world: dark, running text, or the radar's sweep; its rack's lights; its glow |
@@ -36,13 +36,15 @@ computer's row in `c/Machines.cs`. Files in `logic/` are Godot-free and tested i
   drifting round it too slowly to see, and the sim's contacts (`contacts`, 2026-11-08-radar-contacts) on the ship's orbit
   (`RadarOrbit`): a diamond each, flaring as the beam passes and fading over the turn, blinking in its last 2 minutes.
 - **A click on a contact** selects it (`Ui.RadarContact`, the player's own): corner brackets round it and its kind's name
-  over it (`computer.radar.<kind>`). A click on empty screen lets go; a selected contact gone is let go on the next read;
+  over it (`computer.radar.<kind>`), its distance under that in kilometres (`RadarOrbit.Km`: an offset's units times
+  `KmPerUnit`, 10). A click on empty screen lets go; a selected contact gone is let go on the next read;
   closing the computer keeps it. While one is selected a `Set off` button stands at the bottom of the screen; it
   does nothing yet (the jump comes next), and the pointer over it shows no tooltip.
 - **In the world** (`ComputerScreens`): a computer with no power is dark; a powered one runs lines of text and blinks its
   rack's lights; once its radar is ready, the sweep. Drawn unlit, its glow lighting the room in the screen's colour.
 - **While the window is open** the hero aims at nothing: no outline, prompt or world tip under the pointer. The one
-  tooltip names a button's program, and on the radar a contact's kind, `My ship` over the dot and `Planet` over the planet.
+  tooltip names a button's program, and on the radar a contact's kind (but the selected one's), `My ship` over the dot and
+  `Planet` over the planet.
 - The panel reads the world, contacts too, every quarter of a second, never every frame; the radar redraws every frame
   while shown.
 
@@ -58,4 +60,4 @@ when the hero changes surface.
   radar is built.
 - **Each peer's window is its own**: two players at one computer see their own choice; nothing is shared.
 - **No planet behind the radar's**: it is drawn whatever the ship orbits, of one look, at no real height.
-- **No text on the radar** but its tooltips and a selected contact's name: ranges and heights come with the jump.
+- **No text on the radar** but its tooltips and a selected contact's name and distance: no ranges on the rings, no heights.

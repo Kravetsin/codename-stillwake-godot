@@ -16,7 +16,8 @@ names it "Derelict ship".
   ones, and the jump to come reads them. Drawn from the world's `Rng`, counted in ticks.
 - **The numbers** (`c/Contacts.cs`): the first a fixed 15 minutes into a world (so short runs and tests never draw); each
   next 15 to 30 minutes after the last, evenly; each seen 15 minutes; 25 to 100 radar units either side of the ship, 100
-  being the radar's edge.
+  being the radar's edge. A unit is 10 km (`KmPerUnit`): a contact lies 250 to 1 000 km away, and a selected one says how
+  far under its name ("640 km").
 - **One at a time.** With these numbers a contact goes as the next comes at the soonest, so the radar shows one or none,
   empty for up to 15 minutes between them. More at once means a longer stay or a shorter wait.
 - **On the radar** a contact is a green diamond on the ship's orbit, an offset of 100 at 45 % of the screen's width from

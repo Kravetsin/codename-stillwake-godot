@@ -34,6 +34,14 @@ public class RadarOrbitTests
     }
 
     [Fact]
+    public void DistanceIsInKilometresWhicheverSide()
+    {
+        Assert.Equal(640, RadarOrbit.Km(64));
+        Assert.Equal(640, RadarOrbit.Km(-64));
+        Assert.Equal(Contacts.Reach * Contacts.KmPerUnit, RadarOrbit.Km(-Contacts.Reach));
+    }
+
+    [Fact]
     public void NearerIsNearer()
     {
         var (near, _) = RadarOrbit.At(Contacts.Nearest, Width, ShipX, ShipY, Radius);

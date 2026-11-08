@@ -50,7 +50,8 @@ public partial class RadarScreen : Control
     {
         var at = Local(global);
         if (at == null) return null;
-        if (ContactAt(global) is { } id) return $"computer.radar.{Contacts.First(c => c.Id == id).Kind}";
+        // A selected contact is named over it already.
+        if (ContactAt(global) is { } id) return id == Selected ? null : $"computer.radar.{Contacts.First(c => c.Id == id).Kind}";
         var (middle, core, radius) = Shape();
         // A little wider than the dot itself, so the pointer finds it.
         if (ShipBox(middle).Grow(4).HasPoint(at.Value)) return "computer.radar.ship";
@@ -159,14 +160,19 @@ public partial class RadarScreen : Control
             var corner = spot + new Vector2(sx * box, sy * box);
             DrawPolyline([corner - new Vector2(0, sy * arm), corner, corner - new Vector2(sx * arm, 0)], Beam, 2);
         }
+        // Its name, and under it how far it lies from the ship, dimmer.
         var font = GetThemeDefaultFont();
-        string name = T($"computer.radar.{c.Kind}");
-        var text = font.GetStringSize(name, HorizontalAlignment.Left, -1, LabelSize);
-        float left = Mathf.Clamp(spot.X - text.X / 2, 6, Size.X - text.X - 6);
-        var back = new Rect2(left - 5, spot.Y - box - 10 - text.Y, text.X + 10, text.Y + 4);
+        string name = T($"computer.radar.{c.Kind}"), far = T("computer.radar.km", ("n", RadarOrbit.Km(c.Offset)));
+        float line = font.GetHeight(LabelSize);
+        float width = Mathf.Max(font.GetStringSize(name, HorizontalAlignment.Left, -1, LabelSize).X,
+            font.GetStringSize(far, HorizontalAlignment.Left, -1, LabelSize).X);
+        float left = Mathf.Clamp(spot.X - width / 2, 6, Size.X - width - 6);
+        var back = new Rect2(left - 5, spot.Y - box - 10 - 2 * line, width + 10, 2 * line + 4);
         DrawRect(back, Back with { A = 0.85f });
         DrawRect(back, Grid, false, 1);
-        DrawString(font, new Vector2(left, back.Position.Y + 2 + font.GetAscent(LabelSize)), name, HorizontalAlignment.Left, -1, LabelSize, Beam);
+        float top = back.Position.Y + 2 + font.GetAscent(LabelSize);
+        DrawString(font, new Vector2(left, top), name, HorizontalAlignment.Left, -1, LabelSize, Beam);
+        DrawString(font, new Vector2(left, top + line), far, HorizontalAlignment.Left, -1, LabelSize, Rim with { A = 0.8f });
     }
 
     private static Vector2[] Diamond(Vector2 at, float r) => [at + new Vector2(0, -r), at + new Vector2(r, 0), at + new Vector2(0, r), at + new Vector2(-r, 0)];
