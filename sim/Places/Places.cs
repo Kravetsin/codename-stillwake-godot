@@ -6,10 +6,14 @@ using Stillwake.Sim.Items;
 
 namespace Stillwake.Sim.Places;
 
-/// <summary>A vessel the radar found that the ship has not jumped to (generated-vessels): its class and the seed it grows from.</summary>
-public sealed record Contact(int Id, string Class, uint Seed);
+/// <summary>
+/// A vessel the radar found that the ship has not jumped to (generated-vessels): its class and the seed it grows from;
+/// <c>Offset</c> radar units along the ship's orbit, minus left of the ship, and the ticks <c>Left</c> before it goes
+/// (2026-11-08-radar-contacts).
+/// </summary>
+public sealed record Contact(int Id, string Class, uint Seed, int Offset, int Left);
 
-/// <summary>Finds a vessel of <c>Class</c>: a contact, its seed drawn from the world's Rng. Sent by the dev flag until the radar does.</summary>
+/// <summary>Finds a vessel of <c>Class</c> at once: a contact as the radar's own come, its seed and place drawn from the world's Rng. Dev tools'.</summary>
 public sealed record Find(string Class) : Command;
 
 /// <summary>
@@ -27,6 +31,8 @@ public sealed class PlacesState
     /// <summary>The contacts the radar holds, in the order found: at most <c>Vessels.MaxContacts</c>.</summary>
     [JsonInclude] internal List<Contact> Contacts { get; set; } = [];
     [JsonInclude] internal int NextContactId { get; set; } = 1;
+    /// <summary>Ticks till the radar finds the next contact by itself; 0 before the first is counted down.</summary>
+    [JsonInclude, JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)] internal int NextIn { get; set; }
 }
 
 /// <summary>
@@ -52,6 +58,7 @@ public sealed class PlacesModule : Module<PlacesState>
         Handles<Jump>(JumpProblem, ApplyJump);
         Handles<Dismiss>(_ => Rules != Content.Surfaces.Ship ? "places.notAboard" : _grid.Reserved == null ? "places.noVessel" : null,
             _ => Clear());
+        System(Phase.Simulation, Watch);
     }
 
     /// <summary>The vessel out taken apart to nothing (<c>Building.Wipe</c>) and its box freed.</summary>
@@ -66,12 +73,48 @@ public sealed class PlacesModule : Module<PlacesState>
     /// <summary>The contacts the radar holds, in the order found: live and read-only.</summary>
     public IReadOnlyList<Contact> Contacts => State.Contacts;
 
+    /// <summary>Ticks till the radar finds the next contact by itself; 0 before the world's first tick aboard.</summary>
+    public int NextIn => State.NextIn;
+
     private string? FindProblem(Find c) =>
         Rules != Content.Surfaces.Ship ? "places.notAboard"
         : Vessels.Class(c.Class) == null ? "places.noClass"
         : State.Contacts.Count >= Vessels.MaxContacts ? "places.full" : null;
 
-    private void ApplyFind(Find c) => State.Contacts.Add(new(State.NextContactId++, c.Class, Random.Below(1UL << 32)));
+    private void ApplyFind(Find c) => Add(c.Class);
+
+    /// <summary>
+    /// A contact of <paramref name="cls"/>: its seed drawn first, then its side and distance on the orbit, each evenly; seen
+    /// <c>Contacts.Lasts</c> ticks.
+    /// </summary>
+    private void Add(string cls)
+    {
+        uint seed = (uint)Random.Below(1UL << 32);
+        int side = Random.Below(2) == 0 ? -1 : 1;
+        int distance = Content.Contacts.Nearest + (int)Random.Below((uint)(Content.Contacts.Reach - Content.Contacts.Nearest + 1));
+        State.Contacts.Add(new(State.NextContactId++, cls, seed, side * distance, Content.Contacts.Lasts));
+    }
+
+    /// <summary>
+    /// The radar's watch, aboard, each tick (2026-11-08-radar-contacts): every contact's time runs down and one run out goes;
+    /// then the countdown, the first started at <c>First</c>; at 0 a contact of a class drawn evenly comes, while the radar has
+    /// room, and the next is drawn. Gone before found, so with <c>Lasts</c> no more than <c>EveryMin</c> two of its own are
+    /// never up at once.
+    /// </summary>
+    private void Watch()
+    {
+        if (Rules != Content.Surfaces.Ship) return;
+        var s = State;
+        for (int i = s.Contacts.Count - 1; i >= 0; i--)
+        {
+            if (s.Contacts[i].Left > 1) s.Contacts[i] = s.Contacts[i] with { Left = s.Contacts[i].Left - 1 };
+            else s.Contacts.RemoveAt(i);
+        }
+        if (s.NextIn == 0) s.NextIn = Content.Contacts.First;
+        if (--s.NextIn > 0) return;
+        if (s.Contacts.Count < Vessels.MaxContacts) Add(Vessels.Classes[(int)Random.Below((uint)Vessels.Classes.Count)].Id);
+        s.NextIn = Content.Contacts.EveryMin + (int)Random.Below((uint)(Content.Contacts.EveryMax - Content.Contacts.EveryMin + 1));
+    }
 
     private string? JumpProblem(Jump c)
     {

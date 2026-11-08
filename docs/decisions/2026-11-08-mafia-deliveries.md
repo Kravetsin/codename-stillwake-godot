@@ -39,7 +39,7 @@ again. Contraband and consumables were left for later by the user: the base firs
 - **Markers:** each delivery piece off the screen is pointed at from the edge in the market's amber, its good's picture in
   the badge, for every player. One lost turns red where it pointed and fades over 2.5 s: the game has no toast, and an
   edge marker already says where without words. A count of losses since the load drives it, never saved.
-- **Saves** of format 58 lose the five gear ids from what is known and every queued gear craft, its station's progress reset
+- **Saves** of format 59 lose the five gear ids from what is known and every queued gear craft, its station's progress reset
   when it was at work; paid materials are not returned, the game being pre-release.
 
 ## Deliberately not handled

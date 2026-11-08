@@ -299,7 +299,7 @@ public partial class Main : Node2D, ITogether
         };
         AddChild(handbook);
         // The ship's computer (its window on E): opening it puts away the inventory, the plan and the Handbook, as the Handbook does.
-        var computer = new ComputerPanel(_hands.Ui, () => _session != null ? _m : null);
+        var computer = new ComputerPanel(_hands.Ui, () => _session != null ? _m : null, command => _session?.Client.Send(command));
         _hands.Ui.OpenComputer.Subscribe(() =>
         {
             if (_hands.Ui.OpenComputer.Get() == null) return;

@@ -15,7 +15,8 @@ the top-right corner, hidden at the start, shown and hidden again with the backq
   beside a room (`hazards`' `MeteorHit`), with the wall cell behind it away from the room, so a hull two cells thick (0104)
   is breached through; or a line saying none is left; a magnetic flare (`hazards`' `FlareNow`, its whole warning first, so
   the aurora comes before the strike); `calm` (`hazards`' `SetCalm`, read at the click, amber while on): no meteors fall
-  and no flares come on the surface this hero is on till it is clicked again, so calm the ship from aboard. Surfaces (0076): `open planet` opens a planet grown from its seed
+  and no flares come on the surface this hero is on till it is clicked again, so calm the ship from aboard. `radar place`
+  puts a vessel of a random class on the radar at once (`places`' `Find`), where places draws it on the orbit. Surfaces (0076): `open planet` opens a planet grown from its seed
   (0077), `open strip` the test strip (`world.open`), `to ship` and `down` beam this hero aboard or down to the surface
   opened last (`world.transfer`), or say none is open. Vessels (generated-vessels): a button a class (`Vessels.Classes`)
   jumps to one beside the ship, `places`' `Jump` to a contact of it the radar holds, else `Find` first and the jump sent

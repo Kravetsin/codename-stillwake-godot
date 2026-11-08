@@ -266,7 +266,16 @@ public static class Migrations
             };
             return root;
         },
-        // 58 → 59 (2026-11-08-mafia-deliveries): the mafia's gear is sold as items, its crafts gone, so are their queued entries and their
+        // 58 → 59 (2026-11-08-radar-contacts): a contact has a place on the orbit and a time left. One held already lies at the
+        // nearest, right of the ship, and stays the whole 15 min (numbers frozen here); the radar's own first comes 15 min on.
+        root =>
+        {
+            foreach (var slices in new[] { root["slices"]! }.Concat((root["surfaces"]?.AsArray() ?? []).Select(s => s!["slices"]!)))
+                foreach (var contact in slices["places"]?["contacts"]?.AsArray() ?? [])
+                    (contact!["offset"], contact["left"]) = (25, 18_000);
+            return root;
+        },
+        // 59 → 60 (2026-11-08-mafia-deliveries): the mafia's gear is sold as items, its crafts gone, so are their queued entries and their
         // blueprints; the parts paid for them go with them, as the canister's did at 51 (pre-release, no refund).
         root =>
         {
