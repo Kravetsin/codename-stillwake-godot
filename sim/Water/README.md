@@ -35,6 +35,7 @@ electrolyser, which splits it into the liquid oxygen of the tanks on its output.
 - **Melting** is content: ice smelts into a bottle of water (`Items.cs`), at the furnace in 40 ticks.
 - **A planet stage:** ice and copper come only of planets, and the electrolyser's electrodes are copper
   (industrial-oxygen), so it is understood and built there first.
+- **Liquids in cisterns** (liquids-in-tanks): a bottle stacks to 5 and a cistern holds `Water.CisternBottles`, 50.
 
 ## API
 

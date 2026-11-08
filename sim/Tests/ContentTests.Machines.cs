@@ -132,6 +132,20 @@ public partial class ContentTests
         Assert.True(Air.Canister <= Air.TankCapacity);
     }
 
+    /// <summary>
+    /// Liquids are kept in tanks and cisterns, not crates, and ice is farmed on a planet (industrial-oxygen): a few
+    /// canisters or bottles a slot, fifty of either in a tank or a cistern, four ice a vein or a crystal.
+    /// </summary>
+    [Fact]
+    public void LiquidsStackFewAndFillFiftyAndIceComesFourAtATime()
+    {
+        Assert.Equal((5, 5, 50), (Content.Items.Get(Content.Crew.Canister).Stack, Content.Items.Get(Content.Water.Item).Stack, Content.Items.Get("ice").Stack));
+        Assert.Equal(50 * Air.Canister, Air.TankCapacity);
+        Assert.Equal(50, Content.Water.CisternBottles);
+        Assert.Equal([("ice", 4)], Content.Materials.Get("iceVein").Cost);
+        Assert.All(new[] { "crystalIce", "crystalIceHang" }, id => Assert.Equal([("ice", 4)], Content.Flora.Get(id).Yields));
+    }
+
     // Power
 
     [Fact]

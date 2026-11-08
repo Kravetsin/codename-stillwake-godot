@@ -88,7 +88,8 @@ public static class Items
         // What the nailer fires (Content.Shots), made of scrap at the pod.
         new("nail", 250),
         new("iron", 999),
-        new("canister", 20),
+        // Liquids are kept in tanks and cisterns, not crates (industrial-oxygen): a few a slot.
+        new("canister", 5),
         new("planks", 200, BurnTicks: 400),
         new("scrapChunk", 250, Yields: [("scrap", 4)], SmeltTicks: 60, Group: ItemGroup.Salvage),
         new("hullPlate", 250, Yields: [("iron", 2), ("scrap", 1)], SmeltTicks: 100, Group: ItemGroup.Salvage),
@@ -106,9 +107,9 @@ public static class Items
         new("copperOre", 250, Yields: [("copper", 1)], SmeltTicks: 160, Group: ItemGroup.Salvage),
         new("copper", 250),
         // From ice veins and crystals; melted into a bottle of water at the furnace (water), the jump's and the engine's cost to come.
-        new("ice", 250, Yields: [(Water.Item, 1)], SmeltTicks: 40),
-        // A glass bottle of melted ice, poured into a cistern (water).
-        new(Water.Item, 50),
+        new("ice", 50, Yields: [(Water.Item, 1)], SmeltTicks: 40),
+        // A glass bottle of melted ice, poured into a cistern (water); a few a slot, as canisters.
+        new(Water.Item, 5),
         // Broken off the deep's crystals and out of geodes: for sensors and machine modules to come.
         new("crystal", 100),
         // Off the violet glowcaps: the farm's second crop, grown as a seed is into less biomass but giving back 1.1 spores on

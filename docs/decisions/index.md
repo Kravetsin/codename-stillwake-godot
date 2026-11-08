@@ -299,6 +299,7 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [composed-backdrops](2026-11-08-composed-backdrops.md) | Composed backdrops | accepted |  |
 | [flowing-liquids](2026-11-08-flowing-liquids.md) | Flowing liquids: lakes in a planet's cells | accepted |  |
 | [hurts-are-shown](2026-11-08-hurts-are-shown.md) | Hurts are shown | accepted |  |
+| [liquids-in-tanks](2026-11-08-liquids-in-tanks.md) | Liquids in tanks | accepted |  |
 | [lobbed-glob](2026-11-08-lobbed-glob.md) | Lobbed glob | accepted |  |
 | [lurker-attacks](2026-11-08-lurker-attacks.md) | Lurker attacks | accepted | lobbed-glob (in part) |
 | [planet-frame-rate](2026-11-08-planet-frame-rate.md) | Planet frame rate | accepted |  |

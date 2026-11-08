@@ -39,7 +39,7 @@ public class CisternLineTests
 
     private static Scenario Piped()
     {
-        var w = new Scenario(Line, cells: true).GiveItems(0, (WaterContent.Item, 20), ("tube", 20));
+        var w = new Scenario(Line, cells: true).GiveItems(0, (WaterContent.Item, WaterContent.CisternBottles + 1), ("tube", 20));
         return w.Do(new LayPipe(w.At(3, 2), w.At(6, 2))).Do(new LayPipe(w.At(9, 2), w.At(12, 2))).Run();
     }
 
@@ -71,7 +71,7 @@ public class CisternLineTests
     [Fact]
     public void PoursNothingThroughAnUnpipedLine()
     {
-        var w = new Scenario(Line, cells: true).GiveItems(0, (WaterContent.Item, 20), ("tube", 20));
+        var w = new Scenario(Line, cells: true).GiveItems(0, (WaterContent.Item, WaterContent.CisternBottles + 1), ("tube", 20));
         w.Do(new LayPipe(w.At(9, 2), w.At(12, 2))).Run();
         int[] cisterns = Cisterns(w);
         w.Do(new PourWater(cisterns[0])).Do(new PourWater(cisterns[2])).Run(100);

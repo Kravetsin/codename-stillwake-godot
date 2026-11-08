@@ -18,7 +18,8 @@ namespace Stillwake.Content;
 /// </summary>
 public static class Air
 {
-    public const int TankCapacity = 36000;
+    /// <summary>What a tank holds, fifty canisters: liquids are kept in tanks, not crates (industrial-oxygen).</summary>
+    public const int TankCapacity = 50 * Canister;
     public const int Canister = 3000;
     public const int TicksPerCell = 1;
 

@@ -10,7 +10,7 @@ public class AirSaysTests
 {
     [Fact]
     public void ATankTellsItsLiquidOfItsCapacityByTheCanister() =>
-        Assert.Equal([new TipLine("3000/36000", Icon: "canister")], AirSays.Says(Spec.Machines.Get("tank"), Spec.Air.Canister, 0)!);
+        Assert.Equal([new TipLine("3000/150000", Icon: "canister")], AirSays.Says(Spec.Machines.Get("tank"), Spec.Air.Canister, 0)!);
 
     [Fact]
     public void AVaporizerAndThePodTellTheAirTheyMakeAMinuteToATenthRoundedDownByTheOxygenSign()

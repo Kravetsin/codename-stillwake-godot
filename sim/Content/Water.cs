@@ -13,7 +13,7 @@ public static class Water
     public const int Bottle = 4500;
 
     /// <summary>How many bottles a cistern holds.</summary>
-    public const int CisternBottles = 8;
+    public const int CisternBottles = 50;
 
     public const int CisternCapacity = CisternBottles * Bottle;
 

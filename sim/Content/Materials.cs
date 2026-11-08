@@ -106,9 +106,9 @@ public static class Materials
         new("alloy", Code: 7, Strength: 60, Leak: 72, Cost: [("alloyScrap", 3)], BuildTicks: 20, Natural: true, Footing: Tread.Alloy, Menu: new(MenuTabs.Structure, 50), BackMenu: new(MenuTabs.Structure, 150), Armour: 7),
         // The homes' warm back walls (0091): smoothed stone washed with lime. Never built, so no blueprint; no wall of it stands.
         new("plaster", Code: 8, Strength: 12, Leak: 270, Cost: [], BuildTicks: 0, Natural: true, Footing: Tread.Stone, Armour: 4),
-        // Veins of ore in a planet's stone: as hard as it, a lump of ore or ice a cell, never built.
+        // Veins of ore in a planet's stone: as hard as it, a lump of ore a cell or four of ice (industrial-oxygen), never built.
         new("copperVein", Code: 9, Strength: 12, Leak: 270, Cost: [("copperOre", 1)], BuildTicks: 0, Natural: true, Footing: Tread.Stone, In: "stone", Armour: 4),
-        new("iceVein", Code: 10, Strength: 12, Leak: 270, Cost: [("ice", 1)], BuildTicks: 0, Natural: true, Footing: Tread.Stone, In: "stone", Armour: 4),
+        new("iceVein", Code: 10, Strength: 12, Leak: 270, Cost: [("ice", 4)], BuildTicks: 0, Natural: true, Footing: Tread.Stone, In: "stone", Armour: 4),
         // Iron in pockets through the stone (2026-11-07-ore-pockets): a little softer than copper's, its lump the furnace smelts to iron.
         new("ironVein", Code: 16, Strength: 10, Leak: 270, Cost: [("ironOre", 1)], BuildTicks: 0, Natural: true, Footing: Tread.Stone, In: "stone", Armour: 4),
     ];

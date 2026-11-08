@@ -56,6 +56,26 @@ public class TankLineTests
         Assert.Equal(carried, Canisters(w, 0));
     }
 
+    /// <summary>
+    /// A stack of canisters saved before they stacked to 5 (industrial-oxygen) loads as it was, moves whole into an empty slot
+    /// and is loaded from as any: no save step.
+    /// </summary>
+    [Fact]
+    public void ACanisterStackFromBeforeLoadsMovesWholeAndIsUsedFrom()
+    {
+        var w = World();
+        int tank = Tanks(w)[0], old = 4 * Content.Items.Get("canister").Stack;
+        w.Put(30, new Items.Stack("canister", old)).Run();
+        w.Reload().Run();
+        Assert.Equal(new Items.Stack("canister", old), w.M.Items.Inventory(0)[30]);
+        w.Do(new Items.Move(new Items.Place(30), new Items.Target(31), old)).Run();
+        Assert.Empty(w.Refusals);
+        Assert.Equal(new Items.Stack("canister", old), w.M.Items.Inventory(0)[31]);
+        int carried = Canisters(w, 0);
+        w.Do(new LoadCanister(tank)).Run();
+        Assert.Equal(carried - 1, Canisters(w, 0));
+    }
+
     /// <summary>Not from what is no tank, nor from a tank holding less than a canister, nor into a full inventory; nothing changed.</summary>
     [Fact]
     public void RefusesADrawFromNoTankFromLessThanACanisterOrIntoAFullBag()

@@ -105,7 +105,8 @@ public class PlanetYieldsTests
         DigOut(w, w.At(3, 3));
         Assert.Equal((1, 0), (Count(w, "crystal"), Count(w, "ice")));
         DigOut(w, Bottom(w, 3, 0));
-        Assert.Equal(1, Count(w, "ice"));
+        // Four ice a crystal, so ice is farmed on a planet (industrial-oxygen).
+        Assert.Equal(4, Count(w, "ice"));
         Assert.DoesNotContain("crystalAmber", Kinds(w));
         Assert.DoesNotContain("crystalIceHang", Kinds(w));
         // What the next wall along held stands: the teal cap's floor was not dug.

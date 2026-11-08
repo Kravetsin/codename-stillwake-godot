@@ -32,7 +32,7 @@ public class WaterTests
     private static int At(int x, int y) => y * W + x;
 
     private static Scenario World() =>
-        new Scenario(Layout.Parse(Rows, null, Cables), doubled: false).GiveItems(0, (WaterContent.Item, 9), ("tube", 20)).GiveItems(1, (WaterContent.Item, 1));
+        new Scenario(Layout.Parse(Rows, null, Cables), doubled: false).GiveItems(0, (WaterContent.Item, WaterContent.CisternBottles + 1), ("tube", 20)).GiveItems(1, (WaterContent.Item, 1));
 
     private static Scenario Piped() => World().Do(new LayPipe(At(3, 2), At(6, 5))).Do(new LayPipe(At(9, 5), At(12, 2))).Run();
 
