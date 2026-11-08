@@ -153,7 +153,7 @@ public partial class Main
     {
         _roster = Platform.Roster.Empty();
         var (host, client) = LocalSession.Create(world, Build, _roster.SeatOf(_playerKey));
-        _session = new Session(host, client);
+        _session = new Session(host, client) { Speed = double.TryParse(_dev.Given("--speed"), System.Globalization.CultureInfo.InvariantCulture, out double speed) ? speed : 1 };
         foreach (var scenario in _scenarios) scenario.Started(client);
         ShowWorld();
         AimCamera(aimAt);

@@ -7,6 +7,7 @@
 | `EffectsView.cs` | One stage's view: steps and draws its particles, glints, shock lines, arcs and shimmer. |
 | `StagesView.cs` | The world's stages drawn: a view a stage at its layer's z, kept last among the world's views. |
 | `logic/Impacts.cs` | What a hit at a cell strikes and where on it (0094): the face toward the hero, its floor, a tool's share. |
+| `logic/ChipShape.cs` | A chip's triangle turned and sized where it flies: a frame's chips drawn as one list of triangles. |
 
 Particles without a word, in the luminous style (0075): what glows is light added over the world — streaks white-hot
 at the head, stretched along their curling path, fading as they cool, lighting the room a little; a one-frame glint
@@ -77,5 +78,6 @@ Tested in `LuminousTests`: the luminous arithmetic, trails, blooms, floor rings 
 - A peer is not told which tool hit a wreck: a hit under a running drill's bit is taken for that drill's (0094).
 - A hit on a tree's crown lands in the struck cell, maybe air between branches: nothing finds the wood in the picture (0094).
 - A chip keeps the floor it was thrown over; one flying past a step's edge rests on air at its height (0094).
+- A frame's chips are drawn as one list of triangles over the rest of its matter, not between motes and wisps in the order thrown (planet-frame-rate).
 - A door's hiss comes as the panel meets the seal, the shut sound at the start of the slide.
 - A breach out through a missing back wall jets every way and neither shimmers nor frosts.

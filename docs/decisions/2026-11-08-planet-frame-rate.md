@@ -33,13 +33,21 @@ The sim tick was never the cause: 0.14 ms idle, 0.24 ms digging (a test with a S
   - *Felled growth, 3 to 8 ms → microseconds.* `CaveView` built a set of the planet's 57,000 plants per felling to find the
     one gone. `Felling.Take` halves the kept cells: plants only shrink and both lists ascend by cell, so a run whose ends stand
     with as many plants between them lost none.
+- **Chips drawn as one list of triangles.** Played after the first fixes, digging still dipped, worse underground and worse
+  at ×4: stone throws chips where soil throws dust, and each chip was a transform and a polygon of its own, its points
+  copied to Godot and triangulated, every frame (a sample profile put a third of the frame there). `ChipShape` turns and
+  sizes the corners itself and the frame's chips go as one triangle array. 45 s of `--dig`: ×1 4.03 → 3.48 ms (248 → 287
+  fps), ×4 (`--speed=4`) 5.77 → 4.29 ms (173 → 233 fps), p99 9.1 → 7.2. Standing still deep down costs 3.1 ms: depth alone
+  was not the cause. Chips now draw over the frame's other matter rather than among it in the order thrown.
 - **Budget tests** (`FrameBudgetTests`, run apart from the others) hold each fix to a fraction of a frame on a desk, times
   `STILLWAKE_BUDGET_SLACK` on CI.
 
 ## Deliberate omissions
 
-- About 16 frames of 5 to 8 ms per 28 s of digging remain in untimed node work; `--ablate` found no single node. Not chased.
+- Rare frames of 8 to 10 ms remain while digging at ×4 (p99.9); a sample profile names no one cause for them. Not chased.
 - The real drill's client path (mouse held) is not measured: driving input would move the user's cursor. `--dig` sends the
   same `HewCells` at the drill's pace with the pickaxe.
 - The dev run uses the Debug build, about 2.4 times slower than Release for this code in tests. A release build plays faster;
   we do not optimise the Debug build.
+- The remaining matter (dust motes, wisps) is still drawn a rectangle at a time, and the hologram key and energy tab redraw
+  every frame for their flicker: together under a millisecond at ×4, the same digging or not.
