@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://b75facn1ribqt"
-path="res://.godot/imported/hills.png-af313de5ee1195d38133405f2b8a8f66.ctex"
+uid="uid://c2q7ot7nlj00b"
+path="res://.godot/imported/front.png-a4fe78ca3ee4200f9f4f8401a079f6ee.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://art/hd/planet/hills.png"
-dest_files=["res://.godot/imported/hills.png-af313de5ee1195d38133405f2b8a8f66.ctex"]
+source_file="res://art/hd/creatures/inkGeodeSnail/front.png"
+dest_files=["res://.godot/imported/front.png-a4fe78ca3ee4200f9f4f8401a079f6ee.ctex"]
 
 [params]
 

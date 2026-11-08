@@ -22,7 +22,11 @@ back for one who has none.
   a bend of the line the body now passes straight from the bend before it (or the anchor) is let go, and where the body cannot
   pass straight to the last bend, the line bends where its middle was a step before. A haul makes no bend: along a line that
   just grazes the hull, it would send the hero back to the bend it had just let go. The haul pulls toward the last bend, then on.
-  "Passes" is the body's box looked at each half cell along the way. At most 32 bends.
+  "Passes" is the body's box looked at each half cell along the way. At most 32 bends. Only the body's own move bends the line:
+  where it no longer passes from the last bend even to where it was a step before, a door was shut or a wall built across it,
+  and no bend is made. A haul that reaches its last bend, or stops short of it, lets it go and goes on: played, a hero that swam
+  out and up past the airlock's lip, then shut the door behind it, was hauled only to the bend at the lip and held there, the way
+  on through the shut door never passing again. Now it goes on to the door, flush against it.
 - **It comes in at speed**, as off the harpoon's line: aboard, the tether comes off and the feet brake it in about a cell.
 - **What wins**: the grapple's pull; a jetpack; rammed, passed out or seated (no Shift reaches the step). A gun's kick is
   taken by the hands on the line. The tool in hand still works.

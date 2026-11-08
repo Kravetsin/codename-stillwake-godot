@@ -22,6 +22,10 @@
 | `logic/IstukanMotion.cs` | How it moves and its moments, read off the sim. |
 | `logic/IstukanFate.cs` | Why one is gone: calmed, killed or shut down. |
 | `logic/IstukanRig.cs` | Where its parts go in a pose, in ink: plain C#, tested. |
+| `LurkerBodies.cs` | The cave lurkers: rigs, lights, dust, hits. |
+| `logic/LurkerArt.cs` | Its pose and colours. |
+| `logic/LurkerMotion.cs` | How it moves, off the sim. |
+| `logic/LurkerRig.cs` | Where its parts go in a pose: tested. |
 | `TickBodies.cs` | The tick (the sentry), drawn at `TickRig.Size`: sprite, lamp, arcs, burner, sparks, death. |
 | `ShotsView.cs` | Every peer's shots but a guest's own, drawn a tick behind; heard fired; their hits; the sentry's arcs. |
 | `logic/TickArt.cs` | The tick's pose and anchors, the page's leg sums. |
@@ -57,7 +61,7 @@ fan of rays from the shoulder and the cutter's beam are tested against each crea
   twice). A white flash, a squash, a flinch the way it is knocked, a shake. A drill's hit is its share of the axe's (`Impacts.ShareOf`).
 - **A ram's tell** (0103), read off `WindUp` and `Charge`: it faces the hero and crouches (`CreatureMotion.Bracing`), trembling; it snorts
   (`Sound.Snort`, a placeholder). Charging it gallops. Its hit on a hero is `features/crew`'s.
-- **Jumps** (no ADR), read off the sim: a crouch, a spring; on landing a squash as hard as the fall.
+- **Jumps** (no ADR), off the sim: a crouch, a spring; landing, a squash as hard as the fall.
 - **Seen and heard by what it is** (0093, 0094): `HitLooks.Creatures` names each species' `Impact` (`Flesh`, `CoolFlesh`;
   no blood), thrown from the side facing the hero, its share for a drill; `Sound.Creatures` its hit, thump and death,
   an own (struck or shot) on Suit heard far (`Sound.Felt`), a friend's on World.
@@ -68,7 +72,8 @@ fan of rays from the shoulder and the cutter's beam are tested against each crea
   sparks, smoke. `CutLeft`: it faces the line and saws; `LastCut`: sparks down the line, a recoil. Killed: cracks, sparks, its pixels crumbling. Heard on Suit (`Sound.Ticks`).
 - **The Istukan** ([spire-guards](../../../docs/decisions/2026-10-31-spire-guards.md)): drawn as the tick is. Asleep a column, lamp dark; woken
   teal, waiting yellow, red from its crouch on; flying fists first, a thin streak behind; stuck, shivering. Gone: `IstukanFate`. Heard on World (`Sound.Istukans`). `--ground=spire-guards`, with `--take-at` the cradle.
-- **The guards in ink** ([their ADR](../../../docs/decisions/2026-11-01-guards-in-ink.md)): `TickRig` or `IstukanRig` place `InkRig`'s sprites.
+- **Guards and lurkers in ink** ([guards](../../../docs/decisions/2026-11-01-guards-in-ink.md), [lurkers](../../../docs/decisions/2026-11-07-cave-hostiles.md)): `TickRig`, `IstukanRig`, `LurkerRig` place `InkRig`s.
+  A capback dims noticing, flares crouched; a snail rolls. Killed, they sag or crack. Heard as walkers.
 - **A surface left or a world loaded** (no ADR): every body put away at once, no puff.
 
 ## Dev

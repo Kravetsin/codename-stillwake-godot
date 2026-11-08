@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://v5d8k82s52k8"
-path="res://.godot/imported/far.png-b1ba9f83da28d62729cfd3eaf2efd151.ctex"
+uid="uid://dyoo32c6ku4l5"
+path="res://.godot/imported/capsLitV.png-60f897b010939265e6034e080d6d1098.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://art/hd/planet/far.png"
-dest_files=["res://.godot/imported/far.png-b1ba9f83da28d62729cfd3eaf2efd151.ctex"]
+source_file="res://art/hd/creatures/inkCapback/capsLitV.png"
+dest_files=["res://.godot/imported/capsLitV.png-60f897b010939265e6034e080d6d1098.ctex"]
 
 [params]
 

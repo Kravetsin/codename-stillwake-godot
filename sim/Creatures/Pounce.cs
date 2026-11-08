@@ -11,7 +11,7 @@ internal sealed class PounceMove : MoveRule
 {
     internal override Type Serves => typeof(Spec.Pounce);
 
-    internal override bool Interruptible => false;
+    internal override bool Interruptible(Spec.Move mv) => false;
 
     internal override void Begin(CreaturesModule m, Creature c, Spec.Species spec, int at)
     {

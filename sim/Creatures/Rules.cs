@@ -91,8 +91,8 @@ internal abstract class MoveRule
     /// <summary>Its steering, on the ground.</summary>
     internal abstract void Steer(CreaturesModule m, Creature c, Spec.Species spec, Spec.Move mv);
 
-    /// <summary>Whether a blow cuts it short.</summary>
-    internal virtual bool Interruptible => true;
+    /// <summary>Whether a blow cuts <paramref name="mv"/>, a move of its kind, short.</summary>
+    internal virtual bool Interruptible(Spec.Move mv) => true;
 
     /// <summary>Whether a hero may be hit by it now (<see cref="HitBy"/>).</summary>
     internal abstract bool Hits(Act a);

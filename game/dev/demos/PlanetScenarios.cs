@@ -14,11 +14,15 @@ namespace Stillwake.Game.Dev;
 /// </summary>
 [Dev("--planet", "a planet grown from its seed, the hero beamed down with the axe, the drill and the helmet lamp (0077)", Order = 5)]
 [Dev("--strip", "the test strip (0076); with --autopilot played by a script (HeroAutopilot.PlanetRun)", Order = 5)]
+[Dev("--dusk", "with --planet or --strip, the planet's dusk starting two seconds in, its night a minute on (2026-11-07-night-chills)", Order = 5)]
+[Dev("--valley", "with --planet, the hero beamed down into the planet's deepest valley rather than at the pod, to see the land behind follow (composed-backdrops)", Order = 5)]
 public sealed class PlanetScenario : DevScenario
 {
-    private bool _beamedBack;
+    private bool _beamedBack, _dusk, _valley;
 
     private bool Strip => Args.Has("--strip");
+
+    private bool Valleys => Args.Has("--valley") && !Strip;
 
     // The hero carries the axe and the drill and wears the helmet lamp, to try the caves; --ground seeds the same.
     public override World Seed(World world, DevSeed seed) =>
@@ -29,13 +33,40 @@ public sealed class PlanetScenario : DevScenario
     public override void Started(Client client)
     {
         client.Send(new OpenSurface((Strip ? Content.Surfaces.TestStrip : Content.PlanetTypes.First).Id));
-        client.Send(new Transfer(client.World.Surfaces.Count));
+        if (!Valleys) client.Send(new Transfer(client.World.Surfaces.Count));
     }
 
-    /// <summary><c>--beam-back</c>: back aboard two seconds in, to see the switch both ways.</summary>
+    /// <summary>
+    /// <c>--valley</c>: the hero beamed into the middle of the planet's deepest valley, the column out of the fog whose surface,
+    /// averaged as the land behind averages it, lies lowest; on its ground there.
+    /// </summary>
+    private static void Valley(Client client, Action<string> log)
+    {
+        int planet = client.World.Surfaces.Count - 1;
+        var on = Registry.On(client.World, planet);
+        var grid = on.Grid;
+        int w = grid.Width, reach = BackdropLooks.First.Reach, margin = ((Content.PlanetType)on.Rules).Ground.Fog + reach;
+        var tops = Features.Backdrop.GroundLine.Tops(grid.StructureLayer, grid.BackLayer, w, grid.Height);
+        int best = Enumerable.Range(margin, w - 2 * margin).MaxBy(x => Features.Backdrop.GroundLine.Mean(tops, x, reach));
+        client.Send(new Transfer(planet, (tops[best] - 1) * w + best));
+        log($"valley: beamed to column {best}, its ground at row {tops[best]}, the land round it at {Features.Backdrop.GroundLine.Mean(tops, best, reach):F0}");
+    }
+
+    /// <summary><c>--beam-back</c>: back aboard two seconds in, to see the switch both ways; <c>--dusk</c>: the planet's dusk then.</summary>
     public override void Frame(Client client, Registry m, Action<string> log)
     {
-        if (_beamedBack || !Args.Has("--beam-back") || client.World.Tick < 2 * World.TicksPerSecond) return;
+        if (Valleys && !_valley && client.World.Surfaces.Count > 1)
+        {
+            _valley = true;
+            Valley(client, log);
+        }
+        if (client.World.Tick < 2 * World.TicksPerSecond) return;
+        if (!_dusk && Args.Has("--dusk") && m.Rules.Cycle is { } day)
+        {
+            _dusk = true;
+            client.Send(new Sim.Sky.SetTime(day.Length - day.Night - Daylight.Dusk));
+        }
+        if (_beamedBack || !Args.Has("--beam-back")) return;
         _beamedBack = true;
         client.Send(new Transfer(0));
     }

@@ -12,10 +12,10 @@ namespace Stillwake.Game.Features.Crew;
 public struct SwingArm
 {
     /// <summary>
-    /// How long a hand-over eases, in ms: the wind-up's length, so a swing begun from rest is the swing's
+    /// How long a hand-over eases, in ms: the axe's wind-up (0.35 of its 500 ms), so a swing begun from rest is the swing's
     /// own by its downstroke, and the blade drawn striking is the one that hits.
     /// </summary>
-    public static readonly double BlendMs = AxeSwing.WindShare * AxeSwing.Ms;
+    public const double BlendMs = 175;
 
     private Bend? _drawn;
     private double? _phase;

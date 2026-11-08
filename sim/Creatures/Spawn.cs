@@ -63,7 +63,8 @@ public sealed partial class CreaturesModule
 
     /// <summary>
     /// Round each hero in id order whose keep box has room for the least herd, while the surface has (creatures-in-herds): four
-    /// draws, always taken — the side, the columns out, the habitat by weight, the herd's size — then each member <c>Creatures.Spacing</c> columns
+    /// draws — the side, the columns out, the habitat of the hero's depth band by weight (none there: no herd, and no more draws), the
+    /// herd's size — then each member <c>Creatures.Spacing</c> columns
     /// further out than the last, at the first place down its column, within the hero's keep box, where the habitat's species stands.
     /// The herd comes whole or not at all: not with one member off the grid, without such a place or in any hero's view, nor with
     /// no room for all of it, nor within <c>Creatures.Apart</c> of a creature already there.
@@ -81,7 +82,9 @@ public sealed partial class CreaturesModule
             if (near + Spec.HerdLeast > Spec.PerKeep) continue;
             bool right = Random.Below(2) == 0;
             int out_ = Spec.RingFrom + (int)Random.Below(Spec.RingTo - Spec.RingFrom + 1);
-            var habitat = Drawn(habitats);
+            // Only the habitats of the hero's own depth band (cave-hostiles): the surface's count as the coldest.
+            int band = Terrain.BandOf((PlanetType)Rules, at.Y);
+            if (Drawn(habitats, band) is not { } habitat) continue;
             int size = Spec.HerdLeast + (int)Random.Below(Spec.HerdMost - Spec.HerdLeast + 1);
             if (near + size > Spec.PerKeep || all.Count + size > Spec.Max) continue;
             var spec = Spec.Get(habitat.Species);
@@ -123,19 +126,25 @@ public sealed partial class CreaturesModule
         return true;
     }
 
-    /// <summary>A habitat drawn by weight, one draw, walking them in order.</summary>
-    private Spec.Habitat Drawn(IReadOnlyList<Spec.Habitat> habitats)
+    /// <summary>A habitat of depth band <paramref name="band"/> drawn by weight, one draw, walking them in order; null, and no draw, with none there.</summary>
+    private Spec.Habitat? Drawn(IReadOnlyList<Spec.Habitat> habitats, int band)
     {
         int total = 0;
-        foreach (var h in habitats) total += h.Weight;
+        foreach (var h in habitats)
+            if (BandOf(h) == band) total += h.Weight;
+        if (total == 0) return null;
         int roll = (int)Random.Below((uint)total);
         foreach (var h in habitats)
         {
+            if (BandOf(h) != band) continue;
             if (roll < h.Weight) return h;
             roll -= h.Weight;
         }
         throw new InvalidOperationException("creatures: a roll past the total weight");
     }
+
+    /// <summary>The depth band a habitat lives in: a cave's own, the open ground's the coldest.</summary>
+    private static int BandOf(Spec.Habitat h) => h.Place == Spec.Place.Surface ? 0 : h.Band;
 
     /// <summary>
     /// The bottom row of the first place, from the top of a hero at row <paramref name="heroRow"/>'s keep box down, where a body of

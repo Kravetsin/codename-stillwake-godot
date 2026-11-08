@@ -44,7 +44,7 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [0036](0036-upright-in-space.md) | Upright in space | accepted | 0037, hero-gait (in part) |
 | [0037](0037-others-see-the-hands.md) | Others see the hands | accepted | 0038 (in part) |
 | [0038](0038-one-swing-one-hit.md) | One swing, one hit | accepted | 0039 (in part) |
-| [0039](0039-melee-by-contact.md) | Melee by contact | accepted | 0040, fan-of-rays, melee-edge (in part) |
+| [0039](0039-melee-by-contact.md) | Melee by contact | accepted | 0040, fan-of-rays, melee-edge, swing-motions (in part) |
 | [0040](0040-a-melee-weapon-is-held-by-its-handle.md) | A melee weapon is held by its handle | accepted | fan-of-rays (in part) |
 | [0041](0041-wreckage-of-many-kinds-and-circuits.md) | Wreckage of many kinds, and circuits | accepted |  |
 | [0042](0042-what-is-heard-in-space.md) | What is heard in space | accepted | 0059 (in part) |
@@ -81,10 +81,10 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [0073](0073-the-build-menu-is-a-docked-catalogue.md) | The build menu is a docked catalogue | accepted |  |
 | [0074](0074-the-inventory-is-a-wrist-computer.md) | The inventory is a wrist computer | accepted | machine-holograms (in part) |
 | [0075](0075-effects-are-light-not-shapes.md) | Effects are light, not shapes | accepted | arcs-are-hairlines, effects-on-their-layer, head-tally (in part) |
-| [0076](0076-a-world-is-made-of-surfaces.md) | A world is made of surfaces | accepted |  |
+| [0076](0076-a-world-is-made-of-surfaces.md) | A world is made of surfaces | accepted | night-chills (in part) |
 | [0077](0077-a-planets-ground-grows-from-its-seed-and-is-dug-by-hits.md) | A planet's ground grows from its seed and is dug by hits | accepted | fan-of-rays, veins-and-stairs, tool-edge (in part) |
 | [0078](0078-two-handed-items-are-held-as-a-rifle.md) | Two-handed items are held as a rifle | superseded | one-arm-holds |
-| [0079](0079-a-planets-surface-has-its-look-and-grows-plants.md) | A planet's surface has its look, and grows plants from its seed | accepted | 0082 (in part) |
+| [0079](0079-a-planets-surface-has-its-look-and-grows-plants.md) | A planet's surface has its look, and grows plants from its seed | accepted | 0082, composed-backdrops (in part) |
 | [0080](0080-caves-glow-by-depth.md) | Caves glow by depth: what grows in them is the surface's flora, held by floor, ceiling or rock | accepted | veins-and-stairs (in part) |
 | [0081](0081-the-wrist-is-one-column-of-gauges-and-keys.md) | The wrist is one column: segmented gauges that never step, and hardware keys | accepted |  |
 | [0082](0082-the-grounds-chipped-look-details-and-living-edge.md) | The ground's chipped look: details over it and a living edge on top | accepted |  |
@@ -113,9 +113,9 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [0105](0105-a-room-airs-four-cells-a-beat.md) | A room airs four cells a beat | accepted | air-bubbles (in part) |
 | [0106](0106-steps-replace-slopes.md) | Steps replace slopes | accepted |  |
 | [0107](0107-left-is-front-right-is-back.md) | Left is the front, right is the back; the menu plans, the hands build | accepted | 0108, 0109, fan-of-rays (in part) |
-| [0108](0108-left-plans-right-removes.md) | In the plan menu the left button plans and the right removes; the stripper lays cables | accepted | 0107, 0109, 0110, plan-modes (in part) |
+| [0108](0108-left-plans-right-removes.md) | In the plan menu the left button plans and the right removes; the stripper lays cables | accepted | 0107, 0109, 0110, plan-modes, right-lets-go (in part) |
 | [0109](0109-pipes-are-spans.md) | Pipes are straight spans, laid with the wrench | accepted | 0110, plan-modes (in part) |
-| [0110](0110-the-plan-has-a-focused-layer.md) | The open plan has a focused layer; the hand tools have card menus | accepted | plan-modes (in part) |
+| [0110](0110-the-plan-has-a-focused-layer.md) | The open plan has a focused layer; the hand tools have card menus | accepted | plan-modes, back-focus-clear (in part) |
 | [0111](0111-doors-and-hatches.md) | Doors and hatches are two things | accepted |  |
 | [0112](0112-structure-traits.md) | Systems ask a structure's traits, not its kind | accepted | 0113 (in part) |
 | [0113](0113-machine-traits.md) | Systems ask a machine's traits, not its kind | accepted | 0114 (in part) |
@@ -194,7 +194,7 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [board-room](2026-11-02-board-room.md) | The camera stops at a size, and the player has room for heaps | accepted |  |
 | [board-thoughts](2026-11-02-board-thoughts.md) | The board says what the hero is thinking | accepted |  |
 | [bulb-signal](2026-11-02-bulb-signal.md) | A bulb over the hero says something new waits on the board | superseded | hologram-keys |
-| [far-land-in-ink](2026-11-02-far-land-in-ink.md) | The far land in ink | accepted |  |
+| [far-land-in-ink](2026-11-02-far-land-in-ink.md) | The far land in ink | accepted | composed-backdrops (in part) |
 | [hero-clothes](2026-11-02-hero-clothes.md) | One body, four sets of clothes | accepted |  |
 | [ink-batch](2026-11-02-ink-batch.md) | The rest of the art in one batch | accepted |  |
 | [ink-by-default](2026-11-02-ink-by-default.md) | The game is drawn in ink by default | accepted |  |
@@ -268,9 +268,11 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [the-power-chain](2026-11-06-the-power-chain.md) | The power chain | accepted |  |
 | [trade-station-later](2026-11-06-trade-station-later.md) | The trade station comes with circuits | accepted |  |
 | [air-feedback](2026-11-07-air-feedback.md) | Air and power answer the player loudly | accepted |  |
+| [back-focus-clear](2026-11-07-back-focus-clear.md) | The back walls' focus hides the front | accepted |  |
 | [battery-workbench](2026-11-07-battery-workbench.md) | The workbench makes batteries | accepted |  |
 | [board-search-related](2026-11-07-board-search-related.md) | The board's search finds what is tied | accepted |  |
 | [board-search](2026-11-07-board-search.md) | The board has its own search | accepted |  |
+| [cave-hostiles](2026-11-07-cave-hostiles.md) | Cave hostiles | accepted |  |
 | [cracks-to-end](2026-11-07-cracks-to-end.md) | A wreck's cracks run on until they cover it at the break | accepted |  |
 | [creative-per-player](2026-11-07-creative-per-player.md) | Creative mode is each player's | accepted |  |
 | [crusher-takes-arc](2026-11-07-crusher-takes-arc.md) | The crusher takes the arc module | accepted |  |
@@ -278,6 +280,7 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [hits-pass-wrecks](2026-11-07-hits-pass-wrecks.md) | A tool's rays pass through wrecks and hit all they cross | accepted |  |
 | [machine-holograms](2026-11-07-machine-holograms.md) | Machine windows are station holograms | accepted |  |
 | [machines-stand](2026-11-07-machines-stand.md) | Machines stand on a floor | accepted |  |
+| [night-chills](2026-11-07-night-chills.md) | Night chills a planet's open sky | accepted |  |
 | [no-charge-flash](2026-11-07-no-charge-flash.md) | A flat press blinks the energy tab red | accepted |  |
 | [ore-pockets](2026-11-07-ore-pockets.md) | Ore lies at every depth, in pockets, and glints now and then | accepted |  |
 | [pick-reach](2026-11-07-pick-reach.md) | The pickaxe cuts close by | accepted |  |
@@ -285,8 +288,11 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [pile-hit-points](2026-11-07-pile-hit-points.md) | The hold's piles have hit points | accepted |  |
 | [pile-hits-felt](2026-11-07-pile-hits-felt.md) | A hit on a pile is seen and heard | accepted |  |
 | [radar-mast](2026-11-07-radar-mast.md) | The radar antenna is a guyed mast | accepted |  |
+| [right-lets-go](2026-11-07-right-lets-go.md) | The right button lets the card go | accepted |  |
 | [steady-scanner](2026-11-07-steady-scanner.md) | A steady scanner readout | accepted |  |
+| [swing-motions](2026-11-07-swing-motions.md) | Swing motions | accepted |  |
 | [tether-haul](2026-11-07-tether-haul.md) | Hauling in along the tether | accepted |  |
 | [the-pickaxe](2026-11-07-the-pickaxe.md) | The pickaxe | accepted |  |
 | [the-scanner](2026-11-07-the-scanner.md) | The scanner reads a wreck's hit points | accepted |  |
 | [tool-card-rows](2026-11-07-tool-card-rows.md) | A tool's card lists its numbers as rows with icons | accepted |  |
+| [composed-backdrops](2026-11-08-composed-backdrops.md) | Composed backdrops | accepted |  |

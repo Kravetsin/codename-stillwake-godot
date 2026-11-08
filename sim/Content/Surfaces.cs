@@ -33,6 +33,9 @@ public static class Surfaces
         /// <summary>The light through every open cell with no back wall: a planet's daylight; null for the stars'.</summary>
         public Light? Sky { get; init; }
 
+        /// <summary>Its day and night (2026-11-07-night-chills); null where there is none: the ship.</summary>
+        public Content.Sky.Cycle? Cycle { get; init; }
+
         /// <summary>Whether debris drifts by in the zones of <see cref="Debris.Zones"/>: none on a planet.</summary>
         public bool Debris { get; init; } = true;
 
@@ -88,6 +91,7 @@ public static class Surfaces
         Gravity = PlanetTypes.First.Gravity,
         ThinAir = PlanetTypes.First.ThinAir,
         Sky = PlanetTypes.First.Sky,
+        Cycle = PlanetTypes.First.Cycle,
         Debris = PlanetTypes.First.Debris,
         Builds = PlanetTypes.First.Builds,
         ToolsBreak = PlanetTypes.First.ToolsBreak,

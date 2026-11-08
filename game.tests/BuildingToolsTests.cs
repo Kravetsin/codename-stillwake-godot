@@ -233,8 +233,12 @@ public class BuildingToolsTests
         Assert.Equal((Focus.Front, null), (plan.Focus.Get(), What(plan.Selected.Get())));
         // Only the focused layer is whole.
         Assert.Equal((1f, 1f), Tools.AlphasOf(null));
-        Assert.Equal((Tools.Faded, 1f), Tools.AlphasOf(Focus.Back));
         Assert.Equal((1f, Tools.Faded), Tools.AlphasOf(Focus.Front));
+        // The back walls focused, the front is hidden and they are drawn out of the light, as painted (back-focus-clear).
+        Assert.Equal((0f, 1f), Tools.AlphasOf(Focus.Back));
+        Assert.True(Tools.BackUnlit(Focus.Back));
+        Assert.False(Tools.BackUnlit(Focus.Front));
+        Assert.False(Tools.BackUnlit(null));
     }
 
     [Fact]
@@ -357,7 +361,7 @@ public class BuildingToolsTests
     }
 
     [Fact]
-    public void EveryCardPlansOnTheLeftAndTheRightRemovesInTheFocusedLayerCardOrNone()
+    public void EveryCardPlansOnTheLeftTheRightLetsItGoAndRemovesInTheFocusedLayerWithNone()
     {
         // The hands: the right button alone is the back; both held, the front (the axe's and the drill's).
         Assert.False(Layering.Back(left: true, right: false));
@@ -371,8 +375,8 @@ public class BuildingToolsTests
                 var left = Tools.ActOf(card, false, focus);
                 if (Tools.FocusOf(card) == focus) Assert.Equal(card.Placement, Assert.IsType<PlaceTool>(left).Placement);
                 else Assert.Null(left);
-                var removal = Assert.IsType<Remove>(Tools.ActOf(card, true, focus));
-                Assert.Equal(Tools.RemovalIn(focus).Layers, removal.Layers);
+                // With a card in hand the right lets it go and takes nothing down (right-lets-go).
+                Assert.Null(Tools.ActOf(card, true, focus));
             }
         Assert.Null(Tools.ActOf(null, false, Focus.Front));
         // With no card in hand the right still removes: in the focused layer.
@@ -421,6 +425,20 @@ public class BuildingToolsTests
     }
 
     [Fact]
+    public void LettingGoDropsTheCardAndKeepsThePlanOut()
+    {
+        // The bug: the right pressed to let a wall's card go marked the wall under it for taking down (right-lets-go).
+        var plan = new PlanHand(new Ui());
+        plan.Toggle();
+        plan.Pick(Card("wall:scrap"));
+        Assert.True(plan.LetGo());
+        Assert.Equal((true, null), (plan.PlanOut.Get(), What(plan.Selected.Get())));
+        // Nothing in hand, nothing to let go: Esc goes on to put the plan away.
+        Assert.False(plan.LetGo());
+        Assert.True(plan.PlanOut.Get());
+    }
+
+    [Fact]
     public void AfterAWallAndABackWallTheWallComesOffWithTheFrontFocusedAgain()
     {
         // The bug: a back wall's card picked after a wall's, the wall could not be taken without its card picked again.
@@ -429,8 +447,9 @@ public class BuildingToolsTests
         plan.Toggle();
         plan.Pick(Card("wall:scrap"));
         plan.Pick(Card("backWall:scrap"));
+        // The card let go first, the right removes in the focused layer (right-lets-go).
         Sim.Command[] Right() =>
-            [.. Drag.Judge(Tools.ActOf(plan.Selected.Get(), true, plan.Focus.Get())!, [0], w.M.Building, 0).SelectMany(v => v.Commands)];
+            [.. Drag.Judge(Tools.ActOf(null, true, plan.Focus.Get())!, [0], w.M.Building, 0).SelectMany(v => v.Commands)];
         Assert.DoesNotContain(new Deconstruct(0, "structure"), Right());
         plan.ToggleFocus();
         Assert.Equal((Focus.Front, "wall:scrap"), (plan.Focus.Get(), What(plan.Selected.Get())));

@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://4ryww7t1us6r"
-path="res://.godot/imported/ridge.png-c2fcc701a23dcdb3f26edd3255a455e6.ctex"
+uid="uid://cetge862a3fv2"
+path="res://.godot/imported/stalk.png-f4910bb0fafebadd896af1a0e43ed797.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://art/hd/planet/ridge.png"
-dest_files=["res://.godot/imported/ridge.png-c2fcc701a23dcdb3f26edd3255a455e6.ctex"]
+source_file="res://art/hd/creatures/inkGeodeSnail/stalk.png"
+dest_files=["res://.godot/imported/stalk.png-f4910bb0fafebadd896af1a0e43ed797.ctex"]
 
 [params]
 

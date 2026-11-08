@@ -37,8 +37,13 @@ public partial class InkRig : Node2D
                 sprite.Visible = slot.Alpha > 0.01;
                 sprite.Modulate = new Color((float)slot.Tint.R / 255, (float)slot.Tint.G / 255, (float)slot.Tint.B / 255, (float)slot.Alpha);
             }
-            else sprite.Modulate = new Color(shade, shade, shade);
-            if (white != null) (white.Position, white.Rotation) = (sprite.Position, sprite.Rotation);
+            else
+            {
+                // A plate drawn in (a snail's foot into its shell) fades with its white.
+                sprite.Visible = slot.Alpha > 0.01;
+                sprite.Modulate = new Color(shade, shade, shade, (float)slot.Alpha);
+            }
+            if (white != null) (white.Position, white.Rotation, white.Visible, white.SelfModulate) = (sprite.Position, sprite.Rotation, sprite.Visible, new Color(1, 1, 1, (float)slot.Alpha));
         }
         _flash.Visible = flash > 0.01;
         _flash.Modulate = new Color(1, 1, 1, (float)flash);
@@ -76,7 +81,7 @@ public partial class InkRig : Node2D
     {
         foreach (var (sprite, white) in _sprites)
         {
-            if (white == null || sprite.Texture is not { } texture || CreatureParts.PixelsOf(texture) is not var (w, h, data)) continue;
+            if (white == null || !sprite.Visible || sprite.Texture is not { } texture || CreatureParts.PixelsOf(texture) is not var (w, h, data)) continue;
             PixelBursts.Paint(into, toWorld * Transform * sprite.Transform * new Transform2D(0, sprite.Offset), w, h, data);
         }
     }

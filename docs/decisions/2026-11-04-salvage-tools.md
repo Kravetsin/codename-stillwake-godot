@@ -1,6 +1,7 @@
 # The salvage tools
 
-- Status: accepted; the grinder's draw of 4 and the cutter's of 2 amended to 2 and 1 by [lighter-tools](2026-11-06-lighter-tools.md)
+- Status: accepted; the grinder's draw of 4 and the cutter's of 2 amended to 2 and 1 by [lighter-tools](2026-11-06-lighter-tools.md);
+  the sledgehammer's pace of 3 s amended to 1.8 s by [swing-motions](2026-11-07-swing-motions.md)
 - Date: 2026-11-04
 
 ## Context

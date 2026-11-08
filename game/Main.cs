@@ -352,8 +352,9 @@ public partial class Main : Node2D, ITogether
             busy: () => (_items?.Panel.Shown ?? false) || handbook.Shown || computer.Shown || tech.Shown || lookEditor.Shown || keyCard.Shown || _hands.Plan.PlanOut.Get() || dev.Searching,
             putAway: () =>
             {
-                // A search in the build menu, on the research board or the dev panel goes first, what else is open staying so.
-                if (dev.DropSearch() || _hands.Menu.DropSearch() || tech.DropSearch()) return;
+                // A search in the build menu, on the research board or the dev panel goes first, then a card in hand (right-lets-go),
+                // what else is open staying so.
+                if (dev.DropSearch() || _hands.Menu.DropSearch() || tech.DropSearch() || _hands.Plan.LetGo()) return;
                 _items?.Panel.Close();
                 handbook.Close();
                 computer.Close();
@@ -485,8 +486,14 @@ public partial class Main : Node2D, ITogether
             // The creatures live across surfaces: their view is made once, not with these.
             Shining = [.. _views.OfType<ILightSource>(), _creatures],
         });
-        // A planet's sky behind its ground, its land's foot at the spawn's ground; space aboard (0076, 0079).
-        _stars.Show(_m.Rules.Sky != null ? PlanetLooks.Of[_m.Rules.Id].Backdrop : null, (_m.Crew.Spawn / _m.Grid.Width + 1) * ShipCamera.Cell);
+        // A planet's sky behind its ground and its land composed by its seed, on its surface's rows; space aboard (0076, 0079,
+        // composed-backdrops). A surface other than a planet's, the strip, takes the first planet's plants.
+        long landFrom = System.Diagnostics.Stopwatch.GetTimestamp();
+        if (_m.Rules.Sky != null && PlanetLooks.Of[_m.Rules.Id] is var look)
+            _stars.Show(look.Backdrop, Features.Backdrop.BackdropView.Of(_m.Rules as Content.PlanetType ?? Content.PlanetTypes.First, look, _seed),
+                Features.Backdrop.GroundLine.Tops(_m.Grid.StructureLayer, _m.Grid.BackLayer, _m.Grid.Width, _m.Grid.Height));
+        else _stars.Show(null, null, null);
+        double land = System.Diagnostics.Stopwatch.GetElapsedTime(landFrom).TotalMilliseconds;
         // Last of the world's views: at a shared z, a stage's effects over its layer's objects.
         MoveChild(_stages, -1);
         MoveChild(_camera, -1);
@@ -507,7 +514,7 @@ public partial class Main : Node2D, ITogether
         // find it alive and copy it, 4 to 7 ms each (GcPace).
         GC.Collect();
         double collected = System.Diagnostics.Stopwatch.GetElapsedTime(made).TotalMilliseconds - all;
-        Log($"views of {_m.Grid.Width}×{_m.Grid.Height} made in {all:F0} ms: {views:F0} views, {grid:F0} the grid drawn, {all - views - grid:F0} the light; {collected:F0} ms collecting");
+        Log($"views of {_m.Grid.Width}×{_m.Grid.Height} made in {all:F0} ms: {views - land:F0} views, {land:F0} the land behind, {grid:F0} the grid drawn, {all - views - grid:F0} the light; {collected:F0} ms collecting");
     }
 
     private void AimCamera(Layout? layout)
@@ -558,6 +565,7 @@ public partial class Main : Node2D, ITogether
         _heroes += heard.Count;
         DevTick(client, before);
         ShowWorld();
+        ShowDaylight();
         SeeArrivals(client, delta);
         _frameLog?.Mark("sim");
         if (client.World.Tick != before) SyncLight();
@@ -614,10 +622,27 @@ public partial class Main : Node2D, ITogether
         }
         foreach (var scenario in _scenarios) scenario.Frame(client, _m, Log);
         _hands.Frame(client, _m, _bodies, elapsedMs);
-        // The open plan draws its focused layer whole and the other faded, aboard only (0110).
+        // The open plan draws its focused layer whole and the other faded, the front hidden for the back's, aboard only (0110, back-focus-clear).
         var fade = Features.Building.Tools.AlphasOf(_hands.Plan.Shown);
-        _grid?.Fade(fade);
+        _grid?.Fade(fade, Features.Building.Tools.BackUnlit(_hands.Plan.Shown));
         foreach (var view in _faded) view.Modulate = new Color(1, 1, 1, fade.Front);
+    }
+
+    /// <summary>
+    /// The planet's hour as light (2026-11-07-night-chills): the light through its open sky, its backdrop and the fog at its sides
+    /// at <see cref="Daylight"/>'s colours of the moment; whole aboard.
+    /// </summary>
+    private void ShowDaylight()
+    {
+        (float R, float G, float B) sky = (1f, 1f, 1f), tint = sky;
+        if (_m.Rules.Cycle is { } cycle && PlanetLooks.Of.TryGetValue(_m.Rules.Id, out var look))
+        {
+            int time = _m.Sky.Now.Time;
+            (sky, tint) = (Daylight.Sky(look, time, cycle), Daylight.Backdrop(look, time, cycle));
+        }
+        Lit.Sky(sky);
+        _stars.Tint = tint;
+        if (View<Features.Fog.FogView>() is { } fog) fog.Tint = tint;
     }
 
     /// <summary>The surface's view of type <typeparamref name="T"/>; none where this surface has none (lava aboard).</summary>

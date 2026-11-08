@@ -113,7 +113,7 @@ public class TetherHaulTests
     }
 
     /// <summary>A room whose door opens right onto open space, room above it and on its left; inside, where a hero stands.</summary>
-    private static (Ship Ship, Hero Inside) Room() => (ShipFrom(new[]
+    private static (Ship Ship, Hero Inside) Room(char door = 'd') => (ShipFrom(new[]
     {
         "                    ",
         "                    ",
@@ -121,14 +121,46 @@ public class TetherHaulTests
         "                    ",
         "                    ",
         "        ######      ",
-        "        #....d      ",
-        "        #....d      ",
-        "        #....d      ",
+        "        #...." + door + "      ",
+        "        #...." + door + "      ",
+        "        #...." + door + "      ",
         "        ######      ",
         "                    ",
         "                    ",
         "                    ",
     }), new Hero(10 * Block, 9 * Block, 0, 0, false, 1));
+
+    [Fact]
+    public void ADoorShutBehindTheHeroBendsNoTetherAndTheHaulGoesOnToTheDoor()
+    {
+        // Out of the door and on a few cells, the door then shut behind it (by its own hand or a friend's): the line to the anchor
+        // now crosses the door, yet the body went round nothing, so the tether takes no bend where it stood.
+        var (open, inside) = Room();
+        var (shut, _) = Room('D');
+        var out_ = Until(open, Until(open, inside, Right, h => h.Anchor != null), Right, h => h.X > 17 * Block);
+        var after = out_.Step(Still, shut);
+        Assert.Null(after.Wraps);
+        // Hauled, it goes on to the shut door, flush against it, where the tether is tied behind it.
+        var hauled = Settle(shut, after, Haul);
+        Assert.Equal(14 * Block + Spec.Width / 2, hauled.X);
+        Assert.NotNull(hauled.Anchor);
+    }
+
+    [Fact]
+    public void TheDoorShutAfterTheTetherBentAtItsLipTheHaulStillGoesOnToTheDoor()
+    {
+        // Out, and up past the door's lip: the tether bends there, the body too wide to pass the lip on the diagonal.
+        var (open, inside) = Room();
+        var (shut, _) = Room('D');
+        var out_ = Until(open, inside, Right, h => h.Anchor != null);
+        var up = Until(open, Until(open, out_, Right, h => h.X > 15 * Block), Up, h => h.Y < 5 * Block);
+        Assert.NotNull(up.Wraps);
+        // The door shut, the haul goes past the bend on to the door, flush against it level with where the tether is tied.
+        var hauled = Settle(shut, up.Step(Still, shut), Haul);
+        Assert.Equal(14 * Block + Spec.Width / 2, hauled.X);
+        Assert.InRange(hauled.Middle.Y, out_.Anchor!.Value.Y - 10, out_.Anchor!.Value.Y + 10);
+        Assert.Null(hauled.Wraps);
+    }
 
     [Fact]
     public void FromOverTheDoorItIsHauledRoundTheLipAndIn()

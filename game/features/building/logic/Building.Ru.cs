@@ -67,6 +67,7 @@ public static partial class Ru
         ["hint.fill"] = "залить площадь",
         ["hint.row"] = "в ряд",
         ["hint.takeDown"] = "снести",
+        ["hint.letGo"] = "убрать карточку",
         ["hint.toBack"] = "задние стены",
         ["hint.toFront"] = "передний слой",
         ["hint.close"] = "закрыть",

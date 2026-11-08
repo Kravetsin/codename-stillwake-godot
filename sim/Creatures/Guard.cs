@@ -7,6 +7,7 @@ namespace Stillwake.Sim.Creatures;
 /// notice through it pounces at one within its strike, or shoots at one farther (<see cref="ShootMove"/>); a hero gone from its
 /// notice calms it. Struck, or its wreck struck since it last looked, it answers the striker at once the same way, by how far
 /// the striker is. Its pounce over, <see cref="ReturnDrive"/>, above it, wants the creature till it is clamped on again.
+/// A walker on guard (a cave lurker, cave-hostiles) stands still instead of crawling and notices only a hero in line with it.
 /// </summary>
 internal sealed class GuardDrive : DriveRule
 {
@@ -34,10 +35,11 @@ internal sealed class GuardDrive : DriveRule
             Answer(m, c, spec, guard, Ref.Hero(blow.By), m.Debris.Clock);
             return true;
         }
-        bool near = Within(m, c, guard.Notice);
+        bool near = Within(m, c, spec, guard.Notice);
         if (c.Step == Watching && near) (c.Step, c.DriveLeft) = (Alerted, guard.AlertTicks);
         else if (c.Step == Alerted && !near) (c.Step, c.DriveLeft) = (Watching, 0);
-        if (c.Step == Watching && !CutTetherDrive.Cutting(c)) ClingerBody.Crawl(m, c, spec);
+        // A walker on guard (a cave lurker) stands still; a clinger crawls its perch.
+        if (c.Step == Watching && spec.Body is Spec.Clinger && !CutTetherDrive.Cutting(c)) ClingerBody.Crawl(m, c, spec);
         return true;
     }
 
@@ -46,12 +48,17 @@ internal sealed class GuardDrive : DriveRule
     {
         if (c.Step != Alerted) return true;
         var guard = (Spec.Guard)d;
-        if (Within(m, c, guard.Strike) || Within(m, c, guard.Notice) && ShotOf(spec) >= 0) Answer(m, c, spec, guard, Ref.None, m.Debris.Clock);
+        if (Within(m, c, spec, guard.Strike) || Within(m, c, spec, guard.Notice) && ShotOf(spec) >= 0) Answer(m, c, spec, guard, Ref.None, m.Debris.Clock);
         else c.DriveLeft = 1;
         return true;
     }
 
-    private static bool Within(CreaturesModule m, Creature c, int cells) => m.Nearest(c, awake: true) is ({ }, int far) && far <= cells;
+    /// <summary>
+    /// Whether the nearest awake hero is within <paramref name="cells"/>; for a walker, in line too (<see cref="CreaturesModule.InLine"/>):
+    /// its move stops at rock, so it waits for one it can reach. A clinger's flight passes walls, so it senses through them.
+    /// </summary>
+    private static bool Within(CreaturesModule m, Creature c, Spec.Species spec, int cells) =>
+        m.Nearest(c, awake: true) is ({ } hero, int far) && far <= cells && (spec.Body is not Spec.Walker || m.InLine(c, spec, hero));
 
     internal override bool Hurt(CreaturesModule m, Creature c, Spec.Species spec, Spec.Drive d, int at, in Hit hit)
     {
@@ -62,11 +69,11 @@ internal sealed class GuardDrive : DriveRule
         return true;
     }
 
-    /// <summary>Its move over: it hangs where it stopped; one that never left lets its grudge go, one away flies home first.</summary>
+    /// <summary>Its move over: it hangs where it stopped; one that never left, or a walker, lets its grudge go; one away flies home first.</summary>
     internal override void Ended(CreaturesModule m, Creature c, Spec.Species spec, Spec.Drive d, int way, bool hop)
     {
         (c.VX, c.VY) = (0, 0);
-        if (c.Recall(ClingerBody.Mounted) == 1) c.Target = Ref.None;
+        if (c.Recall(ClingerBody.Mounted) == 1 || spec.Body is Spec.Walker) c.Target = Ref.None;
     }
 
     internal override Gait GaitOf(Creature c) => Gait.Still;

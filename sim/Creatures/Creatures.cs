@@ -212,7 +212,7 @@ public sealed partial class CreaturesModule : Module<CreaturesState>
         if (spec.Life.Knock > 0) c.VX = hit.Away * (Math.Sign(c.VX) == hit.Away ? Math.Max(Math.Abs(c.VX), knock) : knock);
         // No hop while it rises already: a run of quick hits keeps it low rather than juggling it up.
         if (spec.Life.Hop > 0 && c.VY >= 0) c.VY = -spec.Life.Hop * hit.Pace / Spec.KnockPace;
-        if (c.Act is { } act && RuleBook.Move(spec.Moves[act.Move]).Interruptible) c.Act = null;
+        if (c.Act is { } act && RuleBook.Move(spec.Moves[act.Move]).Interruptible(spec.Moves[act.Move])) c.Act = null;
         for (int i = 0; i < spec.Brain.Count; i++)
             if (RuleBook.Drive(spec.Brain[i]).Hurt(this, c, spec, spec.Brain[i], i, hit)) break;
         return false;

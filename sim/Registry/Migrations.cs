@@ -185,19 +185,36 @@ public static class Migrations
             }
             return root;
         },
-        // 53 → 54 (docs/plans/liquids.md): a module added, its slice where it runs, after building, on the ship and every
+        // 53 → 54 (2026-11-07-night-chills): the sky, a module added right after the grid; a planet in an older save wakes at the
+        // start of its day. Loading reads slices in the modules' order, so each slices object is rebuilt with it in its place.
+        root =>
+        {
+            foreach (var slices in new[] { root["slices"]! }.Concat((root["surfaces"]?.AsArray() ?? []).Select(s => s!["slices"]!)))
+            {
+                var obj = slices.AsObject();
+                var kept = obj.ToList();
+                obj.Clear();
+                foreach (var (name, slice) in kept)
+                {
+                    obj[name] = slice;
+                    if (name == "grid") obj["sky"] = new JsonObject { ["time"] = 0 };
+                }
+            }
+            return root;
+        },
+        // 54 → 55 (docs/plans/liquids.md): a module added, its slice where it runs, after building, on the ship and every
         // surface: no clock run, no cell changed; a planet grows its lakes again from its seed as it loads.
         root =>
         {
-            root["slices"] = Inserted54(root["slices"]!.AsObject());
+            root["slices"] = Inserted55(root["slices"]!.AsObject());
             foreach (var surface in (root["surfaces"]?.AsArray() ?? []))
-                surface!["slices"] = Inserted54(surface["slices"]!.AsObject());
+                surface!["slices"] = Inserted55(surface["slices"]!.AsObject());
             return root;
         },
     ];
 
     /// <summary>The slices with liquids' empty one after building's, where its module runs: a save holds them in that order.</summary>
-    private static JsonObject Inserted54(JsonObject slices)
+    private static JsonObject Inserted55(JsonObject slices)
     {
         var all = slices.ToList();
         slices.Clear();
