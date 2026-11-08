@@ -85,6 +85,8 @@ public partial class InventoryPanel : CanvasLayer
     private HSlider? _drawCount;
     /// <summary>The open machine's switch, in its frame's header (industrial-oxygen).</summary>
     private Button? _switch;
+    /// <summary>The open vaporizer's liquid, behind it and its own (industrial-oxygen).</summary>
+    private Label? _liquid;
     private SortSweep _sweep = null!;
     private TextureRect _heldIcon = null!;
     private Label _heldCount = null!, _creative = null!;

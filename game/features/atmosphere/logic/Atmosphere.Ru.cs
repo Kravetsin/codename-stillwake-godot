@@ -8,6 +8,7 @@ public static partial class Ru
         ["atmosphere.tankFull"] = "Бак полон",
         ["atmosphere.tankLow"] = "В баке меньше баллона",
         ["tank.draw"] = "Достать {n} ({held}/{all} л)",
+        ["vaporizer.liquid"] = "Жидкости к испарению: {n} л",
         ["air.aired"] = "Есть воздух · {cells} {cells|клетка|клетки|клеток}",
         ["air.filling"] = "Наполняется · {aired} из {cells} {cells|клетки|клеток|клеток}",
         ["air.venting"] = "Воздух уходит в космос",

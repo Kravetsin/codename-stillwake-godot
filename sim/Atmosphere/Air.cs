@@ -41,6 +41,8 @@ public sealed partial class AtmosphereModule
         public bool[] AiredAt = [];
         /// <summary>Each tank holding oxygen, by id: the very entries of the slice's tanks.</summary>
         public readonly Dictionary<int, TankAir> Held = new();
+        /// <summary>Each vaporizer's own liquid, poured from its hopper, by id: the very entries of the slice's (industrial-oxygen).</summary>
+        public readonly Dictionary<int, TankAir> Own = new();
         /// <summary>Each vent's cell with a network one of its ports stands on, in machine id order: what <see cref="VentsIn"/> is gathered from.</summary>
         public readonly List<(int Cell, int Network)> Vents = [];
         /// <summary>Each vaporizer with its output port on a network, in machine id order: what <see cref="MadeOn"/> is summed from.</summary>
@@ -97,6 +99,8 @@ public sealed partial class AtmosphereModule
         }
         s.Held.Clear();
         foreach (var t in State.Tanks) s.Held[t.Tank] = t;
+        s.Own.Clear();
+        foreach (var t in State.Own) s.Own[t.Tank] = t;
         return s;
     }
 
@@ -303,7 +307,8 @@ public sealed partial class AtmosphereModule
     private static int GasOn(Survey s, int network) => HeldBy(s, ListAt(s.StoresOn, network));
 
     /// <summary>The liquid in the tanks on vaporizer <paramref name="vaporizer"/>'s input network.</summary>
-    private static int LiquidBehind(Survey s, int vaporizer) => HeldBy(s, ListAt(s.Behind, vaporizer));
+    private static int LiquidBehind(Survey s, int vaporizer) =>
+        HeldBy(s, ListAt(s.Behind, vaporizer)) + (s.Own.TryGetValue(vaporizer, out var own) ? own.Oxygen : 0);
 
     /// <summary>
     /// Whether <paramref name="network"/> is supplied: gas in a store feeding it, or a vaporizer feeding it powered with
@@ -382,6 +387,7 @@ public sealed partial class AtmosphereModule
     private void DropEmptyTanks()
     {
         if (State.Tanks.Exists(t => t.Oxygen == 0)) State.Tanks = State.Tanks.FindAll(t => t.Oxygen > 0);
+        if (State.Own.Exists(t => t.Oxygen == 0)) State.Own = State.Own.FindAll(t => t.Oxygen > 0);
     }
 
     /// <summary>Every room's air, in rooms order, from one survey.</summary>
@@ -570,6 +576,8 @@ public sealed partial class AtmosphereModule
                         held.Oxygen -= taken;
                         left -= taken;
                     }
+                    // What its tanks lack, its own liquid gives: a canister poured from its hopper (industrial-oxygen).
+                    if (left > 0 && s.Own.TryGetValue(m.Id, out var own)) own.Oxygen -= left;
                     if (store != null) store.Oxygen += made;
                     else
                     {

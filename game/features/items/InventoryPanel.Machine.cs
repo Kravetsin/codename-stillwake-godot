@@ -28,7 +28,7 @@ public partial class InventoryPanel
             _slots.RemoveAll(s => s.Place.Crate != null && !_lent.Contains(s));
             _shown.RemoveChild(_frame);
             _frame.QueueFree();
-            (_frame, _progress, _problem, _tooCold, _crateGrid, _crateKey, _send, _draw, _drawCount, _switch) = (null, null, null, null, null, null, null, null, null, null);
+            (_frame, _progress, _problem, _tooCold, _crateGrid, _crateKey, _send, _draw, _drawCount, _switch, _liquid) = (null, null, null, null, null, null, null, null, null, null, null);
             _chargerLines.Clear();
         }
         if (want is not var (crate, kind)) return;
@@ -58,6 +58,7 @@ public partial class InventoryPanel
             _ when spec.Is(Content.MachineTrait.Sells) => TradeBody(crate, spec),
             _ when spec.Is(Content.MachineTrait.Gas) => DrawBody(crate, spec, n => new Stillwake.Sim.Atmosphere.DrawCanister(crate, n)),
             _ when spec.Is(Content.MachineTrait.HoldsWater) => DrawBody(crate, spec, n => new Stillwake.Sim.Water.DrawWater(crate, n)),
+            _ when spec.Is(Content.MachineTrait.AirSource) && spec.SlotTakes != null => VaporizerBody(crate, spec),
             _ when spec.Is(Content.MachineTrait.Fire) && spec.Inputs > 0 => FurnaceBody(crate, spec),
             _ when spec.Is(Content.MachineTrait.Fire) => GeneratorBody(crate, spec),
             _ when station is { Fed: true } => FedBody(crate, kind),
@@ -306,6 +307,15 @@ public partial class InventoryPanel
         if (_draw.Text != said) _draw.Text = said;
     }
 
+    /// <summary>A vaporizer's body: its slot of canisters, which hands and drones fill, and the liquid it has to turn (industrial-oxygen).</summary>
+    private VBoxContainer VaporizerBody(int crate, Content.MachineSpec spec)
+    {
+        var body = Style.Gap(new VBoxContainer { MouseFilter = Control.MouseFilterEnum.Ignore }, 6);
+        body.AddChild(_crateGrid = Grid(Enumerable.Range(0, spec.Slots ?? 0).Select(i => new Place(i, crate))));
+        body.AddChild(_liquid = new Label { LabelSettings = Style.Text(Style.Mono, 11, Style.Slate400), MouseFilter = Control.MouseFilterEnum.Ignore });
+        return body;
+    }
+
     /// <summary>The cistern's draw key: bottles out of what it holds, of its capacity (industrial-oxygen).</summary>
     private void ShowCistern(int cistern)
     {
@@ -351,6 +361,11 @@ public partial class InventoryPanel
             if (_switch.Text != said) _switch.Text = said;
         }
         if (spec?.Is(Content.MachineTrait.HoldsWater) == true && Crate is int cistern) ShowCistern(cistern);
+        if (_liquid != null && Air != null && Crate is int vaporizer)
+        {
+            string held = T("vaporizer.liquid", ("n", Litres.Of(Air.LiquidFor(vaporizer))));
+            if (_liquid.Text != held) _liquid.Text = held;
+        }
         bool zone = spec?.Is(Content.MachineTrait.Zone) == true;
         if (spec is { Charges: true } && !zone && Crate is int station) ShowCharger(reading, station, Charger?.Invoke(station) == true);
         // A bay's bolt lit while it charges a drone docked in it.

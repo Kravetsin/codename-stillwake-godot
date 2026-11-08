@@ -278,14 +278,14 @@ public sealed partial class PowerModule : Module<PowerState>, IPowerQueries, IPo
     /// <summary>
     /// Whether a user draws now: none told to rest; a station (<c>Content.Stations</c>) whenever crafting does not rest
     /// it, whatever its inputs hold, for a queued one may have a paid unit to work; a charging station (the charger, a
-    /// drone bay) while any slot holds something short of full; any other with slots (the engine) while its first
-    /// slot holds something.
+    /// drone bay) while any slot holds something short of full; a hopper's machine (the vaporizer, industrial-oxygen)
+    /// whatever its hopper holds; any other with slots (the engine) while its first slot holds something.
     /// </summary>
     private bool Drawing(Machine m)
     {
         if (IsResting(m.Id) || IsOff(m.Id)) return false;
         var spec = Spec(m);
-        if (spec.Slots == null || Content.Stations.TryGet(m.Kind, out _)) return true;
+        if (spec.Slots == null || Content.Stations.TryGet(m.Kind, out _) || (spec.SlotTakes != null && !spec.Charges)) return true;
         var slots = _items.Crate(m.Id);
         if (!spec.Charges) return slots[0] != null;
         foreach (var held in slots)

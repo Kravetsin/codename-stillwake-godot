@@ -149,8 +149,9 @@ public sealed partial class AtmosphereModule : Module<AtmosphereState>, IAtmosph
             if (_tanksCheckedAt == _grid.Version) return;
             bool moved = _tanksCheckedAt is not int at || MachinesMoved(_grid.ChangedSince(at));
             _tanksCheckedAt = _grid.Version;
-            if (!moved || State.Tanks.TrueForAll(_standing)) return;
+            if (!moved || (State.Tanks.TrueForAll(_standing) && State.Own.TrueForAll(_standing))) return;
             State.Tanks = State.Tanks.FindAll(_standing);
+            State.Own = State.Own.FindAll(_standing);
             _readFor = null;
         });
         // After derivation, so rooms and networks are those of this tick.
@@ -369,11 +370,21 @@ public sealed partial class AtmosphereModule : Module<AtmosphereState>, IAtmosph
     private bool CanisterFits(int tank) => OxygenIn(tank) + Content.Air.Canister <= Content.Air.TankCapacity;
 
     /// <summary>
-    /// Each tank in id order pours the canister in its hopper (<c>SlotTakes</c>) when it fits, as one loaded by hand
-    /// (industrial-oxygen): one a tick at most.
+    /// Each tank in id order pours the canister in its hopper (<c>SlotTakes</c>) when it fits, as one loaded by hand; each
+    /// vaporizer with none of its own liquid left pours one into its own (industrial-oxygen): one a tick at most.
     /// </summary>
     private void PourHoppers()
     {
+        foreach (var m in _grid.MachinesWith(MachineTrait.AirSource))
+        {
+            if (Content.Machines.Get(m.Kind).SlotTakes is not (int at, string canister) || State.Own.Exists(t => t.Tank == m.Id)) continue;
+            var held = _items.Crate(m.Id);
+            if (at >= held.Count || held[at]?.Item != canister) continue;
+            _itemsOps.Consume(m.Id, at);
+            State.Own.Add(new TankAir { Tank = m.Id, Oxygen = Content.Air.Canister });
+            State.Own.Sort((a, b) => a.Tank.CompareTo(b.Tank));
+            _readFor = null;
+        }
         foreach (var m in _grid.MachinesWith(MachineTrait.Gas))
         {
             if (Content.Machines.Get(m.Kind).SlotTakes is not (int slot, string item)) continue;

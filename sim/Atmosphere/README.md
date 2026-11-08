@@ -24,14 +24,15 @@ Oxygen: liquid in tanks, turned into gas by vaporizers (liquid-oxygen), and the 
 ## Rules
 
 - **A bubble lives in a room** (air-bubbles): open doors pass it, closed ones stop it; a room parted by a door shut,
-  the part with no vent fades from its far edge. Air is never laid out anew: it stays where it lies and flows a few
+  the part with no vent fades from its far edge. Air stays where it lies and flows a few
   cells a beat. Open to space, through open doors too, a room vents.
 - **A room's order** (0011): its cells breadth first from its **live** vents together (`Live`, machine id order),
   else from the cell nearest the mean of its cells (rounded down, smallest on a tie). Air grows at its first empty cell
   (the gap) and goes from its last aired one.
 - **Vaporizers** (liquid-oxygen; kind `generator`, `AirSource`) turn the liquid of the tanks (`Gas`) whose output is on
   their input's network into gas in their store, up to `Air.GeneratorStore`: with room and liquid behind, `Making` grows by
-  `Air.GeneratorRate` × satisfaction, a unit each `Air.LeakEvery × 1000` taken from those tanks in id order. A source
+  `Air.GeneratorRate` × satisfaction, a unit each `Air.LeakEvery × 1000` taken from those tanks in id order, then its own liquid (`Own`): a canister its hopper pours in
+  when it has none. A source
   with no input (the pod, 2026-10-31-the-scoop) makes gas from nothing at `Air.PodRate`, room A and a furnace in it alone (leaks-a-minute). A vent is **fed** when a vaporizer's output is
   on its network; **live** when fed and its network holds oxygen: gas in a store, a vaporizer with liquid behind (power
   not asked) or the pod; **supplied** when a store feeding it holds gas or a vaporizer feeding it is powered with liquid.
@@ -54,9 +55,9 @@ Oxygen: liquid in tanks, turned into gas by vaporizers (liquid-oxygen), and the 
      the gap while it fits, the last aired cell while over; at the limit, the last aired cell past the gap moves into
      it while the budget still pays; all of it goes with no budget.
   5. Each sealed room holding air adds its aired cells' leak to its `Owed`; whole units fall due and are drawn from its
-     vents' networks (vent, then port order), the rest kept (64-bit). What they lack is forgiven.
+     vents' networks (vent, then port order), the rest kept. What they lack is forgiven.
 - **A breath or a fire** (0016) in an aired cell is drawn from its room's networks the same way, never a cell; it always
-  succeeds there. A hero breathes room air only in an aired cell. A room's **status**: Venting if open, Aired if full, Filling while a live vent makes, else Vacuum.
+  succeeds there. A room's **status**: Venting if open, Aired if full, Filling while a live vent makes, else Vacuum.
 - **Draws** take only from the stores of the vaporizers feeding the network, in id order; emptied ones leave `Tanks`
   at the tick's end.
 - **Canisters:** a tank holds up to `Air.TankCapacity` of liquid; `LoadCanister` takes a canister from the sender (free

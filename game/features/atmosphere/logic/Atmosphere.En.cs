@@ -8,6 +8,7 @@ public static partial class En
         ["atmosphere.tankFull"] = "The tank is full",
         ["atmosphere.tankLow"] = "Less than a canister in the tank",
         ["tank.draw"] = "Take {n} ({held}/{all} l)",
+        ["vaporizer.liquid"] = "Liquid to turn: {n} l",
         ["air.aired"] = "Aired · {cells} cells",
         ["air.filling"] = "Filling · {aired}/{cells} cells",
         ["air.venting"] = "Venting to space",

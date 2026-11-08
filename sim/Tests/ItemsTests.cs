@@ -247,7 +247,7 @@ public class ItemsTests
     [Fact]
     public void CratesStartEmptyEverySlotOfAMachineThatHoldsItemsAndNoneOfOneThatHoldsNone()
     {
-        var w = new Scenario("#KK.GG#\n#...GG#");
+        var w = new Scenario("#KK.V.#\n#.....#");
         Assert.Equal(Empty(CrateSlots), Crate(w, 1));
         Assert.Empty(Crate(w, 2));
         Assert.Empty(w.Stored().Crates);
@@ -366,7 +366,7 @@ public class ItemsTests
     [Fact]
     public void CratesRefuseACrateThatIsAnotherMachine()
     {
-        var w = new Scenario("GG.KK\nGG...").GiveItems(0, ("scrap", 1));
+        var w = new Scenario("V..KK\n.....").GiveItems(0, ("scrap", 1));
         DoMove(w, Own(0), new Target(Crate: 1), 1);
         DoMove(w, Own(0), new Target(Crate: 2), 1);
         Assert.Equal(new[] { "items.noCrate" }, Reasons(w));
