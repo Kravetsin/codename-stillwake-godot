@@ -9,7 +9,7 @@ namespace Stillwake.Game.Features.Liquids;
 
 /// <summary>
 /// The water in a surface's cells (docs/plans/liquids.md), over the heroes, so one swimming is seen through it: each frame the
-/// cells in view, a cell round them, written into a texture (<see cref="WaterCells"/>) and drawn by <see cref="WaterLook"/> on a
+/// cells in view, a cell round them, written into a texture (<see cref="WaterCells"/>), eased between ticks (<see cref="WaterEase"/>) and drawn by <see cref="WaterLook"/> on a
 /// sprite scaled a cell a texel. Nothing is drawn, and nothing written, on a surface that has held no liquid. A stream is heard: one
 /// pouring loop at the cell liquid fell into last tick nearest the view's middle, within <c>Sound.PourReach</c> cells.
 /// </summary>
@@ -27,6 +27,7 @@ public partial class LiquidsView : Node2D
         Material = new ShaderMaterial { Shader = WaterLook.Shader },
     };
     private byte[] _texels = [];
+    private readonly WaterEase _ease = new();
     private Image? _image;
     private ImageTexture? _texture;
     private int _wide, _tall;
@@ -60,7 +61,8 @@ public partial class LiquidsView : Node2D
             return;
         }
         if (_texels.Length != wide * tall * 4) _texels = new byte[wide * tall * 4];
-        bool wet = WaterCells.Write(layer, _grid.Width, _grid.Height, _grid.Blocks, left, top, wide, tall, _texels);
+        WaterCells.Write(layer, _grid.Width, _grid.Height, _grid.Blocks, left, top, wide, tall, _texels);
+        bool wet = _ease.Step(_texels, left, top, wide, tall, delta);
         _look.Visible = wet;
         if (!wet) return;
         if (_image == null || wide != _wide || tall != _tall)

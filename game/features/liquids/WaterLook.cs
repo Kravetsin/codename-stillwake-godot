@@ -5,8 +5,8 @@ namespace Stillwake.Game.Features.Liquids;
 /// <summary>
 /// How water is drawn (docs/plans/liquids.md), from the air overlay's wash (air-wash, the user's pick): a cool watercolour wash,
 /// granulated and pooled in two tones, its pigment drifting slowly along as a current would carry it, deeper and darker the
-/// further under the surface; along the surface a pale tide line whose edge wanders as wet paint does. A cell that falls is a
-/// stream as wide as it holds, streaked running down. Lit by the cave's lights as the ground is. Reads <see cref="WaterCells"/>'
+/// further under the surface; along the surface a pale tide line whose edge wanders as wet paint does. A stream's cell is drawn
+/// as wide as the water falling past it, streaked running down. Lit by the cave's lights as the ground is. Reads <see cref="WaterCells"/>'
 /// texture, a texel a cell of its box, on a sprite scaled a cell a texel and placed over the box, at <c>origin</c>.
 /// </summary>
 public static class WaterLook
@@ -52,7 +52,7 @@ public static class WaterLook
                 float t = mod(TIME, 600.0);
                 vec2 pigment = px - DRIFT * TIME;
                 float grain = 0.7 + 0.6 * noise(pigment * 0.85);
-                if (own.g > 0.5 && own.b < 0.5) {
+                if (own.g > 0.5) {
                     // A stream: as wide as the cell holds, its sides trembling, streaks running down it.
                     float half_wide = cell * (0.15 + 0.35 * own.r) + (noise(vec2(px.y * 0.4 - t * 9.0, c.x)) - 0.5) * 1.2;
                     if (abs(f.x - 0.5) * cell > half_wide) discard;
