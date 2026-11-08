@@ -312,7 +312,7 @@ public partial class InventoryPanel
         if (Water == null || _client == null) return;
         int held = Water.WaterIn(cistern), peer = _client.Id;
         ShowDraw(held / Content.Water.Bottle, n => Water.DrawProblem(cistern, peer, n),
-            n => T("cistern.draw", ("n", n), ("held", held), ("all", Content.Water.CisternCapacity)));
+            n => T("cistern.draw", ("n", n), ("held", Litres.Of(held)), ("all", Litres.Of(Content.Water.CisternCapacity))));
     }
 
     /// <summary>The tank's draw key: canisters out of what it holds, of its capacity.</summary>
@@ -321,7 +321,7 @@ public partial class InventoryPanel
         if (Air == null || _client == null) return;
         int held = Air.OxygenIn(tank), peer = _client.Id;
         ShowDraw(held / Content.Air.Canister, n => Air.DrawProblem(tank, peer, n),
-            n => T("tank.draw", ("n", n), ("held", held), ("all", Content.Air.TankCapacity)));
+            n => T("tank.draw", ("n", n), ("held", Litres.Of(held)), ("all", Litres.Of(Content.Air.TankCapacity))));
     }
 
     /// <summary>The capsule's key: what it would carry while home, what it carries and when it comes back while away, dark with nothing to send.</summary>

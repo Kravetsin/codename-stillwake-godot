@@ -7,12 +7,12 @@ public static partial class Ru
         ["water.noCistern"] = "Залей её в цистерну и подведи трубу сюда",
         ["water.full"] = "Цистерна полна",
         ["water.low"] = "В цистерне меньше воды",
-        ["cistern.draw"] = "Достать {n} ({held}/{all})",
+        ["cistern.draw"] = "Достать {n} ({held}/{all} л)",
         ["water.noWater"] = "Нет воды: подведи выход цистерны к его входу",
         ["water.tanksFull"] = "Баки на его выходе полны",
         ["water.noPower"] = "Нет энергии",
         ["water.off"] = "Выключен",
-        ["water.cistern"] = "Вода · {bottles}/{of} {of|бутылка|бутылки|бутылок}",
+        ["water.cistern"] = "Вода · {held}/{of} л",
         ["water.splitting"] = "Разлагает воду в жидкий кислород",
     };
 }

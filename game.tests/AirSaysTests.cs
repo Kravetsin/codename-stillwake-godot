@@ -10,15 +10,15 @@ public class AirSaysTests
 {
     [Fact]
     public void ATankTellsItsLiquidOfItsCapacityByTheCanister() =>
-        Assert.Equal([new TipLine("3000/150000", Icon: "canister")], AirSays.Says(Spec.Machines.Get("tank"), Spec.Air.Canister, 0)!);
+        Assert.Equal([new TipLine("3.000/150.000 l", Icon: "canister")], AirSays.Says(Spec.Machines.Get("tank"), Spec.Air.Canister, 0)!);
 
     [Fact]
     public void AVaporizerAndThePodTellTheAirTheyMakeAMinuteToATenthRoundedDownByTheOxygenSign()
     {
-        static TipLine Made(string n) => new($"+{n}/min", Sign: Sign.Oxygen);
-        Assert.Equal([Made("1200")], AirSays.Says(Spec.Machines.Get("generator"), 0, 1000)!);
-        Assert.Equal([Made("448.8")], AirSays.Says(Spec.Machines.Get("generator"), 0, 374)!);
-        Assert.Equal([Made("0")], AirSays.Says(Spec.Machines.Get("lifepod"), 0, 0)!);
+        static TipLine Made(string n) => new($"+{n} l/min", Sign: Sign.Oxygen);
+        Assert.Equal([Made("1.200")], AirSays.Says(Spec.Machines.Get("generator"), 0, 1000)!);
+        Assert.Equal([Made("0.4488")], AirSays.Says(Spec.Machines.Get("generator"), 0, 374)!);
+        Assert.Equal([Made("0.000")], AirSays.Says(Spec.Machines.Get("lifepod"), 0, 0)!);
     }
 
     [Fact]

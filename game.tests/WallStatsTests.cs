@@ -13,29 +13,29 @@ public class WallStatsTests
 {
     private static readonly Meteors.Shower Start = Meteors.StartingSpace;
 
-    private static TipLine Leak(string rate) => new($"−{rate}/min a cell", Sign: Sign.Leak);
+    private static TipLine Leak(string rate) => new($"−{rate} l/min a cell", Sign: Sign.Leak);
     private static TipLine Line(string text) => new(text);
 
     [Fact]
     public void GiveScrapsAndIronsLeakAndTheShareOfTheStartingSpacesMeteorsThatBreakThem()
     {
-        Assert.Equal([Leak("3"), Line("Meteor resistance 2: 100% of meteors here break it")], WallStats.Of(Materials.Get("scrap"), back: false, Start));
-        Assert.Equal([Leak("2"), Line("Meteor resistance 5: 20% of meteors here break it")], WallStats.Of(Materials.Get("iron"), back: false, Start));
+        Assert.Equal([Leak("0.003"), Line("Meteor resistance 2: 100% of meteors here break it")], WallStats.Of(Materials.Get("scrap"), back: false, Start));
+        Assert.Equal([Leak("0.002"), Line("Meteor resistance 5: 20% of meteors here break it")], WallStats.Of(Materials.Get("iron"), back: false, Start));
     }
 
     [Fact]
     public void GiveABackWallItsStrengthAloneAndAPlaceWithoutMeteorsItsLeakAlone()
     {
-        Assert.Equal([Leak("3"), Line("Meteor resistance 2")], WallStats.Of(Materials.Get("scrap"), back: true, Start));
-        Assert.Equal([Leak("12")], WallStats.Of(Materials.Get("soil"), back: false, shower: null));
+        Assert.Equal([Leak("0.003"), Line("Meteor resistance 2")], WallStats.Of(Materials.Get("scrap"), back: true, Start));
+        Assert.Equal([Leak("0.012")], WallStats.Of(Materials.Get("soil"), back: false, shower: null));
     }
 
     [Fact]
     public void GiveStoneArmourThatLeaksAndTheSealsNoArmourAndNoLeak()
     {
-        Assert.Equal([Leak("9"), Line("Meteor resistance 4: 40% of meteors here break it")], WallStats.Of(Materials.Get("stone"), back: false, Start));
+        Assert.Equal([Leak("0.009"), Line("Meteor resistance 4: 40% of meteors here break it")], WallStats.Of(Materials.Get("stone"), back: false, Start));
         foreach (var seal in new[] { "glass", "mica", "hide" })
-            Assert.Equal([Leak("1.5"), Line("Meteor resistance 1: 100% of meteors here break it")], WallStats.Of(Materials.Get(seal), back: false, Start));
+            Assert.Equal([Leak("0.0015"), Line("Meteor resistance 1: 100% of meteors here break it")], WallStats.Of(Materials.Get(seal), back: false, Start));
     }
 
     [Fact]

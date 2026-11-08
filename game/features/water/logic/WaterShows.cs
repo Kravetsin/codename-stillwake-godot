@@ -1,5 +1,6 @@
 using System.Globalization;
 using Stillwake.Game.I18n;
+using Stillwake.Game.Shared;
 using Spec = Stillwake.Content;
 
 namespace Stillwake.Game.Features.Water;
@@ -31,11 +32,9 @@ public static class WaterShows
     /// </summary>
     public static string[]? Says(Spec.MachineSpec spec, int water, string? stalled)
     {
+        // In litres, as oxygen reads (industrial-oxygen).
         if (spec.Is(Spec.MachineTrait.HoldsWater))
-        {
-            string bottles = (water * 10L / Spec.Water.Bottle / 10.0).ToString("0.#", CultureInfo.InvariantCulture);
-            return [En.T("water.cistern", ("bottles", bottles), ("of", Spec.Water.CisternBottles))];
-        }
+            return [En.T("water.cistern", ("held", Litres.Of(water)), ("of", Litres.Of(Spec.Water.CisternCapacity)))];
         return spec.Is(Spec.MachineTrait.Electrolyses) ? [En.T(stalled ?? "water.splitting")] : null;
     }
 }

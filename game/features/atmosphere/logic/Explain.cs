@@ -21,10 +21,6 @@ public static class Explain
         return seconds < 60 ? En.T("time.seconds", ("n", seconds)) : En.T("time.minutes", ("n", seconds / 60));
     }
 
-    /// <summary>A rate of units every <c>Air.LeakEvery</c> ticks, as a player reads it: a minute's, to a tenth, rounded down.</summary>
-    public static string PerMinute(long perPeriod) =>
-        (Math.Floor(perPeriod * 60.0 * World.TicksPerSecond * 10 / Air.LeakEvery) / 10).ToString(CultureInfo.InvariantCulture);
-
     /// <summary>
     /// What the air overlay says of a room of <paramref name="volume"/> cells, its first line naming its state and its aired
     /// cells: while it has a share of its vents' making, that share and what its air leaks, both a minute, the leak red when
@@ -36,14 +32,14 @@ public static class Explain
         var lines = new List<TipLine> { new(Named(air, volume)) };
         if (air.Budget > 0)
         {
-            lines.Add(new TipLine(En.T("air.made", ("n", PerMinute(air.Budget))), Sign: Sign.Oxygen));
-            lines.Add(new TipLine(En.T("air.leak", ("n", PerMinute(air.Leak))), air.Problem == "atmosphere.leaky" ? Tone.Bad : Tone.Plain, Sign: Sign.Leak));
+            lines.Add(new TipLine(En.T("air.made", ("n", Litres.PerMinute(air.Budget))), Sign: Sign.Oxygen));
+            lines.Add(new TipLine(En.T("air.leak", ("n", Litres.PerMinute(air.Leak))), air.Problem == "atmosphere.leaky" ? Tone.Bad : Tone.Plain, Sign: Sign.Leak));
         }
         // With no piped vent in a venting room, nothing drains: there is no liquid to speak of.
         if (air.Oxygen is int liquid && (air.Status != RoomStatus.Venting || air.Lasts != null))
             lines.Add(liquid == 0
-                ? new TipLine(liquid.ToString(CultureInfo.InvariantCulture), Tone.Bad, Canister)
-                : new TipLine(air.Lasts is int ticks ? En.T("air.liquid", ("held", liquid), ("time", Span(ticks))) : liquid.ToString(CultureInfo.InvariantCulture), Icon: Canister));
+                ? new TipLine(En.T("air.litres", ("n", Litres.Of(liquid))), Tone.Bad, Canister)
+                : new TipLine(air.Lasts is int ticks ? En.T("air.liquid", ("held", Litres.Of(liquid)), ("time", Span(ticks))) : En.T("air.litres", ("n", Litres.Of(liquid))), Icon: Canister));
         if (air.Problem is { } why) lines.Add(new TipLine(En.T(why), Tone.Bad));
         return lines;
     }

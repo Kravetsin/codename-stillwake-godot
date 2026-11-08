@@ -110,7 +110,7 @@ public static partial class En
         ["tool.backWallGlass.about"] = "Frosted glass panels behind a room: they seal it whole.",
         ["tool.backWallMica.about"] = "Pressed mica behind a room: it seals it whole.",
         ["tool.backWallHide.about"] = "Hide sealed with fat behind a room: it seals it whole.",
-        ["wall.leak"] = "−{rate}/min a cell",
+        ["wall.leak"] = "−{rate} l/min a cell",
         ["wall.meteors"] = "Meteor resistance {strength}: {share}% of meteors here break it",
         ["wall.resists"] = "Meteor resistance {strength}",
         ["wall.meteorsNever"] = "No meteor breaks it",

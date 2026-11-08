@@ -28,8 +28,8 @@ public class WaterShowsTests
     {
         var cistern = Spec.Machines.Get("cistern");
         var electrolyser = Spec.Machines.Get("electrolyser");
-        Assert.Equal(["Water · 3.5/50 bottles"], WaterShows.Says(cistern, Spec.Water.Bottle * 7 / 2, null)!);
-        Assert.Equal(["Water · 0/50 bottles"], WaterShows.Says(cistern, 0, null)!);
+        Assert.Equal(["Water · 15.750/225.000 l"], WaterShows.Says(cistern, Spec.Water.Bottle * 7 / 2, null)!);
+        Assert.Equal(["Water · 0.000/225.000 l"], WaterShows.Says(cistern, 0, null)!);
         Assert.Equal(["Splitting water into liquid oxygen"], WaterShows.Says(electrolyser, 0, null)!);
         Assert.Equal(["The tanks on its output are full"], WaterShows.Says(electrolyser, 0, "water.tanksFull")!);
         Assert.Null(WaterShows.Says(Spec.Machines.Get("tank"), 0, null));
