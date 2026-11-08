@@ -27,7 +27,7 @@ public class LiquidsTests
     private static int[] Row(Scenario w, int y, int from, int to) => [.. Enumerable.Range(from, to - from + 1).Select(x => Amount(w, x, y))];
 
     [Fact]
-    public void FallsToTheFloorAndSpreadsTillNeighboursDifferByOneAtMost()
+    public void ACellOfWaterSpreadThinOverAWideFloorDriesUp()
     {
         var w = Wet("""
             #########
@@ -42,12 +42,64 @@ public class LiquidsTests
             .........
             .........
             """).Run(60);
-        Assert.Equal(8, Total(w));
-        Assert.Equal(0, Row(w, 1, 1, 7).Sum() + Row(w, 2, 1, 7).Sum());
-        var floor = Row(w, 3, 1, 7);
-        Assert.Equal(8, floor.Sum());
-        for (int x = 1; x < floor.Length; x++) Assert.InRange(Math.Abs(floor[x] - floor[x - 1]), 0, 1);
+        Assert.Equal(0, Total(w));
         Assert.Equal(0, w.M.Liquids.AwakeChunks);
+    }
+
+    [Fact]
+    public void AShallowPuddleLevelsAlongItsRowInsteadOfLyingAsARamp()
+    {
+        var w = Wet("""
+            #########
+            #.......#
+            #.......#
+            #########
+            """, """
+            .........
+            .........
+            .7654321.
+            .........
+            """).Run(60);
+        var floor = Row(w, 2, 1, 7);
+        Assert.Equal(28, floor.Sum());
+        Assert.InRange(floor.Max() - floor.Min(), 0, 1);
+        Assert.Equal(0, w.M.Liquids.AwakeChunks);
+    }
+
+    [Fact]
+    public void APoolsThinTopRowNeverDries()
+    {
+        var w = Wet("""
+            #######
+            #.....#
+            #.....#
+            #######
+            """, """
+            .......
+            .11111.
+            .wwwww.
+            .......
+            """).Run(60);
+        Assert.Equal(5 * L.Full + 5, Total(w));
+    }
+
+    [Fact]
+    public void AFilmOnALedgeWithNoDropDriesButADeeperPuddleStays()
+    {
+        // A film spread on the left dries; three units a cell walled in on the right stay.
+        var w = Wet("""
+            #########
+            #....#..#
+            #....#..#
+            #########
+            """, """
+            .........
+            .........
+            .2....33.
+            .........
+            """).Run(60);
+        Assert.Equal(6, Total(w));
+        Assert.Equal([3, 3], Row(w, 2, 6, 7));
     }
 
     [Fact]
@@ -197,11 +249,11 @@ public class LiquidsTests
             .......
             ..1....
             .......
-            .......
+            ....33.
             .......
             """).Run(60);
         Assert.Equal(0, Amount(w, 2, 3) + Amount(w, 3, 4));
-        Assert.Equal(1, Amount(w, 4, 5) + Amount(w, 5, 5));
+        Assert.Equal(7, Amount(w, 4, 5) + Amount(w, 5, 5));
         Assert.Equal(0, w.M.Liquids.AwakeChunks);
     }
 
@@ -378,7 +430,7 @@ public class LiquidsTests
             for (int t = 0; t < 3000 && w.M.Liquids.AwakeChunks > 0; t++)
             {
                 w.Run();
-                if (Total(w) != total) return false.Label($"total {Total(w)}, not {total}, at tick {t}");
+                if (Total(w) + w.M.Liquids.Dried != total) return false.Label($"total {Total(w)} and {w.M.Liquids.Dried} dried, not {total}, at tick {t}");
                 if (!w.M.Liquids.AwakeWhereItCanMove()) return false.Label($"a chunk that can move asleep at tick {t}");
                 for (int cell = 0; cell < w.Layout.Width * w.Layout.Height; cell++)
                 {

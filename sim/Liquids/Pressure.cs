@@ -26,19 +26,25 @@ public sealed partial class LiquidsModule
     private readonly List<(int Cell, int By)> _change = [];
     private readonly List<(int From, int To)> _moves = [];
 
+    /// <summary>Every body and run with a cell in an awake chunk levelled, and the runs that dry dried (<see cref="PlanRun"/>).</summary>
     private void Press(byte[] layer)
     {
         Find(layer, everywhere: false);
+        FindRuns(layer, everywhere: false);
         _moves.Clear();
+        _dries.Clear();
         foreach (var body in _bodies) Plan(layer, body.Start, body.Count, L.Press);
+        foreach (var (first, count) in _runs) PlanRun(layer, first, count, L.Press);
         foreach (var (from, to) in _moves)
         {
             byte kind = L.KindOf(layer[from]);
             int a = L.AmountOf(layer[from]);
-            if (a == 0 || !Takes(layer, to, kind) || L.AmountOf(layer[to]) >= L.Full) continue;
+            // A move one before it made no longer downhill is dropped: a run's and a body's may share a cell.
+            if (a == 0 || !Takes(layer, to, kind) || L.AmountOf(layer[to]) >= L.Full || Level(layer, from) - Level(layer, to) < 2) continue;
             Put(layer, from, kind, a - 1, false);
             Pour(layer, to, kind, 1, false);
         }
+        Dry(layer);
     }
 
     /// <summary>The bodies with a full cell in an awake chunk, or <paramref name="everywhere"/>, ordered by their first cells.</summary>
@@ -140,38 +146,59 @@ public sealed partial class LiquidsModule
     /// <summary>The top of the liquid in <paramref name="cell"/>, in units from the bottom of the surface.</summary>
     private int Height(byte[] layer, int cell) => (_height - 1 - cell / _width) * L.Full + Now(layer, cell);
 
+    /// <summary>The top of the liquid in <paramref name="cell"/> now, in units from the bottom of the surface.</summary>
+    private int Level(byte[] layer, int cell) => (_height - 1 - cell / _width) * L.Full + L.AmountOf(layer[cell]);
+
     private static bool Full(byte[] layer, int cell) => L.AmountOf(layer[cell]) == L.Full;
 
-    /// <summary>Every body out of level woken where it lies: after a load, or a grid change too big for the log.</summary>
+    /// <summary>Every body out of level and run out of level or to dry woken where it lies: after a load, or a grid change too big for the log.</summary>
     private void WakeUneven(byte[] layer)
     {
-        Find(layer, everywhere: true);
-        foreach (var body in _bodies)
-        {
-            _moves.Clear();
-            if (Plan(layer, body.Start, body.Count, 1)) Wake(_cells[body.Start]);
-        }
-        _moves.Clear();
+        foreach (int cell in Uneven(layer)) Wake(cell);
     }
 
-    /// <summary>For tests: whether every body out of level has a full cell in an awake chunk, as the pressure's skipping needs.</summary>
+    /// <summary>For tests: whether every body or run that would move or dry has a cell in an awake chunk, as the skipping needs.</summary>
     private bool UnevenAwake(byte[] layer)
     {
+        foreach (int cell in Uneven(layer))
+            if (!_awake[cell / _width / L.Chunk * _chunksAcross + cell % _width / L.Chunk]) return false;
+        return true;
+    }
+
+    /// <summary>
+    /// A cell of each body or run anywhere that would move or dry this tick, chosen so that it lies in an awake chunk if any of
+    /// the body's or run's cells does.
+    /// </summary>
+    private List<int> Uneven(byte[] layer)
+    {
+        var found = new List<int>();
         Find(layer, everywhere: true);
-        var uneven = new List<(int Start, int Count)>();
+        FindRuns(layer, everywhere: true);
         foreach (var body in _bodies)
         {
             _moves.Clear();
-            if (Plan(layer, body.Start, body.Count, 1)) uneven.Add((body.Start, body.Count));
+            if (Plan(layer, body.Start, body.Count, 1)) found.Add(Awakest(Enumerable.Range(body.Start, body.Count).Select(i => _cells[i])));
+        }
+        foreach (var (first, count) in _runs)
+        {
+            _moves.Clear();
+            _dries.Clear();
+            if (PlanRun(layer, first, count, 1)) found.Add(Awakest(Enumerable.Range(first, count)));
         }
         _moves.Clear();
-        foreach (var (start, count) in uneven)
+        _dries.Clear();
+        return found;
+    }
+
+    /// <summary>The first of <paramref name="cells"/> in an awake chunk, else the first.</summary>
+    private int Awakest(IEnumerable<int> cells)
+    {
+        int? any = null;
+        foreach (int cell in cells)
         {
-            bool awake = false;
-            for (int i = start; i < start + count && !awake; i++)
-                awake = _awake[_cells[i] / _width / L.Chunk * _chunksAcross + _cells[i] % _width / L.Chunk];
-            if (!awake) return false;
+            if (_awake.Length > 0 && _awake[cell / _width / L.Chunk * _chunksAcross + cell % _width / L.Chunk]) return cell;
+            any ??= cell;
         }
-        return true;
+        return any!.Value;
     }
 }

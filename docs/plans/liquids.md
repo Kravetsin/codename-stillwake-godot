@@ -38,6 +38,8 @@ Goes wrong: a hero digs under a lake, the floor gives, water falls round it: it 
 - **Liquid on the ship** (no source, vacuum).
 - **Creatures, floor stacks, bodies in liquid:** they move as through air.
 - **Drowning, any breath rule under water:** the suit is sealed.
+- **Thin water dries** (the playtest of 2026-11-07, Terraria's way): a puddle on the ground `Dry` deep or less that can
+  move no more is gone, so units are not kept exactly; nothing collects water yet.
 - **Wading:** water under a hero's middle changes nothing but the sound; it swims once its middle is in water.
 
 ## Scale

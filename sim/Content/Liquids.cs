@@ -26,6 +26,12 @@ public static class Liquids
     /// </summary>
     public const int Press = 8;
 
+    /// <summary>
+    /// The most units a cell of a puddle resting on the ground holds and still dries once it can move no more: a quarter of a
+    /// cell, so thin water left on rock goes, as in Terraria, and a pool stays.
+    /// </summary>
+    public const int Dry = 2;
+
     /// <summary>The side of a square of cells that sleeps or wakes as one, when none of it can move.</summary>
     public const int Chunk = 16;
 

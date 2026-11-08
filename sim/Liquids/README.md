@@ -6,6 +6,7 @@
 | --- | --- |
 | `Flow.cs` | The flow: rows from the bottom up, falls then side spread; awake chunks; grid changes read each tick. |
 | `Pressure.cs` | A body of full cells levelled as a whole: from its highest free surface to the lowest open cell beside it. |
+| `Puddles.cs` | A run of resting cells short of full levelled along its row; a thin one on the ground dries. |
 | `Liquids.cs` | The module, its state and queries (`AmountAt`, `KindAt`, `Layer`, `FallNear`); init, save and load. |
 | `Saved.cs` | What a save holds: the cells that differ from the base, from the cells written since. |
 
@@ -34,14 +35,18 @@ lava, rain and taking water out come later.
   tick, one at a time, from its highest free surface (its cells open and dry above, the part-filled cells of its kind
   beside it) to the lowest open cell beside it short of full (not under it: falling fills those), while they are 2 or
   more apart. So a U-tube rises and a pool settles within a unit. Every body is planned from the layer the sweep left,
-  ties to the lower cell index, and the moves are made in the order of the bodies' first cells, one spoilt by those
-  before dropped. A film one unit deep on a floor away from any drop stays.
+  ties to the lower cell index, and the moves are made in the order of the bodies' first cells, one no longer downhill
+  dropped.
+- **Puddles**, with the pressure: a run, cells of a kind short of full side by side in a row, each resting (on what
+  blocks, a full cell of its kind or the bottom), levels the same way along its row (Terraria levels a row too), so a
+  shallow puddle lies flat, not as a ramp of a unit a cell. A run on the ground alone whose cells hold `Dry` (2) or less
+  and none of which can move dries up, as Terraria's thin water does: no film is left on rock; a pool's top never dries.
 - Liquid moved outside the zone is gone (the fog drains it).
 - **The grid:** each tick reads `ChangedSince(version)`; a cell that now blocks loses its liquid, and every change wakes
   what is round it. A change too big for the log (null) looks at every cell again.
 - **Awake chunks** (`Chunk` = 16 cells square) are derived: only they are swept. Any write wakes the chunks of the cell and
   its four neighbours at once, those ahead of the sweep too; after the sweep a chunk not woken this tick sleeps once none
-  of its cells can move. Only bodies with a full cell in an awake chunk are pressed: whatever puts a body out of level
+  of its cells can move. Only bodies and runs with a cell in an awake chunk are levelled: whatever puts a body out of level
   wakes the chunks round it, and a body that moves keeps its own awake. So skipping chunks never changes the result, and
   the set is not saved: `Rebuild` finds it again, bodies out of level too.
 - `FallNear(cell, reach)`: the nearest cell liquid fell into last tick, the lower then the left on a tie; for the stream's
@@ -49,7 +54,7 @@ lava, rain and taking water out come later.
 
 ## Guarantees
 
-- In a closed box the units are kept and the liquid comes to rest (FsCheck, `LiquidsTests`).
+- In a closed box the units are kept, but for those dried, and the liquid comes to rest (FsCheck, `LiquidsTests`).
 - A save loaded at any tick runs on as the world kept running.
 - An idle surface costs nothing but the grid read; a lake draining into a chasm on 4096×1536 costs about 1 µs an awake
   chunk, under 0.7 ms a tick at most.
