@@ -35,7 +35,7 @@ public readonly record struct HeroInput(
 /// hero floats; and which are the hull, where a tether is not yet needed: any cell with a structure or a back
 /// wall, aired or not, or in a room. <paramref name="gravity"/> is what a fall gains a step, the ship's unless its surface's
 /// kind scales it (0076): a planet's lower one, where nothing floats, lets the hero jump higher and farther.
-/// <paramref name="liquid"/>, the units of liquid in a cell (docs/plans/liquids.md): where the hero swims.
+/// <paramref name="liquid"/>, the units of liquid in a cell (flowing-liquids): where the hero swims.
 /// </summary>
 public sealed class Ship(
     int width, int height, Func<int, int> structureAt, Func<int, bool> space, Func<int, bool>? hull = null,
@@ -576,7 +576,7 @@ public readonly record struct Hero(
     }
 
     /// <summary>
-    /// A step in water (docs/plans/liquids.md): the keys at <c>Hero.WaterSwim</c> across and up or down, Space held up too,
+    /// A step in water (flowing-liquids): the keys at <c>Hero.WaterSwim</c> across and up or down, Space held up too,
     /// sinking at <c>Hero.WaterSink</c> with none; walls stop it, a floor holds it, a ladder is swum past, and a step of a cell
     /// is swum up onto as walked. Swum up, the middle stops at the top of the water: only a jump leaves it, Space pressed with
     /// the cell over the middle shallow and open, or a shore pushed against there that a jump reaches.

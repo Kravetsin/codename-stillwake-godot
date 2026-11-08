@@ -27,9 +27,6 @@ public interface ILiquidsQueries
     /// <summary>The units of liquid in <paramref name="cell"/>, 0 to <c>Content.Liquids.Full</c>.</summary>
     int AmountAt(int cell);
 
-    /// <summary>The kind of liquid in <paramref name="cell"/>, <c>Content.Liquids.None</c> for none.</summary>
-    byte KindAt(int cell);
-
     /// <summary>Every cell's byte (<c>Content.Liquids.Of</c>), row by row; empty on a surface that has held no liquid.</summary>
     ReadOnlySpan<byte> Layer { get; }
 
@@ -41,7 +38,7 @@ public interface ILiquidsQueries
 }
 
 /// <summary>
-/// Liquids (liquids): water in the cells of a surface, falling and spreading till it rests (docs/plans/liquids.md). Only
+/// Liquids (liquids): water in the cells of a surface, falling and spreading till it rests (flowing-liquids). Only
 /// what can move costs a tick: squares of <c>Content.Liquids.Chunk</c> cells sleep while none of their cells can.
 /// </summary>
 public sealed partial class LiquidsModule : Module<LiquidsState>, ILiquidsQueries
@@ -60,6 +57,7 @@ public sealed partial class LiquidsModule : Module<LiquidsState>, ILiquidsQuerie
     protected override LiquidsState Init(Layout layout)
     {
         (_width, _height) = (layout.Width, layout.Height);
+        Forget();
         var s = new LiquidsState();
         if (layout.Liquids is not { } drawn || !Wet(drawn)) return s;
         s.Layer = [.. drawn];
@@ -78,6 +76,7 @@ public sealed partial class LiquidsModule : Module<LiquidsState>, ILiquidsQuerie
         if (s == null) return null;
         // The grid restores first: its size is the surface's.
         (_width, _height) = (_grid.Width, _grid.Height);
+        Forget();
         if (ground?.Liquids is { } grown && Wet(grown)) s.Layer = [.. grown];
         var cells = s.Cells;
         s.Cells = [];
@@ -111,8 +110,6 @@ public sealed partial class LiquidsModule : Module<LiquidsState>, ILiquidsQuerie
     }
 
     public int AmountAt(int cell) => State.Layer is { } l && (uint)cell < (uint)l.Length ? L.AmountOf(l[cell]) : 0;
-
-    public byte KindAt(int cell) => State.Layer is { } l && (uint)cell < (uint)l.Length ? L.KindOf(l[cell]) : L.None;
 
     public ReadOnlySpan<byte> Layer => State.Layer;
 

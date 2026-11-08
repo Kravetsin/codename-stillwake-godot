@@ -1,6 +1,7 @@
 # Design: Liquids — water and lava that flow in a planet's cells
 
-Status: design accepted by the user (2026-11-07) for stage 1, water; its plan below, revised after `/review-plan`. Lava
+Status: stage 1, water, is built: what holds now is [flowing-liquids](../decisions/2026-11-08-flowing-liquids.md) and the module
+READMEs, which supersede this design where they differ (a cell falls a tick, bodies and puddles level, thin water dries). Lava
 and the rest follow as their own stages.
 
 **Decided with the user** (2026-11-07):
@@ -142,75 +143,3 @@ registered after Building, before Crew.
    glow through `LightView`. One PR.
 3. **Water meets lava;** taking water from lakes; rain with the weather. Each designed when it comes.
 
-## Plan: stage 1, water
-
-Branch `claude/liquids-c190ea`, one PR. Tasks in order; the look and sounds are picked while L-1 and L-2 are built.
-
-### L-1 — The `Liquids` module
-`sim/Liquids` (skill `new-module`): `LiquidsModule : Module<LiquidsState>`, `ILiquidsQueries`, Registry after Building,
-before Crew, on the ship and every surface; `World.SaveFormat` bumped with an empty `Migrations` step and its fixture (a
-save without the slice loads with the layout's liquid). `Content/Liquids.cs`: `Full` 8, `Fall` 4, `Chunk` 16. `Layout`
-gains `Liquids` (a byte a cell as the `Layer` query, null for none, carried through `Doubled()` and `InWorld`); the
-legend's `w` is a cell of water at `Full` over open ground (drawn maps until L-2 lands). The flow, wake and grid steps as
-Approach says. README (Rules, API, Invariants, Deliberately not handled); `docs/map.md`; glossary "вода, озеро → water,
-lake".
-Tests (`LiquidsTests`): the scenarios at the end; FsCheck on random closed drawn maps: the total conserved, settled within
-a bound and then still, never liquid in a blocking cell, amounts in 0..`Full`, every chunk with a cell that can move
-awake; saved and loaded mid-flow equals kept running. The generic suites cover it once registered (its `Fuzz` has no
-commands): Small's lake (L-2) lies where the fuzz's digs reach it, or a drawn map with water joins the suites' maps.
-
-### L-2 — Grown lakes
-`Terrain` fills `Layout.Liquids` last, after the ruins (sim/Core `Lakes.cs`). Numbers on `PlanetType` (First's and Small's
-own): `LakeWave`, `LakeBands` [1, 2], `LakeChance`‰, `BigChance`‰, `LakeBig` 6,000 and `LakeMedium` 1,500 cells.
-- Lattice points every `LakeWave` cells across and down, each moved within its square by the seed, visited row by row
-  from the top, left to right; a point counts if its row is in band 1 or 2, it is open, and the seed's draw passes
-  `LakeChance`.
-- Its floor: straight down from the point through open cells to the first open cell over a blocking one. Its cap: `Big`
-  by `BigChance`, else `Medium`.
-- The fill: level L starts at the floor's row; region(L) = the open cells connected (four ways) to the floor through open
-  cells in rows ≥ L. L rises a row at a time while region(L−1) holds at most the cap, every cell inside the zone, under
-  the surface line (no sky cell), clear of the ruins' boxes and of earlier lakes; the lake is the last region that passed
-  (none if even region(floor row) fails). Every cell full: a full cell's open neighbours below and beside are in the
-  region and full, so it is settled by construction.
-
-Tests: on First and Small and 50 seeds of Small: lakes full, settled (a tick moves nothing, nothing awake), within caps,
-in the zone and bands 1–2, none on a ruin; growing is pure (the same seed, the same lakes); `Terrain.Generate` on First
-before and after, stated in the PR.
-
-### L-3 — Water drawn
-`game/features/liquids/LiquidsView.cs`, a line in `SurfaceViews.cs` after the heroes (water over a swimming hero), unless
-the picked look says otherwise: each frame the cells in view (and a cell round them) copied from `Layer` into an R8 image
-and uploaded (a 1920×1080 view at zoom 1 is some 33 kB), drawn by a shader as the picked look; a run of wet top cells
-(water with an open, dry cell above) drawn at the mean amount of its run, so a settled lake reads flat. Nothing is kept
-between frames, so joining, loading and moving the camera need nothing more. A drawn surface kind `testLake`
-(`Surfaces`, the planet's rules, like `TestStrip`): a lake on a ledge, a wall to dig into it, a shaft and a pool below; the
-dev room `--lake` lands a hero beside it (skill `new-demo`).
-
-### L-4 — Swimming
-`game/features/crew/logic/Hero.cs`: the step's surface lookup (`Ship`, the record the controller reads the grid through)
-gains the liquid's amount per cell. *In water:* the cell of the hero's middle holds at least `Hero.SwimDepth` (4, half a
-cell) — worked out every step from the liquid, never stored, so a load, a join or water rising round a standing hero all
-just swim. In water the hero moves as afloat (`Swim`), the keys at `Hero.WaterSwim` (thousandths of a cell a step, as
-`Hero.Swim`), sinking at `Hero.WaterSink` with no key, Space or W up; Space with the cell over its middle holding under
-`SwimDepth` and open is a jump, out of the water. A ladder in water is swum past, not climbed. `Pose` uses `Floating`
-while in water. Unit tests in `game.tests`: into water from a jump, sinking, swimming up, the jump out, water rising
-round a standing hero, water to the ceiling. Numbers in `sim/Content/Hero.cs`.
-
-### L-5 — Sounds
-The picked sounds cut, levelled and credited (`game/audio/CREDITS.md`); cues in `game/Content/logic/Sound.cs`: a splash when a
-hero goes in water or out (from the step's in-water flag, at most one per `SplashGap` 0.4 s, so bobbing at the surface
-does not chatter), a stroke every `StrokeEvery` while swimming and moving, one pouring loop at `FallNear(hero, 24)`, its
-volume by distance.
-
-### L-6 — Review and PR
-`/review-implementation`; the user plays `--lake` and a grown planet; ADR `2026-11-07-liquids.md` holds what stays true
-of stage 1 and the stages to come; this plan's stage 1 removed once merged.
-
-### Scenarios (L-1)
-A pool's wall dug: the water falls and pools, the level drops; water passes ladders, floors and open doors and stops at
-a closed one; a door opened mid-flow lets it on; a wall built into water removes that cell's only; two basins joined end
-within 1 unit; a U-tube does not rise; a fall of `Fall` cells a tick through an empty shaft; out of the zone gone; the
-direction alternates with `Clock` and `Clock` survives a save; a fresh Small planet unchanged by a tick, nothing awake;
-the ship never allocates the layer; the grid log overrun (null) with a wall built among the writes empties that cell and
-wakes the rest; a save loaded mid-flow (beside the FsCheck one); a drawn map whose water lies in a wall loads with that
-cell dry.

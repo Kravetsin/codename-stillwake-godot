@@ -3,7 +3,7 @@ using L = Stillwake.Content.Liquids;
 namespace Stillwake.Sim.Liquids;
 
 /// <summary>
-/// Puddles (docs/plans/liquids.md, Puddles): a run, the cells of a kind short of full side by side in a row, each resting (on
+/// Puddles (flowing-liquids): a run, the cells of a kind short of full side by side in a row, each resting (on
 /// what blocks, on a full cell of its kind, or on the bottom), levels along its row as pressure levels a body, so a shallow
 /// puddle lies flat rather than as a ramp of a unit a cell. A run resting on the ground alone whose cells hold <c>Liquids.Dry</c>
 /// or less and none of which can move dries up: thin water has nowhere to go, and a film is not left on the rock.

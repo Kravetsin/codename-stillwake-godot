@@ -8,7 +8,7 @@ using Stillwake.Sim.Liquids;
 namespace Stillwake.Game.Features.Liquids;
 
 /// <summary>
-/// The water in a surface's cells (docs/plans/liquids.md), over the heroes, so one swimming is seen through it: each frame the
+/// The water in a surface's cells (flowing-liquids), over the heroes, so one swimming is seen through it: each frame the
 /// cells in view, a cell round them, written into a texture (<see cref="WaterCells"/>), eased between ticks (<see cref="WaterEase"/>) and drawn by <see cref="WaterLook"/> on a
 /// sprite scaled a cell a texel. Nothing is drawn, and nothing written, on a surface that has held no liquid. A stream is heard: one
 /// pouring loop at the cell liquid fell into last tick nearest the view's middle, within <c>Sound.PourReach</c> cells.
@@ -16,6 +16,9 @@ namespace Stillwake.Game.Features.Liquids;
 public partial class LiquidsView : Node2D
 {
     private const int Cell = ShipCamera.Cell;
+
+    /// <summary>The rows over the view written too: the shader darkens a cell by the water over it, up to its DARKEST, 6.</summary>
+    private const int Above = 6;
 
     private readonly IGridQueries _grid;
     private readonly ILiquidsQueries _liquids;
@@ -52,7 +55,7 @@ public partial class LiquidsView : Node2D
         }
         var view = GetViewport().GetCanvasTransform().AffineInverse() * GetViewportRect();
         Hear(view.GetCenter());
-        int left = Math.Max(0, (int)Math.Floor(view.Position.X / Cell) - 1), top = Math.Max(0, (int)Math.Floor(view.Position.Y / Cell) - 1);
+        int left = Math.Max(0, (int)Math.Floor(view.Position.X / Cell) - 1), top = Math.Max(0, (int)Math.Floor(view.Position.Y / Cell) - Above);
         int right = Math.Min(_grid.Width, (int)Math.Ceiling(view.End.X / Cell) + 1), bottom = Math.Min(_grid.Height, (int)Math.Ceiling(view.End.Y / Cell) + 1);
         int wide = right - left, tall = bottom - top;
         if (wide <= 0 || tall <= 0)

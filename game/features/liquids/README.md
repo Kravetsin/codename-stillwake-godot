@@ -9,14 +9,14 @@
 | `logic/WaterCells.cs` | The texture's texels: how high a cell's water stands, whether it falls, whether liquid lies over it. |
 | `logic/WaterEase.cs` | Each cell's drawn level eased toward the sim's between ticks; a dried cell sinking out. |
 
-Draws and hears what `sim/Liquids` decides (docs/plans/liquids.md); sends nothing.
+Draws and hears what `sim/Liquids` decides (flowing-liquids); sends nothing.
 
 - **Reads:** `ILiquidsQueries` (`Layer`, `FallNear`), `IGridQueries` (`Blocks`, the size).
 - **Over the heroes** (`Layers.Water`): a hero swimming is seen through the wash. Lit as the ground is, not unshaded, so
   it is as dark as the cave and as bright as its lamps.
 - **Each frame** only the cells in view, a cell round them; on a surface that never held liquid, nothing.
 - **As Terraria draws it:** each cell filled from its bottom to its level, or whole where water is over it. The sim moves
-  water a cell a tick (`Liquids.Fall`), so falling water is a whole column of cells and lands as the pool it fills: no
+  water a cell a tick, so falling water is a whole column of cells and lands as the pool it fills: no
   stream is guessed at between cells.
 - **A surface** across a cell is blended with its neighbour's toward the side it is nearer, so a pool at rest, whose cells
   may differ by a unit, reads flat; the edge wanders a little as wet paint does.
@@ -32,3 +32,6 @@ Draws and hears what `sim/Liquids` decides (docs/plans/liquids.md); sends nothin
 ## Deliberately not handled
 
 - No ripples round a swimmer and no splash drawn: the sound carries it.
+- A full column falls only over falling water, so whether it falls is traced from its head: one whose head lies more than
+  `WaterCells.Down` (128) rows under the view, or a sheet reaching more than `WaterCells.Side` (16) columns past it, is drawn
+  lying till the view nears.

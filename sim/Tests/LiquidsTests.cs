@@ -7,7 +7,7 @@ using L = Stillwake.Content.Liquids;
 
 namespace Stillwake.Sim.Tests;
 
-/// <summary>Liquid in the cells (docs/plans/liquids.md): maps read a character a cell, their water drawn beside them.</summary>
+/// <summary>Liquid in the cells (flowing-liquids): maps read a character a cell, their water drawn beside them.</summary>
 public class LiquidsTests
 {
     /// <summary>A world on <paramref name="map"/>, a character a cell, with the water of <paramref name="water"/> (<c>Legend.LiquidOf</c>).</summary>
@@ -121,7 +121,7 @@ public class LiquidsTests
             ...
             .w.
             """).Run();
-        Assert.Equal(L.Full, Amount(w, 1, 1 + L.Fall));
+        Assert.Equal(L.Full, Amount(w, 1, 2));
         Assert.Equal(L.Full, Total(w));
     }
 
@@ -572,5 +572,60 @@ public class LiquidsTests
             }
             return true.ToProperty();
         });
+    }
+
+    [Fact]
+    public void AColumnLosingAUnitWakesTheLoneUnitAcrossAChunkCornerFromIt()
+    {
+        // A lone unit at (15, 15), the corner cell of its chunk, lies on a full cell; across the corner, a full cell over one
+        // short of full lets a unit fall, so the unit can run off past the corner. Its chunk must wake: a peer whose chunks
+        // were all awake (as one that just loaded the world rechecks them) would let it run.
+        string Drawn(Func<int, int, char> at) =>
+            string.Join('\n', Enumerable.Range(0, 20).Select(y => string.Concat(Enumerable.Range(0, 20).Select(x => at(x, y)))));
+        var map = Drawn((x, y) => (x, y) is (15 or 16, 15) or (15 or 16, 16) or (16, 17) ? '.' : '#');
+        var water = Drawn((x, y) => (x, y) switch { (15, 15) => '1', (15 or 16, 16) => 'w', (16, 17) => '7', _ => '.' });
+        var skipping = Wet(map, water);
+        var awake = Wet(map, water);
+        awake.M.Liquids.KeepAwake();
+        for (int t = 0; t < 10; t++)
+        {
+            skipping.Run();
+            awake.Run();
+            Assert.Equal(awake.World.Hash(), skipping.World.Hash());
+        }
+    }
+
+    [Property(MaxTest = 40)]
+    public Property SkippingSleepingChunksNeverChangesTheFlow()
+    {
+        return Prop.ForAll(Boxes.ToArbitrary(), drawn =>
+        {
+            var skipping = Wet(drawn.Map, drawn.Water);
+            var awake = Wet(drawn.Map, drawn.Water);
+            awake.M.Liquids.KeepAwake();
+            for (int t = 0; t < 200; t++)
+            {
+                skipping.Run();
+                awake.Run();
+                if (skipping.World.Hash() != awake.World.Hash()) return false.Label($"apart at tick {t}");
+            }
+            return true.ToProperty();
+        });
+    }
+
+    [Fact]
+    public void TheNearestFallIsFoundWithinReachTheLeftOnATie()
+    {
+        string Drawn(Func<int, int, char> at) =>
+            string.Join('\n', Enumerable.Range(0, 8).Select(y => string.Concat(Enumerable.Range(0, 13).Select(x => at(x, y)))));
+        var w = Wet(Drawn((x, y) => x is 2 or 10 && y is > 0 and < 7 ? '.' : '#'), Drawn((x, y) => x is 2 or 10 && y == 1 ? 'w' : '.'));
+        int Cell(int x, int y) => y * 13 + x;
+        Assert.Null(w.M.Liquids.FallNear(Cell(6, 2), 12));
+        w.Run();
+        Assert.Equal(Cell(2, 2), w.M.Liquids.FallNear(Cell(6, 2), 12));
+        Assert.Equal(Cell(10, 2), w.M.Liquids.FallNear(Cell(9, 1), 12));
+        Assert.Null(w.M.Liquids.FallNear(Cell(6, 2), 3));
+        w.Run(10);
+        Assert.Null(w.M.Liquids.FallNear(Cell(6, 2), 12));
     }
 }

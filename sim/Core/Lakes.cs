@@ -8,7 +8,7 @@ public static partial class Terrain
     private const uint LakeAcross = 200, LakeDown = 201, LakeRoll = 202, LakeSize = 203;
 
     /// <summary>
-    /// The lakes (docs/plans/liquids.md), grown last: a point every <see cref="PlanetType.LakeWave"/> cells across and down, moved
+    /// The lakes (flowing-liquids), grown last: a point every <see cref="PlanetType.LakeWave"/> cells across and down, moved
     /// within its square by the seed, visited row by row from the top, each row from the left. One that lies open in a
     /// <see cref="PlanetType.LakeBands"/> band and passes <see cref="PlanetType.LakeChance"/> drops straight down to the floor
     /// under it, and the lake rises from there a row at a time: at level L it is every open cell joined to the floor through

@@ -83,7 +83,7 @@ public sealed class Registry
         Power = new PowerModule(Grid, Rooms, Items, Items);
         Research = new ResearchModule(Grid, Items, Knowledge, Knowledge);
         Crafting = new CraftingModule(Grid, Items, Items, Research, Power, Power);
-        // Liquids: water in the cells, after building digs and builds, before what will read it; new to format 54.
+        // Liquids: water in the cells, after building digs and builds, before what will read it; new to format 55.
         Liquids = new LiquidsModule(Grid);
         Pipes = new PipesModule(Grid, Items, Items);
         Atmosphere = new AtmosphereModule(Grid, Items, Items, Rooms, Pipes, Power);

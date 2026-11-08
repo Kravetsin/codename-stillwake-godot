@@ -242,7 +242,7 @@ public sealed class OreShineScenario : DevScenario
 }
 
 /// <summary>
-/// A grown lake to swim in and dig open (docs/plans/liquids.md): the first planet, the hero beamed onto the floor beside the lake
+/// A grown lake to swim in and dig open (flowing-liquids): the first planet, the hero beamed onto the floor beside the lake
 /// nearest the middle, the pickaxe and the drill in hand's reach, the helmet lamp on, creative so the air never runs out.
 /// </summary>
 [Dev("--lake", "the first planet's lake nearest the middle, the hero on its bank with the pickaxe, the drill and the lamp, creative (liquids)")]

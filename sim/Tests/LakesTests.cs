@@ -4,7 +4,7 @@ using L = Stillwake.Content.Liquids;
 
 namespace Stillwake.Sim.Tests;
 
-/// <summary>Lakes grown with a planet (docs/plans/liquids.md, L-2).</summary>
+/// <summary>Lakes grown with a planet (flowing-liquids).</summary>
 public class LakesTests
 {
     /// <summary>Each lake of <paramref name="l"/>: its cells, found four ways from the top left.</summary>

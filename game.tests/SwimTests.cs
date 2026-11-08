@@ -5,7 +5,7 @@ using Spec = Stillwake.Content.Hero;
 
 namespace Stillwake.Game.Tests;
 
-/// <summary>Swimming in water (docs/plans/liquids.md, L-4): maps a character a cell, the water drawn beside them.</summary>
+/// <summary>Swimming in water (flowing-liquids): maps a character a cell, the water drawn beside them.</summary>
 public class SwimTests
 {
     private const int Unit = Hero.Unit;

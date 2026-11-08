@@ -16,6 +16,13 @@ public sealed partial class LiquidsModule
         if (_base.TryAdd(cell, was)) _touched.Add(cell);
     }
 
+    /// <summary>The base forgotten: a world made or loaded starts its own.</summary>
+    private void Forget()
+    {
+        _base.Clear();
+        _touched.Clear();
+    }
+
     /// <summary>The cells differing from the base, ascending, each with its byte.</summary>
     private int[] Edits()
     {

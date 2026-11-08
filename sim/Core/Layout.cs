@@ -33,7 +33,7 @@ public sealed record Layout(
     public IReadOnlyList<(int Cell, string Kind)>? Flora { get; init; }
 
     /// <summary>
-    /// The liquid in each cell (docs/plans/liquids.md), a byte a cell as <c>Content.Liquids</c> packs it; null for none. Grown
+    /// The liquid in each cell (flowing-liquids), a byte a cell as <c>Content.Liquids</c> packs it; null for none. Grown
     /// with a planet's ground (its lakes), or drawn beside a test's map (<see cref="WithLiquids(string)"/>).
     /// </summary>
     public IReadOnlyList<byte>? Liquids { get; init; }

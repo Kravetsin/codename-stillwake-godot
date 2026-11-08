@@ -65,6 +65,26 @@ public class WaterDrawnTests
     }
 
     [Fact]
+    public void ABoxOfTheWorldIsDrawnAsTheWholeWorldDrawsItsCells()
+    {
+        // A sheet of full water three cells wide falling down a long shaft, its head far under the box drawn and its sides past
+        // the box's: whether it falls is known only from its head, so the box must look past itself to draw it falling.
+        int w = 7, h = 80;
+        var layer = new byte[w * h];
+        for (int y = 1; y < 60; y++)
+            for (int x = 2; x < 5; x++) layer[y * w + x] = L.Of(L.Water, 8);
+        bool Blocks(int cell) => cell % w is 0 or 6 || cell / w == h - 1;
+        var whole = new byte[w * h * 4];
+        WaterCells.Write(layer, w, h, Blocks, 0, 0, w, h, whole);
+        Assert.Equal(255, whole[(10 * w + 3) * 4 + 1]);
+        var box = new byte[2 * 10 * 4];
+        WaterCells.Write(layer, w, h, Blocks, 3, 5, 2, 10, box);
+        for (int y = 0; y < 10; y++)
+            for (int x = 0; x < 2; x++)
+                Assert.Equal(whole.AsSpan(((5 + y) * w + 3 + x) * 4, 4).ToArray(), box.AsSpan((y * 2 + x) * 4, 4).ToArray());
+    }
+
+    [Fact]
     public void FallingWaterInStripsIsDrawnWhole()
     {
         // A shaft three cells wide: full rows falling every other row, as a pool's water released down it falls; and two
@@ -131,6 +151,10 @@ public class WaterDrawnTests
         Assert.True(s.Step(false, false, 0.1).Out);
         Assert.False(s.Step(true, false, S.SplashGapS / 2).In);
         Assert.True(s.Step(false, false, S.SplashGapS).Out);
+        Assert.Equal(new Splashes.Cues(true, false, false), s.Step(true, false, S.SplashGapS));
+        // A stroke due as the hero splashes in is not heard over the splash.
+        s.Step(false, false, S.SplashGapS);
+        Assert.Equal(new Splashes.Cues(true, false, false), s.Step(true, true, S.SplashGapS + S.StrokeEveryS));
     }
 
     [Fact]

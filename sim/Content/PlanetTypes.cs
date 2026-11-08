@@ -45,7 +45,7 @@ public sealed record PlanetType(string Id, Ground Ground) : Surfaces.Kind(Id, []
     public required int Hall { get; init; }
 
     /// <summary>
-    /// Lakes (docs/plans/liquids.md): a lattice point every this many cells across and down may hold one, at the floor under it,
+    /// Lakes (flowing-liquids): a lattice point every this many cells across and down may hold one, at the floor under it,
     /// filled up as far as it stays within its cap; 0 for none.
     /// </summary>
     public int LakeWave { get; init; }

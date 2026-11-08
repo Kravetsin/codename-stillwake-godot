@@ -3,7 +3,7 @@ using L = Stillwake.Content.Liquids;
 namespace Stillwake.Sim.Liquids;
 
 /// <summary>
-/// Pressure (docs/plans/liquids.md, the playtest of 2026-11-07): a body, the full cells of a kind joined side to side, levels as a whole. Each tick it moves up
+/// Pressure (flowing-liquids, the playtest of 2026-11-07): a body, the full cells of a kind joined side to side, levels as a whole. Each tick it moves up
 /// to <c>Liquids.Press</c> units, a unit at a time, from its highest free surface to the lowest open cell beside it while the
 /// two are 2 units apart or more, so a U-tube rises and a pool settles flat. Every body is planned from the layer as the
 /// sweep left it, then the moves are made in the order of the bodies' first cells; a move the one before spoilt is dropped.
@@ -40,7 +40,7 @@ public sealed partial class LiquidsModule
             byte kind = L.KindOf(layer[from]);
             int a = L.AmountOf(layer[from]);
             // A move one before it made no longer downhill is dropped: a run's and a body's may share a cell.
-            if (a == 0 || !Takes(layer, to, kind) || L.AmountOf(layer[to]) >= L.Full || Level(layer, from) - Level(layer, to) < 2) continue;
+            if (a == 0 || !Room(layer, to, kind) || Level(layer, from) - Level(layer, to) < 2) continue;
             Put(layer, from, kind, a - 1, false);
             Pour(layer, to, kind, 1, false);
         }

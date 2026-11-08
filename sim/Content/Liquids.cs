@@ -1,7 +1,7 @@
 namespace Stillwake.Content;
 
 /// <summary>
-/// Liquid in the cells of a surface (docs/plans/liquids.md): each cell holds one kind, up to <see cref="Full"/> units. A cell
+/// Liquid in the cells of a surface (flowing-liquids): each cell holds one kind, up to <see cref="Full"/> units. A cell
 /// of the layer is a byte, its amount in the low four bits and its kind in the three over them (<see cref="Of"/>).
 /// </summary>
 public static class Liquids
@@ -19,13 +19,7 @@ public static class Liquids
     public const int Full = 8;
 
     /// <summary>
-    /// The most cells liquid falls in a tick through an empty shaft: one, 20 a second, as Terraria's, so falling water is a
-    /// whole column of cells, never lumps with gaps between that the drawing must guess at.
-    /// </summary>
-    public const int Fall = 1;
-
-    /// <summary>
-    /// The most units a body moves a tick to level itself (<c>LiquidsModule.Press</c>): a cell a tick, 20 a second, up a U-tube's far side.
+    /// The most units a body moves a tick to level itself: a cell a tick, 20 a second, up a U-tube's far side.
     /// </summary>
     public const int Press = 8;
 

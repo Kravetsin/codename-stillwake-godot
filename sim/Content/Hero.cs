@@ -72,7 +72,7 @@ public static class Hero
     public const int Swim = 60;
 
     /// <summary>
-    /// In water (docs/plans/liquids.md): the hero swims once the cell of its middle holds at least <see cref="SwimDepth"/> units
+    /// In water (flowing-liquids): the hero swims once the cell of its middle holds at least <see cref="SwimDepth"/> units
     /// (half a cell), at <see cref="WaterSwim"/> along each axis, about 6 cells a second, and sinks at <see cref="WaterSink"/>
     /// with no key held.
     /// </summary>

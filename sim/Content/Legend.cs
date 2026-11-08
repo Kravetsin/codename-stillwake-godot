@@ -49,7 +49,7 @@ public static class Legend
     ];
 
     /// <summary>
-    /// A map may come with a fourth, of the liquid in its cells (docs/plans/liquids.md): space or <c>.</c> for none, <c>w</c> a
+    /// A map may come with a fourth, of the liquid in its cells (flowing-liquids): space or <c>.</c> for none, <c>w</c> a
     /// full cell of water, a digit 1 to 8 that many units of it.
     /// </summary>
     public static byte? LiquidOf(char c) => c switch

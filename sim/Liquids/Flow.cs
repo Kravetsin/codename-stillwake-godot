@@ -3,8 +3,8 @@ using L = Stillwake.Content.Liquids;
 namespace Stillwake.Sim.Liquids;
 
 /// <summary>
-/// The flow (docs/plans/liquids.md, Approach): whole rows from the bottom up, along each in the way the clock gives; a cell
-/// falls through up to <c>Fall</c> cells, then spreads half its lead to a side neighbour at least 2 lower, or a lone unit
+/// The flow (flowing-liquids): whole rows from the bottom up, along each in the way the clock gives; a cell
+/// falls a cell, then spreads half its lead to a side neighbour at least 2 lower, or a lone unit
 /// runs off a ledge; then each body levels (<see cref="Press"/>). Sleeping chunks
 /// are skipped, which never changes the result: a chunk sleeps only while none of its cells can move, and any change wakes
 /// the chunks round it at once, ahead of the sweep too.
@@ -105,21 +105,15 @@ public sealed partial class LiquidsModule
                     }
     }
 
-    /// <summary>A cell's fall: through up to <c>Fall</c> empty cells, into the last that takes it.</summary>
+    /// <summary>A cell's fall: into the cell under it, even part-filled; a cell a tick, as Terraria's, so falling water is a whole column.</summary>
     private void Fall(byte[] layer, int cell, int y)
     {
         byte at = layer[cell];
         int a = L.AmountOf(at);
         if (a == 0) return;
         byte kind = L.KindOf(at);
-        if (y + 1 >= _height || !Takes(layer, cell + _width, kind) || L.AmountOf(layer[cell + _width]) >= L.Full) return;
         int to = cell + _width;
-        for (int k = 1; k < L.Fall; k++)
-        {
-            int under = to + _width;
-            if (L.AmountOf(layer[to]) != 0 || under >= layer.Length || !Takes(layer, under, kind) || L.AmountOf(layer[under]) >= L.Full) break;
-            to = under;
-        }
+        if (y + 1 >= _height || !Room(layer, to, kind)) return;
         int f = Math.Min(a, L.Full - L.AmountOf(layer[to]));
         Put(layer, cell, kind, a - f, false);
         Pour(layer, to, kind, f, false);
@@ -162,13 +156,16 @@ public sealed partial class LiquidsModule
     private bool Takes(byte[] layer, int cell, byte kind) =>
         !_grid.Blocks(cell) && L.KindOf(layer[cell]) is var k && (k == L.None || k == kind);
 
+    /// <summary>Whether <paramref name="cell"/> takes more liquid of <paramref name="kind"/>: it takes it, and is short of full.</summary>
+    private bool Room(byte[] layer, int cell, byte kind) => Takes(layer, cell, kind) && L.AmountOf(layer[cell]) < L.Full;
+
     /// <summary>Whether the liquid in <paramref name="cell"/> can move: fall, or spread to a side neighbour at least 2 lower.</summary>
     private bool CanMove(byte[] layer, int cell, int x, int y)
     {
         int a = L.AmountOf(layer[cell]);
         if (a == 0) return false;
         byte kind = L.KindOf(layer[cell]);
-        if (y + 1 < _height && Takes(layer, cell + _width, kind) && L.AmountOf(layer[cell + _width]) < L.Full) return true;
+        if (y + 1 < _height && Room(layer, cell + _width, kind)) return true;
         if (a < 2) return Drips(layer, x - 1, y, kind) || Drips(layer, x + 1, y, kind);
         return x > 0 && Takes(layer, cell - 1, kind) && L.AmountOf(layer[cell - 1]) <= a - 2
             || x + 1 < _width && Takes(layer, cell + 1, kind) && L.AmountOf(layer[cell + 1]) <= a - 2;
@@ -179,7 +176,7 @@ public sealed partial class LiquidsModule
     {
         if (nx < 0 || nx >= _width || y + 1 >= _height) return false;
         int n = y * _width + nx;
-        return Takes(layer, n, kind) && L.AmountOf(layer[n]) == 0 && Takes(layer, n + _width, kind) && L.AmountOf(layer[n + _width]) < L.Full;
+        return Takes(layer, n, kind) && L.AmountOf(layer[n]) == 0 && Room(layer, n + _width, kind);
     }
 
     private bool AnyCanMove(byte[] layer, int cx, int cy)
@@ -196,7 +193,7 @@ public sealed partial class LiquidsModule
     {
         for (int cy = 0; cy < _awakeInRow.Length; cy++)
         {
-            if (_awakeInRow[cy] == 0) continue;
+            if (_awakeInRow[cy] == 0 || _keptAwake) continue;
             for (int cx = 0; cx < _chunksAcross; cx++)
             {
                 int chunk = cy * _chunksAcross + cx;
@@ -240,19 +237,34 @@ public sealed partial class LiquidsModule
         Wake(cell);
     }
 
-    /// <summary>The chunks of <paramref name="cell"/> and of its four neighbours woken, and kept awake into the next tick.</summary>
+    /// <summary>
+    /// The chunks of <paramref name="cell"/> and of its eight neighbours woken, and kept awake into the next tick: a lone unit
+    /// runs off by the cell across its corner under it (<see cref="Drips"/>), so a change wakes the cells over its sides too.
+    /// </summary>
     private void Wake(int cell)
     {
         int x = cell % _width, y = cell / _width;
-        WakeChunk(x, y);
-        if (x > 0) WakeChunk(x - 1, y);
-        if (x + 1 < _width) WakeChunk(x + 1, y);
-        if (y > 0) WakeChunk(x, y - 1);
-        if (y + 1 < _height) WakeChunk(x, y + 1);
+        for (int dy = -1; dy <= 1; dy++)
+            for (int dx = -1; dx <= 1; dx++)
+                if (x + dx >= 0 && x + dx < _width && y + dy >= 0 && y + dy < _height) WakeChunk(x + dx, y + dy);
     }
 
     /// <summary>For tests: the chunks awake now.</summary>
     internal int AwakeChunks => _awakeInRow.Sum();
+
+    /// <summary>For tests: every chunk awake from now on, so a world that skips none can run beside one that skips.</summary>
+    private bool _keptAwake;
+
+    internal void KeepAwake()
+    {
+        _keptAwake = true;
+        for (int chunk = 0; chunk < _awake.Length; chunk++)
+            if (!_awake[chunk])
+            {
+                _awake[chunk] = true;
+                _awakeInRow[chunk / _chunksAcross]++;
+            }
+    }
 
     /// <summary>For tests: whether every chunk with a cell that can move is awake, as the flow's skipping needs.</summary>
     internal bool AwakeWhereItCanMove()

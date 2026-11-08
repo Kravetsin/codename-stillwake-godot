@@ -202,7 +202,7 @@ public static class Migrations
             }
             return root;
         },
-        // 54 → 55 (docs/plans/liquids.md): a module added, its slice where it runs, after building, on the ship and every
+        // 54 → 55 (flowing-liquids): a module added, its slice where it runs, after building, on the ship and every
         // surface: no clock run, no cell changed; a planet grows its lakes again from its seed as it loads.
         root =>
         {

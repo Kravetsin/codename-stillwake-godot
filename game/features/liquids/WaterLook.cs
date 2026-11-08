@@ -3,7 +3,7 @@ using Godot;
 namespace Stillwake.Game.Features.Liquids;
 
 /// <summary>
-/// How water is drawn (docs/plans/liquids.md), from the air overlay's wash (air-wash, the user's pick): a cool watercolour wash,
+/// How water is drawn (flowing-liquids), from the air overlay's wash (air-wash, the user's pick): a cool watercolour wash,
 /// granulated and pooled in two tones, its pigment drifting slowly along as a current would carry it, deeper and darker the
 /// further under the surface; along the surface a pale tide line whose edge wanders as wet paint does. Each cell is filled to
 /// its level, as Terraria fills its tiles; falling water is streaked running down. Lit by the cave's lights as the ground is.
