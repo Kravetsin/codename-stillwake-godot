@@ -336,7 +336,7 @@ public partial class Main : Node2D, ITogether
         edge.Readout(new CreditHolo(() => tech.Credits), "research.creditsTip", () => tech.MarketCapShows);
         foreach (var tablet in (Tablet[])[_hands.Menu.Tablet, handbook.Tablet, tech.Tablet]) edge.Follow(tablet);
         AddChild(edge);
-        AddChild(new ScreenBulb(tech.Bulb, inWorld, () => tech.Cap.IsVisibleInTree() ? tech.Cap.GetGlobalRect() : null, () => edge.Row, tech.FindPicture));
+        AddChild(new FindFlashView(tech.Flash, inWorld, () => edge.Art, () => tech.Cap.IsVisibleInTree() ? tech.Cap.GetGlobalRect() : null));
         var suits = new SuitColours(SuitsWorn, colour => _session?.Client.Send(new Sim.Crew.PickColour(colour)));
         var lookEditor = _lookEditor = new Features.Crew.LookEditor(() => Suits.Of(_m.Players, (_session as Session)?.Client.Id ?? 0), look =>
         {

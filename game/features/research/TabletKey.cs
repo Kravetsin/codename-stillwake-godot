@@ -9,9 +9,9 @@ namespace Stillwake.Game.Features.Research;
 
 /// <summary>
 /// What the research and market keys on the tablet's edge tell (hologram-keys), read for themselves on a timer, for the tablet reads nothing while away: the
-/// research key shows from the first note, amber while one is unread, the finds waiting on it less those still flying down from the bulb; the market's
+/// research key shows from the first note, amber while one is unread, the finds waiting on it less those the flash still holds; the market's
 /// shows from the first credit or good bought, amber while anything on it can be bought, and the credits are read for the readout beside it. It tells the
-/// bulb what is new, and which find lit it.
+/// flash along the edge what is new.
 /// </summary>
 public partial class TabletKey : Node
 {
@@ -24,7 +24,7 @@ public partial class TabletKey : Node
     private readonly Func<Registry?> _world;
     private readonly Func<uint> _worldId;
     private readonly BoardKeep _keep;
-    private readonly BulbSignal _bulb;
+    private readonly FindFlash _flash;
     private IReadOnlyCollection<string> _unread = [];
     private (object Knowledge, int Version)? _readAt;
     private double _sinceRead = RefreshS;
@@ -32,14 +32,14 @@ public partial class TabletKey : Node
     /// <param name="world">The world the hero stands in; null with none played.</param>
     /// <param name="worldId">Which world is played: what the board is kept under.</param>
     /// <param name="keep">What is kept of the board, shared with the page.</param>
-    /// <param name="bulb">The bulb at the top of the screen, told what is new.</param>
+    /// <param name="flash">The flash along the edge, told what is new.</param>
     /// <param name="press">Takes the tablet out on the board or puts it away.</param>
     /// <param name="boardOut">Whether the board is out.</param>
-    public TabletKey(Func<Registry?> world, Func<uint> worldId, BoardKeep keep, BulbSignal bulb, Action press, Func<bool> boardOut)
+    public TabletKey(Func<Registry?> world, Func<uint> worldId, BoardKeep keep, FindFlash flash, Action press, Func<bool> boardOut)
     {
-        (_world, _worldId, _keep, _bulb) = (world, worldId, keep, bulb);
+        (_world, _worldId, _keep, _flash) = (world, worldId, keep, flash);
         Cap = new EdgeKey("research", press, boardOut, () => _keep.Seen.Lit,
-            () => _unread.Count - _bulb.Flying is var waiting and > 0 ? waiting : null);
+            () => _unread.Count - _flash.Holding is var waiting and > 0 ? waiting : null);
     }
 
     /// <summary>The research key itself, for the edge to set in place.</summary>
@@ -56,9 +56,6 @@ public partial class TabletKey : Node
 
     /// <summary>The crew's credits as last read, for the readout beside the keys.</summary>
     public int Credits { get; private set; }
-
-    /// <summary>The find that lit the bulb, what hatches from it; null before any.</summary>
-    public string? Find { get; private set; }
 
     public override void _Process(double delta)
     {
@@ -80,9 +77,7 @@ public partial class TabletKey : Node
         MarketShows = Credits > 0 || Market.Any(m.Research.Done);
         Affordable = Market.Any(n => m.Research.BuyProblem(n) == null);
         var unread = _keep.Seen.Unread;
-        bool dark = _bulb.Time == null;
-        _bulb.Read(_keep.Seen, unread.Count, _keep.Seen.Open);
-        if (dark && _bulb.Time != null) Find = unread.Where(id => !_unread.Contains(id)).Order(StringComparer.Ordinal).FirstOrDefault() ?? Find;
+        _flash.Read(_keep.Seen, unread.Count, _keep.Seen.Open);
         _unread = unread;
     }
 }
