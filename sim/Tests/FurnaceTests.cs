@@ -1,6 +1,7 @@
 using FsCheck;
 using FsCheck.Fluent;
 using FsCheck.Xunit;
+using Stillwake.Sim.Atmosphere;
 using Stillwake.Sim.Furnace;
 using Stillwake.Sim.Items;
 using Xunit;
@@ -246,6 +247,31 @@ public class FurnaceTests
             Assert.Equal(a.W.World.Hash(), b.W.World.Hash());
         }
         Assert.Equal(a.W.M.Furnace.At(a.Id), b.W.M.Furnace.At(b.Id));
+    }
+
+    /// <summary>
+    /// How long a room's oxygen lasts counts its fires (industrial-oxygen): one on its air by what it reserves, with the leak, as
+    /// far as its vaporizer makes; one blown by its breaths of the tanks besides.
+    /// </summary>
+    [Fact]
+    public void ARoomsOxygenLastsLessByItsLitAndBlownFurnaces()
+    {
+        static RoomAir Air(Scenario w) => w.M.Atmosphere.RoomsAir().Single(r => r.Room == w.M.Rooms.RoomAt(FurnaceAt));
+        var (lit, id) = SetUp();
+        Put(lit, id, "planks", Fuel);
+        Put(lit, id, "scrapChunk", 0).Run(60);
+        Assert.True(lit.M.Furnace.At(id).Burning);
+        var air = Air(lit);
+        long rate = Math.Min(air.Leak + FurnaceContent.Reserve, air.Made);
+        Assert.Equal((int)((long)air.Oxygen!.Value * Content.Air.LeakEvery / rate), air.Lasts);
+
+        var (blown, other) = Blowing(SetUp());
+        Put(blown, other, "planks", Fuel);
+        Put(blown, other, "scrapChunk", 0, 2).Run(5);
+        Assert.True(blown.M.Furnace.At(other).Blown);
+        air = Air(blown);
+        rate = Math.Min(air.Leak, air.Made) + (long)FurnaceContent.BlownBreath * Content.Air.LeakEvery / FurnaceContent.BreathEvery;
+        Assert.Equal((int)((long)air.Oxygen!.Value * Content.Air.LeakEvery / rate), air.Lasts);
     }
 
     /// <summary>Its pipe cut, a blown fire breathes its room again; in vacuum it goes out for want of air.</summary>

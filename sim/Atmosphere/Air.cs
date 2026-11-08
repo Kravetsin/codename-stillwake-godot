@@ -399,6 +399,26 @@ public sealed partial class AtmosphereModule
         if (State.Own.Exists(t => t.Oxygen == 0)) State.Own = State.Own.FindAll(t => t.Oxygen > 0);
     }
 
+    /// <summary>
+    /// What the fires blown on any of <paramref name="tanks"/> take every <c>Air.LeakEvery</c> ticks: each that took a breath of
+    /// liquid within a breath's time (industrial-oxygen).
+    /// </summary>
+    private long BlownOn(Survey s, SortedSet<int> tanks)
+    {
+        long taken = 0;
+        foreach (var m in _grid.MachinesWith(MachineTrait.Fire))
+        {
+            if (!_burntAt.TryGetValue(m.Id, out int at) || State.Clock - at > Content.Furnace.BreathEvery) continue;
+            foreach (int tank in ListAt(s.Behind, m.Id))
+                if (tanks.Contains(tank))
+                {
+                    taken += (long)Content.Furnace.BlownBreath * Content.Air.LeakEvery / Content.Furnace.BreathEvery;
+                    break;
+                }
+        }
+        return taken;
+    }
+
     /// <summary>The liquid of the canisters waiting in vaporizer <paramref name="vaporizer"/>'s slot, to be poured in turn (industrial-oxygen).</summary>
     private int WaitingIn(int vaporizer)
     {
@@ -438,11 +458,13 @@ public sealed partial class AtmosphereModule
             int? oxygen = vaporizers.Count == 0 || vaporizers.Overlaps(s.Endless) ? null : HeldBy(s, [.. tanks]) + own;
             var now = Status(s, room);
             // Held air costs its leak (2026-11-05-air-bubbles); venting, each vent drains its network, two vents twice.
-            long draw = now is RoomStatus.Aired or RoomStatus.Filling ? leak
+            // Its fires burning on its air breathe what they reserve (industrial-oxygen).
+            long draw = now is RoomStatus.Aired or RoomStatus.Filling ? leak + _reserved.GetValueOrDefault(room.Id) / 1000
                 : now == RoomStatus.Venting ? (long)Content.Air.VentDrain * networks.Length * Content.Air.LeakEvery
                 : 0;
-            // Liquid leaves at the smaller of what the room draws and what its vaporizers make, both a period.
-            long rate = Math.Min(draw, made);
+            // Liquid leaves at the smaller of what the room draws and what its vaporizers make, both a period; and blown fires
+            // take theirs from the same tanks besides.
+            long rate = Math.Min(draw, made) + BlownOn(s, tanks);
             int? lasts = oxygen is int liquid && rate > 0 ? (int)Math.Min(int.MaxValue, (long)liquid * Content.Air.LeakEvery / rate) : null;
             string? problem =
                 now == RoomStatus.Filling && _reserved.ContainsKey(room.Id) && (AtItsLimit(s, room) || !_budget.ContainsKey(room.Id))

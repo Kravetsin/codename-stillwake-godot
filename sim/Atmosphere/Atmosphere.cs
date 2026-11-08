@@ -106,6 +106,9 @@ public sealed partial class AtmosphereModule : Module<AtmosphereState>, IAtmosph
     /// <summary>Derived: the cells of the fires burning this tick, each reserving its share of its room's budget, in call order.</summary>
     private readonly List<int> _reserves = [];
 
+    /// <summary>Derived: the clock each fire last took a breath of liquid at, by machine id, for the room overlay's time; only looked up.</summary>
+    private readonly Dictionary<int, int> _burntAt = new();
+
     /// <summary>
     /// Derived: what each cell of a room leaks while it holds air, its back wall and the hull cells given to it, found for the
     /// rooms' version <see cref="_leaksFor"/>; null for none yet.
@@ -443,6 +446,7 @@ public sealed partial class AtmosphereModule : Module<AtmosphereState>, IAtmosph
             held.Oxygen -= taken;
             left -= taken;
         }
+        _burntAt[machine] = State.Clock;
         _readFor = null;
         DropEmptyTanks();
         return true;
