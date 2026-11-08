@@ -104,6 +104,8 @@ Planet and ruins:
 | mica | 250 | cave walls | accumulator, arc module, railgun |
 | magnetite | 250 | heat cracks | motor |
 | crystal | 100 | cave crystals, geodes | igniter, arc module, railgun |
+| sulfur | 250 | sulfur veins, the garden band down | **blasting charges** (2 a charge) |
+| opal | 50 | deep caches, 1 to 7 by band | sold only, 150 |
 | spore | 100 | glowcaps, ruins | **grows** in a capsule into biomass, giving spores back |
 | alloyScrap | 250 | ruin walls, caches | alloy plate (Former: 3 → 1) |
 | alloyPlate (new) | 100 | Former | nozzle, arc bench, arc module, railgun |

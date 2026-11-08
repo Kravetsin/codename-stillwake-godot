@@ -296,6 +296,7 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [the-pickaxe](2026-11-07-the-pickaxe.md) | The pickaxe | accepted |  |
 | [the-scanner](2026-11-07-the-scanner.md) | The scanner reads a wreck's hit points | accepted |  |
 | [tool-card-rows](2026-11-07-tool-card-rows.md) | A tool's card lists its numbers as rows with icons | accepted |  |
+| [blasting-charge](2026-11-08-blasting-charge.md) | The blasting charge and the deep caches | accepted |  |
 | [board-names](2026-11-08-board-names.md) | The board names what was never had | accepted |  |
 | [composed-backdrops](2026-11-08-composed-backdrops.md) | Composed backdrops | accepted |  |
 | [computer-after-planet](2026-11-08-computer-after-planet.md) | The computer and the radar after a planet | accepted |  |

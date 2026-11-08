@@ -35,7 +35,7 @@ here unchanged. Magnetic flares break machines ([magnetic-flare](../../docs/deci
   met first shields its row; a debris net (`Catches`) does not: the aim passes it to the wall it hangs on. A vessel's
   box is passed over: no vessel shields the ship (generated-vessels).
 - **`Warning` ticks later it strikes** (3 s): if a wall still stands there and power ≥ its material's `Armour` (wall-roles: scrap 2,
-  iron 5), a blast of `Charge(power)` spreads from it as a wave, cheapest way first: a cell costs `Meteors.Step` (aslant
+  iron 5), a blast of `Charge(power)` spreads from it as a wave (sim/Core `Wave`, the blasting charge's too), cheapest way first: a cell costs `Meteors.Step` (aslant
   `Diagonal`), a wall `PerStrength` a point of its armour more, and breaks; what is left goes on, so walls soak it. It goes
   through open cells and breakable walls; anything else stops it. A back wall behind a cell reached breaks where what is left
   pays for its armour, spending nothing. All found, then broken in cell order. A struck wall that holds stops it whole.

@@ -1,7 +1,7 @@
 # Deep digging: sulfur, the blasting charge, deep caches (design and plan)
 
-Status: accepted by the user (2026-11-08), drafted by `design-author`, cut by `design-reviewer`. Slice 1 (sulfur) built,
-its look the user's pick ([deep-sulfur](../decisions/2026-11-08-deep-sulfur.md)); slice 2 is next.
+Status: accepted by the user (2026-11-08), drafted by `design-author`, cut by `design-reviewer`. Slices 1 to 4 built (one PR,
+the user's call), their rules in [blasting-charge](../decisions/2026-11-08-blasting-charge.md); slice 5, the looks, waits on picks.
 
 ## Problem
 
