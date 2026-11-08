@@ -85,6 +85,8 @@ public partial class ContentTests
         var drifting = DebrisSpec.Zones.SelectMany(z => z.Tiers).SelectMany(t => t.Kinds).Select(k => k.Item).ToHashSet();
         foreach (var (item, hp) in Wreckage.All)
         {
+            // A delivery drifts by on its own lane, not drawn by a zone, and the crate holds its good, no loot (2026-11-08-mafia-deliveries).
+            if (DebrisSpec.DeliveryKinds.Contains(item)) continue;
             Assert.Contains(item, drifting);
             Assert.True(Content.Items.TryGet(item, out var spec), item);
             // Never carried: broken where it drifts, a stack of one only to be named.
@@ -99,7 +101,8 @@ public partial class ContentTests
     [Fact]
     public void CircuitsComeSurelyFromCableRacksOneEachAndRarelyFromDerelictsBesidesTheAssembler()
     {
-        var sources = Loot.All.Where(l => l.Entries.Any(e => e.Item == "circuit")).Select(l => l.Container);
+        // Found, that is: the seized container is bought, its circuits paid for (2026-11-08-mafia-deliveries).
+        var sources = Loot.All.Where(l => l.Entries.Any(e => e.Item == "circuit") && !DebrisSpec.DeliveryKinds.Contains(l.Container)).Select(l => l.Container);
         Assert.Equal(["cableRack", "engineBlock", "podCluster"], sources);
         Assert.Equal(new LootEntry("circuit", 1, 1), Loot.Of("cableRack")!.Single(e => e.Item == "circuit"));
         // A derelict's are a chance, one at most, and a twentieth of the rack's or fewer for the hit points (0056,

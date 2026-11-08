@@ -47,6 +47,12 @@ public static class Market
         ["crystal"] = 100,
         ["arcLamp"] = 300,
         ["arcShard"] = 200,
+        // Gear only the mafia sells, delivered (2026-11-08-mafia-deliveries): the worth its craft had when it went, so its price stays put.
+        ["scanner"] = 492,
+        ["powerDriver"] = 750,
+        ["heavyHelmet"] = 1239,
+        ["plasmaCutter"] = 1032,
+        ["regenSuit"] = 1457,
     };
 
     /// <summary>What has a worth but no one buys: tools and what is worn, what stores or flies by itself, the arc's.</summary>

@@ -19,6 +19,7 @@ public static class DebrisLooks
         ("tankCluster", "tanks"), ("shieldSlab", "slab"), ("soilClod", "soilclod"),
         ("asteroid", "asteroid"), ("asteroidSmall", "smallrock"), ("asteroidLarge", "bigrock"), ("asteroidRich", "orerock"),
         ("engineBlock", "engine"), ("cargoHold", "hold"), ("podCluster", "pods"),
+        ("parcel", "parcel"), ("deliveryCrate", "deliverycrate"), ("confiscated", "seized"),
     ];
 
     /// <summary>The pictures of each kind of salvage that drifts: their name, and how many there are.</summary>

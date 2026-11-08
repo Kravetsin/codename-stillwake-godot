@@ -50,8 +50,8 @@ public partial class ContentTests
         {
             Assert.True(weapon.Damage > 0 && weapon.Pace > 0, weapon.Item);
             Assert.Equal(1, Content.Items.Get(weapon.Item).Stack);
-            // Made at a station: nothing is only found (0098).
-            Assert.True(Crafts.TryGet(weapon.Item, out _), weapon.Item);
+            // Made at a station or sold by the mafia: nothing is only found (0098, 2026-11-08-mafia-deliveries).
+            Assert.True(Crafts.TryGet(weapon.Item, out _) || Content.Research.GearSold.Contains(weapon.Item), weapon.Item);
             Assert.Same(weapon, Weapons.Of(weapon.Item));
         }
         Assert.Null(Weapons.Of(Harpoon.Item));

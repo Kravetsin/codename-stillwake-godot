@@ -28,7 +28,7 @@ public class MarketGoodsTests
     [Fact]
     public void EachKindOfUpgradeIsOneGoodItsBlocksInOrderThenTheRest()
     {
-        Assert.Equal(["bag", "tradeSlots", "belt", "canister", "scanner", "powerDriver", "heavyHelmet", "solarPanel", "salvageDrone", "plasmaCutter", "regenSuit"], Goods.Select(g => g.Id));
+        Assert.Equal(["bag", "tradeSlots", "belt", "canister", "scanner", "powerDriver", "heavyHelmet", "confiscated", "solarPanel", "salvageDrone", "plasmaCutter", "regenSuit"], Goods.Select(g => g.Id));
         Assert.Equal(Enumerable.Range(1, 11).Select(i => "bag" + i), Good("bag").Steps.Select(s => s.Id));
         Assert.Equal(MarketShelf.Upgrades, Good("belt").Shelf);
         Assert.Equal(MarketShelf.Blueprints, Good("solarPanel").Shelf);
@@ -85,15 +85,15 @@ public class MarketGoodsTests
 
     [Fact]
     public void EveryGoodIsShownWhatTheMafiaDoesNotSellYetLastNearestFirst() =>
-        Assert.Equal(["bag", "tradeSlots", "belt", "canister", "scanner", "powerDriver", "heavyHelmet", "plasmaCutter", "solarPanel", "salvageDrone", "regenSuit"],
+        Assert.Equal(["bag", "tradeSlots", "belt", "canister", "scanner", "powerDriver", "confiscated", "heavyHelmet", "plasmaCutter", "solarPanel", "salvageDrone", "regenSuit"],
             MarketGoods.Sorted(Goods, Met(1), null).Select(g => g.Id));
 
     [Fact]
     public void UpgradesComeFirstThenBlueprintsNewestFirst()
     {
         var goods = Goods.Append(new MarketGood("older", MarketShelf.Blueprints, [Content.Research.Node("bag1")!]));
-        Assert.Equal(["bag", "tradeSlots", "belt", "canister", "regenSuit", "plasmaCutter", "solarPanel", "salvageDrone", "heavyHelmet", "powerDriver", "scanner", "older"], MarketGoods.Sorted(goods, Met(5), null).Select(g => g.Id));
-        Assert.Equal(["regenSuit", "plasmaCutter", "solarPanel", "salvageDrone", "heavyHelmet", "powerDriver", "scanner", "older"], MarketGoods.Sorted(goods, Met(5), MarketShelf.Blueprints).Select(g => g.Id));
+        Assert.Equal(["bag", "tradeSlots", "belt", "canister", "regenSuit", "plasmaCutter", "solarPanel", "salvageDrone", "confiscated", "heavyHelmet", "powerDriver", "scanner", "older"], MarketGoods.Sorted(goods, Met(5), null).Select(g => g.Id));
+        Assert.Equal(["regenSuit", "plasmaCutter", "solarPanel", "salvageDrone", "confiscated", "heavyHelmet", "powerDriver", "scanner", "older"], MarketGoods.Sorted(goods, Met(5), MarketShelf.Blueprints).Select(g => g.Id));
     }
 
     [Fact]

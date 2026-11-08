@@ -63,6 +63,8 @@ breaking wreckage with a weapon is the hands too, sending `Hit` (0034, 0054).
   sim would refuse the grab. The crew's prompt says "[E] Catch", on a wreck "Too big".
 - **Own grabs at once** (0014): a piece with a grab of this peer's in flight is gone from its view and skipped by the
   aim, so E cannot send it twice.
+- **Deliveries** (mafia-deliveries): an amber beacon blinks on each as on a body, lit: on a wreck's top (the
+  crate's lamp), a parcel's middle. What one gives shows as loot (`GoodIcons`).
 - **Nets** (2026-11-03-debris-net): the grid draws the booms (`machine_net`); `NetView` the plates on the hull's face, then
   each held piece in its own look at its place by load (`NetShows.Place`), then `net_front_<held>` sagging over them. Read
   every 100 ms; a catch pops in. E on a net sends `Collect` (`Aiming`), through its wall too; its tip says "7/10". What a

@@ -46,7 +46,10 @@ public interface IResearchQueries
     IReadOnlyList<Recipe> Recipes();
     /// <summary>The ship's credits.</summary>
     int Credits { get; }
-    /// <summary>Whether <paramref name="node"/> is done: a block bought, all it opens known; a gate its level reached.</summary>
+    /// <summary>
+    /// Whether <paramref name="node"/> is done: a block bought, all it opens known or on its way (2026-11-08-mafia-deliveries); a gate its level
+    /// reached. Never gear or the confiscated container, sold again and again.
+    /// </summary>
     bool Done(TechNode node);
     /// <summary>Whether <paramref name="node"/> is done as <paramref name="peer"/> sees it: every one in its creative mode.</summary>
     bool Done(int peer, TechNode node);
@@ -192,7 +195,11 @@ public sealed class ResearchModule : Module<ResearchState>, IResearchQueries
 
     public bool Done(int peer, TechNode node) => _items.Creative(peer) || Done(node);
 
-    public bool Done(TechNode node) => node.Gate ? node.Ring <= _knowledge.Level : _knowledge.Granted(node.Id);
+    public bool Done(TechNode node) =>
+        node.Gate ? node.Ring <= _knowledge.Level : !Repeats(node.Id) && (_knowledge.Granted(node.Id) || _knowledge.InFlight(node.Id));
+
+    /// <summary>Whether <paramref name="good"/> is sold again and again: gear, one to a hero, and the confiscated container.</summary>
+    public static bool Repeats(string good) => good == Content.Research.Confiscated || Content.Research.GearSold.Contains(good, StringComparer.Ordinal);
 
     public bool Reached(TechNode node)
     {
@@ -224,7 +231,8 @@ public sealed class ResearchModule : Module<ResearchState>, IResearchQueries
     {
         var block = Content.Research.Node(c.Block)!;
         _knowledgeOps.Spend(Prices.Of(block));
-        _knowledgeOps.Grant(block.Id);
+        // Granted only when its piece is caught or broken: it comes as debris along a trade station's row (2026-11-08-mafia-deliveries).
+        _knowledgeOps.Deliver(block.Id);
     }
 
     /// <summary>Buys by hand, refused ones too, at any node.</summary>

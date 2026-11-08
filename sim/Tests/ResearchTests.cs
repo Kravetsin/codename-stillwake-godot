@@ -52,22 +52,24 @@ public class ResearchTests
         w.Do(new BuyBlock("bag1")).Run();
         Assert.Empty(w.Refusals);
         Assert.Equal(2, w.M.Research.Credits);
+        Assert.True(w.M.Research.Done(bag));
+        Assert.False(w.M.Research.Knows("bag1"));
+        Mafia.Receive(w);
         Assert.True(w.M.Research.Knows("bag1"));
         Assert.False(w.M.Research.Knows("bag2"));
-        Assert.True(w.M.Research.Done(bag));
     }
 
     /// <summary>The user's prices (2026-11-03-the-heavy-helmet): a craft's block priced by its worth, as a blueprint's.</summary>
-    /// <summary>The regen suit's blueprint (2026-11-03-the-regen-suit): eight times its worth, twelve thousand, beside the belt's third slot.</summary>
+    /// <summary>The regen suit (2026-11-03-the-regen-suit), sold whole (2026-11-08-mafia-deliveries): eight times its worth, twelve thousand, beside the belt's third slot.</summary>
     [Fact]
-    public void TheRegenSuitCostsTwelveThousandOnTheBeltsRow()
+    public void TheRegenSuitCostsThreeThousandOnTheBeltsRow()
     {
         Assert.Equal(12000, Prices.Of(Node("regenSuit")));
         Assert.Equal(Node("belt2").Ring, Node("regenSuit").Ring);
     }
 
     [Fact]
-    public void TheHeavyHelmetCostsFiveThousandAndTheCanistersUpgradeTenAndBoughtTheHelmetIsCraftable()
+    public void TheHeavyHelmetCostsTwoAndAHalfThousandAndTheCanistersUpgradeTenAndBoughtTheHelmetIsDelivered()
     {
         Assert.Equal(5000, Prices.Of(Node("heavyHelmet")));
         Assert.Equal(10000, Prices.Of(Node("canister1")));
@@ -76,23 +78,24 @@ public class ResearchTests
         Assert.False(w.M.Research.Knows("heavyHelmet"));
         w.Do(new BuyBlock("heavyHelmet")).Run();
         Assert.Empty(w.Refusals);
-        Assert.True(w.M.Research.Knows("heavyHelmet"));
+        Assert.True(w.M.Knowledge.InFlight("heavyHelmet"));
         Assert.Equal(100_000 - 5000, w.M.Research.Credits);
     }
 
-    /// <summary>The scanner (2026-11-07-the-scanner): three times its worth rounded, 1500, the first level's headline (2026-11-08-mafia-reputation).</summary>
+    /// <summary>The scanner (2026-11-07-the-scanner), the first level's headline: gear, three times its worth rounded, sold again and again (2026-11-08-mafia-deliveries).</summary>
     [Fact]
-    public void TheScannerIsSoldAtTheFirstLevelAndBoughtIsCraftable()
+    public void TheScannerIsSoldAtTheFirstLevelAndBoughtIsDeliveredEachTime()
     {
         Assert.Equal(1, Node("scanner").Ring);
         Assert.Equal(1500, Prices.Of(Node("scanner")));
         var w = SetUp(credits: 100_000);
         Assert.Equal("research.reputation", w.M.Research.BuyProblem(Node("scanner")));
         Mafia.Reach(w, Node("scanner").Ring);
-        w.Do(new BuyBlock("scanner")).Run();
+        w.Do(new BuyBlock("scanner")).Run().Do(new BuyBlock("scanner")).Run();
         Assert.Empty(w.Refusals);
-        Assert.True(w.M.Research.Knows("scanner"));
-        Assert.Equal(100_000 - Prices.Of(Node("scanner")), w.M.Research.Credits);
+        Assert.False(w.M.Research.Done(Node("scanner")));
+        Assert.Equal(["scanner", "scanner"], w.M.Knowledge.Deliveries.Select(d => d.Good));
+        Assert.Equal(100_000 - 2 * Prices.Of(Node("scanner")), w.M.Research.Credits);
     }
 
     [Fact]
@@ -104,6 +107,8 @@ public class ResearchTests
         Mafia.Reach(w, ResearchSpec.Node("solarPanel")!.Ring);
         w.Do(new BuyBlock("solarPanel")).Run();
         Assert.Empty(w.Refusals);
+        Assert.Equal("building.unknown", w.M.Building.Problem(At(5, 1), panel, 0));
+        Mafia.Receive(w);
         Assert.NotEqual("building.unknown", w.M.Building.Problem(At(5, 1), panel, 0));
     }
 
@@ -115,7 +120,7 @@ public class ResearchTests
         w.M.Knowledge.Earn(100_000);
         w.Do(new BuyBlock("bag1")).Run();
         Assert.Empty(w.Refusals);
-        Assert.True(w.M.Research.Knows("bag1"));
+        Assert.True(w.M.Knowledge.InFlight("bag1"));
     }
 
     /// <summary>What a map grants may lie behind what is not done: bought, not locked, and nothing is charged for it.</summary>
@@ -281,7 +286,7 @@ public class ResearchTests
         Assert.Equal(before, w.World.Save());
         Assert.Equal(45, w.M.Research.Credits);
         Assert.Equal(5, w.M.Knowledge.SoldOf("iron"));
-        Assert.True(w.M.Research.Knows("bag1"));
+        Assert.Equal(["bag1"], w.M.Knowledge.Deliveries.Select(d => d.Good));
     }
 
     /// <summary>A buy of any block, the first block not bought taken on with what it costs earned, or a unit sold.</summary>
@@ -339,7 +344,8 @@ public class ResearchTests
             else w.Do(new BuyBlock(node.Id)).Run();
         }
         Assert.Empty(w.Refusals);
-        Assert.All(ResearchSpec.Nodes, n => Assert.True(w.M.Research.Done(n), n.Id));
+        Assert.All(ResearchSpec.Nodes.Where(n => !ResearchModule.Repeats(n.Id)), n => Assert.True(w.M.Research.Done(n), n.Id));
+        Mafia.Receive(w);
         Assert.All(Upgrades.All, u => Assert.True(w.M.Research.Knows(u.Id), u.Id));
     }
 }

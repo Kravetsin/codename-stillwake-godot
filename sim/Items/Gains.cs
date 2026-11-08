@@ -28,6 +28,8 @@ public sealed partial class ItemsModule
         _gainsSeen = 0;
     }
 
+    public void NoteDelivered(int peer, string good, int cell) => Note(peer, [(good, 1)], cell);
+
     /// <summary>Notes <paramref name="given"/>, what went into <paramref name="peer"/>'s inventory, as gains at <paramref name="cell"/>.</summary>
     private void Note(int peer, IReadOnlyList<(string Item, int Count)> given, int cell)
     {

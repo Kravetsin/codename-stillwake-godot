@@ -16,6 +16,9 @@ public sealed record Reputation(int Level, IReadOnlyList<Tally> Base, long BaseW
     public static readonly Reputation None = new(0, [], 0);
 }
 
+/// <summary>A purchase from the mafia on its way (2026-11-08-mafia-deliveries): <c>Good</c> the market node it is for, <c>Id</c> its own, never reused.</summary>
+public sealed record Delivery(int Id, string Good);
+
 /// <summary>The knowledge's slice. Public so modules can be typed by it, its members internal.</summary>
 public sealed class KnowledgeState
 {
@@ -37,6 +40,15 @@ public sealed class KnowledgeState
     [JsonInclude] internal long SoldWorth { get; set; }
     /// <summary>The mafia's reputation: its level and where the next is counted from.</summary>
     [JsonInclude] internal Reputation Reputation { get; set; } = Reputation.None;
+    /// <summary>The purchases paid for and not yet caught, broken or lost, in the order bought.</summary>
+    [JsonIgnore] internal List<Delivery> Deliveries { get; set; } = [];
+    /// <summary>Deliveries as saved: none written while none is on its way.</summary>
+    [JsonInclude, JsonPropertyName("deliveries"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    internal List<Delivery>? SavedDeliveries { get => Deliveries.Count > 0 ? Deliveries : null; set => Deliveries = value ?? []; }
+    /// <summary>The id the next delivery gets: they only grow.</summary>
+    [JsonInclude] internal int NextDelivery { get; set; } = 1;
+    /// <summary>Deliveries lost past the ship since this world was loaded: for the marker that turns red, never saved.</summary>
+    [JsonIgnore] internal int Lost { get; set; }
 }
 
 /// <summary>What research and trade read of what the crew knows and has earned.</summary>
@@ -62,6 +74,12 @@ public interface IKnowledgeQueries
     int BaseOf(string item);
     /// <summary>What everything sold was worth as the level opened.</summary>
     long BaseWorth { get; }
+    /// <summary>The purchases on their way, in the order bought.</summary>
+    IReadOnlyList<Delivery> Deliveries { get; }
+    /// <summary>Whether a purchase of <paramref name="good"/> is on its way.</summary>
+    bool InFlight(string good);
+    /// <summary>How many deliveries drifted past the ship since this world was loaded: never saved, for the marker that turns red.</summary>
+    int Lost { get; }
     /// <summary>Moves whenever something is obtained or granted: never saved, for a reader to notice a change by.</summary>
     int Version { get; }
 }
@@ -84,6 +102,10 @@ public interface IKnowledgeOps
     /// level after the current one, so each surface's research may call it on a tick and the world rises once.
     /// </summary>
     void Open(int level, IReadOnlyList<Tally> start, long startWorth);
+    /// <summary>A purchase of <paramref name="good"/> is on its way: queued under a new id.</summary>
+    void Deliver(string good);
+    /// <summary>Delivery <paramref name="id"/> is caught or broken, or <paramref name="lost"/> past the ship; an id not on its way is let be.</summary>
+    void Delivered(int id, bool lost = false);
 }
 
 /// <summary>
@@ -141,6 +163,17 @@ public sealed class KnowledgeModule(IReadOnlyList<string> every) : Module<Knowle
 
     public long BaseWorth => State.Reputation.BaseWorth;
 
+    public IReadOnlyList<Delivery> Deliveries => State.Deliveries;
+
+    public bool InFlight(string good)
+    {
+        foreach (var d in State.Deliveries)
+            if (d.Good == good) return true;
+        return false;
+    }
+
+    public int Lost => State.Lost;
+
     public int Version { get; private set; }
 
     public void Earn(int credits) => State.Credits += credits;
@@ -189,6 +222,21 @@ public sealed class KnowledgeModule(IReadOnlyList<string> every) : Module<Knowle
             if (order > 0) break;
         }
         sold.Insert(at, new Tally(item, count));
+    }
+
+    public void Deliver(string good)
+    {
+        State.Deliveries.Add(new Delivery(State.NextDelivery++, good));
+        Version++;
+    }
+
+    public void Delivered(int id, bool lost = false)
+    {
+        int at = State.Deliveries.FindIndex(d => d.Id == id);
+        if (at < 0) return;
+        State.Deliveries.RemoveAt(at);
+        if (lost) State.Lost++;
+        Version++;
     }
 
     public void Open(int level, IReadOnlyList<Tally> start, long startWorth)

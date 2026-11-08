@@ -1,5 +1,6 @@
 using Stillwake.Content;
 using Stillwake.Sim.Grid;
+using Stillwake.Sim.Knowledge;
 
 namespace Stillwake.Sim.Debris;
 
@@ -153,14 +154,21 @@ public sealed partial class DebrisModule
             var piece = pieces[i];
             if (piece.Reel is { } reel) Pull(piece, reel);
             else piece.X -= piece.Speed;
-            if (piece.X < 0 || piece.X < piece.End && !InView(piece.X / Unit, piece.Y / Unit)) continue;
-            if (ZoneOf(piece.Zone).Anchor is AroundHeroes around && !Kept(piece, around)) continue;
+            if (piece.X < 0 || piece.X < piece.End && !InView(piece.X / Unit, piece.Y / Unit))
+            {
+                // Past the ship, a delivery is lost with its credits, and its good may be bought again (2026-11-08-mafia-deliveries).
+                if (piece.Delivery != 0) _knowledgeOps.Delivered(piece.Delivery, lost: true);
+                continue;
+            }
+            if (piece.Zone != Content.Debris.DeliveryZone && ZoneOf(piece.Zone).Anchor is AroundHeroes around && !Kept(piece, around)) continue;
             if (nets && CatchInNet(piece)) continue;
             pieces[kept++] = piece;
         }
         pieces.RemoveRange(kept, pieces.Count - kept);
         // A planet has no debris drifting by (0076): no zone beats there.
         if (!Rules.Debris) return;
+        // Before the zones' beats, so ids keep ascending in spawn order.
+        SpawnDelivery();
         var zones = Content.Debris.Zones;
         for (int i = 0; i < zones.Count; i++) Beat(zones[i]);
     }
@@ -227,6 +235,55 @@ public sealed partial class DebrisModule
                 if (CountOf(zone) < zone.Max && Hull() is { } by) SpawnInBand(zone, band, by);
                 break;
         }
+    }
+
+    /// <summary>
+    /// The first delivery on its way with no piece out, spawned on the ship's lane (2026-11-08-mafia-deliveries): at the stream's start, on
+    /// the middle row of the trade station with the lowest id, drifting as the slowest of the stream and gone at its end; once no delivery piece
+    /// lies within <c>DeliveryGap</c> of that start, so a row of purchases spaces itself. No draw: the crew's own purchase, so not pushed
+    /// out of a hero's view. With no trade station, or no hull, deliveries wait.
+    /// </summary>
+    private void SpawnDelivery()
+    {
+        var deliveries = _knowledge.Deliveries;
+        if (deliveries.Count == 0 || Rules.Id != Content.Surfaces.Ship.Id) return;
+        if (Lane() is not int row || Hull() is not { } hull) return;
+        var s = State;
+        int start = Math.Min(_grid.Width - 1, hull.Right + Content.Debris.Lead) * Unit + Unit / 2;
+        foreach (var piece in s.Pieces)
+            if (piece.Delivery != 0 && Math.Abs(start - piece.X) < Content.Debris.DeliveryGap * Unit) return;
+        // A handful at most: the scan is cheaper than an index kept in step.
+        var next = deliveries.FirstOrDefault(d => !s.Pieces.Exists(p => p.Delivery == d.Id));
+        if (next == null) return;
+        s.Pieces.Add(new Piece
+        {
+            Id = s.NextId,
+            Zone = Content.Debris.DeliveryZone,
+            Item = KindOf(next.Good),
+            X = start,
+            Y = row * Unit + Unit / 2,
+            Speed = Content.Debris.Ship.DriftMin,
+            Start = start,
+            End = Math.Max(0, hull.Left - Content.Debris.Lead) * Unit,
+            Delivery = next.Id,
+        });
+        s.NextId += 1;
+    }
+
+    /// <summary>The piece a purchase of <paramref name="good"/> comes as: an upgrade a parcel, the confiscated container itself, anything else a crate.</summary>
+    internal static string KindOf(string good) =>
+        Content.Upgrades.Of(good) != null ? Content.Debris.Parcel
+        : good == Content.Research.Confiscated ? Content.Research.Confiscated
+        : Content.Debris.DeliveryCrate;
+
+    /// <summary>The middle row of the trade station with the lowest id, or null with none standing.</summary>
+    private int? Lane()
+    {
+        Machine? first = null;
+        foreach (var m in _grid.MachinesWith(MachineTrait.Sells))
+            if (first == null || m.Id < first.Id) first = m;
+        if (first == null) return null;
+        return first.Cell / _grid.Width + Content.Machines.Get(first.Kind).Height / 2;
     }
 
     private int CountOf(DebrisZone zone)

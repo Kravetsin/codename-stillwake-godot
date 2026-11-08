@@ -58,6 +58,21 @@ public static class Debris
         ("soilClod", 2),
     ];
 
+    /// <summary>
+    /// The zone id of the mafia's deliveries (2026-11-08-mafia-deliveries): no entry of <see cref="Zones"/>, so no beat, no cap and no despawn
+    /// but the stream's end; spawned one by one on the lane of a trade station, not by a draw.
+    /// </summary>
+    public const string DeliveryZone = "delivery";
+
+    /// <summary>A delivered upgrade, caught whole by hand; a delivered blueprint or gear, broken open.</summary>
+    public const string Parcel = "parcel", DeliveryCrate = "deliveryCrate";
+
+    /// <summary>Every kind a delivery comes as: the parcel, the crate and the seized container.</summary>
+    public static readonly IReadOnlyList<string> DeliveryKinds = [Parcel, DeliveryCrate, Research.Confiscated];
+
+    /// <summary>How far, in cells, the last delivery must have drifted from the lane's start before the next comes, so a row of them spaces itself.</summary>
+    public const int DeliveryGap = 8;
+
     /// <summary>How many pieces a debris net holds, whatever each is (docs/decisions/2026-11-03-debris-net.md); a full one lets everything pass.</summary>
     public const int NetHolds = 10;
 
@@ -181,6 +196,7 @@ public static class Looks
         ("soilClod", 3),
         ("asteroid", 6), ("asteroidSmall", 6), ("asteroidLarge", 6), ("asteroidRich", 6),
         ("engineBlock", 4), ("cargoHold", 4), ("podCluster", 4),
+        ("parcel", 1), ("deliveryCrate", 1), ("confiscated", 1),
     ];
 
     /// <summary>How many looks <paramref name="kind"/> has: one for a kind with no pictures of its own.</summary>
@@ -297,6 +313,19 @@ public static class Loot
             new("gear", 3, 5),
             new("wire", 6, 10, OneIn: 2),
             new("canister", 1, 2, OneIn: 3),
+        ]),
+        // The confiscated container (2026-11-08-mafia-deliveries): parts of about its 1500 credits, now and then a piece of the mafia's gear.
+        ("confiscated",
+        [
+            new("plate", 6, 10),
+            new("wire", 8, 12),
+            new("circuit", 2, 3),
+            new("coil", 1, 2),
+            new("glass", 4, 6, OneIn: 2),
+            new("arcShard", 1, 1, OneIn: 12),
+            new("scanner", 1, 1, OneIn: 24),
+            new("powerDriver", 1, 1, OneIn: 24),
+            new("plasmaCutter", 1, 1, OneIn: 30),
         ]),
         // The farthest prize: air for the way home, and now and then a circuit.
         ("podCluster",

@@ -310,6 +310,7 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [liquids-in-tanks](2026-11-08-liquids-in-tanks.md) | Liquids in tanks | accepted |  |
 | [lobbed-glob](2026-11-08-lobbed-glob.md) | Lobbed glob | accepted |  |
 | [lurker-attacks](2026-11-08-lurker-attacks.md) | Lurker attacks | accepted | lobbed-glob (in part) |
+| [mafia-deliveries](2026-11-08-mafia-deliveries.md) | The mafia delivers what it sells | accepted |  |
 | [mafia-reputation](2026-11-08-mafia-reputation.md) | The black market opens by the mafia's reputation | accepted |  |
 | [planet-frame-rate](2026-11-08-planet-frame-rate.md) | Planet frame rate | accepted |  |
 | [planet-layers](2026-11-08-planet-layers.md) | A planet's layers show, and a rift shows the way down | accepted |  |

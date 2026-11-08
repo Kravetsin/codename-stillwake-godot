@@ -245,6 +245,7 @@ public class WreckTests
         w.Do(new BuyBlock("bag1")).Run();
         Assert.Empty(w.Refusals);
         Assert.Equal(chunks * chunk - price, w.M.Research.Credits);
+        Mafia.Receive(w);
         Assert.True(w.M.Items.SlotOpen(0, new Slot(Stillwake.Content.Inventory.Start)));
     }
 
