@@ -588,7 +588,7 @@ public partial class Main : Node2D, ITogether
         if (_fabricator != null) _fabricator.Draw = _m.Power.Draw;
         _fabricator?.Frame(client, _m.Crafting, _m.Research, _m.Items, _m.Grid, delta * 1000);
         _frameLog?.Mark("items");
-        _debris.Frame(client, _m.Debris, _m.Knowledge, _camera.View(), session.Drift, delta * 1000);
+        _debris.Frame(client, _m.Debris, _camera.View(), session.Drift, delta * 1000);
         _frameLog?.Mark("debris");
         bool scanning = _m.Items.Equipped(client.Id, Stillwake.Content.Helmet.Scanner);
         _scanner.Frame(scanning && _hero?.Pointer() is { } pointer

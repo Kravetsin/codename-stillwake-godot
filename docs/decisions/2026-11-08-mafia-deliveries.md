@@ -21,21 +21,24 @@ again. Contraband and consumables were left for later by the user: the base firs
   (8 cells) of that start, so a row of purchases spaces itself. No Rng draw, no push out of a hero's view: the crew's own
   purchase. Its zone `delivery` is none of `Debris.Zones`: no beat, cap, net or despawn but the stream's end.
 - **What it comes as.** An upgrade is a `parcel`, grabbed whole; a blueprint or gear a `deliveryCrate` (15 HP), broken;
-  the confiscated container itself (30 HP), broken into its loot. Caught or broken, the good is granted crew-wide, or the gear
-  given to the striker's hero (`GiveOrDrop`), or dropped under the crate when nothing struck it. Only the container is
+  the confiscated container itself (30 HP), broken into its loot. Caught or broken, a blueprint or upgrade is granted crew-wide and
+  shown to whoever caught or broke it as any loot is, its picture and "+1" where the piece was, flying into the hero
+  (`NoteDelivered` into `Items.Gains`); gear falls under the crate as a wreck's loot does, anyone's. Only the container is
   recorded as found: the others are purchases, not salvage.
 - **Lost:** a delivery piece past its `End` leaves the queue with its credits, and its good may be bought again. A tile reads
   as bought while its good is on its way, so an upgrade or blueprint is not paid for twice (`research.bought`).
 - **No station, no delivery:** deliveries wait queued, and the market says so in its own colour. A purchase made on a
   planet comes on the ship's next tick.
 - **Gear as items:** `scanner`, `powerDriver`, `heavyHelmet`, `plasmaCutter`, `regenSuit` (`Content.Research.GearSold`) have
-  no craft; their worth is a hand worth in `Content.Market`, the one their recipe gave, and they cost twice it (`Times` 2),
-  bought again and again, one to a hero. The regen suit falls from 12 000 credits for a blueprint to 3 000 an item; the
-  heavy helmet 2 500, the plasma cutter 2 100, the power driver 1 500, the scanner 990.
+  no craft; their worth is a hand worth in `Content.Market`, the one their recipe gave, and they cost what their blueprints did
+  (`Times` 3 to 8: the scanner 1 500, the power driver 3 000, the plasma cutter 4 200, the heavy helmet 5 000, the regen
+  suit 12 000), bought again and again. Twice their worth was tried and turned down by the user: the old prices stand.
 - **The confiscated container** on the third level's ring, 1 500 credits, bought again and again: plate, wire, circuits and
   coils of about its price, glass one time in two, now and then an arc shard or a piece of gear.
 - **Looks, the user's picks:** parcel A, a tarp bundle tied with cord under a lead seal; crate D, a steel box in cargo
-  straps with a blinking amber beacon; container A, a sealed container. Over a parcel or crate, upright, its good's picture.
+  straps with a blinking amber beacon; container A, a sealed container. Each wears an amber beacon blinking as a body's does, lighting
+  round it, so it is found on the screen as the edge marker gives way: the good's picture over it was tried first and
+  turned down by the user as ugly.
 - **Markers:** each delivery piece off the screen is pointed at from the edge in the market's amber, its good's picture in
   the badge, for every player. One lost turns red where it pointed and fades over 2.5 s: the game has no toast, and an
   edge marker already says where without words. A count of losses since the load drives it, never saved.

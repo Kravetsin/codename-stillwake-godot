@@ -27,7 +27,7 @@ public static partial class Ru
         ["research.market.shelf.blueprints"] = "Чертежи",
         ["research.market.kind.upgrade"] = "Улучшение",
         ["research.market.kind.blueprint"] = "Чертёж",
-        ["research.market.kind.gear"] = "Снаряжение · на одного",
+        ["research.market.kind.gear"] = "Снаряжение · одна штука",
         ["research.market.kind.lot"] = "Конфискат",
         ["research.market.arrives"] = "Прилетит вдоль ряда торговой станции",
         ["research.market.noStation"] = "Построй торговую станцию, чтобы принять доставку",

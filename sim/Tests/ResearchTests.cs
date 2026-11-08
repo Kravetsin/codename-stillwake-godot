@@ -60,18 +60,18 @@ public class ResearchTests
     }
 
     /// <summary>The user's prices (2026-11-03-the-heavy-helmet): a craft's block priced by its worth, as a blueprint's.</summary>
-    /// <summary>The regen suit (2026-11-03-the-regen-suit), sold whole (2026-11-08-mafia-deliveries): twice its worth, three thousand, beside the belt's third slot.</summary>
+    /// <summary>The regen suit (2026-11-03-the-regen-suit), sold whole (2026-11-08-mafia-deliveries): eight times its worth, twelve thousand, beside the belt's third slot.</summary>
     [Fact]
     public void TheRegenSuitCostsThreeThousandOnTheBeltsRow()
     {
-        Assert.Equal(3000, Prices.Of(Node("regenSuit")));
+        Assert.Equal(12000, Prices.Of(Node("regenSuit")));
         Assert.Equal(Node("belt2").Ring, Node("regenSuit").Ring);
     }
 
     [Fact]
     public void TheHeavyHelmetCostsTwoAndAHalfThousandAndTheCanistersUpgradeTenAndBoughtTheHelmetIsDelivered()
     {
-        Assert.Equal(2500, Prices.Of(Node("heavyHelmet")));
+        Assert.Equal(5000, Prices.Of(Node("heavyHelmet")));
         Assert.Equal(10000, Prices.Of(Node("canister1")));
         var w = SetUp(credits: 100_000);
         Mafia.Reach(w, Node("heavyHelmet").Ring);
@@ -79,15 +79,15 @@ public class ResearchTests
         w.Do(new BuyBlock("heavyHelmet")).Run();
         Assert.Empty(w.Refusals);
         Assert.True(w.M.Knowledge.InFlight("heavyHelmet"));
-        Assert.Equal(100_000 - 2500, w.M.Research.Credits);
+        Assert.Equal(100_000 - 5000, w.M.Research.Credits);
     }
 
-    /// <summary>The scanner (2026-11-07-the-scanner), the first level's headline: gear, twice its worth rounded, sold again and again (2026-11-08-mafia-deliveries).</summary>
+    /// <summary>The scanner (2026-11-07-the-scanner), the first level's headline: gear, three times its worth rounded, sold again and again (2026-11-08-mafia-deliveries).</summary>
     [Fact]
     public void TheScannerIsSoldAtTheFirstLevelAndBoughtIsDeliveredEachTime()
     {
         Assert.Equal(1, Node("scanner").Ring);
-        Assert.Equal(990, Prices.Of(Node("scanner")));
+        Assert.Equal(1500, Prices.Of(Node("scanner")));
         var w = SetUp(credits: 100_000);
         Assert.Equal("research.reputation", w.M.Research.BuyProblem(Node("scanner")));
         Mafia.Reach(w, Node("scanner").Ring);

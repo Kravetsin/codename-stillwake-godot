@@ -52,13 +52,13 @@ public class PowerDriverTests
     }
 
     [Fact]
-    public void ItCostsTwiceItsWorthToTwoFigures()
+    public void ItCostsFourTimesItsWorthToTwoFigures()
     {
         int worth = Market.WorthOf(Driver), price = Prices.Of(Tree.Node(Driver)!);
         Assert.True(worth > 0);
         int unit = 1;
-        while (2 * worth / unit >= 100) unit *= 10;
-        Assert.Equal((2 * worth + unit - 1) / unit * unit, price);
+        while (4 * worth / unit >= 100) unit *= 10;
+        Assert.Equal((4 * worth + unit - 1) / unit * unit, price);
     }
 
     [Fact]

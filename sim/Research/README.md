@@ -39,7 +39,7 @@ Knowing blueprints and crafts ([the-board](../../docs/decisions/2026-11-05-the-b
   (`Content.Upgrades`) is bought the same way, and `Items` and `Crew` read what it opens.
 - **A purchase is delivered** ([mafia-deliveries](../../docs/decisions/2026-11-08-mafia-deliveries.md)): `BuyBlock` spends and calls `Knowledge.Deliver`, granting
   nothing; `Debris` brings it along a trade station's row and grants it when caught or broken. Gear (`Content.Research.GearSold`) is an item,
-  never a blueprint or a craft: its worth is a hand worth in `Content.Market`, its `Times` 2.
+  never a blueprint or a craft: its worth is a hand worth in `Content.Market`, its `Times` its old blueprint's.
 
 ## Refusals
 

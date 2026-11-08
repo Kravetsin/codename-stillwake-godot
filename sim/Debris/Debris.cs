@@ -185,8 +185,8 @@ public sealed partial class DebrisModule : Module<DebrisState>, IDebrisQueries, 
 
     /// <summary>
     /// Delivery <paramref name="piece"/>, caught or broken by <paramref name="peer"/>, gone from the queue and given (2026-11-08-mafia-deliveries):
-    /// an upgrade or blueprint known to the crew; gear to that peer's hero, what does not fit floating at it, or under the piece with no hero.
-    /// Recorded as found by no one: it is a purchase, not salvage.
+    /// an upgrade or blueprint known to the crew, shown to that peer as loot where the piece was; gear falling under the piece as a
+    /// wreck's loot does, anyone's. Recorded as found by no one: it is a purchase, not salvage.
     /// </summary>
     private void Unpack(Piece piece, int peer)
     {
@@ -196,11 +196,10 @@ public sealed partial class DebrisModule : Module<DebrisState>, IDebrisQueries, 
         if (!Content.Research.GearSold.Contains(good, StringComparer.Ordinal))
         {
             _knowledgeOps.Grant(good);
+            if (_crew.HeroOf(peer) != null) _items.NoteDelivered(peer, good, CellOf(piece.X, piece.Y, _grid.Width));
             return;
         }
-        (string Item, int Count)[] gear = [(good, 1)];
-        if (_crew.HeroOf(peer) is { } hero) Report(piece.Id, peer, _items.GiveOrDrop(peer, gear, hero.Cell, noted: false));
-        else _items.DropAt(FloorStack.Nobody, gear, CellOf(piece.X, piece.Y, _grid.Width));
+        _items.DropAt(FloorStack.Nobody, [(good, 1)], CellOf(piece.X, piece.Y, _grid.Width));
     }
 
     /// <summary>

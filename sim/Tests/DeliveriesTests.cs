@@ -133,6 +133,7 @@ public class DeliveriesTests
         Assert.True(w.M.Research.Knows("bag1"));
         Assert.True(w.M.Items.SlotOpen(0, new Stillwake.Sim.Items.Place(Content.Inventory.Start)));
         Assert.DoesNotContain(w.M.Items.Inventory(0), s => s?.Item == DebrisSpec.Parcel);
+        Assert.Contains(w.M.Items.Gains, g => g is { Peer: 0, Item: "bag1", Count: 1 });
     }
 
     [Fact]
@@ -156,18 +157,20 @@ public class DeliveriesTests
         Assert.Empty(Sent(w));
         Assert.True(w.M.Research.Knows("solarPanel"));
         Assert.Empty(w.M.Items.Floor);
+        Assert.Contains(w.M.Items.Gains, g => g is { Peer: 0, Item: "solarPanel", Count: 1 });
     }
 
     [Fact]
-    public void ACrateOfGearBrokenGivesItToTheHeroWhoseBlowBrokeIt()
+    public void ACrateOfGearBrokenDropsItUnderItAsAWrecksLoot()
     {
         var w = World();
         Mafia.Reach(w, 1);
         Buy(w, "scanner").Do(new Enter(Out)).Do(new Enter(Out) { From = 2 }).Run();
         Break(w, Sent(w).Single(), peer: 2);
         Assert.Empty(w.Refusals);
-        Assert.Contains(w.M.Items.Inventory(2), s => s?.Item == "scanner");
-        Assert.DoesNotContain(w.M.Items.Inventory(0), s => s?.Item == "scanner");
+        Assert.Equal([("scanner", 1)], w.M.Items.Floor.Select(s => (s.Item, s.Count)));
+        Assert.DoesNotContain(w.M.Items.Inventory(2), s => s?.Item == "scanner");
+        Assert.DoesNotContain(w.M.Items.Gains, g => g.Item == "scanner");
         Assert.False(w.M.Research.Knows("scanner"));
         Assert.Empty(w.M.Knowledge.Deliveries);
     }

@@ -48,9 +48,6 @@ public static class Research
     /// <summary>What a good sold beyond what a level wants is divided by, as reputation: a seventh of its worth (2026-11-08-mafia-reputation).</summary>
     public const int OffWanted = 7;
 
-    /// <summary>How many times its worth a piece of gear costs, one delivered to a hero (2026-11-08-mafia-deliveries).</summary>
-    public const int Gear = 2;
-
     /// <summary>The confiscated container: bought again and again, broken for a random lot (2026-11-08-mafia-deliveries).</summary>
     public const string Confiscated = "confiscated";
 
@@ -69,8 +66,8 @@ public static class Research
         // Open from the start, its later rows by the mafia's reputation, a gate's order what that level wants (2026-11-08-mafia-reputation); the solar panel once circuits sell (market-decrypt).
         // The heavy helmet with the frames the jetpack is made of, the canisters' upgrade a row later (2026-11-03-the-heavy-helmet);
         // the scanner the first level's headline, before the jetpack's far wrecks (2026-11-07-the-scanner, 2026-11-08-mafia-reputation);
-        // the regen suit beside the belt's third slot, the charge it runs on (2026-11-03-the-regen-suit); gear delivered as items at
-        // twice its worth, the confiscated container with the heavy helmet (2026-11-08-mafia-deliveries).
+        // the regen suit beside the belt's third slot, the charge it runs on, eight times its worth: 12000 (2026-11-03-the-regen-suit);
+        // gear delivered as items at the prices its blueprints had, the confiscated container with the heavy helmet (2026-11-08-mafia-deliveries).
         new(Market,
             new TechRing(null, [],
                 Up("bag1"),
@@ -80,19 +77,19 @@ public static class Research
                 Up("bag3"),
                 Up("bag4"),
                 Up("tradeSlots2"),
-                ("scanner", Gear)),
+                ("scanner", 3)),
             new("order2", [("plate", 30), ("gear", 20), ("wire", 30)],
                 Up("bag5"),
                 Up("bag6"),
                 Up("belt1"),
-                ("powerDriver", Gear),
+                ("powerDriver", 4),
                 Up("tradeSlots3"),
                 Up("tradeSlots4")),
             new("order3", [("glass", 20), ("silicon", 20), ("frame", 10)],
                 Up("bag7"),
                 Up("bag8"),
                 Up("tradeSlots5"),
-                ("heavyHelmet", Gear),
+                ("heavyHelmet", 4),
                 (Confiscated, 1)),
             new("order4", [("circuit", 15), ("coil", 10), ("tube", 30)],
                 ("solarPanel", 5),
@@ -100,12 +97,12 @@ public static class Research
                 Up("tradeSlots6"),
                 Up("canister1"),
                 ("salvageDrone", 3),
-                ("plasmaCutter", Gear)),
+                ("plasmaCutter", 4)),
             new("order5", [("copper", 40), ("mica", 20), ("hide", 15)],
                 Up("bag10"),
                 Up("bag11"),
                 Up("belt2"),
-                ("regenSuit", Gear))),
+                ("regenSuit", 8))),
     ];
 
     /// <summary>Every node: tab by tab, row by row, a row's gate before its blocks.</summary>

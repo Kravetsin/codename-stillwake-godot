@@ -40,8 +40,8 @@ Every stack of items (0008).
   are never taken nor counted (`Totals`). `WornIn(peer, kind)`: what is worn (2026-10-27-suits-are-worn).
 - **Obtained** (the-board): `Output`, `Smelt`, `GiveOrDrop`, `Spray`, `Caught`, `DropAt` for `Nobody` count, `GiveWhatFits`
   what it gave; the rest moves or refunds.
-- **Gains** (2026-11-06-head-tally): `GiveOrDrop` notes what went in at its cell in the unsaved `Gains`.
-  A grab passes `noted: false`.
+- **Gains** (2026-11-06-head-tally): `GiveOrDrop` notes what went in at its cell in unsaved `Gains`, a grab
+  not; `NoteDelivered` a good.
 - **Give and take** all of a cost or none (0008): giving fills stacks of the item in slot order, then empty
   own slots; taking empties own slots from the last, the hotbar last. `Spawn` (creative) gives what
   fits, batteries full. `TakeStock`/`GiveStock`: the same over own slots, then each crate (craft-from-crates).
