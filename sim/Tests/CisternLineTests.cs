@@ -39,7 +39,7 @@ public class CisternLineTests
 
     private static Scenario Piped()
     {
-        var w = new Scenario(Line, cells: true).GiveItems(0, (WaterContent.Item, 20), ("tube", 20));
+        var w = new Scenario(Line, cells: true).GiveItems(0, (WaterContent.Item, WaterContent.CisternBottles + 1), ("tube", 20));
         return w.Do(new LayPipe(w.At(3, 2), w.At(6, 2))).Do(new LayPipe(w.At(9, 2), w.At(12, 2))).Run();
     }
 
@@ -71,7 +71,7 @@ public class CisternLineTests
     [Fact]
     public void PoursNothingThroughAnUnpipedLine()
     {
-        var w = new Scenario(Line, cells: true).GiveItems(0, (WaterContent.Item, 20), ("tube", 20));
+        var w = new Scenario(Line, cells: true).GiveItems(0, (WaterContent.Item, WaterContent.CisternBottles + 1), ("tube", 20));
         w.Do(new LayPipe(w.At(9, 2), w.At(12, 2))).Run();
         int[] cisterns = Cisterns(w);
         w.Do(new PourWater(cisterns[0])).Do(new PourWater(cisterns[2])).Run(100);
@@ -87,7 +87,8 @@ public class CisternLineTests
         Assert.Empty(w.Refusals);
         int b = Cisterns(w)[1], tank = w.M.Grid.MachinesOf("tank")[0].Id;
         w.Do(new PourWater(b)).Run(30);
-        Assert.Equal(WaterContent.Bottle - 30, w.M.Water.WaterIn(b));
-        Assert.Equal(30, w.M.Atmosphere.OxygenIn(tank));
+        int split = 30 * WaterContent.ElectrolyserRate / Content.Air.LeakEvery;
+        Assert.Equal(WaterContent.Bottle - split, w.M.Water.WaterIn(b));
+        Assert.Equal(split, w.M.Atmosphere.OxygenIn(tank));
     }
 }

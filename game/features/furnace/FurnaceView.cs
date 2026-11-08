@@ -71,6 +71,9 @@ public partial class FurnaceView : Node2D
         LightMode = CanvasItemMaterial.LightModeEnum.Unshaded,
     };
 
+    /// <summary>The haze of a fire, and of one blown by liquid oxygen; the blown flames' tint.</summary>
+    private static readonly Color FireHaze = new(1, 110 / 255f, 40 / 255f), BlownHaze = new(90 / 255f, 170 / 255f, 1), BlownFlame = new(0.55f, 0.75f, 1);
+
     /// <summary>
     /// The fire in a furnace or generator at work: its picture, how brightly the picture burns and how brightly
     /// the fire glows, easing toward it; the embers and ash owed, carried over between frames; its shimmer and
@@ -119,7 +122,7 @@ public partial class FurnaceView : Node2D
         _burning.Clear();
         foreach (var m in _grid.Machines)
         {
-            if (FireAt(m.Kind) is not { } fireAt || !_furnace.At(m.Id).Burning) continue;
+            if (FireAt(m.Kind) is not { } fireAt || _furnace.At(m.Id) is not { Burning: true } now) continue;
             _burning.Add(m.Id);
             if (!_fires.TryGetValue(m.Id, out var fire)) _fires[m.Id] = fire = Light(m);
             if (turn)
@@ -136,7 +139,10 @@ public partial class FurnaceView : Node2D
             fire.Shimmer.Box = new Rect2(at + ShimmerBox.Position, ShimmerBox.Size);
             fire.Shimmer.Amplitude = ShimmerAmplitude * (0.7f + 0.3f * fire.Glow);
             fire.Haze.Position = at + HazeAt;
-            fire.Haze.Modulate = new Color(1, 110 / 255f, 40 / 255f, HazeAlpha * fire.Glow * (float)Fx.Glow);
+            // Blown by liquid oxygen, the flames burn blue (industrial-oxygen).
+            fire.Sprite.Modulate = now.Blown ? BlownFlame : Colors.White;
+            var haze = now.Blown ? BlownHaze : FireHaze;
+            fire.Haze.Modulate = new Color(haze.R, haze.G, haze.B, HazeAlpha * fire.Glow * (float)Fx.Glow);
             if (fire.Wheel != null && Turns.TryGetValue(m.Kind, out var turns))
             {
                 fire.Wheel.Position = corner + turns.At;

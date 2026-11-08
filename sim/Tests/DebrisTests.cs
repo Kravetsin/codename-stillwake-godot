@@ -352,7 +352,7 @@ public class DebrisTests
         var gave = w.M.Debris.CaughtFrom(id);
         Assert.NotNull(gave);
         Assert.Equal(Held(w, 2).Select(s => (s.Item, s.Count)), gave);
-        Assert.Contains(("canister", 1), gave);
+        Assert.Contains(("scrap", 6), gave);
         Assert.Null(w.M.Debris.CaughtFrom(id + 1));
         // A wreck broken by a hit floats its loot, picked up as any floor stack: no catch.
         w.Run(DebrisSpec.Every + DebrisSpec.Jitter);

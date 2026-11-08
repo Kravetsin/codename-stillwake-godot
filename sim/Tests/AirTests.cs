@@ -161,7 +161,8 @@ public class AirTests
         w.Run();
         foreach (int cell in left) w.Do(new Place(cell, Placement.Wall("iron")));
         w.Run();
-        s.Fill(2);
+        // Half a tank: more than the period leaks.
+        s.Fill(Air.TankCapacity / Air.Canister / 2);
         AirUp(w, s.Room);
         int before = w.Held();
         int leak = (Hull - 2 * 4 + Volume) * Scrap + 2 * 3 * Iron + 2 * Air.DoorLeak;
@@ -781,7 +782,7 @@ public class AirTests
         int volume = w.M.Rooms.RoomById(s.Room)!.Volume;
         // The whole room leaks more than twice what one vaporizer makes.
         Assert.InRange(volume * Scrap, 2 * Air.GeneratorRate, int.MaxValue);
-        s.Fill(4);
+        s.Fill(Air.TankCapacity / Air.Canister);
         // The last cells come slower and slower, as each leaks a share of what is made: a dozen thousand ticks to settle.
         w.Run(2 * Air.LeakEvery);
         int held = w.Air().Aired.Count;
@@ -814,6 +815,29 @@ public class AirTests
         return s;
     }
 
+    /// <summary>
+    /// In a room whose air takes all its vaporizer makes, a lit furnace's reserve pulls the air back from its far edge and
+    /// the room says why; out, the air grows back (industrial-oxygen).
+    /// </summary>
+    [Fact]
+    public void ALitFiresReserveShrinksARoomAtItsLimitTillItIsOut()
+    {
+        var s = Settled("scrap");
+        var w = s.W;
+        int held = w.Air().Aired.Count;
+        w.Do(new Place(At(4, 2), new Placement("machine", "furnace"))).Run();
+        int furnace = w.M.Grid.MachineAt(At(4, 2))!.Id;
+        int fuel = Content.Machines.Get("furnace").FuelSlot!.Value;
+        w.Put(fuel, new Items.Stack("planks", 1), crate: furnace).Put(0, new Items.Stack("scrapChunk", 10), crate: furnace).Run();
+        Assert.True(w.M.Furnace.At(furnace).Burning);
+        w.Run(200);
+        Assert.InRange(w.Air().Aired.Count, 1, held - 1);
+        Assert.Equal("atmosphere.burning", Of(w, s.Room)!.Problem);
+        w.Run(Content.Items.Get("planks").BurnTicks!.Value + 400);
+        Assert.False(w.M.Furnace.At(furnace).Burning);
+        Assert.Equal(held, w.Air().Aired.Count);
+    }
+
     [Fact]
     public void HoldsAsManyCellsRoundItsVentAsItsMakingPaysTheLeakOfMoreBehindGlassThanScrap()
     {
@@ -828,11 +852,9 @@ public class AirTests
         // It stays there, neither growing nor shrinking.
         w.Run(400);
         Assert.Equal(held, w.Air().Aired.Count);
-        // Behind glass the same vaporizer holds a whole room twice what scrap held, its scrap hull leaking the most.
-        var glass = Settled("glass", rows: 10);
-        Assert.Equal(glass.W.M.Rooms.RoomById(glass.Room)!.Volume, glass.W.Air().Aired.Count);
-        Assert.True(glass.W.Air().Aired.Count > 2 * held);
-        Assert.Equal(RoomStatus.Aired, Status(glass.W, glass.Room));
+        // Behind glass, which leaks half what scrap does (leaks-a-minute), the same vaporizer holds more of the same room.
+        var glass = Settled("glass");
+        Assert.True(glass.W.Air().Aired.Count > held);
         Assert.True(FreshOrders(w) && FreshOrders(glass.W));
     }
 

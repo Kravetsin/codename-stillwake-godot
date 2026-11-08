@@ -135,14 +135,14 @@ public static class Flora
     [
         // On floors: glowing mushrooms in clusters, crystals by band, stalagmites.
         new("crystalRose", Anchor.Floor, Tall: 2, Wide: 0, Apart: 16, Chances: [0, 0, 160, 0]) { Lode = true, Yields = [("crystal", 1)] },
-        new("crystalIce", Anchor.Floor, Tall: 2, Wide: 0, Apart: 12, Chances: [380, 40, 0, 0]) { Lode = true, Yields = [("ice", 1)] },
+        new("crystalIce", Anchor.Floor, Tall: 2, Wide: 0, Apart: 12, Chances: [380, 40, 0, 0]) { Lode = true, Yields = [("ice", 4)] },
         new("crystalAmber", Anchor.Floor, Tall: 2, Wide: 0, Apart: 12, Chances: [0, 0, 380, 40]) { Lode = true, Yields = [("crystal", 1)] },
         new("crystalEmber", Anchor.Floor, Tall: 2, Wide: 0, Apart: 12, Chances: [0, 0, 30, 380]) { Lode = true, Yields = [("crystal", 1)] },
         new("glowcapViolet", Anchor.Floor, Tall: 2, Wide: 0, Apart: 8, Chances: [0, 220, 160, 0]) { Yields = [("spore", 1)] },
         new("glowcapTeal", Anchor.Floor, Tall: 2, Wide: 0, Apart: 6, Chances: [30, 420, 90, 15]) { Yields = [("biomass", 2)] },
         new("stalagmite", Anchor.Floor, Tall: 2, Wide: 0, Apart: 8, Chances: [400, 240, 320, 320]),
         // From ceilings: roots near the surface, crystals, the garden's threads and hanging caps, stalactites that drip.
-        new("crystalIceHang", Anchor.Ceiling, Tall: 2, Wide: 0, Apart: 12, Chances: [320, 30, 0, 0]) { Lode = true, Yields = [("ice", 1)] },
+        new("crystalIceHang", Anchor.Ceiling, Tall: 2, Wide: 0, Apart: 12, Chances: [320, 30, 0, 0]) { Lode = true, Yields = [("ice", 4)] },
         new("crystalAmberHang", Anchor.Ceiling, Tall: 2, Wide: 0, Apart: 12, Chances: [0, 0, 280, 60]) { Lode = true, Yields = [("crystal", 1)] },
         new("hangcap", Anchor.Ceiling, Tall: 2, Wide: 0, Apart: 14, Chances: [0, 200, 60, 0]) { Yields = [("biomass", 2)] },
         new("threadTeal", Anchor.Ceiling, Tall: 4, Wide: 0, Apart: 10, Chances: [30, 320, 0, 0]),

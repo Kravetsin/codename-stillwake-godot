@@ -1,5 +1,6 @@
 using System.Globalization;
 using Stillwake.Game.I18n;
+using Stillwake.Game.Shared;
 using Spec = Stillwake.Content;
 
 namespace Stillwake.Game.Features.Water;
@@ -26,16 +27,18 @@ public static class WaterShows
     public static int WorkFrame(double ms) => (int)(ms / FrameMs) % Frames;
 
     /// <summary>
-    /// What the pointer's tip says of a machine of <paramref name="spec"/>: a cistern its bottles, to a tenth, of how many it
-    /// holds; an electrolyser what it does or why it stands (<paramref name="stalled"/>); null for any other.
+    /// What the pointer's tip says of a machine of <paramref name="spec"/>: a cistern its water of what it holds; an
+    /// electrolyser the water it turns into oxygen a minute at its power's <paramref name="satisfaction"/>, or why it stands
+    /// (<paramref name="stalled"/>); null for any other. In litres, as oxygen reads (industrial-oxygen).
     /// </summary>
-    public static string[]? Says(Spec.MachineSpec spec, int water, string? stalled)
+    public static string[]? Says(Spec.MachineSpec spec, int water, string? stalled, int satisfaction = 1000)
     {
         if (spec.Is(Spec.MachineTrait.HoldsWater))
-        {
-            string bottles = (water * 10L / Spec.Water.Bottle / 10.0).ToString("0.#", CultureInfo.InvariantCulture);
-            return [En.T("water.cistern", ("bottles", bottles), ("of", Spec.Water.CisternBottles))];
-        }
-        return spec.Is(Spec.MachineTrait.Electrolyses) ? [En.T(stalled ?? "water.splitting")] : null;
+            return [En.T("water.cistern", ("held", Litres.Of(water)), ("of", Litres.Of(Spec.Water.CisternCapacity)))];
+        if (!spec.Is(Spec.MachineTrait.Electrolyses)) return null;
+        // A unit of water a unit of liquid oxygen: its rate a period, at its power.
+        return stalled != null
+            ? [En.T(stalled)]
+            : [En.T("water.splitting", ("n", Litres.PerMinute((long)Spec.Water.ElectrolyserRate * satisfaction / 1000)))];
     }
 }

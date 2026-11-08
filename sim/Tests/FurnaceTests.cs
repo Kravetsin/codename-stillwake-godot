@@ -1,6 +1,7 @@
 using FsCheck;
 using FsCheck.Fluent;
 using FsCheck.Xunit;
+using Stillwake.Sim.Atmosphere;
 using Stillwake.Sim.Furnace;
 using Stillwake.Sim.Items;
 using Xunit;
@@ -162,6 +163,131 @@ public class FurnaceTests
         fired.W.Run(4 * FurnaceContent.BreathEvery - 1);
         cold.W.Run(4 * FurnaceContent.BreathEvery - 1);
         Assert.Equal(4 * FurnaceContent.Breath, TankOxygen(cold.W) - TankOxygen(fired.W));
+    }
+
+    /// <summary>A lit fire reserves its breaths a period from its room's budget, and gives them back once out (industrial-oxygen).</summary>
+    [Fact]
+    public void ReservesItsShareOfItsRoomsBudgetWhileItBurns()
+    {
+        var (w, id) = SetUp();
+        int room = w.M.Rooms.RoomAt(FurnaceAt)!.Value;
+        int Budget() => w.M.Atmosphere.RoomsAir().Single(r => r.Room == room).Budget;
+        int full = Budget();
+        Assert.Equal(FurnaceContent.Breath * Content.Air.LeakEvery / FurnaceContent.BreathEvery, FurnaceContent.Reserve);
+        Put(w, id, "planks", Fuel);
+        Put(w, id, "scrapChunk", 0).Run();
+        Assert.True(w.M.Furnace.At(id).Burning);
+        Assert.Equal(full - FurnaceContent.Reserve, Budget());
+        w.Run(Plank.BurnTicks!.Value);
+        Assert.False(w.M.Furnace.At(id).Burning);
+        Assert.Equal(full, w.Run().M.Atmosphere.RoomsAir().Single(r => r.Room == room).Budget);
+    }
+
+    /// <summary>From the furnace's liquid input down through the floor and along under it to a joint of the tank's pipe to the vaporizer.</summary>
+    private static readonly int[] Blowpipe = [At(1, 2), At(1, 4), At(4, 4)];
+
+    /// <summary>The furnace piped to the tank behind the vaporizer (industrial-oxygen).</summary>
+    private static (Scenario W, int Id) Blowing((Scenario W, int Id) s)
+    {
+        s.W.GiveItems(0, ("tube", 10)).Pipe(Blowpipe).Run();
+        Assert.Empty(s.W.Refusals);
+        return s;
+    }
+
+    /// <summary>A blown fire takes its breaths from its tanks, reserving none of its room's budget (industrial-oxygen).</summary>
+    [Fact]
+    public void BlownBreathesItsTanksAndReservesNothing()
+    {
+        var fired = Blowing(SetUp());
+        var cold = Blowing(SetUp());
+        int room = fired.W.M.Rooms.RoomAt(FurnaceAt)!.Value;
+        int full = fired.W.M.Atmosphere.RoomsAir().Single(r => r.Room == room).Budget;
+        foreach (var (w, id) in new[] { fired, cold }) Put(w, id, "planks", Fuel).Run(200);
+        Assert.Equal(TankOxygen(cold.W), TankOxygen(fired.W));
+        Put(fired.W, fired.Id, "scrapChunk", 0);
+        cold.W.Run();
+        Assert.True(fired.W.M.Furnace.At(fired.Id).Blown);
+        fired.W.Run(4 * FurnaceContent.BreathEvery - 1);
+        cold.W.Run(4 * FurnaceContent.BreathEvery - 1);
+        Assert.Equal(4 * FurnaceContent.BlownBreath, TankOxygen(cold.W) - TankOxygen(fired.W));
+        Assert.Equal(full, fired.W.M.Atmosphere.RoomsAir().Single(r => r.Room == room).Budget);
+    }
+
+    /// <summary>Blown, a furnace smelts at Blown / BlownOf its speed, and burns on in a room open to space.</summary>
+    [Fact]
+    public void BlownSmeltsAtOneAndAHalfAndBurnsInVacuum()
+    {
+        var (w, id) = Blowing(SetUp());
+        Put(w, id, "planks", Fuel);
+        Put(w, id, "scrapChunk", 0).Run();
+        Assert.Equal(1000 * FurnaceContent.Blown / FurnaceContent.BlownOf, w.M.Furnace.At(id).Progress);
+        Do(w, Breach()).Run(100);
+        Assert.False(w.M.Atmosphere.AiredAt(FurnaceAt));
+        Assert.True(w.M.Furnace.At(id).Burning);
+        Assert.Null(w.M.Furnace.At(id).Problem);
+    }
+
+    /// <summary>A world saved while a fire is blown loads blown and goes on alike: the flag is saved, its speed read from it.</summary>
+    [Fact]
+    public void AWorldSavedBlownLoadsAndGoesOnAlike()
+    {
+        var a = Blowing(SetUp());
+        var b = Blowing(SetUp());
+        foreach (var (w, id) in new[] { a, b })
+        {
+            Put(w, id, "planks", Fuel);
+            Put(w, id, "scrapChunk", 0).Run(30);
+        }
+        Assert.True(a.W.M.Furnace.At(a.Id).Blown);
+        b.W.Reload();
+        for (int i = 0; i < 300; i++)
+        {
+            a.W.Run();
+            b.W.Run();
+            Assert.Equal(a.W.World.Hash(), b.W.World.Hash());
+        }
+        Assert.Equal(a.W.M.Furnace.At(a.Id), b.W.M.Furnace.At(b.Id));
+    }
+
+    /// <summary>
+    /// How long a room's oxygen lasts counts its fires (industrial-oxygen): one on its air by what it reserves, with the leak, as
+    /// far as its vaporizer makes; one blown by its breaths of the tanks besides.
+    /// </summary>
+    [Fact]
+    public void ARoomsOxygenLastsLessByItsLitAndBlownFurnaces()
+    {
+        static RoomAir Air(Scenario w) => w.M.Atmosphere.RoomsAir().Single(r => r.Room == w.M.Rooms.RoomAt(FurnaceAt));
+        var (lit, id) = SetUp();
+        Put(lit, id, "planks", Fuel);
+        Put(lit, id, "scrapChunk", 0).Run(60);
+        Assert.True(lit.M.Furnace.At(id).Burning);
+        var air = Air(lit);
+        long rate = Math.Min(air.Leak + FurnaceContent.Reserve, air.Made);
+        Assert.Equal((int)((long)air.Oxygen!.Value * Content.Air.LeakEvery / rate), air.Lasts);
+
+        var (blown, other) = Blowing(SetUp());
+        Put(blown, other, "planks", Fuel);
+        Put(blown, other, "scrapChunk", 0, 2).Run(5);
+        Assert.True(blown.M.Furnace.At(other).Blown);
+        air = Air(blown);
+        rate = Math.Min(air.Leak, air.Made) + (long)FurnaceContent.BlownBreath * Content.Air.LeakEvery / FurnaceContent.BreathEvery;
+        Assert.Equal((int)((long)air.Oxygen!.Value * Content.Air.LeakEvery / rate), air.Lasts);
+    }
+
+    /// <summary>Its pipe cut, a blown fire breathes its room again; in vacuum it goes out for want of air.</summary>
+    [Fact]
+    public void ItsPipeCutABlownFireBreathesTheRoomAndInVacuumGoesOut()
+    {
+        var (w, id) = Blowing(SetUp(("scrapChunk", 2), ("planks", 2)));
+        Put(w, id, "planks", Fuel, 2);
+        Put(w, id, "scrapChunk", 0).Run();
+        w.Do(new Pipes.CutPipe(Blowpipe[0], Blowpipe[1])).Run(FurnaceContent.BreathEvery);
+        Assert.Empty(w.Refusals);
+        Assert.True(w.M.Furnace.At(id).Burning);
+        Assert.False(w.M.Furnace.At(id).Blown);
+        Do(w, Breach()).Run(2 * FurnaceContent.BreathEvery);
+        Assert.False(w.M.Furnace.At(id).Burning);
+        Assert.Equal("furnace.noAir", w.M.Furnace.At(id).Problem);
     }
 
     [Fact]

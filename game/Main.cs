@@ -581,6 +581,9 @@ public partial class Main : Node2D, ITogether
         _frameLog?.Mark("grid");
         if (_items != null) _items.Panel.Furnace = _m.Furnace.At;
         if (_items != null) _items.Panel.Trade = _m.Trade;
+        if (_items != null) _items.Panel.Air = _m.Atmosphere;
+        if (_items != null) _items.Panel.Water = _m.Water;
+        if (_items != null) _items.Panel.Switching = _m.Power;
         if (_items != null) (_items.Panel.Charger, _items.Panel.ChargeRate) = (_m.Power.Charges, _m.Power.ChargeRate);
         if (_items != null) _items.Panel.Draw = _m.Power.Draw;
         if (_items != null) _items.Panel.Crafting = _m.Crafting;

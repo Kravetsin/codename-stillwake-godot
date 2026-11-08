@@ -41,6 +41,8 @@ public sealed partial class AtmosphereModule
         public bool[] AiredAt = [];
         /// <summary>Each tank holding oxygen, by id: the very entries of the slice's tanks.</summary>
         public readonly Dictionary<int, TankAir> Held = new();
+        /// <summary>Each vaporizer's own liquid, poured from its hopper, by id: the very entries of the slice's (industrial-oxygen).</summary>
+        public readonly Dictionary<int, TankAir> Own = new();
         /// <summary>Each vent's cell with a network one of its ports stands on, in machine id order: what <see cref="VentsIn"/> is gathered from.</summary>
         public readonly List<(int Cell, int Network)> Vents = [];
         /// <summary>Each vaporizer with its output port on a network, in machine id order: what <see cref="MadeOn"/> is summed from.</summary>
@@ -97,6 +99,8 @@ public sealed partial class AtmosphereModule
         }
         s.Held.Clear();
         foreach (var t in State.Tanks) s.Held[t.Tank] = t;
+        s.Own.Clear();
+        foreach (var t in State.Own) s.Own[t.Tank] = t;
         return s;
     }
 
@@ -132,7 +136,8 @@ public sealed partial class AtmosphereModule
         {
             var cells = _grid.PortsOf(m);
             var ports = Content.Machines.Get(m.Kind).Ports;
-            if (!ports.Any(p => p.Way == Way.In)) s.Endless.Add(m.Id);
+            bool endless = !ports.Any(p => p.Way == Way.In), piped = false;
+            if (endless) s.Endless.Add(m.Id);
             for (int i = 0; i < cells.Count; i++)
             {
                 if (_pipes.NetworkAt(cells[i]) is not int network) continue;
@@ -140,10 +145,27 @@ public sealed partial class AtmosphereModule
                 {
                     AddTo(s.StoresOn, network, m.Id);
                     s.Generators.Add((network, m.Id));
+                    piped = true;
                 }
                 else
                     foreach (int tank in ListAt(tanksOn, network)) AddTo(s.Behind, m.Id, tank);
             }
+            // Nothing on its output, a vaporizer is a vent at its own cell, on a network of its own named below every pipe's
+            // (industrial-oxygen); the pod, on no pipe, is only a pod (the-scoop).
+            if (piped || endless) continue;
+            int own = -1 - m.Id;
+            AddTo(s.StoresOn, own, m.Id);
+            s.Generators.Add((own, m.Id));
+            s.Vents.Add((m.Cell, own));
+        }
+        // A fire's liquid input draws the tanks on its network as a vaporizer's does: a blown fire (industrial-oxygen).
+        foreach (var m in _grid.MachinesWith(MachineTrait.Fire))
+        {
+            var cells = _grid.PortsOf(m);
+            var ports = Content.Machines.Get(m.Kind).Ports;
+            for (int i = 0; i < cells.Count; i++)
+                if (ports[i].Way == Way.In && _pipes.NetworkAt(cells[i]) is int network)
+                    foreach (int tank in ListAt(tanksOn, network)) AddTo(s.Behind, m.Id, tank);
         }
         foreach (var (cell, network) in s.Vents)
             if (_rooms.RoomAt(cell) is int place)
@@ -294,7 +316,8 @@ public sealed partial class AtmosphereModule
     private static int GasOn(Survey s, int network) => HeldBy(s, ListAt(s.StoresOn, network));
 
     /// <summary>The liquid in the tanks on vaporizer <paramref name="vaporizer"/>'s input network.</summary>
-    private static int LiquidBehind(Survey s, int vaporizer) => HeldBy(s, ListAt(s.Behind, vaporizer));
+    private static int LiquidBehind(Survey s, int vaporizer) =>
+        HeldBy(s, ListAt(s.Behind, vaporizer)) + (s.Own.TryGetValue(vaporizer, out var own) ? own.Oxygen : 0);
 
     /// <summary>
     /// Whether <paramref name="network"/> is supplied: gas in a store feeding it, or a vaporizer feeding it powered with
@@ -373,6 +396,35 @@ public sealed partial class AtmosphereModule
     private void DropEmptyTanks()
     {
         if (State.Tanks.Exists(t => t.Oxygen == 0)) State.Tanks = State.Tanks.FindAll(t => t.Oxygen > 0);
+        if (State.Own.Exists(t => t.Oxygen == 0)) State.Own = State.Own.FindAll(t => t.Oxygen > 0);
+    }
+
+    /// <summary>
+    /// What the fires blown on any of <paramref name="tanks"/> take every <c>Air.LeakEvery</c> ticks: each that took a breath of
+    /// liquid within a breath's time (industrial-oxygen).
+    /// </summary>
+    private long BlownOn(Survey s, SortedSet<int> tanks)
+    {
+        long taken = 0;
+        foreach (var m in _grid.MachinesWith(MachineTrait.Fire))
+        {
+            if (!_burntAt.TryGetValue(m.Id, out int at) || State.Clock - at > Content.Furnace.BreathEvery) continue;
+            foreach (int tank in ListAt(s.Behind, m.Id))
+                if (tanks.Contains(tank))
+                {
+                    taken += (long)Content.Furnace.BlownBreath * Content.Air.LeakEvery / Content.Furnace.BreathEvery;
+                    break;
+                }
+        }
+        return taken;
+    }
+
+    /// <summary>The liquid of the canisters waiting in vaporizer <paramref name="vaporizer"/>'s slot, to be poured in turn (industrial-oxygen).</summary>
+    private int WaitingIn(int vaporizer)
+    {
+        if (_grid.MachineById(vaporizer) is not { } m || Content.Machines.Get(m.Kind).SlotTakes is not (int slot, string item)) return 0;
+        var held = _items.Crate(vaporizer);
+        return slot < held.Count && held[slot] is { } stack && stack.Item == item ? stack.Count * Content.Air.Canister : 0;
     }
 
     /// <summary>Every room's air, in rooms order, from one survey.</summary>
@@ -399,22 +451,30 @@ public sealed partial class AtmosphereModule
             // The liquid behind the vaporizers feeding the room, each tank counted once.
             var tanks = new SortedSet<int>();
             foreach (int v in vaporizers) foreach (int t in ListAt(s.Behind, v)) tanks.Add(t);
-            // None when nothing feeds the room, or when a source that takes no liquid does: its air never runs out.
-            int? oxygen = vaporizers.Count == 0 || vaporizers.Overlaps(s.Endless) ? null : HeldBy(s, [.. tanks]);
+            // None when nothing feeds the room, or when a source that takes no liquid does: its air never runs out. Its
+            // vaporizers' own liquid counts with the tanks' (industrial-oxygen).
+            int own = 0;
+            foreach (int v in vaporizers) own += (s.Own.TryGetValue(v, out var poured) ? poured.Oxygen : 0) + WaitingIn(v);
+            int? oxygen = vaporizers.Count == 0 || vaporizers.Overlaps(s.Endless) ? null : HeldBy(s, [.. tanks]) + own;
             var now = Status(s, room);
             // Held air costs its leak (2026-11-05-air-bubbles); venting, each vent drains its network, two vents twice.
-            long draw = now is RoomStatus.Aired or RoomStatus.Filling ? leak
+            // Its fires burning on its air breathe what they reserve (industrial-oxygen).
+            long draw = now is RoomStatus.Aired or RoomStatus.Filling ? leak + _reserved.GetValueOrDefault(room.Id) / 1000
                 : now == RoomStatus.Venting ? (long)Content.Air.VentDrain * networks.Length * Content.Air.LeakEvery
                 : 0;
-            // Liquid leaves at the smaller of what the room draws and what its vaporizers make, both a period.
-            long rate = Math.Min(draw, made);
+            // Liquid leaves at the smaller of what the room draws and what its vaporizers make, both a period; and blown fires
+            // take theirs from the same tanks besides.
+            long rate = Math.Min(draw, made) + BlownOn(s, tanks);
             int? lasts = oxygen is int liquid && rate > 0 ? (int)Math.Min(int.MaxValue, (long)liquid * Content.Air.LeakEvery / rate) : null;
             string? problem =
-                now == RoomStatus.Filling ? (AtItsLimit(s, room) ? "atmosphere.leaky" : null)
+                now == RoomStatus.Filling && _reserved.ContainsKey(room.Id) && (AtItsLimit(s, room) || !_budget.ContainsKey(room.Id))
+                    ? "atmosphere.burning"
+                : now == RoomStatus.Filling ? (AtItsLimit(s, room) ? "atmosphere.leaky" : null)
                 : now != RoomStatus.Vacuum ? null
                 : !standing.Contains(room.Id) ? "atmosphere.noVent"
                 : vaporizers.Count == 0 ? "atmosphere.notPiped"
                 : oxygen == 0 ? "atmosphere.dry"
+                : vaporizers.All(_power.IsOff) ? "atmosphere.off"
                 : "atmosphere.unpowered";
             int budget = (int)Math.Min(int.MaxValue, _budget.GetValueOrDefault(room.Id) / 1000);
             all.Add(new RoomAir(room.Id, now, aired, leak, oxygen, made, budget, lasts, problem));
@@ -558,6 +618,8 @@ public sealed partial class AtmosphereModule
                         held.Oxygen -= taken;
                         left -= taken;
                     }
+                    // What its tanks lack, its own liquid gives: a canister poured from its hopper (industrial-oxygen).
+                    if (left > 0 && s.Own.TryGetValue(m.Id, out var own)) own.Oxygen -= left;
                     if (store != null) store.Oxygen += made;
                     else
                     {
@@ -639,9 +701,10 @@ public sealed partial class AtmosphereModule
         return null;
     }
 
-    /// <summary>Scratch, reused every tick: each sealed room's budget, and the live vents sharing each network.</summary>
+    /// <summary>Scratch, reused every tick: each sealed room's budget, the live vents sharing each network, and what fires reserve by room.</summary>
     private readonly Dictionary<int, long> _budget = new();
     private readonly Dictionary<int, int> _sharers = new();
+    private readonly Dictionary<int, long> _reserved = new();
 
     /// <summary>
     /// One tick of air (2026-11-05-air-bubbles): tanks pour and vaporizers make into their stores; an open room loses
@@ -652,6 +715,7 @@ public sealed partial class AtmosphereModule
     private void StepAir()
     {
         Pour(Gather());
+        PourHoppers();
         Produce(Gather());
         // What the vaporizers made and took is read again: a store may be new, a tank emptied.
         _readFor = null;
@@ -709,12 +773,18 @@ public sealed partial class AtmosphereModule
     /// <summary>
     /// Into <see cref="_budget"/>: each sealed room's budget, thousandths of a unit per <c>Air.LeakEvery</c> ticks, from its
     /// live vents: each network makes the <see cref="RateOf"/> × the satisfaction of each source feeding it (the pod in
-    /// full), split evenly over the live vents in sealed rooms on it, rounded down (2026-11-05-air-bubbles).
+    /// full), split evenly over the live vents in sealed rooms on it, rounded down (2026-11-05-air-bubbles); less what the
+    /// fires burning in it reserve, never below none (industrial-oxygen).
     /// </summary>
     private void Budgets(Survey s, IReadOnlyList<Room> zones)
     {
         _budget.Clear();
         _sharers.Clear();
+        _reserved.Clear();
+        // Each fire's room found now, so a wall built this tick counts.
+        var roomOf = _rooms.RoomOfCells;
+        foreach (int cell in _reserves)
+            _reserved[roomOf[cell]] = _reserved.GetValueOrDefault(roomOf[cell]) + Content.Furnace.Reserve * 1000L;
         foreach (var zone in zones)
         {
             if (zone.Openings.Count > 0) continue;
@@ -728,6 +798,7 @@ public sealed partial class AtmosphereModule
             foreach (var (_, network) in ListAt(s.FillsIn, zone.Id))
                 if (_sharers.TryGetValue(network, out int sharers) && Holds(s, network))
                     budget += (long)s.MadeOn.GetValueOrDefault(network) / sharers;
+            budget -= _reserved.GetValueOrDefault(zone.Id);
             if (budget > 0) _budget[zone.Id] = budget;
         }
     }

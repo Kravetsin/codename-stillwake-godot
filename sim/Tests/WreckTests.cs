@@ -305,9 +305,8 @@ public class WreckTests
     {
         var w = AiredWreck();
         var closet = Lock;
-        // In: the inner doorway opened, the pod airs the closet too.
-        w.Do(new SetDoor(Inner, true)).Run();
-        for (int i = 0; i < 600 && AiredIn(w, closet) < closet.Length; i++) w.Run();
+        // In: the inner doorway opened, the pod airs the closet too, its spare beyond A's furnace enough (leaks-a-minute).
+        w.Do(new SetDoor(Inner, true)).Run(600);
         Assert.Equal(closet.Length, AiredIn(w, closet));
         Assert.Equal(A.Length, AiredIn(w, A));
         // Out, once the inner has swung open (Doors.SwingTicks): closed behind, the outer opened; the closet vents, A keeps its air.
@@ -322,7 +321,10 @@ public class WreckTests
         Assert.Equal(A.Length, AiredIn(w, A));
     }
 
-    /// <summary>The reward for sealing it (the-scoop): gravity, air, floor, for a wall across the throat.</summary>
+    /// <summary>
+    /// The reward for sealing it (the-scoop): gravity and floor for a wall across the throat. Its air wants a vaporizer: the
+    /// pod holds A alone (scarce-oxygen).
+    /// </summary>
     [Fact]
     public void MakesTheHoldARoomOnceItsThroatIsWalled()
     {
@@ -337,10 +339,10 @@ public class WreckTests
         Assert.NotEqual(RoomsModule.Space, room);
         Assert.Empty(w.M.Rooms.All.First(r => r.Id == room).Openings);
         Assert.False(w.M.Rooms.Afloat(At(30, 18)));
-        // Its floor is the deck a hero now stands on, and the pod airs it once both doors of the left lock stand open.
+        // Its floor is the deck a hero now stands on; with both doors of the left lock open, the pod's air stops short of it.
         Assert.Equal(Structure.Floor, w.M.Grid.StructureAt(At(30, 21)));
         w.Do(new SetDoor(LeftInner, true)).Do(new SetDoor(LeftOuter, true)).Run(1200);
-        Assert.True(w.M.Atmosphere.AiredAt(At(30, 18)));
+        Assert.False(w.M.Atmosphere.AiredAt(At(30, 18)));
     }
 
     /// <summary>The pod feeds a first vent elsewhere (the-scoop): a branch laid from its pipe's free end, its own pipe still uncut.</summary>
@@ -359,7 +361,10 @@ public class WreckTests
         Assert.Equal("pipes.fixed", Assert.Single(w.Refusals).Reason);
     }
 
-    /// <summary>What closes the dead ends: a lit fire and a breathing hero together take less than the pod makes.</summary>
+    /// <summary>
+    /// What closes the dead ends: the pod makes room A's air and its first furnace's reserve too (industrial-oxygen,
+    /// leaks-a-minute), so a lit fire and a breathing hero leave it whole.
+    /// </summary>
     [Fact]
     public void HoldsItsAirWithAHeroBreathingAndAFurnaceLit()
     {

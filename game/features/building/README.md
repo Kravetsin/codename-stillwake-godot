@@ -15,6 +15,7 @@ The plan, its menu and the hand at work (0022, 0030). Game rules stay in `sim/Bu
 | `logic/Drag.cs` | A drag's cells, laid a stamp at a time, and what the card or removal would do in each. |
 | `BuildingView.cs` | Plans and marks drawn, the tips, the buttons, the pipette, plan work. |
 | `logic/SquareTip.cs` | The power driver's square's cost. |
+| `logic/Sliver.cs` | Glow too thin to draw. |
 | `BuildGlow.cs` | Work's light (0075): sparks, glints, molten spot, cut, sweep. |
 | `Shafts.cs` | Platform shafts kept clear: red hatch while building, a ghost's green or red. |
 | `logic/Catalogue.cs` | The menu's frame (0073): slot size, scrolled rows, hover, scrollbar. |
@@ -84,13 +85,13 @@ Shared: `game/shared/` (`Ui`, `Hands`, `PointerTip`, `Tablet`, `TabletMotion`, `
   rest the ghost. No bars. No node, material or shader parameter a plan (`PlanCut`, `BuiltParts`).
 - **A mark** (0064) keeps its own picture in red dashes and turns into its red ghost from the top as worked.
 - **A repair** (magnetic-flare): drawn as its machine's blueprint being built, by `RepairProgress`.
-- **Work's light** (0075, 0094, `BuildGlow`, `Tools.SparksOf`): sparks burst from the side facing the nearest hero
-  (every peer sees the same); a molten spot, smoke, shimmer; the cut glows; done, swept by light. The
+- **Work's light** (0075, 0094, `BuildGlow`, `Tools.SparksOf`): sparks face the nearest hero, alike on every
+  peer; a molten spot, smoke, shimmer; the cut glows; swept when done. The
   ratchet there; by a power driver, its motor (`Ui.Driven`).
 - **Digging** (0077, 0079, damage-looks): a fault's stage is its share of strength; a hit's look is the crew's (0094); a pile cracks as a wreck (pile-crack-net).
 
 ## Deliberately not handled
 
 - An iron back wall planned is always the plain panel, never the grille.
-- The cut does not smooth between ticks: a guess would overshoot a stalled part.
+- The cut does not smooth between ticks: a guess overshoots a stalled part.
 - The sim does not tell who works a plan: sparks face the nearest hero.

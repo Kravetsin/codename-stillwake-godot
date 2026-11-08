@@ -102,7 +102,8 @@ public sealed partial class LogisticsModule
     /// slot holding an item, or remembering one it burnt down to nothing (<c>KeptAt</c>), wants it kept at a stack: short
     /// when what it holds and what drones bring is under half, or under one smelt's (<c>SmeltTakes</c>). A
     /// queued station's head entry fed from its inputs wants its units' cost, at most a stack of each: short under half
-    /// that, or under one unit's. An empty input remembering nothing, or a head entry paid, wants nothing.
+    /// that, or under one unit's. A hopper (<c>SlotTakes</c>) wants its item even
+    /// empty. An empty input remembering nothing, or a head entry paid, wants nothing.
     /// </summary>
     private void Wants(Machine t)
     {
@@ -124,6 +125,8 @@ public sealed partial class LogisticsModule
         for (int i = 0; i < inputs; i++)
             if ((slots[i]?.Item ?? _items.KeptAt(t.Id, i)) is { } item && (!sells || Market.PriceOf(item) != null))
                 Short(t, item, Content.Items.Get(item).Stack, Content.Items.Get(item).SmeltTakes);
+        // A hopper wants its one item even empty, as a remembered input would (industrial-oxygen).
+        if (Machines.Get(t.Kind).SlotTakes is (_, string own)) Short(t, own, Content.Items.Get(own).Stack, 1);
     }
 
     /// <summary>Adds <paramref name="item"/> to what <paramref name="t"/> wants, once, when what it holds and what drones bring is under half <paramref name="keep"/> or one <paramref name="unit"/>.</summary>
@@ -137,7 +140,7 @@ public sealed partial class LogisticsModule
 
     /// <summary>
     /// Whether drones bring anything to a machine of <paramref name="m"/>'s kind: a fed station's input, a fire's fuel,
-    /// a queued station's inputs, a trade station's. Not a crate, a bay or the charging station.
+    /// a queued station's inputs, a trade station's, a tank's or a cistern's hopper. Not a crate, a bay or the charging station.
     /// </summary>
     private static bool Takes(Machine m)
     {
@@ -145,7 +148,8 @@ public sealed partial class LogisticsModule
         if (!Machines.TryGet(m.Kind, out var spec) || spec.Charges || spec.Tunes) return false;
         if (Stations.TryGet(m.Kind, out var station)) return station.Fed || spec.Inputs > 0;
         if (spec.Is(MachineTrait.Sells)) return true;
-        return spec.FuelSlot != null;
+        // A hopper (industrial-oxygen); a bay's fuel slot, charging, was passed by above (Salvage).
+        return spec.FuelSlot != null || spec.SlotTakes != null;
     }
 
     /// <summary>The first output slot of a machine of <paramref name="m"/>'s kind, its slots past its inputs; null for one with none.</summary>

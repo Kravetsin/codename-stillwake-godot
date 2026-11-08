@@ -52,7 +52,7 @@ public partial class Hands : Node2D
         // What the pointer on a machine tells: water's, the air's, then a debris net's count; its power under any of them.
         static IReadOnlyList<TipLine>? Plain(string[]? lines) => lines?.Select(line => new TipLine(line)).ToList();
         _machines = new MachineTips(Ui,
-            (m, x, spec) => Plain(Features.Water.WaterShows.Says(spec, m.Water.WaterIn(x.Id), m.Water.Stalled(x.Id))),
+            (m, x, spec) => Plain(Features.Water.WaterShows.Says(spec, m.Water.WaterIn(x.Id), m.Water.Stalled(x.Id), m.Power.Satisfaction(x.Id))),
             (m, x, spec) => Features.Atmosphere.AirSays.Says(spec, m.Atmosphere.OxygenIn(x.Id), m.Atmosphere.MakesAt(x.Id)),
             (m, x, spec) => spec.Is(Stillwake.Content.MachineTrait.Catches) ? Plain(Features.Debris.NetShows.Says(spec, m.Debris.HeldIn(x.Id).Count)) : null);
         Air = new AirKey(Ui);

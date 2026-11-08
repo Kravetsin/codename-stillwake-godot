@@ -29,6 +29,9 @@ public static class Signs
     /// <summary>A wrench in an orange frame over a machine a flare broke: it wants a hand, not power.</summary>
     public static Texture2D Broken() => PixelArt.Picture("sign_broken");
 
+    /// <summary>The power symbol over a machine a player switched off (industrial-oxygen): steady, never the bolt's blink.</summary>
+    public static Texture2D Off() => PixelArt.Picture("sign_off");
+
     /// <summary>The chip credits are written with, before every amount.</summary>
     public static Texture2D Credit() => PixelArt.Picture("credit");
 }

@@ -52,7 +52,8 @@ namespace Stillwake.Content;
 /// </param>
 /// <param name="Takes">The one item its slots hold, put in by hand or by drones: the engine's biofuel. Any when not given.</param>
 /// <param name="SlotTakes">
-/// One slot that holds only one item, which goes into no other slot: a drone bay's fuel slot of canisters (salvage-drones).
+/// One slot that holds only one item, which goes into no other slot: a drone bay's fuel slot of canisters (salvage-drones); a
+/// tank's or a cistern's hopper, poured in as it fits (industrial-oxygen).
 /// Its <paramref name="Charges"/> check passes it by. None for most.
 /// </param>
 /// <param name="Exhaust">
@@ -161,6 +162,11 @@ public enum MachineTrait
     /// wall, a floor or a grate (<c>building.noFloor</c>, 2026-11-07-machines-stand).
     /// </summary>
     Hangs = 32768,
+    /// <summary>
+    /// Switched on and off in its panel (`Power.SetSwitch`, industrial-oxygen): off, it draws and makes nothing, a fire does not
+    /// light. The vaporizer, the electrolyser and the generators that burn.
+    /// </summary>
+    Switches = 65536,
 }
 
 /// <summary>
@@ -174,12 +180,13 @@ public static class Machines
 {
     public static readonly IReadOnlyList<MachineSpec> All =
     [
-        new("tank", 4, 4, [new(0, 2, Way.In, Fluids.LiquidOxygen), new(3, 2, Way.Out, Fluids.LiquidOxygen)], [("plate", 8), ("tube", 2), ("gear", 2)], BuildTicks: 160, Has: MachineTrait.Gas, Menu: new(MenuTabs.Air, 20), Char: 'T', Means: "oxygen tank: draw its whole footprint"),
+        new("tank", 4, 4, [new(0, 2, Way.In, Fluids.LiquidOxygen), new(3, 2, Way.Out, Fluids.LiquidOxygen)], [("plate", 8), ("tube", 2), ("gear", 2)], BuildTicks: 160, Slots: 1, SlotTakes: (0, Crew.Canister), Has: MachineTrait.Gas, Menu: new(MenuTabs.Air, 20), Char: 'T', Means: "oxygen tank: draw its whole footprint"),
         // Holds water poured in by the bottle and gives it on to an electrolyser (water); it needs no power and air ignores it.
-        new("cistern", 4, 4, [new(0, 2, Way.In, Fluids.Water), new(3, 2, Way.Out, Fluids.Water)], [("plate", 4), ("tube", 2)], BuildTicks: 160, Has: MachineTrait.HoldsWater, Menu: new(MenuTabs.Air, 25), Char: 'c', Means: "cistern: draw its whole footprint"),
-        new("generator", 4, 4, [new(0, 2, Way.In, Fluids.LiquidOxygen), new(3, 0, Way.Out, Fluids.Air)], [("frame", 2), ("rotor", 2), ("tube", 2), ("wire", 4)], BuildTicks: 200, Draws: 4, Plug: (16, 5), Has: MachineTrait.AirSource, Menu: new(MenuTabs.Air, 30), Char: 'G', Means: "oxygen generator: draw its whole footprint"),
+        new("cistern", 4, 4, [new(0, 2, Way.In, Fluids.Water), new(3, 2, Way.Out, Fluids.Water)], [("plate", 4), ("tube", 2)], BuildTicks: 160, Slots: 1, SlotTakes: (0, Water.Item), Has: MachineTrait.HoldsWater, Menu: new(MenuTabs.Air, 25), Char: 'c', Means: "cistern: draw its whole footprint"),
+        new("generator", 4, 4, [new(0, 2, Way.In, Fluids.LiquidOxygen), new(3, 0, Way.Out, Fluids.Air)], [("frame", 2), ("rotor", 2), ("tube", 2), ("wire", 4)], BuildTicks: 200, Draws: 4, Plug: (16, 5), Slots: 1, SlotTakes: (0, Crew.Canister), Has: MachineTrait.AirSource | MachineTrait.Switches, Menu: new(MenuTabs.Air, 30), Char: 'G', Means: "oxygen generator: draw its whole footprint"),
         // Splits a cistern's water into liquid oxygen for a tank, the hydrogen let go (water): water in on its left, oxygen out on its right.
-        new("electrolyser", 4, 6, [new(0, 5, Way.In, Fluids.Water), new(3, 5, Way.Out, Fluids.LiquidOxygen)], [("glass", 6), ("plate", 4), ("tube", 4), ("circuit", 2)], BuildTicks: 200, Draws: 5, Plug: (16, 41), Has: MachineTrait.Electrolyses, Menu: new(MenuTabs.Air, 35), Char: 'y', Means: "electrolyser: draw its whole footprint"),
+        // Its electrodes are a planet's copper, so it is understood and built there first (industrial-oxygen).
+        new("electrolyser", 4, 6, [new(0, 5, Way.In, Fluids.Water), new(3, 5, Way.Out, Fluids.LiquidOxygen)], [("glass", 6), ("plate", 4), ("tube", 4), ("circuit", 2), ("copper", 4)], BuildTicks: 200, Draws: 5, Plug: (16, 41), Has: MachineTrait.Electrolyses | MachineTrait.Switches, Menu: new(MenuTabs.Air, 35), Char: 'y', Means: "electrolyser: draw its whole footprint"),
         // Of the one photosensitive panel nothing makes: its blueprint is the black market's, for many credits (black-market).
         new("solarPanel", 6, 2, [], [("frame", 2), ("solarCell", 6), ("wire", 4), ("circuit", 1), ("photoPanel", 1)], BuildTicks: 160, Makes: 5, Plug: (24, 14), Menu: new(MenuTabs.Power, 10), Char: 'P', Means: "solar panel: draw its whole footprint"),
         new("vent", 2, 2, [new(0, 0, Way.In, Fluids.Air)], [("plate", 2), ("tube", 2)], BuildTicks: 60, Has: MachineTrait.Vents | MachineTrait.Hangs, Menu: new(MenuTabs.Air, 10), Char: 'V', Means: "vent"),
@@ -200,16 +207,16 @@ public static class Machines
         // The first bench (Stations), of raw salvage as the furnace is: no power, paid by hand, its three slots what it made.
         new("workbench", 4, 5, [], [("scrapChunk", 4), ("hullPlate", 2), ("planks", 4)], BuildTicks: 120, Slots: 3, Inputs: 0, Menu: new(MenuTabs.Production, 15), Char: 'I', Means: "workbench: draw its whole footprint, three characters tall on a 16 px map (its top cells open)"),
         // Its input, its fuel, then three outputs.
-        new("furnace", 4, 4, [], [("scrapChunk", 4), ("hullPlate", 2)], BuildTicks: 200, Slots: 5, Inputs: 2, FuelSlot: 1, Menu: new(MenuTabs.Production, 10), Char: 'F', Means: "furnace: draw its whole footprint"),
+        new("furnace", 4, 4, [new(0, 2, Way.In, Fluids.LiquidOxygen)], [("scrapChunk", 4), ("hullPlate", 2)], BuildTicks: 200, Slots: 5, Inputs: 2, FuelSlot: 1, Menu: new(MenuTabs.Production, 10), Char: 'F', Means: "furnace: draw its whole footprint"),
         // The furnace's fire turning a dynamo: power while it burns, from its one slot of fuel. Of the workbench's parts, so
         // power comes before the Former.
-        new("burnerGenerator", 4, 4, [], [("plate", 4), ("rotor", 2), ("coil", 2), ("scrap", 10)], BuildTicks: 200, Makes: 6, Plug: (23, 25), Slots: 1, FuelSlot: 0, Menu: new(MenuTabs.Power, 20), Char: 'B', Means: "burner generator: draw its whole footprint"),
+        new("burnerGenerator", 4, 4, [new(0, 2, Way.In, Fluids.LiquidOxygen)], [("plate", 4), ("rotor", 2), ("coil", 2), ("scrap", 10)], BuildTicks: 200, Makes: 6, Plug: (23, 25), Slots: 1, FuelSlot: 0, Has: MachineTrait.Switches, Menu: new(MenuTabs.Power, 20), Char: 'B', Means: "burner generator: draw its whole footprint"),
         // A drum a hero runs in (power-chain): 4 while an awake rider runs, anywhere, rested by Landing otherwise. Mostly planks,
         // a gear and a coil: the first power there is, at a quarter of the burner's iron and scrap, paid for in a hero's time.
         new("treadWheel", 6, 6, [], [("planks", 6), ("gear", 1), ("coil", 1)], BuildTicks: 160, Makes: 4, Anywhere: true, Plug: (45, 46), Has: MachineTrait.Seats, Menu: new(MenuTabs.Power, 15), Char: 'w', Means: "treadmill wheel: draw its whole footprint"),
         // A heavier burner of biofuel alone (power-chain): 16 a tick, 25 600 a biofuel against the burner's 9 600. Its fuel pump is a
         // planet's part, so it is built at the planet stage.
-        new("biofuelGenerator", 6, 4, [], [("fuelPump", 1), ("frame", 3), ("plate", 8), ("coil", 4), ("tube", 4)], BuildTicks: 240, Makes: 16, Plug: (45, 22), Slots: 1, FuelSlot: 0, Takes: "biofuel", Menu: new(MenuTabs.Power, 25), Char: 'q', Means: "biofuel generator: draw its whole footprint"),
+        new("biofuelGenerator", 6, 4, [new(0, 2, Way.In, Fluids.LiquidOxygen)], [("fuelPump", 1), ("frame", 3), ("plate", 8), ("coil", 4), ("tube", 4)], BuildTicks: 240, Makes: 16, Plug: (45, 22), Slots: 1, FuelSlot: 0, Takes: "biofuel", Has: MachineTrait.Switches, Menu: new(MenuTabs.Power, 25), Char: 'q', Means: "biofuel generator: draw its whole footprint"),
         // Fills a battery with what it draws: 3 a tick fills 1800 in 600 ticks at full power.
         new("charger", 2, 4, [], [("frame", 1), ("coil", 2), ("wire", 6), ("circuit", 2)], BuildTicks: 120, Draws: 3, Plug: (8, 10), Slots: 2, Charges: true, ChargesEach: true, Menu: new(MenuTabs.Power, 50), Char: 'C', Means: "charging station: draw its whole footprint"),
         // Keeps what its network makes and nothing draws, and gives it back when the network draws more than it makes (0101):

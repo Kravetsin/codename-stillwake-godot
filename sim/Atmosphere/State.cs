@@ -57,6 +57,11 @@ public sealed class AtmosphereState
 {
     /// <summary>The liquid in each tank, and the gas in each vaporizer's store, holding any, by machine id, in id order.</summary>
     [JsonInclude] internal List<TankAir> Tanks { get; set; } = [];
+    /// <summary>Each vaporizer's own liquid, a canister poured from its hopper at most, holding any, by machine id, in id order (industrial-oxygen).</summary>
+    [JsonIgnore] internal List<TankAir> Own { get; set; } = [];
+    /// <summary>Own as saved: none written while none is, so a world with no vaporizer fed by hand saves as before.</summary>
+    [JsonInclude, JsonPropertyName("own"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    internal List<TankAir>? SavedOwn { get => Own.Count > 0 ? Own : null; set => Own = value ?? []; }
     /// <summary>The cells holding air, a unit of oxygen each, sorted.</summary>
     [JsonInclude] internal List<int> Aired { get; set; } = [];
     /// <summary>Each vaporizer's work toward its next unit, by machine id, in id order.</summary>

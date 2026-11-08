@@ -21,8 +21,8 @@ smelt, crush, grow (0060), ferment (power-chain). Not part of `Items`: it asks `
 - **State** (`CraftingState`, saved): `Queues`, each queued station ever crafted at, by machine id: `Machine`, `Next`
   (next entry id), `Progress` (the head's unit, thousandths of a tick) and `Entries`, `Entry(Id, Recipe, Count, By,
   FromInputs, Endless)` in queue order, `Count` the units left with the one at work; an emptied queue is kept so ids
-  keep counting. `Smelts`: `Smelt(Machine, Item, Progress)` by machine id. Derived: `Heated`, the fed stations whose fire
-  burns this tick, set by `Furnace` in construction.
+  keep counting. `Smelts`: `Smelt(Machine, Item, Progress)` by machine id. Derived: `Heated`, each fed station whose fire
+  burns this tick, with its speed share (blown, more), by `Furnace`.
 
 ## Rules
 
@@ -59,14 +59,14 @@ smelt, crush, grow (0060), ferment (power-chain). Not part of `Items`: it asks `
   (`IItemsOps.Output`) and the next starts. No room: the unit waits at full progress. The queue runs whoever is near.
 - **A unit fed from the inputs** takes its cost (`TakeInputs`, first slot first) on its first tick with work above
   0, so an unpowered station takes nothing; creative mode does not make it free. While inputs lack it the entry waits
-  at 0 and the whole queue behind it, first in, first out (0057). `Lacks(machine)` says what it waits for.
+  at 0 and the whole queue behind it, first in, first out. `Lacks(machine)` says what it waits for.
 
 ### Fed stations
 
 - The input slot is the queue. Each tick, work on another item than the input holds is dropped; then an item with
   `Yields` of the station's `Process`, `Heat` at most the station's, at least its `SmeltTakes` (default 1) and room for
   the most a smelt makes (`CanSmelt`) gains work; at its `SmeltTicks × 1000` its `SmeltTakes` become its yields
-  (`IItemsOps.Smelt`). Work stopped (fire out, outputs full, too few, power cut) is kept while the item stays (0057).
+  (`IItemsOps.Smelt`). Work stopped (fire out, outputs full, too few, power cut) is kept while the item stays.
 - **Too cold / wrong process / too few** (0057): such an item is taken in and sits unworked, the station resting, a
   furnace never lit for it; `TooCold` and `TooFew` tell those cases.
 - **Drawn as a smelt completes** from the world `Rng`, stations by machine id

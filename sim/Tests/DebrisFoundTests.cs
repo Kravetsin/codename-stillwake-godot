@@ -127,9 +127,9 @@ public class DebrisFoundTests
     [Fact]
     public void LeavesAnItemARollMissedUnseenTillALaterPieceGivesIt()
     {
-        // The first world whose first supply pod has no seeds: one in two rolls misses.
+        // The first world whose first supply pod has a canister and no seeds: one in two rolls misses each.
         var w = Enumerable.Range(1, 40).Select(seed => Out("supplyPod", (uint)seed).Do(new Grab(1)).Run())
-            .First(s => s.M.Debris.CaughtFrom(1)!.All(g => g.Item != "seed"));
+            .First(s => s.M.Debris.CaughtFrom(1)!.All(g => g.Item != "seed") && s.M.Debris.CaughtFrom(1)!.Any(g => g.Item == "canister"));
         Assert.Equal(["supplyPod: canister, scrap"], Said(w));
         // Pod after pod, till one's roll gives seeds: then the seed is seen, after what was.
         for (int pods = 0; pods < 40 && Found(w)[0].Items.Length < 3; pods++)

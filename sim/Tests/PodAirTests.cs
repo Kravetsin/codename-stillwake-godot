@@ -122,7 +122,7 @@ public class PodAirTests
         ];
         string[] under = ["", "", "", "", "", "            -", "      -------"];
         var w = new Scenario(Layout.Parse(rows, under)).Run(1200);
-        // Both rooms, every cell.
+        // Both rooms, every cell: rooms this small leak less than the pod makes (leaks-a-minute).
         Assert.Equal(8 * 6 + 9 * 6, Aired(w));
     }
 

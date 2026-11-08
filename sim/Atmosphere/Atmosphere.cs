@@ -10,6 +10,9 @@ namespace Stillwake.Sim.Atmosphere;
 /// <summary>Puts one canister from the sender's inventory into tank <c>Tank</c>.</summary>
 public sealed record LoadCanister(int Tank) : Command;
 
+/// <summary>Takes <c>Count</c> canisters' liquid out of tank <c>Tank</c> as canisters into the sender's inventory, one at least (industrial-oxygen).</summary>
+public sealed record DrawCanister(int Tank, int Count = 1) : Command;
+
 /// <summary>What any module may read of the air.</summary>
 public interface IAtmosphereQueries
 {
@@ -29,6 +32,11 @@ public interface IAtmosphereQueries
     int MakesAt(int source);
     /// <summary>Why peer <paramref name="peer"/>'s canister would not go into machine <paramref name="tank"/>: what the client shows first.</summary>
     string? CanisterProblem(int tank, int peer);
+    /// <summary>Why peer <paramref name="peer"/> could not draw <paramref name="count"/> canisters out of machine <paramref name="tank"/>: no tank, fewer in it, or no room.</summary>
+    string? DrawProblem(int tank, int peer, int count = 1);
+
+    /// <summary>The liquid oxygen in the tanks whose output is on the network of machine <paramref name="machine"/>'s liquid input: what a blown fire takes from.</summary>
+    int LiquidFor(int machine);
     /// <summary>Room <paramref name="room"/>'s state (TypeScript's <c>roomStatus</c>); vacuum for no room. One survey a call: for every room, read <see cref="RoomsAir"/>.</summary>
     RoomStatus StatusOf(int room);
     /// <summary>Whether <paramref name="cell"/> holds air.</summary>
@@ -59,6 +67,18 @@ public interface IAtmosphereOps
     /// electrolyser's, water); returns how much. None into anything but a tank.
     /// </summary>
     int Fill(int tank, int amount);
+
+    /// <summary>
+    /// A fire burning unblown in machine cell <paramref name="cell"/> this tick reserves <c>Furnace.Reserve</c> of its room's budget
+    /// (industrial-oxygen); called in the construction phase, cleared at its start.
+    /// </summary>
+    void Reserve(int cell);
+
+    /// <summary>
+    /// Takes <paramref name="amount"/> of liquid from the tanks behind machine <paramref name="machine"/>'s liquid input, in tank id
+    /// order, if they hold that much; returns whether it did, taking none otherwise (a blown fire, industrial-oxygen).
+    /// </summary>
+    bool BurnLiquid(int machine, int amount);
 }
 
 /// <summary>
@@ -71,6 +91,7 @@ public sealed partial class AtmosphereModule : Module<AtmosphereState>, IAtmosph
 
     private readonly IGridQueries _grid;
     private readonly IItemsQueries _items;
+    private readonly IItemsOps _itemsOps;
     private readonly IRoomsQueries _rooms;
     private readonly IPipesQueries _pipes;
     private readonly IPowerQueries _power;
@@ -81,6 +102,12 @@ public sealed partial class AtmosphereModule : Module<AtmosphereState>, IAtmosph
 
     /// <summary>Scratch for the live vents listed each tick, so a tick in which none turned allocates nothing.</summary>
     private readonly List<int> _liveNow = [];
+
+    /// <summary>Derived: the cells of the fires burning this tick, each reserving its share of its room's budget, in call order.</summary>
+    private readonly List<int> _reserves = [];
+
+    /// <summary>Derived: the clock each fire last took a breath of liquid at, by machine id, for the room overlay's time; only looked up.</summary>
+    private readonly Dictionary<int, int> _burntAt = new();
 
     /// <summary>
     /// Derived: what each cell of a room leaks while it holds air, its back wall and the hull cells given to it, found for the
@@ -100,28 +127,34 @@ public sealed partial class AtmosphereModule : Module<AtmosphereState>, IAtmosph
         _rooms = rooms;
         _pipes = pipes;
         _power = power;
+        _itemsOps = itemsOps;
         Handles<LoadCanister>(c => CanisterProblem(c.Tank, c.From), c =>
         {
             itemsOps.Take(c.From, Canister);
+            Fill(c.Tank, Content.Air.Canister);
+        });
+        Handles<DrawCanister>(c => DrawProblem(c.Tank, c.From, c.Count), c =>
+        {
+            int count = Math.Max(1, c.Count);
+            itemsOps.Give(c.From, [(Content.Crew.Canister, count)]);
+            var held = State.Tanks.Find(t => t.Tank == c.Tank)!;
+            held.Oxygen -= count * Content.Air.Canister;
             _readFor = null;
-            var held = State.Tanks.Find(t => t.Tank == c.Tank);
-            if (held != null) held.Oxygen += Content.Air.Canister;
-            else
-            {
-                State.Tanks.Add(new TankAir { Tank = c.Tank, Oxygen = Content.Air.Canister });
-                State.Tanks.Sort((a, b) => a.Tank.CompareTo(b.Tank));
-            }
+            DropEmptyTanks();
         });
         // A tank taken apart takes its oxygen with it; ids are never reused, so this is only tidying.
         // Only a machine taken apart leaves a tank with none: looked for when the grid's log names a machine's cell.
         _standing = t => _grid.MachineById(t.Tank) != null;
         System(Phase.Construction, () =>
         {
+            // Before Furnace's construction, which reserves anew for the fires burning now.
+            _reserves.Clear();
             if (_tanksCheckedAt == _grid.Version) return;
             bool moved = _tanksCheckedAt is not int at || MachinesMoved(_grid.ChangedSince(at));
             _tanksCheckedAt = _grid.Version;
-            if (!moved || State.Tanks.TrueForAll(_standing)) return;
+            if (!moved || (State.Tanks.TrueForAll(_standing) && State.Own.TrueForAll(_standing))) return;
             State.Tanks = State.Tanks.FindAll(_standing);
+            State.Own = State.Own.FindAll(_standing);
             _readFor = null;
         });
         // After derivation, so rooms and networks are those of this tick.
@@ -323,8 +356,46 @@ public sealed partial class AtmosphereModule : Module<AtmosphereState>, IAtmosph
     public string? CanisterProblem(int tank, int peer)
     {
         if (!IsTank(tank)) return "atmosphere.noTank";
-        if (OxygenIn(tank) + Content.Air.Canister > Content.Air.TankCapacity) return "atmosphere.tankFull";
+        if (!CanisterFits(tank)) return "atmosphere.tankFull";
         return _items.ShortOf(peer, Canister);
+    }
+
+    public string? DrawProblem(int tank, int peer, int count = 1)
+    {
+        // A count under one is no rule of the game: it is taken as one.
+        count = Math.Max(1, count);
+        if (!IsTank(tank)) return "atmosphere.noTank";
+        if ((long)OxygenIn(tank) < (long)count * Content.Air.Canister) return "atmosphere.tankLow";
+        return _items.FullFor(peer, [(Content.Crew.Canister, count)]);
+    }
+
+    /// <summary>Whether a canister's liquid fits in tank <paramref name="tank"/>: by hand or from its hopper alike.</summary>
+    private bool CanisterFits(int tank) => OxygenIn(tank) + Content.Air.Canister <= Content.Air.TankCapacity;
+
+    /// <summary>
+    /// Each tank in id order pours the canister in its hopper (<c>SlotTakes</c>) when it fits, as one loaded by hand; each
+    /// vaporizer with none of its own liquid left pours one into its own (industrial-oxygen): one a tick at most.
+    /// </summary>
+    private void PourHoppers()
+    {
+        foreach (var m in _grid.MachinesWith(MachineTrait.AirSource))
+        {
+            if (Content.Machines.Get(m.Kind).SlotTakes is not (int at, string canister) || State.Own.Exists(t => t.Tank == m.Id)) continue;
+            var held = _items.Crate(m.Id);
+            if (at >= held.Count || held[at]?.Item != canister) continue;
+            _itemsOps.Consume(m.Id, at);
+            State.Own.Add(new TankAir { Tank = m.Id, Oxygen = Content.Air.Canister });
+            State.Own.Sort((a, b) => a.Tank.CompareTo(b.Tank));
+            _readFor = null;
+        }
+        foreach (var m in _grid.MachinesWith(MachineTrait.Gas))
+        {
+            if (Content.Machines.Get(m.Kind).SlotTakes is not (int slot, string item)) continue;
+            var slots = _items.Crate(m.Id);
+            if (slot >= slots.Count || slots[slot]?.Item != item || !CanisterFits(m.Id)) continue;
+            _itemsOps.Consume(m.Id, slot);
+            Fill(m.Id, Content.Air.Canister);
+        }
     }
 
     public RoomStatus StatusOf(int room)
@@ -356,5 +427,28 @@ public sealed partial class AtmosphereModule : Module<AtmosphereState>, IAtmosph
             State.Tanks.Sort((a, b) => a.Tank.CompareTo(b.Tank));
         }
         return added;
+    }
+
+    public void Reserve(int cell) => _reserves.Add(cell);
+
+    public int LiquidFor(int machine) => LiquidBehind(Gather(), machine);
+
+    public bool BurnLiquid(int machine, int amount)
+    {
+        var s = Gather();
+        if (LiquidBehind(s, machine) < amount) return false;
+        int left = amount;
+        foreach (int tank in ListAt(s.Behind, machine))
+        {
+            if (left == 0) break;
+            if (!s.Held.TryGetValue(tank, out var held)) continue;
+            int taken = Math.Min(held.Oxygen, left);
+            held.Oxygen -= taken;
+            left -= taken;
+        }
+        _burntAt[machine] = State.Clock;
+        _readFor = null;
+        DropEmptyTanks();
+        return true;
     }
 }

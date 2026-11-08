@@ -116,7 +116,11 @@ public partial class ContentTests
         Assert.Equal(5, bay.Slots);
         Assert.Equal((4, Content.Crew.Canister), bay.SlotTakes);
         Assert.Null(Content.Items.Get(Content.Crew.Canister).Capacity);
-        Assert.All(Machines.All.Where(m => m.Kind != Content.Logistics.Bay), m => Assert.Null(m.SlotTakes));
+        // The hoppers of a tank, a cistern and a vaporizer (industrial-oxygen); no other machine has such a slot.
+        Assert.Equal((0, Content.Crew.Canister), Machines.Get("tank").SlotTakes);
+        Assert.Equal((0, Content.Water.Item), Machines.Get("cistern").SlotTakes);
+        string[] hoppers = [Content.Logistics.Bay, "tank", "cistern", "generator"];
+        Assert.All(Machines.All.Where(m => !hoppers.Contains(m.Kind)), m => Assert.Null(m.SlotTakes));
     }
 
     // Air
@@ -126,6 +130,29 @@ public partial class ContentTests
     {
         AllPositive(typeof(Air));
         Assert.True(Air.Canister <= Air.TankCapacity);
+    }
+
+    /// <summary>
+    /// Liquids are kept in tanks and cisterns, not crates, and ice is farmed on a planet (industrial-oxygen): a few
+    /// canisters or bottles a slot, fifty of either in a tank or a cistern, four ice a vein or a crystal.
+    /// </summary>
+    [Fact]
+    public void LiquidsStackFewAndFillFiftyAndIceComesFourAtATime()
+    {
+        Assert.Equal((5, 5, 50), (Content.Items.Get(Content.Crew.Canister).Stack, Content.Items.Get(Content.Water.Item).Stack, Content.Items.Get("ice").Stack));
+        Assert.Equal(50 * Air.Canister, Air.TankCapacity);
+        Assert.Equal(50, Content.Water.CisternBottles);
+        Assert.Equal([("ice", 4)], Content.Materials.Get("iceVein").Cost);
+        Assert.All(new[] { "crystalIce", "crystalIceHang" }, id => Assert.Equal([("ice", 4)], Content.Flora.Get(id).Yields));
+    }
+
+    /// <summary>Leaks the user set, units a minute a cell, a period of ten minutes each (leaks-a-minute): scrap 3, iron 2, alloy 1.8, glass 1.5.</summary>
+    [Fact]
+    public void WallsLeakAsTheUserSetThemAMinute()
+    {
+        int minutes = Air.LeakEvery / (60 * 20);
+        Assert.Equal((3 * minutes, 2 * minutes, 18 * minutes / 10, 15 * minutes / 10),
+            (Content.Materials.Get("scrap").Leak, Content.Materials.Get("iron").Leak, Content.Materials.Get("alloy").Leak, Content.Materials.Get("glass").Leak));
     }
 
     // Power

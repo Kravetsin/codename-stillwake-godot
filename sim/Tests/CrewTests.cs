@@ -179,7 +179,7 @@ public class CrewTests
     }
 
     /// <summary>
-    /// Its vent's pipe cut, nothing pays: the bubble shrinks from the far edge, <c>Air.CellsPerFill</c> cells a beat, and a
+    /// Its vaporizer switched off, nothing pays (a pipe cut would leave the vaporizer airing the room itself, industrial-oxygen): the bubble shrinks from the far edge, <c>Air.CellsPerFill</c> cells a beat, and a
     /// hero breathes the room's air only while its cell holds some (2026-11-05-air-bubbles).
     /// </summary>
     [Fact]
@@ -190,7 +190,7 @@ public class CrewTests
         w.Do(EnterAt(Far)).Run();
         Breaths(w, 1);
         int suit = HeroOf(w)!.Air;
-        w.Do(new Pipes.CutPipe(Vent, Output)).Run();
+        w.Do(new Power.SetSwitch(w.M.Grid.MachineAt(Output)!.Id, false)).Run();
         Assert.DoesNotContain(Far, Aired(w));
         Assert.InRange(Aired(w).Count, 84 - Content.Air.CellsPerFill, 84 - 1);
         Breaths(w, 2);

@@ -17,14 +17,14 @@ once, and smelting has moved to `Crafting`.
 
 - **Depends on:** `Grid` (`IGridQueries`: which machines have a fire, `MachinesWith(Fire)` (0113): with inputs it smelts, else it makes power;
   and their cells), `Items` (`IItemsQueries`: their slots; `IItemsOps`: `Consume`, a fuel lit),
-  `Atmosphere` (`IAtmosphereQueries`: `AiredAt`; `IAtmosphereOps`: `Breathe`, the air their fire
-  breathes), `Power` (`IPowerOps`: `Rest`, a cold generator makes nothing; `IPowerQueries`: `Needed`, whether its
+  `Atmosphere` (`IAtmosphereQueries`: `AiredAt`, `LiquidFor`; `IAtmosphereOps`: `Breathe`, the air their fire
+  breathes, `Reserve`, its share of its room's budget while it burns, `BurnLiquid`, blown), `Power` (`IPowerOps`: `Rest`, a cold generator makes nothing, `Blow`; `IPowerQueries`: `Needed`, whether its
   network wants a fire), `Crafting`
   (`ICraftingQueries`: `CanSmelt`, whether a furnace has what it can smelt, and `Progress` for its panel;
   `ICraftingOps`: `Heat`, a furnace's fire burns).
 - **State** (`FurnaceState`, members internal): `Fires` — each furnace or generator burning,
-  `Fire(Machine, Fuel)` by machine id in id order: the ticks of fire left, above 0. Saved; nothing is
-  derived. Format 8 renamed a fire's `furnace` to `machine`; format 14 moved its `item` and `progress`
+  `Fire(Machine, Fuel, Blown)` by machine id in id order: the ticks of fire left, above 0, and whether it is blown
+  (added with a default, no format step). Saved; nothing is derived. Format 8 renamed a fire's `furnace` to `machine`; format 14 moved its `item` and `progress`
   to `Crafting`'s smelts and dropped the fires kept only for them.
 - **Files:** `Furnace.cs` — the module, its state and records.
 - **Runs** after `Debris` and before `Logistics` in `Registry.All`, last of the modules TypeScript had.
@@ -36,7 +36,7 @@ once, and smelting has moved to `Crafting`.
   with E as a crate is.
 - Each tick, in the simulation phase, furnaces and generators together in machine id order:
   - **lit** only when it has none, with fuel in its fuel slot (an item with `BurnTicks`) and air in a
-    cell of it; a furnace also only with what it can smelt (`ICraftingQueries.CanSmelt`: salvage in its
+    cell of it or a breath in its tanks (blown); a furnace also only with what it can smelt (`ICraftingQueries.CanSmelt`: salvage in its
     input, hot enough, room for its yields; never for what is too hot for it, which stays in its input).
     One fuel is used up (`IItemsOps.Consume`), worth its
     `BurnTicks`. An item that is both (fat) burns in the fuel slot and smelts in the input, by where it was put;
@@ -45,6 +45,14 @@ once, and smelting has moved to `Crafting`.
     less, its fire goes out and the fuel left is lost. Otherwise it burns a tick of fuel, smelting or
     not. Its last tick of fuel burnt, it is lit again on the same tick if it can be, so a fire fed in
     time never goes out between two fuels.
+  - **reserving**: in the construction phase, each fire burning unblown reserves the budget of the room its machine's
+    cell is in (`IAtmosphereOps.Reserve`, industrial-oxygen), so its room's air pulls back while it burns.
+- **Blown** (industrial-oxygen): each machine with a fire has a liquid-oxygen input port. A fire lights blown when the
+  tanks behind it (`IAtmosphereQueries.LiquidFor`) hold `Content.Furnace.BlownBreath`, with or without room air. Each
+  breath decides it: `IAtmosphereOps.BurnLiquid` takes `BlownBreath` from those tanks, blown, or the fire breathes room
+  air as above. Turning, its fuel left is scaled by `Blown` / `BlownOf`, rounded down, at least 1, so a fuel lasts
+  that much longer only while blown. Blown, a furnace's `Heat` share is `Blown` / `BlownOf` × 1000 and a generator is
+  told to `IPowerOps.Blow`, making that much more; it reserves nothing.
 - **A furnace's fire heats it:** in the construction phase, before crafting's simulation, each furnace
   whose fire burns is told to `Crafting` (`ICraftingOps.Heat`), which smelts in it that tick at its
   station's speed. The fire is read as the last tick left it, so a furnace starts smelting the tick after

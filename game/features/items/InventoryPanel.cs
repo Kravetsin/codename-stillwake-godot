@@ -79,6 +79,14 @@ public partial class InventoryPanel : CanvasLayer
     private FavouriteStar _pointerStar = null!;
     private SortButton? _crateKey;
     private Button? _send;
+    /// <summary>The open tank's key: a canister drawn out of it (industrial-oxygen).</summary>
+    private Button? _draw;
+    /// <summary>How many the open tank's or cistern's key draws out.</summary>
+    private HSlider? _drawCount;
+    /// <summary>The open machine's switch, in its frame's header (industrial-oxygen).</summary>
+    private Button? _switch;
+    /// <summary>The open vaporizer's liquid, behind it and its own (industrial-oxygen).</summary>
+    private Label? _liquid;
     private SortSweep _sweep = null!;
     private TextureRect _heldIcon = null!;
     private Label _heldCount = null!, _creative = null!;
@@ -152,6 +160,15 @@ public partial class InventoryPanel : CanvasLayer
 
     /// <summary>The trade module, for a trade station's capsule: what it would carry and whether it is away.</summary>
     public Stillwake.Sim.Trade.TradeModule? Trade { get; set; }
+
+    /// <summary>The air, for an open tank: what it holds and whether a canister can be drawn out (industrial-oxygen).</summary>
+    public Stillwake.Sim.Atmosphere.AtmosphereModule? Air { get; set; }
+
+    /// <summary>The water, for an open cistern: what it holds and whether bottles can be drawn out (industrial-oxygen).</summary>
+    public Stillwake.Sim.Water.WaterModule? Water { get; set; }
+
+    /// <summary>The power, for an open machine that switches: whether it is off (industrial-oxygen).</summary>
+    public Stillwake.Sim.Power.PowerModule? Switching { get; set; }
 
     /// <summary>The stations, for an electric smelter's or a grow capsule's panel: how far its work is, whether it works, whether it is too cold.</summary>
     public CraftingModule? Crafting { get; set; }
