@@ -408,7 +408,203 @@ function crystal(name, variant, hang) {
   } };
 }
 
+// ---- Stone by depth band (2026-11-08-planet-layers, the user's pick "grey stone and marks"): today's stone moved part of the way
+// toward each band's paint, and a band's marks over it — frost and mica in the cold, roots in the garden, mineral banding in the
+// amber deep, heat cracks in the ember band, their glow a sheet of its own. Pictures `<kind>_<material>_b<band>`.
+
+const { star } = Anime;
+
+/** on() with lines, glows and a flat's clip carried along too: marks over a repeating sheet that must survive its neighbours' stone. */
+function onAll(a, W = 128, H = 64) {
+  const base = on(a, W, H);
+  const emit = (d, fn) => {
+    const n = d.match(NUM).map(Number);
+    let x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity;
+    for (let i = 0; i + 1 < n.length; i += 2) { x0 = Math.min(x0, n[i]); x1 = Math.max(x1, n[i]); y0 = Math.min(y0, n[i + 1]); y1 = Math.max(y1, n[i + 1]); }
+    for (let j = -1; j <= 1; j++) for (let i = -1; i <= 1; i++)
+      if (x1 + i * W > 0 && x0 + i * W < W && y1 + j * H > 0 && y0 + j * H < H) fn((i - 1) * W, (j - 1) * H);
+  };
+  return {
+    shape: base.shape,
+    flat(d, c, o = {}) { emit(d, (dx, dy) => a.flat(shiftPath(d, dx, dy), c, o.clip ? { ...o, clip: shiftPath(o.clip, dx, dy) } : o)); },
+    glow(d, c, o = {}) { emit(d, (dx, dy) => a.glow(shiftPath(d, dx, dy), c, o.core ? { ...o, core: shiftPath(o.core, dx, dy) } : o)); },
+  };
+}
+
+const centreOf = (cell) => [cell.reduce((s, p) => s + p[0], 0) / cell.length, cell.reduce((s, p) => s + p[1], 0) / cell.length];
+
+/** A colour t of the way from a to b. */
+function mix(a, b, t) {
+  const h = (c, i) => parseInt(c.substr(1 + i * 2, 2), 16);
+  return '#' + [0, 1, 2].map((i) => Math.round(h(a, i) + (h(b, i) - h(a, i)) * t).toString(16).padStart(2, '0')).join('');
+}
+
+/** A ground's look moved t of the way toward another's, tone by tone. */
+function mixLook(a, b, t) {
+  return { ...a, back: a.back.map((c, i) => mix(c, b.back[i % b.back.length], t)), tones: a.tones.map((m, i) => {
+    const q = b.tones[i % b.tones.length], o = {};
+    for (const k of Object.keys(m)) o[k] = mix(m[k], q[k] || m[k], t);
+    return o;
+  }) };
+}
+
+/** Each band's paint, the coldest first: blue-grey, green-grey, ochre, a reddish basalt dark. */
+const BAND_PAINT = [
+  { back: ['#131923', '#161d28', '#11161f'], tones: [
+    { base: '#53647a', shade: '#38465a', lite: '#6b7d92', spec: '#8fa2b6', ink: '#0b111d' },
+    { base: '#4c5c71', shade: '#334052', lite: '#637488', spec: '#8597aa', ink: '#0b111d' },
+    { base: '#5a6b80', shade: '#3d4b5e', lite: '#728498', spec: '#97a9bc', ink: '#0b111d' },
+  ] },
+  { back: ['#131a17', '#161e1a', '#111714'], tones: [
+    { base: '#56665a', shade: '#3b4840', lite: '#6c7c6e', spec: '#8a9a8a', ink: '#0c1510' },
+    { base: '#4f5e53', shade: '#36423a', lite: '#657466', spec: '#829282', ink: '#0c1510' },
+    { base: '#5d6c5f', shade: '#404d44', lite: '#738274', spec: '#90a090', ink: '#0c1510' },
+  ] },
+  { back: ['#201912', '#241c14', '#1c150f'], tones: [
+    { base: '#7c6444', shade: '#57442e', lite: '#957b58', spec: '#b09670', ink: '#180f07' },
+    { base: '#725b3d', shade: '#4f3d29', lite: '#8a7150', spec: '#a68c68', ink: '#180f07' },
+    { base: '#846a48', shade: '#5d4831', lite: '#9e835e', spec: '#b89e78', ink: '#180f07' },
+  ] },
+  { back: ['#130d0d', '#160f0f', '#100b0b'], tones: [
+    { base: '#3c3335', shade: '#272022', lite: '#4e4446', spec: '#665a5a', ink: '#0b0606' },
+    { base: '#363031', shade: '#231d1e', lite: '#483f40', spec: '#5e5454', ink: '#0b0606' },
+    { base: '#42383a', shade: '#2b2325', lite: '#544a4b', spec: '#6c6060', ink: '#0b0606' },
+  ] },
+];
+/** How far each band's stone moves toward its paint, and the marks laid over it. */
+const BAND_SHARE = [.5, .5, .5, .6], BAND_MARK = ['frost', 'roots', 'banding', 'heat'];
+const bandLook = (b) => mixLook({ ...GROUNDS.stone }, BAND_PAINT[b], BAND_SHARE[b]);
+/** A wall's rim colours from its look. */
+const edgeOf = (look) => { const t = look.tones[0]; return { lite: mix(t.lite, t.spec, .5), shade: mix(t.shade, '#000000', .25), ink: t.ink }; };
+
+/** A band of even width along points, its ends drawn to a point. */
+function ribbon(pts, w) {
+  const L = [], R = [];
+  pts.forEach((p, i) => {
+    const a = pts[Math.max(0, i - 1)], b = pts[Math.min(pts.length - 1, i + 1)], dx = b[0] - a[0], dy = b[1] - a[1], l = Math.hypot(dx, dy) || 1;
+    const q = (w / 2) * (i === 0 || i === pts.length - 1 ? .15 : 1);
+    L.push([p[0] - (dy / l) * q, p[1] + (dx / l) * q]); R.unshift([p[0] + (dy / l) * q, p[1] - (dx / l) * q]);
+  });
+  return poly(L.concat(R).flat());
+}
+
+/** A crack's line from p to q, broken in n with a sideways jog. */
+function jag(p, q, r, n = 4, amp = .6) {
+  const dx = q[0] - p[0], dy = q[1] - p[1], l = Math.hypot(dx, dy) || 1, pts = [p];
+  for (let i = 1; i < n; i++) { const t = i / n, k = (r() - .5) * 2 * amp; pts.push([p[0] + dx * t - (dy / l) * k, p[1] + dy * t + (dx / l) * k]); }
+  pts.push(q);
+  return pts;
+}
+
+/** A cell's top edge: the longest near-level edge above its middle. */
+function topEdge(cell) {
+  const [, cy] = centreOf(cell);
+  let best = null, len = 0;
+  for (let i = 0; i < cell.length; i++) {
+    const p = cell[i], q = cell[(i + 1) % cell.length], dx = q[0] - p[0], dy = q[1] - p[1];
+    if ((p[1] + q[1]) / 2 >= cy || Math.abs(dy) > Math.abs(dx) * .6) continue;
+    const l = Math.hypot(dx, dy);
+    if (l > len) { len = l; best = p[0] < q[0] ? [p, q] : [q, p]; }
+  }
+  return best;
+}
+
+/** Rime: a pale crust hanging under a block's top edge, thickest in its middle, clipped to the block. */
+function rime(o, cell, r, col, th = .9) {
+  const e = topEdge(cell);
+  if (!e) return;
+  const [p, q] = e, top = [], under = [];
+  for (let i = 0; i <= 6; i++) {
+    const t = i / 6, x = p[0] + (q[0] - p[0]) * t, y = p[1] + (q[1] - p[1]) * t;
+    top.push(x, y - .4);
+    under.unshift(x, y + .15 + th * Math.sin(Math.PI * t) * (.5 + .7 * r()));
+  }
+  o.flat(poly(top.concat(under)), col, { clip: flatPoly(cell, 0, 0, 1.03) });
+}
+
+/** Glints of mica: a few tiny four-point stars. */
+function micaGlints(o, cells, r, col, every = 3) {
+  cells.forEach((cell, k) => {
+    if (k % every) return;
+    const [cx, cy] = centreOf(cell);
+    o.flat(star(cx + (r() - .5) * 5, cy + (r() - .5) * 4, .55 + r() * .3, .22), col);
+  });
+}
+
+/** Heat cracks along some of the joins: a dull red line with a hotter core; their own rng, so the glow sheet draws the same ones. */
+function heatCracks(a, cells, seed, share, cols) {
+  const f = rng(seed ^ 0x4ea7), o = onAll(a);
+  for (const cell of cells) for (let i = 0; i < cell.length; i++) {
+    const p = cell[i], q = cell[(i + 1) % cell.length];
+    if (f() > share) continue;
+    const pts = jag(p, q, f, 3, .5);
+    o.glow(ribbon(pts, .85), cols[0]);
+    o.glow(ribbon(pts, .32), cols[1]);
+  }
+}
+
+/** A band's stone with its marks over it; glowOnly: what glows alone, the heat cracks, for the game's glow layer. */
+function markedSheet(look, seed, dim, mark, glowOnly) {
+  const base = groundSheet(look, seed, dim);
+  return { ...base, draw(a) {
+    if (!glowOnly) base.draw(a);
+    if (dim) return;
+    const cells = cellsOf(128, 64, look.cells, seed), f = rng(seed ^ 0x77), o = onAll(a);
+    if (mark === 'frost' && !glowOnly) {
+      for (const cell of cells) if (f() < .55) rime(o, cell, f, '#b4c8d6', 1);
+      micaGlints(o, cells, f, '#dbe4ea', 3);
+    } else if (mark === 'roots' && !glowOnly) {
+      // Roots from the garden above, come down the cracks: a thread hanging from a block's top edge, now and then forked; lichen.
+      for (const cell of cells) {
+        if (f() > .7) continue;
+        const e = topEdge(cell);
+        if (!e) continue;
+        const t = .3 + f() * .4, x = e[0][0] + (e[1][0] - e[0][0]) * t, y = e[0][1] + (e[1][1] - e[0][1]) * t, len = 6 + f() * 7, pts = [[x, y]];
+        for (let i = 1; i <= 4; i++) pts.push([x + (f() - .5) * 1.6 + i * .2, y + (len * i) / 4]);
+        o.flat(ribbon(pts, .8), '#a09472');
+        if (f() < .5) { const m = pts[2]; o.flat(ribbon([m, [m[0] + 1.2, m[1] + 1.4], [m[0] + 1.5, m[1] + 3]], .5), '#a09472'); }
+      }
+      for (const cell of cells) {
+        if (f() > .18) continue;
+        const [cx, cy] = centreOf(cell);
+        for (let i = 0; i < 4; i++) o.flat(ell(cx + (f() - .5) * 5, cy + (f() - .5) * 3.5, .6 + f() * .4, .45 + f() * .25), '#73845a');
+      }
+    } else if (mark === 'banding' && !glowOnly) {
+      // Mineral banding: thin strips across a block, all at one slant, ochre and dark in turn.
+      const cols = ['#a8824a', '#5a4330', '#bc9658'];
+      for (const cell of cells) {
+        if (f() > .65) continue;
+        const [cx, cy] = centreOf(cell), clip = flatPoly(cell, 0, 0, 1.03);
+        for (let i = 0, n = 1 + Math.floor(f() * 3); i < n; i++) {
+          const off = (i - n / 2) * 1.6 + (f() - .5), w = .45 + f() * .55, s = -.22;
+          const x0 = cx - 9, x1 = cx + 9, y0 = cy + off + s * -9, y1 = cy + off + s * 9;
+          o.flat(poly(x0, y0, x1, y1, x1, y1 + w, x0, y0 + w), cols[(i + Math.floor(f() * 2)) % cols.length], { clip });
+        }
+      }
+    } else if (mark === 'heat') {
+      heatCracks(a, cells, seed, .2, ['#8e2e18', '#d8702c']);
+    }
+  } };
+}
+
+/**
+ * The bands' pictures: each band's stone and its veins drawn over it; the stone's back wall, edges and details, which its veins
+ * share in the game; the ember band's glow.
+ */
+function bandPictures() {
+  for (let b = 0; b < BAND_PAINT.length; b++) {
+    const look = bandLook(b), stone = markedSheet(look, 0x5701, false, BAND_MARK[b]), edge = edgeOf(look);
+    const walls = { stone, iceVein: veined(stone), copperVein: veined(stone, COPPER_VEIN, 0x2c7), ironVein: ironVeined(stone) };
+    for (const [name, sheet] of Object.entries(walls)) out(`wall_${name}_b${b}`, bake(sheet));
+    out(`back_stone_b${b}`, bake(groundSheet(look, 0x5702, true)));
+    for (let open = 1; open < 16; open++) out(`wall-edge_stone_b${b}_${open}`, AnimeEdge(open, edge));
+    for (let k = 0; k < 11; k++) out(`detail_stone_b${b}_${k}`, detailOf(look, k));
+    if (BAND_MARK[b] === 'heat') out(`glow_stone_b${b}`, bake(markedSheet(look, 0x5701, false, BAND_MARK[b], true)));
+  }
+}
+
 Subjects.caves = function () {
+  bandPictures();
   const stone = groundSheet(GROUNDS.stone, 0x5701, false);
   out('wall_stone', bake(stone));
   out('wall_iceVein', bake(veined(stone)));

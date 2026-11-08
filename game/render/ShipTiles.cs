@@ -65,6 +65,20 @@ public sealed class ShipTiles
                 pictures.Add(Picture(name, HiRes.Has(name) ? Art(name) : Image.CreateEmpty(side, side, false, Image.Format.Rgba8), Relief.None));
             }
         }
+        // A planet's stone by depth band (2026-11-08-planet-layers): each of its pictures again in a band's paint, wherever one is drawn;
+        // a vein's sheet only, for it shares its stone's back, edges and details.
+        foreach (var natural in Materials.All.Where(m => m.Natural).Select(m => m.Id))
+            for (int band = 0; HiRes.Has(WallName(InBand(natural, band))); band++)
+            {
+                string banded = InBand(natural, band);
+                pictures.Add(Picture(WallName(banded), Made(WallName(banded), Art(WallName(banded))), Relief.None));
+                if (!HiRes.Has(BackName(banded))) continue;
+                pictures.Add(Picture(BackName(banded), Made(BackName(banded), Art(BackName(banded))), Relief.None));
+                for (int open = 1; open < 16; open++)
+                    pictures.Add(Picture(EdgeName(banded, open), Made(EdgeName(banded, open), GroundArt.Edge(natural, open)), Relief.None));
+                for (int k = 0; k < GroundDetails.Singles + GroundDetails.Features.Length; k++) pictures.Add(Picture(DetailName(banded, k), Relief.None));
+                if (HiRes.Has(GlowName(banded))) pictures.Add(Picture(GlowName(banded), Relief.None));
+            }
         foreach (var material in Materials.All.Where(m => m.As == null).Select(m => m.Id))
         {
             // Walls are no things standing in the light: flat.
@@ -164,7 +178,7 @@ public sealed class ShipTiles
         {
             // Cut a cell at a time, a cell drawing the piece where it lies: sheets laid over the world, and the 16 px pictures of what
             // fills a map's character's cells, two by two or two across (0104): a ladder, a floor, iron's panels.
-            bool cut = name.StartsWith("wall_") || name.StartsWith("detail_") || HullBacks.Contains(name) || name.StartsWith("back_") && MadeImages.ContainsKey(name)
+            bool cut = name.StartsWith("wall_") || name.StartsWith("detail_") || name.StartsWith("glow_") || HullBacks.Contains(name) || name.StartsWith("back_") && MadeImages.ContainsKey(name)
                 || CutDrawn(name) || name.StartsWith("door_") || name.StartsWith("hatch_");
             if (cut)
             {
@@ -189,8 +203,12 @@ public sealed class ShipTiles
     /// </summary>
     private static Image? OreOf(string name, Image fine)
     {
-        if (!name.StartsWith("wall_", StringComparison.Ordinal) || !Materials.TryGet(name["wall_".Length..], out var vein) || vein.In == null) return null;
-        if (HiRes.Load(WallName(vein.In)) is not { } host || host.GetSize() != fine.GetSize()) return null;
+        if (!name.StartsWith("wall_", StringComparison.Ordinal)) return null;
+        string material = name["wall_".Length..], band = "";
+        // A vein's sheet in a band (wall_copperVein_b2) lies over its host's in that band.
+        if (material.LastIndexOf("_b", StringComparison.Ordinal) is var cut and > 0) (material, band) = (material[..cut], material[cut..]);
+        if (!Materials.TryGet(material, out var vein) || vein.In == null) return null;
+        if (HiRes.Load(WallName(vein.In + band)) is not { } host || host.GetSize() != fine.GetSize()) return null;
         var mask = OreMask.Of(fine.GetData(), host.GetData(), GroundLooks.Of[vein.Id].Fleck);
         return Image.CreateFromData(fine.GetWidth(), fine.GetHeight(), false, Image.Format.Rgba8, mask);
     }
@@ -438,6 +456,12 @@ public sealed class ShipTiles
 
     /// <summary>A wall of <paramref name="material"/>'s picture.</summary>
     public static string WallName(string material) => $"wall_{material}";
+
+    /// <summary>The name a natural <paramref name="material"/>'s pictures take in a planet's depth band <paramref name="band"/>: <c>stone_b2</c>.</summary>
+    public static string InBand(string material, int band) => $"{material}_b{band}";
+
+    /// <summary>What glows over a wall of <paramref name="material"/>, added in light of its own: the ember band's heat's cracks.</summary>
+    public static string GlowName(string material) => $"glow_{material}";
 
     /// <summary>The edges of a wall of <paramref name="material"/> on its sides <paramref name="open"/>.</summary>
     public static string EdgeName(string material, int open) => $"wall-edge_{material}_{open}";
