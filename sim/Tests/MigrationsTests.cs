@@ -58,6 +58,17 @@ public class MigrationsTests
         Assert.Equal(["loper"], kept.Select(c => c!["species"]!.GetValue<string>()));
     }
 
+    [Fact]
+    public void ACapbackMidPounceStopsOnUpgradingAndOtherCreaturesActOn()
+    {
+        var old = JsonNode.Parse("""{"slices":{},"surfaces":[{"slices":{"creatures":{"creatures":[{"species":"capback","act":{"move":0,"left":3},"vx":900,"vy":-40},{"species":"loper","act":{"move":0,"left":3},"vx":900}]}}}]}""")!.AsObject();
+        var kept = Migrations.Steps[54 - Migrations.Oldest](old)["surfaces"]![0]!["slices"]!["creatures"]!["creatures"]!.AsArray();
+        Assert.Null(kept[0]!["act"]);
+        Assert.Equal((0, 0), (kept[0]!["vx"]!.GetValue<int>(), kept[0]!["vy"]!.GetValue<int>()));
+        Assert.Equal(3, kept[1]!["act"]!["left"]!.GetValue<int>());
+        Assert.Equal(900, kept[1]!["vx"]!.GetValue<int>());
+    }
+
     /// <summary>What a gate held goes and what it opened stays: granted things, the credits, a bought bag's slot.</summary>
     [Fact]
     public void TheGatesDepositsAreGoneOnUpgradingAndWhatTheyOpenedStays()

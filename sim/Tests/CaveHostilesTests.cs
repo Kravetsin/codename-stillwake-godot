@@ -6,16 +6,20 @@ using Tune = Stillwake.Content.Creatures;
 namespace Stillwake.Sim.Tests;
 
 /// <summary>
-/// The caves' lurkers (cave-hostiles): the capback and the geode snail guard the ground they stand on, noticing an awake hero in
-/// line with them, striking one within reach, answering a blow; and they spawn by the depth band of the hero they spawn round.
+/// The caves' lurkers (cave-hostiles, lurker-attacks): the capback vents gas at a hero about to step on it and, provoked, spits slime
+/// at one gone far; the geode snail opens only for a hero close by, bites, and takes harm only open and only from melee. Both notice
+/// an awake hero in line with them, and they spawn by the depth band of the hero they spawn round.
 /// </summary>
 public class CaveHostilesTests
 {
+    private const int Unit = CreaturesModule.Unit;
     private static readonly string Axe = Spec.Weapons.Axe.Item;
     private static readonly Tune.Species Capback = Tune.Capback, Snail = Tune.GeodeSnail;
     private static readonly Tune.Guard CapGuard = (Tune.Guard)Capback.Brain[0], SnailGuard = (Tune.Guard)Snail.Brain[0];
-    private static readonly Tune.Pounce CapPounce = (Tune.Pounce)Capback.Moves[0];
-    private static readonly Tune.Lunge Roll = (Tune.Lunge)Snail.Moves[0];
+    private static readonly Tune.Vent Vent = (Tune.Vent)Capback.Moves[0];
+    private static readonly Tune.Shoot Spit = (Tune.Shoot)Capback.Moves[1];
+    private static readonly Tune.Shell Shell = Snail.Brain.OfType<Tune.Shell>().Single();
+    private static readonly Tune.Lunge Bite = (Tune.Lunge)Snail.Moves[0];
 
     /// <summary>A long cave floor, its floor row 3, and the same floor with a rock two cells high in it at column 6.</summary>
     private const string Floor = """
@@ -43,22 +47,42 @@ public class CaveHostilesTests
         // Far off at first: a release needs a hero on the surface.
         var w = CreaturesTesting.Planet(map, CreaturesTesting.Lifeless).HeroAt(27, 3);
         var c = w.Let(s, 2, 3);
-        Assert.Equal(6 * CreaturesModule.Unit, c.X);
+        Assert.Equal(6 * Unit, c.X);
         return (w, c);
     }
 
-    private static int Suit(Scenario w, int peer) => w.M.Crew.HeroOf(peer)!.Air;
+    /// <summary>Heroes 0 and 1 out of creative mode, their suits counting.</summary>
+    private static Scenario Suits(Scenario w) => w.Do(new Items.SetCreative(false)).Do(new Items.SetCreative(false) { From = 1 });
+
+    private static int Suit(Scenario w, int peer = 0) => w.M.Crew.HeroOf(peer)!.Air;
+
+    private static bool Provoked(Scenario w, Creature c) => GuardDrive.Provoked(w.M.Creatures, c);
+
+    /// <summary>The first arc struck within <paramref name="ticks"/>, run tick by tick: an arc lingers a tick only.</summary>
+    private static Arc? FirstArc(Scenario w, int ticks)
+    {
+        for (int t = 0; t < ticks; t++)
+            if (w.Run().M.Creatures.Arcs.SingleOrDefault() is { } arc) return arc;
+        return null;
+    }
+
+    /// <summary>The ticks run till <paramref name="done"/> holds, at most a thousand.</summary>
+    private static int Until(Scenario w, Func<bool> done)
+    {
+        int ticks = 0;
+        for (; !done() && ticks < 1000; ticks++) w.Run();
+        return ticks;
+    }
 
     [Fact]
     public void ACapbackLurksStillTillAnAwakeHeroComesWithinItsNotice()
     {
         var (w, c) = Lurker(Capback);
-        w.HeroAt(20, 3).Run(3 * CapGuard.AlertTicks);
-        Assert.Equal((6 * CreaturesModule.Unit, 0), (c.X, c.VX));
+        w.HeroAt(14, 3).Run(3 * CapGuard.AlertTicks);
+        Assert.Equal((6 * Unit, 0), (c.X, c.VX));
         Assert.False(CreaturesModule.Alerted(c));
-        Assert.Null(c.Act);
-        // 14 cells off: its notice, just.
-        w.HeroAt(10, 3).Run();
+        // 20 cells off: its notice, just.
+        w.HeroAt(13, 3).Run();
         Assert.True(CreaturesModule.Alerted(c));
     }
 
@@ -73,72 +97,211 @@ public class CaveHostilesTests
     }
 
     [Fact]
-    public void AlertedItPouncesAtAHeroWithinItsStrikeAndWaitsForOneFarther()
+    public void ACapbackNeitherVentsNorSpitsAtAHeroItNoticesTillTheHeroAlmostStepsOnIt()
     {
         var (w, c) = Lurker(Capback);
-        // 12 cells off: noticed, past its strike.
+        // 12 cells off, then 6: noticed, unprovoked, past its vent.
         w.HeroAt(9, 3).Run(3 * CapGuard.AlertTicks);
+        w.HeroAt(6, 3).Run(3 * CapGuard.AlertTicks);
         Assert.True(CreaturesModule.Alerted(c));
+        Assert.Empty(w.M.Creatures.Patches);
+        Assert.Empty(w.M.Creatures.Arcs);
+        // 4 cells off: it vents that tick, no wind-up, its gas round its middle.
+        w.HeroAt(5, 3).Run();
+        Assert.Equal((0, ActPhase.Active), (c.Act!.Move, c.Act.Phase));
+        var gas = w.M.Creatures.Patches.Single();
+        Assert.Equal((Tune.Gas.Id, Tune.Gas.Width, Tune.Gas.Height), (gas.Kind, gas.Width, gas.Height));
+        int middle = CreaturesModule.Down(c.Y - Capback.Body.Height * Unit / 2, Unit);
+        Assert.Equal((6 - (Tune.Gas.Width - 1) / 2, middle - (Tune.Gas.Height - 1) / 2), (gas.Left, gas.Top));
+        Assert.True(Provoked(w, c));
+    }
+
+    [Fact]
+    public void ItVentsNoMoreTillItsCooldownHasPassedAndItsGasThinsAway()
+    {
+        var (w, c) = Lurker(Capback);
+        w.HeroAt(5, 3).Run(CapGuard.AlertTicks + 1);
+        Assert.Single(w.M.Creatures.Patches);
+        int vented = c.Recall(VentMove.Vented) - 1;
+        // The tick it vents is one of its ticks venting, and of its gas's.
+        Assert.Equal(Vent.Ticks - 1, Until(w, () => c.Act == null));
+        Assert.Equal(Tune.Gas.Lasts - Vent.Ticks, Until(w, () => w.M.Creatures.Patches.Count == 0));
+        w.Run(Vent.Cooldown - 1 - (w.M.Creatures.Clock - vented));
+        Assert.Empty(w.M.Creatures.Patches);
+        w.Run();
+        Assert.Single(w.M.Creatures.Patches);
+        Assert.Equal(Vent.Cooldown, w.M.Creatures.Clock - vented);
+    }
+
+    [Fact]
+    public void AHeroInTheGasPaysItEveryBreathAndNothingOutOfIt()
+    {
+        var (w, _) = Lurker(Capback);
+        Suits(w.HeroAt(5, 3).HeroAt(27, 3, peer: 1)).Run(CapGuard.AlertTicks + 1);
+        Assert.Single(w.M.Creatures.Patches);
+        int start = Suit(w) - Suit(w, 1);
+        w.Run(Spec.Crew.BreathEvery * 3);
+        Assert.Equal(3 * Tune.Gas.Damage, start - (Suit(w) - Suit(w, 1)));
+        // Past its edge and out of its notice, so out of its spit's reach: nothing more than a suit's own breath.
+        w.HeroAt(14, 3).Run(Spec.Crew.BreathEvery);
+        int outside = Suit(w) - Suit(w, 1);
+        w.Run(Spec.Crew.BreathEvery * 2);
+        Assert.Equal(outside, Suit(w) - Suit(w, 1));
+    }
+
+    [Fact]
+    public void GasDoesNotPassRock()
+    {
+        foreach (var (map, pays) in new[] { (Floor, true), (Rock, false) })
+        {
+            var w = Suits(CreaturesTesting.Planet(map, CreaturesTesting.Lifeless).HeroAt(5, 3).HeroAt(27, 3, peer: 1)).Run();
+            var (hx, hy) = w.M.Creatures.HeroAt(0)!.Value;
+            // Its middle right of the rock, low; the hero left of it, in the box all the same.
+            w.M.Creatures.LayPatch(Tune.Gas.Id, 14, 7, floor: false);
+            Assert.True(w.M.Creatures.Patches.Single().Holds(hx, hy));
+            int start = Suit(w) - Suit(w, 1);
+            w.Run(Spec.Crew.BreathEvery * 2);
+            Assert.Equal(pays ? 2 * Tune.Gas.Damage : 0, start - (Suit(w) - Suit(w, 1)));
+        }
+    }
+
+    [Fact]
+    public void UnprovokedItNeverSpitsThoughAHeroStandsWithinItsReach()
+    {
+        var (w, c) = Lurker(Capback);
+        w.HeroAt(9, 3).Run(400);
+        Assert.Empty(w.M.Creatures.Arcs);
+        Assert.Empty(w.M.Creatures.Patches);
         Assert.Null(c.Act);
-        // 10 cells off: within it.
-        w.HeroAt(8, 3).Run(2);
-        Assert.NotNull(c.Act);
-        w.Run(CapPounce.WindUp);
-        Assert.Equal(ActPhase.Active, c.Act!.Phase);
-        Assert.True(c.VX > 0);
+    }
+
+    [Fact]
+    public void ProvokedItSpitsAtAHeroGoneFarAndItsSlimeLiesOnTheFloorUnderWhereItLanded()
+    {
+        var (w, c) = Lurker(Capback);
+        w.HeroAt(5, 3).Run(CapGuard.AlertTicks + 1);
+        // Gone 12 cells off: past the spit's least, within its reach.
+        var arc = FirstArc(w.HeroAt(9, 3), Vent.Ticks + CapGuard.AlertTicks + Spit.WindUp + 4);
+        Assert.NotNull(arc);
+        Assert.Equal(Spit.Projectile, arc.Projectile);
+        var slime = w.M.Creatures.Patches.Single(p => p.Kind == Tune.Slime.Id);
+        Assert.Equal((Tune.Slime.Width, Tune.Slime.Height), (slime.Width, slime.Height));
+        // On the floor: its bottom row the last open one, row 7 of the doubled map, under where the glob landed.
+        Assert.Equal(7, slime.Top + slime.Height - 1);
+        Assert.True(slime.Holds(CreaturesModule.Down(arc.X1, Unit), 7));
+    }
+
+    [Fact]
+    public void ItSpitsAtNoHeroNearerThanItsLeast()
+    {
+        var (w, c) = Lurker(Capback);
+        w.HeroAt(5, 3).Run(CapGuard.AlertTicks + 1);
+        // 6 cells off: past its vent, nearer than its spit's least.
+        Assert.Null(FirstArc(w.HeroAt(6, 3), Vent.Ticks + 3 * CapGuard.AlertTicks + Spit.WindUp));
+    }
+
+    [Fact]
+    public void StruckFromAfarItIsProvokedAndSpitsAtTheStriker()
+    {
+        var (w, c) = Lurker(Capback);
+        w.HeroAt(10, 3).Run();
+        w.Do(new Strike(c.Id, Axe)).Run();
+        Assert.True(Provoked(w, c));
+        // Knocked back and down, alerted, its wind-up: then its glob.
+        Assert.Equal(Spit.Projectile, FirstArc(w, 4 * CapGuard.AlertTicks + Spit.WindUp)?.Projectile);
+    }
+
+    [Fact]
+    public void ItsProvocationPasses()
+    {
+        var (w, c) = Lurker(Capback);
+        w.HeroAt(10, 3).Run();
+        w.Do(new Strike(c.Id, Axe)).Run();
+        // Gone out of its notice till its provocation is spent, then back within its spit's reach.
+        w.HeroAt(27, 3).Run(CapGuard.Provokes);
+        Assert.False(Provoked(w, c));
+        Assert.Null(FirstArc(w.HeroAt(10, 3), 200));
+    }
+
+    [Fact]
+    public void ABlowCutsNoVent()
+    {
+        var (w, c) = Lurker(Capback);
+        w.HeroAt(5, 3).Run(CapGuard.AlertTicks + 1);
+        int left = c.Act!.Left;
+        w.Do(new Strike(c.Id, Axe)).Run();
+        Assert.Equal((0, left - 1), (c.Act!.Move, c.Act.Left));
     }
 
     [Fact]
     public void ALurkerNeverNoticesAHeroPassedOut()
     {
         var (w, c) = Lurker(Capback);
-        w.HeroAt(6, 3).Run();
+        w.HeroAt(5, 3).Run();
         w.M.Crew.HeroOf(0)!.Out = 1000;
         w.Run(3 * CapGuard.AlertTicks);
         Assert.Null(c.Act);
+        Assert.Empty(w.M.Creatures.Patches);
         Assert.False(CreaturesModule.Alerted(c));
     }
 
     [Fact]
-    public void StruckItAnswersTheStrikerAtOnceWhereverTheyStand()
-    {
-        var (w, c) = Lurker(Capback);
-        w.HeroAt(25, 3).Run();
-        w.Do(new Strike(c.Id, Axe)).Run();
-        Assert.Equal(ActPhase.WindUp, c.Act!.Phase);
-        Assert.Equal(Ref.Hero(0), c.Target);
-    }
-
-    [Fact]
-    public void ACapbacksPounceCostsFourOfTheSuitTheSnailsRollSix()
-    {
-        foreach (var (s, damage, windUp) in new[] { (Capback, 4, CapPounce.WindUp), (Snail, 6, Roll.WindUp) })
-        {
-            var (w, c) = Lurker(s);
-            w.HeroAt(7, 3).HeroAt(7, 3, peer: 1).Do(new Items.SetCreative(false)).Do(new Items.SetCreative(false) { From = 1 });
-            w.Do(new Strike(c.Id, Axe)).Run(windUp + 1);
-            Assert.Equal(ActPhase.Active, c.Act!.Phase);
-            w.Do(new HitBy(c.Id)).Run();
-            Assert.Equal(damage, s.Moves[0].Damage);
-            Assert.Equal(Suit(w, 1) - damage, Suit(w, 0));
-            Assert.Empty(w.Refusals);
-        }
-    }
-
-    [Fact]
-    public void ABlowCutsNeitherTheSnailsCrouchNorItsRoll()
+    public void AShutSnailTakesNoHarmAndAnswersNoBlow()
     {
         var (w, c) = Lurker(Snail);
-        w.HeroAt(14, 3).Run();
+        w.HeroAt(9, 3).Run();
+        Assert.True(CreaturesModule.Shut(c));
+        w.Do(new Strike(c.Id, Axe)).Run(3);
+        Assert.Equal(0, c.Damage);
+        Assert.Null(c.Act);
+        Assert.Equal(Ref.None, c.Target);
+    }
+
+    [Fact]
+    public void ItOpensForAHeroCloseByAndShutsItsHoldAfterTheyGo()
+    {
+        var (w, c) = Lurker(Snail);
+        // 4 cells off: its reach.
+        w.HeroAt(5, 3).Run();
+        Assert.False(CreaturesModule.Shut(c));
+        w.HeroAt(20, 3).Run(Shell.Hold - 1);
+        Assert.False(CreaturesModule.Shut(c));
+        w.Run();
+        Assert.True(CreaturesModule.Shut(c));
+    }
+
+    [Fact]
+    public void OpenTheSnailIsHurtByABlowAndNotByAShot()
+    {
+        var (w, c) = Lurker(Snail);
+        w.HeroAt(5, 3).GiveItems(0, (Spec.Shots.Nailer.Item, 1), ("nail", 20)).Run();
+        Assert.False(CreaturesModule.Shut(c));
+        // From its left, along +x through it.
+        w.Do(new Fire(Spec.Shots.Nailer.Item, 3 * Unit, c.Y - Unit, 0)).Run(6);
+        Assert.Empty(w.Refusals);
+        Assert.Equal(0, c.Damage);
         w.Do(new Strike(c.Id, Axe)).Run();
+        Assert.True(c.Damage > 0);
+    }
+
+    [Fact]
+    public void OpenItBitesAHeroWithinItsStrikeAShortSteadyLunge()
+    {
+        var (w, c) = Lurker(Snail);
+        Suits(w.HeroAt(5, 3).HeroAt(27, 3, peer: 1)).Run(SnailGuard.AlertTicks + 1);
         Assert.Equal(ActPhase.WindUp, c.Act!.Phase);
         int left = c.Act.Left;
+        // Its crouch is not cut by a blow.
         w.Do(new Strike(c.Id, Axe)).Run();
         Assert.Equal((ActPhase.WindUp, left - 1), (c.Act!.Phase, c.Act.Left));
-        w.Run(left);
-        Assert.Equal((ActPhase.Active, Roll.Speed), (c.Act!.Phase, c.VX));
-        w.Do(new Strike(c.Id, Axe)).Run();
-        Assert.Equal((ActPhase.Active, Roll.Speed), (c.Act!.Phase, c.VX));
+        w.Run(left - 1);
+        Assert.Equal((ActPhase.Active, Bite.Speed), (c.Act!.Phase, c.VX));
+        int start = Suit(w) - Suit(w, 1);
+        w.Do(new HitBy(c.Id)).Run();
+        Assert.Equal(Bite.Damage, start - (Suit(w) - Suit(w, 1)));
+        w.Run(Bite.Ticks + 2);
+        Assert.Null(c.Act);
+        Assert.True(c.X - 6 * Unit <= Bite.Ticks * Bite.Speed);
     }
 
     [Fact]
@@ -148,41 +311,6 @@ public class CaveHostilesTests
         var c = w.Loper(2, 3).Charging(1);
         w.Do(new Strike(c.Id, Axe)).Run();
         Assert.True(c.Act == null || c.Act.Phase != ActPhase.Active || c.VX != Tune.Loper.Lunge().Speed);
-    }
-
-    [Fact]
-    public void TheSnailRollsAtTheAwakeHeroNotTheOnePassedOutThatStruckIt()
-    {
-        var (w, c) = Lurker(Snail);
-        // The striker passed out at its left, an awake hero far at its right.
-        w.HeroAt(1, 3).HeroAt(20, 3, peer: 1).Run();
-        w.M.Crew.HeroOf(0)!.Out = 1000;
-        w.Do(new Strike(c.Id, Axe)).Run(Roll.WindUp + 1);
-        Assert.Equal((ActPhase.Active, Roll.Speed), (c.Act!.Phase, c.VX));
-    }
-
-    [Fact]
-    public void WithNoHeroAwakeTheSnailsRollIsLetBe()
-    {
-        var (w, c) = Lurker(Snail);
-        w.HeroAt(10, 3).Run();
-        w.M.Crew.HeroOf(0)!.Out = 1000;
-        w.Do(new Strike(c.Id, Axe)).Run(Roll.WindUp + 1);
-        Assert.Null(c.Act);
-        Assert.Equal(0, c.VX);
-    }
-
-    [Fact]
-    public void TheSnailsRollStopsAtAWall()
-    {
-        var (w, c) = Lurker(Snail);
-        // Past the room's left wall: it rolls at the hero and the wall ends it long before its time.
-        w.HeroAt(1, 3).Run();
-        w.Do(new Strike(c.Id, Axe)).Run(Roll.WindUp + 1);
-        Assert.Equal(-Roll.Speed, c.VX);
-        w.Run(10);
-        Assert.Null(c.Act);
-        Assert.True(c.X >= 2 * CreaturesModule.Unit + Snail.Body.Width * CreaturesModule.Unit / 2);
     }
 
     /// <summary>The first planet's kinds, every row of a test's map in band <paramref name="band"/>.</summary>

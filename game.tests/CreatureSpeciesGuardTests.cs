@@ -22,6 +22,8 @@ public class CreatureSpeciesGuardTests
         "sim/Content/Creatures.cs",
         "sim/Content/PlanetTypes.cs",
         "sim/Content/Ruins.cs",
+        // A save step rewrites the saved data of a species as it was then, by its id.
+        "sim/Registry/Migrations.cs",
         "game/Content/logic/CreatureArt.cs",
         "game/Content/logic/CreatureInk.cs",
         "game/Content/logic/LurkerInk.cs",

@@ -92,46 +92,80 @@ public class LurkerInkTests
     }
 
     [Fact]
-    public void ACapbackCrouchesWindingUpAndComesDownSquashedFromItsLeap()
+    public void ACapbackVentingSqueezesThenPuffsUpFlaringAndNeverLeaps()
     {
-        var m = new LurkerMotion(false, 0);
+        var m = new LurkerMotion(false);
+        Run(m, new LurkerMotion.Seen(true, false, 0, false, 0, 0, 0, 20), 1);
+        Assert.True(m.Step(new LurkerMotion.Seen(false, false, 0, true, 0, 0, 0, 20, Venting: true), 0.01), "no vent began");
+        Assert.True(m.Pose.Squash > 0.5, $"{m.Pose}");
+        Run(m, new LurkerMotion.Seen(false, false, 0, true, 0, 0, 0, 20, Venting: true), 0.4);
+        Assert.True(m.Pose.Squash < 0.01 && m.Pose.Hunk < 0.35 && m.Pose.Glow > 1.2 && m.Pose.Fly == 0, $"{m.Pose}");
+        Run(m, new LurkerMotion.Seen(true, false, 0, false, 0, 0, 0, null), LurkerMotion.ComeToS + 2);
+        Assert.True(m.Pose.Hunk > 0.85, $"{m.Pose}");
+    }
+
+    [Fact]
+    public void ACapbackCrouchesFlaringToSpitThenRecoilsWhereItStands()
+    {
+        var m = new LurkerMotion(false);
         Run(m, new LurkerMotion.Seen(true, true, 0.3, false, 0, 0, 0, -40), 0.6);
         Assert.True(m.Pose.Crouch > 0.95 && m.Pose.Flare > 0.95, $"{m.Pose}");
         Assert.Equal(-1, m.Face);
-        Run(m, new LurkerMotion.Seen(false, false, 0, true, -3, -60, 0, -20), 0.3);
-        Assert.True(m.Pose.Fly > 0.95, $"{m.Pose}");
-        Assert.True(m.Step(new LurkerMotion.Seen(false, false, 0, false, 0, 0, 0, -5), 0.01), "no landing");
-        Assert.True(m.Pose.Squash > 0.9, $"{m.Pose}");
+        Run(m, new LurkerMotion.Seen(false, false, 0, true, 0, 0, 0, -40), 0.3);
+        Assert.True(m.Pose.Crouch < 0.05 && m.Pose.Fly == 0 && m.Pose.Squash == 0, $"{m.Pose}");
         Run(m, new LurkerMotion.Seen(false, false, 0, false, 0, 0, 0, null), LurkerMotion.ComeToS + 2);
-        Assert.True(m.Pose.Hunk > 0.95 && m.Pose.Squash < 0.01, $"{m.Pose}");
+        Assert.True(m.Pose.Hunk > 0.95, $"{m.Pose}");
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void ItsCapsComeToRestAfterACutWindUpOrABlow(bool struck)
+    {
+        // The playtest's bug: a wind-up cut short, or a blow, left its caps shaking for good.
+        var m = new LurkerMotion(false);
+        if (struck) m.Struck();
+        else Run(m, new LurkerMotion.Seen(true, true, 0.3, false, 0, 0, 0, -10), 0.4);
+        Run(m, new LurkerMotion.Seen(true, false, 0, false, 0, 0, 0, -10), 3);
+        Assert.True(m.Pose.Shudder == 0 && m.Pose.Flinch == 0 && m.Pose.Clock == 0, $"{m.Pose}");
     }
 
     [Fact]
-    public void ASnailRollsForwardATurnARadiusAndStopsMouthForward()
+    public void ASnailSitsShutAndOpensWhileTheSimSaysItIsOpen()
     {
-        var m = new LurkerMotion(true, Snail.Pose.Radius);
-        m.Step(new LurkerMotion.Seen(false, false, 0, true, 0, 0, 0, null), 0.01);
-        m.Face = 1;
-        m.Step(new LurkerMotion.Seen(false, false, 0, true, 10, 200, 0, null), 0.05);
-        Assert.Equal(10 / Snail.Pose.Radius, m.Pose.Spin, 6);
-        m.Step(new LurkerMotion.Seen(false, false, 0, true, 20, 200, 0, null), 0.05);
-        Assert.Equal(30 / Snail.Pose.Radius, m.Pose.Spin, 6);
-        Run(m, new LurkerMotion.Seen(false, false, 0, false, 0, 0, 0, null), 3);
-        Assert.Equal(Math.Tau, m.Pose.Spin, 2);
+        var m = new LurkerMotion(true);
+        Run(m, new LurkerMotion.Seen(false, false, 0, false, 0, 0, 0, null, Shut: true), 2);
+        Assert.True(m.Pose.Lid > 0.95 && m.Pose.Retract > 0.95 && m.Pose.EyeLit < 0.05, $"{m.Pose}");
+        Run(m, new LurkerMotion.Seen(true, false, 0, false, 0, 0, 0, 20), 1.5);
+        Assert.True(m.Pose.Lid < 0.01 && m.Pose.Retract < 0.01 && m.Pose.EyeLit > 0.9, $"{m.Pose}");
+        Run(m, new LurkerMotion.Seen(false, false, 0, false, 0, 0, 0, null, Shut: true), 1.5);
+        Assert.True(m.Pose.Lid > 0.95, $"{m.Pose}");
     }
 
     [Fact]
-    public void StruckASnailShutsAndHurtItsShellCracks()
+    public void ASnailBitesLeaningBackThenLurchingForwardAndNeverRolls()
     {
-        var m = new LurkerMotion(true, Snail.Pose.Radius);
+        var m = new LurkerMotion(true);
+        Run(m, new LurkerMotion.Seen(true, false, 0, false, 0, 0, 0, 20), 1);
+        Run(m, new LurkerMotion.Seen(true, true, 0.6, false, 0, 0, 0, 20), 0.5);
+        Assert.True(m.Pose.Rock < -0.08, $"{m.Pose}");
+        Assert.True(m.Step(new LurkerMotion.Seen(false, false, 0, true, 4, 160, 0, 20), 0.01), "no bite began");
+        Run(m, new LurkerMotion.Seen(false, false, 0, true, 4, 160, 0, 20), 0.2);
+        Assert.True(m.Pose.Rock > 0.12 && m.Pose.Spin == 0, $"{m.Pose}");
+        Run(m, new LurkerMotion.Seen(true, false, 0, false, 0, 0, 0, 20), 1);
+        Assert.True(Math.Abs(m.Pose.Rock) < 0.01 && m.Pose.Spin == 0, $"{m.Pose}");
+    }
+
+    [Fact]
+    public void StruckASnailJoltsAndHurtItsShellCracks()
+    {
+        var m = new LurkerMotion(true);
         Run(m, new LurkerMotion.Seen(false, false, 0, false, 0, 0, 0.5, null), 2);
         Assert.True(m.Pose.Lid < 0.01 && m.Pose.Crack > 0.29, $"{m.Pose}");
         m.Struck();
-        Assert.Equal(1, m.Flash);
-        Run(m, new LurkerMotion.Seen(false, false, 0, false, 0, 0, 0.5, null), 0.3);
-        Assert.True(m.Pose.Lid > 0.95 && m.Pose.Retract > 0.95, $"{m.Pose}");
-        Run(m, new LurkerMotion.Seen(false, false, 0, false, 0, 0, 0.5, null), 3);
-        Assert.True(m.Pose.Lid < 0.01, $"{m.Pose}");
+        Assert.Equal((1, -0.12), (m.Flash, m.Pose.Rock));
+        Run(m, new LurkerMotion.Seen(false, false, 0, false, 0, 0, 0.5, null), 1);
+        Assert.True(Math.Abs(m.Pose.Rock) < 0.01 && m.Flash == 0, $"{m.Pose}");
     }
 
     [Theory]
@@ -139,7 +173,7 @@ public class LurkerInkTests
     [InlineData(true)]
     public void KilledItDiesForItsTimeThenIsDone(bool snail)
     {
-        var m = new LurkerMotion(snail, Snail.Pose.Radius);
+        var m = new LurkerMotion(snail);
         m.Step(new LurkerMotion.Seen(false, false, 0, false, 0, 0, 0, null), 0.01);
         m.Die();
         Run(m, default, LurkerMotion.DieS);

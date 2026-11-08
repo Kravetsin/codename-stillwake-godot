@@ -111,6 +111,9 @@ public static class CreatureLooks
 
     public const float LurkerLight = 0.6f;
 
+    /// <summary>A blow on a shut shell (lurker-attacks): it glances in the ruins' alloy's sparks, never the creature's own hit.</summary>
+    public const Impact Glance = Impact.Alloy;
+
     /// <summary>
     /// A tick's eye lamp's light: its colour at this strength times its brightness (half the page's 0.85, a third more acting), out
     /// to <see cref="LightReach"/> cells; its burner's, orange, at <see cref="TickBurnerLight"/> times its thrust, out to

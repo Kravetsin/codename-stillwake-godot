@@ -110,6 +110,9 @@ public sealed partial class CreaturesModule : Module<CreaturesState>
     /// <summary>Whether <paramref name="c"/> is alerted: a guard that has noticed a hero and will pounce.</summary>
     public static bool Alerted(Creature c) => Spec.Get(c.Species).Brain[c.Drive] is Spec.Guard && c.Act == null && c.Step == GuardDrive.Alerted;
 
+    /// <summary>Whether <paramref name="c"/> is shut in its shell: no blow hurts it (lurker-attacks).</summary>
+    public static bool Shut(Creature c) => Spec.Get(c.Species).Brain.Any(d => d is Spec.Shell) && !ShellDrive.Open(c);
+
     /// <summary>Whether <paramref name="c"/> is a guard still asleep at its post.</summary>
     public static bool Asleep(Creature c) => Spec.Get(c.Species).Brain[c.Drive] is Spec.Ward && c.Step == WardDrive.Asleep;
 
@@ -195,10 +198,12 @@ public sealed partial class CreaturesModule : Module<CreaturesState>
 
     /// <summary>
     /// The hit path (2026-10-26-creatures-are-composed): <paramref name="damage"/> taken; at its hit points it dies; else knocked,
-    /// its act cut short, and its drives told in brain order till one claims it. True when it died.
+    /// its act cut short, and its drives told in brain order till one claims it. A drive that shields it (a shut shell) turns it aside
+    /// whole first. True when it died.
     /// </summary>
     private bool Hurt(Creature c, Spec.Species spec, int damage, in Hit hit)
     {
+        if (Shielded(c, spec, hit)) return false;
         bool dies = Dies(c, damage);
         c.Damage += damage;
         if (dies)
@@ -220,6 +225,14 @@ public sealed partial class CreaturesModule : Module<CreaturesState>
 
     /// <summary>Whether <paramref name="damage"/> more kills <paramref name="c"/>: what <see cref="Hurt"/> decides by.</summary>
     private static bool Dies(Creature c, int damage) => c.Damage + damage >= Spec.Get(c.Species).Life.Hp;
+
+    /// <summary>Whether a drive of <paramref name="spec"/> turns <paramref name="hit"/> aside whole (a shut shell; a shot on one).</summary>
+    private static bool Shielded(Creature c, Spec.Species spec, in Hit hit)
+    {
+        for (int i = 0; i < spec.Brain.Count; i++)
+            if (RuleBook.Drive(spec.Brain[i]).Shields(c, spec.Brain[i], hit)) return true;
+        return false;
+    }
 
     /// <summary>
     /// <paramref name="c"/> dies, giving what it gives: struck down, sprayed <paramref name="away"/> from the striker, or gone with

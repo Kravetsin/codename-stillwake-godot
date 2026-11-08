@@ -71,9 +71,17 @@ public static class Creatures
     /// <summary>
     /// Guarding its piece: watching, and alerted while a hero is within <paramref name="Notice"/> cells (box distance); alerted
     /// <paramref name="AlertTicks"/> and a hero within <paramref name="Strike"/>, or struck, or its piece struck, it pounces with its
-    /// first move. Alerted, it waits for one to come that close.
+    /// first move. Alerted, it waits for one to come that close. With <paramref name="Provokes"/> (a cave lurker, lurker-attacks) it
+    /// shoots only <paramref name="Provokes"/> ticks after it last answered a hero: struck or within its strike, never at one just
+    /// come into sight.
     /// </summary>
-    public sealed record Guard(int Notice, int Strike, int AlertTicks) : Drive;
+    public sealed record Guard(int Notice, int Strike, int AlertTicks, int Provokes = 0) : Drive;
+
+    /// <summary>
+    /// A shell (the geode snail, lurker-attacks): a reflex, open <paramref name="Hold"/> ticks after an awake hero was last within
+    /// <paramref name="Reach"/> cells, else shut. Shut, no blow hurts it; open, only melee does: never a shot.
+    /// </summary>
+    public sealed record Shell(int Reach, int Hold) : Drive;
 
     /// <summary>Flying back to where it clamps on at <paramref name="Speed"/> a tick, wanted whenever it is not clamped on.</summary>
     public sealed record Return(int Speed) : Drive;
@@ -129,9 +137,42 @@ public static class Creatures
     /// taken <paramref name="Lock"/> ticks before the end and held; then <paramref name="Projectile"/> (<c>Content.Shots</c>) strikes
     /// at once from its middle to that point, at most <paramref name="Reach"/> cells off, or to the first wall between; a hero it
     /// crossed may say so for <paramref name="Lingers"/> ticks; then <paramref name="Recover"/> ticks before it moves again. The arc
-    /// hits, the body never: its damage is the projectile's.
+    /// hits, the body never: its damage is the projectile's. Never at a hero nearer than <paramref name="From"/> cells; where it ends
+    /// <paramref name="Leaves"/>, a patch's kind, lies on the floor.
     /// </summary>
-    public sealed record Shoot(int WindUp, int Lock, int Recover, string Projectile, int Reach, int Lingers) : Move(Damage: 0);
+    public sealed record Shoot(int WindUp, int Lock, int Recover, string Projectile, int Reach, int Lingers, int From = 0, string? Leaves = null) : Move(Damage: 0);
+
+    /// <summary>
+    /// A vent (the capback's gas, lurker-attacks): no wind-up; a <paramref name="Patch"/> laid round its middle at once, then
+    /// <paramref name="Ticks"/> spent venting; not begun again till <paramref name="Cooldown"/> ticks after it began.
+    /// </summary>
+    public sealed record Vent(string Patch, int Ticks, int Cooldown) : Move(Damage: 0);
+
+    /// <summary>
+    /// What a creature lays that lasts as an area (lurker-attacks): a box <paramref name="Width"/> by <paramref name="Height"/> cells,
+    /// gone after <paramref name="Lasts"/> ticks; every breath (<see cref="Crew.BreathEvery"/>) an awake hero in it, in line with its
+    /// middle, pays <paramref name="Damage"/> units of a suit.
+    /// </summary>
+    public sealed record PatchKind(string Id, int Width, int Height, int Lasts, int Damage);
+
+    /// <summary>
+    /// The capback's gas: nine cells by six round it, five seconds, two a breath; its slime's puddle: four across on the floor and
+    /// four up, to a standing hero's middle, ten seconds, two a breath. Placeholder numbers, for a play pass.
+    /// </summary>
+    public static readonly PatchKind Gas = new("gas", Width: 9, Height: 6, Lasts: 100, Damage: 2), Slime = new("slime", Width: 4, Height: 4, Lasts: 200, Damage: 2);
+
+    public static readonly IReadOnlyList<PatchKind> Patches = [Gas, Slime];
+
+    /// <summary>How far a patch laid on the floor falls to it, in cells: a glob ending in the air lands this far down at most.</summary>
+    public const int PatchFall = 30;
+
+    /// <summary>The patch kind of id <paramref name="id"/>.</summary>
+    public static PatchKind PatchOf(string id)
+    {
+        foreach (var p in Patches)
+            if (p.Id == id) return p;
+        throw new ArgumentException($"no patch kind {id}");
+    }
 
     /// <summary>The ram of the loper and the sixleg: three units of a suit; at 28 cells a second, past a hero's sprint of 26.4.</summary>
     private static readonly Lunge LightRam = new(WindUp: 8, Speed: 1400, Ticks: 40, Past: 6, Damage: 3);
@@ -220,28 +261,30 @@ public static class Creatures
         Yields: [new("circuit", 2, 3), new("alloyScrap", 1, 2)]);
 
     /// <summary>
-    /// The capback («Шляпоспин», cave-hostiles): a low beetle of the teal garden whose shell grows glowcaps, four cells by three, lurking
-    /// among the real ones. An awake hero in line within 14 cells alerts it; alerted half a second, one within 10 and it crouches 0.6 s,
-    /// then springs straight at them at 32 cells a second for 0.4 s, some 13 cells, four units of a suit if it hits; then it lands and,
-    /// the hero still near, alerts and crouches again: about a second to strike back. A blow is answered at once the same way. It never
-    /// walks off its spot and never chases. Ten hit points, five of the axe's. Placeholder numbers, for a play pass.
+    /// The capback («Шляпоспин», cave-hostiles, lurker-attacks): a low beetle of the teal garden whose shell grows glowcaps, four cells
+    /// by three, lurking among the real ones. An awake hero in line within 20 cells alerts it, and it only watches. Alerted a quarter
+    /// second, one within 4, about touching, and it vents at once: its gas (<see cref="Gas"/>) round it, then 10 s before it vents
+    /// again. Venting, or struck, it is provoked 30 s: then a hero 8 to 20 cells off is spat at, a crouch of 0.6 s, its aim held the
+    /// last 0.2 s, the glob's puddle (<see cref="Slime"/>) where it lands, 3 s before the next. It never walks off its spot. Ten hit
+    /// points, five of the axe's. Placeholder numbers, for a play pass.
     /// </summary>
     public static readonly Species Capback = new("capback", Look: "capback",
         Body: new Walker(Width: 4, Height: 3, Walk: 100, Run: 100, Jump: 0, JumpAcross: 0), Life: new(Hp: 10, Knock: 300, Hop: 200),
-        Faction: Beasts, Lifetime: Lifetime.Wild, Brain: [new Guard(Notice: 14, Strike: 10, AlertTicks: 10)],
-        Moves: [new Pounce(WindUp: 12, Speed: 1600, Ticks: 8, Damage: 4)], Yields: [new("biomass", 2, 3), new("spore", 1, 1, OneIn: 2)]);
+        Faction: Beasts, Lifetime: Lifetime.Wild, Brain: [new Guard(Notice: 20, Strike: 4, AlertTicks: 5, Provokes: 600)],
+        Moves: [new Vent("gas", Ticks: 10, Cooldown: 200), new Shoot(WindUp: 12, Lock: 4, Recover: 60, Projectile: "slime", Reach: 20, Lingers: 1, From: 8, Leaves: "slime")],
+        Yields: [new("biomass", 2, 3), new("spore", 1, 1, OneIn: 2)]);
 
     /// <summary>
-    /// The geode snail («Жеодник», cave-hostiles): a snail of the amber deep whose shell is a geode, four cells by three. An awake hero
-    /// in line within 24 cells alerts it; alerted a second, one within 16 and it shuts its lid and rocks 0.8 s, then rolls along the
-    /// floor at the hero at 24 cells a second, under a sprint, for up to 1.5 s, six past them, at a wall or a drop: six units of a suit
-    /// if it hits. Its roll is steady: a blow cuts neither the crouch nor the roll, so it is jumped, not held. Twenty-four hit points,
-    /// never knocked. Placeholder numbers, for a play pass.
+    /// The geode snail («Жеодник», cave-hostiles, lurker-attacks): a snail of the amber deep whose shell is a geode, four cells by
+    /// three. It sits shut: no blow hurts it. An awake hero within 4 cells and it opens, a second after the last one left it shuts;
+    /// open, melee hurts it, a shot never. Alerted (6 cells, in line) 0.8 s with one within 4, it bites: a lurch of 0.8 s, then 16
+    /// cells a second for a quarter second at the hero, three units of a suit if it touches. Twenty-four hit points, never knocked. Placeholder
+    /// numbers, for a play pass.
     /// </summary>
     public static readonly Species GeodeSnail = new("geodeSnail", Look: "geodeSnail",
         Body: new Walker(Width: 4, Height: 3, Walk: 30, Run: 30, Jump: 0, JumpAcross: 0), Life: new(Hp: 24, Knock: 0, Hop: 0),
-        Faction: Beasts, Lifetime: Lifetime.Wild, Brain: [new Guard(Notice: 24, Strike: 16, AlertTicks: 20)],
-        Moves: [new Lunge(WindUp: 16, Speed: 1200, Ticks: 30, Past: 6, Damage: 6, Steady: true)], Yields: [new("crystal", 2, 3), new("biomass", 1, 1)]);
+        Faction: Beasts, Lifetime: Lifetime.Wild, Brain: [new Guard(Notice: 6, Strike: 4, AlertTicks: 16), new Shell(Reach: 4, Hold: 20)],
+        Moves: [new Lunge(WindUp: 16, Speed: 800, Ticks: 5, Past: 0, Damage: 3, Steady: true)], Yields: [new("crystal", 2, 3), new("biomass", 1, 1)]);
 
     public static readonly IReadOnlyList<Species> All = [Loper, Tapir, Sixleg, Sentry, Warden, Capback, GeodeSnail];
 

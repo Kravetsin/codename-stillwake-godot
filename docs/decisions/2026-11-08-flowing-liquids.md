@@ -31,7 +31,7 @@ that it looks right, "as Terraria does it", over any physics.
   which just loaded the world had awake (found in review, a desync). The set is derived. A world that skips sleeping chunks
   runs as one keeping every chunk awake, which a test holds tick by tick.
 - **Saved as edits.** A grown surface's lakes grow again from its seed with its ground, so a save holds only the cells that
-  differ, as the grid's edits do (0077). A drawn map's base is none. Format 55; an older save gets its lakes at its load.
+  differ, as the grid's edits do (0077). A drawn map's base is none. Format 56; an older save gets its lakes at its load.
 - **Lakes grow** last in `Terrain.Generate` (sim/Core `Lakes.cs`). A lattice point every `LakeWave` cells in `LakeBands`
   may hold one, at the floor under it. Its level rises while the region stays in the zone, clear of ruins and earlier
   lakes, and under `LakeBig` (6,000) or `LakeMedium` (1,500) cells. A grown lake is at rest.

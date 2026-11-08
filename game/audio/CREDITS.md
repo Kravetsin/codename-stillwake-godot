@@ -38,6 +38,9 @@ its attack to the length given, faded in over 3 ms and its last share out, level
 −1 dBFS at most (the drip hits the cap, about 4 dB under the rest), decoded to mono 48 kHz WAV here; the pour a 5.5 s loop closed on
 itself by a 0.5 s equal-power crossfade, −26 dBFS RMS, OGG.
 
+The cave lurkers' attack sounds (lurker-attacks) are their pick page's picks: the capback's hiss, its slime's splat, the snail's
+shut shell struck; each mono 48 kHz WAV from its attack (a −45 dB gate), its last 60 ms faded, normalised to −3 dBFS peak; the cue sets the mix.
+
 | File | Source | Author | Licence |
 | ---- | ------ | ------ | ------- |
 | `atmosphere/hiss-1.ogg` | generated for Stillwake | Stillwake team | CC0 |
@@ -91,6 +94,9 @@ itself by a 0.5 s equal-power crossfade, −26 dBFS RMS, OGG.
 | `creatures/sentry-death-1.wav` | Freesound, "POWER06.WAV", https://freesound.org/people/mad-monkey/sounds/66692/, mixed with Freesound, "Heavy metal clatter.wav" (from 0.029 s), https://freesound.org/people/EntoClash/sounds/626811/ | mad-monkey, EntoClash | CC0 |
 | `creatures/sentry-punch-1.wav` | Freesound, "Metal Gauntlet Punch 4", https://freesound.org/people/Hoggington/sounds/536258/ | Hoggington | CC0 |
 | `creatures/sentry-charge-1.wav` | Freesound, "Laser Charge Up" (0.6 s from its attack, the last 0.18 s faded), https://freesound.org/people/magnuswaker/sounds/588242/ | magnuswaker | CC0 |
+| `creatures/capback-hiss-1.wav` | Freesound, "Pressure Hiss" (the first 1.1 s, from its attack, the last 60 ms faded), https://freesound.org/people/magnuswaker/sounds/581083/ | magnuswaker | CC0 |
+| `creatures/capback-splat-1.wav` | Freesound, "Slime 28.wav" (all of it from its attack, the last 60 ms faded), https://freesound.org/people/Archos/sounds/433839/ | Archos | CC0 |
+| `creatures/snail-shell-clink-1.wav` | Impact Sounds, `impactMining_001.ogg` (all of it from its attack, the last 60 ms faded), https://kenney.nl/assets/impact-sounds | Kenney | CC0 |
 | `creatures/sentry-arc-hit-1.wav` | Freesound, "Civilian Stun Gun 1/10s zap" (all of it from its attack, the last 0.12 s faded), https://freesound.org/people/AnthonyChan0/sounds/264779/ | AnthonyChan0 | CC0 |
 | `crew/air-fill-1.wav` | generated for Stillwake: white noise (mulberry32 seed 47) through two band-passes, Q 1.1, their centre rising from 2.6 to 4.8 kHz, 0.55 s: in over 50 ms, held, falling away over the last 38 %, to −3 dBFS peak (a placeholder till an audition) | Stillwake team | CC0 |
 | `crew/alarm-1.wav` | generated for Stillwake | Stillwake team | CC0 |

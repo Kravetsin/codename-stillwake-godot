@@ -39,8 +39,11 @@ public partial class LurkerBodies : Node2D
         public LurkerMotion Motion = null!;
         public Vector2 From, To, Drawn;
         public int Tick = -1, Damage;
-        public double OwnAt = double.NegativeInfinity, ShotAt = double.NegativeInfinity, DustMs;
+        public double OwnAt = double.NegativeInfinity, ShotAt = double.NegativeInfinity;
         public string Species = "";
+
+        /// <summary>Whether its shell was shut as the sim last said: a blow on it glances.</summary>
+        public bool Shut;
 
         /// <summary>Its sprite in its motion's pose, at its place, facing as it does.</summary>
         public void Show(Vector2 feet)
@@ -105,10 +108,10 @@ public partial class LurkerBodies : Node2D
                 if (_clockMs - one.OwnAt > CreatureLooks.OwnMs) Struck(one, own: _clockMs - one.ShotAt < CreatureLooks.OwnMs);
                 one.Damage = c.Damage;
             }
-            bool landed = one.Motion.Step(SeenOf(one, c, feet), dt);
+            one.Shut = CreaturesModule.Shut(c);
+            one.Motion.Step(SeenOf(one, c, feet), dt);
             one.Drawn = feet;
             one.Show(feet);
-            Moments(one, landed, c.Act is { Phase: ActPhase.Active }, elapsedMs);
             Glows(one, lights);
         }
         _alive.Clear();
@@ -150,7 +153,7 @@ public partial class LurkerBodies : Node2D
         var design = CreatureArt.Lurkers[spec.Look];
         var one = _pool.TryGetValue(design.Id, out var pool) && pool.Count > 0 ? pool.Pop() : Made(design, spec.Body.Height * Cell / 2);
         var at = new Vector2(c.X, c.Y);
-        one.Motion = new LurkerMotion(design.Snail, design.Pose.Radius);
+        one.Motion = new LurkerMotion(design.Snail);
         (one.From, one.To, one.Tick, one.Damage, one.Species, one.OwnAt, one.ShotAt) = (at, at, tick, c.Damage, c.Species, double.NegativeInfinity, double.NegativeInfinity);
         one.Drawn = at / Unit * Cell;
         if (CreatureFx.NearestOf(_heroes, one.Drawn) is { } hero && Math.Abs(hero.X - one.Drawn.X) > 2) one.Motion.Face = Math.Sign(hero.X - one.Drawn.X);
@@ -190,17 +193,18 @@ public partial class LurkerBodies : Node2D
         double perTick = Cell / (double)Unit * World.TicksPerSecond;
         double? hero = CreatureFx.NearestOf(_heroes, feet) is { } h ? h.X - feet.X : null;
         return new LurkerMotion.Seen(CreaturesModule.Alerted(c), winding, windUpS, act is { Phase: ActPhase.Active }, feet.X - one.Drawn.X, c.VX * perTick,
-            spec.Life.Hp > 0 ? c.Damage / (double)spec.Life.Hp : 0, hero);
+            spec.Life.Hp > 0 ? c.Damage / (double)spec.Life.Hp : 0, hero, act != null && spec.Moves[act.Move] is Spec.Creatures.Vent, one.Shut);
     }
 
     private static int WindUpOf(Spec.Creatures.Move move) => move switch
     {
         Spec.Creatures.Pounce p => p.WindUp,
         Spec.Creatures.Lunge l => l.WindUp,
+        Spec.Creatures.Shoot s => s.WindUp,
         _ => 0,
     };
 
-    /// <summary>A blow on <paramref name="one"/>: it flinches or shuts, its hit thrown toward the hero who struck and heard where it lands.</summary>
+    /// <summary>A blow on <paramref name="one"/>: it flinches or jolts, its hit thrown toward the hero who struck and heard where it lands; on a shut shell it glances in sparks.</summary>
     private void Struck(Shown one, bool own)
     {
         one.Motion.Struck();
@@ -209,39 +213,13 @@ public partial class LurkerBodies : Node2D
         var hero = CreatureFx.NearestOf(_heroes, middle) ?? middle + new Vector2(one.Motion.Face * 20, -10);
         int away = middle.X >= hero.X ? 1 : -1;
         var side = middle + new Vector2(-away * spec.Body.Width * Cell * 0.4f, Mathf.Clamp(hero.Y - middle.Y, -6, 6));
-        var impact = HitLooks.Creatures.GetValueOrDefault(one.Species, Impact.Flesh);
+        var impact = one.Shut ? CreatureLooks.Glance : HitLooks.Creatures.GetValueOrDefault(one.Species, Impact.Flesh);
         Stages.Of(Layers.Effects).Hits.Throw(HitLooks.Of[impact], side.X, side.Y, -away, -0.25, 1, floor: one.Drawn.Y);
         if (!S.Creatures.TryGetValue(one.Species, out var cues)) return;
         var voices = own ? _ownHits : _worldHits;
-        voices.Play(own ? S.Felt(cues.Hit) : cues.Hit, side, cues.Hit.Tune, 0);
+        var hit = one.Shut ? S.ShellClink : cues.Hit;
+        voices.Play(own ? S.Felt(hit) : hit, side, hit.Tune, 0);
         voices.Play(own ? S.Felt(cues.Thump) : cues.Thump, side, cues.Thump.Tune, 0);
-    }
-
-    /// <summary>Its moments seen and heard: a capback's landing raises dust and thumps; a rolling snail trails dust.</summary>
-    private void Moments(Shown one, bool landed, bool acting, double elapsedMs)
-    {
-        if (landed && !one.Design.Snail)
-        {
-            Dust(one.Drawn, 9);
-            if (S.Creatures.TryGetValue(one.Species, out var cues)) _worldHits.Play(cues.Thump, one.Drawn, cues.Thump.Tune, -4);
-        }
-        if (acting && one.Design.Snail && (one.DustMs -= elapsedMs) <= 0)
-        {
-            one.DustMs = 70;
-            Dust(one.Drawn + new Vector2(-one.Motion.Face * 6, 0), 1);
-        }
-    }
-
-    /// <summary>Dust raised at <paramref name="feet"/>: pale streaks along the floor and a veil.</summary>
-    private static void Dust(Vector2 feet, int streaks)
-    {
-        var glims = Stages.Of(Layers.Creatures).Glims;
-        for (int i = 0; i < streaks; i++)
-        {
-            float x = feet.X + (float)glims.Between(-10, 10);
-            glims.Add(Luminous.HitDust, x, feet.Y - 1, glims.Between(-16, 16), glims.Between(-18, -2));
-        }
-        glims.Add(Luminous.DustVeil, feet.X + glims.Between(-6, 6), feet.Y - 1, glims.Between(-10, 10), glims.Between(-6, -1));
     }
 
     /// <summary>What it lights this frame: its rig's lights, in the world.</summary>

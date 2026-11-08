@@ -1,6 +1,6 @@
 # Cave hostiles
 
-- Status: accepted; slice 1 (the capback, the geode snail) built, the threadling, embermoth and driftbell wait for their bodies
+- Status: accepted; slice 1 (the capback, the geode snail) built, the threadling, embermoth and driftbell wait for their bodies; the lurkers' attacks superseded by [lurker-attacks](2026-11-08-lurker-attacks.md)
 - Date: 2026-11-07
 
 ## Context

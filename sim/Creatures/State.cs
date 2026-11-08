@@ -169,7 +169,14 @@ public sealed class CreaturesState
     [JsonInclude, JsonPropertyName("arcs"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     internal List<Arc>? SavedArcs { get => Arcs.Count > 0 ? Arcs : null; set => Arcs = value ?? []; }
 
-    /// <summary>The shots ever fired and arcs ever struck: the next one's id is one more. Ids are never reused.</summary>
+    /// <summary>The patches lying, in id order (lurker-attacks).</summary>
+    [JsonIgnore] internal List<Patch> Patches { get; set; } = [];
+
+    /// <summary>The patches as saved: none written while none lie.</summary>
+    [JsonInclude, JsonPropertyName("patches"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    internal List<Patch>? SavedPatches { get => Patches.Count > 0 ? Patches : null; set => Patches = value ?? []; }
+
+    /// <summary>The shots ever fired, arcs ever struck and patches ever laid: the next one's id is one more. Ids are never reused.</summary>
     [JsonInclude, JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)] internal int Fired { get; set; }
 }
 

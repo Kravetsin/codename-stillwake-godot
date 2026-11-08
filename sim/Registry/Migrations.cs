@@ -202,19 +202,28 @@ public static class Migrations
             }
             return root;
         },
-        // 54 → 55 (flowing-liquids): a module added, its slice where it runs, after building, on the ship and every
+        // 54 → 55 (2026-11-08-lurker-attacks): a capback's first move is a vent where it was a pounce; one mid-pounce stops where it is.
+        root =>
+        {
+            foreach (var slices in new[] { root["slices"]! }.Concat((root["surfaces"]?.AsArray() ?? []).Select(s => s!["slices"]!)))
+                foreach (var creature in slices["creatures"]?["creatures"]?.AsArray() ?? [])
+                    if (creature!["species"]?.GetValue<string>() == "capback")
+                        (creature["act"], creature["vx"], creature["vy"]) = (null, 0, 0);
+            return root;
+        },
+        // 55 → 56 (flowing-liquids): a module added, its slice where it runs, after building, on the ship and every
         // surface: no clock run, no cell changed; a planet grows its lakes again from its seed as it loads.
         root =>
         {
-            root["slices"] = Inserted55(root["slices"]!.AsObject());
+            root["slices"] = Inserted56(root["slices"]!.AsObject());
             foreach (var surface in (root["surfaces"]?.AsArray() ?? []))
-                surface!["slices"] = Inserted55(surface["slices"]!.AsObject());
+                surface!["slices"] = Inserted56(surface["slices"]!.AsObject());
             return root;
         },
     ];
 
     /// <summary>The slices with liquids' empty one after building's, where its module runs: a save holds them in that order.</summary>
-    private static JsonObject Inserted55(JsonObject slices)
+    private static JsonObject Inserted56(JsonObject slices)
     {
         var all = slices.ToList();
         slices.Clear();
