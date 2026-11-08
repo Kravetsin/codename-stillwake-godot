@@ -72,7 +72,7 @@ public class ResearchTests
         Assert.Equal(5000, Prices.Of(Node("heavyHelmet")));
         Assert.Equal(10000, Prices.Of(Node("canister1")));
         var w = SetUp(credits: 100_000);
-        foreach (var (item, count) in ResearchSpec.Nodes.Where(n => n.Gate && n.Ring <= Node("heavyHelmet").Ring).SelectMany(n => n.Order)) w.M.Knowledge.Sell(item, count);
+        Mafia.Reach(w, Node("heavyHelmet").Ring);
         Assert.False(w.M.Research.Knows("heavyHelmet"));
         w.Do(new BuyBlock("heavyHelmet")).Run();
         Assert.Empty(w.Refusals);
@@ -80,15 +80,15 @@ public class ResearchTests
         Assert.Equal(100_000 - 5000, w.M.Research.Credits);
     }
 
-    /// <summary>The scanner (2026-11-07-the-scanner): three times its worth rounded, 1500, on the second order's row, before the jetpack's far wrecks.</summary>
+    /// <summary>The scanner (2026-11-07-the-scanner): three times its worth rounded, 1500, the first level's headline (2026-11-08-mafia-reputation).</summary>
     [Fact]
-    public void TheScannerIsSoldOnTheSecondOrdersRowAndBoughtIsCraftable()
+    public void TheScannerIsSoldAtTheFirstLevelAndBoughtIsCraftable()
     {
-        Assert.Equal(Node("powerDriver").Ring, Node("scanner").Ring);
+        Assert.Equal(1, Node("scanner").Ring);
         Assert.Equal(1500, Prices.Of(Node("scanner")));
         var w = SetUp(credits: 100_000);
-        Assert.Equal("research.locked", w.M.Research.BuyProblem(Node("scanner")));
-        foreach (var (item, count) in ResearchSpec.Nodes.Where(n => n.Gate && n.Ring <= Node("scanner").Ring).SelectMany(n => n.Order)) w.M.Knowledge.Sell(item, count);
+        Assert.Equal("research.reputation", w.M.Research.BuyProblem(Node("scanner")));
+        Mafia.Reach(w, Node("scanner").Ring);
         w.Do(new BuyBlock("scanner")).Run();
         Assert.Empty(w.Refusals);
         Assert.True(w.M.Research.Knows("scanner"));
@@ -101,7 +101,7 @@ public class ResearchTests
         var w = SetUp(credits: 100_000);
         var panel = new Placement("machine", "solarPanel");
         Assert.Equal("building.unknown", w.M.Building.Problem(At(5, 1), panel, 0));
-        foreach (var (item, count) in ResearchSpec.Nodes.Where(n => n.Gate && n.Ring <= ResearchSpec.Node("solarPanel")!.Ring).SelectMany(n => n.Order)) w.M.Knowledge.Sell(item, count);
+        Mafia.Reach(w, ResearchSpec.Node("solarPanel")!.Ring);
         w.Do(new BuyBlock("solarPanel")).Run();
         Assert.Empty(w.Refusals);
         Assert.NotEqual("building.unknown", w.M.Building.Problem(At(5, 1), panel, 0));
@@ -139,13 +139,13 @@ public class ResearchTests
     }
 
     [Fact]
-    public void RefusesABlockBehindAGateNotMetOneThereIsNotAndAGateItself()
+    public void RefusesABlockPastTheLevelOneThereIsNotAndAGateItself()
     {
         var w = SetUp(credits: 100_000);
         w.Do(new BuyBlock("bag3")).Run();
         w.Do(new BuyBlock("noSuchBlock")).Run();
         w.Do(new BuyBlock("order1")).Run();
-        Assert.Equal(["research.locked", "research.locked", "research.locked"], w.Refusals.Select(r => r.Reason));
+        Assert.Equal(["research.reputation", "research.locked", "research.locked"], w.Refusals.Select(r => r.Reason));
         Assert.Equal(100_000, w.M.Research.Credits);
     }
 
@@ -214,7 +214,7 @@ public class ResearchTests
         Assert.Equal(["building.unknown"], w.Refusals.Select(r => r.Reason));
         w.Refusals.Clear();
         w.Do(new BuyBlock("solarPanel")).Run();
-        Assert.Equal(["research.locked"], w.Refusals.Select(r => r.Reason));
+        Assert.Equal(["research.reputation"], w.Refusals.Select(r => r.Reason));
     }
 
     [Fact]
@@ -274,7 +274,7 @@ public class ResearchTests
     {
         int price = Prices.Of(Node("bag1"));
         var w = SetUp(credits: price + 45);
-        w.M.Knowledge.Sell("iron", 5);
+        Mafia.Sell(w, "iron", 5);
         w.Do(new BuyBlock("bag1")).Run();
         var before = w.World.Save();
         w.Reload();
@@ -335,8 +335,8 @@ public class ResearchTests
         var w = SetUp(credits: 100_000_000);
         foreach (var node in ResearchSpec.Nodes)
         {
-            foreach (var (item, count) in node.Order) w.M.Knowledge.Sell(item, count);
-            if (!node.Gate) w.Do(new BuyBlock(node.Id)).Run();
+            if (node.Gate) Mafia.Reach(w, node.Ring);
+            else w.Do(new BuyBlock(node.Id)).Run();
         }
         Assert.Empty(w.Refusals);
         Assert.All(ResearchSpec.Nodes, n => Assert.True(w.M.Research.Done(n), n.Id));

@@ -1,12 +1,12 @@
 namespace Stillwake.Content;
 
 /// <summary>
-/// A node of the black market: a block opening one blueprint or upgrade, bought with credits, or the gate, an order, that opens a row of
-/// blocks by what has been sold (docs/decisions/2026-11-05-the-board.md).
+/// A node of the black market: a block opening one blueprint or upgrade, bought with credits, or the gate, a level of the mafia's
+/// reputation, that opens a row of blocks by what has been sold (docs/decisions/2026-11-08-mafia-reputation.md).
 /// </summary>
 /// <param name="Id">Its name: a block's the one blueprint or craft it opens, named as <see cref="Research"/> says; a gate's own.</param>
 /// <param name="Needs">The nodes that must be done first: their ids. A block's is its ring's gate, a gate's the gate before it.</param>
-/// <param name="Order">What a gate asks to have been sold. None for a block.</param>
+/// <param name="Order">What a gate's level of reputation wants sold, each a count at full worth. None for a block.</param>
 /// <param name="Times">How many times its worth a block costs.</param>
 /// <param name="Tab">The id of the tab it is drawn on.</param>
 /// <param name="Ring">Its row on that tab, from the top; a gate's is the row it opens.</param>
@@ -45,15 +45,18 @@ public static class Research
     /// <summary>However cheap a part, no more than this many are needed to understand it.</summary>
     public const int EnoughMost = 10;
 
+    /// <summary>What a good sold beyond what a level wants is divided by, as reputation: a seventh of its worth (2026-11-08-mafia-reputation).</summary>
+    public const int OffWanted = 7;
+
     /// <summary>An upgrade: its price its own.</summary>
     private static (string Id, int Times) Up(string id) => (id, 1);
 
     /// <summary>What credits buy, by tab: the market alone.</summary>
     public static readonly IReadOnlyList<TechTab> Tabs =
     [
-        // Open from the start, its later rows by what is sold (docs/decisions/2026-11-05-the-board.md); the solar panel once circuits sell, for its cells come from the same bench (market-decrypt).
+        // Open from the start, its later rows by the mafia's reputation, a gate's order what that level wants (2026-11-08-mafia-reputation); the solar panel once circuits sell (market-decrypt).
         // The heavy helmet with the frames the jetpack is made of, the canisters' upgrade a row later (2026-11-03-the-heavy-helmet);
-        // the scanner with the plates its order wants, before the jetpack's far wrecks (2026-11-07-the-scanner);
+        // the scanner the first level's headline, before the jetpack's far wrecks (2026-11-07-the-scanner, 2026-11-08-mafia-reputation);
         // the regen suit beside the belt's third slot, the charge it runs on, eight times its worth: 12000 (2026-11-03-the-regen-suit).
         new(Market,
             new TechRing(null, [],
@@ -63,13 +66,13 @@ public static class Research
             new("order1", [("scrapChunk", 40), ("iron", 20), ("planks", 20)],
                 Up("bag3"),
                 Up("bag4"),
-                Up("tradeSlots2")),
-            new("order2", [("plate", 30), ("gear", 20)],
+                Up("tradeSlots2"),
+                ("scanner", 3)),
+            new("order2", [("plate", 30), ("gear", 20), ("wire", 30)],
                 Up("bag5"),
                 Up("bag6"),
                 Up("belt1"),
                 ("powerDriver", 4),
-                ("scanner", 3),
                 Up("tradeSlots3"),
                 Up("tradeSlots4")),
             new("order3", [("glass", 20), ("silicon", 20), ("frame", 10)],
@@ -77,14 +80,14 @@ public static class Research
                 Up("bag8"),
                 Up("tradeSlots5"),
                 ("heavyHelmet", 4)),
-            new("order4", [("circuit", 20)],
+            new("order4", [("circuit", 15), ("coil", 10), ("tube", 30)],
                 ("solarPanel", 5),
                 Up("bag9"),
                 Up("tradeSlots6"),
                 Up("canister1"),
                 ("salvageDrone", 3),
                 ("plasmaCutter", 4)),
-            new("order5", [("copper", 20), ("mica", 10), ("hide", 5)],
+            new("order5", [("copper", 40), ("mica", 20), ("hide", 15)],
                 Up("bag10"),
                 Up("bag11"),
                 Up("belt2"),

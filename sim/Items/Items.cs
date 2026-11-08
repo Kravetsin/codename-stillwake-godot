@@ -932,7 +932,7 @@ public sealed partial class ItemsModule : Module<ItemsState>, IItemsQueries, IIt
     }
 
     /// <summary>
-    /// A move as <see cref="Stacks.Moved"/> makes it, onto an inventory as a whole into its own slots only,
+    /// A move as <see cref="Stacks.Moved"/> makes it, onto an inventory as a whole into its own slots only, onto a machine as a whole into its open ones,
     /// or why it is refused: also when it leaves an equipment slot of an inventory side holding what is not
     /// worn there (<c>items.notEquipment</c>), or a machine side holding what it does not take: a charging
     /// station anything without a charge to fill (<c>items.notBattery</c>), an arc bench's tool slot anything but a tool a module
@@ -944,7 +944,7 @@ public sealed partial class ItemsModule : Module<ItemsState>, IItemsQueries, IIt
     {
         (after, into) = ([], []);
         if (dst.Slot is int slot && !SlotOpen(peer, new Place(slot, dst.Crate))) return "items.noSlot";
-        return Stacks.Moved(from, to, same, src, dst, count, out after, out into, dst.Crate == null ? Own(peer) : null)
+        return Stacks.Moved(from, to, same, src, dst, count, out after, out into, dst.Crate is int c ? InputsOf(c) : Own(peer))
             ?? (src.Crate is int a ? Stacks.Unfit(HolderOf(a)!, after) : Stacks.Misfit(after))
             ?? (dst.Crate is int b ? Stacks.Unfit(HolderOf(b)!, into) : Stacks.Misfit(into));
     }

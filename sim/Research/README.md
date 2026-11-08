@@ -20,9 +20,12 @@ Knowing blueprints and crafts ([the-board](../../docs/decisions/2026-11-05-the-b
 
 - A blueprint is named as the build menu names its card: a wall or back wall by kind and material (`wallIron`), anything
   else by the grid's name (`floor`, `furnace`). A craft by the item it makes. Cables are no blueprint and always known.
-- **The black market** is all there is to buy, its first ring open from the start; every upgrade stands there. Its later rings open by **orders**: a gate is done when
-  `Knowledge.SoldOf` meets what it orders and its own ring is reached, with no command. Sales count from the world's start, so a later ring may open at once; without the reach an
-  order met early would open a ring past a shut one.
+- **The black market** is all there is to buy, its first ring open from the start; every upgrade stands there. Its later rings open by the **mafia's
+  reputation** ([mafia-reputation](../../docs/decisions/2026-11-08-mafia-reputation.md)): ring `r` is open at `Knowledge.Level >= r`, a gate done when its ring is.
+  A gate's `Order` is what its level wants. In sevenths, with `w` an item's worth: the target is `Σ count × w × 7`; the points `Σ (min(sold, count) × w × 7 +
+  max(sold − count, 0) × w)` over the wanted goods, `sold` counted from the level's `Base`, plus everything else sold since at `× 1`, never below 0.
+  `Walk` raises the level, every tick, once the points reach the target, the next counted from what is sold then: one level a tick, so one capsule
+  opens one. Every surface's research calls `Open`, which Knowledge keeps once.
 - What is known at the start is the map's `Layout.Known` (the wreck's `Content.Research.StartKnown`, empty); a map with none knows
   everything. A creative peer knows everything and sees every node done (`Knows(peer, …)`, `Done(peer, node)`); the world does not, so nothing it arms (magnetic flares) changes.
 - **The rule** ([the-board](../../docs/decisions/2026-11-05-the-board.md)): a blueprint or craft is understood, and granted, once every part's count
@@ -39,13 +42,15 @@ Knowing blueprints and crafts ([the-board](../../docs/decisions/2026-11-05-the-b
 | Key | When |
 | --- | --- |
 | `research.bought` | the block is bought already |
-| `research.locked` | what it needs is not done; no such node; a buy of a gate |
+| `research.locked` | no such node; a buy of a gate |
+| `research.reputation` | the block's ring is past the mafia's level |
 | `research.noCredits` | short of its price |
 
 ## API
 
 - **Queries** (`IResearchQueries`): `Knows(placement)`, `Knows(id)`, the world's; `Knows(peer, …)`, a peer's; `Recipes()`, every blueprint then every craft as
-  `Recipe(Id, Placement, Cost, Known)`, creative mode aside; `Credits`; `Done(node)`, `Done(peer, node)`; `Reached(node)`; `BuyProblem(block)`.
+  `Recipe(Id, Placement, Cost, Known)`, creative mode aside; `Credits`; `Done(node)`, `Done(peer, node)`; `Reached(node)`; `BuyProblem(block)`;
+  `Standing()`, the next level, what it wants and its points and target.
 - **Commands:** `BuyBlock(Block)`, the block named by what it opens. `Fuzz` draws it at any node, refused ones too.
 
 ## Invariants
@@ -56,4 +61,5 @@ Knowing blueprints and crafts ([the-board](../../docs/decisions/2026-11-05-the-b
 
 ## Deliberately not handled
 
-- An order asked for more by a later build shuts its ring again; what was bought there stays known.
+- A level's goods sold before it is the next count at a seventh: an auto station sells everything priced.
+- An order asked for more by a later build leaves a level reached as it is.

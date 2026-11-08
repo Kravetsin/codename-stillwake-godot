@@ -47,8 +47,9 @@ A living document: what is decided about the game and what is still open. Techni
   ([trade-station-later](decisions/2026-11-06-trade-station-later.md)), sends what is put in it off by capsule, thirty seconds till its credits come back, however
   much it carries, at prices that never fall and always pay more for what is refined; drones keep it stocked. What things are worth
   is worked out from their recipes ([trade-and-tech](decisions/2026-10-30-trade-and-tech.md)). Credits buy only on the black market,
-  the tablet's other page: room, and what cannot be made. Its later rings open by orders, filled only by what is sold
-  ([market-grid](decisions/2026-11-03-market-grid.md)).
+  the tablet's other page: room, and what cannot be made. Every good is shown, its price ciphered until the mafia's
+  reputation reaches its level; a level rises by selling, what it wants at full worth and anything else at a seventh
+  ([market-grid](decisions/2026-11-03-market-grid.md), [mafia-reputation](decisions/2026-11-08-mafia-reputation.md)).
   Every electric thing
   is built of circuits, and only those: the press, the crusher and the jetpack need none. Found circuits are rare, a rack
   drifting by now and then and two or three off each sentry on the derelicts; the rest are made at the circuit

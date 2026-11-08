@@ -27,7 +27,7 @@ a room's, its own, then its last breath; passing out, made again at the pod.
   its inventory empty) when there is none; later ones never refill it. Sent when the sim lacks the hero or puts it in
   another room or air side (doors rename rooms), and every `Crew.ReportEvery` ticks while the
   cells differ, every `Crew.ReportThreatened` while a creature threatens it (2026-10-26-creatures-are-composed).
-  `Hero.Cell` lags up to a second and a round trip. Passed out, a client sends no command.
+  `Hero.Cell` lags a second and a round trip. Passed out, a client sends no command.
 - **The breath** (0011, 0016, 0028): every `Crew.BreathEvery` ticks, in id order, each conscious hero breathes.
   Within `Crew.PodReach` of the pod (`ByPod`) it first takes up to `Crew.PodRefill` of the pod's own air, from no
   store. Then `Breathe` draws the rest of one unit plus up to `Crew.Refill` for the suit. Air taken pays the
@@ -59,9 +59,9 @@ a room's, its own, then its last breath; passing out, made again at the pod.
   at the spawn, full, in what it wore. That tick `LeaveBody(peer, cell)` leaves all but gear at
   the reported cell (the spawn off the grid). The client moves its hero to the spawn as it wakes.
 - **The cold past the field** (0050), the build zone grown by `Field.Margin`: `EdgeCost(cell)` is 0
-  inside, past it the square of the depth by the deeper axis toward `Field.EdgeCost` at the grid's edge,
+  inside or in a vessel's box, past it the square of the depth by the deeper axis toward `Field.EdgeCost` at the grid's edge,
   `Field.OffGrid` off it (rounded up). Each breath after the regen suit the suit alone pays it for the reported
-  cell, down to nothing; no zone (a planet, 0076), no cold. With no body, where `AiredAt` is false, it pays
+  cell; no zone (a planet, 0076), no cold. With no body, where `AiredAt` is false, it pays
   `Crew.BareCold` more, on thin air's beat; at night with no `BackAt`, `Chill` more on its own beat (night-chills).
 - **Lava burns** (0087): `Burns(cell)`: lava at the reported cell or up to `Lava.Reach` rows under it; each breath the suit
   alone pays `Lava.Burn` more.
@@ -88,7 +88,7 @@ a room's, its own, then its last breath; passing out, made again at the pod.
 ## Invariants
 
 - Air holds between nothing and capacity, a last breath runs only with none, awake (`SuitsTests`, `FieldTests`).
-- `EdgeCost` is 0 inside the field, never less farther out, never over `Field.EdgeCost` (`FieldTests`).
+- `EdgeCost` is 0 inside the field or a vessel's box, never less farther out, never over `Field.EdgeCost` (`FieldTests`).
 - While heroes are no more than colours, no two wear one, on any surfaces.
 - A seat's hero is on its surface (`World.SurfaceOf`) and no other (`SurfacesTests`).
 
@@ -96,7 +96,6 @@ a room's, its own, then its last breath; passing out, made again at the pod.
 
 - A `Move` or `Drop` landing while out finds the slots emptied: it moves what is left, or is refused.
 - The sim trusts the client's cell (0002): cold, chill and lava are paid a second late.
-- Peer ids last a session but are saved: after a load a hero belongs to whoever connects in its slot. Heroes of
-  peers gone before a save stay, colours and all.
+- Peer ids last a session but are saved: after a load a hero belongs to whoever connects in its slot. Heroes of peers gone before a save stay.
 - A spawn in vacuum on a map without a pod passes a hero out over again.
 - The pod's air is endless: only for heroes, only by it, slowly, never to the room; full ones draw no room air.

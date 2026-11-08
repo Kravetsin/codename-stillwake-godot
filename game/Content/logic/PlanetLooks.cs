@@ -11,12 +11,12 @@ public static class PlanetLooks
 {
     /// <summary>
     /// A type's look. <c>Backdrop</c>: the set of pictures of the sky behind its ground (<c>art/{Backdrop}/sky</c>, its giant,
-    /// clouds and sun, <c>Render.PlanetSky</c>; its land is composed from its own pictures). <c>Tint</c>: its stone's colour by depth band, multiplied over the
-    /// ground in its rows (0080), one a band, blended from one band's middle to the next, from <c>TintFrom</c> rows under the
-    /// surface's middle over <c>TintOver</c> rows, so the land under the sky keeps its own colours. <c>Fog</c>: the colour of the fog
+    /// clouds and sun, <c>Render.PlanetSky</c>; its land is composed from its own pictures). <c>StrataFrom</c>: how many rows under the
+    /// surface's middle its stone is drawn by depth band (<c>Features.Grid.Strata</c>, 2026-11-08-planet-layers), plain above, so the
+    /// land under the sky keeps its own grey. <c>Fog</c>: the colour of the fog
     /// at its sides (fog-edges), the haze of its far land.
     /// </summary>
-    public sealed record Look(string Backdrop, IReadOnlyList<(float R, float G, float B)> Tint, int TintFrom, int TintOver, (float R, float G, float B) Fog)
+    public sealed record Look(string Backdrop, int StrataFrom, (float R, float G, float B) Fog)
     {
         /// <summary>
         /// Its dusk and night (2026-11-07-night-chills), as <see cref="Daylight"/> fades through them: what the light through the
@@ -33,11 +33,10 @@ public static class PlanetLooks
     public static readonly IReadOnlyList<string> BackdropPictures = ["sky", "giant", "clouds", "sun"];
 
     /// <summary>
-    /// The first planet's, the "Stillwake" style's (0079): its warm day; the coldest band a cool blue-grey, the garden as it is,
-    /// the amber deep warmer, the ember band a warm red-brown.
+    /// The first planet's, the "Stillwake" style's (0079): its warm day; its bands' own stone from 100 rows under the surface's
+    /// middle, under nearly every valley.
     /// </summary>
-    public static readonly Look First = new("planet", [(0.86f, 0.94f, 1f), (0.94f, 1f, 0.98f), (1f, 0.9f, 0.88f), (1f, 0.78f, 0.66f)], TintFrom: 80, TintOver: 120,
-        Fog: (0.74f, 0.79f, 0.72f));
+    public static readonly Look First = new("planet", StrataFrom: 100, Fog: (0.74f, 0.79f, 0.72f));
 
     /// <summary>By surface kind: every planet type, and the test strip, drawn under the first planet's rules and sky.</summary>
     public static readonly IReadOnlyDictionary<string, Look> Of = new Dictionary<string, Look>

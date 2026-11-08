@@ -26,7 +26,7 @@ names it "Derelict ship".
   is selected a "Set off" button stands under the radar: it does nothing till the jump.
 - **The selection is the player's own** (`Ui.RadarContact`), kept while the computer is closed and let go once its
   contact is gone: the jump's target to be.
-- Save format 57: an older world gets the slice empty, its first contact 15 minutes after loading.
+- Save format 59: an older world gets the slice empty, its first contact 15 minutes after loading.
 
 ## Consequences
 

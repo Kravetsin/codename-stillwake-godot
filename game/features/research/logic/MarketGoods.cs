@@ -22,18 +22,17 @@ public enum MarketTile
     /// <summary>Its next step is open, and the credits are short.</summary>
     Dear,
 
-    /// <summary>Every step opened is bought, and a later order opens more.</summary>
-    Waiting,
+    /// <summary>Every step opened is bought, and the next waits for the mafia's reputation: its price shows as garbage.</summary>
+    Locked,
 
     /// <summary>Every step is bought: a blueprint owned, or a kind of upgrade bought out.</summary>
     Owned,
 }
 
-/// <summary>What deciphering does to a tile: nothing, all of it, or only its count, for it was there before with fewer steps.</summary>
+/// <summary>What deciphering does to a tile: nothing, or its price and count, for every good is shown from the start (2026-11-08-mafia-reputation).</summary>
 public enum MarketFresh
 {
     None,
-    New,
     More,
 }
 
@@ -92,38 +91,28 @@ public static class MarketGoods
             else next ??= step;
         }
         if (next != null) return new MarketState(problem(next) == null ? MarketTile.Affordable : MarketTile.Dear, next, bought, opened);
-        return new MarketState(opened < good.Steps.Count ? MarketTile.Waiting : MarketTile.Owned, null, bought, opened);
+        var locked = good.Steps.FirstOrDefault(s => !reached(s));
+        return new MarketState(locked != null ? MarketTile.Locked : MarketTile.Owned, locked, bought, opened);
     }
 
-    /// <summary>Whether any step of <paramref name="good"/> is open: what is not shows only as garbage under its order.</summary>
-    public static bool Shown(MarketGood good, Func<TechNode, bool> reached) => good.Steps.Any(reached);
-
     /// <summary>
-    /// The goods shown under <paramref name="shelf"/> (all with null), upgrades first, then blueprints newest first and the cheaper first among those opened
-    /// together.
+    /// The goods under <paramref name="shelf"/> (all with null), every one shown (2026-11-08-mafia-reputation): upgrades first, then blueprints open,
+    /// newest first, then those the mafia does not sell yet, nearest first; the cheaper first among those opened together.
     /// </summary>
     public static IReadOnlyList<MarketGood> Sorted(IEnumerable<MarketGood> goods, Func<TechNode, bool> reached, MarketShelf? shelf) =>
-        [.. goods.Where(g => Shown(g, reached) && (shelf == null || g.Shelf == shelf))
+        [.. goods.Where(g => shelf == null || g.Shelf == shelf)
             .OrderBy(g => g.Shelf)
-            .ThenByDescending(g => g.Shelf == MarketShelf.Upgrades ? 0 : g.Steps[0].Ring)
+            .ThenBy(g => g.Shelf == MarketShelf.Upgrades ? 0 : reached(g.Steps[0]) ? -g.Steps[0].Ring : 100 + g.Steps[0].Ring)
             .ThenBy(g => g.Shelf == MarketShelf.Upgrades ? 0 : Prices.Of(g.Steps[0]))];
 
     /// <summary>
-    /// What deciphering does to <paramref name="good"/> while the rows <paramref name="playing"/> says decipher: new if every step opened is in them,
-    /// more if some were open before.
+    /// What deciphering does to <paramref name="good"/> while the rows <paramref name="playing"/> says decipher: its price and count, if a step opened
+    /// is in them.
     /// </summary>
     public static MarketFresh FreshOf(MarketGood good, Func<TechNode, bool> reached, Func<int, bool> playing)
     {
-        bool any = false, before = false;
         foreach (var step in good.Steps)
-        {
-            if (!reached(step)) continue;
-            if (playing(step.Ring)) any = true;
-            else before = true;
-        }
-        return !any ? MarketFresh.None : before ? MarketFresh.More : MarketFresh.New;
+            if (reached(step) && playing(step.Ring)) return MarketFresh.More;
+        return MarketFresh.None;
     }
-
-    /// <summary>The goods row <paramref name="row"/> opens, each kind of upgrade once: what its order shows as garbage.</summary>
-    public static IReadOnlyList<MarketGood> Unlocks(IEnumerable<MarketGood> goods, int row) => [.. goods.Where(g => g.Steps.Any(s => s.Ring == row))];
 }

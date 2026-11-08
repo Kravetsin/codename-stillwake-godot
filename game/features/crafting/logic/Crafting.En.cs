@@ -51,7 +51,7 @@ public static partial class En
         ["crafts.from.glass"] = "smelt gravel in an electric smelter",
         ["crafts.from.rock"] = "dig stone on a planet",
         ["crafts.from.copper"] = "smelt copper ore from a planet's caves",
-        ["crafts.from.magnetite"] = "dig the glowing cracks deep in a planet's caves",
+        ["crafts.from.magnetite"] = "dig the glowing cracks in a planet's deepest caves, over the lava: a rift leads down",
         ["crafts.madeAt"] = "made at: {stations}",
     };
 }

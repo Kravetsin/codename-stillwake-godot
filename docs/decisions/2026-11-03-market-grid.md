@@ -1,6 +1,6 @@
 # The black market is a grid of goods
 
-- Status: accepted
+- Status: accepted; every good shown with its price ciphered, and the order card made the wanted card, by [mafia-reputation](2026-11-08-mafia-reputation.md)
 - Date: 2026-11-03
 - Supersedes [market-decrypt](2026-11-02-market-decrypt.md): its rows of five cards, its poison accent and the hack's marks
 

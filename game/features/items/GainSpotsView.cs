@@ -63,7 +63,7 @@ public partial class GainSpotsView : Control
                     x += IconPx + Gap;
                 }
                 string text = body ? $"{T(line.Key)} +{line.Count}" : $"+{line.Count}";
-                var at = new Vector2(x, left.Y + TextSize * 0.36f);
+                var at = new Vector2(x, left.Y + TextSize * Style.MonoMiddle);
                 DrawStringOutline(TextFont, at, text, HorizontalAlignment.Left, -1, TextSize, 5, Shade with { A = Shade.A * a });
                 DrawString(TextFont, at, text, HorizontalAlignment.Left, -1, TextSize, Plain.Lerp(Lit, pop) with { A = a });
             }

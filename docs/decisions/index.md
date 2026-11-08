@@ -166,6 +166,7 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [wall-roles](2026-10-29-wall-roles.md) | Walls either armour or seal | accepted |  |
 | [weak-meteors-till-landing](2026-10-29-weak-meteors-till-landing.md) | Weak meteors till landing | accepted |  |
 | [free-repair](2026-10-30-free-repair.md) | A repair takes only work | accepted |  |
+| [generated-vessels](2026-10-30-generated-vessels.md) | Generated vessels, written beside the ship by a jump | accepted |  |
 | [liquid-oxygen](2026-10-30-liquid-oxygen.md) | Air comes from liquid oxygen | accepted |  |
 | [magnetic-flare](2026-10-30-magnetic-flare.md) | A magnetic flare breaks machines until they are repaired | accepted | free-repair (in part) |
 | [room-upgrades](2026-10-30-room-upgrades.md) | Room is bought on the tree | accepted |  |
@@ -297,12 +298,15 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [tool-card-rows](2026-11-07-tool-card-rows.md) | A tool's card lists its numbers as rows with icons | accepted |  |
 | [board-names](2026-11-08-board-names.md) | The board names what was never had | accepted |  |
 | [composed-backdrops](2026-11-08-composed-backdrops.md) | Composed backdrops | accepted |  |
+| [computer-after-planet](2026-11-08-computer-after-planet.md) | The computer and the radar after a planet | accepted |  |
 | [crusher-heard](2026-11-08-crusher-heard.md) | Crusher heard | accepted |  |
 | [edge-flash](2026-11-08-edge-flash.md) | A find flashes along the tablet's edge, once a batch; the bulb and the flight go | accepted |  |
 | [flowing-liquids](2026-11-08-flowing-liquids.md) | Flowing liquids: lakes in a planet's cells | accepted |  |
 | [hurts-are-shown](2026-11-08-hurts-are-shown.md) | Hurts are shown | accepted |  |
 | [lobbed-glob](2026-11-08-lobbed-glob.md) | Lobbed glob | accepted |  |
 | [lurker-attacks](2026-11-08-lurker-attacks.md) | Lurker attacks | accepted | lobbed-glob (in part) |
+| [mafia-reputation](2026-11-08-mafia-reputation.md) | The black market opens by the mafia's reputation | accepted |  |
 | [planet-frame-rate](2026-11-08-planet-frame-rate.md) | Planet frame rate | accepted |  |
+| [planet-layers](2026-11-08-planet-layers.md) | A planet's layers show, and a rift shows the way down | accepted |  |
 | [radar-contacts](2026-11-08-radar-contacts.md) | Radar contacts | accepted |  |
 | [scrap-to-iron](2026-11-08-scrap-to-iron.md) | Scrap to iron: four scrap smelt into an iron at any furnace | accepted |  |

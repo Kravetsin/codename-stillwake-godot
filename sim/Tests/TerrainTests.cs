@@ -273,6 +273,31 @@ public class TerrainTests
         }
     }
 
+    /// <summary>
+    /// The rift (2026-11-08-planet-layers): on every planet one chasm runs on from the land down into the band over the core, so the
+    /// way to the magnetite is seen from the top; with no rift, none does.
+    /// </summary>
+    [Fact]
+    public void OneChasmIsARiftOpenFromTheLandIntoTheBandOverTheCore()
+    {
+        int ember = Enumerable.Range(0, Planet.Height).First(y => Terrain.BandOf(PlanetTypes.First, y) == 3);
+        static bool Rift(Layout l, int ember)
+        {
+            int w = l.Width;
+            int TopOf(int x) => Enumerable.Range(0, l.Height).First(y => l.Rows[y][Math.Clamp(x, 1, w - 2)] == '#');
+            // A column open nine cells in ten from the land beside it to a dozen rows into the band.
+            return Enumerable.Range(Planet.Fog + 20, w - 2 * Planet.Fog - 40).Any(x =>
+            {
+                int from = Math.Min(TopOf(x - 20), TopOf(x + 20)), rows = ember + 12 - from;
+                return Enumerable.Range(from, rows).Count(y => l.Rows[y][x] is ' ' or '.') * 10 >= rows * 9;
+            });
+        }
+        foreach (uint seed in new uint[] { 1, 2, 3 })
+            Assert.True(Rift(PlanetTesting.First(seed).Layout, ember), $"seed {seed}: no rift into the band over the core");
+        var none = PlanetTypes.First with { Ground = Planet with { RiftDeep = 0 } };
+        Assert.False(Rift(Terrain.Generate(none, 1), ember), "a chasm reaches the band over the core with no rift");
+    }
+
     [Fact]
     public void AWalkAcrossThePlanetTakesMinutes()
     {

@@ -29,7 +29,7 @@ whichever surface a hero stands on. Nothing acts on a contact yet: the jump will
   two drawn contacts are never up at once.
 - **`ContactNow(kind, offset)`** (dev) adds one at once, `Lasts` ticks to stay, the countdown untouched. Refused with
   `contacts.unknownKind` for a kind not in `Kinds`, `contacts.outOfReach` for `|offset| > Reach`.
-- An older save (format 56) loads with no contact up and the countdown starting over: the first a quarter of an hour on.
+- An older save (format 58) loads with no contact up and the countdown starting over: the first a quarter of an hour on.
 
 ## API
 
