@@ -11,6 +11,7 @@ sky's pictures (`render/PlanetSky.cs`), both drawn by `render/Stars.cs`. Client 
 | --- | --- |
 | `logic/BackdropPlan.cs` | the generator: roles, ridges, patterns, belts, the layers' draws in order; its rng and hash |
 | `logic/GroundLine.cs` | the surface's top row per column, and its mean round the camera, wrapping |
+| `BackdropAtlas.cs` | the pictures a land places, packed once into one texture at half the hi-res detail |
 | `BackdropLayer.cs` | one layer drawn once into its canvas item, its veil shader |
 | `BackdropView.cs` | the three layers made from a planet type, look and seed, laid each frame for the camera |
 
@@ -29,8 +30,9 @@ sky's pictures (`render/PlanetSky.cs`), both drawn by `render/Stars.cs`. Client 
   layer px apart, until one lies wholly under the layer's height (at most `Depth.Lower`), so no wide bare face shows; each a
   `Darken` step darker and `Greener` greener than the one above. A ridge's land is filled down to the next ridge's top only.
 - **Drawn once:** each layer's draws go into its canvas item at the surface's showing, a 2048 px tile twice side by side and
-  what crosses its edge once more; quads of one picture together in one triangle array. Pictures from `art/hd` with
-  mipmaps (`PixelArt.Picture`), at their world size × the layer's scale; ground sheets repeated at that scale.
+  what crosses its edge once more. Pictures from one atlas (`BackdropAtlas`, `art/hd` halved, mipmapped), so the plants
+  between two fills are one triangle array, their shades per vertex: a texture per picture cost 4700 draw calls a frame
+  (210 fps → 350 on a 4060 Ti). At their world size × the layer's scale; ground sheets repeated at that scale.
 - **Veil and tint:** a shader mixes each layer toward `BackdropLooks.Recipe.Dark`, then toward the planet's fog, by its depth's
   shares, then multiplies the day's colour (`Stars.Tint`, `Daylight.Backdrop`), as the sky's pictures are multiplied.
 - **Placed by the terrain:** the ground line is the surface rows (`GroundLine.Tops`, read once from the grid, the first cell

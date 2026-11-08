@@ -7,8 +7,8 @@ namespace Stillwake.Game.Features.Backdrop;
 
 /// <summary>
 /// One layer of a planet's land (composed-backdrops): its plan laid once into its canvas item, the tile twice side by side,
-/// what crosses the tile's edge once more beyond it, then carried by the node's position and scale. Quads of one picture in
-/// a row go in one triangle array. A small shader veils it toward a dark and the planet's fog by its depth, then the day's tint.
+/// what crosses the tile's edge once more beyond it, then carried by the node's position and scale. The pictures come from one
+/// <see cref="BackdropAtlas"/>, so the plants between two fills go in one triangle array. A small shader veils it toward a dark and the planet's fog by its depth, then the day's tint.
 /// </summary>
 public partial class BackdropLayer : Node2D
 {
@@ -30,14 +30,16 @@ public partial class BackdropLayer : Node2D
     };
 
     private readonly BackdropPlan.Layer _plan;
+    private readonly BackdropAtlas _atlas;
     private readonly double _tile;
     private readonly ShaderMaterial _veil;
     // The ground's pictures as repeating sheets, kept while drawn: a canvas texture freed takes its draws with it.
     private readonly Dictionary<string, CanvasTexture> _sheets = new();
 
-    public BackdropLayer(BackdropPlan.Layer plan, double tile, (float R, float G, float B) haze, (float R, float G, float B) dark)
+    public BackdropLayer(BackdropPlan.Layer plan, BackdropAtlas atlas, double tile, (float R, float G, float B) haze, (float R, float G, float B) dark)
     {
         _plan = plan;
+        _atlas = atlas;
         _tile = tile;
         Material = _veil = new ShaderMaterial { Shader = Veil };
         _veil.SetShaderParameter("dark", new Vector3(dark.R, dark.G, dark.B));
@@ -63,7 +65,7 @@ public partial class BackdropLayer : Node2D
                     Fill(batch, fill, tile, bottom);
                     break;
                 case BackdropPlan.Picture p:
-                    var texture = PixelArt.Picture(p.Name);
+                    var (atlas, uv) = (_atlas.Texture.GetRid(), _atlas.Uv(p.Name));
                     float w = (float)p.W, h = (float)p.H, y = (float)p.Y;
                     float left = (float)(p.X - Math.Floor(p.X / _tile) * _tile);
                     // Copies over the two tiles drawn: what crosses the tile's left edge shows at its right too.
@@ -71,7 +73,7 @@ public partial class BackdropLayer : Node2D
                     {
                         float x = left + k * tile;
                         if (x + w <= 0 || x >= 2 * tile) continue;
-                        batch.Quad(texture.GetRid(), new Rect2(x, y, w, h), p.Flip, colour: new Color(p.Shade, p.Shade, p.Shade));
+                        batch.Quad(atlas, new Rect2(x, y, w, h), p.Flip, uv, new Color(p.Shade, p.Shade, p.Shade));
                     }
                     break;
             }
@@ -118,20 +120,19 @@ public partial class BackdropLayer : Node2D
         };
     }
 
-    /// <summary>Quads gathered while they share a texture and colour, given to the canvas item as one triangle array.</summary>
+    /// <summary>Quads gathered while they share a texture, each with its own colour, given to the canvas item as one triangle array.</summary>
     private sealed class Batch(Rid item)
     {
         private readonly List<Vector2> _points = [], _uvs = [];
+        private readonly List<Color> _colours = [];
         private readonly List<int> _indices = [];
         private Rid _texture;
-        private Color _colour = Colors.White;
 
-        public void Quad(Rid texture, Rect2 at, bool flip, Rect2? uv = null, Color? colour = null)
+        public void Quad(Rid texture, Rect2 at, bool flip, Rect2 u, Color colour)
         {
-            var c = colour ?? Colors.White;
-            if (texture != _texture || c != _colour) Flush();
-            (_texture, _colour) = (texture, c);
-            var u = uv ?? new Rect2(0, 0, 1, 1);
+            if (texture != _texture) Flush();
+            _texture = texture;
+            _colours.AddRange([colour, colour, colour, colour]);
             float u0 = flip ? u.End.X : u.Position.X, u1 = flip ? u.Position.X : u.End.X;
             int first = _points.Count;
             _points.AddRange([at.Position, new Vector2(at.End.X, at.Position.Y), at.End, new Vector2(at.Position.X, at.End.Y)]);
@@ -142,11 +143,10 @@ public partial class BackdropLayer : Node2D
         public void Flush()
         {
             if (_points.Count == 0) return;
-            var colours = new Color[_points.Count];
-            Array.Fill(colours, _colour);
-            RenderingServer.CanvasItemAddTriangleArray(item, [.. _indices], [.. _points], colours, [.. _uvs], texture: _texture);
+            RenderingServer.CanvasItemAddTriangleArray(item, [.. _indices], [.. _points], [.. _colours], [.. _uvs], texture: _texture);
             _points.Clear();
             _uvs.Clear();
+            _colours.Clear();
             _indices.Clear();
         }
     }
