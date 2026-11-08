@@ -7,6 +7,7 @@ using Stillwake.Game.Render;
 using Stillwake.Game.Shared;
 using Stillwake.Net;
 using Stillwake.Sim;
+using Stillwake.Sim.Building;
 using Stillwake.Sim.Creatures;
 using Stillwake.Sim.Debris;
 using Stillwake.Sim.Grid;
@@ -27,9 +28,6 @@ public partial class CreaturesView(Ui ui) : Node2D, ILightSource
 {
     private const float Cell = ShipCamera.Cell;
     private const int Unit = CreaturesModule.Unit, Margin = 8;
-
-    /// <summary>How long after this player's own strike on a creature the sim's damage rising is that strike's, already shown.</summary>
-    private const double OwnMs = 700;
 
     /// <summary>How near a hero a creature watches it, in pixels.</summary>
     private const float Watch = 18 * Cell;
@@ -94,8 +92,12 @@ public partial class CreaturesView(Ui ui) : Node2D, ILightSource
         AddChild(_ownHits);
         AddChild(_worldHits);
         AddChild(_ticks);
+        AddChild(_istukans);
+        AddChild(_lurkers);
         AddChild(_bursts);
         _ticks.Bursts = _bursts;
+        _istukans.Bursts = _bursts;
+        _lurkers.Bursts = _bursts;
     }
 
     /// <summary>What every killed creature bursts into, the tick too (2026-10-29-kill-feel).</summary>
@@ -106,16 +108,26 @@ public partial class CreaturesView(Ui ui) : Node2D, ILightSource
 
     private readonly List<Creature> _ticked = [];
 
+    /// <summary>The creatures drawn as the Istukan (<see cref="CreatureLooks.Istukans"/>): posed and drawn anew as the tick is.</summary>
+    private readonly IstukanBodies _istukans = new();
+
+    private readonly List<Creature> _posted = [];
+
+    /// <summary>The creatures drawn as cave lurkers (<see cref="CreatureLooks.Lurkers"/>): rigs in ink posed as they act.</summary>
+    private readonly LurkerBodies _lurkers = new();
+
+    private readonly List<Creature> _lurked = [];
+
     /// <summary>The creatures this player's own shots hit this tick (<see cref="OwnShots"/>).</summary>
     private readonly HashSet<int> _shotByOwn = [];
 
     /// <summary>
     /// Shows <paramref name="creatures"/>'s creatures within <paramref name="view"/> (cells) and <see cref="Margin"/> round it,
-    /// <paramref name="progress"/> of the way from the last tick to the next, recoloured by <paramref name="palette"/> (the planet's,
-    /// <see cref="CreatureLooks.PaletteOf"/>), each creature its own individual by its id and the surface's <paramref name="seed"/> (<see cref="CreatureVariety"/>).
+    /// <paramref name="progress"/> of the way from the last tick to the next, each creature its own individual by its id and the
+    /// surface's <paramref name="seed"/> (<see cref="CreatureVariety"/>).
     /// </summary>
-    public void Frame(Client client, CreaturesModule creatures, IDebrisQueries debris, IGridQueries grid, IRoomsQueries rooms, Spec.Surfaces.Kind rules,
-        Rect2 view, double progress, double elapsedMs, string palette, uint seed)
+    public void Frame(Client client, CreaturesModule creatures, IDebrisQueries debris, IBuildingQueries built, IGridQueries grid, IRoomsQueries rooms, Spec.Surfaces.Kind rules,
+        Rect2 view, double progress, double elapsedMs, uint seed)
     {
         _clockMs += elapsedMs;
         // Another surface, or a load: what was shown was another world's, gone without a puff.
@@ -127,9 +139,12 @@ public partial class CreaturesView(Ui ui) : Node2D, ILightSource
             _held.Clear();
             _bursts.Clear();
             _ticks.Reset();
+            _istukans.Reset();
+            _lurkers.Reset();
             _of = creatures;
+            if (rules is Spec.PlanetType { Creatures.Count: > 0 }) CreatureParts.Warm();
         }
-        (_palette, _seed) = (palette, seed);
+        _seed = seed;
         _bursts.On(grid, rooms, rules);
         OwnShots.Of(creatures.Hits, client.Id, _shotByOwn);
         foreach (int id in _shotByOwn)
@@ -140,6 +155,8 @@ public partial class CreaturesView(Ui ui) : Node2D, ILightSource
         _out.Clear();
         _drawn.Clear();
         _ticked.Clear();
+        _posted.Clear();
+        _lurked.Clear();
         for (int i = 0; i < all.Count; i++)
         {
             var c = all[i];
@@ -147,6 +164,8 @@ public partial class CreaturesView(Ui ui) : Node2D, ILightSource
             if (c.X < left || c.X > right || c.Y < top || c.Y > bottom) continue;
             if (CreatureLooks.Varieties.ContainsKey(c.Species)) _drawn.Add(c.Id);
             else if (CreatureLooks.Ticks.Contains(Spec.Creatures.Get(c.Species).Look)) _ticked.Add(c);
+            else if (CreatureLooks.Istukans.Contains(Spec.Creatures.Get(c.Species).Look)) _posted.Add(c);
+            else if (CreatureLooks.Lurkers.Contains(Spec.Creatures.Get(c.Species).Look)) _lurked.Add(c);
         }
         _gone.Clear();
         foreach (int id in _shown.Keys)
@@ -181,12 +200,12 @@ public partial class CreaturesView(Ui ui) : Node2D, ILightSource
             if (c.Damage > one.Damage)
             {
                 // A friend's strike, or one of this player's own already shown as it was sent.
-                if (_clockMs - one.OwnAt > OwnMs) Struck(one, ToolOf(one.Drawn), own: _clockMs - one.ShotAt < OwnMs);
+                if (_clockMs - one.OwnAt > CreatureLooks.OwnMs) Struck(one, ToolOf(one.Drawn), own: _clockMs - one.ShotAt < CreatureLooks.OwnMs);
                 one.Damage = c.Damage;
             }
             Place(one, c, progress, elapsedMs);
         }
-        // What their glowing parts light this frame: the fluff's spots in a cave, the tapir's pod at dusk.
+        // What their glowing parts light this frame: the tapir's pod at dusk.
         _lights.Clear();
         foreach (var one in _shown.Values) one.Body.Lights(_lights, one.Body.Transform, 1);
         foreach (var held in _held) held.Body.Lights(_lights, held.Body.Transform, 1);
@@ -195,6 +214,8 @@ public partial class CreaturesView(Ui ui) : Node2D, ILightSource
             _sources.Add(new LightSource(at.X, at.Y, (colour.R, colour.G, colour.B), CreatureLooks.LightStrength * colour.A, CreatureLooks.LightReach,
                 CreatureLooks.LightKeep, 1));
         _ticks.Frame(creatures, debris, _ticked, client.World.Tick, progress, elapsedMs, ui.Heroes, _sources, _shotByOwn);
+        _istukans.Frame(creatures, built, grid, _posted, client.World.Tick, progress, elapsedMs, ui.Heroes, _sources, _shotByOwn);
+        _lurkers.Frame(creatures, _lurked, client.World.Tick, progress, elapsedMs, ui.Heroes, _sources, _shotByOwn);
         if (Trace != null) Traced(all);
     }
 
@@ -229,7 +250,6 @@ public partial class CreaturesView(Ui ui) : Node2D, ILightSource
         }
     }
 
-    private string _palette = CreatureLooks.Palette;
     private uint _seed;
 
     /// <summary>
@@ -246,7 +266,7 @@ public partial class CreaturesView(Ui ui) : Node2D, ILightSource
             if (_flying.Contains(strike)) continue;
             if (!_shown.TryGetValue(strike.Creature, out var one))
             {
-                _ticks.OwnStrike(strike.Creature, strike.Tool);
+                if (!_ticks.OwnStrike(strike.Creature, strike.Tool) && !_istukans.OwnStrike(strike.Creature, strike.Tool)) _lurkers.OwnStrike(strike.Creature);
                 continue;
             }
             one.OwnAt = _clockMs;
@@ -395,7 +415,7 @@ public partial class CreaturesView(Ui ui) : Node2D, ILightSource
     {
         var body = _pool.Count > 0 ? _pool.Pop() : Made();
         var individual = CreatureVariety.Of(CreatureLooks.Varieties[c.Species], _seed, c.Id);
-        body.Dress(c.Species, _palette, individual);
+        body.Dress(c.Species, individual);
         Trace?.Invoke($"creatures look: {c.Species} {c.Id} {individual}");
         body.Visible = true;
         var at = new Vector2(c.X, c.Y);
@@ -435,7 +455,7 @@ public partial class CreaturesView(Ui ui) : Node2D, ILightSource
         var middle = one.Drawn + new Vector2(0, -spec.Body.Height * Cell / 2 * one.Body.Size);
         Stages.Of(Layers.Effects).Flares.Glint(middle.X, middle.Y, 12, (255, 255, 255));
         Stages.Of(Layers.Effects).Flares.Shock(middle.X, middle.Y, 3, 30, 200, (255, 246, 236), 0.5 * Fx.Glow, 0.35);
-        bool own = _clockMs - one.OwnAt < OwnMs * 2 || _clockMs - one.ShotAt < OwnMs;
+        bool own = _clockMs - one.OwnAt < CreatureLooks.OwnMs * 2 || _clockMs - one.ShotAt < CreatureLooks.OwnMs;
         if (S.Creatures.TryGetValue(one.Species, out var cues))
             (own ? _ownHits : _worldHits).Play(own ? S.Felt(cues.Death) : cues.Death, middle, cues.Death.Tune, 0);
         one.Body.Whiten();
@@ -487,17 +507,5 @@ public partial class CreaturesView(Ui ui) : Node2D, ILightSource
 
 
     /// <summary>The chest of the hero nearest <paramref name="at"/>, as the crew drew them this frame; a cell over it with none.</summary>
-    private Vector2 NearestHero(Vector2 at)
-    {
-        var nearest = at + new Vector2(0, -Cell * 80);
-        float best = float.MaxValue;
-        foreach (var (x, y) in ui.Heroes)
-        {
-            var hero = new Vector2(x, y);
-            float d = hero.DistanceSquaredTo(at);
-            if (d >= best) continue;
-            (best, nearest) = (d, hero);
-        }
-        return nearest;
-    }
+    private Vector2 NearestHero(Vector2 at) => CreatureFx.NearestOf(ui.Heroes, at) ?? at + new Vector2(0, -Cell * 80);
 }

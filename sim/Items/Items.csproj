@@ -1,3 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
-  <ItemGroup><ProjectReference Include="../Rooms/Rooms.csproj" /></ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="../Rooms/Rooms.csproj" />
+    <ProjectReference Include="../Knowledge/Knowledge.csproj" />
+  </ItemGroup>
 </Project>

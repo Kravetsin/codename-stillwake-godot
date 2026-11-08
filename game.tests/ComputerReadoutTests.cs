@@ -13,6 +13,7 @@ public class ComputerReadoutTests
     /// <summary>A panel (5) and the antenna (1) out on the roof; in the room the computer (2) and three lamps (1 each).</summary>
     private static readonly string[] Rows =
     [
+        "    NN      ",
         "PPP NN      ",
         "    NN      ",
         "############",
@@ -20,8 +21,8 @@ public class ComputerReadoutTests
         "#UUU.......#",
         "############",
     ];
-    private static readonly (int X, int Y) Panel = (0, 0), Antenna = (4, 1), Computer = (1, 3);
-    private static readonly (int X, int Y)[] Lamps = [(5, 3), (6, 3), (7, 3)];
+    private static readonly (int X, int Y) Panel = (0, 1), Antenna = (4, 2), Computer = (1, 4);
+    private static readonly (int X, int Y)[] Lamps = [(5, 4), (6, 4), (7, 4)];
 
     private static (TestWorld W, Reading Reading) Read(params ((int, int), (int, int))[] cables)
     {

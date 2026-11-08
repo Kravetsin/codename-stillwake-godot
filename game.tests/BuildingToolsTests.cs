@@ -36,7 +36,7 @@ public class BuildingToolsTests
         var expected = Materials.All.Where(m => m.Built).Select(m => $"wall:{m.Id}")
             .Concat(Materials.All.Where(m => Blueprints.Has(Placement.BackWall(m.Id))).Select(m => $"backWall:{m.Id}"))
             .Concat(Builds.All.Select(b => b.Id))
-            .Concat(Machines.All.Where(m => !m.Fixed).Select(m => m.Kind));
+            .Concat(Machines.All.Where(m => m.Menu != null).Select(m => m.Kind));
         Assert.Equal(expected.Order(StringComparer.Ordinal), carded.Order(StringComparer.Ordinal));
     }
 
@@ -127,15 +127,10 @@ public class BuildingToolsTests
     }
 
     [Fact]
-    public void SaysWhatTheButtonsDoForEveryCardInWords()
+    public void SaysWhatEveryCardDoesInWords()
     {
         foreach (var card in Tools.All.Concat<Tool>(Tools.Modes.SelectMany(Tools.CardsOf)))
-        {
-            Assert.True(En.Table.ContainsKey(Tools.HintOf(card)), card.Id);
             Assert.True(En.Table.ContainsKey($"tool.{card.Id}.about"), card.Id);
-        }
-        Assert.Equal("hint.build", Tools.HintOf(null));
-        Assert.Equal("hint.valve", Tools.HintOf(Tools.Valve));
         // Wiring's and piping's one tab is named for its mode, as the menu names it.
         foreach (var mode in (PlanMode[])[PlanMode.Wiring, PlanMode.Piping])
             Assert.True(En.Table.ContainsKey($"build.tab.{mode.ToString().ToLowerInvariant()}"), mode.ToString());
@@ -238,8 +233,12 @@ public class BuildingToolsTests
         Assert.Equal((Focus.Front, null), (plan.Focus.Get(), What(plan.Selected.Get())));
         // Only the focused layer is whole.
         Assert.Equal((1f, 1f), Tools.AlphasOf(null));
-        Assert.Equal((Tools.Faded, 1f), Tools.AlphasOf(Focus.Back));
         Assert.Equal((1f, Tools.Faded), Tools.AlphasOf(Focus.Front));
+        // The back walls focused, the front is hidden and they are drawn out of the light, as painted (back-focus-clear).
+        Assert.Equal((0f, 1f), Tools.AlphasOf(Focus.Back));
+        Assert.True(Tools.BackUnlit(Focus.Back));
+        Assert.False(Tools.BackUnlit(Focus.Front));
+        Assert.False(Tools.BackUnlit(null));
     }
 
     [Fact]
@@ -335,7 +334,7 @@ public class BuildingToolsTests
         // open cells behind walls; a cable along the top, from the hull's corner at 0 to 11.
         string[] rows = ["############", "#TTTT .....#", "#TTTT......#", "#TTTT......#", "#TTTT......#", "############"];
         var w = new TestWorld(Layout.Parse(rows, null, [((0, 0), (11, 0))]));
-        string? Pick(int cell) => What(Tools.CardAt(cell, w.M.Grid, w.M.Building, w.M.Research));
+        string? Pick(int cell) => What(Tools.CardAt(cell, w.M.Grid, w.M.Building, w.M.Research, 0));
         Assert.Equal($"wall:{w.M.Grid.WallAt(0)!.Id}", Pick(0));
         Assert.Equal("tank", Pick(14));
         // A back wall's card is its own (0108).
@@ -348,22 +347,21 @@ public class BuildingToolsTests
     [Fact]
     public void ShowsAndPicksOnlyTheCardsTheWorldKnows()
     {
-        // The tank and the wall of the scrap the hull is of, in a world knowing only its start.
+        // The tank and the wall of the scrap the hull is of, in a world knowing little.
         var w = new TestWorld(Layout.Parse(["############", "#TTTT .....#", "#TTTT......#", "#TTTT......#", "#TTTT......#", "############"])
             with
-        { Known = Research.StartKnown });
-        var known = Tools.All.Where(each => Tools.Known(each, w.M.Research)).Select(What).ToList();
-        Assert.Contains("techStation", known);
+        { Known = ["tradeStation", "wallScrap"] });
+        var known = Tools.All.Where(each => Tools.Known(each, w.M.Research, 0)).Select(What).ToList();
         Assert.Contains("tradeStation", known);
         Assert.DoesNotContain("furnace", known);
         Assert.DoesNotContain("crate", known);
-        Assert.False(Tools.Known(Card("tank"), w.M.Research));
-        Assert.Null(Tools.CardAt(14, w.M.Grid, w.M.Building, w.M.Research));
-        Assert.Equal("wall:scrap", What(Tools.CardAt(0, w.M.Grid, w.M.Building, w.M.Research)));
+        Assert.False(Tools.Known(Card("tank"), w.M.Research, 0));
+        Assert.Null(Tools.CardAt(14, w.M.Grid, w.M.Building, w.M.Research, 0));
+        Assert.Equal("wall:scrap", What(Tools.CardAt(0, w.M.Grid, w.M.Building, w.M.Research, 0)));
     }
 
     [Fact]
-    public void EveryCardPlansOnTheLeftAndTheRightRemovesInTheFocusedLayerCardOrNone()
+    public void EveryCardPlansOnTheLeftTheRightLetsItGoAndRemovesInTheFocusedLayerWithNone()
     {
         // The hands: the right button alone is the back; both held, the front (the axe's and the drill's).
         Assert.False(Layering.Back(left: true, right: false));
@@ -377,8 +375,8 @@ public class BuildingToolsTests
                 var left = Tools.ActOf(card, false, focus);
                 if (Tools.FocusOf(card) == focus) Assert.Equal(card.Placement, Assert.IsType<PlaceTool>(left).Placement);
                 else Assert.Null(left);
-                var removal = Assert.IsType<Remove>(Tools.ActOf(card, true, focus));
-                Assert.Equal(Tools.RemovalIn(focus).Layers, removal.Layers);
+                // With a card in hand the right lets it go and takes nothing down (right-lets-go).
+                Assert.Null(Tools.ActOf(card, true, focus));
             }
         Assert.Null(Tools.ActOf(null, false, Focus.Front));
         // With no card in hand the right still removes: in the focused layer.
@@ -397,7 +395,7 @@ public class BuildingToolsTests
         var w = new TestWorld(Layout.Parse(["############", "#TTTT .HH..#", "#TTTT..HH..#", "#TTTT......#", "#TTTT......#", "############"]));
         Sim.Command[] Judged(Focus focus, int from, int to) =>
             [.. Drag.Judge(Tools.RemovalIn(focus), Drag.CellsOf(12, Tools.RemovalIn(focus), new(from % 12, from / 12), new(to % 12, to / 12)),
-                w.M.Building).SelectMany(v => v.Commands)];
+                w.M.Building, 0).SelectMany(v => v.Commands)];
         // Begun on the wall at 0, the front takes the walls, the tank and the ladder in the rectangle, each piece once, never a back wall.
         var front = Judged(Focus.Front, 0, 33).Cast<Deconstruct>().ToList();
         Assert.Contains(new Deconstruct(0, "structure"), front);
@@ -427,6 +425,20 @@ public class BuildingToolsTests
     }
 
     [Fact]
+    public void LettingGoDropsTheCardAndKeepsThePlanOut()
+    {
+        // The bug: the right pressed to let a wall's card go marked the wall under it for taking down (right-lets-go).
+        var plan = new PlanHand(new Ui());
+        plan.Toggle();
+        plan.Pick(Card("wall:scrap"));
+        Assert.True(plan.LetGo());
+        Assert.Equal((true, null), (plan.PlanOut.Get(), What(plan.Selected.Get())));
+        // Nothing in hand, nothing to let go: Esc goes on to put the plan away.
+        Assert.False(plan.LetGo());
+        Assert.True(plan.PlanOut.Get());
+    }
+
+    [Fact]
     public void AfterAWallAndABackWallTheWallComesOffWithTheFrontFocusedAgain()
     {
         // The bug: a back wall's card picked after a wall's, the wall could not be taken without its card picked again.
@@ -435,8 +447,9 @@ public class BuildingToolsTests
         plan.Toggle();
         plan.Pick(Card("wall:scrap"));
         plan.Pick(Card("backWall:scrap"));
+        // The card let go first, the right removes in the focused layer (right-lets-go).
         Sim.Command[] Right() =>
-            [.. Drag.Judge(Tools.ActOf(plan.Selected.Get(), true, plan.Focus.Get())!, [0], w.M.Building).SelectMany(v => v.Commands)];
+            [.. Drag.Judge(Tools.ActOf(null, true, plan.Focus.Get())!, [0], w.M.Building, 0).SelectMany(v => v.Commands)];
         Assert.DoesNotContain(new Deconstruct(0, "structure"), Right());
         plan.ToggleFocus();
         Assert.Equal((Focus.Front, "wall:scrap"), (plan.Focus.Get(), What(plan.Selected.Get())));

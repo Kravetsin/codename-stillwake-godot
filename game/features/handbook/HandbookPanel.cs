@@ -45,6 +45,7 @@ public partial class HandbookPanel : CanvasLayer
     public HandbookPanel(Ui ui, Func<bool> inWorld, IReadOnlyList<HandbookSection> sections)
     {
         (_ui, _inWorld, _sections) = (ui, inWorld, sections);
+        Cap = new EdgeKey("journal", () => Toggle(), () => _open);
         Layer = ScreenLayers.Handbook;
         var root = new Control { MouseFilter = Control.MouseFilterEnum.Ignore, Theme = new Theme { DefaultFont = Style.Mono, DefaultFontSize = Tablet.FontSize } };
         root.SetAnchorsPreset(Control.LayoutPreset.FullRect);
@@ -109,6 +110,12 @@ public partial class HandbookPanel : CanvasLayer
         _open = true;
     }
 
+    /// <summary>The key on the tablet's edge that does what J does, bright while it is out (hologram-keys).</summary>
+    public EdgeKey Cap { get; }
+
+    /// <summary>The tablet itself, which rises from the edge.</summary>
+    public Tablet Tablet => _tablet;
+
     /// <summary>Puts it away: J again, Esc through the menu's <c>Escape</c>, Tab or E.</summary>
     public void Close() => _open = false;
 
@@ -116,7 +123,6 @@ public partial class HandbookPanel : CanvasLayer
     private void LayOut()
     {
         _at = new HandbookScreen(_ui.Slot);
-        _tablet.Size = new Vector2(_at.Width, _at.Height);
         _tabs.Position = new Vector2(TabletLayout.Pad, TabletLayout.Pad);
         _tabs.Size = new Vector2(_at.Width - 2 * TabletLayout.Pad, TabletLayout.TabHeight);
         _view.Position = new Vector2(TabletLayout.Pad, HandbookScreen.BodyTop);
@@ -174,7 +180,7 @@ public partial class HandbookPanel : CanvasLayer
         const int s = TabletLayout.ArtScale;
         var art = new Vector2(_at.Width + TabletLayout.ArtAround * s, _at.Height + TabletLayout.ArtAround * s);
         var rest = ((screen - art) / 2 + new Vector2(TabletLayout.ScreenLeft * s, TabletLayout.ScreenTop * s)).Round();
-        _tablet.Position = rest + new Vector2(0, _tablet.Drop(rest.Y));
+        _tablet.Lay(rest.X, rest.Y, _at.Width, _at.Height);
         int height = BodyHeight();
         _scroll = _at.Scrolled(_scroll, 0, height);
         if (_sections.Count > 0)
@@ -203,16 +209,22 @@ public partial class HandbookPanel : CanvasLayer
     {
         if (e is not InputEventKey { Pressed: true, Echo: false } key || !_open) return;
         // Not taken: Tab opens the inventory, E works what is in reach.
-        if (key.PhysicalKeycode is Key.Tab or Key.E) Close();
+        if (key.Is(Bind.Inventory) || key.Is(Bind.Use)) Close();
     }
 
     /// <summary>J takes it out and puts it away, in a world with the menu shut.</summary>
     public override void _UnhandledInput(InputEvent e)
     {
-        if (e is not InputEventKey { Pressed: true, Echo: false, PhysicalKeycode: Key.J }) return;
-        if (!_inWorld() || _ui.MenuOpen.Get()) return;
+        if (e is not InputEventKey { Pressed: true, Echo: false } key || !key.Is(Bind.Handbook) || !Toggle()) return;
+        GetViewport().SetInputAsHandled();
+    }
+
+    /// <summary>Takes it out or puts it away, as J and its key do, in a world with the menu shut; whether it did.</summary>
+    private bool Toggle()
+    {
+        if (!_inWorld() || _ui.MenuOpen.Get()) return false;
         if (_open) Close();
         else Open();
-        GetViewport().SetInputAsHandled();
+        return true;
     }
 }

@@ -42,9 +42,9 @@ public class HewTests
         Assert.Equal((0, -1000), Rays.Direction(Up));
         Assert.Equal((707, 707), Rays.Direction(32));
         Assert.Equal(Rays.Direction(0), Rays.Direction(Headings.Turn));
-        // The axe's quarter turn in nine rays 8 steps apart, the drill's 8 steps in three 4 apart; round the turn\x27s end.
+        // The axe's quarter turn in nine rays 8 steps apart, the drill's eighth in seven, each offset truncated; round the turn's end.
         Assert.Equal([224, 232, 240, 248, 0, 8, 16, 24, 32], Enumerable.Range(0, Weapons.Axe.Rays).Select(i => Rays.HeadingOf(Weapons.Axe, 0, i)));
-        Assert.Equal([60, 64, 68], Enumerable.Range(0, Weapons.Drill.Rays).Select(i => Rays.HeadingOf(Weapons.Drill, Down, i)));
+        Assert.Equal([48, 54, 59, 64, 69, 74, 80], Enumerable.Range(0, Weapons.Drill.Rays).Select(i => Rays.HeadingOf(Weapons.Drill, Down, i)));
     }
 
     [Fact]
@@ -99,13 +99,12 @@ public class HewTests
     }
 
     [Fact]
-    public void TheDrillsNarrowBeamStrikesOneOrTwoCellsFartherOff()
+    public void TheDrillsFanStrikesTheWholeFaceFartherOff()
     {
         var w = World(Face, Stone);
-        // From five cells off, out of the axe's reach.
+        // From five cells off, out of the axe's reach: the drill's eighth of a turn takes the face's three cells, none behind them.
         Assert.Empty(Struck(w, Axe, Mid(1, 4), Right).Cells);
-        Assert.Equal([At(w, 6, 4)], Struck(w, Drill, Mid(1, 4), Right).Cells);
-        Assert.Equal([At(w, 6, 3), At(w, 6, 4)], Struck(w, Drill, (1500, 4000), Right).Cells);
+        Assert.Equal([At(w, 6, 3), At(w, 6, 4), At(w, 6, 5)], Struck(w, Drill, Mid(1, 4), Right).Cells);
     }
 
     [Fact]

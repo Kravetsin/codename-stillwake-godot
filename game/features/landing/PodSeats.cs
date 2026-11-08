@@ -40,7 +40,8 @@ public partial class PodSeats : Node2D
         var seated = new HashSet<int>();
         foreach (var seat in _seen)
         {
-            if (_grid.MachineById(seat.Pod) is not { } pod || _arrivals?.Holds(seat.Pod) == true) continue;
+            // A seat that does not fly, a treadmill wheel, has no lamps.
+            if (_grid.MachineById(seat.Pod) is not { } pod || !Stillwake.Content.Machines.Is(pod.Kind, Stillwake.Content.MachineTrait.Lands) || _arrivals?.Holds(seat.Pod) == true) continue;
             seated.Add(seat.Pod);
             if (!_shown.TryGetValue(seat.Pod, out var sprite))
             {

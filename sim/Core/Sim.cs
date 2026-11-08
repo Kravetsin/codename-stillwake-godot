@@ -15,7 +15,7 @@ public sealed class World
     /// added; a save of another format is refused. A field added with its default needs no bump: an older build refuses
     /// it as unknown (<see cref="Load"/>), this one reads an older save's lack of it as the default.
     /// </summary>
-    public const int SaveFormat = 39;
+    public const int SaveFormat = 57;
 
     /// <summary>How many ticks a second of game time holds: the host releases them at this pace.</summary>
     public const int TicksPerSecond = 20;
@@ -48,14 +48,18 @@ public sealed class World
     /// <summary>The next tick to run.</summary>
     public int Tick { get; private set; }
 
+    /// <summary>Which world this is on every machine, for what a client keeps of it by itself; 0 for one made with none. The sim never reads it.</summary>
+    public uint Id { get; }
+
     /// <summary>How saves are written.</summary>
     public JsonSerializerOptions Json { get; }
 
     /// <summary>Every command type there is, in order of its name: how the network tags commands.</summary>
     public IReadOnlyList<Type> CommandTypes { get; }
 
-    private World(IReadOnlyList<Module> modules, RngState rng, int tick, string kind)
+    private World(IReadOnlyList<Module> modules, RngState rng, int tick, string kind, uint id)
     {
+        Id = id;
         _rng = rng;
         _rngOver = new Rng(rng);
         Tick = tick;
@@ -86,10 +90,10 @@ public sealed class World
     public bool CanOpen => _surfaces[0].Modules is IModules;
 
     /// <summary>A new world: every module builds its slice from <paramref name="layout"/>.</summary>
-    public static World Create(uint seed, Layout layout, IReadOnlyList<Module> modules)
+    public static World Create(uint seed, Layout layout, IReadOnlyList<Module> modules, uint id = 0)
     {
         foreach (var m in modules) m.Create(layout);
-        var world = new World(modules, new RngState { S = seed }, 0, layout.Kind);
+        var world = new World(modules, new RngState { S = seed }, 0, layout.Kind, id);
         foreach (var m in modules) m.Rebuild();
         return world;
     }
@@ -103,7 +107,7 @@ public sealed class World
         if (format != SaveFormat)
             throw new InvalidDataException($"A save of format {format} cannot be loaded by format {SaveFormat}.");
         var rng = new RngState { S = root.GetProperty("rng").GetUInt32() };
-        var world = new World(modules, rng, root.GetProperty("tick").GetInt32(), root.TryGetProperty("kind", out var kind) ? kind.GetString()! : Surface.Ship);
+        var world = new World(modules, rng, root.GetProperty("tick").GetInt32(), root.TryGetProperty("kind", out var kind) ? kind.GetString()! : Surface.Ship, root.TryGetProperty("id", out var id) ? id.GetUInt32() : 0);
         // A field this build does not know is a newer build's: refused, never dropped, so an added field needs no bump.
         var json = new JsonSerializerOptions(world.Json) { UnmappedMemberHandling = JsonUnmappedMemberHandling.Disallow };
         Restore(root.GetProperty("slices"), modules, json, null);
@@ -240,7 +244,7 @@ public sealed class World
     public Command Fuzz(Rng rng, int from)
     {
         if (CanOpen && _surfaces.Count < FuzzedSurfaces && rng.Below(3) == 0)
-            return new OpenSurface((rng.Below(2) == 0 ? Content.Surfaces.TestStrip : Content.PlanetTypes.Small).Id) { From = from };
+            return new OpenSurface(rng.Below(3) switch { 0 => Content.Surfaces.TestStrip.Id, 1 => Content.PlanetTypes.Small.Id, _ => Content.PlanetTypes.SmallSpire.Id }) { From = from };
         int to = (int)rng.Below((uint)_surfaces.Count + 1);
         int? cell = rng.Below(3) == 0 ? (int)rng.Below(400) : null;
         return new Transfer(to, cell) { From = from };
@@ -288,6 +292,8 @@ public sealed class World
         w.WriteNumber("format", SaveFormat);
         w.WriteNumber("tick", Tick);
         w.WriteNumber("rng", _rng.S);
+        // Unsaid while 0: an old save or a dev world writes and hashes as it did.
+        if (Id != 0) w.WriteNumber("id", Id);
         // The ship's grid under another kind's rules: a test's or a dev world's drawn ground; the ship's own, unsaid.
         if (_surfaces[0].Surface.Kind != Surface.Ship) w.WriteString("kind", _surfaces[0].Surface.Kind);
         // The ship's slices, as before surfaces; the others, and who is on them, only when there are any (0076).

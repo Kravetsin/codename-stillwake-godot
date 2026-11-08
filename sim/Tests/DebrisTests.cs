@@ -55,12 +55,15 @@ public class DebrisTests
 
     private static IReadOnlyList<Piece> Pieces(Scenario w) => w.M.Debris.Pieces;
 
-    /// <summary>The first piece, once <c>Debris.Every</c> ticks have spawned it.</summary>
+    /// <summary>The first piece, once <c>Debris.Every</c> ticks have spawned it: of a world whose first is small enough to take in hand.</summary>
     private static Scenario Spawned(Layout? map = null)
     {
-        var w = new Scenario(map ?? Space).Run(DebrisSpec.Every);
-        Assert.Single(Pieces(w));
-        return w;
+        for (uint seed = 1; ; seed++)
+        {
+            var w = new Scenario(map ?? Space, seed).Run(DebrisSpec.Every);
+            Assert.Single(Pieces(w));
+            if (Content.Wreckage.HpOf(Pieces(w)[0].Item) == null) return w;
+        }
     }
 
     /// <summary>Runs until the first piece's middle is in column <paramref name="x"/>.</summary>
@@ -228,7 +231,7 @@ public class DebrisTests
             {
                 Assert.Equal(last + 1, out_[^1].Id);
                 if (spawns > 0) Assert.True(gap >= DebrisSpec.Every);
-                if (spawns > 0 && out_.Count < DebrisSpec.Max) Assert.True(gap <= DebrisSpec.Every + DebrisSpec.Jitter);
+                if (spawns > 0 && peak < DebrisSpec.Max) Assert.True(gap <= DebrisSpec.Every + DebrisSpec.Jitter);
                 last = out_[^1].Id;
                 spawns += 1;
                 // Until the cap is first reached no beat is skipped, so gaps are beats.
@@ -270,6 +273,8 @@ public class DebrisTests
         Assert.NotEmpty(got);
         Assert.All(got, s => Assert.Contains(s.Item, Gives(piece.Item)));
         if (Gives(piece.Item)[0] == piece.Item) Assert.Equal(1, Count(w, piece.Item, 2));
+        // Its catch is shown through CaughtFrom, from where the piece was: not a gain at the hero (2026-11-06-head-tally).
+        Assert.Empty(w.M.Items.Gains);
     }
 
     [Fact]
@@ -911,6 +916,33 @@ public class DebrisTests
                 return $"piece {p.Id} not on its lead";
         }
         return null;
+    }
+
+    /// <summary>
+    /// A salvage drone's take (salvage-drones): the piece gone, a container's loot rolled from the world's draw as a net's catch
+    /// is, the kind and all it gave recorded as found, no catch reported for a popup; one gone is null.
+    /// </summary>
+    [Fact]
+    public void CatchTakesThePieceRollsItsLootAndRecordsItFound()
+    {
+        var w = new Scenario(Space);
+        var state = (DebrisState)w.M.Debris.Slice;
+        var piece = new Piece { Id = state.NextId++, Zone = DebrisSpec.Ship.Id, Item = "cargoCrate", X = 12500, Y = 3500 };
+        state.Pieces.Add(piece);
+        var loot = w.M.Debris.Catch(piece.Id);
+        Assert.NotNull(loot);
+        Assert.NotEmpty(loot);
+        Assert.All(loot, l => Assert.Contains(l.Item, Gives("cargoCrate")));
+        Assert.Empty(Pieces(w));
+        var found = w.M.Debris.Found.Single(f => f.Kind == "cargoCrate");
+        Assert.Equal(loot.Select(l => l.Item).Distinct(), found.Seen);
+        Assert.Null(w.M.Debris.CaughtFrom(piece.Id));
+        Assert.Null(w.M.Debris.Catch(piece.Id));
+
+        // Salvage is caught as itself.
+        var chunk = new Piece { Id = state.NextId++, Zone = DebrisSpec.Ship.Id, Item = "scrapChunk", X = 12500, Y = 3500 };
+        state.Pieces.Add(chunk);
+        Assert.Equal([("scrapChunk", 1)], w.M.Debris.Catch(chunk.Id));
     }
 
     private static (int Left, int Right, int Top, int Bottom)? HullOf(IGridQueries grid)

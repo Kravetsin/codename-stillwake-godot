@@ -4,9 +4,6 @@ using System.Linq;
 
 namespace Stillwake.Game.Shared;
 
-/// <summary>An effect on a tool's card: a chip with its name, and a line telling it, in its colours, "rrggbb".</summary>
-public sealed record CardEffect(string Name, string About, string Colour, string Ground);
-
 /// <summary>A module's technology (0086), by the id of its icon, and what it does in one short line: "×2 speed · ×2 power".</summary>
 public sealed record CardTech(string Tech, string About);
 
@@ -14,10 +11,30 @@ public sealed record CardTech(string Tech, string About);
 public sealed record CardKey(string Key, string Words = "");
 
 /// <summary>
-/// One of a tool's tiles: its number as written and its label; the first, its accent, in amber. With modules fitted (0098), how it
-/// differs from the plain tool's, <see cref="Boost"/>; null where it does not.
+/// One of a tool's numbers, a row of its card (2026-11-07-tool-card-rows): its value as written and its label, its sign and the
+/// group it is listed in. With modules fitted (0098), how it differs from the plain tool's, <see cref="Boost"/>; null where it does
+/// not. A worn item's one number is one too, with no sign.
 /// </summary>
-public sealed record CardTile(string Value, string Label, CardBoost? Boost = null);
+public sealed record CardTile(string Value, string Label, CardBoost? Boost = null)
+{
+    /// <summary>Its icon and hue; none for a worn item's number.</summary>
+    public CardSign Sign { get; init; }
+
+    /// <summary>The group it is listed under on its card.</summary>
+    public CardGroup Group { get; init; }
+
+    /// <summary>A small word after its label, what it hits: "wrecks"; null for none.</summary>
+    public string? Note { get; init; }
+
+    /// <summary>A number the tool does not have, written as words and dimmed, its sign struck: the cutter's block damage.</summary>
+    public bool Off { get; init; }
+}
+
+/// <summary>What a tool's number is, its icon and hue on the card (2026-11-07-tool-card-rows).</summary>
+public enum CardSign { None, Damage, Block, Pace, Pierce, Arc, Reach, Reel, Battery, Loot }
+
+/// <summary>The groups a tool's numbers are listed under, in this order: its hit or its shot, its reach, what is special.</summary>
+public enum CardGroup { Hit, Shot, Reach, Special }
 
 /// <summary>
 /// How a tool's number differs with its modules fitted from the plain tool's (0098): in the colour of the technology of the first
@@ -85,7 +102,7 @@ public sealed record CardOutput(
 /// <param name="Use">How it is used: its key and a hint.</param>
 /// <param name="Price">What a unit sells for at a trade station; null for what no one buys.</param>
 public sealed record ItemCard(
-    string Item, string Name, string Kind, IReadOnlyList<CardTile>? Tiles, IReadOnlyList<CardEffect> Effects, CardKey? Use, int? Price)
+    string Item, string Name, string Kind, IReadOnlyList<CardTile>? Tiles, CardKey? Use, int? Price)
 {
     /// <summary>A tool: its card edged and its kind written in amber.</summary>
     public bool Tool => Tiles != null;
@@ -126,16 +143,19 @@ public sealed record ItemCard(
     /// </summary>
     public IReadOnlyList<string> Fitted { get; init; } = [];
 
+    /// <summary>A line on what a plain item does, under its kind, where its table has one (<c>item.&lt;id&gt;.about</c>): the salvage drone's; null for most.</summary>
+    public string? About { get; init; }
+
     /// <summary>Its picture: its item's, or the empty battery's for one holding no charge.</summary>
     public string Picture { get; init; } = Item;
 
     public bool Equals(ItemCard? other) =>
         other is not null && Item == other.Item && Name == other.Name && Kind == other.Kind
         && (Tiles == null ? other.Tiles == null : other.Tiles != null && Tiles.SequenceEqual(other.Tiles))
-        && Effects.SequenceEqual(other.Effects) && Use == other.Use && Worn == other.Worn && Headline == other.Headline && Detail == other.Detail
+        && Use == other.Use && Worn == other.Worn && Headline == other.Headline && Detail == other.Detail
         && Price == other.Price && Equals(Station, other.Station) && Charge == other.Charge && Picture == other.Picture && Draw == other.Draw
         && Here == other.Here && Equals(Output, other.Output) && Tech == other.Tech && Fitted.SequenceEqual(other.Fitted)
-        && DrawBoost == other.DrawBoost;
+        && DrawBoost == other.DrawBoost && About == other.About;
 
     public override int GetHashCode()
     {
@@ -153,7 +173,6 @@ public sealed record ItemCard(
         hash.Add(Tech);
         hash.Add(DrawBoost);
         foreach (var module in Fitted) hash.Add(module);
-        foreach (var effect in Effects) hash.Add(effect);
         foreach (var tile in Tiles ?? []) hash.Add(tile);
         return hash.ToHashCode();
     }

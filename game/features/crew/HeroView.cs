@@ -43,7 +43,7 @@ public partial class HeroView : Node2D
     private readonly Figure _figure = new(Suits.All[0], own: true) { ZIndex = Layers.Hero };
     // Over the machines, as the TypeScript drew the crew's layer, so a crate's whole outline shows.
     private readonly Outline _outline = new(Layers.Aim);
-    private readonly FaceRim _faceRim = new();
+    private readonly ModeGlyph _glyph;
     /// <summary>Every tether, behind the heroes and unlit: a line to find the way back by.</summary>
     private readonly Sketch _tethers = new(Layers.Tethers);
     private readonly UsePrompt _prompt = new();
@@ -72,6 +72,8 @@ public partial class HeroView : Node2D
         public Tether? Tether;
         public Busy? Busy;
         public AxeSwing Swing;
+        /// <summary>Its running tool as seen at work this frame (tool-contact); none while none runs.</summary>
+        public ToolWork.Seen? Work;
         public readonly RemoteRod Rod = new();
         public HarpoonLine? Line;
         public readonly Sprite2D RodPicture = rod;
@@ -81,12 +83,14 @@ public partial class HeroView : Node2D
         public StrikeTrain Burns;
         /// <summary>Its drill's hits on the ground as played here, at the drill's pace (0093).</summary>
         public DrillPace Drill;
+        /// <summary>Its power driver's motor, heard where it works while the sim says it runs (power-driver).</summary>
+        public readonly DriverHeard Driver = new();
     }
 
     /// <summary>Each other hero drawn, by peer id.</summary>
     private readonly Dictionary<int, Other> _shownOthers = new();
-    /// <summary>Each other hero as last heard: whether it wields the axe, and the last chop it sent, its swings begun.</summary>
-    private readonly Dictionary<int, (bool Axe, Busy? Last)> _heardChops = new();
+    /// <summary>Each other hero as last heard: whether it wields the axe, the last chop it sent, its swings begun, and where it was as that swing came.</summary>
+    private readonly Dictionary<int, (string? Strikes, HeardChop Heard)> _heardChops = new();
     /// <summary>What this hero's hands wield and are busy with, as drawn and sent to the others.</summary>
     private string? _wields;
     private Busy? _busy;
@@ -109,6 +113,8 @@ public partial class HeroView : Node2D
     /// cell's structure, valve and machine, and the brush's square; traced again only when one of them changes.
     /// </summary>
     private (int Cell, int? Plan, bool Refused, int Structure, int Valve, int? Machine, bool Back)? _traced;
+    /// <summary>The power driver's square last outlined and what it worked, or none while the aim is (<see cref="TraceSquare"/>).</summary>
+    private ((int X, int Y, int Side) Square, List<WorkAim> Targets)? _tracedSquare;
     private int _steps;
     /// <summary>The world tick the last <c>Enter</c> went out on: the report waits <c>Crew.ReportEvery</c> after it (0050).</summary>
     private int _reportedAt = -Content.Crew.ReportEvery;
@@ -128,19 +134,29 @@ public partial class HeroView : Node2D
     private bool _grabHeld;
     /// <summary>Whether the swing under way was begun with the right button: it digs the back walls (0107).</summary>
     /// <summary>
-    /// The harpoon (0044): this hero's rod and the cooldown every harpoon it holds waits for, the line to the
-    /// rod, the rod as drawn, and whether the arm aims the gun, so the hero keeps facing the pointer.
+    /// The harpoon (0044) and the grappling gun (grapple-climbs): each one's rod and the cooldown every gun of its kind
+    /// waits for, the line to the rod, the rod as drawn, and whether the arm aims the gun, so the hero keeps facing the
+    /// pointer. <see cref="_harpoon"/> is the one in the hand, the harpoon's when neither is; the grappling gun's world
+    /// offers it walls only.
     /// </summary>
-    private HarpoonShot _harpoon = new();
-    private readonly HarpoonWorld _harpoonWorld;
+    private HarpoonShot _harpoonGun = HarpoonShot.Harpoon(), _grappleGun = HarpoonShot.Grapple();
+    private bool _grappling;
+    private HarpoonShot _harpoon => _grappling ? _grappleGun : _harpoonGun;
+    private readonly HarpoonWorld _harpoonWorld, _grappleWorld;
+
+    /// <summary>Both guns' rods back in them, their cooldowns over: moved to another surface or across the fog.</summary>
+    private void ResetGuns() => (_harpoonGun, _grappleGun) = (HarpoonShot.Harpoon(), HarpoonShot.Grapple());
     private HarpoonLine? _line;
     private readonly RodLight _rodLight = new();
     private bool _aimsGun;
     /// <summary>
-    /// The drill (0054): whether the arm aims it at the pointer, so the hero keeps facing it, and the world tick
-    /// its last hits went on while it runs; none while it does not.
+    /// The drill (0054): whether it is wielded with a pointer to aim at, and the world tick its last hits went on while it
+    /// runs; none while it does not.
     /// </summary>
     private bool _aimsDrill;
+    /// <summary>Whether an aimed item's arm is up (aim-on-use), so the hero faces the pointer, swimming the other way too; a click waiting for it.</summary>
+    private bool _armUp, _clickWaits;
+    private ArmUp _arm;
     private DrillPace _drillPace;
     /// <summary>The drill on a wreck, heard at its bit through the suit as the wreck sounds hit, the chop, at the drill's pace (0093).</summary>
     private readonly Heard2D _drillChop = Cues.Player2D(S.Chop, S.Suit, voices: 4);
@@ -150,6 +166,15 @@ public partial class HeroView : Node2D
     private StrikeTrain _grains;
     private MotorSound _drillMotor;
     private TouchHold _onPiece;
+    /// <summary>The grinder's motor and bite, the plasma cutter's jet, heard at the tool through the suit as the drill's whir (salvage-tools).</summary>
+    private readonly Heard2D _grinderRun = Cues.Player2D(S.GrinderRun, S.Suit), _grinderBite = Cues.Player2D(S.GrinderBite, S.Suit, voices: 2),
+        _cutterStrike = Cues.Player2D(S.CutterStrike, S.Suit), _cutterRun = Cues.Player2D(S.CutterRun, S.Suit), _cutterOff = Cues.Player2D(S.CutterOff, S.Suit);
+    private RunSounds _runSounds;
+    /// <summary>This hero's running tool as seen at work (tool-contact), and every running tool's stream and jet drawn.</summary>
+    private ToolWork.Seen? _ownWork;
+    private readonly ToolWork _work = new();
+    /// <summary>This hero's power driver, heard where it works while it runs (power-driver).</summary>
+    private readonly DriverHeard _driverHeard = new();
     /// <summary>The jetpack's thrust, heard through the suit while this hero thrusts, muffled out in space as all there is, its envelope eased in and out (0047, 0059).</summary>
     private readonly AudioStreamPlayer _thrustLoop = Cues.Player(S.Thrust, S.Suit);
     private LoopEnvelope _thrustSound;
@@ -161,7 +186,8 @@ public partial class HeroView : Node2D
     private readonly AudioStreamPlayer _shot = Cues.Player(S.Shot, S.Suit), _drum = Cues.Player(S.Drum, S.Suit),
         _ready = Cues.Player(S.Ready, S.Suit);
     /// <summary>This hero's axe swung, every swing, through the suit as its chop is (0068); others' swings are silent, as their chops.</summary>
-    private readonly AudioStreamPlayer _swingSound = Cues.Player(S.Swing, S.Suit, voices: 2);
+    private readonly AudioStreamPlayer _swingSound = Cues.Player(S.Swing, S.Suit, voices: 2), _hammerSwing = Cues.Player(S.HammerSwing, S.Suit),
+        _spearThrust = Cues.Player(S.SpearThrust, S.Suit, voices: 2);
     /// <summary>The rod biting into metal, where it struck; a crate or a pod thumps as a glove does.</summary>
     private readonly Heard2D _bite = Cues.Player2D(S.Chop, S.Suit, voices: 2);
     // Others' guns are heard on World, where they are, as their steps are: through the air, gone while this hero floats (0065).
@@ -179,19 +205,23 @@ public partial class HeroView : Node2D
     /// <summary>What the harpoon reads of the world, set at the start of every frame.</summary>
     private Registry? _m;
     private Client? _client;
-    private double _progress;
+    private double _progress, _drift;
     /// <summary>Whether this peer hosts its world: its shots drawn as the sim flies them, none flown here (<see cref="ShotDraws"/>).</summary>
     private bool _hosts;
     /// <summary>The ship as this frame's steps met it, doors as this peer shows them: what the rod grips.</summary>
     private Ship? _ship;
     /// <summary>Whether the player jumped or held a movement key in this frame's steps: a hanging hero lets go.</summary>
     private bool _letsGo;
+    /// <summary>Seated in a treadmill wheel, whether a move key was held at the last step: it runs.</summary>
+    private bool _runs;
     /// <summary>Which way the jetpack thrust in this frame's last step, a unit vector in thousandths; none while it does not (0047).</summary>
     private Point? _thrust;
     /// <summary>Each hero's jetpack plume, by peer, made the first time it shows (0075).</summary>
     private readonly Dictionary<int, JetPlume> _plumes = new();
-    /// <summary>Whether the player asked to breathe a canister, from the inventory, since the last frame.</summary>
+    /// <summary>Whether the player asked to breathe a canister, from the inventory, R or its edge key, since the last frame.</summary>
     private bool _breathe;
+    /// <summary>Whether the player asked to switch its suit's mode, by V or its edge key, since the last frame.</summary>
+    private bool _switchSuit;
     // A canister breathed is heard in the helmet, never muffled; a friend's on World, where it is.
     private readonly AudioStreamPlayer _breathes = Cues.Player(S.AirFill, S.Helmet);
     private readonly Heard2D _othersBreathe = Cues.Player2D(S.AirFill, S.World, voices: 2);
@@ -215,6 +245,7 @@ public partial class HeroView : Node2D
     public HeroView(Ui ui, WorldButtons mouse, HeroAutopilot? autopilot = null)
     {
         _ui = ui;
+        _glyph = new ModeGlyph(ui);
         _bodies = new BodyView(ui);
         // Plans placed: the planner in the hero's hand beams them in, cell by cell; the others see it beam at the first.
         _ui.Planned += cells =>
@@ -223,6 +254,7 @@ public partial class HeroView : Node2D
             (_beamAt, _beamLeftMs) = (Middle(cells[0]), Figure.BeamMs);
         };
         _ui.Breathed += () => _breathe = true;
+        _ui.SuitSwitched += () => _switchSuit = true;
         _mouse = mouse;
         _autopilot = autopilot;
         _sender = new HeroSender(hero => _sendTo?.SendHero(hero.Encode()));
@@ -232,24 +264,30 @@ public partial class HeroView : Node2D
         AddChild(_others);
         AddChild(_figure);
         AddChild(_outline);
-        AddChild(_faceRim);
+        AddChild(_glyph);
         AddChild(_prompt);
         AddChild(_act);
         // The lines and the rod over this machine's hero: they leave its gun's muzzle.
         AddChild(_lines);
+        AddChild(_work);
         _rod = NewRod();
-        foreach (var player in new Node[] { _shot, _drum, _ready, _swingSound, _bite, _breathes, _drillChop, _whir, _thrustLoop, _othersShot, _othersBite,
+        foreach (var player in new Node[] { _shot, _drum, _ready, _swingSound, _hammerSwing, _spearThrust, _bite, _breathes, _drillChop, _whir, _thrustLoop, _othersShot, _othersBite,
                      _othersThump, _othersBreathe, _air, _groundHits, _othersGroundHits, _burn, _othersBurn, _thud, _othersThud, _ownShots, _nailShot, _dryClick, _nailReady, _railShot, _railCharge, _railReady,
-                     _ownShotEnds })
+                     _ownShotEnds, _grinderRun, _grinderBite, _cutterStrike, _cutterRun, _cutterOff })
             AddChild(player);
+        foreach (var player in _driverHeard.Players) AddChild(player);
         _tethers.Paint = PaintTethers;
         _lines.Paint = PaintLines;
         _harpoonWorld = new HarpoonWorld(
-            Touches: (from, to) => Aiming.RodMeets(_m!, _ship!, _client!.Id, from, to, _progress),
+            Touches: (from, to) => Aiming.RodMeets(_m!, _ship!, _client!.Id, from, to, _drift),
             PieceAt: PieceDrawnAt,
             Reelable: id => _m!.Debris.ReelProblem(_client!.Id, id) == null,
             Reeled: id => ReelInFlight(id) || PieceOf(id)?.Reel?.By == _client!.Id,
             Grips: at => Aiming.Grips(_ship!, at));
+        _grappleWorld = _harpoonWorld with
+        {
+            Touches = (from, to) => Aiming.Grapples(_ship!, from, to) is { } wall ? new RodHit(null, wall.At) : null,
+        };
     }
 
     /// <summary>A harpoon rod's picture, over the heroes, lit, hidden till a rod is out.</summary>
@@ -260,8 +298,6 @@ public partial class HeroView : Node2D
             Centered = false,
             Visible = false,
             ZIndex = Layers.Hero,
-            Texture = GD.Load<Texture2D>(RodLook.Picture),
-            Offset = -new Vector2((float)RodLook.Eye.X, (float)RodLook.Eye.Y),
         };
         Lit.Set(rod);
         AddChild(rod);
@@ -269,7 +305,7 @@ public partial class HeroView : Node2D
     }
 
     /// <summary>Where piece <paramref name="id"/> is drawn this frame, between ticks; none once it is gone.</summary>
-    private (double X, double Y)? PieceDrawnAt(int id) => PieceOf(id) is { } piece ? PieceDrawn.At(piece, _progress) : null;
+    private (double X, double Y)? PieceDrawnAt(int id) => PieceOf(id) is { } piece ? PieceDrawn.At(piece, _drift) : null;
 
     /// <summary>Piece <paramref name="id"/> as the sim has it this frame; none once it is gone.</summary>
     private Piece? PieceOf(int id)
@@ -341,6 +377,9 @@ public partial class HeroView : Node2D
     /// <summary>Other heroes where they are drawn this frame, by peer: what sways the cables besides this one, what the markers point at.</summary>
     public IReadOnlyList<(int Id, Hero Hero)> Others { get; private set; } = [];
 
+    /// <summary>Where the hero's helmet and feet are drawn this frame, for what hangs over its head; null while it is not shown.</summary>
+    public (Vector2 Head, Vector2 Feet)? Shown => _placed && _figure.Visible ? (_figure.HeadAt, _figure.Stance.Feet) : null;
+
     /// <summary>
     /// Where every helmet lamp worn on this surface shines from as drawn this frame, in the world's pixels, and the way it
     /// points, where its head looks, and the helmet's neck, inside the hero (0077): this hero's and each friend's shown, so a friend's beam lights a cave for
@@ -363,22 +402,26 @@ public partial class HeroView : Node2D
     /// breathing (<see cref="Report"/>). The hero wakes at the crew's spawn, and again there on coming
     /// round, and takes no orders while passed out. <paramref name="heard"/> are the other heroes the
     /// client took since the last frame, each drawn where it stood a little while ago; <paramref name="progress"/> is
-    /// how far the world is between its last tick and the next, where the debris a harpoon's rod sticks in is drawn;
+    /// how far the world is between its last tick and the next; <paramref name="drift"/>, how far debris has drifted past
+    /// the last tick (<c>Session.Drift</c>), where the debris a harpoon's rod sticks in is drawn;
     /// <paramref name="hosts"/>, whether this peer hosts, so draws its shots as the sim flies them.
     /// </summary>
-    public void Frame(Client client, Registry m, Camera2D camera, IReadOnlyList<PeerHeroMessage> heard, double progress, bool hosts, double elapsedMs)
+    public void Frame(Client client, Registry m, Camera2D camera, IReadOnlyList<PeerHeroMessage> heard, double progress, double drift, bool hosts, double elapsedMs)
     {
-        (_m, _client, _progress, _hosts) = (m, client, progress, hosts);
+        (_m, _client, _progress, _drift, _hosts) = (m, client, progress, drift, hosts);
         var grid = m.Grid;
         _width = grid.Width;
         // Doors as this peer shows them: its own toggles still in flight already open or shut.
         var shown = Predicted.Grid(client, grid, m.Pipes);
-        var ship = _ship = Ship.Of(grid, m.Rooms, cell => shown.StructureAt(grid, cell), m.Rules);
+        var ship = _ship = Ship.Of(grid, m.Rooms, cell => shown.StructureAt(grid, cell), m.Rules, m.Liquids.AmountAt);
         var known = m.Crew.HeroOf(client.Id);
         bool passedOut = (known?.Out ?? 0) > 0;
         // Sitting in a drop pod, the hero keeps to its seat, takes no orders but E's, and is drawn behind its porthole (SeatedHeroes).
         int? seat = Seating.SeatOf(m, client.Id);
-        InPod = seat != null;
+        InPod = Seating.InPod(m, client.Id);
+        // In a treadmill wheel a move key held runs it, and the hero breathes as a runner (power-chain); in a pod it sits still.
+        bool wheel = Seating.InWheel(m, client.Id);
+        if (!wheel) _runs = false;
         // A jetpack worn (0047): no tether, and Shift in space thrusts while the suit has air to vent.
         bool jetpack = m.Items.Equipped(client.Id, Content.Jetpack.Item);
         bool canThrust = !passedOut && jetpack && known is { Air: > 0 };
@@ -388,7 +431,7 @@ public partial class HeroView : Node2D
         // Moved to another surface, the harpoon's rod is back in the gun: what it stuck in is another grid's (0076).
         if (moved)
         {
-            _harpoon = new HarpoonShot();
+            ResetGuns();
             _guns.Drop();
         }
         // Waking from passing out, the sim has put the hero at the spawn: so does the client. Moved to another surface, it
@@ -413,7 +456,7 @@ public partial class HeroView : Node2D
         if (_moveTo != null && !passedOut && seat == null)
         {
             _previous = _current = _moveTo(ship);
-            _harpoon = new HarpoonShot();
+            ResetGuns();
             _snap = true;
             _reportedAt = int.MinValue / 2;
         }
@@ -434,10 +477,11 @@ public partial class HeroView : Node2D
         {
             // Passed out, the hero takes no orders and only falls; keys pressed meanwhile are spent.
             var taken = _autopilot?.Next(_current) ?? Take();
+            if (wheel) _runs = taken.X != 0;
             // Swinging, it faces where the swing began toward, swimming too: the blade comes down there. Aiming
             // the harpoon, it faces the pointer, swimming the other way too. With no pointer, a script faces where it says.
             bool swinging = _swing.Phase != null;
-            _letsGo |= taken.Jump || taken.X != 0 || taken.Y != 0;
+            _letsGo |= HarpoonShot.LetsGoBy(taken);
             // Pulled by the grapple or hanging from it, the line moves the hero, not the keys; pulled, it faces the hook.
             var pull = passedOut ? null : _harpoon.PullTo;
             int? faces = _harpoon.Rod == Rod.Pulling ? (_harpoon.Tip.X < _current.X ? -1 : 1) : swinging ? _swingFace : face ?? taken.Face;
@@ -449,7 +493,7 @@ public partial class HeroView : Node2D
             if (thrust != null) _thrust = thrust;
             var input = passedOut || seat != null
                 ? new HeroInput(0, 0, false, Jetpack: jetpack)
-                : taken with { Face = faces, Swings = swinging || _aimsGun || _aimsDrill, Pull = pull, Jetpack = jetpack, Thrust = thrust };
+                : taken with { Face = faces, Swings = swinging || _armUp, Pull = pull, PullBy = _harpoon.PullBy, Jetpack = jetpack, Thrust = thrust };
             // Rammed, the hero is thrown, not walked: no keys, no ladder, a held Up or Space taken by nothing (0103).
             if (_reel > 0)
             {
@@ -476,7 +520,7 @@ public partial class HeroView : Node2D
             client.Send(report);
             _reportedAt = tick;
         }
-        bool exerting = !passedOut && Report.Exerting(_current, ship.Space(_current.BodyCell(grid.Width)));
+        bool exerting = !passedOut && Report.Exerting(_current, ship.Space(_current.BodyCell(grid.Width)), seat != null ? _runs : null);
         if (!passedOut && Report.ExertOf(m.Crew, client.Id, exerting) is { } exert) client.Send(exert);
         // Off as Shift is let go, aboard, the jetpack taken off or the suit empty: the sim stops venting it.
         if (Report.ThrustOf(m.Crew, client.Id, _thrust != null) is { } thrusts) client.Send(thrusts);
@@ -484,6 +528,12 @@ public partial class HeroView : Node2D
         for (int burnt = _burns.Due(elapsedMs, Burns(m, known), 1 / S.LavaBurnEveryS); burnt > 0; burnt--) _burn.Play();
         if (_breathe && !passedOut) Breathe(client, m);
         _breathe = false;
+        if (_switchSuit && Report.SuitModeOf(m.Crew.HeroOf(client.Id)?.SuitOn ?? false, m.Crew.SuitModeProblem(client.Id), client.InFlight) is { } mode)
+        {
+            client.Send(mode);
+            _ui.Click();
+        }
+        _switchSuit = false;
 
         // Others' heroes in, this one out once its hands are known: through the host, never through the simulation.
         bool holdsPlan = HoldsPlan && !passedOut;
@@ -494,9 +544,10 @@ public partial class HeroView : Node2D
             if (SentHero.Decode(message.State) is { } sent)
             {
                 _remote.Add(message.From, sent, _clockMs);
-                // Swings are swung as heard, not behind with the body, so the blade meets the wreck as the hit lands (0038).
-                var last = _heardChops.GetValueOrDefault(message.From).Last;
-                _heardChops[message.From] = (sent.Seen.Wields == Content.Weapons.Axe.Item, Busy.Chopping(last, sent.Seen.Busy));
+                // Swings are swung as heard, not behind with the body, so the blade meets the wreck as the hit lands (0038); each
+                // aimed from where the hero was in the packet that brought it (swing-motions).
+                var heardNow = Busy.Hear(_heardChops.GetValueOrDefault(message.From).Heard, sent.Seen);
+                _heardChops[message.From] = (Strokes.Of(sent.Seen.Wields) != null ? sent.Seen.Wields : null, heardNow);
             }
         ShowOthers(ship, m, elapsedMs);
         _bodies.Frame(m, client.Id, progress, elapsedMs, Pointer());
@@ -510,21 +561,25 @@ public partial class HeroView : Node2D
         var pointer = Pointer();
         var drawn = _current with { X = (int)Math.Round(x), Y = (int)Math.Round(y) };
         _ui.Heroes = [Chest(drawn), .. Others.Select(o => Chest(o.Hero))];
-        _ui.Bits = Bits(m, client.Id);
+        _ui.Bits = Bits();
         bool inSpace = Floats = ship.Space(drawn.BodyCell(ship.Width));
-        // Gliding in a planet's fog it floats as in space (fog-edges), though nothing there is space.
-        var pose = Poses.PoseOf(drawn, inSpace || drawn.Gliding, passedOut);
+        // Gliding in a planet's fog it floats as in space (fog-edges), though nothing there is space; in water it swims so.
+        var pose = Poses.PoseOf(drawn, inSpace || drawn.Gliding || ship.Wet(drawn.BodyCell(ship.Width)), passedOut);
         // The hands first, so the frame a hit goes draws the blade meeting the wreck; a swing begun turns the hero.
         UseHands(client, m, shown, pointer, passedOut, pose, elapsedMs, handFree: !HoldsPlan);
+        _ui.Driven = [.. _shownOthers.Values.Select(o => o.Driver).Append(_driverHeard).Where(d => d.Hum.Quiets).Select(d => (d.At.X, d.At.Y))];
         drawn = drawn with { Facing = _current.Facing };
         double look = passedOut ? 0 : Poses.LookOf(_current, pointer);
         var (helmet, body) = Suits.WornBy(m.Items, client.Id);
         _figure.Wear(Suits.Of(m.Players, client.Id), helmet, body, m.Players.LookOf(client.Id));
+        _figure.Suit = SuitGlow.Of(m.Crew, m.Items, client.Id, client.World.Tick);
         _figure.Jetpack = jetpack;
         _figure.HeadLamp = m.Items.Equipped(client.Id, Content.HelmetLamp.Item);
+        _figure.Scanner = m.Items.Equipped(client.Id, Content.Helmet.Scanner);
         _figure.WearsCape = m.Items.Equipped(client.Id, Content.Cape.Item);
         _figure.FloorRoom = FloorRoom(m.Grid, drawn);
         _figure.Footing = FootingOf(m, drawn, _figure.Footing);
+        _figure.InWater = ship.Wading(drawn.FeetCell(ship.Width));
         _figure.Ledge = LedgeOf(ship, drawn);
         _figure.Show(drawn, pose, look, holdsPlan, elapsedMs);
         _figure.Visible = seat == null;
@@ -536,6 +591,7 @@ public partial class HeroView : Node2D
         _sender.Step(elapsedMs, new Seen(_current, ownLook, holdsPlan, _wields, _busy, _harpoon.Seen), _steps * Hero.StepMs);
         _tethers.QueueRedraw();
         _lines.QueueRedraw();
+        _work.Frame([.. Works()], elapsedMs);
     }
 
     /// <summary>
@@ -545,10 +601,10 @@ public partial class HeroView : Node2D
     /// </summary>
     private void Fogged(Ship ship, bool seated)
     {
-        if (ship.Glides(_current.X) && !ship.Glides(_previous.X)) _harpoon = new HarpoonShot();
+        if (ship.Glides(_current.X) && !ship.Glides(_previous.X)) ResetGuns();
         if (FogMove.Of(ship, _previous, _current, seated) is not { } moved) return;
         _previous = _current = moved;
-        _harpoon = new HarpoonShot();
+        ResetGuns();
         _snap = true;
         _reportedAt = int.MinValue / 2;
     }
@@ -628,20 +684,25 @@ public partial class HeroView : Node2D
         _figure.OnPixels = new Vector2((float)feet.X, (float)feet.Y) * (float)Rig.Cell;
     }
 
-    /// <summary>The world point under the pointer, in cells, or the autopilot's while it points; none off the window, under the menu or the computer's window.</summary>
-    private (double X, double Y)? Pointer() => _autopilot?.PointerFor(_current) ?? (_ui.MenuOpen.Get() || _ui.OpenComputer.Get() != null || _ui.OpenTech.Get() != null ? null : _mouse.Pointer());
+    /// <summary>The world point under the pointer, in cells, or the autopilot's while it points; none off the window, under the menu, the computer's window or the tree.</summary>
+    /// <summary>Where this player points, in cells: the autopilot's, else the mouse's; none while a menu, a computer or the tree is open.</summary>
+    public (double X, double Y)? Pointer() => _autopilot?.PointerFor(_current) ?? (_ui.MenuOpen.Get() || _ui.OpenComputer.Get() != null || _ui.TreeOpen.Get() ? null : _mouse.Pointer());
 
     public override void _UnhandledInput(InputEvent e)
     {
         if (e is not InputEventKey { Pressed: true, Echo: false } key) return;
-        if (key.PhysicalKeycode == Key.Space) _jump = true;
-        if (key.PhysicalKeycode == Key.E) _use = true;
+        if (key.Is(Bind.Jump)) _jump = true;
+        if (key.Is(Bind.Use)) _use = true;
+        // Breathe (R) takes a canister as a right click on one does; Suit (V) switches the suit's mode (2026-11-03-the-regen-suit).
+        if (key.Is(Bind.Breathe)) _breathe = true;
+        if (key.Is(Bind.Suit)) _switchSuit = true;
     }
 
     /// <summary>The input for the next controller step, by the keys' places on the keyboard; a jump counts for one step only.</summary>
     private HeroInput Take()
     {
-        static bool Held(Key a, Key b) => Input.IsPhysicalKeyPressed(a) || Input.IsPhysicalKeyPressed(b);
+        // The arrows walk always, beside the keys bound (2026-11-04-key-binds).
+        static bool Held(Bind bind, Key arrow) => BindKeys.Held(bind) || Input.IsPhysicalKeyPressed(arrow);
         static int Axis(bool minus, bool plus) => (plus ? 1 : 0) - (minus ? 1 : 0);
         // Keys held as the game menu opened are not walked on behind it, nor letters typed in a field (the build menu's search).
         if (_ui.MenuOpen.Get() || GetViewport().GuiGetFocusOwner() is LineEdit)
@@ -650,11 +711,11 @@ public partial class HeroView : Node2D
             return new HeroInput(0, 0, false);
         }
         var input = new HeroInput(
-            Axis(Held(Key.A, Key.Left), Held(Key.D, Key.Right)),
-            Axis(Held(Key.W, Key.Up), Held(Key.S, Key.Down)),
+            Axis(Held(Bind.WalkLeft, Key.Left), Held(Bind.WalkRight, Key.Right)),
+            Axis(Held(Bind.Up, Key.Up), Held(Bind.Down, Key.Down)),
             _jump,
-            Sprint: Input.IsPhysicalKeyPressed(Key.Shift),
-            JumpHeld: Input.IsPhysicalKeyPressed(Key.Space));
+            Sprint: BindKeys.Held(Bind.Sprint),
+            JumpHeld: BindKeys.Held(Bind.Jump));
         _jump = false;
         return input;
     }

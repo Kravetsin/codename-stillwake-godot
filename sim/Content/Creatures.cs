@@ -8,7 +8,7 @@ public static class Creatures
 {
     /// <summary>
     /// A species, composed (2026-10-26-creatures-are-composed): its <paramref name="Look"/>, the design the client draws it in (its
-    /// parts in <c>game/art/creatures/</c>); its <paramref name="Body"/>, how it is shaped and moves; its <paramref name="Life"/>;
+    /// parts in <c>game/art/hd/creatures/</c>); its <paramref name="Body"/>, how it is shaped and moves; its <paramref name="Life"/>;
     /// its <paramref name="Faction"/>, one of <see cref="Factions"/>; how long it lives; its <paramref name="Brain"/>, the drives it
     /// may follow, the first ranked highest; its <paramref name="Moves"/>, the acts it may make; what it gives when it dies, drawn
     /// entry by entry as a container's loot is. Each record is served by one rule in the creatures module.
@@ -39,8 +39,12 @@ public static class Creatures
     /// <summary>Its hit points, and the knock a hit gives it across and the hop up, at a full pace's blow (<see cref="KnockPace"/>).</summary>
     public sealed record Life(int Hp, int Knock, int Hop);
 
-    /// <summary>How long a creature lives: <see cref="Wild"/>, while some hero is near (<see cref="Keep"/>, <see cref="Linger"/>).</summary>
-    public enum Lifetime { Wild }
+    /// <summary>
+    /// How long a creature lives: <see cref="Wild"/>, while some hero is near (<see cref="Keep"/>, <see cref="Linger"/>);
+    /// <see cref="Posted"/>, that too, but it comes of a post (<c>Flora.Post</c>) rather than a habitat, and goes without a drop when
+    /// its post or its arena's relic is gone or its drive calms. Never let out: no post, no guard.
+    /// </summary>
+    public enum Lifetime { Wild, Posted }
 
     /// <summary>Something a creature may want to do, ranked by its place in a brain.</summary>
     public abstract record Drive;
@@ -67,9 +71,17 @@ public static class Creatures
     /// <summary>
     /// Guarding its piece: watching, and alerted while a hero is within <paramref name="Notice"/> cells (box distance); alerted
     /// <paramref name="AlertTicks"/> and a hero within <paramref name="Strike"/>, or struck, or its piece struck, it pounces with its
-    /// first move. Alerted, it waits for one to come that close.
+    /// first move. Alerted, it waits for one to come that close. With <paramref name="Provokes"/> (a cave lurker, lurker-attacks) it
+    /// shoots only <paramref name="Provokes"/> ticks after it last answered a hero: struck or within its strike, never at one just
+    /// come into sight.
     /// </summary>
-    public sealed record Guard(int Notice, int Strike, int AlertTicks) : Drive;
+    public sealed record Guard(int Notice, int Strike, int AlertTicks, int Provokes = 0) : Drive;
+
+    /// <summary>
+    /// A shell (the geode snail, lurker-attacks): a reflex, open <paramref name="Hold"/> ticks after an awake hero was last within
+    /// <paramref name="Reach"/> cells, else shut. Shut, no blow hurts it; open, only melee does: never a shot.
+    /// </summary>
+    public sealed record Shell(int Reach, int Hold) : Drive;
 
     /// <summary>Flying back to where it clamps on at <paramref name="Speed"/> a tick, wanted whenever it is not clamped on.</summary>
     public sealed record Return(int Speed) : Drive;
@@ -77,31 +89,46 @@ public static class Creatures
     /// <summary>A reflex, never in charge: a harpoon's line on its piece is cut <paramref name="Ticks"/> after it is seen, if still on.</summary>
     public sealed record CutTether(int Ticks) : Drive;
 
+    /// <summary>
+    /// Keeping its post's arena (spire guards): asleep till an awake hero's reported cell is in the arena, a blow lands or a sibling is
+    /// up; <paramref name="Wake"/> ticks waking; then waiting for its turn to make its first move, no sibling crouching or flying; after
+    /// that <paramref name="Stuck"/> ticks on the floor, counted from its landing. <paramref name="Calm"/> ticks with no awake hero in the
+    /// arena and no blow, it goes, whole again on a later beat.
+    /// </summary>
+    public sealed record Ward(int Wake, int Stuck, int Calm) : Drive;
+
     /// <summary>An act a creature makes, in phases, the suit units it takes from a hero it hits.</summary>
     public abstract record Move(int Damage);
 
     /// <summary>
     /// A ram along the ground (0103): it crouches <paramref name="WindUp"/> ticks once grounded, then charges the nearest hero at
     /// <paramref name="Speed"/> a tick, never leaping, till it is <paramref name="Past"/> cells past it, a wall or a drop, or
-    /// <paramref name="Ticks"/>: a hero farther than that run as the wind-up ends is let be. A blow cuts it short.
+    /// <paramref name="Ticks"/>: a hero farther than that run as the wind-up ends is let be. A blow cuts it short, unless it is
+    /// <paramref name="Steady"/> (the geode snail's roll, cave-hostiles): then neither its crouch nor its charge is cut, so a drill held on
+    /// it cannot keep it crouching.
     /// </summary>
-    public sealed record Lunge(int WindUp, int Speed, int Ticks, int Past, int Damage) : Move(Damage);
+    public sealed record Lunge(int WindUp, int Speed, int Ticks, int Past, int Damage, bool Steady = false) : Move(Damage);
 
-    /// <summary>The factions a creature may be of: heroes and what is theirs are <see cref="Crew"/>.</summary>
-    public const string Crew = "crew", Grazer = "grazer", Machines = "machines";
+    /// <summary>
+    /// The factions a creature may be of: heroes and what is theirs are <see cref="Crew"/>; <see cref="Beasts"/>, wild creatures that
+    /// hunt heroes (cave-hostiles): the cave lurkers now, the carapace pack and the loper's predator next.
+    /// </summary>
+    public const string Crew = "crew", Grazer = "grazer", Machines = "machines", Beasts = "beasts";
 
-    public static readonly IReadOnlyList<string> Factions = [Crew, Grazer, Machines];
+    public static readonly IReadOnlyList<string> Factions = [Crew, Grazer, Machines, Beasts];
 
     /// <summary>How one faction stands to another: none listed, it ignores it.</summary>
     public enum Stance { Ignore, Fear, Hunt }
 
     public sealed record Relation(string From, string To, Stance Stance);
 
-    public static readonly IReadOnlyList<Relation> Relations = [new(Grazer, Crew, Stance.Ignore), new(Machines, Crew, Stance.Hunt)];
+    public static readonly IReadOnlyList<Relation> Relations =
+        [new(Grazer, Crew, Stance.Ignore), new(Machines, Crew, Stance.Hunt), new(Beasts, Crew, Stance.Hunt)];
 
     /// <summary>
     /// A pounce: crouched <paramref name="WindUp"/> ticks, then a flight straight at its target at <paramref name="Speed"/> a tick on
-    /// the longer axis, for <paramref name="Ticks"/>; never cut short by a blow (2026-10-26-creatures-are-composed).
+    /// the longer axis, for <paramref name="Ticks"/>; never cut short by a blow (2026-10-26-creatures-are-composed). A walker's flies
+    /// with no gravity and ends at the first solid cell on its way; a clinger's passes walls.
     /// </summary>
     public sealed record Pounce(int WindUp, int Speed, int Ticks, int Damage) : Move(Damage);
 
@@ -110,9 +137,43 @@ public static class Creatures
     /// taken <paramref name="Lock"/> ticks before the end and held; then <paramref name="Projectile"/> (<c>Content.Shots</c>) strikes
     /// at once from its middle to that point, at most <paramref name="Reach"/> cells off, or to the first wall between; a hero it
     /// crossed may say so for <paramref name="Lingers"/> ticks; then <paramref name="Recover"/> ticks before it moves again. The arc
-    /// hits, the body never: its damage is the projectile's.
+    /// hits, the body never: its damage is the projectile's. Never at a hero nearer than <paramref name="From"/> cells; where it ends
+    /// <paramref name="Leaves"/>, a patch's kind, lies on the floor: such an arc is a lob, hurting no one, flying its <paramref name="Lingers"/>
+    /// ticks and laying its patch as it lands (lurker-attacks).
     /// </summary>
-    public sealed record Shoot(int WindUp, int Lock, int Recover, string Projectile, int Reach, int Lingers) : Move(Damage: 0);
+    public sealed record Shoot(int WindUp, int Lock, int Recover, string Projectile, int Reach, int Lingers, int From = 0, string? Leaves = null) : Move(Damage: 0);
+
+    /// <summary>
+    /// A vent (the capback's gas, lurker-attacks): no wind-up; a <paramref name="Patch"/> laid round its middle at once, then
+    /// <paramref name="Ticks"/> spent venting; not begun again till <paramref name="Cooldown"/> ticks after it began.
+    /// </summary>
+    public sealed record Vent(string Patch, int Ticks, int Cooldown) : Move(Damage: 0);
+
+    /// <summary>
+    /// What a creature lays that lasts as an area (lurker-attacks): a box <paramref name="Width"/> by <paramref name="Height"/> cells,
+    /// gone after <paramref name="Lasts"/> ticks; every breath (<see cref="Crew.BreathEvery"/>) an awake hero in it, in line with its
+    /// middle, pays <paramref name="Damage"/> units of a suit.
+    /// </summary>
+    public sealed record PatchKind(string Id, int Width, int Height, int Lasts, int Damage);
+
+    /// <summary>
+    /// The capback's gas: nine cells by six round it, five seconds, two a breath; its slime's puddle: four across on the floor and
+    /// four up, to a standing hero's middle, ten seconds, two a breath. Placeholder numbers, for a play pass.
+    /// </summary>
+    public static readonly PatchKind Gas = new("gas", Width: 9, Height: 6, Lasts: 100, Damage: 2), Slime = new("slime", Width: 4, Height: 4, Lasts: 200, Damage: 2);
+
+    public static readonly IReadOnlyList<PatchKind> Patches = [Gas, Slime];
+
+    /// <summary>How far a patch laid on the floor falls to it, in cells: a glob ending in the air lands this far down at most.</summary>
+    public const int PatchFall = 30;
+
+    /// <summary>The patch kind of id <paramref name="id"/>.</summary>
+    public static PatchKind PatchOf(string id)
+    {
+        foreach (var p in Patches)
+            if (p.Id == id) return p;
+        throw new ArgumentException($"no patch kind {id}");
+    }
 
     /// <summary>The ram of the loper and the sixleg: three units of a suit; at 28 cells a second, past a hero's sprint of 26.4.</summary>
     private static readonly Lunge LightRam = new(WindUp: 8, Speed: 1400, Ticks: 40, Past: 6, Damage: 3);
@@ -171,19 +232,7 @@ public static class Creatures
     public static readonly Species Sixleg = Loper with { Id = "sixleg", Look = "sixleg", Life = Loper.Life with { Hp = 14 } };
 
     /// <summary>
-    /// The fluff («Пушок»): a ball of fur on tiny paws, glowing spots down its back and lantern antennae, living on the floors of
-    /// the upper caves and the garden band, where its glow lights the dark. Small and light: eight hit points (four of the
-    /// axe's); a blow knocks it a fifth farther and hops it higher; it potters at 3.2 cells a second and bolts at 28; its hop is
-    /// smaller, 760 up and 720 across, 6.4 cells high on the first planet, still over a ledge of six. One or two biomass, a
-    /// seed one time in four, a hide and at most one fat (placeholders). It never rams.
-    /// </summary>
-    public static readonly Species Fluff = new("fluff", Look: "fluff",
-        Body: new Walker(Width: 4, Height: 4, Walk: 160, Run: 1400, Jump: 760, JumpAcross: 720), Life: new(Hp: 8, Knock: 480, Hop: 440),
-        Faction: Grazer, Lifetime: Lifetime.Wild, Brain: [new Flee(FleeTicks), new Graze()], Moves: [],
-        Yields: [new("biomass", 1, 2), new("seed", 1, 1, OneIn: 4), new("hide", 1, 1), new("fat", 0, 1)]);
-
-    /// <summary>
-    /// The sentry (2026-10-26-creatures-are-composed): a robot clamped to a derelict, three cells by two, its eye a lamp, the tick
+    /// The sentry (2026-10-26-creatures-are-composed): a robot clamped to a derelict, three cells by three, its eye a lamp, the tick
     /// the user picked. Watching, it crawls along its perch at 0.8 cells a second. A hero within 40 cells alerts it (the user's
     /// word: it sees far); alerted a second, a hero within twenty and it pounces: a crouch of 0.8 s, then a flight of half a
     /// second at 40 cells a second, its return's, some twenty cells, six units of a suit if it hits; farther, within its notice,
@@ -193,13 +242,52 @@ public static class Creatures
     /// jetpack. Thirty hit points, five of the nailer's nails; never knocked. A harpoon on its wreck is cut 0.8 s after it bites.
     /// It dies with its wreck, dropping scrap and two or three circuits, a fighter's share of what is rare. Placeholder numbers, for a play pass.
     /// </summary>
-    public static readonly Species Sentry = new("sentry", Look: "sentry", Body: new Clinger(Width: 3, Height: 2, Crawl: 40),
+    public static readonly Species Sentry = new("sentry", Look: "sentry", Body: new Clinger(Width: 3, Height: 3, Crawl: 40),
         Life: new(Hp: 30, Knock: 0, Hop: 0), Faction: Machines, Lifetime: Lifetime.Wild,
         Brain: [new CutTether(Ticks: 16), new Return(Speed: 2000), new Guard(Notice: 40, Strike: 20, AlertTicks: 20)],
         Moves: [new Pounce(WindUp: 16, Speed: 2000, Ticks: 10, Damage: 6), new Shoot(WindUp: 12, Lock: 4, Recover: 40, Projectile: "bolt", Reach: 60, Lingers: 10)],
         Yields: [new("scrapChunk", 3, 5), new("circuit", 2, 3)]);
 
-    public static readonly IReadOnlyList<Species> All = [Loper, Tapir, Sixleg, Fluff, Sentry];
+    /// <summary>
+    /// The warden, the Istukan (spire guards): a machine of the arc makers, two to a spire's hall, each by a post (<c>Ruins.PostLeft</c>,
+    /// <c>Ruins.PostRight</c>), four cells by five, folded in its niche like a column. By turns it crouches 0.8 s and flies straight at
+    /// 36 cells a second, 1.4 s at most, five units of a suit if it hits, and lies stuck a second where it fell. It takes 24 hit points,
+    /// four of the nailer's nails or six of the axe's; never knocked. Killed it gives two or three circuits and a little alloy scrap, and
+    /// its post is felled for good; the relic taken, it falls with nothing. Placeholder numbers, for a play pass.
+    /// </summary>
+    public static readonly Species Warden = new("warden", Look: "istukan",
+        Body: new Walker(Width: 4, Height: 5, Walk: 0, Run: 0, Jump: 0, JumpAcross: 0), Life: new(Hp: 24, Knock: 0, Hop: 0),
+        Faction: Machines, Lifetime: Lifetime.Posted, Brain: [new Ward(Wake: 10, Stuck: 20, Calm: 100)],
+        Moves: [new Pounce(WindUp: 16, Speed: 1800, Ticks: 28, Damage: 5)],
+        Yields: [new("circuit", 2, 3), new("alloyScrap", 1, 2)]);
+
+    /// <summary>
+    /// The capback («Шляпоспин», cave-hostiles, lurker-attacks): a low beetle of the teal garden whose shell grows glowcaps, four cells
+    /// by three, lurking among the real ones. An awake hero in line within 20 cells alerts it, and it only watches. Alerted a quarter
+    /// second, one within 4, about touching, and it vents at once: its gas (<see cref="Gas"/>) round it, then 10 s before it vents
+    /// again. Venting, or struck, it is provoked 30 s: then a hero 8 to 20 cells off is spat at, a crouch of 0.6 s, its aim held the
+    /// last 0.2 s, the glob lobbed 0.6 s to the floor there, its puddle (<see cref="Slime"/>) laid as it lands, 3 s before the next. It never walks off its spot. Ten hit
+    /// points, five of the axe's. Placeholder numbers, for a play pass.
+    /// </summary>
+    public static readonly Species Capback = new("capback", Look: "capback",
+        Body: new Walker(Width: 4, Height: 3, Walk: 100, Run: 100, Jump: 0, JumpAcross: 0), Life: new(Hp: 10, Knock: 300, Hop: 200),
+        Faction: Beasts, Lifetime: Lifetime.Wild, Brain: [new Guard(Notice: 20, Strike: 4, AlertTicks: 5, Provokes: 600)],
+        Moves: [new Vent("gas", Ticks: 10, Cooldown: 200), new Shoot(WindUp: 12, Lock: 4, Recover: 60, Projectile: "slime", Reach: 20, Lingers: 12, From: 8, Leaves: "slime")],
+        Yields: [new("biomass", 2, 3), new("spore", 1, 1, OneIn: 2)]);
+
+    /// <summary>
+    /// The geode snail («Жеодник», cave-hostiles, lurker-attacks): a snail of the amber deep whose shell is a geode, four cells by
+    /// three. It sits shut: no blow hurts it. An awake hero within 4 cells and it opens, a second after the last one left it shuts;
+    /// open, melee hurts it, a shot never. Alerted (6 cells, in line) 0.8 s with one within 4, it bites: a lurch of 0.8 s, then 16
+    /// cells a second for a quarter second at the hero, three units of a suit if it touches. Twenty-four hit points, never knocked. Placeholder
+    /// numbers, for a play pass.
+    /// </summary>
+    public static readonly Species GeodeSnail = new("geodeSnail", Look: "geodeSnail",
+        Body: new Walker(Width: 4, Height: 3, Walk: 30, Run: 30, Jump: 0, JumpAcross: 0), Life: new(Hp: 24, Knock: 0, Hop: 0),
+        Faction: Beasts, Lifetime: Lifetime.Wild, Brain: [new Guard(Notice: 6, Strike: 4, AlertTicks: 16), new Shell(Reach: 4, Hold: 20)],
+        Moves: [new Lunge(WindUp: 16, Speed: 800, Ticks: 5, Past: 0, Damage: 3, Steady: true)], Yields: [new("crystal", 2, 3), new("biomass", 1, 1)]);
+
+    public static readonly IReadOnlyList<Species> All = [Loper, Tapir, Sixleg, Sentry, Warden, Capback, GeodeSnail];
 
     /// <summary>
     /// A species that comes with debris pieces of some kinds as they drift in, clamped to a perch on one's top (<c>Wreckage.Perches</c>):
@@ -231,8 +319,17 @@ public static class Creatures
     /// <summary>Spawns come on this beat, the module's clock a multiple of it: every 2 s.</summary>
     public const int Beat = 40;
 
-    /// <summary>No spawn for a hero whose keep box holds this many creatures already.</summary>
-    public const int PerKeep = 10;
+    /// <summary>Wild creatures come as a herd of one kind (creatures-in-herds), this many to that many, so many columns apart.</summary>
+    public const int HerdLeast = 2, HerdMost = 4, Spacing = 6;
+
+    /// <summary>No herd comes within this many cells of a creature already there, either way: herds keep apart.</summary>
+    public const int Apart = 32;
+
+    /// <summary>A grazer more than this many columns from the nearest of its kind wanders toward it: a herd keeps together.</summary>
+    public const int Herd = 16;
+
+    /// <summary>No herd for a hero whose keep box would hold more than this many creatures with it: about two herds.</summary>
+    public const int PerKeep = 6;
 
     /// <summary>At most this many creatures on a surface.</summary>
     public const int Max = 40;
@@ -241,10 +338,10 @@ public static class Creatures
     public static readonly HalfBox View = Debris.View;
 
     /// <summary>
-    /// A spawn's column is this many columns either side of a hero's reported one, a draw between the two: just past the view, so
-    /// what spawns is never seen to appear, and inside the keep box.
+    /// A herd's first column is this many columns either side of a hero's reported one, a draw between the two, the rest going
+    /// outward: just past the view, so what spawns is never seen to appear, and the farthest inside the keep box.
     /// </summary>
-    public const int RingFrom = 124, RingTo = 152;
+    public const int RingFrom = 124, RingTo = 136;
 
     /// <summary>A creature in some hero's keep box is seen; out of every one it is gone <see cref="Linger"/> after it was last seen, and at once out of every hard box.</summary>
     public static readonly HalfBox Keep = new(160, 96), Hard = new(220, 128);

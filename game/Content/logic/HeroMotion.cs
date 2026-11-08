@@ -19,14 +19,36 @@ public static class HeroMotion
     }
 
     /// <summary>
-    /// The run: the body leans <see cref="Lean"/> radians in and rises <see cref="Bounce"/> pixels in each stride's flight,
-    /// both feet off the floor; the free arms pump <see cref="Pump"/> radians either way; the head takes back
-    /// <see cref="HeadSteady"/> of the body's lean on the floor, so it looks ahead rather than at the floor. Running backward
-    /// it leans back <see cref="BackLean"/>.
+    /// The run: the body leans <see cref="Lean"/> radians in, pitching <see cref="Pitch"/> further in as a foot pushes off and as
+    /// far back up in the flight, and rides <see cref="Bounce"/> pixels higher between steps than mid-step, rising over
+    /// <see cref="Rise"/> of a step, where the knee gives <see cref="Give"/> pixels more than the lower step needs; the free arms
+    /// pump <see cref="Pump"/> radians either way, the elbows bending <see cref="Elbow"/> more forward and opening as much back;
+    /// the head takes back <see cref="HeadSteady"/> of the body's lean on the floor, so it looks ahead rather than at the floor.
+    /// Running backward it leans back <see cref="BackLean"/>.
     /// </summary>
     public static class Run
     {
-        public const double Lean = 0.3, Bounce = 1.5, Pump = 1.0, HeadSteady = 0.5, BackLean = 0.15;
+        public const double Lean = 0.3, Pitch = 0.07, Bounce = 0.9, Rise = 0.6, Give = 0.2, Pump = 0.8, Elbow = 0.3, HeadSteady = 0.5, BackLean = 0.15;
+    }
+
+    /// <summary>
+    /// The figure eases its gait (2026-11-04-hero-gait), though the hero's speed changes in a few steps: a walk turns into a run, and
+    /// back, over about <see cref="RunMs"/>; from standing the stride grows in over <see cref="StartMs"/>, and stopping it settles
+    /// over <see cref="StopMs"/>. Drawn only: the controls answer as fast as ever.
+    /// </summary>
+    public static class Gait
+    {
+        public const double RunMs = 280, StartMs = 150, StopMs = 200;
+    }
+
+    /// <summary>
+    /// A boot on the floor (2026-11-04-hero-gait) turns at its ankle to stand flat, at most <see cref="Up"/> radians toe up from its
+    /// shin's line and <see cref="Down"/> toe down; past that it rolls onto its toe or heel. Rising off the floor, it keeps to the shin
+    /// again over <see cref="Lifting"/> pixels.
+    /// </summary>
+    public static class Feet
+    {
+        public const double Up = 0.9, Down = 0.9, Lifting = 3;
     }
 
     /// <summary>

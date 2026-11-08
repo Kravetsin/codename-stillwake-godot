@@ -12,7 +12,7 @@ namespace Stillwake.Game.Shared;
 public sealed class Store<T>(T initial)
 {
     private T _value = initial;
-    private readonly List<Action> _listeners = [];
+    private readonly List<Listener> _listeners = [];
 
     public T Get() => _value;
 
@@ -20,12 +20,33 @@ public sealed class Store<T>(T initial)
     {
         if (EqualityComparer<T>.Default.Equals(_value, value)) return;
         _value = value;
-        // A listener may set the store again: each hears every change, in order.
-        foreach (var listener in _listeners.ToArray()) listener();
+        // A listener may set the store again: each hears every change, in order; one let go meanwhile hears no more.
+        foreach (var listener in _listeners.ToArray())
+            if (!listener.Gone) listener.Heard();
     }
 
-    /// <summary>Calls <paramref name="listener"/> after every change from now on.</summary>
-    public void Subscribe(Action listener) => _listeners.Add(listener);
+    /// <summary>
+    /// Calls <paramref name="heard"/> after every change from now on, until the handle it returns is disposed:
+    /// a listener that dies before the store (a panel of the menu) lets go, or the store keeps calling it.
+    /// </summary>
+    public IDisposable Subscribe(Action heard)
+    {
+        var listener = new Listener(heard, _listeners);
+        _listeners.Add(listener);
+        return listener;
+    }
+
+    private sealed class Listener(Action heard, List<Listener> all) : IDisposable
+    {
+        public readonly Action Heard = heard;
+        public bool Gone { get; private set; }
+
+        public void Dispose()
+        {
+            Gone = true;
+            all.Remove(this);
+        }
+    }
 }
 
 /// <summary>Stores of lists, told only when what they hold changes: a tip set every frame redraws nothing.</summary>
@@ -38,6 +59,10 @@ public static class ListStore
         if (now == null ? lines == null : lines != null && now.SequenceEqual(lines)) return;
         store.Set(lines);
     }
+
+    /// <summary>Plain lines, words alone.</summary>
+    public static void SetLines(this Store<IReadOnlyList<TipLine>?> store, IReadOnlyList<string>? lines) =>
+        store.SetLines(lines?.Select(line => new TipLine(line)).ToList());
 }
 
 /// <summary>What the hand holds (0022), one thing at a time.</summary>
@@ -172,6 +197,18 @@ public sealed class Ui
     public Store<string?> Wielded { get; } = new(null);
 
     /// <summary>
+    /// Whether the power driver works its square or one cell (power-driver): this player's, not saved, the square at the start;
+    /// <c>crew</c> switches it on a right click with the driver in hand.
+    /// </summary>
+    public Store<bool> DriverSquare { get; } = new(true);
+
+    /// <summary>
+    /// The cells the power driver's square works this frame, set by <c>crew</c>; none while the hands work one cell. A
+    /// blueprint's cost under the pointer is then the square's (<c>building</c>).
+    /// </summary>
+    public IReadOnlyList<int>? WorkedSquare { get; set; }
+
+    /// <summary>
     /// Whether the air overlay is wanted, and so drawn: O switches it, outside building too, for air keeps the crew
     /// alive, and under any build tab, a tab's own overlay drawn over it (<see cref="OverlayOn"/> stays the tab's).
     /// </summary>
@@ -188,8 +225,8 @@ public sealed class Ui
     /// <summary>What <see cref="OverlayOn"/> reads: set once by whoever holds the build menu's state.</summary>
     public System.Func<string?> OverlayShown { get; set; } = () => null;
 
-    /// <summary>What an overlay says of the cell under the pointer, set by that overlay while it is on.</summary>
-    public Store<IReadOnlyList<string>?> WorldTip { get; } = new(null);
+    /// <summary>What an overlay or a machine says of the cell under the pointer, the first line naming it: set by that overlay while it is on.</summary>
+    public Store<IReadOnlyList<TipLine>?> WorldTip { get; } = new(null);
 
     /// <summary>
     /// What a plan under the pointer says, set by <c>building</c>: a blueprint's while it still lacks something, what it
@@ -199,7 +236,7 @@ public sealed class Ui
     public Store<Tip?> CostTip { get; } = new(null);
 
     /// <summary>
-    /// What this player carries, item by item (<c>Items.Totals</c>): read by <c>Hands</c> on a timer, as a
+    /// What this player can pay with, item by item: its own slots and every crate (<c>Items.StockTotals</c>), read by <c>Hands</c> on a timer, as a
     /// panel reads. The build menu's prices and a blueprint's cost under the pointer weigh it alike.
     /// </summary>
     public IReadOnlyList<(string Item, int Count)> Carried { get; set; } = [];
@@ -232,7 +269,7 @@ public sealed class Ui
     /// The tech station this player has open: <c>crew</c> opens it on E within reach and closes it out of reach,
     /// <c>research</c> shows its window and closes it on E or Esc.
     /// </summary>
-    public Store<int?> OpenTech { get; } = new(null);
+    public Store<bool> TreeOpen { get; } = new(false);
 
     /// <summary>The program the open computer shows, by id; none as it opens, and none once it stops being ready.</summary>
     public Store<string?> ComputerProgram { get; } = new(null);
@@ -244,8 +281,17 @@ public sealed class Ui
     /// </summary>
     public Store<(float Left, float Bottom)?> InventoryFoot { get; } = new(null);
 
+    /// <summary>The language spoken: set from the settings file at the start and by the menu's Settings.</summary>
+    public Store<I18n.Language> Language { get; } = new(I18n.Language.English);
+
     /// <summary>How large every item slot is drawn: set from the settings file at the start and by the menu's Settings.</summary>
     public Store<SlotScale> SlotScale { get; } = new(Shared.SlotScale.Normal);
+
+    /// <summary>Which key does each action (2026-11-04-key-binds): set from the settings file at the start and by the Controls page.</summary>
+    public Store<Binds> Binds { get; } = new(Shared.Binds.Default);
+
+    /// <summary>The items kept in the bag when stashing (2026-11-06-quick-stash): set from the settings file at the start, by Alt+click.</summary>
+    public Store<Favourites> Favourites { get; } = new(Shared.Favourites.None);
 
     /// <summary>A slot's side in pixels now (<see cref="Slots.SizeOf"/>).</summary>
     public int Slot => Slots.SizeOf(SlotScale.Get());
@@ -269,10 +315,22 @@ public sealed class Ui
     public IReadOnlyList<(float X, float Y, string Tool)> Bits { get; set; } = [];
 
     /// <summary>
+    /// Where every power driver's motor is heard at work, and a moment after, in the world's pixels (power-driver). Set by <c>crew</c>
+    /// every frame; <c>building</c> keeps the ratchet of a plan by one silent, its motor heard for it.
+    /// </summary>
+    public IReadOnlyList<(float X, float Y)> Driven { get; set; } = [];
+
+    /// <summary>
     /// The piece of debris the hands would grab or chop, and whether the sim would refuse it: <c>crew</c> sets it while
     /// the pointer is on one within reach, <c>debris</c> outlines that piece.
     /// </summary>
     public Store<(int Id, bool Refused)?> AimedPiece { get; } = new(null);
+
+    /// <summary>
+    /// The turn of every piece of debris as last drawn, in radians, by id. Set by <c>debris</c> every frame; <c>crew</c> turns a
+    /// wreck's picture so where a running tool's edge tests its pixels (tool-edge).
+    /// </summary>
+    public IReadOnlyDictionary<int, double> DebrisTurns { get; set; } = new Dictionary<int, double>();
 
     /// <summary>
     /// Whether the game menu is open: set by the menu. The world runs on behind it, but the hero takes
@@ -300,12 +358,28 @@ public sealed class Ui
     public void Breathe() => Breathed?.Invoke();
 
     /// <summary>
+    /// This player asked to switch its suit's mode (2026-11-03-the-regen-suit): the suit's key on the tablet's edge says so;
+    /// <c>crew</c> sends it, as it does for V.
+    /// </summary>
+    public event Action? SuitSwitched;
+
+    public void SwitchSuit() => SuitSwitched?.Invoke();
+
+    /// <summary>
     /// This player's hero breathed a canister in (0047, 0081): <c>crew</c> sent the refill, once a breath, whether asked
     /// from the inventory or from the hand. <c>items</c> pulses the slot it was breathed from; the suit gauge surges.
     /// </summary>
     public event Action? Refilled;
 
     public void Refill() => Refilled?.Invoke();
+
+    /// <summary>
+    /// This player pressed an electric tool or the railgun its belt cannot pay (no-charge-flash): <c>crew</c> says so, once a
+    /// press; the energy tab blinks red.
+    /// </summary>
+    public event Action? PressedFlat;
+
+    public void PressFlat() => PressedFlat?.Invoke();
 
     /// <summary>
     /// The UI's click asked for (0081): an inventory action (a stack picked, put, swapped, split, sent across, dropped, a

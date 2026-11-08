@@ -7,7 +7,7 @@ namespace Stillwake.Game.Dev;
 /// <summary>
 /// The new game's wreck with a magnetic flare's warning begun at once, not in minutes (2026-10-30-magnetic-flare): the aurora
 /// rising, lamps faltering and cables glowing, then the flash and machines broken. <c>--flare=repair</c> skips to after one:
-/// its lamps and generator broken, the first lamp's repair paid and half done, as the screwdriver leaves it.
+/// its lamps and generator broken, the first lamp's repair half done, as the screwdriver leaves it.
 /// </summary>
 [Dev("--flare", "the wreck with a magnetic flare's warning begun at once; =repair its lamps and generator broken, a lamp half repaired (FlareScenario)", Shape = DevShape.Either)]
 public sealed class FlareScenario : DevScenario

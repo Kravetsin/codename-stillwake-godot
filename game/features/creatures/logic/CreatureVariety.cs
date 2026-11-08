@@ -6,21 +6,20 @@ namespace Stillwake.Game.Features.Creatures;
 /// <summary>
 /// How one creature differs from the next of its kind (0102), drawn only: plain C#, tested. All of it from its id and its
 /// surface's seed, integers only, so every peer draws the same individual and nothing is drawn from the world's random stream:
-/// its size (a golden-ratio step an id) and its tint (by turns an id), so neighbours in spawn order differ, its coat shaded and
-/// blended in the palette's own ramps, now and then a morph, and which of its markings it wears and how boldly.
+/// its size (a golden-ratio step an id) and its tint (by turns an id), so neighbours in spawn order differ, its shade, now and
+/// then a morph, and which of its markings it wears and how boldly.
 /// </summary>
 public static class CreatureVariety
 {
     /// <summary>
-    /// One creature's looks: <paramref name="Size"/> thousandths of its design's, its coat <paramref name="Shade"/> quarter tones
-    /// lighter (darker below 0), blended <paramref name="Hue"/> steps of <see cref="HueSteps"/> toward its variety's
-    /// <c>Away</c> (toward <c>Toward</c> below 0), whether it is a morph, a bit for each marking it wears, in the order
-    /// <see cref="Markings"/> finds them, and their opacity in thousandths.
+    /// One creature's looks: <paramref name="Size"/> thousandths of its design's, <paramref name="Shade"/> quarter tones lighter
+    /// (darker below 0), <paramref name="Hue"/> steps warmer (cooler below 0), whether it is a morph, a bit for each marking it
+    /// wears, in the order <see cref="Markings"/> finds them, and their opacity in thousandths.
     /// </summary>
     public readonly record struct Individual(int Size, int Shade, int Hue, bool Morph, int Kept, int Opacity);
 
-    /// <summary>The steps of a coat's blend either way, and of its markings' opacity from the faintest to whole.</summary>
-    public const int HueSteps = 2, OpacitySteps = 2;
+    /// <summary>The steps of its markings' opacity from the faintest to whole.</summary>
+    public const int OpacitySteps = 2;
 
     /// <summary>The tints a coat takes in turn, an id each: toward one neighbour ramp and the other by turns, a step or two; never none.</summary>
     public static readonly int[] Tints = [-2, 1, -1, 2];
@@ -49,23 +48,11 @@ public static class CreatureVariety
         return new(size, shade, hue, morph, kept, opacity);
     }
 
-    /// <summary>
-    /// The colour of a pixel painted in <paramref name="ramp"/>'s <paramref name="tone"/> of <paramref name="ramps"/> (a palette),
-    /// on <paramref name="one"/>. Only its coat changes, and never its outline (tone 0): shaded by quarter tones between the
-    /// coat's own tones, from its darkest fill to its highlight, then blended toward a neighbouring ramp at the same tone. So it
-    /// never leaves the palette: every channel lies between the coat's and the neighbour's a tone either side. Rounded to nearest.
-    /// </summary>
-    public static (byte R, byte G, byte B) Tone(
-        IReadOnlyDictionary<int, (byte R, byte G, byte B)[]> ramps, CreatureLooks.Variety v, Individual one, int ramp, int tone)
+    /// <summary>What <paramref name="one"/>'s picture in ink is multiplied by, its ink staying ink: lighter or darker by its shade, warmer or cooler by its tint.</summary>
+    public static (float R, float G, float B) InkTint(Individual one)
     {
-        var own = ramps[ramp];
-        if (ramp != v.Coat || tone == 0 || one.Shade == 0 && one.Hue == 0) return own[tone];
-        int q = Math.Clamp(tone * 4 + Math.Clamp(one.Shade, -4, 4), 4, 20);
-        var coat = Quarter(own, q);
-        if (one.Hue == 0) return coat;
-        var kin = Quarter(ramps[one.Hue < 0 ? v.Toward : v.Away], q);
-        int a = Math.Min(Math.Abs(one.Hue), HueSteps) * v.Blend / HueSteps;
-        return (Blend(coat.R, kin.R, a), Blend(coat.G, kin.G, a), Blend(coat.B, kin.B, a));
+        float light = 1 + one.Shade * CreatureLooks.InkShade, warm = one.Hue * CreatureLooks.InkHue;
+        return (light * (1 + warm), light, light * (1 - warm));
     }
 
     /// <summary>
@@ -105,19 +92,6 @@ public static class CreatureVariety
 
     /// <summary>Whether <paramref name="one"/> wears marking <paramref name="marking"/>.</summary>
     public static bool Wears(Individual one, int marking) => marking >= MostMarkings || (one.Kept >> marking & 1) != 0;
-
-    /// <summary>A tone <paramref name="q"/> quarters up a ramp, between its two whole tones.</summary>
-    private static (byte R, byte G, byte B) Quarter((byte R, byte G, byte B)[] ramp, int q)
-    {
-        int t = q / 4, f = q % 4;
-        if (f == 0) return ramp[t];
-        var (lo, hi) = (ramp[t], ramp[t + 1]);
-        return (Mean(lo.R, hi.R, f), Mean(lo.G, hi.G, f), Mean(lo.B, hi.B, f));
-    }
-
-    private static byte Mean(byte lo, byte hi, int f) => (byte)((lo * (4 - f) + hi * f + 2) / 4);
-
-    private static byte Blend(byte from, byte to, int thousandths) => (byte)((from * (1000 - thousandths) + to * thousandths + 500) / 1000);
 
     private static int Between(uint h, uint salt, int least, int most) => least + (int)(Draw(h, salt) % (uint)(most - least + 1));
 

@@ -1,6 +1,5 @@
 using System.Reflection;
 using Stillwake.Content;
-using Stillwake.Game;
 using Xunit;
 using DebrisSpec = Stillwake.Content.Debris;
 
@@ -49,14 +48,14 @@ public partial class ContentTests
     }
 
     /// <summary>
-    /// Two processes, each with a station: smelt (the furnace, the smelter) and grow (the grow capsule); an item's is
-    /// one of them. Returns are weights, none negative, some above zero, only on what is worked (0060).
+    /// Four processes, each with a station: crush (the crusher), ferment (the fermenter), grow (the grow capsule) and smelt (the
+    /// furnace, the smelter); an item's is one of them. Returns are weights, none negative, some above zero, only on what is worked (0060).
     /// </summary>
     [Fact]
     public void EveryItemsProcessHasAFedStationAndItsReturnsAreWeightsOfWhatIsWorked()
     {
         var processes = Stations.All.Where(s => s.Fed).Select(s => s.Process).Distinct().Order(StringComparer.Ordinal);
-        Assert.Equal(["crush", "grow", "smelt"], processes);
+        Assert.Equal(["crush", "ferment", "grow", "smelt"], processes);
         Assert.All(Stations.All.Where(s => !s.Fed), s => Assert.Equal("smelt", s.Process));
         foreach (var item in Content.Items.All)
         {
@@ -68,6 +67,9 @@ public partial class ContentTests
         }
         Assert.Equal(["spore", "seed"], Content.Items.All.Where(i => i.Process == "grow").Select(i => i.Id));
         Assert.Equal(["growCapsule"], Stations.All.Where(s => s.Process == "grow").Select(s => s.Machine));
+        // Biofuel only at the fermenter (power-chain): of biomass and fat.
+        Assert.Equal(["fermenter"], Stations.All.Where(s => s.Process == "ferment").Select(s => s.Machine));
+        Assert.Equal(["biomass", "fat"], Content.Items.All.Where(i => i.Process == "ferment").Select(i => i.Id));
     }
 
     // Fuel
@@ -110,7 +112,7 @@ public partial class ContentTests
     [Fact]
     public void SmeltingMakesWholeAmountsInWholeTicksOfItemsThatAreNotSalvageAndChainsOnlyUpInHeat()
     {
-        string[] refined = ["silicon", "glass", "biomass", "biofuel", "copper", "ironOre", "gravel", "quartz"];
+        string[] refined = ["silicon", "glass", "biomass", "biofuel", "copper", "ironOre", "gravel", "quartz", Content.Water.Item];
         foreach (var spec in Content.Items.All)
         {
             Assert.True(spec.Yields != null == (spec.SmeltTicks != null), spec.Id);
@@ -120,7 +122,7 @@ public partial class ContentTests
             foreach (var (item, amount) in spec.Yields.Concat((spec.Byproducts ?? []).Select(b => (b.Item, b.Max))))
             {
                 // What the Yields type held in TypeScript, materials and canisters, then silicon, glass, biomass, biofuel and
-                // copper, and the crusher's iron ore, gravel and quartz.
+                // copper, and the crusher's iron ore, gravel and quartz; and water melted of ice (water).
                 Assert.True(Materials.TryGet(item, out _) || item == "canister" || refined.Contains(item), item);
                 Assert.True(Content.Items.TryGet(item, out var yielded), item);
                 Assert.Null(Loot.Of(item));
@@ -145,7 +147,7 @@ public partial class ContentTests
         static string Titled(string id) => id.Length == 0 ? "" : char.ToUpperInvariant(id[0]) + id[1..];
         return Materials.All.SelectMany(m => new[] { $"wall{Titled(m.Id)}", $"backWall{Titled(m.Id)}" })
             .Concat(Builds.All.Select(b => b.Id))
-            .Concat(Machines.All.Where(m => !m.Fixed).Select(m => m.Kind));
+            .Concat(Machines.All.Where(m => m.Menu != null).Select(m => m.Kind));
     }
 
     [Fact]
@@ -160,9 +162,9 @@ public partial class ContentTests
 
     /// <summary>
     /// Every craft is made at some queued station (0057): the pod gives what a castaway is given, the suit and the
-    /// screwdriver (0046, 0107); the workbench the basic parts and the first tools; the Former those parts again, and
-    /// alone frames, the jetpack, the battery, the drill, soil (0060), the motor of a planet's copper, the canister of its
-    /// ice and the cape of its cloth (2026-10-27-the-cape-is-worn); the electronics, circuits, solar cells and the deck drive, the circuit
+    /// screwdriver (0046, 0107); the workbench the basic parts and what is assembled, the jetpack, the drill and the cape
+    /// among them (2026-10-27-the-cape-is-worn), and the battery, which the assembler makes too (battery-workbench); the Former those parts again, and alone frames, soil (0060), the motor of a
+    /// planet's copper and the nozzle; the electronics, circuits, solar cells and the deck drive, and the fuel pump, the circuit
     /// assembler alone; the arc crafts the arc bench (0099, 2026-10-27-the-railgun).
     /// </summary>
     [Fact]
@@ -170,12 +172,12 @@ public partial class ContentTests
     {
         string[] pod = [Content.Helmet.Basic, Content.Suit.Basic, Screwdrivers.Basic.Item];
         string[] parts = ["wire", "plate", "gear", "tube", "coil", "rotor"];
-        string[] tools = ["fireAxe", "harpoon", "nailer", "nail", "helmetLamp", "jetpack", "drill", "cape", "fuelPump"];
-        string[] electronics = ["circuit", "solarCell", "battery", "drone", "deckDrive", "processor", "display", "transceiver", "igniter"], arc = ["arcModule", "accumulator", "railgun"];
-        string[] formed = ["frame", "motor", "soil", "canister", "nozzle"];
+        string[] tools = ["fireAxe", "harpoon", "nailer", "nail", "helmetLamp", "jetpack", "drill", "powerDriver", "cape", "heavyHelmet", "regenSuit", "scanner", "grinder", "spear", "sledgehammer", "plasmaCutter", "pickaxe", "grapple"];
+        string[] electronics = ["circuit", "solarCell", "battery", "drone", "salvageDrone", "deckDrive", "processor", "display", "transceiver", "igniter", "fuelPump"], arc = ["arcModule", "accumulator", "railgun"];
+        string[] formed = ["frame", "motor", "soil", "nozzle"];
         Assert.Empty(Crafts.All.Select(c => c.Item).Except([.. pod, .. parts, .. tools, .. formed, .. electronics, .. arc]));
         Assert.Equal(pod, Stations.Get("lifepod").Rows.SelectMany(r => r));
-        Assert.Equal(parts.Concat(tools).Order(StringComparer.Ordinal), Stations.Get("workbench").Rows.SelectMany(r => r).Order(StringComparer.Ordinal));
+        Assert.Equal(parts.Concat(tools).Append("battery").Order(StringComparer.Ordinal), Stations.Get("workbench").Rows.SelectMany(r => r).Order(StringComparer.Ordinal));
         Assert.Equal(parts.Concat(formed).Order(StringComparer.Ordinal), Stations.Get("former").Rows.SelectMany(r => r).Order(StringComparer.Ordinal));
         Assert.All(tools, item => Assert.Equal(["workbench"], Stations.All.Where(s => s.Rows.Any(r => r.Contains(item))).Select(s => s.Machine)));
         Assert.Equal(arc, Stations.Get("arcBench").Rows.SelectMany(r => r));
@@ -206,7 +208,7 @@ public partial class ContentTests
         Assert.Equal(crafts, Crafts.All.Where(c => c.Cost.Any(e => e.Item == Content.Ruins.Shard)).Select(c => c.Item));
         Assert.All(crafts, c => Assert.Equal(["arcBench"], Stations.All.Where(s => s.Rows.Any(r => r.Contains(c))).Select(s => s.Machine)));
         var spec = Machines.Get("arcBench");
-        Assert.True(spec is { Tunes: true, Draws: null, Makes: null, FuelSlot: null, Inputs: 1, Width: 4, Height: 2 });
+        Assert.True(spec is { Tunes: true, Draws: null, Makes: null, FuelSlot: null, Inputs: 1, Width: 4, Height: 4 });
         Assert.Contains(spec.Cost, e => e.Item == Content.Ruins.Shard);
         // Built of what exists before it: none of its cost is made at the bench itself.
         Assert.All(spec.Cost, e => Assert.DoesNotContain(e.Item, crafts));
@@ -313,7 +315,7 @@ public partial class ContentTests
     }
 
     /// <summary>
-    /// What only the wreck's own machines give, taken apart: the photosensitive panel of its solar panel, had once, never
+    /// What only the wreck's own machines give, taken apart: the photosensitive panel in its cargo pile, had once, never
     /// made. Every item is had of something else besides.
     /// </summary>
     private static readonly string[] WrecksOwn = ["photoPanel"];
@@ -322,9 +324,8 @@ public partial class ContentTests
     /// What the wreck can come to, walking stations (0057): an item is reachable when it is salvage — what any
     /// zone's debris is or breaks into — or made at a reachable station from reachable items: crafted at a queued
     /// one that lays it out, smelted at a fed one hot enough. A station is reachable when it is built into the ship,
-    /// or its blueprint is known and its cost reachable. A tier opens when the one before it did and its deposit can be had
-    /// (2026-10-30-trade-and-tech); its blocks are bought then, credits not walked, every price being earned by selling; what they
-    /// open is used when its cost is had. Debris of the kinds
+    /// or its blueprint is known and its cost reachable. What the rule grants is known once its parts are had (docs/decisions/2026-11-05-the-board.md); what only
+    /// the market opens is taken as bought, credits not walked, every price being earned by selling. Debris of the kinds
     /// <paramref name="never"/> is left out, as if it never drifted by, and so are a planet's items of them. Aboard only: what a
     /// planet gives is not had. What only the wreck's own machines give (<see cref="WrecksOwn"/>) is had from the start.
     /// </summary>
@@ -336,7 +337,11 @@ public partial class ContentTests
     /// and growth give besides (0077, 0080), dug and felled with the axe the wreck starts knowing, and what the creatures living
     /// on a planet type drop.
     /// </summary>
-    private static (HashSet<string> Items, HashSet<string> Known) Reachable(IReadOnlyList<Station> stations, bool planet, params string[] never)
+    private static (HashSet<string> Items, HashSet<string> Known) Reachable(IReadOnlyList<Station> stations, bool planet, params string[] never) =>
+        Walk(stations, planet, bought: true, never);
+
+    /// <summary>The walk of <see cref="Reachable(IReadOnlyList{Station}, bool, string[])"/>; without <paramref name="bought"/>, nothing the market sells is had.</summary>
+    private static (HashSet<string> Items, HashSet<string> Known) Walk(IReadOnlyList<Station> stations, bool planet, bool bought, string[] never)
     {
         var had = new HashSet<string>(WrecksOwn, StringComparer.Ordinal);
         if (planet)
@@ -351,17 +356,16 @@ public partial class ContentTests
             foreach (var entry in Loot.Of(item) ?? []) had.Add(entry.Item);
         }
         var known = new HashSet<string>(Content.Research.StartKnown, StringComparer.Ordinal);
+        if (bought)
+            foreach (var node in Content.Research.Nodes.Where(n => n.Tab == Content.Research.Market)) known.Add(node.Id);
         var built = new HashSet<string>(StringComparer.Ordinal);
-        var done = new HashSet<string>(StringComparer.Ordinal);
+        var walked = Stillwake.Sim.Research.Blueprints.All.Where(b => Content.Research.Node(b.Id)?.Tab != Content.Research.Market).Select(b => (b.Id, b.Cost, Craft: false))
+            .Concat(Crafts.All.Where(c => Content.Research.Node(c.Item)?.Tab != Content.Research.Market).Select(c => (Id: c.Item, c.Cost, Craft: true))).ToList();
         for (bool more = true; more;)
         {
             more = false;
-            foreach (var node in Content.Research.Nodes.Where(n => !done.Contains(n.Id) && n.Needs.All(done.Contains)))
-            {
-                if (!node.Deposit.All(d => had.Contains(d.Item))) continue;
-                more |= done.Add(node.Id);
-                foreach (string id in node.Opens) more |= known.Add(id);
-            }
+            foreach (var (id, cost, craft) in walked.Where(w => !known.Contains(w.Id) && w.Cost.All(c => had.Contains(c.Item))))
+                if (!craft || stations.Any(s => built.Contains(s.Machine) && s.Rows.Any(r => r.Contains(id)))) more |= known.Add(id);
             foreach (var station in stations)
             {
                 var spec = Machines.Get(station.Machine);
@@ -379,23 +383,30 @@ public partial class ContentTests
         return (had, known);
     }
 
-    /// <summary>Every craft and blueprint opens from the wreck's start, walking the tree on what is caught, dug on a planet or made at its stations.</summary>
+    /// <summary>Every craft and blueprint opens from the wreck's start, walking the rule on what is caught, dug on a planet or made at its stations.</summary>
     [Fact]
-    public void EveryCraftAndBlueprintOpensFromTheWrecksStartWalkingTheTree()
+    public void EveryCraftAndBlueprintOpensFromTheWrecksStartWalkingTheRule()
     {
         var (_, known) = Reachable(Stations.All, planet: true);
         var recipes = Stillwake.Sim.Research.Blueprints.All.Select(b => b.Id).Concat(Crafts.All.Select(c => c.Item));
         Assert.Equal([], recipes.Where(id => !known.Contains(id)).ToArray());
     }
 
-    /// <summary>Every blueprint and craft is known from the start or opened by exactly one block; a block opens nothing else.</summary>
+    /// <summary>
+    /// The way to power and the press, under the rule: at most this much of the workbench's work. Each item is made as many times as
+    /// its own count or what is made from it asks, the more: a rotor's gear counts towards the gears too.
+    /// </summary>
     [Fact]
-    public void EveryBlueprintAndCraftIsInExactlyOneBlockOrKnownFromTheStart()
+    public void TheFormerAndBurnerAreUnderstoodWithin540SecondsOfTheBench()
     {
-        var recipes = Stillwake.Sim.Research.Blueprints.All.Select(b => b.Id).Concat(Crafts.All.Select(c => c.Item)).Distinct().Order(StringComparer.Ordinal).ToArray();
-        var opened = Content.Research.Nodes.SelectMany(n => n.Opens).Concat(Content.Research.StartKnown).ToList();
-        Assert.Equal(recipes, opened.Distinct().Order(StringComparer.Ordinal).ToArray());
-        Assert.Equal(opened.Count, opened.Distinct().Count());
+        var bench = Stations.Get("workbench");
+        var made = Crafts.All.Where(c => bench.Rows.Any(r => r.Contains(c.Item))).ToList();
+        var parts = Machines.Get("former").Cost.Concat(Machines.Get("burnerGenerator").Cost).Select(c => c.Item).ToHashSet(StringComparer.Ordinal);
+        int Times(string item) => Math.Max(
+            parts.Contains(item) ? Stillwake.Sim.Research.Understanding.Enough(item) : 0,
+            made.Sum(c => c.Cost.Where(x => x.Item == item).Sum(x => x.Count * Times(c.Item))));
+        int total = made.Sum(c => Times(c.Item) * (c.Ticks * 1000 / bench.Speed));
+        Assert.True(total <= 540 * 20, $"{total / 20} s of the workbench");
     }
 
     /// <summary>Losing one station shuts what is made at it and everything after: the walk bites.</summary>
@@ -408,11 +419,11 @@ public partial class ContentTests
         Assert.DoesNotContain("dropPod", known);
     }
 
-    /// <summary>Selling refined pays: a priced craft or a fixed yield is worth more than what goes in, or nothing would be worth processing.</summary>
+    /// <summary>Selling refined pays: a priced craft or a fixed yield is worth more than what goes in, or nothing would be worth processing. Soil is dug, its craft for a ship with no ground.</summary>
     [Fact]
     public void EveryPricedCraftAndYieldSellsForMoreThanItsPricedInputs()
     {
-        foreach (var craft in Crafts.All.Where(c => Market.PriceOf(c.Item) != null))
+        foreach (var craft in Crafts.All.Where(c => Market.PriceOf(c.Item) != null && c.Item != "soil"))
         {
             int inputs = craft.Cost.Sum(c => (Market.PriceOf(c.Item) ?? 0) * c.Count);
             Assert.True(Market.PriceOf(craft.Item) > inputs, $"{craft.Item}: {Market.PriceOf(craft.Item)} for {inputs}");
@@ -420,12 +431,14 @@ public partial class ContentTests
         foreach (var item in Content.Items.All.Where(i => i.Yields != null && Market.PriceOf(i.Id) != null))
         {
             int yields = item.Yields!.Sum(y => (Market.PriceOf(y.Item) ?? 0) * y.Count);
+            // A byproduct pays what it does on average: crushing ore pays by its quartz, gravel now being cheap.
+            yields += item.Byproducts?.Sum(b => (Market.PriceOf(b.Item) ?? 0) * b.Min / (b.OneIn ?? 1)) ?? 0;
             if (yields > 0) Assert.True(yields > Market.PriceOf(item.Id) * item.SmeltTakes, $"{item.Id}: {item.SmeltTakes} at {Market.PriceOf(item.Id)} yield {yields}");
         }
     }
 
     /// <summary>What no one buys: wreckage whole, tools, what is worn, what stores or flies by itself, the arc's, the photosensitive panel nothing makes.</summary>
-    private static readonly string[] Unpriced = ["arcShard", "arcModule", "supplyPod", "cargoCrate", "hullSection", "cargoContainer", "machineBlock", "cableRack", "tankCluster", "shieldSlab", "soilClod", "asteroid", "asteroidSmall", "asteroidLarge", "asteroidRich", "engineBlock", "cargoHold", "podCluster", "photoPanel", "drone", "screwdriver", "fireAxe", "harpoon", "nailer", "railgun", "drill", "jetpack", "helmetLamp", "battery", "accumulator", "helmet", "suit", "cape"];
+    private static readonly string[] Unpriced = ["arcShard", "arcModule", "supplyPod", "cargoCrate", "hullSection", "cargoContainer", "machineBlock", "cableRack", "tankCluster", "shieldSlab", "soilClod", "asteroid", "asteroidSmall", "asteroidLarge", "asteroidRich", "engineBlock", "cargoHold", "podCluster", "photoPanel", "drone", "salvageDrone", "screwdriver", "fireAxe", "harpoon", "grapple", "nailer", "railgun", "drill", "powerDriver", "grinder", "plasmaCutter", "spear", "sledgehammer", "pickaxe", "jetpack", "helmetLamp", "scanner", "battery", "accumulator", "helmet", "suit", "heavyHelmet", "regenSuit", "cape"];
 
     /// <summary>Everything is priced or named here as what no one buys; raw salvage is, so the first credits need nothing made.</summary>
     [Fact]
@@ -436,46 +449,6 @@ public partial class ContentTests
         var unpriced = Content.Items.All.Where(i => Market.PriceOf(i.Id) == null).Select(i => i.Id).ToList();
         Assert.True(unpriced.All(Unpriced.Contains), string.Join(", ", unpriced.Select(id => $"\"{id}\"")));
         Assert.All(Unpriced, id => Assert.Null(Market.PriceOf(id)));
-    }
-
-    /// <summary>
-    /// Every line of the tree tells the truth: a block's crafts and blueprints are made only of what the start or what it needs opens, at a
-    /// station they open; what wreckage gives needs no one to open it.
-    /// </summary>
-    [Fact]
-    public void NothingIsOpenedBeforeWhatItIsMadeOf()
-    {
-        var (given, _) = Reachable([]);
-        var prints = Stillwake.Sim.Research.Blueprints.All.ToDictionary(b => b.Id);
-        HashSet<string> Behind(TechNode node)
-        {
-            var opened = new HashSet<string>(Content.Research.StartKnown, StringComparer.Ordinal);
-            void Walk(TechNode each)
-            {
-                foreach (string need in each.Needs)
-                {
-                    var before = Content.Research.Node(need)!;
-                    opened.UnionWith(before.Opens);
-                    Walk(before);
-                }
-            }
-            Walk(node);
-            opened.UnionWith(node.Opens);
-            return opened;
-        }
-        foreach (var node in Content.Research.Nodes.Where(n => !n.Gate))
-        {
-            var opened = Behind(node);
-            foreach (string id in node.Opens)
-            {
-                bool craft = Crafts.TryGet(id, out var recipe);
-                var cost = craft ? recipe!.Cost : prints[id].Cost;
-                foreach (var (item, _) in cost)
-                    Assert.True(!Crafts.TryGet(item, out _) || given.Contains(item) || opened.Contains(item), $"{id} of {item}, not behind {node.Id}");
-                if (craft && cost.Count > 0)
-                    Assert.True(Stations.All.Any(s => s.Rows.Any(r => r.Contains(id)) && (Machines.Get(s.Machine).Fixed || opened.Contains(s.Machine))), $"{id}: no station behind {node.Id}");
-            }
-        }
     }
 
     /// <summary>Every need names a node listed before it: the order the window looks for what to do next.</summary>
@@ -494,31 +467,27 @@ public partial class ContentTests
     [Fact]
     public void AStepIsWorthItsInputsAndTimeMarkedUpPerUnitRoundedUp()
     {
+        // What the ground gives for a swing is worth next to nothing, whatever a recipe would make of it.
+        Assert.Equal(1, Market.PriceOf("soil"));
+        Assert.Equal(1, Market.PriceOf("rock"));
         Assert.Equal(20, Market.WorthOf("scrapChunk"));
         Assert.Equal(8, Market.WorthOf("scrap")); // (20 + 3) x 1.25 / 4 = 7.19
         Assert.Equal(22, Market.WorthOf("wire")); // (2 x 8 + 1.5) x 1.25 = 21.875
         Assert.Equal(116, Market.WorthOf("coil")); // (4 x 22 + 4.5) x 1.25 = 115.625
     }
 
-    /// <summary>First blueprints come for a few chunks; the engine is the dearest of all, so it stays the end of the tree.</summary>
+    /// <summary>
+    /// The first credits need nothing bought: no softlock can stand between the wreck's start and its first sale. They come
+    /// after the bench's plates and a found circuit, not off raw salvage (2026-11-06-trade-station-later).
+    /// </summary>
     [Fact]
-    public void TheFirstBlocksCostAFewChunksAndTheEngineMost()
+    public void TheFirstCreditsNeedNothingBoughtButComeWithTheBenchesPlatesAndAFoundCircuit()
     {
-        var prices = Content.Research.Nodes.Where(n => !n.Gate).ToDictionary(n => n.Id, Stillwake.Sim.Research.Prices.Of);
-        Assert.All(new[] { "workbench", "furnace", "wire" }, id => Assert.InRange(prices[id], 1, 12 * Market.WorthOf("scrapChunk")));
-        Assert.Equal(prices.Values.Max(), prices["engine"]);
-        Assert.Single(prices.Values, prices["engine"]);
-    }
-
-    /// <summary>The first credits need nothing bought: no softlock can stand between the wreck's start and its first sale.</summary>
-    [Fact]
-    public void TheFirstCreditsNeedNothingBought()
-    {
-        var (had, known) = Reachable([]);
+        var (had, known) = Walk([Stations.Get("furnace"), Stations.Get("workbench")], planet: false, bought: false, []);
         Assert.Contains("tradeStation", known);
-        Assert.Contains("techStation", known);
-        Assert.All(Machines.Get("tradeStation").Cost.Concat(Machines.Get("techStation").Cost), c => Assert.Contains(c.Item, had));
-        Assert.Contains("scrapChunk", had);
+        Assert.All(Machines.Get("tradeStation").Cost, c => Assert.Contains(c.Item, had));
+        Assert.DoesNotContain("tradeStation", Reachable([]).Known);
+        Assert.Contains(Machines.Get("tradeStation").Cost, c => c.Item == "circuit");
     }
 
     /// <summary>The invariant: every item there is can be had from the wreck, caught, dug on a planet or made at a station reachable.</summary>
@@ -555,7 +524,7 @@ public partial class ContentTests
 
     /// <summary>
     /// Hide and fat come off a planet's grazers alone, so nothing before the first landing is made of them: aboard neither,
-    /// nor the cape of the hide; on a planet both, and the cape. Without its hide, no cape; fat smelts into biofuel there.
+    /// nor the cape of the hide; on a planet both, and the cape. Without its hide, no cape; fat ferments into biofuel there.
     /// </summary>
     [Fact]
     public void HideAndFatComeOffAPlanetsGrazersAloneAndTheCapeNeedsTheHide()
@@ -605,7 +574,7 @@ public partial class ContentTests
     [Fact]
     public void EverythingButAPlanetsOwnOpensFromWhatSpaceGivesAloneTheDropPodAmongThem()
     {
-        string[] planetary = ["accumulator", "arcBench", "arcLamp", "arcModule", "backWallAlloy", "backWallHide", "backWallMica", "backWallStone", "canister", "cape", "engine", "fuelPump", "igniter", "motor", "nozzle", "railgun", "wallAlloy", "wallHide", "wallMica", "wallStone"];
+        string[] planetary = ["accumulator", "arcBench", "arcLamp", "arcModule", "backWallAlloy", "backWallHide", "backWallMica", "backWallStone", "biofuelGenerator", "cape", "engine", "fuelPump", "grinder", "igniter", "motor", "nozzle", "railgun", "salvageDrone", "wallAlloy", "wallHide", "wallMica", "wallStone"];
         var (had, known) = Reachable(Stations.All);
         var recipes = Stillwake.Sim.Research.Blueprints.All.Select(b => (b.Id, b.Cost)).Concat(Crafts.All.Select(c => (Id: c.Item, c.Cost)));
         var locked = recipes.Where(r => !known.Contains(r.Id) || !r.Cost.All(c => had.Contains(c.Item))).Select(r => r.Id).Distinct().Order(StringComparer.Ordinal).ToArray();
@@ -617,17 +586,21 @@ public partial class ContentTests
 
     /// <summary>
     /// The farm walks from salvage (0060): seeds from supply pods and soil clods, soil pressed at the Former or broken
-    /// out of clods, the grow capsule bought once that is had, biomass grown in it and biofuel smelted from
-    /// that. Without the capsule, neither biomass nor biofuel; without the Former, soil only from clods; without both,
-    /// no soil and no capsule.
+    /// out of clods, the grow capsule bought once that is had, biomass grown in it and biofuel fermented from
+    /// that at the fermenter, known from space's parts alone (power-chain). Without the capsule, neither biomass nor biofuel;
+    /// without the fermenter, no biofuel, so no descent; without the Former, soil only from clods; without both, no soil and no capsule.
     /// </summary>
     [Fact]
-    public void TheFarmIsReachableSeedsFromSalvageSoilAtTheFormerBiomassInTheCapsuleBiofuelSmelted()
+    public void TheFarmIsReachableSeedsFromSalvageSoilAtTheFormerBiomassInTheCapsuleBiofuelFermented()
     {
         var (had, known) = Reachable(Stations.All);
         Assert.Contains("seed", had);
         foreach (var item in new[] { "seed", "soil", "biomass", "biofuel" }) Assert.Contains(item, had);
         Assert.Contains("growCapsule", known);
+        Assert.Contains("fermenter", known);
+        var (noFermenter, _) = Reachable([.. Stations.All.Where(s => s.Machine != "fermenter")]);
+        Assert.Contains("biomass", noFermenter);
+        Assert.DoesNotContain("biofuel", noFermenter);
         var (noCapsule, _) = Reachable([.. Stations.All.Where(s => s.Machine != "growCapsule")]);
         Assert.DoesNotContain("biomass", noCapsule);
         Assert.DoesNotContain("biofuel", noCapsule);
@@ -707,16 +680,21 @@ public partial class ContentTests
     }
 
     /// <summary>
-    /// The photosensitive panel (2026-10-29-photo-panel) is had only of a solar panel taken apart: no debris, loot, smelt,
-    /// craft, growth or creature gives one. The wreck starts knowing the solar panel, so its own panel builds again, and no
-    /// second one.
+    /// The photosensitive panel (2026-10-29-photo-panel) is had only of the hold's cargo pile or a solar panel taken apart: no
+    /// debris, loot, smelt, craft, growth or creature gives one, so a world has one solar panel.
     /// </summary>
     [Fact]
-    public void OnlyASolarPanelTakenApartGivesAPhotosensitivePanelAndTheWreckKnowsTheSolarPanel()
+    public void OnlyTheCargoPileOrASolarPanelTakenApartGivesAPhotosensitivePanelAndTheBlackMarketSellsItsBlueprint()
     {
         Assert.Equal(["photoPanel"], WrecksOwn);
+        Assert.Contains(("photoPanel", 1), Machines.Get("pileCargo").Cost);
         Assert.Contains(("photoPanel", 1), Machines.Get("solarPanel").Cost);
-        Assert.Contains("solarPanel", Content.Research.StartKnown);
+        Assert.DoesNotContain("solarPanel", Content.Research.StartKnown);
+        var listing = Content.Research.Node("solarPanel")!;
+        Assert.Equal("blackMarket", listing.Tab);
+        Assert.Equal(["order4"], listing.Needs);
+        // Dear: more than any upgrade but the last bag's.
+        Assert.InRange(Stillwake.Sim.Research.Prices.Of(listing), 8000, 15000);
         var given = DebrisSpec.Zones.SelectMany(z => z.Tiers).SelectMany(t => t.Kinds).Select(k => k.Item)
             .Concat(DebrisSpec.Zones.SelectMany(z => z.Tiers).SelectMany(t => t.Kinds).SelectMany(k => Loot.Of(k.Item) ?? []).Select(e => e.Item))
             .Concat(Content.Items.All.SelectMany(i => (i.Yields ?? []).Select(y => y.Item).Concat((i.Byproducts ?? []).Select(b => b.Item))))
@@ -726,5 +704,24 @@ public partial class ContentTests
         Assert.DoesNotContain("photoPanel", given);
         var recipes = Stillwake.Sim.Research.Blueprints.All.Select(b => (b.Id, b.Cost)).Concat(Crafts.All.Select(c => (Id: c.Item, c.Cost)));
         Assert.Equal(["solarPanel"], recipes.Where(r => r.Cost.Any(c => c.Item == "photoPanel")).Select(r => r.Id));
+    }
+
+    /// <summary>
+    /// The salvage drone (salvage-drones): a battery as a drone's, made at the assembler beside it, never sold, opened by a block
+    /// on the market's fourth row priced within a fifth of the solar panel's.
+    /// </summary>
+    [Fact]
+    public void TheSalvageDroneIsAnAssemblerCraftOnTheMarketsFourthRowWithinAFifthOfTheSolarPanelsPrice()
+    {
+        var item = Content.Items.Get(Content.Logistics.SalvageDrone);
+        Assert.Equal((1, Charge.Drone, ItemGroup.Other), (item.Stack, item.Capacity, item.Group));
+        Assert.Equal([("nozzle", 2), ("plate", 3), ("circuit", 2), ("battery", 1)], Crafts.Get(Content.Logistics.SalvageDrone).Cost);
+        Assert.Contains(Stations.Get("assembler").Rows, row => row.Contains(Content.Logistics.Drone) && row.Contains(Content.Logistics.SalvageDrone));
+        Assert.Null(Market.PriceOf(Content.Logistics.SalvageDrone));
+        var block = Content.Research.Node(Content.Logistics.SalvageDrone)!;
+        Assert.Equal("blackMarket", block.Tab);
+        Assert.Equal(["order4"], block.Needs);
+        int price = Stillwake.Sim.Research.Prices.Of(block), solar = Stillwake.Sim.Research.Prices.Of(Content.Research.Node("solarPanel")!);
+        Assert.InRange(price * 5, solar * 4, solar * 6);
     }
 }

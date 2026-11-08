@@ -13,7 +13,7 @@ namespace Stillwake.Sim.Tests;
 /// <summary>packages/sim/src/modules/crew/crew.test.ts, ported.</summary>
 public class CrewTests
 {
-    /// <summary>Nine wide, doubled to 18 (0104): a sealed room of 84 cells with a vent above a tank, the spawn inside it.</summary>
+    /// <summary>Nine wide, doubled to 18 (0104): a sealed room of 84 cells with a vent above a tank, the spawn inside it; <see cref="SetUp"/> makes the tank a vaporizer.</summary>
     private const string Room = """
         #########
         #V..S...#
@@ -38,12 +38,17 @@ public class CrewTests
     /// <summary>Room's leak a minute: the scrap back walls behind its 84 cells and the 40 of its hull's inner layer, two cells thick (Rooms, 0104).</summary>
     private static int Leak => (84 + 40) * Materials.Get("scrap").Leak;
 
-    /// <summary>A world from <see cref="Room"/>, its vent piped to its tank in creative mode, with <paramref name="canisters"/> loaded.</summary>
+    /// <summary>The vent's port, its top-left, and the gas output of the vaporizer under it, the right of its top row.</summary>
+    private static readonly int Vent = Cell(2, 2), Output = Cell(5, 4);
+
+    /// <summary>
+    /// A world from <see cref="Room"/> made the chain (<see cref="HandPiped.Chained"/>), its vent piped to the vaporizer in
+    /// creative mode, with <paramref name="canisters"/> loaded into the tank under the hull.
+    /// </summary>
     private static (Scenario W, int Tank, int Room) SetUp(int canisters = 0)
     {
-        var w = new Scenario(Room).Do(new Items.SetCreative(true));
-        // Down the left column from the vent's port to the tank's, at (0, 2) of its 4×4.
-        w.Pipe(Cell(2, 2), Cell(2, 6)).Run();
+        var w = new Scenario(HandPiped.Chained(Room), doubled: true).Do(new Items.SetCreative(true));
+        w.Pipe(Vent, Output).Run();
         int tank = w.M.Grid.Machines.FirstOrDefault(m => m.Kind == "tank")?.Id ?? 0;
         for (int i = 0; i < canisters; i++) w.Do(new LoadCanister(tank));
         // Off once built: in creative mode a suit never empties.
@@ -122,6 +127,9 @@ public class CrewTests
         var (w, _, _) = SetUp();
         w.Do(EnterAt(At(4, 1))).Do(new Exert(true) { From = 0 }).Run();
         Breaths(w, (Scenario.Full + 1) / Content.Crew.Exerted);
+        // Running, its last breath costs no more: it runs it down in time alone.
+        Assert.Equal((0, Content.Crew.LastBreath, true), (HeroOf(w)!.Air, HeroOf(w)!.Gasp, HeroOf(w)!.Exerting));
+        w.Run(Content.Crew.LastBreath);
         var hero = HeroOf(w)!;
         Assert.Equal((0, Content.Crew.PassOut, false), (hero.Air, hero.Out, hero.Exerting));
     }
@@ -139,6 +147,7 @@ public class CrewTests
         var (w, _, _) = SetUp();
         w.Do(EnterAt(At(7, 3))).Run();
         Breaths(w, Scenario.Full);
+        w.Run(Content.Crew.LastBreath);
         var hero = HeroOf(w)!;
         Assert.Equal((0, Content.Crew.PassOut, At(7, 3)), (hero.Air, hero.Out, hero.Cell));
         w.Run(Content.Crew.PassOut - 1);
@@ -148,60 +157,46 @@ public class CrewTests
     }
 
     [Fact]
-    public void BreathesRoomAirStandingInItRefillingTheSuitPaidByTheTank()
+    public void BreathesRoomAirStandingInItRefillingTheSuitTheVentRefillingTheRoomFromTheTank()
     {
-        var (w, tank, room) = SetUp(3);
+        var (w, _, room) = SetUp(3);
         w.Do(EnterAt(Outside)).Run();
         Breaths(w, 10);
         AirUp(w, room);
         w.Do(EnterAt(At(4, 1))).Run();
         int suit = HeroOf(w)?.Air ?? 0;
-        int oxygen = w.M.Atmosphere.OxygenIn(tank);
-        int clock = AirClock(w);
+        int oxygen = HandPiped.Held(w);
+        int clock = AirClock(w), part = w.Owed(room);
         Breaths(w, 2);
         Assert.Equal(suit + 2 * Content.Crew.Refill, HeroOf(w)?.Air);
-        // The tank pays for the breaths, and its leak on a leak beat; the room stays whole.
-        Assert.Equal(
-            oxygen - 2 * (1 + Content.Crew.Refill) - AirTesting.Leaked(Leak, clock, AirClock(w)),
-            w.M.Atmosphere.OxygenIn(tank));
+        // The breaths and the leak are drawn from the chain, never a cell (2026-11-05-air-bubbles): a unit either way of the leak.
+        int leaked = AirTesting.Leaked(Leak, clock, AirClock(w), part);
+        Assert.InRange(oxygen - 2 * (1 + Content.Crew.Refill) - HandPiped.Held(w), leaked - 1, leaked);
         Assert.Equal(84, Aired(w).Count);
         // Full, it takes only its breath.
         Breaths(w, 10);
         Assert.Equal(Scenario.Full, HeroOf(w)?.Air);
     }
 
+    /// <summary>
+    /// Its vent's pipe cut, nothing pays: the bubble shrinks from the far edge, <c>Air.CellsPerFill</c> cells a beat, and a
+    /// hero breathes the room's air only while its cell holds some (2026-11-05-air-bubbles).
+    /// </summary>
     [Fact]
-    public void BreathesTheFarEdgeOfTheAirWhenNoTankPays()
+    public void LosesItsAirFromTheFarEdgeWhenNoTankPaysTheHeroThereOnTheSuitOnceItsCellIsEmpty()
     {
         var (w, _, room) = SetUp(1);
         AirUp(w, room);
-        // The vent's pipe cut: nothing pays, nothing fills.
-        w.Do(new Pipes.CutPipe(Cell(2, 2), Cell(2, 6))).Run();
-        w.Do(EnterAt(At(4, 1))).Run();
-        // Counted from here: the leak of the ticks since the cut, a fifth of a cell a tick, is the room's already.
-        int clock = AirClock(w), aired = Aired(w).Count;
-        Breaths(w, 1);
-        Assert.Equal(Scenario.Full, HeroOf(w)?.Air);
-        // The corner farthest from the vent went first; the back walls leak the room's air too.
-        Assert.DoesNotContain(Far, Aired(w));
-        Assert.Equal(aired - 1 - AirTesting.Leaked(Leak, clock, AirClock(w)), Aired(w).Count);
-    }
-
-    [Fact]
-    public void BreathesRoomAirOnlyInACellHoldingItPastTheEdgeOfTheAirFromTheSuit()
-    {
-        var (w, _, room) = SetUp(1);
-        AirUp(w, room);
-        w.Do(new Pipes.CutPipe(Cell(2, 2), Cell(2, 6))).Run();
-        // At the far end, where the air goes first.
         w.Do(EnterAt(Far)).Run();
-        for (int i = 0; i < 30 && Aired(w).Contains(Far); i++) Breaths(w, 1);
+        Breaths(w, 1);
+        int suit = HeroOf(w)!.Air;
+        w.Do(new Pipes.CutPipe(Vent, Output)).Run();
         Assert.DoesNotContain(Far, Aired(w));
-        int suit = HeroOf(w)?.Air ?? 0;
+        Assert.InRange(Aired(w).Count, 84 - Content.Air.CellsPerFill, 84 - 1);
         Breaths(w, 2);
         Assert.Equal(suit - 2, HeroOf(w)?.Air);
-        // The room still holds air nearer the vent.
-        Assert.True(Aired(w).Count > 40, $"{Aired(w).Count} aired");
+        w.Run(84 / Content.Air.CellsPerFill);
+        Assert.Empty(Aired(w));
     }
 
     [Fact]
@@ -302,6 +297,7 @@ public class CrewTests
     {
         var w = PodWorld(Beyond);
         Breaths(w, Scenario.Full);
+        w.Run(Content.Crew.LastBreath);
         Assert.Equal((0, Content.Crew.PassOut), (HeroOf(w)!.Air, HeroOf(w)!.Out));
         w.Run(Content.Crew.PassOut);
         Assert.Equal((0, Hatch, Scenario.Full, 0, 0), All(w, HeroOf(w)));

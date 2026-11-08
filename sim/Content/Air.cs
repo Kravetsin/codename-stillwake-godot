@@ -4,13 +4,16 @@ namespace Stillwake.Content;
 /// Oxygen, in whole units, and how it moves; times in ticks, 20 to a second. A cell of air is one
 /// unit. A room is aired cell by cell, <see cref="CellsPerFill"/> cells every <see cref="TicksPerCell"/> ticks (0105). Every
 /// <see cref="LeakEvery"/> ticks, ten minutes so that a rate of a tenth of a unit a minute is whole, a
-/// room holding air pays its tanks a leak through what its air touches (0020): the back wall behind each
-/// of its cells and each outer hull cell by its material's leak, a closed door's cell by <see cref="DoorLeak"/>.
+/// room holds as many cells round its vents as its sources pay the leak of (0020, 2026-11-05-air-bubbles): the back
+/// wall behind each and the hull cells beside it by their material's leak, a closed door in its hull by <see cref="DoorLeak"/>;
+/// the pod's <see cref="PodRate"/> holds the starting ship, a vaporizer's <see cref="GeneratorRate"/> a third of it, 133 cells of scrap
+/// (playtest 2026-11-06: leaks tripled and the pod with them, so every room built after costs air).
 /// A room open to space loses <see cref="VentLoss"/> cells a tick, and a vent in it, or in space, drains
-/// its network by <see cref="VentDrain"/> a tick: what a vent can pass, so a breach empties a tank over
-/// minutes, with time to reach a valve. A generator makes <see cref="GeneratorRate"/> units every
-/// <see cref="LeakEvery"/> ticks into a store of its own holding <see cref="GeneratorStore"/>; what does
-/// not fit is lost. Sized so the starting room holds with two heroes breathing. A cell is 8 px (0104): what is
+/// its network by <see cref="VentDrain"/> a tick: what a vent can pass. A tank holds liquid oxygen, a canister
+/// <see cref="Canister"/> of it; a vaporizer (the generator) turns it into air at <see cref="GeneratorRate"/> units every
+/// <see cref="LeakEvery"/> ticks at full power, one unit of liquid a unit of air, into a store of its own holding
+/// <see cref="GeneratorStore"/> that its vents draw from. Liquid leaves at most at that rate, so a breach empties a
+/// canister over minutes, with time to reach a valve. Sized so the starting room holds with two heroes breathing. A cell is 8 px (0104): what is
 /// counted by area is four times what it was at 16 px, so a room holds, fills and empties as it did.
 /// </summary>
 public static class Air
@@ -24,8 +27,18 @@ public static class Air
 
     public const int VentLoss = 24;
     public const int LeakEvery = 12000;
-    public const int DoorLeak = 20;
+    public const int DoorLeak = 60;
     public const int VentDrain = 8;
     public const int GeneratorRate = 12000;
+
+    /// <summary>What the pod makes from nothing every <see cref="LeakEvery"/> ticks: enough for the starting ship, its airlock and its hold.</summary>
+    public const int PodRate = 36000;
+
     public const int GeneratorStore = 160;
+
+    /// <summary>
+    /// What a tank passes a tick to the tanks piped from its output to their inputs (tanks-in-a-line): a canister moves on
+    /// in some 22 seconds, so a line fills its last tank while the player watches.
+    /// </summary>
+    public const int TankFlow = 20;
 }

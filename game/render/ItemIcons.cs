@@ -15,7 +15,7 @@ public static class ItemIcons
     /// <summary>An item picture's side, in pixels.</summary>
     public const int Pixels = 16;
 
-    private static readonly Dictionary<string, Texture2D> Icons = new(), Silhouettes = new();
+    private static readonly Dictionary<string, Texture2D> Icons = new(), Silhouettes = new(), HeldTextures = new();
     private static readonly Dictionary<(string Item, int Side), Texture2D> Baked = new();
     private static readonly Dictionary<string, Image> Held = new();
     private static readonly Dictionary<string, int> ClearRows = new();
@@ -24,7 +24,7 @@ public static class ItemIcons
     /// The picture of <paramref name="item"/> as the world draws it, a pixel of it a pixel of the world, loaded once: a tool's
     /// plain held picture, as large as in the hand; any other item's 16 px picture.
     /// </summary>
-    public static Texture2D Icon(string item) => HeldLook.Of(item) is { } look ? GD.Load<Texture2D>(look.Picture) : Drawn(item);
+    public static Texture2D Icon(string item) => HeldLook.Of(item) is { } look ? HeldTexture(look.Picture) : Drawn(item);
 
     /// <summary>The picture of <paramref name="item"/> where it is drawn <paramref name="side"/> px wide: a tool's icon baked at that side, drawn 1:1; any other item's 16 px picture.</summary>
     public static Texture2D Icon(string item, int side) => HeldLook.Of(item) != null ? Bake(item, side) : Drawn(item);
@@ -48,7 +48,7 @@ public static class ItemIcons
     public static Texture2D Silhouette(string item)
     {
         if (Silhouettes.TryGetValue(item, out var kept)) return kept;
-        var image = HeldLook.Of(item) is { } look ? (Image)HeldImage(look.Picture).Duplicate() : Readable(Drawn(item));
+        var image = HeldLook.Of(item) is { } look ? (Image)HeldImage(look.Picture).Duplicate() : Fine($"items/{item}");
         int lowest = -1;
         for (int y = 0; y < image.GetHeight(); y++)
             for (int x = 0; x < image.GetWidth(); x++)
@@ -57,8 +57,8 @@ public static class ItemIcons
                 if (a > 0) lowest = y;
                 image.SetPixel(x, y, new Color(1, 1, 1, a));
             }
-        ClearRows[item] = image.GetHeight() - 1 - lowest;
-        return Silhouettes[item] = ImageTexture.CreateFromImage(image);
+        ClearRows[item] = (image.GetHeight() - 1 - lowest) / HiRes.Scale;
+        return Silhouettes[item] = HiRes.Texture(image);
     }
 
     /// <summary>The clear rows under <paramref name="item"/>'s picture as the world draws it, in that picture's pixels: what a stack on the floor is lowered by to stand on it.</summary>
@@ -70,30 +70,43 @@ public static class ItemIcons
 
     private static Texture2D Drawn(string item)
     {
-        if (!Icons.TryGetValue(item, out var icon))
-            Icons[item] = icon = GD.Load<Texture2D>($"res://art/items/{item}.png");
+        if (!Icons.TryGetValue(item, out var icon)) Icons[item] = icon = HiRes.Texture(Fine($"items/{item}"));
         return icon;
     }
 
     private static Texture2D Bake(string item, int side)
     {
         if (Baked.TryGetValue((item, side), out var icon)) return icon;
-        var held = HeldImage(HeldLook.Of(item)!.Picture);
+        var held = IconImage(HeldLook.Of(item)!.Picture);
         var rgba = ToolIcon.Bake(held.GetData(), held.GetWidth(), held.GetHeight(), side);
-        return Baked[(item, side)] = ImageTexture.CreateFromImage(Image.CreateFromData(side, side, false, Image.Format.Rgba8, rgba));
+        var image = Image.CreateFromData(side, side, false, Image.Format.Rgba8, rgba);
+        // Mipmapped, so a zoomed-out board fits it down smoothly too.
+        image.GenerateMipmaps();
+        return Baked[(item, side)] = ImageTexture.CreateFromImage(image);
     }
 
+    // A tool's held picture: an icon bakes from it, by its drawn box.
     private static Image HeldImage(string picture)
     {
-        if (!Held.TryGetValue(picture, out var held)) Held[picture] = held = Readable(GD.Load<Texture2D>(picture));
+        if (!Held.TryGetValue(picture, out var held)) Held[picture] = held = Fine(HeldName(picture));
         return held;
     }
 
-    private static Image Readable(Texture2D texture)
+    // What a tool's icon bakes from: its icon picture, the held one drawn at many pixels a world pixel (icons/), else the held one.
+    private static Image IconImage(string picture)
     {
-        var image = texture.GetImage();
-        if (image.IsCompressed()) image.Decompress();
-        image.Convert(Image.Format.Rgba8);
+        string icon = $"icons/{HeldName(picture)}";
+        if (!Held.TryGetValue(icon, out var image)) Held[icon] = image = HiRes.Load(icon) ?? HeldImage(picture);
         return image;
     }
+
+    private static Texture2D HeldTexture(string picture)
+    {
+        if (!HeldTextures.TryGetValue(picture, out var texture)) HeldTextures[picture] = texture = HiRes.Texture(Fine(HeldName(picture)));
+        return texture;
+    }
+
+    private static string HeldName(string picture) => picture["res://art/".Length..^".png".Length];
+
+    private static Image Fine(string name) => HiRes.Load(name) ?? throw new System.InvalidOperationException($"No picture {name}");
 }

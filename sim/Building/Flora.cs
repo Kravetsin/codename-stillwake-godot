@@ -1,5 +1,6 @@
 using System.Text.Json;
 using Stillwake.Content;
+using Stillwake.Sim.Crew;
 using Stillwake.Sim.Grid;
 using Stillwake.Sim.Items;
 
@@ -41,9 +42,22 @@ public sealed partial class BuildingModule
     private readonly Dictionary<int, Plant> _plantBehind = new();
     private readonly List<int> _resonators = [];
     private readonly List<Relic> _relics = [];
+    private readonly List<Plant> _posts = [];
 
     /// <summary>The relics the ground grew with, ascending by cell, standing or taken (0096): live and read-only.</summary>
     public IReadOnlyList<Relic> Relics => _relics;
+
+    /// <summary>The posts standing, ascending by cell (spire guards): live and read-only.</summary>
+    public IReadOnlyList<Plant> Posts => _posts;
+
+    /// <summary>The post standing with its own cell at <paramref name="cell"/>; null for none, or for one gone.</summary>
+    public Plant? PostAt(int cell) => _plantOwn.TryGetValue(cell, out var plant) && Kinds[plant.Kind].Post != null ? plant : null;
+
+    /// <summary>Fells the post at <paramref name="cell"/> for good, its creature killed; a wall broken may have felled it already.</summary>
+    public void FellPost(int cell)
+    {
+        if (PostAt(cell) is { } post) Fell(post, null);
+    }
 
     /// <summary>Every kind of growth by id, looked up as often as a plant is.</summary>
     private static readonly Dictionary<string, Flora.Growth> Kinds = Flora.Every.ToDictionary(k => k.Id, StringComparer.Ordinal);
@@ -105,6 +119,7 @@ public sealed partial class BuildingModule
         _plantBehind.Clear();
         _resonators.Clear();
         _relics.Clear();
+        _posts.Clear();
         foreach (var (cell, kind) in _grown)
         {
             bool felled = State.Felled.BinarySearch(cell) >= 0;
@@ -120,6 +135,7 @@ public sealed partial class BuildingModule
         var layer = LayerOf(plant);
         foreach (int cell in CellsOf(plant)) layer[cell] = plant;
         if (plant.Kind == Ruins.Resonator) _resonators.Add(plant.Cell);
+        if (Kinds[plant.Kind].Post != null) _posts.Add(plant);
     }
 
     /// <summary>Where <paramref name="plant"/>'s cells are kept: in front, or behind for a back wall's piece or a rug (0091).</summary>
@@ -141,7 +157,7 @@ public sealed partial class BuildingModule
     /// The cells <paramref name="plant"/> holds on to: the cell under each of its columns on a floor (a wall, or a piece it stands
     /// on), over each from a ceiling, its own walls in the rock; for one on a back wall, the back walls of its own cells.
     /// </summary>
-    private IEnumerable<int> HoldsOf(Plant plant)
+    public IEnumerable<int> HoldsOf(Plant plant)
     {
         var kind = Kinds[plant.Kind];
         if (kind.On is Flora.Anchor.Rock or Flora.Anchor.Back)
@@ -168,6 +184,7 @@ public sealed partial class BuildingModule
         var layer = LayerOf(plant);
         foreach (int cell in CellsOf(plant)) layer.Remove(cell);
         if (plant.Kind == Ruins.Resonator) _resonators.Remove(plant.Cell);
+        _posts.Remove(plant);
         int relic = _relics.FindIndex(r => r.Cell == plant.Cell);
         if (relic >= 0) _relics[relic] = _relics[relic] with { Taken = true };
         // Its crack goes with it, before a wall built in its cell could take it over; one in the rock's is the wall's.
@@ -253,6 +270,6 @@ public sealed partial class BuildingModule
     {
         if (_resonators.Count == 0 || State.Clock % Content.Crew.BreathEvery != 0) return;
         foreach (var hero in _crew.Heroes)
-            if (hero.Out == 0 && Zaps(hero.Cell)) _crewOps.Shock(hero.Id, Ruins.Zap);
+            if (hero.Out == 0 && Zaps(hero.Cell)) _crewOps.Shock(hero.Id, Ruins.Zap, Harm.Shock);
     }
 }

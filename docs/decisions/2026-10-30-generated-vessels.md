@@ -43,13 +43,14 @@ possible and the wreck made from it.
 - **The vessel is not the ship:** Debris' stream finds the hull without the box (the stream does not widen to it); Hazards'
   meteors aim at the ship past it (a vessel ahead is no shield); Crew's cold costs nothing in the box (one reaching past the
   field is still worked in); Building's axe and drill strike aboard inside the box only, each ray stopping at its edge.
-- **Its hull** is a material of its own, `hull`: as strong and slow to take apart as iron, a scrap chunk a cell, drawn as
-  iron darker; never built, so never a blueprint. `Material.Built` now means a card in the build menu.
+- **Its hull** is a material of its own, `hull` (code 17): as strong and slow to take apart as iron, a scrap chunk a cell,
+  drawn as iron (`As`); never built, so never a blueprint (no card in the build menu).
 - **What a vessel holds is a whitelist** (`Vessels.Machines`: the crate, the lamp): machines that are fair loot and keep no
   state in another module by their id, so a wipe leaves nothing behind. `Gap` is more than a drone bay's reach.
 - **Yield is bounded per class** (`VesselClass.Yield`, a content test over seeds): a first pass of 300–1,300 items for a
   shuttle and 2,400–8,000 for a freighter, nearly all of it scrap chunks of the hull, to be tuned in play.
-- Save format 39: the module joins every surface with no contact and no vessel out.
+- Save format 57: the module joins every surface with no contact and no vessel out. A crate's loot is counted obtained
+  (the-board) as it is written.
 
 ## Slices
 

@@ -23,15 +23,15 @@ plan, piping, valves on joints, and the networks they join, along which air flow
 
 ## Rules
 
-- **A node** is a cell a span ends at: a machine's port (`IGridQueries.PortsOf`: a vent's own cell, a tank's bottom-left)
+- **A node** is a cell a span ends at: a machine's port (`IGridQueries.PortsOf`: inputs on its left, outputs on its right, 2026-11-02-ports-left-to-right)
   or a **joint**, any other cell of the build zone, a wall, a back wall, open space or a machine's other cell alike. A
   joint comes with the first span laid to it and goes with the last cut. A port whose machine is taken apart stays a
   joint; a machine built with a port on a node joins it.
 - **A span** joins two different cells of the zone straight, at any angle, at most `Content.Piping.MaxSpan` (12) long;
   two cells take one span at most. Its length is the square root of the cells' squared distance, an integer, rounded up
   (`LengthOf`: 3 by 4 is 5, 1 by 1 is 2). It costs one `Content.Piping.Item` (a tube) per started
-  `CellsPerItem` (4) cells, taken from the sender as it is laid, given back as it is cut; in creative mode it costs
-  nothing and gives nothing back (`Paid`). It takes no cell: it passes through walls and seals nothing.
+  `CellsPerItem` (4) cells, taken from the sender's stock (crates too) as it is laid, given back to it as it is cut;
+  a creative sender pays from nothing, so it is `Paid` and gives its tubes back to whoever takes it up. It takes no cell: it passes through walls and seals nothing.
 - **A valve** is a joint that opens and closes (`MakeValve(cell, true)`, `Content.Piping.ValveCost`, open as made;
   `MakeValve(cell, false)` turns it back, refunded). Only a joint becomes one, never a port. `SetValve(cell, open)` says
   the state its sender saw it should take (0071): one already so is left alone. Its last span cut, a valve goes with it,
@@ -51,8 +51,8 @@ plan, piping, valves on joints, and the networks they join, along which air flow
   A span is refused, after `pipes.twice`, joining two ports that give (`pipes.bothGive`) or take (`pipes.bothTake`), or
   ends of different fluids (`pipes.mixedFluid`): an end's fluid is its port's, else its line's, and a line with no port
   matches any. Only the two ends count: output → joint → output is laid. Valves never mix fluids, as lines ignore them.
-  Air's ports are the tank's, the generator's and the vent's; water's the cistern's, its input left and output right,
-  which holds nothing yet.
+  Liquid oxygen leaves a tank and enters a vaporizer (kind `generator`), air leaves the vaporizer and enters a vent
+  (liquid-oxygen); water leaves a cistern's right and enters an electrolyser's left, whose liquid oxygen enters a tank's left (water).
 
 ## API
 
@@ -63,7 +63,7 @@ plan, piping, valves on joints, and the networks they join, along which air flow
   them name would be open, for what a client shows before its tick runs (0014). Static: `LengthOf(width, a, b)`,
   `CostOf(length)`.
 - **Commands:** `LayPipe(A, B)` — `pipes.notAboard` (away from the ship, 0110), `pipes.offGrid`, `pipes.sameCell`, `grid.reserved` (an end in a vessel's box), `pipes.outsideZone`, `pipes.tooLong`, `pipes.twice`,
-  `pipes.bothGive`, `pipes.bothTake`, `pipes.mixedFluid`, then the items' `items.notEnough`; `CutPipe(A, B)` — `pipes.noPipe`, then whether the refund fits; `MakeValve(Cell,
+  `pipes.bothGive`, `pipes.bothTake`, `pipes.mixedFluid`, then the items' `items.notEnough`; `CutPipe(A, B)` — `pipes.noPipe`, `pipes.fixed` (inside a machine never taken apart: the pod's), then whether the refund fits; `MakeValve(Cell,
   Valve)` — making one, `pipes.notAboard`, `pipes.noJoint`, `pipes.already`, `pipes.noValve`, then the items; `SetValve(Cell, Open)` — `pipes.noValve`.
 
 ## Invariants

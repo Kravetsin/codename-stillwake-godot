@@ -80,36 +80,36 @@ public class DrillArcTests
     }
 
     [Fact]
-    public void AFittedDrillDrawsSixATickAPlainOneThreeAndRefusesToRunOnABeltShortOfSix()
+    public void AFittedDrillDrawsTwoATickAPlainOneOneAndRefusesToRunOnABeltShortOfTwo()
     {
         int plain = Spec.Items.Get(Drill).Draw!.Value, fitted = Boost.Cost(plain, Spec.Modules.Arc.Adds(Drill, Spec.Stat.Draw));
-        Assert.Equal((3, 6), (plain, fitted));
+        Assert.Equal((1, 2), (plain, fitted));
         var w = new Scenario("S.......").Put(0, Fitted).Put(Belt, Battery(Full)).Do(new Enter(1)).Run();
         w.Do(new Run(Drill, true)).Run(4);
         Assert.Equal(Full - 4 * fitted * S, At(w, Belt)!.Charge);
         Assert.Equal(Drill, w.M.Items.Running(0));
 
         // A belt holding a tick of the plain drill but not of the fitted one: flat, to run and to hit.
-        var short_ = new Scenario("S.......").Put(0, Fitted).Put(Belt, Battery(5 * S)).Do(new Enter(1)).Run();
+        var short_ = new Scenario("S.......").Put(0, Fitted).Put(Belt, Battery(fitted * S - 1)).Do(new Enter(1)).Run();
         Assert.Equal("items.flat", short_.M.Items.WeaponProblem(0, Drill, running: false));
         short_.Do(new Run(Drill, true)).Run();
         Assert.Equal(["items.flat"], Reasons(short_));
         // The same belt runs a plain drill.
-        var plainShort = new Scenario("S.......").GiveItems(0, (Drill, 1)).Put(Belt, Battery(5 * S)).Do(new Enter(1)).Run();
+        var plainShort = new Scenario("S.......").GiveItems(0, (Drill, 1)).Put(Belt, Battery(fitted * S - 1)).Do(new Enter(1)).Run();
         plainShort.Do(new Run(Drill, true)).Run();
         Assert.Empty(plainShort.Refusals);
-        Assert.Equal(2 * S, plainShort.M.Items.Inventory(0)[Belt]!.Charge);
+        Assert.Equal(fitted * S - 1 - plain * S, plainShort.M.Items.Inventory(0)[Belt]!.Charge);
     }
 
     [Fact]
     public void ARunStopsOnTheTickItsBeltCannotPayTheFittedDrawThoughItCouldPayAPlainOne()
     {
-        var w = new Scenario("S.......").Put(0, Fitted).Put(Belt, Battery(6 * S + 4 * S)).Do(new Enter(1)).Run();
+        var w = new Scenario("S.......").Put(0, Fitted).Put(Belt, Battery(2 * S + 1 * S)).Do(new Enter(1)).Run();
         w.Do(new Run(Drill, true)).Run();
         Assert.Equal(Drill, w.M.Items.Running(0));
         w.Run();
         Assert.Null(w.M.Items.Running(0));
-        Assert.Equal(4 * S, At(w, Belt)!.Charge);
+        Assert.Equal(1 * S, At(w, Belt)!.Charge);
     }
 
     /// <summary>A wreck in space, hero 0 out by it carrying <paramref name="drill"/>, creative so no belt is needed.</summary>
@@ -148,12 +148,12 @@ public class DrillArcTests
     [Fact]
     public void ToolStatsFoldTheModulesOfAStackAndAreWhatTheSimHitsAndDrawsBy()
     {
-        Assert.Equal(new ToolStats(1, 2, 3), ToolStats.Of(new Stack(Drill, 1)));
-        Assert.Equal(new ToolStats(2, 2, 6), ToolStats.Of(Fitted));
+        Assert.Equal(new ToolStats(1, 2, 1), ToolStats.Of(new Stack(Drill, 1)));
+        Assert.Equal(new ToolStats(2, 2, 2), ToolStats.Of(Fitted));
         Assert.Equal(new ToolStats(2, 10, 0), ToolStats.Of(new Stack(Spec.Weapons.Axe.Item, 1)));
-        // Two modules summed first, then applied once: damage 1 × 2500 / 1000 down to 2, draw 3 × 1750 / 1000 up to 6.
-        Assert.Equal(new ToolStats(2, 2, 6), ToolStats.Of(Drill, [Spec.Modules.Arc, Fake]));
-        Assert.Equal(new ToolStats(1, 2, 3), ToolStats.Of(Drill, [Fake]));
+        // Two modules summed first, then applied once: damage 1 × 2500 / 1000 down to 2, draw 1 × 1750 / 1000 up to 2.
+        Assert.Equal(new ToolStats(2, 2, 2), ToolStats.Of(Drill, [Spec.Modules.Arc, Fake]));
+        Assert.Equal(new ToolStats(1, 2, 1), ToolStats.Of(Drill, [Fake]));
         // On blocks, the same gain: 4 × 2500 / 1000 to 10.
         Assert.Equal(10, ToolStats.BlockDamageOf(Drill, [Spec.Modules.Arc, Fake]));
         Assert.Equal(ToolStats.Of(Drill, [Spec.Modules.Arc, Fake]), ToolStats.Of(Drill, [Fake, Spec.Modules.Arc]));
@@ -188,8 +188,8 @@ public class DrillArcTests
         // 4, 12 and 60 strong: a hit every 0.1 s, 4 and 8 a hit on blocks: soil at a hit either way, stone 0.3 s and 0.2 s, alloy 1.5 s and 0.8 s.
         Assert.Equal((1, 3, 15), (HitsToBreak(new Stack(Drill, 1), 9), HitsToBreak(new Stack(Drill, 1), 10), HitsToBreak(new Stack(Drill, 1), 11)));
         Assert.Equal((1, 2, 8), (HitsToBreak(Fitted, 9), HitsToBreak(Fitted, 10), HitsToBreak(Fitted, 11)));
-        // A battery: 1800 power-ticks, 600 ticks (30 s) at the plain drill's 3, 300 (15 s) at the fitted 6.
-        Assert.Equal((600, 300), (Full / S / ToolStats.Of(new Stack(Drill, 1)).Draw, Full / S / ToolStats.Of(Fitted).Draw));
+        // A battery: 1800 power-ticks, 1800 ticks (90 s) at the plain drill's 1, 900 (45 s) at the fitted 2.
+        Assert.Equal((1800, 900), (Full / S / ToolStats.Of(new Stack(Drill, 1)).Draw, Full / S / ToolStats.Of(Fitted).Draw));
     }
 
     // The module goes with its stack.
@@ -273,8 +273,8 @@ public class DrillArcTests
         var there = w.On(1);
         Assert.Equal(Fitted, there.Items.Inventory(0)[0]);
         Assert.Equal(Drill, there.Items.Running(0));
-        // It draws its fitted draw there: two ticks of six, one aboard and one on the strip.
-        Assert.Equal(Full - 2 * 6 * S, there.Items.Inventory(0)[Belt]!.Charge);
+        // It draws its fitted draw there: two ticks of two, one aboard and one on the strip.
+        Assert.Equal(Full - 2 * 2 * S, there.Items.Inventory(0)[Belt]!.Charge);
     }
 
     // Conserved under the fuzz.

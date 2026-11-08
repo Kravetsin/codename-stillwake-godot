@@ -6,6 +6,7 @@ using Stillwake.Game.Render;
 using Stillwake.Game.Shared;
 using Stillwake.Net;
 using Stillwake.Sim.Debris;
+using Blow = Stillwake.Game.Shared.Blow;
 using S = Stillwake.Game.Sound;
 using Wreckage = Stillwake.Content.Wreckage;
 
@@ -18,7 +19,7 @@ namespace Stillwake.Game.Features.Debris;
 /// camera's view and <see cref="Margin"/> cells round it are drawn, their pictures taken from a pool that
 /// never frees (0052). The piece the crew's hands would work is outlined, green while they would and red
 /// while the sim would refuse it (<see cref="Ui.AimedPiece"/>); a piece this peer is grabbing is gone at
-/// once (0014). A wreck shows the share of its hit points lost as cracks (<see cref="Cracks"/>, 0034); each
+/// once (0014). A wreck shows the share of its hit points lost as ink cracks out of each blow (<see cref="WreckCracks"/>); each
 /// hit jolts it and throws sparks, and a wreck broken bursts apart, for every peer alike; only this
 /// player's own hits are heard (0042).
 /// </summary>
@@ -37,11 +38,12 @@ public partial class DebrisView(Ui ui) : Node2D
     private static readonly Color AimReady = Outline.AimReady, AimRefused = Outline.AimRefused;
 
     /// <summary>What is shown of a piece: its picture, the damage last seen, the jolt still settling and which way, and where it was on which tick.</summary>
-    private sealed class Shown(Sprite2D picture, bool wreck)
+    private sealed class Shown(Sprite2D picture, WreckInk? cracks)
     {
         public Sprite2D Picture { get; } = picture;
-        /// <summary>Whether its picture is a wreck's, drawn with the cracking material, and so goes back to the wrecks' pool.</summary>
-        public bool Wreck { get; } = wreck;
+        /// <summary>A wreck's cracks over its picture; none for a small piece. A wreck's picture goes back to the wrecks' pool.</summary>
+        public WreckInk? Cracks { get; } = cracks;
+        public bool Wreck => Cracks != null;
         public int Damage { get; set; }
         public double JoltMs { get; set; }
         /// <summary>How brightly it still flares from its last hit, 1 at the hit.</summary>
@@ -56,15 +58,21 @@ public partial class DebrisView(Ui ui) : Node2D
     private readonly Dictionary<int, Shown> _shown = new();
     /// <summary>Pictures not drawn now, small pieces' and wrecks' apart, as their materials differ: kept, never freed.</summary>
     private readonly Stack<Shown> _small = new(), _wrecks = new();
-    private static readonly Dictionary<(string Item, int Look), Texture2D> Textures = new();
     /// <summary>The piece aimed at, outlined over the rest.</summary>
     private readonly Outline _aimed = new(1);
-    private readonly Heard2D _chop = Cues.Player2D(S.Chop, S.Suit, voices: 4), _break = Cues.Player2D(S.Break, S.Suit, voices: 2);
+    private readonly Heard2D _chop = Cues.Player2D(S.Chop, S.Suit, voices: 4), _break = Cues.Player2D(S.Break, S.Suit, voices: 2),
+        _spearHit = Cues.Player2D(S.SpearHit, S.Suit, voices: 2), _hammerBlow = Cues.Player2D(S.HammerBlow, S.Suit, voices: 2);
     private readonly OwnHits _own = new();
     private double _clockMs;
     /// <summary>Every piece out but those this peer is grabbing, and of them the ones drawn this frame.</summary>
     private readonly HashSet<int> _out = [], _drawn = [];
+    private readonly Dictionary<int, double> _turns = new();
     private readonly List<int> _gone = [];
+    /// <summary>The blows seen landing on each wreck still out, kept while it drifts out of view and back (<see cref="WreckCracks"/>).</summary>
+    private readonly Dictionary<int, List<Blow>> _blows = new();
+
+    /// <summary>Each cracked wreck's network, laid out once from its first blow (<see cref="WreckCracks.Network"/>).</summary>
+    private readonly Dictionary<int, CrackNet> _nets = new();
 
     /// <summary>The pieces read last frame: for scripted runs.</summary>
     public IReadOnlyList<Piece> Pieces { get; private set; } = [];
@@ -84,6 +92,8 @@ public partial class DebrisView(Ui ui) : Node2D
         AddChild(_aimed);
         AddChild(_chop);
         AddChild(_break);
+        AddChild(_spearHit);
+        AddChild(_hammerBlow);
     }
 
     /// <summary>
@@ -123,8 +133,18 @@ public partial class DebrisView(Ui ui) : Node2D
             (gone.Wreck ? _wrecks : _small).Push(gone);
             _shown.Remove(id);
         }
+        _gone.Clear();
+        foreach (int id in _blows.Keys)
+            if (!_out.Contains(id)) _gone.Add(id);
+        foreach (int id in _gone)
+        {
+            _blows.Remove(id);
+            _nets.Remove(id);
+        }
 
         var aimed = ui.AimedPiece.Get();
+        _turns.Clear();
+        ui.DebrisTurns = _turns;
         _aimed.Begin();
         for (int i = 0; i < all.Count; i++)
         {
@@ -138,7 +158,9 @@ public partial class DebrisView(Ui ui) : Node2D
             (one.X, one.Speed, one.End, one.Tick) = (piece.X, piece.Speed, piece.End, client.World.Tick);
             var (x, y) = PieceDrawn.At(piece, progress);
             var at = new Vector2((float)(x / Unit * Cell), (float)(y / Unit * Cell));
+            if (_own.SentOn(piece.Id) is { } sent && !HeldLook.IsDrill(sent)) Felt(one, at, sent, null, own: true);
             if (piece.Damage > one.Damage) Struck(one, piece, at);
+            one.Cracks?.Zoomed();
             one.JoltMs = Math.Max(0, one.JoltMs - elapsedMs);
             double jolt = one.JoltMs / JoltMs;
             jolt *= jolt;
@@ -152,6 +174,7 @@ public partial class DebrisView(Ui ui) : Node2D
                 ? Rock * Math.Sin(_clockMs / RockMs * 2 * Math.PI + piece.Id)
                 : _clockMs / 4000 * (piece.Id % 2 == 0 ? 1 : -1) + piece.Id;
             picture.Rotation = (float)(turn + JoltTurn * jolt * (piece.Id % 2 == 0 ? 1 : -1));
+            _turns[piece.Id] = picture.Rotation;
             if (aimed is { } a && a.Id == piece.Id)
                 _aimed.Add(picture.Texture, picture.Position, picture.Rotation, picture.Scale.X, (a.Refused ? AimRefused : AimReady) with { A = picture.Modulate.A });
         }
@@ -172,7 +195,7 @@ public partial class DebrisView(Ui ui) : Node2D
         picture.Scale = Vector2.One;
         picture.Visible = true;
         (one.Damage, one.JoltMs, one.Away, one.Flash) = (piece.Damage, 0, Vector2.Zero, 0);
-        if (wreck) ShowCracks(picture, piece);
+        if (wreck) ShowCracks(one, piece);
         return one;
     }
 
@@ -180,22 +203,47 @@ public partial class DebrisView(Ui ui) : Node2D
     private Shown Made(bool wreck)
     {
         var body = new Sprite2D { Visible = false };
-        // Only wrecks crack: a small piece's picture takes no instance uniforms (render/Lit.cs).
-        Lit.Set(body, cracks: wreck);
+        Lit.Set(body);
+        var cracks = wreck ? new WreckInk() : null;
+        if (cracks != null) body.AddChild(cracks);
         AddChild(body);
-        return new Shown(body, wreck);
+        return new Shown(body, cracks);
     }
 
     /// <summary>
-    /// A hit landed on <paramref name="piece"/>, drawn at <paramref name="at"/>: its cracks deepen, it jolts away from the
-    /// nearest hero, and a wreck's hit (0075, 0094) flies back toward it from where it was struck: under a running drill's bit
-    /// on it, that drill's share of the axe's hit; else the axe's whole, on the side facing the hero, the view nudged a pixel
-    /// and the chop heard if the hit was this player's own (0042). An own drill's chops are heard as each is sent (HeroView).
+    /// A hit landed on <paramref name="piece"/>, drawn at <paramref name="at"/>: its cracks deepen, and unless it was this
+    /// player's own hit with a weapon swung, felt as it was sent (0014), it is felt now (<see cref="Felt"/>): under a running
+    /// drill's bit on it, that drill's share of the axe's hit; else the axe's whole.
     /// </summary>
     private void Struck(Shown one, Piece piece, Vector2 at)
     {
+        var size = one.Picture.Texture.GetSize() * one.Picture.Scale;
+        var bit = BitOn(at, size);
+        if (Wreckage.HpOf(piece.Item) is int hp)
+        {
+            // Where it lands: under a drill's bit, else on the side facing the hero who most likely struck, on its picture.
+            var away = (at - NearestHero(at)).Normalized();
+            var landed = (bit?.At ?? at - away * Math.Min(size.X, size.Y) * 0.4f) - at;
+            var local = (landed.Rotated(-one.Picture.Rotation) / one.Picture.Scale).Clamp(-size * 0.35f, size * 0.35f);
+            WreckCracks.Land(BlowsOf(piece, size), local.X, local.Y, (double)one.Damage / hp);
+        }
         one.Damage = piece.Damage;
-        ShowCracks(one.Picture, piece);
+        ShowCracks(one, piece);
+        if (_own.ToolOn(piece.Id) is { } own && !HeldLook.IsDrill(own)) return;
+        string tool = _own.ToolOn(piece.Id) ?? bit?.Tool ?? Content.Weapons.Axe.Item;
+        // A running tool is seen at work all along where it touches (tool-contact): its hits only crack the wreck.
+        if (HeldLook.IsDrill(tool)) return;
+        Felt(one, at, tool, bit?.At, own: false);
+    }
+
+    /// <summary>
+    /// A hit by <paramref name="tool"/> felt on a piece drawn at <paramref name="at"/>: it jolts away from the nearest hero and
+    /// flares, and a wreck's hit (0075, 0094) flies back toward it from <paramref name="bit"/>, a drill's, else the side facing
+    /// the hero; this player's <paramref name="own"/> hit, sent this frame, is heard and nudges the view a pixel (0042). An own
+    /// drill's chops are heard as each is sent (HeroView).
+    /// </summary>
+    private void Felt(Shown one, Vector2 at, string tool, Vector2? bit, bool own)
+    {
         var from = NearestHero(at);
         var away = (at - from).Normalized();
         if (away == Vector2.Zero) away = Vector2.Right;
@@ -203,18 +251,13 @@ public partial class DebrisView(Ui ui) : Node2D
         one.JoltMs = JoltMs;
         var size = one.Picture.Texture.GetSize() * one.Picture.Scale;
         var side = at - away * Math.Min(size.X, size.Y) * 0.4f;
-        var bit = BitOn(at, size);
-        string tool = _own.ToolOn(piece.Id) ?? bit?.Tool ?? Content.Weapons.Axe.Item;
-        bool drill = HeldLook.IsDrill(tool);
-        var point = drill && bit is { } on ? on.At : side;
+        var point = HeldLook.IsDrill(tool) && bit is { } on ? on : side;
         double share = Features.Effects.Impacts.ShareOf(tool);
         Stages.Of(Layers.Effects).Hits.Throw(HitLooks.Of[Impact.Wreck], point.X, point.Y, -away.X, -away.Y, share);
         one.Flash = Math.Max(one.Flash, share);
-        if (_own.Ran(piece.Id) && !drill)
-        {
-            _chop.PlayAt(side);
-            Nudged?.Invoke(away);
-        }
+        if (!own) return;
+        HitBy(tool).PlayAt(side);
+        Nudged?.Invoke(away);
     }
 
     /// <summary>
@@ -251,12 +294,15 @@ public partial class DebrisView(Ui ui) : Node2D
     /// <summary>This player's own axe bit a wreck, knocking it <c>away</c>: the view nudges (<see cref="ShipCamera.Nudge"/>).</summary>
     public event Action<Vector2>? Nudged;
 
+    /// <summary>The player of a wreck's hit by this player's <paramref name="tool"/>: the chop, the spear's point or the sledgehammer's blow (salvage-tools).</summary>
+    private Heard2D HitBy(string tool) => S.WreckHitOf(tool) is var hit && hit == S.HammerBlow ? _hammerBlow : hit == S.SpearHit ? _spearHit : _chop;
+
     /// <summary>
     /// A wreck broken at <paramref name="at"/> (0075): its picture cut into pieces flying apart with glowing torn edges
     /// (<see cref="BreakView"/>), a big glint, sparks curling every way, fine dust, a slow cloud, a fast faint shock
     /// ring and a flash of light dying away; the break heard if this player's own hit broke it (<paramref name="own"/>,
-    /// 0042). The last hit removes the wreck on its tick, so its chop never plays: the break, with an impact of its
-    /// own, is the hit. A bigger picture, a derelict's, bursts with more, twice as much for the biggest.
+    /// 0042), after the last hit's own sound, heard as it was sent (0014). A bigger picture, a derelict's, bursts with more,
+    /// twice as much for the biggest.
     /// </summary>
     private void Burst(Sprite2D picture, bool own)
     {
@@ -307,21 +353,51 @@ public partial class DebrisView(Ui ui) : Node2D
         return nearest;
     }
 
-    /// <summary>The share of its hit points <paramref name="piece"/>, a wreck, has lost, as cracks laid out by its id.</summary>
-    private static void ShowCracks(Sprite2D picture, Piece piece)
+    /// <summary>The share of its hit points <paramref name="piece"/>, a wreck, has lost, as cracks out of its blows laid out by its id.</summary>
+    private void ShowCracks(Shown one, Piece piece)
     {
-        if (Wreckage.HpOf(piece.Item) is int hp) Cracks.Show(picture, (float)piece.Damage / hp, piece.Id);
+        if (Wreckage.HpOf(piece.Item) is int hp && one.Cracks is { } cracks)
+        {
+            var size = one.Picture.Texture.GetSize() * one.Picture.Scale;
+            var blows = BlowsOf(piece, size);
+            cracks.Show(blows, NetOf(piece, blows, size), (double)piece.Damage / hp, piece.Id);
+        }
+    }
+
+    /// <summary>
+    /// The crack network of <paramref name="piece"/>, laid out once out of its first blow over its picture's own pixels (its box, if
+    /// the picture will not load); none before a blow.
+    /// </summary>
+    private CrackNet? NetOf(Piece piece, IReadOnlyList<Blow> blows, Vector2 size)
+    {
+        if (blows.Count == 0) return null;
+        if (_nets.TryGetValue(piece.Id, out var net)) return net;
+        var image = DebrisLooks.NameOf(piece.Item, piece.Id) is { } name ? HiRes.Load(name) : null;
+        Func<double, double, bool> solid = image == null
+            ? (x, y) => Math.Abs(x) <= size.X / 2 && Math.Abs(y) <= size.Y / 2
+            : (x, y) =>
+            {
+                // The hi-res picture is the drawn one at its own scale, so a point from the middle is read at its share across.
+                double perX = image.GetWidth() / (double)size.X, perY = image.GetHeight() / (double)size.Y;
+                int ix = (int)Math.Floor((x + size.X / 2) * perX), iy = (int)Math.Floor((y + size.Y / 2) * perY);
+                return ix >= 0 && iy >= 0 && ix < image.GetWidth() && iy < image.GetHeight() && image.GetPixel(ix, iy).A > DamageLooks.Opaque;
+            };
+        return _nets[piece.Id] = WreckCracks.Network(blows[0], solid, piece.Id);
+    }
+
+    /// <summary>The blows seen on <paramref name="piece"/>; one seen damaged first, with none, struck in its middle (<see cref="WreckCracks.Unseen"/>).</summary>
+    private List<Blow> BlowsOf(Piece piece, Vector2 size)
+    {
+        if (_blows.TryGetValue(piece.Id, out var blows)) return blows;
+        _blows[piece.Id] = blows = [];
+        if (piece.Damage > 0) blows.Add(WreckCracks.Unseen(piece.Id, size.X, size.Y));
+        return blows;
     }
 
     /// <summary>
     /// The picture piece <paramref name="id"/> wears (<see cref="DebrisLooks"/>), or its item's as the world draws it (a tool's
     /// as it is held), a pixel of art a pixel of the world; each loaded once.
     /// </summary>
-    private static Texture2D PictureOf(string item, int id)
-    {
-        if (!DebrisLooks.Of.ContainsKey(item)) return ItemIcons.Icon(item);
-        var key = (item, Content.Looks.Of(item, id));
-        if (!Textures.TryGetValue(key, out var texture)) Textures[key] = texture = GD.Load<Texture2D>(DebrisLooks.PictureOf(item, id));
-        return texture;
-    }
+    internal static Texture2D PictureOf(string item, int id) =>
+        DebrisLooks.NameOf(item, id) is { } name ? PixelArt.Picture(name) : ItemIcons.Icon(item);
 }

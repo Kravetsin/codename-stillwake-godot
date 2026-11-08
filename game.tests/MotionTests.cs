@@ -95,7 +95,14 @@ public class MotionTests
             {
                 var still = LimbsOf(Pose.Run, hero, new Moment(0, 0, Momentum: Momentum.AtRest));
                 var moved = LimbsOf(Pose.Run, hero, new Moment(0, 0, Momentum: f.Now));
-                Assert.Equal(still with { Tilt = moved.Tilt }, moved);
+                Assert.Equal((still.FrontArm, still.BackArm), (moved.FrontArm, moved.BackArm));
+                // The leg off the floor swings on as it did; the one on it gives, its boot turning and knee bending, and stays on it.
+                var soles = PoseTests.Soles(moved).ToList();
+                foreach (var (was, now, at) in new[] { (still.FrontLeg, moved.FrontLeg, 0), (still.BackLeg, moved.BackLeg, 2) })
+                    if (Math.Max(soles[at].Y, soles[at + 1].Y) < -0.3)
+                        Assert.True(Math.Max(Math.Abs(was.Upper - now.Upper), Math.Abs(was.Lower - now.Lower)) < 0.05, $"a swinging leg moved from {was} to {now}");
+                double lowest = PoseTests.Soles(still).Max(p => p.Y);
+                Assert.True(Math.Abs(soles.Max(p => p.Y) - lowest) < 0.1, $"leaning, the lowest sole at {soles.Max(p => p.Y)}, upright at {lowest}");
             }
     }
 
@@ -177,7 +184,7 @@ public class MotionTests
         Assert.True(Lift(1.8) < Lift(1) - 2);
         Assert.True(Lift(1) < Lift(0.35) - 1);
         var deep = LimbsOf(Pose.Stand, hero, new Moment(0, 0, 2.0 / 3, Momentum: new Momentum(Depth: 1.8)));
-        PoseTests.Close(Rig.Hip, Math.Max(Rig.EndOf(deep.FrontLeg, Rig.Leg).Y, Rig.EndOf(deep.BackLeg, Rig.Leg).Y) - deep.Lift, 5);
+        Assert.True(Math.Abs(PoseTests.Soles(deep).Max(p => p.Y)) < 0.05);
     }
 
     [Fact]

@@ -11,15 +11,26 @@ public static class PlanetLooks
 {
     /// <summary>
     /// A type's look. <c>Backdrop</c>: the set of pictures of the sky behind its ground (<c>art/{Backdrop}/sky</c>, its giant,
-    /// clouds, sun and land, <c>Render.PlanetSky</c>). <c>Tint</c>: its stone's colour by depth band, multiplied over the
+    /// clouds and sun, <c>Render.PlanetSky</c>; its land is composed from its own pictures). <c>Tint</c>: its stone's colour by depth band, multiplied over the
     /// ground in its rows (0080), one a band, blended from one band's middle to the next, from <c>TintFrom</c> rows under the
     /// surface's middle over <c>TintOver</c> rows, so the land under the sky keeps its own colours. <c>Fog</c>: the colour of the fog
     /// at its sides (fog-edges), the haze of its far land.
     /// </summary>
-    public sealed record Look(string Backdrop, IReadOnlyList<(float R, float G, float B)> Tint, int TintFrom, int TintOver, (float R, float G, float B) Fog);
+    public sealed record Look(string Backdrop, IReadOnlyList<(float R, float G, float B)> Tint, int TintFrom, int TintOver, (float R, float G, float B) Fog)
+    {
+        /// <summary>
+        /// Its dusk and night (2026-11-07-night-chills), as <see cref="Daylight"/> fades through them: what the light through the
+        /// open sky is multiplied by, and what the backdrop and the fog at its sides are. By default the user's pick for the
+        /// first planet, "ochre and slate": an ochre dusk into a cold blue-grey night.
+        /// </summary>
+        public (float R, float G, float B) DuskSky { get; init; } = (0.88f, 0.64f, 0.4f);
+        public (float R, float G, float B) NightSky { get; init; } = (0.09f, 0.105f, 0.14f);
+        public (float R, float G, float B) DuskBackdrop { get; init; } = (0.9f, 0.66f, 0.44f);
+        public (float R, float G, float B) NightBackdrop { get; init; } = (0.16f, 0.19f, 0.26f);
+    }
 
-    /// <summary>The pictures a backdrop set holds, <c>art/{Backdrop}/{name}.png</c>: the layers <c>Render.PlanetSky</c> draws.</summary>
-    public static readonly IReadOnlyList<string> BackdropPictures = ["sky", "giant", "clouds", "sun", "far", "ridge", "hills"];
+    /// <summary>The pictures a backdrop set holds, <c>art/{Backdrop}/{name}.png</c>: the sky <c>Render.PlanetSky</c> draws; the land is composed (<c>Features.Backdrop</c>).</summary>
+    public static readonly IReadOnlyList<string> BackdropPictures = ["sky", "giant", "clouds", "sun"];
 
     /// <summary>
     /// The first planet's, the "Stillwake" style's (0079): its warm day; the coldest band a cool blue-grey, the garden as it is,
@@ -33,6 +44,7 @@ public static class PlanetLooks
     {
         [Stillwake.Content.PlanetTypes.First.Id] = First,
         [Stillwake.Content.PlanetTypes.Small.Id] = First,
+        [Stillwake.Content.PlanetTypes.SmallSpire.Id] = First,
         [Stillwake.Content.Surfaces.TestStrip.Id] = First,
     };
 }

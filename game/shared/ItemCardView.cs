@@ -9,8 +9,8 @@ namespace Stillwake.Game.Shared;
 /// <summary>
 /// An <see cref="ItemCard"/> in Control nodes, by what the item is (the item card mockup), each a little screen of the
 /// wrist computer: dark, a faint sheen across its top, a shadow inside its edge. A tool's (layout A) edged amber, no
-/// picture, its icon in the slot showing it (2026-10-27-tool-icons): its name and kind, its tiles, the first in amber, its
-/// draw, its key and hint. A worn item's, the medium card, edged green: its picture (<see cref="WornPicture"/>) beside its
+/// picture, its icon in the slot showing it (2026-10-27-tool-icons): its name and kind, its numbers as rows with icons under
+/// their groups (2026-11-07-tool-card-rows), its key and hint. A worn item's, the medium card, edged green: its picture (<see cref="WornPicture"/>) beside its
 /// name, kind and one number, the hint under both. Anything else's, the compact card: its name and kind on one line. Under
 /// any of them what the open station does with it, by its slot's mark, with what it makes there; a violet band while
 /// unknown; a station's block at the bottom.
@@ -48,7 +48,8 @@ public static class ItemCardView
     private static readonly LabelSettings HintText = Style.Text(Style.Mono, 11, Hint);
     private static readonly LabelSettings DotText = Style.Text(Style.Mono, 11, Style.Slate500);
     private static readonly LabelSettings KeyText = Style.Text(BoldMono, 10, Style.Slate300);
-    private static readonly LabelSettings PriceText = Style.Text(Style.Mono, 11, Style.Amber400);
+    /// <summary>A sale price's number, the coin a little larger (<see cref="CreditLine"/>).</summary>
+    private const int PriceSize = 12;
     private static readonly LabelSettings FireText = Style.Text(Style.Mono, 11, Style.Orange400);
     private static readonly LabelSettings SmeltText = Style.Text(Style.Mono, 11, Style.Amber400);
     private static readonly LabelSettings GrowText = Style.Text(Style.Mono, 11, Style.Green400);
@@ -64,14 +65,13 @@ public static class ItemCardView
     private static readonly LabelSettings FromText = Style.Text(Style.Mono, 10, Style.Slate500);
     private static readonly LabelSettings ChargeText = Style.Text(BoldMono, 10, Green);
     private static readonly LabelSettings StoredText = Style.Text(Style.Mono, 10, Style.Slate300);
-    private static readonly LabelSettings DrawText = Style.Text(BoldMono, 16, Style.Amber400);
     private static readonly LabelSettings UnitText = Style.Text(Spaced, 9, Style.Slate500);
     private static readonly LabelSettings DetailText = Style.Text(Style.Mono, 10, Hint);
 
     /// <summary>The card of <paramref name="card"/>, sized to its content.</summary>
     public static Control Build(ItemCard card) => card.Tool ? ToolCard(card) : card.Worn ? WornCard(card) : Compact(card);
 
-    /// <summary>Name and kind on one line; a key where it has one, a drone's charge; then the bands and a station's block.</summary>
+    /// <summary>Name and kind on one line, under them its line where it has one; a key where it has one, a drone's charge; then the bands and a station's block.</summary>
     private static Control Compact(ItemCard card)
     {
         var line = Style.Gap(new HBoxContainer { MouseFilter = Control.MouseFilterEnum.Ignore }, 8);
@@ -79,7 +79,13 @@ public static class ItemCardView
         var kind = Text(card.Kind, KindText, HorizontalAlignment.Left);
         kind.SizeFlagsVertical = Control.SizeFlags.ShrinkEnd;
         line.AddChild(kind);
-        var column = Column(0, Padded(line, 9, 5, 9, 6));
+        var column = Column(0, Padded(line, 9, 5, 9, card.About == null ? 6 : 2));
+        if (card.About is { } about)
+        {
+            var words = Text(about, DetailText, HorizontalAlignment.Left);
+            (words.AutowrapMode, words.CustomMinimumSize) = (TextServer.AutowrapMode.WordSmart, new Vector2(ToolWidth - 2 * Pad, 0));
+            column.AddChild(Padded(words, 9, 0, 9, 6));
+        }
         // A canister is breathed with a key of its own: the one thing its slot cannot say.
         if (card.Use is { } how) column.AddChild(Ruled(UseRow(how, null)));
         if (card.Charge is { } charge) column.AddChild(Meter(charge));
@@ -89,15 +95,14 @@ public static class ItemCardView
 
     /// <summary>
     /// Layout A: no picture of a tool, its icon in the slot showing it; for what is never held (the nail) its icon large on top;
-    /// the name and kind, the tiles and the draw, the key and its hint.
+    /// the name and kind, the rows of its numbers and its draw, the key and its hint.
     /// </summary>
     private static Control ToolCard(ItemCard card)
     {
         var column = Column(0);
         if (HeldLook.Of(card.Item) == null) column.AddChild(Padded(Picture(ItemIcons.Icon(card.Item), 64), 5, 8, 7, 0));
         column.AddChild(Padded(Title(card, ToolKindText), 8, 6, 10, 7));
-        column.AddChild(Tiles(card.Tiles!, card.Draw, card.DrawBoost));
-        if (card.Effects.Count > 0) column.AddChild(Padded(Effects(card.Effects), Pad, 8, Pad, 0));
+        column.AddChild(Rows(card.Tiles!, card.Draw, card.DrawBoost));
         if (card.Use is { } how) column.AddChild(UseRow(how, ToolWidth));
         Bottom(card, column);
         return Screen(column, ToolEdge, 2, ToolWidth);
@@ -146,7 +151,13 @@ public static class ItemCardView
         foreach (var module in card.Fitted)
             column.AddChild(TechStrip(new CardTech(Content.Modules.Get(module).Tech, T("card.fitted", ("module", T($"item.{module}"))))));
         if (card.Here is not (SlotMark.None or SlotMark.Fits)) column.AddChild(HereStrip(card.Here, card.Output));
-        if (card.Price is int price) column.AddChild(Text(T("card.sells", ("n", price)), PriceText, HorizontalAlignment.Left));
+        // What a unit sells for, as every price is written: the coin and the number, no words.
+        if (card.Price is int price)
+        {
+            var sells = new CreditLine(PriceSize) { SizeFlagsHorizontal = Control.SizeFlags.ShrinkBegin };
+            sells.Set(price);
+            column.AddChild(sells);
+        }
         if (card.Station is { } station) column.AddChild(Station(station));
     }
 
@@ -223,11 +234,10 @@ public static class ItemCardView
         var row = Style.Gap(new HBoxContainer { MouseFilter = Control.MouseFilterEnum.Ignore }, 4);
         row.AddChild(new TextureRect
         {
-            Texture = AsciiArt.Bolt(false),
+            Texture = Signs.Bolt(false),
             CustomMinimumSize = new Vector2(7, 9),
             ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
             StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered,
-            TextureFilter = CanvasItem.TextureFilterEnum.Nearest,
             SizeFlagsVertical = Control.SizeFlags.ShrinkCenter,
             MouseFilter = Control.MouseFilterEnum.Ignore,
         });
@@ -250,43 +260,103 @@ public static class ItemCardView
         return track;
     }
 
+    /// <summary>The rows' words, the pick's list (2026-11-07-tool-card-rows): soft labels, small hint words, values in bold mono, dim where a tool lacks one.</summary>
+    private static readonly Color Soft = new("c3cbd8"), Dim = new("4f5b70"), RowRule = new("161f31");
+    private static readonly LabelSettings GroupText = Style.Text(Spaced, 9, Hint);
+    private static readonly LabelSettings RowText = Style.Text(Style.Sans, 13, Soft);
+    private static readonly LabelSettings SpecialText = Style.Text(Style.Sans, 13, Style.Slate100);
+    private static readonly LabelSettings OffRowText = Style.Text(Style.Sans, 13, Dim);
+    private static readonly LabelSettings NoteText = Style.Text(Style.Sans, 11, Hint);
+    private static readonly LabelSettings OffValueText = Style.Text(Style.Sans, 12, Dim);
+    private static readonly LabelSettings ValueText = Style.Text(BoldMono, 15, Style.Slate100);
+
+    /// <summary>A row's icon's side, in pixels.</summary>
+    private const int SignSide = 18;
+
     /// <summary>
-    /// The tiles in rows ruled above and below, each after a row's first ruled on its left, the first in amber; an electric tool's
-    /// draw last, a bolt and the number. More than three go in rows as even as they come, three at most a row: five as three and two.
-    /// A number its modules change (0098) is in their tech's colour, an arrow and "×2" beside it.
+    /// A tool's numbers as rows under their groups' titles (2026-11-07-tool-card-rows): each its icon in its hue, its label and small
+    /// word, its value at the right; rows ruled faintly between, none under a title. An electric tool's draw is the first row of what
+    /// is special, a bolt by its number. A number its modules change (0098) is in their tech's colour, its mark beside it.
     /// </summary>
-    private static Control Tiles(IReadOnlyList<CardTile> tiles, int? draw, CardBoost? drawBoost)
+    private static Control Rows(IReadOnlyList<CardTile> tiles, int? draw, CardBoost? drawBoost)
     {
-        var cells = new List<(Control Number, string Label, Color? Accent)>();
-        for (int i = 0; i < tiles.Count; i++)
-        {
-            var accent = i == 0 ? Amber : (Color?)null;
-            var boost = tiles[i].Boost;
-            Control number = Text(tiles[i].Value, Style.Text(BoldMono, i == 0 ? 19 : 16, boost is { } b ? TechColour(b.Tech) : accent ?? Style.Slate100));
-            if (boost != null) number = Boosted(number, boost);
-            cells.Add((number, tiles[i].Label, accent));
-        }
-        if (draw is int power)
-        {
-            var drawn = Powered(power.ToString(CultureInfo.InvariantCulture), drawBoost is { } b ? Style.Text(BoldMono, 16, TechColour(b.Tech)) : DrawText);
-            drawn.Alignment = BoxContainer.AlignmentMode.Center;
-            if (drawBoost != null) drawn.AddChild(Mark(drawBoost));
-            cells.Add((drawn, T("card.draw"), null));
-        }
-        // As even as they come: the first rows one longer where they cannot all match, seven as three, two and two.
-        int rows = (cells.Count + 2) / 3, from = 0;
+        var rows = new List<(CardGroup Group, Control Row)>();
+        foreach (var tile in tiles)
+            if (tile.Group != CardGroup.Special) rows.Add((tile.Group, Row(tile)));
+        if (draw is int power) rows.Add((CardGroup.Special, DrawRow(power, drawBoost)));
+        foreach (var tile in tiles)
+            if (tile.Group == CardGroup.Special) rows.Add((tile.Group, Row(tile)));
         var column = Column(0);
-        for (int r = 0; r < rows; r++)
+        CardGroup? group = null;
+        foreach (var (under, row) in rows)
         {
-            int count = cells.Count / rows + (r < cells.Count % rows ? 1 : 0);
-            var row = new HBoxContainer { MouseFilter = Control.MouseFilterEnum.Ignore };
-            row.AddThemeConstantOverride("separation", 0);
-            for (int i = from; i < from + count; i++)
-                row.AddChild(Tile(cells[i].Number, cells[i].Label, first: i == from, cells[i].Accent));
-            from += count;
-            column.AddChild(r == 0 ? row : Boxed(new StyleBoxFlat { BgColor = Colors.Transparent, BorderColor = Rule, BorderWidthTop = 2 }, row));
+            if (under != group)
+            {
+                column.AddChild(GroupTitle(under));
+                column.AddChild(row);
+                group = under;
+            }
+            else column.AddChild(Boxed(new StyleBoxFlat { BgColor = Colors.Transparent, BorderColor = RowRule, BorderWidthTop = 1 }, row));
         }
-        return Boxed(new StyleBoxFlat { BgColor = Colors.Transparent, BorderColor = Rule, BorderWidthTop = 2, BorderWidthBottom = 2 }, column);
+        var box = new StyleBoxFlat { BgColor = Colors.Transparent, BorderColor = Rule, BorderWidthTop = 2, ContentMarginLeft = 12, ContentMarginRight = 12, ContentMarginBottom = 6 };
+        return Boxed(box, column);
+    }
+
+    /// <summary>A group's title, small, spaced and dim, a rule running on from it to the card's edge.</summary>
+    private static Control GroupTitle(CardGroup group)
+    {
+        var line = Style.Gap(new HBoxContainer { MouseFilter = Control.MouseFilterEnum.Ignore }, 8);
+        line.AddChild(Text(T(CardSigns.TitleKey(group)).ToUpperInvariant(), GroupText, HorizontalAlignment.Left));
+        line.AddChild(new ColorRect
+        {
+            Color = Rule,
+            CustomMinimumSize = new Vector2(0, 1),
+            SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
+            SizeFlagsVertical = Control.SizeFlags.ShrinkCenter,
+            MouseFilter = Control.MouseFilterEnum.Ignore,
+        });
+        return Padded(line, 0, 9, 0, 1);
+    }
+
+    /// <summary>One number's row: its icon, its label and small word, its value at the right, in its modules' tech colour where they change it.</summary>
+    private static Control Row(CardTile tile)
+    {
+        LabelSettings value = tile.Boost is { } b ? Style.Text(BoldMono, 15, TechColour(b.Tech))
+            : tile.Off ? OffValueText
+            : tile.Sign == CardSign.Loot ? Style.Text(BoldMono, 15, new Color(CardSigns.Hue(CardSign.Loot)))
+            : ValueText;
+        Control number = Text(tile.Value, value);
+        if (tile.Boost != null) number = Boosted(number, tile.Boost);
+        var label = tile.Off ? OffRowText : tile.Group == CardGroup.Special ? SpecialText : RowText;
+        return SignRow(tile.Sign, tile.Off, tile.Label, tile.Note, label, number);
+    }
+
+    /// <summary>An electric tool's draw while it works: the battery's row, a bolt by the number.</summary>
+    private static Control DrawRow(int power, CardBoost? boost)
+    {
+        var drawn = Powered(power.ToString(CultureInfo.InvariantCulture), boost is { } b ? Style.Text(BoldMono, 15, TechColour(b.Tech)) : ValueText);
+        if (boost != null) drawn.AddChild(Mark(boost));
+        return SignRow(CardSign.Battery, false, T("card.draw"), null, SpecialText, drawn);
+    }
+
+    private static Control SignRow(CardSign sign, bool off, string label, string? note, LabelSettings words, Control value)
+    {
+        var row = Style.Gap(new HBoxContainer { MouseFilter = Control.MouseFilterEnum.Ignore }, 10);
+        row.AddChild(Picture(CardIcons.Of(sign, SignSide, off), SignSide));
+        var named = Style.Gap(new HBoxContainer { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill, MouseFilter = Control.MouseFilterEnum.Ignore }, 5);
+        var name = Text(label, words, HorizontalAlignment.Left);
+        name.SizeFlagsVertical = Control.SizeFlags.ShrinkCenter;
+        named.AddChild(name);
+        if (note != null)
+        {
+            var small = Text(note, NoteText, HorizontalAlignment.Left);
+            small.SizeFlagsVertical = Control.SizeFlags.ShrinkCenter;
+            named.AddChild(small);
+        }
+        row.AddChild(named);
+        value.SizeFlagsVertical = Control.SizeFlags.ShrinkCenter;
+        row.AddChild(value);
+        return Padded(row, 0, 5, 0, 5);
     }
 
     /// <summary>Technology <paramref name="tech"/>'s colour, its icon's rim: what its modules change on a tool's card is written in it.</summary>
@@ -310,61 +380,6 @@ public static class ItemCardView
         var mark = Column(1, arrow, Text(boost.Times, Style.Text(BoldMono, 9, colour)));
         mark.SizeFlagsVertical = Control.SizeFlags.ShrinkCenter;
         return mark;
-    }
-
-    /// <param name="accent">The first tile's amber, its ground faint amber; null for a plain tile.</param>
-    private static Control Tile(Control number, string label, bool first, Color? accent)
-    {
-        var box = new StyleBoxFlat
-        {
-            BgColor = accent is { } a ? a with { A = 0.1f } : Colors.Transparent,
-            BorderColor = Rule,
-            BorderWidthLeft = first ? 0 : 2,
-            ContentMarginTop = 6,
-            ContentMarginBottom = 4,
-        };
-        var under = Text(label, Style.Text(Spaced, 9, accent ?? Style.Slate500));
-        var tile = Boxed(box, Column(3, number, under));
-        tile.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
-        return tile;
-    }
-
-    /// <summary>A tool's effects as chips in their colours, then a line telling each.</summary>
-    private static Control Effects(IReadOnlyList<CardEffect> effects)
-    {
-        var column = Column(5);
-        var chips = Style.Gap(new HFlowContainer { Alignment = FlowContainer.AlignmentMode.Center, MouseFilter = Control.MouseFilterEnum.Ignore }, 4);
-        foreach (var effect in effects)
-        {
-            var colour = new Color(effect.Colour);
-            var box = Style.Box(new Color(effect.Ground), colour with { A = 0.45f }, radius: 3);
-            (box.ContentMarginLeft, box.ContentMarginRight, box.ContentMarginTop, box.ContentMarginBottom) = (4, 6, 2, 2);
-            chips.AddChild(Boxed(box, Text(effect.Name, Style.Text(BoldMono, 11, colour))));
-        }
-        column.AddChild(chips);
-        foreach (var effect in effects) column.AddChild(EffectLine(effect));
-        return column;
-    }
-
-    /// <summary>The effect's name in bold in its colour, then what it does.</summary>
-    private static Control EffectLine(CardEffect effect)
-    {
-        var line = new RichTextLabel
-        {
-            BbcodeEnabled = true,
-            FitContent = true,
-            ScrollActive = false,
-            AutowrapMode = TextServer.AutowrapMode.WordSmart,
-            CustomMinimumSize = new Vector2(ToolWidth - 6 - 2 * Pad, 0),
-            MouseFilter = Control.MouseFilterEnum.Ignore,
-            Text = $"[center][b][color=#{effect.Colour}]{effect.Name}[/color][/b] — {effect.About}[/center]",
-        };
-        line.AddThemeFontOverride("normal_font", Style.Sans);
-        line.AddThemeFontOverride("bold_font", Style.Bold);
-        line.AddThemeFontSizeOverride("normal_font_size", 11);
-        line.AddThemeFontSizeOverride("bold_font_size", 11);
-        line.AddThemeColorOverride("default_color", Style.Slate300);
-        return line;
     }
 
     /// <summary>

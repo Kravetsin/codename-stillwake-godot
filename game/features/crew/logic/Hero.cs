@@ -15,10 +15,11 @@ public readonly record struct Point(int X, int Y);
 /// a hole two cells wide or through the floors stood on. <see cref="Jump"/> is set once
 /// per press. <see cref="Face"/> is the side the pointer is on, which the hero faces whichever way it
 /// walks; with none, it faces the way it walks; swimming, the way it swims. <see cref="Sprint"/>, Shift
-/// held, runs aboard; in space it only thrusts, with a jetpack worn. <see cref="Swings"/>, the axe
+/// held, runs aboard; in space it thrusts with a jetpack worn, and with none hauls in along the tether (tether-haul). <see cref="Swings"/>, the axe
 /// mid-swing (0039) or the harpoon aimed (0044): it faces <see cref="Face"/> swimming too, so the blade comes down where the swing was aimed and the gun
 /// points at the pointer. <see cref="Pull"/>, the harpoon's grapple (0044): the body's middle is pulled
-/// toward that point, keys and gravity aside, and held there once it is. <see cref="Jetpack"/>, a jetpack worn
+/// toward that point, keys and gravity aside, and held there once it is, <see cref="PullBy"/> a step (the gun's;
+/// none: the harpoon's, <see cref="Hero.PullStep"/>). <see cref="Jetpack"/>, a jetpack worn
 /// (0047): in space the hero keeps its speed, ties no tether, and while <see cref="Thrust"/> is set, a unit
 /// vector in thousandths, gains <c>Jetpack.Accel</c> a step that way up to <c>Jetpack.Top</c>; else it slows
 /// by <c>Jetpack.Drag</c> a step toward what the keys swim. <see cref="JumpHeld"/>, Space held down: let go while a
@@ -27,17 +28,18 @@ public readonly record struct Point(int X, int Y);
 /// </summary>
 public readonly record struct HeroInput(
     int X, int Y, bool Jump, int? Face = null, bool Sprint = false, bool Swings = false, Point? Pull = null,
-    bool Jetpack = false, Point? Thrust = null, bool JumpHeld = false, bool Reeling = false);
+    bool Jetpack = false, Point? Thrust = null, bool JumpHeld = false, bool Reeling = false, int PullBy = 0);
 
 /// <summary>
 /// The cells the hero moves against; which of them are space, where the
 /// hero floats; and which are the hull, where a tether is not yet needed: any cell with a structure or a back
-/// wall, aired or not. <paramref name="gravity"/> is what a fall gains a step, the ship's unless its surface's
+/// wall, aired or not, or in a room. <paramref name="gravity"/> is what a fall gains a step, the ship's unless its surface's
 /// kind scales it (0076): a planet's lower one, where nothing floats, lets the hero jump higher and farther.
+/// <paramref name="liquid"/>, the units of liquid in a cell (flowing-liquids): where the hero swims.
 /// </summary>
 public sealed class Ship(
     int width, int height, Func<int, int> structureAt, Func<int, bool> space, Func<int, bool>? hull = null,
-    int gravity = Spec.Gravity, int falling = Spec.FallGravity, Shared.FogEdges? fog = null)
+    int gravity = Spec.Gravity, int falling = Spec.FallGravity, Shared.FogEdges? fog = null, Func<int, int>? liquid = null)
 {
     /// <summary>What a fall gains a step, in thousandths of a cell a step.</summary>
     public int Gravity => gravity;
@@ -57,6 +59,12 @@ public sealed class Ship(
 
     public bool Space(int cell) => space(cell);
 
+    /// <summary>Whether <paramref name="cell"/> holds water deep enough to swim in: <c>Hero.SwimDepth</c> units or more.</summary>
+    public bool Wet(int cell) => liquid != null && liquid(cell) >= Spec.SwimDepth;
+
+    /// <summary>Whether <paramref name="cell"/>, a hero's feet's, holds water heard underfoot: <c>Hero.WadeDepth</c> units or more.</summary>
+    public bool Wading(int cell) => liquid != null && liquid(cell) >= Spec.WadeDepth;
+
     public bool Hull(int cell) => hull?.Invoke(cell) ?? structureAt(cell) != Structure.Empty;
 
     /// <summary>A planet's fog at its sides (fog-edges), where the hero glides; none aboard.</summary>
@@ -75,12 +83,14 @@ public sealed class Ship(
     /// something does, never on a planet, and falls by the kind's gravity (0076), coming down the faster under a
     /// planet's own (<c>Hero.PlanetFallGravity</c>, 0089).
     /// </summary>
-    public static Ship Of(IGridQueries grid, IRoomsQueries rooms, Func<int, int>? structureAt = null, Stillwake.Content.Surfaces.Kind? rules = null)
+    public static Ship Of(
+        IGridQueries grid, IRoomsQueries rooms, Func<int, int>? structureAt = null, Stillwake.Content.Surfaces.Kind? rules = null, Func<int, int>? liquid = null)
     {
         var kind = rules ?? Stillwake.Content.Surfaces.Ship;
         return new(grid.Width, grid.Height, structureAt ?? grid.StructureAt, rooms.Afloat,
-            cell => (structureAt ?? grid.StructureAt)(cell) != Structure.Empty || grid.BackAt(cell) != null,
-            kind.Fall(Spec.Gravity), kind.Floats ? Spec.FallGravity : Spec.PlanetFallGravity, Shared.FogEdges.Of(grid, kind));
+            cell => (structureAt ?? grid.StructureAt)(cell) != Structure.Empty || grid.BackAt(cell) != null
+                || rooms.RoomAt(cell) is int room && room != Stillwake.Sim.Rooms.RoomsModule.Space,
+            kind.Fall(Spec.Gravity), kind.Floats ? Spec.FallGravity : Spec.PlanetFallGravity, Shared.FogEdges.Of(grid, kind), liquid);
     }
 }
 
@@ -95,13 +105,15 @@ public sealed class Ship(
 /// ladder by a jump or a walk, kept at most one past <c>Hero.Regrab</c>: up grabs none before then (0092). <see cref="Leaping"/>,
 /// in the air from a jump, off the floor or a ladder, till the feet stand: only a jump steps up onto a ledge it fell short of.
 /// <see cref="Gliding"/>, moved across a planet's fog (fog-edges): pulled inward, gliding on past the band while
-/// <see cref="Ship.Carries"/>. <see cref="Kx"/>, <see cref="Ky"/>, a kick out in space (a gun's recoil), thousandths of a cell a step it
+/// <see cref="Ship.Carries"/>. <see cref="HaulArmed"/>, on a tether with Shift let go at least once since it was tied (tether-haul): only then
+/// does Shift haul, so a hero run out of a door with Shift held is not hauled straight back in; never sent. <see cref="Wraps"/>, where the tether bends round
+/// the hull, the last first: the way a haul goes back (tether-haul); never sent. <see cref="Kx"/>, <see cref="Ky"/>, a kick out in space (a gun's recoil), thousandths of a cell a step it
 /// drifts besides its swim, fading by <c>Hero.KickKeep</c>; nothing anywhere else.
 /// </summary>
 public readonly record struct Hero(
     int X, int Y, int Vx, int Vy, bool Climbing, int Facing, Point? Anchor = null,
     int Airborne = Spec.Coyote + 1, int Buffered = 0, bool Rising = false, int LetGo = Spec.Regrab + 1, bool Leaping = false,
-    bool Gliding = false, int Kx = 0, int Ky = 0)
+    bool Gliding = false, int Kx = 0, int Ky = 0, bool HaulArmed = false, Hero.Wrap? Wraps = null)
 {
     /// <summary>Thousandths of a cell: the unit of every length and speed in <see cref="Spec"/>.</summary>
     public const int Unit = 1000;
@@ -127,6 +139,9 @@ public readonly record struct Hero(
     /// <summary>The cell the hero's body is in: the one under the middle of its box.</summary>
     public int BodyCell(int width) => CellOf(Y - MiddleUp) * width + CellOf(X);
 
+    /// <summary>The cell the hero's feet are in: the one just over the bottom of its box, under its middle.</summary>
+    public int FeetCell(int width) => CellOf(Y - 1) * width + CellOf(X);
+
     /// <summary>The middle of the hero's body.</summary>
     public Point Middle => new(X, Y - MiddleUp);
 
@@ -146,10 +161,15 @@ public readonly record struct Hero(
     /// </summary>
     public Hero Step(HeroInput input, Ship ship)
     {
-        if (ShutOut(ship, this) is Hero pushed) return pushed;
-        var after = Move(this, input, ship);
+        // Pushed out of a door shut on it, the body may leave the hull: tied as a step out would tie it.
+        // Shift held afloat on a tether, armed, no jetpack and no grapple pulling: hauled in (tether-haul).
+        bool hauls = HaulArmed && input.Sprint && !input.Jetpack && input.Pull == null && Anchor != null && ship.Space(BodyCell(ship.Width));
+        var after = ShutOut(ship, this) ?? Move(this, input, ship, hauls);
         // A jetpack worn ties no tether: the hero flies free.
-        return input.Jetpack ? after with { Anchor = null } : Tethered(this, after, ship);
+        var tied = input.Jetpack ? after with { Anchor = null } : Tethered(this, after, ship, hauls);
+        return tied.Anchor == null
+            ? tied with { HaulArmed = false, Wraps = null }
+            : tied with { HaulArmed = HaulArmed || !input.Sprint };
     }
 
     /// <summary>
@@ -158,7 +178,7 @@ public readonly record struct Hero(
     /// the limit, toward where it was going, so the hero slides along it. A ship open to space all
     /// through is still the hull: afloat inside it the hero needs no tether, and leaving it ties one.
     /// </summary>
-    private static Hero Tethered(Hero before, Hero after, Ship ship)
+    private static Hero Tethered(Hero before, Hero after, Ship ship, bool hauled)
     {
         int at = after.BodyCell(ship.Width);
         if (!ship.Space(at)) return after;
@@ -170,7 +190,7 @@ public readonly record struct Hero(
         Point? tied = before.Anchor ?? (ship.Space(left) && !ship.Hull(left) ? null : before.Middle);
         if (tied is not Point anchor) return after;
         bool Within(int x, int y) => Distance(x - anchor.X, y - MiddleUp - anchor.Y) <= Spec.Tether;
-        if (Within(after.X, after.Y)) return after with { Anchor = anchor };
+        if (Within(after.X, after.Y)) return Wound(ship, before, after with { Anchor = anchor }, hauled);
         // To the limit, the way the body was going; walls still stop it, and where a wall leaves it
         // past the limit, only the part across or the part up or down, or no move at all.
         var middle = after.Middle;
@@ -191,7 +211,46 @@ public readonly record struct Hero(
             to = t;
             break;
         }
-        return after with { X = to.X, Y = to.Y, Vx = to.X - before.X, Vy = to.Y - before.Y, Anchor = anchor };
+        return Wound(ship, before, after with { X = to.X, Y = to.Y, Vx = to.X - before.X, Vy = to.Y - before.Y, Anchor = anchor }, hauled);
+    }
+
+    /// <summary>A bend of the tether round the hull: where the body's middle was, the bend before it, and how many there are to the anchor.</summary>
+    public sealed record Wrap(Point At, Wrap? Next, int Depth);
+
+    /// <summary>The most bends a tether keeps; wound round further, it bends no more and a haul may stop at the hull.</summary>
+    private const int MostWraps = 32;
+
+    /// <summary>
+    /// <paramref name="after"/>'s tether bent as the body went (tether-haul): a bend the body now passes straight from the one before it
+    /// (or the anchor) is let go; one it cannot pass straight to from the last bend gets a bend where it was a step before. So the
+    /// way from the anchor through the bends to the body is one it can be hauled along. A haul bends it no more: hauled along a line that
+    /// just grazes the hull, a new bend would send it back to the one it just let go.
+    /// </summary>
+    private static Hero Wound(Ship ship, Hero before, Hero after, bool hauled)
+    {
+        var anchor = after.Anchor!.Value;
+        var wraps = before.Anchor == anchor ? before.Wraps : null;
+        var at = after.Middle;
+        while (wraps != null && Passes(ship, wraps.Next?.At ?? anchor, at)) wraps = wraps.Next;
+        // Hauled onto its last bend, or stopped short of it, the line goes on from there: a door shut since it bent would else hold it
+        // there for good, the way on past the bend never passing again.
+        if (hauled && wraps != null && (at == wraps.At || at == before.Middle)) wraps = wraps.Next;
+        var last = wraps?.At ?? anchor;
+        // Bent only by the body's own move round the hull: a door shut or a wall built across the line it already had (it still
+        // passes nowhere from where it was) bends nothing, and a haul goes on to it.
+        if (!hauled && before.Middle != last && (wraps?.Depth ?? 0) < MostWraps && !Passes(ship, last, at) && Passes(ship, last, before.Middle))
+            wraps = new Wrap(before.Middle, wraps, (wraps?.Depth ?? 0) + 1);
+        return after with { Wraps = wraps };
+    }
+
+    /// <summary>Whether the body passes straight from its middle at <paramref name="from"/> to <paramref name="to"/>, looked at each half cell.</summary>
+    private static bool Passes(Ship ship, Point from, Point to)
+    {
+        long dx = to.X - from.X, dy = to.Y - from.Y;
+        int n = (int)(Math.Max(Math.Abs(dx), Math.Abs(dy)) / (Unit / 2)) + 1;
+        for (int i = 1; i <= n; i++)
+            if (!Clear(ship, from.X + (int)(dx * i / n), from.Y + (int)(dy * i / n) + MiddleUp)) return false;
+        return true;
     }
 
     /// <summary>How far a door shut on the hero pushes it a step: two cells, a 16 px one (0104), in the 200 ms a door takes to slide.</summary>
@@ -233,7 +292,10 @@ public readonly record struct Hero(
     /// <summary>How far the grapple pulls the body a step: <c>Harpoon.PullSpeed</c> a tick, rounded to whole thousandths.</summary>
     public const int PullStep = (Stillwake.Content.Harpoon.PullSpeed * Stillwake.Sim.World.TicksPerSecond + 30) / 60;
 
-    private static Hero Move(Hero hero, HeroInput input, Ship ship)
+    /// <summary>The grappling gun's pull a step: <c>Grapple.PullSpeed</c> a tick, rounded to whole thousandths (grapple-climbs).</summary>
+    public const int GrapplePullStep = (Stillwake.Content.Grapple.PullSpeed * Stillwake.Sim.World.TicksPerSecond + 30) / 60;
+
+    private static Hero Move(Hero hero, HeroInput input, Ship ship, bool hauls)
     {
         int facing = input.Face ?? (input.X == 0 ? hero.Facing : input.X);
         bool space = ship.Space(hero.BodyCell(ship.Width));
@@ -242,9 +304,15 @@ public readonly record struct Hero(
         // In a planet's fog the hero glides, the harpoon let go as it went in (fog-edges).
         if (ship.Glides(hero.X) || hero.Gliding && ship.Carries(hero.X)) return Glide(ship, hero);
         hero = hero with { Gliding = false };
-        if (input.Pull is Point to) return Pulled(ship, hero, to, facing);
+        if (input.Pull is Point to) return Pulled(ship, hero, to, facing, input.Jump, input.PullBy > 0 ? input.PullBy : PullStep);
+        // Shift held afloat with no jetpack hauls in along the tether, to its last bend or where it is tied, facing it unless the axe
+        // swings (tether-haul).
+        if (hauls && (hero.Wraps?.At ?? hero.Anchor) is Point tie)
+            return Pulled(ship, hero, tie, input.Swings || tie.X == hero.X ? facing : Math.Sign(tie.X - hero.X), false, Spec.Haul);
         // Swimming, the hero faces the way it swims, whatever the pointer does, unless it swings the axe.
         if (space) return Swim(ship, hero, input, input.X == 0 || input.Swings ? facing : input.X);
+        // A jump out of the water rises on under gravity till it tops out.
+        if (!hero.Rising && ship.Wet(hero.BodyCell(ship.Width))) return Paddle(ship, hero, input, input.X == 0 || input.Swings ? facing : input.X);
         if (input.Reeling)
         {
             // Knocked by a ram (0103): thrown by it, not walked, so the air's control does not eat the knock; the floor brakes it.
@@ -461,19 +529,22 @@ public readonly record struct Hero(
     }
 
     /// <summary>
-    /// The body's middle pulled straight toward <paramref name="to"/> by <see cref="PullStep"/>, landing on it,
-    /// walls and closed doors stopping it as anything does; no gravity, so pulled there it stays.
+    /// The body's middle pulled straight toward <paramref name="to"/> by <paramref name="by"/>, landing on it,
+    /// walls and closed doors stopping it as anything does; no gravity, so pulled there it stays. The line is footing
+    /// (grapple-climbs): the coyote's steps start afresh off it, and a jump pressed on it is kept in the buffer, so the
+    /// step after the line lets go jumps as from the floor.
     /// </summary>
-    private static Hero Pulled(Ship ship, Hero hero, Point to, int facing)
+    private static Hero Pulled(Ship ship, Hero hero, Point to, int facing, bool jump, int by)
     {
         var middle = hero.Middle;
         int dx = to.X - middle.X, dy = to.Y - middle.Y;
         double far = Distance(dx, dy);
-        if (far > PullStep) (dx, dy) = ((int)Math.Round(dx / far * PullStep), (int)Math.Round(dy / far * PullStep));
+        if (far > by) (dx, dy) = ((int)Math.Round(dx / far * by), (int)Math.Round(dy / far * by));
         int nx = MoveX(ship, hero.X, hero.Y, dx);
         int ny = MoveY(ship, nx, hero.Y, dy, false);
         if (!Clear(ship, nx, ny)) (nx, ny) = Clear(ship, nx, hero.Y) ? (nx, hero.Y) : (hero.X, hero.Y);
-        return new Hero(nx, ny, nx - hero.X, ny - hero.Y, false, facing);
+        return new Hero(nx, ny, nx - hero.X, ny - hero.Y, false, facing,
+            Airborne: 0, Buffered: jump ? Spec.JumpBuffer : Math.Max(0, hero.Buffered - 1));
     }
 
     /// <summary>
@@ -499,9 +570,48 @@ public readonly record struct Hero(
         var (vx, vy) = input.Jetpack ? Flown(hero.Vx + hero.Kx, hero.Vy + hero.Ky, input) : (input.X * Spec.Swim + hero.Kx, input.Y * Spec.Swim + hero.Ky);
         var (kx, ky) = input.Jetpack ? (0, 0) : (Faded(hero.Kx), Faded(hero.Ky));
         int nx = MoveX(ship, hero.X, hero.Y, vx);
-        int ny = MoveY(ship, nx, hero.Y, vy, false);
+        int ny = vy > 0 ? SwimDown(ship, nx, hero.Y, vy) : MoveY(ship, nx, hero.Y, vy, false);
         if (!Clear(ship, nx, ny)) (nx, ny) = Clear(ship, nx, hero.Y) ? (nx, hero.Y) : (hero.X, hero.Y);
         return new Hero(nx, ny, nx - hero.X, ny - hero.Y, false, facing, Kx: kx, Ky: ky);
+    }
+
+    /// <summary>
+    /// A step in water (flowing-liquids): the keys at <c>Hero.WaterSwim</c> across and up or down, Space held up too,
+    /// sinking at <c>Hero.WaterSink</c> with none; walls stop it, a floor holds it, a ladder is swum past, and a step of a cell
+    /// is swum up onto as walked. Swum up, the middle stops at the top of the water: only a jump leaves it, Space pressed with
+    /// the cell over the middle shallow and open, or a shore pushed against there that a jump reaches.
+    /// </summary>
+    private static Hero Paddle(Ship ship, Hero hero, HeroInput input, int facing)
+    {
+        int above = hero.BodyCell(ship.Width) - ship.Width;
+        bool surface = above >= 0 && !ship.Wet(above) && !Solid(ship, CellOf(hero.X), CellOf(hero.Y - MiddleUp) - 1);
+        bool shore = input.X != 0 && LedgeAhead(ship, hero.X, hero.Y, input.X) is int top && hero.Y - top <= Spec.Height;
+        if (surface && (input.Jump || shore))
+            return Fall(ship, hero.X, hero.Y, input.X * Spec.WaterSwim, -Spec.Jump, facing, true) with { Rising = true, Leaping = true };
+        int vx = input.X * Spec.WaterSwim;
+        int vy = input.Y < 0 || input.Jump || input.JumpHeld ? -Spec.WaterSwim : input.Y > 0 ? Spec.WaterSwim : Spec.WaterSink;
+        int nx = MoveX(ship, hero.X, hero.Y, vx), y = hero.Y;
+        if (nx != hero.X + vx && StepOnto(ship, hero.X, hero.Y, hero.X + vx) is int step) (nx, y) = (hero.X + vx, step);
+        int ny = MoveY(ship, nx, y, vy, false);
+        if (vy < 0 && ship.Wet(BodyCellAt(ship, nx, y)))
+        {
+            int row = CellOf(y - MiddleUp);
+            while (row > 0 && ship.Wet((row - 1) * ship.Width + CellOf(nx))) row--;
+            ny = Math.Max(ny, row * Unit + MiddleUp);
+        }
+        if (!Clear(ship, nx, ny)) (nx, ny) = Clear(ship, nx, hero.Y) ? (nx, hero.Y) : (hero.X, hero.Y);
+        return new Hero(nx, ny, nx - hero.X, ny - hero.Y, false, facing, Airborne: 0);
+    }
+
+    private static int BodyCellAt(Ship ship, int x, int y) => CellOf(y - MiddleUp) * ship.Width + CellOf(x);
+
+    /// <summary><paramref name="y"/> moved down by <paramref name="dy"/>, afloat: what only holds a fall (a floor, a ladder's top) holds nothing with no gravity, so only what stops a body does.</summary>
+    private static int SwimDown(Ship ship, int x, int y, int dy)
+    {
+        for (int r = CellOf(y - 1) + 1; r <= CellOf(y + dy - 1); r++)
+            for (int c = CellOf(x - Half); c <= CellOf(x + Half - 1); c++)
+                if (Solid(ship, c, r)) return r * Unit;
+        return y + dy;
     }
 
     private static int Faded(int kick) => (int)((long)kick * Spec.KickKeep / Unit);

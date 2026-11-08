@@ -75,12 +75,12 @@ VesselPart(X, Y, Layer, Kind, Material, Holds)   // what Stamp gives: a thing a 
 and that keep no state in another module by their id (no queue, no fitted module, no store, no drone job): `crate` and
 `lamp` in V-1. A content test checks every interior against it.
 
-**The hull's material.** Every wall and back wall of a vessel is a new material, `hull` (code 14): its `Cost` is what a
+**The hull's material.** Every wall and back wall of a vessel is a new material, `hull` (code 17): its `Cost` is what a
 cell gives when hewn or taken apart, a scrap chunk; its `Strength`, `Armour` and `BuildTicks` as iron's, so a mark on it
-takes iron's time and the axe iron's hits. It is never a blueprint: `Material.Built` now means a card in the build menu. A content test holds each class's whole yield
+takes iron's time and the axe iron's hits. It is never a blueprint: it has no card in the build menu. A content test holds each class's whole yield
 (walls, back walls, machines, crates) inside its `Yield` band, so a freighter is not a flood (economy plan, principle 2).
-Floors, ladders, doors and machines are the ordinary ones and give their cost. Its look in V-1: the iron wall's tiles,
-darker; art later.
+Floors, ladders, doors and machines are the ordinary ones and give their cost. Its look in V-1: drawn as iron (`As`);
+art later.
 
 ### Stamp and damage
 
@@ -153,7 +153,7 @@ survive with its progress. Machines in the box are only the whitelist's, so noth
 
 - Inputs are commands only; every peer runs the same pure generation in the same tick. The world's Rng is drawn only by
   `Find`.
-- Adding `Places` bumps `World.SaveFormat` (38 → 39 today; whoever merges second takes the next number) with an empty
+- Adding `Places` bumps `World.SaveFormat` (56 → 57 after main's merge) with an empty
   step in `Migrations`. A joiner gets the cells, `Reserved` and `Contacts` in the save, nothing beyond 0002.
 - **The jump's tick is long, and that is accepted.** A jump clears one vessel and writes another, several layers a cell,
   so a freighter's second jump may pass the grid's change log (65,536) and make Rooms, Atmosphere, Debris and Hazards
@@ -212,7 +212,7 @@ freighter 2,881–6,765, nearly all hull scrap; the bands hold them with margin,
 ### V-4 — The radar and the jump for real
 
 - `Find` from the radar antenna in range and on its beat, the jump paid in biofuel by the engine, the radar's screen
-  (the ship computer already has a radar program to build on: `game/features/computer/RadarScreen.cs`).
+  (main has the radar mast, 2026-11-07-radar-mast, and the ship computer's radar program to build on).
   Needs the user's rules first: the concept leaves the jump's cost and the radar's screen open.
 
 ## Not in this plan

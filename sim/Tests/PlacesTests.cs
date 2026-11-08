@@ -121,7 +121,8 @@ public class PlacesTests
     /// <summary>The new game's world with a wall laid at the zone's right edge on the ship's middle row: a ship built to its edge.</summary>
     private static Scenario ToTheEdge()
     {
-        var w = new Scenario(Registry.Wreck);
+        // Every blueprint known, so a plan in the box is refused by the grid, not by the board.
+        var w = new Scenario(Registry.Wreck with { Known = null });
         var (zone, built) = (w.M.Grid.Zone, w.M.Grid.Built);
         w.Do(new Place((built.Top + built.Height / 2) * w.M.Grid.Width + zone.Right, Placement.Wall())).Run();
         Assert.Equal(zone.Right, w.M.Grid.Built.Right);

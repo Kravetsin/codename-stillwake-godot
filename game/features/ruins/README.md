@@ -13,11 +13,10 @@ stamped into the ground with it, felled by hits or with what holds them. This fe
 
 - **Reads:** `BuildingModule.Plants` of a piece's kind, `PlantAt` (what a piece stands on, a chair's table), `Cracks` (hits),
   `Zaps(cell)` (whom the resonator zaps: the rule is the sim's); where each hero's body is, from `Main`.
-- **Pictures** (`art/homes/{kind}_{variant}`, `_glow`, `_dark`): exported from the concept page's own drawing code by
-  `tools/homes-art/export.js` (the page's `decor.js`, unchanged but for its require), which also writes `Content/logic/HomesArt.cs` —
-  each piece's box in its picture, its lights and its live emitters — the plaster's tiles, the cloth's and the arc lamp's
-  icons and the two placeholder sounds. Change the drawing code and export again; never edit what it writes. Two variants: the
-  chair turned (it faces its table or desk), the banner in indigo (by its cell).
+- **Pictures** (`art/hd/homes/{kind}_{variant}`, `_glow`, `_dark`): drawn by `tools/anime-art` in the boxes
+  `Content/logic/HomesArt.cs` gives — each piece's box in its picture, its lights and its live emitters, generated once from
+  the concept page and edited by hand since its tool went with the pixel art. Two variants: the chair turned (it faces its table
+  or desk), the banner in indigo (by its cell).
 - **Draws** one atlas, two canvas items for every piece in view, at `Layers.Flora`: their pictures lit as the world is, behind
   ones (a back wall's, a rug) first; their glows added unlit. A floor's piece stands on the floor in the middle of its columns,
   or on the piece under it (a table's top a pixel in); a ceiling's hangs from it; a back wall's sits in the middle of its cells;
@@ -45,15 +44,15 @@ stamped into the ground with it, felled by hits or with what holds them. This fe
   `Cracks` (a hit on a cradle), `PlantAt` (a spire's lens still in its tip), `IGridQueries.StructureAt` (the rock round the roots).
 - **Pictures:** the cradle (`homes/shardCradle_0`, its `_dark` the empty cradle a taken one leaves), the niche
   (`homes/shardNiche_0`), the lamp a chip feeds (`homes/ceilLamp_0_fed`), the lens (`caves/spireLamp_0` dark, `ruins/spireLens_lit`
-  and `_glow` alight) and the shard's icon (`items/arcShard`), all exported by `tools/homes-art/export.js` from the relic page's
-  drawing code (`relic.js`, its design 1), with where their arcs play (`Content/RelicArt.cs`). The cradle and the niche are pieces:
+  and `_glow` alight) and the shard's icon (`items/arcShard`), drawn by `tools/anime-art`; where their arcs play is
+  `Content/RelicArt.cs`, generated once from the relic page (its design 1). The cradle and the niche are pieces:
   this view draws them as any.
 - **A spire** (`SpiresView`), found by its cradle: while it stands the shard sparks (`RelicSparks`, the page's live emitter at 24
   steps a second): small arcs on twos from its cracks to its collar, legs and plates or into the air, now and then a reach to the
-  chamber's walls, the ledge over it and the slab by it, sparks dripping; every 2.6–5.5 s a big branchy discharge into the
-  chamber's metal, a flash of its violet-white re-lighting the room, sparks raining, the zap heard. Its light breathes with the
+  hall's roof over it and the step by it, sparks dripping; every 2.6–5.5 s a big branchy discharge into the
+  hall's metal, a flash of its violet-white re-lighting the room, sparks raining, the zap heard. Its light breathes with the
   hum; a light every 26 px up the light well's column lights the ledges; the lens burns in the tip and throws a pillar of light
-  144 cells up the sky, a thin white core in it, motes rising in the beam; its roots glow in the rock round the chamber, where the
+  144 cells up the sky, a thin white core in it, motes rising in the beam; its roots glow in the rock round the hall, where the
   rock still stands (V1's fulgurites, drawn again only when the grid or the light changes). A hit on the cradle arcs into the
   nearest hero as the sim shocks whoever struck.
 - **Taken:** watched, the cradle sparks three seconds more, its arcs thinning out, a last discharge into the slab at
@@ -68,7 +67,7 @@ stamped into the ground with it, felled by hits or with what holds them. This fe
   sparks out.
 - **Cost** (`--ground=spire-in --zoom 2.4 --measure`, RTX 4060 Ti, 1280 × 720): 792 fps, 1.26 ms a frame, against 935 fps and
   1.07 ms with `--no-homes`: 21 draws, some 30 lights (arcs, sparks, the shaft) and 0.06 ms of effects more.
-- **Dev:** `--ground=spire-climb --autopilot` climbs from the chamber up the ledges, five held jumps, and out through the right plug, dug for it;
+- **Dev:** `--ground=spire-climb --autopilot` climbs from the hall up the step and ledges, four held jumps, to the right plug, dug for it;
   `--take-at SECONDS` at a spire or a home strikes its nearest relic till it is taken.
 
 ## Deliberately not handled

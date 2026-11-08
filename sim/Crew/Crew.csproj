@@ -2,6 +2,8 @@
   <ItemGroup>
     <ProjectReference Include="../Atmosphere/Atmosphere.csproj" />
     <ProjectReference Include="../Items/Items.csproj" />
+    <ProjectReference Include="../Knowledge/Knowledge.csproj" />
     <ProjectReference Include="../Players/Players.csproj" />
+    <ProjectReference Include="../Sky/Sky.csproj" />
   </ItemGroup>
 </Project>

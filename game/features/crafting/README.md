@@ -15,6 +15,7 @@
 | `PodView.cs` | Over the pod's picture: its screen, its tray, its glass glowing while a hero is made |
 | `PodDemo.cs` | `-- --pod`: the wreck's pod opened and crafting, cards shown, for recordings |
 | `logic/Crafting.En.cs` | Its player text (`En`) |
+| `logic/Crafting.Ru.cs` | Russian |
 
 Making parts by machine only (0028), the client of `sim/Crafting`. It reads `Registry.Crafting` (`Queue`, `Progress`,
 `StationOf`), `IResearchQueries` (`Knows`), `IItemsQueries` (`Totals`, `Creative`, `Crate`, `AfterMoves`, `FittedTo`),
@@ -27,19 +28,22 @@ assembler|lifepod|furnace>` opens a machine for a recording; `--arc` plays the a
 
 ## The panel
 
-- **Shown** while E has a queued station open (`Ui.OpenCrate`, `StationOf`) and the inventory is shown, docked under
+- **Shown** while E has a queued station open (`Ui.OpenCrate`, `StationOf`) and the inventory is shown, opened under
   its grid (`Ui.InventoryFoot`, 0058); it serves every queued station, the pod's first (0057). The items feature gives
   a queued station no crate panel of its own.
-- **Header** in the machine frame (`Shared.MachineFrame`, 0058, 0074): the station's name, for one that draws power its
-  bolt and draw with its modules (`Draw`), lit while it works and dark at 0 otherwise, and its screen, dark without
+- **Header** in the machine frame (`Shared.MachineFrame`, 0058), a hologram in the station's tone (machine-holograms): its name, for one that draws power its
+  bolt and draw with its modules (`Draw`), lit while it works and dark otherwise, the draw still shown (tip-signs), and its screen, dark without
   power (0057). No status line: the screen, the queue and the outputs say it (no ADR).
 - **Recipes** (no ADR), four a row, two rows at least, in their content places: one not known is a dark silhouette
-  that does nothing, its tip "???" and that analysing opens it (0024); one short for a unit is dimmed grey; in creative
-  mode all are known and ready. A click queues one, shift five, refused whole by the sim when unpaid; a click on a
+  that does nothing, its tip "???" and that analysing opens it (0024); one short for a unit is dimmed grey; in this
+  player's creative mode all are known and ready. A click queues one, shift as many as the stock pays for, five at most (`Crafts.CountFor`; playtesters queued short
+  batches one by one); the sim refuses one unpaid whole; a click on a
   short one pulses amber, twice, the first lacking item this station makes (`Crafts.MissingCraft`). A tool's recipe
   is tinted amber, a worn item's green (`Shared.SlotLooks`). Slots are `Ui.Slot` wide, rebuilt on a size change.
-- **From the inputs** (0057): at a station with inputs (not the pod, nor the arc bench) a right-click on a known recipe
-  queues it from them (shift ×5). A shift-click from the inventory goes onto its own kind, else the first empty input.
+- **From the inputs** (0057): at a station with inputs (not the pod, nor the arc bench) a recipe not carried but in the
+  inputs is lit with the blue inlet (`Look.Fed`), its tip counting the inputs; a click queues it from them (shift ×5).
+  A right-click on a known recipe queues it from them repeating (`Craft … Endless`): playtesters filled the inputs and
+  saw only grey recipes. A shift-click from the inventory goes onto its own kind, else the first empty input.
   The header carries the drone badge (`FabricatorPanel.Served`, 0062).
 - **Queue · shared** (0028, 0057): `QueueMost` slots, each its item, units left and its orderer's suit colour; the one
   at work fills from the bottom, full while its unit waits for room. Fed from the inputs: a blue inlet; endless: a blue
@@ -77,7 +81,6 @@ assembler|lifepod|furnace>` opens a machine for a recording; `--arc` plays the a
 - The arcs are the same on every station: no module picture, no per-machine spot (a `ModuleLook` per machine waits for
   the user's picks). Silent: a crackle waits for its audition.
 - A craft sent shows a round trip later, not at once as moves do (0014): queueing is not a hand's motion.
-- A shift-click on a recipe ready for one but short of five is sent and refused whole; nothing pulses.
 - The pod's glow lights nothing: it is drawn, not a lamp. The hero climbing out is the glow fading, no animation.
 - A plant does not sway or grow between its four pictures.
 - A queue entry keeps its line tip rather than its item's card: a click on it cancels.

@@ -66,6 +66,8 @@ public partial class HomesView : Node2D, ILightSource
         AddChild(_tine = Cues.Player2D(Game.Sound.MusicBox, Game.Sound.World, voices: 4));
         AddChild(_zap = Cues.Player2D(Game.Sound.Zap, Game.Sound.World, voices: 2));
         AddChild(_falls);
+        // The atlas of every ruin's pictures, read and packed as the planet loads: made at the first ruin seen, it froze that frame 240 ms (planet-frame-rate).
+        _ = Atlas.Pictures;
     }
 
     /// <summary>The mean time this view took a frame since it was last asked, in milliseconds: for <c>--measure</c>.</summary>
@@ -667,7 +669,7 @@ public partial class HomesView : Node2D, ILightSource
 
         static Atlas()
         {
-            var names = Names().Select(n => (Name: n, Image: Rgba(PixelArt.Picture(n).GetImage()))).OrderByDescending(p => p.Image.GetHeight()).ThenBy(p => p.Name, StringComparer.Ordinal).ToList();
+            var names = Names().Select(n => (Name: n, Image: HiRes.Logical(n))).OrderByDescending(p => p.Image.GetHeight()).ThenBy(p => p.Name, StringComparer.Ordinal).ToList();
             int x = 0, y = 0, row = 0;
             foreach (var (name, image) in names)
             {
@@ -680,13 +682,10 @@ public partial class HomesView : Node2D, ILightSource
             foreach (var (name, image) in names)
             {
                 var at = At[name];
-                var whole = new Rect2I(0, 0, (int)at.Size.X, (int)at.Size.Y);
-                pictures.BlitRect(image, whole, (Vector2I)at.Position);
-                if (!ResourceLoader.Exists($"res://art/{name}_glow.png")) continue;
-                glows.BlitRect(Rgba(PixelArt.Picture($"{name}_glow").GetImage()), whole, (Vector2I)at.Position);
-                Glows[name] = at;
+                pictures.BlitRect(image, new Rect2I(0, 0, (int)at.Size.X, (int)at.Size.Y), (Vector2I)at.Position);
+                if (HiRes.Has($"{name}_glow")) Glows[name] = at;
             }
-            (Pictures, Shine) = (ImageTexture.CreateFromImage(pictures), ImageTexture.CreateFromImage(glows));
+            (Pictures, Shine) = (HiRes.Sheet(pictures, At.Select(p => (p.Key, p.Value))), HiRes.Sheet(glows, Glows.Select(p => (p.Key, p.Value)), "_glow"));
         }
 
         private static IEnumerable<string> Names()
@@ -698,13 +697,6 @@ public partial class HomesView : Node2D, ILightSource
                     if (art.Dark) yield return $"homes/{kind}_{v}_dark";
                     if (HomesLooks.FedLooks.Contains(kind)) yield return $"homes/{kind}_{v}_fed";
                 }
-        }
-
-        private static Image Rgba(Image image)
-        {
-            if (image.IsCompressed()) image.Decompress();
-            if (image.GetFormat() != Image.Format.Rgba8) image.Convert(Image.Format.Rgba8);
-            return image;
         }
     }
 }

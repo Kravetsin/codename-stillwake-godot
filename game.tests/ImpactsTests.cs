@@ -94,9 +94,24 @@ public class ImpactsTests
     public void EveryNaturalMaterialThatBreaksHasItsLookAndEveryObjectALookToThrow()
     {
         foreach (var material in Spec.Materials.All.Where(x => x.Breaks))
-            Assert.True(HitLooks.Ground.ContainsKey(material.Id), $"{material.Id} breaks but has no hit look");
+            Assert.True(HitLooks.GroundOf(material) != null, $"{material.Id} breaks but has no hit look");
         foreach (Impact impact in Enum.GetValues<Impact>())
             Assert.NotEmpty(HitLooks.Of[impact].Throws);
+        // A vein is struck as its stone, with no line of its own.
+        Assert.Equal(Impact.Stone, HitLooks.GroundOf(Spec.Materials.Get("ironVein")));
+        Assert.DoesNotContain(Spec.Materials.All, m => m.In != null && HitLooks.Ground.ContainsKey(m.Id));
+    }
+
+    [Fact]
+    public void EveryVeinHasItsOwnColoursAndFleck() =>
+        Assert.All(Spec.Materials.All.Where(m => m.In != null), m => Assert.True(GroundLooks.Of.ContainsKey(m.Id), $"{m.Id} has no ground look"));
+
+    /// <summary>Chips off the ground lay in a sheet at the hit's floor, hanging over any step: the ground throws none (planet-frame-rate).</summary>
+    [Fact]
+    public void TheGroundThrowsNoChips()
+    {
+        foreach (var impact in HitLooks.Ground.Values)
+            Assert.DoesNotContain(HitLooks.Of[impact].Throws, t => t.Look.Kind == Glimmer.Chip);
     }
 
     [Fact]
@@ -120,7 +135,9 @@ public class ImpactsTests
         Assert.Equal(0.2, Impacts.ShareOf(Drill), 9);
         Assert.Equal(1, Impacts.ShareOf(null));
         double axePerSecond = (double)World.TicksPerSecond / Spec.Weapons.Axe.Pace;
-        foreach (var weapon in Spec.Weapons.All)
+        // A tool slower than the axe throws a whole hit a blow: the spear and the sledgehammer.
+        Assert.Equal(1, Impacts.ShareOf(Spec.Weapons.Sledgehammer.Item));
+        foreach (var weapon in Spec.Weapons.All.Where(w => w.Pace <= Spec.Weapons.Axe.Pace))
             Assert.Equal(axePerSecond, Impacts.ShareOf(weapon.Item) * World.TicksPerSecond / weapon.Pace, 9);
     }
 

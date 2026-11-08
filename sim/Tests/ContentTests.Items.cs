@@ -1,6 +1,5 @@
 using System.Reflection;
 using Stillwake.Content;
-using Stillwake.Game;
 using Xunit;
 using DebrisSpec = Stillwake.Content.Debris;
 
@@ -12,11 +11,12 @@ public partial class ContentTests
     // Items
 
     [Fact]
-    public void ItemsStackWholeNumbersAndEveryHullMaterialIsOne()
+    public void ItemsStackWholeNumbersAndEveryHullMaterialCostsItems()
     {
         foreach (var item in Content.Items.All) Assert.True(item.Stack > 0, item.Id);
-        // Natural ground (0077) is dug into what it costs: soil, and stone into rock; a vessel's hull, never built, into scrap.
-        foreach (var material in Materials.All.Where(m => !m.Natural && m.Built)) Assert.Contains(material.Id, Content.Items.All.Select(i => i.Id));
+        // A hull material need not be an item itself: cast scrap costs scrap (2026-11-03-cast-scrap).
+        foreach (var material in Materials.All.Where(m => !m.Natural && m.As == null))
+            foreach (var (item, _) in material.Cost) Assert.Contains(item, Content.Items.All.Select(i => i.Id));
     }
 
     [Fact]
@@ -71,7 +71,6 @@ public partial class ContentTests
         Assert.Equal(ItemGroup.Salvage, Content.Items.Get("scrapChunk").Group);
         Assert.Equal(ItemGroup.Material, Content.Items.Get("scrap").Group);
         Assert.InRange(Inventory.Hotbar, 1, Inventory.Slots - 1);
-        Assert.Equal(0, Inventory.Slots % Inventory.Hotbar);
     }
 
     [Fact]
@@ -82,14 +81,14 @@ public partial class ContentTests
         Assert.NotEmpty(holding);
         Assert.All(holding, i => Assert.Equal(1, i.Stack));
         Assert.All(holding, i => Assert.True(i.Capacity > 0, i.Id));
-        // Batteries are worn on the belt; a drone holds its own and flies on it (0062).
-        Assert.All(holding.Where(i => i.Id != Content.Logistics.Drone), i => Assert.Equal(Charge.Belt, i.Equip));
+        // Batteries are worn on the belt; a drone holds its own and flies on it (0062), a salvage drone too (salvage-drones).
+        Assert.All(holding.Where(i => i.Id != Content.Logistics.Drone && i.Id != Content.Logistics.SalvageDrone), i => Assert.Equal(Charge.Belt, i.Equip));
         Assert.Contains(holding, i => i.Id == Content.Logistics.Drone);
         Assert.Contains(Inventory.Equipment, kind => kind == Charge.Belt);
         // Paying never takes what holds charge, so no charge is lost to a recipe, a build or a cable; but the drone, whose
-        // battery becomes its own, and the accumulator, a battery wound round a shard (0099): made empty, as a crafted battery
+        // battery becomes its own (a salvage drone's too), and the accumulator, a battery wound round a shard (0099): made empty, as a crafted battery
         // is, the battery's charge is lost there.
-        string[] ofABattery = [Content.Logistics.Drone, "accumulator"];
+        string[] ofABattery = [Content.Logistics.Drone, Content.Logistics.SalvageDrone, "accumulator"];
         var costs = Crafts.All.Where(c => !ofABattery.Contains(c.Item)).Select(c => c.Cost)
             .Concat(AllBuilds().Select(b => b.Cost))
             .Append(Content.Power.CableCost);

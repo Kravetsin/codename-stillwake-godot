@@ -16,16 +16,16 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [0008](0008-items-inventories-and-crates.md) | Items, inventories and crates replace the shared stock | accepted |  |
 | [0009](0009-debris-around-the-ship.md) | Debris flies around the ship, each piece at its own speed | accepted | 0052 (in part) |
 | [0010](0010-back-walls.md) | Back walls close a room behind | superseded | 0020 |
-| [0011](0011-air-lies-around-the-vents.md) | Air lies around the vents, and a hero breathes it while the room holds any | accepted | 0016 (in part) |
+| [0011](0011-air-lies-around-the-vents.md) | Air lies around the vents, and a hero breathes it while the room holds any | accepted | 0016, air-bubbles (in part) |
 | [0012](0012-playtest-server.md) | A playtest server runs the dev relay on our own VPS | accepted |  |
 | [0013](0013-netcode-follows-known-practice.md) | Netcode follows known practice | accepted | 0014, 0015 (in part) |
 | [0014](0014-own-actions-show-at-once.md) | A player's own actions show at once | accepted |  |
 | [0015](0015-ticks-play-out-after-a-measured-reserve.md) | Ticks play out after a measured reserve | accepted |  |
-| [0016](0016-breathe-where-the-air-is.md) | A hero breathes where the air is, and a generator makes it | accepted |  |
+| [0016](0016-breathe-where-the-air-is.md) | A hero breathes where the air is, and a generator makes it | accepted | air-bubbles (in part) |
 | [0017](0017-power-runs-on-cables.md) | Power runs on cables laid point to point | accepted | 0110 (in part) |
 | [0018](0018-light-by-radiance-cascades.md) | Light by radiance cascades, drawn only | superseded | 0019 |
 | [0019](0019-light-by-cells-in-colour.md) | Light by cells, in colour, drawn only | accepted |  |
-| [0020](0020-walls-of-materials-front-and-back.md) | Walls of materials, front and back, and air through what it touches | accepted |  |
+| [0020](0020-walls-of-materials-front-and-back.md) | Walls of materials, front and back, and air through what it touches | accepted | air-bubbles (in part) |
 | [0021](0021-cables-by-hand-in-the-power-mode.md) | Cables by hand, in the power mode | accepted | 0022, 0030 (in part) |
 | [0022](0022-one-hand.md) | One hand | accepted | 0030, 0064 (in part) |
 | [0023](0023-a-furnace-burns-fuel.md) | A furnace burns fuel, and the wreck starts without one | accepted | 0057 (in part) |
@@ -39,17 +39,17 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [0031](0031-worlds-the-title-and-migrations.md) | Worlds, the title and migrations | accepted |  |
 | [0032](0032-a-player-keeps-their-seat-in-a-world.md) | A player keeps their seat in a world | accepted |  |
 | [0033](0033-first-sound.md) | First sound | accepted | 0042 (in part) |
-| [0034](0034-wreckage-and-the-axe.md) | Wreckage and the axe | accepted | 0037, 0038, 0039, 0041, 0042, 0046, 0054 (in part) |
+| [0034](0034-wreckage-and-the-axe.md) | Wreckage and the axe | accepted | 0037, 0038, 0039, 0041, 0042, 0046, 0054, damage-looks (in part) |
 | [0035](0035-music-on-the-title.md) | Music on the title | accepted | 0042 (in part) |
-| [0036](0036-upright-in-space.md) | Upright in space | accepted | 0037 (in part) |
+| [0036](0036-upright-in-space.md) | Upright in space | accepted | 0037, hero-gait (in part) |
 | [0037](0037-others-see-the-hands.md) | Others see the hands | accepted | 0038 (in part) |
 | [0038](0038-one-swing-one-hit.md) | One swing, one hit | accepted | 0039 (in part) |
-| [0039](0039-melee-by-contact.md) | Melee by contact | accepted | 0040, fan-of-rays (in part) |
+| [0039](0039-melee-by-contact.md) | Melee by contact | accepted | 0040, fan-of-rays, melee-edge, swing-motions (in part) |
 | [0040](0040-a-melee-weapon-is-held-by-its-handle.md) | A melee weapon is held by its handle | accepted | fan-of-rays (in part) |
 | [0041](0041-wreckage-of-many-kinds-and-circuits.md) | Wreckage of many kinds, and circuits | accepted |  |
 | [0042](0042-what-is-heard-in-space.md) | What is heard in space | accepted | 0059 (in part) |
 | [0043](0043-a-solar-panel-needs-the-stars.md) | A solar panel needs the stars | accepted |  |
-| [0044](0044-the-harpoon-reels-a-piece-to-a-point.md) | The harpoon reels a piece to a point | accepted | 0046, 0065, 0068 (in part) |
+| [0044](0044-the-harpoon-reels-a-piece-to-a-point.md) | The harpoon reels a piece to a point | accepted | 0046, 0065, 0068, grapple-climbs (in part) |
 | [0045](0045-a-burner-generator-shares-the-furnaces-fire.md) | A burner generator shares the furnace's fire | accepted | 0046, 0057 (in part) |
 | [0046](0046-recipes-show-what-a-thing-is-made-of.md) | Recipes show what a thing is made of | accepted | 0068 (in part) |
 | [0047](0047-equipment-the-jetpack-and-the-slower-swim.md) | Equipment, the jetpack and the slower swim | accepted | 0058, 0068 (in part) |
@@ -63,7 +63,7 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [0055](0055-an-electric-tool-draws-while-it-runs.md) | An electric tool draws while it runs | accepted |  |
 | [0056](0056-rich-finds-far-out.md) | Rich finds far out | accepted |  |
 | [0057](0057-stations-one-model-for-every-crafting-machine.md) | Stations: one model for every crafting machine | accepted |  |
-| [0058](0058-one-place-for-every-machine-window.md) | One place for every machine window; equipment at the right edge | accepted |  |
+| [0058](0058-one-place-for-every-machine-window.md) | One place for every machine window; equipment at the right edge | accepted | machine-holograms (in part) |
 | [0059](0059-machines-heard-at-work.md) | Machines heard at work, and the suit heard over space | accepted |  |
 | [0060](0060-the-farm-a-grow-capsule-is-a-fed-station.md) | The farm: a grow capsule is a fed station | accepted |  |
 | [0061](0061-death-leaves-a-body.md) | Death leaves a body | accepted | body-bag (in part) |
@@ -79,12 +79,12 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [0071](0071-a-door-command-says-the-state-it-wants.md) | A door command says the state it wants | accepted |  |
 | [0072](0072-air-shows-under-every-build-tab.md) | Air shows under every build tab | accepted |  |
 | [0073](0073-the-build-menu-is-a-docked-catalogue.md) | The build menu is a docked catalogue | accepted |  |
-| [0074](0074-the-inventory-is-a-wrist-computer.md) | The inventory is a wrist computer | accepted |  |
-| [0075](0075-effects-are-light-not-shapes.md) | Effects are light, not shapes | accepted | arcs-are-hairlines, effects-on-their-layer (in part) |
-| [0076](0076-a-world-is-made-of-surfaces.md) | A world is made of surfaces | accepted |  |
-| [0077](0077-a-planets-ground-grows-from-its-seed-and-is-dug-by-hits.md) | A planet's ground grows from its seed and is dug by hits | accepted | fan-of-rays, veins-and-stairs (in part) |
+| [0074](0074-the-inventory-is-a-wrist-computer.md) | The inventory is a wrist computer | accepted | machine-holograms (in part) |
+| [0075](0075-effects-are-light-not-shapes.md) | Effects are light, not shapes | accepted | arcs-are-hairlines, effects-on-their-layer, head-tally (in part) |
+| [0076](0076-a-world-is-made-of-surfaces.md) | A world is made of surfaces | accepted | night-chills (in part) |
+| [0077](0077-a-planets-ground-grows-from-its-seed-and-is-dug-by-hits.md) | A planet's ground grows from its seed and is dug by hits | accepted | fan-of-rays, veins-and-stairs, tool-edge (in part) |
 | [0078](0078-two-handed-items-are-held-as-a-rifle.md) | Two-handed items are held as a rifle | superseded | one-arm-holds |
-| [0079](0079-a-planets-surface-has-its-look-and-grows-plants.md) | A planet's surface has its look, and grows plants from its seed | accepted | 0082 (in part) |
+| [0079](0079-a-planets-surface-has-its-look-and-grows-plants.md) | A planet's surface has its look, and grows plants from its seed | accepted | 0082, composed-backdrops (in part) |
 | [0080](0080-caves-glow-by-depth.md) | Caves glow by depth: what grows in them is the surface's flora, held by floor, ceiling or rock | accepted | veins-and-stairs (in part) |
 | [0081](0081-the-wrist-is-one-column-of-gauges-and-keys.md) | The wrist is one column: segmented gauges that never step, and hardware keys | accepted |  |
 | [0082](0082-the-grounds-chipped-look-details-and-living-edge.md) | The ground's chipped look: details over it and a living edge on top | accepted |  |
@@ -105,17 +105,17 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [0097](0097-station-marks-are-glowing-line-icons.md) | Station marks are glowing line icons | accepted |  |
 | [0098](0098-the-tool-bench-modules-in-tools.md) | The tool bench: modules in tools | accepted |  |
 | [0099](0099-the-arc-bench.md) | The arc bench: a vise that fits tools, the arc branch's station | accepted |  |
-| [0100](0100-tech-branches.md) | Tech branches | accepted |  |
+| [0100](0100-tech-branches.md) | Tech branches | accepted | crusher-takes-arc (in part) |
 | [0101](0101-a-network-stores-its-spare-power.md) | A network stores its spare power | accepted |  |
-| [0102](0102-creatures-live-in-the-sim.md) | Creatures live in the sim | accepted | creatures-are-composed (in part) |
+| [0102](0102-creatures-live-in-the-sim.md) | Creatures live in the sim | accepted | creatures-are-composed, creatures-in-herds (in part) |
 | [0103](0103-a-ram-costs-the-suit-air.md) | A ram costs the suit air | accepted | creatures-are-composed (in part) |
 | [0104](0104-the-cell-is-8-px.md) | The cell is 8 px | accepted |  |
-| [0105](0105-a-room-airs-four-cells-a-beat.md) | A room airs four cells a beat | accepted |  |
+| [0105](0105-a-room-airs-four-cells-a-beat.md) | A room airs four cells a beat | accepted | air-bubbles (in part) |
 | [0106](0106-steps-replace-slopes.md) | Steps replace slopes | accepted |  |
 | [0107](0107-left-is-front-right-is-back.md) | Left is the front, right is the back; the menu plans, the hands build | accepted | 0108, 0109, fan-of-rays (in part) |
-| [0108](0108-left-plans-right-removes.md) | In the plan menu the left button plans and the right removes; the stripper lays cables | accepted | 0107, 0109, 0110, plan-modes (in part) |
+| [0108](0108-left-plans-right-removes.md) | In the plan menu the left button plans and the right removes; the stripper lays cables | accepted | 0107, 0109, 0110, plan-modes, right-lets-go (in part) |
 | [0109](0109-pipes-are-spans.md) | Pipes are straight spans, laid with the wrench | accepted | 0110, plan-modes (in part) |
-| [0110](0110-the-plan-has-a-focused-layer.md) | The open plan has a focused layer; the hand tools have card menus | accepted | plan-modes (in part) |
+| [0110](0110-the-plan-has-a-focused-layer.md) | The open plan has a focused layer; the hand tools have card menus | accepted | plan-modes, back-focus-clear (in part) |
 | [0111](0111-doors-and-hatches.md) | Doors and hatches are two things | accepted |  |
 | [0112](0112-structure-traits.md) | Systems ask a structure's traits, not its kind | accepted | 0113 (in part) |
 | [0113](0113-machine-traits.md) | Systems ask a machine's traits, not its kind | accepted | 0114 (in part) |
@@ -123,11 +123,11 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [added-save-fields-need-no-bump](2026-10-24-added-save-fields-need-no-bump.md) | A save's unknown field is refused, so an added one needs no format bump | accepted |  |
 | [plan-modes](2026-10-24-plan-modes.md) | The plan has modes: building, wiring, piping | accepted |  |
 | [the-launch-platform](2026-10-24-the-launch-platform.md) | The launch platform is a deck of joined pieces that opens with power | accepted |  |
-| [fan-of-rays](2026-10-25-fan-of-rays.md) | A tool's hit is a fan of rays | accepted |  |
+| [fan-of-rays](2026-10-25-fan-of-rays.md) | A tool's hit is a fan of rays | accepted | melee-edge (in part) |
 | [the-drop-pod](2026-10-25-the-drop-pod.md) | The drop pod is a bell a hero boards on a launch platform | accepted |  |
 | [the-engine-through-the-hull](2026-10-25-the-engine-through-the-hull.md) | The engine stands at the stern, its nozzle out through the hull | accepted |  |
 | [title-scene](2026-10-25-title-scene.md) | The title is a drawn scene of despair | accepted |  |
-| [veins-and-stairs](2026-10-25-veins-and-stairs.md) | A planet's ground is a stair, with veins of ore in its lodes | accepted |  |
+| [veins-and-stairs](2026-10-25-veins-and-stairs.md) | A planet's ground is a stair, with veins of ore in its lodes | accepted | ore-pockets (in part) |
 | [compact-wire](2026-10-26-compact-wire.md) | A compact wire | accepted |  |
 | [creatures-are-composed](2026-10-26-creatures-are-composed.md) | Creatures are composed | accepted |  |
 | [fog-edges](2026-10-26-fog-edges.md) | Fog at a planet's edges | accepted |  |
@@ -144,7 +144,7 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [the-cape-floats](2026-10-27-the-cape-floats.md) | The cape floats | accepted | the-cape-flows (in part) |
 | [the-cape-is-worn](2026-10-27-the-cape-is-worn.md) | The cape is worn | accepted |  |
 | [the-descent-pictures](2026-10-27-the-descent-pictures.md) | The drop pod's flight is drawn by the client from the flight's ticks | accepted |  |
-| [the-railgun](2026-10-27-the-railgun.md) | The railgun | accepted |  |
+| [the-railgun](2026-10-27-the-railgun.md) | The railgun | accepted | shots-pierce, hold-to-fire (in part) |
 | [tool-icons](2026-10-27-tool-icons.md) | Tool icons from the held picture | accepted |  |
 | [hull-meteors](2026-10-28-hull-meteors.md) | Meteors from the start | accepted |  |
 | [looks-are-printed](2026-10-28-looks-are-printed.md) | Looks are chosen and printed | accepted |  |
@@ -165,7 +165,140 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [typed-ports](2026-10-29-typed-ports.md) | Ports take or give one fluid | accepted |  |
 | [wall-roles](2026-10-29-wall-roles.md) | Walls either armour or seal | accepted |  |
 | [weak-meteors-till-landing](2026-10-29-weak-meteors-till-landing.md) | Weak meteors till landing | accepted |  |
+| [free-repair](2026-10-30-free-repair.md) | A repair takes only work | accepted |  |
 | [generated-vessels](2026-10-30-generated-vessels.md) | Generated vessels, written beside the ship by a jump | accepted |  |
-| [magnetic-flare](2026-10-30-magnetic-flare.md) | A magnetic flare breaks machines until they are repaired | accepted |  |
-| [tech-graph](2026-10-30-tech-graph.md) | A tech tree drawn as a graph, priced by a formula | accepted |  |
-| [trade-and-tech](2026-10-30-trade-and-tech.md) | Trade and a tech tree | partly | tech-graph |
+| [liquid-oxygen](2026-10-30-liquid-oxygen.md) | Air comes from liquid oxygen | accepted |  |
+| [magnetic-flare](2026-10-30-magnetic-flare.md) | A magnetic flare breaks machines until they are repaired | accepted | free-repair (in part) |
+| [room-upgrades](2026-10-30-room-upgrades.md) | Room is bought on the tree | accepted |  |
+| [tablet-tree](2026-10-30-tablet-tree.md) | The tech tree lives on the tablet | accepted | market-key, the-board (in part) |
+| [tech-graph](2026-10-30-tech-graph.md) | A tech tree drawn as a graph, priced by a formula | accepted | trade-station-later (in part) |
+| [tech-rings](2026-10-30-tech-rings.md) | The tech tree is rings round a hub | superseded | market-decrypt, the-board |
+| [trade-and-tech](2026-10-30-trade-and-tech.md) | Trade and a tech tree | partly | tech-graph, trade-capsule, trade-station-later |
+| [trade-capsule](2026-10-30-trade-capsule.md) | Goods leave by capsule | accepted |  |
+| [black-market](2026-10-31-black-market.md) | The black market | accepted |  |
+| [ci-scope](2026-10-31-ci-scope.md) | A PR runs what its paths can break | accepted |  |
+| [ci-tests-in-release](2026-10-31-ci-tests-in-release.md) | CI runs the tests in Release | accepted |  |
+| [first-hour-pace](2026-10-31-first-hour-pace.md) | The first hour's pace | accepted | the-board (in part) |
+| [hold-piles](2026-10-31-hold-piles.md) | The hold's piles | accepted |  |
+| [spire-guards](2026-10-31-spire-guards.md) | Spire guards | accepted |  |
+| [tablet-key](2026-10-31-tablet-key.md) | The tablet's key and the mark of a new note | superseded | hologram-keys |
+| [the-scoop](2026-10-31-the-scoop.md) | The scoop | accepted | the-board (in part) |
+| [anime-cel-art](2026-11-01-anime-cel-art.md) | Anime cel art | the | ink-and-watercolour, ink-by-default |
+| [creatures-in-ink](2026-11-01-creatures-in-ink.md) | Creatures in ink | accepted |  |
+| [guards-in-ink](2026-11-01-guards-in-ink.md) | The guards in ink | accepted |  |
+| [ink-and-watercolour](2026-11-01-ink-and-watercolour.md) | Ink and watercolour | accepted |  |
+| [iron-and-dress-in-ink](2026-11-01-iron-and-dress-in-ink.md) | Iron and the wreck's dress in ink | accepted |  |
+| [moss-in-ink](2026-11-01-moss-in-ink.md) | Moss in ink | accepted |  |
+| [player-colour-mark](2026-11-01-player-colour-mark.md) | The player's colour is a mark | superseded | hero-clothes |
+| [board-edges](2026-11-02-board-edges.md) | The board has edges, and what is bought stands by its parts | accepted |  |
+| [board-pile](2026-11-02-board-pile.md) | New finds come to the board as a pile | accepted |  |
+| [board-room](2026-11-02-board-room.md) | The camera stops at a size, and the player has room for heaps | accepted |  |
+| [board-thoughts](2026-11-02-board-thoughts.md) | The board says what the hero is thinking | accepted |  |
+| [bulb-signal](2026-11-02-bulb-signal.md) | A bulb over the hero says something new waits on the board | superseded | hologram-keys |
+| [far-land-in-ink](2026-11-02-far-land-in-ink.md) | The far land in ink | accepted | composed-backdrops (in part) |
+| [hero-clothes](2026-11-02-hero-clothes.md) | One body, four sets of clothes | accepted |  |
+| [ink-batch](2026-11-02-ink-batch.md) | The rest of the art in one batch | accepted |  |
+| [ink-by-default](2026-11-02-ink-by-default.md) | The game is drawn in ink by default | accepted |  |
+| [key-lens](2026-11-02-key-lens.md) | The tablet's key is a frosted lens that lights | accepted | hologram-keys (in part) |
+| [market-decrypt](2026-11-02-market-decrypt.md) | The black market looks hacked | superseded | market-grid |
+| [pipes-in-ink](2026-11-02-pipes-in-ink.md) | Pipes in ink | accepted |  |
+| [ports-left-to-right](2026-11-02-ports-left-to-right.md) | Ports read left to right | accepted |  |
+| [russian-language](2026-11-02-russian-language.md) | The game speaks Russian | accepted |  |
+| [tablet-edge](2026-11-02-tablet-edge.md) | The tablet's top edge along the foot, with the keys on it | accepted | hologram-keys (in part) |
+| [tanks-in-a-line](2026-11-02-tanks-in-a-line.md) | Tanks in a line | accepted |  |
+| [tufts-in-ink](2026-11-02-tufts-in-ink.md) | Tufts in ink | accepted |  |
+| [water-to-oxygen](2026-11-02-water-to-oxygen.md) | Water becomes liquid oxygen | accepted | no-ice-canister (in part) |
+| [builder-aim](2026-11-03-builder-aim.md) | One cell of work glows as the square does | accepted |  |
+| [cast-scrap](2026-11-03-cast-scrap.md) | Cast scrap: scrap walls of smelted scrap, rust telling them apart | accepted |  |
+| [charger-two](2026-11-03-charger-two.md) | The charger holds two batteries, drawing for each | accepted |  |
+| [debris-net](2026-11-03-debris-net.md) | The debris net | accepted |  |
+| [driver-at-work](2026-11-03-driver-at-work.md) | The power driver runs only at its work | accepted |  |
+| [driver-square](2026-11-03-driver-square.md) | The power driver's square in teal, over the plans | accepted |  |
+| [edge-lenses](2026-11-03-edge-lenses.md) | The tablet edge's keys are frosted lenses, and the journal has one | accepted | hologram-keys (in part) |
+| [hero-lights](2026-11-03-hero-lights.md) | The hero's own lights light what is round them | accepted |  |
+| [ink-signs](2026-11-03-ink-signs.md) | Ink signs: the bolt, the credit chip and the air lamps | accepted |  |
+| [loss-shows-white](2026-11-03-loss-shows-white.md) | Every loss shows white | accepted |  |
+| [market-grid](2026-11-03-market-grid.md) | The black market is a grid of goods | accepted |  |
+| [market-key](2026-11-03-market-key.md) | The black market has its own key on the tablet's edge, the tablet no tabs, the credits always in sight | accepted | hologram-keys (in part) |
+| [pixel-art-removed](2026-11-03-pixel-art-removed.md) | The pixel art is removed | accepted |  |
+| [pixels-unsupported](2026-11-03-pixels-unsupported.md) | The pixel art is unsupported | accepted |  |
+| [power-driver](2026-11-03-power-driver.md) | The power driver works a square | accepted |  |
+| [salvage-drones](2026-11-03-salvage-drones.md) | Salvage drones | accepted | salvage-trips (in part) |
+| [the-heavy-helmet](2026-11-03-the-heavy-helmet.md) | The heavy helmet and richer canisters | accepted |  |
+| [the-regen-suit](2026-11-03-the-regen-suit.md) | The regen suit and the suit's mode | accepted |  |
+| [credit-counter](2026-11-04-credit-counter.md) | The credit chip stands upright and larger, and changing numbers count with a flare | accepted |  |
+| [door-swing](2026-11-04-door-swing.md) | A door takes no other toggle while it moves | accepted |  |
+| [driver-icons](2026-11-04-driver-icons.md) | Tool icons from large pictures; no square over a whole thing | accepted |  |
+| [driver-order](2026-11-04-driver-order.md) | The hull first, no station in a square, plans under the heroes | accepted |  |
+| [footprint-is-the-picture](2026-11-04-footprint-is-the-picture.md) | A bench's footprint is its whole picture | accepted |  |
+| [guest-draws-through](2026-11-04-guest-draws-through.md) | A guest draws through late ticks | accepted |  |
+| [hero-gait](2026-11-04-hero-gait.md) | The hero's gait | accepted |  |
+| [hold-to-fire](2026-11-04-hold-to-fire.md) | Hold to fire | accepted |  |
+| [key-binds](2026-11-04-key-binds.md) | Key binds | accepted |  |
+| [macos-build](2026-11-04-macos-build.md) | A macOS build | accepted |  |
+| [mode-glyph](2026-11-04-mode-glyph.md) | The power driver's mode by the arrow | accepted |  |
+| [no-back-wall-floats](2026-11-04-no-back-wall-floats.md) | The back wall holds the ship's gravity: before none, things float | accepted |  |
+| [pointer-looks](2026-11-04-pointer-looks.md) | What stands in for the pointer | superseded | mode-glyph |
+| [salvage-tools](2026-11-04-salvage-tools.md) | The salvage tools | accepted |  |
+| [salvage-trips](2026-11-04-salvage-trips.md) | Salvage trips | accepted |  |
+| [trade-capsule-ink](2026-11-04-trade-capsule-ink.md) | The trade capsule is a freight canister in ink | accepted |  |
+| [aim-on-use](2026-11-05-aim-on-use.md) | An aimed item comes up only in use | accepted |  |
+| [air-bubbles](2026-11-05-air-bubbles.md) | Air is a bubble round each source | accepted | leaks-tripled (in part) |
+| [air-wash](2026-11-05-air-wash.md) | The air overlay is a wash to leave on | accepted |  |
+| [build-from-crates](2026-11-05-build-from-crates.md) | Building, pipes and cables pay from every crate on the ship | accepted |  |
+| [build-hints](2026-11-05-build-hints.md) | Build hints: a screen of key caps that changes with the hand | accepted |  |
+| [craft-from-crates](2026-11-05-craft-from-crates.md) | A paid craft takes from every crate on the ship | accepted |  |
+| [damage-looks](2026-11-05-damage-looks.md) | Damage and work drawn in ink | accepted | tool-reach, cracks-to-end (in part) |
+| [hologram-keys](2026-11-05-hologram-keys.md) | The edge's keys are holograms of what can be used, and the bulb bursts at the screen's top | accepted |  |
+| [melee-edge](2026-11-05-melee-edge.md) | A stroke hits with its swept blade | accepted | tool-reach (in part) |
+| [the-board](2026-11-05-the-board.md) | Things are learned by having them, on the scavenger's board | accepted |  |
+| [the-last-breath](2026-11-05-the-last-breath.md) | The last breath | accepted |  |
+| [tip-signs](2026-11-05-tip-signs.md) | Tips speak in signs and the bubble's numbers | accepted |  |
+| [tool-contact](2026-11-05-tool-contact.md) | A running tool is seen at work all along | accepted | damage-looks, tool-edge (in part) |
+| [tool-edge](2026-11-05-tool-edge.md) | A running tool hits with what is drawn | accepted | tool-reach (in part) |
+| [tool-reach](2026-11-05-tool-reach.md) | A tool hits by a fan of rays from the shoulder and shows its reach in use | accepted | hits-pass-wrecks (in part) |
+| [creatures-in-herds](2026-11-06-creatures-in-herds.md) | Wild creatures come in small herds of one kind | accepted |  |
+| [energy-ring](2026-11-06-energy-ring.md) | The energy tab's ring and beating bolt | accepted |  |
+| [gain-spots](2026-11-06-gain-spots.md) | What a hero gains, counted beside where it came from | accepted |  |
+| [head-tally](2026-11-06-head-tally.md) | What a hero gains, counted steady over its head | accepted | gain-spots (in part) |
+| [leaks-tripled](2026-11-06-leaks-tripled.md) | Leaks tripled, the pod with them | accepted |  |
+| [lighter-tools](2026-11-06-lighter-tools.md) | Lighter electric tools | accepted |  |
+| [no-ice-canister](2026-11-06-no-ice-canister.md) | Canisters are salvaged, not frozen of ice | accepted |  |
+| [quick-stash](2026-11-06-quick-stash.md) | The bag stashed into nearby crates with one key | accepted |  |
+| [settings-menu](2026-11-06-settings-menu.md) | The Esc menu on the tablet, Settings in categories | accepted |  |
+| [the-power-chain](2026-11-06-the-power-chain.md) | The power chain | accepted |  |
+| [trade-station-later](2026-11-06-trade-station-later.md) | The trade station comes with circuits | accepted |  |
+| [air-feedback](2026-11-07-air-feedback.md) | Air and power answer the player loudly | accepted |  |
+| [back-focus-clear](2026-11-07-back-focus-clear.md) | The back walls' focus hides the front | accepted |  |
+| [battery-workbench](2026-11-07-battery-workbench.md) | The workbench makes batteries | accepted |  |
+| [board-search-related](2026-11-07-board-search-related.md) | The board's search finds what is tied | accepted |  |
+| [board-search](2026-11-07-board-search.md) | The board has its own search | accepted |  |
+| [cave-hostiles](2026-11-07-cave-hostiles.md) | Cave hostiles | accepted | lurker-attacks (in part) |
+| [cracks-to-end](2026-11-07-cracks-to-end.md) | A wreck's cracks run on until they cover it at the break | accepted |  |
+| [creative-per-player](2026-11-07-creative-per-player.md) | Creative mode is each player's | accepted |  |
+| [crusher-takes-arc](2026-11-07-crusher-takes-arc.md) | The crusher takes the arc module | accepted |  |
+| [grapple-climbs](2026-11-07-grapple-climbs.md) | The grapple climbs | accepted |  |
+| [hits-pass-wrecks](2026-11-07-hits-pass-wrecks.md) | A tool's rays pass through wrecks and hit all they cross | accepted |  |
+| [machine-holograms](2026-11-07-machine-holograms.md) | Machine windows are station holograms | accepted |  |
+| [machines-stand](2026-11-07-machines-stand.md) | Machines stand on a floor | accepted |  |
+| [night-chills](2026-11-07-night-chills.md) | Night chills a planet's open sky | accepted |  |
+| [no-charge-flash](2026-11-07-no-charge-flash.md) | A flat press blinks the energy tab red | accepted |  |
+| [ore-pockets](2026-11-07-ore-pockets.md) | Ore lies at every depth, in pockets, and glints now and then | accepted |  |
+| [pick-reach](2026-11-07-pick-reach.md) | The pickaxe cuts close by | accepted |  |
+| [pile-crack-net](2026-11-07-pile-crack-net.md) | A pile cracks as a wreck | accepted |  |
+| [pile-hit-points](2026-11-07-pile-hit-points.md) | The hold's piles have hit points | accepted |  |
+| [pile-hits-felt](2026-11-07-pile-hits-felt.md) | A hit on a pile is seen and heard | accepted |  |
+| [radar-mast](2026-11-07-radar-mast.md) | The radar antenna is a guyed mast | accepted |  |
+| [right-lets-go](2026-11-07-right-lets-go.md) | The right button lets the card go | accepted |  |
+| [steady-scanner](2026-11-07-steady-scanner.md) | A steady scanner readout | accepted |  |
+| [swing-motions](2026-11-07-swing-motions.md) | Swing motions | accepted |  |
+| [tether-haul](2026-11-07-tether-haul.md) | Hauling in along the tether | accepted |  |
+| [the-pickaxe](2026-11-07-the-pickaxe.md) | The pickaxe | accepted |  |
+| [the-scanner](2026-11-07-the-scanner.md) | The scanner reads a wreck's hit points | accepted |  |
+| [tool-card-rows](2026-11-07-tool-card-rows.md) | A tool's card lists its numbers as rows with icons | accepted |  |
+| [composed-backdrops](2026-11-08-composed-backdrops.md) | Composed backdrops | accepted |  |
+| [flowing-liquids](2026-11-08-flowing-liquids.md) | Flowing liquids: lakes in a planet's cells | accepted |  |
+| [hurts-are-shown](2026-11-08-hurts-are-shown.md) | Hurts are shown | accepted |  |
+| [lobbed-glob](2026-11-08-lobbed-glob.md) | Lobbed glob | accepted |  |
+| [lurker-attacks](2026-11-08-lurker-attacks.md) | Lurker attacks | accepted | lobbed-glob (in part) |
+| [planet-frame-rate](2026-11-08-planet-frame-rate.md) | Planet frame rate | accepted |  |

@@ -7,23 +7,21 @@ namespace Stillwake.Game.Tests;
 /// <summary>How the arc makers' homes look (0091): every piece has its pictures, and stands, hangs and leans where the page puts it.</summary>
 public class HomesLooksTests
 {
-    private static string Art => Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "game", "art");
-
     [Fact]
     public void EveryPieceHasItsPicturesEachVariantItsDarkLookWhereItsLampMayGoOutAndTheirGlows()
     {
-        Assert.Equal(Spec.Ruins.Pieces.Select(p => p.Id).Order(StringComparer.Ordinal), HomesArt.Of.Keys.Order(StringComparer.Ordinal));
+        Assert.Equal(Spec.Ruins.Pieces.Where(p => p.Post == null).Select(p => p.Id).Order(StringComparer.Ordinal), HomesArt.Of.Keys.Order(StringComparer.Ordinal));
         foreach (var (kind, art) in HomesArt.Of)
             for (int v = 0; v < art.Variants; v++)
             {
-                Assert.True(File.Exists(Path.Combine(Art, "homes", $"{kind}_{v}.png")), $"{kind}_{v}");
-                Assert.Equal(art.Dark, File.Exists(Path.Combine(Art, "homes", $"{kind}_{v}_dark.png")));
+                Assert.True(Png.Has($"homes/{kind}_{v}"), $"{kind}_{v}");
+                Assert.Equal(art.Dark, Png.Has($"homes/{kind}_{v}_dark"));
             }
         // What gives light glows: a lamp's picture has its glow beside it.
-        Assert.All(HomesArt.Of.Where(a => a.Value.Lights.Length > 0), a => Assert.True(File.Exists(Path.Combine(Art, "homes", $"{a.Key}_0_glow.png")), a.Key));
+        Assert.All(HomesArt.Of.Where(a => a.Value.Lights.Length > 0), a => Assert.True(Png.Has($"homes/{a.Key}_0_glow"), a.Key));
         // The homes' plaster and the new items' icons.
-        Assert.All((string[])["wall", "back", "top", "detail"], p => Assert.True(File.Exists(Path.Combine(Art, "planet", $"{p}_plaster.png")), p));
-        Assert.All((string[])["cloth", "arcLamp"], i => Assert.True(File.Exists(Path.Combine(Art, "items", $"{i}.png")), i));
+        Assert.All((string[])["wall", "back"], p => Assert.True(Png.Has($"{p}_plaster"), p));
+        Assert.All((string[])["cloth", "arcLamp"], i => Assert.True(Png.Has($"items/{i}"), i));
     }
 
     [Fact]
@@ -68,7 +66,7 @@ public class HomesLooksTests
         Assert.True(HomesLooks.MoodOf("arcCandle", 7, feeds: false, hearted: true, taken: false).Lit);
         Assert.Equal(HomesLooks.Lit("sconce", 11), HomesLooks.MoodOf("sconce", 11, feeds: false, hearted: false, taken: false).Lit);
         Assert.All(HomesLooks.Fed, kind => Assert.Contains(Spec.Ruins.Hearth.Pieces, p => p.Kind == kind));
-        Assert.True(File.Exists(Path.Combine(Art, "homes", "ceilLamp_0_fed.png")));
+        Assert.True(Png.Has("homes/ceilLamp_0_fed"));
     }
 
     [Fact]

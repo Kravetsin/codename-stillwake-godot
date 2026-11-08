@@ -84,8 +84,8 @@ public static class Wreckage
 
     /// <summary>
     /// The perches of each look of the kinds clingers come with (<c>Creatures.Derelicts</c>), by its number from 0: the stretches of
-    /// its top, from the left, flat within a pixel and <see cref="PerchLeast"/> across, as <c>PerchesTests</c> measures the pictures.
-    /// A look with none, such as every pod cluster's, takes no clinger.
+    /// its top, from the left, flat within a pixel and <see cref="PerchLeast"/> across, measured once from the pixel pictures. The ink
+    /// ones' tops lie within two pixels of these over half of each at least (<c>PerchesTests</c>). A look with none, such as every pod cluster's, takes no clinger.
     /// </summary>
     public static readonly IReadOnlyDictionary<string, IReadOnlyList<IReadOnlyList<Perch>>> Perches = new Dictionary<string, IReadOnlyList<IReadOnlyList<Perch>>>
     {

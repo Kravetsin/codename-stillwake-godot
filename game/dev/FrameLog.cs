@@ -76,6 +76,14 @@ public partial class FrameLog : Node
     /// <summary>Starts timing a frame's sections: <c>Main</c> calls it first thing in its <c>_Process</c>.</summary>
     public void Start() => (_mark, _markBytes) = (Stopwatch.GetTimestamp(), GC.GetAllocatedBytesForCurrentThread());
 
+    /// <summary>The frames counted afresh from now, as if the warm-up ended here: a scripted run measuring what comes after its start.</summary>
+    public void Restart()
+    {
+        Array.Clear(_sections, 0, Math.Min(_n + 1, Capacity) * Sections.Length);
+        Array.Clear(_sectionBytes);
+        _n = Warm;
+    }
+
     /// <summary>The time since the last mark goes to <paramref name="section"/>, one of <see cref="Sections"/>.</summary>
     public void Mark(string section)
     {
@@ -141,6 +149,7 @@ public partial class FrameLog : Node
             o.AppendLine($"FRAMES  {from,6:F2}..{(to == double.MaxValue ? "inf" : to.ToString("F2")),6} ms {n,8} {100.0 * n / frames.Count,8:F3}%");
             from = to;
         }
+        o.AppendLine($"FRAMES render avg cpu={frames.Average(i => _render[i]):F3}ms gpu={frames.Average(i => _gpu[i]):F3}ms, p95 cpu={Quantile(frames.Select(i => _render[i]), 0.95):F3} gpu={Quantile(frames.Select(i => _gpu[i]), 0.95):F3}");
         o.AppendLine($"FRAMES gc a minute: gen0={frames.Sum(i => _gen0[i]) / minutes:F1} gen1={frames.Sum(i => _gen1[i]) / minutes:F1} "
             + $"gen2={frames.Sum(i => _gen2[i]) / minutes:F1}; main thread allocates {frames.Average(i => _allocated[i]) / 1024:F1} KB a frame, "
             + $"{frames.Sum(i => _allocated[i]) / seconds / 1024 / 1024:F2} MB a second, every thread {(GC.GetTotalAllocatedBytes() - _totalAtWarm) / (Time.GetTicksMsec() / 1000.0 - _secondsAtWarm) / 1024 / 1024:F2} MB a second; frames over {Budget:F2}ms: {ms.Count(m => m >= Budget)}");
@@ -160,6 +169,12 @@ public partial class FrameLog : Node
     }
 
     /// <summary>What of frame <paramref name="i"/> no section and not the renderer took: Godot's own work and the views not timed.</summary>
+    private static double Quantile(System.Collections.Generic.IEnumerable<double> values, double q)
+    {
+        var sorted = values.OrderBy(v => v).ToList();
+        return sorted[Math.Min(sorted.Count - 1, (int)Math.Ceiling(sorted.Count * q) - 1)];
+    }
+
     private double Rest(int i)
     {
         double timed = _render[i];

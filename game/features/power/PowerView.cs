@@ -50,7 +50,7 @@ public partial class PowerView : Node2D
     private readonly Sketch _overlay = new(Layers.Overlay), _ghost = new(Layers.OverlayHands);
     /// <summary>
     /// A magnetic flare coming: the cables glowing over themselves, unlit, seen in the dark (magnetic-flare). A machine it broke:
-    /// dimmed over its footprint, under its bolt, now and then throwing sparks.
+    /// its picture dimmed, not the wall round it, under its bolt, now and then throwing sparks.
     /// </summary>
     private readonly Sketch _charged = new(Layers.Cables), _dimmed = new(Layers.Fittings);
     private static readonly Color Charged = new(0.55f, 0.95f, 1f), Dimmed = new(0.02f, 0.03f, 0.05f, 0.55f);
@@ -58,8 +58,8 @@ public partial class PowerView : Node2D
     /// <summary>How often a broken machine throws sparks, in ms on average.</summary>
     private const double SparksEveryMs = 1400;
     private double _glow;
-    /// <summary>Each broken machine's footprint, in cells: x, y, width, height.</summary>
-    private readonly List<(int X, int Y, int W, int H)> _broken = [];
+    /// <summary>Each broken machine's footprint, in cells: x, y, width, height; and its kind, whose picture is dimmed.</summary>
+    private readonly List<(int X, int Y, int W, int H, string Kind)> _broken = [];
     /// <summary>Each powered machine's socket outlined while a cable is carried: where it would plug in.</summary>
     private readonly Outline _sockets = new(Layers.OverlayHands);
     private IReadOnlyList<CableLine> _drawn = [];
@@ -91,7 +91,9 @@ public partial class PowerView : Node2D
         };
         _dimmed.Paint = g =>
         {
-            foreach (var (x, y, w, h) in _broken) g.DrawRect(new Rect2(x * Cell, y * Cell, w * Cell, h * Cell), Dimmed);
+            // Its picture tinted dark, laid as the grid lays it: a box would darken the bare wall round it, unlit, a square in the light.
+            foreach (var (x, y, _, _, kind) in _broken)
+                g.DrawTexture(PixelArt.Picture($"machine_{kind}"), new Vector2(x - ShipTiles.ReachOf(kind), y - ShipTiles.RiseOf(kind)) * Cell, Dimmed);
         };
         _grommets.Paint = g =>
         {
@@ -214,7 +216,7 @@ public partial class PowerView : Node2D
         {
             if (_storeTold.Bank < 0) return;
             _storeTold = (-1, -1);
-            _ui.WorldTip.SetLines(null);
+            _ui.WorldTip.Set(null);
             return;
         }
         if (_storeTold != (id, tick)) _storeSaid = [StoreGauge.Reading(at.Energy, at.Capacity, at.Flow)];
@@ -233,17 +235,19 @@ public partial class PowerView : Node2D
         return true;
     }
 
-    /// <summary>What the bolts show: each machine short of power, where, and whether it has none.</summary>
+    /// <summary>What the bolts show: each machine broken or short of power, where, and which of those.</summary>
     private List<int> BoltsOf(Registry m)
     {
         _key.Clear();
         foreach (var machine in m.Grid.Machines)
-            if (Machines.Get(machine.Kind).Draws != null && m.Power.Satisfaction(machine.Id) is var s and < 1000)
-            {
-                _key.Add(machine.Id);
-                _key.Add(machine.Cell);
-                _key.Add(s == 0 ? 0 : 1);
-            }
+        {
+            bool broken = m.Power.IsBroken(machine.Id);
+            int satisfaction = m.Power.Satisfaction(machine.Id);
+            if (!broken && (Machines.Get(machine.Kind).Draws == null || satisfaction >= 1000)) continue;
+            _key.Add(machine.Id);
+            _key.Add(machine.Cell);
+            _key.Add(broken ? 2 : satisfaction == 0 ? 0 : 1);
+        }
         return _key;
     }
 
@@ -258,7 +262,7 @@ public partial class PowerView : Node2D
             if (m.Grid.MachineById(id) is { } machine)
             {
                 var spec = Machines.Get(machine.Kind);
-                _broken.Add((machine.Cell % m.Grid.Width, machine.Cell / m.Grid.Width, spec.Width, spec.Height));
+                _broken.Add((machine.Cell % m.Grid.Width, machine.Cell / m.Grid.Width, spec.Width, spec.Height, machine.Kind));
             }
         _dimmed.QueueRedraw();
     }
@@ -268,7 +272,7 @@ public partial class PowerView : Node2D
     {
         if (_broken.Count == 0) return;
         var glims = Stages.Of(Layers.Effects).Glims;
-        foreach (var (x, y, w, h) in _broken)
+        foreach (var (x, y, w, h, _) in _broken)
         {
             if (glims.Between(0, SparksEveryMs) >= elapsedMs) continue;
             double sx = (x + glims.Between(0, w)) * Cell, sy = (y + glims.Between(0, h * 0.6)) * Cell;
@@ -306,7 +310,7 @@ public partial class PowerView : Node2D
 
     private static readonly CanvasItemMaterial Unlit = new() { LightMode = CanvasItemMaterial.LightModeEnum.Unshaded };
 
-    /// <summary>A bolt over each machine that draws power and gets less than it would: red with none, amber with some.</summary>
+    /// <summary>A wrench over each broken machine; a bolt over each other that draws power and gets less than it would: red with none, amber with some.</summary>
     private void PlaceBolts(Registry m)
     {
         foreach (var child in _bolts.GetChildren()) child.QueueFree();
@@ -314,14 +318,15 @@ public partial class PowerView : Node2D
         foreach (var machine in m.Grid.Machines)
         {
             var spec = Machines.Get(machine.Kind);
-            if (spec.Draws == null) continue;
+            bool broken = m.Power.IsBroken(machine.Id);
             int satisfaction = m.Power.Satisfaction(machine.Id);
-            if (satisfaction >= 1000) continue;
+            if (!broken && (spec.Draws == null || satisfaction >= 1000)) continue;
             var at = CableShape.MiddleOf(m.Grid, machine.Cell);
+            var texture = broken ? Signs.Broken() : Signs.Bolt(satisfaction == 0);
             var bolt = new Sprite2D
             {
-                Texture = AsciiArt.Bolt(satisfaction == 0),
-                Offset = new Vector2(0, -AsciiArt.Bolt(true).GetHeight() / 2f),
+                Texture = texture,
+                Offset = new Vector2(0, -texture.GetHeight() / 2f),
                 Position = new Vector2((float)at.X * Cell, (float)(at.Y - spec.Height / 2.0) * Cell - 1),
                 Material = Unlit,
             };
@@ -356,7 +361,7 @@ public partial class PowerView : Node2D
             var at = CableShape.MiddleOf(m.Grid, machine.Cell);
             _unplugged.AddChild(new Sprite2D
             {
-                Texture = AsciiArt.Unplugged(),
+                Texture = Signs.Unplugged(),
                 Position = new Vector2((float)at.X, (float)at.Y) * Cell,
                 Material = Unlit,
             });

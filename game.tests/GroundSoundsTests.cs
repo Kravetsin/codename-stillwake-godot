@@ -118,6 +118,9 @@ public class GroundSoundsTests
         Assert.Equal((S.HitStone, S.BreakStone), Of("stone"));
         Assert.Equal((S.HitStone, S.BreakStone), Of("plaster"));
         Assert.Equal((S.Chop, S.Break), Of("alloy"));
+        // A vein sounds as the stone it runs in: a new ore needs no line of its own.
+        Assert.Equal((S.HitStone, S.BreakStone), Of("ironVein"));
+        Assert.False(S.Ground.ContainsKey("copperVein"));
         Assert.Equal((null, null), Of("bedrock"));
         Assert.Equal((null, null), Of(Spec.Lava.Material));
         // Every natural material a weapon breaks sounds.
@@ -167,6 +170,20 @@ public class GroundSoundsTests
             Assert.True(S.Growths.ContainsKey(growth.Id) ^ S.Unheard.Contains(growth.Id), $"{growth.Id} is in neither list or in both");
         foreach (string kind in S.Growths.Keys.Concat(S.Unheard))
             Assert.NotNull(Spec.Flora.Get(kind));
+    }
+
+    [Fact]
+    public void ABuiltWallTheShipsHullRingsAsAWrecksMetalUnderTheToolThatStrikesIt()
+    {
+        var m = new TestWorld(Layout.Parse("""
+            ....
+            ####
+            """)).M;
+        int wall = m.Grid.Width;
+        Assert.False(m.Grid.WallAt(wall)!.Natural);
+        Assert.Same(S.Chop, GroundSounds.HitAt(m.Grid, m.Building, wall, 0, Axe));
+        Assert.Same(S.HammerBlow, GroundSounds.HitAt(m.Grid, m.Building, wall, 0, Spec.Weapons.Sledgehammer.Item));
+        Assert.Same(S.SpearHit, GroundSounds.HitAt(m.Grid, m.Building, wall, 0, Spec.Weapons.Spear.Item));
     }
 
     [Fact]

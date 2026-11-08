@@ -1,6 +1,6 @@
 # A magnetic flare breaks machines until they are repaired
 
-- Status: accepted
+- Status: accepted; its repair cost superseded by [free-repair](2026-10-30-free-repair.md)
 - Date: 2026-10-30
 
 ## Context

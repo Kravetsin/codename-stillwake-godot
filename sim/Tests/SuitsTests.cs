@@ -60,11 +60,15 @@ public class SuitsTests
         return w;
     }
 
-    /// <summary><see cref="Room"/> aired from its piped tank, hero 0 brought in at the spawn, bare unless <paramref name="suited"/>.</summary>
+    /// <summary>
+    /// <see cref="Room"/> made the chain (<see cref="HandPiped.Chained"/>), aired from the vaporizer its vent is piped to, hero 0
+    /// brought in at the spawn, bare unless <paramref name="suited"/>.
+    /// </summary>
     private static Scenario Aired(bool suited)
     {
-        var w = new Scenario(Room) { Bare = !suited }.Do(new SetCreative(true));
-        w.Pipe(Cell(2, 2), Cell(2, 6)).Run();
+        var w = new Scenario(HandPiped.Chained(Room), doubled: true) { Bare = !suited }.Do(new SetCreative(true));
+        // From the vent's port, its top-left, to the vaporizer's output, the right of its top row.
+        w.Pipe(Cell(2, 2), Cell(5, 4)).Run();
         int tank = w.M.Grid.Machines.First(m => m.Kind == "tank").Id;
         w.Do(new LoadCanister(tank));
         w.Do(new SetCreative(false)).Run();
@@ -198,6 +202,48 @@ public class SuitsTests
         Assert.Equal(["crew.suitFull"], w.Refusals.Select(r => r.Reason));
     }
 
+    /// <summary>The heavy helmet and a body (2026-11-03-the-heavy-helmet) on the hero brought in: printed full to its 100.</summary>
+    private static Scenario Heavy(int cell)
+    {
+        // Knowing nothing, so no canister upgrade is bought until a test grants it.
+        var w = new Scenario(Layout.Parse(PodRoom) with { Known = [] }, doubled: true) { Bare = true }.Wear(0, Content.Helmet.Heavy).Wear(0, Body);
+        return w.Do(EnterAt(cell)).Run();
+    }
+
+    [Fact]
+    public void AHeavyHelmetHoldsAHundredAndASwapToTheBasicCutsItTo45()
+    {
+        var w = Heavy(Beyond).GiveItems(0, (Helmet, 1));
+        Assert.Equal((100, 100), (w.M.Crew.CapacityOf(0), HeroOf(w).Air));
+        PutOn(w, Helmet, HeadSlot).Run();
+        Assert.Equal(Full, w.M.Crew.CapacityOf(0));
+        Assert.True(HeroOf(w).Air <= Full);
+    }
+
+    [Fact]
+    public void ACanisterGivesTwentyAndFortyOnceItsUpgradeIsBoughtNeverPastTheHelmet()
+    {
+        var w = Heavy(Beyond).GiveItems(0, (Content.Crew.Canister, 3));
+        HeroOf(w).Air = 10;
+        w.Do(new Refill { From = 0 }).Run();
+        Assert.Equal((20, 30), (w.M.Crew.CanisterRefill, HeroOf(w).Air));
+        w.M.Knowledge.Grant("canister1");
+        w.Do(new Refill { From = 0 }).Run();
+        Assert.Equal((40, 70), (w.M.Crew.CanisterRefill, HeroOf(w).Air));
+        w.Do(new Refill { From = 0 }).Run();
+        Assert.Equal(100, HeroOf(w).Air);
+    }
+
+    [Fact]
+    public void OffTheGridEvenAFullHeavyHelmetEndsInABreathItsLastBreathAfter()
+    {
+        var w = Heavy(-5);
+        Breaths(w, 1);
+        Assert.Equal((0, Content.Crew.LastBreath), (HeroOf(w).Air, HeroOf(w).Gasp));
+        w.Run(Content.Crew.LastBreath);
+        Assert.Equal((0, Content.Crew.PassOut), (HeroOf(w).Air, HeroOf(w).Out));
+    }
+
     [Fact]
     public void AJetpackThrustingBarePaysFromTheLungs()
     {
@@ -210,11 +256,10 @@ public class SuitsTests
     }
 
     [Fact]
-    public void ThePodMakesTheBasicHelmetAndBodyForNothingKnownFromTheStart()
+    public void ThePodMakesTheBasicHelmetAndBodyForNothingUnderstoodOnTheFirstTick()
     {
         foreach (string item in new[] { Helmet, Body })
         {
-            Assert.Contains(item, Content.Research.StartKnown);
             Assert.Empty(Content.Crafts.Get(item).Cost);
             var w = new Scenario(Layout.Parse(PodRoom) with { Known = Content.Research.StartKnown }, doubled: true) { Bare = true };
             w.Do(EnterAt(w.M.Crew.Spawn)).Run();
@@ -232,30 +277,34 @@ public class SuitsTests
         from cell in Gen.Elements(Hatch, Beyond, AtPod(3, 2), -5)
         select new Step("enter", hero, cell),
         from hero in Gen.Choose(0, 2)
-        from which in Gen.Elements(0, 1)
+        from which in Gen.Elements(0, 1, 2)
         select new Step("swap", hero, which),
         from hero in Gen.Choose(0, 2)
         from thrusting in Gen.Elements(0, 1)
         select new Step("thrust", hero, Ticks: thrusting),
         from hero in Gen.Choose(0, 2) select new Step("refill", hero),
+        from hero in Gen.Choose(0, 2) from units in Gen.Choose(1, 60) select new Step("shock", hero, Ticks: units),
+        Gen.Constant(new Step("upgrade")),
         Gen.Frequency((2, Gen.Choose(1, 20)), (1, Gen.Choose(1, 600))).Select(t => new Step("wait", Ticks: t)));
 
     [Property(MaxTest = 40)]
-    public Property KeepsEveryHerosAirBetweenNothingAndItsCapacityThroughSwapsRefillsColdAndThrust()
+    public Property KeepsEveryHerosAirBetweenNothingAndItsCapacityAndItsLastBreathOnlyWithNoneThroughSwapsRefillsUpgradesColdThrustAndShocks()
     {
         var steps = from n in Gen.Choose(0, 25) from s in Steps.ArrayOf(n) select s;
         return Prop.ForAll(steps.ToArbitrary(), all =>
         {
             var w = new Scenario(PodRoom).Wear(0, Content.Jetpack.Item).Wear(1, Content.Jetpack.Item);
-            for (int peer = 0; peer < 3; peer++) w.GiveItems(peer, (Content.Crew.Canister, 5));
+            for (int peer = 0; peer < 3; peer++) w.GiveItems(peer, (Content.Crew.Canister, 5), (Content.Helmet.Heavy, 1));
             foreach (var s in all)
             {
                 if (s.Type == "enter") w.Do(EnterAt(s.Cell, s.Hero));
                 else if (s.Type == "thrust") w.Do(new Thrust(s.Ticks == 1) { From = s.Hero });
                 else if (s.Type == "refill") w.Do(new Refill { From = s.Hero });
+                else if (s.Type == "shock") w.M.Crew.Shock(s.Hero, s.Ticks, Harm.Shock);
+                else if (s.Type == "upgrade") w.M.Knowledge.Grant("canister1");
                 else if (s.Type == "swap")
                 {
-                    var (item, slot) = s.Cell == 0 ? (Helmet, HeadSlot) : (Body, BodySlot);
+                    var (item, slot) = s.Cell switch { 0 => (Helmet, HeadSlot), 1 => (Body, BodySlot), _ => (Content.Helmet.Heavy, HeadSlot) };
                     int bag = w.M.Items.Inventory(s.Hero).ToList().FindIndex(x => x?.Item == item);
                     w.Do(bag >= 0 && bag < Content.Inventory.Slots
                         ? new Move(new Items.Place(bag), new Target(slot), 1) { From = s.Hero }
@@ -265,6 +314,8 @@ public class SuitsTests
                 foreach (var hero in w.Crew().Heroes)
                     if (hero.Air < 0 || hero.Air > w.M.Crew.CapacityOf(hero.Id))
                         return false.Label($"hero {hero.Id} holds {hero.Air} of {w.M.Crew.CapacityOf(hero.Id)}");
+                    else if (hero.Gasp < 0 || hero.Gasp > Content.Crew.LastBreath || hero.Gasp > 0 && (hero.Air > 0 || hero.Out > 0))
+                        return false.Label($"hero {hero.Id} gasps {hero.Gasp} with {hero.Air} air, out {hero.Out}");
             }
             return true.ToProperty();
         });

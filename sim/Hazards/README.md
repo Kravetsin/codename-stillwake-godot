@@ -15,9 +15,10 @@ here unchanged. Magnetic flares break machines ([magnetic-flare](../../docs/deci
 `Surfaces.Kind.Flares`, `Content/MagneticFlares.cs`).
 
 - **Depends on:** `Grid`, through `IGridQueries` (reads walls, what is built) and `IGridOps` (clears them); `Power`
-  (`IsBroken`, `NetworkOf`; `Break`); `Research` (`Knows`, to arm the flares).
-- **State** (`HazardsState`, all saved, each written only when set): `Calm`, a world whose map asked for no hazards
-  (`Layout.Meteors` false: tests, dev worlds); `NextIn`, ticks till the next is seen coming, 0 before one is drawn;
+  (`IsBroken`, `NetworkOf`; `Break`); `Research` (`Knows`, to arm the flares); `Items` (`LayDown`, a broken net's cost):
+  the one place that knows a meteor, not a screwdriver, took the net, and Items runs before it.
+- **State** (`HazardsState`, all saved, each written only when set): `Calm`, no meteors nor flares drawn: a world whose map
+  asked for no hazards (`Layout.Meteors` false: tests, dev worlds), or one calmed from the dev panel (`SetCalm`); `NextIn`, ticks till the next is seen coming, 0 before one is drawn;
   `Incoming`, the meteor seen coming (`Meteor(Cell, Power, Left)`); `FlareIn`, ticks till the flare drawn strikes, 0 for none.
 
 ## Rules
@@ -31,7 +32,8 @@ here unchanged. Magnetic flares break machines ([magnetic-flare](../../docs/deci
   interval is drawn again.
 - **Open to the drift** (debris drifts right to left): in each row of what is built, inside the zone, the first thing
   met walking left from the right, when it is a wall that breaks (`HitProblem` none). A door, window, ladder or machine
-  met first shields its row. A vessel's box is passed over: no vessel shields the ship (generated-vessels).
+  met first shields its row; a debris net (`Catches`) does not: the aim passes it to the wall it hangs on. A vessel's
+  box is passed over: no vessel shields the ship (generated-vessels).
 - **`Warning` ticks later it strikes** (3 s): if a wall still stands there and power ≥ its material's `Armour` (wall-roles: scrap 2,
   iron 5), a blast of `Charge(power)` spreads from it as a wave, cheapest way first: a cell costs `Meteors.Step` (aslant
   `Diagonal`), a wall `PerStrength` a point of its armour more, and breaks; what is left goes on, so walls soak it. It goes
@@ -41,6 +43,9 @@ here unchanged. Magnetic flares break machines ([magnetic-flare](../../docs/deci
 - **A wall broken** is cleared, lost, refunding nothing, its pipes left whole (0109), and nothing is planned in its place:
   the player patches it with what they have. The hole is an opening of its room: `atmosphere` vents it and drains its
   vents' networks until a valve cuts them off or a wall is built again. A deconstruction mark on it is dropped by `building`.
+  A `Catches` machine in the next cell of its row (x + 1 on the grid), a net hung on it, is cleared with it, its whole
+  `Machines` cost (6 wire, 4 tube) laid at its cell for anyone (`LayDown`, a refund, not counted obtained), once however many of its walls break;
+  `debris` drops what it held on the same tick (it runs after). The net's cells still stop a blast.
 - `MeteorHit(cell)` (dev) breaks the one wall at `cell` whatever its armour.
 - **A flare**, each tick in construction after the shower: a `FlareIn` above 0 counts down, armed or not, and strikes on
   reaching 0. Then, with none drawn, where the kind has `Flares`, the world is not `Calm` and `Knows("generator")`, the next
@@ -50,6 +55,9 @@ here unchanged. Magnetic flares break machines ([magnetic-flare](../../docs/deci
   `Rng.Below(left)` and taken out, and `Break`s them. None: nothing drawn.
 - `FlareNow(ticks)` (dev) sets `FlareIn`, replacing a flare drawn and not yet coming, in any world; a place with no
   `Flares` strikes with `StartingSpace`'s.
+- `SetCalm(on)` (dev) sets `Calm` and drops the meteor seen coming, the flare drawn (its warning too) and both countdowns, on or
+  off: calmed, nothing falls or strikes; stirred, they start over as in a new world, the first meteor at the shower's `First`,
+  a flare drawn on that tick. `FlareNow` still works while calm.
 
 ## API
 
@@ -57,19 +65,20 @@ here unchanged. Magnetic flares break machines ([magnetic-flare](../../docs/deci
   a blast's charge and bound; `FlareRules`; `FlareComing` and `FlareLeft`, the warning and its ticks left.
 - **Commands:** `MeteorHit(cell)` — refused with `hazards.noWall` unless `cell` holds a wall, and `hazards.neverBreaks` for one that
   never breaks (bedrock, lava) or out of the grid's zone (a planet's fog). `FlareNow(ticks)` — `hazards.badTicks` below 1,
-  `hazards.flareComing` during a warning.
+  `hazards.flareComing` during a warning. `SetCalm(on)`, never refused. Query `Calm`.
 - **Fuzz:** a hit one turn in 64, mostly at a standing wall, else at any cell or one off the grid. It
   reads the grid's walls when it draws, where the TypeScript generator, which cannot see the grid,
-  aims at the wreck's walls as drawn. `FlareNow(1)` one turn in 64; `MagneticFlareTests` loads a world struck and repaired every tick.
+  aims at the wreck's walls as drawn. `FlareNow(1)` one turn in 64, `SetCalm` either way as often; `MagneticFlareTests` loads a world struck and repaired every tick.
 
 ## Invariants
 
-- A meteor only ever turns a wall into an empty cell and takes back walls away; it adds nothing, a plan neither.
+- A meteor only ever turns a wall into an empty cell, takes back walls away and the nets hung on walls it breaks; it adds
+  nothing but a broken net's cost on the floor, a plan neither.
 - A strike breaks between `ceil(n × PercentMin / 100)` and `ceil(n × PercentMax / 100)` of its `n` candidates.
 
 ## Deliberately not handled
 
-- Meteors hit walls only, never doors, windows, machines, solar panels or heroes; they come only from the right, never
+- Meteors hit walls only, never doors, windows, machines (a net only with its wall), solar panels or heroes; they come only from the right, never
   through an open door.
 - A hit breaks or does nothing: no damage adds up. A blast slips aslant between two walls meeting at a corner, and leaves
   doors and machines it meets whole. Showers do not change with where the ship goes yet.

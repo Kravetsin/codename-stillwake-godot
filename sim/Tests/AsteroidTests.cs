@@ -145,7 +145,8 @@ public class AsteroidTests
     [MemberData(nameof(EveryWeaponOnEveryKind))]
     public void BreaksAWreckOrAnAsteroidWithAnyWeaponItsDamageAHitTillItsHitPointsAreGone(string tool, string kind)
     {
-        var w = Facing(kind, Full, Full);
+        // The drill is carried already; any other weapon too, an electric one held to run.
+        var w = Facing(kind, Full, Full).GiveItems(0, (tool, 1));
         var weapon = Weapons.Of(tool)!;
         int hp = WreckageSpec.HpOf(kind)!.Value, hits = (hp + weapon.Damage - 1) / weapon.Damage;
         Hits(w, 1, tool).Run();
@@ -229,12 +230,12 @@ public class AsteroidTests
     }
 
     [Fact]
-    public void AFullBatteryRunsTheDrillSixHundredTicksThenItsHitsAreRefusedFlat()
+    public void ABatteryRunsTheDrillTillItsChargeIsSpentThenItsHitsAreRefusedFlat()
     {
-        var w = Facing("asteroid", Full);
+        // A third of a battery, 600 ticks: a full one's 1800 outlast the helmet's air out here.
+        var w = Facing("asteroid", 600 * Draw * S);
         // Held still, so the rock stays by the hero for the battery's whole run.
         Pieces(w)[0].Speed = 0;
-        Assert.Equal(600, Full / S / Draw);
         Hits(w, 1, Drill).Run(600);
         Assert.Equal(Battery(0), w.M.Items.Inventory(0)[Belt]);
         Assert.Equal("items.flat", HewTesting.HitProblem(w, 0, 1, Drill));

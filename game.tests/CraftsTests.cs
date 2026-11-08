@@ -13,8 +13,8 @@ public class CraftsTests
 {
     private const string Room = """
         #######
-        #OOO..#
-        #OOO..#
+        #OOOII#
+        #OOOII#
         #OOOII#
         #######
         """;
@@ -24,10 +24,10 @@ public class CraftsTests
     private static readonly Content.Station Former = Content.Stations.Get("former");
     private static readonly Content.Station Assembler = Content.Stations.Get("assembler");
 
-    private static TestWorld Start() => new(Layout.Parse(Room).Doubled() with { Known = Content.Research.StartKnown });
+    private static TestWorld Start() => new(Layout.Parse(Room).Doubled() with { Known = ["fireAxe"] });
 
     private static Look LookOf(TestWorld w, string craft) =>
-        Crafts.LookOf(w.M.Research.Knows(craft), Crafts.Lines(craft, w.M.Items.Totals(0)), w.M.Items.Creative);
+        Crafts.LookOf(w.M.Research.Knows(0, craft), Crafts.Lines(craft, w.M.Items.Totals(0)), w.M.Items.Creative(0));
 
     [Fact]
     public void LaysEveryRecipeInItsFixedPlaceFourARowTwoRowsAtLeast()
@@ -122,10 +122,16 @@ public class CraftsTests
     }
 
     [Fact]
-    public void QueuesOneOnAClickAndFiveWithShift()
+    public void QueuesOneOnAClickAndWithShiftAsManyAsTheStockPaysForUpToFive()
     {
-        Assert.Equal(1, Crafts.CountFor(shift: false));
-        Assert.Equal(5, Crafts.CountFor(shift: true));
+        Assert.Equal(1, Crafts.CountFor(shift: false, Crafts.Lines("plate", [("iron", 20)]), creative: false));
+        Assert.Equal(5, Crafts.CountFor(shift: true, Crafts.Lines("plate", [("iron", 20)]), creative: false));
+        // Iron for three plates and a half: three, not a refusal of five.
+        Assert.Equal(3, Crafts.CountFor(shift: true, Crafts.Lines("plate", [("iron", 7)]), creative: false));
+        Assert.Equal(1, Crafts.CountFor(shift: true, Crafts.Lines("plate", [("iron", 2)]), creative: false));
+        // The scarcest item decides.
+        Assert.Equal(2, Crafts.CountFor(shift: true, Crafts.Lines("nailer", [("tube", 9), ("plate", 4), ("wire", 9)]), creative: false));
+        Assert.Equal(5, Crafts.CountFor(shift: true, Crafts.Lines("plate", []), creative: true));
     }
 
     [Fact]
@@ -150,14 +156,50 @@ public class CraftsTests
     }
 
     [Fact]
-    public void OffersTheRightButtonFromTheInputsAtAStationWithInputsWhateverIsCarriedButNeverAtThePod()
+    public void OffersTheRightButtonRepeatingFromTheInputsAtAStationWithInputsWhateverIsHeldButNeverAtThePod()
     {
-        var former = Content.Stations.Get("former");
-        CardKey Rmb = new(T("key.rmb"), T("card.fromInputs")), Shift = new(T("key.shift"), T("card.many", ("n", Crafts.Many))), Craft = new(T("key.lmb"), T("card.craftIt"));
-        Assert.Equal([Craft, Rmb, Shift], Crafts.Block("plate", former, [("iron", 2)], creative: false).Keys);
-        // Short of iron, the left button goes to nothing the Former makes; the right still queues from the inputs.
-        Assert.Equal([Rmb, Shift], Crafts.Block("plate", former, [], creative: false).Keys);
-        Assert.Equal([Craft, Shift], Crafts.Block("plate", Fabricator, [("iron", 2)], creative: false).Keys);
-        Assert.True(Crafts.HasInputs(former) && Crafts.HasInputs(Assembler) && !Crafts.HasInputs(Fabricator));
+        CardKey Rmb = new(T("key.rmb"), T("card.repeatFromInputs")), Shift = new(T("key.shift"), T("card.many", ("n", 3))), Craft = new(T("key.lmb"), T("card.craftIt"));
+        Assert.Equal([Craft, Rmb, Shift], Crafts.Block("plate", Former, [("iron", 6)], creative: false).Keys);
+        // Paid for one only, shift adds nothing: not offered.
+        Assert.Equal([Craft, Rmb], Crafts.Block("plate", Former, [("iron", 2)], creative: false).Keys);
+        // Short of iron everywhere, the left button goes to nothing the Former makes; the right still queues from the inputs.
+        Assert.Equal([Rmb], Crafts.Block("plate", Former, [], creative: false, inputs: []).Keys);
+        Assert.Equal([Craft, Shift], Crafts.Block("plate", Fabricator, [("iron", 6)], creative: false).Keys);
+        Assert.True(Crafts.HasInputs(Former) && Crafts.HasInputs(Assembler) && !Crafts.HasInputs(Fabricator));
+    }
+
+    [Fact]
+    public void LooksFedWhenOnlyTheInputsHoldAUnitReadyWhenItIsCarriedTooShortWhenNeither()
+    {
+        var plate = Content.Crafts.Get("plate").Cost;
+        var cover = plate.Select(c => (c.Item, c.Count)).ToList();
+        Assert.Equal(Look.Fed, Crafts.LookOf(true, Crafts.Lines("plate", []), false, Crafts.Lines("plate", cover)));
+        Assert.Equal(Look.Ready, Crafts.LookOf(true, Crafts.Lines("plate", cover), false, Crafts.Lines("plate", cover)));
+        Assert.Equal(Look.Short, Crafts.LookOf(true, Crafts.Lines("plate", []), false, Crafts.Lines("plate", [])));
+        // No inputs at all, as at the pod: never fed.
+        Assert.Equal(Look.Short, Crafts.LookOf(true, Crafts.Lines("plate", []), false));
+        Assert.Equal(Look.Locked, Crafts.LookOf(false, Crafts.Lines("plate", []), false, Crafts.Lines("plate", cover)));
+    }
+
+    [Fact]
+    public void AFedRecipesCardCountsTheInputsAndItsLeftButtonCraftsFromThem()
+    {
+        var cover = Content.Crafts.Get("plate").Cost.Select(c => (c.Item, Count: c.Count * 3)).ToList();
+        var block = Crafts.Block("plate", Former, [], creative: false, inputs: cover);
+        Assert.All(block.Rows, r => Assert.False(r.Short));
+        Assert.Equal(cover.Select(c => c.Count), block.Rows.Select(r => r.Have));
+        Assert.Equal(new CardKey(T("key.lmb"), T("card.fromInputs")), block.Keys[0]);
+        Assert.Contains(new CardKey(T("key.shift"), T("card.many", ("n", Crafts.Many))), block.Keys);
+        // At the pod the inputs count for nothing: it has none.
+        Assert.Contains(Crafts.Block("plate", Fabricator, [], creative: false, inputs: cover).Rows, r => r.Short);
+    }
+
+    [Fact]
+    public void SumsWhatTheInputSlotsHoldByItemInSlotOrderLeavingTheRestOut()
+    {
+        Stack?[] slots = [new("iron", 4), null, new("scrap", 2), new("iron", 3), new("wire", 9)];
+        Assert.Equal([("iron", 7), ("scrap", 2)], Crafts.InputsHeld(slots, 4));
+        Assert.Empty(Crafts.InputsHeld(slots, 0));
+        Assert.Equal([("iron", 7), ("scrap", 2), ("wire", 9)], Crafts.InputsHeld(slots, 9));
     }
 }

@@ -80,6 +80,8 @@ public static class Light
     /// cells, so a room is lit to walk and its corners dark, and fires, screens and glows read in it.
     /// </summary>
     public static readonly (float R, float G, float B) Lamp = (0.8f, 0.64f, 0.42f);
+    /// <summary>A lifepod's own light, pale and cold, needing no power: what shows the first room (the-scoop).</summary>
+    public static readonly (float R, float G, float B) Pod = (0.5f, 0.72f, 0.62f);
     public const float LampKeep = 0.86f;
     public const int LampReach = 16;
     public const float LampMost = 1f;
@@ -102,6 +104,8 @@ public static class Light
     public static readonly IReadOnlyDictionary<string, LampLight> Lamps = new Dictionary<string, LampLight>(System.StringComparer.Ordinal)
     {
         ["lamp"] = new(Lamp, 1, LampReach, LampKeep, 0xffd9a0ff),
+        // The hold's red battery lamp (the-scoop): enough to find the piles by, not to work by comfortably.
+        ["emergencyLamp"] = new((1f, 0.22f, 0.16f), 0.75f, LampReach, LampKeep, 0xff3a2cff),
         // An arc makers' lamp (0091): their cold light, brighter and further.
         ["arcLamp"] = new(ArcLamp, ArcLampStrength, ArcLampReach, ArcLampKeep, 0xb4dcffff, Glass: true),
     };
@@ -111,8 +115,20 @@ public static class Light
     public const float Particle = 1.2f;
     public const float ParticleKeep = 0.447f;
     public const float ParticleMost = 1f;
-    /// <summary>A planner's screen, keeping this a cell: softer than an ember's.</summary>
+    /// <summary>A planner's screen, keeping this a cell out to this many cells: softer than an ember's.</summary>
     public const float ScreenKeep = 0.707f;
+    public const int ScreenReach = 6;
+
+    /// <summary>
+    /// The hero's own lights (2026-11-03-hero-lights), each lighting only what is right round it: the tracker in the player's colour,
+    /// <see cref="Tracker"/> of it; the regen suit's bands, <see cref="SuitBand"/> times their wave's strength, its arcs and its empty
+    /// belt's pip.
+    /// </summary>
+    public const float Tracker = 0.9f, TrackerKeep = 0.38f;
+    public const int TrackerReach = 3;
+    public static readonly (float R, float G, float B) SuitLight = (0.68f, 0.58f, 0.95f), SuitPip = (0.78f, 0.25f, 0.17f);
+    public const float SuitBand = 0.22f, SuitArcs = 0.3f, SuitPipLight = 0.6f, SuitKeep = 0.4f;
+    public const int SuitReach = 3;
 
     /// <summary>
     /// How wide a lamp's bulb and a fire's mouth are, in pixels: a shadow's edge is soft over as much as
@@ -132,4 +148,10 @@ public static class Light
     public const float HeadGlow = 0.4f, HeadGlowKeep = 0.707f;
     public const int HeadGlowReach = 4;
     public static readonly (float R, float G, float B) Ambient = (0.04f, 0.045f, 0.06f);
+
+    /// <summary>
+    /// How bright a vein's ore shines in the lamps' light (2026-11-07-ore-pockets), past whole, as metal catches it: its pixels gain the
+    /// lamps' and spots' light times this, their brightness and their <c>GroundLooks</c> fleck. Starlight and daylight give none.
+    /// </summary>
+    public const float OreShine = 6f;
 }

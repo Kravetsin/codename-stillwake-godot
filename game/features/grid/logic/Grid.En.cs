@@ -12,6 +12,7 @@ public static partial class En
         ["grid.noSuchMaterial"] = "No such material",
         ["grid.noSuchMachine"] = "No such machine",
         ["grid.noExhaust"] = "Its nozzle must go out through the hull into space",
+        ["grid.notOnHull"] = "Hang it outside, on the hull's right side",
         ["grid.noPlatform"] = "Stands only on a launch platform",
         ["grid.noGround"] = "Needs flat ground under it",
         ["grid.underPlatform"] = "Not under a launch platform: the pod falls through here",
@@ -22,9 +23,11 @@ public static partial class En
         // Not in the TypeScript: its types kept a placement to the layers there are.
         ["grid.noSuchLayer"] = "No such layer",
         ["grid.noDoor"] = "There is no door here",
+        ["grid.doorBusy"] = "The door is still moving",
         ["hazards.noWall"] = "There is no wall here",
         ["hazards.neverBreaks"] = "This never breaks",
         ["hazards.flareComing"] = "A flare is coming already",
         ["hazards.badTicks"] = "A flare strikes a tick on at the soonest",
+        ["sky.noDay"] = "There is no day out here",
     };
 }

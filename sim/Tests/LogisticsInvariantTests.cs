@@ -163,6 +163,8 @@ public class LogisticsInvariantTests
                 for (int y = 3; y <= 5; y++)
                     if (y != gap) rows[y][x] = '#';
             var w = LogisticsTests.Aired([.. rows.Select(r => new string(r))], PressingUnder, 0, [((0, 0), (14, 4))]);
+            // The vaporizer's store stocked first, so an opened door's cells fill CellsPerFill a tick, as the tank filled them, not one (liquid-oxygen).
+            w.Run(Content.Air.GeneratorStore);
             int bay = w.M.Grid.MachinesOf(Tune.Bay).Single().Id, former = w.M.Grid.MachinesOf("former").Single().Id;
             Dock(w, bay, charges);
             w.FillCrate(w.M.Grid.MachinesOf("crate")[0].Id, ("iron", 500), ("iron", 500));

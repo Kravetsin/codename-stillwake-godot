@@ -9,9 +9,9 @@ namespace Stillwake.Game.Dev;
 
 /// <summary>
 /// A ready ship for checking things by eye (<c>-- --testbed</c>, or the title's Testbed button in a debug
-/// build): every machine once, two rooms aired, an airlock out to space, every user powered, creative
-/// mode on, a crate with a full stack of every item but the farm's and a charged battery, the furnace and the burner
-/// generator lit, a battery charging, the Former pressing plates endlessly from the iron in its
+/// build): every machine once, two rooms aired, an airlock out to space, every user powered, the host
+/// in creative mode, a crate with a full stack of every item but the farm's and a charged battery, the furnace and the burner
+/// generator lit, a battery charging beside a full one, the Former pressing plates endlessly from the iron in its
 /// inputs, the electric smelter smelting quartz, the circuit assembler making circuits, a grow capsule growing seeds beside a crate of
 /// the farm's items, seeds, what the crusher takes and gives, planks, and what a planet's caves give; and drones (0062): two in a powered bay in room one beside a supply crate of
 /// twenty stacks of chunks, planks, iron and seeds, the farm's crate switched off. The furnace already holds chunks and
@@ -33,24 +33,35 @@ public static class Testbed
     public static readonly IReadOnlyList<string> Crushed = ["rock", "asteroidOre", "ironOre", "gravel"];
 
     /// <summary>What a planet's caves and ruins give (0080, 0085, 0091), the motor made of their copper, a grazer's hide and fat, and the cape of cloth and hide, in the farm's crate too: the first is full.</summary>
-    public static readonly IReadOnlyList<string> Planet = ["copperOre", "copper", "ice", "crystal", "spore", "mica", "magnetite", "motor", "alloyScrap", "arcShard", "cloth", "hide", "fat", "arcLamp", Cape.Item];
+    public static readonly IReadOnlyList<string> Planet = ["copperOre", "copper", "ice", Content.Water.Item, "crystal", "spore", "mica", "magnetite", "motor", "alloyScrap", "arcShard", "cloth", "hide", "fat", "arcLamp", Cape.Item];
 
     /// <summary>What nothing makes, in the farm's crate too: a solar panel's photosensitive panel, had only of one taken apart.</summary>
     public static readonly IReadOnlyList<string> Unmade = ["photoPanel"];
 
-    /// <summary>What the farm's crate holds: a full stack of each of the farm's items, of the crusher's, of planks for soil, of what a planet gives and of what nothing makes.</summary>
-    public static IEnumerable<string> FarmCrate => [.. Farm, .. Crushed, "planks", .. Planet, .. Unmade];
+    /// <summary>Tools the full crate has no slot left for, in the farm's crate too: the power driver (power-driver).</summary>
+    public static readonly IReadOnlyList<string> Spare = [Screwdrivers.PowerDriver.Item];
+
+    /// <summary>What the farm's crate holds: a full stack of each of the farm's items, of the crusher's, of planks for soil, of what a planet gives, of what nothing makes and the spare tools.</summary>
+    public static IEnumerable<string> FarmCrate => [.. Farm, .. Crushed, "planks", .. Planet, .. Unmade, .. Spare];
 
     /// <summary>Whether <paramref name="item"/> goes in the farm's crate rather than the full one.</summary>
-    public static bool InFarmCrate(string item) => Farm.Contains(item) || Crushed.Contains(item) || Planet.Contains(item) || Unmade.Contains(item);
+    public static bool InFarmCrate(string item) => Farm.Contains(item) || Crushed.Contains(item) || Planet.Contains(item) || Unmade.Contains(item) || Spare.Contains(item);
 
     /// <summary>
-    /// What the supply crate by the door holds besides its supplies, the first crate being full: the helmet lamp (0077), and an
-    /// arc module for each machine and tool it fits (0086, 0098, 0100), which takes a spire's relic to make, and an empty accumulator
+    /// What the supply crate by the door holds besides its supplies, the first crate being full: the helmet lamp (0077), the scanner (2026-11-07-the-scanner), an empty accumulator
     /// (0099), a part of each of the computer's (<see cref="ComputerParts"/>), a launch platform's deck drive and the engine's parts
     /// (<see cref="EngineParts"/>), the nailer and its nails, the full crate having no slot left. A drill with the arc fitted lies there too (0098); a plain one is on the arc bench, to be fitted there (0099).
     /// </summary>
-    public static IEnumerable<string> InSupply => [HelmetLamp.Item, .. Modules.Arc.Hosts.Select(_ => Modules.Arc.Item), "accumulator", .. ComputerParts, "deckDrive", .. EngineParts, Shots.Nailer.Item, Shots.Railgun.Item, Shots.Nail.Id];
+    public static IEnumerable<string> InSupply => [HelmetLamp.Item, Helmet.Scanner, "accumulator", .. ComputerParts, "deckDrive", .. EngineParts, Shots.Nailer.Item, Shots.Railgun.Item, Shots.Nail.Id];
+
+    /// <summary>
+    /// What the tools crate on the lifepod holds, the others being full: the salvage tools (salvage-tools), the pickaxe (the-pickaxe), the grappling gun (grapple-climbs), and an arc
+    /// module for each machine and tool it fits (0086, 0098, 0100), which takes a spire's relic to make.
+    /// </summary>
+    public static IEnumerable<string> InTools => [Weapons.Grinder.Item, Weapons.Spear.Item, Weapons.Sledgehammer.Item, Weapons.PlasmaCutter.Item, Weapons.Pickaxe.Item, Grapple.Item, .. Modules.Arc.Hosts.Select(_ => Modules.Arc.Item)];
+
+    /// <summary>What the bay holds beside its drones, the crates being full: a salvage drone, charged, its fuel slot empty, so it never flies here (salvage-drones).</summary>
+    public static readonly IReadOnlyList<string> InBay = [Logistics.SalvageDrone];
 
     /// <summary>The ship computer's and the radar's parts, one each in the supply crate: the full crate has no slot left for them.</summary>
     public static readonly IReadOnlyList<string> ComputerParts = ["processor", "display", "transceiver"];
@@ -68,58 +79,67 @@ public static class Testbed
     public static JsonObject FittedDrill(string module) => new() { ["item"] = Weapons.Drill.Item, ["count"] = 1, ["module"] = module };
 
     /// <summary>
-    /// Room one holds the lifepod, the crates, the drone bay, the workbench on a vent and a crate, and the air: a tank with a canister and a generator piped to a
-    /// vent in each room, and a capacitor bank on the supply crate by the pod; room two the arc bench by its door, the
-    /// furnace, the Former with the crusher on it, the electric smelter, the circuit assembler, the grow capsule and the farm's crate, the tech station, the trade station on the drone bay, the charging station
-    /// and the burner generator, two cisterns over the smelter and the assembler, the first piped to the second; then the airlock, no vent in it. The ship's computer hangs over room one's generator, the radar
+    /// Room one holds the lifepod with the tools crate on it, the crates, the drone bay, the workbench on a vent and a crate, the air's chain (liquid-oxygen): a tank
+    /// piped along the floor to an oxygen vaporizer, the vaporizer's air to the vent; and a capacitor bank on the supply crate by the pod; room two
+    /// a tank by its door, the arc bench, the
+    /// furnace, the Former with the crusher on it, the electric smelter, the circuit assembler, the grow capsule and the farm's crate, the trade station on the drone bay, the charging station
+    /// and the burner generator, two cisterns over the smelter and the assembler, the first piped to the second, and two vaporizers
+    /// one over the other right of the grow capsule, the tank's liquid along the floor to both, their air to the vent past the farm's crate;
+    /// then the airlock, no vent in it. The ship's computer hangs over room one's vaporizer, the radar
     /// antenna stands on the roof at the bow. The drop pod stands in the airlock on a launch platform laid in its floor over space,
     /// cabled to the panel over the airlock, biofuel for two descents in its slot. Thirteen panels on the roof: the first and the third feed the
-    /// lamps and the oxygen generator, their spare filling the bank (0101), the second the drone bay, the one beside it the
+    /// lamps and the vaporizer, their spare filling the bank (0101), the second the drone bay, the one beside it the
     /// computer and the antenna, the one past the third the crusher under it, the fourth nothing,
-    /// the fifth the smelter, the sixth the assembler and the grow capsule, the seventh and eighth the two oxygen generators in
+    /// the fifth the smelter, the sixth the assembler and the grow capsule, the seventh and eighth the two vaporizers in
     /// room two, and the last three, over the airlock and past the stern, the charging station: 15, what it draws with the arc
     /// fitted (0100); the burner generator feeds the Former and room
     /// two's right lamp, and through it the airlock's. The grow capsule stands a cell left of the assembler, inside the
-    /// bay's zone. Three oxygen generators, piped with the tank to both vents, make more than the rooms leak and the two
-    /// fires breathe, so the air holds however long a session runs; one alone ran room two dry in three minutes.
+    /// bay's zone. A vaporizer makes a unit a tick: behind glass (leaks-tripled) room one leaks some 0.8 a tick, room two and its
+    /// two fires some 1.7, so room two has two. A canister in each tank airs the rooms as the world is made, then the tanks go in full, four canisters
+    /// each: some twenty minutes of room two's air, more of room one's, and canisters in the crate for more.
     /// Under room one, through an open hatch, the engine's bay: the engine against the stern's wall, its nozzle out into space,
-    /// biofuel in its tank, cabled to the bank, and a lamp cabled to it. Sixty cells of space past the airlock, room for a jetpack to fly. Drawn a character a 16 px cell and doubled (0104).
+    /// biofuel in its tank, cabled to the bank, and a lamp cabled to it; past the lamp, cabled on from it and unserved by drones, the fermenter,
+    /// biomass in it, and the biofuel generator, biofuel in its slot, lit while the bank takes in (power-chain); past them the treadmill
+    /// wheel, cabled to the generator, its top through room one's floor, so the bay is high enough for it; room one's top corners
+    /// walled, for its one vaporizer's air to reach every cell; a debris net hung outside on the bay's right wall. Sixty cells of space past the airlock, room for a jetpack to fly. Drawn a character a 16 px cell and doubled (0104):
+    /// a drawn pipe meets only even cells, so each vaporizer's air leaves its odd output through a pipe under its top-right block,
+    /// and each tank's liquid its odd output on its right through a pipe under the block past it.
     /// </summary>
     public static readonly Layout Map = Layout.Parse(
         [
-            new string(' ', 96),
+            "   NN".PadRight(96),
             "   NN",
             "   NN  PPP  PPPPPP PPPPPPPPP PPP PPP PPP PPP PPP PPP PPP",
             "  ###############################################",
-            "  #.......LUUU...#....L.kk.cc.ccJ.......L.$$#..L#",
-            "  #.OOOQQ..UUU.RRD......kk.cc.ccgg...GG...$$DZZ.D",
-            "  #.OOOQQTTGGIIRRD...FF.MM.EE.YYggGG.GGAACBBDZZ.D",
-            "  #.OOOKKTTGGVKK.DWWVFF.MM.EE.YYggGGKK.AACBBDZZ.D",
-            "  #o#########################################__##",
-            "  #XXXL#",
-            "  #XXX.#",
-            "  ######",
+            "  ##KK...LUUUII###..TTL.kk.cc.ccJ.GG.yy.L.$$#..L#",
+            "  #.OOOQQ.UUUIIRRD..TT..kk.cc.ccggGG.yy...$$DZZ.D",
+            "  #.OOOQQTTGGIIRRDWW.FF.MM.EE.YYggGG.yyAACBBDZZ.D",
+            "  #.OOOKKTTGGVKK.DWW.FF.MM.EE.YYggGGKKVAACBBDZZ.D",
+            "  #o#########www#############################__##",
+            "  #XXXL.uuqqqwww#n",
+            "  #XXX..uuqqqwww#n",
+            "  ###############n",
         ],
         [
             "",
             "",
             "",
             "",
-            "",
-            "",
-            "         o                          --",
-            "         ----------------------------",
+            "                    o              --",
+            "                     --          -- -",
+            "         o  --        -          - --",
+            "          -- -        ------------- ---",
         ],
         [
-            ((7, 2), (10, 4)), ((7, 2), (11, 6)), ((7, 2), (19, 2)),
+            ((7, 2), (9, 4)), ((7, 2), (11, 6)), ((7, 2), (19, 2)),
             ((19, 2), (22, 4)), ((42, 6), (40, 4)), ((40, 4), (47, 4)), ((42, 6), (24, 6)), ((45, 2), (41, 6)),
-            ((29, 2), (27, 6)), ((33, 2), (30, 6)), ((33, 2), (33, 6)), ((12, 2), (15, 5)), ((37, 2), (34, 6)), ((41, 2), (37, 5)),
-            ((37, 2), (32, 4)), ((45, 2), (49, 2)), ((49, 2), (53, 2)), ((7, 2), (7, 5)), ((15, 2), (4, 2)), ((15, 2), (13, 4)),
-            ((7, 5), (3, 9)), ((3, 9), (6, 9)), ((45, 2), (45, 8)), ((22, 2), (24, 4)),
+            ((29, 2), (27, 6)), ((33, 2), (30, 6)), ((33, 2), (33, 6)), ((12, 2), (15, 5)), ((37, 2), (34, 6)), ((41, 2), (34, 4)),
+            ((37, 2), (32, 4)), ((45, 2), (49, 2)), ((49, 2), (53, 2)), ((7, 2), (7, 5)), ((15, 2), (4, 2)), ((15, 2), (12, 4)),
+            ((7, 5), (3, 9)), ((3, 9), (6, 9)), ((45, 2), (45, 8)), ((22, 2), (24, 4)), ((25, 2), (37, 4)), ((6, 9), (8, 9)), ((10, 9), (8, 9)), ((13, 8), (10, 9)),
         ]).Doubled();
 
-    /// <summary>Ticks run before the items go in: a vent airs a cell a tick, and each room has some sixty.</summary>
-    public const int AirTicks = 200;
+    /// <summary>Ticks run before the items go in: a vaporizer makes a unit a tick, room one's one airing its 260 cells, room two's two its 416.</summary>
+    public const int AirTicks = 300;
 
     /// <summary>The arc bench by room two's door (0099) and what it holds at the start: a plain drill in its vise.</summary>
     public static readonly (string Kind, string Tool) BenchHolds = ("arcBench", Weapons.Drill.Item);
@@ -136,8 +156,8 @@ public static class Testbed
     /// <summary>The cisterns' top-left cells on the doubled map: the first's output is piped to the second's input as the world is made.</summary>
     public static readonly (int X, int Y) CisternFrom = (54, 8), CisternTo = (60, 8);
 
-    /// <summary>The crates by their top-left cells on the map, its drawing doubled (0104): the full one; the supply crate by the pod; the farm's, switched off.</summary>
-    public static readonly (int X, int Y) Full = (28, 14), Supply = (14, 14), FarmAt = (72, 14);
+    /// <summary>The crates by their top-left cells on the map, its drawing doubled (0104): the full one; the supply crate by the pod; the farm's and the tools crate on the pod, switched off.</summary>
+    public static readonly (int X, int Y) Full = (28, 14), Supply = (14, 14), FarmAt = (72, 14), Tools = (8, 8);
 
     /// <summary>What the supply crate holds at the start: what keeps the furnace, the Former and the grow capsule going (0062).</summary>
     public static readonly IReadOnlyList<(string Item, int Count)> Supplies = [.. Enumerable.Repeat(("scrapChunk", 50), 4), ("planks", 50), ("iron", 500), ("seed", 10), (Shots.Nail.Id, 100)];
@@ -170,6 +190,7 @@ public static class Testbed
     public static World Create(IReadOnlyList<Module> modules)
     {
         var aired = World.Create(1, Map, modules);
+        GlassBacks.Lay(modules);
         for (int i = 0; i < AirTicks; i++) aired.Step([]);
         var save = JsonNode.Parse(aired.Save())!;
         var machines = save["slices"]!["grid"]!["machines"]!.AsArray();
@@ -178,19 +199,23 @@ public static class Testbed
         static JsonObject Stack(string item, int count) => new() { ["item"] = item, ["count"] = count };
         static JsonObject Battery(int thousandths) =>
             new() { ["item"] = "battery", ["count"] = 1, ["charge"] = Charge.Battery / 1000 * thousandths };
-        static JsonObject Drone() => new() { ["item"] = Logistics.Drone, ["count"] = 1, ["charge"] = Charge.Drone };
+        static JsonObject Drone(string item) => new() { ["item"] = item, ["count"] = 1, ["charge"] = Items.Get(item).Capacity };
         static JsonArray Slots(string kind, IEnumerable<JsonNode?> stacks)
         {
             var slots = new JsonArray([.. stacks]);
             while (slots.Count < Machines.Get(kind).Slots) slots.Add(null);
             return slots;
         }
+        // A canister aired the rooms; the tanks go in full, so the air holds a long session.
+        foreach (var tank in save["slices"]!["atmosphere"]!["tanks"]!.AsArray())
+            if (machines.Any(m => (int)m!["id"]! == (int)tank!["tank"]! && (string?)m["kind"] == "tank")) tank!["oxygen"] = Air.TankCapacity;
         var items = save["slices"]!["items"]!;
-        items["creative"] = true;
+        items["creative"] = new JsonArray(0);
         var held = new List<JsonObject>
         {
-            new() { ["id"] = At(Full), ["slots"] = Slots("crate", [.. Carried.Where(i => !InFarmCrate(i.Id) && !InSupply.Contains(i.Id)).Select(i => Stack(i.Id, i.Stack)), Battery(1000)]) },
+            new() { ["id"] = At(Full), ["slots"] = Slots("crate", [.. Carried.Where(i => !InFarmCrate(i.Id) && !InSupply.Contains(i.Id) && !InTools.Contains(i.Id) && !InBay.Contains(i.Id)).Select(i => Stack(i.Id, i.Stack)), Battery(1000)]) },
             new() { ["id"] = At(FarmAt), ["slots"] = Slots("crate", [.. FarmCrate.Select(i => Stack(i, Items.Get(i).Stack))]) },
+            new() { ["id"] = At(Tools), ["slots"] = Slots("crate", [.. InTools.Select(f => Stack(f, 1))]) },
             new() { ["id"] = At(Supply), ["slots"] = Slots("crate", [.. Supplies.Select(s => Stack(s.Item, s.Count)), .. InSupply.Select(f => Stack(f, 1)), FittedDrill(Modules.Arc.Item)]) },
             new() { ["id"] = Id("growCapsule"), ["slots"] = Slots("growCapsule", [Stack("seed", Planted)]) },
             new()
@@ -199,13 +224,15 @@ public static class Testbed
                 ["slots"] = Slots("furnace", [.. FurnaceHolds.Select(h => Stack(h.Item, h.Count))]),
             },
             new() { ["id"] = Id(BenchHolds.Kind), ["slots"] = Slots(BenchHolds.Kind, [Stack(BenchHolds.Tool, 1)]) },
-            new() { ["id"] = Id("charger"), ["slots"] = Slots("charger", [Battery(Charging)]) },
+            new() { ["id"] = Id("charger"), ["slots"] = Slots("charger", [Battery(Charging), Battery(1000)]) },
             new() { ["id"] = Id("engine"), ["slots"] = Slots("engine", [Stack("biofuel", Fuelled)]) },
             new() { ["id"] = Id("dropPod"), ["slots"] = Slots("dropPod", [Stack("biofuel", PodFuel)]) },
             new() { ["id"] = Id("burnerGenerator"), ["slots"] = Slots("burnerGenerator", [Stack("planks", Items.Get("planks").Stack)]) },
+            new() { ["id"] = Id("biofuelGenerator"), ["slots"] = Slots("biofuelGenerator", [Stack("biofuel", Fuelled)]) },
+            new() { ["id"] = Id("fermenter"), ["slots"] = Slots("fermenter", [Stack("biomass", Items.Get("biomass").Stack)]) },
             new() { ["id"] = Id("smelter"), ["slots"] = Slots("smelter", [Stack(Smelting, Items.Get(Smelting).Stack)]) },
             new() { ["id"] = Id("former"), ["slots"] = Slots("former", [Stack(Pressing, Pressed)]) },
-            new() { ["id"] = Id(Logistics.Bay), ["slots"] = Slots(Logistics.Bay, Enumerable.Range(0, Drones).Select(_ => Drone())) },
+            new() { ["id"] = Id(Logistics.Bay), ["slots"] = Slots(Logistics.Bay, [.. Enumerable.Range(0, Drones).Select(_ => Drone(Logistics.Drone)), .. InBay.Select(Drone)]) },
         };
         // The slice keeps its machines in id order; the lifepod's may hold something already.
         var crates = items["crates"]!.AsArray().Select(c => c!.DeepClone().AsObject()).Concat(held).OrderBy(c => (int)c["id"]!);
@@ -219,11 +246,24 @@ public static class Testbed
         // In machine id order, as the slice keeps them.
         save["slices"]!["crafting"]!["queues"] = new JsonArray([.. new[] { Queue("former", "plate", 1, endless: true), Queue("assembler", "circuit", Assembling) }
             .OrderBy(q => (int)q["machine"]!)]);
+        // Both cisterns full of water, for the electrolyser to split from the start.
+        save["slices"]!["water"]!["cisterns"] = new JsonArray([.. machines.Where(m => (string?)m!["kind"] == "cistern").Select(m => (int)m!["id"]!).Order()
+            .Select(id => (JsonNode)new JsonObject { ["machine"] = id, ["amount"] = Content.Water.CisternCapacity })]);
         var world = World.Load(save.ToJsonString(), modules);
         // A drawn pipe meets only even cells and a cistern's output is on an odd one, so that span is laid, not drawn.
         var ports = Machines.Get("cistern").Ports;
         int Port((int X, int Y) at, int i) => (at.Y + ports[i].Y) * Map.Width + at.X + ports[i].X;
-        world.Step([new Sim.Logistics.SetServed(At(FarmAt), false), new Sim.Pipes.LayPipe(Port(CisternFrom, 1), Port(CisternTo, 0))]);
+        // The second cistern's water to the electrolyser's input on its left, its liquid oxygen from its right on to room two's
+        // tank, under the tank and up into its input from the left, through joints clear of the drawn lines: a span is at most
+        // twelve cells.
+        int Cell(int x, int y) => y * Map.Width + x;
+        world.Step([
+            new Sim.Logistics.SetServed(At(FarmAt), false), new Sim.Logistics.SetServed(At(Tools), false),
+            new Sim.Logistics.SetServed(Id("fermenter"), false), new Sim.Logistics.SetServed(Id("biofuelGenerator"), false), new Sim.Pipes.LayPipe(Port(CisternFrom, 1), Port(CisternTo, 0)),
+            new Sim.Pipes.LayPipe(Port(CisternTo, 1), Cell(67, 11)), new Sim.Pipes.LayPipe(Cell(67, 11), Cell(74, 13)),
+            new Sim.Pipes.LayPipe(Cell(77, 13), Cell(65, 13)), new Sim.Pipes.LayPipe(Cell(65, 13), Cell(55, 13)), new Sim.Pipes.LayPipe(Cell(55, 13), Cell(46, 12)),
+            new Sim.Pipes.LayPipe(Cell(46, 12), Cell(38, 12)), new Sim.Pipes.LayPipe(Cell(38, 12), Cell(38, 10)), new Sim.Pipes.LayPipe(Cell(38, 10), Cell(40, 10)),
+        ]);
         world.Step([]);
         return world;
     }

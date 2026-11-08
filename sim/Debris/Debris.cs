@@ -22,6 +22,14 @@ public sealed record Grab(int Piece) : Command;
 public sealed record HewWrecks(string Tool, int X, int Y, int Heading) : Command;
 
 /// <summary>
+/// A hit of a running tool (tool-edge) on the wrecks its drawn edge touches, <c>Pieces</c> by id, as the client saw them: each
+/// distinct one still a wreck in space (<see cref="DebrisModule.Wrecks"/>) loses the weapon's <c>Damage</c> once, ascending by id,
+/// the cutter's salvaging as a <see cref="HewWrecks"/> does; one gone by the tick is skipped. Neither reach nor position is checked:
+/// the client's word, among friends (0002).
+/// </summary>
+public sealed record HewPieces(string Tool, IReadOnlyList<int> Pieces) : Command;
+
+/// <summary>
 /// Reels piece <c>Piece</c> by a harpoon to (<c>ToX</c>, <c>ToY</c>), in thousandths of a cell: the point
 /// the client puts before the gun, kept on the grid. The last reel of a piece wins (0044).
 /// </summary>
@@ -70,6 +78,12 @@ public interface IDebrisOps
 
     /// <summary>Wreck <paramref name="id"/> struck by peer <paramref name="peer"/> for <paramref name="damage"/>: true when it broke.</summary>
     bool Hit(int peer, int id, int damage);
+
+    /// <summary>
+    /// Piece <paramref name="id"/> taken by a salvage drone (salvage-drones): gone, what it gives rolled as a net's catch is,
+    /// recorded as found and counted obtained, with no popup; null for one gone.
+    /// </summary>
+    IReadOnlyList<(string Item, int Count)>? Catch(int id);
 }
 
 public sealed partial class DebrisModule : Module<DebrisState>, IDebrisQueries, IDebrisOps
@@ -94,7 +108,9 @@ public sealed partial class DebrisModule : Module<DebrisState>, IDebrisQueries, 
         _items = items;
         Handles<Grab>(c => GrabProblem(c.From, c.Piece), Apply);
         Handles<HewWrecks>(c => HewProblemOf(c.From, Struck(c.Tool, c.X, c.Y, c.Heading), c.Tool, running: true), Apply);
+        Handles<HewPieces>(c => HewProblemOf(c.From, Listed(c.Pieces), c.Tool, running: true), Apply);
         Handles<Reel>(c => ReelProblem(c.From, c.Piece), Apply);
+        Handles<Collect>(c => CollectProblem(c.From, c.Machine), Apply);
         // After derivation, like the air: the grid's size is that of this tick.
         System(Phase.Simulation, Drift);
     }
@@ -132,21 +148,52 @@ public sealed partial class DebrisModule : Module<DebrisState>, IDebrisQueries, 
     /// debris clock (<see cref="Piece.Struck"/>), and at its hit points broken into its loot, floating where it was, anyone's. What
     /// a <see cref="HewWrecks"/> does to each wreck it strikes, and a shot to the ones it meets. A piece gone is let be. True when it broke.
     /// </summary>
-    public bool Hit(int peer, int id, int damage)
+    public bool Hit(int peer, int id, int damage) => Hit(peer, id, damage, cuts: false);
+
+    /// <summary>
+    /// <see cref="Hit(int, int, int)"/>, <paramref name="cuts"/> when a salvaging tool lands it (<c>Weapons.Salvages</c>): its damage
+    /// counted in <see cref="Piece.Cut"/> too. Whatever breaks a piece with some cut rolls for the bonus, a shot's hit too.
+    /// </summary>
+    private bool Hit(int peer, int id, int damage, bool cuts)
     {
         int at = IndexOf(id);
         if (at < 0) return false;
         var piece = State.Pieces[at];
         bool breaks = Breaks(id, damage);
         piece.Damage += damage;
+        if (cuts) piece.Cut += damage;
         piece.Struck = new Blow { By = peer, At = State.Clock };
         if (!breaks) return false;
         State.Pieces.RemoveAt(at);
-        var loot = LootOf(piece.Item, Random);
+        var loot = CutLoot(piece, LootOf(piece.Item, Random));
         Record(piece, loot);
         // Dropped by nobody, so whoever broke it may sweep it up at once, as anyone may.
         _items.DropAt(FloorStack.Nobody, loot, CellOf(piece.X, piece.Y, _grid.Width));
         return true;
+    }
+
+    /// <summary>
+    /// <paramref name="loot"/>, the draw of broken <paramref name="piece"/>, half again, rounded down a line, with a chance of its
+    /// <see cref="Piece.Cut"/> in its hit points: drawn only for a piece some cut, so a world no cutter touched draws as before.
+    /// </summary>
+    private IReadOnlyList<(string Item, int Count)> CutLoot(Piece piece, IReadOnlyList<(string Item, int Count)> loot)
+    {
+        if (piece.Cut <= 0) return loot;
+        int hp = Content.Wreckage.HpOf(piece.Item)!.Value;
+        if (Random.Below((ulong)hp) >= (ulong)piece.Cut) return loot;
+        return [.. loot.Select(l => (l.Item, l.Count * Content.Weapons.CutBonus / 1000))];
+    }
+
+    public IReadOnlyList<(string Item, int Count)>? Catch(int id)
+    {
+        int at = IndexOf(id);
+        if (at < 0) return null;
+        var piece = State.Pieces[at];
+        State.Pieces.RemoveAt(at);
+        var loot = LootOf(piece.Item, Random);
+        Record(piece, loot);
+        _items.Caught(loot);
+        return loot;
     }
 
     /// <inheritdoc/>
@@ -154,14 +201,22 @@ public sealed partial class DebrisModule : Module<DebrisState>, IDebrisQueries, 
         PieceById(piece) is { } p && p.Damage + damage >= (Content.Wreckage.HpOf(p.Item) ?? throw new InvalidOperationException($"debris.hit: {p.Item} is no wreck"));
 
     /// <summary>
-    /// What catching piece <paramref name="id"/> put into its catcher's inventory, by item, or null when no catch of it
-    /// is among the last <see cref="CaughtKept"/>: for the client to show its own catch over its hero (none if all fell).
+    /// What the last catch of piece <paramref name="id"/>, by peer <paramref name="by"/> or by anyone, put into its catcher's
+    /// inventory, by item, or null when no such catch is among the last <see cref="CaughtKept"/>: a grab of it drifting, or a
+    /// collect of it out of a net, each a new list. For the client to show its own catch over its hero (none if all fell).
     /// </summary>
-    public IReadOnlyList<(string Item, int Count)>? CaughtFrom(int id)
+    public IReadOnlyList<(string Item, int Count)>? CaughtFrom(int id, int? by = null)
     {
         for (int i = _caught.Count - 1; i >= 0; i--)
-            if (_caught[i].Piece == id) return _caught[i].Gave;
+            if (_caught[i].Piece == id && (by == null || _caught[i].By == by)) return _caught[i].Gave;
         return null;
+    }
+
+    /// <summary>Notes that catching piece <paramref name="id"/> put <paramref name="gave"/> into peer <paramref name="by"/>'s inventory (<see cref="CaughtFrom"/>).</summary>
+    private void Report(int id, int by, IReadOnlyList<(string Item, int Count)> gave)
+    {
+        if (_caught.Count == CaughtKept) _caught.RemoveAt(0);
+        _caught.Add((id, by, gave));
     }
 
     /// <summary>
@@ -235,6 +290,20 @@ public sealed partial class DebrisModule : Module<DebrisState>, IDebrisQueries, 
     public string? HewProblem(int peer, string tool, int x, int y, int heading) =>
         HewProblemOf(peer, Struck(tool, x, y, heading), tool, running: false);
 
+    /// <summary>Why peer <paramref name="peer"/>'s <see cref="HewPieces"/> of <paramref name="tool"/> on <paramref name="pieces"/> would be refused, as <see cref="HewProblem"/> asks it.</summary>
+    public string? HewPiecesProblem(int peer, string tool, IReadOnlyList<int> pieces) =>
+        HewProblemOf(peer, Listed(pieces), tool, running: false);
+
+    /// <summary>The wrecks in space among <paramref name="ids"/>, each once, ascending by id.</summary>
+    private List<Piece> Listed(IReadOnlyList<int> ids)
+    {
+        var listed = new List<Piece>();
+        foreach (var w in Wrecks())
+            if (ids.Contains(w.Piece)) listed.Add(PieceById(w.Piece)!);
+        listed.Sort((a, b) => a.Id.CompareTo(b.Id));
+        return listed;
+    }
+
     private string? HewProblemOf(int peer, IReadOnlyList<Piece> struck, string tool, bool running)
     {
         if (_crew.HeroOf(peer) is not { } hero || !Outside(hero.Cell)) return "debris.notOutside";
@@ -286,15 +355,21 @@ public sealed partial class DebrisModule : Module<DebrisState>, IDebrisQueries, 
         var loot = LootOf(piece.Item, Random);
         // From the roll, not from what went in: what floats off a full inventory was seen all the same.
         Record(piece, loot);
-        var gave = _items.GiveOrDrop(c.From, loot, hero.Cell);
-        if (_caught.Count == CaughtKept) _caught.RemoveAt(0);
-        _caught.Add((piece.Id, gave));
+        Report(piece.Id, c.From, _items.GiveOrDrop(c.From, loot, hero.Cell, noted: false));
     }
 
     private void Apply(HewWrecks c)
     {
         int hit = _held.Damage(c.From, c.Tool);
-        foreach (var piece in Struck(c.Tool, c.X, c.Y, c.Heading)) Hit(c.From, piece.Id, hit);
+        bool cuts = Content.Weapons.Of(c.Tool) is { } weapon && Content.Weapons.Salvages(weapon);
+        foreach (var piece in Struck(c.Tool, c.X, c.Y, c.Heading)) Hit(c.From, piece.Id, hit, cuts);
+    }
+
+    private void Apply(HewPieces c)
+    {
+        int hit = _held.Damage(c.From, c.Tool);
+        bool cuts = Content.Weapons.Of(c.Tool) is { } weapon && Content.Weapons.Salvages(weapon);
+        foreach (var piece in Listed(c.Pieces)) Hit(c.From, piece.Id, hit, cuts);
     }
 
     /// <summary>

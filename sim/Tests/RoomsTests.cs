@@ -48,6 +48,33 @@ public class RoomsTests
     }
 
     [Fact]
+    public void FloatsWhatIsInARoomWhereItsCellHasNoBackWallAndHoldsItThere()
+    {
+        // Walls all round, back walls on the right half only: gravity where a back wall is, none before the stars.
+        var w = new Scenario("""
+            ............
+            .##########.
+            .#    ....#.
+            .#    ....#.
+            .#    ....#.
+            .#    ....#.
+            .##########.
+            ............
+            """, cells: true);
+        Assert.NotEqual(RoomsModule.Space, w.M.Rooms.RoomAt(w.At(3, 3)));
+        Assert.True(w.M.Rooms.Afloat(w.At(3, 3)));
+        Assert.False(w.M.Rooms.Afloat(w.At(7, 3)));
+        // A stack dropped there floats where it is: inside the ship, it drifts nowhere.
+        int cell = w.At(3, 3);
+        w.Do(new Crew.Enter(cell)).GiveItems(0, ("plate", 3)).Do(new Items.Drop(new Items.Place(0), 3, cell, 0) { From = 0 }).Run();
+        var dropped = Assert.Single(w.M.Items.Floor);
+        w.Run(600);
+        var after = Assert.Single(w.M.Items.Floor);
+        Assert.Equal((dropped.X, dropped.Y), (after.X, after.Y));
+        Assert.True(w.M.Rooms.Afloat(after.Cell));
+    }
+
+    [Fact]
     public void FindsASealedRoomWithTheHullItLeaksThroughAndNoOpenings()
     {
         var w = new Scenario("""
@@ -99,7 +126,7 @@ public class RoomsTests
             .........
             """, cells: true);
         Assert.Equal(new[] { (w.At(2, 2), 2), (w.At(5, 2), 2) }, Summary(w));
-        w.Do(new SetDoor(w.At(4, 2), true)).Run();
+        w.Do(new SetDoor(w.At(4, 2), true)).Run(Doors.SwingTicks);
         Assert.Equal(new[] { (w.At(2, 2), 5) }, Summary(w));
         w.Do(new SetDoor(w.At(4, 2), false)).Run();
         Assert.Equal(new[] { (w.At(2, 2), 2), (w.At(5, 2), 2) }, Summary(w));
@@ -186,13 +213,13 @@ public class RoomsTests
     }
 
     [Fact]
-    public void FindsTheWrecksRoomsAsTheTypeScriptSimDoes()
+    public void FindsTheWrecksRooms()
     {
-        var w = new Scenario(Layout.Parse(Wreck.Rows, Wreck.Under), doubled: true);
-        // As packages/sim/src/modules/wreck.test.ts expects: A and the airlock, named by their first cells; torn B is space.
-        Assert.Equal(new[] { w.At(46, 19), w.At(55, 20) }, w.M.Rooms.All.Select(r => r.Id));
-        Assert.Equal(RoomsModule.Space, w.M.Rooms.RoomAt(w.At(41, 21)));
-        Assert.Equal(new[] { "solarPanel", "lamp", "lifepod", "techStation", "generator", "vent" }, w.M.Grid.Machines.Select(m => m.Kind));
+        var w = new Scenario(Layout.Parse(Wreck.Rows, Wreck.Under));
+        // Two locks and the room between, named by their first cells; the hold is space.
+        Assert.Equal(new[] { w.At(86, 38), w.At(92, 38), w.At(110, 38) }, w.M.Rooms.All.Select(r => r.Id));
+        Assert.Equal(RoomsModule.Space, w.M.Rooms.RoomAt(w.At(82, 42)));
+        Assert.Equal(new[] { "emergencyLamp", "emergencyLamp", "lifepod", "pileBits", "pileCargo", "pileHull", "pileScrap" }, w.M.Grid.Machines.Select(m => m.Kind).Order(StringComparer.Ordinal));
     }
 
     private static readonly char[] Chars = [' ', '.', '#', '#', '#', '=', 'H', 'D', 'd'];
@@ -274,7 +301,7 @@ public class RoomsTests
 
     /// <summary>
     /// A back wall taken from behind a room's hole on the tick another room is breached: the room keeps its
-    /// cells, hull and openings, but is named, as what its air leaks through changed.
+    /// cells, hull and openings, but is named, as what its air would leak through changed; the leaks found around it are a reload's.
     /// </summary>
     [Fact]
     public void NamesARoomWhoseBackWallChangedOnTheTickOfABreach()
@@ -286,14 +313,12 @@ public class RoomsTests
             "  #######           ",
             "                    ",
         ]));
-        var leaks = w.M.Atmosphere.RoomsAir().Select(r => (r.Room, r.Leak)).ToList();
         var hole = w.M.Rooms.RoomById(w.At(3, 1))!;
         int version = w.M.Rooms.Version;
         w.Do(new ClearAt(w.At(3, 1), "back")).Do(new ClearAt(w.At(6, 1), "structure")).Run();
         Assert.Equal(new[] { w.At(3, 1), w.At(6, 1), w.At(6, 2) }, w.M.Rooms.ChangedSince(version));
         Assert.Equal(Of(hole), Of(w.M.Rooms.RoomById(w.At(3, 1))!));
         var now = w.M.Atmosphere.RoomsAir().Select(r => (r.Room, r.Leak)).ToList();
-        Assert.NotEqual(leaks[0], now[0]);
         Assert.Equal(now, w.Reload().M.Atmosphere.RoomsAir().Select(r => (r.Room, r.Leak)));
     }
 

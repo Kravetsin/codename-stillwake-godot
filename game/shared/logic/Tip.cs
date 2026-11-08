@@ -19,10 +19,25 @@ public enum Tone
     Unknown,
 }
 
-/// <summary>A line under a tip's name: its words in their tone, after the icon of item <paramref name="Icon"/> when it names one.</summary>
+/// <summary>A sign a tip's line may open with in place of words (tip-signs): what its number counts.</summary>
+public enum Sign
+{
+    None,
+    /// <summary>Air made: oxygen a room's vents give it, a vaporizer's making.</summary>
+    Oxygen,
+    /// <summary>Air lost through walls: a room's leak, a wall's.</summary>
+    Leak,
+    /// <summary>Power drawn or made: the bolt.</summary>
+    Power,
+}
+
+/// <summary>
+/// A line under a tip's name: its words in their tone, after the icon of item <paramref name="Icon"/> when it names one, or
+/// after <paramref name="Sign"/>; never both.
+/// </summary>
 /// <param name="Large">A cost row under a blueprint: the icon twice its size and the words larger, read at a glance.</param>
 /// <param name="Faded">The icon faded: a row with nothing left to do.</param>
-public sealed record TipLine(string Text, Tone Tone = Tone.Plain, string? Icon = null, bool Large = false, bool Faded = false);
+public sealed record TipLine(string Text, Tone Tone = Tone.Plain, string? Icon = null, bool Large = false, bool Faded = false, Sign Sign = Sign.None);
 
 /// <summary>
 /// What the one tooltip says (<c>PointerTip</c>): a name in bold, then lines in colour. Equal by
@@ -45,8 +60,11 @@ public sealed record Tip(string? Name, IReadOnlyList<TipLine> Lines)
     /// </summary>
     public (float X, float Y, float W, float H)? Anchor { get; init; }
 
+    /// <summary>Said over what it tells of (<see cref="TipPlace.Over"/>) and not beside the pointer: a key at the screen's foot, whose neighbours it would cover.</summary>
+    public bool Over { get; init; }
+
     public bool Equals(Tip? other) =>
-        other is not null && Name == other.Name && Lines.SequenceEqual(other.Lines) && Equals(Card, other.Card) && Picture == other.Picture && Anchor == other.Anchor;
+        other is not null && Name == other.Name && Lines.SequenceEqual(other.Lines) && Equals(Card, other.Card) && Picture == other.Picture && Anchor == other.Anchor && Over == other.Over;
 
     public override int GetHashCode()
     {

@@ -1,130 +1,117 @@
 namespace Stillwake.Content;
 
 /// <summary>
-/// A node of the tech tree: a block of blueprints and crafts bought with credits, or a gate of resources deposited for good,
-/// open once all it needs are done (2026-10-30-tech-graph).
+/// A node of the black market: a block opening one blueprint or upgrade, bought with credits, or the gate, an order, that opens a row of
+/// blocks by what has been sold (docs/decisions/2026-11-05-the-board.md).
 /// </summary>
-/// <param name="Id">Its name: a block's first thing it opens, a gate's own.</param>
-/// <param name="Needs">The nodes that must be done first: their ids.</param>
-/// <param name="Opens">What a block opens: blueprints as the build menu names their cards, crafts by the item they make. None for a gate.</param>
-/// <param name="Deposit">What a gate asks for. None for a block.</param>
-/// <param name="Times">How many times its worth a block costs, where its category's will not do.</param>
-public sealed record TechNode(string Id, string[] Needs, string[] Opens, IReadOnlyList<(string Item, int Count)> Deposit, int? Times = null)
+/// <param name="Id">Its name: a block's the one blueprint or craft it opens, named as <see cref="Research"/> says; a gate's own.</param>
+/// <param name="Needs">The nodes that must be done first: their ids. A block's is its ring's gate, a gate's the gate before it.</param>
+/// <param name="Order">What a gate asks to have been sold. None for a block.</param>
+/// <param name="Times">How many times its worth a block costs.</param>
+/// <param name="Tab">The id of the tab it is drawn on.</param>
+/// <param name="Ring">Its row on that tab, from the top; a gate's is the row it opens.</param>
+public sealed record TechNode(string Id, string[] Needs, IReadOnlyList<(string Item, int Count)> Order, int Times, string Tab, int Ring)
 {
-    /// <summary>Whether it is opened by resources rather than bought.</summary>
-    public bool Gate => Deposit.Count > 0;
+    /// <summary>Whether it is opened by what is sold rather than bought.</summary>
+    public bool Gate => Order.Count > 0;
 }
 
-/// <summary>A named band of the tree's map: what belongs together, and how many times its worth a block of it costs.</summary>
-public sealed record TechCategory(string Id, int Times, params TechNode[] Nodes);
+/// <summary>What a tab's row is written as: what its gate orders, none for a row open from the start, and its blocks, each with how many times its worth it costs.</summary>
+public sealed record TechRing(string? Gate, IReadOnlyList<(string Item, int Count)> Order, params (string Id, int Times)[] Blocks);
+
+/// <summary>A tab of rows, from the top; the market page holds them to what fits (a Content test).</summary>
+public sealed record TechTab(string Id, params TechRing[] Rings);
 
 /// <summary>
-/// Knowing blueprints and crafts (2026-10-30-tech-graph). Blueprints are named as the build menu names their cards: a wall
+/// Knowing blueprints and crafts (docs/decisions/2026-11-05-the-board.md). Blueprints are named as the build menu names their cards: a wall
 /// or a back wall by its kind and material (<c>wallIron</c>, <c>backWallScrap</c>), anything else by the grid's name for it
-/// (<c>floor</c>, <c>furnace</c>); a craft by the item it makes (<c>wire</c>). Either is known from the start or opened by a
-/// node of <see cref="Categories"/>. Cables are no blueprint and always known.
+/// (<c>floor</c>, <c>furnace</c>); a craft by the item it makes (<c>wire</c>). Each is understood by the rule, or bought at a
+/// node of <see cref="Tabs"/>. Cables are no blueprint and always known.
 /// </summary>
 public static class Research
 {
     /// <summary>
-    /// What the wreck knows from its start: what earns, what a torn room is closed with, the fire axe wreckage is broken with, what
-    /// a castaway's pod makes. Both stations are of raw salvage, so taking one apart never leaves a world unable to trade. The
-    /// solar panel too: the wreck's own, taken apart, gives back the photosensitive panel nothing makes, and builds again.
+    /// What the wreck knows from its start: nothing (docs/decisions/2026-11-05-the-board.md). A castaway writes down what they find, the first walls at
+    /// ten chunks, and what the pod makes for nothing is understood on the first tick, having no part to wait for.
     /// </summary>
-    public static readonly IReadOnlyList<string> StartKnown =
+    public static readonly IReadOnlyList<string> StartKnown = [];
+
+    /// <summary>The tab of what only credits open: what is on it stays outside the rule that grants the rest (docs/decisions/2026-11-05-the-board.md).</summary>
+    public const string Market = "blackMarket";
+
+    /// <summary>What a part understood must have been obtained to, in credits of its worth: a rare part takes few, a common one many.</summary>
+    public const int EnoughWorth = 200;
+
+    /// <summary>However cheap a part, no more than this many are needed to understand it.</summary>
+    public const int EnoughMost = 10;
+
+    /// <summary>An upgrade: its price its own.</summary>
+    private static (string Id, int Times) Up(string id) => (id, 1);
+
+    /// <summary>What credits buy, by tab: the market alone.</summary>
+    public static readonly IReadOnlyList<TechTab> Tabs =
     [
-        "tradeStation", "techStation", "wallScrap", "backWallScrap", "fireAxe", "screwdriver", "helmet", "suit", "solarPanel",
+        // Open from the start, its later rows by what is sold (docs/decisions/2026-11-05-the-board.md); the solar panel once circuits sell, for its cells come from the same bench (market-decrypt).
+        // The heavy helmet with the frames the jetpack is made of, the canisters' upgrade a row later (2026-11-03-the-heavy-helmet);
+        // the scanner with the plates its order wants, before the jetpack's far wrecks (2026-11-07-the-scanner);
+        // the regen suit beside the belt's third slot, the charge it runs on, eight times its worth: 12000 (2026-11-03-the-regen-suit).
+        new(Market,
+            new TechRing(null, [],
+                Up("bag1"),
+                Up("bag2"),
+                Up("tradeSlots1")),
+            new("order1", [("scrapChunk", 40), ("iron", 20), ("planks", 20)],
+                Up("bag3"),
+                Up("bag4"),
+                Up("tradeSlots2")),
+            new("order2", [("plate", 30), ("gear", 20)],
+                Up("bag5"),
+                Up("bag6"),
+                Up("belt1"),
+                ("powerDriver", 4),
+                ("scanner", 3),
+                Up("tradeSlots3"),
+                Up("tradeSlots4")),
+            new("order3", [("glass", 20), ("silicon", 20), ("frame", 10)],
+                Up("bag7"),
+                Up("bag8"),
+                Up("tradeSlots5"),
+                ("heavyHelmet", 4)),
+            new("order4", [("circuit", 20)],
+                ("solarPanel", 5),
+                Up("bag9"),
+                Up("tradeSlots6"),
+                Up("canister1"),
+                ("salvageDrone", 3),
+                ("plasmaCutter", 4)),
+            new("order5", [("copper", 20), ("mica", 10), ("hide", 5)],
+                Up("bag10"),
+                Up("bag11"),
+                Up("belt2"),
+                ("regenSuit", 8))),
     ];
 
-    /// <summary>How many times its worth a craft costs on top of its category's: a blueprint already costs what it is built of, a craft only a unit.</summary>
-    public const int CraftTimes = 3;
-
-    private static TechNode Block(string[] needs, params string[] opens) => new(opens[0], needs, opens, []);
-    private static TechNode Dear(int times, string[] needs, params string[] opens) => new(opens[0], needs, opens, [], times);
-    private static TechNode Gate(string id, string[] needs, params (string Item, int Count)[] deposit) => new(id, needs, [], deposit);
-
-    /// <summary>The tree, by category. Everything before the pod is had from what space gives; what a planet gives comes after it.</summary>
-    public static readonly IReadOnlyList<TechCategory> Categories =
-    [
-        new("basics", 1,
-            Block([], "workbench"),
-            Block([], "furnace"),
-            Block(["workbench", "furnace"], "wire"),
-            Block(["workbench", "furnace"], "plate"),
-            Block(["plate"], "gear", "tube"),
-            Block(["plate"], "crate"),
-            Block(["wire"], "floor", "ladder", "lamp"),
-            Block(["floor", "plate"], "door", "hatch"),
-            Block(["plate", "floor"], "wallIron", "backWallIron"),
-            Block(["wire", "gear"], "nail", "nailer"),
-            Gate("press", ["wire", "gear"], ("wire", 20), ("plate", 15), ("gear", 10))),
-        new("mechanics", 1,
-            Block(["press"], "coil", "rotor"),
-            Block(["coil"], "former"),
-            Block(["former"], "frame"),
-            Block(["coil"], "harpoon"),
-            Block(["coil"], "helmetLamp")),
-        new("powerAndAir", 1,
-            Block(["coil"], "burnerGenerator"),
-            Block(["burnerGenerator"], "vent", "tank"),
-            Block(["vent"], "cistern"),
-            Block(["vent", "frame"], "generator"),
-            Block(["frame", "coil"], "jetpack"),
-            Gate("processing", ["frame", "burnerGenerator"], ("frame", 10), ("gear", 20), ("coil", 20))),
-        new("processing", 1,
-            Block(["processing"], "crusher"),
-            Block(["processing"], "smelter"),
-            Block(["smelter"], "wallGlass", "backWallGlass")),
-        new("electronics", 1,
-            Block(["smelter"], "assembler"),
-            Block(["assembler"], "circuit"),
-            Block(["circuit", "crusher"], "solarCell"),
-            Gate("automation", ["circuit", "crusher"], ("circuit", 10), ("glass", 20), ("frame", 10))),
-        new("automation", 1,
-            Block(["automation"], "soil", "wallSoil", "backWallSoil"),
-            Block(["soil"], "growCapsule"),
-            Block(["automation"], "battery", "charger"),
-            Block(["automation"], "capacitorBank"),
-            Block(["automation"], "drill"),
-            Block(["battery"], "drone", "droneBay"),
-            Gate("wayDown", ["battery", "solarCell"], ("circuit", 20), ("glass", 30), ("frame", 20), ("coil", 40))),
-        new("wayDown", 1,
-            Block(["wayDown"], "deckDrive", "launchPlatform"),
-            Block(["wayDown"], "processor", "display"),
-            Block(["deckDrive", "processor"], "dropPod"),
-            Block(["wayDown"], "transceiver"),
-            Block(["processor"], "computer"),
-            Block(["transceiver"], "radarAntenna")),
-        new("planet", 2,
-            Gate("ground", ["dropPod"], ("copper", 20), ("mica", 10), ("hide", 5)),
-            Block(["ground"], "wallStone", "backWallStone"),
-            Block(["ground"], "wallMica", "backWallMica"),
-            Block(["ground"], "wallHide", "backWallHide"),
-            Block(["ground"], "canister"),
-            Block(["ground"], "cape"),
-            Block(["ground"], "arcLamp"),
-            Block(["ground"], "wallAlloy", "backWallAlloy")),
-        new("arc", 2,
-            Gate("arcAndEngine", ["ground"], ("alloyScrap", 20), ("magnetite", 10), ("crystal", 5), ("biofuel", 20)),
-            Block(["arcAndEngine"], "motor"),
-            Block(["motor"], "arcBench"),
-            Block(["arcBench"], "arcModule"),
-            Block(["arcBench"], "accumulator"),
-            Block(["arcBench"], "railgun")),
-        new("engine", 2,
-            Block(["arcAndEngine"], "nozzle"),
-            Block(["motor"], "fuelPump", "igniter"),
-            Dear(8, ["nozzle", "fuelPump"], "engine")),
-    ];
-
-    /// <summary>Every node, in the order of its category.</summary>
-    public static readonly IReadOnlyList<TechNode> Nodes = [.. Categories.SelectMany(c => c.Nodes)];
+    /// <summary>Every node: tab by tab, row by row, a row's gate before its blocks.</summary>
+    public static readonly IReadOnlyList<TechNode> Nodes = [.. Tabs.SelectMany(NodesOf)];
 
     private static readonly Dictionary<string, TechNode> ById = Nodes.ToDictionary(n => n.Id, StringComparer.Ordinal);
 
     /// <summary>The node named <paramref name="id"/>; null for none.</summary>
     public static TechNode? Node(string id) => ById.GetValueOrDefault(id);
 
-    /// <summary>The category <paramref name="node"/> stands in.</summary>
-    public static TechCategory CategoryOf(TechNode node) => Categories.First(c => c.Nodes.Contains(node));
+    private static IEnumerable<TechNode> NodesOf(TechTab tab)
+    {
+        string? gate = null;
+        for (int ring = 0; ring < tab.Rings.Length; ring++)
+        {
+            var each = tab.Rings[ring];
+            if (each.Gate is { } id)
+            {
+                yield return new TechNode(id, gate == null ? [] : [gate], each.Order, 1, tab.Id, ring);
+                gate = id;
+            }
+            foreach (var (block, times) in each.Blocks)
+                yield return new TechNode(block, gate == null ? [] : [gate], [], times, tab.Id, ring);
+        }
+    }
 }

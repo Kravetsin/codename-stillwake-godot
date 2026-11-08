@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Stillwake.Game.Render;
 using Stillwake.Game.Shared;
 using Stillwake.Sim;
 using Stillwake.Sim.Atmosphere;
@@ -27,22 +28,10 @@ public sealed record WorkAim(int Plan, string? Problem, int? Repair = null);
 /// <summary>
 /// The cell under the pointer and what the hands do there: the left button held works a plan; E toggles
 /// a door or valve, puts a canister into a tank, grabs a piece of debris or opens <see cref="Crate"/>, a machine holding items or a computer.
-/// <see cref="Piece"/> names the piece of debris a press grabs, or the wreck a swing of the axe would hit
-/// (0034), which is outlined itself, not its cell. <see cref="Fan"/> is a tool's hit toward the pointer (the fan of rays): what
-/// it would strike, its faces glowing.
+/// <see cref="Piece"/> names the piece of debris a press grabs, a wreck outlined itself, not its cell. What a tool or a weapon
+/// hits is never aimed at: it hits what it is drawn touching (tool-edge, melee-edge).
 /// </summary>
-public sealed record Aim(int Cell, bool InReach, Use? Press = null, WorkAim? Work = null, int? Crate = null, int? Piece = null, Fan? Fan = null);
-
-/// <summary>
-/// A tool's hit toward the pointer (the fan of rays): its <see cref="Ground"/> command and what it would strike there
-/// (<see cref="Hewn"/>), and in space its <see cref="Wrecks"/> command and the wrecks it would strike (<see cref="Pieces"/>), as the
-/// sim's own queries say, so what is shown is what the hit takes.
-/// </summary>
-public sealed record Fan(Hew Ground, Hewn Hewn, HewWrecks Wrecks, IReadOnlyList<Piece> Pieces)
-{
-    /// <summary>Whether the fan would strike nothing at all.</summary>
-    public bool IsEmpty => Hewn.IsEmpty && Pieces.Count == 0;
-}
+public sealed record Aim(int Cell, bool InReach, Use? Press = null, WorkAim? Work = null, int? Crate = null, int? Piece = null);
 
 /// <summary>
 /// What the hands send this frame, the crate they open if any, and the tick work was last sent on: -1 when
@@ -76,16 +65,9 @@ public static class Aiming
         return dx * dx + dy * dy <= (long)Spec.Hero.Reach * Spec.Hero.Reach;
     }
 
-    /// <summary>
-    /// Half a wreck's picture each way, in thousandths of a cell, and a little more, as it rocks; none for
-    /// a piece caught by hand.
-    /// </summary>
-    private static (int HalfW, int HalfH)? HalfOf(string item) =>
-        DebrisLooks.Wrecks.TryGetValue(item, out var size)
-            ? (size.W * Hero.Unit / (2 * PixelsPerCell) + WreckMargin, size.H * Hero.Unit / (2 * PixelsPerCell) + WreckMargin)
-            : null;
+    private static (int HalfW, int HalfH)? HalfOf(string item) => WreckAim.HalfOf(item);
 
-    private const int PixelsPerCell = Camera.Cell, WreckMargin = 500;
+    private const int WreckMargin = WreckAim.Margin;
 
     /// <summary>Half a small piece's picture each way, in thousandths of a cell: they are a cell or a little more across.</summary>
     private const int SmallHalf = 1000;
@@ -189,10 +171,10 @@ public static class Aiming
         return piece is var (id, stuck, _) ? new RodHit(id, stuck) : null;
     }
 
-    /// <summary>Whether a machine of <paramref name="kind"/> opens on E: one holding items (a crate, a furnace), the ship's computer, or a tech station.</summary>
-    private static bool Opens(string kind) => Spec.Machines.TryGet(kind, out var spec) && (spec.Slots != null || spec.Is(Spec.MachineTrait.Computer) || spec.Is(Spec.MachineTrait.Tech));
+    /// <summary>Whether a machine of <paramref name="kind"/> opens on E: one holding items (a crate, a furnace) or the ship's computer.</summary>
+    public static bool Opens(string kind) => Spec.Machines.TryGet(kind, out var spec) && (spec.Slots != null || spec.Is(Spec.MachineTrait.Computer));
 
-    /// <summary>Whether a crate, a furnace, a computer or a tech station <paramref name="id"/> still stands with a cell of it within the hero's reach.</summary>
+    /// <summary>Whether a crate, a furnace or a computer <paramref name="id"/> still stands with a cell of it within the hero's reach.</summary>
     public static bool CrateInReach(IGridQueries grid, Hero hero, int id)
     {
         var crate = grid.MachineById(id) is { } m && Opens(m.Kind) ? m : null;
@@ -209,18 +191,16 @@ public static class Aiming
     /// a wreck whose picture is under the pointer, else the piece of debris nearest it within
     /// <c>Debris.AimRadius</c>, only while the hero is out in space, where it can catch one, and none in
     /// <paramref name="passOver"/>: grabbed already, its grab still in flight. Bare-handed, a wreck is
-    /// grabbed, which the sim refuses: too big. With the <paramref name="axe"/> or a <paramref name="drill"/>, the plain or the arc
-    /// drill by its item, a small piece is still grabbed, else the tool's fan toward the pointer is aimed (<see cref="FanOf"/>): at
-    /// the ground it strikes nearest the pointer, else the first wreck it strikes, else at nothing. With a <paramref name="gun"/>, the
-    /// harpoon, a small piece is still grabbed and no wreck is aimed at: it is shot, not worked. A door or valve is
+    /// grabbed, which the sim refuses: too big. <paramref name="armed"/>, with a tool or a weapon in hand, a small piece is still
+    /// grabbed and nothing else is aimed at: what it hits is what it is drawn touching (tool-edge, melee-edge). A door or valve is
     /// opened or shut as <paramref name="shown"/> shows it (the world's without it): with this peer's own toggles in
     /// flight, the next press undoes them, and a press says what its sender saw should become of it. Where a machine's
-    /// picture rises over the cells above its footprint by <paramref name="riseOf"/> (0099), and nothing there is worked, it is that machine.
+    /// picture, built or planned, rises over the cells above its footprint by <paramref name="riseOf"/> (<see cref="Risen"/>), and
+    /// nothing there is worked, it is that machine or plan.
     /// </summary>
     public static Aim? AimAt(
         Registry m, int peer, Hero hero, (double X, double Y) point,
-        IReadOnlySet<int>? passOver = null, bool axe = false, bool gun = false, string? drill = null, ShownGrid? shown = null,
-        Func<string, int>? riseOf = null)
+        IReadOnlySet<int>? passOver = null, bool armed = false, ShownGrid? shown = null, Func<string, int>? riseOf = null)
     {
         var grid = m.Grid;
         int x = (int)Math.Floor(point.X), y = (int)Math.Floor(point.Y);
@@ -229,23 +209,23 @@ public static class Aiming
         bool inReach = Reaches(hero, cell, grid.Width);
 
         var plans = m.Building;
-        var here = plans.PlansAt(cell)
+        var here = BackFirst(plans.PlansAt(cell))
             .Select(p => new WorkAim(p.Id, plans.WorkProblem(p.Id, peer)))
             .ToList();
         var work = here.FirstOrDefault(w => w.Problem == null) ?? here.FirstOrDefault();
         var machine = grid.MachineAt(cell);
         // A broken machine with no plan on it is repaired; a mark on it wins, so it is taken apart (magnetic-flare).
         if (work == null && machine != null && m.Power.IsBroken(machine.Id))
-            work = new WorkAim(0, m.Building.RepairProblem(machine.Id, peer), machine.Id);
+            work = new WorkAim(0, m.Building.RepairProblem(machine.Id), machine.Id);
         int? crate = machine != null && Opens(machine.Kind) ? machine.Id : null;
         // A drop pod is boarded on E, and its slot opens as the hero sits (Landing): the press and the panel both.
         var press = machine != null && Spec.Machines.Is(machine.Kind, Spec.MachineTrait.Seats)
             ? new Use(new Board(machine.Id), m.Landing.BoardProblem(peer, machine.Id))
             : crate == null ? PressOf(m, peer, cell, shown) : null;
         if (work != null || crate != null || press != null) return new Aim(cell, inReach, press, work, crate);
-        // Over a machine's risen picture, as if at its footprint's top row under the pointer.
-        if (riseOf != null && RisenOver(grid, cell, riseOf) is int top
-            && AimAt(m, peer, hero, (point.X, top / grid.Width + 0.5), passOver, axe, gun, drill, shown) is ({ Crate: not null } or { Press: not null }) and var under)
+        // Over a machine's or a plan's risen picture, as if at its footprint's top row under the pointer.
+        if (riseOf != null && Risen.Under(grid, m.Building, cell, riseOf) is int top
+            && AimAt(m, peer, hero, (point.X, top / grid.Width + 0.5), passOver, armed, shown) is ({ Work: not null } or { Crate: not null } or { Press: not null }) and var under)
             return under;
         var piece = PieceNear(m, hero, point, passOver);
         // Aimed at where the piece is, which may be a cell beside the pointer's.
@@ -254,31 +234,133 @@ public static class Aiming
             int at = DebrisModule.CellOf(piece.X, piece.Y, grid.Width);
             return new Aim(at, Reaches(hero, at, grid.Width), new Use(new Grab(piece.Id), m.Debris.GrabProblem(peer, piece.Id)), Piece: piece.Id);
         }
-        if (axe || drill != null)
-        {
-            // The tool's fan toward the pointer (the fan of rays): what stands on a planet's grid that it strikes first; in space
-            // the wrecks it meets.
-            string tool = axe ? Spec.Weapons.Axe.Item : drill!;
-            var fan = FanOf(m, hero, PointOf(point), tool);
-            if (!fan.Hewn.IsEmpty)
-                return new Aim(LeadOf(fan, PointOf(point), grid.Width), true, new Use(fan.Ground, m.Building.HewProblem(peer, tool, fan.Ground.X, fan.Ground.Y, fan.Ground.Heading)), Fan: fan);
-            if (fan.Pieces.FirstOrDefault() is { } wreck)
-                return new Aim(DebrisModule.CellOf(wreck.X, wreck.Y, grid.Width), true,
-                    new Use(fan.Wrecks, m.Debris.HewProblem(peer, tool, fan.Wrecks.X, fan.Wrecks.Y, fan.Wrecks.Heading)), Piece: wreck.Id, Fan: fan);
-            return new Aim(cell, inReach, Fan: fan);
-        }
-        if (gun || piece is null || HalfOf(piece.Item) is not var (halfW, halfH)) return new Aim(cell, inReach);
+        if (armed || piece is null || HalfOf(piece.Item) is not var (halfW, halfH)) return new Aim(cell, inReach);
         var grab = new Use(new Grab(piece.Id), m.Debris.GrabProblem(peer, piece.Id));
         return new Aim(DebrisModule.CellOf(piece.X, piece.Y, grid.Width), ReachesBox(hero, piece.X, piece.Y, halfW, halfH), grab, Piece: piece.Id);
     }
 
-    /// <summary>The top cell, under <paramref name="cell"/>, of the first machine below it in its column, if its picture rises that far.</summary>
-    private static int? RisenOver(IGridQueries grid, int cell, Func<string, int> riseOf)
+    /// <summary>
+    /// The side of the square <paramref name="driver"/> works (power-driver): its <c>Area</c> while this player's mode is the
+    /// <paramref name="square"/> and the belt can pay its draw (<paramref name="charged"/>), running or not, so the square shows
+    /// before the press and holds while the run catches up; else 1, one cell.
+    /// </summary>
+    public static int SideOf(Spec.Screwdriver? driver, bool square, bool charged) =>
+        driver is { Area: > 1 } d && square && charged ? d.Area : 1;
+
+    /// <summary>
+    /// How fast <paramref name="driver"/> works (power-driver): at most its <c>Work</c> ticks on one plan a tick, and its
+    /// <c>Area</c> squared over all, while it runs or needs no charge; an electric one flat works as the basic screwdriver.
+    /// </summary>
+    public static (int Pace, int Budget) PaceOf(Spec.Screwdriver? driver, string? running)
     {
-        for (int rows = 1, c = cell + grid.Width; c < grid.Width * grid.Height; rows++, c += grid.Width)
-            if (grid.MachineAt(c) is { } machine) return riseOf(machine.Kind) >= rows ? c : null;
-        return null;
+        var d = driver is { } b && (running == b.Item || Spec.Items.Get(b.Item).Draw == null) ? b : Spec.Screwdrivers.Basic;
+        return (d.Work, d.Area * d.Area);
     }
+
+    /// <summary>
+    /// The ticks of work each of <paramref name="count"/> plans gets a tick, in their order: a tick each while
+    /// <paramref name="budget"/> lasts, then round again, at most <paramref name="pace"/> on one (power-driver).
+    /// </summary>
+    public static int[] SharesOf(int count, int pace, int budget)
+    {
+        var shares = new int[count];
+        for (int round = 0; round < pace; round++)
+            for (int i = 0; i < count && budget > 0; i++, budget--) shares[i]++;
+        return shares;
+    }
+
+    /// <summary>
+    /// The square of side <paramref name="side"/> worked round <paramref name="point"/>, in cells: its top-left column and row
+    /// as the placing stamp lies (<see cref="Brush"/>, 0104), kept on the grid, and its cells in the order they are worked,
+    /// the bottom row first, left to right. None with the point off the grid.
+    /// </summary>
+    public static (int X, int Y, int[] Cells)? SquareAt(int width, int height, (double X, double Y) point, int side)
+    {
+        if (point.X < 0 || point.Y < 0 || point.X >= width || point.Y >= height) return null;
+        var (x, y) = Brush.Corner(width, height, point, side, side);
+        var cells = new List<int>();
+        for (int row = Math.Min(y + side, height) - 1; row >= y; row--)
+            for (int col = x; col < Math.Min(x + side, width); col++) cells.Add(row * width + col);
+        return (x, y, [.. cells]);
+    }
+
+    /// <summary>
+    /// The square of side <paramref name="side"/> the hero of peer <paramref name="peer"/> works at <paramref name="point"/>
+    /// (power-driver), with its <see cref="WorkTargets"/> but whole things (<see cref="IsWhole"/>, driver-order): only while it holds
+    /// a plan or a mark of a cell; over nothing else, none, and the pointer aims at one cell as the screwdriver's does. None too
+    /// while the pointer's own work, <paramref name="under"/>, is whole: a station is aimed at whole, as by the screwdriver.
+    /// </summary>
+    public static ((int X, int Y, int[] Cells) Square, List<WorkAim> Targets)? WorkedSquare(Registry m, int peer, Hero hero,
+        (double X, double Y) point, int side, WorkAim? under = null)
+    {
+        if (side < 2 || under is { } own && IsWhole(m, own)) return null;
+        if (SquareAt(m.Grid.Width, m.Grid.Height, point, side) is not { } square) return null;
+        var targets = WorkTargets(m, peer, hero, square.Cells).Where(t => !IsWhole(m, t)).ToList();
+        return targets.Count > 0 ? (square, targets) : null;
+    }
+
+    /// <summary>
+    /// A cell's <paramref name="plans"/> in the order they are worked (driver-order): a back wall's blueprint first, the hull before
+    /// what stands in front of it, so a station planned before a meteor holed the wall never stands in the way of patching it; the
+    /// rest in the order made.
+    /// </summary>
+    public static IEnumerable<Plan> BackFirst(IEnumerable<Plan> plans) => plans.OrderBy(p => p.Place?.Layer != "back");
+
+    /// <summary>
+    /// Whether <paramref name="work"/> is on a thing larger than its cell, worked as one: a machine's blueprint, mark or repair,
+    /// or a piece of several cells, a ladder or a doorway (0104).
+    /// </summary>
+    public static bool IsWhole(Registry m, WorkAim work)
+    {
+        if (work.Repair != null) return true;
+        if (m.Building.Plans.FirstOrDefault(p => p.Id == work.Plan) is not { } plan) return false;
+        if (plan.Place is { } place) return place.Layer == "machine" || m.Grid.Footprint(place.Kind, plan.Cell) is { Count: > 1 };
+        return plan.Clear == "machine" || plan.Clear == "structure" && m.Grid.PieceOf(plan.Cell).Count > 1;
+    }
+
+    /// <summary>
+    /// What a square's <paramref name="cells"/> give the left button to work, in their order: in each cell the hero of peer
+    /// <paramref name="peer"/> reaches, each layer's oldest plan that can be worked (when none can, its oldest, to show why),
+    /// in <see cref="BackFirst"/>'s order, else a broken machine's repair (magnetic-flare), as <see cref="AimAt"/> chooses for
+    /// one cell. A plan or machine under several cells is worked once, at the first. A cell with nothing, a crate or out of
+    /// reach gives nothing and stops none of the others.
+    /// </summary>
+    public static List<WorkAim> WorkTargets(Registry m, int peer, Hero hero, IReadOnlyList<int> cells)
+    {
+        var grid = m.Grid;
+        var plans = m.Building;
+        var targets = new List<WorkAim>();
+        void Add(WorkAim target)
+        {
+            if (!targets.Any(t => t.Plan == target.Plan && t.Repair == target.Repair)) targets.Add(target);
+        }
+        foreach (int cell in cells)
+        {
+            if (!Reaches(hero, cell, grid.Width)) continue;
+            var here = plans.PlansAt(cell);
+            if (here.Count == 0)
+            {
+                if (grid.MachineAt(cell) is { } machine && m.Power.IsBroken(machine.Id))
+                    Add(new WorkAim(0, plans.RepairProblem(machine.Id), machine.Id));
+                continue;
+            }
+            var layers = BackFirst(here).Select(p => p.Place?.Layer ?? p.Clear).Distinct().ToList();
+            foreach (var layer in layers)
+            {
+                var of = here.Where(p => (p.Place?.Layer ?? p.Clear) == layer).Select(p => new WorkAim(p.Id, plans.WorkProblem(p.Id, peer))).ToList();
+                Add(of.FirstOrDefault(w => w.Problem == null) ?? of[0]);
+            }
+        }
+        return targets;
+    }
+
+    /// <summary>
+    /// <paramref name="aim"/> as the prompt says it while a square is worked: its work the first of <paramref name="targets"/>
+    /// that can be worked, else the first, to show why, within reach; with no target, no work, so the pointer's press is said.
+    /// </summary>
+    public static Aim OverSquare(Aim aim, IReadOnlyList<WorkAim> targets) => targets.Count == 0
+        ? aim with { Work = null }
+        : aim with { InReach = true, Work = targets.FirstOrDefault(t => t.Problem == null) ?? targets[0] };
 
     /// <summary>A point in cells, in thousandths of a cell.</summary>
     public static Point PointOf((double X, double Y) cells) =>
@@ -287,86 +369,23 @@ public static class Aiming
     /// <summary>How far the shoulder is above the feet, in thousandths of a cell, the body upright.</summary>
     private const int ShoulderUp = (int)(Rig.Shoulder / Rig.Cell * Hero.Unit);
 
-    /// <summary>The downstroke sampled every this many radians (2°): the edge moves under a tenth of a cell between two.</summary>
-    private const double SampleStep = Math.PI / 90;
-
-    /// <summary>
-    /// The edge of <paramref name="look"/>, held as the figure draws it, swung by <paramref name="hero"/> toward <paramref name="at"/>,
-    /// at every sample of the downstroke's last stretch, from the shoulder of the body upright, turned the way the hero faces.
-    /// </summary>
-    private static (double Ax, double Ay, double Bx, double By)[] SwingEdges(Hero hero, Point at, HeldLook look)
-    {
-        double sx = hero.X, sy = hero.Y - ShoulderUp, perPixel = Hero.Unit / Rig.Cell;
-        double line = Math.Atan2(at.Y - sy, (at.X - sx) * hero.Facing), from = line + AxeSwing.Lead(look);
-        int steps = (int)Math.Ceiling(AxeSwing.Through / SampleStep);
-        var edges = new (double Ax, double Ay, double Bx, double By)[steps + 1];
-        for (int i = 0; i <= steps; i++)
-        {
-            var (a, b) = AxeSwing.EdgeAt(look, from + AxeSwing.Through * i / steps);
-            edges[i] = (sx + hero.Facing * a.X * perPixel, sy + a.Y * perPixel, sx + hero.Facing * b.X * perPixel, sy + b.Y * perPixel);
-        }
-        return edges;
-    }
-
     /// <summary>How far past a creature's body its box is struck, in thousandths of a cell: its fur, and a tick's walk.</summary>
     private const int CreatureMargin = 400;
 
     /// <summary>The box creature <paramref name="c"/> is struck in, in thousandths of a cell: its body and a margin.</summary>
-    private static (int Left, int Top, int Right, int Bottom) BoxOf(Creature c)
+    internal static (int Left, int Top, int Right, int Bottom) BoxOf(Creature c)
     {
         var spec = Spec.Creatures.Get(c.Species);
         int half = spec.Body.Width * Hero.Unit / 2 + CreatureMargin;
         return (c.X - half, c.Y - spec.Body.Height * Hero.Unit - CreatureMargin, c.X + half, c.Y + CreatureMargin);
     }
 
-    /// <summary>
-    /// The creatures a swing of <paramref name="look"/>, the fire axe unless a test says, by <paramref name="hero"/> toward
-    /// <paramref name="at"/> touches as it strikes, in id order (0102): its edge, sampled down the downstroke's last stretch, against
-    /// each creature's body and a margin, wherever the hero stands.
-    /// </summary>
-    public static List<Creature> StruckCreatures(Registry m, Hero hero, Point at, HeldLook? look = null)
-    {
-        var struck = new List<Creature>();
-        var all = m.Creatures.Creatures;
-        if (all.Count == 0) return struck;
-        var edges = SwingEdges(hero, at, look ?? HeldLook.FireAxe);
-        foreach (var c in all)
-        {
-            var (left, top, right, bottom) = BoxOf(c);
-            if (edges.Any(e => Crosses(e, left, top, right, bottom))) struck.Add(c);
-        }
-        return struck;
-    }
-
-    /// <summary>
-    /// The creatures the bit of <paramref name="look"/>, the drill unless a test says, touches held by <paramref name="hero"/>
-    /// aimed at <paramref name="at"/> (0102), in id order: its bit, turned at the chest toward the point, against each creature's body
-    /// and a margin, wherever the hero stands.
-    /// </summary>
-    public static List<Creature> TouchedCreatures(Registry m, Hero hero, Point at, HeldLook? look = null)
-    {
-        var touched = new List<Creature>();
-        var all = m.Creatures.Creatures;
-        if (all.Count == 0) return touched;
-        var bit = BitOf(hero, at, look ?? HeldLook.Drill);
-        foreach (var c in all)
-        {
-            var (left, top, right, bottom) = BoxOf(c);
-            if (Crosses(bit, left, top, right, bottom)) touched.Add(c);
-        }
-        return touched;
-    }
-
     /// <summary>A strike with <paramref name="tool"/> on each of <paramref name="touched"/> the sim would let peer <paramref name="peer"/> make.</summary>
     public static List<Strike> StrikesOf(Registry m, int peer, IEnumerable<Creature> touched, string tool) =>
         touched.Where(c => m.Creatures.StrikeProblem(peer, c.Id, tool) == null).Select(c => new Strike(c.Id, tool)).ToList();
 
-    /// <summary>Whether the segment <paramref name="e"/> meets the box from (<paramref name="left"/>, <paramref name="top"/>) to (<paramref name="right"/>, <paramref name="bottom"/>): clipped to it, something is left.</summary>
-    private static bool Crosses((double Ax, double Ay, double Bx, double By) e, double left, double top, double right, double bottom) =>
-        Entered(e, left, top, right, bottom) != null;
-
-    /// <summary>How far along the segment <paramref name="e"/>, from 0 to 1, it enters the box, as <see cref="Crosses"/> clips it; none when it misses.</summary>
-    private static double? Entered((double Ax, double Ay, double Bx, double By) e, double left, double top, double right, double bottom)
+    /// <summary>How far along the segment <paramref name="e"/>, from 0 to 1, it enters the box, clipped to it; none when it misses.</summary>
+    internal static double? Entered((double Ax, double Ay, double Bx, double By) e, double left, double top, double right, double bottom)
     {
         double enter = 0, leave = 1, dx = e.Bx - e.Ax, dy = e.By - e.Ay;
         bool Clip(double toward, double room)
@@ -380,18 +399,9 @@ public static class Aiming
         return Clip(-dx, e.Ax - left) && Clip(dx, right - e.Ax) && Clip(-dy, e.Ay - top) && Clip(dy, bottom - e.Ay) ? enter : null;
     }
 
-    /// <summary>The bit of <paramref name="look"/> held by <paramref name="hero"/> aimed at <paramref name="at"/>, the arm turned at the shoulder, as the figure draws it.</summary>
-    private static (double Ax, double Ay, double Bx, double By) BitOf(Hero hero, Point at, HeldLook look)
-    {
-        double sx = hero.X, sy = hero.Y - ShoulderUp, perPixel = Hero.Unit / Rig.Cell;
-        double angle = HarpoonShot.ArmFor(look, (at.X - sx) * hero.Facing / perPixel, (at.Y - sy) / perPixel);
-        var (a, b) = AxeSwing.EdgeAt(look, angle);
-        return (sx + hero.Facing * a.X * perPixel, sy + a.Y * perPixel, sx + hero.Facing * b.X * perPixel, sy + b.Y * perPixel);
-    }
-
     /// <summary>
-    /// Where a tool's fan is cast from: <paramref name="hero"/>'s shoulder, the body upright, in thousandths of a cell. The sim
-    /// takes it on the client's word, among friends (0002).
+    /// <paramref name="hero"/>'s shoulder, the body upright, in thousandths of a cell: where a stroke and a thrown tool's line begin.
+    /// The sim takes what is sent from it on the client's word, among friends (0002).
     /// </summary>
     public static Point HandOf(Hero hero) => new(hero.X, hero.Y - ShoulderUp);
 
@@ -404,46 +414,14 @@ public static class Aiming
     }
 
     /// <summary>
-    /// The hit of <paramref name="tool"/> by <paramref name="hero"/> toward <paramref name="at"/>, in thousandths of a cell (the fan
-    /// of rays): from its hand (<see cref="HandOf"/>), with what the sim says it would strike; no wreck while the hero is
-    /// aboard.
-    /// </summary>
-    public static Fan FanOf(Registry m, Hero hero, Point at, string tool)
-    {
-        var hand = HandOf(hero);
-        int heading = HeadingOf(hand, at);
-        var ground = new Hew(tool, hand.X, hand.Y, heading);
-        var wrecks = new HewWrecks(tool, hand.X, hand.Y, heading);
-        bool outside = m.Rooms.RoomAt(hero.BodyCell(m.Grid.Width)) == RoomsModule.Space;
-        return new Fan(ground, m.Building.Struck(tool, hand.X, hand.Y, heading), wrecks,
-            outside ? m.Debris.Struck(tool, hand.X, hand.Y, heading) : []);
-    }
-
-    /// <summary>
-    /// The cell of <paramref name="fan"/>'s ground heard and seen as its strike's own: of the walls and plants it strikes, the one
-    /// nearest <paramref name="at"/>, the pointer; a plant by its own cell.
-    /// </summary>
-    public static int LeadOf(Fan fan, Point at, int width)
-    {
-        long Off(int cell)
-        {
-            long dx = cell % width * Hero.Unit + Hero.Unit / 2 - at.X, dy = cell / width * Hero.Unit + Hero.Unit / 2 - at.Y;
-            return dx * dx + dy * dy;
-        }
-        var cells = fan.Hewn.Cells.Concat(fan.Hewn.Plants.Select(p => p.Cell));
-        return cells.OrderBy(Off).ThenBy(c => c).First();
-    }
-
-    /// <summary>
     /// The first wreck, in spawn order, with <paramref name="point"/> on its picture, else the small piece
     /// of debris nearest it within <c>Debris.AimRadius</c>; none while the hero is aboard.
     /// </summary>
     private static Piece? PieceNear(Registry m, Hero hero, (double X, double Y) point, IReadOnlySet<int>? passOver)
     {
         if (m.Rooms.RoomAt(hero.BodyCell(m.Grid.Width)) != RoomsModule.Space) return null;
+        if (WreckAim.Under(m.Debris.Pieces, point) is { } wreck) return wreck;
         double px = point.X * DebrisModule.Unit, py = point.Y * DebrisModule.Unit;
-        foreach (var p in m.Debris.Pieces)
-            if (HalfOf(p.Item) is var (halfW, halfH) && Math.Abs(p.X - px) <= halfW && Math.Abs(p.Y - py) <= halfH) return p;
         Piece? nearest = null;
         double best = (double)Spec.Debris.AimRadius * Spec.Debris.AimRadius;
         foreach (var p in m.Debris.Pieces)
@@ -461,11 +439,17 @@ public static class Aiming
     {
         var grid = m.Grid;
         if (grid.MachineAt(cell) is { } tank && Stillwake.Content.Machines.Is(tank.Kind, Stillwake.Content.MachineTrait.Gas)) return new Use(new LoadCanister(tank.Id), m.Atmosphere.CanisterProblem(tank.Id, peer));
+        // A bottle is poured into a cistern; an electrolyser says to pipe it from one (water).
+        if (grid.MachineAt(cell) is { } watered && (Stillwake.Content.Machines.Is(watered.Kind, Stillwake.Content.MachineTrait.HoldsWater) || Stillwake.Content.Machines.Is(watered.Kind, Stillwake.Content.MachineTrait.Electrolyses)))
+            return new Use(new Sim.Water.PourWater(watered.Id), m.Water.PourProblem(watered.Id, peer));
+        // A debris net is emptied into the inventory, from outside or through the wall it hangs on (docs/decisions/2026-11-03-debris-net.md).
+        if (grid.MachineAt(cell) is { } net && Stillwake.Content.Machines.Is(net.Kind, Stillwake.Content.MachineTrait.Catches))
+            return new Use(new Collect(net.Id), m.Debris.CollectProblem(peer, net.Id));
         int structure = shown?.StructureAt(grid, cell) ?? grid.StructureAt(cell);
         bool? valve = shown?.ValveOpenAt(m.Pipes, cell) ?? m.Pipes.ValveAt(cell)?.Open;
         // A platform opens only with power (Landing): E on a dark one says why, as on an empty canister.
         if (Doorways.IsPlatform(structure)) return new Use(new SetPlatform(cell, Doorways.IsClosed(structure)), m.Landing.Problem(cell, Doorways.IsClosed(structure)));
-        if (Doorways.IsDoorway(structure)) return new Use(new SetDoor(cell, Doorways.IsClosed(structure)), null);
+        if (Doorways.IsDoorway(structure)) return new Use(new SetDoor(cell, Doorways.IsClosed(structure)), grid.DoorProblem(cell, Doorways.IsClosed(structure)));
         if (valve is bool open) return new Use(new Sim.Pipes.SetValve(cell, !open), null);
         return null;
     }
@@ -476,22 +460,30 @@ public static class Aiming
     /// pressed, unless the sim would refuse it. Held on a plan, it sends <paramref name="pace"/> <see cref="Work"/> (the
     /// screwdriver's) for every tick released since the last it sent for, so a peer drawing fewer frames than the ticks it
     /// runs builds as fast as any other; a hold just begun sends one tick's. A tick that begins a part of a blueprint pays
-    /// its item (0063). <paramref name="tick"/> is the client's world tick.
+    /// its item (0063). <paramref name="tick"/> is the client's world tick. With <paramref name="targets"/> (a square's,
+    /// <see cref="WorkTargets"/>), each that can be worked is worked so, in their order, in place of the aim's own work,
+    /// <paramref name="budget"/> ticks a tick at most over all of them (<see cref="SharesOf"/>),
+    /// the aim out of reach or not.
     /// </summary>
-    public static Uses UsesOf(Aim? aim, bool pressed, bool held, int tick, int workedOnTick, int pace = 1)
+    public static Uses UsesOf(Aim? aim, bool pressed, bool held, int tick, int workedOnTick, int pace = 1, IReadOnlyList<WorkAim>? targets = null,
+        int? budget = null)
     {
-        if (aim is not { InReach: true }) return new([], null, -1);
-        // A drop pod boarded opens with it; one the sim would refuse neither seats nor opens.
-        if (pressed && aim.Crate is int pod && aim.Press?.Command is Board) return aim.Press.Problem == null ? new([aim.Press.Command], pod, -1) : new([], null, -1);
-        if (pressed && aim.Crate is int crate) return new([], crate, -1);
         var commands = new List<Command>();
-        // A wreck is chopped by a swing of the axe (AxeSwing), never by a press; the ground dug so too (0077).
-        if (pressed && aim.Press is { Problem: null } press && press.Command is not (Hew or HewWrecks)) commands.Add(press.Command);
-        if (aim.Work is not { Problem: null } work || !held) return new(commands, null, -1);
+        if (aim is { InReach: true })
+        {
+            // A drop pod boarded opens with it; one the sim would refuse neither seats nor opens.
+            if (pressed && aim.Crate is int pod && aim.Press?.Command is Board) return aim.Press.Problem == null ? new([aim.Press.Command], pod, -1) : new([], null, -1);
+            if (pressed && aim.Crate is int crate) return new([], crate, -1);
+            if (pressed && aim.Press is { Problem: null } press) commands.Add(press.Command);
+        }
+        var work = (targets ?? (aim is { InReach: true, Work: { } own } ? [own] : [])).Where(t => t.Problem == null).ToList();
+        if (work.Count == 0 || !held) return new(commands, null, -1);
         // A hold just begun sends one; so does a load that took the world's tick back.
         bool fresh = workedOnTick < 0 || tick < workedOnTick;
         int due = fresh ? 1 : Math.Min(tick - workedOnTick, MaxWorkPerFrame);
-        for (int i = 0; i < due * pace; i++) commands.Add(work.Repair is int machine ? new Repair(machine) : new Work(work.Plan));
+        var shares = SharesOf(work.Count, pace, budget ?? pace * work.Count);
+        for (int t = 0; t < work.Count; t++)
+            for (int i = 0; i < due * shares[t]; i++) commands.Add(work[t].Repair is int machine ? new Repair(machine) : new Work(work[t].Plan));
         return new(commands, null, due > 0 ? tick : workedOnTick);
     }
 }

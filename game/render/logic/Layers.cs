@@ -11,6 +11,9 @@ public static class Layers
     /// <summary>Debris drifting past behind the hull (debris).</summary>
     public const int Debris = -20;
 
+    /// <summary>A trade station's capsule going off behind the hull (research, 2026-10-30-trade-capsule).</summary>
+    public const int Capsules = -15;
+
     // What runs behind the ship's structure: back walls, pipes and their valves, cables (grid's and power's behind).
     public const int BackWalls = -11, Pipes = -6, Valves = -5, Cables = -4;
 
@@ -29,6 +32,9 @@ public static class Layers
 
     public const int Walls = 0, Edges = 1, Fixtures = 2, Doors = 3, Machines = 4, Sockets = 5;
 
+    /// <summary>A pile's cracks (pile-crack-net): over its picture, behind the heroes who climb it, unlike a wall's (<see cref="Dug"/>).</summary>
+    public const int PileCracks = Sockets;
+
     /// <summary>A planet's lava (grid): glowing over its own tiles and their edges, after the caves' tint, which leaves it its colour.</summary>
     public const int Lava = Fixtures;
 
@@ -37,6 +43,12 @@ public static class Layers
 
     /// <summary>A screen or a lamp on a machine's face beside its socket: a station's (research), a tank's sight glass (atmosphere).</summary>
     public const int Screens = Sockets;
+
+    /// <summary>
+    /// A debris net's pieces over its booms (the machine's picture), its plates on the hull's face with them, then the net in front of
+    /// them (debris).
+    /// </summary>
+    public const int NetHeld = Sockets, NetFront = Fittings;
 
     /// <summary>Grommets, pegs and plugs on the wall's face, then the bolts over machines short of power (power).</summary>
     public const int Fittings = 6, Bolts = 7;
@@ -50,41 +62,54 @@ public static class Layers
     /// <summary>Creatures (creatures, 0102): with the stacks, under the heroes and what they hold.</summary>
     public const int Creatures = FloorItems;
 
-    /// <summary>Fire in a furnace's mouth, under a hero standing before it (furnace).</summary>
-    public const int Fire = 10;
-
     /// <summary>
-    /// Heat shimmer (0075), with the fire: one copy of the screen, then every shimmer, then the flames. After the
-    /// world, before the aim's outline, the plans and every mark, which it must never copy.
+    /// Heat shimmer (0075): one copy of the screen, then every shimmer, all at this z. After the world, before the flames, the
+    /// aim's outline, the plans and every mark, which it must never copy: sharing a z, tree order would decide, and a flame
+    /// drawn before a later fire's shimmer was wiped by it.
     /// </summary>
-    public const int Shimmer = Fire;
+    public const int Shimmer = 10;
+
+    /// <summary>Fire in a furnace's mouth, its haze and embers, over every shimmer, under a hero standing before it (furnace).</summary>
+    public const int Fire = 11;
+
+    // The plan (building): blueprints and their marks and bars, over the world and under the heroes, who stand before them (driver-order).
+    public const int Plans = 12, PlanMarks = 13;
 
     // The crew: what E would work outlined, every tether, others' heroes, then this machine's.
-    public const int Aim = 11, Tethers = 12, OtherHeroes = 13, Hero = 14;
+    public const int Aim = 14, Tethers = 15, OtherHeroes = 16, Hero = 17;
 
     /// <summary>Drones flying with what they carry, over the heroes they pass (logistics, 0062).</summary>
-    public const int Drones = 15;
+    public const int Drones = 18;
+
+    /// <summary>A capback's gas and its glob flying (lurker-attacks), over the creatures and the heroes in it.</summary>
+    public const int Gas = Drones;
+
+    /// <summary>Water in a planet's cells (liquids): over the heroes, so one in it is seen through it.</summary>
+    public const int Water = 18;
 
     /// <summary>
     /// The ground a hero digs at (0077): its cracks and the aim's outline round it, over every hero and the tool in its hands,
     /// so a drill held close never hides what it bites.
     /// </summary>
-    public const int Dug = 15;
+    public const int Dug = 18;
 
     /// <summary>
     /// The tufts and chips of a planet's living edge laid before the heroes' feet (0082), thin enough that boots stand on the ground,
     /// not in it; with the cracks, which lie in the cell below.
     /// </summary>
-    public const int GroundFront = 15;
+    public const int GroundFront = 18;
 
     /// <summary>A lit lamp's glow, over what it lights (light).</summary>
-    public const int Glows = 16;
+    public const int Glows = 19;
 
     /// <summary>A venting room's pulse (atmosphere).</summary>
-    public const int Pulse = 17;
+    public const int Pulse = 20;
 
-    // The plan (building): blueprints, their marks and bars, the ghost of a drag, the hands at work.
-    public const int Plans = 19, PlanMarks = 20, PlanGhost = 21, PlanHands = 22;
+    // The plan (building): the ghost of a drag and the hands at work, over the heroes.
+    public const int PlanGhost = 21, PlanHands = 22;
+
+    /// <summary>The power driver's square, over the pale ghosts of the plans it works, else lost under them (driver-square).</summary>
+    public const int SquareAim = PlanMarks;
 
     /// <summary>Dust, sparks, embers and air over everything in the world, plans included (effects).</summary>
     public const int Effects = 23;
@@ -112,8 +137,17 @@ public static class ScreenLayers
     /// <summary>A magnetic flare's white flash over the world, with the frost, under all that is read (<c>Features.Hazards.AuroraView</c>).</summary>
     public const int FlareFlash = Frost;
 
+    /// <summary>A low suit's fogged visor (<c>Features.Crew.VisorFogView</c>), over the world and the frost it blurs, under all that is read (2026-11-05-the-last-breath).</summary>
+    public const int VisorFog = 3;
+
+    /// <summary>A hurt's wash at the screen's edges (<c>Features.Crew.HurtView</c>), with the visor's fog, under all that is read (2026-11-08-hurts-are-shown).</summary>
+    public const int Hurt = VisorFog;
+
     /// <summary>The top of the screen: the suit's gauge, the hotbar, the inventory and crafts, pick-ups over a head.</summary>
-    public const int Hud = 3;
+    public const int Hud = 4;
+
+    /// <summary>The last breath's tunnel (<c>Features.Crew.TunnelView</c>), over the HUD it blurs, under the bars (2026-11-05-the-last-breath).</summary>
+    public const int LastBreath = 5;
 
     /// <summary>The bottom of the screen: the build menu, the prompt for E, the overlays' bar.</summary>
     public const int Bars = 10;
@@ -121,11 +155,14 @@ public static class ScreenLayers
     /// <summary>The Handbook's window (0066), over the HUD and the bars, under the dev panel and the menu.</summary>
     public const int Handbook = 11;
 
+    /// <summary>The tablet's top edge and its keys (<c>Shared.TabletEdge</c>), over every tablet, whose top they ride on.</summary>
+    public const int TabletEdge = 12;
+
     /// <summary>The dev panel, then the game menu over it all.</summary>
-    public const int Dev = 12, Menu = 20;
+    public const int Dev = 13, Menu = 20;
 
     /// <summary>A drop pod's flight whiting out the screen (<c>Features.Landing.FlightOverlay</c>): over the HUD and the dev panel, under the menu.</summary>
-    public const int Flight = 13;
+    public const int Flight = 14;
 
     /// <summary>The title's scene, under its words and over all else, so nothing of the game behind shows (2026-10-25-title-scene).</summary>
     public const int TitleScene = 19;

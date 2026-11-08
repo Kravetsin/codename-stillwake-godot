@@ -41,6 +41,18 @@ public class MotorTests
     }
 
     [Fact]
+    public void AToolIsFlatWhenTheBeltCannotPayATickOfItsDrawOrHasNoBattery()
+    {
+        Assert.False(Motor.Flat(Holding(Tick).M.Items, 0, Drill));
+        Assert.True(Motor.Flat(Holding(Tick - 1).M.Items, 0, Drill));
+        Assert.True(Motor.Flat(Holding(null).M.Items, 0, Drill));
+        // Nothing electric in the hand is never flat; in creative mode nothing is paid.
+        Assert.False(Motor.Flat(Holding(null).M.Items, 0, "fireAxe"));
+        Assert.False(Motor.Flat(Holding(null).M.Items, 0, null));
+        Assert.False(Motor.Flat(Holding(null).Step(new SetCreative(true)).M.Items, 0, Drill));
+    }
+
+    [Fact]
     public void SaysRunOnForWhatItWantsAndOffForWhatTheSimRunsWhileTheyDiffer()
     {
         var w = Holding(100 * Tick);

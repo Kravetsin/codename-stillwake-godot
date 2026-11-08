@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using Stillwake.Game.Shared;
@@ -17,6 +18,9 @@ namespace Stillwake.Game.Features.Items;
 public sealed record Reading(
     IReadOnlyList<Stack?> Inventory, IReadOnlyList<Stack?>? Crate, bool Creative, string? Kind)
 {
+    /// <summary>Whether a slot of the hero's is open yet (2026-10-30-room-upgrades): a shift never sends a stack to one that is not.</summary>
+    public Func<Place, bool>? Open { get; init; }
+
     /// <summary>What the slot at <paramref name="place"/> shows: null when empty or not shown.</summary>
     public Stack? At(Place place)
     {
@@ -57,12 +61,13 @@ public sealed record Reading(
     /// <summary>
     /// The mark whose faint ghost slot <paramref name="slot"/> of a <paramref name="kind"/> shows while empty (0097): a fed
     /// station's input what it does (the furnace's and the smelter's crucible, the grow capsule's sprout), a fire's fuel slot
-    /// the flame, a charging station's a battery, a drone bay's a drone; none for any other slot.
+    /// the flame, a charging station's a battery, a drone bay's a drone and its fuel slot a canister; none for any other slot.
     /// </summary>
     public static SlotMark GhostOf(string kind, int slot)
     {
         if (!Content.Machines.TryGet(kind, out var spec)) return SlotMark.None;
         if (spec.FuelSlot == slot) return SlotMark.Burns;
+        if (spec.SlotTakes?.Slot == slot) return SlotMark.Breathes;
         if (Content.Stations.TryGet(kind, out var station) && station.Fed && slot < (spec.Inputs ?? 0))
             return station.Process == "grow" ? SlotMark.Grows : SlotMark.Smelts;
         if (spec.Is(Content.MachineTrait.Zone)) return SlotMark.Docks;
@@ -73,14 +78,15 @@ public sealed record Reading(
     /// <summary>
     /// Whether <paramref name="item"/>, carried, lights the ghost <paramref name="ghost"/> of the open machine's empty slot:
     /// what wears that mark in the bag with it open, what the fire burns, what holds a
-    /// charge, a drone.
+    /// charge, either kind of drone, the one item a slot of the open machine holds.
     /// </summary>
     public bool Lights(SlotMark ghost, string item) => ghost switch
     {
         SlotMark.Smelts or SlotMark.Grows => Kind != null && Content.Stations.TryGet(Kind, out var station) && station.Fed && CraftingModule.Processes(station, item),
         SlotMark.Burns => Content.Items.Get(item).BurnTicks != null,
         SlotMark.Charges => Content.Items.Get(item).Capacity != null,
-        SlotMark.Docks => item == Content.Logistics.Drone,
+        SlotMark.Docks => item == Content.Logistics.Drone || item == Content.Logistics.SalvageDrone,
+        SlotMark.Breathes => Kind != null && Content.Machines.TryGet(Kind, out var machine) && machine.SlotTakes?.Item == item,
         _ => false,
     };
 
@@ -133,11 +139,13 @@ public sealed record Reading(
     /// Peer <paramref name="peer"/>'s inventory and crate <paramref name="crate"/> as its commands in flight,
     /// <paramref name="inFlight"/>, will leave them.
     /// </summary>
+    /// <summary>The own commands in flight that move stacks, which <see cref="IItemsQueries.AfterMoves"/> folds (0014).</summary>
+    public static List<Command> Moves(IReadOnlyList<Command> inFlight) => [.. inFlight.Where(c => c is Move or Drop or Sort or Stash)];
+
     public static Reading Of(
         int peer, IReadOnlyList<Command> inFlight, IItemsQueries items, IGridQueries grid, int? crate)
     {
-        var moves = inFlight.Where(c => c is Move or Drop or Sort).ToList();
-        var shown = items.AfterMoves(peer, moves);
+        var shown = items.AfterMoves(peer, Moves(inFlight));
         IReadOnlyList<Stack?>? slots = null;
         string? kind = null;
         if (crate is int id)
@@ -149,7 +157,7 @@ public sealed record Reading(
         bool tunes = kind != null && Content.Machines.TryGet(kind, out var spec) && spec.Tunes;
         IReadOnlyList<string> modules = tunes ? slots is { Count: > 0 } && slots[0]?.Module is { } on ? [on] : [] : crate is int open ? items.FittedTo(open) : [];
         (var inventory, slots, var fitted) = Fitting(shown.Inventory, slots, modules, inFlight, crate, tunes);
-        return new Reading(inventory, slots, items.Creative, kind) { Fitted = fitted };
+        return new Reading(inventory, slots, items.Creative(peer), kind) { Fitted = fitted, Open = p => items.SlotOpen(peer, p) };
     }
 
     /// <summary>

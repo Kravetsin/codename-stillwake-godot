@@ -60,6 +60,22 @@ public class SurfacesTests
 
     // Slice 1: routing.
 
+    /// <summary>The tablet buys from anywhere (2026-10-30-tablet-tree): off the ship too, the world's credits spent.</summary>
+    [Fact]
+    public void BuysFromAnotherSurface()
+    {
+        var w = new Scenario(Layout.Parse(Ship.Split('\n')) with { Known = Content.Research.StartKnown }, doubled: true);
+        w.Do(new Enter(w.M.Crew.Spawn)).Do(new OpenSurface(Strip)).Run();
+        w.M.Knowledge.Earn(100_000);
+        var surface = w.World.Surfaces[^1].Id;
+        w.Do(new Transfer(surface)).Run();
+        Assert.Equal(surface, w.World.SurfaceOf(0));
+        var block = Content.Research.Nodes.First(n => !n.Gate && n.Needs.Length == 0);
+        w.Do(new Stillwake.Sim.Research.BuyBlock(block.Id)).Run();
+        Assert.Empty(w.Refusals);
+        Assert.Equal(100_000 - Stillwake.Sim.Research.Prices.Of(block), w.M.Knowledge.Credits);
+    }
+
     [Fact]
     public void AWorldIsTheShipAloneWithEveryPeerOnIt()
     {
@@ -156,10 +172,10 @@ public class SurfacesTests
     {
         var w = new Scenario(Ship);
         w.Do(new SetCreative(true)).Do(new Building.SetInstant(true)).Do(new OpenSurface(Strip)).Run();
-        Assert.True(w.On(1).Items.Creative);
+        Assert.True(w.On(1).Items.Creative(0));
         Assert.True(w.On(1).Building.Instant);
         w.Do(new SetCreative(false)).Do(new Building.SetInstant(false)).Do(new OpenSurface(Strip)).Run();
-        Assert.False(w.On(2).Items.Creative);
+        Assert.False(w.On(2).Items.Creative(0));
         Assert.False(w.On(2).Building.Instant);
     }
 
@@ -179,7 +195,7 @@ public class SurfacesTests
         w.Run();
         Assert.Equal([Surface.Ship, Content.Landing.Planet], w.World.Surfaces.Select(s => s.Kind));
         Assert.Equal(id, w.World.SurfaceOf(0));
-        Assert.True(w.On(id).Items.Creative);
+        Assert.True(w.On(id).Items.Creative(0));
     }
 
     [Fact]
@@ -249,11 +265,13 @@ public class SurfacesTests
         var w = Opened().GiveItems(0, ("scrap", 9), (Content.Weapons.Axe.Item, 1));
         w.Do(new Transfer(1)).Run();
         var m = w.On(1);
-        // Up in the sky, its suit all but empty: the next breath its thin air makes it pay passes it out.
+        // Up in the sky, its suit all but empty: the next breath its thin air makes it pay starts its last
+        // breath, which passes it out.
         int sky = 10 * StripWidth + 28;
         w.Do(new Enter(sky) { Surface = 1 }).Run();
         m.Crew.HeroOf(0)!.Air = 1;
         w.Run(Content.Surfaces.TestStrip.ThinAir!.Value * Content.Crew.BreathEvery);
+        w.Run(Content.Crew.LastBreath);
         Assert.True(m.Crew.HeroOf(0)!.Out > 0);
         var body = Assert.Single(m.Items.Floor);
         Assert.Equal(("scrap", 9, 0), (body.Item, body.Count, body.Body!.Peer));
@@ -348,9 +366,12 @@ public class SurfacesTests
             }
             var copy = World.Load(world.Save(), new Registry().All);
             int to = (world.SurfaceOf(t.peer) + 1) % world.Surfaces.Count;
+            // One waking this very tick wakes aboard, wherever it just went (0076).
+            bool waking = Registry.On(world, world.SurfaceOf(t.peer)).Crew.HeroOf(t.peer)?.Out == 1;
+            int lands = waking ? 0 : to;
             world.Step([new Transfer(to) { From = t.peer }]);
             copy.Step([]);
-            return (Totals(world).SequenceEqual(Totals(copy)) && world.SurfaceOf(t.peer) == to).Label($"to {to}: {string.Join(",", Totals(world))} against {string.Join(",", Totals(copy))}");
+            return (Totals(world).SequenceEqual(Totals(copy)) && world.SurfaceOf(t.peer) == lands).Label($"to {to}, on {world.SurfaceOf(t.peer)}: {string.Join(",", Totals(world))} against {string.Join(",", Totals(copy))}");
         });
     }
 

@@ -4,13 +4,13 @@
 
 | File | Purpose |
 | --- | --- |
-| `Landing.cs` | The launch platform opened and shut with power; the drop pod boarded, left, flown down to the planet and back. |
+| `Landing.cs` | The launch platform opened and shut with power; the drop pod boarded, left, flown down to the planet and back; the treadmill wheel rested. |
 
 The launch platform (ADR `2026-10-24-the-launch-platform`), the drop pod (ADR `2026-10-25-the-drop-pod`) and its descent and
 return (ADR `2026-10-26-the-descent`); later the landers that drop with it.
 
 - **Depends on:** `Grid` (`IGridQueries`: the platform cells and the pods; `IGridOps`: opening a run, a pod lifted and placed),
-  `Power` (`IPowerQueries.Feeds`: whether a run has power enough), `Crew` (`ICrewQueries`: whether a hero is here and awake,
+  `Power` (`IPowerQueries.Feeds`: whether a run has power enough; `IPowerOps.Rest`: a wheel no one runs), `Crew` (`ICrewQueries`: whether a hero is here, awake and exerting,
   the spawn), `Items` (the pod's slot: fuel burnt, its load lifted, put back or laid).
 - **State** (`LandingState`, saved): `Seats` — `Seat(Pod, Peer)` by pod id; `Flights` — `Flight(Peer, Up, TicksLeft, Home,
   Floor, Load)` by peer, in the slice of the surface the pod left; `Owners` — `Owner(Pod, Peer, Home)` by pod id, the pods
@@ -27,7 +27,10 @@ return (ADR `2026-10-26-the-descent`); later the landers that drop with it.
 - **The drop pod** (`dropPod`, `Seats` and `Lands`): aboard only on a platform (`grid.noPlatform`), off the ship only on
   solid ground, where only this module places one (`grid.noGround`). `Board(pod)` seats the sender's hero; `Alight` takes it
   out. Its one slot takes biofuel only, by hand.
-- A seat holds while its pod stands and its hero is here and awake.
+- A seat holds while its machine stands and its hero is here and awake.
+- **The treadmill wheel** (`treadWheel`, `Seats` without `Lands`, power chain ADR): boarded and left as a pod is, anywhere,
+  by anyone. Each construction, after Building, Landing rests (`IPowerOps.Rest`) every seated maker but while its rider is
+  here, awake and exerting (`Turning`): it makes from that tick. `Launch` from it is `landing.notSeated`.
 - **`Launch`** flies the sender's pod: from the ship down, burning `Content.Landing.DescentFuel` biofuel and opening its run
   under it; from anywhere else back to its home aboard, free. Its machine and seat go; its slot's stack flies as its load.
   A hero gone or out on the tick it launches launches nothing (its seat lasts till derivation); a flying hero boards none.
@@ -52,9 +55,9 @@ return (ADR `2026-10-26-the-descent`); later the landers that drop with it.
 
 - **Queries:** `Problem(cell, open)`, `Powered(cell)`, `RunOf(grid, cell)` (static); `BoardProblem(peer, pod)`,
   `LaunchProblem(peer)` — what the pod's panel greys its button with; `SeatOf(peer)`, `RiderOf(pod)`, `Seats`;
-  `FlightOf(peer)`; `Returns` — the key's Return; `FloorOf(cell, width)` (static) — where a pod's rider sits.
+  `FlightOf(peer)`; `Returns` — the key's Return; `FloorOf(kind, cell, width)` (static) — where a seat's rider sits; `Turning(machine)`.
 - **Commands:** `SetPlatform(cell, open)` — `landing.noPlatform`, `landing.unpowered`. `Board(pod)` — `landing.noPod`,
-  `landing.seated` (in a pod or flying), `landing.taken`, `landing.notYours`. `Alight` — `landing.notSeated`. `Launch` — `landing.notSeated`;
+  `landing.seated` (in a pod or flying), `landing.taken`, `landing.notYours`. `Alight` — `landing.notSeated`. `Launch` — `landing.notSeated` (in no pod);
   aboard `landing.noPlatform`, `landing.shaftBlocked` (anything solid under its run to the edge, from an older save),
   `landing.unpowered`, `landing.noFuel`, `landing.cannotLeave` (a world that cannot open
   surfaces); off the ship `landing.notYours` (another's pod, or one nobody came down in).

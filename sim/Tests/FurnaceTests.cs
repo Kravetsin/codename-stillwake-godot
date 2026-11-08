@@ -26,7 +26,6 @@ public class FurnaceTests
     private static Command[] Breach() => [.. Hole.Select(c => new ClearAt(c, "structure"))];
     private static Command[] Seal() => [.. Hole.Select(c => new Place(c, Grid.Placement.Wall()))];
     private static readonly int FurnaceAt = At(1, 1);
-    private static readonly int Tank = At(4, 1);
     private static readonly int Fuel = Content.Machines.Get("furnace").FuelSlot!.Value;
     private static readonly Content.ItemSpec Chunk = ItemSpecs.Get("scrapChunk");
     private static readonly Content.ItemSpec Plank = ItemSpecs.Get("planks");
@@ -36,14 +35,15 @@ public class FurnaceTests
     /// <summary>The world, its room aired, a peer 0 carrying <paramref name="carry"/>, and the furnace's machine id.</summary>
     private static (Scenario W, int Id) SetUp(params (string Item, int Count)[] carry)
     {
-        var w = new Scenario(Layout.Parse(Rows, Under), doubled: true)
+        var w = new Scenario(AirTesting.Vaporized(Rows, Under), doubled: true)
             .GiveItems(0, carry.Length > 0 ? carry : [("scrapChunk", 2), ("planks", 2)]);
         for (int i = 0; i < 2000 && !w.M.Atmosphere.AiredAt(FurnaceAt); i++) w.Run();
         Assert.True(w.M.Atmosphere.AiredAt(FurnaceAt));
         return (w, w.M.Grid.MachineAt(FurnaceAt)?.Id ?? 0);
     }
 
-    private static int TankOxygen(Scenario w) => w.M.Atmosphere.OxygenIn(w.M.Grid.MachineAt(Tank)?.Id ?? 0);
+    /// <summary>The oxygen the chain holds: the tank's liquid and the vaporizer's gas (liquid-oxygen).</summary>
+    private static int TankOxygen(Scenario w) => w.M.Grid.Machines.Sum(m => w.M.Atmosphere.OxygenIn(m.Id));
 
     /// <summary>Moves <paramref name="count"/> of the first stack peer 0 holds of <paramref name="item"/> into slot <paramref name="slot"/> of furnace <paramref name="id"/>.</summary>
     private static Scenario Put(Scenario w, int id, string item, int slot, int count = 1)
@@ -109,24 +109,31 @@ public class FurnaceTests
         Assert.Equal(new Smelting(true), w.M.Furnace.At(id));
     }
 
-    /// <summary>A grazer's fat (Creatures) both ways: in the input it smelts into biofuel as biomass does, in the fuel slot it burns twice a plank.</summary>
+    /// <summary>
+    /// A grazer's fat (Creatures) in the fuel slot burns twice a plank; in the input it sits unworked, lighting nothing, for it
+    /// ferments into biofuel at the fermenter only (power-chain, FermenterTests).
+    /// </summary>
     [Fact]
-    public void FatSmeltsIntoBiofuelOnAFireOfFatAndBurnsTwiceAPlank()
+    public void FatBurnsTwiceAPlankAndInTheInputLightsNothing()
     {
         var fat = ItemSpecs.Get("fat");
         Assert.Equal(2 * Plank.BurnTicks, fat.BurnTicks);
-        var (w, id) = SetUp(("fat", 3));
+        var (w, id) = SetUp(("fat", 3), ("scrapChunk", 1));
         Put(w, id, "fat", Fuel);
-        Put(w, id, "fat", 0, 2);
-        Assert.Equal(new Smelting(true, "fat", 0, fat.SmeltTicks!.Value * 1000), w.M.Furnace.At(id));
-        w.Run(2 * fat.SmeltTicks!.Value);
-        Assert.Null(w.M.Items.Crate(id)[0]);
-        Assert.Equal(new Stack("biofuel", 2), w.M.Items.Crate(id)[2]);
-        Assert.Empty(w.Refusals);
-        // One fat smelted both and burns on, out only once its own burning is done.
-        Assert.Equal(0, FuelOf(w, id));
-        w.Run(fat.BurnTicks!.Value - 2 * fat.SmeltTicks!.Value - 1);
+        Put(w, id, "fat", 0, 2).Run(20);
         Assert.Equal(new Smelting(false), w.M.Furnace.At(id));
+        Assert.Equal((2, 1), (w.M.Items.Crate(id)[0]?.Count, FuelOf(w, id)));
+        // Taken out and a chunk put in, the fat in the fuel slot lights and burns twice a plank's time.
+        int free = w.M.Items.Inventory(0).ToList().FindIndex(s => s == null);
+        w.Do(new Move(new Items.Place(0, id), new Items.Place(free), 2)).Run();
+        Put(w, id, "scrapChunk", 0);
+        Assert.True(w.M.Furnace.At(id).Burning);
+        Assert.Equal(0, FuelOf(w, id));
+        w.Run(fat.BurnTicks!.Value - 2);
+        Assert.True(w.M.Furnace.At(id).Burning);
+        w.Run(2);
+        Assert.Equal(new Smelting(false), w.M.Furnace.At(id));
+        Assert.Empty(w.Refusals);
     }
 
     [Fact]

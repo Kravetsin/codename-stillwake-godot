@@ -1,6 +1,5 @@
 using System.Reflection;
 using Stillwake.Content;
-using Stillwake.Game;
 using Xunit;
 using DebrisSpec = Stillwake.Content.Debris;
 
@@ -10,14 +9,13 @@ namespace Stillwake.Sim.Tests;
 public partial class ContentTests
 {
     [Fact]
-    public void TheAxeIsAToolCraftedAtThePodKnownFromTheStartThatHitsAndSwingsInWholeUnits()
+    public void TheAxeIsAToolCraftedAtThePodThatHitsAndSwingsInWholeUnits()
     {
         Assert.True(Weapons.Axe.Damage > 0);
         Assert.True(Weapons.Axe.Pace > 0);
         Assert.True(Content.Items.TryGet(Weapons.Axe.Item, out var axe));
         Assert.Equal(1, axe!.Stack);
         Assert.True(Crafts.TryGet(Weapons.Axe.Item, out _));
-        Assert.Contains(Weapons.Axe.Item, Content.Research.StartKnown);
     }
 
     [Fact]
@@ -61,12 +59,12 @@ public partial class ContentTests
         Assert.Equal(10, Weapons.Drill.Damage * 20 / Weapons.Drill.Pace);
         Assert.Equal((40, 8), (Weapons.Drill.BlockDamage * 20 / Weapons.Drill.Pace, Weapons.Axe.BlockDamage * 20 / Weapons.Axe.Pace));
         Assert.Equal(4, Weapons.Axe.Damage * 20 / Weapons.Axe.Pace);
-        // Electric: it draws every tick it runs (0055), so a full battery runs it 600 ticks, 30 s.
+        // Electric: it draws every tick it runs (0055), so a full battery runs it 1800 ticks, 90 s (lighter-tools).
         int draw = Content.Items.Get(Weapons.Drill.Item).Draw!.Value;
-        Assert.Equal(3, draw);
-        Assert.Equal(600, Charge.Battery / Charge.Scale / draw);
-        // The arc module in it (0098): twice the damage, 20 a second, for twice the draw, 300 ticks of a battery.
-        Assert.Equal((20, 6), (Sim.Items.Boost.Gain(Weapons.Drill.Damage, Modules.Arc.Adds(Weapons.Drill.Item, Stat.Damage)) * 20 / Weapons.Drill.Pace, Sim.Items.Boost.Cost(draw, Modules.Arc.Adds(Weapons.Drill.Item, Stat.Draw))));
+        Assert.Equal(1, draw);
+        Assert.Equal(1800, Charge.Battery / Charge.Scale / draw);
+        // The arc module in it (0098): twice the damage, 20 a second, for twice the draw, 900 ticks of a battery.
+        Assert.Equal((20, 2), (Sim.Items.Boost.Gain(Weapons.Drill.Damage, Modules.Arc.Adds(Weapons.Drill.Item, Stat.Damage)) * 20 / Weapons.Drill.Pace, Sim.Items.Boost.Cost(draw, Modules.Arc.Adds(Weapons.Drill.Item, Stat.Draw))));
         Assert.Null(Content.Items.Get(Weapons.Axe.Item).Draw);
         Assert.Equal(["frame", "rotor", "coil", "gear", "tube", "circuit"], Crafts.Get(Weapons.Drill.Item).Cost.Select(c => c.Item));
         Assert.DoesNotContain(Weapons.Drill.Item, Content.Research.StartKnown);
@@ -102,12 +100,12 @@ public partial class ContentTests
     }
 
     [Fact]
-    public void TheHarpoonIsAToolOfOneCraftedAtThePodAndBoughtInTheTree()
+    public void TheHarpoonIsAToolOfOneCraftedAtThePodAndNotKnownAtTheStart()
     {
         Assert.True(Content.Items.TryGet(Harpoon.Item, out var harpoon));
         Assert.Equal(1, harpoon!.Stack);
         Assert.True(Crafts.TryGet(Harpoon.Item, out var craft));
-        Assert.Equal([("tube", 1), ("coil", 1), ("wire", 4)], craft!.Cost);
+        Assert.Equal([("tube", 1), ("wire", 8)], craft!.Cost);
         Assert.DoesNotContain(Harpoon.Item, Content.Research.StartKnown);
     }
 
@@ -139,11 +137,12 @@ public partial class ContentTests
                 Assert.NotEmpty(on.Effects);
                 foreach (var host in on.Hosts)
                 {
-                    // Its hosts draw power: electric machines, by kind, or electric weapons, by item (0098).
+                    // Its hosts: electric machines, by kind, or weapons, by item (0098); a weapon with no draw takes no draw trade (salvage tools).
                     bool weapon = Weapons.Of(host) != null;
                     if (weapon)
                     {
-                        Assert.True(Content.Items.Get(host) is { Draw: not null, Stack: 1 }, $"{module.Item} fits {host}");
+                        var tool = Content.Items.Get(host);
+                        Assert.True(tool.Stack == 1 && (tool.Draw != null || on.Effects.Cast<Content.Trade>().All(t => t.Stat == Stat.Damage)), $"{module.Item} fits {host}");
                         Assert.False(Machines.TryGet(host, out _), host);
                     }
                     else
@@ -178,9 +177,11 @@ public partial class ContentTests
     {
         (int, int, int, int) Adds(string host) =>
             (Modules.Arc.Adds(host, Stat.Speed), Modules.Arc.Adds(host, Stat.Draw), Modules.Arc.Adds(host, Stat.Damage), Modules.Arc.Adds(host, Stat.Heat));
-        Assert.Equal(["smelter", "former", "assembler", "drill", "charger"], Modules.Arc.Hosts);
-        foreach (var station in new[] { "smelter", "former", "assembler" }) Assert.Equal((1000, 1000, 0, 0), Adds(station));
+        Assert.Equal(["smelter", "crusher", "former", "assembler", "drill", "grinder", "spear", "charger"], Modules.Arc.Hosts);
+        foreach (var station in new[] { "smelter", "crusher", "former", "assembler" }) Assert.Equal((1000, 1000, 0, 0), Adds(station));
         Assert.Equal((0, 1000, 1000, 0), Adds(Weapons.Drill.Item));
+        Assert.Equal((0, 1000, 1000, 0), Adds(Weapons.Grinder.Item));
+        Assert.Equal((0, 0, 1000, 0), Adds(Weapons.Spear.Item));
         Assert.Equal((0, 4000, 0, 0), Adds("charger"));
         Assert.Equal((0, 0, 0, 0), Adds(Content.Logistics.Bay));
         int draws = Machines.Get("charger").Draws!.Value, fitted = Sim.Items.Boost.Cost(draws, Modules.Arc.Adds("charger", Stat.Draw));

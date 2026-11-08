@@ -12,6 +12,9 @@ public static class Back
 
 public sealed record Machine(int Id, string Kind, int Cell);
 
+/// <summary>A doorway still moving: its first <c>Cell</c>, the ticks <c>Left</c> before it takes another toggle.</summary>
+public sealed record DoorSwing(int Cell, int Left);
+
 /// <summary>What may be put in a cell: a layer, a kind, and a material for walls and back walls.</summary>
 public sealed record Placement(string Layer, string Kind, string? Material = null)
 {
@@ -36,6 +39,11 @@ public sealed class GridState
     /// <summary>Every machine, in id order: ids only grow, and a new one goes last.</summary>
     [JsonInclude] internal List<Machine> Machines { get; set; } = [];
     [JsonInclude] internal int NextMachineId { get; set; } = 1;
+    /// <summary>The doorways still moving from their last toggle, in the order toggled (2026-11-04-door-swing).</summary>
+    [JsonIgnore] internal List<DoorSwing> Swings { get; set; } = [];
+    /// <summary>The swings as saved: none written while no door moves, so a still ship saves as before.</summary>
+    [JsonInclude, JsonPropertyName("swings"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    internal List<DoorSwing>? SavedSwings { get => Swings.Count > 0 ? Swings : null; set => Swings = value ?? []; }
     /// <summary>The box a vessel was written into (generated-vessels): no one builds in it; null for none.</summary>
     [JsonInclude, JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] internal Box? Reserved { get; set; }
     /// <summary>Derived: the id of the machine covering each cell, 0 for none.</summary>
@@ -100,6 +108,8 @@ public interface IGridQueries
     bool BlocksLight(int cell);
     /// <summary>Whether <paramref name="cell"/> is stood on or stopped at: it blocks or supports; past the grid, it is.</summary>
     bool Solid(int cell);
+    /// <summary>Whether a standing machine may stand on <paramref name="cell"/> (<see cref="Structures.Footing"/>); past the grid, not.</summary>
+    bool Footing(int cell);
     /// <summary>What the wall at <paramref name="cell"/> is made of; null for no wall, or off the grid.</summary>
     Material? WallAt(int cell);
     /// <summary>What the back wall behind <paramref name="cell"/> is made of; null for none, or off the grid.</summary>
@@ -146,6 +156,8 @@ public interface IGridQueries
     /// other cell is as the world has it; a cell set back is listed at its own code. The world is untouched.
     /// </summary>
     IReadOnlyDictionary<int, int> AfterToggles(IReadOnlyList<Command> toggles);
+    /// <summary>Why <see cref="SetDoor"/> would be refused on <paramref name="cell"/> now: <c>grid.noDoor</c>, <c>grid.doorBusy</c> while it moves, or null.</summary>
+    string? DoorProblem(int cell, bool open);
 }
 
 /// <summary>How a module that depends on the grid may change it.</summary>
@@ -186,8 +198,11 @@ public sealed partial class GridModule : Module<GridState>, IGridQueries, IGridO
         _structureAt = c => State.Structure[c];
         _now = ValueAt;
         // A launch platform is no door to open by hand: it opens with power, by its own module's command (Landing).
-        Handles<SetDoor>(c => IsDoorway(State.Structure, c.Cell) && !Doorways.IsPlatform(State.Structure[c.Cell]) ? null : "grid.noDoor",
-            c => SetDoorway(c.Cell, c.Open));
+        Handles<SetDoor>(c => DoorProblem(c.Cell, c.Open), c =>
+        {
+            if (Toggle(c.Cell, c.Open) is int first) State.Swings.Add(new DoorSwing(first, Doors.SwingTicks));
+        });
+        System(Phase.Simulation, Settle);
     }
 
     /// <summary>Every write to a layer goes through here, so the log misses none: it holds what the cell held before.</summary>
@@ -227,15 +242,22 @@ public sealed partial class GridModule : Module<GridState>, IGridQueries, IGridO
 
     /// <summary>
     /// What each map character means, found once rather than per cell, for a planet's map is millions of cells: its structure,
-    /// and whether it is drawn bare of a back wall — a solar panel, making power with no fire, under the stars it needs.
+    /// and whether it is drawn bare of a back wall — a solar panel, making power with no fire
+    /// and not anywhere, under the stars it needs; a debris net, hung only in space.
     /// </summary>
     private static readonly (int Structure, bool Bare)[] Looks = Enumerable.Range(0, char.MaxValue + 1)
-        .Select(c => (Structures.OfChar((char)c) ?? Structure.Empty, Legend.MachineOf((char)c) is { } kind && Content.Machines.Get(kind) is { Makes: not null, FuelSlot: null }))
+        .Select(c => (Structures.OfChar((char)c) ?? Structure.Empty, Legend.MachineOf((char)c) is { } kind
+            && Content.Machines.Get(kind) is var spec && (spec.NeedsStars || spec.Is(MachineTrait.Catches))))
         .ToArray();
 
-    /// <summary>Each material's back wall, by code: a vein's is the rock it runs through, so digging it out leaves no second lump of ore.</summary>
+    /// <summary>
+    /// Each material's back wall on a map, by code: a vein's is the rock it runs through, so digging it out leaves no second lump of ore;
+    /// behind a built wall the default hull, so a wall drawn iron pays one plate (the-scoop).
+    /// </summary>
     private static readonly int[] BackOf = Enumerable.Range(0, Materials.All.Max(m => m.Code) + 1)
-        .Select(code => Materials.ByCode(code)?.In is { } rock ? Materials.Get(rock).Code : code)
+        .Select(code => Materials.ByCode(code) is not { } m ? code
+            : m.In is { } rock ? Materials.Get(rock).Code
+            : m.Natural ? code : Materials.Get(Materials.DefaultHull).Code)
         .ToArray();
 
     protected override GridState Init(Layout layout)
@@ -422,6 +444,7 @@ public sealed partial class GridModule : Module<GridState>, IGridQueries, IGridO
     public bool Seals(int cell) => Has(cell, Trait.Seals);
     public bool BlocksLight(int cell) => Has(cell, Trait.BlocksLight);
     public bool Solid(int cell) => !InBounds(cell) || Structures.Solid(State.Structure[cell]);
+    public bool Footing(int cell) => InBounds(cell) && Structures.Footing(State.Structure[cell]);
 
     private bool Has(int cell, Trait trait) => InBounds(cell) && Structures.Is(State.Structure[cell], trait);
 
@@ -481,7 +504,6 @@ public sealed partial class GridModule : Module<GridState>, IGridQueries, IGridO
         laid ? (InReserved(cell) ? null : "grid.outsideReserved")
         : InReserved(cell) ? "grid.reserved"
         : InZone(cell) ? null : "grid.outsideZone";
-    private bool IsDoorway(int[] structure, int cell) => InBounds(cell) && Doorways.IsDoorway(structure[cell]);
 
     public IReadOnlyList<int>? Footprint(string kind, int cell)
     {
@@ -521,36 +543,82 @@ public sealed partial class GridModule : Module<GridState>, IGridQueries, IGridO
         return cells;
     }
 
-    public void SetDoorway(int cell, bool open)
+    public void SetDoorway(int cell, bool open) => Toggle(cell, open);
+
+    /// <summary>Sets the doorway <paramref name="cell"/> is in; the doorway's first cell when that changed it, else null.</summary>
+    private int? Toggle(int cell, bool open)
     {
         // Already as asked, a doorway is left alone, the version too: nothing derived from the grid is redone.
         int to = Doorways.Toggled(State.Structure[cell], open);
         var doorway = DoorwayOf(cell, _structureAt);
-        if (!Differs(State.Structure, doorway, to)) return;
+        if (!Differs(_structureAt, doorway, to)) return null;
         State.Version++;
         foreach (int c in doorway) Set(State.Structure, GridLayers.Structure, c, to);
+        return First(doorway);
+    }
+
+    public string? DoorProblem(int cell, bool open) => DoorProblem(cell, open, _structureAt, Moving);
+
+    /// <summary>
+    /// <see cref="DoorProblem(int, bool)"/> with the codes as <paramref name="codeAt"/> reads them, a doorway moving as
+    /// <paramref name="moving"/> says of its first cell. Already as asked, a moving door refuses nothing: two peers opening it at once
+    /// leave it open, unrefused (0071).
+    /// </summary>
+    private string? DoorProblem(int cell, bool open, Func<int, int> codeAt, Func<int, bool> moving)
+    {
+        if (!InBounds(cell) || !Doorways.IsDoorway(codeAt(cell)) || Doorways.IsPlatform(codeAt(cell))) return "grid.noDoor";
+        var doorway = DoorwayOf(cell, codeAt);
+        return Differs(codeAt, doorway, Doorways.Toggled(codeAt(cell), open)) && moving(First(doorway)) ? "grid.doorBusy" : null;
+    }
+
+    /// <summary>Whether the doorway whose first cell is <paramref name="first"/> is still moving from its last toggle.</summary>
+    private bool Moving(int first)
+    {
+        foreach (var swing in State.Swings)
+            if (swing.Cell == first) return true;
+        return false;
+    }
+
+    /// <summary>Counts every moving doorway down a tick; one at rest takes toggles again.</summary>
+    private void Settle()
+    {
+        var swings = State.Swings;
+        for (int i = swings.Count - 1; i >= 0; i--)
+            if (swings[i].Left <= 1) swings.RemoveAt(i);
+            else swings[i] = swings[i] with { Left = swings[i].Left - 1 };
+    }
+
+    private static int First(List<int> doorway)
+    {
+        int first = int.MaxValue;
+        foreach (int c in doorway) if (c < first) first = c;
+        return first;
     }
 
     public IReadOnlyDictionary<int, int> AfterToggles(IReadOnlyList<Command> toggles)
     {
         // Only the toggled cells: copying the layers cost a big world 16 MB a tick while a toggle was in flight.
         var structure = new Dictionary<int, int>();
+        var moved = new List<int>();
         int StructureAt(int c) => structure.TryGetValue(c, out int code) ? code : State.Structure[c];
+        bool MovingHere(int first) => Moving(first) || moved.Contains(first);
         foreach (var t in toggles)
         {
-            if (t is SetDoor door && InBounds(door.Cell) && Doorways.IsDoorway(StructureAt(door.Cell)) && !Doorways.IsPlatform(StructureAt(door.Cell)))
+            if (t is SetDoor door && DoorProblem(door.Cell, door.Open, StructureAt, MovingHere) == null)
             {
                 int to = Doorways.Toggled(StructureAt(door.Cell), door.Open);
-                foreach (int cell in DoorwayOf(door.Cell, StructureAt)) structure[cell] = to;
+                var doorway = DoorwayOf(door.Cell, StructureAt);
+                if (Differs(StructureAt, doorway, to)) moved.Add(First(doorway));
+                foreach (int cell in doorway) structure[cell] = to;
             }
         }
         return structure;
     }
 
-    private static bool Differs(int[] layer, List<int> cells, int code)
+    private static bool Differs(Func<int, int> codeAt, List<int> cells, int code)
     {
         foreach (int cell in cells)
-            if (layer[cell] != code) return true;
+            if (codeAt(cell) != code) return true;
         return false;
     }
 
@@ -622,6 +690,7 @@ public sealed partial class GridModule : Module<GridState>, IGridQueries, IGridO
                 if (cells.Any(UnderPlatform)) return "grid.underPlatform";
                 if (Content.Machines.Get(p.Kind).Exhaust is int reach && !ExhaustsThroughHull(cell, Content.Machines.Get(p.Kind).Height, reach))
                     return "grid.noExhaust";
+                if (Content.Machines.Is(p.Kind, MachineTrait.Catches) && !HangsOnHull(cell, Content.Machines.Get(p.Kind))) return "grid.notOnHull";
                 if (!Content.Machines.Is(p.Kind, MachineTrait.Lands)) return null;
                 // Off the ship a pod is only ever landed by its module, on the ground.
                 if (Surfaces is { Here: not 0 }) return RowUnder(p.Kind, cell, Solid) ? null : "grid.noGround";
@@ -689,6 +758,22 @@ public sealed partial class GridModule : Module<GridState>, IGridQueries, IGridO
             if (walls == 0) return false;
             for (int k = walls; k < Math.Max(walls + 1, reach); k++)
                 if (!IsSpace(x0 - 1 - k, y)) return false;
+        }
+        return true;
+    }
+
+    /// <summary>
+    /// Whether a debris net of <paramref name="spec"/> at <paramref name="cell"/> hangs on the hull's right side (docs/decisions/2026-11-03-debris-net.md):
+    /// a wall directly left of every row of it, every cell of it space with no back wall, so it never catches inside a room.
+    /// </summary>
+    private bool HangsOnHull(int cell, MachineSpec spec)
+    {
+        int x0 = cell % State.Width, y0 = cell / State.Width;
+        for (int y = y0; y < y0 + spec.Height; y++)
+        {
+            if (!IsWall(x0 - 1, y)) return false;
+            for (int x = x0; x < x0 + spec.Width; x++)
+                if (!IsSpace(x, y)) return false;
         }
         return true;
     }

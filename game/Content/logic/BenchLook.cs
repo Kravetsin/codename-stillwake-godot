@@ -3,9 +3,9 @@ using System;
 namespace Stillwake.Game;
 
 /// <summary>
-/// How the arc bench looks (0099), the user's "vise" (<c>tools/ship-art/arc-bench/paint.js</c>): a ship's bench, copper vise
+/// How the arc bench looks (0099), the user's "vise" (drawn by <c>tools/anime-art</c>): a ship's bench, copper vise
 /// jaws on it with a chip of a sky shard set in the fixed jaw. Its picture is four cells across and four tall, its footprint
-/// the bottom two rows, the vise standing up out of it (<c>ShipTiles.RiseOf</c>). A tool on it is drawn as the hand
+/// all of it (2026-11-04-footprint-is-the-picture). A tool on it is drawn as the hand
 /// draws it, its modules on it (<see cref="HeldParts"/>), clamped where it says (<see cref="HeldLook.Clamp"/>), the jaws laid
 /// over it; so any tool sits on it with no picture drawn for it. In pixels of its picture from its top-left.
 /// </summary>
@@ -29,11 +29,11 @@ public static class BenchLook
     public const int TableTop = 17;
 
     /// <summary>
-    /// How far a clamped tool may stick out: past either side of the picture (a long tool's bit or stock, as the drill's
+    /// How far a clamped tool may stick out: past either side of the picture (a long tool's bit or stock, the spear's leaf two cells, as the drill's
     /// bit does by a pixel), and down over the table's front edge (the drill's loop of frame hangs two rows over it). Never
     /// above the picture.
     /// </summary>
-    public const int Overhang = 4, Hang = 2;
+    public const int Overhang = 16, Hang = 2;
 
     /// <summary>Where a tool of <paramref name="look"/> has its picture's top-left on the bench: its clamp on the jaws', whole pixels.</summary>
     public static (int X, int Y) ToolAt(HeldLook look)

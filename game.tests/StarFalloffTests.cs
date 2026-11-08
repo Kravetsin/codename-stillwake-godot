@@ -1,3 +1,6 @@
+using FsCheck;
+using FsCheck.Fluent;
+using FsCheck.Xunit;
 using Stillwake.Game.Features.Light;
 using Stillwake.Sim;
 using Stillwake.Sim.Grid;
@@ -229,4 +232,49 @@ public class StarFalloffTests
         Assert.Equal(Worked(m).Texels, field.Texels);
         Assert.True(RedAt(field, Hx, Hy) > 0);
     }
+
+    /// <summary>
+    /// Ground under a planet's sky, cut by caves open to it and caves backed by rock, taller and wider than a dig's worked box:
+    /// whatever is dug out of it, following the digs gives what working the ground out anew does. Under a planet's sky light
+    /// falls far down and dies soon across, so a dig is worked out in a tall narrow box (planet-frame-rate); this keeps it exact.
+    /// </summary>
+    [Property(MaxTest = 30)]
+    public Property DiggingUnderAPlanetsSkyFollowsAsAWholeWorkDoes() =>
+        Prop.ForAll(Gen.Choose(0, int.MaxValue).ToArbitrary(), seed =>
+        {
+            var random = new System.Random(seed);
+            const int Wide = 120, Tall = 210, Sky = 12, Cap = Sky;
+            // Shafts two wide down from the sky, every other one capped under it; tunnels across them; rock with pockets between.
+            int shift = random.Next(23);
+            bool Shaft(int x) => (x + shift) % 23 is 5 or 6;
+            bool Capped(int x) => (x + shift) / 23 % 2 == 0;
+            var rows = new List<string>();
+            for (int y = 0; y < Tall; y++)
+                rows.Add(string.Concat(Enumerable.Range(0, Wide).Select(x => y < Sky ? ' '
+                    : Shaft(x) && y < Tall - 10 ? (y == Cap && Capped(x) ? '#' : '.')
+                    : (y + shift) % 37 == 20 || random.Next(9) == 0 ? '.' : '#')));
+            var m = new Registry();
+            World.Create(1, Layout.Parse(rows), m.All);
+            var field = new StarField((0.9f, 0.9f, 0.8f), L.GroundKeep, L.GroundDownKeep, L.GroundSoak);
+            field.Work(m.Grid);
+            for (int dig = 0; dig < 6; dig++)
+            {
+                // Half the digs open a shaft's cap or cut beside a shaft, half anywhere.
+                int x = random.Next(Wide), y = random.Next(Sky, Tall);
+                if (dig % 2 == 0)
+                {
+                    x = Enumerable.Range(0, Wide).Where(Shaft).ElementAt(random.Next(Enumerable.Range(0, Wide).Count(Shaft)));
+                    (x, y) = random.Next(2) == 0 ? (x, Cap) : (Math.Clamp(x + random.Next(-3, 4), 0, Wide - 1), random.Next(Sky, Tall));
+                }
+                int version = m.Grid.Version;
+                for (int dy = 0; dy < 3; dy++)
+                    if (y + dy < Tall && m.Grid.StructureAt((y + dy) * Wide + x) != Stillwake.Content.Structure.Empty) m.Grid.Clear((y + dy) * Wide + x, "structure");
+                if (random.Next(2) == 0 && m.Grid.BackAt(y * Wide + x) != null) m.Grid.Clear(y * Wide + x, "back");
+                field.Follow(m.Grid, m.Grid.ChangedSince(version)!.Select(c => c.Cell).ToList());
+            }
+            var whole = new StarField((0.9f, 0.9f, 0.8f), L.GroundKeep, L.GroundDownKeep, L.GroundSoak);
+            whole.Work(m.Grid);
+            Assert.Equal(whole.Region, field.Region);
+            Assert.Equal(whole.Texels, field.Texels);
+        });
 }

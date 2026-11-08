@@ -13,7 +13,7 @@ itself is described, stamped and wrecked by `Shipyard` (sim/Core `Vessels/`), fr
 - **Depends on:** `Grid` (`IGridQueries`: `Built`, `Reserved`, the layers; `IGridOps.Reserve`, `Lay`), `Items`
   (`IItemsOps.PutIn`: a crate's loot), `Building` (`IBuildingOps.Wipe`: the old vessel taken apart to nothing).
 - **State** (`PlacesState`): `Contacts` (`Contact(Id, Class, Seed)`, in the order found, at most `Vessels.MaxContacts`),
-  `NextContactId`. Saved. The vessel's cells are the grid's, its box the grid's `Reserved`. New to save format 39.
+  `NextContactId`. Saved. The vessel's cells are the grid's, its box the grid's `Reserved`. New to save format 57.
 
 ## Rules
 
@@ -23,7 +23,8 @@ itself is described, stamped and wrecked by `Shipyard` (sim/Core `Vessels/`), fr
 - **`Jump(Contact, Intact)`**, in order: the box is found first (below); none fits, `places.noRoom`, and nothing changes.
   Else the old vessel's box is wiped (`Building.Wipe`: machines emptied and unplugged, every thing cleared, its plans and
   cracks dropped, nothing given), the new box reserved (`Grid.Reserve`), the vessel's parts laid (`Grid.Lay`) in reading
-  order of their top-left cells, so machine ids follow it, its crates filled (`PutIn`), and the contact dropped. A vessel is
+  order of their top-left cells, so machine ids follow it, its crates filled (`PutIn`) and their loot counted obtained
+  (`Caught`, the-board), and the contact dropped. A vessel is
   wrecked by a breach; `Intact`, sent only by the dev flag, as built.
 - **The box:** `Vessels.Gap` columns right of the ship, the tight box of everything built but the vessel (`Grid.Built` with
   none out); its rows centred on the ship's, rounded down, moved inside the grid by `Vessels.EdgeClear`. On the game's world
@@ -55,3 +56,6 @@ itself is described, stamped and wrecked by `Shipyard` (sim/Core `Vessels/`), fr
 - The jump's tick is long: clearing and writing a freighter passes the grid's change log, so readers look at everything once.
   It happens once per jump, like a load: 33–70 ms for a freighter on a desk (`PlacesTests` pins 200).
 - Air and power in a vessel: its rooms start empty, its lamps dead.
+- A crate's loot counts as obtained at the jump, taken or not: counting what a hand takes out would need Items to know
+  a vessel's crates.
+- Liquids pay a vessel no mind: water leaving the hull meets its cells as any (flowing-liquids reads the grid's changes).

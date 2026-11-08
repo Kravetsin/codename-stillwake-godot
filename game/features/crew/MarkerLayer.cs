@@ -49,14 +49,11 @@ public partial class MarkerLayer : CanvasLayer
     /// <summary>The pod's picture, every pixel white and its clear ones clear, mipmapped so it shrinks to a badge cleanly.</summary>
     private static Texture2D PodSilhouette()
     {
-        var image = GD.Load<Texture2D>("res://art/machine_lifepod.png").GetImage();
-        if (image.IsCompressed()) image.Decompress();
-        image.Convert(Image.Format.Rgba8);
+        var image = HiRes.Load("machine_lifepod")!;
         for (int y = 0; y < image.GetHeight(); y++)
             for (int x = 0; x < image.GetWidth(); x++)
                 image.SetPixel(x, y, new Color(1, 1, 1, image.GetPixel(x, y).A));
-        image.GenerateMipmaps();
-        return ImageTexture.CreateFromImage(image);
+        return HiRes.Texture(image);
     }
 
     public override void _Input(InputEvent e)

@@ -160,6 +160,9 @@ public sealed record Luminous(Glimmer Kind, (int R, int G, int B)[] Ramp, (doubl
     /// <summary>Condensation curling and thinning out of a breach into space.</summary>
     public static readonly Luminous Condensation = new(Glimmer.Wisp, [(232, 240, 250)], (900, 1600))
     { Matter = true, Drag = 1.1, Turbulence = 45, Spin = 1.5, NoiseScale = 0.07, Size = 1.8, Grow = 4, Alpha = 0.13 };
+    /// <summary>The last of the old crew's air seeping from a tear in the wreck (2026-10-31-the-scoop): a slow thin thread of light, nothing like a leak's jet.</summary>
+    public static readonly Luminous WreckThread = new(Glimmer.Wisp, [(222, 234, 246)], (3000, 4600))
+    { Drag = 0.15, Turbulence = 5, Spin = 0.4, NoiseScale = 0.05, Size = 1.4, Grow = 0.4, Alpha = 0.3 };
     /// <summary>Fresh air breathed out of a vent filling its room, a faint veil drifting up and settling.</summary>
     public static readonly Luminous FreshAir = new(Glimmer.Wisp, [(214, 236, 255)], (1600, 2600))
     { Matter = true, Drag = 1.6, Turbulence = 14, Spin = 0.8, NoiseScale = 0.06, Size = 1.6, Grow = 2.6, Alpha = 0.07 };
@@ -192,15 +195,14 @@ public sealed record Luminous(Glimmer Kind, (int R, int G, int B)[] Ramp, (doubl
     public static readonly Luminous HeatSpark = new(Glimmer.Streak, [(255, 246, 220), (255, 180, 90), (230, 90, 40)], (450, 950))
     { Bright = 0.85, Fade = 1.2, Gravity = -10, Drag = 1.6, Spin = 3.5, NoiseScale = 0.1, Stretch = 0.12, Shortest = 0.8, Longest = 3, Width = 0.2, Halo = 2 };
 
-    // Air coming back (0081): a canister's air rising round the body, steered up its helix by the crew's AirSwirl; a breath of room air at the visor.
+    // Air coming back (0081): a canister's air flung out of the chest, curled by the crew's AirSwirl; a breath of room air at the visor.
 
     private static readonly (int, int, int)[] Air = [(236, 252, 255), (170, 232, 252), (110, 196, 240)];
 
-    /// <summary>A fine streak of a canister's air, brightening out of nothing at the feet and fading out above the head, stretched by its speed round the body.</summary>
-    public static readonly Luminous VortexStreak = new(Glimmer.Streak, Air, (650, 900))
-    { Bright = 1, Fade = 0.6, Rise = 0.12, Stretch = 0.05, Shortest = 0.8, Longest = 12, Width = 0.2, Hot = 0.65 };
-    /// <summary>A fine mote of it, carried up the same way.</summary>
-    public static readonly Luminous VortexMote = new(Glimmer.Mote, Air, (700, 1000)) { Bright = 0.9, Fade = 0.7, Rise = 0.15, Size = 0.4 };
+    /// <summary>A mote of a canister's air flung out of the chest (air-feedback): white, slowing as it curls, fading out.</summary>
+    public static readonly Luminous FlingMote = new(Glimmer.Mote, [(255, 255, 255), (236, 252, 255)], (750, 1150)) { Bright = 1, Fade = 1, Drag = 2.3, Size = 0.75 };
+    /// <summary>The trail it leaves: a fine mote drifting slowly to rest, cooling from white to the air's blue as it fades.</summary>
+    public static readonly Luminous FlingTrail = new(Glimmer.Mote, Air, (450, 1000)) { Bright = 0.72, Fade = 1.3, Drag = 1.6, Size = 0.4 };
     /// <summary>A breath of room air at the visor: a pale mote drifting off and fading.</summary>
     public static readonly Luminous VisorMote = new(Glimmer.Mote, [(220, 246, 255), (150, 214, 245)], (900, 1400))
     { Bright = 0.85, Fade = 1.1, Rise = 0.12, Drag = 1.2, Turbulence = 10, Size = 0.55 };

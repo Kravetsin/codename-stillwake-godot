@@ -109,6 +109,29 @@ public class RuinsTests
         Assert.True(Content.Items.Get(Ruins.Shard).Gear);
     }
 
+    /// <summary>
+    /// The plasma cutter cuts wrecks only (salvage-tools): run on a charged belt, its hits on the cradle, the bush
+    /// and the alloy round them are taken, and touch none of them: no crack, no felling, no shock.
+    /// </summary>
+    [Fact]
+    public void ThePlasmaCutterLeavesAWallAPlantAndTheCradleAloneAndShocksNobody()
+    {
+        string cutter = Weapons.PlasmaCutter.Item;
+        var w = WithHeroes().GiveItems(0, (cutter, 1));
+        w.Put(Inventory.Slots + 2, new Stack("battery", 1, Charge.Battery));
+        w.Do(new Run(cutter, true)).Run();
+        var kinds = Kinds(w);
+        // The cradle's top right, the bush, the chamber's left wall.
+        foreach (int cell in new[] { w.At(5, 1), w.At(6, 3), w.At(0, 2) })
+            for (int i = 0; i < 20; i++) w.Do(HewTesting.Dig(w, cell, cutter)).Run();
+        Assert.Empty(w.Refusals);
+        Assert.Empty(w.M.Building.Cracks);
+        Assert.Equal(kinds, Kinds(w));
+        Assert.Equal("alloy", w.M.Grid.WallAt(w.At(0, 2))?.Id);
+        // The two breathe alike: no shock in the striker's suit.
+        Assert.Equal(0, Suit(w, 1) - Suit(w, 0));
+    }
+
     [Fact]
     public void AFasterToolPaysItsShareOfTheAxesShockSoASecondOfHittingCostsAlike()
     {
@@ -144,10 +167,10 @@ public class RuinsTests
     [Fact]
     public void ATakenRelicStaysTakenAcrossALoadAndForAFriendJoiningLater()
     {
-        // Hero 0 beamed down to a small planet, its one spire and its one home grown with it.
+        // Hero 0 beamed down to a small planet, its one spire grown with it.
         var w = new Scenario(".S..\n####", 3);
         w.Do(new Enter(w.M.Crew.Spawn)).Run();
-        w.Do(new OpenSurface(Content.PlanetTypes.Small.Id)).Run();
+        w.Do(new OpenSurface(Content.PlanetTypes.SmallSpire.Id)).Run();
         w.Do(new Transfer(1)).Run(2);
         var cradle = w.On(1).Building.Relics.Single(r => r.Kind == Ruins.Cradle);
         Assert.False(cradle.Taken);
@@ -215,9 +238,9 @@ public class RuinsTests
     /// Why the spires stamped on <paramref name="l"/> of ground <paramref name="g"/> break a rule, or null: each at least
     /// <c>RuinClear</c> columns from the middle, none overlapping another, every cell of it as its prefab draws it — alloy walls
     /// whole, never taken off as a spike, its plugs soil, its open cells backed with alloy — its growths in
-    /// place and nothing else grown in its box, anchored at the highest surface across it.
+    /// place and nothing else grown in its box, anchored at the highest surface across its tip.
     /// </summary>
-    private static string? Wrong(Ground g, Layout l, IReadOnlyList<(int X, int Y)> spires, int[] surface)
+    private static string? Wrong(Ground g, Layout l, IReadOnlyList<(int X, int Y)> spires, IReadOnlyList<int> surface)
     {
         var prefab = Ruins.Spire;
         int w = l.Width, wide = Ruins.SpireWide, tall = prefab.Count, middle = w / 2;
@@ -230,8 +253,9 @@ public class RuinsTests
             string at = $"the spire at ({x0}, {y0})";
             if (x0 + wide - 1 > middle - g.RuinClear && x0 < middle + g.RuinClear) return $"{at}: within {g.RuinClear} of the middle";
             if (spires.Where((_, j) => j != i).Any(o => o.X < x0 + wide && x0 < o.X + wide)) return $"{at}: overlaps another";
-            int highest = Enumerable.Range(x0, wide).Min(x => surface[x]);
-            if (y0 + g.SpireRise != highest) return $"{at}: anchored at {y0 + g.SpireRise}, the highest ground across it at {highest}";
+            int highest = Enumerable.Range(x0 + Ruins.SpireTip, Ruins.SpireTipWide).Min(x => surface[x]);
+            if (y0 + g.SpireRise != highest) return $"{at}: anchored at {y0 + g.SpireRise}, the highest ground across its tip at {highest}";
+            if (x0 <= g.Fog || x0 + wide > w - g.Fog - 1) return $"{at}: out of the zone";
             for (int dy = 0; dy < tall; dy++)
                 for (int dx = 0; dx < wide; dx++)
                 {
@@ -261,7 +285,7 @@ public class RuinsTests
     {
         foreach (uint seed in Enumerable.Range(1, 50).Select(s => (uint)s))
         {
-            var l = Terrain.Generate(PlanetTypes.First, seed, out _, out var surface, out var spires);
+            var (l, surface, spires, _) = PlanetTesting.First(seed);
             Assert.Null(Wrong(PlanetTypes.First.Ground, l, spires, surface));
             // Spread along the planet: both sides of the middle hold one.
             Assert.Contains(spires, s => s.X < l.Width / 2);
@@ -269,16 +293,34 @@ public class RuinsTests
         }
     }
 
+    /// <summary>Why a hall stands open under ground too high for its roof: the place the plan accepts only where its band holds no other.</summary>
+    private static string? Bare(uint seed)
+    {
+        var (_, surface, spires, _) = PlanetTesting.First(seed);
+        foreach (var (x0, y0) in spires)
+        {
+            int ground = Enumerable.Range(x0, Ruins.SpireWide).Max(x => surface[x]);
+            if (y0 + Ruins.SpireHall < ground + Ruins.HallCover) return $"seed {seed}: the hall at ({x0}, {y0}), its roof at {y0 + Ruins.SpireHall}, under ground at {ground}";
+        }
+        return null;
+    }
+
     [Fact]
-    public void TheSmallPlanetHoldsOneSpireForTheFuzzToDigAndItsSpawnOutsideIt()
+    public void EveryHallOnTheFirstPlanetLiesUnderCoverOnEverySeed()
+    {
+        foreach (uint seed in Enumerable.Range(1, 50).Select(s => (uint)s)) Assert.Null(Bare(seed));
+    }
+
+    [Fact]
+    public void TheSmallSpirePlanetHoldsOneSpireForTheFuzzToDigAndItsSpawnOutsideIt()
     {
         foreach (uint seed in Enumerable.Range(1, 50).Select(s => (uint)s))
         {
-            var l = Terrain.Generate(PlanetTypes.Small, seed, out _, out var surface, out var spires);
+            var l = Terrain.Generate(PlanetTypes.SmallSpire, seed, out _, out var surface, out var spires);
             var (x0, y0) = Assert.Single(spires);
-            int highest = Enumerable.Range(x0, Ruins.SpireWide).Min(x => surface[x]);
+            int highest = Enumerable.Range(x0 + Ruins.SpireTip, Ruins.SpireTipWide).Min(x => surface[x]);
             // Anchored at its highest ground, but where the small grid has no room for its tip or its body.
-            var g = PlanetTypes.Small.Ground with { SpireRise = highest - y0 };
+            var g = PlanetTypes.SmallSpire.Ground with { SpireRise = highest - y0 };
             Assert.Null(Wrong(g, l, spires, surface));
             int spawn = Assert.Single(l.CellsOf('S')) % l.Width;
             Assert.True(spawn < x0 || spawn >= x0 + Ruins.SpireWide, $"seed {seed}: spawn in the spire");
@@ -290,7 +332,7 @@ public class RuinsTests
     {
         foreach (uint seed in new uint[] { 1, 2, 3, 4, 5 })
         {
-            var w = new Scenario(Terrain.Generate(PlanetTypes.Small, seed)).Run(2);
+            var w = new Scenario(Terrain.Generate(PlanetTypes.SmallSpire, seed)).Run(2);
             Assert.Empty(w.M.Items.Floor);
             Assert.All(Ruins.Growths.Append(Ruins.Cradle), kind => Assert.Contains(kind, Kinds(w)));
             Assert.All(w.M.Building.Relics, r => Assert.False(r.Taken));

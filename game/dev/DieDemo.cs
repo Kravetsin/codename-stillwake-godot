@@ -8,9 +8,10 @@ namespace Stillwake.Game.Dev;
 
 /// <summary>
 /// <c>-- --die</c>: a quick death to see the body it leaves (0061). The hero comes in out of the pod's reach in the
-/// wreck's torn room, open to space, its suit all but empty, carrying resources and its gear; it passes out two
-/// breaths later and wakes at the pod with its gear, its body lying where it fell. With <c>--world --edge=N</c>
-/// it dies out past the field instead, far enough that the marker points at the body.
+/// wreck's torn room, open to space, its suit all but empty, carrying resources and its gear; its air goes two
+/// breaths later, its last breath ten seconds on (2026-11-05-the-last-breath), and it wakes at the pod with its gear,
+/// its body lying where it fell. With <c>--world --edge=N</c> it dies out past the
+/// field instead, far enough that the marker points at the body.
 /// </summary>
 public static class DieDemo
 {
@@ -22,7 +23,7 @@ public static class DieDemo
     {
         var root = JsonNode.Parse(world.Save())!;
         var items = root["slices"]!["items"]!;
-        items["creative"] = false;
+        items["creative"] = new JsonArray();
         (string Item, int Count)?[] own = [("fireAxe", 1), ("drill", 1), ("scrap", 120), ("iron", 40), ("canister", 2), ("planks", 12), ("circuit", 3)];
         var slots = new JsonArray();
         for (int i = 0; i < Spec.Inventory.Total; i++)

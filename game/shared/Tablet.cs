@@ -24,7 +24,7 @@ public partial class Tablet : Panel
     private readonly TabletMotion _motion = new();
     private readonly NinePatchRect _frame = new()
     {
-        Texture = GD.Load<Texture2D>("res://art/tablet_frame.png"),
+        Texture = WristArt.Slices("res://art/tablet_frame.png"),
         PatchMarginLeft = 74,
         PatchMarginRight = 77,
         PatchMarginTop = 21,
@@ -37,14 +37,15 @@ public partial class Tablet : Panel
         TextureFilter = TextureFilterEnum.Nearest,
         MouseFilter = MouseFilterEnum.Stop,
     };
-    private readonly TextureRect _plate = Art("res://art/tablet_plate.png"), _stylus = Art("res://art/tablet_stylus.png");
+    private readonly TextureRect _plate = Art("tablet_plate"), _stylus = Art("tablet_stylus");
     /// <summary>The status lamp dark, over the art's lit one, while the screen is off; its glow while it is on.</summary>
     private readonly ColorRect _ledOff = new() { Color = new Color("1f3b2a"), Size = new Vector2(2, 2), MouseFilter = MouseFilterEnum.Ignore };
     private readonly TextureRect _ledGlow = ScreenGlow.Of(LedLight, 0), _wash = ScreenGlow.Of(ScreenLight, 40f / 560);
     /// <summary>The glass over the screen: the recess's shadow and a faint glare.</summary>
     private readonly Control _glass = new() { MouseFilter = MouseFilterEnum.Ignore, ClipContents = true };
-    /// <summary>What the screen shows, faded in as it comes on.</summary>
+    /// <summary>What the screen shows, faded in as it comes on, and its holder, kept in the middle of a screen still wider than its rest.</summary>
     private readonly List<CanvasItem> _shown = [];
+    private readonly Control _onScreen = new() { MouseFilter = MouseFilterEnum.Ignore };
     /// <summary>The screen's size the art was last laid round.</summary>
     private Vector2 _fitted;
 
@@ -59,6 +60,7 @@ public partial class Tablet : Panel
         AddChild(_frame);
         foreach (var part in (Control[])[_plate, _stylus, _ledOff]) _frame.AddChild(part);
         AddChild(_ledGlow);
+        AddChild(_onScreen);
         _glass.Draw += DrawGlass;
         AddChild(_glass);
     }
@@ -69,7 +71,7 @@ public partial class Tablet : Panel
     /// <summary>Where the tablet lies on the screen, its frame and stylus: what the crew's markers keep out of.</summary>
     public Rect2 Covers => _frame.GetGlobalRect();
 
-    /// <summary>How far up it is (<see cref="TabletMotion.Up"/>): 0 below the screen's edge, 1 at rest.</summary>
+    /// <summary>How far up it is (<see cref="TabletMotion.Up"/>): 0 down at the rim, 1 at rest.</summary>
     public double Up => _motion.Up;
 
     /// <summary>Whether any of it is on the screen: out, or still sliding away.</summary>
@@ -78,9 +80,8 @@ public partial class Tablet : Panel
     /// <summary>Puts <paramref name="part"/> on the screen, under the glass, faded in with it as it comes on.</summary>
     public void OnScreen(Control part)
     {
-        AddChild(part);
+        _onScreen.AddChild(part);
         _shown.Add(part);
-        MoveChild(_glass, -1);
     }
 
     /// <summary>
@@ -101,9 +102,34 @@ public partial class Tablet : Panel
         _wash.Modulate = Colors.White with { A = power * (float)_motion.Up };
     }
 
-    /// <summary>How far below its rest it is drawn now, its screen's top at <paramref name="restTop"/>: past the bottom edge once put away.</summary>
+    /// <summary>How far below its rest it is drawn now, its screen's top at <paramref name="restTop"/>: at the rim's once put away.</summary>
     public int Drop(float restTop) =>
-        (int)Mathf.Round((1 - (float)_motion.Up) * (GetViewportRect().Size.Y - restTop + TabletLayout.Lift));
+        (int)Mathf.Round((1 - (float)_motion.Up) * (TabletPeek.ScreenTop(GetViewportRect().Size.Y) - restTop));
+
+    /// <summary>
+    /// Lays the tablet for this frame, its screen at rest at (<paramref name="left"/>, <paramref name="top"/>), <paramref name="width"/> by <paramref name="tall"/>: where it
+    /// is on its way from the rim (<see cref="TabletPeek.Pose"/>), what it shows at its own size in the middle.
+    /// </summary>
+    public void Lay(float left, float top, float width, float tall)
+    {
+        var window = GetViewportRect().Size;
+        var now = TabletPeek.Pose(_motion.Up, (left, top, width), window.X, window.Y);
+        Position = new Vector2(now.Left, now.Top);
+        Size = new Vector2(now.Width, tall);
+        _onScreen.Position = new Vector2(Mathf.Round((now.Width - width) / 2), 0);
+        _onScreen.Size = new Vector2(width, tall);
+        if (Size != _fitted) Fit();
+    }
+
+    /// <summary>Lays it as the rim for a window <paramref name="window"/> large: along the foot, its screen dark and its lamp out, taking no pointer. Its owner shows and hides it.</summary>
+    public void LayAsRim(Vector2 window)
+    {
+        Position = new Vector2(TabletPeek.ScreenLeft(window.X), TabletPeek.ScreenTop(window.Y));
+        Size = new Vector2(TabletPeek.ScreenWidth(window.X), TabletPeek.RimTall);
+        if (Size != _fitted) Fit();
+        MouseBehaviorRecursive = MouseBehaviorRecursiveEnum.Disabled;
+        _ledGlow.Modulate = _wash.Modulate = Colors.White with { A = 0 };
+    }
 
     /// <summary>The tablet round the screen as large as it is now, in its art's pixels.</summary>
     private void Fit()
@@ -135,9 +161,9 @@ public partial class Tablet : Panel
         _glass.DrawColoredPolygon([new(206, 0), new(222, 0), new(92, h), new(76, h)], glare with { A = 0.03f });
     }
 
-    private static TextureRect Art(string path) => new()
+    private static TextureRect Art(string name) => new()
     {
-        Texture = GD.Load<Texture2D>(path),
+        Texture = PixelArt.Picture(name),
         TextureFilter = TextureFilterEnum.Nearest,
         MouseFilter = MouseFilterEnum.Ignore,
     };

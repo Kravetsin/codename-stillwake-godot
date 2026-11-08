@@ -33,7 +33,20 @@ public class PromptTests
         Assert.Equal(["use.closeValve", "use.openValve"], valves);
         Assert.Equal(new Prompt("use.loadCanister", "items.notEnough"), Prompts.Of(M, Press(3, new LoadCanister(1), "items.notEnough")));
         Assert.Equal("use.catch", Prompts.Of(M, Press(3, new Grab(1)))?.Action);
-        Assert.Equal("use.openCrate", Prompts.Of(M, new Aim(3, true, Crate: 4))?.Action);
+        Assert.Equal(new Prompt("use.collect", "debris.netEmpty"), Prompts.Of(M, Press(3, new Collect(1), "debris.netEmpty")));
+        Assert.Equal("use.open.crate", Prompts.Of(M, new Aim(3, true, Crate: 4))?.Action);
+    }
+
+    [Fact]
+    public void NamesEveryMachineThatOpensOnEByItsOwnWordsNeverACrates()
+    {
+        var opening = Stillwake.Content.Machines.All.Select(s => s.Kind).Where(Aiming.Opens).ToArray();
+        Assert.Contains("workbench", opening);
+        Assert.All(opening, kind =>
+        {
+            Assert.True(Table.ContainsKey($"use.open.{kind}"), $"use.open.{kind} has no English");
+            Assert.True(I18n.Ru.Table.ContainsKey($"use.open.{kind}"), $"use.open.{kind} has no Russian");
+        });
     }
 
     [Fact]
@@ -43,6 +56,20 @@ public class PromptTests
         planned.Step(new PlacePlan(2, new Placement("structure", "floor")), new Deconstruct(0, "structure"));
         static Aim Work(int plan) => new(0, true, Work: new WorkAim(plan, null));
         Assert.Equal(["use.build", "use.takeApart"], new[] { 1, 2 }.Select(plan => Prompts.Of(planned.M, Work(plan))?.Action));
+    }
+
+    [Fact]
+    public void NamesThePowerDriverInHandElseTheScrewdriver()
+    {
+        var planned = new TestWorld("#...#");
+        planned.Step(new PlacePlan(2, new Placement("structure", "floor")), new Deconstruct(0, "structure"));
+        static Aim Work(int plan) => new(0, true, Work: new WorkAim(plan, null));
+        string driver = Stillwake.Content.Screwdrivers.PowerDriver.Item;
+        Assert.Equal(["use.build.powerDriver", "use.takeApart.powerDriver"], new[] { 1, 2 }.Select(plan => Prompts.Of(planned.M, Work(plan), driver)?.Action));
+        Assert.Equal("use.repair.powerDriver", Prompts.Of(planned.M, new Aim(0, true, Work: new WorkAim(0, null, 7)), driver)?.Action);
+        // The screwdriver, or a hand with no words of its own, says the screwdriver's.
+        Assert.Equal("use.build", Prompts.Of(planned.M, Work(1), Stillwake.Content.Screwdrivers.Basic.Item)?.Action);
+        Assert.Equal("use.build", Prompts.Of(planned.M, Work(1), "drill")?.Action);
     }
 
     [Fact]
@@ -57,7 +84,7 @@ public class PromptTests
     [Fact]
     public void HasWordsForEveryActionAndTellsTwoPromptsApart()
     {
-        string[] actions = ["use.build", "use.takeApart", "use.openCrate", "use.loadCanister", "use.catch", "use.openDoor", "use.closeDoor", "use.openValve", "use.closeValve"];
+        string[] actions = ["use.build", "use.takeApart", "use.open.crate", "use.loadCanister", "use.catch", "use.collect", "use.openDoor", "use.closeDoor", "use.openValve", "use.closeValve"];
         Assert.All(actions, action => Assert.True(Table.ContainsKey(action), action));
         var a = new Prompt("use.catch", null);
         Assert.Equal(a, a with { });

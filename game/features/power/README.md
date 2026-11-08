@@ -9,7 +9,7 @@ Cables hanging between their nodes and their overlay, shown while the plan is wi
 
 | File            | Holds                                                                                  | Godot |
 | --------------- | -------------------------------------------------------------------------------------- | ----- |
-| `logic/Wiring.cs` | what a press takes hold of (`GripAt`), supports on the way (`SupportOnWay`), `LightOf` (`wiring.ts`) | no    |
+| `logic/Wiring.cs` | what a press takes hold of (`GripAt`), `LightOf`; supports on the way are `game/shared/logic/WayBack.cs` (`wiring.ts`) | no    |
 | `logic/CableRopes.cs` | every cable as ropes, a rope per piece, hanging aboard and floating outside; carried ends, landings and cables just laid (`ropes.ts`) | no    |
 | `logic/PowerHands.cs` | the hands while the plan is wiring (0108), its menu's one card the cable (0110; peg moving stays on Ctrl+drag): the left lays and leads on through supports, with Ctrl carries a peg or plug, a right press near a cable cuts (`mode.ts`) | no    |
 | `PowerView.cs`  | the cables, pegs, plugs, grommets and bolts; the overlay, its colours and the ghost    | yes   |
@@ -23,6 +23,7 @@ Cables hanging between their nodes and their overlay, shown while the plan is wi
 | `StoreDemo.cs` | for recordings (`-- --store`, 0101): plays `StoreWorld`, the bank filling while the smelter stands empty; at … | yes |
 | `logic/StoreWorld.cs` | the world of `-- --store` (0101), plain C# so it is tested: an aired room with a capacitor bank holding `Holds` … | no |
 | `logic/Power.En.cs` | Its player text (`En`) | no |
+| `logic/Power.Ru.cs` | Russian | no |
 
 `game/render/logic/CableShape.cs` (`render/cable.ts`: ends, hangs, pieces through the hull) and
 `game/render/logic/Rope.cs` (the tether's rope, now also started from given points and brushed by bodies)
@@ -48,8 +49,8 @@ moving on every frame at 240 Hz, let go between two steps, and moved off a hull 
   the wrist's energy tab, ↑ charging, ↓ giving out), read from `IPowerQueries.Store` as the world runs (`PowerView`).
 - **A magnetic flare without a word** (magnetic-flare): while one is coming (`HazardsModule.FlareComing`) the cables glow
   pale blue over themselves, unlit, brighter and pulsing faster toward the strike (`FlareLook.CableGlow`). A machine it
-  broke (`IPowerQueries.Broken`) is dimmed over its footprint under its bolt and throws a few blue-white sparks now and
-  then; a broken user's bolt blinks red as one with no power does.
+  broke (`IPowerQueries.Broken`) has its picture dimmed under its bolt, the wall round it lit as ever, and throws a few
+  blue-white sparks now and then; a broken user's bolt blinks red as one with no power does.
 - A cable is the same rope throughout: laid, it is the rope it was dragged as from the first press; a
   carried end is the real cable, highlighted white (red where it may not be let go); dropped on a node
   it waits there until the world moves it and goes on from where it hangs, never snapping back unless the

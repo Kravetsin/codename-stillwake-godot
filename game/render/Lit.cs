@@ -18,14 +18,12 @@ namespace Stillwake.Game.Render;
 /// <see cref="Light.ParticleMost"/> by their brightest colour, so an ember by a fire still lights the
 /// wall behind it. A wall takes <see cref="Light.WallIn"/> of what reaches its face. A normal-mapped
 /// picture is shaded toward the way the lamps' light comes from — up the main lightmap's slope, tilted
-/// 45 degrees up — within that cap; one without a normal map faces the screen and is shaded flat. A
-/// picture of debris shows its damage first, as cracks (<see cref="Cracks"/>).
+/// 45 degrees up — within that cap; one without a normal map faces the screen and is shaded flat. A vein's ore on the walls' layer
+/// shines past whole in the lamps' and spots' light, not the stars', by the atlas's specular mask (<see cref="Light.OreShine"/>).
 /// </summary>
 public static class Lit
 {
-    // Only debris cracks: instance uniforms take slots of Godot's global buffer for every item drawn with them,
-    // which a big ship's thousands of sockets ran out of (each failure logged, a minute to load), so all else has none.
-    private static readonly Shader Plain = new() { Code = Head + Cracks.None + Body }, Cracking = new() { Code = Head + Cracks.Code + Body };
+    private static readonly Shader Plain = new() { Code = Head + Body };
 
     private const string Head = """
             shader_type canvas_item;
@@ -35,6 +33,8 @@ public static class Lit
             // Drawn in wall cells, it takes the stars' light from wall cells; all else from the open ones.
             uniform bool blocks = false;
             uniform vec3 ambient = vec3(0.0);
+            // The daylight of the moment on a planet (Daylight.Sky): what the stars' light, baked at the sky's whole, is multiplied by.
+            uniform vec3 sky = vec3(1.0);
             // How much a normal map shades: 0 flat, 1 as a face turned toward the light 45 degrees up.
             uniform float relief = 0.7;
             // The most the glowing particles' spots add in a colour, past whatever else lights it.
@@ -57,6 +57,8 @@ public static class Lit
             uniform vec2 see_at = vec2(0.0);
             uniform float see_radius = 0.0;
             uniform float see_least = 0.35;
+            // Ore shines in the lamps' light by its atlas's specular mask, past whole (Light.OreShine); only the walls' layer asks.
+            uniform float ore_shine = 0.0;
             varying vec2 world;
             """;
 
@@ -93,8 +95,6 @@ public static class Lit
             }
 
             void fragment() {
-                // Debris that axes have hit shows it, on its own pixels, before the light falls on it.
-                COLOR.rgb = cracked(COLOR.rgb, UV, TEXTURE_PIXEL_SIZE);
                 // Blended between the four cells round this point, those of its side only (lighting.ts).
                 vec2 at = (world - starlight_rect.xy) / starlight_rect.zw * vec2(starlight_cells);
                 vec2 corner = floor(at - 0.5);
@@ -112,7 +112,7 @@ public static class Lit
                         weight += w;
                     }
                 }
-                vec3 star = weight > 0.0 ? sum / weight : own.rgb;
+                vec3 star = (weight > 0.0 ? sum / weight : own.rgb) * sky;
                 vec2 texel = (world - lightmap_at) / lightmap_texel;
                 vec3 lamps = mapped(lightmap, texel), spots = mapped(spotmap, texel);
                 // Where the lamps' light comes from: up its slope, a cell each side. Where it hardly
@@ -133,14 +133,17 @@ public static class Lit
                 float scale = min(1.0, min(fits.r, min(fits.g, fits.b)));
                 float brightest = max(spots.r, max(spots.g, spots.b));
                 vec3 lit = min(star * scale + lamps * scale * mix(1.0, facing, relief), 1.0 - ambient);
-                vec3 light = lit + spots * min(1.0, spot_most / max(brightest, 0.0001));
-                COLOR.rgb *= ambient + light * share;
+                vec3 spotted = spots * min(1.0, spot_most / max(brightest, 0.0001));
+                vec3 light = lit + spotted;
+                // Lamps, fires and glows only, never the stars: unlit ore stays as dark as its rock.
+                vec3 shine = SPECULAR_SHININESS.rgb * dot(COLOR.rgb, LUMA) * (lamps + spotted) * share * ore_shine;
+                COLOR.rgb = COLOR.rgb * (ambient + light * share) + shine;
                 if (blocks && see_radius > 0.0)
                     COLOR.a *= mix(see_least, 1.0, smoothstep(see_radius * 0.5, see_radius, distance(world, see_at)));
             }
             """;
 
-    private static readonly Dictionary<(float Share, bool Cracks), ShaderMaterial> Made = new();
+    private static readonly Dictionary<(float Share, bool Shines), ShaderMaterial> Made = new();
     private static (Texture2DArray Tiles, Rect2 Rect, Vector2I Cells, int Tile)? _starlight;
     private static (Texture2D Main, Texture2D Spots)? _lightmaps;
     private static (Vector2 At, float Texel) _placed = (Vector2.Zero, 1);
@@ -169,10 +172,10 @@ public static class Lit
     /// <summary>
     /// Lights <paramref name="item"/> from now on, by the lamps and the stars. One that takes less than
     /// the whole <paramref name="share"/> — a wall's, an edge's, a door's <see cref="Light.WallIn"/> — is
-    /// drawn in wall cells and takes the stars' light from its own side. One that <paramref name="cracks"/>,
-    /// a piece of debris, shows its damage as <see cref="Cracks.Show"/> sets it.
+    /// drawn in wall cells and takes the stars' light from its own side. One that <paramref name="shines"/> (the walls' layer) has its ore
+    /// shine in the lamps' light, by its texture's specular mask (<see cref="Light.OreShine"/>); others have none.
     /// </summary>
-    public static void Set(CanvasItem item, float share = 1f, bool cracks = false) => item.Material = MaterialOf(share, cracks);
+    public static void Set(CanvasItem item, float share = 1f, bool shines = false) => item.Material = MaterialOf(share, shines);
 
     private static Vector3 _ambient = new(Light.Ambient.R, Light.Ambient.G, Light.Ambient.B);
 
@@ -186,19 +189,35 @@ public static class Lit
         foreach (var (_, material) in Made) material.SetShaderParameter("ambient", _ambient);
     }
 
-    private static ShaderMaterial MaterialOf(float share, bool cracks)
+    private static Vector3 _sky = Vector3.One;
+
+    /// <summary>
+    /// The daylight of the moment on a planet (<see cref="Daylight.Sky"/>, 2026-11-07-night-chills): what the light through the
+    /// open sky is multiplied by, its starlight baked at the sky's whole; 1 aboard. Lamps, fires and glows are untouched.
+    /// </summary>
+    public static void Sky((float R, float G, float B) sky)
     {
-        if (Made.TryGetValue((share, cracks), out var kept)) return kept;
-        kept = new ShaderMaterial { Shader = cracks ? Cracking : Plain };
+        var now = new Vector3(sky.R, sky.G, sky.B);
+        if (now == _sky) return;
+        _sky = now;
+        foreach (var (_, material) in Made) material.SetShaderParameter("sky", _sky);
+    }
+
+    private static ShaderMaterial MaterialOf(float share, bool shines)
+    {
+        if (Made.TryGetValue((share, shines), out var kept)) return kept;
+        kept = new ShaderMaterial { Shader = Plain };
         kept.SetShaderParameter("share", share);
         kept.SetShaderParameter("blocks", share < 1f);
         kept.SetShaderParameter("ambient", _ambient);
+        kept.SetShaderParameter("sky", _sky);
         kept.SetShaderParameter("spot_most", Light.ParticleMost);
+        kept.SetShaderParameter("ore_shine", shines ? Light.OreShine : 0f);
         if (_starlight is { } stars) ShowStars(kept, stars);
         if (_lightmaps is var (main, spots)) ShowMaps(kept, main, spots);
         Place(kept);
         See(kept);
-        return Made[(share, cracks)] = kept;
+        return Made[(share, shines)] = kept;
     }
 
     /// <summary>

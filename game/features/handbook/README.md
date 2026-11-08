@@ -6,9 +6,10 @@ feature it speaks of. It is shown on the build menu's rugged tablet
 ([0083](../../../docs/decisions/0083-the-handbook-is-a-tablet.md)).
 
 - **The tablet** (`shared/Tablet`, the build menu's own): the frame's 9-slice, its plate, stylus, lamp, glass and
-  blue wash; J lifts it from below the bottom edge to the middle of the screen in 130 ms and puts it away in 100 ms
-  (`TabletMotion`), its screen fading in as the plan's, lit at once when taken out within 1.5 s. Put away, it takes
-  no input at once and shows only while it slides down.
+  blue wash; J or its key on the tablet's edge (hologram-keys), an open book bright while it is out, lifts it from below
+  the bottom edge to the middle of the screen in 130 ms and puts it away in 100 ms (`TabletMotion`), its screen fading
+  in as the plan's, lit at once when taken out within 1.5 s. Put away, it takes no input at once and shows only while
+  it slides down.
 - **Its size** (`shared/HandbookScreen`) is fixed by the slot size alone, as the build menu's: 838×376 at the
   normal slot (950×440 at the large), the bezel 52 px more each way. The numbers are `Content/Handbook`'s.
 - **The screen** (`HandbookPanel`): the sections as the build menu's tabs (lit sky, a shade lighter under the
@@ -32,8 +33,9 @@ feature it speaks of. It is shown on the build menu's rugged tablet
 
 | File               | Holds                                                         | Godot |
 | ------------------ | ------------------------------------------------------------- | ----- |
-| `HandbookPanel.cs` | the tablet's screen: tabs, body, scrollbar, foot; J, Tab and E; `HandbookSection` | yes   |
+| `HandbookPanel.cs` | the tablet's screen: tabs, body, scrollbar, foot; J, its edge key, Tab and E; `HandbookSection` | yes   |
 | `logic/Handbook.En.cs` | Its player text (`En`) | no |
+| `logic/Handbook.Ru.cs` | Russian | no |
 
 The book's picture is a placeholder drawn in code (`AsciiArt.Book`) till one is picked. Its layout is tested in
 `HandbookTests`.

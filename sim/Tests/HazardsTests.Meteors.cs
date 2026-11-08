@@ -18,7 +18,7 @@ public partial class HazardsTests
     private static readonly Content.Meteors.Shower Shower = Content.Meteors.StartingSpace, Weak = Content.Meteors.BeforeLanding;
 
     /// <summary>Opens a planet on <paramref name="w"/>, as a hero landing does: the landed shower falls from its next tick.</summary>
-    private static Scenario Landed(Scenario w) => w.Do(new OpenSurface(Content.PlanetTypes.Small.Id)).Run();
+    internal static Scenario Landed(Scenario w) => w.Do(new OpenSurface(Content.PlanetTypes.Small.Id)).Run();
 
     /// <summary>
     /// A meteor's strike seen from outside: where, how hard, its tick; the walls standing round it just before, ascending, and the
@@ -77,6 +77,29 @@ public partial class HazardsTests
     }
 
     [Fact]
+    public void FallNoneWhileCalmedFromTheDevPanelThenStartOverOnceStirred()
+    {
+        var w = Hull().Run(Weak.First);
+        Assert.False(w.M.Hazards.Calm);
+        Assert.NotNull(w.M.Hazards.Incoming);
+        // Calmed with a meteor seen coming: it never strikes, none other is drawn, and a save keeps it calm.
+        w.Do(new SetCalm(true)).Run().Reload();
+        Assert.True(w.M.Hazards.Calm);
+        for (int t = 0; t < Weak.First + Weak.EveryMax + Weak.Warning; t++)
+        {
+            Assert.Null(w.M.Hazards.Incoming);
+            w.Run();
+        }
+        Assert.Empty(w.Refusals);
+        // Stirred: the first is seen coming a whole First on, the command's tick counted, as in a new world.
+        w.Do(new SetCalm(false)).Run(Weak.First - 1);
+        Assert.False(w.M.Hazards.Calm);
+        Assert.Null(w.M.Hazards.Incoming);
+        w.Run();
+        Assert.NotNull(w.M.Hazards.Incoming);
+    }
+
+    [Fact]
     public void FallWeakTillAPlanetIsOpenedThenAsTheLandedShower()
     {
         var w = Hull();
@@ -103,7 +126,7 @@ public partial class HazardsTests
     /// A meteor of <paramref name="power"/> striking <paramref name="cell"/> on the next tick, set through the save, and that tick run:
     /// the walls and the back walls it broke, ascending.
     /// </summary>
-    private static (List<int> Walls, List<int> Backs) StrikeAt(Scenario w, int cell, int power, bool landed = true)
+    internal static (List<int> Walls, List<int> Backs) StrikeAt(Scenario w, int cell, int power, bool landed = true)
     {
         if (landed) Landed(w);
         var grid = w.M.Grid;
@@ -191,8 +214,12 @@ public partial class HazardsTests
     public void TearAnAreaOutOfTheStartingWrecksScrapHullOnEveryStrikeOnceAHeroHasLanded()
     {
         var (strikes, _) = Fall(Landed(new Scenario(Registry.Wreck)), 6);
-        Assert.True(strikes.All(s => s.Gone.Count >= 5), Seen(strikes));
+        Assert.NotEmpty(OnScrap(strikes));
+        Assert.True(OnScrap(strikes).All(s => s.Gone.Count >= 5), Seen(strikes));
     }
+
+    /// <summary>Strikes on the hull's scrap: its iron is too strong for many, and stands.</summary>
+    private static IEnumerable<Strike> OnScrap(List<Strike> strikes) => strikes.Where(s => s.Strength == Content.Materials.Get("scrap").Strength);
 
     /// <summary>
     /// The softlock from play: a strike tore more than a castaway could patch before the next. Till anyone lands each takes a cell or
@@ -202,8 +229,9 @@ public partial class HazardsTests
     public void TakeACellOrAFewOfTheStartingWrecksScrapHullBeforeAnyoneLands()
     {
         var (strikes, _) = Fall(new Scenario(Registry.Wreck), 10);
-        Assert.True(strikes.All(s => s.Gone.Count is >= 1 and <= 7), Seen(strikes));
-        Assert.True(strikes.Average(s => s.Gone.Count) <= 4, Seen(strikes));
+        Assert.NotEmpty(OnScrap(strikes));
+        Assert.True(OnScrap(strikes).All(s => s.Gone.Count is >= 1 and <= 7), Seen(strikes));
+        Assert.True(OnScrap(strikes).Average(s => s.Gone.Count) <= 4, Seen(strikes));
     }
 
     /// <summary>A hole is patched of a raw scrap chunk (2026-10-29-weak-meteors-till-landing): no furnace, so no air, is needed.</summary>

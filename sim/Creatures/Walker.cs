@@ -50,6 +50,11 @@ internal sealed class WalkerBody : BodyRule
         if (c.Act is { } act)
         {
             var mv = spec.Moves[act.Move];
+            if (RuleBook.Move(mv).Flies(spec, act))
+            {
+                Fly(m, c, spec, w);
+                return;
+            }
             if (grounded) RuleBook.Move(mv).Steer(m, c, spec, mv);
             Move(m, c, w, grounded, Walks(c, spec));
             return;
@@ -171,6 +176,28 @@ internal sealed class WalkerBody : BodyRule
     }
 
     /// <summary>
+    /// <paramref name="c"/> flown a tick along its speed in parts of under a cell, no gravity: at the first solid cell on its way it stops
+    /// flush against it, on each axis that met it, and its act is over.
+    /// </summary>
+    private static void Fly(CreaturesModule m, Creature c, Spec.Species spec, Spec.Walker w)
+    {
+        int parts = Math.Max(Math.Abs(c.VX), Math.Abs(c.VY)) / Unit + 1;
+        for (int i = 0; i < parts; i++)
+        {
+            int dx = Part(c.VX, i, parts), dy = Part(c.VY, i, parts);
+            if (!m.Overlaps(w, c.X + dx, c.Y + dy))
+            {
+                (c.X, c.Y) = (c.X + dx, c.Y + dy);
+                continue;
+            }
+            c.X = m.Overlaps(w, c.X + dx, c.Y) ? Flush(c.X + dx, c.VX, w.Width * Unit / 2) : c.X + dx;
+            c.Y = m.Overlaps(w, c.X, c.Y + dy) ? FlushRow(c.Y + dy, c.VY, w) : c.Y + dy;
+            m.EndAct(c, spec, 0, hop: false);
+            return;
+        }
+    }
+
+    /// <summary>
     /// A body of <paramref name="w"/> at (<paramref name="x"/>, <paramref name="y"/>) moved <paramref name="vx"/> across in parts
     /// of under a cell, on the ground stepping up onto what it walks into and, <paramref name="walks"/>, down off a ledge, each up
     /// to <c>Creatures.StepUp</c> cells. Whether it met what is solid, then flush against the column it would enter; <paramref name="down"/>
@@ -205,12 +232,16 @@ internal sealed class WalkerBody : BodyRule
             if (!m.Overlaps(w, x, to)) y = to;
             else
             {
-                y = vy > 0 ? Down(to - 1, Unit) * Unit : (Down(to - w.Height * Unit, Unit) + 1 + w.Height) * Unit;
+                y = FlushRow(to, vy, w);
                 return true;
             }
         }
         return false;
     }
+
+    /// <summary>The feet of a body of <paramref name="w"/> flush against the row it would enter at <paramref name="to"/> going <paramref name="vy"/>.</summary>
+    private static int FlushRow(int to, int vy, Spec.Walker w) =>
+        vy > 0 ? Down(to - 1, Unit) * Unit : (Down(to - w.Height * Unit, Unit) + 1 + w.Height) * Unit;
 
     /// <summary>The <paramref name="i"/>th of <paramref name="parts"/> parts of <paramref name="v"/>, whole, the parts summing to it.</summary>
     private static int Part(int v, int i, int parts) => v * (i + 1) / parts - v * i / parts;

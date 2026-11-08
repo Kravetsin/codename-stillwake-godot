@@ -42,6 +42,24 @@ public class PlanLookTests
 
     private static readonly IReadOnlyList<Rim> Square = PlanOutline.RimOf((_, _) => true, Cell, Cell);
 
+    /// <summary>The world's pixels, two fine ones each, of a picture drawn in rows of alpha digits: 9 is opaque, 0 clear.</summary>
+    private static string Coarse(params string[] rows)
+    {
+        int width = rows[0].Length / 2, height = rows.Length / 2;
+        var mask = PlanOutline.Coarse((x, y) => (byte)((rows[y][x] - '0') * 255 / 9), width, height, 2);
+        return string.Concat(mask.Select(on => on ? '#' : '.'));
+    }
+
+    [Fact]
+    public void AnInkPicturesMaskHoldsItsThinLinesAndDropsItsFaintEdge()
+    {
+        // Solid, a line one fine pixel wide across two of the world's, and a faint wash.
+        Assert.Equal("#..", Coarse("990011", "990011"));
+        Assert.Equal("##", Coarse("0990", "0990"));
+        // A soft edge's share under a quarter is not the picture's.
+        Assert.Equal(".#", Coarse("1190", "1190"));
+    }
+
     [Fact]
     public void ARimStepsClockwiseAlongEverySideOfAnOpaquePixelFacingAClearOneOrTheEdge()
     {
@@ -131,6 +149,11 @@ public class PlanLookTests
     public void APlanBeingBuiltTurnsRealFromTheBottomAsItIsWorkedAndAFloorFromTheLeft()
     {
         // A wall at cell (2, 3) half worked: its bottom half real, its top half a plan.
+        // A bench's picture rises three cells over its two: half done, it is real up to its middle, not to its footprint's.
+        var bench = PlanCut.Picture((0, 10 * Cell, 4 * Cell, 2 * Cell), rise: 3, reach: 0, Cell);
+        Assert.Equal((0, 7 * Cell, 4 * Cell, 5 * Cell), bench);
+        Assert.Equal(7 * Cell + 5 * Cell / 2, PlanCut.Of(bench, false, 1, 2).Line);
+        Assert.Equal((-2 * Cell, 0, 6 * Cell, Cell), PlanCut.Picture((0, 0, 4 * Cell, Cell), rise: 0, reach: 2, Cell));
         var wall = PlanCut.Of((2 * Cell, 3 * Cell, Cell, Cell), PlanCut.FromLeftFor("structure", "wall"), 1, 2);
         Assert.Equal(((32, 56, 16, 8), (32, 48, 16, 8)), wall.Split((32, 48, 16, 16)));
         // A scrap wall of 13 ticks fills tick by tick, a row or two at a time, never back: no part reveals itself whole.

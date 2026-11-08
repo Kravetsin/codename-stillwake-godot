@@ -66,7 +66,7 @@ public partial class PipesOverlay : Node2D
         {
             int length = PipesModule.LengthOf(m.Grid.Width, from, to);
             _ui.Reason.Set(null);
-            _ui.WorldTip.Set([$"{length} · {En.T($"item.{Stillwake.Content.Piping.Item}")} ×{PipesModule.CostOf(length)[0].Count}"]);
+            _ui.WorldTip.Set([new TipLine($"{length} · {En.T($"item.{Stillwake.Content.Piping.Item}")} ×{PipesModule.CostOf(length)[0].Count}")]);
         }
         else _ui.WorldTip.Set(null);
         _ghost.QueueRedraw();
@@ -87,10 +87,21 @@ public partial class PipesOverlay : Node2D
         var pipes = m.Pipes;
         int width = _width = grid.Width;
         var byId = grid.Machines.ToDictionary(x => x.Id);
-        // An air source feeds its pipes: a tank while it holds oxygen, a generator while powered, its store empty or not.
-        bool Feeds(int id) => byId.TryGetValue(id, out var x) && Stillwake.Content.Machines.Get(x.Kind) is var spec
-            && spec.Is(Stillwake.Content.MachineTrait.AirSource)
-            && (spec.Is(Stillwake.Content.MachineTrait.Gas) ? m.Atmosphere.OxygenIn(id) > 0 : m.Power.Satisfaction(id) > 0);
+        // Oxygen flows from where it comes in: a tank's output while it holds liquid (liquid-oxygen), a vaporizer's output
+        // while powered or holding gas, its input feeding nothing; the pod's always (it draws no power).
+        IEnumerable<int> SourcesOn(HashSet<int> own, IEnumerable<int> machines)
+        {
+            foreach (int id in machines)
+            {
+                if (!byId.TryGetValue(id, out var x)) continue;
+                var spec = Stillwake.Content.Machines.Get(x.Kind);
+                bool tank = spec.Is(Stillwake.Content.MachineTrait.Gas) && m.Atmosphere.OxygenIn(id) > 0;
+                bool vaporizer = spec.Is(Stillwake.Content.MachineTrait.AirSource) && (m.Atmosphere.MadeShare(id) > 0 || m.Atmosphere.OxygenIn(id) > 0);
+                var cells = grid.PortsOf(x);
+                for (int p = 0; p < cells.Count; p++)
+                    if (own.Contains(cells[p]) && (tank || vaporizer) && spec.Ports[p].Way == Stillwake.Content.Way.Out) yield return cells[p];
+            }
+        }
         var colourOf = new Dictionary<int, Color>();
         _runs = [];
         var all = pipes.Spans.Select(s => (s.A, s.B)).ToList();
@@ -103,10 +114,12 @@ public partial class PipesOverlay : Node2D
                 colourOf[network.Id] = AsciiArt.Colour(Sockets.ColourOf(Stillwake.Content.Fluids.Water));
                 continue;
             }
-            var sources = network.Machines.Where(Feeds).SelectMany(id => grid.PortsOf(byId[id])).ToList();
-            var colour = AsciiArt.Colour(Flow.ColourOf(i), sources.Count > 0 ? 1 : DryAlpha);
-            colourOf[network.Id] = colour;
             var own = network.Cells.ToHashSet();
+            var sources = SourcesOn(own, network.Machines).ToList();
+            // Liquid oxygen is pale blue wherever it runs (liquid-oxygen); each air network a colour of its own.
+            bool liquid = pipes.FluidAt(network.Cells[0]) == Stillwake.Content.Fluids.LiquidOxygen;
+            var colour = AsciiArt.Colour(liquid ? Sockets.ColourOf(Stillwake.Content.Fluids.LiquidOxygen) : Flow.ColourOf(i), sources.Count > 0 ? 1 : DryAlpha);
+            colourOf[network.Id] = colour;
             foreach (var run in Flow.RunsOf(Flow.SpansIn(all, own), width, sources, own.Contains)) _runs.Add((run, colour with { A = 1 }));
         }
         _spans.Clear();
@@ -131,8 +144,9 @@ public partial class PipesOverlay : Node2D
             {
                 var (dx, dy) = Sockets.ArrowOf(spec.Ports[i], spec.Width, spec.Height);
                 var (at, colour, arrow) = (PipesView.MiddleOf(cells[i], width), AsciiArt.Colour(Sockets.ColourOf(spec.Ports[i].Fluid)), new Vector2(dx, dy));
-                // A small arrowhead just outside the socket, on the way the fluid goes; built here, so a frame allocates none.
-                var (side, tip) = (new Vector2(-arrow.Y, arrow.X), at + arrow * 8);
+                // A small arrowhead on the way the fluid goes, before an input's socket and after an output's; built here, so a
+                // frame allocates none.
+                var (side, tip) = (new Vector2(-arrow.Y, arrow.X), at + arrow * Sockets.TipOf(spec.Ports[i]));
                 _sockets.Add((at, colour, [tip, tip - arrow * 3 + side * 3, tip - arrow * 3 - side * 3], [colour, colour, colour]));
             }
         }

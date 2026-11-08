@@ -21,7 +21,12 @@ public class CreatureSpeciesGuardTests
     [
         "sim/Content/Creatures.cs",
         "sim/Content/PlanetTypes.cs",
+        "sim/Content/Ruins.cs",
+        // A save step rewrites the saved data of a species as it was then, by its id.
+        "sim/Registry/Migrations.cs",
         "game/Content/logic/CreatureArt.cs",
+        "game/Content/logic/CreatureInk.cs",
+        "game/Content/logic/LurkerInk.cs",
         "game/Content/logic/CreatureLooks.cs",
         "game/Content/logic/HitLooks.cs",
         "game/Content/logic/Sound.cs",
@@ -63,7 +68,7 @@ public class CreatureSpeciesGuardTests
         Assert.Single(Offenders("if (c.Species == \"loper\") return;"));
         Assert.Single(Offenders("var ram = Spec.Creatures.Tapir.Moves[0];"));
         Assert.Single(Offenders("if (Spec.Get(c.Species) == Spec.Loper) return;"));
-        Assert.Single(Offenders("int hp = Tune.Fluff.Life.Hp;"));
+        Assert.Single(Offenders("int hp = Tune.Sixleg.Life.Hp;"));
         Assert.Equal(Stillwake.Content.Creatures.All.Count, Records.Length);
         Assert.Empty(Offenders("var spec = Spec.Creatures.Get(c.Species);"));
         Assert.True(Skipped("game/dev/CreaturesDemo.cs"));

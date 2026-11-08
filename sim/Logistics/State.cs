@@ -32,7 +32,35 @@ public sealed class Drone
     [JsonInclude, JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)] public bool Low { get; internal set; }
     /// <summary>What it carries, from its source to its target; none on the way there, and home but when turned home low.</summary>
     [JsonInclude, JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] public Stack? Cargo { get; internal set; }
+
+    // A salvage drone's (salvage-drones, salvage-trips), each written only when set, so an ordinary drone saves as before.
+
+    /// <summary>A salvage drone's ticks of air left, taken from its bay's at launch: a supply apart from its charge.</summary>
+    [JsonInclude, JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)] public int Air { get; internal set; }
+    /// <summary>The piece it goes for; 0 for none (ids start at 1).</summary>
+    [JsonInclude, JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)] public int Piece { get; internal set; }
+    /// <summary>The floor stack it goes for; 0 for none.</summary>
+    [JsonInclude, JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)] public int Floor { get; internal set; }
+    /// <summary>What its net holds, a catch an entry, in catch order, for its look; null while empty.</summary>
+    [JsonInclude, JsonPropertyName("net"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] internal List<Netted>? Net { get; set; }
+    /// <summary>What it carries to crates, in the order taken; null while empty.</summary>
+    [JsonInclude, JsonPropertyName("load"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] internal List<Stack>? Load { get; set; }
+
+    /// <summary>What a salvage drone's net holds, in catch order, at most <c>SalvageHolds</c>; live and read-only, empty for none.</summary>
+    [JsonIgnore] public IReadOnlyList<Netted> Caught => Net ?? (IReadOnlyList<Netted>)[];
+
+    /// <summary>What a salvage drone carries to crates, in the order taken; live and read-only, empty for none.</summary>
+    [JsonIgnore] public IReadOnlyList<Stack> Loaded => Load ?? (IReadOnlyList<Stack>)[];
 }
+
+/// <summary>
+/// A catch in a salvage drone's net (salvage-trips), for its look: the piece's kind and id, or a floating stack's item and 0.
+/// Its loot is in the drone's load.
+/// </summary>
+public sealed record Netted(string Kind, int Piece);
+
+/// <summary>The air bay <c>Bay</c> keeps for its salvage drones (salvage-trips), ticks: what docked drones brought back and canisters opened.</summary>
+public sealed record BayAir(int Bay, int Air);
 
 /// <summary>The logistics slice. Public so modules can be typed by it; its members internal.</summary>
 public sealed class LogisticsState
@@ -42,6 +70,8 @@ public sealed class LogisticsState
     /// <summary>Drones in flight, in id order.</summary>
     [JsonInclude] internal List<Drone> Drones { get; set; } = [];
     [JsonInclude] internal int NextId { get; set; } = 1;
+    /// <summary>The air bays keep for their salvage drones, by bay id, sorted, none at nought; a bay taken apart loses its own.</summary>
+    [JsonInclude] internal List<BayAir> Air { get; set; } = [];
     /// <summary>Ticks since the world began, counted here: when bays look.</summary>
     [JsonInclude] internal int Ticks { get; set; }
 }

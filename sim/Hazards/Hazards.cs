@@ -1,6 +1,7 @@
 using System.Text.Json.Serialization;
 using Stillwake.Content;
 using Stillwake.Sim.Grid;
+using Stillwake.Sim.Items;
 using Stillwake.Sim.Power;
 using Stillwake.Sim.Research;
 
@@ -15,7 +16,10 @@ public sealed record Meteor(int Cell, int Power, int Left);
 /// </summary>
 public sealed class HazardsState
 {
-    /// <summary>A world whose map did not ask for hazards (<c>Layout.Meteors</c>): a test's, a dev world's. No meteors, no flares drawn. Off, not written.</summary>
+    /// <summary>
+    /// No meteors, no flares drawn: a world whose map did not ask for hazards (<c>Layout.Meteors</c>), a test's, a dev world's, or one
+    /// calmed from the dev panel (<see cref="SetCalm"/>). Off, not written.
+    /// </summary>
     [JsonInclude, JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)] internal bool Calm { get; set; }
     /// <summary>Ticks till the next meteor is seen coming; 0 before the first is drawn.</summary>
     [JsonInclude, JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)] internal int NextIn { get; set; }
@@ -28,6 +32,12 @@ public sealed class HazardsState
 /// <summary>A meteor hits the wall at <paramref name="Cell"/>: from the dev panel, to try a breach and its repair. It always breaks it.</summary>
 public sealed record MeteorHit(int Cell) : Command;
 
+/// <summary>
+/// The world calmed, or stirred again, from the dev panel: <c>On</c>, no meteors fall and no flares are drawn till it is turned off.
+/// Either way the meteor seen coming and the flare drawn are dropped and the countdowns start over, as in a new world.
+/// </summary>
+public sealed record SetCalm(bool On) : Command;
+
 /// <summary>Meteors breaking the hull (packages/sim/src/modules/hazards; 2026-10-28-hull-meteors), magnetic flares breaking machines (2026-10-30-magnetic-flare).</summary>
 public sealed partial class HazardsModule : Module<HazardsState>
 {
@@ -36,26 +46,32 @@ public sealed partial class HazardsModule : Module<HazardsState>
     private readonly IPowerQueries _power;
     private readonly IPowerOps _powerOps;
     private readonly IResearchQueries _research;
+    private readonly IItemsOps _items;
     private readonly List<int> _targets = [], _blast = [], _backs = [];
     private int[] _spent = [];
     private List<int>[] _byCost = [];
 
     public override string Id => "hazards";
 
-    public HazardsModule(IGridQueries grid, IGridOps ops, IPowerQueries power, IPowerOps powerOps, IResearchQueries research)
+    public HazardsModule(IGridQueries grid, IGridOps ops, IPowerQueries power, IPowerOps powerOps, IResearchQueries research, IItemsOps items)
     {
         _grid = grid;
         _ops = ops;
         _power = power;
         _powerOps = powerOps;
         _research = research;
+        _items = items;
         Handles<MeteorHit>(c => HitProblem(c.Cell), c => Break(c.Cell));
         Handles<FlareNow>(FlareNowProblem, c => State.FlareIn = c.Ticks);
+        Handles<SetCalm>(_ => null, c => (State.Calm, State.Incoming, State.NextIn, State.FlareIn) = (c.On, null, 0, 0));
         // In construction, as a command would: building drops a mark on the broken wall and the rooms see the hole on its tick.
         System(Phase.Construction, Fall);
         // A flare too, so Power's derivation sees what it broke on its tick.
         System(Phase.Construction, Flare);
     }
+
+    /// <summary>Whether no meteors fall and no flares are drawn: a calm map, or calmed from the dev panel.</summary>
+    public bool Calm => State.Calm;
 
     /// <summary>The meteor seen coming, for its streak; null while none is.</summary>
     public Meteor? Incoming => State.Incoming;
@@ -171,8 +187,17 @@ public sealed partial class HazardsModule : Module<HazardsState>
     /// <summary>
     /// The wall at <paramref name="cell"/> broken (2026-10-29-holes-not-planned): lost, refunding nothing, and left unplanned, for the
     /// player to patch with what they have. Pipes are spans, running through it untouched (0109); a mark on it is dropped by building.
+    /// A debris net hung on it, in the next cell of its row, goes with it, its whole cost floating at its cell for anyone to take
+    /// (2026-11-03-debris-net); debris drops what it held.
     /// </summary>
-    private void Break(int cell) => _ops.Clear(cell, "structure");
+    private void Break(int cell)
+    {
+        _ops.Clear(cell, "structure");
+        int next = cell + 1;
+        if (next % _grid.Width == 0 || _grid.MachineAt(next) is not { } net || !Machines.Is(net.Kind, MachineTrait.Catches)) return;
+        _ops.Clear(next, "machine");
+        foreach (var (item, count) in Machines.Get(net.Kind).Cost) _items.LayDown(new Stack(item, count), net.Cell);
+    }
 
     /// <summary>The blast a meteor of <paramref name="power"/> sets off: what it may spend reaching cells and breaking walls.</summary>
     public static int Charge(int power, Meteors.Shower shower) => shower.Charge + power * shower.PerPower;
@@ -199,7 +224,8 @@ public sealed partial class HazardsModule : Module<HazardsState>
 
     /// <summary>
     /// The walls open to the drift, top row first: in each row of what is built, inside the zone, the first thing met walking
-    /// left from the right, when it is a wall that breaks. A door, window, ladder or machine met first shields its row.
+    /// left from the right, when it is a wall that breaks. A door, window, ladder or machine met first shields its row, but a
+    /// debris net, which the aim passes to the wall it hangs on.
     /// </summary>
     private void Targets()
     {
@@ -217,7 +243,8 @@ public sealed partial class HazardsModule : Module<HazardsState>
                 int cell = y * width + x;
                 // A vessel ahead is no shield (generated-vessels): meteors aim at the ship past it.
                 if (vessel is { } box && box.Contains(x, y)) continue;
-                if (_grid.StructureAt(cell) == Structure.Empty && _grid.MachineAt(cell) == null) continue;
+                if (_grid.StructureAt(cell) == Structure.Empty
+                    && (_grid.MachineAt(cell) is not { } m || Machines.Is(m.Kind, MachineTrait.Catches))) continue;
                 if (HitProblem(cell) == null) _targets.Add(cell);
                 break;
             }
@@ -228,12 +255,13 @@ public sealed partial class HazardsModule : Module<HazardsState>
     /// <summary>
     /// Meteors by hand, rarely: every hit opens the world a little more. Mostly at a standing wall, now
     /// and then anywhere: off the grid, into space, at a wall already gone. As rarely a flare striking at once, so the
-    /// suites' short runs see machines broken.
+    /// suites' short runs see machines broken, and the world calmed or stirred.
     /// </summary>
     public override Command? Fuzz(Rng rng, int from)
     {
         ulong roll = rng.Below(64);
         if (roll == 1) return new FlareNow(1) { From = from };
+        if (roll == 2) return new SetCalm(rng.Below(2) == 0) { From = from };
         if (roll != 0) return null;
         var structure = _grid.StructureLayer;
         var walls = new List<int>();

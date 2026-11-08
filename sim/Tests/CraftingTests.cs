@@ -17,13 +17,13 @@ public class CraftingTests
     private const string Room = """
         ##########
         #........#
-        #.OOO....#
-        #.OOO....#
+        #.OOO..II#
+        #.OOO..II#
         #.OOOKKII#
         ##########
         """;
     /// <summary>The crate's machine id and the workbench's, by their top-left cells in reading order.</summary>
-    private const int Crate = 2, Bench = 3;
+    private const int Crate = 3, Bench = 2;
     private static readonly Content.Station BenchStation = Content.Stations.Get("workbench");
     private static readonly int BenchSpeed = BenchStation.Speed, QueueMost = BenchStation.QueueMost;
     private static readonly int Wire = Crafts.Get("wire").Ticks * 1000 / BenchSpeed;
@@ -48,6 +48,19 @@ public class CraftingTests
     private static Scenario Cancel(Scenario w, int entry, int from = 0, int at = Bench) => w.Do(new Cancel(at, entry) { From = from }).Run();
 
     [Fact]
+    public void TheWorkbenchTakesItsWholePictureFiveCellsTallSoNothingIsBuiltInIt()
+    {
+        // Drawn three characters tall on the floor, its top row of cells open: its whole 32x40 picture, nothing over it.
+        var w = World();
+        int width = w.M.Grid.Width, top = w.At(7, 2) + width;
+        Assert.Equal(top, w.M.Grid.Machines.Single(m => m.Id == Bench).Cell);
+        Assert.Equal(Enumerable.Range(0, 5).SelectMany(y => Enumerable.Range(0, 4).Select(x => top + y * width + x)), w.M.Grid.Footprint("workbench", top)!.Order());
+        foreach (int row in new[] { 0, 1, 2 })
+            Assert.Equal("grid.machineInTheWay", w.M.Grid.PlacementProblem(top + row * width, new Grid.Placement("machine", "lamp")));
+        Assert.Null(w.M.Grid.PlacementProblem(top - 2 * width, new Grid.Placement("machine", "lamp")));
+    }
+
+    [Fact]
     public void MakesAWireAtTheWorkbenchInFiveTimesItsTicksWithNoPowerPayingWhenQueued()
     {
         var w = World().GiveItems(0, ("scrap", 10));
@@ -68,11 +81,11 @@ public class CraftingTests
     }
 
     [Fact]
-    public void MakesTheFireAxeAtTheWorkbenchOfIronAndAPlankKnownInTheWreckFromItsStart()
+    public void MakesTheFireAxeAtTheWorkbenchOfIronAndAPlank()
     {
         var axe = Crafts.Get(Content.Weapons.Axe.Item);
         Assert.Equal([("iron", 2), ("planks", 1)], axe.Cost);
-        var w = World(start: true).GiveItems(0, [.. axe.Cost]);
+        var w = World().GiveItems(0, [.. axe.Cost]);
         Craft(w, Content.Weapons.Axe.Item);
         Assert.Empty(w.Refusals);
         Assert.All(axe.Cost, c => Assert.Equal(0, Count(w, c.Item)));
@@ -220,9 +233,11 @@ public class CraftingTests
         Cancel(w, 7);
         Assert.Equal(["crafting.noEntry", "crafting.noEntry"], Reasons(w));
 
-        // Peer 2's inventory full: the four scrap of the two wires would not fit.
+        // Peer 2's inventory and the crate full: the four scrap of the two wires would not fit (craft-from-crates).
         Craft(w, "wire", 2);
-        w.GiveItems(2, ("canister", Content.Inventory.Slots * Content.Items.Get("canister").Stack));
+        int canisters = Content.Items.Get("canister").Stack;
+        w.GiveItems(2, ("canister", Content.Inventory.Slots * canisters));
+        w.FillCrate(Crate, ("canister", Content.Machines.Get("crate").Slots!.Value * canisters));
         Cancel(w, 2, from: 2);
         Assert.Equal("items.full", Reasons(w)[^1]);
         Assert.Single(w.M.Crafting.Queue(Bench));
@@ -306,6 +321,7 @@ public class CraftingTests
             foreach (var s in w.M.Items.Inventory(peer)) if (s != null) Raw(s.Item, s.Count, all);
         foreach (var e in w.M.Crafting.Queue(Bench)) Raw(e.Recipe, e.Count, all);
         foreach (var s in w.M.Items.Crate(Bench)) if (s != null) Raw(s.Item, s.Count, all);
+        foreach (var s in w.M.Items.Crate(Crate)) if (s != null) Raw(s.Item, s.Count, all);
         foreach (var s in w.M.Items.Floor) Raw(s.Item, s.Count, all);
         return string.Join(",", all.Where(a => a.Value != 0).OrderBy(a => a.Key, StringComparer.Ordinal).Select(a => $"{a.Key}:{a.Value}"));
     }
@@ -330,6 +346,8 @@ public class CraftingTests
         {
             var w = World();
             for (int peer = 0; peer < 3; peer++) w.GiveItems(peer, ("scrap", 60), ("iron", 30), ("gear", 2), ("wire", 4));
+            // The crate's share of every peer's stock (craft-from-crates).
+            w.FillCrate(Crate, ("scrap", 40), ("iron", 20), ("plate", 4));
             string worth = Worth(w);
             int seen = 0;
             foreach (var s in all)

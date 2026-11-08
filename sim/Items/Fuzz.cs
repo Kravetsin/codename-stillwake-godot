@@ -9,7 +9,7 @@ public sealed partial class ItemsModule
     /// now and then from an empty slot, a slot out of range, a crate that is not there, or onto a full
     /// or other stack, or into an equipment slot that does not wear it, so every refusal is drawn too; now
     /// and then a battery into a charging station or onto the belt (<see cref="ToStationOrBelt"/>), or a sort
-    /// of the bag or of a machine, a crate or not (<c>items.notCrate</c>) or none (<c>items.noCrate</c>).
+    /// of the bag or of a machine, a crate or not (<c>items.notCrate</c>) or none (<c>items.noCrate</c>). Now and then a stash (<see cref="StashNear"/>).
     /// Creative mode switches now and then, mostly off; now and then a run of an electric tool (<see cref="RunOrStop"/>). Now and then a drop onto a cell, off the grid
     /// too, or a pick-up of a stack on the floor or of one long gone. Now and then a module fitted or taken out
     /// (<see cref="FitOrUnfit"/>). Now and then a spawn of any item, up to two stacks of it, refused outside creative mode.
@@ -32,6 +32,7 @@ public sealed partial class ItemsModule
             : (int)rng.Below(6);
         // Now and then a sort: of the bag, or of a machine, mostly one holding something; refused for a furnace or none.
         if (rng.Below(12) == 0) return new Sort(rng.Below(3) == 0 ? null : AnyCrate()) { From = from };
+        if (rng.Below(12) == 0) return StashNear(rng, from, own);
         int SlotIn(Stack?[]? slots, int size)
         {
             var filled = new List<int>();
@@ -172,5 +173,26 @@ public sealed partial class ItemsModule
             _ => new Target(Content.Inventory.Slots + (int)rng.Below((uint)Content.Inventory.Equipment.Count)),
         };
         return new Move(what, to, count == 0 ? 1 : count) { From = from };
+    }
+
+    /// <summary>
+    /// A stash mostly beside a crate's footprint, so it moves things, now and then at any cell or off the grid; keeping mostly
+    /// nothing or an item of the bag, now and then two out of order or one that is no item.
+    /// </summary>
+    private Stash StashNear(Rng rng, int from, Stack?[]? own)
+    {
+        var crates = _grid.MachinesWith(MachineTrait.Container);
+        int size = Math.Max(1, _grid.Width * _grid.Height);
+        int cell = crates.Count > 0 && rng.Below(4) != 0
+            ? crates[(int)rng.Below((uint)crates.Count)].Cell + (int)rng.Below(5) - 2 + ((int)rng.Below(5) - 2) * _grid.Width
+            : rng.Below(8) == 0 ? -1 : (int)rng.Below((uint)size);
+        var held = own?.Where(s => s != null).Select(s => s!.Item).ToList() ?? [];
+        IReadOnlyList<string> keep = rng.Below(4) switch
+        {
+            0 when held.Count > 0 => [held[(int)rng.Below((uint)held.Count)]],
+            1 => ["zz", "aa"],
+            _ => [],
+        };
+        return new Stash(cell, keep) { From = from };
     }
 }

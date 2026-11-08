@@ -6,6 +6,28 @@ namespace Stillwake.Game.Tests;
 /// <summary>An item's card moving with the pointer beside the slot under it, on whichever side it fits, never over the slot nor the pointer.</summary>
 public class TipPlaceTests
 {
+    [Fact]
+    public void ATipOverAKeyIsCentredAboveIt()
+    {
+        var at = TipPlace.Over((600, 690, 30, 30), (90, 23), Screen, 6, Edge);
+        Assert.Equal(570, at.X);
+        Assert.Equal(661, at.Y);
+    }
+
+    [Fact]
+    public void ATipOverAKeyStaysInsideTheSides()
+    {
+        Assert.Equal(Edge, TipPlace.Over((0, 690, 30, 30), (90, 23), Screen, 6, Edge).X);
+        Assert.Equal(1280 - 90 - Edge, TipPlace.Over((1250, 690, 30, 30), (90, 23), Screen, 6, Edge).X);
+    }
+
+    [Fact]
+    public void ATipOverAKeyAtTheTopGoesBelowIt()
+    {
+        var at = TipPlace.Over((600, 18, 30, 30), (90, 23), Screen, 6, Edge);
+        Assert.Equal(54, at.Y);
+    }
+
     private static readonly (float W, float H) Screen = (1280, 720), Card = (234, 240);
     private const float Gap = 8, Drop = 8, Edge = 6, Side = 40;
 

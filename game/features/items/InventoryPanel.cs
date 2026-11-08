@@ -10,7 +10,6 @@ using Stillwake.Sim.Crafting;
 using Stillwake.Sim.Furnace;
 using Stillwake.Sim.Grid;
 using Stillwake.Sim.Items;
-using Stillwake.Sim.Research;
 using static Stillwake.Game.I18n.En;
 
 namespace Stillwake.Game.Features.Items;
@@ -30,7 +29,8 @@ namespace Stillwake.Game.Features.Items;
 /// hands' tool: a stack carried lights the slots that would wear it and dims the rest; a right click on a
 /// canister of the hero's own breathes it (<see cref="Ui.Breathe"/>). Every slot is <see cref="Ui.Slot"/> wide,
 /// and all of it is built again when that changes. It is the wrist computer (0074): the hotbar on the cuff, the bag on
-/// the forearm display with the machine's module under it, the equipment on its unit (<see cref="WristScreen"/>).
+/// the forearm display, the equipment on its unit (<see cref="WristScreen"/>); the open machine's window is a hologram in
+/// its station's colour, a beam from the machine to it (<see cref="MachineHolo"/>, machine-holograms).
 /// </summary>
 public partial class InventoryPanel : CanvasLayer
 {
@@ -67,24 +67,29 @@ public partial class InventoryPanel : CanvasLayer
     private readonly TabletMotion _motion = new();
     /// <summary>The open machine's frame, under the inventory.</summary>
     private MachineFrame? _frame;
+    /// <summary>The open machine's hologram under every panel, and the machine's box in world pixels it beams from.</summary>
+    private MachineHolo? _holo;
+    private Rect2 _holoBox;
     /// <summary>The bag's grid and the open crate's, which a sort's light crosses (<see cref="SortSweep"/>, 0081).</summary>
     private GridContainer _bag = null!;
     private GridContainer? _crateGrid;
     private SortButton _bagKey = null!;
+    private StashButton _stashKey = null!;
+    /// <summary>The star by the pointer while Alt is held in the open inventory: a click marks (2026-11-06-quick-stash).</summary>
+    private FavouriteStar _pointerStar = null!;
     private SortButton? _crateKey;
+    private Button? _send;
     private SortSweep _sweep = null!;
     private TextureRect _heldIcon = null!;
     private Label _heldCount = null!, _creative = null!;
     private ProgressBar? _progress;
     private Label? _problem;
-    /// <summary>A charging station's: the bar of what its battery holds, and what it does now in words.</summary>
-    private ColorRect? _charged;
-    private Label? _station;
-    /// <summary>A charging station's numbers over its bar: what its battery holds of full, and what goes in a tick while it charges.</summary>
-    private HBoxContainer? _stored;
-    private Label? _storedText, _rate;
-    /// <summary>A trade station's: the ship's credits.</summary>
-    private Label? _credits;
+    /// <summary>
+    /// A charging station's line a slot: what its battery holds of full and what goes in a tick while it charges, over the
+    /// bar of it, and what it does now in words.
+    /// </summary>
+    private sealed record ChargerLine(ColorRect Charged, Label Station, HBoxContainer Stored, Label StoredText, Label Rate);
+    private readonly List<ChargerLine> _chargerLines = [];
     /// <summary>What the mark between a fed station's slots says by the pointer: what it is too cold for; null while it is not.</summary>
     private string? _tooCold;
     /// <summary>The slots, each saying what it holds in the one tooltip.</summary>
@@ -93,7 +98,6 @@ public partial class InventoryPanel : CanvasLayer
     private Client? _client;
     private IItemsQueries? _items;
     private IGridQueries? _grid;
-    private IResearchQueries? _research;
     private HeroSpot? _hero;
     private Reading? _reading;
     private double _sinceRead;
@@ -145,6 +149,9 @@ public partial class InventoryPanel : CanvasLayer
 
     /// <summary>What a furnace or a burner generator is doing, by machine id: the furnace module's <c>At</c>.</summary>
     public Func<int, Smelting>? Furnace { get; set; }
+
+    /// <summary>The trade module, for a trade station's capsule: what it would carry and whether it is away.</summary>
+    public Stillwake.Sim.Trade.TradeModule? Trade { get; set; }
 
     /// <summary>The stations, for an electric smelter's or a grow capsule's panel: how far its work is, whether it works, whether it is too cold.</summary>
     public CraftingModule? Crafting { get; set; }
@@ -198,6 +205,8 @@ public partial class InventoryPanel : CanvasLayer
     private void Build()
     {
         int size = _ui.Slot;
+        // First: the open machine's hologram draws over the world and under every panel.
+        _root.AddChild(_holo = new MachineHolo());
         var top = Style.Gap(new HBoxContainer(), 8);
         top.AddChild(Grid(Enumerable.Range(0, Hotbar.Row).Select(i => new Place(i)), keys: true));
         top.AddChild(_creative = new Label
@@ -218,6 +227,7 @@ public partial class InventoryPanel : CanvasLayer
         var grid = new WristScreen(WristPieces.Display, WristArt.Screen, 4, lit: true) { SizeFlagsHorizontal = Control.SizeFlags.ShrinkBegin };
         grid.AddChild(_bag = Grid(Enumerable.Range(Hotbar.Row, Content.Inventory.Slots - Hotbar.Row).Select(i => new Place(i))));
         grid.Mount(_bagKey = Sorter(null), screen => new Vector2(screen.X + WristLook.SideKeyOut, WristLook.SideKeyDown));
+        grid.Mount(_stashKey = Stasher(), screen => new Vector2(screen.X + WristLook.SideKeyOut, WristLook.SideKeyDown + WristLook.SideKeyHeight + 4));
         shown.AddChild(_inventory = grid);
         _root.AddChild(_shown = shown);
         _shown.Visible = false;
@@ -243,6 +253,7 @@ public partial class InventoryPanel : CanvasLayer
             MouseFilter = Control.MouseFilterEnum.Ignore,
         });
         _over.AddChild(_held);
+        _over.AddChild(_pointerStar = new FavouriteStar(6.3f) { Visible = false });
     }
 
     /// <summary>Takes down everything <see cref="Build"/> and the machine's panel made, before they are built at another size.</summary>
@@ -260,18 +271,20 @@ public partial class InventoryPanel : CanvasLayer
         foreach (var socket in _lentSockets) _tipSpots.Add(socket, () => SocketTip(socket));
         _tipSpots.Show(null);
         _built = null;
-        (_frame, _progress, _problem, _credits, _charged, _station, _tooCold, _hovered, _crateGrid, _crateKey) = (null, null, null, null, null, null, null, null, null, null);
-        (_stored, _storedText, _rate) = (null, null, null);
+        (_frame, _progress, _problem, _tooCold, _hovered, _crateGrid, _crateKey) = (null, null, null, null, null, null, null);
+        _chargerLines.Clear();
     }
 
     /// <summary>
     /// Reads the client's world on a timer, through the current registry's queries: a resync brings new
     /// ones. <paramref name="hero"/> is where a stack is thrown from; none until the hero is placed.
     /// </summary>
-    public void Frame(Client client, IItemsQueries items, IGridQueries grid, IResearchQueries research, HeroSpot? hero, double elapsedMs)
+    public void Frame(Client client, IItemsQueries items, IGridQueries grid, HeroSpot? hero, double elapsedMs)
     {
         bool fresh = _items != items || _client != client;
-        (_client, _items, _grid, _research, _hero) = (client, items, grid, research, hero);
+        (_client, _items, _grid, _hero) = (client, items, grid, hero);
+        // A load or a resync: the hologram goes at once.
+        if (fresh) _holo?.Snap();
         _sinceRead += elapsedMs;
         if (fresh || _sinceRead >= RefreshMs) Read();
     }
@@ -287,7 +300,7 @@ public partial class InventoryPanel : CanvasLayer
     private void Read()
     {
         _sinceRead = 0;
-        if (_client == null || _items == null || _grid == null || _research == null) return;
+        if (_client == null || _items == null || _grid == null) return;
         _reading = Reading.Of(_client.Id, _client.InFlight, _items, _grid, Crate);
         Refresh();
     }
@@ -352,6 +365,7 @@ public partial class InventoryPanel : CanvasLayer
         // A station's slot shows the ghost of what it takes (0097).
         if (place.Crate != null && _reading?.Kind is { } kind) box.GhostMark = Reading.GhostOf(kind, place.Slot);
         box.Pressed += ClickAt;
+        box.Marked += Mark;
         _tipSpots.Add(box, () => SlotTip(box));
         _slots.Add(box);
         return box;
@@ -401,7 +415,51 @@ public partial class InventoryPanel : CanvasLayer
         else if (_crateGrid != null) _sweep.Run(_crateGrid);
     }
 
-    /// <summary>A stack's tip; an empty bay slot says a drone docks there, an empty kept one what drones keep it full of (0062).</summary>
+    /// <summary>The bag's stash key, under its sort key; its tip says what it does and how to keep an item out of it.</summary>
+    private StashButton Stasher()
+    {
+        var button = new StashButton(new Vector2(WristLook.SideKeyWidth, WristLook.SideKeyHeight), StashBag);
+        _tipSpots.Add(button, () => new Tip(T("items.stash"), new TipLine(T("items.stashHow"), Tone.Dim)));
+        return button;
+    }
+
+    /// <summary>
+    /// What a stash moved, as this client planned it, each part in the plan's order (2026-11-06-quick-stash): for its icons to
+    /// fly from the hero to each crate.
+    /// </summary>
+    public event Action<IReadOnlyList<Stashed>>? StashedAway;
+
+    /// <summary>
+    /// Stashes the bag into the crates in reach that hold its items, unless the hero is out or not here: the key or the button,
+    /// the inventory open or closed. A stack picked is put back first, as a sort does; nothing to stash sends nothing.
+    /// </summary>
+    private void StashBag()
+    {
+        if (_client == null || _items == null || _hero is not { Out: false } spot) return;
+        (_picked, _dragFrom) = (null, null);
+        var stash = new Stash(spot.Cell, _ui.Favourites.Get().Kept);
+        var parts = _items.StashPlan(_client.Id, stash, Reading.Moves(_client.InFlight));
+        if (parts.Count == 0)
+        {
+            Refresh();
+            return;
+        }
+        _ui.Click();
+        Send(stash);
+        if (Shown) _inventory.Blink();
+        StashedAway?.Invoke(parts);
+    }
+
+    /// <summary>An Alt+click in the open inventory: the slot's item kept in the bag when stashing, or no longer; an empty slot or a stack in hand, nothing.</summary>
+    private void Mark(Place place)
+    {
+        if (!Shown || Held != null || _reading?.At(place) is not { } stack) return;
+        _ui.Click();
+        _ui.Favourites.Set(_ui.Favourites.Get().Toggled(stack.Item));
+        Refresh();
+    }
+
+    /// <summary>A stack's tip; an empty bay slot says a drone docks there, its empty fuel slot that canisters go in, an empty kept one what drones keep it full of (0062).</summary>
     private Tip? SlotTip(SlotBox box)
     {
         if (_reading?.At(box.Place) is { } stack) return box.Place.Crate == null ? _reading.HereTipOf(stack) : _reading.TipOf(stack);
@@ -410,7 +468,12 @@ public partial class InventoryPanel : CanvasLayer
             var name = T("logistics.kept", ("item", T($"item.{kept}")));
             return Supplied?.Invoke(id, kept) == false ? new Tip(name, new TipLine(T("logistics.noneInReach"), Tone.Bad)) : new Tip(name);
         }
-        return box.GhostMark == SlotMark.Docks ? new Tip(T("item.drone"), new TipLine(T("logistics.drone"), Tone.Dim)) : null;
+        return box.GhostMark switch
+        {
+            SlotMark.Docks => new Tip(T("item.drone"), new TipLine(T("logistics.drone"), Tone.Dim)),
+            SlotMark.Breathes => new Tip(T("item.canister"), new TipLine(T("logistics.fuel"), Tone.Dim)),
+            _ => null,
+        };
     }
 
     public override void _Process(double delta)
@@ -439,11 +502,15 @@ public partial class InventoryPanel : CanvasLayer
         }
         // A stack carried is the pointer: its icon centred on it, the arrow hidden while it is.
         _held.Position = _mouse - _held.Size / 2;
+        // Its tip where the arrow's is, as the pick showed it.
+        _pointerStar.Position = _mouse + new Vector2(15.5f, 17.5f) - _pointerStar.Size / 2;
+        _pointerStar.Visible = Shown && Held == null && !_ui.MenuOpen.Get() && Input.IsPhysicalKeyPressed(Key.Alt);
         bool carrying = _held.Visible && !_ui.MenuOpen.Get();
         var mode = carrying ? Input.MouseModeEnum.Hidden : Input.MouseModeEnum.Visible;
         if (Input.MouseMode != mode) Input.MouseMode = mode;
         _ui.OnPointer.Set(carrying ? _held.Size.X : 0);
         Power(delta);
+        Hologram(delta);
         // The equipment keeps its margin from the right edge, whatever the window's width and its own.
         _body.Position = new Vector2(_root.GetViewportRect().Size.X - Slots.Margin - _body.Size.X, Slots.InventoryTop(_ui.Slot));
         var grid = _inventory.GetGlobalRect();
@@ -465,8 +532,11 @@ public partial class InventoryPanel : CanvasLayer
         foreach (var box in _slots)
         {
             var p = box.Place;
+            // A slot waiting on an upgrade is not there yet (2026-10-30-room-upgrades).
+            box.Visible = _items!.SlotOpen(_client!.Id, p);
             var stack = reading.At(p);
             box.Kept = p.Crate != null ? Kept?.Invoke(p) : null;
+            box.Favourite = p.Crate == null && stack != null && _ui.Favourites.Get().Has(stack.Item);
             box.Show(stack, HandFree && p.Crate == null && p.Slot == _chosen, held?.Place == p, _hovered == p,
                 stack == null || p.Crate != null ? SlotMark.None : reading.MarkOf(stack.Item),
                 Equipment.Is(p) ? Equipment.GlowOf(p, carried) : null,
@@ -490,8 +560,6 @@ public partial class InventoryPanel : CanvasLayer
             _heldCount.Text = "";
         }
         ShowMachine(reading);
-        // A machine open under the bag squares the display's bottom edge, where the machine's module meets it (0074).
-        _inventory.Piece = _built != null ? WristPieces.DisplayDocked : WristPieces.Display;
         Power(0);
     }
 

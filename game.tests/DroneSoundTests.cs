@@ -68,6 +68,18 @@ public class DroneSoundTests
     }
 
     [Fact]
+    public void ASalvageDroneOutHissesQuieterThanTheJetpack()
+    {
+        // The jetpack's own loop, no new file, rising and falling as the jetpack's does; heard as a drone, far under a jetpack.
+        Assert.Equal(Sound.Thrust.Files, Sound.SalvageThrust.Files);
+        Assert.True(Sound.SalvageThrust.Loops);
+        Assert.Equal(Sound.StationReach, Sound.SalvageThrust.Heard);
+        Assert.True(Sound.SalvageThrust.VolumeDb < Sound.Thrust.VolumeDb - 10);
+        Assert.True(Sound.SalvageThrust.VolumeDb <= Sound.DroneWhir.VolumeDb + 2);
+        Assert.Contains(Sound.SalvageThrust, Sound.All);
+    }
+
+    [Fact]
     public void EveryDroneSoundCarriesAsAStationsAndSitsUnderOne()
     {
         foreach (var cue in new[] { Sound.DroneWhir, Sound.DroneDock, Sound.DroneGrab })

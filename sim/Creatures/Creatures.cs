@@ -110,6 +110,21 @@ public sealed partial class CreaturesModule : Module<CreaturesState>
     /// <summary>Whether <paramref name="c"/> is alerted: a guard that has noticed a hero and will pounce.</summary>
     public static bool Alerted(Creature c) => Spec.Get(c.Species).Brain[c.Drive] is Spec.Guard && c.Act == null && c.Step == GuardDrive.Alerted;
 
+    /// <summary>Whether <paramref name="c"/> is shut in its shell: no blow hurts it (lurker-attacks).</summary>
+    public static bool Shut(Creature c) => Spec.Get(c.Species).Brain.Any(d => d is Spec.Shell) && !ShellDrive.Open(c);
+
+    /// <summary>Whether <paramref name="c"/> is a guard still asleep at its post.</summary>
+    public static bool Asleep(Creature c) => Spec.Get(c.Species).Brain[c.Drive] is Spec.Ward && c.Step == WardDrive.Asleep;
+
+    /// <summary>Whether <paramref name="c"/> is a guard stuck where its flight ended.</summary>
+    public static bool Stuck(Creature c) => Spec.Get(c.Species).Brain[c.Drive] is Spec.Ward && c.Act == null && c.Step == WardDrive.Stuck;
+
+    /// <summary>The own cell of the post <paramref name="c"/> is tied to; null for one tied to none.</summary>
+    public static int? PostOf(Creature c) => Spec.Get(c.Species).Lifetime == Spec.Lifetime.Posted ? c.Recall(PostKey) : null;
+
+    /// <summary>The own cell of the relic <paramref name="c"/> is tied to; null for one tied to none.</summary>
+    public static int? RelicOf(Creature c) => Spec.Get(c.Species).Lifetime == Spec.Lifetime.Posted ? c.Recall(RelicKey) : null;
+
     /// <summary>Whether <paramref name="c"/> is clamped on to its wreck: a clinger not flying.</summary>
     public static bool Clamped(Creature c) => Spec.Get(c.Species).Body is Spec.Clinger && c.Recall(ClingerBody.Mounted) == 1;
 
@@ -158,6 +173,7 @@ public sealed partial class CreaturesModule : Module<CreaturesState>
     public string? ReleaseProblem(string species, int cell)
     {
         var spec = Spec.Get(species);
+        if (spec.Lifetime == Spec.Lifetime.Posted) return "creatures.notHere";
         if (cell < 0 || cell >= _grid.Width * _grid.Height) return "creatures.blocked";
         if (State.Creatures.Count(c => !c.Dead) >= Spec.Max) return "creatures.full";
         return RuleBook.Body(spec.Body).ReleaseProblem(this, spec, cell);
@@ -182,10 +198,12 @@ public sealed partial class CreaturesModule : Module<CreaturesState>
 
     /// <summary>
     /// The hit path (2026-10-26-creatures-are-composed): <paramref name="damage"/> taken; at its hit points it dies; else knocked,
-    /// its act cut short, and its drives told in brain order till one claims it. True when it died.
+    /// its act cut short, and its drives told in brain order till one claims it. A drive that shields it (a shut shell) turns it aside
+    /// whole first. True when it died.
     /// </summary>
     private bool Hurt(Creature c, Spec.Species spec, int damage, in Hit hit)
     {
+        if (Shielded(c, spec, hit)) return false;
         bool dies = Dies(c, damage);
         c.Damage += damage;
         if (dies)
@@ -199,7 +217,7 @@ public sealed partial class CreaturesModule : Module<CreaturesState>
         if (spec.Life.Knock > 0) c.VX = hit.Away * (Math.Sign(c.VX) == hit.Away ? Math.Max(Math.Abs(c.VX), knock) : knock);
         // No hop while it rises already: a run of quick hits keeps it low rather than juggling it up.
         if (spec.Life.Hop > 0 && c.VY >= 0) c.VY = -spec.Life.Hop * hit.Pace / Spec.KnockPace;
-        if (c.Act is { } act && RuleBook.Move(spec.Moves[act.Move]).Interruptible) c.Act = null;
+        if (c.Act is { } act && RuleBook.Move(spec.Moves[act.Move]).Interruptible(spec.Moves[act.Move])) c.Act = null;
         for (int i = 0; i < spec.Brain.Count; i++)
             if (RuleBook.Drive(spec.Brain[i]).Hurt(this, c, spec, spec.Brain[i], i, hit)) break;
         return false;
@@ -208,6 +226,14 @@ public sealed partial class CreaturesModule : Module<CreaturesState>
     /// <summary>Whether <paramref name="damage"/> more kills <paramref name="c"/>: what <see cref="Hurt"/> decides by.</summary>
     private static bool Dies(Creature c, int damage) => c.Damage + damage >= Spec.Get(c.Species).Life.Hp;
 
+    /// <summary>Whether a drive of <paramref name="spec"/> turns <paramref name="hit"/> aside whole (a shut shell; a shot on one).</summary>
+    private static bool Shielded(Creature c, Spec.Species spec, in Hit hit)
+    {
+        for (int i = 0; i < spec.Brain.Count; i++)
+            if (RuleBook.Drive(spec.Brain[i]).Shields(c, spec.Brain[i], hit)) return true;
+        return false;
+    }
+
     /// <summary>
     /// <paramref name="c"/> dies, giving what it gives: struck down, sprayed <paramref name="away"/> from the striker, or gone with
     /// the wreck it clung to, either way (0).
@@ -215,6 +241,7 @@ public sealed partial class CreaturesModule : Module<CreaturesState>
     internal void Kill(Creature c, Spec.Species spec, int away)
     {
         c.Dead = true;
+        if (spec.Lifetime == Spec.Lifetime.Posted) _building.FellPost(c.Recall(PostKey));
         // Out of its top row, so what it gives flies out of it (2026-10-29-kill-feel); anyone may sweep it up at once.
         _items.Spray(Loots.Roll(spec.Yields, Random), TopCell(c, spec), away);
     }
@@ -224,7 +251,7 @@ public sealed partial class CreaturesModule : Module<CreaturesState>
         var creature = State.Creatures[Alive(c.Creature)];
         var spec = Spec.Get(creature.Species);
         // A ram may take the suit's last unit: the hero passes out, as the cold or the lava would leave it.
-        _crewOps.Blow(c.From, spec.Moves[creature.Act!.Move].Damage);
+        _crewOps.Blow(c.From, spec.Moves[creature.Act!.Move].Damage, Harm.Blow);
         // It recoils off the hero it struck, hopping back the way it came, its act spent: the hero thrown on, the two part at
         // once. Read from the creature alone.
         EndAct(creature, spec, creature.VX >= 0 ? -1 : 1, hop: true);

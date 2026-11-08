@@ -10,6 +10,7 @@ using Stillwake.Game.Features.Crew;
 using Stillwake.Game.Features.Debris;
 using Stillwake.Game.Features.Dev;
 using Stillwake.Game.Features.Effects;
+using Stillwake.Game.Features.Energy;
 using Stillwake.Game.Features.Furnace;
 using Stillwake.Game.Features.Grid;
 using Stillwake.Game.Features.Handbook;
@@ -17,6 +18,7 @@ using Stillwake.Game.Features.Items;
 using Stillwake.Game.Features.Light;
 using Stillwake.Game.Features.Research;
 using Stillwake.Game.Features.Sound;
+using Stillwake.Game.I18n;
 using Stillwake.Game.Menu;
 using Stillwake.Game.Platform;
 using Stillwake.Game.Render;
@@ -50,6 +52,8 @@ public partial class Main : Node2D, ITogether
     private static readonly string SessionBuild = $"{Build}+{Stillwake.Net.Wire.Fingerprint(World.CommandTypesOf(new Registry().All))}";
 
     private Session? _session;
+    private ResearchTablet? _tablet;
+    private TabletEdge? _edge;
     /// <summary>Playing together as the menu shows it; the link it runs over, and the guests by their peer on it.</summary>
     private TogetherState _together = TogetherState.Alone;
     private Action? _stopLink;
@@ -91,6 +95,7 @@ public partial class Main : Node2D, ITogether
     private FabricatorPanel? _fabricator;
     private DebrisView _debris = null!;
     private Features.Creatures.CreaturesView _creatures = null!;
+    private readonly Features.Scanner.ScannerView _scanner = new();
     private Hands _hands = null!;
     private FrameLog? _frameLog;
     private AllocationSampler? _allocs;
@@ -122,7 +127,7 @@ public partial class Main : Node2D, ITogether
         bool flies = _m.Landing.FlightOf(client.Id) != null;
         int? landed = _flewLast && !flies ? _m.Landing.SeatOf(client.Id) : null;
         _flewLast = flies;
-        var pods = _m.Grid.MachinesWith(Content.MachineTrait.Seats).Select(p => (p.Id, _m.Landing.RiderOf(p.Id) != null)).ToList();
+        var pods = _m.Grid.MachinesWith(Content.MachineTrait.Lands).Select(p => (p.Id, _m.Landing.RiderOf(p.Id) != null)).ToList();
         _arrivals.Frame(surface, surface == 0, pods, landed, newWorld, delta);
     }
 
@@ -140,6 +145,8 @@ public partial class Main : Node2D, ITogether
     private DateTime? _savedAt;
     private string? _saveProblem;
     private TitleScreen? _title;
+    /// <summary>The code shown as a hosted world opens.</summary>
+    private KeyCard? _keyCard;
     /// <summary>Who plays on this machine (0032), and who is who in the world it keeps.</summary>
     private string _playerKey = "";
     private Roster _roster = Roster.Empty();
@@ -159,10 +166,15 @@ public partial class Main : Node2D, ITogether
         _playerKey = Profile.Key(_dev.All);
         _cheat = Has("--cheat");
         _look = Settings.Look() ?? (_dev.None ? null : Sim.Players.Look.Zero);
+        // Before anything is made that says anything.
+        var language = _dev.Value("--lang");
+        Speaking = language != null ? Languages.Named(language) ?? Language.English : Settings.Language();
         if (PoseSheetOnly() || DressSheetOnly()) return;
         QuitAfterAWhile();
         // First of all at its layer, before every shimmer (0075).
         AddChild(Shimmer.NewScreenCopy());
+        // The volumes as kept, before the title's music begins.
+        Settings.ApplyVolumes();
         // Before everything else, so every button made after it clicks.
         var sound = new SoundView(Floats, () => _title != null, Fogged);
         AddChild(sound);
@@ -175,11 +187,28 @@ public partial class Main : Node2D, ITogether
         var slots = _dev.Value("--slots");
         _hands.Ui.SlotScale.Set(slots != null ? Slots.ScaleNamed(slots) : Settings.SlotScale());
         if (slots == null) _hands.Ui.SlotScale.Subscribe(() => Settings.Keep(_hands.Ui.SlotScale.Get()));
+        _hands.Ui.Language.Set(Speaking);
+        _hands.Ui.Language.Subscribe(() => Speak(_hands.Ui.Language.Get(), keep: language == null));
+        // The keys as kept, named as this keyboard prints them; a dev run plays the defaults its scripts press, keeping nothing.
+        Binds.Shown = BindKeys.Shown;
+        Binds.Current = _dev.None ? Settings.Binds() : Binds.Default;
+        _hands.Ui.Binds.Set(Binds.Current);
+        _hands.Ui.Binds.Subscribe(() => Rebind(_hands.Ui.Binds.Get(), keep: _dev.None));
+        if (_dev.None)
+        {
+            _hands.Ui.Favourites.Set(Settings.Favourites());
+            _hands.Ui.Favourites.Subscribe(() => Settings.Keep(_hands.Ui.Favourites.Get()));
+        }
+        if (_dev.Value("--lang-flip") is { } flipAt)
+            GetTree().CreateTimer(double.Parse(flipAt, System.Globalization.CultureInfo.InvariantCulture)).Timeout += () => _hands.Ui.Language.Set(Speaking == Language.Russian ? Language.English : Language.Russian);
         Shimmer.Enabled = Settings.Shimmer();
+        // The screen as kept; a dev run keeps the window its command line made, so a frame or a recording is its size.
+        if (_dev.None) Settings.Apply(Settings.Screen());
         ItemIcons.MakeSilhouettes();
         _debris = new DebrisView(_hands.Ui);
         AddChild(_stars = new Stars());
         AddChild(_debris);
+        AddChild(_scanner);
         AddChild(_camera = new ShipCamera());
         _debris.Nudged += _camera.Nudge;
         AddChild(_creatures = new Features.Creatures.CreaturesView(_hands.Ui));
@@ -202,31 +231,33 @@ public partial class Main : Node2D, ITogether
             _items.Panel.Supplied = (id, item) => _m.Logistics.Supplied(id, item);
             _fabricator.Served = BadgeOf;
             // A drop pod's Descend or Return key is the landing feature's, under its slot; the white of its flight over the screen.
-            Control? LaunchOf(int machine) => _m.Grid.MachineById(machine) is { } pod && Content.Machines.Is(pod.Kind, Content.MachineTrait.Seats)
+            Control? LaunchOf(int machine) => _m.Grid.MachineById(machine) is { } pod && Content.Machines.Is(pod.Kind, Content.MachineTrait.Lands)
                 ? new Features.Landing.LaunchKey(() => _session is Session s ? (_m.Landing, s.Client.Id) : null, SendNow, _hands.Ui.Tip)
                 : null;
             _items.Panel.Launch = LaunchOf;
             AddChild(new Features.Landing.FlightOverlay(() => _session is Session s ? (s.Client.World.SurfaceOf(s.Client.Id), _m.Landing.FlightOf(s.Client.Id)) : null,
                 () => (_session as Session)?.Progress ?? 0, () => _camera.CurrentZoom));
             // The belt's energy beside the suit's, whatever is held, so the gauge row never changes width (0081). Before the
-            // suit's gauge, so the red edges and the dark of passing out cover it as they cover the rest of the HUD.
-            var energy = new EnergyBar(() => _session is Session s ? Charges.BeltOf(_m.Items.BeltCharge(s.Client.Id)) : null, _hands.Ui);
+            // suit's gauge, so the red edges cover it as they cover the rest of the HUD.
+            var energy = new EnergyBar(() => _session is Session s ? EnergyRead.Of(_m.Items.Inventory(s.Client.Id), _m.Items.BeltCharge(s.Client.Id), p => _m.Items.SlotOpen(s.Client.Id, p), _m.Items.Running(s.Client.Id)) : null, _hands.Ui);
             AddChild(energy);
             // Its own layer, above the world: read from whatever registry the session runs now.
             var gauge = new SuitGauge(() => _session is Session s ? Danger.Read(_m.Crew, _m.Atmosphere, s.Client.Id) : (1, 1, SuitDanger.None, true), _hands.Ui);
             AddChild(gauge);
             if (_hero is { } breathing) gauge.BreathesAgain += breathing.BreathesAgain;
             AddChild(new Frost(() => _session is Session s && _hero is { Placed: true } h ? Report.Cold(_m.Crew, s.Client.Id, h.Current.BodyCell(_m.Grid.Width)) : 0));
+            AddChild(new HurtView(() => _session is Session s && _m.Crew.HeroOf(s.Client.Id) is { } hurt ? (hurt.Hurts, hurt.Hurt) : null, gauge));
+            AddChild(new TunnelView(() => _session is Session s && _m.Crew.HeroOf(s.Client.Id) is { } me ? (me.Gasp, me.Out) : null, () => _hero?.Shown));
             // Home and friends off the screen, pointed at from its edge, clear of the HUD's panels.
-            var (panel, fabricator, building, overlays) = (_items.Panel, _fabricator, _hands.Menu, _hands.Overlays);
+            var (panel, fabricator, building) = (_items.Panel, _fabricator, _hands.Menu);
             IEnumerable<Rect2> Hud()
             {
                 foreach (var covered in panel.Covers()) yield return covered;
                 yield return gauge.Covers;
                 yield return energy.Covers;
-                yield return building.Covers;
-                yield return overlays.Covers;
+                if (building.Covers is { } plan) yield return plan;
                 if (fabricator.Covers is { } crafts) yield return crafts;
+                if (_edge != null) yield return _edge.Covers;
             }
             AddChild(new MarkerLayer(_hands.Ui, _camera, () => _session is Session s && _hero is { Placed: true } h ? (h, _m, s.Client.Id) : null, Hud));
             _camera.DevControls = false;
@@ -244,7 +275,7 @@ public partial class Main : Node2D, ITogether
         // Every way out saves first: the window's close as well.
         GetTree().AutoAcceptQuit = false;
         _updater.BeforeRestart = SaveIfOwned;
-        if (_dev.None) ShowTitle();
+        if (_dev.None || _dev.Given("--title") != null) ShowTitle();
         else if (hostAs != null) Host(hostAs.Length > 0 ? hostAs : null);
         else if (join != null) Join(join.Length > 0 ? join : "127.0.0.1", BadNetwork.From(_dev.All), Relay());
         else Alone();
@@ -252,13 +283,15 @@ public partial class Main : Node2D, ITogether
         AddChild(dev);
         // The Handbook (0066): each section a feature's own page; what opening it puts away is wired here, so no feature reaches into another.
         var debrisPage = new HandbookPage(_hands.Ui, () => _session != null ? _ship.Debris : null);
+        // The tablet: put away and putting away as the computer's window.
+        var tech = _tablet = new ResearchTablet(_hands.Ui, () => _session != null && _hero != null, () => _session != null ? _m : null, command => _session?.Client.Send(command), () => _session?.Client.World.Id ?? 0);
         var handbook = new HandbookPanel(_hands.Ui, () => _session != null && _hero != null, [new HandbookSection(T("handbook.debris"), debrisPage, debrisPage.Tally)])
         {
             Opening = () =>
             {
                 _items?.Panel.Close();
                 _hands.Ui.OpenComputer.Set(null);
-                _hands.Ui.OpenTech.Set(null);
+                tech.Close();
                 _hands.Plan.PutPlanAway();
             },
         };
@@ -270,19 +303,40 @@ public partial class Main : Node2D, ITogether
             if (_hands.Ui.OpenComputer.Get() == null) return;
             _items?.Panel.Close();
             handbook.Close();
+            tech.Close();
             _hands.Plan.PutPlanAway();
         });
         AddChild(computer);
-        // A tech station's window, put away and putting away as the computer's.
-        var tech = new TechPanel(_hands.Ui, () => _session != null ? _m : null, () => (_session as Session)?.Client.Id ?? 0, command => _session?.Client.Send(command));
-        _hands.Ui.OpenTech.Subscribe(() =>
+        _hands.Ui.TreeOpen.Subscribe(() =>
         {
-            if (_hands.Ui.OpenTech.Get() == null) return;
+            if (!_hands.Ui.TreeOpen.Get()) return;
             _items?.Panel.Close();
             handbook.Close();
+            _hands.Ui.OpenComputer.Set(null);
             _hands.Plan.PutPlanAway();
         });
         AddChild(tech);
+        // The plan out by its key on the edge puts away what B does from the keyboard, and the Handbook with it.
+        _hands.Plan.PlanOut.Subscribe(() =>
+        {
+            if (!_hands.Plan.PlanOut.Get()) return;
+            tech.Close();
+            handbook.Close();
+        });
+        // The tablet's top edge along the foot: every tablet rises from it, and its keys float over the one that is up, only those that can be used now.
+        Func<bool> inWorld = () => _session != null && _hero != null;
+        var edge = _edge = new TabletEdge(_hands.Ui, inWorld);
+        edge.Put(_hands.Air.Cap, "overlay.key");
+        edge.Put(_hands.Menu.Cap, "build.key");
+        edge.Put(tech.Cap, "research.key", () => tech.CapShows);
+        edge.Put(tech.MarketCap, "research.marketKey", () => tech.MarketCapShows);
+        Func<bool> suitOn = () => _session is Session s && _m.Crew.SuitOn(s.Client.Id);
+        edge.Put(Features.Crew.SuitKeys.Mode(_hands.Ui, suitOn), "suit.key", () => suitOn() || _session is Session s && _m.Crew.SuitModeProblem(s.Client.Id) == null);
+        edge.Put(handbook.Cap, "handbook.key");
+        edge.Readout(new CreditHolo(() => tech.Credits), "research.creditsTip", () => tech.MarketCapShows);
+        foreach (var tablet in (Tablet[])[_hands.Menu.Tablet, handbook.Tablet, tech.Tablet]) edge.Follow(tablet);
+        AddChild(edge);
+        AddChild(new ScreenBulb(tech.Bulb, inWorld, () => tech.Cap.IsVisibleInTree() ? tech.Cap.GetGlobalRect() : null, () => edge.Row, tech.FindPicture));
         var suits = new SuitColours(SuitsWorn, colour => _session?.Client.Send(new Sim.Crew.PickColour(colour)));
         var lookEditor = _lookEditor = new Features.Crew.LookEditor(() => Suits.Of(_m.Players, (_session as Session)?.Client.Id ?? 0), look =>
         {
@@ -292,29 +346,71 @@ public partial class Main : Node2D, ITogether
             _session?.Client.Send(new Sim.Crew.ChooseLook(look));
         });
         AddChild(lookEditor);
+        // Before the menu, which so hears Esc first and puts it away.
+        var keyCard = _keyCard = new KeyCard(_hands.Ui, () => Together);
+        AddChild(keyCard);
         var menu = new GameMenu(_hands.Ui,
-            busy: () => (_items?.Panel.Shown ?? false) || handbook.Shown || computer.Shown || tech.Shown || lookEditor.Shown || _hands.Plan.PlanOut.Get() || dev.Searching,
+            busy: () => (_items?.Panel.Shown ?? false) || handbook.Shown || computer.Shown || tech.Shown || lookEditor.Shown || keyCard.Shown || _hands.Plan.PlanOut.Get() || dev.Searching,
             putAway: () =>
             {
-                // A search in the build menu or the dev panel goes first, what else is open staying so.
-                if (dev.DropSearch() || _hands.Menu.DropSearch()) return;
+                // A search in the build menu, on the research board or the dev panel goes first, then a card in hand (right-lets-go),
+                // what else is open staying so.
+                if (dev.DropSearch() || _hands.Menu.DropSearch() || tech.DropSearch() || _hands.Plan.LetGo()) return;
                 _items?.Panel.Close();
                 handbook.Close();
                 computer.Close();
                 tech.Close();
                 lookEditor.Close();
+                keyCard.Close();
                 _hands.Plan.PutPlanAway();
             },
-            handbook: handbook.Open,
             look: () => lookEditor.Open(_look ?? Sim.Players.Look.Zero),
-            suits, SaveWorld, inWorld: () => _session != null, owns: () => _role != "guest", exitToTitle: () => ExitToTitle(null), Quit, Foot,
+            suits, SaveWorld, inWorld: () => _session != null, owns: () => _role != "guest", exitToTitle: () => ExitToTitle(null), Quit, Foot, together: () => Together,
             version: Updates.Of(Build).ToString(), updateTo: () => _updater.Available?.Tag, update: _updater.Update,
             updating: () => _updater.Status);
         AddChild(menu);
+        // The menu's tablet rises from the edge as the others do: no second tablet left lying at the foot, and no keys over it.
+        edge.Follow(menu.Tablet, keysAway: true);
         AddChild(_updater);
         // Playing together, how long an action takes to happen: sent, stamped by the host, run here.
         AddChild(new VersionCorner(Updates.Of(Build).ToString(), () => _role == "alone" ? null : _session?.RoundTrip.Median));
         AddDevDemos(menu, suits, debrisPage, _stages);
+    }
+
+    /// <summary>
+    /// Speaks <paramref name="now"/> from here on, what is on screen included: every label and button says its text again
+    /// (<see cref="Languages.Retold"/>), the dev panel staying English; what holds numbers is told anew by whoever keeps it current.
+    /// </summary>
+    private void Speak(Language now, bool keep)
+    {
+        var told = Languages.Told(Speaking);
+        Speaking = now;
+        BindKeys.Relearn();
+        if (keep) Settings.Keep(now);
+        Retell(GetTree().Root, told, now);
+        _title?.Worlds.Refresh();
+    }
+
+    /// <summary>
+    /// Plays by <paramref name="binds"/> from here on (2026-11-04-key-binds), what is on screen naming a key included, told again
+    /// as a change of language tells it.
+    /// </summary>
+    private void Rebind(Binds binds, bool keep)
+    {
+        var told = Languages.Told(Speaking);
+        Binds.Current = binds;
+        BindKeys.Relearn();
+        if (keep) Settings.Keep(binds);
+        Retell(GetTree().Root, told, Speaking);
+    }
+
+    private static void Retell(Node node, IReadOnlyDictionary<string, string> told, Language to)
+    {
+        if (node is DevPanel) return;
+        if (node is Label label) label.Text = Languages.Retold(label.Text, told, to);
+        else if (node is Button button) button.Text = Languages.Retold(button.Text, told, to);
+        else if (node is LineEdit line) line.PlaceholderText = Languages.Retold(line.PlaceholderText, told, to);
+        foreach (var child in node.GetChildren()) Retell(child, told, to);
     }
 
     /// <summary>Whether this player's placed hero floats out in space: the world silent, its own touch dulled, the bed of space playing (0033, 0041).</summary>
@@ -348,7 +444,6 @@ public partial class Main : Node2D, ITogether
         _items?.Panel.Close();
         _hands.Ui.OpenCrate.Set(null);
         _hands.Ui.OpenComputer.Set(null);
-        _hands.Ui.OpenTech.Set(null);
         _hands.Ui.AimedPiece.Set(null);
         _hands.Plan.PutPlanAway();
         Stages.Clear();
@@ -369,7 +464,7 @@ public partial class Main : Node2D, ITogether
         var context = new SurfaceContext(_m, _hands, () => (_session as Session)?.Progress ?? 0, () => _hero?.HeadLamps() ?? [], HeroBodies,
             Homes: !Has("--no-homes"), HomesMood: Arg("--homes") switch { "lit" => true, "dark" => false, _ => null },
             Peer: () => (_session as Session)?.Client.Id ?? 0, Tick: () => (_session as Session)?.Client.World.Tick ?? 0,
-            Hosts: () => (_session as Session)?.Host != null, Arrivals: _arrivals);
+            Hosts: () => (_session as Session)?.Host != null, Arrivals: _arrivals, Seed: _seed);
         foreach (var each in SurfaceViews.All)
         {
             if (each.Make(context) is not { } view) continue;
@@ -384,7 +479,7 @@ public partial class Main : Node2D, ITogether
         {
             // --lit: every lamp at full power, to measure the light on the reference world; --dark: every lamp out, to see what glows.
             // A flare coming makes them falter as one short of power does (magnetic-flare).
-            LampShare = Has("--lit") ? _ => 1f : Has("--dark") ? _ => 0f : lamp => power.Satisfaction(lamp.Id) / 1000f
+            LampShare = Has("--lit") ? _ => 1f : Has("--dark") ? _ => 0f : lamp => Features.Light.LampPower.ShareOf(Stillwake.Content.Machines.Get(lamp.Kind).Draws, power.Satisfaction(lamp.Id))
                 * Features.Hazards.FlareLook.LampShare(Features.Hazards.FlareLook.Near(hazards.FlareLeft, (_session as Session)?.Progress ?? 0, hazards.FlareRules.Warning)),
             Fire = m => fires.BlazeOf(m.Id),
             FireAt = FurnaceView.LightAt,
@@ -392,8 +487,14 @@ public partial class Main : Node2D, ITogether
             // The creatures live across surfaces: their view is made once, not with these.
             Shining = [.. _views.OfType<ILightSource>(), _creatures],
         });
-        // A planet's sky behind its ground, its land's foot at the spawn's ground; space aboard (0076, 0079).
-        _stars.Show(_m.Rules.Sky != null ? PlanetLooks.Of[_m.Rules.Id].Backdrop : null, (_m.Crew.Spawn / _m.Grid.Width + 1) * ShipCamera.Cell);
+        // A planet's sky behind its ground and its land composed by its seed, on its surface's rows; space aboard (0076, 0079,
+        // composed-backdrops). A surface other than a planet's, the strip, takes the first planet's plants.
+        long landFrom = System.Diagnostics.Stopwatch.GetTimestamp();
+        if (_m.Rules.Sky != null && PlanetLooks.Of[_m.Rules.Id] is var look)
+            _stars.Show(look.Backdrop, Features.Backdrop.BackdropView.Of(_m.Rules as Content.PlanetType ?? Content.PlanetTypes.First, look, _seed),
+                Features.Backdrop.GroundLine.Tops(_m.Grid.StructureLayer, _m.Grid.BackLayer, _m.Grid.Width, _m.Grid.Height));
+        else _stars.Show(null, null, null);
+        double land = System.Diagnostics.Stopwatch.GetElapsedTime(landFrom).TotalMilliseconds;
         // Last of the world's views: at a shared z, a stage's effects over its layer's objects.
         MoveChild(_stages, -1);
         MoveChild(_camera, -1);
@@ -414,7 +515,7 @@ public partial class Main : Node2D, ITogether
         // find it alive and copy it, 4 to 7 ms each (GcPace).
         GC.Collect();
         double collected = System.Diagnostics.Stopwatch.GetElapsedTime(made).TotalMilliseconds - all;
-        Log($"views of {_m.Grid.Width}×{_m.Grid.Height} made in {all:F0} ms: {views:F0} views, {grid:F0} the grid drawn, {all - views - grid:F0} the light; {collected:F0} ms collecting");
+        Log($"views of {_m.Grid.Width}×{_m.Grid.Height} made in {all:F0} ms: {views - land:F0} views, {land:F0} the land behind, {grid:F0} the grid drawn, {all - views - grid:F0} the light; {collected:F0} ms collecting");
     }
 
     private void AimCamera(Layout? layout)
@@ -465,32 +566,42 @@ public partial class Main : Node2D, ITogether
         _heroes += heard.Count;
         DevTick(client, before);
         ShowWorld();
+        ShowDaylight();
         SeeArrivals(client, delta);
         _frameLog?.Mark("sim");
         if (client.World.Tick != before) SyncLight();
         if (client.World.Tick != before) ShakeFalling(client);
         _frameLog?.Mark("light");
-        _hero?.Frame(client, _m, _camera, heard, session.Progress, session.Host != null, delta * 1000);
+        _hero?.Frame(client, _m, _camera, heard, session.Progress, session.Drift, session.Host != null, delta * 1000);
         _frameLog?.Mark("hero");
         // After the hero, so a door it toggles shows on the frame E is pressed (0014).
         SyncGrid(client);
         _frameLog?.Mark("grid");
         if (_items != null) _items.Panel.Furnace = _m.Furnace.At;
+        if (_items != null) _items.Panel.Trade = _m.Trade;
         if (_items != null) (_items.Panel.Charger, _items.Panel.ChargeRate) = (_m.Power.Charges, _m.Power.ChargeRate);
         if (_items != null) _items.Panel.Draw = _m.Power.Draw;
         if (_items != null) _items.Panel.Crafting = _m.Crafting;
-        if (_items != null) _items.Frame(client, _m.Grid, _m.Rooms, _m.Items, _m.Research, _m.Debris, SpotOf(_hero), session.Progress, delta * 1000);
+        if (_items != null) _items.Frame(client, _m.Grid, _m.Rooms, _m.Items, _m.Debris, NetHolds, SpotOf(_hero), session.Progress, session.Drift, delta * 1000);
         if (_fabricator != null) _fabricator.Draw = _m.Power.Draw;
         _fabricator?.Frame(client, _m.Crafting, _m.Research, _m.Items, _m.Grid, delta * 1000);
         _frameLog?.Mark("items");
-        _debris.Frame(client, _m.Debris, _camera.View(), session.Progress, delta * 1000);
+        _debris.Frame(client, _m.Debris, _camera.View(), session.Drift, delta * 1000);
         _frameLog?.Mark("debris");
+        bool scanning = _m.Items.Equipped(client.Id, Stillwake.Content.Helmet.Scanner);
+        _scanner.Frame(scanning && _hero?.Pointer() is { } pointer
+            ? Features.Scanner.Scan.Of(_m.Debris.Pieces, pointer, true, session.Drift) ?? Features.Scanner.Scan.OfPile(_m.Grid, _m.Building.Cracks, pointer) : null, delta * 1000);
         // After the hero, so a strike it sent this frame flinches its creature at once (0102).
-        _creatures.Frame(client, _m.Creatures, _m.Debris, _m.Grid, _m.Rooms, _m.Rules, _camera.View(), session.Progress, delta * 1000, CreatureLooks.PaletteOf.GetValueOrDefault(_m.Rules.Id, CreatureLooks.Palette), _seed);
+        _creatures.Frame(client, _m.Creatures, _m.Debris, _m.Building, _m.Grid, _m.Rooms, _m.Rules, _camera.View(), session.Progress, delta * 1000, _seed);
         _frameLog?.Mark("creatures");
         ShowHands(client, delta * 1000);
         _frameLog?.Mark("hands");
     }
+
+    /// <summary>The pieces net <paramref name="net"/> holds, each where the debris feature draws it: what a collect's loot flies home from.</summary>
+    private IReadOnlyList<(int Piece, (double X, double Y) At)> NetHolds(int net) => _m.Grid.MachineById(net) is { } machine
+        ? NetShows.Lying([.. _m.Debris.HeldIn(net).Select(e => e.Id)], machine.Cell, _m.Grid.Width)
+        : [];
 
     /// <summary>Where the hero stands for its items: what a drop is thrown from, what it picks up.</summary>
     private HeroSpot? SpotOf(HeroView? view)
@@ -512,10 +623,27 @@ public partial class Main : Node2D, ITogether
         }
         foreach (var scenario in _scenarios) scenario.Frame(client, _m, Log);
         _hands.Frame(client, _m, _bodies, elapsedMs);
-        // The open plan draws its focused layer whole and the other faded, aboard only (0110).
+        // The open plan draws its focused layer whole and the other faded, the front hidden for the back's, aboard only (0110, back-focus-clear).
         var fade = Features.Building.Tools.AlphasOf(_hands.Plan.Shown);
-        _grid?.Fade(fade);
+        _grid?.Fade(fade, Features.Building.Tools.BackUnlit(_hands.Plan.Shown));
         foreach (var view in _faded) view.Modulate = new Color(1, 1, 1, fade.Front);
+    }
+
+    /// <summary>
+    /// The planet's hour as light (2026-11-07-night-chills): the light through its open sky, its backdrop and the fog at its sides
+    /// at <see cref="Daylight"/>'s colours of the moment; whole aboard.
+    /// </summary>
+    private void ShowDaylight()
+    {
+        (float R, float G, float B) sky = (1f, 1f, 1f), tint = sky;
+        if (_m.Rules.Cycle is { } cycle && PlanetLooks.Of.TryGetValue(_m.Rules.Id, out var look))
+        {
+            int time = _m.Sky.Now.Time;
+            (sky, tint) = (Daylight.Sky(look, time, cycle), Daylight.Backdrop(look, time, cycle));
+        }
+        Lit.Sky(sky);
+        _stars.Tint = tint;
+        if (View<Features.Fog.FogView>() is { } fog) fog.Tint = tint;
     }
 
     /// <summary>The surface's view of type <typeparamref name="T"/>; none where this surface has none (lava aboard).</summary>

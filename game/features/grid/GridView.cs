@@ -24,20 +24,27 @@ public partial class GridView : Node2D
 {
     private const int Cell = ShipCamera.Cell;
 
-    /// <summary>Which sides of a cell: up, right, down, left, a bit each (SIDE in ship-art.ts).</summary>
+    /// <summary>Which sides of a cell: up, right, down, left, a bit each.</summary>
     private const int Up = 1, Right = 2, Down = 4, Left = 8;
+
+    /// <summary>Where the wreck's maps lie in this grid.</summary>
+    private readonly (int X, int Y) _corner;
 
     private readonly IGridQueries _grid;
     private readonly ShipTiles _tiles = ShipTiles.Shared;
     private readonly ShadowTiles _shadows = ShadowTiles.Shared;
-    private readonly TileMapLayer _back, _shade, _walls, _details, _edges, _tops, _topsFront, _fixtures, _doors, _machines;
+    /// <summary>The back walls' lit material, put back once they are no longer drawn out of the light; and the unlit one, as painted.</summary>
+    private static readonly CanvasItemMaterial Unlit = new() { LightMode = CanvasItemMaterial.LightModeEnum.Unshaded };
+    private readonly Godot.Material _backLit;
+    private bool _backUnlit;
+    private readonly TileMapLayer _back, _shade, _walls, _details, _edges, _dress, _tops, _topsFront, _fixtures, _doors, _machines;
     /// <summary>The layers a cell is drawn in; machines are drawn apart, over their footprints.</summary>
     private readonly TileMapLayer[] _cellLayers;
     private readonly Node2D _sockets = new() { ZIndex = Layers.Sockets };
     // A door or valve that moves is heard where it stands, by everyone near (0033).
     private readonly Heard2D _opens = Cues.Player2D(S.DoorOpen, S.World, voices: 2),
         _closes = Cues.Player2D(S.DoorClose, S.World, voices: 2);
-    private readonly Dictionary<int, string> _materials = Materials.All.ToDictionary(m => m.Code, m => m.Id);
+    private readonly Dictionary<int, string> _materials = Materials.All.ToDictionary(m => m.Code, m => m.As ?? m.Id);
     private readonly DrawnLayers _drawn;
     private Machine[] _drawnMachines = [];
     private bool _blank = true;
@@ -47,12 +54,14 @@ public partial class GridView : Node2D
     public GridView(IGridQueries grid)
     {
         _grid = grid;
+        _corner = WreckDress.CornerIn(grid.Width, grid.Height);
         _drawn = new DrawnLayers(grid.Width, grid.Height);
         _reveal = new ChunkReveal(grid.Width, grid.Height);
         _drawRow = DrawRow;
         _groundAt = GroundOf16;
         // Walls and doors take the share of light a wall keeps of what reaches its face; the rest all of it.
         _back = Layer(Layers.BackWalls);
+        _backLit = _back.Material;
         // The ground's soft shadow on natural back walls, multiplying them as lit (0088).
         _shade = new TileMapLayer
         {
@@ -63,34 +72,45 @@ public partial class GridView : Node2D
             Material = ShadowTiles.Multiply,
         };
         AddChild(_shade);
-        _walls = Layer(Layers.Walls, L.WallIn);
+        _walls = Layer(Layers.Walls, L.WallIn, shines: true);
         // A planet's pebbles and roots over its ground, under its edges: added after the walls, before them (0082).
         _details = Layer(Layers.Walls, L.WallIn);
         _edges = Layer(Layers.Edges, L.WallIn);
+        // The wreck's rust and stripes, over its edges as added after them.
+        _dress = Layer(Layers.Edges, L.WallIn);
         // The living edge over its ground, lit as the open air its top faces; over the edges, as added after them; its tufts before the heroes.
         _tops = Layer(Layers.Edges);
         _topsFront = Layer(Layers.GroundFront);
         _fixtures = Layer(Layers.Fixtures);
         _doors = Layer(Layers.Doors, L.WallIn);
         _machines = Layer(Layers.Machines);
-        _cellLayers = [_back, _shade, _walls, _details, _edges, _fixtures, _doors];
+        _cellLayers = [_back, _shade, _walls, _details, _edges, _dress, _fixtures, _doors];
         AddChild(_sockets);
         foreach (var player in (Node[])[_opens, _closes]) AddChild(player);
     }
 
-    /// <summary>The front and the back walls drawn as opaque as the open plan's focus has them (0110); all whole with the plan away.</summary>
-    public void Fade((float Front, float Back) alpha)
+    /// <summary>
+    /// The front and the back walls drawn as opaque as the open plan's focus has them (0110), the back walls out of the light
+    /// and unshaded while <paramref name="backUnlit"/> (back-focus-clear); all whole and lit with the plan away.
+    /// </summary>
+    public void Fade((float Front, float Back) alpha, bool backUnlit)
     {
-        foreach (var layer in (CanvasItem[])[_back, _shade]) layer.Modulate = new Color(1, 1, 1, alpha.Back);
-        foreach (var layer in (CanvasItem[])[_walls, _details, _edges, _tops, _topsFront]) layer.Modulate = new Color(1, 1, 1, alpha.Front);
+        if (backUnlit != _backUnlit)
+        {
+            _backUnlit = backUnlit;
+            _back.Material = backUnlit ? Unlit : _backLit;
+        }
+        _back.Modulate = new Color(1, 1, 1, alpha.Back);
+        _shade.Modulate = new Color(1, 1, 1, backUnlit ? 0 : alpha.Back);
+        foreach (var layer in (CanvasItem[])[_walls, _details, _edges, _dress, _tops, _topsFront]) layer.Modulate = new Color(1, 1, 1, alpha.Front);
         foreach (var layer in (CanvasItem[])[_fixtures, _doors, _machines, _sockets]) layer.Modulate = new Color(1, 1, 1, alpha.Front);
     }
 
-    private TileMapLayer Layer(int z, float share = 1)
+    private TileMapLayer Layer(int z, float share = 1, bool shines = false)
     {
         // Cells have no bodies or paths, but Godot would still walk every cell for them each time a layer is built.
         var layer = new TileMapLayer { TileSet = _tiles.Set, ZIndex = z, CollisionEnabled = false, NavigationEnabled = false };
-        Lit.Set(layer, share);
+        Lit.Set(layer, share, shines);
         AddChild(layer);
         return layer;
     }
@@ -282,23 +302,28 @@ public partial class GridView : Node2D
             }
         }
 
+        var spec = Structures.Of(_drawn.Structure[cell]);
+        // Stars show through a tear's cuts, so it draws no back wall while its wall stands.
+        int open = spec.Draw == StructureDraw.Autotile ? ~WalledSides(cell) & (Up | Right | Down | Left) : 0;
+        var dress = spec.Draw == StructureDraw.Autotile ? WreckDress.Of(_drawn.Material[cell], x, y, _corner, open) : default;
+
         if (_drawn.Back[cell] == Back.Wall)
         {
-            DrawBack(at, _drawn.BackMaterial[cell]);
+            if (dress.Torn == null) DrawBack(at, _drawn.BackMaterial[cell]);
             DrawShade(cell, blank);
         }
 
-        var spec = Structures.Of(_drawn.Structure[cell]);
         switch (spec.Draw)
         {
             case StructureDraw.Autotile:
                 {
                     var (wall, edges) = WallNamesOf(_drawn.Material[cell]);
-                    _walls.SetCell(at, ShipTiles.Source, _tiles.CutAt(wall, x, y));
+                    if (dress.Torn != null) Put(_walls, at, dress.Torn);
+                    else _walls.SetCell(at, ShipTiles.Source, _tiles.CutAt(wall, x, y));
                     // Edged where it faces no wall.
-                    int open = ~WalledSides(cell) & (Up | Right | Down | Left);
-                    if (open != 0)
+                    if (open != 0 && dress.Torn == null)
                         Put(_edges, at, edges[open]);
+                    if (dress.Over != null) Put(_dress, at, dress.Over);
                     DrawDetail(cell);
                     DrawTop(cell);
                     break;
@@ -516,7 +541,7 @@ public partial class GridView : Node2D
         return natural;
     }
 
-    /// <summary>A number for <paramref name="cell"/> that looks random, the same every time (hashOf in ship-art.ts).</summary>
+    /// <summary>A number for <paramref name="cell"/> that looks random, the same every time.</summary>
     private static uint HashOf(int cell)
     {
         uint h = unchecked((uint)cell ^ 0x9e3779b9u) * 0x85ebca6bu;

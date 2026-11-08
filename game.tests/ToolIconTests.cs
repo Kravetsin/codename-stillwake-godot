@@ -112,10 +112,20 @@ public class ToolIconTests
         });
 
     [Fact]
-    public void OnlyAToolHasNoIconDrawn()
+    public void OnlyAToolHasNoIconDrawn() =>
+        Assert.All(Spec.Items.All, i => Assert.Equal(HeldLook.Of(i.Id) == null, Png.Has($"items/{i.Id}")));
+
+    [Fact]
+    public void EveryToolHasALargeIconPictureToFitDownNeverUp()
     {
-        string items = System.IO.Path.Combine(System.AppContext.BaseDirectory, "..", "..", "..", "..", "game", "art", "items");
-        Assert.All(Spec.Items.All, i => Assert.Equal(HeldLook.Of(i.Id) == null, System.IO.File.Exists(System.IO.Path.Combine(items, $"{i.Id}.png"))));
+        // A tool's held picture is drawn to the fist, some tens of pixels; its icon picture, the same drawing, hundreds (driver-icons).
+        foreach (var look in Spec.Items.All.Select(i => HeldLook.Of(i.Id)).OfType<HeldLook>().Distinct())
+        {
+            string name = $"icons/{look.Picture["res://art/".Length..^".png".Length]}";
+            Assert.True(Png.Has(name), $"game/art/hd/{name}.png");
+            var (width, height) = Png.Size(Png.Of(name));
+            Assert.True(System.Math.Max(width, height) >= 256, $"{name}: {width}×{height}");
+        }
     }
 
     private static System.Func<int, int, (int R, int G, int B, int A)> Baked(Picture picture, int side)

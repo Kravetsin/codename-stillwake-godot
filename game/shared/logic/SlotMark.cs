@@ -20,4 +20,6 @@ public enum SlotMark
     Charges,
     /// <summary>A drone bay's slots' ghost, a drone: no inventory slot wears it.</summary>
     Docks,
+    /// <summary>A drone bay's fuel slot's ghost, a canister (salvage-drones): no inventory slot wears it.</summary>
+    Breathes,
 }

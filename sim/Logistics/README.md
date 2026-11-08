@@ -8,6 +8,7 @@
 | `Fuzz.cs` | The module's `Fuzz` override: the commands the desync suite draws. |
 | `Jobs.cs` | A job: `Count` of `Item` from `Source` to `Target`; wants, matching, cost. |
 | `Logistics.cs` | Drone logistics (0062): the module, its command and queries. |
+| `Salvage/Salvage.cs` | Salvage drones through vacuum on their bay's air: their own README. |
 | `State.cs` | The saved slice and its records: `Leg`, `Drone`, `LogisticsState`. |
 
 Drones ([0062](../../docs/decisions/0062-drones-keep-machines-going.md)): with nothing set, a bay's drones keep the
@@ -16,11 +17,12 @@ and hatches, job after job, home with no work or low charge. A machine switched 
 unless marked.
 
 - **Depends on:** `Grid` (machines, doorway cells), `Atmosphere` (`AiredAt`), `Items` (`Crate`, `HeldFor`, `RoomFor`,
-  `KeptAt`; `TakeFrom`, `PutIn`, `LayDown`), `Crafting` (`Queue`, `Progress`); stations from `Content`.
+  `Floor`, `KeptAt`; `TakeFrom`, `PutIn`, `LayDown`, `Lift`), `Crafting` (`Queue`, `Progress`), `Debris` (`Pieces`;
+  `Catch`), `Rooms` (`RoomAt`, `Afloat`); stations from `Content`.
 - **State** (`LogisticsState`, all saved): `Off` — machines switched off, sorted; `Drones` — in flight, in id
   order (`Drone`: bay, `Stack` with charge, `X`/`Y` in thousandths of a cell, `Cell` last centred, `To`, `Leg`,
-  `Low`, job, `Cargo`); `NextId`; `Ticks`. An old save's drone `slot` is ignored. Derived: reservations, floods
-  and paths in scratch arrays sized to one zone box.
+  `Low`, job, `Cargo`; a salvage drone's own: `Salvage/`); `NextId`; `Ticks`. An old save's drone `slot` is
+  ignored. Derived: reservations, floods and paths in scratch arrays sized to one zone box.
 - **Runs** last in `Registry.All`, after `Furnace`: drones read the tick's air (no ADR).
 
 ## Rules
@@ -49,7 +51,7 @@ unless marked.
   its machine's width and height minus two, plus `Spare` cells (0104); its charge must hold that.
 - **A bay** (`droneBay`) looks when `(Ticks + id) % LookEvery == 0`, bays in id order, after drones fly. Its first
   slot holding a drone charged to `LaunchAt` floods its zone — cells within `Reach` of its footprint — breadth first
-  through passable cells (aired, or a doorway's, door or hatch, shut too), finds the job from the bay and launches if it affords it.
+  through passable cells (of a room holding any air, or a doorway's, door or hatch, shut too), finds the job from the bay and launches if it affords it.
 - **Next:** a drone free in the air (delivered, its source found empty, source or target taken apart) floods from
   its cell and takes the job found if it affords it; with none it flies home; with one it cannot afford, home `Low`.
 - **Flight:** each tick a drone pays `Draw` or drops, then moves `Speed` thousandths of a cell, centre to centre.
@@ -68,10 +70,7 @@ unless marked.
 
 ## API
 
-- **Queries:** `Served(machine)` — not switched off; `Servable(machine)` — whether drones ever work its kind (where
-  the badge shows); `Reached(machine)` — some bay's flood reaches it; `Supplied(machine, item)` — a served crate or
-  output in the reach of a bay reaching it holds some (a remembered slot's tooltip); `Drones` — live, read-only;
-  `Low(drone)`; `ZoneOf(bay)` — its zone box, null for no bay.
+- **Queries:** `Served`, `Servable`, `Reached`, `Supplied`, `Drones`, `Low`, `ZoneOf`.
 - **Commands:** `SetServed(Machine, On)`.
 - **Fuzz:** the switch mostly at the map's machines, now and then at a bay or an id that is none.
 
@@ -98,5 +97,6 @@ unless marked.
 - A machine's outputs of an item wait for the drone on its way, though another is free.
 - Stacks of one item holding other charge are not gathered: only single-item stacks hold charge.
 - `Off` keeps a machine taken apart: ids are never reused, and it is never read.
-- No drones in vacuum, opening doorways, colliding or flying outside the hull; reach is fixed.
+- No ordinary drone in vacuum or outside the hull (salvage drones: `Salvage/`); none opens doorways or collides;
+  reach is fixed.
 - A bay's zone is a square box, clipped at the grid's edge.

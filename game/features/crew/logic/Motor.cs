@@ -33,4 +33,11 @@ public static class Motor
         if (running == wanted) return null;
         return wanted != null ? new Run(wanted, true) : new Run(running!, false);
     }
+
+    /// <summary>
+    /// Whether <paramref name="item"/> is an electric tool peer <paramref name="peer"/>'s belt cannot pay a tick of: a press
+    /// of it does nothing, and the energy tab blinks red to say why (no-charge-flash).
+    /// </summary>
+    public static bool Flat(IItemsQueries items, int peer, string? item) =>
+        item != null && Content.Items.Get(item).Draw is int draw && !items.CanDrain(peer, draw);
 }

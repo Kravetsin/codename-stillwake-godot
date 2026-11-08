@@ -5,7 +5,7 @@ namespace Stillwake.Game;
 /// <summary>
 /// How a planet's natural ground looks (0077, 0079): each material's colour and fleck, the chips a dig knocks off; and the
 /// lines its edges are drawn in where it meets the open, a dark outline and, on top, a lit line inside it. Its walls and back
-/// walls are drawn in <c>art/planet</c>, in the "Stillwake" style.
+/// walls are drawn in <c>art/hd</c>, in ink and watercolour.
 /// </summary>
 public static class GroundLooks
 {
@@ -23,25 +23,15 @@ public static class GroundLooks
         ["alloy"] = new((78, 103, 114), (110, 138, 147), (20, 29, 36), (166, 194, 198)),
         // The homes' plaster (0091), the page's warm lime-washed stone: seen only as their back walls.
         ["plaster"] = new((92, 79, 69), (106, 90, 76), (36, 28, 22), (130, 112, 96)),
-        // Veins of ore: the stone they run through flecked with these, its colour the ore's, its fleck the ore's glint; edged as stone.
+        // Veins of ore: their chips the ore's colour and glint; edged as stone.
         ["copperVein"] = new((190, 112, 62), (255, 186, 120), (26, 28, 36), (138, 146, 160)),
         ["iceVein"] = new((132, 204, 236), (232, 250, 255), (26, 28, 36), (138, 146, 160)),
+        // Kidney iron (the user's pick, 2026-11-07): dark red-grey bubbles, a hard metallic highlight.
+        ["ironVein"] = new((76, 52, 56), (236, 206, 210), (26, 28, 36), (138, 146, 160)),
     };
 
     /// <summary>The dust and the chips of a break; a hit's are <see cref="HitLooks"/>'.</summary>
     public const int BreakDust = 18, BreakChips = 8;
-
-    /// <summary>A vein's flecks of ore in its stone's picture: the share of its 2 px blocks that are ore, in hundredths.</summary>
-    public const int VeinFlecks = 40;
-
-    /// <summary>
-    /// How a natural back wall recedes behind its ground (0088), worked on its picture at load: paled toward its grey by
-    /// <see cref="BackPale"/>, cooled by <see cref="BackCool"/> of <see cref="CoolShift"/> (each colour's change, cooled fully),
-    /// then darkened to <see cref="BackDim"/>.
-    /// </summary>
-    public const double BackDim = 0.62, BackPale = 0.3, BackCool = 0.6;
-
-    public static readonly (double R, double G, double B) CoolShift = (-0.14, -0.05, 0.16);
 
     /// <summary>
     /// The soft shadow the ground casts on a natural back wall along its open edges (0088): the ground's pixels blurred twice

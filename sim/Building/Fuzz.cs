@@ -46,7 +46,7 @@ public sealed partial class BuildingModule
         int Cell() => Below(8) == 0 ? Anywhere() : Within(FuzzMargin);
         // Instant building now and then, mostly off, so plans and their work are drawn too.
         if (Below(20) == 0) return new SetInstant(Below(4) == 0) { From = from };
-        // A repair now and then (2026-10-30-magnetic-flare): mostly of a broken machine, paid when the hero carries its cost; else of any id, refused.
+        // A repair now and then (2026-10-30-magnetic-flare): mostly of a broken machine; else of any id, refused.
         if (Below(8) == 0)
         {
             var broken = _power.Broken;
@@ -63,10 +63,15 @@ public sealed partial class BuildingModule
                     // mostly on a crack, so walls break within a run, or anywhere, mostly on the ground a planet is made of.
                     int cell = _plants.Count > 0 && Below(4) == 0 ? (FuzzPlant(Below) is var p && Below(2) == 0 ? p.Cell : HoldOf(p))
                         : State.Cracks.Count > 0 && Below(2) == 0 ? State.Cracks[Below(State.Cracks.Count)].Cell : Cell();
+                    // Half the time the cells a running tool's edge touches (tool-edge): that one, a neighbour (both cells of a door or
+                    // ladder), itself again, or one off the grid.
+                    string tool = Weapons.All[Below(Weapons.All.Count)].Item;
+                    if (Below(2) == 0)
+                        return new HewCells(tool, new List<int> { cell, cell + 1, cell + _grid.Width, cell, Below(3) == 0 ? -1 - Below(3) : Cell() }) { From = from };
                     // The hand anywhere in that cell, or just off the grid before it, aimed anywhere; on the ship, refused.
                     int x = cell >= 0 ? cell % _grid.Width * 1000 + Below(1000) : -1 - Below(1000);
                     int y = cell >= 0 ? cell / _grid.Width * 1000 + Below(1000) : Below(1000);
-                    return new Hew(Weapons.All[Below(Weapons.All.Count)].Item, x, y, Below(Headings.Turn)) { From = from };
+                    return new Hew(tool, x, y, Below(Headings.Turn)) { From = from };
                 }
             case 0:
                 return new PlacePlan(Cell(), FuzzPlacements[Below(FuzzPlacements.Length)]) { From = from };

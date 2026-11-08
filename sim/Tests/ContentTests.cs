@@ -1,6 +1,5 @@
 using System.Reflection;
 using Stillwake.Content;
-using Stillwake.Game;
 using Xunit;
 using DebrisSpec = Stillwake.Content.Debris;
 
@@ -62,14 +61,15 @@ public partial class ContentTests
             Assert.All(Weapons.All, w => Assert.True(w.BlockDamage < m.Strength || m.Id == "soil", $"{w.Item} on {m.Id}"));
             Assert.All(m.Cost, c => Assert.True(Content.Items.TryGet(c.Item, out _), c.Item));
         }
-        Assert.Equal(["soil", "stone", "bedrock", "lava", "alloy", "plaster", "copperVein", "iceVein"], Materials.All.Where(m => m.Natural).Select(m => m.Id));
+        Assert.Equal(["soil", "stone", "bedrock", "lava", "alloy", "plaster", "copperVein", "iceVein", "ironVein"], Materials.All.Where(m => m.Natural).Select(m => m.Id));
         // The ruins' alloy (0085), a cell of it: seven and a half seconds of the axe, a second and a half of the drill, under one
         // fitted (0098).
         int Tenths(Weapon w) => Materials.Get("alloy").Strength * 10 / (w.BlockDamage * World.TicksPerSecond / w.Pace);
         var fitted = Weapons.Drill with { BlockDamage = Sim.Items.Boost.Gain(Weapons.Drill.BlockDamage, Modules.Arc.Adds(Weapons.Drill.Item, Stat.Damage)) };
         Assert.Equal((75, 15, 7), (Tenths(Weapons.Axe), Tenths(Weapons.Drill), Tenths(fitted)));
-        // Either tool takes soil in one hit (the fan of rays); stone and harder crack first, the drill fitted or not.
-        Assert.All(Weapons.All, w => Assert.Equal(Materials.Get("soil").Strength, w.BlockDamage));
+        // Both diggers take soil in one hit (the fan of rays); the salvage tools are made for wrecks, the hammer only past it.
+        // Stone and harder crack first, the drill fitted or not.
+        Assert.All(new[] { Weapons.Axe, Weapons.Drill }, w => Assert.Equal(Materials.Get("soil").Strength, w.BlockDamage));
         Assert.True(fitted.BlockDamage < Materials.All.Where(m => m.Breaks && m.Id != "soil").Min(m => m.Strength));
     }
 
@@ -134,7 +134,7 @@ public partial class ContentTests
         // Room past the field every way, so its line is crossed before the grid's wall.
         Assert.True(Content.World.ZoneWidth + 2 * Field.Margin < Content.World.Width);
         Assert.True(Content.World.ZoneHeight + 2 * Field.Margin < Content.World.Height);
-        Assert.True(Field.EdgeCost <= Scenario.Full);
+        Assert.True(Field.EdgeCost <= Scenario.Full && Field.EdgeCost <= Field.OffGrid);
         Assert.InRange(Content.Crew.ReportEvery, 1, Content.Crew.PassOut);
     }
 

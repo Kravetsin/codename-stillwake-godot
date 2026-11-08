@@ -5,6 +5,7 @@ public enum MenuPage
 {
     Closed,
     Main,
+    /// <summary>Settings, its categories the keys' among them (settings-menu): Esc goes back to the first page.</summary>
     Settings,
 }
 

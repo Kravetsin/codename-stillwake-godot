@@ -22,7 +22,7 @@ registry and shared by every surface's, saved first in the ship's `slices`. Reco
 - `Crew` dresses a hero coming in (`Dress`): the first of `Crew.Colours` nobody wears, or with all worn the least worn,
   the first on a tie; a peer wearing one already keeps it. `PickColour` puts on another (`Wear`), crew checking that
   no other peer wears it; a hero leaving frees its colour (`Undress`). Moving between surfaces changes nothing here.
-- A `Look` is five indices (skin, hair, hair colour, face, beard, 0 none), never checked: the client draws each by a
+- A `Look` is six indices (skin, hair, hair colour, face, beard, 0 none, clothes), never checked: the client draws each by a
   non-negative modulo of its palette. `ChooseLook` sets a peer's `Next` (`Choose`); every print — a hero made where
   its peer had none, or waking — wears it (`Print`). A peer that left keeps its entry, so it comes back in its last
   choice and its bodies show the look it wore.

@@ -9,7 +9,7 @@ namespace Stillwake.Game.Features.Creatures;
 
 /// <summary>
 /// One creature's body (0102) in the design its species names, as the user picked it on the loper page: its rig's parts, each a
-/// picture recoloured by the planet's palette and its individual's coat and markings (<see cref="CreatureParts"/>), drawn in the rig's order, turned and moved about
+/// picture in ink tinted as its individual and wearing its markings (<see cref="CreatureParts"/>), drawn in the rig's order, turned and moved about
 /// its pivot by <see cref="CreaturePose"/> at the screen's resolution as a hero's parts are, its origin the middle of its feet,
 /// facing right. Lit as the world is; its eye in four states; its glowing parts added over it unlit and lighting what is round
 /// them (<see cref="Lights"/>); a blow's white flash an unlit copy over it.
@@ -30,6 +30,9 @@ public partial class CreatureBody : Node2D
     private sealed record Drawn(int Node, string Part, Sprite2D Colour, Sprite2D White, Sprite2D? Glow)
     {
         public (Vector2 At, Color Colour)[] Spots { get; set; } = [];
+
+        /// <summary>What its colours are multiplied by: an individual in ink's (<see cref="CreatureVariety.InkTint"/>), its eye's whites never.</summary>
+        public Color Tint { get; set; } = Colors.White;
     }
 
     private readonly List<Drawn> _drawn = [];
@@ -37,7 +40,6 @@ public partial class CreatureBody : Node2D
     private Transform2D[] _mats = [];
     private int[] _parents = [];
     private CreatureArt.Design? _design;
-    private string _palette = "";
     private double _white;
 
     /// <summary>The design it is drawn in.</summary>
@@ -47,29 +49,33 @@ public partial class CreatureBody : Node2D
     public float Size { get; private set; } = 1;
 
     /// <summary>
-    /// Dressed as <paramref name="one"/>, a creature of <paramref name="species"/>, in <paramref name="palette"/>: its parts made
-    /// anew for another design, their pictures its own coat and markings.
+    /// Dressed as <paramref name="one"/>, a creature of <paramref name="species"/>: its parts made anew for another design, tinted
+    /// as its own, wearing its own markings.
     /// </summary>
-    public void Dress(string species, string palette, CreatureVariety.Individual one)
+    public void Dress(string species, CreatureVariety.Individual one)
     {
-        var design = CreatureArt.Designs[Spec.Creatures.Get(species).Look];
+        var design = CreatureArt.InkDesigns[Spec.Creatures.Get(species).Look];
         (Modulate, _white) = (Colors.White, 0);
-        if (design != _design || palette != _palette) Make(design, palette);
-        var v = CreatureLooks.Varieties[species];
+        if (design != _design) Make(design);
         foreach (var d in _drawn)
         {
-            d.Colour.Texture = CreatureParts.Of(design, d.Part, palette, CreatureParts.Kind.Colour, v, one);
-            d.White.Texture = CreatureParts.Of(design, d.Part, palette, CreatureParts.Kind.White, v, one);
-            if (d.Glow != null) d.Glow.Texture = CreatureParts.Of(design, d.Part, palette, CreatureParts.Kind.Glow, v, one);
-            d.Spots = CreatureParts.SpotsOf(design, d.Part, palette, one);
+            d.Colour.Texture = CreatureParts.Of(design, d.Part, CreatureParts.Kind.Colour, one);
+            d.White.Texture = CreatureParts.Of(design, d.Part, CreatureParts.Kind.White, one);
+            if (d.Glow != null) d.Glow.Texture = CreatureParts.Of(design, d.Part, CreatureParts.Kind.Glow, one);
+            d.Spots = CreatureParts.SpotsOf(design, d.Part);
+            if (d.Part is not ("eye_open" or "eye_wide" or "pupil" or "pupil_wide"))
+            {
+                var (r, g, b) = CreatureVariety.InkTint(one);
+                d.Tint = new Color(r, g, b);
+            }
         }
         Size = one.Size / 1000f;
         Fade(1);
     }
 
-    private void Make(CreatureArt.Design design, string palette)
+    private void Make(CreatureArt.Design design)
     {
-        (_design, _palette) = (design, palette);
+        _design = design;
         foreach (var child in GetChildren())
             if (child != _flash) child.QueueFree();
         foreach (var child in _flash.GetChildren()) child.QueueFree();
@@ -82,7 +88,11 @@ public partial class CreatureBody : Node2D
         {
             var node = design.Rig[i];
             if (node.Drive == CreatureArt.Drive.Eye)
-                foreach (var part in CreatureArt.EyeParts) Add(i, part);
+                foreach (var part in CreatureArt.EyeParts)
+                {
+                    // An eye with no pupil is a pit, as the sixleg's.
+                    if (design.Parts.ContainsKey(part)) Add(i, part);
+                }
             else Add(i, node.Part);
         }
         // Glows over the whole body, as the page adds them, then the flash over all.
@@ -132,7 +142,7 @@ public partial class CreatureBody : Node2D
         bool wide = eye == CreaturePose.EyeState.Wide;
         var travel = wide ? design.Eye.TravelWide : design.Eye.Travel;
         var look = pose.Look;
-        var pupil = new Vector2(MathF.Round((float)look.X * travel.X), MathF.Round((float)look.Y * travel.Y + (eye == CreaturePose.EyeState.Half ? 1 : 0)));
+        var pupil = new Vector2((float)look.X * travel.X, (float)look.Y * travel.Y);
         _white = white;
         foreach (var d in _drawn)
         {
@@ -182,7 +192,7 @@ public partial class CreatureBody : Node2D
         var shade = new Color(1, 1, 1, alpha);
         foreach (var d in _drawn)
         {
-            d.Colour.Modulate = shade;
+            d.Colour.Modulate = d.Tint with { A = alpha };
             if (d.Glow != null) d.Glow.Modulate = shade;
         }
         foreach (var d in _drawn) d.White.Visible = d.Colour.Visible && _white > 0.01;

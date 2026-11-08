@@ -3,7 +3,7 @@ namespace Stillwake.Game;
 /// <summary>
 /// What a hero's person looks like under the suit (2026-10-28-one-head): the skin and hair ramps its pictures are
 /// recoloured into and how many of each picture there are. Client data: the sim checks no index. The pictures are
-/// painted by <c>tools/hero-art</c>, whose <c>parts.js</c> holds these ramps too (<c>HeroLooksTests</c> keeps them alike).
+/// painted by <c>tools/anime-art</c> in the skin <see cref="SkinDrawn"/> and the hair <see cref="HairDrawn"/>.
 /// Colours are 0xRRGGBB, each ramp light, own, shade and outline.
 /// </summary>
 public static class HeroLooks
@@ -37,8 +37,8 @@ public static class HeroLooks
     /// <summary>The hair colour the pictures are drawn in.</summary>
     public const int HairDrawn = 1;
 
-    /// <summary>The pictures of each kind: <c>hero_hair_*</c>, <c>hero_face_*</c> and <c>hero_beard_*</c>; a look's beard 0 is none.</summary>
-    public const int HairStyles = 6, Faces = 5, Beards = 2;
+    /// <summary>The pictures of each kind: <c>hero_hair_*</c>, <c>hero_face_*</c>, <c>hero_beard_*</c> and sets of <c>hero_outfit_*</c>; a look's beard 0 is none.</summary>
+    public const int HairStyles = 6, Faces = 5, Beards = 2, Outfits = 4;
 
     /// <summary>
     /// A look's index <paramref name="i"/> among <paramref name="count"/>: wrapped, never negative, so an index the sim kept as

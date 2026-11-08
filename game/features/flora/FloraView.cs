@@ -95,13 +95,15 @@ public partial class FloraView : Node2D, ILightSource
     private void Show(Plant plant)
     {
         var look = FloraLooks.Of[plant.Kind];
-        int variant = (int)(Hash(plant.Cell) % (uint)look.Variants);
+        uint hash = Hash(plant.Cell);
+        int variant = (int)(hash % (uint)look.Variants);
         string name = $"planet/{plant.Kind}_{variant}";
-        var texture = PixelArt.Picture(name);
+        string drawn = FloraLooks.Drawn(plant.Kind, variant, hash);
+        var texture = PixelArt.Picture(drawn);
         var size = texture.GetSize();
         // Planted: its lowest drawn row Sink pixels under the top of the ground it grows from, the rows there not drawn.
         int x = plant.Cell % _grid.Width, y = plant.Cell / _grid.Width;
-        var (top, bottom) = UsedRows(texture);
+        var (top, bottom) = UsedRows(drawn);
         var (px, py, from, rows) = Planting.Picture(Spec.Anchor.Floor, x, y, Cell, Spec.Get(plant.Kind).Across, (int)size.X, (int)size.Y, top, bottom, look.Sink);
         var corner = new Vector2(px, py);
         var picture = new Sprite2D
@@ -130,16 +132,14 @@ public partial class FloraView : Node2D, ILightSource
     /// The first and last rows of <paramref name="texture"/> with anything drawn in them, found once a picture: reading a texture
     /// back is slow, and a planet's first look shows hundreds of plants of a few pictures.
     /// </summary>
-    private static (int Top, int Bottom) UsedRows(Texture2D texture)
+    private static (int Top, int Bottom) UsedRows(string picture)
     {
-        if (Used.TryGetValue(texture, out var rows)) return rows;
-        var image = texture.GetImage();
-        if (image.IsCompressed()) image.Decompress();
-        var used = image.GetUsedRect();
-        return Used[texture] = (used.Position.Y, used.End.Y - 1);
+        if (Used.TryGetValue(picture, out var rows)) return rows;
+        var used = HiRes.Logical(picture).GetUsedRect();
+        return Used[picture] = (used.Position.Y, used.End.Y - 1);
     }
 
-    private static readonly Dictionary<Texture2D, (int Top, int Bottom)> Used = new();
+    private static readonly Dictionary<string, (int Top, int Bottom)> Used = new();
 
     /// <summary>The depth of each plant's crack last seen, by its cell, and the plants shaking: their picture's resting place and the seconds left.</summary>
     private readonly Dictionary<int, int> _cracks = new();
@@ -249,10 +249,8 @@ public partial class FloraView : Node2D, ILightSource
     private static (Texture2D Texture, (Vector2 At, Color Colour)[] Points)? Glows(string name)
     {
         if (GlowsOf.TryGetValue(name, out var known)) return known;
-        string path = $"res://art/{name}_glow.png";
-        if (!ResourceLoader.Exists(path)) return GlowsOf[name] = null;
-        var texture = PixelArt.Picture($"{name}_glow");
-        return GlowsOf[name] = (texture, PointsOf(texture));
+        if (!HiRes.Has($"{name}_glow")) return GlowsOf[name] = null;
+        return GlowsOf[name] = (PixelArt.Picture($"{name}_glow"), PointsOf(HiRes.Logical($"{name}_glow")));
     }
 
     private static readonly Dictionary<string, (Texture2D, (Vector2, Color)[])?> GlowsOf = new();
@@ -261,10 +259,8 @@ public partial class FloraView : Node2D, ILightSource
     /// Where a glow picture lights from: its bright pixels gathered by six-pixel squares, the brightest squares first, at most
     /// <see cref="FloraLooks.MostLights"/>, each at its pixels' middle in their colour.
     /// </summary>
-    private static (Vector2 At, Color Colour)[] PointsOf(Texture2D texture)
+    private static (Vector2 At, Color Colour)[] PointsOf(Image image)
     {
-        var image = texture.GetImage();
-        if (image.IsCompressed()) image.Decompress();
         var squares = new Dictionary<(int, int), (Vector2 Sum, Vector3 Colour, int Count)>();
         for (int y = 0; y < image.GetHeight(); y++)
             for (int x = 0; x < image.GetWidth(); x++)

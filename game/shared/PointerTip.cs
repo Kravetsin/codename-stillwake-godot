@@ -20,7 +20,7 @@ public partial class PointerTip : CanvasLayer
     /// <summary>The reason's size and its outline, in pixels of the world: it grows and shrinks with the zoom, as world text does.</summary>
     private const float ReasonSize = 10, ReasonStroke = 3, ReasonOffset = 12;
     /// <summary>The tip's widest, its padding and its gap from the pointer and the screen's edge, in pixels.</summary>
-    private const float Widest = 260, PadX = 8, Edge = 6;
+    private const float Widest = 260, PadX = 8, Edge = 6, FromSpot = 6;
     /// <summary>An item's card's gap past the slot under the pointer, and its drop below the pointer, in pixels.</summary>
     private const float FromSlot = 8, CardDrop = 8;
     private static readonly Vector2 FromPointer = new(14, 16);
@@ -103,6 +103,12 @@ public partial class PointerTip : CanvasLayer
             _panel.Position = new Vector2(x, y);
             return;
         }
+        if (tip.Over && tip.Anchor is { } spot)
+        {
+            var (x, y) = TipPlace.Over(spot, (_panel.Size.X, _panel.Size.Y), (screen.X, screen.Y), FromSpot, Edge);
+            _panel.Position = new Vector2(Mathf.Round(x), Mathf.Round(y));
+            return;
+        }
         var at = pointed + FromPointer + Vector2.One * (_ui.OnPointer.Get() / 2);
         _panel.Position = new Vector2(
             Mathf.Max(Edge, Mathf.Min(at.X, screen.X - _panel.Size.X - Edge)),
@@ -113,7 +119,7 @@ public partial class PointerTip : CanvasLayer
     private Tip? OfWorld()
     {
         if (_ui.WorldTip.Get() is { Count: > 0 } world)
-            return new Tip(world[0], world.Skip(1).Select(line => new TipLine(line)).ToList());
+            return new Tip(world[0].Text, world.Skip(1).ToList());
         return _ui.CostTip.Get();
     }
 
@@ -156,15 +162,18 @@ public partial class PointerTip : CanvasLayer
     {
         int size = line.Large ? 14 : 11, icon = line.Large ? Large : Small, gap = line.Large ? 7 : 5;
         var text = Text(line.Text, Style.Text(Style.Mono, size, Of(line.Tone)));
-        float room = Widest - 2 * PadX - (line.Icon != null ? icon + gap : 0);
+        bool pictured = line.Icon != null || line.Sign != Sign.None;
+        float room = Widest - 2 * PadX - (pictured ? icon + gap : 0);
         if (Style.Mono.GetStringSize(line.Text, fontSize: size).X > room)
         {
             text.AutowrapMode = TextServer.AutowrapMode.WordSmart;
             text.CustomMinimumSize = new Vector2(room, 0);
         }
-        if (line.Icon == null) return text;
+        if (!pictured) return text;
         var row = Style.Gap(new HBoxContainer { MouseFilter = Control.MouseFilterEnum.Ignore }, gap);
-        var picture = Icon(ItemIcons.Icon(line.Icon, icon), icon);
+        var picture = Icon(line.Icon != null ? ItemIcons.Icon(line.Icon, icon) : Signs.Of(line.Sign, line.Tone == Tone.Bad), icon);
+        // A sign is drawn smooth at any size, as the ink signs are (Signs); an item's picture keeps its pixels.
+        if (line.Icon == null) picture.TextureFilter = CanvasItem.TextureFilterEnum.Linear;
         if (line.Faded) picture.Modulate = new Color(1, 1, 1, 0.4f);
         row.AddChild(picture);
         row.AddChild(text);

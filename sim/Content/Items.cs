@@ -12,7 +12,8 @@ namespace Stillwake.Content;
 /// <param name="Heat">How hot a fed station must be to smelt it (<see cref="Station.Heat"/>): the furnace's 1, or the electric smelter's 2.</param>
 /// <param name="Process">
 /// What a fed station does to it, matched to the station's <see cref="Station.Process"/>: "smelt" (a furnace, the
-/// electric smelter) or "grow" (a grow capsule). At a station of another process it sits in the input, never worked.
+/// electric smelter), "crush" (the crusher), "grow" (a grow capsule) or "ferment" (the fermenter). At a station of another
+/// process it sits in the input, never worked.
 /// </param>
 /// <param name="Returns">
 /// Weights of how many of itself one gives back besides its yields when worked, entry n the weight of n: a crop's
@@ -41,6 +42,7 @@ namespace Stillwake.Content;
 /// <param name="Tank">
 /// A helmet: the air it holds, in units, the hero's whole pool while worn (2026-10-27-suits-are-worn); 0 for anything else.
 /// </param>
+/// <param name="Switch">A body with a mode its wearer switches on and off, by V or its key on the tablet's edge (2026-11-03-the-regen-suit).</param>
 public sealed record ItemSpec(
     string Id,
     int Stack,
@@ -57,7 +59,8 @@ public sealed record ItemSpec(
     int? Draw = null,
     bool Gear = false,
     ItemGroup Group = ItemGroup.Material,
-    int Tank = 0);
+    int Tank = 0,
+    bool Switch = false);
 
 /// <summary>The groups a sort orders a bag or a crate by (0008), in this order: tools first, the rest last.</summary>
 public enum ItemGroup
@@ -102,8 +105,10 @@ public static class Items
         // Dug out of a planet's caves (0080): copper ore from its veins, an ingot an ore at the furnace's heat, as slow as rock.
         new("copperOre", 250, Yields: [("copper", 1)], SmeltTicks: 160, Group: ItemGroup.Salvage),
         new("copper", 250),
-        // From ice veins and crystals; nothing melts it yet: the jump's and the engine's cost to come.
-        new("ice", 250),
+        // From ice veins and crystals; melted into a bottle of water at the furnace (water), the jump's and the engine's cost to come.
+        new("ice", 250, Yields: [(Water.Item, 1)], SmeltTicks: 40),
+        // A glass bottle of melted ice, poured into a cistern (water).
+        new(Water.Item, 50),
         // Broken off the deep's crystals and out of geodes: for sensors and machine modules to come.
         new("crystal", 100),
         // Off the violet glowcaps: the farm's second crop, grown as a seed is into less biomass but giving back 1.1 spores on
@@ -179,34 +184,49 @@ public static class Items
         new("igniter", 20),
         // Made at the circuit assembler: docked in a drone bay it charges and flies items about (0062); a stack of one, a battery of its own.
         new("drone", 1, Capacity: Charge.Drone, Group: ItemGroup.Other),
+        // Its kin for space (salvage-drones): a battery as a drone's, and a canister's air from its bay to fly out on.
+        new("salvageDrone", 1, Capacity: Charge.Drone, Group: ItemGroup.Other),
         // The farm (0060): a seed grows in a grow capsule into biomass, giving back none, one or two seeds, 0.8 on
-        // average, so the farm slowly eats seeds and supply pods refill it. Biomass smelts into biofuel.
+        // average, so the farm slowly eats seeds and supply pods refill it. Biomass ferments into biofuel, at the fermenter only (power-chain).
         new("seed", 100, Yields: [("biomass", 4)], SmeltTicks: 9600, Process: "grow", Returns: [35, 50, 15]),
         // Pressed at the Former of rock and planks: what a grow capsule is built on.
         new("soil", 999),
-        new("biomass", 250, Yields: [("biofuel", 1)], SmeltTicks: 160),
-        // The engine's fuel, the one item its tank takes; till the engine runs, the furnace and the burner generator burn it four times
-        // as long as a plank.
+        new("biomass", 250, Yields: [("biofuel", 1)], SmeltTicks: 160, Process: "ferment"),
+        // The engine's fuel, the one item its tank takes, and the biofuel generator's; the furnace and the burner generator burn it
+        // four times as long as a plank.
         new("biofuel", 100, BurnTicks: 1600),
         // What a planet's grazers give besides biomass (Creatures): hide for the cape; fat, a fuel burning twice a plank, or
-        // smelted at the furnace into biofuel as biomass is, so hunting fuels the ship. Fed or shift-clicked in it is fuel.
+        // fermented into biofuel as biomass is, so hunting fuels the ship. In a fuel slot it burns, in the fermenter it ferments.
         new("hide", 100),
-        new("fat", 100, Yields: [("biofuel", 1)], SmeltTicks: 160, BurnTicks: 800),
+        new("fat", 100, Yields: [("biofuel", 1)], SmeltTicks: 160, BurnTicks: 800, Process: "ferment"),
         // Tools, made as parts are.
         // Every hero comes aboard with one (Inventory.Kit, 0107): it builds plans and takes marks apart.
         new("screwdriver", 1, Gear: true, Group: ItemGroup.Tool),
         new("fireAxe", 1, Gear: true, Group: ItemGroup.Tool),
         new("harpoon", 1, Gear: true, Group: ItemGroup.Tool),
+        new("grapple", 1, Gear: true, Group: ItemGroup.Tool),
         // A gun (Content.Shots): one nail a shot.
         new("nailer", 1, Gear: true, Group: ItemGroup.Tool),
         // A gun of a sky shard (2026-10-27-the-railgun): a nail a shot and the belt's charge for it.
         new("railgun", 1, Gear: true, Group: ItemGroup.Tool),
-        // Electric: draws from the belt's batteries while it drills (0053, 0054).
-        new("drill", 1, Draw: 3, Gear: true, Group: ItemGroup.Tool),
+        // Electric: draws from the belt's batteries while it drills (0053, 0054); 1, so a battery lasts it 90 s (lighter-tools).
+        new("drill", 1, Draw: 1, Gear: true, Group: ItemGroup.Tool),
+        // Electric: a builder working a 2×2 square while the belt pays its draw, one cell flat (power-driver).
+        new("powerDriver", 1, Draw: 1, Gear: true, Group: ItemGroup.Tool),
+        // The salvage tools (salvage-tools): two electric, run as the drill is; two swung or thrust. The grinder draws
+        // twice the drill, its price for three times the drill on wrecks (lighter-tools).
+        new("grinder", 1, Draw: 2, Gear: true, Group: ItemGroup.Tool),
+        new("plasmaCutter", 1, Draw: 1, Gear: true, Group: ItemGroup.Tool),
+        new("spear", 1, Gear: true, Group: ItemGroup.Tool),
+        new("sledgehammer", 1, Gear: true, Group: ItemGroup.Tool),
+        // Swung as the axe, for stone once the drill is flat (the-pickaxe).
+        new("pickaxe", 1, Gear: true, Group: ItemGroup.Tool),
         // Equipment, worn in a slot of its kind (Inventory.Equipment).
         new("jetpack", 1, Equip: "back", Gear: true, Group: ItemGroup.Wearable),
         // A soft warm light round the head (0077): free, drawing no power.
         new("helmetLamp", 1, Equip: Helmet.Mount, Gear: true, Group: ItemGroup.Wearable),
+        // Shows a wreck's hit points under the pointer (2026-11-07-the-scanner): on the mount, so worn the lamp comes off.
+        new(Helmet.Scanner, 1, Equip: Helmet.Mount, Gear: true, Group: ItemGroup.Wearable),
         // Holds charge for any electric tool, worn on the belt; filled at a charging station.
         new("battery", 1, Equip: "belt", Capacity: Charge.Battery, Gear: true, Group: ItemGroup.Wearable),
         // A battery wound round a sky shard at the arc bench (0099): three batteries' charge, worn and filled as one is.
@@ -215,6 +235,9 @@ public static class Items
         // out; both free at the pod.
         new(Helmet.Basic, 1, Equip: Helmet.Slot, Gear: true, Group: ItemGroup.Wearable, Tank: 45),
         new(Suit.Basic, 1, Equip: Suit.Slot, Gear: true, Group: ItemGroup.Wearable),
+        new(Suit.Regen, 1, Equip: Suit.Slot, Gear: true, Group: ItemGroup.Wearable, Switch: true),
+        // For the jetpack's long flights (2026-11-03-the-heavy-helmet): 100, not twice 45, so it reads as more than a doubling.
+        new(Helmet.Heavy, 1, Equip: Helmet.Slot, Gear: true, Group: ItemGroup.Wearable, Tank: 100),
         // Softens enemies' blows and the cold a fifth (2026-10-27-the-cape-is-worn).
         new(Cape.Item, 1, Equip: Cape.Slot, Gear: true, Group: ItemGroup.Wearable),
     ];
@@ -235,10 +258,20 @@ public static class Items
 /// </summary>
 public static class Inventory
 {
-    public const int Slots = 36;
+    /// <summary>The most an inventory's own slots can come to (2026-10-30-room-upgrades); <see cref="Start"/> are open at first, the rest by <see cref="Upgrades"/>.</summary>
+    public const int Slots = 38;
+
+    /// <summary>The own slots open from the start: the hotbar and two rows.</summary>
+    public const int Start = 27;
+
+    /// <summary>The belt slots open from the start, of those in <see cref="Equipment"/>.</summary>
+    public const int BeltStart = 1;
 
     /// <summary>The first row of <see cref="Slots"/>, chosen with keys 1 to 9: a sort leaves it as it is (0008).</summary>
     public const int Hotbar = 9;
+
+    /// <summary>How far a stash reaches, in cells from the hero's cell to a crate's nearest, through walls (2026-11-06-quick-stash).</summary>
+    public const int StashReach = 12;
 
     /// <summary>What every hero comes aboard with, into its first slots (0107): the screwdriver that builds. Cables and pipes are laid from the plan (plan modes).</summary>
     public static readonly IReadOnlyList<(string Item, int Count)> Kit = [(Screwdrivers.Basic.Item, 1)];

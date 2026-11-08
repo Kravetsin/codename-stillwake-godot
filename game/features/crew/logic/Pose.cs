@@ -9,12 +9,15 @@ public enum Pose { Stand, Walk, Run, Air, Climb, Float, Lie, Tumble, Sit, Strapp
 
 /// <summary>
 /// Each limb's bend (<see cref="Rig"/>), and how the whole body is placed: <see cref="Tilt"/> radians
-/// it turns forward around its middle, a body lying down at -π/2; <see cref="Lift"/> pixels it rises,
+/// it turns forward around its middle, a body lying down at -ПЂ/2; <see cref="Lift"/> pixels it rises,
 /// drifting in space, and on the floor below zero by as much as the lower foot is short of it, so bent
 /// legs never float and straight ones never sink in; <see cref="Lying"/> whether it rests on the floor
-/// however it is turned, rather than standing on its feet.
+/// however it is turned, rather than standing on its feet. <see cref="FrontFoot"/> and <see cref="BackFoot"/>, how far each boot
+/// turns at its ankle from the line of its shin, toe up positive: on the floor it stands flat or rolls on its toe or heel,
+/// elsewhere it keeps to the shin.
 /// </summary>
-public readonly record struct Limbs(Bend FrontArm, Bend BackArm, Bend FrontLeg, Bend BackLeg, double Tilt, double Lift, bool Lying);
+public readonly record struct Limbs(Bend FrontArm, Bend BackArm, Bend FrontLeg, Bend BackLeg, double Tilt, double Lift, bool Lying,
+    double FrontFoot = 0, double BackFoot = 0);
 
 /// <summary>
 /// Where the figure is in its motion: <see cref="Travelled"/>, the cells moved in this pose, sets the
@@ -29,11 +32,14 @@ public readonly record struct Limbs(Bend FrontArm, Bend BackArm, Bend FrontLeg, 
 /// read from the motion over time (<see cref="Motion"/>, 0090): the lean, the landing's depth, the jump's and
 /// the fall's timers; none for a body at rest in it. <see cref="Ledge"/>, on a ladder, how far its top is over the feet in
 /// pixels (<see cref="Hero.LedgeAbove"/>), or in the air the ledge a jump steps up onto (<see cref="Hero.MantleLedge"/>): what
-/// the hands pull the body up onto (0092); none away from one.
+/// the hands pull the body up onto (0092); none away from one. On the floor the figure eases its gait (2026-11-04-hero-gait):
+/// <see cref="Cycle"/>, the strides the legs have gone through, <see cref="Gait"/> from backpedalling (-1) through walking (0)
+/// into running (1), and <see cref="Moving"/> from standing (0) into striding (1); with none, the stride is <see cref="Travelled"/>
+/// over the pose's own and the pose is all there is.
 /// </summary>
 public readonly record struct Moment(double Travelled, double TimeMs, double? Landing = null, double? Plan = null,
     double? OutMs = null, int Slump = 0, double OutTilt = 0, double? Swim = null, double? Fast = null, bool Wields = false,
-    Momentum? Momentum = null, double? Ledge = null);
+    Momentum? Momentum = null, double? Ledge = null, double? Cycle = null, double? Gait = null, double? Moving = null);
 
 /// <summary>The limbs for each pose (apps/game/src/features/crew/pose.ts), and where the head looks.</summary>
 public static class Poses
@@ -55,13 +61,14 @@ public static class Poses
     /// <summary>
     /// Afloat, upright (0036): swimming along the floor the body leans into it by <see cref="Lean"/>
     /// radians, by <see cref="LeanFast"/> swimming fast, and sinking it tucks forward by <see cref="Tuck"/>
-    /// more; rising it stays upright. The free hand paddles once every <see cref="PaddleMs"/>, or
+    /// more; rising it stays upright. The hands do not paddle (2026-11-04-hero-gait): held calm, they trail <see cref="Trail"/>
+    /// radians back going along, <see cref="TrailFast"/> fast. The legs kick once every <see cref="PaddleMs"/>, or
     /// <see cref="PaddleFastMs"/> swimming fast, timed rather than by distance, so a swim on the diagonal
     /// keeps its pace. Still, the body rocks once every <see cref="SwayMs"/>.
     /// </summary>
     public static class Adrift
     {
-        public const double Lean = 0.22, LeanFast = 0.38, Tuck = 0.06;
+        public const double Lean = 0.22, LeanFast = 0.38, Tuck = 0.06, Trail = 0.15, TrailFast = 0.3;
         public const double PaddleMs = 1100, PaddleFastMs = 700, SwayMs = 5200;
     }
 
@@ -221,12 +228,24 @@ public static class Poses
     /// </summary>
     public static Limbs LimbsOf(Pose pose, Hero hero, Moment moment)
     {
-        var body = BodyOf(pose, hero, moment);
         var motion = moment.Momentum ?? Momentum.AtRest;
-        // Slowing to a stop, the body brakes as far as it leans back from it.
-        if (pose is Pose.Stand or Pose.Walk && motion.Lean < 0) body = Mix(body, Brake, Math.Clamp(-motion.Lean / Feel.Lean.Back, 0, 1));
-        var landed = pose is Pose.Stand or Pose.Walk or Pose.Run ? Grounded(LandingOf(Leaned(body, motion), moment.Landing, motion.Depth)) : body;
-        if (pose == Pose.Run && !Backward(hero) && moment.Landing is not > 0) landed = landed with { Lift = landed.Lift + Bounce(moment.Travelled) };
+        bool floor = pose is Pose.Stand or Pose.Walk or Pose.Run;
+        Limbs Footed(Moment at)
+        {
+            var body = BodyOf(pose, hero, at);
+            // Slowing to a stop, the body brakes as far as it leans back from it.
+            if (pose is Pose.Stand or Pose.Walk && motion.Lean < 0) body = Mix(body, Brake, Math.Clamp(-motion.Lean / Feel.Lean.Back, 0, 1));
+            return floor ? Grounded(LandingOf(Leaned(body, motion), at.Landing, motion.Depth)) : body;
+        }
+        var landed = Footed(moment);
+        if (floor && moment.Landing is not > 0 && GaitOf(pose, hero, moment) is var (cycle, gait, moving) && gait > 0)
+        {
+            // The body rides lowest, less the knees' give, as the leg come down stands upright, and rises between the steps.
+            double low = Math.Min(Footed(moment with { Cycle = MidStance }).Lift, Footed(moment with { Cycle = MidStance + 0.5 }).Lift) - Feel.Run.Give;
+            var ridden = Riding(landed, low + Feel.Run.Bounce * RideOf(cycle));
+            // Into a run the knees bend in as it does, never at once; a boot the blend would put through the floor lifts the body.
+            landed = gait * moving < 1 ? Unsunk(Mix(landed, ridden, gait * moving)) : ridden;
+        }
         if (moment.Plan is not double look || !HoldsIn(pose)) return landed;
         var front = PlanHand(look);
         double along = Hold.FarHand * Sheet.Length;
@@ -237,11 +256,66 @@ public static class Poses
         return landed with { FrontArm = Rig.Reach(front, Rig.Arm, 1), BackArm = Rig.Reach(far, Rig.Arm, 1) };
     }
 
-    /// <summary>On the floor, the body comes down until its lower foot stands on it.</summary>
-    private static Limbs Grounded(Limbs limbs)
+    /// <summary>
+    /// On the floor (2026-11-04-hero-gait): each boot turns at its ankle to stand flat, within <c>HeroMotion.Feet</c> of its shin's
+    /// line, rolling onto its toe or heel past that; one off the floor keeps to its shin as it rises. Then the body, turned as it
+    /// leans, comes down until the lower sole stands on the floor.
+    /// </summary>
+    public static Limbs Grounded(Limbs limbs)
     {
-        double lowest = Math.Max(Rig.EndOf(limbs.FrontLeg, Rig.Leg).Y, Rig.EndOf(limbs.BackLeg, Rig.Leg).Y);
-        return limbs with { Lift = lowest - Rig.Hip };
+        double floor = Math.Max(SoleOf(limbs.FrontLeg, Flat(limbs.FrontLeg, limbs.Tilt), Rig.HipApart, limbs.Tilt),
+            SoleOf(limbs.BackLeg, Flat(limbs.BackLeg, limbs.Tilt), -Rig.HipApart, limbs.Tilt));
+        var feet = FeetOver(limbs, floor);
+        return feet with
+        {
+            Lift = Math.Max(SoleOf(feet.FrontLeg, feet.FrontFoot, Rig.HipApart, feet.Tilt), SoleOf(feet.BackLeg, feet.BackFoot, -Rig.HipApart, feet.Tilt)),
+        };
+    }
+
+    /// <summary>
+    /// The limbs lifted as far as a boot would go through the floor, never lowered: the figure's settling limbs on the floor
+    /// (2026-11-04-hero-gait). Set on their lower sole instead, legs lagging a run jolted the body a pixel or two a frame.
+    /// </summary>
+    public static Limbs Unsunk(Limbs limbs) => limbs with
+    {
+        Lift = Math.Max(limbs.Lift, Math.Max(SoleOf(limbs.FrontLeg, limbs.FrontFoot, Rig.HipApart, limbs.Tilt), SoleOf(limbs.BackLeg, limbs.BackFoot, -Rig.HipApart, limbs.Tilt))),
+    };
+
+    /// <summary>
+    /// The figure's settling limbs on the floor (2026-11-04-hero-gait), the body at its own height: a boot that would go through
+    /// the floor turns flatter, then its knee bends. Lifted out of it instead, the body jumped half a pixel a frame as the
+    /// feet of a run came down quickly.
+    /// </summary>
+    public static Limbs Kept(Limbs limbs) => Riding(limbs, limbs.Lift);
+
+    /// <summary>Each boot turned to lie flat as far as its sole, lying flat, is near a floor <paramref name="floor"/> under the feet' line (<see cref="SoleOf"/>).</summary>
+    private static Limbs FeetOver(Limbs limbs, double floor)
+    {
+        double flatFront = Flat(limbs.FrontLeg, limbs.Tilt), flatBack = Flat(limbs.BackLeg, limbs.Tilt);
+        double front = SoleOf(limbs.FrontLeg, flatFront, Rig.HipApart, limbs.Tilt), back = SoleOf(limbs.BackLeg, flatBack, -Rig.HipApart, limbs.Tilt);
+        double Kept(double flat, double sole) => flat * Math.Clamp(1 - (floor - sole) / Feel.Feet.Lifting, 0, 1);
+        return limbs with { FrontFoot = Kept(flatFront, front), BackFoot = Kept(flatBack, back) };
+    }
+
+    /// <summary>How far a boot turns from its shin's line to lie flat, the body turned <paramref name="tilt"/>, within how far an ankle turns.</summary>
+    private static double Flat(Bend leg, double tilt) => Math.Clamp(tilt - leg.Upper - leg.Lower, -Feel.Feet.Down, Feel.Feet.Up);
+
+    /// <summary>
+    /// How low a boot's sole reaches, its leg bent as <paramref name="leg"/> from a hip <paramref name="hipX"/> ahead, turned
+    /// <paramref name="foot"/> at the ankle, the body turned <paramref name="tilt"/> about its middle: in pixels under the feet' line, +y down.
+    /// </summary>
+    private static double SoleOf(Bend leg, double foot, double hipX, double tilt)
+    {
+        var ankle = Rig.EndOf(leg, Rig.ToAnkle);
+        double turn = leg.Upper + leg.Lower + foot, cos = Math.Cos(turn), sin = Math.Sin(turn), c = Math.Cos(tilt), s = Math.Sin(tilt);
+        // From the body's middle, Rig.H / 2 over the feet, where it turns.
+        double Corner(double along)
+        {
+            double x = hipX + ankle.X + along * cos + Rig.Sole * sin;
+            double y = Rig.H / 2 - Rig.Hip - Rig.HipRise(hipX, tilt) + ankle.Y - along * sin + Rig.Sole * cos;
+            return x * s + y * c - Rig.H / 2;
+        }
+        return Math.Max(Corner(-Rig.Heel), Corner(Rig.Toe));
     }
 
     /// <summary>
@@ -254,59 +328,52 @@ public static class Poses
     /// Touching down, the knees bend deep and straighten again, the feet under the hips; <paramref name="depth"/> times the
     /// sink of <see cref="Land.Sink"/> (0090).
     /// </summary>
+    /// <summary>How far short of the most an ankle turns a landing leans its shins, in radians, so its boots never quite roll.</summary>
+    private const double ShinSpare = 0.1;
+
     private static Limbs LandingOf(Limbs limbs, double? landing, double depth)
     {
         if (landing is not double l || l == 0) return limbs;
         // Down fast and up slower: the deepest a third of the way through.
         double t = 1 - l;
         double sink = Land.Sink * depth * (t < 1.0 / 3 ? t * 3 : (1 - t) * 1.5);
-        Bend Foot(double x) => Rig.Reach(new Vec(x, Rig.Hip - sink), Rig.Leg, -1);
-        return limbs with
+        // Folded deep, a shin under the hip would lean back further than an ankle turns, and its boot rolled onto its toe: it
+        // looked as if the hero landed on tiptoe. The foot goes further ahead instead, as far as stands the shin that far.
+        double lean = Math.Max(0, Feel.Feet.Up - limbs.Tilt - ShinSpare), a = Rig.ToAnkle.Upper, b = Rig.ToAnkle.Lower;
+        double Ahead(double x, double ankle)
         {
-            FrontLeg = Foot(Rig.W * 0.08),
-            BackLeg = Foot(-Rig.W * 0.06),
+            double rise = ankle - b * Math.Cos(lean);
+            return Math.Abs(rise) < a ? Math.Max(x, Math.Sqrt(a * a - rise * rise) - b * Math.Sin(lean)) : x;
+        }
+        Limbs Sunk(double ankle) => limbs with
+        {
+            FrontLeg = Rig.Reach(new Vec(Ahead(Rig.W * 0.08, ankle), ankle), Rig.ToAnkle, -1),
+            BackLeg = Rig.Reach(new Vec(Ahead(-Rig.W * 0.06, ankle), ankle), Rig.ToAnkle, -1),
             FrontArm = B(0.55, 0.6),
             BackArm = B(0.35, 0.7),
         };
+        // The ankles come down until the hips sink as far, over boots standing flat.
+        double low = Rig.Hip - Rig.Sole - 2 * sink - Rig.Sole, high = Rig.Hip - Rig.Sole;
+        for (int i = 0; i < 16; i++)
+        {
+            double mid = (low + high) / 2;
+            if (Grounded(Sunk(mid)).Lift > -sink) high = mid;
+            else low = mid;
+        }
+        return Sunk(high);
     }
 
     private static Limbs BodyOf(Pose pose, Hero hero, Moment moment)
     {
-        double Phase(double cycle) => moment.Travelled / cycle * 2 * Math.PI;
-        double Wave(double periodMs) => Math.Sin(moment.TimeMs / periodMs * 2 * Math.PI);
         switch (pose)
         {
-            case Pose.Stand:
+            case Pose.Stand or Pose.Walk or Pose.Run:
                 {
-                    double breath = Wave(BreathMs);
-                    return new Limbs(B(0.05 * breath, 0.18), B(-0.05 * breath, 0.22), B(0.02, -0.04), B(-0.02, -0.04), 0, 0, false);
-                }
-            case Pose.Walk:
-                {
-                    double p = Phase(Stride.Walk), s = Math.Sin(p), c = Math.Cos(p);
-                    // A leg swinging forward lifts its knee; the one under the body stays straight.
-                    return new Limbs(
-                        FrontArm: B(-0.3 * s, 0.25 + 0.25 * Positive(-c)),
-                        BackArm: B(0.3 * s, 0.25 + 0.25 * Positive(c)),
-                        FrontLeg: B(0.5 * s, -(0.08 + 0.8 * Positive(c))),
-                        BackLeg: B(-0.5 * s, -(0.08 + 0.8 * Positive(-c))),
-                        Tilt: 0.03, Lift: 0, Lying: false);
-                }
-            case Pose.Run:
-                {
-                    // Travelled runs down as the hero backs away; the legs' cycle runs up, or the foot on the floor slides back.
-                    if (Backward(hero)) return Backpedal(-Phase(Stride.Back));
-                    double p = Phase(Stride.Run), s = Math.Sin(p);
-                    double q = p / (2 * Math.PI);
-                    // Leaning well in, the arms pumping hard against the legs, elbows opening as they swing back; each leg
-                    // pushes off nearly straight under the body, then folds heel to seat and drives its knee high.
-                    double c = Math.Cos(p);
-                    return new Limbs(
-                        FrontArm: B(-Feel.Run.Pump * s, 1.5 + 0.2 * c),
-                        BackArm: B(Feel.Run.Pump * s, 1.5 - 0.2 * c),
-                        FrontLeg: Running(q),
-                        BackLeg: Running(q + 0.5),
-                        Tilt: Feel.Run.Lean, Lift: 0, Lying: false);
+                    var (cycle, gait, moving) = GaitOf(pose, hero, moment);
+                    // Running backward the legs' cycle runs down as the hero backs away; the backpedal's runs up, or the foot on
+                    // the floor slides back.
+                    var stride = gait >= 0 ? Mix(Walking(cycle), Sprinting(cycle), gait) : Mix(Walking(cycle), Backpedal(-cycle * 2 * Math.PI), -gait);
+                    return moving >= 1 ? stride : Mix(Standing(moment.TimeMs), stride, moving);
                 }
             case Pose.Air:
                 return InTheAir(hero, moment);
@@ -328,6 +395,71 @@ public static class Poses
     }
 
     /// <summary>
+    /// The gait on the floor (2026-11-04-hero-gait): the strides the legs have gone through; from backpedalling (-1) through
+    /// walking (0) into running (1); from standing (0) into striding (1). The figure's own, eased, or the pose's alone.
+    /// </summary>
+    private static (double Cycle, double Gait, double Moving) GaitOf(Pose pose, Hero hero, Moment moment)
+    {
+        double gait = moment.Gait ?? (pose == Pose.Run ? (Backward(hero) ? -1 : 1) : 0);
+        double moving = moment.Moving ?? (pose == Pose.Stand ? 0 : 1);
+        return (moment.Cycle ?? moment.Travelled / StrideOf(gait), gait, moving);
+    }
+
+    /// <summary>The cells a full cycle of the legs covers at <paramref name="gait"/>, from backpedalling (-1) through walking (0) into running (1).</summary>
+    public static double StrideOf(double gait) =>
+        gait >= 0 ? Stride.Walk + (Stride.Run - Stride.Walk) * gait : Stride.Walk + (Stride.Back - Stride.Walk) * -gait;
+
+    /// <summary>Standing, breathing <paramref name="timeMs"/> in.</summary>
+    private static Limbs Standing(double timeMs)
+    {
+        double breath = Math.Sin(timeMs / BreathMs * 2 * Math.PI);
+        return new Limbs(B(0.05 * breath, 0.18), B(-0.05 * breath, 0.22), B(0.02, -0.04), B(-0.02, -0.04), 0, 0, false);
+    }
+
+    /// <summary>Walking, <paramref name="cycle"/> strides in: a leg swinging forward lifts its knee; the one under the body stays straight.</summary>
+    private static Limbs Walking(double cycle)
+    {
+        double p = cycle * 2 * Math.PI, s = Math.Sin(p), c = Math.Cos(p);
+        return new Limbs(
+            FrontArm: B(-0.3 * s, 0.25 + 0.25 * Positive(-c)),
+            BackArm: B(0.3 * s, 0.25 + 0.25 * Positive(c)),
+            FrontLeg: B(0.5 * s, -(0.08 + 0.8 * Positive(c))),
+            BackLeg: B(-0.5 * s, -(0.08 + 0.8 * Positive(-c))),
+            Tilt: 0.03, Lift: 0, Lying: false);
+    }
+
+    /// <summary>
+    /// Running, <paramref name="cycle"/> strides in: leaning well in, the arms pumping against the legs, each arm forward as the leg
+    /// on its side pushes back, elbows opening as they swing back; each leg pushes off nearly straight under the body, then folds
+    /// heel to seat and drives its knee high.
+    /// </summary>
+    private static Limbs Sprinting(double cycle)
+    {
+        double p = cycle * 2 * Math.PI, s = Math.Sin(p), pitch = PitchOf(cycle);
+        // The legs turn back by the body's pitch, so only the body pitches and the foot on the floor stays put.
+        static Bend Turned(Bend leg, double by) => leg with { Upper = leg.Upper + by };
+        return new Limbs(
+            FrontArm: B(-Feel.Run.Pump * s, 1.45 - Feel.Run.Elbow * s),
+            BackArm: B(Feel.Run.Pump * s, 1.45 + Feel.Run.Elbow * s),
+            FrontLeg: Turned(Running(cycle + RunLead), pitch),
+            BackLeg: Turned(Running(cycle + RunLead + 0.5), pitch),
+            Tilt: Feel.Run.Lean + pitch, Lift: 0, Lying: false);
+    }
+
+    /// <summary>
+    /// How far the running body pitches past its lean <paramref name="cycle"/> strides in: furthest in as a foot pushes off,
+    /// back up in the flight between steps. Leaning alike all along, the body rode its legs like a plank.
+    /// </summary>
+    private static double PitchOf(double cycle) =>
+        Feel.Run.Pitch * Math.Cos(2 * Math.PI * ((cycle - MidStance) * 2 - 2 * (0.75 * Stance - Touch / (Stride.Run * Rig.Cell))));
+
+    /// <summary>
+    /// How far a running leg's cycle is ahead of the arms': so the near arm is furthest forward as the near leg pushes off behind,
+    /// as the walk has it, rather than with it.
+    /// </summary>
+    private const double RunLead = 0.6;
+
+    /// <summary>
     /// In the air (0090): from rising into falling as the speed up or down says, the knees tucked near the top, the legs
     /// pushing straight just after a jump, the arms flailing a long fall (the front one calm while it holds an item), and
     /// the body tipped into a fast way across.
@@ -335,8 +467,8 @@ public static class Poses
     private static Limbs InTheAir(Hero hero, Moment moment)
     {
         var motion = moment.Momentum ?? Momentum.AtRest;
-        double k = Math.Clamp((double)(hero.Vy - Feel.Air.RiseBelow) / Feel.Air.Blend, 0, 1);
-        var limbs = Mix(Airborne.Rise, Airborne.Fall, k * k * (3 - 2 * k));
+        double k = Math.Clamp((double)(hero.Vy - Feel.Air.RiseBelow) / Feel.Air.Blend, 0, 1), falling = k * k * (3 - 2 * k);
+        var limbs = Mix(Airborne.Rise, Airborne.Fall, falling);
         if (TopOf(hero.Vy) is var top and > 0) limbs = Mix(limbs, Airborne.Top, top);
         if (PushOf(motion.SinceJumpMs) is var push and > 0) limbs = Mix(limbs, Airborne.Push, push);
         if (FlailOf(hero.Vy, motion.FallingMs) is var flail and > 0)
@@ -350,6 +482,8 @@ public static class Poses
             };
         }
         limbs = limbs with { Tilt = DriftOf(hero) };
+        // Falling, the boots turn flat for the floor; hung along the shins they met it toe first. Rising they point down.
+        limbs = limbs with { FrontFoot = falling * Flat(limbs.FrontLeg, limbs.Tilt), BackFoot = falling * Flat(limbs.BackLeg, limbs.Tilt) };
         // Stepping up onto a ledge the jump fell just short of (0092): the ladder top's pull-up, at its end.
         return moment.Ledge is double ledge ? PullUp(limbs, ledge) : limbs;
     }
@@ -501,7 +635,7 @@ public static class Poses
     }
 
     /// <summary>The share of a running stride a foot is on the floor, pushing the body on.</summary>
-    private const double Stance = 0.42;
+    private const double Stance = 0.2;
 
     /// <summary>Whether <paramref name="hero"/> moves away from the way it faces: running backward, facing what it aims at.</summary>
     public static bool Backward(Hero hero) => hero.Vx * hero.Facing < 0;
@@ -523,29 +657,107 @@ public static class Poses
     }
 
     /// <summary>
-    /// How far the running body rises <paramref name="travelled"/> cells into its run: nothing with a foot on the floor,
-    /// <see cref="Feel.Run.Bounce"/> pixels at the middle of each stride's flight, both feet off it.
+    /// The cycle a running leg on the floor stands upright under its hip at, the body leaning as a run does, the other half a
+    /// cycle on: where its sole reaches lowest, so the body rides lowest there and the knee need hardly give.
     /// </summary>
-    public static double Bounce(double travelled)
+    private const double MidStance = Touch / (Stride.Run * Rig.Cell) - RunLead + 1;
+
+    /// <summary>
+    /// How high the running body rides <paramref name="cycle"/> strides in (2026-11-04-hero-gait), from 0 to 1 and smoothly: lowest
+    /// as the leg come down stands upright, the knee taking the weight; up over <c>Run.Rise</c> of the step as it pushes off,
+    /// highest as it leaves the floor; down the rest. Rising and falling alike, it bobbed like a ball.
+    /// </summary>
+    public static double RideOf(double cycle)
     {
-        double half = travelled / Stride.Run * 2, h = half - Math.Floor(half);
-        // Each leg stands for Stance of its cycle, the other half a cycle behind: both are off the floor from 2 Stance of
-        // each half to its end, and the body rises and falls over that.
-        return h < 2 * Stance ? 0 : Feel.Run.Bounce * Math.Sin(Math.PI * (h - 2 * Stance) / (1 - 2 * Stance));
+        double h = (cycle - MidStance) * 2, step = h - Math.Floor(h);
+        double u = step < Feel.Run.Rise ? step / Feel.Run.Rise / 2 : 0.5 + (step - Feel.Run.Rise) / (1 - Feel.Run.Rise) / 2;
+        return (1 - Math.Cos(2 * Math.PI * u)) / 2;
     }
 
     /// <summary>
-    /// A running leg at <paramref name="cycle"/> through its stride: on the floor from under the hips to
-    /// behind them, nearly straight; then off it, the heel kicked up and the knee brought through high.
+    /// The body at <paramref name="lift"/>: a leg whose boot would go through the floor there bends at the knee until it stands
+    /// on it, and each boot lies flat as far as it is near the floor.
+    /// </summary>
+    private static Limbs Riding(Limbs limbs, double lift)
+    {
+        for (int i = 0; i < 4; i++)
+        {
+            limbs = FeetOver(limbs, lift);
+            var (frontLeg, frontFoot) = Bent(limbs.FrontLeg, limbs.FrontFoot, Rig.HipApart);
+            var (backLeg, backFoot) = Bent(limbs.BackLeg, limbs.BackFoot, -Rig.HipApart);
+            limbs = limbs with { FrontLeg = frontLeg, FrontFoot = frontFoot, BackLeg = backLeg, BackFoot = backFoot };
+        }
+        return limbs with { Lift = lift };
+
+        (Bend, double) Bent(Bend leg, double foot, double hipX)
+        {
+            double under = SoleOf(leg, foot, hipX, limbs.Tilt) - lift;
+            if (under <= 0) return (leg, foot);
+            // A toe or heel under the floor turns the boot flatter first: a leg nearly straight folds its knee half a radian to
+            // lift its ankle half a pixel, and pushing off it buckled for a frame.
+            double flat = Flat(leg, limbs.Tilt);
+            if (SoleOf(leg, flat, hipX, limbs.Tilt) - lift <= 0)
+            {
+                double kept = foot, level = flat;
+                for (int i = 0; i < 12; i++)
+                {
+                    double mid = (kept + level) / 2;
+                    if (SoleOf(leg, mid, hipX, limbs.Tilt) - lift > 0) kept = mid;
+                    else level = mid;
+                }
+                return (leg, level);
+            }
+            foot = flat;
+            under = SoleOf(leg, foot, hipX, limbs.Tilt) - lift;
+            if (under <= 0) return (leg, foot);
+            // Straight up from the floor, in the turned body's own lines, the boot turned as before.
+            var ankle = Rig.EndOf(leg, Rig.ToAnkle);
+            var bent = Rig.Reach(new Vec(ankle.X - under * Math.Sin(limbs.Tilt), ankle.Y - under * Math.Cos(limbs.Tilt)), Rig.ToAnkle, -1);
+            return (bent, foot + leg.Upper + leg.Lower - bent.Upper - bent.Lower);
+        }
+    }
+
+    /// <summary>
+    /// A running leg at <paramref name="cycle"/> through its stride: on the floor from just ahead of the hips to well behind them,
+    /// nearly straight, its foot staying put; then off it, the heel kicked up and the knee brought through high.
     /// </summary>
     private static Bend Running(double cycle)
     {
         double p = cycle - Math.Floor(cycle);
-        if (p < Stance) return B(0.4 - 0.95 * p / Stance, -0.12);
+        if (p < Stance) return B(Planted(p), -0.12);
         double u = (p - Stance) / (1 - Stance);
-        // Back from behind to high ahead, then down to meet the floor under the hips again.
-        double thigh = u < 0.7 ? -0.6 + 1.85 * Math.Sin(u / 0.7 * Math.PI / 2) : 1.25 - 0.85 * (u - 0.7) / 0.3;
-        return B(thigh, -(0.12 + 2.1 * Math.Sin(u * Math.PI)));
+        // From behind, still going back a little as the foot leaves, up high ahead, then swept back down to meet the floor as
+        // it goes by, so the foot comes down without a jolt.
+        double thigh = u < Drive
+            ? Hermite(u / Drive, Planted(Stance), Sweep(Stance) * (1 - Stance) * Drive / 2, 1.25, 0)
+            : Hermite((u - Drive) / (1 - Drive), 1.25, 0, Planted(0), Sweep(0) * (1 - Stance) * (1 - Drive));
+        return B(thigh, -(0.12 + 2.1 * Math.Sin(Math.PI * Math.Pow(u, 0.6))));
+    }
+
+    /// <summary>The share of a running leg's swing it takes to bring the knee up highest.</summary>
+    private const double Drive = 0.6;
+
+    private static double Sweep(double p) => (Planted(p + 1e-4) - Planted(p - 1e-4)) / 2e-4;
+
+    private static double Hermite(double t, double from, double fromSlope, double to, double toSlope)
+    {
+        double t2 = t * t, t3 = t2 * t;
+        return (2 * t3 - 3 * t2 + 1) * from + (t3 - 2 * t2 + t) * fromSlope + (-2 * t3 + 3 * t2) * to + (t3 - t2) * toSlope;
+    }
+
+    /// <summary>How far ahead of the hips a running foot comes down, in pixels, the body leaning as a run does.</summary>
+    private const double Touch = 5;
+
+    /// <summary>
+    /// A running thigh <paramref name="p"/> strides after its foot came down: the foot stays where it came down, the leg
+    /// sweeping back as fast as the body goes on; it slid along the floor at half the body's speed, the hero skating.
+    /// </summary>
+    private static double Planted(double p)
+    {
+        var straight = Rig.EndOf(B(0, -0.12), Rig.ToAnkle);
+        double reach = Math.Sqrt(straight.X * straight.X + straight.Y * straight.Y);
+        double along = Math.Clamp((Touch - Stride.Run * Rig.Cell * p) / reach, -1, 1);
+        return Math.Asin(along) + Feel.Run.Lean - Math.Atan2(straight.X, straight.Y);
     }
 
     /// <summary>
@@ -624,6 +836,33 @@ public static class Poses
     public static bool SwimmingFast(Hero hero) =>
         Math.Abs(hero.Vx) > Stillwake.Content.Hero.Swim || Math.Abs(hero.Vy) > Stillwake.Content.Hero.Swim;
 
+    /// <summary>Whether the hero hauls itself in along its tether (tether-haul): on one, moving faster than it swims. Every peer has both.</summary>
+    public static bool Hauling(Hero hero) => hero.Anchor != null && SwimmingFast(hero);
+
+    /// <summary>How long a hand takes over a grip and a pull along the line, and the share of it spent reaching out.</summary>
+    public static class Haul
+    {
+        public const double GripMs = 360, Reach = 0.35;
+    }
+
+    /// <summary>
+    /// Hauled in along the tether (tether-haul), the look picked: hand over hand, the arms by turns reaching out along the line the
+    /// way the body goes and drawing back past the chest, the elbow bent mid-pull; the legs trailing; a hand holding an item keeps it.
+    /// </summary>
+    private static Limbs Hauled(Hero hero, double timeMs, bool wields, double drift)
+    {
+        // The way the body goes, from straight down, forward positive: the line the hands hold. An arm at that angle from a body
+        // turned forward by a tilt points along it at the angle plus the tilt.
+        double tilt = Math.Sign(hero.Vx) * hero.Facing * Adrift.Lean, line = Math.Atan2(hero.Vx * hero.Facing, hero.Vy) + tilt;
+        double Phase(double lag) => ((timeMs / Haul.GripMs + lag) % 1 + 1) % 1;
+        // How far out a hand is through a grip: out along the line over the first part, eased, then drawn back over the rest.
+        static double Out(double p) => p < Haul.Reach ? Eased(p / Haul.Reach) : Eased(1 - (p - Haul.Reach) / (1 - Haul.Reach));
+        static double Eased(double t) => t * t * (3 - 2 * t);
+        Bend Arm(double p) => B(line - 1.6 * (1 - Out(p)), 0.15 + 1.1 * Math.Sin(Math.PI * (1 - Out(p))) * (p < Haul.Reach ? 0.4 : 1));
+        Bend Trail(double lag) => B(-0.15 + 0.06 * Math.Sin(timeMs / Adrift.PaddleFastMs * 2 * Math.PI + lag), -0.3);
+        return new Limbs(wields ? B(0.35, 0.35) : Arm(Phase(0)), Arm(Phase(0.5)), Trail(0), Trail(Math.PI), tilt, 0.5 * drift, false);
+    }
+
     /// <summary>
     /// Afloat in no gravity, upright (0036): still, it drifts, arms floating a little up, knees loose, the
     /// body rocking slowly; blended by <paramref name="swim"/> into swimming, and that by
@@ -637,31 +876,32 @@ public static class Poses
             B(0.25 + 0.1 * sway, -(0.5 + 0.1 * drift)), B(-0.08 * sway, -(0.35 - 0.1 * drift)),
             0.03 * sway, 2 * drift, false);
         if (swim <= 0) return still;
-        var swimming = Paddling(hero, timeMs / Adrift.PaddleMs, Adrift.Lean, 0.4, wields, drift);
-        if (fast > 0) swimming = Mix(swimming, Paddling(hero, timeMs / Adrift.PaddleFastMs, Adrift.LeanFast, 0.6, wields, drift), fast);
+        if (Hauling(hero)) return Hauled(hero, timeMs, wields, drift);
+        var swimming = Paddling(hero, timeMs / Adrift.PaddleMs, Adrift.Lean, Adrift.Trail, wields, drift);
+        if (fast > 0) swimming = Mix(swimming, Paddling(hero, timeMs / Adrift.PaddleFastMs, Adrift.LeanFast, Adrift.TrailFast, wields, drift), fast);
         return swim >= 1 ? swimming : Mix(still, swimming, swim);
     }
 
     /// <summary>
-    /// Swimming upright, <paramref name="stroke"/> paddles in: leaning <paramref name="lean"/> into a swim
-    /// along the floor and tucked forward sinking; the free hand paddling <paramref name="reach"/> radians
-    /// either way, both hands with nothing in the front one; the legs trailing, drawn up sinking and
-    /// hanging rising.
+    /// Swimming upright, <paramref name="stroke"/> kicks in: leaning <paramref name="lean"/> into a swim along the floor and tucked
+    /// forward sinking; the free hands held calm by the body, drifting as they do still and trailing <paramref name="trail"/> radians
+    /// back of it going along (2026-11-04-hero-gait: the suit moves the hero, not its hands); the legs trailing, drawn up sinking
+    /// and hanging rising.
     /// </summary>
-    private static Limbs Paddling(Hero hero, double stroke, double lean, double reach, bool wields, double drift)
+    private static Limbs Paddling(Hero hero, double stroke, double lean, double trail, bool wields, double drift)
     {
         double p = stroke * 2 * Math.PI;
         int along = Math.Sign(hero.Vx) * hero.Facing, sinking = Math.Sign(hero.Vy);
-        // Brought forward with the elbow bent, then pulled down and back nearly straight.
-        Bend Paddle(double lag) => B(0.75 + reach * Math.Sin(p + lag), 0.75 + 0.35 * Math.Cos(p + lag));
+        // As they drift still, trailing a little back of the way the body goes.
+        Bend near = B(0.15 + 0.06 * drift - along * trail, 0.35), far = B(0.4 - 0.08 * drift - along * trail, 0.55);
         Bend Leg(double lag)
         {
             double kick = 0.1 * Math.Sin(p + lag);
             if (sinking > 0) return B(0.85 + kick, -1.35);
             return along != 0 ? B(-0.2 + kick, -(0.55 + 0.15 * Math.Cos(p + lag))) : B(0.05 + kick, -0.2);
         }
-        var front = wields ? B(-0.05 + 0.12 * Math.Sin(p), 0.35) : Paddle(Math.PI);
-        return new Limbs(front, Paddle(0), Leg(Math.PI), Leg(0), along * lean + (sinking > 0 ? Adrift.Tuck : 0), 0.5 * drift, false);
+        var front = wields ? B(-0.05 + 0.12 * Math.Sin(p), 0.35) : near;
+        return new Limbs(front, far, Leg(Math.PI), Leg(0), along * lean + (sinking > 0 ? Adrift.Tuck : 0), 0.5 * drift, false);
     }
 
     /// <summary>How far <paramref name="to"/> is from <paramref name="from"/>, the short way round, in radians.</summary>
@@ -705,6 +945,7 @@ public static class Poses
         double Angle(double x, double y) => x + (((y - x) % (2 * Math.PI) + 3 * Math.PI) % (2 * Math.PI) - Math.PI) * by;
         Bend Limb(Bend x, Bend y) => new(Angle(x.Upper, y.Upper), Angle(x.Lower, y.Lower));
         return new Limbs(Limb(a.FrontArm, b.FrontArm), Limb(a.BackArm, b.BackArm), Limb(a.FrontLeg, b.FrontLeg),
-            Limb(a.BackLeg, b.BackLeg), Angle(a.Tilt, b.Tilt), a.Lift + (b.Lift - a.Lift) * by, a.Lying);
+            Limb(a.BackLeg, b.BackLeg), Angle(a.Tilt, b.Tilt), a.Lift + (b.Lift - a.Lift) * by, a.Lying,
+            a.FrontFoot + (b.FrontFoot - a.FrontFoot) * by, a.BackFoot + (b.BackFoot - a.BackFoot) * by);
     }
 }

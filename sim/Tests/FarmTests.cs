@@ -10,7 +10,7 @@ namespace Stillwake.Sim.Tests;
 
 /// <summary>
 /// The farm (0060): a grow capsule is a fed station of the "grow" process, on power, turning a seed in its input into
-/// 4 biomass and none, one or two seeds; biomass smelts into biofuel; soil is pressed at the Former; seeds come from
+/// 4 biomass and none, one or two seeds (biomass ferments into biofuel: FermenterTests); soil is pressed at the Former; seeds come from
 /// supply pods.
 /// </summary>
 public class FarmTests
@@ -28,13 +28,13 @@ public class FarmTests
         return new Scenario(Layout.Parse(rows, null, cables), doubled: true).GiveItems(0, ("seed", 10), ("rock", 2), ("planks", 2));
     }
 
-    /// <summary>A sealed room aired by a tank piped to a vent, holding a furnace, and an electric smelter on a panel of its own.</summary>
+    /// <summary>A sealed room aired by a vaporizer piped to a vent, its tank and panel under the hull, holding a furnace, and an electric smelter on a panel of its own.</summary>
     private static Scenario Smelting()
     {
-        var w = new Scenario(Layout.Parse(
+        var w = new Scenario(AirTesting.Vaporized(
                 ["PPP       ", "          ", "##########", "#FF.TT.EE#", "#FF.TTVEE#", "##########"],
                 ["", "", "", "    o", "    ---"], [((0, 0), (7, 3))]), doubled: true)
-            .GiveItems(0, ("biomass", 4), ("seed", 2), ("planks", 2));
+            .GiveItems(0, ("seed", 2), ("planks", 2));
         for (int i = 0; i < 2000 && !w.M.Atmosphere.AiredAt(w.At(1, 3)); i++) w.Run();
         return w;
     }
@@ -243,24 +243,6 @@ public class FarmTests
         Assert.Equal(0, farm.M.Crafting.Progress(capsule));
         Assert.Equal(0, Demand(farm));
         Assert.Equal(1, Held(farm, capsule, "rock"));
-    }
-
-    [Fact]
-    public void SmeltsBiomassIntoBiofuelOneForOneAtTheFurnaceAndTheSmelter()
-    {
-        var w = Smelting();
-        int furnace = w.M.Grid.MachinesOf("furnace").Single().Id, smelter = w.M.Grid.MachinesOf("smelter").Single().Id;
-        Assert.Equal((160, 1), (Content.Items.Get("biomass").SmeltTicks, Content.Items.Get("biomass").Heat));
-        Assert.Equal([("biofuel", 1)], Content.Items.Get("biomass").Yields);
-        Put(w, furnace, "planks", 1, Machines.Get("furnace").FuelSlot!.Value);
-        Put(w, furnace, "biomass", 2);
-        Put(w, smelter, "biomass", 2);
-        // The smelter twice as fast; the furnace from the tick after it lights.
-        w.Run(2 * 160 / 2);
-        Assert.Equal((0, 2), (Held(w, smelter, "biomass"), Held(w, smelter, "biofuel")));
-        w.Run(2 * 160);
-        Assert.Equal((0, 2), (Held(w, furnace, "biomass"), Held(w, furnace, "biofuel")));
-        Assert.Empty(w.Refusals);
     }
 
     /// <summary>Soil is pressed of a rock and a plank at the Former in 60 ticks; the lifepod and the assembler refuse it as not made there.</summary>

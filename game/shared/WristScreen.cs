@@ -20,7 +20,7 @@ public partial class WristScreen : PanelContainer
     private readonly Color _screen;
     private readonly TextureRect? _light, _led;
     private readonly List<(Control Part, Func<Vector2, Vector2> At)> _mounts = [];
-    private WristPiece _piece;
+    private readonly WristPiece _piece;
     private float _power = 1;
     private double _blink;
 
@@ -52,19 +52,6 @@ public partial class WristScreen : PanelContainer
 
     // Godot turns processing on at ready for any node with a _Process: only a flaring lamp needs it.
     public override void _Ready() => SetProcess(_blink > 0);
-
-    /// <summary>Its metal: the forearm display's bottom edge changes as a machine opens under it.</summary>
-    public WristPiece Piece
-    {
-        get => _piece;
-        set
-        {
-            if (value == _piece) return;
-            _piece = value;
-            WristArt.Use(_art, value);
-            Place();
-        }
-    }
 
     /// <summary>Where the screen, its metal and what is mounted on it lie on the screen: what the crew's markers keep out of.</summary>
     public Rect2 Outer

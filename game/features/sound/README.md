@@ -83,7 +83,7 @@ Each feature owns its players as children, never in a static.
 
 ## Deliberately not handled
 
-- Music beyond the title and space; volume sliders (the bus names are their contract).
+- Music beyond the title and space.
 - Reverb, occlusion, Doppler; one hiss however many breaches vent. Silence by the room's air (0033).
 - Other heroes' clicks, alarms and swings; swim, passing out, plans placed and finished, the analyzer, the pod, the
   inventory and hand-drawn controls: later passes.

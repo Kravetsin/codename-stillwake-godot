@@ -1,8 +1,10 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Linq;
 using Godot;
 using Stillwake.Game.Features.Crafting;
+using Stillwake.Game.Features.Crew;
 using Stillwake.Game.Features.Furnace;
 using Stillwake.Game.Features.Items;
 using Stillwake.Game.Menu;
@@ -20,8 +22,8 @@ public sealed class FurnaceScenario : DevScenario
     public override World? Create(IReadOnlyList<Module> modules) => FurnaceDemo.Create(modules);
 }
 
-/// <summary>The items room (<see cref="ItemsDemo"/>): a crate, a furnace and a tech station.</summary>
-[Dev("--items", "a room with a crate, a furnace and a tech station, and a script working them (ItemsDemo)")]
+/// <summary>The items room (<see cref="ItemsDemo"/>): a crate and a furnace.</summary>
+[Dev("--items", "a room with a crate and a furnace, and a script working them (ItemsDemo)")]
 public class ItemsScenario : DevScenario
 {
     public override Layout? Map => ItemsDemo.Map;
@@ -30,7 +32,8 @@ public class ItemsScenario : DevScenario
 
     public override void Attach(DevContext c)
     {
-        if (c.Items == null) return;
+        // --manual: the room alone, in creative mode, for a hand to play (the stash's crate already holding a canister).
+        if (c.Items == null || Args.Has("--manual")) return;
         var pointer = new CanvasLayer { Layer = ScreenLayers.Pointer };
         pointer.AddChild(new ItemsDemo(c.Items));
         c.Add(pointer);
@@ -84,6 +87,18 @@ public sealed class MarksScenario : DevScenario
 public sealed class CardScenario : DevScenario
 {
     public override void Attach(DevContext c) => c.Add(new CardDemo(c.Hands, Args.Value("--card")!, pick: Args.Has("--pick")));
+}
+
+[Dev("--hints", "with --testbed, the plan's hints in turn: nothing in hand, wiring, piping, the valve, a plan under the pointer, a machine (HintsDemo)")]
+public sealed class HintsScenario : DevScenario
+{
+    public override void Attach(DevContext c) => c.Add(new HintsDemo(c.Hands, c.M, command => c.World()?.Client.Send(command)));
+}
+
+[Dev("--tip", "with --testbed, the pointer held where a tip speaks: air (the overlay on, an aired room) or a machine kind (TipDemo)", Shape = DevShape.Equals)]
+public sealed class TipScenario : DevScenario
+{
+    public override void Attach(DevContext c) => c.Add(new TipDemo(c.Hands, c.M, Args.Value("--tip")!));
 }
 
 [Dev("--charger", "arc or plain: the testbed's charging station filling an empty accumulator, fitted or not (ChargerArcDemo)", Shape = DevShape.Equals)]
@@ -147,8 +162,59 @@ public sealed class HandbookScenario : DevScenario
     public override void Attach(DevContext c) => c.Add(new HandbookDemo(c.DebrisPage));
 }
 
-[Dev("--tool-cards", "the axe's, the drill's plain and fitted, the nailer's, the railgun's and the nail's cards side by side, every tool in a slot under them (ToolCardsDemo)")]
+[Dev("--tree", "the black market on the tablet, in the wreck with credits to spend (TreeDemo)")]
+public sealed class TreeScenario : DevScenario
+{
+    public override World Seed(World world, DevSeed seed) => TreeDemo.Seed(world, seed.Modules);
+
+    public override void Attach(DevContext c) => c.Add(new TreeDemo(c.M));
+}
+
+[Dev("--board", "the board on the tablet, blank or with =first, =near, =burst, =circuit, =late, =bought or =search seeded (BoardDemo); with --manual, played by hand", Shape = DevShape.Either)]
+public sealed class BoardScenario : DevScenario
+{
+    public override Layout? Map => Registry.Wreck;
+
+    public override World Seed(World world, DevSeed seed) => BoardDemo.Seed(world, seed.Modules, Args.Given("--board"));
+
+    public override void Attach(DevContext c)
+    {
+        if (!Args.Has("--manual")) c.Add(new BoardDemo(c.M, Args.Given("--board")));
+    }
+}
+
+[Dev("--bulb", "the bulb at the screen's top as a note starts waiting, the find flying into the research key; =two with a second find after the burst, =open with T mid-flight, =early while it heats (BulbDemo)", Shape = DevShape.Either)]
+public sealed class BulbScenario : DevScenario
+{
+    public override World Seed(World world, DevSeed seed) => BoardDemo.Seed(world, seed.Modules, "late");
+
+    public override void Attach(DevContext c) => c.Add(new BulbDemo(c.M, Args.Given("--bulb")));
+}
+
+[Dev("--tool-cards", "every hand tool's card, the drill's fitted too, the nailer's and the railgun's, every tool in a slot under them (ToolCardsDemo)")]
 public sealed class ToolCardsScenario : DevScenario
 {
     public override void Attach(DevContext c) => c.Add(new ToolCardsDemo());
+}
+
+[Dev("--salvage", "a bay's salvage drone flying out of an aired room for the pieces drifting in its zone, canisters in its fuel slot (SalvageDemo)")]
+public sealed class SalvageScenario : DevScenario
+{
+    public override Layout? Map => Features.Logistics.SalvageDemo.Map;
+
+    public override World? Create(IReadOnlyList<Module> modules) => Features.Logistics.SalvageDemo.Create(modules);
+
+    private string _was = "";
+
+    /// <summary>Logs the salvage drones out, the canisters left and the pieces out whenever they change.</summary>
+    public override void Frame(Stillwake.Net.Client client, Registry m, Action<string> log)
+    {
+        var bay = m.Grid.MachinesOf(Stillwake.Content.Logistics.Bay).FirstOrDefault();
+        if (bay == null) return;
+        int fuel = m.Items.Crate(bay.Id)[Stillwake.Content.Machines.Get(bay.Kind).SlotTakes!.Value.Slot]?.Count ?? 0;
+        string now = $"{m.Logistics.Drones.Count} out, {fuel} canisters, {m.Debris.Pieces.Count} pieces";
+        if (now == _was) return;
+        log($"salvage: tick {client.World.Tick}, {now}");
+        _was = now;
+    }
 }

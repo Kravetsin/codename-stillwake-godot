@@ -1,12 +1,11 @@
 using System.Reflection;
 using Stillwake.Content;
-using Stillwake.Game;
 using Xunit;
 using DebrisSpec = Stillwake.Content.Debris;
 
 namespace Stillwake.Sim.Tests;
 
-/// <summary>Machine footprints, builds, the drone bay, air, power and light.</summary>
+/// <summary>Machine footprints, builds, the drone bay, air and power.</summary>
 public partial class ContentTests
 {
     [Fact]
@@ -24,6 +23,14 @@ public partial class ContentTests
     }
 
     [Fact]
+    public void MachinesTakeOnTheirLeftAndGiveOnTheirRight()
+    {
+        foreach (var m in Machines.All)
+            foreach (var p in m.Ports)
+                Assert.True(p.X == (p.Way == Way.In ? 0 : m.Width - 1), $"{m.Kind} {p.Way} at {p.X}");
+    }
+
+    [Fact]
     public void MachinesBuiltIntoTheShipAreTheLifepodAloneAMapDrawsItAndItCostsNothing()
     {
         Assert.Equal(["lifepod"], Machines.All.Where(m => m.Fixed).Select(m => m.Kind));
@@ -31,7 +38,7 @@ public partial class ContentTests
         Assert.Empty(pod.Cost);
         Assert.Equal((0, null, null), (pod.Inputs, pod.Makes, pod.Draws));
         Assert.Contains(Legend.Map, e => Legend.MachineOf(e.Char) == "lifepod");
-        Assert.Single(Layout.Parse(Wreck.Rows).Doubled().Machines(), m => m.Kind == "lifepod");
+        Assert.Single(Layout.Parse(Wreck.Rows).Machines(), m => m.Kind == "lifepod");
         var (x, y) = Content.Crew.PodHatch;
         Assert.True(x >= 0 && x < pod.Width && y >= 0 && y < pod.Height);
     }
@@ -101,6 +108,17 @@ public partial class ContentTests
         Assert.True(Charge.Drone >= (3 * across + 2) * ticks * Content.Logistics.Draw * Charge.Scale);
     }
 
+    /// <summary>The bay's slots (salvage-drones): four for drones, the last a fuel slot of canisters, which hold no charge and go nowhere else.</summary>
+    [Fact]
+    public void TheBayHasFourDroneSlotsAndAFuelSlotTakingOnlyCanisters()
+    {
+        var bay = Machines.Get(Content.Logistics.Bay);
+        Assert.Equal(5, bay.Slots);
+        Assert.Equal((4, Content.Crew.Canister), bay.SlotTakes);
+        Assert.Null(Content.Items.Get(Content.Crew.Canister).Capacity);
+        Assert.All(Machines.All.Where(m => m.Kind != Content.Logistics.Bay), m => Assert.Null(m.SlotTakes));
+    }
+
     // Air
 
     [Fact]
@@ -140,44 +158,35 @@ public partial class ContentTests
         }
     }
 
+    /// <summary>A seat that makes power is turned by its rider alone: it burns nothing, draws nothing and works anywhere.</summary>
     [Fact]
-    public void PowerLetsTheWrecksOnePanelRunItsGeneratorInFull()
+    public void ASeatThatMakesPowerBurnsAndDrawsNothingAndWorksAnywhere() =>
+        Assert.All(Machines.All.Where(m => m.Is(MachineTrait.Seats) && m.Makes != null), m =>
+            Assert.True(m is { Draws: null, FuelSlot: null, Anywhere: true, Store: null }, m.Kind));
+
+    /// <summary>The wheel is paid for in a hero's time, so in iron and scrap it costs at most a quarter of the burner generator.</summary>
+    [Fact]
+    public void TheTreadmillWheelCostsAtMostAQuarterOfTheBurnersIronAndScrap()
     {
+        var wheel = Raw(Machines.Get("treadWheel").Cost);
+        var burner = Raw(Machines.Get("burnerGenerator").Cost);
+        Assert.All(new[] { "iron", "scrap" }, m => Assert.True(wheel.GetValueOrDefault(m) * 4 <= burner[m], m));
+    }
+
+    /// <summary>A cost broken down through its crafts into what is not crafted.</summary>
+    private static Dictionary<string, int> Raw(IEnumerable<(string Item, int Count)> cost)
+    {
+        var raw = new Dictionary<string, int>(StringComparer.Ordinal);
+        foreach (var (item, count) in cost)
+            if (Crafts.TryGet(item, out var craft))
+                foreach (var (part, n) in Raw(craft.Cost))
+                    raw[part] = raw.GetValueOrDefault(part) + n * count;
+            else
+                raw[item] = raw.GetValueOrDefault(item) + count;
+        return raw;
+    }
+
+    [Fact]
+    public void PowerLetsASolarPanelRunAGeneratorInFull() =>
         Assert.True(Machines.Get("solarPanel").Makes >= Machines.Get("generator").Draws);
-        Assert.NotEmpty(Wreck.Cables);
-    }
-
-    // Light
-
-    [Fact]
-    public void LightFadesInAirMoreThroughMachinesAndACellThickWallLetsNextToNoneThrough()
-    {
-        Assert.True(Light.Margin >= 0);
-        Assert.True(Light.Rounds >= 1);
-        foreach (float keep in (float[])[Light.StarKeep, Light.StarMachine, Light.WallIn, Light.WallDeep, Light.WallOut])
-        {
-            Assert.True(keep > 0);
-            Assert.True(keep < 1);
-        }
-        Assert.True(Light.StarMachine < Light.StarKeep);
-        // Through a wall a cell thick, into the cell beyond: a tenth at most.
-        Assert.True(Light.WallIn * Light.WallOut * Light.StarKeep < 0.1f);
-    }
-
-    [Fact]
-    public void LightComesInColoursAbove0SourcesAtMostTwiceWhiteNeverLeavingACornerBlack()
-    {
-        foreach (var (r, g, b) in (List<(float, float, float)>)[Light.Star, Light.Lamp, Light.Fire])
-            foreach (float n in (float[])[r, g, b])
-            {
-                Assert.True(n > 0);
-                Assert.True(n <= 2);
-            }
-        foreach (float n in (float[])[Light.Ambient.R, Light.Ambient.G, Light.Ambient.B])
-        {
-            Assert.True(n > 0);
-            Assert.True(n < 1);
-        }
-        Assert.True(Light.Particle > 0);
-    }
 }

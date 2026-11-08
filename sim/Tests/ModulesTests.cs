@@ -93,26 +93,36 @@ public class ModulesTests
     /// <summary>
     /// What modules keep between ticks — rooms found again around a change, the air's survey, leaks and
     /// orders — is what a load finds from scratch: a world loaded from the live one's save before every
-    /// tick, fed the same commands, hashes the same after it. Closed rooms six cells from space, the drawing doubled (0104), so
+    /// tick, fed the same commands, hashes the same after it. Closed rooms, each two cells above its tile's channel of space where the panels feeding its
+    /// vaporizer stand (liquid-oxygen), the drawing doubled (0104), so
     /// changes are followed around them; builds out in space above, so breaches flood a ship's box that
     /// grows and shrinks; with the air read every tick, as an open panel does, and without; and a few ticks
     /// that write more than the grid's log holds, so every reader finds what it follows again from scratch.
     /// </summary>
     [Theory]
-    [InlineData(5u, false)]
-    [InlineData(5u, true)]
-    [InlineData(10u, true)]
-    public void KeepsWhatItFollowsBetweenTicksAsAWorldLoadedEveryTickFindsIt(uint seed, bool readAir)
+    [InlineData(5u, false, false)]
+    [InlineData(5u, true, false)]
+    [InlineData(10u, true, false)]
+    [InlineData(5u, false, true)]
+    public void KeepsWhatItFollowsBetweenTicksAsAWorldLoadedEveryTickFindsIt(uint seed, bool readAir, bool walks)
     {
         var layout = BudgetTests.Reference(38, 30, shipWidth: 32, shipHeight: 24, margin: 3).Doubled();
+        // With little known and one short of the furnace's parts, the rule has something to grant mid-run (docs/decisions/2026-11-05-the-board.md).
+        if (walks) layout = layout with { Known = Content.Research.StartKnown };
         var rng = new Rng(new RngState { S = seed });
         // The edits that grow and shrink what is built draw their own numbers: a module's fuzz drawing more never starves them.
         var edits = new Rng(new RngState { S = seed });
         var live = new Registry();
         var world = World.Create(seed, layout, [.. live.All, new Builder(live)]);
         int around = 0, grown = 0, shrunk = 0, behind = 0;
+        if (walks) live.Knowledge.Obtain("scrapChunk", Research.Understanding.Enough("scrapChunk"));
         for (int i = 0; i < 400; i++)
         {
+            if (walks && i == 200)
+            {
+                Assert.False(live.Knowledge.Granted("furnace"));
+                live.Knowledge.Obtain("hullPlate", Research.Understanding.Enough("hullPlate"));
+            }
             if (readAir && live.Rooms.All.Count > 0)
             {
                 live.Atmosphere.RoomsAir();
@@ -124,11 +134,13 @@ public class ModulesTests
             if (edits.Below(2) == 0) commands.Add(ShipEdit(live.Grid, edits, 6, 6, 64, 48));
             // Out in the space above the ship, so what is built grows and shrinks.
             if (edits.Below(3) == 0) commands.AddRange(SpaceEdit(live.Grid, edits, 38, 0, 2, 6));
-            // Now and then a door worked more times in a tick than the grid's log holds: every reader falls behind it.
-            int door = live.Grid.StructureLayer.IndexOfAny(Structure.DoorClosed, Structure.DoorOpen);
-            if (i % 100 == 60 && door >= 0)
+            // Now and then a wall in space built and cleared more times in a tick than the grid's log holds: every reader falls
+            // behind it. A door would take one toggle a swing (2026-11-04-door-swing).
+            int blank = 36;
+            if (i % 100 == 60 && live.Grid.StructureAt(blank) == Structure.Empty && live.Grid.BackLayer[blank] == Back.None)
             {
-                commands.AddRange(Enumerable.Range(0, ChangeLog.DefaultCapacity + 2).Select(k => new SetDoor(door, k % 2 == 0)));
+                commands.AddRange(Enumerable.Range(0, ChangeLog.DefaultCapacity + 2)
+                    .Select(k => k % 2 == 0 ? (Command)new Place(blank, Placement.Wall()) : new ClearAt(blank, "structure")));
                 // With a vent or a tank taken apart, which only the log would tell the air of.
                 var gone = live.Grid.MachinesOf(i % 200 == 60 ? "vent" : "tank");
                 if (gone.Count > 0) commands.Add(new ClearAt(gone[(int)rng.Below((uint)gone.Count)].Cell, "machine"));
@@ -144,9 +156,44 @@ public class ModulesTests
             if (live.Grid.ChangedSince(gridWas) == null) behind++;
             Assert.True(world.Hash() == copy.Hash(), $"tick {i}: the world differs from one loaded before it");
         }
+        if (walks) Assert.True(live.Knowledge.Granted("furnace"), "the rule granted nothing");
         Assert.True(around > 30, $"rooms found around a change {around} times");
         Assert.True(grown > 3 && shrunk > 3, $"the built box grew {grown} times and shrank {shrunk}");
         Assert.True(behind >= 2, $"the log was outrun {behind} times");
+    }
+
+    /// <summary>
+    /// A hull a wall down its bow, four debris nets hung on it, the stream already out and catching (docs/decisions/2026-11-03-debris-net.md): what
+    /// Debris' fuzz draws <c>Collect</c> on, most of its draws refused elsewhere.
+    /// </summary>
+    private static readonly Layout Nets = Layout.Parse(
+        [.. Enumerable.Range(0, 32).Select(y => y is >= 4 and < 28 ? "    #nn".PadRight(40) : new string(' ', 40))]) with
+    { DebrisAtStart = Content.Debris.Max };
+
+    [Theory]
+    [InlineData(4u)]
+    [InlineData(11u)]
+    public void SavesLoadsAndKeepsTwoWorldsAlikeWhileDebrisNetsCatchAndAreCollected(uint seed)
+    {
+        var rng = new Rng(new RngState { S = seed });
+        var (a, b) = (new Registry(), new Registry());
+        var first = World.Create(seed, Nets, a.All);
+        var second = World.Create(seed, Nets, b.All);
+        int collected = 0, held = 0;
+        for (int i = 0; i < 400; i++)
+        {
+            var commands = RandomCommands(first, rng);
+            var refused = first.Step(commands);
+            second.Step(commands);
+            collected += commands.Count(c => c is Debris.Collect && !refused.Any(r => r.Command == c));
+            held = Math.Max(held, a.Debris.Held.Count);
+            Assert.Equal(first.Hash(), second.Hash());
+            if (i % 50 != 25) continue;
+            var loaded = World.Load(first.Save(), new Registry().All);
+            Assert.Equal(first.Hash(), loaded.Hash());
+            second = loaded;
+        }
+        Assert.True(held > 0 && collected > 0, $"nets held {held} at most and {collected} collects applied");
     }
 
     [Fact]

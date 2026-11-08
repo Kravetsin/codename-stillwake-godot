@@ -26,13 +26,54 @@ public static class Weapons
     public static readonly Weapon Axe = new("fireAxe", Damage: 2, BlockDamage: 4, Pace: 10, Arc: 64, Rays: 9, Range: 4500, Effects: []);
 
     /// <summary>
-    /// The drill (0054): 1 a hit, 4 on blocks, a hit every 2 ticks, its beam 8 steps (11°) wide and 6.5 cells long, 3 rays: one
-    /// or two cells, soil at a hit, stone at three, a 4×20 tunnel of it in 16 s, on the belt's batteries; with the arc module
-    /// fitted (0098), twice either for twice the draw.
+    /// The drill (0054): 1 a hit, 4 on blocks, a hit every 2 ticks, its fan an eighth of a turn wide and 8 cells from the shoulder,
+    /// 7 rays, the cone its bit's air shows (tool-reach): about the hero's height of a face, soil at a hit, stone at three, on the
+    /// belt's batteries; with the arc module fitted (0098), twice either for twice the draw.
     /// </summary>
-    public static readonly Weapon Drill = new("drill", Damage: 1, BlockDamage: 4, Pace: 2, Arc: 8, Rays: 3, Range: 6500, Effects: []);
+    public static readonly Weapon Drill = new("drill", Damage: 1, BlockDamage: 4, Pace: 2, Arc: 32, Rays: 7, Range: 8000, Effects: []);
 
-    public static readonly IReadOnlyList<Weapon> All = [Axe, Drill];
+    /// <summary>
+    /// The angle grinder (salvage tools): 3 a hit every 4 ticks, 15 a second on wrecks, half again the drill's, but 1 on blocks, 5 a
+    /// second; its fan 87° wide and 6.6 cells from the shoulder, 11 rays, the half disc its air shows (tool-reach): a wreck tool, not a
+    /// digger; on the belt's batteries; with the arc fitted, twice either.
+    /// </summary>
+    public static readonly Weapon Grinder = new("grinder", Damage: 3, BlockDamage: 1, Pace: 4, Arc: 62, Rays: 11, Range: 6600, Effects: []);
+
+    /// <summary>The spear (salvage tools): 3 a thrust every 12 ticks, 5 a second, a little over the axe's, 6 cells out; the arc doubles it for no power.</summary>
+    public static readonly Weapon Spear = new("spear", Damage: 3, BlockDamage: 2, Pace: 12, Arc: 8, Rays: 3, Range: 6000, Effects: []);
+
+    /// <summary>What marks a weapon whose cuts give more loot (salvage tools): its card's row, and Debris's test of it.</summary>
+    public static readonly HitEffect Salvage = new("salvage");
+
+    /// <summary>
+    /// The plasma cutter (salvage tools): 1 a hit every 4 ticks, 5 a second, nothing on blocks; a wreck it took its hit points
+    /// off drops half again its loot by that share (Debris); its jet reaches 8 cells, the farthest of the hand tools; on the belt's batteries.
+    /// </summary>
+    public static readonly Weapon PlasmaCutter = new("plasmaCutter", Damage: 1, BlockDamage: 0, Pace: 4, Arc: 8, Rays: 3, Range: 8000, Effects: [Salvage]);
+
+    /// <summary>
+    /// The sledgehammer (salvage tools): 12 a blow every 1.8 s (swing-motions: never an arm idle over a second), 6.7 a second, more
+    /// than the axe's 4, and each blow bursts every wreck of 12 hit points or fewer at once; 6 on blocks, under the weakest ground and plant, so a wall still cracks first; its fan 135° wide and
+    /// 5.5 cells from the shoulder, 13 rays, wider and longer than the axe's: a heavy sweep past its own head, 4.5 cells out.
+    /// </summary>
+    public static readonly Weapon Sledgehammer = new("sledgehammer", Damage: 12, BlockDamage: 6, Pace: 36, Arc: 96, Rays: 13, Range: 5500, Effects: []);
+
+    /// <summary>
+    /// The pickaxe (the-pickaxe): the drill's fallback underground, needing no charge. 6 on blocks a blow every 6 ticks, 20 a second, half
+    /// the drill's 40 and two and a half times the axe's 8: stone and ore at the second blow, 0.6 s, where the drill takes 0.3 s and
+    /// the axe 1.5 s; never at the first, so a wall still cracks first. 1 a blow on wrecks, under the axe. Its fan 48 steps (three
+    /// sixteenths of a turn) wide, 9 rays, 4.5 cells from the shoulder, the axe's: wider than the drill's and close by, so its cut runs
+    /// along its point's path (pick-reach).
+    /// </summary>
+    public static readonly Weapon Pickaxe = new("pickaxe", Damage: 1, BlockDamage: 6, Pace: 6, Arc: 48, Rays: 9, Range: 4500, Effects: []);
+
+    public static readonly IReadOnlyList<Weapon> All = [Axe, Drill, Grinder, Spear, PlasmaCutter, Sledgehammer, Pickaxe];
+
+    /// <summary>What a cut wreck's loot comes to when its bonus is won, in thousandths of each line, rounded down: half again.</summary>
+    public const int CutBonus = 1500;
+
+    /// <summary>Whether <paramref name="weapon"/>'s cuts give a wreck more loot: it carries <see cref="Salvage"/>.</summary>
+    public static bool Salvages(Weapon weapon) => weapon.Effects.Contains(Salvage);
 
     /// <summary>The weapon that is <paramref name="item"/>, or null for an item that deals no damage.</summary>
     public static Weapon? Of(string? item)
@@ -44,8 +85,6 @@ public static class Weapons
 }
 
 /// <summary>
-/// Something a weapon's hit does besides its damage, named in the client's words <c>effect.&lt;Id&gt;</c> and
-/// told in <c>effect.&lt;Id&gt;.about</c>; its card's chip is <paramref name="Colour"/> on
-/// <paramref name="Ground"/>, "rrggbb" (the card mockup's fire was ff7a2e on 3a1a0c, its ice 6fd3ff on 0c2a3a).
+/// Something a weapon's hit does besides its damage: a row of its card in the client, the cutter's loot (2026-11-07-tool-card-rows).
 /// </summary>
-public sealed record HitEffect(string Id, string Colour, string Ground);
+public sealed record HitEffect(string Id);

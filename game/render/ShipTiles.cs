@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Godot;
 using Stillwake.Content;
+using Stillwake.Sim;
 
 namespace Stillwake.Game.Render;
 
@@ -10,7 +11,8 @@ namespace Stillwake.Game.Render;
 /// Every picture of the ship's cells packed into one atlas, with one normal map beside it, as the single
 /// source of one <see cref="TileSet"/>: a layer's piece of the screen is then one draw, whatever
 /// pictures it holds. A picture is cut into cells (walls, scrap back walls) or laid whole from a cell's
-/// top-left (doors, pipes, machines); a valve, smaller than a cell, sits in the middle of one.
+/// top-left (doors, pipes, machines); a valve, smaller than a cell, sits in the middle of one. Its specular map is black but where a
+/// vein's ore is (<see cref="OreMask"/>), for <c>render/Lit.cs</c>'s shine.
 /// </summary>
 public sealed class ShipTiles
 {
@@ -37,50 +39,40 @@ public sealed class ShipTiles
     private ShipTiles()
     {
         var pictures = new List<(string Name, Image Diffuse, Image Normal)>();
-        // A planet's ground (0079): its walls and back walls drawn in art/planet, their edges made here; by name as the hull's are.
-        // A vein is drawn as the stone it runs through (Material.In): its wall that stone's flecked with its ore, the rest that stone's.
-        static string ArtOf(string natural) => Materials.Get(natural).In ?? natural;
+        // A planet's ground (0079): its walls and back walls drawn by name as the hull's are, a vein's its own; their edges made here.
         foreach (var natural in Materials.All.Where(m => m.Natural).Select(m => m.Id))
         {
-            var wall = Art($"planet/wall_{ArtOf(natural)}");
-            Made($"wall_{natural}", ArtOf(natural) == natural ? wall : GroundArt.Vein(wall, natural));
+            Made($"wall_{natural}", Art($"wall_{natural}"));
             for (int open = 1; open < 16; open++) Made($"wall-edge_{natural}_{open}", GroundArt.Edge(natural, open));
-            // Its back wall recedes behind it, paler, cooler and darker (0088).
-            Made(BackName(natural), GroundArt.Recede(Art($"planet/back_{ArtOf(natural)}")));
+            Made(BackName(natural), Art(BackName(natural)));
         }
         foreach (var natural in Materials.All.Where(m => m.Natural).Select(m => m.Id))
         {
             // Its living edge, up into the cell above (0082): two 16 px cells tall, behind the heroes and before them; each 16 px
-            // column in two halves, a cell each (0104), a cell showing the half its column's parity picks.
-            var tops = Art($"planet/top_{ArtOf(natural)}");
+            // column in two halves, a cell each (0104), a cell showing the half its column's parity picks. One not drawn (bedrock
+            // has no tufts before the heroes) is no tile.
             for (int v = 0; v < GroundArt.TopVariants; v++)
                 foreach (bool front in (bool[])[false, true])
                     for (int half = 0; half < 2; half++)
-                    {
-                        var top = tops.GetRegion(new Rect2I(v * Drawn + half * Cell, front ? 2 * Drawn : 0, Cell, 2 * Drawn));
-                        // A row with nothing in it (bedrock has no tufts before the heroes) is no tile.
-                        if (!top.IsInvisible()) pictures.Add(Picture(TopName(natural, v, front, half), top, Relief.None));
-                    }
-            // Its details over its whole 16 px cells, each cut into the cells it covers: singles along the sheet's first row, features over
-            // several on the second.
-            var details = Art($"planet/detail_{ArtOf(natural)}");
-            for (int k = 0; k < GroundDetails.Singles; k++)
-                pictures.Add(Picture(DetailName(natural, k), details.GetRegion(new Rect2I(k * Drawn, 0, Drawn, Drawn)), Relief.None));
-            for (int f = 0, at = 0; f < GroundDetails.Features.Length; at += GroundDetails.Features[f++])
+                        if (TopName(natural, v, front, half) is var name && HiRes.Has(name) && !HiRes.Load(name)!.IsInvisible())
+                            pictures.Add(Picture(name, Relief.None));
+            // Its details over its whole 16 px cells, each cut into the cells it covers: singles a 16 px cell, features over several. A
+            // material with none drawn (plaster) has them clear.
+            for (int k = 0; k < GroundDetails.Singles + GroundDetails.Features.Length; k++)
             {
-                int side = GroundDetails.Features[f] * Drawn;
-                pictures.Add(Picture(DetailName(natural, GroundDetails.Singles + f), details.GetRegion(new Rect2I(at * Drawn, Drawn, side, side)), Relief.None));
+                string name = DetailName(natural, k);
+                int side = (k < GroundDetails.Singles ? 1 : GroundDetails.Features[k - GroundDetails.Singles]) * Drawn;
+                pictures.Add(Picture(name, HiRes.Has(name) ? Art(name) : Image.CreateEmpty(side, side, false, Image.Format.Rgba8), Relief.None));
             }
         }
-        // A vessel's hull (generated-vessels): iron's wall and edges darkened, till it is drawn; its back wall iron's panels.
-        Made(WallName(Vessels.Hull), Darkened(Art(WallName("iron"))));
-        for (int open = 1; open < 16; open++) Made(EdgeName(Vessels.Hull, open), Darkened(Art(EdgeName("iron", open))));
-        foreach (var material in Materials.All.Select(m => m.Id))
+        foreach (var material in Materials.All.Where(m => m.As == null).Select(m => m.Id))
         {
             // Walls are no things standing in the light: flat.
             pictures.Add(Picture($"wall_{material}", Relief.None));
             for (int open = 1; open < 16; open++) pictures.Add(Picture($"wall-edge_{material}_{open}", Relief.None));
         }
+        var fineMade = new Dictionary<string, Image>();
+        AddWreckDress(pictures, fineMade);
         foreach (var name in (string[])[.. HullBacks, "back_iron_plain", "back_iron_grille", .. StructureTiles])
             pictures.Add(Picture(name, Relief.None));
         foreach (var natural in Materials.All.Where(m => m.Natural)) pictures.Add(Picture(BackName(natural.Id), Relief.None));
@@ -99,45 +91,73 @@ public sealed class ShipTiles
             var slid = DoorShape.Slid(PixelsOf(p.Closed)!, PixelsOf(p.Open)!, PixelsOf(p.OverClosed)!, PixelsOf(p.OverOpen)!,
                 PixelsOf(p.NextClosed), PixelsOf(p.NextOpen), Drawn, p.Shift, p.Hatch);
             pictures.Add(Picture(p.Name, Image.CreateFromData(Drawn, Drawn, false, Image.Format.Rgba8, slid), p.Hatch ? Relief.Down : Relief.Across));
+            if (FineSlid(p) is { } fine) fineMade[p.Name] = fine;
         }
         // A piece whole (0104), laid from its top-left as a machine is: what a plan, a ghost or a mark of one draws.
         foreach (var kind in Builds.All.Where(b => Builds.PieceOf(b.Id) != null).Select(b => b.Id))
+        {
             pictures.Add(Picture(PieceName(kind), Made(PieceName(kind), Whole(kind)), Relief.None));
+            if (FineWhole(kind) is { } fine) fineMade[PieceName(kind)] = fine;
+        }
         pictures.Add(Picture("valve_open", Relief.None, centred: true));
         pictures.Add(Picture("valve_closed", Relief.None, centred: true));
         foreach (var kind in Machines.All.Select(m => m.Kind)) pictures.Add(Picture($"machine_{kind}", Relief.Round));
 
         // Shelves of pictures, tallest first, a cell at a time.
         var order = pictures.OrderByDescending(p => p.Diffuse.GetHeight()).ThenBy(p => p.Name, System.StringComparer.Ordinal).ToList();
-        int x = 0, y = 0, shelf = 0;
+        // A cell clear round each picture: smooth sampling and mipmaps reach past a picture's edge.
+        const int clear = 1;
+        int x = clear, y = clear, shelf = 0;
         foreach (var (name, diffuse, _) in order)
         {
             var size = new Vector2I(diffuse.GetWidth() / Cell, diffuse.GetHeight() / Cell);
-            if (x + size.X > Across) (x, y, shelf) = (0, y + shelf, 0);
+            if (x + size.X + clear > Across) (x, y, shelf) = (clear, y + shelf, 0);
             _placed[name] = (new Vector2I(x, y), size);
-            x += size.X;
-            shelf = Mathf.Max(shelf, size.Y);
+            x += size.X + clear;
+            shelf = Mathf.Max(shelf, size.Y + clear);
         }
         int down = y + shelf;
-        var atlas = Image.CreateEmpty(Across * Cell, down * Cell, false, Image.Format.Rgba8);
+        const int S = HiRes.Scale;
+        var atlas = Image.CreateEmpty(Across * Cell * S, down * Cell * S, false, Image.Format.Rgba8);
         var normals = Image.CreateEmpty(Across * Cell, down * Cell, false, Image.Format.Rgba8);
         normals.Fill(Flat);
+        // Black but where a vein's ore lies: what its picture adds to its host's sheet, in its fleck's colour.
+        var ores = Image.CreateEmpty(atlas.GetWidth(), atlas.GetHeight(), false, Image.Format.Rgba8);
+        ores.Fill(Colors.Black);
         foreach (var (name, diffuse, normal) in pictures)
         {
             var at = _placed[name].At * Cell;
-            atlas.BlitRect(diffuse, new Rect2I(Vector2I.Zero, diffuse.GetSize()), at);
             normals.BlitRect(normal, new Rect2I(Vector2I.Zero, normal.GetSize()), at);
+            var fine = fineMade.GetValueOrDefault(name) ?? HiRes.Load(name);
+            if (fine != null && fine.GetSize() != diffuse.GetSize() * S && fine.GetSize().X % (Cell * S) != 0 && !name.StartsWith("valve_", StringComparison.Ordinal)) GD.PushError($"hi-res {name}: {fine.GetSize()} for {diffuse.GetSize()}");
+            if (fine == null)
+            {
+                fine = (Image)diffuse.Duplicate();
+                fine.Resize(diffuse.GetWidth() * S, diffuse.GetHeight() * S, Image.Interpolation.Nearest);
+            }
+            fine.FixAlphaEdges();
+            var box = new Rect2I(at * S, diffuse.GetSize() * S);
+            // A valve is centred in its padded cells (see Picture), so its smaller drawing is too; every other lies from the top-left
+            // as its padded picture does, or a floor 4 px thick would sink 2 px below where heroes and machines stand on it.
+            var inset = name.StartsWith("valve_", StringComparison.Ordinal) ? (box.Size - fine.GetSize()) / 2 : Vector2I.Zero;
+            atlas.BlitRect(fine, new Rect2I(Vector2I.Zero, fine.GetSize()), box.Position + inset);
+            Extrude(atlas, box, Cell * S / 2);
+            if (OreOf(name, fine) is { } ore)
+            {
+                ores.BlitRect(ore, new Rect2I(Vector2I.Zero, ore.GetSize()), box.Position);
+                Extrude(ores, box, Cell * S / 2);
+            }
         }
+        atlas.GenerateMipmaps();
+        ores.GenerateMipmaps();
 
-        Texture = new CanvasTexture
-        {
-            DiffuseTexture = ImageTexture.CreateFromImage(atlas),
-            NormalTexture = ImageTexture.CreateFromImage(normals),
-        };
+        Texture = HiRes.Sampled(ImageTexture.CreateFromImage(atlas), new Vector2I(Across * Cell, down * Cell), ImageTexture.CreateFromImage(normals), ImageTexture.CreateFromImage(ores));
         var source = new TileSetAtlasSource
         {
             Texture = Texture,
             TextureRegionSize = new Vector2I(Cell, Cell),
+            // Godot's padding copies pictures by the size the atlas reports, not its pixels: Extrude does this instead.
+            UseTexturePadding = false,
         };
         Set.AddSource(source, 0);
         foreach (var (name, (at, size)) in _placed)
@@ -160,6 +180,71 @@ public sealed class ShipTiles
             var spec = name.StartsWith("machine_") && Machines.TryGet(name["machine_".Length..], out var m) ? m : null;
             int rise = spec != null ? Mathf.Max(0, size.Y - spec.Height) : 0, reach = spec?.Exhaust ?? 0;
             source.GetTileData(at, 0).TextureOrigin = -(size - Vector2I.One) * Cell / 2 + new Vector2I(reach * Cell, rise * Cell);
+        }
+    }
+
+    /// <summary>
+    /// The ore of picture <paramref name="name"/>, drawn <paramref name="fine"/>, if it is a vein's wall (any <c>Material.In</c>): what it adds
+    /// to its host's wall, in its fleck; none for every other picture, or a vein whose sheet is not its host's size.
+    /// </summary>
+    private static Image? OreOf(string name, Image fine)
+    {
+        if (!name.StartsWith("wall_", StringComparison.Ordinal) || !Materials.TryGet(name["wall_".Length..], out var vein) || vein.In == null) return null;
+        if (HiRes.Load(WallName(vein.In)) is not { } host || host.GetSize() != fine.GetSize()) return null;
+        var mask = OreMask.Of(fine.GetData(), host.GetData(), GroundLooks.Of[vein.Id].Fleck);
+        return Image.CreateFromData(fine.GetWidth(), fine.GetHeight(), false, Image.Format.Rgba8, mask);
+    }
+
+    /// <summary>A door's panel part way open from the hi-res pictures, its panel told by what differs between shut and open; none unless all of them are drawn.</summary>
+    private static Image? FineSlid(DoorShape.SlidPicture p)
+    {
+        byte[]? Fine(string? name) => name != null && HiRes.Load(name) is { } image ? image.GetData() : null;
+        int Side = Drawn * HiRes.Scale;
+        if (Fine(p.Closed) is not { } closed || Fine(p.Open) is not { } open || Fine(p.OverClosed) is not { } overClosed || Fine(p.OverOpen) is not { } overOpen) return null;
+        var slid = DoorShape.Slid(closed, open, overClosed, overOpen, Fine(p.NextClosed), Fine(p.NextOpen), Side, p.Shift * HiRes.Scale, p.Hatch);
+        return Image.CreateFromData(Side, Side, false, Image.Format.Rgba8, slid);
+    }
+
+    /// <summary>Copies the edges of <paramref name="box"/> outward <paramref name="by"/> pixels, so a tile sampled past its edge meets itself, not clear.</summary>
+    private static void Extrude(Image atlas, Rect2I box, int by)
+    {
+        var (x, y, w, h) = (box.Position.X, box.Position.Y, box.Size.X, box.Size.Y);
+        for (int i = 1; i <= by; i++)
+        {
+            atlas.BlitRect(atlas, new Rect2I(x, y, 1, h), new Vector2I(x - i, y));
+            atlas.BlitRect(atlas, new Rect2I(x + w - 1, y, 1, h), new Vector2I(x + w - 1 + i, y));
+        }
+        for (int i = 1; i <= by; i++)
+        {
+            atlas.BlitRect(atlas, new Rect2I(x - by, y, w + 2 * by, 1), new Vector2I(x - by, y - i));
+            atlas.BlitRect(atlas, new Rect2I(x - by, y + h - 1, w + 2 * by, 1), new Vector2I(x - by, y + h - 1 + i));
+        }
+    }
+
+    /// <summary>The wreck's dress (<see cref="WreckDress"/>): a picture a cell, a torn one the piece of scrap's wall that lies there in a new world, cut by its mask.</summary>
+    private static void AddWreckDress(List<(string Name, Image Diffuse, Image Normal)> pictures, Dictionary<string, Image> fine)
+    {
+        Image over = Art("wreck_dress"), masks = Art("wreck_tears"), scrap = Art("wall_scrap");
+        Image? fineOver = HiRes.Load("wreck_dress"), fineMasks = HiRes.Load("wreck_tears"), fineScrap = HiRes.Load("wall_scrap");
+        int side = Cell * HiRes.Scale;
+        var corner = Layout.OffsetInWorld(Wreck.Width, Wreck.Height);
+        var (across, down) = (scrap.GetWidth() / Cell, scrap.GetHeight() / Cell);
+        foreach (var (x, y, look) in WreckDress.Cells())
+        {
+            var inSheet = new Rect2I(x * Cell, y * Cell, Cell, Cell);
+            if (look != 'T')
+            {
+                pictures.Add(Picture(WreckDress.OverName(x, y), over.GetRegion(inSheet), Relief.None));
+                if (fineOver != null) fine[WreckDress.OverName(x, y)] = fineOver.GetRegion(new Rect2I(inSheet.Position * HiRes.Scale, side, side));
+                continue;
+            }
+            var inWall = new Vector2I((x + Wreck.Left + corner.X) % across * Cell, (y + Wreck.Top + corner.Y) % down * Cell);
+            var wall = scrap.GetRegion(new Rect2I(inWall, Cell, Cell));
+            var torn = WreckDress.Torn(wall.GetData(), masks.GetRegion(inSheet).GetData());
+            pictures.Add(Picture(WreckDress.TornName(x, y), Image.CreateFromData(Cell, Cell, false, Image.Format.Rgba8, torn), Relief.None));
+            if (fineMasks == null || fineScrap == null) continue;
+            var fineTorn = WreckDress.Torn(fineScrap.GetRegion(new Rect2I(inWall * HiRes.Scale, side, side)).GetData(), fineMasks.GetRegion(new Rect2I(inSheet.Position * HiRes.Scale, side, side)).GetData());
+            fine[WreckDress.TornName(x, y)] = Image.CreateFromData(side, side, false, Image.Format.Rgba8, fineTorn);
         }
     }
 
@@ -208,7 +293,7 @@ public sealed class ShipTiles
     /// <summary>
     /// The picture <paramref name="name"/> and its normal map (<see cref="PixelArt.VolumeMap"/>), a flat one without relief, filled out to
     /// whole cells: from the top-left (a floor along the top of its cell) or round the middle
-    /// (a valve's wheel, as ship-art.ts lays it).
+    /// (a valve's wheel).
     /// </summary>
     private static (string, Image, Image) Picture(string name, Relief relief, bool centred = false) => Picture(name, Art(name), relief, centred);
 
@@ -253,45 +338,22 @@ public sealed class ShipTiles
         return MadeImages.TryGetValue(name, out var image) ? image : Art(name);
     }
 
-    /// <summary>
-    /// The picture <c>res://art/{name}.png</c> as pixels to work on; one of a cell alone drawn at 16 px (<see cref="Halved"/>) at half
-    /// its size, kept as made so every reader of it (a plan, an outline, the light's panels) sees the same.
-    /// </summary>
-    private static Image Art(string name)
-    {
-        if (MadeImages.TryGetValue(name, out var made)) return made;
-        var image = PixelArt.Picture(name).GetImage();
-        if (image.IsCompressed()) image.Decompress();
-        image.Convert(Image.Format.Rgba8);
-        if (!Halved(name)) return image;
-        // A pipe keeps its 16 px thickness: its middle cell of the picture, the arms running on to the edges as they did.
-        if (name.StartsWith("pipe_", StringComparison.Ordinal)) image = image.GetRegion(new Rect2I((Drawn - Cell) / 2, (Drawn - Cell) / 2, Cell, Cell));
-        else image.Resize(Mathf.Max(1, image.GetWidth() * Cell / Drawn), Mathf.Max(1, image.GetHeight() * Cell / Drawn), Image.Interpolation.Nearest);
-        return Made(name, image);
-    }
+    /// <summary>The picture <paramref name="name"/> at the world's pixels (<see cref="HiRes.Logical"/>), or one made here, to work on.</summary>
+    private static Image Art(string name) => MadeImages.TryGetValue(name, out var made) ? made : HiRes.Logical(name);
 
     /// <summary>
-    /// Whether <paramref name="name"/> is a picture of one cell drawn at 16 px, now drawn at half its size in the 8 px cell (0104), till
-    /// it is drawn anew: the hull's edges, and a pipe's middle cut out at its own thickness. A valve's wheel, a door and a hatch are whole.
-    /// </summary>
-    public static bool Halved(string name) =>
-        name.StartsWith("pipe_", StringComparison.Ordinal)
-        || name.StartsWith("wall-edge_", StringComparison.Ordinal);
-
-    /// <summary>
-    /// The picture <paramref name="name"/> at the 16 px it was drawn at (0104), for a build card's, which shows it as it was before
-    /// the cell was halved: what <see cref="Halved"/> halves at its own size, a ground's edges made at it; every other as it is.
+    /// The picture <paramref name="name"/> at the 16 px a cell was drawn at (0104), for a build card's, which shows a pipe and a wall's
+    /// edges as they were before the cell was halved: a pipe's cell run across it, its middle; an edge at twice its size. Every other as it is.
     /// </summary>
     public static Image DrawnImageOf(string name)
     {
-        if (!Halved(name)) return ImageOf(name);
-        if (name.StartsWith("wall-edge_", StringComparison.Ordinal) && name.Split('_') is [_, var material, var open]
-            && Materials.TryGet(material, out var m) && m.Natural)
-            return GroundArt.Edge(material, int.Parse(open), Drawn);
-        var image = PixelArt.Picture(name).GetImage();
-        if (image.IsCompressed()) image.Decompress();
-        image.Convert(Image.Format.Rgba8);
-        return image;
+        if (name.StartsWith("wall-edge_", StringComparison.Ordinal) && name.Split('_') is [_, var material, var open])
+            return Materials.TryGet(material, out var m) && m.Natural ? GroundArt.Edge(material, int.Parse(open), Drawn) : HiRes.Logical(name, HiRes.Scale * Cell / Drawn);
+        if (!name.StartsWith("pipe_", StringComparison.Ordinal)) return ImageOf(name);
+        var cell = Art(name);
+        var run = Image.CreateEmpty(Drawn, Drawn, false, Image.Format.Rgba8);
+        for (int x = 0; x < Drawn; x += Cell) run.BlitRect(cell, new Rect2I(Vector2I.Zero, cell.GetSize()), new Vector2I(x, (Drawn - Cell) / 2));
+        return run;
     }
 
     /// <summary>The picture of a piece of <paramref name="kind"/> whole (0104): a ladder's or a door segment's.</summary>
@@ -307,6 +369,36 @@ public sealed class ShipTiles
         if (spec.Draw != StructureDraw.Door) return (Image)Art(spec.Tile!).Duplicate();
         var build = Builds.Get(kind);
         return Art(DoorShape.Whole(spec.Join == Join.Row, 1)[0]).GetRegion(new Rect2I(0, 0, build.Across * Cell, build.Tall * Cell));
+    }
+
+    /// <summary><see cref="Whole"/> in hi-res; null with no such picture.</summary>
+    private static Image? FineWhole(string kind)
+    {
+        var spec = Structures.ByBuild(kind)!;
+        if (spec.Draw != StructureDraw.Door) return HiRes.Load(spec.Tile!);
+        var build = Builds.Get(kind);
+        return HiRes.Load(DoorShape.Whole(spec.Join == Join.Row, 1)[0])?.GetRegion(new Rect2I(0, 0, build.Across * Cell * HiRes.Scale, build.Tall * Cell * HiRes.Scale));
+    }
+
+    /// <summary>
+    /// The picture <paramref name="name"/>, whose pixels are <paramref name="logical"/>, for what lays pictures together itself (a build
+    /// card): at <see cref="HiRes.Scale"/> times those pixels, its hi-res one or them grown.
+    /// </summary>
+    public static Image FineImageOf(string name, Image logical)
+    {
+        var fine = name.StartsWith("piece_", StringComparison.Ordinal) ? FineWhole(name["piece_".Length..]) : HiRes.Load(name);
+        var want = logical.GetSize() * HiRes.Scale;
+        if (fine == null)
+        {
+            fine = (Image)logical.Duplicate();
+            fine.Resize(want.X, want.Y, Image.Interpolation.Nearest);
+            return fine;
+        }
+        if (!name.StartsWith("pipe_", StringComparison.Ordinal) || fine.GetSize() == want) return fine;
+        // A card's pipe runs across its 16 px, as DrawnImageOf's does; the hi-res one is its middle cell alone, so that cell repeats.
+        var run = Image.CreateEmpty(want.X, want.Y, false, Image.Format.Rgba8);
+        for (int x = 0; x < want.X; x += fine.GetWidth()) run.BlitRect(fine, new Rect2I(Vector2I.Zero, fine.GetSize()), new Vector2I(x, (want.Y - fine.GetHeight()) / 2));
+        return run;
     }
 
     /// <summary>The back wall of a natural <paramref name="material"/> (0077), a tile cut a cell at a time as scrap's is.</summary>
@@ -331,7 +423,7 @@ public sealed class ShipTiles
     public static int RiseOf(string kind)
     {
         if (Rises.TryGetValue(kind, out int kept)) return kept;
-        int rise = Machines.TryGet(kind, out var spec) ? Mathf.Max(0, (PixelArt.Picture($"machine_{kind}").GetHeight() + Cell - 1) / Cell - spec.Height) : 0;
+        int rise = Machines.TryGet(kind, out var spec) ? Mathf.Max(0, (HiRes.Load($"machine_{kind}")!.GetHeight() / HiRes.Scale + Cell - 1) / Cell - spec.Height) : 0;
         return Rises[kind] = rise;
     }
 
@@ -355,19 +447,6 @@ public sealed class ShipTiles
 
     /// <summary>A normal facing straight out of the screen.</summary>
     private static readonly Color Flat = new(0.5f, 0.5f, 1f);
-
-    /// <summary><paramref name="image"/> darker and a little colder: a picture another stands in for till it is drawn.</summary>
-    private static Image Darkened(Image image)
-    {
-        var dark = (Image)image.Duplicate();
-        for (int y = 0; y < dark.GetHeight(); y++)
-            for (int x = 0; x < dark.GetWidth(); x++)
-            {
-                var c = dark.GetPixel(x, y);
-                dark.SetPixel(x, y, new Color(c.R * 0.6f, c.G * 0.62f, c.B * 0.7f, c.A));
-            }
-        return dark;
-    }
 
     private static Image Filled(Vector2I size, Color colour)
     {

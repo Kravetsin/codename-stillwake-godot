@@ -6,6 +6,7 @@ using Stillwake.Game.Features.Sound;
 using Stillwake.Game.Render;
 using Stillwake.Game.Shared;
 using Stillwake.Sim.Players;
+using L = Stillwake.Game.Light;
 using S = Stillwake.Game.Sound;
 
 namespace Stillwake.Game.Features.Crew;
@@ -53,19 +54,34 @@ public partial class Figure : Node2D
         ["sheet"] = new(0, 5),
     };
 
-    private sealed record Limb(Node2D Upper, Node2D Lower)
+    private sealed record Limb(Node2D Upper, Node2D Lower, Node2D? Ankle = null)
     {
-        /// <summary>Rotations run clockwise and the figure faces +x, so forward is negative.</summary>
-        public void Bend(Bend b)
+        /// <summary>Rotations run clockwise and the figure faces +x, so forward, and a boot's toe up (<paramref name="foot"/>), is negative.</summary>
+        public void Bend(Bend b, double foot = 0)
         {
             Upper.Rotation = (float)-b.Upper;
             Lower.Rotation = (float)-b.Lower;
+            if (Ankle != null) Ankle.Rotation = (float)-foot;
         }
     }
 
+    /// <summary>
+    /// How far the boot's picture reaches up under the shin's, in pixels (2026-11-04-hero-gait): the shin's picture is cut at the
+    /// ankle and the boot turns on its own, so no gap opens beside the cut as it turns.
+    /// </summary>
+    private const float BootOverlap = 1f;
+
     private readonly Limb _frontArm, _backArm, _frontLeg, _backLeg;
+    private readonly Node2D _frontHip, _backHip;
     private readonly Node2D _body, _helmet;
     private readonly Sprite2D _headLamp, _lens;
+    /// <summary>The scanner in the lamp's mount (2026-11-07-the-scanner), and its glass's dot lit, drawn again unlit over it.</summary>
+    private readonly Sprite2D _scanner, _scannerDot;
+    /// <summary>The scanner's dots on the helmet worn, lit one at a time down its glass.</summary>
+    private readonly Texture2D?[] _scannerDots = new Texture2D?[3];
+    /// <summary>How long each dot stays lit, and the dark beat after the last, in ms.</summary>
+    private const double ScannerDotMs = 220;
+    private bool _scannerWorn;
     /// <summary>The parts shown by what is worn: the air pack with the body; the helmet's shell and glass, else the hair and beard.</summary>
     private readonly Sprite2D _pack, _shell, _visor, _hair, _beard, _headPart, _facePart;
     /// <summary>The head and face again, added unlit under the helmet's glass while its lamp is on: the face lit by its spill.</summary>
@@ -74,7 +90,24 @@ public partial class Figure : Node2D
     private const float FaceLight = 0.6f;
     private static readonly Material Added = new CanvasItemMaterial { BlendMode = CanvasItemMaterial.BlendModeEnum.Add, LightMode = CanvasItemMaterial.LightModeEnum.Unshaded };
     private Look _look = Look.Zero;
-    private bool _helmetWorn, _bodyWorn, _lampWorn;
+    private bool _lampWorn;
+    /// <summary>The suit's body worn, its item; null bare.</summary>
+    private string? _bodyWorn = Stillwake.Content.Suit.Basic;
+    /// <summary>A switched body's lights drawn unlit over its parts (2026-11-03-the-regen-suit): each band layer, its part, its part's name, whether a far limb's, the light it gives (2026-11-03-hero-lights).</summary>
+    private readonly List<(Sprite2D Light, Sprite2D Part, string Name, bool Far, Glow Glow)> _bands = [];
+    /// <summary>The collar's arcs and the socket's pip of an empty belt, over the chest.</summary>
+    private readonly Sprite2D _arcs = new() { Centered = false, Material = Unshaded }, _pip = new() { Centered = false, Material = Unshaded };
+    /// <summary>The light the tracker, the arcs and the pip give (2026-11-03-hero-lights), and every light of the hero's own.</summary>
+    private readonly Glow _trackerGlow = new() { Reach = L.TrackerReach, Keep = L.TrackerKeep }, _arcsGlow = new() { Reach = L.SuitReach, Keep = L.SuitKeep },
+        _pipGlow = new() { Reach = L.SuitReach, Keep = L.SuitKeep, Colour = new Color(L.SuitPip.R, L.SuitPip.G, L.SuitPip.B) * L.SuitPipLight };
+    private readonly List<Glow> _glows = [];
+    private bool _givesLight = true;
+    private static readonly Color SuitLight = new(L.SuitLight.R, L.SuitLight.G, L.SuitLight.B);
+    private Sprite2D _chest = null!;
+    private static readonly Material Unshaded = new CanvasItemMaterial { LightMode = CanvasItemMaterial.LightModeEnum.Unshaded };
+    private static readonly Dictionary<string, Texture2D?> Lights = new();
+    /// <summary>The helmet worn, its item; null bare.</summary>
+    private string? _helmetWorn;
 
     /// <summary>The visor's middle on the helmet, from the neck, facing +x: where air breathed in is drawn to.</summary>
     private static readonly Vector2 VisorOn = new(4, -5);
@@ -99,13 +132,28 @@ public partial class Figure : Node2D
     private readonly Sprite2D _plan;
     /// <summary>Every part with its picture's name, and whether it is a far limb's, to recolour.</summary>
     private readonly List<(Sprite2D Sprite, string Part, bool Far)> _parts = [];
+    /// <summary>Each part's offset for a pixel picture; a hi-res one has <see cref="HiRes.FigureMargin"/> more round it.</summary>
+    private readonly Dictionary<Sprite2D, Vector2> _joints = new();
+    /// <summary>The boots: the shin's picture below the ankle, turning there (2026-11-04-hero-gait).</summary>
+    private readonly HashSet<Sprite2D> _soles = [];
     private int? _colour;
+
+    /// <summary>The player's mark, a tracker strapped to the near shin (2026-11-02-hero-clothes): the strap lit as the hero is, its light unlit, so it reads in a dark room, tinted by the player's colour.</summary>
+    private readonly Sprite2D _trackerLight = new() { Centered = false, Offset = TrackerAt, Material = new CanvasItemMaterial { LightMode = CanvasItemMaterial.LightModeEnum.Unshaded } };
+    private readonly Sprite2D _tracker = new() { Centered = false, Offset = TrackerAt };
+    private static readonly Vector2 TrackerAt = -Joints["shin"] - new Vector2(HiRes.FigureMargin, HiRes.FigureMargin);
+    private static Texture2D? _trackerStrapPicture, _trackerLightPicture;
 
     private Limbs? _shown;
     private (int X, int Y)? _last;
     private double _travelled;
     // Where the stride began: a hero setting off starts its step from standing, not mid-stride.
     private double _strideFrom;
+    /// <summary>
+    /// The gait on the floor, eased (<see cref="HeroMotion.Gait"/>): the strides the legs have gone through, from backpedalling
+    /// (-1) through walking (0) into running (1), and from standing (0) into striding (1).
+    /// </summary>
+    private double _cycle, _gait, _moving;
     private Pose? _wasPose;
     private double _timeMs, _head;
     /// <summary>The lean, the landing and the air's timers, read from the motion (0090).</summary>
@@ -143,11 +191,8 @@ public partial class Figure : Node2D
     /// to grip again, the hand sinking.
     /// </summary>
     private const double TwistMs = 900, TurnShare = 0.6, TwistLift = 1.5, TwistPush = 0.6, WorkReach = 0.85;
-    /// <summary>The screwdriver's grip in its picture, a frame of <c>hero_screwdriver.png</c>.</summary>
-    private static readonly Vector2 Grip = new(3, 2);
+    /// <summary>The builder at work (<see cref="HeldLook.Twist"/>, <see cref="HeldLook.Driven"/>): a frame of its strip, by its grip.</summary>
     private readonly Sprite2D _tool;
-    /// <summary>How far past the line to a swing's point the arm swings for the axe's blade to meet it (0040).</summary>
-    private static readonly double AxeLead = AxeSwing.Lead(HeldLook.FireAxe);
     /// <summary>What the front fist holds, the fire axe, the harpoon, the drill or the screwdriver, in the picture of its look (<see cref="HeldLook"/>).</summary>
     private readonly Sprite2D _held;
     /// <summary>A gun's charged picture, its lit pixels alone, over the held one as bright as its charge (<see cref="Charge"/>), lit as it is.</summary>
@@ -155,15 +200,23 @@ public partial class Figure : Node2D
 
     /// <summary>The charge's own light on the held stage, held while it charges, the brighter the fuller (2026-10-27-the-railgun).</summary>
     private static readonly (int R, int G, int B) ChargeLight = (95, 216, 255);
-    /// <summary>Chopping wreckage (0034): the wreck swung at, and how far through its swing the axe is (<see cref="AxeSwing"/>).</summary>
-    private (Vector2 At, double Phase)? _chop;
+    /// <summary>
+    /// A stroke playing (<see cref="AxeSwing"/>, swing-motions): where it is aimed from the feet, in pixels of the world's axes,
+    /// how far through it is, and the motion it plays.
+    /// </summary>
+    private (Vector2 Aim, double Phase, MotionPlay Play)? _chop;
+    /// <summary>How far the feet are stepped up or down as the figure was last drawn, in pixels (<see cref="StepEase"/>).</summary>
+    private double _stepLift;
     /// <summary>The front arm straight through a swing and eased into and out of it (0040).</summary>
     private SwingArm _swingArm;
     /// <summary>How far into carrying its item trailing on a run the figure is, 0 to 1; and the spring its arm swings on (<see cref="HeroMotion.Carry"/>).</summary>
     private double _carry, _sinceCarryMs = double.PositiveInfinity;
     private readonly Spring _armSpring = new(HeroMotion.Carry.SpringHz, HeroMotion.Carry.SpringDamping);
     /// <summary>The swipe of light the axe leaves on its downstroke (0075).</summary>
-    private readonly SwingSmear _smear = new();
+    private readonly ReachAir _air = new();
+
+    /// <summary>The phase the swing was at last frame: a cut of the air begins as the blade crosses the fan's near edge.</summary>
+    private double _cutPhase;
     /// <summary>Whether the swing playing bit something, and is drawn held at the strike (<see cref="AxeSwing.Shown"/>); the phase last drawn.</summary>
     private bool _bit;
     private double _lastPhase;
@@ -190,14 +243,21 @@ public partial class Figure : Node2D
     /// <summary>What the boots stand on, or last stood on while in the air (0093): what its steps, jumps and landings sound like.</summary>
     public S.Footing Footing { get; set; } = S.Footing.Deck;
 
+    /// <summary>Whether its hero's feet are in water now (liquids): splashes going in and out, and strokes, not steps, as it moves.</summary>
+    public bool InWater { get; set; }
+
+    private readonly Splashes _splashes = new();
+
     /// <param name="own">Whether it is this player's hero, heard the same anywhere rather than from where it is.</param>
     public Figure(int colour, bool own)
     {
         _own = own;
         AddChild(_boots = new Voices(S.World, voices: 1, placed: !own));
         _backLeg = MakeLimb(Rig.Leg, "thigh", "shin", far: true, out var backLeg);
+        _backHip = backLeg;
         _backArm = MakeLimb(Rig.Arm, "upperArm", "forearm", far: true, out var backArm);
         _frontLeg = MakeLimb(Rig.Leg, "thigh", "shin", far: false, out var frontLeg);
+        _frontHip = frontLeg;
         _frontArm = MakeLimb(Rig.Arm, "upperArm", "forearm", far: false, out var frontArm);
         _frontArmNode = frontArm;
         backLeg.Position = new Vector2((float)-Rig.HipApart, (float)-Rig.Hip);
@@ -206,9 +266,13 @@ public partial class Figure : Node2D
         var torso = new Node2D();
         var pack = _pack = Part("pack");
         pack.Position = new Vector2((float)-Back, (float)(-Rig.Shoulder - Rig.H * 0.02));
-        var chest = Part("torso");
+        var chest = _chest = Part("torso");
         chest.Position = new Vector2(0, (float)-Rig.Neck);
-        _jetpack = new Sprite2D { Texture = GD.Load<Texture2D>("res://art/hero_jetpack.png"), Centered = false, Visible = false };
+        chest.AddChild(_arcs);
+        chest.AddChild(_pip);
+        Gives(_arcs, _arcsGlow);
+        Gives(_pip, _pipGlow);
+        _jetpack = new Sprite2D { Texture = PixelArt.Picture("hero_jetpack"), Centered = false, Visible = false };
         _jetpack.Position = pack.Position + new Vector2(-2, -1);
         Lit.Set(_jetpack);
         torso.AddChild(pack);
@@ -229,26 +293,23 @@ public partial class Figure : Node2D
         _lens = new Sprite2D { Texture = _lensPicture, Position = _headLamp.Offset + HeadLampArt.Lens, Material = new CanvasItemMaterial { LightMode = CanvasItemMaterial.LightModeEnum.Unshaded } };
         _headLamp.AddChild(_lens);
         _helmet.AddChild(_headLamp);
+        _scanner = new Sprite2D { Centered = false, Visible = false };
+        Lit.Set(_scanner);
+        _scanner.AddChild(_scannerDot = new Sprite2D { Centered = false, Material = Unshaded });
+        _helmet.AddChild(_scanner);
         _plan = Part("sheet");
         _plan.Visible = false;
         // The planner's screen glows: drawn unlit over it, so it shows in the dark.
         _screen = new Sprite2D
         {
-            Texture = GD.Load<Texture2D>("res://art/hero_sheet_screen.png"),
+            Texture = PixelArt.Picture("hero_sheet_screen"),
             Centered = false,
             Offset = -Joints["sheet"],
             Material = new CanvasItemMaterial { LightMode = CanvasItemMaterial.LightModeEnum.Unshaded },
         };
         _plan.AddChild(_screen);
         _plan.AddChild(_glow);
-        _tool = new Sprite2D
-        {
-            Texture = GD.Load<Texture2D>("res://art/hero_screwdriver.png"),
-            Hframes = 3,
-            Centered = false,
-            Offset = -Grip,
-            Visible = false,
-        };
+        _tool = new Sprite2D { Hframes = 3, Centered = false, Visible = false };
         Lit.Set(_tool);
         _held = new Sprite2D { Centered = false, Visible = false };
         Lit.Set(_held);
@@ -269,7 +330,7 @@ public partial class Figure : Node2D
         _body.AddChild(parts);
         // Both legs come out from under the body, which hides their joints; the near arm hangs in front,
         // its hand over the sheet it holds and closed round the axe's haft or the harpoon's stock.
-        foreach (var n in new Node2D[] { backArm, backLeg, frontLeg, torso, _helmet, _plan, _tool, _held, frontArm, _smear }) parts.AddChild(n);
+        foreach (var n in new Node2D[] { backArm, backLeg, frontLeg, torso, _helmet, _plan, _tool, _held, frontArm, _air }) parts.AddChild(n);
         (_capeInside, _capeOutside) = (new CapeView(_cape, inside: true) { Visible = false }, new CapeView(_cape, inside: false) { Visible = false });
         Lit.Set(_capeInside);
         Lit.Set(_capeOutside);
@@ -278,18 +339,9 @@ public partial class Figure : Node2D
         // The inside lies in the cape's shadow: darker, so it reads as depth behind the hero.
         _capeInside.SelfModulate = new Color(0.72f, 0.72f, 0.78f);
         parts.AddChild(_capeOutside);
-        _smear.Position = new Vector2(0, (float)-Rig.Shoulder);
+        _air.Position = new Vector2(0, (float)-Rig.Shoulder);
         AddChild(_body);
         Wear(colour);
-    }
-
-    private static readonly Dictionary<string, Texture2D> Pictures = new();
-
-    /// <summary>A held item's picture, loaded once.</summary>
-    private static Texture2D Picture(string path)
-    {
-        if (!Pictures.TryGetValue(path, out var picture)) Pictures[path] = picture = GD.Load<Texture2D>(path);
-        return picture;
     }
 
     /// <summary>The boots' <paramref name="cue"/> at the feet, on the World bus, silent while floating.</summary>
@@ -314,10 +366,33 @@ public partial class Figure : Node2D
     public void Work(Vector2? at) => _workAt = at;
 
     /// <summary>
-    /// Has the hero swing the axe it wields at the wreck at <paramref name="swing"/>'s point, in pixels of
-    /// the world, as far through the swing as its phase says; null between swings.
+    /// A point <paramref name="aim"/> pixels from the feet, in the world's axes, from the front shoulder in the arms' own frame,
+    /// the body as last drawn but faced <paramref name="facing"/>; straight ahead for none (swing-motions).
     /// </summary>
-    public void Chop((Vector2 At, double Phase)? swing) => _chop = swing;
+    private (double X, double Y) FromShoulder(Vector2 aim, int facing)
+    {
+        if (aim == Vector2.Zero) return (1, 0);
+        // Never shown, the body has no place yet: the offset as it is, faced.
+        if (_shown == null) return (aim.X * facing, aim.Y);
+        var local = _frame.Transform.AffineInverse() * (_body.Transform.AffineInverse() * new Vector2(aim.X * facing, aim.Y - (float)_stepLift));
+        return (local.X, local.Y + Rig.Shoulder);
+    }
+
+    /// <summary>
+    /// The aim angle of a stroke aimed <paramref name="aim"/> pixels from the feet, the figure faced <paramref name="facing"/> to
+    /// strike it: radians from straight ahead of the shoulder, down positive, as last drawn. Its sector picks the motion (<see cref="Sectors"/>).
+    /// </summary>
+    public double AimAngleOf(Vector2 aim, int facing)
+    {
+        var (dx, dy) = FromShoulder(aim, facing);
+        return Math.Atan2(dy, dx);
+    }
+
+    /// <summary>
+    /// Has the hero play the stroke of the tool it wields aimed <paramref name="swing"/>'s offset from its feet, in pixels of the
+    /// world's axes, as far through as its phase says, the motion it plays; null between strokes.
+    /// </summary>
+    public void Chop((Vector2 Aim, double Phase, MotionPlay Play)? swing) => _chop = swing;
 
     /// <summary>The swing playing bit something: its arm is drawn stopped on contact for a moment (0075), the sim untouched.</summary>
     public void Bit() => _bit = true;
@@ -348,6 +423,25 @@ public partial class Figure : Node2D
     /// <summary>Where the harpoon or the drill held aims, in pixels of the world: the arm straight, the barrel's or the bit's line through it; none to let it hang.</summary>
     public Vector2? Aim { get; set; }
 
+    /// <summary>Whether the item held was drawn aimed at <see cref="Aim"/> last frame, its arm up and settled: its muzzle and edge are the aim's (aim-on-use).</summary>
+    public bool Aimed { get; private set; }
+
+    private bool _wasAiming;
+
+    /// <summary>The suit's mode, its belt's charge and the breath's phase (<see cref="SuitGlow.Of"/>): what a switched body's lights show; all off by default.</summary>
+    public (bool On, bool Charged, double Phase) Suit { get; set; }
+
+    /// <summary>Whether its tracker and lit bands light the world round them; off for a figure in a window of its own, out of the world.</summary>
+    public bool GivesLight
+    {
+        get => _givesLight;
+        set
+        {
+            _givesLight = value;
+            foreach (var glow in _glows) glow.Visible = value;
+        }
+    }
+
     /// <summary>Whether the hero wears a jetpack on its back (0047).</summary>
     public bool Jetpack
     {
@@ -374,8 +468,33 @@ public partial class Figure : Node2D
         set
         {
             _lampWorn = value;
-            _headLamp.Visible = _faceLight.Visible = _lampWorn && _helmetWorn;
+            _headLamp.Visible = _faceLight.Visible = _lampWorn && _helmetWorn != null;
         }
+    }
+
+    /// <summary>Whether the hero wears the scanner (2026-11-07-the-scanner): along the helmet's crown, in the lamp's mount; only on a helmet.</summary>
+    public bool Scanner
+    {
+        get => _scanner.Visible;
+        set
+        {
+            if (value == _scannerWorn) return;
+            _scannerWorn = value;
+            ShowScanner();
+        }
+    }
+
+    /// <summary>The scanner's pictures for the helmet worn, at its mount: each helmet's hugs its dome.</summary>
+    private void ShowScanner()
+    {
+        _scanner.Visible = _scannerWorn && _helmetWorn != null;
+        if (!_scanner.Visible) return;
+        bool heavy = _helmetWorn == Stillwake.Content.Helmet.Heavy;
+        string name = heavy ? "hero_heavyHelmet_scanner" : "hero_scanner";
+        var (x, y) = heavy ? ScannerInk.OnHeavy : ScannerInk.On;
+        _scanner.Texture = PixelArt.Picture(name);
+        _scanner.Offset = _scannerDot.Offset = new Vector2((float)x - ScannerInk.Margin, (float)y - ScannerInk.Margin) - Joints["helmet"];
+        for (int i = 0; i < _scannerDots.Length; i++) _scannerDots[i] = PixelArt.Picture($"{name}_lit_{i}");
     }
 
     /// <summary>The helmet lamp's lens as drawn, in pixels of the world: where its light shines from, turning with the head.</summary>
@@ -402,7 +521,10 @@ public partial class Figure : Node2D
     /// <summary>How full the charge of the gun held is, 0..1 (2026-10-27-the-railgun): its charged picture laid over it that bright.</summary>
     public double Charge { get; set; }
 
-    /// <summary>Whether the drill held runs (0054, 0055): its bit spins up and its lamp lights; stopped, the lamp goes out and the bit winds down.</summary>
+    /// <summary>
+    /// Whether the electric tool held runs (0054, 0055): the drill's bit spins up and its lamp lights, stopped, the lamp goes out and the
+    /// bit winds down; the power driver's chuck turns at its work, flat, the wrist twists it (power-driver).
+    /// </summary>
     public bool Spinning { get; set; }
 
     /// <summary>The drill's light and arcs on the held stage, made with it the first time a drill runs in the hand.</summary>
@@ -452,6 +574,9 @@ public partial class Figure : Node2D
 
     /// <summary>The held harpoon's muzzle, or the drill's point, as drawn this frame, in pixels of the world; none while neither is shown.</summary>
     public Vector2? Muzzle { get; private set; }
+
+    /// <summary>Where the held aimed item's edge begins as drawn this frame: the harpoon's breech, the cutter's nozzle, its jet's start.</summary>
+    public Vector2? EdgeStart { get; private set; }
 
     /// <summary>The way the held harpoon's barrel points as drawn, a unit vector in the world.</summary>
     public Vector2 Barrel { get; private set; } = Vector2.Right;
@@ -561,48 +686,145 @@ public partial class Figure : Node2D
         foreach (var (sprite, _, _) in _parts)
         {
             if (!sprite.IsVisibleInTree() || sprite.Texture is not { } texture || SuitArt.PixelsOf(texture) is not var (w, h, data)) continue;
+            if (sprite.RegionEnabled)
+            {
+                // A shin or a boot: only its rows of the picture, the first of them at its offset.
+                int from = Math.Clamp((int)Math.Round(sprite.RegionRect.Position.Y), 0, h), to = Math.Clamp((int)Math.Round(sprite.RegionRect.End.Y), from, h);
+                (data, h) = (data[(from * w * 4)..(to * w * 4)], to - from);
+            }
             PixelBursts.Paint(into, sprite.GlobalTransform * new Transform2D(0, sprite.Offset), w, h, data);
         }
     }
 
     /// <summary>
-    /// The figure in <paramref name="colour"/>, 0xRRGGBB, the player's, wearing a suit's <paramref name="helmet"/> and
-    /// <paramref name="body"/> or not (2026-10-27-suits-are-worn), its person in <paramref name="look"/> (look 0 without one,
-    /// 2026-10-28-looks-are-printed): its pictures recoloured, when any of it changes.
+    /// The figure in <paramref name="colour"/>, 0xRRGGBB, the player's, wearing a suit's <paramref name="helmet"/> (its item, null for
+    /// none) and <paramref name="body"/> (its item, null bare, 2026-10-27-suits-are-worn), its person in <paramref name="look"/> (look 0
+    /// without one, 2026-10-28-looks-are-printed): its pictures recoloured, when any of it changes.
     /// </summary>
-    public void Wear(int colour, bool helmet = true, bool body = true, Look? look = null)
+    public void Wear(int colour, string? helmet = "helmet", string? body = "suit", Look? look = null)
     {
         look ??= Look.Zero;
         if (_colour == colour && _helmetWorn == helmet && _bodyWorn == body && _look == look) return;
         (_colour, _helmetWorn, _bodyWorn, _look) = (colour, helmet, body, look);
         int skin = HeroLooks.Wrap(look.Skin, HeroLooks.Skins.Length), hair = HeroLooks.Wrap(look.HairColour, HeroLooks.Hairs.Length);
-        foreach (var (sprite, part, isFar) in _parts) sprite.Texture = SuitArt.Of(PictureOf(part), colour, skin, hair, isFar);
-        _pack.Visible = body;
-        _shell.Visible = _visor.Visible = helmet;
-        _hair.Visible = !helmet;
-        _beard.Visible = !helmet && HeroLooks.Wrap(look.Beard, HeroLooks.Beards + 1) > 0;
+        foreach (var (sprite, part, isFar) in _parts)
+        {
+            sprite.Texture = SuitArt.Of(PictureOf(part), colour, skin, hair, isFar);
+            sprite.Offset = _joints[sprite] - (sprite.Texture is CanvasTexture ? new Vector2(HiRes.FigureMargin, HiRes.FigureMargin) : Vector2.Zero);
+            if (part == "shin") CutAtTheAnkle(sprite, _soles.Contains(sprite));
+        }
+        (_headLit.Offset, _faceLit.Offset) = (_headPart.Offset, _facePart.Offset);
+        _trackerLight.Modulate = new Color((uint)(colour << 8 | 0xff));
+        _trackerGlow.Colour = _trackerLight.Modulate * L.Tracker;
+        _pack.Visible = body != null;
+        foreach (var (light, part, name, _, glow) in _bands)
+            Show(light, glow, body is { } b ? $"hero_{b}_{name}_lit" : null, part.Offset);
+        Show(_arcs, _arcsGlow, body is { } a ? $"hero_{a}_arcs" : null, _chest.Offset);
+        Show(_pip, _pipGlow, body is { } p ? $"hero_{p}_pip" : null, _chest.Offset);
+        _shell.Visible = _visor.Visible = helmet != null;
+        _headLamp.Offset = HeadLampArt.OnOf(helmet) - Joints["helmet"];
+        _lens.Position = _headLamp.Offset + HeadLampArt.Lens;
+        _hair.Visible = helmet == null;
+        _beard.Visible = helmet == null && HeroLooks.Wrap(look.Beard, HeroLooks.Beards + 1) > 0;
         (_headLit.Texture, _faceLit.Texture) = (_headPart.Texture, _facePart.Texture);
         HeadLamp = _lampWorn;
+        ShowScanner();
     }
 
-    /// <summary>The picture a part is drawn with: bare, the jumpsuit's in place of the suit's; the look's face, hair and beard.</summary>
+    /// <summary>
+    /// A shin's picture cut at the ankle (2026-11-04-hero-gait): the shin above it, or the <paramref name="boot"/> below it, from
+    /// <see cref="BootOverlap"/> over it, placed from the ankle it turns at.
+    /// </summary>
+    private static void CutAtTheAnkle(Sprite2D sprite, bool boot)
+    {
+        var size = sprite.Texture.GetSize();
+        float ankle = -sprite.Offset.Y + (float)Rig.ToAnkle.Lower;
+        (sprite.RegionEnabled, sprite.RegionFilterClipEnabled) = (true, true);
+        if (!boot)
+        {
+            sprite.RegionRect = new Rect2(0, 0, size.X, ankle);
+            return;
+        }
+        float top = ankle - BootOverlap;
+        sprite.RegionRect = new Rect2(0, top, size.X, size.Y - top);
+        sprite.Offset = new Vector2(sprite.Offset.X, -BootOverlap);
+    }
+
+    /// <summary>The picture a part is drawn with: bare, the look's clothes in place of the suit; the look's face, hair and beard.</summary>
     private string PictureOf(string part) => part switch
     {
-        "torso" or "upperArm" or "forearm" or "thigh" or "shin" when !_bodyWorn => "jumpsuit_" + part,
+        "torso" or "upperArm" or "forearm" or "thigh" or "shin" when _bodyWorn == null => $"outfit_{HeroLooks.Wrap(_look.Outfit, HeroLooks.Outfits)}_{part}",
+        // A later body's own pictures, as a later helmet's (2026-11-03-the-regen-suit).
+        "torso" or "pack" or "upperArm" or "forearm" or "thigh" or "shin" when _bodyWorn is { } body && body != Stillwake.Content.Suit.Basic => $"{body}_{part}",
         "face" => $"face_{HeroLooks.Wrap(_look.Face, HeroLooks.Faces)}",
         "hair" => $"hair_{HeroLooks.Wrap(_look.Hair, HeroLooks.HairStyles)}",
         "beard" => $"beard_{Math.Max(HeroLooks.Wrap(_look.Beard, HeroLooks.Beards + 1) - 1, 0)}",
+        // A later helmet's own pictures (2026-11-03-the-heavy-helmet); the basic one's keep their first names.
+        "shell" or "visor" when _helmetWorn is { } worn && worn != Stillwake.Content.Helmet.Basic => $"{worn}_{part}",
         "shell" => "helmet_shell",
         _ => part,
     };
 
-    /// <summary>A part of the pixel-art hero, its joint (its own or <paramref name="joint"/>'s) at the origin, lit where it stands.</summary>
-    private Sprite2D Part(string name, bool far = false, string? joint = null)
+    /// <summary>
+    /// A part of the pixel-art hero, its joint (its own or <paramref name="joint"/>'s) at the origin, lit where it stands; with the
+    /// suit's band of light on it unless not <paramref name="banded"/>.
+    /// </summary>
+    private Sprite2D Part(string name, bool far = false, string? joint = null, bool banded = true)
     {
         var sprite = new Sprite2D { Centered = false, Offset = -Joints[joint ?? name] };
         Lit.Set(sprite);
         _parts.Add((sprite, name, far));
+        _joints[sprite] = sprite.Offset;
+        if (banded && SuitGlow.UpOf(name) != null)
+        {
+            var light = new Sprite2D { Centered = false, Material = Unshaded, Visible = false };
+            sprite.AddChild(light);
+            _bands.Add((light, sprite, name, far, Gives(light, new Glow { Reach = L.SuitReach, Keep = L.SuitKeep })));
+        }
         return sprite;
+    }
+
+    /// <summary>A light of the hero's own (2026-11-03-hero-lights): a glow on <paramref name="light"/>, lighting round it while it shows.</summary>
+    private Glow Gives(Sprite2D light, Glow glow)
+    {
+        glow.Visible = _givesLight;
+        light.AddChild(glow);
+        _glows.Add(glow);
+        return glow;
+    }
+
+    /// <summary>A body's light layer drawn with picture <paramref name="name"/>, none without, at <paramref name="at"/>; its glow at the picture's middle.</summary>
+    private static void Show(Sprite2D light, Glow glow, string? name, Vector2 at)
+    {
+        (light.Texture, light.Offset) = (name != null ? LightOf(name) : null, at);
+        glow.Position = at + (light.Texture != null ? HiRes.MiddleOf(name!) : Vector2.Zero);
+    }
+
+    /// <summary>A body's light picture, loaded once; none for a body without it.</summary>
+    private static Texture2D? LightOf(string name)
+    {
+        if (!Lights.TryGetValue(name, out var light))
+            Lights[name] = light = HiRes.Has(name) ? HiRes.Texture(HiRes.Load(name)!) : null;
+        return light;
+    }
+
+    /// <summary>A switched body's lights as its suit is now (<see cref="Suit"/>): the wave, the arcs and the empty belt's pip.</summary>
+    private void ShowSuit()
+    {
+        var (on, charged, phase) = Suit;
+        bool glows = on && charged;
+        foreach (var (light, _, name, far, glow) in _bands)
+        {
+            light.Visible = glows && light.Texture != null;
+            if (!light.Visible) continue;
+            float strength = (float)(SuitGlow.Bands(phase, SuitGlow.UpOf(name)!.Value) * (far ? SuitArt.FarShade : 1));
+            light.Modulate = new Color(1, 1, 1, strength);
+            glow.Colour = SuitLight * (L.SuitBand * strength);
+        }
+        _arcs.Visible = glows && _arcs.Texture != null;
+        _arcs.Modulate = new Color(1, 1, 1, (float)SuitGlow.Arcs(_timeMs));
+        _arcsGlow.Colour = SuitLight * (L.SuitArcs * _arcs.Modulate.A);
+        _pip.Visible = on && !charged && _pip.Texture != null && SuitGlow.Pip(_timeMs);
     }
 
     /// <summary>
@@ -613,11 +835,54 @@ public partial class Figure : Node2D
     {
         view = new Node2D();
         var bend = new Node2D { Position = new Vector2(0, (float)size.Upper) };
+        Node2D? ankle = null;
+        if (lower == "shin")
+        {
+            // The boot under the shin, turning at the ankle on its own (2026-11-04-hero-gait).
+            ankle = new Node2D { Position = new Vector2(0, (float)Rig.ToAnkle.Lower) };
+            var boot = Part(lower, far, banded: false);
+            _soles.Add(boot);
+            ankle.AddChild(boot);
+            bend.AddChild(ankle);
+        }
         bend.AddChild(Part(lower, far));
+        if (lower == "shin" && !far)
+        {
+            Lit.Set(_tracker);
+            _tracker.Texture = _trackerStrapPicture ??= HiRes.Texture(HiRes.Load("hero_tracker")!);
+            _trackerLight.Texture = _trackerLightPicture ??= HiRes.Texture(HiRes.Load("hero_tracker_light")!);
+            bend.AddChild(_tracker);
+            bend.AddChild(_trackerLight);
+            Gives(_trackerLight, _trackerGlow).Position = TrackerAt + HiRes.MiddleOf("hero_tracker_light");
+        }
         view.AddChild(bend);
         view.AddChild(Part(upper, far));
-        return new Limb(view, bend);
+        return new Limb(view, bend, ankle);
     }
+
+    /// <summary>
+    /// The gait eased toward what <paramref name="hero"/>'s speed says (2026-11-04-hero-gait), the legs' cycle on by
+    /// <paramref name="moved"/> cells at its stride. Standing, it keeps the gait it stopped in as the stride settles; setting off
+    /// from still, the stride starts afresh. Off the floor it is what the speed says, so a landing runs on at once.
+    /// </summary>
+    private void EaseGait(Hero hero, Pose pose, double moved, double elapsedMs)
+    {
+        if (pose is not (Pose.Stand or Pose.Walk or Pose.Run))
+        {
+            int speed = Math.Abs(hero.Vx);
+            (_cycle, _gait, _moving) = (0, speed > Stillwake.Content.Hero.Walk ? (Poses.Backward(hero) ? -1 : 1) : 0, speed > 0 ? 1 : 0);
+            return;
+        }
+        double gait = pose switch { Pose.Run => Poses.Backward(hero) ? -1 : 1, Pose.Walk => 0, _ => _gait };
+        double moving = pose == Pose.Stand ? 0 : 1;
+        if (_moving <= 0 && moving > 0) (_cycle, _step) = (0, null);
+        _cycle += moved / Poses.StrideOf(_gait);
+        _gait = Toward(_gait, gait, elapsedMs / HeroMotion.Gait.RunMs);
+        _moving = Toward(_moving, moving, elapsedMs / (moving > _moving ? HeroMotion.Gait.StartMs : HeroMotion.Gait.StopMs));
+    }
+
+    /// <summary><paramref name="from"/> moved toward <paramref name="to"/> by at most <paramref name="by"/>.</summary>
+    private static double Toward(double from, double to, double by) => from + Math.Clamp(to - from, -by, by);
 
     /// <summary><paramref name="from"/> moved toward <paramref name="to"/> over <paramref name="elapsedMs"/>, settling in about <paramref name="within"/> ms.</summary>
     private static double Settle(double from, double to, double elapsedMs, double within = SettleMs) =>
@@ -647,11 +912,19 @@ public partial class Figure : Node2D
     public void Show(Hero hero, Pose pose, double look, bool holdsPlan, double elapsedMs)
     {
         _timeMs += elapsedMs;
+        if (_scanner.Visible)
+        {
+            int lit = (int)(_timeMs / ScannerDotMs) % (_scannerDots.Length + 1);
+            _scannerDot.Visible = lit < _scannerDots.Length;
+            if (_scannerDot.Visible) _scannerDot.Texture = _scannerDots[lit];
+        }
+        ShowSuit();
         // Walking backwards, away from where it faces, the stride runs backwards too. On the ground only the
         // way along counts, so a stair keeps the stride of the flat; on a ladder only the way up or down.
-        if (_last is var (lx, ly))
-            _travelled += (pose == Pose.Climb ? Math.Abs(hero.Y - ly) : (double)(hero.X - lx) * hero.Facing) / Hero.Unit;
+        double moved = _last is var (lx, ly) ? (pose == Pose.Climb ? Math.Abs(hero.Y - ly) : (double)(hero.X - lx) * hero.Facing) / Hero.Unit : 0;
+        _travelled += moved;
         _last = (hero.X, hero.Y);
+        EaseGait(hero, pose, moved, elapsedMs);
         // A new pose starts its stride afresh, its first foot down a quarter stride in; from walking to running or back
         // the legs go on, or a speed flickering about the line between them would freeze them.
         bool striding = pose is Pose.Walk or Pose.Run, strode = _wasPose is Pose.Walk or Pose.Run;
@@ -661,10 +934,14 @@ public partial class Figure : Node2D
         // Where the feet are, in pixels of the world.
         double feetX = (double)hero.X / Hero.Unit * Rig.Cell, feetY = (double)hero.Y / Hero.Unit * Rig.Cell;
         bool walking = pose is Pose.Stand or Pose.Walk or Pose.Run, walked = _wasPose is Pose.Stand or Pose.Walk or Pose.Run;
-        double lift = _steps.Offset(feetX, feetY, walking && walked, elapsedMs);
+        double lift = _stepLift = _steps.Offset(feetX, feetY, walking && walked, elapsedMs);
         var cues = _motion.Step(hero, pose, elapsedMs);
-        if (cues.Jumped) Boots(GroundSounds.JumpOf(Footing));
-        if (cues.Landed is int fall)
+        if (cues.Jumped && !InWater) Boots(GroundSounds.JumpOf(Footing));
+        var water = _splashes.Step(InWater, hero.Vx != 0 || hero.Vy < 0, elapsedMs / 1000);
+        if (water.In) Boots(S.SplashIn);
+        if (water.Out) Boots(S.SplashOut);
+        if (water.Stroke) Boots(S.SwimStroke);
+        if (cues.Landed is int fall && !InWater)
         {
             var (landing, louder, tune) = GroundSounds.LandOf(Footing, fall);
             Boots(landing, tune, louder);
@@ -673,9 +950,8 @@ public partial class Figure : Node2D
         }
         // A foot comes down at the end of each half stride, a quarter stride in: heard walking and running,
         // kicking up dust only running.
-        double? stride = pose switch { Pose.Run => Poses.Stride.Run, Pose.Walk => Poses.Stride.Walk, _ => null };
-        int? stepping = stride is double st ? (int)Math.Floor((_travelled - _strideFrom - st / 4) / (st / 2)) : null;
-        if (stepping != null && _step != null && stepping != _step)
+        int? stepping = pose is Pose.Walk or Pose.Run ? (int)Math.Floor((_cycle - 0.25) / 0.5) : null;
+        if (stepping != null && _step != null && stepping != _step && !InWater)
         {
             Boots(GroundSounds.StepOf(Footing));
             if (pose == Pose.Run) Kick(feetX + hero.Facing * Rig.W * 0.3, feetY, hero.Facing);
@@ -688,7 +964,9 @@ public partial class Figure : Node2D
         bool holding = holdsPlan && Poses.HoldsIn(pose) && !working;
         var item = HeldLook.Of(Wields);
         bool inHand = item != null && Poses.HoldsIn(pose) && !working && !holding;
-        bool chopping = _chop != null && item == HeldLook.FireAxe && inHand;
+        // Struck with by hand: the axe, the sledgehammer swung, the spear thrust (Strokes).
+        var stroke = Strokes.Of(Wields);
+        bool chopping = _chop != null && stroke != null && item != null && inHand;
         bool aiming = Aim != null && item?.Aimed == true && inHand, drill = HeldLook.IsDrill(Wields);
         // The hands at work, whatever the pose (0030): afloat the paddling stops, the hero drifts calmly
         // upright, and the front arm reaches where the work is, in the body's own frame.
@@ -697,7 +975,8 @@ public partial class Figure : Node2D
         _swim = afloat ? Settle(_swim, Poses.Swimming(hero) && !acting ? 1 : 0, elapsedMs, SwimBlendMs) : 0;
         _fast = afloat ? Settle(_fast, Poses.SwimmingFast(hero) && !acting ? 1 : 0, elapsedMs, SwimBlendMs) : 0;
         var to = Poses.LimbsOf(pose, hero, new Moment(_travelled - _strideFrom, _timeMs, _motion.Landing, holding ? _head : null,
-            _outMs, _slump, _outTilt, _swim, _fast, item != null, _motion.Now, pose is Pose.Climb or Pose.Air ? Ledge : null));
+            _outMs, _slump, _outTilt, _swim, _fast, item != null, _motion.Now, pose is Pose.Climb or Pose.Air ? Ledge : null,
+            walking ? _cycle : null, walking ? _gait : null, walking ? _moving : null));
         _flinchMs += elapsedMs;
         to = Poses.Flinched(to, Poses.FlinchOf(_flinchMs), _flinchFrom * hero.Facing, pose);
         var from = _shown ?? to;
@@ -709,7 +988,11 @@ public partial class Figure : Node2D
             SettleBend(from.BackLeg, to.BackLeg, elapsedMs, within),
             SettleAngle(from.Tilt, to.Tilt, elapsedMs, afloat ? LeanMs : pose is Pose.Lie or Pose.Tumble ? SettleMs : HeroMotion.Lean.SettleMs),
             Settle(from.Lift, to.Lift, elapsedMs),
-            to.Lying);
+            to.Lying,
+            SettleAngle(from.FrontFoot, to.FrontFoot, elapsedMs, within),
+            SettleAngle(from.BackFoot, to.BackFoot, elapsedMs, within));
+        // On the floor no boot goes through it as the limbs settle (2026-11-04-hero-gait).
+        if (walking) shown = Poses.Kept(shown);
         _shown = shown;
         // The body placed first: what the hands reach for is found in its own frame, turned and lifted.
         _body.Rotation = (float)shown.Tilt;
@@ -743,6 +1026,10 @@ public partial class Figure : Node2D
             frontArm = Rig.Reach(new Vec(held.X + (point.X - held.X) * thrust, held.Y + (point.Y - held.Y) * thrust), Rig.Arm, 1);
         }
         double work = 0, twist = 0;
+        // A builder at work, the screwdriver if the hand holds none (a friend's, a frame late): its motor turns it, else the wrist.
+        var builder = item?.Twist != null ? item : HeldLook.Screwdriver;
+        _spin = Spinning ? Math.Min(1, _spin + elapsedMs / HeldLook.SpinUpMs) : Math.Max(0, _spin - elapsedMs / HeldLook.SpinDownMs);
+        bool driven = working && Spinning && builder.Driven != null;
         if (working && _workAt is { } plan)
         {
             // Toward the plan, from the shoulder.
@@ -750,23 +1037,30 @@ public partial class Figure : Node2D
             work = Math.Atan2(dy, dx);
             double cycle = _workMs % TwistMs / TwistMs;
             twist = Math.Min(1, cycle / TurnShare);
-            // Rising as the wrist turns over, sinking as it turns back to grip again.
-            double rise = cycle < TurnShare ? Math.Sin(twist * Math.PI / 2) : Math.Cos((cycle - TurnShare) / (1 - TurnShare) * Math.PI / 2);
+            // Rising as the wrist turns over, sinking as it turns back to grip again; held still while the motor turns it.
+            double rise = driven ? 0 : cycle < TurnShare ? Math.Sin(twist * Math.PI / 2) : Math.Cos((cycle - TurnShare) / (1 - TurnShare) * Math.PI / 2);
             double reach = WorkReach * (Rig.Arm.Upper + Rig.Arm.Lower) + TwistPush * rise;
             // Up, square to the tool: the side the knuckles come over.
             double ux = Math.Sin(work), uy = -Math.Cos(work);
             frontArm = Rig.Reach(new Vec(Math.Cos(work) * reach + ux * TwistLift * rise, Math.Sin(work) * reach + uy * TwistLift * rise), Rig.Arm, 1);
         }
         (double Angle, double Phase)? swung = null;
-        if (chopping && _chop is { At: var wreck, Phase: var phase })
+        double elbow = item?.Elbow ?? 0, wrist = 0;
+        if (chopping && _chop is { Aim: var aimed, Phase: var phase, Play: var play })
         {
-            // Toward the point, from the shoulder: raised back over it, then brought down till the blade,
-            // not the hand, crosses the line to it (0040).
-            var (dx, dy) = FromShoulder(wreck);
+            // Toward its aim from where the hero is now, from the shoulder: the motion chosen at the press, played along it till
+            // the blade, not the hand, crosses the line to it (0040, swing-motions).
             if (phase < _lastPhase) _bit = false;
             _lastPhase = phase;
-            double drawn = _bit ? AxeSwing.Shown(phase) : phase;
-            swung = (Math.Atan2(dy, dx) + AxeLead + AxeSwing.Lift(drawn), drawn);
+            double drawn = _bit ? AxeSwing.Shown(phase, stroke!) : phase;
+            (elbow, wrist) = (play.ElbowAt(drawn), play.WristAt(drawn));
+            // The spear: aimed as a gun is, the shaft's line through the point, the elbow cocked and straightened (the jab).
+            if (play.Motion.Kind == MotionKind.Thrust)
+            {
+                var (dx, dy) = FromShoulder(aimed, hero.Facing);
+                swung = (HarpoonShot.ArmFor(item! with { Elbow = elbow }, dx, dy), drawn);
+            }
+            else swung = (play.AngleAt(AimAngleOf(aimed, hero.Facing), drawn), drawn);
         }
         else if (aiming && Aim is { } target && item != null)
         {
@@ -774,7 +1068,10 @@ public partial class Figure : Node2D
             var (dx, dy) = FromShoulder(target);
             swung = (HarpoonShot.ArmFor(item, dx, dy), 0);
         }
-        frontArm = _swingArm.Next(frontArm, swung, elapsedMs, item?.Elbow ?? 0);
+        // An aimed item comes up and goes down quicker than a swing winds up (aim-on-use).
+        frontArm = _swingArm.Next(frontArm, swung, elapsedMs, elbow, aiming || _wasAiming ? ArmUp.RaiseMs : null);
+        Aimed = aiming && _swingArm.Settled;
+        _wasAiming = aiming;
         // Running with an item in one hand it trails behind (HeroMotion.Carry), and the arm swings on a spring: it lags a
         // start and swings on past a stop. Aimed, swung or at work, it goes where it is put at once.
         bool carried = inHand && swung == null && !working && !aiming;
@@ -783,17 +1080,20 @@ public partial class Figure : Node2D
         _sinceCarryMs = _carry > 0 ? 0 : _sinceCarryMs + elapsedMs;
         if (carried && item != null)
         {
-            double bob = HeroMotion.Carry.Bob * Math.Sin((_travelled - _strideFrom) / Poses.Stride.Run * 4 * Math.PI);
+            double bob = HeroMotion.Carry.Bob * Math.Sin(_cycle * 4 * Math.PI);
             frontArm = Mix(frontArm, Rig.Carried(bob), carry);
         }
         // The spring only round a run and a while after it: a landing or a pose's own swing moves the arm as it is.
         if (carried && _sinceCarryMs < HeroMotion.Carry.SpringAfterMs) frontArm = frontArm with { Upper = _armSpring.Follow(frontArm.Upper, elapsedMs) };
         else _armSpring.Hold(frontArm.Upper);
+        _swingArm.Drew(frontArm);
         var backArm = shown.BackArm;
         _frontArm.Bend(frontArm);
         _backArm.Bend(backArm);
-        _frontLeg.Bend(shown.FrontLeg);
-        _backLeg.Bend(shown.BackLeg);
+        _frontHip.Position = new Vector2((float)Rig.HipApart, (float)(-Rig.Hip - Rig.HipRise(Rig.HipApart, shown.Tilt)));
+        _backHip.Position = new Vector2((float)-Rig.HipApart, (float)(-Rig.Hip - Rig.HipRise(-Rig.HipApart, shown.Tilt)));
+        _frontLeg.Bend(shown.FrontLeg, shown.FrontFoot);
+        _backLeg.Bend(shown.BackLeg, shown.BackFoot);
         if (cues.Sparks > 0)
         {
             Vector2 Glove(Bend arm) => _frame.ToGlobal(Pixel(Rig.FistOf(arm)));
@@ -822,23 +1122,25 @@ public partial class Figure : Node2D
             var hand = Rig.EndOf(frontArm, Rig.Arm);
             _tool.Position = new Vector2((float)hand.X, (float)(-Rig.Shoulder + hand.Y));
             _tool.Rotation = (float)work;
-            // Three steps of the ribs a turn, held on the way back: they roll on one way only.
-            _tool.Frame = (int)Math.Min(2, Math.Floor(twist * 3));
+            (_tool.Texture, _tool.Offset) = (HeldArt.Of(driven ? builder.Driven! : builder.Twist!, []), -new Vector2((float)builder.Grip.X, (float)builder.Grip.Y));
+            // Turned by its motor, its frames in turn as a drill's spin; by the wrist, three steps of the ribs a turn, held on the way back:
+            // they roll on one way only.
+            _spinFrame = driven ? (_spinFrame + _spin * HeldLook.SpinFps * elapsedMs / 1000) % 3 : 0;
+            _tool.Frame = driven ? (int)_spinFrame : (int)Math.Min(2, Math.Floor(twist * 3));
         }
         // The item in the front fist, held by its grip at its angle to the forearm (0040): swung, aimed or
         // hanging, the hand closed round its haft or stock.
         _held.Visible = inHand;
-        Muzzle = null;
+        Muzzle = EdgeStart = null;
         if (inHand && item != null)
         {
             var fist = Rig.FistOf(frontArm);
-            _spin = Spinning ? Math.Min(1, _spin + elapsedMs / HeldLook.SpinUpMs) : Math.Max(0, _spin - elapsedMs / HeldLook.SpinDownMs);
             // Through the picture and its spin frames in turn; still, it stops on the picture.
             int frames = 1 + (item.Spin?.Count ?? 0);
             _spinFrame = _spin > 0 ? (_spinFrame + _spin * HeldLook.SpinFps * elapsedMs / 1000) % frames : 0;
-            int frame = (int)_spinFrame;
+            int frame = item.Spin is [_] ? (_spin > 0 ? 1 : 0) : (int)_spinFrame;
             var parts = PartsOf(item);
-            _held.Texture = item.Loaded != null && Loaded ? Picture(item.Loaded) : HeldArt.Of(frame > 0 ? item.Spin![frame - 1] : item.Picture, parts.Layers);
+            _held.Texture = item.Loaded != null && Loaded ? HeldArt.Of(item.Loaded, []) : HeldArt.Of(frame > 0 ? item.Spin![frame - 1] : item.Picture, parts.Layers);
             bool lit = Spinning && item.Lamp != null;
             _lamp.Visible = _lampGlow.Visible = lit;
             // Held by its grip in the fist.
@@ -853,17 +1155,18 @@ public partial class Figure : Node2D
             _charged.Visible = item.Charged != null && Charge > 0;
             if (_charged.Visible)
             {
-                (_charged.Texture, _charged.Offset) = (Picture(item.Charged!), _held.Offset);
+                (_charged.Texture, _charged.Offset) = (HeldArt.Of(item.Charged!, []), _held.Offset);
                 _charged.Modulate = new Color(1, 1, 1, (float)Charge);
             }
             _held.Position = new Vector2((float)fist.X, (float)(-Rig.Shoulder + fist.Y));
             // Carried trailing on a run, the hand turns the item along itself (Rig.Carried).
-            _held.Rotation = (float)(Rig.HeldTurn(frontArm, item) + item.Hold * carry);
+            _held.Rotation = (float)(Rig.HeldTurn(frontArm, item, wrist) + item.Hold * carry);
             if (item.Aimed)
             {
                 Vector2 At((double X, double Y) p) => _held.ToGlobal(new Vector2((float)p.X, (float)p.Y) + _held.Offset);
                 Muzzle = At(item.EdgeTo);
-                Barrel = (Muzzle.Value - At(item.EdgeFrom)).Normalized();
+                EdgeStart = At(item.EdgeFrom);
+                Barrel = (Muzzle.Value - EdgeStart.Value).Normalized();
                 if (_charged.Visible)
                 {
                     // Lit from the gap between the rails, as it is held this frame.
@@ -872,14 +1175,24 @@ public partial class Figure : Node2D
                 }
             }
         }
-        // The axe's downstroke leaves its swipe of light, from the blade as drawn.
-        bool striking = chopping && swung is { Phase: var p } && p > AxeSwing.WindShare && p <= AxeSwing.WindShare + AxeSwing.StrikeShare;
-        if (striking && item != null)
+        // The air the tool works shows its reach while it is used (tool-reach): a stroke's cut, a running drill's or grinder's zone.
+        if (chopping && _chop is { Aim: var cutAim, Phase: var cutPhase, Play: var cutPlay } && Stillwake.Content.Weapons.Of(Wields) is { } weapon)
         {
-            var (back, edge) = (Rig.HeldAt(frontArm, item, item.EdgeFrom), Rig.HeldAt(frontArm, item, item.EdgeTo));
-            _smear.Follow(new Vector2((float)back.X, (float)back.Y), new Vector2((float)edge.X, (float)edge.Y), true, elapsedMs);
+            bool jab = cutPlay.Motion.Kind == MotionKind.Thrust;
+            double half = Strokes.HalfOf(weapon);
+            double start = jab ? stroke!.HitShare : cutPlay.ShareAt(-half);
+            if (_cutPhase < start && cutPhase >= start)
+            {
+                var edge = Rig.HeldAt(frontArm, item!, item!.EdgeTo, wrist);
+                double reach = Math.Sqrt(edge.X * edge.X + edge.Y * edge.Y);
+                double sweep = jab ? WorkLooks.ThrustSweepMs : (cutPlay.ShareAt(half) - start) * stroke!.Ms;
+                _air.Strike(jab, AimAngleOf(cutAim, hero.Facing), half, weapon.Range * Rig.Cell / Hero.Unit, jab ? reach : reach - 4, sweep,
+                    WorkLooks.CutFadeOf(Wields));
+            }
+            _cutPhase = cutPhase;
         }
-        else _smear.Follow(null, null, false, elapsedMs);
+        else _cutPhase = 0;
+        _air.Follow(Spinning && inHand && item != null ? ZoneOf(frontArm, item) : null, elapsedMs);
         _beamMs = Math.Max(0, _beamMs - elapsedMs);
         ShowBeams(holding);
         // A drill crackles as it spins; a gun held to charge, as it fills.
@@ -890,6 +1203,24 @@ public partial class Figure : Node2D
         _drillLight?.Step(crackling, drill ? _spin : Charge, _heldAt ??= HeldAt, elapsedMs);
     }
 
+    /// <summary>
+    /// The zone a running drill or grinder in <paramref name="arm"/> works, in the arms' frame (tool-reach): the drill's bit point
+    /// grown into a cone out to its range from the shoulder along the aim, the grinder's forward half of a disc round its hub; none for another tool.
+    /// </summary>
+    private AirCuts.Zone? ZoneOf(Bend arm, HeldLook item)
+    {
+        bool grinder = Wields == Stillwake.Content.Weapons.Grinder.Item;
+        if (!grinder && Wields != Stillwake.Content.Weapons.Drill.Item) return null;
+        var at = Rig.HeldAt(arm, item, grinder ? item.EdgeFrom : item.EdgeTo);
+        var (ax, ay) = Aim is { } target ? FromShoulder(target) : (at.X, at.Y);
+        double l = Math.Sqrt(ax * ax + ay * ay);
+        var (dx, dy) = l > 0 ? (ax / l, ay / l) : (1.0, 0.0);
+        if (grinder) return new(true, (at.X, at.Y), (dx, dy), WorkLooks.DiscRadius);
+        double range = Stillwake.Content.Weapons.Drill.Range * Rig.Cell / Hero.Unit, cx = dx * range - at.X, cy = dy * range - at.Y;
+        double length = Math.Sqrt(cx * cx + cy * cy);
+        return length < 1 ? null : new(false, (at.X, at.Y), (cx / length, cy / length), length);
+    }
+
     /// <summary>A point from the front shoulder, in the arms' own frame, in the body's parts' frame.</summary>
     private static Vector2 Pixel(Vec fromShoulder) => new((float)fromShoulder.X, (float)(fromShoulder.Y - Rig.Shoulder));
 
@@ -898,10 +1229,8 @@ public partial class Figure : Node2D
 }
 
 /// <summary>
-/// The hero's pictures in any suit and skin (<c>textureOf</c> of art.ts): <c>art/hero_*.png</c> are drawn in
-/// <see cref="Suits.Drawn"/>, <see cref="HeroLooks.SkinDrawn"/> and <see cref="HeroLooks.HairDrawn"/>, and each of their
-/// shades becomes the same shade of another; gear, eyes, glass and the plan's sheet keep their colours. Made once a
-/// part, colour, skin and hair.
+/// The hero's pictures in any skin and hair (<c>art/hd/hero_*.png</c>), tinted from those they are drawn in
+/// (<see cref="HeroLooks.SkinDrawn"/>, <see cref="HeroLooks.HairDrawn"/>), the far limbs darkened. Made once a part, colour, skin and hair.
 /// </summary>
 public static class SuitArt
 {
@@ -919,26 +1248,40 @@ public static class SuitArt
     {
         var key = (part, colour, skin, hair, far);
         if (Made.TryGetValue(key, out var kept)) return kept;
-        var image = GD.Load<Texture2D>($"res://art/hero_{part}.png").GetImage();
-        if (image.IsCompressed()) image.Decompress();
-        image.Convert(Image.Format.Rgba8);
-        var swaps = new Dictionary<int, int>();
-        void Swap(int[] from, int[] to)
+        var fine = HiRes.Load($"hero_{part}") ?? throw new System.InvalidOperationException($"No picture hero_{part}");
+        return Inked(key, fine, part, skin, hair, far);
+    }
+
+    /// <summary>
+    /// A part has no ramps to swap: scaled to the look's skin and hair, its far limbs darkened, any suit in the colours drawn. Clothes
+    /// lie over a skin picture of their own, tinted alone, for no colour test tells rags from skin. What a body crumbles into is the picture shrunk.
+    /// </summary>
+    private static Texture2D Inked((string Part, int Colour, int Skin, int Hair, bool Far) key, Image fine, string part, int skin, int hair, bool far)
+    {
+        if (HiRes.Load($"hero_{part}_skin") is { } under)
         {
-            for (int i = 0; i < from.Length; i++) swaps[from[i]] = far ? Suits.Shade(to[i], FarShade) : to[i];
+            Tint(under, LookTint.Of($"{part}_skin", skin, hair), 1);
+            under.BlendRect(fine, new Rect2I(Vector2I.Zero, fine.GetSize()), Vector2I.Zero);
+            fine = under;
         }
-        Swap(Suits.ShadesOf(Suits.Drawn), Suits.ShadesOf(colour));
-        Swap(HeroLooks.Skins[HeroLooks.SkinDrawn], HeroLooks.Skins[skin]);
-        Swap(HeroLooks.Hairs[HeroLooks.HairDrawn], HeroLooks.Hairs[hair]);
+        Tint(fine, LookTint.Of(part, skin, hair), far ? (float)FarShade : 1);
+        var small = (Image)fine.Duplicate();
+        small.Resize(fine.GetWidth() / HiRes.Scale, fine.GetHeight() / HiRes.Scale, Image.Interpolation.Nearest);
+        var made = HiRes.Texture(fine);
+        Made[key] = made;
+        Bytes[made] = (small.GetWidth(), small.GetHeight(), small.GetData());
+        return made;
+    }
+
+    private static void Tint(Image image, LookTint? tint, float shade)
+    {
+        if (tint == null && shade == 1) return;
         for (int y = 0; y < image.GetHeight(); y++)
             for (int x = 0; x < image.GetWidth(); x++)
             {
                 var c = image.GetPixel(x, y);
-                if (c.A8 > 0 && swaps.TryGetValue((c.R8 << 16) | (c.G8 << 8) | c.B8, out int to))
-                    image.SetPixel(x, y, new Color((uint)(to << 8 | c.A8)));
+                var (r, g, b) = tint?.Apply(c.R, c.G, c.B) ?? (c.R, c.G, c.B);
+                image.SetPixel(x, y, new Color(r * shade, g * shade, b * shade, c.A));
             }
-        var made = Made[key] = ImageTexture.CreateFromImage(image);
-        Bytes[made] = (image.GetWidth(), image.GetHeight(), image.GetData());
-        return made;
     }
 }

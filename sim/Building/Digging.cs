@@ -1,4 +1,5 @@
 using Stillwake.Content;
+using Stillwake.Sim.Crew;
 using Stillwake.Sim.Grid;
 using Stillwake.Sim.Items;
 
@@ -11,9 +12,18 @@ namespace Stillwake.Sim.Building;
 /// the plants, ladders and open doors it crosses, striking them. What stands takes the weapon's block damage
 /// (<c>BlockDamage</c>) once, however many rays meet it: a wall at its material's strength, a built piece at its build's, and
 /// gives the sender what it is made of. Only where the surface's tools break things (<c>ToolsBreak</c>), and aboard inside a
-/// vessel's box (generated-vessels): elsewhere on the ship the plan alone takes things apart.
+/// vessel's box (generated-vessels): elsewhere on the ship the plan takes things apart, and only a machine of some strength, a
+/// pile, is struck, anywhere.
 /// </summary>
 public sealed record Hew(string Tool, int X, int Y, int Heading) : Command;
+
+/// <summary>
+/// A hit of a running tool (tool-edge) on the cells its drawn edge touches, <c>Cells</c> as the client saw them: what stands in each
+/// on the grid, in the planet's known zone, as a <see cref="Hew"/>'s ray would strike it there (a pile, a wall that breaks, a built
+/// piece by its first cell, a plant in an open cell), each once, takes the weapon's block damage as a <see cref="Hew"/> gives it.
+/// Neither reach nor position is checked: the client's word, among friends (0002).
+/// </summary>
+public sealed record HewCells(string Tool, IReadOnlyList<int> Cells) : Command;
 
 /// <summary>What a <see cref="Hew"/> strikes: its walls' cells and its built pieces' first cells, ascending, and its plants, by their own cells.</summary>
 public sealed record Hewn(IReadOnlyList<int> Cells, IReadOnlyList<Plant> Plants)
@@ -29,15 +39,30 @@ public sealed partial class BuildingModule
 
     /// <summary>
     /// What a hit of <paramref name="tool"/> from (<paramref name="x"/>, <paramref name="y"/>) toward <paramref name="heading"/>
-    /// would strike (<see cref="Hew"/>): what the command strikes, and the client's preview, so the two never differ. Nothing
-    /// where the surface's tools break nothing.
+    /// would strike (<see cref="Hew"/>): what the command strikes, and the client's preview, so the two never differ. Where the
+    /// surface's tools break nothing, only piles.
     /// </summary>
     public Hewn Struck(string tool, int x, int y, int heading)
     {
         var weapon = Weapons.Of(tool) ?? throw new InvalidOperationException($"building.hew: {tool} deals no damage");
         var cells = new List<int>();
         var plants = new List<Plant>();
-        if (Rules.ToolsBreak || _grid.Reserved != null) Rays.Fan(_grid.Width, _grid.Height, x, y, heading, weapon, cell => Stops(cell, cells, plants));
+        Rays.Fan(_grid.Width, _grid.Height, x, y, heading, weapon, cell => Stops(cell, cells, plants));
+        cells.Sort();
+        for (int i = cells.Count - 1; i > 0; i--)
+            if (cells[i] == cells[i - 1]) cells.RemoveAt(i);
+        plants.Sort(ByCell);
+        return new Hewn(cells, plants);
+    }
+
+    /// <summary>What a <see cref="HewCells"/> strikes in <paramref name="listed"/>: each cell on the grid, in its known zone or a vessel's box, as a ray would strike it, deduped, ascending.</summary>
+    public Hewn Listed(IReadOnlyList<int> listed)
+    {
+        var cells = new List<int>();
+        var plants = new List<Plant>();
+        foreach (int cell in listed)
+            if (cell >= 0 && cell < _grid.Width * _grid.Height && (_grid.Zone.Contains(cell % _grid.Width, cell / _grid.Width) || InVessel(cell)))
+                Stops(cell, cells, plants);
         cells.Sort();
         for (int i = cells.Count - 1; i > 0; i--)
             if (cells[i] == cells[i - 1]) cells.RemoveAt(i);
@@ -48,12 +73,17 @@ public sealed partial class BuildingModule
     /// <summary>
     /// Whether a ray stops at <paramref name="cell"/>: at a wall, one that breaks added to <paramref name="cells"/>; at a built
     /// piece that stops a body, added by its first cell; through a piece that does not (a ladder, an open door) and a plant in an
-    /// open cell, each added once.
+    /// open cell, each added once; at a pile, added by its top-left cell. Where the surface's tools break nothing, a ray only stops.
     /// </summary>
     private bool Stops(int cell, List<int> cells, List<Plant> plants)
     {
-        // Aboard, tools break only a vessel's things (generated-vessels): a ray leaving its box stops there, the ship untouched.
-        if (!Rules.ToolsBreak && !InVessel(cell)) return true;
+        if (PileAt(cell) is { } pile)
+        {
+            cells.Add(pile.Cell);
+            return true;
+        }
+        // Aboard, tools break only a vessel's things (generated-vessels): a ray elsewhere only stops, the ship untouched.
+        if (!Rules.ToolsBreak && !InVessel(cell)) return _grid.WallAt(cell) != null || _grid.Blocks(cell);
         if (_grid.WallAt(cell) is { } wall)
         {
             if (wall.Strength != Material.Unbreakable) cells.Add(cell);
@@ -68,6 +98,9 @@ public sealed partial class BuildingModule
         if (_grid.StructureAt(cell) == Structure.Empty && PlantAt(cell) is { } plant && !plants.Contains(plant)) plants.Add(plant);
         return false;
     }
+
+    /// <summary>The machine tools break at <paramref name="cell"/>, a pile (the-scoop); none for any other.</summary>
+    private Machine? PileAt(int cell) => _grid.MachineAt(cell) is { } machine && Machines.Get(machine.Kind).Hp != null ? machine : null;
 
     /// <summary>Whether <paramref name="cell"/> is in the box a vessel was written into (generated-vessels).</summary>
     private bool InVessel(int cell) => _grid.Reserved is { } box && box.Contains(cell % _grid.Width, cell / _grid.Width);
@@ -87,34 +120,43 @@ public sealed partial class BuildingModule
     public string? HewProblem(int peer, string tool, int x, int y, int heading) =>
         HewProblemOf(peer, Struck(tool, x, y, heading), tool, running: false);
 
+    /// <summary>Why peer <paramref name="peer"/>'s <see cref="HewCells"/> of <paramref name="tool"/> on <paramref name="cells"/> would be refused, as <see cref="HewProblem"/> asks it.</summary>
+    public string? HewCellsProblem(int peer, string tool, IReadOnlyList<int> cells) =>
+        HewProblemOf(peer, Listed(cells), tool, running: false);
+
     /// <summary>
-    /// <c>building.notHere</c> where the surface's tools break nothing (the ship: the plan takes things apart),
-    /// <c>building.nothingToDig</c> for a fan that strikes nothing (bedrock and lava only stop it), then what the weapon says
+    /// For a fan that strikes nothing, <c>building.notHere</c> where the surface's tools break nothing (the ship: the plan takes
+    /// things apart), else <c>building.nothingToDig</c> (bedrock and lava only stop it); then what the weapon says
     /// (<see cref="IItemsQueries.WeaponProblem"/>): flat, or, as the command applies, not running.
     /// </summary>
     private string? HewProblemOf(int peer, Hewn hewn, string tool, bool running) =>
-        !Rules.ToolsBreak && hewn.IsEmpty ? "building.notHere"
-        : hewn.IsEmpty ? "building.nothingToDig" : _items.WeaponProblem(peer, tool, running);
+        hewn.IsEmpty ? (Rules.ToolsBreak ? "building.nothingToDig" : "building.notHere") : _items.WeaponProblem(peer, tool, running);
 
     /// <summary>
-    /// The weapon's block damage added once to each wall, piece and plant the fan strikes, walls and pieces first: one at its
-    /// strength goes, what it is made of given to the sender, a wall's held growths' yields too; a plant at its strength is
+    /// The weapon's block damage added once to each wall, piece and plant the fan strikes, its damage to each pile, walls and pieces
+    /// first: one at its strength goes, what it is made of given to the sender, a wall's held growths' yields too; a plant at its strength is
     /// felled. A relic's cradle among them discharges into the sender once (0096).
     /// </summary>
-    private void ApplyHew(Hew c)
+    private void ApplyHew(Hew c) => HitAll(Struck(c.Tool, c.X, c.Y, c.Heading), c.Tool, c.From);
+
+    private void ApplyHewCells(HewCells c) => HitAll(Listed(c.Cells), c.Tool, c.From);
+
+    private void HitAll(Hewn hewn, string tool, int from)
     {
-        var hewn = Struck(c.Tool, c.X, c.Y, c.Heading);
-        int hit = _items.BlockDamage(c.From, c.Tool);
+        int hit = _items.BlockDamage(from, tool);
+        // A tool that cuts wrecks only (the plasma cutter) touches no block nor pile: no crack, no felling, no cradle's shock.
+        if (hit <= 0) return;
         // A relic's cradle discharges into whoever strikes it (0096), the felling hit too, before it gives its shards.
-        if (hewn.Plants.Any(p => p.Kind == Ruins.Cradle)) _crewOps.Shock(c.From, ShockOf(c.Tool));
+        if (hewn.Plants.Any(p => p.Kind == Ruins.Cradle)) _crewOps.Shock(from, ShockOf(tool), Harm.Shock);
         foreach (int cell in hewn.Cells)
         {
-            if (_grid.WallAt(cell) != null) HitWall(c.From, cell, hit);
-            else HitPiece(c.From, cell, hit);
+            if (PileAt(cell) is { } pile) HitPile(from, pile, _items.Damage(from, tool));
+            else if (_grid.WallAt(cell) != null) HitWall(from, cell, hit);
+            else HitPiece(from, cell, hit);
         }
         // A plant its wall took with it is gone; one of no strength falls to any hit.
         foreach (var plant in hewn.Plants)
-            if (_plantOwn.GetValueOrDefault(plant.Cell) == plant && Cracked(plant.Cell, Kinds[plant.Kind].Strength, hit)) Fell(plant, c.From);
+            if (_plantOwn.GetValueOrDefault(plant.Cell) == plant && Cracked(plant.Cell, Kinds[plant.Kind].Strength, hit)) Fell(plant, from);
     }
 
     /// <summary>
@@ -171,6 +213,18 @@ public sealed partial class BuildingModule
         foreach (int cell in _grid.PieceOf(head)) _gridOps.Clear(cell, "structure");
         Yield(peer, cost, head);
         return true;
+    }
+
+    /// <summary>
+    /// A hit of <paramref name="hit"/>, the weapon's damage as on a wreck, on <paramref name="pile"/> (2026-11-07-pile-hit-points): at its hit
+    /// points it goes, and gives <paramref name="peer"/> what it holds.
+    /// </summary>
+    private void HitPile(int peer, Machine pile, int hit)
+    {
+        var spec = Machines.Get(pile.Kind);
+        if (!Cracked(pile.Cell, spec.Hp!.Value, hit)) return;
+        _gridOps.Clear(pile.Cell, "machine");
+        Yield(peer, spec.Cost, pile.Cell);
     }
 
     /// <summary>
@@ -239,7 +293,7 @@ public sealed partial class BuildingModule
 
     /// <summary>
     /// A crack heals whole <c>Builds.CrackHeals</c> ticks after its last hit, as Terraria's; one whose wall is gone, to a meteor,
-    /// is dropped: only a natural wall that breaks, or a plant of some strength in its own open cell, keeps one. The clock
+    /// is dropped: only a natural wall that breaks, a pile, or a plant of some strength in its own open cell, keeps one. The clock
     /// ticks first.
     /// </summary>
     private void SweepCracks()
@@ -249,12 +303,13 @@ public sealed partial class BuildingModule
     }
 
     /// <summary>
-    /// Whether <paramref name="cell"/> holds what a crack is kept for: a wall that breaks, the first cell of a built piece, or the
+    /// Whether <paramref name="cell"/> holds what a crack is kept for: a wall that breaks, the first cell of a built piece, a pile's, or the
     /// own cell of a plant with strength; in the <paramref name="back"/> layer, a back wall that breaks (cracked before tools
     /// left the back walls, healing out of old saves).
     /// </summary>
     private bool Crackable(int cell, bool back) => back ? _grid.BackAt(cell) is { } behind && behind.Strength != Material.Unbreakable
         : _grid.WallAt(cell) is { } wall ? wall.Strength != Material.Unbreakable
         : PieceAt(cell) is { } piece ? piece.Head == cell
+        : PileAt(cell) is { } pile ? pile.Cell == cell
         : _plantOwn.TryGetValue(cell, out var plant) && Kinds[plant.Kind].Strength > 0;
 }

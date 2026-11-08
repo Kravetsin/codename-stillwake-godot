@@ -56,7 +56,13 @@ public static class Shots
     /// </summary>
     public static readonly Projectile Bolt = new("bolt", Damage: 4, BlockDamage: 0, Weight: 0, HitsBodies: false);
 
-    public static readonly IReadOnlyList<Projectile> Projectiles = [Nail, Bolt];
+    /// <summary>
+    /// The capback's slime (lurker-attacks), spat as an arc: it hurts no hero it crosses, only the puddle it leaves
+    /// (<see cref="Creatures.Slime"/>).
+    /// </summary>
+    public static readonly Projectile Glob = new("slime", Damage: 0, BlockDamage: 0, Weight: 0, HitsBodies: false);
+
+    public static readonly IReadOnlyList<Projectile> Projectiles = [Nail, Bolt, Glob];
 
     public static readonly IReadOnlyList<Gun> Guns = [Nailer, Railgun];
 

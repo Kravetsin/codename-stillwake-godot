@@ -7,7 +7,9 @@
 | `CaveTint.cs` | The stone's colour by depth band (0080), multiplied over the ground drawn under it. |
 | `CaveView.cs` | What grows in a planet's caves, seen (0080): chunks of growths, their glows, lights, glints and drift. |
 | `FloraView.cs` | What grows on a planet's surface, seen (0079): a sprite per plant standing, its glow, lights and motes. |
+| `logic/Felling.cs` | Which plants were felled since the cave view last looked: the cells it kept and those standing halved by binary search, not a set of all. |
 | `logic/Planting.cs` | Where what grows is drawn against what holds it (0079, 0080), in world pixels, plain C# so it is tested. |
+| `logic/VeinGlints.cs` | Which vein cells glint on their open faces: one in `CaveLooks.VeinGlintEvery`, by the planet's seed and the cell. |
 
 What grows on a planet, seen: on its surface (0079) and in its caves (0080). The plants are Building's
 (`sim/Building/Flora.cs`): grown from the seed with the ground, felled by a hit or with what holds them. This feature
@@ -43,8 +45,8 @@ warm amber and red near the bottom.
 - **Planted:** a floor's growth as a surface plant, `CaveLooks` `Sink` pixels into the wall under it; a ceiling's
   mirrored; one in the rock 24 × 24 round its cell. A picture is `{kind}_{variant}`; a stalactite's or stalagmite's
   `{kind}_{band}_{variant}`, in its band's stone. Moss is one picture per open face of its stone (`top` tufts, `bottom`
-  strands, `left`/`right` a film), green in the cold band, teal deeper; a run of moss on one face joins into one strip
-  (`Planting.Strip`). No other kind tiles.
+  strands, `left`/`right` a film), green in the cold band, teal deeper; a run of moss on one face has its pieces cut to meet at their blocks' edges
+  (`Planting.Piece`, [its ADR](../../../docs/decisions/2026-11-01-moss-in-ink.md)). No other kind tiles.
 - **Redrawn:** a felled growth's chunk (a glowing one puffing spores, a spike its pebbles); the chunks round a grid change.
 - **Pictures** are cut from the cave concept's drawing code by its export, glow blooms in `_glow`: change the code and
   export again, never edit the pictures. The ruins' cache and the spire's lens (0085, 0096): the lens lit while its
@@ -55,7 +57,11 @@ warm amber and red near the bottom.
   shadows are soft. Only those whose reach touches the view, nearest its middle first, at most `CaveLooks.MostLights`,
   are its `Lights` (`ILightSource`). A glow picture fades to nothing over its last three pixels (`Atlas.Faded`).
 - **Glints:** mica, crystals and geodes sparkle where a helmet's beam falls on them with nothing between,
-  as bright as the beam there. Mica draws nothing else.
+  as bright as the beam there. Mica draws nothing else. An ore's vein cell (any `Material.In`) glints on an open face
+  in its `GroundLooks` fleck, but only one cell in `CaveLooks.VeinGlintEvery`, picked by the planet's seed and the cell
+  (`VeinGlints`), so dark rock stays dark and a glint means ore; a pocket near the surface (mostly 1–3 cells, 95 % at most 6, none
+  over 60) may show none, though its ore still shines in lamp light (`render/Lit.cs`: every vein cell holds some).
+  Found as a chunk is drawn, never a frame at a time; a chunk with veins and no growth is drawn for its glints alone.
 - **Drift** (0075): spores up from glowcaps; drips from one stalactite in `DripShare`, landing on the first solid
   cell under its tip within `DripRows` and splashing (`Planting.DripFloor`), none with no open cell under it; faint
   embers from heat cracks. `MotesASecond` from the sources in view, at most `MostMotes` alive, none off the screen.

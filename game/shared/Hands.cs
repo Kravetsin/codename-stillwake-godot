@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using Godot;
 using Stillwake.Game.Features.Atmosphere;
 using Stillwake.Game.Features.Building;
@@ -14,7 +15,7 @@ namespace Stillwake.Game.Shared;
 
 /// <summary>
 /// This player's hands on the ship and the views that explain it (App.tsx's part of the TypeScript game
-/// for these features): the plan and its menu, cables, the pipes and air, the air overlay's chip, and
+/// for these features): the plan and its menu, cables, the pipes and air, the air overlay's key, and
 /// the words by the pointer, sharing one <see cref="Shared.Ui"/>. Each frame the building takes the
 /// buttons, but while the plan is wiring, when the cables take them (0108), or piping, the pipes (0109), by the card of its menu (0110). With the plan away, while the
 /// right button digs, the walls round the pointer fade, so the back wall shows (<see cref="Lit.SeeThrough"/>).
@@ -25,7 +26,7 @@ public partial class Hands : Node2D
     public PlanHand Plan { get; }
     public WorldButtons Mouse { get; } = new();
     public BuildMenu Menu { get; }
-    public OverlayBar Overlays { get; }
+    public AirKey Air { get; }
 
     private readonly BuildingView _building;
     private readonly PowerView _power;
@@ -33,8 +34,9 @@ public partial class Hands : Node2D
     private readonly PipesView _pipesBuilt = new();
     private readonly AirView _air;
     private readonly PointerTip _tip;
+    private readonly MachineTips _machines;
     private string? _overlayWas;
-    /// <summary>What this player carries is read this often into <see cref="Ui.Carried"/>: a panel reads on a timer.</summary>
+    /// <summary>What this player can pay with is read this often into <see cref="Ui.Carried"/>: a panel reads on a timer.</summary>
     private const double CarriedEveryMs = 250;
     private double _sinceCarried = CarriedEveryMs;
 
@@ -47,8 +49,14 @@ public partial class Hands : Node2D
         _air = new AirView(Ui);
         Menu = new BuildMenu(Plan, Ui);
         _tip = new PointerTip(Ui);
-        Overlays = new OverlayBar(Ui);
-        foreach (var node in (Node[])[Mouse, _air, _power, _pipesBuilt, _pipes, _building, Menu, Overlays, _tip]) AddChild(node);
+        // What the pointer on a machine tells: water's, the air's, then a debris net's count; its power under any of them.
+        static IReadOnlyList<TipLine>? Plain(string[]? lines) => lines?.Select(line => new TipLine(line)).ToList();
+        _machines = new MachineTips(Ui,
+            (m, x, spec) => Plain(Features.Water.WaterShows.Says(spec, m.Water.WaterIn(x.Id), m.Water.Stalled(x.Id))),
+            (m, x, spec) => Features.Atmosphere.AirSays.Says(spec, m.Atmosphere.OxygenIn(x.Id), m.Atmosphere.MakesAt(x.Id)),
+            (m, x, spec) => spec.Is(Stillwake.Content.MachineTrait.Catches) ? Plain(Features.Debris.NetShows.Says(spec, m.Debris.HeldIn(x.Id).Count)) : null);
+        Air = new AirKey(Ui);
+        foreach (var node in (Node[])[Mouse, _air, _power, _pipesBuilt, _pipes, _building, Menu, Air, _tip]) AddChild(node);
     }
 
     /// <summary>
@@ -62,7 +70,7 @@ public partial class Hands : Node2D
         if ((_sinceCarried += elapsedMs) >= CarriedEveryMs)
         {
             _sinceCarried = 0;
-            Ui.Carried = m.Items.Totals(client.Id);
+            Ui.Carried = m.Items.StockTotals(client.Id);
         }
         var buttons = Mouse.Buttons;
         // An overlay says what the pointer is on only while it shows; switched, it says nothing.
@@ -77,16 +85,22 @@ public partial class Hands : Node2D
         if (wiring || piping) _building.Frame(client, m, [], [], false, pointer);
         else _building.Frame(client, m, buttons.TakeLeft(), buttons.TakeRight(), buttons.HoldsRight, pointer);
         // With the plan put away, aboard, the front fades round the pointer while the right button digs back walls; the open plan fades by its focus.
-        // Never away from the ship (0110): the ground would show what is in it.
-        bool seeThrough = Plan.SeesThrough(!wiring && !piping && Layering.Back(buttons.HoldsLeft, buttons.HoldsRight));
+        // Never away from the ship (0110): the ground would show what is in it. Nor with the power driver in hand, whose right click
+        // switches its square (power-driver).
+        bool driver = Content.Screwdrivers.Of(Ui.Wielded.Get()) is { Area: > 1 };
+        bool seeThrough = Plan.SeesThrough(!wiring && !piping && !driver && Layering.Back(buttons.HoldsLeft, buttons.HoldsRight));
         Lit.SeeThrough(pointer is { } at && seeThrough ? new Vector2((float)at.X, (float)at.Y) * ShipCamera.Cell : null);
+        // Cables and pipes are the front's: hidden with the back walls focused (back-focus-clear).
+        var front = new Color(1, 1, 1, Tools.AlphasOf(Plan.Shown).Front);
+        _power.Modulate = _pipesBuilt.Modulate = front;
         _power.Frame(client, m, buttons, wiring ? cuts : [], pointer, bodies, elapsedMs);
+        _machines.Frame(m, client.World.Tick, pointer);
         _pipesBuilt.Frame(client, m);
         _pipes.Visible = piping;
         if (piping) _pipes.Frame(client, m, laid, Plan.ToolCard.Get() == Tools.Valve, cuts, pointer, elapsedMs);
         else _pipes.Release();
         _air.Frame(client, m, pointer, elapsedMs);
-        Menu.Frame(m);
+        Menu.Frame(m, client.Id);
         _tip.Frame(pointer);
     }
 }

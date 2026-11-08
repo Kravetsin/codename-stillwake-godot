@@ -91,8 +91,21 @@ public partial class Main
             Add = node => AddChild(node),
         };
         foreach (var scenario in _scenarios) scenario.Attach(context);
+        // The code a host gives out, made up and no relay reached; =menu shows it in the Esc menu instead of the card.
+        if (_dev.Given("--key-card") is { } shown)
+        {
+            _together = new TogetherState(TogetherMode.Hosting, "KQ7M", [], null, false);
+            if (shown != "menu") _keyCard!.Open();
+            else
+                GetTree().CreateTimer(1).Timeout += () =>
+                {
+                    foreach (bool pressed in new[] { true, false })
+                        Input.ParseInputEvent(new InputEventKey { Keycode = Key.Escape, PhysicalKeycode = Key.Escape, Pressed = pressed });
+                };
+        }
         if (Has("--fx-bench")) AddChild(new Dev.FxBench());
         if (Has("--frames") || Has("--frames=vsync")) AddChild(_frameLog = new Dev.FrameLog(vsync: Has("--frames=vsync")));
+        if (_dev.Given("--ablate") is { } ablate) AddChild(new Dev.ProcessAblation(ablate == "" ? null : ablate));
         if (Has("--allocs")) _allocs = new Dev.AllocationSampler();
         if (_dev.Value("--sweep") is { } sweep)
             AddChild(new Dev.CameraSweep(_camera, () => _m != _ship ? new Vector2(_m.Crew.Spawn % _m.Grid.Width, _m.Crew.Spawn / _m.Grid.Width) : null, int.Parse(sweep)));
@@ -140,7 +153,7 @@ public partial class Main
     {
         _roster = Platform.Roster.Empty();
         var (host, client) = LocalSession.Create(world, Build, _roster.SeatOf(_playerKey));
-        _session = new Session(host, client);
+        _session = new Session(host, client) { Speed = double.TryParse(_dev.Given("--speed"), System.Globalization.CultureInfo.InvariantCulture, out double speed) ? speed : 1 };
         foreach (var scenario in _scenarios) scenario.Started(client);
         ShowWorld();
         AimCamera(aimAt);
@@ -175,7 +188,7 @@ public partial class Main
         if (Has("--doors") && client.World.Tick != before)
             foreach (var c in Dev.Autopilot.At(client.World.Tick, _m.Grid)) client.Send(c);
         // --toggle: the first doorway opened and shut on alternate ticks, so one is always in flight, as at a busy airlock.
-        if (Has("--toggle") && client.World.Tick != before && (_toggled ??= Dev.Autopilot.At(20, _m.Grid).FirstOrDefault()) is SetDoor toggle)
+        if (Has("--toggle") && client.World.Tick != before && (_toggled ??= Dev.Autopilot.At(Dev.Autopilot.OpenAt, _m.Grid).FirstOrDefault()) is SetDoor toggle)
             client.Send(toggle with { Open = client.World.Tick % 2 == 0 });
     }
 

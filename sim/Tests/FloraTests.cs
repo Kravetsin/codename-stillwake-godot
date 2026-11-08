@@ -37,7 +37,7 @@ public class FloraTests
     [Fact]
     public void TheFirstPlanetGrowsEveryKindOnItsSurfaceAndNoneInItsCaves()
     {
-        var l = Terrain.Generate(PlanetTypes.First, 1);
+        var l = PlanetTesting.First(1).Layout;
         Assert.True(OnTheSurface(l));
         Assert.All(Flora.All, k => Assert.Contains(l.Flora!, p => p.Kind == k.Id));
         // Most columns of open soil stay bare: a few hundred plants across two thousand columns.
@@ -78,7 +78,7 @@ public class FloraTests
 
     [Fact]
     public void AnotherSeedGrowsOtherPlants() =>
-        Assert.False(Terrain.Generate(PlanetTypes.First, 1).Flora!.SequenceEqual(Terrain.Generate(PlanetTypes.First, 2).Flora!));
+        Assert.False(PlanetTesting.First(1).Layout.Flora!.SequenceEqual(PlanetTesting.First(2).Layout.Flora!));
 
     /// <summary>Soil under open ground, with a flower at (2, 1) and an acacia at (5, 1), whose trunk stands up to the top row.</summary>
     private static Scenario Meadow()
@@ -109,6 +109,7 @@ public class FloraTests
         Assert.Equal(["bellTeal", "acacia"], Kinds(w));
         // The acacia's trunk, a row above its own cell.
         Assert.Equal("acacia", w.M.Building.PlantAt(w.At(5, 0))?.Kind);
+        int own = w.M.Building.PlantAt(w.At(5, 0))!.Cell;
         // A tree takes hits to its strength (0080), each on any of its cells.
         for (int hit = 0; hit < Flora.Get("acacia").Strength / Weapons.Axe.BlockDamage; hit++) w.Do(HewTesting.Dig(w, w.At(5, 0), Weapons.Axe.Item)).Run();
         Assert.Empty(w.Refusals);
@@ -118,6 +119,8 @@ public class FloraTests
         Assert.Equal("soil", w.M.Grid.WallAt(w.At(5, 2))?.Id);
         Assert.Empty(w.M.Building.Cracks);
         Assert.Equal(Flora.Get("acacia").Yields, w.M.Items.Totals(0));
+        // Noted for the feller at the plant's own cell, to be shown (2026-11-06-head-tally).
+        Assert.Equal(Flora.Get("acacia").Yields.Select(y => (0, y.Item, y.Count, own)), w.M.Items.Gains.Select(g => (g.Peer, g.Item, g.Count, g.Cell)));
     }
 
     [Fact]

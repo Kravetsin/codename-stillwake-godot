@@ -3,14 +3,15 @@ using Stillwake.Content;
 
 namespace Stillwake.Game.Features.Pipes;
 
-/// <summary>A port as the piping shows it (2026-10-29-typed-ports): a socket in its fluid's colour, an arrow out of the machine or into it.</summary>
+/// <summary>A port as the piping shows it (2026-10-29-typed-ports): a socket in its fluid's colour, an arrow into it (&gt; o) or out of it (o &gt;).</summary>
 public static class Sockets
 {
-    /// <summary>The colour of a fluid's sockets, as 0xRRGGBB: air the canister's blue, water the cistern's teal.</summary>
+    /// <summary>The colour of a fluid's sockets, as 0xRRGGBB: air the canister's blue, water the cistern's teal, liquid oxygen pale blue.</summary>
     public static uint ColourOf(string fluid) => fluid switch
     {
         Fluids.Air => 0x7fc4f0,
         Fluids.Water => 0x2fa3b8,
+        Fluids.LiquidOxygen => 0xa8d8ff,
         _ => throw new ArgumentException($"no socket colour for fluid {fluid}"),
     };
 
@@ -25,4 +26,10 @@ public static class Sockets
         var (x, y) = Math.Abs(dx) >= Math.Abs(dy) && dx != 0 ? (Math.Sign(dx), 0) : (0, dy >= 0 ? 1 : -1);
         return port.Way == Way.Out ? (x, y) : (-x, -y);
     }
+
+    /// <summary>
+    /// Where a port's arrowhead has its tip, in pixels from its socket's middle along <see cref="ArrowOf"/>: past the socket for
+    /// one that gives (o &gt;), short of it for one that takes (&gt; o), so the head is always on the way the fluid comes from.
+    /// </summary>
+    public static int TipOf(Port port) => port.Way == Way.Out ? 8 : -5;
 }

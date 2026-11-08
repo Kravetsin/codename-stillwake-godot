@@ -62,7 +62,7 @@ public sealed class CreaturePose
         // Grazing: the head down, nibbling, up for a look every few seconds (the page's).
         double graze = s.Graze * Math.Clamp(1 - Math.Max(0, Math.Sin(clk / 1400) - 0.75) * 4, 0, 1);
         double nib = graze * Math.Max(0, Math.Sin(clk / 70)) * 0.07;
-        double bob = 0, roll = 0, rock = 0, bound = 0;
+        double bob = 0, rock = 0, bound = 0;
         Stretch = 0;
         switch (_design.Gait)
         {
@@ -76,20 +76,13 @@ public sealed class CreaturePose
                 rock = -_run.Rock * g * Math.Sin(reach * tau);
                 Stretch = -_run.Stretch * g * Math.Sin(ph * tau);
                 break;
-            case CreatureArt.Gait.Waddle:
-                bob = -Math.Abs(Math.Sin(ph * tau)) * 1.6 * walk * (1 - g);
-                roll = Math.Sin(ph * tau) * 0.09 * walk * (1 - g);
-                // Fleeing it bounds along in hops, one a stride: squashed on the ground, tall aloft, nose up rising and down falling.
-                bound = -_run.Bound * g * Math.Abs(Math.Sin(ph * Math.PI));
-                rock = -_run.Rock * g * Math.Sin(ph * tau);
-                Stretch = _run.Stretch * g * Math.Cos(ph * tau);
-                break;
             case CreatureArt.Gait.Hop:
                 bob = -Math.Abs(Math.Sin(ph * Math.PI)) * p.Hop * (1 + 0.2 * g) * walk;
                 break;
         }
-        double bodyA = (_design.Headless ? p.Graze * graze + nib * 0.5 : 0) + roll + rock;
+        double bodyA = (_design.Headless ? p.Graze * graze + nib * 0.5 : 0) + rock;
         var rig = _design.Rig;
+        double low = double.NegativeInfinity;
         for (int i = 0; i < rig.Count; i++)
         {
             var n = rig[i];
@@ -125,6 +118,15 @@ public sealed class CreaturePose
                     break;
             }
             Joints[i] = new Joint(a, x, y);
+            // A rigid leg swinging out would lift its foot: what the body must drop so the lowest foot stays on the ground.
+            if (n.Drive == CreatureArt.Drive.Leg) low = Math.Max(low, y + p.LegLen * (Math.Cos(a) - 1) + p.FootW * Math.Abs(Math.Sin(a)));
+        }
+        if (p.LegLen > 0 && low > double.NegativeInfinity)
+        {
+            // Standing on its feet in place of the fixed bob, walking and in a gallop's gathered moment; aloft it is left to bound.
+            double c = Math.Cos((ph - 0.25) * Math.PI * (_design.Gait == CreatureArt.Gait.Tripod ? 2 : 1)), plant = Math.Max(walk * (1 - g), g * c * c * c * c);
+            for (int i = 0; i < rig.Count; i++)
+                if (rig[i].Drive == CreatureArt.Drive.Body) Joints[i] = Joints[i] with { Y = bound - low * plant };
         }
         Eye = s.Eye < 0.3 ? EyeState.Blink : s.Eye > 1.2 ? EyeState.Wide : graze > 0.5 ? EyeState.Half : EyeState.Open;
         Look = s.Look ?? (graze > 0.5 ? (0.55, 0.83) : (0.98, 0.18));
@@ -141,12 +143,6 @@ public sealed class CreaturePose
                 {
                     double k = Math.Sin(ph * Math.PI) * walk;
                     return n.Hind ? (-0.75 * k, 0, 0) : (0.5 * k, 0, -k * 1.5);
-                }
-            case CreatureArt.Gait.Waddle:
-                {
-                    // Paws shuffle at a waddle; bounding, they tuck up under the body while it is aloft.
-                    double w = (ph + n.Phase) * tau, hop = Math.Abs(Math.Sin(ph * Math.PI)) * g;
-                    return (0, Math.Sin(w) * 1.2 * walk * (1 - g), -Math.Max(0, Math.Cos(w)) * p.Lift * walk * (1 - g) - hop * 1.5);
                 }
             default:
                 {

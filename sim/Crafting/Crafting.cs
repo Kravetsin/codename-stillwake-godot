@@ -9,9 +9,10 @@ namespace Stillwake.Sim.Crafting;
 
 /// <summary>
 /// Queues <c>Count</c> units of the craft making <c>Recipe</c> at station <c>Machine</c>: paid by the sender at once,
-/// or with <c>FromInputs</c> paid by nothing, each unit taking its cost from the station's inputs as it begins.
+/// or with <c>FromInputs</c> paid by nothing, each unit taking its cost from the station's inputs as it begins; with
+/// <c>Endless</c> too, repeating while they last, as <see cref="SetEndless"/> would set it.
 /// </summary>
-public sealed record Craft(int Machine, string Recipe, int Count, bool FromInputs = false) : Command;
+public sealed record Craft(int Machine, string Recipe, int Count, bool FromInputs = false, bool Endless = false) : Command;
 
 /// <summary>
 /// Takes entry <c>Entry</c> off station <c>Machine</c>'s queue, giving the sender what was paid for it and not made: a
@@ -163,10 +164,11 @@ public sealed partial class CraftingModule : Module<CraftingState>, ICraftingQue
     private string? CraftProblem(Craft c)
     {
         if (StationOf(c.Machine) is not { } station) return "crafting.noStation";
-        if (!Content.Crafts.TryGet(c.Recipe, out var craft) || !_research.Knows(c.Recipe)) return "crafting.unknown";
+        if (!Content.Crafts.TryGet(c.Recipe, out var craft) || !_research.Knows(c.From, c.Recipe)) return "crafting.unknown";
         if (!Makes(station, c.Recipe)) return "crafting.notHere";
         if (Queue(c.Machine).Count >= station.QueueMost) return "crafting.full";
-        if (!c.FromInputs) return _items.ShortOf(c.From, Times(craft.Cost, c.Count));
+        if (c.Endless && !c.FromInputs) return "crafting.paid";
+        if (!c.FromInputs) return _items.ShortOfStock(c.From, Times(craft.Cost, c.Count));
         // The pod is paid by hand by design (0057): with no inputs, an entry fed from them would wait for ever; the arc bench's
         // one input is its tool's (0099).
         var spec = Content.Machines.Get(station.Machine);
@@ -176,8 +178,8 @@ public sealed partial class CraftingModule : Module<CraftingState>, ICraftingQue
     private void ApplyCraft(Craft c)
     {
         var queue = QueueOf(c.Machine) ?? Added(c.Machine);
-        if (!c.FromInputs) _itemsOps.Take(c.From, Times(Content.Crafts.Get(c.Recipe).Cost, c.Count));
-        queue.Entries.Add(new Entry(queue.Next, c.Recipe, c.Count, c.From, c.FromInputs));
+        if (!c.FromInputs) _itemsOps.TakeStock(c.From, Times(Content.Crafts.Get(c.Recipe).Cost, c.Count));
+        queue.Entries.Add(new Entry(queue.Next, c.Recipe, c.Count, c.From, c.FromInputs, c.FromInputs && c.Endless));
         queue.Next += 1;
     }
 
@@ -187,7 +189,7 @@ public sealed partial class CraftingModule : Module<CraftingState>, ICraftingQue
         if (station.Fed) return "crafting.notHere";
         var queue = QueueOf(c.Machine);
         int at = queue?.Entries.FindIndex(e => e.Id == c.Entry) ?? -1;
-        return at >= 0 ? _items.FullFor(c.From, Refund(queue!, at)) : "crafting.noEntry";
+        return at >= 0 ? _items.FullForStock(c.From, Refund(queue!, at)) : "crafting.noEntry";
     }
 
     private void ApplyCancel(Cancel c)
@@ -199,7 +201,7 @@ public sealed partial class CraftingModule : Module<CraftingState>, ICraftingQue
         // The unit at work is given back with the rest: the next entry starts from nothing.
         if (at == 0) queue.Progress = 0;
         // To whoever cancels, not whoever paid: friends share a ship, and no record of who paid is kept.
-        _itemsOps.Give(c.From, refund);
+        _itemsOps.GiveStock(c.From, refund);
     }
 
     private string? EndlessProblem(SetEndless c)

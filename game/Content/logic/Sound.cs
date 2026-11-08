@@ -67,12 +67,22 @@ public static class Sound
     /// Effects, World (every hero's steps, machines, air, doors: silenced while floating), Suit (what this
     /// player's hero itself touches: an action's sound, its own axe's chop and drill, a wreck its hit breaks, its harpoon, its
     /// jetpack, a canister breathed; heard through the body, dulled while floating, a little louder there) and Helmet (the
-    /// suit's alarm, in the helmet's air: always clear). Settings will set Master, Effects, Ambient, UI and Music; World, Suit and Helmet are the
-    /// hearing's (0033, 0042). Ambient waits for the first ambience: the ship's hum comes from its vents
+    /// suit's alarm, in the helmet's air: always clear). The player's settings set Master, Effects and Music (<see cref="Volumed"/>); World, Suit and Helmet are the
+    /// hearing's (0033, 0042); UI carries only the click, quieted with Master. Ambient waits for the first ambience: the ship's hum comes from its vents
     /// and fires, in the world.
     /// </summary>
     public const string Master = "Master", Ui = "UI", Ambient = "Ambient", Effects = "Effects", World = "World", Suit = "Suit", Helmet = "Helmet", Music = "Music";
     public static readonly IReadOnlyList<string> Buses = [Master, Ui, Ambient, Effects, World, Suit, Helmet, Music];
+
+    /// <summary>The buses the player sets in Settings, in the order their sliders show (settings-menu).</summary>
+    public static readonly IReadOnlyList<string> Volumed = [Master, Effects, Music];
+
+    /// <summary>
+    /// A volume slider's steps: <see cref="VolumeSteps"/> is today's mix (0 dB) and the default, each step down
+    /// <see cref="VolumeStepDb"/> quieter, 0 silent. Even steps in dB sound even to the ear, unlike even steps in amplitude.
+    /// </summary>
+    public const int VolumeSteps = 10;
+    public const float VolumeStepDb = 3;
 
     /// <summary>A boot on the hollow metal deck, at each half stride walking or running.</summary>
     public static readonly Cue Step = new(Shots("crew/step", 6), -12, Heard: new(8, 36));
@@ -170,6 +180,54 @@ public static class Sound
     public const double DrillTouchHoldS = 0.1;
 
     /// <summary>
+    /// The power driver's motor while it runs at its work (power-driver), the user's pick «Винт в металл: петля», heard where it works on
+    /// the World bus, as the screwdriver's ratchet it stands in for: the screw biting once (<see cref="PowerDriverBiteS"/> long), then
+    /// its strained stretch looped till it stops, then the motor running down. Levelled as the drill's whir, at <see cref="ToolIdleDb"/>.
+    /// </summary>
+    public static readonly Cue PowerDriverBite = new(Shots("building/power-driver-bite", 1), ToolIdleDb, Pitch: 0.03f, Heard: Screwdriver.Heard);
+    public static readonly Cue PowerDriverLoop = new(["res://audio/building/power-driver-loop-1.ogg"], ToolIdleDb, Loops: true, Heard: Screwdriver.Heard);
+    public static readonly Cue PowerDriverOff = new(Shots("building/power-driver-off", 1), ToolIdleDb, Pitch: 0.03f, Heard: Screwdriver.Heard);
+
+    /// <summary>
+    /// The power driver's timing, in seconds: its bite's length, the loop taking over as it ends; how long its work may lapse
+    /// before it runs down, so a frame without a plan does not break it; how long the plans by it keep the ratchet silent after,
+    /// as the last work sent still lands; and how fast the bite and the loop fade as it lets go.
+    /// </summary>
+    public const double PowerDriverBiteS = 0.8, PowerDriverHoldS = 0.1, PowerDriverQuietS = 0.4, PowerDriverFadeS = 0.12;
+
+    /// <summary>
+    /// The grinder (salvage-tools), the user's picks, heard at its wheel on the Suit bus as the drill's whir: a loop of one running
+    /// free, spun up, down and loaded as the drill's motor (<see cref="DrillMotor"/>); its wheel biting into metal as it comes on
+    /// what it grinds, again every <see cref="GrinderBiteEveryS"/> while it stays on. Levelled as the power driver's, at <see cref="ToolIdleDb"/>.
+    /// </summary>
+    public static readonly Cue GrinderRun = new(["res://audio/crew/grinder-run-1.ogg"], ToolIdleDb, Loops: true, Heard: ToolReach);
+    public static readonly Cue GrinderBite = new(Shots("crew/grinder-bite", 1), ToolIdleDb, Pitch: 0.05f, Heard: ToolReach);
+    public const double GrinderBiteEveryS = 0.6;
+
+    /// <summary>
+    /// The plasma cutter's jet (salvage-tools), the user's picks, at its nozzle on the Suit bus: struck as it starts to run, its hiss
+    /// looped while it runs, cut off as it stops; no motor, the jet is full at once. Levelled as the power driver's, at <see cref="ToolIdleDb"/>.
+    /// </summary>
+    public static readonly Cue CutterStrike = new(Shots("crew/cutter-strike", 1), ToolIdleDb, Pitch: 0.04f, Heard: ToolReach);
+    public static readonly Cue CutterRun = new(["res://audio/crew/cutter-run-1.ogg"], ToolIdleDb, Loops: true, Heard: ToolReach);
+    public static readonly Cue CutterOff = new(Shots("crew/cutter-off", 1), ToolIdleDb, Pitch: 0.04f, Heard: ToolReach);
+
+    /// <summary>Whether a wreck hit by the electric <paramref name="tool"/> is heard as the chop: the drill's; the grinder's bite and the cutter's jet are their own.</summary>
+    public static bool ChopsWrecks(string? tool) => tool != Content.Weapons.Grinder.Item && tool != Content.Weapons.PlasmaCutter.Item;
+
+    /// <summary>
+    /// The sledgehammer's and the spear's whooshes (salvage-tools), the user's picks «slow stick» and «bamboo», levelled as the axe's
+    /// swing at <see cref="ToolIdleDb"/>, their loudest 10 ms <see cref="HammerSwingPeakS"/> and <see cref="SpearThrustPeakS"/> in.
+    /// </summary>
+    public static readonly Cue HammerSwing = new(Shots("crew/hammer-swing", 1), ToolIdleDb, Pitch: 0.06f);
+    public static readonly Cue SpearThrust = new(Shots("crew/spear-thrust", 1), ToolIdleDb, Pitch: 0.08f);
+    public const double HammerSwingPeakS = 0.22, SpearThrustPeakS = 0.104;
+
+    /// <summary>The whoosh of a stroke of <paramref name="tool"/>: the sledgehammer's and the spear's their own, any other the axe's.</summary>
+    public static Cue SwingOf(string? tool) =>
+        tool == Content.Weapons.Sledgehammer.Item ? HammerSwing : tool == Content.Weapons.Spear.Item ? SpearThrust : Swing;
+
+    /// <summary>
     /// The Former's press (0059), where it stands, on the World bus: a 10-ton punch press's stroke, once each time its head comes
     /// down in its pictures (every 0.44 s at its 4 × 110 ms), each its pitch scale within ±<see cref="FormerStrokePitch"/> and its
     /// volume within ±<see cref="FormerStrokeVolumeDb"/>. Soft, 3 dB over its motor, so it tells the press works without pounding.
@@ -207,6 +265,13 @@ public static class Sound
     /// </summary>
     public static readonly Cue Thrust = new(["res://audio/crew/thrust-1.ogg"], 3, Loops: true);
     public const double ThrustAttackS = 0.04, ThrustReleaseS = 0.14;
+
+    /// <summary>
+    /// A salvage drone's nozzles (salvage-drones): the jetpack's loop, reused, where the drone is while it is out of its bay, on
+    /// the World bus with a station's reach; rising and falling as the jetpack's does. Far quieter: no suit muffles it, and
+    /// −14 dB is a guess an ear has yet to tune. It has no rotors, so no <see cref="DroneWhir"/>.
+    /// </summary>
+    public static readonly Cue SalvageThrust = new(["res://audio/crew/thrust-1.ogg"], -14, Loops: true, Heard: StationReach);
 
     /// <summary>
     /// A charging station's hum while it charges (0053): a warm 50 Hz with its harmonics under a 500 Hz low-pass,
@@ -257,6 +322,9 @@ public static class Sound
     public static readonly Cue RelicHum = new(["res://audio/power/charger-hum-1.ogg"], -14, Pitch: 0, Loops: true, Heard: new(6, 28), Tune: 1.5f);
 
     /// <summary>A battery in a charging station come full: one soft blip, where the station stands.</summary>
+    /// <summary>A trade station's capsule thrown off: a door's thud, low.</summary>
+    public static readonly Cue CapsuleOff = DoorClose with { Tune = 0.6f };
+
     public static readonly Cue ChargeFull = new(Shots("power/charge-full", 1), -10, Pitch: 0, Heard: new(8, 32));
     /// <summary>How far something breaking carries: a wreck, a cell of ground, a tree or a ruin's piece. Full within 12 cells, gone at 56.</summary>
     public static readonly Reach BreakReach = new(12, 56);
@@ -272,6 +340,18 @@ public static class Sound
 
     /// <summary>A wreck breaking apart under this player's last hit, in place of its chop: on the Suit bus as the chop is, and heard farther.</summary>
     public static readonly Cue Break = new(Shots("debris/break", 3), -2, Heard: BreakReach);
+
+    /// <summary>
+    /// A wreck hit by this player's spear or sledgehammer (salvage-tools), the user's picks, in place of the chop: the spear's point a
+    /// knife on a beam, levelled as the chop; the sledgehammer's blow a big metal hit, levelled as the break and played with it too as
+    /// it breaks one.
+    /// </summary>
+    public static readonly Cue SpearHit = new(Shots("debris/spear-hit", 1), -2, Pitch: 0.1f, Heard: ToolReach);
+    public static readonly Cue HammerBlow = new(Shots("debris/hammer-blow", 1), -2, Pitch: 0.06f, Heard: BreakReach);
+
+    /// <summary>A wreck hit by this player's <paramref name="tool"/>: the spear's point, the sledgehammer's blow, any other the chop.</summary>
+    public static Cue WreckHitOf(string? tool) =>
+        tool == Content.Weapons.Sledgehammer.Item ? HammerBlow : tool == Content.Weapons.Spear.Item ? SpearHit : Chop;
 
     /// <summary>
     /// A planet's ground and what grows on it, hit and broken (0093): each file levelled as the audition played it under the axe's
@@ -328,11 +408,29 @@ public static class Sound
     public static readonly double LavaBurnEveryS = (double)Stillwake.Content.Crew.BreathEvery / Stillwake.Sim.World.TicksPerSecond;
 
     /// <summary>
+    /// The hero's own «oof» on each of its hurts (2026-11-08-hurts-are-shown), under the source's own sound: the user's pick, three
+    /// takes of one voice a few tones apart, never one twice running, each ±10% in pitch so a train of them never repeats. Heard in the helmet.
+    /// </summary>
+    public static readonly Cue Hurt = new(Shots("crew/hurt", 3), -6, Pitch: 0.1f);
+
+    /// <summary>
     /// A drip off a stalactite landing in a cave (0080), where it splashes: a water drop, at most one every
     /// <see cref="CaveDripLeastS"/> to <see cref="CaveDripMostS"/> s however many fall, up to <see cref="CaveDripLowDb"/> under its cue's.
     /// </summary>
     public static readonly Cue CaveDrip = new(Shots("flora/cave-drip", 2), -9, Pitch: 0.08f, Heard: new(8, 32));
     public const double CaveDripLeastS = 0.5, CaveDripMostS = 2.2;
+
+    /// <summary>
+    /// Water (liquids, the user's picks): a splash as a hero goes in and as it comes out, at most one every <see cref="SplashGapS"/>
+    /// so bobbing at the surface does not chatter; a stroke every <see cref="StrokeEveryS"/> while it swims and moves; and one
+    /// pouring loop at the stream nearest the view's middle within <see cref="PourReach"/> cells.
+    /// </summary>
+    public static readonly Cue SplashIn = new(Shots("crew/splash-in", 1), -8, Pitch: 0.08f, Heard: new(8, 36));
+    public static readonly Cue SplashOut = new(Shots("crew/splash-out", 1), -8, Pitch: 0.08f, Heard: new(8, 36));
+    public static readonly Cue SwimStroke = new(Shots("crew/swim-stroke", 1), -14, Pitch: 0.1f, Heard: new(8, 32));
+    public static readonly Cue WaterPour = Looped("grid/water-pour", -6, new(6, 24));
+    public const double SplashGapS = 0.4, StrokeEveryS = 0.55;
+    public const int PourReach = 24;
     public const float CaveDripLowDb = -10;
 
     /// <summary>
@@ -349,15 +447,14 @@ public static class Sound
     };
 
     /// <summary>
-    /// A natural wall hit by any tool and broken out, by its material: soil and stone their own, the homes' plaster as stone, the
-    /// ruins' alloy as a wreck's metal (<see cref="Chop"/>, <see cref="Break"/>). Bedrock and lava never break, so never sound.
+    /// A natural wall hit by any tool and broken out, by its material: soil and stone their own, a vein as the stone it runs in
+    /// (<c>Material.In</c>), the homes' plaster as stone, the ruins' alloy as a wreck's metal (<see cref="Chop"/>, <see cref="Break"/>).
+    /// Bedrock and lava never break, so never sound.
     /// </summary>
     public static readonly IReadOnlyDictionary<string, (Cue Hit, Cue Break)> Ground = new Dictionary<string, (Cue, Cue)>
     {
         ["soil"] = (HitSoil, BreakSoil),
         ["stone"] = (HitStone, BreakStone),
-        ["copperVein"] = (HitStone, BreakStone),
-        ["iceVein"] = (HitStone, BreakStone),
         ["plaster"] = (HitStone, BreakStone),
         ["alloy"] = (Chop, Break),
     };
@@ -401,7 +498,7 @@ public static class Sound
             Glowcap with { Tune = 0.8f, Pitch = 0.12f },
             LandSoft with { VolumeDb = -3, Tune = 1.35f, Pitch = 0.1f, Heard = ToolReach },
             CreatureDeath),
-        // The sixleg the loper's; the heavier tapir lower, the small fluff higher (placeholders all).
+        // The sixleg the loper's; the heavier tapir lower (placeholders all).
         [Stillwake.Content.Creatures.Sixleg.Id] = (
             Glowcap with { Tune = 0.8f, Pitch = 0.12f },
             LandSoft with { VolumeDb = -3, Tune = 1.35f, Pitch = 0.1f, Heard = ToolReach },
@@ -410,10 +507,15 @@ public static class Sound
             Glowcap with { Tune = 0.68f, Pitch = 0.1f },
             LandSoft with { VolumeDb = -2, Tune = 1.1f, Pitch = 0.1f, Heard = ToolReach },
             CreatureDeath with { Tune = 0.88f }),
-        [Stillwake.Content.Creatures.Fluff.Id] = (
-            Glowcap with { Tune = 1.0f, Pitch = 0.14f },
-            LandSoft with { VolumeDb = -5, Tune = 1.6f, Pitch = 0.12f, Heard = ToolReach },
-            CreatureDeath with { Tune = 1.15f }),
+        // The cave lurkers (2026-11-07-cave-hostiles), placeholders: the capback the loper's, the snail's shell struck as stone.
+        [Stillwake.Content.Creatures.Capback.Id] = (
+            Glowcap with { Tune = 0.8f, Pitch = 0.12f },
+            LandSoft with { VolumeDb = -3, Tune = 1.35f, Pitch = 0.1f, Heard = ToolReach },
+            CreatureDeath),
+        [Stillwake.Content.Creatures.GeodeSnail.Id] = (
+            HitStone,
+            LandSoft with { VolumeDb = -3, Tune = 1.1f, Pitch = 0.1f, Heard = ToolReach },
+            CreatureDeath with { Tune = 0.8f }),
     };
 
     /// <summary>
@@ -441,16 +543,38 @@ public static class Sound
     };
 
     /// <summary>
-    /// A creature's hit on a hero, by the creature (0103): a ram's heavy thud, but the sentry's pounce, a metal gauntlet's punch.
-    /// This player's own on Suit, a friend's on World.
+    /// An Istukan's sounds (the warden, its audition page's picks): waking, taking the hero in, its crouch's hydraulics, its leap,
+    /// coming to rest (a hero's landing on alloy), a blow on it (a tool on alloy), killed, and shut down with its relic or wall gone.
+    /// All on the World bus: a planet has air.
+    /// </summary>
+    public sealed record IstukanCues(Cue Wake, Cue Alert, Cue WindUp, Cue Pounce, Cue Land, Cue Hit, Cue Killed, Cue ShutDown);
+
+    /// <summary>Each species drawn as the Istukan (<c>CreatureLooks.Istukans</c>): its cues, levelled as the sentry's.</summary>
+    public static readonly IReadOnlyDictionary<string, IstukanCues> Istukans = new Dictionary<string, IstukanCues>
+    {
+        [Stillwake.Content.Creatures.Warden.Id] = new(
+            Wake: new(Shots("creatures/warden-wake", 1), -1.5f, Heard: ToolReach),
+            Alert: new(Shots("creatures/warden-alert", 1), -1.5f, Heard: ToolReach),
+            WindUp: new(Shots("creatures/warden-windup", 1), -1.5f, Heard: ToolReach),
+            Pounce: new(Shots("creatures/warden-pounce", 1), -1.5f, Heard: ToolReach),
+            Land: LandAlloy,
+            Hit: Ground["alloy"].Hit,
+            Killed: new(Shots("creatures/warden-death", 1), -1.5f, Heard: BreakReach),
+            ShutDown: new(Shots("creatures/warden-shutdown", 1), -1.5f, Heard: BreakReach)),
+    };
+
+    /// <summary>
+    /// A creature's hit on a hero, by the creature (0103): a ram's heavy thud, but the sentry's pounce, a metal gauntlet's punch, and
+    /// the warden's, a boxer's. This player's own on Suit, a friend's on World.
     /// </summary>
     public static readonly IReadOnlyDictionary<string, Cue> RamHits = new Dictionary<string, Cue>
     {
         [Stillwake.Content.Creatures.Sentry.Id] = new(Shots("creatures/sentry-punch", 1), -1.5f, Heard: ToolReach),
+        [Stillwake.Content.Creatures.Warden.Id] = new(Shots("creatures/warden-punch", 1), -1.5f, Heard: ToolReach),
     };
 
     /// <summary>The growths with no sound of their own: in the rock, gone with their stone; or fixed, never felled.</summary>
-    public static readonly IReadOnlyList<string> Unheard = ["moss", "mica", "heatCrack", "fossil", "rubble", "mural", "crack"];
+    public static readonly IReadOnlyList<string> Unheard = ["moss", "mica", "heatCrack", "fossil", "rubble", "mural", "crack", Stillwake.Content.Ruins.PostLeft, Stillwake.Content.Ruins.PostRight];
 
     private static Dictionary<string, (Cue? Hit, Cue Fall)> Sounding(params (string[] Kinds, Cue? Hit, Cue Fall)[] groups) =>
         groups.SelectMany(g => g.Kinds.Select(kind => (kind, g.Hit, g.Fall))).ToDictionary(k => k.kind, k => (k.Hit, k.Fall));
@@ -498,13 +622,22 @@ public static class Sound
     public static readonly Cue ArcHit = new(Shots("creatures/sentry-arc-hit", 1), -1.5f, Heard: ToolReach);
 
     /// <summary>
+    /// The cave lurkers' attacks (lurker-attacks), the user's picks: a capback venting its gas or spitting its glob, a valve's hiss
+    /// (<see cref="CapbackHiss"/>); its glob landing, a splat of slime (<see cref="CapbackSplat"/>); a geode snail's shut shell struck,
+    /// a pick on rock (<see cref="ShellClink"/>), in place of its hit.
+    /// </summary>
+    public static readonly Cue CapbackHiss = new(Shots("creatures/capback-hiss", 1), -7, Heard: ToolReach);
+    public static readonly Cue CapbackSplat = new(Shots("creatures/capback-splat", 1), -5, Heard: ToolReach);
+    public static readonly Cue ShellClink = new(Shots("creatures/snail-shell-clink", 1), -4, Pitch: 0.08f, Heard: ToolReach);
+
+    /// <summary>
     /// A canister breathed into the suit (0047): air filling it, half a second of hiss rising fast and falling away, its
     /// band climbing as it fills. This player's own on the Helmet bus, in the helmet's air, so floating out in space never
     /// muffles it away (on Suit its band was all but cut there); a friend's on World where its hero is, a tool's reach.
-    /// Played at about −20 dB RMS over 100 ms, the alarm's −17, well over the bed of space; a click peaks −15 dBFS. A
+    /// Played at about −29 dB RMS over 100 ms, under the alarm's −17: at −20 it grated at the 2026-11-06 playtest. A
     /// placeholder synthesised in code until the audition's pick takes its file.
     /// </summary>
-    public static readonly Cue AirFill = new(Shots("crew/air-fill", 1), -6, Heard: ToolReach);
+    public static readonly Cue AirFill = new(Shots("crew/air-fill", 1), -15, Heard: ToolReach);
 
     /// <summary>
     /// This player's hero breathing room air again, out of thin air or vacuum (0081): one soft inhale in the helmet, under
@@ -567,10 +700,10 @@ public static class Sound
     /// <summary>The descent's cues, made from others declared above.</summary>
     public static readonly IReadOnlyList<Cue> Pod = [PodThrust, PodRelease, PodTouchdown, PodRumble, PodFlash, PodBlast];
 
-    public static readonly IReadOnlyList<Cue> All = [Title, Space, Step, Land, Jump, Alarm, Screwdriver, Hiss, Click, Clink, VentHum, DoorOpen, DoorClose, Valve, Act, ActInSpace, Fire, Swing, Chop, Break, Shot, Drum, Ready, NailShot, DryClick, NailHit, NailReady, RailCharge, RailReady, RailShot, ArcStruck, ArcHit, AirFill, Inhale, Thrust, ChargerHum, ChargeFull, DrillWhir, FormerStroke, FormerMotor, SmelterHum, SmelterCrackle, DroneWhir, DroneDock, DroneGrab, MusicBox, Zap,
+    public static readonly IReadOnlyList<Cue> All = [Title, Space, Step, Land, Jump, Alarm, Screwdriver, PowerDriverBite, PowerDriverLoop, PowerDriverOff, Hiss, Click, Clink, VentHum, DoorOpen, DoorClose, Valve, Act, ActInSpace, Fire, Swing, Chop, Break, Shot, Drum, Ready, NailShot, DryClick, NailHit, NailReady, RailCharge, RailReady, RailShot, ArcStruck, ArcHit, CapbackHiss, CapbackSplat, ShellClink, Hurt, AirFill, Inhale, Thrust, ChargerHum, ChargeFull, DrillWhir, FormerStroke, FormerMotor, SmelterHum, SmelterCrackle, DroneWhir, DroneDock, DroneGrab, SalvageThrust, MusicBox, Zap,
         StepGrass, StepSoil, StepStone, StepAlloy, LandSoft, LandHard, LandAlloy, HitSoil, HitStone, BreakSoil, BreakStone,
         ChopWood, TreeFall, Bush, Grass, Crystal, Glowcap, WoodBreak, ClothTear, GlassBreak, MetalBreak, CeramicBreak, LavaBed,
-        LavaBubble, LavaBurn, CaveDrip, CreatureDeath, .. Ticks.Values.SelectMany(t => new[] { t.Alert, t.WindUp, t.Unclamp, t.Clamp, t.Snap, t.Death }), .. RamHits.Values, .. Pod];
+        LavaBubble, LavaBurn, CaveDrip, SplashIn, SplashOut, SwimStroke, WaterPour, CreatureDeath, .. Ticks.Values.SelectMany(t => new[] { t.Alert, t.WindUp, t.Unclamp, t.Clamp, t.Snap, t.Death }), .. Istukans.Values.SelectMany(g => new[] { g.Wake, g.Alert, g.WindUp, g.Pounce, g.Killed, g.ShutDown }), .. RamHits.Values, .. Pod];
     // StepMoss and BushSoft play StepGrass's and Bush's files quieter: the sound board has those.
 
     /// <summary>The suit's alarm beeps this often, in seconds, while it runs low out of air.</summary>

@@ -1,3 +1,5 @@
+using Stillwake.Content;
+
 namespace Stillwake.Sim.Debris;
 
 public sealed partial class DebrisModule
@@ -7,9 +9,17 @@ public sealed partial class DebrisModule
     /// small piece, whichever is drawn — else one already gone or never spawned. Most are refused, as few
     /// fuzzed heroes stand in space; those that are not take the piece, chop at the wreck till it breaks,
     /// or reel it to a point anywhere from a grid's size before the grid to one past it, so the clamp works.
+    /// A quarter of the draws instead collect from a debris net, mostly one that stands, else any machine id or none: on a map
+    /// without nets, refused.
     /// </summary>
     public override Command? Fuzz(Rng rng, int from)
     {
+        if (rng.Below(4) == 0)
+        {
+            var nets = _grid.MachinesWith(MachineTrait.Catches);
+            int net = nets.Count > 0 && rng.Below(4) != 0 ? nets[(int)rng.Below((uint)nets.Count)].Id : (int)rng.Below((uint)_grid.Machines.Count + 2);
+            return new Collect(net) { From = from };
+        }
         var pieces = State.Pieces;
         uint kind = rng.Below(3);
         int piece = pieces.Count > 0 && rng.Below(4) != 0
@@ -23,6 +33,8 @@ public sealed partial class DebrisModule
             int at = IndexOf(piece);
             int x = at >= 0 ? pieces[at].X : (int)rng.Below((ulong)(_grid.Width * Unit));
             int y = at >= 0 ? pieces[at].Y : (int)rng.Below((ulong)(_grid.Height * Unit));
+            // Half the time a running tool's edge on it (tool-edge): the piece twice, a neighbour id, any other, small or gone.
+            if (rng.Below(2) == 0) return new HewPieces(tool, new List<int> { piece, piece, piece + 1, (int)rng.Below((uint)State.NextId + 2) }) { From = from };
             return new HewWrecks(tool, x, y, (int)rng.Below(Content.Headings.Turn)) { From = from };
         }
         if (kind == 1) return new Grab(piece) { From = from };

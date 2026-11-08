@@ -9,26 +9,29 @@ public class StarTilesTests
 {
     private const int S = StarTiles.Size;
 
-    [Fact]
-    public void TilesPutBackTogetherAreTheFieldTheirPaddingEmpty()
+    // Four bytes a cell of starlight, one of the cells a light stops at.
+    [Theory]
+    [InlineData(4)]
+    [InlineData(1)]
+    public void TilesPutBackTogetherAreTheFieldTheirPaddingEmpty(int bytes)
     {
         var region = new Box(-8, -8, S + 40, 2 * S + 3);
         int w = region.Width, h = region.Height;
-        var texels = new byte[w * h * 4];
+        var texels = new byte[w * h * bytes];
         new Random(4).NextBytes(texels);
         Assert.Equal((2, 3), StarTiles.Of(region));
-        var tile = new byte[S * S * 4];
+        var tile = new byte[S * S * bytes];
         Array.Fill(tile, (byte)7);
         for (int layer = 0; layer < 6; layer++)
         {
-            StarTiles.Copy(texels, region, layer, tile);
+            StarTiles.Copy(texels, bytes, region, layer, tile);
             int x0 = layer % 2 * S, y0 = layer / 2 * S;
             for (int y = 0; y < S; y++)
                 for (int x = 0; x < S; x++)
-                    for (int c = 0; c < 4; c++)
+                    for (int c = 0; c < bytes; c++)
                     {
-                        byte expected = x0 + x < w && y0 + y < h ? texels[((y0 + y) * w + x0 + x) * 4 + c] : (byte)0;
-                        Assert.Equal(expected, tile[(y * S + x) * 4 + c]);
+                        byte expected = x0 + x < w && y0 + y < h ? texels[((y0 + y) * w + x0 + x) * bytes + c] : (byte)0;
+                        Assert.Equal(expected, tile[(y * S + x) * bytes + c]);
                     }
         }
     }

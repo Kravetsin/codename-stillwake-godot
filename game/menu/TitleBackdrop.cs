@@ -18,31 +18,17 @@ public partial class TitleBackdrop : CanvasLayer
     private static readonly Color Space = new("03050a");
     private static readonly Color Cold = new(0.46f, 0.52f, 0.68f), Red = new(1f, 0.22f, 0.16f);
 
-    /// <summary>The plate's shades: shadow, body, lit top, rivet, seam, rib, the dark inside its frame, wire.</summary>
-    private static readonly Dictionary<PlatePixel, Color> Shades = new()
-    {
-        [PlatePixel.Shadow] = new("141923"),
-        [PlatePixel.Body] = new("2c3443"),
-        [PlatePixel.Lit] = new("56627a"),
-        [PlatePixel.Rivet] = new("6f7c94"),
-        [PlatePixel.Seam] = new("1c222e"),
-        [PlatePixel.Rib] = new("2a3242"),
-        [PlatePixel.Frame] = new("0c1017"),
-        [PlatePixel.Wire] = new("3a3f4c"),
-    };
-
     /// <summary>How long the lamp's blink takes, on and off, and how much of it it is lit, in seconds.</summary>
     private const double BlinkSeconds = 3.4, LitSeconds = 0.7;
 
     private readonly Node2D _scene = new(), _behind = new(), _plate = new();
     private readonly Sprite2D _stars = Stars.Sky();
     private readonly Figure _hero = new(Suits.All[0], own: false);
-    private readonly Line2D _tether = new() { Width = 1, DefaultColor = new Color("2a3140"), Antialiased = false };
+    private readonly Line2D _tether = new() { Width = 1, DefaultColor = new Color("2a3140"), Antialiased = true };
     private readonly Sprite2D _lamp = new();
     /// <summary>The lamp's light round it, where the lamp is.</summary>
     private readonly Node2D _glowAt = new();
     private readonly ColorRect _glow = Dither.Glow(Red, 96);
-    private readonly PlateArt _art = PlateArt.Of(7);
     private readonly List<(Drifter Path, double From, Node2D Drawn, Figure? Figure)> _drifting = [];
     private readonly Random _rng = new();
     private double _seconds, _nextDrifter = TitleScene.FirstDrifter, _nextShard, _look = TitleScene.HeadHangs;
@@ -56,10 +42,10 @@ public partial class TitleBackdrop : CanvasLayer
         AddChild(space);
         AddChild(_stars);
         AddChild(_scene);
-        _scene.TextureFilter = CanvasItem.TextureFilterEnum.Nearest;
+        _scene.TextureFilter = CanvasItem.TextureFilterEnum.Linear;
         _scene.AddChild(_behind);
         _scene.AddChild(_plate);
-        var plate = new Sprite2D { Texture = PlateTexture(_art), Centered = false, Position = new Vector2(-_art.Width / 2f, -_art.Height / 2f) };
+        var plate = new Sprite2D { Texture = HiRes.Texture(HiRes.Load("title_plate")!), Centered = false, Position = new Vector2(-PlateArt.Width / 2f, -PlateArt.Height / 2f) };
         _lamp.Texture = Dot();
         _plate.AddChild(plate);
         _plate.AddChild(_tether);
@@ -73,7 +59,7 @@ public partial class TitleBackdrop : CanvasLayer
     }
 
     /// <summary>A pixel of the plate, from its top-left, in the plate's own frame about its middle.</summary>
-    private Vector2 OnPlate((int X, int Y) pixel) => new(pixel.X - _art.Width / 2f, pixel.Y - _art.Height / 2f);
+    private Vector2 OnPlate((int X, int Y) pixel) => new(pixel.X - PlateArt.Width / 2f, pixel.Y - PlateArt.Height / 2f);
 
     public override void _Process(double delta)
     {
@@ -93,7 +79,7 @@ public partial class TitleBackdrop : CanvasLayer
         // The lamp: off, a quick flare, a slow fade; its red on the hero as it burns.
         double phase = _seconds % BlinkSeconds;
         float lit = phase < LitSeconds ? (float)Math.Sin(phase / LitSeconds * Math.PI) : 0;
-        var lamp = OnPlate(_art.Lamp) + new Vector2(0, -1);
+        var lamp = OnPlate(PlateArt.Lamp) + new Vector2(0, -1);
         _lamp.Position = lamp;
         _lamp.Modulate = new Color(0.35f, 0.08f, 0.06f).Lerp(Red, lit);
         _glowAt.Position = lamp;
@@ -112,7 +98,7 @@ public partial class TitleBackdrop : CanvasLayer
         }
         // The hero's head hangs; it lifts a little, slowly, to an astronaut going by before it, and sinks again.
         double look = TitleScene.HeadHangs - TitleScene.HeadSighs * Poses.Sigh(_seconds * 1000);
-        var seat = OnPlate(_art.Seat) * TitleScene.PlateScale + _plate.Position;
+        var seat = OnPlate(PlateArt.Seat) * TitleScene.PlateScale + _plate.Position;
         for (int i = _drifting.Count - 1; i >= 0; i--)
         {
             var (path, from, drawn, figure) = _drifting[i];
@@ -129,7 +115,7 @@ public partial class TitleBackdrop : CanvasLayer
             if (x > seat.X + 20 && x < seat.X + 260) look = Math.Min(look, Math.Max(TitleScene.HeadLifts, Poses.HeadTurn(x - seat.X, y - (seat.Y - Rig.Neck))));
         }
         _look += (look - _look) * (1 - Math.Exp(-delta / TitleScene.HeadSeconds));
-        _hero.OnPixels = OnPlate(_art.Seat);
+        _hero.OnPixels = OnPlate(PlateArt.Seat);
         _hero.Show(new Hero(0, 0, 0, 0, false, 1), Pose.Sit, _look, false, delta * 1000);
         Tether();
     }
@@ -137,8 +123,8 @@ public partial class TitleBackdrop : CanvasLayer
     /// <summary>The tether from the hero's belt to its ring on the plate, hanging slack and stirring.</summary>
     private void Tether()
     {
-        var belt = OnPlate(_art.Seat) + new Vector2(-2, -(float)(Rig.Hip * 0.15));
-        var ring = OnPlate(_art.Anchor);
+        var belt = OnPlate(PlateArt.Seat) + new Vector2(-2, -(float)(Rig.Hip * 0.15));
+        var ring = OnPlate(PlateArt.Anchor);
         const int points = 14;
         var line = new Vector2[points];
         float sag = 7 + 1.5f * Mathf.Sin((float)_seconds * 0.7f);
@@ -172,8 +158,8 @@ public partial class TitleBackdrop : CanvasLayer
         var points = new Vector2[outline.Length];
         for (int i = 0; i < outline.Length; i++) points[i] = new Vector2((float)outline[i].X, (float)outline[i].Y);
         float shade = (float)(0.25 + 0.75 * path.Depth);
-        var shard = new Polygon2D { Polygon = points, Color = new Color("0d1119").Lerp(new Color("3a4356"), shade), Antialiased = false };
-        shard.AddChild(new Line2D { Points = [.. points, points[0]], Width = 1, DefaultColor = new Color("0d1119").Lerp(new Color("5d6a82"), shade) with { A = 0.7f } });
+        var shard = new Polygon2D { Polygon = points, Color = new Color("0d1119").Lerp(new Color("3a4356"), shade), Antialiased = true };
+        shard.AddChild(new Line2D { Points = [.. points, points[0]], Width = 1, Antialiased = true, DefaultColor = new Color("0d1119").Lerp(new Color("5d6a82"), shade) with { A = 0.7f } });
         double from = _seconds;
         if (at is double x) from -= (path.FromX - x) / (path.FromX - path.ToX) * path.Seconds;
         _behind.AddChild(shard);
@@ -191,15 +177,6 @@ public partial class TitleBackdrop : CanvasLayer
     {
         if (node is CanvasItem { Material: ShaderMaterial } item) item.Material = null;
         foreach (var child in node.GetChildren()) Unlit(child);
-    }
-
-    private static ImageTexture PlateTexture(PlateArt art)
-    {
-        var image = Image.CreateEmpty(art.Width, art.Height, false, Image.Format.Rgba8);
-        for (int y = 0; y < art.Height; y++)
-            for (int x = 0; x < art.Width; x++)
-                if (Shades.TryGetValue(art.At(x, y), out var colour)) image.SetPixel(x, y, colour);
-        return ImageTexture.CreateFromImage(image);
     }
 
     private static Texture2D Dot()

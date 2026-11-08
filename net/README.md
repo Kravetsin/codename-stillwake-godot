@@ -25,6 +25,7 @@
 | `Tests/PaceTests.cs` | How a session's time runs: the clock and a joined game's playout. |
 | `Tests/SessionTests.cs` | The host and clients ordering commands. |
 | `Tests/SurfaceStampTests.cs` | A command goes out stamped with the surface its sender is on (0076); sessions carry every surface. |
+| `Tests/PoweredWreck.cs` | A ship with cables, a generator and a vent, which the starting one no longer has: keeps them in the generic runs. |
 | `Tests/WireTests.cs` | Commands and messages packed and back; cut or garbled bytes refused. |
 
 How peers share one world (0002): a host orders every peer's commands tick by tick, every peer runs the same
@@ -60,7 +61,8 @@ order) and are unpacked by each peer's (`Wire.Decode`), `From` set from the stam
   by sending commands. `Queued` counts the ticks waiting; `Update(limit)` runs at most that many.
 - **A `Session`** drives one: on the host a `Clock` turns frame time into released ticks, at most 250 ms of them after
   a stall (no ADR); on a joined peer `Playout` runs each tick at the earliest it has been seen to arrive plus a reserve,
-  eased toward its target, at most five ticks a frame (0015).
+  eased toward its target, at most five ticks a frame (0015); `Drift` runs up to six ticks past a
+  late one (guest-draws-through).
 - **Commands in flight** (0014): `Client.InFlight` lists this peer's commands sent and not yet run; each of its own in a
   released tick is the oldest in flight, or it throws. The game shows them at once on top of the world; `RoundTrip`
   times them. Those sent from a surface the peer has left (0076) are left out: they will be refused `world.elsewhere`.

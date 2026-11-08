@@ -170,6 +170,7 @@ in the sim.
 - **Generic suites** (`ModulesTests`) cover every registered module: save, load and play on, two
   worlds kept alike, and every module with commands drawing them in its `Fuzz` override (refused
   ones too). Do not copy them per module.
+- A test that only reads the first planet takes it from `PlanetTesting.First(seed)`: grown once a run, not each time.
 - **Client:** scripted runs (`-- --autopilot` and the like) recorded with `--write-movie` and read
   frame by frame; logic such as the hero controller in plain C# with unit tests.
 - A bug fix starts with a failing test. Tests never touch real time; time is ticks.
@@ -186,6 +187,8 @@ in the sim.
 - While working, test one project or filter (`dotnet test sim/Tests --filter Logistics`). Once, before the
   commit: the full `dotnet test Stillwake.sln`. The pre-commit hook (`git config core.hooksPath tools/hooks`, once
   per clone) formats the staged `.cs` files; CI fails on whitespace. Budget tests are strict on a desk: a miss is real.
+  CI tests in Release: `-c Release` reproduces a failure only it sees. A PR runs only what its paths can break
+  (`tools/ci-scope.sh`), `main` everything.
 - Match the ritual to the size: a new mechanic gets its ADR, a test proven to bite and screenshots; a number
   change or a bug fix gets its test and a README line.
 - Releases only on request, only from a green `main`: `release.cmd` (docs/releasing.md).
@@ -195,6 +198,20 @@ in the sim.
   two developers never take the same number; a changed decision gets a new ADR that supersedes the old one), the game in `docs/concept.md`, plans in `docs/plans/` — deleted once done, after what stays
   true moves into an ADR, a module README or the concept.
 - Keep this file short. Detail about a module belongs in its README.
+
+## Art and sound picks
+
+The user picks every new look and sound, on a published Artifact, unasked and never as a local HTML file: a page per
+subject, several really different candidates, one click on a candidate picks it, the pick kept in the page's `db` for
+Claude to read with `ArtifactData`, a copy button as the fallback. A subagent writes the page's files; the main session
+publishes them. A pick goes into its ADR.
+
+- **Sound:** CC0 only (`game/audio/CREDITS.md`): Kenney's packs and Freesound's recordings, by its public HQ previews, no
+  account. Download the candidates and publish them as the page's own `files` (the frame blocks media from other hosts), played
+  from a button through Web Audio. Say what is unheard. Once picked: cut, level and credit them as `CREDITS.md` says.
+- **Art:** drawn in code on a canvas at the game's scale (a cell 8 px, the hero beside it), moving through every state it has.
+  Once picked: exported by the code that drew it, through `tools/`. The game is drawn in ink and watercolour ([no more pixels](docs/decisions/2026-11-03-pixels-unsupported.md)): a new picture follows
+  `tools/anime-art/README.md`.
 
 ## Commands
 
@@ -215,7 +232,7 @@ allowed) for us and CI alike: another SDK's `dotnet format` indents differently,
 ## Conventions
 
 - English in code, comments, commits and docs. Player-facing text is i18n keys shown through `T(key)`
-  (refusal reasons use the sim's keys): a feature's in its `logic/<Name>.En.cs`.
+  (refusal reasons use the sim's keys): a feature's in its `logic/<Name>.En.cs`, its Russian beside it in `logic/<Name>.Ru.cs`; a new key fails `RuFilesTests` until translated.
 - Comments only for a non-obvious why, at most two lines; `///` summaries on public members say what
   they are for. Longer reasoning goes to `docs/`.
 - Commits follow Conventional Commits with the module as scope: `feat(atmosphere): vent rooms open to

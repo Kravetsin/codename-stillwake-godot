@@ -23,9 +23,10 @@ namespace Stillwake.Game.Dev;
 /// cave of that depth band, <c>hall</c> in the garden's great hall, looking at the growth there, the pointer on it (0080); <c>backs</c>
 /// at the spawn, building soil and stone back walls beside it (0084); <c>lava</c> on the floor of the cave nearest the spawn's
 /// column whose lava is open, looking at it; <c>spire</c> on the roof of the spire nearest the spawn beside its left plug,
-/// <c>spire-in</c> in its chamber by the cache, <c>spire-far</c> on the ground forty columns left of it, to see its tip over the
-/// hills (0085), <c>spire-climb</c> on its chamber's floor under the light, its right plug dug, for <c>--autopilot</c> to climb out
-/// (0096). An
+/// <c>spire-in</c> in its hall by the cache, <c>spire-far</c> on the ground forty columns left of it, to see its tip over the
+/// hills (0085), <c>spire-climb</c> on its hall's floor under the light, its right plug dug, for <c>--autopilot</c> to climb out
+/// (0096), <c>spire-guards</c> in its hall, striking the woken guards at an axe's pace till they fall, or with <c>--take-at</c> letting them be
+/// and felling the cradle. An
 /// axe hit every <see cref="Pace"/> ticks,
 /// sent as a strike sends them: cracks, chips, dust, and the sky falling into the shaft.
 /// </summary>
@@ -123,7 +124,7 @@ public sealed class GroundDemo(string mode)
             if (mode == "spire-climb")
                 for (int dy = 0; dy < Spec.Ruins.Spire.Count; dy++)
                     if (Spec.Ruins.Spire[dy].LastIndexOf(Spec.Ruins.Plug) is int px and >= 0)
-                        _cells.Add((at / w - (Spec.Ruins.Spire.Count - 3) + dy) * w + at % w - 4 + px);
+                        _cells.Add((at / w - (Spec.Ruins.Spire.Count - 5) + dy) * w + at % w - Spec.Ruins.SpireFlue + px);
             // --ground-offset N: stood N columns off where the mode stands it, for a recording (0096).
             at += Offset;
             client.Send(new Transfer(_planet.Value, at));
@@ -139,6 +140,23 @@ public sealed class GroundDemo(string mode)
             string kind = Spires(mode) ? Spec.Ruins.Cradle : Spec.Ruins.Niche;
             if (m.Building.Relics.Where(r => r.Kind == kind).OrderBy(r => Math.Abs(r.Cell % m.Grid.Width - sx)).FirstOrDefault() is { Taken: false } relic)
                 client.Send(HewAt(relic.Cell, m.Grid.Width));
+        }
+        // spire-guards: it carries no suit, so creative, a surface's own, spares it the blows it is here to take.
+        if (world.SurfaceOf(client.Id) == _planet && mode == "spire-guards" && !_planned)
+        {
+            _planned = true;
+            client.Send(new Sim.Items.SetCreative(true));
+        }
+        if (world.SurfaceOf(client.Id) == _planet && mode == "spire-guards" && TakeAt == null && world.Tick - _hits >= Spec.Weapons.Axe.Pace)
+        {
+            // Whichever guard is nearest, flying or not: from where the hero stands, cheating reach.
+            var m = Registry.On(world, _planet.Value);
+            int hx = m.Crew.HeroOf(client.Id)?.Cell % m.Grid.Width * Sim.Creatures.CreaturesModule.Unit ?? 0;
+            if (m.Creatures.Creatures.Where(c => c.Species == Spec.Creatures.Warden.Id && !Sim.Creatures.CreaturesModule.Asleep(c)).OrderBy(c => Math.Abs(c.X - hx)).FirstOrDefault() is { } guard)
+            {
+                _hits = world.Tick;
+                client.Send(new Sim.Creatures.Strike(guard.Id, Spec.Weapons.Axe.Item));
+            }
         }
         if (world.SurfaceOf(client.Id) != _planet || mode is "mouth" or "acacia" or "sprint" || Caves(mode) || (Spires(mode) && mode != "spire-climb") || Homes(mode)) return;
         var here = Registry.On(world, _planet.Value);
@@ -329,11 +347,11 @@ public sealed class GroundDemo(string mode)
     }
 
     /// <summary>Whether <paramref name="mode"/> stands the hero at a spire (0085): <c>spire</c>, <c>spire-in</c> or <c>spire-far</c>.</summary>
-    public static bool Spires(string mode) => mode is "spire" or "spire-in" or "spire-far" or "spire-climb";
+    public static bool Spires(string mode) => mode is "spire" or "spire-in" or "spire-far" or "spire-climb" or "spire-guards";
 
     /// <summary>
     /// The cell to stand in at the spire nearest the spawn, found by its lamp in its tip's top cell: on its roof beside its left plug,
-    /// in its chamber beside its cache, or on the ground forty columns left of it.
+    /// in its hall beside its cache, or on the ground forty columns left of it.
     /// </summary>
     private static int? SpireSpot(Registry m, string mode)
     {
@@ -342,7 +360,7 @@ public sealed class GroundDemo(string mode)
         if (lamp == null) return null;
         int x0 = lamp.Cell % w - Spec.Ruins.Spire[0].IndexOf(Spec.Ruins.Lamp), y0 = lamp.Cell / w;
         if (mode == "spire-far") return (TopOf(m, x0 - 40) - 1) * w + x0 - 40;
-        return mode == "spire" ? (y0 + rise - 1) * w + x0 + 1 : (y0 + Spec.Ruins.Spire.Count - 3) * w + x0 + (mode == "spire-climb" ? 4 : 2);
+        return mode == "spire" ? (y0 + rise - 1) * w + x0 + Spec.Ruins.SpireTip + 1 : (y0 + Spec.Ruins.Spire.Count - 5) * w + x0 + (mode == "spire-climb" ? Spec.Ruins.SpireFlue : Spec.Ruins.SpireTip + 2);
     }
 
     /// <summary>Whether <paramref name="mode"/> stands the hero in a home of the arc makers (0091): <c>home-hearth</c>, <c>home-bedroom</c>, <c>home-study</c>.</summary>
@@ -428,7 +446,7 @@ public sealed class GroundDemo(string mode)
     }
 
     /// <summary>The open cell nearest under the spawn, at least twenty rows down, standing on ground with room above: in a cave.</summary>
-    private static int? CaveUnder(Registry m)
+    internal static int? CaveUnder(Registry m)
     {
         var grid = m.Grid;
         int w = grid.Width, spawn = m.Crew.Spawn, sx = spawn % w, sy = spawn / w;

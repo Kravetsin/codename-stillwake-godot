@@ -1,4 +1,3 @@
-using System;
 using Stillwake.Sim.Items;
 using Stillwake.Sim.Players;
 
@@ -10,30 +9,14 @@ namespace Stillwake.Game.Features.Crew;
 /// </summary>
 public static class Suits
 {
-    public static readonly int[] All = [0xe8b04a, 0x5fc8c0, 0xa08cf0, 0x8cd06a];
-
-    /// <summary>The suit <c>art/hero_*.png</c> are drawn in, which every suit is recoloured from: an older first suit.</summary>
-    public const int Drawn = 0xe0a030;
+    public static readonly int[] All = [0xe8b04a, 0x5fc8c0, 0xa08cf0, 0x8cd06a, 0x5a8ef0, 0xe88cc8];
 
     /// <summary>The suit colour hero <paramref name="id"/> wears, as the sim says; the first while the sim does not know it.</summary>
     public static int Of(IPlayersQueries players, int id) =>
         players.ColourOf(id) is int i && i >= 0 && i < All.Length ? All[i] : All[0];
 
-    /// <summary>Whether <paramref name="peer"/> wears a helmet and a suit's body (2026-10-27-suits-are-worn): what its figure is drawn in.</summary>
-    public static (bool Helmet, bool Body) WornBy(IItemsQueries items, int peer) =>
-        (items.WornIn(peer, Stillwake.Content.Helmet.Slot) != null, items.WornIn(peer, Stillwake.Content.Suit.Slot) != null);
+    /// <summary>The helmet and the suit's body <paramref name="peer"/> wears, their items or null (2026-10-27-suits-are-worn): what its figure is drawn in.</summary>
+    public static (string? Helmet, string? Body) WornBy(IItemsQueries items, int peer) =>
+        (items.WornIn(peer, Stillwake.Content.Helmet.Slot), items.WornIn(peer, Stillwake.Content.Suit.Slot));
 
-    /// <summary><paramref name="colour"/> with each channel times <paramref name="by"/>, or moved toward white by −<paramref name="by"/> below 0 (<c>shade</c> of render/pixel-art.ts).</summary>
-    public static int Shade(int colour, double by)
-    {
-        int Channel(int shift)
-        {
-            int v = (colour >> shift) & 0xff;
-            return (int)Math.Round(by >= 0 ? v * by : v + (255 - v) * -by, MidpointRounding.AwayFromZero);
-        }
-        return (Channel(16) << 16) | (Channel(8) << 8) | Channel(0);
-    }
-
-    /// <summary>A suit's own shades of <paramref name="colour"/>, as the pictures use them: light, its own, shade and outline (<c>suitOf</c> of art.ts).</summary>
-    public static int[] ShadesOf(int colour) => [Shade(colour, -0.35), colour, Shade(colour, 0.72), Shade(colour, 0.42)];
 }

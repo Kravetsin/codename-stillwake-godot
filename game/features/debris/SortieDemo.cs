@@ -43,7 +43,7 @@ public partial class SortieDemo : CanvasLayer
     /// <paramref name="world"/>, read through <paramref name="m"/>: peer 0 out at <see cref="StartOf"/> with the drill,
     /// the axe, canisters, a jetpack and two full batteries, and the finds round it, put in through its save.
     /// </summary>
-    public static World Seed(World world, Registry m, Func<IReadOnlyList<Module>> modules)
+    public static World Seed(World world, Registry m, Func<IReadOnlyList<Module>> modules, bool creative = false)
     {
         var root = JsonNode.Parse(world.Save())!;
         var equipment = Spec.Inventory.Equipment.ToList();
@@ -59,12 +59,15 @@ public partial class SortieDemo : CanvasLayer
                 : i == belt || i == belt + 1 ? new JsonObject { ["item"] = "battery", ["count"] = 1, ["charge"] = Spec.Charge.Battery }
                 : null);
         root["slices"]!["items"]!["inventories"] = new JsonArray(new JsonObject { ["id"] = 0, ["slots"] = slots });
+        // Played by hand, creative: the air and the batteries never cut a check short.
+        root["slices"]!["items"]!["creative"] = creative ? new JsonArray(0) : new JsonArray();
         int start = StartOf(m), sx = start % m.Grid.Width, sy = start / m.Grid.Width;
         root["slices"]!["crew"]!["heroes"] = new JsonArray(new JsonObject
         {
             ["id"] = 0,
             ["cell"] = start,
-            ["air"] = Spec.Items.Get(Spec.Suit.Basic).Tank,
+            // The helmet holds the air (2026-10-27-suits-are-worn); the suit has no tank.
+            ["air"] = Spec.Items.Get(Spec.Helmet.Basic).Tank,
             ["out"] = 0,
             ["exerting"] = false,
             ["thrusting"] = false,
@@ -165,7 +168,7 @@ public partial class SortieDemo : CanvasLayer
                 Input.ParseInputEvent(new InputEventKey { Keycode = Key.Key1, PhysicalKeycode = Key.Key1, Pressed = false });
                 Next("drill chosen");
                 break;
-            case 1 when _t >= _stageAt + 1.0 && _ui.AimedPiece.Get() is (_, false):
+            case 1 when _t >= _stageAt + 1.0 && Engine() is { } engine && _pos.DistanceTo(engine + new Vector2(-24, 0)) < 2:
                 Hold(true);
                 Next("drilling the engine block");
                 break;

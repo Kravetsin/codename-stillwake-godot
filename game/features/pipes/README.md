@@ -9,7 +9,9 @@
 | `PipesOverlay.cs` | Every pipe network brought out of the ship while the plan is piping: each network's spans over the ship, slim, in a … |
 | `PipesView.cs` | The pipes as they are built (0109): each span a straight pipe from the middle of one end's cell to the other's, at … |
 | `logic/Pipes.En.cs` | Its player text (`En`) |
-| `logic/Sockets.cs` | A port as the piping shows it (2026-10-29-typed-ports): a socket in its fluid's colour, an arrow out of the machine or … |
+| `logic/Sockets.cs` | A port as the piping shows it (2026-10-29-typed-ports): a socket in its fluid's colour, an arrow into it (> o) or out of it (o >). |
+| `logic/Pipes.Ru.cs` | Russian |
+| `logic/TubeRun.cs` | How the pipe's run is laid along a span: its picture has its lit edge on top, and the world's light comes from the upper left. |
 
 The pipes as built, the piping's hands and the overlay that shows every network while the plan is piping (0109), ported from
 `apps/game/src/features/pipes/` (G-08) and made spans. Reads `sim/Pipes` (`Spans`, `Valves`, `Networks`, `NetworkAt`,
@@ -18,10 +20,11 @@ The pipes as built, the piping's hands and the overlay that shows every network 
 
 | File              | Holds                                                                                          | Godot |
 | ----------------- | ---------------------------------------------------------------------------------------------- | ----- |
-| `PipesView.cs`    | every span one continuous straight tube at any angle, 4 px thick, coloured a row at a time from the pipe art's run (0110), no per-cell seams; a flange only at joints, a valve's wheel open or shut, heard turning | yes |
-| `PipeHands.cs`    | piping by its menu's card (0110): with the pipe a left drag lays and a right press takes the nearest span away, that span lit whole while hovered; while a span is laid, the ports it may end at (the sim's `FluidProblem`, its own machine's left out); with the valve the left makes a valve on a joint, the right takes it off (tested) | no |
+| `TubeRun.cs`      | which end a span is drawn from, so its run's lit edge faces the light (tested) | no |
+| `PipesView.cs`    | every span one straight tube at any angle, 4 px thick, `pipe_run` repeated along it, no per-cell seams; a flange only at joints, a valve's wheel open or shut, heard turning | yes |
+| `PipeHands.cs`    | piping by its menu's card (0110): with the pipe a left drag lays, jointed on the way past `Piping.MaxSpan` (each joint once the last is laid) and cut short to the farthest cell the tubes in hand or the zone allow (`WayBack`), and a right press takes the nearest span away, that span lit whole while hovered; while a span is laid, the ports it may end at (the sim's `FluidProblem`, its own machine's left out); with the valve the left makes a valve on a joint, the right takes it off (tested) | no |
 | `Flow.cs`         | oxygen along spans from the sources, its runs and dots, the palette (`flow.ts`, `oxygen.ts`; tested) | no |
-| `Sockets.cs`      | a socket's colour by fluid and its arrow out of its machine (gives) or into it (takes) (tested) | no |
+| `Sockets.cs`      | a socket's colour by fluid and its arrow: before an input's socket, pointing at it (> o), after an output's (o >) (tested) | no |
 | `PipesOverlay.cs` | the overlay while the plan is piping: networks in colours of their own (faded when dry), valves, sockets by fluid and way, the lit ports ringed, dots; the span being laid green or red with its reason, its length and cost by the pointer | yes |
 
 - The overlay shows only while the plan is piping (C, `Tools.OverlayShown`); building, the menu has no pipes, valves or pipe

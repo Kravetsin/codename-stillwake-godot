@@ -96,8 +96,12 @@ public sealed class PlacesModule : Module<PlacesState>
         {
             int cell = (box.Top + part.Y) * width + box.Left + part.X;
             _gridOps.Lay(cell, new Placement(part.Layer, part.Kind, part.Material));
+            // A crate's loot is born here, so it is counted obtained here (the-board), as a salvage drone's catch is.
             if (part.Holds is { } holds && _grid.MachineAt(cell) is { } crate)
+            {
                 foreach (var (item, count) in holds) _itemsOps.PutIn(crate.Id, new Stack(item, count));
+                _itemsOps.Caught(holds);
+            }
         }
         State.Contacts.RemoveAll(k => k.Id == contact.Id);
     }

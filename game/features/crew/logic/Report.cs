@@ -57,24 +57,26 @@ public static class Report
     /// How hard the cold bites hero <paramref name="peer"/> at <paramref name="cell"/>, the body's own, from 0 inside the
     /// field to 1 at the world's edge: the crew's <c>EdgeCost</c> over <c>Field.EdgeCost</c>, eased out (2s − s²) so the
     /// frost shows a little past the line and is heavy well before the edge (0050), lighter by what a cape spares (<c>Warmth</c>,
-    /// 2026-10-27-the-cape-is-worn); at least <see cref="BareFrost"/> while the sim says it is cold beyond the edge's, bare.
+    /// 2026-10-27-the-cape-is-worn); at least <see cref="BareFrost"/> while the sim says it is cold beyond the edge's: bare, or the
+    /// night's chill under the open sky (2026-11-07-night-chills).
     /// What the frost on the screen is drawn at.
     /// </summary>
     public static float Cold(ICrewQueries crew, int peer, int cell)
     {
         float felt = 1 - crew.Warmth(peer) / 1000f;
         float share = Math.Clamp(crew.EdgeCost(cell) * felt / Stillwake.Content.Field.EdgeCost, 0f, 1f);
-        bool bare = crew.HeroOf(peer) is { } hero && crew.Cold(peer) > crew.EdgeCost(hero.Cell);
-        return Math.Max(share * (2 - share), bare ? BareFrost : 0);
+        bool beyondEdge = crew.HeroOf(peer) is { } hero && crew.Cold(peer) > crew.EdgeCost(hero.Cell);
+        return Math.Max(share * (2 - share), beyondEdge ? BareFrost : 0);
     }
 
     /// <summary>
     /// Whether <paramref name="hero"/> is out of breath: running aboard. In space (<paramref name="inSpace"/>)
     /// never: a swim is slow, and a jetpack's flight is paid in thrust (0047). Shift held standing still
-    /// costs nothing.
+    /// costs nothing. Seated, <paramref name="runs"/> says: true in a treadmill wheel with a move key held, which is what
+    /// turns it (power-chain), wherever it stands.
     /// </summary>
-    public static bool Exerting(Hero hero, bool inSpace) =>
-        !inSpace && !hero.Climbing && Math.Abs(hero.Vx) > Stillwake.Content.Hero.Walk;
+    public static bool Exerting(Hero hero, bool inSpace, bool? runs = null) =>
+        runs ?? (!inSpace && !hero.Climbing && Math.Abs(hero.Vx) > Stillwake.Content.Hero.Walk);
 
     /// <summary>
     /// <c>Exert</c> when the sim's hero <paramref name="id"/> breathes otherwise than <paramref name="exerting"/>
@@ -100,5 +102,21 @@ public static class Report
         foreach (var c in inFlight)
             if (c is Refill) return null;
         return problem == null ? new Refill() : null;
+    }
+
+    /// <summary>
+    /// <c>SuitMode</c> flipping the suit's mode on a press (V, its edge key; 2026-11-03-the-regen-suit): from the last one in
+    /// <paramref name="inFlight"/>, sent and not yet applied, else from the sim's <paramref name="on"/>; switching on only
+    /// where <paramref name="problem"/>, <c>SuitModeProblem</c>'s, is null. Off is always sent.
+    /// </summary>
+    public static SuitMode? SuitModeOf(bool on, string? problem, IReadOnlyList<Command> inFlight)
+    {
+        for (int i = inFlight.Count - 1; i >= 0; i--)
+            if (inFlight[i] is SuitMode sent)
+            {
+                on = sent.On;
+                break;
+            }
+        return on ? new SuitMode(false) : problem == null ? new SuitMode(true) : null;
     }
 }

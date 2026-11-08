@@ -12,6 +12,9 @@
 | `GridView.cs` | The ship in pixel art, a `TileMapLayer` per kind of picture: back walls behind … |
 | `LavaView.cs` | The planet's lava (its core, `Content.Lava`), drawn as the cave concepts drew it (0087): over its own tiles, unlit … |
 | `logic/Grid.En.cs` | Its player text (`En`) |
+| `logic/Grid.Ru.cs` | Russian |
+| `logic/WreckMotion.cs` | What still moves on the wreck: wires, arcs and a thread of vapour, each while its tear shows (2026-10-31-the-scoop). |
+| `WreckMotionView.cs` | Steps `WreckMotion` and paints its wires, unlit, over the hull. |
 
 Draws the grid's cells and machines in pixel art, a pixel of art a pixel of the world, `Camera.Cell` (8) to a cell (0104).
 
@@ -30,8 +33,8 @@ Draws the grid's cells and machines in pixel art, a pixel of art a pixel of the 
   0111), machines over their footprints, a sprite per power socket.
 - **Heard** (0033): a door that moved, where it stands, once a doorway at its leading cell (`DoorShape.Leads`); a valve
   is the pipes' own (0109).
-- **Slid** (0075): a doorway seen to open or shut slides one panel across all its cells over `DoorSlides.Seconds`, a
-  door's rising into its top, a hatch's into its left end, two pixels a step, eased (`DoorLight.Ease`). Each cell draws
+- **Slid** (0075): a doorway seen to open or shut slides one panel across all its cells over `DoorSlides.Seconds` (the swing, 0.55 s, to
+  the stop ringing in its sound, door-swing), a door's rising into its top, a hatch's into its left end, two pixels a step, eased (`DoorLight.Ease`). Each cell draws
   the part over it (`DoorShape.Picture(hatch, index, length, shift)`), pictures made at start from the shut and open ones
   (`DoorShape.Slid`) and packed in the atlas, so a slide is tiles swapped, never a node; long doorways repeat their
   middles. Turned back part way, it slides back from where it is.
@@ -48,13 +51,14 @@ Draws the grid's cells and machines in pixel art, a pixel of art a pixel of the 
   looked at every time. `BuiltBoundsTests` checks this against a whole-grid compare. Light follows the world, not
   toggles in flight.
 - **Pictures** (no ADR): every PNG of `game/art` cells use is packed at start into one atlas with one normal map
+  and one specular map, black but a vein's ore (`render/logic/OreMask.cs`), which shines on the walls' layer alone
   (`render/ShipTiles.cs`), a layer one draw call. Walls, edges, doors, machines and sockets are lit with relief; back
   walls, pipes, floors and ladders flat (`render/Lit.cs`).
 - **A planet's ground** (0077, 0079, 0088): soil, stone and bedrock walls and back walls from `art/planet/wall_*` and
   `back_*`, seamless tiles cut a cell at a time; edges made at start (`render/GroundArt.cs`, `Content/logic/GroundLooks.cs`):
   a dark outline by open sides, lit lines inside. The ruins' alloy (0085) is drawn the same way (`wall_alloy`,
   `back_alloy`, `top_alloy`, `detail_alloy`; placeholders till the user picks).
-- **Back walls recede** (0088): a natural back wall's picture is paled, cooled and darkened at load (`GroundArt.Recede`);
+- **Back walls recede** (0088): a natural back wall is painted paler, cooler and darker than its wall (`tools/anime-art`);
   walls cast a soft three-tone shadow on it along open edges (`render/logic/GroundShadow.cs`, `GroundShadow.Of` of the three by
   three round a cell; atlas `render/ShadowTiles.cs`), on its own layer, multiplying. A changed cell redraws its corner
   neighbours' shadows too. The hull's back walls are left as they are.

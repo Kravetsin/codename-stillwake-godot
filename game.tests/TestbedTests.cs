@@ -19,20 +19,26 @@ public class TestbedTests
     });
 
     [Fact]
-    public void ItsPipesJoinTwoPortsOfOneWayOnlyWhereDrawnSoNeverTwoFluidsAndItsCisternsByWater()
+    public void ItsPipesNeverJoinTwoPortsOfOneWayOrTwoFluidsItsVentsFedThroughVaporizersAndItsCisternsByWater()
     {
         var m = Built.Value;
         Assert.NotEmpty(m.Pipes.Spans);
-        // Drawn before ports had a way: the tank piped straight to the generator beside it, kept as drawn (2026-10-29-typed-ports).
         var oneWay = m.Pipes.Spans.Where(s => m.Grid.PortAt(s.A) is { } a && m.Grid.PortAt(s.B) is { } b && a.Way == b.Way)
             .Select(s => (m.Grid.MachineAt(s.A)!.Kind, m.Grid.MachineAt(s.B)!.Kind));
-        Assert.Equal([("tank", "generator")], oneWay);
+        Assert.Empty(oneWay);
+        // Each vent fed by a vaporizer, its tank's liquid on the vaporizer's other line (liquid-oxygen).
+        Assert.All(m.Grid.MachinesOf("vent"), vent => Assert.True(m.Atmosphere.Fed(vent.Id), $"vent {vent.Id}"));
         // By lines, every valve counted open: a span's two ends of one fluid wherever both have one.
         Assert.All(m.Pipes.Spans, s => Assert.True(m.Pipes.FluidAt(s.A) is not { } a || m.Pipes.FluidAt(s.B) is not { } b || a == b, $"span {s.A}–{s.B}"));
         var cisterns = m.Grid.MachinesOf("cistern");
         Assert.Equal(2, cisterns.Count);
-        var water = m.Pipes.Networks.Single(n => m.Pipes.FluidAt(n.Cells[0]) == Stillwake.Content.Fluids.Water);
-        Assert.Equal(cisterns.Select(c => c.Id).Order(), water.Machines.Order());
+        // The first cistern piped to the second, the second's output to the electrolyser, which splits from the start (water).
+        int electrolyser = m.Grid.MachinesOf("electrolyser").Single().Id;
+        Assert.Contains(m.Pipes.Networks, n => n.Machines.Order().SequenceEqual(cisterns.Select(c => c.Id).Order()));
+        Assert.Contains(m.Pipes.Networks, n => n.Machines.Contains(electrolyser) && n.Machines.Contains(cisterns[1].Id));
+        // Its liquid oxygen out on its right, to a tank's input on that tank's left.
+        Assert.Contains(m.Pipes.Networks, n => n.Machines.Contains(electrolyser) && n.Machines.Any(id => m.Grid.MachineById(id)!.Kind == "tank"));
+        Assert.Null(m.Water.Stalled(electrolyser));
     }
 
     private static int IdOf(Registry m, string kind) => m.Grid.Machines.Single(x => x.Kind == kind).Id;
@@ -46,22 +52,26 @@ public class TestbedTests
     public void DrawsEveryKindOfMachine()
     {
         var drawn = Testbed.Map.Machines().Select(x => x.Kind).ToHashSet();
-        Assert.All(Spec.Machines.All, spec => Assert.Contains(spec.Kind, drawn));
+        // A pile or an emergency lamp is only ever in the hold of the ship a world starts in.
+        Assert.All(Spec.Machines.All.Where(m => m.Menu != null || m.Fixed), spec => Assert.Contains(spec.Kind, drawn));
     }
 
     [Fact]
     public void ItsCratesHoldAFullStackOfEveryItemAHeroCanCarryAndNoWreckageTheFarmsInASecond()
     {
-        Assert.True(Testbed.Carried.Count(i => !Testbed.InFarmCrate(i.Id) && !Testbed.InSupply.Contains(i.Id)) < Spec.Machines.Get("crate").Slots);
+        Assert.True(Testbed.Carried.Count(i => !Testbed.InFarmCrate(i.Id) && !Testbed.InSupply.Contains(i.Id) && !Testbed.InTools.Contains(i.Id) && !Testbed.InBay.Contains(i.Id)) < Spec.Machines.Get("crate").Slots);
         var m = Built.Value;
         var crate = m.Items.Crate(Crates(m)[0]);
         var farm = m.Items.Crate(Crates(m)[1]);
-        Assert.All(Testbed.Carried.Where(i => !Testbed.InSupply.Contains(i.Id)), item => Assert.Contains(new Stack(item.Id, item.Stack), Testbed.InFarmCrate(item.Id) ? farm : crate));
+        Assert.All(Testbed.Carried.Where(i => !Testbed.InSupply.Contains(i.Id) && !Testbed.InTools.Contains(i.Id) && !Testbed.InBay.Contains(i.Id)), item => Assert.Contains(new Stack(item.Id, item.Stack), Testbed.InFarmCrate(item.Id) ? farm : crate));
         // A drill with the arc fitted (0098), in the supply crate by the door: no bench fits one yet.
         Assert.Contains(new Stack(Spec.Weapons.Drill.Item, 1, Module: Spec.Modules.Arc.Item), m.Items.Crate(CrateAt(m, Testbed.Supply)));
         Assert.Contains(new Stack(Spec.HelmetLamp.Item, 1), m.Items.Crate(CrateAt(m, Testbed.Supply)));
-        // An arc module for each machine and tool it fits (0086, 0098, 0100): the dev's way to one before the ruins give its shard.
-        Assert.Equal(5, m.Items.Crate(CrateAt(m, Testbed.Supply)).Count(s => s?.Item == Spec.Modules.Arc.Item));
+        // An arc module for each machine and tool it fits (0086, 0098, 0100), the dev's way to one before the ruins give its shard,
+        // beside the salvage tools on the pod.
+        var tools = m.Items.Crate(CrateAt(m, Testbed.Tools));
+        Assert.Equal(Spec.Modules.Arc.Hosts.Count(), tools.Count(s => s?.Item == Spec.Modules.Arc.Item));
+        Assert.Contains(new Stack(Spec.Weapons.PlasmaCutter.Item, 1), tools);
         // A plain drill in the arc bench's vise (0099), to fit there.
         Assert.Equal(new Stack(Spec.Weapons.Drill.Item, 1), m.Items.Crate(IdOf(m, Testbed.BenchHolds.Kind))[0]);
         Assert.Equal(Testbed.FarmCrate.Select(i => new Stack(i, Spec.Items.Get(i).Stack)), farm.Where(s => s != null));
@@ -72,6 +82,9 @@ public class TestbedTests
         Assert.Contains(crate, stack => stack is { Item: "canister" });
         // A battery of each kind: the crate's empty one, as every carried item at its stack, and one charged full.
         Assert.Contains(new Stack("battery", 1, Spec.Charge.Battery), crate);
+        // The salvage drone docked beside the two drones, charged, with no canister to fly on.
+        Assert.Equal(new Stack(Spec.Logistics.SalvageDrone, 1, Spec.Charge.Drone), m.Items.Crate(IdOf(m, Spec.Logistics.Bay))[Testbed.Drones]);
+        Assert.Null(m.Items.Crate(IdOf(m, Spec.Logistics.Bay))[Spec.Machines.Get(Spec.Logistics.Bay).SlotTakes!.Value.Slot]);
     }
 
     [Fact]
@@ -92,7 +105,7 @@ public class TestbedTests
     public void IsReadyTheMomentItOpens()
     {
         var m = Built.Value;
-        Assert.True(m.Items.Creative);
+        Assert.True(m.Items.Creative(0));
         Assert.True(m.Furnace.At(IdOf(m, "furnace")).Burning);
         Assert.True(m.Furnace.At(IdOf(m, "burnerGenerator")).Burning);
         var airlock = m.Rooms.RoomAt(Testbed.Map.Width * 12 + 92);
@@ -101,8 +114,9 @@ public class TestbedTests
         Assert.All(m.Grid.Machines.Where(x => Spec.Machines.Get(x.Kind).Draws != null), x => Assert.Equal(1000, m.Power.Satisfaction(x.Id)));
         int charger = IdOf(m, "charger");
         Assert.True(m.Power.Charges(charger));
-        // Charged both ticks, by its own panel on the roof.
+        // Charged both ticks, by its own panel on the roof; the full one beside it draws nothing.
         Assert.Equal(new Stack("battery", 1, Spec.Charge.Battery / 1000 * Testbed.Charging + 2 * Spec.Machines.Get("charger").Draws!.Value * Spec.Charge.Scale), m.Items.Crate(charger)[0]);
+        Assert.Equal(new Stack("battery", 1, Spec.Charge.Battery), m.Items.Crate(charger)[1]);
         // The Former at work on the second tick, once the generator's power reaches it.
         int former = IdOf(m, "former");
         Assert.True(m.Crafting.Works(former));

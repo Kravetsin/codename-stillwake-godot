@@ -85,16 +85,47 @@ public sealed partial class BuildingModule
         if (MarkedCell(cell, layer) is not int at) return "building.nothingThere";
         // Where tools break what stands, nothing is marked: a planet's things go to tools alone (the fan of rays).
         if (Rules.ToolsBreak) return "building.notHere";
-        if (layer == "machine" && _grid.MachineAt(at) is { } machine && IsFixed(machine.Kind)) return "building.fixed";
+        if (layer == "machine" && _grid.MachineAt(at) is { } machine)
+        {
+            if (IsFixed(machine.Kind)) return "building.fixed";
+            if (Machines.Get(machine.Kind).Hp != null) return "building.needsAxe";
+        }
         if (IsMarked(layer, at)) return "building.planned";
-        return InUse(at, layer);
+        return InUse(at, layer) ?? HoldsMachine(at, layer);
     }
 
     /// <summary>
-    /// Why <paramref name="place"/> cannot be planned at <paramref name="cell"/>: a machine built into the ship, one its surface's kind
-    /// does not allow (0076), a blueprint not known (ADR 0024), what the grid says, a plan already claiming its slot in a cell it covers,
-    /// then, building instantly, a wall on a hero.
+    /// Why taking the structure out of <paramref name="cell"/> would leave a machine standing on nothing (2026-11-07-machines-stand):
+    /// <c>building.holdsMachine</c> when a standing machine stands on any cell of its piece.
     /// </summary>
+    private string? HoldsMachine(int cell, string layer)
+    {
+        if (layer != "structure") return null;
+        int width = _grid.Width;
+        foreach (int c in _grid.PieceOf(cell) is { Count: > 0 } piece ? piece : [cell])
+            if (c >= width && _grid.MachineAt(c - width) is { } machine && Machines.Stands(machine.Kind)) return "building.holdsMachine";
+        return null;
+    }
+
+    /// <summary>
+    /// Why a standing machine <paramref name="place"/> at <paramref name="cell"/> has nothing to stand on (2026-11-07-machines-stand):
+    /// <c>building.noFloor</c> unless every cell of the row under its footprint is footing, built or, when <paramref name="planned"/>
+    /// counts, a blueprint of one. Null for anything else.
+    /// </summary>
+    private string? FootingProblem(int cell, Placement place, bool planned)
+    {
+        if (place.Layer != "machine" || !Machines.Stands(place.Kind)) return null;
+        var spec = Machines.Get(place.Kind);
+        int below = cell + spec.Height * _grid.Width;
+        for (int dx = 0; dx < spec.Width; dx++)
+            if (!_grid.Footing(below + dx) && !(planned && FootingPlanned(below + dx))) return "building.noFloor";
+        return null;
+    }
+
+    /// <summary>Whether a blueprint of a footing structure (a wall, a floor) covers <paramref name="cell"/>.</summary>
+    private bool FootingPlanned(int cell) => State.Plans.Exists(p =>
+        p.Place is { Layer: "structure" } s && Structures.Placed(s.Kind) is int code && Structures.Footing(code) && Covers(p).Contains(cell));
+
     /// <summary>
     /// Why <paramref name="place"/> may not be planned at <paramref name="cell"/> for the shafts planned platforms keep, as the grid
     /// keeps built ones': under one (<c>grid.underPlatform</c>), or a platform over a solid plan (<c>grid.shaftBlocked</c>). Back walls
@@ -116,14 +147,21 @@ public sealed partial class BuildingModule
         return null;
     }
 
-    private string? PlaceProblem(int cell, Placement place)
+    /// <summary>
+    /// Why <paramref name="place"/> cannot be planned at <paramref name="cell"/>: a machine built into the ship, one its surface's kind
+    /// does not allow (0076), a blueprint <paramref name="peer"/> does not know (ADR 0024), what the grid says, the shafts, a standing
+    /// machine with no footing under it built or planned (built only, building instantly), a plan already claiming its slot in a cell
+    /// it covers, its ports, then, building instantly, a wall on a hero.
+    /// </summary>
+    private string? PlaceProblem(int cell, Placement place, int peer)
     {
         if (place.Layer == "machine" && IsFixed(place.Kind)) return "building.fixed";
         if (!Rules.Allows(place.Kind)) return "building.notHere";
-        if (Unbuilt(place) || !_research.Knows(place)) return "building.unknown";
+        if (Unbuilt(place) || !_research.Knows(peer, place)) return "building.unknown";
         var gridProblem = _grid.PlacementProblem(cell, place);
         if (gridProblem != null) return gridProblem;
         if (PlannedShaftProblem(cell, place) is { } shaft) return shaft;
+        if (FootingProblem(cell, place, planned: !State.Instant) is { } footing) return footing;
         string slot = SlotOf(place.Layer);
         var wanted = Covers(cell, place);
         bool taken = State.Plans.Exists(p =>
@@ -135,16 +173,16 @@ public sealed partial class BuildingModule
         return State.Instant && place.Kind == "wall" && HeroIn(cell) ? "building.heroInside" : null;
     }
 
-    /// <summary>A wall or back wall of a material no blueprint builds (0077): of bedrock; creative mode too.</summary>
+    /// <summary>A wall or back wall of a material no blueprint builds (0077), of bedrock, or a machine none does, a pile; creative mode too.</summary>
     private static bool Unbuilt(Placement place) =>
-        place.Kind is "wall" or "backWall" && Materials.TryGet(place.Material ?? "", out _) && !Research.Blueprints.Has(place);
+        ((place.Kind is "wall" or "backWall" && Materials.TryGet(place.Material ?? "", out _)) || (place.Layer == "machine" && Machines.TryGet(place.Kind, out _))) && !Research.Blueprints.Has(place);
 
     /// <summary>
-    /// What blueprint <paramref name="plan"/> still lacks of its cost, in the cost's order; nothing in creative
-    /// mode, where it is built as it is, nor for a mark.
+    /// What blueprint <paramref name="plan"/> still lacks of its cost, in the cost's order; nothing for a mark. A creative
+    /// worker pays its parts as anyone does, from nothing, so whoever works on after it owes only the parts after.
     /// </summary>
     private Cost LackOf(Plan plan) =>
-        plan.Place is { } place && !_items.Creative ? Costs.Lacking(Costs.BuildOf(place).Cost, plan.Delivered) : [];
+        plan.Place is { } place ? Costs.Lacking(Costs.BuildOf(place).Cost, plan.Delivered) : [];
 
     /// <summary>
     /// The parts of the work on a blueprint for <paramref name="place"/> begun by the tick at <paramref name="progress"/>,
@@ -162,32 +200,48 @@ public sealed partial class BuildingModule
 
     /// <summary>
     /// Whether the next tick of work on <paramref name="plan"/> begins a part not paid for yet, so its worker
-    /// pays an item first; never in creative mode, nor for a mark.
+    /// pays an item first; never for a mark.
     /// </summary>
     private bool Owes(Plan plan) =>
-        plan.Place is { } place && !_items.Creative && PaidInto(plan) < PartsAt(place, plan.Progress).Begun;
+        plan.Place is { } place && PaidInto(plan) < PartsAt(place, plan.Progress).Begun;
 
     /// <summary>
     /// What peer <paramref name="peer"/> pays for the part of <paramref name="plan"/> that begins next: the first
-    /// item in the cost's order that the plan still lacks and the hero carries; null when it carries none.
+    /// item in the cost's order that the plan still lacks and its stock holds (build-from-crates), or a creative peer's first
+    /// lacking from nothing; null with none.
     /// </summary>
     private string? PaymentOf(Plan plan, int peer)
     {
-        var carried = _items.Totals(peer);
+        if (_items.Creative(peer)) return LackOf(plan) is [var (first, _), ..] ? first : null;
+        var carried = _items.StockTotals(peer);
         foreach (var (item, _) in LackOf(plan))
             if (carried.Any(c => c.Item == item && c.Count > 0)) return item;
         return null;
     }
 
     /// <summary>
-    /// Whether a hero's body is in <paramref name="cell"/>: the cell its client last reported (<c>Hero.Cell</c>, the body's middle),
-    /// or the one above or under it, a body being under three cells tall. Its other column, where it straddles two, is not asked.
+    /// Thousandths of a cell from a standing body's middle up to the top of its cell: its feet on a cell's edge, the middle half
+    /// the height above them (<c>Hero.Middle</c> in the client).
+    /// </summary>
+    private const int MiddleInCell = (1000 - Hero.Height / 2 % 1000) % 1000;
+
+    /// <summary>The rows a standing body reaches above and below its middle's, and the columns either side, under two cells wide.</summary>
+    private const int RowsUp = (Hero.Height / 2 - MiddleInCell + 999) / 1000, RowsDown = (MiddleInCell + Hero.Height / 2 - 1) / 1000,
+        ColumnsBeside = (Hero.Width / 2 + 999) / 1000;
+
+    /// <summary>
+    /// Whether a hero's body is in <paramref name="cell"/>: within the box a standing body fills round the cell its client last
+    /// reported (<c>Hero.Cell</c>, the body's middle), whichever side of it the middle is on. A body off its feet may reach a
+    /// row further down, not asked: a wall would land under its feet.
     /// </summary>
     private bool HeroIn(int cell)
     {
-        int w = _grid.Width;
+        int w = _grid.Width, x = cell % w, y = cell / w;
         foreach (var hero in _crew.Heroes)
-            if (cell == hero.Cell || cell == hero.Cell - w || cell == hero.Cell + w) return true;
+        {
+            int across = x - hero.Cell % w, down = y - hero.Cell / w;
+            if (Math.Abs(across) <= ColumnsBeside && down >= -RowsUp && down <= RowsDown) return true;
+        }
         return false;
     }
 
@@ -200,13 +254,15 @@ public sealed partial class BuildingModule
     {
         var plan = State.Plans.Find(p => p.Id == id);
         if (plan == null) return "building.noPlan";
-        if (plan.Clear is { } layer) return Rules.ToolsBreak ? "building.notHere" : InUse(plan.Cell, layer);
+        if (plan.Clear is { } layer) return Rules.ToolsBreak ? "building.notHere" : InUse(plan.Cell, layer) ?? HoldsMachine(plan.Cell, layer);
         bool last = plan.Progress + 1 >= Costs.TicksFor(_grid, plan);
         // A wall's last tick waits while a hero stands in its cell, so nobody walls themselves in (0077); it finishes once they step out.
         if (plan.Place is { Kind: "wall" } && last && HeroIn(plan.Cell)) return "building.heroInside";
         // So does any last tick over what stands there now: a drop pod docks or lands where it finds room, plans or not.
         if (plan.Place is { } place && last && _grid.PlacementProblem(plan.Cell, place) is { } blocked)
             return blocked;
+        // A standing machine finishes only on footing built by then, a floor planned under it not yet laid (2026-11-07-machines-stand).
+        if (plan.Place is { } standing && last && FootingProblem(plan.Cell, standing, planned: false) is { } floor) return floor;
         // Nor over pipes its ports no longer fit, piped since it was planned (2026-10-29-typed-ports).
         if (plan.Place is { Layer: "machine" } machine && last && _pipes.SeatProblem(machine.Kind, plan.Cell) is { } seat)
             return seat;

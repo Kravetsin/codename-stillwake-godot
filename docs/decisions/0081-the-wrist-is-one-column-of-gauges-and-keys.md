@@ -1,6 +1,6 @@
 # 0081 — The wrist is one column: segmented gauges that never step, and hardware keys
 
-- Status: accepted
+- Status: accepted; the suit gauge and canister swirl amended by [air-feedback](2026-11-07-air-feedback.md)
 - Date: 2026-10-20
 - Supersedes: 0053's "the energy bar shows only while an electric tool is held"
 

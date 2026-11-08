@@ -4,31 +4,30 @@ using Spec = Stillwake.Content;
 
 namespace Stillwake.Game.Tests;
 
-/// <summary>The tech window's words: every category and gate named, every refusal said.</summary>
+/// <summary>The tech window's words: both keys and every gate named, every refusal said.</summary>
 public class TechTreeTextTests
 {
     [Fact]
-    public void NamesEveryCategoryAndGateAndSaysEveryRefusal()
+    public void NamesBothKeysAndEveryGateAndSaysEveryRefusal()
     {
-        Assert.All(Spec.Research.Categories, c => Assert.True(Table.ContainsKey($"research.category.{c.Id}"), c.Id));
+        Assert.All((string[])["research.key", "research.marketKey"], key => Assert.True(Table.ContainsKey(key), key));
         Assert.All(Spec.Research.Nodes.Where(n => n.Gate), g => Assert.True(Table.ContainsKey($"research.gate.{g.Id}"), g.Id));
-        Assert.All(["noMachine", "bought", "locked", "noCredits", "gateOpen", "nothingToDeposit"], why => Assert.True(Table.ContainsKey($"research.{why}"), why));
+        string[] market = ["order", "sell", "filled", "unlocks", "allFilled", "shelf.all", "shelf.upgrades", "shelf.blueprints", "kind.upgrade", "kind.blueprint",
+            "nextOrder", "allBought", "owned", "boughtOf", "nothing", "waits", "boughtOut"];
+        Assert.All([.. market.Select(m => "market." + m), "bought", "locked", "noCredits"], why => Assert.True(Table.ContainsKey($"research.{why}"), why));
     }
 
     [Fact]
-    public void NamesEveryItemADepositAsks()
+    public void NamesEveryItemAnOrderAsks()
     {
-        Assert.All(Spec.Research.Nodes.SelectMany(n => n.Deposit), d => Assert.True(Table.ContainsKey($"item.{d.Item}"), d.Item));
+        Assert.All(Spec.Research.Nodes.SelectMany(n => n.Order), d => Assert.True(Table.ContainsKey($"item.{d.Item}"), d.Item));
     }
 
     [Fact]
-    public void NamesBothStationsAndWhatOpeningThemSays()
+    public void NamesTheTradeStationAndWhatOpeningItSays()
     {
-        Assert.All(["techStation", "tradeStation"], kind =>
-        {
-            Assert.True(Table.ContainsKey($"tool.{kind}"), kind);
-            Assert.True(Table.ContainsKey($"tool.{kind}.about"), kind);
-            Assert.True(Table.ContainsKey($"use.open.{kind}"), kind);
-        });
+        Assert.True(Table.ContainsKey("tool.tradeStation"));
+        Assert.True(Table.ContainsKey("tool.tradeStation.about"));
+        Assert.True(Table.ContainsKey("use.open.tradeStation"));
     }
 }

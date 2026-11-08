@@ -78,7 +78,7 @@ public class SoilClodTests
                 if (pieces.Count > 0) last = Math.Max(last, pieces[^1].Id);
             }
         }
-        Assert.InRange(spawns / 4, 320, 370);
+        Assert.InRange(spawns / 4, 850, 950);
         Assert.InRange(clods, 3 * 4, 8 * 4);
     }
 }

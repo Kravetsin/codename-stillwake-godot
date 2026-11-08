@@ -23,9 +23,11 @@ public static class Crafts
         new("fireAxe", [("iron", 2), ("planks", 1)], Ticks: 60),
         // Free at the pod, made again should one be lost: without it nothing is built (0107), not even the furnace.
         new("screwdriver", [], Ticks: 20),
-        // The harpoon of what the jetpack is made of, and less, so it opens first (0068).
-        new("harpoon", [("tube", 1), ("coil", 1), ("wire", 4)], Ticks: 100),
-        // The first gun (shots-are-the-sims): cheaper than the harpoon, after the first iron; the axe's time.
+        // A tube and its line of wire, no coil: the first ring's, so salvage comes in from the first iron on (first-hour-pace).
+        new("harpoon", [("tube", 1), ("wire", 8)], Ticks: 100),
+        // The climber's harpoon (grapple-climbs): a sturdier tube, a geared winch and its motor's coil.
+        new("grapple", [("tube", 2), ("gear", 2), ("coil", 1), ("wire", 8)], Ticks: 120),
+        // The first gun (shots-are-the-sims): after the harpoon, as what it fights is only met flying; the axe's time.
         new("nailer", [("tube", 1), ("plate", 2), ("wire", 2)], Ticks: 60),
         // Two scrap a nail, so the scrap a hero has too much of goes into nails made ahead: a second a nail at the pod.
         new("nail", [("scrap", 2)], Ticks: 4),
@@ -35,10 +37,26 @@ public static class Crafts
         // Of the ruins' cloth and a grazer's hide, at the Former (2026-10-27-the-cape-is-worn): none before the first planet.
         new("cape", [("cloth", 2), ("hide", 2)], Ticks: 60),
         new("jetpack", [("frame", 1), ("tube", 3), ("coil", 2), ("gear", 2), ("canister", 1), ("wire", 4)], Ticks: 240),
+        // Its blueprint only the black market sells (2026-11-03-the-heavy-helmet), four times its worth: the user's 5000 (ResearchTests).
+        new("heavyHelmet", [("frame", 1), ("plate", 4), ("tube", 2), ("glass", 3), ("canister", 2), ("wire", 4)], Ticks: 240),
+        // Its blueprint only the black market sells (2026-11-03-the-regen-suit): cables, a coil and circuits round a frame.
+        new("regenSuit", [("frame", 1), ("plate", 2), ("coil", 2), ("circuit", 2), ("wire", 6), ("tube", 2)], Ticks: 240),
         new("battery", [("plate", 2), ("coil", 2), ("wire", 4), ("circuit", 1)], Ticks: 120),
         // A plate bent into a band, wire and a coil for its glowing bulb: the workbench's, so it comes before the first cave (0077).
         new("helmetLamp", [("plate", 1), ("wire", 2), ("coil", 1)], Ticks: 60),
+        // The lamp's plate, coil and wire and a circuit, all from early wrecks (2026-11-07-the-scanner); its blueprint only the black market sells.
+        new("scanner", [("plate", 1), ("coil", 1), ("circuit", 1), ("wire", 2)], Ticks: 60),
         new("drill", [("frame", 1), ("rotor", 2), ("coil", 2), ("gear", 4), ("tube", 2), ("circuit", 2)], Ticks: 240),
+        // Bought on the black market (power-driver): a motor of a rotor and a coil, geared down, a circuit to drive it.
+        new("powerDriver", [("plate", 2), ("gear", 2), ("rotor", 1), ("coil", 1), ("wire", 2), ("circuit", 1)], Ticks: 120),
+        // The salvage tools (salvage-tools), all at the workbench: the grinder round a planet's motor, so after a landing;
+        // the spear and the sledgehammer of the first parts; the cutter's blueprint only the black market sells.
+        new("grinder", [("motor", 1), ("plate", 2), ("gear", 2), ("coil", 1), ("circuit", 2)], Ticks: 240),
+        new("spear", [("tube", 2), ("plate", 2), ("wire", 2)], Ticks: 120),
+        new("sledgehammer", [("plate", 4), ("tube", 1), ("planks", 1)], Ticks: 120),
+        // The drill's fallback underground (the-pickaxe): two plates for its spike, cut from a rib, and a tube for its haft, all of the first wrecks.
+        new("pickaxe", [("plate", 2), ("tube", 1)], Ticks: 90),
+        new("plasmaCutter", [("canister", 1), ("coil", 2), ("circuit", 2), ("tube", 2), ("plate", 1)], Ticks: 240),
         // Electronics, at the circuit assembler: of silicon and wire, and with glass, a solar cell.
         new("circuit", [("silicon", 1), ("wire", 3)], Ticks: 120),
         new("solarCell", [("silicon", 1), ("glass", 2), ("wire", 2)], Ticks: 150),
@@ -47,12 +65,13 @@ public static class Crafts
         new("transceiver", [("coil", 4), ("circuit", 3), ("tube", 2), ("glass", 2)], Ticks: 300),
         // Pressed at the Former only: a grow capsule's bed (0060), of the crusher's gravel.
         new("soil", [("gravel", 2), ("planks", 1)], Ticks: 60),
-        // At the Former only: a rotor wound with the planet's copper round magnetite from its deepest band.
-        // A planet's ice frozen into a canister of air at the Former: air for spacewalks that no longer waits on salvage.
-        new("canister", [("ice", 3)], Ticks: 60),
+        // At the Former only: a rotor wound with the planet's copper round magnetite from its deepest band. Canisters are
+        // salvaged, not made: an electrolyser will fill them (2026-11-06-no-ice-canister).
         new("motor", [("rotor", 1), ("copper", 4), ("magnetite", 2)], Ticks: 180),
         // At the circuit assembler: a drone, of a rotor, plates, a circuit and the battery it will run on (0062).
         new("drone", [("rotor", 2), ("plate", 3), ("circuit", 2), ("battery", 1)], Ticks: 240),
+        // A salvage drone (salvage-drones, salvage-trips): the drone's craft with nozzles for a canister's air where it has rotors.
+        new("salvageDrone", [("nozzle", 2), ("plate", 3), ("circuit", 2), ("battery", 1)], Ticks: 240),
         new("deckDrive", [("circuit", 3), ("rotor", 2), ("coil", 2)], Ticks: 300),
         // The engine's parts, the last made: a nozzle pressed of the ruins' heat-proof alloy lined with copper, and a fuel pump
         // of a motor at the Former; an igniter of a crystal's spark at the circuit assembler.

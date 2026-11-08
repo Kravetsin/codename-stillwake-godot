@@ -60,21 +60,33 @@ public class CreaturesInvariantTests
             if (c.X - half < 0 || c.X + half > Width * Unit || c.Y - spec.Body.Height * Unit < 0 || c.Y > Height * Unit)
                 return $"creature {c.Id} off the grid at ({c.X}, {c.Y})";
             if (w.M.Creatures.Overlaps(spec.Body, c.X, c.Y)) return $"creature {c.Id} in a wall at ({c.X}, {c.Y})";
-            if (c.Left < 1 || c.Left > LongestOf(c.Posture, spec)) return $"creature {c.Id} {c.Posture} with {c.Left} ticks left";
+            // A lurker on guard (cave-hostiles) watches with no count, alerted with its alert's.
+            int least = c.Act == null && spec.Brain[c.Drive] is Tune.Guard ? 0 : 1;
+            if (c.Left < least || c.Left > LongestOf(c, spec)) return $"creature {c.Id} {c.Posture} with {c.Left} ticks left";
         }
         foreach (var hero in w.M.Crew.Heroes)
             if (hero.Air < 0 || hero.Air > Scenario.Full) return $"hero {hero.Id}'s suit at {hero.Air}";
+        // A patch (lurker-attacks) lies on the grid, not empty, and no longer than its kind lasts.
+        foreach (var p in w.M.Creatures.Patches)
+            if (p.Ticks < 1 || p.Ticks > Tune.PatchOf(p.Kind).Lasts || p.Width < 1 || p.Height < 1 || p.Left < 0 || p.Top < 0
+                || p.Left + p.Width > Width || p.Top + p.Height > Height)
+                return $"patch {p.Id} of {p.Kind} at ({p.Left}, {p.Top}) {p.Width}×{p.Height} with {p.Ticks} ticks";
         return null;
     }
 
-    /// <summary>The most ticks <paramref name="posture"/> lasts for a creature of <paramref name="spec"/>: what is left of it never exceeds it.</summary>
-    private static int LongestOf(Posture posture, Tune.Species spec) => posture switch
+    /// <summary>The damage of each creature whose shell is shut (lurker-attacks), by id: none of it may grow while it is.</summary>
+    private static Dictionary<int, int> Shut(Scenario w) =>
+        w.M.Creatures.Creatures.Where(CreaturesModule.Shut).ToDictionary(c => c.Id, c => c.Damage);
+
+    /// <summary>The most ticks <paramref name="c"/>'s posture lasts for a creature of <paramref name="spec"/>: what is left of it never exceeds it.</summary>
+    private static int LongestOf(Creature c, Tune.Species spec) => c.Posture switch
     {
+        Posture.Idle when c.Act == null && spec.Brain[c.Drive] is Tune.Guard guard => guard.AlertTicks,
         Posture.Idle => Tune.IdleMost,
         Posture.Wander => Tune.WanderMost,
         Posture.Flee => spec.Brain.OfType<Tune.Flee>().Single().Ticks,
-        Posture.WindUp => ((Tune.Lunge)spec.Moves[0]).WindUp,
-        Posture.Charge => ((Tune.Lunge)spec.Moves[0]).Ticks,
+        Posture.WindUp => spec.Moves[c.Act!.Move] switch { Tune.Lunge l => l.WindUp, Tune.Pounce p => p.WindUp, Tune.Shoot s => s.WindUp, _ => 0 },
+        Posture.Charge => spec.Moves[c.Act!.Move] switch { Tune.Lunge l => l.Ticks, Tune.Pounce p => p.Ticks, Tune.Shoot s => s.Recover, Tune.Vent v => v.Ticks, _ => 0 },
         Posture.Retreat => spec.Brain.OfType<Tune.Retaliate>().Single().FleeMost,
         Posture.Escape => spec.Brain.OfType<Tune.Escape>().Single().Ticks,
         _ => 0,
@@ -102,10 +114,122 @@ public class CreaturesInvariantTests
                     w.Do(new Strike(all[(int)rng.Below((uint)all.Count)].Id, weapons[(int)rng.Below((uint)weapons.Count)].Item) { From = (int)rng.Below(2) });
                 }
                 if (rng.Below(40) == 0) w.HeroAt((int)rng.Below(Width), (int)rng.Below(Height), peer: (int)rng.Below(2));
+                var shut = Shut(w);
                 w.Run();
                 broken = Broken(w);
+                foreach (var c in w.M.Creatures.Creatures)
+                    if (shut.TryGetValue(c.Id, out int was) && c.Damage > was) broken ??= $"creature {c.Id} hurt shut, {was} to {c.Damage}";
                 if (NextId(w) < next || all.Count > 0 && all[^1].Id >= NextId(w)) broken ??= $"the next id {NextId(w)} after {next}";
                 next = NextId(w);
+            }
+            return (broken == null).Label(broken ?? "");
+        });
+
+    private const int HillsWidth = 440, HillsHeight = 48;
+
+    /// <summary>
+    /// Hills a character a cell, wide enough for a herd on either side of a hero: each column's top a step off the last now and then,
+    /// a cliff sometimes, so some herds find every place and some miss one. The tops, for heroes to stand on.
+    /// </summary>
+    private static (Layout Map, int[] Tops) Hills(int seed, char open = ' ')
+    {
+        var rng = new Rng(new RngState { S = (uint)seed });
+        var tops = new int[HillsWidth];
+        int top = 30;
+        for (int x = 0; x < HillsWidth; x++)
+        {
+            if (rng.Below(5) == 0) top = Math.Clamp(top + (rng.Below(8) == 0 ? (int)rng.Below(17) - 8 : (int)rng.Below(5) - 2), 12, HillsHeight - 4);
+            tops[x] = top;
+        }
+        var rows = Enumerable.Range(0, HillsHeight).Select(y => new string([.. tops.Select(t => y >= t ? '#' : open)]));
+        return (Layout.Parse([.. rows]), tops);
+    }
+
+    /// <summary>
+    /// Herds (creatures-in-herds), over hills with a hero who moves about and strikes now and then: whatever spawns on a tick is a
+    /// herd, on the beat, of two to four of one kind, each a spacing further out than the last, and the surface never past its cap.
+    /// </summary>
+    [Property(MaxTest = 40)]
+    public Property EverySpawnIsAHerdOfOneKindSpacedOutUnderTheCap() =>
+        Prop.ForAll(Gen.Choose(0, int.MaxValue).ToArbitrary(), Gen.Choose(0, int.MaxValue).ToArbitrary(), (ground, seed) =>
+        {
+            var (map, tops) = Hills(ground);
+            var w = CreaturesTesting.Planet(map, cells: true).Breathing();
+            var rng = new Rng(new RngState { S = (uint)seed });
+            void Move()
+            {
+                int x = (int)rng.Below(HillsWidth);
+                w.HeroAt(x, tops[x] - 1);
+            }
+            Move();
+            string? broken = null;
+            int seen = 0;
+            for (int t = 0; t < 60 * Tune.Beat && broken == null; t++)
+            {
+                var all = w.M.Creatures.Creatures;
+                if (rng.Below(300) == 0) Move();
+                if (all.Count > 0 && rng.Below(20) == 0) w.Do(new Strike(all[(int)rng.Below((uint)all.Count)].Id, Content.Weapons.Axe.Item));
+                w.Run();
+                var herd = all.Where(c => c.Id > seen).ToList();
+                if (all.Count > Tune.Max) broken = $"{all.Count} creatures";
+                if (herd.Count == 0) continue;
+                seen = herd[^1].Id;
+                string kinds = string.Join(",", herd.Select(c => c.Species));
+                if (w.World.Tick % Tune.Beat != 0) broken ??= $"a herd off the beat at {w.World.Tick}";
+                if (herd.Count < Tune.HerdLeast || herd.Count > Tune.HerdMost) broken ??= $"a herd of {herd.Count}: {kinds}";
+                if (herd.Any(c => c.Species != herd[0].Species)) broken ??= $"a herd of kinds {kinds}";
+                for (int i = 1; i < herd.Count; i++)
+                    if (Math.Abs(herd[i].X - herd[i - 1].X) != Tune.Spacing * Unit) broken ??= $"a herd's members {Math.Abs(herd[i].X - herd[i - 1].X)} apart";
+            }
+            return (broken == null).Label(broken ?? "");
+        });
+
+    /// <summary>The first planet with a lurker in each of two cave bands, the first's bottom at row <see cref="BandEdge"/> of a test's map.</summary>
+    private static readonly Content.PlanetType Banded = Content.PlanetTypes.First with
+    {
+        Bands = [Down(BandEdge), 600, 850],
+        Creatures = [new(Tune.Capback.Id, Tune.Place.Band, 1, Band: 0), new(Tune.GeodeSnail.Id, Tune.Place.Band, 1, Band: 1)],
+    };
+
+    private const int BandEdge = 30;
+
+    /// <summary>How far down the first planet's ground row <paramref name="row"/> is, in thousandths, as its bands are measured.</summary>
+    private static int Down(int row)
+    {
+        var g = Content.PlanetTypes.First.Ground;
+        return (int)((long)(row - g.Surface) * 1000 / Math.Max(1, g.Height - g.CoreRows - g.Surface));
+    }
+
+    /// <summary>
+    /// Herds by depth band (cave-hostiles), over cave hills a band's bottom crosses, a hero moving about across it: every herd is of
+    /// a kind of the hero's own band.
+    /// </summary>
+    [Property(MaxTest = 30)]
+    public Property EveryHerdIsOfItsHerosBand() =>
+        Prop.ForAll(Gen.Choose(0, int.MaxValue).ToArbitrary(), Gen.Choose(0, int.MaxValue).ToArbitrary(), (ground, seed) =>
+        {
+            var (map, tops) = Hills(ground, '.');
+            var w = CreaturesTesting.Planet(map, Banded, cells: true).Breathing();
+            var rng = new Rng(new RngState { S = (uint)seed });
+            int row = 0;
+            void Move()
+            {
+                int x = (int)rng.Below(HillsWidth);
+                row = tops[x] - 1;
+                w.HeroAt(x, row);
+            }
+            Move();
+            string? broken = Terrain.BandOf(Banded, BandEdge - 1) == 0 && Terrain.BandOf(Banded, BandEdge) == 1 ? null : "the band's bottom is off";
+            int seen = 0;
+            for (int t = 0; t < 60 * Tune.Beat && broken == null; t++)
+            {
+                if (rng.Below(150) == 0) Move();
+                w.Run();
+                var herd = w.M.Creatures.Creatures.Where(c => c.Id > seen).ToList();
+                if (herd.Count == 0) continue;
+                seen = herd[^1].Id;
+                int band = Banded.Creatures.First(h => h.Species == herd[0].Species).Band;
+                if (band != Terrain.BandOf(Banded, row)) broken = $"a herd of {herd[0].Species} round a hero at row {row}";
             }
             return (broken == null).Label(broken ?? "");
         });

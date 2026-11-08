@@ -92,9 +92,29 @@ public class PaceTests
         double held = g.Game.Progress;
         Assert.Equal(0, g.Frames(30).Sum());
         Assert.Equal(held, g.Game.Progress);
+        // What is drawn drifting goes on a little way, then waits too.
+        Assert.Equal(1 + Playout.AheadTicks, g.Game.Drift);
         // The host woke: ticks come again, and the world goes on without them piling up.
         g.Frames(180);
         Assert.True(g.Frames(60).Sum() >= 18);
+    }
+
+    [Fact]
+    public void AJoinedGameDrawsTimeOnThroughALateTickAndTheTicksThatCatchUpLandWhereItIsDrawn()
+    {
+        // Tick 60 held 200 ms, as behind a packet lost on an ordered link, and the three after it waiting for it.
+        var g = new Joined(tick => tick is >= 60 and < 64 ? 60 * TickMs + 200 : tick * TickMs);
+        g.Frames(150);
+        double drawn = g.Client.World.Tick + g.Game.Drift, most = 0;
+        for (int i = 0; i < 120; i++)
+        {
+            g.Frame();
+            double now = g.Client.World.Tick + g.Game.Drift;
+            Assert.True(now >= drawn && now - drawn < 0.5, $"drawn at tick {drawn:F2}, then {now:F2}");
+            (drawn, most) = (now, Math.Max(most, g.Game.Drift));
+        }
+        Assert.True(most > 2, $"drifted at most {most:F2} ticks past one");
+        Assert.True(g.Game.Progress <= 1);
     }
 
     [Fact]

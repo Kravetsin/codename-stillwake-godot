@@ -13,16 +13,31 @@ public sealed record LoadCanister(int Tank) : Command;
 /// <summary>What any module may read of the air.</summary>
 public interface IAtmosphereQueries
 {
-    /// <summary>Whether a pipe joins vent <paramref name="vent"/> to an air source, a tank or a generator: only then does it blow, air a room or hum.</summary>
+    /// <summary>Whether a pipe joins vent <paramref name="vent"/> to a vaporizer's output: only then does its room's air grow round it.</summary>
     bool Fed(int vent);
-    /// <summary>The oxygen in tank or generator <paramref name="tank"/>; none for one never filled, or no tank at all.</summary>
+    /// <summary>
+    /// Whether vent <paramref name="vent"/> has air to give: gas in a store feeding it, or a vaporizer feeding it powered
+    /// with liquid behind it. Only then does it blow and hum. One survey a call.
+    /// </summary>
+    bool Supplied(int vent);
+    /// <summary>The liquid in tank <paramref name="tank"/>, or the gas in vaporizer <paramref name="tank"/>'s store; none for one never filled, or no tank at all.</summary>
     int OxygenIn(int tank);
+    /// <summary>
+    /// How fast air source <paramref name="source"/> (a vaporizer, the pod) makes air while its store has room, in thousandths of a
+    /// unit a tick: none unpiped, with no liquid behind it or no power. What the pointer tells of it.
+    /// </summary>
+    int MakesAt(int source);
     /// <summary>Why peer <paramref name="peer"/>'s canister would not go into machine <paramref name="tank"/>: what the client shows first.</summary>
     string? CanisterProblem(int tank, int peer);
     /// <summary>Room <paramref name="room"/>'s state (TypeScript's <c>roomStatus</c>); vacuum for no room. One survey a call: for every room, read <see cref="RoomsAir"/>.</summary>
     RoomStatus StatusOf(int room);
     /// <summary>Whether <paramref name="cell"/> holds air.</summary>
     bool AiredAt(int cell);
+    /// <summary>
+    /// Whether the room <paramref name="cell"/> lies in holds any air: where drones fly, so a bubble shrinking or flowing
+    /// never drops one (2026-11-05-air-bubbles). False outside every room.
+    /// </summary>
+    bool HoldsAir(int cell);
     /// <summary>Every cell holding air, sorted: live and read-only, for drawing the whole ship's air at once.</summary>
     IReadOnlyList<int> AiredCells { get; }
     /// <summary>Every room's air, in rooms order, for the air overlay: one survey for all rooms, so read it on a timer.</summary>
@@ -38,6 +53,12 @@ public interface IAtmosphereOps
     /// how many, none anywhere else. Emptied tanks leave the list at once.
     /// </summary>
     int Breathe(int cell, int amount);
+
+    /// <summary>
+    /// Puts up to <paramref name="amount"/> of liquid oxygen into tank <paramref name="tank"/>, as much as it has room for (an
+    /// electrolyser's, water); returns how much. None into anything but a tank.
+    /// </summary>
+    int Fill(int tank, int amount);
 }
 
 /// <summary>
@@ -58,11 +79,14 @@ public sealed partial class AtmosphereModule : Module<AtmosphereState>, IAtmosph
     /// <summary>Derived: the grid's version the tanks were last checked at; null for not yet.</summary>
     private int? _tanksCheckedAt;
 
-    /// <summary>Derived: the pipes' version the vents were last found at; a vent counts only while piped.</summary>
-    private int? _ventsPipes;
+    /// <summary>Scratch for the live vents listed each tick, so a tick in which none turned allocates nothing.</summary>
+    private readonly List<int> _liveNow = [];
 
-    /// <summary>Derived: each room's leak by room id, found for the rooms' version <see cref="_leaksFor"/>; null for none yet.</summary>
-    private readonly Dictionary<int, int> _leaks = new();
+    /// <summary>
+    /// Derived: what each cell of a room leaks while it holds air, its back wall and the hull cells given to it, found for the
+    /// rooms' version <see cref="_leaksFor"/>; null for none yet.
+    /// </summary>
+    private int[] _cellLeak = [];
     private int? _leaksFor;
 
     public override string Id => "atmosphere";
@@ -118,42 +142,60 @@ public sealed partial class AtmosphereModule : Module<AtmosphereState>, IAtmosph
         _leaksFor = null;
         _survey = null;
         _tanksCheckedAt = null;
-        Reorder(VentCells());
-        _ventsPipes = _pipes.Version;
+        // Only orders: the air stays where it lies and only flows in a tick, so a loaded world holds what was saved.
+        Reorder(State.Live ?? []);
+        State.OrderedGrid = _grid.Version;
         State.OrderedVersion = _rooms.Version;
     }
 
     /// <summary>
-    /// Rooms or vents moved: the orders of the rooms they touch are found again, and what is kept per
-    /// room with them; the air stays put.
+    /// At the start of the simulation phase: rooms found again get new orders, their air kept where it lies; then the
+    /// live vents are listed, and the rooms of those that turned get theirs (2026-11-05-air-bubbles). The first tick of
+    /// a world with none listed yet orders every room.
     /// </summary>
     private void Follow()
     {
-        // Vents come and go with machines, and count only while piped: the grid's log or the pipes say when.
-        bool piping = _ventsPipes != _pipes.Version;
-        if (!piping && _grid.Version == State.OrderedGrid && _rooms.Version == State.OrderedVersion) return;
         var roomOf = _rooms.RoomOfCells;
-        var vents = piping || MachinesMoved(_grid.ChangedSince(State.OrderedGrid)) ? VentCells() : State.OrderedVents;
-        _ventsPipes = _pipes.Version;
-        int was = State.OrderedVersion;
-        var found = _rooms.ChangedSince(was);
-        List<int> changed;
-        if (found == null)
-        {
-            // Every room was found again, hull and openings too: what is kept per room is gathered afresh.
-            _leaksFor = null;
-            _survey = null;
-            changed = Order.ChangedRooms(State.OrderedRooms, roomOf, State.OrderedVents, vents);
-        }
-        else
-        {
-            changed = Order.VentRoomsMoved(roomOf, State.OrderedVents, vents);
-            changed.AddRange(found);
-        }
-        if (changed.Count > 0) ReorderAround(vents, [.. changed.Distinct().Order()], was);
+        // A vent built or taken away reaches the survey's vents only when it is gathered again.
+        if (_grid.Version != State.OrderedGrid && MachinesMoved(_grid.ChangedSince(State.OrderedGrid))) _survey = null;
         State.OrderedGrid = _grid.Version;
-        State.OrderedVersion = _rooms.Version;
-        State.OrderedVents = vents;
+        if (State.Live is not { } live)
+        {
+            State.Live = LiveVents(Gather(), []);
+            Reorder(State.Live);
+            State.OrderedVersion = _rooms.Version;
+            // Air an older save holds off every room goes.
+            var stranded = new List<int>();
+            foreach (int c in State.Aired) if (roomOf[c] < 0) stranded.Add(c);
+            if (stranded.Count > 0)
+            {
+                EditAired(stranded, []);
+                _survey = null;
+            }
+            return;
+        }
+        if (_rooms.Version != State.OrderedVersion)
+        {
+            int was = State.OrderedVersion;
+            var found = _rooms.ChangedSince(was);
+            List<int> changed;
+            if (found == null)
+            {
+                // Every room was found again, hull and openings too: what is kept per room is gathered afresh.
+                _leaksFor = null;
+                _survey = null;
+                changed = Order.ChangedRooms(State.OrderedRooms, roomOf, live, live);
+            }
+            else changed = [.. found];
+            State.OrderedVersion = _rooms.Version;
+            if (changed.Count > 0) ReorderAround(live, [.. changed.Distinct().Order()], was);
+        }
+        // Every tick: a chain runs dry or is refilled with no version moving.
+        LiveVents(Gather(), _liveNow);
+        if (_liveNow.SequenceEqual(live)) return;
+        var turned = Order.VentRoomsMoved(roomOf, live, _liveNow);
+        State.Live = [.. _liveNow];
+        if (turned.Count > 0) ReorderAround(State.Live, [.. turned.Distinct().Order()], _rooms.Version);
     }
 
     /// <summary>
@@ -194,25 +236,31 @@ public sealed partial class AtmosphereModule : Module<AtmosphereState>, IAtmosph
         return false;
     }
 
-    /// <summary>
-    /// The cells of the fed vents (<see cref="Fed"/>), in machine id order: where each room's air lies around. A vent
-    /// with nothing behind it blows nothing, so a room's air does not gather at it.
-    /// </summary>
-    private List<int> VentCells()
-    {
-        var machines = _grid.MachinesWith(MachineTrait.Vents);
-        var vents = new List<int>(machines.Count);
-        foreach (var m in machines)
-            if (Fed(m.Id)) vents.Add(m.Cell);
-        return vents;
-    }
-
     public bool Fed(int vent)
     {
         foreach (int id in _pipes.NetworksOf(vent))
             if (_pipes.Network(id) is { } network)
                 foreach (int on in network.Machines)
-                    if (_grid.MachineById(on) is { } m && Content.Machines.Is(m.Kind, MachineTrait.AirSource)) return true;
+                    if (_grid.MachineById(on) is { } m && Feeds(m, id)) return true;
+        return false;
+    }
+
+    /// <summary>Whether <paramref name="m"/> is a vaporizer whose output port stands on network <paramref name="network"/>: its input there feeds nothing.</summary>
+    private bool Feeds(Machine m, int network)
+    {
+        if (!Content.Machines.Is(m.Kind, MachineTrait.AirSource)) return false;
+        var cells = _grid.PortsOf(m);
+        var ports = Content.Machines.Get(m.Kind).Ports;
+        for (int i = 0; i < cells.Count; i++)
+            if (ports[i].Way == Way.Out && _pipes.NetworkAt(cells[i]) == network) return true;
+        return false;
+    }
+
+    public bool Supplied(int vent)
+    {
+        var s = Gather();
+        foreach (int id in _pipes.NetworksOf(vent))
+            if (Supplied(s, id)) return true;
         return false;
     }
 
@@ -223,12 +271,12 @@ public sealed partial class AtmosphereModule : Module<AtmosphereState>, IAtmosph
         State.Orders = new Dictionary<int, int[]>();
         foreach (var (id, cells) in Order.Rooms(roomOf, _grid.Width, _rooms.All, vents, Seen())) State.Orders[id] = cells;
         State.OrderedRooms = roomOf.ToArray();
-        State.OrderedVents = vents;
     }
 
     /// <summary>
     /// The orders of the <paramref name="changed"/> rooms (ascending ids, gone and new) found again, and
-    /// what is kept for them. Only cells those rooms held can have left every room, losing their air.
+    /// what is kept for them; their air stays where it lies. Only cells those rooms held can have left every
+    /// room, losing their air.
     /// </summary>
     private void ReorderAround(List<int> vents, List<int> changed, int was)
     {
@@ -267,9 +315,6 @@ public sealed partial class AtmosphereModule : Module<AtmosphereState>, IAtmosph
 
     private bool IsTank(int id) => _grid.MachineById(id) is { } m && Content.Machines.Is(m.Kind, MachineTrait.Gas);
 
-    /// <summary>Whether air source <paramref name="source"/> makes its air on power rather than storing a canister's: one that is no gas store, the generator.</summary>
-    private static bool MakesAir(Machine source) => !Content.Machines.Is(source.Kind, MachineTrait.Gas);
-
     // Queries.
 
     public int OxygenIn(int tank) => State.Tanks.Find(t => t.Tank == tank)?.Oxygen ?? 0;
@@ -289,10 +334,27 @@ public sealed partial class AtmosphereModule : Module<AtmosphereState>, IAtmosph
     }
 
     public bool AiredAt(int cell) => State.Aired.BinarySearch(cell) >= 0;
+    public bool HoldsAir(int cell) => _rooms.RoomOfCells[cell] is int room and >= 0 && Gather().AiredIn[room] > 0;
     public IReadOnlyList<int> AiredCells => State.Aired;
     public IReadOnlyList<RoomAir> RoomsAir() => AllRoomsAir();
 
     // Operations.
 
     public int Breathe(int cell, int amount) => BreatheAt(cell, amount);
+
+    public int Fill(int tank, int amount)
+    {
+        if (!IsTank(tank)) return 0;
+        int added = Math.Min(amount, Content.Air.TankCapacity - OxygenIn(tank));
+        if (added <= 0) return 0;
+        _readFor = null;
+        var held = State.Tanks.Find(t => t.Tank == tank);
+        if (held != null) held.Oxygen += added;
+        else
+        {
+            State.Tanks.Add(new TankAir { Tank = tank, Oxygen = added });
+            State.Tanks.Sort((a, b) => a.Tank.CompareTo(b.Tank));
+        }
+        return added;
+    }
 }

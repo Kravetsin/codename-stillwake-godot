@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using Godot;
 using Stillwake.Game.Render;
+using Stillwake.Game.Shared;
 using Stillwake.Sim.Crew;
 using Stillwake.Sim.Grid;
 using Stillwake.Sim.Landing;
@@ -63,7 +64,7 @@ public partial class PodFlights : Node2D
             else if (f.Up && s < LiftS) _lifting.Add((PodCellOf(f.Floor, _grid.Width), s));
         }
         if (_arrivals != null)
-            foreach (var pod in _grid.MachinesWith(Content.MachineTrait.Seats))
+            foreach (var pod in _grid.MachinesWith(Content.MachineTrait.Lands))
                 if (_arrivals.SecondsSince(pod.Id) is double a) _coming.Add((pod.Cell, a));
         Hear(delta);
         if (!were && _falling.Count + _coming.Count + _lifting.Count == 0) return;
@@ -87,7 +88,7 @@ public partial class PodFlights : Node2D
             _sounds.Heard(PodSounds.Motion.Lifting, cell, PodAt(cell) + bottom - new Vector2(0, (float)Lift(s)), s, true, Blast(Lift(s), Flame(18)), delta);
         // Docked aboard, not drawn: a burst of its engine blasting the deck, cut as it settles.
         if (_arrivals != null)
-            foreach (var pod in _grid.MachinesWith(Content.MachineTrait.Seats))
+            foreach (var pod in _grid.MachinesWith(Content.MachineTrait.Lands))
                 if (_arrivals.DockedSince(pod.Id) is double d)
                     _sounds.Heard(PodSounds.Motion.Docking, pod.Cell, PodAt(pod.Cell) + bottom, d, d < DockBurstS, d < DockBurstS ? 1 - d / DockBurstS : 0, delta);
         _sounds.Settle(delta);

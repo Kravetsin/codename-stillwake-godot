@@ -78,6 +78,10 @@ public static class IconLooks
     /// <summary>A spin's: how far its moving strokes, rotor blades, turn each frame about their middles, in degrees.</summary>
     public const int SpinStep = 60;
 
+    /// <summary>A puff's: how far its moving strokes rise in a round, a share of the side, its brightness breathing by <see cref="SimmerBreath"/>; one round, in frames.</summary>
+    public const float PuffRise = 0.04f;
+    public const int PuffFrames = 12;
+
     /// <summary>
     /// The icon's lines, the frame first: still for <paramref name="frame"/> 0 (a ghost, a test); else its glyph moved as
     /// its <see cref="Look.Motion"/> moves it at that frame, a frame a twelfth of a second. A random motion is seeded by the
@@ -153,6 +157,21 @@ public static class IconLooks
                     lines.Add(new Line(s.Moves ? Turned(s.Points, turn) : s.Points, false, s.Weight));
                 }
                 break;
+            case IconMotion.Puff:
+                // Each puff rising from where it is drawn, the next half a round behind, so one is always leaving the valve.
+                int puff = 0;
+                foreach (var s in look.Glyph)
+                {
+                    if (!s.Moves)
+                    {
+                        lines.Add(new Line(s.Points, false, s.Weight));
+                        continue;
+                    }
+                    float rise = PuffRise * ((frame % PuffFrames / (float)PuffFrames + puff++ * 0.5f) % 1);
+                    lines.Add(new Line(Moved(s.Points, p => (p.U, p.V - rise)), false, s.Weight));
+                }
+                intensity = 1 + SimmerBreath * Wave(frame, PuffFrames);
+                break;
         }
         return new Pose(lines, intensity);
     }
@@ -170,6 +189,7 @@ public static class IconLooks
         IconMotion.Simmer => SimmerFrames,
         IconMotion.Fill => (look.Glyph.Max(s => s.Step) + 2) * FillFrames,
         IconMotion.Spin => 360 / SpinStep,
+        IconMotion.Puff => PuffFrames,
         _ => throw new ArgumentOutOfRangeException(nameof(look)),
     };
 
@@ -278,4 +298,6 @@ public enum IconMotion
     Fill,
     /// <summary>Its moving strokes turning about their middles, every other one the other way: a drone's rotors.</summary>
     Spin,
+    /// <summary>Its moving strokes rising a little and starting again, each half a round after the last: puffs off a canister's valve.</summary>
+    Puff,
 }

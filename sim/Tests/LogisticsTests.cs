@@ -48,7 +48,7 @@ public class LogisticsTests
     /// </summary>
     internal static Scenario Aired(string[] rows, string[]? under = null, int drones = 2, IReadOnlyList<((int, int), (int, int))>? cables = null, int charge = Content.Charge.Drone)
     {
-        var w = new Scenario(Layout.Parse(rows, under, cables), doubled: true);
+        var w = new Scenario(AirTesting.Vaporized(rows, under, cables), doubled: true);
         for (int i = 0; i < 2000 && !AllAired(w); i++) w.Run();
         Assert.True(AllAired(w));
         foreach (var bay in w.M.Grid.MachinesOf(Tune.Bay)) Dock(w, bay.Id, drones, charge);
@@ -62,11 +62,11 @@ public class LogisticsTests
         return w;
     }
 
-    /// <summary>Whether every room with a vent in it is aired.</summary>
-    private static bool AllAired(Scenario w)
+    /// <summary>Whether every room with a vent in it is aired, or holds all the air its vents pay for (2026-11-05-air-bubbles).</summary>
+    internal static bool AllAired(Scenario w)
     {
         var vented = w.M.Grid.MachinesOf("vent").Select(v => w.M.Rooms.RoomAt(v.Cell)).ToHashSet();
-        return w.M.Rooms.All.Where(r => vented.Contains(r.Id)).All(r => w.M.Atmosphere.StatusOf(r.Id) == Atmosphere.RoomStatus.Aired);
+        return w.M.Atmosphere.RoomsAir().Where(a => vented.Contains(a.Room)).All(a => a.Status == Atmosphere.RoomStatus.Aired || a.Problem == "atmosphere.leaky");
     }
 
     internal static Scenario TwoRooms(int drones = 2, int charge = Content.Charge.Drone) => Aired(Rooms, RoomsUnder, drones, charge: charge);
@@ -395,7 +395,7 @@ public class LogisticsTests
     public void DronesWorkCratesFedQueuedAndTradeStationsButNotBaysOrChargers()
     {
         var w = new Scenario(Layout.Parse(EveryMachine), doubled: true);
-        string[] servable = ["crate", "furnace", "former", "smelter", "assembler", "growCapsule", "burnerGenerator", "lifepod", "tradeStation"];
+        string[] servable = ["crate", "furnace", "former", "smelter", "assembler", "growCapsule", "burnerGenerator", "lifepod", "tradeStation", "fermenter", "biofuelGenerator"];
         foreach (var m in w.M.Grid.Machines.Where(m => Content.Machines.Get(m.Kind).Slots != null))
             Assert.True(servable.Contains(m.Kind) == w.M.Logistics.Servable(m.Id), m.Kind);
     }
@@ -403,11 +403,11 @@ public class LogisticsTests
     /// <summary>Every kind of machine holding items once.</summary>
     private static readonly string[] EveryMachine =
     [
-        "####################################",
-        "#...................gg.........OOO.#",
-        "#.FF.MM.EE.YY.$$.BB.gg.C....RR.OOO.#",
-        "#.FF.MM.EE.YY.$$.BB.gg.C.KK.RR.OOO.#",
-        "####################################",
+        "###########################################",
+        "#...................gg.........OOO........#",
+        "#.FF.MM.EE.YY.$$.BB.gg.C....RR.OOO.uu.qqq.#",
+        "#.FF.MM.EE.YY.$$.BB.gg.C.KK.RR.OOO.uu.qqq.#",
+        "###########################################",
     ];
 
     // Job after job.
@@ -497,9 +497,9 @@ public class LogisticsTests
         var w = PoweredRooms(drones: 3, charge: 0).Put(3, Drone(), crate: Bay);
         w.Run();
         Assert.True(w.M.Power.Charges(Bay));
-        var before = w.M.Items.Crate(Bay).Select(s => s!.Charge).ToArray();
+        var before = w.M.Items.Crate(Bay).Take(4).Select(s => s!.Charge).ToArray();
         w.Run(10);
-        var gained = w.M.Items.Crate(Bay).Select((s, i) => s!.Charge - before[i]).ToArray();
+        var gained = w.M.Items.Crate(Bay).Take(4).Select((s, i) => s!.Charge - before[i]).ToArray();
         // Four power-ticks a tick between the three short of full, the rest of the division to the first.
         Assert.Equal([13340, 13330, 13330, 0], gained);
     }
@@ -544,7 +544,9 @@ public class LogisticsTests
         w.Put(0, new Stack("wire", 1), crate: station);
         w.FillCrate(Left, ("wire", 100));
         Assert.True(RunUntil(w, () => Count(w.M.Items.Crate(Left), "wire") < 100, 900));
-        Assert.True(RunUntil(w, () => w.M.Research.Credits > Content.Market.PriceOf("wire"), 900));
+        Assert.True(RunUntil(w, () => Count(w.M.Items.Crate(station), "wire") > 1, 900));
+        w.Do(new Stillwake.Sim.Trade.SendCapsule(station)).Run(Content.Market.CapsuleFlight);
+        Assert.True(w.M.Research.Credits > Content.Market.PriceOf("wire"));
         // Held by hand, an unpriced stack stays, and none comes after it.
         w.Put(1, new Stack("arcShard", 1), crate: station);
         w.FillCrate(Right, ("arcShard", 4));
@@ -561,9 +563,10 @@ public class LogisticsTests
         int station = w.M.Grid.MachinesOf("tradeStation")[0].Id;
         w.Put(0, new Stack("wire", 1), crate: station);
         w.Put(1, new Stack("gear", 1), crate: station);
-        Assert.True(RunUntil(w, () => w.M.Items.Crate(station).All(s => s == null), 900));
+        w.Do(new Stillwake.Sim.Trade.SendCapsule(station)).Run();
+        Assert.All(w.M.Items.Crate(station), s => Assert.Null(s));
         w.FillCrate(Right, ("gear", 1));
-        Assert.True(RunUntil(w, () => Count(w.M.Items.Crate(Right), "gear") == 0 && w.M.Items.Crate(station).All(s => s == null), 1800));
+        Assert.True(RunUntil(w, () => Count(w.M.Items.Crate(Right), "gear") == 0 && w.M.Items.Crate(station)[1]?.Item == "gear", 1800));
         Assert.Equal("wire", w.M.Items.KeptAt(station, 0));
         Assert.Equal("gear", w.M.Items.KeptAt(station, 1));
     }
@@ -638,7 +641,8 @@ public class LogisticsTests
     }
 
     /// <summary>
-    /// Two rooms one over the other, a hatch in the deck between: the furnace above on the right, the bay and a crate below.
+    /// Two rooms one over the other, a hatch in the deck between: the furnace above on the right, the bay and a crate below;
+    /// a vent in each, on one run up through the deck: shut, the hatch parts them, and a room with no vent loses its air.
     /// Aired with the hatch open, then shut, the crate holding all but the three chunks the furnace holds.
     /// </summary>
     private static readonly string[] Decks =
@@ -646,7 +650,7 @@ public class LogisticsTests
         "##############",
         "#............#",
         "#..........FF#",
-        "#..........FF#",
+        "#........V.FF#",
         "######o#######",
         "#............#",
         "#RR....TT....#",
@@ -656,7 +660,7 @@ public class LogisticsTests
 
     private static (Scenario W, int Hatch, int Furnace) Decked()
     {
-        var w = Aired(Decks, ["", "", "", "", "", "", "       o", "       ---"], drones: 1);
+        var w = Aired(Decks, ["", "", "", "         -", "         -", "         -", "       o -", "       ---"], drones: 1);
         int hatch = w.At(6, 4), furnace = w.M.Grid.MachinesOf("furnace").Single().Id, crate = w.M.Grid.MachinesOf("crate").Single().Id;
         w.Do(new SetDoor(hatch, false)).Run();
         w.FillCrate(crate, ("scrapChunk", Chunks - 3)).Put(0, new Stack("scrapChunk", 3), crate: furnace);
@@ -694,17 +698,18 @@ public class LogisticsTests
         Assert.Equal(Chunks, w.M.Items.HeldFor(w.M.Grid.MachinesOf("furnace").Single().Id, "scrapChunk"));
     }
 
-    /// <summary>Wide: a bay on the left with a crate (2), a furnace (3) in its zone and a furnace (4) beyond it, and a second bay (5) on the right.</summary>
+    /// <summary>Wide: a bay on the left with a crate (2), a furnace (3) in its zone and a furnace (4) beyond it, and a second bay (5) on the right,
+    /// aired by two vaporizers: one cannot keep up with its leak (liquid-oxygen).</summary>
     private static readonly string[] Wide =
     [
         "##############################################",
         "#............................................#",
-        "#RR....TT......FF.....FF.......RR............#",
-        "#RR.KK.TTV.....FF.....FF.......RR............#",
+        "#RR....TT......FF.....FF.......RR........TT..#",
+        "#RR.KK.TTV.....FF.....FF.......RR........TTV.#",
         "##############################################",
     ];
 
-    private static readonly string[] WideUnder = ["", "", "       o", "       ---"];
+    private static readonly string[] WideUnder = ["", "", "       o                                 o", "       ---                               ---"];
 
     [Fact]
     public void AMachineOutsideTheZoneIsIgnoredAndOneInsideTwoZonesGetsOneDelivery()

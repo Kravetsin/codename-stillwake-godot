@@ -15,7 +15,6 @@ public class StagesTests
     {
         var fire = Stages.Of(Layers.Fire);
         Assert.Same(fire, Stages.Of(Layers.Fire));
-        Assert.Same(fire, Stages.Of(Layers.Shimmer));
         Assert.Same(Stages.Of(Layers.Lava), Stages.Of(Layers.Flora));
         var machines = Stages.Of(Layers.Machines);
         Assert.True(machines.Empty);
@@ -36,6 +35,15 @@ public class StagesTests
         Assert.Equal([fire, effects, held, later], Stages.All);
         Stages.Drop(held);
         Assert.Equal([fire, effects, later], Stages.All);
+    }
+
+    [Fact]
+    public void EveryShimmerIsDrawnAfterTheWorldAndBeforeTheFlamesWhoseCopyItNeverHolds()
+    {
+        // Shimmers redraw one copy of the screen taken before them: a flame sharing their z, drawn before one by tree order, was
+        // wiped, so a generator under another lit later lost its fire. A z of their own orders them whatever the tree.
+        Assert.True(Layers.FloorItems < Layers.Shimmer && Layers.Shimmer < Layers.Fire && Layers.Fire < Layers.Plans);
+        Assert.NotSame(Stages.Of(Layers.Shimmer), Stages.Of(Layers.Fire));
     }
 
     [Fact]

@@ -8,7 +8,7 @@ namespace Stillwake.Game.Features.Crew;
 
 /// <summary>
 /// The look editor (2026-10-28-looks-are-printed): the hero bare in this player's colour, turning in a window, and a
-/// picker each for skin, hair, hair colour, face and beard. Opened from the game menu at any time, and on a first run
+/// picker each for skin, hair, hair colour, face, beard and clothes. Opened from the game menu at any time, and on a first run
 /// before the hero is printed; closed, it hands the look on to be kept and sent. The pod prints it the next time it
 /// makes the hero, which a line says.
 /// </summary>
@@ -26,6 +26,7 @@ public partial class LookEditor : CanvasLayer
         ("look.hairColour", HeroLooks.Hairs.Length),
         ("look.face", HeroLooks.Faces),
         ("look.beard", HeroLooks.Beards + 1),
+        ("look.outfit", HeroLooks.Outfits),
     ];
 
     private readonly Func<int> _colour;
@@ -64,7 +65,7 @@ public partial class LookEditor : CanvasLayer
         window.AddChild(view);
         row.AddChild(Style.Panel(Style.Slate700, window));
         // Made on the title, before any world has a player colour to ask for: it gets its own on opening.
-        _figure = new Figure(Suits.All[0], own: false);
+        _figure = new Figure(Suits.All[0], own: false) { GivesLight = false };
         Unlit(_figure);
         view.AddChild(_figure);
         view.AddChild(new Camera2D { Zoom = new Vector2(Zoom, Zoom), Position = new Vector2(0, (float)(-Rig.H / 2)), Enabled = true });
@@ -96,7 +97,7 @@ public partial class LookEditor : CanvasLayer
     /// <summary>Opens on <paramref name="look"/>.</summary>
     public void Open(Look look)
     {
-        int[] picks = [look.Skin, look.Hair, look.HairColour, look.Face, look.Beard];
+        int[] picks = [look.Skin, look.Hair, look.HairColour, look.Face, look.Beard, look.Outfit];
         for (int i = 0; i < Pickers.Length; i++) _picks[i] = HeroLooks.Wrap(picks[i], Pickers[i].Count);
         _shownS = 0;
         Visible = true;
@@ -111,9 +112,9 @@ public partial class LookEditor : CanvasLayer
         _chosen(Chosen);
     }
 
-    private Look Chosen => new(_picks[0], _picks[1], _picks[2], _picks[3], _picks[4]);
+    private Look Chosen => new(_picks[0], _picks[1], _picks[2], _picks[3], _picks[4], _picks[5]);
 
-    /// <summary>Moves <paramref name="picker"/> (skin, hair, hair colour, face, beard) on by <paramref name="by"/>, as its arrows do; also for scripted runs.</summary>
+    /// <summary>Moves <paramref name="picker"/> (skin, hair, hair colour, face, beard, clothes) on by <paramref name="by"/>, as its arrows do; also for scripted runs.</summary>
     public void Pick(int picker, int by)
     {
         _picks[picker] = HeroLooks.Wrap(_picks[picker] + by, Pickers[picker].Count);
@@ -124,7 +125,7 @@ public partial class LookEditor : CanvasLayer
     {
         for (int i = 0; i < Pickers.Length; i++)
             _values[i].Text = i == 4 && _picks[i] == 0 ? T("look.none") : $"{_picks[i] + (i == 4 ? 0 : 1)} / {Pickers[i].Count - (i == 4 ? 1 : 0)}";
-        _figure.Wear(_colour(), helmet: false, body: false, Chosen);
+        _figure.Wear(_colour(), helmet: null, body: null, Chosen);
     }
 
     public override void _Process(double delta)

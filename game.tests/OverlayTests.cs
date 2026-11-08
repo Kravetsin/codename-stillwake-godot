@@ -124,15 +124,24 @@ public class FlowTests
     }
 }
 
-/// <summary>What the air overlay says: apps/game/src/features/atmosphere/explain.test.ts and draining.test.ts, one for one.</summary>
+/// <summary>
+/// What the air overlay says: apps/game/src/features/atmosphere/explain.test.ts and draining.test.ts, then in the bubble's
+/// terms (tip-signs): a room's share of its vents' making and its leak a minute, the liquid behind it, why it falls short.
+/// </summary>
 public class ExplainTests
 {
     private const int Minute = 60 * World.TicksPerSecond;
 
-    // Rates below are as the sim counts them, every ten minutes: ten times a minute's.
-    private static RoomAir Room(RoomStatus status = RoomStatus.Vacuum, int aired = 0, int leak = 0, int oxygen = 0,
-        int made = 0, int? lasts = null, string? problem = null, int room = 1) =>
-        new(room, status, aired, leak, oxygen, made, lasts, problem);
+    // Rates below are as the sim counts them, every ten minutes: ten times a minute's. Oxygen is the liquid behind the room's
+    // vaporizers, null with none feeding it (liquid-oxygen); one vaporizer at full power makes 12000.
+    private static RoomAir Room(RoomStatus status = RoomStatus.Vacuum, int aired = 0, int leak = 0, int? oxygen = null,
+        int made = 0, int budget = 0, int? lasts = null, string? problem = null, int room = 1) =>
+        new(room, status, aired, leak, oxygen, made, budget, lasts, problem);
+
+    private static TipLine Made(string n) => new($"+{n}/min", Sign: Sign.Oxygen);
+    private static TipLine Leak(string n, Tone tone = Tone.Plain) => new($"−{n}/min", tone, Sign: Sign.Leak);
+    private static TipLine Liquid(string text, Tone tone = Tone.Plain) => new(text, tone, "canister");
+    private static TipLine Bad(string text) => new(text, Tone.Bad);
 
     [Fact]
     public void GivesSpansInSecondsUnderAMinuteAndWholeMinutesPastIt()
@@ -143,64 +152,75 @@ public class ExplainTests
     }
 
     [Fact]
-    public void TellsAnAiredRoomHowLongItsPipesHoldItItsLeakCountedInOrThatTheyAreDry()
+    public void TellsAnAiredRoomItsShareOfTheMakingItsLeakAndTheLiquidBehindItAMinuteEach()
     {
-        var aired = Room(RoomStatus.Aired, aired: 96, leak: 1980, oxygen: 1280, lasts: 6 * Minute);
-        Assert.Equal(["Aired · 96 cells", "O₂ in pipes: 1280 · lasts 6 min"], Explain.Of(aired, 96));
-        // With no supply, its own 96 cells go through the hull: 96 of 198 a minute.
-        Assert.Equal("No supply · lasts 30 s", Explain.Of(aired with { Oxygen = 0, Lasts = 0 }, 96)[1]);
+        // 1200 made and 198 leaked a minute; the 1280 of liquid leave at the leak, 7757 ticks.
+        var aired = Room(RoomStatus.Aired, aired: 96, leak: 1980, oxygen: 1280, made: 12000, budget: 12000, lasts: 7757);
+        Assert.Equal([new("Aired · 96 cells"), Made("1200"), Leak("198"), Liquid("1280 · 6 min")], Explain.Of(aired, 96));
+        // The pod's air never runs out: no liquid to speak of.
+        Assert.Equal([new("Aired · 96 cells"), Made("1200"), Leak("198")], Explain.Of(aired with { Oxygen = null, Lasts = null }, 96));
+        // A rate that is no whole number of units a minute reads to a tenth, rounded down.
+        Assert.Equal(Made("48.5"), Explain.Of(aired with { Budget = 485 }, 96)[1]);
+        Assert.Equal(Made("48.9"), Explain.Of(aired with { Budget = 489 }, 96)[1]);
     }
 
     [Fact]
-    public void CountsWhoBreathesInTheRoomAUnitABreathIntoHowLongTheAirLasts()
-    {
-        var aired = Room(RoomStatus.Aired, aired: 96, leak: 1980, oxygen: 1280);
-        // 198 leaked and 60 breathed a minute: 1280 last a little under five minutes.
-        Assert.Equal("O₂ in pipes: 1280 · lasts 4 min", Explain.Of(aired, 96, 1)[1]);
-        Assert.Equal("O₂ in pipes: 1280 · lasts ∞", Explain.Of(aired with { Leak = 0 }, 96)[1]);
-    }
+    public void TellsARoomSharingItsVaporizerItsOwnShareNotTheWholeMaking() =>
+        Assert.Equal(Made("600"), Explain.Of(Room(RoomStatus.Filling, aired: 40, leak: 800, oxygen: 900, made: 12000, budget: 6000, lasts: 13500), 96)[1]);
 
     [Fact]
-    public void TellsARoomHoldingAirWithNoSupplyHowMuchItHoldsAndHowLongItLasts() =>
+    public void TellsARoomItsWallsHoldShortOfItsVolumeTheLeakInRedAndWhy()
+    {
+        var held = Room(RoomStatus.Filling, aired: 90, leak: 5970, oxygen: 900, made: 12000, budget: 6000, lasts: 1800, problem: "atmosphere.leaky");
         Assert.Equal(
-            ["Some air · 30/48 cells", "No supply · lasts 30 s", "No vent here"],
-            Explain.Of(Room(aired: 30, leak: 600, problem: "atmosphere.noVent"), 48));
+            [new("Filling · 90/96 cells"), Made("600"), Leak("597", Tone.Bad), Liquid("900 · 1 min"),
+                Bad("The walls leak more than the vaporizers make: build better walls or another vaporizer")],
+            Explain.Of(held, 96));
+    }
 
     [Fact]
-    public void TellsARoomFedByAGeneratorWhetherItKeepsUpAndHowLongTheAirLastsIfNot()
+    public void TellsARoomInVacuumWhyItsLiquidRedWhenDryAndNoRatesWithNoShare()
     {
-        var fed = Room(RoomStatus.Aired, aired: 32, leak: 480, oxygen: 40, made: 2000);
-        // 200 made, 48 leaked and 60 breathed a minute each: 32 to spare with two, 28 short with three.
-        Assert.Equal(["Aired · 32 cells", "Generator keeps up · +32/min"], Explain.Of(fed, 32, 2));
-        Assert.Equal("Generator falls short · lasts 2 min", Explain.Of(fed, 32, 3)[1]);
-        Assert.Equal(["Filling · 10/32 cells", "Generator keeps up · +152/min"], Explain.Of(fed with { Status = RoomStatus.Filling, Aired = 10 }, 32));
-        // A rate that is no whole number of units a minute reads to a tenth.
-        Assert.Equal("Generator keeps up · +31.5/min", Explain.Of(fed with { Leak = 485 }, 32, 2)[1]);
+        Assert.Equal([new("No air · 48 cells"), Liquid("0", Tone.Bad), Bad("The tank behind the vaporizer is empty: load a canister")],
+            Explain.Of(Room(oxygen: 0, problem: "atmosphere.dry"), 48));
+        // Its vaporizer unpowered: the liquid waits behind it, drawn by nothing.
+        Assert.Equal([new("No air · 96 cells"), Liquid("900"), Bad("Vaporizer has no power")], Explain.Of(Room(oxygen: 900, problem: "atmosphere.unpowered"), 96));
+        // Its air fading from the far edge: how much is left, and why.
+        Assert.Equal([new("Some air · 30/48 cells"), Bad("No vent here")], Explain.Of(Room(aired: 30, leak: 600, problem: "atmosphere.noVent"), 48));
     }
 
     [Fact]
     public void TellsAVentingRoomHowSoonItsPipesDrainIfItHasAPipedVentToDrainThem()
     {
-        var venting = Room(RoomStatus.Venting, oxygen: 450, lasts: 2);
-        Assert.Equal(["Venting to space", "O₂ in pipes: 450 · gone in 1 s"], Explain.Of(venting, 96));
-        Assert.Equal(["Venting to space"], Explain.Of(venting with { Oxygen = 0, Lasts = null }, 96));
+        // Its vent drains 8 a tick, but liquid leaves at most at its vaporizer's 1: 450 ticks.
+        var venting = Room(RoomStatus.Venting, oxygen: 450, made: 12000, lasts: 450);
+        Assert.Equal([new("Venting to space"), Liquid("450 · 23 s")], Explain.Of(venting, 96));
+        // No vaporizer feeding it: nothing drains.
+        Assert.Equal([new("Venting to space")], Explain.Of(venting with { Oxygen = null, Made = 0, Lasts = null }, 96));
     }
 
     [Fact]
-    public void TellsAFillingRoomHowFarItIsAndARoomInVacuumWhy()
+    public void SpeaksOnlyOverABareBackWallNeverOverAStructureAMachineAPlanOrNoBackWall()
     {
-        Assert.Equal(["Filling · 40/96 cells", "O₂ in pipes: 900"], Explain.Of(Room(RoomStatus.Filling, aired: 40, oxygen: 900), 96));
-        Assert.Equal(["No air · 48 cells", "Pipes empty: load a canister into a tank"], Explain.Of(Room(problem: "atmosphere.dry"), 48));
+        const int empty = Stillwake.Content.Structure.Empty;
+        Assert.True(Explain.SpeaksOver(empty, machine: false, back: true, planned: false));
+        Assert.False(Explain.SpeaksOver(empty, machine: true, back: true, planned: false));
+        // A blueprint or a mark under the pointer: its cost speaks there, the overlay left on while building.
+        Assert.False(Explain.SpeaksOver(empty, machine: false, back: true, planned: true));
+        Assert.False(Explain.SpeaksOver(empty, machine: false, back: false, planned: false));
+        foreach (int structure in new[] { Stillwake.Content.Structure.Ladder, Stillwake.Content.Structure.DoorOpen, Stillwake.Content.Structure.DoorClosed, Stillwake.Content.Structure.Grate })
+            Assert.False(Explain.SpeaksOver(structure, machine: false, back: true, planned: false));
     }
 
     [Fact]
     public void DrainingRoomsAreTheRoomsVentingThroughAPipedVentDrainedDryOrNot() =>
         Assert.Equal(
-            new HashSet<int> { 1, 2 },
+            new HashSet<int> { 1, 2, 6 },
             Explain.Draining([
                 Room(RoomStatus.Venting, lasts: 4, room: 1),
                 Room(RoomStatus.Venting, lasts: 0, room: 2),
                 Room(RoomStatus.Venting, room: 3),
+                new RoomAir(6, RoomStatus.Venting, 10, 5, 0, 12000, 0, null, null),
                 Room(RoomStatus.Aired, lasts: 0, room: 4),
                 Room(problem: "atmosphere.dry", room: 5),
             ]));

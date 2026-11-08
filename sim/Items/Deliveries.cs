@@ -59,16 +59,18 @@ public sealed partial class ItemsModule
     /// The slots of a machine of <paramref name="spec"/> a delivery of <paramref name="item"/> goes into: a fuel only its
     /// fuel slot, anything else its inputs but the fuel slot, so a furnace's fuel and what it smelts never mix; a
     /// machine with no inputs listed (a crate, a bay) all its slots; a charging station nothing without a capacity; one that
-    /// takes one item nothing else.
+    /// takes one item nothing else. A <c>SlotTakes</c> item only its slot, anything else every slot but that one.
     /// </summary>
-    private static IEnumerable<int> Receiving(MachineSpec spec, string item)
+    private IEnumerable<int> Receiving(MachineSpec spec, string item)
     {
+        if (spec.SlotTakes is { } own && item == own.Item) return [own.Slot];
+        int skip = spec.SlotTakes?.Slot ?? -1;
         var what = Content.Items.Get(item);
         if (spec.Charges && what.Capacity == null) return [];
         if (spec.Takes is { } only && item != only) return [];
-        int inputs = spec.Inputs ?? spec.Slots ?? 0;
-        if (spec.FuelSlot is not int fuel) return Enumerable.Range(0, inputs);
-        return what.BurnTicks != null ? [fuel] : Enumerable.Range(0, inputs).Where(i => i != fuel);
+        int inputs = InputsOf(spec);
+        if (spec.FuelSlot is not int fuel) return skip < 0 ? Enumerable.Range(0, inputs) : Enumerable.Range(0, inputs).Where(i => i != skip);
+        return what.BurnTicks != null ? [fuel] : Enumerable.Range(0, inputs).Where(i => i != fuel && i != skip);
     }
 
     /// <summary><paramref name="slots"/> with as much of <paramref name="stack"/> as fits put in, as <see cref="PutIn"/> puts it, and how many did not fit.</summary>

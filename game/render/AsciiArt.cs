@@ -27,17 +27,6 @@ public static class AsciiArt
     public static Color Colour(uint rgb, float alpha = 1) =>
         new(((rgb >> 16) & 0xff) / 255f, ((rgb >> 8) & 0xff) / 255f, (rgb & 0xff) / 255f, alpha);
 
-    /// <summary>A plug hanging loose: over a machine that makes or draws power with no cable to it.</summary>
-    public static ImageTexture Unplugged() => Texture("unplugged",
-        ["..K.K..", "..K.K..", ".KKKKK.", ".KwwwK.", ".KwwwK.", "..KwK..", "...K..."],
-        new Dictionary<char, uint> { ['K'] = 0x1a1e25, ['w'] = 0x9aa3ad });
-
-    /// <summary>A bolt over a machine short of power: red with none, amber with some.</summary>
-    public static ImageTexture Bolt(bool none) => Texture($"bolt:{none}",
-        ["....KKK", "...KyyK", "..KyyK.", ".KyyKKK", "KyyyyyK", "KKKyyK.", "..KyyK.", ".KyyK..", ".KKK..."],
-        new Dictionary<char, uint> { ['K'] = 0x1a1e25, ['y'] = none ? 0xe05555u : 0xf0b44cu });
-
-
     /// <summary>A cable's plug, in a socket it is plugged into.</summary>
     public static ImageTexture Plug() => Texture("power-plug",
         [".KKK.", "KhhhK", "KhlhK", "KhhhK", ".KKK."],

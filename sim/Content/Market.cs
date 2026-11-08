@@ -3,12 +3,12 @@ namespace Stillwake.Content;
 /// <summary>
 /// What things are worth, in credits (2026-10-30-tech-graph). Only what no recipe makes is priced by hand: anything else is worth
 /// its inputs and the time they take, marked up, per unit it comes to. Every step of a chain so pays, and a recipe changed
-/// reprices all made of it. Selling at a trade station is one unit every <see cref="SellEvery"/> ticks, at a price that never falls.
+/// reprices all made of it. A trade station sends what it holds by capsule, at a price that never falls (2026-10-30-trade-capsule).
 /// </summary>
 public static class Market
 {
-    /// <summary>Ticks from one unit sold to the next at a station: two a second.</summary>
-    public const int SellEvery = 10;
+    /// <summary>Ticks a trade station's capsule is away, launch to credits: thirty seconds.</summary>
+    public const int CapsuleFlight = 30 * 20;
 
     /// <summary>What a step of a chain adds to its inputs and time, in percent.</summary>
     public const int Markup = 125;
@@ -16,13 +16,17 @@ public static class Market
     /// <summary>Ticks of a recipe's work worth a credit: a credit a second.</summary>
     public const int TicksPerCredit = 20;
 
-    /// <summary>What no recipe makes, or what is grown so slowly that its time would swamp it: all else is worked out from these.</summary>
+    /// <summary>
+    /// What no recipe makes, what is grown so slowly that its time would swamp it, or what the ground gives for a swing, whatever
+    /// a recipe would make of it: all else is worked out from these.
+    /// </summary>
     private static readonly Dictionary<string, int> Raw = new(StringComparer.Ordinal)
     {
         ["scrapChunk"] = 20,
         ["hullPlate"] = 40,
         ["asteroidOre"] = 30,
-        ["rock"] = 4,
+        ["rock"] = 1,
+        ["soil"] = 1,
         ["quartz"] = 50,
         ["planks"] = 20,
         ["cloth"] = 30,
@@ -32,6 +36,8 @@ public static class Market
         ["spore"] = 20,
         ["biomass"] = 20,
         ["ice"] = 30,
+        // Salvaged only since its ice craft went (2026-11-06-no-ice-canister): that craft's worth kept, so what is made of it costs the same.
+        ["canister"] = 117,
         ["copperOre"] = 30,
         ["mica"] = 50,
         ["magnetite"] = 60,
@@ -44,7 +50,7 @@ public static class Market
     /// <summary>What has a worth but no one buys: tools and what is worn, what stores or flies by itself, the arc's.</summary>
     private static readonly HashSet<string> Unsold = new(StringComparer.Ordinal)
     {
-        "arcShard", "arcModule", "drone", "screwdriver", "fireAxe", "harpoon", "nailer", "railgun", "drill", "jetpack", "helmetLamp", "battery", "accumulator", "helmet", "suit", "cape",
+        "arcShard", "arcModule", "drone", "salvageDrone", "screwdriver", "fireAxe", "harpoon", "grapple", "nailer", "railgun", "drill", "powerDriver", "grinder", "plasmaCutter", "spear", "sledgehammer", "pickaxe", "jetpack", "helmetLamp", "scanner", "battery", "accumulator", "helmet", "heavyHelmet", "suit", "regenSuit", "cape",
     };
 
     private static readonly Dictionary<string, int> Worths = Worked();

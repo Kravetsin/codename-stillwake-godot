@@ -20,6 +20,27 @@ public class DebrisZonesTests
     private static readonly ByHull Stream = (ByHull)DebrisSpec.Ship.Anchor;
 
     /// <summary>
+    /// The wreck's stream brings a hero by its hull a piece in reach of the harpoon every 5 s or so (first-hour-pace), caught or
+    /// not: a hero's harpoon, 5 s a shot and the reel, keeps up, and never stands idle for long.
+    /// </summary>
+    [Fact]
+    public void TheWrecksStreamKeepsAHarpoonBusy()
+    {
+        var w = new Scenario(Registry.Wreck);
+        var hull = w.M.Grid.Machines.Select(m => m.Cell).ToList();
+        double x = hull.Average(c => c % w.M.Grid.Width), y = hull.Average(c => c / w.M.Grid.Width), range = Content.Harpoon.Range / 1000.0;
+        const int Minutes = 20;
+        var inReach = new HashSet<int>();
+        for (int t = 0; t < Minutes * 60 * 20; t++)
+        {
+            w.Run();
+            foreach (var p in w.M.Debris.Pieces)
+                if (p.Zone == DebrisSpec.Ship.Id && Math.Pow(p.X / 1000.0 - x, 2) + Math.Pow(p.Y / 1000.0 - y, 2) <= range * range) inReach.Add(p.Id);
+        }
+        Assert.True(inReach.Count >= 12 * Minutes, $"{inReach.Count} pieces in reach in {Minutes} minutes");
+    }
+
+    /// <summary>
     /// Space round a hull block of <paramref name="w"/>×<paramref name="h"/> cells at (<paramref name="x"/>,
     /// <paramref name="y"/>) in a grid of <paramref name="width"/>×<paramref name="height"/>; no zone, so no cold.
     /// </summary>

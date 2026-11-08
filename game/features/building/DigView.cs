@@ -10,7 +10,7 @@ using Material = Stillwake.Content.Material;
 namespace Stillwake.Game.Features.Building;
 
 /// <summary>
-/// Digging seen (0077): each cracked wall drawn with cracks in three stages as its crack grows toward its strength
+/// Digging seen (0077): each cracked wall drawn with a fault in ink (<see cref="BlockFault"/>) in three stages as its crack grows toward its strength
 /// (<see cref="BuildingModule.Cracks"/>); a wall broken out bursts into dust and chips. Whoever dug: a friend's digs show as
 /// one's own. A hit's own look is thrown where it strikes, by the crew as it is struck (<c>HitBurst</c>, 0094). It reads the
 /// cracks each frame, a short list, and redraws only when they change.
@@ -25,12 +25,19 @@ public partial class DigView : Node2D
     private readonly Dictionary<(int Cell, bool Back), (int Damage, Material Material)> _drawn = new();
     private readonly List<(int Cell, bool Back)> _gone = [];
 
-    private Material? MaterialAt(int cell, bool back) => back ? _grid.BackAt(cell) : _grid.WallAt(cell);
+    private Material? MaterialAt(int cell, bool back) => back ? _grid.BackAt(cell) : _grid.WallAt(cell) ?? PileMaterial(cell);
+
+    /// <summary>A pile cracks and bursts as the metal it is, at its own hit points.</summary>
+    private Material? PileMaterial(int cell) =>
+        Piles.At(_grid, cell) is var (_, hp)
+            ? Stillwake.Content.Materials.Get("alloy") with { Strength = hp } : null;
 
     /// <summary>The stages of cracks, three (0079).</summary>
     private const int Stages = 3;
-    private static readonly Dictionary<int, Texture2D> Pictures = new();
     private static readonly Dictionary<string, (Luminous Chip, Luminous Dust, Luminous Cloud)> Looks = new();
+    private readonly Ink _ink = new();
+    private readonly InkCanvas _canvas = new();
+    private float _pixel;
 
     /// <summary>A wall broken out heard where it stood, by its material, whoever broke it (0093).</summary>
     private readonly Voices _breaks = new(Game.Sound.World, voices: 3);
@@ -44,12 +51,11 @@ public partial class DigView : Node2D
         AddChild(_breaks);
     }
 
-    private static Texture2D Texture(int stage) =>
-        Pictures.TryGetValue(stage, out var made) ? made : Pictures[stage] = ImageTexture.CreateFromImage(GroundArt.Crack(stage));
-
     public override void _Process(double delta)
     {
-        bool changed = false;
+        // Redrawn as the view zooms too: the faults' edges fade over a pixel of the screen.
+        float pixel = InkCanvas.PixelOf(this);
+        bool changed = _drawn.Count > 0 && Mathf.Abs(pixel - _pixel) > 0.1f * _pixel;
         var cracks = _building.Cracks;
         foreach (var crack in cracks)
         {
@@ -57,6 +63,7 @@ public partial class DigView : Node2D
             if (_drawn.TryGetValue(key, out var was) && was.Damage == crack.Damage) continue;
             if (MaterialAt(crack.Cell, crack.Back) is not { } material) continue;
             _drawn[key] = (crack.Damage, material);
+            if (!crack.Back) ShowPile(crack.Cell, crack.Damage);
             changed = true;
         }
         _gone.Clear();
@@ -67,6 +74,7 @@ public partial class DigView : Node2D
             // Gone with its wall: broken out. A crack gone with the wall still there was swept: nothing to show.
             if (MaterialAt(key.Cell, key.Back) == null) Break(key.Cell, _drawn[key].Material);
             _drawn.Remove(key);
+            if (!key.Back) DropPile(key.Cell);
             changed = true;
         }
         if (changed) QueueRedraw();
@@ -82,11 +90,71 @@ public partial class DigView : Node2D
     public override void _Draw()
     {
         int w = _grid.Width;
-        foreach (var ((cell, _), (damage, material)) in _drawn)
+        _pixel = InkCanvas.PixelOf(this);
+        _ink.Clear();
+        _ink.Feather = _pixel;
+        foreach (var ((cell, back), (damage, material)) in _drawn)
         {
+            if (!back && _piles.ContainsKey(cell)) continue;
             int stage = System.Math.Clamp(damage * Stages / System.Math.Max(1, material.Strength), 0, Stages - 1);
-            DrawTexture(Texture(stage), new Vector2(cell % w, cell / w) * Cell);
+            var tones = material.Natural ? DamageLooks.Stone : DamageLooks.Scrap;
+            BlockFault.Draw(_ink, stage, BlockFault.SeedOf(cell, back), tones, cell % w * Cell, cell / w * Cell);
         }
+        _canvas.Draw(this, _ink);
+    }
+
+    /// <summary>A pile's cracks: its picture, only clipping, and a wreck's crack network over it, laid out once by its cell.</summary>
+    private sealed record PileInk(Sprite2D Clip, WreckInk Ink, List<Blow> Blows, CrackNet Net);
+
+    /// <summary>The cracked piles, by their cell (2026-11-07-pile-crack-net).</summary>
+    private readonly Dictionary<int, PileInk> _piles = new();
+
+    /// <summary>
+    /// The pile at <paramref name="cell"/> cracked <paramref name="damage"/> deep, as a wreck cracks: one network over its picture out
+    /// of a spot of its middle, run as far as the share of its hit points lost; true if a pile is there.
+    /// </summary>
+    private bool ShowPile(int cell, int damage)
+    {
+        if (Piles.At(_grid, cell) is not var (pile, hp)) return false;
+        if (!_piles.TryGetValue(pile.Cell, out var shown))
+        {
+            string name = $"machine_{pile.Kind}";
+            var texture = PixelArt.Picture(name);
+            var size = texture.GetSize();
+            // Its picture, in world pixels, lies from its cell's corner as the ship's tiles lay it; the network runs from its middle.
+            var clip = new Sprite2D
+            {
+                Texture = texture,
+                Centered = false,
+                ClipChildren = ClipChildrenMode.Only,
+                Position = new Vector2(pile.Cell % _grid.Width * Cell, pile.Cell / _grid.Width * Cell),
+                ZIndex = Layers.PileCracks,
+                ZAsRelative = false,
+            };
+            // Lit itself: a clipping picture under the light's material clips nothing.
+            var ink = new WreckInk { Position = size / 2, UseParentMaterial = false };
+            Lit.Set(ink, Stillwake.Game.Light.WallIn);
+            clip.AddChild(ink);
+            AddChild(clip);
+            var image = HiRes.Load(name)!;
+            bool Solid(double x, double y)
+            {
+                double per = image.GetWidth() / (double)size.X;
+                int ix = (int)System.Math.Floor((x + size.X / 2) * per), iy = (int)System.Math.Floor((y + size.Y / 2) * per);
+                return ix >= 0 && iy >= 0 && ix < image.GetWidth() && iy < image.GetHeight() && image.GetPixel(ix, iy).A > DamageLooks.Opaque;
+            }
+            var blows = new List<Blow> { WreckCracks.Unseen(pile.Cell, size.X, size.Y) };
+            shown = _piles[pile.Cell] = new PileInk(clip, ink, blows, WreckCracks.Network(blows[0], Solid, pile.Cell));
+        }
+        shown.Ink.Show(shown.Blows, shown.Net, (double)damage / hp, pile.Cell);
+        return true;
+    }
+
+    /// <summary>The pile cracked at <paramref name="cell"/> no longer drawn: broken, or its crack swept.</summary>
+    private void DropPile(int cell)
+    {
+        if (!_piles.Remove(cell, out var shown)) return;
+        shown.Clip.QueueFree();
     }
 
     /// <summary><paramref name="cell"/> broken out: a cloud of its dust where it stood, and chips falling.</summary>

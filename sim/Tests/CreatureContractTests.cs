@@ -29,7 +29,8 @@ public class CreatureContractTests
             Assert.Contains(s.Faction, Tune.Factions);
             // What it does when nothing else wants it: some drive always does.
             Assert.True(CreaturesModule.Fallback(s, new Creature()) >= 0);
-            // A drive that begins an act hands the creature over after it: the ram to the escape, the pounce to the return.
+            // A drive that begins an act hands the creature over after it: the ram to the escape, a clinger's pounce to the return;
+            // a lurker on the ground (cave-hostiles) stays on guard where it lands.
             if (s.Brain.Any(d => d is Tune.Retaliate || d is Tune.Flee { CorneredChance: > 0 }))
             {
                 Assert.NotEmpty(s.Moves);
@@ -38,7 +39,7 @@ public class CreatureContractTests
             if (s.Brain.Any(d => d is Tune.Guard))
             {
                 Assert.NotEmpty(s.Moves);
-                Assert.Single(s.Brain.OfType<Tune.Return>());
+                if (s.Body is Tune.Clinger) Assert.Single(s.Brain.OfType<Tune.Return>());
             }
         });
         Assert.All(Tune.Relations, r => Assert.True(Tune.Factions.Contains(r.From) && Tune.Factions.Contains(r.To), $"{r.From} → {r.To}"));
@@ -55,7 +56,9 @@ public class CreatureContractTests
                 #..................#
                 ####################
                 """, CreaturesTesting.Lifeless).HeroAt(2, 2);
-            return (ground, ground.Let(s, 6, 2).Still());
+            var c = ground.Let(s, 6, 2);
+            // A grazer set idling; a lurker (cave-hostiles) is on guard from birth.
+            return (ground, s.Brain.Any(d => d is Tune.Graze) ? c.Still() : c);
         }
         var w = new Scenario(string.Join('\n', Enumerable.Repeat(new string('.', 120), 60)), cells: true).Do(new Crew.Enter(30 * 120 + 50)).Run();
         var debris = (Debris.DebrisState)w.M.Debris.Slice;
@@ -68,13 +71,15 @@ public class CreatureContractTests
     [Fact]
     public void EverySpeciesStruckTurnsToSomethingAndAClampedSentryGuards()
     {
-        // A hit some drive claims, or a cut act would only begin again (2026-10-26-creatures-are-composed).
-        Assert.All(Tune.All, s =>
+        // A hit some drive claims, or a cut act would only begin again (2026-10-26-creatures-are-composed). A posted one is never let out: SpireGuardTests.
+        Assert.All(Tune.All.Where(s => s.Lifetime != Tune.Lifetime.Posted), s =>
         {
             var (w, c) = LetOut(s);
             int drive = c.Drive;
             w.Do(new Strike(c.Id, Content.Weapons.Axe.Item)).Run();
-            Assert.True(c.Act != null || c.Drive != drive, $"{s.Id} struck changed nothing");
+            // A lurker out of its strike answers by being provoked (lurker-attacks); a shut snail's shell turns the blow aside.
+            bool answered = c.Act != null || c.Drive != drive || GuardDrive.Provoked(w.M.Creatures, c) || CreaturesModule.Shut(c);
+            Assert.True(answered, $"{s.Id} struck changed nothing");
         });
         var (_, sentry) = LetOut(Tune.Sentry);
         Assert.True(CreaturesModule.Clamped(sentry));
@@ -87,9 +92,11 @@ public class CreatureContractTests
         { "loper", "Retaliate Flee Escape Graze | Lunge" },
         { "tapir", "Retaliate Flee Escape Graze | Lunge" },
         { "sixleg", "Retaliate Flee Escape Graze | Lunge" },
-        { "fluff", "Flee Graze | " },
         // The shot added after the pounce (shots-are-the-sims): every place a save holds keeps its meaning, so no bump.
         { "sentry", "CutTether Return Guard | Pounce Shoot" },
+        { "warden", "Ward | Pounce" },
+        { "capback", "Guard | Vent Shoot" },
+        { "geodeSnail", "Guard Shell | Lunge" },
     };
 
     [Fact]

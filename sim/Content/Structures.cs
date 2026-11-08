@@ -160,6 +160,12 @@ public static class Structures
     /// <summary>Stood on or stopped at: <see cref="Trait.Blocks"/> or <see cref="Trait.Supports"/>.</summary>
     public static bool Solid(int code) => Is(code, Trait.Blocks | Trait.Supports);
 
+    /// <summary>
+    /// What a standing machine is built on (2026-11-07-machines-stand): a solid structure that is no doorway, so a wall, a floor or a
+    /// grate; never a hatch, which it would block, nor a launch platform, the drop pod's.
+    /// </summary>
+    public static bool Footing(int code) => Solid(code) && Of(code).Group == StructureGroup.None;
+
     /// <summary>The code a build of <paramref name="build"/> places: the first with it, a doorway shut; null for one that places no structure.</summary>
     public static int? Placed(string build)
     {
@@ -173,4 +179,11 @@ public static class Structures
 
     /// <summary>The spec a build of <paramref name="build"/> places (<see cref="Placed"/>); null for one that places no structure.</summary>
     public static StructureSpec? ByBuild(string build) => Placed(build) is int code ? Table[code] : null;
+}
+
+/// <summary>How a door or hatch moves (2026-11-04-door-swing).</summary>
+public static class Doors
+{
+    /// <summary>Ticks a toggled doorway takes no other toggle, from anyone: 0.55 s, until the stop rings in its sound; the ring after is barely heard.</summary>
+    public const int SwingTicks = 11;
 }

@@ -23,38 +23,58 @@ namespace Stillwake.Game.Features.Debris;
 /// </summary>
 public partial class AsteroidDemo : CanvasLayer
 {
-    /// <summary>What the belt's battery holds, in thousandths of full: 300 ticks of the drill running, 240 of them on the first rock.</summary>
-    public const int Charge = 500;
+    /// <summary>What the belt's battery holds, in thousandths of full: 300 ticks of the drill's draw of 1, 240 of them on the first rock.</summary>
+    public const int Charge = 167;
 
     /// <summary>The asteroids, by id: thousandths of a cell right of the hero's middle (left when negative), and up from its cell's top, to their middles.</summary>
     private static readonly (int Id, int Right, int Up)[] Rocks = [(1, 4_100, 600), (2, -4_100, 600)];
 
+    /// <summary>With <c>--scanner</c>, a big asteroid on the right and an engine block on the left, far enough to clear the hero (the-scanner).</summary>
+    private static readonly (int Id, int Right, int Up)[] Wrecks = [(1, 7_000, 600), (2, -7_000, 600)];
+
     /// <summary>
     /// <paramref name="world"/>, read through <paramref name="m"/>: peer 0 out at <see cref="FarDemo.StartOf"/> with the
-    /// drill (<paramref name="module"/> fitted into it with <c>--arc-drill</c>, 0098), the axe, canisters, a jetpack and a battery, and the two asteroids beside it, put in through its save.
+    /// drill (<paramref name="module"/> fitted into it with <c>--arc-drill</c>, 0098; <paramref name="held"/> in its place with <c>--held</c>), the axe, canisters, a jetpack and a battery, and the two asteroids beside it, put in through its save.
+    /// With <paramref name="fullBelt"/> (<c>--belt</c>, energy-ring) all three belt slots are open and worn: a battery near flat, a full one and an
+    /// accumulator half full, with the grinder and a spare battery on the hotbar. With <paramref name="scanner"/> (<c>--scanner</c>) the scanner is on the helmet
+    /// and the rocks are <see cref="Wrecks"/>.
     /// </summary>
-    public static World Seed(World world, Registry m, Func<IReadOnlyList<Module>> modules, string? module = null)
+    public static World Seed(World world, Registry m, Func<IReadOnlyList<Module>> modules, string? module = null, string? held = null, bool fullBelt = false, bool scanner = false)
     {
         var root = JsonNode.Parse(world.Save())!;
         int belt = Spec.Inventory.Slots + Spec.Inventory.Equipment.ToList().IndexOf(Spec.Charge.Belt);
         int back = Spec.Inventory.Slots + Spec.Inventory.Equipment.ToList().IndexOf("back");
+        int mount = Spec.Inventory.Slots + Spec.Inventory.Equipment.ToList().IndexOf(Spec.Helmet.Mount);
         var slots = new JsonArray();
         for (int i = 0; i < Spec.Inventory.Total; i++)
-            slots.Add(i == 0 ? module != null ? Game.Dev.Testbed.FittedDrill(module) : new JsonObject { ["item"] = Spec.Weapons.Drill.Item, ["count"] = 1 }
+            slots.Add(i == 0 ? held != null ? new JsonObject { ["item"] = held, ["count"] = 1 }
+                : module != null ? Game.Dev.Testbed.FittedDrill(module) : new JsonObject { ["item"] = Spec.Weapons.Drill.Item, ["count"] = 1 }
                 : i == 1 ? new JsonObject { ["item"] = Spec.Weapons.Axe.Item, ["count"] = 1 }
                 : i == 9 ? new JsonObject { ["item"] = Spec.Crew.Canister, ["count"] = 5 }
                 : i == back ? new JsonObject { ["item"] = Spec.Jetpack.Item, ["count"] = 1 }
+                : scanner && i == mount ? new JsonObject { ["item"] = Spec.Helmet.Scanner, ["count"] = 1 }
                 : i == Spec.Inventory.Slots + Spec.Inventory.Equipment.ToList().IndexOf(Spec.Suit.Slot) ? new JsonObject { ["item"] = Spec.Suit.Basic, ["count"] = 1 }
                 : i == Spec.Inventory.Slots ? new JsonObject { ["item"] = Spec.Helmet.Basic, ["count"] = 1 }
-                : i == belt ? new JsonObject { ["item"] = "battery", ["count"] = 1, ["charge"] = Spec.Charge.Battery / 1000 * Charge }
+                : i == belt ? new JsonObject { ["item"] = "battery", ["count"] = 1, ["charge"] = Spec.Charge.Battery / 1000 * (fullBelt ? 60 : Charge) }
+                : fullBelt && i == belt + 1 ? new JsonObject { ["item"] = "battery", ["count"] = 1, ["charge"] = Spec.Charge.Battery }
+                : fullBelt && i == belt + 2 ? new JsonObject { ["item"] = "accumulator", ["count"] = 1, ["charge"] = Spec.Charge.Accumulator / 2 }
+                : fullBelt && i == 2 ? new JsonObject { ["item"] = "grinder", ["count"] = 1 }
+                : fullBelt && i == 3 ? new JsonObject { ["item"] = "battery", ["count"] = 1, ["charge"] = Spec.Charge.Battery }
                 : null);
         root["slices"]!["items"]!["inventories"] = new JsonArray(new JsonObject { ["id"] = 0, ["slots"] = slots });
+        if (fullBelt)
+        {
+            var granted = root["slices"]!["knowledge"]!["granted"]!.AsArray();
+            var ids = granted.Select(g => (string)g!).Union(["belt1", "belt2"]).Order(StringComparer.Ordinal).ToList();
+            root["slices"]!["knowledge"]!["granted"] = new JsonArray([.. ids.Select(id => (JsonNode)id)]);
+        }
         int start = FarDemo.StartOf(m), sx = start % m.Grid.Width, sy = start / m.Grid.Width;
         root["slices"]!["crew"]!["heroes"] = new JsonArray(new JsonObject
         {
             ["id"] = 0,
             ["cell"] = start,
-            ["air"] = Spec.Items.Get(Spec.Suit.Basic).Tank,
+            // The helmet holds the air (2026-10-27-suits-are-worn); the suit has no tank.
+            ["air"] = Spec.Items.Get(Spec.Helmet.Basic).Tank,
             ["out"] = 0,
             ["exerting"] = false,
             ["thrusting"] = false,
@@ -63,14 +83,14 @@ public partial class AsteroidDemo : CanvasLayer
         var debris = root["slices"]!["debris"]!;
         var list = debris["pieces"]!.AsArray();
         int next = (int)debris["nextId"]!;
-        foreach (var (id, right, up) in Rocks)
+        foreach (var (id, right, up) in scanner ? Wrecks : Rocks)
         {
             int x = sx * 1000 + 500 + right;
             list.Add(new JsonObject
             {
                 ["id"] = next++,
                 ["zone"] = Spec.Debris.Asteroids.Id,
-                ["item"] = "asteroid",
+                ["item"] = scanner ? (id == 1 ? "asteroidLarge" : "engineBlock") : "asteroid",
                 ["x"] = x,
                 ["y"] = sy * 1000 - up,
                 // Still, so the script's hands stay on them through a recording.
@@ -138,11 +158,17 @@ public partial class AsteroidDemo : CanvasLayer
         });
     }
 
+    /// <summary>Whether the pointer has come to the <paramref name="nth"/> asteroid: a hanging drill outlines nothing to wait for (aim-on-use).</summary>
+    private bool Arrived(int nth) => OnScreen(nth) is { } at && _pos.DistanceTo(at) < 2;
+
     private void Next(string said)
     {
         GD.Print($"[demo] {said} at {_t:0.00} s");
         (_stage, _stageAt) = (_stage + 1, _t);
     }
+
+    /// <summary>Whether the belt can no longer pay the drill: the sim would refuse its next hit.</summary>
+    private bool Flat() => _world() is var (client, m) && m.Items.WeaponProblem(client.Id, Content.Weapons.Drill.Item, running: false) == "items.flat";
 
     public override void _Process(double delta)
     {
@@ -156,14 +182,13 @@ public partial class AsteroidDemo : CanvasLayer
         if (_stage > 6) return;
         int rock = _stage < 3 ? 0 : 1;
         if (OnScreen(rock) is { } at) _pos = _pos.MoveToward(at, (float)(1200 * delta));
-        var aimed = _ui.AimedPiece.Get();
         switch (_stage)
         {
             case 0 when _t >= 0.8:
                 Tap(Key.Key1);
                 Next("drill chosen");
                 break;
-            case 1 when _t >= _stageAt + 0.8 && aimed is (_, false):
+            case 1 when _t >= _stageAt + 0.8 && Arrived(0):
                 Hold(true);
                 Next("drilling the right rock");
                 break;
@@ -171,12 +196,12 @@ public partial class AsteroidDemo : CanvasLayer
                 Hold(false);
                 Next("the right rock broken");
                 break;
-            case 3 when _t >= _stageAt + 1.2 && aimed is (_, false):
+            case 3 when _t >= _stageAt + 1.2 && Arrived(1):
                 Hold(true);
                 Next("drilling the left rock");
                 break;
             // Flat: the sim would refuse the next hit, and the drill winds down; held a while longer to show it.
-            case 4 when aimed is (_, true) && _t >= _stageAt + 0.5:
+            case 4 when Flat() && _t >= _stageAt + 0.5:
                 Next("the belt flat");
                 break;
             case 5 when _t >= _stageAt + 2.0:

@@ -196,6 +196,24 @@ public class ClickTests
     }
 
     [Fact]
+    public void AShiftNeverSendsAStackToASlotNotOpenYet()
+    {
+        var worn = new Stack("battery", 1, 300);
+        var battery = new Stack("battery", 1);
+        // One belt slot open, worn: the free ones past it are not there, so it swaps with the one worn.
+        var belt = Holding((Belt1, worn), (Inv(5), battery));
+        bool Open(Place p) => p == Belt1 || p.Slot < 27;
+        var click = Click(Inv(5), battery, shift: true, crate: null, inventory: belt) with { Open = Open };
+        Assert.Equal(MoveOf(Inv(5), Belt1, 1), Clicks.On(null, click).Command);
+        // The hotbar's stack goes into the open bag, and with that full, nowhere.
+        var scrap = new Stack("scrap", 1);
+        var slots = Enumerable.Range(9, 18).Select(i => (Inv(i), new Stack("wire", 1))).Append((Inv(0), scrap)).ToArray();
+        var full = Click(Inv(0), scrap, shift: true, crate: null, inventory: Holding(slots)) with { Open = Open };
+        Assert.Null(Clicks.On(null, full).Command);
+        Assert.NotNull(Clicks.On(null, full with { Open = null }).Command);
+    }
+
+    [Fact]
     public void SwapWithTheFirstWornOfItsKindWithShiftWhenNoSlotOfItIsFree()
     {
         var worn = new Stack("battery", 1, 300);
@@ -228,6 +246,19 @@ public class ClickTests
         Assert.Equal(MoveOf(Inv(3), Back, 1), Clicks.On(null, Click(Inv(3), jetpack, shift: true, inventory: Holding((Inv(3), jetpack)))).Command);
         Assert.Equal(MoveOf(Back, Inv(0), 1), Clicks.On(null, Click(Back, jetpack, shift: true, inventory: Holding((Back, jetpack)))).Command);
         Assert.Equal(MoveOf(Box(2), new Target(), 1), Clicks.On(null, Click(Box(2), jetpack, shift: true)).Command);
+    }
+
+    [Fact]
+    public void ACanisterShiftClickedIntoAnOpenBayGoesToItsFuelSlot()
+    {
+        var canister = new Stack(Spec.Crew.Canister, 3);
+        var inventory = Holding((Inv(5), canister), (Inv(6), new Stack(Spec.Logistics.SalvageDrone, 1)));
+        var reading = new Reading(inventory, new Stack?[Spec.Machines.Get(Spec.Logistics.Bay).Slots!.Value], false, Spec.Logistics.Bay);
+        int fuel = Spec.Machines.Get(Spec.Logistics.Bay).SlotTakes!.Value.Slot;
+        Assert.Equal(MoveOf(Inv(5), new Target(fuel, 7), 3), Clicks.On(null, SlotClick.Of(reading, Inv(5), false, true, 7)).Command);
+        // A salvage drone goes where the sim docks it, never the fuel slot; a canister in a crate goes to the other side as anywhere.
+        Assert.Equal(MoveOf(Inv(6), new Target(Crate: 7), 1), Clicks.On(null, SlotClick.Of(reading, Inv(6), false, true, 7)).Command);
+        Assert.Equal(MoveOf(Box(fuel), new Target(), 3), Clicks.On(null, Click(Box(fuel), canister, shift: true) with { SlotTakes = (fuel, Spec.Crew.Canister) }).Command);
     }
 
     [Fact]

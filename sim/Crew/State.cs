@@ -17,6 +17,11 @@ public sealed class Hero
     /// Its air, from nothing to its capacity: the worn suit's <c>Tank</c>, or <c>Crew.Lungs</c> bare (2026-10-27-suits-are-worn).
     /// </summary>
     [JsonInclude] public int Air { get; internal set; }
+    /// <summary>
+    /// Ticks left of its last breath, its air run dry, before it passes out; 0 while it has air or breathes room air
+    /// (2026-11-05-the-last-breath).
+    /// </summary>
+    [JsonInclude] public int Gasp { get; internal set; }
     /// <summary>Ticks left passed out; 0 while conscious.</summary>
     [JsonInclude] public int Out { get; internal set; }
     /// <summary>Whether it runs, as its client last said: it breathes <c>Crew.Exerted</c> a breath.</summary>
@@ -30,6 +35,15 @@ public sealed class Hero
     /// share is exact over time (2026-10-27-the-cape-is-worn).
     /// </summary>
     [JsonInclude] public int Spared { get; internal set; }
+    /// <summary>
+    /// Whether its suit's mode is switched on (<see cref="SuitMode"/>): the hero's, kept while no body with <c>Switch</c> is
+    /// worn, working only while one is (<see cref="ICrewQueries.SuitOn"/>; 2026-11-03-the-regen-suit).
+    /// </summary>
+    [JsonInclude] public bool SuitOn { get; internal set; }
+    /// <summary>How many hurts it has taken, each a blow, a shock, poison or a burn (2026-11-08-hurts-are-shown): the client shows each new one.</summary>
+    [JsonInclude, JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)] public int Hurts { get; internal set; }
+    /// <summary>What hurt it last; <see cref="Harm.None"/> before anything has.</summary>
+    [JsonInclude, JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)] public Harm Hurt { get; internal set; }
 }
 
 /// <summary>

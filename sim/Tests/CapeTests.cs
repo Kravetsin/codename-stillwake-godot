@@ -99,12 +99,12 @@ public class CapeTests
     {
         var w = InVacuum(caped: true, suited: true);
         int air = HeroOf(w).Air;
-        w.M.Crew.Blow(0, 3);
+        w.M.Crew.Blow(0, 3, Harm.Blow);
         Assert.Equal((air - 3, 600), (HeroOf(w).Air, HeroOf(w).Spared));
-        w.M.Crew.Blow(0, 3);
+        w.M.Crew.Blow(0, 3, Harm.Blow);
         Assert.Equal((air - 5, 200), (HeroOf(w).Air, HeroOf(w).Spared));
         // A pounce of 6 then: 1200 and the 200 kept, one unit spared and 400 kept.
-        w.M.Crew.Blow(0, 6);
+        w.M.Crew.Blow(0, 6, Harm.Blow);
         Assert.Equal((air - 10, 400), (HeroOf(w).Air, HeroOf(w).Spared));
     }
 
@@ -112,14 +112,14 @@ public class CapeTests
     public void TheCapeTakenOffABlowCostsInFullItsRemainderKept()
     {
         var w = InVacuum(caped: true, suited: true);
-        w.M.Crew.Blow(0, 3);
+        w.M.Crew.Blow(0, 3, Harm.Blow);
         Unwear(w, 0);
         int air = HeroOf(w).Air;
-        w.M.Crew.Blow(0, 5);
+        w.M.Crew.Blow(0, 5, Harm.Blow);
         Assert.Equal((air - 5, 600), (HeroOf(w).Air, HeroOf(w).Spared));
         // Worn again, the remainder counts toward the next unit spared.
         w.Wear(0, Cape);
-        w.M.Crew.Blow(0, 2);
+        w.M.Crew.Blow(0, 2, Harm.Blow);
         Assert.Equal((air - 5 - 1, 0), (HeroOf(w).Air, HeroOf(w).Spared));
     }
 
@@ -129,7 +129,7 @@ public class CapeTests
         // A ruin's zap or the cradle's shock (0091, 0096): not an enemy's.
         var w = InVacuum(caped: true, suited: true);
         int air = HeroOf(w).Air;
-        w.M.Crew.Shock(0, Content.Ruins.CradleShock);
+        w.M.Crew.Shock(0, Content.Ruins.CradleShock, Harm.Shock);
         Assert.Equal((air - Content.Ruins.CradleShock, 0), (HeroOf(w).Air, HeroOf(w).Spared));
     }
 
@@ -137,31 +137,57 @@ public class CapeTests
     public void ABlowOnAHeroInCreativeOutOrNoneTakesNothingAndKeepsNoRemainder()
     {
         var creative = InVacuum(caped: true, suited: true).Do(new SetCreative(true)).Run();
-        creative.M.Crew.Blow(0, 3);
+        creative.M.Crew.Blow(0, 3, Harm.Blow);
         Assert.Equal((Full, 0), (HeroOf(creative).Air, HeroOf(creative).Spared));
 
         var w = InVacuum(caped: true, suited: true);
-        w.M.Crew.Shock(0, Full);
+        w.M.Crew.Shock(0, Full, Harm.Shock);
+        // The first empties the suit, the second cuts its last breath.
+        w.M.Crew.Shock(0, Full, Harm.Shock);
         Assert.True(HeroOf(w).Out > 0);
         int spared = HeroOf(w).Spared;
-        w.M.Crew.Blow(0, 3);
+        w.M.Crew.Blow(0, 3, Harm.Blow);
         Assert.Equal(spared, HeroOf(w).Spared);
-        w.M.Crew.Blow(1, 3);
+        w.M.Crew.Blow(1, 3, Harm.Blow);
         Assert.Null(w.M.Crew.HeroOf(1));
+    }
+
+    [Fact]
+    public void EveryHurtIsCountedWithItsKindNoneInCreativeOrOut()
+    {
+        // 2026-11-08-hurts-are-shown: what the client shows a hurt by.
+        var w = InVacuum(caped: true, suited: true);
+        Assert.Equal((0, Harm.None), (HeroOf(w).Hurts, HeroOf(w).Hurt));
+        w.M.Crew.Blow(0, 3, Harm.Blow);
+        Assert.Equal((1, Harm.Blow), (HeroOf(w).Hurts, HeroOf(w).Hurt));
+        w.M.Crew.Shock(0, 2, Harm.Poison);
+        Assert.Equal((2, Harm.Poison), (HeroOf(w).Hurts, HeroOf(w).Hurt));
+        w.M.Crew.Shock(0, 0, Harm.Shock);
+        Assert.Equal((2, Harm.Poison), (HeroOf(w).Hurts, HeroOf(w).Hurt));
+
+        var creative = InVacuum(caped: true, suited: true).Do(new SetCreative(true)).Run();
+        creative.M.Crew.Blow(0, 3, Harm.Blow);
+        Assert.Equal(0, HeroOf(creative).Hurts);
+
+        w.M.Crew.Shock(0, Full, Harm.Shock);
+        w.M.Crew.Shock(0, Full, Harm.Shock);
+        Assert.True(HeroOf(w).Out > 0);
+        w.M.Crew.Blow(0, 3, Harm.Blow);
+        Assert.Equal((4, Harm.Shock), (HeroOf(w).Hurts, HeroOf(w).Hurt));
     }
 
     [Fact]
     public void TheCapeKeepsItsRemainderThroughASaveAndLoad()
     {
         var w = InVacuum(caped: true, suited: true);
-        w.M.Crew.Blow(0, 3);
+        w.M.Crew.Blow(0, 3, Harm.Blow);
         w.Reload();
         Assert.Equal(600, HeroOf(w).Spared);
     }
 
     /// <summary>A lifepod and a Former on a panel of its own.</summary>
     private static Scenario Workshop() => new(Layout.Parse(
-        ["         ", "         ", "#########", "#OOO....#", "#OOO....#", "#OOO.II.#", "#########"]), doubled: true);
+        ["         ", "         ", "#########", "#OOO.II.#", "#OOO.II.#", "#OOO.II.#", "#########"]), doubled: true);
 
     private static int Carried(Scenario w, string item) => w.M.Items.Totals(0).Where(t => t.Item == item).Sum(t => t.Count);
 
@@ -232,7 +258,7 @@ public class CapeTests
                 if (s.Type == "blow")
                 {
                     (charged, left) = Soften(s.Units, Content.Cape.Guard);
-                    w.M.Crew.Blow(0, s.Units);
+                    w.M.Crew.Blow(0, s.Units, Harm.Blow);
                 }
                 else
                 {

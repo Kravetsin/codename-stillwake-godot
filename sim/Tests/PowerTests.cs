@@ -25,8 +25,9 @@ public sealed class Rester : Module<Rester.Nothing>
 public class PowerTests
 {
     /// <summary>
-    /// Sixteen wide: a solar panel out in space above a sealed room, its generator piped to a vent. Two
-    /// rows of space between; the room's right wall is past a span from the generator. Drawn a character a 16 px cell, doubled (0104).
+    /// Sixteen wide: a solar panel out in space above a sealed room, its generator's gas output piped to a vent
+    /// (liquid-oxygen). Two rows of space between; the room's right wall is past a span from the generator. Drawn a
+    /// character a 16 px cell, doubled (0104).
     /// </summary>
     private static readonly string[] Rows =
     [
@@ -37,7 +38,12 @@ public class PowerTests
         "#GGVGG.........#",
         "################",
     ];
-    private static readonly string[] Under = ["", "", "", "", " ---"];
+    private static readonly string[] Under = ["", "", "", "  --", "   -"];
+
+    /// <summary>The same room with no vent pipe, a tank holding a canister under each generator in space, piped from its output up to its liquid input.</summary>
+    private static readonly string[] Tanked = [.. Rows, " TT TT          ", " TT TT          "];
+    // Each tank's liquid from its output on its right, round it and up to its generator's input; the two lines never touch.
+    private static readonly string[] TankedUnder = ["", "", "", "", " -  ---", " ---  -", "  o- o-", "  -- --"];
     private const int Width = 2 * 16;
     /// <summary>The cell of the map's character at (<paramref name="x"/>, <paramref name="y"/>): its block's top-left.</summary>
     private static int At(int x, int y) => 2 * y * Width + 2 * x;
@@ -104,6 +110,20 @@ public class PowerTests
     }
 
     [Fact]
+    public void LaysACablePaidFromACrateInTheRoom()
+    {
+        // The room with a crate on its floor (craft-from-crates).
+        string[] crated = [.. Rows[..4], "#GGVGG......KK.#", Rows[5]];
+        var w = World(rows: crated);
+        int crate = w.M.Grid.MachinesOf("crate").Single().Id;
+        w.FillCrate(crate, ("wire", 5));
+        Lay(w, Generator, Second).Run();
+        Assert.Empty(w.Refusals);
+        Assert.Equal(2, w.M.Power.Cables.Count);
+        Assert.Equal(5 - CableWire, w.M.Items.Crate(crate).Sum(s => s?.Item == "wire" ? s.Count : 0));
+    }
+
+    [Fact]
     public void CutsACableGivingBackWhatWasPaidTheGeneratorCutOffGetsNothing()
     {
         var w = World();
@@ -117,16 +137,18 @@ public class PowerTests
     }
 
     [Fact]
-    public void RefusesACutWhoseRefundDoesNotFitAndGivesNothingBackForOneLaidForFree()
+    public void RefusesACutWhoseRefundDoesNotFitAndGivesTheWireOfOneACreativePeerLaidToWhoeverCutsIt()
     {
         var w = World().GiveItems(1, ("wire", Content.Inventory.Slots * Content.Items.Get("wire").Stack));
         w.Do(new Cut(Panel, Generator) { From = 1 }).Run();
         Assert.Equal(new[] { "items.full" }, Reasons(w));
-        w.Do(new Items.SetCreative(true)).Run();
+        // Laid by a creative peer, it is paid as any (2026-11-07-creative-per-player): another cutting it gets the wire.
+        w.Do(new Items.SetCreative(true) { From = 2 }).Run();
         Lay(w, Generator, At(0, 3), peer: 2).Run();
-        Assert.Contains((At(0, 3), Generator, false), CablesOf(w));
-        w.Do(new Cut(Generator, At(0, 3)) { From = 2 }).Run();
+        Assert.Contains((At(0, 3), Generator, true), CablesOf(w));
         Assert.Equal(0, Wire(w, 2));
+        w.Do(new Cut(Generator, At(0, 3)) { From = 3 }).Run();
+        Assert.Equal(Content.Power.CableCost.Single(c => c.Item == "wire").Count, Wire(w, 3));
     }
 
     [Fact]
@@ -185,12 +207,12 @@ public class PowerTests
     [Fact]
     public void SlowsEveryUserAlikeWhenShortTwoGeneratorsOnOnePanelGet625()
     {
-        var w = World([.. ToFirst, ((0, 0), (4, 3))]);
+        var w = new Scenario(Layout.Parse(Tanked, TankedUnder, [.. ToFirst, ((0, 0), (4, 3))]), doubled: true);
         var n = w.M.Power.Networks[0];
         Assert.Equal((5, 8, 625), (n.Supply, n.Demand, n.Satisfaction));
         Assert.Equal(625, w.M.Power.Satisfaction(IdAt(w, Second)));
-        // Unpiped, the second keeps all it makes: 750 a minute, a hundred and twenty units in 192 ticks, four times what a
-        // 16 px cell's generator made (0104).
+        // Its output unpiped, the second keeps all it makes of its tank's liquid: 750 a minute, a hundred and twenty units
+        // in 192 ticks, four times what a 16 px cell's generator made (0104).
         const int ticks = 192;
         w.Run(ticks);
         Assert.Equal(ticks * Content.Air.GeneratorRate * 625 / 1000 / Content.Air.LeakEvery, Store(w, Second));
@@ -200,7 +222,7 @@ public class PowerTests
     [Fact]
     public void RunsAGeneratorAtFullPowerAtItsRateItsFractionCarried()
     {
-        var w = new Scenario(Layout.Parse(Rows, [], ToFirst), doubled: true);
+        var w = new Scenario(Layout.Parse(Tanked, TankedUnder, ToFirst), doubled: true);
         w.Run(120);
         // Twelve hundred a minute, four times a 16 px cell's (0104): one a tick.
         Assert.Equal(120, Store(w, Generator));
@@ -236,6 +258,17 @@ public class PowerTests
         Assert.Equal([(Panel, Generator, true)], CablesOf(w));
         Assert.Equal([Panel, Generator], w.M.Power.Networks.Single().Nodes);
         Assert.Equal(1000, w.M.Power.Satisfaction(IdAt(w, Generator)));
+    }
+
+    [Fact]
+    public void AWiredMachineTakenApartInstantlyLeavesItsCableOnAPegToo()
+    {
+        var w = World().Do(new SetInstant(true));
+        w.Do(new Deconstruct(Generator, "machine")).Run();
+        Assert.Empty(w.Refusals);
+        Assert.Empty(w.M.Building.Plans);
+        Assert.Null(w.M.Grid.MachineAt(Generator));
+        Assert.Equal([(Panel, Generator + 2, true)], CablesOf(w));
     }
 
     [Fact]
@@ -310,7 +343,7 @@ public class PowerTests
     {
         var w = Laid(S, At(5, 5), At(11, 5)).Do(new Move(S, At(8, 5))).Run();
         Assert.Empty(w.Refusals);
-        Assert.Equal(new[] { (At(5, 5), At(8, 5), false), (At(8, 5), At(11, 5), false) }, CablesOf(w));
+        Assert.Equal(new[] { (At(5, 5), At(8, 5), true), (At(8, 5), At(11, 5), true) }, CablesOf(w));
     }
 
     [Fact]
@@ -318,7 +351,7 @@ public class PowerTests
     {
         var w = Laid(Generator, S, At(12, 3)).Do(new Move(Generator, At(4, 3), new Ends(Generator, S))).Run();
         Assert.Empty(w.Refusals);
-        Assert.Equal(new[] { (Generator, At(12, 3), false), (At(4, 3), S, false) }, CablesOf(w));
+        Assert.Equal(new[] { (Generator, At(12, 3), true), (At(4, 3), S, true) }, CablesOf(w));
     }
 
     [Fact]
@@ -399,14 +432,9 @@ public class PowerTests
     }
 
     [Fact]
-    public void TheWreckStartsWithItsPanelCabledToItsGeneratorAndLamp()
+    public void TheWreckStartsWithItsPanelOnNoCable()
     {
         var w = new Scenario(Registry.Wreck);
-        int width = w.Layout.Width;
-        var (x, y) = Layout.OffsetInWorld(Registry.WreckMap.Width, Registry.WreckMap.Height);
-        int At(int cx, int cy) => (2 * cy + y) * width + 2 * cx + x;
-        var n = Assert.Single(w.M.Power.Networks);
-        Assert.Equal(new[] { At(50, 17), At(50, 19), At(46, 21) }, n.Nodes);
-        Assert.Equal((5, 5, 1000), (n.Supply, n.Demand, n.Satisfaction));
+        Assert.Empty(w.M.Power.Networks);
     }
 }

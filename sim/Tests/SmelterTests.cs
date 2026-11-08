@@ -27,10 +27,10 @@ public class SmelterTests
             .GiveItems(0, ("quartz", 4), ("gravel", 2 * Takes), ("glass", 2), ("rock", 2));
     }
 
-    /// <summary>A sealed room aired by a tank piped to a vent, holding a furnace, as the furnace's tests.</summary>
+    /// <summary>A sealed room aired by a vaporizer piped to a vent, its tank and panel under the hull, holding a furnace, as the furnace's tests.</summary>
     private static Scenario Furnace()
     {
-        var w = new Scenario(Layout.Parse(["##########", "#FF.TT...#", "#FF.TTV..#", "##########"], ["", "    o", "    ---"]), doubled: true)
+        var w = new Scenario(AirTesting.Vaporized(["##########", "#FF.TT...#", "#FF.TTV..#", "##########"], ["", "    o", "    ---"]), doubled: true)
             .GiveItems(0, ("ironOre", 2), ("quartz", 2), ("planks", 2));
         for (int i = 0; i < 2000 && !w.M.Atmosphere.AiredAt(w.At(1, 1)); i++) w.Run();
         return w;

@@ -12,17 +12,24 @@ namespace Stillwake.Game.Features.Building;
 /// <summary>What a drag does: a card's placement on the left button, or a removal on the right (0030, 0108).</summary>
 public abstract record Act;
 
-/// <summary>A card in hand: what the left button plans in the world with it, the right marking its layer for removal; <c>Id</c> names its text.</summary>
-public abstract record Tool(string Id, string Label) : Act;
+/// <summary>
+/// A card in hand: what the left button plans in the world with it, the right marking its layer for removal; <c>Id</c> names its text.
+/// <paramref name="Name"/> and <paramref name="Material"/> are i18n keys, read as it is shown, so the cards change language with the game.
+/// </summary>
+public abstract record Tool(string Id, string Name, string? Material = null) : Act
+{
+    /// <summary>The card's name in the language spoken now.</summary>
+    public string Label => Material is { } material ? $"{En.T(Name)}: {En.T(material)}" : En.T(Name);
+}
 
 /// <summary>A card that places <paramref name="Placement"/> along a drag of the left button, and marks its layer along one of the right (0108).</summary>
-public sealed record PlaceTool(string Id, Placement Placement, string Label) : Tool(Id, Label);
+public sealed record PlaceTool(string Id, Placement Placement, string Name, string? Material = null) : Tool(Id, Name, Material);
 
 /// <summary>
 /// A card of the wiring's or the piping's menu (0110, plan modes): what the left button lays by hand, paid from the inventory
 /// as it is laid; <paramref name="Item"/> is the one whose count the card shows.
 /// </summary>
-public sealed record HandCard(string Id, string Label, string Item, IReadOnlyList<(string Item, int Count)> Cost) : Tool(Id, Label);
+public sealed record HandCard(string Id, string Name, string Item, IReadOnlyList<(string Item, int Count)> Cost) : Tool(Id, Name);
 
 /// <summary>
 /// A removal from <paramref name="Layers"/>, in the order they are taken (0110).
@@ -80,15 +87,14 @@ public static class Tools
     /// <summary>The overlays by their features' ids.</summary>
     public const string Power = "power", Pipes = "pipes", Air = "atmosphere";
 
-    private static PlaceTool Place(string id, Placement placement, string? label = null) =>
-        new(id, placement, label ?? En.T($"tool.{id}"));
+    private static PlaceTool Place(string id, Placement placement) => new(id, placement, $"tool.{id}");
 
     /// <summary>
     /// A material's wall or back wall card (0077, 0084, 0108): its id and its text's key, <paramref name="kind"/>, followed by the
     /// material's name.
     /// </summary>
     private static PlaceTool OfMaterial(string kind, Material m, Placement placement) =>
-        new(kind + char.ToUpperInvariant(m.Id[0]) + m.Id[1..], placement, $"{En.T($"tool.{kind}")}: {En.T($"material.{m.Id}")}");
+        new(kind + char.ToUpperInvariant(m.Id[0]) + m.Id[1..], placement, $"tool.{kind}", $"material.{m.Id}");
 
     /// <summary>
     /// The build menu's tabs from content (0114): <see cref="MenuTabs.All"/> in order, each with the cards whose
@@ -140,28 +146,35 @@ public static class Tools
 
     /// <summary>
     /// What a drag in the open plan does (0110): the left button places what the card in hand places, if one is of the
-    /// <paramref name="focus"/>ed layer; the <paramref name="right"/> marks or cancels in that layer, a card in hand or not.
+    /// <paramref name="focus"/>ed layer; the <paramref name="right"/> marks or cancels in that layer with no card in hand,
+    /// and with one does nothing in the world, for it lets the card go (right-lets-go).
     /// </summary>
     public static Act? ActOf(Tool? tool, bool right, Focus focus) =>
-        right ? RemovalIn(focus) : tool is PlaceTool place && FocusOf(place) == focus ? place : null;
+        right ? tool == null ? RemovalIn(focus) : null : tool is PlaceTool place && FocusOf(place) == focus ? place : null;
 
-    /// <summary>How opaque a layer out of focus is drawn while the plan is open (0110).</summary>
+    /// <summary>How opaque the back walls are drawn with the front focused (0110).</summary>
     public const float Faded = 0.35f;
 
-    /// <summary>How opaque the front and the back walls are drawn: the focused layer whole, the other <see cref="Faded"/>; both whole with no focus.</summary>
+    /// <summary>How opaque the front is drawn with the back walls focused: hidden, so a back wall's material reads whole (back-focus-clear).</summary>
+    public const float FrontInBack = 0f;
+
+    /// <summary>How opaque the front and the back walls are drawn: the focused layer whole, the other faded or hidden; both whole with no focus.</summary>
     public static (float Front, float Back) AlphasOf(Focus? focus) => focus switch
     {
         Focus.Front => (1, Faded),
-        Focus.Back => (Faded, 1),
+        Focus.Back => (FrontInBack, 1),
         _ => (1, 1),
     };
 
+    /// <summary>Whether the back walls are drawn as painted, out of the light: while focused, so a dark room's still read (back-focus-clear).</summary>
+    public static bool BackUnlit(Focus? focus) => focus == Focus.Back;
+
     /// <summary>The wiring's card (0110): a cable, a wire each.</summary>
-    public static readonly HandCard Cable = new("cable", En.T("tool.cable"), "wire", Content.Power.CableCost);
+    public static readonly HandCard Cable = new("cable", "tool.cable", "wire", Content.Power.CableCost);
 
     /// <summary>The piping's cards (0110): a pipe, a tube per started <see cref="Piping.CellsPerItem"/> cells; a valve on a joint.</summary>
-    public static readonly HandCard Pipe = new("pipe", En.T("tool.pipe"), Piping.Item, [(Piping.Item, 1)]),
-        Valve = new("valve", En.T("tool.valve"), "gear", Piping.ValveCost);
+    public static readonly HandCard Pipe = new("pipe", "tool.pipe", Piping.Item, [(Piping.Item, 1)]),
+        Valve = new("valve", "tool.valve", "gear", Piping.ValveCost);
 
     /// <summary>The plan's modes in the order of their keys, Z, X and C.</summary>
     public static readonly IReadOnlyList<PlanMode> Modes = [PlanMode.Build, PlanMode.Wiring, PlanMode.Piping];
@@ -194,17 +207,14 @@ public static class Tools
     /// <summary>The tab a card is on.</summary>
     public static string TabOf(Tool tool) => Tabs.FirstOrDefault(t => t.Tools.Contains(tool))?.Id ?? "";
 
-    /// <summary>What the buttons do, an i18n key: a wiring or piping card its own, the plan's the same on every tab.</summary>
-    public static string HintOf(Tool? held = null) => held is HandCard h ? $"hint.{h.Id}" : "hint.build";
-
-    /// <summary>The layers Q picks in, in the order they are taken: what the ship is built of.</summary>
+    /// <summary>The layers the pipette (Drop) picks in, in the order they are taken: what the ship is built of.</summary>
     public static readonly IReadOnlyList<string> Layers = ["machine", "structure", "back"];
 
     /// <summary>The layers the right button marks in the front's focus: <see cref="Layers"/> but the back walls (0110).</summary>
     public static readonly IReadOnlyList<string> FrontLayers = ["machine", "structure"];
 
     /// <summary>Whether <paramref name="tool"/> is a card the world knows (0024): its blueprint.</summary>
-    public static bool Known(Tool tool, IResearchQueries research) => tool is not PlaceTool p || research.Knows(p.Placement);
+    public static bool Known(Tool tool, IResearchQueries research, int peer) => tool is not PlaceTool p || research.Knows(peer, p.Placement);
 
     /// <summary>Whether <paramref name="tool"/> builds what the kind of surface it is on allows (0076).</summary>
     public static bool Allowed(Tool tool, Surfaces.Kind rules) => tool is not PlaceTool p || rules.Allows(p.Placement.Kind);
@@ -219,6 +229,14 @@ public static class Tools
         return null;
     }
 
+    /// <summary>What mark <paramref name="mark"/> takes down, as the card that places it would: a machine whichever of its cells is marked; none once gone.</summary>
+    public static Placement? MarkedOf(IGridQueries grid, Sim.Building.Plan mark) =>
+        mark.Clear is { } layer ? BuiltAt(MarkedAt(grid, mark), layer, grid) : null;
+
+    /// <summary>Where a mark's thing is drawn from: a machine's top-left, whichever of its cells is marked; else its cell.</summary>
+    public static int MarkedAt(IGridQueries grid, Sim.Building.Plan p) =>
+        p.Clear == "machine" && grid.MachineAt(p.Cell) is { } machine ? machine.Cell : p.Cell;
+
     /// <summary>What is built at <paramref name="cell"/> in <paramref name="layer"/>, as the card that places it would: what a mark takes out.</summary>
     public static Placement? BuiltAt(int cell, string layer, IGridQueries grid)
     {
@@ -228,7 +246,7 @@ public static class Tools
                 return grid.MachineAt(cell) is { } m ? new Placement(layer, m.Kind) : null;
             case "structure":
                 // What placed it, by the code the grid stores: a doorway a door's or a hatch's (0104, 0111, 0112).
-                if (grid.WallAt(cell) is { } wall) return Placement.Wall(wall.Id);
+                if (grid.WallAt(cell) is { } wall) return Placement.Wall(wall.As ?? wall.Id);
                 return Structures.Of(grid.StructureAt(cell)).Build is { } build ? new Placement(layer, build) : null;
             default:
                 return grid.BackAt(cell) is { } material ? Placement.BackWall(material.Id) : null;
@@ -276,12 +294,12 @@ public static class Tools
     /// The pipette's card for <paramref name="cell"/>: the card that places what is there, planned or built, in
     /// <see cref="Layers"/>, if its blueprint is known.
     /// </summary>
-    public static Tool? CardAt(int cell, IGridQueries grid, BuildingModule building, IResearchQueries research)
+    public static Tool? CardAt(int cell, IGridQueries grid, BuildingModule building, IResearchQueries research, int peer)
     {
         if (PlacementAt(cell, Layers, grid, building) is not { } placed) return null;
         bool Places(Placement p) => p.Layer == placed.Layer && p.Kind == placed.Kind && p.Material == placed.Material;
         var card = All.OfType<PlaceTool>().FirstOrDefault(each => Places(each.Placement));
         // What is not known, or not built here, is not picked: it could not be planned.
-        return card != null && Known(card, research) && Allowed(card, building.Rules) ? card : null;
+        return card != null && Known(card, research, peer) && Allowed(card, building.Rules) ? card : null;
     }
 }

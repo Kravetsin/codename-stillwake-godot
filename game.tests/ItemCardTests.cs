@@ -16,17 +16,64 @@ public class ItemCardTests
 
     private static Reading With(bool creative) => new([], null, creative, null);
 
+    /// <summary>What a card's rows say, value and label, in order: the signs and groups are checked on their own.</summary>
+    private static (string, string)[] Said(IReadOnlyList<CardTile>? tiles) => [.. tiles!.Select(t => (t.Value, t.Label))];
+
     [Fact]
-    public void TakeTheAxesNumbersFromContentAndItsDamageASecondFromThem()
+    public void TakeTheAxesNumbersFromContentWithItsSwingAndReachButNoDamageASecond()
     {
         var tiles = ItemCards.Of("fireAxe").Tiles!;
         double every = (double)Spec.Weapons.Axe.Pace / World.TicksPerSecond;
-        Assert.Equal(ItemCards.Number(Spec.Weapons.Axe.Damage / every), tiles[0].Value);
-        Assert.Equal(Spec.Weapons.Axe.Damage.ToString(), tiles[1].Value);
-        Assert.Equal(Spec.Weapons.Axe.BlockDamage.ToString(), tiles[2].Value);
-        Assert.Equal($"{ItemCards.Number(every)}s", tiles[3].Value);
-        // As content stands: 2 damage, 4 on blocks, every 10 ticks of 20 a second.
-        Assert.Equal([new CardTile("4", "DPS"), new CardTile("2", "DMG"), new CardTile("4", "BLOCK"), new CardTile("0.5s", "HIT")], tiles);
+        Assert.Equal(Spec.Weapons.Axe.Damage.ToString(), tiles[0].Value);
+        Assert.Equal(Spec.Weapons.Axe.BlockDamage.ToString(), tiles[1].Value);
+        Assert.Equal($"{ItemCards.Number(every)}s", tiles[2].Value);
+        // As content stands: 2 damage, 4 on blocks, every 10 ticks of 20 a second; 64 of a turn's 256 is 90°, 4500 thousandths 4.5 cells.
+        Assert.Equal([("2", "Damage"), ("4", "Block"), ("0.5s", "Hits every"), ("90°", "Swing"), ("4.5 cells", "Range")], Said(tiles));
+        Assert.Equal([CardSign.Damage, CardSign.Block, CardSign.Pace, CardSign.Arc, CardSign.Reach], tiles.Select(t => t.Sign));
+        Assert.Equal([CardGroup.Hit, CardGroup.Hit, CardGroup.Hit, CardGroup.Reach, CardGroup.Reach], tiles.Select(t => t.Group));
+        Assert.Equal(["wrecks", "rock", null, null, null], tiles.Select(t => t.Note));
+        Assert.DoesNotContain(tiles, t => t.Off);
+    }
+
+    [Fact]
+    public void SayTheCutterCutsNoRockAndGivesHalfAgainOfAWrecksLootUnderWhatIsSpecial()
+    {
+        var card = ItemCards.Of(Spec.Weapons.PlasmaCutter.Item);
+        // As content stands: 1 a hit, none on rock, every 4 ticks, a beam 8 of a turn's 256 (11°) and 8 cells out; the cut bonus of 1500 thousandths.
+        Assert.Equal([("1", "Damage"), ("cuts none", "Block"), ("0.2s", "Hits every"), ("11°", "Swing"), ("8 cells", "Range"), ("+50%", "Loot from wrecks")], Said(card.Tiles));
+        Assert.True(card.Tiles![1].Off);
+        Assert.Equal((CardSign.Loot, CardGroup.Special), (card.Tiles[5].Sign, card.Tiles[5].Group));
+        // Its draw is the card's own, the battery's row the view puts first under what is special.
+        Assert.Equal(Spec.Items.Get(Spec.Weapons.PlasmaCutter.Item).Draw, card.Draw);
+        // Only a weapon that salvages has the row.
+        Assert.DoesNotContain(ItemCards.Of(Spec.Weapons.Drill.Item).Tiles!, t => t.Sign == CardSign.Loot);
+    }
+
+    [Fact]
+    public void GiveEverySignADrawingAndAHueAndEveryGroupItsWordsInBothLanguages()
+    {
+        foreach (var sign in System.Enum.GetValues<CardSign>())
+        {
+            if (sign == CardSign.None) continue;
+            Assert.NotEmpty(CardSigns.Of(sign).Shape);
+            Assert.Matches("^[0-9a-f]{6}$", CardSigns.Hue(sign));
+            Assert.Contains("stroke=\"#" + CardSigns.Hue(sign), CardSigns.Svg(sign, 18));
+        }
+        Assert.Contains("opacity", CardSigns.Svg(CardSign.Block, 18, off: true));
+        Assert.DoesNotContain("opacity", CardSigns.Svg(CardSign.Block, 18));
+        foreach (var group in System.Enum.GetValues<CardGroup>()) Assert.True(Table.ContainsKey(CardSigns.TitleKey(group)), group.ToString());
+    }
+
+    [Fact]
+    public void SignEveryToolsEveryRowAndListItsGroupsInOrder()
+    {
+        foreach (var item in Spec.Items.All.Select(i => i.Id).Where(id => ItemCards.IsTool(id) || ItemCards.IsAmmo(id)))
+        {
+            var tiles = ItemCards.Of(item).Tiles!;
+            Assert.All(tiles, t => Assert.NotEqual(CardSign.None, t.Sign));
+            // The groups as the card lists them: a hit or a shot, then the reach, then what is special, never back.
+            Assert.Equal(tiles.Select(t => t.Group).OrderBy(g => g), tiles.Select(t => t.Group));
+        }
     }
 
     [Fact]
@@ -35,26 +82,30 @@ public class ItemCardTests
         var gun = ItemCards.Of(Spec.Shots.Nailer.Item);
         Assert.Equal(Spec.Shots.DamageOf(Spec.Shots.Nailer.Item, Spec.Shots.Nail.Id).ToString(), gun.Tiles![0].Value);
         // As content stands: the nailer's 4 and the nail's 2, 1 off a block, a shot every 60 ticks, half kept through a pierce.
-        Assert.Equal([new CardTile("6", "DMG"), new CardTile("1", "BLOCK"), new CardTile("3s", "RELOAD"), new CardTile("50%", "PIERCE")], gun.Tiles);
+        Assert.Equal([("6", "Damage"), ("1", "Block"), ("3s", "Reload time"), ("50%", "Kept through")], Said(gun.Tiles));
+        Assert.Equal([CardSign.Damage, CardSign.Block, CardSign.Pace, CardSign.Pierce], gun.Tiles.Select(t => t.Sign));
+        Assert.All(gun.Tiles, t => Assert.Equal(CardGroup.Shot, t.Group));
         Assert.True(gun.Tool && ItemCards.IsTool(Spec.Shots.Nailer.Item));
         var nail = ItemCards.Of(Spec.Shots.Nail.Id);
-        Assert.Equal([new CardTile("+2", "DMG"), new CardTile("+0", "BLOCK")], nail.Tiles);
+        Assert.Equal([("+2", "Damage"), ("+0", "Block")], Said(nail.Tiles));
         // A tile card, though no tool: its slot is not tinted as one.
         Assert.False(ItemCards.IsTool(Spec.Shots.Nail.Id));
         // The railgun's: 22 and the nail's 2, 4 off a block, 2 s between shots, 65% kept, 120 of the belt's charge a shot.
-        Assert.Equal([new CardTile("24", "DMG"), new CardTile("4", "BLOCK"), new CardTile("2s", "RELOAD"), new CardTile("65%", "PIERCE"), new CardTile("120", "ENERGY")],
-            ItemCards.Of(Spec.Shots.Railgun.Item).Tiles);
+        var rail = ItemCards.Of(Spec.Shots.Railgun.Item).Tiles;
+        Assert.Equal([("24", "Damage"), ("4", "Block"), ("2s", "Reload time"), ("65%", "Kept through"), ("120", "Charge a shot")], Said(rail));
+        Assert.Equal((CardSign.Battery, CardGroup.Special), (rail![4].Sign, rail[4].Group));
     }
 
     [Fact]
     public void TileTheHarpoonsRangeReloadAndReelSpeedFromContentInsteadOfDamage()
     {
         var tiles = ItemCards.Of(Spec.Harpoon.Item).Tiles!;
-        Assert.Equal(ItemCards.Number(Spec.Harpoon.Range / 1000.0), tiles[0].Value);
-        Assert.Equal($"{ItemCards.Number((double)Spec.Harpoon.CooldownTicks / World.TicksPerSecond)}s", tiles[1].Value);
+        Assert.Equal($"{ItemCards.Number((double)Spec.Harpoon.CooldownTicks / World.TicksPerSecond)}s", tiles[0].Value);
+        Assert.Equal($"{ItemCards.Number(Spec.Harpoon.Range / 1000.0)} cells", tiles[1].Value);
         Assert.Equal($"{ItemCards.Number(Spec.Harpoon.ReelSpeed * World.TicksPerSecond / 1000.0)}/s", tiles[2].Value);
-        // As content stands: 40 cells, 100 ticks, 800 thousandths a tick of 20 a second; a cell half what it was (0104).
-        Assert.Equal([new CardTile("40", "RANGE"), new CardTile("5s", "RELOAD"), new CardTile("16/s", "REEL")], tiles);
+        // As content stands: 100 ticks, 40 cells, 800 thousandths a tick of 20 a second; a cell half what it was (0104).
+        Assert.Equal([("5s", "Reload time"), ("40 cells", "Range"), ("16/s", "Reel")], Said(tiles));
+        Assert.Equal([CardSign.Pace, CardSign.Reach, CardSign.Reel], tiles.Select(t => t.Sign));
     }
 
     [Fact]
@@ -65,7 +116,6 @@ public class ItemCardTests
         Assert.True(ItemCards.IsTool(Spec.Harpoon.Item));
         Assert.Equal(("Harpoon", "Tool · Harpoon"), (card.Name, card.Kind));
         Assert.Equal("LMB", card.Use!.Key);
-        Assert.Empty(card.Effects);
         Assert.NotEqual(card, card with { Tiles = [.. card.Tiles!.Take(2)] });
         Assert.Equal(card, card with { Tiles = [.. card.Tiles!] });
     }
@@ -88,7 +138,6 @@ public class ItemCardTests
         Assert.Equal(("Fire axe", "Tool · Axe"), (card.Name, card.Kind));
         // Its key alone, no words on what it does: the player finds out.
         Assert.Equal(new CardKey("LMB"), card.Use);
-        Assert.Empty(card.Effects);
     }
 
     [Fact]
@@ -195,6 +244,17 @@ public class ItemCardTests
     }
 
     [Fact]
+    public void TheSalvageDronesCardSaysNoCrateNoFlight()
+    {
+        var card = ItemCards.Of(Spec.Logistics.SalvageDrone);
+        Assert.False(card.Tool);
+        Assert.EndsWith("No crate with room in reach: it does not fly.", card.About);
+        // A plain item without a line of its own shows none.
+        Assert.Null(ItemCards.Of("scrap").About);
+        Assert.Null(ItemCards.Of(Spec.Logistics.Drone).About);
+    }
+
+    [Fact]
     public void HaveAKindForEveryItemThereIs()
     {
         Assert.All(Spec.Items.All, item => Assert.True(Table.ContainsKey($"item.{item.Id}.kind"), item.Id));
@@ -206,7 +266,6 @@ public class ItemCardTests
         Assert.Equal(Spec.Market.PriceOf("iron"), With(false).TipOf("iron").Card!.Price);
         Assert.Null(With(false).TipOf("fireAxe").Card!.Price);
         Assert.Equal("Iron", With(false).TipOf("iron").Name);
-        Assert.Equal("Sells for 3", T("card.sells", ("n", 3)));
     }
 
     [Fact]
@@ -220,12 +279,13 @@ public class ItemCardTests
     }
 
     [Fact]
-    public void QueueARecipeCarriedByAClickOrFiveWithShiftAndNothingShortInCreativeMode()
+    public void QueueARecipeCarriedByAClickOrUpToFiveWithShiftAndNothingShortInCreativeMode()
     {
-        var ready = Crafts.Block("wire", Workbench, [("scrap", 2)], creative: false);
-        Assert.Equal([new CraftRow("scrap", "Scrap", 2, 2, false)], ready.Rows);
+        var ready = Crafts.Block("wire", Workbench, [("scrap", 10)], creative: false);
+        Assert.Equal([new CraftRow("scrap", "Scrap", 10, 2, false)], ready.Rows);
         Assert.Equal([new CardKey("LMB", "craft"), new CardKey("Shift", "×5")], ready.Keys);
         Assert.Equal(ready.Keys, Crafts.Block("rotor", Workbench, [], creative: true).Keys);
+        Assert.Equal([new CardKey("LMB", "craft"), new CardKey("Shift", "×3")], Crafts.Block("wire", Workbench, [("scrap", 7)], creative: false).Keys);
         Assert.All(Crafts.Block("rotor", Workbench, [], creative: true).Rows, r => Assert.False(r.Short));
     }
 
@@ -233,7 +293,7 @@ public class ItemCardTests
     public void SayWhereARawItemShortComesFromAndOfferNoClick()
     {
         var plate = Crafts.Block("plate", Workbench, [("iron", 1)], creative: false);
-        Assert.Equal([new CraftRow("iron", "Iron", 1, 2, true, "smelt hull plates")], plate.Rows);
+        Assert.Equal([new CraftRow("iron", "Iron", 1, 2, true, "smelt hull plates or iron ore")], plate.Rows);
         Assert.Empty(plate.Keys);
     }
 
@@ -245,10 +305,9 @@ public class ItemCardTests
         Assert.Equal(Of("fireAxe").GetHashCode(), Of("fireAxe").GetHashCode());
         Assert.NotEqual(Of("fireAxe"), Of("iron"));
         Assert.NotEqual(Of("fireAxe"), new Tip("Fire axe"));
-        var effect = new CardEffect("Fire", "sets it burning", "ff7a2e", "3a1a0c");
         var card = ItemCards.Of("fireAxe");
-        Assert.Equal(card with { Effects = [effect] }, card with { Effects = [effect with { }] });
-        Assert.NotEqual(card with { Effects = [effect] }, card);
+        Assert.NotEqual(card, card with { Tiles = [.. card.Tiles!.Select(t => t with { Sign = CardSign.Loot })] });
+        Assert.Equal(card, card with { Tiles = [.. card.Tiles!.Select(t => t with { })] });
         var short1 = Crafts.Block("rotor", Workbench, [], false);
         Assert.Equal(card with { Station = short1 }, card with { Station = Crafts.Block("rotor", Workbench, [], false) });
         Assert.Equal((card with { Station = short1 }).GetHashCode(), (card with { Station = Crafts.Block("rotor", Workbench, [], false) }).GetHashCode());
@@ -257,22 +316,11 @@ public class ItemCardTests
     }
 
     [Fact]
-    public void HaveWordsForEveryEffectOfTheAxe()
-    {
-        Assert.All(Spec.Weapons.Axe.Effects, e =>
-        {
-            Assert.True(Table.ContainsKey($"effect.{e.Id}"), e.Id);
-            Assert.True(Table.ContainsKey($"effect.{e.Id}.about"), e.Id);
-        });
-    }
-
-    [Fact]
     public void CardAModuleWithItsTechAndWhatItDoesNeverWhereItGoes()
     {
         var card = ItemCards.Of(Spec.Modules.Arc.Item);
-        // A line for each group of hosts, from its trades (0100): the stations', the drill's, the charger's, whose draw is its charging.
-        Assert.Equal(new CardTech("arc", "×2 speed · ×2 power\n×2 damage · ×2 power\n×5 charging · ×5 power"), card.Tech);
-        Assert.Empty(card.Effects);
+        // A line for each group of hosts, from its trades (0100): the stations', the drill's and grinder's, the spear's, the charger's, whose draw is its charging.
+        Assert.Equal(new CardTech("arc", "×2 speed · ×2 power\n×2 damage · ×2 power\n×2 damage\n×5 charging · ×5 power"), card.Tech);
         Assert.All(Spec.Modules.Arc.Hosts, host => Assert.DoesNotContain(T($"tool.{host}"), card.Tech!.About));
         Assert.NotEqual(card, card with { Tech = null });
         Assert.Null(ItemCards.Of("iron").Tech);
@@ -285,17 +333,18 @@ public class ItemCardTests
         var plain = With(true).TipOf(new Stack(drill, 1)).Card!;
         var fitted = With(true).TipOf(new Stack(drill, 1, Module: arc)).Card!;
         var stats = ToolStats.Of(new Stack(drill, 1, Module: arc));
-        // Every number is the fold's, the one the sim hits and draws by: 20 a second, 2 a hit, every 0.1 s, 6 a tick.
-        Assert.Equal(ItemCards.Number(stats.Damage * (double)World.TicksPerSecond / stats.Pace), fitted.Tiles![0].Value);
-        Assert.Equal(stats.Damage.ToString(), fitted.Tiles[1].Value);
+        // Every number is the fold's, the one the sim hits and draws by: 2 a hit, every 0.1 s, 2 a tick.
+        Assert.Equal(stats.Damage.ToString(), fitted.Tiles![0].Value);
         Assert.Equal(stats.Draw, fitted.Draw);
         var up = new CardBoost("arc", true, "×2");
-        Assert.Equal([new CardTile("20", "DPS", up), new CardTile("2", "DMG", up), new CardTile("8", "BLOCK", up), new CardTile("0.1s", "HIT")], fitted.Tiles);
-        Assert.Equal((6, up), (fitted.Draw, fitted.DrawBoost));
+        Assert.Equal([("2", "Damage"), ("8", "Block"), ("0.1s", "Hits every"), ("45°", "Swing"), ("8 cells", "Range")], Said(fitted.Tiles));
+        Assert.Equal([up, up, null, null, null], fitted.Tiles.Select(t => t.Boost));
+        Assert.Equal((2, up), (fitted.Draw, fitted.DrawBoost));
         Assert.Equal([arc], fitted.Fitted);
-        // The plain drill's, unmarked: no stale draw of 3 on the fitted one, nor a mark on the plain.
-        Assert.Equal([new CardTile("10", "DPS"), new CardTile("1", "DMG"), new CardTile("4", "BLOCK"), new CardTile("0.1s", "HIT")], plain.Tiles);
-        Assert.Equal((3, (CardBoost?)null), (plain.Draw, plain.DrawBoost));
+        // The plain drill's, unmarked: no stale draw of 1 on the fitted one, nor a mark on the plain.
+        Assert.Equal([("1", "Damage"), ("4", "Block"), ("0.1s", "Hits every"), ("45°", "Swing"), ("8 cells", "Range")], Said(plain.Tiles));
+        Assert.All(plain.Tiles!, t => Assert.Null(t.Boost));
+        Assert.Equal((1, (CardBoost?)null), (plain.Draw, plain.DrawBoost));
         Assert.Empty(plain.Fitted);
         Assert.Null(fitted.Tech);
         Assert.NotEqual(plain, fitted);
@@ -308,19 +357,21 @@ public class ItemCardTests
     public void FoldTwoModulesStatsSummedOnceAndMarkEachNumberByHowItMoved()
     {
         string drill = Spec.Weapons.Drill.Item;
-        // Summed, then applied once: damage 1 × (1000 + 1000 + 500) / 1000 = 2.5, down to 2; draw 3 × 1750 / 1000 = 5.25, up to 6.
-        Assert.Equal(new ToolStats(2, 2, 6), ToolStats.Of(drill, [Spec.Modules.Arc, Fake]));
-        Assert.Equal(new ToolStats(1, 2, 3), ToolStats.Of(drill, [Fake]));
-        Assert.Equal(new ToolStats(1, 2, 3), ToolStats.Of(drill, []));
+        // Summed, then applied once: damage 1 × (1000 + 1000 + 500) / 1000 = 2.5, down to 2; draw 1 × 1750 / 1000 = 1.75, up to 2.
+        Assert.Equal(new ToolStats(2, 2, 2), ToolStats.Of(drill, [Spec.Modules.Arc, Fake]));
+        Assert.Equal(new ToolStats(1, 2, 1), ToolStats.Of(drill, [Fake]));
+        Assert.Equal(new ToolStats(1, 2, 1), ToolStats.Of(drill, []));
         // On the axe, 2 × 1500 / 1000 = 3, a gain alone: it draws nothing.
         Assert.Equal(new ToolStats(3, 10, 0), ToolStats.Of(Spec.Weapons.Axe.Item, [Fake]));
         var card = ItemCards.Fitted(ItemCards.Of(Spec.Weapons.Axe.Item), [Fake]);
-        Assert.Equal([new CardTile("6", "DPS", new CardBoost("arc", true, "×1.5")), new CardTile("3", "DMG", new CardBoost("arc", true, "×1.5")), new CardTile("6", "BLOCK", new CardBoost("arc", true, "×1.5")), new CardTile("0.5s", "HIT")], card.Tiles);
+        var more = new CardBoost("arc", true, "×1.5");
+        Assert.Equal([("3", "Damage"), ("6", "Block"), ("0.5s", "Hits every"), ("90°", "Swing"), ("4.5 cells", "Range")], Said(card.Tiles));
+        Assert.Equal([more, more, null, null, null], card.Tiles!.Select(t => t.Boost));
         Assert.Null(card.Draw);
-        // A cost that falls is marked down.
-        var lighter = ItemCards.Fitted(ItemCards.Of(drill), [new Spec.ModuleSpec("lighter", "arc", [new(["drill"], [new Spec.Trade(Spec.Stat.Draw, -500)])])]);
-        Assert.Equal((2, new CardBoost("arc", false, "×0.7")), (lighter.Draw!.Value, lighter.DrawBoost!));
-        Assert.Equal(ItemCards.Of(drill).Tiles, lighter.Tiles);
+        // A cost that falls is marked down: the grinder's, as the drill's 1 cannot fall.
+        var lighter = ItemCards.Fitted(ItemCards.Of(Spec.Weapons.Grinder.Item), [new Spec.ModuleSpec("lighter", "arc", [new([Spec.Weapons.Grinder.Item], [new Spec.Trade(Spec.Stat.Draw, -500)])])]);
+        Assert.Equal((1, new CardBoost("arc", false, "×0.5")), (lighter.Draw!.Value, lighter.DrawBoost!));
+        Assert.Equal(ItemCards.Of(Spec.Weapons.Grinder.Item).Tiles, lighter.Tiles);
     }
 
     [Fact]
@@ -335,7 +386,7 @@ public class ItemCardTests
                 new System.Text.Json.Nodes.JsonObject { ["id"] = 0, ["slots"] = new System.Text.Json.Nodes.JsonArray(slot) }));
             var card = With(true).TipOf(stack).Card!;
             Assert.Equal(stack, m.Items.ToolStack(0, "drill"));
-            Assert.Equal(m.Items.Damage(0, "drill").ToString(), card.Tiles![1].Value);
+            Assert.Equal(m.Items.Damage(0, "drill").ToString(), card.Tiles![0].Value);
             Assert.Equal(ToolStats.Of(stack).Draw, card.Draw);
         }
     }
@@ -375,6 +426,9 @@ public class ItemCardTests
     [Fact]
     public void EveryScrewdriverIsHeldInTheHandSoTheToolInUseShowsWithoutTheHotbar()
     {
-        foreach (var driver in Spec.Screwdrivers.All) Assert.Same(HeldLook.Screwdriver, HeldLook.Of(driver.Item));
+        // Each in its own look: the screwdriver, and the power driver as the user picked it (power-driver).
+        Assert.Same(HeldLook.Screwdriver, HeldLook.Of(Spec.Screwdrivers.Basic.Item));
+        Assert.Same(HeldLook.PowerDriver, HeldLook.Of(Spec.Screwdrivers.PowerDriver.Item));
+        foreach (var driver in Spec.Screwdrivers.All) Assert.NotNull(HeldLook.Of(driver.Item)?.Twist);
     }
 }

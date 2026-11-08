@@ -17,15 +17,9 @@ public static class MagneticFlares
     public static readonly Flare StartingSpace = new(8 * 60 * 20, 15 * 60 * 20, 30 * 20, PercentMin: 10, PercentMax: 30);
 }
 
-/// <summary>What repairing a broken machine costs (2026-10-30-magnetic-flare).</summary>
+/// <summary>What repairing a broken machine takes: only work (2026-10-30-free-repair).</summary>
 public static class RepairRules
 {
-    /// <summary>
-    /// The share, in thousandths, of each item of a machine's build cost a repair takes, rounded up, so a one-item cost takes
-    /// that item; and of its build ticks the repair's work takes, rounded up.
-    /// </summary>
+    /// <summary>The share, in thousandths, of a machine's build ticks the repair's work takes, rounded up.</summary>
     public const int Share = 250;
-
-    /// <summary>The item a repair never takes, whatever the cost holds.</summary>
-    public const string Never = "circuit";
 }

@@ -1,6 +1,5 @@
 using System.Reflection;
 using Stillwake.Content;
-using Stillwake.Game;
 using Xunit;
 using DebrisSpec = Stillwake.Content.Debris;
 
@@ -95,7 +94,7 @@ public partial class ContentTests
     {
         foreach (var item in Content.Items.All)
             Assert.True((item.Equip == Content.Helmet.Slot) == (item.Tank > Content.Crew.Lungs) && item.Tank >= 0, item.Id);
-        Assert.True(Content.Field.EdgeCost >= Content.Items.All.Max(i => i.Tank));
+        Assert.True(Content.Field.OffGrid >= Content.Items.All.Max(i => i.Tank));
         // The 1 is the breath: a bare hero resting by the pod in vacuum holds.
         Assert.True(1 + Content.Crew.BareCold <= Content.Crew.PodRefill);
     }

@@ -127,6 +127,9 @@ public class FieldTests
             Assert.Equal(FieldSpec.EdgeCost, Cost(cell));
         var w = World().Do(new Enter(At(0, MidY)) { From = 0 }).Run();
         ToBreath(w).Run();
+        // The cold cuts no last breath: ten seconds to turn back.
+        Assert.Equal((0, Content.Crew.LastBreath, 0), (HeroOf(w).Air, HeroOf(w).Gasp, HeroOf(w).Out));
+        w.Run(Content.Crew.LastBreath);
         Assert.Equal((0, Content.Crew.PassOut), (HeroOf(w).Air, HeroOf(w).Out));
         w.Run(Content.Crew.PassOut);
         Assert.Equal((w.M.Crew.Spawn, Scenario.Full, 0), (HeroOf(w).Cell, HeroOf(w).Air, HeroOf(w).Out));
@@ -158,20 +161,22 @@ public class FieldTests
     public void DrainsACanisterBreathedPastTheField()
     {
         var w = BroughtIn(At(Left / 2, MidY)).GiveItems(0, (Content.Crew.Canister, 1));
-        HeroOf(w).Air = 10;
+        HeroOf(w).Air = 2;
         w.Do(new Refill { From = 0 }).Run();
-        Assert.Equal(10 + Content.Crew.CanisterRefill, HeroOf(w).Air);
+        Assert.Equal(2 + w.M.Crew.CanisterRefill, HeroOf(w).Air);
         ToBreath(w).Run();
-        Assert.Equal(10 + Content.Crew.CanisterRefill - 13, HeroOf(w).Air);
+        Assert.Equal(2 + w.M.Crew.CanisterRefill - 13, HeroOf(w).Air);
     }
 
     [Fact]
     public void ChargesAWholeSuitOffTheGrid()
     {
-        Assert.Equal(FieldSpec.EdgeCost, Cost(-1));
-        Assert.Equal(FieldSpec.EdgeCost, Cost(Width * Height));
+        Assert.Equal(FieldSpec.OffGrid, Cost(-1));
+        Assert.Equal(FieldSpec.OffGrid, Cost(Width * Height));
         var w = World().Do(new Enter(-5) { From = 0 }).Run();
         ToBreath(w).Run();
+        Assert.Equal((0, Content.Crew.LastBreath), (HeroOf(w).Air, HeroOf(w).Gasp));
+        w.Run(Content.Crew.LastBreath);
         Assert.Equal((0, Content.Crew.PassOut), (HeroOf(w).Air, HeroOf(w).Out));
     }
 
@@ -181,8 +186,8 @@ public class FieldTests
         // A test map's zone is the whole map, so its field reaches past the grid every way.
         var w = new Scenario(PodRoom);
         Assert.All(Enumerable.Range(0, w.Layout.Width * w.Layout.Height), cell => Assert.Equal(0, w.M.Crew.EdgeCost(cell)));
-        Assert.Equal(FieldSpec.EdgeCost, w.M.Crew.EdgeCost(-1));
-        Assert.Equal(FieldSpec.EdgeCost, w.M.Crew.EdgeCost(w.Layout.Width * w.Layout.Height));
+        Assert.Equal(FieldSpec.OffGrid, w.M.Crew.EdgeCost(-1));
+        Assert.Equal(FieldSpec.OffGrid, w.M.Crew.EdgeCost(w.Layout.Width * w.Layout.Height));
     }
 
     // Invariants.

@@ -13,8 +13,8 @@ public static class WristLook
     /// <summary>A gauge tab's screen height.</summary>
     public const int TabHeight = 30;
 
-    /// <summary>The energy tab at the column's right end: the bolt and the belt's charge, just wide enough for "5 400".</summary>
-    public const int EnergyWidth = 70;
+    /// <summary>The energy tab at the column's right end: the ring round the bolt and the belt's charge, wide enough for "16 200" (energy-ring).</summary>
+    public const int EnergyWidth = 78;
 
     /// <summary>The energy number's right margin in its tab, and its baseline.</summary>
     public const int EnergyRight = 8, EnergyBaseline = 20;
@@ -29,18 +29,18 @@ public static class WristLook
     public const int SuitMeterLeft = 30, MeterRight = 12;
 
     /// <summary>
-    /// A drop between two reads this big, of full, is a hit: the lost part flashes, then drains. Just over a running
-    /// breath (2 of 45 suit units, 4.4 %), so breathing never flashes.
+    /// A drop between two reads this big, of full, is a hit: its lost part flashes too. Just over a running breath (2 of
+    /// 45 suit units, 4.4 %), so breathing never flashes; a big refill eases in.
     /// </summary>
     public const double BigDrop = 0.05;
 
-    /// <summary>How long the lost part stays whole after a hit before it drains, and how long its flash fades.</summary>
-    public const double TrailHoldS = 0.15, FlashS = 0.3;
+    /// <summary>How long a lost part stays whole before it drains, and how long a hit's flash fades.</summary>
+    public const double TrailHoldS = 0.6, FlashS = 0.3;
 
     /// <summary>How fast the lost part drains: this much of full a second, and this much more for each of full still lost.</summary>
-    public const double TrailDrain = 0.5, TrailDrainPerGap = 5;
+    public const double TrailDrain = 0.2, TrailDrainPerGap = 4;
 
-    /// <summary>A small change slides at an even pace over this long: a breath's second, so a steady drain moves steadily.</summary>
+    /// <summary>A small rise slides at an even pace over this long, so a slow refill moves steadily.</summary>
     public const double SlideS = 1.0;
 
     /// <summary>A big refill eases out at this rate a second, never slower than <see cref="RiseFloor"/> of full a second.</summary>
@@ -53,10 +53,10 @@ public static class WristLook
     public const double EdgeFadeS = 0.3;
 
     /// <summary>
-    /// A canister breathed (0047): the oxygen gauge's surge, stronger than a slow refill's light, for this long from the
-    /// click: a sky wash over the tab, a white sweep across every cell this many cells a second, and more motes rising higher.
+    /// A canister breathed (0047): how long the motes rise thick and high off the cells from the click; the tab's flood, rim
+    /// and shake are <c>GaugeWash</c>'s (air-feedback).
     /// </summary>
-    public const double SurgeS = 1.3, SurgeSweep = 26, SurgeWash = 0.14;
+    public const double SurgeS = 1.3;
 
     /// <summary>The motes rising off the cells, and how high in pixels, on a slow refill and in a canister's surge.</summary>
     public const int Motes = 4, MoteRise = 7, SurgeMotes = 12, SurgeRise = 13;
@@ -67,21 +67,8 @@ public static class WristLook
     /// </summary>
     public const double WaveS = 0.85, WaveBand = 2.5, WaveBright = 0.4, AgainGapS = 4;
 
-    /// <summary>
-    /// The danger letting go (air back after a low suit): the red edges give way in <see cref="LetGoInS"/> to a soft edge of
-    /// pale light, at most this opaque at the corners, that fades over <see cref="LetGoOutS"/>. Never the whole screen.
-    /// </summary>
-    public const double LetGoInS = 0.15, LetGoOutS = 0.7;
-
-    /// <summary>The letting-go edge's colour and its opacity at the corners at its brightest.</summary>
-    public const uint LetGo = 0xd6f6ff;
-    public const float LetGoAlpha = 0.3f;
-
-    /// <summary>The cells' colours: unlit, and the unlit cell's top edge.</summary>
-    public const uint CellOff = 0x16203a, CellOffTop = 0x1f2b46;
-
-    /// <summary>Oxygen's sky, red in danger; energy's green, amber while the belt runs low (the slot bar's own).</summary>
-    public const uint Suit = 0x38bdf8, SuitLow = 0xef4444, Energy = 0x7ee36b, EnergyLow = 0xf2b84b;
+    /// <summary>Oxygen's sky, a surge's wash (its lamps are pictures: the gauge subject); energy's green, amber while the belt runs low (the slot bar's own).</summary>
+    public const uint Suit = 0x38bdf8, Energy = 0x7ee36b, EnergyLow = 0xf2b84b;
 
     /// <summary>How bright the energy tab is with no battery on the belt.</summary>
     public const float NoBattery = 0.35f;

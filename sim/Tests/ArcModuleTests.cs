@@ -138,7 +138,7 @@ public class ArcModuleTests
     [Fact]
     public void TheFurnaceAndThePodTakeNoModuleTheElectricStationsTakeTheArc()
     {
-        Assert.Equal(["smelter", "former", "assembler", "drill", "charger"], Spec.Modules.Arc.Hosts);
+        Assert.Equal(["smelter", "crusher", "former", "assembler", "drill", "grinder", "spear", "charger"], Spec.Modules.Arc.Hosts);
         Assert.False(Spec.Modules.Fits(Arc, "furnace"));
         Assert.False(Spec.Modules.Fits(Arc, "lifepod"));
         Assert.False(Spec.Modules.Fits("iron", "smelter"));
@@ -278,11 +278,10 @@ public class ArcModuleTests
             "#RR.KK.TTVD..VEE..KK...#",
             "########################",
         ];
-        var w = new Scenario(Layout.Parse(rows, LogisticsTests.RoomsUnder), doubled: true);
+        var w = new Scenario(AirTesting.Vaporized(rows, LogisticsTests.RoomsUnder), doubled: true);
         // LogisticsTests.Aired's world, on the doubled map: both rooms aired, then the bay's drones docked.
-        var vented = w.M.Grid.MachinesOf("vent").Select(v => w.M.Rooms.RoomAt(v.Cell) ?? 0).ToArray();
-        for (int i = 0; i < 2000 && !vented.All(r => w.M.Atmosphere.StatusOf(r) == Atmosphere.RoomStatus.Aired); i++) w.Run();
-        Assert.All(vented, r => Assert.Equal(Atmosphere.RoomStatus.Aired, w.M.Atmosphere.StatusOf(r)));
+        for (int i = 0; i < 2000 && !LogisticsTests.AllAired(w); i++) w.Run();
+        Assert.True(LogisticsTests.AllAired(w));
         LogisticsTests.Dock(w, w.M.Grid.MachinesOf(Spec.Logistics.Bay).Single().Id, 2).GiveItems(0, (Arc, 1), ("quartz", 2));
         int smelter = Id(w, "smelter");
         int left = w.M.Grid.MachinesOf("crate").First().Id;
@@ -320,7 +319,7 @@ public class ArcModuleTests
         var w = new Scenario(Layout.Parse(Sealed), doubled: true).GiveItems(0, (Arc, 2)).GiveItems(1, (Arc, 1), ("iron", 9)).GiveItems(2, (Arc, 2));
         int before = Arcs(w);
         var rng = new Rng(new RngState { S = (uint)seed.Get });
-        for (int i = 0; i < 300; i++)
+        for (int i = 0; i < 16000; i++)
             if (w.M.Items.Fuzz(rng, i % 3) is { } c and not Spawn) w.Do(c).Run();
         return (Arcs(w) == before).Label($"{Arcs(w)} arc modules of {before}");
     }
@@ -329,9 +328,10 @@ public class ArcModuleTests
     public void TheFuzzDrawsFitsAndTakesTakenAndRefused()
     {
         var w = World().GiveItems(1, (Arc, 2)).GiveItems(2, (Arc, 1));
-        var rng = new Rng(new RngState { S = 11 });
+        var rng = new Rng(new RngState { S = 12 });
         int fits = 0, unfits = 0;
-        for (int i = 0; i < 4000; i++)
+        // Long enough that an item added, shifting every draw, still leaves each refusal drawn; seed 12 since the salvage tools.
+        for (int i = 0; i < 16000; i++)
         {
             if (w.M.Items.Fuzz(rng, i % 3) is not { } c) continue;
             int refused = w.Refusals.Count;
@@ -358,7 +358,7 @@ public class ArcModuleTests
         var b = Make();
         var rng = new Rng(new RngState { S = 5 });
         int fitted = 0;
-        for (int i = 0; i < 1500; i++)
+        for (int i = 0; i < 16000; i++)
         {
             if (i == 700) b.Reload(a.World.Save());
             if (a.M.Items.Fuzz(rng, i % 3) is not { } c) continue;

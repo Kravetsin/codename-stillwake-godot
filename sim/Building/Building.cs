@@ -35,7 +35,10 @@ public sealed record CancelPlan(int Id) : Command;
 /// </summary>
 public sealed record Work(int Plan) : Command;
 
-/// <summary>Switches instant building, from the dev panel: a blueprint placed is built at once, with no plan, work or cost.</summary>
+/// <summary>
+/// Switches instant building, from the dev panel: a blueprint placed is built at once, with no plan, work or cost,
+/// and a removal taken apart at once, refunded to its sender.
+/// </summary>
 public sealed record SetInstant(bool On) : Command;
 
 /// <summary>What another module may read of what stands on the grid.</summary>
@@ -49,6 +52,18 @@ public interface IBuildingQueries
 
     /// <summary>What a shot's hit in <paramref name="cell"/> strikes, by a cell of it: a built piece by its first cell, whatever cell of it is met; else the cell itself. A thing a shot passed is remembered by this, so a piece over several cells is hit once.</summary>
     int ShotKey(int cell);
+
+    /// <summary>The relics the ground grew with, ascending by cell, standing or taken (0096).</summary>
+    IReadOnlyList<Relic> Relics { get; }
+
+    /// <summary>The growths standing that a creature is tied to (<c>Flora.Post</c>), ascending by cell.</summary>
+    IReadOnlyList<Plant> Posts { get; }
+
+    /// <summary>The post standing with its own cell at <paramref name="cell"/>; null for none.</summary>
+    Plant? PostAt(int cell);
+
+    /// <summary>The cells <paramref name="plant"/> holds on to: the wall under, over or in it; breaking any of them fells it (0080).</summary>
+    IEnumerable<int> HoldsOf(Plant plant);
 }
 
 /// <summary>How another module may change what stands on the grid.</summary>
@@ -56,6 +71,9 @@ public interface IBuildingOps
 {
     /// <summary>A hit of <paramref name="damage"/> by peer <paramref name="peer"/>'s shot on what stands solid in <paramref name="cell"/>: true when it broke.</summary>
     bool Hit(int peer, int cell, int damage);
+
+    /// <summary>Fells the post at <paramref name="cell"/> for good, its creature killed; nothing if it is gone already.</summary>
+    void FellPost(int cell);
 
     /// <summary>
     /// Takes apart everything in <paramref name="box"/> as a finished mark does, its machines unplugged and emptied, giving and
@@ -100,13 +118,14 @@ public sealed partial class BuildingModule : Module<BuildingState>, IBuildingQue
         _crew = crew;
         _crewOps = crewOps;
         _pipes = pipes;
-        Handles<PlacePlan>(c => PlaceProblem(c.Cell, c.Placement), ApplyPlacePlan);
+        Handles<PlacePlan>(c => PlaceProblem(c.Cell, c.Placement, c.From), ApplyPlacePlan);
         Handles<Deconstruct>(c => MarkProblem(c.Cell, c.Layer), ApplyDeconstruct);
         Handles<CancelPlan>(c => State.Plans.Exists(p => p.Id == c.Id) ? null : "building.noPlan", ApplyCancelPlan);
         Handles<Work>(c => WorkProblemOf(c.Plan, c.From), ApplyWork);
         Handles<SetInstant>(_ => null, c => State.Instant = c.On);
-        Handles<Repair>(c => RepairProblemOf(c.Machine, c.From), ApplyRepair);
+        Handles<Repair>(c => RepairProblem(c.Machine), ApplyRepair);
         Handles<Hew>(c => HewProblemOf(c.From, Struck(c.Tool, c.X, c.Y, c.Heading), c.Tool, running: true), ApplyHew);
+        Handles<HewCells>(c => HewProblemOf(c.From, Listed(c.Cells), c.Tool, running: true), ApplyHewCells);
         // A mark whose thing a meteor broke has nothing left to take apart, nor a crack its wall. In derivation, after
         // every command and construction system, so a hit made before is seen on its tick.
         System(Phase.Derivation, () =>
@@ -125,7 +144,7 @@ public sealed partial class BuildingModule : Module<BuildingState>, IBuildingQue
 
     // Queries.
 
-    /// <summary>Instant building (dev panel): a blueprint placed is built at once, free, and no plan is kept.</summary>
+    /// <summary>Instant building (dev panel): a blueprint placed is built at once, free, a removal taken apart at once, and no plan is kept.</summary>
     public bool Instant => State.Instant;
 
     /// <summary>Every plan, in the order they were made; live and read-only.</summary>
@@ -140,8 +159,8 @@ public sealed partial class BuildingModule : Module<BuildingState>, IBuildingQue
     /// </summary>
     public (string Layer, int Cell)? ClearAt(int cell, IReadOnlyList<string>? layers = null) => NextToClear(cell, layers);
 
-    /// <summary>Why a blueprint for <paramref name="placement"/> at <paramref name="cell"/> would be refused: what a ghost shows before the command is sent.</summary>
-    public string? Problem(int cell, Placement placement) => PlaceProblem(cell, placement);
+    /// <summary>Why a blueprint for <paramref name="placement"/> at <paramref name="cell"/> would be refused, placed by <paramref name="peer"/>: what a ghost shows before the command is sent.</summary>
+    public string? Problem(int cell, Placement placement, int peer) => PlaceProblem(cell, placement, peer);
 
     /// <summary>Why a mark on <paramref name="layer"/> of <paramref name="cell"/> would be refused: what a removal ghost shows.</summary>
     public string? Problem(int cell, string layer) => MarkProblem(cell, layer);
@@ -149,12 +168,12 @@ public sealed partial class BuildingModule : Module<BuildingState>, IBuildingQue
     /// <summary>Why peer <paramref name="peer"/>'s work on plan <paramref name="id"/> would be refused: what the client shows first.</summary>
     public string? WorkProblem(int id, int peer) => WorkProblemOf(id, peer);
 
-    /// <summary>What blueprint <paramref name="id"/> still lacks of its cost, paid an item a part as it is worked: none for a mark or no plan, nor in creative mode.</summary>
+    /// <summary>What blueprint <paramref name="id"/> still lacks of its cost, paid an item a part as it is worked: none for a mark or no plan.</summary>
     public Cost Lacking(int id) => State.Plans.Find(p => p.Id == id) is { } plan ? LackOf(plan) : [];
 
     /// <summary>
     /// How many parts of blueprint <paramref name="id"/> are put in, of all its parts, one an item of its cost: those
-    /// paid for, or in creative mode those its work has begun. Null for a mark or no plan.
+    /// paid for, or those its work has begun if more (a plan worked in a save from before creative mode was a peer's). Null for a mark or no plan.
     /// </summary>
     public (int In, int Of)? Parts(int id)
     {
@@ -181,12 +200,8 @@ public sealed partial class BuildingModule : Module<BuildingState>, IBuildingQue
     public Cost? RefundOf(int id) =>
         State.Plans.Find(p => p.Id == id) is { Clear: { } layer } plan ? Refund(plan.Cell, layer) ?? [] : null;
 
-    /// <summary>What taking apart <paramref name="layer"/> of <paramref name="cell"/> gives back: its cost, less the repair a broken machine wants.</summary>
-    private Cost? Refund(int cell, string layer)
-    {
-        if (Costs.BuiltAt(_grid, cell, layer) is not { } built) return null;
-        return layer == "machine" && _grid.MachineAt(cell) is { } m && _power.IsBroken(m.Id) ? Costs.Less(built.Cost, Costs.RepairOf(m.Kind)) : built.Cost;
-    }
+    /// <summary>What taking apart <paramref name="layer"/> of <paramref name="cell"/> gives back: its cost.</summary>
+    private Cost? Refund(int cell, string layer) => Costs.BuiltAt(_grid, cell, layer)?.Cost;
 
     // Commands.
 
@@ -203,7 +218,14 @@ public sealed partial class BuildingModule : Module<BuildingState>, IBuildingQue
 
     private void ApplyDeconstruct(Deconstruct c)
     {
-        State.Plans.Add(Plan.Mark(State.NextPlanId, MarkedCell(c.Cell, c.Layer) ?? c.Cell, c.Layer));
+        // Validation found the layer holding something there.
+        int at = MarkedCell(c.Cell, c.Layer)!.Value;
+        if (State.Instant)
+        {
+            TakeApart(at, c.Layer, c.From);
+            return;
+        }
+        State.Plans.Add(Plan.Mark(State.NextPlanId, at, c.Layer));
         State.NextPlanId += 1;
     }
 
@@ -228,7 +250,7 @@ public sealed partial class BuildingModule : Module<BuildingState>, IBuildingQue
         {
             // Validation found something to pay with.
             string item = PaymentOf(plan, c.From)!;
-            _itemsOps.Take(c.From, [(item, 1)]);
+            _itemsOps.TakeStock(c.From, [(item, 1)]);
             var delivered = plan.Delivered.ToList();
             int had = delivered.FindIndex(s => s.Item == item);
             if (had < 0) delivered.Add(new Stack(item, 1));
@@ -248,14 +270,7 @@ public sealed partial class BuildingModule : Module<BuildingState>, IBuildingQue
     {
         // Plans claim their slots, and a last tick waits on what a pod set down there since: a refusal here is our bug.
         if (plan.Place is { } place) Build(plan.Cell, place);
-        else if (Refund(plan.Cell, plan.Clear!) is { } refund)
-        {
-            // What a mark names may be gone already, to a meteor: then there is nothing to refund. RefundOf tells the same.
-            // A ladder or a doorway comes apart whole, as it was built (0104); a machine's cables stay, on a peg (0110).
-            if (plan.Clear == "machine" && _grid.MachineAt(plan.Cell) is { } machine) _powerOps.Unplug(machine.Id);
-            foreach (int cell in plan.Clear == "structure" ? _grid.PieceOf(plan.Cell) : [plan.Cell]) _gridOps.Clear(cell, plan.Clear!);
-            _itemsOps.GiveOrDrop(from, refund, plan.Cell);
-        }
+        else TakeApart(plan.Cell, plan.Clear!, from);
         State.Plans.RemoveAll(p => p.Id == plan.Id);
     }
 
@@ -280,6 +295,20 @@ public sealed partial class BuildingModule : Module<BuildingState>, IBuildingQue
                 if (_grid.StructureAt(cell) != Content.Structure.Empty) _gridOps.Clear(cell, "structure");
                 if (_grid.BackAt(cell) != null) _gridOps.Clear(cell, "back");
             }
+    }
+
+    /// <summary>
+    /// Takes <paramref name="layer"/> out of <paramref name="cell"/>, a mark's cell, refunding its cost to the hero of peer
+    /// <paramref name="from"/>, what does not fit falling there.
+    /// </summary>
+    private void TakeApart(int cell, string layer, int from)
+    {
+        // What a mark names may be gone already, to a meteor: then there is nothing to refund. RefundOf tells the same.
+        if (Refund(cell, layer) is not { } refund) return;
+        // A ladder or a doorway comes apart whole, as it was built (0104); a machine's cables stay, on a peg (0110).
+        if (layer == "machine" && _grid.MachineAt(cell) is { } machine) _powerOps.Unplug(machine.Id);
+        foreach (int part in layer == "structure" ? _grid.PieceOf(cell) : [cell]) _gridOps.Clear(part, layer);
+        _itemsOps.GiveOrDrop(from, refund, cell);
     }
 
     /// <summary>Puts <paramref name="place"/> into the grid at <paramref name="cell"/>, a slot validation found free.</summary>

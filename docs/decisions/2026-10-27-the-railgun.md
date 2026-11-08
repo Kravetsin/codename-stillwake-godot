@@ -1,6 +1,6 @@
 # The railgun
 
-- Status: accepted; built. Brings what [shots pierce](2026-10-27-shots-pierce.md) left for it: the pierce of everything and the memory of what a shot passed
+- Status: accepted; built; how it is fired superseded by [hold to fire](2026-11-04-hold-to-fire.md). Brings what [shots pierce](2026-10-27-shots-pierce.md) left for it: the pierce of everything and the memory of what a shot passed
 - Date: 2026-10-27
 
 ## Context
@@ -14,7 +14,9 @@ charge held about 0.8 s, all or nothing. Nails now; a steel bolt later, once the
 
 - **A gun says how it pierces, falls, draws and charges.** `Gun` gains `Pierces` (`Broken`, the nailer's: only through what its
   hit breaks or kills; `All`: through whatever its hit takes), `Fall` (thousandths of its projectile's pull), `Energy`
-  (power-ticks of the belt a shot) and `Charge` (ticks held before it fires; 0 fires on the click). Defaults keep the nailer.
+  (power-ticks of the belt a shot) and `Charge` (ticks held before it fires; 0 fires on the click, and held each time it is
+  ready). Defaults keep the nailer. Held, the charge begins as soon as the cooldown is out, by itself if the button is
+  already down (hold-to-fire).
 - **The railgun:** 22 and the nail's 2, 24 a hit, keeping 650‰: 24, 15, 9, 5, 3, 1; 4 off a block, then 2, 1; 300 cells a
   second, 384 cells' reach; a tenth of the nail's pull, 29 a tick on the first planet; 120 a shot, fifteen a battery; held 16
   ticks, then 40 till the next. Crafted at the arc bench of an arc shard, copper, coils, a tube, a frame and circuits.

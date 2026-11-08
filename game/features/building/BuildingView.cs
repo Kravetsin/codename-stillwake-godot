@@ -20,7 +20,7 @@ namespace Stillwake.Game.Features.Building;
 /// as it is, in red dashes, turning into its red ghost from the top as it is worked (0064); and the hand at work
 /// (features/building/index.ts, 0022, 0030): a card's ghost along a left drag, a removal's along a middle
 /// one in the open tab's layers, coloured by what the sim would say, with its reason by the pointer; a
-/// release sends the commands. Q picks a card. With no card out, no grid: space stays space. Work on a
+/// release sends the commands. Drop (G) picks a card. With no card out, no grid: space stays space. Work on a
 /// plan sparks and ticks with the screwdriver, heard from the plan.
 /// </summary>
 public partial class BuildingView : Node2D
@@ -68,8 +68,13 @@ public partial class BuildingView : Node2D
     private string _drawn = "", _outlined = "", _takingKey = "";
     private List<Rect2> _machines = [];
     private int _width;
+
+    /// <summary>This player's peer, set each frame: what it may place is what it knows, all of it in its creative mode.</summary>
+    private int _peer;
     /// <summary>The drag under way: what it does, whether the right button began it, the point it began at, in cells, and the card it began with.</summary>
     private (Act Act, bool Right, (double X, double Y) From, Tool? Card)? _drag;
+    /// <summary>Whether the right button held let a card go: till it is released it shows no removal (right-lets-go).</summary>
+    private bool _letGo;
 
     /// <summary>Each plan's work done when last seen, and the sparks owed: work sparks only as it goes on.</summary>
     private Dictionary<int, int> _worked = [];
@@ -103,10 +108,15 @@ public partial class BuildingView : Node2D
     public void Frame(Client client, Registry m, IReadOnlyList<ButtonEvent> left, IReadOnlyList<ButtonEvent> right, bool holdsRight,
         (double X, double Y)? pointer)
     {
+        _peer = client.Id;
         var grid = m.Grid;
         var building = m.Building;
         int width = _width = grid.Width, height = grid.Height;
         DrawPlans(grid, building, m.Rooms, m.Power);
+        // With the back walls focused the front's plans hide with the front (back-focus-clear).
+        float front = Tools.AlphasOf(_hand.Shown).Front;
+        _plans.FadeFront(front);
+        _outline.Modulate = Dashes with { A = Dashes.A * front };
 
         var tool = _hand.Selected.Get();
         string? overlay = _ui.OverlayOn;
@@ -115,11 +125,14 @@ public partial class BuildingView : Node2D
             var s = Drag.SpotAt(width, height, p);
             return s.Y * width + s.X;
         }
+        // Over a machine's risen picture (0099) the pointer means that machine: for its tip, the pipette, and a removal of machines.
+        (double X, double Y) Over((double X, double Y) p) => Risen.Over(grid, building, p, ShipTiles.RiseOf);
+        static bool TakesMachines(Act act) => act is Remove { Layers: var layers } && layers.Contains("machine");
 
         void Send(Act act, (double X, double Y) from, (double X, double Y) to)
         {
             var planned = new List<int>();
-            foreach (var verdict in Drag.Judge(act, Drag.StrokeOf(width, height, act, from, to), building))
+            foreach (var verdict in Drag.Judge(act, Drag.StrokeOf(width, height, act, from, to), building, _peer))
                 foreach (var c in verdict.Commands)
                 {
                     client.Send(c);
@@ -132,25 +145,28 @@ public partial class BuildingView : Node2D
 
         void DragWith(ButtonEvent button, bool back)
         {
+            // A card in hand, the right lets it go and does nothing else till released (right-lets-go).
+            if (back) _letGo = button.Down && _drag == null && _hand.PlanOut.Get() && _hand.LetGo();
+            if (_letGo) return;
             if (button.Down)
             {
-                // The first button down has the drag; another pressed meanwhile is let be. The right removes in the focused layer, card or none (0110).
+                // The first button down has the drag; another pressed meanwhile is let be. The right removes in the focused layer, with no card in hand (0110).
                 if (_drag == null && _hand.PlanOut.Get() && Tools.ActOf(tool, back, _hand.Focus.Get()) is { } act && Drag.OnGrid(width, height, button.At))
-                    _drag = (act, back, button.At, tool);
+                    _drag = (act, back, TakesMachines(act) ? Over(button.At) : button.At, tool);
                 return;
             }
             if (_drag is not { } under || under.Right != back) return;
-            Send(under.Act, under.From, button.At);
+            Send(under.Act, under.From, TakesMachines(under.Act) ? Over(button.At) : button.At);
             _drag = null;
         }
         foreach (var button in left) DragWith(button, back: false);
         foreach (var button in right) DragWith(button, back: true);
-        // Q picks the card of what is under the pointer, onto its own tab.
+        // Drop (G) picks the card of what is under the pointer, onto its own tab.
         if (_hand.PickWanted)
         {
             _hand.PickWanted = false;
             if (pointer is { } at && Drag.OnGrid(width, height, at)
-                && Tools.CardAt(CellAt(at), grid, building, m.Research) is { } card)
+                && Tools.CardAt(CellAt(Over(at)), grid, building, m.Research, _peer) is { } card)
             {
                 _hand.Tab.Set(Tools.TabOf(card));
                 _hand.Selected.Set(card);
@@ -159,8 +175,13 @@ public partial class BuildingView : Node2D
 
         tool = _hand.Selected.Get();
         bool onGrid = pointer is { } p0 && Drag.OnGrid(width, height, p0);
-        ShowTray(onGrid ? CellAt(pointer!.Value) : null, grid, building);
-        Ghost(tool, pointer, onGrid, grid, building, _hand.PlanOut.Get() ? Tools.ActOf(tool, holdsRight, _hand.Focus.Get()) : null);
+        int? under = onGrid ? CellAt(Over(pointer!.Value)) : null;
+        ShowTray(under, grid, building);
+        _hand.PointerOver = OverOf(under, grid, building, m.Research);
+        _hand.PointerAt = pointer;
+        _letGo &= holdsRight;
+        var hovered = _hand.PlanOut.Get() && !_letGo ? Tools.ActOf(tool, holdsRight, _hand.Focus.Get()) : null;
+        Ghost(tool, (_drag?.Act ?? hovered) is { } shown && TakesMachines(shown) && pointer is { } ptr ? Over(ptr) : pointer, onGrid, grid, building, hovered);
         bool shafts = _hand.PlanOut.Get() && _hand.Builds;
         _shafts.Show(shafts ? grid : null, shafts ? PlatformsOf(grid, building) : [], shafts ? _ghostPlatform : []);
     }
@@ -214,7 +235,7 @@ public partial class BuildingView : Node2D
         foreach (var p in plans)
         {
             if (p.Clear is not { } layer) continue;
-            int at = MarkedAt(grid, p);
+            int at = Tools.MarkedAt(grid, p);
             if (Tools.BuiltAt(at, layer, grid) is not { } built) continue;
             // Joined as the grid draws it, to what is built beside it, marked or not.
             int joined = Tools.LinksOf(built, at, width, _ => [], grid);
@@ -300,7 +321,9 @@ public partial class BuildingView : Node2D
         var tip = new Vector2((float)x, (float)y);
         int cell = (int)(box.Position.Y / Cell) * grid.Width + (int)(box.Position.X / Cell);
         _glow.Sparked(glow, tip, heading, bursts, rooms.Afloat(cell), FloorUnder(grid, tip));
-        _screwdriver.PlayAt(tip);
+        // A power driver at work there is heard as its motor, not the ratchet (power-driver).
+        var near = box.Grow(Cell);
+        if (!_ui.Driven.Any(d => near.HasPoint(new Vector2(d.X, d.Y)))) _screwdriver.PlayAt(tip);
     }
 
     /// <summary>The top of the first solid cell under <paramref name="at"/>, in pixels, within <see cref="FloorDepth"/> cells; none past it.</summary>
@@ -355,7 +378,7 @@ public partial class BuildingView : Node2D
             if (plan.Clear != null) marks.Add(shape);
             else if (shown.Layer == "back") backs.Add(shape);
             else front.Add(shape);
-            if (plan.Place is { Layer: "machine" }) machines.Add(BoxOf(CellsOf(grid, plan), width));
+            if (plan.Place is { Layer: "machine" } place) machines.Add(PictureOf(BoxOf(CellsOf(grid, plan), width), place.Kind));
         }
         _outline.Show(PlanOutline.Of(front, SmallestHole));
         _backOutline.Show(PlanOutline.Of(backs, SmallestHole));
@@ -398,10 +421,6 @@ public partial class BuildingView : Node2D
         foreach (int c in grid.PieceOf(at)) into.LayDoor(c, grid.Width, links, Doorways.Lies(Tools.CodeOf(built.Kind)), cut);
     }
 
-    /// <summary>Where a mark's thing is drawn from: a machine's top-left, whichever of its cells is marked; else its cell.</summary>
-    private static int MarkedAt(IGridQueries grid, Sim.Building.Plan p) =>
-        p.Clear == "machine" && grid.MachineAt(p.Cell) is { } machine ? machine.Cell : p.Cell;
-
     /// <summary>The cells a plan covers: a machine's footprint, a piece's (a ladder, a doorway, 0104), else its cell.</summary>
     private static IReadOnlyList<int> CellsOf(IGridQueries grid, Sim.Building.Plan p)
     {
@@ -415,9 +434,15 @@ public partial class BuildingView : Node2D
     /// <summary>The rectangle around <paramref name="cells"/>, in pixels of the world.</summary>
     private static Rect2 BoxOf(IReadOnlyList<int> cells, int width)
     {
-        int x = cells.Min(c => c % width), y = cells.Min(c => c / width);
-        int right = cells.Max(c => c % width), bottom = cells.Max(c => c / width);
-        return new Rect2(x * Cell, y * Cell, (right - x + 1) * Cell, (bottom - y + 1) * Cell);
+        var (x, y, w, h) = HoloShape.BoxOf(cells, width);
+        return new Rect2(x * Cell, y * Cell, w * Cell, h * Cell);
+    }
+
+    /// <summary>What <paramref name="box"/>, the footprint of a thing of <paramref name="kind"/>, is as drawn: a picture may rise over it or reach out of it.</summary>
+    private static Rect2 PictureOf(Rect2 box, string kind)
+    {
+        var (x, y, w, h) = PlanCut.Picture(((int)box.Position.X, (int)box.Position.Y, (int)box.Size.X, (int)box.Size.Y), ShipTiles.RiseOf(kind), ShipTiles.ReachOf(kind), Cell);
+        return new Rect2(x, y, w, h);
     }
 
     /// <summary>
@@ -427,7 +452,7 @@ public partial class BuildingView : Node2D
     private static PlanCut? CutOf(IGridQueries grid, BuildingModule building, Sim.Building.Plan p, Placement place)
     {
         if (p.Progress <= 0 || building.TicksFor(p.Id) is not { } ticks) return null;
-        var box = BoxOf(CellsOf(grid, p), grid.Width);
+        var box = PictureOf(BoxOf(CellsOf(grid, p), grid.Width), place.Kind);
         var pixels = ((int)box.Position.X, (int)box.Position.Y, (int)box.Size.X, (int)box.Size.Y);
         return PlanCut.Of(pixels, PlanCut.FromLeftFor(place.Layer, place.Kind), p.Progress, ticks);
     }
@@ -440,7 +465,7 @@ public partial class BuildingView : Node2D
     private static PlanCut? MarkCutOf(IGridQueries grid, BuildingModule building, Sim.Building.Plan p, Placement built)
     {
         if (p.Progress <= 0 || building.TicksFor(p.Id) is not { } ticks) return null;
-        var box = BoxOf(CellsOf(grid, p), grid.Width);
+        var box = PictureOf(BoxOf(CellsOf(grid, p), grid.Width), built.Kind);
         var pixels = ((int)box.Position.X, (int)box.Position.Y, (int)box.Size.X, (int)box.Size.Y);
         return PlanCut.Of(pixels, PlanCut.FromLeftFor(built.Layer, built.Kind), ticks - p.Progress, ticks);
     }
@@ -449,24 +474,39 @@ public partial class BuildingView : Node2D
     /// Beside the pointer (<see cref="Ui.CostTip"/>), what the blueprint at <paramref name="cell"/> builds and,
     /// row by row, what this player carries against what it still needs, counting down a part at a time as it
     /// is paid, while it lacks something (once all is paid the plan, real all over, says the rest); else what a
-    /// mark there takes down and what that gives back (<see cref="BuildingModule.RefundOf"/>); else a broken machine's repair
-    /// cost till it is paid (<see cref="BuildingModule.RepairCost"/>); nothing anywhere else.
+    /// mark there takes down and what that gives back (<see cref="BuildingModule.RefundOf"/>); nothing anywhere else. While the
+    /// power driver works a square (<see cref="Ui.WorkedSquare"/>), what all its blueprints need together, else what all its
+    /// marks give back (<see cref="SquareTip"/>).
     /// </summary>
     private void ShowTray(int? cell, IGridQueries grid, BuildingModule building)
     {
+        // The power driver's square says what its blueprints need together, else what its marks give back (power-driver).
+        if (cell != null && _ui.WorkedSquare is { } square && SquareTip.Of(building, grid, square, _ui.Carried) is { } summed)
+        {
+            _ui.CostTip.Set(summed);
+            return;
+        }
         var plans = cell is int c ? building.PlansAt(c) : [];
         var plan = plans.FirstOrDefault(p => p.Place != null && building.Lacking(p.Id).Count > 0);
         Tip? tip = null;
         if (plan?.Place is { } place && building.CostOf(plan.Id) is { } cost)
             tip = new PlanTip(place, CostLine.Lacking(cost, plan.Delivered.Select(s => (s.Item, s.Count)).ToList(), _ui.Carried)).Tip;
-        else if (plans.FirstOrDefault(p => p.Clear != null) is { Clear: { } layer } mark && building.RefundOf(mark.Id) is { } refund
-            && Tools.BuiltAt(MarkedAt(grid, mark), layer, grid) is { } built)
+        else if (plans.FirstOrDefault(p => p.Clear != null) is { } mark && building.RefundOf(mark.Id) is { } refund
+            && Tools.MarkedOf(grid, mark) is { } built)
             tip = new MarkTip(built, refund).Tip;
-        // A broken machine not yet paid for: what it is and what the repair takes against what is carried, as a blueprint's (magnetic-flare).
-        else if (cell is int at && grid.MachineAt(at) is { } machine && building.RepairProgress(machine.Id) is (0, _)
-            && building.RepairCost(machine.Id) is { } repair)
-            tip = new PlanTip(new Placement("machine", machine.Kind), CostLine.Lacking(repair, [], _ui.Carried)).Tip;
         _ui.CostTip.Set(tip);
+    }
+
+    /// <summary>
+    /// What <paramref name="cell"/> holds for the hint by the pointer (build-hints), the plan out and building: a plan of the focused
+    /// layer, which the right cancels, else something the pipette takes the card of.
+    /// </summary>
+    private Over OverOf(int? cell, IGridQueries grid, BuildingModule building, Sim.Research.IResearchQueries research)
+    {
+        if (cell is not int c || !_hand.PlanOut.Get() || !_hand.Builds) return Over.Nothing;
+        var layers = Tools.RemovalIn(_hand.Focus.Get()).Layers;
+        if (building.PlansAt(c).Any(p => layers.Contains(p.Place?.Layer ?? p.Clear!))) return Over.Plan;
+        return Tools.CardAt(c, grid, building, research, _peer) != null ? Over.Built : Over.Nothing;
     }
 
     /// <summary>Every launch platform cell built or planned, scanned again only when the grid or the plans change.</summary>
@@ -519,7 +559,7 @@ public partial class BuildingView : Node2D
         // Before a press, what the button held would do: the card's, the focused layer's removal while the right is held (0110).
         Act? act = _drag?.Act ?? hovered;
         if (act == null || pointer is not { } p || (_drag == null && !onGrid)) return;
-        var verdicts = Drag.Judge(act, Drag.StrokeOf(width, height, act, _drag?.From ?? p, p), building);
+        var verdicts = Drag.Judge(act, Drag.StrokeOf(width, height, act, _drag?.From ?? p, p), building, _peer);
         if (act is PlaceTool place)
         {
             // The ghost joins the rest of its drag, what is planned and what is built, as a plan would.
@@ -571,7 +611,7 @@ public partial class BuildingView : Node2D
             void Cancelled(int cell, int id)
             {
                 if (building.PlansAt(cell).FirstOrDefault(p => p.Id == id) is not { } plan) return;
-                int at = plan.Clear != null ? MarkedAt(grid, plan) : plan.Cell;
+                int at = plan.Clear != null ? Tools.MarkedAt(grid, plan) : plan.Cell;
                 var shown = plan.Place ?? (plan.Clear is { } layer ? Tools.BuiltAt(at, layer, grid) : null);
                 if (shown is null || !seen.Add(("plan", plan.Id))) return;
                 int joined = Tools.LinksOf(shown, at, width, _ => [], grid);

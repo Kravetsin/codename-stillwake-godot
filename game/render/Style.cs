@@ -14,10 +14,13 @@ public static class Style
         // Not analysed yet: the slot's "?" and the tooltip's line under the name.
         Violet400 = new("a78bfa");
 
-    // Stems widened a touch, as Chrome's DirectWrite drew light text on dark; mono on whole pixels (render/fonts).
+    // Stems widened a touch, as Chrome's DirectWrite drew light text on dark; mono on whole pixels (render/fonts), its baseline
+    // lowered 0.22 of its height so capitals sit in the middle of a field or tab, not above it.
     // sans.tres is the project's default font (gui/theme/custom_font), so every Control falls back to it.
     public static readonly Font Mono = GD.Load<Font>("res://render/fonts/mono.tres");
     public static readonly Font Sans = GD.Load<Font>("res://render/fonts/sans.tres");
+    /// <summary>Unhinted, for a screen of small words far from the pixel grid: the tablet's.</summary>
+    public static readonly Font Clear = GD.Load<Font>("res://render/fonts/clear.tres");
     public static readonly Font Bold = GD.Load<Font>("res://render/fonts/semibold.tres");
 
     /// <summary><c>rounded border bg-… border-… p-…</c>.</summary>

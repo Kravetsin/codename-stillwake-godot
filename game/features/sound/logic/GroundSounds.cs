@@ -87,23 +87,25 @@ public static class GroundSounds
         return (cue, S.LandSoftestDb * (1 - share), 1 - (1 - S.LandHardestTune) * share);
     }
 
-    /// <summary>The axe's hit on a natural wall of <paramref name="material"/>; none for one that never breaks.</summary>
-    public static S.Cue? HitOf(Material material) => S.Ground.TryGetValue(material.Id, out var sounds) ? sounds.Hit : null;
+    /// <summary>The axe's hit on a natural wall of <paramref name="material"/>, a vein's its stone's; none for one that never breaks.</summary>
+    public static S.Cue? HitOf(Material material) => S.Ground.TryGetValue(material.In ?? material.Id, out var sounds) ? sounds.Hit : null;
 
     /// <summary>A natural wall of <paramref name="material"/> broken out; none for one that never breaks.</summary>
-    public static S.Cue? BreakOf(Material material) => S.Ground.TryGetValue(material.Id, out var sounds) ? sounds.Break : null;
+    public static S.Cue? BreakOf(Material material) => S.Ground.TryGetValue(material.In ?? material.Id, out var sounds) ? sounds.Break : null;
 
     /// <summary>A growth of <paramref name="kind"/> felled; none for one with no sound of its own (<see cref="S.Unheard"/>).</summary>
     public static S.Cue? FallOf(string kind) => S.Growths.TryGetValue(kind, out var sounds) ? sounds.Fall : null;
 
     /// <summary>
     /// A hit of any tool at <paramref name="cell"/>, taking <paramref name="damage"/> (the sim's for its sender, a module's boost in
-    /// it): what is hit decides, the natural wall's there, else the growth's the hit takes. None for a growth any hit fells alone, its
+    /// it): what is hit decides, the natural wall's there, a built one, the ship's hull, ringing as a wreck's metal under
+    /// <paramref name="tool"/> (melee-edge), else the growth's the hit takes. None for a growth any hit fells alone, its
     /// fall saying it; nor for the hit that fells one whose fall sounds as its hits do, a bush's last, which would play it twice.
     /// </summary>
-    public static S.Cue? HitAt(IGridQueries grid, BuildingModule building, int cell, int damage)
+    public static S.Cue? HitAt(IGridQueries grid, BuildingModule building, int cell, int damage, string? tool = null)
     {
-        if (grid.WallAt(cell) is { Natural: true } wall) return HitOf(wall);
+        if (grid.WallAt(cell) is { } wall) return wall.Natural ? HitOf(wall) : S.WreckHitOf(tool);
+        if (Shared.Piles.At(grid, cell) != null) return S.WreckHitOf(tool);
         if (building.PlantAt(cell) is not { } plant || !S.Growths.TryGetValue(plant.Kind, out var sounds) || sounds.Hit is not { } hit)
             return null;
         if (hit != sounds.Fall) return hit;

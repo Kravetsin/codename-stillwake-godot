@@ -21,6 +21,9 @@ public partial class Outline : CanvasGroup
     /// <summary>What is aimed at glows a bright cold blue while the sim would take its use, red while it would refuse it.</summary>
     public static readonly Color AimReady = new("5cc8ff"), AimRefused = new("e05555");
 
+    /// <summary>The power driver's square glows a dark teal while the sim would take its work, the picked colour (driver-square).</summary>
+    public static readonly Color SquareReady = new("00b894");
+
     /// <summary>How wide the line is, in screen pixels, on a screen <paramref name="lines"/> high: never under one.</summary>
     public static int Width(float lines) => Mathf.Max(1, Mathf.RoundToInt(lines / LinesPerPixel));
 

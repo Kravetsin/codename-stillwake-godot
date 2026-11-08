@@ -92,7 +92,7 @@ public class DragTests
     public void SendsAPlanWhereTheSimWouldTakeItAndGivesTheSimsReasonWhereNot()
     {
         var w = Start();
-        var verdicts = Drag.Judge(Wall, [5, 17, 0], w.M.Building);
+        var verdicts = Drag.Judge(Wall, [5, 17, 0], w.M.Building, 0);
         Assert.Equal(["grid.occupied", null, "grid.occupied"], verdicts.Select(v => v.Problem));
         Assert.Equal([Plan(17, Wall.Placement)], verdicts[1].Commands);
         Assert.Empty(verdicts[0].Commands);
@@ -103,7 +103,7 @@ public class DragTests
     {
         var w = Start();
         // From the tank's right column across three cells of the room: the tank's two cells refused, the rest planned.
-        var verdicts = Drag.Judge(Wall, Drag.LineOf(12, Wall, new(4, 1), new(7, 2)), w.M.Building);
+        var verdicts = Drag.Judge(Wall, Drag.LineOf(12, Wall, new(4, 1), new(7, 2)), w.M.Building, 0);
         Assert.Equal([16, 17, 18, 19, 28, 29, 30, 31], verdicts.Select(v => v.Cell));
         Assert.Equal([16, 28], verdicts.Where(v => v.Problem != null).Select(v => v.Cell));
         Assert.Equal(
@@ -113,7 +113,7 @@ public class DragTests
 
     /// <summary>What a drag of the right button judges over <paramref name="cells"/> in <paramref name="focus"/> (0110).</summary>
     private static List<Verdict> Removing(TestWorld w, Focus focus, IReadOnlyList<int> cells) =>
-        Drag.Judge(Tools.RemovalIn(focus), cells, w.M.Building);
+        Drag.Judge(Tools.RemovalIn(focus), cells, w.M.Building, 0);
 
     private static List<int> Rectangle(Spot from, Spot to) => Drag.CellsOf(12, Removal, from, to);
 

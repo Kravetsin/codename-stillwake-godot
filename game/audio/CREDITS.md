@@ -6,7 +6,7 @@ the repository is public, so a file must be free to redistribute without attribu
 
 Kenney's and Freesound's files are converted to mono WAV, trimmed and normalised to −3 dBFS peak;
 Freesound's are its public HQ previews of CC0 sounds. The chop's and the break's variants are then matched by the RMS of
-their K-weighted attack (the first 0.15 s of a chop, 0.4 s of a break), the louder turned down. The steps (which the landing plays too) are 0.3 s of each recording from its attack, held 0.08 s and then faded to −60 dB; the jump is the push-off of each `Jump_Metal`, 0.33 s from its attack after 0.1 s in, high-passed at 120 Hz, held 0.1 s; the glove's thump in space, `act-space-1`, is all of `LowHit_01` from its attack (0.14 s), held 0.04 s, raised 21 dB to its peak. The harpoon's shot and ready are cut from their attack, held and faded to −60 dB, and the nailer's four (the user's picks) are cut from 5 ms before their onset to their length here, the last 25–45% faded exponentially; its reel is 2.45 s of its source with short fades, looped. The drill's strike is 50 ms of its source from its attack, held 12 ms, decayed by 40 dB and faded over its last 8 ms, so eighteen a second never smear; it and the charge-done blip are normalised to −3 dBFS peak. The machines' recorded one-shots (0059) are the audition's cuts, decoded to WAV as heard there: the Former's stroke is 0.5 s of its source from the attack after 9.4 s, held 0.12 s, decayed to −60 dB; the drill's whir is three 150 ms grains of a steady stretch (at 6.3, 6.62 and 6.95 s) with 40 ms fades; both levelled so a train of them at their rate peaks at −23 LUFS momentary. The axe's swings (0068) are the audition's cuts: each high-passed at 100 Hz, cut from 5 ms before its attack to its fall to −45 dB, faded out over 25 ms, its loudest 10 ms put 65 ms in with leading silence, and levelled to the drill's whir as played (its grains in a train at 9 a second), −23.4 LUFS momentary, so both sit alike under `Sound.ToolIdleDb`. The drones' one-shots (0062) are the audition's cuts as well: each thud 0.31 s of its source from its attack, held 0.04 s, decayed to −60 dB, a latch's 0.25 s mixed in 60 ms later 6 dB under; each switch 0.25 s from its attack; a set's variants matched by momentary loudness, the louder turned down. The thrust, the drones' whir, the charger's hum and the machines' synthesised loops are rendered offline over two periods of their loop, the second kept, so they close on themselves, encoded as OGG. `chop-1`
+their K-weighted attack (the first 0.15 s of a chop, 0.4 s of a break), the louder turned down. The steps (which the landing plays too) are 0.3 s of each recording from its attack, held 0.08 s and then faded to −60 dB; the jump is the push-off of each `Jump_Metal`, 0.33 s from its attack after 0.1 s in, high-passed at 120 Hz, held 0.1 s; the glove's thump in space, `act-space-1`, is all of `LowHit_01` from its attack (0.14 s), held 0.04 s, raised 21 dB to its peak. The harpoon's shot and ready are cut from their attack, held and faded to −60 dB, and the nailer's four (the user's picks) are cut from 5 ms before their onset to their length here, the last 25–45% faded exponentially; its reel is 2.45 s of its source with short fades, looped. The drill's strike is 50 ms of its source from its attack, held 12 ms, decayed by 40 dB and faded over its last 8 ms, so eighteen a second never smear; it and the charge-done blip are normalised to −3 dBFS peak. The machines' recorded one-shots (0059) are the audition's cuts, decoded to WAV as heard there: the Former's stroke is 0.5 s of its source from the attack after 9.4 s, held 0.12 s, decayed to −60 dB; the drill's whir is three 150 ms grains of a steady stretch (at 6.3, 6.62 and 6.95 s) with 40 ms fades; both levelled so a train of them at their rate peaks at −23 LUFS momentary. The power driver's three cuts (power-driver) are the audition's, of one recording: its bite 12.80–13.60 s, its loop 13.60–14.30 s closed on itself by a 100 ms crossfade where the wave matches best and encoded as OGG, its run-down 14.30–14.62 s; levelled as the drill's whir, the loop at −23.5 LUFS. The axe's swings (0068) are the audition's cuts: each high-passed at 100 Hz, cut from 5 ms before its attack to its fall to −45 dB, faded out over 25 ms, its loudest 10 ms put 65 ms in with leading silence, and levelled to the drill's whir as played (its grains in a train at 9 a second), −23.4 LUFS momentary, so both sit alike under `Sound.ToolIdleDb`. The drones' one-shots (0062) are the audition's cuts as well: each thud 0.31 s of its source from its attack, held 0.04 s, decayed to −60 dB, a latch's 0.25 s mixed in 60 ms later 6 dB under; each switch 0.25 s from its attack; a set's variants matched by momentary loudness, the louder turned down. The thrust, the drones' whir, the charger's hum and the machines' synthesised loops are rendered offline over two periods of their loop, the second kept, so they close on themselves, encoded as OGG. `chop-1`
 keeps its ring, as the team wanted it; `break-2`'s clipped peaks are rebuilt (ffmpeg `adeclip`) and its top cut from 9 kHz. The vent
 hum and the fire are 20 s of their sources, its tail crossfaded into their heads, encoded as OGG at
 about −20 LUFS. The generated ones
@@ -24,6 +24,25 @@ a 150 Hz high-pass at −20 dBFS, peaks at −1 dBFS at most), then all turned d
 arc's charge and hit, picked later, matched to them by that loudness, capped at −3 dBFS. Its
 death is two sources mixed as the audition mixed them. Its burner is the jetpack's loop, its hit the wreck's chop.
 
+The warden's sounds are the guard audition's picks, cut and levelled as the sentry's: each the length given here from its attack, its last 45% faded out. Its landing is a hero's on alloy and its hit a tool's on alloy, so they are not here.
+
+The salvage tools' sounds (salvage-tools) are their audition's picks, cut and levelled as heard there: each mono 48 kHz, high-passed
+(40 Hz, the spear's whoosh 100 Hz and its hit 80 Hz); a one-shot from 5 ms before its onset (or the point given here) to the length
+given, its last share faded out; a loop that length from its start, closed on itself by a 100 ms crossfade where the head and its
+tail match best, encoded as OGG; each levelled to the max momentary loudness of what it stands beside, peaks at −3 dBFS at most:
+the loops as the power driver's (−23.5 LUFS), the grinder's bite and the cutter's strike −24.5, its cut-off −26, the whooshes as
+the axe's swing (−23.4), the spear's hit as the chop (−24.9), the sledgehammer's blow as the break (−21).
+
+The water's sounds (liquids) are the water audition's picks, cut there from the Freesound HQ previews: a one-shot from 5 ms before
+its attack to the length given, faded in over 3 ms and its last share out, levelled so its loudest 100 ms RMS is −20 dBFS, peaks at
+−1 dBFS at most (the drip hits the cap, about 4 dB under the rest), decoded to mono 48 kHz WAV here; the pour a 5.5 s loop closed on
+itself by a 0.5 s equal-power crossfade, −26 dBFS RMS, OGG.
+
+The cave lurkers' attack sounds (lurker-attacks) are their pick page's picks: the capback's hiss, its slime's splat, the snail's
+shut shell struck; each mono 48 kHz WAV from its attack (a −45 dB gate), its last 60 ms faded, normalised to −3 dBFS peak; the cue sets the mix.
+The hero's hurt (hurts-are-shown) is its pick page's «oof», cut and levelled as those; its three takes then matched by mean loudness,
+the louder turned down.
+
 | File | Source | Author | Licence |
 | ---- | ------ | ------ | ------- |
 | `atmosphere/hiss-1.ogg` | generated for Stillwake | Stillwake team | CC0 |
@@ -33,6 +52,9 @@ death is two sources mixed as the audition mixed them. Its burner is the jetpack
 | `building/screwdriver-3.wav` | Freesound, "Single_Ratchet (one of five)", https://freesound.org/people/CallFlan/sounds/495236/ | CallFlan | CC0 |
 | `building/screwdriver-4.wav` | Freesound, "Single_Ratchet (one of five)", https://freesound.org/people/CallFlan/sounds/495237/ | CallFlan | CC0 |
 | `building/screwdriver-5.wav` | Freesound, "Single_Ratchet (one of five)", https://freesound.org/people/CallFlan/sounds/495238/ | CallFlan | CC0 |
+| `building/power-driver-bite-1.wav` | Freesound, "Electric Screwdriver Drilling Metal" (12.80–13.60 s), https://freesound.org/people/The-Sacha-Rush/sounds/455339/ | The-Sacha-Rush | CC0 |
+| `building/power-driver-loop-1.ogg` | Freesound, "Electric Screwdriver Drilling Metal" (13.60–14.30 s, looped), https://freesound.org/people/The-Sacha-Rush/sounds/455339/ | The-Sacha-Rush | CC0 |
+| `building/power-driver-off-1.wav` | Freesound, "Electric Screwdriver Drilling Metal" (14.30–14.62 s), https://freesound.org/people/The-Sacha-Rush/sounds/455339/ | The-Sacha-Rush | CC0 |
 | `building/break-soil-1.wav` | Freesound, "throwing brick on dirt.wav" (0.6 s from 0.34 s), https://freesound.org/people/KrystianPawlowski/sounds/584881/ | KrystianPawlowski | CC0 |
 | `building/break-soil-2.wav` | Freesound, "throwing brick on dirt.wav" (0.6 s from 1.39 s), https://freesound.org/people/KrystianPawlowski/sounds/584881/ | KrystianPawlowski | CC0 |
 | `building/break-soil-3.wav` | Freesound, "throwing brick on dirt.wav" (0.6 s from 3.55 s), https://freesound.org/people/KrystianPawlowski/sounds/584881/ | KrystianPawlowski | CC0 |
@@ -59,6 +81,13 @@ death is two sources mixed as the audition mixed them. Its burner is the jetpack
 | `crafting/smelter-crackle-5.wav` | generated for Stillwake: pop 5 of six, white noise (mulberry32 seed 4104) decaying over 15–40 ms through a band-pass at 300–900 Hz, Q 5 (seed 41 draws each pop's length and band); the six levelled together so two a second have −23 dBFS RMS (the audition's "Molten bubbling") | Stillwake team | CC0 |
 | `crafting/smelter-crackle-6.wav` | generated for Stillwake: pop 6 of six, white noise (mulberry32 seed 4105) decaying over 15–40 ms through a band-pass at 300–900 Hz, Q 5 (seed 41 draws each pop's length and band); the six levelled together so two a second have −23 dBFS RMS (the audition's "Molten bubbling") | Stillwake team | CC0 |
 | `creatures/death-squish-1.wav` | Freesound, "Gooey Squish", https://freesound.org/people/editor_adp/sounds/269482/: its HQ preview from 5 ms before its attack to its end (0.84 s), faded over its last 30 ms, its loudest 100 ms RMS raised to the death audition's, its peaks rounded off at −1 dBFS by a tanh | editor_adp | CC0 |
+| `creatures/warden-wake-1.wav` | Freesound, "Robot Awakening, Power On" (1.17 s), https://freesound.org/people/GammaGool/sounds/746988/ | GammaGool | CC0 |
+| `creatures/warden-alert-1.wav` | Freesound, "Synthetic monster growl.wav" (0.9 s), https://freesound.org/people/Wax_vibe/sounds/556613/ | Wax_vibe | CC0 |
+| `creatures/warden-windup-1.wav` | Freesound, "hydraulic office chair moving effect 01" (0.78 s), https://freesound.org/people/rubberduck9999/sounds/678452/ | rubberduck9999 | CC0 |
+| `creatures/warden-pounce-1.wav` | Freesound, "burst3.wav" (0.6 s), https://freesound.org/people/ReadeOnly/sounds/186926/ | ReadeOnly | CC0 |
+| `creatures/warden-punch-1.wav` | Freesound, "PUNCH-BOXING-03.wav" (0.45 s), https://freesound.org/people/newagesoup/sounds/348242/ | newagesoup | CC0 |
+| `creatures/warden-death-1.wav` | Freesound, "Computer Breaking Sound" (1.04 s), https://freesound.org/people/thehorriblejoke/sounds/505751/ | thehorriblejoke | CC0 |
+| `creatures/warden-shutdown-1.wav` | Freesound, "MachinePowerOff.flac" (1.6 s), https://freesound.org/people/Skylar1146/sounds/395378/ | Skylar1146 | CC0 |
 | `creatures/sentry-alert-1.wav` | Freesound, "Computer Chirp.wav", https://freesound.org/people/pointparkcinema/sounds/407244/ | pointparkcinema | CC0 |
 | `creatures/sentry-windup-1.wav` | Freesound, "servomotor.wav", https://freesound.org/people/vacuumfan7072/sounds/264592/ | vacuumfan7072 | CC0 |
 | `creatures/sentry-unclamp-1.wav` | Freesound, "SqueakyClick1.wav" (from 0.067 s), https://freesound.org/people/BMacZero/sounds/94133/ | BMacZero | CC0 |
@@ -67,6 +96,9 @@ death is two sources mixed as the audition mixed them. Its burner is the jetpack
 | `creatures/sentry-death-1.wav` | Freesound, "POWER06.WAV", https://freesound.org/people/mad-monkey/sounds/66692/, mixed with Freesound, "Heavy metal clatter.wav" (from 0.029 s), https://freesound.org/people/EntoClash/sounds/626811/ | mad-monkey, EntoClash | CC0 |
 | `creatures/sentry-punch-1.wav` | Freesound, "Metal Gauntlet Punch 4", https://freesound.org/people/Hoggington/sounds/536258/ | Hoggington | CC0 |
 | `creatures/sentry-charge-1.wav` | Freesound, "Laser Charge Up" (0.6 s from its attack, the last 0.18 s faded), https://freesound.org/people/magnuswaker/sounds/588242/ | magnuswaker | CC0 |
+| `creatures/capback-hiss-1.wav` | Freesound, "Pressure Hiss" (the first 1.1 s, from its attack, the last 60 ms faded), https://freesound.org/people/magnuswaker/sounds/581083/ | magnuswaker | CC0 |
+| `creatures/capback-splat-1.wav` | Freesound, "Slime 28.wav" (all of it from its attack, the last 60 ms faded), https://freesound.org/people/Archos/sounds/433839/ | Archos | CC0 |
+| `creatures/snail-shell-clink-1.wav` | Impact Sounds, `impactMining_001.ogg` (all of it from its attack, the last 60 ms faded), https://kenney.nl/assets/impact-sounds | Kenney | CC0 |
 | `creatures/sentry-arc-hit-1.wav` | Freesound, "Civilian Stun Gun 1/10s zap" (all of it from its attack, the last 0.12 s faded), https://freesound.org/people/AnthonyChan0/sounds/264779/ | AnthonyChan0 | CC0 |
 | `crew/air-fill-1.wav` | generated for Stillwake: white noise (mulberry32 seed 47) through two band-passes, Q 1.1, their centre rising from 2.6 to 4.8 kHz, 0.55 s: in over 50 ms, held, falling away over the last 38 %, to −3 dBFS peak (a placeholder till an audition) | Stillwake team | CC0 |
 | `crew/alarm-1.wav` | generated for Stillwake | Stillwake team | CC0 |
@@ -74,6 +106,13 @@ death is two sources mixed as the audition mixed them. Its burner is the jetpack
 | `crew/axe-swing-2.wav` | Freesound, "Swinging staff whoosh (strong) 06.wav", https://freesound.org/people/Nightflame/sounds/422511/ | Nightflame | CC0 |
 | `crew/axe-swing-3.wav` | Freesound, "Swinging staff whoosh (strong) 01.wav", https://freesound.org/people/Nightflame/sounds/422506/ | Nightflame | CC0 |
 | `crew/axe-swing-4.wav` | Freesound, "Swinging staff whoosh (strong) 03.wav", https://freesound.org/people/Nightflame/sounds/422508/ | Nightflame | CC0 |
+| `crew/cutter-off-1.wav` | Freesound, "Plasma cutter Ntg3.wav" (0.9 s from 36.25 s), https://freesound.org/people/jokallset/sounds/395890/ | jokallset | CC0 |
+| `crew/cutter-run-1.ogg` | Freesound, "Plasma cutter Ntg3.wav" (2.48 s from 67.00 s, looped), https://freesound.org/people/jokallset/sounds/395890/ | jokallset | CC0 |
+| `crew/cutter-strike-1.wav` | Freesound, "Plasma cutter Ntg3.wav" (0.7 s from 33.42 s), https://freesound.org/people/jokallset/sounds/395890/ | jokallset | CC0 |
+| `crew/grinder-bite-1.wav` | Freesound, "Angle grinder on/off grinding" (1 s from 14.75 s), https://freesound.org/people/Kinoton/sounds/347446/ | Kinoton | CC0 |
+| `crew/grinder-run-1.ogg` | Freesound, "Angle grinder on/off grinding" (2.01 s from 21.40 s, looped), https://freesound.org/people/Kinoton/sounds/347446/ | Kinoton | CC0 |
+| `crew/hammer-swing-1.wav` | Freesound, "Whoosh - Long Bamboo stick - Slow low - OS ST 2" (0.72 s from 0.15 s), https://freesound.org/people/Sadiquecat/sounds/855719/ | Sadiquecat | CC0 |
+| `crew/spear-thrust-1.wav` | Freesound, "Whoosh - Long Bamboo stick - OS ST 13" (0.55 s from 0.06 s), https://freesound.org/people/Sadiquecat/sounds/855844/ | Sadiquecat | CC0 |
 | `crew/harpoon-ready-1.wav` | Freesound, ".22 Bolt Action Long Rifle Rechambering" (0.95 s from its start), https://freesound.org/people/AlexCoover/sounds/706404/ | AlexCoover | CC0 |
 | `crew/harpoon-reel-1.ogg` | Freesound, "reeling.wav" (2.45 s, looped), https://freesound.org/people/BranndyBottle/sounds/464701/ | BranndyBottle | CC0 |
 | `crew/harpoon-shot-1.wav` | Freesound, "Dart/Arrow Trap." (0.85 s from its attack), https://freesound.org/people/jacobo1304/sounds/866990/ | jacobo1304 | CC0 |
@@ -101,6 +140,9 @@ death is two sources mixed as the audition mixed them. Its burner is the jetpack
 | `crew/land-hard-3.wav` | Freesound, "Footsteps_Mountain_Boots_Rock_Jump_Sequence_Mono.wav" (0.4 s from 6.508 s), https://freesound.org/people/Nox_Sound/sounds/558477/ | Nox_Sound | CC0 |
 | `crew/land-soft-1.wav` | Freesound, "land a jump.wav" (0.307 s from 0.001 s), https://freesound.org/people/zepurple/sounds/540272/ | zepurple | CC0 |
 | `crew/lava-burn-1.wav` | Freesound, "Pressure Hiss" (0.8 s), https://freesound.org/people/unfa/sounds/211096/ | unfa | CC0 |
+| `crew/hurt-1.wav` | Freesound, "Oof (original)" (all of it from its attack, band 130 Hz–2 kHz, echoes at 7 and 15 ms), https://freesound.org/people/unfa/sounds/719053/ | unfa | CC0 |
+| `crew/hurt-2.wav` | the same, raised 6% in pitch at its length | unfa | CC0 |
+| `crew/hurt-3.wav` | the same, lowered 7% in pitch at its length | unfa | CC0 |
 | `crew/step-alloy-1.wav` | Freesound, "Boots_On_Hollow_Metal_Light_01" (0.3 s), https://freesound.org/people/BlondPanda/sounds/778413/ | BlondPanda | CC0 |
 | `crew/step-alloy-2.wav` | Freesound, "Boots_On_Hollow_Metal_Light_02" (0.3 s), https://freesound.org/people/BlondPanda/sounds/778414/ | BlondPanda | CC0 |
 | `crew/step-alloy-3.wav` | Freesound, "Boots_On_Hollow_Metal_Light_04" (0.3 s), https://freesound.org/people/BlondPanda/sounds/778415/ | BlondPanda | CC0 |
@@ -131,7 +173,13 @@ death is two sources mixed as the audition mixed them. Its burner is the jetpack
 | `debris/drill-whir-1.wav` | Freesound, "DeWalt 18V drill, no-load spins" (150 ms at 6.3 s), https://freesound.org/people/megashroom/sounds/390162/ | megashroom | CC0 |
 | `debris/drill-whir-2.wav` | Freesound, "DeWalt 18V drill, no-load spins" (150 ms at 6.62 s), https://freesound.org/people/megashroom/sounds/390162/ | megashroom | CC0 |
 | `debris/drill-whir-3.wav` | Freesound, "DeWalt 18V drill, no-load spins" (150 ms at 6.95 s), https://freesound.org/people/megashroom/sounds/390162/ | megashroom | CC0 |
+| `debris/hammer-blow-1.wav` | Freesound, "Big stereo metal hit" (2 s), https://freesound.org/people/LPA134/sounds/329515/ | LPA134 | CC0 |
+| `debris/spear-hit-1.wav` | Freesound, "knife and metal beam vibrations clicks dings and sfx-133.wav" (0.37 s), https://freesound.org/people/CVLTIV8R/sounds/801736/ | CVLTIV8R | CC0 |
 | `flora/bush-1.wav` | Freesound, "bushhit.wav" (0.6 s from 0.003 s), https://freesound.org/people/j1987/sounds/106113/ | j1987 | CC0 |
+| `crew/splash-in-1.wav` | Freesound, "Foley_Natural_Water_Jump_Mono.wav" (the second jump: 1.4 s from 5.211 s, last 45% faded), https://freesound.org/people/Nox_Sound/sounds/585744/ | Nox_Sound | CC0 |
+| `crew/splash-out-1.wav` | Freesound, "water movement body step out of pool splash drips.flac" (1.8 s from 1.751 s, last 30% faded, +13 dB), https://freesound.org/people/kyles/sounds/637948/ | kyles | CC0 |
+| `crew/swim-stroke-1.wav` | Freesound, "G54-26-Person Swimming.wav" (0.5 s from 2.468 s, last 40% faded), https://freesound.org/people/craigsmith/sounds/438845/ | craigsmith | CC0 |
+| `grid/water-pour-1.ogg` | Freesound, "water flowing from a pipe into the sewer.mp3" (a loop: 5.5 s from 2.0 s, 0.5 s crossfade), https://freesound.org/people/FartMuffin/sounds/571551/ | FartMuffin | CC0 |
 | `flora/cave-drip-1.wav` | Freesound, "Water Drop 01" (0.187 s from 0.003 s), https://freesound.org/people/LilMati/sounds/348022/ | LilMati | CC0 |
 | `flora/cave-drip-2.wav` | Freesound, "Water Drop 02" (0.119 s), https://freesound.org/people/LilMati/sounds/349873/ | LilMati | CC0 |
 | `flora/chop-wood-1.wav` | Freesound, "Chopping wood 01" (0.226 s from 0.045 s), https://freesound.org/people/micahlg/sounds/421928/ | micahlg | CC0 |
@@ -172,8 +220,8 @@ death is two sources mixed as the audition mixed them. Its burner is the jetpack
 | `music/title-1.ogg` | made by the team with Suno (suno.com) on its free plan, 2026-10-16, normalised to about −18 LUFS | Stillwake team | Suno Basic, non-commercial: replace before sale |
 | `power/charge-full-1.wav` | Freesound, "UI Confirm" (0.27 s from its attack), https://freesound.org/people/unfa/sounds/584184/ | unfa | CC0 |
 | `power/charger-hum-1.ogg` | generated for Stillwake: 50 Hz and its harmonics at 0.7, 1, 0.4 and 0.15, low-passed at 500 Hz, swaying ±4% at 0.5 Hz, a 4 s loop rendered offline to −23 dBFS RMS (the audition's "Warm 50 Hz") | Stillwake team | CC0 |
-| `ruins/music-box-1.wav` | generated for Stillwake (tools/homes-art/export.js): a plucked steel tine, a sine at 1568 Hz with inharmonic partials at 2.76, 5.40 and 8.93 times it, each decaying, 0.9 s, to −3 dBFS peak; played at a tune's pitches (a placeholder till an audition, 0091) | Stillwake team | CC0 |
-| `ruins/zap-1.wav` | generated for Stillwake (tools/homes-art/export.js): bursts of smoothed noise a few milliseconds each under a quarter-second fall, to −3 dBFS peak (a placeholder till an audition, 0091) | Stillwake team | CC0 |
+| `ruins/music-box-1.wav` | generated for Stillwake (by tools/homes-art, now gone): a plucked steel tine, a sine at 1568 Hz with inharmonic partials at 2.76, 5.40 and 8.93 times it, each decaying, 0.9 s, to −3 dBFS peak; played at a tune's pitches (a placeholder till an audition, 0091) | Stillwake team | CC0 |
+| `ruins/zap-1.wav` | generated for Stillwake (by tools/homes-art, now gone): bursts of smoothed noise a few milliseconds each under a quarter-second fall, to −3 dBFS peak (a placeholder till an audition, 0091) | Stillwake team | CC0 |
 | `ruins/ceramic-break-1.wav` | Freesound, "Tile Breaking" (0.737 s), https://freesound.org/people/Fission9/sounds/583310/ | Fission9 | CC0 |
 | `ruins/cloth-tear-1.wav` | Freesound, "cloth_rip.mp3" (0.484 s from 0.051 s), https://freesound.org/people/Johnny2810/sounds/507756/ | Johnny2810 | CC0 |
 | `ruins/glass-break-1.wav` | Freesound, "Glass Break" (1.2 s from 0.333 s), https://freesound.org/people/unfa/sounds/221528/ | unfa | CC0 |

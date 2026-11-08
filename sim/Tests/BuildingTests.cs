@@ -93,8 +93,8 @@ public class BuildingTests
     public void AsksTheGridFirstSoItsReasonWinsOverAClashWithAPlan()
     {
         var w = new Scenario(Open)
-            .Do(new PlacePlan(At(2, 1), Tank))
-            .Do(new PlacePlan(At(1, 0), Tank))
+            .Do(new PlacePlan(At(1, 2), Tank))
+            .Do(new PlacePlan(At(0, 2), Tank))
             .Run();
         Assert.Equal(["grid.blocked"], Reasons(w));
     }
@@ -117,10 +117,10 @@ public class BuildingTests
     public void TreatsAPlannedMachineAsFillingItsWholeFootprint()
     {
         var w = new Scenario(Open)
-            .Do(new PlacePlan(At(2, 1), Tank))
+            .Do(new PlacePlan(At(2, 2), Tank))
             .Do(new PlacePlan(At(3, 2), Tank))
             .Do(new PlacePlan(At(3, 2), Wall))
-            .Do(new PlacePlan(At(4, 1), Tank))
+            .Do(new PlacePlan(At(4, 2), Tank))
             .Run();
         Assert.Equal(["building.planned", "building.planned"], Reasons(w));
         Assert.Equal([1], Ids(w.M.Building.PlansAt(At(3, 2))));
@@ -140,7 +140,7 @@ public class BuildingTests
         var w = new Scenario(Open)
             .Do(new Items.SetCreative(true))
             .Do(new PlacePlan(At(1, 1), floor))
-            .Do(new PlacePlan(At(3, 1), Tank))
+            .Do(new PlacePlan(At(3, 2), Tank))
             .Run()
             .Do(new Place(At(1, 1), new Placement("machine", "lamp")))
             .Do(new Place(At(4, 2), Wall))
@@ -156,11 +156,11 @@ public class BuildingTests
     {
         // The hero carries nothing and creative mode is off: an instant build takes nothing.
         var w = new Scenario(Open).Do(new SetInstant(true)).Run().Reload();
-        w.Do(new PlacePlan(At(1, 1), Wall)).Do(new PlacePlan(At(3, 1), Tank)).Run();
+        w.Do(new PlacePlan(At(1, 1), Wall)).Do(new PlacePlan(At(3, 2), Tank)).Run();
         Assert.Empty(w.Refusals);
         Assert.Empty(w.M.Building.Plans);
         Assert.Equal("iron", w.M.Grid.WallAt(At(1, 1))?.Id);
-        Assert.Equal("tank", w.M.Grid.MachineAt(At(3, 1))?.Kind);
+        Assert.Equal("tank", w.M.Grid.MachineAt(At(3, 2))?.Kind);
         // Its rules stand: a slot taken is refused as ever. Switched off, blueprints are plans again, their ids untouched.
         w.Do(new PlacePlan(At(1, 1), Wall)).Do(new SetInstant(false)).Run();
         w.Do(new PlacePlan(At(5, 1), Wall)).Run();
@@ -170,18 +170,42 @@ public class BuildingTests
     }
 
     [Fact]
+    public void RefusesAWallAnywhereInAStandingHerosBodyAndNoFurther()
+    {
+        // Five blocks tall inside: a hero standing on the floor, row 12, has its feet in row 11, its middle 2⅝ cells up in
+        // row 9 (the cell it reports), its head's top in row 6; under two cells wide, it spans the columns either side.
+        const string tall = """
+            #########
+            #.......#
+            #.......#
+            #.......#
+            #.......#
+            #.......#
+            #########
+            """;
+        int middle = 9 * 18 + 8;
+        var w = new Scenario(tall).Do(new Crew.Enter(middle)).Do(new SetInstant(true)).Run();
+        string?[] Down(int column) => Enumerable.Range(5, 7).Select(row => w.M.Building.Problem(row * 18 + column, Wall, 0)).ToArray();
+        string?[] body = [null, .. Enumerable.Repeat("building.heroInside", 6)];
+        Assert.Equal(body, Down(8));
+        Assert.Equal(body, Down(7));
+        Assert.Equal(body, Down(9));
+        Assert.All(Down(6).Concat(Down(10)), Assert.Null);
+    }
+
+    [Fact]
     public void RefusesAnInstantWallOnAHeroAsItsLastTickOfWorkWouldBe()
     {
         int hero = At(3, 1) + 18;
         var w = new Scenario(Open).Do(new Crew.Enter(hero)).Do(new SetInstant(true)).Run();
-        Assert.Equal("building.heroInside", w.M.Building.Problem(hero + 18, Wall));
+        Assert.Equal("building.heroInside", w.M.Building.Problem(hero + 18, Wall, 0));
         w.Do(new PlacePlan(hero + 18, Wall)).Do(new PlacePlan(hero + 2, Wall)).Run();
         Assert.Equal(["building.heroInside"], Reasons(w));
         Assert.Null(w.M.Grid.WallAt(hero + 18));
         Assert.Equal("iron", w.M.Grid.WallAt(hero + 2)?.Id);
         // Planned, a wall on a hero is no problem until its last tick.
         w.Do(new SetInstant(false)).Run();
-        Assert.Null(w.M.Building.Problem(hero, Wall));
+        Assert.Null(w.M.Building.Problem(hero, Wall, 0));
     }
 
     [Fact]
@@ -204,10 +228,10 @@ public class BuildingTests
     public void AnswersAGhostWithTheReasonTheCommandWouldGet()
     {
         var w = new Scenario(Open);
-        Assert.Null(w.M.Building.Problem(At(1, 1), Wall));
+        Assert.Null(w.M.Building.Problem(At(1, 1), Wall, 0));
         w.Do(new PlacePlan(At(1, 1), Wall)).Run();
-        Assert.Equal("building.planned", w.M.Building.Problem(At(1, 1), Wall));
-        Assert.Equal("grid.occupied", w.M.Building.Problem(At(0, 0), Wall));
+        Assert.Equal("building.planned", w.M.Building.Problem(At(1, 1), Wall, 0));
+        Assert.Equal("grid.occupied", w.M.Building.Problem(At(0, 0), Wall, 0));
         Assert.Equal("building.nothingThere", w.M.Building.Problem(At(1, 2), "structure"));
     }
 

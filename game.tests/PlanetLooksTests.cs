@@ -6,15 +6,13 @@ namespace Stillwake.Game.Tests;
 /// <summary>How planet types look (0095): every type, and every kind under a sky, has its look, its pictures and its growths' looks.</summary>
 public class PlanetLooksTests
 {
-    private static string Art => Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "game", "art");
-
     [Fact]
     public void EveryKindUnderASkyHasItsLookAndItsBackdropsPictures()
     {
         var skies = Spec.Surfaces.All.Where(k => k.Sky != null).Select(k => k.Id).Order(StringComparer.Ordinal);
         Assert.Equal(skies, PlanetLooks.Of.Keys.Order(StringComparer.Ordinal));
         foreach (var look in PlanetLooks.Of.Values)
-            Assert.All(PlanetLooks.BackdropPictures, p => Assert.True(File.Exists(Path.Combine(Art, look.Backdrop, $"{p}.png")), p));
+            Assert.All(PlanetLooks.BackdropPictures, p => Assert.True(Png.Has($"{look.Backdrop}/{p}"), p));
     }
 
     [Fact]

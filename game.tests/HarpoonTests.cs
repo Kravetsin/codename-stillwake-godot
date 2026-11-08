@@ -45,8 +45,8 @@ public class HarpoonTests
     private static readonly (double X, double Y) Muzzle = (0, 0);
 
     /// <summary>Held at <see cref="Muzzle"/>, the barrel pointing right, the hero's middle where it says.</summary>
-    private static GunHold Out((double X, double Y)? muzzle = null, (double X, double Y) middle = default, bool letsGo = false) =>
-        new(true, muzzle ?? Muzzle, (1, 0), middle, letsGo);
+    private static GunHold Out((double X, double Y)? muzzle = null, (double X, double Y) middle = default, bool letsGo = false, bool drops = false) =>
+        new(true, muzzle ?? Muzzle, (1, 0), middle, letsGo, drops);
 
     private static readonly GunHold PutAway = new(false, Muzzle, (1, 0));
 
@@ -275,6 +275,59 @@ public class HarpoonTests
         Assert.Equal(10_000, line.Length, 0);
     }
 
+    [Fact]
+    public void TheStreakHomeRunsOutWithTheRodSeatedAndNeverWaitsForTheNextShot()
+    {
+        const double Frame = 1000.0 / 60;
+        var seated = new RodFlourish();
+        seated.Step(Rod.Reeling, true, Frame);
+        Assert.True(seated.Step(Rod.Returning, true, Frame).ZipBegan);
+        // The rod is home a frame later, well before the streak.
+        var shown = new List<RodFlourish.Shown>();
+        for (int i = 0; i < 12; i++) shown.Add(seated.Step(Rod.Seated, true, Frame));
+        Assert.Contains(shown, s => s.Zip != null);
+        Assert.Single(shown, s => s.ZipHome);
+        Assert.Equal(default, seated.Step(Rod.Flying, true, Frame));
+
+        // The gun put away mid-streak, or drawn again for the next shot: nothing is left of it.
+        var putAway = new RodFlourish();
+        putAway.Step(Rod.Reeling, true, Frame);
+        putAway.Step(Rod.Returning, true, Frame);
+        Assert.Equal(default, putAway.Step(Rod.Seated, false, Frame));
+        Assert.Equal(default, putAway.Step(Rod.Flying, true, Frame));
+    }
+
+    [Fact]
+    public void TheBeadRunsDownTheLineAsItGoesTautAndIsGoneWithTheLine()
+    {
+        const double Frame = 1000.0 / 60;
+        var bead = new RodFlourish();
+        bead.Step(Rod.Hooked, true, Frame);
+        Assert.Equal(0, bead.Step(Rod.Reeling, true, Frame).Bead);
+        Assert.NotNull(bead.Step(Rod.Reeling, true, Frame).Bead);
+        Assert.Null(bead.Step(Rod.Seated, true, Frame).Bead);
+        Assert.Null(bead.Step(Rod.Flying, true, Frame).Bead);
+    }
+
+    [Fact]
+    public void TheLineNeverRunsBackThroughTheGunAsTheRodLeavesIt()
+    {
+        const double RodLength = 2_000, Frame = 1000.0 / 60;
+        (double X, double Y) gun = (0, 0), along = (1, 0);
+        var line = new HarpoonLine(gun, HarpoonLine.EndOf(gun, gun, along, RodLength));
+        var points = new List<(double X, double Y)>();
+        for (int i = 0; i < 20; i++)
+        {
+            (double X, double Y) tip = (i * Spec.RodSpeed * Frame / 50, 0);
+            line.Update(gun, HarpoonLine.EndOf(gun, tip, along, RodLength), taut: false, Frame);
+            points.Clear();
+            line.DrawnInto(points);
+            // A hair of drift aside, all of it ahead of the muzzle.
+            Assert.All(points, p => Assert.True(p.X > -100, $"frame {i}: a point at {p.X:F0}"));
+        }
+        Assert.Equal((5_000, 0), HarpoonLine.EndOf(gun, (7_000, 0), along, RodLength));
+    }
+
     /// <summary>A harpoon reeling piece 1 in, the sim showing the reel, sent from <see cref="Muzzle"/>.</summary>
     private static (HarpoonShot Shot, Pieces World) Reeling()
     {
@@ -365,7 +418,7 @@ public class HarpoonTests
     }
 
     [Fact]
-    public void PullsTheHeroOnAFreshPressToPullStopShortOfTheHookThenHangsTillAJumpOrAMove()
+    public void PullsTheHeroOnAFreshPressToPullStopShortOfTheHookThenHangsTillAJump()
     {
         var (shot, world) = Gripping();
         // Hooked, nothing pulls till a press; a held button is no press.
@@ -383,13 +436,13 @@ public class HarpoonTests
         Assert.Equal(Rod.Hanging, shot.Rod);
         Run(shot, 3_000, world, Out(middle: (to.X, to.Y)));
         Assert.Equal((Rod.Hanging, (Point?)to), (shot.Rod, shot.PullTo));
-        // A jump or a movement key lets go, the line snapping back and the hero its own again.
+        // A jump lets go, the line snapping back and the hero its own again.
         shot.Step(10, false, Out(middle: (to.X, to.Y), letsGo: true), world.World);
         Assert.Equal((Rod.Returning, (Point?)null), (shot.Rod, shot.PullTo));
     }
 
     [Fact]
-    public void HangsWhereAWallOrTheTetherStopsThePullShortAndLetsGoOnAClick()
+    public void HangsWhereAWallOrTheTetherStopsThePullShort()
     {
         var (shot, world) = Gripping();
         shot.Step(10, true, Out(middle: Behind), world.World);
@@ -397,8 +450,154 @@ public class HarpoonTests
         Assert.Equal(Rod.Pulling, shot.Rod);
         shot.Step(10, false, Out(middle: (2_000, 1_600)), world.World);
         Assert.Equal(Rod.Hanging, shot.Rod);
-        shot.Step(10, true, Out(middle: (2_000, 1_600)), world.World);
-        Assert.Equal(Rod.Returning, shot.Rod);
+    }
+
+    /// <summary>
+    /// A harpoon hanging from the wall at 12000, the hero's middle where the pull left it; reloaded unless
+    /// <paramref name="ready"/> is false, when a little of the cooldown has run.
+    /// </summary>
+    private static (HarpoonShot Shot, Pieces World, (double X, double Y) Middle) Hung(bool ready = true)
+    {
+        var (shot, world) = Gripping();
+        shot.Step(10, true, Out(middle: Behind), world.World);
+        var to = shot.PullTo!.Value;
+        (double X, double Y) middle = (to.X, to.Y);
+        shot.Step(10, false, Out(middle: middle), world.World);
+        if (ready) Run(shot, HarpoonShot.CooldownMs, world, Out(middle: middle));
+        Assert.Equal(Rod.Hanging, shot.Rod);
+        return (shot, world, middle);
+    }
+
+    /// <summary>Steps <paramref name="shot"/> held at <paramref name="middle"/> till <paramref name="done"/>, at most a second.</summary>
+    private static ShotStep Until(HarpoonShot shot, Pieces world, (double X, double Y) middle, Func<HarpoonShot, bool> done)
+    {
+        var step = new ShotStep();
+        for (int i = 0; i < 100 && !done(shot); i++) step = shot.Step(10, false, Out(middle: middle), world.World);
+        Assert.True(done(shot));
+        return step;
+    }
+
+    [Fact]
+    public void AClickWhileHangingWaitsForTheReloadThenFiresAgainTheHeroHeldWhileItFlies()
+    {
+        var (shot, world, middle) = Hung(ready: false);
+        var held = shot.PullTo;
+        Assert.True(shot.CooldownLeftMs > 0);
+        Assert.False(shot.Step(10, true, Out(middle: middle), world.World).Fired);
+        Assert.Equal((Rod.Hanging, held), (shot.Rod, shot.PullTo));
+        Run(shot, HarpoonShot.CooldownMs, world, Out(middle: middle));
+        Assert.Equal((Rod.Hanging, held), (shot.Rod, shot.PullTo));
+        Assert.True(shot.Step(10, true, Out(middle: middle), world.World).Fired);
+        Assert.Equal((Rod.Flying, held, HarpoonShot.CooldownMs), (shot.Rod, shot.PullTo, shot.CooldownLeftMs));
+        shot.Step(10, false, Out(middle: middle), world.World);
+        Assert.Equal((Rod.Flying, held), (shot.Rod, shot.PullTo));
+    }
+
+    [Fact]
+    public void AGripFromAHangPullsOnWithNoClickTowardTheNewHook()
+    {
+        var (shot, world, middle) = Hung();
+        world.Wall = 30_000;
+        shot.Step(10, true, Out(middle: middle), world.World);
+        var step = Until(shot, world, middle, s => s.Rod != Rod.Flying);
+        Assert.True(step.Gripped);
+        Assert.Equal((Rod.Pulling, (Point?)HarpoonShot.PullOf(middle, (30_000, 0))), (shot.Rod, shot.PullTo));
+    }
+
+    [Fact]
+    public void AMissFromAHangLetsTheHeroFallAndAPieceHookedLetsItFallTheRodLeftInThePiece()
+    {
+        var (missed, a, middle) = Hung();
+        a.Wall = null;
+        missed.Step(10, true, Out(middle: middle), a.World);
+        Until(missed, a, middle, s => s.Rod != Rod.Flying);
+        Assert.Equal((Rod.Returning, (Point?)null), (missed.Rod, missed.PullTo));
+
+        var (hooked, b, at) = Hung();
+        b.At[1] = (8_000, 0);
+        hooked.Step(10, true, Out(middle: at), b.World);
+        Assert.Equal((int?)1, Until(hooked, b, at, s => s.Rod != Rod.Flying).Hooked);
+        Assert.Equal((Rod.Hooked, (int?)1, (Point?)null), (hooked.Rod, hooked.Piece, hooked.PullTo));
+    }
+
+    [Fact]
+    public void AJumpWhileTheRodFliesFromAHangLetsGoAndItHooksAsAShotFromTheGround()
+    {
+        var (shot, world, middle) = Hung();
+        shot.Step(10, true, Out(middle: middle), world.World);
+        shot.Step(10, false, Out(middle: middle, letsGo: true), world.World);
+        Assert.Equal((Rod.Flying, (Point?)null), (shot.Rod, shot.PullTo));
+        Until(shot, world, middle, s => s.Rod != Rod.Flying);
+        Assert.Equal((Rod.Hooked, (Point?)null), (shot.Rod, shot.PullTo));
+    }
+
+    [Fact]
+    public void PutAwayWhileTheRodFliesFromAHangSeatsItAndLetsGo()
+    {
+        var (shot, world, middle) = Hung();
+        shot.Step(10, true, Out(middle: middle), world.World);
+        shot.Step(10, false, PutAway, world.World);
+        Assert.Equal((Rod.Seated, (Point?)null), (shot.Rod, shot.PullTo));
+    }
+
+    [Fact]
+    public void ARightClickLetsGoOfTheLineMidPullHangingOrWhileTheNextRodFlies()
+    {
+        // Mid-pull, where a jump does nothing, the line lets go and snaps back.
+        var (pulled, a) = Gripping();
+        pulled.Step(10, true, Out(middle: Behind), a.World);
+        Assert.Equal(Rod.Pulling, pulled.Rod);
+        pulled.Step(10, false, Out(middle: Behind, drops: true), a.World);
+        Assert.Equal((Rod.Returning, (Point?)null), (pulled.Rod, pulled.PullTo));
+
+        var (hung, b, middle) = Hung();
+        hung.Step(10, false, Out(middle: middle, drops: true), b.World);
+        Assert.Equal((Rod.Returning, (Point?)null), (hung.Rod, hung.PullTo));
+
+        // While the next rod flies from a hang, the hero drops and the rod flies on as a shot from the ground.
+        var (flying, c, at) = Hung();
+        flying.Step(10, true, Out(middle: at), c.World);
+        flying.Step(10, false, Out(middle: at, drops: true), c.World);
+        Assert.Equal((Rod.Flying, (Point?)null), (flying.Rod, flying.PullTo));
+    }
+
+    [Fact]
+    public void OnlyAJumpLetsGoOfTheLineNeverAMovementKey()
+    {
+        Assert.False(HarpoonShot.LetsGoBy(new HeroInput(1, 0, false)));
+        Assert.False(HarpoonShot.LetsGoBy(new HeroInput(-1, 1, false)));
+        Assert.True(HarpoonShot.LetsGoBy(new HeroInput(0, 0, true)));
+    }
+
+    // The grappling gun: the same machine, pulling at once on every grip, faster, reloaded in a second.
+
+    [Fact]
+    public void TheGrapplingGunPullsTheHeroOnTheGripWithNoClickAtItsOwnSpeed()
+    {
+        var world = new Pieces { Wall = 12_000 };
+        var shot = HarpoonShot.Grapple();
+        Assert.Equal((true, Hero.GrapplePullStep), (shot.PullsAtOnce, shot.PullBy));
+        Assert.Equal((false, Hero.PullStep), (HarpoonShot.Harpoon().PullsAtOnce, HarpoonShot.Harpoon().PullBy));
+        Assert.Equal(30, Math.Round(Hero.GrapplePullStep * 60.0 / Hero.Unit));
+        shot.Step(10, true, Out(middle: Behind), world.World);
+        var step = Until(shot, world, Behind, s => s.Rod != Rod.Flying);
+        Assert.True(step.Gripped);
+        Assert.Equal((Rod.Pulling, (Point?)HarpoonShot.PullOf(Behind, (12_000, 0))), (shot.Rod, shot.PullTo));
+    }
+
+    [Fact]
+    public void TheGrapplingGunReloadsInASecondAMissCostingOnlyThat()
+    {
+        var world = new Pieces();
+        var shot = HarpoonShot.Grapple();
+        Assert.Equal(1_000, shot.FullCooldownMs);
+        Assert.True(HarpoonShot.CooldownMs > shot.FullCooldownMs);
+        Assert.True(shot.Step(10, true, Out(), world.World).Fired);
+        Run(shot, 980, world);
+        Assert.Equal(Rod.Seated, shot.Rod);
+        Assert.False(shot.Step(10, true, Out(), world.World).Fired);
+        Run(shot, 10, world);
+        Assert.True(shot.Step(10, true, Out(), world.World).Fired);
     }
 
     [Fact]
@@ -422,7 +621,7 @@ public class HarpoonTests
         shot.Step(10, true, Out(middle: Behind), world.World);
         shot.Step(10, false, Out(middle: Behind, letsGo: true), world.World);
         shot.Step(10, false, Out(middle: Behind), world.World);
-        shot.Step(10, true, Out(middle: Behind), world.World);
+        shot.Step(10, false, Out(middle: Behind, letsGo: true), world.World);
         Run(shot, 500, world);
         Assert.Equal(Rod.Seated, shot.Rod);
         Assert.False(shot.Step(10, true, Out(), world.World).Fired);
@@ -441,10 +640,13 @@ public class HarpoonTests
         double moved = Math.Sqrt(Math.Pow(first.Middle.X - hero.Middle.X, 2) + Math.Pow(first.Middle.Y - hero.Middle.Y, 2));
         Assert.InRange(moved, Hero.PullStep - 1, Hero.PullStep + 1);
         var there = HeroTests.Until(ship, hero, pull, h => h.Middle == to);
-        // Held there, keys and gravity aside, till the pull ends; then it falls.
-        var held = there.Step(pull with { X = 1, Jump = true }, ship);
+        // Held there, keys and gravity aside, till the pull ends; then it falls, or jumps off the line on a Space pressed on it.
+        var held = there.Step(pull with { X = 1 }, ship);
         Assert.Equal((to, 0, 0), (held.Middle, held.Vx, held.Vy));
         Assert.True(held.Step(HeroTests.Still, ship).Y > held.Y);
+        var sprung = there.Step(pull with { Jump = true }, ship);
+        Assert.Equal((to, 0), (sprung.Middle, sprung.Vy));
+        Assert.Equal(-Stillwake.Content.Hero.Jump + ship.Gravity, sprung.Step(HeroTests.Still with { JumpHeld = true }, ship).Vy);
         // Pulled at a wall, it stops flush against it.
         var wall = HeroTests.Settle(ship, hero, HeroTests.Still with { Pull = new Point(23_000, 10_000) });
         Assert.Equal(11 * HeroTests.Block - Stillwake.Content.Hero.Width / 2, wall.X);

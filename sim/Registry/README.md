@@ -29,7 +29,7 @@ another surface exists.
 `Wreck` is the world every new game starts in: the wreck of `Content.Wreck` centred in a world of
 `Content.World`'s size, its build zone in the middle (`Layout.InWorld`,
 [0048](../../docs/decisions/0048-a-big-world-a-build-zone-inside-it.md)). `WreckMap` is the wreck as
-drawn, 192×96 a character a 16 px cell, doubled to 384×192 cells (`Layout.Doubled`, 0104), with no zone: dev runs and the
+drawn, a character a cell in a box of 384×192 ([the-scoop](../../docs/decisions/2026-10-31-the-scoop.md)), with no zone: dev runs and the
 tests whose cells are the drawing's play it.
 
 ## Migrations
@@ -37,5 +37,6 @@ tests whose cells are the drawing's play it.
 `Migrations.cs` turns a save of any format since `Migrations.Oldest` into this build's
 ([0031](../../docs/decisions/0031-worlds-the-title-and-migrations.md)), a step a format, each with a
 fixture in `Tests/Fixtures`. Format 28 halved the cell (0104): a save from before holds cells and lengths of another scale,
-and a planet's edits laid on a ground that now grows differently, so none migrates. `Oldest` is 28, there are no steps yet,
-and the title lists older saves grey with the reason.
+and a planet's edits laid on a ground that now grows differently, so none migrates. `Oldest` is 39, the tree's first format, and the title
+lists older saves grey with the reason. Format 43 drops the gates' deposits with the tree ([the-board](../../docs/decisions/2026-11-05-the-board.md)) and nothing
+else: what they opened stays granted, the credits and every upgrade too.

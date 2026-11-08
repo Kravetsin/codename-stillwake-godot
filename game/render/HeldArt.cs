@@ -17,22 +17,15 @@ public static class HeldArt
     {
         string key = layers.Count == 0 ? picture : picture + "|" + string.Join("|", layers.Select(l => $"{l.Picture}@{l.X},{l.Y}"));
         if (Made.TryGetValue(key, out var kept)) return kept;
-        var texture = GD.Load<Texture2D>(picture);
-        if (layers.Count == 0) return Made[key] = texture;
-        var image = Rgba(texture);
+        var fine = Fine(picture);
         foreach (var layer in layers)
         {
-            var over = Rgba(GD.Load<Texture2D>(layer.Picture));
-            image.BlendRect(over, new Rect2I(Vector2I.Zero, over.GetSize()), new Vector2I(layer.X, layer.Y));
+            var over = Fine(layer.Picture);
+            fine.BlendRect(over, new Rect2I(Vector2I.Zero, over.GetSize()), new Vector2I(layer.X, layer.Y) * HiRes.Scale);
         }
-        return Made[key] = ImageTexture.CreateFromImage(image);
+        return Made[key] = HiRes.Texture(fine);
     }
 
-    private static Image Rgba(Texture2D texture)
-    {
-        var image = texture.GetImage();
-        if (image.IsCompressed()) image.Decompress();
-        image.Convert(Image.Format.Rgba8);
-        return image;
-    }
+    /// <summary>The hi-res picture standing for the one at <paramref name="path"/>.</summary>
+    private static Image Fine(string path) => HiRes.Load(path["res://art/".Length..^4]) ?? throw new System.InvalidOperationException($"No picture {path}");
 }

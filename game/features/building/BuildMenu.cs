@@ -17,10 +17,10 @@ namespace Stillwake.Game.Features.Building;
 /// anywhere over the panel; each card a picture of what it builds, its name, cost and use in the one tooltip by the
 /// pointer, so a card is swapped for another at a click and the menu stays open. A plan costs nothing until it is
 /// worked, an item a part (0063), so a card the player carries too little for is as bright as any. It opens on the
-/// tab it was closed on. Under the cards, the card in hand and what the buttons do on the tab. B or Esc puts the plan
-/// away; with it away, the key that takes it out. Q picks the card under the pointer. Only what the world knows is
+/// tab it was closed on. Under the cards, the card in hand and what the buttons do on the tab. B, its key on the tablet's
+/// edge or Esc puts the plan away. Drop (G) picks the card under the pointer. Only what the world knows is
 /// shown (0024): a tab with nothing known, not at all, nor its mode. It is the screen of a rugged tablet (0073), which
-/// slides up from the bottom edge as the plan comes out and back down as it goes away. On a wing at its left, aboard, the plan's
+/// rises from the tablet's edge as the plan comes out and back down as it goes away. On a wing at its left, aboard, the plan's
 /// modes' keys, Z, X and C: building, wiring, piping; wiring's and piping's menus are their cards alone (0110).
 /// </summary>
 public partial class BuildMenu : CanvasLayer
@@ -35,19 +35,23 @@ public partial class BuildMenu : CanvasLayer
     private readonly PlanHand _hand;
     private readonly Ui _ui;
     private readonly Control _root = new() { MouseFilter = Control.MouseFilterEnum.Ignore };
-    private readonly PanelContainer _closed;
     /// <summary>The tablet, its screen the catalogue.</summary>
     private readonly Tablet _open = new();
     private readonly Control _tabs = new() { MouseFilter = Control.MouseFilterEnum.Ignore };
-    private readonly LineEdit _search = new() { ContextMenuEnabled = false, CaretBlink = true, MouseFilter = Control.MouseFilterEnum.Stop };
-    private readonly Control _lens = new() { MouseFilter = Control.MouseFilterEnum.Ignore };
-    private readonly PanelContainer _slash;
+    private readonly SearchField _search = new(En.T("build.search"));
     private readonly Control _grid = new() { ClipContents = true, MouseFilter = Control.MouseFilterEnum.Pass };
     private readonly Label _none = Tablet.Text(En.T("build.none"), Render.Style.Slate500);
     private readonly (Panel Track, Panel Thumb) _bar = Tablet.ScrollBar();
     private readonly HBoxContainer _foot = new() { ClipContents = true, MouseFilter = Control.MouseFilterEnum.Ignore };
     private readonly TextureRect _heldPicture = Picture(20);
-    private readonly Label _heldName = Tablet.Text("", Render.Style.Slate100), _hint = Tablet.Text("", Render.Style.Slate500, Tablet.HintSize);
+    private readonly Label _heldName = Tablet.Text("", Render.Style.Slate100);
+    /// <summary>The hint (build-hints): its lines on a screen under the layers' wing, and the pointer's line beside it.</summary>
+    private readonly HintWing _hints = new();
+    private readonly HintChip _pointerHint = new();
+    /// <summary>The builder this player carries, read from their inventory every <see cref="BuilderEveryMs"/>.</summary>
+    private Builder? _builder;
+    private ulong _builderAt;
+    private const ulong BuilderEveryMs = 250;
     private readonly List<(Panel Box, TextureRect Picture, Label Count)> _cards = [];
     /// <summary>
     /// A wing on the tablet's right side under its stylus while the plan is out: the two layers' keys stacked, the focused
@@ -85,18 +89,8 @@ public partial class BuildMenu : CanvasLayer
         _root.Theme = new Theme { DefaultFont = Mono, DefaultFontSize = FontSize };
         AddChild(_root);
 
-        _closed = new PanelContainer { MouseFilter = Control.MouseFilterEnum.Ignore };
-        _closed.AddThemeStyleboxOverride("panel", Render.Style.Box(Render.Style.Slate900 with { A = 0.9f }, Render.Style.Slate700, 4));
-        _closed.AddChild(Tablet.Text(En.T("build.open"), Render.Style.Slate400));
-        _closed.AnchorLeft = _closed.AnchorRight = 0.5f;
-        _closed.AnchorTop = _closed.AnchorBottom = 1;
-        _closed.GrowHorizontal = Control.GrowDirection.Both;
-        _closed.GrowVertical = Control.GrowDirection.Begin;
-        _closed.OffsetBottom = -Slots.Margin;
-        _root.AddChild(_closed);
+        Cap = new EdgeKey("build", hand.Toggle, hand.PlanOut.Get);
 
-        _open.AnchorLeft = _open.AnchorRight = 0.5f;
-        _open.AnchorTop = _open.AnchorBottom = 1;
         // The wheel anywhere over the tablet scrolls the cards; it never reaches the hotbar or the camera.
         _open.GuiInput += e => Scroll(e, _open);
         _open.Bezel.GuiInput += e => Scroll(e, _open.Bezel);
@@ -121,14 +115,14 @@ public partial class BuildMenu : CanvasLayer
         foreach (var layer in (Focus[])[Focus.Front, Focus.Back])
         {
             var face = layer == Focus.Front ? KeyFace.Front : KeyFace.Back;
-            var key = new PlanKey(face, Vector2.Zero, null, () => _hand.FocusOn(layer));
+            var key = new PlanKey(face, Vector2.Zero, null, () => _hand.FocusOn(layer), PixelArt.Picture("sign_mouseMiddleKey"));
             _focus.AddChild(key);
             _layerKeys.Add(key);
         }
         foreach (var mode in Tools.Modes)
         {
-            var (face, letter) = mode switch { PlanMode.Wiring => (KeyFace.Wiring, "X"), PlanMode.Piping => (KeyFace.Piping, "C"), _ => (KeyFace.Build, "Z") };
-            var key = new PlanKey(face, Vector2.Zero, letter, () => _hand.SetMode(mode));
+            var (face, bind) = mode switch { PlanMode.Wiring => (KeyFace.Wiring, Bind.ModeWiring), PlanMode.Piping => (KeyFace.Piping, Bind.ModePiping), _ => (KeyFace.Build, Bind.ModeBuild) };
+            var key = new PlanKey(face, Vector2.Zero, () => Binds.NameOf(bind), () => _hand.SetMode(mode));
             _modes.AddChild(key);
             _modeKeys.Add(key);
         }
@@ -142,29 +136,19 @@ public partial class BuildMenu : CanvasLayer
         hand.Mode.Subscribe(Lit);
         Lit();
 
-        SearchField();
-        _slash = new PanelContainer { MouseFilter = Control.MouseFilterEnum.Ignore };
-        var keyBox = Render.Style.Box(Colors.Transparent, Render.Style.Slate700, radius: 3);
-        (keyBox.ContentMarginLeft, keyBox.ContentMarginRight) = (4, 4);
-        _slash.AddThemeStyleboxOverride("panel", keyBox);
-        _slash.AddChild(Tablet.Text("/", Render.Style.Slate500, Tablet.HintSize));
-        _lens.Draw += () =>
-        {
-            _lens.DrawArc(new Vector2(12, 11), 4, 0, Mathf.Tau, 16, Render.Style.Slate500, 1.5f, true);
-            _lens.DrawLine(new Vector2(15, 14), new Vector2(18, 17), Render.Style.Slate500, 1.5f, true);
-        };
-        _search.AddChild(_lens);
-        _search.AddChild(_slash);
+        _search.TextChanged += _ => _top = 0;
+        _search.TextSubmitted += _ => _search.ReleaseFocus();
 
         _none.Position = new Vector2(4, 10);
         _grid.AddChild(_none);
         _foot.AddThemeConstantOverride("separation", 6);
-        _hint.ClipText = true;
-        _hint.TextOverrunBehavior = TextServer.OverrunBehavior.TrimEllipsis;
-        _hint.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
         _foot.AddChild(_heldPicture);
         _foot.AddChild(_heldName);
-        _foot.AddChild(_hint);
+        // The hint's screen hangs under the layers' wing, bolted to the tablet's side; the pointer's line goes over everything.
+        _hints.AnchorLeft = _hints.AnchorRight = 0.5f;
+        _hints.AnchorTop = _hints.AnchorBottom = 1;
+        _root.AddChild(_hints);
+        _root.AddChild(_pointerHint);
         foreach (var part in (Control[])[_tabs, _search, _grid, _bar.Track, _foot]) _open.OnScreen(part);
 
         LayOut();
@@ -173,34 +157,10 @@ public partial class BuildMenu : CanvasLayer
         hand.Tab.Subscribe(() => _top = 0);
     }
 
-    private void SearchField()
-    {
-        _search.PlaceholderText = En.T("build.search");
-        _search.AddThemeFontOverride("font", Mono);
-        _search.AddThemeFontSizeOverride("font_size", FontSize);
-        _search.AddThemeColorOverride("font_color", Render.Style.Slate100);
-        _search.AddThemeColorOverride("font_placeholder_color", Render.Style.Slate500);
-        _search.AddThemeColorOverride("caret_color", Render.Style.Slate100);
-        StyleBoxFlat Field(Color border)
-        {
-            var box = Render.Style.Box(Render.Style.Slate950, border);
-            (box.ContentMarginLeft, box.ContentMarginRight, box.ContentMarginTop, box.ContentMarginBottom) = (24, 8, 0, 0);
-            return box;
-        }
-        _search.AddThemeStyleboxOverride("normal", Field(Render.Style.Slate700));
-        var focus = Field(Sky500);
-        focus.DrawCenter = false;
-        _search.AddThemeStyleboxOverride("focus", focus);
-        _search.TextChanged += _ => _top = 0;
-        _search.TextSubmitted += _ => _search.ReleaseFocus();
-    }
-
     /// <summary>Every part placed for the slot size now: the panel's size changes with it and nothing else.</summary>
     private void LayOut()
     {
         _at = new Catalogue(_ui.Slot);
-        _open.OffsetLeft = -(_at.Width / 2);
-        _open.OffsetRight = _at.Width - _at.Width / 2;
         SizeKeys();
         Dock();
         _tabs.Position = new Vector2(Catalogue.Pad, Catalogue.Pad);
@@ -248,22 +208,29 @@ public partial class BuildMenu : CanvasLayer
         over.AcceptEvent();
     }
 
-    /// <summary>The screen at its dock, 12 px above the bottom edge, less how far the tablet has slid down.</summary>
+    /// <summary>The wings at the dock of the screen, 12 px above the bottom edge, less how far the tablet has slid down: behind it, as it is still wider than they lie apart, until it is up.</summary>
     private void Dock()
     {
-        _open.OffsetTop = -Slots.Margin - _at.Height + _drop;
-        _open.OffsetBottom = -Slots.Margin + _drop;
         // The modes' wing the frame's height on its left; the layers' on its right from its top, the stylus clipped over it.
         var (modes, focus) = (_modes.Size, _focus.Size);
         _modes.OffsetRight = -(_at.Width / 2) - TabletLayout.BezelSide + PlanWing.Tuck;
         _modes.OffsetLeft = _modes.OffsetRight - modes.X;
-        _modes.OffsetTop = _open.OffsetTop - TabletLayout.BezelAbove;
+        _modes.OffsetTop = -Slots.Margin - _at.Height + _drop - TabletLayout.BezelAbove;
         _modes.OffsetBottom = _modes.OffsetTop + modes.Y;
         _focus.OffsetLeft = _at.Width - _at.Width / 2 + TabletLayout.BezelSide - PlanWing.Tuck;
         _focus.OffsetRight = _focus.OffsetLeft + focus.X;
         _focus.OffsetTop = _modes.OffsetTop;
         _focus.OffsetBottom = _focus.OffsetTop + focus.Y;
+        // The hint's screen from the tablet's right edge, just under the layers' wing, down to the screen's foot.
+        float grown = _hints.Grown = _pointerHint.Grown = (float)_ui.Slot / Slots.SizeOf(SlotScale.Normal);
+        _hints.OffsetLeft = _focus.OffsetLeft + PlanWing.Tuck;
+        _hints.OffsetRight = _hints.OffsetLeft + HintWing.Width * grown;
+        _hints.OffsetTop = _focus.OffsetBottom + HintBelowWing;
+        _hints.OffsetBottom = Mathf.Max(_drop, _hints.OffsetTop + HintWing.Least * grown);
     }
+
+    /// <summary>How far under the layers' wing the hint's screen hangs, its brackets bridging the gap.</summary>
+    private const int HintBelowWing = 4;
 
     /// <summary>
     /// The keys sized for the tablet's height now: a mode's a third of what of the frame shows above the screen's bottom edge,
@@ -291,14 +258,17 @@ public partial class BuildMenu : CanvasLayer
     }
 
 
-    /// <summary>The tablet slid and its screen lit for this frame (<see cref="Tablet.Step"/>); its chip shows once it is gone.</summary>
+    /// <summary>The tablet slid and its screen lit for this frame (<see cref="Tablet.Step"/>); its wings go with it once it is gone.</summary>
     public override void _Process(double delta)
     {
         bool open = _hand.PlanOut.Get();
         if (!open && _search.HasFocus()) _search.ReleaseFocus();
         _open.Step(open, delta);
-        _closed.Visible = !open && !_open.Shown;
-        int drop = _open.Drop(GetViewport().GetVisibleRect().Size.Y - Slots.Margin - _at.Height);
+        var window = GetViewport().GetVisibleRect().Size;
+        float restTop = window.Y - Slots.Margin - _at.Height;
+        if (_open.Shown) _open.Lay(window.X / 2 - _at.Width / 2, restTop, _at.Width, _at.Height);
+        else _modes.Visible = _focus.Visible = _hints.Visible = _pointerHint.Visible = false;
+        int drop = _open.Drop(restTop);
         if (drop != _drop)
         {
             _drop = drop;
@@ -359,38 +329,35 @@ public partial class BuildMenu : CanvasLayer
     {
         // Esc puts the plan away through Shared.Escape, before it opens the game menu.
         if (e is not InputEventKey { Pressed: true } key || key.Echo) return;
-        switch (key.PhysicalKeycode)
-        {
-            case Key.B:
-                _hand.Toggle();
-                break;
-            // With a hand free Q drops the hotbar's item, taken before it gets here; with the menu open, building, it picks.
-            case Key.Q when _hand.PlanOut.Get() && _hand.Builds:
-                _hand.PickWanted = true;
-                break;
-            // / types in the search; while it is typed in, the field takes every key before it gets here, B, Q and Z, X, C too.
-            case Key.Slash when _hand.PlanOut.Get() && _hand.Builds:
-                _search.GrabFocus();
-                break;
-            case Key.Z or Key.X or Key.C when _hand.PlanOut.Get():
-                _hand.SetMode(key.PhysicalKeycode == Key.Z ? PlanMode.Build : key.PhysicalKeycode == Key.X ? PlanMode.Wiring : PlanMode.Piping);
-                break;
-            default:
-                return;
-        }
+        bool planning = _hand.PlanOut.Get();
+        if (key.Is(Bind.Build)) _hand.Toggle();
+        // With a hand free Drop (G) drops the hotbar's item, taken before it gets here; with the menu open, building, it picks.
+        else if (key.Is(Bind.Drop) && planning && _hand.Builds) _hand.PickWanted = true;
+        // Search (/) types in the search; while it is typed in, the field takes every key before it gets here, these too.
+        else if (key.Is(Bind.Search) && planning && _hand.Builds) _search.GrabFocus();
+        else if (key.Is(Bind.ModeBuild) && planning) _hand.SetMode(PlanMode.Build);
+        else if (key.Is(Bind.ModeWiring) && planning) _hand.SetMode(PlanMode.Wiring);
+        else if (key.Is(Bind.ModePiping) && planning) _hand.SetMode(PlanMode.Piping);
+        else return;
         GetViewport().SetInputAsHandled();
     }
 
-    /// <summary>Where the menu lies on the screen, open or as its closed chip: what the crew's markers keep out of.</summary>
-    public Rect2 Covers => !_open.Visible ? _closed.GetGlobalRect()
-        : new[] { _modes, _focus }.Where(w => w.Visible).Aggregate(_open.Covers, (all, w) => all.Merge(w.GetGlobalRect()));
+    /// <summary>Where the menu lies on the screen while it is out: what the crew's markers keep out of.</summary>
+    public Rect2? Covers => !_open.Visible ? null
+        : new Control[] { _modes, _focus, _hints }.Where(w => w.Visible).Aggregate(_open.Covers, (all, w) => all.Merge(w.GetGlobalRect()));
+
+    /// <summary>The tablet itself, which rises from the edge.</summary>
+    public Tablet Tablet => _open;
+
+    /// <summary>The key that takes the plan out and puts it away, for the edge to set in place.</summary>
+    public EdgeKey Cap { get; }
 
     /// <summary>One frame: what the world knows; prices weigh what this player carries (<see cref="Ui.Carried"/>).</summary>
-    public void Frame(Registry m)
+    public void Frame(Registry m, int peer)
     {
         bool open = _hand.PlanOut.Get();
         // The bezel's top at its dock, wherever the tablet is in its slide.
-        _ui.MenuTop = open ? _open.GetGlobalRect().Position.Y - _drop - TabletLayout.BezelAbove : null;
+        _ui.MenuTop = open ? GetViewport().GetVisibleRect().Size.Y - Slots.Margin - _at.Height - TabletLayout.BezelAbove : null;
         if (!open)
         {
             _tips.Show(null);
@@ -405,7 +372,7 @@ public partial class BuildMenu : CanvasLayer
             ? [new Tab(_hand.ModeShown.ToString().ToLowerInvariant(), [.. _hand.ToolCards])]
             : Tools.Tabs
                 // The focused layer's cards alone (0110): the back walls' in the back, every other in the front.
-                .Select(t => t with { Tools = t.Tools.Where(each => Tools.FocusOf(each) == _hand.Focus.Get() && Tools.Known(each, m.Research) && Tools.Allowed(each, m.Rules)).ToList() })
+                .Select(t => t with { Tools = t.Tools.Where(each => Tools.FocusOf(each) == _hand.Focus.Get() && Tools.Known(each, m.Research, peer) && Tools.Allowed(each, m.Rules)).ToList() })
                 // A tab with nothing known is not shown, but the ship's.
                 .Where(Tools.Shown)
                 .ToList();
@@ -426,7 +393,7 @@ public partial class BuildMenu : CanvasLayer
         if (_reveal)
         {
             _reveal = false;
-            // A card picked that the search does not name, by Q, ends the search: it shows on its own tab.
+            // A card picked that the search does not name, by Drop, ends the search: it shows on its own tab.
             if (tool != null && query != "" && !_list.Contains(tool))
             {
                 _search.Text = query = "";
@@ -449,6 +416,29 @@ public partial class BuildMenu : CanvasLayer
             Paint(shownTab, query, tool);
         }
         ShowTooltip(m);
+        ShowHints(m, peer, tool, layered);
+    }
+
+    /// <summary>
+    /// The hint's lines for the hand now (<see cref="Hints"/>), and the pointer's beside it while it is over the world, not the
+    /// menu, and no card's tooltip shows; the builder carried read on a timer.
+    /// </summary>
+    private void ShowHints(Registry m, int peer, Tool? tool, bool layered)
+    {
+        ulong now = Time.GetTicksMsec();
+        if (now - _builderAt >= BuilderEveryMs || _builderAt == 0)
+        {
+            _builderAt = now;
+            _builder = Hints.BuilderOf(m.Items.Inventory(peer).Select(s => s?.Item).ToList(), Content.Inventory.Hotbar);
+        }
+        _hints.Visible = true;
+        _hints.Show(Hints.LinesOf(new HandNow(_hand.ModeShown, _hand.Aboard.Get() && layered, _hand.Focus.Get(), tool, _search.HasFocus(),
+            m.Building.Plans.Count > 0, _builder)));
+        var mouse = GetViewport().GetMousePosition();
+        bool overMenu = Covers is { } covers && covers.HasPoint(mouse);
+        var line = _hovered == null && !overMenu && !_ui.MenuOpen.Get() ? Hints.PointerOf(_hand.ModeShown, _hand.PointerOver, _hand.Selected.Get() != null) : null;
+        var at = _hand.PointerAt is { } p ? GetViewport().GetCanvasTransform() * (new Vector2((float)p.X, (float)p.Y) * ShipCamera.Cell) : mouse;
+        _pointerHint.Show(line, at);
     }
 
     /// <summary>The card and the tab under the mouse, by where it is; none behind the game menu.</summary>
@@ -495,11 +485,7 @@ public partial class BuildMenu : CanvasLayer
             x += box.CustomMinimumSize.X + 4;
         }
         float left = Catalogue.Pad + x;
-        _search.Position = new Vector2(left, Catalogue.Pad);
-        _search.Size = new Vector2(_at.Width - Catalogue.Pad - left, Catalogue.TabHeight);
-        _lens.Size = new Vector2(24, Catalogue.TabHeight);
-        _slash.Position = new Vector2(_search.Size.X - 22, 4);
-        _slash.Size = new Vector2(16, Catalogue.TabHeight - 8);
+        _search.Lay(new Vector2(left, Catalogue.Pad), _at.Width - Catalogue.Pad - left, Catalogue.TabHeight);
     }
 
     /// <summary>Everything painted as it now is: the tabs, the cards shown, the scrollbar and the line under them.</summary>
@@ -511,7 +497,6 @@ public partial class BuildMenu : CanvasLayer
             bool on = query == "" && id == shownTab?.Id;
             Tablet.PaintTab(box, on, id == _hoveredTab);
         }
-        _slash.Visible = _search.Text == "" && !_search.HasFocus();
         for (int slot = 0; slot < _cards.Count; slot++)
         {
             var (box, picture, count) = _cards[slot];
@@ -534,7 +519,6 @@ public partial class BuildMenu : CanvasLayer
             _heldPicture.Texture = ThumbOf(tool);
             _heldName.Text = tool.Label;
         }
-        _hint.Text = shownTab != null ? En.T(Tools.HintOf(tool)) : "";
     }
 
     /// <summary>The card in hand: the selected slot's look, sky edged twice as thick.</summary>
@@ -556,11 +540,15 @@ public partial class BuildMenu : CanvasLayer
             return;
         }
         var lines = CostLine.Lacking(Tools.CostOf(tool, m.Building.CostFor), [], _ui.Carried)
-            .Select(c => new TipLine($"{c.Count} {En.T($"item.{c.Item}")}", c.Tone, c.Item))
+            .Select(c => new TipLine(En.T("research.taken", ("n", c.Count), ("what", En.T($"item.{c.Item}"))), c.Tone, c.Item))
             .Append(new TipLine(En.T($"tool.{tool.Id}.about"), Tone.Dim));
+        // A machine's power before it is built: what it draws while it works, or makes.
+        if (tool is PlaceTool { Placement: { Layer: "machine", Kind: var kind } }
+            && MachineSays.Power(Content.Machines.Get(kind), Content.Machines.Get(kind).Draws ?? 0) is { } power)
+            lines = lines.Append(power);
         // A wall's numbers: what it leaks, how it stands up to the meteors here.
         if (tool is PlaceTool { Placement: { Kind: "wall" or "backWall", Material: { } material } place })
-            lines = lines.Concat(WallStats.Of(Content.Materials.Get(material), place.Kind == "backWall", m.Hazards.Shower).Select(s => new TipLine(s)));
+            lines = lines.Concat(WallStats.Of(Content.Materials.Get(material), place.Kind == "backWall", m.Hazards.Shower));
         _tips.Show(new Tip(tool.Label, lines.ToList()));
     }
 }

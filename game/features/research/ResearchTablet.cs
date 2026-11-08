@@ -1,0 +1,274 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using Godot;
+using Stillwake.Game.Render;
+using Stillwake.Game.Shared;
+using Stillwake.Sim;
+using static Stillwake.Game.Features.Research.StripParts;
+using static Stillwake.Game.I18n.En;
+
+namespace Stillwake.Game.Features.Research;
+
+/// <summary>
+/// The research tablet (2026-10-30-tablet-tree), nearly the whole screen: T takes it out on the board anywhere, M on the market (2026-11-03-market-key), and
+/// each puts it away from its own page; Esc, Tab, E and B put it away too. A page (<see cref="ITabletPage"/>) over a strip about what is picked. The world runs on behind it.
+/// </summary>
+public partial class ResearchTablet : CanvasLayer
+{
+    /// <summary>Seconds between reads of the world: a panel reads on a timer, never every frame.</summary>
+    private const double ReadEvery = 0.25;
+    /// <summary>The height of the strip about what is picked, and the width of its button.</summary>
+    private const int DetailTall = 116, ButtonWide = 200;
+
+    private readonly Ui _ui;
+    private readonly Func<bool> _inWorld;
+    private readonly Func<Registry?> _world;
+    private readonly Tablet _tablet = new();
+    private readonly Control _view = new() { ClipContents = true, MouseFilter = Control.MouseFilterEnum.Stop };
+    private readonly Panel _detail = new() { MouseFilter = Control.MouseFilterEnum.Stop };
+    private readonly TipSpots _tips;
+    private readonly StripParts _parts;
+    private readonly List<ITabletPage> _pages = [];
+    private readonly BoardPage _board;
+    private readonly BoardKeep _keep = new(ProjectSettings.GlobalizePath("user://boards"));
+    private readonly TabletKey _key;
+    private readonly MarketPage _market;
+    private ITabletPage _page;
+    private double _sinceRead = ReadEvery;
+
+    /// <param name="ui">Whether it is out, the hand freed as it comes, the menu, under which it takes no key.</param>
+    /// <param name="inWorld">Whether a world is played: on the title T does nothing.</param>
+    /// <param name="world">The world the hero stands in; null with none played.</param>
+    /// <param name="send">Sends a command to the session.</param>
+    /// <param name="worldId">Which world is played, on every machine: what the board's layout is kept under.</param>
+    public ResearchTablet(Ui ui, Func<bool> inWorld, Func<Registry?> world, Action<Command> send, Func<uint> worldId)
+    {
+        (_ui, _inWorld, _world) = (ui, inWorld, world);
+        _tips = new TipSpots(ui.Tip);
+        _parts = new StripParts(_tips);
+        Layer = ScreenLayers.Handbook;
+        var root = new Control { MouseFilter = Control.MouseFilterEnum.Ignore, TextureFilter = CanvasItem.TextureFilterEnum.Linear, Theme = new Theme { DefaultFont = Style.Clear, DefaultFontSize = Tablet.FontSize + 1 } };
+        root.SetAnchorsPreset(Control.LayoutPreset.FullRect);
+        AddChild(root);
+        root.AddChild(_tablet);
+        _pages.Add(_board = new BoardPage(_view, _parts, () => _sinceRead = ReadEvery, worldId, _keep));
+        var tab = Content.Research.Tabs.Single(t => t.Id == Content.Research.Market);
+        _pages.Add(_market = new MarketPage(tab, _view, _parts, send, () => _sinceRead = ReadEvery, () => _keep.Seen));
+        _page = _board;
+        _view.GuiInput += e => _page.Pointer(e);
+        _detail.AddChild(_parts.Facts);
+        var action = _parts.Action;
+        PaintAction();
+        _detail.AddChild(action);
+        _parts.ActionLine.SetAnchorsPreset(Control.LayoutPreset.FullRect);
+        var word = _parts.ActionWord;
+        word.HorizontalAlignment = HorizontalAlignment.Center;
+        word.AutowrapMode = TextServer.AutowrapMode.WordSmart;
+        _parts.ActionLine.AddChild(word);
+        _parts.ActionLine.AddChild(_parts.ActionPrice);
+        action.AddChild(_parts.ActionLine);
+        // The wheel over the bezel zooms as over the map; it never reaches the hotbar.
+        _tablet.GuiInput += e => _page.Zoom(e, _tablet);
+        _tablet.Bezel.GuiInput += e => _page.Zoom(e, _tablet.Bezel);
+        foreach (var part in (Control[])[_market.Body, _view, _detail]) _tablet.OnScreen(part);
+        PaintDetail();
+        _page.Show(true);
+        _key = new TabletKey(world, worldId, _keep, Bulb, Toggle, () => Shown && _page == _board);
+        MarketCap = new EdgeKey("market", ToggleMarket, () => Shown && _page == _market, () => _key.Affordable);
+        AddChild(_key);
+    }
+
+    /// <summary>The tablet itself, which rises from the edge.</summary>
+    public Tablet Tablet => _tablet;
+
+    /// <summary>The research key, for the edge to set in place.</summary>
+    public EdgeKey Cap => _key.Cap;
+
+    /// <inheritdoc cref="TabletKey.Shows"/>
+    public bool CapShows => _key.Shows;
+
+    /// <summary>The market's own key beside it, so the market is one press away (2026-11-03-market-key): on while the market is out, amber while anything on it can be bought (hologram-keys).</summary>
+    public EdgeKey MarketCap { get; }
+
+    /// <inheritdoc cref="TabletKey.Credits"/>
+    public int Credits => _key.Credits;
+
+    /// <inheritdoc cref="TabletKey.MarketShows"/>
+    public bool MarketCapShows => _key.MarketShows;
+
+    /// <summary>The picture of the find that lit the bulb, <paramref name="size"/> pixels across; null before any. The blueprints are learnt first: the tablet may never have been out.</summary>
+    public Texture2D? FindPicture(int size)
+    {
+        if (_key.Find is not { } id || _world() is not { } m) return null;
+        _parts.Learn(m.Research);
+        return _parts.PictureOf(id, size);
+    }
+
+    /// <summary>T and the tablet's key: take it out on the board, go to the board from the market, or put it away from the board.</summary>
+    private void Toggle()
+    {
+        if (!Shown) Open();
+        else if (_page == _board) Close();
+        else Choose(_board);
+    }
+
+    /// <summary>Whether it is out: what Esc puts away before it opens the menu.</summary>
+    public bool Shown => _ui.TreeOpen.Get();
+
+    /// <summary>Takes it out, the hand freed. What it puts away is <c>Main</c>'s to say, as it listens to <see cref="Ui.TreeOpen"/>.</summary>
+    public void Open() => Open(_board);
+
+    /// <summary>The market key and M: takes it out on the market, goes over to it from the board, or puts it away from the market.</summary>
+    public void ToggleMarket()
+    {
+        if (!Shown) Open(_market);
+        else if (_page == _market) Close();
+        else Choose(_market);
+    }
+
+    /// <summary>Takes it out on <paramref name="page"/>.</summary>
+    private void Open(ITabletPage page)
+    {
+        if (Shown) return;
+        _ui.Hand.Set(Holding.Free);
+        _keep.Seen.Opened();
+        if (page != _page) Choose(page);
+        else _page.Show(true);
+        _sinceRead = ReadEvery;
+        _ui.TreeOpen.Set(true);
+    }
+
+    /// <summary>Puts it away: T again, Esc through the menu's <c>Escape</c>, Tab, E or B.</summary>
+    public void Close()
+    {
+        if (Shown) _keep.Seen.Closed();
+        _ui.TreeOpen.Set(false);
+        _board.DropSearch();
+        _page.LetGo();
+        KeepBoard();
+    }
+
+    /// <summary>Esc, before it puts the tablet away: the board's search typed or shown is emptied, the tablet staying out. Answers whether there was one.</summary>
+    public bool DropSearch() => Shown && _page == _board && _board.DropSearch();
+
+    /// <summary>Writes what was moved on the board: as it is put away, and on every way out of the world.</summary>
+    public void KeepBoard()
+    {
+        if (!_keep.Write()) GD.PushWarning("The board was not kept.");
+    }
+
+    /// <summary>Where the key lies on the screen: what a recording points at.</summary>
+    public Rect2 KeyCovers => _key.Cap.GetGlobalRect();
+
+    /// <summary>The bulb at the top of the screen: what the research key tells of what is new, for <see cref="ScreenBulb"/> to draw.</summary>
+    public BulbSignal Bulb { get; } = new();
+
+    /// <summary>Where a thing's middle is on the page shown: what a recording points at.</summary>
+    public Vector2 ScreenOf(string id) => _page.ScreenOf(id);
+
+    /// <summary>Where the button buying what is picked is on the screen: what a recording points at.</summary>
+    public Vector2 ActionAt => _parts.Action.GetGlobalRect().GetCenter();
+
+    /// <summary>Whether the board shows an entry to read: what a recording waits on.</summary>
+    public bool Reading => _board.Reading;
+
+    /// <summary>Where the entry shown large is on the screen: what a recording points at.</summary>
+    public Vector2 EntryAt => _board.EntryAt;
+
+    /// <summary>Where the "Take all" button is on the screen: what a recording points at.</summary>
+    public Vector2 TakeAllAt => _board.TakeAllAt;
+
+    public override void _Process(double delta)
+    {
+        bool open = Shown && _world() != null;
+        _tablet.Step(open, delta);
+        if (!_tablet.Shown) return;
+        LayOut();
+        _page.Step(delta);
+        var mouse = _view.GetViewport().GetMousePosition();
+        bool over = _view.GetGlobalRect().HasPoint(mouse) || _detail.GetGlobalRect().HasPoint(mouse);
+        _tips.Frame(open && !_ui.MenuOpen.Get() && over && !_board.Carrying ? mouse : null);
+        if (!open) return;
+        _sinceRead += delta;
+        if (_sinceRead < ReadEvery) return;
+        _sinceRead = 0;
+        Read(_world()!);
+    }
+
+    /// <summary>The tablet at rest in the middle of the window, as large as its art lets it be, and the strips on its screen.</summary>
+    private void LayOut()
+    {
+        var screen = _tablet.GetViewportRect().Size;
+        const int s = TabletLayout.ArtScale, around = TabletLayout.ArtAround * s, pad = TabletLayout.Pad;
+        float width = TabletPeek.ScreenWidth(screen.X), height = Mathf.Floor(screen.Y - around - 2 * TabletPeek.Margin);
+        var rest = ((screen - new Vector2(width + around, height + around)) / 2 + new Vector2(TabletLayout.ScreenLeft * s, TabletLayout.ScreenTop * s)).Round();
+        _tablet.Lay(rest.X, rest.Y, width, height);
+        _detail.Position = new Vector2(pad, height - pad - DetailTall);
+        _detail.Size = new Vector2(width - 2 * pad, DetailTall);
+        _parts.Facts.Position = new Vector2(pad, pad);
+        _parts.Facts.Size = new Vector2(_detail.Size.X - ButtonWide - 3 * pad, DetailTall - 2 * pad);
+        _parts.Action.Position = new Vector2(_detail.Size.X - ButtonWide - pad, pad);
+        _parts.Action.Size = new Vector2(ButtonWide, DetailTall - 2 * pad);
+        _view.Position = new Vector2(pad, pad);
+        _view.Size = new Vector2(width - 2 * pad, _detail.Position.Y - 2 * pad);
+        _market.Body.Size = new Vector2(width, height);
+    }
+
+    /// <summary>Every page: each restyles only what has changed.</summary>
+    private void Read(Registry m)
+    {
+        foreach (var page in _pages) page.Read(m);
+    }
+
+    private void Choose(ITabletPage page)
+    {
+        if (page == _page) return;
+        _page.Show(false);
+        _page = page;
+        _page.Show(true);
+        _page.Fill();
+        _sinceRead = ReadEvery;
+        PaintDetail();
+    }
+
+    /// <summary>The strip in the look of the page shown: the market's its own.</summary>
+    private void PaintDetail()
+    {
+        var look = _page == _market ? Style.Box(MarketPage.StripFill, MarketPage.Edge, radius: 3) : Style.Box(new Color("0d1218"), Line, radius: 2);
+        _detail.AddThemeStyleboxOverride("panel", look);
+    }
+
+    /// <summary>The market's accent to be pressed, dark with its reason when it cannot.</summary>
+    private void PaintAction()
+    {
+        var action = _parts.Action;
+        action.AddThemeStyleboxOverride("normal", Style.Box(MarketPage.Accent, MarketPage.Accent, radius: 3));
+        action.AddThemeStyleboxOverride("hover", Style.Box(new Color("e3633f"), new Color("e3633f"), radius: 3));
+        action.AddThemeStyleboxOverride("pressed", Style.Box(new Color("b8432a"), new Color("b8432a"), radius: 3));
+        action.AddThemeStyleboxOverride("disabled", Style.Box(MarketPage.Off, MarketPage.OffEdge, radius: 3));
+    }
+
+    /// <summary>Tab, E and B put it away and go on to what they do.</summary>
+    public override void _Input(InputEvent e)
+    {
+        if (e is not InputEventKey { Pressed: true, Echo: false } key || !Shown || _board.Typing) return;
+        if (key.Is(Bind.Inventory) || key.Is(Bind.Use) || key.Is(Bind.Build)) Close();
+    }
+
+    /// <summary>T does what the tablet's key does, M what the market's does, in a world with the menu shut; on the board Search (/) types in its search.</summary>
+    public override void _UnhandledInput(InputEvent e)
+    {
+        if (e is InputEventKey { Pressed: true, Echo: false } search && search.Is(Bind.Search) && Shown && _page == _board && !_ui.MenuOpen.Get())
+        {
+            _board.TypeSearch();
+            GetViewport().SetInputAsHandled();
+            return;
+        }
+        if (e is not InputEventKey { Pressed: true, Echo: false } key || !(key.Is(Bind.Tablet) || key.Is(Bind.Market))) return;
+        if (!_inWorld() || _ui.MenuOpen.Get()) return;
+        if (key.Is(Bind.Market)) ToggleMarket();
+        else Toggle();
+        GetViewport().SetInputAsHandled();
+    }
+}

@@ -152,6 +152,23 @@ public class HeroTests
         Assert.Equal(-1, back.Step(Still with { Face = -1 }, ship).Facing);
     }
 
+    [Theory]
+    [InlineData(Structure.Floor, true)]
+    [InlineData(Structure.Ladder, true)]
+    [InlineData(Structure.Wall, false)]
+    [InlineData(Structure.HatchClosed, false)]
+    public void SwimsThroughWhatOnlyHoldsAFallBothWaysAndStopsAtWhatStopsABody(int deck, bool through)
+    {
+        const int Width = 20, Row = 10;
+        var ship = new Ship(Width, 20, cell => cell / Width == Row ? deck : Structure.Empty, _ => true);
+        var over = Hero.At(ship, (Row - 2) * Width + 10);
+        var under = Hero.At(ship, (Row + 8) * Width + 10);
+        var up = Still with { Y = -1 };
+        for (int i = 0; i < 400; i++) (over, under) = (over.Step(Down, ship), under.Step(up, ship));
+        Assert.Equal(through, over.Y > (Row + 1) * Unit);
+        Assert.Equal(through, under.Y - Spec.Height < Row * Unit);
+    }
+
     [Fact]
     public void SwimmingKeepsFacingWhereItsAxeSwingBeganTowardTillTheSwingEnds()
     {
@@ -895,8 +912,8 @@ public class HeroTests
 
     internal static readonly Layout Wreck = Registry.WreckMap;
     internal static readonly int Spawn = new TestWorld(Wreck).M.Crew.Spawn;
-    /// <summary>Room B's torn edge, its last cell of hull's left side: a tether out of it is tied where the body's middle last was, a step's walk at most inside.</summary>
-    internal const int TornEdge = 36 * Block;
+    /// <summary>The hold's throat, its last cell of hull's left side: a tether out of it is tied where the body's middle last was, a step's walk at most inside.</summary>
+    internal const int TornEdge = 37 * Block;
 
     /// <summary>The wreck with every door open, the airlock's two doorways among them.</summary>
     internal static Ship Opened() => ShipFrom(Layout.Parse(Wreck.Rows.Select(r => r.Replace('D', 'd')).ToArray()));
@@ -907,11 +924,14 @@ public class HeroTests
         var ship = ShipFrom(Layout.Parse(Wreck.Rows));
         var opened = Opened();
 
-        // From room A, where the hero wakes, through the doorway into room B, torn open to space, afloat
+        // From the iron room, where the hero wakes, through the left lock into the hold, open to space, afloat
         // and untied while within the hull; on its tether from the torn edge, as far as it lets the hero.
-        Assert.Equal(TornEdge - Spec.Tether, Settle(opened, Hero.At(opened, Spawn), Left).X);
+        // Straight on, it stops at the upper jaw's tooth, well within the tether.
+        var out_ = Settle(opened, Hero.At(opened, Spawn), Left);
+        Assert.InRange(out_.Anchor!.Value.X, TornEdge, TornEdge + Spec.Walk);
+        Assert.Equal(63 * Unit + Half, out_.X);
 
-        // With the doorway closed, the hero stops at it, past the generator: at the door, two cells thick, its block whole (0104).
+        // With the doorway closed, the hero stops at it: at the door, two cells thick, its block whole (0104).
         Assert.Equal(46 * Block + Half, Settle(ship, Hero.At(ship, Spawn), Left).X);
     }
 
@@ -941,9 +961,32 @@ public class HeroTests
     }
 
     [Fact]
+    public void FloatsUntiedInARoomWithNoBackWallsAndFallsWhereTheyBegin()
+    {
+        // Walled all round; the left of the room has no back walls, the right has.
+        var ship = ShipFrom("""
+            ##########
+            #   .....#
+            #   .....#
+            #   .....#
+            ##########
+            """);
+        var afloat = new Hero(3 * Block, 4 * Block - 400, 0, 0, false, 1);
+        Assert.True(ship.Space(afloat.BodyCell(ship.Width)));
+        var still = Settle(ship, afloat, Still);
+        Assert.Equal((afloat.X, afloat.Y), (still.X, still.Y));
+        var swum = Settle(ship, afloat, Left);
+        Assert.Equal(Block + Half, swum.X);
+        Assert.Null(swum.Anchor);
+        // Under back walls, the ship's gravity: it falls to the floor.
+        var held = Settle(ship, new Hero(7 * Block, 4 * Block - 400, 0, 0, false, 1), Still);
+        Assert.Equal(4 * Block, held.Y);
+    }
+
+    [Fact]
     public void TiesATetherLeavingAShipOpenToSpaceAllThroughNeverLettingTheHeroDriftOff()
     {
-        // Every door broken out and room B torn: the whole wreck is space, yet still the hull.
+        // Every door broken out: the whole wreck is space, yet still the hull.
         var opened = ShipFrom(Layout.Parse(Wreck.Rows.Select(r => r.Replace('D', '.')).ToArray(), Wreck.Under));
         var h = Hero.At(opened, Spawn);
         Assert.True(opened.Space(h.BodyCell(opened.Width)));
@@ -983,6 +1026,18 @@ public class HeroTests
         from jump in Gen.Elements(false, true)
         from held in Gen.Elements(false, true)
         select new HeroInput(x, y, jump, JumpHeld: held);
+
+    [Fact]
+    public void TiesATetherOnAHeroAnOuterDoorPushesOutIntoSpace()
+    {
+        // A room whose outer door, three blocks tall in column 5, opens on open space: no back wall past the hull.
+        var shut = ShipFrom(new[] { "######", "#....D", "#....D", "#....D", "######" }.Select(r => r.PadRight(30)).ToArray());
+        // Standing mostly past the doorway's middle as it shuts: pushed out, not in.
+        var pushed = Until(shut, new Hero(11300, 4 * Block, 0, 0, false, 1), Still, h => shut.Space(h.BodyCell(shut.Width)));
+        var out_ = Settle(shut, pushed, Right);
+        Assert.NotNull(out_.Anchor);
+        Assert.True(ReachOf(out_) <= Spec.Tether, $"{ReachOf(out_)} from where it was tied");
+    }
 
     [Fact]
     public void InSpaceKeepsTheBodyWithinTheTetherSlidingAlongItsLimitNeverThroughAWall()
