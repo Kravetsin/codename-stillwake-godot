@@ -217,7 +217,8 @@ public partial class LurkerBodies : Node2D
         Stages.Of(Layers.Effects).Hits.Throw(HitLooks.Of[impact], side.X, side.Y, -away, -0.25, 1, floor: one.Drawn.Y);
         if (!S.Creatures.TryGetValue(one.Species, out var cues)) return;
         var voices = own ? _ownHits : _worldHits;
-        voices.Play(own ? S.Felt(cues.Hit) : cues.Hit, side, cues.Hit.Tune, 0);
+        var hit = one.Shut ? S.ShellClink : cues.Hit;
+        voices.Play(own ? S.Felt(hit) : hit, side, hit.Tune, 0);
         voices.Play(own ? S.Felt(cues.Thump) : cues.Thump, side, cues.Thump.Tune, 0);
     }
 

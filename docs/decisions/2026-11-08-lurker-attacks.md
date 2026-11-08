@@ -28,6 +28,12 @@ far, and a snail that can be hurt only out of its shell, which it leaves only fo
 - **One save step** (format 55): the capback's first move is a vent where it was a pounce, so a capback mid-act stops. The
   snail's shell comes after its guard, so its saved places keep their meaning.
 - **The caps' shudder** eases to rest out of a wind-up: a cut wind-up or a blow had left it shaking for good.
+- **The looks and sounds, picked by the user** on their page (2026-11-08): the gas «Клубы со спорами», eight ink-lined
+  yellow-green puffs thrown from the caps with 22 lit spores in them, each on its own slow loop, breathing in brightness (the
+  user asked for the puffs with «Спорень»'s spores, moved smoothly, not swapped frame by frame); the slime «Споровая», a violet
+  glob with two drops and a teal-glowing puddle with spores rising off it. The sounds: a valve's hiss (vent and spit), a slime's
+  splat (landing), a pick on rock for a shut shell struck. Drawn by `tools/anime-art/subjects/lurkerattacks.js`, placed by
+  `LurkerFx`. The sim lays the puddle as it strikes the arc, so the client flies the glob first and shows the puddle on landing.
 
 ## Consequences
 
