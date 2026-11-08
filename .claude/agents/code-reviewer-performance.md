@@ -11,6 +11,13 @@ Client sections of `CLAUDE.md` and the performance findings in `docs/decisions/0
 
 ## Look for
 
+- **Whole-planet walks in the client** — first, in every change that touches `game/`: a loop over a grid
+  layer (`StructureLayer`, `BackLayer`, liquids, `Width * Height`), every plant or relic, every picture of a
+  kind, or a texture the planet's size uploaded whole, run each frame, each grid `Version`, each felling or
+  each dig rather than once as the surface loads; and a picture, atlas or design read from disk or built at
+  its first sight mid-play. A planet is 4096×1536 cells (6 M), not the reference world: each such walk
+  found so far cost a frame 2–240 ms (`docs/decisions/2026-11-08-planet-frame-rate.md`). Major, whatever
+  it costs on the reference world.
 - **Per-tick sim work** — scanning every cell each tick where a change list or dirty flag exists;
   rebuilding derived state every tick instead of on change; work quadratic in cells, rooms or entities.
 - **Allocations and GC pressure** — `new` arrays, lists, closures, LINQ chains, boxing (structs through
