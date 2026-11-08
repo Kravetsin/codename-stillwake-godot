@@ -7,13 +7,15 @@ using Stillwake.Game.Shared;
 using Stillwake.Sim;
 using Stillwake.Sim.Creatures;
 using S = Stillwake.Game.Sound;
+using Spec = Stillwake.Content;
 
 namespace Stillwake.Game.Features.Creatures;
 
 /// <summary>
 /// The sim's shots (shots-are-the-sims), every peer's but a guest's own, which its hero's hands fly ahead of the sim's
 /// (<see cref="ShotDraws"/>): each drawn a tick behind, between where it was and is, heard fired where it first shows but the
-/// host's own, heard at the click, and every hit shown and heard as what it met (<see cref="ShotEnds"/>, 2026-10-27-shots-pierce). And the creatures' arcs (2026-10-27-sentry-arc), each shown once the tick it struck: an electric arc
+/// host's own, heard at the click, and every hit shown and heard as what it met (<see cref="ShotEnds"/>, 2026-10-27-shots-pierce). A
+/// charge's burst (blasting-charge) shown and heard wherever its shot ends, whoever threw it. And the creatures' arcs (2026-10-27-sentry-arc), each shown once the tick it struck: an electric arc
 /// as the relic's, a flash and sparks where it struck, heard where it left and where it struck.
 /// </summary>
 public partial class ShotsView : Node2D
@@ -31,6 +33,11 @@ public partial class ShotsView : Node2D
 
     /// <summary>Each shot drawn, by id: where it was a tick ago and is now.</summary>
     private readonly Dictionary<int, (ShotMotion Was, ShotMotion Now)> _seen = [];
+    /// <summary>
+    /// Each charge in flight, by id: who threw it and the walls round it as the last tick left them, with what they were; those gone
+    /// at its burst are what it broke.
+    /// </summary>
+    private readonly Dictionary<int, (Ref By, List<(int Cell, Spec.Material Wall)> Round)> _charges = [];
     /// <summary>The arcs shown, by id, forgotten once they are gone.</summary>
     private readonly HashSet<int> _arcsShown = [];
     private int _shownTick = -1;
@@ -95,6 +102,9 @@ public partial class ShotsView : Node2D
                 _fired.Play(S.FiredBy(hit.Gun), new Vector2(hit.From.X, hit.From.Y) * (float)(Camera.Cell / 1000.0));
             }
         }
+        foreach (var end in creatures.Ended)
+            if (end.Burst >= 0) Burst(end, own);
+        Round(creatures);
         var flying = new HashSet<int>();
         foreach (var shot in creatures.Shots)
         {
@@ -111,6 +121,89 @@ public partial class ShotsView : Node2D
         }
         foreach (var id in new List<int>(_seen.Keys))
             if (!flying.Contains(id)) _seen.Remove(id);
+    }
+
+    /// <summary>The cells round a charge kept, either way of its cell: its reach, and a step it may fly before it bursts.</summary>
+    private static readonly int RoundReach = Spec.Blasting.Charge.Reach + 2;
+
+    /// <summary>Every charge in flight's walls round it, as this tick leaves them; a charge gone, forgotten.</summary>
+    private void Round(CreaturesModule creatures)
+    {
+        var grid = _m.Grid;
+        foreach (var id in new List<int>(_charges.Keys))
+            if (!Flying(creatures, id)) _charges.Remove(id);
+        foreach (var shot in creatures.Shots)
+        {
+            if (Spec.Shots.Get(shot.Projectile).Bursts == null) continue;
+            if (!_charges.TryGetValue(shot.Id, out var kept)) _charges[shot.Id] = kept = (shot.By, []);
+            kept.Round.Clear();
+            int cx = shot.X / CreaturesModule.Unit, cy = shot.Y / CreaturesModule.Unit;
+            for (int y = Math.Max(0, cy - RoundReach); y <= Math.Min(grid.Height - 1, cy + RoundReach); y++)
+                for (int x = Math.Max(0, cx - RoundReach); x <= Math.Min(grid.Width - 1, cx + RoundReach); x++)
+                    if (grid.WallAt(y * grid.Width + x) is { } wall) kept.Round.Add((y * grid.Width + x, wall));
+        }
+    }
+
+    private static readonly (int R, int G, int B) White = (244, 242, 234);
+    /// <summary>The burst's dust, grey, thrown out in a ring; a cell's chips its ground's colour.</summary>
+    private static readonly Luminous BurstDust = Luminous.BreakDust with { Ramp = [(140, 138, 132), (94, 92, 88)], Drag = 2.2 },
+        BurstCloud = Luminous.Vapour with { Ramp = [(140, 138, 132)], Alpha = 0.18, Drag = 1.6 },
+        BurstChip = Luminous.Chip with { Gravity = 420, Bounce = 0.25, Size = 1.6, Low = true };
+
+    /// <summary>
+    /// A charge's burst (blasting-charge), the user's pick: a white flash, a grey ring of dust thrown out as wide as what broke, and
+    /// out of every wall it broke chips of its ground flung away from the burst, falling where there is weight; heard as far as a
+    /// wreck breaks and farther, the own one through the suit.
+    /// </summary>
+    private void Burst(ShotEnd end, int own)
+    {
+        var grid = _m.Grid;
+        double cell = Camera.Cell, x = (end.Burst % grid.Width + 0.5) * cell, y = (end.Burst / grid.Width + 0.5) * cell;
+        bool afloat = _m.Rooms.Afloat(end.Burst);
+        var stage = Stages.Of(Layers.Effects);
+        var glims = stage.Glims;
+        double farthest = 2 * cell;
+        Ref? by = null;
+        if (_charges.Remove(end.Id, out var kept))
+        {
+            by = kept.By;
+            foreach (var (at, wall) in kept.Round)
+            {
+                if (grid.WallAt(at) != null) continue;
+                double wx = (at % grid.Width + 0.5) * cell, wy = (at / grid.Width + 0.5) * cell, dx = wx - x, dy = wy - y;
+                double far = Math.Sqrt(dx * dx + dy * dy);
+                farthest = Math.Max(farthest, far);
+                double away = far > 0 ? Math.Atan2(dy, dx) : glims.Between(0, Math.Tau);
+                var chip = BurstChip with
+                {
+                    Ramp = GroundLooks.Of.TryGetValue(wall.Id, out var look) ? [look.Fleck, look.Colour] : BurstChip.Ramp,
+                    Gravity = afloat ? 0 : BurstChip.Gravity,
+                };
+                for (int i = 0; i < 2; i++)
+                {
+                    double a = away + glims.Between(-0.7, 0.7), s = glims.Between(60, 170);
+                    glims.Add(chip, wx + glims.Between(-3, 3), wy + glims.Between(-3, 3), Math.Cos(a) * s, Math.Sin(a) * s - (afloat ? 0 : 60), size: glims.Between(1, 2.4));
+                }
+                if (glims.Between(0, 1) < 0.5)
+                    glims.Add(BurstDust, wx, wy, Math.Cos(away) * glims.Between(10, 40), Math.Sin(away) * glims.Between(10, 40), bright: glims.Between(0.6, 0.9));
+            }
+        }
+        double ring = farthest + cell;
+        for (int i = 0; i < 40; i++)
+        {
+            double a = glims.Between(0, Math.Tau), s = ring * glims.Between(1.6, 2.4);
+            glims.Add(BurstDust, x + Math.Cos(a) * 4, y + Math.Sin(a) * 4, Math.Cos(a) * s, Math.Sin(a) * s, bright: glims.Between(0.7, 1), size: glims.Between(0.7, 1.2));
+        }
+        for (int i = 0; i < 8; i++)
+        {
+            double a = glims.Between(0, Math.Tau), s = ring * glims.Between(0.5, 0.9);
+            glims.Add(BurstCloud, x, y, Math.Cos(a) * s, Math.Sin(a) * s, bright: 0.7, size: glims.Between(1.6, 2.4));
+        }
+        stage.Flares.Glint(x, y, 1.5 * cell, (255, 255, 255));
+        stage.Flares.Bloom(x, y, 4 * cell, White, 0.9 * Fx.Glow);
+        stage.Flares.Shock(x, y, 4, ring, 450, (200, 198, 190), 0.5 * Fx.Glow, 0.5);
+        stage.Flares.Flash(x, y, White, 1.2 * Fx.Glow, 14, 0.6f, 0.85);
+        (by == Ref.Hero(own) ? _ownEnds : _ends).Play(S.ChargeBurst, new Vector2((float)x, (float)y));
     }
 
     private static bool Flying(CreaturesModule creatures, int id)

@@ -30,7 +30,7 @@
 | `logic/LurkerMotion.cs` | How it moves, off the sim. |
 | `logic/LurkerRig.cs` | Where its parts go in a pose: tested. |
 | `TickBodies.cs` | The tick (the sentry), drawn at `TickRig.Size`: sprite, lamp, arcs, burner, sparks, death. |
-| `ShotsView.cs` | Every peer's shots but a guest's own, drawn a tick behind; heard fired; their hits; the sentry's arcs. |
+| `ShotsView.cs` | Every peer's shots but a guest's own, a tick behind; heard fired; their hits; charges' bursts; the sentry's arcs. |
 | `logic/TickArt.cs` | The tick's pose and anchors, the page's leg sums. |
 | `logic/TickMotion.cs` | How a tick moves and its moments, read off the sim. |
 | `logic/TickRig.cs` | Where its parts go in a pose, in ink: plain C#, tested. |

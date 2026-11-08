@@ -142,6 +142,15 @@ public sealed record HeldLook(
     /// </summary>
     public static readonly HeldLook Pickaxe = new("res://art/hero_pickaxe.png", (5.5, 9), System.Math.PI / 2, (28.1, 17.3), (29.1, 17.3), Clamp: (14, 10));
 
+    /// <summary>
+    /// The blasting charge, <c>art/hero_blastCharge.png</c> (blasting-charge), the user's pick, «Труба с серой»: an iron pipe packed
+    /// with sulfur between two screw caps, a short fuse out of the front plug; held along the forearm, the fist round its back cap so
+    /// the pipe shows past the glove, aimed; the edge the pipe from cap to plug, the charge thrown from the plug. Its icon has the
+    /// fuse lit; in flight it turns, sparking (<see cref="ShotLooks.Charge"/>). Clamped by its middle.
+    /// </summary>
+    public static readonly HeldLook BlastCharge = new(
+        "res://art/hero_blastCharge.png", (1.4, 2), 0, (0.9, 2), (7.05, 2), Aimed: true, Clamp: (3.8, 2));
+
     /// <summary>How long an item that spins takes to spin up to full speed and to wind down, in milliseconds: its picture and its motor's sound alike.</summary>
     public const double SpinUpMs = 120, SpinDownMs = 700;
 
@@ -160,7 +169,7 @@ public sealed record HeldLook(
         : item == Content.Weapons.Grinder.Item ? Grinder : item == Content.Weapons.PlasmaCutter.Item ? PlasmaCutter
         : item == Content.Weapons.Spear.Item ? Spear : item == Content.Weapons.Sledgehammer.Item ? Sledgehammer
         : item == Content.Weapons.Pickaxe.Item ? Pickaxe
-        : item == Content.Shots.Nailer.Item ? Nailer : item == Content.Shots.Railgun.Item ? Railgun
+        : item == Content.Shots.Nailer.Item ? Nailer : item == Content.Shots.Railgun.Item ? Railgun : item == Content.Shots.Thrown.Item ? BlastCharge
         : item == Content.Screwdrivers.PowerDriver.Item ? PowerDriver : Content.Screwdrivers.Of(item) != null ? Screwdriver : null;
 
     /// <summary>Whether <paramref name="item"/> is run as the drill is, a module in it or not: a weapon drawing on the belt (the drill, grinder, cutter), aimed, hitting what its edge touches.</summary>

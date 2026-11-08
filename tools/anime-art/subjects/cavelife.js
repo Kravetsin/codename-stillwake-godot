@@ -1,4 +1,4 @@
-// What grows and lies in a planet's caves, in ink: crystals as caves.js's ice, dripstone of each band, wet fungi and glow-threads, roots, heat's cracks, geodes, fossils and the spire's cache and lens.
+// What grows and lies in a planet's caves, in ink: crystals as caves.js's ice, dripstone of each band, wet fungi and glow-threads, roots, heat's cracks, geodes, fossils, the deep caches' opal shells and the spire's cache and lens.
 // Every part stands in the logical picture's own pixels, read from it by eye and written here by hand. Cave life is flat washes with a rare pen line, as the moss; it stays dim, and its _glow does the lighting.
 (function () {
 'use strict';
@@ -505,6 +505,76 @@ function lens(a) {
   });
 }
 
+/* ---- The deep caches (the user's pick, 2026-11-08: ammonite): a shell turned to opal, half out of its block in the wall, its chambers
+   glowing in its band's colour; one a band, a little larger deeper. In the 16 px of its two cells, 4 px in from the picture's corner. ---- */
+const CACHES = [
+  { kind: 'frostCache', glow: '#80c7ff', flecks: ['#9fd6ff', '#c4b4ff', '#dff2ff'], size: .8,
+    opal: { base: '#5d7f9e', shade: '#3f5a7a', deep: '#2a3d58', lite: '#9cc6e4', spec: '#e8f6ff', ink: '#0c1422' } },
+  { kind: 'bloomCache', glow: '#99ff73', flecks: ['#b0f48a', '#7ee6cc', '#eaffd4'], size: .88,
+    opal: { base: '#5e8a68', shade: '#3f644c', deep: '#284232', lite: '#a2d48e', spec: '#effee0', ink: '#0c180f' } },
+  { kind: 'amberCache', glow: '#ffb352', flecks: ['#ffcc78', '#ff9c84', '#fff0c8'], size: .96,
+    opal: { base: '#9a7440', shade: '#6c4e2a', deep: '#46321a', lite: '#dcb070', spec: '#fff2d4', ink: '#1a1006' } },
+  { kind: 'emberCache', glow: '#ff6b29', flecks: ['#ff8a48', '#ffcc5c', '#fff0c0'], size: 1.04,
+    opal: { base: '#8c4632', shade: '#622e22', deep: '#3e1c16', lite: '#d0784a', spec: '#ffe2c0', ink: '#1a0806' } },
+];
+/** Paths in the find's 16 px, scaled round its middle for its band and set 4 px into the picture. */
+function cacheFrame(c) {
+  const m = (v) => 12 + (v - 8) * c.size;
+  return {
+    pts: (list) => poly(list.flatMap(([x, y]) => [m(x), m(y)])),
+    ell: (x, y, rx, ry) => ell(m(x), m(y), rx * c.size, (ry === undefined ? rx : ry) * c.size),
+    path: (list) => 'M' + list.map(([x, y]) => m(x).toFixed(2) + ' ' + m(y).toFixed(2)).join('L'),
+  };
+}
+const MATRIX = { base: '#4a4f5a', shade: '#33373f', deep: '#22252c', lite: '#62687a', spec: '#7c8290', ink: '#0d0f14' };
+const A_MATRIX = [[5, 2.6], [10, 2.4], [13.4, 4.4], [14.8, 8], [14, 12], [11, 14.4], [6.6, 14.6], [3.2, 12.4], [1.8, 8.6], [2.8, 4.8]];
+const A_COVER = [[10.2, 2.6], [13.5, 4.2], [14.8, 7.6], [13.4, 7.5], [12.2, 5.9], [10.6, 4.6]];
+const A_C = [8.2, 8.7], A_ROT = .7, A_N = 14;
+const coilR = (t) => .42 * Math.exp(.19 * t);
+const onCoil = (t, r) => [A_C[0] + Math.cos(t + A_ROT) * r, A_C[1] + Math.sin(t + A_ROT) * r];
+/** The outer whorl's chambers: each the stretch between two sutures, from this turn's edge to the last's. */
+const A_CHAMBERS = (() => {
+  const all = [], dt = (Math.PI * 2) / A_N;
+  for (let k = 0; k < A_N; k++) {
+    const t0 = Math.PI * 2 + k * dt, outer = [], inner = [];
+    for (let j = 0; j <= 3; j++) { const t = t0 + (j / 3) * dt; outer.push(onCoil(t, coilR(t))); inner.unshift(onCoil(t, coilR(t - Math.PI * 2))); }
+    const tm = t0 + dt / 2;
+    all.push({ list: outer.concat(inner), mid: onCoil(tm, (coilR(tm) + coilR(tm - Math.PI * 2)) / 2), r: (coilR(tm) - coilR(tm - Math.PI * 2)) / 2 });
+  }
+  return all;
+})();
+const A_INNER = (() => { const p = []; for (let t = .3; t <= Math.PI * 2 + .01; t += .3) p.push(onCoil(t, coilR(t))); return p; })();
+function opalCache(a, c) {
+  const f = cacheFrame(c);
+  a.shape(f.pts(A_MATRIX), MATRIX, { outer: false, shade: .9 });
+  a.flat(f.ell(A_C[0], A_C[1], coilR(Math.PI * 2) + .3), c.opal.deep);
+  A_CHAMBERS.forEach((ch, k) => {
+    a.shape(f.pts(ch.list), c.opal, { outer: false, shade: .3 });
+    const [x, y] = ch.mid;
+    if (k % 3 === 0) a.glow(f.ell(x, y, ch.r * .55, ch.r * .4), c.glow);
+    else a.glow(f.ell(x, y, ch.r * .35, ch.r * .3), c.flecks[k % 3]);
+  });
+  a.line(f.path(A_INNER), { w: 1.3, c: c.opal.ink });
+  a.flat(f.pts(A_COVER), '#3a3e48');
+  a.line(f.path([[10.6, 4.6], [12.2, 5.9], [13.4, 7.5]]), { w: 1.2, c: MATRIX.ink });
+  a.line(f.path([[3.4, 11.8], [4.6, 12.2], [5.2, 13.4]]), { w: .9, c: MATRIX.ink });
+}
+/** Its glow: the chambers, every third brighter, the coil's middle faint, the rock over it hiding them; a tight bloom over a wide haze. */
+function opalCacheGlow(c) {
+  const f = cacheFrame(c), m = canvas(24 * 4, 24 * 4), x = m.getContext('2d');
+  x.setTransform(4, 0, 0, 4, 0, 0);
+  x.fillStyle = '#fff';
+  x.globalAlpha = .35; x.fill(P(f.ell(A_C[0], A_C[1], coilR(Math.PI * 2))));
+  A_CHAMBERS.forEach((ch, k) => { x.globalAlpha = k % 3 === 0 ? 1 : .55; x.fill(P(f.pts(ch.list))); });
+  x.globalAlpha = 1; x.globalCompositeOperation = 'destination-out'; x.fill(P(f.pts(A_COVER)));
+  const o = canvas(m.width, m.height), y = o.getContext('2d');
+  y.globalCompositeOperation = 'lighter';
+  y.globalAlpha = .85;
+  y.drawImage(bloom(m, c.glow, 22, .5), 0, 0);
+  y.drawImage(bloom(m, c.glow, 6, .85, .4), 0, 0);
+  return o;
+}
+
 Subjects.cavelife = function () {
   for (const name of Object.keys(CRYSTALS)) {
     const c = crystal(name);
@@ -549,6 +619,10 @@ Subjects.cavelife = function () {
   out('caves/spireCache_0', bake(24, 16, cache));
   out('caves/spireCache_0_glow', bloom(mask(24, 16, (fill) => fill(poly(10.9, 11, 13.1, 11, 13.1, 11.9, 10.9, 11.9))), '#64e8cc', 3, 1, .7));
   out('caves/spireLamp_0', bake(24, 24, lens));
+  for (const c of CACHES) {
+    out(`caves/${c.kind}_0`, bake(24, 24, (a) => opalCache(a, c)));
+    out(`caves/${c.kind}_0_glow`, opalCacheGlow(c));
+  }
 };
 /** A crystal's whole body as its glow, as the ice's; less of it, or its warm paint burns out to white and the facets go. */
 function Bloom(c, tint) { return bloom(c, tint, 6, .55); }
