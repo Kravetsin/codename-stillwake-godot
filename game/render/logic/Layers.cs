@@ -84,6 +84,9 @@ public static class Layers
     /// <summary>A capback's gas and its glob flying (lurker-attacks), over the creatures and the heroes in it.</summary>
     public const int Gas = Drones;
 
+    /// <summary>Water in a planet's cells (liquids): over the heroes, so one in it is seen through it.</summary>
+    public const int Water = 18;
+
     /// <summary>
     /// The ground a hero digs at (0077): its cracks and the aim's outline round it, over every hero and the tool in its hands,
     /// so a drill held close never hides what it bites.

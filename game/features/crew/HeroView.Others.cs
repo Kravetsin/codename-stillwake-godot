@@ -92,6 +92,7 @@ public partial class HeroView
             shown.Figure.WearsCape = m.Items.Equipped(id, Content.Cape.Item);
             shown.Figure.FloorRoom = FloorRoom(m.Grid, hero);
             shown.Figure.Footing = FootingOf(m, hero, shown.Figure.Footing);
+            shown.Figure.InWater = ship.Wading(hero.FeetCell(ship.Width));
             shown.Figure.Ledge = LedgeOf(ship, hero);
             bool afloat = ship.Space(hero.BodyCell(ship.Width));
             // A charge ended by it: it was rammed, its own peer says so; here it flinches, its air knocked out, heard where it is.
@@ -102,7 +103,7 @@ public partial class HeroView
                 _air.Leak(new Vector2(cx, cy), rammedFrom);
                 _othersThud.Play(S.RamHits.GetValueOrDefault(rammer, S.RamThud), new Vector2(cx, cy));
             }
-            shown.Figure.Show(hero, Poses.PoseOf(hero, afloat || ship.Glides(hero.X), out_), out_ ? 0 : seen.Look ?? 0,
+            shown.Figure.Show(hero, Poses.PoseOf(hero, afloat || ship.Glides(hero.X) || ship.Wet(hero.BodyCell(ship.Width)), out_), out_ ? 0 : seen.Look ?? 0,
                 seen.HoldsPlan, elapsedMs);
             for (int burnt = shown.Burns.Due(elapsedMs, Burns(m, crew.HeroOf(id)), 1 / S.LavaBurnEveryS); burnt > 0; burnt--)
                 _othersBurn.PlayAt(shown.Figure.GlobalPosition);

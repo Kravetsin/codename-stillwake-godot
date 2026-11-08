@@ -388,7 +388,7 @@ public partial class HeroView : Node2D
         _width = grid.Width;
         // Doors as this peer shows them: its own toggles still in flight already open or shut.
         var shown = Predicted.Grid(client, grid, m.Pipes);
-        var ship = _ship = Ship.Of(grid, m.Rooms, cell => shown.StructureAt(grid, cell), m.Rules);
+        var ship = _ship = Ship.Of(grid, m.Rooms, cell => shown.StructureAt(grid, cell), m.Rules, m.Liquids.AmountAt);
         var known = m.Crew.HeroOf(client.Id);
         bool passedOut = (known?.Out ?? 0) > 0;
         // Sitting in a drop pod, the hero keeps to its seat, takes no orders but E's, and is drawn behind its porthole (SeatedHeroes).
@@ -529,8 +529,8 @@ public partial class HeroView : Node2D
         _ui.Heroes = [Chest(drawn), .. Others.Select(o => Chest(o.Hero))];
         _ui.Bits = Bits();
         bool inSpace = Floats = ship.Space(drawn.BodyCell(ship.Width));
-        // Gliding in a planet's fog it floats as in space (fog-edges), though nothing there is space.
-        var pose = Poses.PoseOf(drawn, inSpace || drawn.Gliding, passedOut);
+        // Gliding in a planet's fog it floats as in space (fog-edges), though nothing there is space; in water it swims so.
+        var pose = Poses.PoseOf(drawn, inSpace || drawn.Gliding || ship.Wet(drawn.BodyCell(ship.Width)), passedOut);
         // The hands first, so the frame a hit goes draws the blade meeting the wreck; a swing begun turns the hero.
         UseHands(client, m, shown, pointer, passedOut, pose, elapsedMs, handFree: !HoldsPlan);
         _ui.Driven = [.. _shownOthers.Values.Select(o => o.Driver).Append(_driverHeard).Where(d => d.Hum.Quiets).Select(d => (d.At.X, d.At.Y))];
@@ -545,6 +545,7 @@ public partial class HeroView : Node2D
         _figure.WearsCape = m.Items.Equipped(client.Id, Content.Cape.Item);
         _figure.FloorRoom = FloorRoom(m.Grid, drawn);
         _figure.Footing = FootingOf(m, drawn, _figure.Footing);
+        _figure.InWater = ship.Wading(drawn.FeetCell(ship.Width));
         _figure.Ledge = LedgeOf(ship, drawn);
         _figure.Show(drawn, pose, look, holdsPlan, elapsedMs);
         _figure.Visible = seat == null;
