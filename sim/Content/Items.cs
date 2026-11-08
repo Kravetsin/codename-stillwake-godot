@@ -119,6 +119,8 @@ public static class Items
         new("mica", 250),
         // Lodestone, a natural magnet, out of the heat's cracks over the bedrock: a motor's magnet.
         new("magnetite", 250),
+        // Yellow lumps out of the deep stone's pockets (deep-digging): the blasting charge's.
+        new("sulfur", 250),
         // Out of the ruins (0085): scrap of their alloy, a cell of wall dug or a spire cache opened; walls of it built.
         new("alloyScrap", 250),
         // What the arc makers' homes give (0091): the cloth of their rugs and banners, which burns till the ship makes things of

@@ -92,6 +92,28 @@ public class PlanetYieldsTests
     }
 
     [Fact]
+    public void ADugSulfurVeinGivesItsLumpToTheDiggerAndLeavesTheStoneItRanThroughBehind()
+    {
+        var w = new Scenario(Layout.Parse("""
+            ####
+            #..#
+            ####
+            """).WithMaterials("""
+            tttt
+            t..y
+            tttt
+            """).OnPlanet(), doubled: true);
+        int cell = w.At(3, 1), hits = (Materials.Get("sulfurVein").Strength + Weapons.Axe.BlockDamage - 1) / Weapons.Axe.BlockDamage;
+        Assert.Equal("sulfurVein", w.M.Grid.WallAt(cell)?.Id);
+        for (int i = 0; i < hits; i++) w.Do(HewTesting.Dig(w, cell, Axe)).Run();
+        Assert.Null(w.M.Grid.WallAt(cell));
+        Assert.Empty(w.Refusals);
+        Assert.Equal((1, 0), (Count(w, "sulfur"), Count(w, "rock")));
+        Assert.Equal("stone", w.M.Grid.BackAt(cell)?.Id);
+        Assert.Empty(w.M.Items.Floor);
+    }
+
+    [Fact]
     public void ADugGeodeGivesSixCrystals()
     {
         var w = Cave();

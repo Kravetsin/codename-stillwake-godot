@@ -41,6 +41,7 @@ public static class Market
         ["copperOre"] = 30,
         ["mica"] = 50,
         ["magnetite"] = 60,
+        ["sulfur"] = 40,
         ["alloyScrap"] = 40,
         ["crystal"] = 100,
         ["arcLamp"] = 300,

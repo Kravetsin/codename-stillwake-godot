@@ -507,7 +507,7 @@ public partial class ContentTests
     [Fact]
     public void WhatTheCavesGiveComesFromAPlanetAloneAndTheMotorNeedsItsCopperAndItsDeepestMagnetite()
     {
-        string[] planetary = ["copperOre", "copper", "magnetite", "motor", "ice", "crystal", "spore", "mica"];
+        string[] planetary = ["copperOre", "copper", "magnetite", "motor", "ice", "crystal", "spore", "mica", "sulfur"];
         var aboard = Reachable(Stations.All).Items;
         Assert.All(planetary, item => Assert.DoesNotContain(item, aboard));
         var (down, known) = Reachable(Stations.All, planet: true);
