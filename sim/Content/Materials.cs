@@ -92,6 +92,8 @@ public static class Materials
         new("glass", Code: 11, Strength: 1, Leak: 18, Cost: [("glass", 2)], BuildTicks: 10, Menu: new(MenuTabs.Structure, 22), BackMenu: new(MenuTabs.Structure, 122), Armour: 1, Clear: true),
         new("mica", Code: 12, Strength: 1, Leak: 18, Cost: [("mica", 2)], BuildTicks: 8, Menu: new(MenuTabs.Structure, 24), BackMenu: new(MenuTabs.Structure, 124), Armour: 1),
         new("hide", Code: 13, Strength: 1, Leak: 18, Cost: [("hide", 1), ("fat", 1)], BuildTicks: 6, Menu: new(MenuTabs.Structure, 26), BackMenu: new(MenuTabs.Structure, 126), Armour: 1),
+        // A generated vessel's plating (generated-vessels): iron in every rule but its yield, a scrap chunk a cell; never built, drawn as iron.
+        new(Vessels.Hull, Code: 17, Strength: 5, Leak: 72, Cost: [("scrapChunk", 1)], BuildTicks: 14, Look: MaterialLook.Panels, Armour: 5, As: "iron"),
         // A planet's ground (0077), far leakier than any hull, soil the worst. Soil breaks at a swing of the axe, stone at three; a
         // shovelful of soil and a lump of rock, the asteroids' own, come out of it, and build it back. Laid stone stands up to meteors
         // better than scrap, soil worse.

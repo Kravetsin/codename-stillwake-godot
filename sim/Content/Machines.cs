@@ -256,6 +256,8 @@ public static class Machines
         // The drop pod, the bell (the capsule concepts' 2C): a dome with a round porthole on a wide skirt, standing on a launch platform
         // two pieces wide. A hero sits in it; its one slot holds the biofuel it will burn going down. Guided by a processor and a display.
         new("dropPod", 4, 6, [], [("frame", 6), ("plate", 16), ("glass", 8), ("tube", 6), ("processor", 1), ("display", 1)], BuildTicks: 240, Slots: 1, Takes: "biofuel", Has: MachineTrait.Seats | MachineTrait.Lands, Menu: new(MenuTabs.Ship, 105), Char: 'Z', Means: "drop pod: draw its whole footprint, on a launch platform"),
+        // A vessel's salvage aboard (plan V-1b): piles copied from the debris that drifts by, worked out in Vessels.
+        .. Vessels.SalvageRows,
     ];
 
     private static readonly Dictionary<string, MachineSpec> ByKind = All.ToDictionary(m => m.Kind, StringComparer.Ordinal);
