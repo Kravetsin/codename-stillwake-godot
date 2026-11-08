@@ -215,9 +215,9 @@ public sealed class Shot
 
 /// <summary>
 /// A shot that ended this tick: its id, its projectile, its gun (none for a creature's), the cell it met or last flew in, and
-/// whether it met something there or ran out of reach or grid.
+/// whether it met something there or ran out of reach or grid; the cell its burst spread from (deep-digging), -1 for none.
 /// </summary>
-public readonly record struct ShotEnd(int Id, string Projectile, string? Gun, int Cell, bool Met);
+public readonly record struct ShotEnd(int Id, string Projectile, string? Gun, int Cell, bool Met, int Burst = -1);
 
 /// <summary>What a shot hits in a cell: what is solid there, a creature, or a wreck. Saved by number in what a shot passed, so never renumber one.</summary>
 public enum ShotTarget

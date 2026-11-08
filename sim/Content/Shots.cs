@@ -3,10 +3,11 @@ namespace Stillwake.Content;
 /// <summary>
 /// What flies as a shot (shots-are-the-sims): what a hit adds to its gun's, <paramref name="Damage"/> off a creature or a wreck and
 /// <paramref name="BlockDamage"/> off a wall or a built piece; <paramref name="Weight"/>, how many times <see cref="Creatures.Gravity"/>
-/// pulls it on a planet, 0 for none; <paramref name="HitsBodies"/>, whether creatures and wrecks stop it, or solid cells alone. How
-/// fast and far it flies is its gun's.
+/// pulls it on a planet, 0 for none; <paramref name="HitsBodies"/>, whether creatures and wrecks stop it, or solid cells alone;
+/// <paramref name="Bursts"/>, the burst where its shot ends, wherever that is, or null (deep-digging). How fast and far it flies is
+/// its gun's.
 /// </summary>
-public sealed record Projectile(string Id, int Damage, int BlockDamage, int Weight, bool HitsBodies);
+public sealed record Projectile(string Id, int Damage, int BlockDamage, int Weight, bool HitsBodies, Blast? Bursts = null);
 
 /// <summary>
 /// A hero's gun: the item <paramref name="Item"/>, firing one of <paramref name="Ammo"/> a shot, the first of them the hero carries; a
@@ -62,9 +63,21 @@ public static class Shots
     /// </summary>
     public static readonly Projectile Glob = new("slime", Damage: 0, BlockDamage: 0, Weight: 0, HitsBodies: false);
 
-    public static readonly IReadOnlyList<Projectile> Projectiles = [Nail, Bolt, Glob];
+    /// <summary>
+    /// The blasting charge (deep-digging), thrown as itself: 10 off a creature or a wreck it strikes, nothing off a wall; weight 3,
+    /// so on the first planet a throw at 45° lands some 18 cells out; it bursts wherever its shot ends (<see cref="Blasting.Charge"/>).
+    /// </summary>
+    public static readonly Projectile BlastCharge = new("blastCharge", Damage: 10, BlockDamage: 0, Weight: 3, HitsBodies: true, Bursts: Blasting.Charge);
 
-    public static readonly IReadOnlyList<Gun> Guns = [Nailer, Railgun];
+    /// <summary>
+    /// The charge thrown from the hand: its own 10 and nothing more, a full knock; 30 cells a second, gone at 40 cells' worth, bursting
+    /// in the air there (in space, where nothing pulls it down); a throw a second.
+    /// </summary>
+    public static readonly Gun Thrown = new("blastCharge", ["blastCharge"], Damage: 0, BlockDamage: 0, Knock: 10, Speed: 1500, Reach: 40, Pace: 20, PierceKeep: 0);
+
+    public static readonly IReadOnlyList<Projectile> Projectiles = [Nail, Bolt, Glob, BlastCharge];
+
+    public static readonly IReadOnlyList<Gun> Guns = [Nailer, Railgun, Thrown];
 
     /// <summary>The projectile <paramref name="id"/>; throws for none.</summary>
     public static Projectile Get(string id)

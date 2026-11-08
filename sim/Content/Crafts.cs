@@ -31,6 +31,8 @@ public static class Crafts
         new("nailer", [("tube", 1), ("plate", 2), ("wire", 2)], Ticks: 60),
         // Two scrap a nail, so the scrap a hero has too much of goes into nails made ahead: a second a nail at the pod.
         new("nail", [("scrap", 2)], Ticks: 4),
+        // Of the deep's sulfur (deep-digging): had only after a planet's been dug.
+        new("blastCharge", [("sulfur", 2), ("tube", 1)], Ticks: 40),
         // Free, a convention: the hero has to go and take them (2026-10-27-suits-are-worn). Five seconds each at the pod.
         new("helmet", [], Ticks: 20),
         new("suit", [], Ticks: 20),
