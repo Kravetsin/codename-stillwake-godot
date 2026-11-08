@@ -75,9 +75,9 @@ network can give (0017); cables move by hand (0021); stores keep what is spare (
 ## Commands
 
 `Lay(A, B)`, paid from the sender's stock, crates too (`Content.Power.CableCost`; a creative sender pays from nothing; cutting it refunds as any):
-`power.notAboard` (0110), `power.noNode`, `power.sameNode`, `power.tooLong`, `power.twice`, `items.notEnough`.
+`power.notAboard` (0110), `power.noNode`, `grid.reserved`, `power.sameNode`, `power.tooLong`, `power.twice`, `items.notEnough`.
 `Cut(A, B)` gives back what was paid: `power.noCable`, `items.full`. `Move(Node, To, Cable?)`: `power.notAboard`,
-`power.noCable`, `power.noNode`, `power.sameNode`, `power.twice`, `power.taut` (0021). `From` is the sender.
+`power.noCable`, `power.noNode`, `grid.reserved`, `power.sameNode`, `power.twice`, `power.taut` (0021). `From` is the sender.
 
 ## Invariants
 
@@ -96,4 +96,4 @@ network can give (0017); cables move by hand (0021); stores keep what is spare (
 - No priorities, switches or overload; a store holds nothing back, never leaks, and loses its charge taken apart.
 - A broken drone bay still sends drones (logistics reads no power), the engine's draw is read by none; a broken
   burner's lit fire burns on for nothing.
-- Networks are found anew each tick (tens of cables): a cache would have to follow slots and rests.
+- Networks are found anew each tick (tens of cables), uncached.

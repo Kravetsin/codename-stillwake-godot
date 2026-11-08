@@ -17,10 +17,10 @@ A blueprint puts something in a cell, a mark takes something apart.
 Also digging, what grows (0077, 0079, 0080), the ruins' pieces (0085, 0091, 0096) and repairs (magnetic-flare).
 
 - **Depends on:** `Grid` (queries, ops); `Items` (queries, ops); `Crew` (`Heroes`; `Shock`, 0091, 0096); `Power`
-  (`Unplug`, `Plug`, 0110; `IsBroken`, `Mend`); `Research` (`Knows`, 0024); `Crafting` (`Queue`, 0057); `Pipes` (`SeatProblem`). Creatures reads it (`ShotTakes`, `ShotKey`) and changes it (`Hit`).
+  (`Unplug`, `Plug`, 0110; `IsBroken`, `Mend`); `Research` (`Knows`, 0024); `Crafting` (`Queue`, 0057); `Pipes` (`SeatProblem`). Creatures reads it (`ShotTakes`, `ShotKey`) and changes it (`Hit`); Places, `Wipe`.
 - **State** (`BuildingState`, all saved): `Plans` in the order made, each with `Progress` in ticks and, for a blueprint,
   `Delivered` stacks in the order first given; `NextPlanId`; `Cracks`, sorted by cell (`Crack(Cell, Damage, At, Back)`);
-  `Felled`, cells of growths felled since the ground grew, ascending; `Clock`; `Instant`; `Repairs` paid, by machine. Derived (`Flora.cs`): the growths grown
+  `Felled`, cells of growths felled, ascending; `Clock`; `Instant`; `Repairs` paid, by machine. Derived (`Flora.cs`): the growths grown
   and standing, by cell; the resonators standing.
 
 ## Rules
@@ -50,7 +50,7 @@ Also digging, what grows (0077, 0079, 0080), the ruins' pieces (0085, 0091, 0096
 - **A wall does not finish on a hero** (0077): the `Work` that would complete a wall (instant: placing) is refused `building.heroInside`
   while its cell is in a standing body round a hero's reported middle (3 rows up, 2 down, 1 aside). Building runs before crew.
   So does a last tick the grid, `SeatProblem` or a floor still unlaid refuses.
-- **`Hew(Tool, X, Y, Heading)`** (fan-of-rays), only where `ToolsBreak` (else `building.notHere`): the weapon's fan
+- **`Hew(Tool, X, Y, Heading)`** (fan-of-rays), where `ToolsBreak` or in a vessel's box (else `building.notHere`): the weapon's fan
   (`Rays`) from the hand; a ray stops at a wall or what stops a body, striking it if it breaks (not bedrock or lava; a
   piece by its first cell), and passes ladders, open doors and plants, striking them (`Struck`).
   `HewCells(Tool, Cells)` (tool-edge) strikes each listed cell as a ray does, once.
@@ -86,11 +86,11 @@ Also digging, what grows (0077, 0079, 0080), the ruins' pieces (0085, 0091, 0096
 - A crack lies only on something that breaks, damage above 0 and below its strength, one a cell and layer, by cell.
   A wall broken gives what it is made of, once.
 - After derivation every standing growth's hold is there; `Plants` and `Felled` are disjoint and together what grew.
-- Items are conserved across inventories, floor, blueprints and what is built, but for what drifts off the grid.
+- Items are conserved across inventories, floor, blueprints and what is built, but for what drifts off the grid or a `Wipe` takes.
 
 ## Deliberately not handled
 
-- Growths on a drawn map are not brought back by a load: only a grown surface's ground grows again.
+- A drawn map's growths are not brought back by a load: only grown ground grows again.
 - Only a growth's own cell built over fells it, not its crown's (0080).
 - Reach, a fan's hand, a shot's muzzle and which plan is worked are the client's.
 - A blueprint finished on its hero's cell holds the hero.

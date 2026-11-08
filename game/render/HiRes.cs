@@ -18,7 +18,7 @@ public static class HiRes
     /// <summary>The hi-res picture standing for <paramref name="name"/> as pixels, RGBA8; none if it has none.</summary>
     public static Image? Load(string name)
     {
-        string path = $"res://art/hd/{name}.png";
+        string path = $"res://art/hd/{DebrisLooks.SalvagePicture(name) ?? name}.png";
         if (!ResourceLoader.Exists(path)) return null;
         var image = GD.Load<Texture2D>(path).GetImage();
         if (image.IsCompressed()) image.Decompress();
@@ -27,7 +27,7 @@ public static class HiRes
     }
 
     /// <summary>Whether <paramref name="name"/> has a hi-res picture.</summary>
-    public static bool Has(string name) => ResourceLoader.Exists($"res://art/hd/{name}.png");
+    public static bool Has(string name) => ResourceLoader.Exists($"res://art/hd/{DebrisLooks.SalvagePicture(name) ?? name}.png");
 
     private static readonly Dictionary<(string, int, bool), Image> Reduced = new();
 

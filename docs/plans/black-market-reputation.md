@@ -74,7 +74,7 @@ worth, anything else at 1/7. Purchases are still granted at once (deliveries are
 
 ### Save
 
-12. `World.SaveFormat` 56 → 57; its step in `sim/Registry/Migrations.cs` writes only the root `slices.knowledge` (the
+12. `World.SaveFormat` 57 → 58; its step in `sim/Registry/Migrations.cs` writes only the root `slices.knowledge` (the
     world's, not a surface's):
     - the old five orders and the new ones frozen in the step, never read from `Content`;
     - `reputation.level`: the old orders met in sequence, each by `sold`, stopping at the first unmet (the old rule

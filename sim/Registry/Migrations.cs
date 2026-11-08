@@ -19,8 +19,8 @@ public static class Migrations
     /// <summary>The oldest format a save may have and still load: the tech tree's first.</summary>
     public const int Oldest = 39;
 
-    /// <summary>The market's five orders as format 56 had them, in turn.</summary>
-    private static readonly (string Item, int Count)[][] OldOrders57 =
+    /// <summary>The market's five orders as format 57 had them, in turn.</summary>
+    private static readonly (string Item, int Count)[][] OldOrders58 =
     [
         [("scrapChunk", 40), ("iron", 20), ("planks", 20)],
         [("plate", 30), ("gear", 20)],
@@ -29,8 +29,8 @@ public static class Migrations
         [("copper", 20), ("mica", 10), ("hide", 5)],
     ];
 
-    /// <summary>What each level wants as format 57 first had it: the goods its base counts.</summary>
-    private static readonly (string Item, int Count)[][] NewOrders57 =
+    /// <summary>What each level wants as format 58 first had it: the goods its base counts.</summary>
+    private static readonly (string Item, int Count)[][] NewOrders58 =
     [
         [("scrapChunk", 40), ("iron", 20), ("planks", 20)],
         [("plate", 30), ("gear", 20), ("wire", 30)],
@@ -240,15 +240,22 @@ public static class Migrations
                 surface!["slices"] = Inserted56(surface["slices"]!.AsObject());
             return root;
         },
-        // 56 → 57 (2026-11-08-mafia-reputation): orders give way to reputation; the world's level is the old orders met in turn, the
+        // 56 → 57 (generated-vessels): the places module joins last, on the ship and every surface: no contact found, no vessel out.
+        root =>
+        {
+            foreach (var slices in new[] { root["slices"]! }.Concat((root["surfaces"]?.AsArray() ?? []).Select(s => s!["slices"]!)))
+                slices["places"] = new JsonObject { ["contacts"] = new JsonArray(), ["nextContactId"] = 1 };
+            return root;
+        },
+        // 57 → 58 (2026-11-08-mafia-reputation): orders give way to reputation; the world's level is the old orders met in turn, the
         // next counted from now. Both order lists frozen here, so a later change to the market's never changes what this step makes.
         root =>
         {
             var knowledge = root["slices"]!["knowledge"]!.AsObject();
             var sold = (knowledge["sold"]?.AsArray() ?? []).ToDictionary(s => s!["item"]!.GetValue<string>(), s => s!["count"]!.GetValue<int>(), StringComparer.Ordinal);
             int level = 0;
-            while (level < OldOrders57.Length && OldOrders57[level].All(d => sold.GetValueOrDefault(d.Item) >= d.Count)) level++;
-            var start = level < NewOrders57.Length ? NewOrders57[level] : [];
+            while (level < OldOrders58.Length && OldOrders58[level].All(d => sold.GetValueOrDefault(d.Item) >= d.Count)) level++;
+            var start = level < NewOrders58.Length ? NewOrders58[level] : [];
             knowledge["soldWorth"] = 0;
             knowledge["reputation"] = new JsonObject
             {

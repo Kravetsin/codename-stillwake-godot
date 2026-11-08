@@ -21,6 +21,7 @@ effect, so a release build has none of this folder and no `*Demo.cs` anywhere.
 | `PlanScenarios.cs` | the plan's hand scripts: `--plan-demo`, `--mark`, `--layer-demo`, `--shimmer-demo`, `--driver-demo` |
 | `DebrisScenarios.cs` | `--debris` (seeded hosting too), `--fly`, `--asteroid`, `--sortie`, `--net`, `--net-press` |
 | `MeteorScenario.cs` | `--meteors`: the new game's wreck with its first meteor seen coming at once; `=N` its power |
+| `VesselScenario.cs` | `--vessel`: a generated vessel beside the new game's wreck, `=class`, `=class,wrecked` |
 | `PilesScenario.cs` | `--piles`: the hold with an axe in hand, a sledgehammer, the scanner worn; `--autopilot` breaks the piles. |
 | `CapsuleScenario.cs` | The wreck with its trade station's capsule just gone or about to come home (--capsule) |
 | `MarketScenario.cs` | `--market`: a trade station, credits and the first two levels' goods with scrap, to raise the mafia's reputation |

@@ -41,7 +41,7 @@ farther tiers bigger wrecks, derelicts, rich rock, 0056); **`asteroids`** (`Hull
   hero's view but at the grid's edge (0052).
 - **A beat** is due `Every` plus `Below(Jitter + 1)` on; no jitter draws nothing. A zone with no beat gets one (0052).
 - **Stream and band beats** spawn while fewer than `Max` of the zone are out and there is a hull (cells with a
-  structure, within `Built`, 0048). Draws: row, kind, speed. A piece starts `Lead` right of the hull, ends `Lead` left
+  structure, within `Built`, a vessel's not, 0048). Draws: row, kind, speed. A piece starts `Lead` right of the hull, ends `Lead` left
   of it; a start in a hero's view is pushed past every view it lands in (0052). A band row off the grid spawns nothing but takes its draws (0054).
 - **The far field's beat** (0052): every tick, each hero on the grid in id order while fewer than `Max` are out,
   skipping without a draw a hero in a stream's box or with `PerHero` in its `Keep` box: a point on its ring (side,
@@ -89,7 +89,7 @@ farther tiers bigger wrecks, derelicts, rich rock, 0056); **`asteroids`** (`Hull
 
 ## Deliberately not handled
 
-- Reach, what an edge touches, the weapon in hand, its pace, the harpoon's shot and cooldown: the client's, among friends (0044).
+- Reach, what an edge touches, the weapon in hand, its pace, the harpoon's shot and cooldown: the client's (0044).
 - A stale reported cell, a window over 1920×1080 or a narrow grid may show a spawn; a stream pushed right by a hero is
   thinned by the cap; heroes share one far field's density (0052). A half-broken far wreck can despawn.
 - Two grabs of one piece on a tick: host order; the second is `debris.gone`.
