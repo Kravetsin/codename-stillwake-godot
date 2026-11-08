@@ -16,11 +16,11 @@ public class PlacesTests
     private static readonly string Axe = Weapons.Axe.Item;
 
     /// <summary>A contact of <paramref name="cls"/> found and jumped to on <paramref name="w"/>, or on the new game's world.</summary>
-    private static (Scenario W, Box Box) Jumped(string cls = "freighter", bool intact = false, Scenario? w = null)
+    private static (Scenario W, Box Box) Jumped(string cls = "freighter", bool wrecked = false, Scenario? w = null)
     {
         w ??= new Scenario(Registry.Wreck);
         w.Do(new Find(cls)).Run();
-        w.Do(new Jump(w.M.Places.Contacts[^1].Id, intact)).Run();
+        w.Do(new Jump(w.M.Places.Contacts[^1].Id, wrecked)).Run();
         Assert.Empty(w.Refusals);
         return (w, w.M.Grid.Reserved!.Value);
     }
@@ -68,7 +68,7 @@ public class PlacesTests
     {
         var w = new Scenario(Registry.Wreck);
         var before = Cells(w);
-        var (_, first) = Jumped(intact: true, w: w);
+        var (_, first) = Jumped(w: w);
         int width = w.M.Grid.Width;
         int wall = Enumerable.Range(0, width * w.M.Grid.Height).First(c => first.Contains(c % width, c / width) && w.M.Grid.WallAt(c) != null);
         w.Do(new Deconstruct(wall, "structure")).Run();
@@ -92,9 +92,9 @@ public class PlacesTests
     {
         int Backs(Scenario w, Box box) => Enumerable.Range(box.Top, box.Height).Sum(y =>
             Enumerable.Range(box.Left, box.Width).Count(x => w.M.Grid.BackAt(y * w.M.Grid.Width + x) != null));
-        // The same contact's seed, one world jumping to it intact and one wrecked.
-        var (intact, box) = Jumped(intact: true);
-        var (wrecked, same) = Jumped(intact: false);
+        // The same contact's seed, one world jumping to it as a jump does, intact, and one wrecked by the dev's flag.
+        var (intact, box) = Jumped();
+        var (wrecked, same) = Jumped(wrecked: true);
         Assert.Equal(box, same);
         Assert.True(Backs(wrecked, same) < Backs(intact, box));
     }
@@ -170,7 +170,7 @@ public class PlacesTests
     [Fact]
     public void TheAxeBreaksAVesselsWallAndNothingOfTheShips()
     {
-        var (w, box) = Jumped(intact: true);
+        var (w, box) = Jumped();
         int width = w.M.Grid.Width, row = box.Top + box.Height / 2;
         w.GiveItems(0, (Axe, 1)).Do(new Enter(row * width + box.Left - 4)).Run();
         int wall = Enumerable.Range(box.Left, box.Width).Select(x => row * width + x).First(c => w.M.Grid.WallAt(c) != null);
@@ -190,7 +190,7 @@ public class PlacesTests
     [Fact]
     public void TheSledgehammerBreaksAVesselsSalvageForItsCostCountedObtained()
     {
-        var (w, box) = Jumped(intact: true);
+        var (w, box) = Jumped();
         int width = w.M.Grid.Width;
         string hammer = Weapons.Sledgehammer.Item;
         var salvage = w.M.Grid.Machines.First(m => box.Contains(m.Cell % width, m.Cell / width)

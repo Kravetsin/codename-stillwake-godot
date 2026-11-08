@@ -110,8 +110,9 @@ come through the same jump.
 - **Commands**, from any peer (the co-op trusts its friends; dev commands are sent only by the dev flag and panel):
   - `Find(Class)`: draws a seed from the world's Rng, adds a contact. Refused `places.notAboard` (the sender is not on
     the ship's surface), `places.noClass`, `places.full`.
-  - `Jump(Contact, Intact)`: clears the old box, places and writes the vessel, drops the contact. Refused
-    `places.notAboard`, `places.noContact`, `places.noRoom`. `Intact` is sent only by the dev flag.
+  - `Jump(Contact, Wrecked)`: clears the old box, places and writes the vessel, drops the contact. Refused
+    `places.notAboard`, `places.noContact`, `places.noRoom`. A vessel comes as built (the user's word, 2026-11-08: wrecks
+    come later); `Wrecked`, sent only by dev tools, breaks it by a breach meanwhile.
 - **A jump, in order:** the new box first: its left the ship's `Built.Right + Gap + 1` (the ship's: the vessel's box left
   out), its top the ship's middle row (`Top + Height / 2`, rounded down) less the vessel's `Height / 2`, rounded down,
   moved inside the grid by `Vessels.EdgeClear` (16); none fits: `places.noRoom`, and nothing changes. Then
@@ -164,7 +165,7 @@ survive with its progress. Machines in the box are only the whitelist's, so noth
 ### Client
 
 No new scene: the grid, lights and tools already draw and act on any cells. V-1 adds a dev flag
-`--vessel=<class>[,intact]` (a `Find` and a `Jump` on the first tick), the `hull` material's tiles, and the En text of
+`--vessel=<class>[,wrecked]` (a `Find` and a `Jump` on the first tick), the `hull` material's tiles, and the En text of
 `grid.reserved` and every `places.*` refusal. V-4 brings the radar's screen.
 
 ## Tasks

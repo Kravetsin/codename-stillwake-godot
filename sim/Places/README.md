@@ -20,13 +20,13 @@ itself is described, stamped and wrecked by `Shipyard` (sim/Core `Vessels/`), fr
 - Aboard only: off the ship's surface `Find` and `Jump` are refused `places.notAboard`.
 - **`Find(Class)`** draws a seed from the world's Rng, the only draw this module makes, and adds a contact. Sent by the dev
   flag (`--vessel`) and the dev panel until the radar does.
-- **`Jump(Contact, Intact)`**, in order: the box is found first (below); none fits, `places.noRoom`, and nothing changes.
+- **`Jump(Contact, Wrecked)`**, in order: the box is found first (below); none fits, `places.noRoom`, and nothing changes.
   Else the old vessel's box is wiped (`Building.Wipe`: machines emptied and unplugged, every thing cleared, its plans and
   cracks dropped, nothing given), the new box reserved (`Grid.Reserve`), the vessel's parts laid (`Grid.Lay`) in reading
   order of their top-left cells, so machine ids follow it, its crates filled (`PutIn`) and their loot counted obtained
   (`Caught`, the-board), and the contact dropped. Compartments hold salvage, piles copied from drifting debris (`Content.Vessels.Salvage`, five
   times a piece's mean loot, broken by tools as any pile). A vessel is
-  wrecked by a breach; `Intact`, sent only by the dev flag, as built.
+  as built, wrecks to come (the user's word); `Wrecked`, sent only by dev tools, breaks it by a breach meanwhile.
 - **The box:** `Vessels.Gap` columns right of the ship, the tight box of everything built but the vessel (`Grid.Built` with
   none out); its rows centred on the ship's, rounded down, moved inside the grid by `Vessels.EdgeClear`. On the game's world
   it always fits: nothing is built outside the zone, and a frame is at most 448 wide.
@@ -36,7 +36,7 @@ itself is described, stamped and wrecked by `Shipyard` (sim/Core `Vessels/`), fr
 ## API
 
 - **Queries:** `Contacts`.
-- **Commands:** `Find(Class)` — `places.notAboard`, `places.noClass`, `places.full`. `Jump(Contact, Intact)` —
+- **Commands:** `Find(Class)` — `places.notAboard`, `places.noClass`, `places.full`. `Jump(Contact, Wrecked)` —
   `places.notAboard`, `places.noContact`, `places.noRoom`. `Dismiss` (the dev panel's): the vessel out wiped and its box
   freed — `places.notAboard`, `places.noVessel`.
 - **Fuzz:** now and then, a jump writing thousands of cells: `Dismiss`, `Find` of a class or none, `Jump` to a contact held or not.

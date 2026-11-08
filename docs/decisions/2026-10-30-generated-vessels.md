@@ -53,6 +53,9 @@ possible and the wreck made from it.
   each its piece's size, hit points and picture and `SalvageCost`: `Times` (5) its piece's mean loot, the circuit not
   multiplied. Its look says what it gives: a tank cluster in life support is air. A breach leaves a hull section or a shield
   slab by its crater. The user's idea; the pictures are the drifting pieces' till standing ones are picked.
+- **Vessels come as built for now** (the user's word, 2026-11-08): wrecking waits for its own slice. The breach and its
+  debris stay in `Shipyard.Damage`, reached by `Jump(Contact, Wrecked: true)` from dev tools (`--vessel=class,wrecked`, the
+  panel's `wrecked`), so the damage pass keeps its tests.
 - Save format 57: the module joins every surface with no contact and no vessel out. A crate's loot is counted obtained
   (the-board) as it is written.
 
@@ -60,7 +63,7 @@ possible and the wreck made from it.
 
 | Slice | Delivers | Status |
 | --- | --- | --- |
-| V-1 | The shuttle and the freighter, the breach, `Find` and `Jump` by the dev flag `--vessel=class[,intact]` | built |
+| V-1 | The shuttle and the freighter, the breach, `Find` and `Jump` by the dev flag `--vessel=class[,wrecked]` | built |
 | V-1b | Salvage aboard: piles copied from the debris that drifts by, five times its loot; the breach leaves plates | built |
 | V-2 | Blast, cut in two and scavenged; the corvette and the frigate; antennas, radiators and docking ports | planned |
 | V-3 | The cruiser, and its write spread over ticks only if the hitch shows | planned |

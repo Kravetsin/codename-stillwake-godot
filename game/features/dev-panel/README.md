@@ -19,7 +19,7 @@ the top-right corner, hidden at the start, shown and hidden again with the backq
   (0077), `open strip` the test strip (`world.open`), `to ship` and `down` beam this hero aboard or down to the surface
   opened last (`world.transfer`), or say none is open. Vessels (generated-vessels): a button a class (`Vessels.Classes`)
   jumps to one beside the ship, `places`' `Jump` to a contact of it the radar holds, else `Find` first and the jump sent
-  once the contact comes (three seconds at most: a full radar brings none), wrecked or, with `intact` amber, as built;
+  once the contact comes (three seconds at most: a full radar brings none), as built or, with `wrecked` amber, breached;
   aboard only. `to vessel` moves this hero into the vessel beside the ship
   feet on the deck past its door (`VesselDoor`), or over it when a breach took the door, and
   `back` returns it where it stood, on the same surface; `remove` takes the vessel away (`places`' `Dismiss`), its box

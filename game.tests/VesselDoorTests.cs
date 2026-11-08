@@ -15,7 +15,7 @@ public class VesselDoorTests
         var m = new Registry();
         var world = World.Create(1, Registry.Wreck, m.All);
         world.Step([new Find(cls)]);
-        world.Step([new Jump(1, intact)]);
+        world.Step([new Jump(1, Wrecked: !intact)]);
         return m;
     }
 

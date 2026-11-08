@@ -14,9 +14,9 @@ public sealed record Find(string Class) : Command;
 
 /// <summary>
 /// Jumps beside contact <c>Contact</c> (generated-vessels): the vessel there before is cleared, and this one is written into its
-/// box right of the ship, wrecked by a breach; <c>Intact</c>, sent only by the dev flag, as built.
+/// box right of the ship, as built, wrecks to come; <c>Wrecked</c>, sent only by dev tools, breaks it by a breach meanwhile.
 /// </summary>
-public sealed record Jump(int Contact, bool Intact = false) : Command;
+public sealed record Jump(int Contact, bool Wrecked = false) : Command;
 
 /// <summary>The vessel beside the ship taken away whole, nothing given, and its box freed for building: the dev panel's.</summary>
 public sealed record Dismiss : Command;
@@ -92,7 +92,7 @@ public sealed class PlacesModule : Module<PlacesState>
         if (_grid.Reserved is { } old) _building.Wipe(old);
         _gridOps.Reserve(box);
         int width = _grid.Width;
-        foreach (var part in Shipyard.Damage(Shipyard.Stamp(vessel), vessel, c.Intact ? VesselCause.None : VesselCause.Breach))
+        foreach (var part in Shipyard.Damage(Shipyard.Stamp(vessel), vessel, c.Wrecked ? VesselCause.Breach : VesselCause.None))
         {
             int cell = (box.Top + part.Y) * width + box.Left + part.X;
             _gridOps.Lay(cell, new Placement(part.Layer, part.Kind, part.Material));
@@ -141,7 +141,7 @@ public sealed class PlacesModule : Module<PlacesState>
         return right < 0 ? Box.None : new Box(left, top, right, bottom);
     }
 
-    /// <summary>Now and then, as a jump writes thousands of cells: a vessel dismissed, out or not; a contact found, of a class or none; a jump to one, held or not, intact or not.</summary>
+    /// <summary>Now and then, as a jump writes thousands of cells: a vessel dismissed, out or not; a contact found, of a class or none; a jump to one, held or not, wrecked or not.</summary>
     public override Command? Fuzz(Rng rng, int from)
     {
         if (rng.Below(16) != 0) return null;
