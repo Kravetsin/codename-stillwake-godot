@@ -12,6 +12,6 @@ public sealed partial class AtmosphereModule
         var tanks = new List<int>();
         foreach (var m in _grid.MachinesWith(Content.MachineTrait.Gas)) tanks.Add(m.Id);
         int tank = tanks.Count > 0 && rng.Below(4) != 0 ? tanks[(int)rng.Below((uint)tanks.Count)] : (int)rng.Below(6);
-        return rng.Below(3) == 0 ? new DrawCanister(tank) { From = from } : new LoadCanister(tank) { From = from };
+        return rng.Below(3) == 0 ? new DrawCanister(tank, 1 + (int)rng.Below(3)) { From = from } : new LoadCanister(tank) { From = from };
     }
 }

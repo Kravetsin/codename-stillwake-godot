@@ -10,8 +10,8 @@ namespace Stillwake.Sim.Atmosphere;
 /// <summary>Puts one canister from the sender's inventory into tank <c>Tank</c>.</summary>
 public sealed record LoadCanister(int Tank) : Command;
 
-/// <summary>Takes a canister's liquid out of tank <c>Tank</c> as a canister into the sender's inventory (industrial-oxygen).</summary>
-public sealed record DrawCanister(int Tank) : Command;
+/// <summary>Takes <c>Count</c> canisters' liquid out of tank <c>Tank</c> as canisters into the sender's inventory, one at least (industrial-oxygen).</summary>
+public sealed record DrawCanister(int Tank, int Count = 1) : Command;
 
 /// <summary>What any module may read of the air.</summary>
 public interface IAtmosphereQueries
@@ -32,8 +32,8 @@ public interface IAtmosphereQueries
     int MakesAt(int source);
     /// <summary>Why peer <paramref name="peer"/>'s canister would not go into machine <paramref name="tank"/>: what the client shows first.</summary>
     string? CanisterProblem(int tank, int peer);
-    /// <summary>Why peer <paramref name="peer"/> could not draw a canister out of machine <paramref name="tank"/>: no tank, less than a canister in it, or no room.</summary>
-    string? DrawProblem(int tank, int peer);
+    /// <summary>Why peer <paramref name="peer"/> could not draw <paramref name="count"/> canisters out of machine <paramref name="tank"/>: no tank, fewer in it, or no room.</summary>
+    string? DrawProblem(int tank, int peer, int count = 1);
 
     /// <summary>The liquid oxygen in the tanks whose output is on the network of machine <paramref name="machine"/>'s liquid input: what a blown fire takes from.</summary>
     int LiquidFor(int machine);
@@ -130,11 +130,12 @@ public sealed partial class AtmosphereModule : Module<AtmosphereState>, IAtmosph
             itemsOps.Take(c.From, Canister);
             Fill(c.Tank, Content.Air.Canister);
         });
-        Handles<DrawCanister>(c => DrawProblem(c.Tank, c.From), c =>
+        Handles<DrawCanister>(c => DrawProblem(c.Tank, c.From, c.Count), c =>
         {
-            itemsOps.Give(c.From, Canister);
+            int count = Math.Max(1, c.Count);
+            itemsOps.Give(c.From, [(Content.Crew.Canister, count)]);
             var held = State.Tanks.Find(t => t.Tank == c.Tank)!;
-            held.Oxygen -= Content.Air.Canister;
+            held.Oxygen -= count * Content.Air.Canister;
             _readFor = null;
             DropEmptyTanks();
         });
@@ -355,11 +356,13 @@ public sealed partial class AtmosphereModule : Module<AtmosphereState>, IAtmosph
         return _items.ShortOf(peer, Canister);
     }
 
-    public string? DrawProblem(int tank, int peer)
+    public string? DrawProblem(int tank, int peer, int count = 1)
     {
+        // A count under one is no rule of the game: it is taken as one.
+        count = Math.Max(1, count);
         if (!IsTank(tank)) return "atmosphere.noTank";
-        if (OxygenIn(tank) < Content.Air.Canister) return "atmosphere.tankLow";
-        return _items.FullFor(peer, Canister);
+        if ((long)OxygenIn(tank) < (long)count * Content.Air.Canister) return "atmosphere.tankLow";
+        return _items.FullFor(peer, [(Content.Crew.Canister, count)]);
     }
 
     /// <summary>Whether a canister's liquid fits in tank <paramref name="tank"/>: by hand or from its hopper alike.</summary>

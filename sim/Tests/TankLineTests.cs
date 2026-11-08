@@ -76,6 +76,21 @@ public class TankLineTests
         Assert.Equal(carried - 1, Canisters(w, 0));
     }
 
+    /// <summary>The panel's slider draws several at once, refused whole when the tank holds fewer (industrial-oxygen).</summary>
+    [Fact]
+    public void DrawsSeveralCanistersAtOnceOrNoneWhenTheTankHoldsFewer()
+    {
+        var w = World();
+        int tank = Tanks(w)[0], carried = Canisters(w, 0);
+        for (int i = 0; i < 3; i++) w.Do(new LoadCanister(tank));
+        w.Run().Do(new DrawCanister(tank, 4)).Run();
+        Assert.Equal("atmosphere.tankLow", Assert.Single(w.Refusals).Reason);
+        Assert.Equal(3 * Air.Canister, w.M.Atmosphere.OxygenIn(tank));
+        w.Do(new DrawCanister(tank, 2)).Run();
+        Assert.Equal(Air.Canister, w.M.Atmosphere.OxygenIn(tank));
+        Assert.Equal(carried - 1, Canisters(w, 0));
+    }
+
     /// <summary>Not from what is no tank, nor from a tank holding less than a canister, nor into a full inventory; nothing changed.</summary>
     [Fact]
     public void RefusesADrawFromNoTankFromLessThanACanisterOrIntoAFullBag()

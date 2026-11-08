@@ -81,6 +81,8 @@ public partial class InventoryPanel : CanvasLayer
     private Button? _send;
     /// <summary>The open tank's key: a canister drawn out of it (industrial-oxygen).</summary>
     private Button? _draw;
+    /// <summary>How many the open tank's or cistern's key draws out.</summary>
+    private HSlider? _drawCount;
     private SortSweep _sweep = null!;
     private TextureRect _heldIcon = null!;
     private Label _heldCount = null!, _creative = null!;

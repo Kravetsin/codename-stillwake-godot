@@ -1,4 +1,5 @@
 // InventoryPanel's open machine: its body in the machine frame by kind (crate, bay, furnace, fed station, generator, charger) and its readouts.
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using Godot;
@@ -27,7 +28,7 @@ public partial class InventoryPanel
             _slots.RemoveAll(s => s.Place.Crate != null && !_lent.Contains(s));
             _shown.RemoveChild(_frame);
             _frame.QueueFree();
-            (_frame, _progress, _problem, _tooCold, _crateGrid, _crateKey, _send, _draw) = (null, null, null, null, null, null, null, null);
+            (_frame, _progress, _problem, _tooCold, _crateGrid, _crateKey, _send, _draw, _drawCount) = (null, null, null, null, null, null, null, null, null);
             _chargerLines.Clear();
         }
         if (want is not var (crate, kind)) return;
@@ -52,7 +53,7 @@ public partial class InventoryPanel
         _frame.Add(kind switch
         {
             _ when spec.Is(Content.MachineTrait.Sells) => TradeBody(crate, spec),
-            _ when spec.Is(Content.MachineTrait.Gas) => TankBody(crate, spec),
+            _ when spec.Is(Content.MachineTrait.Gas) => DrawBody(crate, spec, n => new Stillwake.Sim.Atmosphere.DrawCanister(crate, n)),
             _ when spec.Is(Content.MachineTrait.Fire) && spec.Inputs > 0 => FurnaceBody(crate, spec),
             _ when spec.Is(Content.MachineTrait.Fire) => GeneratorBody(crate, spec),
             _ when station is { Fed: true } => FedBody(crate, kind),
@@ -259,24 +260,55 @@ public partial class InventoryPanel
         return body;
     }
 
-    /// <summary>A tank's body: its hopper, which drones fill, and the key that draws a canister out (industrial-oxygen).</summary>
-    private VBoxContainer TankBody(int crate, Content.MachineSpec spec)
+    /// <summary>
+    /// A liquid store's body (industrial-oxygen): its hopper, which hands and drones fill, and a slider of how many to draw
+    /// out with the key beside it, <paramref name="draw"/> the command for a count.
+    /// </summary>
+    private VBoxContainer DrawBody(int crate, Content.MachineSpec spec, Func<int, Command> draw)
     {
         var body = Style.Gap(new VBoxContainer { MouseFilter = Control.MouseFilterEnum.Ignore }, 6);
         body.AddChild(_crateGrid = Grid(Enumerable.Range(0, spec.Slots ?? 0).Select(i => new Place(i, crate))));
-        body.AddChild(_draw = Style.Button("", () => Send(new Stillwake.Sim.Atmosphere.DrawCanister(crate))));
+        var row = Style.Gap(new HBoxContainer(), 8);
+        row.AddChild(_drawCount = new HSlider
+        {
+            MinValue = 1,
+            MaxValue = 1,
+            Step = 1,
+            Value = 1,
+            FocusMode = Control.FocusModeEnum.None,
+            CustomMinimumSize = new Vector2(72, 22),
+            SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
+            SizeFlagsVertical = Control.SizeFlags.ShrinkCenter,
+        });
+        row.AddChild(_draw = Style.Button("", () => Send(draw((int)_drawCount.Value))));
+        body.AddChild(row);
         return body;
     }
 
-    /// <summary>The tank's key: the liquid it holds of its capacity, dark while a canister cannot be drawn and why by the pointer.</summary>
-    private void ShowTank(int tank)
+    /// <summary>
+    /// The draw key: the slider's full scale the <paramref name="whole"/> units the store holds, the key saying
+    /// <paramref name="text"/> of the count picked, dark with why by the pointer while it cannot be drawn.
+    /// </summary>
+    private void ShowDraw(int whole, Func<int, string?> problemOf, Func<int, string> text)
     {
-        if (_draw == null || Air == null || _client == null) return;
-        string? problem = Air.DrawProblem(tank, _client.Id);
+        if (_draw == null || _drawCount == null) return;
+        _drawCount.MaxValue = Math.Max(1, whole);
+        _drawCount.Visible = whole > 1;
+        int count = (int)Math.Min(_drawCount.Value, Math.Max(1, whole));
+        string? problem = problemOf(count);
         _draw.Disabled = problem != null;
         _draw.TooltipText = problem != null ? T(problem) : "";
-        string text = T("tank.draw", ("n", Air.OxygenIn(tank)), ("all", Content.Air.TankCapacity));
-        if (_draw.Text != text) _draw.Text = text;
+        string said = text(count);
+        if (_draw.Text != said) _draw.Text = said;
+    }
+
+    /// <summary>The tank's draw key: canisters out of what it holds, of its capacity.</summary>
+    private void ShowTank(int tank)
+    {
+        if (Air == null || _client == null) return;
+        int held = Air.OxygenIn(tank), peer = _client.Id;
+        ShowDraw(held / Content.Air.Canister, n => Air.DrawProblem(tank, peer, n),
+            n => T("tank.draw", ("n", n), ("held", held), ("all", Content.Air.TankCapacity)));
     }
 
     /// <summary>The capsule's key: what it would carry while home, what it carries and when it comes back while away, dark with nothing to send.</summary>
