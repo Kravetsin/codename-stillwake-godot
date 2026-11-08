@@ -385,12 +385,12 @@ public sealed class BoardPage : ITabletPage
         else _share = 0;
     }
 
-    /// <summary>The first thing <paramref name="thing"/> lacks, in words: what was never had is not named.</summary>
+    /// <summary>The first thing <paramref name="thing"/> lacks, in words, named even if never had.</summary>
     private string LackOf(BoardThing thing)
     {
         var lack = BoardPile.Lack(thing, _read!);
-        if (lack.Parts is [var (item, more), ..]) return _had.Contains(item) ? T("research.pile.lackPart", ("n", more), ("what", _strip.NameOf(item))) : T("research.pile.unknown");
-        if (lack.Station is { } station) return _had.Contains(station) ? T("research.pile.lackStation", ("what", _strip.NameOf(station))) : T("research.pile.lackNoStation");
+        if (lack.Parts is [var (item, more), ..]) return T("research.pile.lackPart", ("n", more), ("what", _strip.NameOf(item)));
+        if (lack.Station is { } station) return T("research.pile.lackStation", ("what", _strip.NameOf(station)));
         return "";
     }
 
@@ -586,20 +586,18 @@ public sealed class BoardPage : ITabletPage
         _sizedAt = null;
     }
 
-    /// <summary>Writes in a shape's box the first thing it lacks: how many and its picture, which stays readable when the board is small. What was never had shows no picture.</summary>
+    /// <summary>Writes in a shape's box the first thing it lacks: how many and its picture, which stays readable when the board is small.</summary>
     private void SayLack(NoteView view, BoardThing thing)
     {
         var lack = BoardPile.Lack(thing, _read!);
         string? what = lack.Parts.Count > 0 ? lack.Parts[0].Item : lack.Station;
-        string words = lack.Parts.Count > 0 ? T(_had.Contains(what!) ? "research.board.more" : "research.board.moreUnknown", ("n", lack.Parts[0].More)) : what == null ? "" : T(_had.Contains(what) ? "research.board.needs" : "research.board.needsUnknown");
-        view.LackWords.Text = words;
-        string? shown = what != null && _had.Contains(what) ? what : null;
-        if (shown == view.LackOf) return;
-        view.LackOf = shown;
+        view.LackWords.Text = lack.Parts.Count > 0 ? T("research.board.more", ("n", lack.Parts[0].More)) : what == null ? "" : T("research.board.needs");
+        if (what == view.LackOf) return;
+        view.LackOf = what;
         view.LackPicture?.QueueFree();
         view.LackPicture = null;
-        if (shown == null) return;
-        view.LackPicture = _strip.Picture(shown, Mathf.RoundToInt(LackPicture));
+        if (what == null) return;
+        view.LackPicture = _strip.Picture(what, Mathf.RoundToInt(LackPicture));
         view.LackPicture.TextureFilter = CanvasItem.TextureFilterEnum.Linear;
         view.LackPicture.SizeFlagsVertical = Control.SizeFlags.ShrinkCenter;
         view.Lack.AddChild(view.LackPicture);
@@ -893,7 +891,7 @@ public sealed class BoardPage : ITabletPage
         return card;
     }
 
-    /// <summary>What the entry says of <paramref name="id"/>: what it takes, where it is made, what it goes into, and what it leads to. What was never had is not named.</summary>
+    /// <summary>What the entry says of <paramref name="id"/>: what it takes, where it is made, what it goes into, and what it leads to.</summary>
     private IEnumerable<string> LinesOf(string id)
     {
         string Line(string label, string what) => T("research.pile.row", ("label", T(label)), ("what", what));
@@ -904,7 +902,7 @@ public sealed class BoardPage : ITabletPage
                 yield return Line("research.takes", string.Join(", ", link.Takes.Select(t => T("research.taken", ("n", t.Count), ("what", _strip.NameOf(t.Item))))));
                 break;
             case Origin.Worked:
-                yield return Line("research.takes", string.Join(T("research.pile.or"), link.From.Select(f => _had.Contains(f) ? _strip.NameOf(f) : T("research.pile.noItem")).Distinct()));
+                yield return Line("research.takes", string.Join(T("research.pile.or"), link.From.Select(_strip.NameOf).Distinct()));
                 break;
             case Origin.Free:
                 yield return T("research.pile.free");
@@ -914,10 +912,10 @@ public sealed class BoardPage : ITabletPage
                 break;
         }
         if (link.MadeAt.Count > 0)
-            yield return Line("research.madeAt", string.Join(", ", link.MadeAt.Select(s => _had.Contains(s) ? _strip.NameOf(s) : T("research.pile.noStation")).Distinct()));
+            yield return Line("research.madeAt", string.Join(", ", link.MadeAt.Select(_strip.NameOf).Distinct()));
         else if (TechLinks.MenuTabOf(id) != null)
             yield return Line("research.builtAt", BuiltFrom(id));
-        var named = link.UsedIn.Where(u => _had.Contains(u) || _picture.Shows.GetValueOrDefault(u) != BoardShow.Unseen).Take(3).Select(_strip.NameOf).ToList();
+        var named = link.UsedIn.Take(3).Select(_strip.NameOf).ToList();
         if (named.Count > 0)
         {
             string names = string.Join(", ", named);
@@ -963,25 +961,24 @@ public sealed class BoardPage : ITabletPage
         if (link.UsedIn.Count > 0) facts.AddChild(Fact(T("research.usedIn"), UsedIn, _strip.Pictures(link.UsedIn, TipOf, used => !_had.Contains(used)), 5));
     }
 
-    /// <summary>A part: of what is known, as in a recipe; of a shape, what was had of it over enough; unseen yet, a pale picture with no name.</summary>
+    /// <summary>A part: of what is known, as in a recipe; of a shape, what was had of it over enough, dim while never had.</summary>
     private Control PartOf(string item, int count, bool known)
     {
         string name = _strip.NameOf(item);
         if (known) return _strip.Named(item, T("research.taken", ("n", count), ("what", name)), Style.Slate100);
-        if (!_had.Contains(item)) return _strip.Unseen(item);
         int have = _read!.Count(item), enough = Understanding.Enough(item);
         // Enough had is a tick: the count would only climb on past it, telling nothing more.
         return have >= enough
             ? _strip.Named(item, T("research.board.partDone", ("what", name)), Bought)
-            : _strip.Named(item, T("research.board.part", ("what", name), ("have", have), ("enough", enough)), Style.Slate100);
+            : _strip.Named(item, T("research.board.part", ("what", name), ("have", have), ("enough", enough)), _had.Contains(item) ? Style.Slate100 : Style.Slate500);
     }
 
-    /// <summary>A station: named while one stands; a pale picture while none does, named by the pointer only if it is known at all.</summary>
+    /// <summary>A station: named while one stands; a pale picture while none does, named by the pointer.</summary>
     private Control StationOf(string station)
     {
         if (_read!.Stands(station)) return _strip.Named(station, _strip.NameOf(station), Style.Slate100);
         var pale = _strip.Unseen(station);
-        if (_had.Contains(station)) _strip.Tips.Add(pale, () => TipOf(station));
+        _strip.Tips.Add(pale, () => TipOf(station));
         return pale;
     }
 
