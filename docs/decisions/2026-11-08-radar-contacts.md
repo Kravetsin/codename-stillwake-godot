@@ -21,7 +21,8 @@ names it "Derelict ship".
   empty for up to 15 minutes between them. More at once means a longer stay or a shorter wait.
 - **On the radar** a contact is a green diamond on the ship's orbit, an offset of 100 at 45 % of the screen's width from
   the ship. It flares as the beam passes it and fades over the turn; in its last 2 minutes it blinks. A click frames it
-  with corner brackets and names its kind over it; a click on empty screen lets go. The pointer names it too.
+  with corner brackets and names its kind over it; a click on empty screen lets go. The pointer names it too. While one
+  is selected a "Set off" button stands under the radar: it does nothing till the jump.
 - **The selection is the player's own** (`Ui.RadarContact`), kept while the computer is closed and let go once its
   contact is gone: the jump's target to be.
 - Save format 57: an older world gets the slice empty, its first contact 15 minutes after loading.

@@ -37,6 +37,8 @@ public partial class ComputerPanel : CanvasLayer
         MouseFilter = Control.MouseFilterEnum.Ignore,
     };
     private readonly RadarScreen _radar = new() { Visible = false };
+    /// <summary>Under the radar while a contact is selected: the jump to it, to come. It does nothing yet.</summary>
+    private readonly Button _setOff = SetOffButton();
     private readonly List<(Panel Box, TextureRect Icon, ProgramSpec Program)> _buttons = [];
     private readonly TipSpots _tips;
     private Reading _reading = new(false, []);
@@ -61,12 +63,13 @@ public partial class ComputerPanel : CanvasLayer
         _radar.SetAnchorsPreset(Control.LayoutPreset.FullRect);
         _screen.AddChild(_radar);
         _screen.AddChild(_text);
+        _radar.AddChild(_setOff);
         // A click on the radar selects the contact under it; on empty screen, none.
         _screen.GuiInput += e =>
         {
             if (e is not InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.Left } || !_radar.IsVisibleInTree()) return;
             _ui.RadarContact.Set(_radar.ContactAt(_screen.GetViewport().GetMousePosition()));
-            _radar.Selected = _ui.RadarContact.Get();
+            ShowSelected();
             _screen.AcceptEvent();
         };
         foreach (var program in Programs.All) AddButton(program);
@@ -134,7 +137,7 @@ public partial class ComputerPanel : CanvasLayer
         var contacts = _world()!.Contacts;
         _radar.Contacts = [.. contacts.All];
         if (_ui.RadarContact.Get() is { } id && contacts.Find(id) == null) _ui.RadarContact.Set(null);
-        _radar.Selected = _ui.RadarContact.Get();
+        ShowSelected();
         Paint();
     }
 
@@ -147,7 +150,8 @@ public partial class ComputerPanel : CanvasLayer
             return;
         }
         var mouse = _frame.GetViewport().GetMousePosition();
-        if (_radar.IsVisibleInTree() && _radar.KeyAt(mouse) is { } key) _tips.Show(new Tip(T(key)));
+        if (_setOff.IsVisibleInTree() && _setOff.GetGlobalRect().HasPoint(mouse)) _tips.Show(null);
+        else if (_radar.IsVisibleInTree() && _radar.KeyAt(mouse) is { } key) _tips.Show(new Tip(T(key)));
         else _tips.Frame(mouse);
     }
 
@@ -196,6 +200,44 @@ public partial class ComputerPanel : CanvasLayer
         if (e is not InputEventKey { Pressed: true, Echo: false } key || !key.Is(Bind.Use) || !Shown) return;
         Close();
         GetViewport().SetInputAsHandled();
+    }
+
+    /// <summary>The radar's selection as this player has it: framed on the screen, the set-off button under it while there is one.</summary>
+    private void ShowSelected()
+    {
+        _radar.Selected = _ui.RadarContact.Get();
+        _setOff.Visible = _radar.Selected != null;
+        // Read each time, so a language changed in the menu shows.
+        _setOff.Text = T("computer.radar.setOff");
+    }
+
+    /// <summary>The set-off button, in the radar's green, at the bottom of its screen in the middle; hidden till a contact is selected.</summary>
+    private static Button SetOffButton()
+    {
+        var button = new Button
+        {
+            Visible = false,
+            FocusMode = Control.FocusModeEnum.None,
+            CustomMinimumSize = new Vector2(220, 44),
+            AnchorLeft = 0.5f,
+            AnchorRight = 0.5f,
+            AnchorTop = 1,
+            AnchorBottom = 1,
+            OffsetBottom = -14,
+            GrowHorizontal = Control.GrowDirection.Both,
+            GrowVertical = Control.GrowDirection.Begin,
+        };
+        foreach (var (state, fill) in new[] { ("normal", LitBack), ("hover", new Color("143826")), ("pressed", new Color("1d4a30")) })
+        {
+            var look = new StyleBoxFlat { BgColor = fill, BorderColor = Lit };
+            look.SetBorderWidthAll(2);
+            look.SetCornerRadiusAll(2);
+            button.AddThemeStyleboxOverride(state, look);
+        }
+        button.AddThemeColorOverride("font_color", Lit);
+        button.AddThemeColorOverride("font_hover_color", new Color("7dffa8"));
+        button.AddThemeColorOverride("font_pressed_color", new Color("7dffa8"));
+        return button;
     }
 
     private static Panel Boxed(Color fill, int border, int corner)

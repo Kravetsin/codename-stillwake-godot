@@ -12,6 +12,7 @@ public static partial class En
         ["computer.radar.ship"] = "My ship",
         ["computer.radar.planet"] = "Planet",
         ["computer.radar.wreck"] = "Derelict ship",
+        ["computer.radar.setOff"] = "Set off",
         ["contacts.unknownKind"] = "No such kind of radar contact",
         ["contacts.outOfReach"] = "Out of the radar's reach",
         ["use.open.computer"] = "[{key:use}] Ship computer",
