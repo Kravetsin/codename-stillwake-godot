@@ -223,7 +223,11 @@ public class PowerTests
     public void RunsAGeneratorAtFullPowerAtItsRateItsFractionCarried()
     {
         var w = new Scenario(Layout.Parse(Tanked, TankedUnder, ToFirst), doubled: true);
-        w.Run(120);
+        // A stub of pipe on its output, so it keeps what it makes rather than airing its room itself (industrial-oxygen).
+        int output = w.Output(Generator);
+        w.GiveItems(0, ("tube", 4)).Pipe(output, output - 1).Run();
+        Assert.Empty(w.Refusals);
+        w.Run(119);
         // Twelve hundred a minute, four times a 16 px cell's (0104): one a tick.
         Assert.Equal(120, Store(w, Generator));
     }

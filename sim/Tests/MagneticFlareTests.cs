@@ -260,7 +260,8 @@ public class MagneticFlareTests
         Assert.True(w.Run(10).M.Atmosphere.OxygenIn(Id(w, Generator)) > air);
         Break(w, Generator);
         air = w.M.Atmosphere.OxygenIn(Id(w, Generator));
-        Assert.Equal(air, w.Run(20).M.Atmosphere.OxygenIn(Id(w, Generator)));
+        // Its store grows no more; its room, its output unpiped, may draw on it (industrial-oxygen).
+        Assert.InRange(w.Run(20).M.Atmosphere.OxygenIn(Id(w, Generator)), 0, air);
         Assert.Equal(0, w.M.Power.Satisfaction(Id(w, Generator)));
         Assert.Equal(1000, w.M.Power.Satisfaction(Id(w, Lamp)));
         Break(w, Panel);

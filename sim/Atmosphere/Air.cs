@@ -136,7 +136,8 @@ public sealed partial class AtmosphereModule
         {
             var cells = _grid.PortsOf(m);
             var ports = Content.Machines.Get(m.Kind).Ports;
-            if (!ports.Any(p => p.Way == Way.In)) s.Endless.Add(m.Id);
+            bool endless = !ports.Any(p => p.Way == Way.In), piped = false;
+            if (endless) s.Endless.Add(m.Id);
             for (int i = 0; i < cells.Count; i++)
             {
                 if (_pipes.NetworkAt(cells[i]) is not int network) continue;
@@ -144,10 +145,18 @@ public sealed partial class AtmosphereModule
                 {
                     AddTo(s.StoresOn, network, m.Id);
                     s.Generators.Add((network, m.Id));
+                    piped = true;
                 }
                 else
                     foreach (int tank in ListAt(tanksOn, network)) AddTo(s.Behind, m.Id, tank);
             }
+            // Nothing on its output, a vaporizer is a vent at its own cell, on a network of its own named below every pipe's
+            // (industrial-oxygen); the pod, on no pipe, is only a pod (the-scoop).
+            if (piped || endless) continue;
+            int own = -1 - m.Id;
+            AddTo(s.StoresOn, own, m.Id);
+            s.Generators.Add((own, m.Id));
+            s.Vents.Add((m.Cell, own));
         }
         // A fire's liquid input draws the tanks on its network as a vaporizer's does: a blown fire (industrial-oxygen).
         foreach (var m in _grid.MachinesWith(MachineTrait.Fire))

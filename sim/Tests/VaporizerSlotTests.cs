@@ -38,3 +38,21 @@ public class VaporizerSlotTests
         Assert.Equal(held, w.M.Atmosphere.LiquidFor(vaporizer));
     }
 }
+
+/// <summary>A vaporizer with nothing on its output airs its own room, as a vent (industrial-oxygen).</summary>
+public class UnpipedVaporizerTests
+{
+    [Fact]
+    public void AVaporizerWithNoPipeOnItsOutputAirsItsOwnRoom()
+    {
+        var w = new Scenario(HandPiped.Chained("#########\n#..TT...#\n#..TT...#\n#########"), doubled: true).Do(new Items.SetCreative(true));
+        int tank = w.M.Grid.MachinesOf("tank")[0].Id, vaporizer = w.M.Grid.MachinesOf("generator")[0].Id;
+        w.Do(new Atmosphere.LoadCanister(tank)).Do(new Items.SetCreative(false)).Run();
+        Assert.Empty(w.M.Grid.MachinesOf("vent"));
+        for (int i = 0; i < 2000 && w.M.Atmosphere.AiredCells.Count == 0; i++) w.Run();
+        int room = w.M.Rooms.RoomAt(w.M.Grid.MachineById(vaporizer)!.Cell)!.Value;
+        Assert.NotEmpty(w.M.Atmosphere.AiredCells);
+        Assert.All(w.M.Atmosphere.AiredCells, c => Assert.Equal(room, w.M.Rooms.RoomAt(c)));
+        Assert.Equal(Air.GeneratorRate, w.M.Atmosphere.RoomsAir().Single(r => r.Room == room).Made);
+    }
+}
