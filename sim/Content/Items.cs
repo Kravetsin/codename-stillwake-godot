@@ -84,7 +84,8 @@ public static class Items
 {
     public static readonly IReadOnlyList<ItemSpec> All =
     [
-        new("scrap", 999),
+        // Four smelted into an iron at any furnace (2026-11-08-scrap-to-iron): where scrap piles up, at a loss on purpose.
+        new("scrap", 999, Yields: [("iron", 1)], SmeltTicks: 80, SmeltTakes: 4),
         // What the nailer fires (Content.Shots), made of scrap at the pod.
         new("nail", 250),
         new("iron", 999),
