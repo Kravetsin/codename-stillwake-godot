@@ -19,9 +19,10 @@ public partial class BackdropView : Node2D
     private BackdropView(IReadOnlyList<BackdropPlan.Layer> plan, (float R, float G, float B) haze)
     {
         _plan = plan;
+        var atlas = new BackdropAtlas(plan.SelectMany(l => l.Draws).OfType<BackdropPlan.Picture>().Select(p => p.Name));
         foreach (var layer in plan)
         {
-            var drawn = new BackdropLayer(layer, BackdropLooks.First.Tile, haze, BackdropLooks.First.Dark);
+            var drawn = new BackdropLayer(layer, atlas, BackdropLooks.First.Tile, haze, BackdropLooks.First.Dark);
             AddChild(drawn);
             _layers.Add(drawn);
         }
