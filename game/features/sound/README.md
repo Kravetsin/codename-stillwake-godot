@@ -4,6 +4,8 @@
 
 | File | Purpose |
 | --- | --- |
+| `AudioCensus.cs` | Every 10 s a log line: sound players, those playing, fps, the hearing |
+| `logic/AudioTally.cs` | What `AudioCensus` counts, as one line |
 | `logic/GroundSounds.cs` | What a planet's ground sounds like (0093), chosen from what the sim says is there: the boots' step, push-off and … |
 | `logic/Hearing.cs` | The hearing's arithmetic, apart from Godot: how the buses sound at a share of the way from aboard (0) to floating … |
 | `logic/Motors.cs` | A motor heard as it runs (0059), apart from Godot: how fast it spins, from still (0) to full (1), linearly over its … |
@@ -33,8 +35,7 @@ Effects → World, Suit, Helmet); `game/shared/` `Cues.cs`, `ActSound.cs`, `Hear
 - **Starts**: Godot starts a placed sound on the next physics tick, a second play before it replacing the first. So
   physics ticks 60 a second (the client has none; at 20 a drill lost half its hits), and `Heard2D` gives a second
   play in one tick a spare voice (`VoiceStarts`), up to its `voices`.
-- **Tool idle** (0068): every tool sound made while it works nothing (`DrillWhir`, `Swing`) plays at the one
-  `Sound.ToolIdleDb`; a new one is levelled alike, never given a level of its own.
+- **Tool idle** (0068): a tool working nothing (`DrillWhir`, `Swing`) plays at the one `Sound.ToolIdleDb`.
 - **Music** (0035, 0042) on Music, loops stopped once silent: the title's track while the title shows; the bed of
   space (`Sound.Space`) while the hero floats, the vents' hum taking over aboard.
 - **Reset** (0033): the `AudioServer` outlives `ReloadCurrentScene`, so `SoundView._Ready` sets World and Suit clear.
@@ -67,23 +68,23 @@ Each feature owns its players as children, never in a static.
   its picture step. The Former: a stroke on the picture its head comes down on (`FrameBeat`), over its motor loop
   (`FormerSpin`), never pounding. The smelter: its hum (`LoopEnvelope`) and pops at random moments (`RandomTrain`).
 - `grid/GridView.cs` (0014): a door opening or closing, a valve turned, as the drawing catches up: anyone's, own at once.
-- `furnace/FurnaceView.cs` (0059): each burning furnace's or generator's crackle loop on its fire.
-- `crew/SuitGauge.cs` (0033): on Helmet, the alarm while the suit runs low; none passed out.
-- `building/BuildingView.cs` (0033): the screwdriver's ratchet at each plan as its work sparks.
+- `furnace/FurnaceView.cs` (0059): each fire's crackle loop.
+- `crew/SuitGauge.cs` (0033): on Helmet, the alarm while the suit runs low.
+- `building/BuildingView.cs` (0033): the screwdriver's ratchet as a plan's work sparks.
 - `debris/DebrisView.cs` (0034, 0042): on Suit, this player's own chop as a wreck's damage rises, and the break its own
   hit made (`OwnHits.cs`: a `Hit` of this peer's that left `InFlight`). Another's is silent: a wreck is only in space.
 - On a planet (0093, 0094), on World but own hits on Suit: `crew/HeroView.cs` plays every tool's hit as what it hits
   (`GroundSounds.HitAt`), heard on the face turned toward the hero (`Impacts.On`); the drill at its hit pace, a
   friend's from `Items.Running` and its `Busy` bit; lava's hiss (`LavaBurn`). `building/DigView.cs` a wall broken, by
-  material. `flora/FloraView.cs`, `flora/CaveView.cs`, `ruins/HomesView.cs` a growth felled, by kind (`Sound.Unheard`
+  material. `flora/FloraView.cs`, `flora/CaveView.cs`, `ruins/HomesView.cs` a growth felled, by kind (`Unheard`
   none); cave drips. `grid/LavaView.cs` the rumble at the nearest open lava and its bubbles.
-- `hazards/MeteorView.cs`: a meteor, `Break` or `Chop`.
+- `hazards/MeteorView.cs`: `Break` or `Chop`.
 - `atmosphere/AirView.cs` (0033): the hiss at the nearest venting stream, the hum at the nearest vent with oxygen.
 
 ## Deliberately not handled
 
 - Music beyond the title and space.
-- Reverb, occlusion, Doppler; one hiss however many breaches vent. Silence by the room's air (0033).
+- Reverb, occlusion, Doppler; one hiss for every breach. Silence by the room's air (0033).
 - Others' clicks, alarms, swings; swim, passing out, plans, the analyzer, the pod, the inventory: later passes.
 - A jump with its head at a ceiling is silent; another's jump heard over ten steps into its rise is missed.
 - The circuit assembler is silent till its audition. A station taken down mid-work stops at once; the Former strikes
