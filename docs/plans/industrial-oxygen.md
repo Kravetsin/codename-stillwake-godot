@@ -20,7 +20,14 @@ away as canisters.
 - A hero can take a canister out of a tank.
 - Hydrogen: nothing for now.
 
+**Decided with the user** (2026-11-08), for P5:
+- Liquids are stored in tanks and cisterns, not crates: a canister and a water bottle stack to 5, ice to 50.
+- A cistern holds 50 bottles, a tank 50 canisters.
+- Ice is easy to farm on a planet: an ice vein and an ice crystal give 4 (the user's 3 to 5 at its middle; nothing a wall
+  or a plant gives is rolled today).
+
 **Order:** E-1 stands alone. P1 before P2 (a blown fire is one that reserves nothing). P3 and P4 after P2, in either order.
+P5 stands alone; best after P4, so a tank is already where canisters are taken from.
 
 ## Steps, one PR each, in order
 
@@ -92,6 +99,22 @@ away as canisters.
 - What it opens: an electrolyser's oxygen carried to a suit (`Crew.CanisterRefill`), a jetpack, a drone bay or a ship
   far away; and ice sold as canisters at 117 credits a 3000 units. The plan for P4 checks that price against ice's 30.
 - Tests: a canister drawn takes `Air.Canister` and gives one; each refusal; drawn and loaded back leaves the tank as it was.
+
+### P5: liquids live in tanks and cisterns
+- **Why.** A slot of 20 canisters is 400 units of a hero's air (800 upgraded) against a helmet's 45: carried or crated,
+  air never runs short on a sortie or a planet, and a cistern is only a source for pipes.
+- **Stacks** (`Items.cs`): `canister` 20 → 5, `water` 50 → 5, `ice` 250 → 50, so ice is no loophole for keeping water.
+- **Storage:** `Water.CisternBottles` 8 → 50 (225 000 units, an electrolyser's three hours); `Air.TankCapacity` 36 000 →
+  150 000, 50 canisters. More room only: oxygen still comes of canisters and electrolysis.
+- **Ice:** `iceVein`'s `Cost` and `crystalIce`'s `Yields` give 4 ice instead of 1.
+- **What moves with it,** checked in the step, none changed unless a test says so: a drone carries a stack at most, so
+  5 a trip and a hopper kept from 3; a bay's fuel slot holds 5 canisters, 25 minutes of trips; a trade station sends
+  fewer canisters a capsule; a pod cluster's 5 to 8 canisters fill one or two slots.
+- **Saves:** no format step if Items keeps a stack over its item's new `Stack` as it is till it is moved, and only a move
+  splits it; the step checks that with a save from before, and adds a migration only if a load or a move breaks.
+- **Tests:** each stack and capacity in `ContentTests`; a cistern takes 50 bottles and refuses the 51st; a tank 50
+  canisters; an ice vein broken and an ice crystal felled each give 4; a world saved with a slot of 20 canisters loads
+  and its stack moves whole into an empty slot or splits into 5s, as Items decides.
 
 ## Not done
 
