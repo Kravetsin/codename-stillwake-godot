@@ -106,6 +106,14 @@ public class ImpactsTests
     public void EveryVeinHasItsOwnColoursAndFleck() =>
         Assert.All(Spec.Materials.All.Where(m => m.In != null), m => Assert.True(GroundLooks.Of.ContainsKey(m.Id), $"{m.Id} has no ground look"));
 
+    /// <summary>Chips off the ground lay in a sheet at the hit's floor, hanging over any step: the ground throws none (planet-frame-rate).</summary>
+    [Fact]
+    public void TheGroundThrowsNoChips()
+    {
+        foreach (var impact in HitLooks.Ground.Values)
+            Assert.DoesNotContain(HitLooks.Of[impact].Throws, t => t.Look.Kind == Glimmer.Chip);
+    }
+
     [Fact]
     public void MetalSparksAndGlintsStoneThrowsAFewSparksSoilAndPlantsNone()
     {

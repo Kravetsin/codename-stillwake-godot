@@ -7,7 +7,7 @@
 | `CreatureBody.cs` | One creature's body (0102): its rig's parts, posed. |
 | `logic/CreatureGait.cs` | How fast a creature's legs go (0102). |
 | `logic/CreatureMotion.cs` | How a body reacts (0102) to the sim and to blows. |
-| `CreatureParts.cs` | The creatures' parts as pictures in ink (0102), read once, shared. |
+| `CreatureParts.cs` | The creatures' parts as pictures in ink (0102), read once, shared; all read as a planet loads. |
 | `logic/CreaturePose.cs` | What each node of a creature's rig does this frame (0102). |
 | `logic/CreatureVariety.cs` | How one creature differs from the next of its kind (0102). |
 | `CreaturesView.cs` | The creatures, drawn between ticks where the sim put them. |

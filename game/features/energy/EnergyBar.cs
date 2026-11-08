@@ -85,11 +85,15 @@ public partial class EnergyBar : CanvasLayer
 
         private readonly NinePatchRect _frame = WristArt.Frame(WristPieces.Gauge, MouseFilterEnum.Ignore);
         private readonly Light _light = new();
+        private readonly BoltLayer _bolt = new();
+        private readonly System.Collections.Generic.List<float> _drawn = [], _now = [];
         private double _clock;
 
         public Tab()
         {
             MouseFilter = MouseFilterEnum.Ignore;
+            _bolt.Tab = this;
+            AddChild(_bolt);
             AddChild(_frame);
             _light.Tab = this;
             AddChild(_light);
@@ -117,8 +121,31 @@ public partial class EnergyBar : CanvasLayer
             Ring.Step(delta);
             Pulse.Step(delta);
             Blink.Step(delta);
-            QueueRedraw();
+            // The ring and the count, the most of its drawing, change only with the belt: drawn again then; the bolt and its light move.
+            if (Changed()) QueueRedraw();
+            _bolt.QueueRedraw();
             _light.QueueRedraw();
+        }
+
+        /// <summary>Whether what the ring and the count show differs from when they were last drawn.</summary>
+        private bool Changed()
+        {
+            _now.Clear();
+            var tone = Tone();
+            _now.Add((float)Math.Round(Count.Value));
+            _now.Add(tone.R);
+            _now.Add(tone.A);
+            _now.Add(Size.X);
+            for (int k = 0; k < Ring.Count; k++)
+            {
+                _now.Add(Ring.Share(k));
+                _now.Add(Ring.Lit(k));
+            }
+            var now = System.Runtime.InteropServices.CollectionsMarshal.AsSpan(_now);
+            if (now.SequenceEqual(System.Runtime.InteropServices.CollectionsMarshal.AsSpan(_drawn))) return false;
+            _drawn.Clear();
+            _drawn.AddRange(_now);
+            return true;
         }
 
         private Color Tone(float alpha = 1)
@@ -131,7 +158,6 @@ public partial class EnergyBar : CanvasLayer
         {
             WristArt.DrawScreen(this, Size, WristArt.Screen, glare: false);
             DrawRingArcs();
-            DrawBolt();
             var groups = Charges.Grouped((int)Math.Round(Count.Value)).Split(Charges.Thin);
             // Right-aligned, a group at a time from the right, a thin space between.
             float x = Size.X - Look.EnergyRight;
@@ -156,26 +182,26 @@ public partial class EnergyBar : CanvasLayer
             }
         }
 
-        private void DrawBolt()
+        private void DrawBolt(CanvasItem layer)
         {
             var (on, bright) = Pulse.Look();
             var white = Colors.White with { A = Bright };
-            DrawSetTransform(Jolt);
+            layer.DrawSetTransform(Jolt);
             if (Pulse.Kindle is double k && k < 0.45)
             {
                 // Kindled from below: the dark bolt, lit up from its tip.
-                DrawTextureRect(Dark, BoltAt, false, white);
+                layer.DrawTextureRect(Dark, BoltAt, false, white);
                 float lit = (float)(1 - Math.Pow(1 - k / 0.45, 3)) * BoltAt.Size.Y;
-                BoltPart(this, Bolt, BoltAt.End.Y - lit, BoltAt.End.Y, white);
+                BoltPart(layer, Bolt, BoltAt.End.Y - lit, BoltAt.End.Y, white);
             }
-            else if (!on) DrawTextureRect(Dark, BoltAt, false, white);
+            else if (!on) layer.DrawTextureRect(Dark, BoltAt, false, white);
             else
             {
-                DrawTextureRect(Bolt, BoltAt, false, white);
-                if (bright < 1) DrawTextureRect(Bolt, BoltAt, false, Colors.Black with { A = (float)(1 - bright) * 0.8f * Bright });
+                layer.DrawTextureRect(Bolt, BoltAt, false, white);
+                if (bright < 1) layer.DrawTextureRect(Bolt, BoltAt, false, Colors.Black with { A = (float)(1 - bright) * 0.8f * Bright });
             }
-            if (Blink.Red > 0) DrawTextureRect(Dark, BoltAt, false, Colors.White with { A = (float)Blink.Red });
-            DrawSetTransform(Vector2.Zero);
+            if (Blink.Red > 0) layer.DrawTextureRect(Dark, BoltAt, false, Colors.White with { A = (float)Blink.Red });
+            layer.DrawSetTransform(Vector2.Zero);
         }
 
         /// <summary>Where the beat has thrown the bolt, with its current and halo.</summary>
@@ -271,6 +297,14 @@ public partial class EnergyBar : CanvasLayer
             float from = (top - BoltAt.Position.Y) / BoltAt.Size.Y, to = (bottom - BoltAt.Position.Y) / BoltAt.Size.Y;
             on.DrawTextureRectRegion(picture, new Rect2(BoltAt.Position.X, top, BoltAt.Size.X, bottom - top),
                 new Rect2(0, from * size.Y, size.X, (to - from) * size.Y), colour);
+        }
+
+        /// <summary>The bolt, over the ring and under the frame: drawn every frame as it beats, the tab under it only when it changes.</summary>
+        private sealed partial class BoltLayer : Node2D
+        {
+            public Tab? Tab { get; set; }
+
+            public override void _Draw() => Tab?.DrawBolt(this);
         }
 
         /// <summary>The tab's light, drawn added over it.</summary>

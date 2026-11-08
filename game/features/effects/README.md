@@ -32,8 +32,8 @@ or a share of it); `Content/logic/Fx.cs` (the knobs, the lights' cap) and `Conte
   else its side facing the nearest hero. Chips fall to the floor under the face, within `HitLooks.FloorRows`. A hit's look is never drawn behind the walls.
 - **Looks by object** (0094): one table by the natural wall's material, one by the growth's kind (`HitLooks.Ground`,
   `HitLooks.Growths`), beside the sound's; what lies in the rock is struck as its stone; a pile in the hold as a wreck, its ring the wreck's (2026-11-07-pile-hits-felt); the hull, never broken, as alloy, so a
-  shot is seen to land. Metal throws sparks, glint and warm flash; stone fine sparks and chips; soil and plaster crumbs
-  and dust; wood splinters; plants leaves; crystal and glass cold glitter and shards; caps spores; cloth fibres; crockery
+  shot is seen to land. Metal throws sparks, glint and warm flash; stone fine sparks and dust; soil and plaster dust,
+  no chips: they lay in a sheet at the hit's floor, over any step (planet-frame-rate); wood splinters; plants leaves; crystal and glass cold glitter and shards; caps spores; cloth fibres; crockery
   glazed chips.
 - **A whole hit is the axe's** (0094): a faster tool throws its pace over the axe's (`Impacts.ShareOf`), so a second of
   drilling throws what a second of chopping does: each count by chance, rounded so it adds up, the glint and ring by
