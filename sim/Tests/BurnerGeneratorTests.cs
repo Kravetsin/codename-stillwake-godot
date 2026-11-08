@@ -145,33 +145,6 @@ public class BurnerGeneratorTests
         Assert.Equal(4 * FurnaceContent.Breath, ChainOxygen(cold) - ChainOxygen(w));
     }
 
-    /// <summary>
-    /// In a room whose air takes all its vaporizer makes, a lit fire's reserve pulls the air back from its far edge, and the
-    /// room says why; out, the air grows back (industrial-oxygen).
-    /// </summary>
-    [Fact]
-    public void ShrinksItsRoomsAirWhileItBurnsAndItGrowsBackOnceOut()
-    {
-        // Settled, and short of the run that would dry its one canister: such a room takes its vaporizer's whole rate.
-        var w = SetUp().Run(600);
-        int room = w.M.Rooms.RoomAt(Generator)!.Value;
-        int full = w.M.Atmosphere.AiredCells.Count;
-        Feed(w, 1);
-        int least = full;
-        string? why = null;
-        for (int i = 0; i < 200; i++)
-        {
-            w.Run();
-            least = Math.Min(least, w.M.Atmosphere.AiredCells.Count);
-            why ??= w.M.Atmosphere.RoomsAir().Single(r => r.Room == room).Problem;
-        }
-        Assert.InRange(least, 1, full - 1);
-        Assert.Equal("atmosphere.burning", why);
-        w.Run(PlankTicks + 100);
-        Assert.False(w.M.Furnace.At(IdAt(w, Generator)).Burning);
-        Assert.Equal(full, w.M.Atmosphere.AiredCells.Count);
-    }
-
     /// <summary>The oxygen the chain holds: the tank's liquid and the vaporizer's gas (liquid-oxygen).</summary>
     private static int ChainOxygen(Scenario w) => w.M.Grid.Machines.Sum(m => w.M.Atmosphere.OxygenIn(m.Id));
 

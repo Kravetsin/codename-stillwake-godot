@@ -146,6 +146,15 @@ public partial class ContentTests
         Assert.All(new[] { "crystalIce", "crystalIceHang" }, id => Assert.Equal([("ice", 4)], Content.Flora.Get(id).Yields));
     }
 
+    /// <summary>Leaks the user set, units a minute a cell, a period of ten minutes each (leaks-a-minute): scrap 3, iron 2, alloy 1.8, glass 1.5.</summary>
+    [Fact]
+    public void WallsLeakAsTheUserSetThemAMinute()
+    {
+        int minutes = Air.LeakEvery / (60 * 20);
+        Assert.Equal((3 * minutes, 2 * minutes, 18 * minutes / 10, 15 * minutes / 10),
+            (Content.Materials.Get("scrap").Leak, Content.Materials.Get("iron").Leak, Content.Materials.Get("alloy").Leak, Content.Materials.Get("glass").Leak));
+    }
+
     // Power
 
     [Fact]

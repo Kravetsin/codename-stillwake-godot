@@ -6,8 +6,8 @@ namespace Stillwake.Content;
 /// <see cref="LeakEvery"/> ticks, ten minutes so that a rate of a tenth of a unit a minute is whole, a
 /// room holds as many cells round its vents as its sources pay the leak of (0020, 2026-11-05-air-bubbles): the back
 /// wall behind each and the hull cells beside it by their material's leak, a closed door in its hull by <see cref="DoorLeak"/>;
-/// the pod's <see cref="PodRate"/> holds the starting room alone, a vaporizer's <see cref="GeneratorRate"/> as much, 133 cells of scrap
-/// (scarce-oxygen: the lock, the hold and every room built after need a vaporizer and canisters).
+/// the pod's <see cref="PodRate"/> holds the starting room alone, a vaporizer's <see cref="GeneratorRate"/> twice it, 400 cells of scrap
+/// (scarce-oxygen, leaks-a-minute: the lock, the hold and every room built after need a vaporizer and canisters).
 /// A room open to space loses <see cref="VentLoss"/> cells a tick, and a vent in it, or in space, drains
 /// its network by <see cref="VentDrain"/> a tick: what a vent can pass. A tank holds liquid oxygen, a canister
 /// <see cref="Canister"/> of it; a vaporizer (the generator) turns it into air at <see cref="GeneratorRate"/> units every
@@ -28,12 +28,12 @@ public static class Air
 
     public const int VentLoss = 24;
     public const int LeakEvery = 12000;
-    public const int DoorLeak = 60;
+    public const int DoorLeak = 20;
     public const int VentDrain = 8;
     public const int GeneratorRate = 12000;
 
-    /// <summary>What the pod makes from nothing every <see cref="LeakEvery"/> ticks: room A of the starting ship, whose leak is 11520, and no more (scarce-oxygen).</summary>
-    public const int PodRate = 12000;
+    /// <summary>What the pod makes from nothing every <see cref="LeakEvery"/> ticks: room A of the starting ship, whose leak is 3840, with its first furnace lit (`Furnace.Reserve`), and no more (leaks-a-minute).</summary>
+    public const int PodRate = 6000;
 
     public const int GeneratorStore = 160;
 

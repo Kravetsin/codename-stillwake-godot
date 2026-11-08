@@ -301,15 +301,15 @@ public class WreckTests
     }
 
     [Fact]
-    public void CyclesTheAirlockAWholeAgainOnceItsInnerDoorShuts()
+    public void CyclesTheAirlockWithoutALosingACellOfItsAir()
     {
         var w = AiredWreck();
         var closet = Lock;
-        // In: the inner doorway opened, the pod's air, enough for A alone, spreads a little into the closet (scarce-oxygen).
+        // In: the inner doorway opened, the pod airs the closet too, its spare beyond A's furnace enough (leaks-a-minute).
         w.Do(new SetDoor(Inner, true)).Run(600);
-        Assert.InRange(AiredIn(w, closet), 1, closet.Length - 1);
-        Assert.InRange(AiredIn(w, A), A.Length - closet.Length, A.Length - 1);
-        // Out, once the inner has swung open (Doors.SwingTicks): closed behind, the outer opened; the closet vents, A is whole again.
+        Assert.Equal(closet.Length, AiredIn(w, closet));
+        Assert.Equal(A.Length, AiredIn(w, A));
+        // Out, once the inner has swung open (Doors.SwingTicks): closed behind, the outer opened; the closet vents, A keeps its air.
         w.Run(Content.Doors.SwingTicks);
         w.Do(new SetDoor(Inner, false)).Run(Content.Doors.SwingTicks);
         w.Do(new SetDoor(Outer, true)).Run(20);
@@ -362,21 +362,21 @@ public class WreckTests
     }
 
     /// <summary>
-    /// What closes the dead ends: a lit fire pulls A's air back from its far edge by its reserve (industrial-oxygen), but
-    /// it burns on and a hero by it breathes the room's air.
+    /// What closes the dead ends: the pod makes room A's air and its first furnace's reserve too (industrial-oxygen,
+    /// leaks-a-minute), so a lit fire and a breathing hero leave it whole.
     /// </summary>
     [Fact]
-    public void HoldsMostOfItsAirWithAHeroBreathingAndAFurnaceLit()
+    public void HoldsItsAirWithAHeroBreathingAndAFurnaceLit()
     {
         var w = AiredWreck();
         int id = BuildFurnace(w, ("planks", 5), ("scrapChunk", 5));
         w.Do(new Move(new Slot(SlotOf(w, "planks")), new Target(Machines.Get("furnace").FuelSlot, id), 5)).Run();
         w.Do(new Move(new Slot(SlotOf(w, "scrapChunk")), new Target(Crate: id), 5)).Run();
-        // Out of the pod's reach, whose air would pay its breaths, but near it: the far edge of A goes first.
-        w.Do(new Enter(At(48, 19)) { From = 1 });
+        // Out of the pod's reach, whose air would pay its breaths.
+        w.Do(new Enter(At(44, 19)) { From = 1 });
         w.Run(12 * 20);
         Assert.True(w.M.Furnace.At(id).Burning);
-        Assert.InRange(AiredIn(w, A), A.Length - 20, A.Length - 1);
+        Assert.Equal(A.Length, AiredIn(w, A));
         Assert.Equal(Scenario.Full, w.M.Crew.HeroOf(1)?.Air);
     }
 

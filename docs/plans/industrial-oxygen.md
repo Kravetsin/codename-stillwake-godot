@@ -135,8 +135,8 @@ P5 stands alone; best after P4, so a tank is already where canisters are taken f
 - `Materials.Leak` is per `Air.LeakEvery` (ten minutes): scrap 30, iron 20, alloy 18, glass 15 (the user's 3, 2, 1.8,
   1.5 a minute). Proposed for those the user did not name, by how they stood against scrap: mica and hide 15 (as glass),
   soil 120, stone, plaster and the veins 90, bedrock and lava 36, `Air.DoorLeak` 20.
-- Scrap leaks a third of what it did: a vaporizer holds three times the scrap cells, so `Air.PodRate` is cut again to just
-  over room A's new leak, which the step measures as scarce-oxygen did, the pod holding room A alone still.
+- Scrap leaks a third of what it did: a vaporizer holds three times the scrap cells. `Air.PodRate` is cut to 6000, room
+  A's new leak of 3840 and its first furnace's reserve: at room A alone the first furnace went out (leaks-a-minute).
 - Tests whose maps were sized by the old leaks are refitted; `ContentTests` holds the four numbers.
 
 ### Q2: a slider of canisters out of a tank
