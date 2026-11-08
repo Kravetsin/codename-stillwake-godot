@@ -4,7 +4,6 @@ using System.Linq;
 using Stillwake.Game.Render;
 using Stillwake.Game.Shared;
 using Stillwake.Sim;
-using Stillwake.Sim.Atmosphere;
 using Stillwake.Sim.Building;
 using Stillwake.Sim.Creatures;
 using Stillwake.Sim.Debris;
@@ -174,8 +173,11 @@ public static class Aiming
     /// <summary>Whether a machine of <paramref name="kind"/> opens on E: one holding items (a crate, a furnace) or the ship's computer.</summary>
     public static bool Opens(string kind) => Spec.Machines.TryGet(kind, out var spec) && ((spec.Slots != null && !Pours(spec)) || spec.Is(Spec.MachineTrait.Computer));
 
-    /// <summary>A tank or a cistern: the hand loads or pours into it on E, and its hopper is the drones' (industrial-oxygen).</summary>
-    private static bool Pours(Spec.MachineSpec spec) => spec.Is(Spec.MachineTrait.Gas) || spec.Is(Spec.MachineTrait.HoldsWater);
+    /// <summary>
+    /// A cistern: the hand pours a bottle into it on E, and its hopper is the drones'. A tank opens instead, its hopper loaded
+    /// by hand and a canister drawn out by its key (industrial-oxygen).
+    /// </summary>
+    private static bool Pours(Spec.MachineSpec spec) => spec.Is(Spec.MachineTrait.HoldsWater);
 
     /// <summary>Whether a crate, a furnace or a computer <paramref name="id"/> still stands with a cell of it within the hero's reach.</summary>
     public static bool CrateInReach(IGridQueries grid, Hero hero, int id)
@@ -441,7 +443,6 @@ public static class Aiming
     private static Use? PressOf(Registry m, int peer, int cell, ShownGrid? shown)
     {
         var grid = m.Grid;
-        if (grid.MachineAt(cell) is { } tank && Stillwake.Content.Machines.Is(tank.Kind, Stillwake.Content.MachineTrait.Gas)) return new Use(new LoadCanister(tank.Id), m.Atmosphere.CanisterProblem(tank.Id, peer));
         // A bottle is poured into a cistern; an electrolyser says to pipe it from one (water).
         if (grid.MachineAt(cell) is { } watered && (Stillwake.Content.Machines.Is(watered.Kind, Stillwake.Content.MachineTrait.HoldsWater) || Stillwake.Content.Machines.Is(watered.Kind, Stillwake.Content.MachineTrait.Electrolyses)))
             return new Use(new Sim.Water.PourWater(watered.Id), m.Water.PourProblem(watered.Id, peer));

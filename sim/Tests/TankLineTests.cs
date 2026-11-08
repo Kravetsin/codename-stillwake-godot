@@ -35,6 +35,41 @@ public class TankLineTests
     private static int[] Tanks(Scenario w) => [.. w.M.Grid.MachinesOf("tank").Select(m => m.Id)];
     private static int[] Held(Scenario w) => [.. Tanks(w).Select(w.M.Atmosphere.OxygenIn)];
 
+    private static int Canisters(Scenario w, int peer) => w.M.Items.Totals(peer).Where(t => t.Item == "canister").Sum(t => t.Count);
+
+    /// <summary>A canister drawn out of a tank takes a canister's liquid and gives the sender one (industrial-oxygen).</summary>
+    [Fact]
+    public void DrawsACanisterOutTakingItsLiquid()
+    {
+        var w = World();
+        int tank = Tanks(w)[0], carried = Canisters(w, 0);
+        w.Do(new LoadCanister(tank)).Do(new LoadCanister(tank)).Run();
+        w.Do(new DrawCanister(tank)).Run();
+        Assert.Empty(w.Refusals);
+        Assert.Equal(Air.Canister, w.M.Atmosphere.OxygenIn(tank));
+        Assert.Equal(carried - 1, Canisters(w, 0));
+        // Loaded back, the tank holds what it did; drawn to nothing, it leaves the list.
+        w.Do(new LoadCanister(tank)).Run();
+        Assert.Equal(2 * Air.Canister, w.M.Atmosphere.OxygenIn(tank));
+        w.Do(new DrawCanister(tank)).Do(new DrawCanister(tank)).Run();
+        Assert.Equal(0, w.M.Atmosphere.OxygenIn(tank));
+        Assert.Equal(carried, Canisters(w, 0));
+    }
+
+    /// <summary>Not from what is no tank, nor from a tank holding less than a canister, nor into a full inventory; nothing changed.</summary>
+    [Fact]
+    public void RefusesADrawFromNoTankFromLessThanACanisterOrIntoAFullBag()
+    {
+        var w = World();
+        int tank = Tanks(w)[0];
+        w.Do(new DrawCanister(999)).Do(new DrawCanister(tank)).Run();
+        w.Do(new LoadCanister(tank)).Run();
+        w.GiveItems(1, ("planks", Content.Inventory.Slots * Content.Items.Get("planks").Stack));
+        w.Do(new DrawCanister(tank) { From = 1 }).Run();
+        Assert.Equal(["atmosphere.noTank", "atmosphere.tankLow", "items.full"], w.Refusals.Select(r => r.Reason));
+        Assert.Equal(Air.Canister, w.M.Atmosphere.OxygenIn(tank));
+    }
+
     /// <summary>A tank's hopper pours a canister put into it when it fits, as one loaded by hand, and waits while full (industrial-oxygen).</summary>
     [Fact]
     public void ItsHopperPoursACanisterWhenItFitsAndWaitsWhileFull()

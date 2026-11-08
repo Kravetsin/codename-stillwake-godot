@@ -27,7 +27,7 @@ public partial class InventoryPanel
             _slots.RemoveAll(s => s.Place.Crate != null && !_lent.Contains(s));
             _shown.RemoveChild(_frame);
             _frame.QueueFree();
-            (_frame, _progress, _problem, _tooCold, _crateGrid, _crateKey, _send) = (null, null, null, null, null, null, null);
+            (_frame, _progress, _problem, _tooCold, _crateGrid, _crateKey, _send, _draw) = (null, null, null, null, null, null, null, null);
             _chargerLines.Clear();
         }
         if (want is not var (crate, kind)) return;
@@ -52,6 +52,7 @@ public partial class InventoryPanel
         _frame.Add(kind switch
         {
             _ when spec.Is(Content.MachineTrait.Sells) => TradeBody(crate, spec),
+            _ when spec.Is(Content.MachineTrait.Gas) => TankBody(crate, spec),
             _ when spec.Is(Content.MachineTrait.Fire) && spec.Inputs > 0 => FurnaceBody(crate, spec),
             _ when spec.Is(Content.MachineTrait.Fire) => GeneratorBody(crate, spec),
             _ when station is { Fed: true } => FedBody(crate, kind),
@@ -258,6 +259,26 @@ public partial class InventoryPanel
         return body;
     }
 
+    /// <summary>A tank's body: its hopper, which drones fill, and the key that draws a canister out (industrial-oxygen).</summary>
+    private VBoxContainer TankBody(int crate, Content.MachineSpec spec)
+    {
+        var body = Style.Gap(new VBoxContainer { MouseFilter = Control.MouseFilterEnum.Ignore }, 6);
+        body.AddChild(_crateGrid = Grid(Enumerable.Range(0, spec.Slots ?? 0).Select(i => new Place(i, crate))));
+        body.AddChild(_draw = Style.Button("", () => Send(new Stillwake.Sim.Atmosphere.DrawCanister(crate))));
+        return body;
+    }
+
+    /// <summary>The tank's key: the liquid it holds of its capacity, dark while a canister cannot be drawn and why by the pointer.</summary>
+    private void ShowTank(int tank)
+    {
+        if (_draw == null || Air == null || _client == null) return;
+        string? problem = Air.DrawProblem(tank, _client.Id);
+        _draw.Disabled = problem != null;
+        _draw.TooltipText = problem != null ? T(problem) : "";
+        string text = T("tank.draw", ("n", Air.OxygenIn(tank)), ("all", Content.Air.TankCapacity));
+        if (_draw.Text != text) _draw.Text = text;
+    }
+
     /// <summary>The capsule's key: what it would carry while home, what it carries and when it comes back while away, dark with nothing to send.</summary>
     private void ShowCapsule(int station)
     {
@@ -278,6 +299,7 @@ public partial class InventoryPanel
     {
         var spec = reading.Kind is string kind && MachineSpecs.TryGet(kind, out var s) ? s : null;
         if (spec?.Is(Content.MachineTrait.Sells) == true && Crate is int sells) ShowCapsule(sells);
+        if (spec?.Is(Content.MachineTrait.Gas) == true && Crate is int tank) ShowTank(tank);
         bool zone = spec?.Is(Content.MachineTrait.Zone) == true;
         if (spec is { Charges: true } && !zone && Crate is int station) ShowCharger(reading, station, Charger?.Invoke(station) == true);
         // A bay's bolt lit while it charges a drone docked in it.

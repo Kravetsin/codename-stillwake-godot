@@ -5,8 +5,8 @@
 | File | Purpose |
 | --- | --- |
 | `Air.cs` | The rules of air: tanks pour, vaporizers make, each room holds the bubble its vents pay for. |
-| `Atmosphere.cs` | The module, its interfaces and command: tanks, generators, filling, use and venting. |
-| `Fuzz.cs` | The module's `Fuzz` override: the commands the desync suite draws. |
+| `Atmosphere.cs` | The module, its interfaces and commands. |
+| `Fuzz.cs` | Its `Fuzz`: the commands the desync suite draws. |
 | `Order.cs` | The order of a room's cells, nearest its live vents first. |
 | `State.cs` | The saved slice and its records: `RoomStatus`, `RoomAir`, `AtmosphereState`. |
 
@@ -68,17 +68,18 @@ Oxygen: liquid in tanks, turned into gas by vaporizers (liquid-oxygen), and the 
 
 ## API
 
-- **Queries** (`IAtmosphereQueries`): `OxygenIn(tank)`; `MakesAt(source)` — a vaporizer's or the pod's rate while its store has
-  room, thousandths of a unit a tick; `CanisterProblem(tank, peer)`; `LiquidFor(machine)` — behind its liquid input; `Fed(vent)`; `Supplied(vent)`;
-  `StatusOf(room)`; `AiredAt(cell)`; `HoldsAir(cell)` — its room holds any (where drones fly); `AiredCells` — sorted,
-  live; `RoomsAir()` — each room's `RoomAir` for the overlay (`State.cs`), its `Budget` its share of the making, with why a room falls short
+- **Queries** (`IAtmosphereQueries`): `OxygenIn(tank)`; `MakesAt(source)` — its rate while its store has room,
+  thousandths a tick; `CanisterProblem(tank, peer)`; `LiquidFor(machine)` — behind its liquid input; `Fed(vent)`; `Supplied(vent)`;
+  `StatusOf(room)`; `AiredAt(cell)`; `HoldsAir(cell)` (where drones fly); `AiredCells` — sorted,
+  live; `RoomsAir()` — each room's `RoomAir` for the overlay (`State.cs`), its `Budget` its share of the making, and why it falls short
   (`atmosphere.noVent`, `.notPiped`, `.dry`, `.unpowered`; `.leaky` when a bubble stops short of its room, `.burning` by fires' reserves); on a timer.
 - **Operations** (`IAtmosphereOps`): `Breathe(cell, amount)` — `amount` for a hero's head or a fire in `cell` if it
   holds air, drawn from its room's networks, else none (crew, furnace). `Fill(tank, amount)` — liquid, up to capacity.
   `Reserve(cell)` — a fire burning there, each construction phase. `BurnLiquid(machine, amount)` — a blown fire's breath.
 - **Commands:** `LoadCanister(Tank)`, refused with `atmosphere.noTank` (a vaporizer too), `atmosphere.tankFull`
-  or `items.notEnough`.
-- **Fuzz:** mostly a canister into a tank the grid has, else into ids 0–5, mostly no tank.
+  or `items.notEnough`. `DrawCanister(Tank)` gives one of its liquid, refused with
+  `.noTank`, `.tankLow` or `items.full` (`DrawProblem`).
+- **Fuzz:** a canister into, or one in three out of, mostly a tank the grid has, else ids 0–5.
 
 ## Invariants
 

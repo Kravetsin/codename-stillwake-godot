@@ -79,6 +79,8 @@ public partial class InventoryPanel : CanvasLayer
     private FavouriteStar _pointerStar = null!;
     private SortButton? _crateKey;
     private Button? _send;
+    /// <summary>The open tank's key: a canister drawn out of it (industrial-oxygen).</summary>
+    private Button? _draw;
     private SortSweep _sweep = null!;
     private TextureRect _heldIcon = null!;
     private Label _heldCount = null!, _creative = null!;
@@ -152,6 +154,9 @@ public partial class InventoryPanel : CanvasLayer
 
     /// <summary>The trade module, for a trade station's capsule: what it would carry and whether it is away.</summary>
     public Stillwake.Sim.Trade.TradeModule? Trade { get; set; }
+
+    /// <summary>The air, for an open tank: what it holds and whether a canister can be drawn out (industrial-oxygen).</summary>
+    public Stillwake.Sim.Atmosphere.AtmosphereModule? Air { get; set; }
 
     /// <summary>The stations, for an electric smelter's or a grow capsule's panel: how far its work is, whether it works, whether it is too cold.</summary>
     public CraftingModule? Crafting { get; set; }

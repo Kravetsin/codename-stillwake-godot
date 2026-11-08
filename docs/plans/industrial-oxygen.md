@@ -94,8 +94,8 @@ P5 stands alone; best after P4, so a tank is already where canisters are taken f
   `atmosphere.noTank` (not a tank), `atmosphere.tankLow` (it holds less than a canister) or the items' reason when the
   sender has no room for it. A canister is the liquid in a bottle: no empty canister is needed.
 - Like `BurnLiquid`, it resets the held cache and drops a tank it empties.
-- Client: aimed at a tank with no canister in hand, the use takes one out (`use.drawCanister`); with a canister in hand it
-  loads it, as today.
+- Client (decided with the user, 2026-11-08: the client has no hand to tell by): E opens a tank's panel, its hopper a
+  slot a canister is put into by hand, and its key `tank.draw` taking one out, dark with why by the pointer.
 - What it opens: an electrolyser's oxygen carried to a suit (`Crew.CanisterRefill`), a jetpack, a drone bay or a ship
   far away; and ice sold as canisters at 117 credits a 3000 units. The plan for P4 checks that price against ice's 30.
 - Tests: a canister drawn takes `Air.Canister` and gives one; each refusal; drawn and loaded back leaves the tank as it was.
