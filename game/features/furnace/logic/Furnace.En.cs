@@ -8,6 +8,7 @@ public static partial class En
         ["furnace.noFuel"] = "No fuel: planks burn",
         ["furnace.noAir"] = "No air for its fire",
         ["furnace.unneeded"] = "Nothing needs its power",
+        ["furnace.off"] = "Switched off",
         ["furnace.blown"] = "Blown with liquid oxygen: half as fast again, no room air",
     };
 }

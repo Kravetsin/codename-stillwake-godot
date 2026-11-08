@@ -104,6 +104,7 @@ public sealed class FurnaceModule : Module<FurnaceState>
             : smelter && !_crafting.CanSmelt(id) ? "furnace.full"
             : !burning && FuelIn(machine) == null ? "furnace.noFuel"
             : !aired ? "furnace.noAir"
+            : !smelter && !burning && _power.IsOff(id) ? "furnace.off"
             : !smelter && !burning && !_power.Needed(id) ? "furnace.unneeded"
             : null;
         if (!smelter) return new Smelting(burning, Problem: problem, Blown: blown);
@@ -208,7 +209,7 @@ public sealed class FurnaceModule : Module<FurnaceState>
         var spec = Content.Machines.Get(m.Kind);
         if (spec.Inputs > 0 && !_crafting.CanSmelt(m.Id)) return (0, false);
         // A generator burns only what its network would take: a fuel lit burns to its end, the next waits (0101).
-        if (spec.Makes != null && !_power.Needed(m.Id)) return (0, false);
+        if (spec.Makes != null && (!_power.Needed(m.Id) || _power.IsOff(m.Id))) return (0, false);
         _itemsOps.Consume(m.Id, spec.FuelSlot!.Value);
         return (blown ? Blown(burns) : burns, blown);
     }

@@ -47,7 +47,6 @@ public static class Prompts
         if (aim.Press is not { } press) return null;
         return press.Command switch
         {
-            Sim.Water.PourWater => new Prompt("use.pourWater", press.Problem),
             Grab => new Prompt("use.catch", press.Problem),
             Collect => new Prompt("use.collect", press.Problem),
             HewWrecks or HewPieces => new Prompt("use.chop", press.Problem),

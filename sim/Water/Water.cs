@@ -160,7 +160,7 @@ public sealed partial class WaterModule : Module<WaterState>, IWaterQueries
         var (cisterns, tanks) = Ends(m);
         if (WaterOf(cisterns) == 0) return "water.noWater";
         if (Room(tanks) == 0) return "water.tanksFull";
-        return _power.Satisfaction(machine) == 0 ? "water.noPower" : null;
+        return _power.IsOff(machine) ? "water.off" : _power.Satisfaction(machine) == 0 ? "water.noPower" : null;
     }
 
     /// <summary>

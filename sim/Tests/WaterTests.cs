@@ -137,6 +137,20 @@ public class WaterTests
         Assert.Equal(30, w.M.Atmosphere.OxygenIn(tank));
     }
 
+    /// <summary>Switched off, an electrolyser splits nothing and says so; on again, it splits (industrial-oxygen).</summary>
+    [Fact]
+    public void SwitchedOffSplitsNothingAndSaysSo()
+    {
+        var w = Piped();
+        int cistern = Id(w, "cistern"), electrolyser = Id(w, "electrolyser"), tank = Id(w, "tank");
+        w.Do(new Power.SetSwitch(electrolyser, false)).Do(new PourWater(cistern)).Run(30);
+        Assert.Equal("water.off", w.M.Water.Stalled(electrolyser));
+        Assert.Equal(0, w.M.Atmosphere.OxygenIn(tank));
+        w.Do(new Power.SetSwitch(electrolyser, true)).Run(30);
+        Assert.Null(w.M.Water.Stalled(electrolyser));
+        Assert.True(w.M.Atmosphere.OxygenIn(tank) > 0);
+    }
+
     [Fact]
     public void StallsWithItsWorkKeptWhenTheTanksAreFullOrThePowerGoes()
     {

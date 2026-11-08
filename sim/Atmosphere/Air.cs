@@ -426,6 +426,7 @@ public sealed partial class AtmosphereModule
                 : !standing.Contains(room.Id) ? "atmosphere.noVent"
                 : vaporizers.Count == 0 ? "atmosphere.notPiped"
                 : oxygen == 0 ? "atmosphere.dry"
+                : vaporizers.All(_power.IsOff) ? "atmosphere.off"
                 : "atmosphere.unpowered";
             int budget = (int)Math.Min(int.MaxValue, _budget.GetValueOrDefault(room.Id) / 1000);
             all.Add(new RoomAir(room.Id, now, aired, leak, oxygen, made, budget, lasts, problem));

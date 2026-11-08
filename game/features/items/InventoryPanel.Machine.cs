@@ -28,7 +28,7 @@ public partial class InventoryPanel
             _slots.RemoveAll(s => s.Place.Crate != null && !_lent.Contains(s));
             _shown.RemoveChild(_frame);
             _frame.QueueFree();
-            (_frame, _progress, _problem, _tooCold, _crateGrid, _crateKey, _send, _draw, _drawCount) = (null, null, null, null, null, null, null, null, null);
+            (_frame, _progress, _problem, _tooCold, _crateGrid, _crateKey, _send, _draw, _drawCount, _switch) = (null, null, null, null, null, null, null, null, null, null);
             _chargerLines.Clear();
         }
         if (want is not var (crate, kind)) return;
@@ -49,6 +49,9 @@ public partial class InventoryPanel
         if (spec.Is(Content.MachineTrait.Container)) _frame.Head.AddChild(_crateKey = Sorter(crate));
         // Whether drones serve it, at the right of its header (0062).
         if (Served?.Invoke(crate) is { } served) _frame.Head.AddChild(served);
+        // On or off, for a machine that switches: a press turns it (industrial-oxygen).
+        if (spec.Is(Content.MachineTrait.Switches))
+            _frame.Head.AddChild(_switch = Style.Button("", () => { if (Switching != null) Send(new Stillwake.Sim.Power.SetSwitch(crate, Switching.IsOff(crate))); }));
         // Its body by what it is (0113): a fire smelting its inputs or making power, a fed station, a bay, a charging station.
         _frame.Add(kind switch
         {
@@ -342,6 +345,11 @@ public partial class InventoryPanel
         var spec = reading.Kind is string kind && MachineSpecs.TryGet(kind, out var s) ? s : null;
         if (spec?.Is(Content.MachineTrait.Sells) == true && Crate is int sells) ShowCapsule(sells);
         if (spec?.Is(Content.MachineTrait.Gas) == true && Crate is int tank) ShowTank(tank);
+        if (_switch != null && Switching != null && Crate is int switched)
+        {
+            string said = T(Switching.IsOff(switched) ? "switch.off" : "switch.on");
+            if (_switch.Text != said) _switch.Text = said;
+        }
         if (spec?.Is(Content.MachineTrait.HoldsWater) == true && Crate is int cistern) ShowCistern(cistern);
         bool zone = spec?.Is(Content.MachineTrait.Zone) == true;
         if (spec is { Charges: true } && !zone && Crate is int station) ShowCharger(reading, station, Charger?.Invoke(station) == true);

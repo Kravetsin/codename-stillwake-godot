@@ -14,7 +14,7 @@ network can give (0017); cables move by hand (0021); stores keep what is spare (
 - **Depends on:** `Grid` (machines and what is built, to find nodes); `Rooms` (whether a panel stands in space);
   `Items` (`IItemsQueries`, `IItemsOps`: a cable's cost, what a charging station holds, modules' draw).
 - **State** (`PowerState`, saved): `Cables`, each as its two node cells, the lower first, and whether it was paid,
-  ordered by its ends; `Resting`, `Blown`: ids told to rest or blow, sorted; `Stores`, `StoreCharge(Machine, Energy)` in
+  ordered by its ends; `Resting`, `Blown`, `Off`: ids resting, blown, switched off, sorted; `Stores`, `StoreCharge(Machine, Energy)` in
   power-ticks by machine id, only those holding something (0101); `Broken`, machine ids a flare broke, sorted, written
   only when some are (magnetic-flare). A battery's charge is the item's, saved by `Items`.
 - **Derived**, found from the cables every tick in derivation: `Networks` in id order (nodes, supply, demand,
@@ -59,17 +59,17 @@ network can give (0017); cables move by hand (0021); stores keep what is spare (
 
 ## API
 
-- **Queries** (`IPowerQueries`): `Cables`; `Networks`; `NodeAt(cell)`; `NetworkOf(node)`; `Feeds(cell)`, a structure a cable
-  ends on with power enough: its network makes or stores some and covers its demand; `Satisfaction(machineId)`,
+- **Queries** (`IPowerQueries`): `Cables`; `Networks`; `NodeAt(cell)`; `NetworkOf(node)`; `Feeds(cell)`, power enough
+  at a cable's end; `Satisfaction(machineId)`,
   0 off every network; `Draw(machineId)`, modules (0086) and a charger's slots in; `LayProblem(peer, a, b)` and
-  `MoveProblem(from, to, cable?)` for the ghost and a dragged end; `Charges(machineId)`, filling this tick; `Store`, a
+  `MoveProblem(from, to, cable?)`; `Charges(machineId)`, filling this tick; `Store`, a
   `StoreLevel(Energy, Capacity, Flow)` or null; `Needed`; `ChargeRate`, scaled, 0 while charging nothing (0100);
   `Broken`, `IsBroken(machineId)`.
 - **Operations** (`IPowerOps`): `Rest(machineId, resting)`, from the next derivation: `crafting` an idle station (0057), from simulation; `furnace` a cold burner
   (0045) and `landing` a wheel no rider runs, from construction; `Blow(machineId, blown)` too. `Unplug(machineId)`, by `building` taking a machine apart: its cables move
   to a peg at its plug's cell; `Plug(machineId)`, by `building` building a powered
   machine: cables on a peg at its plug's cell move to it (0110). A cable that would end where it starts or join a pair
-  already joined stays. `Break(machineId)`, by `hazards`, a powered machine only, else it throws; `Mend(machineId)`, by
+  already joined stays. `Break(machineId)`, by `hazards`, a powered machine only; `Mend(machineId)`, by
   `building` once repaired.
 
 ## Commands
@@ -78,6 +78,7 @@ network can give (0017); cables move by hand (0021); stores keep what is spare (
 `power.notAboard` (0110), `power.noNode`, `power.sameNode`, `power.tooLong`, `power.twice`, `items.notEnough`.
 `Cut(A, B)` gives back what was paid: `power.noCable`, `items.full`. `Move(Node, To, Cable?)`: `power.notAboard`,
 `power.noCable`, `power.noNode`, `power.sameNode`, `power.twice`, `power.taut` (0021). `From` is the sender.
+`SetSwitch(Machine, On)`: `power.noSwitch` unless it `Switches`; off, it draws and makes nothing.
 
 ## Invariants
 

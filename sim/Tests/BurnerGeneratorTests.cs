@@ -96,6 +96,21 @@ public class BurnerGeneratorTests
         Assert.Equal(0, LampPower(w));
     }
 
+    /// <summary>Switched off, a generator lights no fuel and says so; on again, it lights (industrial-oxygen).</summary>
+    [Fact]
+    public void SwitchedOffLightsNoFuelAndSaysSo()
+    {
+        var w = SetUp();
+        int generator = IdAt(w, Generator);
+        w.Do(new Power.SetSwitch(generator, false)).Run();
+        Feed(w, 1).Run(20);
+        Assert.Equal(new Smelting(false, Problem: "furnace.off"), w.M.Furnace.At(generator));
+        Assert.Equal(0, Supply(w));
+        w.Do(new Power.SetSwitch(generator, true)).Run(2);
+        Assert.True(w.M.Furnace.At(generator).Burning);
+        Assert.Equal(Makes, Supply(w));
+    }
+
     [Fact]
     public void BurnsAPlankWithAirAndPowersALampFromTheNextTick()
     {

@@ -11,6 +11,7 @@ public static partial class Ru
         ["water.noWater"] = "Нет воды: подведи выход цистерны к его входу",
         ["water.tanksFull"] = "Баки на его выходе полны",
         ["water.noPower"] = "Нет энергии",
+        ["water.off"] = "Выключен",
         ["water.cistern"] = "Вода · {bottles}/{of} {of|бутылка|бутылки|бутылок}",
         ["water.splitting"] = "Разлагает воду в жидкий кислород",
     };
