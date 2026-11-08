@@ -13,6 +13,6 @@ public static partial class En
         ["water.noPower"] = "No power",
         ["water.off"] = "Switched off",
         ["water.cistern"] = "Water · {held}/{of} l",
-        ["water.splitting"] = "Splitting water into liquid oxygen",
+        ["water.splitting"] = "Splitting {n} l/min of water into oxygen",
     };
 }

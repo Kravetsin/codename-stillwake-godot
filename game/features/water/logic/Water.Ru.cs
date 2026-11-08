@@ -13,6 +13,6 @@ public static partial class Ru
         ["water.noPower"] = "Нет энергии",
         ["water.off"] = "Выключен",
         ["water.cistern"] = "Вода · {held}/{of} л",
-        ["water.splitting"] = "Разлагает воду в жидкий кислород",
+        ["water.splitting"] = "Разлагает {n} л/мин воды в кислород",
     };
 }
