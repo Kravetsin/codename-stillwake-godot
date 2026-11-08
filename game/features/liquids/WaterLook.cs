@@ -87,22 +87,22 @@ public static class WaterLook
                         vec4 up = cell_at(TEXTURE, c - vec2(0.0, 1.0), size);
                         if (up.g < 0.5 || abs(f.x - 0.5) * cell > stream_half(up.r, px, c.x, t)) discard;
                         COLOR = stream_colour(px, t, grain);
-                        return;
+                    } else {
+                        // How deep: this cell's part and every wet cell over it, a few at most.
+                        float above = 0.0;
+                        for (int i = 1; i <= int(DARKEST); i++) {
+                            if (cell_at(TEXTURE, c - vec2(0.0, float(i)), size).a < 0.5) break;
+                            above += 1.0;
+                        }
+                        float deep = clamp((under + above * cell) / (DARKEST * cell), 0.0, 1.0);
+                        float blot = step(0.58, noise(pigment * 0.045 + 7.3));
+                        float alpha = (0.34 + 0.34 * deep + 0.08 * blot) * grain;
+                        vec3 colour = mix(WASH, DEEP, deep);
+                        float tide = above > 0.0 ? 0.0 : 1.0 - smoothstep(0.6, 1.6, under);
+                        alpha = max(alpha, tide * (0.62 + 0.2 * noise(px * 0.5)));
+                        colour = mix(colour, TIDE, tide * 0.8);
+                        COLOR = vec4(colour, clamp(alpha, 0.0, 0.92));
                     }
-                    // How deep: this cell's part and every wet cell over it, a few at most.
-                    float above = 0.0;
-                    for (int i = 1; i <= int(DARKEST); i++) {
-                        if (cell_at(TEXTURE, c - vec2(0.0, float(i)), size).a < 0.5) break;
-                        above += 1.0;
-                    }
-                    float deep = clamp((under + above * cell) / (DARKEST * cell), 0.0, 1.0);
-                    float blot = step(0.58, noise(pigment * 0.045 + 7.3));
-                    float alpha = (0.34 + 0.34 * deep + 0.08 * blot) * grain;
-                    vec3 colour = mix(WASH, DEEP, deep);
-                    float tide = above > 0.0 ? 0.0 : 1.0 - smoothstep(0.6, 1.6, under);
-                    alpha = max(alpha, tide * (0.62 + 0.2 * noise(px * 0.5)));
-                    colour = mix(colour, TIDE, tide * 0.8);
-                    COLOR = vec4(colour, clamp(alpha, 0.0, 0.92));
                 }
             }
             """,
