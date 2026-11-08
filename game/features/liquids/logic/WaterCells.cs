@@ -110,27 +110,48 @@ public static class WaterCells
         }
     }
 
-    /// <summary>Which cells of the rows from <paramref name="top"/> are in the air, each column from the bottom up.</summary>
+    /// <summary>
+    /// Which cells of the rows from <paramref name="top"/> are in the air, row by row from the bottom up: liquid over an open,
+    /// empty cell, or over liquid in the air with nothing beside it but liquid that may fall too (a sheet of lumps falling side
+    /// by side; not a pool, whose cells beside the hole it drains through rest on its floor).
+    /// </summary>
     private static void FindAir(Cells cells, int height, int left, int top, int wide, int tall, bool[] air)
     {
         int width = cells.Width;
+        Span<bool> passes = wide <= 1024 ? stackalloc bool[wide] : new bool[wide];
+        Span<bool> may = wide <= 1024 ? stackalloc bool[wide] : new bool[wide];
         for (int x = 0; x < wide; x++)
+            passes[x] = left + x >= 0 && left + x < width && top + tall < height && cells.Passes((top + tall) * width + left + x);
+        for (int y = tall - 1; y >= 0; y--)
         {
-            int gx = left + x;
-            if (gx < 0 || gx >= width)
+            int row = (top + y) * width;
+            for (int x = 0; x < wide; x++)
+                may[x] = passes[x] && cells.Amount(row + left + x) > 0;
+            for (int x = 0; x < wide; x++)
             {
-                for (int y = 0; y < tall; y++) air[y * wide + x] = false;
-                continue;
-            }
-            bool passes = top + tall < height && cells.Passes((top + tall) * width + gx);
-            for (int y = tall - 1; y >= 0; y--)
-            {
-                int cell = (top + y) * width + gx, a = cells.Amount(cell);
-                bool inAir = a > 0 && passes && (cells.Empty(cell + width) || cells.Alone(cell));
+                int gx = left + x;
+                if (gx < 0 || gx >= width)
+                {
+                    air[y * wide + x] = false;
+                    continue;
+                }
+                int cell = row + gx;
+                bool inAir = may[x] && (cells.Empty(cell + width) || LetsFall(cells, may, left, row, x - 1) && LetsFall(cells, may, left, row, x + 1));
                 air[y * wide + x] = inAir;
-                passes = !cells.Blocks(cell) && (a == 0 || inAir);
+                passes[x] = !cells.Blocks(cell) && (cells.Amount(cell) == 0 || inAir);
             }
         }
+    }
+
+    /// <summary>
+    /// Whether the cell at column <paramref name="n"/> of the box, in the row from <paramref name="row"/>, lets the liquid
+    /// beside it fall: it holds none, or it may fall itself.
+    /// </summary>
+    private static bool LetsFall(Cells cells, ReadOnlySpan<bool> may, int left, int row, int n)
+    {
+        int gx = left + n;
+        if (gx < 0 || gx >= cells.Width || cells.Amount(row + gx) == 0) return true;
+        return n >= 0 && n < may.Length ? may[n] : cells.Passes(row + gx + cells.Width);
     }
 
     /// <summary>

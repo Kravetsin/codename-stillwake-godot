@@ -80,7 +80,9 @@ public static class WaterLook
                     // Its ends in the air rounded, as a drop's: the top unless water is over it, the bottom unless under it.
                     if (up.a < 0.5 && f.y < 0.5) half_wide *= sqrt(max(0.0, 1.0 - pow((0.5 - f.y) * 2.0, 2.0)));
                     if (down.a < 0.5 && f.y > 0.5) half_wide *= sqrt(max(0.0, 1.0 - pow((f.y - 0.5) * 2.0, 2.0)));
-                    if (abs(f.x - 0.5) * cell > half_wide) discard;
+                    // Streams side by side are one sheet: the side toward a neighbour's stream filled to it.
+                    vec4 beside = cell_at(TEXTURE, c + vec2(f.x < 0.5 ? -1.0 : 1.0, 0.0), size);
+                    if (abs(f.x - 0.5) * cell > half_wide && !(beside.a > 0.5 && beside.g > 0.5)) discard;
                     COLOR = stream_colour(px, t);
                 } else {
                     // The surface across this cell, blended with the neighbour's toward the side it is nearer, so a run reads flat.
