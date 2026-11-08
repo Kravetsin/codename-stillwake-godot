@@ -634,7 +634,7 @@ function markedSheet(look, seed, dim, mark) {
 function bandPictures() {
   for (let b = 0; b < BAND_PAINT.length; b++) {
     const look = bandLook(b), stone = markedSheet(look, 0x5701, false, BAND_MARK[b]), edge = edgeOf(look);
-    const walls = { stone, iceVein: veined(stone), copperVein: veined(stone, COPPER_VEIN, 0x2c7), ironVein: ironVeined(stone) };
+    const walls = { stone, iceVein: veined(stone), copperVein: veined(stone, COPPER_VEIN, 0x2c7), ironVein: ironVeined(stone), sulfurVein: sulfurVeined(stone) };
     for (const [name, sheet] of Object.entries(walls)) out(`wall_${name}_b${b}`, bake(sheet));
     out(`back_stone_b${b}`, bake(groundSheet(look, 0x5702, true)));
     for (let open = 1; open < 16; open++) out(`wall-edge_stone_b${b}_${open}`, AnimeEdge(open, edge));
