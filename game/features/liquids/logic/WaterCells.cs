@@ -1,4 +1,5 @@
 using System;
+using System.Buffers;
 using L = Stillwake.Content.Liquids;
 
 namespace Stillwake.Game.Features.Liquids;
@@ -6,15 +7,15 @@ namespace Stillwake.Game.Features.Liquids;
 /// <summary>
 /// The water as the shader reads it (<c>WaterLook</c>): a texel a cell of a box of the world, RGBA8. Red is the cell's amount
 /// (0 to 255 over <c>Liquids.Full</c>), green set where it is part of a stream, blue where lying water is over it, alpha where it
-/// is drawn. A stream is a lump in the air and its trail: the open cells it fell through over it, up to <see cref="Trail"/>
-/// rows or the water it left, and those down to the water it lands on, as wide as the lump. Everything else lies, drawn
-/// settled in its column, as it will lie by the next tick.
+/// is drawn. A stream is a lump in the air, the open cells between it and the water it fell from (a lump over it, the pool, the
+/// ledge beside), and those down to the water it lands on, as wide as the lump. Everything else lies, drawn settled in its
+/// column, as it will lie by the next tick.
 /// </summary>
 public static class WaterCells
 {
     /// <summary>
-    /// The rows a lump in the air trails over it: two falls, since a ledge lets a lump out only each second tick (the sweep
-    /// turns each tick), so a steady stream's trails meet.
+    /// The most open rows between a lump in the air and the water it fell from that are drawn as its stream: two falls, since a
+    /// ledge lets a lump out only each second tick (the sweep turns each tick). Farther, it is a drop.
     /// </summary>
     public const int Trail = 2 * L.Fall;
 
@@ -26,44 +27,51 @@ public static class WaterCells
     public static bool Write(ReadOnlySpan<byte> layer, int width, int height, Func<int, bool> blocks, int left, int top, int wide, int tall, byte[] texels)
     {
         Array.Clear(texels, 0, wide * tall * 4);
-        Span<bool> air = wide <= 1024 ? stackalloc bool[wide] : new bool[wide];
-        Span<bool> airUnder = wide <= 1024 ? stackalloc bool[wide] : new bool[wide];
-        Span<byte> lump = wide <= 1024 ? stackalloc byte[wide] : new byte[wide];
-        Span<int> trail = wide <= 1024 ? stackalloc int[wide] : new int[wide];
-        // From the bottom up, so a lump's trail runs on up its column; from a trail under the box, so one rising into it is there.
-        for (int gy = Math.Min(height - 1, top + tall - 1 + Trail); gy >= Math.Max(0, top); gy--)
+        // The rows a stream in the box reads: a trail over it, and the row under it.
+        int from = Math.Max(0, top - Trail), to = Math.Min(height - 1, top + tall), rows = Math.Max(0, to - from + 1);
+        var air = ArrayPool<bool>.Shared.Rent(Math.Max(1, wide * rows));
+        try
         {
-            int y = gy - top, row = gy * width;
+            Array.Clear(air, 0, wide * rows);
+            var box = new Box(width, height, left, from, wide, rows);
+            // From the bottom up, the lumps in the air: over an open, empty cell, or over one in the air with nothing beside
+            // it resting (lumps falling one on another; not a pool over the hole it drains through).
+            for (int gy = to; gy >= from; gy--)
+                for (int x = 0; x < wide; x++)
+                {
+                    int gx = left + x, cell = gy * width + gx;
+                    if (gx < 0 || gx >= width || blocks(cell) || L.AmountOf(layer[cell]) == 0) continue;
+                    int under = cell + width;
+                    bool inAir = gy + 1 < height && !blocks(under)
+                        && (L.AmountOf(layer[under]) == 0 || box.Air(air, gx, gy + 1) && !Rests(layer, blocks, box, air, gx - 1, gy) && !Rests(layer, blocks, box, air, gx + 1, gy));
+                    air[(gy - from) * wide + x] = inAir;
+                    if (gy >= top && gy < top + tall) Put(texels, ((gy - top) * wide + x) * 4, (byte)(L.AmountOf(layer[cell]) * 255 / L.Full), inAir);
+                }
+            // From the top down, each lump's stream back up to the water it fell from, if that is within a trail.
             for (int x = 0; x < wide; x++)
             {
-                int gx = left + x, at = (y * wide + x) * 4;
-                air[x] = false;
-                if (gx < 0 || gx >= width || blocks(row + gx))
+                int gx = left + x, source = -1;
+                if (gx < 0 || gx >= width) continue;
+                for (int gy = from; gy <= to && gy < top + tall; gy++)
                 {
-                    trail[x] = 0;
-                    continue;
-                }
-                int cell = row + gx, a = L.AmountOf(layer[cell]);
-                if (a > 0)
-                {
-                    // In the air: over an open, empty cell, or over water in the air with nothing beside it resting (lumps
-                    // falling one on another; not a pool over the hole it drains through).
-                    int under = cell + width;
-                    air[x] = gy + 1 < height && !blocks(under)
-                        && (L.AmountOf(layer[under]) == 0 || airUnder[x] && !Rests(layer, width, height, blocks, airUnder, left, row, gx - 1) && !Rests(layer, width, height, blocks, airUnder, left, row, gx + 1));
-                    (lump[x], trail[x]) = air[x] ? ((byte)(a * 255 / L.Full), Trail) : ((byte)0, 0);
-                    if (y < tall) Put(texels, at, (byte)(a * 255 / L.Full), air[x]);
-                }
-                else if (trail[x] > 0)
-                {
-                    // The trail ends where the water left from: the pool or ledge beside it.
-                    trail[x] = Rests(layer, width, height, blocks, airUnder, left, row, gx - 1) || Rests(layer, width, height, blocks, airUnder, left, row, gx + 1) ? 0 : trail[x] - 1;
-                    if (y < tall) Put(texels, at, lump[x], true);
+                    int cell = gy * width + gx;
+                    if (blocks(cell))
+                        source = -1;
+                    else if (L.AmountOf(layer[cell]) > 0)
+                    {
+                        if (box.Air(air, gx, gy) && source >= 0 && gy - source <= Trail + 1)
+                            for (int r = Math.Max(source + 1, top); r < gy; r++)
+                                Put(texels, ((r - top) * wide + x) * 4, (byte)(L.AmountOf(layer[cell]) * 255 / L.Full), true);
+                        source = gy;
+                    }
+                    else if (Rests(layer, blocks, box, air, gx - 1, gy) || Rests(layer, blocks, box, air, gx + 1, gy))
+                        source = gy - 1;    // beside the pool or ledge it ran off: the stream starts here
                 }
             }
-            var done = air;
-            air = airUnder;
-            airUnder = done;
+        }
+        finally
+        {
+            ArrayPool<bool>.Shared.Return(air);
         }
         // From the top down, a stream drawn on down to the water it lands on within a fall.
         for (int y = 1; y < tall; y++)
@@ -80,6 +88,17 @@ public static class WaterCells
         return any;
     }
 
+    /// <summary>The world's size and the rows the air flags cover, from <c>From</c>, <c>Wide</c> columns from <c>Left</c>.</summary>
+    private readonly record struct Box(int Width, int Height, int Left, int From, int Wide, int Rows)
+    {
+        /// <summary>Whether the cell at (<paramref name="gx"/>, <paramref name="gy"/>) is a lump in the air; false off the rows read.</summary>
+        public bool Air(bool[] air, int gx, int gy)
+        {
+            int x = gx - Left, y = gy - From;
+            return x >= 0 && x < Wide && y >= 0 && y < Rows && air[y * Wide + x];
+        }
+    }
+
     private static void Put(byte[] texels, int at, byte red, bool stream)
     {
         texels[at] = red;
@@ -87,16 +106,13 @@ public static class WaterCells
         texels[at + 3] = 255;
     }
 
-    /// <summary>
-    /// Whether liquid lies at column <paramref name="gx"/> of the row from <paramref name="row"/>: on a wall, or on liquid not
-    /// in the air (<paramref name="airUnder"/>, the row under it, from the box's <paramref name="left"/>).
-    /// </summary>
-    private static bool Rests(ReadOnlySpan<byte> layer, int width, int height, Func<int, bool> blocks, ReadOnlySpan<bool> airUnder, int left, int row, int gx)
+    /// <summary>Whether liquid lies at (<paramref name="gx"/>, <paramref name="gy"/>): on a wall, or on liquid not in the air.</summary>
+    private static bool Rests(ReadOnlySpan<byte> layer, Func<int, bool> blocks, Box box, bool[] air, int gx, int gy)
     {
-        if (gx < 0 || gx >= width || L.AmountOf(layer[row + gx]) == 0) return false;
-        int under = row + width + gx, x = gx - left;
-        if (row / width + 1 >= height || blocks(under)) return true;
-        return L.AmountOf(layer[under]) > 0 && !(x >= 0 && x < airUnder.Length && airUnder[x]);
+        if (gx < 0 || gx >= box.Width || L.AmountOf(layer[gy * box.Width + gx]) == 0) return false;
+        int under = (gy + 1) * box.Width + gx;
+        if (gy + 1 >= box.Height || blocks(under)) return true;
+        return L.AmountOf(layer[under]) > 0 && !box.Air(air, gx, gy + 1);
     }
 
     /// <summary>Whether liquid lies within a fall under the open <paramref name="cell"/>, through open cells.</summary>

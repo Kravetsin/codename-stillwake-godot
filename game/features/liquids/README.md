@@ -17,12 +17,12 @@ Draws and hears what `sim/Liquids` decides (docs/plans/liquids.md); sends nothin
 - **Each frame** only the cells in view, a cell round them; on a surface that never held liquid, nothing.
 - **A surface** across a cell is blended with its neighbour's toward the side it is nearer, so a pool at rest, whose cells
   may differ by a unit, reads flat; the edge wanders a little as wet paint does.
-- **A stream** is a lump in the air and its trail, nothing more. A lump is in the air over an open, empty cell, or over
+- **A stream** is a lump in the air and the gap over it, nothing more. A lump is in the air over an open, empty cell, or over
   one in the air with nothing resting beside it (lumps falling one on another; a pool over the hole it drains through
-  lies). It trails up its column over the open cells it fell through, `WaterCells.Trail` rows (two falls: a ledge lets
-  a lump out each second tick, so a steady stream's trails meet) or to the cell beside the pool or ledge it left, and
-  down to the water it lands on within a fall; all as wide as the lump. Its ends in the air are rounded: a lump falling
-  alone is a streak. Its motion is drawn: the width eased from cell to cell, and streaks, grain and swells running down
+  lies). Over it, the open cells up to the water it fell from (a lump over it, the pool, the cell beside the ledge it ran
+  off) are its stream if they are `WaterCells.Trail` rows at most (two falls: a ledge lets one out each second tick); a
+  lump with none is a drop. Under it, the cells down to the water it lands on within a fall; all as wide as the lump. Its
+  ends in the air are rounded. Its motion is drawn: the width eased from cell to cell, and streaks, grain and swells running down
   at `FLOW` pixels a second. Streams side by side are drawn as one sheet.
 - **Lying water is drawn settled** in its column, a cell full before the one over it: water just spread over a pool's
   surface, with nothing falling onto it, swells the pool rather than standing on it as a spike.

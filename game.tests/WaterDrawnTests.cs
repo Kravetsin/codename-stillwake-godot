@@ -64,18 +64,36 @@ public class WaterDrawnTests
     }
 
     [Fact]
-    public void ADropFallingAloneTrailsItsFallOverItAndNothingUnderIt()
+    public void ADropFallingAloneIsDrawnAloneWithNothingOverIt()
     {
-        int w = 3, h = 14;
+        int w = 3, h = 12;
         var layer = new byte[w * h];
-        layer[10 * w + 1] = L.Of(L.Water, 4);
+        layer[8 * w + 1] = L.Of(L.Water, 4);
         bool Blocks(int cell) => cell % w != 1;
         var texels = new byte[w * h * 4];
         WaterCells.Write(layer, w, h, Blocks, 0, 0, w, h, texels);
         byte[] At(int y) => texels[((y * w + 1) * 4)..((y * w + 1) * 4 + 4)];
-        Assert.All(Enumerable.Range(10 - WaterCells.Trail, WaterCells.Trail + 1), y => Assert.Equal(new byte[] { 4 * 255 / L.Full, 255, 0, 255 }, At(y)));
-        Assert.Equal(new byte[] { 0, 0, 0, 0 }, At(10 - WaterCells.Trail - 1));
-        Assert.Equal(new byte[] { 0, 0, 0, 0 }, At(11));
+        Assert.Equal(new byte[] { 4 * 255 / L.Full, 255, 0, 255 }, At(8));
+        Assert.All(Enumerable.Range(0, 8), y => Assert.Equal(new byte[] { 0, 0, 0, 0 }, At(y)));
+        Assert.Equal(new byte[] { 0, 0, 0, 0 }, At(9));
+    }
+
+    [Fact]
+    public void AStreamLeavingAPoolsSurfaceRisesNoHigherThanTheSurface()
+    {
+        // A pool four wide, its surface at row 6, beside a shaft at column 0 it spills into: a lump just out at the surface,
+        // another a fall under it, open air over all.
+        int w = 5, h = 20;
+        var layer = new byte[w * h];
+        for (int y = 6; y < 9; y++)
+            for (int x = 1; x < w; x++) layer[y * w + x] = L.Of(L.Water, 8);
+        layer[6 * w] = L.Of(L.Water, 4);
+        layer[10 * w] = L.Of(L.Water, 4);
+        bool Blocks(int cell) => cell / w == h - 1 || cell % w > 0 && cell / w >= 9;
+        var texels = new byte[w * h * 4];
+        WaterCells.Write(layer, w, h, Blocks, 0, 0, w, h, texels);
+        Assert.All(Enumerable.Range(0, 6), y => Assert.Equal(0, texels[y * w * 4 + 3]));
+        Assert.All(Enumerable.Range(6, 5), y => Assert.Equal(255, texels[y * w * 4 + 1]));
     }
 
     [Fact]
