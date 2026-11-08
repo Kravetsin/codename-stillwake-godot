@@ -243,6 +243,11 @@ public partial class Figure : Node2D
     /// <summary>What the boots stand on, or last stood on while in the air (0093): what its steps, jumps and landings sound like.</summary>
     public S.Footing Footing { get; set; } = S.Footing.Deck;
 
+    /// <summary>Whether its hero's feet are in water now (liquids): splashes going in and out, and strokes, not steps, as it moves.</summary>
+    public bool InWater { get; set; }
+
+    private readonly Splashes _splashes = new();
+
     /// <param name="own">Whether it is this player's hero, heard the same anywhere rather than from where it is.</param>
     public Figure(int colour, bool own)
     {
@@ -931,8 +936,12 @@ public partial class Figure : Node2D
         bool walking = pose is Pose.Stand or Pose.Walk or Pose.Run, walked = _wasPose is Pose.Stand or Pose.Walk or Pose.Run;
         double lift = _stepLift = _steps.Offset(feetX, feetY, walking && walked, elapsedMs);
         var cues = _motion.Step(hero, pose, elapsedMs);
-        if (cues.Jumped) Boots(GroundSounds.JumpOf(Footing));
-        if (cues.Landed is int fall)
+        if (cues.Jumped && !InWater) Boots(GroundSounds.JumpOf(Footing));
+        var water = _splashes.Step(InWater, hero.Vx != 0 || hero.Vy < 0, elapsedMs / 1000);
+        if (water.In) Boots(S.SplashIn);
+        if (water.Out) Boots(S.SplashOut);
+        if (water.Stroke) Boots(S.SwimStroke);
+        if (cues.Landed is int fall && !InWater)
         {
             var (landing, louder, tune) = GroundSounds.LandOf(Footing, fall);
             Boots(landing, tune, louder);
@@ -942,7 +951,7 @@ public partial class Figure : Node2D
         // A foot comes down at the end of each half stride, a quarter stride in: heard walking and running,
         // kicking up dust only running.
         int? stepping = pose is Pose.Walk or Pose.Run ? (int)Math.Floor((_cycle - 0.25) / 0.5) : null;
-        if (stepping != null && _step != null && stepping != _step)
+        if (stepping != null && _step != null && stepping != _step && !InWater)
         {
             Boots(GroundSounds.StepOf(Footing));
             if (pose == Pose.Run) Kick(feetX + hero.Facing * Rig.W * 0.3, feetY, hero.Facing);

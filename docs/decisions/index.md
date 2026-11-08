@@ -296,4 +296,5 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [the-scanner](2026-11-07-the-scanner.md) | The scanner reads a wreck's hit points | accepted |  |
 | [tool-card-rows](2026-11-07-tool-card-rows.md) | A tool's card lists its numbers as rows with icons | accepted |  |
 | [composed-backdrops](2026-11-08-composed-backdrops.md) | Composed backdrops | accepted |  |
+| [flowing-liquids](2026-11-08-flowing-liquids.md) | Flowing liquids: lakes in a planet's cells | accepted |  |
 | [lurker-attacks](2026-11-08-lurker-attacks.md) | Lurker attacks | accepted |  |

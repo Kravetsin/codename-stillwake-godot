@@ -35,10 +35,11 @@ public readonly record struct HeroInput(
 /// hero floats; and which are the hull, where a tether is not yet needed: any cell with a structure or a back
 /// wall, aired or not, or in a room. <paramref name="gravity"/> is what a fall gains a step, the ship's unless its surface's
 /// kind scales it (0076): a planet's lower one, where nothing floats, lets the hero jump higher and farther.
+/// <paramref name="liquid"/>, the units of liquid in a cell (flowing-liquids): where the hero swims.
 /// </summary>
 public sealed class Ship(
     int width, int height, Func<int, int> structureAt, Func<int, bool> space, Func<int, bool>? hull = null,
-    int gravity = Spec.Gravity, int falling = Spec.FallGravity, Shared.FogEdges? fog = null)
+    int gravity = Spec.Gravity, int falling = Spec.FallGravity, Shared.FogEdges? fog = null, Func<int, int>? liquid = null)
 {
     /// <summary>What a fall gains a step, in thousandths of a cell a step.</summary>
     public int Gravity => gravity;
@@ -58,6 +59,12 @@ public sealed class Ship(
 
     public bool Space(int cell) => space(cell);
 
+    /// <summary>Whether <paramref name="cell"/> holds water deep enough to swim in: <c>Hero.SwimDepth</c> units or more.</summary>
+    public bool Wet(int cell) => liquid != null && liquid(cell) >= Spec.SwimDepth;
+
+    /// <summary>Whether <paramref name="cell"/>, a hero's feet's, holds water heard underfoot: <c>Hero.WadeDepth</c> units or more.</summary>
+    public bool Wading(int cell) => liquid != null && liquid(cell) >= Spec.WadeDepth;
+
     public bool Hull(int cell) => hull?.Invoke(cell) ?? structureAt(cell) != Structure.Empty;
 
     /// <summary>A planet's fog at its sides (fog-edges), where the hero glides; none aboard.</summary>
@@ -76,13 +83,14 @@ public sealed class Ship(
     /// something does, never on a planet, and falls by the kind's gravity (0076), coming down the faster under a
     /// planet's own (<c>Hero.PlanetFallGravity</c>, 0089).
     /// </summary>
-    public static Ship Of(IGridQueries grid, IRoomsQueries rooms, Func<int, int>? structureAt = null, Stillwake.Content.Surfaces.Kind? rules = null)
+    public static Ship Of(
+        IGridQueries grid, IRoomsQueries rooms, Func<int, int>? structureAt = null, Stillwake.Content.Surfaces.Kind? rules = null, Func<int, int>? liquid = null)
     {
         var kind = rules ?? Stillwake.Content.Surfaces.Ship;
         return new(grid.Width, grid.Height, structureAt ?? grid.StructureAt, rooms.Afloat,
             cell => (structureAt ?? grid.StructureAt)(cell) != Structure.Empty || grid.BackAt(cell) != null
                 || rooms.RoomAt(cell) is int room && room != Stillwake.Sim.Rooms.RoomsModule.Space,
-            kind.Fall(Spec.Gravity), kind.Floats ? Spec.FallGravity : Spec.PlanetFallGravity, Shared.FogEdges.Of(grid, kind));
+            kind.Fall(Spec.Gravity), kind.Floats ? Spec.FallGravity : Spec.PlanetFallGravity, Shared.FogEdges.Of(grid, kind), liquid);
     }
 }
 
@@ -130,6 +138,9 @@ public readonly record struct Hero(
 
     /// <summary>The cell the hero's body is in: the one under the middle of its box.</summary>
     public int BodyCell(int width) => CellOf(Y - MiddleUp) * width + CellOf(X);
+
+    /// <summary>The cell the hero's feet are in: the one just over the bottom of its box, under its middle.</summary>
+    public int FeetCell(int width) => CellOf(Y - 1) * width + CellOf(X);
 
     /// <summary>The middle of the hero's body.</summary>
     public Point Middle => new(X, Y - MiddleUp);
@@ -300,6 +311,8 @@ public readonly record struct Hero(
             return Pulled(ship, hero, tie, input.Swings || tie.X == hero.X ? facing : Math.Sign(tie.X - hero.X), false, Spec.Haul);
         // Swimming, the hero faces the way it swims, whatever the pointer does, unless it swings the axe.
         if (space) return Swim(ship, hero, input, input.X == 0 || input.Swings ? facing : input.X);
+        // A jump out of the water rises on under gravity till it tops out.
+        if (!hero.Rising && ship.Wet(hero.BodyCell(ship.Width))) return Paddle(ship, hero, input, input.X == 0 || input.Swings ? facing : input.X);
         if (input.Reeling)
         {
             // Knocked by a ram (0103): thrown by it, not walked, so the air's control does not eat the knock; the floor brakes it.
@@ -561,6 +574,36 @@ public readonly record struct Hero(
         if (!Clear(ship, nx, ny)) (nx, ny) = Clear(ship, nx, hero.Y) ? (nx, hero.Y) : (hero.X, hero.Y);
         return new Hero(nx, ny, nx - hero.X, ny - hero.Y, false, facing, Kx: kx, Ky: ky);
     }
+
+    /// <summary>
+    /// A step in water (flowing-liquids): the keys at <c>Hero.WaterSwim</c> across and up or down, Space held up too,
+    /// sinking at <c>Hero.WaterSink</c> with none; walls stop it, a floor holds it, a ladder is swum past, and a step of a cell
+    /// is swum up onto as walked. Swum up, the middle stops at the top of the water: only a jump leaves it, Space pressed with
+    /// the cell over the middle shallow and open, or a shore pushed against there that a jump reaches.
+    /// </summary>
+    private static Hero Paddle(Ship ship, Hero hero, HeroInput input, int facing)
+    {
+        int above = hero.BodyCell(ship.Width) - ship.Width;
+        bool surface = above >= 0 && !ship.Wet(above) && !Solid(ship, CellOf(hero.X), CellOf(hero.Y - MiddleUp) - 1);
+        bool shore = input.X != 0 && LedgeAhead(ship, hero.X, hero.Y, input.X) is int top && hero.Y - top <= Spec.Height;
+        if (surface && (input.Jump || shore))
+            return Fall(ship, hero.X, hero.Y, input.X * Spec.WaterSwim, -Spec.Jump, facing, true) with { Rising = true, Leaping = true };
+        int vx = input.X * Spec.WaterSwim;
+        int vy = input.Y < 0 || input.Jump || input.JumpHeld ? -Spec.WaterSwim : input.Y > 0 ? Spec.WaterSwim : Spec.WaterSink;
+        int nx = MoveX(ship, hero.X, hero.Y, vx), y = hero.Y;
+        if (nx != hero.X + vx && StepOnto(ship, hero.X, hero.Y, hero.X + vx) is int step) (nx, y) = (hero.X + vx, step);
+        int ny = MoveY(ship, nx, y, vy, false);
+        if (vy < 0 && ship.Wet(BodyCellAt(ship, nx, y)))
+        {
+            int row = CellOf(y - MiddleUp);
+            while (row > 0 && ship.Wet((row - 1) * ship.Width + CellOf(nx))) row--;
+            ny = Math.Max(ny, row * Unit + MiddleUp);
+        }
+        if (!Clear(ship, nx, ny)) (nx, ny) = Clear(ship, nx, hero.Y) ? (nx, hero.Y) : (hero.X, hero.Y);
+        return new Hero(nx, ny, nx - hero.X, ny - hero.Y, false, facing, Airborne: 0);
+    }
+
+    private static int BodyCellAt(Ship ship, int x, int y) => CellOf(y - MiddleUp) * ship.Width + CellOf(x);
 
     /// <summary><paramref name="y"/> moved down by <paramref name="dy"/>, afloat: what only holds a fall (a floor, a ladder's top) holds nothing with no gravity, so only what stops a body does.</summary>
     private static int SwimDown(Ship ship, int x, int y, int dy)

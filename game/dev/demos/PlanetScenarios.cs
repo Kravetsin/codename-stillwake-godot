@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Text.Json.Nodes;
 using Stillwake.Game.Features.Crew;
@@ -237,5 +238,103 @@ public sealed class OreShineScenario : DevScenario
                 if (score > 0 && (best == null || score > best.Value.Score)) best = (y * w + x, copper, iron, score);
             }
         return best is var (at, c, i, _) ? (at, c, i) : null;
+    }
+}
+
+/// <summary>
+/// A grown lake to swim in and dig open (flowing-liquids): the first planet, the hero beamed onto the floor beside the lake
+/// nearest the middle, the pickaxe and the drill in hand's reach, the helmet lamp on, creative so the air never runs out.
+/// </summary>
+[Dev("--lake", "the first planet's lake nearest the middle, the hero on its bank with the pickaxe, the drill and the lamp, creative (liquids)")]
+[Dev("--pour", "--lake with a shaft dug down beside the lake at once, so it pours: streams to look at (liquids)")]
+public sealed class LakeScenario : DevScenario
+{
+    /// <summary>How deep the --pour shaft is dug at most, in cells.</summary>
+    private const int ShaftDeep = 60;
+
+    private bool _beamed, _creative;
+    private int _planet;
+    private List<int>? _shaft;
+
+    public override World Seed(World world, DevSeed seed)
+    {
+        var root = JsonNode.Parse(world.Save())!;
+        var slots = new JsonArray();
+        int Worn(string slot) => Content.Inventory.Slots + Content.Inventory.Equipment.ToList().IndexOf(slot);
+        string[] tools = [Content.Weapons.Pickaxe.Item, Content.Weapons.Drill.Item];
+        for (int i = 0; i < Content.Inventory.Total; i++)
+            slots.Add(i < tools.Length ? new JsonObject { ["item"] = tools[i], ["count"] = 1 }
+                : i == Worn(Content.Helmet.Slot) ? new JsonObject { ["item"] = Content.Helmet.Basic, ["count"] = 1 }
+                : i == Worn(Content.Helmet.Mount) ? new JsonObject { ["item"] = Content.HelmetLamp.Item, ["count"] = 1 }
+                : null);
+        root["slices"]!["items"]!["inventories"] = new JsonArray(new JsonObject { ["id"] = 0, ["slots"] = slots });
+        return World.Load(root.ToJsonString(), seed.Modules());
+    }
+
+    public override void Started(Client client) => client.Send(new OpenSurface(Content.PlanetTypes.First.Id));
+
+    public override void Frame(Client client, Registry m, Action<string> log)
+    {
+        var world = client.World;
+        if (_beamed && !_creative && world.SurfaceOf(client.Id) == _planet)
+        {
+            _creative = true;
+            client.Send(new Sim.Items.SetCreative(true));
+        }
+        if (_creative && _shaft is { Count: > 0 } shaft)
+        {
+            // Hewn with the pickaxe in hand till every cell is open: a cell takes a few hits.
+            var grid = Registry.On(world, _planet).Grid;
+            shaft.RemoveAll(c => !grid.Blocks(c));
+            if (shaft.Count > 0) client.Send(new Sim.Building.HewCells(Content.Weapons.Pickaxe.Item, [.. shaft]));
+        }
+        if (_beamed || world.Surfaces.Count < 2) return;
+        _beamed = true;
+        _planet = world.Surfaces.Count - 1;
+        var ground = Registry.On(world, _planet);
+        if (Bank(ground) is not var (at, edge, row))
+        {
+            client.Send(new Transfer(_planet));
+            log("lake: no lake with a bank found; beamed to the spawn");
+            return;
+        }
+        client.Send(new Transfer(_planet, at));
+        int w = ground.Grid.Width;
+        if (Args.Has("--pour"))
+        {
+            // Down to the first open cell under the ground, a cave the water pours into, or ShaftDeep cells with none.
+            _shaft = [];
+            for (int y = row; y < Math.Min(ground.Grid.Height - 1, row + ShaftDeep) && (y <= row + 1 || ground.Grid.Blocks(y * w + edge)); y++)
+                _shaft.Add(y * w + edge);
+        }
+        log($"lake: beamed to ({at % w}, {at / w}){(_shaft != null ? $", a shaft dug down from ({edge}, {row})" : "")}");
+    }
+
+    /// <summary>
+    /// A dry floor cell with room for the hero over it beside the surface of the lake nearest the middle's column, within 16 columns
+    /// of the surface's end and a few rows of it, with the column just past that end and the surface's row; null for none.
+    /// </summary>
+    private static (int At, int Edge, int Row)? Bank(Registry m)
+    {
+        var grid = m.Grid;
+        var layer = m.Liquids.Layer.ToArray();
+        if (layer.Length == 0) return null;
+        int w = grid.Width, h = grid.Height;
+        bool Open(int x, int y) => x >= 0 && y >= 0 && x < w && y < h && grid.StructureAt(y * w + x) == Content.Structure.Empty;
+        bool Wet(int x, int y) => x >= 0 && y >= 0 && x < w && y < h && m.Liquids.AmountAt(y * w + x) > 0;
+        var surfaces = Enumerable.Range(0, layer.Length).Where(c => layer[c] != 0 && !Wet(c % w, c / w - 1) && Open(c % w, c / w - 1));
+        foreach (int top in surfaces.OrderBy(c => Math.Abs(c % w - w / 2)).Take(64))
+        {
+            int x0 = top % w, y0 = top / w;
+            foreach (int way in (int[])[-1, 1])
+            {
+                int end = x0;
+                while (Wet(end + way, y0)) end += way;
+                for (int x = end + way; Math.Abs(x - end) <= 16; x += way)
+                    for (int y = y0 - 6; y <= y0; y++)
+                        if (Open(x, y) && !Wet(x, y) && !Open(x, y + 1) && Enumerable.Range(1, 6).All(k => Open(x, y - k))) return (y * w + x, end + way, y0);
+            }
+        }
+        return null;
     }
 }

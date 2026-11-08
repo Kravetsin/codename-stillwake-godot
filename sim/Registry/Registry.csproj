@@ -20,6 +20,7 @@
     <ProjectReference Include="../Creatures/Creatures.csproj" />
     <ProjectReference Include="../Trade/Trade.csproj" />
     <ProjectReference Include="../Water/Water.csproj" />
+    <ProjectReference Include="../Liquids/Liquids.csproj" />
     <ProjectReference Include="../Sky/Sky.csproj" />
   </ItemGroup>
 </Project>

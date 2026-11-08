@@ -189,6 +189,35 @@ public class BudgetTests(ITestOutputHelper output)
         Assert.True(living.Mean - idle.Mean < Within(0.4), $"forty creatures took {living.Mean - idle.Mean:F3} ms of the tick");
     }
 
+
+    /// <summary>
+    /// The first planet's deepest lake opened from under its floor into a shaft dug down to a cave or 60 cells deep (liquids): the
+    /// tick while it pours out, its body levelling and its stream falling, against the planet's idle one.
+    /// </summary>
+    [Fact]
+    public void KeepsAPlanetsTickWithALakePouringOutUnderBudget()
+    {
+        var w = new Scenario(Layout.Parse(["......", ".S....", "######"]));
+        w.Do(new Crew.Enter(w.M.Crew.Spawn)).Do(new OpenSurface(Content.PlanetTypes.First.Id)).Run();
+        w.Do(new Transfer(1)).Run();
+        w.Do(new Items.SetCreative(true)).Run();
+        var m = w.On(1);
+        var idle = Time(w.World, 300, _ => []);
+        int width = m.Grid.Width, height = m.Grid.Height;
+        var layer = m.Liquids.Layer.ToArray();
+        int bottom = Enumerable.Range(0, layer.Length).Where(c => layer[c] != 0).Max();
+        var shaft = new List<int>();
+        for (int y = bottom / width + 1; y < Math.Min(height - 1, bottom / width + 60) && m.Grid.Blocks(y * width + bottom % width); y++)
+            shaft.Add(y * width + bottom % width);
+        int before = Enumerable.Range(0, layer.Length).Sum(c => Content.Liquids.AmountOf(layer[c]));
+        for (int t = 0; t < 200 && shaft.Exists(m.Grid.Blocks); t++)
+            w.Do(new Building.HewCells(Content.Weapons.Pickaxe.Item, [.. shaft.Where(m.Grid.Blocks)])).Run();
+        Assert.False(shaft.Exists(m.Grid.Blocks), "the shaft is not dug");
+        var pouring = Time(w.World, 600, _ => []);
+        output.WriteLine($"the first planet idle {idle.Mean:F3} ms a tick; its deepest lake pouring down {shaft.Count} cells {pouring.Mean:F3} ms mean, {pouring.Max:F3} ms max; {m.Liquids.AwakeChunks} chunks awake at the end");
+        Assert.True(m.Liquids.AwakeChunks > 0 || m.Liquids.Layer.ToArray().Sum(b => Content.Liquids.AmountOf(b)) != before, "the lake never poured");
+        Assert.True(pouring.Mean < Within(2), $"a planet's tick with a lake pouring out took {pouring.Mean:F3} ms");
+    }
     /// <summary>
     /// Ten thousand cracks at once, the worst case (0077): hit in descending cell order, so every one is inserted at the
     /// list's head; what they hold, their save and hash, and the tick that sweeps them. Healing keeps real counts tiny.

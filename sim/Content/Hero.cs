@@ -72,6 +72,20 @@ public static class Hero
     public const int Swim = 60;
 
     /// <summary>
+    /// In water (flowing-liquids): the hero swims once the cell of its middle holds at least <see cref="SwimDepth"/> units
+    /// (half a cell), at <see cref="WaterSwim"/> along each axis, about 6 cells a second, and sinks at <see cref="WaterSink"/>
+    /// with no key held.
+    /// </summary>
+    public const int SwimDepth = 4;
+
+    /// <summary>The units in the cell of the feet that splash and slosh (liquids): a quarter of a cell, so a film is walked dry.</summary>
+    public const int WadeDepth = 2;
+
+    public const int WaterSwim = 100;
+
+    public const int WaterSink = 25;
+
+    /// <summary>
     /// Hauling in along the tether (tether-haul): Shift held afloat with no jetpack pulls the body straight toward where the tether
     /// is tied, 12 cells a second, slower than a tool's pull, a pull by hand.
     /// </summary>

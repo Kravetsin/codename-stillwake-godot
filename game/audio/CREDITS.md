@@ -33,6 +33,11 @@ tail match best, encoded as OGG; each levelled to the max momentary loudness of 
 the loops as the power driver's (−23.5 LUFS), the grinder's bite and the cutter's strike −24.5, its cut-off −26, the whooshes as
 the axe's swing (−23.4), the spear's hit as the chop (−24.9), the sledgehammer's blow as the break (−21).
 
+The water's sounds (liquids) are the water audition's picks, cut there from the Freesound HQ previews: a one-shot from 5 ms before
+its attack to the length given, faded in over 3 ms and its last share out, levelled so its loudest 100 ms RMS is −20 dBFS, peaks at
+−1 dBFS at most (the drip hits the cap, about 4 dB under the rest), decoded to mono 48 kHz WAV here; the pour a 5.5 s loop closed on
+itself by a 0.5 s equal-power crossfade, −26 dBFS RMS, OGG.
+
 The cave lurkers' attack sounds (lurker-attacks) are their pick page's picks: the capback's hiss, its slime's splat, the snail's
 shut shell struck; each mono 48 kHz WAV from its attack (a −45 dB gate), its last 60 ms faded, normalised to −3 dBFS peak; the cue sets the mix.
 
@@ -166,6 +171,10 @@ shut shell struck; each mono 48 kHz WAV from its attack (a −45 dB gate), its l
 | `debris/hammer-blow-1.wav` | Freesound, "Big stereo metal hit" (2 s), https://freesound.org/people/LPA134/sounds/329515/ | LPA134 | CC0 |
 | `debris/spear-hit-1.wav` | Freesound, "knife and metal beam vibrations clicks dings and sfx-133.wav" (0.37 s), https://freesound.org/people/CVLTIV8R/sounds/801736/ | CVLTIV8R | CC0 |
 | `flora/bush-1.wav` | Freesound, "bushhit.wav" (0.6 s from 0.003 s), https://freesound.org/people/j1987/sounds/106113/ | j1987 | CC0 |
+| `crew/splash-in-1.wav` | Freesound, "Foley_Natural_Water_Jump_Mono.wav" (the second jump: 1.4 s from 5.211 s, last 45% faded), https://freesound.org/people/Nox_Sound/sounds/585744/ | Nox_Sound | CC0 |
+| `crew/splash-out-1.wav` | Freesound, "water movement body step out of pool splash drips.flac" (1.8 s from 1.751 s, last 30% faded, +13 dB), https://freesound.org/people/kyles/sounds/637948/ | kyles | CC0 |
+| `crew/swim-stroke-1.wav` | Freesound, "G54-26-Person Swimming.wav" (0.5 s from 2.468 s, last 40% faded), https://freesound.org/people/craigsmith/sounds/438845/ | craigsmith | CC0 |
+| `grid/water-pour-1.ogg` | Freesound, "water flowing from a pipe into the sewer.mp3" (a loop: 5.5 s from 2.0 s, 0.5 s crossfade), https://freesound.org/people/FartMuffin/sounds/571551/ | FartMuffin | CC0 |
 | `flora/cave-drip-1.wav` | Freesound, "Water Drop 01" (0.187 s from 0.003 s), https://freesound.org/people/LilMati/sounds/348022/ | LilMati | CC0 |
 | `flora/cave-drip-2.wav` | Freesound, "Water Drop 02" (0.119 s), https://freesound.org/people/LilMati/sounds/349873/ | LilMati | CC0 |
 | `flora/chop-wood-1.wav` | Freesound, "Chopping wood 01" (0.226 s from 0.045 s), https://freesound.org/people/micahlg/sounds/421928/ | micahlg | CC0 |
