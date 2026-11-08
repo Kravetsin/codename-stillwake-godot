@@ -10,7 +10,7 @@ namespace Stillwake.Game.Tests;
 public class WaterDrawnTests
 {
     [Fact]
-    public void TheTextureMarksAmountsStreamsAndCoveredCells()
+    public void TheTextureMarksLevelsFallingAndCoveredCells()
     {
         // A 3 × 3 box: a full cell over a full one in the middle column, a falling 4 beside them over open air, dry elsewhere.
         int w = 3, h = 3;
@@ -23,212 +23,37 @@ public class WaterDrawnTests
         Assert.True(WaterCells.Write(layer, w, h, Blocks, 0, 0, w, h, texels));
         Assert.Equal(new byte[] { 255, 0, 0, 255 }, texels[(1 * 4)..(1 * 4 + 4)]);
         Assert.Equal(new byte[] { 255, 0, 255, 255 }, texels[(4 * 4)..(4 * 4 + 4)]);
-        // Over an open, empty cell, it is a stream, as wide as its 4 units.
         Assert.Equal(new byte[] { 4 * 255 / L.Full, 255, 0, 255 }, texels[(2 * 4)..(2 * 4 + 4)]);
         Assert.Equal(new byte[] { 0, 0, 0, 0 }, texels[0..4]);
         Assert.False(WaterCells.Write(new byte[w * h], w, h, Blocks, 0, 0, w, h, texels));
     }
 
     [Fact]
-    public void AStreamFallingInLumpsIsDrawnWholeAndEven()
+    public void AFallingColumnIsDrawnFullDownToItsHeadAndItsTopToItsLevel()
     {
-        // A shaft a cell wide: a lump of 8 every Fall rows, as a stream of 8 a tick falls, over a pool at the bottom.
-        int w = 3, h = 16;
+        // A shaft a cell wide: 2 units in each of rows 2 to 9, open air under them.
+        int w = 3, h = 14;
         var layer = new byte[w * h];
-        for (int y = 0; y < 12; y += L.Fall) layer[y * w + 1] = L.Of(L.Water, 8);
-        for (int y = 12; y < h; y++) layer[y * w + 1] = L.Of(L.Water, 8);
-        bool Blocks(int cell) => cell % w != 1;
-        var texels = new byte[w * h * 4];
-        WaterCells.Write(layer, w, h, Blocks, 0, 0, w, h, texels);
-        // Its trails meet, each as wide as its lump: the same at every cell.
-        var widths = Enumerable.Range(0, 12).Select(y => texels[(y * w + 1) * 4]).ToArray();
-        Assert.All(Enumerable.Range(0, 12), y => Assert.Equal(255, texels[(y * w + 1) * 4 + 1]));
-        Assert.Equal(widths.Min(), widths.Max());
-    }
-
-    [Fact]
-    public void AStreamLetOutEveryOtherTickIsDrawnWholeToo()
-    {
-        // A source on a ledge lets a lump out each second tick (the sweep turns each tick): lumps two falls apart.
-        int w = 3, h = 30;
-        var layer = new byte[w * h];
-        for (int y = 2; y < 26; y += 2 * L.Fall) layer[y * w + 1] = L.Of(L.Water, 4);
-        bool Blocks(int cell) => cell % w != 1 || cell / w == h - 1;
-        var texels = new byte[w * h * 4];
-        WaterCells.Write(layer, w, h, Blocks, 0, 0, w, h, texels);
-        Assert.All(Enumerable.Range(2, 2 * L.Fall * 2 + 1), y =>
-        {
-            Assert.Equal(255, texels[(y * w + 1) * 4 + 1]);
-            Assert.True(texels[(y * w + 1) * 4] > 0, $"row {y} has no width");
-        });
-    }
-
-    [Fact]
-    public void ADropFallingAloneIsDrawnAloneWithNothingOverIt()
-    {
-        int w = 3, h = 12;
-        var layer = new byte[w * h];
-        layer[8 * w + 1] = L.Of(L.Water, 4);
+        for (int y = 2; y < 10; y++) layer[y * w + 1] = L.Of(L.Water, 2);
         bool Blocks(int cell) => cell % w != 1;
         var texels = new byte[w * h * 4];
         WaterCells.Write(layer, w, h, Blocks, 0, 0, w, h, texels);
         byte[] At(int y) => texels[((y * w + 1) * 4)..((y * w + 1) * 4 + 4)];
-        Assert.Equal(new byte[] { 4 * 255 / L.Full, 255, 0, 255 }, At(8));
-        Assert.All(Enumerable.Range(0, 8), y => Assert.Equal(new byte[] { 0, 0, 0, 0 }, At(y)));
-        Assert.Equal(new byte[] { 0, 0, 0, 0 }, At(9));
+        Assert.Equal(new byte[] { 2 * 255 / L.Full, 255, 0, 255 }, At(2));
+        Assert.All(Enumerable.Range(3, 7), y => Assert.Equal(new byte[] { 255, 255, 255, 255 }, At(y)));
+        Assert.Equal(new byte[] { 0, 0, 0, 0 }, At(10));
     }
 
     [Fact]
-    public void AStreamLeavingAPoolsSurfaceRisesNoHigherThanTheSurface()
-    {
-        // A pool four wide, its surface at row 6, beside a shaft at column 0 it spills into: a lump just out at the surface,
-        // another a fall under it, open air over all.
-        int w = 5, h = 20;
-        var layer = new byte[w * h];
-        for (int y = 6; y < 9; y++)
-            for (int x = 1; x < w; x++) layer[y * w + x] = L.Of(L.Water, 8);
-        layer[6 * w] = L.Of(L.Water, 4);
-        layer[10 * w] = L.Of(L.Water, 4);
-        bool Blocks(int cell) => cell / w == h - 1 || cell % w > 0 && cell / w >= 9;
-        var texels = new byte[w * h * 4];
-        WaterCells.Write(layer, w, h, Blocks, 0, 0, w, h, texels);
-        Assert.All(Enumerable.Range(0, 6), y => Assert.Equal(0, texels[y * w * 4 + 3]));
-        Assert.All(Enumerable.Range(6, 5), y => Assert.Equal(255, texels[y * w * 4 + 1]));
-    }
-
-    [Fact]
-    public void AStreamSpillingOffALedgeIsDrawnUpToThePuddleItSpillsFrom()
-    {
-        // A cliff three cells wide from row 4 down, a puddle of 3 on its edge, a unit fallen from it three cells down beside it.
-        int w = 6, h = 12;
-        var layer = new byte[w * h];
-        layer[3 * w + 2] = L.Of(L.Water, 3);
-        layer[7 * w + 3] = L.Of(L.Water, 1);
-        bool Blocks(int cell) => cell % w < 3 && cell / w >= 4 || cell / w == h - 1;
-        var texels = new byte[w * h * 4];
-        WaterCells.Write(layer, w, h, Blocks, 0, 0, w, h, texels);
-        Assert.All(Enumerable.Range(3, 5), y => Assert.Equal(255, texels[(y * w + 3) * 4 + 1]));
-        // A unit falling over eight rows is a thin stream, never none: a cell drawn with no width is not drawn at all.
-        Assert.All(Enumerable.Range(3, 5), y => Assert.True(texels[(y * w + 3) * 4] > 0, $"row {y} has no width"));
-        var eased = texels.ToArray();
-        new WaterEase().Step(eased, 0, 0, w, h, 1.0 / 60);
-        Assert.All(Enumerable.Range(3, 5), y => Assert.Equal(255, eased[(y * w + 3) * 4 + 3]));
-        // Nothing over the spill is drawn, nor under the drop till it lands.
-        Assert.Equal(0, texels[(2 * w + 3) * 4 + 3]);
-        Assert.Equal(0, texels[(8 * w + 3) * 4 + 3]);
-    }
-
-    [Fact]
-    public void AStreamFromAHoleInAPoolsFloorIsDrawnUpToThePool()
-    {
-        // A pool over a floor holed in its middle, a unit fallen from it three cells under the hole.
-        int w = 5, h = 12;
-        var layer = new byte[w * h];
-        for (int x = 0; x < w; x++) layer[x] = layer[w + x] = L.Of(L.Water, 8);
-        layer[6 * w + 2] = L.Of(L.Water, 1);
-        bool Blocks(int cell) => cell / w == 2 && cell % w != 2 || cell / w == h - 1;
-        var texels = new byte[w * h * 4];
-        WaterCells.Write(layer, w, h, Blocks, 0, 0, w, h, texels);
-        Assert.All(Enumerable.Range(2, 5), y => Assert.Equal(255, texels[(y * w + 2) * 4 + 1]));
-    }
-
-    [Fact]
-    public void FullLumpsFallingOneOnAnotherAreAllStreamNotLyingInTheAir()
-    {
-        // A shaft a cell wide: six full cells stacked in the air, open air under them down to the floor.
-        int w = 3, h = 16;
-        var layer = new byte[w * h];
-        for (int y = 2; y < 8; y++) layer[y * w + 1] = L.Of(L.Water, 8);
-        bool Blocks(int cell) => cell % w != 1;
-        var texels = new byte[w * h * 4];
-        WaterCells.Write(layer, w, h, Blocks, 0, 0, w, h, texels);
-        Assert.All(Enumerable.Range(2, 6), y => Assert.Equal(255, texels[(y * w + 1) * 4 + 1]));
-    }
-
-    [Fact]
-    public void LumpsFallingSideBySideOneOnAnotherAreAllStream()
-    {
-        // Two columns of full cells, side by side, stacked in the air over an open floor.
-        int w = 6, h = 14;
-        var layer = new byte[w * h];
-        for (int y = 2; y < 6; y++) layer[y * w + 2] = layer[y * w + 3] = L.Of(L.Water, 8);
-        bool Blocks(int cell) => cell / w == h - 1;
-        var texels = new byte[w * h * 4];
-        WaterCells.Write(layer, w, h, Blocks, 0, 0, w, h, texels);
-        Assert.All(Enumerable.Range(2, 4), y =>
-        {
-            Assert.Equal(255, texels[(y * w + 2) * 4 + 1]);
-            Assert.Equal(255, texels[(y * w + 3) * 4 + 1]);
-        });
-    }
-
-    [Fact]
-    public void APoolDrainingThroughAHoleInItsFloorLiesOverTheHoleNotFalls()
-    {
-        // A pool five wide and three deep over a floor holed in its middle, a shaft of air under the hole.
-        int w = 5, h = 10;
-        var layer = new byte[w * h];
-        for (int y = 0; y < 3; y++)
-            for (int x = 0; x < w; x++) layer[y * w + x] = L.Of(L.Water, 8);
-        layer[3 * w + 2] = L.Of(L.Water, 8);
-        bool Blocks(int cell) => cell / w >= 3 && cell % w != 2;
-        var texels = new byte[w * h * 4];
-        WaterCells.Write(layer, w, h, Blocks, 0, 0, w, h, texels);
-        Assert.All(Enumerable.Range(0, 3), y => Assert.Equal(0, texels[(y * w + 2) * 4 + 1]));
-        Assert.Equal(255, texels[(3 * w + 2) * 4 + 1]);
-    }
-
-    [Fact]
-    public void WaterArrivingOverAPoolsSurfaceIsDrawnSettledIntoItNotAsAFall()
-    {
-        // A shaft a cell wide: a full cell at the bottom, 5 over it, and 3 just spread over that, nothing falling above.
-        int w = 3, h = 6;
-        var layer = new byte[w * h];
-        layer[5 * w + 1] = L.Of(L.Water, 8);
-        layer[4 * w + 1] = L.Of(L.Water, 5);
-        layer[3 * w + 1] = L.Of(L.Water, 3);
-        bool Blocks(int cell) => cell % w != 1;
-        var texels = new byte[w * h * 4];
-        WaterCells.Write(layer, w, h, Blocks, 0, 0, w, h, texels);
-        byte[] At(int y) => texels[((y * w + 1) * 4)..((y * w + 1) * 4 + 4)];
-        Assert.Equal(new byte[] { 0, 0, 0, 0 }, At(3));
-        Assert.Equal(new byte[] { 255, 0, 0, 255 }, At(4));
-        Assert.Equal(new byte[] { 255, 0, 255, 255 }, At(5));
-    }
-
-    [Fact]
-    public void AFallIsDrawnOnDownToThePoolItLandsOn()
-    {
-        // As above, a drop falling through the air over the 3, within a fall of it.
-        int w = 3, h = 6;
-        var layer = new byte[w * h];
-        layer[5 * w + 1] = L.Of(L.Water, 8);
-        layer[4 * w + 1] = L.Of(L.Water, 5);
-        layer[3 * w + 1] = L.Of(L.Water, 3);
-        layer[0 * w + 1] = L.Of(L.Water, 2);
-        bool Blocks(int cell) => cell % w != 1;
-        var texels = new byte[w * h * 4];
-        WaterCells.Write(layer, w, h, Blocks, 0, 0, w, h, texels);
-        byte[] At(int y) => texels[((y * w + 1) * 4)..((y * w + 1) * 4 + 4)];
-        Assert.All(Enumerable.Range(0, 3), y => Assert.Equal(new byte[] { 2 * 255 / L.Full, 255, 0, 255 }, At(y)));
-        // The pool under it settled, the stream drawn on down to it.
-        Assert.Equal(new byte[] { 0, 0, 0, 0 }, At(3));
-        Assert.Equal(new byte[] { 255, 0, 0, 255 }, At(4));
-    }
-
-    [Fact]
-    public void AStreamsWidthGlidesAndAStreamGoneFadesOutAsAStream()
+    public void ACellNoLongerCoveredSinksToItsOwnLevel()
     {
         var ease = new WaterEase();
-        var t = new byte[] { 100, 255, 0, 255 };
+        var t = new byte[] { 255, 255, 255, 255 };
         ease.Step(t, 0, 0, 1, 1, 1.0 / 60);
-        ease.Step(t = [200, 255, 0, 255], 0, 0, 1, 1, 1.0 / 60);
-        Assert.InRange(t[0], 101, 199);
-        // The sim lets it out each second tick: a tick without it leaves it drawn, thinner, and still a stream.
-        ease.Step(t = [0, 0, 0, 0], 0, 0, 1, 1, 1.0 / 60);
-        Assert.True(t[0] > 0 && t[1] == 255 && t[3] == 255, "it blinked out");
-        for (int i = 0; i < 60; i++) ease.Step(t = [0, 0, 0, 0], 0, 0, 1, 1, 1.0 / 60);
-        Assert.Equal(new byte[] { 0, 0, 0, 0 }, t);
+        ease.Step(t = [63, 255, 0, 255], 0, 0, 1, 1, 1.0 / 60);
+        Assert.InRange(t[0], 64, 254);
+        for (int i = 0; i < 60; i++) ease.Step(t = [63, 255, 0, 255], 0, 0, 1, 1, 1.0 / 60);
+        Assert.Equal(63, t[0]);
     }
 
     [Fact]

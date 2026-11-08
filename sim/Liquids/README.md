@@ -27,10 +27,11 @@ lava, rain and taking water out come later.
 - A cell holds 0 to `Full` (8) units of one kind. Liquid enters only cells that do not block (`Blocks`: walls, closed
   doors, hatches; a ladder, floor or grate lets it through), dry or of its kind.
 - **A tick** sweeps whole rows from the bottom up, along each row left to right on even `Clock`, right to left on odd.
-  A cell first falls: through up to `Fall` (4) empty cells, into the last that takes it, even part-filled. What did not
-  fall then spreads, the sweep's way first: to a side neighbour at least 2 lower, ⌊(a−b)/2⌋; a lone unit, which cannot
-  be halved, runs whole to an empty side cell over room to fall, so a ledge keeps no film. A cell given liquid sideways
-  this tick passes none sideways till the next.
+  Each row first falls, every cell of it: through up to `Fall` (1, as Terraria's: falling water is a whole column) empty
+  cells, into the last that takes it, even part-filled. Then what did not fall spreads, the sweep's way first: to a side
+  neighbour at least 2 lower, ⌊(a−b)/2⌋; a lone unit, which cannot be halved, runs whole to an empty side cell over room
+  to fall, so a ledge keeps no film. A cell given liquid sideways this tick moves it on only the next, whichever way the
+  sweep runs, so a spill fed every tick falls as a whole column, not in every other cell.
 - **Pressure**, after the sweep: a body, the full cells of a kind joined side to side, moves up to `Press` (8) units a
   tick, one at a time, from its highest free surface (its cells open and dry above, the part-filled cells of its kind
   beside it) to the lowest open cell beside it short of full (not under it: falling fills those), while they are 2 or

@@ -18,8 +18,11 @@ public static class Liquids
     /// </summary>
     public const int Full = 8;
 
-    /// <summary>The most cells liquid falls in a tick through an empty shaft: 80 cells a second.</summary>
-    public const int Fall = 4;
+    /// <summary>
+    /// The most cells liquid falls in a tick through an empty shaft: one, 20 a second, as Terraria's, so falling water is a
+    /// whole column of cells, never lumps with gaps between that the drawing must guess at.
+    /// </summary>
+    public const int Fall = 1;
 
     /// <summary>
     /// The most units a body moves a tick to level itself (<c>LiquidsModule.Press</c>): a cell a tick, 20 a second, up a U-tube's far side.

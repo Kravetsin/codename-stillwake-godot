@@ -91,39 +91,48 @@ public sealed partial class LiquidsModule
         const int c = L.Chunk;
         for (int cy = _awakeInRow.Length - 1; cy >= 0; cy--)
             for (int y = Math.Min(_height, (cy + 1) * c) - 1; y >= cy * c && _awakeInRow[cy] > 0; y--)
-                for (int k = 0; k < _chunksAcross; k++)
-                {
-                    int cx = dir > 0 ? k : _chunksAcross - 1 - k;
-                    if (!_awake[cy * _chunksAcross + cx]) continue;
-                    int from = cx * c, to = Math.Min(_width, from + c) - 1;
-                    for (int x = dir > 0 ? from : to; x >= from && x <= to; x += dir) Step(layer, y * _width + x, x, y, dir);
-                }
+                // The row falls first, then spreads: what a cell is given sideways stays in it this tick whichever way the sweep
+                // runs, so a spill fed every tick falls as a whole column, not in every other cell.
+                for (int spread = 0; spread < 2; spread++)
+                    for (int k = 0; k < _chunksAcross; k++)
+                    {
+                        int cx = dir > 0 ? k : _chunksAcross - 1 - k;
+                        if (!_awake[cy * _chunksAcross + cx]) continue;
+                        int from = cx * c, to = Math.Min(_width, from + c) - 1;
+                        for (int x = dir > 0 ? from : to; x >= from && x <= to; x += dir)
+                            if (spread == 0) Fall(layer, y * _width + x, y);
+                            else Spread(layer, y * _width + x, x, y, dir);
+                    }
     }
 
-    /// <summary>One cell's turn: it falls, then what did not fall spreads, the sweep's way first.</summary>
-    private void Step(byte[] layer, int cell, int x, int y, int dir)
+    /// <summary>A cell's fall: through up to <c>Fall</c> empty cells, into the last that takes it.</summary>
+    private void Fall(byte[] layer, int cell, int y)
     {
         byte at = layer[cell];
         int a = L.AmountOf(at);
         if (a == 0) return;
         byte kind = L.KindOf(at);
-        bool given = (at & Given) != 0;
-        if (y + 1 < _height && Takes(layer, cell + _width, kind) && L.AmountOf(layer[cell + _width]) < L.Full)
+        if (y + 1 >= _height || !Takes(layer, cell + _width, kind) || L.AmountOf(layer[cell + _width]) >= L.Full) return;
+        int to = cell + _width;
+        for (int k = 1; k < L.Fall; k++)
         {
-            int to = cell + _width;
-            for (int k = 1; k < L.Fall; k++)
-            {
-                int under = to + _width;
-                if (L.AmountOf(layer[to]) != 0 || under >= layer.Length || !Takes(layer, under, kind) || L.AmountOf(layer[under]) >= L.Full) break;
-                to = under;
-            }
-            int f = Math.Min(a, L.Full - L.AmountOf(layer[to]));
-            a -= f;
-            Put(layer, cell, kind, a, given);
-            Pour(layer, to, kind, f, false);
-            _falls.Add(to);
+            int under = to + _width;
+            if (L.AmountOf(layer[to]) != 0 || under >= layer.Length || !Takes(layer, under, kind) || L.AmountOf(layer[under]) >= L.Full) break;
+            to = under;
         }
-        if (a == 0 || given) return;
+        int f = Math.Min(a, L.Full - L.AmountOf(layer[to]));
+        Put(layer, cell, kind, a - f, false);
+        Pour(layer, to, kind, f, false);
+        _falls.Add(to);
+    }
+
+    /// <summary>A cell's spread, after its row fell: to a side neighbour at least 2 lower, the sweep's way first.</summary>
+    private void Spread(byte[] layer, int cell, int x, int y, int dir)
+    {
+        byte at = layer[cell];
+        int a = L.AmountOf(at);
+        if (a == 0 || (at & Given) != 0) return;
+        byte kind = L.KindOf(at);
         if (a == 1)
         {
             // A lone unit cannot be halved: it runs off a ledge whole, toward an empty side over room to fall, so no film is left.

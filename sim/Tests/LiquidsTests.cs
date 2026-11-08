@@ -103,7 +103,7 @@ public class LiquidsTests
     }
 
     [Fact]
-    public void FallsFourCellsATickThroughAnEmptyShaft()
+    public void FallsACellATickThroughAnEmptyShaft()
     {
         var w = Wet("""
             ###
@@ -123,6 +123,117 @@ public class LiquidsTests
             """).Run();
         Assert.Equal(L.Full, Amount(w, 1, 1 + L.Fall));
         Assert.Equal(L.Full, Total(w));
+    }
+
+    [Fact]
+    public void APoolPouringDownAShaftFallsAsAWholeColumnWithNoGaps()
+    {
+        var w = Wet("""
+            #######
+            #.....#
+            #.....#
+            #.....#
+            ###.###
+            ###.###
+            ###.###
+            ###.###
+            ###.###
+            ###.###
+            ###.###
+            ###.###
+            ###.###
+            ###.###
+            ###.###
+            #######
+            """, """
+            .......
+            .wwwww.
+            .wwwww.
+            .wwwww.
+            """);
+        for (int tick = 0; tick < 12; tick++)
+        {
+            w.Run();
+            int head = Enumerable.Range(4, 11).LastOrDefault(y => Amount(w, 3, y) > 0);
+            Assert.Equal(Math.Min(14, 4 + tick), head);
+            Assert.All(Enumerable.Range(4, head - 4 + 1), y => Assert.True(Amount(w, 3, y) > 0, $"tick {tick}: a gap at row {y} over the head at {head}"));
+        }
+    }
+
+    [Fact]
+    public void ASpillOffAPoolsEdgeIntoAShaftFallsAsAWholeColumn()
+    {
+        // A pool whose surface runs on over a wall to a shaft beside it, a cave under the shaft: it spills only at the surface.
+        var w = Wet("""
+            ##############
+            #............#
+            #............#
+            ##...........#
+            ##.#.........#
+            ##.#.........#
+            ##.#.........#
+            ##.#.........#
+            ##.#.........#
+            ##.###########
+            ##.###########
+            ##.###########
+            ##.###########
+            ##.###########
+            ##.###########
+            ##.###########
+            ##.###########
+            ##.###########
+            ##.###########
+            ##.###########
+            ##.###########
+            ##.###########
+            ##.###########
+            ##.###########
+            #............#
+            #............#
+            #............#
+            #............#
+            #............#
+            ##############
+            """, """
+            ..............
+            ..............
+            ..............
+            ...wwwwwwwwww.
+            ....wwwwwwwww.
+            ....wwwwwwwww.
+            ....wwwwwwwww.
+            ....wwwwwwwww.
+            ....wwwwwwwww.
+            ..............
+            ..............
+            ..............
+            ..............
+            ..............
+            ..............
+            ..............
+            ..............
+            ..............
+            ..............
+            ..............
+            ..............
+            ..............
+            ..............
+            ..............
+            ..............
+            ..............
+            ..............
+            ..............
+            ..............
+            ..............
+            """);
+        for (int tick = 0; tick < 30; tick++)
+        {
+            w.Run();
+            int head = Enumerable.Range(3, 21).LastOrDefault(y => Amount(w, 2, y) > 0);
+            Assert.All(Enumerable.Range(4, Math.Max(0, head - 4)), y => Assert.True(Amount(w, 2, y) > 0, $"tick {tick}: a gap at row {y} over the head at {head}"));
+            if (tick >= 20) Assert.Equal(23, head);
+        }
     }
 
     [Fact]

@@ -5,9 +5,10 @@ namespace Stillwake.Game.Features.Liquids;
 /// <summary>
 /// How water is drawn (docs/plans/liquids.md), from the air overlay's wash (air-wash, the user's pick): a cool watercolour wash,
 /// granulated and pooled in two tones, its pigment drifting slowly along as a current would carry it, deeper and darker the
-/// further under the surface; along the surface a pale tide line whose edge wanders as wet paint does. A stream's cell is drawn
-/// as wide as the water falling past it, streaked running down. Lit by the cave's lights as the ground is. Reads <see cref="WaterCells"/>'
-/// texture, a texel a cell of its box, on a sprite scaled a cell a texel and placed over the box, at <c>origin</c>.
+/// further under the surface; along the surface a pale tide line whose edge wanders as wet paint does. Each cell is filled to
+/// its level, as Terraria fills its tiles; falling water is streaked running down. Lit by the cave's lights as the ground is.
+/// Reads <see cref="WaterCells"/>' texture, a texel a cell of its box, on a sprite scaled a cell a texel and placed over the
+/// box, at <c>origin</c>.
 /// </summary>
 public static class WaterLook
 {
@@ -26,6 +27,8 @@ public static class WaterLook
             const vec2 EDGE_DRIFT = vec2(-3.5, 0.0), EDGE_SWELL = vec2(1.75, 0.0);
             // How many cells down the water is darkest.
             const float DARKEST = 6.0;
+            // How fast falling water's streaks and grain run down it, in pixels a second.
+            const float FLOW = 160.0;
 
             float hash(vec2 p) {
                 vec3 p3 = fract(vec3(p.xyx) * 0.1031);
@@ -43,98 +46,45 @@ public static class WaterLook
                 return texelFetch(cells, ivec2(c), 0);
             }
 
-            // How fast a stream's streaks, grain and swells run down it, in pixels a second: about half the sim's fall (Fall cells
-            // a tick), so they read as water falling yet can still be followed.
-            const float FLOW = 320.0;
-
-            // Half a stream's width, in pixels, for the water falling past it: swelling and thinning as it runs down.
-            float stream_half(float r, vec2 px, float cx, float t) {
-                return cell * (0.15 + 0.35 * r) + (noise(vec2((px.y - t * FLOW) * 0.12, cx * 3.7)) - 0.5) * 1.6;
-            }
-
-            // A stream's paint: long streaks and grain carried down with it.
-            vec4 stream_colour(vec2 px, float t) {
-                float y = px.y - t * FLOW;
-                float streak = smoothstep(0.5, 0.75, noise(vec2(px.x * 0.6, y * 0.04)));
-                float grain = 0.75 + 0.5 * noise(vec2(px.x * 0.85, y * 0.1));
-                return vec4(mix(WASH, TIDE, streak * 0.7), (0.5 + 0.25 * streak) * grain);
-            }
-
             void fragment() {
                 ivec2 size = textureSize(TEXTURE, 0);
                 vec2 local = UV * vec2(size) * cell, px = local + origin;
                 vec2 c = floor(local / cell), f = local / cell - c;
                 vec4 own = cell_at(TEXTURE, c, size);
                 if (own.a < 0.5) discard;
-                float t = mod(TIME, 600.0);
+                // The surface across this cell, blended with the neighbour's toward the side it is nearer, so a run reads flat;
+                // a cell with water over it is full.
+                vec4 beside = cell_at(TEXTURE, c + vec2(f.x < 0.5 ? -1.0 : 1.0, 0.0), size);
+                bool covered = own.b > 0.5;
+                float surface = covered ? 1.0 : mix(own.r, beside.a > 0.5 ? beside.r : own.r, abs(f.x - 0.5));
+                // The edge wanders as wet paint does, in two sizes, slowly.
+                float wander = covered ? 0.0 : (noise((px - EDGE_DRIFT * TIME) * 0.23) - 0.5) * 0.14
+                    + (noise((px - EDGE_SWELL * TIME) * 0.05 + 3.1) - 0.5) * 0.12;
+                float under = (surface + wander - (1.0 - f.y)) * cell;
+                if (under < 0.0) discard;
+                // How deep: this cell's part and every wet cell over it, a few at most.
+                float above = 0.0;
+                for (int i = 1; i <= int(DARKEST); i++) {
+                    if (cell_at(TEXTURE, c - vec2(0.0, float(i)), size).a < 0.5) break;
+                    above += 1.0;
+                }
+                float deep = clamp((under + above * cell) / (DARKEST * cell), 0.0, 1.0);
                 vec2 pigment = px - DRIFT * TIME;
                 float grain = 0.7 + 0.6 * noise(pigment * 0.85);
+                float blot = step(0.58, noise(pigment * 0.045 + 7.3));
+                float alpha = (0.34 + 0.34 * deep + 0.08 * blot) * grain;
+                vec3 colour = mix(WASH, DEEP, deep);
                 if (own.g > 0.5) {
-                    // A stream: as wide as the water falling past, the width eased from cell to cell so it never steps,
-                    // streaks running down it.
-                    vec4 up = cell_at(TEXTURE, c - vec2(0.0, 1.0), size), down = cell_at(TEXTURE, c + vec2(0.0, 1.0), size);
-                    float r = own.r;
-                    if (f.y < 0.5 && up.g > 0.5) r = mix(up.r, own.r, f.y + 0.5);
-                    if (f.y >= 0.5 && down.g > 0.5) r = mix(own.r, down.r, f.y - 0.5);
-                    float half_wide = stream_half(r, px, c.x, t);
-                    // Where it leaves lying water beside it (a pool's edge, a ledge's puddle): the deeper side's surface.
-                    float lip = 0.0, lip_side = 0.0;
-                    if (up.a < 0.5) {
-                        vec4 l = cell_at(TEXTURE, c - vec2(1.0, 0.0), size), rt = cell_at(TEXTURE, c + vec2(1.0, 0.0), size);
-                        float ll = l.a > 0.5 && l.g < 0.5 ? (l.b > 0.5 ? 1.0 : l.r) : 0.0;
-                        float rl = rt.a > 0.5 && rt.g < 0.5 ? (rt.b > 0.5 ? 1.0 : rt.r) : 0.0;
-                        if (ll > 0.0 || rl > 0.0) { lip = max(ll, rl); lip_side = ll >= rl ? -1.0 : 1.0; }
-                    }
-                    if (lip > 0.0) {
-                        // It spills over from there: its top at that surface, across the cell from that side, narrowing to
-                        // the stream within most of a cell.
-                        float below = f.y - (1.0 - lip);
-                        if (below < 0.0) discard;
-                        float spill = 1.0 - smoothstep(0.0, 0.7, below);
-                        float reach = (f.x - 0.5) * lip_side > 0.0 ? cell * 0.5 : half_wide + cell * 0.2 * spill;
-                        half_wide = mix(half_wide, reach, spill);
-                    } else if (up.a < 0.5 && f.y < 0.5) {
-                        // Its ends in the air rounded, as a drop's: the top unless water is over it, the bottom unless under it.
-                        half_wide *= sqrt(max(0.0, 1.0 - pow((0.5 - f.y) * 2.0, 2.0)));
-                    }
-                    if (down.a < 0.5 && f.y > 0.5) half_wide *= sqrt(max(0.0, 1.0 - pow((f.y - 0.5) * 2.0, 2.0)));
-                    // Streams side by side are one sheet: the side toward a neighbour's stream filled to it.
-                    vec4 beside = cell_at(TEXTURE, c + vec2(f.x < 0.5 ? -1.0 : 1.0, 0.0), size);
-                    if (abs(f.x - 0.5) * cell > half_wide && !(beside.a > 0.5 && beside.g > 0.5)) discard;
-                    COLOR = stream_colour(px, t);
-                } else {
-                    // The surface across this cell, blended with the neighbour's toward the side it is nearer, so a run reads flat.
-                    float side = f.x < 0.5 ? -1.0 : 1.0;
-                    vec4 beside = cell_at(TEXTURE, c + vec2(side, 0.0), size);
-                    float level = own.b > 0.5 ? 1.0 : own.r;
-                    float other = beside.a > 0.5 && beside.g < 0.5 ? (beside.b > 0.5 ? 1.0 : beside.r) : level;
-                    float surface = mix(level, other, abs(f.x - 0.5));
-                    // The edge wanders as wet paint does, in two sizes, slowly; TIME, not t, so its shapes never jump.
-                    float wander = own.b > 0.5 ? 0.0 : (noise((px - EDGE_DRIFT * TIME) * 0.23) - 0.5) * 0.14
-                        + (noise((px - EDGE_SWELL * TIME) * 0.05 + 3.1) - 0.5) * 0.12;
-                    float under = (surface + wander - (1.0 - f.y)) * cell;
-                    if (under < 0.0) {
-                        // Over the surface, a stream falling onto it drawn on down to it.
-                        vec4 up = cell_at(TEXTURE, c - vec2(0.0, 1.0), size);
-                        if (up.g < 0.5 || abs(f.x - 0.5) * cell > stream_half(up.r, px, c.x, t)) discard;
-                        COLOR = stream_colour(px, t);
-                    } else {
-                        // How deep: this cell's part and every wet cell over it, a few at most.
-                        float above = 0.0;
-                        for (int i = 1; i <= int(DARKEST); i++) {
-                            if (cell_at(TEXTURE, c - vec2(0.0, float(i)), size).a < 0.5) break;
-                            above += 1.0;
-                        }
-                        float deep = clamp((under + above * cell) / (DARKEST * cell), 0.0, 1.0);
-                        float blot = step(0.58, noise(pigment * 0.045 + 7.3));
-                        float alpha = (0.34 + 0.34 * deep + 0.08 * blot) * grain;
-                        vec3 colour = mix(WASH, DEEP, deep);
-                        float tide = above > 0.0 ? 0.0 : 1.0 - smoothstep(0.6, 1.6, under);
-                        alpha = max(alpha, tide * (0.62 + 0.2 * noise(px * 0.5)));
-                        colour = mix(colour, TIDE, tide * 0.8);
-                        COLOR = vec4(colour, clamp(alpha, 0.0, 0.92));
-                    }
+                    // Falling: long pale streaks and grain carried down with it.
+                    float y = px.y - mod(TIME, 600.0) * FLOW;
+                    float streak = smoothstep(0.5, 0.75, noise(vec2(px.x * 0.6, y * 0.04)));
+                    colour = mix(WASH, TIDE, streak * 0.6);
+                    alpha = (0.5 + 0.25 * streak) * (0.75 + 0.5 * noise(vec2(px.x * 0.85, y * 0.1)));
                 }
+                float tide = above > 0.0 ? 0.0 : 1.0 - smoothstep(0.6, 1.6, under);
+                alpha = max(alpha, tide * (0.62 + 0.2 * noise(px * 0.5)));
+                colour = mix(colour, TIDE, tide * 0.8);
+                COLOR = vec4(colour, clamp(alpha, 0.0, 0.92));
             }
             """,
     };
