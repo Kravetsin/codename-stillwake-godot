@@ -639,10 +639,12 @@ public static partial class Terrain
     private static void Landmarks(Ground g, uint seed, int[] top, byte[] kind, Field ragged, bool[] hall)
     {
         int w = g.Width, h = g.Height, floor = h - g.CoreRows;
+        int rift = g.RiftDeep > 0 && g.Chasms > 0 ? (int)((long)Lattice(seed, ChasmAt, 0, 4) * g.Chasms / Whole) : -1;
         for (int k = 0; k < g.Chasms; k++)
         {
             int cx = Column(g, seed, ChasmAt, k, g.Chasms, g.Fog + g.ChasmWide + 6);
             int deep = g.ChasmDeep / 2 + (int)((long)Lattice(seed, ChasmAt, k, 1) * (g.ChasmDeep / 2 + 1) / Whole);
+            if (k == rift) deep = Math.Max(deep, g.Surface + g.RiftDeep - top[cx]);
             int wide = Math.Max(4, g.ChasmWide / 2 + (int)((long)Lattice(seed, ChasmAt, k, 2) * (g.ChasmWide / 2 + 1) / Whole));
             int bottom = Math.Min(floor - 1, top[cx] + deep);
             for (int y = 0; y <= bottom; y++)

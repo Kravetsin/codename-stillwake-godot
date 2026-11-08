@@ -13,6 +13,7 @@
 | `LavaView.cs` | The planet's lava (its core, `Content.Lava`), drawn as the cave concepts drew it (0087): over its own tiles, unlit … |
 | `logic/Grid.En.cs` | Its player text (`En`) |
 | `logic/Grid.Ru.cs` | Russian |
+| `logic/Strata.cs` | Which depth band's stone a planet's cell is drawn in: its row's band, the boundary wobbling a few cells, plain … |
 | `logic/WreckMotion.cs` | What still moves on the wreck: wires, arcs and a thread of vapour, each while its tear shows (2026-10-31-the-scoop). |
 | `WreckMotionView.cs` | Steps `WreckMotion` and paints its wires, unlit, over the hull. |
 
@@ -58,6 +59,9 @@ Draws the grid's cells and machines in pixel art, a pixel of art a pixel of the 
   `back_*`, seamless tiles cut a cell at a time; edges made at start (`render/GroundArt.cs`, `Content/logic/GroundLooks.cs`):
   a dark outline by open sides, lit lines inside. The ruins' alloy (0085) is drawn the same way (`wall_alloy`,
   `back_alloy`, `top_alloy`, `detail_alloy`; placeholders till the user picks).
+- **Stone by band** (2026-11-08-planet-layers): stone and its veins drawn in their band's own sheets (`wall_stone_b2`), back,
+  edges and details, `Strata` picking the band; plain stone above `PlanetLooks.StrataFrom`. The ember band's seams of old heat
+  are painted dark, giving no light.
 - **Back walls recede** (0088): a natural back wall is painted paler, cooler and darker than its wall (`tools/anime-art`);
   walls cast a soft three-tone shadow on it along open edges (`render/logic/GroundShadow.cs`, `GroundShadow.Of` of the three by
   three round a cell; atlas `render/ShadowTiles.cs`), on its own layer, multiplying. A changed cell redraws its corner

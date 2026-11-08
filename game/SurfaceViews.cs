@@ -37,13 +37,11 @@ public static class SurfaceViews
 {
     public static readonly IReadOnlyList<SurfaceView> All =
     [
-        new(c => new GridView(c.M.Grid) { HeldBack = c.Arrivals.Holds, HeldBackVersion = () => c.Arrivals.Version }),
+        new(c => new GridView(c.M.Grid, c.M.Rules is Content.PlanetType p ? new Features.Grid.Strata(p, PlanetLooks.Of[p.Id].StrataFrom) : null) { HeldBack = c.Arrivals.Holds, HeldBackVersion = () => c.Arrivals.Version }),
         // What still moves on the wreck: nothing on a surface with no tear of it (2026-10-31-the-scoop).
         new(c => new WreckMotionView(c.M.Grid), Fades: true),
         new(c => new DigView(c.M.Grid, c.M.Building)),
         new(c => new Features.Flora.FloraView(c.M.Grid, c.M.Building)),
-        // A planet's caves: their stone tinted by depth under their growth (0080).
-        new(c => c.M.Rules is Content.PlanetType p ? new Features.Flora.CaveTint(p, PlanetLooks.Of[p.Id]) : null),
         new(c => c.M.Rules is Content.PlanetType p ? new Features.Flora.CaveView(c.M.Grid, c.M.Building, p, c.HeadLamps, c.Seed) : null),
         // The arc makers' homes in its ground (0091), and the spires alight round their relics, dark once taken (0096).
         new(c => c.M.Rules is Content.PlanetType && c.Homes ? new Features.Ruins.HomesView(c.M.Grid, c.M.Building, c.HeroBodies) { Mood = c.HomesMood } : null),

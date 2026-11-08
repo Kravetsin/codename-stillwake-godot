@@ -16,11 +16,12 @@ public class PlanetLooksTests
     }
 
     [Fact]
-    public void EveryTypeHasATintForEachBandAndEveryGrowthOfItALook()
+    public void EveryTypeHasStoneForEachBandAndEveryGrowthOfItALook()
     {
         foreach (var type in Spec.PlanetTypes.All)
         {
-            Assert.Equal(type.Bands.Count + 1, PlanetLooks.Of[type.Id].Tint.Count);
+            var strata = new Stillwake.Game.Features.Grid.Strata(type, PlanetLooks.Of[type.Id].StrataFrom);
+            for (int band = 0; band < strata.Bands; band++) Assert.True(Png.Has($"wall_{type.Stone}_b{band}"), $"{type.Id}: band {band}");
             Assert.InRange(type.Bands.Count + 1, 1, CaveLooks.Bands);
             Assert.All(type.Plants, k => Assert.True(FloraLooks.Of.ContainsKey(k.Id), $"{type.Id}: {k.Id}"));
             Assert.All(type.Caves, k => Assert.True(CaveLooks.Of.ContainsKey(k.Id), $"{type.Id}: {k.Id}"));
