@@ -54,8 +54,6 @@ public partial class GridView : Node2D
     /// <summary>A planet's depth bands, its stone drawn by band (2026-11-08-planet-layers); null on a ship.</summary>
     private readonly Strata? _strata;
 
-    /// <summary>What glows in a band's stone, the ember band's heat cracks: added over the walls, unlit, for it gives light.</summary>
-    private readonly TileMapLayer _glows;
 
     public GridView(IGridQueries grid, Strata? strata = null)
     {
@@ -82,8 +80,6 @@ public partial class GridView : Node2D
         _walls = Layer(Layers.Walls, L.WallIn, shines: true);
         // A planet's pebbles and roots over its ground, under its edges: added after the walls, before them (0082).
         _details = Layer(Layers.Walls, L.WallIn);
-        _glows = Layer(Layers.Walls);
-        _glows.Material = GlowMaterial;
         _edges = Layer(Layers.Edges, L.WallIn);
         // The wreck's rust and stripes, over its edges as added after them.
         _dress = Layer(Layers.Edges, L.WallIn);
@@ -93,7 +89,7 @@ public partial class GridView : Node2D
         _fixtures = Layer(Layers.Fixtures);
         _doors = Layer(Layers.Doors, L.WallIn);
         _machines = Layer(Layers.Machines);
-        _cellLayers = [_back, _shade, _walls, _details, _glows, _edges, _dress, _fixtures, _doors];
+        _cellLayers = [_back, _shade, _walls, _details, _edges, _dress, _fixtures, _doors];
         AddChild(_sockets);
         foreach (var player in (Node[])[_opens, _closes]) AddChild(player);
     }
@@ -111,7 +107,7 @@ public partial class GridView : Node2D
         }
         _back.Modulate = new Color(1, 1, 1, alpha.Back);
         _shade.Modulate = new Color(1, 1, 1, backUnlit ? 0 : alpha.Back);
-        foreach (var layer in (CanvasItem[])[_walls, _details, _glows, _edges, _dress, _tops, _topsFront]) layer.Modulate = new Color(1, 1, 1, alpha.Front);
+        foreach (var layer in (CanvasItem[])[_walls, _details, _edges, _dress, _tops, _topsFront]) layer.Modulate = new Color(1, 1, 1, alpha.Front);
         foreach (var layer in (CanvasItem[])[_fixtures, _doors, _machines, _sockets]) layer.Modulate = new Color(1, 1, 1, alpha.Front);
     }
 
@@ -297,13 +293,6 @@ public partial class GridView : Node2D
         return banded ? _strata.BandOf(cell % _grid.Width, cell / _grid.Width) : Strata.Plain;
     }
 
-    /// <summary>A glow's: added over what lies under it, unlit, for it gives light.</summary>
-    private static readonly CanvasItemMaterial GlowMaterial = new()
-    {
-        BlendMode = CanvasItemMaterial.BlendModeEnum.Add,
-        LightMode = CanvasItemMaterial.LightModeEnum.Unshaded,
-    };
-
     /// <summary>The sides of <paramref name="cell"/> a wall beside it closes.</summary>
     private int WalledSides(int cell) => SidesOf(cell, _drawn.Structure, s => Structures.Is(s, Trait.Terrain));
 
@@ -353,7 +342,6 @@ public partial class GridView : Node2D
                     var (wall, edges) = WallNamesOf(_drawn.Material[cell], band);
                     if (dress.Torn != null) Put(_walls, at, dress.Torn);
                     else _walls.SetCell(at, ShipTiles.Source, _tiles.CutAt(wall, x, y));
-                    if (band != Strata.Plain && GlowOf(band) is { } glow) _glows.SetCell(at, ShipTiles.Source, _tiles.CutAt(glow, x, y));
                     // Edged where it faces no wall.
                     if (open != 0 && dress.Torn == null)
                         Put(_edges, at, edges[open]);
@@ -546,7 +534,6 @@ public partial class GridView : Node2D
     private readonly Dictionary<(int, int), string?> _backCuts = new();
     private readonly Dictionary<(int, int, int), (string Back, string? Front)> _topNames = new();
     private readonly Dictionary<(int, int, int), string> _detailNames = new();
-    private readonly List<string?> _glowNames = new();
     private readonly Dictionary<int, bool> _natural = new();
 
     /// <summary>The picture a back wall of material <paramref name="code"/> in <paramref name="band"/> is cut from over the world; null for iron's panels.</summary>
@@ -556,17 +543,6 @@ public partial class GridView : Node2D
         string material = MaterialOf(code);
         return _backCuts[(code, band)] = Materials.Get(material).Look == MaterialLook.Panels ? null
             : ShipTiles.BackName(band == Strata.Plain ? material : ShipTiles.InBand(Stone, band));
-    }
-
-    /// <summary>The glow over <paramref name="band"/>'s stone, its heat's cracks; null for a band that has none.</summary>
-    private string? GlowOf(int band)
-    {
-        while (_glowNames.Count <= band)
-        {
-            string name = ShipTiles.GlowName(ShipTiles.InBand(Stone, _glowNames.Count));
-            _glowNames.Add(_tiles.Has(name) ? name : null);
-        }
-        return _glowNames[band];
     }
 
     private (string Back, string? Front) TopNamesOf(int code, int variant, int half)

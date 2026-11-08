@@ -77,7 +77,6 @@ public sealed class ShipTiles
                 for (int open = 1; open < 16; open++)
                     pictures.Add(Picture(EdgeName(banded, open), Made(EdgeName(banded, open), GroundArt.Edge(natural, open)), Relief.None));
                 for (int k = 0; k < GroundDetails.Singles + GroundDetails.Features.Length; k++) pictures.Add(Picture(DetailName(banded, k), Relief.None));
-                if (HiRes.Has(GlowName(banded))) pictures.Add(Picture(GlowName(banded), Relief.None));
             }
         foreach (var material in Materials.All.Where(m => m.As == null).Select(m => m.Id))
         {
@@ -178,7 +177,7 @@ public sealed class ShipTiles
         {
             // Cut a cell at a time, a cell drawing the piece where it lies: sheets laid over the world, and the 16 px pictures of what
             // fills a map's character's cells, two by two or two across (0104): a ladder, a floor, iron's panels.
-            bool cut = name.StartsWith("wall_") || name.StartsWith("detail_") || name.StartsWith("glow_") || HullBacks.Contains(name) || name.StartsWith("back_") && MadeImages.ContainsKey(name)
+            bool cut = name.StartsWith("wall_") || name.StartsWith("detail_") || HullBacks.Contains(name) || name.StartsWith("back_") && MadeImages.ContainsKey(name)
                 || CutDrawn(name) || name.StartsWith("door_") || name.StartsWith("hatch_");
             if (cut)
             {
@@ -459,9 +458,6 @@ public sealed class ShipTiles
 
     /// <summary>The name a natural <paramref name="material"/>'s pictures take in a planet's depth band <paramref name="band"/>: <c>stone_b2</c>.</summary>
     public static string InBand(string material, int band) => $"{material}_b{band}";
-
-    /// <summary>What glows over a wall of <paramref name="material"/>, added in light of its own: the ember band's heat's cracks.</summary>
-    public static string GlowName(string material) => $"glow_{material}";
 
     /// <summary>The edges of a wall of <paramref name="material"/> on its sides <paramref name="open"/>.</summary>
     public static string EdgeName(string material, int open) => $"wall-edge_{material}_{open}";

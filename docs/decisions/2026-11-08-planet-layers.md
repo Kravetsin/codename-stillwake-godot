@@ -20,7 +20,8 @@ band; the motor's hint said "deep in a planet's caves" and no more.
   can drop to the heat's cracks. No fall hurts; the grapple and the jetpack climb back.
 - **Rock by band.** The user's pick of four, "grey stone and marks": each band's stone is the grey stone washed half towards
   its band's paint, with a mark of its own — rime on the cold band's upper edges, roots in the garden's, layered banding in the
-  amber deep, and in the ember band cracks that glow, unlit and added over the stone, so they show in the dark. Stone and its
+  amber deep, and in the ember band dark seams of old heat. They glowed at first, unlit and added over the stone; in play
+  the user found glowing stone with lava veins unnatural, so they are painted and give no light. Stone and its
   veins take their band's sheets, back, edges and details (`wall_stone_b2`, `tools/anime-art/subjects/caves.js`), the band
   chosen per cell by the client (`game/features/grid/logic/Strata.cs`): the sim's band of its row, the boundary wobbling up to
   three cells along the columns so it reads as rock, not a ruled line. The land under the sky keeps today's plain stone down

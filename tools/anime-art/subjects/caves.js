@@ -410,7 +410,7 @@ function crystal(name, variant, hang) {
 
 // ---- Stone by depth band (2026-11-08-planet-layers, the user's pick "grey stone and marks"): today's stone moved part of the way
 // toward each band's paint, and a band's marks over it — frost and mica in the cold, roots in the garden, mineral banding in the
-// amber deep, heat cracks in the ember band, their glow a sheet of its own. Pictures `<kind>_<material>_b<band>`.
+// amber deep, cold dark seams of old heat in the ember band (they glowed once: too like lava veins, the user said). Pictures `<kind>_<material>_b<band>`.
 
 const { star } = Anime;
 
@@ -531,29 +531,29 @@ function micaGlints(o, cells, r, col, every = 3) {
   });
 }
 
-/** Heat cracks along some of the joins: a dull red line with a hotter core; their own rng, so the glow sheet draws the same ones. */
-function heatCracks(a, cells, seed, share, cols) {
+/** Seams of old heat along some of the joins: a dark line with a dull rust core, painted, giving no light. */
+function heatSeams(a, cells, seed, share, cols) {
   const f = rng(seed ^ 0x4ea7), o = onAll(a);
   for (const cell of cells) for (let i = 0; i < cell.length; i++) {
     const p = cell[i], q = cell[(i + 1) % cell.length];
     if (f() > share) continue;
     const pts = jag(p, q, f, 3, .5);
-    o.glow(ribbon(pts, .85), cols[0]);
-    o.glow(ribbon(pts, .32), cols[1]);
+    o.flat(ribbon(pts, .85), cols[0]);
+    o.flat(ribbon(pts, .32), cols[1]);
   }
 }
 
-/** A band's stone with its marks over it; glowOnly: what glows alone, the heat cracks, for the game's glow layer. */
-function markedSheet(look, seed, dim, mark, glowOnly) {
+/** A band's stone with its marks over it. */
+function markedSheet(look, seed, dim, mark) {
   const base = groundSheet(look, seed, dim);
   return { ...base, draw(a) {
-    if (!glowOnly) base.draw(a);
+    base.draw(a);
     if (dim) return;
     const cells = cellsOf(128, 64, look.cells, seed), f = rng(seed ^ 0x77), o = onAll(a);
-    if (mark === 'frost' && !glowOnly) {
+    if (mark === 'frost') {
       for (const cell of cells) if (f() < .55) rime(o, cell, f, '#b4c8d6', 1);
       micaGlints(o, cells, f, '#dbe4ea', 3);
-    } else if (mark === 'roots' && !glowOnly) {
+    } else if (mark === 'roots') {
       // Roots from the garden above, come down the cracks: a thread hanging from a block's top edge, now and then forked; lichen.
       for (const cell of cells) {
         if (f() > .7) continue;
@@ -569,7 +569,7 @@ function markedSheet(look, seed, dim, mark, glowOnly) {
         const [cx, cy] = centreOf(cell);
         for (let i = 0; i < 4; i++) o.flat(ell(cx + (f() - .5) * 5, cy + (f() - .5) * 3.5, .6 + f() * .4, .45 + f() * .25), '#73845a');
       }
-    } else if (mark === 'banding' && !glowOnly) {
+    } else if (mark === 'banding') {
       // Mineral banding: thin strips across a block, all at one slant, ochre and dark in turn.
       const cols = ['#a8824a', '#5a4330', '#bc9658'];
       for (const cell of cells) {
@@ -582,14 +582,14 @@ function markedSheet(look, seed, dim, mark, glowOnly) {
         }
       }
     } else if (mark === 'heat') {
-      heatCracks(a, cells, seed, .2, ['#8e2e18', '#d8702c']);
+      heatSeams(a, cells, seed, .2, ['#1c1214', '#5e2a20']);
     }
   } };
 }
 
 /**
  * The bands' pictures: each band's stone and its veins drawn over it; the stone's back wall, edges and details, which its veins
- * share in the game; the ember band's glow.
+ * share in the game.
  */
 function bandPictures() {
   for (let b = 0; b < BAND_PAINT.length; b++) {
@@ -599,7 +599,6 @@ function bandPictures() {
     out(`back_stone_b${b}`, bake(groundSheet(look, 0x5702, true)));
     for (let open = 1; open < 16; open++) out(`wall-edge_stone_b${b}_${open}`, AnimeEdge(open, edge));
     for (let k = 0; k < 11; k++) out(`detail_stone_b${b}_${k}`, detailOf(look, k));
-    if (BAND_MARK[b] === 'heat') out(`glow_stone_b${b}`, bake(markedSheet(look, 0x5701, false, BAND_MARK[b], true)));
   }
 }
 
