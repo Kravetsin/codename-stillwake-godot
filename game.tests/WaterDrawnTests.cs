@@ -45,6 +45,26 @@ public class WaterDrawnTests
     }
 
     [Fact]
+    public void FullCellsFallingOnFallingWaterAreAllFallingButAPoolOverItsDrainIsNot()
+    {
+        // A shaft a cell wide, full cells from row 1 to 6 and 7 units in row 4, open air under; beside it a pool two deep over
+        // a floor holed under its middle, water falling through the hole.
+        int w = 7, h = 10;
+        var layer = new byte[w * h];
+        for (int y = 1; y < 7; y++) layer[y * w + 1] = L.Of(L.Water, y == 4 ? 7 : 8);
+        for (int y = 0; y < 2; y++)
+            for (int x = 3; x < 7; x++) layer[y * w + x] = L.Of(L.Water, 8);
+        layer[2 * w + 5] = L.Of(L.Water, 8);
+        layer[3 * w + 5] = L.Of(L.Water, 3);
+        bool Blocks(int cell) => cell % w == 0 || cell % w == 2 || cell / w >= 2 && cell % w > 2 && cell % w != 5 || cell / w == h - 1;
+        var texels = new byte[w * h * 4];
+        WaterCells.Write(layer, w, h, Blocks, 0, 0, w, h, texels);
+        Assert.All(Enumerable.Range(1, 6), y => Assert.Equal(255, texels[(y * w + 1) * 4 + 1]));
+        Assert.All(Enumerable.Range(0, 2), y => Assert.Equal(0, texels[(y * w + 5) * 4 + 1]));
+        Assert.Equal(255, texels[(2 * w + 5) * 4 + 1]);
+    }
+
+    [Fact]
     public void ACellNoLongerCoveredSinksToItsOwnLevel()
     {
         var ease = new WaterEase();
