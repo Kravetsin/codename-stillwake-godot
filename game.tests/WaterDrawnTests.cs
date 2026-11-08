@@ -62,6 +62,35 @@ public class WaterDrawnTests
     }
 
     [Fact]
+    public void FullLumpsFallingOneOnAnotherAreAllStreamNotLyingInTheAir()
+    {
+        // A shaft a cell wide: six full cells stacked in the air, open air under them down to the floor.
+        int w = 3, h = 16;
+        var layer = new byte[w * h];
+        for (int y = 2; y < 8; y++) layer[y * w + 1] = L.Of(L.Water, 8);
+        bool Blocks(int cell) => cell % w != 1;
+        var texels = new byte[w * h * 4];
+        WaterCells.Write(layer, w, h, Blocks, 0, 0, w, h, texels);
+        Assert.All(Enumerable.Range(2, 6), y => Assert.Equal(255, texels[(y * w + 1) * 4 + 1]));
+    }
+
+    [Fact]
+    public void APoolDrainingThroughAHoleInItsFloorLiesOverTheHoleNotFalls()
+    {
+        // A pool five wide and three deep over a floor holed in its middle, a shaft of air under the hole.
+        int w = 5, h = 10;
+        var layer = new byte[w * h];
+        for (int y = 0; y < 3; y++)
+            for (int x = 0; x < w; x++) layer[y * w + x] = L.Of(L.Water, 8);
+        layer[3 * w + 2] = L.Of(L.Water, 8);
+        bool Blocks(int cell) => cell / w >= 3 && cell % w != 2;
+        var texels = new byte[w * h * 4];
+        WaterCells.Write(layer, w, h, Blocks, 0, 0, w, h, texels);
+        Assert.All(Enumerable.Range(0, 3), y => Assert.Equal(0, texels[(y * w + 2) * 4 + 1]));
+        Assert.Equal(255, texels[(3 * w + 2) * 4 + 1]);
+    }
+
+    [Fact]
     public void WaterArrivingOverAPoolsSurfaceIsDrawnSettledIntoItNotAsAFall()
     {
         // A shaft a cell wide: a full cell at the bottom, 5 over it, and 3 just spread over that, nothing falling above.
