@@ -486,8 +486,14 @@ public partial class Main : Node2D, ITogether
             // The creatures live across surfaces: their view is made once, not with these.
             Shining = [.. _views.OfType<ILightSource>(), _creatures],
         });
-        // A planet's sky behind its ground, its land's foot at the spawn's ground; space aboard (0076, 0079).
-        _stars.Show(_m.Rules.Sky != null ? PlanetLooks.Of[_m.Rules.Id].Backdrop : null, (_m.Crew.Spawn / _m.Grid.Width + 1) * ShipCamera.Cell);
+        // A planet's sky behind its ground and its land composed by its seed, on its surface's rows; space aboard (0076, 0079,
+        // composed-backdrops). A surface other than a planet's, the strip, takes the first planet's plants.
+        long landFrom = System.Diagnostics.Stopwatch.GetTimestamp();
+        if (_m.Rules.Sky != null && PlanetLooks.Of[_m.Rules.Id] is var look)
+            _stars.Show(look.Backdrop, Features.Backdrop.BackdropView.Of(_m.Rules as Content.PlanetType ?? Content.PlanetTypes.First, look, _seed),
+                Features.Backdrop.GroundLine.Tops(_m.Grid.StructureLayer, _m.Grid.BackLayer, _m.Grid.Width, _m.Grid.Height));
+        else _stars.Show(null, null, null);
+        double land = System.Diagnostics.Stopwatch.GetElapsedTime(landFrom).TotalMilliseconds;
         // Last of the world's views: at a shared z, a stage's effects over its layer's objects.
         MoveChild(_stages, -1);
         MoveChild(_camera, -1);
@@ -508,7 +514,7 @@ public partial class Main : Node2D, ITogether
         // find it alive and copy it, 4 to 7 ms each (GcPace).
         GC.Collect();
         double collected = System.Diagnostics.Stopwatch.GetElapsedTime(made).TotalMilliseconds - all;
-        Log($"views of {_m.Grid.Width}×{_m.Grid.Height} made in {all:F0} ms: {views:F0} views, {grid:F0} the grid drawn, {all - views - grid:F0} the light; {collected:F0} ms collecting");
+        Log($"views of {_m.Grid.Width}×{_m.Grid.Height} made in {all:F0} ms: {views - land:F0} views, {land:F0} the land behind, {grid:F0} the grid drawn, {all - views - grid:F0} the light; {collected:F0} ms collecting");
     }
 
     private void AimCamera(Layout? layout)

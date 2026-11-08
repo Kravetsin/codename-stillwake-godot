@@ -84,7 +84,7 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [0076](0076-a-world-is-made-of-surfaces.md) | A world is made of surfaces | accepted | night-chills (in part) |
 | [0077](0077-a-planets-ground-grows-from-its-seed-and-is-dug-by-hits.md) | A planet's ground grows from its seed and is dug by hits | accepted | fan-of-rays, veins-and-stairs, tool-edge (in part) |
 | [0078](0078-two-handed-items-are-held-as-a-rifle.md) | Two-handed items are held as a rifle | superseded | one-arm-holds |
-| [0079](0079-a-planets-surface-has-its-look-and-grows-plants.md) | A planet's surface has its look, and grows plants from its seed | accepted | 0082 (in part) |
+| [0079](0079-a-planets-surface-has-its-look-and-grows-plants.md) | A planet's surface has its look, and grows plants from its seed | accepted | 0082, composed-backdrops (in part) |
 | [0080](0080-caves-glow-by-depth.md) | Caves glow by depth: what grows in them is the surface's flora, held by floor, ceiling or rock | accepted | veins-and-stairs (in part) |
 | [0081](0081-the-wrist-is-one-column-of-gauges-and-keys.md) | The wrist is one column: segmented gauges that never step, and hardware keys | accepted |  |
 | [0082](0082-the-grounds-chipped-look-details-and-living-edge.md) | The ground's chipped look: details over it and a living edge on top | accepted |  |
@@ -194,7 +194,7 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [board-room](2026-11-02-board-room.md) | The camera stops at a size, and the player has room for heaps | accepted |  |
 | [board-thoughts](2026-11-02-board-thoughts.md) | The board says what the hero is thinking | accepted |  |
 | [bulb-signal](2026-11-02-bulb-signal.md) | A bulb over the hero says something new waits on the board | superseded | hologram-keys |
-| [far-land-in-ink](2026-11-02-far-land-in-ink.md) | The far land in ink | accepted |  |
+| [far-land-in-ink](2026-11-02-far-land-in-ink.md) | The far land in ink | accepted | composed-backdrops (in part) |
 | [hero-clothes](2026-11-02-hero-clothes.md) | One body, four sets of clothes | accepted |  |
 | [ink-batch](2026-11-02-ink-batch.md) | The rest of the art in one batch | accepted |  |
 | [ink-by-default](2026-11-02-ink-by-default.md) | The game is drawn in ink by default | accepted |  |
@@ -296,3 +296,4 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [the-scanner](2026-11-07-the-scanner.md) | The scanner reads a wreck's hit points | accepted |  |
 | [tool-card-rows](2026-11-07-tool-card-rows.md) | A tool's card lists its numbers as rows with icons | accepted |  |
 | [lurker-attacks](2026-11-08-lurker-attacks.md) | Lurker attacks | accepted |  |
+| [composed-backdrops](2026-11-08-composed-backdrops.md) | Composed backdrops | accepted |  |

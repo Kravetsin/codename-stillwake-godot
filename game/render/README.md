@@ -70,10 +70,9 @@ and the files' constants; the rest of `render/` is described where it is used an
 ## Rules
 
 - **A planet's sky** (`PlanetSky`, 0079) replaces space on a surface with daylight, shown by `Stars`: gradient, gas
-  giant, drifting cloud and sun, then far mesas, a ridge and hills with trees (`art/hd/planet`, the set its kind's
-  `PlanetLooks.Backdrop` names, 0095), each layer repeating. The land lies on the world's surface, each layer following
-  its share of the camera; sun, giant and clouds hang at fixed shares of the screen. Each layer's bottom colour fills
-  the screen under it (no ADR).
+  giant, drifting cloud and sun (`art/hd/planet`, the set its kind's `PlanetLooks.Backdrop` names, 0095); sun, giant and
+  clouds at fixed shares of the screen. In front, the land composed by `features/backdrop` (composed-backdrops), both on
+  its ground line round the camera.
 - **Three planes in space, far to near** (no ADR), on `ScreenLayers.Stars`, under the world and every panel; the ship's
   back walls hide them. None is lit by `Lit`.
   - *Stars*: a filtered tile repeated over the screen, a screen pixel a star at any zoom, streaming on local time.
