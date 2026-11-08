@@ -12,7 +12,7 @@ anywhere. A trade station is worked as a crate is, through the items feature's p
 | `BoardPage.cs` | the first tab: the board of notes, threads and shapes | yes |
 | `BoardFind.cs` | the board's search | yes |
 | `TabletKey.cs` | what the research and market keys on the edge tell, read on a timer | yes |
-| `ScreenBulb.cs` | the bulb at the screen's top, and the find flying down into the key | yes |
+| `FindFlashView.cs` | the flash running along the edge into the research key | yes |
 | `MarketPage.cs` | the black market: the order being filled, tabs and a grid of goods | yes |
 | `InkDraw.cs` | draws the board's strokes | yes |
 | `StripParts.cs` | what pages write with: the strip's controls, a thing's words and pictures | yes |
@@ -34,8 +34,7 @@ anywhere. A trade station is worked as a crate is, through the items feature's p
 | `logic/BoardThings.cs` | Every blueprint and craft as the board sees it | no |
 | `logic/BoardThreads.cs` | What a note's threads run to | no |
 | `logic/BoardView.cs` | What the board shows: a note, a silhouette or nothing, and its threads | no |
-| `logic/BulbSignal.cs` | The bulb at the top of this player's screen | no |
-| `logic/FindFlight.cs` | The find's way down the research key's beam | no |
+| `logic/FindFlash.cs` | The flash along the edge as a note starts waiting, once a batch | no |
 | `logic/CapsulePath.cs` | Where a capsule is drawn along its flight | no |
 | `logic/Research.En.cs` | Its player text (`En`) | no |
 | `logic/Research.Ru.cs` | Russian | no |
@@ -49,7 +48,7 @@ anywhere. A trade station is worked as a crate is, through the items feature's p
 - A shape shows at a thread's end or once every part is noted, and a click adds none: the strip below lists what it takes, goes into and, for a blueprint, its build menu tab. A note runs threads to its three closest to done; a shape with every part noted and no thread gets one from the part noted last.
 - A left press on a note or a shape carries it once past the click's slack, and it stays where it is let go; anywhere else the press drags the board. A click still only picks. Each machine keeps its own arrangement, never sent: only what was moved, in `user://boards/<World.Id>.json`, written as the tablet closes and on every way out. A lost or bad file sends things back to their slots, a failed write stops nothing, a world of id 0 keeps no file.
 - The board has edges ([board-room](../../../docs/decisions/2026-11-02-board-room.md)): no slot or carried thing passes them. What the market opens holds a hidden slot by its first part noted, inked in when bought.
-- A bulb at the screen's top says a note has started waiting, once ([hologram-keys](../../../docs/decisions/2026-11-05-hologram-keys.md)): it heats and bursts, the find that lit it hatches and slides down the research key's beam, and the key's number takes what it carried on landing. Only this machine draws it, and only one: a find while it burns rides with it, one after the burst goes onto the number, opening the tablet puts it out, what waited at a world's opening lights nothing.
+- A flash along the tablet's edge says a note has started waiting ([edge-flash](../../../docs/decisions/2026-11-08-edge-flash.md)): light runs in from both ends to the research key, which flares as its number takes the finds. Only this machine draws it, once a batch: finds while it runs join it, finds within 1.5 s flash nothing; opening the tablet puts it out, what waited at a world's opening flashes nothing.
 - The research key shows from the first note, amber while one is unread and the tablet away, the finds on it; the market's from the first credit or good bought, amber while anything on it can be bought, the credits in a gold readout on the right (hologram-keys). What was read is kept in the same file. With nothing kept, a new world or a late guest has nothing new.
 - Its own search, top right ([board-search-related](../../../docs/decisions/2026-11-07-board-search-related.md)): what the board shows, by word starts in either language, a slip forgiven; few named bring their ties, lit while listed.
 - Unread notes wait beside the board as a pile ([the pile](../../../docs/decisions/2026-11-02-board-pile.md)): the tablet opens on the board with any unread, shows the top one large and the count, and draws nothing of the unread as a note. Only a click lands an entry, shrinking into its note; "Take all" lands the rest. A flip counts at the click: a close mid-pile resumes on the next one. Parts come before what they make; an arrival joins under the top. What landed keeps a hand-drawn loop until pressed, through a close and a restart, kept in the same file ([board-thoughts](../../../docs/decisions/2026-11-02-board-thoughts.md)); its threads stand out only until the tablet closes.
