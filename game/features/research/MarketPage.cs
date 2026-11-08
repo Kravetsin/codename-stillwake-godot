@@ -12,8 +12,9 @@ using static Stillwake.Game.I18n.En;
 namespace Stillwake.Game.Features.Research;
 
 /// <summary>
-/// The black market as a darknet storefront ([market-grid](../../../docs/decisions/2026-11-03-market-grid.md)): the order being filled down the left, tabs over a grid of
-/// tiles, a picture and a price each, the rest in the strip. What an order opens deciphers into the grid (<see cref="MarketReveal"/>). A click picks; only the strip's
+/// The black market as a darknet storefront ([market-grid](../../../docs/decisions/2026-11-03-market-grid.md)): what the mafia wants for its next level down the left,
+/// tabs over a grid of every good, a picture and a price each, the rest in the strip. A price past the level is garbage, and deciphers as the level opens
+/// (<see cref="MarketReveal"/>, [mafia-reputation](../../../docs/decisions/2026-11-08-mafia-reputation.md)). A click picks; only the strip's
 /// button buys. Built once and restyled, for a rebuild under the pointer would eat a click; each part draws itself, and repaints only when what it says has changed.
 /// </summary>
 public sealed class MarketPage : ITabletPage
@@ -24,7 +25,7 @@ public sealed class MarketPage : ITabletPage
 
     private static readonly Color Panel = new("15181b"), TileFill = new("1a1e22"), TileEdge = new("262b31"), Words = new("d8dce0"), Faint = new("3a4047"),
         AccentDark = new("4a1d12"), Own = new("6fbf73"), Picked = new("f2f4f6"), Gold = new("f0c050"), Plan = new("4f8fbf"), PlanWord = new("6fa3c8"),
-        AskFill = new("111417"), Pill = new("1b1f23"), Badge = new("2a3036"), Empty = new("16191c"), Locked = new("0c0e10"), LockedEdge = new("1d2125"),
+        AskFill = new("111417"), Pill = new("1b1f23"), Badge = new("2a3036"), Empty = new("16191c"),
         Opening = new("121518"), Chip = new("22272c"), ChipEdge = new("30363c"), ChipHad = new("16191c"), ChipHadEdge = new("1f2328"),
         Had = new(0.5f, 0.52f, 0.55f, 0.75f);
 
@@ -32,8 +33,8 @@ public sealed class MarketPage : ITabletPage
     private static readonly StyleBoxFlat Look = new();
     private static readonly Texture2D Coin = Signs.Credit();
 
-    /// <summary>The order's inset; an asked item's row and how far apart they are; an unlock's tile and its gap; where a tile's picture's middle lies and how tall it is.</summary>
-    private const int SideIn = 12, AskTall = 40, AskStride = 46, LockedSide = 32, LockedGap = 3, PictureAt = 34, PictureTall = 44;
+    /// <summary>The side's inset; a wanted good's row and how far apart they are; where a tile's picture's middle lies and how tall it is.</summary>
+    private const int SideIn = 12, AskTall = 40, AskStride = 46, PictureAt = 34, PictureTall = 44;
     /// <summary>Where the strip's words start; how many characters' worth of a tile's decipher its picture takes.</summary>
     private const int WordsAt = 116, PictureChars = 6;
 
@@ -71,7 +72,7 @@ public sealed class MarketPage : ITabletPage
     private readonly List<(float At, string Words)> _madeFrom = [];
     private List<Tile> _inView = [], _shownAll = [];
     private IResearchQueries? _research;
-    private Func<string, int> _sold = _ => 0;
+    private Standing _standing = new(null, [], 0, 0);
     private TechNode? _order;
     private string? _askedFor;
     private MarketShelf? _shelf;
@@ -140,14 +141,14 @@ public sealed class MarketPage : ITabletPage
     {
         var research = m.Research;
         _research = research;
-        _sold = m.Knowledge.SoldOf;
         if (_tiles.Count == 0) Build();
         _met = _orders.Count(research.Done);
         if (_out) _reveal.Play(_seen().SeeOrders(_met), _met);
         foreach (var tile in _tiles) tile.State = MarketGoods.StateOf(tile.Good, research.Done, research.Reached, research.BuyProblem);
-        _order = _orders.FirstOrDefault(o => research.Reached(o) && !research.Done(o));
-        string now = string.Join('|', _tiles.Select(t => $"{t.State.Tile}{t.State.Next?.Id}{t.State.Bought}{t.State.Opened}")) + '|' + _order?.Id + '|'
-            + string.Join(',', _order?.Order.Select(d => _sold(d.Item)) ?? []);
+        _standing = research.Standing();
+        _order = _standing.Next;
+        string now = string.Join('|', _tiles.Select(t => $"{t.State.Tile}{t.State.Next?.Id}{t.State.Bought}{t.State.Opened}")) + '|' + _order?.Id + '|' + _met + '|'
+            + _standing.Points + '|' + string.Join(',', _standing.Wanted.Select(d => d.Sold));
         if (now == _shown) return;
         _shown = now;
         Restyle();
@@ -231,7 +232,7 @@ public sealed class MarketPage : ITabletPage
     private void Restyle()
     {
         if (_research is not { } research) return;
-        _shownAll = [.. _tiles.Where(t => MarketGoods.Shown(t.Good, research.Reached))];
+        _shownAll = _tiles;
         _inView = [.. MarketGoods.Sorted(_goods, research.Reached, _shelf).Select(g => _tiles.First(t => t.Good == g))];
         int fresh = 0;
         foreach (var tile in _inView)
@@ -287,7 +288,7 @@ public sealed class MarketPage : ITabletPage
             var (item, want) = order.Order[i];
             _asks[i].Position = new Vector2(SideIn + 21 - 16, 74 + i * AskStride + 5);
             _asks[i].Visible = !garbage;
-            _asks[i].Modulate = _sold(item) >= want ? Had : Colors.White;
+            _asks[i].Modulate = SoldOf(item) >= want ? Had : Colors.White;
         }
     }
 
@@ -401,14 +402,14 @@ public sealed class MarketPage : ITabletPage
         {
             MarketTile.Affordable => T("research.buy"),
             MarketTile.Dear => T(research.BuyProblem(state.Next!) ?? "research.noCredits"),
-            MarketTile.Waiting => T("research.market.waits"),
+            MarketTile.Locked => T("research.reputation"),
             _ => T(tile.Ladder ? "research.market.boughtOut" : "research.bought"),
         };
         word.LabelSettings.Font = can ? Strong : Plain;
         word.LabelSettings.FontSize = can ? 20 : 12;
         word.LabelSettings.FontColor = can ? OnAccent : Dim;
-        _strip.ActionPrice.Visible = state.Next != null;
-        if (state.Next is not { } next) return;
+        _strip.ActionPrice.Visible = state.Next != null && state.Tile != MarketTile.Locked;
+        if (state.Next is not { } next || state.Tile == MarketTile.Locked) return;
         _strip.ActionPrice.Set(Prices.Of(next));
         _strip.ActionPrice.Tint(can ? OnAccent : Dear);
     }
@@ -440,7 +441,6 @@ public sealed class MarketPage : ITabletPage
     /// <summary>The words a tile says under its picture: the price of its next step, or why there is none.</summary>
     private static string PriceOf(Tile tile) => tile.State.Tile switch
     {
-        MarketTile.Waiting => T("research.market.nextOrder"),
         MarketTile.Owned => T(tile.Ladder ? "research.market.allBought" : "research.market.owned"),
         _ => Prices.Of(tile.State.Next!).ToString(),
     };
@@ -469,14 +469,14 @@ public sealed class MarketPage : ITabletPage
         Frame(box, new Rect2(0, 0, wide, tall), cleared.Playing ? Opening : TileFill, picked ? Picked : cleared.Playing ? Accent : TileEdge, picked ? 2 : 1);
         if (!cleared.Picture) Block(box, place, new Vector2(Mathf.Round(middle - 18), PictureAt - 18), 36, 6, cleared.Step, AccentDark);
         string price = PriceOf(tile), count = CountOf(tile);
-        bool garbled = cleared.Price < price.Length;
-        string said = garbled ? Cipher.Of(price, place + 7, cleared.Price, cleared.Step) : price;
+        bool locked = tile.State.Tile == MarketTile.Locked, garbled = locked || cleared.Price < price.Length;
+        string said = garbled ? Cipher.Of(price, place + 7, locked ? 0 : cleared.Price, cleared.Step) : price;
         if (OwnedPlan(tile))
         {
             SayMiddle(box, Strong, said, middle, under, 11, Own);
             Check(box, new Vector2(wide - 15, 6), 9, Own);
         }
-        else if (tile.State.Tile is MarketTile.Waiting or MarketTile.Owned) SayMiddle(box, garbled ? Garbled : Plain, said, middle, under, 10, Dim);
+        else if (tile.State.Tile == MarketTile.Owned) SayMiddle(box, garbled ? Garbled : Plain, said, middle, under, 10, Dim);
         else Credits(box, said, middle, under, garbled ? 11 : 12, garbled ? Garbled : Strong, garbled ? Dim : tile.State.Tile == MarketTile.Affordable ? Gold : Dear, garbled ? 0.3f : 1, true);
         if (tile.Ladder)
         {
@@ -513,22 +513,27 @@ public sealed class MarketPage : ITabletPage
         _tabs.DrawRect(new Rect2(0, 27, _tabs.Size.X, 1), Edge);
     }
 
-    /// <summary>The order being filled: what it asks for and what is sold of it, garbage while the order before it opens it, and what it unlocks as garbage.</summary>
+    /// <summary>How many of <paramref name="item"/> are sold toward the next level: since the level before it opened.</summary>
+    private int SoldOf(string item) => _standing.Wanted.FirstOrDefault(d => d.Item == item)?.Sold ?? 0;
+
+    /// <summary>
+    /// What the mafia wants for its next level: each good and how many are sold of it since the level before, garbage while that level deciphers, then
+    /// the level's bar, which anything else sold moves at a seventh.
+    /// </summary>
     private void DrawSide()
     {
         float tall = _side.Size.Y, wide = MarketGrid.SideWide - 2 * SideIn;
         Frame(_side, new Rect2(0, 0, MarketGrid.SideWide, tall), Panel, Edge, 1);
-        Caps(_side, T("research.market.order"), SideIn, 20, Dim);
+        Caps(_side, T("research.market.wanted"), SideIn, 20, Dim);
         if (_order is not { } order || _research is null)
         {
             if (_research != null) Say(_side, Plain, Fitted(T("research.market.allFilled"), Plain, 12, wide), SideIn, 42, 12, Dim);
             return;
         }
-        bool garbage = _reveal.HeadDeciphering(order.Ring), full = order.Order.All(d => _sold(d.Item) >= d.Count);
+        bool garbage = _reveal.HeadDeciphering(order.Ring);
         int step = _reveal.HeadStepOf(order.Ring);
         uint place = Cipher.Place(order.Id);
         string Clear(string text, uint at) => garbage ? Cipher.Of(text, at, _reveal.HeadShown(order.Ring, text.Length), step) : text;
-        if (full && !_reveal.Playing) CapsRight(_side, T("research.market.filled"), SideIn + wide, 20, Own);
         string name = T($"research.gate.{order.Id}");
         if (garbage) Say(_side, Garbled, Clear(name, place), SideIn, 42, 15, Dim);
         else Say(_side, Strong, Fitted(name, Strong, 17, wide), SideIn, 42, 17, Words);
@@ -537,7 +542,7 @@ public sealed class MarketPage : ITabletPage
         for (int i = 0; i < order.Order.Count; i++)
         {
             var (item, want) = order.Order[i];
-            int have = Math.Min(want, _sold(item));
+            int have = Math.Min(want, SoldOf(item));
             bool enough = have >= want;
             Frame(_side, new Rect2(SideIn, y, wide, AskTall), AskFill, Colors.Transparent, 0);
             if (garbage) Block(_side, Cipher.Place(item), new Vector2(SideIn + 6, y + 5), 30, 5, step, Faint);
@@ -549,17 +554,16 @@ public sealed class MarketPage : ITabletPage
             _side.DrawRect(bar with { Size = new Vector2(bar.Size.X * have / want, bar.Size.Y) }, enough ? Own : Accent);
             y += AskStride;
         }
-        y += 10;
-        var opens = MarketGoods.Unlocks(_goods, order.Ring);
-        Caps(_side, T("research.market.unlocks", ("n", opens.Count)), SideIn, y, Dim);
-        y += 10;
-        int across = (int)((wide + LockedGap) / (LockedSide + LockedGap)), room = (int)((tall - 10 - y + LockedGap) / (LockedSide + LockedGap)) * across;
-        for (int i = 0; i < opens.Count && i < room; i++)
-        {
-            var at = new Vector2(SideIn + i % across * (LockedSide + LockedGap), y + i / across * (LockedSide + LockedGap));
-            Frame(_side, new Rect2(at, new Vector2(LockedSide, LockedSide)), Locked, LockedEdge, 1);
-            Block(_side, Cipher.Place(opens[i].Id), at + new Vector2(6, 6), 20, 5, 0, Faint);
-        }
+        y += 14;
+        float part = _standing.Target > 0 ? Math.Min(1f, (float)_standing.Points / _standing.Target) : 0;
+        Caps(_side, T("research.market.level"), SideIn, y, Dim);
+        CapsRight(_side, Clear($"{(int)(part * 100)}%", place + 30), SideIn + wide, y, Words);
+        y += 8;
+        var level = new Rect2(SideIn, y, wide, 6);
+        _side.DrawRect(level, Faint);
+        _side.DrawRect(level with { Size = new Vector2(level.Size.X * part, level.Size.Y) }, Accent);
+        y += 22;
+        Say(_side, Plain, Fitted(Clear(T("research.market.other"), place + 31), Plain, 11, wide), SideIn, y, 11, Dim);
     }
 
     /// <summary>The strip: the picture large, what kind of good it is, its name and what it is, then its prices bought and not, or what it is made from.</summary>

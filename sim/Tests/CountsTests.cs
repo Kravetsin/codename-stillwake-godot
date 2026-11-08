@@ -350,7 +350,7 @@ public class CountsTests
         foreach (int count in new[] { 0, -3 })
         {
             w.M.Knowledge.Obtain("wire", count);
-            w.M.Knowledge.Sell("wire", count);
+            w.M.Knowledge.Sell("wire", count, 0);
         }
         Assert.Empty(w.M.Knowledge.Obtained);
         Assert.Equal(0, w.M.Knowledge.SoldOf("wire"));
@@ -374,7 +374,7 @@ public class CountsTests
         var knowledge = w.M.Knowledge;
         int was = knowledge.Version;
         knowledge.Obtain("wire", 0);
-        knowledge.Sell("wire", 1);
+        knowledge.Sell("wire", 1, 22);
         Assert.Equal(was, knowledge.Version);
         knowledge.Obtain("wire", 1);
         Assert.Equal(was + 1, knowledge.Version);
@@ -390,7 +390,7 @@ public class CountsTests
     {
         var w = new Scenario(Layout.Empty);
         w.M.Knowledge.Obtain("wire", 2);
-        w.M.Knowledge.Sell("wire", 1);
+        w.M.Knowledge.Sell("wire", 1, 22);
         var older = JsonNode.Parse(w.World.Save())!.AsObject();
         var slice = older["slices"]!["knowledge"]!.AsObject();
         Assert.True(slice.Remove("obtained"));

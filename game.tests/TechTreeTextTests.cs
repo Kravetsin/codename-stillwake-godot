@@ -12,9 +12,9 @@ public class TechTreeTextTests
     {
         Assert.All((string[])["research.key", "research.marketKey"], key => Assert.True(Table.ContainsKey(key), key));
         Assert.All(Spec.Research.Nodes.Where(n => n.Gate), g => Assert.True(Table.ContainsKey($"research.gate.{g.Id}"), g.Id));
-        string[] market = ["order", "sell", "filled", "unlocks", "allFilled", "shelf.all", "shelf.upgrades", "shelf.blueprints", "kind.upgrade", "kind.blueprint",
-            "nextOrder", "allBought", "owned", "boughtOf", "nothing", "waits", "boughtOut"];
-        Assert.All([.. market.Select(m => "market." + m), "bought", "locked", "noCredits"], why => Assert.True(Table.ContainsKey($"research.{why}"), why));
+        string[] market = ["wanted", "level", "other", "sell", "allFilled", "shelf.all", "shelf.upgrades", "shelf.blueprints", "kind.upgrade", "kind.blueprint",
+            "allBought", "owned", "boughtOf", "nothing", "boughtOut"];
+        Assert.All([.. market.Select(m => "market." + m), "bought", "locked", "reputation", "noCredits"], why => Assert.True(Table.ContainsKey($"research.{why}"), why));
     }
 
     [Fact]
