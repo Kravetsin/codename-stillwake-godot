@@ -1,10 +1,12 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using Godot;
 using Stillwake.Content;
 using Stillwake.Game.Render;
 using Stillwake.Game.Shared;
 using Stillwake.Sim;
+using Stillwake.Sim.Places;
 using static Stillwake.Game.I18n.En;
 
 namespace Stillwake.Game.Features.Computer;
@@ -26,6 +28,7 @@ public partial class ComputerPanel : CanvasLayer
 
     private readonly Ui _ui;
     private readonly Func<Registry?> _world;
+    private readonly Action<Command> _send;
     private readonly Panel _frame = Boxed(Steel, 3, 4);
     private readonly VBoxContainer _rail = new() { MouseFilter = Control.MouseFilterEnum.Ignore };
     private readonly Panel _screen = Boxed(Glass, 2, 2);
@@ -37,6 +40,8 @@ public partial class ComputerPanel : CanvasLayer
         MouseFilter = Control.MouseFilterEnum.Ignore,
     };
     private readonly RadarScreen _radar = new() { Visible = false };
+    /// <summary>Under the radar while a contact is selected: the jump to it (<c>places</c>' <c>Jump</c>).</summary>
+    private readonly Button _setOff = SetOffButton();
     private readonly List<(Panel Box, TextureRect Icon, ProgramSpec Program)> _buttons = [];
     private readonly TipSpots _tips;
     private Reading _reading = new(false, []);
@@ -44,9 +49,10 @@ public partial class ComputerPanel : CanvasLayer
 
     /// <param name="ui">Which computer is open, set by the crew's E, and cleared here when it is put away.</param>
     /// <param name="world">The world the computer stands in; null with none played.</param>
-    public ComputerPanel(Ui ui, Func<Registry?> world)
+    /// <param name="send">Sends a command as this player: the set-off button's jump.</param>
+    public ComputerPanel(Ui ui, Func<Registry?> world, Action<Command> send)
     {
-        (_ui, _world) = (ui, world);
+        (_ui, _world, _send) = (ui, world, send);
         _tips = new TipSpots(ui.Tip);
         Layer = ScreenLayers.Handbook;
         var root = new Control { MouseFilter = Control.MouseFilterEnum.Ignore, Theme = new Theme { DefaultFont = Style.Mono, DefaultFontSize = 20 } };
@@ -61,6 +67,20 @@ public partial class ComputerPanel : CanvasLayer
         _radar.SetAnchorsPreset(Control.LayoutPreset.FullRect);
         _screen.AddChild(_radar);
         _screen.AddChild(_text);
+        _radar.AddChild(_setOff);
+        // The jump beside the selected contact (generated-vessels): the vessel comes right of the ship, the contact gone.
+        _setOff.Pressed += () =>
+        {
+            if (_ui.RadarContact.Get() is { } contact) _send(new Jump(contact));
+        };
+        // A click on the radar selects the contact under it; on empty screen, none.
+        _screen.GuiInput += e =>
+        {
+            if (e is not InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.Left } || !_radar.IsVisibleInTree()) return;
+            _ui.RadarContact.Set(_radar.ContactAt(_screen.GetViewport().GetMousePosition()));
+            ShowSelected();
+            _screen.AcceptEvent();
+        };
         foreach (var program in Programs.All) AddButton(program);
         _frame.Visible = false;
         ui.OpenComputer.Subscribe(() =>
@@ -122,10 +142,15 @@ public partial class ComputerPanel : CanvasLayer
         _reading = Readout.Of(_world()!.Grid, _world()!.Power, _ui.OpenComputer.Get()!.Value);
         // A program that stops being ready is put away: the screen says why instead.
         if (!Readout.Ready(_reading, _ui.ComputerProgram.Get())) _ui.ComputerProgram.Set(null);
+        // The contacts the radar holds, aboard (places'; none on another surface); a selected one gone is let go.
+        var contacts = _world()!.Places.Contacts;
+        _radar.Contacts = [.. contacts];
+        if (_ui.RadarContact.Get() is { } id && !contacts.Any(c => c.Id == id)) _ui.RadarContact.Set(null);
+        ShowSelected();
         Paint();
     }
 
-    /// <summary>The one tooltip: what the radar shows under the pointer, my ship or the planet; else a button's program; none behind the menu.</summary>
+    /// <summary>The one tooltip: what the radar shows under the pointer, a contact, my ship or the planet; else a button's program; none behind the menu.</summary>
     private void Tips()
     {
         if (_ui.MenuOpen.Get())
@@ -134,7 +159,8 @@ public partial class ComputerPanel : CanvasLayer
             return;
         }
         var mouse = _frame.GetViewport().GetMousePosition();
-        if (_radar.IsVisibleInTree() && _radar.KeyAt(mouse) is { } key) _tips.Show(new Tip(T(key)));
+        if (_setOff.IsVisibleInTree() && _setOff.GetGlobalRect().HasPoint(mouse)) _tips.Show(null);
+        else if (_radar.IsVisibleInTree() && _radar.KeyAt(mouse) is { } key) _tips.Show(new Tip(T(key)));
         else _tips.Frame(mouse);
     }
 
@@ -183,6 +209,44 @@ public partial class ComputerPanel : CanvasLayer
         if (e is not InputEventKey { Pressed: true, Echo: false } key || !key.Is(Bind.Use) || !Shown) return;
         Close();
         GetViewport().SetInputAsHandled();
+    }
+
+    /// <summary>The radar's selection as this player has it: framed on the screen, the set-off button under it while there is one.</summary>
+    private void ShowSelected()
+    {
+        _radar.Selected = _ui.RadarContact.Get();
+        _setOff.Visible = _radar.Selected != null;
+        // Read each time, so a language changed in the menu shows.
+        _setOff.Text = T("computer.radar.setOff");
+    }
+
+    /// <summary>The set-off button, in the radar's green, at the bottom of its screen in the middle; hidden till a contact is selected.</summary>
+    private static Button SetOffButton()
+    {
+        var button = new Button
+        {
+            Visible = false,
+            FocusMode = Control.FocusModeEnum.None,
+            CustomMinimumSize = new Vector2(220, 44),
+            AnchorLeft = 0.5f,
+            AnchorRight = 0.5f,
+            AnchorTop = 1,
+            AnchorBottom = 1,
+            OffsetBottom = -14,
+            GrowHorizontal = Control.GrowDirection.Both,
+            GrowVertical = Control.GrowDirection.Begin,
+        };
+        foreach (var (state, fill) in new[] { ("normal", LitBack), ("hover", new Color("143826")), ("pressed", new Color("1d4a30")) })
+        {
+            var look = new StyleBoxFlat { BgColor = fill, BorderColor = Lit };
+            look.SetBorderWidthAll(2);
+            look.SetCornerRadiusAll(2);
+            button.AddThemeStyleboxOverride(state, look);
+        }
+        button.AddThemeColorOverride("font_color", Lit);
+        button.AddThemeColorOverride("font_hover_color", new Color("7dffa8"));
+        button.AddThemeColorOverride("font_pressed_color", new Color("7dffa8"));
+        return button;
     }
 
     private static Panel Boxed(Color fill, int border, int corner)
