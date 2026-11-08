@@ -1,8 +1,7 @@
 using System.Collections.Generic;
-using System.Linq;
 using Godot;
 using Stillwake.Sim;
-using Stillwake.Sim.Contacts;
+using Stillwake.Sim.Places;
 using static Stillwake.Game.I18n.En;
 
 namespace Stillwake.Game.Features.Computer;
@@ -51,7 +50,7 @@ public partial class RadarScreen : Control
         var at = Local(global);
         if (at == null) return null;
         // A selected contact is named over it already.
-        if (ContactAt(global) is { } id) return id == Selected ? null : $"computer.radar.{Contacts.First(c => c.Id == id).Kind}";
+        if (ContactAt(global) is { } id) return id == Selected ? null : "computer.radar.vessel";
         var (middle, core, radius) = Shape();
         // A little wider than the dot itself, so the pointer finds it.
         if (ShipBox(middle).Grow(4).HasPoint(at.Value)) return "computer.radar.ship";
@@ -162,7 +161,7 @@ public partial class RadarScreen : Control
         }
         // Its name, and under it how far it lies from the ship, dimmer.
         var font = GetThemeDefaultFont();
-        string name = T($"computer.radar.{c.Kind}"), far = T("computer.radar.km", ("n", RadarOrbit.Km(c.Offset)));
+        string name = T("computer.radar.vessel"), far = T("computer.radar.km", ("n", RadarOrbit.Km(c.Offset)));
         float line = font.GetHeight(LabelSize);
         float width = Mathf.Max(font.GetStringSize(name, HorizontalAlignment.Left, -1, LabelSize).X,
             font.GetStringSize(far, HorizontalAlignment.Left, -1, LabelSize).X);

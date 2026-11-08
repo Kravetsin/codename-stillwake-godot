@@ -1,7 +1,6 @@
 using Stillwake.Content;
 using Stillwake.Sim.Atmosphere;
 using Stillwake.Sim.Building;
-using Stillwake.Sim.Contacts;
 using Stillwake.Sim.Crafting;
 using Stillwake.Sim.Creatures;
 using Stillwake.Sim.Crew;
@@ -30,7 +29,7 @@ namespace Stillwake.Sim;
 /// Every module of one world, wired: each takes what it depends on through its constructor, and
 /// <see cref="All"/> lists them in run order, every module after its dependencies (MODULES in the
 /// TypeScript sim). A world gets a registry of its own: modules hold its state. Each surface of a world (0076) has a
-/// registry, sharing the world's globals, Players, Knowledge and Contacts: the ship's lists them first in <see cref="All"/>, so the
+/// registry, sharing the world's globals, Players and Knowledge: the ship's lists them first in <see cref="All"/>, so the
 /// ship's slices save them; another surface's leaves them out.
 /// </summary>
 public sealed class Registry
@@ -39,8 +38,6 @@ public sealed class Registry
     public PlayersModule Players { get; }
     /// <summary>The world's, one for all its surfaces: what is granted and analysed.</summary>
     public KnowledgeModule Knowledge { get; }
-    /// <summary>The world's, one for all its surfaces: what the radar shows.</summary>
-    public ContactsModule Contacts { get; }
     public GridModule Grid { get; }
     /// <summary>The planet's day and night (2026-11-07-night-chills): right after the grid, before the crew that feels its chill.</summary>
     public SkyModule Sky { get; }
@@ -81,7 +78,6 @@ public sealed class Registry
         _ship = ship ?? this;
         Players = ship?.Players ?? new PlayersModule();
         Knowledge = ship?.Knowledge ?? new KnowledgeModule(ResearchModule.Ids);
-        Contacts = ship?.Contacts ?? new ContactsModule();
         Grid = new GridModule();
         Sky = new SkyModule();
         Rooms = new RoomsModule(Grid);
@@ -111,7 +107,7 @@ public sealed class Registry
         // Vessels beside the ship (generated-vessels): new to format 57, run and saved last.
         Places = new PlacesModule(Grid, Grid, Items, Building);
         Module[] surface = [Grid, Sky, Rooms, Items, Power, Research, Crafting, Building, Liquids, Pipes, Atmosphere, Crew, Hazards, Debris, Furnace, Logistics, Creatures, Landing, Trade, Water, Places];
-        All = new Set(this, ship == null ? [Players, Knowledge, Contacts, .. surface] : surface);
+        All = new Set(this, ship == null ? [Players, Knowledge, .. surface] : surface);
     }
 
     /// <summary>The registry surface <paramref name="surface"/> of <paramref name="world"/> runs: the world must be made of registries.</summary>

@@ -30,7 +30,6 @@ Below, `f/x` = `game/features/x`, `r/` = `game/render`, `gc/` = `game/Content` (
 **Crew and hero movement**
 - Crew — sim/Crew · f/crew: `Crew.cs` CrewModule (where heroes are, breathing); `Hero.cs` (movement, ladders, steps), `Motion.cs`, `Pose.cs`, `Rig.cs`, `Aim.cs`, `ToolEdge.cs` (what a running tool hits), `AxeSwing.cs`, `MotionPlay.cs` (a stroke's motion as played: `Overhand`, `Jab`), `HarpoonShot.cs`; gc/`SwingMotions.cs` (motions and aim sectors, data); c/`Hero.cs`, `Weapons.cs`
 - Players — sim/Players: `Players.cs` PlayersModule (what is the player's, not a surface's)
-- Contacts — sim/Contacts: `Contacts.cs` ContactsModule (the places the radar shows, a global); c/`Contacts.cs` · f/computer `RadarScreen.cs`, `logic/RadarOrbit.cs`
 
 **Creatures** — sim/Creatures · f/creatures: `Creatures.cs` CreaturesModule; `Live.cs`, `Rules.cs`, `Drives.cs`, `Lunge.cs`, `Walker.cs`, `Clinger.cs`, `Guard.cs`, `Ward.cs`, `Pounce.cs`, `Spawn.cs`, `Shots.cs` (shots: `Fire`, the flight); sim/Core `ShotFlight.cs`; `CreaturesView.cs`, `ShotsView.cs`, `TickBodies.cs`, `CreatureBody.cs`, `CreaturePose.cs`; f/crew `HeroView.Guns.cs`, `GunHand.cs`; game/shared `ShotStreaks.cs`, `ShotEnds.cs`, `ShotDraws.cs`, `PixelBursts.cs`; c/`Creatures.cs`, `Shots.cs`; gc/`CreatureLooks.cs`
 
@@ -47,7 +46,7 @@ Below, `f/x` = `game/features/x`, `r/` = `game/render`, `gc/` = `game/Content` (
 - Scanner — f/scanner: `Scan.cs` (`Readout`: a wreck's hit points left under the pointer), `Phosphor.cs` (the picked readout's digits), `ScannerView.cs`; game/shared `WreckAim.cs` (the box a wreck is pointed at by), `ScannerInk.cs` (generated: the crest on each helmet); c/`Suit.cs` `Helmet.Scanner`
 - Hazards — sim/Hazards · f/hazards: `Hazards.cs` HazardsModule (the shower falling, `Incoming`), `MeteorHit`; `Flares.cs` (magnetic flares, `FlareNow`); `MeteorView.cs`; c/`Meteors.cs`, c/`MagneticFlares.cs`
 - Landing — sim/Landing: `Landing.cs` LandingModule, `SetPlatform` (the launch platform opened with power), `Board`, `Alight` (the drop pod's seats), `Launch` (its descent and return, `Flights`, `Owners`); `Content.Landing`; client game/features/landing: `PodSeats.cs`, `LaunchKey.cs` (Descend / Return), `FlightOverlay.cs` (the white-out); the seated hero: f/crew `SeatedHeroes.cs`
-- Places — sim/Places: `Places.cs` PlacesModule, `Find` (a contact), `Jump` (a vessel written beside the ship, the last wiped); the vessel itself sim/Core `Vessels/`: `Shipyard.cs` (describe, stamp, damage), `Vessel.cs`; c/`Vessels.cs` (classes, interiors, loot); f/places (its text only); dev `--vessel` (`VesselScenario.cs`)
+- Places — sim/Places: `Places.cs` PlacesModule, `Find` (a contact), the radar's own contacts on a timer (c/`Contacts.cs`, drawn by f/computer `RadarScreen.cs`, `logic/RadarOrbit.cs`), `Jump` (a vessel written beside the ship, the last wiped); the vessel itself sim/Core `Vessels/`: `Shipyard.cs` (describe, stamp, damage), `Vessel.cs`; c/`Vessels.cs` (classes, interiors, loot); f/places (its text only); dev `--vessel` (`VesselScenario.cs`)
 
 **Light** — f/light: `LightView.cs`, `Lightmap.cs`, `Sources.cs`, `StarField.cs`; f/effects: `EffectsView.cs`, `Impacts.cs`; r/`Lit.cs`, `Luminous.cs`, `Flares.cs`; gc/`Light.cs`, `Fx.cs`
 

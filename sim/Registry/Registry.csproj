@@ -9,7 +9,6 @@
     <ProjectReference Include="../Power/Power.csproj" />
     <ProjectReference Include="../Players/Players.csproj" />
     <ProjectReference Include="../Knowledge/Knowledge.csproj" />
-    <ProjectReference Include="../Contacts/Contacts.csproj" />
     <ProjectReference Include="../Research/Research.csproj" />
     <ProjectReference Include="../Building/Building.csproj" />
     <ProjectReference Include="../Crafting/Crafting.csproj" />

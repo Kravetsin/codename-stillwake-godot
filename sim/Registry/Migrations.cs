@@ -266,18 +266,13 @@ public static class Migrations
             };
             return root;
         },
-        // 58 → 59 (2026-11-08-radar-contacts): a global module added after knowledge, on the ship's slices only: no contact up, the
-        // first counted down from its start as in a new world.
+        // 58 → 59 (2026-11-08-radar-contacts): a contact has a place on the orbit and a time left. One held already lies at the
+        // nearest, right of the ship, and stays the whole 15 min (numbers frozen here); the radar's own first comes 15 min on.
         root =>
         {
-            var slices = root["slices"]!.AsObject();
-            var all = slices.ToList();
-            slices.Clear();
-            foreach (var (id, slice) in all)
-            {
-                slices[id] = slice;
-                if (id == "knowledge") slices["contacts"] = new JsonObject { ["contacts"] = new JsonArray() };
-            }
+            foreach (var slices in new[] { root["slices"]! }.Concat((root["surfaces"]?.AsArray() ?? []).Select(s => s!["slices"]!)))
+                foreach (var contact in slices["places"]?["contacts"]?.AsArray() ?? [])
+                    (contact!["offset"], contact["left"]) = (25, 18_000);
             return root;
         },
     ];

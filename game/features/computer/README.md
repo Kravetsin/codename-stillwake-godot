@@ -1,7 +1,7 @@
 # Computer
 
 The ship's computer's window: a monitor opened by E at the computer, a button a program on its side, the chosen program on
-its screen. Only the radar so far: the ship, its planet and the places the sim's contacts show.
+its screen. Only the radar so far: the ship, its planet and the vessels places' contacts show, and the jump to one.
 
 ## Files
 
@@ -33,13 +33,13 @@ computer's row in `c/Machines.cs`. Files in `logic/` are Godot-free and tested i
   short slows all its users alike, so the computer's screen stays lit while its antenna stands short.
 - **The program shown** is `Ui.ComputerProgram`: none each time it opens, and none again once it stops being ready.
 - **The radar** draws the ship held in the middle, the beam turning every 4 s, a planet's curve still below, the ship
-  drifting round it too slowly to see, and the sim's contacts (`contacts`, 2026-11-08-radar-contacts) on the ship's orbit
+  drifting round it too slowly to see, and places' contacts (`Places.Contacts`, 2026-11-08-radar-contacts) on the ship's orbit
   (`RadarOrbit`): a diamond each, flaring as the beam passes and fading over the turn, blinking in its last 2 minutes.
 - **A click on a contact** selects it (`Ui.RadarContact`, the player's own): corner brackets round it and its kind's name
   over it (`computer.radar.<kind>`), its distance under that in kilometres (`RadarOrbit.Km`: an offset's units times
   `KmPerUnit`, 10). A click on empty screen lets go; a selected contact gone is let go on the next read;
-  closing the computer keeps it. While one is selected a `Set off` button stands at the bottom of the screen; it
-  does nothing yet (the jump comes next), and the pointer over it shows no tooltip.
+  closing the computer keeps it. While one is selected a `Set off` button stands at the bottom of the screen: it
+  sends places' `Jump` to it (the vessel comes right of the ship, the contact goes); the pointer over it shows no tooltip.
 - **In the world** (`ComputerScreens`): a computer with no power is dark; a powered one runs lines of text and blinks its
   rack's lights; once its radar is ready, the sweep. Drawn unlit, its glow lighting the room in the screen's colour.
 - **While the window is open** the hero aims at nothing: no outline, prompt or world tip under the pointer. The one
@@ -56,8 +56,8 @@ when the hero changes surface.
 ## Deliberately not handled
 
 - **The rules live in the client** (`Readout`): nothing in the sim asks which programs a computer has, and no command
-  depends on it. Move them into the sim once a program changes the world (a jump). Contacts come whether or not a
-  radar is built.
+  depends on it. The jump is places' own rule, so contacts come and Set off jumps whether or not a radar
+  is built or powered elsewhere.
 - **Each peer's window is its own**: two players at one computer see their own choice; nothing is shared.
 - **No planet behind the radar's**: it is drawn whatever the ship orbits, of one look, at no real height.
 - **No text on the radar** but its tooltips and a selected contact's name and distance: no ranges on the rings, no heights.
