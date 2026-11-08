@@ -98,8 +98,8 @@ the sim.
 - **Rammed** (0103) **or arced** (`Rams.Crosses`, once): `HitBy`/`Bolted` sent, thrown, keys masked.
 - **Surfaces** (0076): `Ship.Of` rules: nothing floats on a planet, gravity the kind's `Fall`; fog glides (`FogMove`)
   over a seam (fog-edges).
-- **Camera:** leads, eases, snaps. **Markers** (0061): home, last body, friends heard. **Hurts** (hurts-are-shown)
-  tint edges and gauge.
+- **Camera:** leads, eases, snaps. **Markers** (0061): home, last body, friends heard, deliveries (lost: red). **Hurts**
+  (hurts-are-shown) tint edges and gauge.
 - **Water** (liquids): swum `SwimDepth` deep, left by Space or shore; feet `WadeDepth` deep splash.
 - **Swim, haul, jetpack** (0047, tether-haul): afloat, through floors, tied where the middle left the hull (0007, 0104);
   Shift hauls in along the tether's bends (`Wraps`); a jetpack unties, Shift thrusts, `Thrust` sent while unlike the sim's.
@@ -130,14 +130,12 @@ the sim.
 - **Struck tools** (0038, salvage-tools, the-pickaxe, swing-motions): each swung by its
   sector's motion, hitting as the blade crosses an aim kept against the hero.
 - **Harpoon, grapple** (0044, grapple-climbs): reel pieces, pull to walls; hung, refire; Space/RMB let go.
-- **A gun** (hold-to-fire): left held fires each cooldown; with `Charge` it charges then, fires let go
-  full; flat, clicks dry, sends nothing. Afloat it kicks back (`Recoil`); a guest flies it.
-- **Drill, grinder, cutter** (0054, 0055): left held runs it (`Run`), hitting each `Pace` ticks, the cutter by its beam
-  (`ToolEdges`), sparking (`ToolWork`).
+- **A gun** (hold-to-fire): left held fires each cooldown; a `Charge` one fires let go full; flat, clicks dry. Afloat it kicks back (`Recoil`); a guest flies it.
+- **Drill, grinder, cutter** (0054, 0055): left held runs it (`Run`), hitting each `Pace` ticks, the cutter by its
+  beam (`ToolEdges`), sparking (`ToolWork`).
 - **The power driver** (driver-at-work, driver-order): charged, a 2×2 square over plans or marks
   (`WorkedSquare`), heard (`BiteLoop`). Right click toggles; mode by the arrow (mode-glyph).
-- **Seated** (`Seating.Held`): no tool; E leaves.
-- **Ladders and ledges** (0092): grab, climb, slide, leap off; an open hatch is climbable, a closed one a floor
+- **Seated** (`Seating.Held`): no tool; E leaves. **Ladders, ledges** (0092): grab, climb, slide, leap off; an open hatch is climbable, a closed one a floor
   (0112). A jump a foot short mantles.
 
 ## Deliberately not handled

@@ -31,6 +31,7 @@
 | `logic/Ink.cs` | The picked looks' pen, blob and band as triangles (damage-looks). |
 | `InkCanvas.cs` | An `Ink` drawn in one call, its arrays kept. |
 | `HiRes.cs` | The anime art's pictures, 4x their logical pixels, sampled smoothly. |
+| `GoodIcons.cs` | A good the mafia sells, as a picture. |
 | `ItemIcons.cs` | Each item's 16 px picture, a tool's baked icon a side, their white silhouettes. |
 | `logic/Layers.cs` | Where each thing in the world is drawn, back to front. |
 | `Lit.cs` | How light falls on everything the ship draws, one model. |

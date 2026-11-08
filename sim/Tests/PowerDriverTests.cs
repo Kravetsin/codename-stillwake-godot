@@ -4,7 +4,6 @@ using Stillwake.Sim.Crew;
 using Stillwake.Sim.Items;
 using Stillwake.Sim.Research;
 using Xunit;
-using Craft = Stillwake.Sim.Crafting.Craft;
 using Tree = Stillwake.Content.Research;
 
 namespace Stillwake.Sim.Tests;
@@ -24,9 +23,6 @@ public class PowerDriverTests
         #.OOOKKII#
         ##########
         """;
-    private const int Bench = 2;
-
-    private static string[] Reasons(Scenario w) => [.. w.Refusals.Select(r => r.Reason)];
 
     [Fact]
     public void RunsOnTheBeltDrawingOnePowerTickATick()
@@ -41,30 +37,28 @@ public class PowerDriverTests
     }
 
     [Fact]
-    public void IsMadeAtTheWorkbenchOnlyOnceItsBlockIsBoughtInTheSecondOrdersRing()
+    public void IsSoldByTheMafiaInTheSecondOrdersRingAsAnItemAndNeverCrafted()
     {
         var w = new Scenario(Layout.Parse(Room) with { Known = Tree.StartKnown }, doubled: true);
-        foreach (var (item, count) in Crafts.Get(Driver).Cost) w.GiveItems(0, (item, count));
-        w.Do(new Craft(Bench, Driver, 1)).Run();
-        Assert.Equal(["crafting.unknown"], Reasons(w));
+        Assert.False(Crafts.TryGet(Driver, out _));
         Assert.Equal("order2", Tree.Node(Driver)!.Needs.Single());
-
-        w.Refusals.Clear();
         w.M.Knowledge.Earn(Prices.Of(Tree.Node(Driver)!));
         Mafia.Reach(w, 2);
-        w.Do(new BuyBlock(Driver)).Do(new Craft(Bench, Driver, 1)).Run();
+        w.Do(new BuyBlock(Driver)).Run();
         Assert.Empty(w.Refusals);
-        Assert.Single(w.M.Crafting.Queue(Bench));
+        Assert.True(w.M.Knowledge.InFlight(Driver));
+        Mafia.Receive(w);
+        Assert.Contains(w.M.Items.Inventory(0), s => s?.Item == Driver);
     }
 
     [Fact]
-    public void ItsBlockCostsFourTimesItsWorthToTwoFigures()
+    public void ItCostsTwiceItsWorthToTwoFigures()
     {
         int worth = Market.WorthOf(Driver), price = Prices.Of(Tree.Node(Driver)!);
         Assert.True(worth > 0);
         int unit = 1;
-        while (4 * worth / unit >= 100) unit *= 10;
-        Assert.Equal((4 * worth + unit - 1) / unit * unit, price);
+        while (2 * worth / unit >= 100) unit *= 10;
+        Assert.Equal((2 * worth + unit - 1) / unit * unit, price);
     }
 
     [Fact]

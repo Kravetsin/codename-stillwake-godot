@@ -33,6 +33,15 @@ public class MarkersTests
     }
 
     [Fact]
+    public void ListsEachDeliveryOutAfterTheFriendsInAmberByItsIdWithItsGood()
+    {
+        var list = Markers.Of(0, 20, [], deliveries: [(7, "scanner", 30.5, 6.5), (9, "bag1", 50.5, 6.5)]);
+        Assert.Equal(new Marker(MarkerIcon.Delivery, 30.5, 6.5, Markers.DeliveryColour, 7, "scanner"), list[1]);
+        Assert.Equal(new Marker(MarkerIcon.Delivery, 50.5, 6.5, Markers.DeliveryColour, 9, "bag1"), list[2]);
+        Assert.DoesNotContain(Markers.DeliveryColour, Suits.All);
+    }
+
+    [Fact]
     public void PutsAWorldPointOnTheScreenAroundTheCameraAtItsZoom()
     {
         Assert.Equal((W / 2, H / 2), Markers.ToScreen(10, 5, 10, 5, 32, W, H));

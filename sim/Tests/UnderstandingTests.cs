@@ -102,12 +102,9 @@ public class UnderstandingTests
         Assert.True(w.M.Research.Knows("wire"));
     }
 
-    /// <summary>A blueprint and crafts (2026-11-03-the-heavy-helmet, the regen suit), the craft's machine standing.</summary>
+    /// <summary>A blueprint the market sells, the workbench standing; the market's gear is no craft at all (2026-11-08-mafia-deliveries).</summary>
     [Theory]
     [InlineData("solarPanel")]
-    [InlineData("heavyHelmet")]
-    [InlineData("scanner")]
-    [InlineData("regenSuit")]
     public void WhatOnlyTheMarketOpensIsNeverGrantedByCounts(string id)
     {
         var w = Count(Room(), id);

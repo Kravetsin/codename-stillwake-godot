@@ -25,6 +25,8 @@ public static partial class En
         ["markers.home"] = "Lifepod",
         ["markers.friend"] = "Crewmate",
         ["markers.body"] = "Your body",
+        ["markers.delivery"] = "The mafia's delivery",
+        ["markers.lost"] = "The mafia's delivery drifted past",
         ["markers.cells"] = "{cells} cells away",
         ["bodies.friend"] = "A crewmate's body",
         ["bodies.more"] = "and {n} more",

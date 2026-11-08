@@ -12,10 +12,11 @@ public static class Prices
     /// <summary>What block <paramref name="node"/> costs in credits; 0 for a gate.</summary>
     public static int Of(TechNode node) => ByNode.GetValueOrDefault(node.Id);
 
-    /// <summary>What the blueprint, craft or upgrade <paramref name="id"/> is worth: a blueprint what it is built of, a craft what it makes, an upgrade its own price.</summary>
+    /// <summary>What the blueprint, craft or upgrade <paramref name="id"/> is worth: a blueprint what it is built of, a craft or gear what it makes, an upgrade or the confiscated container its own price.</summary>
     public static int WorthOf(string id)
     {
         if (Upgrades.Of(id) is { } upgrade) return upgrade.Credits;
+        if (id == Content.Research.Confiscated) return Content.Research.ConfiscatedPrice;
         if (Prints.TryGetValue(id, out var print)) return print.Cost.Sum(c => c.Count * Market.WorthOf(c.Item));
         return Market.WorthOf(id);
     }

@@ -265,4 +265,28 @@ public class MigrationsTests
         w.Run(Content.Crafts.Get("plate").Ticks * 2 + 5);
         Assert.Equal(2, w.M.Items.Crate(former).Sum(s => s?.Item == "plate" ? s.Count : 0));
     }
+
+    [Fact]
+    public void DropsQueuedGearAndItsBlueprintsSoTheStationWorksOnWhatCameAfter()
+    {
+        // A format-58 Former at work on a power driver, a scanner queued after the plates; after the upgrade only the plates are left, begun afresh.
+        string[] rows = ["PPP         ", "            ", "############", "#MM.GG.....#", "#MM.GG.....#", "############"];
+        var w = new Scenario(Layout.Parse(rows, null, [((0, 0), (1, 3))]), doubled: true).GiveItems(0, ("iron", 40));
+        int former = w.M.Grid.MachinesOf("former").Single().Id;
+        w.Do(new Crafting.Craft(former, "plate", 2)).Run();
+        var save = JsonNode.Parse(w.World.Save())!.AsObject();
+        save["format"] = 58;
+        var queue = save["slices"]!["crafting"]!["queues"]!.AsArray().Single(q => q!["machine"]!.GetValue<int>() == former)!;
+        queue["entries"]!.AsArray().Insert(0, new JsonObject { ["id"] = 9, ["recipe"] = "powerDriver", ["count"] = 1, ["by"] = 0 });
+        queue["entries"]!.AsArray().Add(new JsonObject { ["id"] = 10, ["recipe"] = "scanner", ["count"] = 2, ["by"] = 0 });
+        queue["progress"] = 5000;
+        foreach (var gear in Content.Research.GearSold) save["slices"]!["knowledge"]!["granted"]!.AsArray().Add(gear);
+
+        w.Reload(Migrations.Upgrade(save.ToJsonString()));
+        Assert.Equal(["plate"], w.M.Crafting.Queue(former).Select(e => e.Recipe));
+        Assert.Equal(0, w.M.Crafting.Progress(former));
+        Assert.All(Content.Research.GearSold, gear => Assert.DoesNotContain(gear, w.M.Knowledge.GrantedIds));
+        w.Run(Content.Crafts.Get("plate").Ticks * 2 + 5);
+        Assert.Equal(2, w.M.Items.Crate(former).Sum(s => s?.Item == "plate" ? s.Count : 0));
+    }
 }

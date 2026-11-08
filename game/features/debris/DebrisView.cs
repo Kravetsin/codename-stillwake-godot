@@ -6,6 +6,7 @@ using Stillwake.Game.Render;
 using Stillwake.Game.Shared;
 using Stillwake.Net;
 using Stillwake.Sim.Debris;
+using Stillwake.Sim.Knowledge;
 using Blow = Stillwake.Game.Shared.Blow;
 using S = Stillwake.Game.Sound;
 using Wreckage = Stillwake.Content.Wreckage;
@@ -74,6 +75,18 @@ public partial class DebrisView(Ui ui) : Node2D
     /// <summary>Each cracked wreck's network, laid out once from its first blow (<see cref="WreckCracks.Network"/>).</summary>
     private readonly Dictionary<int, CrackNet> _nets = new();
 
+    /// <summary>
+    /// What a delivery drawn wears besides its picture (2026-11-08-mafia-deliveries): its good's icon above it, upright, and on
+    /// the crate its beacon, blinking. A handful at most, made as one comes into view and freed as it goes.
+    /// </summary>
+    private sealed record Tag(Sprite2D Icon, Node2D? Lamp);
+    private readonly Dictionary<int, Tag> _tags = new();
+    /// <summary>The icon's side over a delivery and its gap above the picture, in world pixels; the beacon's beat.</summary>
+    private const float TagSide = 10, TagLift = 3;
+    private const double BlinkMs = 620;
+    /// <summary>The beacon's lens in the crate's picture, from its middle (the pick's lamp at 12, 1.6 of 24).</summary>
+    private static readonly Vector2 Beacon = new(0, -10.4f);
+
     /// <summary>The pieces read last frame: for scripted runs.</summary>
     public IReadOnlyList<Piece> Pieces { get; private set; } = [];
     /// <summary>The pictures drawn last frame, and the most ever made: for the frame log and scripted runs.</summary>
@@ -101,7 +114,7 @@ public partial class DebrisView(Ui ui) : Node2D
     /// lies within <paramref name="view"/> (in cells) and <see cref="Margin"/> round it.
     /// <paramref name="progress"/> is how far the world is between its last tick and the next.
     /// </summary>
-    public void Frame(Client client, DebrisModule debris, Rect2 view, double progress, double elapsedMs)
+    public void Frame(Client client, DebrisModule debris, IKnowledgeQueries knowledge, Rect2 view, double progress, double elapsedMs)
     {
         _clockMs += elapsedMs;
         Pieces = debris.Pieces;
@@ -120,6 +133,10 @@ public partial class DebrisView(Ui ui) : Node2D
             _out.Add(p.Id);
             if (p.X >= left && p.X <= right && p.Y >= top && p.Y <= bottom) _drawn.Add(p.Id);
         }
+        _gone.Clear();
+        foreach (int id in _tags.Keys)
+            if (!_drawn.Contains(id)) _gone.Add(id);
+        foreach (int id in _gone) Untag(id);
         _gone.Clear();
         foreach (int id in _shown.Keys)
             if (!_drawn.Contains(id)) _gone.Add(id);
@@ -175,6 +192,7 @@ public partial class DebrisView(Ui ui) : Node2D
                 : _clockMs / 4000 * (piece.Id % 2 == 0 ? 1 : -1) + piece.Id;
             picture.Rotation = (float)(turn + JoltTurn * jolt * (piece.Id % 2 == 0 ? 1 : -1));
             _turns[piece.Id] = picture.Rotation;
+            if (piece.Delivery != 0) Tagged(piece, picture, knowledge);
             if (aimed is { } a && a.Id == piece.Id)
                 _aimed.Add(picture.Texture, picture.Position, picture.Rotation, picture.Scale.X, (a.Refused ? AimRefused : AimReady) with { A = picture.Modulate.A });
         }
@@ -197,6 +215,47 @@ public partial class DebrisView(Ui ui) : Node2D
         (one.Damage, one.JoltMs, one.Away, one.Flash) = (piece.Damage, 0, Vector2.Zero, 0);
         if (wreck) ShowCracks(one, piece);
         return one;
+    }
+
+    /// <summary>
+    /// The delivery <paramref name="piece"/>'s tag, made the first frame it is drawn: its good's icon over <paramref name="picture"/>,
+    /// never turning; the crate's beacon in its picture, turning with it, lit every other beat. The container is its own good: no icon.
+    /// </summary>
+    private void Tagged(Piece piece, Sprite2D picture, IKnowledgeQueries knowledge)
+    {
+        if (!_tags.TryGetValue(piece.Id, out var tag))
+        {
+            if (knowledge.Deliveries.FirstOrDefault(d => d.Id == piece.Delivery)?.Good is not { } good) return;
+            var icon = new Sprite2D { Visible = good != Content.Research.Confiscated, TextureFilter = TextureFilterEnum.LinearWithMipmaps };
+            icon.Texture = GoodIcons.Of(good, (int)TagSide * 4);
+            icon.Scale = Vector2.One * TagSide / Math.Max(icon.Texture.GetWidth(), icon.Texture.GetHeight());
+            AddChild(icon);
+            Node2D? lamp = null;
+            if (piece.Item == Content.Debris.DeliveryCrate) picture.AddChild(lamp = new BeaconLens { Position = Beacon });
+            _tags[piece.Id] = tag = new Tag(icon, lamp);
+        }
+        tag.Icon.Position = picture.Position - new Vector2(0, picture.Texture.GetHeight() / 2f + TagLift + TagSide / 2);
+        if (tag.Lamp != null) tag.Lamp.Visible = (long)(_clockMs / BlinkMs) % 2 == 0;
+    }
+
+    private void Untag(int id)
+    {
+        var tag = _tags[id];
+        tag.Icon.QueueFree();
+        tag.Lamp?.QueueFree();
+        _tags.Remove(id);
+    }
+
+    /// <summary>The crate's beacon lit: an amber lens and its glow, unlit by the world's light.</summary>
+    private sealed partial class BeaconLens : Node2D
+    {
+        private static readonly Color Lens = Style.Amber300, Glow = Style.Amber400 with { A = 0.3f };
+
+        public override void _Draw()
+        {
+            DrawCircle(Vector2.Zero, 2.6f, Glow);
+            DrawCircle(Vector2.Zero, 1.1f, Lens);
+        }
     }
 
     /// <summary>A new picture, hidden: a wreck's or a small piece's.</summary>

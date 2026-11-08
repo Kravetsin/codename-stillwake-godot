@@ -73,7 +73,7 @@ public class ReputationTests
         w.Do(new BuyBlock("bag3")).Run();
         Assert.Equal(1, w.M.Knowledge.Level);
         Assert.Empty(w.Refusals);
-        Assert.True(w.M.Research.Knows("bag3"));
+        Assert.True(w.M.Research.Done(Tree.Node("bag3")!));
     }
 
     [Fact]

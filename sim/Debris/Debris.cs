@@ -1,6 +1,7 @@
 using Stillwake.Sim.Crew;
 using Stillwake.Sim.Grid;
 using Stillwake.Sim.Items;
+using Stillwake.Sim.Knowledge;
 using Stillwake.Sim.Rooms;
 
 namespace Stillwake.Sim.Debris;
@@ -96,11 +97,15 @@ public sealed partial class DebrisModule : Module<DebrisState>, IDebrisQueries, 
     private readonly IRoomsQueries _rooms;
     private readonly IItemsQueries _held;
     private readonly IItemsOps _items;
+    private readonly IKnowledgeQueries _knowledge;
+    private readonly IKnowledgeOps _knowledgeOps;
 
     public override string Id => "debris";
 
-    public DebrisModule(IGridQueries grid, ICrewQueries crew, IRoomsQueries rooms, IItemsQueries held, IItemsOps items)
+    public DebrisModule(IGridQueries grid, ICrewQueries crew, IRoomsQueries rooms, IItemsQueries held, IItemsOps items, IKnowledgeQueries knowledge, IKnowledgeOps knowledgeOps)
     {
+        _knowledge = knowledge;
+        _knowledgeOps = knowledgeOps;
         _grid = grid;
         _crew = crew;
         _rooms = rooms;
@@ -165,11 +170,37 @@ public sealed partial class DebrisModule : Module<DebrisState>, IDebrisQueries, 
         piece.Struck = new Blow { By = peer, At = State.Clock };
         if (!breaks) return false;
         State.Pieces.RemoveAt(at);
+        if (piece.Delivery != 0 && piece.Item != Content.Research.Confiscated)
+        {
+            Unpack(piece, peer);
+            return true;
+        }
+        if (piece.Delivery != 0) _knowledgeOps.Delivered(piece.Delivery);
         var loot = CutLoot(piece, LootOf(piece.Item, Random));
         Record(piece, loot);
         // Dropped by nobody, so whoever broke it may sweep it up at once, as anyone may.
         _items.DropAt(FloorStack.Nobody, loot, CellOf(piece.X, piece.Y, _grid.Width));
         return true;
+    }
+
+    /// <summary>
+    /// Delivery <paramref name="piece"/>, caught or broken by <paramref name="peer"/>, gone from the queue and given (2026-11-08-mafia-deliveries):
+    /// an upgrade or blueprint known to the crew; gear to that peer's hero, what does not fit floating at it, or under the piece with no hero.
+    /// Recorded as found by no one: it is a purchase, not salvage.
+    /// </summary>
+    private void Unpack(Piece piece, int peer)
+    {
+        var good = _knowledge.Deliveries.FirstOrDefault(d => d.Id == piece.Delivery)?.Good;
+        _knowledgeOps.Delivered(piece.Delivery);
+        if (good == null) return;
+        if (!Content.Research.GearSold.Contains(good, StringComparer.Ordinal))
+        {
+            _knowledgeOps.Grant(good);
+            return;
+        }
+        (string Item, int Count)[] gear = [(good, 1)];
+        if (_crew.HeroOf(peer) is { } hero) Report(piece.Id, peer, _items.GiveOrDrop(peer, gear, hero.Cell, noted: false));
+        else _items.DropAt(FloorStack.Nobody, gear, CellOf(piece.X, piece.Y, _grid.Width));
     }
 
     /// <summary>
@@ -352,6 +383,11 @@ public sealed partial class DebrisModule : Module<DebrisState>, IDebrisQueries, 
         var piece = State.Pieces[at];
         State.Pieces.RemoveAt(at);
         var hero = _crew.HeroOf(c.From) ?? throw new InvalidOperationException("debris.grab: applied with no hero");
+        if (piece.Delivery != 0)
+        {
+            Unpack(piece, c.From);
+            return;
+        }
         var loot = LootOf(piece.Item, Random);
         // From the roll, not from what went in: what floats off a full inventory was seen all the same.
         Record(piece, loot);

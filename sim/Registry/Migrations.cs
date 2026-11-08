@@ -266,6 +266,23 @@ public static class Migrations
             };
             return root;
         },
+        // 58 → 59 (2026-11-08-mafia-deliveries): the mafia's gear is sold as items, its crafts gone, so are their queued entries and their
+        // blueprints; the parts paid for them go with them, as the canister's did at 51 (pre-release, no refund).
+        root =>
+        {
+            string[] gone = ["scanner", "powerDriver", "heavyHelmet", "plasmaCutter", "regenSuit"];
+            bool Gone(JsonNode? id) => gone.Contains(id!.GetValue<string>(), StringComparer.Ordinal);
+            foreach (var slices in new[] { root["slices"]! }.Concat((root["surfaces"]?.AsArray() ?? []).Select(s => s!["slices"]!)))
+                foreach (var queue in slices["crafting"]?["queues"]?.AsArray() ?? [])
+                {
+                    var entries = queue!["entries"]!.AsArray();
+                    if (entries.FirstOrDefault() is { } first && Gone(first["recipe"])) queue["progress"] = 0;
+                    foreach (var entry in entries.Where(e => Gone(e!["recipe"])).ToList()) entries.Remove(entry);
+                }
+            if (root["slices"]!["knowledge"]?["granted"] is JsonArray granted)
+                foreach (var grant in granted.Where(Gone).ToList()) granted.Remove(grant);
+            return root;
+        },
     ];
 
     /// <summary>The slices with liquids' empty one after building's, where its module runs: a save holds them in that order.</summary>

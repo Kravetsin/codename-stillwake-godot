@@ -141,7 +141,8 @@ holding a powerDriver or a scanner, one in thirty a plasmaCutter.
 4. The confiscated container.
 5. Contraband, a PR an item: deferred by the user until the base plays well.
 
-Steps 2–4 ship as one PR: [black-market-deliveries.md](black-market-deliveries.md).
+Steps 1–4 are done ([mafia-reputation](../decisions/2026-11-08-mafia-reputation.md), [mafia-deliveries](../decisions/2026-11-08-mafia-deliveries.md)); contraband and
+consumables wait.
 
 ## Settled with the user
 
