@@ -81,7 +81,7 @@ public class TechLinksTests
         Assert.Equal(Origin.Worked, TechLinks.OriginOf("ironOre"));
         Assert.Equal(["asteroidOre"], Link("ironOre").From);
         Assert.Equal(Origin.Worked, TechLinks.OriginOf("gravel"));
-        Assert.Equal(["hullPlate", "ironOre"], Link("iron").From);
+        Assert.Equal(["scrap", "hullPlate", "ironOre"], Link("iron").From);
         Assert.Equal(Origin.Worked, TechLinks.OriginOf("quartz"));
         Assert.Contains("crusher", Link("quartz").MadeAt);
         Assert.Contains("quartz", Link("crusher").UsedIn);

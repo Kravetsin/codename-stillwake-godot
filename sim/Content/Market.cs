@@ -75,8 +75,9 @@ public static class Market
         int worth = 0;
         if (Raw.TryGetValue(id, out int raw)) worth = raw;
         else if (Crafts.TryGet(id, out var craft) && craft.Cost.Count > 0) worth = Marked(craft.Cost.Sum(c => c.Count * Worth(c.Item, worths, working)), craft.Ticks, 1);
-        else if (Items.All.FirstOrDefault(i => i.Yields?.Any(y => y.Item == id) == true) is { } source)
-            worth = Marked(source.SmeltTakes * Worth(source.Id, worths, working), source.SmeltTicks ?? 0, source.Yields!.Sum(y => y.Count));
+        else if (Items.All.Where(i => i.Yields?.Any(y => y.Item == id) == true).ToList() is { Count: > 0 } sources)
+            // Smelted from several, it is worth its cheapest: iron its hull plate's, never the four scrap smelted at a loss.
+            worth = sources.Min(s => Marked(s.SmeltTakes * Worth(s.Id, worths, working), s.SmeltTicks ?? 0, s.Yields!.Sum(y => y.Count)));
         working.Remove(id);
         worths[id] = worth;
         return worth;

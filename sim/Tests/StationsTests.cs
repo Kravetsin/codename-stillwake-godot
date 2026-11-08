@@ -47,14 +47,24 @@ public class StationsTests
     /// smelts into, recursively; so a craft of silicon and a smelt of it count alike. A seed counts as itself: a crop
     /// makes more than it was (0060), which <see cref="Grown"/> accounts for.
     /// </summary>
-    private static void Raw(string item, int count, Dictionary<string, int> into)
+    private static void Raw(string item, int count, Dictionary<string, int> into) => Parts(item, count * Scale, into);
+
+    /// <summary>
+    /// Counts are kept in parts of a unit, so an item a smelt takes several of (four scrap an iron) counts as its share
+    /// of what that smelt makes.
+    /// </summary>
+    private static readonly int Scale = Content.Items.All.Select(i => i.SmeltTakes).Distinct().Aggregate(1, (l, t) => l * t / Gcd(l, t));
+
+    private static int Gcd(int a, int b) => b == 0 ? a : Gcd(b, a % b);
+
+    private static void Parts(string item, int parts, Dictionary<string, int> into)
     {
         var spec = Content.Items.Get(item);
         if (Crafts.TryGet(item, out var craft))
-            foreach (var (part, n) in craft.Cost) Raw(part, n * count, into);
+            foreach (var (part, n) in craft.Cost) Parts(part, n * parts, into);
         else if (spec is { Yields: { } yields, Returns: null })
-            foreach (var (y, n) in yields) Raw(y, n * count, into);
-        else into[item] = into.GetValueOrDefault(item) + count;
+            foreach (var (y, n) in yields) Parts(y, n * parts / spec.SmeltTakes, into);
+        else into[item] = into.GetValueOrDefault(item) + parts;
     }
 
     /// <summary>What one crop adds to the worth, beyond its seed: its yields, as <see cref="Raw"/> counts them.</summary>
@@ -75,7 +85,7 @@ public class StationsTests
     private static bool Grown(Dictionary<string, int> was, Dictionary<string, int> now, int most)
     {
         var (from, to) = (new Dictionary<string, int>(was), new Dictionary<string, int>(now));
-        int seeds = to.GetValueOrDefault("seed") - from.GetValueOrDefault("seed");
+        int seeds = (to.GetValueOrDefault("seed") - from.GetValueOrDefault("seed")) / Scale;
         from.Remove("seed");
         to.Remove("seed");
         for (int crops = 0; crops <= most; crops++)
@@ -118,7 +128,7 @@ public class StationsTests
                 Raw(queue[i].Recipe, !queue[i].FromInputs ? queue[i].Count : i == 0 && w.M.Crafting.Progress(m.Id) > 0 ? 1 : 0, all);
         }
         foreach (var s in w.M.Items.Floor) Add(new Stack(s.Item, s.Count));
-        int planks = all.GetValueOrDefault("planks");
+        int planks = all.GetValueOrDefault("planks") / Scale;
         all.Remove("planks");
         return (all, planks);
     }

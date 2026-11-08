@@ -209,6 +209,25 @@ public class SmelterTests
         Assert.Equal(Yield("ironOre", "iron"), Held(w, furnace, "iron"));
     }
 
+    /// <summary>Scrap piles up (2026-11-08-scrap-to-iron): any furnace smelts four of it into an iron, three waiting for a fourth.</summary>
+    [Fact]
+    public void AFurnaceSmeltsFourScrapIntoAnIronThreeWaiting()
+    {
+        var w = Furnace().GiveItems(0, ("scrap", 4));
+        int furnace = FurnaceOf(w);
+        Assert.Equal((4, 1, 1), (Content.Items.Get("scrap").SmeltTakes, Yield("scrap", "iron"), Content.Items.Get("scrap").Heat));
+        Put(w, furnace, "planks", 2, Machines.Get("furnace").FuelSlot!.Value);
+        Put(w, furnace, "scrap", 3).Run(3);
+        Assert.True(w.M.Crafting.TooFew(furnace));
+        Assert.False(w.M.Furnace.At(furnace).Burning);
+        Put(w, furnace, "scrap");
+        Assert.True(w.M.Furnace.At(furnace).Burning);
+        w.Run(Work("scrap") / 1000 - 1);
+        Assert.Equal(0, Held(w, furnace, "iron"));
+        w.Run();
+        Assert.Equal((0, 1), (Held(w, furnace, "scrap"), Held(w, furnace, "iron")));
+    }
+
     [Fact]
     public void IsBoughtInTheTree()
     {
