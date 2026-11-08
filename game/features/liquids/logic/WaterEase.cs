@@ -5,15 +5,13 @@ namespace Stillwake.Game.Features.Liquids;
 /// <summary>
 /// The water eased between the sim's ticks: each cell's drawn level (the red of <see cref="WaterCells"/>' texels) moves toward
 /// the sim's a part of the way each frame, by <see cref="Rate"/>, so a level rising, spreading, draining or falling a cell a
-/// tick glides at the frame's rate. One newly in view is drawn as the sim has it; one the sim dried sinks out before it goes.
+/// tick glides at the frame's rate. One newly in view is drawn as the sim has it. One the sim dried goes at once, as in
+/// Terraria: sinking out, cells drained together would each leave a line on their floor.
 /// </summary>
 public sealed class WaterEase
 {
     /// <summary>How fast the drawn level closes on the sim's, a second: most of the way in a tick and a half.</summary>
     public const double Rate = 14;
-
-    /// <summary>The least drawn level, of 255, a cell the sim has dried keeps showing.</summary>
-    private const float Fading = 6;
 
     private float[] _shown = [], _next = [];
     private int _left, _top, _wide, _tall;
@@ -31,15 +29,18 @@ public sealed class WaterEase
             for (int x = 0; x < wide; x++)
             {
                 int at = y * wide + x, gx = left + x - _left, gy = top + y - _top;
+                if (texels[at * 4 + 3] == 0)
+                {
+                    _next[at] = 0;
+                    continue;
+                }
                 bool seen = gx >= 0 && gy >= 0 && gx < _wide && gy < _tall;
-                float target = texels[at * 4 + 3] == 0 ? 0 : texels[at * 4];
+                float target = texels[at * 4];
                 float shown = seen ? _shown[gy * _wide + gx] + (target - _shown[gy * _wide + gx]) * k : target;
                 if (Math.Abs(target - shown) < 1) shown = target;
-                bool drawn = target > 0 || shown >= Fading;
-                _next[at] = drawn ? shown : 0;
-                texels[at * 4] = (byte)Math.Round(_next[at]);
-                texels[at * 4 + 3] = drawn ? (byte)255 : (byte)0;
-                any |= drawn;
+                _next[at] = shown;
+                texels[at * 4] = (byte)Math.Round(shown);
+                any = true;
             }
         (_shown, _next) = (_next, _shown);
         (_left, _top, _wide, _tall) = (left, top, wide, tall);

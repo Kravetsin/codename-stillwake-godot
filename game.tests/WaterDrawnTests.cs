@@ -65,6 +65,28 @@ public class WaterDrawnTests
     }
 
     [Fact]
+    public void FallingWaterInStripsIsDrawnWhole()
+    {
+        // A shaft three cells wide: full rows falling every other row, as a pool's water released down it falls; and two
+        // trickles with the middle column dry between.
+        int w = 5, h = 16;
+        var layer = new byte[w * h];
+        for (int y = 1; y < 8; y += 2)
+            for (int x = 1; x < 4; x++) layer[y * w + x] = L.Of(L.Water, 8);
+        for (int y = 9; y < 14; y++) layer[y * w + 1] = layer[y * w + 3] = L.Of(L.Water, 2);
+        bool Blocks(int cell) => cell % w == 0 || cell % w == 4;
+        var texels = new byte[w * h * 4];
+        WaterCells.Write(layer, w, h, Blocks, 0, 0, w, h, texels);
+        Assert.All(Enumerable.Range(1, 13), y => Assert.All(Enumerable.Range(1, 3), x =>
+        {
+            int at = (y * w + x) * 4;
+            Assert.True(texels[at + 3] == 255 && texels[at + 1] == 255, $"({x}, {y}) is not drawn falling");
+            Assert.True(y == 1 || texels[at] == 255, $"({x}, {y}) is not whole");
+        }));
+        Assert.Equal(0, texels[(14 * w + 2) * 4 + 3]);
+    }
+
+    [Fact]
     public void ACellNoLongerCoveredSinksToItsOwnLevel()
     {
         var ease = new WaterEase();
@@ -77,7 +99,7 @@ public class WaterDrawnTests
     }
 
     [Fact]
-    public void TheDrawnAmountGlidesToTheSimsAndADriedCellFadesOut()
+    public void TheDrawnAmountGlidesToTheSimsAndADriedCellGoesAtOnce()
     {
         var ease = new WaterEase();
         byte[] One(byte r, byte a) => [r, 0, 0, a];
@@ -92,9 +114,9 @@ public class WaterDrawnTests
             last = t[0];
         }
         Assert.Equal(255, last);
-        Assert.True(t[0] > 0 && One(0, 0) is var fading && ease.Step(fading, 0, 0, 1, 1, 1.0 / 60) && fading[0] is > 0 and < 255, "a dried cell still shows");
+        // A dried cell goes at once, as in Terraria, rather than sinking to its floor: cells drained together would leave lines.
         var gone = One(0, 0);
-        for (int i = 0; i < 120; i++) ease.Step(gone = One(0, 0), 0, 0, 1, 1, 1.0 / 60);
+        Assert.False(ease.Step(gone, 0, 0, 1, 1, 1.0 / 60));
         Assert.Equal(new byte[] { 0, 0, 0, 0 }, gone);
         var entering = One(200, 255);
         ease.Step(entering, 5, 0, 1, 1, 1.0 / 60);

@@ -20,10 +20,12 @@ Draws and hears what `sim/Liquids` decides (docs/plans/liquids.md); sends nothin
   stream is guessed at between cells.
 - **A surface** across a cell is blended with its neighbour's toward the side it is nearer, so a pool at rest, whose cells
   may differ by a unit, reads flat; the edge wanders a little as wet paint does.
-- **Falling water** (open under it, short of full there) is streaked, its streaks and grain running down at `FLOW` pixels
-  a second.
+- **Falling water** (open under it, short of full there, or a full column over falling water) is streaked, its streaks
+  and grain running down at `FLOW` pixels a second. Where it falls in strips (dry rows up to `WaterCells.Gap` between) or
+  in trickles a column apart, the gaps are drawn as falling water, so a drained pool reads as one stream.
 - **Eased:** each cell's drawn level closes on the sim's at `WaterEase.Rate` a second, so 20 ticks a second glide; a cell
-  no longer covered sinks to its level, a dried one out.
+  no longer covered sinks to its level. A dried one goes at once, as in Terraria: sinking out, cells drained together
+  would each leave a line on their floor.
 - **Heard:** `Sound.WaterPour` loops at the stream nearest the view's middle within `Sound.PourReach` cells. The
   swimmer's splashes and strokes are the crew's (`Splashes`, played by `Figure`).
 
