@@ -33,9 +33,9 @@ Below, `f/x` = `game/features/x`, `r/` = `game/render`, `gc/` = `game/Content` (
 
 **Creatures** — sim/Creatures · f/creatures: `Creatures.cs` CreaturesModule; `Live.cs`, `Rules.cs`, `Drives.cs`, `Lunge.cs`, `Walker.cs`, `Clinger.cs`, `Guard.cs`, `Ward.cs`, `Pounce.cs`, `Spawn.cs`, `Shots.cs` (shots: `Fire`, the flight); sim/Core `ShotFlight.cs`; `CreaturesView.cs`, `ShotsView.cs`, `TickBodies.cs`, `CreatureBody.cs`, `CreaturePose.cs`; f/crew `HeroView.Guns.cs`, `GunHand.cs`; game/shared `ShotStreaks.cs`, `ShotEnds.cs`, `ShotDraws.cs`, `PixelBursts.cs`; c/`Creatures.cs`, `Shots.cs`; gc/`CreatureLooks.cs`
 
-**Planets and terrain** — sim/Core `Terrain.cs`, `Surface.cs`; sim/Grid `Grown.cs`; sim/Building `Digging.cs`, `Flora.cs` · f/flora: `FloraView.cs`, `CaveView.cs`; f/grid `Grass.cs`, `LavaView.cs`; the fog at a planet's sides: f/fog `FogView.cs`, game/shared `FogEdges.cs`, `FogShare.cs`, f/crew `FogMove.cs`, gc/`FogLooks.cs`; c/`PlanetTypes.cs`, `Ground.cs`, `Flora.cs`, `Veins.cs`, `Lava.cs`; r/`GroundArt.cs`, `PlanetSky.cs`
+**Planets and terrain** — sim/Core `Terrain.cs`, `Surface.cs`; sim/Grid `Grown.cs`; sim/Building `Digging.cs`, `Flora.cs` · f/flora: `FloraView.cs`, `CaveView.cs`; f/grid `Grass.cs`, `LavaView.cs`; the fog at a planet's sides: f/fog `FogView.cs`, game/shared `FogEdges.cs`, `FogShare.cs`, f/crew `FogMove.cs`, gc/`FogLooks.cs`; c/`PlanetTypes.cs`, `Ground.cs`, `Flora.cs`, `Veins.cs`, `Lava.cs`; r/`GroundArt.cs`, `PlanetSky.cs` (the sky); the land behind, composed by the seed: f/backdrop `BackdropView.cs`, `logic/BackdropPlan.cs`, `logic/GroundLine.cs`, gc/`BackdropLooks.cs`
 
-**Day and night** — sim/Sky: `Sky.cs` SkyModule, `SetTime`, `ISkyQueries.Now`; the chill in sim/Crew `ColdAt`; gc/`Daylight.cs`, `PlanetLooks.cs` (dusk and night colours); r/`Lit.cs` (`sky` uniform), `Stars.cs` (`Tint`); c/`Sky.cs`
+**Day and night** — sim/Sky: `Sky.cs` SkyModule, `SetTime`, `ISkyQueries.Now`; the chill in sim/Crew `ColdAt`; gc/`Daylight.cs`, `PlanetLooks.cs` (dusk and night colours); r/`Lit.cs` (`sky` uniform), `Stars.cs` (`Tint`, also the land's veil in f/backdrop); c/`Sky.cs`
 
 **Ruins** — sim/Building `Flora.cs` (`Relic`, ruin pieces as plants) · f/ruins: `HomesView.cs`, `SpiresView.cs`, `RelicSparks.cs`; c/`Ruins.cs`; gc/`HomesLooks.cs`, `RelicLooks.cs`
 
