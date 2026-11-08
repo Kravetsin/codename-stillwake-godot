@@ -5,10 +5,11 @@ namespace Stillwake.Game.Features.Liquids;
 
 /// <summary>
 /// The water as the shader reads it (<c>WaterLook</c>): a texel a cell of a box of the world, RGBA8. Red is the cell's amount
-/// (0 to 255 over <c>Liquids.Full</c>), green set where it is part of a stream, blue where liquid lies over it, alpha where it
-/// is drawn. A stream is drawn whole: the cells water falls through (open under them and not full there), and the empty cells
-/// between them that a fall of <c>Liquids.Fall</c> cells a tick skips, each as wide as the water falling past it a tick, the falling
-/// cells' units over the stream's rows within <see cref="Window"/> of it, so a stream reads as one even rope rather than lumps.
+/// (0 to 255 over <c>Liquids.Full</c>), green set where it is part of a stream, blue where liquid lies over it (on a stream's
+/// cell: where it is the trail over a drop), alpha where it is drawn. A stream is drawn whole: the cells water falls through
+/// (open under them, not full there) and the empty cells between that a fall of <c>Liquids.Fall</c> a tick skips, each as wide
+/// as the water falling past it a tick, so a steady stream reads as one even rope. A drop falling alone leaves a trail over
+/// the cells it may have fallen through this tick, as wide as itself.
 /// </summary>
 public static class WaterCells
 {
@@ -34,11 +35,13 @@ public static class WaterCells
                 if (gx < 0 || gy < 0 || gx >= width || gy >= height) continue;
                 int cell = gy * width + gx, a = L.AmountOf(layer[cell]);
                 bool stream = a > 0 ? Falls(layer, width, height, blocks, cell) : !blocks(cell) && Skipped(layer, width, height, blocks, cell);
-                if (a == 0 && !stream) continue;
+                int? drop = a == 0 && !stream && !blocks(cell) ? DropUnder(layer, width, height, blocks, cell) : null;
+                if (a == 0 && !stream && drop == null) continue;
                 any = true;
-                texels[at] = (byte)Math.Min(255, (stream ? Falling(layer, width, height, blocks, cell) : a) * 255 / L.Full);
-                texels[at + 1] = stream ? (byte)255 : (byte)0;
-                texels[at + 2] = gy > 0 && L.AmountOf(layer[cell - width]) > 0 ? (byte)255 : (byte)0;
+                int units = drop is int under ? Falling(layer, width, height, blocks, under) : stream ? Falling(layer, width, height, blocks, cell) : a;
+                texels[at] = (byte)Math.Min(255, units * 255 / L.Full);
+                texels[at + 1] = stream || drop != null ? (byte)255 : (byte)0;
+                texels[at + 2] = drop != null || !stream && gy > 0 && L.AmountOf(layer[cell - width]) > 0 ? (byte)255 : (byte)0;
                 texels[at + 3] = 255;
             }
         return any;
@@ -60,6 +63,14 @@ public static class WaterCells
         for (int k = 1, c = cell + width; k <= L.Fall && c < layer.Length && !blocks(c) && above && !below; k++, c += width)
             below = L.AmountOf(layer[c]) > 0;
         return above && below;
+    }
+
+    /// <summary>The falling cell within <c>Liquids.Fall</c> open cells under the empty <paramref name="cell"/>: whose trail it is.</summary>
+    private static int? DropUnder(ReadOnlySpan<byte> layer, int width, int height, Func<int, bool> blocks, int cell)
+    {
+        for (int k = 1, c = cell + width; k <= L.Fall && c < layer.Length && !blocks(c); k++, c += width)
+            if (L.AmountOf(layer[c]) > 0) return Falls(layer, width, height, blocks, c) ? c : null;
+        return null;
     }
 
     /// <summary>

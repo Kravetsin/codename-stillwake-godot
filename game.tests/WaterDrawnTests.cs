@@ -47,6 +47,34 @@ public class WaterDrawnTests
     }
 
     [Fact]
+    public void ADropFallingAloneLeavesATrailOverTheCellsItFellThrough()
+    {
+        int w = 3, h = 12;
+        var layer = new byte[w * h];
+        layer[8 * w + 1] = L.Of(L.Water, 4);
+        bool Blocks(int cell) => cell % w != 1;
+        var texels = new byte[w * h * 4];
+        WaterCells.Write(layer, w, h, Blocks, 0, 0, w, h, texels);
+        byte[] At(int y) => texels[((y * w + 1) * 4)..((y * w + 1) * 4 + 4)];
+        Assert.Equal([255, 0], At(8)[1..3]);
+        Assert.All(Enumerable.Range(8 - L.Fall, L.Fall), y => Assert.Equal(new byte[] { At(8)[0], 255, 255, 255 }, At(y)));
+        Assert.Equal(new byte[] { 0, 0, 0, 0 }, At(8 - L.Fall - 1));
+        Assert.Equal(new byte[] { 0, 0, 0, 0 }, At(9));
+    }
+
+    [Fact]
+    public void AStreamIsDrawnAsTheSimHasItAndLeavesNothingToFade()
+    {
+        var ease = new WaterEase();
+        var t = new byte[] { 100, 255, 0, 255 };
+        ease.Step(t, 0, 0, 1, 1, 1.0 / 60);
+        ease.Step(t = [200, 255, 0, 255], 0, 0, 1, 1, 1.0 / 60);
+        Assert.Equal(200, t[0]);
+        ease.Step(t = [0, 0, 0, 0], 0, 0, 1, 1, 1.0 / 60);
+        Assert.Equal(new byte[] { 0, 0, 0, 0 }, t);
+    }
+
+    [Fact]
     public void TheDrawnAmountGlidesToTheSimsAndADriedCellFadesOut()
     {
         var ease = new WaterEase();

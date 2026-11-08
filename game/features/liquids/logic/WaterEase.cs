@@ -5,7 +5,8 @@ namespace Stillwake.Game.Features.Liquids;
 /// <summary>
 /// The water eased between the sim's ticks: each cell's drawn amount (the red of <see cref="WaterCells"/>' texels) moves toward
 /// the sim's a part of the way each frame, by <see cref="Rate"/>, so a level rising, spreading or draining at 20 steps a second
-/// glides at the frame's rate. A cell newly in view is drawn as the sim has it; one the sim dried fades out before it goes.
+/// glides at the frame's rate. A stream's cell, and one newly in view, is drawn as the sim has it; one the sim dried fades out
+/// before it goes.
 /// </summary>
 public sealed class WaterEase
 {
@@ -32,10 +33,13 @@ public sealed class WaterEase
             {
                 int at = y * wide + x, gx = left + x - _left, gy = top + y - _top;
                 float target = texels[at * 4 + 3] == 0 ? 0 : texels[at * 4];
-                float was = gx >= 0 && gy >= 0 && gx < _wide && gy < _tall ? _shown[gy * _wide + gx] : target;
+                // A stream is drawn as the sim has it: its water jumps a fall a tick, and eased it would blink.
+                bool stream = texels[at * 4 + 1] != 0;
+                float was = !stream && gx >= 0 && gy >= 0 && gx < _wide && gy < _tall ? _shown[gy * _wide + gx] : target;
                 float shown = was + (target - was) * k;
                 if (Math.Abs(target - shown) < 1) shown = target;
-                _next[at] = shown;
+                // Kept as none, so a stream gone leaves nothing to fade out where it fell.
+                _next[at] = stream ? 0 : shown;
                 bool drawn = target > 0 || shown >= Fading;
                 if (!drawn) shown = _next[at] = 0;
                 texels[at * 4] = (byte)Math.Round(shown);

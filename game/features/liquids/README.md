@@ -18,8 +18,10 @@ Draws and hears what `sim/Liquids` decides (docs/plans/liquids.md); sends nothin
 - **A surface** across a cell is blended with its neighbour's toward the side it is nearer, so a pool at rest, whose cells
   may differ by a unit, reads flat; the edge wanders a little as wet paint does.
 - **A stream** is drawn whole: the cells that fall (open under, not full there) and the empty ones a fall of `Fall` skips,
-  each as wide as the units falling past it over `WaterCells.Window` rows either way, so it reads as one even rope.
-- **Eased:** each cell's drawn amount closes on the sim's at `WaterEase.Rate` a second, so 20 ticks a second glide.
+  each as wide as the units falling past it over `WaterCells.Window` rows either way, so it reads as one even rope. Its
+  ends in the air are rounded, a drop's bottom round; a drop falling alone trails over the `Fall` cells above it, thinning.
+- **Eased:** each cell's drawn amount closes on the sim's at `WaterEase.Rate` a second, so 20 ticks a second glide; a
+  stream's is drawn as the sim has it, since it jumps a fall a tick.
 - **Heard:** `Sound.WaterPour` loops at the stream nearest the view's middle within `Sound.PourReach` cells. The
   swimmer's splashes and strokes are the crew's (`Splashes`, played by `Figure`).
 
