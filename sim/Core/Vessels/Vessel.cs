@@ -16,10 +16,11 @@ public sealed record Vessel(
     IReadOnlyList<Vessel.Deck> Decks,
     IReadOnlyList<Vessel.Shaft> Shafts,
     IReadOnlyList<Vessel.Door> Doors,
+    IReadOnlyList<Vessel.Hatch> Hatches,
     IReadOnlyList<Vessel.Compartment> Compartments,
     IReadOnlyList<Vessel.Fitting> Fittings)
 {
-    public enum SectionKind { Stern, Mid, Bow, Bridge }
+    public enum SectionKind { Stern, Body, Bow, Bridge }
 
     /// <summary>
     /// A part of the hull along the width: its columns and rows; a bow's top and bottom move in by <c>TaperTop</c> and
@@ -44,14 +45,17 @@ public sealed record Vessel(
     /// <summary>A ladder two columns wide from <c>Column</c>, its rows <c>Top</c> to <c>Bottom</c>, an even count: whole pieces.</summary>
     public sealed record Shaft(int Column, int Top, int Bottom);
 
-    /// <summary>A door through the armour, two columns from <c>X</c>, a deck's six rows from <c>Y</c>: the way in.</summary>
+    /// <summary>A door two columns from <c>X</c>, a deck's six rows from <c>Y</c>: the way in through the armour, or one between two rooms.</summary>
     public sealed record Door(int X, int Y);
 
+    /// <summary>A hatch two columns from <c>X</c> in the floor row <c>Y</c>: the way between two decks, or up to a raised bridge.</summary>
+    public sealed record Hatch(int X, int Y);
+
     /// <summary>
-    /// A part of a deck the generator furnishes: its columns from <c>Left</c> and its open rows from <c>Top</c>; <c>Deck</c> -1 for
-    /// the bridge's. Its first two columns are kept for a shaft. <c>Interior</c> the drawing it holds, none where none fits.
+    /// A room: its columns from <c>Left</c> past its door and its open rows from <c>Top</c>; <c>Deck</c> -1 for a raised bridge.
+    /// <c>Interior</c> the drawing it holds from <c>Left</c>, the rest of its columns bare floor.
     /// </summary>
-    public sealed record Compartment(int Deck, int Left, int Width, int Top, VesselRole Role, string? Interior);
+    public sealed record Compartment(int Deck, int Left, int Width, int Top, VesselRole Role, string Interior);
 
     /// <summary>A machine from its top-left, and what it holds: a crate's loot.</summary>
     public sealed record Fitting(string Kind, int X, int Y, IReadOnlyList<(string Item, int Count)> Loot);

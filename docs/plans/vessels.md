@@ -253,6 +253,17 @@ hold is planks.
 
 ### V-1c — A vessel of rooms
 
+Built as below. The user's picks: the main engine wears one of three looks (rocket chamber, reactor ring, accelerator),
+the console one of four (desk, terminal, helm, lectern), drawn per vessel: a salvage's `Looks` are machine rows alike but
+for their picture (`Vessels.LookKind`: `salvageMainEngine`, `salvageMainEngine2`, …), interiors drawing the first,
+`Describe` drawing which each one stamped wears. Extras take the shortest deck of all, their rule kept for the required
+rooms only: quarters held to the first deck left the lower decks running on bare and dark. Measured over 200
+seeds: a shuttle 56–86 columns and 1,483–2,394 items (its band raised to 1,300–2,800: two decks always, and the main
+engine); a freighter, `Extras` 5–10, 86–170 columns and 3,253–5,703 items, in its band; a deck's bare end 2–4 columns
+most often, 24 at most. The dev teleport lands in the
+entry's first two columns, past the stern door. The reach test bites by a hatch dropped: a door is the whole bulkhead, so
+one dropped leaves an opening.
+
 A vessel is a row of equal midsections, no walls between its compartments, open shafts between its decks: it reads as a
 long box. The user's rule (2026-11-08): every vessel, the shuttle too, has an **engine room with a main engine** to break,
 a **bridge with glass and consoles**, a **cargo hold** and **quarters**; other rooms are random in kind and count;
@@ -260,9 +271,9 @@ a **bridge with glass and consoles**, a **cargo hold** and **quarters**; other r
 
 - **The class** drops `Mids`, `MidWidth` and `Bridge`, and gains `Length` (most body columns), `Extras (Min, Max)`,
   `ExtraRoles` (a plain list, an equal chance each) and `BridgeKind` (`Cockpit` for the shuttle, `Raised` for the
-  freighter). `Decks.Min` is 2 for every class: the shuttle's bottom deck is its engine room, with a bell. A content test
-  pins that the required rooms at their widest interiors, and `Extras.Max` more, fit `Length`, so nothing is trimmed when
-  a vessel is described.
+  freighter). `Decks.Min` is 2 for every class: the shuttle's bottom deck is its engine room, with a bell. An extra
+  that would run its deck past `Length` is not built (one check as it is placed: a worst-case content test over every mix
+  of extras was the dearer way); the required rooms always fit.
 - **A room rule a role** (`VesselRoomRule(Role, Deck, Order)`): `Deck` is `Low`, `Top` or none (the shortest deck, ties
   to the lower one); `Order` runs aft to fore: engine, hold, life, quarters, bridge. Life support becomes an extra role.
 - **The manifest:** an engine room for each deck below the first, a hold, quarters, the bridge, then `Extras` rooms drawn

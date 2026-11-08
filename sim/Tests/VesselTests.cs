@@ -50,41 +50,90 @@ public class VesselTests
     });
 
     [Property]
-    public Property EveryDeckIsOpenAndJoinedAndTheFirstHasAWayIn() => Prop.ForAll(Vessels(), v =>
+    public Property EveryRoomIsReachedFromTheWayInAndEveryHatchHasALadderUnderIt() => Prop.ForAll(Vessels(), v =>
     {
         var vessel = Shipyard.Describe(v.Class, v.Seed);
         Assert.Null(Unreached(vessel, Shipyard.Stamp(vessel)));
     });
 
     [Fact]
-    public void ADeckWithNoShaftToItIsUnreached()
+    public void ADeckWhoseHatchIsGoneIsUnreached()
     {
         var freighter = Content.Vessels.Class("freighter")!;
         var vessel = Shipyard.Describe(freighter, 7);
         Assert.Null(Unreached(vessel, Shipyard.Stamp(vessel)));
-        var cut = vessel with { Shafts = vessel.Shafts.Skip(1).ToList() };
+        var cut = vessel with { Hatches = vessel.Hatches.Skip(1).ToList() };
         Assert.NotNull(Unreached(cut, Shipyard.Stamp(cut)));
     }
 
     /// <summary>
-    /// Why a hero could not reach every compartment of <paramref name="v"/> from its door, by construction: a deck's open rows with a
-    /// wall across them, two decks or the bridge with no ladder between them, no way in on the first deck; null when it could.
+    /// Why a hero could not reach every room of <paramref name="v"/> from its way in, by construction: a room no walk through open
+    /// cells, doors and hatches from the stern door comes to, a hatch with no ladder under it, a machine standing on one; null
+    /// when it could.
     /// </summary>
     private static string? Unreached(Vessel v, IReadOnlyList<VesselPart> parts)
     {
         var walls = parts.Where(p => p.Kind == "wall").Select(p => (p.X, p.Y)).ToHashSet();
-        foreach (var c in v.Compartments)
-            for (int y = c.Top; y < c.Top + Content.Vessels.Open; y++)
-                for (int x = c.Left; x < c.Left + c.Width; x++)
-                    if (walls.Contains((x, y))) return $"deck {c.Deck} walled at ({x}, {y})";
-        bool Joined(int top, int bottom) => v.Shafts.Any(s => s.Top <= top && s.Bottom >= bottom
-            && parts.Count(p => p.Kind == "ladder" && p.X == s.Column && p.Y >= s.Top && p.Y <= s.Bottom) == (s.Bottom - s.Top + 1) / 2);
-        for (int d = 0; d + 1 < v.Decks.Count; d++)
-            if (!Joined(v.Decks[d].Top + 1, v.Decks[d + 1].Floor - 1)) return $"decks {d} and {d + 1} not joined";
-        foreach (var bridge in v.Compartments.Where(c => c.Deck < 0))
-            if (!Joined(bridge.Top + Content.Vessels.Open - 1, v.Decks[0].Floor - 1)) return "the bridge not joined";
-        return v.Doors.Any(d => d.Y == v.Decks[0].Top) ? null : "no way in";
+        var inside = parts.Where(p => p.Layer == "back").Select(p => (p.X, p.Y)).ToHashSet();
+        var seen = new HashSet<(int X, int Y)> { (v.Doors[0].X, v.Doors[0].Y) };
+        var queue = new Queue<(int X, int Y)>(seen);
+        while (queue.TryDequeue(out var c))
+            foreach (var n in (ReadOnlySpan<(int, int)>)[(c.X + 1, c.Y), (c.X - 1, c.Y), (c.X, c.Y + 1), (c.X, c.Y - 1)])
+                if (inside.Contains(n) && !walls.Contains(n) && seen.Add(n)) queue.Enqueue(n);
+        foreach (var room in v.Compartments)
+            if (!seen.Contains((room.Left, room.Top + Content.Vessels.Open - 1))) return $"{room.Role} on deck {room.Deck} at {room.Left} unreached";
+        var machines = parts.Where(p => p.Layer == "machine").SelectMany(Shipyard.Covers).ToHashSet();
+        foreach (var hatch in v.Hatches)
+        {
+            if (!parts.Any(p => p.Kind == "ladder" && p.X == hatch.X && p.Y == hatch.Y + 1)) return $"no ladder under the hatch at ({hatch.X}, {hatch.Y})";
+            if (machines.Contains((hatch.X, hatch.Y - 1)) || machines.Contains((hatch.X + 1, hatch.Y - 1))) return $"a machine on the hatch at ({hatch.X}, {hatch.Y})";
+        }
+        return null;
     }
+
+    [Property]
+    public Property EveryVesselHasItsRoomsTheMainEngineByItsBellAndADoorBetweenEachTwoRooms() => Prop.ForAll(Vessels(), v =>
+    {
+        var vessel = Shipyard.Describe(v.Class, v.Seed);
+        var parts = Shipyard.Stamp(vessel);
+        foreach (var role in (VesselRole[])[VesselRole.Engine, VesselRole.Bridge, VesselRole.Hold, VesselRole.Quarters])
+            Assert.Contains(vessel.Compartments, c => c.Role == role);
+        Assert.InRange(vessel.Decks.Count, 2, v.Class.Decks.Max);
+        // One main engine, against the stern armour of the bottom deck, facing its bell.
+        int start = v.Class.Bells + v.Class.ArmourDepth;
+        var engine = Assert.Single(vessel.Fittings, f => Content.Vessels.SalvageOf(f.Kind)?.Kind == "salvageMainEngine");
+        Assert.Equal((start, vessel.Decks[^1].Top), (engine.X, engine.Y));
+        // A six-row door between each two rooms of a deck.
+        var doors = parts.Where(p => p.Kind == "door").Select(p => (p.X, p.Y)).ToHashSet();
+        foreach (var deck in vessel.Compartments.Where(c => c.Deck >= 0).GroupBy(c => c.Deck))
+            foreach (var room in deck.Skip(1))
+                for (int y = room.Top; y < room.Top + Content.Vessels.Open; y += 2) Assert.Contains((room.Left - 2, y), doors);
+        Assert.InRange(vessel.Width - start - v.Class.Bow, 1, v.Class.Length);
+    });
+
+    [Property]
+    public Property GlassIsOnlyTheBridgesOuterWallAndTouchesSpace() => Prop.ForAll(Vessels(), v =>
+    {
+        var vessel = Shipyard.Describe(v.Class, v.Seed);
+        var parts = Shipyard.Stamp(vessel);
+        var glass = parts.Where(p => p.Material == Content.Vessels.Glass).ToList();
+        Assert.NotEmpty(glass);
+        var inside = parts.Where(p => p.Layer == "back").Select(p => (p.X, p.Y)).ToHashSet();
+        var where = v.Class.BridgeKind == VesselBridge.Raised
+            ? vessel.Sections.Single(s => s.Kind == Vessel.SectionKind.Bridge)
+            : vessel.Sections.Single(s => s.Kind == Vessel.SectionKind.Bow);
+        int a = v.Class.ArmourDepth;
+        foreach (var g in glass)
+        {
+            Assert.InRange(g.X, where.Left, where.Left + where.Width - 1);
+            Assert.False(inside.Contains((g.X, g.Y)), $"a back wall behind the glass at ({g.X}, {g.Y})");
+            bool space = false;
+            for (int k = 1; k <= a; k++)
+                foreach (var (x, y) in (ReadOnlySpan<(int, int)>)[(g.X + k, g.Y), (g.X - k, g.Y), (g.X, g.Y + k), (g.X, g.Y - k)])
+                    space |= !parts.Any(p => p.X == x && p.Y == y);
+            Assert.True(space, $"glass at ({g.X}, {g.Y}) not on the outside");
+        }
+    });
 
     [Property]
     public Property ABreachTakesThingsWholeAndAddsOnlyWhatToreTheHull() => Prop.ForAll(Vessels(), v =>
@@ -111,7 +160,9 @@ public class VesselTests
         {
             Assert.Equal(Content.Vessels.Open, interior.Rows.Count);
             Assert.All(interior.Rows, r => Assert.Equal(interior.Width, r.Length));
-            Assert.All(interior.Rows, r => Assert.Equal("..", r[..2]));
+            if (!interior.Main) Assert.All(interior.Rows, r => Assert.Equal("..", r[..2]));
+            else Assert.Equal("salvageMainEngine", Assert.Single(Layout.Parse(interior.Rows).Machines(), m => m.Cell == 0).Kind);
+            if (interior.Role == VesselRole.Bridge) Assert.Contains(Layout.Parse(interior.Rows).Machines(), m => m.Kind == "salvageConsole");
             foreach (char c in string.Concat(interior.Rows))
                 Assert.True(c is '.' or '=' || Legend.MachineOf(c) is { } kind && Content.Vessels.Machines.Contains(kind), $"{interior.Id}: '{c}'");
             Assert.All(Layout.Parse(interior.Rows).Machines(), m => Assert.Contains(m.Kind, Content.Vessels.Machines));
@@ -139,13 +190,11 @@ public class VesselTests
             Assert.True(cls.ArmourDepth >= 2, $"{cls.Id}: a door is two cells wide");
             Assert.True(cls.Frame.Width + Content.Vessels.Gap + Content.Vessels.EdgeClear <= beside, cls.Id);
             Assert.True(cls.Frame.Height + 2 * Content.Vessels.EdgeClear <= Content.World.Height, cls.Id);
-            if (cls.Bridge > 0) Assert.True(cls.Mids.Min >= 2 && cls.Bridge <= cls.MidWidth + cls.ArmourDepth, $"{cls.Id}: the bridge over the last midsection");
             for (uint seed = 1; seed <= 40; seed++)
             {
                 var vessel = Shipyard.Describe(cls, seed);
-                Assert.All(vessel.Compartments, c => Assert.NotNull(c.Interior));
-                Assert.Contains(vessel.Compartments, c => c.Role == VesselRole.Engine);
-                Assert.Equal(cls.Bridge > 0, vessel.Compartments.Any(c => c.Role == VesselRole.Bridge));
+                Assert.Single(vessel.Compartments, c => c.Role == VesselRole.Bridge);
+                Assert.Equal(cls.BridgeKind == VesselBridge.Raised, vessel.Compartments.Any(c => c.Deck < 0));
             }
         }
     }
@@ -173,6 +222,27 @@ public class VesselTests
             Assert.InRange(spec.Height, 1, Content.Vessels.Open);
             Assert.Null(spec.Menu);
             Assert.Contains(s.Kind, Content.Vessels.Machines);
+        }
+    }
+
+    [Fact]
+    public void ASalvageOfSeveralLooksWearsEachOnSomeVesselAndEveryLookIsAlike()
+    {
+        foreach (var s in Content.Vessels.Salvage.Where(s => s.Looks > 1))
+        {
+            var first = Machines.Get(s.Kind);
+            var looks = Enumerable.Range(0, s.Looks).Select(look => Content.Vessels.LookKind(s, look)).ToList();
+            foreach (var kind in looks)
+            {
+                var spec = Machines.Get(kind);
+                Assert.Equal((first.Width, first.Height, first.Hp, first.Cost), (spec.Width, spec.Height, spec.Hp, spec.Cost));
+                Assert.Same(s, Content.Vessels.SalvageOf(kind));
+            }
+            var worn = new HashSet<string>();
+            foreach (var cls in Content.Vessels.Classes)
+                for (uint seed = 1; seed <= 40; seed++)
+                    foreach (var f in Shipyard.Describe(cls, seed).Fittings) worn.Add(f.Kind);
+            Assert.All(looks, kind => Assert.Contains(kind, worn));
         }
     }
 
