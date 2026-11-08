@@ -399,6 +399,14 @@ public sealed partial class AtmosphereModule
         if (State.Own.Exists(t => t.Oxygen == 0)) State.Own = State.Own.FindAll(t => t.Oxygen > 0);
     }
 
+    /// <summary>The liquid of the canisters waiting in vaporizer <paramref name="vaporizer"/>'s slot, to be poured in turn (industrial-oxygen).</summary>
+    private int WaitingIn(int vaporizer)
+    {
+        if (_grid.MachineById(vaporizer) is not { } m || Content.Machines.Get(m.Kind).SlotTakes is not (int slot, string item)) return 0;
+        var held = _items.Crate(vaporizer);
+        return slot < held.Count && held[slot] is { } stack && stack.Item == item ? stack.Count * Content.Air.Canister : 0;
+    }
+
     /// <summary>Every room's air, in rooms order, from one survey.</summary>
     private List<RoomAir> AllRoomsAir()
     {
@@ -423,8 +431,11 @@ public sealed partial class AtmosphereModule
             // The liquid behind the vaporizers feeding the room, each tank counted once.
             var tanks = new SortedSet<int>();
             foreach (int v in vaporizers) foreach (int t in ListAt(s.Behind, v)) tanks.Add(t);
-            // None when nothing feeds the room, or when a source that takes no liquid does: its air never runs out.
-            int? oxygen = vaporizers.Count == 0 || vaporizers.Overlaps(s.Endless) ? null : HeldBy(s, [.. tanks]);
+            // None when nothing feeds the room, or when a source that takes no liquid does: its air never runs out. Its
+            // vaporizers' own liquid counts with the tanks' (industrial-oxygen).
+            int own = 0;
+            foreach (int v in vaporizers) own += (s.Own.TryGetValue(v, out var poured) ? poured.Oxygen : 0) + WaitingIn(v);
+            int? oxygen = vaporizers.Count == 0 || vaporizers.Overlaps(s.Endless) ? null : HeldBy(s, [.. tanks]) + own;
             var now = Status(s, room);
             // Held air costs its leak (2026-11-05-air-bubbles); venting, each vent drains its network, two vents twice.
             long draw = now is RoomStatus.Aired or RoomStatus.Filling ? leak

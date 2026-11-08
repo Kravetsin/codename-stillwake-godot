@@ -124,7 +124,7 @@ public class WaterTests
     }
 
     [Fact]
-    public void SplitsACisternsWaterIntoTheTanksLiquidOxygenAUnitATickAtFullPower()
+    public void SplitsACisternsWaterIntoTheTanksLiquidOxygenAtItsRateAtFullPower()
     {
         var w = Piped();
         int cistern = Id(w, "cistern"), electrolyser = Id(w, "electrolyser"), tank = Id(w, "tank");
@@ -133,8 +133,10 @@ public class WaterTests
         w.Do(new PourWater(cistern)).Run(30);
         Assert.Equal(1000, w.M.Power.Satisfaction(electrolyser));
         Assert.Null(w.M.Water.Stalled(electrolyser));
-        Assert.Equal(WaterContent.Bottle - 30, w.M.Water.WaterIn(cistern));
-        Assert.Equal(30, w.M.Atmosphere.OxygenIn(tank));
+        // Three units a tick at full power (industrial-oxygen).
+        int split = 30 * WaterContent.ElectrolyserRate / Content.Air.LeakEvery;
+        Assert.Equal(WaterContent.Bottle - split, w.M.Water.WaterIn(cistern));
+        Assert.Equal(split, w.M.Atmosphere.OxygenIn(tank));
     }
 
     /// <summary>Switched off, an electrolyser splits nothing and says so; on again, it splits (industrial-oxygen).</summary>

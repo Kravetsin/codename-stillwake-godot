@@ -26,6 +26,20 @@ public class VaporizerSlotTests
         Assert.True(w.M.Atmosphere.LiquidFor(vaporizer) < Air.Canister);
     }
 
+    /// <summary>The room it airs tells the liquid it has, its own and the canisters waiting, and how long it lasts (industrial-oxygen).</summary>
+    [Fact]
+    public void ItsRoomTellsItsOwnLiquidAndTheCanistersWaitingAndHowLongTheyLast()
+    {
+        var w = World().Run();
+        int vaporizer = w.M.Grid.MachinesOf("generator")[0].Id;
+        w.Put(0, new Items.Stack("canister", 3), crate: vaporizer).Run();
+        for (int i = 0; i < 2000 && w.M.Atmosphere.AiredCells.Count == 0; i++) w.Run();
+        int room = w.M.Rooms.RoomAt(w.M.Atmosphere.AiredCells[0])!.Value;
+        var air = w.M.Atmosphere.RoomsAir().Single(r => r.Room == room);
+        Assert.Equal(w.M.Atmosphere.LiquidFor(vaporizer) + 2 * Air.Canister, air.Oxygen);
+        Assert.NotNull(air.Lasts);
+    }
+
     [Fact]
     public void ItsOwnLiquidLoadsAsSaved()
     {

@@ -17,8 +17,8 @@ public static class Water
 
     public const int CisternCapacity = CisternBottles * Bottle;
 
-    /// <summary>The electrolyser's rate at full power, units every <see cref="Air.LeakEvery"/> ticks: one a tick.</summary>
-    public const int ElectrolyserRate = 12000;
+    /// <summary>The electrolyser's rate at full power, units every <see cref="Air.LeakEvery"/> ticks: three a tick, 3.6 litres a minute (industrial-oxygen).</summary>
+    public const int ElectrolyserRate = 36000;
 
     /// <summary>
     /// What a cistern passes a tick to the cisterns piped from its output to their inputs (tanks-in-a-line), a tank's

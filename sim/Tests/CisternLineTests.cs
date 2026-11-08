@@ -87,7 +87,8 @@ public class CisternLineTests
         Assert.Empty(w.Refusals);
         int b = Cisterns(w)[1], tank = w.M.Grid.MachinesOf("tank")[0].Id;
         w.Do(new PourWater(b)).Run(30);
-        Assert.Equal(WaterContent.Bottle - 30, w.M.Water.WaterIn(b));
-        Assert.Equal(30, w.M.Atmosphere.OxygenIn(tank));
+        int split = 30 * WaterContent.ElectrolyserRate / Content.Air.LeakEvery;
+        Assert.Equal(WaterContent.Bottle - split, w.M.Water.WaterIn(b));
+        Assert.Equal(split, w.M.Atmosphere.OxygenIn(tank));
     }
 }
