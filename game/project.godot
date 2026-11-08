@@ -24,7 +24,7 @@ theme/custom_font="res://render/fonts/sans.tres"
 
 [physics]
 
-common/physics_ticks_per_second=20
+common/physics_ticks_per_second=60
 
 [rendering]
 
