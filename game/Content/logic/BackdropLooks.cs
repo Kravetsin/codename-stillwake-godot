@@ -17,8 +17,8 @@ public static class BackdropLooks
     /// <see cref="Recipe.Dark"/>, then toward the planet's fog. <c>Green</c>: how strongly its grassy land is washed toward the
     /// grass's own green in shade; <c>Rows</c>: the rows of grass tops along a grassy crest. <c>Base</c>, <c>Region</c>,
     /// <c>Hill</c>, <c>Rise</c>: its land's height in cells, and shares of the planet's region lift, hill rise and range rise.
-    /// <c>Range</c>, <c>Forest</c>: how much of the panorama its stone ranges and forest edges may hold. <c>Lower</c>: shelves of
-    /// land below its crest. <c>Wall</c>: its land filled with the front walls' pictures rather than the back walls' darker ones.
+    /// <c>Range</c>, <c>Forest</c>: how much of the panorama its stone ranges and forest edges may hold. <c>Lower</c>: at most this many shelves of
+    /// land below its crest, fewer once one lies wholly under its height. <c>Wall</c>: its land filled with the front walls' pictures rather than the back walls' darker ones.
     /// </summary>
     public sealed record Depth(
         string Name, double Scale, double Tall, double GroundRow, float Follows, float Dark, float Haze, double Green, int Rows,
@@ -53,11 +53,13 @@ public static class BackdropLooks
     public sealed record Outcrop(Span Size, Span Scale, double Every, double Odds, double Least, double Apart, double Shrink);
 
     /// <summary>
-    /// The shelves below a layer's crest: each <c>Drop</c> lower than the last, its height <c>Soil</c> of the crest's and a
-    /// <c>Wobble</c> in cells over hill waves <c>Wave</c> times as long; a tree on it <c>TreeOdds</c> of the time, <c>Tree</c>
-    /// big, else a shrub <c>Shrub</c> big, <c>Step</c> widths apart from <c>Start</c> widths in.
+    /// The shelves below a layer's crest, so its face is never a wide bare wash: each <c>Drop</c> pixels lower than the last,
+    /// its height <c>Soil</c> of the crest's and a <c>Wobble</c> in cells over hill waves <c>Wave</c> times as long; each nearer,
+    /// so <c>Darken</c> darker and <c>Greener</c> more washed green than the one above. A tree on it <c>TreeOdds</c> of the
+    /// time, <c>Tree</c> big, else a shrub <c>Shrub</c> big, <c>Step</c> widths apart from <c>Start</c> widths in.
     /// </summary>
-    public sealed record Shelves(double Drop, double Soil, double Wobble, double Wave, double TreeOdds, Span Tree, Span Shrub, Span Step, double Start);
+    public sealed record Shelves(
+        double Drop, double Soil, double Wobble, double Wave, double Darken, double Greener, double TreeOdds, Span Tree, Span Shrub, Span Step, double Start);
 
     /// <summary>
     /// The belts along a grassy crest: shrubs every <c>ShrubStep</c> × <c>ShrubWide</c>, shifted up to <c>ShrubJitter</c> of it,
@@ -103,15 +105,15 @@ public static class BackdropLooks
             new("far", Scale: 0.2, Tall: 620, GroundRow: 460, Follows: 0.05f, Dark: 0, Haze: 0.56f, Green: 0.55, Rows: 3,
                 Base: 24, Region: 1.1, Hill: 1.4, Rise: 2.2, Range: 1, Forest: 0, Lower: 0, Wall: false),
             new("mid", Scale: 0.34, Tall: 620, GroundRow: 380, Follows: 0.13f, Dark: 0, Haze: 0.34f, Green: 0.6, Rows: 4,
-                Base: 16, Region: 0.55, Hill: 1.1, Rise: 1.2, Range: 0.45, Forest: 0.7, Lower: 0, Wall: false),
+                Base: 16, Region: 0.55, Hill: 1.1, Rise: 1.2, Range: 0.45, Forest: 0.7, Lower: 2, Wall: false),
             new("near", Scale: 0.56, Tall: 800, GroundRow: 380, Follows: 0.3f, Dark: 0.22f, Haze: 0.22f, Green: 0.62, Rows: 4,
-                Base: 10, Region: 0.35, Hill: 0.8, Rise: 0, Range: 0, Forest: 1, Lower: 2, Wall: true),
+                Base: 10, Region: 0.35, Hill: 0.8, Rise: 0, Range: 0, Forest: 1, Lower: 16, Wall: true),
         ],
         Groves: new(Size: new(3, 7), Within: new(0.35, 0.65), Gap: new(1.6, 4.2), Feet: new(1, 3), Big: new(1.05, 1.2), Other: new(0.7, 1)),
         Open: new(Lone: 0.3, Step: new(2.6, 6), Tree: new(0.8, 1.1), FeetOdds: 0.5, ShrubOdds: 0.5, ShrubsMost: 2),
         Forest: new(Step: new(0.42, 0.7), Back: new(0.7, 0.85), Front: new(0.95, 1.15), Feet: 0.7, Shift: 0.3, Least: 0.35),
         Outcrop: new(Size: new(2, 4), Scale: new(1.2, 2.2), Every: 1.5, Odds: 3, Least: 0.04, Apart: 0.22, Shrink: 0.15),
-        Shelves: new(Drop: 150, Soil: 0.3, Wobble: 18, Wave: 1.5, TreeOdds: 0.3, Tree: new(0.7, 0.95), Shrub: new(0.8, 1), Step: new(1.4, 3.2), Start: 2),
+        Shelves: new(Drop: 52, Soil: 0.9, Wobble: 3, Wave: 1.5, Darken: 0.025, Greener: 0.02, TreeOdds: 0.3, Tree: new(0.7, 0.95), Shrub: new(0.8, 1), Step: new(1.4, 3.2), Start: 2),
         Belts: new(ShrubWide: 45, ShrubStep: 0.7, ShrubJitter: 0.4, Run: 5, RunSkip: 35, ShrubSkip: 30, ShrubScales: [0.65, 0.8, 0.95],
             TuftStep: 14, TuftSkip: 45, TuftScale: 0.9, Lift: 2),
         AtFeet: new(0.75, 1), FeetSpread: 0.9,

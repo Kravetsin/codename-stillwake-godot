@@ -19,7 +19,8 @@ and that the land follow the terrain's height ("Горизонт по релье
   one, a seed's draws checked equal to the page's. Three layers far to near; along the panorama, by smooth noise, a stone
   range here and there with outcrops at its feet, grassy hills with groves of three to seven trees and shrubs at their feet,
   open plain with lone trees, a forest edge in two rows. Grassy ridges get the grass's own green in shade, rows of grass
-  tops along the crest, belts of bushes and tufts down the slope; the near layer two shelves of land below its crest.
+  tops along the crest, belts of bushes and tufts down the slope; under the mid and near crests, shelves of land about 50 px
+  apart, each a step darker, so no wide flat face shows.
 - **What is the planet's own is read where it is:** its plants and their chances (`PlanetType.Plants`), their pictures and
   sink (`FloraLooks`), its ground's waves (`PlanetType.Ground`), its soil and stone pictures, its fog. A plant's role (tree,
   shrub, small solid, cover) comes from its numbers (`Tall`, `Room`, `Chance`), never its name, so a planet with no tall plant

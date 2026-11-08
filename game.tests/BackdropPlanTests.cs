@@ -19,8 +19,8 @@ public class BackdropPlanTests
     private static List<string> Drawn(IReadOnlyList<BackdropPlan.Layer> plan) =>
         plan.SelectMany(l => l.Draws.Select(d => d switch
         {
-            BackdropPlan.Fill f => $"{l.Depth.Name} fill {f.Sheet} {f.Wash} {string.Join(',', f.Ridge.Up)}",
-            BackdropPlan.Picture p => $"{l.Depth.Name} {p.Name} {p.X:F3} {p.Y:F3} {p.W:F3} {p.H:F3} {p.Flip}",
+            BackdropPlan.Fill f => $"{l.Depth.Name} fill {f.Sheet} {f.Wash} {f.Shade} {string.Join(',', f.Ridge.Up)}",
+            BackdropPlan.Picture p => $"{l.Depth.Name} {p.Name} {p.X:F3} {p.Y:F3} {p.W:F3} {p.H:F3} {p.Flip} {p.Shade}",
             _ => throw new InvalidOperationException(),
         })).ToList();
 
@@ -84,6 +84,34 @@ public class BackdropPlanTests
                     Assert.Equal(ridge.Top(0), ridge.Top(ridge.N));
                     Assert.Equal(ridge.Top(ridge.N - 1), ridge.Top(-1));
                 }
+    }
+
+    /// <summary>The most of a layer's face, in its pixels, a crest or a shelf may leave bare above the next one.</summary>
+    private const double BareMost = 80;
+
+    [Fact]
+    public void TheNearFaceIsShelvedDownThroughItsHeight()
+    {
+        foreach (uint seed in new uint[] { 1, 2, 3, 4, 5, 7, 8, 0xdeadbeef })
+        {
+            var near = Of(seed)[^1];
+            var ridges = near.Draws.OfType<BackdropPlan.Fill>().Select(f => f.Ridge).ToList();
+            Assert.True(ridges.Count > 3, $"seed {seed}: {ridges.Count} ridges");
+            for (int i = 0; i < ridges[0].N; i++)
+                for (int k = 0; k < ridges.Count; k++)
+                {
+                    double top = ridges[k].Top(i), under = k + 1 < ridges.Count ? Math.Min(ridges[k + 1].Top(i), near.Depth.Tall) : near.Depth.Tall;
+                    Assert.True(under - top <= BareMost, $"seed {seed}, column {i}: {under - top:F0} px bare under ridge {k}");
+                }
+        }
+    }
+
+    [Fact]
+    public void ShelvesDarkenAsTheyComeNearer()
+    {
+        var fills = Of(1)[^1].Draws.OfType<BackdropPlan.Fill>().ToList();
+        Assert.Equal(1, fills[0].Shade);
+        Assert.All(fills.Zip(fills.Skip(1)), p => Assert.True(p.Second.Shade < p.First.Shade && p.Second.Wash.A >= p.First.Wash.A));
     }
 
     [Fact]

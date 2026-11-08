@@ -37,13 +37,17 @@ public static class BackdropPlan
     public abstract record Draw;
 
     /// <summary>
-    /// A ridge's land, from its columns' tops down past the layer's height, filled with picture <paramref name="Sheet"/> repeated at
-    /// the layer's scale; then, where its alpha is above nothing, <paramref name="Wash"/> over it.
+    /// A ridge's land, from its columns' tops down to the next ridge's (<paramref name="Over"/>, which covers the rest) or past
+    /// the layer's height, filled with picture <paramref name="Sheet"/> repeated at the layer's scale; then, where its alpha is
+    /// above nothing, <paramref name="Wash"/> over it. <paramref name="Shade"/>: what its colours are multiplied by, 1 on the crest.
     /// </summary>
-    public sealed record Fill(Ridge Ridge, string Sheet, (float R, float G, float B, float A) Wash) : Draw;
+    public sealed record Fill(Ridge Ridge, string Sheet, (float R, float G, float B, float A) Wash, float Shade, Ridge? Over) : Draw;
 
-    /// <summary>A picture, its top left at (<paramref name="X"/>, <paramref name="Y"/>), <paramref name="W"/> × <paramref name="H"/>, mirrored or not; repeated with the tile.</summary>
-    public sealed record Picture(string Name, double X, double Y, double W, double H, bool Flip) : Draw;
+    /// <summary>
+    /// A picture, its top left at (<paramref name="X"/>, <paramref name="Y"/>), <paramref name="W"/> × <paramref name="H"/>, mirrored
+    /// or not, its colours multiplied by <paramref name="Shade"/>; repeated with the tile.
+    /// </summary>
+    public sealed record Picture(string Name, double X, double Y, double W, double H, bool Flip, float Shade = 1) : Draw;
 
     /// <summary>A layer: its recipe and what it draws, in order.</summary>
     public sealed record Layer(Depth Depth, IReadOnlyList<Draw> Draws);
@@ -122,7 +126,8 @@ public static class BackdropPlan
 
     private abstract record Item;
 
-    private sealed record RidgeItem(List<(double X, double Y)> Points, string Sheet, string Material, bool Grassy) : Item;
+    /// <param name="Shelf">0 for a crest, the shelf's number under it for a shelf.</param>
+    private sealed record RidgeItem(List<(double X, double Y)> Points, string Sheet, string Material, bool Grassy, int Shelf = 0) : Item;
 
     private sealed record Part(string Name, double X, double Scale, bool Flip, int Sink) : Item;
 
@@ -229,13 +234,15 @@ public static class BackdropPlan
         items.AddRange(back);
         items.AddRange(front);
         items.AddRange(low);
-        // Nearer shelves below the crest, so a deep valley looks into more of the same land.
+        // Nearer shelves below the crest, so its face is broken up and a deep valley looks into more of the same land; till one
+        // lies wholly under the layer's height.
         var s = recipe.Shelves;
-        for (int k = 1; k <= d.Lower; k++)
+        var last = (RidgeItem)items[d.Range > 0 ? 1 : 0];
+        for (int k = 1; k <= d.Lower && d.GroundRow - last.Points.Max(p => p.Y) < d.Tall; k++)
         {
             var nL = Noise(r, across, g.HillWave * s.Wave);
             double drop = s.Drop * k / cell;
-            items.Add(new RidgeItem(Points(u => SoilUp(u) * s.Soil - drop + s.Wobble * nL(u)), Sheet(type.Soil, true), type.Soil, true));
+            items.Add(last = new RidgeItem(Points(u => SoilUp(u) * s.Soil - drop + s.Wobble * nL(u)), Sheet(type.Soil, true), type.Soil, true, k));
             for (double x = r.Next() * w0 * s.Start; x < tile; x += w0 * Between(r, s.Step))
             {
                 if (r.Next() < s.TreeOdds && roles.Big.Length > 0) items.Add(Pick(roles.Big, x, Between(r, s.Tree)));
@@ -258,12 +265,13 @@ public static class BackdropPlan
     {
         double s = d.Scale, tile = recipe.Tile;
         var draws = new List<Draw>();
+        float shade = 1;
         var wash = ((float)(Round(grass.R * recipe.Shade) / 255), (float)(Round(grass.G * recipe.Shade) / 255), (float)(Round(grass.B * recipe.Shade) / 255));
         void Put(string name, double x, double foot, double k, bool flip)
         {
             if (size(name) is not { } p) return;
             double w = p.W * k, h = p.H * k;
-            draws.Add(new Picture(name, x - w / 2, foot - h, w, h, flip));
+            draws.Add(new Picture(name, x - w / 2, foot - h, w, h, flip, shade));
         }
         double Wrap(double x) => ((x % tile) + tile) % tile;
         Ridge? crest = null;
@@ -274,7 +282,9 @@ public static class BackdropPlan
             {
                 var ridge = RidgeOf(ri.Points, s, d.GroundRow, tile);
                 int seed = 101 + ridges++ + layerSeed * 31;
-                draws.Add(new Fill(ridge, ri.Sheet, ri.Grassy && d.Green > 0 ? (wash.Item1, wash.Item2, wash.Item3, (float)d.Green) : default));
+                shade = (float)(1 - ri.Shelf * recipe.Shelves.Darken);
+                double green = ri.Grassy ? Math.Min(1, d.Green + ri.Shelf * recipe.Shelves.Greener) : 0;
+                draws.Add(new Fill(ridge, ri.Sheet, green > 0 ? (wash.Item1, wash.Item2, wash.Item3, (float)green) : default, shade, null));
                 int rows = ri.Grassy ? d.Rows : 1;
                 double th = recipe.TopTall * s;
                 for (int k = rows - 1; k >= 0; k--)
@@ -286,7 +296,7 @@ public static class BackdropPlan
                             row.Add(($"top_{ri.Material}_{Hash(i / 2 + k * 977, 7) % (uint)recipe.TopVariants}_{side}_{(i + k) % 2}", i));
                         foreach (var (name, i) in row.OrderBy(c => c.Name, StringComparer.Ordinal).ThenBy(c => c.I))
                             if (size(name) != null)
-                                draws.Add(new Picture(name, i * ridge.Cx, ridge.Top(i) - recipe.TopRise * s + k * recipe.RowStep * s, ridge.Cx + Seam, th, false));
+                                draws.Add(new Picture(name, i * ridge.Cx, ridge.Top(i) - recipe.TopRise * s + k * recipe.RowStep * s, ridge.Cx + Seam, th, false, shade));
                     }
                 if (ri.Grassy) Belts(ridge, rows, seed);
                 crest = ridge;
@@ -296,6 +306,14 @@ public static class BackdropPlan
             double scale = s * part.Scale;
             Put(part.Name, part.X, (crest?.At(Wrap(part.X)) ?? d.GroundRow) + part.Sink * scale, scale, part.Flip);
         }
+        // Each ridge's land need go no lower than the next ridge's top: that one fills on from there.
+        Fill? next = null;
+        for (int i = draws.Count - 1; i >= 0; i--)
+            if (draws[i] is Fill fill)
+            {
+                if (next != null) draws[i] = fill with { Over = next.Ridge };
+                next = fill;
+            }
         return draws;
 
         // Belts: shrubs in runs with gaps, tufts between, a row or two down the slope.

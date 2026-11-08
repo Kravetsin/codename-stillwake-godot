@@ -71,14 +71,17 @@ public partial class BackdropLayer : Node2D
                     {
                         float x = left + k * tile;
                         if (x + w <= 0 || x >= 2 * tile) continue;
-                        batch.Quad(texture.GetRid(), new Rect2(x, y, w, h), p.Flip);
+                        batch.Quad(texture.GetRid(), new Rect2(x, y, w, h), p.Flip, colour: new Color(p.Shade, p.Shade, p.Shade));
                     }
                     break;
             }
         batch.Flush();
     }
 
-    /// <summary>A ridge's columns from their tops down past the layer's height, its sheet repeated at the layer's scale, then its wash.</summary>
+    /// <summary>
+    /// A ridge's columns from their tops down to the next ridge's, or past the layer's height, its sheet repeated at the layer's
+    /// scale, then its wash; both shaded.
+    /// </summary>
     private void Fill(Batch batch, BackdropPlan.Fill fill, float tile, float bottom)
     {
         var ridge = fill.Ridge;
@@ -87,14 +90,18 @@ public partial class BackdropLayer : Node2D
         float cx = (float)ridge.Cx;
         for (int pass = 0; pass < (fill.Wash.A > 0 ? 2 : 1); pass++)
         {
-            var colour = pass == 0 ? Colors.White : new Color(fill.Wash.R, fill.Wash.G, fill.Wash.B, fill.Wash.A);
+            float shade = fill.Shade;
+            var colour = pass == 0 ? new Color(shade, shade, shade) : new Color(fill.Wash.R * shade, fill.Wash.G * shade, fill.Wash.B * shade, fill.Wash.A);
             var rid = pass == 0 ? sheet.GetRid() : default;
             for (int k = 0; k < 2; k++)
                 for (int i = 0; i < ridge.N; i++)
                 {
                     float x0 = i * cx, x1 = (i + 1) * cx, top = (float)ridge.Top(i);
-                    var at = new Rect2(x0 + k * tile, top, x1 - x0, bottom - top);
-                    batch.Quad(rid, at, false, new Rect2(x0 / size.X, top / size.Y, (x1 - x0) / size.X, (bottom - top) / size.Y), colour);
+                    // A pixel into the next ridge's land, so no seam shows between them.
+                    float until = fill.Over is { } over ? Mathf.Min(bottom, (float)over.Top(i) + 1) : bottom;
+                    if (until <= top) continue;
+                    var at = new Rect2(x0 + k * tile, top, x1 - x0, until - top);
+                    batch.Quad(rid, at, false, new Rect2(x0 / size.X, top / size.Y, (x1 - x0) / size.X, (until - top) / size.Y), colour);
                 }
         }
     }

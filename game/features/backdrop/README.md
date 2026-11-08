@@ -25,6 +25,9 @@ sky's pictures (`render/PlanetSky.cs`), both drawn by `render/Stars.cs`. Client 
 - **Seeded:** the surface's seed (`Main._seed`) through the page's mulberry32; integer ridges, so every peer sees the same land.
   The five draws the page gave its giant and sun are drawn and dropped: the sky keeps its own places.
 - **Ridges** are columns a cell of the layer wide, whole cells high, neighbours at most a cell apart, wrapping at the tile.
+- **Shelves:** under the mid and near crests, lower ridges of grass-topped land with their own bushes and trees, `Shelves.Drop`
+  layer px apart, until one lies wholly under the layer's height (at most `Depth.Lower`), so no wide bare face shows; each a
+  `Darken` step darker and `Greener` greener than the one above. A ridge's land is filled down to the next ridge's top only.
 - **Drawn once:** each layer's draws go into its canvas item at the surface's showing, a 2048 px tile twice side by side and
   what crosses its edge once more; quads of one picture together in one triangle array. Pictures from `art/hd` with
   mipmaps (`PixelArt.Picture`), at their world size × the layer's scale; ground sheets repeated at that scale.
