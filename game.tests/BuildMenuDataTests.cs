@@ -21,7 +21,7 @@ public class BuildMenuDataTests
             "power: solarPanel treadWheel burnerGenerator biofuelGenerator lamp arcLamp charger capacitorBank",
             "production: furnace workbench tradeStation autoTradeStation former crusher smelter assembler growCapsule fermenter arcBench",
             "storage: crate net droneBay",
-            "ship: computer radarAntenna launchPlatform dropPod engine",
+            "ship: launchPlatform dropPod computer radarAntenna engine",
         ], Tools.Tabs.Select(Ids));
     }
 

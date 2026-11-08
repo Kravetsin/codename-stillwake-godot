@@ -5,7 +5,7 @@ using Pairs = System.Collections.Generic.IReadOnlyList<((int X, int Y) A, (int X
 
 namespace Stillwake.Sim.Tests;
 
-/// <summary>The ship's computer and the radar antenna: made of what space gives, opened by research, drawing power once built.</summary>
+/// <summary>The ship's computer and the radar antenna: made with a planet's copper and magnetite, opened by research, drawing power once built.</summary>
 public class ShipComputerTests
 {
     /// <summary>A panel and the antenna out on the roof, the computer in the room under them, both cabled to the panel.</summary>
@@ -32,17 +32,27 @@ public class ShipComputerTests
     private static IEnumerable<string> Raw(string item) =>
         Crafts.All.FirstOrDefault(c => c.Item == item) is { } craft ? craft.Cost.SelectMany(c => Raw(c.Item)) : [item];
 
-    [Fact]
-    public void AreMadeOfWhatSpaceGivesAloneThroughTheNewPartsOfTheCircuitAssembler()
+    [Theory]
+    [InlineData("computer")]
+    [InlineData("radarAntenna")]
+    public void EachTakesAPlanetsCopperAndMagnetiteSoItIsBuiltAfterTheFirstLanding(string kind)
     {
-        var computer = Machines.Get("computer").Cost.Select(c => c.Item).ToList();
-        var antenna = Machines.Get("radarAntenna").Cost.Select(c => c.Item).ToList();
-        Assert.Contains("processor", computer);
-        Assert.Contains("display", computer);
-        Assert.Contains("transceiver", antenna);
-        // Iron and scrap from hulls, silicon of asteroids' rock and glass of silicon: no copper, magnetite, mica or shard.
-        Assert.Equal(["glass", "iron", "scrap", "silicon"], computer.Concat(antenna).SelectMany(Raw).Distinct().Order(StringComparer.Ordinal));
-        Assert.All(["processor", "display", "transceiver"], part => Assert.Contains(part, Stations.All.Single(s => s.Machine == "assembler").Rows.SelectMany(r => r)));
+        var raw = Machines.Get(kind).Cost.Select(c => c.Item).SelectMany(Raw).Distinct().Order(StringComparer.Ordinal);
+        // Iron and scrap from hulls, silicon of asteroids' rock and glass of silicon, and a planet's copper and magnetite: no mica or shard.
+        Assert.Equal(["copper", "glass", "iron", "magnetite", "scrap", "silicon"], raw);
+    }
+
+    [Fact]
+    public void TheirPartsAreOfWhatSpaceGivesForTheDropPodSharesThem()
+    {
+        Assert.Contains("processor", Machines.Get("computer").Cost.Select(c => c.Item));
+        Assert.Contains("display", Machines.Get("computer").Cost.Select(c => c.Item));
+        Assert.Contains("transceiver", Machines.Get("radarAntenna").Cost.Select(c => c.Item));
+        Assert.All(["processor", "display", "transceiver"], part =>
+        {
+            Assert.Subset(new HashSet<string>(["glass", "iron", "scrap", "silicon"]), Raw(part).ToHashSet());
+            Assert.Contains(part, Stations.All.Single(s => s.Machine == "assembler").Rows.SelectMany(r => r));
+        });
     }
 
     [Fact]

@@ -71,6 +71,7 @@ the louder turned down.
 | `building/hit-stone-3.wav` | Freesound, "Stone Strike/Hit" (0.4 s from 5.595 s), https://freesound.org/people/Bricklover/sounds/560966/ | Bricklover | CC0 |
 | `building/hit-stone-4.wav` | Freesound, "Stone Strike/Hit" (0.4 s from 7.947 s), https://freesound.org/people/Bricklover/sounds/560966/ | Bricklover | CC0 |
 | `building/hit-stone-5.wav` | Freesound, "Stone Strike/Hit" (0.4 s from 10.232 s), https://freesound.org/people/Bricklover/sounds/560966/ | Bricklover | CC0 |
+| `crafting/crusher-run-1.ogg` | Freesound, "quarry_close_up.aif" (2.98 s from 54.40 s, closed on itself by a 0.15 s equal-power crossfade where the wave matches best; mono 48 kHz, −23.2 LUFS, OGG), https://freesound.org/people/f_ilippo/sounds/59244/ | f_ilippo | CC0 |
 | `crafting/former-motor-1.ogg` | generated for Stillwake: 80 Hz at 0.6 and 160 Hz at 0.3 under white noise (mulberry32 seed 14) band-passed at 900 Hz, Q 3, gain 2.2, swaying ±45% at 2.25 Hz, a 4 s loop rendered offline to −23 dBFS RMS (the audition's "Flywheel whoosh") | Stillwake team | CC0 |
 | `crafting/former-stroke-1.wav` | Freesound, "Punch Press, 10 Ton" (0.5 s from the attack after 9.4 s), https://freesound.org/people/dnewtonjr/sounds/232598/ | dnewtonjr | CC0 |
 | `crafting/smelter-hum-1.ogg` | generated for Stillwake: 100 Hz and its harmonics at 1, 0.35 and 0.15 under white noise (mulberry32 seed 25) band-passed at 3.5 kHz, Q 0.7, gain 0.1, swaying ±30% at 0.75 Hz, a 4 s loop rendered offline to −23 dBFS RMS (the audition's "Hum and hiss") | Stillwake team | CC0 |

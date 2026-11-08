@@ -26,7 +26,8 @@ Draws and hears what `sim/Liquids` decides (flowing-liquids); sends nothing.
   in trickles a column apart, the gaps are drawn as falling water, so a drained pool reads as one stream.
 - **Eased:** each cell's drawn level closes on the sim's at `WaterEase.Rate` a second, so 20 ticks a second glide; a cell
   no longer covered sinks to its level. A dried one goes at once, as in Terraria: sinking out, cells drained together
-  would each leave a line on their floor.
+  would each leave a line on their floor. Water settled in a view that stayed is not eased or uploaded again: the view
+  keeps the bytes it wrote and skips a frame that would write the same (planet-frame-rate).
 - **Heard:** `Sound.WaterPour` loops at the stream nearest the view's middle within `Sound.PourReach` cells. The
   swimmer's splashes and strokes are the crew's (`Splashes`, played by `Figure`).
 

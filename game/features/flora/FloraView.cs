@@ -27,6 +27,9 @@ public partial class FloraView : Node2D, ILightSource
     private readonly BuildingModule _building;
     private readonly Dictionary<int, (string Kind, Sprite2D Picture, Sprite2D? Glow, (Vector2 At, Color Colour)[] Lights)> _shown = new();
     private readonly List<(Vector2 At, Color Colour)> _lights = [];
+    /// <summary>The glowing plants' lights by their pictures' boxes: those near the view found each frame without walking every plant.</summary>
+    private readonly BoxesByLeft<(Vector2 At, Color Colour)[]> _glowing = new();
+    private readonly List<(Vector2 At, Color Colour)[]> _near = [];
     /// <summary>Scratch for <see cref="Motes"/>: the lights on screen.</summary>
     private readonly List<(Vector2 At, Color Colour)> _lit = [];
     private readonly Queue<double> _motes = new();
@@ -58,13 +61,14 @@ public partial class FloraView : Node2D, ILightSource
         var near = view.Grow(Cell * FloraLooks.LightReach);
         _lights.Clear();
         _sources.Clear();
-        foreach (var (_, (_, picture, _, lights)) in _shown)
-            if (lights.Length > 0 && near.Intersects(new Rect2(picture.Position, picture.Texture.GetSize())))
-                foreach (var (at, colour) in lights)
-                {
-                    _lights.Add((at, colour));
-                    _sources.Add(new LightSource(at.X, at.Y, (colour.R, colour.G, colour.B), 1, FloraLooks.LightReach, FloraLooks.LightKeep, 1));
-                }
+        _near.Clear();
+        _glowing.Meeting(near.Position.X, near.Position.Y, near.End.X, near.End.Y, _near);
+        foreach (var lights in _near)
+            foreach (var (at, colour) in lights)
+            {
+                _lights.Add((at, colour));
+                _sources.Add(new LightSource(at.X, at.Y, (colour.R, colour.G, colour.B), 1, FloraLooks.LightReach, FloraLooks.LightKeep, 1));
+            }
         Motes(view, delta);
         Game.Dev.FrameLog.End("flora", started);
     }
@@ -88,6 +92,7 @@ public partial class FloraView : Node2D, ILightSource
             picture.QueueFree();
             glow?.QueueFree();
             _shown.Remove(cell);
+            _glowing.Remove(cell);
             if (!first) Felled(cell, kind, picture.Texture.GetSize().Y);
         }
     }
@@ -124,6 +129,7 @@ public partial class FloraView : Node2D, ILightSource
             glow = new Sprite2D { Texture = shine.Texture, Centered = false, Position = corner, ZIndex = Layers.Flora, Material = GlowMaterial };
             AddChild(glow);
             lights = shine.Points.Select(p => (corner + p.At, p.Colour)).ToArray();
+            _glowing.Add(plant.Cell, corner.X, corner.Y + from, corner.X + size.X, corner.Y + from + size.Y, lights);
         }
         _shown[plant.Cell] = (plant.Kind, picture, glow, lights);
     }

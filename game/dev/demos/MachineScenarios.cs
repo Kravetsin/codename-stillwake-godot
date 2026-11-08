@@ -183,12 +183,12 @@ public sealed class BoardScenario : DevScenario
     }
 }
 
-[Dev("--bulb", "the bulb at the screen's top as a note starts waiting, the find flying into the research key; =two with a second find after the burst, =open with T mid-flight, =early while it heats (BulbDemo)", Shape = DevShape.Either)]
-public sealed class BulbScenario : DevScenario
+[Dev("--flash", "the flash along the tablet's edge as notes start waiting: a find, three together flashing once, one more, again every 12 s (FlashDemo)")]
+public sealed class FlashScenario : DevScenario
 {
     public override World Seed(World world, DevSeed seed) => BoardDemo.Seed(world, seed.Modules, "late");
 
-    public override void Attach(DevContext c) => c.Add(new BulbDemo(c.M, Args.Given("--bulb")));
+    public override void Attach(DevContext c) => c.Add(new FlashDemo(c.M));
 }
 
 [Dev("--tool-cards", "every hand tool's card, the drill's fitted too, the nailer's and the railgun's, every tool in a slot under them (ToolCardsDemo)")]

@@ -16,10 +16,11 @@ namespace Stillwake.Game.Dev;
 [Dev("--strip", "the test strip (0076); with --autopilot played by a script (HeroAutopilot.PlanetRun)", Order = 5)]
 [Dev("--dusk", "with --planet or --strip, the planet's dusk starting two seconds in, its night a minute on (2026-11-07-night-chills)", Order = 5)]
 [Dev("--valley", "with --planet, the hero beamed down into the planet's deepest valley rather than at the pod, to see the land behind follow (composed-backdrops)", Order = 5)]
+[Dev("--beam-twice", "with --planet, back aboard two seconds in and down again two seconds later: the second descent (heard-every-other)", Order = 5)]
 [Dev("--dig", "with --planet, the ground under the hero hewn at the drill's pace from four seconds in, so it digs down: to measure what digging costs a frame; =SECONDS stops then, --frames counting afresh, to measure the depth reached", Order = 5, Shape = DevShape.Either)]
 public sealed class PlanetScenario : DevScenario
 {
-    private bool _beamedBack, _dusk, _valley;
+    private bool _beamedBack, _beamedAgain, _dusk, _valley;
     private int _dug;
     private bool _stopped;
 
@@ -55,7 +56,7 @@ public sealed class PlanetScenario : DevScenario
         log($"valley: beamed to column {best}, its ground at row {tops[best]}, the land round it at {Features.Backdrop.GroundLine.Mean(tops, best, reach):F0}");
     }
 
-    /// <summary><c>--beam-back</c>: back aboard two seconds in, to see the switch both ways; <c>--dusk</c>: the planet's dusk then.</summary>
+    /// <summary><c>--beam-back</c>: back aboard two seconds in, to see the switch both ways (<c>--beam-twice</c> down again at four); <c>--dusk</c>: the planet's dusk then.</summary>
     public override void Frame(Client client, Registry m, Action<string> log)
     {
         if (Valleys && !_valley && client.World.Surfaces.Count > 1)
@@ -70,7 +71,12 @@ public sealed class PlanetScenario : DevScenario
             _dusk = true;
             client.Send(new Sim.Sky.SetTime(day.Length - day.Night - Daylight.Dusk));
         }
-        if (_beamedBack || !Args.Has("--beam-back")) return;
+        if (Args.Has("--beam-twice") && _beamedBack && !_beamedAgain && client.World.Tick >= 4 * World.TicksPerSecond)
+        {
+            _beamedAgain = true;
+            client.Send(new Transfer(client.World.Surfaces.Count - 1));
+        }
+        if (_beamedBack || !Args.Has("--beam-back") && !Args.Has("--beam-twice")) return;
         _beamedBack = true;
         client.Send(new Transfer(0));
     }

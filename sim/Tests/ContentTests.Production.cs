@@ -135,7 +135,7 @@ public partial class ContentTests
         // What is smelted from something and smelts on yields what smelts no more: a chain of two, no cycle.
         var chained = Content.Items.All.Where(i => i.Yields != null && Content.Items.All.Any(f =>
             f.Yields?.Any(y => y.Item == i.Id) == true || f.Byproducts?.Any(b => b.Item == i.Id) == true)).ToList();
-        Assert.Equal(["ironOre", "quartz", "gravel", "biomass"], chained.Select(i => i.Id));
+        Assert.Equal(["scrap", "ironOre", "quartz", "gravel", "biomass"], chained.Select(i => i.Id));
         Assert.All(chained, spec => Assert.All(spec.Yields!, y => Assert.Null(Content.Items.Get(y.Item).Yields)));
     }
 
@@ -428,7 +428,8 @@ public partial class ContentTests
             int inputs = craft.Cost.Sum(c => (Market.PriceOf(c.Item) ?? 0) * c.Count);
             Assert.True(Market.PriceOf(craft.Item) > inputs, $"{craft.Item}: {Market.PriceOf(craft.Item)} for {inputs}");
         }
-        foreach (var item in Content.Items.All.Where(i => i.Yields != null && Market.PriceOf(i.Id) != null))
+        // Scrap into iron is the one smelt at a loss (2026-11-08-scrap-to-iron): a way out for what piles up.
+        foreach (var item in Content.Items.All.Where(i => i.Yields != null && Market.PriceOf(i.Id) != null && i.Id != "scrap"))
         {
             int yields = item.Yields!.Sum(y => (Market.PriceOf(y.Item) ?? 0) * y.Count);
             // A byproduct pays what it does on average: crushing ore pays by its quartz, gravel now being cheap.
@@ -574,7 +575,7 @@ public partial class ContentTests
     [Fact]
     public void EverythingButAPlanetsOwnOpensFromWhatSpaceGivesAloneTheDropPodAmongThem()
     {
-        string[] planetary = ["accumulator", "arcBench", "arcLamp", "arcModule", "backWallAlloy", "backWallHide", "backWallMica", "backWallStone", "biofuelGenerator", "cape", "engine", "fuelPump", "grinder", "igniter", "motor", "nozzle", "railgun", "salvageDrone", "wallAlloy", "wallHide", "wallMica", "wallStone"];
+        string[] planetary = ["accumulator", "arcBench", "arcLamp", "arcModule", "backWallAlloy", "backWallHide", "backWallMica", "backWallStone", "biofuelGenerator", "cape", "computer", "engine", "fuelPump", "grinder", "igniter", "motor", "nozzle", "radarAntenna", "railgun", "salvageDrone", "wallAlloy", "wallHide", "wallMica", "wallStone"];
         var (had, known) = Reachable(Stations.All);
         var recipes = Stillwake.Sim.Research.Blueprints.All.Select(b => (b.Id, b.Cost)).Concat(Crafts.All.Select(c => (Id: c.Item, c.Cost)));
         var locked = recipes.Where(r => !known.Contains(r.Id) || !r.Cost.All(c => had.Contains(c.Item))).Select(r => r.Id).Distinct().Order(StringComparer.Ordinal).ToArray();

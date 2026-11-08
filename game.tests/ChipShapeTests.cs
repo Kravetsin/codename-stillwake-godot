@@ -45,9 +45,10 @@ public class ChipShapeTests
         {
             var (sx, sy) = ChipShape.Corners[i];
             double was = Math.Sqrt(sx * sx + sy * sy) * scale, now = Math.Sqrt(Math.Pow(corners[i].X - 5, 2) + Math.Pow(corners[i].Y + 7, 2));
-            Assert.Equal(was, now, 3);
+            // Within a thousandth, not rounded to three places: two values a hair apart may round either side of a step.
+            Assert.Equal(was, now, 1e-3);
         }
-        Assert.Equal(Area(ChipShape.Corners) * scale * scale, Area(corners), 3);
+        Assert.Equal(Area(ChipShape.Corners) * scale * scale, Area(corners), 1e-3);
     }
 
     private static double Area((float X, float Y)[] c) =>

@@ -37,6 +37,10 @@ public static class EdgeRow
     /// </summary>
     public static float Top(float top, float tall, float grown) => MathF.Max(TabletPeek.RowLeast, top + tall - tall * grown);
 
-    /// <summary>Whether the keys are bright: the pointer at <paramref name="pointerY"/> no further above the row's top than the band, or over a tablet that is up.</summary>
-    public static bool Bright(float pointerY, float rowTop, bool overTablet) => overTablet || pointerY >= rowTop - NearBand;
+    /// <summary>
+    /// Whether the keys are bright: the pointer at <paramref name="pointerY"/> no further above the row's top than the band, or over a tablet that
+    /// is up; never with the pointer off the window (<paramref name="inWindow"/>), where it would keep them flickering, drawn each frame.
+    /// </summary>
+    public static bool Bright(float pointerY, float rowTop, bool overTablet, bool inWindow) =>
+        inWindow && (overTablet || pointerY >= rowTop - NearBand);
 }

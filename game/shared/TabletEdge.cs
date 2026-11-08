@@ -93,8 +93,8 @@ public partial class TabletEdge : CanvasLayer
         }
     }
 
-    /// <summary>Where the row of keys lies on the screen: the bulb keeps clear of it.</summary>
-    public Rect2 Row => _row.GetGlobalRect();
+    /// <summary>Where the tablet the keys ride lies on the screen, the one up or the rim, its top the metal's: what a find's flash runs along.</summary>
+    public Rect2 Art { get; private set; }
 
     public override void _Process(double delta)
     {
@@ -119,13 +119,13 @@ public partial class TabletEdge : CanvasLayer
         foreach (var tablet in _tablets)
             if (tablet.Shown && (up == null || tablet.Up > up.Up)) up = tablet;
         _rim.Visible = _metal.Visible = up == null;
-        var art = (up ?? _rim).Covers;
+        var art = Art = (up ?? _rim).Covers;
         var (middle, foot) = TabletPeek.RowAt(art.Position.X, art.Position.Y, art.Size.X);
         float grown = EdgeRow.Grown(_ui.Slot), top = EdgeRow.Top(foot, EdgeKey.Side, grown);
         Lay(middle, top, art.End.X - ReadoutIn, grown, delta);
         if (_keysAway.Exists(t => t.Shown)) HideKeys();
         var pointer = _root.GetViewport().GetMousePosition();
-        _near.Step(delta, EdgeRow.Bright(pointer.Y, top, up != null && art.HasPoint(pointer)));
+        _near.Step(delta, EdgeRow.Bright(pointer.Y, top, up != null && art.HasPoint(pointer), new Rect2(Vector2.Zero, window).HasPoint(pointer)));
         foreach (var slot in _slots) slot.Key.Near = (float)_near.Lit;
         if (_readout != null) _readout.Near = (float)_near.Lit;
         _tips.Frame(_ui.MenuOpen.Get() ? null : pointer);

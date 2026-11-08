@@ -178,6 +178,8 @@ public partial class Main : Node2D, ITogether
         // Before everything else, so every button made after it clicks.
         var sound = new SoundView(Floats, () => _title != null, Fogged);
         AddChild(sound);
+        // What is heard, counted into the log now and then: a sound bug of co-op's second descent (heard-every-other).
+        AddChild(new Features.Sound.AudioCensus(Log, sound, () => _session is Session s ? s.Client.World.SurfaceOf(s.Client.Id) : null));
 
         // The views of this player's hands, made first: the hero, its items and the debris share its Ui and mouse.
         _hands = new Hands();
@@ -336,7 +338,7 @@ public partial class Main : Node2D, ITogether
         edge.Readout(new CreditHolo(() => tech.Credits), "research.creditsTip", () => tech.MarketCapShows);
         foreach (var tablet in (Tablet[])[_hands.Menu.Tablet, handbook.Tablet, tech.Tablet]) edge.Follow(tablet);
         AddChild(edge);
-        AddChild(new ScreenBulb(tech.Bulb, inWorld, () => tech.Cap.IsVisibleInTree() ? tech.Cap.GetGlobalRect() : null, () => edge.Row, tech.FindPicture));
+        AddChild(new FindFlashView(tech.Flash, inWorld, () => edge.Art, () => tech.Cap.IsVisibleInTree() ? tech.Cap.GetGlobalRect() : null));
         var suits = new SuitColours(SuitsWorn, colour => _session?.Client.Send(new Sim.Crew.PickColour(colour)));
         var lookEditor = _lookEditor = new Features.Crew.LookEditor(() => Suits.Of(_m.Players, (_session as Session)?.Client.Id ?? 0), look =>
         {
