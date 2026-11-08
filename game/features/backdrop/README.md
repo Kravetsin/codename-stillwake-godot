@@ -37,7 +37,8 @@ sky's pictures (`render/PlanetSky.cs`), both drawn by `render/Stars.cs`. Client 
   shares, then multiplies the day's colour (`Stars.Tint`, `Daylight.Backdrop`), as the sky's pictures are multiplied.
 - **Placed by the terrain:** the ground line is the surface rows (`GroundLine.Tops`, read once from the grid, the first cell
   with a wall or a back wall) averaged over `Reach` columns either side of the camera. A layer's ground row lies on the screen
-  at `screen/2 + (line − camera) × zoom × Follows`, across at its share of the camera. Its land goes on `Below` under its height.
+  at `screen/2 + (line − camera) × zoom × Follows`, `Down × zoom` lower, across at its share of the camera. Its land goes on
+  `Below` under its height. The near layer sits `Down` 56 lower, so the mid layer's groves show over it.
 
 ## Deliberately not handled
 
