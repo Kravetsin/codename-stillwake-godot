@@ -35,6 +35,15 @@ public static class FloraLooks
         return look.Ink is { } kinds ? $"planet/{kinds[(int)(hash / (uint)look.Variants % (uint)kinds.Count)]}_{variant}" : $"planet/{kind}_{variant}";
     }
 
+    /// <summary>Every picture a plant of <paramref name="kind"/> may be drawn with, each ink's variants in turn: what a backdrop composes from.</summary>
+    public static IEnumerable<string> Pictures(string kind)
+    {
+        var look = Of[kind];
+        foreach (var ink in look.Ink ?? [kind])
+            for (int v = 0; v < look.Variants; v++)
+                yield return $"planet/{ink}_{v}";
+    }
+
     /// <summary>
     /// The light a glowing part casts (a seed pod, a berry, a bell), as a lamp's falling off by <see cref="LightKeep"/> a cell
     /// out to <see cref="LightReach"/>, at <see cref="LightStrength"/> of its colour; at most <see cref="MostLights"/> a plant.

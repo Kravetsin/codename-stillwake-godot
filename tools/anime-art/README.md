@@ -43,7 +43,6 @@ finish is `wash.js`, one for every subject; these are the rules a drawing must f
 | `caves` | stone, ice and copper veins and soil (`wall_`, `back_`, `wall-edge_`, `top_`, `detail_`), `caves/moss_*`, `caves/mossGreen_*`, `caves/crystalIce*` |
 | `creatures` | `creatures/<id>/<part>`, and `Content/logic/CreatureInk.cs`, their numbers: the picked designs of the rigged creatures |
 | `tick`, `warden`, `cavehostiles` | `creatures/ink<Kind>/*` and `Content/logic/<Rig>Ink.cs`: the picked guards and lurkers, posed by `TickRig`, `IstukanRig`, `LurkerRig` |
-| `backdrop` | `planet/far`, `planet/ridge`, `planet/hills` and their far acacias, at 2x: soft and always far |
 | `tufts` | `planet/tuft_*`, `tuftReed_*`, `tuftFungus_*`: one plant of three to a tuft, by `FloraLooks.Drawn` |
 | `flora` | `planet/acacia_*` and their `_glow`: the pods stand where the logical glow picture has them, for the game lights from there |
 | `shrubs` | `planet/bush_*`, `rock_*`, `bell*_*` and their `_glow`: dead thorn, boulders, hooded bells; light only in `_glow` |
