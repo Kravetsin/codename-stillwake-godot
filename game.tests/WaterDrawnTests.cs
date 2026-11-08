@@ -1,3 +1,6 @@
+using FsCheck;
+using FsCheck.Fluent;
+using FsCheck.Xunit;
 using Stillwake.Game.Features.Crew;
 using Stillwake.Game.Features.Liquids;
 using Xunit;
@@ -167,4 +170,27 @@ public class WaterDrawnTests
         Assert.InRange(strokes, 9, 11);
         for (int i = 0; i < 100; i++) Assert.False(s.Step(true, false, S.StrokeEveryS / 10).Stroke);
     }
+
+    [Property(MaxTest = 1000)]
+    public Property SkippingDryRowsDrawsWhatLookingAtEveryRowDraws() =>
+        Prop.ForAll(Gen.Choose(0, int.MaxValue).ToArbitrary(), seed =>
+        {
+            // A world of sparse water and walls, a box anywhere in it: the dry rows skipped by their bytes change no texel.
+            var random = new System.Random(seed);
+            int w = random.Next(1, 24), h = random.Next(1, 40);
+            var layer = new byte[w * h];
+            var walls = new bool[w * h];
+            for (int cell = 0; cell < layer.Length; cell++)
+            {
+                walls[cell] = random.Next(8) == 0;
+                if (!walls[cell] && random.Next(4) == 0) layer[cell] = L.Of(L.Water, random.Next(1, L.Full + 1));
+            }
+            int left = random.Next(w), top = random.Next(h), wide = random.Next(1, w - left + 1), tall = random.Next(1, h - top + 1);
+            var skipped = new byte[wide * tall * 4];
+            var looked = new byte[wide * tall * 4];
+            System.Array.Fill(skipped, (byte)7);
+            bool any = WaterCells.Write(layer, w, h, c => walls[c], left, top, wide, tall, skipped, skipDry: true);
+            Assert.Equal(WaterCells.Write(layer, w, h, c => walls[c], left, top, wide, tall, looked, skipDry: false), any);
+            Assert.Equal(looked, skipped);
+        });
 }

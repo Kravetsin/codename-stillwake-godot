@@ -33,9 +33,12 @@ public partial class Lightmap : Node
             shader_type canvas_item;
             render_mode unshaded, blend_add;
             // A texel a cell: 0 open, a quarter a closed hatch (3/8 its far row), half a closed door (5/8 its far column), whole a wall;
-            // over what is built, its first texel at cell origin.
-            uniform sampler2D occupancy : filter_nearest, repeat_disable;
+            // over what is built, its first texel at cell origin, cut into tiles of TILE cells, a layer each, row by row (StarTiles).
+            uniform sampler2DArray occupancy : filter_nearest, repeat_disable;
             uniform ivec2 origin = ivec2(0);
+            uniform ivec2 occupied = ivec2(1);
+            uniform int tiles_across = 1;
+            const int TILE = {{StarTiles.Size}};
             // The columns of its doorway a closed door's panel fills, and the rows a closed hatch's does, in pixels of its two cells: from, to.
             uniform vec2 panel = vec2(6.0, 10.0);
             uniform vec2 hatch = vec2(6.0, 10.0);
@@ -64,9 +67,9 @@ public partial class Lightmap : Node
             // 2 a wall, 1 a closed door, 3 a closed hatch, 4 and 5 their far column and row, 0 open, past what is built too.
             int kind(ivec2 c) {
                 c -= origin;
-                ivec2 size = textureSize(occupancy, 0);
-                if (c.x < 0 || c.y < 0 || c.x >= size.x || c.y >= size.y) return 0;
-                float v = texelFetch(occupancy, c, 0).r;
+                if (c.x < 0 || c.y < 0 || c.x >= occupied.x || c.y >= occupied.y) return 0;
+                ivec2 tile = c / TILE;
+                float v = texelFetch(occupancy, ivec3(c - tile * TILE, tile.y * tiles_across + tile.x), 0).r;
                 return v > 0.75 ? 2 : (v > 0.56 ? 4 : (v > 0.44 ? 1 : (v > 0.31 ? 5 : (v > 0.19 ? 3 : 0))));
             }
 
@@ -172,8 +175,15 @@ public partial class Lightmap : Node
     private byte[] _cells = [];
     /// <summary>The cells the occupancy texture covers: what was built when it was last laid out whole.</summary>
     private Box _occupied = Box.None;
-    private Image? _occupancy;
-    private ImageTexture? _occupancyTexture;
+    /// <summary>
+    /// <see cref="_cells"/> in tiles (<see cref="StarTiles"/>), so a change sends the tile or two it touched: the whole of a planet's
+    /// ground, 6 MB, sent again for each wall dug took 2 ms.
+    /// </summary>
+    private Texture2DArray? _occupancy;
+    /// <summary>Scratch: one tile's texels, and its image, sent a layer at a time.</summary>
+    private readonly byte[] _tile = new byte[StarTiles.Size * StarTiles.Size];
+    private Image? _tileImage;
+    private readonly List<Box> _touched = [];
 
     public Lightmap()
     {
@@ -208,12 +218,27 @@ public partial class Lightmap : Node
         int w = built.Width, h = built.Height;
         if (_cells.Length != w * h) _cells = new byte[w * h];
         Sources.Occupy(structure, material, structureAt, width, built, _cells);
-        Upload(built, panels);
+        var (across, down) = StarTiles.Of(built);
+        var images = new Godot.Collections.Array<Image>();
+        for (int layer = 0; layer < across * down; layer++)
+        {
+            StarTiles.Copy(_cells, 1, built, layer, _tile);
+            images.Add(Image.CreateFromData(StarTiles.Size, StarTiles.Size, false, Image.Format.R8, _tile));
+        }
+        _occupancy = new Texture2DArray();
+        _occupancy.CreateFromImages(images);
+        _material.SetShaderParameter("occupancy", _occupancy);
+        _material.SetShaderParameter("occupied", new Vector2I(w, h));
+        _material.SetShaderParameter("tiles_across", across);
+        _material.SetShaderParameter("origin", new Vector2I(built.Left, built.Top));
+        _material.SetShaderParameter("panel", new Vector2(panels.Door.From, panels.Door.To));
+        _material.SetShaderParameter("hatch", new Vector2(panels.Hatch.From, panels.Hatch.To));
+        _material.SetShaderParameter("beam_cos", (float)Math.Cos(L.HeadLampHalfAngle));
     }
 
     /// <summary>
     /// After the structure of <paramref name="changed"/> cells moved: their texels and those above and below, whose
-    /// doors may have turned hatches or back (0067), set again, or, when one lies
+    /// doors may have turned hatches or back (0067), set again and the tiles they lie in sent, or, when one lies
     /// past the texture, the whole of what is built laid out anew (<see cref="Occupy"/>). The texture may cover
     /// more than is built: past what is built every cell is open, inside the texture or past it alike.
     /// </summary>
@@ -227,35 +252,25 @@ public partial class Lightmap : Node
                 Occupy(structure, material, structureAt, width, built, panels);
                 return;
             }
+        _touched.Clear();
         foreach (int changedCell in changed)
+        {
             for (int c = changedCell - width; c <= changedCell + width; c += width)
                 if (c >= 0 && c < structure.Length && box.Contains(c % width, c / width))
                     _cells[(c / width - box.Top) * box.Width + c % width - box.Left] = Sources.Of(structureAt, materialAt, width, structure.Length, c);
-        Upload(box, panels);
+            _touched.Add(new Box(changedCell % width, changedCell / width - 1, changedCell % width, changedCell / width + 1));
+        }
+        _tileImage ??= Image.CreateEmpty(StarTiles.Size, StarTiles.Size, false, Image.Format.R8);
+        foreach (int layer in StarTiles.Touched(box, _touched))
+        {
+            StarTiles.Copy(_cells, 1, box, layer, _tile);
+            _tileImage.SetData(StarTiles.Size, StarTiles.Size, false, Image.Format.R8, _tile);
+            _occupancy!.UpdateLayer(_tileImage, layer);
+        }
     }
 
     /// <summary>What of a closed doorway stops light, in pixels of its cell: a door's panel's columns, and a hatch's panel's rows, which no longer stop light (0111).</summary>
     public readonly record struct Panels((int From, int To) Door, (int From, int To) Hatch);
-
-    private void Upload(Box built, Panels panels)
-    {
-        int w = built.Width, h = built.Height;
-        if (_occupancy != null && _occupancyTexture != null && _occupancy.GetWidth() == w && _occupancy.GetHeight() == h)
-        {
-            _occupancy.SetData(w, h, false, Image.Format.R8, _cells);
-            _occupancyTexture.Update(_occupancy);
-        }
-        else
-        {
-            _occupancy = Image.CreateFromData(w, h, false, Image.Format.R8, _cells);
-            _occupancyTexture = ImageTexture.CreateFromImage(_occupancy);
-            _material.SetShaderParameter("occupancy", _occupancyTexture);
-        }
-        _material.SetShaderParameter("origin", new Vector2I(built.Left, built.Top));
-        _material.SetShaderParameter("panel", new Vector2(panels.Door.From, panels.Door.To));
-        _material.SetShaderParameter("hatch", new Vector2(panels.Hatch.From, panels.Hatch.To));
-        _material.SetShaderParameter("beam_cos", (float)Math.Cos(L.HeadLampHalfAngle));
-    }
 
     /// <summary>Lays both maps over <paramref name="view"/> (world pixels) and draws <paramref name="main"/> and <paramref name="spots"/> into them.</summary>
     public void Frame(Rect2 view, IReadOnlyList<LightSource> main, IReadOnlyList<LightSource> spots)

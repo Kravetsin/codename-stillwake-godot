@@ -104,6 +104,7 @@ public static class DevModes
         new("--for", DevShape.Equals, "quits after that many seconds"),
         new("--measure", DevShape.Flag, "prints what frames cost (PerfReadout)"),
         new("--frames", DevShape.Either, "logs every frame and prints the worst with their causes on quitting, =vsync with it (FrameLog)"),
+        new("--ablate", DevShape.Either, "each node's processing switched off in turn, the frame time it saves printed, then quits; =Name for that node's children (ProcessAblation)"),
         new("--allocs", DevShape.Flag, "with --frames, what was allocated, by type (AllocationSampler)"),
         new("--fx-bench", DevShape.Flag, "a busy scene of luminous effects round the view's middle to measure (FxBench)"),
     ];

@@ -68,25 +68,50 @@ public static class WaterCells
     /// <summary>
     /// Writes the box (<paramref name="left"/>, <paramref name="top"/>, <paramref name="wide"/> × <paramref name="tall"/> cells) of
     /// <paramref name="layer"/> into <paramref name="texels"/>, four bytes a cell; <paramref name="blocks"/> says which cells stop
-    /// liquid. Returns whether any cell of it is drawn.
+    /// liquid. Returns whether any cell of it is drawn. Rows with no water near them are skipped by their bytes alone: most of a
+    /// planet's view is dry, and looking at every cell of it took 3.6 ms a frame.
     /// </summary>
-    public static bool Write(ReadOnlySpan<byte> layer, int width, int height, Func<int, bool> blocks, int left, int top, int wide, int tall, byte[] texels)
+    public static bool Write(ReadOnlySpan<byte> layer, int width, int height, Func<int, bool> blocks, int left, int top, int wide, int tall, byte[] texels) =>
+        Write(layer, width, height, blocks, left, top, wide, tall, texels, skipDry: true);
+
+    /// <summary><see cref="Write(ReadOnlySpan{byte}, int, int, Func{int, bool}, int, int, int, int, byte[])"/>, every row looked at without <paramref name="skipDry"/>: what the skip is tested against.</summary>
+    internal static bool Write(ReadOnlySpan<byte> layer, int width, int height, Func<int, bool> blocks, int left, int top, int wide, int tall, byte[] texels, bool skipDry)
     {
         int fromX = Math.Max(0, left - Side), toX = Math.Min(width - 1, left + wide - 1 + Side), across = Math.Max(0, toX - fromX + 1);
         int from = Math.Max(0, top - Gap - 1), to = Math.Min(height - 1, top + tall - 1 + Down), rows = Math.Max(0, to - from + 1);
         var falls = ArrayPool<bool>.Shared.Rent(Math.Max(1, across * rows));
+        // How many of the rows from From hold water in the columns traced, before each: a row is dry where two counts are equal.
+        var wetBefore = ArrayPool<int>.Shared.Rent(rows + 1);
         try
         {
-            // From the bottom up, so a cell knows whether the water under it falls.
+            wetBefore[0] = 0;
+            for (int r = 0; r < rows; r++)
+                wetBefore[r + 1] = wetBefore[r] + (!skipDry || layer.Slice((from + r) * width + fromX, across).ContainsAnyExcept(L.None) ? 1 : 0);
+            // From the bottom up, so a cell knows whether the water under it falls; a dry row's cells do not.
             for (int gy = to; gy >= from; gy--)
+            {
+                if (wetBefore[gy - from + 1] == wetBefore[gy - from])
+                {
+                    Array.Clear(falls, (gy - from) * across, across);
+                    continue;
+                }
                 for (int x = 0; x < across; x++)
                     falls[(gy - from) * across + x] = Falls(layer, width, height, blocks, falls, fromX, across, fromX + x, gy, gy < to ? (gy + 1 - from) * across : -1);
+            }
             var cells = new Cells(layer, width, height, blocks, falls, fromX, from, across, rows);
             bool any = false;
             for (int y = 0; y < tall; y++)
+            {
+                // A cell is drawn only with water within Gap + 1 rows of it, over or under (Bridged): none, and its row is blank.
+                int gy = top + y, near = Math.Max(from, gy - Gap - 1) - from, far = Math.Min(to, gy + Gap + 1) - from;
+                if (far < near || wetBefore[far + 1] == wetBefore[near])
+                {
+                    texels.AsSpan(y * wide * 4, wide * 4).Clear();
+                    continue;
+                }
                 for (int x = 0; x < wide; x++)
                 {
-                    int gx = left + x, gy = top + y, at = (y * wide + x) * 4;
+                    int gx = left + x, at = (y * wide + x) * 4;
                     texels[at] = texels[at + 1] = texels[at + 2] = texels[at + 3] = 0;
                     bool wet = cells.Wet(gx, gy), bridged = !wet && cells.Bridged(gx, gy);
                     if (!wet && !bridged) continue;
@@ -97,11 +122,13 @@ public static class WaterCells
                     texels[at + 3] = 255;
                     any = true;
                 }
+            }
             return any;
         }
         finally
         {
             ArrayPool<bool>.Shared.Return(falls);
+            ArrayPool<int>.Shared.Return(wetBefore);
         }
     }
 

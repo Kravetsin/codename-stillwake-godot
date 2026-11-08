@@ -14,7 +14,8 @@ Draws and hears what `sim/Liquids` decides (flowing-liquids); sends nothing.
 - **Reads:** `ILiquidsQueries` (`Layer`, `FallNear`), `IGridQueries` (`Blocks`, the size).
 - **Over the heroes** (`Layers.Water`): a hero swimming is seen through the wash. Lit as the ground is, not unshaded, so
   it is as dark as the cave and as bright as its lamps.
-- **Each frame** only the cells in view, a cell round them; on a surface that never held liquid, nothing.
+- **Each frame** only the cells in view, a cell round them; on a surface that never held liquid, nothing. A row with no water
+  within `WaterCells.Gap` + 1 rows of it is skipped by its bytes alone (2026-11-08-planet-frame-rate): a dry view costs next to nothing.
 - **As Terraria draws it:** each cell filled from its bottom to its level, or whole where water is over it. The sim moves
   water a cell a tick, so falling water is a whole column of cells and lands as the pool it fills: no
   stream is guessed at between cells.
