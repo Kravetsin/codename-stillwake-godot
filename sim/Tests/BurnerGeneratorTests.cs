@@ -67,6 +67,25 @@ public class BurnerGeneratorTests
         Assert.Equal(0, Supply(w));
     }
 
+    /// <summary>
+    /// Blown by a pipe from its liquid input to a joint of the tank's pipe to the vaporizer, it makes Blown / BlownOf its power
+    /// and a plank lasts as much longer (industrial-oxygen).
+    /// </summary>
+    [Fact]
+    public void BlownMakesOneAndAHalfAndAPlankLastsOneAndAHalf()
+    {
+        var w = SetUp().GiveItems(0, ("tube", 10)).Pipe(At(1, 2), At(1, 4), At(4, 4)).Run();
+        Assert.Empty(w.Refusals);
+        Feed(w, 1).Run();
+        Assert.True(w.M.Furnace.At(IdAt(w, Generator)).Blown);
+        int blown = PlankTicks * FurnaceContent.Blown / FurnaceContent.BlownOf;
+        Assert.Equal(Makes * FurnaceContent.Blown / FurnaceContent.BlownOf, Supply(w));
+        w.Run(blown - 4);
+        Assert.Equal(Makes * FurnaceContent.Blown / FurnaceContent.BlownOf, Supply(w));
+        w.Run(10);
+        Assert.False(w.M.Furnace.At(IdAt(w, Generator)).Burning);
+    }
+
     [Fact]
     public void MakesNothingWithAnEmptySlotAndSaysItHasNoFuel()
     {
@@ -75,6 +94,21 @@ public class BurnerGeneratorTests
         Assert.Equal(new Smelting(false, Problem: "furnace.noFuel"), w.M.Furnace.At(IdAt(w, Generator)));
         Assert.Equal(0, Supply(w));
         Assert.Equal(0, LampPower(w));
+    }
+
+    /// <summary>Switched off, a generator lights no fuel and says so; on again, it lights (industrial-oxygen).</summary>
+    [Fact]
+    public void SwitchedOffLightsNoFuelAndSaysSo()
+    {
+        var w = SetUp();
+        int generator = IdAt(w, Generator);
+        w.Do(new Power.SetSwitch(generator, false)).Run();
+        Feed(w, 1).Run(20);
+        Assert.Equal(new Smelting(false, Problem: "furnace.off"), w.M.Furnace.At(generator));
+        Assert.Equal(0, Supply(w));
+        w.Do(new Power.SetSwitch(generator, true)).Run(2);
+        Assert.True(w.M.Furnace.At(generator).Burning);
+        Assert.Equal(Makes, Supply(w));
     }
 
     [Fact]
@@ -115,8 +149,9 @@ public class BurnerGeneratorTests
     {
         var w = SetUp();
         var cold = SetUp();
-        // The room aired whole and the vaporizer's store stocked, so every breath is paid from the chain (liquid-oxygen).
-        foreach (var x in new[] { w, cold }) x.Run(200);
+        // The room aired whole and the vaporizer's store stocked, so every breath is paid from the chain (liquid-oxygen). Glass
+        // behind it: a room whose leak takes all its vaporizer makes forgives the breaths its store lacks (scarce-oxygen).
+        foreach (var x in new[] { w, cold }) x.Glassed(Generator).Run(200);
         Assert.Equal(ChainOxygen(cold), ChainOxygen(w));
         Feed(w, 1);
         cold.Run();

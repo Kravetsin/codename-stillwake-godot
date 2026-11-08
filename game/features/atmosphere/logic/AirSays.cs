@@ -17,9 +17,9 @@ public static class AirSays
     /// </summary>
     public static TipLine[]? Says(Spec.MachineSpec spec, int held, int makesAt)
     {
-        if (spec.Is(Spec.MachineTrait.Gas)) return [new TipLine(En.T("air.tank", ("held", held), ("of", Spec.Air.TankCapacity)), Icon: "canister")];
+        if (spec.Is(Spec.MachineTrait.Gas)) return [new TipLine(En.T("air.tank", ("held", Litres.Of(held)), ("of", Litres.Of(Spec.Air.TankCapacity))), Icon: "canister")];
         if (!spec.Is(Spec.MachineTrait.AirSource)) return null;
-        string perMinute = (Math.Floor((double)makesAt * World.TicksPerSecond * 60 / 100) / 10).ToString(CultureInfo.InvariantCulture);
-        return [new TipLine(En.T("air.made", ("n", perMinute)), Sign: Sign.Oxygen)];
+        // Thousandths of a unit a tick are units a period over a thousand.
+        return [new TipLine(En.T("air.made", ("n", Litres.PerMinute((long)makesAt * Spec.Air.LeakEvery / 1000))), Sign: Sign.Oxygen)];
     }
 }

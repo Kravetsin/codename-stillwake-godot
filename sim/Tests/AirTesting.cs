@@ -107,6 +107,21 @@ public static class AirTesting
     /// <summary>The oxygen the ship's chains hold: every tank's liquid and every vaporizer's gas, which only draws take from.</summary>
     public static int Held(this Scenario w) => w.M.Grid.Machines.Sum(m => w.M.Atmosphere.OxygenIn(m.Id));
 
+    /// <summary>
+    /// The room holding <paramref name="cell"/> with glass back walls, laid in creative: it leaks less than its vaporizer
+    /// makes, so its store stays stocked and every breath is paid rather than forgiven (scarce-oxygen).
+    /// </summary>
+    public static Scenario Glassed(this Scenario w, int cell)
+    {
+        int room = w.M.Rooms.RoomAt(cell)!.Value;
+        var cells = Enumerable.Range(0, w.M.Rooms.RoomOfCells.Length).Where(c => w.M.Rooms.RoomAt(c) == room).ToList();
+        w.Do(new Items.SetCreative(true));
+        foreach (int c in cells) w.Do(new ClearAt(c, "back"));
+        w.Run();
+        foreach (int c in cells) w.Do(new Place(c, Grid.Placement.BackWall("glass")));
+        return w.Do(new Items.SetCreative(false)).Run();
+    }
+
     /// <summary>The gas in the stores of the ship's vaporizers.</summary>
     public static int Gas(this Scenario w) => w.M.Grid.MachinesOf("generator").Sum(m => w.M.Atmosphere.OxygenIn(m.Id));
 

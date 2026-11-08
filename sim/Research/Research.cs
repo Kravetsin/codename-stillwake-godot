@@ -12,6 +12,15 @@ public sealed record Recipe(string Id, Placement? Placement, IReadOnlyList<(stri
 /// <summary>Buys the tree's block <paramref name="Block"/>, with the ship's credits, from anywhere.</summary>
 public sealed record BuyBlock(string Block) : Command;
 
+/// <summary>A good the next level wants: how many are sold since the level opened, and how many it asks.</summary>
+public sealed record Want(string Item, int Sold, int Count);
+
+/// <summary>
+/// Where the mafia's reputation stands (2026-11-08-mafia-reputation): the gate of the next level, null past the last; what it wants; its points and
+/// target, in sevenths of a credit's worth sold.
+/// </summary>
+public sealed record Standing(TechNode? Next, IReadOnlyList<Want> Wanted, long Points, long Target);
+
 
 /// <summary>What the rule grants by: a thing, how many of each part are enough, and for a craft the machines that make it; null for a blueprint.</summary>
 internal sealed record Walkable(string Id, (string Item, int Enough)[] Parts, string[]? Stations);
@@ -37,12 +46,14 @@ public interface IResearchQueries
     IReadOnlyList<Recipe> Recipes();
     /// <summary>The ship's credits.</summary>
     int Credits { get; }
-    /// <summary>Whether <paramref name="node"/> is done: a block bought, all it opens known; a gate's order sold and its ring reached.</summary>
+    /// <summary>Whether <paramref name="node"/> is done: a block bought, all it opens known; a gate its level reached.</summary>
     bool Done(TechNode node);
     /// <summary>Whether <paramref name="node"/> is done as <paramref name="peer"/> sees it: every one in its creative mode.</summary>
     bool Done(int peer, TechNode node);
     /// <summary>Whether all <paramref name="node"/> needs are done.</summary>
     bool Reached(TechNode node);
+    /// <summary>Where the mafia's reputation stands: the next level, what it wants and how far it is.</summary>
+    Standing Standing();
 
     /// <summary>Why block <paramref name="block"/> cannot be bought now, leaving the machine aside; null when it can.</summary>
     string? BuyProblem(TechNode block);
@@ -73,6 +84,9 @@ public sealed class ResearchModule : Module<ResearchState>, IResearchQueries
             e.Placement != null ? null : [.. Content.Stations.All.Where(s => s.Rows.Any(r => r.Contains(e.Id))).Select(s => s.Machine)])),
     ];
 
+    /// <summary>The market's gates in ring order: level <c>n</c>'s is the <c>n - 1</c>th.</summary>
+    private static readonly TechNode[] Gates = [.. Content.Research.Nodes.Where(n => n is { Gate: true, Tab: Content.Research.Market }).OrderBy(n => n.Ring)];
+
     private readonly IGridQueries _grid;
     private readonly IItemsQueries _items;
     private readonly IKnowledgeQueries _knowledge;
@@ -100,16 +114,55 @@ public sealed class ResearchModule : Module<ResearchState>, IResearchQueries
     }
 
     /// <summary>
-    /// Grants what the rule allows (docs/decisions/2026-11-05-the-board.md), when a count or the grid has moved. One pass is enough: the rule reads
+    /// Raises the mafia's level when its target is met, every tick, then grants what the rule allows (docs/decisions/2026-11-05-the-board.md), when a
+    /// count or the grid has moved. One pass is enough: the rule reads
     /// counts and the grid, never what is granted, and a loaded world walks on its first tick, so it matches one that kept running.
     /// </summary>
     internal void Walk()
     {
+        Rise();
         if (_knowledge.Version == _knowledgeSeen && _grid.Version == _gridSeen) return;
         for (int i = 0; i < Walked.Length; i++)
             if (!_knowledge.Granted(Walked[i].Id) && Understood(Walked[i])) _knowledgeOps.Grant(Walked[i].Id);
         _knowledgeSeen = _knowledge.Version;
         _gridSeen = _grid.Version;
+    }
+
+    /// <summary>Opens the next level once its points reach its target, counting the one after from what is sold now: one level a tick at most.</summary>
+    private void Rise()
+    {
+        if (Next() is not { } next || Points(next) < Target(next)) return;
+        var after = GateOf(next.Ring + 1);
+        var start = after == null ? [] : after.Order.Select(d => new Tally(d.Item, _knowledge.SoldOf(d.Item))).ToList();
+        _knowledgeOps.Open(next.Ring, start, _knowledge.SoldWorth);
+    }
+
+    private static TechNode? GateOf(int ring) => ring >= 1 && ring <= Gates.Length ? Gates[ring - 1] : null;
+
+    private TechNode? Next() => GateOf(_knowledge.Level + 1);
+
+    /// <summary>What <paramref name="gate"/>'s level asks, in sevenths: everything it wants at full worth.</summary>
+    private static long Target(TechNode gate)
+    {
+        long target = 0;
+        foreach (var (item, count) in gate.Order) target += (long)count * Market.WorthOf(item) * Content.Research.OffWanted;
+        return target;
+    }
+
+    /// <summary>
+    /// How far toward <paramref name="gate"/>'s level, in sevenths: a wanted good up to its count at full worth, past it at a seventh, and everything
+    /// else sold since the level opened at a seventh, never below none, as a later build may lower a worth.
+    /// </summary>
+    private long Points(TechNode gate)
+    {
+        long points = 0, wanted = 0;
+        foreach (var (item, count) in gate.Order)
+        {
+            long sold = _knowledge.SoldOf(item) - _knowledge.BaseOf(item), worth = Market.WorthOf(item);
+            points += Math.Min(sold, count) * worth * Content.Research.OffWanted + Math.Max(sold - count, 0) * worth;
+            wanted += sold * worth;
+        }
+        return points + Math.Max(0, _knowledge.SoldWorth - _knowledge.BaseWorth - wanted);
     }
 
     /// <summary>Whether each part of <paramref name="thing"/> is enough and, for a craft, a machine that makes it stands on this surface.</summary>
@@ -139,15 +192,7 @@ public sealed class ResearchModule : Module<ResearchState>, IResearchQueries
 
     public bool Done(int peer, TechNode node) => _items.Creative(peer) || Done(node);
 
-    public bool Done(TechNode node)
-    {
-        if (!node.Gate) return _knowledge.Granted(node.Id);
-        // Sales count from the world's start, so without its ring reached an order met early would open a ring past a shut one.
-        if (!Reached(node)) return false;
-        foreach (var (item, count) in node.Order)
-            if (_knowledge.SoldOf(item) < count) return false;
-        return true;
-    }
+    public bool Done(TechNode node) => node.Gate ? node.Ring <= _knowledge.Level : _knowledge.Granted(node.Id);
 
     public bool Reached(TechNode node)
     {
@@ -156,10 +201,18 @@ public sealed class ResearchModule : Module<ResearchState>, IResearchQueries
         return true;
     }
 
+    public Standing Standing()
+    {
+        if (Next() is not { } next) return new Standing(null, [], 0, 0);
+        var wanted = next.Order.Select(d => new Want(d.Item, _knowledge.SoldOf(d.Item) - _knowledge.BaseOf(d.Item), d.Count)).ToList();
+        return new Standing(next, wanted, Points(next), Target(next));
+    }
+
     public string? BuyProblem(TechNode block)
     {
         if (Done(block)) return "research.bought";
-        if (block.Gate || !Reached(block)) return "research.locked";
+        if (block.Gate) return "research.locked";
+        if (!Reached(block)) return "research.reputation";
         return Prices.Of(block) > _knowledge.Credits ? "research.noCredits" : null;
     }
 

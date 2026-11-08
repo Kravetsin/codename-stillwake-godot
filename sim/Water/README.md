@@ -20,6 +20,8 @@ electrolyser, which splits it into the liquid oxygen of the tanks on its output.
 - **Pouring.** `PourWater(Cistern)` takes a bottle (`Water.Item`) from the sender (free for a creative sender) and adds `Water.Bottle`.
   Refused, nothing changed: `water.noCistern` (not a machine with `MachineTrait.HoldsWater`), `water.full` (it would spill
   over `Water.CisternCapacity`), `items.notEnough`. Two pours on one tick apply in stamped order.
+- **A hopper** (industrial-oxygen): a cistern's one slot takes only bottles (`SlotTakes`); after the line pours, each
+  cistern in id order pours the bottle there when it fits, as `PourWater` would. Drones fill it from crates.
 - **Cisterns in a line** (tanks-in-a-line), first in the simulation phase: each cistern holding water, in id order, pours up
   to `Water.CisternFlow` a tick into the cisterns whose input is on its output's network, in id order, as each has room; a
   later one pours on in the same tick, so a line fills from its last cistern.
@@ -31,6 +33,11 @@ electrolyser, which splits it into the liquid oxygen of the tanks on its output.
   At full power it makes one a tick. What it puts in is breathed from next tick: Atmosphere has already run.
 - **A cistern taken apart** takes its water with it, in the construction phase.
 - **Melting** is content: ice smelts into a bottle of water (`Items.cs`), at the furnace in 40 ticks.
+- **A planet stage:** ice and copper come only of planets, and the electrolyser's electrodes are copper
+  (industrial-oxygen), so it is understood and built there first.
+- **Liquids in cisterns** (liquids-in-tanks): a bottle stacks to 5 and a cistern holds `Water.CisternBottles`, 50.
+- **Drawing:** `DrawWater(Cistern, Count)` gives the sender `Count` bottles of its water, one at least; refused with
+  `water.noCistern`, `water.low` (less in it) or `items.full`, nothing changed (`DrawProblem`). E opens a cistern.
 
 ## API
 

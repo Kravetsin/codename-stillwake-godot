@@ -4,7 +4,6 @@ using System.Linq;
 using Stillwake.Game.Render;
 using Stillwake.Game.Shared;
 using Stillwake.Sim;
-using Stillwake.Sim.Atmosphere;
 using Stillwake.Sim.Building;
 using Stillwake.Sim.Creatures;
 using Stillwake.Sim.Debris;
@@ -172,7 +171,8 @@ public static class Aiming
     }
 
     /// <summary>Whether a machine of <paramref name="kind"/> opens on E: one holding items (a crate, a furnace) or the ship's computer.</summary>
-    public static bool Opens(string kind) => Spec.Machines.TryGet(kind, out var spec) && (spec.Slots != null || spec.Is(Spec.MachineTrait.Computer));
+    public static bool Opens(string kind) =>
+        Spec.Machines.TryGet(kind, out var spec) && (spec.Slots != null || spec.Is(Spec.MachineTrait.Computer) || spec.Is(Spec.MachineTrait.Switches));
 
     /// <summary>Whether a crate, a furnace or a computer <paramref name="id"/> still stands with a cell of it within the hero's reach.</summary>
     public static bool CrateInReach(IGridQueries grid, Hero hero, int id)
@@ -438,10 +438,6 @@ public static class Aiming
     private static Use? PressOf(Registry m, int peer, int cell, ShownGrid? shown)
     {
         var grid = m.Grid;
-        if (grid.MachineAt(cell) is { } tank && Stillwake.Content.Machines.Is(tank.Kind, Stillwake.Content.MachineTrait.Gas)) return new Use(new LoadCanister(tank.Id), m.Atmosphere.CanisterProblem(tank.Id, peer));
-        // A bottle is poured into a cistern; an electrolyser says to pipe it from one (water).
-        if (grid.MachineAt(cell) is { } watered && (Stillwake.Content.Machines.Is(watered.Kind, Stillwake.Content.MachineTrait.HoldsWater) || Stillwake.Content.Machines.Is(watered.Kind, Stillwake.Content.MachineTrait.Electrolyses)))
-            return new Use(new Sim.Water.PourWater(watered.Id), m.Water.PourProblem(watered.Id, peer));
         // A debris net is emptied into the inventory, from outside or through the wall it hangs on (docs/decisions/2026-11-03-debris-net.md).
         if (grid.MachineAt(cell) is { } net && Stillwake.Content.Machines.Is(net.Kind, Stillwake.Content.MachineTrait.Catches))
             return new Use(new Collect(net.Id), m.Debris.CollectProblem(peer, net.Id));

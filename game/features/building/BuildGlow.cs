@@ -222,6 +222,7 @@ public partial class BuildGlow : Node2D
     private void Quad(Rect2 r, Color from, Color to, bool across)
     {
         (_quad[0], _quad[1], _quad[2], _quad[3]) = (Screen(r.Position.X, r.Position.Y), Screen(r.End.X, r.Position.Y), Screen(r.End.X, r.End.Y), Screen(r.Position.X, r.End.Y));
+        if (Sliver.Is(_quad[0].X, _quad[0].Y, _quad[2].X, _quad[2].Y)) return;
         (_quadColours[0], _quadColours[1], _quadColours[2], _quadColours[3]) = across ? (from, to, to, from) : (from, from, to, to);
         DrawPolygon(_quad, _quadColours);
     }

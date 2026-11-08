@@ -23,78 +23,129 @@ public static class Shipyard
     private static int Between(Rng rng, (int Min, int Max) range) => range.Min + (int)rng.Below((uint)(range.Max - range.Min + 1));
 
     /// <summary>
-    /// A vessel of <paramref name="cls"/> from <paramref name="seed"/>: the hull first (stern, midsections, bow, a bridge on top),
-    /// then the decks inside it, a compartment a midsection a deck furnished by its role, the shafts between decks and the way in.
+    /// A vessel of <paramref name="cls"/> from <paramref name="seed"/> (a vessel of rooms): its decks drawn, then its rooms, each
+    /// furnished by its role. An aft room a deck: the way in on the first, engine rooms below, the bottom one the main engine's by
+    /// its bell. Then a hold and a cockpit, each on the shortest deck its rule allows, and the extras on the shortest of all,
+    /// sorted aft to fore; an extra that would run its deck past <c>Length</c> is not built. The body is as long as the longest
+    /// deck, a shorter deck's last room taking the slack; a door between each two rooms, the well's hatches just past the aft
+    /// rooms, a raised bridge over the first deck's forward room, its hatch over that room's first columns.
     /// </summary>
     public static Vessel Describe(VesselClass cls, uint seed)
     {
         var rng = Draws(cls, seed, 0);
-        int mids = Between(rng, cls.Mids), decks = Between(rng, cls.Decks);
+        int decks = Between(rng, cls.Decks);
         int a = cls.ArmourDepth, top = cls.BridgeHeight, body = cls.BodyHeight(decks), bottom = top + body - 1;
-        int hull = cls.Bells, bow = hull + mids * cls.MidWidth, width = bow + cls.Bow;
-
-        var sections = new List<Vessel.Section> { new(Vessel.SectionKind.Stern, 0, cls.Bells, top, bottom) };
-        for (int i = 0; i < mids; i++) sections.Add(new(Vessel.SectionKind.Mid, hull + i * cls.MidWidth, cls.MidWidth, top, bottom));
-        // The tip keeps armour round a cell or two of space; the bottom slopes up more than the top comes down, as a keel does.
-        int inset = body - 2 * a - 2;
-        sections.Add(new(Vessel.SectionKind.Bow, bow, cls.Bow, top, bottom, TaperTop: inset / 3, TaperBottom: inset - inset / 3));
-        int lastMid = hull + (mids - 1) * cls.MidWidth;
-        if (cls.Bridge > 0) sections.Add(new(Vessel.SectionKind.Bridge, lastMid - a, cls.Bridge, 0, top - 1));
-
+        int hull = cls.Bells, start = hull + a;
         var deckList = new List<Vessel.Deck>();
         for (int d = 0; d < decks; d++) deckList.Add(new(top + a + Vessels.Pitch * d + Vessels.Open));
 
-        var compartments = new List<Vessel.Compartment>();
-        for (int i = 0; i < mids; i++)
-            for (int d = 0; d < decks; d++)
-            {
-                int left = i == 0 ? hull + a : hull + i * cls.MidWidth, right = hull + (i + 1) * cls.MidWidth;
-                var role = i == 0 ? VesselRole.Engine
-                    : i == mids / 2 && d == decks / 2 && decks > 1 ? VesselRole.Life
-                    : d == 0 ? VesselRole.Quarters : VesselRole.Hold;
-                compartments.Add(Furnished(rng, d, left, right - left, deckList[d].Top, role));
-            }
-        if (cls.Bridge > 0) compartments.Add(Furnished(rng, -1, lastMid, cls.Bridge - 2 * a, a, VesselRole.Bridge));
+        var aft = new List<Room>();
+        for (int d = 0; d < decks; d++) aft.Add(Furnish(rng, d == 0 ? VesselRole.Quarters : VesselRole.Engine, main: d > 0 && d == decks - 1));
+        int aftWidth = aft.Max(r => r.Width);
 
-        var shafts = new List<Vessel.Shaft>();
-        // Between each two decks, a midsection's first columns; never the one the bridge's shaft comes down, nor the last pair's.
-        int last = -1;
-        for (int d = 0; d + 1 < decks; d++)
+        var manifest = new List<VesselRole> { VesselRole.Hold };
+        if (cls.BridgeKind == VesselBridge.Cockpit) manifest.Add(VesselRole.Bridge);
+        int required = manifest.Count, extras = Between(rng, cls.Extras);
+        for (int i = 0; i < extras; i++) manifest.Add(cls.ExtraRoles[(int)rng.Below((uint)cls.ExtraRoles.Count)]);
+        var rooms = Enumerable.Range(0, decks).Select(_ => new List<Room>()).ToArray();
+        var length = Enumerable.Repeat(aftWidth, decks).ToArray();
+        for (int i = 0; i < manifest.Count; i++)
         {
-            var choices = Enumerable.Range(0, mids).Where(i => (cls.Bridge == 0 || i != mids - 1) && (i != last || mids == 1)).ToList();
-            last = choices[(int)rng.Below((uint)choices.Count)];
-            int column = last == 0 ? hull + a : hull + last * cls.MidWidth;
-            shafts.Add(new(column, deckList[d].Top + 1, deckList[d + 1].Floor - 1));
+            var room = Furnish(rng, manifest[i], main: false);
+            // A required room keeps to its rule's decks; an extra takes the shortest of all, so no deck runs on bare.
+            bool extra = i >= required;
+            var rule = Vessels.RuleOf(room.Role);
+            int deck = -1;
+            for (int d = decks - 1; d >= 0; d--)
+                if ((extra || Allows(rule.Deck, d)) && (deck < 0 || length[d] < length[deck])) deck = d;
+            if (extra && length[deck] + 2 + room.Width > cls.Length) continue;
+            rooms[deck].Add(room);
+            length[deck] += 2 + room.Width;
         }
-        if (cls.Bridge > 0)
+        for (int d = 0; d < decks; d++) rooms[d] = rooms[d].OrderBy(r => Vessels.RuleOf(r.Role).Order).ToList();
+
+        int run = length.Max();
+        // The first deck's forward room's interior, where a raised bridge's ladder comes down: the bridge stands from there.
+        int forward = rooms[0].Count == 0 ? start : start + length[0] - rooms[0][^1].Width;
+        Room? raised = cls.BridgeKind == VesselBridge.Raised ? Furnish(rng, VesselRole.Bridge, main: false) : null;
+        if (raised != null) run = Math.Max(run, forward + raised.Width - start);
+
+        var sections = new List<Vessel.Section>
         {
-            int from = a + 1, to = deckList[0].Floor - 1;
-            shafts.Add(new(lastMid, (to - from + 1) % 2 == 0 ? from : from + 1, to));
-        }
+            new(Vessel.SectionKind.Stern, 0, cls.Bells, top, bottom),
+            new(Vessel.SectionKind.Body, hull, a + run, top, bottom),
+        };
+        // The tip keeps armour round a cell or two of space; the bottom slopes up more than the top comes down, as a keel does.
+        int inset = body - 2 * a - 2, bow = start + run;
+        sections.Add(new(Vessel.SectionKind.Bow, bow, cls.Bow, top, bottom, TaperTop: inset / 3, TaperBottom: inset - inset / 3));
+        if (raised != null) sections.Add(new(Vessel.SectionKind.Bridge, forward - a, raised.Width + 2 * a, 0, top - 1));
 
         var doors = new List<Vessel.Door> { new(hull + a - 2, deckList[0].Top) };
+        var compartments = new List<Vessel.Compartment>();
+        for (int d = 0; d < decks; d++)
+        {
+            int x = start, slack = run - length[d], deckTop = deckList[d].Top;
+            compartments.Add(new(d, x, aftWidth + (rooms[d].Count == 0 ? slack : 0), deckTop, aft[d].Role, aft[d].Interior));
+            x += aftWidth;
+            for (int k = 0; k < rooms[d].Count; k++)
+            {
+                var room = rooms[d][k];
+                doors.Add(new(x, deckTop));
+                int w = room.Width + (k == rooms[d].Count - 1 ? slack : 0);
+                compartments.Add(new(d, x + 2, w, deckTop, room.Role, room.Interior));
+                x += 2 + w;
+            }
+        }
+        if (raised != null) compartments.Add(new(-1, forward, raised.Width, a, VesselRole.Bridge, raised.Interior));
+
+        // The well: past the aft rooms' doors, a hatch in each floor between decks and a ladder down the deck under it.
+        var hatches = new List<Vessel.Hatch>();
+        var shafts = new List<Vessel.Shaft>();
+        int well = start + aftWidth + 2;
+        for (int d = 0; d + 1 < decks; d++)
+        {
+            hatches.Add(new(well, deckList[d].Floor));
+            shafts.Add(new(well, deckList[d + 1].Top, deckList[d + 1].Floor - 1));
+        }
+        if (raised != null)
+        {
+            hatches.Add(new(forward, top));
+            shafts.Add(new(forward, top + 1, top + Vessels.Open));
+        }
 
         var fittings = new List<Vessel.Fitting>();
         foreach (var c in compartments)
         {
-            if (c.Interior is not { } id) continue;
-            int w = Interior(id).Width;
-            foreach (var (kind, cell) in Drawn(id).Machines())
+            int w = Interior(c.Interior).Width;
+            foreach (var (drawn, cell) in Drawn(c.Interior).Machines())
             {
+                // A salvage of several looks wears one drawn here, so vessels differ.
+                string kind = Vessels.SalvageOf(drawn) is { Looks: > 1 } s ? Vessels.LookKind(s, (int)rng.Below((uint)s.Looks)) : drawn;
                 IReadOnlyList<(string Item, int Count)> loot = Machines.Is(kind, MachineTrait.Container) ? Loot(rng, c.Role) : [];
                 fittings.Add(new(kind, c.Left + cell % w, c.Top + cell / w, loot));
             }
         }
-        return new Vessel(cls.Id, seed, width, bottom + 1, sections, deckList, shafts, doors, compartments, fittings);
+        return new Vessel(cls.Id, seed, bow + cls.Bow, bottom + 1, sections, deckList, shafts, doors, hatches, compartments, fittings);
     }
 
-    /// <summary>A compartment furnished with an interior of its role that fits, drawn; none where none does.</summary>
-    private static Vessel.Compartment Furnished(Rng rng, int deck, int left, int width, int top, VesselRole role)
+    /// <summary>A room drawn before it is placed: its role, its interior and that interior's columns.</summary>
+    private sealed record Room(VesselRole Role, string Interior, int Width);
+
+    /// <summary>A room of <paramref name="role"/> with an interior of it drawn: one holding the main engine, or one without.</summary>
+    private static Room Furnish(Rng rng, VesselRole role, bool main)
     {
-        var fits = Vessels.Interiors.Where(i => i.Role == role && i.Width <= width).ToList();
-        string? interior = fits.Count == 0 ? null : fits[(int)rng.Below((uint)fits.Count)].Id;
-        return new(deck, left, width, top, role, interior);
+        var fits = Vessels.Interiors.Where(i => i.Role == role && i.Main == main).ToList();
+        var interior = fits[(int)rng.Below((uint)fits.Count)];
+        return new(role, interior.Id, interior.Width);
     }
+
+    /// <summary>Whether a room of rule <paramref name="deck"/> may stand on deck <paramref name="d"/>.</summary>
+    private static bool Allows(VesselDeck deck, int d) => deck switch
+    {
+        VesselDeck.Top => d == 0,
+        VesselDeck.Low => d > 0,
+        _ => true,
+    };
 
     /// <summary>A storage crate's contents in a compartment of <paramref name="role"/>: a stack or two of its role's loot.</summary>
     private static IReadOnlyList<(string Item, int Count)> Loot(Rng rng, VesselRole role)
@@ -168,10 +219,14 @@ public static class Shipyard
                 for (int x = shaft.Column; x < shaft.Column + 2; x++) solid[y * w + x] = 0;
             for (int y = shaft.Top; y <= shaft.Bottom; y += 2) parts.Add(new(shaft.Column, y, "structure", "ladder"));
         }
+        foreach (var hatch in v.Hatches)
+        {
+            solid[hatch.Y * w + hatch.X] = solid[hatch.Y * w + hatch.X + 1] = 0;
+            parts.Add(new(hatch.X, hatch.Y, "structure", Builds.Hatch));
+        }
         foreach (var c in v.Compartments)
         {
-            if (c.Interior is not { } id) continue;
-            var rows = Interior(id).Rows;
+            var rows = Interior(c.Interior).Rows;
             for (int y = 0; y < rows.Count; y++)
                 for (int x = 0; x < rows[y].Length; x++)
                     if (Structures.OfChar(rows[y][x]) is int code && Structures.Of(code).Build is { } build && build != "wall")
@@ -192,14 +247,41 @@ public static class Shipyard
             }
         }
 
+        var glass = Glass(v, cls, solid);
         for (int y = 0; y < h; y++)
             for (int x = 0; x < w; x++)
             {
-                if (In(x, y)) parts.Add(new(x, y, "back", "backWall", Vessels.Hull));
-                if (solid[y * w + x] == 1) parts.Add(new(x, y, "structure", "wall", Vessels.Hull));
+                bool window = glass.Contains((x, y));
+                if (In(x, y) && !window) parts.Add(new(x, y, "back", "backWall", Vessels.Hull));
+                if (solid[y * w + x] == 1) parts.Add(new(x, y, "structure", "wall", window ? Vessels.Glass : Vessels.Hull));
             }
         parts.Sort(InReadingOrder);
         return parts;
+    }
+
+    /// <summary>
+    /// The bridge's windows, walls of the hull turned glass, with nothing behind them: a raised bridge's forward armour across the
+    /// middle of its open rows; a cockpit's the bow's top armour over its first <c>Vessels.CockpitGlass</c> columns, down its taper.
+    /// </summary>
+    private static HashSet<(int X, int Y)> Glass(Vessel v, VesselClass cls, byte[] solid)
+    {
+        var glass = new HashSet<(int, int)>();
+        int a = cls.ArmourDepth;
+        bool Wall(int x, int y) => solid[y * v.Width + x] == 1;
+        if (v.Sections.FirstOrDefault(s => s.Kind == Vessel.SectionKind.Bridge) is { } bridge)
+        {
+            for (int x = bridge.Left + bridge.Width - a; x < bridge.Left + bridge.Width; x++)
+                for (int y = a + 1; y < a + Vessels.Open - 1; y++)
+                    if (Wall(x, y)) glass.Add((x, y));
+        }
+        else
+        {
+            var bow = v.Sections.First(s => s.Kind == Vessel.SectionKind.Bow);
+            for (int x = bow.Left; x < bow.Left + Vessels.CockpitGlass; x++)
+                for (int y = bow.RowsAt(x).Top; y < bow.RowsAt(x).Top + a; y++)
+                    if (Wall(x, y)) glass.Add((x, y));
+        }
+        return glass;
     }
 
     private static int Rank(string layer) => layer switch { "back" => 0, "structure" => 1, _ => 2 };
@@ -218,7 +300,7 @@ public static class Shipyard
         if (cause == VesselCause.None) return parts;
         var cls = Vessels.Class(v.Class)!;
         var rng = Draws(cls, v.Seed, 1);
-        var body = v.Sections.First(s => s.Kind == Vessel.SectionKind.Mid);
+        var body = v.Sections.First(s => s.Kind == Vessel.SectionKind.Body);
         int hull = body.Left, bow = v.Sections.First(s => s.Kind == Vessel.SectionKind.Bow).Left;
         int side = (int)rng.Below(3);
         int x0 = hull + (int)rng.Below((uint)(bow - hull));

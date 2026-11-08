@@ -32,7 +32,7 @@ public class WaterTests
     private static int At(int x, int y) => y * W + x;
 
     private static Scenario World() =>
-        new Scenario(Layout.Parse(Rows, null, Cables), doubled: false).GiveItems(0, (WaterContent.Item, 9), ("tube", 20)).GiveItems(1, (WaterContent.Item, 1));
+        new Scenario(Layout.Parse(Rows, null, Cables), doubled: false).GiveItems(0, (WaterContent.Item, WaterContent.CisternBottles + 1), ("tube", 20)).GiveItems(1, (WaterContent.Item, 1));
 
     private static Scenario Piped() => World().Do(new LayPipe(At(3, 2), At(6, 5))).Do(new LayPipe(At(9, 5), At(12, 2))).Run();
 
@@ -49,6 +49,29 @@ public class WaterTests
         Assert.Equal("smelt", ice.Process);
     }
 
+    /// <summary>A cistern's hopper pours a bottle put into it when it fits, as one poured by hand, and waits while full (industrial-oxygen).</summary>
+    [Fact]
+    public void ItsHopperPoursABottleWhenItFitsAndWaitsWhileFull()
+    {
+        var w = World();
+        int cistern = Id(w, "cistern"), slot = Content.Machines.Get("cistern").SlotTakes!.Value.Slot;
+        Hop(w, cistern, slot).Run();
+        Assert.Empty(w.Refusals);
+        Assert.Equal(WaterContent.Bottle, w.M.Water.WaterIn(cistern));
+        Assert.Null(w.M.Items.Crate(cistern)[slot]);
+        for (int i = 1; i < WaterContent.CisternBottles; i++) w.Do(new PourWater(cistern));
+        Hop(w.Run(), cistern, slot).Run(5);
+        Assert.Equal(WaterContent.CisternCapacity, w.M.Water.WaterIn(cistern));
+        Assert.Equal(1, w.M.Items.Crate(cistern)[slot]?.Count);
+    }
+
+    /// <summary>Peer 0 moves a bottle into <paramref name="slot"/> of <paramref name="cistern"/>.</summary>
+    private static Scenario Hop(Scenario w, int cistern, int slot)
+    {
+        int from = w.M.Items.Inventory(0).ToList().FindIndex(s => s?.Item == WaterContent.Item);
+        return w.Do(new Items.Move(new Items.Place(from), new Items.Target(slot, cistern), 1));
+    }
+
     [Fact]
     public void PoursBottlesIntoACisternTillFullAndOnlyIntoACistern()
     {
@@ -62,6 +85,26 @@ public class WaterTests
         w.Do(new PourWater(cistern)).Do(new PourWater(Id(w, "tank"))).Do(new PourWater(Id(w, "electrolyser"))).Run();
         Assert.Equal(["water.full", "water.noCistern", "water.noCistern"], Reasons(w));
         Assert.Equal(1, Bottles(w, 0));
+    }
+
+    /// <summary>Bottles drawn out of a cistern, several at once, as a tank's canisters are (industrial-oxygen).</summary>
+    [Fact]
+    public void DrawsBottlesOutOfACisternOrSaysWhyNot()
+    {
+        var w = World();
+        int cistern = Id(w, "cistern"), carried = Bottles(w, 0);
+        for (int i = 0; i < 3; i++) w.Do(new PourWater(cistern));
+        w.Run().Do(new DrawWater(cistern, 2)).Run();
+        Assert.Empty(w.Refusals);
+        Assert.Equal(WaterContent.Bottle, w.M.Water.WaterIn(cistern));
+        Assert.Equal(carried - 1, Bottles(w, 0));
+        w.Do(new DrawWater(Id(w, "tank"))).Do(new DrawWater(cistern, 2)).Run();
+        w.GiveItems(2, ("planks", Content.Inventory.Slots * Content.Items.Get("planks").Stack));
+        w.Do(new DrawWater(cistern) { From = 2 }).Run();
+        Assert.Equal(["water.noCistern", "water.low", "items.full"], Reasons(w));
+        Assert.Equal(WaterContent.Bottle, w.M.Water.WaterIn(cistern));
+        w.Do(new DrawWater(cistern)).Run();
+        Assert.Equal(0, w.M.Water.WaterIn(cistern));
     }
 
     [Fact]
@@ -81,7 +124,7 @@ public class WaterTests
     }
 
     [Fact]
-    public void SplitsACisternsWaterIntoTheTanksLiquidOxygenAUnitATickAtFullPower()
+    public void SplitsACisternsWaterIntoTheTanksLiquidOxygenAtItsRateAtFullPower()
     {
         var w = Piped();
         int cistern = Id(w, "cistern"), electrolyser = Id(w, "electrolyser"), tank = Id(w, "tank");
@@ -90,16 +133,33 @@ public class WaterTests
         w.Do(new PourWater(cistern)).Run(30);
         Assert.Equal(1000, w.M.Power.Satisfaction(electrolyser));
         Assert.Null(w.M.Water.Stalled(electrolyser));
-        Assert.Equal(WaterContent.Bottle - 30, w.M.Water.WaterIn(cistern));
-        Assert.Equal(30, w.M.Atmosphere.OxygenIn(tank));
+        // Three units a tick at full power (industrial-oxygen).
+        int split = 30 * WaterContent.ElectrolyserRate / Content.Air.LeakEvery;
+        Assert.Equal(WaterContent.Bottle - split, w.M.Water.WaterIn(cistern));
+        Assert.Equal(split, w.M.Atmosphere.OxygenIn(tank));
+    }
+
+    /// <summary>Switched off, an electrolyser splits nothing and says so; on again, it splits (industrial-oxygen).</summary>
+    [Fact]
+    public void SwitchedOffSplitsNothingAndSaysSo()
+    {
+        var w = Piped();
+        int cistern = Id(w, "cistern"), electrolyser = Id(w, "electrolyser"), tank = Id(w, "tank");
+        w.Do(new Power.SetSwitch(electrolyser, false)).Do(new PourWater(cistern)).Run(30);
+        Assert.Equal("water.off", w.M.Water.Stalled(electrolyser));
+        Assert.Equal(0, w.M.Atmosphere.OxygenIn(tank));
+        w.Do(new Power.SetSwitch(electrolyser, true)).Run(30);
+        Assert.Null(w.M.Water.Stalled(electrolyser));
+        Assert.True(w.M.Atmosphere.OxygenIn(tank) > 0);
     }
 
     [Fact]
     public void StallsWithItsWorkKeptWhenTheTanksAreFullOrThePowerGoes()
     {
-        var w = Piped().GiveItems(0, ("canister", 4));
+        int full = Content.Air.TankCapacity / Content.Air.Canister;
+        var w = Piped().GiveItems(0, ("canister", full));
         int cistern = Id(w, "cistern"), electrolyser = Id(w, "electrolyser"), tank = Id(w, "tank");
-        for (int i = 0; i < 4; i++) w.Do(new LoadCanister(tank));
+        for (int i = 0; i < full; i++) w.Do(new LoadCanister(tank));
         w.Do(new PourWater(cistern)).Run(20);
         Assert.Equal(Content.Air.TankCapacity, w.M.Atmosphere.OxygenIn(tank));
         Assert.Equal(WaterContent.Bottle, w.M.Water.WaterIn(cistern));

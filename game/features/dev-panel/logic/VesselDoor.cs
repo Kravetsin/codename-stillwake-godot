@@ -7,7 +7,7 @@ public static class VesselDoor
 {
     /// <summary>
     /// The cell a hero's feet stand in just inside the vessel's door, the first door cell of its box in reading order: on the deck
-    /// past the door, two cells wide and a deck's six rows tall, and past the two columns a shaft may come down. One whose door a
+    /// past the door, two cells wide and a deck's six rows tall: its room's first two columns, kept open. One whose door a
     /// breach took, floating over its middle. None with no vessel out.
     /// </summary>
     public static int? Inside(IGridQueries grid)
@@ -17,7 +17,7 @@ public static class VesselDoor
         for (int y = box.Top; y <= box.Bottom; y++)
             for (int x = box.Left; x <= box.Right; x++)
                 if (Doorways.IsDoor(grid.StructureAt(y * width + x)))
-                    return (y + Content.Vessels.Open - 1) * width + x + 4;
+                    return (y + Content.Vessels.Open - 1) * width + x + 2;
         return (box.Top - 2) * width + box.Left + box.Width / 2;
     }
 }

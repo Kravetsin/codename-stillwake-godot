@@ -46,7 +46,7 @@ Every stack of items (0008).
   own slots; taking empties own slots from the last, the hotbar last. `Spawn` (creative) gives what
   fits, batteries full. `TakeStock`/`GiveStock`: the same over own slots, then each crate (craft-from-crates).
 - **Move** (0008) takes the least of `Count`, what `Src` holds and what fits, onto an empty slot or a stack alike; part
-  of a stack onto one not alike is refused. With no `Dst` slot, that side as a whole. A machine with `Inputs` takes items
+  of a stack onto one not alike is refused. No `Dst` slot: that side's open slots. A machine with `Inputs` takes items
   only into its first `Inputs` slots (`items.takeOnly`, 0057); one with none takes nothing. A charger holds only
   items with a `Capacity` (`items.notBattery`, 0053); an arc bench's vise only a tool a module fits (`items.notTool`,
   0099); one that `Takes` an item only it; a `SlotTakes` slot (a bay's fuel) only with its item, checked first, deliveries

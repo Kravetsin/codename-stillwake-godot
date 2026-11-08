@@ -241,12 +241,12 @@ public partial class PowerView : Node2D
         _key.Clear();
         foreach (var machine in m.Grid.Machines)
         {
-            bool broken = m.Power.IsBroken(machine.Id);
+            bool broken = m.Power.IsBroken(machine.Id), off = !broken && m.Power.IsOff(machine.Id);
             int satisfaction = m.Power.Satisfaction(machine.Id);
-            if (!broken && (Machines.Get(machine.Kind).Draws == null || satisfaction >= 1000)) continue;
+            if (!broken && !off && (Machines.Get(machine.Kind).Draws == null || satisfaction >= 1000)) continue;
             _key.Add(machine.Id);
             _key.Add(machine.Cell);
-            _key.Add(broken ? 2 : satisfaction == 0 ? 0 : 1);
+            _key.Add(broken ? 2 : off ? 3 : satisfaction == 0 ? 0 : 1);
         }
         return _key;
     }
@@ -310,7 +310,10 @@ public partial class PowerView : Node2D
 
     private static readonly CanvasItemMaterial Unlit = new() { LightMode = CanvasItemMaterial.LightModeEnum.Unshaded };
 
-    /// <summary>A wrench over each broken machine; a bolt over each other that draws power and gets less than it would: red with none, amber with some.</summary>
+    /// <summary>
+    /// A wrench over each broken machine; the power symbol, steady, over each a player switched off (industrial-oxygen); a bolt
+    /// over each other that draws power and gets less than it would: red with none, amber with some.
+    /// </summary>
     private void PlaceBolts(Registry m)
     {
         foreach (var child in _bolts.GetChildren()) child.QueueFree();
@@ -318,11 +321,11 @@ public partial class PowerView : Node2D
         foreach (var machine in m.Grid.Machines)
         {
             var spec = Machines.Get(machine.Kind);
-            bool broken = m.Power.IsBroken(machine.Id);
+            bool broken = m.Power.IsBroken(machine.Id), off = !broken && m.Power.IsOff(machine.Id);
             int satisfaction = m.Power.Satisfaction(machine.Id);
-            if (!broken && (spec.Draws == null || satisfaction >= 1000)) continue;
+            if (!broken && !off && (spec.Draws == null || satisfaction >= 1000)) continue;
             var at = CableShape.MiddleOf(m.Grid, machine.Cell);
-            var texture = broken ? Signs.Broken() : Signs.Bolt(satisfaction == 0);
+            var texture = broken ? Signs.Broken() : off ? Signs.Off() : Signs.Bolt(satisfaction == 0);
             var bolt = new Sprite2D
             {
                 Texture = texture,
@@ -330,7 +333,7 @@ public partial class PowerView : Node2D
                 Position = new Vector2((float)at.X * Cell, (float)(at.Y - spec.Height / 2.0) * Cell - 1),
                 Material = Unlit,
             };
-            if (satisfaction == 0) _blinking.Add(bolt);
+            if (satisfaction == 0 && !off) _blinking.Add(bolt);
             _bolts.AddChild(bolt);
         }
     }

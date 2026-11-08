@@ -2,7 +2,6 @@ using System;
 using System.Linq;
 using Stillwake.Game.Shared;
 using Stillwake.Sim;
-using Stillwake.Sim.Atmosphere;
 using Stillwake.Sim.Building;
 using Stillwake.Sim.Debris;
 using Stillwake.Sim.Grid;
@@ -48,8 +47,6 @@ public static class Prompts
         if (aim.Press is not { } press) return null;
         return press.Command switch
         {
-            LoadCanister => new Prompt("use.loadCanister", press.Problem),
-            Sim.Water.PourWater => new Prompt("use.pourWater", press.Problem),
             Grab => new Prompt("use.catch", press.Problem),
             Collect => new Prompt("use.collect", press.Problem),
             HewWrecks or HewPieces => new Prompt("use.chop", press.Problem),

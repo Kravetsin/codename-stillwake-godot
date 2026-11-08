@@ -8,7 +8,8 @@ public sealed partial class PowerModule
     /// <summary>
     /// Lays cables between built cells a few apart, a cell anywhere now and then (refused as no node, away from the ship or
     /// too long); moves the ends at a node, or one cable's, to a cell near or anywhere (refused as taut,
-    /// no node, no cable there or twice); and cuts one already laid or a pair never cabled.
+    /// no node, no cable there or twice); cuts one already laid or a pair never cabled; and now and then switches a machine
+    /// that switches, or a low id that does not, on or off.
     /// </summary>
     public override Command? Fuzz(Rng rng, int from)
     {
@@ -18,6 +19,12 @@ public sealed partial class PowerModule
         int Near(int cell) => cell + (Below(Span) - (Span >> 1)) + width * (Below(Span) - (Span >> 1));
         int InBuilt() => built.IsEmpty ? Below(cells) : (built.Top + Below(built.Height)) * width + built.Left + Below(built.Width);
 
+        if (Below(8) == 0)
+        {
+            var switches = _grid.MachinesWith(Content.MachineTrait.Switches);
+            int machine = switches.Count > 0 && Below(4) != 0 ? switches[Below(switches.Count)].Id : Below(6);
+            return new SetSwitch(machine, Below(2) == 0) { From = from };
+        }
         if (State.Cables.Count > 0 && Below(3) == 0)
         {
             var cable = State.Cables[Below(State.Cables.Count)];

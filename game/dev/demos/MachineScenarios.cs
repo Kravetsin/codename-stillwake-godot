@@ -9,6 +9,7 @@ using Stillwake.Game.Features.Furnace;
 using Stillwake.Game.Features.Items;
 using Stillwake.Game.Menu;
 using Stillwake.Game.Render;
+using Stillwake.Net;
 using Stillwake.Sim;
 
 namespace Stillwake.Game.Dev;
@@ -61,6 +62,14 @@ public sealed class OpenScenario : DevScenario
 
     public override void Attach(DevContext c) =>
         c.Add(new OpenDemo(c.Ui, Kind, c.M, Args.Arg("--open-at") is { } at ? double.Parse(at, CultureInfo.InvariantCulture) : 1.0, Args.Value("--program")));
+
+    /// <summary>On the radar, two contacts found at once, where places draws them, so a recording shows them, the first selected.</summary>
+    public override void Started(Client client)
+    {
+        if (Args.Value("--program") != Content.Programs.Radar) return;
+        client.Send(new Sim.Places.Find("shuttle"));
+        client.Send(new Sim.Places.Find("freighter"));
+    }
 }
 
 [Dev("--near", "with --testbed, the hero starts beside the machine of that kind, opening nothing", Shape = DevShape.Equals, Order = 20)]

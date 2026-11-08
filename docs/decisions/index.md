@@ -261,7 +261,7 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [energy-ring](2026-11-06-energy-ring.md) | The energy tab's ring and beating bolt | accepted |  |
 | [gain-spots](2026-11-06-gain-spots.md) | What a hero gains, counted beside where it came from | accepted |  |
 | [head-tally](2026-11-06-head-tally.md) | What a hero gains, counted steady over its head | accepted | gain-spots (in part) |
-| [leaks-tripled](2026-11-06-leaks-tripled.md) | Leaks tripled, the pod with them | accepted |  |
+| [leaks-tripled](2026-11-06-leaks-tripled.md) | Leaks tripled, the pod with them | accepted | scarce-oxygen, leaks-a-minute (in part) |
 | [lighter-tools](2026-11-06-lighter-tools.md) | Lighter electric tools | accepted |  |
 | [no-ice-canister](2026-11-06-no-ice-canister.md) | Canisters are salvaged, not frozen of ice | accepted |  |
 | [quick-stash](2026-11-06-quick-stash.md) | The bag stashed into nearby crates with one key | accepted |  |
@@ -290,6 +290,7 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [pile-hits-felt](2026-11-07-pile-hits-felt.md) | A hit on a pile is seen and heard | accepted |  |
 | [radar-mast](2026-11-07-radar-mast.md) | The radar antenna is a guyed mast | accepted |  |
 | [right-lets-go](2026-11-07-right-lets-go.md) | The right button lets the card go | accepted |  |
+| [scarce-oxygen](2026-11-07-scarce-oxygen.md) | Scarce oxygen | accepted | leaks-a-minute (in part) |
 | [steady-scanner](2026-11-07-steady-scanner.md) | A steady scanner readout | accepted |  |
 | [swing-motions](2026-11-07-swing-motions.md) | Swing motions | accepted |  |
 | [tether-haul](2026-11-07-tether-haul.md) | Hauling in along the tether | accepted |  |
@@ -305,8 +306,13 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [edge-flash](2026-11-08-edge-flash.md) | A find flashes along the tablet's edge, once a batch; the bulb and the flight go | accepted |  |
 | [flowing-liquids](2026-11-08-flowing-liquids.md) | Flowing liquids: lakes in a planet's cells | accepted |  |
 | [hurts-are-shown](2026-11-08-hurts-are-shown.md) | Hurts are shown | accepted |  |
+| [leaks-a-minute](2026-11-08-leaks-a-minute.md) | Leaks a minute | accepted |  |
+| [liquids-in-tanks](2026-11-08-liquids-in-tanks.md) | Liquids in tanks | accepted |  |
 | [lobbed-glob](2026-11-08-lobbed-glob.md) | Lobbed glob | accepted |  |
 | [lurker-attacks](2026-11-08-lurker-attacks.md) | Lurker attacks | accepted | lobbed-glob (in part) |
+| [mafia-reputation](2026-11-08-mafia-reputation.md) | The black market opens by the mafia's reputation | accepted |  |
 | [planet-frame-rate](2026-11-08-planet-frame-rate.md) | Planet frame rate | accepted |  |
 | [planet-layers](2026-11-08-planet-layers.md) | A planet's layers show, and a rift shows the way down | accepted |  |
+| [radar-contacts](2026-11-08-radar-contacts.md) | Radar contacts | accepted |  |
 | [scrap-to-iron](2026-11-08-scrap-to-iron.md) | Scrap to iron: four scrap smelt into an iron at any furnace | accepted |  |
+| [switched-off-sign](2026-11-08-switched-off-sign.md) | Switched-off sign | accepted |  |

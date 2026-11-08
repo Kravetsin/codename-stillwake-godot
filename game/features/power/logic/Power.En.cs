@@ -5,6 +5,9 @@ public static partial class En
     private static readonly Strings Power = new()
     {
         ["power.noNode"] = "Nothing to fix a cable to",
+        ["power.noSwitch"] = "It has no switch",
+        ["switch.on"] = "On",
+        ["switch.off"] = "Off",
         ["power.sameNode"] = "Both ends on one place",
         ["power.tooLong"] = "Too long: add an anchor",
         ["power.taut"] = "A cable there would be pulled taut",

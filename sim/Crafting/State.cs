@@ -40,7 +40,8 @@ public sealed class CraftingState
     [JsonInclude] internal List<Smelt> Smelts { get; set; } = [];
     /// <summary>
     /// Derived: the fed stations whose fire burns this tick, told by <c>Furnace</c> in the construction phase
-    /// and forgotten once crafting has worked; so empty between ticks, and never saved. Only looked up.
+    /// and forgotten once crafting has worked; so empty between ticks, and never saved. Each one's share of its speed, in
+    /// thousandths; only looked up.
     /// </summary>
-    [JsonIgnore] internal HashSet<int> Heated { get; set; } = [];
+    [JsonIgnore] internal Dictionary<int, int> Heated { get; set; } = new();
 }

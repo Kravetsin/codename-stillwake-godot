@@ -29,9 +29,8 @@ public static class WallStats
         return lines;
     }
 
-    /// <summary>The oxygen a cell of <paramref name="material"/> lets out a minute, to a tenth: its leak is counted every <c>Air.LeakEvery</c> ticks.</summary>
-    public static string LeakAMinute(Material material) =>
-        (Math.Round((double)material.Leak * 60 * Sim.World.TicksPerSecond / Air.LeakEvery, 1)).ToString("0.#", CultureInfo.InvariantCulture);
+    /// <summary>The oxygen a cell of <paramref name="material"/> lets out a minute, in litres (industrial-oxygen).</summary>
+    public static string LeakAMinute(Material material) => Litres.PerMinute(material.Leak);
 
     /// <summary>The share of <paramref name="shower"/>'s meteors, in whole percent, strong enough to break a wall of <paramref name="strength"/>.</summary>
     public static int BreakingShare(int strength, Meteors.Shower shower)

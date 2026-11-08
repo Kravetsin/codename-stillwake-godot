@@ -9,16 +9,16 @@ public static class Water
     /// <summary>The item: a glass bottle of it, one an ice melted.</summary>
     public const string Item = "water";
 
-    /// <summary>What a bottle pours: half a canister, a placeholder until a playtest says otherwise.</summary>
-    public const int Bottle = Air.Canister / 2;
+    /// <summary>What a bottle pours: one and a half canisters, so ice outweighs what is salvaged (scarce-oxygen).</summary>
+    public const int Bottle = 4500;
 
     /// <summary>How many bottles a cistern holds.</summary>
-    public const int CisternBottles = 8;
+    public const int CisternBottles = 50;
 
     public const int CisternCapacity = CisternBottles * Bottle;
 
-    /// <summary>The electrolyser's rate at full power, units every <see cref="Air.LeakEvery"/> ticks: one a tick.</summary>
-    public const int ElectrolyserRate = 12000;
+    /// <summary>The electrolyser's rate at full power, units every <see cref="Air.LeakEvery"/> ticks: three a tick, 3.6 litres a minute (industrial-oxygen).</summary>
+    public const int ElectrolyserRate = 36000;
 
     /// <summary>
     /// What a cistern passes a tick to the cisterns piped from its output to their inputs (tanks-in-a-line), a tank's

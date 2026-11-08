@@ -15,6 +15,9 @@ public sealed record Cut(int A, int B) : Command;
 /// <summary>Moves every cable ending at node <c>Node</c> (TypeScript's <c>from</c>), or only <c>Cable</c>, to the node at cell <c>To</c>.</summary>
 public sealed record Move(int Node, int To, Ends? Cable = null) : Command;
 
+/// <summary>Switches machine <c>Machine</c> on or off (industrial-oxygen): one that `Switches`, refused for any other.</summary>
+public sealed record SetSwitch(int Machine, bool On) : Command;
+
 /// <summary>
 /// The power slice. Public so modules can be typed by it, its members internal: others go through
 /// <see cref="IPowerQueries"/> and <see cref="IPowerOps"/>.
@@ -25,6 +28,16 @@ public sealed class PowerState
     [JsonInclude] internal List<Cable> Cables { get; set; } = [];
     /// <summary>The machines told to rest by the module they work for, by id, sorted: they draw and make nothing.</summary>
     [JsonInclude] internal List<int> Resting { get; set; } = [];
+    /// <summary>The makers told to make more by the module they work for, by id, sorted: a blown fire's generators.</summary>
+    [JsonIgnore] internal List<int> Blown { get; set; } = [];
+    /// <summary>Blown as saved: none written while none is, so a world with no blown fire saves as before them.</summary>
+    [JsonInclude, JsonPropertyName("blown"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    internal List<int>? SavedBlown { get => Blown.Count > 0 ? Blown : null; set => Blown = value ?? []; }
+    /// <summary>The machines switched off by a player, by id, sorted (industrial-oxygen): they draw and make nothing.</summary>
+    [JsonIgnore] internal List<int> Off { get; set; } = [];
+    /// <summary>Off as saved: none written while none is, so a world nothing was switched off in saves as before.</summary>
+    [JsonInclude, JsonPropertyName("off"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    internal List<int>? SavedOff { get => Off.Count > 0 ? Off : null; set => Off = value ?? []; }
     /// <summary>What each store holds, by machine id, sorted; only those holding something (0101).</summary>
     [JsonInclude] internal List<StoreCharge> Stores { get; set; } = [];
     /// <summary>The machines a magnetic flare broke, by id, sorted: they make, draw and store nothing till repaired.</summary>
@@ -80,6 +93,10 @@ public interface IPowerQueries
     /// then; one on no network never. Fires are not weighed against each other, so two never hand over a tick dark.
     /// </summary>
     bool Needed(int machineId);
+    /// <summary>Whether a player switched machine <paramref name="machineId"/> off (industrial-oxygen).</summary>
+    bool IsOff(int machineId);
+    /// <summary>Why a <see cref="SetSwitch"/> of machine <paramref name="machineId"/> would be refused: no machine that switches.</summary>
+    string? SwitchProblem(int machineId);
     /// <summary>
     /// What charging station <paramref name="machineId"/> puts into what it holds this tick, stored scaled (<c>Charge.Scale</c>):
     /// its draw, its modules in it, times its share, rounded down; 0 while it charges nothing. What its panel's rate says.
@@ -100,6 +117,12 @@ public interface IPowerOps
 {
     /// <summary>Tells machine <paramref name="machineId"/> to rest, drawing or making nothing from the next derivation on, or to work again.</summary>
     void Rest(int machineId, bool resting);
+
+    /// <summary>
+    /// Tells maker <paramref name="machineId"/> to make <c>Furnace.Blown</c> / <c>Furnace.BlownOf</c> of its rate from the next
+    /// derivation on, or its rate again: a blown fire's generator (industrial-oxygen).
+    /// </summary>
+    void Blow(int machineId, bool blown);
 
     /// <summary>
     /// Machine <paramref name="machineId"/> is about to be taken apart (0110): every cable plugged into it stays, its end a peg
@@ -133,7 +156,7 @@ public sealed partial class PowerModule : Module<PowerState>, IPowerQueries, IPo
     /// <summary>Made once, so the tick's derivation allocates no delegates.</summary>
     private readonly Predicate<int> _standing;
     private readonly Func<Machine, int> _draw;
-    private readonly Func<Machine, bool> _making;
+    private readonly Func<Machine, int> _making;
     private readonly Func<int, int> _stored;
     private readonly Predicate<StoreCharge> _storeStanding;
     private readonly Func<int, bool> _broken;
@@ -148,13 +171,20 @@ public sealed partial class PowerModule : Module<PowerState>, IPowerQueries, IPo
         _itemsOps = itemsOps;
         _standing = id => _grid.MachineById(id) != null;
         _draw = m => Drawing(m) ? DrawOf(m) * Times(m) : 0;
-        _making = m => !IsResting(m.Id);
+        _making = m => IsResting(m.Id) || IsOff(m.Id) ? 0 : IsBlown(m.Id) ? Content.Furnace.Blown * 1000 / Content.Furnace.BlownOf : 1000;
         _stored = StoredIn;
         _storeStanding = s => _grid.MachineById(s.Machine) != null;
         _broken = IsBroken;
         Handles<Lay>(c => LayProblem(c.From, c.A, c.B), ApplyLay);
         Handles<Move>(c => MoveProblem(c.Node, c.To, c.Cable), ApplyMove);
         Handles<Cut>(CutProblem, ApplyCut);
+        Handles<SetSwitch>(c => SwitchProblem(c.Machine), c =>
+        {
+            int at = State.Off.BinarySearch(c.Machine);
+            if ((at < 0) == c.On) return;
+            if (c.On) State.Off.RemoveAt(at);
+            else State.Off.Insert(~at, c.Machine);
+        });
         // After derivation, at this tick's satisfaction: a charging station fills what it holds, a store what it settled.
         System(Phase.Simulation, Charge);
         System(Phase.Simulation, Settle);
@@ -163,6 +193,8 @@ public sealed partial class PowerModule : Module<PowerState>, IPowerQueries, IPo
         {
             // A machine taken apart rests no more: nothing else tells it to work again. A store taken apart loses what it held.
             if (!State.Resting.TrueForAll(_standing)) State.Resting = State.Resting.FindAll(_standing);
+            if (!State.Blown.TrueForAll(_standing)) State.Blown = State.Blown.FindAll(_standing);
+            if (!State.Off.TrueForAll(_standing)) State.Off = State.Off.FindAll(_standing);
             if (!State.Stores.TrueForAll(_storeStanding)) State.Stores = State.Stores.FindAll(_storeStanding);
             if (!State.Broken.TrueForAll(_standing)) State.Broken = State.Broken.FindAll(_standing);
             Rebuild();
@@ -246,14 +278,14 @@ public sealed partial class PowerModule : Module<PowerState>, IPowerQueries, IPo
     /// <summary>
     /// Whether a user draws now: none told to rest; a station (<c>Content.Stations</c>) whenever crafting does not rest
     /// it, whatever its inputs hold, for a queued one may have a paid unit to work; a charging station (the charger, a
-    /// drone bay) while any slot holds something short of full; any other with slots (the engine) while its first
-    /// slot holds something.
+    /// drone bay) while any slot holds something short of full; a hopper's machine (the vaporizer, industrial-oxygen)
+    /// whatever its hopper holds; any other with slots (the engine) while its first slot holds something.
     /// </summary>
     private bool Drawing(Machine m)
     {
-        if (IsResting(m.Id)) return false;
+        if (IsResting(m.Id) || IsOff(m.Id)) return false;
         var spec = Spec(m);
-        if (spec.Slots == null || Content.Stations.TryGet(m.Kind, out _)) return true;
+        if (spec.Slots == null || Content.Stations.TryGet(m.Kind, out _) || (spec.SlotTakes != null && !spec.Charges)) return true;
         var slots = _items.Crate(m.Id);
         if (!spec.Charges) return slots[0] != null;
         foreach (var held in slots)
@@ -305,7 +337,14 @@ public sealed partial class PowerModule : Module<PowerState>, IPowerQueries, IPo
 
     private bool IsResting(int machineId) => State.Resting.BinarySearch(machineId) >= 0;
 
+    private bool IsBlown(int machineId) => State.Blown.BinarySearch(machineId) >= 0;
+
     public bool IsBroken(int machineId) => State.Broken.BinarySearch(machineId) >= 0;
+
+    public bool IsOff(int machineId) => State.Off.BinarySearch(machineId) >= 0;
+
+    public string? SwitchProblem(int machineId) =>
+        _grid.MachineById(machineId) is { } m && Spec(m).Is(Content.MachineTrait.Switches) ? null : "power.noSwitch";
 
     /// <summary>What <paramref name="m"/> draws while it draws, its modules folded in, rounded up (0086).</summary>
     private int DrawOf(Machine m) => Spec(m).Draws is int draws ? Boost.Cost(draws, _items.Boost(m.Id).Draw) : 0;
@@ -319,7 +358,7 @@ public sealed partial class PowerModule : Module<PowerState>, IPowerQueries, IPo
     public IReadOnlyList<int> Broken => State.Broken;
 
     // Broken checked here too: a flare strikes in construction, after this tick's networks were found.
-    public int Satisfaction(int machineId) => !IsBroken(machineId) && State.Satisfaction.TryGetValue(machineId, out int s) ? s : 0;
+    public int Satisfaction(int machineId) => !IsBroken(machineId) && !IsOff(machineId) && State.Satisfaction.TryGetValue(machineId, out int s) ? s : 0;
 
     public bool Feeds(int cell) =>
         NodeAt(cell) == cell && NetworkOf(cell) is { } n && (n.Supply > 0 || n.Stored > 0) && n.Satisfaction >= 1000;
@@ -403,6 +442,14 @@ public sealed partial class PowerModule : Module<PowerState>, IPowerQueries, IPo
         if ((at >= 0) == resting) return;
         if (resting) State.Resting.Insert(~at, machineId);
         else State.Resting.RemoveAt(at);
+    }
+
+    public void Blow(int machineId, bool blown)
+    {
+        int at = State.Blown.BinarySearch(machineId);
+        if ((at >= 0) == blown) return;
+        if (blown) State.Blown.Insert(~at, machineId);
+        else State.Blown.RemoveAt(at);
     }
 
     public void Unplug(int machineId)

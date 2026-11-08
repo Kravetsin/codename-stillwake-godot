@@ -274,6 +274,9 @@ public sealed class Ui
     /// <summary>The program the open computer shows, by id; none as it opens, and none once it stops being ready.</summary>
     public Store<string?> ComputerProgram { get; } = new(null);
 
+    /// <summary>The radar contact this player selected, by id: kept while the computer is closed, none once it is gone.</summary>
+    public Store<int?> RadarContact { get; } = new(null);
+
     /// <summary>
     /// Where the open inventory's grid ends on the screen, its left edge and its bottom; null while it is
     /// closed. Set by <c>items</c> every frame; every machine's panel opens under it (0058), and

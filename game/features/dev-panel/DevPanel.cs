@@ -103,6 +103,8 @@ public partial class DevPanel : CanvasLayer
         // The planet's hour (2026-11-07-night-chills): dusk starting, night a minute on; or the day's start. Refused aboard.
         buttons.AddChild(Style.Button("dusk", () => Send(new Sim.Sky.SetTime(_modules().Rules.Cycle is { } day ? day.Length - day.Night - Daylight.Dusk : 0))));
         buttons.AddChild(Style.Button("day", () => Send(new Sim.Sky.SetTime(0))));
+        // A place on the radar at once (2026-11-08-radar-contacts): a vessel of a random class, where places draws it on the orbit.
+        buttons.AddChild(Style.Button("radar place", () => Send(new Find(Content.Vessels.Classes[(int)(GD.Randi() % (uint)Content.Vessels.Classes.Count)].Id))));
         column.AddChild(buttons);
         // Surfaces (0076): a planet (0077) or the test strip opened, and this hero beamed between the last opened and the ship.
         var surfaces = Style.Gap(new HBoxContainer(), 8);

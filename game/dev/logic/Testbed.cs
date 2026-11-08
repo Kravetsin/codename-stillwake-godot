@@ -206,9 +206,10 @@ public static class Testbed
             while (slots.Count < Machines.Get(kind).Slots) slots.Add(null);
             return slots;
         }
-        // A canister aired the rooms; the tanks go in full, so the air holds a long session.
+        // A canister aired the rooms; the tanks go in half full, so the air holds a long session and the electrolyser has
+        // room to fill them (liquids-in-tanks).
         foreach (var tank in save["slices"]!["atmosphere"]!["tanks"]!.AsArray())
-            if (machines.Any(m => (int)m!["id"]! == (int)tank!["tank"]! && (string?)m["kind"] == "tank")) tank!["oxygen"] = Air.TankCapacity;
+            if (machines.Any(m => (int)m!["id"]! == (int)tank!["tank"]! && (string?)m["kind"] == "tank")) tank!["oxygen"] = Air.TankCapacity / 2;
         var items = save["slices"]!["items"]!;
         items["creative"] = new JsonArray(0);
         var held = new List<JsonObject>

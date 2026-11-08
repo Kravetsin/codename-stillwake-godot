@@ -7,7 +7,7 @@ const { canvas } = Anime;
 
 /** The logical sizes the game lays them out by: the pixel signs' own. */
 const SIZES = { sign_bolt: [7, 9], sign_boltNone: [7, 9], sign_unplugged: [7, 7], sign_broken: [13, 13], sign_oxygen: [11, 11], sign_oxygenShort: [11, 11], sign_leak: [9, 9], sign_leakShort: [9, 9],
-  sign_mouseLeft: [13, 10], sign_mouseRight: [13, 10], sign_mouseMiddle: [13, 10], sign_mouseMiddleKey: [13, 10], sign_drag: [8, 7], sign_holdTrack: [9, 9], sign_cap: [16, 16] };
+  sign_mouseLeft: [13, 10], sign_mouseRight: [13, 10], sign_mouseMiddle: [13, 10], sign_mouseMiddleKey: [13, 10], sign_drag: [8, 7], sign_holdTrack: [9, 9], sign_cap: [16, 16], sign_off: [9, 9] };
 for (let step = 1; step <= 12; step++) SIZES[`sign_hold_${step}`] = [9, 9];
 /** The bolt in the 7 by 9 picture: a heavy zigzag, top right to a point at the bottom left. */
 const BOLT = [3.6, .5, 6.5, .5, 4.7, 3.5, 6.4, 3.5, 1.0, 8.6, 2.5, 5.3, .6, 5.3];
@@ -147,11 +147,19 @@ const cap = () => {
   ]);
 };
 
+/** The power symbol over a machine a player switched off (industrial-oxygen, the user's pick A): a ring open at the top, a bar into
+ * it, periwinkle, so it reads apart from the bolt's amber and red and the wrench's orange; steady, never blinking. */
+const off = () => glyph('sign_off', [{
+  sd: union(sdArc(4.5, 4.9, 2.5, .5, -Math.PI / 2 + .8, 2 * Math.PI - 1.6), sdCapsule(4.5, 1.6, 4.5, 4.4, .5)),
+  body: '#8c9cf0', core: '#e2e6ff', rim: '#07081a', halo: '#3a3f86', haloA: .42, coreAt: 1.6,
+}]);
+
 Subjects.signs = function () {
   out('sign_bolt', bolt('sign_bolt', '#f5a623', '#fff0c0', '#1c1004', '#8a5410'));
   out('sign_boltNone', bolt('sign_boltNone', '#ec3f36', '#ffd0c4', '#1c0606', '#7c1a18'));
   out('sign_unplugged', unplugged());
   out('sign_broken', broken());
+  out('sign_off', off());
   out('sign_oxygen', oxygen('sign_oxygen', SKY));
   out('sign_oxygenShort', oxygen('sign_oxygenShort', RED));
   out('sign_leak', leak('sign_leak', SKY));

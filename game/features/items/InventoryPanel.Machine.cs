@@ -1,4 +1,5 @@
 // InventoryPanel's open machine: its body in the machine frame by kind (crate, bay, furnace, fed station, generator, charger) and its readouts.
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using Godot;
@@ -27,7 +28,7 @@ public partial class InventoryPanel
             _slots.RemoveAll(s => s.Place.Crate != null && !_lent.Contains(s));
             _shown.RemoveChild(_frame);
             _frame.QueueFree();
-            (_frame, _progress, _problem, _tooCold, _crateGrid, _crateKey, _send) = (null, null, null, null, null, null, null);
+            (_frame, _progress, _problem, _tooCold, _crateGrid, _crateKey, _send, _draw, _drawCount, _switch, _liquid) = (null, null, null, null, null, null, null, null, null, null, null);
             _chargerLines.Clear();
         }
         if (want is not var (crate, kind)) return;
@@ -48,10 +49,16 @@ public partial class InventoryPanel
         if (spec.Is(Content.MachineTrait.Container)) _frame.Head.AddChild(_crateKey = Sorter(crate));
         // Whether drones serve it, at the right of its header (0062).
         if (Served?.Invoke(crate) is { } served) _frame.Head.AddChild(served);
+        // On or off, for a machine that switches: a press turns it (industrial-oxygen).
+        if (spec.Is(Content.MachineTrait.Switches))
+            _frame.Head.AddChild(_switch = Style.Button("", () => { if (Switching != null) Send(new Stillwake.Sim.Power.SetSwitch(crate, Switching.IsOff(crate))); }));
         // Its body by what it is (0113): a fire smelting its inputs or making power, a fed station, a bay, a charging station.
         _frame.Add(kind switch
         {
             _ when spec.Is(Content.MachineTrait.Sells) => TradeBody(crate, spec),
+            _ when spec.Is(Content.MachineTrait.Gas) => DrawBody(crate, spec, n => new Stillwake.Sim.Atmosphere.DrawCanister(crate, n)),
+            _ when spec.Is(Content.MachineTrait.HoldsWater) => DrawBody(crate, spec, n => new Stillwake.Sim.Water.DrawWater(crate, n)),
+            _ when spec.Is(Content.MachineTrait.AirSource) && spec.SlotTakes != null => VaporizerBody(crate, spec),
             _ when spec.Is(Content.MachineTrait.Fire) && spec.Inputs > 0 => FurnaceBody(crate, spec),
             _ when spec.Is(Content.MachineTrait.Fire) => GeneratorBody(crate, spec),
             _ when station is { Fed: true } => FedBody(crate, kind),
@@ -258,6 +265,75 @@ public partial class InventoryPanel
         return body;
     }
 
+    /// <summary>
+    /// A liquid store's body (industrial-oxygen): its hopper, which hands and drones fill, and a slider of how many to draw
+    /// out with the key beside it, <paramref name="draw"/> the command for a count.
+    /// </summary>
+    private VBoxContainer DrawBody(int crate, Content.MachineSpec spec, Func<int, Command> draw)
+    {
+        var body = Style.Gap(new VBoxContainer { MouseFilter = Control.MouseFilterEnum.Ignore }, 6);
+        body.AddChild(_crateGrid = Grid(Enumerable.Range(0, spec.Slots ?? 0).Select(i => new Place(i, crate))));
+        var row = Style.Gap(new HBoxContainer(), 8);
+        row.AddChild(_drawCount = new HSlider
+        {
+            MinValue = 1,
+            MaxValue = 1,
+            Step = 1,
+            Value = 1,
+            FocusMode = Control.FocusModeEnum.None,
+            CustomMinimumSize = new Vector2(72, 22),
+            SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
+            SizeFlagsVertical = Control.SizeFlags.ShrinkCenter,
+        });
+        row.AddChild(_draw = Style.Button("", () => Send(draw((int)_drawCount.Value))));
+        body.AddChild(row);
+        return body;
+    }
+
+    /// <summary>
+    /// The draw key: the slider's full scale the <paramref name="whole"/> units the store holds, the key saying
+    /// <paramref name="text"/> of the count picked, dark with why by the pointer while it cannot be drawn.
+    /// </summary>
+    private void ShowDraw(int whole, Func<int, string?> problemOf, Func<int, string> text)
+    {
+        if (_draw == null || _drawCount == null) return;
+        _drawCount.MaxValue = Math.Max(1, whole);
+        _drawCount.Visible = whole > 1;
+        int count = (int)Math.Min(_drawCount.Value, Math.Max(1, whole));
+        string? problem = problemOf(count);
+        _draw.Disabled = problem != null;
+        _draw.TooltipText = problem != null ? T(problem) : "";
+        string said = text(count);
+        if (_draw.Text != said) _draw.Text = said;
+    }
+
+    /// <summary>A vaporizer's body: its slot of canisters, which hands and drones fill, and the liquid it has to turn (industrial-oxygen).</summary>
+    private VBoxContainer VaporizerBody(int crate, Content.MachineSpec spec)
+    {
+        var body = Style.Gap(new VBoxContainer { MouseFilter = Control.MouseFilterEnum.Ignore }, 6);
+        body.AddChild(_crateGrid = Grid(Enumerable.Range(0, spec.Slots ?? 0).Select(i => new Place(i, crate))));
+        body.AddChild(_liquid = new Label { LabelSettings = Style.Text(Style.Mono, 11, Style.Slate400), MouseFilter = Control.MouseFilterEnum.Ignore });
+        return body;
+    }
+
+    /// <summary>The cistern's draw key: bottles out of what it holds, of its capacity (industrial-oxygen).</summary>
+    private void ShowCistern(int cistern)
+    {
+        if (Water == null || _client == null) return;
+        int held = Water.WaterIn(cistern), peer = _client.Id;
+        ShowDraw(held / Content.Water.Bottle, n => Water.DrawProblem(cistern, peer, n),
+            n => T("cistern.draw", ("n", n), ("held", Litres.Of(held)), ("all", Litres.Of(Content.Water.CisternCapacity))));
+    }
+
+    /// <summary>The tank's draw key: canisters out of what it holds, of its capacity.</summary>
+    private void ShowTank(int tank)
+    {
+        if (Air == null || _client == null) return;
+        int held = Air.OxygenIn(tank), peer = _client.Id;
+        ShowDraw(held / Content.Air.Canister, n => Air.DrawProblem(tank, peer, n),
+            n => T("tank.draw", ("n", n), ("held", Litres.Of(held)), ("all", Litres.Of(Content.Air.TankCapacity))));
+    }
+
     /// <summary>The capsule's key: what it would carry while home, what it carries and when it comes back while away, dark with nothing to send.</summary>
     private void ShowCapsule(int station)
     {
@@ -278,6 +354,18 @@ public partial class InventoryPanel
     {
         var spec = reading.Kind is string kind && MachineSpecs.TryGet(kind, out var s) ? s : null;
         if (spec?.Is(Content.MachineTrait.Sells) == true && Crate is int sells) ShowCapsule(sells);
+        if (spec?.Is(Content.MachineTrait.Gas) == true && Crate is int tank) ShowTank(tank);
+        if (_switch != null && Switching != null && Crate is int switched)
+        {
+            string said = T(Switching.IsOff(switched) ? "switch.off" : "switch.on");
+            if (_switch.Text != said) _switch.Text = said;
+        }
+        if (spec?.Is(Content.MachineTrait.HoldsWater) == true && Crate is int cistern) ShowCistern(cistern);
+        if (_liquid != null && Air != null && Crate is int vaporizer)
+        {
+            string held = T("vaporizer.liquid", ("n", Litres.Of(Air.LiquidFor(vaporizer))));
+            if (_liquid.Text != held) _liquid.Text = held;
+        }
         bool zone = spec?.Is(Content.MachineTrait.Zone) == true;
         if (spec is { Charges: true } && !zone && Crate is int station) ShowCharger(reading, station, Charger?.Invoke(station) == true);
         // A bay's bolt lit while it charges a drone docked in it.
@@ -291,8 +379,9 @@ public partial class InventoryPanel
         _fire.AddThemeStyleboxOverride("panel", _tooCold != null ? Cold : burning ? FireOn : FireOut);
         if (_progress != null) _progress.Value = at is { Item: not null, Work: > 0 } ? (double)at.Progress / at.Work : 0;
         _frame?.Light(burning);
-        _problem.Text = at?.Problem is { } problem ? T(problem, ("n", Takes(at.Item))) : "";
-        _problem.Visible = at?.Problem != null && _tooCold == null;
+        // A fire blown by liquid oxygen says so where a problem would (industrial-oxygen).
+        _problem.Text = at?.Problem is { } problem ? T(problem, ("n", Takes(at.Item))) : at is { Burning: true, Blown: true } ? T("furnace.blown") : "";
+        _problem.Visible = (at?.Problem != null || at is { Burning: true, Blown: true }) && _tooCold == null;
     }
 
     /// <summary>How many of <paramref name="item"/> one smelt takes, what "crafting.tooFew" names; 1 for nothing.</summary>

@@ -2,7 +2,6 @@ using Stillwake.Game.Features.Crew;
 using Stillwake.Game.Shared;
 using Stillwake.Net;
 using Stillwake.Sim;
-using Stillwake.Sim.Atmosphere;
 using Stillwake.Sim.Building;
 using Stillwake.Sim.Debris;
 using Stillwake.Sim.Grid;
@@ -104,7 +103,7 @@ public class AimTests
     }
 
     [Fact]
-    public void PutsACanisterIntoATankOnAPressOrCarriesWhyItCannot()
+    public void OpensATankOnAPressItsHopperAndItsKeyInsideIt()
     {
         var w = Drawn("""
             ########
@@ -113,11 +112,10 @@ public class AimTests
             ########
             """);
         var tank = w.M.Grid.MachineAt(At(1, 1))!;
-        // Carrying none, the hero is told why.
-        Assert.Equal(new Use(new LoadCanister(tank.Id), "items.notEnough"), Aiming.AimAt(w.M, 0, HeroOn(3, 2), Centre(2, 2))?.Press);
-        // In creative mode a canister is free.
-        w.Step(new SetCreative(true));
-        Assert.Null(Aiming.AimAt(w.M, 0, HeroOn(3, 2), Centre(2, 2))?.Press?.Problem);
+        // A canister goes into its hopper and comes out by its key (industrial-oxygen): the press opens it.
+        var aim = Aiming.AimAt(w.M, 0, HeroOn(3, 2), Centre(2, 2));
+        Assert.Equal(tank.Id, aim?.Crate);
+        Assert.Null(aim?.Press);
     }
 
     [Fact]
