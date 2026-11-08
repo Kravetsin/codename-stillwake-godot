@@ -199,6 +199,53 @@ freighter 2,881–6,765, nearly all hull scrap; the bands hold them with margin,
   zone's edge, has been looked at by the user, and a hero has flown over, gone in by a door and taken a wall and a
   crate apart.
 
+### V-1b — Salvage aboard: what drifts by, found inside
+
+A vessel's compartments hold too little to read: crates and lamps only. The user's rule: the debris that drifts by looks
+like pieces of ships, so a vessel holds the same things whole, each giving **five times** what its broken piece gives, and
+its look says what it gives, as wreckage's does (0034): a tank cluster in life support is air, a cargo container in the
+hold is planks.
+
+- **A salvage object is a pile** (hold-piles, pile-hit-points): a machine row with no menu card and `Hp`, cracked by the
+  axe, drill or sledgehammer through `Hew`, read by the scanner, its `Cost` given at its hit points (counted obtained,
+  the-board). No new mechanic, command or saved state. Why not a crate with loot: a crate gives what it holds for
+  nothing, a pile is worked for, and its picture is the promise.
+- **One a debris kind**, written as data in `Content.Vessels.Salvage`, `VesselSalvage(Kind, From, Roles, Times)`:
+  `Kind` the pile's machine row (its own map `Char`, so interiors draw it by its footprint as they draw a crate); `From`
+  the debris kind it copies: its size (`Wreckage.Sizes`), its hit points (`Wreckage.HpOf`, a cargo crate's or supply
+  pod's from content), its picture; `Roles` where it stands; `Times`, 5 unless written.
+
+  | Salvage | From | Roles | Gives (5 × the piece's mean) |
+  | --- | --- | --- | --- |
+  | cargo container | `cargoContainer` 8×4 | hold | planks, scrap, gears and wire by their odds |
+  | cargo crate | `cargoCrate` | hold, quarters | planks |
+  | supply pod | `supplyPod` | quarters, life | canisters, scrap, seeds |
+  | tank cluster | `tankCluster` 4×4 | life | canisters |
+  | machine block | `machineBlock` 6×4 | engine | gears, plates, rotors |
+  | engine block | `engineBlock` 10×6, `Times` 2 | engine (freighter) | gears, plates, wire, rotors |
+  | cable rack | `cableRack` 4×4 | bridge | wire, scrap, one circuit |
+  | soil clod | `soilClod` 4×4 | quarters | seeds, soil |
+
+- **Its `Cost` is worked out, not written:** for each loot entry of the piece (`Content.Loot`), `Times` × the mean count
+  (`(Min + Max) / 2`) × its chance (`1 / OneIn`), rounded down, an entry under one dropped. Items in
+  `Vessels.Unmultiplied` (the circuit, kept rare by stamped-and-assembled) give their own mean, rounded up. So a debris
+  table changed reprices its salvage, and a content test pins every row to the rule. Fixed, not drawn: the look promises
+  what it gives; drawn loot can follow if play asks.
+- **Interiors** are drawn again with these, up to 6 rows tall (the engine block fills its deck), their first two columns
+  still open; `Vessels.Machines`, the whitelist, takes every salvage row. Crates stay, the ship's own storage, their loot
+  by role cut to a stack or two.
+- **The breach** also leaves a hull section or two (`hullSection`, `shieldSlab` as salvage) on the deck by its crater:
+  what tore the hull lies there, and the player reads where the plates are.
+- **Look:** the debris piece's own picture, as it drifts (`--vessel` frames first); the client maps a salvage row to its
+  `From`'s picture, no new art. A standing, bolted-down version of each is a later pick page, by the art rule.
+- **Economy:** the class bands (`VesselClass.Yield`) are measured again with salvage in; the hull's scrap a cell is cut
+  if a freighter goes past its band (an open number: the hull yield). Salvage needs a tool, which comes before the radar.
+- **Tests:** content — each salvage row's `Cost`, size and `Hp` follow its `From` by the rule, `Unmultiplied` kept, every
+  interior's machines whitelisted and fitting six rows, the bands; scenario — the axe breaks a vessel's tank cluster and
+  the bag gets its `Cost`, counted obtained; `Wipe` drops a cracked salvage's crack; the scanner reads one.
+- **Done when** a frame of each class, wrecked and intact, shows full compartments the user has looked at, and a hero has
+  broken a salvage object of each role and got five times its piece's loot.
+
 ### V-2 — Three more causes, two more classes, the outside
 
 - Blast, cut in two and scavenged, the cause drawn at `Jump` by the class's weights; the corvette and the frigate
