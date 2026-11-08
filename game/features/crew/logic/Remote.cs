@@ -191,8 +191,17 @@ public sealed class RemoteHeroes
         double t = (then - a.At) / (b.At - a.At);
         double? look = a.Seen.Look is double la && b.Seen.Look is double lb ? la + (lb - la) * t : a.Seen.Look;
         var hero = ha with { X = (int)Math.Round(ha.X + (hb.X - ha.X) * t), Y = (int)Math.Round(ha.Y + (hb.Y - ha.Y) * t) };
-        return a.Seen with { Hero = hero, Look = look };
+        return a.Seen with { Hero = hero, Look = look, Busy = Sweep(a.Seen.Busy, b.Seen.Busy, t) };
     }
+
+    /// <summary>
+    /// A drill's bit, which follows its pointer, swept between samples as the body is; other work is a point of its own, each
+    /// change news (a swing, a plan's square, a beam), kept as sent.
+    /// </summary>
+    private static Busy? Sweep(Busy? a, Busy? b, double t) =>
+        a is { Work: Handwork.Drill, At: var pa } && b is { Work: Handwork.Drill, At: var pb }
+            ? a.Value with { At = new Point((int)Math.Round(pa.X + (pb.X - pa.X) * t), (int)Math.Round(pa.Y + (pb.Y - pa.Y) * t)) }
+            : a;
 
     /// <summary>Where a hero <paramref name="late"/> ms past its newest sample is: walking on for a while, then standing there.</summary>
     private static Seen Onwards(Sample sample, double late)
