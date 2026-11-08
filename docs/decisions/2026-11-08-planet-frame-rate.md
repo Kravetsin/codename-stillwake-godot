@@ -40,10 +40,13 @@ The sim tick was never the cause: 0.14 ms idle, 0.24 ms digging (a test with a S
   fps), ×4 (`--speed=4`) 5.77 → 4.29 ms (173 → 233 fps), p99 9.1 → 7.2. Standing still deep down costs 3.1 ms: depth alone
   was not the cause. Chips now draw over the frame's other matter rather than among it in the order thrown.
 - **A kind's first sight is ready before it.** The user's own run, logged (`--frames`, 85 s): 351 fps, p99 4.9 ms, the GC 510
-  times at 0.6 ms a pause (2.7 at most), so not the freezes; a creature first seen cost 32 ms, as one did near a spire, its
-  guards first seen. Each kind's pictures were read from disk and made on its first sight (14 pictures, 13 ms to read).
+  times at 0.6 ms a pause (2.7 at most), so not the freezes; a creature first seen cost 32 ms, its kind's first: its
+  pictures were read from disk and made then (14 pictures, 13 ms to read).
   `CreatureParts.Warm` reads and makes every kind's once a run, as a planet with creatures loads (160 ms there); the first
   loper costs 7 ms, the next ones 0.2 to 2. An individual's markings are still made at its first sight, 1.7 ms.
+- **The ruins' atlas is packed as a planet loads.** The freeze near a spire played again, logged: 243 ms, none of it the
+  creatures'. Every ruin's pictures were read and packed into one atlas at the first ruin seen: 244 ms. `HomesView` packs it
+  when made, with the planet's other views.
 - **Hits on the ground throw no chips** (the user's ask): they fell to one floor under the hit and lay in a sheet over any
   step. Sparks and dust in the air stay.
 - **The hologram keys stay still unless the pointer nears** (the user's idea) and draw again only when what they show changes;
