@@ -1,0 +1,26 @@
+namespace Stillwake.Content;
+
+/// <summary>
+/// The radar's contacts, places' vessels found (2026-11-08-radar-contacts): one now and then on the ship's orbit, the first
+/// <see cref="First"/> ticks into a world, each next <see cref="EveryMin"/> to <see cref="EveryMax"/> ticks after the last, each
+/// seen for <see cref="Lasts"/> ticks. Where on the orbit is an offset from the ship, <see cref="Nearest"/> to <see cref="Reach"/>
+/// radar units either side, <see cref="Reach"/> the radar's edge. Their classes and how many at once: <see cref="Vessels"/>.
+/// </summary>
+public static class Contacts
+{
+    /// <summary>The first contact of a world, 15 min in: a fixed tick, so a short run never draws from the world's Rng.</summary>
+    public const int First = 18_000;
+    /// <summary>The least ticks from a contact to the next: 15 min at 20 ticks a second.</summary>
+    public const int EveryMin = 18_000;
+    /// <summary>The most: 30 min.</summary>
+    public const int EveryMax = 36_000;
+    /// <summary>Ticks a contact is seen: 15 min. No more than <see cref="EveryMin"/>, so one is up at a time.</summary>
+    public const int Lasts = 18_000;
+
+    /// <summary>The radar's edge, either side of the ship, in radar units.</summary>
+    public const int Reach = 100;
+    /// <summary>A contact drawn is never nearer the ship than this.</summary>
+    public const int Nearest = 25;
+    /// <summary>Kilometres a radar unit stands for, as the radar names a contact's distance: 250 to 1 000 km.</summary>
+    public const int KmPerUnit = 10;
+}

@@ -16,7 +16,7 @@ public class MarketGoodsTests
 
     private static MarketGood Good(string id) => Goods.Single(g => g.Id == id);
 
-    /// <summary>What the sim says with orders up to <paramref name="met"/> filled and <paramref name="bought"/> had.</summary>
+    /// <summary>What the sim says with levels up to <paramref name="met"/> reached and <paramref name="bought"/> had.</summary>
     private static MarketState State(string id, int met, string[] bought, string? problem = null)
     {
         var had = new HashSet<string>(bought, StringComparer.Ordinal);
@@ -28,7 +28,7 @@ public class MarketGoodsTests
     [Fact]
     public void EachKindOfUpgradeIsOneGoodItsBlocksInOrderThenTheRest()
     {
-        Assert.Equal(["bag", "tradeSlots", "belt", "canister", "powerDriver", "scanner", "heavyHelmet", "solarPanel", "salvageDrone", "plasmaCutter", "regenSuit"], Goods.Select(g => g.Id));
+        Assert.Equal(["bag", "tradeSlots", "belt", "canister", "scanner", "powerDriver", "heavyHelmet", "solarPanel", "salvageDrone", "plasmaCutter", "regenSuit"], Goods.Select(g => g.Id));
         Assert.Equal(Enumerable.Range(1, 11).Select(i => "bag" + i), Good("bag").Steps.Select(s => s.Id));
         Assert.Equal(MarketShelf.Upgrades, Good("belt").Shelf);
         Assert.Equal(MarketShelf.Blueprints, Good("solarPanel").Shelf);
@@ -61,10 +61,11 @@ public class MarketGoodsTests
         Assert.Equal(MarketTile.Dear, State("bag", 1, ["bag1"], "research.noCredits").Tile);
 
     [Fact]
-    public void WithEveryOpenedStepBoughtItWaitsForTheNextOrder()
+    public void WithEveryOpenedStepBoughtItIsLockedOnTheNextStep()
     {
         var state = State("bag", 0, ["bag1", "bag2"]);
-        Assert.Equal(new MarketState(MarketTile.Waiting, null, 2, 2), state);
+        Assert.Equal(new MarketState(MarketTile.Locked, Content.Research.Node("bag3"), 2, 2), state);
+        Assert.Equal(new MarketState(MarketTile.Locked, Content.Research.Node("solarPanel"), 0, 0), State("solarPanel", 3, []));
     }
 
     [Fact]
@@ -83,32 +84,25 @@ public class MarketGoodsTests
     }
 
     [Fact]
-    public void WhatNoOrderHasOpenedIsNotShown()
-    {
-        Assert.False(MarketGoods.Shown(Good("belt"), Met(1)));
-        Assert.True(MarketGoods.Shown(Good("belt"), Met(2)));
-        Assert.Equal(["bag", "tradeSlots"], MarketGoods.Sorted(Goods, Met(1), null).Select(g => g.Id));
-    }
+    public void EveryGoodIsShownWhatTheMafiaDoesNotSellYetLastNearestFirst() =>
+        Assert.Equal(["bag", "tradeSlots", "belt", "canister", "scanner", "powerDriver", "heavyHelmet", "plasmaCutter", "solarPanel", "salvageDrone", "regenSuit"],
+            MarketGoods.Sorted(Goods, Met(1), null).Select(g => g.Id));
 
     [Fact]
     public void UpgradesComeFirstThenBlueprintsNewestFirst()
     {
         var goods = Goods.Append(new MarketGood("older", MarketShelf.Blueprints, [Content.Research.Node("bag1")!]));
-        Assert.Equal(["bag", "tradeSlots", "belt", "canister", "regenSuit", "plasmaCutter", "solarPanel", "salvageDrone", "heavyHelmet", "scanner", "powerDriver", "older"], MarketGoods.Sorted(goods, Met(5), null).Select(g => g.Id));
-        Assert.Equal(["regenSuit", "plasmaCutter", "solarPanel", "salvageDrone", "heavyHelmet", "scanner", "powerDriver", "older"], MarketGoods.Sorted(goods, Met(5), MarketShelf.Blueprints).Select(g => g.Id));
+        Assert.Equal(["bag", "tradeSlots", "belt", "canister", "regenSuit", "plasmaCutter", "solarPanel", "salvageDrone", "heavyHelmet", "powerDriver", "scanner", "older"], MarketGoods.Sorted(goods, Met(5), null).Select(g => g.Id));
+        Assert.Equal(["regenSuit", "plasmaCutter", "solarPanel", "salvageDrone", "heavyHelmet", "powerDriver", "scanner", "older"], MarketGoods.Sorted(goods, Met(5), MarketShelf.Blueprints).Select(g => g.Id));
     }
 
     [Fact]
-    public void AGoodOpenedByTheRowsDecipheringIsNewAndOneThatGainsStepsOnlyMore()
+    public void AGoodWithAStepInTheRowsDecipheringDeciphersItsPrice()
     {
         Func<int, bool> second = row => row == 2;
-        Assert.Equal(MarketFresh.New, MarketGoods.FreshOf(Good("belt"), Met(2), second));
+        Assert.Equal(MarketFresh.More, MarketGoods.FreshOf(Good("belt"), Met(2), second));
         Assert.Equal(MarketFresh.More, MarketGoods.FreshOf(Good("bag"), Met(2), second));
         Assert.Equal(MarketFresh.None, MarketGoods.FreshOf(Good("solarPanel"), Met(2), second));
         Assert.Equal(MarketFresh.None, MarketGoods.FreshOf(Good("bag"), Met(2), _ => false));
     }
-
-    [Fact]
-    public void AnOrderUnlocksEachKindOnce() =>
-        Assert.Equal(["bag", "tradeSlots", "belt", "powerDriver", "scanner"], MarketGoods.Unlocks(Goods, 2).Select(g => g.Id));
 }

@@ -195,6 +195,25 @@ public class MigrationsTests
     }
 
     [Fact]
+    public void TurnsTheOrdersMetInTurnIntoTheLevelAndCountsTheNextFromWhatIsSoldNow()
+    {
+        // Format-57 sales: the first two orders met and the fourth's circuits, so level 2 (the third unmet stops the count).
+        static JsonObject Old(string sold) => JsonNode.Parse(
+            "{\"slices\":{\"knowledge\":{\"granted\":[],\"credits\":0" + sold + "}},\"surfaces\":[]}")!.AsObject();
+        static JsonNode Knowledge(string sold) => Migrations.Steps[57 - Migrations.Oldest](Old(sold))["slices"]!["knowledge"]!;
+
+        var met = Knowledge(""","sold":[{"item":"circuit","count":20},{"item":"gear","count":20},{"item":"glass","count":5},{"item":"iron","count":20},{"item":"planks","count":20},{"item":"plate","count":30},{"item":"scrapChunk","count":40}]""");
+        Assert.Equal("""{"level":2,"base":[{"item":"frame","count":0},{"item":"glass","count":5},{"item":"silicon","count":0}],"baseWorth":0}""", met["reputation"]!.ToJsonString());
+        Assert.Equal("0", met["soldWorth"]!.ToJsonString());
+
+        var none = Knowledge("");
+        Assert.Equal("""{"level":0,"base":[{"item":"iron","count":0},{"item":"planks","count":0},{"item":"scrapChunk","count":0}],"baseWorth":0}""", none["reputation"]!.ToJsonString());
+
+        var partWay = Knowledge(""","sold":[{"item":"iron","count":20},{"item":"scrapChunk","count":40}]""");
+        Assert.Equal("""{"level":0,"base":[{"item":"iron","count":20},{"item":"planks","count":0},{"item":"scrapChunk","count":40}],"baseWorth":0}""", partWay["reputation"]!.ToJsonString());
+    }
+
+    [Fact]
     public void RefusesAFieldThisBuildDoesNotKnowAndReadsOneMissingAsItsDefaultSoAnAddedFieldNeedsNoBump()
     {
         var newer = JsonNode.Parse(Played())!.AsObject();

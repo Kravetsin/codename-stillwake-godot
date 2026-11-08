@@ -81,7 +81,7 @@ public partial class CreditHolo : Control
 
     private Color Ink => Gold.Lerp(Flared, (float)_count.Heat * 0.6f);
 
-    private float Baseline => Tall / 2f + NumberSize * 0.36f;
+    private float Baseline => Tall / 2f + NumberSize * Style.MonoMiddle;
 
     public override void _Draw()
     {
