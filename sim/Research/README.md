@@ -32,16 +32,20 @@ Knowing blueprints and crafts ([the-board](../../docs/decisions/2026-11-05-the-b
   (`Knowledge.Obtained`) is at `Understanding.Enough` and, for a craft, a machine that makes it stands on some surface. `Walk`, in
   the derivation phase, checks when a count or that surface's grid has moved, and on a load's first tick. What only the market
   opens (`Content.Research.Market`) and upgrades stay outside it. Known stays known, its machine gone or not.
-- **A node is reached** when everything it `Needs` is done: a block needs its ring's gate, a gate the gate before it. A block is done when everything it opens is known.
+- **A node is reached** when everything it `Needs` is done: a block needs its ring's gate, a gate the gate before it. A block is done when everything it opens is known or on its way (`Knowledge.InFlight`); gear and the confiscated container
+  never are (`Repeats`): sold again and again, gear one to a hero.
 - **A block is bought** with `BuyBlock` once reached, from anywhere. `Prices.Of` leaves the ship's credits: what it opens
-  is worth (a blueprint its cost, a craft its item, heavy-helmet) times its `Times`, to two figures. An upgrade
-  (`Content.Upgrades`) is bought and granted the same way, and `Items` and `Crew` read what it opens.
+  is worth (a blueprint its cost, a craft its item, gear its hand worth) times its `Times`, to two figures. An upgrade
+  (`Content.Upgrades`) is bought the same way, and `Items` and `Crew` read what it opens.
+- **A purchase is delivered** ([mafia-deliveries](../../docs/decisions/2026-11-08-mafia-deliveries.md)): `BuyBlock` spends and calls `Knowledge.Deliver`, granting
+  nothing; `Debris` brings it along a trade station's row and grants it when caught or broken. Gear (`Content.Research.GearSold`) is an item,
+  never a blueprint or a craft: its worth is a hand worth in `Content.Market`, its `Times` its old blueprint's.
 
 ## Refusals
 
 | Key | When |
 | --- | --- |
-| `research.bought` | the block is bought already |
+| `research.bought` | the block is bought already, or on its way |
 | `research.locked` | no such node; a buy of a gate |
 | `research.reputation` | the block's ring is past the mafia's level |
 | `research.noCredits` | short of its price |

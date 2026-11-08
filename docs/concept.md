@@ -50,6 +50,9 @@ A living document: what is decided about the game and what is still open. Techni
   the tablet's other page: room, and what cannot be made. Every good is shown, its price ciphered until the mafia's
   reputation reaches its level; a level rises by selling, what it wants at full worth and anything else at a seventh
   ([market-grid](decisions/2026-11-03-market-grid.md), [mafia-reputation](decisions/2026-11-08-mafia-reputation.md)).
+  A purchase drifts in along a trade station's row, to be caught or broken open: an upgrade a parcel, the rest a crate; gear
+  is sold as items, again and again, and a confiscated container breaks into a random lot
+  ([mafia-deliveries](decisions/2026-11-08-mafia-deliveries.md)).
   Every electric thing
   is built of circuits, and only those: the press, the crusher and the jetpack need none. Found circuits are rare, a rack
   drifting by now and then and two or three off each sentry on the derelicts; the rest are made at the circuit
@@ -68,7 +71,7 @@ A living document: what is decided about the game and what is still open. Techni
   the room can always get it back ([the-scoop](decisions/2026-10-31-the-scoop.md)).
 - **Suits are worn** and taken off, a helmet and a body mixed as the player likes: the helmet holds the air, the body
   keeps the cold out; the basic ones free at the pod, more to come ([suits-are-worn](decisions/2026-10-27-suits-are-worn.md)). The heavy
-  helmet holds 100 to the basic 45, its blueprint sold on the black market by the jetpack's time; a canister upgrade there makes
+  helmet holds 100 to the basic 45, sold on the black market by the jetpack's time; a canister upgrade there makes
   a canister breathed give 40 instead of 20 ([heavy-helmet](decisions/2026-11-03-the-heavy-helmet.md)).
   The regen suit, a body sold there with the belt's third slot, turns belt charge into air while its mode is on (V): a
   unit a breath at most, so it holds the air at rest and only slows its fall in flight ([regen-suit](decisions/2026-11-03-the-regen-suit.md)).
@@ -136,7 +139,7 @@ A living document: what is decided about the game and what is still open. Techni
   ([shots-are-the-sims](decisions/2026-10-26-shots-are-the-sims.md)).
 - **Salvage tools,** made at the workbench past the axe and the drill: the angle grinder, three times the drill on wrecks and
   near useless on walls; the spear, a little past the axe; the sledgehammer, a blow every 1.8 s that breaks a light wreck
-  outright; and the plasma cutter, its blueprint from the black market, cutting wrecks only and drawing half again their loot
+  outright; and the plasma cutter, bought on the black market, cutting wrecks only and drawing half again their loot
   by its share of the cutting ([salvage-tools](decisions/2026-11-04-salvage-tools.md)).
 - **Time runs only while the game runs.** Nothing happens offline and there is no offline progress,
   unlike the Factory in Tossit.

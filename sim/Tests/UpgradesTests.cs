@@ -125,8 +125,9 @@ public class UpgradesTests
         w.M.Knowledge.Earn(Prices.Of(node));
         w.Do(new BuyBlock("bag1")).Run();
         Assert.Equal(0, w.M.Research.Credits);
-        Assert.True(w.M.Items.SlotOpen(0, new Slot(Inventory.Start)));
         Assert.True(w.M.Research.Done(node));
+        Mafia.Receive(w);
+        Assert.True(w.M.Items.SlotOpen(0, new Slot(Inventory.Start)));
     }
 
     [Fact]

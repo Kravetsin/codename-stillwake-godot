@@ -72,6 +72,8 @@ public sealed class MarketPage : ITabletPage
     private readonly List<(float At, string Words)> _madeFrom = [];
     private List<Tile> _inView = [], _shownAll = [];
     private IResearchQueries? _research;
+    /// <summary>Whether a delivery has a trade station to come to (2026-11-08-mafia-deliveries); off the ship, taken as there is.</summary>
+    private bool _station = true;
     private Standing _standing = new(null, [], 0, 0);
     private TechNode? _order;
     private string? _askedFor;
@@ -141,13 +143,14 @@ public sealed class MarketPage : ITabletPage
     {
         var research = m.Research;
         _research = research;
+        _station = m.Rules.Id != Content.Surfaces.Ship.Id || m.Grid.MachinesWith(MachineTrait.Sells).Any();
         if (_tiles.Count == 0) Build();
         _met = _orders.Count(research.Done);
         if (_out) _reveal.Play(_seen().SeeOrders(_met), _met);
         foreach (var tile in _tiles) tile.State = MarketGoods.StateOf(tile.Good, research.Done, research.Reached, research.BuyProblem);
         _standing = research.Standing();
         _order = _standing.Next;
-        string now = string.Join('|', _tiles.Select(t => $"{t.State.Tile}{t.State.Next?.Id}{t.State.Bought}{t.State.Opened}")) + '|' + _order?.Id + '|' + _met + '|'
+        string now = string.Join('|', _tiles.Select(t => $"{t.State.Tile}{t.State.Next?.Id}{t.State.Bought}{t.State.Opened}")) + '|' + _order?.Id + '|' + _met + '|' + _station + '|'
             + _standing.Points + '|' + string.Join(',', _standing.Wanted.Select(d => d.Sold));
         if (now == _shown) return;
         _shown = now;
@@ -363,7 +366,7 @@ public sealed class MarketPage : ITabletPage
         picture.Size = new Vector2(86, 80);
         _strip.Tips.Add(picture, () => TipOf(id));
         card.AddChild(picture);
-        if (!tile.Ladder)
+        if (!tile.Ladder && !ResearchModule.Repeats(id))
         {
             float x = WordsAt + Width(Spaced, T("research.takes").ToUpperInvariant(), 10) + 14;
             foreach (var (item, count) in TechLinks.Of(id).Takes)
@@ -573,9 +576,15 @@ public sealed class MarketPage : ITabletPage
         float wide = card.Size.X, room = wide - WordsAt - 12;
         string id = tile.Good.Steps[0].Id;
         Frame(card, new Rect2(0, 0, 100, 100), TileFill, TileEdge, 1);
-        Caps(card, T(tile.Ladder ? "research.market.kind.upgrade" : "research.market.kind.blueprint"), WordsAt, 14, tile.Ladder ? Dim : PlanWord);
+        Caps(card, T(KindOf(tile.Ladder, id)), WordsAt, 14, tile.Ladder ? Dim : PlanWord);
         Say(card, Strong, Fitted(_strip.NameOf(id), Strong, 18, room), WordsAt, 36, 18, Words);
-        Say(card, Plain, Fitted(AboutOf(id), Plain, 12, room), WordsAt, 55, 12, Dim);
+        // What it is, or, with no station to come to, that one is wanted: every purchase drifts in by its row.
+        Say(card, Plain, Fitted(_station ? AboutOf(id) : T("research.market.noStation"), Plain, 12, room), WordsAt, 55, 12, _station ? Dim : Dear);
+        if (ResearchModule.Repeats(id))
+        {
+            Caps(card, T("research.market.arrives"), WordsAt, 88, Dim);
+            return;
+        }
         if (tile.Ladder)
         {
             float x = WordsAt + Caps(card, T("research.market.boughtOf", ("n", tile.State.Bought), ("m", tile.State.Opened)), WordsAt, 88, Dim) + 14;
@@ -599,6 +608,12 @@ public sealed class MarketPage : ITabletPage
             Say(card, Plain, words, at + 30, 89, 12, Words);
         }
     }
+
+    /// <summary>The key of what kind of good <paramref name="id"/> is: an upgrade, gear sold per hero, the seized lot, or a blueprint.</summary>
+    private static string KindOf(bool ladder, string id) =>
+        ladder ? "research.market.kind.upgrade"
+        : id == Content.Research.Confiscated ? "research.market.kind.lot"
+        : ResearchModule.Repeats(id) ? "research.market.kind.gear" : "research.market.kind.blueprint";
 
     /// <summary>Garbage where a picture will be: <paramref name="cells"/> by <paramref name="cells"/> filling <paramref name="side"/>, the same at the same place.</summary>
     private static void Block(CanvasItem on, uint place, Vector2 at, float side, int cells, int step, Color colour)

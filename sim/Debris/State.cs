@@ -32,6 +32,8 @@ public sealed class Piece
     /// its loot comes half again when it breaks. None for most, and unwritten.
     /// </summary>
     [JsonInclude, JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)] public int Cut { get; internal set; }
+    /// <summary>The mafia's delivery it carries (2026-11-08-mafia-deliveries), by its id in <c>Knowledge</c>; 0, and unwritten, for any other piece.</summary>
+    [JsonInclude, JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)] public int Delivery { get; internal set; }
     /// <summary>A harpoon's line pulling it to a point instead of its drift, or null (0044).</summary>
     [JsonInclude] public Reeling? Reel { get; internal set; }
     /// <summary>The last blow a weapon landed on it (a wreck), or null: what a creature guarding it answers (the sentry).</summary>

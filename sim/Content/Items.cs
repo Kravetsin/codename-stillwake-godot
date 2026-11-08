@@ -152,6 +152,10 @@ public static class Items
         new("engineBlock", 1, Group: ItemGroup.Other),
         new("cargoHold", 1, Group: ItemGroup.Other),
         new("podCluster", 1, Group: ItemGroup.Other),
+        // The mafia's deliveries (2026-11-08-mafia-deliveries): a parcel caught whole, a crate and the seized container broken.
+        new("parcel", 1, Group: ItemGroup.Other),
+        new("deliveryCrate", 1, Group: ItemGroup.Other),
+        new("confiscated", 1, Group: ItemGroup.Other),
         // Parts, made at the Fabricator (Crafts) of materials; then assemblies, of parts.
         new("wire", 250),
         new("plate", 250),

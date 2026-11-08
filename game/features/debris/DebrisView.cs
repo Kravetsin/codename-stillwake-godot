@@ -74,6 +74,21 @@ public partial class DebrisView(Ui ui) : Node2D
     /// <summary>Each cracked wreck's network, laid out once from its first blow (<see cref="WreckCracks.Network"/>).</summary>
     private readonly Dictionary<int, CrackNet> _nets = new();
 
+    /// <summary>
+    /// A delivery's beacon (2026-11-08-mafia-deliveries), blinking amber as a body's does, lighting what is round it: on a wreck's top,
+    /// rocking with it, the crate's at its own lamp; on a parcel's middle. Made as one comes into view and freed as it goes.
+    /// </summary>
+    private sealed record Tag(Vector2 Offset, Glow Glow);
+    private readonly Dictionary<int, Tag> _tags = new();
+    private readonly Beacons _beacons = new() { ZIndex = 1, Material = new CanvasItemMaterial { LightMode = CanvasItemMaterial.LightModeEnum.Unshaded } };
+    /// <summary>The beacon blinks once in this many seconds, on for the first part of it, as a body's; how much light it gives while on.</summary>
+    private const double BlinkS = 1.2, OnS = 0.22;
+    private const float BeaconLight = 0.85f;
+    /// <summary>The crate's lamp in its picture, from its middle (the pick's lamp at 12, 1.6 of 24); how far under a wreck's top edge.</summary>
+    private static readonly Vector2 CrateLamp = new(0, -10.4f);
+    private const float UnderTop = 1.5f;
+    private static readonly Color Amber = Style.Amber400;
+
     /// <summary>The pieces read last frame: for scripted runs.</summary>
     public IReadOnlyList<Piece> Pieces { get; private set; } = [];
     /// <summary>The pictures drawn last frame, and the most ever made: for the frame log and scripted runs.</summary>
@@ -94,6 +109,7 @@ public partial class DebrisView(Ui ui) : Node2D
         AddChild(_break);
         AddChild(_spearHit);
         AddChild(_hammerBlow);
+        AddChild(_beacons);
     }
 
     /// <summary>
@@ -104,6 +120,7 @@ public partial class DebrisView(Ui ui) : Node2D
     public void Frame(Client client, DebrisModule debris, Rect2 view, double progress, double elapsedMs)
     {
         _clockMs += elapsedMs;
+        _beacons.Clear();
         Pieces = debris.Pieces;
         _own.Read(client.InFlight, h => debris.Struck(h.Tool, h.X, h.Y, h.Heading).Select(p => p.Id).ToList());
         var grabbed = Predicted.Grabbing(client.InFlight);
@@ -120,6 +137,10 @@ public partial class DebrisView(Ui ui) : Node2D
             _out.Add(p.Id);
             if (p.X >= left && p.X <= right && p.Y >= top && p.Y <= bottom) _drawn.Add(p.Id);
         }
+        _gone.Clear();
+        foreach (int id in _tags.Keys)
+            if (!_drawn.Contains(id)) _gone.Add(id);
+        foreach (int id in _gone) Untag(id);
         _gone.Clear();
         foreach (int id in _shown.Keys)
             if (!_drawn.Contains(id)) _gone.Add(id);
@@ -175,10 +196,12 @@ public partial class DebrisView(Ui ui) : Node2D
                 : _clockMs / 4000 * (piece.Id % 2 == 0 ? 1 : -1) + piece.Id;
             picture.Rotation = (float)(turn + JoltTurn * jolt * (piece.Id % 2 == 0 ? 1 : -1));
             _turns[piece.Id] = picture.Rotation;
+            if (piece.Delivery != 0) Tagged(piece, picture);
             if (aimed is { } a && a.Id == piece.Id)
                 _aimed.Add(picture.Texture, picture.Position, picture.Rotation, picture.Scale.X, (a.Refused ? AimRefused : AimReady) with { A = picture.Modulate.A });
         }
         _aimed.End();
+        _beacons.QueueRedraw();
     }
 
     /// <summary>
@@ -197,6 +220,60 @@ public partial class DebrisView(Ui ui) : Node2D
         (one.Damage, one.JoltMs, one.Away, one.Flash) = (piece.Damage, 0, Vector2.Zero, 0);
         if (wreck) ShowCracks(one, piece);
         return one;
+    }
+
+    /// <summary>
+    /// The delivery <paramref name="piece"/>'s beacon over <paramref name="picture"/>, made the first frame it is drawn, moving and
+    /// rocking with it, its light blinking out of step with the next one's.
+    /// </summary>
+    private void Tagged(Piece piece, Sprite2D picture)
+    {
+        if (!_tags.TryGetValue(piece.Id, out var tag))
+        {
+            var offset = piece.Item == Content.Debris.DeliveryCrate ? CrateLamp
+                : Wreckage.HpOf(piece.Item) != null ? new Vector2(0, UnderTop - picture.Texture.GetHeight() / 2f)
+                : Vector2.Zero;
+            var glow = new Glow();
+            AddChild(glow);
+            _tags[piece.Id] = tag = new Tag(offset, glow);
+        }
+        var at = picture.Position + tag.Offset.Rotated(picture.Rotation);
+        double t = (_clockMs / 1000 + piece.Id * 0.37) % BlinkS;
+        float on = t < OnS ? (float)(1 - 0.5 * t / OnS) : 0;
+        tag.Glow.Position = at;
+        tag.Glow.Visible = on > 0;
+        tag.Glow.Colour = Amber * (BeaconLight * on);
+        _beacons.Add(at, on, picture.Modulate.A);
+    }
+
+    private void Untag(int id)
+    {
+        _tags[id].Glow.QueueFree();
+        _tags.Remove(id);
+    }
+
+    /// <summary>The beacons drawn this frame, unlit: a lamp in a dark housing, dim while off; lit, a pale core and its amber halo.</summary>
+    private sealed partial class Beacons : Node2D
+    {
+        private readonly List<(Vector2 At, float On, float Alpha)> _lit = [];
+
+        public void Clear() => _lit.Clear();
+
+        public void Add(Vector2 at, float on, float alpha) => _lit.Add((at, on, alpha));
+
+        public override void _Draw()
+        {
+            foreach (var (at, on, alpha) in _lit)
+            {
+                if (on > 0)
+                {
+                    DrawCircle(at, 11f, Amber with { A = 0.22f * on * alpha });
+                    DrawCircle(at, 5.5f, Amber with { A = 0.5f * on * alpha });
+                }
+                DrawCircle(at, 2.8f, Style.Slate950 with { A = alpha });
+                DrawCircle(at, 1.9f, (on > 0 ? Colors.White.Lerp(Amber, 0.3f) : Amber.Darkened(0.6f)) with { A = alpha });
+            }
+        }
     }
 
     /// <summary>A new picture, hidden: a wreck's or a small piece's.</summary>

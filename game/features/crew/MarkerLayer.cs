@@ -5,6 +5,7 @@ using Godot;
 using Stillwake.Game.Render;
 using Stillwake.Game.Shared;
 using Stillwake.Sim;
+using Stillwake.Sim.Debris;
 using static Stillwake.Game.I18n.En;
 
 namespace Stillwake.Game.Features.Crew;
@@ -20,6 +21,8 @@ public partial class MarkerLayer : CanvasLayer
 {
     /// <summary>The badge's radius and the chevron's length beyond it at the normal slot size, in pixels; they grow with the slots.</summary>
     private const float Radius = 10, Chevron = 7;
+    /// <summary>How long a lost delivery's marker stays, red, fading.</summary>
+    private const double LostS = 2.5;
 
     private readonly Ui _ui;
     private readonly ShipCamera _camera;
@@ -31,6 +34,8 @@ public partial class MarkerLayer : CanvasLayer
     private readonly List<Box> _boxes = [];
     private readonly Texture2D _pod = PodSilhouette();
     private Vector2? _mouse;
+    /// <summary>The deliveries lost as last read: one more, and a delivery marker gone this frame was lost.</summary>
+    private int _lost;
 
     /// <param name="ui">The slots' size, the menu open and the one tooltip.</param>
     /// <param name="camera">Where the world is on the screen, read as the hero has just moved it this frame.</param>
@@ -64,19 +69,43 @@ public partial class MarkerLayer : CanvasLayer
     public override void _Process(double delta)
     {
         _seen.Clear();
+        bool lost = false;
         if (_read() is var (hero, m, peer))
         {
             var friends = hero.Others.Select(o => (o.Id, o.Hero, Suits.Of(m.Players, o.Id))).ToList();
             var body = Bodies.Latest(m.Items.Floor, peer) is { } pile ? (pile, Suits.Of(m.Players, peer)) : ((Pile, int)?)null;
-            Show(Markers.Of(m.Crew.Spawn, m.Grid.Width, friends, body), hero.Current.Middle, hero.PromptCovers, delta);
+            Show(Markers.Of(m.Crew.Spawn, m.Grid.Width, friends, body, DeliveriesOf(m)), hero.Current.Middle, hero.PromptCovers, delta);
+            lost = m.Knowledge.Lost > _lost;
+            _lost = m.Knowledge.Lost;
         }
-        // Gone with its target: a friend who left, a body taken or gone, or the world.
+        // Gone with its target: a friend who left, a body taken or gone, or the world. A delivery that drifted past instead
+        // turns red where it was pointed at and fades (2026-11-08-mafia-deliveries).
         foreach (var key in _badges.Keys.Where(k => !_seen.Contains(k)).ToList())
         {
-            _badges[key].QueueFree();
+            var badge = _badges[key];
+            if (key.Item1 == MarkerIcon.Delivery && badge.Visible && (badge.Lost > 0 || lost))
+            {
+                badge.Lost += delta;
+                badge.Modulate = Colors.White with { A = (float)Math.Max(0, 1 - badge.Lost / LostS) };
+                badge.QueueRedraw();
+                if (badge.Lost < LostS) continue;
+            }
+            badge.QueueFree();
             _badges.Remove(key);
         }
         _tips.Frame(_ui.MenuOpen.Get() ? null : _mouse);
+    }
+
+    /// <summary>The mafia's deliveries out, where each piece is (cells): the pieces walked only while one is on its way.</summary>
+    private static List<(int Id, string Good, double X, double Y)>? DeliveriesOf(Registry m)
+    {
+        var deliveries = m.Knowledge.Deliveries;
+        if (deliveries.Count == 0) return null;
+        var list = new List<(int, string, double, double)>(deliveries.Count);
+        foreach (var piece in m.Debris.Pieces)
+            if (piece.Delivery != 0 && deliveries.FirstOrDefault(d => d.Id == piece.Delivery) is { } delivery)
+                list.Add((piece.Id, delivery.Good, (double)piece.X / DebrisModule.Unit, (double)piece.Y / DebrisModule.Unit));
+        return list;
     }
 
     private void Show(List<Marker> markers, Point from, Rect2? prompt, double delta)
@@ -120,12 +149,15 @@ public partial class MarkerLayer : CanvasLayer
 
     /// <summary>What the pointer says over a marker: what it points at and how many cells away.</summary>
     private static Tip? TipOf(Badge badge) => badge.Marker is { } marker
-        ? new Tip(T(marker.Icon switch { MarkerIcon.Home => "markers.home", MarkerIcon.Body => "markers.body", _ => "markers.friend" }), new TipLine(T("markers.cells", ("cells", badge.Cells)), Tone.Dim))
+        ? new Tip(T(marker.Icon switch { MarkerIcon.Home => "markers.home", MarkerIcon.Body => "markers.body", MarkerIcon.Delivery => badge.Lost > 0 ? "markers.lost" : "markers.delivery", _ => "markers.friend" }), new TipLine(T("markers.cells", ("cells", badge.Cells)), Tone.Dim))
         : null;
 
     /// <summary>One marker: a dark badge ringed in its colour holding its icon, and a chevron outside the ring toward the target.</summary>
     private sealed partial class Badge(Texture2D pod) : Control
     {
+        /// <summary>The side a tool's icon in a delivery's badge is baked at: the badge at its largest.</summary>
+        private const int IconBake = 48;
+
         private static readonly Color Back = Style.Slate950 with { A = 0.8f };
 
         public Marker? Marker { get; set; }
@@ -133,6 +165,8 @@ public partial class MarkerLayer : CanvasLayer
         public float Angle { get; set; }
         public float Grown { get; set; } = 1;
         public double Shown { get; set; }
+        /// <summary>Seconds since its delivery drifted past: drawn red while it fades; 0 while it is out.</summary>
+        public double Lost { get; set; }
 
         public override void _Ready()
         {
@@ -143,7 +177,7 @@ public partial class MarkerLayer : CanvasLayer
         public override void _Draw()
         {
             if (Marker is not { } marker) return;
-            var colour = new Color((uint)marker.Colour << 8 | 0xff);
+            var colour = Lost > 0 ? Style.Red300 : new Color((uint)marker.Colour << 8 | 0xff);
             var middle = Size / 2;
             float r = Radius * Grown, s = Grown;
             var toward = Vector2.FromAngle(Angle);
@@ -158,6 +192,11 @@ public partial class MarkerLayer : CanvasLayer
             {
                 float icon = 1.15f * r;
                 DrawTextureRect(pod, new Rect2(middle - Vector2.One * icon / 2, Vector2.One * icon), false, colour);
+            }
+            else if (marker.Icon == MarkerIcon.Delivery && marker.Good is { } good)
+            {
+                float icon = 1.2f * r;
+                DrawTextureRect(GoodIcons.Of(good, IconBake), new Rect2(middle - Vector2.One * icon / 2, Vector2.One * icon), false);
             }
             else if (marker.Icon == MarkerIcon.Body)
             {

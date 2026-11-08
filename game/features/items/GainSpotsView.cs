@@ -58,8 +58,8 @@ public partial class GainSpotsView : Control
                 if (!body)
                 {
                     var icon = new Rect2(x, left.Y - IconPx / 2, IconPx, IconPx);
-                    DrawTextureRect(ItemIcons.Icon(line.Key), icon.Grow(1.5f), false, Shade with { A = 0.5f * a });
-                    DrawTextureRect(ItemIcons.Icon(line.Key), icon, false, Colors.White with { A = a });
+                    DrawTextureRect(GoodIcons.Of(line.Key), icon.Grow(1.5f), false, Shade with { A = 0.5f * a });
+                    DrawTextureRect(GoodIcons.Of(line.Key), icon, false, Colors.White with { A = a });
                     x += IconPx + Gap;
                 }
                 string text = body ? $"{T(line.Key)} +{line.Count}" : $"+{line.Count}";

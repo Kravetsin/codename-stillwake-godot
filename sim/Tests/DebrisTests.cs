@@ -555,7 +555,8 @@ public class DebrisTests
     }
 
     /// <summary>Every kind of wreckage there is, for the theories below.</summary>
-    public static TheoryData<string> WreckKinds() => [.. WreckageSpec.All.Select(w => w.Item)];
+    // The delivery crate holds its good, no loot (2026-11-08-mafia-deliveries): DeliveriesTests breaks it.
+    public static TheoryData<string> WreckKinds() => [.. WreckageSpec.All.Select(w => w.Item).Where(k => k != Content.Debris.DeliveryCrate)];
 
     /// <summary>The first piece, made a wreck of <paramref name="kind"/>, broken by peer 0 out in space by it, in a world of <paramref name="seed"/>.</summary>
     private static Scenario BrokenWreck(string kind, uint seed = 1)

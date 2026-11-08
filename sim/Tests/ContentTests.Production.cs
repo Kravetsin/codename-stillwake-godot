@@ -172,7 +172,7 @@ public partial class ContentTests
     {
         string[] pod = [Content.Helmet.Basic, Content.Suit.Basic, Screwdrivers.Basic.Item];
         string[] parts = ["wire", "plate", "gear", "tube", "coil", "rotor"];
-        string[] tools = ["fireAxe", "harpoon", "nailer", "nail", "helmetLamp", "jetpack", "drill", "powerDriver", "cape", "heavyHelmet", "regenSuit", "scanner", "grinder", "spear", "sledgehammer", "plasmaCutter", "pickaxe", "grapple"];
+        string[] tools = ["fireAxe", "harpoon", "nailer", "nail", "helmetLamp", "jetpack", "drill", "cape", "grinder", "spear", "sledgehammer", "pickaxe", "grapple"];
         string[] electronics = ["circuit", "solarCell", "battery", "drone", "salvageDrone", "deckDrive", "processor", "display", "transceiver", "igniter", "fuelPump"], arc = ["arcModule", "accumulator", "railgun"];
         string[] formed = ["frame", "motor", "soil", "nozzle"];
         Assert.Empty(Crafts.All.Select(c => c.Item).Except([.. pod, .. parts, .. tools, .. formed, .. electronics, .. arc]));
@@ -357,7 +357,12 @@ public partial class ContentTests
         }
         var known = new HashSet<string>(Content.Research.StartKnown, StringComparer.Ordinal);
         if (bought)
+        {
             foreach (var node in Content.Research.Nodes.Where(n => n.Tab == Content.Research.Market)) known.Add(node.Id);
+            // The mafia's deliveries: its gear had whole, and the kinds it comes as; the seized container's loot is had otherwise (2026-11-08-mafia-deliveries).
+            foreach (var gear in Content.Research.GearSold) had.Add(gear);
+            had.UnionWith(DebrisSpec.DeliveryKinds);
+        }
         var built = new HashSet<string>(StringComparer.Ordinal);
         var walked = Stillwake.Sim.Research.Blueprints.All.Where(b => Content.Research.Node(b.Id)?.Tab != Content.Research.Market).Select(b => (b.Id, b.Cost, Craft: false))
             .Concat(Crafts.All.Where(c => Content.Research.Node(c.Item)?.Tab != Content.Research.Market).Select(c => (Id: c.Item, c.Cost, Craft: true))).ToList();
@@ -439,7 +444,7 @@ public partial class ContentTests
     }
 
     /// <summary>What no one buys: wreckage whole, tools, what is worn, what stores or flies by itself, the arc's, the photosensitive panel nothing makes.</summary>
-    private static readonly string[] Unpriced = ["arcShard", "arcModule", "supplyPod", "cargoCrate", "hullSection", "cargoContainer", "machineBlock", "cableRack", "tankCluster", "shieldSlab", "soilClod", "asteroid", "asteroidSmall", "asteroidLarge", "asteroidRich", "engineBlock", "cargoHold", "podCluster", "photoPanel", "drone", "salvageDrone", "screwdriver", "fireAxe", "harpoon", "grapple", "nailer", "railgun", "drill", "powerDriver", "grinder", "plasmaCutter", "spear", "sledgehammer", "pickaxe", "jetpack", "helmetLamp", "scanner", "battery", "accumulator", "helmet", "suit", "heavyHelmet", "regenSuit", "cape"];
+    private static readonly string[] Unpriced = ["arcShard", "arcModule", "supplyPod", "cargoCrate", "hullSection", "cargoContainer", "machineBlock", "cableRack", "tankCluster", "shieldSlab", "soilClod", "asteroid", "asteroidSmall", "asteroidLarge", "asteroidRich", "engineBlock", "cargoHold", "podCluster", "parcel", "deliveryCrate", "confiscated", "photoPanel", "drone", "salvageDrone", "screwdriver", "fireAxe", "harpoon", "grapple", "nailer", "railgun", "drill", "powerDriver", "grinder", "plasmaCutter", "spear", "sledgehammer", "pickaxe", "jetpack", "helmetLamp", "scanner", "battery", "accumulator", "helmet", "suit", "heavyHelmet", "regenSuit", "cape"];
 
     /// <summary>Everything is priced or named here as what no one buys; raw salvage is, so the first credits need nothing made.</summary>
     [Fact]
