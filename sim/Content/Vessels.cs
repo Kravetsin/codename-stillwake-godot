@@ -57,13 +57,14 @@ public sealed record VesselLoot(string Item, int Min, int Max);
 /// <summary>
 /// A salvage object aboard a vessel (plan V-1b): a pile (hold-piles) copied from the piece of debris <c>From</c> that drifts by,
 /// its size, hit points and picture that piece's, giving <c>Times</c> what the piece gives on average (<see cref="Vessels.SalvageCost"/>),
-/// so its look says what it gives. It stands in compartments of its <c>Roles</c>; none for one only a breach leaves.
+/// so its look says what it gives, drawn whole. It stands in compartments of its <c>Roles</c>; a <c>Torn</c> one is also what a breach
+/// leaves by its crater.
 /// </summary>
 /// <param name="Size">Its footprint for a piece that is no wreckage (a crate, a pod), whose size the sim does not keep; else the wreck's.</param>
 /// <param name="Hp">Its hit points for a piece that is no wreckage; else the wreck's.</param>
 public sealed record VesselSalvage(
     string Kind, string From, char Char, IReadOnlyList<VesselRole> Roles, int Times = Vessels.SalvageTimes,
-    (int W, int H)? Size = null, int? Hp = null);
+    (int W, int H)? Size = null, int? Hp = null, bool Torn = false);
 
 /// <summary>Generated vessels and their wrecks (generated-vessels): classes, interiors, loot and where a vessel lies.</summary>
 public static class Vessels
@@ -104,9 +105,11 @@ public static class Vessels
         new("salvageEngine", "engineBlock", 's', [VesselRole.Engine], Times: 2),
         new("salvageRack", "cableRack", 't', [VesselRole.Bridge]),
         new("salvageClod", "soilClod", 'z', [VesselRole.Quarters]),
-        // What tore the hull, left by a breach on the deck by its crater.
-        new("salvageSection", "hullSection", '1', []),
-        new("salvageSlab", "shieldSlab", '2', []),
+        // A hold module's piece gives as much as an engine's.
+        new("salvageHold", "cargoHold", '3', [VesselRole.Hold], Times: 2),
+        // Spares in a hold; and what tore the hull, left by a breach on the deck by its crater.
+        new("salvageSection", "hullSection", '1', [VesselRole.Hold], Torn: true),
+        new("salvageSlab", "shieldSlab", '2', [VesselRole.Hold], Torn: true),
     ];
 
     /// <summary>
@@ -167,7 +170,8 @@ public static class Vessels
     public static readonly IReadOnlyList<VesselInterior> Interiors =
     [
         // Salvage stands on the deck, its bottom row the interior's last: j container, l crate, m pod, p tanks, r machine
-        // block, s engine block, t cable rack, z soil clod; K a storage crate, L a lamp, = a shelf or bunk.
+        // block, s engine block, t cable rack, z soil clod, 3 cargo hold, 1 hull section, 2 shield slab; K a storage crate, L a
+        // lamp, = a shelf or bunk.
         new("holdContainer", VesselRole.Hold,
         [
             "............LL..",
@@ -194,6 +198,24 @@ public static class Vessels
             "..jjjjjjjj..jjjjjjjj..",
             "..jjjjjjjj..jjjjjjjj..",
             "..jjjjjjjj..jjjjjjjj..",
+        ]),
+        new("holdBay", VesselRole.Hold,
+        [
+            "..333333333333..LL..",
+            "..333333333333..LL..",
+            "..333333333333......",
+            "..333333333333......",
+            "..333333333333.lll..",
+            "..333333333333.lll..",
+        ]),
+        new("holdSpares", VesselRole.Hold,
+        [
+            "....LL........LL....",
+            "....LL........LL....",
+            "..111111..22222222..",
+            "..111111..22222222..",
+            "..111111..22222222..",
+            "..111111..22222222..",
         ]),
         new("quartersBunks", VesselRole.Quarters,
         [

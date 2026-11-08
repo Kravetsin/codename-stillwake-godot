@@ -68,8 +68,8 @@ public class MachineFootTests
     public void EveryMachineStandsOnItsPicturesFoot()
     {
         var floating = new List<string>();
-        // A vessel's salvage wears its drifting piece's picture till a standing one is picked (plan V-1b): it may float a little.
-        foreach (var m in Stillwake.Content.Machines.All.Where(m => !Hung.Contains(m.Kind) && Stillwake.Content.Vessels.SalvageOf(m.Kind) == null))
+        // A vessel's salvage with no picture of its own wears its drifting piece's (plan V-1b): it may float a little.
+        foreach (var m in Stillwake.Content.Machines.All.Where(m => !Hung.Contains(m.Kind) && !DebrisLooks.SalvageAsDebris.Contains(m.Kind)))
         {
             double over = RowsUnderFoot(Png.Of($"machine_{m.Kind}")) / (double)Scale;
             if (over > Slack) floating.Add($"{m.Kind} {over:0.##}");

@@ -93,9 +93,9 @@ public class VesselTests
         var intact = Shipyard.Stamp(vessel);
         var wrecked = Shipyard.Damage(intact, vessel, VesselCause.Breach);
         Assert.True(wrecked.Count < intact.Count);
-        // Only what tore the hull is new: a salvage object of no role, lying where nothing else is.
+        // Only what tore the hull is new: a torn salvage object, lying where nothing else is.
         var added = wrecked.Where(p => !intact.Contains(p)).ToList();
-        Assert.All(added, p => Assert.True(Content.Vessels.SalvageOf(p.Kind) is { Roles.Count: 0 }, p.Kind));
+        Assert.All(added, p => Assert.True(Content.Vessels.SalvageOf(p.Kind) is { Torn: true }, p.Kind));
         Assert.InRange(added.Count, 0, 2);
         var taken = new HashSet<(int, int)>();
         foreach (var p in wrecked.Where(p => p.Layer != "back"))

@@ -241,8 +241,8 @@ hold is planks.
   by role cut to a stack or two.
 - **The breach** also leaves a hull section or two (`hullSection`, `shieldSlab` as salvage) on the deck by its crater:
   what tore the hull lies there, and the player reads where the plates are.
-- **Look:** the debris piece's own picture, as it drifts (`--vessel` frames first); the client maps a salvage row to its
-  `From`'s picture, no new art. A standing, bolted-down version of each is a later pick page, by the art rule.
+- **Look:** each piece made whole, standing on the deck (`aboard.js`), the ten the user chose; the soil clod keeps its
+  drifting picture. A hold also keeps spare hull sections, shield slabs and a cargo hold module.
 - **Economy:** the class bands (`VesselClass.Yield`) are measured again with salvage in; the hull's scrap a cell is cut
   if a freighter goes past its band (an open number: the hull yield). Salvage needs a tool, which comes before the radar.
 - **Tests:** content — each salvage row's `Cost`, size and `Hp` follow its `From` by the rule, `Unmultiplied` kept, every

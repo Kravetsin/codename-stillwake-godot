@@ -983,4 +983,7 @@ Subjects.debris = function () {
   for (const [n, draw] of Object.entries(CLODS)) out(`debris/${n}`, bake({ w: 32, h: 32, draw }));
   for (const [n, [w, h, draw]] of Object.entries(DRAWN)) out(`debris/${n}`, bake({ w, h, draw }));
 };
+// For aboard.js, which draws these pieces whole; it reads the kit when it runs, for it sorts first.
+window.DebrisKit = { HULL, PLATE, OLD, GUN, SOOT, PLANK, STAINED, COPPER, PAINT, ARMY, BLUE, CREAM, RUST, STRIPE, WIRES,
+  band, plate, well, rv, seam, rusted, hazard, slats, wire, port, boards, grain, bell, neck, block, vent, strut, boxCrate, planksStack, bottle, wall, door, shelf, tag };
 })();

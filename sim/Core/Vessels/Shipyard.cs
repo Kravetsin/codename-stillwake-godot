@@ -239,7 +239,7 @@ public static class Shipyard
     private const int DebrisReach = 12;
 
     /// <summary>
-    /// What tore the hull, left by a breach (plan V-1b): one or two salvage objects of no role (a hull section, a shield slab), each
+    /// What tore the hull, left by a breach (plan V-1b): one or two <c>Torn</c> salvage objects (a hull section, a shield slab), each
     /// on a deck's floor the nearest it fits to the crater: inside the hull (a back wall in every cell), clear of every structure
     /// and machine, a wall under each column, within <see cref="DebrisReach"/> of its edge. None where none fits.
     /// </summary>
@@ -254,7 +254,7 @@ public static class Shipyard
             else foreach (var c in Covers(p)) taken.Add(c);
             if (p.Kind == "wall") walls.Add((p.X, p.Y));
         }
-        var debris = Vessels.Salvage.Where(s => s.Roles.Count == 0).ToList();
+        var debris = Vessels.Salvage.Where(s => s.Torn).ToList();
         int reach = (crater + DebrisReach) * (crater + DebrisReach);
         for (int n = 1 + (int)rng.Below(2); n > 0; n--)
         {

@@ -57,7 +57,7 @@ itself is described, stamped and wrecked by `Shipyard` (sim/Core `Vessels/`), fr
 - The jump's tick is long: clearing and writing a freighter passes the grid's change log, so readers look at everything once.
   It happens once per jump, like a load: 33–70 ms for a freighter on a desk (`PlacesTests` pins 200).
 - Air and power in a vessel: its rooms start empty, its lamps dead.
-- Salvage aboard wears its drifting piece's picture, a little above the deck, till a standing one is picked.
+- The soil clod aboard wears its drifting picture, a little above the deck: the user did not choose it to be drawn whole.
 - A crate's loot counts as obtained at the jump, taken or not: counting what a hand takes out would need Items to know
   a vessel's crates.
 - Liquids pay a vessel no mind: water leaving the hull meets its cells as any (flowing-liquids reads the grid's changes).

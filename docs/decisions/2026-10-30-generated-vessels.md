@@ -51,8 +51,12 @@ possible and the wreck made from it.
   shuttle and 2,400–8,000 for a freighter, nearly all of it scrap chunks of the hull, to be tuned in play.
 - **Salvage aboard** (V-1b): a compartment holds piles (hold-piles) copied from the debris that drifts by, `Content.Vessels.Salvage`,
   each its piece's size, hit points and picture and `SalvageCost`: `Times` (5) its piece's mean loot, the circuit not
-  multiplied. Its look says what it gives: a tank cluster in life support is air. A breach leaves a hull section or a shield
-  slab by its crater. The user's idea; the pictures are the drifting pieces' till standing ones are picked.
+  multiplied. Its look says what it gives: a tank cluster in life support is air. A hold keeps spare hull sections and
+  shield slabs, which a breach also leaves by its crater (`Torn`), and a cargo hold module. The user's idea.
+- **Salvage is drawn whole** (the user's pick, 2026-11-08): of the debris that drifts, the user chose the ten pieces to
+  stand aboard, and each is drawn as its piece made whole, standing on the deck (`tools/anime-art/subjects/aboard.js`,
+  `machine_salvage*`); the container is the pick page's «roof planks». The soil clod was not chosen: it keeps its
+  drifting picture (`DebrisLooks.SalvageAsDebris`).
 - **Vessels come as built for now** (the user's word, 2026-11-08): wrecking waits for its own slice. The breach and its
   debris stay in `Shipyard.Damage`, reached by `Jump(Contact, Wrecked: true)` from dev tools (`--vessel=class,wrecked`, the
   panel's `wrecked`), so the damage pass keeps its tests.
