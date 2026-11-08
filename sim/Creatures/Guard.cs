@@ -48,7 +48,8 @@ internal sealed class GuardDrive : DriveRule
     {
         if (c.Step != Alerted) return true;
         var guard = (Spec.Guard)d;
-        if (Within(m, c, spec, guard.Strike) || Within(m, c, spec, guard.Notice) && ShotOf(spec) >= 0) Answer(m, c, spec, guard, Ref.None, m.Debris.Clock);
+        bool strike = Within(m, c, spec, guard.Strike), sight = Within(m, c, spec, guard.Notice) && ShotOf(spec) >= 0;
+        if ((strike || sight) && MoveFor(m, c, spec, guard, Ref.None) is int move) Answer(m, c, spec, guard, Ref.None, m.Debris.Clock, move);
         else c.DriveLeft = 1;
         return true;
     }
@@ -85,16 +86,41 @@ internal sealed class GuardDrive : DriveRule
     /// answered once it is home. A blow is stamped with the debris clock of the commands it came with, and the debris clock moves
     /// on as the simulation runs: from a hit (commands) <paramref name="answered"/> is the clock and one, from the system the clock.
     /// </summary>
-    private static void Answer(CreaturesModule m, Creature c, Spec.Species spec, Spec.Guard guard, Ref target, int answered)
+    private static void Answer(CreaturesModule m, Creature c, Spec.Species spec, Spec.Guard guard, Ref target, int answered) =>
+        Answer(m, c, spec, guard, target, answered, MoveFor(m, c, spec, guard, target));
+
+    /// <summary>
+    /// The answer with its move chosen, or none: the blows up to now answered all the same, and one that answers provoked
+    /// (<see cref="Spec.Guard.Provokes"/>).
+    /// </summary>
+    private static void Answer(CreaturesModule m, Creature c, Spec.Species spec, Spec.Guard guard, Ref target, int answered, int? move)
     {
         c.Keep(Answered, answered);
-        (c.Step, c.DriveLeft, c.Target) = (Watching, 0, target);
-        int shot = ShotOf(spec);
-        // Shooting is from its perch: off it, flying home, it pounces as before.
-        bool clamped = c.Recall(ClingerBody.Mounted) == 1;
-        int move = shot < 0 || !clamped || DistanceTo(m, c, target) is not int far || far <= guard.Strike ? 0 : shot;
-        RuleBook.Move(spec.Moves[move]).Begin(m, c, spec, move);
+        (c.Step, c.DriveLeft, c.Target) = (Watching, 0, move == null ? Ref.None : target);
+        if (guard.Provokes > 0) c.Keep(ProvokedKey, m.Clock + guard.Provokes);
+        if (move is int at) RuleBook.Move(spec.Moves[at]).Begin(m, c, spec, at);
     }
+
+    /// <summary>
+    /// The move <paramref name="c"/> makes at <paramref name="target"/> (none: the nearest awake hero), by how far: its first within its
+    /// strike, once ready; farther its shot, from its perch, not nearer than the shot's least, and while provoked if it must be; else a
+    /// clinger pounces as before (off its perch, flying home, a shot would hang it in the air) and a walker makes none. None with no hero.
+    /// </summary>
+    private static int? MoveFor(CreaturesModule m, Creature c, Spec.Species spec, Spec.Guard guard, Ref target)
+    {
+        if (DistanceTo(m, c, target) is not int far) return null;
+        if (far <= guard.Strike) return RuleBook.Move(spec.Moves[0]).Ready(m, c, spec.Moves[0]) ? 0 : null;
+        int shot = ShotOf(spec);
+        bool clinger = spec.Body is Spec.Clinger, perched = !clinger || c.Recall(ClingerBody.Mounted) == 1;
+        if (shot >= 0 && perched && (guard.Provokes == 0 || Provoked(m, c)) && far >= ((Spec.Shoot)spec.Moves[shot]).From) return shot;
+        return clinger ? 0 : null;
+    }
+
+    /// <summary>Kept in its <c>Mem</c>: the creatures' clock its provocation lasts till.</summary>
+    internal const string ProvokedKey = "provoked";
+
+    /// <summary>Whether <paramref name="c"/> is provoked: it answered a hero lately (<see cref="Spec.Guard.Provokes"/>).</summary>
+    internal static bool Provoked(CreaturesModule m, Creature c) => c.Recall(ProvokedKey) > m.Clock;
 
     /// <summary>How far <paramref name="target"/>'s hero is from <paramref name="c"/> by box distance in cells, or the nearest awake one with none; null with none on the grid.</summary>
     private static int? DistanceTo(CreaturesModule m, Creature c, Ref target)

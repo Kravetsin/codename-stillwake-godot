@@ -48,10 +48,11 @@ public sealed partial class CreaturesModule
         // Those killed by this tick's commands go first, as if gone the moment they died.
         s.Creatures.RemoveAll(c => c.Dead);
         if (Rules.Guards.Count > 0 && _debris.Pieces.Count > 0 && _debris.Pieces[^1].Id > s.Watermark) GuardNewPieces();
-        // A surface with no life and none let out runs nothing and draws nothing: aboard, only a guarded kind drifting in draws.
-        if (s.Creatures.Count == 0 && Habitats.Count == 0 && _built.Posts.Count == 0) return;
+        // A surface with no life, none let out and no patch left runs nothing and draws nothing: aboard, only a guarded kind drifting in draws.
+        if (s.Creatures.Count == 0 && s.Patches.Count == 0 && Habitats.Count == 0 && _built.Posts.Count == 0) return;
         s.Clock += 1;
         FindHeroes();
+        Fume();
         var all = s.Creatures;
         int kept = 0;
         for (int i = 0; i < all.Count; i++)

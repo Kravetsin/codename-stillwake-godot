@@ -66,8 +66,17 @@ public class CreaturesInvariantTests
         }
         foreach (var hero in w.M.Crew.Heroes)
             if (hero.Air < 0 || hero.Air > Scenario.Full) return $"hero {hero.Id}'s suit at {hero.Air}";
+        // A patch (lurker-attacks) lies on the grid, not empty, and no longer than its kind lasts.
+        foreach (var p in w.M.Creatures.Patches)
+            if (p.Ticks < 1 || p.Ticks > Tune.PatchOf(p.Kind).Lasts || p.Width < 1 || p.Height < 1 || p.Left < 0 || p.Top < 0
+                || p.Left + p.Width > Width || p.Top + p.Height > Height)
+                return $"patch {p.Id} of {p.Kind} at ({p.Left}, {p.Top}) {p.Width}×{p.Height} with {p.Ticks} ticks";
         return null;
     }
+
+    /// <summary>The damage of each creature whose shell is shut (lurker-attacks), by id: none of it may grow while it is.</summary>
+    private static Dictionary<int, int> Shut(Scenario w) =>
+        w.M.Creatures.Creatures.Where(CreaturesModule.Shut).ToDictionary(c => c.Id, c => c.Damage);
 
     /// <summary>The most ticks <paramref name="c"/>'s posture lasts for a creature of <paramref name="spec"/>: what is left of it never exceeds it.</summary>
     private static int LongestOf(Creature c, Tune.Species spec) => c.Posture switch
@@ -76,8 +85,8 @@ public class CreaturesInvariantTests
         Posture.Idle => Tune.IdleMost,
         Posture.Wander => Tune.WanderMost,
         Posture.Flee => spec.Brain.OfType<Tune.Flee>().Single().Ticks,
-        Posture.WindUp => spec.Moves[c.Act!.Move] switch { Tune.Lunge l => l.WindUp, Tune.Pounce p => p.WindUp, _ => 0 },
-        Posture.Charge => spec.Moves[c.Act!.Move] switch { Tune.Lunge l => l.Ticks, Tune.Pounce p => p.Ticks, _ => 0 },
+        Posture.WindUp => spec.Moves[c.Act!.Move] switch { Tune.Lunge l => l.WindUp, Tune.Pounce p => p.WindUp, Tune.Shoot s => s.WindUp, _ => 0 },
+        Posture.Charge => spec.Moves[c.Act!.Move] switch { Tune.Lunge l => l.Ticks, Tune.Pounce p => p.Ticks, Tune.Shoot s => s.Recover, Tune.Vent v => v.Ticks, _ => 0 },
         Posture.Retreat => spec.Brain.OfType<Tune.Retaliate>().Single().FleeMost,
         Posture.Escape => spec.Brain.OfType<Tune.Escape>().Single().Ticks,
         _ => 0,
@@ -105,8 +114,11 @@ public class CreaturesInvariantTests
                     w.Do(new Strike(all[(int)rng.Below((uint)all.Count)].Id, weapons[(int)rng.Below((uint)weapons.Count)].Item) { From = (int)rng.Below(2) });
                 }
                 if (rng.Below(40) == 0) w.HeroAt((int)rng.Below(Width), (int)rng.Below(Height), peer: (int)rng.Below(2));
+                var shut = Shut(w);
                 w.Run();
                 broken = Broken(w);
+                foreach (var c in w.M.Creatures.Creatures)
+                    if (shut.TryGetValue(c.Id, out int was) && c.Damage > was) broken ??= $"creature {c.Id} hurt shut, {was} to {c.Damage}";
                 if (NextId(w) < next || all.Count > 0 && all[^1].Id >= NextId(w)) broken ??= $"the next id {NextId(w)} after {next}";
                 next = NextId(w);
             }
