@@ -25,7 +25,8 @@ The user asked for a market that matters as much as research. The whole rework i
 - **The levels:** the scanner moves to the first, its headline; the second and fourth ask a third good, the fifth more.
   Targets run 1 580, 2 780, 4 930, 4 670 and 3 520 credits' worth; by other goods alone, seven times that.
 - **The card** says "The mafia is interested in", a row per wanted good and a bar of the level; what a level opens leaves it,
-  for the grid shows it. Locked blueprints sort after the open ones, nearest level first.
+  for the grid shows it. Locked blueprints sort after the open ones, nearest level first. Under the bar it says the mafia is grateful for
+  other goods too, never by how much: the card names no sum to take a share of, so a rate would only puzzle.
 - **Saves** of format 56 get the old orders met in turn as their level, counted on from what is sold then; progress toward
   the next is lost, the game being pre-release.
 

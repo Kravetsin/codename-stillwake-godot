@@ -518,7 +518,7 @@ public sealed class MarketPage : ITabletPage
 
     /// <summary>
     /// What the mafia wants for its next level: each good and how many are sold of it since the level before, garbage while that level deciphers, then
-    /// the level's bar, which anything else sold moves at a seventh.
+    /// the level's bar, which anything else sold moves too, by less: the card says only that, as the mafia names no sum.
     /// </summary>
     private void DrawSide()
     {
@@ -563,7 +563,7 @@ public sealed class MarketPage : ITabletPage
         _side.DrawRect(level, Faint);
         _side.DrawRect(level with { Size = new Vector2(level.Size.X * part, level.Size.Y) }, Accent);
         y += 22;
-        Say(_side, Plain, Fitted(Clear(T("research.market.other"), place + 31), Plain, 11, wide), SideIn, y, 11, Dim);
+        _side.DrawMultilineString(Plain, new Vector2(SideIn, y), Clear(T("research.market.other"), place + 31), HorizontalAlignment.Left, wide, 11, -1, Dim);
     }
 
     /// <summary>The strip: the picture large, what kind of good it is, its name and what it is, then its prices bought and not, or what it is made from.</summary>

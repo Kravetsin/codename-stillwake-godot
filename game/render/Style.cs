@@ -18,6 +18,8 @@ public static class Style
     // lowered 0.22 of its height so capitals sit in the middle of a field or tab, not above it.
     // sans.tres is the project's default font (gui/theme/custom_font), so every Control falls back to it.
     public static readonly Font Mono = GD.Load<Font>("res://render/fonts/mono.tres");
+    /// <summary>How far below a line's middle <see cref="Mono"/>'s baseline goes, in its size, for digits and capitals centred on it.</summary>
+    public const float MonoMiddle = 0.14f;
     public static readonly Font Sans = GD.Load<Font>("res://render/fonts/sans.tres");
     /// <summary>Unhinted, for a screen of small words far from the pixel grid: the tablet's.</summary>
     public static readonly Font Clear = GD.Load<Font>("res://render/fonts/clear.tres");

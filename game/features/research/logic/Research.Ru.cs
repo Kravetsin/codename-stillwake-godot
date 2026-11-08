@@ -19,7 +19,7 @@ public static partial class Ru
         ["trade.back"] = "Вернётся через {s} с: +{n}",
         ["research.market.wanted"] = "Мафию интересует",
         ["research.market.level"] = "Репутация",
-        ["research.market.other"] = "Остальное идёт в зачёт по 1/7",
+        ["research.market.other"] = "Остальные товары мафия не рассматривает, но всё равно будет признательна",
         ["research.market.sell"] = "Продай через торговую станцию",
         ["research.market.allFilled"] = "Все уровни открыты",
         ["research.market.shelf.all"] = "Все",

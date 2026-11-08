@@ -19,7 +19,7 @@ public static partial class En
         ["trade.back"] = "Back in {s} s: +{n}",
         ["research.market.wanted"] = "The mafia is interested in",
         ["research.market.level"] = "Reputation",
-        ["research.market.other"] = "Anything else sold counts at a seventh",
+        ["research.market.other"] = "The mafia has no use for other goods, but it is grateful all the same",
         ["research.market.sell"] = "Sell through a trade station",
         ["research.market.allFilled"] = "Every level open",
         ["research.market.shelf.all"] = "All",
