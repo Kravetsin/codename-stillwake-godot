@@ -77,7 +77,9 @@ public class CreatureContractTests
             var (w, c) = LetOut(s);
             int drive = c.Drive;
             w.Do(new Strike(c.Id, Content.Weapons.Axe.Item)).Run();
-            Assert.True(c.Act != null || c.Drive != drive, $"{s.Id} struck changed nothing");
+            // A lurker out of its strike answers by being provoked (lurker-attacks); a shut snail's shell turns the blow aside.
+            bool answered = c.Act != null || c.Drive != drive || GuardDrive.Provoked(w.M.Creatures, c) || CreaturesModule.Shut(c);
+            Assert.True(answered, $"{s.Id} struck changed nothing");
         });
         var (_, sentry) = LetOut(Tune.Sentry);
         Assert.True(CreaturesModule.Clamped(sentry));
@@ -93,8 +95,8 @@ public class CreatureContractTests
         // The shot added after the pounce (shots-are-the-sims): every place a save holds keeps its meaning, so no bump.
         { "sentry", "CutTether Return Guard | Pounce Shoot" },
         { "warden", "Ward | Pounce" },
-        { "capback", "Guard | Pounce" },
-        { "geodeSnail", "Guard | Lunge" },
+        { "capback", "Guard | Vent Shoot" },
+        { "geodeSnail", "Guard Shell | Lunge" },
     };
 
     [Fact]

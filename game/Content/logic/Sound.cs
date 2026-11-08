@@ -604,6 +604,15 @@ public static class Sound
     public static readonly Cue ArcHit = new(Shots("creatures/sentry-arc-hit", 1), -1.5f, Heard: ToolReach);
 
     /// <summary>
+    /// The cave lurkers' attacks (lurker-attacks), the user's picks: a capback venting its gas or spitting its glob, a valve's hiss
+    /// (<see cref="CapbackHiss"/>); its glob landing, a splat of slime (<see cref="CapbackSplat"/>); a geode snail's shut shell struck,
+    /// a pick on rock (<see cref="ShellClink"/>), in place of its hit.
+    /// </summary>
+    public static readonly Cue CapbackHiss = new(Shots("creatures/capback-hiss", 1), -7, Heard: ToolReach);
+    public static readonly Cue CapbackSplat = new(Shots("creatures/capback-splat", 1), -5, Heard: ToolReach);
+    public static readonly Cue ShellClink = new(Shots("creatures/snail-shell-clink", 1), -4, Pitch: 0.08f, Heard: ToolReach);
+
+    /// <summary>
     /// A canister breathed into the suit (0047): air filling it, half a second of hiss rising fast and falling away, its
     /// band climbing as it fills. This player's own on the Helmet bus, in the helmet's air, so floating out in space never
     /// muffles it away (on Suit its band was all but cut there); a friend's on World where its hero is, a tool's reach.
@@ -673,7 +682,7 @@ public static class Sound
     /// <summary>The descent's cues, made from others declared above.</summary>
     public static readonly IReadOnlyList<Cue> Pod = [PodThrust, PodRelease, PodTouchdown, PodRumble, PodFlash, PodBlast];
 
-    public static readonly IReadOnlyList<Cue> All = [Title, Space, Step, Land, Jump, Alarm, Screwdriver, PowerDriverBite, PowerDriverLoop, PowerDriverOff, Hiss, Click, Clink, VentHum, DoorOpen, DoorClose, Valve, Act, ActInSpace, Fire, Swing, Chop, Break, Shot, Drum, Ready, NailShot, DryClick, NailHit, NailReady, RailCharge, RailReady, RailShot, ArcStruck, ArcHit, AirFill, Inhale, Thrust, ChargerHum, ChargeFull, DrillWhir, FormerStroke, FormerMotor, SmelterHum, SmelterCrackle, DroneWhir, DroneDock, DroneGrab, SalvageThrust, MusicBox, Zap,
+    public static readonly IReadOnlyList<Cue> All = [Title, Space, Step, Land, Jump, Alarm, Screwdriver, PowerDriverBite, PowerDriverLoop, PowerDriverOff, Hiss, Click, Clink, VentHum, DoorOpen, DoorClose, Valve, Act, ActInSpace, Fire, Swing, Chop, Break, Shot, Drum, Ready, NailShot, DryClick, NailHit, NailReady, RailCharge, RailReady, RailShot, ArcStruck, ArcHit, CapbackHiss, CapbackSplat, ShellClink,AirFill, Inhale, Thrust, ChargerHum, ChargeFull, DrillWhir, FormerStroke, FormerMotor, SmelterHum, SmelterCrackle, DroneWhir, DroneDock, DroneGrab, SalvageThrust, MusicBox, Zap,
         StepGrass, StepSoil, StepStone, StepAlloy, LandSoft, LandHard, LandAlloy, HitSoil, HitStone, BreakSoil, BreakStone,
         ChopWood, TreeFall, Bush, Grass, Crystal, Glowcap, WoodBreak, ClothTear, GlassBreak, MetalBreak, CeramicBreak, LavaBed,
         LavaBubble, LavaBurn, CaveDrip, CreatureDeath, .. Ticks.Values.SelectMany(t => new[] { t.Alert, t.WindUp, t.Unclamp, t.Clamp, t.Snap, t.Death }), .. Istukans.Values.SelectMany(g => new[] { g.Wake, g.Alert, g.WindUp, g.Pounce, g.Killed, g.ShutDown }), .. RamHits.Values, .. Pod];

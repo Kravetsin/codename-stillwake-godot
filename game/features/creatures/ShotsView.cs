@@ -127,7 +127,8 @@ public partial class ShotsView : Node2D
         float k = (float)(Camera.Cell / 1000.0);
         foreach (var arc in arcs)
         {
-            if (!_arcsShown.Add(arc.Id)) continue;
+            // A capback's glob is no electric arc: LurkerFxView flies it.
+            if (!_arcsShown.Add(arc.Id) || arc.Projectile == Stillwake.Content.Shots.Glob.Id) continue;
             var (from, to) = (new Vector2(arc.X0, arc.Y0) * k, new Vector2(arc.X1, arc.Y1) * k);
             Chain(from, to, 9, 1.2, 1);
             Stages.Of(Layers.Effects).Flares.Flash(to.X, to.Y, Cyan, 1.0 * Fx.Glow, 10, CreatureLooks.LightKeep, 0.8);

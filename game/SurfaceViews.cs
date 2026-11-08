@@ -71,6 +71,8 @@ public static class SurfaceViews
         new(Drones),
         // Every peer's shots but this player's own, which its hero's hands draw ahead of the sim's (shots-are-the-sims).
         new(c => new Features.Creatures.ShotsView(c.M, c.Progress, c.Peer, c.Tick, c.Hosts)),
+        // A capback's gas and slime over it and the heroes, and its glob flying (lurker-attacks).
+        new(c => new Features.Creatures.LurkerFxView(c.M, c.Progress, c.Tick)),
         // Meteors seen coming and striking the hull, where its place has them (2026-10-28-hull-meteors).
         new(c => c.M.Rules.Meteors != null ? new Features.Hazards.MeteorView(c.M.Grid, c.M.Hazards, c.Progress, c.Tick) : null),
         // A magnetic flare's aurora over the stars and its flash, wherever one may strike: by hand on any surface (magnetic-flare).

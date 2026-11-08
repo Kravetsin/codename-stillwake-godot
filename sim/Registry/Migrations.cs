@@ -202,6 +202,15 @@ public static class Migrations
             }
             return root;
         },
+        // 54 → 55 (2026-11-08-lurker-attacks): a capback's first move is a vent where it was a pounce; one mid-pounce stops where it is.
+        root =>
+        {
+            foreach (var slices in new[] { root["slices"]! }.Concat((root["surfaces"]?.AsArray() ?? []).Select(s => s!["slices"]!)))
+                foreach (var creature in slices["creatures"]?["creatures"]?.AsArray() ?? [])
+                    if (creature!["species"]?.GetValue<string>() == "capback")
+                        (creature["act"], creature["vx"], creature["vy"]) = (null, 0, 0);
+            return root;
+        },
     ];
 
     /// <summary><paramref name="old"/> with each end at a moved port's old cell at its new one, in order, a span made twice or made a point gone.</summary>

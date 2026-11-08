@@ -138,9 +138,11 @@ Game words → code. One line a term: Russian / English → identifiers → modu
 - побуждение / drive **≠** → `Drive` (`Graze`, `Flee`, `Retaliate`, `Escape`), its rule a `DriveRule`; a creature's `Drive`, `DriveLeft`, `Step` → Creatures
 - действие / act **≠** → `Act` (`Move`, `Phase`, `Left`), a move's rule a `MoveRule` (`Lunge`, the ram) → Creatures
 - фракция / faction → `Species.Faction`, `Content.Creatures.Factions`, `Relations` (`Stance`) → Creatures
-- шляпоспин / capback → `Creatures.Capback` = `"capback"`: a cave lurker of the garden, a `Walker` on `Guard`, `Pounce` → Creatures
-- жеодник / geode snail → `Creatures.GeodeSnail` = `"geodeSnail"`: a cave lurker of the amber deep, a `Walker` on `Guard`, a steady `Lunge` → Creatures
+- шляпоспин / capback → `Creatures.Capback` = `"capback"`: a cave lurker of the garden, a `Walker` on `Guard`; `Vent` (gas), `Shoot` (slime) → Creatures
+- жеодник / geode snail → `Creatures.GeodeSnail` = `"geodeSnail"`: a cave lurker of the amber deep, a `Walker` on `Guard` and `Shell`, a steady `Lunge` (its bite) → Creatures
 - засадник / lurker → a cave hostile on `Guard` (cave-hostiles), faction `beasts` → Creatures
+- облако газа, лужа слизи / gas cloud, slime puddle → a `Patch` of `Creatures.Gas`, `Creatures.Slime` (`PatchKind`), lurker-attacks → Creatures
+- раковина / shell → `Creatures.Shell`: the snail shut, hurt by nothing; open, by melee only → Creatures
 - поза / posture **≠** → `Posture`, derived from the drive or act in charge, what the client draws by → Creatures
 - руины / ruins → `c/Ruins.cs`, f/ruins `HomesView` (ruin pieces as plants) → Building, Ruins
 - шпиль / spire → f/ruins `SpiresView`, its cradle a `Relic` → Ruins
