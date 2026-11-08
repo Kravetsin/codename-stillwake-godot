@@ -7,6 +7,7 @@
 | `CaveTint.cs` | The stone's colour by depth band (0080), multiplied over the ground drawn under it. |
 | `CaveView.cs` | What grows in a planet's caves, seen (0080): chunks of growths, their glows, lights, glints and drift. |
 | `FloraView.cs` | What grows on a planet's surface, seen (0079): a sprite per plant standing, its glow, lights and motes. |
+| `logic/BoxesByLeft.cs` | Boxes kept sorted by their left edge: the glowing plants near the view found each frame without walking every plant (planet-frame-rate). |
 | `logic/Felling.cs` | Which plants were felled since the cave view last looked: the cells it kept and those standing halved by binary search, not a set of all. |
 | `logic/Planting.cs` | Where what grows is drawn against what holds it (0079, 0080), in world pixels, plain C# so it is tested. |
 | `logic/VeinGlints.cs` | Which vein cells glint on their open faces: one in `CaveLooks.VeinGlintEvery`, by the planet's seed and the cell. |
@@ -25,7 +26,8 @@ only draws them — the surface's in `FloraView`, the caves' in `CaveView` — a
   the middle of its cell, those rows not drawn, so it stands in the ground. What glows (`{kind}_{variant}_glow`) is a
   second sprite added unlit at `Layers.Flora`, never over a hero in front of it.
 - **Light:** each glow picture's brightest six-pixel squares, at most `FloraLooks.MostLights` a plant, light in their
-  colour (`Lights`, read by the light feature for the plants near the view).
+  colour (`Lights`, read by the light feature for the plants near the view), found by their boxes (`BoxesByLeft`), never by
+  a walk over every plant each frame.
 - **Felled:** a plant gone from `Plants` falls away in `FloraLooks.Fallen` leaves (a rock's pebbles), matter behind the
   walls (`Luminous.Low`). Only the count is compared each frame; the list is walked only when it changed (no ADR).
 - **Motes** (0075): while a glowing plant is in view, `FloraLooks.MotesASecond` soft dots, at most `MostMotes` alive:

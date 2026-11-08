@@ -125,7 +125,7 @@ public partial class TabletEdge : CanvasLayer
         Lay(middle, top, art.End.X - ReadoutIn, grown, delta);
         if (_keysAway.Exists(t => t.Shown)) HideKeys();
         var pointer = _root.GetViewport().GetMousePosition();
-        _near.Step(delta, EdgeRow.Bright(pointer.Y, top, up != null && art.HasPoint(pointer)));
+        _near.Step(delta, EdgeRow.Bright(pointer.Y, top, up != null && art.HasPoint(pointer), new Rect2(Vector2.Zero, window).HasPoint(pointer)));
         foreach (var slot in _slots) slot.Key.Near = (float)_near.Lit;
         if (_readout != null) _readout.Near = (float)_near.Lit;
         _tips.Frame(_ui.MenuOpen.Get() ? null : pointer);

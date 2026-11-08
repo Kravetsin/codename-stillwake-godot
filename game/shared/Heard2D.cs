@@ -49,7 +49,6 @@ public partial class Heard2D : AudioStreamPlayer2D
     {
         (PitchScale, OffsetDb) = (pitch, offsetDb);
         GlobalPosition = at;
-        Hear();
         Play();
     }
 
@@ -65,7 +64,18 @@ public partial class Heard2D : AudioStreamPlayer2D
         return _spares[index];
     }
 
-    public override void _Process(double delta) => Hear();
+    /// <summary>Plays it where it stands from <paramref name="fromPosition"/> seconds in, at once as loud as it is heard from there.</summary>
+    public new void Play(float fromPosition = 0)
+    {
+        Hear();
+        base.Play(fromPosition);
+    }
+
+    // Only a voice playing is heard each frame, one starting as it starts (Play): a planet holds some 70, 0.1 ms a frame (planet-frame-rate).
+    public override void _Process(double delta)
+    {
+        if (Playing) Hear();
+    }
 
     private void Hear()
     {

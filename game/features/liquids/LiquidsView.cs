@@ -30,7 +30,9 @@ public partial class LiquidsView : Node2D
         Scale = new Vector2(Cell, Cell),
         Material = new ShaderMaterial { Shader = WaterLook.Shader },
     };
-    private byte[] _texels = [];
+    private byte[] _texels = [], _written = [];
+    /// <summary>The cells the texels last drawn cover: left, top, wide, tall; none after a frame that drew nothing.</summary>
+    private (int, int, int, int) _box;
     private readonly WaterEase _ease = new();
     private Image? _image;
     private ImageTexture? _texture;
@@ -52,6 +54,7 @@ public partial class LiquidsView : Node2D
         if (layer.IsEmpty)
         {
             _look.Visible = false;
+            _box = default;
             return;
         }
         var view = GetViewport().GetCanvasTransform().AffineInverse() * GetViewportRect();
@@ -62,10 +65,14 @@ public partial class LiquidsView : Node2D
         if (wide <= 0 || tall <= 0)
         {
             _look.Visible = false;
+            _box = default;
             return;
         }
-        if (_texels.Length != wide * tall * 4) _texels = new byte[wide * tall * 4];
-        WaterCells.Write(layer, _grid.Width, _grid.Height, _blocks, left, top, wide, tall, _texels);
+        if (_written.Length != wide * tall * 4) _written = new byte[wide * tall * 4];
+        WaterCells.Write(layer, _grid.Width, _grid.Height, _blocks, left, top, wide, tall, _written);
+        // Water at rest in a view that stayed is drawn as it was: the texture is made again only when what it shows would change.
+        if (_ease.Settled && _box == (left, top, wide, tall) && _written.AsSpan().SequenceEqual(_texels)) return;
+        (_texels, _written, _box) = (_written, _texels, (left, top, wide, tall));
         bool wet = _ease.Step(_texels, left, top, wide, tall, delta);
         _look.Visible = wet;
         if (!wet) return;

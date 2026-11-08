@@ -83,7 +83,7 @@ public partial class Stars : CanvasLayer
         if (backdrop != null && backdrop != _set)
         {
             _day?.QueueFree();
-            AddChild(_day = new PlanetSky(backdrop));
+            AddChild(_day = new PlanetSky(backdrop) { Modulate = new Color(_tint.R, _tint.G, _tint.B) });
             MoveChild(_day, 0);
             _set = backdrop;
         }
@@ -116,6 +116,8 @@ public partial class Stars : CanvasLayer
     {
         set
         {
+            // Set each frame, it changes only as the hour does: the same colour set again cost every layer a call a frame.
+            if (value == _tint) return;
             _tint = value;
             if (_day != null) _day.Modulate = new Color(value.R, value.G, value.B);
             if (_land != null) _land.Tint = value;
