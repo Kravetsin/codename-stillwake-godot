@@ -121,6 +121,8 @@ public static class Items
         new("magnetite", 250),
         // Yellow lumps out of the deep stone's pockets (deep-digging): the blasting charge's.
         new("sulfur", 250),
+        // What the deep caches give (deep-digging): sold at the trade station, used in nothing.
+        new("opal", 50),
         // Two sulfur in an iron tube (deep-digging): thrown, it bursts where it lands, breaking the ground round it.
         new("blastCharge", 50),
         // Out of the ruins (0085): scrap of their alloy, a cell of wall dug or a spire cache opened; walls of it built.

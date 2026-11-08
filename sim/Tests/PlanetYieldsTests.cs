@@ -121,6 +121,22 @@ public class PlanetYieldsTests
     }
 
     [Fact]
+    public void ADugDeepCacheGivesItsBandsOpals()
+    {
+        var w = new Scenario(Layout.Parse("""
+            ####
+            #..#
+            ####
+            """).WithMaterials("""
+            tttt
+            t..t
+            tttt
+            """).OnPlanet() with { Flora = [(4, "emberCache")] }, doubled: true);
+        Assert.Equal(Flora.Get("emberCache").Yields.Single().Count, Count(DigOut(w, w.At(0, 1)), "opal"));
+        Assert.Empty(w.M.Building.Plants);
+    }
+
+    [Fact]
     public void BreakingTheFloorUnderACrystalOrTheCeilingOverOneGivesItToTheDigger()
     {
         var w = Cave();

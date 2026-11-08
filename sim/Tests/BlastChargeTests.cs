@@ -119,15 +119,16 @@ public class BlastChargeTests
     }
 
     [Fact]
-    public void OreAndAGeodeItBreaksGoToTheThrower()
+    public void OreAGeodeAndADeepCacheItBreaksGoToTheThrower()
     {
-        // Sulfur at (20, 11) and (21, 11), a geode in the stone at (19, 11).
-        var w = Pit('t', (x, y) => y == 11 && x is 20 or 21 ? 'y' : null, [(11 * W + 19, "geode")]);
+        // Sulfur at (20, 11) and (21, 11), a geode in the stone at (17, 11), an amber cache at (23, 12).
+        var w = Pit('t', (x, y) => y == 11 && x is 20 or 21 ? 'y' : null, [(11 * W + 17, "geode"), (12 * W + 23, "amberCache")]);
         Thrown(w, At(20, 8, Down));
         Assert.Null(w.M.Grid.WallAt(11 * W + 20));
         Assert.Equal(2, Count(w, "sulfur"));
         Assert.Equal(Spec.Flora.Get("geode").Yields.Single().Count, Count(w, "crystal"));
-        Assert.DoesNotContain(w.M.Building.Plants, p => p.Kind == "geode");
+        Assert.Equal(Spec.Flora.Get("amberCache").Yields.Single().Count, Count(w, "opal"));
+        Assert.Empty(w.M.Building.Plants);
     }
 
     [Fact]
