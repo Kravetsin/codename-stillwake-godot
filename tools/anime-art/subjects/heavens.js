@@ -1,4 +1,4 @@
-// The planet's sky, behind `backdrop`'s far land and never brighter than it: a slate wash laid in glazes, thin dragged cloud, a dead ringed giant half in its own shadow, a hard pale sun.
+// The planet's sky, behind the land composed from the planet's own pictures (features/backdrop) and never brighter than it: a slate wash laid in glazes, thin dragged cloud, a dead ringed giant half in its own shadow, a hard pale sun.
 // The sky and the clouds are far layers: PixelArt.Far draws them at their logical size whatever their file, so they are not 4 x (1024 x 768 for 1 x 384, 2 x for the clouds).
 (function () {
 'use strict';

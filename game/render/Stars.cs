@@ -1,4 +1,5 @@
 using Godot;
+using Stillwake.Game.Features.Backdrop;
 
 namespace Stillwake.Game.Render;
 
@@ -73,10 +74,11 @@ public partial class Stars : CanvasLayer
 
     /// <summary>
     /// A planet's sky behind everything (<see cref="PlanetSky"/>), of backdrop set <paramref name="backdrop"/>
-    /// (<see cref="PlanetLooks"/>), its land's ground line at row <paramref name="ground"/> of the world, in pixels: space and
-    /// what drifts in it hidden. Space, as aboard (0076), for a null set. A set is drawn once, kept while it is shown again.
+    /// (<see cref="PlanetLooks"/>), and its <paramref name="land"/> in front of it (composed-backdrops), their ground line at the
+    /// surface rows <paramref name="tops"/> averaged round the camera (<see cref="GroundLine"/>): space and what drifts in it
+    /// hidden. Space, as aboard (0076), for a null set. A set is drawn once, kept while it is shown again; a land replaces the last.
     /// </summary>
-    public void Show(string? backdrop, float ground)
+    public void Show(string? backdrop, BackdropView? land, int[]? tops)
     {
         if (backdrop != null && backdrop != _set)
         {
@@ -85,17 +87,39 @@ public partial class Stars : CanvasLayer
             MoveChild(_day, 0);
             _set = backdrop;
         }
-        _ground = backdrop != null ? ground : null;
-        if (_day != null) _day.Visible = _ground != null;
-        _sky.Visible = _wrecks.Visible = _dust.Visible = _ground == null;
+        if (land != _land)
+        {
+            _land?.QueueFree();
+            _land = land;
+            if (land != null)
+            {
+                AddChild(land);
+                MoveChild(land, _day != null ? 1 : 0);
+                land.Tint = _tint;
+            }
+        }
+        _tops = backdrop != null ? tops : null;
+        if (_day != null) _day.Visible = _tops != null;
+        if (_land != null) _land.Visible = _tops != null;
+        _sky.Visible = _wrecks.Visible = _dust.Visible = _tops == null;
     }
 
-    private float? _ground;
+    private BackdropView? _land;
+    private int[]? _tops;
+    private (float R, float G, float B) _tint = (1, 1, 1);
 
-    /// <summary>The daylight of the moment on a planet (<see cref="Daylight.Backdrop"/>, 2026-11-07-night-chills): every layer of its sky multiplied by it.</summary>
+    /// <summary>
+    /// The daylight of the moment on a planet (<see cref="Daylight.Backdrop"/>, 2026-11-07-night-chills): every layer of its sky
+    /// multiplied by it, and its land after its veil.
+    /// </summary>
     public (float R, float G, float B) Tint
     {
-        set { if (_day != null) _day.Modulate = new Color(value.R, value.G, value.B); }
+        set
+        {
+            _tint = value;
+            if (_day != null) _day.Modulate = new Color(value.R, value.G, value.B);
+            if (_land != null) _land.Tint = value;
+        }
     }
 
     /// <summary>The world's time, in seconds of ticks, that the far wrecks and the dust have drifted by: every peer's alike.</summary>
@@ -110,7 +134,12 @@ public partial class Stars : CanvasLayer
         var centre = camera?.GetScreenCenterPosition() ?? Vector2.Zero;
         float zoom = camera?.Zoom.X ?? 1;
         _sky.RegionRect = new Rect2(centre * zoom * Parallax + new Vector2(_stream, 0), screen);
-        if (_ground is float ground) _day!.Follow(centre, zoom, screen, ground, Seconds);
+        if (_tops is { } tops)
+        {
+            float ground = (float)GroundLine.Mean(tops, centre.X / ShipCamera.Cell, BackdropLooks.First.Reach) * ShipCamera.Cell;
+            _day!.Follow(centre, zoom, screen, ground, Seconds);
+            _land?.Follow(centre, zoom, screen, ground);
+        }
         _wrecks.Follow(centre, zoom, screen, Seconds);
         _dust.Follow(centre, zoom, screen, Seconds);
     }
