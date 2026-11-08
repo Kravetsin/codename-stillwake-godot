@@ -251,6 +251,71 @@ hold is planks.
 - **Done when** a frame of each class, wrecked and intact, shows full compartments the user has looked at, and a hero has
   broken a salvage object of each role and got five times its piece's loot.
 
+### V-1c — A vessel of rooms
+
+Built as below. The user's picks: the main engine wears one of three looks (rocket chamber, reactor ring, accelerator),
+the console one of four (desk, terminal, helm, lectern), drawn per vessel: a salvage's `Looks` are machine rows alike but
+for their picture (`Vessels.LookKind`: `salvageMainEngine`, `salvageMainEngine2`, …), interiors drawing the first,
+`Describe` drawing which each one stamped wears. Extras take the shortest deck of all, their rule kept for the required
+rooms only: quarters held to the first deck left the lower decks running on bare and dark. Measured over 200
+seeds: a shuttle 56–86 columns and 1,483–2,394 items (its band raised to 1,300–2,800: two decks always, and the main
+engine); a freighter, `Extras` 5–10, 86–170 columns and 3,253–5,703 items, in its band; a deck's bare end 2–4 columns
+most often, 24 at most. The dev teleport lands in the
+entry's first two columns, past the stern door. The reach test bites by a hatch dropped: a door is the whole bulkhead, so
+one dropped leaves an opening.
+
+A vessel is a row of equal midsections, no walls between its compartments, open shafts between its decks: it reads as a
+long box. The user's rule (2026-11-08): every vessel, the shuttle too, has an **engine room with a main engine** to break,
+a **bridge with glass and consoles**, a **cargo hold** and **quarters**; other rooms are random in kind and count;
+**bulkheads with doors** part the rooms, and decks join by a **hatch and ladder**.
+
+- **The class** drops `Mids`, `MidWidth` and `Bridge`, and gains `Length` (most body columns), `Extras (Min, Max)`,
+  `ExtraRoles` (a plain list, an equal chance each) and `BridgeKind` (`Cockpit` for the shuttle, `Raised` for the
+  freighter). `Decks.Min` is 2 for every class: the shuttle's bottom deck is its engine room, with a bell. An extra
+  that would run its deck past `Length` is not built (one check as it is placed: a worst-case content test over every mix
+  of extras was the dearer way); the required rooms always fit.
+- **A room rule a role** (`VesselRoomRule(Role, Deck, Order)`): `Deck` is `Low`, `Top` or none (the shortest deck, ties
+  to the lower one); `Order` runs aft to fore: engine, hold, life, quarters, bridge. Life support becomes an extra role.
+- **The manifest:** an engine room for each deck below the first, a hold, quarters, the bridge, then `Extras` rooms drawn
+  from `ExtraRoles`. Each room draws an interior of its role; its width is 2 (its door, at its aft end) plus the
+  interior's.
+- **Placement:** on deck 0 the aft room is the entry (quarters or an extra), its aft side the stern door as now; the decks
+  below hold the engine rooms, the bottom one with the **main engine** interior, the engine at column 0 flush with the
+  stern armour, facing its deck's bell; it has no aft door. The aft rooms take the widest one's width. The other rooms go
+  in manifest order to their deck and sort along it by `Order`. A deck shorter than the longest gives its slack to its
+  forward room, which also takes the bow's wedge (bare floor reads as a ship's end).
+- **Bridge:** the cockpit is deck 0's forward room, running into the bow, its **glass** the bow's top armour over its
+  first `Vessels.Glass` (8) columns, each column's glass following the taper (`RowsAt`). The raised bridge stands over
+  deck 0's forward-most room (a content test: wide enough), its glass the forward armour across the middle four of its
+  six open rows. Glass is the game's `glass` material (`Clear`): light through, a weak wall.
+- **Stamp:** every boundary between two rooms on a deck is a shut **door** two columns wide, three segments, the deck's
+  six rows (`Vessels.Open`); the floors above and below are the rest of the bulkhead. **The well:** the two open columns
+  just forward of the aft block's doors, on every deck: each floor between decks gets a **hatch** in its floor row, and a
+  ladder from the deck below's top row down to its floor. The raised bridge's hatch is the top row of its floor, its
+  ladder in the room below's open columns, an even number of rows. Sections become stern, body, bow and bridge; the
+  bells, the stern door, `Damage` and `LeaveDebris` keep their rules.
+- **New salvage, two rows** (the pattern of V-1b): `salvageMainEngine` from `engineBlock`, 12×6 (`Size` given), `Times`
+  3, in the main-engine interior only; `salvageConsole` from `cableRack`, 4×3, bridge role, in every bridge interior
+  (the cockpit's and the raised bridge's). The upper engine rooms keep the engine block and machine block. Why new rows:
+  no picture is an engine aimed at its bell or a console with screens. **Art the user picks** on a page each: the main
+  engine (12×6, nozzle aft) and the console (4×3).
+- **The dev teleport** still lands by the stern door (the first door in reading order on deck 0; the raised bridge has
+  none). If a breach takes it, the next door is a bulkhead's and the hero lands in that room: accepted.
+- **Trade-offs:** a door is a deck tall, so a deck reads door after door (taller decks would redraw every interior); one
+  well, so a breach on it cuts the lower decks off, its crater the way in; the shuttle grows to two decks; doors, hatches,
+  glass and the engine add loot, so the bands are measured again; a breach can take the main engine whole, as any
+  machine.
+- **Tests:** properties over both classes and seeds — every required room there; one main engine, in the bottom deck's
+  aft room, flush with the stern armour; every room reachable from the stern door through doors, hatches and ladders
+  (proved to bite by dropping a bulkhead door once); every boundary between rooms on a deck a six-row door; every hatch
+  with a ladder under it, no machine on one; glass only in the bridge's outer armour, touching space; the frame,
+  overlap, determinism and breach properties kept. Content — `Decks.Min` ≥ 2, the fit to `Length`, every bridge
+  interior with a console, the main-engine interior, the bands. Scenario — after a jump `Rooms` has one room a
+  compartment; the axe breaks the main engine for its `Cost`, counted obtained. `VesselDoorTests` unchanged.
+- **Done when** frames of both classes, intact and wrecked, show rooms, doors, the well, the bridge's glass, the engine
+  and consoles in their picked art, looked at by the user; a hero has walked from the stern door to the bridge and broken
+  the main engine.
+
 ### V-2 — Three more causes, two more classes, the outside
 
 - Blast, cut in two and scavenged, the cause drawn at `Jump` by the class's weights; the corvette and the frigate

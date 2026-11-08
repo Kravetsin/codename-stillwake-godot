@@ -24,7 +24,8 @@ possible and the wreck made from it.
     next to the stern, life support in the middle, quarters on the first deck, holds below, the bridge on top), furnished
     with an interior of its role drawn as ASCII (`VesselInterior`); a ladder shaft between each two decks and down from the
     bridge; a door through the stern armour of the first deck. Size is the number of midsections, so one mechanism serves
-    every class. The description is a record, not cells: enemy vessels will read it.
+    every class. The description is a record, not cells: enemy vessels will read it. Midsections and roles by position gave
+    way to rooms in V-1c (below).
   - **Stamped** into parts (`VesselPart`): a back wall in every cell of the hull, walls of armour and floors, ladders, the
     door, the interiors' floors and machines, the bells; crates hold loot drawn by their compartment's role.
   - **Damaged** by what wrecked it (`VesselCause`): a breach is a crater of the class's radius from above, below or the bow;
@@ -60,6 +61,16 @@ possible and the wreck made from it.
 - **Vessels come as built for now** (the user's word, 2026-11-08): wrecking waits for its own slice. The breach and its
   debris stay in `Shipyard.Damage`, reached by `Jump(Contact, Wrecked: true)` from dev tools (`--vessel=class,wrecked`, the
   panel's `wrecked`), so the damage pass keeps its tests.
+- **A vessel of rooms** (V-1c, the user's rule, 2026-11-08): every vessel, the shuttle too, has an engine room with the main
+  engine (`salvageMainEngine`, 12×6, three times an engine block's loot, against the stern by the bottom deck's bell), a
+  bridge with glass in its outer armour and consoles (`salvageConsole`), a hold and quarters; extras are drawn from the
+  class's `ExtraRoles`. A room is placed by its role's `VesselRoomRule` (engine and hold low, quarters and the bridge on
+  the first deck, life anywhere) on the shortest deck it may stand on, an extra on the shortest of all, aft to fore; the
+  body is as long as the longest deck. A door a deck tall parts each two rooms; the well past the aft rooms joins the
+  decks by hatches with ladders under them; a cockpit runs into the bow, a raised bridge stands over the first deck's
+  forward room. Every class has two decks at least, so the engine room has a bell; an extra that would run its deck past `Length` is not built. The user picked
+  three looks of the main engine and all four of the console, one drawn for each stamped (`VesselSalvage.Looks`: a machine
+  row a look, alike but for the picture).
 - Save format 57: the module joins every surface with no contact and no vessel out. A crate's loot is counted obtained
   (the-board) as it is written.
 
@@ -69,6 +80,7 @@ possible and the wreck made from it.
 | --- | --- | --- |
 | V-1 | The shuttle and the freighter, the breach, `Find` and `Jump` by the dev flag `--vessel=class[,wrecked]` | built |
 | V-1b | Salvage aboard: piles copied from the debris that drifts by, five times its loot; the breach leaves plates | built |
+| V-1c | A vessel of rooms: engine room and main engine, bridge with glass and consoles, hold, quarters, extras; doors and hatches | built |
 | V-2 | Blast, cut in two and scavenged; the corvette and the frigate; antennas, radiators and docking ports | planned |
 | V-3 | The cruiser, and its write spread over ticks only if the hitch shows | planned |
 | V-4 | The radar finds contacts in range, the engine's jump paid in biofuel, the radar's screen | needs the user's rules |

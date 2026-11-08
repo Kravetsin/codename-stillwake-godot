@@ -43,6 +43,6 @@ public class VesselDoorTests
             for (int across = 0; across < 2; across++)
                 Assert.False(grid.Blocks(cell - up * width + across), $"blocked {up} up, {across} across");
         Assert.True(grid.Solid(cell + width));
-        Assert.True(Sim.Grid.Doorways.IsDoor(grid.StructureAt(cell - 3)));
+        Assert.True(Sim.Grid.Doorways.IsDoor(grid.StructureAt(cell - 1)));
     }
 }

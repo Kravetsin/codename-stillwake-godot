@@ -210,6 +210,39 @@ public class PlacesTests
     }
 
     [Fact]
+    public void AVesselsRoomsAreRoomsOfTheirOwnBehindItsDoorsAndHatches()
+    {
+        var w = new Scenario(Registry.Wreck);
+        w.Do(new Find("freighter")).Run();
+        var contact = w.M.Places.Contacts[^1];
+        w.Do(new Jump(contact.Id)).Run();
+        var box = w.M.Grid.Reserved!.Value;
+        int width = w.M.Grid.Width;
+        var vessel = Shipyard.Describe(Vessels.Class("freighter")!, contact.Seed);
+        var rooms = vessel.Compartments.Select(c => w.M.Rooms.RoomAt((box.Top + c.Top + Vessels.Open - 1) * width + box.Left + c.Left)).ToList();
+        Assert.All(rooms, r => Assert.NotNull(r));
+        Assert.Equal(rooms.Count, rooms.Distinct().Count());
+    }
+
+    [Fact]
+    public void TheSledgehammerBreaksAVesselsMainEngineForItsCostCountedObtained()
+    {
+        var (w, box) = Jumped("shuttle");
+        int width = w.M.Grid.Width;
+        string hammer = Weapons.Sledgehammer.Item;
+        var engine = Assert.Single(w.M.Grid.Machines, m => Vessels.SalvageOf(m.Kind)?.Kind == "salvageMainEngine");
+        var cost = Machines.Get(engine.Kind).Cost;
+        var before = cost.Select(c => w.M.Knowledge.ObtainedOf(c.Item)).ToList();
+        w.GiveItems(0, (hammer, 1)).Do(new Enter(engine.Cell)).Run();
+        for (int blow = 0; blow < 200 && w.M.Grid.MachineById(engine.Id) != null; blow++)
+            w.Do(new Hew(hammer, engine.Cell % width * 1000 + 500, engine.Cell / width * 1000 + 500, HewTesting.Up)).Run(Weapons.Sledgehammer.Pace);
+        Assert.Empty(w.Refusals);
+        Assert.Null(w.M.Grid.MachineById(engine.Id));
+        for (int i = 0; i < cost.Count; i++)
+            Assert.Equal(before[i] + cost[i].Count, w.M.Knowledge.ObtainedOf(cost[i].Item));
+    }
+
+    [Fact]
     public void AMapWithNoRoomRightOfTheShipRefusesTheJumpAndChangesNothing()
     {
         var w = new Scenario("""

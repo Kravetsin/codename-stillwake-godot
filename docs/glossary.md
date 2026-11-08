@@ -155,6 +155,8 @@ Game words → code. One line a term: Russian / English → identifiers → modu
 - вылазка / sortie → `OpenSurface`, `Transfer` (sim/Core `Surface.cs`) → Core
 - корабль, корабль-находка / vessel **≠** → `Vessel`, `Shipyard` (sim/Core `Vessels/`), `Content.Vessels`; written beside the ship → Places
 - находка на корабле / salvage aboard → `Vessels.Salvage`, `VesselSalvage`, a pile (`salvageTanks`, …) copied from a debris piece, five times its loot → Places, Building
+- главный двигатель, пульт корабля / main engine, console → `salvageMainEngine` (one a vessel, by the stern), `salvageConsole` (the bridge) → Places
+- отсек, комната корабля / a vessel's room → `Vessel.Compartment`, placed by `VesselRoomRule`; doors between, hatches down the well → Places
 - разбитый корабль / wrecked vessel → a vessel after `Shipyard.Damage` (`VesselCause.Breach`); not the starting wreck, nor wreckage → Places
 - контакт, прыжок / contact, jump → `Contact`, `Find`, `Jump` → Places
 

@@ -6,47 +6,63 @@ public enum VesselRole { Hold, Quarters, Engine, Life, Bridge }
 /// <summary>What wrecked a vessel, which its damage pass follows: none for one intact.</summary>
 public enum VesselCause { None, Breach }
 
+/// <summary>Where a vessel's bridge is: a cockpit in the bow on the first deck, or raised over the hull toward the bow.</summary>
+public enum VesselBridge { Cockpit, Raised }
+
+/// <summary>Which decks a room of a role may stand on: any, the first (the top), or one below it.</summary>
+public enum VesselDeck { Any, Top, Low }
+
+/// <summary>
+/// Where a room of <c>Role</c> goes (a vessel of rooms): the decks it may stand on, the shortest of them taken, ties to the lower;
+/// and its place along a deck, <c>Order</c> from the stern.
+/// </summary>
+public sealed record VesselRoomRule(VesselRole Role, VesselDeck Deck, int Order);
+
 /// <summary>
 /// A class of generated vessel (generated-vessels): its size as ranges the seed picks from, and how it is built. A vessel is
-/// laid along its width, stern on the left: the engine bells, <c>Mids</c> midsections of <c>MidWidth</c> columns each, a bow
-/// tapering over <c>Bow</c> columns, and a bridge on top over the last midsection when <c>Bridge</c> is wider than nothing.
+/// laid along its width, stern on the left: the engine bells, a body of rooms deck over deck, at most <c>Length</c> columns, a
+/// bow tapering over <c>Bow</c> columns, and its bridge (<c>BridgeKind</c>).
 /// </summary>
 /// <param name="Bells">Columns of engine bells left of the hull, one a deck but the first, which has the way in.</param>
-/// <param name="Mids">How many midsections, least and most: a vessel's length.</param>
-/// <param name="MidWidth">Columns of a midsection: a compartment on every deck, its first two columns kept for a shaft.</param>
-/// <param name="Decks">How many decks, least and most, each six open rows over a floor.</param>
+/// <param name="Length">The body's most columns inside its stern armour: an extra room that would run a deck past it is not built.</param>
+/// <param name="Decks">How many decks, least and most, each six open rows over a floor; two at least: the engine room is below.</param>
 /// <param name="Bow">Columns of the bow, its top and bottom tapering toward the tip.</param>
 /// <param name="ArmourDepth">Cells of armour inward from the hull's edge.</param>
-/// <param name="Bridge">Columns of the bridge on top, its armour included; 0 for none.</param>
+/// <param name="BridgeKind">A cockpit in the bow, or a bridge raised on top.</param>
+/// <param name="Extras">How many rooms past the ones every vessel has, least and most.</param>
+/// <param name="ExtraRoles">What an extra room is, each as likely.</param>
 /// <param name="Crater">A breach's radius, in cells.</param>
 /// <param name="Yield">Whole items, every kind counted alike, a vessel of this class gives taken apart whole, least and most (a content test).</param>
 public sealed record VesselClass(
     string Id,
     int Bells,
-    (int Min, int Max) Mids,
-    int MidWidth,
+    int Length,
     (int Min, int Max) Decks,
     int Bow,
     int ArmourDepth,
-    int Bridge,
+    VesselBridge BridgeKind,
+    (int Min, int Max) Extras,
+    IReadOnlyList<VesselRole> ExtraRoles,
     int Crater,
     (int Min, int Max) Yield)
 {
     /// <summary>Rows of the body for <paramref name="decks"/> decks: armour, six open rows a deck and a floor between each two.</summary>
     public int BodyHeight(int decks) => 2 * ArmourDepth + Vessels.Pitch * decks - 1;
 
-    /// <summary>Rows above the body: the bridge's armour and its six open rows; none without a bridge.</summary>
-    public int BridgeHeight => Bridge > 0 ? ArmourDepth + Vessels.Open : 0;
+    /// <summary>Rows above the body: a raised bridge's armour and its six open rows; none for a cockpit.</summary>
+    public int BridgeHeight => BridgeKind == VesselBridge.Raised ? ArmourDepth + Vessels.Open : 0;
 
     /// <summary>The largest vessel of the class, columns by rows: its frame.</summary>
-    public (int Width, int Height) Frame => (Bells + Mids.Max * MidWidth + Bow, BridgeHeight + BodyHeight(Decks.Max));
+    public (int Width, int Height) Frame => (Bells + ArmourDepth + Length + Bow, BridgeHeight + BodyHeight(Decks.Max));
 }
 
 /// <summary>
 /// A compartment's furnishing drawn as ASCII (generated-vessels), a character a cell in <see cref="Legend"/>'s: <c>.</c> open,
-/// <c>=</c> a floor (a shelf, a bunk), a machine by its whole footprint. Six rows, its first two columns open for a shaft.
+/// <c>=</c> a floor (a shelf, a bunk), a machine by its whole footprint. Six rows, its first two columns open for a ladder or a
+/// hatch over them, but the main engine's, flush with the stern.
 /// </summary>
-public sealed record VesselInterior(string Id, VesselRole Role, IReadOnlyList<string> Rows)
+/// <param name="Main">Whether it holds the main engine, at its first column: the bottom engine room's, against the stern.</param>
+public sealed record VesselInterior(string Id, VesselRole Role, IReadOnlyList<string> Rows, bool Main = false)
 {
     public int Width => Rows[0].Length;
 }
@@ -62,9 +78,11 @@ public sealed record VesselLoot(string Item, int Min, int Max);
 /// </summary>
 /// <param name="Size">Its footprint for a piece that is no wreckage (a crate, a pod), whose size the sim does not keep; else the wreck's.</param>
 /// <param name="Hp">Its hit points for a piece that is no wreckage; else the wreck's.</param>
+/// <param name="Looks">How many pictures it has, each a machine row of its own alike but for it (<see cref="Vessels.LookKind"/>): one
+/// is drawn for each stamped, interiors drawing the first.</param>
 public sealed record VesselSalvage(
     string Kind, string From, char Char, IReadOnlyList<VesselRole> Roles, int Times = Vessels.SalvageTimes,
-    (int W, int H)? Size = null, int? Hp = null, bool Torn = false);
+    (int W, int H)? Size = null, int? Hp = null, bool Torn = false, int Looks = 1);
 
 /// <summary>Generated vessels and their wrecks (generated-vessels): classes, interiors, loot and where a vessel lies.</summary>
 public static class Vessels
@@ -86,6 +104,9 @@ public static class Vessels
 
     /// <summary>What a vessel's walls and back walls are made of (<see cref="Materials"/>): never built.</summary>
     public const string Hull = "hull";
+
+    /// <summary>What a bridge's windows are made of: the game's clear glass, light through, a weak wall.</summary>
+    public const string Glass = "glass";
 
     /// <summary>How many times its piece's loot a salvage object gives, unless it says otherwise.</summary>
     public const int SalvageTimes = 5;
@@ -110,6 +131,10 @@ public static class Vessels
         // Spares in a hold; and what tore the hull, left by a breach on the deck by its crater.
         new("salvageSection", "hullSection", '1', [VesselRole.Hold], Torn: true),
         new("salvageSlab", "shieldSlab", '2', [VesselRole.Hold], Torn: true),
+        // The main engine (a vessel of rooms): one a vessel, against the stern by its bell, its dearest thing.
+        new("salvageMainEngine", "engineBlock", '4', [VesselRole.Engine], Times: 3, Size: (12, 6), Looks: 3),
+        // A bridge's console, its screens and switches a cable rack's insides.
+        new("salvageConsole", "cableRack", '5', [VesselRole.Bridge], Size: (4, 3), Looks: 4),
     ];
 
     /// <summary>
@@ -128,30 +153,57 @@ public static class Vessels
         return cost;
     }
 
-    /// <summary>The salvage that is <paramref name="kind"/>; null for any other machine.</summary>
+    /// <summary>The salvage that <paramref name="kind"/> is, any of its looks; null for any other machine.</summary>
     public static VesselSalvage? SalvageOf(string kind)
     {
-        foreach (var s in Salvage) if (s.Kind == kind) return s;
+        foreach (var s in Salvage)
+            for (int look = 0; look < s.Looks; look++)
+                if (LookKind(s, look) == kind) return s;
         return null;
     }
 
-    /// <summary>The machine rows of <see cref="Salvage"/>, piles with no menu card, joined to <c>Machines.All</c>.</summary>
-    public static readonly IReadOnlyList<MachineSpec> SalvageRows = Salvage.Select(s =>
+    /// <summary>The machine row of <paramref name="s"/>'s look <paramref name="look"/>: its own kind for the first, numbered from 2 after it.</summary>
+    public static string LookKind(VesselSalvage s, int look) => look == 0 ? s.Kind : s.Kind + (look + 1);
+
+    /// <summary>The machine rows of <see cref="Salvage"/>, a row a look, piles with no menu card, joined to <c>Machines.All</c>.</summary>
+    public static readonly IReadOnlyList<MachineSpec> SalvageRows = Salvage.SelectMany(s =>
     {
         var (w, h) = s.Size ?? Wreckage.Sizes.Where(z => z.Item == s.From).Select(z => (z.W, z.H)).First();
         int hp = s.Hp ?? Wreckage.HpOf(s.From) ?? throw new InvalidOperationException($"vessels: {s.From} has no hit points");
-        return new MachineSpec(s.Kind, w, h, [], SalvageCost(s), BuildTicks: 160, Hp: hp, Char: s.Char,
-            Means: $"salvage, a {s.From} {s.Times} times over: draw its whole footprint");
+        var cost = SalvageCost(s);
+        return Enumerable.Range(0, s.Looks).Select(look => new MachineSpec(LookKind(s, look), w, h, [], cost, BuildTicks: 160, Hp: hp,
+            Char: look == 0 ? s.Char : null, Means: look == 0 ? $"salvage, a {s.From} {s.Times} times over: draw its whole footprint" : null));
     }).ToList();
 
     /// <summary>The machines a vessel may hold: fair loot that keeps no state in another module by its id.</summary>
-    public static readonly IReadOnlyList<string> Machines = ["crate", "lamp", .. Salvage.Select(s => s.Kind)];
+    public static readonly IReadOnlyList<string> Machines = ["crate", "lamp", .. SalvageRows.Select(r => r.Kind)];
 
     public static readonly IReadOnlyList<VesselClass> Classes =
     [
-        new("shuttle", Bells: 6, Mids: (1, 2), MidWidth: 16, Decks: (1, 2), Bow: 12, ArmourDepth: 2, Bridge: 0, Crater: 6, Yield: (300, 1300)),
-        new("freighter", Bells: 10, Mids: (4, 7), MidWidth: 22, Decks: (2, 3), Bow: 20, ArmourDepth: 2, Bridge: 20, Crater: 14, Yield: (2400, 8000)),
+        new("shuttle", Bells: 6, Length: 72, Decks: (2, 2), Bow: 12, ArmourDepth: 2, BridgeKind: VesselBridge.Cockpit,
+            Extras: (0, 1), ExtraRoles: [VesselRole.Hold, VesselRole.Quarters, VesselRole.Life], Crater: 6, Yield: (1300, 2800)),
+        new("freighter", Bells: 10, Length: 200, Decks: (2, 3), Bow: 20, ArmourDepth: 2, BridgeKind: VesselBridge.Raised,
+            Extras: (5, 10), ExtraRoles: [VesselRole.Hold, VesselRole.Quarters, VesselRole.Life], Crater: 14, Yield: (2400, 8000)),
     ];
+
+    /// <summary>
+    /// Where each role's rooms go (a vessel of rooms), aft to fore: the engine and the hold low, life support anywhere, quarters and
+    /// the bridge on the first deck.
+    /// </summary>
+    public static readonly IReadOnlyList<VesselRoomRule> RoomRules =
+    [
+        new(VesselRole.Engine, VesselDeck.Low, 0),
+        new(VesselRole.Hold, VesselDeck.Low, 1),
+        new(VesselRole.Life, VesselDeck.Any, 2),
+        new(VesselRole.Quarters, VesselDeck.Top, 3),
+        new(VesselRole.Bridge, VesselDeck.Top, 4),
+    ];
+
+    /// <summary>The rule of <paramref name="role"/>'s rooms.</summary>
+    public static VesselRoomRule RuleOf(VesselRole role) => RoomRules.First(r => r.Role == role);
+
+    /// <summary>Columns of a cockpit's glass, from where the bow starts: the top armour over them, down its taper.</summary>
+    public const int CockpitGlass = 8;
 
     /// <summary>The class <paramref name="id"/>; null for none.</summary>
     public static VesselClass? Class(string id)
@@ -170,8 +222,8 @@ public static class Vessels
     public static readonly IReadOnlyList<VesselInterior> Interiors =
     [
         // Salvage stands on the deck, its bottom row the interior's last: j container, l crate, m pod, p tanks, r machine
-        // block, s engine block, t cable rack, z soil clod, 3 cargo hold, 1 hull section, 2 shield slab; K a storage crate, L a
-        // lamp, = a shelf or bunk.
+        // block, s engine block, t cable rack, z soil clod, 3 cargo hold, 1 hull section, 2 shield slab, 4 the main engine, 5 a
+        // console; K a storage crate, L a lamp, = a shelf or bunk.
         new("holdContainer", VesselRole.Hold,
         [
             "............LL..",
@@ -280,14 +332,41 @@ public static class Vessels
             "..pppp..pppp.mm.",
             "..pppp..pppp.mm.",
         ]),
+        new("mainEngine", VesselRole.Engine,
+        [
+            "444444444444..LL..",
+            "444444444444..LL..",
+            "444444444444......",
+            "444444444444......",
+            "444444444444.KKKK.",
+            "444444444444.KKKK.",
+        ], Main: true),
+        new("mainEngineHall", VesselRole.Engine,
+        [
+            "444444444444....LL....",
+            "444444444444....LL....",
+            "444444444444..rrrrrr..",
+            "444444444444..rrrrrr..",
+            "444444444444..rrrrrr..",
+            "444444444444..rrrrrr..",
+        ], Main: true),
         new("bridge", VesselRole.Bridge,
         [
-            "....LL......",
-            "....LL......",
-            "..tttt..====",
-            "..tttt......",
-            "..tttt.KKKK.",
-            "..tttt.KKKK.",
+            "......LL......LL..",
+            "......LL......LL..",
+            "..............tttt",
+            "..5555..5555..tttt",
+            "..5555..5555..tttt",
+            "..5555..5555..tttt",
+        ]),
+        new("cockpit", VesselRole.Bridge,
+        [
+            "....LL........",
+            "....LL........",
+            "..............",
+            "..5555..5555..",
+            "..5555..5555..",
+            "..5555..5555..",
         ]),
     ];
 
