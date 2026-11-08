@@ -248,7 +248,7 @@ public sealed partial class CreaturesModule
     private readonly List<int> _blasted = [];
 
     /// <summary>
-    /// <paramref name="s"/>'s burst from <paramref name="cell"/> (deep-digging): the meteor's wave of <paramref name="blast"/>'s power through
+    /// <paramref name="s"/>'s burst from <paramref name="cell"/> (blasting-charge): the meteor's wave of <paramref name="blast"/>'s power through
     /// open cells and natural ground, each wall it reaches broken for the thrower in cell order (<see cref="IBuildingOps.Blast"/>); a
     /// built wall, a piece or a machine stops it, as bedrock does. Then every wreck within its reach takes its damage, in spawn order.
     /// Heroes and creatures are untouched. The cell it spread from; -1 where it could not, inside a wall it does not break.

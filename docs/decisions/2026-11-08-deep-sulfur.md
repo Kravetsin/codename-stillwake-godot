@@ -5,8 +5,8 @@
 
 ## Context
 
-Playtesters found the first planet's descent dull: nothing new between the depth bands. The design in
-`docs/plans/deep-digging.md`, accepted by the user, gives two reasons to dig deep; its first is sulfur, the ore a blasting
+Playtesters found the first planet's descent dull: nothing new between the depth bands. The design accepted by the user
+([blasting-charge](2026-11-08-blasting-charge.md)) gives two reasons to dig deep; its first is sulfur, the ore a blasting
 charge will be made of. The charge must arrive while the descent is still long, not only at the bottom.
 
 ## Decision
@@ -24,5 +24,5 @@ charge will be made of. The charge must arrive while the descent is still long, 
 
 ## Deliberately not handled
 
-- A use for sulfur: the blasting charge comes in its own change (`docs/plans/deep-digging.md`, slice 3).
+- A use for sulfur: the blasting charge came in its own change ([blasting-charge](2026-11-08-blasting-charge.md)).
 - Lode veins of sulfur; sulfur on other planet types.

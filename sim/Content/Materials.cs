@@ -113,7 +113,7 @@ public static class Materials
         new("iceVein", Code: 10, Strength: 12, Leak: 270, Cost: [("ice", 1)], BuildTicks: 0, Natural: true, Footing: Tread.Stone, In: "stone", Armour: 4),
         // Iron in pockets through the stone (2026-11-07-ore-pockets): a little softer than copper's, its lump the furnace smelts to iron.
         new("ironVein", Code: 16, Strength: 10, Leak: 270, Cost: [("ironOre", 1)], BuildTicks: 0, Natural: true, Footing: Tread.Stone, In: "stone", Armour: 4),
-        // Sulfur in pockets of the deep stone, rare in the garden band (deep-digging): the blasting charge's, as soft as iron's.
+        // Sulfur in pockets of the deep stone, rare in the garden band (deep-sulfur): the blasting charge's, as soft as iron's.
         new("sulfurVein", Code: 18, Strength: 10, Leak: 270, Cost: [("sulfur", 1)], BuildTicks: 0, Natural: true, Footing: Tread.Stone, In: "stone", Armour: 4),
     ];
 

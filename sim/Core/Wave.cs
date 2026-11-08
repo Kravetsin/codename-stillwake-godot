@@ -4,7 +4,7 @@ namespace Stillwake.Sim;
 
 /// <summary>
 /// A blast spreading from a cell as a wave, cheapest way first (2026-10-29-meteor-wave): a meteor's and a blasting charge's
-/// (deep-digging). Reaching a cell costs <see cref="Meteors.Step"/> (<see cref="Meteors.Diagonal"/> aslant) and what its caller
+/// (blasting-charge). Reaching a cell costs <see cref="Meteors.Step"/> (<see cref="Meteors.Diagonal"/> aslant) and what its caller
 /// says entering it costs more; past the charge, or past the box of <c>most</c> cells either way, it is not reached. Whole numbers
 /// and buckets by cost, so every peer finds the same cells in the same order. One per module, its buffers kept between blasts.
 /// </summary>

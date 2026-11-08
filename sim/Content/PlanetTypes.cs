@@ -175,7 +175,7 @@ public static class PlanetTypes
         LakeMedium = 1500,
         // Ice veins in the cold band, copper below it, richest in the amber deep: as their growths were (0080). Copper and iron
         // in pockets at every depth too, specks near the surface, more and bigger deeper (2026-11-07-ore-pockets). Sulfur in pockets
-        // only, none in the cold band, rare in the garden, most over the lava (deep-digging). New ores last, so the others' salts stay.
+        // only, none in the cold band, rare in the garden, most over the lava (deep-sulfur). New ores last, so the others' salts stay.
         Veins =
         [
             new("iceVein", Wave: 40, Tall: 24, Widths: [1800, 0, 0, 0]),

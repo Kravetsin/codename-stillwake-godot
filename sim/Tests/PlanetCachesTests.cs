@@ -4,7 +4,7 @@ using Xunit;
 namespace Stillwake.Sim.Tests;
 
 /// <summary>
-/// The deep caches (deep-digging): a find in the rock by a cave, one kind a band, appended to the caves' growths so they take only
+/// The deep caches (blasting-charge): a find in the rock by a cave, one kind a band, appended to the caves' growths so they take only
 /// the rolls nothing took; dug or blasted, it gives its band's opals.
 /// </summary>
 public class PlanetCachesTests
@@ -13,7 +13,7 @@ public class PlanetCachesTests
     private const int Seeds = 16;
     private static readonly string[] Caches = ["frostCache", "bloomCache", "amberCache", "emberCache"];
 
-    /// <summary>What a planet holds of each band's cache, on average: some 16, 18, 13 and 8 (deep-digging).</summary>
+    /// <summary>What a planet holds of each band's cache, on average: some 16, 18, 13 and 8 (blasting-charge).</summary>
     private static readonly double[] Aim = [16, 18, 13, 8];
 
     [Fact]

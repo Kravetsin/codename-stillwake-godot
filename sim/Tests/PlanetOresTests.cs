@@ -82,7 +82,7 @@ public class PlanetOresTests(ITestOutputHelper output)
         }
     }
 
-    /// <summary>The plans' targets, percent of the rock per band (veins and pockets): copper, iron, sulfur (deep-digging).</summary>
+    /// <summary>The plans' targets, percent of the rock per band (veins and pockets): copper, iron, sulfur (deep-sulfur).</summary>
     private static readonly Dictionary<string, double[]> Targets = new()
     {
         ["copperVein"] = [0.15, 1.2, 2.2, 1.6],
@@ -106,7 +106,7 @@ public class PlanetOresTests(ITestOutputHelper output)
         var iron = m.Ore[Iron];
         for (int band = 1; band < iron.Length; band++)
             Assert.True(iron[band] * m.Rock[0] > iron[0] * m.Rock[band], $"iron no richer in band {band} than in band 0");
-        // Sulfur deeper is richer: from rare specks in the garden band to the most over the lava (deep-digging).
+        // Sulfur deeper is richer: from rare specks in the garden band to the most over the lava (deep-sulfur).
         var sulfur = m.Ore[Sulfur];
         for (int band = 2; band < sulfur.Length; band++)
             Assert.True(sulfur[band] * m.Rock[band - 1] > sulfur[band - 1] * m.Rock[band], $"sulfur no richer in band {band} than in band {band - 1}");

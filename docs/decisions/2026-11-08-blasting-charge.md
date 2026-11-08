@@ -6,8 +6,7 @@
 ## Context
 
 Playtesters found the first planet's descent dull: a thousand rows of the same rock, no tool for going down and nothing to
-find between the depth bands. The user accepted a design of two reasons to dig deep (`docs/plans/deep-digging.md`, now
-folded in here): sulfur ([deep-sulfur](2026-11-08-deep-sulfur.md)) made into a blasting charge, and caches in each band's
+find between the depth bands. The user accepted a design of two reasons to dig deep: sulfur ([deep-sulfur](2026-11-08-deep-sulfur.md)) made into a blasting charge, and caches in each band's
 rock holding something only sold.
 
 ## Decision
@@ -35,6 +34,24 @@ rock holding something only sold.
 - **The opal** (stack 50, worth 150, used in nothing): sold only, one item for every band (the user's call); an amber cache is
   worth a geode's six crystals. Caches ring and shatter as crystals do.
 - Nothing new is saved: shots in flight already are; old planets grow caches in rock nobody dug. No format bump.
+- **Why not what exists:** every tool hits a fan of a few cells by the hero, none an area from afar; the meteor's wave is the
+  area break wanted (cost spread, walls soaking), so it moved to `Core` rather than a second, square radius beside it; no growth
+  yields what only sells, and growths are already scattered by band. One `opal`, not four: the caches differ by look and count,
+  and four items would add icons, prices and names for nothing the player does differently.
+- **Cost:** a burst walks a 21×21 box once, in the tick it lands; the client remembers the walls round a charge in flight
+  (`ShotsView`), a box of 25×25 a tick, and nothing per frame but the burst's look.
+
+## Looks and sounds
+
+The user's picks (2026-11-08), each from four candidates on its audition page:
+
+- **The charge, "pipe":** an iron pipe packed with sulfur, screw caps, a short fuse; in flight it turns twice a second, the
+  fuse sparking. Its burst: a white flash, a grey ring of dust as wide as what broke, and out of each broken wall chips of
+  its ground flung away from the burst, falling where there is weight (none afloat).
+- **The caches, "ammonite":** a fossil shell turned to opal, half in the rock, its chambers glowing in its band's colour,
+  larger deeper; the opal's icon is its shell.
+- **Sounds:** the throw a short whip (`crew/charge-throw`), heard as a friend's shot is; the burst a litre of oxyhydrogen set
+  off in the open (`crew/charge-burst`), heard full to 24 cells and to 120, the thrower's on the suit, so in space too.
 
 ## Deliberately not handled
 
@@ -43,4 +60,5 @@ rock holding something only sold.
 - Back walls; a placed charge, a fuse, chains of charges; sulfur in anything but the charge.
 - Rock from a crater; a ruin wall's alloy blasted is lost, the price of blasting instead of cutting.
 - Caches on other planet types, detectors or a sound through rock for them; a cache that refills.
+- A charge thrown point-blank, born and burst in one tick, or a burst in a tick a client skipped: its flash and ring show, no chips.
 - Laid stone cannot be told from ground: a charge breaks a stone wall a player built on a planet, as a tool already does.

@@ -28,7 +28,7 @@ public partial class ContentTests
             Assert.True(gun.Speed > 0 && gun.Reach > 0 && gun.Pace > 0 && gun.Damage >= 0 && gun.BlockDamage >= 0 && gun.Knock >= 0 && gun.PierceKeep is >= 0 and <= 1000, gun.Item);
             // A shot that pierces everything ends only as what it keeps runs out (2026-10-27-the-railgun).
             Assert.True(gun.Fall is >= 0 and <= 1000 && gun.Energy >= 0 && gun.Charge >= 0 && (gun.Pierces != Pierce.All || gun.PierceKeep < 1000), gun.Item);
-            // A thing thrown is its own ammo (deep-digging) and stacks; a gun that fires something else is one.
+            // A thing thrown is its own ammo (blasting-charge) and stacks; a gun that fires something else is one.
             if (!gun.Ammo.Contains(gun.Item)) Assert.Equal(1, Content.Items.Get(gun.Item).Stack);
             Assert.Null(Weapons.Of(gun.Item));
             Assert.True(Crafts.TryGet(gun.Item, out _), gun.Item);

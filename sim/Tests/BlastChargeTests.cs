@@ -7,7 +7,7 @@ using Spec = Stillwake.Content;
 namespace Stillwake.Sim.Tests;
 
 /// <summary>
-/// The blasting charge (deep-digging): thrown as a gun fires, it bursts where its shot ends, the meteor's wave through open cells and
+/// The blasting charge (blasting-charge): thrown as a gun fires, it bursts where its shot ends, the meteor's wave through open cells and
 /// natural ground, every wall it reaches broken for the thrower; built walls, pieces and machines stop it, and wrecks in reach take its damage.
 /// </summary>
 public class BlastChargeTests
