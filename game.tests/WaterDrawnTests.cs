@@ -23,8 +23,8 @@ public class WaterDrawnTests
         Assert.True(WaterCells.Write(layer, w, h, Blocks, 0, 0, w, h, texels));
         Assert.Equal(new byte[] { 255, 0, 0, 255 }, texels[(1 * 4)..(1 * 4 + 4)]);
         Assert.Equal(new byte[] { 255, 0, 255, 255 }, texels[(4 * 4)..(4 * 4 + 4)]);
-        // Falling, it is a stream: its 4 units over the 3 open rows of its column, falling Fall a tick.
-        Assert.Equal(new byte[] { 4 * L.Fall * 255 / (3 * L.Full), 255, 0, 255 }, texels[(2 * 4)..(2 * 4 + 4)]);
+        // Over an open, empty cell, it is a stream, as wide as its 4 units.
+        Assert.Equal(new byte[] { 4 * 255 / L.Full, 255, 0, 255 }, texels[(2 * 4)..(2 * 4 + 4)]);
         Assert.Equal(new byte[] { 0, 0, 0, 0 }, texels[0..4]);
         Assert.False(WaterCells.Write(new byte[w * h], w, h, Blocks, 0, 0, w, h, texels));
     }
@@ -40,10 +40,10 @@ public class WaterDrawnTests
         bool Blocks(int cell) => cell % w != 1;
         var texels = new byte[w * h * 4];
         WaterCells.Write(layer, w, h, Blocks, 0, 0, w, h, texels);
-        // Where the window lies wholly in the stream, its width is the same at every cell.
-        var widths = Enumerable.Range(WaterCells.Window, 12 - 2 * WaterCells.Window + 1).Select(y => texels[(y * w + 1) * 4]).ToArray();
+        // Its trails meet, each as wide as its lump: the same at every cell.
+        var widths = Enumerable.Range(0, 12).Select(y => texels[(y * w + 1) * 4]).ToArray();
         Assert.All(Enumerable.Range(0, 12), y => Assert.Equal(255, texels[(y * w + 1) * 4 + 1]));
-        Assert.InRange(widths.Max() - widths.Min(), 0, 255 / L.Full);
+        Assert.Equal(widths.Min(), widths.Max());
     }
 
     [Fact]
@@ -64,18 +64,18 @@ public class WaterDrawnTests
     }
 
     [Fact]
-    public void ADropFallingAloneIsDrawnAloneWithNothingOverIt()
+    public void ADropFallingAloneTrailsItsFallOverItAndNothingUnderIt()
     {
-        int w = 3, h = 12;
+        int w = 3, h = 14;
         var layer = new byte[w * h];
-        layer[8 * w + 1] = L.Of(L.Water, 4);
+        layer[10 * w + 1] = L.Of(L.Water, 4);
         bool Blocks(int cell) => cell % w != 1;
         var texels = new byte[w * h * 4];
         WaterCells.Write(layer, w, h, Blocks, 0, 0, w, h, texels);
         byte[] At(int y) => texels[((y * w + 1) * 4)..((y * w + 1) * 4 + 4)];
-        Assert.Equal([255, 0, 255], At(8)[1..4]);
-        Assert.All(Enumerable.Range(0, 8), y => Assert.Equal(new byte[] { 0, 0, 0, 0 }, At(y)));
-        Assert.Equal(new byte[] { 0, 0, 0, 0 }, At(9));
+        Assert.All(Enumerable.Range(10 - WaterCells.Trail, WaterCells.Trail + 1), y => Assert.Equal(new byte[] { 4 * 255 / L.Full, 255, 0, 255 }, At(y)));
+        Assert.Equal(new byte[] { 0, 0, 0, 0 }, At(10 - WaterCells.Trail - 1));
+        Assert.Equal(new byte[] { 0, 0, 0, 0 }, At(11));
     }
 
     [Fact]
@@ -179,9 +179,9 @@ public class WaterDrawnTests
     }
 
     [Fact]
-    public void WhereAFallLandsOnAPoolItIsDrawnAsAStreamDownToTheSurface()
+    public void AFallIsDrawnOnDownToThePoolItLandsOn()
     {
-        // As above, a drop falling through the air over the 3: it falls onto the pool, so the 3 is the fall's last cell.
+        // As above, a drop falling through the air over the 3, within a fall of it.
         int w = 3, h = 6;
         var layer = new byte[w * h];
         layer[5 * w + 1] = L.Of(L.Water, 8);
@@ -192,10 +192,10 @@ public class WaterDrawnTests
         var texels = new byte[w * h * 4];
         WaterCells.Write(layer, w, h, Blocks, 0, 0, w, h, texels);
         byte[] At(int y) => texels[((y * w + 1) * 4)..((y * w + 1) * 4 + 4)];
-        Assert.Equal(255, At(0)[1]);
-        Assert.Equal(255, At(3)[1]);
-        // The pool under it keeps its own level, the stream drawn on down to it.
-        Assert.Equal(new byte[] { 5 * 255 / L.Full, 0, 0, 255 }, At(4));
+        Assert.All(Enumerable.Range(0, 3), y => Assert.Equal(new byte[] { 2 * 255 / L.Full, 255, 0, 255 }, At(y)));
+        // The pool under it settled, the stream drawn on down to it.
+        Assert.Equal(new byte[] { 0, 0, 0, 0 }, At(3));
+        Assert.Equal(new byte[] { 255, 0, 0, 255 }, At(4));
     }
 
     [Fact]
