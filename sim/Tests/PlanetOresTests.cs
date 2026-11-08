@@ -14,7 +14,8 @@ namespace Stillwake.Sim.Tests;
 public class PlanetOresTests(ITestOutputHelper output)
 {
     private static readonly PlanetType First = PlanetTypes.First;
-    private static readonly int Stone = Materials.Get("stone").Code, Copper = Materials.Get("copperVein").Code, Iron = Materials.Get("ironVein").Code;
+    private static readonly int Stone = Materials.Get("stone").Code, Copper = Materials.Get("copperVein").Code, Iron = Materials.Get("ironVein").Code,
+        Magnetite = Materials.Get("magnetiteVein").Code;
     private const int Seeds = 16;
 
     /// <summary>What the measurement found over the seeds: per ore and band, its cells and the rock's; its pockets' sizes in bands 0 and 2.</summary>
@@ -27,7 +28,7 @@ public class PlanetOresTests(ITestOutputHelper output)
     {
         int bands = First.Bands.Count + 1;
         var rock = new long[bands];
-        var ore = new Dictionary<int, long[]> { [Copper] = new long[bands], [Iron] = new long[bands] };
+        var ore = new Dictionary<int, long[]> { [Copper] = new long[bands], [Iron] = new long[bands], [Magnetite] = new long[bands] };
         var band0 = new Dictionary<int, List<int>> { [Copper] = [], [Iron] = [] };
         var band2 = new Dictionary<int, List<int>> { [Copper] = [], [Iron] = [] };
         for (uint seed = 1; seed <= Seeds; seed++)
@@ -81,11 +82,15 @@ public class PlanetOresTests(ITestOutputHelper output)
         }
     }
 
-    /// <summary>The plan's targets, percent of the rock per band (veins and pockets): copper, then iron.</summary>
+    /// <summary>
+    /// The plan's targets, percent of the rock per band (veins and pockets): copper, iron, then magnetite, none above the amber
+    /// deep, specks there and more over the core (2026-11-08-planet-layers).
+    /// </summary>
     private static readonly Dictionary<string, double[]> Targets = new()
     {
         ["copperVein"] = [0.15, 1.2, 2.2, 1.6],
         ["ironVein"] = [0.25, 0.7, 0.6, 0.4],
+        ["magnetiteVein"] = [0, 0, 0.1, 0.6],
     };
 
     [Fact]

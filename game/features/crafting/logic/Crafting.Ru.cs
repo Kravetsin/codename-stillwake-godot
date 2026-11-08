@@ -51,7 +51,7 @@ public static partial class Ru
         ["crafts.from.glass"] = "плавить щебень в плавильне",
         ["crafts.from.rock"] = "копать камень на планете",
         ["crafts.from.copper"] = "плавить медную руду из пещер планеты",
-        ["crafts.from.magnetite"] = "копать светящиеся трещины в глубоких пещерах планеты",
+        ["crafts.from.magnetite"] = "копать самую глубокую породу планеты, над лавой: туда ведёт разлом",
         ["crafts.madeAt"] = "делается: {stations}",
     };
 }

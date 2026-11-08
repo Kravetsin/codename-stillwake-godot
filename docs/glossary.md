@@ -122,9 +122,11 @@ Game words → code. One line a term: Russian / English → identifiers → modu
 - сутки, день, ночь, время суток / day, night, hour → `Sky.Cycle` (`c/Sky.cs`), `SkyNow`, `SetTime` (sim/Sky); fades `Daylight` (gc) → Sky
 - ночной холод, мороз / the night's chill → `Cycle.Chill`, `ColdAt` (sim/Crew), frost `Report.Cold` → Crew
 - копать / dig → `Dig`, `Crack` (sim/Building `Digging.cs`) → Building
-- жила, руда / vein, ore → `Vein` (`c/Veins.cs`), materials `copperVein`, `iceVein`, `ironVein` (`Material.In`), drawn in `Terrain` → Core
+- жила, руда / vein, ore → `Vein` (`c/Veins.cs`), materials `copperVein`, `iceVein`, `ironVein`, `magnetiteVein` (`Material.In`), drawn in `Terrain` → Core
 - залежь, рудный карман / ore pocket → `Pockets` (`c/Veins.cs`), `Terrain.PaintPockets` → Core
 - рудная зона / lode → `PlanetType.LodeWave`, `LodeOver`, `CaveKind.Lode` (crystals by the veins) → Core
+- расщелина, разлом / chasm, rift → `Ground.Chasms`, `ChasmDeep`, `RiftDeep` (one chasm down to the band over the core), `Terrain.Landmarks` → Core
+- слой планеты, пласт / depth band, stratum **≠** a grid layer → `PlanetType.Bands`, `Terrain.BandOf` → Core
 - равнина, нагорье / plain, highland → `Ground.RegionWave`, `RegionLeast`, `RegionLift` → Core
 - мох / moss **≠** → `Grass` (f/grid `Grass.cs`, the living edge); `Sound.StepMoss` → Grid (client only)
 - растение / plant → `Plant` (sim/Building `Flora.cs`), `c/Flora.cs` → Building

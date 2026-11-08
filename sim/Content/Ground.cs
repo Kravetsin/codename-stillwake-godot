@@ -87,6 +87,12 @@ public sealed record Ground(int Width, int Height)
     public required int ChasmDeep { get; init; }
 
     /// <summary>
+    /// The rift, one of the chasms by the seed, open down to <see cref="RiftDeep"/> rows under <see cref="Surface"/>: into the band
+    /// over the core, so the way down is seen from the top (2026-11-08-planet-layers). 0 for none.
+    /// </summary>
+    public int RiftDeep { get; init; }
+
+    /// <summary>
     /// Great halls, landmarks at places the seed chooses: <see cref="Halls"/> caverns up to <see cref="HallWide"/> cells
     /// either side of their middle and <see cref="HallTall"/> above and below it, half that at least, their walls
     /// ragged by the caverns' noise, from <see cref="HallFrom"/> rows under the surface down to the bedrock.
