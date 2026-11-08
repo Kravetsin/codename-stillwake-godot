@@ -77,8 +77,26 @@ public static class WaterLook
                     if (f.y < 0.5 && up.g > 0.5) r = mix(up.r, own.r, f.y + 0.5);
                     if (f.y >= 0.5 && down.g > 0.5) r = mix(own.r, down.r, f.y - 0.5);
                     float half_wide = stream_half(r, px, c.x, t);
-                    // Its ends in the air rounded, as a drop's: the top unless water is over it, the bottom unless under it.
-                    if (up.a < 0.5 && f.y < 0.5) half_wide *= sqrt(max(0.0, 1.0 - pow((0.5 - f.y) * 2.0, 2.0)));
+                    // Where it leaves lying water beside it (a pool's edge, a ledge's puddle): the deeper side's surface.
+                    float lip = 0.0, lip_side = 0.0;
+                    if (up.a < 0.5) {
+                        vec4 l = cell_at(TEXTURE, c - vec2(1.0, 0.0), size), rt = cell_at(TEXTURE, c + vec2(1.0, 0.0), size);
+                        float ll = l.a > 0.5 && l.g < 0.5 ? (l.b > 0.5 ? 1.0 : l.r) : 0.0;
+                        float rl = rt.a > 0.5 && rt.g < 0.5 ? (rt.b > 0.5 ? 1.0 : rt.r) : 0.0;
+                        if (ll > 0.0 || rl > 0.0) { lip = max(ll, rl); lip_side = ll >= rl ? -1.0 : 1.0; }
+                    }
+                    if (lip > 0.0) {
+                        // It spills over from there: its top at that surface, across the cell from that side, narrowing to
+                        // the stream within most of a cell.
+                        float below = f.y - (1.0 - lip);
+                        if (below < 0.0) discard;
+                        float spill = 1.0 - smoothstep(0.0, 0.7, below);
+                        float reach = (f.x - 0.5) * lip_side > 0.0 ? cell * 0.5 : half_wide + cell * 0.2 * spill;
+                        half_wide = mix(half_wide, reach, spill);
+                    } else if (up.a < 0.5 && f.y < 0.5) {
+                        // Its ends in the air rounded, as a drop's: the top unless water is over it, the bottom unless under it.
+                        half_wide *= sqrt(max(0.0, 1.0 - pow((0.5 - f.y) * 2.0, 2.0)));
+                    }
                     if (down.a < 0.5 && f.y > 0.5) half_wide *= sqrt(max(0.0, 1.0 - pow((f.y - 0.5) * 2.0, 2.0)));
                     // Streams side by side are one sheet: the side toward a neighbour's stream filled to it.
                     vec4 beside = cell_at(TEXTURE, c + vec2(f.x < 0.5 ? -1.0 : 1.0, 0.0), size);

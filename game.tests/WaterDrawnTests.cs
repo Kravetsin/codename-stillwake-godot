@@ -199,14 +199,17 @@ public class WaterDrawnTests
     }
 
     [Fact]
-    public void AStreamIsDrawnAsTheSimHasItAndLeavesNothingToFade()
+    public void AStreamsWidthGlidesAndAStreamGoneFadesOutAsAStream()
     {
         var ease = new WaterEase();
         var t = new byte[] { 100, 255, 0, 255 };
         ease.Step(t, 0, 0, 1, 1, 1.0 / 60);
         ease.Step(t = [200, 255, 0, 255], 0, 0, 1, 1, 1.0 / 60);
-        Assert.Equal(200, t[0]);
+        Assert.InRange(t[0], 101, 199);
+        // The sim lets it out each second tick: a tick without it leaves it drawn, thinner, and still a stream.
         ease.Step(t = [0, 0, 0, 0], 0, 0, 1, 1, 1.0 / 60);
+        Assert.True(t[0] > 0 && t[1] == 255 && t[3] == 255, "it blinked out");
+        for (int i = 0; i < 60; i++) ease.Step(t = [0, 0, 0, 0], 0, 0, 1, 1, 1.0 / 60);
         Assert.Equal(new byte[] { 0, 0, 0, 0 }, t);
     }
 

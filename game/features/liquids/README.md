@@ -21,14 +21,17 @@ Draws and hears what `sim/Liquids` decides (docs/plans/liquids.md); sends nothin
   (lumps falling one on another; a pool over the hole it drains through lies), where such a fall lands, and the empty
   cells between its lumps, up to two falls apart (a ledge lets one out each second tick), or between it and the pool or
   ledge it leaves (so it hangs from its source), each as wide as the units falling past it over `WaterCells.Window` rows
-  either way, never none (a texel of none is not drawn), so it reads as one even rope down to the surface it falls on. Its ends in the air are rounded: a lump falling alone is a drop.
-  A steady stream's lumps sit in the same cells every tick, so its motion is drawn: the width eased from cell to cell, and
+  either way, never none (a texel of none is not drawn), so it reads as one even rope down to the surface it falls on.
+  Its ends in the air are rounded: a lump falling alone is a drop. A steady stream's lumps sit in the same cells every
+  tick, so its motion is drawn: the width eased from cell to cell, and
   streaks, grain and swells running down at `FLOW` pixels a second. Streams side by side are drawn as one sheet. Lumps
   falling side by side are in the air too; a cell beside one resting (a pool round its drain) is not.
 - **Lying water is drawn settled** in its column, a cell full before the one over it: water just spread over a pool's
   surface, with nothing falling onto it, swells the pool rather than standing on it as a spike.
-- **Eased:** each cell's drawn amount closes on the sim's at `WaterEase.Rate` a second, so 20 ticks a second glide; a
-  stream's is drawn as the sim has it, since it jumps a fall a tick.
+- **Eased:** each cell's drawn amount, and a stream's width, closes on the sim's at `WaterEase.Rate` a second, so 20 ticks a
+  second glide and a stream let out each second tick reads steady; a cell stays a stream `WaterEase.HoldS` after the sim's
+  last says so, fading out as one. Where a stream leaves lying water beside it, its top is that surface, spilling over
+  across the cell from that side.
 - **Heard:** `Sound.WaterPour` loops at the stream nearest the view's middle within `Sound.PourReach` cells. The
   swimmer's splashes and strokes are the crew's (`Splashes`, played by `Figure`).
 
