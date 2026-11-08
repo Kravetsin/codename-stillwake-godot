@@ -65,7 +65,7 @@ public partial class BackdropView : Node2D
             var depth = _plan[i].Depth;
             float line = screen.Y / 2 + (ground - centre.Y) * zoom * depth.Follows;
             float left = Mathf.PosMod(centre.X * depth.Follows - across / 2, tile);
-            _layers[i].Position = new Vector2(-left * zoom, line - (float)depth.GroundRow * zoom);
+            _layers[i].Position = new Vector2(-left * zoom, line + (float)(depth.Down - depth.GroundRow) * zoom);
             _layers[i].Scale = Vector2.One * zoom;
         }
     }

@@ -19,10 +19,11 @@ public static class BackdropLooks
     /// <c>Hill</c>, <c>Rise</c>: its land's height in cells, and shares of the planet's region lift, hill rise and range rise.
     /// <c>Range</c>, <c>Forest</c>: how much of the panorama its stone ranges and forest edges may hold. <c>Lower</c>: at most this many shelves of
     /// land below its crest, fewer once one lies wholly under its height. <c>Wall</c>: its land filled with the front walls' pictures rather than the back walls' darker ones.
+    /// <c>Down</c>: how far below the ground line it is laid, in screen pixels at zoom 1, so the layers behind show over it.
     /// </summary>
     public sealed record Depth(
         string Name, double Scale, double Tall, double GroundRow, float Follows, float Dark, float Haze, double Green, int Rows,
-        double Base, double Region, double Hill, double Rise, double Range, double Forest, int Lower, bool Wall);
+        double Base, double Region, double Hill, double Rise, double Range, double Forest, int Lower, bool Wall, double Down = 0);
 
     /// <summary>A range drawn uniformly, from <c>A</c> to <c>B</c>.</summary>
     public readonly record struct Span(double A, double B);
@@ -107,7 +108,7 @@ public static class BackdropLooks
             new("mid", Scale: 0.34, Tall: 620, GroundRow: 380, Follows: 0.13f, Dark: 0, Haze: 0.34f, Green: 0.6, Rows: 4,
                 Base: 16, Region: 0.55, Hill: 1.1, Rise: 1.2, Range: 0.45, Forest: 0.7, Lower: 2, Wall: false),
             new("near", Scale: 0.56, Tall: 800, GroundRow: 380, Follows: 0.3f, Dark: 0.22f, Haze: 0.22f, Green: 0.62, Rows: 4,
-                Base: 10, Region: 0.35, Hill: 0.8, Rise: 0, Range: 0, Forest: 1, Lower: 16, Wall: true),
+                Base: 10, Region: 0.35, Hill: 0.8, Rise: 0, Range: 0, Forest: 1, Lower: 16, Wall: true, Down: 56),
         ],
         Groves: new(Size: new(3, 7), Within: new(0.35, 0.65), Gap: new(1.6, 4.2), Feet: new(1, 3), Big: new(1.05, 1.2), Other: new(0.7, 1)),
         Open: new(Lone: 0.3, Step: new(2.6, 6), Tree: new(0.8, 1.1), FeetOdds: 0.5, ShrubOdds: 0.5, ShrubsMost: 2),
