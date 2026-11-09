@@ -84,6 +84,26 @@ public sealed record VesselSalvage(
     string Kind, string From, char Char, IReadOnlyList<VesselRole> Roles, int Times = Vessels.SalvageTimes,
     (int W, int H)? Size = null, int? Hp = null, bool Torn = false, int Looks = 1);
 
+/// <summary>
+/// The kind of a surface holding one vessel of class <see cref="Class"/> in its middle (vessel-worlds): space as the ship's,
+/// nothing drifting by, built as a planet allows and broken by tools, as a planet is, since a mark's plan would be erased
+/// with it. Transient: it closes once nobody stands on it. Its grid is made as it opens, from the vessel.
+/// </summary>
+public sealed record VesselKind : Surfaces.Kind
+{
+    public VesselKind(string cls) : base("vessel." + cls, [])
+    {
+        Class = cls;
+        Debris = false;
+        Builds = PlanetTypes.First.Builds;
+        ToolsBreak = true;
+        Transient = true;
+    }
+
+    /// <summary>The class of the vessel on it (<see cref="Vessels.Classes"/>).</summary>
+    public string Class { get; }
+}
+
 /// <summary>Generated vessels and their wrecks (generated-vessels): classes, interiors, loot and where a vessel lies.</summary>
 public static class Vessels
 {
@@ -93,11 +113,8 @@ public static class Vessels
     /// <summary>Rows from one deck to the next: its open rows and the floor under them.</summary>
     public const int Pitch = Open + 1;
 
-    /// <summary>Columns of space between the ship's right edge and a vessel: more than a drone bay reaches (a content test).</summary>
-    public const int Gap = 40;
-
-    /// <summary>Cells a vessel keeps from the grid's edge.</summary>
-    public const int EdgeClear = 16;
+    /// <summary>Cells of space round a vessel on its own surface (vessel-worlds), every side: room to walk out and look at it.</summary>
+    public const int Margin = 128;
 
     /// <summary>Contacts the radar keeps at once.</summary>
     public const int MaxContacts = 8;
@@ -185,6 +202,9 @@ public static class Vessels
         new("freighter", Bells: 10, Length: 200, Decks: (2, 3), Bow: 20, ArmourDepth: 2, BridgeKind: VesselBridge.Raised,
             Extras: (5, 10), ExtraRoles: [VesselRole.Hold, VesselRole.Quarters, VesselRole.Life], Crater: 14, Yield: (2400, 8000)),
     ];
+
+    /// <summary>The surface kind each class's vessel lies on (vessel-worlds), in the order of <see cref="Classes"/>.</summary>
+    public static readonly IReadOnlyList<VesselKind> Kinds = [.. Classes.Select(c => new VesselKind(c.Id))];
 
     /// <summary>
     /// Where each role's rooms go (a vessel of rooms), aft to fore: the engine and the hold low, life support anywhere, quarters and

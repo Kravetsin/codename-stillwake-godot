@@ -15,7 +15,7 @@
 | `State.cs` | The saved slice: `Plan`, `Crack`, `Repairing`, `BuildingState`. |
 
 - **Depends on:** `Grid` (queries, ops); `Items` (queries, ops); `Crew` (`Heroes`; `Shock`); `Power`
-  (`Unplug`, `Plug`; `IsBroken`, `Mend`); `Research` (`Knows`); `Crafting` (`Queue`, `Scrap`); `Pipes` (`SeatProblem`). Creatures uses `ShotTakes`, `Surplus`, `Hit`, `Burst`, Hazards `Burst`; Places, `Wipe`.
+  (`Unplug`, `Plug`; `IsBroken`, `Mend`); `Research` (`Knows`); `Crafting` (`Queue`, `Scrap`); `Pipes` (`SeatProblem`). Creatures uses `ShotTakes`, `Surplus`, `Hit`, `Burst`, Hazards `Burst`.
 - **State** (`BuildingState`, all saved): `Plans` in order made, each with `Progress` ticks and, for a blueprint,
   `Delivered` stacks in first-given order; `NextPlanId`; `Cracks`, sorted by cell (`Crack(Cell, Damage, At, Back)`);
   `Felled` growths' cells, ascending; `Clock`; `Instant`; `Repairs` paid, by machine. Derived (`Flora.cs`): growths grown and
@@ -47,7 +47,7 @@
 - **A wall does not finish on a hero** (0077): the `Work` completing a wall (instant: placing) is refused `building.heroInside`
   while its cell is in a body round a hero's reported middle; building runs before crew.
   So is a last tick the grid, `SeatProblem` or an unlaid floor refuses.
-- **`Hew(Tool, X, Y, Heading)`** (fan-of-rays), where `ToolsBreak` or in a vessel's box (else `building.notHere`): the weapon's
+- **`Hew(Tool, X, Y, Heading)`** (fan-of-rays), where `ToolsBreak` (a planet, a vessel world; else `building.notHere`): the weapon's
   `Rays` from the hand; a ray stops at a wall or what stops a body, striking it if it breaks (not bedrock, lava; a piece by its
   first cell), passing and striking ladders, open doors and plants (`Struck`). `HewCells(Tool, Cells)` strikes each cell once.
   Each takes `BlockDamage` (0098) once (0: none, no shock), a pile `Damage` at its `Hp`: at its strength a wall goes for its
@@ -87,7 +87,7 @@
 - A crack lies only on what breaks, damage above 0 and below its strength, one a cell and layer, by cell.
   A wall broken yields at most once.
 - After derivation every standing growth's hold is there; `Plants` and `Felled` are disjoint and together what grew.
-- Items are conserved, but what drifts off the grid or a `Wipe` takes.
+- Items are conserved, but what drifts off the grid or is erased with a closed vessel world (vessel-worlds).
 
 ## Deliberately not handled
 

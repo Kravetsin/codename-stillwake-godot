@@ -166,28 +166,6 @@ public class CarryTests
     }
 
     [Fact]
-    public void AboardTheShipNoCarryLeavesAVesselsBox()
-    {
-        var w = new Scenario(Registry.Wreck);
-        w.Do(new Find("shuttle")).Run();
-        w.Do(new Jump(w.M.Places.Contacts[^1].Id)).Run();
-        var box = w.M.Grid.Reserved!.Value;
-        int width = w.M.Grid.Width;
-        // The vessel's hull on its box's left edge, iron put just outside it; the hero inside, level with it.
-        int hull = Enumerable.Range(box.Top, box.Bottom - box.Top + 1).Select(y => y * width + box.Left).First(c => w.M.Grid.WallAt(c) != null);
-        w.Do(new Place(hull - 1, Placement.Wall("iron"))).Run();
-        w.Do(new Enter(hull + 5)).Run();
-        Assert.Empty(w.Refusals);
-        int strength = w.M.Grid.WallAt(hull)!.Strength, blows = (strength + Pick.BlockDamage - 1) / Pick.BlockDamage;
-        Assert.True(blows * Pick.BlockDamage - strength >= 2, "the last blow leaves something to carry");
-        for (int i = 0; i < blows; i++) w.Do(new HewCells(Pick.Item, new List<int> { hull })).Run();
-        Assert.Empty(w.Refusals);
-        Assert.Null(w.M.Grid.WallAt(hull));
-        Assert.NotNull(w.M.Grid.WallAt(hull - 1));
-        Assert.Empty(Cracks(w));
-    }
-
-    [Fact]
     public void DiggingStraightTakesFewerSwingsThanDiggingAcross()
     {
         var w = Bored("ttttttbb");

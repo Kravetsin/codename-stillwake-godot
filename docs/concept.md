@@ -17,8 +17,8 @@ A living document: what is decided about the game and what is still open. Techni
 - **The arc:** a castaway, alone in a small fragment of a wrecked ship, drifts and survives on what
   floats by; sets up the first processes and builds floor upon floor, filling them with machines.
   The first stage ends with an engine and a radar. The radar finds what happens within its range —
-  places and events; the engine takes the ship there. It is a jump between places, never steering
-  inside one, and every place is drifted through like the first. From then on the ship is improved
+  places and events; the ship stays where it is, and the crew goes there, each place a world of its own opened for the
+  visit and closed once everyone is home ([vessel-worlds](decisions/2026-11-09-vessel-worlds.md)). From then on the ship is improved
   and production automated, to bring the technology that fends off what is out there and reaches
   further places.
 - **Places and their dangers:** the starting space is mild — debris, light meteors every few minutes
@@ -216,7 +216,7 @@ A living document: what is decided about the game and what is still open. Techni
 
 - Which dangers besides meteors and flares, how often, how they are telegraphed; a peaceful mode as in Raft?
   Directions so far: enemies living in other wrecks, pirate raids.
-- What the jump between places costs in biofuel, and how the radar shows where it goes.
+- How the crew reaches a place the radar found (a craft of its own), what it costs, and what the engine is for.
 - How resources move between machines: belts, drones, or hired crew carrying them. In side view
   this shapes the ship's layout; carrying by hand comes first, so automation is felt as relief.
 - Co-op start: one shared wreck, or separate wrecks that dock later?

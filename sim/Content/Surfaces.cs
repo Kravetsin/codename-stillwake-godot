@@ -60,6 +60,9 @@ public static class Surfaces
         /// <summary>The kinds of placement that may be built on it (<c>wall</c>, <c>ladder</c>, <c>cable</c>); null for every one.</summary>
         public IReadOnlyList<string>? Builds { get; init; }
 
+        /// <summary>Whether a surface of it closes once no hero stands on it (vessel-worlds), opened anew for each visit; planets stay.</summary>
+        public bool Transient { get; init; }
+
         /// <summary>Whether heroes and stacks float in its open space: only where no gravity says otherwise.</summary>
         public bool Floats => Gravity == null;
 
@@ -98,7 +101,7 @@ public static class Surfaces
     };
 
     /// <summary>The kinds a world may open: every one but the ship.</summary>
-    public static readonly IReadOnlyList<Kind> All = [TestStrip, .. PlanetTypes.All];
+    public static readonly IReadOnlyList<Kind> All = [TestStrip, .. PlanetTypes.All, .. Vessels.Kinds];
 
     /// <summary>The kind named <paramref name="id"/>, the ship's too; one not here is our bug: peers run one build.</summary>
     public static Kind Get(string id) =>

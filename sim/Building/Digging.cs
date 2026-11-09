@@ -11,9 +11,8 @@ namespace Stillwake.Sim.Building;
 /// drill's pace. Each ray strikes the first wall it meets, a closed door or hatch, a floor, and stops there; it passes through
 /// the plants, ladders and open doors it crosses, striking them. What stands takes the weapon's block damage
 /// (<c>BlockDamage</c>) once, however many rays meet it: a wall at its material's strength, a built piece at its build's, and
-/// gives the sender what it is made of. Only where the surface's tools break things (<c>ToolsBreak</c>), and aboard inside a
-/// vessel's box (generated-vessels): elsewhere on the ship the plan takes things apart, and only a machine of some strength, a
-/// pile, is struck, anywhere.
+/// gives the sender what it is made of. Only where the surface's tools break things (<c>ToolsBreak</c>: a planet, a vessel world):
+/// on the ship the plan takes things apart, and only a machine of some strength, a pile, is struck, anywhere.
 /// </summary>
 public sealed record Hew(string Tool, int X, int Y, int Heading) : Command;
 
@@ -55,13 +54,13 @@ public sealed partial class BuildingModule
         return new Hewn(cells, plants);
     }
 
-    /// <summary>What a <see cref="HewCells"/> strikes in <paramref name="listed"/>: each cell on the grid, in its known zone or a vessel's box, as a ray would strike it, deduped, ascending.</summary>
+    /// <summary>What a <see cref="HewCells"/> strikes in <paramref name="listed"/>: each cell on the grid, in its known zone, as a ray would strike it, deduped, ascending.</summary>
     public Hewn Listed(IReadOnlyList<int> listed)
     {
         var cells = new List<int>();
         var plants = new List<Plant>();
         foreach (int cell in listed)
-            if (cell >= 0 && cell < _grid.Width * _grid.Height && (_grid.Zone.Contains(cell % _grid.Width, cell / _grid.Width) || InVessel(cell)))
+            if (cell >= 0 && cell < _grid.Width * _grid.Height && _grid.Zone.Contains(cell % _grid.Width, cell / _grid.Width))
                 Stops(cell, cells, plants);
         cells.Sort();
         for (int i = cells.Count - 1; i > 0; i--)
@@ -82,8 +81,8 @@ public sealed partial class BuildingModule
             cells.Add(pile.Cell);
             return true;
         }
-        // Aboard, tools break only a vessel's things (generated-vessels): a ray elsewhere only stops, the ship untouched.
-        if (Aboard(cell)) return _grid.WallAt(cell) != null || _grid.Blocks(cell);
+        // Where tools break nothing (the ship), a ray only stops, the ship untouched.
+        if (!Rules.ToolsBreak) return _grid.WallAt(cell) != null || _grid.Blocks(cell);
         if (_grid.WallAt(cell) is { } wall)
         {
             if (wall.Strength != Material.Unbreakable) cells.Add(cell);
@@ -101,12 +100,6 @@ public sealed partial class BuildingModule
 
     /// <summary>The machine tools break at <paramref name="cell"/>, a pile (the-scoop); none for any other.</summary>
     private Machine? PileAt(int cell) => _grid.MachineAt(cell) is { } machine && Machines.Get(machine.Kind).Hp != null ? machine : null;
-
-    /// <summary>Whether <paramref name="cell"/> is in the box a vessel was written into (generated-vessels).</summary>
-    private bool InVessel(int cell) => _grid.Reserved is { } box && box.Contains(cell % _grid.Width, cell / _grid.Width);
-
-    /// <summary>Whether <paramref name="cell"/> is of the player's own ship: where the surface's tools break nothing, out of a vessel's box.</summary>
-    private bool Aboard(int cell) => !Rules.ToolsBreak && !InVessel(cell);
 
     /// <summary>The built piece at <paramref name="cell"/>, a floor, ladder, door or hatch: its first cell, kept by, and its build; none for a wall or nothing.</summary>
     private (int Head, Build Build)? PieceAt(int cell)
@@ -205,11 +198,11 @@ public sealed partial class BuildingModule
 
     /// <summary>
     /// What a carry strikes at <paramref name="cell"/>: a wall that breaks, by its cell, or a built piece, by its first cell,
-    /// where the surface's tools break things in its known zone, or in a vessel's box; never a pile, a plant or the fog.
+    /// where the surface's tools break things, in its known zone; never a pile, a plant or the fog.
     /// </summary>
     private int? Carried(int cell)
     {
-        bool open = Rules.ToolsBreak ? _grid.Zone.Contains(cell % _grid.Width, cell / _grid.Width) : InVessel(cell);
+        bool open = Rules.ToolsBreak && _grid.Zone.Contains(cell % _grid.Width, cell / _grid.Width);
         if (!open || PileAt(cell) != null) return null;
         if (_grid.WallAt(cell) is { } wall) return wall.Strength != Material.Unbreakable ? cell : null;
         return PieceAt(cell)?.Head;

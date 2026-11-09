@@ -300,6 +300,14 @@ public static class Migrations
                 if (slices["building"]?["cracks"] is JsonArray cracks) cracks.Clear();
             return root;
         },
+        // 61 → 62 (vessel-worlds): a vessel lies on a surface of its own, so the grid keeps no reserved box; one an old save had
+        // beside the ship stays there as plain cells, built on and taken apart like any.
+        root =>
+        {
+            foreach (var slices in new[] { root["slices"]! }.Concat((root["surfaces"]?.AsArray() ?? []).Select(s => s!["slices"]!)))
+                (slices["grid"] as JsonObject)?.Remove("reserved");
+            return root;
+        },
     ];
 
     /// <summary>The slices with liquids' empty one after building's, where its module runs: a save holds them in that order.</summary>

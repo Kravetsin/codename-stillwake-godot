@@ -105,7 +105,7 @@ public sealed class Registry
         // Water: cisterns and electrolysers, after the air, whose tanks it fills; new to format 45, run and saved last.
         Water = new WaterModule(Grid, Items, Items, Pipes, Power, Atmosphere, Atmosphere);
         // Vessels beside the ship (generated-vessels): new to format 57, run and saved last.
-        Places = new PlacesModule(Grid, Grid, Items, Building);
+        Places = new PlacesModule(Grid, Grid, Items, Crew, Landing);
         Module[] surface = [Grid, Sky, Rooms, Items, Power, Research, Crafting, Building, Liquids, Pipes, Atmosphere, Crew, Hazards, Debris, Furnace, Logistics, Creatures, Landing, Trade, Water, Places];
         All = new Set(this, ship == null ? [Players, Knowledge, .. surface] : surface);
     }

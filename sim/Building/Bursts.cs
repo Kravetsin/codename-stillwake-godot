@@ -127,7 +127,7 @@ public sealed partial class BuildingModule
         strength - (CrackIndex(key, back) is >= 0 and var at ? State.Cracks[at].Damage : 0);
 
     /// <summary>Whether this burst takes only its share at <paramref name="cell"/>: a player's own, on their ship (damage-scale).</summary>
-    private bool Softened(int cell) => _burstOwn && Aboard(cell);
+    private bool Softened(int cell) => _burstOwn && !Rules.ToolsBreak;
 
     /// <summary>
     /// What a burst pays at <paramref name="cell"/> for what is <paramref name="left"/> of its strength: that, or over its share where

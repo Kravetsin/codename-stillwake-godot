@@ -39,7 +39,7 @@ computer's row in `c/Machines.cs`. Files in `logic/` are Godot-free and tested i
   over it (`computer.radar.<kind>`), its distance under that in kilometres (`RadarOrbit.Km`: an offset's units times
   `KmPerUnit`, 10). A click on empty screen lets go; a selected contact gone is let go on the next read;
   closing the computer keeps it. While one is selected a `Set off` button stands at the bottom of the screen: it
-  sends places' `Jump` to it (the vessel comes right of the ship, the contact goes); the pointer over it shows no tooltip.
+  sends places' `Jump` to it (its world opens with the presser just inside its door, the contact goes, vessel-worlds); the pointer over it shows no tooltip.
 - **In the world** (`ComputerScreens`): a computer with no power is dark; a powered one runs lines of text and blinks its
   rack's lights; once its radar is ready, the sweep. Drawn unlit, its glow lighting the room in the screen's colour.
 - **While the window is open** the hero aims at nothing: no outline, prompt or world tip under the pointer. The one

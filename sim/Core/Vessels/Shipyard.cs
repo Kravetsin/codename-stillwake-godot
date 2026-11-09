@@ -16,6 +16,33 @@ public static class Shipyard
         return Damage(Stamp(vessel), vessel, cause);
     }
 
+    /// <summary>
+    /// The cell, in <paramref name="v"/>'s frame, a hero's feet stand in just inside its first door in reading order: on the deck
+    /// past the door, its room's first two columns kept open, the deck's last open row.
+    /// </summary>
+    public static (int X, int Y) Door(Vessel v)
+    {
+        var door = v.Doors.OrderBy(d => d.Y).ThenBy(d => d.X).First();
+        return (door.X + 2, door.Y + Vessels.Open - 1);
+    }
+
+    /// <summary>
+    /// The map of a vessel world (vessel-worlds): space, <paramref name="v"/>'s frame and <see cref="Vessels.Margin"/> round it,
+    /// its spawn just inside the door (<see cref="Door"/>) with the frame's top-left at (<c>Margin</c>, <c>Margin</c>). The vessel
+    /// itself is written once the surface stands (<c>Places</c>).
+    /// </summary>
+    public static Layout Space(Vessel v)
+    {
+        int m = Vessels.Margin, width = v.Width + 2 * m, height = v.Height + 2 * m;
+        var blank = new string(' ', width);
+        var rows = Enumerable.Repeat(blank, height).ToArray();
+        var (x, y) = Door(v);
+        var spawn = blank.ToCharArray();
+        spawn[m + x] = 'S';
+        rows[m + y] = new string(spawn);
+        return new Layout(width, height, rows);
+    }
+
     /// <summary>A local draw of stream <paramref name="stream"/>: describing is 0, damage 1.</summary>
     private static Rng Draws(VesselClass cls, uint seed, uint stream) =>
         new(new RngState { S = unchecked(seed ^ ((uint)Vessels.IndexOf(cls.Id) + 1) * 0x9E3779B9u ^ (stream + 1) * 0x85EBCA6Bu) });

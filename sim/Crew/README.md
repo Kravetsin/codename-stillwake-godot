@@ -53,7 +53,7 @@ a room's, its own, then its last breath; passing out, made again at the pod.
   `Crew.LastBreathPerUnit` a unit; cold, running, thrust nothing.
 - **Passing out is death** (0061): a spent last breath passes the hero out for `Crew.PassOut` ticks (its tool stopped),
   then it is made at the spawn, full, dressed; `LeaveBody(peer, cell)` leaves all but gear at the reported cell.
-- **The cold past the field** (0050, the zone grown by `Field.Margin`): `EdgeCost(cell)` 0 inside or in a vessel's box,
+- **The cold past the field** (0050, the zone grown by `Field.Margin`): `EdgeCost(cell)` 0 inside,
   past it the deeper axis's depth squared toward `Field.EdgeCost` at the edge, `Field.OffGrid` off it (rounded up). Each breath after the regen suit the suit alone pays it for the reported
   cell; no zone (a planet, 0076), no cold. With no body, where `AiredAt` is false, it pays
   `Crew.BareCold` more, on thin air's beat; at night with no `BackAt`, `Chill` more on its own beat (night-chills).
@@ -86,7 +86,7 @@ a room's, its own, then its last breath; passing out, made again at the pod.
 ## Invariants
 
 - Air holds between nothing and capacity, a last breath runs only with none, awake (`SuitsTests`, `FieldTests`).
-- `EdgeCost` is 0 inside the field or a vessel's box, never less farther out, never over `Field.EdgeCost` (`FieldTests`).
+- `EdgeCost` is 0 inside the field, never less farther out, never over `Field.EdgeCost` (`FieldTests`).
 - While heroes are no more than colours, no two wear one, on any surfaces.
 - A seat's hero is on its surface (`World.SurfaceOf`) and no other (`SurfacesTests`).
 

@@ -95,6 +95,8 @@ public class DropPodTests
         public bool CanOpen => false;
         public bool Landed => false;
         public int OpenPlanet() => throw new NotSupportedException();
+        public uint Seed => 0;
+        public int Visit(int peer, string kind, uint seed) => throw new NotSupportedException();
     }
 
     [Fact]
@@ -114,6 +116,16 @@ public class DropPodTests
         Assert.Null(w.M.Grid.PlacementProblem(At(10, 4), Pod));
         Assert.Equal("grid.noGround", w.M.Grid.PlacementProblem(At(6, 4), Pod));
         Assert.Equal("grid.noGround", w.M.Grid.PlacementProblem(At(10, 3), Pod));
+    }
+
+    [Fact]
+    public void ASeatedHeroIsRefusedAJumpToAVessel()
+    {
+        var w = World(Stood).Do(new Enter(At(12, 9))).Run();
+        w.Do(new Board(PodId(w))).Do(new Sim.Places.Find("shuttle")).Run();
+        w.Do(new Sim.Places.Jump(w.M.Places.Contacts[^1].Id)).Run();
+        Assert.Equal(["places.seated"], Reasons(w));
+        Assert.Single(w.World.Surfaces);
     }
 
     [Fact]
