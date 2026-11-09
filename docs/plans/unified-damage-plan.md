@@ -105,25 +105,25 @@ The plan for [unified-damage.md](unified-damage.md). One step, one commit; the b
 - `--charges` still works (`tools/snap.ps1 -- --planet --charges`). READMEs: Building, Creatures.
 
 ### 6. `feat(building)`: machines break
-- `MachineTrait.Pile` on the four pile rows; built machines get `Hp` in tenths (per kind where it matters, else
-  `Damage.MachineHp`); the lifepod none.
-  `PileAt`, `Rules.MarkProblem` (`building.needsAxe`), client `Piles.At` and `PilesScenario` read the trait, not `Hp != null`.
-- Bursts enter machines: built `ceil(remainingHp·100/BuiltTakes)`, a pile its remaining Hp, `Fixed` stops it. A short
-  machine cracks at `machine.Cell`; `Crackable` accepts any machine head with `Hp`.
-- `BreakMachine`: new `IItemsOps.Spill(machine, cell)` drops crate slots, a bench's tool and fitted modules; new
-  `ICraftingOps.Scrap(machine)` removes its queue and returns the refund, dropped at the cell; then `_powerOps.Unplug`
-  (cables stay on a peg, 0110) and `_gridOps.Clear(cell, "machine")`; its cost drops with `Drop`, lost with `Lost`.
-  Gas and fluid held in a tank, cistern or pipe machine are lost with it, through the same removal deconstruction uses,
-  so the room's air and the pipe net recount; a belt or inserter aimed at the cell finds nothing there, as after
-  deconstruction. Building gains `ICraftingOps` and `IItemsOps` through the Registry only: the csproj references exist,
-  and nothing they reference names Building, so no cycle.
-- Client: an open panel of a machine that is gone closes, as after deconstruction (check it does; fix if not).
-- Client: `Piles.Cracked(grid, cell)` for any machine with `Hp`; `DigView` draws the existing crack net over it.
-- Tests (`MachineBreakTests`): a charge cracks a furnace and a second breaks it, its cost, ore and modules on the floor;
-  a station's queue refunded at its cell; cables stay on a peg; the lifepod never breaks; tools aboard still break piles
-  only; no module keeps anything of a broken machine (crate, modules, queue, cisterns); a broken tank leaves no gas in the
-  room's count. `PilesTests`, `ImpactsTests`,
-  `GroundSoundsTests` change where piles are built with `Hp`.
+- No `MachineTrait.Pile`: `Hp` stays what marks a pile (its hit points in a weapon's damage), so `PileAt`,
+  `Rules.MarkProblem`, client `Piles.At` and `PilesScenario` stay. `MachineSpec.HitPoints` is what breaks one: a pile's
+  `Hp`, else `Damage.MachineHp` in tenths (no kind of its own yet), none for a `Fixed` one (the lifepod).
+- Bursts enter machines: built `ceil(remaining·1000/BuiltTakes)`, as a built wall, a pile its remaining Hp, once a
+  machine; the lifepod stops it. One reached and not paid for cracks at `machine.Cell` (built: its share);
+  `Crackable` keeps a crack at any machine head with `HitPoints`.
+- `BreakMachine`: new `IItemsOps.Spill(machine, cell)` lays its slots (stacks whole: a bench's tool keeps its module),
+  then its fitted modules, forgetting its `Kept`; new `ICraftingOps.Scrap(machine)` drops its queue and smelt and returns
+  the refund, dropped at the cell; then `_powerOps.Unplug` (cables stay on a peg, 0110), `_gridOps.Clear`; its cost drops.
+  A tank's gas and a cistern's water go as after deconstruction (Atmosphere and Water forget a machine gone). Building
+  gains `ICraftingOps` through the Registry.
+- Client: an open crate or computer closes as after deconstruction (`Aim.CrateInReach` finds no machine): no change.
+- Client: `Piles.Cracked(grid, cell)` for any machine with `HitPoints`; `DigView` draws the crack net over it, its head
+  cell's fault alone where no `machine_<kind>` picture is.
+- Tests (`MachineBreakTests`, in a bedrock room so only the machine breaks): a charge cracks a crusher and a second breaks
+  it, its cost, ore and module on the floor; a station's queue refunded at its cell, what it made spilled; a cable stays on a
+  peg; the lifepod never breaks; a pile goes to one charge; nothing kept of a broken crate, tank or cistern, across a
+  reload. Proven to bite by dropping `Spill` and `Scrap`. Tools aboard still break piles only: `PilesTests`, unchanged.
+- A machine whose floor a burst breaks stands on, as after a meteor today.
 - READMEs: Items, Crafting (`## API`), Building, `game/features/building`.
 
 ### 7. `feat(hazards)`: meteors through `Burst`; armour goes

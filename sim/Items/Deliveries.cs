@@ -49,6 +49,23 @@ public sealed partial class ItemsModule
         return left;
     }
 
+    /// <summary>
+    /// All machine <paramref name="id"/> holds laid on cell <paramref name="cell"/> for anyone, as it breaks (unified-damage): its
+    /// slots in order, each stack with what it holds of its own (an arc bench's tool keeps its module), then its fitted modules;
+    /// what its inputs remember forgotten. Nothing is made or lost.
+    /// </summary>
+    public void Spill(int id, int cell)
+    {
+        var held = Crate(id);
+        for (int slot = 0; slot < held.Count; slot++)
+            if (held[slot] is { } stack) LayDown(stack, cell);
+        Stacks.SetCrate(State, id, []);
+        int from = FittedFrom(id), to = from;
+        for (; to < State.Fitted.Count && State.Fitted[to].Machine == id; to++) LayDown(new Stack(State.Fitted[to].Module, 1), cell);
+        State.Fitted.RemoveRange(from, to - from);
+        State.Kept.RemoveAll(k => k.Machine == id);
+    }
+
     /// <summary>Lays <paramref name="stack"/> on cell <paramref name="cell"/>, still, with all it holds of its own, for anyone to pick up at once.</summary>
     public void LayDown(Stack stack, int cell)
     {

@@ -11,12 +11,12 @@
 Stations ([0057](../../docs/decisions/0057-stations-one-model-for-every-crafting-machine.md)): every crafting machine
 on one model. A **queued** station (pod, workbench, Former, assembler, arc bench) makes crafts from a queue shared by the
 crew (0028); a **fed** one (furnace, smelter, crusher, capsule, fermenter) turns its input into yields by process:
-smelt, crush, grow (0060), ferment (power-chain). Not part of `Items`: it asks `Research`, which needs items.
+smelt, crush, grow (0060), ferment (power-chain).
 
 - **Depends on:** `Grid` (`Machines`, `MachineById`); `Items` (queries `Crate`, `CanSmelt`, `ShortOfStock`, `FullForStock`,
   `OutputFull`, `InputsLack`, `Boost`; ops `TakeStock`, `GiveStock`, `Output`, `Smelt`, `TakeInputs`); `Research` (`Knows`);
-  `Power` (`Satisfaction`; `Rest`); the world's `Rng`, for seeds and byproducts. Runs after `Research`, before `Building`.
-- **Depended on by:** `Building` (`Queue`: a station with crafts queued is not taken apart); `Furnace` (`CanSmelt`,
+  `Power` (`Satisfaction`; `Rest`); the world's `Rng`, for seeds and byproducts.
+- **Depended on by:** `Building` (`Queue`: a station with crafts queued is not taken apart; `Scrap`); `Furnace` (`CanSmelt`,
   `TooCold`, `TooFew`, `WorkOf`, `Progress`; op `Heat`); `Logistics`' drones read `Queue` and `Progress` (0062).
 - **State** (`CraftingState`, saved): `Queues`, each queued station ever crafted at, by machine id: `Machine`, `Next`
   (next entry id), `Progress` (the head's unit, thousandths of a tick) and `Entries`, `Entry(Id, Recipe, Count, By,
@@ -81,7 +81,8 @@ smelt, crush, grow (0060), ferment (power-chain). Not part of `Items`: it asks `
 - **Queries** (`ICraftingQueries`): `StationOf`, `Queue` (live, read-only), `Progress`, `CanSmelt`, `TooCold`, `TooFew`,
   `WorkOf` (null for nothing of its process). Module only: `Works` (a furnace reads idle between ticks), `Lacks`.
   Static: `Processes(station, item)`, of its process and no hotter, room aside.
-- **Operations** (`ICraftingOps`): `Heat(machine)`.
+- **Operations** (`ICraftingOps`): `Heat(machine)`; `Scrap(machine)`, a breaking station's queue and smelt dropped, their
+  refund returned (unified-damage).
 - **Fuzz:** every command and refusal, at stations and non-stations, live and never-given ids.
 
 ## Invariants
@@ -89,8 +90,7 @@ smelt, crush, grow (0060), ferment (power-chain). Not part of `Items`: it asks `
 - A queue holds at most `QueueMost` entries; the head's progress stays below its work but while its unit waits for
   room; ids within a queue only grow.
 - Items are conserved: what a craft took comes back as units or a refund; a smelt turns its `SmeltTakes` into its
-  yields and at most each byproduct's most, a crop one of itself into its yields and 0–2 of itself (`CraftingTests`,
-  `StationsTests`, `SmeltChancesTests`).
+  yields and at most each byproduct's most, a crop one of itself into its yields and 0–2 of itself (`CraftingTests`).
 - Every item is reachable from the wreck (`ContentTests`).
 
 ## Deliberately not handled

@@ -32,20 +32,21 @@ public sealed partial class BuildingModule
         _wave.Spread(_grid.Width, _grid.Height, cell, first, power, reach, BurstEnter, (at, _) =>
         {
             if (_grid.WallAt(at) != null) _burstBroken.Add(at);
-            else if (PieceAt(at) is { } piece && !_burstPaid.Contains(piece.Head))
+            else if (HeadAt(at) is int head && !_burstPaid.Contains(head))
             {
-                _burstPaid.Add(piece.Head);
-                _burstBroken.Add(piece.Head);
+                _burstPaid.Add(head);
+                _burstBroken.Add(head);
             }
         }, (at, left) =>
         {
             if (_grid.WallAt(at) is { } wall) _burstCracked.Add((at, wall.Natural ? left : left * Damage.BuiltTakes / 1000));
+            else if (_grid.MachineAt(at) is { } machine) _burstCracked.Add((machine.Cell, Machines.Get(machine.Kind).Hp != null ? left : left * Damage.BuiltTakes / 1000));
             else if (PieceAt(at) is { } piece) _burstCracked.Add((piece.Head, left * Damage.BuiltTakes / 1000));
         });
         _burstBroken.Sort();
         bool shocked = false;
         foreach (int at in _burstBroken)
-            foreach (var plant in _grid.WallAt(at) != null ? BreakWall(at) : BreakPiece(at))
+            foreach (var plant in Break(at))
             {
                 // A relic taken from its cradle discharges into whoever threw the burst, wherever they stand, once (0096).
                 if (_plantOwn.GetValueOrDefault(plant.Cell) != plant) continue;
@@ -60,24 +61,41 @@ public sealed partial class BuildingModule
             var (key, left) = _burstCracked[i];
             if (left <= 0 || i > 0 && _burstCracked[i - 1].Key == key) continue;
             if (_grid.WallAt(key) is { } wall) Cracked(key, wall.Strength, left);
+            else if (_grid.MachineAt(key) is { } machine && machine.Cell == key) Cracked(key, Machines.Get(machine.Kind).HitPoints!.Value, left);
             else if (PieceAt(key) is { } piece && piece.Head == key) Cracked(key, piece.Build.Strength, left);
         }
         return true;
     }
 
     /// <summary>
-    /// What a burst pays to enter <paramref name="cell"/> besides its step: nothing open; natural ground what is left of its strength;
-    /// a built wall or piece that over <see cref="Damage.BuiltTakes"/>, rounded up, a piece once, nothing more once one cell of it is
-    /// entered; null where it stops: bedrock, lava, the fog, a machine.
+    /// What a burst pays to enter <paramref name="cell"/> besides its step: nothing open; natural ground what is left of its strength,
+    /// a pile its hit points; a built wall, piece or machine that over <see cref="Damage.BuiltTakes"/>, rounded up, a piece or machine
+    /// once, nothing more once one cell of it is entered; null where it stops: bedrock, lava, the fog, a <c>Fixed</c> machine.
     /// </summary>
     private int? BurstEnter(int cell)
     {
         if (!_grid.Zone.Contains(cell % _grid.Width, cell / _grid.Width)) return null;
         if (_grid.WallAt(cell) is { } wall)
             return wall.Strength == Material.Unbreakable ? null : wall.Natural ? Remaining(cell, wall.Strength) : Built(Remaining(cell, wall.Strength));
+        if (_grid.MachineAt(cell) is { } machine)
+        {
+            var spec = Machines.Get(machine.Kind);
+            if (spec.HitPoints is not int hp) return null;
+            if (_burstPaid.Contains(machine.Cell)) return 0;
+            return spec.Hp != null ? Remaining(machine.Cell, hp) : Built(Remaining(machine.Cell, hp));
+        }
         if (PieceAt(cell) is { } piece) return _burstPaid.Contains(piece.Head) ? 0 : Built(Remaining(piece.Head, piece.Build.Strength));
-        return _grid.StructureAt(cell) != Structure.Empty || _grid.MachineAt(cell) != null ? null : 0;
+        return _grid.StructureAt(cell) != Structure.Empty ? null : 0;
     }
+
+    /// <summary>What a burst paid for at <paramref name="at"/> broken; nothing for a net a wall broken before took with it.</summary>
+    private List<Plant> Break(int at) =>
+        _grid.WallAt(at) != null ? BreakWall(at)
+        : _grid.MachineAt(at) is { } machine ? machine.Cell == at ? BreakMachine(at) : []
+        : PieceAt(at) is { } piece && piece.Head == at ? BreakPiece(at) : [];
+
+    /// <summary>The cell a burst keeps a machine or built piece at <paramref name="cell"/> by: its top-left, its head; none for anything else.</summary>
+    private int? HeadAt(int cell) => _grid.MachineAt(cell)?.Cell ?? PieceAt(cell)?.Head;
 
     /// <summary>What is left of <paramref name="strength"/> at <paramref name="key"/> after its crack.</summary>
     private int Remaining(int key, int strength) => strength - (CrackIndex(key) is >= 0 and var at ? State.Cracks[at].Damage : 0);
@@ -103,6 +121,23 @@ public sealed partial class BuildingModule
             foreach (var (item, count) in Machines.Get(net.Kind).Cost) _itemsOps.LayDown(new Stack(item, count), net.Cell);
         }
         return held;
+    }
+
+    /// <summary>
+    /// The machine at <paramref name="head"/>, its top-left, broken by a burst: what it holds spilled, its queue's refund and its cost
+    /// fallen there for anyone; its cables left on a peg (0110). Gas or water it held goes with it, as when taken apart. No growths.
+    /// </summary>
+    private List<Plant> BreakMachine(int head)
+    {
+        var machine = _grid.MachineAt(head)!;
+        if (CrackIndex(head) is >= 0 and var at) State.Cracks.RemoveAt(at);
+        _itemsOps.Spill(machine.Id, head);
+        _itemsOps.DropAt(FloorStack.Nobody, _craftingOps.Scrap(machine.Id), head);
+        var cost = Costs.BuiltAt(_grid, head, "machine")!.Cost;
+        _powerOps.Unplug(machine.Id);
+        _gridOps.Clear(head, "machine");
+        _itemsOps.DropAt(FloorStack.Nobody, cost, head);
+        return [];
     }
 
     /// <summary>The built piece kept by <paramref name="head"/> broken by a burst, whole: what it cost fallen there for anyone. The growths its cells held, to be felled.</summary>

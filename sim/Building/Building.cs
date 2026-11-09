@@ -111,6 +111,7 @@ public sealed partial class BuildingModule : Module<BuildingState>, IBuildingQue
     private readonly IPowerOps _powerOps;
     private readonly IResearchQueries _research;
     private readonly ICraftingQueries _crafting;
+    private readonly ICraftingOps _craftingOps;
     private readonly ICrewQueries _crew;
     private readonly ICrewOps _crewOps;
     private readonly IPipesQueries _pipes;
@@ -119,8 +120,8 @@ public sealed partial class BuildingModule : Module<BuildingState>, IBuildingQue
 
     public BuildingModule(
         IGridQueries grid, IGridOps gridOps, IItemsQueries items, IItemsOps itemsOps,
-        IPowerQueries power, IPowerOps powerOps, IResearchQueries research, ICraftingQueries crafting, ICrewQueries crew, ICrewOps crewOps,
-        IPipesQueries pipes)
+        IPowerQueries power, IPowerOps powerOps, IResearchQueries research, ICraftingQueries crafting, ICraftingOps craftingOps,
+        ICrewQueries crew, ICrewOps crewOps, IPipesQueries pipes)
     {
         _grid = grid;
         _gridOps = gridOps;
@@ -130,6 +131,7 @@ public sealed partial class BuildingModule : Module<BuildingState>, IBuildingQue
         _powerOps = powerOps;
         _research = research;
         _crafting = crafting;
+        _craftingOps = craftingOps;
         _crew = crew;
         _crewOps = crewOps;
         _pipes = pipes;

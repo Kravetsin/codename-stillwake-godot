@@ -20,8 +20,8 @@ The plan, its menu and the hand at work (0022, 0030). Game rules stay in `sim/Bu
 | `Shafts.cs` | Platform shafts kept clear: red hatch while building, a ghost's green or red. |
 | `logic/Catalogue.cs` | The menu's frame (0073): slot size, scrolled rows, hover, scrollbar. |
 | `BuildMenu.cs` | The tablet menu: modes, tabs with counts, search, cards, card in hand, tooltip. |
-| `logic/WallStats.cs` | A wall's card numbers: leak by its sign, meteor resistance and breaking share. |
-| `DigView.cs` | Digging seen (0077): a fault in three stages, a break's chips, dust, cloud. |
+| `logic/WallStats.cs` | A wall's card numbers: leak, meteor resistance, breaking share. |
+| `DigView.cs` | Digging seen (0077): faults in three stages; a break's chips, dust, cloud. |
 | `logic/BlockFault.cs` | A dug block's fault in ink (damage-looks). |
 | `PlanKey.cs` | A key in a wing: a layer's, a mode's (0110). |
 | `PlanWing.cs` | The tablet's wings for the keys: modes left, layers right. |
@@ -78,17 +78,18 @@ Shared: `game/shared/` (`Ui`, `Hands`, `PointerTip`, `Tablet`, `TabletMotion`, `
   walls fainter, just over the rooms' air (`PlanBacks`), the rest over the ship, under the heroes (driver-order). The
   ghost in hand is green where the sim takes it, red where not (0022).
 - **Dashes** (0064): round each group of plans (a machine alone) marching
-  dashes run along the silhouette, shared sides cancelled; a planned machine has a "+". Pipes and
+  dashes run along the silhouette, shared sides cancelled; a planned machine a "+". Pipes and
   valves unoutlined unless marked. Rebuilt on a change of plans, grid or view.
 - **A blueprint turns real as worked** (0063): bottom up (floors and conduits from the left), the cut at
   `Progress / TicksFor`, by ticks; the real share lit, the
   rest the ghost. No bars. No node, material or shader parameter a plan (`PlanCut`, `BuiltParts`).
 - **A mark** (0064) keeps its own picture in red dashes and turns into its red ghost from the top as worked.
 - **A repair** (magnetic-flare): drawn as its machine's blueprint being built, by `RepairProgress`.
-- **Work's light** (0075, 0094, `BuildGlow`, `Tools.SparksOf`): sparks face the nearest hero, alike on every
-  peer; a molten spot, smoke, shimmer; the cut glows; swept when done. The
+- **Work's light** (0075, 0094, `BuildGlow`, `Tools.SparksOf`): sparks face the nearest hero, alike on all
+  peers; a molten spot, smoke, shimmer; the cut glows; swept when done. The
   ratchet there; by a power driver, its motor (`Ui.Driven`).
-- **Digging** (0077, 0079, damage-looks): a fault's stage is its share of strength; a hit's look is the crew's (0094); a pile cracks as a wreck (pile-crack-net).
+- **Digging** (0077, 0079, damage-looks): a fault's stage is its share of strength; a hit's look is the crew's (0094);
+  a breakable machine cracks as a wreck (pile-crack-net).
 
 ## Deliberately not handled
 

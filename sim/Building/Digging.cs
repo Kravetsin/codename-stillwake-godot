@@ -365,13 +365,14 @@ public sealed partial class BuildingModule
     }
 
     /// <summary>
-    /// Whether <paramref name="cell"/> holds what a crack is kept for: a wall that breaks, the first cell of a built piece, a pile's, or the
+    /// Whether <paramref name="cell"/> holds what a crack is kept for: a wall that breaks, the first cell of a built piece or of a machine
+    /// that breaks (a pile, a built one: unified-damage), or the
     /// own cell of a plant with strength; in the <paramref name="back"/> layer, a back wall that breaks (cracked before tools
     /// left the back walls, healing out of old saves).
     /// </summary>
     private bool Crackable(int cell, bool back) => back ? _grid.BackAt(cell) is { } behind && behind.Strength != Material.Unbreakable
         : _grid.WallAt(cell) is { } wall ? wall.Strength != Material.Unbreakable
         : PieceAt(cell) is { } piece ? piece.Head == cell
-        : PileAt(cell) is { } pile ? pile.Cell == cell
+        : _grid.MachineAt(cell) is { } machine ? machine.Cell == cell && Machines.Get(machine.Kind).HitPoints != null
         : _plantOwn.TryGetValue(cell, out var plant) && Kinds[plant.Kind].Strength > 0;
 }
