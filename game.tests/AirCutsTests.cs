@@ -18,49 +18,30 @@ public class AirCutsTests
     }
 
     [Fact]
-    public void ASwingsDustStaysInItsFanAndRangeAndMovesTheWayTheBladeGoes()
+    public void ASwingsWaveRunsOutFromTheBladeInItsFanAndIsGoneAtTheRange()
     {
         var cuts = new AirCuts();
         Assert.False(cuts.Live);
-        // The axe's quarter turn, aimed straight ahead, 36 px long, the blade reaching 26.
+        // The axe's quarter turn, aimed straight ahead, 36 px long, born at 26.
         double half = Math.PI / 4;
-        cuts.Strike(thrust: false, aim: 0, half, range: 36, inner: 26, sweepMs: 40, fadeMs: 220);
-        double? early = null, late = null;
-        for (int frame = 0; frame < 30; frame++)
+        cuts.Strike(thrust: false, aim: 0, half, range: 36, inner: 26, sweepMs: WorkLooks.WaveMs, fadeMs: 220);
+        var middles = new List<double>();
+        for (double ms = Frame; ms <= WorkLooks.WaveMs + 3 * Frame; ms += Frame)
         {
             cuts.Step(Frame, null);
             var points = Drawn(cuts);
             foreach (var (x, y) in points)
             {
-                Assert.InRange(Math.Sqrt(x * x + y * y), 26 * 0.25, 36 + 1);
-                Assert.InRange(Math.Atan2(y, x), -half - 0.1, half + 0.1);
+                Assert.InRange(Math.Sqrt(x * x + y * y), 26 - 3.5, 36 + 0.5);
+                Assert.InRange(Math.Atan2(y, x), -half - 0.01, half + 0.01);
             }
-            if (points.Count == 0) continue;
-            double mean = points.Average(p => Math.Atan2(p.Y, p.X));
-            if (frame == 2) early = mean;
-            if (frame == 10) late = mean;
+            if (ms <= WorkLooks.WaveMs - Frame) Assert.NotEmpty(points);
+            if (ms > WorkLooks.WaveMs) Assert.Empty(points);
+            if (points.Count > 0) middles.Add(points.Max(p => Math.Sqrt(p.X * p.X + p.Y * p.Y)));
         }
-        // Carried round the way the blade comes down: from the fan's top edge toward its bottom.
-        Assert.True(late > early, $"dust went from {early} to {late}");
-        Assert.False(cuts.Live);
-    }
-
-    [Fact]
-    public void ARisingSwingsDustIsCarriedUpTheFan()
-    {
-        var cuts = new AirCuts();
-        double half = Math.PI / 4;
-        cuts.Strike(thrust: false, aim: 0, half, range: 36, inner: 26, sweepMs: 40, fadeMs: 220, rising: true);
-        var means = new List<double>();
-        for (int frame = 0; frame < 12; frame++)
-        {
-            cuts.Step(Frame, null);
-            var points = Drawn(cuts);
-            foreach (var (x, y) in points) Assert.InRange(Math.Atan2(y, x), -half - 0.1, half + 0.1);
-            if (points.Count > 0) means.Add(points.Average(p => Math.Atan2(p.Y, p.X)));
-        }
-        // From the fan's bottom edge toward its top, as a backhand comes up.
-        Assert.True(means[^1] < means[1], $"dust went from {means[1]} to {means[^1]}");
+        // Out from the blade, never back, to the range.
+        for (int i = 1; i < middles.Count; i++) Assert.True(middles[i] >= middles[i - 1], string.Join(' ', middles));
+        Assert.True(middles[^1] > 35, $"it went out to {middles[^1]}");
     }
 
     [Fact]

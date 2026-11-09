@@ -1266,20 +1266,19 @@ public partial class Figure : Node2D
                 }
             }
         }
-        // The air the tool works shows its reach while it is used (tool-reach): a stroke's cut, a running drill's or grinder's zone.
-        if (chopping && _chop is { Aim: var cutAim, Phase: var cutPhase, Play: var cutPlay } && cutPlay.HitShare != null
+        // The air the tool works shows its reach while it is used (tool-reach): a thrust's dust; a swing's wave, sent from the blade
+        // as it hits and gone at the range, as the hands' wave strikes (axe-wave); a running drill's or grinder's zone.
+        if (chopping && _chop is { Aim: var cutAim, Phase: var cutPhase, Play: var cutPlay } && cutPlay.HitShare is double hitShare
             && Stillwake.Content.Weapons.Of(Wields) is { } weapon)
         {
             bool jab = cutPlay.Motion.Kind == MotionKind.Thrust;
-            double half = Strokes.HalfOf(weapon);
-            double start = jab ? stroke!.HitShare : cutPlay.ShareAt(-half);
-            if (_cutPhase < start && cutPhase >= start)
+            double half = Strokes.HalfOf(weapon), range = weapon.Range * Rig.Cell / Hero.Unit;
+            if (_cutPhase < hitShare && cutPhase >= hitShare)
             {
                 var edge = Rig.HeldAt(frontArm, item!, item!.EdgeTo, wrist);
                 double reach = Math.Sqrt(edge.X * edge.X + edge.Y * edge.Y);
-                double sweep = jab ? WorkLooks.ThrustSweepMs : (cutPlay.ShareAt(half) - start) * cutPlay.Ms;
-                _air.Strike(jab, AimAngleOf(cutAim, hero.Facing), half, weapon.Range * Rig.Cell / Hero.Unit, jab ? reach : reach - 4, sweep,
-                    WorkLooks.CutFadeOf(Wields), cutPlay.Rising);
+                _air.Strike(jab, AimAngleOf(cutAim, hero.Facing), half, range, jab ? reach : WorkLooks.WaveFrom * range,
+                    jab ? WorkLooks.ThrustSweepMs : WorkLooks.WaveMs, WorkLooks.CutFadeOf(Wields));
             }
             _cutPhase = cutPhase;
         }

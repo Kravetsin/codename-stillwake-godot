@@ -178,6 +178,35 @@ public class ToolEdgeTests
         Assert.Contains(shoulderRow * width + 31, Right(w, hero, Drill).Cells);
     }
 
+    /// <summary>
+    /// A swing's wave (axe-wave): born near the blade, it reaches a wall 3.8 cells off only as it runs out, strikes each cell
+    /// there once, and is gone at the range.
+    /// </summary>
+    [Fact]
+    public void AWaveStrikesWhatItReachesAsItRunsOutEachOnce()
+    {
+        var w = Strip();
+        var probe = new Hero(20 * Unit, 9 * Unit, 0, 0, false, 1);
+        var hero = probe with { X = 31 * Unit - 3800 - (Aiming.HandOf(probe).X - probe.X) };
+        var wave = new SlashWave(hero, 0, Axe, Spec.Weapons.Axe.Range);
+        var first = wave.Fresh(ToolRays.Fan(w.M, hero, Axe, 0, false, 0, Opaque, wave.Reach));
+        Assert.Null(first.Contact);
+        var struck = new List<int>();
+        int frames = 0;
+        while (!wave.Done)
+        {
+            wave.Advance(1000.0 / 60);
+            var hit = wave.Fresh(ToolRays.Fan(w.M, hero, Axe, 0, false, 0, Opaque, wave.Reach));
+            struck.AddRange(hit.Cells.Where(c => w.M.Grid.WallAt(c) != null));
+            frames++;
+        }
+        Assert.NotEmpty(struck);
+        Assert.Equal(struck.Count, struck.Distinct().Count());
+        Assert.Equal(Spec.Weapons.Axe.Range, wave.Reach);
+        Assert.InRange(frames, 5, 8);
+        Assert.Equal((int)Math.Round(Spec.Weapons.Axe.Range * WorkLooks.WaveFrom), SlashWave.ReachAt(Spec.Weapons.Axe.Range, 0));
+    }
+
     [Fact]
     public void AHullAboardTakesNoHitButIsStillTouchedAndAirShortOfTheWallTouchesNothing()
     {

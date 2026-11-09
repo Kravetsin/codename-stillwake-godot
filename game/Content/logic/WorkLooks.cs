@@ -28,6 +28,12 @@ public static class WorkLooks
     /// <summary>The air a tool works (tool-reach): pale cyan as the air round a hero (<c>AirSwirl</c>); a stroke's dust, paler grey.</summary>
     public static readonly Ink.Tone AirInk = Ink.Tone.Of(200, 240, 255, 1), DustInk = Ink.Tone.Of(222, 228, 234, 1);
 
+    /// <summary>
+    /// A struck tool's wave (axe-wave): born at the hit <see cref="WaveFrom"/> of its range out, about where the blade is, it runs
+    /// out to the range over <see cref="WaveMs"/>, slowing, and is gone there.
+    /// </summary>
+    public const double WaveFrom = 0.72, WaveMs = 90;
+
     /// <summary>A thrust's dust thrown out over this many ms; a stroke's seen this long after it, the sledgehammer's longer.</summary>
     public const double ThrustSweepMs = 65;
 

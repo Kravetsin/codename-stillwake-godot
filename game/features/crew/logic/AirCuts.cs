@@ -20,8 +20,7 @@ public sealed class AirCuts
     /// radians, <paramref name="Half"/> its arc either side, out to <paramref name="Range"/> from <paramref name="Inner"/> pixels, the
     /// blade crossing it in <paramref name="SweepMs"/>, gone <paramref name="FadeMs"/> after.
     /// </summary>
-    private readonly record struct Cut(double Start, bool Thrust, double Aim, double Half, double Range, double Inner, double SweepMs, double FadeMs, int Seed,
-        bool Rising);
+    private readonly record struct Cut(double Start, bool Thrust, double Aim, double Half, double Range, double Inner, double SweepMs, double FadeMs, int Seed);
 
     /// <summary>
     /// A running tool's zone this frame: a <paramref name="Disc"/>'s forward half round <paramref name="At"/>, <paramref name="Size"/>
@@ -45,10 +44,10 @@ public sealed class AirCuts
     /// <summary>
     /// A stroke begins cutting the air now: a <paramref name="thrust"/> or a swing toward <paramref name="aim"/>, its fan
     /// <paramref name="half"/> radians either side and <paramref name="range"/> pixels long, its blade reaching <paramref name="inner"/>,
-    /// crossing the fan in <paramref name="sweepMs"/>, down or <paramref name="rising"/> up; seen <paramref name="fadeMs"/> after.
+    /// crossing the fan in <paramref name="sweepMs"/>, seen <paramref name="fadeMs"/> after.
     /// </summary>
-    public void Strike(bool thrust, double aim, double half, double range, double inner, double sweepMs, double fadeMs, bool rising = false) =>
-        _cuts.Add(new(_clock, thrust, aim, half, range, Math.Min(inner, range), Math.Max(1, sweepMs), fadeMs, ++_seeds, rising));
+    public void Strike(bool thrust, double aim, double half, double range, double inner, double sweepMs, double fadeMs) =>
+        _cuts.Add(new(_clock, thrust, aim, half, range, Math.Min(inner, range), Math.Max(1, sweepMs), fadeMs, ++_seeds));
 
     /// <summary><paramref name="elapsedMs"/> on, a running tool's <paramref name="zone"/>, none while none runs.</summary>
     public void Step(double elapsedMs, Zone? zone)
@@ -71,42 +70,28 @@ public sealed class AirCuts
     /// <summary>All of it as it is now, into <paramref name="ink"/>.</summary>
     public void Draw(Ink ink)
     {
-        foreach (var cut in _cuts) Dust(ink, cut, _clock - cut.Start);
+        foreach (var cut in _cuts)
+            if (cut.Thrust) Dust(ink, cut, _clock - cut.Start);
+            else Wave(ink, cut, _clock - cut.Start);
         if (_zone is { } zone && On > 0) Brush(ink, zone, _ranFor, On);
     }
 
-    // The dust a stroke tears off, each mote carried on the way the blade goes and stopping short of the fan's end.
+    // The dust a thrust tears off, each mote carried out along it to its range.
     private void Dust(Ink ink, Cut c, double age)
     {
-        int n = c.Thrust ? 16 : (int)Math.Round(14 + 2 * c.Half * 14);
+        const int n = 16;
         var (dx, dy) = (Math.Cos(c.Aim), Math.Sin(c.Aim));
         for (int j = 0; j < n; j++)
         {
             int key = j + 97 * c.Seed;
             double life = c.FadeMs * (0.7 + 0.5 * Pens.Hash(key, 3)), h = Pens.Hash(key, 1);
-            Func<double, (double X, double Y)> at;
-            double born;
-            if (!c.Thrust)
+            double v = (Pens.Hash(key, 5) - 0.5) * 1.6, tip = c.Inner, inner = tip - 16;
+            double u0 = inner + 2 + (tip - inner - 2) * Pens.Hash(key, 2), wide = Math.Tan(c.Half);
+            double born = c.SweepMs * (0.2 + 0.6 * h);
+            (double X, double Y) at(double tau)
             {
-                double a0 = -c.Half + 2 * c.Half * 0.8 * h, r = c.Range - (c.Range - c.Inner) * 0.7 * Math.Pow(Pens.Hash(key, 2), 1.6);
-                double go = (0.45 + 0.55 * Pens.Hash(key, 4)) * (c.Half - a0);
-                born = c.SweepMs * 0.8 * h;
-                at = tau =>
-                {
-                    double a = c.Aim + (c.Rising ? -1 : 1) * (a0 + go * (1 - Math.Exp(-Math.Max(0, tau) / 70))), rr = r + 0.15 * Math.Sin(tau / 30 + j);
-                    return (Math.Cos(a) * rr, Math.Sin(a) * rr);
-                };
-            }
-            else
-            {
-                double v = (Pens.Hash(key, 5) - 0.5) * 1.6, tip = c.Inner, inner = tip - 16;
-                double u0 = inner + 2 + (tip - inner - 2) * Pens.Hash(key, 2), wide = Math.Tan(c.Half);
-                born = c.SweepMs * (0.2 + 0.6 * h);
-                at = tau =>
-                {
-                    double u = u0 + (c.Range - u0) * (1 - Math.Exp(-Math.Max(0, tau) / 55)), off = v * u * wide;
-                    return (dx * u - dy * off, dy * u + dx * off);
-                };
+                double u = u0 + (c.Range - u0) * (1 - Math.Exp(-Math.Max(0, tau) / 55)), off = v * u * wide;
+                return (dx * u - dy * off, dy * u + dx * off);
             }
             double t = age - born;
             if (t < 0 || t > life) continue;
@@ -118,6 +103,36 @@ public sealed class AirCuts
             {
                 var next = at(t - 30 * (1 - i / 5.0));
                 ink.Segment(last, next, width, tone);
+                last = next;
+            }
+        }
+    }
+
+    // A swing's wave (axe-wave): a crescent across the fan born at the blade, running out to the range, slowing, and gone there;
+    // three strands, the leading one strongest, the others behind it thinner and broken, each widest at the middle.
+    private static void Wave(Ink ink, Cut c, double age)
+    {
+        double p = age / c.SweepMs;
+        if (p < 0 || p > 1) return;
+        double r = c.Inner + (c.Range - c.Inner) * (1 - (1 - p) * (1 - p)), fade = 1 - p * p;
+        const int Pieces = 24;
+        for (int strand = 0; strand < 3; strand++)
+        {
+            double rr = r - strand * 1.1, span = c.Half * (1 - 0.12 * strand);
+            var tone = (strand == 0 ? WorkLooks.AirInk : WorkLooks.DustInk).Faded((float)(fade * (strand == 0 ? 0.9 : strand == 1 ? 0.5 : 0.28)));
+            (double X, double Y) At(double t)
+            {
+                // The horns lag the middle a little, so it reads as a crescent thrown out, not a ring.
+                double a = c.Aim - span + 2 * span * t, back = 0.9 * (1 - Math.Sin(Math.PI * t));
+                return (Math.Cos(a) * (rr - back), Math.Sin(a) * (rr - back));
+            }
+            var last = At(0);
+            for (int i = 1; i <= Pieces; i++)
+            {
+                double t = i / (double)Pieces;
+                var next = At(t);
+                if (strand == 0 || Pens.Hash(c.Seed * 31 + strand * 7 + i, 8) > 0.2)
+                    ink.Segment(last, next, (0.22 + 0.5 * Math.Sin(Math.PI * (t - 0.5 / Pieces))) * (1 - 0.3 * strand), tone);
                 last = next;
             }
         }

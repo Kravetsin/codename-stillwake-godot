@@ -15,6 +15,9 @@ namespace Stillwake.Game.Features.Crew;
 
 public partial class HeroView
 {
+    /// <summary>Strokes' waves still running out (<see cref="SlashWave"/>).</summary>
+    private readonly List<SlashWave> _waves = [];
+
     /// <summary>
     /// What the hands do at the pointer: the aim said and outlined while the hero is awake, whatever the
     /// hand holds, doors and valves as <paramref name="shown"/>; E on what it works whatever the hand holds,
@@ -110,20 +113,25 @@ public partial class HeroView
             _current = _current with { Facing = _swingFace };
         }
         if (swung.Whooshes && S.SwingOf(struck) is var whoosh) (whoosh == S.HammerSwing ? _hammerSwing : whoosh == S.SpearThrust ? _spearThrust : _swingSound).Play();
-        if (swung.Hits)
+        // The stroke's hit goes out as a wave from the blade (axe-wave, a prototype): what its fan reaches as it runs out is struck,
+        // each once; the cells, wrecks and creatures the sim would take its hits on; a flinch and a chop are theirs to show (0102, DebrisView).
+        if (swung.Hits && Stillwake.Content.Weapons.Of(struck!) is { } weapon)
+            _waves.Add(new SlashWave(_current, ToolRays.HeadingOf(_current, (_swing.Toward(_current).X, _swing.Toward(_current).Y)), struck!, weapon.Range));
+        foreach (var wave in _waves)
         {
-            // What the stroke's fan of rays from the shoulder meets as it lands (tool-reach): the cells, wrecks and
-            // creatures the sim would take its hits on; a creature's flinch and a wreck's chop are theirs to show (0102, DebrisView).
-            var hit = StrokeOf(m, _current, _swing.Toward(_current), struck!);
-            var sent = ToolEdges.CommandsOf(m, client.Id, struck!, hit);
+            var hit = wave.Fresh(ToolRays.Fan(m, wave.From, wave.Tool, wave.Heading, Outside(m, wave.From), _progress,
+                _wreckPixels.Solid(_progress, _ui.DebrisTurns), wave.Reach));
+            var sent = ToolEdges.CommandsOf(m, client.Id, wave.Tool, hit);
             if (sent.Cells is { } cells) client.Send(cells);
             if (sent.Pieces is { } pieces) client.Send(pieces);
             foreach (var strike in sent.Strikes) client.Send(strike);
             // The ground it bites first heard and seen there, the ship's hull too, which takes no harm: a clang and sparks.
-            if (hit.Ground?.Cell is int bitten) Struck(_groundHits, m, bitten, struck!, _current, client.Id);
-            // A blade that bites is drawn stopped on contact a moment (0075).
-            if (hit.Contact != null || sent.Strikes.Count > 0) _figure.Bit();
+            if (hit.Ground?.Cell is int bitten) Struck(_groundHits, m, bitten, wave.Tool, wave.From, client.Id);
+            // A blade that bites as it hits is drawn stopped on contact a moment (0075); the wave's later hits stop nothing.
+            if (wave.Ms == 0 && (hit.Contact != null || sent.Strikes.Count > 0)) _figure.Bit();
+            wave.Advance(elapsedMs);
         }
+        _waves.RemoveAll(w => w.Done);
         // The drill: aimed at the pointer; held on the left button it runs, aboard or at nothing too, the sim drawing
         // its power every tick it runs (0055), and what its rays meet is hit each Pace ticks (tool-reach). Flat, it winds down. The power
         // driver runs only while it works a plan, so a press at nothing draws no charge (power-driver); it is no drill.

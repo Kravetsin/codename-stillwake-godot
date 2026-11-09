@@ -22,10 +22,13 @@ public static class ToolRays
     /// wrecks whose pictures <paramref name="solid"/> says are opaque where a ray crosses them, as drawn <paramref name="progress"/>
     /// of the way to their next tick, each touched where a ray first meets it; the creatures crossed. The rays are walked from the
     /// middle out, so the first ground touch is the middle ray's, and the end is where the middle ray first meets a wreck or stops.
+    /// Its rays reach <paramref name="range"/>, thousandths of a cell, as a wave out (<see cref="SlashWave"/>), else the weapon's <c>Range</c>.
     /// </summary>
-    public static EdgeHit Fan(Registry m, Hero hero, string tool, int heading, bool outside, double progress, Func<Piece, double, double, bool> solid)
+    public static EdgeHit Fan(Registry m, Hero hero, string tool, int heading, bool outside, double progress, Func<Piece, double, double, bool> solid,
+        int? range = null)
     {
         var weapon = Spec.Weapons.Of(tool) ?? throw new InvalidOperationException($"{tool} deals no damage");
+        int far = range ?? weapon.Range;
         var grid = m.Grid;
         int width = grid.Width, height = grid.Height;
         var from = Aiming.HandOf(hero);
@@ -52,14 +55,14 @@ public static class ToolRays
             double ux = dx / (double)Rays.Cell, uy = dy / (double)Rays.Cell;
             walked.Clear();
             int? stopped = null;
-            Rays.Cast(width, height, from.X, from.Y, Rays.HeadingOf(weapon, heading, i), weapon.Range, cell =>
+            Rays.Cast(width, height, from.X, from.Y, Rays.HeadingOf(weapon, heading, i), far, cell =>
             {
                 walked.Add((cell, EnterOf(cell % width, cell / width, from.X, from.Y, ux, uy)));
                 bool stops = grid.WallAt(cell) != null || grid.Blocks(cell);
                 if (stops) stopped = cell;
                 return stops;
             });
-            double length = Math.Sqrt(ux * ux + uy * uy) * weapon.Range;
+            double length = Math.Sqrt(ux * ux + uy * uy) * far;
             double reach = stopped != null ? walked[^1].Enter : length;
             // Along what the grid lets it walk, every wreck whose pixels it crosses, touched where it first meets each.
             (double X, double Y)? met = null;

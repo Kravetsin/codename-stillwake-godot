@@ -36,6 +36,7 @@ the sim.
 | `logic/RunSounds.cs` | tools heard |
 | `logic/ToolEdge.cs` | the cutter's beam |
 | `logic/ToolRays.cs` | what a tool hits |
+| `logic/SlashWave.cs` | its wave |
 | `WreckPixels.cs` | wrecks' opaque pixels |
 | `ToolWork.cs` | tools at work |
 | `logic/ToolSparks.cs` | sparks off a wreck |
@@ -129,7 +130,8 @@ the sim.
   the plan, wiring, lays cables; a tool on the right, nothing.
 - **One aim** (`Aiming.AimAt`): a plan (back walls first), machine (0099), tank, door, valve, a wreck
   pointed at, else the nearest small piece. Outlined green or red, `UsePrompt` says why; plan in hand, E idle. Armed, small pieces.
-- **Hits are rays** (tool-reach, hits-pass-wrecks): a fan (`ToolRays`) to a wall, through wrecks; ground rings, sparks.
+- **Hits are rays** (tool-reach, hits-pass-wrecks): a fan (`ToolRays`) to a wall, through wrecks; ground rings, sparks; a swing's a
+  wave out (slash-wave).
 - **Struck tools** (0038, swing-motions): swung by sector, hitting as the blade crosses the kept aim. The fire axe held
   straight or low chains `Combos.FireAxe` (axe-combos): steps spliced, the body in it (`ComboBody`, `RoomAhead`), dust its way.
 - **Harpoon, grapple** (0044, grapple-climbs): reel pieces, pull to walls; hung, refire; Space/RMB let go.

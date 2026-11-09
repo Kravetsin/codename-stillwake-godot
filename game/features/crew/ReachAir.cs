@@ -21,8 +21,8 @@ public partial class ReachAir : Node2D
     }
 
     /// <summary>A stroke begins cutting the air now (<see cref="AirCuts.Strike"/>).</summary>
-    public void Strike(bool thrust, double aim, double half, double range, double inner, double sweepMs, double fadeMs, bool rising) =>
-        _cuts.Strike(thrust, aim, half, range, inner, sweepMs, fadeMs, rising);
+    public void Strike(bool thrust, double aim, double half, double range, double inner, double sweepMs, double fadeMs) =>
+        _cuts.Strike(thrust, aim, half, range, inner, sweepMs, fadeMs);
 
     /// <summary><paramref name="elapsedMs"/> on, the running tool's <paramref name="zone"/>, none while none runs.</summary>
     public void Follow(AirCuts.Zone? zone, double elapsedMs)
