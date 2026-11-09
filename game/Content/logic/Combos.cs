@@ -70,15 +70,6 @@ public static class Combos
     public const double LegSlack = 0.03;
 
     /// <summary>
-    /// The blade's trail: <see cref="TrailMs"/> long, sampled every <see cref="TrailStepMs"/>, at most <see cref="TrailMost"/>
-    /// opaque at the blade, fainter where the edge moves slower than <see cref="TrailFast"/> pixels a ms; in <see cref="TrailColour"/>.
-    /// </summary>
-    public const double TrailMs = 90, TrailStepMs = 3, TrailMost = 0.35, TrailFast = 0.15;
-
-    /// <summary>The trail's colour, a pale wash.</summary>
-    public const string TrailColour = "efe6d2";
-
-    /// <summary>
     /// The far hand on the haft: <see cref="GripBelow"/> pixels along it below the near fist, slid between <see cref="HaftFrom"/>
     /// and <see cref="HaftTo"/> (toward the butt positive) to where the arm reaches, <see cref="GripSlack"/> pixels short of straight.
     /// </summary>

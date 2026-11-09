@@ -23,8 +23,6 @@ the sim.
 | `logic/SwingArm.cs` | the front arm swung |
 | `logic/ComboBody.cs` | a combo's body |
 | `logic/HaftGrip.cs` | the far hand |
-| `logic/BladeTrail.cs` | the blade's trail |
-| `BladeTrailView.cs` | it drawn |
 | `logic/ArmUp.cs` | when an aim is up |
 | `logic/HarpoonShot.cs` | harpoon, grapple |
 | `logic/HarpoonLine.cs` | its line |
@@ -133,7 +131,7 @@ the sim.
   pointed at, else the nearest small piece. Outlined green or red, `UsePrompt` says why; plan in hand, E idle. Armed, small pieces.
 - **Hits are rays** (tool-reach, hits-pass-wrecks): a fan (`ToolRays`) to a wall, through wrecks; ground rings, sparks.
 - **Struck tools** (0038, swing-motions): swung by sector, hitting as the blade crosses the kept aim. The fire axe held
-  straight or low chains `Combos.FireAxe` (axe-combos): steps spliced, the body in it (`ComboBody`, `RoomAhead`), a trail.
+  straight or low chains `Combos.FireAxe` (axe-combos): steps spliced, the body in it (`ComboBody`, `RoomAhead`), dust its way.
 - **Harpoon, grapple** (0044, grapple-climbs): reel pieces, pull to walls; hung, refire; Space/RMB let go.
 - **A gun** (hold-to-fire): left held fires each cooldown; a `Charge` one fires let go full; flat, clicks dry. Afloat it kicks (`Recoil`).
 - **Drill, grinder, cutter** (0054, 0055): left held runs it (`Run`), hitting each `Pace` ticks, the cutter by its

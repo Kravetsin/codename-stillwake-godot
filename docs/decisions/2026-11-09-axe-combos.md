@@ -40,9 +40,9 @@ trail on each cut.
   the legs. The far arm keeps its turn in the body's frame; gripping, it closes on the haft (`HaftGrip`: 3.5 px below the
   near fist, slid within −4 to 5.5 px to where it reaches, 0.2 px short of straight). The head takes back 0.6 of the lean
   and follows the blade by 0.08 of its turn.
-- **The trail** (`BladeTrail`, `BladeTrailView`): the edge every 3 ms over the last 90 ms of the play, at most 0.35 opaque
-  at the blade, fading with age, only within the cut, fainter below 0.15 px/ms; #efe6d2, behind the figure as on the pick
-  page, lit like the blade. The air's dust sweeps the fan the way the blade crosses it: up for the backhand (`MotionPlay.Rising`).
+- **The air's cut, no trail:** the dust showing the fan and the reach sweeps it the way the blade crosses it, up for the
+  backhand (`MotionPlay.Rising`). The picked pale trail on the blade was dropped once played: two marks of one cut fought,
+  and the dust is the one that says something, how far and how wide the axe hits.
 - **Friends:** `Busy.Step` carries the step begun; a friend's figure plays it spliced from its own pose. No new swing number
   by a step's end plays the back, as a hero let go does.
 

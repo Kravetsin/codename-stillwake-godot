@@ -237,7 +237,6 @@ public partial class Figure : Node2D
     private readonly Node2D _waist, _waistBehind;
     /// <summary>The body a combo's step puts into the strike, eased in and out (<see cref="ComboBody"/>).</summary>
     private BodyBlend _bodyBlend;
-    private readonly BladeTrailView _trail = new();
     /// <summary>The near arm's node among the parts: the held stage's view goes just under it.</summary>
     private readonly Node2D _frontArmNode;
     private Vector2? _workAt;
@@ -349,7 +348,7 @@ public partial class Figure : Node2D
         (_waist, _waistBehind) = (new Node2D(), new Node2D());
         // Both legs come out from under the body, which hides their joints; the near arm hangs in front,
         // its hand over the sheet it holds and closed round the axe's haft or the harpoon's stock.
-        foreach (var n in new Node2D[] { _trail, _waistBehind, backLeg, frontLeg, _waist }) parts.AddChild(n);
+        foreach (var n in new Node2D[] { _waistBehind, backLeg, frontLeg, _waist }) parts.AddChild(n);
         _waistBehind.AddChild(backArm);
         foreach (var n in new Node2D[] { torso, _helmet, _plan, _tool, _held, frontArm, _air }) _waist.AddChild(n);
         (_capeInside, _capeOutside) = (new CapeView(_cape, inside: true) { Visible = false }, new CapeView(_cape, inside: false) { Visible = false });
@@ -1285,9 +1284,6 @@ public partial class Figure : Node2D
             _cutPhase = cutPhase;
         }
         else _cutPhase = 0;
-        // A combo's blade leaves a pale trail on the fast part of each cut, behind the figure (axe-combos).
-        _trail.Show(inHand && item != null && chopping && _chop is { Aim: var trailAim, Phase: var trailPhase, Play: { Step: not null } trailPlay }
-            ? TrailOf(trailPlay, trailPhase * trailPlay.Ms, AimAngleOf(trailAim, hero.Facing), item, shown, pose, walking ? _moving : 1) : null);
         _air.Follow(Spinning && inHand && item != null ? ZoneOf(frontArm, item) : null, elapsedMs);
         _beamMs = Math.Max(0, _beamMs - elapsedMs);
         ShowBeams(holding);
@@ -1315,29 +1311,6 @@ public partial class Figure : Node2D
         double range = Stillwake.Content.Weapons.Drill.Range * Rig.Cell / Hero.Unit, cx = dx * range - at.X, cy = dy * range - at.Y;
         double length = Math.Sqrt(cx * cx + cy * cy);
         return length < 1 ? null : new(false, (at.X, at.Y), (cx / length, cy / length), length);
-    }
-
-    /// <summary>
-    /// The trail of <paramref name="play"/>'s blade <paramref name="nowMs"/> into it, aimed <paramref name="aim"/>, in the body's frame:
-    /// each past edge where the arm and the body then put it, the body unblended.
-    /// </summary>
-    private BladeTrail TrailOf(MotionPlay play, double nowMs, double aim, HeldLook item, Limbs shown, Pose pose, double moving)
-    {
-        double DrawnAt(double ms) => _bit ? AxeSwing.Shown(ms / play.Ms, play) : ms / play.Ms;
-        (Vec, Vec) EdgeAt(double ms)
-        {
-            double drawn = DrawnAt(ms), wrist = play.WristAt(drawn);
-            var arm = AxeSwing.ArmAt(play.AngleAt(aim, drawn), play.ElbowAt(drawn));
-            var waist = ComboBody.At(play, ms) is { } state && ComboBody.Over(shown, state, pose, moving, RoomAhead) is { } layer ? WaistOf(layer) : Transform2D.Identity;
-            Vec At((double X, double Y) p)
-            {
-                var v = waist * Pixel(Rig.HeldAt(arm, item, p, wrist));
-                return new(v.X, v.Y);
-            }
-            return (At(item.EdgeFrom), At(item.EdgeTo));
-        }
-        bool Cutting(double ms) => DrawnAt(ms) is var d && d >= play.Shares.Back && d <= play.Shares.Through;
-        return BladeTrail.Of(EdgeAt, Cutting, nowMs);
     }
 
     /// <summary>The upper body's place in the body's frame under <paramref name="layer"/> (<see cref="ComboBody.WaistOf"/>).</summary>
