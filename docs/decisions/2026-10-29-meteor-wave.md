@@ -1,6 +1,6 @@
 # A meteor's blast is a wave walls soak up
 
-- Status: accepted; its aslant cost and box superseded by [round-blasts](2026-11-09-round-blasts.md)
+- Status: accepted; its aslant cost and box superseded by [round-blasts](2026-11-09-round-blasts.md); its armour and own wave superseded by [unified-damage](2026-11-09-unified-damage.md)
 - Date: 2026-10-29
 - Supersedes the radius of [meteor-blast](2026-10-28-meteor-blast.md); its strike, flight and look stand
 

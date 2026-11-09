@@ -138,7 +138,7 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [one-arm-holds](2026-10-27-one-arm-holds.md) | Every item is held in one hand | accepted |  |
 | [sentry-arc](2026-10-27-sentry-arc.md) | The sentry strikes with an arc | accepted |  |
 | [shots-fall-aboard](2026-10-27-shots-fall-aboard.md) | Shots fall aboard | accepted |  |
-| [shots-pierce](2026-10-27-shots-pierce.md) | Shots pierce what they break | accepted |  |
+| [shots-pierce](2026-10-27-shots-pierce.md) | Shots pierce what they break | accepted | unified-damage (in part) |
 | [space-recoil](2026-10-27-space-recoil.md) | Space recoil | accepted |  |
 | [suits-are-worn](2026-10-27-suits-are-worn.md) | Suits are worn | accepted |  |
 | [the-cape-floats](2026-10-27-the-cape-floats.md) | The cape floats | accepted | the-cape-flows (in part) |
@@ -159,7 +159,7 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [holes-not-planned](2026-10-29-holes-not-planned.md) | A meteor's hole is not planned | accepted |  |
 | [kill-feel](2026-10-29-kill-feel.md) | Kills burst into pixels | accepted | kills-crumble (in part) |
 | [kills-crumble](2026-10-29-kills-crumble.md) | Kills crumble into pixels | accepted |  |
-| [meteor-wave](2026-10-29-meteor-wave.md) | A meteor's blast is a wave walls soak up | accepted | round-blasts (in part) |
+| [meteor-wave](2026-10-29-meteor-wave.md) | A meteor's blast is a wave walls soak up | accepted | round-blasts, unified-damage (in part) |
 | [photo-panel](2026-10-29-photo-panel.md) | The photosensitive panel | accepted |  |
 | [stamped-and-assembled](2026-10-29-stamped-and-assembled.md) | Stamped and assembled; circuits found are rare | accepted |  |
 | [typed-ports](2026-10-29-typed-ports.md) | Ports take or give one fluid | accepted |  |
@@ -297,7 +297,7 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [the-pickaxe](2026-11-07-the-pickaxe.md) | The pickaxe | accepted |  |
 | [the-scanner](2026-11-07-the-scanner.md) | The scanner reads a wreck's hit points | accepted |  |
 | [tool-card-rows](2026-11-07-tool-card-rows.md) | A tool's card lists its numbers as rows with icons | accepted |  |
-| [blasting-charge](2026-11-08-blasting-charge.md) | The blasting charge and the deep caches | accepted |  |
+| [blasting-charge](2026-11-08-blasting-charge.md) | The blasting charge and the deep caches | accepted | unified-damage (in part) |
 | [board-names](2026-11-08-board-names.md) | The board names what was never had | accepted |  |
 | [composed-backdrops](2026-11-08-composed-backdrops.md) | Composed backdrops | accepted |  |
 | [computer-after-planet](2026-11-08-computer-after-planet.md) | The computer and the radar after a planet | accepted |  |
@@ -317,4 +317,5 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [radar-contacts](2026-11-08-radar-contacts.md) | Radar contacts | accepted |  |
 | [scrap-to-iron](2026-11-08-scrap-to-iron.md) | Scrap to iron: four scrap smelt into an iron at any furnace | accepted |  |
 | [switched-off-sign](2026-11-08-switched-off-sign.md) | Switched-off sign | accepted |  |
-| [round-blasts](2026-11-09-round-blasts.md) | Blasts are round | accepted |  |
+| [round-blasts](2026-11-09-round-blasts.md) | Blasts are round | accepted | unified-damage (in part) |
+| [unified-damage](2026-11-09-unified-damage.md) | One rule for damage | accepted |  |
