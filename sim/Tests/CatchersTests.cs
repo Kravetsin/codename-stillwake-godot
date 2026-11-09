@@ -142,26 +142,26 @@ public class CatchersTests
     }
 
     [Fact]
-    public void AFullMeterBringsOneCatcherForThatHeroOutOfViewWhereItWaitsItsWarning()
+    public void AFullMeterBringsOneCatcherForThatHeroOutOfViewThatComesAtOnce()
     {
         var w = Arrive(Arrive(Field(), 40), 10, peer: 1);
         Full(w);
-        w.Run(Tune.Beat + 1);
-        var c = CatcherOf(w, 0);
+        Creature? c = null;
+        for (int t = 0; t <= Tune.Beat && c == null; t++)
+        {
+            w.Run();
+            c = CatcherOf(w, 0);
+        }
         Assert.NotNull(c);
         Assert.Null(CatcherOf(w, 1));
         // The left side is off the grid: it comes on the right, past the view.
         Assert.InRange(Column(c!) - 40, Tune.RingFrom, Tune.RingTo + Catcher.Body.Width);
         Assert.False(w.M.Creatures.Overlaps(Catcher.Body, c!.X, c.Y));
-        Assert.True(w.M.Creatures.Warning(c));
-        var (x, y) = (c.X, c.Y);
-        w.Run(Hunt.Warn - Tune.Beat - 2);
-        Assert.Equal((x, y), (c.X, c.Y));
+        // It hangs nowhere (a playtest): from its first ticks it comes at its hero.
+        int x = c.X;
+        w.Run(20);
+        Assert.True(x - c.X >= 20 * Unit / 2, $"{x - c.X} in 20 ticks");
         Assert.Single(w.M.Creatures.Creatures, k => k.Species == Catcher.Id);
-        // Then it comes at its hero.
-        w.Run(Tune.Beat + 20);
-        Assert.False(w.M.Creatures.Warning(c));
-        Assert.True(c.X < x);
     }
 
     [Fact]
@@ -195,7 +195,7 @@ public class CatchersTests
         w.Run(Tune.Beat + 1);
         var c = CatcherOf(w, 0)!;
         int far = int.MaxValue;
-        for (int t = 0; t < Hunt.Warn + Hunt.Ticks && c.Act == null; t++)
+        for (int t = 0; t < Hunt.Ticks && c.Act == null; t++)
         {
             w.Do(new Enter(Cell(154 + t / 10 % 2, Ground + 11)));
             w.Run();
@@ -242,7 +242,7 @@ public class CatchersTests
         w.Run();
         w.Do(new Release(Catcher.Id, Cell(80, Ground - 1))).Run();
         var c = w.M.Creatures.Creatures.Single();
-        for (int t = 0; t < Hunt.Warn + Hunt.Ticks && c.Act == null; t++)
+        for (int t = 0; t < Hunt.Ticks && c.Act == null; t++)
         {
             if (t % 10 == 0) w.Do(new Enter(Cell(40, Ground - 1)));
             w.Run();
@@ -251,13 +251,40 @@ public class CatchersTests
         Assert.Contains(w.M.Items.Floor, s => s.Item == "scrapChunk");
     }
 
+    /// <summary>A playtest (2026-11-09): running at its hero it turned back and stamped; it never turns back while far, nor stops.</summary>
+    [Theory]
+    [InlineData(0)]
+    [InlineData(1)]
+    public void RunningAtItsHeroItNeverTurnsBackOrStops(int hilly)
+    {
+        var w = Arrive(Field(), 40);
+        if (hilly == 1)
+            for (int x = 60; x < 135; x += 9)
+                w.Do(new Place(Cell(x, Ground - 1), Placement.Wall("scrap"))).Do(new Place(Cell(x + 1, Ground - 1), Placement.Wall("scrap")));
+        w.Run();
+        w.Do(new Release(Catcher.Id, Cell(140, Ground - 1))).Run();
+        var c = w.M.Creatures.Creatures.Single();
+        int turns = 0, stops = 0, way = 0;
+        var trace = new System.Text.StringBuilder();
+        for (int t = 0; t < 400 && c.Act == null; t++)
+        {
+            if (t % 10 == 0) w.Do(new Enter(Cell(40 + t / 10 % 2, Ground - 1)));
+            w.Run();
+            trace.Append($"{c.X / 1000.0:F2},{c.Y / 1000.0:F2}/{c.VX},{c.VY} ");
+            if (Math.Abs(Column(c) - 40) <= Hunt.Strike + 2) continue;
+            if (c.VX == 0 && c.VY == 0) stops++;
+            else if (c.VX != 0 && way != 0 && Math.Sign(c.VX) != way) turns++;
+            if (c.VX != 0) way = Math.Sign(c.VX);
+        }
+        Assert.True(turns == 0 && stops == 0, $"turns {turns}, stops {stops}: {trace}");
+    }
+
     [Fact]
     public void OnOpenGroundItRunsToItsHeroAndPounces()
     {
         var w = Arrive(Field(), 40);
         w.Do(new Release(Catcher.Id, Cell(140, Ground - 1))).Run();
         var c = w.M.Creatures.Creatures.Single();
-        w.Run(Hunt.Warn);
         int afoot = 0, ticks = 0;
         for (; ticks < 400 && c.Act == null; ticks++)
         {
@@ -278,7 +305,6 @@ public class CatchersTests
         var w = Arrive(Field((x, y) => x >= 80 && x < 100 && y < H - 2), 40);
         w.Do(new Release(Catcher.Id, Cell(140, Ground - 1))).Run();
         var c = w.M.Creatures.Creatures.Single();
-        w.Run(Hunt.Warn);
         int deepest = 0;
         for (int t = 0; t < 400 && c.Act == null; t++)
         {
@@ -296,7 +322,6 @@ public class CatchersTests
         var w = Arrive(Field(), 60, y: Ground - 3);
         w.Do(new Release(Catcher.Id, Cell(20, Ground - 1))).Run();
         var c = w.M.Creatures.Creatures.Single();
-        w.Run(Hunt.Warn);
         int x = 60, fastest = 0;
         bool ahead = false;
         for (int t = 0; t < 360 && c.Act == null; t++)
@@ -318,7 +343,7 @@ public class CatchersTests
         var w = Arrive(Field(), 40);
         w.Do(new Release(Catcher.Id, Cell(140, Ground - 1))).Run();
         var c = w.M.Creatures.Creatures.Single();
-        w.Run(Hunt.Warn + 20);
+        w.Run(20);
         for (int y = 0; y < Ground; y++) w.Do(new Place(Cell(90, y), Placement.Wall("scrap")));
         for (int t = 0; t < 600 && c.Act == null; t++)
         {
@@ -410,7 +435,7 @@ public class CatchersTests
         Full(w);
         w.Run(Tune.Beat + 1);
         var c = CatcherOf(w, 0)!;
-        w.Run(Hunt.Warn + Hunt.Ticks);
+        w.Run(Hunt.Ticks);
         Assert.All(Enumerable.Range(Ground - 7, 7), y => Assert.NotNull(w.M.Grid.WallAt(Cell(43, y))));
         Assert.Null(CreaturesModule.Hunting(c));
         Assert.Equal((0, 0), (w.M.Crew.HeroOf(0)!.Wanted, w.M.Crew.HeroOf(0)!.Need));
@@ -497,7 +522,7 @@ public class CatchersTests
         (hero.Need, hero.Wanted) = (Spec.Wanted.NeedLeast, Spec.Wanted.NeedLeast);
         w.Run(Tune.Beat + 1);
         Assert.Single(w.On(1).Creatures.Creatures, c => c.Species == Catcher.Id);
-        foreach (int ticks in (int[])[Hunt.Warn / 2, Hunt.Warn + 300])
+        foreach (int ticks in (int[])[100, 300])
         {
             string save = w.World.Save();
             var twin = new Scenario("......\n.S....\n######").Reload(save);

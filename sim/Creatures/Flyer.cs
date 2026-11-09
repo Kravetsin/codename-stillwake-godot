@@ -46,8 +46,10 @@ internal sealed class FlyerBody : BodyRule
             c.Y = Math.Max(s.Height * Unit, c.Y + c.VY);
             return;
         }
+        // Rising it goes up first, else across first: a run up a step, then on; across an edge, then down (catcher-paths).
+        if (c.VY < 0 && !Moves(m, c, spec, c.X, c.Y + c.VY)) c.VY = 0;
         if (c.VX != 0 && !Moves(m, c, spec, c.X + c.VX, c.Y)) c.VX = 0;
-        if (c.VY != 0 && !Moves(m, c, spec, c.X, c.Y + c.VY)) c.VY = 0;
+        if (c.VY > 0 && !Moves(m, c, spec, c.X, c.Y + c.VY)) c.VY = 0;
     }
 
     /// <summary>Moves <paramref name="c"/> to (<paramref name="x"/>, <paramref name="y"/>) if nothing solid is there: else it may strike its way, and false.</summary>

@@ -63,7 +63,7 @@ drives, moves and yields, each a rule here. The dead are gone to all from the bl
   (`Cooldown`); provoked `Provokes` ticks by answering, it lobs at one `From` to `Reach`, a puddle (`Leaves`) laid as it lands
   `Lingers` on, harmless. The snail's `Shell` opens `Hold` past a hero within `Reach`; it bites, a short lunge.
 - **The catcher** (tracker-catchers, catcher-paths): on the beat a `Hunted` hero without one gets one `RingFrom..RingTo` columns off,
-  unseen. `Hunt` holds `Warn`, then follows a `Path`: runs, flies, cuts what `Strikes` breaks; lagging, it
+  unseen. `Hunt` at once follows a `Path`: runs, flies, cuts what `Strikes` breaks; lagging, it
   leaps ahead. Pounces within `Strike`, answers blows. Out of `Ticks`, killed or quarryless: `CallOff`, up.
 - **Patches** (`PatchKind`) last `Lasts`; each breath an awake hero in one seen from its middle pays `Damage` (`Shock`, `Stings`).
 - **The warden** (`Posted`, `Ward`): on the beat at a standing post with a standing relic in its arena, a hero in its keep box,

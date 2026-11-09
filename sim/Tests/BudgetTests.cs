@@ -212,7 +212,6 @@ public class BudgetTests(ITestOutputHelper output)
             w.Do(new Creatures.Release(catcher.Id, y * width + x)).Run();
         }
         Assert.Equal(4, m.Creatures.Creatures.Count(c => c.Species == catcher.Id));
-        w.Run(((Content.Creatures.Hunt)catcher.Brain[0]).Warn);
         var hunting = Time(w.World, 400, t => t % 10 == 0 ? [new Crew.Enter(deep)] : []);
         output.WriteLine($"the first planet idle {idle.Mean:F3} ms a tick; with four catchers searching {hunting.Mean:F3} ms mean, {hunting.Max:F3} ms max");
         Assert.True(hunting.Mean < Within(2), $"a planet's tick with four catchers took {hunting.Mean:F3} ms");

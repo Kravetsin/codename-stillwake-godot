@@ -16,7 +16,7 @@ namespace Stillwake.Sim.Creatures;
 /// </summary>
 internal sealed class HuntDrive : DriveRule
 {
-    internal const string Quarry = "quarry", WarnTill = "warnTill", HuntTill = "huntTill", AnswerAt = "answerAt",
+    internal const string Quarry = "quarry", HuntTill = "huntTill", AnswerAt = "answerAt",
         PlanAt = "planAt", Sought = "sought", LeapTop = "leapTop", LeapTo = "leapTo", LeapClock = "leapClock", Closest = "closest",
         SampleX = "sampleX", SampleY = "sampleY", DriftX = "driftX", DriftY = "driftY";
 
@@ -26,13 +26,12 @@ internal sealed class HuntDrive : DriveRule
 
     internal override bool Menaces => true;
 
-    /// <summary><paramref name="c"/>, just come, starts hunting <paramref name="peer"/>'s hero: its warning from now.</summary>
+    /// <summary><paramref name="c"/>, just come, starts hunting <paramref name="peer"/>'s hero, at once.</summary>
     internal static void Start(CreaturesModule m, Creature c, Spec.Species spec, int peer)
     {
         var hunt = spec.Brain.OfType<Spec.Hunt>().Single();
         c.Keep(Quarry, peer + 1);
-        c.Keep(WarnTill, m.Clock + hunt.Warn);
-        c.Keep(HuntTill, m.Clock + hunt.Warn + hunt.Ticks);
+        c.Keep(HuntTill, m.Clock + hunt.Ticks);
         c.Target = Ref.Hero(peer);
     }
 
@@ -43,11 +42,11 @@ internal sealed class HuntDrive : DriveRule
     internal static bool Leaving(Creature c) => c.Recall(FlyerBody.Through) == 1;
 
     /// <summary>
-    /// When <paramref name="c"/> wants a path searched: the clock it is due at, past its warning, free of any move and not leaping;
+    /// When <paramref name="c"/> wants a path searched: the clock it is due at, free of any move and not leaping;
     /// null for one that wants none now.
     /// </summary>
     internal static int? DueAt(CreaturesModule m, Creature c) =>
-        QuarryOf(c) == null || Leaving(c) || c.Act != null || c.Recall(LeapTo) != 0 || m.Clock < c.Recall(WarnTill) || c.Recall(PlanAt) > m.Clock
+        QuarryOf(c) == null || Leaving(c) || c.Act != null || c.Recall(LeapTo) != 0 || c.Recall(PlanAt) > m.Clock
             ? null : c.Recall(PlanAt);
 
     internal override bool Run(CreaturesModule m, Creature c, Spec.Species spec, Spec.Drive d)
@@ -68,11 +67,6 @@ internal sealed class HuntDrive : DriveRule
         {
             m.CallOff(peer);
             Leave(c);
-            return true;
-        }
-        if (m.Clock < c.Recall(WarnTill))
-        {
-            (c.VX, c.VY) = (0, 0);
             return true;
         }
         int middle = c.Y - spec.Body.Height * Unit / 2;
@@ -173,8 +167,10 @@ internal sealed class HuntDrive : DriveRule
         int gx = at.X, gy = Math.Min(m.GridHeight - 1, at.Y + f.Height / 2), goal = gy * m.GridWidth + gx + 1;
         c.Path ??= [];
         bool reached = m.Paths.Find(m, f, hunt.Speed, sx, sy, gx, gy, c.Path);
-        // Off its node, it goes to it first, as a cut: a move ended between cells or a knock left it there.
-        if (c.X != m.Middle(sx) || c.Y != (sy + 1) * Unit) c.Path.Insert(0, (sy * m.GridWidth + sx) * 4 + (int)StepKind.Cut);
+        // Off its node, it goes on to the first step if the way there is clear, never back to the node (a playtest saw it turn
+        // back at each search); else to the node first, as a cut: a knock left it where it cannot go straight on.
+        if ((c.X != m.Middle(sx) || c.Y != (sy + 1) * Unit) && !(c.Path is [var first, ..] && Clear(m, spec, c, first, m.GridWidth)))
+            c.Path.Insert(0, (sy * m.GridWidth + sx) * 4 + (int)StepKind.Cut);
         c.Keep(PlanAt, m.Clock + (!reached && c.Recall(Sought) == goal ? 2 : 1) * Spec.Paths.Replan);
         c.Keep(Sought, goal);
     }
@@ -200,10 +196,16 @@ internal sealed class HuntDrive : DriveRule
             Due(m, c);
             return;
         }
+        if (kind == StepKind.Run)
+        {
+            (c.VX, c.VY) = RunAlong(m, spec.Body, path, c.X, c.Y, width, f.Run);
+            c.Keep(FlyerBody.Cuts, 0);
+            return;
+        }
         // The last of the straight steps alike in a row from here.
         int last = 0;
         int sx = Math.Sign(m.Middle(x) - c.X), sy = Math.Sign((y + 1) * Unit - c.Y);
-        while (last + 1 < path.Count && (kind != StepKind.Run || sy == 0))
+        while (last + 1 < path.Count)
         {
             var (nx, ny, nk) = Node(path[last + 1], width);
             var (px, py, _) = Node(path[last], width);
@@ -211,15 +213,45 @@ internal sealed class HuntDrive : DriveRule
             last += 1;
         }
         var (tx, ty, _) = Node(path[last], width);
-        int dx = m.Middle(tx) - c.X, dy = (ty + 1) * Unit - c.Y;
-        if (kind == StepKind.Run)
-        {
-            if (dy < 0) dx = 0;
-            else if (dy > 0 && dx != 0) dy = 0;
-            (c.VX, c.VY) = (Math.Clamp(dx, -f.Run, f.Run), Math.Clamp(dy, -f.Run, f.Run));
-        }
-        else (c.VX, c.VY) = Toward(dx, dy, hunt.Speed);
+        (c.VX, c.VY) = Toward(m.Middle(tx) - c.X, (ty + 1) * Unit - c.Y, hunt.Speed);
         c.Keep(FlyerBody.Cuts, kind == StepKind.Cut ? 1 : 0);
+    }
+
+    /// <summary>
+    /// Its move this tick along the run steps from the first, <paramref name="budget"/> long through their corners, so it keeps its
+    /// speed (a playtest saw it halt at each): up a step it rises then goes across, down one across then down; one way across and
+    /// one way up or down a tick. The body takes the sum rising first, else across first: legs out of that order (a rise after
+    /// going across, across after dropping) only where the body is free taking them so, else it stops before them.
+    /// </summary>
+    private static (int, int) RunAlong(CreaturesModule m, Spec.Shape body, List<int> path, int x0, int y0, int width, int budget)
+    {
+        int x = x0, y = y0, vx = 0, vy = 0, way = 0, rise = 0;
+        bool across = false, early = false;
+        (int, int) before = (0, 0);
+        for (int i = 0; i < path.Count && budget > 0; i++)
+        {
+            var (nx, ny, kind) = Node(path[i], width);
+            if (kind != StepKind.Run) break;
+            int tx = m.Middle(nx), ty = (ny + 1) * Unit;
+            bool whole = ty < y ? Leg(0, ty - y) && Leg(tx - x, 0) : Leg(tx - x, 0) && Leg(0, ty - y);
+            if (!whole) break;
+        }
+        if (early && (vy < 0 ? m.Overlaps(body, x0, y0 + vy) : m.Overlaps(body, x0 + vx, y0))) return before;
+        return (vx, vy);
+
+        // A leg, straight across or up or down, taken as far as the budget goes; false where it is not taken whole.
+        bool Leg(int dx, int dy)
+        {
+            if (dx == 0 && dy == 0) return true;
+            if (dx != 0 && way != 0 && Math.Sign(dx) != way || dy != 0 && rise != 0 && Math.Sign(dy) != rise) return false;
+            if (!early && (dy < 0 && across || dx != 0 && rise > 0)) (early, before) = (true, (vx, vy));
+            int length = Math.Abs(dx) + Math.Abs(dy), take = Math.Min(length, budget);
+            (int sx, int sy) = (Math.Sign(dx) * take, Math.Sign(dy) * take);
+            (vx, vy, x, y, budget) = (vx + sx, vy + sy, x + sx, y + sy, budget - take);
+            if (dx != 0) (across, way) = (true, Math.Sign(dx));
+            else rise = Math.Sign(dy);
+            return take == length;
+        }
     }
 
     /// <summary>Its leap, at <paramref name="speed"/> straight at its top, then its landing; landed, or stopped short, a search is due.</summary>
@@ -251,18 +283,27 @@ internal sealed class HuntDrive : DriveRule
     }
 
     /// <summary>
-    /// Whether <paramref name="c"/> stands on the path's first node, or has passed it on the straight way to the second, the steps alike.
+    /// Whether <paramref name="c"/> stands on the path's first node, or has passed it on its way to the second: straight there, or a
+    /// run's legs (up a step rising first, down one going across first).
     /// </summary>
     private static bool Passed(CreaturesModule m, Creature c, List<int> path, int width)
     {
-        var (x, y, kind) = Node(path[0], width);
-        long ax = c.X - m.Middle(x), ay = c.Y - (y + 1) * Unit;
-        if (ax == 0 && ay == 0) return true;
+        var (x, y, _) = Node(path[0], width);
+        int ax = m.Middle(x), ay = (y + 1) * Unit;
+        if (c.X == ax && c.Y == ay) return true;
         if (path.Count < 2) return false;
-        var (nx, ny, nk) = Node(path[1], width);
-        if (nk != kind) return false;
-        long bx = (nx - x) * (long)Unit, by = (ny - y) * (long)Unit;
-        return ax * by == ay * bx && ax * bx + ay * by > 0 && ax * bx + ay * by < bx * bx + by * by;
+        var (nx, ny, kind) = Node(path[1], width);
+        int bx = m.Middle(nx), by = (ny + 1) * Unit;
+        if (kind != StepKind.Run || by == ay) return On(c.X, c.Y, ax, ay, bx, by);
+        return by < ay ? On(c.X, c.Y, ax, ay, ax, by) || On(c.X, c.Y, ax, by, bx, by) : On(c.X, c.Y, ax, ay, bx, ay) || On(c.X, c.Y, bx, ay, bx, by);
+    }
+
+    /// <summary>Whether (<paramref name="x"/>, <paramref name="y"/>) lies on the segment from a to b, a itself excepted.</summary>
+    private static bool On(int x, int y, int ax, int ay, int bx, int by)
+    {
+        long px = x - ax, py = y - ay, dx = bx - ax, dy = by - ay;
+        long along = px * dx + py * dy;
+        return (px != 0 || py != 0) && px * dy == py * dx && along >= 0 && along <= dx * dx + dy * dy;
     }
 
     /// <summary>Whether the step to (<paramref name="x"/>, <paramref name="y"/>) is still passable as <paramref name="kind"/>: free for a run or a flight, breakable for a cut.</summary>
@@ -270,6 +311,18 @@ internal sealed class HuntDrive : DriveRule
     {
         if (!m.Overlaps(spec.Body, m.Middle(x), (y + 1) * Unit)) return true;
         return kind == StepKind.Cut && m.Breaks(f, x, y);
+    }
+
+    /// <summary>Whether the body goes from where <paramref name="c"/> is to the node of <paramref name="step"/> as it would follow it, through nothing solid.</summary>
+    private static bool Clear(CreaturesModule m, Spec.Species spec, Creature c, int step, int width)
+    {
+        var (x, y, kind) = Node(step, width);
+        int tx = m.Middle(x), ty = (y + 1) * Unit;
+        if (kind != StepKind.Run || ty == c.Y) return m.Clear(spec.Body, c.X, c.Y, tx, ty);
+        // A run rises first up a step and moves across first down one.
+        return ty < c.Y
+            ? m.Clear(spec.Body, c.X, c.Y, c.X, ty) && m.Clear(spec.Body, c.X, ty, tx, ty)
+            : m.Clear(spec.Body, c.X, c.Y, tx, c.Y) && m.Clear(spec.Body, tx, c.Y, tx, ty);
     }
 
     private static (int X, int Y, StepKind Kind) Node(int step, int width) => (step / 4 % width, step / 4 / width, (StepKind)(step % 4));
