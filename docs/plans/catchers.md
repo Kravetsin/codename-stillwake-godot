@@ -52,6 +52,8 @@ A breath is `Crew.BreathEvery` (20 ticks, 1 s); a client reports a moving hero's
 - No new command: activity rides the hero's `Enter` reports and `Exert`.
 
 ## Approach (slice 1: the planet)
+
+Built; its flight, `Wear` and `GrownWall` gave way to [catcher-paths](../decisions/2026-11-09-catcher-paths.md).
 **The meter, on Crew's `Hero`** (not in Creatures: it travels with the hero between surfaces, and Crew already charges
 place costs each breath). Saved fields with "none yet" defaults, omitted while default: no format step.
 - `Stirred`, the last tick the hero acted: an `Enter` moving its cell, or running (`Exerting`). Thrust would count, but Crew
@@ -130,8 +132,8 @@ catchers in the save. Heroes' cells and hits stay client-authoritative (0002, 01
 
 ## Slices
 1. The planet, the Brawler: the meter, the bracelet, the flyer, the hunt, `Wear`, the answer, the look and sounds picked.
-2. The Marksman and Gasser kits with range-holding; space (the meter away from the ship, a catcher holding at the ship's edge).
-3. Later: nail kits (creature shots hitting heroes), wearing built walls with unified damage, `Stir` from other modules.
+2. The Marksman and Gasser kits with range-holding; space (the meter away from the ship, the intercept of [catcher-paths](../decisions/2026-11-09-catcher-paths.md) at a space speed).
+3. Later: nail kits (creature shots hitting heroes), `Stir` from other modules.
 
 ## Open (the body follows each recommendation until the user says otherwise)
 - Slice 1 with the Brawler alone (recommended: the first playable soonest, slice 2 right after), or all three kits.

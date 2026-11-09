@@ -5,14 +5,14 @@ namespace Stillwake.Sim.Creatures;
 
 /// <summary>
 /// The flyer (the catcher's jetpack, tracker-catchers): no gravity; it moves its speed across, then down, each axis stopped where its body
-/// would meet something solid. Stopped, one that wears strikes every solid cell its body would take there, ascending, every
-/// <c>CutEvery</c> ticks, when all of them are grown walls (<c>Building.Wears</c>); one that is not stays stopped, so it slides along
-/// the other axis. Leaving (<see cref="Through"/>), nothing stops it. What it keeps, in its <c>Mem</c>: whether it passes through,
-/// the clock of its next strike, and of its last.
+/// would meet something solid. Stopped while its drive lets it cut (<see cref="Cuts"/>, a path's cut step, catcher-paths), one that wears
+/// strikes every solid cell its body would take there, ascending, every <c>CutEvery</c> ticks, when the damage rule breaks each of them
+/// (<c>Building.Strikes</c>); else it stays stopped. Leaving (<see cref="Through"/>), nothing stops it. What it keeps, in its <c>Mem</c>:
+/// whether it passes through, whether it cuts, the clock of its next strike, and of its last.
 /// </summary>
 internal sealed class FlyerBody : BodyRule
 {
-    internal const string Through = "through", NextCut = "nextCut", LastCut = "lastCut";
+    internal const string Through = "through", Cuts = "cuts", NextCut = "nextCut", LastCut = "lastCut";
 
     internal override Type Serves => typeof(Spec.Flyer);
 
@@ -58,13 +58,13 @@ internal sealed class FlyerBody : BodyRule
             (c.X, c.Y) = (x, y);
             return true;
         }
-        if (c.Act == null) Cut(m, c, (Spec.Flyer)spec.Body, x, y);
+        if (c.Act == null && c.Recall(Cuts) == 1) Cut(m, c, (Spec.Flyer)spec.Body, x, y);
         return false;
     }
 
     /// <summary>
     /// <paramref name="c"/>'s strike on what stops a body of <paramref name="f"/> at (<paramref name="x"/>, <paramref name="y"/>):
-    /// every solid cell there, ascending, when its time has come and all of them wear; none past the grid or in the fog.
+    /// every solid cell there, ascending, when its time has come and each breaks; none past the grid or in the fog.
     /// </summary>
     private static void Cut(CreaturesModule m, Creature c, Spec.Flyer f, int x, int y)
     {
@@ -73,7 +73,7 @@ internal sealed class FlyerBody : BodyRule
         int left = Down(x - half, Unit), right = Down(x + half - 1, Unit), top = Down(y - f.Height * Unit, Unit), bottom = Down(y - 1, Unit);
         for (int row = top; row <= bottom; row++)
             for (int column = left; column <= right; column++)
-                if (m.Solid(column, row) && (column < 0 || row < 0 || column >= m.GridWidth || row >= m.GridHeight || !m.Wears(row * m.GridWidth + column)))
+                if (m.Solid(column, row) && (column < 0 || row < 0 || column >= m.GridWidth || row >= m.GridHeight || m.Strikes(row * m.GridWidth + column, f.Wear) == null))
                     return;
         for (int row = top; row <= bottom; row++)
             for (int column = left; column <= right; column++)

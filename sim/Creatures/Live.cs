@@ -39,11 +39,56 @@ public sealed partial class CreaturesModule
     /// <summary>Calls peer <paramref name="peer"/>'s hunt off (tracker-catchers): its wanted meter emptied.</summary>
     internal void CallOff(int peer) => _crewOps.CallOff(peer);
 
-    /// <summary>Whether a catcher may wear the wall in <paramref name="cell"/> away (<c>Building.Wears</c>).</summary>
-    internal bool Wears(int cell) => _built.Wears(cell);
+    /// <summary>How many strikes of <paramref name="damage"/> break what is solid in <paramref name="cell"/>; null where none does (<c>Building.Strikes</c>).</summary>
+    internal int? Strikes(int cell, int damage) => _built.Strikes(cell, damage);
 
-    /// <summary>A catcher's strike on the grown wall in <paramref name="cell"/> (<c>Building.Wear</c>).</summary>
+    /// <summary>A catcher's strike on what is solid in <paramref name="cell"/> (<c>Building.Wear</c>).</summary>
     internal void Wear(int cell, int damage) => _building.Wear(cell, damage);
+
+    /// <summary>The path search hunters share (catcher-paths): its memory reused, never saved.</summary>
+    internal readonly PathFinder Paths = new();
+
+    /// <summary>The one hunter whose path is searched this tick, by id: the one due longest, then the least id; -1 for none.</summary>
+    internal int Searcher { get; private set; } = -1;
+
+    /// <summary>Picks <see cref="Searcher"/> before the creatures run, so at most one search a tick.</summary>
+    private void PickSearcher()
+    {
+        Searcher = -1;
+        int best = int.MaxValue;
+        foreach (var c in State.Creatures)
+            if (!c.Dead && Spec.Get(c.Species).Lifetime == Spec.Lifetime.Hunter && HuntDrive.DueAt(this, c) is int due && due < best)
+                (best, Searcher) = (due, c.Id);
+    }
+
+    /// <summary>Whether a body of <paramref name="s"/> standing on cell (<paramref name="x"/>, <paramref name="y"/>) has something solid under its feet.</summary>
+    internal bool Grounded(Spec.Shape s, int x, int y)
+    {
+        int half = s.Width * Unit / 2;
+        for (int column = Down(Middle(x) - half, Unit); column <= Down(Middle(x) + half - 1, Unit); column++)
+            if (Solid(column, y + 1)) return true;
+        return false;
+    }
+
+    /// <summary>Whether a body of <paramref name="s"/> moved straight from (<paramref name="x0"/>, <paramref name="y0"/>) to (<paramref name="x1"/>, <paramref name="y1"/>), in steps of half a cell, meets nothing solid.</summary>
+    internal bool Clear(Spec.Shape s, int x0, int y0, int x1, int y1)
+    {
+        int steps = Math.Max(1, (Math.Max(Math.Abs(x1 - x0), Math.Abs(y1 - y0)) + Unit / 2 - 1) / (Unit / 2));
+        for (int i = 1; i <= steps; i++)
+            if (Overlaps(s, x0 + (int)((long)(x1 - x0) * i / steps), y0 + (int)((long)(y1 - y0) * i / steps))) return false;
+        return true;
+    }
+
+    /// <summary>Whether every solid cell a body of <paramref name="f"/> standing on (<paramref name="x"/>, <paramref name="y"/>) covers breaks by its strikes.</summary>
+    internal bool Breaks(Spec.Flyer f, int x, int y)
+    {
+        int half = f.Width * Unit / 2;
+        for (int row = y - f.Height + 1; row <= y; row++)
+            for (int column = Down(Middle(x) - half, Unit); column <= Down(Middle(x) + half - 1, Unit); column++)
+                if (Solid(column, row) && (column < 0 || row < 0 || column >= _grid.Width || row >= _grid.Height || Strikes(row * _grid.Width + column, f.Wear) == null))
+                    return false;
+        return true;
+    }
 
     /// <summary>Peer <paramref name="peer"/>'s hero's reported cell as a column and row; null for none on the grid.</summary>
     internal (int X, int Y)? HeroAt(int peer, bool awake = false) =>
@@ -62,6 +107,7 @@ public sealed partial class CreaturesModule
         s.Clock += 1;
         FindHeroes();
         Fume();
+        PickSearcher();
         var all = s.Creatures;
         int kept = 0;
         for (int i = 0; i < all.Count; i++)

@@ -98,6 +98,12 @@ public sealed class Creature
     /// </summary>
     [JsonInclude, JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] internal List<Note>? Mem { get; set; }
 
+    /// <summary>
+    /// Its way, a hunter's (catcher-paths): the steps left to where it goes, each a cell times four plus its <see cref="StepKind"/>, the cell
+    /// its body's bottom middle stands on. Saved, so a load and a joiner follow the same way; none for every other creature.
+    /// </summary>
+    [JsonInclude, JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] internal List<int>? Path { get; set; }
+
     /// <summary>The clock it was last in some hero's keep box: <c>Creatures.Linger</c> past it, out of every one, it is gone.</summary>
     [JsonInclude] public int SeenAt { get; internal set; }
 
