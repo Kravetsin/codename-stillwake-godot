@@ -151,6 +151,17 @@ public partial class ShotsView : Node2D
         BurstChip = Luminous.Chip with { Gravity = 420, Bounce = 0.25, Size = 1.6, Low = true };
 
     /// <summary>
+    /// The burst's sparks: a spray of hot streaks thrown every way, curling as they slow and arcing down where there is weight; a few
+    /// long ones flung far; burning sulfur drifting after, rising slowly as it dims. Counts are once a burst, a rare thing.
+    /// </summary>
+    private static readonly Luminous BurstSpark = Luminous.BreakSpark with { LifeMs = (500, 1300), Drag = 1.1, Gravity = 260, Bounce = 0.3 },
+        BurstStreak = Luminous.ShardEmber with { LifeMs = (700, 1200), Drag = 0.6, Gravity = 200, Bounce = 0.3, Bright = 1 },
+        BurstEmber = Luminous.Ember with { LifeMs = (1400, 2600) };
+
+    private const int BurstSparks = 90, BurstStreaks = 14, BurstEmbers = 22;
+    private static readonly (int R, int G, int B) Afterglow = (255, 176, 84);
+
+    /// <summary>
     /// A charge's burst (blasting-charge), the user's pick: a white flash, a grey ring of dust thrown out as wide as what broke, and
     /// out of every wall it broke chips of its ground flung away from the burst, falling where there is weight; heard as far as a
     /// wreck breaks and farther, the own one through the suit.
@@ -199,11 +210,47 @@ public partial class ShotsView : Node2D
             double a = glims.Between(0, Math.Tau), s = ring * glims.Between(0.5, 0.9);
             glims.Add(BurstCloud, x, y, Math.Cos(a) * s, Math.Sin(a) * s, bright: 0.7, size: glims.Between(1.6, 2.4));
         }
+        Sparks(glims, x, y, ring, afloat, Floor(end.Burst));
         stage.Flares.Glint(x, y, 1.5 * cell, (255, 255, 255));
         stage.Flares.Bloom(x, y, 4 * cell, White, 0.9 * Fx.Glow);
         stage.Flares.Shock(x, y, 4, ring, 450, (200, 198, 190), 0.5 * Fx.Glow, 0.5);
-        stage.Flares.Flash(x, y, White, 1.2 * Fx.Glow, 14, 0.6f, 0.85);
+        stage.Flares.Flash(x, y, White, 1.4 * Fx.Glow, 20, 0.6f, 0.8);
+        // The sulfur burning on: a warm light lingering in the dark after the white is gone.
+        stage.Flares.Flash(x, y, Afterglow, 0.7 * Fx.Glow, 16, 0.5f, 0.96);
         (by == Ref.Hero(own) ? _ownEnds : _ends).Play(S.ChargeBurst, new Vector2((float)x, (float)y));
+    }
+
+    /// <summary>The sparks, streaks and embers of a burst at (<paramref name="x"/>, <paramref name="y"/>), thrown about as far as <paramref name="ring"/>; weightless afloat, else bouncing on <paramref name="floor"/>.</summary>
+    private static void Sparks(Glims glims, double x, double y, double ring, bool afloat, double? floor)
+    {
+        var (spark, streak, ember) = afloat
+            ? (BurstSpark with { Gravity = 0 }, BurstStreak with { Gravity = 0 }, BurstEmber with { Gravity = 0 })
+            : (BurstSpark, BurstStreak, BurstEmber);
+        double reach = Math.Max(ring, 4 * Camera.Cell);
+        for (int i = 0; i < Math.Round(BurstSparks * Fx.Count); i++)
+        {
+            double a = glims.Between(0, Math.Tau), s = reach * glims.Between(1.2, 3.2);
+            glims.Add(spark, x + glims.Between(-3, 3), y + glims.Between(-3, 3), Math.Cos(a) * s, Math.Sin(a) * s, floor, size: glims.Between(0.8, 1.4));
+        }
+        for (int i = 0; i < Math.Round(BurstStreaks * Fx.Count); i++)
+        {
+            double a = glims.Between(0, Math.Tau), s = reach * glims.Between(3, 4.5);
+            glims.Add(streak, x, y, Math.Cos(a) * s, Math.Sin(a) * s, floor, size: glims.Between(1.2, 1.8));
+        }
+        for (int i = 0; i < Math.Round(BurstEmbers * Fx.Count); i++)
+        {
+            double a = glims.Between(0, Math.Tau), s = reach * glims.Between(0.15, 0.6);
+            glims.Add(ember, x + glims.Between(-6, 6), y + glims.Between(-6, 6), Math.Cos(a) * s, Math.Sin(a) * s, size: glims.Between(0.6, 1.1));
+        }
+    }
+
+    /// <summary>The top of the first solid cell under <paramref name="cell"/>, in pixels of the world, the crater's floor sparks bounce on; none within reach.</summary>
+    private double? Floor(int cell)
+    {
+        var grid = _m.Grid;
+        for (int r = cell / grid.Width; r < Math.Min(grid.Height, cell / grid.Width + Spec.Blasting.Charge.Reach + 2); r++)
+            if (grid.Solid(r * grid.Width + cell % grid.Width)) return r * Camera.Cell;
+        return null;
     }
 
     private static bool Flying(CreaturesModule creatures, int id)
