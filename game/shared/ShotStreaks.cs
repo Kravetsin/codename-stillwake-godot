@@ -58,6 +58,8 @@ public partial class ShotStreaks : Node2D
     {
         Material = new CanvasItemMaterial { LightMode = CanvasItemMaterial.LightModeEnum.Unshaded };
         _bodies = new Bodies { Thrown = _thrown, ShowBehindParent = true };
+        // Lit as what is held is: with no material of its own it drew black in the dark of the caves.
+        Lit.Set(_bodies);
         AddChild(_bodies);
     }
 
