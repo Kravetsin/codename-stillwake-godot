@@ -24,8 +24,8 @@ public partial class ReachAir : Node2D
     public void Thrust(double aim, double half, double range, double inner, double sweepMs, double fadeMs) =>
         _cuts.Thrust(aim, half, range, inner, sweepMs, fadeMs);
 
-    /// <summary>A swing's blade sheds a mote now (<see cref="AirCuts.Shed"/>).</summary>
-    public void Shed((double X, double Y) edge, double range, double fadeMs) => _cuts.Shed(edge, range, fadeMs);
+    /// <summary>A swing's blade is cutting now (<see cref="AirCuts.Swing"/>).</summary>
+    public void Swing(double from, double to, double range) => _cuts.Swing(from, to, range);
 
     /// <summary><paramref name="elapsedMs"/> on, the running tool's <paramref name="zone"/>, none while none runs.</summary>
     public void Follow(AirCuts.Zone? zone, double elapsedMs)

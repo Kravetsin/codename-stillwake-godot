@@ -18,30 +18,31 @@ public class AirCutsTests
     }
 
     [Fact]
-    public void AMoteShedOffTheBladeFliesStraightOutToTheRangeAndIsGone()
+    public void ASwingsBlurTrailsTheBladeOverWhatItSweptOutToTheRangeAndFadesWhenItStops()
     {
         var cuts = new AirCuts();
         Assert.False(cuts.Live);
-        // Off the axe's edge 26 px out, 0.3 rad below the line ahead; its range 36.
-        double a = 0.3;
-        cuts.Shed((26 * Math.Cos(a), 26 * Math.Sin(a)), range: 36, fadeMs: 220);
-        var furthest = new List<double>();
-        for (int frame = 0; frame < 20; frame++)
+        // The blade entered the fan at -0.6 rad and comes down 0.1 a frame; the axe's range 36.
+        double from = -0.6, blade = from;
+        for (int frame = 0; frame < 10; frame++)
         {
+            blade += 0.1;
+            cuts.Swing(from, blade, range: 36);
             cuts.Step(Frame, null);
             var points = Drawn(cuts);
+            Assert.NotEmpty(points);
             foreach (var (x, y) in points)
             {
-                Assert.InRange(Math.Atan2(y, x), a - 0.02, a + 0.02);
-                Assert.InRange(Math.Sqrt(x * x + y * y), 26 - 1, 36 + 0.5);
+                // Never ahead of the blade, never before where it came in, between the blade and the range.
+                Assert.InRange(Math.Atan2(y, x), from - 0.02, blade + 0.02);
+                Assert.InRange(Math.Sqrt(x * x + y * y), 36 - 13 - 1, 36 + 0.5);
             }
-            if (points.Count > 0) furthest.Add(points.Max(p => Math.Sqrt(p.X * p.X + p.Y * p.Y)));
+            if (frame == 9) Assert.True(points.Max(p => Math.Atan2(p.Y, p.X)) > blade - 0.1, $"its front lags the blade at {blade}");
         }
-        // From the blade outward, never back, stopping near the range; then gone.
-        Assert.True(furthest[0] < 30, $"born at {furthest[0]}");
-        for (int i = 1; i < furthest.Count; i++) Assert.True(furthest[i] >= furthest[i - 1] - 1e-6, string.Join(' ', furthest));
-        Assert.True(furthest[^1] > 33, $"it stopped at {furthest[^1]}");
+        // Let go, it fades out and is gone.
+        for (double ms = 0; ms <= WorkLooks.ZoneOut + Frame; ms += Frame) cuts.Step(Frame, null);
         Assert.False(cuts.Live);
+        Assert.Empty(Drawn(cuts));
     }
 
     [Fact]

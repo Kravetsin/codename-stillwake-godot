@@ -225,9 +225,9 @@ public partial class Figure : Node2D
 
     /// <summary>The phase the swing was at last frame: a cut of the air begins as the blade crosses the fan's near edge.</summary>
     private double _cutPhase;
-    /// <summary>A swing's blade edge a frame ago, and the time toward its next mote (<see cref="AirCuts.Shed"/>).</summary>
+    /// <summary>A swing's blade edge a frame ago, and the angle it entered its fan at in this cut (<see cref="AirCuts.Swing"/>).</summary>
     private (double X, double Y)? _edgeWas;
-    private double _shedMs = WorkLooks.ShedEveryMs;
+    private double? _cutFrom;
     /// <summary>Whether the swing playing bit something, and is drawn held at the strike (<see cref="AxeSwing.Shown"/>); the phase last drawn.</summary>
     private bool _bit;
     private double _lastPhase;
@@ -1269,8 +1269,8 @@ public partial class Figure : Node2D
                 }
             }
         }
-        // The air the tool works shows its reach while it is used (tool-reach): a thrust's dust thrown out; a swing's shed off its
-        // blade's edge as it cuts the fan, each mote flying out to the range; a running drill's or grinder's zone.
+        // The air the tool works shows its reach while it is used (tool-reach): a thrust's dust thrown out; a swing's blur in dry-brush
+        // arcs behind its blade, out to the range; a running drill's or grinder's zone.
         if (chopping && _chop is { Aim: var cutAim, Phase: var cutPhase, Play: var cutPlay } && cutPlay.HitShare is double hitShare
             && Stillwake.Content.Weapons.Of(Wields) is { } weapon)
         {
@@ -1282,13 +1282,17 @@ public partial class Figure : Node2D
                 if (_cutPhase < hitShare && cutPhase >= hitShare)
                     _air.Thrust(aimAngle, half, range, Math.Sqrt(edge.X * edge.X + edge.Y * edge.Y), WorkLooks.ThrustSweepMs, WorkLooks.CutFadeOf(Wields));
             }
-            // Only in the cut: the arm coming back through the fan to the next step sheds nothing.
-            else if (_edgeWas is { } was && cutPhase >= cutPlay.ShareAt(-half) && cutPhase <= cutPlay.ShareAt(half) && AirCuts.Cutting(edge, was, aimAngle, half))
-                for (_shedMs += elapsedMs; _shedMs >= WorkLooks.ShedEveryMs; _shedMs -= WorkLooks.ShedEveryMs) _air.Shed(edge, range, WorkLooks.CutFadeOf(Wields));
-            else _shedMs = WorkLooks.ShedEveryMs;
+            else if (cutPhase < cutPlay.ShareAt(-half) || cutPhase > cutPlay.ShareAt(half)) _cutFrom = null;
+            // In the cut, the blade moving within its fan: the arc it has swept, from where it entered (a bite holds it, fading).
+            else if (_edgeWas is { } was && AirCuts.Cutting(edge, was, aimAngle, half))
+            {
+                double at = aimAngle + Math.IEEERemainder(Math.Atan2(edge.Y, edge.X) - aimAngle, 2 * Math.PI);
+                _cutFrom ??= at;
+                _air.Swing(_cutFrom.Value, at, range);
+            }
             (_cutPhase, _edgeWas) = (cutPhase, edge);
         }
-        else (_cutPhase, _edgeWas, _shedMs) = (0, null, WorkLooks.ShedEveryMs);
+        else (_cutPhase, _edgeWas, _cutFrom) = (0, null, null);
         _air.Follow(Spinning && inHand && item != null ? ZoneOf(frontArm, item) : null, elapsedMs);
         _beamMs = Math.Max(0, _beamMs - elapsedMs);
         ShowBeams(holding);

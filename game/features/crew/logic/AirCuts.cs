@@ -7,8 +7,9 @@ namespace Stillwake.Game.Features.Crew;
 
 /// <summary>
 /// The air a tool works, showing its reach while it is used (tool-reach), drawn in the arms' frame, the shoulder at the origin,
-/// in pixels. A swing's dust shed off the blade's edge as it crosses the fan, a few motes, each flying straight out from the
-/// shoulder and stopping at the range; a thrust's carried forward along it to the range («Пыль по ходу удара»). A running drill's or grinder's zone, its working part grown: the
+/// in pixels. A swing's blur: dry-brush arcs round the shoulder from the blade out to the range, over the angles the blade
+/// has swept in this cut, their front on the blade, the inner ones shorter, broken afresh every step as the grinder's are; a
+/// thrust's dust carried forward along it to the range («Пыль по ходу удара»). A running drill's or grinder's zone, its working part grown: the
 /// bit's point a cone to its range, the wheel's forward half a disc, in a few broken dry-brush strokes flickering round as it
 /// turns («Сухая кисть»). Never clipped by walls: it shows how far and how wide, the hits show what.
 /// </summary>
@@ -21,8 +22,8 @@ public sealed class AirCuts
     /// </summary>
     private readonly record struct Cut(double Start, double Aim, double Half, double Range, double Inner, double SweepMs, double FadeMs, int Seed);
 
-    /// <summary>A mote a swing's blade shed at <paramref name="Start"/> ms from <paramref name="From"/>, flying out to <paramref name="Range"/>.</summary>
-    private readonly record struct Mote(double Start, (double X, double Y) From, double Range, double FadeMs, int Seed);
+    /// <summary>A swing's cut: swept from <paramref name="From"/> to <paramref name="To"/> radians, out to <paramref name="Range"/> pixels, last cutting at <paramref name="Last"/> ms.</summary>
+    private readonly record struct Swish(double From, double To, double Range, double Last, int Seed);
 
     /// <summary>
     /// A running tool's zone this frame: a <paramref name="Disc"/>'s forward half round <paramref name="At"/>, <paramref name="Size"/>
@@ -31,14 +32,14 @@ public sealed class AirCuts
     public readonly record struct Zone(bool Disc, (double X, double Y) At, (double X, double Y) Toward, double Size);
 
     private readonly List<Cut> _cuts = [];
-    private readonly List<Mote> _motes = [];
+    private readonly List<Swish> _swishes = [];
     private readonly List<(double X, double Y)> _line = [];
     private double _clock, _ranFor, _off;
     private Zone? _zone;
     private int _seeds;
 
     /// <summary>Whether anything is drawn now.</summary>
-    public bool Live => _cuts.Count > 0 || _motes.Count > 0 || On > 0;
+    public bool Live => _cuts.Count > 0 || _swishes.Count > 0 || On > 0;
 
     /// <summary>How much a running tool's zone shows: eased in over <see cref="WorkLooks.ZoneIn"/> ms, out over <see cref="WorkLooks.ZoneOut"/> after it stops.</summary>
     private double On => _zone == null ? 0
@@ -58,17 +59,24 @@ public sealed class AirCuts
     /// </summary>
     public static bool Cutting((double X, double Y) edge, (double X, double Y) was, double aim, double half) =>
         Math.Abs(Math.IEEERemainder(Math.Atan2(edge.Y, edge.X) - aim, 2 * Math.PI)) <= half
-        && (edge.X - was.X) * (edge.X - was.X) + (edge.Y - was.Y) * (edge.Y - was.Y) >= WorkLooks.ShedMoving * WorkLooks.ShedMoving;
+        && (edge.X - was.X) * (edge.X - was.X) + (edge.Y - was.Y) * (edge.Y - was.Y) >= WorkLooks.CutMoving * WorkLooks.CutMoving;
 
-    /// <summary>A swing's blade sheds a mote now at its <paramref name="edge"/>, to fly out to <paramref name="range"/>; seen <paramref name="fadeMs"/>.</summary>
-    public void Shed((double X, double Y) edge, double range, double fadeMs) => _motes.Add(new(_clock, edge, range, fadeMs, ++_seeds));
+    /// <summary>
+    /// A swing's blade is cutting now, at <paramref name="to"/> radians, having entered its fan at <paramref name="from"/>: the same
+    /// <paramref name="from"/> goes on the cut drawn, another begins one; out to <paramref name="range"/>. Let go, it fades out.
+    /// </summary>
+    public void Swing(double from, double to, double range)
+    {
+        if (_swishes.Count > 0 && _swishes[^1].From == from) _swishes[^1] = _swishes[^1] with { To = to, Range = range, Last = _clock };
+        else _swishes.Add(new(from, to, range, _clock, ++_seeds));
+    }
 
     /// <summary><paramref name="elapsedMs"/> on, a running tool's <paramref name="zone"/>, none while none runs.</summary>
     public void Step(double elapsedMs, Zone? zone)
     {
         _clock += elapsedMs;
         _cuts.RemoveAll(c => _clock - c.Start > c.SweepMs + c.FadeMs * 1.2);
-        _motes.RemoveAll(m => _clock - m.Start > m.FadeMs);
+        _swishes.RemoveAll(w => _clock - w.Last > WorkLooks.ZoneOut);
         if (zone is { } z)
         {
             _ranFor = _off > 0 ? 0 : _ranFor + elapsedMs;
@@ -86,7 +94,7 @@ public sealed class AirCuts
     public void Draw(Ink ink)
     {
         foreach (var cut in _cuts) Dust(ink, cut, _clock - cut.Start);
-        foreach (var mote in _motes) Flown(ink, mote, _clock - mote.Start);
+        foreach (var swish in _swishes) Swept(ink, swish, 1 - Pens.Clamp((_clock - swish.Last) / WorkLooks.ZoneOut));
         if (_zone is { } zone && On > 0) Brush(ink, zone, _ranFor, On);
     }
 
@@ -122,25 +130,23 @@ public sealed class AirCuts
         }
     }
 
-    // A mote off a swing's blade: straight out from the shoulder, slowing to a stop just short of the range, a short tail behind.
-    private static void Flown(Ink ink, Mote m, double age)
+    // A swing's blur, as the grinder's face blurred in turning: arcs at four radii in from the range, each ending on the blade, the
+    // outer longest; stepped as the zones are.
+    private void Swept(Ink ink, Swish w, double k)
     {
-        double from = Math.Sqrt(m.From.X * m.From.X + m.From.Y * m.From.Y);
-        if (from <= 0 || age < 0) return;
-        var (ux, uy) = (m.From.X / from, m.From.Y / from);
-        double stop = Math.Max(from, m.Range * (0.93 + 0.07 * Pens.Hash(m.Seed, 1)));
-        double life = m.FadeMs * (0.7 + 0.3 * Pens.Hash(m.Seed, 2));
-        if (age > life) return;
-        (double X, double Y) At(double t) { double r = from + (stop - from) * (1 - Math.Exp(-Math.Max(0, t) / 45)); return (ux * r, uy * r); }
-        double fade = Math.Pow(1 - age / life, 0.8);
-        var tone = m.Seed % 3 != 0 ? WorkLooks.AirInk.Faded((float)(0.85 * fade)) : WorkLooks.DustInk.Faded((float)(0.7 * fade));
-        double width = 0.34 + 0.18 * Pens.Hash(m.Seed, 3);
-        var last = At(age - 24);
-        for (int i = 1; i <= 3; i++)
+        if (k <= 0) return;
+        int step = (int)Math.Floor(_clock / WorkLooks.BrushStepMs);
+        double span = w.To - w.From;
+        (double R, double Length)[] arcs = [(w.Range - 0.4, 1), (w.Range - 4, 0.8), (w.Range - 8.5, 0.6), (w.Range - 13, 0.4)];
+        for (int s = 0; s < arcs.Length; s++)
         {
-            var next = At(age - 24 * (1 - i / 3.0));
-            ink.Segment(last, next, width, tone);
-            last = next;
+            var (r, len) = arcs[s];
+            if (r <= 0 || Math.Abs(span * len) < 0.02) continue;
+            Bristles(ink, (q, off) =>
+            {
+                double a = w.To - span * len * (1 - q), rr = r + off;
+                return (Math.Cos(a) * rr, Math.Sin(a) * rr);
+            }, Math.Max(4, (int)Math.Ceiling(Math.Abs(span * len) * r / 2.5)), w.Seed * 5 + s, step, k);
         }
     }
 
