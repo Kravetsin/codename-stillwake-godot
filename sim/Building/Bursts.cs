@@ -18,24 +18,28 @@ public enum Spoils
 }
 
 /// <summary>
-/// Bursts (unified-damage): the one rule for what a charge or a meteor breaks, as a tool's or a shot's hit, in every direction
-/// through the shared <see cref="Wave"/>. A step costs <see cref="Damage.Step"/>; natural ground what is left of its strength; a
-/// built wall, piece or machine that over <see cref="Damage.BuiltTakes"/>, so a burst cracks what is built and a second breaks it.
+/// Bursts (unified-damage, damage-scale): the one rule for what a charge or a meteor breaks, as a tool's or a shot's hit, in every
+/// direction through the shared <see cref="Wave"/>. A step costs <see cref="Damage.Step"/>, a cell what is left of its strength; a
+/// player's own burst aboard their ship that over <see cref="Damage.OwnShipTakes"/>, so a charge thrown aboard only cracks it.
 /// </summary>
 public sealed partial class BuildingModule
 {
     private readonly Wave _wave = new();
     private readonly List<int> _burstBroken = [], _burstPaid = [], _burstBacks = [];
     private readonly List<(int Key, int Left)> _burstCracked = [];
+    private bool _burstOwn;
 
     /// <inheritdoc/>
     public bool Burst(int peer, int cell, int power, int reach, Spoils spoils)
     {
-        if (cell < 0 || cell >= _grid.Width * _grid.Height || BurstEnter(cell) is not int first) return false;
+        if (cell < 0 || cell >= _grid.Width * _grid.Height) return false;
+        // Cleared before the first cell is priced: what the last burst paid for must not make this one's first cell free.
         _burstBroken.Clear();
         _burstPaid.Clear();
         _burstBacks.Clear();
         _burstCracked.Clear();
+        _burstOwn = peer != FloorStack.Nobody;
+        if (BurstEnter(cell) is not int first) return false;
         _wave.Spread(_grid.Width, _grid.Height, cell, first, power, reach, BurstEnter, (at, cost) =>
         {
             if (_grid.WallAt(at) != null) _burstBroken.Add(at);
@@ -47,9 +51,10 @@ public sealed partial class BuildingModule
             if (spoils == Spoils.Lost && BackCost(at) is int back && power - cost >= back) _burstBacks.Add(at);
         }, (at, left) =>
         {
-            if (_grid.WallAt(at) is { } wall) _burstCracked.Add((at, wall.Natural ? left : left * Damage.BuiltTakes / 1000));
-            else if (_grid.MachineAt(at) is { } machine) _burstCracked.Add((machine.Cell, Machines.Get(machine.Kind).Hp != null ? left : left * Damage.BuiltTakes / 1000));
-            else if (PieceAt(at) is { } piece) _burstCracked.Add((piece.Head, left * Damage.BuiltTakes / 1000));
+            int crack = Softened(at) ? left * Damage.OwnShipTakes / 1000 : left;
+            if (_grid.WallAt(at) != null) _burstCracked.Add((at, crack));
+            else if (_grid.MachineAt(at) is { } machine) _burstCracked.Add((machine.Cell, crack));
+            else if (PieceAt(at) is { } piece) _burstCracked.Add((piece.Head, crack));
         });
         _burstBroken.Sort();
         bool shocked = false;
@@ -82,29 +87,28 @@ public sealed partial class BuildingModule
     }
 
     /// <summary>
-    /// What a burst pays to enter <paramref name="cell"/> besides its step: nothing open; natural ground what is left of its strength,
-    /// a pile its hit points; a built wall, piece or machine that over <see cref="Damage.BuiltTakes"/>, rounded up, a piece or machine
+    /// What a burst pays to enter <paramref name="cell"/> besides its step: nothing open; a wall, piece or machine what is left of its
+    /// strength (a pile of its hit points), over <see cref="Damage.OwnShipTakes"/> where <see cref="Softened"/>, a piece or machine
     /// once, nothing more once one cell of it is entered; null where it stops: bedrock, lava, the fog, a <c>Fixed</c> machine.
     /// </summary>
     private int? BurstEnter(int cell)
     {
         if (!_grid.Zone.Contains(cell % _grid.Width, cell / _grid.Width)) return null;
-        if (_grid.WallAt(cell) is { } wall) return Cost(cell, wall, back: false);
+        if (_grid.WallAt(cell) is { } wall) return Cost(cell, wall, back: false) is int cost ? Share(cell, cost) : null;
         if (_grid.MachineAt(cell) is { } machine)
         {
             var spec = Machines.Get(machine.Kind);
             if (spec.HitPoints is not int hp) return null;
             if (_burstPaid.Contains(machine.Cell)) return 0;
-            return spec.Hp != null ? Remaining(machine.Cell, hp) : Built(Remaining(machine.Cell, hp));
+            return Share(cell, Remaining(machine.Cell, hp));
         }
-        if (PieceAt(cell) is { } piece) return _burstPaid.Contains(piece.Head) ? 0 : Built(Remaining(piece.Head, piece.Build.Strength));
+        if (PieceAt(cell) is { } piece) return _burstPaid.Contains(piece.Head) ? 0 : Share(cell, Remaining(piece.Head, piece.Build.Strength));
         return _grid.StructureAt(cell) != Structure.Empty ? null : 0;
     }
 
-    /// <summary>What breaking <paramref name="wall"/> at <paramref name="cell"/> costs a burst: what is left of it, a built one's over its share; null for one that never breaks.</summary>
+    /// <summary>What breaking <paramref name="wall"/> at <paramref name="cell"/> costs a burst in full: what is left of it; null for one that never breaks.</summary>
     private int? Cost(int cell, Material wall, bool back) =>
-        wall.Strength == Material.Unbreakable ? null
-        : wall.Natural ? Remaining(cell, wall.Strength, back) : Built(Remaining(cell, wall.Strength, back));
+        wall.Strength == Material.Unbreakable ? null : Remaining(cell, wall.Strength, back);
 
     /// <summary>What breaking the back wall at <paramref name="cell"/> costs a burst, as a wall; null for none, or one that never breaks.</summary>
     private int? BackCost(int cell) => _grid.BackAt(cell) is { } back ? Cost(cell, back, back: true) : null;
@@ -122,11 +126,15 @@ public sealed partial class BuildingModule
     private int Remaining(int key, int strength, bool back = false) =>
         strength - (CrackIndex(key, back) is >= 0 and var at ? State.Cracks[at].Damage : 0);
 
-    /// <summary>What a burst pays to break a whole, uncracked wall of <paramref name="wall"/>: a meteor from the dev panel's charge.</summary>
-    public static int ToBreak(Material wall) => wall.Natural ? wall.Strength : Built(wall.Strength);
+    /// <summary>Whether this burst takes only its share at <paramref name="cell"/>: a player's own, on their ship (damage-scale).</summary>
+    private bool Softened(int cell) => _burstOwn && Aboard(cell);
 
-    /// <summary>What a burst pays to break a built thing <paramref name="left"/> short of breaking, taking a share of it: rounded up.</summary>
-    private static int Built(int left) => (left * 1000 + Damage.BuiltTakes - 1) / Damage.BuiltTakes;
+    /// <summary>
+    /// What a burst pays at <paramref name="cell"/> for what is <paramref name="left"/> of its strength: that, or over its share where
+    /// <see cref="Softened"/>, rounded up, so the crack an unpaid cell takes always stays below what is left of it.
+    /// </summary>
+    private int Share(int cell, int left) =>
+        Softened(cell) ? (left * 1000 + Damage.OwnShipTakes - 1) / Damage.OwnShipTakes : left;
 
     /// <summary><paramref name="cost"/> fallen at <paramref name="cell"/> for anyone, as <paramref name="spoils"/> says: none when lost.</summary>
     private void Leave(Spoils spoils, IReadOnlyList<(string Item, int Count)> cost, int cell)

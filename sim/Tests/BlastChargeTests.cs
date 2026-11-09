@@ -157,12 +157,9 @@ public class BlastChargeTests
     }
 
     [Fact]
-    public void AScrapWallInTheGroundCracksAndASecondChargeBreaksIt()
+    public void AScrapWallInTheGroundBreaksToOneChargeInFull()
     {
         var w = Pit('t', (x, y) => x == 20 && y == 10 ? 'w' : null);
-        Thrown(w, At(20, 8, Down));
-        Assert.NotNull(w.M.Grid.WallAt(10 * W + 20));
-        Assert.Equal((Blast.Power - 2 * Spec.Damage.Step) * Spec.Damage.BuiltTakes / 1000, CrackAt(w, 10 * W + 20));
         Thrown(w, At(20, 8, Down));
         Assert.Null(w.M.Grid.WallAt(10 * W + 20));
         Assert.Equal(1, Lying(w, "scrapChunk"));

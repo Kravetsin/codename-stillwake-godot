@@ -73,6 +73,17 @@ public partial class ContentTests
         Assert.True(fitted.BlockDamage < Materials.All.Where(m => m.Breaks && m.Id != "soil").Min(m => m.Strength));
     }
 
+    [Fact]
+    public void BuiltWallsTakeThePickaxeSixToSevenBlowsUnderAlloysEightAndNoWallIsBeyondIt()
+    {
+        // Set by the pickaxe's blows (damage-scale): alloy the strongest wall, every breakable one in a hand's reach.
+        int Blows(string id) => (Materials.Get(id).Strength + Weapons.Pickaxe.BlockDamage - 1) / Weapons.Pickaxe.BlockDamage;
+        Assert.Equal((6, 6, 6, 7, 7, 8), (Blows("scrap"), Blows("wreckScrap"), Blows("castScrap"), Blows("iron"), Blows(Vessels.Hull), Blows("alloy")));
+        Assert.All(Materials.All.Where(m => m.Strength != Material.Unbreakable), m => Assert.True(m.Strength <= Materials.Get("alloy").Strength, m.Id));
+        Assert.Equal(Damage.MachineHp, Materials.Get("scrap").Strength);
+        Assert.All(Builds.All, b => Assert.True(b.Strength <= Materials.Get("iron").Strength, b.Id));
+    }
+
     // Machines
 
     [Fact]

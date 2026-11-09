@@ -83,7 +83,7 @@ public sealed partial class BuildingModule
             return true;
         }
         // Aboard, tools break only a vessel's things (generated-vessels): a ray elsewhere only stops, the ship untouched.
-        if (!Rules.ToolsBreak && !InVessel(cell)) return _grid.WallAt(cell) != null || _grid.Blocks(cell);
+        if (Aboard(cell)) return _grid.WallAt(cell) != null || _grid.Blocks(cell);
         if (_grid.WallAt(cell) is { } wall)
         {
             if (wall.Strength != Material.Unbreakable) cells.Add(cell);
@@ -104,6 +104,9 @@ public sealed partial class BuildingModule
 
     /// <summary>Whether <paramref name="cell"/> is in the box a vessel was written into (generated-vessels).</summary>
     private bool InVessel(int cell) => _grid.Reserved is { } box && box.Contains(cell % _grid.Width, cell / _grid.Width);
+
+    /// <summary>Whether <paramref name="cell"/> is of the player's own ship: where the surface's tools break nothing, out of a vessel's box.</summary>
+    private bool Aboard(int cell) => !Rules.ToolsBreak && !InVessel(cell);
 
     /// <summary>The built piece at <paramref name="cell"/>, a floor, ladder, door or hatch: its first cell, kept by, and its build; none for a wall or nothing.</summary>
     private (int Head, Build Build)? PieceAt(int cell)

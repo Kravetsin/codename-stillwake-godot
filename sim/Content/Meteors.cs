@@ -19,17 +19,17 @@ public static class Meteors
 
     /// <summary>
     /// The starting space till anyone has landed (2026-10-29-weak-meteors-till-landing): the first a quarter of an hour in, then one
-    /// every four to six minutes, as weak as a castaway can patch. A burst of 440 at power 2 to 1100 at 5, on a scrap hull two cells
-    /// thick, 541 a cell to break, built: 2 cracks it, 3 and 4 break the outer cell, 5, one in twenty, breaches it, four cells.
+    /// every four to six minutes, as weak as a castaway can patch. A burst of 340 at power 2 to 850 at 5, on a scrap hull two cells
+    /// thick, 400 a cell to break: 2 cracks it, 3 and 4 break the outer cell, 5, one in twenty, breaches it, four cells.
     /// </summary>
-    public static readonly Shower BeforeLanding = new(4 * 60 * 20, 6 * 60 * 20, 3 * 20, Charge: 0, PerPower: 220, Reach: 4,
+    public static readonly Shower BeforeLanding = new(4 * 60 * 20, 6 * 60 * 20, 3 * 20, Charge: 0, PerPower: 170, Reach: 4,
         [(2, 40), (3, 35), (4, 20), (5, 5)], First: 15 * 60 * 20);
 
     /// <summary>
-    /// The starting space once a hero has landed: one every four to six minutes, three seconds seen. A burst of 440 at power 2 to 1540
+    /// The starting space once a hero has landed: one every four to six minutes, three seconds seen. A burst of 340 at power 2 to 1190
     /// at 7: power 5 and up, one in five, breaches a scrap hull alone, the rest crack it or hole its outer cell, so a second on a
-    /// cracked patch breaches; an iron cell (1352) breaks only to the strongest.
+    /// cracked patch breaches; an iron hull (500 a cell) holes at 3 and breaches at 6.
     /// </summary>
-    public static readonly Shower StartingSpace = new(4 * 60 * 20, 6 * 60 * 20, 3 * 20, Charge: 0, PerPower: 220, Reach: 4,
+    public static readonly Shower StartingSpace = new(4 * 60 * 20, 6 * 60 * 20, 3 * 20, Charge: 0, PerPower: 170, Reach: 4,
         [(2, 34), (3, 26), (4, 20), (5, 10), (6, 6), (7, 4)]);
 }

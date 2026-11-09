@@ -118,8 +118,10 @@ public class DigTests
         Assert.Equal(["building.nothingToDig", "building.nothingToDig", "building.nothingToDig"], Reasons(w));
         Assert.Empty(w.M.Building.Cracks);
         Assert.Equal("bedrock", w.M.Grid.WallAt(At(7, 2))?.Id);
-        // On a planet a hull wall is any wall: struck, and its scrap given back.
-        w.Do(HewTesting.Dig(w, At(0, 2), Axe)).Run();
+        // On a planet a hull wall is any wall: struck till it breaks, ten blows of the axe, and its scrap given back.
+        int blows = 0;
+        for (; blows < 30 && w.M.Grid.WallAt(At(0, 2)) != null; blows++) w.Do(HewTesting.Dig(w, At(0, 2), Axe)).Run();
+        Assert.Equal((Materials.Get("scrap").Strength + Weapons.Axe.BlockDamage - 1) / Weapons.Axe.BlockDamage, blows);
         Assert.Null(w.M.Grid.WallAt(At(0, 2)));
         Assert.Equal(Materials.Get("scrap").Cost.Single(), ("scrapChunk", Count(w, "scrapChunk")));
     }

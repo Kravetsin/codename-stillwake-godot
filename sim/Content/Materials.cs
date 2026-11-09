@@ -5,9 +5,9 @@ namespace Stillwake.Content;
 /// <summary>What a wall or a back wall is made of: a hull material, or a planet's natural ground (0077).</summary>
 /// <param name="Code">Stored in saves instead of the name: never reuse or renumber a code.</param>
 /// <param name="Strength">
-/// A wall's hit points, in tenths (unified-damage): the damage of weapons' hits (0054) that breaks it out (0077), and of a burst's,
-/// a charge's or a meteor's, a built one's over its share (<see cref="Damage.BuiltTakes"/>). <see cref="Unbreakable"/> for one nothing
-/// breaks, bedrock and lava.
+/// A wall's hit points, in tenths (unified-damage, damage-scale): the damage of weapons' hits (0054) that breaks it out (0077), and
+/// of a burst's, a charge's or a meteor's; set by the pickaxe's blows, alloy's eight the most (scrap six, iron seven). A player's
+/// own burst pays <see cref="Damage.OwnShipTakes"/> of it aboard. <see cref="Unbreakable"/> for one nothing breaks, bedrock and lava.
 /// </param>
 /// <param name="Leak">
 /// Oxygen units lost every <see cref="Air.LeakEvery"/> ticks (ten minutes) through one cell of it that an
@@ -82,18 +82,18 @@ public static class Materials
     [
         // Metal hull (2026-10-29-wall-roles): patched scrap and riveted plates stand up to meteors, and leak at their seams. Scrap is
         // patched of a raw chunk, so a hole is mended with no furnace and no air (2026-10-29-weak-meteors-till-landing).
-        new("scrap", Code: 1, Strength: 20, Leak: 30, Cost: [("scrapChunk", 1)], BuildTicks: 7, Menu: new(MenuTabs.Structure, 10), BackMenu: new(MenuTabs.Structure, 110)),
+        new("scrap", Code: 1, Strength: 400, Leak: 30, Cost: [("scrapChunk", 1)], BuildTicks: 7, Menu: new(MenuTabs.Structure, 10), BackMenu: new(MenuTabs.Structure, 110)),
         // A wreck's original plates: scrap in every rule, there only so the client can dress them; a wall built in their place is scrap, clean.
-        new("wreckScrap", Code: 14, Strength: 20, Leak: 30, Cost: [("scrapChunk", 1)], BuildTicks: 7, As: "scrap"),
+        new("wreckScrap", Code: 14, Strength: 400, Leak: 30, Cost: [("scrapChunk", 1)], BuildTicks: 7, As: "scrap"),
         // Scrap cast clean of its rust (2026-11-03-cast-scrap): scrap in every number but its cost, two of a chunk's four once smelted.
-        new("castScrap", Code: 15, Strength: 20, Leak: 30, Cost: [("scrap", 2)], BuildTicks: 7, Menu: new(MenuTabs.Structure, 12), BackMenu: new(MenuTabs.Structure, 112)),
-        new("iron", Code: 2, Strength: 50, Leak: 20, Cost: [("plate", 1)], BuildTicks: 14, Look: MaterialLook.Panels, Menu: new(MenuTabs.Structure, 20), BackMenu: new(MenuTabs.Structure, 120)),
-        // The seals: whole sheets no air gets through, and any meteor breaks. Alike but for their look, the player's choice.
-        new("glass", Code: 11, Strength: 10, Leak: 15, Cost: [("glass", 2)], BuildTicks: 10, Menu: new(MenuTabs.Structure, 22), BackMenu: new(MenuTabs.Structure, 122), Clear: true),
-        new("mica", Code: 12, Strength: 10, Leak: 15, Cost: [("mica", 2)], BuildTicks: 8, Menu: new(MenuTabs.Structure, 24), BackMenu: new(MenuTabs.Structure, 124)),
-        new("hide", Code: 13, Strength: 10, Leak: 15, Cost: [("hide", 1), ("fat", 1)], BuildTicks: 6, Menu: new(MenuTabs.Structure, 26), BackMenu: new(MenuTabs.Structure, 126)),
+        new("castScrap", Code: 15, Strength: 400, Leak: 30, Cost: [("scrap", 2)], BuildTicks: 7, Menu: new(MenuTabs.Structure, 12), BackMenu: new(MenuTabs.Structure, 112)),
+        new("iron", Code: 2, Strength: 500, Leak: 20, Cost: [("plate", 1)], BuildTicks: 14, Look: MaterialLook.Panels, Menu: new(MenuTabs.Structure, 20), BackMenu: new(MenuTabs.Structure, 120)),
+        // The seals: whole sheets no air gets through, weaker than the hull: three pickaxe blows, and any meteor breaks them. Alike but for their look, the player's choice.
+        new("glass", Code: 11, Strength: 200, Leak: 15, Cost: [("glass", 2)], BuildTicks: 10, Menu: new(MenuTabs.Structure, 22), BackMenu: new(MenuTabs.Structure, 122), Clear: true),
+        new("mica", Code: 12, Strength: 200, Leak: 15, Cost: [("mica", 2)], BuildTicks: 8, Menu: new(MenuTabs.Structure, 24), BackMenu: new(MenuTabs.Structure, 124)),
+        new("hide", Code: 13, Strength: 200, Leak: 15, Cost: [("hide", 1), ("fat", 1)], BuildTicks: 6, Menu: new(MenuTabs.Structure, 26), BackMenu: new(MenuTabs.Structure, 126)),
         // A generated vessel's plating (generated-vessels): iron in every rule but its yield, a scrap chunk a cell; never built, drawn as iron.
-        new(Vessels.Hull, Code: 17, Strength: 50, Leak: 20, Cost: [("scrapChunk", 1)], BuildTicks: 14, Look: MaterialLook.Panels, As: "iron"),
+        new(Vessels.Hull, Code: 17, Strength: 500, Leak: 20, Cost: [("scrapChunk", 1)], BuildTicks: 14, Look: MaterialLook.Panels, As: "iron"),
         // A planet's ground (0077), far leakier than any hull, soil the worst. Soil breaks at a swing of the axe, stone at three; a
         // shovelful of soil and a lump of rock, the asteroids' own, come out of it, and build it back. Laid stone stands up to meteors
         // better than scrap, soil worse.
