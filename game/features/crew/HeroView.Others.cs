@@ -91,6 +91,7 @@ public partial class HeroView
             shown.Figure.Scanner = m.Items.Equipped(id, Content.Helmet.Scanner);
             shown.Figure.WearsCape = m.Items.Equipped(id, Content.Cape.Item);
             shown.Figure.FloorRoom = FloorRoom(m.Grid, hero);
+            shown.Figure.RoomAhead = RoomAhead(ship, hero, shown.Swing);
             shown.Figure.Footing = FootingOf(m, hero, shown.Figure.Footing);
             shown.Figure.InWater = ship.Wading(hero.FeetCell(ship.Width));
             shown.Figure.Ledge = LedgeOf(ship, hero);

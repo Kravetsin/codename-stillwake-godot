@@ -797,6 +797,12 @@ public readonly record struct Hero(
     }
 
     /// <summary>
+    /// How far <paramref name="hero"/>'s body could go the way it faces before something solid stops it, in thousandths of a cell,
+    /// looking no further than <paramref name="most"/>: the same cells a walk tests. What a combo's stance steps into (axe-combos).
+    /// </summary>
+    public static int RoomAhead(Ship ship, Hero hero, int most) => Math.Abs(MoveX(ship, hero.X, hero.Y, hero.Facing * most) - hero.X);
+
+    /// <summary>
     /// <paramref name="x"/> moved by <paramref name="dx"/>, stopped flush against the first column the leading edge enters with
     /// something solid in the box's rows. A walk steps up onto what stops it here (<see cref="Walk"/>).
     /// </summary>

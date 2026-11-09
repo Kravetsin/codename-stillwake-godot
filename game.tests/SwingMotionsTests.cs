@@ -238,7 +238,7 @@ public class SwingMotionsTests
     public void TheSectorAndItsMotionAreChosenAtThePressAndKeptWhereverTheAimGoesAfter()
     {
         var up = Fixed with { WhooshShare = 0.4 };
-        var stroke = Strokes.Axe with { Motions = new SectorMotions(up, Overhand.Motion, Overhand.Motion, Overhand.Motion) };
+        var stroke = Strokes.Axe with { Motions = new SectorMotions(up, Overhand.Motion, Overhand.Motion, Overhand.Motion), Combo = null };
         var swing = new AxeSwing();
         swing.Advance(Frame, true, new Point(1_000, -3_000), default, stroke, -1.2);
         Assert.Equal(Sector.Up, swing.Play!.Sector);
@@ -274,6 +274,9 @@ public class SwingMotionsTests
     /// Another's hero running right, sent every 50 ms and heard at once, pressing at <paramref name="presses"/>' times toward its
     /// offsets, each held its pace: every replay begun in <paramref name="ms"/>, when, its offset, the hero drawn then and the one last sent.
     /// </summary>
+    /// <summary>The axe as it swung before its combo (axe-combos): a stroke a pace, the replay's timing these tests were written for.</summary>
+    private static readonly Stroke Single = Strokes.Axe with { Combo = null };
+
     private static List<(double At, Point Aim, Hero Shown, Hero Sent)> Replay(double ms, params (double At, Point Aim)[] presses)
     {
         var remote = new RemoteHeroes();
@@ -299,7 +302,7 @@ public class SwingMotionsTests
                 heard = Busy.Hear(heard, seen);
                 nextSend += RemoteHeroes.SendMs;
             }
-            if (swing.Follow(Frame, heard.Last, heard.From).Begun) begun.Add((t, swing.Aim, remote.At(t)[0].Seen.Hero, sent));
+            if (swing.Follow(Frame, heard.Last, heard.From, Single).Begun) begun.Add((t, swing.Aim, remote.At(t)[0].Seen.Hero, sent));
         }
         return begun;
     }

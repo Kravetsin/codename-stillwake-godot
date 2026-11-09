@@ -298,7 +298,7 @@ public static class Poses
     }
 
     /// <summary>How far a boot turns from its shin's line to lie flat, the body turned <paramref name="tilt"/>, within how far an ankle turns.</summary>
-    private static double Flat(Bend leg, double tilt) => Math.Clamp(tilt - leg.Upper - leg.Lower, -Feel.Feet.Down, Feel.Feet.Up);
+    internal static double Flat(Bend leg, double tilt) => Math.Clamp(tilt - leg.Upper - leg.Lower, -Feel.Feet.Down, Feel.Feet.Up);
 
     /// <summary>
     /// How low a boot's sole reaches, its leg bent as <paramref name="leg"/> from a hip <paramref name="hipX"/> ahead, turned

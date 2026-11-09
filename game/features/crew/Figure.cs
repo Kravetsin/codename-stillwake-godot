@@ -225,8 +225,16 @@ public partial class Figure : Node2D
     /// <summary>Whether the swing playing bit something, and is drawn held at the strike (<see cref="AxeSwing.Shown"/>); the phase last drawn.</summary>
     private bool _bit;
     private double _lastPhase;
-    /// <summary>The node the body's parts hang from: where a shoulder is, the arms' own frame.</summary>
+    /// <summary>The node the body's parts hang from: the hip's place at rest, the legs' frame and the feet's.</summary>
     private readonly Node2D _frame;
+    /// <summary>
+    /// The upper body (axe-combos): turned by a combo's lean about the hip and moved with it, the identity otherwise; where a
+    /// shoulder is, the arms' own frame. What lies behind the legs, the far arm and the cape's inside, hangs from a twin of it.
+    /// </summary>
+    private readonly Node2D _waist, _waistBehind;
+    /// <summary>The body a combo's step puts into the strike, eased in and out (<see cref="ComboBody"/>).</summary>
+    private BodyBlend _bodyBlend;
+    private readonly BladeTrailView _trail = new();
     /// <summary>The near arm's node among the parts: the held stage's view goes just under it.</summary>
     private readonly Node2D _frontArmNode;
     private Vector2? _workAt;
@@ -333,17 +341,20 @@ public partial class Figure : Node2D
         _body = new Node2D();
         var parts = _frame = new Node2D { Position = new Vector2(0, (float)(Rig.H / 2)) };
         _body.AddChild(parts);
+        (_waist, _waistBehind) = (new Node2D(), new Node2D());
         // Both legs come out from under the body, which hides their joints; the near arm hangs in front,
         // its hand over the sheet it holds and closed round the axe's haft or the harpoon's stock.
-        foreach (var n in new Node2D[] { backArm, backLeg, frontLeg, torso, _helmet, _plan, _tool, _held, frontArm, _air }) parts.AddChild(n);
+        foreach (var n in new Node2D[] { _trail, _waistBehind, backLeg, frontLeg, _waist }) parts.AddChild(n);
+        _waistBehind.AddChild(backArm);
+        foreach (var n in new Node2D[] { torso, _helmet, _plan, _tool, _held, frontArm, _air }) _waist.AddChild(n);
         (_capeInside, _capeOutside) = (new CapeView(_cape, inside: true) { Visible = false }, new CapeView(_cape, inside: false) { Visible = false });
         Lit.Set(_capeInside);
         Lit.Set(_capeOutside);
-        parts.AddChild(_capeInside);
-        parts.MoveChild(_capeInside, 0);
+        _waistBehind.AddChild(_capeInside);
+        _waistBehind.MoveChild(_capeInside, 0);
         // The inside lies in the cape's shadow: darker, so it reads as depth behind the hero.
         _capeInside.SelfModulate = new Color(0.72f, 0.72f, 0.78f);
-        parts.AddChild(_capeOutside);
+        _waist.AddChild(_capeOutside);
         _air.Position = new Vector2(0, (float)-Rig.Shoulder);
         AddChild(_body);
         Wear(colour);
@@ -363,7 +374,7 @@ public partial class Figure : Node2D
     /// <summary>A point of the world from the front shoulder, in the arms' own frame: the body as it is placed, turned, lifted and faced.</summary>
     private (double X, double Y) FromShoulder(Vector2 at)
     {
-        var local = _frame.ToLocal(at);
+        var local = _waist.ToLocal(at);
         return (local.X, local.Y + Rig.Shoulder);
     }
 
@@ -379,7 +390,7 @@ public partial class Figure : Node2D
         if (aim == Vector2.Zero) return (1, 0);
         // Never shown, the body has no place yet: the offset as it is, faced.
         if (_shown == null) return (aim.X * facing, aim.Y);
-        var local = _frame.Transform.AffineInverse() * (_body.Transform.AffineInverse() * new Vector2(aim.X * facing, aim.Y - (float)_stepLift));
+        var local = _waist.Transform.AffineInverse() * (_frame.Transform.AffineInverse() * (_body.Transform.AffineInverse() * new Vector2(aim.X * facing, aim.Y - (float)_stepLift)));
         return (local.X, local.Y + Rig.Shoulder);
     }
 
@@ -398,6 +409,9 @@ public partial class Figure : Node2D
     /// world's axes, as far through as its phase says, the motion it plays; null between strokes.
     /// </summary>
     public void Chop((Vector2 Aim, double Phase, MotionPlay Play)? swing) => _chop = swing;
+
+    /// <summary>How far, in pixels, the floor before the feet is free for a combo's step to carry the body (<see cref="Hero.RoomAhead"/>).</summary>
+    public double RoomAhead { get; set; } = double.PositiveInfinity;
 
     /// <summary>The swing playing bit something: its arm is drawn stopped on contact for a moment (0075), the sim untouched.</summary>
     public void Bit() => _bit = true;
@@ -555,8 +569,8 @@ public partial class Figure : Node2D
             if (_heldStage != null) return _heldStage;
             _heldStage = Stages.Held();
             _heldView = new EffectsView(_heldStage) { InWorld = true };
-            _frame.AddChild(_heldView);
-            _frame.MoveChild(_heldView, _frontArmNode.GetIndex());
+            _waist.AddChild(_heldView);
+            _waist.MoveChild(_heldView, _frontArmNode.GetIndex());
             return _heldStage;
         }
     }
@@ -1006,11 +1020,17 @@ public partial class Figure : Node2D
         _body.Position = new Vector2(0, (float)((shown.Lying ? -(Rig.H / 2) * c - Back * s : -Rig.H / 2) - shown.Lift));
         Position = (OnPixels ?? new Vector2((float)feetX, (float)feetY)) + new Vector2(0, (float)lift);
         Scale = new Vector2(hero.Facing, 1);
+        // A combo's step puts the body into the strike (axe-combos): the hip, the legs and the lean, eased in and out.
+        BodyLayer? wanted = null;
+        if (chopping && _chop is { Phase: var bodyPhase, Play: { Body: not null } bodyPlay } && ComboBody.At(bodyPlay, bodyPhase * bodyPlay.Ms) is { } state)
+            wanted = ComboBody.Over(shown, state, pose, walking ? _moving : 1, RoomAhead);
+        var body = _bodyBlend.Next(wanted, hero.Facing, pose is Pose.Lie or Pose.Tumble, elapsedMs);
+        _waist.Transform = _waistBehind.Transform = WaistOf(body);
         if (_capeOutside.Visible)
         {
             _cape.Step(
                 elapsedMs,
-                p => { var g = _frame.ToGlobal(new Vector2((float)p.X, (float)p.Y)); return (g.X, g.Y); },
+                p => { var g = _waist.ToGlobal(new Vector2((float)p.X, (float)p.Y)); return (g.X, g.Y); },
                 pose is Pose.Float or Pose.Tumble);
             _capeInside.Refresh();
             _capeOutside.Refresh();
@@ -1057,7 +1077,7 @@ public partial class Figure : Node2D
             // the blade, not the hand, crosses the line to it (0040, swing-motions).
             if (phase < _lastPhase) _bit = false;
             _lastPhase = phase;
-            double drawn = _bit ? AxeSwing.Shown(phase, stroke!) : phase;
+            double drawn = _bit ? AxeSwing.Shown(phase, play) : phase;
             (elbow, wrist) = (play.ElbowAt(drawn), play.WristAt(drawn));
             // The spear: aimed as a gun is, the shaft's line through the point, the elbow cocked and straightened (the jab).
             if (play.Motion.Kind == MotionKind.Thrust)
@@ -1095,22 +1115,27 @@ public partial class Figure : Node2D
         if (carried && _sinceCarryMs < HeroMotion.Carry.SpringAfterMs) frontArm = frontArm with { Upper = _armSpring.Follow(frontArm.Upper, elapsedMs) };
         else _armSpring.Hold(frontArm.Upper);
         _swingArm.Drew(frontArm);
-        var backArm = shown.BackArm;
+        // The far arm keeps its turn in the body's frame as the upper body leans; gripping, it closes on the haft.
+        var backArm = new Bend(shown.BackArm.Upper + body.FarArm.Upper + body.Lean, shown.BackArm.Lower + body.FarArm.Lower);
+        if (body.Grip > 0 && inHand && item != null) backArm = Mix(backArm, HaftGrip.ArmFor(frontArm, item, wrist).Arm, Math.Min(1, body.Grip));
         _frontArm.Bend(frontArm);
         _backArm.Bend(backArm);
-        _frontHip.Position = new Vector2((float)Rig.HipApart, (float)(-Rig.Hip - Rig.HipRise(Rig.HipApart, shown.Tilt)));
-        _backHip.Position = new Vector2((float)-Rig.HipApart, (float)(-Rig.Hip - Rig.HipRise(-Rig.HipApart, shown.Tilt)));
-        _frontLeg.Bend(shown.FrontLeg, shown.FrontFoot);
-        _backLeg.Bend(shown.BackLeg, shown.BackFoot);
+        _frontHip.Position = new Vector2((float)(Rig.HipApart + body.HipX), (float)(-Rig.Hip - Rig.HipRise(Rig.HipApart, shown.Tilt) + body.HipY));
+        _backHip.Position = new Vector2((float)(-Rig.HipApart + body.HipX), (float)(-Rig.Hip - Rig.HipRise(-Rig.HipApart, shown.Tilt) + body.HipY));
+        _frontLeg.Bend(new Bend(shown.FrontLeg.Upper + body.FrontLeg.Upper, shown.FrontLeg.Lower + body.FrontLeg.Lower), shown.FrontFoot + body.FrontFoot);
+        _backLeg.Bend(new Bend(shown.BackLeg.Upper + body.BackLeg.Upper, shown.BackLeg.Lower + body.BackLeg.Lower), shown.BackFoot + body.BackFoot);
         if (cues.Sparks > 0)
         {
-            Vector2 Glove(Bend arm) => _frame.ToGlobal(Pixel(Rig.FistOf(arm)));
+            Vector2 Glove(Bend arm) => _waist.ToGlobal(Pixel(Rig.FistOf(arm)));
             Sparks(Glove(frontArm), Glove(backArm), cues.Sparks);
         }
         bool awake = pose is not (Pose.Lie or Pose.Tumble);
         _head = Settle(_head, awake ? look : 0, elapsedMs, HeadSettleMs);
         // On the floor the head takes back some of the body's lean, so a run looks ahead, not at the floor.
-        _helmet.Rotation = (float)(_head - (pose is Pose.Stand or Pose.Walk or Pose.Run ? shown.Tilt * HeroMotion.Run.HeadSteady : 0));
+        // In a combo's strike it keeps the eyes up as the body leans and follows the blade a little.
+        double follow = swung is var (swungAngle, _) && _chop is { Play: var headPlay } ? Math.Clamp(swungAngle - headPlay.Lead, Combos.HeadFollowUp, Combos.HeadFollowDown) : 0;
+        _helmet.Rotation = (float)(_head - (pose is Pose.Stand or Pose.Walk or Pose.Run ? shown.Tilt * HeroMotion.Run.HeadSteady : 0)
+            - Combos.HeadSteady * body.Lean + Combos.HeadFollow * body.Follow * follow);
         // The sheet is in the front hand, tilted to face the eyes: up toward them looking up, flatter
         // looking down at it.
         _plan.Visible = holding;
@@ -1184,7 +1209,8 @@ public partial class Figure : Node2D
             }
         }
         // The air the tool works shows its reach while it is used (tool-reach): a stroke's cut, a running drill's or grinder's zone.
-        if (chopping && _chop is { Aim: var cutAim, Phase: var cutPhase, Play: var cutPlay } && Stillwake.Content.Weapons.Of(Wields) is { } weapon)
+        if (chopping && _chop is { Aim: var cutAim, Phase: var cutPhase, Play: var cutPlay } && cutPlay.HitShare != null
+            && Stillwake.Content.Weapons.Of(Wields) is { } weapon)
         {
             bool jab = cutPlay.Motion.Kind == MotionKind.Thrust;
             double half = Strokes.HalfOf(weapon);
@@ -1193,13 +1219,16 @@ public partial class Figure : Node2D
             {
                 var edge = Rig.HeldAt(frontArm, item!, item!.EdgeTo, wrist);
                 double reach = Math.Sqrt(edge.X * edge.X + edge.Y * edge.Y);
-                double sweep = jab ? WorkLooks.ThrustSweepMs : (cutPlay.ShareAt(half) - start) * stroke!.Ms;
+                double sweep = jab ? WorkLooks.ThrustSweepMs : (cutPlay.ShareAt(half) - start) * cutPlay.Ms;
                 _air.Strike(jab, AimAngleOf(cutAim, hero.Facing), half, weapon.Range * Rig.Cell / Hero.Unit, jab ? reach : reach - 4, sweep,
                     WorkLooks.CutFadeOf(Wields));
             }
             _cutPhase = cutPhase;
         }
         else _cutPhase = 0;
+        // A combo's blade leaves a pale trail on the fast part of each cut, behind the figure (axe-combos).
+        _trail.Show(inHand && item != null && chopping && _chop is { Aim: var trailAim, Phase: var trailPhase, Play: { Step: not null } trailPlay }
+            ? TrailOf(trailPlay, trailPhase * trailPlay.Ms, AimAngleOf(trailAim, hero.Facing), item, shown, pose, walking ? _moving : 1) : null);
         _air.Follow(Spinning && inHand && item != null ? ZoneOf(frontArm, item) : null, elapsedMs);
         _beamMs = Math.Max(0, _beamMs - elapsedMs);
         ShowBeams(holding);
@@ -1229,7 +1258,37 @@ public partial class Figure : Node2D
         return length < 1 ? null : new(false, (at.X, at.Y), (cx / length, cy / length), length);
     }
 
-    /// <summary>A point from the front shoulder, in the arms' own frame, in the body's parts' frame.</summary>
+    /// <summary>
+    /// The trail of <paramref name="play"/>'s blade <paramref name="nowMs"/> into it, aimed <paramref name="aim"/>, in the body's frame:
+    /// each past edge where the arm and the body then put it, the body unblended.
+    /// </summary>
+    private BladeTrail TrailOf(MotionPlay play, double nowMs, double aim, HeldLook item, Limbs shown, Pose pose, double moving)
+    {
+        double DrawnAt(double ms) => _bit ? AxeSwing.Shown(ms / play.Ms, play) : ms / play.Ms;
+        (Vec, Vec) EdgeAt(double ms)
+        {
+            double drawn = DrawnAt(ms), wrist = play.WristAt(drawn);
+            var arm = AxeSwing.ArmAt(play.AngleAt(aim, drawn), play.ElbowAt(drawn));
+            var waist = ComboBody.At(play, ms) is { } state && ComboBody.Over(shown, state, pose, moving, RoomAhead) is { } layer ? WaistOf(layer) : Transform2D.Identity;
+            Vec At((double X, double Y) p)
+            {
+                var v = waist * Pixel(Rig.HeldAt(arm, item, p, wrist));
+                return new(v.X, v.Y);
+            }
+            return (At(item.EdgeFrom), At(item.EdgeTo));
+        }
+        bool Cutting(double ms) => DrawnAt(ms) is var d && d >= play.Shares.Back && d <= play.Shares.Through;
+        return BladeTrail.Of(EdgeAt, Cutting, nowMs);
+    }
+
+    /// <summary>The upper body's place in the body's frame under <paramref name="layer"/> (<see cref="ComboBody.WaistOf"/>).</summary>
+    private static Transform2D WaistOf(BodyLayer layer)
+    {
+        var (at, turn) = ComboBody.WaistOf(layer);
+        return new Transform2D((float)turn, new Vector2((float)at.X, (float)at.Y));
+    }
+
+    /// <summary>A point from the front shoulder, in the arms' own frame, in the upper body's (`_waist`).</summary>
     private static Vector2 Pixel(Vec fromShoulder) => new((float)fromShoulder.X, (float)(fromShoulder.Y - Rig.Shoulder));
 
     /// <summary>A point of the held item's picture in the world, as it is drawn now.</summary>

@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 
 namespace Stillwake.Game.Features.Crew;
 
@@ -7,13 +8,18 @@ namespace Stillwake.Game.Features.Crew;
 /// <paramref name="HitShare"/> of it, and the next may begin <paramref name="PaceMs"/> after it began, its weapon's pace, so a
 /// stroke shorter than the pace rests between. It plays the motion of the sector it is aimed in (<paramref name="Motions"/>,
 /// swing-motions), <paramref name="Look"/> in the hand. Its whoosh's loudest moment lies <paramref name="PeakS"/> into its file. A
-/// swing sweeps its weapon's fan, <paramref name="Half"/> radians either side of its line (tool-reach).
+/// swing sweeps its weapon's fan, <paramref name="Half"/> radians either side of its line (tool-reach). Held, its <paramref name="Combo"/>, if it has
+/// one, chains step after step in the Straight and Down sectors (axe-combos).
 /// </summary>
 public sealed record Stroke(
-    SectorMotions Motions, HeldLook Look, double Ms, double PaceMs, double HitShare, double PeakS = Stillwake.Game.Sound.SwingPeakS, double Half = 0)
+    SectorMotions Motions, HeldLook Look, double Ms, double PaceMs, double HitShare, double PeakS = Stillwake.Game.Sound.SwingPeakS, double Half = 0,
+    IReadOnlyList<ComboStep>? Combo = null)
 {
-    /// <summary>When in a stroke playing <paramref name="motion"/> its whoosh begins: its loudest moment (<see cref="PeakS"/> in) at the motion's.</summary>
-    public double WhooshMsOf(SwingMotion motion) => Math.Max(0, (motion.WhooshShare ?? HitShare) * Ms - PeakS * 1000);
+    /// <summary>When in <paramref name="play"/> its whoosh begins: its loudest moment (<see cref="PeakS"/> in) at the motion's, at its hit for none.</summary>
+    public double WhooshMsOf(MotionPlay play) => Math.Max(0, (play.Motion.WhooshShare ?? play.HitShare ?? HitShare) * play.Ms - PeakS * 1000);
+
+    /// <summary>The combo it chains aimed in <paramref name="sector"/>: its own, straight ahead and down; none up or under the feet.</summary>
+    public IReadOnlyList<ComboStep>? ComboIn(Sector sector) => sector is Sector.Straight or Sector.Down ? Combo : null;
 }
 
 /// <summary>Every tool struck with by hand, by its item: the axe, the sledgehammer, the spear and the pickaxe.</summary>
@@ -24,9 +30,12 @@ public static class Strokes
     /// <summary>Half <paramref name="weapon"/>'s fan, in radians: how far either side of its line its rays go.</summary>
     public static double HalfOf(Content.Weapon weapon) => Math.PI * weapon.Arc / Content.Headings.Turn;
 
-    /// <summary>The fire axe's: a stroke its pace long (0040), overhand up, the chain straight and down, the chop under the feet (swing-motions).</summary>
+    /// <summary>
+    /// The fire axe's: a stroke its pace long (0040), overhand up, the chain straight and down, the chop under the feet (swing-motions);
+    /// held straight or down, its combo (axe-combos).
+    /// </summary>
     public static readonly Stroke Axe = new(new(Overhand.Motion, FixedMotions.Chain, FixedMotions.Chain, FixedMotions.Chop), HeldLook.FireAxe,
-        PaceMs(Content.Weapons.Axe), PaceMs(Content.Weapons.Axe), Overhand.HitAt, Half: HalfOf(Content.Weapons.Axe));
+        PaceMs(Content.Weapons.Axe), PaceMs(Content.Weapons.Axe), Overhand.HitAt, Half: HalfOf(Content.Weapons.Axe), Combo: Combos.FireAxe);
 
     /// <summary>
     /// The sledgehammer's: a stroke its pace long, 1.8 s, the blow 0.82 s in; heaved straight and down, overhand up and under the

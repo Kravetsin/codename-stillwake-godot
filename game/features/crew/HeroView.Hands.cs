@@ -192,7 +192,7 @@ public partial class HeroView
         _figure.Loaded = shooter != null ? _guns.Ready : _harpoon.Ready;
         _wields = passedOut ? null : _ui.Wielded.Get();
         _busy = working ? new Busy(Handwork.Work, square is { } box ? Middle(box.X, box.Y, side) : Middle(aim!.Cell))
-            : _swing.Phase != null ? new Busy(Handwork.Chop, _swing.At, _swing.Count)
+            : _swing.Phase != null ? new Busy(Handwork.Chop, _swing.At, _swing.Count, _swing.Step)
             : runs ? new Busy(Handwork.Drill, Aiming.PointOf(pointer!.Value))
             : _beamLeftMs > 0 && !handFree && !passedOut ? new Busy(Handwork.Beam, _beamAt)
             : null;
@@ -427,6 +427,14 @@ public partial class HeroView
         else if (!_thrustSound.Playing && _thrustLoop.Playing) _thrustLoop.Stop();
         _thrustLoop.VolumeDb = S.Thrust.VolumeDb + _thrustSound.GainDb;
     }
+
+    /// <summary>
+    /// How far, in pixels, the floor before <paramref name="hero"/> is free for the combo's step <paramref name="swing"/> plays to carry
+    /// the body (axe-combos); looked at only while one plays, unbounded otherwise.
+    /// </summary>
+    private static double RoomAhead(Ship ship, Hero hero, AxeSwing swing) => swing is { Phase: not null, Play.Body: not null }
+        ? (double)Hero.RoomAhead(ship, hero, (int)System.Math.Ceiling(Combos.MostAheadPx / Rig.Cell * Hero.Unit)) * Rig.Cell / Hero.Unit
+        : double.PositiveInfinity;
 
     /// <summary>
     /// The aim angle of a stroke aimed <paramref name="aim"/> from <paramref name="hero"/>, as <paramref name="figure"/>, faced to

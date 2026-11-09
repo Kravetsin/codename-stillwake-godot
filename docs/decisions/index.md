@@ -135,7 +135,7 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [the-descent](2026-10-26-the-descent.md) | The drop pod flies its rider down to the planet and back | accepted |  |
 | [arcs-are-hairlines](2026-10-27-arcs-are-hairlines.md) | Arcs are hairlines | accepted |  |
 | [effects-on-their-layer](2026-10-27-effects-on-their-layer.md) | Effects on their layer | accepted |  |
-| [one-arm-holds](2026-10-27-one-arm-holds.md) | Every item is held in one hand | accepted |  |
+| [one-arm-holds](2026-10-27-one-arm-holds.md) | Every item is held in one hand | accepted | axe-combos (in part) |
 | [sentry-arc](2026-10-27-sentry-arc.md) | The sentry strikes with an arc | accepted |  |
 | [shots-fall-aboard](2026-10-27-shots-fall-aboard.md) | Shots fall aboard | accepted |  |
 | [shots-pierce](2026-10-27-shots-pierce.md) | Shots pierce what they break | accepted |  |
@@ -292,7 +292,7 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [right-lets-go](2026-11-07-right-lets-go.md) | The right button lets the card go | accepted |  |
 | [scarce-oxygen](2026-11-07-scarce-oxygen.md) | Scarce oxygen | accepted | leaks-a-minute (in part) |
 | [steady-scanner](2026-11-07-steady-scanner.md) | A steady scanner readout | accepted |  |
-| [swing-motions](2026-11-07-swing-motions.md) | Swing motions | accepted |  |
+| [swing-motions](2026-11-07-swing-motions.md) | Swing motions | accepted | axe-combos (in part) |
 | [tether-haul](2026-11-07-tether-haul.md) | Hauling in along the tether | accepted |  |
 | [the-pickaxe](2026-11-07-the-pickaxe.md) | The pickaxe | accepted |  |
 | [the-scanner](2026-11-07-the-scanner.md) | The scanner reads a wreck's hit points | accepted |  |
@@ -317,4 +317,5 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [radar-contacts](2026-11-08-radar-contacts.md) | Radar contacts | accepted |  |
 | [scrap-to-iron](2026-11-08-scrap-to-iron.md) | Scrap to iron: four scrap smelt into an iron at any furnace | accepted |  |
 | [switched-off-sign](2026-11-08-switched-off-sign.md) | Switched-off sign | accepted |  |
+| [axe-combos](2026-11-09-axe-combos.md) | Axe combos | accepted |  |
 | [round-blasts](2026-11-09-round-blasts.md) | Blasts are round | accepted |  |

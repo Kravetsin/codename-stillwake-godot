@@ -48,7 +48,7 @@ public class StrokesTests
     {
         Assert.Equal((Strokes.Axe.Ms, Strokes.Axe.Ms, Overhand.HitAt), (Strokes.Axe.Ms, Strokes.Axe.PaceMs, Strokes.Axe.HitShare));
         // Its whoosh read from its row: loudest in the middle of the downstroke, as it always was.
-        Assert.Equal((Overhand.WindShare + Overhand.StrikeShare / 2) * Strokes.Axe.Ms - Sound.SwingPeakS * 1000, Strokes.Axe.WhooshMsOf(Overhand.Motion), 9);
+        Assert.Equal((Overhand.WindShare + Overhand.StrikeShare / 2) * Strokes.Axe.Ms - Sound.SwingPeakS * 1000, Strokes.Axe.WhooshMsOf(MotionPlay.Of(Strokes.Axe, -1.2)), 9);
     }
 
     [Fact]
@@ -110,7 +110,7 @@ public class StrokesTests
     public void ABiteStopsTheDrawnStrokeAtItsOwnHit()
     {
         double hit = Strokes.Spear.HitShare;
-        Assert.Equal(hit, AxeSwing.Shown(hit + 0.01, Strokes.Spear), 9);
-        Assert.Equal(1, AxeSwing.Shown(1, Strokes.Hammer), 9);
+        Assert.Equal(hit, AxeSwing.Shown(hit + 0.01, MotionPlay.Of(Strokes.Spear, 0)), 9);
+        Assert.Equal(1, AxeSwing.Shown(1, MotionPlay.Of(Strokes.Hammer, 0)), 9);
     }
 }

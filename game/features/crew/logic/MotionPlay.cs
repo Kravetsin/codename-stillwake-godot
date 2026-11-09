@@ -128,37 +128,110 @@ public static class FixedMotions
 }
 
 /// <summary>
-/// A motion as one stroke plays it (swing-motions), chosen once at the press by its aim and kept: its <see cref="Sector"/>, its
-/// <see cref="Motion"/>, its <see cref="Keys"/>, the item's <see cref="Lead"/>; the overhand's <see cref="Shape"/>, its keys built
-/// for its aim; for a fixed motion, the two shares its edge crosses the fan's sides at, sampled then.
+/// The arm as a play leaves it (axe-combos): its turn from straight ahead of the shoulder less the item's lead, its line and the
+/// shoulder's turn from it together, the elbow's bend and the wrist's turn.
+/// </summary>
+public readonly record struct ArmPose(double Turn, double Elbow, double Wrist);
+
+/// <summary>What a play begun as another is replaced starts from (axe-combos): that one's arm, and its body if it moved one.</summary>
+public readonly record struct Splice(ArmPose Arm, BodyState? Body);
+
+/// <summary>
+/// A motion as one stroke plays it (swing-motions, axe-combos), chosen once at the press by its aim and kept: its
+/// <see cref="Sector"/>, its <see cref="Motion"/>, its <see cref="Keys"/>, the item's <see cref="Lead"/>; the overhand's
+/// <see cref="Shape"/>, its keys built for its aim; for a fixed motion, the two shares its edge crosses the fan's sides at, sampled
+/// then, for a combo's step its cut. It plays over <see cref="Ms"/>, striking at <see cref="HitShare"/> (none for the back to rest);
+/// a combo's <see cref="Step"/> moves the <see cref="Body"/> too, from <see cref="BodyFrom"/>, rest for none. <see cref="Aim"/> is
+/// the aim angle it was pressed at.
 /// </summary>
 public sealed record MotionPlay(Sector Sector, SwingMotion Motion, IReadOnlyList<MotionKey> Keys, double Lead,
-    (double Raised, double Through)? Shape = null, (double Back, double Through) Shares = default)
+    (double Raised, double Through)? Shape = null, (double Back, double Through) Shares = default, double Ms = 0, double? HitShare = null,
+    int? Step = null, BodyMotion? Body = null, BodyState? BodyFrom = null, double Aim = 0)
 {
     /// <summary>How finely a fixed motion's keys are sampled at the press for <see cref="ShareAt"/>: every 1/100 of the stroke.</summary>
     private const int Samples = 100;
 
-    /// <summary><paramref name="stroke"/>'s motion for an aim angle of <paramref name="aim"/> radians, as played from the press.</summary>
-    public static MotionPlay Of(Stroke stroke, double aim)
+    /// <summary>
+    /// <paramref name="stroke"/>'s motion for an aim angle of <paramref name="aim"/> radians, as played from the press: its combo's
+    /// <paramref name="step"/> where its sector has a combo and the step is in it, else the sector's own motion. Begun as another is
+    /// replaced, its first key is <paramref name="from"/>'s pose, so the arm and the body never jump; a step with none starts at rest.
+    /// </summary>
+    public static MotionPlay Of(Stroke stroke, double aim, int? step = null, Splice? from = null)
     {
         var sector = Sectors.Of(aim);
-        var motion = stroke.Motions[sector];
         double lead = AxeSwing.Lead(stroke.Look);
-        if (motion.Kind == MotionKind.Thrust) return new(sector, motion, motion.Keys, lead);
+        if (step is int s && stroke.ComboIn(sector) is { } combo && s >= 0 && s < combo.Count)
+        {
+            var c = combo[s];
+            double line = Sectors.Turned(sector, aim);
+            return new(sector, c.Arm, Spliced(c.Arm.Keys, from?.Arm ?? new ArmPose(line, 0, 0), line), lead, null, (c.CutFrom, c.CutTo), c.Ms,
+                c.HitShare, s, c.Body, from?.Body, aim);
+        }
+        var single = Single(stroke, sector, aim, lead);
+        return from is { Arm: var arm } && single.Keys.Count > 0 ? single with { Keys = Spliced(single.Keys, arm, single.LineOf(aim)) } : single;
+    }
+
+    private static MotionPlay Single(Stroke stroke, Sector sector, double aim, double lead)
+    {
+        var motion = stroke.Motions[sector];
+        var play = new MotionPlay(sector, motion, motion.Keys, lead, Ms: stroke.Ms, HitShare: stroke.HitShare, Aim: aim);
+        if (motion.Kind == MotionKind.Thrust) return play;
         if (ReferenceEquals(motion, Overhand.Motion))
         {
             var shape = Overhand.ShapeFor(aim + lead, stroke.Half);
-            return new(sector, motion, Overhand.KeysFor(shape, stroke.Look.Elbow), lead, shape);
+            return play with { Keys = Overhand.KeysFor(shape, stroke.Look.Elbow), Shape = shape };
         }
         var turns = Turns(motion.Keys, stroke.Look, lead);
-        return new(sector, motion, motion.Keys, lead, null, (Sampled(turns, -stroke.Half), Sampled(turns, stroke.Half)));
+        return play with { Shares = (Sampled(turns, -stroke.Half), Sampled(turns, stroke.Half)) };
+    }
+
+    /// <summary><paramref name="keys"/> begun at <paramref name="from"/>, its shoulder turned by how far apart its line and <paramref name="line"/> are.</summary>
+    private static MotionKey[] Spliced(IReadOnlyList<MotionKey> keys, ArmPose from, double line)
+    {
+        var spliced = new MotionKey[keys.Count];
+        for (int i = 0; i < keys.Count; i++) spliced[i] = keys[i];
+        spliced[0] = keys[0] with { Shoulder = from.Turn - line, Elbow = from.Elbow, Wrist = from.Wrist };
+        return spliced;
+    }
+
+    /// <summary>
+    /// The back to rest after <paramref name="ended"/>, a combo's step let go (axe-combos): the arm from where the step left it to
+    /// rest on its line, the body's channels to rest and the feet home, over <see cref="Combos.BackMs"/>, striking nothing.
+    /// </summary>
+    public static MotionPlay Back(MotionPlay ended)
+    {
+        var end = ended.SpliceAt(ended.Ms);
+        MotionKey[] keys = [new(0, 0, 0), new(1, 0, 0, 0, Ease.Sine)];
+        return new(ended.Sector, new SwingMotion(MotionKind.Swing, null, keys), Spliced(keys, end.Arm, ended.LineOf(ended.Aim)), ended.Lead,
+            Ms: Combos.BackMs, Body: end.Body is { } body ? ComboBody.BackOf(body) : null, BodyFrom: end.Body, Aim: ended.Aim);
+    }
+
+    /// <summary>The line it plays along for an aim of <paramref name="aim"/>: the overhand along the aim, a fixed motion turned at most half its sector.</summary>
+    public double LineOf(double aim) => Shape != null ? aim : Sectors.Turned(Sector, aim);
+
+    /// <summary>The arm at <paramref name="phase"/>, along the line it was pressed along.</summary>
+    public ArmPose PoseAt(double phase) => new(LineOf(Aim) + ShoulderAt(Keys, phase), ElbowAt(phase), WristAt(phase));
+
+    /// <summary>What a play replacing this one <paramref name="ms"/> into it starts from: the arm and the body as they are then.</summary>
+    public Splice SpliceAt(double ms) => new(PoseAt(Math.Min(1, ms / Ms)), ComboBody.At(this, ms));
+
+    /// <summary>Whether it leaves the arm and the body at rest: a step that does needs no back to rest.</summary>
+    public bool EndsAtRest
+    {
+        get
+        {
+            const double Near = 1e-9;
+            var (arm, body) = SpliceAt(Ms);
+            return Math.Abs(arm.Turn - LineOf(Aim)) < Near && Math.Abs(arm.Elbow) < Near && Math.Abs(arm.Wrist) < Near
+                && (body is not { } b || b.Near(BodyState.Rest, Near));
+        }
     }
 
     /// <summary>
     /// The arm's angle from straight ahead of the shoulder at <paramref name="phase"/>, the aim now <paramref name="aim"/>
     /// (<see cref="AxeSwing.ArmAt"/>): the overhand along the aim, a fixed motion turned at most half its sector.
     /// </summary>
-    public double AngleAt(double aim, double phase) => (Shape != null ? aim : Sectors.Turned(Sector, aim)) + Lead + ShoulderAt(Keys, phase);
+    public double AngleAt(double aim, double phase) => LineOf(aim) + Lead + ShoulderAt(Keys, phase);
 
     /// <summary>The elbow's bend at <paramref name="phase"/>, in radians.</summary>
     public double ElbowAt(double phase) => Motion.Elbow?.Invoke(phase) ?? (Keys.Count > 0 ? Along(Keys, phase, k => k.Elbow) : 0);

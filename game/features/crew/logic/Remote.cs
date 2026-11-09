@@ -27,9 +27,10 @@ public enum Handwork { Work, Chop, Beam, Drill }
 /// <summary>
 /// What a hero's hands are busy with, and the point they work at, in thousandths of a cell as the hero's
 /// own position; chopping, the point its latest swing is aimed at (<see cref="AxeSwing.At"/>) and how many
-/// swings it has begun (<see cref="AxeSwing.Count"/>), so others swing once for each, where it did.
+/// swings it has begun (<see cref="AxeSwing.Count"/>), so others swing once for each, where it did, and the combo's step the
+/// latest began (<see cref="AxeSwing.Step"/>, axe-combos), so they play the same step whenever its number reaches them.
 /// </summary>
-public readonly record struct Busy(Handwork Work, Point At, int Swings = 0)
+public readonly record struct Busy(Handwork Work, Point At, int Swings = 0, int? Step = null)
 {
     /// <summary>Whether <paramref name="now"/> is a beam not shown yet: a beam is sent for as long as it fades, and drawn once.</summary>
     public static bool BeamsAnew(Busy? was, Busy? now) => now is { Work: Handwork.Beam } && now != was;
