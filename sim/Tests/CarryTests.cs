@@ -114,7 +114,7 @@ public class CarryTests
     [Fact]
     public void APieceTwoCarriesReachTakesTheLargestOnce()
     {
-        // Soil over scrap, a door segment behind both.
+        // Soil over stone, a door segment behind both; the stone cracked first, so both break to the next blow.
         var w = new Scenario(Layout.Parse("""
             ...........
             ...........
@@ -127,15 +127,17 @@ public class CarryTests
             ...........
             ...........
             ........s..
-            ........w..
+            ........t..
             ...........
             """).OnPlanet());
         w.Do(new Enter(At(w, 4, 3))).Run();
+        w.Do(new HewCells(Pick.Item, new List<int> { At(w, 8, 4) })).Run();
         w.Do(new HewCells(Pick.Item, new List<int> { At(w, 8, 3), At(w, 8, 4) })).Run();
         Assert.Empty(w.Refusals);
-        int scrap = Carry(Materials.Get("wreckScrap").Strength);
-        Assert.True(scrap > Carry(Soil));
-        Assert.Equal([(At(w, 9, 3), scrap)], Cracks(w));
+        Assert.Null(w.M.Grid.WallAt(At(w, 8, 4)));
+        int stone = Carry(Materials.Get("stone").Strength - Pick.BlockDamage);
+        Assert.True(Carry(Soil) > stone && stone > 0);
+        Assert.Equal([(At(w, 9, 3), Carry(Soil))], Cracks(w));
     }
 
     [Fact]
@@ -176,8 +178,9 @@ public class CarryTests
         w.Do(new Place(hull - 1, Placement.Wall("iron"))).Run();
         w.Do(new Enter(hull + 5)).Run();
         Assert.Empty(w.Refusals);
-        Assert.True(Pick.BlockDamage - w.M.Grid.WallAt(hull)!.Strength >= 2, "the blow leaves something to carry");
-        w.Do(new HewCells(Pick.Item, new List<int> { hull })).Run();
+        int strength = w.M.Grid.WallAt(hull)!.Strength, blows = (strength + Pick.BlockDamage - 1) / Pick.BlockDamage;
+        Assert.True(blows * Pick.BlockDamage - strength >= 2, "the last blow leaves something to carry");
+        for (int i = 0; i < blows; i++) w.Do(new HewCells(Pick.Item, new List<int> { hull })).Run();
         Assert.Empty(w.Refusals);
         Assert.Null(w.M.Grid.WallAt(hull));
         Assert.NotNull(w.M.Grid.WallAt(hull - 1));

@@ -55,9 +55,9 @@
   hero's), the larger, once. `building.nothingToDig`, then `items.flat` / `items.notRunning`. `Hit`, a shot's, strikes a cell
   `ShotTakes` allows, returning its surplus if it broke, the yield the shooter's here, else anyone's. No tool hits back walls. `Wear`
   (a catcher's) strikes as a burst, ground for nothing (`Strikes`).
-- **`Burst(peer, cell, power, reach, Spoils)`** (unified-damage): a `Wave`, steps `Damage.Step`; ground costs its strength left,
-  a pile its `Hp`, built things (machines: `HitPoints`) that ×1000/`BuiltTakes` (up; `ToBreak`), a piece or machine once;
-  bedrock, lava, fog, the lifepod stop it. Paid ones break, unpaid crack at their head by what was left (built: its share).
+- **`Burst(peer, cell, power, reach, Spoils)`** (damage-scale): a `Wave`, steps `Damage.Step`; a cell costs its
+  strength left (pile `Hp`, machine `HitPoints`), a piece or machine once, ×10 (`OwnShipTakes`) for a hero's own burst
+  `Aboard`; bedrock, lava, fog, the lifepod stop it. Paid ones break, unpaid crack at their head by what was left (÷10 there).
   `Drop` (a charge): all for anyone, `Crushed` if set; `Lost` (a meteor): costs gone, and back walls entered where what is
   left pays. A machine `Spill`s and `Scrap`s, cables on a peg; a net lays its cost down; a felled cradle
   shocks `peer` once.

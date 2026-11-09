@@ -59,6 +59,16 @@ public class ImpactsTests
     }
 
     [Fact]
+    public void TheBlowThatBreaksABuiltWallOnAPlanetThrowsItsWholeLook()
+    {
+        // Built walls take several blows now (damage-scale): their last one flashes as rock's does.
+        var m = new TestWorld(Layout.Parse("...\n###").WithMaterials("...\nwww") with { Kind = Stillwake.Content.Surfaces.TestStrip.Id }).M;
+        int scrap = Spec.Materials.Get("scrap").Strength;
+        Assert.Equal(Impacts.ShareOf(Drill), Impacts.ShareAt(m.Grid, m.Building, 4, Drill, scrap - 1));
+        Assert.Equal(1, Impacts.ShareAt(m.Grid, m.Building, 4, Drill, scrap));
+    }
+
+    [Fact]
     public void AHitOnAGrowthLooksAsTheGrowthAndTheRockAroundAGrowthInItLooksAsItsStone()
     {
         var layout = Layout.Parse("""

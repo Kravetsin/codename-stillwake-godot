@@ -11,8 +11,8 @@ namespace Stillwake.Content;
 /// <param name="Across">Its piece's cells across, built and taken apart as one (0104): a ladder's two, a door segment's or a hatch's two; 1 for a cell.</param>
 /// <param name="Tall">Its piece's cells down: a ladder's or a door segment's two, a hatch's one; 1 for a cell.</param>
 /// <param name="Menu">Its card in the build menu (0114).</param>
-/// <param name="Strength">What a tool's hits take to break it, in tenths, where tools break what is built (a planet, the fan of rays): two swings of the axe.</param>
-public sealed record Build(string Id, IReadOnlyList<(string Item, int Count)> Cost, int BuildTicks, int Across = 1, int Tall = 1, MenuSlot? Menu = null, int Strength = 80);
+/// <param name="Strength">What a tool's hits take to break it, in tenths, where tools break what is built (a planet, the fan of rays): three pickaxe blows (damage-scale).</param>
+public sealed record Build(string Id, IReadOnlyList<(string Item, int Count)> Cost, int BuildTicks, int Across = 1, int Tall = 1, MenuSlot? Menu = null, int Strength = 200);
 
 /// <summary>
 /// What a hero builds besides walls and back walls, which cost their material (<see cref="Materials"/>),

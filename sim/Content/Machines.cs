@@ -112,7 +112,7 @@ public sealed record MachineSpec(
 
     /// <summary>
     /// What breaks it (unified-damage): a pile's <see cref="Hp"/>, in a weapon's damage; a built machine's <see cref="Damage.MachineHp"/>,
-    /// in tenths of strength, taken by bursts as built walls take them; none for a <see cref="Fixed"/> one (the lifepod).
+    /// in tenths of strength, a scrap wall's, taken by bursts as walls take them; none for a <see cref="Fixed"/> one (the lifepod).
     /// </summary>
     public int? HitPoints => Fixed ? null : Hp ?? Damage.MachineHp;
 

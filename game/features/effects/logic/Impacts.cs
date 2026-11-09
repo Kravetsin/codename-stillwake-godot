@@ -42,7 +42,7 @@ public static class Impacts
     /// </summary>
     public static double ShareAt(IGridQueries grid, BuildingModule building, int cell, string tool, int damage)
     {
-        if (grid.WallAt(cell) is { Natural: true } wall) return CrackAt(building, cell) + damage >= wall.Strength ? 1 : ShareOf(tool);
+        if (grid.WallAt(cell) is { } wall && wall.Strength != Spec.Material.Unbreakable) return CrackAt(building, cell) + damage >= wall.Strength ? 1 : ShareOf(tool);
         if (Shared.Piles.At(grid, cell) is var (pile, hp)) return CrackAt(building, pile.Cell) + damage >= hp ? 1 : ShareOf(tool);
         if (building.PlantAt(cell) is not { } plant) return ShareOf(tool);
         return CrackAt(building, plant.Cell) + damage >= Spec.Flora.Get(plant.Kind).Strength ? 1 : ShareOf(tool);

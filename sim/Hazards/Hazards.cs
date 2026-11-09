@@ -65,7 +65,7 @@ public sealed partial class HazardsModule : Module<HazardsState>
         Handles<MeteorHit>(c => HitProblem(c.Cell), c =>
         {
             if (c.Power is int power) Strike(c.Cell, power, Shower ?? Meteors.StartingSpace);
-            else _building.Burst(FloorStack.Nobody, c.Cell, BuildingModule.ToBreak(_grid.WallAt(c.Cell)!), 0, Spoils.Lost);
+            else _building.Burst(FloorStack.Nobody, c.Cell, _grid.WallAt(c.Cell)!.Strength, 0, Spoils.Lost);
         });
         Handles<FlareNow>(FlareNowProblem, c => State.FlareIn = c.Ticks);
         Handles<SetCalm>(_ => null, c => (State.Calm, State.Incoming, State.NextIn, State.FlareIn) = (c.On, null, 0, 0));

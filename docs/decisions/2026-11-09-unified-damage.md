@@ -3,7 +3,8 @@
 - Status: accepted; built. Supersedes in part [blasting-charge](2026-11-08-blasting-charge.md) (a crater to dust, ore to
   the thrower), [shots-pierce](2026-10-27-shots-pierce.md) (a share per pierce on cells; bodies keep it),
   [round-blasts](2026-11-09-round-blasts.md) (a wall's cost by its armour, the charge's numbers) and
-  [meteor-wave](2026-10-29-meteor-wave.md) (armour, Hazards' own wave)
+  [meteor-wave](2026-10-29-meteor-wave.md) (armour, Hazards' own wave); its built share, scrap and iron strengths,
+  `PerPower` 220 and `ToBreak` superseded by [damage-scale](2026-11-09-damage-scale.md)
 - Date: 2026-11-09
 
 ## Context

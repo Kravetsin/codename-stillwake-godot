@@ -219,7 +219,7 @@ public class CatchersTests
         Assert.Equal(1, w.M.Building.Strikes(rock, f.Wear));
         Assert.Null(w.M.Building.Strikes(bedrock, f.Wear));
         Assert.Null(w.M.Building.Strikes(Cell(100, Ground - 10), f.Wear));
-        // A built wall takes its share of each strike, cracking till one pays what is left over its share.
+        // A built wall takes each strike in full (damage-scale), cracking till one pays what is left.
         int strikes = w.M.Building.Strikes(sky, f.Wear)!.Value;
         Assert.True(strikes > 1, $"{strikes} strikes");
         for (int i = 1; i < strikes; i++) Assert.False(w.M.Building.Wear(sky, f.Wear));

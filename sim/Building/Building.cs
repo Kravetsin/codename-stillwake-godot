@@ -52,7 +52,7 @@ public interface IBuildingQueries
 
     /// <summary>
     /// How many strikes of <paramref name="damage"/> break what is solid in <paramref name="cell"/> (catcher-paths), by the one damage rule
-    /// (unified-damage): natural ground by what is left of its strength, a built wall or piece by its share (<see cref="Content.Damage.BuiltTakes"/>);
+    /// (unified-damage, damage-scale): what is left of its strength, built or natural, in full;
     /// null where nothing breaks it: tools do not break things here, the fog, bedrock, lava, or nothing solid to break. What
     /// <see cref="IBuildingOps.Wear"/> guards by and a path weighs.
     /// </summary>
@@ -89,8 +89,8 @@ public interface IBuildingOps
     /// <summary>
     /// A burst of <paramref name="power"/> from <paramref name="cell"/>, within <paramref name="reach"/> cells, by peer <paramref name="peer"/>
     /// (unified-damage): the shared <see cref="Wave"/> through open cells, ground and what is built, each cell it pays for broken, in
-    /// cell order, a piece whole, and each it reaches but cannot pay for cracked by what was left, once, a built one by its
-    /// <see cref="Content.Damage.BuiltTakes"/> share; bedrock, lava, the fog and machines stop it. What breaks goes as
+    /// cell order, a piece whole, and each it reaches but cannot pay for cracked by what was left, once; a player's own ship, from their burst, at
+    /// its <see cref="Content.Damage.OwnShipTakes"/> share (damage-scale); bedrock, lava, the fog and machines stop it. What breaks goes as
     /// <paramref name="spoils"/> says; a relic it takes shocks the peer. Whether it went off: not from where it stops.
     /// </summary>
     bool Burst(int peer, int cell, int power, int reach, Spoils spoils);

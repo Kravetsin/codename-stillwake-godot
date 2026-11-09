@@ -258,7 +258,11 @@ public class RailgunTests
     {
         var w = Planet(30, 'D', '.');
         var loper = w.Let(Spec.Creatures.Loper, 40, 19);
-        var (hits, _) = PierceTests.Flown(w, new Fire(Gun.Item, 25 * Unit, 17 * Unit + Unit / 2, Right));
+        var fire = new Fire(Gun.Item, 25 * Unit, 17 * Unit + Unit / 2, Right);
+        // A door is 500 strong (damage-scale): three shots crack it, the fourth breaks it and goes on.
+        for (int i = 0; i < Spec.Builds.Get("door").Strength / Spec.Shots.BlockDamageOf(Gun.Item, Spec.Shots.Nail.Id); i++) PierceTests.Flown(w, fire);
+        Assert.Equal(0, loper.Damage);
+        var (hits, _) = PierceTests.Flown(w, fire);
         Assert.Single(hits, h => h.What == ShotTarget.Solid && h.Damage > 0);
         Assert.Equal(15, loper.Damage);
     }

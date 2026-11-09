@@ -317,7 +317,8 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [radar-contacts](2026-11-08-radar-contacts.md) | Radar contacts | accepted |  |
 | [scrap-to-iron](2026-11-08-scrap-to-iron.md) | Scrap to iron: four scrap smelt into an iron at any furnace | accepted |  |
 | [switched-off-sign](2026-11-08-switched-off-sign.md) | Switched-off sign | accepted |  |
-| [catcher-paths](2026-11-09-catcher-paths.md) | Catcher paths | accepted |  |
+| [catcher-paths](2026-11-09-catcher-paths.md) | Catcher paths | accepted | damage-scale (in part) |
+| [damage-scale](2026-11-09-damage-scale.md) | One damage scale; the own ship takes a tenth | accepted |  |
 | [round-blasts](2026-11-09-round-blasts.md) | Blasts are round | accepted | unified-damage (in part) |
 | [tracker-catchers](2026-11-09-tracker-catchers.md) | Catchers | accepted | catcher-paths (in part) |
-| [unified-damage](2026-11-09-unified-damage.md) | One rule for damage | accepted |  |
+| [unified-damage](2026-11-09-unified-damage.md) | One rule for damage | accepted | damage-scale (in part) |

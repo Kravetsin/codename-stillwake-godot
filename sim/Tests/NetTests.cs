@@ -433,8 +433,8 @@ public class NetTests
     {
         var w = Struck();
         int cell = w.M.Grid.MachinesOf("net")[0].Cell;
-        // From inside the room, a burst to break the hull beside it (unified-damage): no net left hanging in the air.
-        Assert.True(w.M.Building.Burst(0, 3 * 10 + 4, 2000, 8, Spoils.Drop));
+        // From inside the room, a burst of no one's, in full, to break the hull beside it (unified-damage): no net left hanging in the air.
+        Assert.True(w.M.Building.Burst(FloorStack.Nobody, 3 * 10 + 4, 2000, 8, Spoils.Drop));
         Assert.Null(w.M.Grid.WallAt(3 * 10 + 5));
         Assert.Empty(w.M.Grid.MachinesOf("net"));
         w.Run();
@@ -472,7 +472,7 @@ public class NetTests
     public void BreakNothingWithAMeteorThatOnlyCracksTheWall()
     {
         var w = Struck("n");
-        var (walls, _) = HazardsTests.StrikeAt(w, 3 * 10 + 5, 6);
+        var (walls, _) = HazardsTests.StrikeAt(w, 3 * 10 + 5, 2);
         Assert.Empty(walls);
         Assert.Single(w.M.Grid.MachinesOf("net"));
         Assert.Equal(2, w.M.Debris.Held.Count);

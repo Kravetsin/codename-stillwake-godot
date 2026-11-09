@@ -13,8 +13,8 @@ using WaterContent = Stillwake.Content.Water;
 namespace Stillwake.Sim.Tests;
 
 /// <summary>
-/// Machines break to bursts (unified-damage): a built one takes a burst's damage times <see cref="Damage.BuiltTakes"/> against its
-/// <see cref="MachineSpec.HitPoints"/>, as a built wall; a pile at its own hit points. Broken, all it holds, its queue's refund and its
+/// Machines break to bursts (unified-damage, damage-scale): against their <see cref="MachineSpec.HitPoints"/>, a pile its own, as a
+/// wall; a player's own burst on their ship at its <see cref="Damage.OwnShipTakes"/> share. Broken, all it holds, its queue's refund and its
 /// cost fall at its cell for anyone, its cables stay on a peg, and no module keeps anything of it. The lifepod never breaks.
 /// </summary>
 public class MachineBreakTests
@@ -62,16 +62,19 @@ public class MachineBreakTests
 
     private static bool Burst(Scenario w, int cell, int power) => w.M.Building.Burst(0, cell, power, Blasting.Charge.Reach, Spoils.Drop);
 
+    /// <summary>A burst of no one's, in full aboard as a meteor's, its spoils dropped as a charge's.</summary>
+    private static bool Full(Scenario w, int cell, int power) => w.M.Building.Burst(FloorStack.Nobody, cell, power, Blasting.Charge.Reach, Spoils.Drop);
+
     private static int CrackAt(Scenario w, int cell) => w.M.Building.Cracks.SingleOrDefault(c => c.Cell == cell && !c.Back)?.Damage ?? 0;
 
     private static int Lying(Scenario w, string item) => w.M.Items.Floor.Where(s => s.Item == item).Sum(s => s.Count);
 
-    private static int Share(int left) => left * Damage.BuiltTakes / 1000;
+    private static int Tenth(int left) => left * Damage.OwnShipTakes / 1000;
 
     private static int Slot(Scenario w, string item) => w.M.Items.Inventory(0).ToList().FindIndex(s => s?.Item == item);
 
     [Fact]
-    public void OneChargeCracksABuiltMachineASecondBreaksItItsCostOreAndModuleFallingThereForAnyone()
+    public void AChargeAboardCracksABuiltMachineByATenthAFullBurstBreaksItItsCostOreAndModuleFallingThereForAnyone()
     {
         var w = Room(["crusher"]).GiveItems(0, ("arcModule", 1), ("asteroidOre", 4)).Run();
         var crusher = Of(w, "crusher");
@@ -79,11 +82,11 @@ public class MachineBreakTests
         w.Do(new Move(new Slot(Slot(w, "asteroidOre")), new Target(0, crusher.Id), 4)).Run();
         Assert.Empty(w.Refusals);
         Assert.True(Burst(w, Beside(w, crusher), Charge));
-        // A scrap wall's hit points, so it cracks as one: what was left after a step, its share.
+        // A scrap wall's hit points, so it cracks as one: a tenth of what was left after a step.
         Assert.Equal(Damage.MachineHp, Machines.Get("crusher").HitPoints);
         Assert.NotNull(w.M.Grid.MachineById(crusher.Id));
-        Assert.Equal(Share(Charge - Damage.Step), CrackAt(w, crusher.Cell));
-        Burst(w, Beside(w, crusher), Charge);
+        Assert.Equal(Tenth(Charge - Damage.Step), CrackAt(w, crusher.Cell));
+        Full(w, Beside(w, crusher), Charge);
         Assert.Null(w.M.Grid.MachineById(crusher.Id));
         Assert.Equal(0, CrackAt(w, crusher.Cell));
         var expected = Machines.Get("crusher").Cost.Append((Item: "asteroidOre", Count: 4)).Append((Item: "arcModule", Count: 1))
@@ -109,8 +112,7 @@ public class MachineBreakTests
         int made = w.M.Items.Crate(bench.Id).Sum(s => s?.Item == "wire" ? s.Count : 0);
         Assert.Equal(4, left + made);
         Assert.True(made > 0 && left > 0);
-        Burst(w, Beside(w, bench), Charge);
-        Burst(w, Beside(w, bench), Charge);
+        Full(w, Beside(w, bench), Charge);
         Assert.Null(w.M.Grid.MachineById(bench.Id));
         int cost = Machines.Get("workbench").Cost.Where(c => c.Item == wire.Item).Sum(c => c.Count);
         Assert.Equal(cost + left * wire.Count, Lying(w, wire.Item));
@@ -128,8 +130,7 @@ public class MachineBreakTests
         Assert.Single(w.M.Power.Cables);
         // From its left, so the wave meets it before the other.
         int width = w.M.Grid.Width, from = left.Cell + 3 * width - 1;
-        Burst(w, from, Charge);
-        Burst(w, from, Charge);
+        Full(w, from, Charge);
         Assert.Null(w.M.Grid.MachineById(left.Id));
         Assert.NotNull(w.M.Grid.MachineById(right.Id));
         var cable = Assert.Single(w.M.Power.Cables);
@@ -160,11 +161,31 @@ public class MachineBreakTests
         Assert.Null(w.M.Grid.MachineById(pile.Id));
         Assert.All(Machines.Get("pileScrap").Cost, c => Assert.Equal(c.Count, Lying(w, c.Item)));
         Assert.All(w.M.Items.Floor, s => Assert.Equal(FloorStack.Nobody, s.By));
-        // A faint one only cracks it, by what was left, whole: a pile is no built thing.
+        // A faint one only cracks it, by a tenth of what was left: a pile aboard is of the ship too.
         var faint = Room(["pileScrap"]);
         var other = Of(faint, "pileScrap");
-        Burst(faint, Beside(faint, other), Damage.Step + 3);
+        Burst(faint, Beside(faint, other), Damage.Step + 30);
         Assert.Equal(3, CrackAt(faint, other.Cell));
+    }
+
+    [Fact]
+    public void WhatTheLastBurstPaidForNeverMakesTheNextOnesFirstCellFree()
+    {
+        // A crusher broken, one built again on its cell: a burst from inside it then cracks it, as in the world loaded fresh.
+        var w = Room(["crusher"]);
+        var crusher = Of(w, "crusher");
+        Full(w, Beside(w, crusher), Charge);
+        w.Do(new Place(crusher.Cell, new Placement("machine", "crusher"))).Run();
+        Assert.Empty(w.Refusals);
+        var again = Of(w, "crusher");
+        Assert.Equal(crusher.Cell, again.Cell);
+        var loaded = Room(["crusher"]).Reload(w.World.Save());
+        foreach (var world in new[] { w, loaded })
+        {
+            Full(world, again.Cell, 100);
+            Assert.NotNull(world.M.Grid.MachineById(again.Id));
+            Assert.Equal(100, CrackAt(world, again.Cell));
+        }
     }
 
     [Fact]
@@ -178,8 +199,7 @@ public class MachineBreakTests
         Assert.True(w.M.Water.WaterIn(cistern.Id) > 0);
         foreach (var m in new[] { crate, tank, cistern })
         {
-            Burst(w, Beside(w, m), Charge);
-            Burst(w, Beside(w, m), Charge);
+            Full(w, Beside(w, m), Charge);
             Assert.Null(w.M.Grid.MachineById(m.Id));
         }
         w.Run();

@@ -65,8 +65,9 @@ public class SurfaceToolsTests
     public void OnAPlanetToolsBreakAWallAHeroBuiltOfTheHullsScrapGivingItBack()
     {
         var w = new Scenario(Ground.OnPlanet());
-        // The scrap at (0, 2): two of strength, one swing.
-        w.Do(HewTesting.Dig(w, At(0, 2), Axe)).Run();
+        // The scrap at (0, 2): ten swings of the axe.
+        for (int i = 0; i < (Materials.Get("scrap").Strength + Weapons.Axe.BlockDamage - 1) / Weapons.Axe.BlockDamage; i++)
+            w.Do(HewTesting.Dig(w, At(0, 2), Axe)).Run();
         Assert.Empty(w.Refusals);
         Assert.Null(w.M.Grid.WallAt(At(0, 2)));
         Assert.Equal(Materials.Get("scrap").Cost.Single(), ("scrapChunk", Count(w, "scrapChunk")));
@@ -87,7 +88,7 @@ public class SurfaceToolsTests
         // From its right, aimed at it.
         var hit = new Hew(Axe, w.At(3, 1) % w.M.Grid.Width * 1000 + 1500, w.At(3, 1) / w.M.Grid.Width * 1000 + 1000, Left);
         Assert.Contains(door, w.M.Building.Struck(Axe, hit.X, hit.Y, hit.Heading).Cells);
-        for (int i = 0; i < build.Strength / Weapons.Axe.BlockDamage; i++) w.Do(hit).Run();
+        for (int i = 0; i < (build.Strength + Weapons.Axe.BlockDamage - 1) / Weapons.Axe.BlockDamage; i++) w.Do(hit).Run();
         Assert.Empty(w.Refusals);
         Assert.All(w.M.Grid.PieceOf(door), c => Assert.Equal(Structure.Empty, w.M.Grid.StructureAt(c)));
         Assert.Equal(build.Cost.Sum(c => c.Count), w.M.Items.Totals(0).Where(t => build.Cost.Any(c => c.Item == t.Item)).Sum(t => t.Count));
