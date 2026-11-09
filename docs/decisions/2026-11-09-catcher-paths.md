@@ -29,8 +29,9 @@ its hero rather than tailing it, designed now and built with slice 2.
 - **Following:** a creature's saved `Path` holds each node with its kind. Running, it rises before moving across up a step and
   moves across before dropping down one, at `Run` (1320, the hero's sprint: a playtest found the walk's 720 a stroll) a tick
   through the corners of its run steps, a step up or down free as a hero's, so it never halts at one; a tick's run may pass
-  several nodes. Otherwise at `Speed` (400). A Cut step sets it cutting. Rising, its body moves up first, else across first. A
-  search never sends it back to the middle of its cell when the way on is clear.
+  several nodes. Otherwise at `Speed` (1000, 20 cells/s: a playtest found 400 a stall at each take-off). A Cut step sets
+  it cutting. Rising, its body moves up first, else across first. A search never sends it back to the middle of its cell
+  when the way on is clear.
 - **No warning:** it hunts from the tick it comes (a playtest found it hanging still for its 10 s); the beep, the reticle
   and its spawn out of view, some 5 s off at a sprint, warn the hero.
 - **Breaking by the rule:** `Building.Wear` strikes as a burst does: ground at its strength, giving nothing (a hunter is no
@@ -38,10 +39,10 @@ its hero rather than tailing it, designed now and built with slice 2.
   says how many strikes break a cell, null where none does (bedrock, lava, fog, the lifepod). Catcher `Wear` 120, every
   `CutEvery` 4: stone in one strike, a scrap wall in five, an iron one in twelve. `IGridQueries.GrownWall` is gone.
 - **The leap:** chasing, if its distance to its quarry has not dropped below its closest for `LeapAfter` (60) ticks, it aims
-  at a lead point: the quarry's drift over `Sample` (10) ticks times the flight's ticks at the closing speed, plus
-  `LeapAhead` (3) cells its way, capped at `LeadMost` (64), raised out of ground by up to `StepUp` and dropped to the ground
-  within `Margin`. It flies at `Leap` (2400, 48 cells/s) up to an apex over the midpoint, then down to land; a blocked arc
-  means no leap. The target is saved, so a joiner flies the same arc.
+  at a lead point: the quarry's drift over `Sample` (10) ticks times the flight's ticks at the closing speed (its distance and
+  the lead past it), plus `LeapAhead` (20) cells its way (a playtest saw a sprint outrun 3), capped at `LeadMost` (96),
+  raised out of ground by up to `StepUp` and dropped to the ground within `Margin`. It flies at `Leap` (2400, 48 cells/s) up to an apex over the midpoint, then down to land; a blocked arc
+  means no leap. Leaping, it pounces only once landed, ahead. The target is saved, so a joiner flies the same arc.
 - **Drawn:** `Afoot` (on ground, not rising) shows the hero's walk pose with the jetpack's plume off, else the air pose;
   `Cutting` (struck within `CutEvery`) puts the hero's drill in its hand, spinning toward the cell it bit.
 - **Space (slice 2):** the same planner and lead point flown at a space speed (500 proposed, the jetpack's top), straight

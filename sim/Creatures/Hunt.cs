@@ -71,7 +71,8 @@ internal sealed class HuntDrive : DriveRule
         }
         int middle = c.Y - spec.Body.Height * Unit / 2;
         int far = Math.Max(Math.Abs(at.X - Down(c.X, Unit)), Math.Abs(at.Y - Down(middle, Unit)));
-        if (far <= hunt.Strike && m.InLine(c, spec, at) && RuleBook.Move(spec.Moves[0]).Ready(m, c, spec.Moves[0]))
+        // Leaping it lands first, ahead of its quarry (a playtest saw it pounce from behind mid-leap and fall short).
+        if (c.Recall(LeapTo) == 0 && far <= hunt.Strike && m.InLine(c, spec, at) && RuleBook.Move(spec.Moves[0]).Ready(m, c, spec.Moves[0]))
         {
             Stop(c);
             RuleBook.Move(spec.Moves[0]).Begin(m, c, spec, 0);
@@ -133,7 +134,8 @@ internal sealed class HuntDrive : DriveRule
         int driftX = c.Recall(DriftX), driftY = c.Recall(DriftY);
         int closing = f.Leap - Math.Max(Math.Abs(driftX), Math.Abs(driftY)) * Unit / hunt.Sample;
         if (closing < f.Leap / 4) return;
-        int ticks = far * Unit / closing;
+        // The meeting counts the cells it flies past its quarry too, or a quarry at a sprint runs past where it lands.
+        int ticks = (far + hunt.LeapAhead) * Unit / closing;
         int x = at.X + Math.Clamp(driftX * ticks / hunt.Sample + Math.Sign(driftX) * hunt.LeapAhead, -hunt.LeadMost, hunt.LeadMost);
         int y = at.Y + Math.Clamp(driftY * ticks / hunt.Sample, -hunt.LeadMost, hunt.LeadMost) + f.Height / 2;
         if (x < 0 || x >= m.GridWidth) return;
