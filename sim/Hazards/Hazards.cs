@@ -128,7 +128,7 @@ public sealed partial class HazardsModule : Module<HazardsState>
     /// <summary>
     /// <paramref name="meteor"/> strikes (2026-10-29-meteor-wave): if the wall it meets still stands and its power reaches the wall's
     /// strength, a blast of <see cref="Charge"/> spreads from it as a wave, cheapest way first. A cell costs it <c>Step</c> to reach
-    /// (<c>Diagonal</c> aslant) and a wall <c>PerStrength</c> a point of its strength more, which breaks it: what is left goes on, so
+    /// and a wall <c>PerStrength</c> a point of its strength more, 7/5 of that aslant (round-blasts), which breaks it: what is left goes on, so
     /// walls soak the blast up and a strong one spares what lies behind it. It goes through open cells and breakable walls only; a
     /// door, window, ladder, machine or a wall that never breaks stops it. A back wall behind a cell it reached breaks when what is
     /// left there pays for its strength, spending nothing. A wall that holds the meteor stops it whole. All found, then broken in

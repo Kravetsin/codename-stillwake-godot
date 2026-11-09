@@ -107,6 +107,29 @@ public class BlastChargeTests
     }
 
     [Fact]
+    public void ItsCraterIsRoundInSoilTheWholeCircleOfItsReachAndInStoneAsFarAslantAsStraightDown()
+    {
+        // Soil, cheap to break: every cell of the ground within its reach of the burst opens, none beyond, a circle cut off by the surface.
+        var soil = Pit('s');
+        Thrown(soil, At(20, 8, Down));
+        var open = Opened(soil).ToHashSet();
+        for (int c = 10 * W; c < 30 * W; c++)
+        {
+            int dx = c % W - 20, dy = c / W - 8;
+            Assert.True(dx * dx + dy * dy <= Blast.Reach * Blast.Reach == open.Contains(c), $"({c % W}, {c / W})");
+        }
+        // Stone soaks it within its reach: dropped down a shaft into solid stone, the air no shortcut round it, it opens as far out
+        // down the diagonal as straight down, give or take a cell.
+        var stone = Pit('t', (x, y) => y < 10 && x is >= 8 and <= 32 && (x != 20 || y == 9) ? 't' : null);
+        Thrown(stone, At(20, 5, Down));
+        var opened = Opened(stone).ToHashSet();
+        int down = Enumerable.Range(1, 21).Last(k => opened.Contains((8 + k) * W + 20) || k == 1);
+        int aslant = Enumerable.Range(1, 21).Last(k => opened.Contains((8 + k) * W + 20 + k) || k == 1);
+        Assert.True(Math.Abs(aslant * Math.Sqrt(2) - down) <= 1, $"stone {down} deep, {aslant} aslant");
+        Assert.True(down < Blast.Reach, $"stone {down} deep: soaked short of its reach");
+    }
+
+    [Fact]
     public void ABuiltWallStopsItAndBedrockTooWhatLiesBehindThemStays()
     {
         // An iron wall down column 15 through the open and the stone; bedrock down column 25.
