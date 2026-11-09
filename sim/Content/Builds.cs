@@ -27,10 +27,10 @@ public static class Builds
     public const int DeconstructSpeedup = 2;
 
     /// <summary>
-    /// Ticks a crack in natural ground lasts with no hit (0077): ten seconds, then it heals whole, as Terraria's. A dig left
-    /// half done is begun again.
+    /// Ticks a crack lasts with no hit (0077): a minute, then it heals whole, as Terraria's. A dig left half done is begun again;
+    /// long enough that a second charge or meteor finds the first one's cracks (unified-damage), and there is no repairing them.
     /// </summary>
-    public const int CrackHeals = 200;
+    public const int CrackHeals = 1200;
 
     /// <summary>
     /// A hatch (0104, 0111): as wide as a door segment and a cell tall, so a ladder meets it flush. Its own build, its own

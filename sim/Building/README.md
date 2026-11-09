@@ -60,7 +60,7 @@ Blueprints build, marks take apart; also digging, growths (0077, 0079, 0080), ru
   `building.nothingToDig`, then `items.flat` / `items.notRunning`. `Hit`, a shot's, strikes a cell `ShotTakes` allows,
   returning its surplus if it broke, the yield the shooter's here, else anyone's. No tool hits back walls. `Blast` clears a
   natural wall where `ToolsBreak`: an ore's `Cost` and held growths the thrower's, rest dust.
-- **Cracks heal** (0077): one unhit for `Builds.CrackHeals` ticks of `Clock` is dropped, as, in derivation,
+- **Cracks heal** (0077): one unhit for `Builds.CrackHeals` ticks (a minute) is dropped, as, in derivation,
   one whose wall or plant is gone.
 - **Growths** (0079, 0080) grow from the seed with `Terrain`, each held by an `Anchor` (floor, ceiling, rock, back).
   A hit on any open cell of one cracks it by its own cell, felled at its kind's `Strength` for its `Yields`; one in
