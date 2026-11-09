@@ -642,13 +642,13 @@ public partial class HeroView : Node2D
         _thud.Play(S.RamHits.GetValueOrDefault(c.Species, S.RamThud), default);
     }
 
-    /// <summary>The arcs this hero's client has looked at: each judged once, the tick it is first seen, forgotten once it is gone.</summary>
+    /// <summary>The arcs this hero's client is done judging (<see cref="Rams.Hits"/>), forgotten once they are gone.</summary>
     private readonly HashSet<int> _arcsSeen = [];
 
     /// <summary>
     /// A creature's arc crossing this hero (2026-10-27-sentry-arc), as this client sees it the tick it struck: <c>Bolted</c> sent,
     /// and at once, as a ram's, the hero thrown the arc's way and reeling, flinching, its suit's air knocked out, a shock through the
-    /// suit. An arc it walks into after is past: it struck once.
+    /// suit. An arc it walks into after is past: it struck once; a catcher's beam still burns, and hurts once whenever it is touched.
     /// </summary>
     private void Bolted(Client client, Registry m)
     {
@@ -656,7 +656,7 @@ public partial class HeroView : Node2D
         _arcsSeen.RemoveWhere(id => !arcs.Any(a => a.Id == id));
         foreach (var arc in arcs)
         {
-            if (!_arcsSeen.Add(arc.Id) || !Rams.Crosses(arc, _current) || m.Creatures.BoltedProblem(client.Id, arc.Id) != null) continue;
+            if (!Rams.Hits(arc, _current, _arcsSeen) || m.Creatures.BoltedProblem(client.Id, arc.Id) != null) continue;
             client.Send(new Stillwake.Sim.Creatures.Bolted(arc.Id));
             int away = arc.X1 >= arc.X0 ? 1 : -1;
             _current = Rams.Knocked(_current, away, Content.Shots.DamageOf(null, arc.Projectile));

@@ -159,9 +159,25 @@ public class RamsTests
     }
 
     /// <summary>An arc as the sim lists it, from (<paramref name="x0"/>, <paramref name="y0"/>) to (<paramref name="x1"/>, <paramref name="y1"/>).</summary>
-    private static Arc ArcOf(int x0, int y0, int x1, int y1) =>
-        JsonSerializer.Deserialize<Arc>(JsonSerializer.Serialize(new { id = 1, projectile = "bolt", x0, y0, x1, y1, left = 10 }),
+    private static Arc ArcOf(int x0, int y0, int x1, int y1, bool burns = false) =>
+        JsonSerializer.Deserialize<Arc>(JsonSerializer.Serialize(new { id = 1, projectile = "bolt", x0, y0, x1, y1, left = 10, burns }),
             new JsonSerializerOptions(JsonSerializerDefaults.Web))!;
+
+    [Fact]
+    public void AnArcIsJudgedTheFrameItIsSeenAndABeamTillItIsTouched()
+    {
+        int y = Standing.Y - Spec.Hero.Height / 2;
+        var past = Standing with { Y = Standing.Y - 20_000 };
+        // An arc missing the hero the frame it is seen is past, though it lingers where the hero then steps.
+        var judged = new HashSet<int>();
+        Assert.False(Rams.Hits(ArcOf(40_000, y, 1_000, y), past, judged));
+        Assert.False(Rams.Hits(ArcOf(40_000, y, 1_000, y), Standing, judged));
+        // A beam missing it still burns: stepped into, it hurts once, then no more.
+        judged.Clear();
+        Assert.False(Rams.Hits(ArcOf(40_000, y, 1_000, y, burns: true), past, judged));
+        Assert.True(Rams.Hits(ArcOf(40_000, y, 1_000, y, burns: true), Standing, judged));
+        Assert.False(Rams.Hits(ArcOf(40_000, y, 1_000, y, burns: true), Standing, judged));
+    }
 
     [Fact]
     public void AnArcCrossesTheHeroItRunsThroughOrEndsInAndNoneThatPassesOrStopsShort()

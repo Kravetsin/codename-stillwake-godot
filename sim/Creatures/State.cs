@@ -197,7 +197,7 @@ public sealed class Shot
     [JsonInclude] public string Projectile { get; internal set; } = "";
     /// <summary>The gun it was fired from, by its item; none for a creature's, whose damage is its projectile's alone.</summary>
     [JsonInclude, JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] public string? Gun { get; internal set; }
-    /// <summary>Its shooter: a hero by its peer, or none.</summary>
+    /// <summary>Its shooter: a hero by its peer, or none: a creature's (catcher-combat).</summary>
     [JsonInclude] public Ref By { get; internal set; }
     [JsonInclude] public int X { get; internal set; }
     [JsonInclude] public int Y { get; internal set; }
@@ -255,6 +255,8 @@ public readonly record struct ShotHit(int Shot, Ref By, string Projectile, strin
 public sealed class Arc
 {
     [JsonInclude] public int Id { get; internal set; }
+    /// <summary>The creature that struck it, by id; 0 in a save from before it was kept (catcher-combat): a catcher draws its own.</summary>
+    [JsonInclude, JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)] public int By { get; internal set; }
     /// <summary>Its projectile, by its id in <c>Shots.Projectiles</c>.</summary>
     [JsonInclude] public string Projectile { get; internal set; } = "";
     [JsonInclude] public int X0 { get; internal set; }
@@ -266,6 +268,8 @@ public sealed class Arc
     [JsonInclude] public int Lingers { get; internal set; }
     /// <summary>The patch it lays where it ends once its lingering is over, a lob landing (the capback's slime); null for none.</summary>
     [JsonInclude, JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] public string? Leaves { get; internal set; }
+    /// <summary>A beam (catcher-combat): it hurts a hero touching it any tick it lingers, not only the tick it struck; false in a save from before.</summary>
+    [JsonInclude, JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)] public bool Burns { get; internal set; }
     /// <summary>The peers whose heroes it has hurt, in order; none written while none.</summary>
     [JsonInclude, JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] internal List<int>? Paid { get; set; }
 }

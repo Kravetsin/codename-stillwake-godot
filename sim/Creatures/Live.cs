@@ -39,12 +39,6 @@ public sealed partial class CreaturesModule
     /// <summary>Calls peer <paramref name="peer"/>'s hunt off (tracker-catchers): its wanted meter emptied.</summary>
     internal void CallOff(int peer) => _crewOps.CallOff(peer);
 
-    /// <summary>How many strikes of <paramref name="damage"/> break what is solid in <paramref name="cell"/>; null where none does (<c>Building.Strikes</c>).</summary>
-    internal int? Strikes(int cell, int damage) => _built.Strikes(cell, damage);
-
-    /// <summary>A catcher's strike on what is solid in <paramref name="cell"/> (<c>Building.Wear</c>).</summary>
-    internal void Wear(int cell, int damage) => _building.Wear(cell, damage);
-
     /// <summary>The path search hunters share (catcher-paths): its memory reused, never saved.</summary>
     internal readonly PathFinder Paths = new();
 
@@ -76,17 +70,6 @@ public sealed partial class CreaturesModule
         int steps = Math.Max(1, (Math.Max(Math.Abs(x1 - x0), Math.Abs(y1 - y0)) + Unit / 2 - 1) / (Unit / 2));
         for (int i = 1; i <= steps; i++)
             if (Overlaps(s, x0 + (int)((long)(x1 - x0) * i / steps), y0 + (int)((long)(y1 - y0) * i / steps))) return false;
-        return true;
-    }
-
-    /// <summary>Whether every solid cell a body of <paramref name="f"/> standing on (<paramref name="x"/>, <paramref name="y"/>) covers breaks by its strikes.</summary>
-    internal bool Breaks(Spec.Flyer f, int x, int y)
-    {
-        int half = f.Width * Unit / 2;
-        for (int row = y - f.Height + 1; row <= y; row++)
-            for (int column = Down(Middle(x) - half, Unit); column <= Down(Middle(x) + half - 1, Unit); column++)
-                if (Solid(column, row) && (column < 0 || row < 0 || column >= _grid.Width || row >= _grid.Height || Strikes(row * _grid.Width + column, f.Wear) == null))
-                    return false;
         return true;
     }
 
@@ -303,17 +286,22 @@ public sealed partial class CreaturesModule
     /// Whether nothing solid lies on the straight line from <paramref name="c"/>'s middle to the middle of cell <paramref name="at"/>,
     /// walked as a shot's step is (<see cref="Rays.Walk"/>): what a lurker on the ground sees by (cave-hostiles).
     /// </summary>
-    internal bool InLine(Creature c, Spec.Species spec, (int X, int Y) at)
+    internal bool InLine(Creature c, Spec.Species spec, (int X, int Y) at) => Sees(c.X, c.Y - spec.Body.Height * Unit / 2, at);
+
+    /// <summary>Whether nothing solid lies on the straight line from (<paramref name="x"/>, <paramref name="y"/>), in thousandths of a cell, to the middle of cell <paramref name="at"/>.</summary>
+    internal bool Sees(int x, int y, (int X, int Y) at) => FirstSolid(x, y, Middle(at.X), Middle(at.Y)) == null;
+
+    /// <summary>The first solid cell on the straight line from (<paramref name="x0"/>, <paramref name="y0"/>) to (<paramref name="x1"/>, <paramref name="y1"/>), walked as a shot's step is (<see cref="Rays.Walk"/>); null for none.</summary>
+    internal int? FirstSolid(int x0, int y0, int x1, int y1)
     {
-        int x = c.X, y = c.Y - spec.Body.Height * Unit / 2;
-        bool clear = true;
-        Rays.Walk(_grid.Width, _grid.Height, x, y, Middle(at.X) - x, Middle(at.Y) - y, cell =>
+        int? first = null;
+        Rays.Walk(_grid.Width, _grid.Height, x0, y0, x1 - x0, y1 - y0, cell =>
         {
             if (!Solid(cell)) return false;
-            clear = false;
+            first = cell;
             return true;
         });
-        return clear;
+        return first;
     }
 
     /// <summary>

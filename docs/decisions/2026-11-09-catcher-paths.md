@@ -1,7 +1,8 @@
 # Catcher paths
 
 - Status: accepted; built for the planet. Supersedes in part [tracker-catchers](2026-11-09-tracker-catchers.md) (its warning
-  hover, its straight flight, its cut of grown rock only, shelter holding it)
+  hover, its straight flight, its cut of grown rock only, shelter holding it); superseded in part by
+  [catcher-combat](2026-11-09-catcher-combat.md) (the drill, Cut and Fly steps, the leap, breaking built walls)
 - Date: 2026-11-09
 
 ## Context

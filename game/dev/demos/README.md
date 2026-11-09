@@ -26,7 +26,7 @@ effect, so a release build has none of this folder and no `*Demo.cs` anywhere.
 | `CapsuleScenario.cs` | The wreck with its trade station's capsule just gone or about to come home (--capsule) |
 | `MarketScenario.cs` | `--market`: a trade station, credits and the first two levels' goods with scrap, to raise the mafia's reputation |
 | `FlareScenario.cs` | `--flare`: the new game's wreck with a magnetic flare's warning begun at once; `=repair` a lamp half repaired |
-| `PlanetScenarios.cs` | `--planet` (with `--valley`), `--strip` (with `--beam-back`), `--creatures` and its modifiers, `--nailer`, `--railgun`, `--hitboxes`, `--pickaxe`, `--ore-shine` (`=off` without the lamp), `--lake`, `--pour` |
+| `PlanetScenarios.cs` | `--planet` (with `--valley`, `--catcher`, `--fight`), `--strip` (with `--beam-back`), `--creatures` and its modifiers, `--nailer`, `--railgun`, `--hitboxes`, `--pickaxe`, `--ore-shine` (`=off` without the lamp), `--lake`, `--pour` |
 | `TabletHands.cs` | A script's hands on the research tablet: `--tree`, `--board` |
 | `CreatureHands.cs` | `--creatures`'s hands: the hero hunting the creatures with the axe, then the drill |
 | `ClimbScenario.cs` | `--climb`: the first planet, the hero at the bottom of its deepest chasm, grappling gun in hand, the harpoon beside, creative (grapple-climbs) |

@@ -236,44 +236,6 @@ public sealed partial class BuildingModule
         && (_grid.WallAt(cell) is { } wall ? wall.Strength != Material.Unbreakable : PieceAt(cell) != null);
 
     /// <inheritdoc/>
-    public int? Strikes(int cell, int damage)
-    {
-        if (damage <= 0 || WearCost(cell) is not var (left, _, _, _)) return null;
-        // In full, built or not (damage-scale): each strike cracks by its damage till one pays what is left.
-        return (left + damage - 1) / damage;
-    }
-
-    /// <summary>What is solid in <paramref name="cell"/> for a catcher's strike: its strength left, whether built, the cell its crack is kept by, its strength whole; null for nothing it breaks.</summary>
-    private (int Left, bool Built, int Key, int Strength)? WearCost(int cell)
-    {
-        if (!Rules.ToolsBreak || cell < 0 || cell >= _grid.Width * _grid.Height || !_grid.Zone.Contains(cell % _grid.Width, cell / _grid.Width)) return null;
-        if (_grid.WallAt(cell) is { } wall)
-            return wall.Strength == Material.Unbreakable ? null : (Remaining(cell, wall.Strength), !wall.Natural, cell, wall.Strength);
-        if (_grid.Solid(cell) && PieceAt(cell) is { } piece) return (Remaining(piece.Head, piece.Build.Strength), true, piece.Head, piece.Build.Strength);
-        return null;
-    }
-
-    /// <inheritdoc/>
-    // Broken rock gives nothing: a hunter is no mine. What a wall held the sweep fells; a built thing falls as a charge's does.
-    public bool Wear(int cell, int damage)
-    {
-        if (damage <= 0 || WearCost(cell) is not var (left, built, key, strength)) return false;
-        if (left > damage)
-        {
-            Cracked(key, strength, damage);
-            return false;
-        }
-        if (!built)
-        {
-            if (CrackIndex(cell) is >= 0 and var crack) State.Cracks.RemoveAt(crack);
-            _gridOps.Clear(cell, "structure");
-        }
-        else if (_grid.WallAt(cell) != null) BreakWall(cell, Spoils.Drop);
-        else BreakPiece(key, Spoils.Drop);
-        return true;
-    }
-
-    /// <inheritdoc/>
     public int ShotKey(int cell) => _grid.WallAt(cell) == null && PieceAt(cell) is { } piece ? piece.Head : cell;
 
     /// <inheritdoc/>

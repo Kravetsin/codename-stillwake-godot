@@ -187,54 +187,37 @@ public class CatchersTests
         Assert.True(w.M.Crew.Hunted(0));
     }
 
+    private static int Solids(Scenario w) => Enumerable.Range(0, W * H).Count(w.M.Creatures.Solid);
+
+    private static Hero HeroOf(Scenario w, int peer = 0) => w.M.Crew.HeroOf(peer)!;
+
+    /// <summary>Shut in a cave under rock, its hero is reached by a blink inside it, nothing broken (catcher-combat: no drill).</summary>
     [Fact]
-    public void ItCutsGrownRockToAHeroInASealedCaveGivingNothing()
+    public void ItBlinksIntoASealedCaveItsHeroIsInBreakingNothing()
     {
-        var w = Arrive(Field((x, y) => y >= Ground + 6 && y < Ground + 12 && x >= 150 && x < 160), 154, y: Ground + 11);
-        Full(w);
-        w.Run(Tune.Beat + 1);
-        var c = CatcherOf(w, 0)!;
+        var w = Arrive(Field((x, y) => y >= Ground + 6 && y < Ground + 12 && x >= 140 && x < 170), 154, y: Ground + 9);
+        int solid = Solids(w);
+        w.Do(new Release(Catcher.Id, Cell(100, Ground - 1))).Run();
+        var c = w.M.Creatures.Creatures.Single();
         int far = int.MaxValue;
-        for (int t = 0; t < Hunt.Ticks && c.Act == null; t++)
+        for (int t = 0; t < 200 && c.Act == null; t++)
         {
-            w.Do(new Enter(Cell(154 + t / 10 % 2, Ground + 11)));
+            w.Do(new Enter(Cell(154 + t / 10 % 2, Ground + 9)));
             w.Run();
             far = Math.Min(far, Math.Abs(Column(c) - 154));
         }
-        // It cut its way in and made its move at the hero.
         Assert.NotNull(c.Act);
+        Assert.True(w.M.Creatures.FightOf(c).Blinked > 0);
         Assert.True(far <= Hunt.Strike, $"{far} columns off at best");
-        Assert.True(CreaturesModule.LastWear(c) > 0);
+        Assert.Equal(solid, Solids(w));
         Assert.Empty(w.M.Items.Floor);
-        Assert.DoesNotContain(w.M.Items.Totals(0), t => t.Item == "rock");
     }
 
+    /// <summary>Shut in a built hut with no room for it, its hero gets a blasting charge at the wall; the wall's cost falls (catcher-combat).</summary>
     [Fact]
-    public void ItsStrikesBreakByTheDamageRuleGroundForNothingBuiltForItsCostBedrockNever()
+    public void ShutInAHutWithNoRoomForItTheHeroGetsAChargeAtTheWall()
     {
-        var w = Arrive(Field(), 40);
-        int sky = Cell(100, Ground - 3), rock = Cell(100, Ground + 3), bedrock = Cell(100, H - 1);
-        w.Do(new Place(sky, Placement.Wall("scrap"))).Run();
-        var f = (Tune.Flyer)Catcher.Body;
-        Assert.Equal(1, w.M.Building.Strikes(rock, f.Wear));
-        Assert.Null(w.M.Building.Strikes(bedrock, f.Wear));
-        Assert.Null(w.M.Building.Strikes(Cell(100, Ground - 10), f.Wear));
-        // A built wall takes each strike in full (damage-scale), cracking till one pays what is left.
-        int strikes = w.M.Building.Strikes(sky, f.Wear)!.Value;
-        Assert.True(strikes > 1, $"{strikes} strikes");
-        for (int i = 1; i < strikes; i++) Assert.False(w.M.Building.Wear(sky, f.Wear));
-        Assert.True(w.M.Building.Wear(sky, f.Wear));
-        Assert.Null(w.M.Grid.WallAt(sky));
-        Assert.Contains(w.M.Items.Floor, s => s.Item == "scrapChunk");
-        Assert.True(w.M.Building.Wear(rock, f.Wear));
-        Assert.False(w.M.Building.Wear(bedrock, f.Wear));
-        Assert.DoesNotContain(w.M.Items.Floor, s => s.Item is "rock" or "gravel");
-    }
-
-    [Fact]
-    public void ShutInABuiltHutTheHeroIsReachedThroughAWallWhoseCostFalls()
-    {
-        var w = Arrive(Field(), 40);
+        var w = Arrive(Field(), 40, y: Ground - 3);
         for (int y = Ground - 7; y < Ground; y++)
             foreach (int x in (int[])[37, 43])
                 w.Do(new Place(Cell(x, y), Placement.Wall("scrap")));
@@ -242,13 +225,19 @@ public class CatchersTests
         w.Run();
         w.Do(new Release(Catcher.Id, Cell(80, Ground - 1))).Run();
         var c = w.M.Creatures.Creatures.Single();
-        for (int t = 0; t < Hunt.Ticks && c.Act == null; t++)
+        bool lobbed = false;
+        int hurts = HeroOf(w).Hurts;
+        for (int t = 0; t < 120 && !w.M.Items.Floor.Any(s => s.Item == "scrapChunk"); t++)
         {
-            if (t % 10 == 0) w.Do(new Enter(Cell(40, Ground - 1)));
+            if (t % 10 == 0) w.Do(new Enter(Cell(40, Ground - 3)));
             w.Run();
+            lobbed |= w.M.Creatures.Shots.Any(s => s.Projectile == Hunt.Lob.Projectile);
         }
-        Assert.NotNull(c.Act);
+        Assert.True(lobbed);
+        Assert.Equal(0, w.M.Creatures.FightOf(c).Blinked);
         Assert.Contains(w.M.Items.Floor, s => s.Item == "scrapChunk");
+        // Its burst opened the hut and took its charge's damage off the hero in it, now in its sight.
+        Assert.True(HeroOf(w).Hurts > hurts);
     }
 
     /// <summary>A playtest (2026-11-09): running at its hero it turned back and stamped; it never turns back while far, nor stops.</summary>
@@ -295,14 +284,14 @@ public class CatchersTests
             if (w.M.Creatures.Afoot(c)) afoot++;
         }
         Assert.NotNull(c.Act);
-        // About 90 columns at a walk's 1.4 ticks a cell, a few searches waited; running nearly all the way.
+        // About 90 columns at a sprint's 0.76 ticks a cell, a few searches waited; running nearly all the way.
         Assert.True(ticks < 200, $"{ticks} ticks");
         Assert.True(afoot * 10 >= ticks * 8, $"afoot {afoot} of {ticks}");
-        Assert.Equal(0, CreaturesModule.LastWear(c));
+        Assert.Equal(0, w.M.Creatures.FightOf(c).Blinked);
     }
 
     [Fact]
-    public void AWideRavineItFliesAcrossRatherThanClimbingDownAndUp()
+    public void AWideRavineItBlinksAcrossRatherThanClimbingDownAndUp()
     {
         var w = Arrive(Field((x, y) => x >= 80 && x < 100 && y < H - 2), 40);
         w.Do(new Release(Catcher.Id, Cell(140, Ground - 1))).Run();
@@ -315,81 +304,83 @@ public class CatchersTests
             deepest = Math.Max(deepest, CreaturesModule.Down(c.Y - 1, Unit));
         }
         Assert.NotNull(c.Act);
+        Assert.True(w.M.Creatures.FightOf(c).Blinked > 0);
         Assert.True(deepest < Ground + 2, $"down to row {deepest}");
     }
 
+    /// <summary>A playtest (2026-11-09): a sprinting hero always ran past where it landed; outrun, it gathers and is there well ahead.</summary>
     [Fact]
-    public void AHeroOutrunningItSeesItLeapToLandAhead()
+    public void AHeroOutrunningItSeesItBlinkWellAheadOfIt()
     {
         var w = Arrive(Field(), 60, y: Ground - 3);
         w.Do(new Release(Catcher.Id, Cell(20, Ground - 1))).Run();
         var c = w.M.Creatures.Creatures.Single();
-        int x = 60, fastest = 0;
-        bool ahead = false;
-        for (int t = 0; t < 360 && c.Act == null; t++)
+        int ahead = int.MinValue, ghost = -1;
+        var trace = new System.Text.StringBuilder();
+        for (int t = 0; t < 360 && c.Act == null && ahead == int.MinValue; t++)
         {
-            x = Math.Min(W - 20, 60 + (t + 1) * 3 / 2);
+            int x = Math.Min(W - 20, 60 + (t + 1) * 3 / 2);
             w.Do(new Enter(Cell(x, Ground - 3)));
             w.Run();
-            fastest = Math.Max(fastest, Math.Abs(c.VX));
-            ahead |= Column(c) > x;
+            var fight = w.M.Creatures.FightOf(c);
+            if (fight.Ghost >= 0) ghost = fight.Ghost;
+            if (fight.Blinked == w.M.Creatures.Clock) ahead = Column(c) - x;
+            if (t % 5 == 0) trace.Append($"t{t} hero {x} it {Column(c)}; ");
         }
-        // Outrun at 30 cells a second, past its sprint, it leapt at 48 and landed ahead of its hero, or caught it.
-        Assert.Equal(((Tune.Flyer)Catcher.Body).Leap, fastest);
-        Assert.True(ahead || c.Act != null, $"hero {x} catcher {Column(c)},{c.Y} act {c.Act?.Move} hunting {CreaturesModule.Hunting(c)} alive {w.M.Creatures.Creatures.Contains(c)} clock {w.M.Creatures.Clock}");
+        // Outrun at 30 cells a second, past its sprint, it gathered where it stood and was there, its ghost's spot.
+        Assert.True(ahead >= 12, $"landed {ahead} ahead: {trace}");
+        Assert.Equal(ghost, CreaturesModule.Down(c.Y - 1, Unit) * W + Column(c));
     }
 
-    /// <summary>A playtest (2026-11-09): it stalled as it took off; up a cliff to its hero it never stands still.</summary>
+    /// <summary>However often it lags, its blinks are at least <c>Every</c> apart, gathering still and spent after (catcher-combat).</summary>
     [Fact]
-    public void UpACliffToItsHeroItTakesOffWithoutStalling()
+    public void ItBlinksAtMostEveryWhileGatheringStillAndSpentAfter()
     {
-        var w = Arrive(Field(), 40, y: Ground - 9);
+        var w = Arrive(Field(), 60, y: Ground - 3);
+        w.Do(new Release(Catcher.Id, Cell(20, Ground - 1))).Run();
+        var c = w.M.Creatures.Creatures.Single();
+        var blinks = new List<int>();
+        int x = 60;
+        for (int t = 0; t < 900; t++)
+        {
+            // The hero outruns it, and steps on past it wherever it comes near.
+            x += t % 2 == 0 ? 2 : 1;
+            if (Math.Abs(Column(c) - x) < 25 || x > W - 20) x = Column(c) + 60 > W - 20 ? 20 : Column(c) + 60;
+            w.Do(new Enter(Cell(x, Ground - 3)));
+            var before = (c.X, c.Y);
+            w.Run();
+            var fight = w.M.Creatures.FightOf(c);
+            if (fight.Ghost >= 0 && fight.GatherLeft > 0) Assert.Equal(before, (c.X, c.Y));
+            if (fight.Blinked == w.M.Creatures.Clock) blinks.Add(fight.Blinked);
+            else if (blinks.Count > 0 && w.M.Creatures.Clock - blinks[^1] < Hunt.Blink.Spent) Assert.Equal(before, (c.X, c.Y));
+        }
+        Assert.True(blinks.Count >= 2, $"{blinks.Count} blinks");
+        for (int i = 1; i < blinks.Count; i++) Assert.True(blinks[i] - blinks[i - 1] >= Hunt.Blink.Every, string.Join(",", blinks));
+    }
+
+    /// <summary>Up a cliff it has no run up, it blinks onto the top near its hero and pounces (catcher-combat).</summary>
+    [Fact]
+    public void UpACliffItHasNoRunUpItBlinksOntoIt()
+    {
+        var w = Arrive(Field(), 40, y: Ground - 11);
         for (int y = Ground - 8; y < Ground; y++)
             for (int x = 30; x < 70; x++)
                 w.Do(new Place(Cell(x, y), Placement.Wall("scrap")));
         w.Run();
         w.Do(new Release(Catcher.Id, Cell(130, Ground - 1))).Run();
         var c = w.M.Creatures.Creatures.Single();
-        int stops = 0, slow = 0;
-        var trace = new System.Text.StringBuilder();
         for (int t = 0; t < 300 && c.Act == null; t++)
         {
-            if (t % 10 == 0) w.Do(new Enter(Cell(40, Ground - 9)));
+            if (t % 10 == 0) w.Do(new Enter(Cell(40, Ground - 11)));
             w.Run();
-            trace.Append($"{c.X / 1000.0:F1},{c.Y / 1000.0:F1}/{c.VX},{c.VY} ");
-            if (c.VX == 0 && c.VY == 0) stops++;
-            else if (Math.Max(Math.Abs(c.VX), Math.Abs(c.VY)) < Hunt.Speed / 2) slow++;
         }
         Assert.NotNull(c.Act);
-        Assert.True(stops <= 1 && slow == 0, $"stops {stops}, slow {slow}: {trace}");
-    }
-
-    /// <summary>A playtest (2026-11-09): a sprinting hero always ran past where it landed; it lands well ahead of a sprint.</summary>
-    [Fact]
-    public void AHeroSprintingAwaySeesItLandWellAheadOfIt()
-    {
-        int sprint = Spec.Hero.Run * 3;
-        var w = Arrive(Field(), 50, y: Ground - 3);
-        w.Do(new Release(Catcher.Id, Cell(10, Ground - 1))).Run();
-        var c = w.M.Creatures.Creatures.Single();
-        bool leapt = false;
-        int landedAhead = int.MinValue;
-        var trace = new System.Text.StringBuilder();
-        for (int t = 0; t < 300 && c.Act == null && landedAhead == int.MinValue; t++)
-        {
-            int x = Math.Min(W - 10, 50 + (t + 1) * sprint / Unit);
-            w.Do(new Enter(Cell(x, Ground - 3)));
-            w.Run();
-            bool leaping = Math.Abs(c.VX) > sprint || Math.Abs(c.VY) > ((Tune.Flyer)Catcher.Body).Run;
-            if (leapt && (!leaping && w.M.Creatures.Afoot(c) || c.Act != null)) landedAhead = Column(c) - x;
-            leapt |= leaping;
-            if (t % 5 == 0) trace.Append($"t{t} hero {x} it {Column(c)} v{c.VX},{c.VY}; ");
-        }
-        Assert.True(landedAhead >= 12, $"landed {landedAhead} ahead: {trace}");
+        Assert.True(w.M.Creatures.FightOf(c).Blinked > 0);
+        Assert.True(CreaturesModule.Down(c.Y - 1, Unit) <= Ground - 9, $"row {CreaturesModule.Down(c.Y - 1, Unit)}");
     }
 
     [Fact]
-    public void AWallBuiltAcrossItsWayIsBrokenOrGoneRoundAndItStillArrives()
+    public void AWallBuiltAcrossItsWayItBlinksPastAndTheWallStands()
     {
         var w = Arrive(Field(), 40);
         w.Do(new Release(Catcher.Id, Cell(140, Ground - 1))).Run();
@@ -402,6 +393,163 @@ public class CatchersTests
             w.Run();
         }
         Assert.NotNull(c.Act);
+        Assert.All(Enumerable.Range(0, Ground), y => Assert.NotNull(w.M.Grid.WallAt(Cell(90, y))));
+    }
+
+    /// <summary>On the run it aims at its hero in sight and strikes an arc at the cell it held a tell before, every while, running on.</summary>
+    [Fact]
+    public void OnTheRunItStrikesAnArcAtItsHeroInSightAndRunsOn()
+    {
+        var w = Arrive(Field(), 40, y: Ground - 3);
+        w.Do(new Release(Catcher.Id, Cell(140, Ground - 1))).Run();
+        var c = w.M.Creatures.Creatures.Single();
+        int start = w.M.Creatures.Clock, held = 0;
+        Arc? arc = null;
+        bool aimed = false;
+        for (int t = 0; t < 200 && c.Act == null && arc == null; t++)
+        {
+            if (t % 10 == 0) w.Do(new Enter(Cell(40, Ground - 3)));
+            w.Run();
+            var fight = w.M.Creatures.FightOf(c);
+            aimed |= fight.Aims;
+            if (fight.Held >= 0) held++;
+            arc = w.M.Creatures.Arcs.FirstOrDefault(a => a.Left == a.Lingers);
+        }
+        Assert.NotNull(arc);
+        Assert.True(aimed);
+        // Its first shot a whole wait from the tick it came, the tick before this loop.
+        Assert.True(w.M.Creatures.Clock - start >= Hunt.Gunfire.Every - 1, $"fired at {w.M.Creatures.Clock - start}");
+        Assert.Equal(Hunt.Gunfire.Tell, held);
+        // A beam, burning: through the cell it held, within half a cell, and on past it.
+        Assert.True(arc!.Burns);
+        int hx = 40 * Unit + Unit / 2, hy = (Ground - 3) * Unit + Unit / 2;
+        Assert.InRange(arc.Y0 + (long)(arc.Y1 - arc.Y0) * (hx - arc.X0) / (arc.X1 - arc.X0), hy - Unit / 2, hy + Unit / 2);
+        Assert.True(arc.X1 < hx - 10 * Unit, $"ends at {arc.X1 / Unit}");
+        Assert.NotEqual(0, c.VX);
+    }
+
+    /// <summary>Within its pounce it never aims nor shoots: played, a laser at a hero beside it ran off anywhere.</summary>
+    [Fact]
+    public void WithinItsPounceItNeverAimsNorShoots()
+    {
+        var w = Arrive(Field(), 40);
+        w.Do(new Release(Catcher.Id, Cell(40 + Hunt.Strike - 4, Ground - 1))).Run();
+        var c = w.M.Creatures.Creatures.Single();
+        int near = 0;
+        for (int t = 0; t < 200 && w.M.Creatures.Creatures.Count > 0; t++)
+        {
+            if (t % 10 == 0) w.Do(new Enter(Cell(40, Ground - 1)));
+            w.Run();
+            if (Math.Abs(Column(c) - 40) >= Hunt.Strike - 1) continue;
+            near++;
+            Assert.False(w.M.Creatures.FightOf(c).Aims, $"aims {Column(c) - 40} columns off");
+            Assert.DoesNotContain(w.M.Creatures.Arcs, a => a.Left == a.Lingers);
+        }
+        Assert.True(near > 100, $"near {near} ticks");
+    }
+
+    /// <summary>Its beam runs on past its hero to the first solid, as far as it reaches; the sentry's arc still stops at its hero.</summary>
+    [Fact]
+    public void ItsBeamRunsOnPastItsHeroToTheFirstWall()
+    {
+        var w = Arrive(Field(), 40, y: Ground - 3);
+        int wall = 25;
+        for (int y = 0; y < Ground; y++) w.M.Grid.Place(Cell(wall, y), Placement.Wall("bedrock"));
+        w.Do(new Release(Catcher.Id, Cell(140, Ground - 1))).Run();
+        var c = w.M.Creatures.Creatures.Single();
+        Arc? arc = null;
+        for (int t = 0; t < 200 && c.Act == null && arc == null; t++)
+        {
+            if (t % 10 == 0) w.Do(new Enter(Cell(40, Ground - 3)));
+            w.Run();
+            arc = w.M.Creatures.Arcs.FirstOrDefault(a => a.Left == a.Lingers);
+        }
+        Assert.NotNull(arc);
+        Assert.InRange(CreaturesModule.Down(arc!.X1, Unit), wall, wall + 1);
+    }
+
+    /// <summary>
+    /// Its salvo under open sky: it rises its hover into the sky, lobs its shells over the spread round its hero, each marked on the floor where it
+    /// lands; their bursts break a little ground and hurt a hero within reach, not one past it; then it falls and runs on.
+    /// </summary>
+    [Fact]
+    public void ItsSalvoLobsMarkedShellsRoundItsHeroWhoseBurstsBreakAndHurt()
+    {
+        var salvo = Hunt.Salvo;
+        var w = Arrive(Arrive(Field(), 40, y: Ground - 3), 120, peer: 1, y: Ground - 3);
+        w.Do(new Release(Catcher.Id, Cell(70, Ground - 1))).Run();
+        var c = w.M.Creatures.Creatures.Single();
+        int y0 = c.Y, ground = Solids(w), hurts = HeroOf(w).Hurts, other = HeroOf(w, 1).Hurts;
+        c.Keep(HuntDrive.SalvoAt, w.M.Creatures.Clock);
+        for (int t = 0; t < salvo.Hover + 3 && !w.M.Creatures.MarksOf(c).Any(); t++) w.Run();
+        // Its hover, or as high as the grid's top lets it.
+        Assert.Equal(Math.Max(Catcher.Body.Height * Unit, y0 - salvo.Hover * Unit), c.Y);
+        var marks = w.M.Creatures.MarksOf(c).Select(k => k.Cell).ToList();
+        Assert.Equal(salvo.Shells, marks.Count);
+        // They land one after another, each Stagger after the one before.
+        Assert.Equal(salvo.Stagger, w.M.Creatures.MarksOf(c).ElementAt(1).Left - w.M.Creatures.MarksOf(c).ElementAt(0).Left);
+        Assert.Equal(salvo.Shells, w.M.Creatures.Shots.Count(s => s.Projectile == salvo.Projectile));
+        Assert.All(marks, m => Assert.True(w.M.Creatures.Solid(m + W) && !w.M.Creatures.Solid(m)));
+        Assert.Equal(salvo.Spread, marks.Max(m => m % W) - marks.Min(m => m % W));
+        w.Run(salvo.Flight + (salvo.Shells - 1) * salvo.Stagger + 2);
+        Assert.DoesNotContain(w.M.Creatures.Shots, s => s.Projectile == salvo.Projectile);
+        Assert.Empty(w.M.Creatures.MarksOf(c));
+        Assert.True(Solids(w) < ground);
+        Assert.True(HeroOf(w).Hurts > hurts);
+        Assert.Equal(other, HeroOf(w, 1).Hurts);
+        w.Run(salvo.Hover + 2);
+        Assert.Equal(0, c.Recall(HuntDrive.Salvo));
+        Assert.Equal(y0, c.Y);
+    }
+
+    [Fact]
+    public void UnderARoofItThrowsNoSalvoTillItIsOutFromUnderIt()
+    {
+        var w = Arrive(Field(), 40, y: Ground - 3);
+        for (int x = 65; x < 95; x++) w.Do(new Place(Cell(x, Ground - 7), Placement.Wall("scrap")));
+        w.Run();
+        w.Do(new Release(Catcher.Id, Cell(85, Ground - 1))).Run();
+        var c = w.M.Creatures.Creatures.Single();
+        c.Keep(HuntDrive.SalvoAt, w.M.Creatures.Clock);
+        w.Run();
+        Assert.Equal(0, c.Recall(HuntDrive.Salvo));
+        for (int t = 0; t < 30 && c.Recall(HuntDrive.Salvo) == 0; t++) w.Run();
+        Assert.NotEqual(0, c.Recall(HuntDrive.Salvo));
+        Assert.True(Column(c) < 65, $"column {Column(c)}");
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void AWorldSavedMidGatherOrMidSalvoLoadsAndPlaysOnAlike(bool salvo)
+    {
+        // The first planet, saved as its edits; its catcher made to lag, or its salvo due.
+        var w = new Scenario("......\n.S....\n######");
+        w.Do(new Enter(w.M.Crew.Spawn)).Run();
+        w.Do(new OpenSurface(Spec.PlanetTypes.First.Id)).Run();
+        w.Do(new Transfer(1)).Run();
+        var hero = w.On(1).Crew.HeroOf(0)!;
+        (hero.Need, hero.Wanted) = (Spec.Wanted.NeedLeast, Spec.Wanted.NeedLeast);
+        w.Run(Tune.Beat + 1);
+        var m = w.On(1).Creatures;
+        var c = m.Creatures.Single(k => k.Species == Catcher.Id);
+        string key = salvo ? HuntDrive.Salvo : HuntDrive.BlinkTo;
+        for (int t = 0; t < 600 && c.Recall(key) == 0 && (salvo || c.Act == null); t++)
+        {
+            if (salvo) c.Keep(HuntDrive.SalvoAt, m.Clock);
+            else
+            {
+                c.Keep(HuntDrive.LagClock, 1);
+                c.Keep(HuntDrive.Closest, 1);
+            }
+            w.Run();
+        }
+        w.Run(2);
+        Assert.NotEqual(0, c.Recall(key));
+        var twin = new Scenario("......\n.S....\n######").Reload(w.World.Save());
+        w.Run(60);
+        twin.Run(60);
+        Assert.Equal(w.World.Save(), twin.World.Save());
     }
 
     [Fact]
@@ -412,22 +560,22 @@ public class CatchersTests
         var f = (Tune.Flyer)Catcher.Body;
         var used = new PathFinder();
         var scratch = new List<int>();
-        used.Find(m, f, Hunt.Speed, 60, Ground - 1, 154, Ground + 11, scratch);
-        used.Find(m, f, Hunt.Speed, 200, Ground - 1, 20, Ground - 1, scratch);
+        used.Find(m, f, 60, Ground - 1, 154, Ground + 11, scratch);
+        used.Find(m, f, 200, Ground - 1, 20, Ground - 1, scratch);
         var a = new List<int>();
         var b = new List<int>();
-        used.Find(m, f, Hunt.Speed, 120, Ground - 1, 154, Ground + 11, a);
-        new PathFinder().Find(m, f, Hunt.Speed, 120, Ground - 1, 154, Ground + 11, b);
+        used.Find(m, f, 120, Ground - 1, 154, Ground + 11, a);
+        new PathFinder().Find(m, f, 120, Ground - 1, 154, Ground + 11, b);
         Assert.NotEmpty(a);
         Assert.Equal(b, a);
     }
 
     /// <summary>
-    /// On drawn ground of rock, built walls and bedrock, every step a path takes is one a body makes: a run a column across and at most
-    /// a step up or down, a flight or cut a cell any way; never into bedrock; a cut only into what breaks.
+    /// On drawn ground of rock, built walls and bedrock, every step a path takes is a run the body makes: a column across, at most a step
+    /// up or down, standing free on ground; nothing broken on its way (catcher-combat: no drill).
     /// </summary>
     [Property(MaxTest = 40)]
-    public Property EveryStepOfAPathIsOneTheBodyCanTake() => Prop.ForAll(
+    public Property EveryStepOfAPathIsARunTheBodyCanTake() => Prop.ForAll(
         Gen.Choose(0, 9).ArrayOf(W / 8).ToArbitrary(),
         Gen.Choose(0, 400).Two().ToArbitrary(),
         (columns, ends) =>
@@ -444,24 +592,15 @@ public class CatchersTests
             var f = (Tune.Flyer)Catcher.Body;
             var path = new List<int>();
             int sx = 20 + ends.Item1 % 440, gx = 20 + ends.Item2 % 440;
-            m.Paths.Find(m, f, Hunt.Speed, sx, Ground - 12, gx, Ground - 1, path);
-            int px = sx, py = Ground - 12;
-            var broken = new HashSet<int>();
+            // A catcher never stands in a wall: it moves only where its body fits.
+            if (m.Overlaps(f, m.Middle(sx), Ground * Unit)) return true;
+            m.Paths.Find(m, f, sx, Ground - 1, gx, Ground - 1, path);
+            int px = sx, py = Ground - 1;
             foreach (int step in path)
             {
                 int x = step / 4 % W, y = step / 4 / W;
-                var kind = (StepKind)(step % 4);
-                int dx = x - px, dy = y - py;
-                bool shaped = kind == StepKind.Run ? Math.Abs(dx) == 1 && Math.Abs(dy) <= Tune.StepUp : Math.Max(Math.Abs(dx), Math.Abs(dy)) == 1;
-                if (!shaped) return false;
-                // What a cut step's body covered it broke: later steps may stand in it.
-                for (int row = y - f.Height + 1; row <= y; row++)
-                    for (int column = x - 1; column <= x + 1; column++)
-                    {
-                        if (w.M.Grid.WallAt(Cell(column, row)) is not { } wall || broken.Contains(Cell(column, row))) continue;
-                        if (wall.Id == "bedrock" || kind != StepKind.Cut) return false;
-                        broken.Add(Cell(column, row));
-                    }
+                if ((StepKind)(step % 4) != StepKind.Run || Math.Abs(x - px) != 1 || Math.Abs(y - py) > Tune.StepUp) return false;
+                if (m.Overlaps(f, m.Middle(x), (y + 1) * Unit) || !m.Grounded(f, x, y)) return false;
                 (px, py) = (x, y);
             }
             return true;
@@ -486,7 +625,14 @@ public class CatchersTests
         Full(w);
         w.Run(Tune.Beat + 1);
         var c = CatcherOf(w, 0)!;
-        w.Run(Hunt.Ticks);
+        // Never in its sight, its hero draws no arc; its charges burst on bedrock, out of the hero's sight.
+        int hurts = HeroOf(w).Hurts;
+        for (int t = 0; t < Hunt.Ticks; t++)
+        {
+            w.Run();
+            Assert.DoesNotContain(w.M.Creatures.Arcs, a => a.Left == a.Lingers);
+        }
+        Assert.Equal(hurts, HeroOf(w).Hurts);
         Assert.All(Enumerable.Range(Ground - 7, 7), y => Assert.NotNull(w.M.Grid.WallAt(Cell(43, y))));
         Assert.Null(CreaturesModule.Hunting(c));
         Assert.Equal((0, 0), (w.M.Crew.HeroOf(0)!.Wanted, w.M.Crew.HeroOf(0)!.Need));
@@ -548,7 +694,9 @@ public class CatchersTests
         Assert.Equal(Ref.Hero(0), c.Target);
         w.Do(new Strike(c.Id, Spec.Weapons.Axe.Item) { From = 1 }).Run();
         Assert.Null(c.Act);
+        // Teleporting, it may reach its quarry by now: an answer waits for its pounce to end.
         w.Run(Hunt.AnswerEvery);
+        while (c.Act != null) w.Run();
         w.Do(new Strike(c.Id, Spec.Weapons.Axe.Item) { From = 1 }).Run();
         Assert.Equal(1, c.Act?.Move);
     }

@@ -4,15 +4,13 @@ using Spec = Stillwake.Content.Creatures;
 namespace Stillwake.Sim.Creatures;
 
 /// <summary>
-/// The flyer (the catcher's jetpack, tracker-catchers): no gravity; it moves its speed across, then down, each axis stopped where its body
-/// would meet something solid. Stopped while its drive lets it cut (<see cref="Cuts"/>, a path's cut step, catcher-paths), one that wears
-/// strikes every solid cell its body would take there, ascending, every <c>CutEvery</c> ticks, when the damage rule breaks each of them
-/// (<c>Building.Strikes</c>); else it stays stopped. Leaving (<see cref="Through"/>), nothing stops it. What it keeps, in its <c>Mem</c>:
-/// whether it passes through, whether it cuts, the clock of its next strike, and of its last.
+/// The flyer (the catcher's jetpack, tracker-catchers): no gravity; rising it moves its speed up first, else across first, then down,
+/// each axis stopped where its body would meet something solid. Leaving (<see cref="Through"/>), nothing stops it. What it keeps, in its
+/// <c>Mem</c>: whether it passes through.
 /// </summary>
 internal sealed class FlyerBody : BodyRule
 {
-    internal const string Through = "through", Cuts = "cuts", NextCut = "nextCut", LastCut = "lastCut";
+    internal const string Through = "through";
 
     internal override Type Serves => typeof(Spec.Flyer);
 
@@ -47,40 +45,16 @@ internal sealed class FlyerBody : BodyRule
             return;
         }
         // Rising it goes up first, else across first: a run up a step, then on; across an edge, then down (catcher-paths).
-        if (c.VY < 0 && !Moves(m, c, spec, c.X, c.Y + c.VY)) c.VY = 0;
-        if (c.VX != 0 && !Moves(m, c, spec, c.X + c.VX, c.Y)) c.VX = 0;
-        if (c.VY > 0 && !Moves(m, c, spec, c.X, c.Y + c.VY)) c.VY = 0;
+        if (c.VY < 0 && !Moves(m, c, s, c.X, c.Y + c.VY)) c.VY = 0;
+        if (c.VX != 0 && !Moves(m, c, s, c.X + c.VX, c.Y)) c.VX = 0;
+        if (c.VY > 0 && !Moves(m, c, s, c.X, c.Y + c.VY)) c.VY = 0;
     }
 
-    /// <summary>Moves <paramref name="c"/> to (<paramref name="x"/>, <paramref name="y"/>) if nothing solid is there: else it may strike its way, and false.</summary>
-    private static bool Moves(CreaturesModule m, Creature c, Spec.Species spec, int x, int y)
+    /// <summary>Moves <paramref name="c"/> to (<paramref name="x"/>, <paramref name="y"/>) if nothing solid is there; else false.</summary>
+    private static bool Moves(CreaturesModule m, Creature c, Spec.Shape s, int x, int y)
     {
-        if (!m.Overlaps(spec.Body, x, y))
-        {
-            (c.X, c.Y) = (x, y);
-            return true;
-        }
-        if (c.Act == null && c.Recall(Cuts) == 1) Cut(m, c, (Spec.Flyer)spec.Body, x, y);
-        return false;
-    }
-
-    /// <summary>
-    /// <paramref name="c"/>'s strike on what stops a body of <paramref name="f"/> at (<paramref name="x"/>, <paramref name="y"/>):
-    /// every solid cell there, ascending, when its time has come and each breaks; none past the grid or in the fog.
-    /// </summary>
-    private static void Cut(CreaturesModule m, Creature c, Spec.Flyer f, int x, int y)
-    {
-        if (f.Wear == 0 || m.Clock < c.Recall(NextCut)) return;
-        int half = f.Width * Unit / 2;
-        int left = Down(x - half, Unit), right = Down(x + half - 1, Unit), top = Down(y - f.Height * Unit, Unit), bottom = Down(y - 1, Unit);
-        for (int row = top; row <= bottom; row++)
-            for (int column = left; column <= right; column++)
-                if (m.Solid(column, row) && (column < 0 || row < 0 || column >= m.GridWidth || row >= m.GridHeight || m.Strikes(row * m.GridWidth + column, f.Wear) == null))
-                    return;
-        for (int row = top; row <= bottom; row++)
-            for (int column = left; column <= right; column++)
-                if (m.Solid(column, row)) m.Wear(row * m.GridWidth + column, f.Wear);
-        c.Keep(NextCut, m.Clock + f.CutEvery);
-        c.Keep(LastCut, m.Clock);
+        if (m.Overlaps(s, x, y)) return false;
+        (c.X, c.Y) = (x, y);
+        return true;
     }
 }

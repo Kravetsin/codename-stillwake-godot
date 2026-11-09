@@ -102,4 +102,17 @@ public static class Rams
         }
         return true;
     }
+
+    /// <summary>
+    /// Whether this client reports <paramref name="arc"/> crossing <paramref name="hero"/> now, the arcs it is done with kept in
+    /// <paramref name="judged"/>: an arc judged once, the tick it is first seen; a beam (<see cref="Arc.Burns"/>, catcher-combat)
+    /// every frame it lingers, till it touches the hero once.
+    /// </summary>
+    public static bool Hits(Arc arc, Hero hero, ISet<int> judged)
+    {
+        if (judged.Contains(arc.Id)) return false;
+        bool hits = Crosses(arc, hero);
+        if (hits || !arc.Burns) judged.Add(arc.Id);
+        return hits;
+    }
 }

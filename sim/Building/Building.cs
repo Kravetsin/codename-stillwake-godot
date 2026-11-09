@@ -50,14 +50,6 @@ public interface IBuildingQueries
     /// </summary>
     bool ShotTakes(int cell);
 
-    /// <summary>
-    /// How many strikes of <paramref name="damage"/> break what is solid in <paramref name="cell"/> (catcher-paths), by the one damage rule
-    /// (unified-damage, damage-scale): what is left of its strength, built or natural, in full;
-    /// null where nothing breaks it: tools do not break things here, the fog, bedrock, lava, or nothing solid to break. What
-    /// <see cref="IBuildingOps.Wear"/> guards by and a path weighs.
-    /// </summary>
-    int? Strikes(int cell, int damage);
-
     /// <summary>What a shot's hit in <paramref name="cell"/> strikes, by a cell of it: a built piece by its first cell, whatever cell of it is met; else the cell itself. A thing a shot passed is remembered by this, so a piece over several cells is hit once.</summary>
     int ShotKey(int cell);
 
@@ -94,13 +86,6 @@ public interface IBuildingOps
     /// <paramref name="spoils"/> says; a relic it takes shocks the peer. Whether it went off: not from where it stops.
     /// </summary>
     bool Burst(int peer, int cell, int power, int reach, Spoils spoils);
-
-    /// <summary>
-    /// A catcher's strike of <paramref name="damage"/> on what is solid in <paramref name="cell"/> (catcher-paths): broken where it pays what is
-    /// left, else cracked, by the one damage rule as a burst pays (a built thing its share). Broken ground gives nothing (a hunter is no
-    /// mine); a built wall or piece drops its cost there for anyone. True when it broke; nothing where <see cref="IBuildingQueries.Strikes"/> is null.
-    /// </summary>
-    bool Wear(int cell, int damage);
 
     /// <summary>Fells the post at <paramref name="cell"/> for good, its creature killed; nothing if it is gone already.</summary>
     void FellPost(int cell);

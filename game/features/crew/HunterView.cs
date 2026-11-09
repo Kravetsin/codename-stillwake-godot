@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using Godot;
 using Stillwake.Game.Features.Sound;
 using Stillwake.Game.Render;
@@ -15,25 +16,41 @@ namespace Stillwake.Game.Features.Crew;
 /// The creatures whose look is a hero's (<see cref="CreatureLooks.Heroes"/>, tracker-catchers): each a <see cref="Figure"/> in its gear,
 /// no tracker on its shin, flying on its jetpack's plume between the ticks' places, its gun aimed at whom it acts on; one
 /// of its look's outfits by its id, its receiver blinking in its quarry's colour, its goggles lit as it hunts. Struck it flinches,
-/// sparks and is heard; its cuts through rock heard as the rock it bit or broke; killed in view it tumbles down and fades.
+/// sparks and is heard; a blink drawn as a jump, never a slide; killed in view it tumbles down and fades. Its fight as the user picked it
+/// (catcher-combat, <see cref="CatcherFx"/>): its aim a red thread, its laser «Жгут» from its muzzle, its blink a red glitch with its ghost
+/// ahead, its salvo's marks columns of light; heard as its tell, gather and blink begin.
 /// </summary>
 public partial class HunterView : Node2D
 {
-    private const double FadeMs = 1400, Gravity = 600;
+    private const double FadeMs = 1400, Gravity = 600, TickMs = 1000.0 / World.TicksPerSecond;
     private const int Unit = CreaturesModule.Unit;
 
-    private sealed class Shown(Figure figure, JetPlume plume)
+    private sealed class Shown(Figure figure, JetPlume plume, Glitch group)
     {
         public readonly Figure Figure = figure;
         public readonly JetPlume Plume = plume;
-        public readonly CutHeard Cuts = new();
-        public int Tick = -1, FromX, FromY, ToX, ToY, Damage, Facing = 1, LastWear, CutCell = -1;
+        public readonly Glitch Group = group;
+        public int Tick = -1, FromX, FromY, ToX, ToY, Damage, Facing = 1, Blinked, Held = -1, Ghost = -1;
         public string Species = "";
         public CreatureLooks.HeroGear Gear = null!;
+        public Spec.Creatures.Hunt? Hunt;
         public Hero Drawn;
+        /// <summary>Its gun's muzzle as drawn this frame, in pixels of the world: where its laser leaves.</summary>
+        public Vector2 Muzzle;
+        /// <summary>The clock its tell began, its last laser struck and it last blinked; where it ended and where it blinked from.</summary>
+        public double TellMs, ShotMs = double.MinValue / 2, BlinkMs = double.MinValue / 2;
+        public Vector2 ShotTo, BlinkFrom;
+        /// <summary>How far its laser runs, in cells (its <c>Shoot.Through</c>); whether its last stopped on solid, and melts it.</summary>
+        public int Through;
+        public bool Melts;
+        /// <summary>The drips and puffs of smoke its last laser's melt has thrown; the keys of the lights along its laser.</summary>
+        public int Drips, Puffs;
+        public readonly object[] Lamps = [new(), new(), new(), new(), new(), new()];
+        /// <summary>Its ghost where it will be while it gathers, made the first time.</summary>
+        public (Figure Figure, Glitch Group)? Ghosted;
     }
 
-    private sealed record Falling(Figure Figure, JetPlume Plume, Hero From)
+    private sealed record Falling(Figure Figure, JetPlume Plume, Hero From, Node Holder)
     {
         public double Ms, Vy;
         public double Y;
@@ -43,17 +60,30 @@ public partial class HunterView : Node2D
     private readonly List<int> _gone = [];
     private readonly HashSet<int> _seen = [];
     private readonly List<Falling> _falling = [];
+    /// <summary>The catchers' arcs drawn as lasers, by id, forgotten once they are gone.</summary>
+    private readonly HashSet<int> _shots = [];
+    private readonly CatcherFxView _fx = new();
     private double _clockMs;
+    private int _shotsTick = -1;
 
     /// <summary>The receiver's colour while it hunts no one: a dull grey.</summary>
     private const int Unclaimed = 0x8a8a8a;
-    private readonly Voices _world = new(S.World, voices: 4), _cuts = new(S.World, voices: 4);
+    private readonly Voices _world = new(S.World, voices: 4), _fight = new(S.World, voices: 4);
+
+    /// <summary>A drop of rock its laser melts, falling off where it stops.</summary>
+    private static readonly Luminous Drip = new(Glimmer.Mote, [(255, 190, 110), CatcherFx.Drip, (190, 60, 25)], (220, 330))
+    { Fade = 0.8, Gravity = 600, Size = 0.45, Bounce = 0 };
+
+    /// <summary>Smoke off the spot its laser melted, rising as it cools.</summary>
+    private static readonly Luminous Smoke = new(Glimmer.Wisp, [CatcherFx.Smoke], (800, 1000))
+    { Matter = true, Drag = 0.6, Turbulence = 14, Size = 1.4, Grow = 2.9, Alpha = 0.3 };
 
     public HunterView()
     {
         ZIndex = Layers.OtherHeroes;
         AddChild(_world);
-        AddChild(_cuts);
+        AddChild(_fight);
+        AddChild(_fx);
     }
 
     /// <summary>
@@ -64,22 +94,47 @@ public partial class HunterView : Node2D
     {
         _clockMs += elapsedMs;
         _seen.Clear();
+        _fx.Begin();
+        Shots(m, tick);
         foreach (var c in m.Creatures.Creatures)
         {
             var spec = Spec.Creatures.Get(c.Species);
             if (!CreatureLooks.Heroes.TryGetValue(spec.Look, out var look)) continue;
             _seen.Add(c.Id);
+            var fight = m.Creatures.FightOf(c);
             if (!_shown.TryGetValue(c.Id, out var one))
             {
                 var figure = new Figure(Unclaimed, own: false) { Tracked = false, Jetpack = true, Wields = look.Gun };
                 var plume = new JetPlume();
+                var group = new Glitch();
+                group.AddChild(figure);
                 AddChild(plume);
-                AddChild(figure);
-                _shown[c.Id] = one = new Shown(figure, plume) { Gear = look.Of(c.Id), Species = c.Species, FromX = c.X, FromY = c.Y, ToX = c.X, ToY = c.Y, Damage = c.Damage, LastWear = CreaturesModule.LastWear(c) };
+                AddChild(group);
+                _shown[c.Id] = one = new Shown(figure, plume, group)
+                {
+                    Gear = look.Of(c.Id),
+                    Species = c.Species,
+                    FromX = c.X,
+                    FromY = c.Y,
+                    ToX = c.X,
+                    ToY = c.Y,
+                    Damage = c.Damage,
+                    Blinked = fight.Blinked,
+                    Hunt = spec.Brain.OfType<Spec.Creatures.Hunt>().FirstOrDefault(),
+                    Through = spec.Moves.OfType<Spec.Creatures.Shoot>().FirstOrDefault()?.Through ?? 0,
+                };
             }
             if (one.Tick != tick) (one.Tick, one.FromX, one.FromY, one.ToX, one.ToY) = (tick, one.ToX, one.ToY, c.X, c.Y);
-            Show(m, one, c, spec, progress, elapsedMs, heroOf);
+            // A blink is a jump: drawn where it landed at once, never slid across the ground between.
+            if (fight.Blinked != one.Blinked)
+            {
+                (one.Blinked, one.FromX, one.FromY) = (fight.Blinked, c.X, c.Y);
+                (one.BlinkMs, one.BlinkFrom) = (_clockMs, At(one.Drawn.X, one.Drawn.Y));
+                _fight.Play(S.CatcherBlink, Chest(one.Drawn));
+            }
+            Show(m, one, c, spec, fight, progress, elapsedMs, heroOf);
         }
+        _fx.End();
         _gone.Clear();
         foreach (int id in _shown.Keys)
             if (!_seen.Contains(id)) _gone.Add(id);
@@ -87,19 +142,21 @@ public partial class HunterView : Node2D
         {
             var one = _shown[id];
             _shown.Remove(id);
+            one.Ghosted?.Group.QueueFree();
             var feet = At(one.Drawn.X, one.Drawn.Y);
             // Nothing is taken away where a hero sees it: gone in view, it was killed.
             if (view.HasPoint(feet)) Die(one);
             else
             {
-                one.Figure.QueueFree();
+                one.Group.QueueFree();
                 one.Plume.QueueFree();
             }
         }
         Fall(elapsedMs);
     }
 
-    private void Show(Registry m, Shown one, Creature c, Spec.Creatures.Species spec, double progress, double elapsedMs, Func<int, Hero?> heroOf)
+    private void Show(Registry m, Shown one, Creature c, Spec.Creatures.Species spec, CreaturesModule.Fight fight, double progress, double elapsedMs,
+        Func<int, Hero?> heroOf)
     {
         int x = one.FromX + (int)Math.Round((one.ToX - one.FromX) * progress), y = one.FromY + (int)Math.Round((one.ToY - one.FromY) * progress);
         var target = c.Target is { Kind: RefKind.Hero, Id: var peer } ? heroOf(peer) : null;
@@ -110,7 +167,7 @@ public partial class HunterView : Node2D
         // Its speed in the controller's steps, three to a tick; hovering it is drawn rising a little, legs hanging, never stood on air.
         int vx = c.VX / 3, vy = c.VY / 3;
         // On ground it runs as a hero does, its jetpack off (catcher-paths).
-        bool afoot = m.Creatures.Afoot(c), cutting = m.Creatures.Cutting(c);
+        bool afoot = m.Creatures.Afoot(c);
         // Stepping straight up a step it still strides, as fast as it rises.
         int stride = afoot && vx == 0 && vy != 0 ? one.Facing * Math.Abs(vy) : vx;
         one.Drawn = new Hero(x, y, afoot ? stride : vx, afoot ? 0 : Math.Min(vy, -1), false, one.Facing);
@@ -119,28 +176,168 @@ public partial class HunterView : Node2D
         int? quarry = CreaturesModule.Hunting(c);
         figure.Wear(quarry is int q ? Suits.Of(m.Players, q) : Unclaimed, one.Gear.Helmet, one.Gear.Body);
         figure.GearLights = (quarry != null ? TrackerBlink.LevelOf(TrackerBlink.Hunted, _clockMs) : 0, quarry != null ? 1 : 0, one.Gear.Eyes);
-        // Cutting it holds its drill spinning at what it bites; else its gun.
-        figure.Wields = cutting ? Spec.Weapons.Drill.Item : CreatureLooks.Heroes[spec.Look].Gun;
-        figure.Spinning = cutting;
-        figure.Aim = cutting ? CutAim(one, m.Grid.Width)
-            : move is Spec.Creatures.Shoot or Spec.Creatures.Pounce && target is { } aimed ? At(aimed.X, aimed.Y - Hero.MiddleUp)
-            : null;
+        // Its tell begun and its gather, heard.
+        if (fight.Held >= 0 && one.Held < 0)
+        {
+            one.TellMs = _clockMs;
+            _fight.Play(S.CatcherAim, Chest(one.Drawn));
+        }
+        if (fight.Ghost >= 0 && one.Ghost < 0) _fight.Play(S.CatcherGather, Chest(one.Drawn));
+        (one.Held, one.Ghost) = (fight.Held, fight.Ghost);
+        // Its gun on whom it acts on, on its quarry while it aims on the run, and held on the cell its shot will strike in the tell (catcher-combat).
+        Vector2? held = fight.Held >= 0 ? Middle(fight.Held, m.Grid.Width) : null;
+        bool aims = move is Spec.Creatures.Shoot or Spec.Creatures.Pounce || fight.Aims;
+        // Along its laser while it burns and rests: played, a gun turned back on its quarry left the laser running off from it.
+        Vector2? fired = _clockMs - one.ShotMs < CatcherFx.BeamMs + CatcherFx.RestMs ? one.ShotTo : null;
+        figure.Aim = held ?? fired ?? (aims && target is { } aimed ? Chest(aimed) : null);
         if (c.Damage > one.Damage) Struck(one);
         one.Damage = c.Damage;
         figure.Show(one.Drawn, afoot ? Poses.PoseOf(one.Drawn, false, false) : Pose.Air, 0, false, elapsedMs);
         if (afoot) one.Plume.Step(null, null, elapsedMs);
         else one.Plume.Step(figure.Nozzle, (vx, vy), elapsedMs);
-        // Its cuts heard where they bit, the rock's own sound; nothing is sent, it is the sim's wear.
-        int wore = CreaturesModule.LastWear(c);
-        var grid = m.Grid;
-        var box = spec.Body;
-        int left = (int)Math.Floor((double)c.X / Unit - box.Width / 2.0), top = (int)Math.Floor((double)c.Y / Unit) - box.Height;
-        var heard = one.Cuts.Look(left, top, box.Width, box.Height, grid.Width, grid.Height, cell => grid.WallAt(cell), wore != one.LastWear);
-        one.LastWear = wore;
-        if (heard is var (bit, _, _)) one.CutCell = bit;
-        else if (!cutting) one.CutCell = -1;
-        if (heard is var (cell, material, broke) && (broke ? GroundSounds.BreakOf(material) : GroundSounds.HitOf(material)) is { } cue)
-            _cuts.Play(cue, new Vector2((float)((cell % grid.Width + 0.5) * Rig.Cell), (float)((cell / grid.Width + 0.5) * Rig.Cell)));
+        one.Muzzle = figure.Muzzle ?? Chest(one.Drawn);
+        Aim(one, held, fight.Aims && target is { } quarryAt ? Chest(quarryAt) : null);
+        Laser(one);
+        Blink(m, one, fight, progress, target, elapsedMs);
+        foreach (var mark in m.Creatures.MarksOf(c))
+            _fx.Pillar(new Vector2((float)((mark.Cell % m.Grid.Width + 0.5) * Rig.Cell), (float)((mark.Cell / m.Grid.Width + 1) * Rig.Cell)),
+                Math.Clamp((mark.Flight - mark.Left + progress) / mark.Flight, 0, 1));
+    }
+
+    /// <summary>
+    /// Its aim «Красная нить»: in the tell a still line brightening to the cell it holds, else, aiming, a dim one wobbling on its quarry,
+    /// back a while after a shot.
+    /// </summary>
+    private void Aim(Shown one, Vector2? held, Vector2? quarry)
+    {
+        double since = _clockMs - one.ShotMs;
+        if ((held ?? quarry) is not { } end) return;
+        double tellMs = (one.Hunt?.Gunfire.Tell ?? 1) * TickMs;
+        var thread = CatcherFx.AimOf(held != null ? (_clockMs - one.TellMs) / tellMs : null, CatcherFx.BackOf(since), _clockMs);
+        if (thread.Alpha <= 0.004) return;
+        var (wx, wy) = CatcherFx.Wobble(_clockMs, thread.Sway);
+        _fx.Aim(one.Muzzle, end + new Vector2((float)wx, (float)wy), thread);
+    }
+
+    /// <summary>
+    /// Its blink «Красная помеха»: gathering, its figure cut into jittering bands under a red copy, red specks and a red glow round it,
+    /// its ghost flickering where it will be; blinked, a tear where it was, a line falling where it came, its bands twitching a while.
+    /// </summary>
+    private void Blink(Registry m, Shown one, CreaturesModule.Fight fight, double progress, Hero? quarry, double elapsedMs)
+    {
+        int frame = CatcherFx.FrameOf(_clockMs);
+        double spentMs = _clockMs - one.BlinkMs;
+        double? spent = spentMs < CatcherFx.TwitchMs ? spentMs : null;
+        bool gathers = fight.Ghost >= 0;
+        double gather = gathers && one.Hunt is { } hunt ? Math.Clamp((hunt.Blink.Gather - fight.GatherLeft + progress) / hunt.Blink.Gather, 0, 1) : 0;
+        var feet = one.Figure.Position;
+        var group = one.Group;
+        if (gathers || spent != null)
+        {
+            if (group.Needs(frame))
+            {
+                CatcherFx.Body(frame, gather, gathers ? null : spent, group.Shift);
+                CatcherFx.RedCopy(frame, gather, gathers ? null : spent, group.RedShift, group.RedAlpha);
+            }
+            group.Cut(feet, CatcherFx.Bands, frame, 1);
+        }
+        else group.Calm();
+        if (gathers)
+        {
+            _fx.Specks(feet, frame, CatcherFx.SpecksGathering(gather), 0.9);
+            CatcherFxView.Glow(feet + new Vector2(0, -1), 13, CatcherFx.Red, 0.18 * gather);
+            Ghost(m, one, fight.Ghost, frame, gather, quarry, elapsedMs);
+        }
+        else if (one.Ghosted is (_, var ghostGroup)) ghostGroup.Visible = false;
+        if (spentMs >= (one.Hunt?.Blink.Spent ?? 0) * TickMs) return;
+        _fx.Tear(one.BlinkFrom, spentMs);
+        if (CatcherFx.SpecksLeft(spentMs) is var left and > 0) _fx.Specks(one.BlinkFrom, frame, left, 1 - spentMs / CatcherFx.SpeckMs);
+        _fx.Arrival(feet, spentMs);
+        // Spent, now and then a few specks still fly off it.
+        double spentFor = (one.Hunt?.Blink.Spent ?? 1) * TickMs;
+        if (CatcherFx.Hash((int)Math.Floor(_clockMs / 70)) > 0.55) _fx.Specks(feet, frame, 3, 0.6 * (1 - spentMs / spentFor));
+    }
+
+    /// <summary>Its ghost standing on <paramref name="cell"/>'s floor facing its quarry, red, in bands, some gone; specks round it.</summary>
+    private void Ghost(Registry m, Shown one, int cell, int frame, double gather, Hero? quarry, double elapsedMs)
+    {
+        if (one.Ghosted is not (var figure, var group))
+        {
+            figure = new Figure(Unclaimed, own: false) { Tracked = false, Jetpack = true, Wields = one.Figure.Wields };
+            figure.Wear(Unclaimed, one.Gear.Helmet, one.Gear.Body);
+            group = new Glitch();
+            group.AddChild(figure);
+            AddChild(group);
+            one.Ghosted = (figure, group);
+        }
+        int width = m.Grid.Width, x = cell % width * Unit + Unit / 2, y = (cell / width + 1) * Unit;
+        int facing = quarry is { } q ? (q.X >= x ? 1 : -1) : one.Facing;
+        group.Visible = true;
+        figure.Show(new Hero(x, y, 0, 0, false, facing), Pose.Stand, 0, false, elapsedMs);
+        if (group.Needs(frame))
+        {
+            CatcherFx.Ghosting(frame, gather, group.RedShift, group.RedAlpha);
+            group.Shift.Clear();
+        }
+        group.Cut(figure.Position, CatcherFx.GhostBands, frame, 0);
+        _fx.Specks(At(x, y), frame, CatcherFx.SpecksGhost(gather), 0.5 * gather);
+    }
+
+    /// <summary>
+    /// Each arc a catcher drawn here struck, new since last seen: its laser, from its gun's muzzle as drawn to where the arc ends, whether
+    /// solid stopped it there; heard where it leaves.
+    /// </summary>
+    private void Shots(Registry m, int tick)
+    {
+        var arcs = m.Creatures.Arcs;
+        if (tick != _shotsTick)
+        {
+            _shotsTick = tick;
+            _shots.RemoveWhere(id => !Lingers(arcs, id));
+        }
+        float k = (float)(Rig.Cell / Unit);
+        foreach (var arc in arcs)
+        {
+            if (!_shown.TryGetValue(arc.By, out var one) || !_shots.Add(arc.Id)) continue;
+            // Run on its whole Through, it stopped on nothing; short of it, on solid.
+            long far = Math.Max(Math.Abs((long)arc.X1 - arc.X0), Math.Abs((long)arc.Y1 - arc.Y0));
+            (one.ShotMs, one.ShotTo, one.Melts, one.Drips, one.Puffs) = (_clockMs, new Vector2(arc.X1, arc.Y1) * k, far < (long)one.Through * Unit - 1, 0, 0);
+            _fight.Play(S.CatcherLaser, one.Muzzle);
+        }
+    }
+
+    /// <summary>
+    /// Its laser «Жгут» while it burns: drawn from its muzzle as it runs on to where it ended, the ground along it lit; where solid stopped
+    /// it, melting, dripping while it burns, then glowing as it cools and smoking.
+    /// </summary>
+    private void Laser(Shown one)
+    {
+        double since = _clockMs - one.ShotMs;
+        if (since >= CatcherFx.BeamMs + CatcherFx.CoolMs) return;
+        var stage = Stages.Of(Layers.Effects);
+        double swell = CatcherFx.Swell(since);
+        if (swell > 0)
+        {
+            _fx.Beam(one.Muzzle, one.ShotTo, swell, _clockMs, one.Melts);
+            for (int i = 0; i < one.Lamps.Length; i++)
+            {
+                var at = one.Muzzle.Lerp(one.ShotTo, (i + 0.5f) / one.Lamps.Length);
+                stage.Flares.Hold(one.Lamps[i], at.X, at.Y, CatcherFx.BeamMuzzle, 0.35 * swell * Fx.Glow, 4, CreatureLooks.LightKeep, 0.5);
+            }
+        }
+        if (!one.Melts) return;
+        _fx.Cooling(one.ShotTo, Math.Max(0, (since - CatcherFx.BeamMs) / CatcherFx.CoolMs));
+        for (; one.Drips < Math.Min(since, CatcherFx.BeamMs) / CatcherFx.DripEveryMs; one.Drips++)
+            stage.Glims.Add(Drip, one.ShotTo.X, one.ShotTo.Y, Between(-8, 8), Between(0, 20));
+        for (; one.Puffs < since / CatcherFx.SmokeEveryMs; one.Puffs++)
+            stage.Glims.Add(Smoke, one.ShotTo.X + Between(-1.5, 1.5), one.ShotTo.Y - 2, Between(-4, 4), -20);
+    }
+
+    private static bool Lingers(IReadOnlyList<Arc> arcs, int id)
+    {
+        foreach (var arc in arcs)
+            if (arc.Id == id) return true;
+        return false;
     }
 
     /// <summary>A blow on it: it flinches, throws its suit's sparks, and is heard.</summary>
@@ -166,7 +363,8 @@ public partial class HunterView : Node2D
         if (S.Creatures.TryGetValue(one.Species, out var cues)) _world.Play(cues.Death, chest);
         one.Figure.Aim = null;
         one.Figure.GearLights = (0, 0, one.Gear.Eyes);
-        _falling.Add(new Falling(one.Figure, one.Plume, one.Drawn) { Y = one.Drawn.Y });
+        one.Group.Calm();
+        _falling.Add(new Falling(one.Figure, one.Plume, one.Drawn, one.Group) { Y = one.Drawn.Y });
     }
 
     private void Fall(double elapsedMs)
@@ -183,19 +381,19 @@ public partial class HunterView : Node2D
             f.Figure.Modulate = new Color(1, 1, 1, (float)Math.Max(0, 1 - f.Ms / FadeMs));
             f.Plume.Step(null, null, elapsedMs);
             if (f.Ms < FadeMs) continue;
-            f.Figure.QueueFree();
+            f.Holder.QueueFree();
             f.Plume.QueueFree();
             _falling.RemoveAt(i);
         }
     }
 
-    /// <summary>Where its drill bites: the cell last heard, else ahead of its chest the way it faces.</summary>
-    private static Vector2 CutAim(Shown one, int width) => one.CutCell >= 0
-        ? new Vector2((float)((one.CutCell % width + 0.5) * Rig.Cell), (float)((one.CutCell / width + 0.5) * Rig.Cell))
-        : Chest(one.Drawn) + new Vector2((float)(one.Facing * 3 * Rig.Cell), 0);
-
     private static Vector2 Chest(Hero hero) => At(hero.X, hero.Y - Hero.MiddleUp);
+
+    /// <summary>The middle of <paramref name="cell"/> of a grid <paramref name="width"/> wide, in pixels of the world.</summary>
+    private static Vector2 Middle(int cell, int width) => new((float)((cell % width + 0.5) * Rig.Cell), (float)((cell / width + 0.5) * Rig.Cell));
 
     /// <summary>A place in thousandths of a cell, in the world's pixels.</summary>
     private static Vector2 At(int x, int y) => new((float)((double)x / Hero.Unit * Rig.Cell), (float)((double)y / Hero.Unit * Rig.Cell));
+
+    private static double Between(double from, double to) => from + (to - from) * Random.Shared.NextDouble();
 }

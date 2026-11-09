@@ -1,3 +1,4 @@
+using Stillwake.Sim.Crew;
 using Stillwake.Sim.Debris;
 using Stillwake.Sim.Items;
 using Spec = Stillwake.Content.Creatures;
@@ -267,7 +268,9 @@ public sealed partial class CreaturesModule
     /// <summary>
     /// <paramref name="s"/>'s burst from <paramref name="cell"/> (blasting-charge, unified-damage): <see cref="IBuildingOps.Burst"/> of
     /// <paramref name="blast"/>'s power, what it breaks dropped there for anyone. Then every wreck within its reach takes its damage, in
-    /// spawn order. Heroes and creatures are untouched. The cell it spread from; -1 where it could not, from where a burst stops.
+    /// spawn order; a creature's burst (catcher-combat) takes its projectile's damage off every awake hero within its reach in its sight,
+    /// in id order, once. Creatures are untouched, and heroes by a hero's. The cell it spread from; -1 where it could not, from where a
+    /// burst stops.
     /// </summary>
     private int Burst(Shot s, Content.Blast blast, int cell)
     {
@@ -279,7 +282,33 @@ public sealed partial class CreaturesModule
             long dx = Math.Max(0, Math.Max(w.Left - cx, cx - w.Right)), dy = Math.Max(0, Math.Max(w.Top - cy, cy - w.Bottom));
             if (dx * dx + dy * dy <= reach * reach && _debris.PieceById(w.Piece) != null) _debrisOps.Hit(peer, w.Piece, blast.WreckDamage);
         }
+        if (s.By.Kind != RefKind.None) return cell;
+        int damage = Content.Shots.Get(s.Projectile).Damage, x = cell % _grid.Width, y = cell / _grid.Width;
+        foreach (var hero in _crew.Heroes)
+        {
+            if (HeroAt(hero.Id, awake: true) is not { } at) continue;
+            int dx = at.X - x, dy = at.Y - y;
+            if (dx * dx + dy * dy <= blast.Reach * blast.Reach && Sees(Middle(x), Middle(y), at)) _crewOps.Blow(hero.Id, damage, Harm.Blow);
+        }
         return cell;
+    }
+
+    /// <summary>
+    /// <paramref name="c"/>'s lob of <paramref name="projectile"/> from (<paramref name="x0"/>, <paramref name="y0"/>) to land on
+    /// (<paramref name="x1"/>, <paramref name="y1"/>) <paramref name="flight"/> ticks later, under the pull where it starts, its speeds
+    /// rounded toward none; flying on twice that again before it bursts in the air; its thrower flown through. None from off the grid.
+    /// </summary>
+    internal void Lob(Creature c, string projectile, int x0, int y0, int x1, int y1, int flight)
+    {
+        if (!ShotFlight.OnGrid(x0, y0, _grid.Width, _grid.Height)) return;
+        var p = Content.Shots.Get(projectile);
+        long g = GravityAt(x0, y0, p, null);
+        // In n ticks a shot falls n speeds, g n(n - 1)/2 gained, and n halves of g (ShotFlight.Step).
+        int vy = (int)((y1 - y0 - g * flight * (flight - 1) / 2 - flight * (g / 2)) / flight);
+        State.Fired += 1;
+        var shot = new Shot { Id = State.Fired, Projectile = p.Id, By = Ref.None, X = x0, Y = y0, VX = (x1 - x0) / flight, VY = vy, Left = 3 * flight };
+        shot.Passed.Add(new ShotPass(ShotTarget.Creature, c.Id));
+        State.Shots.Add(shot);
     }
 
     /// <summary>What a shot of <paramref name="p"/> from <paramref name="gun"/> at (<paramref name="x"/>, <paramref name="y"/>) gains falling this tick: by the cell it starts the tick in, none afloat.</summary>

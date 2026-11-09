@@ -26,6 +26,8 @@ death is two sources mixed as the audition mixed them. Its burner is the jetpack
 
 The warden's sounds are the guard audition's picks, cut and levelled as the sentry's: each the length given here from its attack, its last 45% faded out. Its landing is a hero's on alloy and its hit a tool's on alloy, so they are not here.
 
+The catcher's fight (catcher-combat) is its page's picks, cut there from the Freesound HQ previews: mono, high-passed at 40 Hz, faded in over 4 ms and out over the last share given, the loudest 100 ms RMS at −16 dBFS with peaks at −1 dBFS at most, then decoded to mono 48 kHz WAV here and turned down 4 dB to the sentry's level. Its shells burst as the blasting charge, so those are not here.
+
 The salvage tools' sounds (salvage-tools) are their audition's picks, cut and levelled as heard there: each mono 48 kHz, high-passed
 (40 Hz, the spear's whoosh 100 Hz and its hit 80 Hz); a one-shot from 5 ms before its onset (or the point given here) to the length
 given, its last share faded out; a loop that length from its start, closed on itself by a 100 ms crossfade where the head and its
@@ -103,6 +105,11 @@ the louder turned down.
 | `creatures/capback-splat-1.wav` | Freesound, "Slime 28.wav" (all of it from its attack, the last 60 ms faded), https://freesound.org/people/Archos/sounds/433839/ | Archos | CC0 |
 | `creatures/snail-shell-clink-1.wav` | Impact Sounds, `impactMining_001.ogg` (all of it from its attack, the last 60 ms faded), https://kenney.nl/assets/impact-sounds | Kenney | CC0 |
 | `creatures/sentry-arc-hit-1.wav` | Freesound, "Civilian Stun Gun 1/10s zap" (all of it from its attack, the last 0.12 s faded), https://freesound.org/people/AnthonyChan0/sounds/264779/ | AnthonyChan0 | CC0 |
+| `creatures/catcher-aim-1.wav` | Freesound, "[Loud] Camera Flash Charge-Up" (0.50–3.06 s pressed eightfold in time, its pitch kept; the catcher-combat page's pick), https://freesound.org/people/sammerz_/sounds/842933/ | sammerz_ | CC0 |
+| `creatures/catcher-gather-1.wav` | Freesound, "Laser Charge Up (Stronger)" (0.00–0.60 s; the catcher-combat page's pick), https://freesound.org/people/magnuswaker/sounds/592573/ | magnuswaker | CC0 |
+| `creatures/catcher-blink-1.wav` | Freesound, "Electric zap.wav" (all of it, 0.22 s; the catcher-combat page's pick), https://freesound.org/people/michael_grinnell/sounds/512471/ | michael_grinnell | CC0 |
+| `creatures/catcher-launch-1.wav` | Freesound, "Mortar Shots.flac" (the second shot, 4.28–5.38 s, its last 0.3 s faded; the catcher-combat page's pick), https://freesound.org/people/qubodup/sounds/184382/ | qubodup | CC0 |
+| `creatures/catcher-laser-1.wav` | Freesound, "Ion Cannon" (0.00–0.60 s, its last 0.25 s faded; the catcher-combat laser page's pick), https://freesound.org/people/qubodup/sounds/814049/ | qubodup | CC0 |
 | `crew/air-fill-1.wav` | generated for Stillwake: white noise (mulberry32 seed 47) through two band-passes, Q 1.1, their centre rising from 2.6 to 4.8 kHz, 0.55 s: in over 50 ms, held, falling away over the last 38 %, to −3 dBFS peak (a placeholder till an audition) | Stillwake team | CC0 |
 | `crew/alarm-1.wav` | generated for Stillwake | Stillwake team | CC0 |
 | `crew/charge-burst-1.wav` | Freesound, "1 Liter Stoichiometric Oxyhydrogen Detonation (Tampere, Mustavuori)" (2.5 s from its start), https://freesound.org/people/modusmogulus/sounds/734099/ | modusmogulus | CC0 |
