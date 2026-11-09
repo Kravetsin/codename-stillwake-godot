@@ -61,6 +61,7 @@ public partial class HeroView : Node2D
     private readonly Node2D _others = new() { ZIndex = Layers.OtherHeroes };
     /// <summary>What heroes left where they died, lying on their stacks with a beacon blinking (0061).</summary>
     private readonly BodyView _bodies;
+    private readonly HunterView _hunters = new();
     /// <summary>
     /// Another hero as drawn: its figure, its tether while it has one, what its hands were busy with last
     /// frame, the swings of its axe as replayed here, each at the point sent with it, and its harpoon's rod as
@@ -261,6 +262,7 @@ public partial class HeroView : Node2D
         // Others behind this machine's hero, every tether behind them both (Layers).
         AddChild(_tethers);
         AddChild(_bodies);
+        AddChild(_hunters);
         AddChild(_others);
         AddChild(_figure);
         AddChild(_outline);
@@ -573,6 +575,7 @@ public partial class HeroView : Node2D
         var (helmet, body) = Suits.WornBy(m.Items, client.Id);
         _figure.Wear(Suits.Of(m.Players, client.Id), helmet, body, m.Players.LookOf(client.Id));
         _figure.Suit = SuitGlow.Of(m.Crew, m.Items, client.Id, client.World.Tick);
+        _figure.Signal = m.Crew.SignalOf(client.Id);
         _figure.Jetpack = jetpack;
         _figure.HeadLamp = m.Items.Equipped(client.Id, Content.HelmetLamp.Item);
         _figure.Scanner = m.Items.Equipped(client.Id, Content.Helmet.Scanner);
@@ -585,6 +588,16 @@ public partial class HeroView : Node2D
         _figure.Visible = seat == null;
         // Its own thrust shows at once (0014); others' as the sim says.
         Plume(client.Id, _figure, _thrust is { } own ? (own.X, own.Y) : null, elapsedMs);
+        var shownHero = drawn;
+        Hero? HeroOf(int peer)
+        {
+            if (peer == client.Id) return shownHero;
+            foreach (var (id, other) in Others)
+                if (id == peer) return other;
+            return null;
+        }
+        _hunters.Frame(m, client.World.Tick, progress, elapsedMs, HeroOf,
+            GetViewport().GetCanvasTransform().AffineInverse() * GetViewportRect());
         ShowHarpoon(elapsedMs);
         _tether = Tie(_tether, 0, _current.Anchor, Tether.ClipOf(x, y), elapsedMs);
         // Stamped with its step's time, so others place it by when it was there, not when it came.

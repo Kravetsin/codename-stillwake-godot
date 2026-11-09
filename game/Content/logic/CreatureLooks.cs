@@ -109,6 +109,18 @@ public static class CreatureLooks
     /// </summary>
     public static readonly IReadOnlySet<string> Lurkers = new HashSet<string> { Stillwake.Content.Creatures.Capback.Look, Stillwake.Content.Creatures.GeodeSnail.Look };
 
+    /// <summary>
+    /// A look drawn as a hero (tracker-catchers): the hero's own figure and rig in <paramref name="Helmet"/> and <paramref name="Body"/>, pictures
+    /// as a suit's are, recoloured <paramref name="Colour"/> (0xRRGGBB); flying on a jetpack, <paramref name="Gun"/> in its hands. Drawn by the crew.
+    /// </summary>
+    public sealed record HeroLook(int Colour, string Helmet, string Body, string Gun);
+
+    /// <summary>The looks drawn as heroes: the catcher in the starting suit, a dull ochre, till its own gear is picked.</summary>
+    public static readonly IReadOnlyDictionary<string, HeroLook> Heroes = new Dictionary<string, HeroLook>
+    {
+        [Stillwake.Content.Creatures.Catcher.Look] = new(0x8a7346, Stillwake.Content.Helmet.Basic, Stillwake.Content.Suit.Basic, Stillwake.Content.Shots.Nailer.Item),
+    };
+
     public const float LurkerLight = 0.6f;
 
     /// <summary>A blow on a shut shell (lurker-attacks): it glances in the ruins' alloy's sparks, never the creature's own hit.</summary>

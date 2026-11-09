@@ -36,6 +36,15 @@ public sealed partial class CreaturesModule
 
     internal IDebrisOps DebrisOps => _debrisOps;
 
+    /// <summary>Calls peer <paramref name="peer"/>'s hunt off (tracker-catchers): its wanted meter emptied.</summary>
+    internal void CallOff(int peer) => _crewOps.CallOff(peer);
+
+    /// <summary>Whether a catcher may wear the wall in <paramref name="cell"/> away (<c>Building.Wears</c>).</summary>
+    internal bool Wears(int cell) => _built.Wears(cell);
+
+    /// <summary>A catcher's strike on the grown wall in <paramref name="cell"/> (<c>Building.Wear</c>).</summary>
+    internal void Wear(int cell, int damage) => _building.Wear(cell, damage);
+
     /// <summary>Peer <paramref name="peer"/>'s hero's reported cell as a column and row; null for none on the grid.</summary>
     internal (int X, int Y)? HeroAt(int peer, bool awake = false) =>
         _crew.HeroOf(peer) is { } hero && (!awake || hero.Out == 0) && hero.Cell >= 0 && hero.Cell < _grid.Width * _grid.Height
@@ -49,7 +58,7 @@ public sealed partial class CreaturesModule
         s.Creatures.RemoveAll(c => c.Dead);
         if (Rules.Guards.Count > 0 && _debris.Pieces.Count > 0 && _debris.Pieces[^1].Id > s.Watermark) GuardNewPieces();
         // A surface with no life, none let out and no patch left runs nothing and draws nothing: aboard, only a guarded kind drifting in draws.
-        if (s.Creatures.Count == 0 && s.Patches.Count == 0 && Habitats.Count == 0 && _built.Posts.Count == 0) return;
+        if (s.Creatures.Count == 0 && s.Patches.Count == 0 && Habitats.Count == 0 && _built.Posts.Count == 0 && !AnyHunted()) return;
         s.Clock += 1;
         FindHeroes();
         Fume();
@@ -58,8 +67,8 @@ public sealed partial class CreaturesModule
         for (int i = 0; i < all.Count; i++)
         {
             var creature = all[i];
-            if (!Kept(creature)) continue;
             var spec = Spec.Get(creature.Species);
+            if (spec.Lifetime == Spec.Lifetime.Hunter ? Gone(creature, spec) : !Kept(creature)) continue;
             // Gone here, never by the Dead mark, which is not saved and rolls a drop.
             if (spec.Lifetime == Spec.Lifetime.Posted && StoodDown(creature, spec)) continue;
             Behave(creature, spec);
@@ -70,6 +79,7 @@ public sealed partial class CreaturesModule
         if (s.Clock % Spec.Beat != 0) return;
         Posted();
         if (Habitats.Count > 0) Spawn();
+        Bounty();
     }
 
     /// <summary>Whether <paramref name="c"/>, posted, goes with nothing given: its post or its relic gone, or its drive calmed.</summary>

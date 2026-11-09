@@ -1,6 +1,7 @@
 # Design: Catchers — hunters on the hero's tracker
 
-Status: designed (design-author, cut by design-reviewer, revised after /review-plan), slice 1 not built.
+Status: slice 1 built as [tracker-catchers](../decisions/2026-11-09-tracker-catchers.md) records, which wins where they differ
+(the countdown `Stirring`, the spawn row nearest the hero, the numbers, no kits yet); slices 2 and 3 open.
 
 **Decided with the user** (2026-11-09):
 - The hero still wears its former owners' tracker on the shin (the player's colour bracelet). The owners hire catchers, a

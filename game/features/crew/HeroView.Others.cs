@@ -53,6 +53,7 @@ public partial class HeroView
             var (helmet, body) = Suits.WornBy(m.Items, id);
             shown.Figure.Wear(Suits.Of(m.Players, id), helmet, body, m.Players.LookOf(id));
             shown.Figure.Suit = SuitGlow.Of(crew, m.Items, id, _client.World.Tick);
+            shown.Figure.Signal = crew.SignalOf(id);
             var (strikes, heard) = _heardChops.GetValueOrDefault(id);
             var chop = heard.Last;
             var stroke = Strokes.Of(strikes);

@@ -193,6 +193,8 @@ public static class HitLooks
         [Stillwake.Content.Creatures.Warden.Id] = Impact.Wreck,
         [Stillwake.Content.Creatures.Capback.Id] = Impact.CoolFlesh,
         [Stillwake.Content.Creatures.GeodeSnail.Id] = Impact.Crystal,
+        // A catcher in its suit (tracker-catchers): struck as a wreck's metal, its sparks and glint, falling.
+        [Stillwake.Content.Creatures.Catcher.Id] = Impact.Alloy,
     };
 
     /// <summary>The tuft a creature struck with <paramref name="impact"/> throws dying, every way.</summary>

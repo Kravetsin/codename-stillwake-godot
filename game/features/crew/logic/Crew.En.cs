@@ -27,6 +27,7 @@ public static partial class En
         ["markers.body"] = "Your body",
         ["markers.delivery"] = "The mafia's delivery",
         ["markers.lost"] = "The mafia's delivery drifted past",
+        ["markers.hunter"] = "A catcher on your trail",
         ["markers.cells"] = "{cells} cells away",
         ["bodies.friend"] = "A crewmate's body",
         ["bodies.more"] = "and {n} more",

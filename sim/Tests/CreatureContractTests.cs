@@ -48,6 +48,20 @@ public class CreatureContractTests
     /// <summary>A creature of <paramref name="s"/> let out where its body lives, a hero beside it: on a planet's floor, or on a wreck in space.</summary>
     private static (Scenario W, Creature C) LetOut(Tune.Species s)
     {
+        if (s.Body is Tune.Flyer)
+        {
+            // A catcher let out by hero 1 hunts it: struck by hero 0, it answers.
+            var sky = CreaturesTesting.Planet("""
+                ####################
+                #..................#
+                #..................#
+                #..................#
+                #..................#
+                ####################
+                """, CreaturesTesting.Lifeless).HeroAt(2, 4).HeroAt(16, 4, peer: 1);
+            sky.Do(new Release(s.Id, sky.Feet(8, 4)) { From = 1 }).Run();
+            return (sky, sky.M.Creatures.Creatures[^1]);
+        }
         if (s.Body is Tune.Walker)
         {
             var ground = CreaturesTesting.Planet("""
@@ -97,6 +111,7 @@ public class CreatureContractTests
         { "warden", "Ward | Pounce" },
         { "capback", "Guard | Vent Shoot" },
         { "geodeSnail", "Guard Shell | Lunge" },
+        { "catcher", "Hunt | Pounce Shoot" },
     };
 
     [Fact]

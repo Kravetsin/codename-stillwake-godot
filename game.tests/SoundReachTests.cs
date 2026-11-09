@@ -27,7 +27,9 @@ public class SoundReachTests
     [Fact]
     public void EveryGrazerDiesWithOneSoundPitchedByItsSize()
     {
-        Assert.All(Sound.Creatures.Values, c => Assert.Equal(Sound.CreatureDeath.Files, c.Death.Files));
+        // One drawn as a hero dies in a hero's voice (tracker-catchers).
+        var grazers = Sound.Creatures.Where(c => !CreatureLooks.Heroes.ContainsKey(Content.Creatures.Get(c.Key).Look)).Select(c => c.Value);
+        Assert.All(grazers, c => Assert.Equal(Sound.CreatureDeath.Files, c.Death.Files));
         Assert.True(Sound.Creatures[Content.Creatures.Tapir.Id].Death.Tune < 1);
     }
 

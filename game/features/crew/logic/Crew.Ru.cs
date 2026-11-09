@@ -27,6 +27,7 @@ public static partial class Ru
         ["markers.body"] = "Твоё тело",
         ["markers.delivery"] = "Доставка мафии",
         ["markers.lost"] = "Доставка мафии пролетела мимо",
+        ["markers.hunter"] = "Ловец идёт по твоему следу",
         ["markers.cells"] = "{cells} {cells|клетка|клетки|клеток} отсюда",
         ["bodies.friend"] = "Тело напарника",
         ["bodies.more"] = "и ещё {n}",

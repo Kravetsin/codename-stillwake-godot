@@ -14,8 +14,8 @@ public class CreatureLooksTests
 
     [Theory]
     [MemberData(nameof(Species))]
-    public void EverySpeciesIsDrawnByItsRigOrAsTheTick(string species) =>
-        Assert.True(CreatureLooks.Varieties.ContainsKey(species) ^ (CreatureLooks.Ticks.Contains(Spec.Creatures.Get(species).Look) || CreatureLooks.Istukans.Contains(Spec.Creatures.Get(species).Look) || CreatureLooks.Lurkers.Contains(Spec.Creatures.Get(species).Look)), species);
+    public void EverySpeciesIsDrawnByItsRigOrAsTheTickOrAHero(string species) =>
+        Assert.True(CreatureLooks.Varieties.ContainsKey(species) ^ (CreatureLooks.Ticks.Contains(Spec.Creatures.Get(species).Look) || CreatureLooks.Istukans.Contains(Spec.Creatures.Get(species).Look) || CreatureLooks.Lurkers.Contains(Spec.Creatures.Get(species).Look) || CreatureLooks.Heroes.ContainsKey(Spec.Creatures.Get(species).Look)), species);
 
     [Theory]
     [MemberData(nameof(Species))]

@@ -6,7 +6,7 @@
 | --- | --- |
 | `Building.cs` | Plans and the work turning them into the ship. |
 | `Costs.cs` | Costs, ticks to build or repair; what a blueprint lacks. |
-| `Digging.cs` | Hits on a planet's ground (`Hew`, `HewCells`, `Hit`, `Blast`). |
+| `Digging.cs` | Hits on a planet's ground (`Hew`, `HewCells`, `Hit`, `Blast`, `Wear`). |
 | `Flora.cs` | Plants, stones, cave growths and ruins' pieces (0079, 0080, 0091). |
 | `Fuzz.cs` | The commands the desync suite draws. |
 | `Repairs.cs` | Repairing a machine a magnetic flare broke (`Repair`). |
@@ -17,7 +17,7 @@ Blueprints build, marks take apart; also digging, growths (0077, 0079, 0080), ru
 (magnetic-flare).
 
 - **Depends on:** `Grid` (queries, ops); `Items` (queries, ops); `Crew` (`Heroes`; `Shock`, 0091, 0096); `Power`
-  (`Unplug`, `Plug`, 0110; `IsBroken`, `Mend`); `Research` (`Knows`, 0024); `Crafting` (`Queue`, 0057); `Pipes` (`SeatProblem`). Creatures reads it (`ShotTakes`, `Blasts`) and changes it (`Hit`, `Blast`); Places, `Wipe`.
+  (`Unplug`, `Plug`, 0110; `IsBroken`, `Mend`); `Research` (`Knows`, 0024); `Crafting` (`Queue`, 0057); `Pipes` (`SeatProblem`). Creatures reads it (`ShotTakes`, `Blasts`, `Wears`) and changes it (`Hit`, `Blast`, `Wear`); Places, `Wipe`.
 - **State** (`BuildingState`, all saved): `Plans` in the order made, each with `Progress` in ticks and, for a blueprint,
   `Delivered` stacks in the order first given; `NextPlanId`; `Cracks`, sorted by cell (`Crack(Cell, Damage, At, Back)`);
   `Felled`, cells of growths felled, ascending; `Clock`; `Instant`; `Repairs` paid, by machine. Derived (`Flora.cs`): growths grown and
@@ -58,7 +58,8 @@ Blueprints build, marks take apart; also digging, growths (0077, 0079, 0080), ru
   goes for its `Cost` and held growths, a piece whole.
   `building.nothingToDig`, then `items.flat` / `items.notRunning`. `Hit`, a shot's, strikes one cell `ShotTakes` allows,
   true if it broke, its yield the shooter's here, else anyone's. No tool hits back walls. `Blast` (blasting-charge) clears a
-  natural wall where `ToolsBreak`: an ore's `Cost` and held growths the thrower's, rest dust.
+  natural wall where `ToolsBreak`: ore and growths the thrower's, rest dust. `Wear` (tracker-catchers) cracks what `Wears`
+  (`Blasts`, `GrownWall`) to dust.
 - **Cracks heal** (0077): one not hit for `Builds.CrackHeals` ticks of Building's `Clock` is dropped, as, in derivation,
   one whose wall or plant is gone.
 - **Growths** (0079, 0080) grow from the seed with `Terrain`, each held by an `Anchor` (floor, ceiling, rock, back).
@@ -91,10 +92,10 @@ Blueprints build, marks take apart; also digging, growths (0077, 0079, 0080), ru
 
 ## Deliberately not handled
 
-- A drawn map's growths are not brought back by a load: only grown ground grows again.
-- Only a growth's own cell built over fells it (0080).
-- Reach, a fan's hand, a shot's muzzle and which plan is worked are the client's.
-- A blueprint finished on its hero's cell holds the hero.
-- Taking apart needs no knowledge (0024).
-- A part-built blueprint is nothing in the grid till its last tick (0063).
-- An old save's plan past what was paid: each later tick pays an item.
+- A load brings back no drawn map's growths.
+- Only its own cell built over fells a growth (0080).
+- Reach, a fan's hand, a muzzle, the plan worked: the client's.
+- A blueprint done on its hero's cell holds it.
+- Taking apart needs no knowing (0024).
+- A part-built blueprint is nothing in the grid till done (0063).
+- An old save's plan past what was paid pays an item a tick.

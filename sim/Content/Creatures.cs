@@ -11,13 +11,16 @@ public static class Creatures
     /// parts in <c>game/art/hd/creatures/</c>); its <paramref name="Body"/>, how it is shaped and moves; its <paramref name="Life"/>;
     /// its <paramref name="Faction"/>, one of <see cref="Factions"/>; how long it lives; its <paramref name="Brain"/>, the drives it
     /// may follow, the first ranked highest; its <paramref name="Moves"/>, the acts it may make; what it gives when it dies, drawn
-    /// entry by entry as a container's loot is. Each record is served by one rule in the creatures module.
+    /// entry by entry as a container's loot is, and the credits it carries to the ship, its <paramref name="Purse"/>, if any. Each record is served by one rule in the creatures module.
     /// A creature saves its drive in charge and its act by their places in <paramref name="Brain"/> and <paramref name="Moves"/>:
     /// reorder or insert into them only with a save-format bump whose step drops or remaps the creatures (<c>CreatureContractTests</c>).
     /// </summary>
     public sealed record Species(
         string Id, string Look, Shape Body, Life Life, string Faction, Lifetime Lifetime, IReadOnlyList<Drive> Brain,
-        IReadOnlyList<Move> Moves, IReadOnlyList<LootEntry> Yields);
+        IReadOnlyList<Move> Moves, IReadOnlyList<LootEntry> Yields, Purse? Purse = null);
+
+    /// <summary>The credits a creature carries, from <paramref name="Min"/> to <paramref name="Max"/> both included, drawn when it dies.</summary>
+    public sealed record Purse(int Min, int Max);
 
     /// <summary>A body's shape: <paramref name="Width"/> × <paramref name="Height"/> cells, its bottom middle where it stands.</summary>
     public abstract record Shape(int Width, int Height);
@@ -36,6 +39,13 @@ public static class Creatures
     /// </summary>
     public sealed record Clinger(int Width, int Height, int Crawl = 0) : Shape(Width, Height);
 
+    /// <summary>
+    /// A flyer (the catcher's jetpack, tracker-catchers): no gravity; it flies its drive's way, across first, solid cells stopping it. One that
+    /// <paramref name="Wear"/>s strikes the grown walls blocking its way with that damage every <paramref name="CutEvery"/> ticks
+    /// (<c>Building.Wear</c>); leaving, nothing stops it.
+    /// </summary>
+    public sealed record Flyer(int Width, int Height, int Wear = 0, int CutEvery = 0) : Shape(Width, Height);
+
     /// <summary>Its hit points, and the knock a hit gives it across and the hop up, at a full pace's blow (<see cref="KnockPace"/>).</summary>
     public sealed record Life(int Hp, int Knock, int Hop);
 
@@ -43,8 +53,10 @@ public static class Creatures
     /// How long a creature lives: <see cref="Wild"/>, while some hero is near (<see cref="Keep"/>, <see cref="Linger"/>);
     /// <see cref="Posted"/>, that too, but it comes of a post (<c>Flora.Post</c>) rather than a habitat, and goes without a drop when
     /// its post or its arena's relic is gone or its drive calms. Never let out: no post, no guard.
+    /// <see cref="Hunter"/>, a catcher (tracker-catchers): kept while it hunts, whatever the keep boxes say, gone once it has left every
+    /// hero's view.
     /// </summary>
-    public enum Lifetime { Wild, Posted }
+    public enum Lifetime { Wild, Posted, Hunter }
 
     /// <summary>Something a creature may want to do, ranked by its place in a brain.</summary>
     public abstract record Drive;
@@ -97,6 +109,14 @@ public static class Creatures
     /// </summary>
     public sealed record Ward(int Wake, int Stuck, int Calm) : Drive;
 
+    /// <summary>
+    /// Hunting one hero (tracker-catchers): <paramref name="Warn"/> ticks still where it came, its hero warned, then <paramref name="Ticks"/>
+    /// flying at it at <paramref name="Speed"/> a tick, cutting through grown rock, making its first move at it within
+    /// <paramref name="Strike"/> cells in line. Out of time it calls the hunt off and leaves straight up. Struck by another hero, it
+    /// answers with its second move at most every <paramref name="AnswerEvery"/> ticks, then hunts on.
+    /// </summary>
+    public sealed record Hunt(int Warn, int Ticks, int Strike, int Speed, int AnswerEvery) : Drive;
+
     /// <summary>An act a creature makes, in phases, the suit units it takes from a hero it hits.</summary>
     public abstract record Move(int Damage);
 
@@ -113,9 +133,9 @@ public static class Creatures
     /// The factions a creature may be of: heroes and what is theirs are <see cref="Crew"/>; <see cref="Beasts"/>, wild creatures that
     /// hunt heroes (cave-hostiles): the cave lurkers now, the carapace pack and the loper's predator next.
     /// </summary>
-    public const string Crew = "crew", Grazer = "grazer", Machines = "machines", Beasts = "beasts";
+    public const string Crew = "crew", Grazer = "grazer", Machines = "machines", Beasts = "beasts", Catchers = "catchers";
 
-    public static readonly IReadOnlyList<string> Factions = [Crew, Grazer, Machines, Beasts];
+    public static readonly IReadOnlyList<string> Factions = [Crew, Grazer, Machines, Beasts, Catchers];
 
     /// <summary>How one faction stands to another: none listed, it ignores it.</summary>
     public enum Stance { Ignore, Fear, Hunt }
@@ -123,7 +143,7 @@ public static class Creatures
     public sealed record Relation(string From, string To, Stance Stance);
 
     public static readonly IReadOnlyList<Relation> Relations =
-        [new(Grazer, Crew, Stance.Ignore), new(Machines, Crew, Stance.Hunt), new(Beasts, Crew, Stance.Hunt)];
+        [new(Grazer, Crew, Stance.Ignore), new(Machines, Crew, Stance.Hunt), new(Beasts, Crew, Stance.Hunt), new(Catchers, Crew, Stance.Hunt)];
 
     /// <summary>
     /// A pounce: crouched <paramref name="WindUp"/> ticks, then a flight straight at its target at <paramref name="Speed"/> a tick on
@@ -287,7 +307,22 @@ public static class Creatures
         Faction: Beasts, Lifetime: Lifetime.Wild, Brain: [new Guard(Notice: 6, Strike: 4, AlertTicks: 16), new Shell(Reach: 4, Hold: 20)],
         Moves: [new Lunge(WindUp: 16, Speed: 800, Ticks: 5, Past: 0, Damage: 3, Steady: true)], Yields: [new("crystal", 2, 3), new("biomass", 1, 1)]);
 
-    public static readonly IReadOnlyList<Species> All = [Loper, Tapir, Sixleg, Sentry, Warden, Capback, GeodeSnail];
+    /// <summary>
+    /// The catcher (tracker-catchers): a hunter on a jetpack hired by the hero's former owners, three cells by five, come for one hero whose
+    /// wanted meter is full. Ten seconds where it came, then 90 s flying at 8 cells a second at its hero, cutting grown rock a strike
+    /// of 12 every 0.2 s (soil and stone alike gone in one); within 12 cells in line it crouches 0.8 s and flies fists first, 16 cells
+    /// in half a second, six units of a suit if it hits. Struck by another hero, it answers with a quick arc at it, 0.3 s crouched,
+    /// at most once in 3 s. Forty hit points, never knocked. Killed, scrap, a circuit, now and then a crystal or an opal, and 150 to 300
+    /// credits for the ship: what it was paid for the hero. Placeholder numbers, for a play pass.
+    /// </summary>
+    public static readonly Species Catcher = new("catcher", Look: "catcher", Body: new Flyer(Width: 3, Height: 5, Wear: 12, CutEvery: 4),
+        Life: new(Hp: 40, Knock: 0, Hop: 0), Faction: Catchers, Lifetime: Lifetime.Hunter,
+        Brain: [new Hunt(Warn: 200, Ticks: 1800, Strike: 12, Speed: 400, AnswerEvery: 60)],
+        Moves: [new Pounce(WindUp: 16, Speed: 1600, Ticks: 10, Damage: 6), new Shoot(WindUp: 6, Lock: 2, Recover: 20, Projectile: "bolt", Reach: 60, Lingers: 10)],
+        Yields: [new("scrapChunk", 2, 4), new("circuit", 1, 1), new("crystal", 1, 1, OneIn: 5), new("opal", 1, 1, OneIn: 10)],
+        Purse: new(150, 300));
+
+    public static readonly IReadOnlyList<Species> All = [Loper, Tapir, Sixleg, Sentry, Warden, Capback, GeodeSnail, Catcher];
 
     /// <summary>
     /// A species that comes with debris pieces of some kinds as they drift in, clamped to a perch on one's top (<c>Wreckage.Perches</c>):

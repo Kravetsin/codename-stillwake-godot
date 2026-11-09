@@ -436,6 +436,12 @@ public partial class Figure : Node2D
     /// <summary>The suit's mode, its belt's charge and the breath's phase (<see cref="SuitGlow.Of"/>): what a switched body's lights show; all off by default.</summary>
     public (bool On, bool Charged, double Phase) Suit { get; set; }
 
+    /// <summary>What its tracker shows (tracker-catchers): steady, blinking now and then, or hunted (<see cref="TrackerBlink"/>).</summary>
+    public Sim.Crew.Signal Signal { get; set; }
+
+    /// <summary>Whether it wears the tracker on its shin: every hero does; a catcher drawn as one does not (tracker-catchers).</summary>
+    public bool Tracked { get; set; } = true;
+
     /// <summary>Whether its tracker and lit bands light the world round them; off for a figure in a window of its own, out of the world.</summary>
     public bool GivesLight
     {
@@ -719,8 +725,6 @@ public partial class Figure : Node2D
             if (part == "shin") CutAtTheAnkle(sprite, _soles.Contains(sprite));
         }
         (_headLit.Offset, _faceLit.Offset) = (_headPart.Offset, _facePart.Offset);
-        _trackerLight.Modulate = new Color((uint)(colour << 8 | 0xff));
-        _trackerGlow.Colour = _trackerLight.Modulate * L.Tracker;
         _pack.Visible = body != null;
         foreach (var (light, part, name, _, glow) in _bands)
             Show(light, glow, body is { } b ? $"hero_{b}_{name}_lit" : null, part.Offset);
@@ -811,6 +815,22 @@ public partial class Figure : Node2D
         if (!Lights.TryGetValue(name, out var light))
             Lights[name] = light = HiRes.Has(name) ? HiRes.Texture(HiRes.Load(name)!) : null;
         return light;
+    }
+
+    /// <summary>The tracker's light in the player's colour as its <see cref="Signal"/> blinks it, its glow by the same level.</summary>
+    private void ShowTracker()
+    {
+        _tracker.Visible = _trackerLight.Visible = Tracked;
+        if (_colour is not int worn || !Tracked)
+        {
+            _trackerGlow.Colour = default;
+            return;
+        }
+        var colour = new Color((uint)(worn << 8 | 0xff));
+        double level = TrackerBlink.Of(Signal, _timeMs);
+        var (r, g, b, a) = TrackerBlink.Lit((colour.R, colour.G, colour.B), level);
+        _trackerLight.Modulate = new Color((float)r, (float)g, (float)b, (float)a);
+        _trackerGlow.Colour = colour * (L.Tracker * (float)level);
     }
 
     /// <summary>A switched body's lights as its suit is now (<see cref="Suit"/>): the wave, the arcs and the empty belt's pip.</summary>
@@ -923,6 +943,7 @@ public partial class Figure : Node2D
             _scannerDot.Visible = lit < _scannerDots.Length;
             if (_scannerDot.Visible) _scannerDot.Texture = _scannerDots[lit];
         }
+        ShowTracker();
         ShowSuit();
         // Walking backwards, away from where it faces, the stride runs backwards too. On the ground only the
         // way along counts, so a stair keeps the stride of the flat; on a ladder only the way up or down.

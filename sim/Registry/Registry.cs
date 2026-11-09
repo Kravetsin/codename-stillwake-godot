@@ -98,7 +98,7 @@ public sealed class Registry
         Furnace = new FurnaceModule(Grid, Items, Items, Atmosphere, Atmosphere, Power, Power, Crafting, Crafting);
         Logistics = new LogisticsModule(Grid, Atmosphere, Items, Items, Crafting, Debris, Debris, Rooms);
         // Last, after crew, as its system reads where heroes are; saved last, so its slice is the newest.
-        Creatures = new CreaturesModule(Grid, Crew, Crew, Items, Items, Debris, Debris, Building, Building, Rooms);
+        Creatures = new CreaturesModule(Grid, Crew, Crew, Items, Items, Debris, Debris, Building, Building, Rooms, Knowledge);
         // The launch platform, opened with power; new to format 30, run and saved after the rest.
         Landing = new LandingModule(Grid, Grid, Power, Power, Crew, Items, Items);
         Trade = new TradeModule(Grid, Items, Items, Knowledge);

@@ -198,6 +198,18 @@ public sealed partial class BuildingModule
     }
 
     /// <inheritdoc/>
+    public bool Wears(int cell) => Blasts(cell) && _grid.GrownWall(cell);
+
+    /// <inheritdoc/>
+    // Cut rock gives nothing: a hunter is no mine. What the wall held the sweep fells, giving nothing too.
+    public bool Wear(int cell, int damage)
+    {
+        if (damage <= 0 || !Wears(cell) || !Cracked(cell, _grid.WallAt(cell)!.Strength, damage)) return false;
+        _gridOps.Clear(cell, "structure");
+        return true;
+    }
+
+    /// <inheritdoc/>
     public int ShotKey(int cell) => _grid.WallAt(cell) == null && PieceAt(cell) is { } piece ? piece.Head : cell;
 
     /// <summary>Gives <paramref name="cost"/> to peer <paramref name="peer"/>, what does not fit falling at <paramref name="cell"/>; for none, all of it there, anyone's.</summary>

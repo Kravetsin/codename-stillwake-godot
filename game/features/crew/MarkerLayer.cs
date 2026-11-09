@@ -5,6 +5,7 @@ using Godot;
 using Stillwake.Game.Render;
 using Stillwake.Game.Shared;
 using Stillwake.Sim;
+using Stillwake.Sim.Creatures;
 using Stillwake.Sim.Debris;
 using static Stillwake.Game.I18n.En;
 
@@ -14,7 +15,7 @@ namespace Stillwake.Game.Features.Crew;
 /// Arrows at the screen's edge to what this player may want to find again (<see cref="Markers"/>): home, the
 /// lifepod's hatch where a hero is made again, the body this player left last, and each friend in its suit's
 /// colour (0061). A chevron round a small
-/// badge, turned toward its target, fading in once the target leaves the screen and gone the moment it is back;
+/// badge, turned toward its target (and the catcher hunting this player, in red), fading in once the target leaves the screen and gone the moment it is back;
 /// kept out of the HUD's panels, and sized by the slots' size. How far, in cells, only by the pointer.
 /// </summary>
 public partial class MarkerLayer : CanvasLayer
@@ -74,7 +75,7 @@ public partial class MarkerLayer : CanvasLayer
         {
             var friends = hero.Others.Select(o => (o.Id, o.Hero, Suits.Of(m.Players, o.Id))).ToList();
             var body = Bodies.Latest(m.Items.Floor, peer) is { } pile ? (pile, Suits.Of(m.Players, peer)) : ((Pile, int)?)null;
-            Show(Markers.Of(m.Crew.Spawn, m.Grid.Width, friends, body, DeliveriesOf(m)), hero.Current.Middle, hero.PromptCovers, delta);
+            Show(Markers.Of(m.Crew.Spawn, m.Grid.Width, friends, body, DeliveriesOf(m), HunterOf(m, peer)), hero.Current.Middle, hero.PromptCovers, delta);
             lost = m.Knowledge.Lost > _lost;
             _lost = m.Knowledge.Lost;
         }
@@ -94,6 +95,14 @@ public partial class MarkerLayer : CanvasLayer
             _badges.Remove(key);
         }
         _tips.Frame(_ui.MenuOpen.Get() ? null : _mouse);
+    }
+
+    /// <summary>The catcher hunting <paramref name="peer"/>, its middle in cells (tracker-catchers); none while none hunts it.</summary>
+    private static (int Id, double X, double Y)? HunterOf(Registry m, int peer)
+    {
+        if (m.Creatures.HunterOf(peer) is not { } c) return null;
+        double unit = CreaturesModule.Unit, height = Stillwake.Content.Creatures.Get(c.Species).Body.Height;
+        return (c.Id, c.X / unit, c.Y / unit - height / 2);
     }
 
     /// <summary>The mafia's deliveries out, where each piece is (cells): the pieces walked only while one is on its way.</summary>
@@ -149,7 +158,7 @@ public partial class MarkerLayer : CanvasLayer
 
     /// <summary>What the pointer says over a marker: what it points at and how many cells away.</summary>
     private static Tip? TipOf(Badge badge) => badge.Marker is { } marker
-        ? new Tip(T(marker.Icon switch { MarkerIcon.Home => "markers.home", MarkerIcon.Body => "markers.body", MarkerIcon.Delivery => badge.Lost > 0 ? "markers.lost" : "markers.delivery", _ => "markers.friend" }), new TipLine(T("markers.cells", ("cells", badge.Cells)), Tone.Dim))
+        ? new Tip(T(marker.Icon switch { MarkerIcon.Home => "markers.home", MarkerIcon.Body => "markers.body", MarkerIcon.Delivery => badge.Lost > 0 ? "markers.lost" : "markers.delivery", MarkerIcon.Hunter => "markers.hunter", _ => "markers.friend" }), new TipLine(T("markers.cells", ("cells", badge.Cells)), Tone.Dim))
         : null;
 
     /// <summary>One marker: a dark badge ringed in its colour holding its icon, and a chevron outside the ring toward the target.</summary>
@@ -204,6 +213,13 @@ public partial class MarkerLayer : CanvasLayer
                 DrawLine(middle + new Vector2(-0.25f, 0.18f) * r, middle + new Vector2(0.62f, 0.18f) * r, colour, 0.34f * r, antialiased: true);
                 DrawCircle(middle + new Vector2(-0.48f, 0.08f) * r, 0.24f * r, colour);
                 DrawCircle(middle + new Vector2(0.12f, -0.36f) * r, 0.13f * r, colour);
+            }
+            else if (marker.Icon == MarkerIcon.Hunter)
+            {
+                // A reticle: a ring and four ticks in toward its middle, what hunts this player.
+                DrawArc(middle, 0.42f * r, 0, Mathf.Tau, 24, colour, 0.14f * r, antialiased: true);
+                foreach (var way in (Vector2[])[Vector2.Up, Vector2.Down, Vector2.Left, Vector2.Right])
+                    DrawLine(middle + way * 0.18f * r, middle + way * 0.7f * r, colour, 0.14f * r, antialiased: true);
             }
             else DrawCircle(middle, 0.45f * r, colour);
         }

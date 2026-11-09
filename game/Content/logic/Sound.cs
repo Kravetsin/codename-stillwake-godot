@@ -524,6 +524,11 @@ public static class Sound
             HitStone,
             LandSoft with { VolumeDb = -3, Tune = 1.1f, Pitch = 0.1f, Heard = ToolReach },
             CreatureDeath with { Tune = 0.8f }),
+        // A catcher (tracker-catchers), placeholders: a person in a suit, the hero's own hurt voice lower over a heavy body's thud, its death longer.
+        [Stillwake.Content.Creatures.Catcher.Id] = (
+            Hurt with { Tune = 0.82f, Heard = ToolReach },
+            LandSoft with { VolumeDb = -1, Tune = 0.8f, Pitch = 0.08f, Heard = ToolReach },
+            Hurt with { VolumeDb = -2, Tune = 0.7f, Heard = ToolReach }),
     };
 
     /// <summary>
