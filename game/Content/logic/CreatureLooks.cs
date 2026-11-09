@@ -109,6 +109,28 @@ public static class CreatureLooks
     /// </summary>
     public static readonly IReadOnlySet<string> Lurkers = new HashSet<string> { Stillwake.Content.Creatures.Capback.Look, Stillwake.Content.Creatures.GeodeSnail.Look };
 
+    /// <summary>
+    /// A look drawn as a hero (tracker-catchers): the hero's own figure and rig in one of its <paramref name="Gear"/>, chosen by the creature's
+    /// id; flying on a jetpack, <paramref name="Gun"/> in its hands. Drawn by the crew.
+    /// </summary>
+    public sealed record HeroLook(IReadOnlyList<HeroGear> Gear, string Gun)
+    {
+        /// <summary>What the creature <paramref name="id"/> wears: every peer draws the same.</summary>
+        public HeroGear Of(int id) => Gear[(int)((uint)id % (uint)Gear.Count)];
+    }
+
+    /// <summary>An outfit: its <paramref name="Helmet"/> and <paramref name="Body"/>, pictures as a suit's are, its goggles lit <paramref name="Eyes"/> (0xRRGGBB).</summary>
+    public sealed record HeroGear(string Helmet, string Body, int Eyes);
+
+    /// <summary>The looks drawn as heroes: the catcher in the gear page's four outfits, all picked (tools/anime-art/subjects/catchergear.js).</summary>
+    public static readonly IReadOnlyDictionary<string, HeroLook> Heroes = new Dictionary<string, HeroLook>
+    {
+        [Stillwake.Content.Creatures.Catcher.Look] = new(
+            [new("catcherHood", "catcherCoat", 0xd6ee78), new("catcherCap", "catcherHarness", 0xffb050), new("catcherHelm", "catcherPlates", 0xff5c3c),
+                new("catcherBeak", "catcherCape", 0xc4e2ff)],
+            Stillwake.Content.Shots.Nailer.Item),
+    };
+
     public const float LurkerLight = 0.6f;
 
     /// <summary>A blow on a shut shell (lurker-attacks): it glances in the ruins' alloy's sparks, never the creature's own hit.</summary>

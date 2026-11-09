@@ -44,6 +44,12 @@ public sealed class Hero
     [JsonInclude, JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)] public int Hurts { get; internal set; }
     /// <summary>What hurt it last; <see cref="Harm.None"/> before anything has.</summary>
     [JsonInclude, JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)] public Harm Hurt { get; internal set; }
+    /// <summary>Ticks left that it counts as active, from <c>Wanted.ActiveFor</c> when it last moved a cell or ran (tracker-catchers).</summary>
+    [JsonInclude, JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)] public int Stirring { get; internal set; }
+    /// <summary>Its hidden wanted meter, 0 to <see cref="Need"/>: full, a catcher hunts it (tracker-catchers).</summary>
+    [JsonInclude, JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)] public int Wanted { get; internal set; }
+    /// <summary>What fills its meter, drawn after each reset; 0 while not drawn yet.</summary>
+    [JsonInclude, JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)] public int Need { get; internal set; }
 }
 
 /// <summary>

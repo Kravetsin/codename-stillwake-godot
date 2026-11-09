@@ -973,5 +973,7 @@ function cut(draw, glassD, bars) {
   return [shell, visor];
 }
 
+// The kit, for a subject drawing more gear on the hero's boxes (catchergear.js).
+window.HeroKit = { limb, wedge, folds, mat, glove, boot, BACK_TORSO, GL, band, BST, BELL_BRASS, BELL_RUBBER, rustAt, hose, port, UNLIT, rivet, torsoDeep, part, lightPicture, cut };
 })();
 

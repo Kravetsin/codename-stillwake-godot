@@ -4,16 +4,16 @@ using System.Linq;
 
 namespace Stillwake.Game.Features.Crew;
 
-/// <summary>What a marker's badge holds: the pod's silhouette for home, a figure lying for this player's body, a dot in the suit's colour for a friend, the good's picture for a delivery.</summary>
-public enum MarkerIcon { Home, Body, Friend, Delivery }
+/// <summary>What a marker's badge holds: the pod's silhouette for home, a figure lying for this player's body, a dot in the suit's colour for a friend, the good's picture for a delivery, a reticle for the catcher hunting this player.</summary>
+public enum MarkerIcon { Home, Body, Friend, Delivery, Hunter }
 
 /// <summary>
 /// A place this player may want to find again, pointed at from the screen's edge while it is off the screen:
-/// home, the body this player left last, a friend, a delivery of the mafia drifting in (2026-11-08-mafia-deliveries).
+/// home, the body this player left last, a friend, a delivery of the mafia drifting in (2026-11-08-mafia-deliveries), the catcher on its trail (tracker-catchers).
 /// </summary>
 /// <param name="X">Where it is, in cells of the world.</param>
 /// <param name="Colour">The chevron's and the icon's colour, 0xRRGGBB.</param>
-/// <param name="Peer">The friend's peer or the delivery's id, which tells two markers of a kind apart; none for home and the body.</param>
+/// <param name="Peer">The friend's peer or the delivery's id or the catcher's, which tells two markers of a kind apart; none for home and the body.</param>
 /// <param name="Good">What a delivery brings, its badge's picture; none for the rest.</param>
 public sealed record Marker(MarkerIcon Icon, double X, double Y, int Colour, int? Peer = null, string? Good = null);
 
@@ -32,11 +32,17 @@ public readonly record struct Placed(bool OnScreen, double X, double Y, double A
 /// <summary>The markers' list and their geometry at the screen's edge, without Godot, so it is tested.</summary>
 public static class Markers
 {
+    /// <summary>Whether the catcher hunting this player is <paramref name="now"/>, a new one since <paramref name="was"/>: then its beep sounds, once (tracker-catchers).</summary>
+    public static bool HunterCame(int? was, int? now) => now is int id && id != was;
+
     /// <summary>Home's colour: a pale white, apart from every suit (<see cref="Suits.All"/>) and from danger's red.</summary>
     public const int HomeColour = 0xe2e8f0;
 
     /// <summary>A delivery's colour: the market's amber.</summary>
     public const int DeliveryColour = 0xfbbf24;
+
+    /// <summary>The catcher's colour: danger's red.</summary>
+    public const int HunterColour = 0xef4444;
 
     /// <summary>How long a marker takes to fade in once its target leaves the screen.</summary>
     public const double FadeInS = 0.25;
@@ -45,10 +51,11 @@ public static class Markers
     /// This player's markers: home at the crew's <paramref name="spawn"/> cell, where a hero is made again; then the
     /// body it left last (<see cref="Bodies.Latest"/>), a cell above where its stacks lie, in its suit's
     /// colour, while there is one; then each friend at its body's middle in its suit's colour, in the order given; then each
-    /// of <paramref name="deliveries"/> at its piece's middle in amber, for every player alike.
+    /// of <paramref name="deliveries"/> at its piece's middle in amber, for every player alike; last <paramref name="hunter"/>, the middle of the one
+    /// hunting this player, in red, for it alone.
     /// </summary>
     public static List<Marker> Of(int spawn, int width, IReadOnlyList<(int Id, Hero Hero, int Colour)> friends, (Pile Pile, int Colour)? body = null,
-        IReadOnlyList<(int Id, string Good, double X, double Y)>? deliveries = null)
+        IReadOnlyList<(int Id, string Good, double X, double Y)>? deliveries = null, (int Id, double X, double Y)? hunter = null)
     {
         var list = new List<Marker>(friends.Count + 2 + (deliveries?.Count ?? 0)) { new(MarkerIcon.Home, spawn % width + 0.5, spawn / width + 0.5, HomeColour) };
         if (body is var (pile, suit)) list.Add(new Marker(MarkerIcon.Body, pile.X / Hero.Unit, pile.Y / Hero.Unit - 1.0, suit));
@@ -58,6 +65,7 @@ public static class Markers
             list.Add(new Marker(MarkerIcon.Friend, (double)middle.X / Hero.Unit, (double)middle.Y / Hero.Unit, colour, id));
         }
         foreach (var (id, good, x, y) in deliveries ?? []) list.Add(new Marker(MarkerIcon.Delivery, x, y, DeliveryColour, id, good));
+        if (hunter is var (who, cx, cy)) list.Add(new Marker(MarkerIcon.Hunter, cx, cy, HunterColour, who));
         return list;
     }
 

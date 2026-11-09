@@ -318,4 +318,5 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [scrap-to-iron](2026-11-08-scrap-to-iron.md) | Scrap to iron: four scrap smelt into an iron at any furnace | accepted |  |
 | [switched-off-sign](2026-11-08-switched-off-sign.md) | Switched-off sign | accepted |  |
 | [round-blasts](2026-11-09-round-blasts.md) | Blasts are round | accepted | unified-damage (in part) |
+| [tracker-catchers](2026-11-09-tracker-catchers.md) | Catchers | accepted |  |
 | [unified-damage](2026-11-09-unified-damage.md) | One rule for damage | accepted |  |

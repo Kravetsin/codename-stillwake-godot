@@ -44,7 +44,8 @@ the sim.
 | `logic/RodFlourish.cs` | when its lights play |
 | `logic/Suits.cs` | suit colours, what is worn |
 | `logic/SuitGlow.cs` | a body's lights |
-| `SuitKeys.cs` | V on the tablet's edge, dim if refused |
+| `logic/TrackerBlink.cs` | the tracker's blink |
+| `SuitKeys.cs` | V on the tablet's edge |
 | `Figure.cs` | the rig, lit, dressed (0075, 0090) |
 | `logic/Cape.cs` | a worn cape's cloth |
 | `logic/Spring.cs` | a held arm's swing |
@@ -81,6 +82,8 @@ the sim.
 | `logic/Bodies.cs` | bodies (0061) |
 | `BodyView.cs` | bodies, beacons, tips (0061) |
 | `logic/Rams.cs` | a creature's ram (0103) |
+| `HunterView.cs` | catchers as heroes |
+| `logic/CutHeard.cs` | their cuts heard |
 | `logic/Crew.En.cs` | its text |
 | `logic/Crew.Ru.cs` | Russian |
 
@@ -90,24 +93,25 @@ the sim.
 - A step never ends in a wall, shut door or hatch, or past the grid; afloat with no jetpack the middle stays within
   `Hero.Tether` of its anchor. A door shut on it pushes it `Hero.PushStep` to the nearest fit, no speed (0089).
 - Doors are walked as this peer shows them (0014); a press sends `SetDoor`/`SetValve` (0071), `SetPlatform`.
-- **Holes and floors:** the body falls into a hole it fits; down drops through floors, never walls, doors,
-  hatches, ladders; jump wins.
+- **Holes, floors:** falls into a hole it fits; down drops through floors only; jump wins.
 - **Steps** (0106): a walk steps a cell up or down where it fits; two up stop it, drawn eased.
 - **Jump feel** (0089): coyote time, buffer, short hop, eased apex.
 - **The figure answers its motion** (0090, hero-gait), as sent.
 - **Rammed** (0103) **or arced** (`Rams.Crosses`, once): `HitBy`/`Bolted` sent, thrown, keys masked.
 - **Surfaces** (0076): `Ship.Of` rules: nothing floats on a planet, gravity the kind's `Fall`; fog glides (`FogMove`)
   over a seam (fog-edges).
-- **Camera:** leads, eases, snaps. **Markers** (0061): home, last body, friends heard, deliveries (lost: red). **Hurts**
+- **Camera:** leads, eases, snaps. **Markers** (0061): home, last body, friends heard, deliveries (lost: red), one's catcher. **Hurts**
   (hurts-are-shown) tint edges and gauge.
 - **Water** (liquids): swum `SwimDepth` deep, left by Space or shore; feet `WadeDepth` deep splash.
-- **Swim, haul, jetpack** (0047, tether-haul): afloat, through floors, tied where the middle left the hull (0007, 0104);
+- **Swim, haul, jetpack** (0047, tether-haul): afloat through floors, tied where it left the hull (0007);
   Shift hauls in along the tether's bends (`Wraps`); a jetpack unties, Shift thrusts, `Thrust` sent while unlike the sim's.
 - **A canister** (0047, 0081): right click or R sends `Refill`, V `SuitMode` (regen-suit) if the sim takes it.
 - **The crew module:** made at `Spawn`; passed out: no orders, lies at the sim's cell, takes none (0061). `Enter` goes when the sim's room or field side
   differ, every `Crew.ReportEvery` ticks off its cell, each tick if threatened; none out (0050); a closed link's host: `Leave`.
 - **Dressed as worn**: helmet, body, hair, clothes, a lamp; the colour on the near shin; a switched body lit by
   `SuitOn` and charge (`SuitGlow`), lit round (hero-lights).
+- **Tracker** blinks by `SignalOf` (`TrackerBlink`); **catchers** are heroes in their gear (`CreatureLooks.Heroes`), untracked;
+  killed in view, they tumble (tracker-catchers).
 
 ## Others' heroes
 
@@ -123,23 +127,20 @@ the sim.
 - **Aimed only in use** (aim-on-use): up while used and `LingerMs` after, facing the pointer; shots and hits wait for it.
 - **Left is the front, right the back** (0107, 0108): a screwdriver works plans or repairs on the left;
   the plan, wiring, lays cables; a tool on the right, nothing.
-- **One aim** (`Aiming.AimAt`): a plan (back walls first), machine (its rise, 0099), tank, door or valve (E), a wreck under the
-  pointer, else the nearest small piece. Outlined green or red, `UsePrompt` says why; plan in hand, E idle. Armed, small pieces.
-- **Hits are rays from the shoulder** (tool-reach, hits-pass-wrecks): the fan (`ToolRays`), each to a wall, hitting all
-  wrecks it crosses; ground met rings, sparks.
-- **Struck tools** (0038, salvage-tools, the-pickaxe, swing-motions): each swung by its
-  sector's motion, hitting as the blade crosses an aim kept against the hero.
+- **One aim** (`Aiming.AimAt`): a plan (back walls first), machine (0099), tank, door, valve, a wreck
+  pointed at, else the nearest small piece. Outlined green or red, `UsePrompt` says why; plan in hand, E idle. Armed, small pieces.
+- **Hits are rays** (tool-reach, hits-pass-wrecks): a fan (`ToolRays`) to a wall, through wrecks; ground rings, sparks.
+- **Struck tools** (0038, swing-motions): swung by sector, hitting as the blade crosses the kept aim.
 - **Harpoon, grapple** (0044, grapple-climbs): reel pieces, pull to walls; hung, refire; Space/RMB let go.
-- **A gun** (hold-to-fire): left held fires each cooldown; a `Charge` one fires let go full; flat, clicks dry. Afloat it kicks back (`Recoil`); a guest flies it.
+- **A gun** (hold-to-fire): left held fires each cooldown; a `Charge` one fires let go full; flat, clicks dry. Afloat it kicks (`Recoil`).
 - **Drill, grinder, cutter** (0054, 0055): left held runs it (`Run`), hitting each `Pace` ticks, the cutter by its
   beam (`ToolEdges`), sparking (`ToolWork`).
-- **The power driver** (driver-at-work, driver-order): charged, a 2×2 square over plans or marks
-  (`WorkedSquare`), heard (`BiteLoop`). Right click toggles; mode by the arrow (mode-glyph).
-- **Seated** (`Seating.Held`): no tool; E leaves. **Ladders, ledges** (0092): grab, climb, slide, leap off; an open hatch is climbable, a closed one a floor
-  (0112). A jump a foot short mantles.
+- **Power driver** (driver-at-work, driver-order): charged, works a 2×2 square (`WorkedSquare`); right click toggles (mode-glyph).
+- **Seated** (`Seating.Held`): no tool; E leaves. **Ladders, ledges** (0092): grab, climb, slide, leap off; a hatch open climbs, shut floors (0112); a jump a foot
+  short mantles.
 
 ## Deliberately not handled
 
 - Friends are marked only while heard, unnamed; markers one way overlap.
-- A body is drawn as its peer is dressed now (once it left, the first colour); it and a seated hero show no suit lights.
+- A body is dressed as its peer now (gone, the first colour); it and a seated hero show no suit lights.
 - Others' swings are not held on contact; a friend's gun hangs, aim unsent.

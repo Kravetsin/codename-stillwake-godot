@@ -59,9 +59,11 @@ public class CreaturesInvariantTests
             int half = spec.Body.Width * Unit / 2;
             if (c.X - half < 0 || c.X + half > Width * Unit || c.Y - spec.Body.Height * Unit < 0 || c.Y > Height * Unit)
                 return $"creature {c.Id} off the grid at ({c.X}, {c.Y})";
-            if (w.M.Creatures.Overlaps(spec.Body, c.X, c.Y)) return $"creature {c.Id} in a wall at ({c.X}, {c.Y})";
-            // A lurker on guard (cave-hostiles) watches with no count, alerted with its alert's.
-            int least = c.Act == null && spec.Brain[c.Drive] is Tune.Guard ? 0 : 1;
+            // A catcher leaving its hunt (tracker-catchers) flies off through anything.
+            bool leaving = spec.Lifetime == Tune.Lifetime.Hunter && CreaturesModule.Hunting(c) == null;
+            if (!leaving && w.M.Creatures.Overlaps(spec.Body, c.X, c.Y)) return $"creature {c.Id} in a wall at ({c.X}, {c.Y})";
+            // A lurker on guard (cave-hostiles) watches with no count, alerted with its alert's. A catcher hunts with none.
+            int least = c.Act == null && spec.Brain[c.Drive] is Tune.Guard or Tune.Hunt ? 0 : 1;
             if (c.Left < least || c.Left > LongestOf(c, spec)) return $"creature {c.Id} {c.Posture} with {c.Left} ticks left";
         }
         foreach (var hero in w.M.Crew.Heroes)

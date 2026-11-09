@@ -14,8 +14,25 @@ public class CreatureLooksTests
 
     [Theory]
     [MemberData(nameof(Species))]
-    public void EverySpeciesIsDrawnByItsRigOrAsTheTick(string species) =>
-        Assert.True(CreatureLooks.Varieties.ContainsKey(species) ^ (CreatureLooks.Ticks.Contains(Spec.Creatures.Get(species).Look) || CreatureLooks.Istukans.Contains(Spec.Creatures.Get(species).Look) || CreatureLooks.Lurkers.Contains(Spec.Creatures.Get(species).Look)), species);
+    public void EverySpeciesIsDrawnByItsRigOrAsTheTickOrAHero(string species) =>
+        Assert.True(CreatureLooks.Varieties.ContainsKey(species) ^ (CreatureLooks.Ticks.Contains(Spec.Creatures.Get(species).Look) || CreatureLooks.Istukans.Contains(Spec.Creatures.Get(species).Look) || CreatureLooks.Lurkers.Contains(Spec.Creatures.Get(species).Look) || CreatureLooks.Heroes.ContainsKey(Spec.Creatures.Get(species).Look)), species);
+
+    [Fact]
+    public void EveryOutfitOfAHeroLookHasEveryPictureAndEachCatcherOneByItsId()
+    {
+        string hd = Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "game", "art", "hd");
+        foreach (var look in CreatureLooks.Heroes.Values)
+            foreach (var gear in look.Gear)
+            {
+                foreach (var part in new[] { "torso", "pack", "upperArm", "forearm", "thigh", "shin", "upperArm_lit" })
+                    Assert.True(File.Exists(Path.Combine(hd, $"hero_{gear.Body}_{part}.png")), $"hero_{gear.Body}_{part}");
+                foreach (var part in new[] { "shell", "visor", "lit" })
+                    Assert.True(File.Exists(Path.Combine(hd, $"hero_{gear.Helmet}_{part}.png")), $"hero_{gear.Helmet}_{part}");
+            }
+        var catcher = CreatureLooks.Heroes.Values.Single();
+        Assert.Equal(catcher.Gear.Count, Enumerable.Range(0, catcher.Gear.Count).Select(catcher.Of).Distinct().Count());
+        Assert.Same(catcher.Of(1), catcher.Of(1 + catcher.Gear.Count));
+    }
 
     [Theory]
     [MemberData(nameof(Species))]

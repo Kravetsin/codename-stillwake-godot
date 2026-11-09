@@ -906,12 +906,12 @@ public class CreaturesTests
         Assert.True(slice.Fired > 0);
         (slice.Fired, slice.Shots, slice.Arcs) = (0, [], []);
         Assert.Equal(before, CreaturesSlice(w));
-        // This map holds no wrecks: off the grid nothing fits; on it a walker finds no gravity aboard, a clinger no piece.
+        // This map holds no wrecks: off the grid nothing fits; on it a walker or a flyer finds no gravity aboard, a clinger no piece.
         int cells = w.M.Grid.Width * w.M.Grid.Height;
         Assert.All(w.Refusals.Where(r => r.Command is Release), r =>
         {
             var release = (Release)r.Command;
-            Assert.Equal(release.Cell < 0 || release.Cell >= cells ? "creatures.blocked" : Tune.Get(release.Species).Body is Tune.Walker ? "creatures.notHere" : "creatures.noPiece", r.Reason);
+            Assert.Equal(release.Cell < 0 || release.Cell >= cells ? "creatures.blocked" : Tune.Get(release.Species).Body is Tune.Clinger ? "creatures.noPiece" : "creatures.notHere", r.Reason);
         });
     }
 
