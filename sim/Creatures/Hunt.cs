@@ -184,7 +184,7 @@ internal sealed class HuntDrive : DriveRule
     {
         var path = c.Path;
         int width = m.GridWidth;
-        while (path is { Count: > 0 } && Passed(m, c, path, width)) path.RemoveAt(0);
+        if (path is { Count: > 0 }) path.RemoveRange(0, Passed(m, c, path, width));
         if (path is not { Count: > 0 })
         {
             Due(m, c);
@@ -218,14 +218,14 @@ internal sealed class HuntDrive : DriveRule
     }
 
     /// <summary>
-    /// Its move this tick along the run steps from the first, <paramref name="budget"/> long through their corners, so it keeps its
-    /// speed (a playtest saw it halt at each): up a step it rises then goes across, down one across then down; one way across and
-    /// one way up or down a tick. The body takes the sum rising first, else across first: legs out of that order (a rise after
+    /// Its move this tick along the run steps from the first, <paramref name="budget"/> across through their corners, so it keeps its
+    /// speed (a playtest saw it halt at each): up a step it rises then goes across, down one across then down, the step itself free
+    /// as a hero steps, up to <c>StepUp</c> cells a tick; one way across and one way up or down a tick. The body takes the sum rising first, else across first: legs out of that order (a rise after
     /// going across, across after dropping) only where the body is free taking them so, else it stops before them.
     /// </summary>
     private static (int, int) RunAlong(CreaturesModule m, Spec.Shape body, List<int> path, int x0, int y0, int width, int budget)
     {
-        int x = x0, y = y0, vx = 0, vy = 0, way = 0, rise = 0;
+        int x = x0, y = y0, vx = 0, vy = 0, way = 0, rise = 0, lift = Spec.StepUp * Unit;
         bool across = false, early = false;
         (int, int) before = (0, 0);
         for (int i = 0; i < path.Count && budget > 0; i++)
@@ -239,15 +239,17 @@ internal sealed class HuntDrive : DriveRule
         if (early && (vy < 0 ? m.Overlaps(body, x0, y0 + vy) : m.Overlaps(body, x0 + vx, y0))) return before;
         return (vx, vy);
 
-        // A leg, straight across or up or down, taken as far as the budget goes; false where it is not taken whole.
+        // A leg, straight across or up or down, taken as far as the budget goes (up or down, the lift); false where it is not taken whole.
         bool Leg(int dx, int dy)
         {
             if (dx == 0 && dy == 0) return true;
             if (dx != 0 && way != 0 && Math.Sign(dx) != way || dy != 0 && rise != 0 && Math.Sign(dy) != rise) return false;
             if (!early && (dy < 0 && across || dx != 0 && rise > 0)) (early, before) = (true, (vx, vy));
-            int length = Math.Abs(dx) + Math.Abs(dy), take = Math.Min(length, budget);
+            int length = Math.Abs(dx) + Math.Abs(dy), take = Math.Min(length, dx != 0 ? budget : lift);
             (int sx, int sy) = (Math.Sign(dx) * take, Math.Sign(dy) * take);
-            (vx, vy, x, y, budget) = (vx + sx, vy + sy, x + sx, y + sy, budget - take);
+            (vx, vy, x, y) = (vx + sx, vy + sy, x + sx, y + sy);
+            if (dx != 0) budget -= take;
+            else lift -= take;
             if (dx != 0) (across, way) = (true, Math.Sign(dx));
             else rise = Math.Sign(dy);
             return take == length;
@@ -283,16 +285,30 @@ internal sealed class HuntDrive : DriveRule
     }
 
     /// <summary>
-    /// Whether <paramref name="c"/> stands on the path's first node, or has passed it on its way to the second: straight there, or a
-    /// run's legs (up a step rising first, down one going across first).
+    /// How many of the path's first steps <paramref name="c"/> has passed: up to the last of the next <see cref="Ahead"/> nodes it
+    /// stands on or has passed on its way on. A tick's run may pass more than one (a playtest saw it turn back to one it ran past).
     /// </summary>
-    private static bool Passed(CreaturesModule m, Creature c, List<int> path, int width)
+    private static int Passed(CreaturesModule m, Creature c, List<int> path, int width)
     {
-        var (x, y, _) = Node(path[0], width);
+        int passed = 0;
+        for (int i = 0; i < Math.Min(Ahead, path.Count); i++)
+            if (PassedAt(m, c, path, i, width)) passed = i + 1;
+        return passed;
+    }
+
+    private const int Ahead = 4;
+
+    /// <summary>
+    /// Whether <paramref name="c"/> stands on node <paramref name="i"/> of the path, or has passed it on its way to the next: straight
+    /// there, or a run's legs (up a step rising first, down one going across first).
+    /// </summary>
+    private static bool PassedAt(CreaturesModule m, Creature c, List<int> path, int i, int width)
+    {
+        var (x, y, _) = Node(path[i], width);
         int ax = m.Middle(x), ay = (y + 1) * Unit;
         if (c.X == ax && c.Y == ay) return true;
-        if (path.Count < 2) return false;
-        var (nx, ny, kind) = Node(path[1], width);
+        if (path.Count < i + 2) return false;
+        var (nx, ny, kind) = Node(path[i + 1], width);
         int bx = m.Middle(nx), by = (ny + 1) * Unit;
         if (kind != StepKind.Run || by == ay) return On(c.X, c.Y, ax, ay, bx, by);
         return by < ay ? On(c.X, c.Y, ax, ay, ax, by) || On(c.X, c.Y, ax, by, bx, by) : On(c.X, c.Y, ax, ay, bx, ay) || On(c.X, c.Y, bx, ay, bx, by);
