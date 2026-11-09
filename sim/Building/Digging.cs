@@ -233,16 +233,47 @@ public sealed partial class BuildingModule
         && (_grid.WallAt(cell) is { } wall ? wall.Strength != Material.Unbreakable : PieceAt(cell) != null);
 
     /// <inheritdoc/>
-    public bool Wears(int cell) =>
-        Rules.ToolsBreak && _grid.Zone.Contains(cell % _grid.Width, cell / _grid.Width)
-        && _grid.WallAt(cell) is { Breaks: true } && _grid.GrownWall(cell);
+    public int? Strikes(int cell, int damage)
+    {
+        if (damage <= 0 || WearCost(cell) is not var (cost, built, _, _)) return null;
+        // A built thing cracks by its share of each strike, rounded down, and breaks once a strike pays what is left over its share.
+        int crack = built ? damage * Damage.BuiltTakes / 1000 : damage, left = cost, strikes = 1;
+        while ((built ? Built(left) : left) > damage)
+        {
+            if (crack <= 0) return null;
+            left -= crack;
+            strikes += 1;
+        }
+        return strikes;
+    }
+
+    /// <summary>What is solid in <paramref name="cell"/> for a catcher's strike: its strength left, whether built, the cell its crack is kept by, its strength whole; null for nothing it breaks.</summary>
+    private (int Left, bool Built, int Key, int Strength)? WearCost(int cell)
+    {
+        if (!Rules.ToolsBreak || cell < 0 || cell >= _grid.Width * _grid.Height || !_grid.Zone.Contains(cell % _grid.Width, cell / _grid.Width)) return null;
+        if (_grid.WallAt(cell) is { } wall)
+            return wall.Strength == Material.Unbreakable ? null : (Remaining(cell, wall.Strength), !wall.Natural, cell, wall.Strength);
+        if (_grid.Solid(cell) && PieceAt(cell) is { } piece) return (Remaining(piece.Head, piece.Build.Strength), true, piece.Head, piece.Build.Strength);
+        return null;
+    }
 
     /// <inheritdoc/>
-    // Cut rock gives nothing: a hunter is no mine. What the wall held the sweep fells, giving nothing too.
+    // Broken rock gives nothing: a hunter is no mine. What a wall held the sweep fells; a built thing falls as a charge's does.
     public bool Wear(int cell, int damage)
     {
-        if (damage <= 0 || !Wears(cell) || Cracked(cell, _grid.WallAt(cell)!.Strength, damage) == null) return false;
-        _gridOps.Clear(cell, "structure");
+        if (damage <= 0 || WearCost(cell) is not var (left, built, key, strength)) return false;
+        if ((built ? Built(left) : left) > damage)
+        {
+            Cracked(key, strength, built ? damage * Damage.BuiltTakes / 1000 : damage);
+            return false;
+        }
+        if (!built)
+        {
+            if (CrackIndex(cell) is >= 0 and var crack) State.Cracks.RemoveAt(crack);
+            _gridOps.Clear(cell, "structure");
+        }
+        else if (_grid.WallAt(cell) != null) BreakWall(cell, Spoils.Drop);
+        else BreakPiece(key, Spoils.Drop);
         return true;
     }
 

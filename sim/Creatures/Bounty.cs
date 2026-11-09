@@ -87,4 +87,19 @@ public sealed partial class CreaturesModule
 
     /// <summary>The creatures' clock of <paramref name="c"/>'s last strike on rock (a catcher cutting); 0 for none: what its sound plays by.</summary>
     public static int LastWear(Creature c) => c.Recall(FlyerBody.LastCut);
+
+    /// <summary>Whether <paramref name="c"/>, a flyer, stands on ground and is not rising (catcher-paths): drawn running, its jetpack off.</summary>
+    public bool Afoot(Creature c)
+    {
+        var s = Spec.Get(c.Species).Body;
+        if (s is not Spec.Flyer || c.VY < 0 || c.Y % Unit != 0 || HuntDrive.Leaving(c)) return false;
+        int half = s.Width * Unit / 2, row = c.Y / Unit;
+        for (int column = Down(c.X - half, Unit); column <= Down(c.X + half - 1, Unit); column++)
+            if (Solid(column, row)) return true;
+        return false;
+    }
+
+    /// <summary>Whether <paramref name="c"/>, a flyer, struck what is in its way within its last <c>CutEvery</c> ticks: drawn drilling.</summary>
+    public bool Cutting(Creature c) =>
+        Spec.Get(c.Species).Body is Spec.Flyer { CutEvery: > 0 } f && LastWear(c) > 0 && State.Clock - LastWear(c) <= f.CutEvery;
 }

@@ -48,12 +48,6 @@ public sealed partial class GridModule
         return !_base.TryGetValue(cell, out var was) || was[2] == State.Back[cell] && was[3] == State.BackMaterial[cell];
     }
 
-    public bool GrownWall(int cell)
-    {
-        if (!_grown || WallAt(cell) == null) return false;
-        return !_base.TryGetValue(cell, out var was) || was[0] == State.Structure[cell] && was[1] == State.Material[cell];
-    }
-
     private static int[] Of(GridState s, int cell) =>
         [s.Structure[cell], s.Material[cell], s.Back[cell], s.BackMaterial[cell]];
 
