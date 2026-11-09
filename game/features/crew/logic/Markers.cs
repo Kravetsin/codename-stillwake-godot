@@ -32,6 +32,9 @@ public readonly record struct Placed(bool OnScreen, double X, double Y, double A
 /// <summary>The markers' list and their geometry at the screen's edge, without Godot, so it is tested.</summary>
 public static class Markers
 {
+    /// <summary>Whether the catcher hunting this player is <paramref name="now"/>, a new one since <paramref name="was"/>: then its beep sounds, once (tracker-catchers).</summary>
+    public static bool HunterCame(int? was, int? now) => now is int id && id != was;
+
     /// <summary>Home's colour: a pale white, apart from every suit (<see cref="Suits.All"/>) and from danger's red.</summary>
     public const int HomeColour = 0xe2e8f0;
 

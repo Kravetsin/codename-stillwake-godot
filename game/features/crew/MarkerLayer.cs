@@ -8,6 +8,7 @@ using Stillwake.Sim;
 using Stillwake.Sim.Creatures;
 using Stillwake.Sim.Debris;
 using static Stillwake.Game.I18n.En;
+using S = Stillwake.Game.Sound;
 
 namespace Stillwake.Game.Features.Crew;
 
@@ -37,6 +38,9 @@ public partial class MarkerLayer : CanvasLayer
     private Vector2? _mouse;
     /// <summary>The deliveries lost as last read: one more, and a delivery marker gone this frame was lost.</summary>
     private int _lost;
+    /// <summary>The catcher hunting this player as last read, and its beep in the helmet as a new one comes.</summary>
+    private int? _hunter;
+    private readonly AudioStreamPlayer _beep = Cues.Player(S.CatcherBeep, S.Helmet);
 
     /// <param name="ui">The slots' size, the menu open and the one tooltip.</param>
     /// <param name="camera">Where the world is on the screen, read as the hero has just moved it this frame.</param>
@@ -50,6 +54,7 @@ public partial class MarkerLayer : CanvasLayer
         _keepOut = keepOut;
         _tips = new TipSpots(ui.Tip);
         Layer = ScreenLayers.Hud;
+        AddChild(_beep);
     }
 
     /// <summary>The pod's picture, every pixel white and its clear ones clear, mipmapped so it shrinks to a badge cleanly.</summary>
@@ -75,7 +80,10 @@ public partial class MarkerLayer : CanvasLayer
         {
             var friends = hero.Others.Select(o => (o.Id, o.Hero, Suits.Of(m.Players, o.Id))).ToList();
             var body = Bodies.Latest(m.Items.Floor, peer) is { } pile ? (pile, Suits.Of(m.Players, peer)) : ((Pile, int)?)null;
-            Show(Markers.Of(m.Crew.Spawn, m.Grid.Width, friends, body, DeliveriesOf(m), HunterOf(m, peer)), hero.Current.Middle, hero.PromptCovers, delta);
+            var hunter = HunterOf(m, peer);
+            if (Markers.HunterCame(_hunter, hunter?.Id)) _beep.Play();
+            _hunter = hunter?.Id;
+            Show(Markers.Of(m.Crew.Spawn, m.Grid.Width, friends, body, DeliveriesOf(m), hunter), hero.Current.Middle, hero.PromptCovers, delta);
             lost = m.Knowledge.Lost > _lost;
             _lost = m.Knowledge.Lost;
         }

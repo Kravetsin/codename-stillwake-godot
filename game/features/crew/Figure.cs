@@ -98,6 +98,9 @@ public partial class Figure : Node2D
     /// <summary>The collar's arcs and the socket's pip of an empty belt, over the chest.</summary>
     private readonly Sprite2D _arcs = new() { Centered = false, Material = Unshaded }, _pip = new() { Centered = false, Material = Unshaded };
     /// <summary>The light the tracker, the arcs and the pip give (2026-11-03-hero-lights), and every light of the hero's own.</summary>
+    /// <summary>A helmet's goggles lit, its <c>_lit</c> picture (tracker-catchers), and the light they give.</summary>
+    private readonly Sprite2D _eyes = new() { Centered = false, Material = Unshaded, Visible = false };
+    private readonly Glow _eyesGlow = new() { Reach = L.TrackerReach, Keep = L.TrackerKeep };
     private readonly Glow _trackerGlow = new() { Reach = L.TrackerReach, Keep = L.TrackerKeep }, _arcsGlow = new() { Reach = L.SuitReach, Keep = L.SuitKeep },
         _pipGlow = new() { Reach = L.SuitReach, Keep = L.SuitKeep, Colour = new Color(L.SuitPip.R, L.SuitPip.G, L.SuitPip.B) * L.SuitPipLight };
     private readonly List<Glow> _glows = [];
@@ -292,6 +295,8 @@ public partial class Figure : Node2D
         (_beard, _hair) = (Part("beard", joint: "hair"), Part("hair", joint: "hair"));
         (_shell, _visor) = (Part("shell", joint: "helmet"), Part("visor", joint: "helmet"));
         foreach (var n in new Node2D[] { _headPart, _facePart, _faceLight, _beard, _hair, _shell, _visor }) _helmet.AddChild(n);
+        _helmet.AddChild(_eyes);
+        Gives(_eyes, _eyesGlow);
         // The helmet lamp on its brow (0077), not the player's colour; its lens drawn again unlit: it is the light.
         _headLamp = new Sprite2D { Texture = HeadLampArt.Picture, Centered = false, Offset = HeadLampArt.On - Joints["helmet"], Visible = false };
         Lit.Set(_headLamp);
@@ -441,6 +446,12 @@ public partial class Figure : Node2D
 
     /// <summary>Whether it wears the tracker on its shin: every hero does; a catcher drawn as one does not (tracker-catchers).</summary>
     public bool Tracked { get; set; } = true;
+
+    /// <summary>
+    /// A catcher's gear lit (tracker-catchers): its receiver at <c>Receiver</c> in the figure's colour, as a tracker is (<see cref="TrackerBlink.Lit"/>),
+    /// and its goggles at <c>Eyes</c> in <c>EyesColour</c> (0xRRGGBB); none for a hero, whose body lights are its suit's.
+    /// </summary>
+    public (double Receiver, double Eyes, int EyesColour)? GearLights { get; set; }
 
     /// <summary>Whether its tracker and lit bands light the world round them; off for a figure in a window of its own, out of the world.</summary>
     public bool GivesLight
@@ -731,6 +742,7 @@ public partial class Figure : Node2D
         Show(_arcs, _arcsGlow, body is { } a ? $"hero_{a}_arcs" : null, _chest.Offset);
         Show(_pip, _pipGlow, body is { } p ? $"hero_{p}_pip" : null, _chest.Offset);
         _shell.Visible = _visor.Visible = helmet != null;
+        Show(_eyes, _eyesGlow, helmet != null ? $"hero_{helmet}_lit" : null, _shell.Offset);
         _headLamp.Offset = HeadLampArt.OnOf(helmet) - Joints["helmet"];
         _lens.Position = _headLamp.Offset + HeadLampArt.Lens;
         _hair.Visible = helmet == null;
@@ -836,6 +848,13 @@ public partial class Figure : Node2D
     /// <summary>A switched body's lights as its suit is now (<see cref="Suit"/>): the wave, the arcs and the empty belt's pip.</summary>
     private void ShowSuit()
     {
+        _eyes.Visible = false;
+        _eyesGlow.Colour = default;
+        if (GearLights is { } gear)
+        {
+            ShowGear(gear);
+            return;
+        }
         var (on, charged, phase) = Suit;
         bool glows = on && charged;
         foreach (var (light, _, name, far, glow) in _bands)
@@ -850,6 +869,25 @@ public partial class Figure : Node2D
         _arcs.Modulate = new Color(1, 1, 1, (float)SuitGlow.Arcs(_timeMs));
         _arcsGlow.Colour = SuitLight * (L.SuitArcs * _arcs.Modulate.A);
         _pip.Visible = on && !charged && _pip.Texture != null && SuitGlow.Pip(_timeMs);
+    }
+
+    /// <summary>A catcher's receiver, on near limbs only, and its goggles, lit as <see cref="GearLights"/> says; its arcs and pip never.</summary>
+    private void ShowGear((double Receiver, double Eyes, int EyesColour) gear)
+    {
+        var colour = new Color((uint)((_colour ?? 0xffffff) << 8 | 0xff));
+        var (r, g, b, a) = TrackerBlink.Lit((colour.R, colour.G, colour.B), gear.Receiver);
+        foreach (var (light, _, _, far, glow) in _bands)
+        {
+            light.Visible = !far && light.Texture != null && gear.Receiver > 0;
+            light.Modulate = new Color((float)r, (float)g, (float)b, (float)a);
+            glow.Colour = light.Visible ? colour * (L.Tracker * (float)gear.Receiver) : default;
+        }
+        _arcs.Visible = _pip.Visible = false;
+        _arcsGlow.Colour = default;
+        var eyes = new Color((uint)(gear.EyesColour << 8 | 0xff));
+        _eyes.Visible = _eyes.Texture != null && gear.Eyes > 0;
+        _eyes.Modulate = eyes with { A = (float)Math.Min(1, gear.Eyes) };
+        _eyesGlow.Colour = _eyes.Visible ? eyes * (L.Tracker * (float)gear.Eyes) : default;
     }
 
     /// <summary>

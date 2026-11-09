@@ -32,8 +32,12 @@ on its shin, and the owners hire catchers, a third party neutral to the warring 
 - **`Release`** of a catcher hunts its sender; **`Track(Breaths)`**, a dev command as `Release` is (`--catcher`), brings a
   hunt that many breaths near.
 - **Drawn as a hero** (the user, 2026-11-09): not a new creature but the hero's own figure and rig (`CreatureLooks.Heroes`,
-  drawn by the crew feature's `HunterView`), in gear of its own, no tracker, on a jetpack, a gun in hand. Its gear may later drop
-  as a skin of the starting suit up to rare pieces with properties; not yet.
+  drawn by the crew feature's `HunterView`), no tracker, on a jetpack, a gun in hand. The gear page's four outfits all went in
+  (the user: «все шикарные»), «Следопыт», «Упряжь», «Латы», «Клюв» (`subjects/catchergear.js`); a catcher wears one by its id, so
+  every peer draws the same with nothing saved. Its receiver blinks as its quarry's bracelet, in its colour; its goggles light as
+  the warning ends. The gear may later drop as a skin of the starting suit up to rare pieces with properties; not yet.
+- **Warning picks** (the warning page): the bracelet «Маяк» (`TrackerBlink`), the beep «Трекер движения» (`CatcherBeep`, Freesound CC0),
+  once in the helmet as a new catcher comes.
 - **Client:** the bracelet blinks by `Signal` on every figure; the hunted player alone gets a beep as its catcher comes
   and a red reticle at the screen's edge pointing at it; a cut is heard by the material it broke or bit (`CutHeard`).
 

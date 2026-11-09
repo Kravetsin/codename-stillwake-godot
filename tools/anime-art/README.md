@@ -31,7 +31,8 @@ finish is `wash.js`, one for every subject; these are the rules a drawing must f
 
 | Subject | Pictures |
 | --- | --- |
-| `hero` | `hero_<part>`: the suit's parts, helmet shell and visor apart, the heavy helmet's (`hero_heavyHelmet_shell`, `_visor`, `items/heavyHelmet`), the regen suit's (`hero_regenSuit_<part>`, lights `_lit`, `_arcs`, `_pip`; `items/regenSuit`); `hero_outfit_<n>_<part>`, clothes, `_skin` under bare skin; hair, faces, beards tinted by `LookTint`; cape, jetpack, lamp, sheet, held tools; `hero_tracker`, `_light`: the player's colour, white, by Modulate. Top-lit |
+| `hero` | `hero_<part>`: the suit's parts, helmet shell and visor apart, the heavy helmet's, the regen suit's (lights `_lit`, `_arcs`, `_pip`); `hero_outfit_<n>_<part>`, clothes, `_skin` under bare skin; hair, faces, beards tinted by `LookTint`; cape, jetpack, lamp, sheet, held tools; `hero_tracker`, `_light`: the player's colour, white, by Modulate. Top-lit |
+| `catchergear` | the catchers' four outfits: `hero_catcher<Body>_<part>`, `_upperArm_lit`; `hero_catcher<Helmet>_shell`, `_visor`, `_lit`, on `hero.js`'s `HeroKit` |
 | `machines` | `machine_<kind>` and their working overlays, fire, tank and cistern fill, the electrolyser's bubbles; a machine's `fitting` stands on its port in `Machines.Ports`; exposes `AnimeKit` |
 | `zfittings` | `pipe_run` (repeated along a span), `pipe_<arms>`, valves, sockets, hatches, platforms, ladder, floor, drone, lamps, held axe and drill; sorts after `machines` to read `AnimeKit` |
 | `items` | `items/<id>`: every item; `_empty` states are the full picture's calls with only the changing part dark; `tool_screwdriver` |
@@ -50,7 +51,7 @@ finish is `wash.js`, one for every subject; these are the rules a drawing must f
 | `cavelife` | `caves/` crystals, dripstone, fungi, threads, roots, cracks, geodes, fossils, opal caches, the spire's cache, lamp, `_glow`: dim |
 | `homes`, `homeskeep`, `homeslights`, `homeswall`, `homesruin` | `homes/*` and their `_dark`, `_fed`, `_glow`; `ruins/spireLens_*`. `homes.js` exposes `HomeKit`; the others sort after it |
 | `debris` | `debris/*`: rocks lit hard from one side, crates, plates, pods, scrap, derelicts; no lettering: they turn |
-| `aboard` | `machine_salvage*`: salvage, its pieces whole on the deck; three main engines (`machine_salvageMainEngine[2-3]`), four consoles (`machine_salvageConsole[2-4]`), one drawn per vessel |
+| `aboard` | `machine_salvage*`: salvage, its pieces whole on the deck; main engines and consoles, numbered, one drawn per vessel |
 | `net` | `machine_net` (booms), `net_mount`, `net_front_<n>` (holding n), `features/debris/logic/NetInk.cs` |
 | `bay`, `salvage` | `machine_droneBay`, `droneBay_*`, `salvage_*`, `items/salvageDrone`; `logistics/logic/BayInk.cs`, `SalvageInk.cs` |
 | `scanner` | `hero_scanner`, `hero_heavyHelmet_scanner`, `_lit_<n>`, `items/scanner`; `ScannerInk.cs` |

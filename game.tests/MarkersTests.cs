@@ -42,6 +42,16 @@ public class MarkersTests
     }
 
     [Fact]
+    public void TheBeepSoundsOnceForEachNewCatcherAndNeverWithoutOne()
+    {
+        Assert.True(Markers.HunterCame(null, 4));
+        Assert.False(Markers.HunterCame(4, 4));
+        Assert.True(Markers.HunterCame(4, 9));
+        Assert.False(Markers.HunterCame(4, null));
+        Assert.False(Markers.HunterCame(null, null));
+    }
+
+    [Fact]
     public void ListsTheHunterHuntingThisPlayerLastInRed()
     {
         var list = Markers.Of(0, 20, [], deliveries: [(7, "scanner", 30.5, 6.5)], hunter: (4, 60.5, 3.5));

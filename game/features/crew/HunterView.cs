@@ -13,7 +13,8 @@ namespace Stillwake.Game.Features.Crew;
 
 /// <summary>
 /// The creatures whose look is a hero's (<see cref="CreatureLooks.Heroes"/>, tracker-catchers): each a <see cref="Figure"/> in its gear,
-/// no tracker on its shin, flying on its jetpack's plume between the ticks' places, its gun aimed at whom it acts on. Struck it flinches,
+/// no tracker on its shin, flying on its jetpack's plume between the ticks' places, its gun aimed at whom it acts on; one
+/// of its look's outfits by its id, its receiver blinking in its quarry's colour, its goggles lit as it comes. Struck it flinches,
 /// sparks and is heard; its cuts through rock heard as the rock it bit or broke; killed in view it tumbles down and fades.
 /// </summary>
 public partial class HunterView : Node2D
@@ -28,6 +29,7 @@ public partial class HunterView : Node2D
         public readonly CutHeard Cuts = new();
         public int Tick = -1, FromX, FromY, ToX, ToY, Damage, Facing = 1, LastWear;
         public string Species = "";
+        public CreatureLooks.HeroGear Gear = null!;
         public Hero Drawn;
     }
 
@@ -41,6 +43,10 @@ public partial class HunterView : Node2D
     private readonly List<int> _gone = [];
     private readonly HashSet<int> _seen = [];
     private readonly List<Falling> _falling = [];
+    private double _clockMs;
+
+    /// <summary>The receiver's colour while it hunts no one: a dull grey.</summary>
+    private const int Unclaimed = 0x8a8a8a;
     private readonly Voices _world = new(S.World, voices: 4), _cuts = new(S.World, voices: 4);
 
     public HunterView()
@@ -56,6 +62,7 @@ public partial class HunterView : Node2D
     /// </summary>
     public void Frame(Registry m, int tick, double progress, double elapsedMs, Func<int, Hero?> heroOf, Rect2 view)
     {
+        _clockMs += elapsedMs;
         _seen.Clear();
         foreach (var c in m.Creatures.Creatures)
         {
@@ -64,12 +71,11 @@ public partial class HunterView : Node2D
             _seen.Add(c.Id);
             if (!_shown.TryGetValue(c.Id, out var one))
             {
-                var figure = new Figure(look.Colour, own: false) { Tracked = false, Jetpack = true, Wields = look.Gun };
-                figure.Wear(look.Colour, look.Helmet, look.Body);
+                var figure = new Figure(Unclaimed, own: false) { Tracked = false, Jetpack = true, Wields = look.Gun };
                 var plume = new JetPlume();
                 AddChild(plume);
                 AddChild(figure);
-                _shown[c.Id] = one = new Shown(figure, plume) { Species = c.Species, FromX = c.X, FromY = c.Y, ToX = c.X, ToY = c.Y, Damage = c.Damage, LastWear = CreaturesModule.LastWear(c) };
+                _shown[c.Id] = one = new Shown(figure, plume) { Gear = look.Of(c.Id), Species = c.Species, FromX = c.X, FromY = c.Y, ToX = c.X, ToY = c.Y, Damage = c.Damage, LastWear = CreaturesModule.LastWear(c) };
             }
             if (one.Tick != tick) (one.Tick, one.FromX, one.FromY, one.ToX, one.ToY) = (tick, one.ToX, one.ToY, c.X, c.Y);
             Show(m, one, c, spec, progress, elapsedMs, heroOf);
@@ -105,6 +111,10 @@ public partial class HunterView : Node2D
         int vx = c.VX / 3, vy = c.VY / 3;
         one.Drawn = new Hero(x, y, vx, Math.Min(vy, -1), false, one.Facing);
         var figure = one.Figure;
+        // Its receiver in its quarry's colour, blinking as the quarry's bracelet; its goggles lit once the warning is over and it comes.
+        int? quarry = CreaturesModule.Hunting(c);
+        figure.Wear(quarry is int q ? Suits.Of(m.Players, q) : Unclaimed, one.Gear.Helmet, one.Gear.Body);
+        figure.GearLights = (quarry != null ? TrackerBlink.LevelOf(TrackerBlink.Hunted, _clockMs) : 0, quarry != null && !m.Creatures.Warning(c) ? 1 : 0, one.Gear.Eyes);
         figure.Aim = move is Spec.Creatures.Shoot or Spec.Creatures.Pounce && target is { } aimed
             ? At(aimed.X, aimed.Y - Hero.MiddleUp)
             : null;
@@ -145,6 +155,7 @@ public partial class HunterView : Node2D
         Stages.Of(Layers.Effects).Hits.Throw(HitLooks.Of[impact], chest.X, chest.Y, 0, -1, 1);
         if (S.Creatures.TryGetValue(one.Species, out var cues)) _world.Play(cues.Death, chest);
         one.Figure.Aim = null;
+        one.Figure.GearLights = (0, 0, one.Gear.Eyes);
         _falling.Add(new Falling(one.Figure, one.Plume, one.Drawn) { Y = one.Drawn.Y });
     }
 

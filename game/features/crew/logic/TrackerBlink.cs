@@ -6,7 +6,8 @@ namespace Stillwake.Game.Features.Crew;
 
 /// <summary>
 /// The tracker's light by its <see cref="Signal"/> (tracker-catchers): a level over time, 1 the steady light it has when calm,
-/// 0 dark, above 1 brighter toward white; a pattern of steps, each held or ramped, repeating.
+/// 0 dark, above 1 brighter toward white; a pattern of steps, each held or ramped, repeating. The patterns are the warning page's pick «Маяк» (bc-beacon).
+///
 /// </summary>
 public static class TrackerBlink
 {

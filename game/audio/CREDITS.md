@@ -145,6 +145,7 @@ the louder turned down.
 | `crew/land-hard-3.wav` | Freesound, "Footsteps_Mountain_Boots_Rock_Jump_Sequence_Mono.wav" (0.4 s from 6.508 s), https://freesound.org/people/Nox_Sound/sounds/558477/ | Nox_Sound | CC0 |
 | `crew/land-soft-1.wav` | Freesound, "land a jump.wav" (0.307 s from 0.001 s), https://freesound.org/people/zepurple/sounds/540272/ | zepurple | CC0 |
 | `crew/lava-burn-1.wav` | Freesound, "Pressure Hiss" (0.8 s), https://freesound.org/people/unfa/sounds/211096/ | unfa | CC0 |
+| `crew/catcher-beep-1.wav` | Freesound, "motion tracker beep.wav" (the first ping: 1.1 s from 0.04 s, its last 0.25 s faded; the warning page's pick, tracker-catchers), https://freesound.org/people/Balcoran/sounds/478186/ | Balcoran | CC0 |
 | `crew/hurt-1.wav` | Freesound, "Oof (original)" (all of it from its attack, band 130 Hz–2 kHz, echoes at 7 and 15 ms), https://freesound.org/people/unfa/sounds/719053/ | unfa | CC0 |
 | `crew/hurt-2.wav` | the same, raised 6% in pitch at its length | unfa | CC0 |
 | `crew/hurt-3.wav` | the same, lowered 7% in pitch at its length | unfa | CC0 |
