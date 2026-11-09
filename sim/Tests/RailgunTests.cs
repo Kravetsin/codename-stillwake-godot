@@ -57,10 +57,10 @@ public class RailgunTests
         var loper = w.Let(Spec.Creatures.Loper, 40, 19);
         int row = 17 * 60;
         var (hits, _) = PierceTests.Flown(w, new Fire(Gun.Item, 25 * Unit, 17 * Unit + Unit / 2, Right));
-        Assert.Equal([(ShotTarget.Solid, 4, true), (ShotTarget.Solid, 2, false), (ShotTarget.Solid, 1, false), (ShotTarget.Creature, 5, false)],
+        Assert.Equal([(ShotTarget.Solid, 40, true), (ShotTarget.Solid, 20, false), (ShotTarget.Solid, 10, false), (ShotTarget.Creature, 5, false)],
             hits.Take(4).Select(h => (h.What, h.Damage, h.Broke)));
         Assert.Null(w.M.Grid.WallAt(row + 30));
-        Assert.Equal((2, 1), (w.M.Building.Cracks.Single(c => c.Cell == row + 31).Damage, w.M.Building.Cracks.Single(c => c.Cell == row + 32).Damage));
+        Assert.Equal((20, 10), (w.M.Building.Cracks.Single(c => c.Cell == row + 31).Damage, w.M.Building.Cracks.Single(c => c.Cell == row + 32).Damage));
         Assert.Equal(5, loper.Damage);
     }
 
@@ -249,7 +249,7 @@ public class RailgunTests
     public void WhatItKeepsThroughEachPierceIs650RoundedDown()
     {
         Assert.Equal([24, 15, 9, 5, 3, 1, 0], Enumerable.Range(0, 7).Select(n => Spec.Shots.DamageOf(Gun.Item, Spec.Shots.Nail.Id, n)));
-        Assert.Equal([4, 2, 1, 0], Enumerable.Range(0, 4).Select(n => Spec.Shots.BlockDamageOf(Gun.Item, Spec.Shots.Nail.Id, n)));
+        Assert.Equal([40, 20, 10, 0], Enumerable.Range(0, 4).Select(n => Spec.Shots.BlockDamageOf(Gun.Item, Spec.Shots.Nail.Id, n)));
     }
 
     /// <summary>

@@ -72,7 +72,7 @@ public class ShotsTests
     public void WhatAShotKeepsThroughWhatItPiercedIsItsGunsKeepRoundedDownEachTimeAndNoGunKeepsAll()
     {
         Assert.Equal([6, 3, 1, 0], Enumerable.Range(0, 4).Select(n => Spec.Shots.DamageOf(Nailer, Nail.Id, n)));
-        Assert.Equal([1, 0, 0, 0], Enumerable.Range(0, 4).Select(n => Spec.Shots.BlockDamageOf(Nailer, Nail.Id, n)));
+        Assert.Equal([10, 0, 0, 0], Enumerable.Range(0, 4).Select(n => Spec.Shots.BlockDamageOf(Nailer, Nail.Id, n)));
         Assert.Equal(Nail.Damage, Spec.Shots.DamageOf(null, Nail.Id, 3));
     }
 
@@ -197,7 +197,7 @@ public class ShotsTests
         int pillar = EndOf(w, At(80, 20, Right));
         Assert.Equal(90, pillar % 100);
         Assert.Equal(BlockHit, CrackAt(w, pillar));
-        for (int i = 1; i < Spec.Materials.Get("soil").Strength - 1; i++) Assert.Equal(pillar, EndOf(w, At(80, 20, Right)));
+        for (int i = 1; i < Spec.Materials.Get("soil").Strength / BlockHit - 1; i++) Assert.Equal(pillar, EndOf(w, At(80, 20, Right)));
         // The nail that breaks it flies on through, nothing left for a block: the soil it falls onto stays uncracked.
         int past = EndOf(w, At(80, 20, Right));
         Assert.Null(w.M.Grid.WallAt(pillar));

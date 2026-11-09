@@ -16,14 +16,14 @@ The plan for [unified-damage.md](unified-damage.md). One step, one commit; the b
 
 ### 0. `refactor(content)`: strength in tenths
 - ×10: every `Material.Strength`, `Build.Strength` (pieces, default 8), `Flora` strength (plants, ruins furniture, the
-  cradle), `Weapon.BlockDamage`, `Gun` block damage, pile `Hp`. Tools hit piles with block damage from now on (today they
-  use wreck damage, `Digging.cs:153`), so piles, walls and bursts share one scale. `Armour` untouched (it goes in 7).
-  Doc comments say tenths. Any client text that shows a strength divides by 10 or shows none.
-- `World.SaveFormat` +1; its `Migrations` step multiplies every saved crack's `Damage` by 10 (walls, back walls, pieces,
-  piles, plants alike) and rescales a saved incoming meteor's `Power` to the scale step 7 gives it.
-- Tests: every test hard-coding a strength or block damage reads it from Content or ×10; migration tests
-  `ASavedCrackKeepsItsShareOfTheWallAcrossTheTenthsStep` on a wall, a back wall and a plant; swings to break a pile,
-  a piece, a plant unchanged. The generic suites cover save/load.
+  cradle), `Weapon.BlockDamage`, `Gun` block damage. `Armour` untouched (it goes in 7). Doc comments say tenths; item
+  cards show block damage /10.
+- Piles stay as they are: tools hit them with wreck damage, their `Hp` in its points (moving them to block damage would
+  make the pickaxe the best pile tool and the grinder the worst). Bursts convert in step 6 (pile `Hp` × 10).
+- `World.SaveFormat` 60 → 61; its step clears saved cracks (they heal in seconds; scaling would need each crack's kind).
+  A saved incoming meteor's power is step 7's to rescale, with its own bump.
+- Tests: tests hard-coding a strength or block damage read it from Content or ×10; swings to break a wall, a piece, a
+  plant unchanged; `Migrations` test that a 60 save loads with no cracks.
 - Why now: at whole units the carry, the built share and machine hit points have no room (see "Accepted findings").
 
 ### 1. `feat(creatures)`: shots carry their surplus on cells

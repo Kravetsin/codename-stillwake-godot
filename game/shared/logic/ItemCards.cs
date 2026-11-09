@@ -97,9 +97,9 @@ public static class ItemCards
     private static CardTile Hits(string value, CardBoost? boost, CardGroup group) =>
         new(value, T("card.damage"), boost) { Sign = CardSign.Damage, Group = group, Note = T("card.onWrecks") };
 
-    /// <summary>A hit's damage off rock, walls and plants; for none, the words that it cuts no rock, dimmed.</summary>
+    /// <summary>A hit's damage off rock, walls and plants, its tenths shown as whole points; for none, the words that it cuts no rock, dimmed.</summary>
     private static CardTile Rock(int block, CardBoost? boost, CardGroup group) =>
-        new(block > 0 ? Number(block) : T("card.noRock"), T("card.block"), boost)
+        new(block > 0 ? Number(block / 10.0) : T("card.noRock"), T("card.block"), boost)
         { Sign = CardSign.Block, Group = group, Note = T("card.onRock"), Off = block == 0 };
 
     /// <summary>
@@ -127,7 +127,7 @@ public static class ItemCards
         return
         [
             Hits($"+{projectile.Damage}", null, CardGroup.Shot),
-            new CardTile($"+{projectile.BlockDamage}", T("card.block")) { Sign = CardSign.Block, Group = CardGroup.Shot, Note = T("card.onRock") },
+            new CardTile($"+{Number(projectile.BlockDamage / 10.0)}", T("card.block")) { Sign = CardSign.Block, Group = CardGroup.Shot, Note = T("card.onRock") },
         ];
     }
 

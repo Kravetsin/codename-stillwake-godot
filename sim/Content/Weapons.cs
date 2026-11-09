@@ -2,7 +2,7 @@ namespace Stillwake.Content;
 
 /// <summary>
 /// An item that deals damage (ADRs 0034, 0054): tools are weapons, and every one works alike on everything.
-/// <paramref name="Damage"/> is what a hit takes off a wreck or a creature, <paramref name="BlockDamage"/> off a wall, a back
+/// <paramref name="Damage"/> is what a hit takes off a wreck or a creature, <paramref name="BlockDamage"/> (in tenths) off a wall, a back
 /// wall or a plant (the fan of rays): a weapon made to fight hits blocks far less than a tool. <paramref name="Pace"/> the ticks
 /// between hits while the button is held, the client's pace, which the sim does not check (0034). A hit is a fan of
 /// <paramref name="Rays"/> rays spread evenly over <paramref name="Arc"/> steps of a turn (<see cref="Headings"/>) round the
@@ -23,24 +23,24 @@ public static class Weapons
     /// 9 rays: a band of about 4 cells of a wall's face a swing, soil at a swing, stone at three, a 4×20 tunnel of it in 30 s.
     /// It never wears out.
     /// </summary>
-    public static readonly Weapon Axe = new("fireAxe", Damage: 2, BlockDamage: 4, Pace: 10, Arc: 64, Rays: 9, Range: 4500, Effects: []);
+    public static readonly Weapon Axe = new("fireAxe", Damage: 2, BlockDamage: 40, Pace: 10, Arc: 64, Rays: 9, Range: 4500, Effects: []);
 
     /// <summary>
     /// The drill (0054): 1 a hit, 4 on blocks, a hit every 2 ticks, its fan an eighth of a turn wide and 8 cells from the shoulder,
     /// 7 rays, the cone its bit's air shows (tool-reach): about the hero's height of a face, soil at a hit, stone at three, on the
     /// belt's batteries; with the arc module fitted (0098), twice either for twice the draw.
     /// </summary>
-    public static readonly Weapon Drill = new("drill", Damage: 1, BlockDamage: 4, Pace: 2, Arc: 32, Rays: 7, Range: 8000, Effects: []);
+    public static readonly Weapon Drill = new("drill", Damage: 1, BlockDamage: 40, Pace: 2, Arc: 32, Rays: 7, Range: 8000, Effects: []);
 
     /// <summary>
     /// The angle grinder (salvage tools): 3 a hit every 4 ticks, 15 a second on wrecks, half again the drill's, but 1 on blocks, 5 a
     /// second; its fan 87° wide and 6.6 cells from the shoulder, 11 rays, the half disc its air shows (tool-reach): a wreck tool, not a
     /// digger; on the belt's batteries; with the arc fitted, twice either.
     /// </summary>
-    public static readonly Weapon Grinder = new("grinder", Damage: 3, BlockDamage: 1, Pace: 4, Arc: 62, Rays: 11, Range: 6600, Effects: []);
+    public static readonly Weapon Grinder = new("grinder", Damage: 3, BlockDamage: 10, Pace: 4, Arc: 62, Rays: 11, Range: 6600, Effects: []);
 
     /// <summary>The spear (salvage tools): 3 a thrust every 12 ticks, 5 a second, a little over the axe's, 6 cells out; the arc doubles it for no power.</summary>
-    public static readonly Weapon Spear = new("spear", Damage: 3, BlockDamage: 2, Pace: 12, Arc: 8, Rays: 3, Range: 6000, Effects: []);
+    public static readonly Weapon Spear = new("spear", Damage: 3, BlockDamage: 20, Pace: 12, Arc: 8, Rays: 3, Range: 6000, Effects: []);
 
     /// <summary>What marks a weapon whose cuts give more loot (salvage tools): its card's row, and Debris's test of it.</summary>
     public static readonly HitEffect Salvage = new("salvage");
@@ -56,7 +56,7 @@ public static class Weapons
     /// than the axe's 4, and each blow bursts every wreck of 12 hit points or fewer at once; 6 on blocks, under the weakest ground and plant, so a wall still cracks first; its fan 135° wide and
     /// 5.5 cells from the shoulder, 13 rays, wider and longer than the axe's: a heavy sweep past its own head, 4.5 cells out.
     /// </summary>
-    public static readonly Weapon Sledgehammer = new("sledgehammer", Damage: 12, BlockDamage: 6, Pace: 36, Arc: 96, Rays: 13, Range: 5500, Effects: []);
+    public static readonly Weapon Sledgehammer = new("sledgehammer", Damage: 12, BlockDamage: 60, Pace: 36, Arc: 96, Rays: 13, Range: 5500, Effects: []);
 
     /// <summary>
     /// The pickaxe (the-pickaxe): the drill's fallback underground, needing no charge. 6 on blocks a blow every 6 ticks, 20 a second, half
@@ -65,7 +65,7 @@ public static class Weapons
     /// sixteenths of a turn) wide, 9 rays, 4.5 cells from the shoulder, the axe's: wider than the drill's and close by, so its cut runs
     /// along its point's path (pick-reach).
     /// </summary>
-    public static readonly Weapon Pickaxe = new("pickaxe", Damage: 1, BlockDamage: 6, Pace: 6, Arc: 48, Rays: 9, Range: 4500, Effects: []);
+    public static readonly Weapon Pickaxe = new("pickaxe", Damage: 1, BlockDamage: 60, Pace: 6, Arc: 48, Rays: 9, Range: 4500, Effects: []);
 
     public static readonly IReadOnlyList<Weapon> All = [Axe, Drill, Grinder, Spear, PlasmaCutter, Sledgehammer, Pickaxe];
 

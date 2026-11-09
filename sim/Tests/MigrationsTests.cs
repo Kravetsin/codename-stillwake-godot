@@ -289,4 +289,26 @@ public class MigrationsTests
         w.Run(Content.Crafts.Get("plate").Ticks * 2 + 5);
         Assert.Equal(2, w.M.Items.Crate(former).Sum(s => s?.Item == "plate" ? s.Count : 0));
     }
+
+    [Fact]
+    public void ClearsCracksOfAFormatSixtySaveTheirDamageCountedBeforeStrengthsWereInTenths()
+    {
+        // A pickaxe blow cracks stone in a format-60 world; after the upgrade the wall stands whole, as it soon would have healed.
+        string map = """
+            ................
+            ............####
+            ............####
+            ................
+            """;
+        var w = new Scenario(Layout.Parse(map).WithMaterials(map.Replace('#', 't')).OnPlanet()).GiveItems(0, (Content.Weapons.Pickaxe.Item, 1));
+        int cell = 2 * w.M.Grid.Width + 12;
+        w.Do(HewTesting.Dig(w, cell, Content.Weapons.Pickaxe.Item)).Run();
+        Assert.NotEmpty(w.M.Building.Cracks);
+        var save = JsonNode.Parse(w.World.Save())!.AsObject();
+        save["format"] = 60;
+
+        w.Reload(Migrations.Upgrade(save.ToJsonString()));
+        Assert.Empty(w.M.Building.Cracks);
+        Assert.NotNull(w.M.Grid.WallAt(cell));
+    }
 }

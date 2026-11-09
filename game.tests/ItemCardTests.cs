@@ -25,7 +25,7 @@ public class ItemCardTests
         var tiles = ItemCards.Of("fireAxe").Tiles!;
         double every = (double)Spec.Weapons.Axe.Pace / World.TicksPerSecond;
         Assert.Equal(Spec.Weapons.Axe.Damage.ToString(), tiles[0].Value);
-        Assert.Equal(Spec.Weapons.Axe.BlockDamage.ToString(), tiles[1].Value);
+        Assert.Equal(ItemCards.Number(Spec.Weapons.Axe.BlockDamage / 10.0), tiles[1].Value);
         Assert.Equal($"{ItemCards.Number(every)}s", tiles[2].Value);
         // As content stands: 2 damage, 4 on blocks, every 10 ticks of 20 a second; 64 of a turn's 256 is 90°, 4500 thousandths 4.5 cells.
         Assert.Equal([("2", "Damage"), ("4", "Block"), ("0.5s", "Hits every"), ("90°", "Swing"), ("4.5 cells", "Range")], Said(tiles));

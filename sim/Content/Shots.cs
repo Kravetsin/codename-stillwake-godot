@@ -2,7 +2,7 @@ namespace Stillwake.Content;
 
 /// <summary>
 /// What flies as a shot (shots-are-the-sims): what a hit adds to its gun's, <paramref name="Damage"/> off a creature or a wreck and
-/// <paramref name="BlockDamage"/> off a wall or a built piece; <paramref name="Weight"/>, how many times <see cref="Creatures.Gravity"/>
+/// <paramref name="BlockDamage"/> (in tenths) off a wall or a built piece; <paramref name="Weight"/>, how many times <see cref="Creatures.Gravity"/>
 /// pulls it on a planet, 0 for none; <paramref name="HitsBodies"/>, whether creatures and wrecks stop it, or solid cells alone;
 /// <paramref name="Bursts"/>, the burst where its shot ends, wherever that is, or null (blasting-charge). How fast and far it flies is
 /// its gun's.
@@ -39,7 +39,7 @@ public static class Shots
     /// landing about 30 cells out; gone at 288 cells, a screen's half and a whole screen past it at the farthest zoom (192 cells
     /// across); a shot every 3 s; half kept through what a nail breaks: 6, 3, 1; in space a kick of 60, about a cell.
     /// </summary>
-    public static readonly Gun Nailer = new("nailer", ["nail"], Damage: 4, BlockDamage: 1, Knock: 10, Speed: 3000, Reach: 288, Pace: 60, PierceKeep: 500,
+    public static readonly Gun Nailer = new("nailer", ["nail"], Damage: 4, BlockDamage: 10, Knock: 10, Speed: 3000, Reach: 288, Pace: 60, PierceKeep: 500,
         Recoil: 60);
 
     /// <summary>
@@ -48,7 +48,7 @@ public static class Shots
     /// on the first planet, under a cell's drop across 100; 120 of the belt's charge a shot, fifteen a battery; held 0.8 s to
     /// fire, then 2 s till the next; in space a kick of 220, some four cells back.
     /// </summary>
-    public static readonly Gun Railgun = new("railgun", ["nail"], Damage: 22, BlockDamage: 4, Knock: 10, Speed: 15000, Reach: 384, Pace: 40,
+    public static readonly Gun Railgun = new("railgun", ["nail"], Damage: 22, BlockDamage: 40, Knock: 10, Speed: 15000, Reach: 384, Pace: 40,
         PierceKeep: 650, Pierces: Pierce.All, Fall: 100, Energy: 120, Charge: 16, Recoil: 220);
 
     /// <summary>
@@ -104,7 +104,8 @@ public static class Shots
 
     /// <summary>What a hit of <paramref name="projectile"/> fired from <paramref name="gun"/> takes off a wall or a built piece, after it <paramref name="pierced"/> that many things.</summary>
     public static int BlockDamageOf(string? gun, string projectile, int pierced = 0) =>
-        Kept(GunOf(gun), (GunOf(gun)?.BlockDamage ?? 0) + Get(projectile).BlockDamage, pierced);
+        // Folded in whole points, as before tenths, till the surplus carry replaces the fold on cells (unified-damage).
+        Kept(GunOf(gun), ((GunOf(gun)?.BlockDamage ?? 0) + Get(projectile).BlockDamage) / 10, pierced) * 10;
 
     /// <summary><paramref name="damage"/> kept through <paramref name="pierced"/> things: times the gun's keep each, rounded down; no gun, no fold.</summary>
     private static int Kept(Gun? gun, int damage, int pierced)

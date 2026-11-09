@@ -119,8 +119,8 @@ public class PickaxeTests
         Assert.Null(Content.Items.Get(Pick.Item).Draw);
         Assert.Contains(Stations.Get("workbench").Rows, r => r.Contains(Pick.Item));
         Assert.Equal([("plate", 2), ("tube", 1)], Crafts.Get(Pick.Item).Cost);
-        // On blocks a second: half the drill's 40, two and a half times the axe's 8; on wrecks under the axe's 4.
-        Assert.Equal((20, 40, 8), (Pick.BlockDamage * Sim.World.TicksPerSecond / Pick.Pace, Drill.BlockDamage * Sim.World.TicksPerSecond / Drill.Pace, Axe.BlockDamage * Sim.World.TicksPerSecond / Axe.Pace));
+        // On blocks a second (tenths): half the drill's 400, two and a half times the axe's 80; on wrecks under the axe's 4.
+        Assert.Equal((200, 400, 80), (Pick.BlockDamage * Sim.World.TicksPerSecond / Pick.Pace, Drill.BlockDamage * Sim.World.TicksPerSecond / Drill.Pace, Axe.BlockDamage * Sim.World.TicksPerSecond / Axe.Pace));
         Assert.True(Pick.Damage * Sim.World.TicksPerSecond / Pick.Pace < Axe.Damage * Sim.World.TicksPerSecond / Axe.Pace);
     }
 }
