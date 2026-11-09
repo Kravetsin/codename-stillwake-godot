@@ -19,13 +19,15 @@ namespace Stillwake.Game;
 /// as it fills. A builder works plans by a strip of three frames of its picture's size and grip: twisted by the wrist (<see cref="Twist"/>),
 /// or, while its motor runs, turned by it (<see cref="Driven"/>). The cutter's beam hits what it touches, <see cref="Bite"/> pixels
 /// either side of it (tool-edge); every other tool by its fan of rays from the shoulder (tool-reach).
+/// An aimed one held by a shaft through the fist, not a pistol's grip, lies <see cref="Rest"/> radians more back from the forearm
+/// while it hangs, across the fist as the axe is, and comes along the forearm as the arm comes up to aim or thrust.
 /// </summary>
 public sealed record HeldLook(
     string Picture, (double X, double Y) Grip, double Hold, (double X, double Y) EdgeFrom, (double X, double Y) EdgeTo, string? Loaded = null,
     bool Aimed = false, IReadOnlyList<string>? Spin = null, (double X, double Y)? Lamp = null, IReadOnlyList<ToolMount>? Mounts = null,
     double Elbow = 0, (double X, double Y)? Clamp = null, string? Charged = null,
     IReadOnlyList<(double X0, double Y0, double X1, double Y1)>? Arcs = null, string? Twist = null, string? Driven = null,
-    double Bite = 0.75)
+    double Bite = 0.75, double Rest = 0)
 {
     /// <summary>
     /// The fire axe, <c>art/hero_axe.png</c>: gripped on the dark wrap a third up its haft; held square to
@@ -121,11 +123,11 @@ public sealed record HeldLook(
 
     /// <summary>
     /// The spear, <c>art/hero_spear.png</c> (salvage-tools), the user's pick, «Труба и лист»: a hull plate's leaf driven into a flattened
-    /// tube, bound in copper, its grip in tape; held along the forearm, aimed at rest with the elbow bent (the jab's rest), thrust; the edge the leaf's point. Its coil (0098) on the sleeve
+    /// tube, bound in copper, its grip in tape; hanging, across the fist, point forward, as the axe is (Rest); along the forearm, elbow bent, as it comes up to thrust; the edge the leaf's point. Its coil (0098) on the sleeve
     /// riveted round the shaft. Clamped by the bare shaft before the sleeve.
     /// </summary>
     public static readonly HeldLook Spear = new(
-        "res://art/hero_spear.png", (10.5, 5), 0, (42, 5), (47.8, 5), Aimed: true, Elbow: 1.2, Mounts: [new ToolMount("coil", 23, 4, (22, 3.5, 30, 6.5))], Clamp: (17.5, 5));
+        "res://art/hero_spear.png", (10.5, 5), 0, (42, 5), (47.8, 5), Aimed: true, Elbow: 1.2, Mounts: [new ToolMount("coil", 23, 4, (22, 3.5, 30, 6.5))], Clamp: (17.5, 5), Rest: System.Math.PI / 2);
 
     /// <summary>
     /// The sledgehammer, <c>art/hero_sledgehammer.png</c> (salvage-tools), the user's pick, «Пакет плит»: five cut plates bolted into a
@@ -144,12 +146,12 @@ public sealed record HeldLook(
 
     /// <summary>
     /// The blasting charge, <c>art/hero_blastCharge.png</c> (blasting-charge), the user's pick, «Труба с серой»: an iron pipe packed
-    /// with sulfur between two screw caps, a short fuse out of the front plug; held along the forearm, the fist round its back cap so
-    /// the pipe shows past the glove, aimed; the edge the pipe from cap to plug, the charge thrown from the plug. Its icon has the
+    /// with sulfur between two screw caps, a short fuse out of the front plug; the fist round its back cap; hanging, across the fist,
+    /// as the axe is (Rest), along the forearm as it comes up to throw; the edge the pipe from cap to plug, the charge thrown from the plug. Its icon has the
     /// fuse lit; in flight it turns, sparking (<see cref="ShotLooks.Charge"/>). Clamped by its middle.
     /// </summary>
     public static readonly HeldLook BlastCharge = new(
-        "res://art/hero_blastCharge.png", (1.4, 2), 0, (0.9, 2), (7.05, 2), Aimed: true, Clamp: (3.8, 2));
+        "res://art/hero_blastCharge.png", (1.4, 2), 0, (0.9, 2), (7.05, 2), Aimed: true, Clamp: (3.8, 2), Rest: System.Math.PI / 2);
 
     /// <summary>How long an item that spins takes to spin up to full speed and to wind down, in milliseconds: its picture and its motor's sound alike.</summary>
     public const double SpinUpMs = 120, SpinDownMs = 700;

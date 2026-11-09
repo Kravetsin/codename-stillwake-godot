@@ -17,7 +17,7 @@ namespace Stillwake.Game.Dev;
 [Dev("--dusk", "with --planet or --strip, the planet's dusk starting two seconds in, its night a minute on (2026-11-07-night-chills)", Order = 5)]
 [Dev("--valley", "with --planet, the hero beamed down into the planet's deepest valley rather than at the pod, to see the land behind follow (composed-backdrops)", Order = 5)]
 [Dev("--beam-twice", "with --planet, back aboard two seconds in and down again two seconds later: the second descent (heard-every-other)", Order = 5)]
-[Dev("--charges", "with --planet, fifty blasting charges in the third slot and the hero beamed into the cave by the shallowest deep cache (blasting-charge)", Order = 5)]
+[Dev("--charges", "with --planet, fifty blasting charges in the third slot, the spear in the fourth, and the hero beamed into the cave by the shallowest deep cache (blasting-charge)", Order = 5)]
 [Dev("--dig", "with --planet, the ground under the hero hewn at the drill's pace from four seconds in, so it digs down: to measure what digging costs a frame; =SECONDS stops then, --frames counting afresh, to measure the depth reached", Order = 5, Shape = DevShape.Either)]
 public sealed class PlanetScenario : DevScenario
 {
@@ -39,6 +39,7 @@ public sealed class PlanetScenario : DevScenario
         if (!Charges) return seeded;
         var root = JsonNode.Parse(seeded.Save())!;
         root["slices"]!["items"]!["inventories"]![0]!["slots"]![2] = new JsonObject { ["item"] = Content.Shots.Thrown.Item, ["count"] = 50 };
+        root["slices"]!["items"]!["inventories"]![0]!["slots"]![3] = new JsonObject { ["item"] = Content.Weapons.Spear.Item, ["count"] = 1 };
         return World.Load(root.ToJsonString(), seed.Modules());
     }
 

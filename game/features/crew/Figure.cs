@@ -211,6 +211,11 @@ public partial class Figure : Node2D
     private SwingArm _swingArm;
     /// <summary>How far into carrying its item trailing on a run the figure is, 0 to 1; and the spring its arm swings on (<see cref="HeroMotion.Carry"/>).</summary>
     private double _carry, _sinceCarryMs = double.PositiveInfinity;
+    /// <summary>How long an aimed item takes to turn to its rest once the arm hangs.</summary>
+    private const double RestMs = 200;
+
+    /// <summary>How far an aimed item hanging has turned to its rest (<see cref="HeldLook.Rest"/>), 0 to 1: up at once as the arm comes up.</summary>
+    private double _rest;
     private readonly Spring _armSpring = new(HeroMotion.Carry.SpringHz, HeroMotion.Carry.SpringDamping);
     /// <summary>The swipe of light the axe leaves on its downstroke (0075).</summary>
     private readonly ReachAir _air = new();
@@ -1077,6 +1082,9 @@ public partial class Figure : Node2D
         bool carried = inHand && swung == null && !working && !aiming;
         _carry = Math.Clamp(_carry + (carried && pose == Pose.Run && !Poses.Backward(hero) ? 1 : -1) * elapsedMs / HeroMotion.Carry.BlendMs, 0, 1);
         double carry = _carry * _carry * (3 - 2 * _carry);
+        // An aimed item hanging lies across the fist as a stick does (HeldLook.Rest); along the forearm again as the arm comes up.
+        bool resting = inHand && item is { Rest: > 0 } && swung == null && !aiming;
+        _rest = resting ? Math.Min(1, _rest + elapsedMs / RestMs) : Math.Max(0, _rest - elapsedMs / ArmUp.RaiseMs);
         _sinceCarryMs = _carry > 0 ? 0 : _sinceCarryMs + elapsedMs;
         if (carried && item != null)
         {
@@ -1160,7 +1168,7 @@ public partial class Figure : Node2D
             }
             _held.Position = new Vector2((float)fist.X, (float)(-Rig.Shoulder + fist.Y));
             // Carried trailing on a run, the hand turns the item along itself (Rig.Carried).
-            _held.Rotation = (float)(Rig.HeldTurn(frontArm, item, wrist) + item.Hold * carry);
+            _held.Rotation = (float)(Rig.HeldTurn(frontArm, item, wrist) + item.Hold * carry - item.Rest * _rest * (1 - carry));
             if (item.Aimed)
             {
                 Vector2 At((double X, double Y) p) => _held.ToGlobal(new Vector2((float)p.X, (float)p.Y) + _held.Offset);
