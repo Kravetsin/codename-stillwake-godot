@@ -32,7 +32,9 @@ trail on each cut.
   cannot reach, each leg reaching its ankle knee forward, boots flat; nothing further ahead than the floor is free
   (`Hero.RoomAhead`, looked at only while a step plays). Striding, only the lean and the far arm; in the air, afloat,
   climbing or lying, nothing. `BodyBlend` eases it over 100 ms as it starts, stops or the hero turns round, in the world's
-  axes, by the same smoothstep as the arm's hand-overs (`SwingArm.Left`); it snaps where the body drops.
+  axes, by the same smoothstep as the arm's hand-overs (`SwingArm.Left`); it snaps where the body drops. Laid over the
+  pose's own legs, a toe or heel under the floor turns its boot flatter, then bends its knee (`Poses.OnFloor`, the gait's rule):
+  the finisher's lunge put a toe 2.3 px into it.
 - **The figure**: the upper body hangs from a waist node turned by the lean about the hip; at no lean it is where it was,
   so every held item, beam, light and cape is untouched. The legs stay below it. A twin waist holds what is drawn behind
   the legs. The far arm keeps its turn in the body's frame; gripping, it closes on the haft (`HaftGrip`: 3.5 px below the
@@ -40,7 +42,7 @@ trail on each cut.
   and follows the blade by 0.08 of its turn.
 - **The trail** (`BladeTrail`, `BladeTrailView`): the edge every 3 ms over the last 90 ms of the play, at most 0.35 opaque
   at the blade, fading with age, only within the cut, fainter below 0.15 px/ms; #efe6d2, behind the figure as on the pick
-  page, lit like the blade.
+  page, lit like the blade. The air's dust sweeps the fan the way the blade crosses it: up for the backhand (`MotionPlay.Rising`).
 - **Friends:** `Busy.Step` carries the step begun; a friend's figure plays it spliced from its own pose. No new swing number
   by a step's end plays the back, as a hero let go does.
 

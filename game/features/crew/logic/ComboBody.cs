@@ -131,15 +131,16 @@ public static class ComboBody
         if (legs <= 0) return layer;
         var (now, rest) = (Stance(state, roomPx, shown.Tilt), Stance(BodyState.Rest, double.PositiveInfinity, shown.Tilt));
         static Bend Apart(Bend a, Bend b, double by) => new((a.Upper - b.Upper) * by, (a.Lower - b.Lower) * by);
-        return layer with
+        var hip = new Vec((now.HipX - rest.HipX) * legs, (now.HipY - rest.HipY) * legs);
+        // Laid over the pose's own legs, a toe or heel may reach under the floor: kept out of it as the gait's are.
+        (Bend, double) Kept(Bend leg, double foot, Bend by, double turn, double hipX)
         {
-            HipX = (now.HipX - rest.HipX) * legs,
-            HipY = (now.HipY - rest.HipY) * legs,
-            FrontLeg = Apart(now.FrontLeg, rest.FrontLeg, legs),
-            BackLeg = Apart(now.BackLeg, rest.BackLeg, legs),
-            FrontFoot = (now.FrontFoot - rest.FrontFoot) * legs,
-            BackFoot = (now.BackFoot - rest.BackFoot) * legs,
-        };
+            var (kept, boot) = Poses.OnFloor(new Bend(leg.Upper + by.Upper, leg.Lower + by.Lower), foot + turn, hipX, shown.Tilt, shown.Lift, hip);
+            return (new Bend(kept.Upper - leg.Upper, kept.Lower - leg.Lower), boot - foot);
+        }
+        var (frontLeg, frontFoot) = Kept(shown.FrontLeg, shown.FrontFoot, Apart(now.FrontLeg, rest.FrontLeg, legs), (now.FrontFoot - rest.FrontFoot) * legs, Rig.HipApart);
+        var (backLeg, backFoot) = Kept(shown.BackLeg, shown.BackFoot, Apart(now.BackLeg, rest.BackLeg, legs), (now.BackFoot - rest.BackFoot) * legs, -Rig.HipApart);
+        return layer with { HipX = hip.X, HipY = hip.Y, FrontLeg = frontLeg, BackLeg = backLeg, FrontFoot = frontFoot, BackFoot = backFoot };
     }
 
     /// <summary>

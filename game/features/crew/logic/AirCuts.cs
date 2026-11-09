@@ -20,7 +20,8 @@ public sealed class AirCuts
     /// radians, <paramref name="Half"/> its arc either side, out to <paramref name="Range"/> from <paramref name="Inner"/> pixels, the
     /// blade crossing it in <paramref name="SweepMs"/>, gone <paramref name="FadeMs"/> after.
     /// </summary>
-    private readonly record struct Cut(double Start, bool Thrust, double Aim, double Half, double Range, double Inner, double SweepMs, double FadeMs, int Seed);
+    private readonly record struct Cut(double Start, bool Thrust, double Aim, double Half, double Range, double Inner, double SweepMs, double FadeMs, int Seed,
+        bool Rising);
 
     /// <summary>
     /// A running tool's zone this frame: a <paramref name="Disc"/>'s forward half round <paramref name="At"/>, <paramref name="Size"/>
@@ -44,10 +45,10 @@ public sealed class AirCuts
     /// <summary>
     /// A stroke begins cutting the air now: a <paramref name="thrust"/> or a swing toward <paramref name="aim"/>, its fan
     /// <paramref name="half"/> radians either side and <paramref name="range"/> pixels long, its blade reaching <paramref name="inner"/>,
-    /// crossing the fan in <paramref name="sweepMs"/>; seen <paramref name="fadeMs"/> after.
+    /// crossing the fan in <paramref name="sweepMs"/>, down or <paramref name="rising"/> up; seen <paramref name="fadeMs"/> after.
     /// </summary>
-    public void Strike(bool thrust, double aim, double half, double range, double inner, double sweepMs, double fadeMs) =>
-        _cuts.Add(new(_clock, thrust, aim, half, range, Math.Min(inner, range), Math.Max(1, sweepMs), fadeMs, ++_seeds));
+    public void Strike(bool thrust, double aim, double half, double range, double inner, double sweepMs, double fadeMs, bool rising = false) =>
+        _cuts.Add(new(_clock, thrust, aim, half, range, Math.Min(inner, range), Math.Max(1, sweepMs), fadeMs, ++_seeds, rising));
 
     /// <summary><paramref name="elapsedMs"/> on, a running tool's <paramref name="zone"/>, none while none runs.</summary>
     public void Step(double elapsedMs, Zone? zone)
@@ -92,7 +93,7 @@ public sealed class AirCuts
                 born = c.SweepMs * 0.8 * h;
                 at = tau =>
                 {
-                    double a = c.Aim + a0 + go * (1 - Math.Exp(-Math.Max(0, tau) / 70)), rr = r + 0.15 * Math.Sin(tau / 30 + j);
+                    double a = c.Aim + (c.Rising ? -1 : 1) * (a0 + go * (1 - Math.Exp(-Math.Max(0, tau) / 70))), rr = r + 0.15 * Math.Sin(tau / 30 + j);
                     return (Math.Cos(a) * rr, Math.Sin(a) * rr);
                 };
             }

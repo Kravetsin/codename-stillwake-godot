@@ -227,6 +227,10 @@ public sealed record MotionPlay(Sector Sector, SwingMotion Motion, IReadOnlyList
         }
     }
 
+    /// <summary>Whether the blade comes up through its hit, as the backhand does: the air's cut goes the way it does.</summary>
+    public bool Rising => HitShare is double hit && Keys.Count > 0
+        && ShoulderAt(Keys, Math.Min(1, hit + 0.01)) < ShoulderAt(Keys, Math.Max(0, hit - 0.01));
+
     /// <summary>
     /// The arm's angle from straight ahead of the shoulder at <paramref name="phase"/>, the aim now <paramref name="aim"/>
     /// (<see cref="AxeSwing.ArmAt"/>): the overhand along the aim, a fixed motion turned at most half its sector.

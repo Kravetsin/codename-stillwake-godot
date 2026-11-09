@@ -46,6 +46,24 @@ public class AirCutsTests
     }
 
     [Fact]
+    public void ARisingSwingsDustIsCarriedUpTheFan()
+    {
+        var cuts = new AirCuts();
+        double half = Math.PI / 4;
+        cuts.Strike(thrust: false, aim: 0, half, range: 36, inner: 26, sweepMs: 40, fadeMs: 220, rising: true);
+        var means = new List<double>();
+        for (int frame = 0; frame < 12; frame++)
+        {
+            cuts.Step(Frame, null);
+            var points = Drawn(cuts);
+            foreach (var (x, y) in points) Assert.InRange(Math.Atan2(y, x), -half - 0.1, half + 0.1);
+            if (points.Count > 0) means.Add(points.Average(p => Math.Atan2(p.Y, p.X)));
+        }
+        // From the fan's bottom edge toward its top, as a backhand comes up.
+        Assert.True(means[^1] < means[1], $"dust went from {means[1]} to {means[^1]}");
+    }
+
+    [Fact]
     public void AThrustsDustIsCarriedOutAlongItToItsRange()
     {
         var cuts = new AirCuts();

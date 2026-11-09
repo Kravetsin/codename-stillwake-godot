@@ -1280,7 +1280,7 @@ public partial class Figure : Node2D
                 double reach = Math.Sqrt(edge.X * edge.X + edge.Y * edge.Y);
                 double sweep = jab ? WorkLooks.ThrustSweepMs : (cutPlay.ShareAt(half) - start) * cutPlay.Ms;
                 _air.Strike(jab, AimAngleOf(cutAim, hero.Facing), half, weapon.Range * Rig.Cell / Hero.Unit, jab ? reach : reach - 4, sweep,
-                    WorkLooks.CutFadeOf(Wields));
+                    WorkLooks.CutFadeOf(Wields), cutPlay.Rising);
             }
             _cutPhase = cutPhase;
         }

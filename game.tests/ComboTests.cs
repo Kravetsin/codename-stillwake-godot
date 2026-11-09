@@ -109,6 +109,14 @@ public class ComboTests
         Assert.False(MotionPlay.Of(Strokes.Axe, 0, 1).EndsAtRest);
     }
 
+    /// <summary>The backhand comes up through its hit, the others down: the air's cut goes the way each does.</summary>
+    [Fact]
+    public void OnlyTheBackhandRises()
+    {
+        Assert.Equal([false, true, false], Enumerable.Range(0, 3).Select(i => MotionPlay.Of(Strokes.Axe, 0, i).Rising));
+        Assert.False(MotionPlay.Of(Strokes.Axe, 0).Rising);
+    }
+
     [Theory]
     [InlineData(0)]
     [InlineData(1)]

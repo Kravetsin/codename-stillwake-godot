@@ -12,12 +12,11 @@ public class ComboBodyTests
     private static readonly BodyState Lunging =
         ComboBody.At(MotionPlay.Of(Strokes.Axe, 0, 2, MotionPlay.Of(Strokes.Axe, 0, 1).SpliceAt(450)), 0.52 * 600)!.Value;
 
-    /// <summary>How far ahead of where it stands at rest the layer puts each ankle and the hip.</summary>
+    /// <summary>How far ahead of where the pose puts them the layer puts each ankle drawn and the hip.</summary>
     private static (double Hip, double Front, double Back) AheadOf(BodyLayer layer)
     {
-        var rest = ComboBody.Stance(BodyState.Rest, double.PositiveInfinity, 0);
         double Ankle(Bend leg, Bend by) => Rig.EndOf(new Bend(leg.Upper + by.Upper, leg.Lower + by.Lower), Rig.ToAnkle).X - Rig.EndOf(leg, Rig.ToAnkle).X;
-        return (layer.HipX, layer.HipX + Ankle(rest.FrontLeg, layer.FrontLeg), layer.HipX + Ankle(rest.BackLeg, layer.BackLeg));
+        return (layer.HipX, layer.HipX + Ankle(Shown.FrontLeg, layer.FrontLeg), layer.HipX + Ankle(Shown.BackLeg, layer.BackLeg));
     }
 
     [Theory]
@@ -28,9 +27,9 @@ public class ComboBodyTests
         Assert.True(Lunging.Front > 10 && Lunging.Back > 5, $"{Lunging}");
         var (hip, front, back) = AheadOf(ComboBody.Over(Shown, Lunging, Pose.Stand, 0, room)!.Value);
         Assert.True(hip <= room + 1e-9 && front <= room + 1e-6 && back <= room + 1e-6, $"hip {hip}, front {front}, back {back}");
-        // With room, it goes all the way.
+        // With room, it goes all the way, laid over the pose's own legs to within a tenth of a pixel.
         var (_, free, _) = AheadOf(ComboBody.Over(Shown, Lunging, Pose.Stand, 0, double.PositiveInfinity)!.Value);
-        Assert.Equal(Lunging.Front, free, 6);
+        Assert.Equal(Lunging.Front, free, 1);
     }
 
     [Fact]
@@ -124,5 +123,32 @@ public class ComboBodyTests
     {
         double furthest = Combos.FireAxe.SelectMany(s => s.Body.Feet).Max(f => f.To);
         Assert.Equal(Combos.MostAheadPx, furthest);
+    }
+
+    /// <summary>
+    /// Held through two cycles, or let go after the second step, standing or slowing from a walk: no boot drawn under the
+    /// combo's body, its hip moved, goes into the floor the pose stands on.
+    /// </summary>
+    [Theory]
+    [InlineData(true, 0)]
+    [InlineData(false, 0)]
+    [InlineData(true, 0.5)]
+    public void NoToeOrHeelGoesThroughTheFloor(bool held, double moving)
+    {
+        var swing = new AxeSwing();
+        double deepest = double.NegativeInfinity, at = 0;
+        for (double ms = 0; ms <= 3200; ms += 1)
+        {
+            swing.Advance(1, held || ms < 800, angle: 0);
+            if (swing.Phase is not double phase || ComboBody.At(swing.Play!, phase * swing.Play!.Ms) is not { } state) continue;
+            var layer = ComboBody.Over(Shown, state, moving > 0 ? Pose.Walk : Pose.Stand, moving, double.PositiveInfinity)!.Value;
+            var shift = new Vec(layer.HipX, layer.HipY);
+            double Sole(Bend leg, Bend by, double foot, double hipX) =>
+                Poses.SoleOf(new Bend(leg.Upper + by.Upper, leg.Lower + by.Lower), foot, hipX, Shown.Tilt, shift) - Shown.Lift;
+            double under = Math.Max(Sole(Shown.FrontLeg, layer.FrontLeg, Shown.FrontFoot + layer.FrontFoot, Rig.HipApart),
+                Sole(Shown.BackLeg, layer.BackLeg, Shown.BackFoot + layer.BackFoot, -Rig.HipApart));
+            if (under > deepest) (deepest, at) = (under, ms);
+        }
+        Assert.True(deepest <= 0.05, $"a sole {deepest:F2} px under the floor at {at} ms");
     }
 }
