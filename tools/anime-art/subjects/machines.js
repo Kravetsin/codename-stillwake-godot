@@ -619,15 +619,15 @@ const electrolyser = (a) => {
 };
 /** Where bubbles rise: the left column above its water, the reservoir's water, the right column's liquid, by x and the rows they span. */
 const RISES = [[5, 8, 29], [8.6, 8, 29], [14.6, 17, 36], [17.4, 17, 36], [23, 19, 36], [26.4, 19, 36]];
-/** The electrolyser at work, frame <f>: its lamp green, bubbles up each column, two rows a frame. */
+/** The electrolyser at work, frame <f>: bubbles up each column, two rows a frame; lit by the room, unlike its lamp. */
 const bubbles = (f) => (a) => {
-  a.flat(ell(16, 42.5, 1), '#7fe08a');
-  a.flat(ell(15.7, 42.2, .4), '#d8ffd8');
   RISES.forEach(([x, lo, hi], i) => {
     const span = hi - lo;
     for (let k = 0; k < 2; k++) a.flat(ell(x, hi - ((i * 5 + k * span / 2 + f * 2) % span), .5), '#eef8fb');
   });
 };
+/** The electrolyser at work: its lamp green. */
+const working = (a) => { a.flat(ell(16, 42.5, 1), '#7fe08a'); a.flat(ell(15.7, 42.2, .4), '#d8ffd8'); };
 /** The electrolyser standing: its lamp red. */
 const stalled = (a) => { a.flat(ell(16, 42.5, 1), '#e05555'); a.flat(ell(15.7, 42.2, .4), '#ffd0c8'); };
 /** A cistern's water up its window by quarters, <n> of 4; none at 0. */
@@ -858,6 +858,7 @@ Subjects.machines = function () {
   for (let n = 0; n < 6; n++) out(`tank_fill_${n}`, flat(32, 32, fill(n)));
   for (let n = 0; n < 5; n++) out(`cistern_fill_${n}`, flat(32, 32, cisternFill(n)));
   for (let f = 0; f < 4; f++) out(`electrolyser_work_${f}`, flat(32, 48, bubbles(f)));
+  out('electrolyser_working', flat(32, 48, working));
   out('electrolyser_stalled', flat(32, 48, stalled));
   out('growCapsule_work_0', flat(32, 48, growLight));
   out('lifepod_glass', flat(48, 48, podGlass));
