@@ -13,7 +13,7 @@ public class AirCutsTests
     private static List<(float X, float Y)> Drawn(AirCuts cuts)
     {
         var ink = new Ink { Feather = 0.05f };
-        cuts.Draw(ink);
+        cuts.Draw(ink, p => p);
         return [.. ink.Points];
     }
 
@@ -27,15 +27,16 @@ public class AirCutsTests
         for (int frame = 0; frame < 10; frame++)
         {
             blade += 0.1;
-            cuts.Swing(from, blade, range: 36);
+            cuts.Swing(from, blade, range: 36, (0, 0), (Math.Cos(blade), Math.Sin(blade)));
             cuts.Step(Frame, null);
             var points = Drawn(cuts);
-            Assert.NotEmpty(points);
+            // One frame of the blade is no arc yet.
+            if (frame > 0) Assert.NotEmpty(points);
             foreach (var (x, y) in points)
             {
                 // Never ahead of the blade, never before where it came in, between the blade and the range.
                 Assert.InRange(Math.Atan2(y, x), from - 0.02, blade + 0.02);
-                Assert.InRange(Math.Sqrt(x * x + y * y), 36 - 13 - 1, 36 + 0.5);
+                Assert.InRange(Math.Sqrt(x * x + y * y), 36 - 4 - 1, 36 + 0.5);
             }
             if (frame == 9) Assert.True(points.Max(p => Math.Atan2(p.Y, p.X)) > blade - 0.1, $"its front lags the blade at {blade}");
         }
@@ -43,6 +44,30 @@ public class AirCutsTests
         for (double ms = 0; ms <= WorkLooks.ZoneOut + Frame; ms += Frame) cuts.Step(Frame, null);
         Assert.False(cuts.Live);
         Assert.Empty(Drawn(cuts));
+    }
+
+    [Fact]
+    public void ASwingsBlurStaysWhereItWasSweptAsTheBodyMovesOn()
+    {
+        // The shoulder lunging 1.5 px a frame ahead as the blade comes down.
+        var cuts = new AirCuts();
+        double from = -0.6, blade = from;
+        for (int frame = 0; frame < 8; frame++)
+        {
+            blade += 0.1;
+            cuts.Swing(from, blade, range: 36, (1.5 * frame, 0), (Math.Cos(blade), Math.Sin(blade)));
+            cuts.Step(Frame, null);
+        }
+        // The start of the blur is drawn round where the shoulder stood then, not where it is now.
+        var points = Drawn(cuts);
+        var early = points.Where(p => Math.Atan2(p.Y, p.X) < -0.3).ToList();
+        Assert.True(early.Count > 0, $"{points.Count} points, angles {points.Min(p => Math.Atan2(p.Y, p.X)):F2} to {points.Max(p => Math.Atan2(p.Y, p.X)):F2}, x {points.Min(p => p.X):F1} to {points.Max(p => p.X):F1}");
+        // Round the shoulder now, 10.5 px on, they would be about 9 px nearer the origin.
+        Assert.All(early, p => Assert.InRange(Math.Sqrt(p.X * p.X + p.Y * p.Y), 36 - 4 - 1, 36 + 4));
+        // Seen from a body moved on 10 px, it is drawn 10 px back.
+        var ink = new Ink { Feather = 0.05f };
+        cuts.Draw(ink, q => (q.X - 10, q.Y));
+        Assert.Equal(points.Select(q => q.X - 10).Sum(), ink.Points.Select(q => (double)q.X).Sum(), 1);
     }
 
     [Fact]

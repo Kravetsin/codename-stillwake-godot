@@ -7,7 +7,7 @@ namespace Stillwake.Game.Features.Crew;
 
 /// <summary>
 /// The air a tool works, showing its reach while it is used (tool-reach), drawn in the arms' frame, the shoulder at the origin,
-/// in pixels. A swing's blur: dry-brush arcs round the shoulder from the blade out to the range, over the angles the blade
+/// in pixels. A swing's blur: dry-brush arcs round the shoulder near the range, left where they were swept, over the angles the blade
 /// has swept in this cut, their front on the blade, the inner ones shorter, broken afresh every step as the grinder's are; a
 /// thrust's dust carried forward along it to the range («Пыль по ходу удара»). A running drill's or grinder's zone, its working part grown: the
 /// bit's point a cone to its range, the wheel's forward half a disc, in a few broken dry-brush strokes flickering round as it
@@ -22,8 +22,19 @@ public sealed class AirCuts
     /// </summary>
     private readonly record struct Cut(double Start, double Aim, double Half, double Range, double Inner, double SweepMs, double FadeMs, int Seed);
 
-    /// <summary>A swing's cut: swept from <paramref name="From"/> to <paramref name="To"/> radians, out to <paramref name="Range"/> pixels, last cutting at <paramref name="Last"/> ms.</summary>
-    private readonly record struct Swish(double From, double To, double Range, double Last, int Seed);
+    /// <summary>
+    /// A swing's cut, entered at <paramref name="from"/> radians: where the blade has been, each frame the shoulder's place and the
+    /// blade's way out from it in the world, so it stays where it was swept as the body moves on; how far the blade has turned to each.
+    /// </summary>
+    private sealed class Swish(double from, int seed)
+    {
+        public double From { get; } = from;
+        public int Seed { get; } = seed;
+        public double To { get; set; }
+        public double Range { get; set; }
+        public double Last { get; set; }
+        public List<(double Along, (double X, double Y) At, (double X, double Y) Out)> Samples { get; } = [];
+    }
 
     /// <summary>
     /// A running tool's zone this frame: a <paramref name="Disc"/>'s forward half round <paramref name="At"/>, <paramref name="Size"/>
@@ -63,12 +74,16 @@ public sealed class AirCuts
 
     /// <summary>
     /// A swing's blade is cutting now, at <paramref name="to"/> radians, having entered its fan at <paramref name="from"/>: the same
-    /// <paramref name="from"/> goes on the cut drawn, another begins one; out to <paramref name="range"/>. Let go, it fades out.
+    /// <paramref name="from"/> goes on the cut drawn, another begins one; out to <paramref name="range"/>. In the world, the shoulder is
+    /// <paramref name="at"/> and a pixel out toward the blade <paramref name="out"/>. Let go, it fades out where it was.
     /// </summary>
-    public void Swing(double from, double to, double range)
+    public void Swing(double from, double to, double range, (double X, double Y) at, (double X, double Y) @out)
     {
-        if (_swishes.Count > 0 && _swishes[^1].From == from) _swishes[^1] = _swishes[^1] with { To = to, Range = range, Last = _clock };
-        else _swishes.Add(new(from, to, range, _clock, ++_seeds));
+        if (_swishes.Count == 0 || _swishes[^1].From != from) _swishes.Add(new(from, ++_seeds) { To = from });
+        var w = _swishes[^1];
+        double along = w.Samples.Count == 0 ? 0 : w.Samples[^1].Along + Math.Abs(to - w.To);
+        (w.To, w.Range, w.Last) = (to, range, _clock);
+        w.Samples.Add((along, at, @out));
     }
 
     /// <summary><paramref name="elapsedMs"/> on, a running tool's <paramref name="zone"/>, none while none runs.</summary>
@@ -90,11 +105,11 @@ public sealed class AirCuts
         }
     }
 
-    /// <summary>All of it as it is now, into <paramref name="ink"/>.</summary>
-    public void Draw(Ink ink)
+    /// <summary>All of it as it is now, into <paramref name="ink"/>; a swing's cut from the world by <paramref name="local"/>.</summary>
+    public void Draw(Ink ink, Func<(double X, double Y), (double X, double Y)> local)
     {
         foreach (var cut in _cuts) Dust(ink, cut, _clock - cut.Start);
-        foreach (var swish in _swishes) Swept(ink, swish, 1 - Pens.Clamp((_clock - swish.Last) / WorkLooks.ZoneOut));
+        foreach (var swish in _swishes) Swept(ink, swish, 1 - Pens.Clamp((_clock - swish.Last) / WorkLooks.ZoneOut), local);
         if (_zone is { } zone && On > 0) Brush(ink, zone, _ranFor, On);
     }
 
@@ -130,23 +145,31 @@ public sealed class AirCuts
         }
     }
 
-    // A swing's blur, as the grinder's face blurred in turning: arcs at four radii in from the range, each ending on the blade, the
-    // outer longest; stepped as the zones are.
-    private void Swept(Ink ink, Swish w, double k)
+    // A swing's blur, as the grinder's face blurred in turning: two arcs in from the range over where the blade has been, each
+    // ending on the blade, the outer longer; stepped as the zones are.
+    private void Swept(Ink ink, Swish w, double k, Func<(double X, double Y), (double X, double Y)> local)
     {
-        if (k <= 0) return;
+        var samples = w.Samples;
+        double swept = samples.Count > 1 ? samples[^1].Along : 0;
+        if (k <= 0 || swept < 0.02) return;
         int step = (int)Math.Floor(_clock / WorkLooks.BrushStepMs);
-        double span = w.To - w.From;
-        (double R, double Length)[] arcs = [(w.Range - 0.4, 1), (w.Range - 4, 0.8), (w.Range - 8.5, 0.6), (w.Range - 13, 0.4)];
+        (double R, double Length)[] arcs = [(w.Range - 0.4, 1), (w.Range - 4, 0.8)];
         for (int s = 0; s < arcs.Length; s++)
         {
             var (r, len) = arcs[s];
-            if (r <= 0 || Math.Abs(span * len) < 0.02) continue;
+            if (r <= 0) continue;
             Bristles(ink, (q, off) =>
             {
-                double a = w.To - span * len * (1 - q), rr = r + off;
-                return (Math.Cos(a) * rr, Math.Sin(a) * rr);
-            }, Math.Max(4, (int)Math.Ceiling(Math.Abs(span * len) * r / 2.5)), w.Seed * 5 + s, step, k);
+                double along = swept * (1 - len * (1 - q));
+                int i = 1;
+                while (i < samples.Count - 1 && samples[i].Along < along) i++;
+                var (a0, at0, out0) = samples[i - 1];
+                var (a1, at1, out1) = samples[i];
+                double t = a1 > a0 ? Math.Clamp((along - a0) / (a1 - a0), 0, 1) : 1, rr = r + off;
+                double x = at0.X + (at1.X - at0.X) * t + (out0.X + (out1.X - out0.X) * t) * rr;
+                double y = at0.Y + (at1.Y - at0.Y) * t + (out0.Y + (out1.Y - out0.Y) * t) * rr;
+                return local((x, y));
+            }, Math.Max(4, (int)Math.Ceiling(swept * len * r / 2.5)), w.Seed * 5 + s, step, k);
         }
     }
 

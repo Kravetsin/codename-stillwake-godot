@@ -41,10 +41,10 @@ trail on each cut.
   the legs. The far arm keeps its turn in the body's frame; gripping, it closes on the haft (`HaftGrip`: 3.5 px below the
   near fist, slid within −4 to 5.5 px to where it reaches, 0.2 px short of straight). The head takes back 0.6 of the lean
   and follows the blade by 0.08 of its turn.
-- **The air's cut, no trail:** a swing is blurred as the grinder's face is (`AirCuts.Swing`): dry-brush arcs round the
-  shoulder at four radii in from the range, over the angles the blade has swept since it entered its fan in the cut, each
-  ending on the blade, the outer longest, broken afresh every 45 ms; it fades over 220 ms once the blade stops cutting (a
-  bite, the cut's end). It reads as off the blade and its outer arc is the reach. Before, a sweep of dust laid out from the
+- **The air's cut, no trail:** a swing is blurred as the grinder's face is (`AirCuts.Swing`): dry-brush arcs at two
+  radii in from the range (four crowded the hero), over where the blade has swept since it entered its fan in the cut, each
+  ending on the blade, broken afresh every 45 ms; each frame of it kept round where the shoulder was then in the world, so it
+  stays behind as the body lunges on, an after-image; it fades over 220 ms once the blade stops cutting (a bite, the cut's end). It reads as off the blade and its outer arc is the reach. Before, a sweep of dust laid out from the
   cut's timing ran ahead of the blade from the wind-up; motes shed from the edge read as nothing. The picked pale trail was
   dropped once played: it fought the cut. A wave sent out by the swing, doing the damage, was played and rejected as out of
   the setting (PR 519, closed).
