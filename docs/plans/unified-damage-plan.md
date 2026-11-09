@@ -64,10 +64,10 @@ The plan for [unified-damage.md](unified-damage.md). One step, one commit; the b
   the cell lookups are measured in the step-5 budget test; if lookups show, a derived cell → index map (rebuilt, not saved).
 
 ### 4. `feat(core)`: the wave reports what it cannot pay for
-- New `sim/Content/Damage.cs`: `Step` (falloff, from `Meteors.Step`), `BuiltTakes` (permille, about 37: 1/27),
+- New `sim/Content/Damage.cs`: `Step` (falloff, `Meteors.Step` moved here, its users with it), `BuiltTakes` (permille, about 37: 1/27),
   `MachineHp` (tenths, the default hit points of a built machine, about 20 — a scrap wall's).
-- `Wave.Spread` gains an `unpaid(cell, left)` callback, for a cell the wave reached the edge of but could not pay to
-  enter: `left` is the most left on the cheapest path to it after the step, in straight units, reported only when ≥ 1
+- `Wave.Spread` gains an optional `unpaid(cell, left)` callback, for a cell the wave reached the edge of but could not pay to
+  enter: `left` is the most left on the cheapest path to it after the step, over the step's length (so in its entry cost's units), reported only when ≥ 1
   (clamped before any division, so truncation never meets a negative). A start too dear gets the whole charge. Called
   after the spread, ascending, once per cell, never for an entered one.
 - Tests (`WaveTests.cs`): reported once with the most left on its cheapest path; a cell entered later never reported;

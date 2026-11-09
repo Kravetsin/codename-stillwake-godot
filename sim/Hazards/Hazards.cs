@@ -179,7 +179,7 @@ public sealed partial class HazardsModule : Module<HazardsState>
     public static int Charge(int power, Meteors.Shower shower) => shower.Charge + power * shower.PerPower;
 
     /// <summary>How far, in cells either way, a meteor of <paramref name="power"/>'s blast may reach: its charge a step a cell, the cheapest.</summary>
-    public static int Farthest(int power, Meteors.Shower shower) => Charge(power, shower) / Meteors.Step;
+    public static int Farthest(int power, Meteors.Shower shower) => Charge(power, shower) / Damage.Step;
 
     /// <summary>Ticks from one meteor to the next seen coming, drawn evenly between the shower's least and most.</summary>
     private int Interval(Meteors.Shower shower) => shower.EveryMin + (int)Random.Below((uint)(shower.EveryMax - shower.EveryMin + 1));
