@@ -14,7 +14,7 @@ namespace Stillwake.Game.Features.Crew;
 /// <summary>
 /// The creatures whose look is a hero's (<see cref="CreatureLooks.Heroes"/>, tracker-catchers): each a <see cref="Figure"/> in its gear,
 /// no tracker on its shin, flying on its jetpack's plume between the ticks' places, its gun aimed at whom it acts on; one
-/// of its look's outfits by its id, its receiver blinking in its quarry's colour, its goggles lit as it comes. Struck it flinches,
+/// of its look's outfits by its id, its receiver blinking in its quarry's colour, its goggles lit as it hunts. Struck it flinches,
 /// sparks and is heard; its cuts through rock heard as the rock it bit or broke; killed in view it tumbles down and fades.
 /// </summary>
 public partial class HunterView : Node2D
@@ -111,12 +111,14 @@ public partial class HunterView : Node2D
         int vx = c.VX / 3, vy = c.VY / 3;
         // On ground it runs as a hero does, its jetpack off (catcher-paths).
         bool afoot = m.Creatures.Afoot(c), cutting = m.Creatures.Cutting(c);
-        one.Drawn = new Hero(x, y, vx, afoot ? 0 : Math.Min(vy, -1), false, one.Facing);
+        // Stepping straight up a step it still strides, as fast as it rises.
+        int stride = afoot && vx == 0 && vy != 0 ? one.Facing * Math.Abs(vy) : vx;
+        one.Drawn = new Hero(x, y, afoot ? stride : vx, afoot ? 0 : Math.Min(vy, -1), false, one.Facing);
         var figure = one.Figure;
-        // Its receiver in its quarry's colour, blinking as the quarry's bracelet; its goggles lit once the warning is over and it comes.
+        // Its receiver in its quarry's colour, blinking as the quarry's bracelet; its goggles lit while it hunts.
         int? quarry = CreaturesModule.Hunting(c);
         figure.Wear(quarry is int q ? Suits.Of(m.Players, q) : Unclaimed, one.Gear.Helmet, one.Gear.Body);
-        figure.GearLights = (quarry != null ? TrackerBlink.LevelOf(TrackerBlink.Hunted, _clockMs) : 0, quarry != null && !m.Creatures.Warning(c) ? 1 : 0, one.Gear.Eyes);
+        figure.GearLights = (quarry != null ? TrackerBlink.LevelOf(TrackerBlink.Hunted, _clockMs) : 0, quarry != null ? 1 : 0, one.Gear.Eyes);
         // Cutting it holds its drill spinning at what it bites; else its gun.
         figure.Wields = cutting ? Spec.Weapons.Drill.Item : CreatureLooks.Heroes[spec.Look].Gun;
         figure.Spinning = cutting;

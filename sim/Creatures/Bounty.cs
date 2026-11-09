@@ -82,17 +82,20 @@ public sealed partial class CreaturesModule
     /// <summary>The catcher hunting <paramref name="peer"/>'s hero here, alive and not leaving; null for none: what its mark points at.</summary>
     public Creature? HunterOf(int peer) => State.Creatures.Find(c => !c.Dead && Hunting(c) == peer);
 
-    /// <summary>Whether <paramref name="c"/> is a catcher still waiting where it came, its quarry warned.</summary>
-    public bool Warning(Creature c) => Hunting(c) != null && State.Clock < c.Recall(HuntDrive.WarnTill);
 
     /// <summary>The creatures' clock of <paramref name="c"/>'s last strike on rock (a catcher cutting); 0 for none: what its sound plays by.</summary>
     public static int LastWear(Creature c) => c.Recall(FlyerBody.LastCut);
 
-    /// <summary>Whether <paramref name="c"/>, a flyer, stands on ground and is not rising (catcher-paths): drawn running, its jetpack off.</summary>
+    /// <summary>
+    /// Whether <paramref name="c"/>, a flyer, follows a path's run step (up a step too, as a hero steps up) or stands on ground not
+    /// rising (catcher-paths): drawn running, its jetpack off.
+    /// </summary>
     public bool Afoot(Creature c)
     {
         var s = Spec.Get(c.Species).Body;
-        if (s is not Spec.Flyer || c.VY < 0 || c.Y % Unit != 0 || HuntDrive.Leaving(c)) return false;
+        if (s is not Spec.Flyer || HuntDrive.Leaving(c)) return false;
+        if (c.Act == null && c.Path is [var step, ..] && step % 4 == (int)StepKind.Run) return true;
+        if (c.VY < 0 || c.Y % Unit != 0) return false;
         int half = s.Width * Unit / 2, row = c.Y / Unit;
         for (int column = Down(c.X - half, Unit); column <= Down(c.X + half - 1, Unit); column++)
             if (Solid(column, row)) return true;

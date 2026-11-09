@@ -120,8 +120,8 @@ public static class Creatures
     public sealed record Ward(int Wake, int Stuck, int Calm) : Drive;
 
     /// <summary>
-    /// Hunting one hero (tracker-catchers): <paramref name="Warn"/> ticks still where it came, its hero warned, then <paramref name="Ticks"/>
-    /// flying at it at <paramref name="Speed"/> a tick, cutting through grown rock, making its first move at it within
+    /// Hunting one hero (tracker-catchers): <paramref name="Ticks"/> on its way to it from the tick it comes (a playtest found it
+    /// hanging still while it waited, so it waits no more), flying at <paramref name="Speed"/> a tick, making its first move at it within
     /// <paramref name="Strike"/> cells in line. Out of time it calls the hunt off and leaves straight up. Struck by another hero, it
     /// answers with its second move at most every <paramref name="AnswerEvery"/> ticks, then hunts on.
     /// </summary>
@@ -130,7 +130,7 @@ public static class Creatures
     /// will be when they meet and <paramref name="LeapAhead"/> cells past, from how far it went in the last <paramref name="Sample"/> ticks, at
     /// most <paramref name="LeadMost"/> cells ahead.
     /// </remarks>
-    public sealed record Hunt(int Warn, int Ticks, int Strike, int Speed, int AnswerEvery, int LeapAfter = 0, int Sample = 1, int LeadMost = 0, int LeapAhead = 0) : Drive;
+    public sealed record Hunt(int Ticks, int Strike, int Speed, int AnswerEvery, int LeapAfter = 0, int Sample = 1, int LeadMost = 0, int LeapAhead = 0) : Drive;
 
     /// <summary>An act a creature makes, in phases, the suit units it takes from a hero it hits.</summary>
     public abstract record Move(int Damage);
@@ -324,7 +324,7 @@ public static class Creatures
 
     /// <summary>
     /// The catcher (tracker-catchers): a hunter on a jetpack hired by the hero's former owners, three cells by five, come for one hero whose
-    /// wanted meter is full. Ten seconds where it came, then 90 s on its way to its hero: running at a walk's 14.4 cells a second, flying
+    /// wanted meter is full. From the tick it comes, 90 s on its way to its hero: running at a walk's 14.4 cells a second, flying
     /// at 8 where flying is the better way, drilling a strike of 120 every 0.2 s (soil and stone gone in one, a built wall its share,
     /// unified-damage); lagging 3 s it leaps 48 cells a second, up and over, to land just ahead of its hero; within 12 cells in line it crouches 0.8 s and flies fists first, 16 cells
     /// in half a second, six units of a suit if it hits. Struck by another hero, it answers with a quick arc at it, 0.3 s crouched,
@@ -333,7 +333,7 @@ public static class Creatures
     /// </summary>
     public static readonly Species Catcher = new("catcher", Look: "catcher", Body: new Flyer(Width: 3, Height: 5, Wear: 120, CutEvery: 4, Run: 720, Leap: 2400),
         Life: new(Hp: 40, Knock: 0, Hop: 0), Faction: Catchers, Lifetime: Lifetime.Hunter,
-        Brain: [new Hunt(Warn: 200, Ticks: 1800, Strike: 12, Speed: 400, AnswerEvery: 60, LeapAfter: 60, Sample: 10, LeadMost: 64, LeapAhead: 3)],
+        Brain: [new Hunt(Ticks: 1800, Strike: 12, Speed: 400, AnswerEvery: 60, LeapAfter: 60, Sample: 10, LeadMost: 64, LeapAhead: 3)],
         Moves: [new Pounce(WindUp: 16, Speed: 1600, Ticks: 10, Damage: 6), new Shoot(WindUp: 6, Lock: 2, Recover: 20, Projectile: "bolt", Reach: 60, Lingers: 10)],
         Yields: [new("scrapChunk", 2, 4), new("circuit", 1, 1), new("crystal", 1, 1, OneIn: 5), new("opal", 1, 1, OneIn: 10)],
         Purse: new(150, 300));
