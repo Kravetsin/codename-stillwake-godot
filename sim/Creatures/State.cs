@@ -268,6 +268,8 @@ public sealed class Arc
     [JsonInclude] public int Lingers { get; internal set; }
     /// <summary>The patch it lays where it ends once its lingering is over, a lob landing (the capback's slime); null for none.</summary>
     [JsonInclude, JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] public string? Leaves { get; internal set; }
+    /// <summary>A beam (catcher-combat): it hurts a hero touching it any tick it lingers, not only the tick it struck; false in a save from before.</summary>
+    [JsonInclude, JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)] public bool Burns { get; internal set; }
     /// <summary>The peers whose heroes it has hurt, in order; none written while none.</summary>
     [JsonInclude, JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] internal List<int>? Paid { get; set; }
 }

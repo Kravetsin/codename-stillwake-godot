@@ -5,6 +5,7 @@ namespace Stillwake.Game.Features.Crew;
 /// <summary>
 /// The catcher's fight as the user picked it (catcher-combat), its numbers as its page drew them, in pixels of the world, y down, a
 /// figure's feet at 0: its aim «Красная нить», a thin red line from its muzzle wobbling on its quarry, still and brightening in the tell;
+/// its laser «Жгут», a thick dark-red beam with an orange core swelling and thinning, its edges flowing, melting where it stops;
 /// its blink «Красная помеха», its figure cut into bands jittering sideways under a red copy, its ghost in bands ahead, a red tear where it
 /// was; its salvo's marks «Столбы света», a pale column over each landing spot, narrowing to a thread as its shell nears.
 /// </summary>
@@ -27,11 +28,11 @@ public static class CatcherFx
 
     // The aim.
 
-    /// <summary>How long the bolt burns, then its faint ghost lingers, then the line takes the time to come back, in ms.</summary>
-    public const double BoltMs = 140, AfterMs = 220, BackMs = 300;
+    /// <summary>How long the laser burns (its arc's <c>Lingers</c>), then the aim rests, then the line takes the time to come back, in ms.</summary>
+    public const double BeamMs = 300, RestMs = 250, BackMs = 300;
 
-    /// <summary>The line's red, its halo's in the tell, the dot's white-pink core; the bolt's ghost.</summary>
-    public static readonly (int R, int G, int B) Line = (255, 70, 50), Halo = (255, 60, 40), DotCore = (255, 200, 190), Ghost = (190, 40, 40);
+    /// <summary>The line's red, its halo's in the tell, the dot's white-pink core.</summary>
+    public static readonly (int R, int G, int B) Line = (255, 70, 50), Halo = (255, 60, 40), DotCore = (255, 200, 190);
 
     /// <summary>
     /// The aim line as drawn: its <paramref name="Alpha"/> and <paramref name="Width"/>, how far its end wobbles (<paramref name="Sway"/>,
@@ -55,26 +56,41 @@ public static class CatcherFx
     public static (double X, double Y) Wobble(double ms, double sway) => (Math.Sin(ms / 170) * 1.4 * sway, Math.Sin(ms / 230 + 1) * 1.6 * sway);
 
     /// <summary>
-    /// The aim's share back after a bolt <paramref name="sinceMs"/> ago: none while the bolt and its ghost show, then up over
+    /// The aim's share back after a shot <paramref name="sinceMs"/> ago: none while the laser burns and rests, then up over
     /// <see cref="BackMs"/>.
     /// </summary>
-    public static double BackOf(double sinceMs) => Math.Clamp((sinceMs - BoltMs - AfterMs) / BackMs, 0, 1);
+    public static double BackOf(double sinceMs) => Math.Clamp((sinceMs - BeamMs - RestMs) / BackMs, 0, 1);
+
+    // The laser «Жгут».
+
+    /// <summary>How long the spot it melted glows on after it goes out, cooling, in ms; how often that spot smokes and drips while hot.</summary>
+    public const double CoolMs = 1100, SmokeEveryMs = 230, DripEveryMs = 70;
 
     /// <summary>
-    /// The points of a crooked line from (<paramref name="x0"/>, <paramref name="y0"/>) to (<paramref name="x1"/>, <paramref name="y1"/>):
-    /// one every 8 pixels, at least five, each strayed across it by up to <paramref name="amp"/>, most in the middle; how many filled.
+    /// Its colours: its halo, its body and its orange core; the light at its muzzle and where it melts, their cores; the spot cooling and
+    /// its core; the drips and the smoke.
     /// </summary>
-    public static int Crooked(double x0, double y0, double x1, double y1, int seed, double amp, Span<(double X, double Y)> into)
+    public static readonly (int R, int G, int B) BeamHalo = (140, 22, 14), BeamBody = (186, 36, 22), BeamCore = (255, 168, 118),
+        BeamMuzzle = (220, 70, 35), MuzzleCore = (255, 226, 190), Melt = (255, 110, 45), MeltCore = (255, 236, 200),
+        Cooling = (210, 70, 25), CoolingCore = (255, 170, 90), Drip = (255, 150, 70), Smoke = (70, 64, 60);
+
+    /// <summary>Its swell <paramref name="ms"/> into its burning: up over 80 ms, held, thinning to 0.15 over its last 150; none once out.</summary>
+    public static double Swell(double ms) =>
+        ms < 0 || ms >= BeamMs ? 0 : ms < 80 ? Ease(ms / 80) : ms > BeamMs - 150 ? 1 - 0.85 * Ease((ms - (BeamMs - 150)) / 150) : 1;
+
+    /// <summary>
+    /// How far its edges stand off its line <paramref name="s"/> pixels out from its muzzle, above and below, <paramref name="ms"/> on the
+    /// clock, at <paramref name="swell"/>: 2.2 at full, narrower within 7 of the muzzle, each flowing on its own.
+    /// </summary>
+    public static (double Up, double Down) Edges(double s, double ms, double swell)
     {
-        double dx = x1 - x0, dy = y1 - y0, length = Math.Max(1e-9, Math.Sqrt(dx * dx + dy * dy)), nx = -dy / length, ny = dx / length;
-        int n = Math.Min(into.Length - 1, Math.Max(4, (int)Math.Round(length / 8)));
-        for (int i = 0; i <= n; i++)
-        {
-            double u = (double)i / n, off = (Hash(seed * 131 + i) - 0.5) * 2 * amp * Math.Sin(Math.PI * u);
-            into[i] = (x0 + dx * u + nx * off, y0 + dy * u + ny * off);
-        }
-        return n + 1;
+        double w = 2.2 * swell * Math.Min(1, 0.45 + s / 14);
+        return (w * (1 + 0.2 * Math.Sin(s / 6 + ms / 21) + 0.1 * Math.Sin(s / 2.7 - ms / 13)),
+            w * (1 + 0.2 * Math.Sin(s / 6.5 - ms / 24 + 2) + 0.1 * Math.Sin(s / 3.1 + ms / 15)));
     }
+
+    /// <summary>The heat over it: a band <see cref="ShimmerBand"/> pixels tall above it, its picture moved up to <see cref="ShimmerAmp"/> at full swell.</summary>
+    public const double ShimmerBand = 16, ShimmerAmp = 0.9;
 
     // The blink.
 

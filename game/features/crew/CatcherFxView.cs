@@ -22,8 +22,12 @@ public partial class CatcherFxView : Node2D
 
     private readonly List<Line> _lines = [];
     private readonly List<(Vector2 Ground, double K)> _pillars = [];
+    private readonly List<(Vector2 From, Vector2 To, double Swell, double Ms)> _beams = [];
     private readonly Vector2[] _corners = new Vector2[4];
     private readonly Color[] _shades = new Color[4];
+    private readonly Heat _heat = new();
+    // The screen copied fresh for the heat to read: a figure's glitch (a canvas group) earlier in the frame leaves the copy empty.
+    private readonly BackBufferCopy _copy = new() { CopyMode = BackBufferCopy.CopyModeEnum.Viewport, ShowBehindParent = true, Visible = false };
 
     public CatcherFxView()
     {
@@ -31,6 +35,8 @@ public partial class CatcherFxView : Node2D
         TextureFilter = TextureFilterEnum.Linear;
         ZAsRelative = false;
         ZIndex = Layers.Effects;
+        AddChild(_copy);
+        AddChild(_heat);
     }
 
     /// <summary>Starts a frame: what was handed in last frame is let go.</summary>
@@ -38,10 +44,16 @@ public partial class CatcherFxView : Node2D
     {
         _lines.Clear();
         _pillars.Clear();
+        _beams.Clear();
+        _heat.Begin();
     }
 
     /// <summary>Ends a frame: what was handed in is drawn.</summary>
-    public void End() => QueueRedraw();
+    public void End()
+    {
+        QueueRedraw();
+        _copy.Visible = _heat.End();
+    }
 
     /// <summary>An aim line from <paramref name="muzzle"/> to <paramref name="end"/> as <paramref name="thread"/> says: its halo, the line, the dot on its end, the light at the muzzle.</summary>
     public void Aim(Vector2 muzzle, Vector2 end, CatcherFx.Thread thread)
@@ -52,14 +64,21 @@ public partial class CatcherFxView : Node2D
         Glow(muzzle, thread.MuzzleRadius, CatcherFx.Line, 0.5);
     }
 
-    /// <summary>A bolt's ghost, <paramref name="k"/> of the way out: a faint crooked line where it struck.</summary>
-    public void After(Vector2 from, Vector2 to, double k)
+    /// <summary>
+    /// A laser «Жгут» from <paramref name="from"/> to <paramref name="to"/> at <paramref name="swell"/>, <paramref name="ms"/> on the
+    /// clock: the heat over it, its halo, body and core, the light at its muzzle and, where solid stopped it, where it melts.
+    /// </summary>
+    public void Beam(Vector2 from, Vector2 to, double swell, double ms, bool melts)
     {
-        Span<(double X, double Y)> points = stackalloc (double, double)[72];
-        int n = CatcherFx.Crooked(from.X, from.Y, to.X, to.Y, 7, 1.2, points);
-        for (int i = 1; i < n; i++)
-            Add(new Vector2((float)points[i - 1].X, (float)points[i - 1].Y), new Vector2((float)points[i].X, (float)points[i].Y), CatcherFx.Ghost, 0.45 * (1 - k), 0.8);
+        if (swell <= 0 || from.DistanceTo(to) < 1) return;
+        _beams.Add((from, to, swell, ms));
+        _heat.Band(from, to, swell);
+        Glow(from, 5 + 6 * swell, CatcherFx.BeamMuzzle, 0.8 * swell, CatcherFx.MuzzleCore);
+        if (melts) Glow(to, 4 + 6 * swell, CatcherFx.Melt, 0.9 * swell, CatcherFx.MeltCore);
     }
+
+    /// <summary>The spot a laser melted at <paramref name="at"/>, <paramref name="k"/> of the way cooled (none while it burns).</summary>
+    public void Cooling(Vector2 at, double k) => Glow(at, 3.4, CatcherFx.Cooling, 0.7 * (1 - k), CatcherFx.CoolingCore);
 
     /// <summary><paramref name="count"/> red specks round a figure whose feet are at <paramref name="feet"/>, at <paramref name="alpha"/>.</summary>
     public void Specks(Vector2 feet, int frame, int count, double alpha)
@@ -130,6 +149,107 @@ public partial class CatcherFxView : Node2D
             DrawPolygon(_corners, _shades);
             if (lit > 0.004) DrawLine(ground, new Vector2(x, y - h * 0.8f), thread with { A = (float)lit }, 0.35f, true);
         }
+        foreach (var (from, to, swell, ms) in _beams) DrawBeam(from, to, swell, ms);
         foreach (var line in _lines) DrawLine(line.From, line.To, line.Colour, line.Width, true);
+    }
+
+    /// <summary>A laser's halo and body as strips of quads along it, their edges flowing (<see cref="CatcherFx.Edges"/>), then its core.</summary>
+    private void DrawBeam(Vector2 from, Vector2 to, double swell, double ms)
+    {
+        var way = to - from;
+        float length = way.Length();
+        var along = way / length;
+        var across = new Vector2(-along.Y, along.X);
+        int n = Math.Max(4, (int)Math.Ceiling(length / 4));
+        var body = new Vector2[2 * (n + 1)];
+        var halo = new Vector2[2 * (n + 1)];
+        for (int j = 0; j <= n; j++)
+        {
+            float s = length * j / n;
+            var at = from + along * s;
+            var (up, down) = CatcherFx.Edges(s, ms, swell);
+            (body[j], body[n + 1 + j]) = (at + across * (float)up, at - across * (float)down);
+            (halo[j], halo[n + 1 + j]) = (at + across * (float)(2.3 * up), at - across * (float)(2.3 * down));
+        }
+        var strip = new int[6 * n];
+        for (int j = 0; j < n; j++)
+            (strip[6 * j], strip[6 * j + 1], strip[6 * j + 2], strip[6 * j + 3], strip[6 * j + 4], strip[6 * j + 5]) = (j, j + 1, n + 2 + j, j, n + 2 + j, n + 1 + j);
+        var canvas = GetCanvasItem();
+        RenderingServer.CanvasItemAddTriangleArray(canvas, strip, halo, Uniform(halo.Length, CatcherFx.BeamHalo, 0.2 * swell));
+        RenderingServer.CanvasItemAddTriangleArray(canvas, strip, body, Uniform(body.Length, CatcherFx.BeamBody, 0.5));
+        var core = CatcherFx.BeamCore;
+        DrawLine(from, to, new Color(core.R / 255f, core.G / 255f, core.B / 255f, (float)(0.72 * Math.Max(0.4, swell))), (float)Math.Max(0.25, 0.8 * 2.2 * swell), true);
+    }
+
+    private static Color[] Uniform(int count, (int R, int G, int B) rgb, double alpha)
+    {
+        var colours = new Color[count];
+        Array.Fill(colours, new Color(rgb.R / 255f, rgb.G / 255f, rgb.B / 255f, (float)alpha));
+        return colours;
+    }
+
+    /// <summary>
+    /// The heat over a laser: the picture in a band <see cref="CatcherFx.ShimmerBand"/> pixels tall above it redrawn moved up or down a
+    /// little by thin columns, as the page shimmers it; drawn behind the laser itself.
+    /// </summary>
+    private sealed partial class Heat : Node2D
+    {
+        private static readonly Shader Shimmer = new()
+        {
+            Code = """
+                shader_type canvas_item;
+                render_mode unshaded;
+                uniform sampler2D screen : hint_screen_texture, repeat_disable, filter_linear;
+                uniform float ms;
+                uniform float amp;
+                varying vec2 at;
+
+                void vertex() {
+                    at = VERTEX;
+                }
+
+                void fragment() {
+                    float per = SCREEN_PIXEL_SIZE.y / max(abs(dFdy(at.y)), 1e-5);
+                    float x = floor(at.x / 2.5) * 2.5;
+                    float shift = COLOR.a * amp * sin(x / 5.5 + ms / 38.0) * (0.6 + 0.4 * sin(x / 23.0 - ms / 90.0));
+                    COLOR = textureLod(screen, SCREEN_UV - vec2(0.0, shift * per), 0.0);
+                }
+                """,
+        };
+
+        private readonly ShaderMaterial _shimmer = new() { Shader = Shimmer };
+        private readonly List<(Vector2 From, Vector2 To, double Swell)> _bands = [];
+        private readonly Vector2[] _corners = new Vector2[4];
+        private readonly Color[] _swells = new Color[4];
+
+        public Heat()
+        {
+            Material = _shimmer;
+            _shimmer.SetShaderParameter("amp", (float)CatcherFx.ShimmerAmp);
+            ShowBehindParent = true;
+        }
+
+        public void Begin() => _bands.Clear();
+
+        public void Band(Vector2 from, Vector2 to, double swell) => _bands.Add((from, to, swell));
+
+        /// <summary>Draws this frame's bands; whether there are any.</summary>
+        public bool End()
+        {
+            _shimmer.SetShaderParameter("ms", (float)(Time.GetTicksMsec() % 3_600_000));
+            QueueRedraw();
+            return _bands.Count > 0;
+        }
+
+        public override void _Draw()
+        {
+            var up = new Vector2(0, (float)CatcherFx.ShimmerBand);
+            foreach (var (from, to, swell) in _bands)
+            {
+                (_corners[0], _corners[1], _corners[2], _corners[3]) = (from, to, to - up, from - up);
+                Array.Fill(_swells, new Color(1, 1, 1, (float)swell));
+                DrawPrimitive(_corners, _swells, null);
+            }
+        }
     }
 }

@@ -80,7 +80,7 @@ This hero and others', client-authoritative (0002): only commands reach the sim.
 | `MarkerLayer.cs` | edge arrows |
 | `logic/Bodies.cs` | bodies (0061) |
 | `BodyView.cs` | bodies, beacons, tips (0061) |
-| `logic/Rams.cs` | a creature's ram (0103) |
+| `logic/Rams.cs` | rams and arcs |
 | `HunterView.cs` | catchers as heroes, fighting |
 | `CatcherFxView.cs` | its light |
 | `Glitch.cs` | in bands |
@@ -98,7 +98,7 @@ This hero and others', client-authoritative (0002): only commands reach the sim.
 - **Steps** (0106): a walk steps a cell up or down where it fits; two up stop it, drawn eased.
 - **Jump feel** (0089): coyote time, buffer, short hop, eased apex.
 - **The figure answers its motion** (0090, hero-gait), as sent.
-- **Rammed** (0103) **or arced** (`Rams.Crosses`, once): `HitBy`/`Bolted` sent, thrown, keys masked.
+- **Rammed** (0103) **or arced** (`Rams.Hits`, once; beams burn): `HitBy`/`Bolted` sent, thrown, keys masked.
 - **Surfaces** (0076): `Ship.Of` rules: nothing floats on a planet, gravity the kind's `Fall`; fog glides (`FogMove`)
   over a seam (fog-edges).
 - **Camera:** leads, eases, snaps. **Markers** (0061): home, last body, friends heard, deliveries (lost: red), one's catcher. **Hurts**

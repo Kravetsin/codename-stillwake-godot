@@ -29,8 +29,9 @@ public sealed partial class CreaturesModule
         int x = c.X, y = c.Y - spec.Body.Height * Unit / 2;
         long run = Middle(cell % _grid.Width) - x, rise = Middle(cell / _grid.Width) - y, far = Math.Max(Math.Abs(run), Math.Abs(rise));
         if (far == 0) return false;
-        long reach = (long)shoot.Reach * Unit;
-        if (far > reach) (run, rise) = (run * reach / far, rise * reach / far);
+        // A beam runs on past the cell aimed at, Through cells off in all; an arc stops there, or at its Reach.
+        long reach = (long)(shoot.Through > 0 ? shoot.Through : shoot.Reach) * Unit;
+        if (far > reach || shoot.Through > 0) (run, rise) = (run * reach / far, rise * reach / far);
         // Where it enters the first solid cell, as a share num / den of the way; the whole way with none.
         long num = 1, den = 1;
         Rays.Walk(_grid.Width, _grid.Height, x, y, run, rise, at =>
@@ -61,6 +62,7 @@ public sealed partial class CreaturesModule
             Left = shoot.Lingers,
             Lingers = shoot.Lingers,
             Leaves = shoot.Leaves,
+            Burns = shoot.Through > 0,
         });
         return true;
     }

@@ -110,7 +110,7 @@ Game words → code. One line a term: Russian / English → identifiers → modu
 - фонарик на шлем / helmet lamp → `helmetLamp`, slot `mount` (`Helmet.Mount`), for whatever sits on a helmet → Items
 - смерть, тело / death, body → `Bodies`, `BodyView` (0061) → Crew, Items
 - трекер, браслет, розыск / tracker, wanted → `Hero.Wanted`, `Need`, `Signal`, `SignalOf`, c/`Wanted.cs`; f/crew `TrackerBlink` → Crew
-- ловец / catcher → species `catcher` (`Lifetime.Hunter`, `Hunt`, `Flyer`, `Purse`), `Bounty`, `HunterOf`; drawn as a hero, f/crew `HunterView` → Creatures; телепорт / blink → `Blink`, залп / salvo → `Salvo` (`shell`), стрельба на бегу → `Gunfire`, `FightOf`, `MarksOf` → Creatures
+- ловец / catcher → species `catcher` (`Lifetime.Hunter`, `Hunt`, `Flyer`, `Purse`), `Bounty`, `HunterOf`; drawn as a hero, f/crew `HunterView` → Creatures; телепорт / blink → `Blink`, залп / salvo → `Salvo` (`shell`), стрельба на бегу → `Gunfire`, лазер / laser → `laser`, `Shoot.Through`, `Arc.Burns`, `FightOf`, `MarksOf` → Creatures
 
 ## World
 

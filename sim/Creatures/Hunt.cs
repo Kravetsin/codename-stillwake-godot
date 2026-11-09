@@ -167,14 +167,16 @@ internal sealed class HuntDrive : DriveRule
     }
 
     /// <summary>
-    /// Its arc on the run: its quarry in sight within the arc's reach, it aims (drawn as its aim line). <c>Tell</c> ticks before its shot
+    /// Its laser on the run: its quarry in sight past its pounce (<c>Strike</c>) and within the arc's reach, it aims (drawn as its aim
+    /// line); come within its pounce, its held shot is dropped. <c>Tell</c> ticks before its shot
     /// it holds its quarry's cell, or as soon after as its quarry is in sight, and strikes it as the shot comes due, the next
     /// <c>Every</c> ticks on.
     /// </summary>
     private static void Gunfire(CreaturesModule m, Creature c, Spec.Species spec, Spec.Hunt hunt, (int X, int Y) at, int far)
     {
         var arc = (Spec.Shoot)spec.Moves[1];
-        bool sees = far <= arc.Reach && m.InLine(c, spec, at);
+        // Within its pounce it pounces, never shoots: played, a laser at a quarry beside it ran off anywhere.
+        bool sees = far > hunt.Strike && far <= arc.Reach && m.InLine(c, spec, at);
         c.Keep(Aiming, sees ? 1 : 0);
         int due = c.Recall(FireAt);
         if (c.Recall(Held) == 0)
@@ -182,6 +184,11 @@ internal sealed class HuntDrive : DriveRule
             if (m.Clock < due - hunt.Gunfire.Tell || !sees) return;
             c.Keep(Held, m.CellOf(at) + 1);
             c.Keep(FireAt, Math.Max(due, m.Clock + hunt.Gunfire.Tell));
+            return;
+        }
+        if (far <= hunt.Strike)
+        {
+            c.Keep(Held, 0);
             return;
         }
         if (m.Clock < due) return;

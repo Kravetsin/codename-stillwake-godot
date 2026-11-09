@@ -199,9 +199,10 @@ public static class Creatures
     /// crossed may say so for <paramref name="Lingers"/> ticks; then <paramref name="Recover"/> ticks before it moves again. The arc
     /// hits, the body never: its damage is the projectile's. Never at a hero nearer than <paramref name="From"/> cells; where it ends
     /// <paramref name="Leaves"/>, a patch's kind, lies on the floor: such an arc is a lob, hurting no one, flying its <paramref name="Lingers"/>
-    /// ticks and laying its patch as it lands (lurker-attacks).
+    /// ticks and laying its patch as it lands (lurker-attacks). With a <paramref name="Through"/> it is a beam (catcher-combat): it runs
+    /// on past that point, that many cells off in all, to the first wall, and hurts a hero touching any of it all its <paramref name="Lingers"/>.
     /// </summary>
-    public sealed record Shoot(int WindUp, int Lock, int Recover, string Projectile, int Reach, int Lingers, int From = 0, string? Leaves = null) : Move(Damage: 0);
+    public sealed record Shoot(int WindUp, int Lock, int Recover, string Projectile, int Reach, int Lingers, int From = 0, string? Leaves = null, int Through = 0) : Move(Damage: 0);
 
     /// <summary>
     /// A vent (the capback's gas, lurker-attacks): no wind-up; a <paramref name="Patch"/> laid round its middle at once, then
@@ -350,11 +351,11 @@ public static class Creatures
     /// <summary>
     /// The catcher (tracker-catchers): a hunter on a jetpack hired by the hero's former owners, three cells by five, come for one hero whose
     /// wanted meter is full. From the tick it comes, 90 s on its way to its hero: running at a sprint's 26.4 cells a second, falling at
-    /// 20; a bolt at its hero in sight every 2.5 s, its aim held 0.3 s; lagging 3 s, or no run to its hero, it gathers 0.6 s and is there,
-    /// 20 cells ahead of its hero or, for one off the ground's way, within 8 in sight, then stands 0.5 s, every 6 s at most; every 12 s
-    /// under open sky it rises 6 cells and lobs six shells over 24 round its hero, landing in 1.2 s; shut out, a blasting charge at the
+    /// 20; a laser at its hero in sight every 2.5 s, its aim held 0.3 s, running on 120 cells and burning 0.3 s; lagging 3 s, or no
+    /// run to its hero, it gathers 0.6 s and is there, 20 cells ahead of its hero or, for one off the ground's way, within 8 in sight, then stands 0.5 s, every 6 s at most; every 12 s
+    /// under open sky it rises 20 cells and lobs seven shells over 48 round its hero, landing from 1.2 s; shut out, a blasting charge at the
     /// wall every 8 s. Within 12 cells in line it crouches 0.8 s and flies fists first, 16 cells
-    /// in half a second, six units of a suit if it hits. Struck by another hero, it answers with a quick arc at it, 0.3 s crouched,
+    /// in half a second, six units of a suit if it hits. Struck by another hero, it answers with a quick laser at it, 0.3 s crouched,
     /// at most once in 3 s. Forty hit points, never knocked. Killed, scrap, a circuit, now and then a crystal or an opal, and 150 to 300
     /// credits for the ship: what it was paid for the hero. Placeholder numbers, for a play pass.
     /// </summary>
@@ -364,7 +365,7 @@ public static class Creatures
             Blink: new(Gather: 12, Spent: 10, Every: 120, Ahead: 20, LeadMost: 96, Near: 8), Gunfire: new(Every: 50, Tell: 6),
             Salvo: new(Every: 240, Hover: 20, Headroom: 6, Shells: 7, Spread: 48, Flight: 24, Stagger: 2, Projectile: "shell"),
             Lob: new(Every: 160, Flight: 20, Projectile: "blastCharge"))],
-        Moves: [new Pounce(WindUp: 16, Speed: 1600, Ticks: 10, Damage: 6), new Shoot(WindUp: 6, Lock: 2, Recover: 20, Projectile: "bolt", Reach: 60, Lingers: 10)],
+        Moves: [new Pounce(WindUp: 16, Speed: 1600, Ticks: 10, Damage: 6), new Shoot(WindUp: 6, Lock: 2, Recover: 20, Projectile: "laser", Reach: 60, Lingers: 6, Through: 120)],
         Yields: [new("scrapChunk", 2, 4), new("circuit", 1, 1), new("crystal", 1, 1, OneIn: 5), new("opal", 1, 1, OneIn: 10)],
         Purse: new(150, 300));
 

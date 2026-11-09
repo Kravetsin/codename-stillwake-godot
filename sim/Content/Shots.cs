@@ -58,6 +58,9 @@ public static class Shots
     /// </summary>
     public static readonly Projectile Bolt = new("bolt", Damage: 4, BlockDamage: 0, Weight: 0, HitsBodies: false);
 
+    /// <summary>The catcher's laser (catcher-combat): a beam that hurts a hero touching it while it burns, as the bolt does, nothing else.</summary>
+    public static readonly Projectile Laser = new("laser", Damage: 4, BlockDamage: 0, Weight: 0, HitsBodies: false);
+
     /// <summary>
     /// The capback's slime (lurker-attacks), spat as an arc: it hurts no hero it crosses, only the puddle it leaves
     /// (<see cref="Creatures.Slime"/>).
@@ -82,7 +85,7 @@ public static class Shots
     /// </summary>
     public static readonly Gun Thrown = new("blastCharge", ["blastCharge"], Damage: 0, BlockDamage: 0, Knock: 10, Speed: 1500, Reach: 40, Pace: 20, PierceKeep: 0);
 
-    public static readonly IReadOnlyList<Projectile> Projectiles = [Nail, Bolt, Glob, BlastCharge, Shell];
+    public static readonly IReadOnlyList<Projectile> Projectiles = [Nail, Bolt, Laser, Glob, BlastCharge, Shell];
 
     public static readonly IReadOnlyList<Gun> Guns = [Nailer, Railgun, Thrown];
 

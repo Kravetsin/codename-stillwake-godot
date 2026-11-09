@@ -23,8 +23,14 @@ tunnel), and against a shelter it cannot get into it throws the blasting charge 
   dropped to it within `Margin`; short of a path, or with no lead spot, the free spot on ground nearest the quarry within `Near`
   (8) cells that sees it.
 - **Shots on the run:** not a move (a move stops the body). In sight and within the arc's reach it aims (`Aiming`); `Tell` (6)
-  ticks before each shot, every `Gunfire.Every` (50), it holds the quarry's reported cell (drawn brightened), then strikes the
-  sentry's arc along it, judged by the hero's client (0034).
+  ticks before each shot, every `Gunfire.Every` (50), it holds the quarry's reported cell (drawn brightened), then strikes a
+  `laser` along it, judged by the hero's client (0034).
+- **The laser** (played, a bolt ending at the held cell was outrun by running on; the user asked for a beam to dodge and jump):
+  the shot's `Through` (120) runs the arc through the held cell and on, that many cells in all, to the first solid. The arc
+  `Burns`: the hero's client reports it touched any tick of its `Lingers` (6), not only the tick it struck (`Rams.Hits`); it
+  still hurts a hero once. It hurts any hero on its line, the quarry's friends too; it breaks nothing. Within its pounce
+  (`Strike`) it neither aims nor shoots, and drops a held shot: played, a laser at a quarry beside it ran off anywhere. Its gun is
+  drawn held along the laser while it burns and rests (played, a gun turned back on its quarry left the laser running off).
 - **The salvo:** every `Salvo.Every` (240), landed, within the arc's reach and with `Headroom` (6) cells clear overhead (not
   under a roof), it rises at `Speed` up to `Hover` (20) cells, into the sky (played, 6 read as a hop), or till it meets solid, and
   throws `Shells` (7: an odd count puts one on a quarry standing still) `shell` shots spread evenly over `Spread` (48) cells round
@@ -36,7 +42,7 @@ tunnel), and against a shelter it cannot get into it throws the blasting charge 
 - **A creature's bursts hurt heroes:** a shot with no thrower (`By` none) bursting takes its projectile's `Damage` off every awake
   hero within its reach whose cell it sees (`Blow`), judged by the sim. A hero's bursts still hurt no one.
 - **Drawn:** `FightOf` (aiming, the held cell, the ghost, gather left, the last blink) and `MarksOf` (each mark's cell, ticks
-  left and flight) are the client's queries; an `Arc` keeps the creature that struck it (`By`), so a catcher draws its own bolt
+  left and flight) are the client's queries; an `Arc` keeps the creature that struck it (`By`), so a catcher draws its own laser
   from its gun's muzzle as it runs on (played, one drawn from where it fired was left behind it); a blink is drawn as a jump; a
   charge looks the same whoever threw it. Looks and sounds: the user's picks below.
 
@@ -45,12 +51,15 @@ tunnel), and against a shelter it cannot get into it throws the blasting charge 
 On the pick pages (2026-11-09), from four candidates each:
 
 - **Aim, «Красная нить»:** a thin dim red thread from the muzzle to the hero's chest, wobbling, a red dot on the hero; in the
-  tell it steadies, brightens and haloes; the bolt red.
+  tell it steadies, brightens and haloes; the shot red.
 - **Blink, «Красная помеха»:** the figure torn into jittering bands with red interference while it gathers, its red ghost
   flickering in bands where it will be; a red tear where it was; spent, still twitching.
 - **Salvo, «Столбы света»:** a pale column of light over each landing spot, narrowing to a bright thread as its shell nears;
   feathered bombs with a short sparking trail.
-- **Sounds:** a camera flash charging for the tell; the sentry's arc for the bolt; a laser charging to gather and a dry zap to
+- **Laser, «Жгут»** (its own page, four candidates): half a cell thick, dark red with an orange core, swelling over 80 ms and
+  thinning to a thread, its edges flowing, the air over it shimmering, the ground along it lit; where it stops, rock melts, drips
+  and smokes, the spot cooling a second. Not ported: the page's white flash on a hero it touches; the hero's own hurt shows it.
+- **Sounds:** a camera flash charging for the tell; an ion cannon («Ионная пушка», its own page) for the laser; a laser charging to gather and a dry zap to
   blink; a mortar's shot as the salvo leaves (once a salvo); the blasting charge's burst for the shells. Credits in
   `game/audio/CREDITS.md`.
 
@@ -58,7 +67,9 @@ On the pick pages (2026-11-09), from four candidates each:
 
 - Shelter holds a catcher again, but not for long: no drill, yet a blink reaches a cave it can see into, and a charge breaks a
   hut it cannot. A hero sealed in bedrock still outlasts it.
-- No format bump: the hunt's new `Mem` keys and `Arc.By` default to none; old Fly or Cut steps in a saved `Path` are dropped at once (a
+- The beam is judged where it was struck, while it is drawn from the muzzle running on: near the catcher the two part by the
+  few cells it runs in 0.3 s; far off, where a hero dodges it, they meet.
+- No format bump: the hunt's new `Mem` keys, `Arc.By` and `Arc.Burns` default to none; old Fly or Cut steps in a saved `Path` are dropped at once (a
   step not a Run replans), old leap and drill keys lie unread.
 - Not handled: firing while hovering in the salvo, shells hurting creatures, phases by health; space (one homing missile) is
   slice 2. The numbers are placeholders for a play pass.

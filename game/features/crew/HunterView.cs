@@ -17,7 +17,7 @@ namespace Stillwake.Game.Features.Crew;
 /// no tracker on its shin, flying on its jetpack's plume between the ticks' places, its gun aimed at whom it acts on; one
 /// of its look's outfits by its id, its receiver blinking in its quarry's colour, its goggles lit as it hunts. Struck it flinches,
 /// sparks and is heard; a blink drawn as a jump, never a slide; killed in view it tumbles down and fades. Its fight as the user picked it
-/// (catcher-combat, <see cref="CatcherFx"/>): its aim a red thread, its bolt red from its muzzle, its blink a red glitch with its ghost
+/// (catcher-combat, <see cref="CatcherFx"/>): its aim a red thread, its laser «Жгут» from its muzzle, its blink a red glitch with its ghost
 /// ahead, its salvo's marks columns of light; heard as its tell, gather and blink begin.
 /// </summary>
 public partial class HunterView : Node2D
@@ -35,11 +35,17 @@ public partial class HunterView : Node2D
         public CreatureLooks.HeroGear Gear = null!;
         public Spec.Creatures.Hunt? Hunt;
         public Hero Drawn;
-        /// <summary>Its gun's muzzle as drawn this frame, in pixels of the world: where its bolt leaves.</summary>
+        /// <summary>Its gun's muzzle as drawn this frame, in pixels of the world: where its laser leaves.</summary>
         public Vector2 Muzzle;
-        /// <summary>The clock its tell began, its last bolt struck and it last blinked; where it struck and where it blinked from.</summary>
-        public double TellMs, BoltMs = double.MinValue / 2, BlinkMs = double.MinValue / 2;
-        public Vector2 BoltTo, BlinkFrom;
+        /// <summary>The clock its tell began, its last laser struck and it last blinked; where it ended and where it blinked from.</summary>
+        public double TellMs, ShotMs = double.MinValue / 2, BlinkMs = double.MinValue / 2;
+        public Vector2 ShotTo, BlinkFrom;
+        /// <summary>How far its laser runs, in cells (its <c>Shoot.Through</c>); whether its last stopped on solid, and melts it.</summary>
+        public int Through;
+        public bool Melts;
+        /// <summary>The drips and puffs of smoke its last laser's melt has thrown; the keys of the lights along its laser.</summary>
+        public int Drips, Puffs;
+        public readonly object[] Lamps = [new(), new(), new(), new(), new(), new()];
         /// <summary>Its ghost where it will be while it gathers, made the first time.</summary>
         public (Figure Figure, Glitch Group)? Ghosted;
     }
@@ -54,25 +60,23 @@ public partial class HunterView : Node2D
     private readonly List<int> _gone = [];
     private readonly HashSet<int> _seen = [];
     private readonly List<Falling> _falling = [];
-    /// <summary>The catchers' arcs drawn as bolts, by id, forgotten once they are gone.</summary>
-    private readonly HashSet<int> _bolts = [];
+    /// <summary>The catchers' arcs drawn as lasers, by id, forgotten once they are gone.</summary>
+    private readonly HashSet<int> _shots = [];
     private readonly CatcherFxView _fx = new();
     private double _clockMs;
-    private int _boltsTick = -1;
+    private int _shotsTick = -1;
 
     /// <summary>The receiver's colour while it hunts no one: a dull grey.</summary>
     private const int Unclaimed = 0x8a8a8a;
     private readonly Voices _world = new(S.World, voices: 4), _fight = new(S.World, voices: 4);
 
-    /// <summary>The sparks its bolt throws where it strikes: the sentry's arc's, red.</summary>
-    private static readonly Luminous Spark = Luminous.HitSpark with
-    {
-        Ramp = [(255, 225, 219), (255, 120, 100), (255, 90, 70), (190, 40, 40)],
-        LifeMs = (200, 450),
-        Halo = 2,
-    };
+    /// <summary>A drop of rock its laser melts, falling off where it stops.</summary>
+    private static readonly Luminous Drip = new(Glimmer.Mote, [(255, 190, 110), CatcherFx.Drip, (190, 60, 25)], (220, 330))
+    { Fade = 0.8, Gravity = 600, Size = 0.45, Bounce = 0 };
 
-    private static readonly (int R, int G, int B) BoltLight = (255, 90, 70);
+    /// <summary>Smoke off the spot its laser melted, rising as it cools.</summary>
+    private static readonly Luminous Smoke = new(Glimmer.Wisp, [CatcherFx.Smoke], (800, 1000))
+    { Matter = true, Drag = 0.6, Turbulence = 14, Size = 1.4, Grow = 2.9, Alpha = 0.3 };
 
     public HunterView()
     {
@@ -91,6 +95,7 @@ public partial class HunterView : Node2D
         _clockMs += elapsedMs;
         _seen.Clear();
         _fx.Begin();
+        Shots(m, tick);
         foreach (var c in m.Creatures.Creatures)
         {
             var spec = Spec.Creatures.Get(c.Species);
@@ -116,6 +121,7 @@ public partial class HunterView : Node2D
                     Damage = c.Damage,
                     Blinked = fight.Blinked,
                     Hunt = spec.Brain.OfType<Spec.Creatures.Hunt>().FirstOrDefault(),
+                    Through = spec.Moves.OfType<Spec.Creatures.Shoot>().FirstOrDefault()?.Through ?? 0,
                 };
             }
             if (one.Tick != tick) (one.Tick, one.FromX, one.FromY, one.ToX, one.ToY) = (tick, one.ToX, one.ToY, c.X, c.Y);
@@ -128,7 +134,6 @@ public partial class HunterView : Node2D
             }
             Show(m, one, c, spec, fight, progress, elapsedMs, heroOf);
         }
-        Bolts(m, tick);
         _fx.End();
         _gone.Clear();
         foreach (int id in _shown.Keys)
@@ -182,7 +187,9 @@ public partial class HunterView : Node2D
         // Its gun on whom it acts on, on its quarry while it aims on the run, and held on the cell its shot will strike in the tell (catcher-combat).
         Vector2? held = fight.Held >= 0 ? Middle(fight.Held, m.Grid.Width) : null;
         bool aims = move is Spec.Creatures.Shoot or Spec.Creatures.Pounce || fight.Aims;
-        figure.Aim = held ?? (aims && target is { } aimed ? Chest(aimed) : null);
+        // Along its laser while it burns and rests: played, a gun turned back on its quarry left the laser running off from it.
+        Vector2? fired = _clockMs - one.ShotMs < CatcherFx.BeamMs + CatcherFx.RestMs ? one.ShotTo : null;
+        figure.Aim = held ?? fired ?? (aims && target is { } aimed ? Chest(aimed) : null);
         if (c.Damage > one.Damage) Struck(one);
         one.Damage = c.Damage;
         figure.Show(one.Drawn, afoot ? Poses.PoseOf(one.Drawn, false, false) : Pose.Air, 0, false, elapsedMs);
@@ -190,6 +197,7 @@ public partial class HunterView : Node2D
         else one.Plume.Step(figure.Nozzle, (vx, vy), elapsedMs);
         one.Muzzle = figure.Muzzle ?? Chest(one.Drawn);
         Aim(one, held, fight.Aims && target is { } quarryAt ? Chest(quarryAt) : null);
+        Laser(one);
         Blink(m, one, fight, progress, target, elapsedMs);
         foreach (var mark in m.Creatures.MarksOf(c))
             _fx.Pillar(new Vector2((float)((mark.Cell % m.Grid.Width + 0.5) * Rig.Cell), (float)((mark.Cell / m.Grid.Width + 1) * Rig.Cell)),
@@ -198,13 +206,11 @@ public partial class HunterView : Node2D
 
     /// <summary>
     /// Its aim «Красная нить»: in the tell a still line brightening to the cell it holds, else, aiming, a dim one wobbling on its quarry,
-    /// back a while after a bolt; its last bolt's faint ghost.
+    /// back a while after a shot.
     /// </summary>
     private void Aim(Shown one, Vector2? held, Vector2? quarry)
     {
-        double since = _clockMs - one.BoltMs;
-        if (since >= CatcherFx.BoltMs && since < CatcherFx.BoltMs + CatcherFx.AfterMs)
-            _fx.After(one.Muzzle, one.BoltTo, (since - CatcherFx.BoltMs) / CatcherFx.AfterMs);
+        double since = _clockMs - one.ShotMs;
         if ((held ?? quarry) is not { } end) return;
         double tellMs = (one.Hunt?.Gunfire.Tell ?? 1) * TickMs;
         var thread = CatcherFx.AimOf(held != null ? (_clockMs - one.TellMs) / tellMs : null, CatcherFx.BackOf(since), _clockMs);
@@ -278,63 +284,53 @@ public partial class HunterView : Node2D
     }
 
     /// <summary>
-    /// Each arc a catcher drawn here struck, new since last seen: a red bolt from its gun's muzzle as drawn, following it while it burns,
-    /// to where it struck; a red flash at both ends, red sparks and a glint where it struck; heard where it left and where it struck.
+    /// Each arc a catcher drawn here struck, new since last seen: its laser, from its gun's muzzle as drawn to where the arc ends, whether
+    /// solid stopped it there; heard where it leaves.
     /// </summary>
-    private void Bolts(Registry m, int tick)
+    private void Shots(Registry m, int tick)
     {
         var arcs = m.Creatures.Arcs;
-        if (tick != _boltsTick)
+        if (tick != _shotsTick)
         {
-            _boltsTick = tick;
-            _bolts.RemoveWhere(id => !Lingers(arcs, id));
+            _shotsTick = tick;
+            _shots.RemoveWhere(id => !Lingers(arcs, id));
         }
         float k = (float)(Rig.Cell / Unit);
         foreach (var arc in arcs)
         {
-            if (!_shown.TryGetValue(arc.By, out var one) || !_bolts.Add(arc.Id)) continue;
-            var to = new Vector2(arc.X1, arc.Y1) * k;
-            (one.BoltMs, one.BoltTo) = (_clockMs, to);
-            Chain(one, to);
-            var stage = Stages.Of(Layers.Effects);
-            stage.Flares.Flash(to.X, to.Y, BoltLight, 1.0 * Fx.Glow, 10, CreatureLooks.LightKeep, 0.8);
-            stage.Flares.Flash(one.Muzzle.X, one.Muzzle.Y, BoltLight, 0.6 * Fx.Glow, 6, CreatureLooks.LightKeep, 0.8);
-            stage.Flares.Glint(to.X, to.Y, 5, (255, 236, 230));
-            for (int i = 0; i < 10; i++)
-            {
-                // Thrown up and out, as the page's sparks: off the ground they fall.
-                double a = Between(-Math.PI, 0), s = Between(30, 100);
-                stage.Glims.Add(Spark, to.X, to.Y, Math.Cos(a) * s, Math.Sin(a) * s);
-            }
-            _fight.Play(S.ArcStruck, one.Muzzle);
-            _fight.Play(S.ArcHit, to);
+            if (!_shown.TryGetValue(arc.By, out var one) || !_shots.Add(arc.Id)) continue;
+            // Run on its whole Through, it stopped on nothing; short of it, on solid.
+            long far = Math.Max(Math.Abs((long)arc.X1 - arc.X0), Math.Abs((long)arc.Y1 - arc.Y0));
+            (one.ShotMs, one.ShotTo, one.Melts, one.Drips, one.Puffs) = (_clockMs, new Vector2(arc.X1, arc.Y1) * k, far < (long)one.Through * Unit - 1, 0, 0);
+            _fight.Play(S.CatcherLaser, one.Muzzle);
         }
     }
 
-    /// <summary>The longest link of a bolt's chain, in pixels of the world: one long arc's folds would stray by a share of its length.</summary>
-    private const float Link = 40;
-
-    /// <summary>A bolt as a chain of short arcs from <paramref name="one"/>'s muzzle to <paramref name="to"/>, their joints a little off the line, carried along as its muzzle moves.</summary>
-    private static void Chain(Shown one, Vector2 to)
+    /// <summary>
+    /// Its laser «Жгут» while it burns: drawn from its muzzle as it runs on to where it ended, the ground along it lit; where solid stopped
+    /// it, melting, dripping while it burns, then glowing as it cools and smoking.
+    /// </summary>
+    private void Laser(Shown one)
     {
-        int links = Math.Max(1, (int)Math.Ceiling((to - one.Muzzle).Length() / Link));
-        var off = new float[links + 1];
-        for (int i = 1; i < links; i++) off[i] = (float)Between(-3, 3);
-        Vector2 Joint(int i)
+        double since = _clockMs - one.ShotMs;
+        if (since >= CatcherFx.BeamMs + CatcherFx.CoolMs) return;
+        var stage = Stages.Of(Layers.Effects);
+        double swell = CatcherFx.Swell(since);
+        if (swell > 0)
         {
-            var way = to - one.Muzzle;
-            var across = way.Length() > 0 ? new Vector2(-way.Y, way.X).Normalized() : Vector2.Zero;
-            return i == 0 ? one.Muzzle : i == links ? to : one.Muzzle + way * i / links + across * off[i];
-        }
-        for (int i = 1; i <= links; i++)
-        {
-            int a = i - 1, b = i;
-            Stages.Of(Layers.Effects).Bolts.Add(() =>
+            _fx.Beam(one.Muzzle, one.ShotTo, swell, _clockMs, one.Melts);
+            for (int i = 0; i < one.Lamps.Length; i++)
             {
-                var (p, q) = (Joint(a), Joint(b));
-                return (p.X, p.Y, q.X, q.Y, 0);
-            }, 9, 1.2, 1, branchy: true, tint: BoltTint.Red);
+                var at = one.Muzzle.Lerp(one.ShotTo, (i + 0.5f) / one.Lamps.Length);
+                stage.Flares.Hold(one.Lamps[i], at.X, at.Y, CatcherFx.BeamMuzzle, 0.35 * swell * Fx.Glow, 4, CreatureLooks.LightKeep, 0.5);
+            }
         }
+        if (!one.Melts) return;
+        _fx.Cooling(one.ShotTo, Math.Max(0, (since - CatcherFx.BeamMs) / CatcherFx.CoolMs));
+        for (; one.Drips < Math.Min(since, CatcherFx.BeamMs) / CatcherFx.DripEveryMs; one.Drips++)
+            stage.Glims.Add(Drip, one.ShotTo.X, one.ShotTo.Y, Between(-8, 8), Between(0, 20));
+        for (; one.Puffs < since / CatcherFx.SmokeEveryMs; one.Puffs++)
+            stage.Glims.Add(Smoke, one.ShotTo.X + Between(-1.5, 1.5), one.ShotTo.Y - 2, Between(-4, 4), -20);
     }
 
     private static bool Lingers(IReadOnlyList<Arc> arcs, int id)

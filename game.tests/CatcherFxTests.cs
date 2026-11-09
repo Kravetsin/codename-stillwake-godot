@@ -34,11 +34,11 @@ public class CatcherFxTests
     }
 
     [Fact]
-    public void AfterABoltTheLineIsGoneWhileTheBoltShowsThenComesBack()
+    public void AfterAShotTheLineIsGoneWhileTheLaserBurnsAndRestsThenComesBack()
     {
         Assert.Equal(0, CatcherFx.BackOf(0));
-        Assert.Equal(0, CatcherFx.BackOf(CatcherFx.BoltMs + CatcherFx.AfterMs));
-        Assert.Equal(1, CatcherFx.BackOf(CatcherFx.BoltMs + CatcherFx.AfterMs + CatcherFx.BackMs));
+        Assert.Equal(0, CatcherFx.BackOf(CatcherFx.BeamMs + CatcherFx.RestMs));
+        Assert.Equal(1, CatcherFx.BackOf(CatcherFx.BeamMs + CatcherFx.RestMs + CatcherFx.BackMs));
         Assert.Equal(0, CatcherFx.AimOf(null, CatcherFx.BackOf(100), 0).Alpha);
     }
 
@@ -126,14 +126,26 @@ public class CatcherFxTests
     }
 
     [Fact]
-    public void ACrookedLineRunsEndToEndAndStraysMostInTheMiddle()
+    public void TheLaserSwellsHoldsAndThinsToAThreadAsItBurnsAndIsGoneAfter()
     {
-        Span<(double X, double Y)> points = stackalloc (double, double)[72];
-        int n = CatcherFx.Crooked(0, 0, 80, 0, 7, 1.2, points);
-        Assert.Equal(11, n);
-        Assert.Equal((0, 0), (points[0].X, Math.Round(points[0].Y, 9)));
-        Assert.Equal(80, points[n - 1].X, 9);
-        Assert.Equal(0, points[n - 1].Y, 9);
-        for (int i = 0; i < n; i++) Assert.True(Math.Abs(points[i].Y) <= 1.2 + 1e-9);
+        Assert.Equal(0, CatcherFx.Swell(0));
+        Assert.Equal(1, CatcherFx.Swell(80));
+        Assert.Equal(1, CatcherFx.Swell(CatcherFx.BeamMs - 150));
+        Assert.Equal(0.15, CatcherFx.Swell(CatcherFx.BeamMs - 1e-9), 6);
+        Assert.Equal(0, CatcherFx.Swell(CatcherFx.BeamMs));
+        Assert.Equal(0, CatcherFx.Swell(-1));
+    }
+
+    [Fact]
+    public void TheLasersEdgesFlowWithinAThirdOfItsWidthAndNarrowAtTheMuzzle()
+    {
+        for (double s = 14; s < 400; s += 3.7)
+        {
+            var (up, down) = CatcherFx.Edges(s, s * 11, 1);
+            Assert.InRange(up, 2.2 * 0.7 - 1e-9, 2.2 * 1.3 + 1e-9);
+            Assert.InRange(down, 2.2 * 0.7 - 1e-9, 2.2 * 1.3 + 1e-9);
+        }
+        Assert.True(CatcherFx.Edges(0, 0, 1).Up < 2.2 * 0.45 * 1.3 + 1e-9);
+        Assert.Equal((0.0, 0.0), CatcherFx.Edges(50, 123, 0));
     }
 }

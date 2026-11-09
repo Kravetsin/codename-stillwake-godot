@@ -420,8 +420,52 @@ public class CatchersTests
         // Its first shot a whole wait from the tick it came, the tick before this loop.
         Assert.True(w.M.Creatures.Clock - start >= Hunt.Gunfire.Every - 1, $"fired at {w.M.Creatures.Clock - start}");
         Assert.Equal(Hunt.Gunfire.Tell, held);
-        Assert.Equal((40, Ground - 3), (CreaturesModule.Down(arc!.X1, Unit), CreaturesModule.Down(arc.Y1, Unit)));
+        // A beam, burning: through the cell it held, within half a cell, and on past it.
+        Assert.True(arc!.Burns);
+        int hx = 40 * Unit + Unit / 2, hy = (Ground - 3) * Unit + Unit / 2;
+        Assert.InRange(arc.Y0 + (long)(arc.Y1 - arc.Y0) * (hx - arc.X0) / (arc.X1 - arc.X0), hy - Unit / 2, hy + Unit / 2);
+        Assert.True(arc.X1 < hx - 10 * Unit, $"ends at {arc.X1 / Unit}");
         Assert.NotEqual(0, c.VX);
+    }
+
+    /// <summary>Within its pounce it never aims nor shoots: played, a laser at a hero beside it ran off anywhere.</summary>
+    [Fact]
+    public void WithinItsPounceItNeverAimsNorShoots()
+    {
+        var w = Arrive(Field(), 40);
+        w.Do(new Release(Catcher.Id, Cell(40 + Hunt.Strike - 4, Ground - 1))).Run();
+        var c = w.M.Creatures.Creatures.Single();
+        int near = 0;
+        for (int t = 0; t < 200 && w.M.Creatures.Creatures.Count > 0; t++)
+        {
+            if (t % 10 == 0) w.Do(new Enter(Cell(40, Ground - 1)));
+            w.Run();
+            if (Math.Abs(Column(c) - 40) >= Hunt.Strike - 1) continue;
+            near++;
+            Assert.False(w.M.Creatures.FightOf(c).Aims, $"aims {Column(c) - 40} columns off");
+            Assert.DoesNotContain(w.M.Creatures.Arcs, a => a.Left == a.Lingers);
+        }
+        Assert.True(near > 100, $"near {near} ticks");
+    }
+
+    /// <summary>Its beam runs on past its hero to the first solid, as far as it reaches; the sentry's arc still stops at its hero.</summary>
+    [Fact]
+    public void ItsBeamRunsOnPastItsHeroToTheFirstWall()
+    {
+        var w = Arrive(Field(), 40, y: Ground - 3);
+        int wall = 25;
+        for (int y = 0; y < Ground; y++) w.M.Grid.Place(Cell(wall, y), Placement.Wall("bedrock"));
+        w.Do(new Release(Catcher.Id, Cell(140, Ground - 1))).Run();
+        var c = w.M.Creatures.Creatures.Single();
+        Arc? arc = null;
+        for (int t = 0; t < 200 && c.Act == null && arc == null; t++)
+        {
+            if (t % 10 == 0) w.Do(new Enter(Cell(40, Ground - 3)));
+            w.Run();
+            arc = w.M.Creatures.Arcs.FirstOrDefault(a => a.Left == a.Lingers);
+        }
+        Assert.NotNull(arc);
+        Assert.InRange(CreaturesModule.Down(arc!.X1, Unit), wall, wall + 1);
     }
 
     /// <summary>
