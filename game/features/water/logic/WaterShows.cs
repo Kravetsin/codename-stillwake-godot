@@ -8,7 +8,7 @@ namespace Stillwake.Game.Features.Water;
 /// <summary>
 /// How water shows without a word, and what the pointer says of it (water): a cistern's water up its sight glass by quarters
 /// (<c>art/cistern_fill_*.png</c>), an electrolyser's bubbles rising while it works (<c>art/electrolyser_work_*.png</c>) and its
-/// lamp red while it stands (<c>art/electrolyser_stalled.png</c>). No rule of its own: the sim says what each holds and does.
+/// lamp green (<c>art/electrolyser_working.png</c>) or red while it stands (<c>art/electrolyser_stalled.png</c>). No rule of its own: the sim says what each holds and does.
 /// </summary>
 public static class WaterShows
 {
