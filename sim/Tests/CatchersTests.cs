@@ -339,6 +339,55 @@ public class CatchersTests
         Assert.True(ahead || c.Act != null, $"hero {x} catcher {Column(c)},{c.Y} act {c.Act?.Move} hunting {CreaturesModule.Hunting(c)} alive {w.M.Creatures.Creatures.Contains(c)} clock {w.M.Creatures.Clock}");
     }
 
+    /// <summary>A playtest (2026-11-09): it stalled as it took off; up a cliff to its hero it never stands still.</summary>
+    [Fact]
+    public void UpACliffToItsHeroItTakesOffWithoutStalling()
+    {
+        var w = Arrive(Field(), 40, y: Ground - 9);
+        for (int y = Ground - 8; y < Ground; y++)
+            for (int x = 30; x < 70; x++)
+                w.Do(new Place(Cell(x, y), Placement.Wall("scrap")));
+        w.Run();
+        w.Do(new Release(Catcher.Id, Cell(130, Ground - 1))).Run();
+        var c = w.M.Creatures.Creatures.Single();
+        int stops = 0, slow = 0;
+        var trace = new System.Text.StringBuilder();
+        for (int t = 0; t < 300 && c.Act == null; t++)
+        {
+            if (t % 10 == 0) w.Do(new Enter(Cell(40, Ground - 9)));
+            w.Run();
+            trace.Append($"{c.X / 1000.0:F1},{c.Y / 1000.0:F1}/{c.VX},{c.VY} ");
+            if (c.VX == 0 && c.VY == 0) stops++;
+            else if (Math.Max(Math.Abs(c.VX), Math.Abs(c.VY)) < Hunt.Speed / 2) slow++;
+        }
+        Assert.NotNull(c.Act);
+        Assert.True(stops <= 1 && slow == 0, $"stops {stops}, slow {slow}: {trace}");
+    }
+
+    /// <summary>A playtest (2026-11-09): a sprinting hero always ran past where it landed; it lands well ahead of a sprint.</summary>
+    [Fact]
+    public void AHeroSprintingAwaySeesItLandWellAheadOfIt()
+    {
+        int sprint = Spec.Hero.Run * 3;
+        var w = Arrive(Field(), 50, y: Ground - 3);
+        w.Do(new Release(Catcher.Id, Cell(10, Ground - 1))).Run();
+        var c = w.M.Creatures.Creatures.Single();
+        bool leapt = false;
+        int landedAhead = int.MinValue;
+        var trace = new System.Text.StringBuilder();
+        for (int t = 0; t < 300 && c.Act == null && landedAhead == int.MinValue; t++)
+        {
+            int x = Math.Min(W - 10, 50 + (t + 1) * sprint / Unit);
+            w.Do(new Enter(Cell(x, Ground - 3)));
+            w.Run();
+            bool leaping = Math.Abs(c.VX) > sprint || Math.Abs(c.VY) > ((Tune.Flyer)Catcher.Body).Run;
+            if (leapt && (!leaping && w.M.Creatures.Afoot(c) || c.Act != null)) landedAhead = Column(c) - x;
+            leapt |= leaping;
+            if (t % 5 == 0) trace.Append($"t{t} hero {x} it {Column(c)} v{c.VX},{c.VY}; ");
+        }
+        Assert.True(landedAhead >= 12, $"landed {landedAhead} ahead: {trace}");
+    }
+
     [Fact]
     public void AWallBuiltAcrossItsWayIsBrokenOrGoneRoundAndItStillArrives()
     {

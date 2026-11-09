@@ -325,15 +325,15 @@ public static class Creatures
     /// <summary>
     /// The catcher (tracker-catchers): a hunter on a jetpack hired by the hero's former owners, three cells by five, come for one hero whose
     /// wanted meter is full. From the tick it comes, 90 s on its way to its hero: running at a sprint's 26.4 cells a second, flying
-    /// at 8 where flying is the better way, drilling a strike of 120 every 0.2 s (soil and stone gone in one, a built wall its share,
-    /// unified-damage); lagging 3 s it leaps 48 cells a second, up and over, to land just ahead of its hero; within 12 cells in line it crouches 0.8 s and flies fists first, 16 cells
+    /// at 20 where flying is the better way, drilling a strike of 120 every 0.2 s (soil and stone gone in one, a built wall its share,
+    /// unified-damage); lagging 3 s it leaps 48 cells a second, up and over, to land 20 cells ahead of its hero; within 12 cells in line it crouches 0.8 s and flies fists first, 16 cells
     /// in half a second, six units of a suit if it hits. Struck by another hero, it answers with a quick arc at it, 0.3 s crouched,
     /// at most once in 3 s. Forty hit points, never knocked. Killed, scrap, a circuit, now and then a crystal or an opal, and 150 to 300
     /// credits for the ship: what it was paid for the hero. Placeholder numbers, for a play pass.
     /// </summary>
     public static readonly Species Catcher = new("catcher", Look: "catcher", Body: new Flyer(Width: 3, Height: 5, Wear: 120, CutEvery: 4, Run: 1320, Leap: 2400),
         Life: new(Hp: 40, Knock: 0, Hop: 0), Faction: Catchers, Lifetime: Lifetime.Hunter,
-        Brain: [new Hunt(Ticks: 1800, Strike: 12, Speed: 400, AnswerEvery: 60, LeapAfter: 60, Sample: 10, LeadMost: 64, LeapAhead: 3)],
+        Brain: [new Hunt(Ticks: 1800, Strike: 12, Speed: 1000, AnswerEvery: 60, LeapAfter: 60, Sample: 10, LeadMost: 96, LeapAhead: 20)],
         Moves: [new Pounce(WindUp: 16, Speed: 1600, Ticks: 10, Damage: 6), new Shoot(WindUp: 6, Lock: 2, Recover: 20, Projectile: "bolt", Reach: 60, Lingers: 10)],
         Yields: [new("scrapChunk", 2, 4), new("circuit", 1, 1), new("crystal", 1, 1, OneIn: 5), new("opal", 1, 1, OneIn: 10)],
         Purse: new(150, 300));
