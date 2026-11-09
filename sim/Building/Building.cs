@@ -59,6 +59,9 @@ public interface IBuildingQueries
     /// <summary>What a shot's hit in <paramref name="cell"/> strikes, by a cell of it: a built piece by its first cell, whatever cell of it is met; else the cell itself. A thing a shot passed is remembered by this, so a piece over several cells is hit once.</summary>
     int ShotKey(int cell);
 
+    /// <summary>What <see cref="IBuildingOps.Hit"/> of <paramref name="damage"/> on <paramref name="cell"/> would leave over, changing nothing: a client's copy of a shot judges by it.</summary>
+    int? Surplus(int cell, int damage);
+
     /// <summary>The relics the ground grew with, ascending by cell, standing or taken (0096).</summary>
     IReadOnlyList<Relic> Relics { get; }
 
@@ -75,8 +78,11 @@ public interface IBuildingQueries
 /// <summary>How another module may change what stands on the grid.</summary>
 public interface IBuildingOps
 {
-    /// <summary>A hit of <paramref name="damage"/> by peer <paramref name="peer"/>'s shot on what stands solid in <paramref name="cell"/>: true when it broke.</summary>
-    bool Hit(int peer, int cell, int damage);
+    /// <summary>
+    /// A hit of <paramref name="damage"/> by peer <paramref name="peer"/>'s shot on what stands solid in <paramref name="cell"/>: what was
+    /// left over once it broke (unified-damage), 0 when it took exactly its strength; null when it held, only cracked, or nothing there breaks.
+    /// </summary>
+    int? Hit(int peer, int cell, int damage);
 
     /// <summary>
     /// The natural wall in <paramref name="cell"/> broken by peer <paramref name="peer"/>'s burst (blasting-charge): an ore's lump and the

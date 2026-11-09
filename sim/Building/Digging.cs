@@ -156,7 +156,7 @@ public sealed partial class BuildingModule
         }
         // A plant its wall took with it is gone; one of no strength falls to any hit.
         foreach (var plant in hewn.Plants)
-            if (_plantOwn.GetValueOrDefault(plant.Cell) == plant && Cracked(plant.Cell, Kinds[plant.Kind].Strength, hit)) Fell(plant, from);
+            if (_plantOwn.GetValueOrDefault(plant.Cell) == plant && Cracked(plant.Cell, Kinds[plant.Kind].Strength, hit) != null) Fell(plant, from);
     }
 
     /// <summary>
@@ -164,11 +164,11 @@ public sealed partial class BuildingModule
     /// shot (shots-are-the-sims): a wall that breaks, or a built piece, a floor too, as a <see cref="Hew"/>'s ray strikes it; what
     /// it gives to the peer, or, its hero not on this surface (gone aboard, left, or none), falling there, anyone's. Nothing where
     /// the surface's tools break nothing, nor on what never breaks (bedrock, lava). A shot stops only where it is solid, so never
-    /// here for a ladder, an open door, a back wall or a plant. True when what stood there broke (2026-10-27-shots-pierce).
+    /// here for a ladder, an open door, a back wall or a plant. What was left over once it broke; null when it held (unified-damage).
     /// </summary>
-    public bool Hit(int peer, int cell, int damage)
+    public int? Hit(int peer, int cell, int damage)
     {
-        if (damage <= 0 || !ShotTakes(cell)) return false;
+        if (damage <= 0 || !ShotTakes(cell)) return null;
         int? here = _crew.HeroOf(peer) != null ? peer : null;
         return _grid.WallAt(cell) != null ? HitWall(here, cell, damage) : HitPiece(here, PieceAt(cell)!.Value.Head, damage);
     }
@@ -200,6 +200,15 @@ public sealed partial class BuildingModule
     /// <inheritdoc/>
     public int ShotKey(int cell) => _grid.WallAt(cell) == null && PieceAt(cell) is { } piece ? piece.Head : cell;
 
+    /// <inheritdoc/>
+    public int? Surplus(int cell, int damage)
+    {
+        if (damage <= 0 || !ShotTakes(cell)) return null;
+        int key = ShotKey(cell), strength = _grid.WallAt(cell) is { } wall ? wall.Strength : PieceAt(key)!.Value.Build.Strength;
+        int at = CrackIndex(key), taken = (at >= 0 ? State.Cracks[at].Damage : 0) + damage;
+        return taken >= strength ? taken - strength : null;
+    }
+
     /// <summary>Gives <paramref name="cost"/> to peer <paramref name="peer"/>, what does not fit falling at <paramref name="cell"/>; for none, all of it there, anyone's.</summary>
     private void Yield(int? peer, IReadOnlyList<(string Item, int Count)> cost, int cell)
     {
@@ -207,30 +216,30 @@ public sealed partial class BuildingModule
         else _itemsOps.DropAt(FloorStack.Nobody, cost, cell);
     }
 
-    /// <summary>A hit of <paramref name="hit"/> on <paramref name="cell"/>'s wall: broken at its strength, for <paramref name="peer"/>: true when it broke.</summary>
-    private bool HitWall(int? peer, int cell, int hit)
+    /// <summary>A hit of <paramref name="hit"/> on <paramref name="cell"/>'s wall: broken at its strength, for <paramref name="peer"/>: what was left over, null when it held.</summary>
+    private int? HitWall(int? peer, int cell, int hit)
     {
         var wall = _grid.WallAt(cell)!;
-        if (!Cracked(cell, wall.Strength, hit)) return false;
+        if (Cracked(cell, wall.Strength, hit) is not int surplus) return null;
         _gridOps.Clear(cell, "structure");
         Yield(peer, wall.Cost, cell);
         // What the wall held goes to its digger now; the sweep would fell it the same tick, giving nothing.
         foreach (var plant in HeldBy(cell))
             if (_plantOwn.GetValueOrDefault(plant.Cell) == plant) Fell(plant, peer);
-        return true;
+        return surplus;
     }
 
     /// <summary>
     /// A hit of <paramref name="hit"/> on the built piece kept by <paramref name="head"/>: at its build's strength it comes apart
-    /// whole, as a mark takes it (0104), and gives <paramref name="peer"/> what it cost: true when it came apart.
+    /// whole, as a mark takes it (0104), and gives <paramref name="peer"/> what it cost: what was left over, null when it held.
     /// </summary>
-    private bool HitPiece(int? peer, int head, int hit)
+    private int? HitPiece(int? peer, int head, int hit)
     {
-        if (PieceAt(head) is not { } piece || !Cracked(head, piece.Build.Strength, hit)) return false;
+        if (PieceAt(head) is not { } piece || Cracked(head, piece.Build.Strength, hit) is not int surplus) return null;
         var cost = Costs.BuiltAt(_grid, head, "structure")!.Cost;
         foreach (int cell in _grid.PieceOf(head)) _gridOps.Clear(cell, "structure");
         Yield(peer, cost, head);
-        return true;
+        return surplus;
     }
 
     /// <summary>
@@ -240,7 +249,7 @@ public sealed partial class BuildingModule
     private void HitPile(int peer, Machine pile, int hit)
     {
         var spec = Machines.Get(pile.Kind);
-        if (!Cracked(pile.Cell, spec.Hp!.Value, hit)) return;
+        if (Cracked(pile.Cell, spec.Hp!.Value, hit) == null) return;
         _gridOps.Clear(pile.Cell, "machine");
         Yield(peer, spec.Cost, pile.Cell);
     }
@@ -272,21 +281,21 @@ public sealed partial class BuildingModule
 
     /// <summary>
     /// Adds a hit's <paramref name="hit"/> damage, its sender's weapon's on blocks (<see cref="IItemsQueries.BlockDamage"/>), to
-    /// <paramref name="cell"/>'s crack: true, its crack dropped, once it reaches <paramref name="strength"/>; else false, the
-    /// crack kept deeper, its last hit now.
+    /// <paramref name="cell"/>'s crack: once it reaches <paramref name="strength"/>, its crack dropped, what went over it (0 for
+    /// none); else null, the crack kept deeper, its last hit now.
     /// </summary>
-    private bool Cracked(int cell, int strength, int hit, bool back = false)
+    private int? Cracked(int cell, int strength, int hit, bool back = false)
     {
         int at = CrackIndex(cell, back);
         int damage = (at >= 0 ? State.Cracks[at].Damage : 0) + hit;
         if (damage >= strength)
         {
             if (at >= 0) State.Cracks.RemoveAt(at);
-            return true;
+            return damage - strength;
         }
         if (at >= 0) State.Cracks[at] = new Crack(cell, damage, State.Clock, back);
         else State.Cracks.Insert(~at, new Crack(cell, damage, State.Clock, back));
-        return false;
+        return null;
     }
 
     /// <summary>

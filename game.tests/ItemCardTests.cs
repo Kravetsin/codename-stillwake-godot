@@ -92,7 +92,7 @@ public class ItemCardTests
         Assert.False(ItemCards.IsTool(Spec.Shots.Nail.Id));
         // The railgun's: 22 and the nail's 2, 4 off a block, 2 s between shots, 65% kept, 120 of the belt's charge a shot.
         var rail = ItemCards.Of(Spec.Shots.Railgun.Item).Tiles;
-        Assert.Equal([("24", "Damage"), ("4", "Block"), ("2s", "Reload time"), ("65%", "Kept through"), ("120", "Charge a shot")], Said(rail));
+        Assert.Equal([("24", "Damage"), ("14", "Block"), ("2s", "Reload time"), ("65%", "Kept through"), ("120", "Charge a shot")], Said(rail));
         Assert.Equal((CardSign.Battery, CardGroup.Special), (rail![4].Sign, rail[4].Group));
     }
 

@@ -17,7 +17,7 @@ Blueprints build, marks take apart; also digging, growths (0077, 0079, 0080), ru
 (magnetic-flare).
 
 - **Depends on:** `Grid` (queries, ops); `Items` (queries, ops); `Crew` (`Heroes`; `Shock`, 0091, 0096); `Power`
-  (`Unplug`, `Plug`, 0110; `IsBroken`, `Mend`); `Research` (`Knows`, 0024); `Crafting` (`Queue`, 0057); `Pipes` (`SeatProblem`). Creatures reads it (`ShotTakes`, `Blasts`) and changes it (`Hit`, `Blast`); Places, `Wipe`.
+  (`Unplug`, `Plug`, 0110; `IsBroken`, `Mend`); `Research` (`Knows`, 0024); `Crafting` (`Queue`, 0057); `Pipes` (`SeatProblem`). Creatures reads it (`ShotTakes`, `Surplus`, `Blasts`) and changes it (`Hit`, `Blast`); Places, `Wipe`.
 - **State** (`BuildingState`, all saved): `Plans` in the order made, each with `Progress` in ticks and, for a blueprint,
   `Delivered` stacks in the order first given; `NextPlanId`; `Cracks`, sorted by cell (`Crack(Cell, Damage, At, Back)`);
   `Felled`, cells of growths felled, ascending; `Clock`; `Instant`; `Repairs` paid, by machine. Derived (`Flora.cs`): growths grown and
@@ -53,11 +53,11 @@ Blueprints build, marks take apart; also digging, growths (0077, 0079, 0080), ru
 - **`Hew(Tool, X, Y, Heading)`** (fan-of-rays), where `ToolsBreak` or in a vessel's box (else `building.notHere`): the weapon's fan
   (`Rays`) from the hand; a ray stops at a wall or what stops a body, striking it if it breaks (not bedrock or lava; a
   piece by its first cell), and passes ladders, open doors and plants, striking them (`Struck`).
-  `HewCells(Tool, Cells)` (tool-edge) strikes each listed cell as a ray does, once.
+  `HewCells(Tool, Cells)` strikes each listed cell as a ray does, once.
   Each takes `BlockDamage` (0098) once (0: none, no shock), a pile `Damage` at its `Hp` (pile-hit-points): at its strength a wall
   goes for its `Cost` and held growths, a piece whole.
   `building.nothingToDig`, then `items.flat` / `items.notRunning`. `Hit`, a shot's, strikes one cell `ShotTakes` allows,
-  true if it broke, its yield the shooter's here, else anyone's. No tool hits back walls. `Blast` (blasting-charge) clears a
+  its surplus if it broke (else null), the yield the shooter's here, else anyone's. No tool hits back walls. `Blast` clears a
   natural wall where `ToolsBreak`: an ore's `Cost` and held growths the thrower's, rest dust.
 - **Cracks heal** (0077): one not hit for `Builds.CrackHeals` ticks of Building's `Clock` is dropped, as, in derivation,
   one whose wall or plant is gone.
