@@ -5,7 +5,7 @@ namespace Stillwake.Content;
 /// <see cref="Shower.EveryMin"/> to <see cref="Shower.EveryMax"/> ticks, seen <see cref="Shower.Warning"/> ticks before it strikes, of
 /// a power drawn by weight from <see cref="Shower.Powers"/>; the first <see cref="Shower.First"/> ticks into the world when it says. If its power reaches the struck wall's <see cref="Material.Armour"/>, a
 /// blast of <see cref="Shower.Charge"/> + power × <see cref="Shower.PerPower"/> spreads from it, spending <see cref="Step"/> a cell
-/// (<see cref="Diagonal"/> aslant) and <see cref="PerStrength"/> a point of strength for each wall it breaks: walls soak it up.
+/// and <see cref="PerStrength"/> a point of strength for each wall it breaks, 7/5 of that aslant (round-blasts): walls soak it up.
 /// </summary>
 public static class Meteors
 {
@@ -16,8 +16,8 @@ public static class Meteors
     /// </summary>
     public sealed record Shower(int EveryMin, int EveryMax, int Warning, int Charge, int PerPower, IReadOnlyList<(int Power, int Weight)> Powers, int First = 0);
 
-    /// <summary>What a blast spends crossing to a side or up or down a cell, and aslant: about the distance, doubled, in whole units.</summary>
-    public const int Step = 2, Diagonal = 3;
+    /// <summary>What a blast spends crossing a cell to a side or up or down, 7/5 of it aslant (<c>Wave</c>, round-blasts).</summary>
+    public const int Step = 2;
 
     /// <summary>What a blast spends a point of a wall's armour to break it, a back wall's too, which it breaks without stopping.</summary>
     public const int PerStrength = 2;

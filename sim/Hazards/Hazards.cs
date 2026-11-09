@@ -48,8 +48,7 @@ public sealed partial class HazardsModule : Module<HazardsState>
     private readonly IResearchQueries _research;
     private readonly IItemsOps _items;
     private readonly List<int> _targets = [], _blast = [], _backs = [];
-    private int[] _spent = [];
-    private List<int>[] _byCost = [];
+    private readonly Wave _wave = new();
 
     public override string Id => "hazards";
 
@@ -129,7 +128,7 @@ public sealed partial class HazardsModule : Module<HazardsState>
     /// <summary>
     /// <paramref name="meteor"/> strikes (2026-10-29-meteor-wave): if the wall it meets still stands and its power reaches the wall's
     /// strength, a blast of <see cref="Charge"/> spreads from it as a wave, cheapest way first. A cell costs it <c>Step</c> to reach
-    /// (<c>Diagonal</c> aslant) and a wall <c>PerStrength</c> a point of its strength more, which breaks it: what is left goes on, so
+    /// and a wall <c>PerStrength</c> a point of its strength more, 7/5 of that aslant (round-blasts), which breaks it: what is left goes on, so
     /// walls soak the blast up and a strong one spares what lies behind it. It goes through open cells and breakable walls only; a
     /// door, window, ladder, machine or a wall that never breaks stops it. A back wall behind a cell it reached breaks when what is
     /// left there pays for its strength, spending nothing. A wall that holds the meteor stops it whole. All found, then broken in
@@ -138,50 +137,27 @@ public sealed partial class HazardsModule : Module<HazardsState>
     private void Strike(Meteor meteor, Meteors.Shower shower)
     {
         if (HitProblem(meteor.Cell) != null || meteor.Power < _grid.WallAt(meteor.Cell)!.Armour) return;
-        int charge = Charge(meteor.Power, shower), most = Farthest(meteor.Power, shower), side = 2 * most + 1;
-        int width = _grid.Width, cx = meteor.Cell % width, cy = meteor.Cell / width;
-        // What reaching each cell of the box round the strike spent, cheapest found; past the charge, not reached.
-        if (_spent.Length < side * side) _spent = new int[side * side];
-        Array.Fill(_spent, int.MaxValue, 0, side * side);
-        if (_byCost.Length < charge + 1) _byCost = [.. Enumerable.Range(0, charge + 1).Select(_ => new List<int>())];
-        foreach (var bucket in _byCost) bucket.Clear();
-        int Box(int cell) => (cell / width - cy + most) * side + cell % width - cx + most;
-        int first = Meteors.PerStrength * _grid.WallAt(meteor.Cell)!.Armour;
-        _spent[Box(meteor.Cell)] = first;
-        _byCost[first].Add(meteor.Cell);
+        int charge = Charge(meteor.Power, shower);
         _blast.Clear();
         _backs.Clear();
-        for (int cost = first; cost <= charge; cost++)
-            for (int i = 0; i < _byCost[cost].Count; i++)
+        _wave.Spread(_grid.Width, _grid.Height, meteor.Cell, Meteors.PerStrength * _grid.WallAt(meteor.Cell)!.Armour, charge, Farthest(meteor.Power, shower),
+            Enter, (cell, cost) =>
             {
-                int cell = _byCost[cost][i];
-                if (_spent[Box(cell)] != cost) continue;
                 if (_grid.WallAt(cell) != null) _blast.Add(cell);
                 if (_grid.BackAt(cell) is { } back && back.Armour != Material.Unbreakable
                     && charge - cost >= Meteors.PerStrength * back.Armour) _backs.Add(cell);
-                int x = cell % width, y = cell / width;
-                for (int dy = -1; dy <= 1; dy++)
-                    for (int dx = -1; dx <= 1; dx++)
-                    {
-                        int nx = x + dx, ny = y + dy;
-                        if (dx == 0 && dy == 0 || nx < 0 || ny < 0 || nx >= width || ny >= _grid.Height) continue;
-                        if (Math.Abs(nx - cx) > most || Math.Abs(ny - cy) > most) continue;
-                        int next = ny * width + nx, to = cost + (dx != 0 && dy != 0 ? Meteors.Diagonal : Meteors.Step);
-                        if (_grid.WallAt(next) != null)
-                        {
-                            if (HitProblem(next) != null) continue;
-                            to += Meteors.PerStrength * _grid.WallAt(next)!.Armour;
-                        }
-                        else if (_grid.StructureAt(next) != Structure.Empty || _grid.MachineAt(next) != null) continue;
-                        if (to > charge || to >= _spent[Box(next)]) continue;
-                        _spent[Box(next)] = to;
-                        _byCost[to].Add(next);
-                    }
-            }
+            });
         _blast.Sort();
         _backs.Sort();
         foreach (int cell in _blast) Break(cell);
         foreach (int cell in _backs) _ops.Clear(cell, "back");
+    }
+
+    /// <summary>What entering <paramref name="cell"/> costs a meteor's wave besides its step: a wall its strength, nothing open; null where a door, window, ladder, machine or a wall that never breaks stops it.</summary>
+    private int? Enter(int cell)
+    {
+        if (_grid.WallAt(cell) is { } wall) return HitProblem(cell) != null ? null : Meteors.PerStrength * wall.Armour;
+        return _grid.StructureAt(cell) != Structure.Empty || _grid.MachineAt(cell) != null ? null : 0;
     }
 
     /// <summary>

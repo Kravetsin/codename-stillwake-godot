@@ -123,8 +123,11 @@ Game words → code. One line a term: Russian / English → identifiers → modu
 - сутки, день, ночь, время суток / day, night, hour → `Sky.Cycle` (`c/Sky.cs`), `SkyNow`, `SetTime` (sim/Sky); fades `Daylight` (gc) → Sky
 - ночной холод, мороз / the night's chill → `Cycle.Chill`, `ColdAt` (sim/Crew), frost `Report.Cold` → Crew
 - копать / dig → `Dig`, `Crack` (sim/Building `Digging.cs`) → Building
-- жила, руда / vein, ore → `Vein` (`c/Veins.cs`), materials `copperVein`, `iceVein`, `ironVein` (`Material.In`), drawn in `Terrain` → Core
+- жила, руда / vein, ore → `Vein` (`c/Veins.cs`), materials `copperVein`, `iceVein`, `ironVein`, `sulfurVein` (сера, item `sulfur`; `Material.In`), drawn in `Terrain` → Core
 - залежь, рудный карман / ore pocket → `Pockets` (`c/Veins.cs`), `Terrain.PaintPockets` → Core
+- подрывной заряд, взрывчатка, бомба / blasting charge → item and gun `blastCharge` (`Shots.Thrown`, `Shots.BlastCharge`), `Blasting.Charge` (c/`Blasting.cs`); its burst `Wave` (sim/Core), `IBuildingOps.Blast` → Creatures, Building
+- тайник, клад / deep cache **≠** the spire's cache → growths `frostCache`, `bloomCache`, `amberCache`, `emberCache` (`Flora.Cave`, in the rock) → Building
+- опал / opal → item `opal`, a cache's yield, only sold (`Market`) → Items, Trade
 - рудная зона / lode → `PlanetType.LodeWave`, `LodeOver`, `CaveKind.Lode` (crystals by the veins) → Core
 - расщелина, разлом / chasm, rift → `Ground.Chasms`, `ChasmDeep`, `RiftDeep` (one chasm down to the band over the core), `Terrain.Landmarks` → Core
 - слой планеты, пласт / depth band, stratum **≠** a grid layer → `PlanetType.Bands`, `Terrain.BandOf` → Core

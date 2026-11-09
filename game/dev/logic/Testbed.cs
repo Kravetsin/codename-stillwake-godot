@@ -32,8 +32,8 @@ public static class Testbed
     /// <summary>What the crusher takes and gives, in the farm's crate too, gravel with planks for soil; quartz, the smelter's, stays in the full one for drones to bring.</summary>
     public static readonly IReadOnlyList<string> Crushed = ["rock", "asteroidOre", "ironOre", "gravel"];
 
-    /// <summary>What a planet's caves and ruins give (0080, 0085, 0091), the motor made of their copper, a grazer's hide and fat, and the cape of cloth and hide, in the farm's crate too: the first is full.</summary>
-    public static readonly IReadOnlyList<string> Planet = ["copperOre", "copper", "ice", Content.Water.Item, "crystal", "spore", "mica", "magnetite", "motor", "alloyScrap", "arcShard", "cloth", "hide", "fat", "arcLamp", Cape.Item];
+    /// <summary>What a planet's caves and ruins give (0080, 0085, 0091, blasting-charge), the motor made of their copper, a grazer's hide and fat, and the cape of cloth and hide, in the farm's crate too: the first is full.</summary>
+    public static readonly IReadOnlyList<string> Planet = ["copperOre", "copper", "ice", Content.Water.Item, "crystal", "spore", "mica", "magnetite", "sulfur", "opal", "motor", "alloyScrap", "arcShard", "cloth", "hide", "fat", "arcLamp", Cape.Item];
 
     /// <summary>What nothing makes, in the farm's crate too: a solar panel's photosensitive panel, had only of one taken apart.</summary>
     public static readonly IReadOnlyList<string> Unmade = ["photoPanel"];
@@ -50,9 +50,9 @@ public static class Testbed
     /// <summary>
     /// What the supply crate by the door holds besides its supplies, the first crate being full: the helmet lamp (0077), the scanner (2026-11-07-the-scanner), an empty accumulator
     /// (0099), a part of each of the computer's (<see cref="ComputerParts"/>), a launch platform's deck drive and the engine's parts
-    /// (<see cref="EngineParts"/>), the nailer and its nails, the full crate having no slot left. A drill with the arc fitted lies there too (0098); a plain one is on the arc bench, to be fitted there (0099).
+    /// (<see cref="EngineParts"/>), the nailer and its nails and the blasting charges, the full crate having no slot left. A drill with the arc fitted lies there too (0098); a plain one is on the arc bench, to be fitted there (0099).
     /// </summary>
-    public static IEnumerable<string> InSupply => [HelmetLamp.Item, Helmet.Scanner, "accumulator", .. ComputerParts, "deckDrive", .. EngineParts, Shots.Nailer.Item, Shots.Railgun.Item, Shots.Nail.Id];
+    public static IEnumerable<string> InSupply => [HelmetLamp.Item, Helmet.Scanner, "accumulator", .. ComputerParts, "deckDrive", .. EngineParts, Shots.Nailer.Item, Shots.Railgun.Item, Shots.Nail.Id, Shots.Thrown.Item];
 
     /// <summary>
     /// What the tools crate on the lifepod holds, the others being full: the salvage tools (salvage-tools), the pickaxe (the-pickaxe), the grappling gun (grapple-climbs), and an arc

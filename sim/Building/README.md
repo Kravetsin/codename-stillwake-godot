@@ -6,22 +6,22 @@
 | --- | --- |
 | `Building.cs` | Plans and the work turning them into the ship. |
 | `Costs.cs` | Costs, ticks to build or repair; what a blueprint lacks. |
-| `Digging.cs` | A weapon's hits on a planet's ground (`Hew`, `HewCells`). |
+| `Digging.cs` | Hits on a planet's ground (`Hew`, `HewCells`, `Hit`, `Blast`). |
 | `Flora.cs` | Plants, stones, cave growths and ruins' pieces (0079, 0080, 0091). |
 | `Fuzz.cs` | The commands the desync suite draws. |
 | `Repairs.cs` | Repairing a machine a magnetic flare broke (`Repair`). |
 | `Rules.cs` | Which plans may be made and worked. |
 | `State.cs` | The saved slice: `Plan`, `Crack`, `Repairing`, `BuildingState`. |
 
-A blueprint puts something in a cell, a mark takes something apart.
-Also digging, what grows (0077, 0079, 0080), the ruins' pieces (0085, 0091, 0096) and repairs (magnetic-flare).
+Blueprints build, marks take apart; also digging, growths (0077, 0079, 0080), ruins' pieces (0085, 0091, 0096), repairs
+(magnetic-flare).
 
 - **Depends on:** `Grid` (queries, ops); `Items` (queries, ops); `Crew` (`Heroes`; `Shock`, 0091, 0096); `Power`
-  (`Unplug`, `Plug`, 0110; `IsBroken`, `Mend`); `Research` (`Knows`, 0024); `Crafting` (`Queue`, 0057); `Pipes` (`SeatProblem`). Creatures reads it (`ShotTakes`, `ShotKey`) and changes it (`Hit`); Places, `Wipe`.
+  (`Unplug`, `Plug`, 0110; `IsBroken`, `Mend`); `Research` (`Knows`, 0024); `Crafting` (`Queue`, 0057); `Pipes` (`SeatProblem`). Creatures reads it (`ShotTakes`, `Blasts`) and changes it (`Hit`, `Blast`); Places, `Wipe`.
 - **State** (`BuildingState`, all saved): `Plans` in the order made, each with `Progress` in ticks and, for a blueprint,
   `Delivered` stacks in the order first given; `NextPlanId`; `Cracks`, sorted by cell (`Crack(Cell, Damage, At, Back)`);
-  `Felled`, cells of growths felled, ascending; `Clock`; `Instant`; `Repairs` paid, by machine. Derived (`Flora.cs`): the growths grown
-  and standing, by cell; the resonators standing.
+  `Felled`, cells of growths felled, ascending; `Clock`; `Instant`; `Repairs` paid, by machine. Derived (`Flora.cs`): growths grown and
+  standing, by cell; resonators.
 
 ## Rules
 
@@ -44,7 +44,7 @@ Also digging, what grows (0077, 0079, 0080), the ruins' pieces (0085, 0091, 0096
   down. The tick that starts an unpaid part takes from the sender's stock (own slots, then crates) the first item in cost
   order still lacking, else is refused `items.notEnough`. Within a paid part anyone works; a creative worker pays from nothing.
 - **Repair** (free-repair): a tick of work as `Work`, free; the last `Mend`s. A broken machine refunds in full.
-- **Instant** (`SetInstant`, dev): blueprints built free, removals refunded, at once; new surfaces keep it.
+- **Instant** (`SetInstant`, dev): blueprints built free, removals refunded, at once.
 - **Cancelling** a blueprint drops exactly what was put in (`DropAt`); a mark drops nothing (0063). Anyone may cancel
   or work any plan; a mark whose thing a meteor broke is dropped in derivation, refunding nothing.
 - **A wall does not finish on a hero** (0077): the `Work` that would complete a wall (instant: placing) is refused `building.heroInside`
@@ -57,19 +57,20 @@ Also digging, what grows (0077, 0079, 0080), the ruins' pieces (0085, 0091, 0096
   Each takes `BlockDamage` (0098) once (0: none, no shock), a pile `Damage` at its `Hp` (pile-hit-points): at its strength a wall
   goes for its `Cost` and held growths, a piece whole.
   `building.nothingToDig`, then `items.flat` / `items.notRunning`. `Hit`, a shot's, strikes one cell `ShotTakes` allows,
-  true if it broke, its yield the shooter's here, else anyone's. No tool hits back walls.
+  true if it broke, its yield the shooter's here, else anyone's. No tool hits back walls. `Blast` (blasting-charge) clears a
+  natural wall where `ToolsBreak`: an ore's `Cost` and held growths the thrower's, rest dust.
 - **Cracks heal** (0077): one not hit for `Builds.CrackHeals` ticks of Building's `Clock` is dropped, as, in derivation,
   one whose wall or plant is gone.
 - **Growths** (0079, 0080) grow from the seed with `Terrain`, each held by an `Anchor` (floor, ceiling, rock, back).
   A hit on any open cell of one cracks it by its own cell; at its kind's `Strength` it is felled for its `Yields`; one in
   the rock goes with its stone. Hold gone or own cell built over: felled in derivation (0051). Nothing grows back.
-- **Felled by nobody** (0085): built over or lost to a meteor, a growth drops its `Yields` at its cell, anyone's.
+- **Felled by nobody** (0085): built over or lost to a meteor, its `Yields` drop at its cell.
 - **Ruins** (0085, 0091): caches, lenses and the homes' pieces are growths set by `Terrain`. `Behind` pieces have a
   layer of their own, the front hit first; `Fixed` ones no hit takes; a piece standing on another falls with it.
-- **The resonator** (0091): every breath, before crew breathes, a hero within `Ruins.ZapReach` pays `Ruins.Zap` (`Shock`).
+- **The resonator** (0091): each breath, before crew, a hero in `Ruins.ZapReach` pays `Ruins.Zap` (`Shock`).
 - **The relic** (0096): every `Hew` striking a cradle first shocks its sender once (`ShockOf`, a faster tool its pace's
   share); its floor dug out fells it unshocked. `Relics` reads taken-ness from `Felled` alone.
-- **Posts** (`Flora.Post`): rock pieces a guard is tied to; `FellPost` for a kill.
+- **Posts** (`Flora.Post`): rock pieces tied to a guard; `FellPost` on a kill.
 
 ## Commands
 
@@ -86,12 +87,12 @@ Also digging, what grows (0077, 0079, 0080), the ruins' pieces (0085, 0091, 0096
 - A crack lies only on something that breaks, damage above 0 and below its strength, one a cell and layer, by cell.
   A wall broken gives what it is made of, once.
 - After derivation every standing growth's hold is there; `Plants` and `Felled` are disjoint and together what grew.
-- Items are conserved across inventories, floor, blueprints and what is built, but for what drifts off the grid or a `Wipe` takes.
+- Items are conserved across inventories, floor, blueprints and what is built, but what drifts off the grid or a `Wipe` takes.
 
 ## Deliberately not handled
 
 - A drawn map's growths are not brought back by a load: only grown ground grows again.
-- Only a growth's own cell built over fells it, not its crown's (0080).
+- Only a growth's own cell built over fells it (0080).
 - Reach, a fan's hand, a shot's muzzle and which plan is worked are the client's.
 - A blueprint finished on its hero's cell holds the hero.
 - Taking apart needs no knowledge (0024).

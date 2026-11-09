@@ -120,6 +120,12 @@ public static class Items
         new("mica", 250),
         // Lodestone, a natural magnet, out of the heat's cracks over the bedrock: a motor's magnet.
         new("magnetite", 250),
+        // Yellow lumps out of the deep stone's pockets (blasting-charge): the blasting charge's.
+        new("sulfur", 250),
+        // What the deep caches give (blasting-charge): sold at the trade station, used in nothing.
+        new("opal", 50),
+        // Two sulfur in an iron tube (blasting-charge): thrown, it bursts where it lands, breaking the ground round it.
+        new("blastCharge", 50),
         // Out of the ruins (0085): scrap of their alloy, a cell of wall dug or a spire cache opened; walls of it built.
         new("alloyScrap", 250),
         // What the arc makers' homes give (0091): the cloth of their rugs and banners, which burns till the ship makes things of

@@ -160,6 +160,12 @@ public static class Flora
         // floor of its hall, the lens in its tip's alloy; its relic's cradle is a piece (0096).
         new(Ruins.SpireCache, Anchor.Floor, Tall: 2, Wide: 0, Apart: 2, Chances: [0, 0, 0, 0]) { Yields = [("alloyScrap", 4), ("wire", 6), ("silicon", 2)] },
         new(Ruins.SpireLamp, Anchor.Rock, Tall: 2, Wide: 0, Apart: 2, Chances: [0, 0, 0, 0]),
+        // The deep caches (blasting-charge), last so they take only the rolls nothing took: a find in the rock by a cave, glowing in
+        // its band's colour, one kind a band, more opals the deeper.
+        new("frostCache", Anchor.Rock, Tall: 2, Wide: 0, Apart: 200, Chances: [3, 0, 0, 0]) { Yields = [("opal", 1)] },
+        new("bloomCache", Anchor.Rock, Tall: 2, Wide: 0, Apart: 200, Chances: [0, 3, 0, 0]) { Yields = [("opal", 2)] },
+        new("amberCache", Anchor.Rock, Tall: 2, Wide: 0, Apart: 200, Chances: [0, 0, 3, 0]) { Yields = [("opal", 4)] },
+        new("emberCache", Anchor.Rock, Tall: 2, Wide: 0, Apart: 200, Chances: [0, 0, 0, 3]) { Yields = [("opal", 7)] },
     ];
 
     /// <summary>

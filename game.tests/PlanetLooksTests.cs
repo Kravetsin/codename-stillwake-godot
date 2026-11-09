@@ -15,6 +15,15 @@ public class PlanetLooksTests
             Assert.All(PlanetLooks.BackdropPictures, p => Assert.True(Png.Has($"{look.Backdrop}/{p}"), p));
     }
 
+    /// <summary>Every material drawn by band, stone and each vein through it, has a picture in every band a planet has: a vein without one throws each frame it shows.</summary>
+    [Fact]
+    public void EveryBandedMaterialHasAPictureInEveryBand()
+    {
+        int bands = Spec.PlanetTypes.All.Max(t => new Stillwake.Game.Features.Grid.Strata(t, PlanetLooks.Of[t.Id].StrataFrom).Bands);
+        foreach (var material in Spec.Materials.All.Where(Stillwake.Game.Features.Grid.Strata.Banded))
+            for (int band = 0; band < bands; band++) Assert.True(Png.Has($"wall_{material.Id}_b{band}"), $"{material.Id}: band {band}");
+    }
+
     [Fact]
     public void EveryTypeHasStoneForEachBandAndEveryGrowthOfItALook()
     {

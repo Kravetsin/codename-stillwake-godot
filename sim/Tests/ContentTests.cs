@@ -61,7 +61,7 @@ public partial class ContentTests
             Assert.All(Weapons.All, w => Assert.True(w.BlockDamage < m.Strength || m.Id == "soil", $"{w.Item} on {m.Id}"));
             Assert.All(m.Cost, c => Assert.True(Content.Items.TryGet(c.Item, out _), c.Item));
         }
-        Assert.Equal(["soil", "stone", "bedrock", "lava", "alloy", "plaster", "copperVein", "iceVein", "ironVein"], Materials.All.Where(m => m.Natural).Select(m => m.Id));
+        Assert.Equal(["soil", "stone", "bedrock", "lava", "alloy", "plaster", "copperVein", "iceVein", "ironVein", "sulfurVein"], Materials.All.Where(m => m.Natural).Select(m => m.Id));
         // The ruins' alloy (0085), a cell of it: seven and a half seconds of the axe, a second and a half of the drill, under one
         // fitted (0098).
         int Tenths(Weapon w) => Materials.Get("alloy").Strength * 10 / (w.BlockDamage * World.TicksPerSecond / w.Pace);
@@ -164,7 +164,7 @@ public partial class ContentTests
             Assert.All(kind.Yields, y => Assert.True(Content.Items.TryGet(y.Item, out _) && y.Count > 0, $"{kind.Id}: {y.Item}"));
         var giving = Flora.All.Concat<Flora.Growth>(Flora.Cave).Where(k => k.Yields.Count > 0).Select(k => k.Id).Order(StringComparer.Ordinal);
         Assert.Equal(
-            ["acacia", "bush", "crystalAmber", "crystalAmberHang", "crystalEmber", "crystalIce", "crystalIceHang", "crystalRose", "geode", "glowcapTeal", "glowcapViolet", "hangcap", "heatCrack", "mica", "rock", "spireCache"],
+            ["acacia", "amberCache", "bloomCache", "bush", "crystalAmber", "crystalAmberHang", "crystalEmber", "crystalIce", "crystalIceHang", "crystalRose", "emberCache", "frostCache", "geode", "glowcapTeal", "glowcapViolet", "hangcap", "heatCrack", "mica", "rock", "spireCache"],
             giving);
         // A geode is a hollow of crystals: more than any one crystal gives.
         Assert.True(Flora.Get("geode").Yields.Single().Count > Flora.Cave.Where(k => k.Id.StartsWith("crystal", StringComparison.Ordinal)).Max(k => k.Yields.Single().Count));

@@ -17,6 +17,7 @@ namespace Stillwake.Game.Dev;
 [Dev("--dusk", "with --planet or --strip, the planet's dusk starting two seconds in, its night a minute on (2026-11-07-night-chills)", Order = 5)]
 [Dev("--valley", "with --planet, the hero beamed down into the planet's deepest valley rather than at the pod, to see the land behind follow (composed-backdrops)", Order = 5)]
 [Dev("--beam-twice", "with --planet, back aboard two seconds in and down again two seconds later: the second descent (heard-every-other)", Order = 5)]
+[Dev("--charges", "with --planet, fifty blasting charges in the third slot, the spear in the fourth, and the hero beamed into the cave by the shallowest deep cache (blasting-charge)", Order = 5)]
 [Dev("--dig", "with --planet, the ground under the hero hewn at the drill's pace from four seconds in, so it digs down: to measure what digging costs a frame; =SECONDS stops then, --frames counting afresh, to measure the depth reached", Order = 5, Shape = DevShape.Either)]
 public sealed class PlanetScenario : DevScenario
 {
@@ -28,16 +29,26 @@ public sealed class PlanetScenario : DevScenario
 
     private bool Valleys => Args.Has("--valley") && !Strip;
 
+    private bool Charges => Args.Has("--charges") && !Strip;
+    private bool _cached;
+
     // The hero carries the axe and the drill and wears the helmet lamp, to try the caves; --ground seeds the same.
-    public override World Seed(World world, DevSeed seed) =>
-        Args.Value("--ground") == null && (Args.Has("--planet") || Args.Given("--creatures") != null) ? GroundDemo.Seed(world, seed.Modules, ArcDrill) : world;
+    public override World Seed(World world, DevSeed seed)
+    {
+        var seeded = Args.Value("--ground") == null && (Args.Has("--planet") || Args.Given("--creatures") != null) ? GroundDemo.Seed(world, seed.Modules, ArcDrill) : world;
+        if (!Charges) return seeded;
+        var root = JsonNode.Parse(seeded.Save())!;
+        root["slices"]!["items"]!["inventories"]![0]!["slots"]![2] = new JsonObject { ["item"] = Content.Shots.Thrown.Item, ["count"] = 50 };
+        root["slices"]!["items"]!["inventories"]![0]!["slots"]![3] = new JsonObject { ["item"] = Content.Weapons.Spear.Item, ["count"] = 1 };
+        return World.Load(root.ToJsonString(), seed.Modules());
+    }
 
     public override HeroAutopilot? Script => Strip && Args.Has("--autopilot") ? HeroAutopilot.PlanetRun() : null;
 
     public override void Started(Client client)
     {
         client.Send(new OpenSurface((Strip ? Content.Surfaces.TestStrip : Content.PlanetTypes.First).Id));
-        if (!Valleys) client.Send(new Transfer(client.World.Surfaces.Count));
+        if (!Valleys && !Charges) client.Send(new Transfer(client.World.Surfaces.Count));
     }
 
     /// <summary>
@@ -56,6 +67,38 @@ public sealed class PlanetScenario : DevScenario
         log($"valley: beamed to column {best}, its ground at row {tops[best]}, the land round it at {Features.Backdrop.GroundLine.Mean(tops, best, reach):F0}");
     }
 
+    /// <summary>
+    /// <c>--charges</c>: the hero beamed to the shallowest deep cache, onto the nearest floor with room to stand within a few cells of it.
+    /// </summary>
+    private static void Cache(Client client, Action<string> log)
+    {
+        int planet = client.World.Surfaces.Count - 1;
+        var on = Registry.On(client.World, planet);
+        var grid = on.Grid;
+        int w = grid.Width;
+        bool Open(int x, int y) => x >= 0 && x < w && y >= 0 && y < grid.Height && !grid.Solid(y * w + x);
+        var caches = on.Building.Plants.Where(p => p.Kind is "frostCache" or "bloomCache" or "amberCache" or "emberCache").OrderBy(p => p.Cell / w).ToList();
+        foreach (var cache in caches)
+        {
+            int cx = cache.Cell % w, cy = cache.Cell / w;
+            var spots = from dy in Enumerable.Range(-8, 17)
+                        from dx in Enumerable.Range(-8, 17)
+                        let x = cx + dx
+                        let y = cy + dy
+                        where Enumerable.Range(0, 6).All(up => Open(x, y - up)) && y + 1 < grid.Height && grid.Solid((y + 1) * w + x)
+                        orderby dx * dx + dy * dy
+                        select y * w + x;
+            if (spots.FirstOrDefault(-1) is var spot and >= 0)
+            {
+                client.Send(new Transfer(planet, spot));
+                log($"charges: beamed by the {cache.Kind} at column {cx}, row {cy}, onto row {spot / w}");
+                return;
+            }
+        }
+        client.Send(new Transfer(planet));
+        log("charges: no cache with room by it; beamed to the pod");
+    }
+
     /// <summary><c>--beam-back</c>: back aboard two seconds in, to see the switch both ways (<c>--beam-twice</c> down again at four); <c>--dusk</c>: the planet's dusk then.</summary>
     public override void Frame(Client client, Registry m, Action<string> log)
     {
@@ -63,6 +106,11 @@ public sealed class PlanetScenario : DevScenario
         {
             _valley = true;
             Valley(client, log);
+        }
+        if (Charges && !_cached && client.World.Surfaces.Count > 1)
+        {
+            _cached = true;
+            Cache(client, log);
         }
         if (client.World.Tick < 2 * World.TicksPerSecond) return;
         Dig(client, m);

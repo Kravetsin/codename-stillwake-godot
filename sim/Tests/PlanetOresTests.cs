@@ -14,7 +14,8 @@ namespace Stillwake.Sim.Tests;
 public class PlanetOresTests(ITestOutputHelper output)
 {
     private static readonly PlanetType First = PlanetTypes.First;
-    private static readonly int Stone = Materials.Get("stone").Code, Copper = Materials.Get("copperVein").Code, Iron = Materials.Get("ironVein").Code;
+    private static readonly int Stone = Materials.Get("stone").Code, Copper = Materials.Get("copperVein").Code, Iron = Materials.Get("ironVein").Code,
+        Sulfur = Materials.Get("sulfurVein").Code;
     private const int Seeds = 16;
 
     /// <summary>What the measurement found over the seeds: per ore and band, its cells and the rock's; its pockets' sizes in bands 0 and 2.</summary>
@@ -27,7 +28,7 @@ public class PlanetOresTests(ITestOutputHelper output)
     {
         int bands = First.Bands.Count + 1;
         var rock = new long[bands];
-        var ore = new Dictionary<int, long[]> { [Copper] = new long[bands], [Iron] = new long[bands] };
+        var ore = new Dictionary<int, long[]> { [Copper] = new long[bands], [Iron] = new long[bands], [Sulfur] = new long[bands] };
         var band0 = new Dictionary<int, List<int>> { [Copper] = [], [Iron] = [] };
         var band2 = new Dictionary<int, List<int>> { [Copper] = [], [Iron] = [] };
         for (uint seed = 1; seed <= Seeds; seed++)
@@ -81,11 +82,12 @@ public class PlanetOresTests(ITestOutputHelper output)
         }
     }
 
-    /// <summary>The plan's targets, percent of the rock per band (veins and pockets): copper, then iron.</summary>
+    /// <summary>The plans' targets, percent of the rock per band (veins and pockets): copper, iron, sulfur (deep-sulfur).</summary>
     private static readonly Dictionary<string, double[]> Targets = new()
     {
         ["copperVein"] = [0.15, 1.2, 2.2, 1.6],
         ["ironVein"] = [0.25, 0.7, 0.6, 0.4],
+        ["sulfurVein"] = [0, 0.1, 0.6, 1.0],
     };
 
     [Fact]
@@ -98,12 +100,16 @@ public class PlanetOresTests(ITestOutputHelper output)
             var shares = counts.Select((n, band) => 100.0 * n / m.Rock[band]).ToArray();
             output.WriteLine($"{material}: {string.Join(", ", shares.Select((s, b) => $"band {b} {s:F3} % (target {targets[b]} %)"))}");
             for (int band = 0; band < targets.Length; band++)
-                Assert.True(Math.Abs(shares[band] - targets[band]) <= 0.3 * targets[band], $"{material} band {band}: {shares[band]:F3} % for {targets[band]} %");
+                Assert.True(targets[band] == 0 ? counts[band] == 0 : Math.Abs(shares[band] - targets[band]) <= 0.3 * targets[band], $"{material} band {band}: {shares[band]:F3} % for {targets[band]} %");
         }
         // Going down pays: iron, pockets alone, richer in every band under the first.
         var iron = m.Ore[Iron];
         for (int band = 1; band < iron.Length; band++)
             Assert.True(iron[band] * m.Rock[0] > iron[0] * m.Rock[band], $"iron no richer in band {band} than in band 0");
+        // Sulfur deeper is richer: from rare specks in the garden band to the most over the lava (deep-sulfur).
+        var sulfur = m.Ore[Sulfur];
+        for (int band = 2; band < sulfur.Length; band++)
+            Assert.True(sulfur[band] * m.Rock[band - 1] > sulfur[band - 1] * m.Rock[band], $"sulfur no richer in band {band} than in band {band - 1}");
     }
 
     /// <summary>The largest pocket band 0 holds over the seeds, a few specks joined (measured: copper's 26, iron's 52).</summary>
@@ -195,6 +201,50 @@ public class PlanetOresTests(ITestOutputHelper output)
         Assert.True(shared > 0, "no cell both ores reach");
     }
 
+    [Fact]
+    public void SulfurAppendedLeavesEveryOtherCellOfThePlanetAsItWas()
+    {
+        var without = First with { Veins = [.. First.Veins.Where(v => v.Material != "sulfurVein")] };
+        foreach (uint seed in new uint[] { 1, 2 })
+        {
+            var (with, was) = (PlanetTesting.First(seed).Layout, Terrain.Generate(without, seed));
+            int sulfur = 0, moved = 0;
+            for (int cell = 0; cell < with.Width * with.Height; cell++)
+            {
+                int code = with.Materials![cell];
+                if (code == Sulfur) sulfur++;
+                // A sulfur cell was plain stone; every other cell is as it was.
+                if (with.At(cell) != was.At(cell) || was.Materials![cell] != (code == Sulfur ? Stone : code)) moved++;
+            }
+            Assert.Equal(0, moved);
+            Assert.True(sulfur > 0, $"seed {seed}: no sulfur");
+        }
+    }
+
+    [Fact]
+    public void TheRiftsWallsShowSulfurInTheAmberDeepBeforeItsBottom()
+    {
+        var seen = new List<int>();
+        for (uint seed = 1; seed <= Seeds; seed++)
+        {
+            var l = PlanetTesting.First(seed).Layout;
+            int w = l.Width, top = Enumerable.Range(0, l.Height).First(y => Terrain.BandOf(First, y) == 2);
+            int bottom = Enumerable.Range(top, l.Height - top).First(y => Terrain.BandOf(First, y) == 3);
+            // The rift: the column, off the fog at the sides, open most of the way through the amber deep.
+            int fog = First.Ground.Fog + 20, rift = Enumerable.Range(fog, w - 2 * fog).MaxBy(x => Enumerable.Range(top, bottom - top).Count(y => l.Rows[y][x] is ' ' or '.'));
+            int faces = 0;
+            for (int y = top; y < bottom; y++)
+                for (int x = Math.Max(1, rift - 16); x <= Math.Min(w - 2, rift + 16); x++)
+                {
+                    int cell = y * w + x;
+                    if (l.At(cell) == '#' && l.Materials![cell] == Sulfur && (l.At(cell - 1) != '#' || l.At(cell + 1) != '#' || l.At(cell - w) != '#' || l.At(cell + w) != '#')) faces++;
+                }
+            seen.Add(faces);
+        }
+        output.WriteLine($"sulfur faces along the rift in the amber deep: {string.Join(" ", seen)}");
+        // Measured: faces on 13 seeds of 16, up to 9 a seed: a few glints on the way down, more where the rift crosses a pocket.
+        Assert.True(seen.Count(n => n >= 1) >= 12, $"sulfur seen along the rift on {seen.Count(n => n >= 1)} seeds of {Seeds}");
+    }
 }
 
 /// <summary>
@@ -203,12 +253,13 @@ public class PlanetOresTests(ITestOutputHelper output)
 /// </summary>
 public class PlanetOresInvariantTests
 {
-    private static readonly int Stone = Materials.Get("stone").Code, Copper = Materials.Get("copperVein").Code, Iron = Materials.Get("ironVein").Code;
+    private static readonly int Stone = Materials.Get("stone").Code, Copper = Materials.Get("copperVein").Code, Iron = Materials.Get("ironVein").Code,
+        Sulfur = Materials.Get("sulfurVein").Code;
 
     private static Arbitrary<uint> AnySeed => Gen.Choose(0, int.MaxValue).Select(s => (uint)s * 2654435761u).ToArbitrary();
 
-    /// <summary>A small planet that grows no pocket at all: its marks are reached only off its few stone cells (some 1,750), about one seed in 600.</summary>
-    private const uint Pocketless = 3230174845u;
+    /// <summary>A small planet that grows no pocket at all: its marks are reached only off its few stone cells (some 1,750): rarer since sulfur joined, this one found by a search of the seeds.</summary>
+    private const uint Pocketless = 1591163867u;
 
     [Property(MaxTest = 40)]
     public Property PocketsChangeOnlyPlainStoneAndNeitherTheGroundNorTheLodeVeinsNorTheGrowths() =>
@@ -224,7 +275,7 @@ public class PlanetOresInvariantTests
 
     /// <summary>
     /// How many cells the pockets turned to ore on the small planet of <paramref name="seed"/>, each checked: plain stone, solid, no
-    /// growth's, now copper or iron; the ground and the growths as they were without pockets.
+    /// growth's, now copper, iron or sulfur; the ground and the growths as they were without pockets.
     /// </summary>
     private static int Changed(uint seed)
     {
@@ -243,7 +294,7 @@ public class PlanetOresInvariantTests
         {
             int was = off.Materials![cell], now = on.Materials![cell];
             if (was == now) continue;
-            Assert.True(was == Stone && !footprint[cell] && on.At(cell) == '#' && (now == Copper || now == Iron), $"seed {seed}: cell {cell} {was} -> {now}");
+            Assert.True(was == Stone && !footprint[cell] && on.At(cell) == '#' && (now == Copper || now == Iron || now == Sulfur), $"seed {seed}: cell {cell} {was} -> {now}");
             changed++;
         }
         return changed;

@@ -50,6 +50,12 @@ public interface IBuildingQueries
     /// </summary>
     bool ShotTakes(int cell);
 
+    /// <summary>
+    /// Whether a burst breaks the wall in <paramref name="cell"/> (blasting-charge): the surface's tools break things, the cell is in the
+    /// grid's zone, and its wall is natural ground that breaks: never a built wall, bedrock or lava. What <see cref="IBuildingOps.Blast"/> guards by.
+    /// </summary>
+    bool Blasts(int cell);
+
     /// <summary>What a shot's hit in <paramref name="cell"/> strikes, by a cell of it: a built piece by its first cell, whatever cell of it is met; else the cell itself. A thing a shot passed is remembered by this, so a piece over several cells is hit once.</summary>
     int ShotKey(int cell);
 
@@ -71,6 +77,12 @@ public interface IBuildingOps
 {
     /// <summary>A hit of <paramref name="damage"/> by peer <paramref name="peer"/>'s shot on what stands solid in <paramref name="cell"/>: true when it broke.</summary>
     bool Hit(int peer, int cell, int damage);
+
+    /// <summary>
+    /// The natural wall in <paramref name="cell"/> broken by peer <paramref name="peer"/>'s burst (blasting-charge): an ore's lump and the
+    /// growths it held given to the peer, plain ground none; nothing where <see cref="IBuildingQueries.Blasts"/> says no.
+    /// </summary>
+    void Blast(int peer, int cell);
 
     /// <summary>Fells the post at <paramref name="cell"/> for good, its creature killed; nothing if it is gone already.</summary>
     void FellPost(int cell);

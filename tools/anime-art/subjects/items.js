@@ -257,6 +257,50 @@ PICS.push({ id: 'iron', draw(a) {
 } });
 
 // Scrap: torn plate, a bent bar and a bolt in a heap.
+// Sulfur (the user's pick, 2026-11-08: bloom): a crumbly pale yellow lump, pores in its crust, on a sliver of the stone it grew on.
+const SULFUR = { base: '#d8c66c', shade: '#aa9c58', deep: '#7c7244', lite: '#eee2a4', spec: '#f4ecc0', ink: '#29251a' };
+const SULFUR_STONE = { base: '#5e6472', shade: '#434855', deep: '#2f3340', lite: '#747a88', spec: '#8e94a0', ink: '#0f111b' };
+PICS.push({ id: 'sulfur', draw(a) {
+  a.shape('M6 122L28 108L62 116L74 138L56 154L20 150Z', SULFUR_STONE, { lite: 'M6 122L28 108L62 116L40 124Z', shade: 'M62 116L74 138L56 154L46 132Z', lines: ['M40 124L46 132'] });
+  a.shape('M18 108C14 88 28 72 48 70C56 52 78 44 98 50C118 44 142 58 144 80C156 90 156 114 142 126C130 142 100 146 78 142C52 148 24 134 18 108Z', SULFUR, {
+    lite: 'M18 108C14 88 28 72 48 70C56 52 78 44 98 50C86 62 70 70 56 84C42 92 28 100 18 108Z',
+    shade: 'M144 80C156 90 156 114 142 126C130 142 100 146 78 142C96 132 120 120 130 100Z',
+    deep: 'M142 126C130 142 100 146 78 142C100 140 124 132 136 120Z',
+    lines: ['M60 96L72 106L68 120', 'M104 78L112 92', 'M120 110L110 124'] });
+  // Pores in the crust, a lit lip on the far side of each.
+  for (const [x, y, rx] of [[82, 88, 7], [118, 104, 5], [52, 112, 4], [96, 124, 4]]) {
+    a.flat(ell(x, y, rx, rx * .7), SULFUR.deep);
+    a.line(`M${x - rx * .7} ${y + rx * .5}C${x} ${y + rx * .9} ${x + rx * .6} ${y + rx * .6} ${x + rx} ${y}`, { c: SULFUR.lite, w: 1.3 });
+  }
+  for (const [x, y, s] of [[40, 86, 2.6], [70, 64, 2.2], [108, 62, 2.4], [132, 88, 2], [88, 106, 2.2], [62, 132, 2]]) a.flat(ell(x, y, s), SULFUR.spec);
+  a.shape('M124 146L132 138L142 142L138 152Z', SULFUR, { shade: 'M132 138L142 142L138 152Z' });
+  a.shape('M144 136L150 132L154 138L148 142Z', SULFUR, { shade: 'M150 132L154 138L148 142Z' });
+} });
+
+// Opal (the user's pick, 2026-11-08: ammonite): a fossil shell turned to opal, its chambers flecked with every band's play-of-colour, a
+// shard of grey matrix still on it. The deep caches are the same shell in the rock (cavelife.js).
+const OPAL = { base: '#8fb4d8', shade: '#5a72b0', deep: '#3a4682', lite: '#d4ecff', spec: '#ffffff', rim: '#a8d8ff', ink: '#1c2248' };
+const OPAL_MATRIX = { base: '#6c7280', shade: '#474c58', deep: '#30333c', lite: '#9298a6', spec: '#e0e4ea', ink: '#14161c' };
+const OPAL_FLECKS = ['#8cd2ff', '#9cf07a', '#ffbe5a', '#ff7040', '#c0a4ff'];
+PICS.push({ id: 'opal', draw(a) {
+  const pp = (list) => poly(list.flat());
+  a.shape(pp([[18, 104], [34, 76], [62, 62], [70, 98], [56, 136], [26, 134]]), OPAL_MATRIX, { shade: 6, lite: pp([[18, 104], [34, 76], [40, 90], [26, 110]]) });
+  const C = [84, 80], R = (t) => 5.4 * Math.exp(0.205 * t), on = (t, r) => [C[0] + Math.cos(t + 0.7) * r, C[1] + Math.sin(t + 0.7) * r], N = 12, dt = (Math.PI * 2) / N;
+  a.shape(ell(C[0], C[1], R(Math.PI * 2) + 2), OPAL, { outer: false, shade: 3 });
+  // The outer whorl's chambers, each from this turn's edge to the last's, a fleck of colour in each.
+  for (let k = 0; k < N; k++) {
+    const t0 = Math.PI * 2 + k * dt, o = [], i = [];
+    for (let j = 0; j <= 3; j++) { const t = t0 + (j / 3) * dt; o.push(on(t, R(t))); i.unshift(on(t, R(t - Math.PI * 2))); }
+    a.shape(pp(o.concat(i)), OPAL, { shade: 3 });
+    const tm = t0 + dt / 2, [x, y] = on(tm, (R(tm) + R(tm - Math.PI * 2)) / 2), w = (R(tm) - R(tm - Math.PI * 2)) * 0.28;
+    a.glow(ell(x, y, w, w * 0.8), OPAL_FLECKS[k % 5]);
+  }
+  const spiral = [];
+  for (let t = 0.3; t <= Math.PI * 2 + 0.01; t += 0.3) spiral.push(on(t, R(t)));
+  a.line('M' + spiral.map((p) => p.map((n) => n.toFixed(1)).join(' ')).join('L'), { w: 1.4, c: OPAL.ink });
+  a.flat(star(58, 38, 9), '#ffffff');
+} });
+
 PICS.push({ id: 'scrap', draw(a) {
   a.tube('M18 110C40 74 60 66 96 60', 11, M.gun, { spec: false });
   a.shape('M40 74L64 40L104 26L132 58L120 76L136 96L104 118L84 100L58 112L46 96Z', M.steel, {

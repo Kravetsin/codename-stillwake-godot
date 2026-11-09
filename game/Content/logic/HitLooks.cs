@@ -224,6 +224,7 @@ public static class HitLooks
         (["rock", "stalagmite", "stalactite"], Impact.Stone),
         (["cobweb", "threadTeal", "threadViolet"], Impact.Cloth),
         (["crystalRose", "crystalIce", "crystalAmber", "crystalEmber", "crystalIceHang", "crystalAmberHang", "geode",
+            "frostCache", "bloomCache", "amberCache", "emberCache",
             Stillwake.Content.Ruins.Cradle], Impact.Crystal),
         (["glowcapViolet", "glowcapTeal", "hangcap"], Impact.Spores),
         (["table", "chair", "stool", "bench", "bed", "cradle", "wardrobe", "chest", "frame", "clock", "basket", "toys", "desk",

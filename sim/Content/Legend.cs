@@ -44,6 +44,7 @@ public static class Legend
         ('c', "copperVein"),
         ('i', "iceVein"),
         ('r', "ironVein"),
+        ('y', "sulfurVein"),
         ('n', "iron"),
         ('w', "wreckScrap"),
     ];

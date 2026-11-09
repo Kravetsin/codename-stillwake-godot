@@ -20,7 +20,7 @@ public partial class HeroView
 
     private readonly AudioStreamPlayer _nailShot = Cues.Player(S.NailShot, S.Suit), _dryClick = Cues.Player(S.DryClick, S.Suit),
         _nailReady = Cues.Player(S.NailReady, S.Suit), _railShot = Cues.Player(S.RailShot, S.Suit),
-        _railCharge = Cues.Player(S.RailCharge, S.Suit), _railReady = Cues.Player(S.RailReady, S.Suit);
+        _railCharge = Cues.Player(S.RailCharge, S.Suit), _railReady = Cues.Player(S.RailReady, S.Suit), _chargeThrow = Cues.Player(S.ChargeThrow, S.Suit);
     private readonly Voices _ownShotEnds = new(S.Suit, voices: 3);
 
     /// <summary>The world's tick this hero's own shots were last flown to.</summary>
@@ -63,15 +63,16 @@ public partial class HeroView
             client.Send(fire);
             if (gun != null && _ship != null)
                 _current = _current.Kicked(Mathf.RoundToInt(-_figure.Barrel.X * gun.Recoil), Mathf.RoundToInt(-_figure.Barrel.Y * gun.Recoil), _ship);
-            (fire.Tool == Content.Shots.Railgun.Item ? _railShot : _nailShot).Play();
-            Puff(_figure);
+            bool thrown = fire.Tool == Content.Shots.Thrown.Item;
+            (thrown ? _chargeThrow : fire.Tool == Content.Shots.Railgun.Item ? _railShot : _nailShot).Play();
+            if (!thrown) Puff(_figure);
         }
         if (step.Dry)
         {
             _dryClick.Play();
             if (flat) _ui.PressFlat();
         }
-        if (step.Ready && gun?.Charge == 0) _nailReady.Play();
+        if (step.Ready && gun?.Charge == 0 && gun != Content.Shots.Thrown) _nailReady.Play();
         Charge(step);
         int tick = client.World.Tick;
         if (_gunTick < 0 || _gunTick > tick) _gunTick = tick;

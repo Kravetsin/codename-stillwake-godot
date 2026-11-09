@@ -180,6 +180,24 @@ public sealed partial class BuildingModule
         && (_grid.WallAt(cell) is { } wall ? wall.Strength != Material.Unbreakable : PieceAt(cell) != null);
 
     /// <inheritdoc/>
+    public bool Blasts(int cell) =>
+        Rules.ToolsBreak && _grid.Zone.Contains(cell % _grid.Width, cell / _grid.Width)
+        && _grid.WallAt(cell) is { Breaks: true };
+
+    /// <inheritdoc/>
+    // A crater's plain rock goes to dust: a burst of some 300 cells would otherwise give 300 rock. It is a way down, not a mine.
+    public void Blast(int peer, int cell)
+    {
+        if (!Blasts(cell)) return;
+        int? here = _crew.HeroOf(peer) != null ? peer : null;
+        var wall = _grid.WallAt(cell)!;
+        _gridOps.Clear(cell, "structure");
+        if (wall.In != null) Yield(here, wall.Cost, cell);
+        foreach (var plant in HeldBy(cell))
+            if (_plantOwn.GetValueOrDefault(plant.Cell) == plant) Fell(plant, here);
+    }
+
+    /// <inheritdoc/>
     public int ShotKey(int cell) => _grid.WallAt(cell) == null && PieceAt(cell) is { } piece ? piece.Head : cell;
 
     /// <summary>Gives <paramref name="cost"/> to peer <paramref name="peer"/>, what does not fit falling at <paramref name="cell"/>; for none, all of it there, anyone's.</summary>

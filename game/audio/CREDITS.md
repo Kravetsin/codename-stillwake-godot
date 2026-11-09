@@ -31,7 +31,9 @@ The salvage tools' sounds (salvage-tools) are their audition's picks, cut and le
 given, its last share faded out; a loop that length from its start, closed on itself by a 100 ms crossfade where the head and its
 tail match best, encoded as OGG; each levelled to the max momentary loudness of what it stands beside, peaks at −3 dBFS at most:
 the loops as the power driver's (−23.5 LUFS), the grinder's bite and the cutter's strike −24.5, its cut-off −26, the whooshes as
-the axe's swing (−23.4), the spear's hit as the chop (−24.9), the sledgehammer's blow as the break (−21).
+the axe's swing (−23.4), the spear's hit as the chop (−24.9), the sledgehammer's blow as the break (−21). The blasting charge's (blasting-charge) are its audition's picks, mono 48 kHz from the Freesound HQ
+previews, faded in over 5 ms: its burst the first 2.5 s, faded out from 1.7 s, 3 dB over the break (−18 LUFS max momentary), a
+bigger thing; its throw the whole 0.33 s, faded out from 0.25 s, its mean as the axe's swing (−20 dBFS).
 
 The water's sounds (liquids) are the water audition's picks, cut there from the Freesound HQ previews: a one-shot from 5 ms before
 its attack to the length given, faded in over 3 ms and its last share out, levelled so its loudest 100 ms RMS is −20 dBFS, peaks at
@@ -103,6 +105,8 @@ the louder turned down.
 | `creatures/sentry-arc-hit-1.wav` | Freesound, "Civilian Stun Gun 1/10s zap" (all of it from its attack, the last 0.12 s faded), https://freesound.org/people/AnthonyChan0/sounds/264779/ | AnthonyChan0 | CC0 |
 | `crew/air-fill-1.wav` | generated for Stillwake: white noise (mulberry32 seed 47) through two band-passes, Q 1.1, their centre rising from 2.6 to 4.8 kHz, 0.55 s: in over 50 ms, held, falling away over the last 38 %, to −3 dBFS peak (a placeholder till an audition) | Stillwake team | CC0 |
 | `crew/alarm-1.wav` | generated for Stillwake | Stillwake team | CC0 |
+| `crew/charge-burst-1.wav` | Freesound, "1 Liter Stoichiometric Oxyhydrogen Detonation (Tampere, Mustavuori)" (2.5 s from its start), https://freesound.org/people/modusmogulus/sounds/734099/ | modusmogulus | CC0 |
+| `crew/charge-throw-1.wav` | Freesound, "Throwing / Whip Effect", https://freesound.org/people/denao270/sounds/346373/ | denao270 | CC0 |
 | `crew/axe-swing-1.wav` | Freesound, "Swinging staff whoosh (strong) 04.wav", https://freesound.org/people/Nightflame/sounds/422513/ | Nightflame | CC0 |
 | `crew/axe-swing-2.wav` | Freesound, "Swinging staff whoosh (strong) 06.wav", https://freesound.org/people/Nightflame/sounds/422511/ | Nightflame | CC0 |
 | `crew/axe-swing-3.wav` | Freesound, "Swinging staff whoosh (strong) 01.wav", https://freesound.org/people/Nightflame/sounds/422506/ | Nightflame | CC0 |

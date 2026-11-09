@@ -477,7 +477,8 @@ public static class Sound
         (["rock", "stalagmite", "stalactite"], HitStone, BreakStone),
         (["bellTeal", "bellViolet", "bellAmber", "tuft", "herbs", "cobweb"], null, Grass),
         (["threadTeal", "threadViolet", "roots"], null, BushSoft),
-        (["crystalRose", "crystalIce", "crystalAmber", "crystalEmber", "crystalIceHang", "crystalAmberHang", "geode"], null, Crystal),
+        (["crystalRose", "crystalIce", "crystalAmber", "crystalEmber", "crystalIceHang", "crystalAmberHang", "geode",
+            "frostCache", "bloomCache", "amberCache", "emberCache"], null, Crystal),
         (["glowcapViolet", "glowcapTeal", "hangcap"], null, Glowcap),
         (["table", "chair", "stool", "bench", "bed", "cradle", "wardrobe", "chest", "frame", "clock", "basket", "toys", "desk",
             "bookshelf", "wallShelf", "toolRack", "heightMarks"], ChopWood, WoodBreak),
@@ -617,8 +618,16 @@ public static class Sound
     public static readonly Cue RailReady = new(Shots("crew/railgun-ready", 1), -8, Pitch: 0);
     public static readonly Cue RailShot = new(Shots("crew/railgun-shot", 1), -6, Heard: ToolReach);
 
-    /// <summary>The shot of the gun <paramref name="gun"/> heard fired: the railgun's its own, any other the nailer's.</summary>
-    public static Cue FiredBy(string? gun) => gun == Content.Shots.Railgun.Item ? RailShot : NailShot;
+    /// <summary>
+    /// The blasting charge (blasting-charge), the user's picks: thrown, a short whip through the air, heard as a friend's shot is
+    /// (<see cref="ChargeThrow"/>); its burst, a litre of oxyhydrogen set off in the open, a dry crack and a long tail, heard as far as
+    /// a wreck breaking and farther (<see cref="ChargeBurst"/>).
+    /// </summary>
+    public static readonly Cue ChargeThrow = new(Shots("crew/charge-throw", 1), -8, Heard: ToolReach);
+    public static readonly Cue ChargeBurst = new(Shots("crew/charge-burst", 1), -2, Pitch: 0.08f, Heard: new(24, 120));
+
+    /// <summary>The shot of the gun <paramref name="gun"/> heard fired: the railgun's its own, a charge's throw, any other the nailer's.</summary>
+    public static Cue FiredBy(string? gun) => gun == Content.Shots.Railgun.Item ? RailShot : gun == Content.Shots.Thrown.Item ? ChargeThrow : NailShot;
 
     /// <summary>
     /// The sentry's arc (2026-10-27-sentry-arc), the user's picks: struck, the resonator's crackle lower and louder, heard as far as a
@@ -707,7 +716,7 @@ public static class Sound
     /// <summary>The descent's cues, made from others declared above.</summary>
     public static readonly IReadOnlyList<Cue> Pod = [PodThrust, PodRelease, PodTouchdown, PodRumble, PodFlash, PodBlast];
 
-    public static readonly IReadOnlyList<Cue> All = [Title, Space, Step, Land, Jump, Alarm, Screwdriver, PowerDriverBite, PowerDriverLoop, PowerDriverOff, Hiss, Click, Clink, VentHum, DoorOpen, DoorClose, Valve, Act, ActInSpace, Fire, Swing, Chop, Break, Shot, Drum, Ready, NailShot, DryClick, NailHit, NailReady, RailCharge, RailReady, RailShot, ArcStruck, ArcHit, CapbackHiss, CapbackSplat, ShellClink, Hurt, AirFill, Inhale, Thrust, ChargerHum, ChargeFull, DrillWhir, FormerStroke, FormerMotor, SmelterHum, SmelterCrackle, CrusherRun, DroneWhir, DroneDock, DroneGrab, SalvageThrust, MusicBox, Zap,
+    public static readonly IReadOnlyList<Cue> All = [Title, Space, Step, Land, Jump, Alarm, Screwdriver, PowerDriverBite, PowerDriverLoop, PowerDriverOff, Hiss, Click, Clink, VentHum, DoorOpen, DoorClose, Valve, Act, ActInSpace, Fire, Swing, Chop, Break, Shot, Drum, Ready, NailShot, DryClick, NailHit, NailReady, RailCharge, RailReady, RailShot, ChargeThrow, ChargeBurst, ArcStruck, ArcHit, CapbackHiss, CapbackSplat, ShellClink, Hurt, AirFill, Inhale, Thrust, ChargerHum, ChargeFull, DrillWhir, FormerStroke, FormerMotor, SmelterHum, SmelterCrackle, CrusherRun, DroneWhir, DroneDock, DroneGrab, SalvageThrust, MusicBox, Zap,
         StepGrass, StepSoil, StepStone, StepAlloy, LandSoft, LandHard, LandAlloy, HitSoil, HitStone, BreakSoil, BreakStone,
         ChopWood, TreeFall, Bush, Grass, Crystal, Glowcap, WoodBreak, ClothTear, GlassBreak, MetalBreak, CeramicBreak, LavaBed,
         LavaBubble, LavaBurn, CaveDrip, SplashIn, SplashOut, SwimStroke, WaterPour, CreatureDeath, .. Ticks.Values.SelectMany(t => new[] { t.Alert, t.WindUp, t.Unclamp, t.Clamp, t.Snap, t.Death }), .. Istukans.Values.SelectMany(g => new[] { g.Wake, g.Alert, g.WindUp, g.Pounce, g.Killed, g.ShutDown }), .. RamHits.Values, .. Pod];

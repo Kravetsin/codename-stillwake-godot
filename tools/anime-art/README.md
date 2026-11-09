@@ -31,7 +31,7 @@ finish is `wash.js`, one for every subject; these are the rules a drawing must f
 
 | Subject | Pictures |
 | --- | --- |
-| `hero` | `hero_<part>`: the suit's parts, helmet shell and visor apart, the heavy helmet's (`hero_heavyHelmet_shell`, `_visor`, `items/heavyHelmet`), the regen suit's (`hero_regenSuit_<part>`, lights `_lit`, `_arcs`, `_pip`; `items/regenSuit`); `hero_outfit_<n>_<part>`, each set of clothes, with `_skin` under what shows skin; every hair, face and beard, tinted by `LookTint`; cape, jetpack, lamp, sheet, held tools; `hero_tracker`, `_light`: the player's colour, white, tinted by Modulate. Top-lit |
+| `hero` | `hero_<part>`: the suit's parts, helmet shell and visor apart, the heavy helmet's (`hero_heavyHelmet_shell`, `_visor`, `items/heavyHelmet`), the regen suit's (`hero_regenSuit_<part>`, lights `_lit`, `_arcs`, `_pip`; `items/regenSuit`); `hero_outfit_<n>_<part>`, clothes, `_skin` under bare skin; hair, faces, beards tinted by `LookTint`; cape, jetpack, lamp, sheet, held tools; `hero_tracker`, `_light`: the player's colour, white, by Modulate. Top-lit |
 | `machines` | `machine_<kind>` and their working overlays, fire, tank and cistern fill, the electrolyser's bubbles; a machine's `fitting` stands on its port in `Machines.Ports`; exposes `AnimeKit` |
 | `zfittings` | `pipe_run` (repeated along a span), `pipe_<arms>`, valves, sockets, hatches, platforms, ladder, floor, drone, lamps, held axe and drill; sorts after `machines` to read `AnimeKit` |
 | `items` | `items/<id>`: every item; `_empty` states are the full picture's calls with only the changing part dark; `tool_screwdriver` |
@@ -39,7 +39,7 @@ finish is `wash.js`, one for every subject; these are the rules a drawing must f
 | `wreck` | `wreck_dress`, `wreck_tears` (a mask, no finish), from `sim/Content/Wreck.cs`; its rust grows from `wall_scrap`'s seams |
 | `piles` | `machine_pile*`: the hold's heaps |
 | `smelter` | `machine_smelter`, `smelter_work_*` |
-| `shipwalls`, `grounds`, `doors` | `wall_`, `back_`, `wall-edge_` of glass, mica, hide and of alloy, bedrock, lava, plaster, with `detail_` and `top_` under the atlas's names; `door_*_0` and the links `room` leaves |
+| `shipwalls`, `grounds`, `doors` | `wall_`, `back_`, `wall-edge_`: glass, mica, hide, alloy, bedrock, lava, plaster, with `detail_` and `top_` under the atlas's names; `door_*_0` and the links `room` leaves |
 | `caves` | stone, ice and copper veins and soil (`wall_`, `back_`, `wall-edge_`, `top_`, `detail_`), `caves/moss_*`, `caves/mossGreen_*`, `caves/crystalIce*` |
 | `creatures` | `creatures/<id>/<part>`, and `Content/logic/CreatureInk.cs`, their numbers: the picked designs of the rigged creatures |
 | `tick`, `warden`, `cavehostiles`, `lurkerattacks` | `creatures/ink<Kind>/*`, `Content/logic/<Rig>Ink.cs`: the picked guards, lurkers, a capback's gas |
@@ -47,13 +47,14 @@ finish is `wash.js`, one for every subject; these are the rules a drawing must f
 | `flora` | `planet/acacia_*` and their `_glow`: the pods stand where the logical glow picture has them, for the game lights from there |
 | `shrubs` | `planet/bush_*`, `rock_*`, `bell*_*` and their `_glow`: dead thorn, boulders, hooded bells; light only in `_glow` |
 | `heavens` | `planet/sky`, `clouds` (far layers, any size), `giant`, `sun` |
-| `cavelife` | `caves/` crystals, dripstone, fungi, threads, roots, cracks, geodes, fossils, the spire's cache and lamp, their `_glow`: dim |
+| `cavelife` | `caves/` crystals, dripstone, fungi, threads, roots, cracks, geodes, fossils, opal caches, the spire's cache, lamp, `_glow`: dim |
 | `homes`, `homeskeep`, `homeslights`, `homeswall`, `homesruin` | `homes/*` and their `_dark`, `_fed`, `_glow`; `ruins/spireLens_*`. `homes.js` exposes `HomeKit`; the others sort after it |
 | `debris` | `debris/*`: rocks lit hard from one side, crates, plates, pods, scrap, derelicts; no lettering: they turn |
-| `aboard` | `machine_salvage*`: a vessel's salvage, its debris pieces whole, on the deck; three main engines (`machine_salvageMainEngine[2-3]`), four consoles (`machine_salvageConsole[2-4]`), one drawn per vessel |
+| `aboard` | `machine_salvage*`: salvage, its pieces whole on the deck; three main engines (`machine_salvageMainEngine[2-3]`), four consoles (`machine_salvageConsole[2-4]`), one drawn per vessel |
 | `net` | `machine_net` (booms), `net_mount`, `net_front_<n>` (holding n), `features/debris/logic/NetInk.cs` |
 | `bay`, `salvage` | `machine_droneBay`, `droneBay_*`, `salvage_*`, `items/salvageDrone`; `logistics/logic/BayInk.cs`, `SalvageInk.cs` |
 | `scanner` | `hero_scanner`, `hero_heavyHelmet_scanner`, `_lit_<n>`, `items/scanner`; `ScannerInk.cs` |
+| `charge` | `hero_blastCharge` (`icons/` lit), `shot_blastCharge_spark`: the fuse in flight |
 | `edgekeys` | `holo_<key>`, `holo_<key>_glow`: the edge keys' white masks and glows |
 | `signs`, `credit`, `capsule`, `gauge` | `sign_*`: bolts, plug, wrench, tips; `credit`: the chip; `capsule`, `capsule_flame_<n>`: the trade capsule; `gauge_lamp[Wide]_<shape>_<tone>`: air lamps |
 | `upgrades` | `upgrade_bag`, `upgrade_belt`, `upgrade_tradeSlots`, `upgrade_canister`: what the market sells that is no item |

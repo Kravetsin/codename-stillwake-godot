@@ -60,6 +60,11 @@ public static class CaveLooks
         // spires' view while its relic stands (0096).
         [Spec.Ruins.SpireCache] = new(1) { Light = Teal, Strength = 1.1f, Keep = 0.837f, Reach = 8 },
         [Spec.Ruins.SpireLamp] = new(1),
+        // The deep caches, the user's pick «Опаловый аммонит»: a shell turned to opal in the rock, its chambers lit in its band's colour.
+        ["frostCache"] = new(1) { Light = Blue, Strength = 1.4f, Keep = 0.883f, Reach = 14 },
+        ["bloomCache"] = new(1) { Light = Green, Strength = 1.4f, Keep = 0.883f, Reach = 14 },
+        ["amberCache"] = new(1) { Light = Amber, Strength = 1.4f, Keep = 0.883f, Reach = 14 },
+        ["emberCache"] = new(1) { Light = Ember, Strength = 1.4f, Keep = 0.883f, Reach = 14 },
     };
 
     /// <summary>Moss in the cold band is the surface's green; deeper it is the garden's teal.</summary>

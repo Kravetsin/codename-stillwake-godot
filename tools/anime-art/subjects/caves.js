@@ -99,6 +99,7 @@ function on(a, W = 128, H = 64) {
   return {
     shape(d, m, o = {}) { emit(d, (dx, dy) => { const p = { ...o }; for (const k of SHIFTED) if (k in o) p[k] = sh(o[k], dx, dy); a.shape(shiftPath(d, dx, dy), m, p); }); },
     flat(d, c, o) { emit(d, (dx, dy) => a.flat(shiftPath(d, dx, dy), c, o)); },
+    line(d, o) { emit(d, (dx, dy) => a.line(shiftPath(d, dx, dy), o)); },
   };
 }
 
@@ -150,6 +151,45 @@ function ironVeined(base, seed = 0x1a3) {
       a.flat(torn(gx, gy + .3, 2.2, 1.5, 9, .3), '#33262a');
       bub.sort((p, q) => p[1] - q[1]);
       for (const [x, y, s] of bub) a.shape(ell(x, y, s, s * .9), IRON_VEIN, { outer: false, shade: s * .45, lite: ell(x - s * .3, y - s * .35, s * .42, s * .3), spec: ell(x - s * .38, y - s * .42, s * .16, s * .11) });
+    }
+  } };
+}
+
+// Sulfur (the user's pick, 2026-11-08: bloom): a pale yellow powder crusting a short dark crack in torn patches, matte, a thin dust
+// round each, a crack in every cell of the sheet.
+const SULFUR_VEIN = { base: '#d8c66c', shade: '#aa9c58', deep: '#7c7244', lite: '#eee2a4', spec: '#f4ecc0', ink: '#29251a' };
+const SULFUR_DUST = '#8e8a68';
+
+/** Sulfur bloom over a wall of stone: per cell, a crack of three bends with two or three patches of powder along it. */
+function sulfurVeined(base, seed = 0x5a1) {
+  return { ...base, draw(a) {
+    base.draw(a);
+    a = on(a);
+    const r = rng(seed);
+    const torn = (x, y, rx, ry, n, j) => {
+      const p = [];
+      for (let i = 0; i < n; i++) { const t = (i / n) * Math.PI * 2 + (r() - .5) * .5, k = 1 - j + r() * j * 1.6; p.push(x + Math.cos(t) * rx * k, y + Math.sin(t) * ry * k); }
+      return poly(p);
+    };
+    for (const [cx, cy] of CELLS) {
+      const ang = (r() - .5) * 1.2, len = 4.6 + r() * 1.2, ux = Math.cos(ang), uy = Math.sin(ang);
+      const mx = cx + (r() - .5) * 1.4, my = cy + (r() - .5) * 1.4, crack = [];
+      for (let k = 0; k <= 3; k++) {
+        const t = (k / 3 - .5) * len, off = (r() - .5) * .8;
+        crack.push([inCell(mx + ux * t - uy * off, cx, .4), inCell(my + uy * t + ux * off, cy, .4)]);
+      }
+      const patches = [];
+      for (let i = 0, m = 2 + (r() < .4 ? 1 : 0); i < m; i++) {
+        const f = (.15 + r() * .7) * 3, k = Math.min(2, Math.floor(f)), g = f - k, p = crack[k], q = crack[k + 1], s = .55 + r() * .4, off = .2 + r() * .5;
+        patches.push([inCell(p[0] + (q[0] - p[0]) * g - uy * off, cx, s * 1.6), inCell(p[1] + (q[1] - p[1]) * g + Math.abs(ux) * off, cy, s * 1.05), s]);
+      }
+      for (const [x, y, s] of patches) a.flat(torn(x, y, s * 1.6, s * 1.05, 12, .5), SULFUR_DUST);
+      for (const [x, y, s] of patches) a.shape(torn(x, y, s * 1.25, s * .8, 11, .45), SULFUR_VEIN, { outer: false, edge: false,
+        shade: torn(x + s * .3, y + s * .32, s * .75, s * .4, 8, .4), lite: torn(x - s * .35, y - s * .28, s * .55, s * .3, 7, .4) });
+      for (const [x, y, s] of patches) for (let g = 0; g < 2; g++) {
+        a.flat(ell(inCell(x + (r() - .5) * s * 2.4, cx, .4), inCell(y + (r() - .5) * s * 1.6, cy, .4), .2 + r() * .12), r() < .5 ? SULFUR_VEIN.lite : SULFUR_VEIN.shade);
+      }
+      a.line('M' + crack.map((p) => p[0].toFixed(2) + ' ' + p[1].toFixed(2)).join('L'), { w: 1.6, c: '#1a1814' });
     }
   } };
 }
@@ -594,7 +634,7 @@ function markedSheet(look, seed, dim, mark) {
 function bandPictures() {
   for (let b = 0; b < BAND_PAINT.length; b++) {
     const look = bandLook(b), stone = markedSheet(look, 0x5701, false, BAND_MARK[b]), edge = edgeOf(look);
-    const walls = { stone, iceVein: veined(stone), copperVein: veined(stone, COPPER_VEIN, 0x2c7), ironVein: ironVeined(stone) };
+    const walls = { stone, iceVein: veined(stone), copperVein: veined(stone, COPPER_VEIN, 0x2c7), ironVein: ironVeined(stone), sulfurVein: sulfurVeined(stone) };
     for (const [name, sheet] of Object.entries(walls)) out(`wall_${name}_b${b}`, bake(sheet));
     out(`back_stone_b${b}`, bake(groundSheet(look, 0x5702, true)));
     for (let open = 1; open < 16; open++) out(`wall-edge_stone_b${b}_${open}`, AnimeEdge(open, edge));
@@ -613,13 +653,15 @@ Subjects.caves = function () {
   out('back_copperVein', bake(groundSheet(GROUNDS.stone, 0x5702, true)));
   out('wall_ironVein', bake(ironVeined(stone)));
   out('back_ironVein', bake(groundSheet(GROUNDS.stone, 0x5702, true)));
+  out('wall_sulfurVein', bake(sulfurVeined(stone)));
+  out('back_sulfurVein', bake(groundSheet(GROUNDS.stone, 0x5702, true)));
   out('wall_soil', bake(groundSheet(GROUNDS.soil, 0x5703, false)));
   out('back_soil', bake(groundSheet(GROUNDS.soil, 0x5704, true)));
   const edges = {
-    stone: { lite: '#7c8290', shade: '#2f3244', ink: '#0f111b' }, iceVein: { lite: '#7c8290', shade: '#2f3244', ink: '#0f111b' }, copperVein: { lite: '#7c8290', shade: '#2f3244', ink: '#0f111b' }, ironVein: { lite: '#7c8290', shade: '#2f3244', ink: '#0f111b' }, soil: { lite: '#7c6654', shade: '#33242a', ink: '#140c0e' },
+    stone: { lite: '#7c8290', shade: '#2f3244', ink: '#0f111b' }, iceVein: { lite: '#7c8290', shade: '#2f3244', ink: '#0f111b' }, copperVein: { lite: '#7c8290', shade: '#2f3244', ink: '#0f111b' }, ironVein: { lite: '#7c8290', shade: '#2f3244', ink: '#0f111b' }, sulfurVein: { lite: '#7c8290', shade: '#2f3244', ink: '#0f111b' }, soil: { lite: '#7c6654', shade: '#33242a', ink: '#140c0e' },
   };
   for (const [name, look] of Object.entries(edges)) for (let open = 1; open < 16; open++) out(`wall-edge_${name}_${open}`, AnimeEdge(open, look));
-  for (const [name, look] of [['stone', GROUNDS.stone], ['iceVein', GROUNDS.stone], ['copperVein', GROUNDS.stone], ['ironVein', GROUNDS.stone], ['soil', GROUNDS.soil]]) {
+  for (const [name, look] of [['stone', GROUNDS.stone], ['iceVein', GROUNDS.stone], ['copperVein', GROUNDS.stone], ['ironVein', GROUNDS.stone], ['sulfurVein', GROUNDS.stone], ['soil', GROUNDS.soil]]) {
     for (let v = 0; v < 4; v++) for (const front of [false, true]) for (let half = 0; half < 2; half++) out(`top_${name}_${v}_${front ? 'front' : 'back'}_${half}`, topOf(look, v, front, half));
     for (let k = 0; k < 11; k++) out(`detail_${name}_${k}`, detailOf(look, k));
   }
