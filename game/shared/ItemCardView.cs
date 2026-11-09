@@ -65,6 +65,7 @@ public static class ItemCardView
     private static readonly LabelSettings FromText = Style.Text(Style.Mono, 10, Style.Slate500);
     private static readonly LabelSettings ChargeText = Style.Text(BoldMono, 10, Green);
     private static readonly LabelSettings StoredText = Style.Text(Style.Mono, 10, Style.Slate300);
+    private static readonly LabelSettings VolumeText = Style.Text(Style.Mono, 13, Style.Slate300);
     private static readonly LabelSettings UnitText = Style.Text(Spaced, 9, Style.Slate500);
     private static readonly LabelSettings DetailText = Style.Text(Style.Mono, 10, Hint);
 
@@ -81,7 +82,7 @@ public static class ItemCardView
         line.AddChild(kind);
         var column = Column(0, Padded(line, 9, 5, 9, card.About == null && card.Volume == null ? 6 : 2));
         // A canister's or a bottle's litres, a stack's all told (liquid-volumes).
-        if (card.Volume is { } volume) column.AddChild(Padded(Text(volume, StoredText, HorizontalAlignment.Left), 9, 0, 9, card.About == null ? 6 : 2));
+        if (card.Volume is { } volume) column.AddChild(Padded(Text(volume, VolumeText, HorizontalAlignment.Left), 9, 0, 9, card.About == null ? 6 : 2));
         if (card.About is { } about)
         {
             var words = Text(about, DetailText, HorizontalAlignment.Left);
