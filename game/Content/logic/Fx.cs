@@ -8,6 +8,9 @@ namespace Stillwake.Game;
 public static class Fx
 {
     public const double Length = 1, Count = 1, Turbulence = 1, Glow = 1, Shimmer = 1;
+
+    /// <summary>The breach alarm's red (0075): a venting room's light on the beat, and a weak flash where a meteor cracks a sealed room's wall.</summary>
+    public static readonly (int R, int G, int B) Alarm = (255, 50, 44);
     public const int GlintHold = 1;
 
     /// <summary>

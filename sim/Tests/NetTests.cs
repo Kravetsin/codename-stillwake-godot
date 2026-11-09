@@ -359,12 +359,12 @@ public class NetTests
 
     // Meteors.
 
-    /// <summary>Six rows of hull four thick, a net hung on every one: alloy, which no meteor here breaks, so they keep coming.</summary>
+    /// <summary>Six rows of hull four thick, a net hung on every one: iron, which no meteor breaks before anyone lands, so they keep coming.</summary>
     [Fact]
     public void AimPastTheNetAtTheWallItHangsOn()
     {
         var layout = Layout.Parse(string.Join('\n', Enumerable.Repeat("..####nn..", 6)))
-            .WithMaterials(string.Join('\n', Enumerable.Repeat("..aaaa....", 6))) with
+            .WithMaterials(string.Join('\n', Enumerable.Repeat("..nnnn....", 6))) with
         { Meteors = true };
         var w = new Scenario(layout);
         var shower = Content.Meteors.BeforeLanding;
@@ -393,7 +393,7 @@ public class NetTests
     public void BreakTheNetWithTheWallItHangsOnItsPiecesFloatingOutWhereTheyHung()
     {
         var w = Struck();
-        var (walls, _) = HazardsTests.StrikeAt(w, 3 * 10 + 5, 2);
+        var (walls, _) = HazardsTests.StrikeAt(w, 3 * 10 + 5, 4);
         Assert.Contains(3 * 10 + 5, walls);
         Assert.Empty(w.M.Grid.MachinesOf("net"));
         Assert.Empty(w.M.Debris.Held);
@@ -416,7 +416,7 @@ public class NetTests
     {
         var w = Struck();
         int cell = w.M.Grid.MachinesOf("net")[0].Cell;
-        var (walls, _) = HazardsTests.StrikeAt(w, 3 * 10 + 5, 4);
+        var (walls, _) = HazardsTests.StrikeAt(w, 3 * 10 + 5, 5);
         Assert.True(walls.Count(c => c % 10 == 5 && c / 10 is >= 1 and <= 6) > 1);
         Assert.Empty(w.M.Grid.MachinesOf("net"));
         foreach (var (item, count) in Machines.Get("net").Cost)
@@ -462,17 +462,17 @@ public class NetTests
     public void BreakTheNetWhenTheBlastBreaksTheWallBesideItsTopRow()
     {
         var w = Struck();
-        var (walls, _) = HazardsTests.StrikeAt(w, 5, 2);
+        var (walls, _) = HazardsTests.StrikeAt(w, 5, 5);
         Assert.Contains(10 + 5, walls);
         Assert.Empty(w.M.Grid.MachinesOf("net"));
         Assert.Empty(w.M.Debris.Held);
     }
 
     [Fact]
-    public void BreakNothingWithAPowerBelowTheWallsArmour()
+    public void BreakNothingWithAMeteorThatOnlyCracksTheWall()
     {
         var w = Struck("n");
-        var (walls, _) = HazardsTests.StrikeAt(w, 3 * 10 + 5, Content.Materials.Get("iron").Armour - 1);
+        var (walls, _) = HazardsTests.StrikeAt(w, 3 * 10 + 5, 6);
         Assert.Empty(walls);
         Assert.Single(w.M.Grid.MachinesOf("net"));
         Assert.Equal(2, w.M.Debris.Held.Count);

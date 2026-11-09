@@ -127,25 +127,31 @@ The plan for [unified-damage.md](unified-damage.md). One step, one commit; the b
 - READMEs: Items, Crafting (`## API`), Building, `game/features/building`.
 
 ### 7. `feat(hazards)`: meteors through `Burst`; armour goes
-- Hazards depends on `IBuildingOps` (csproj + Registry; registered after Building, which references only Crafting, Crew,
-  Pipes and Items: no cycle). `Strike` becomes `Burst(Nobody, cell, Charge(power), Farthest(power), Spoils.Lost)`; nets
-  and back walls are `Burst`'s (step 5). `HitProblem`, `Targets` read `Strength`. `MeteorHit` still clears at once.
-- Remove `Material.Armour` and every `Armour:` argument, `Meteors.PerStrength`, `Meteors.Step`. Retune `Shower` so a
-  meteor's power is spread: most crack scrap, the largest (about one in four) breach a scrap hull on their own, so the
-  hull hazard stays in play before the shower event; a second small one on a cracked patch breaches too. A machine's cost
-  is lost, its slots, modules and queue still spill.
-- What the player sees of a crack aboard: the crack drawn on the hull (the existing crack net over walls), and a meteor
-  that cracks a wall of a sealed room shows the same edge flash the breach alarm uses, weaker; the alarm itself stays for
-  breaches.
-- `Fuzz`: now and then it moves an incoming meteor to strike next tick, so `Burst` with `Lost` runs in the generic suites.
-- Client: `WallStats.Of` shows the leak only (`BuildMenu.cs` drops the argument); `wall.meteors`, `wall.resists`,
-  `wall.meteorsNever` leave `Building.En.cs`/`.Ru.cs`; `WallStatsTests`. `MeteorScenario --meteors=N` strikes the same
-  cell again ten seconds later, so sequence 6 can be seen.
-- Tests (`HazardsTests.Meteors`): a small meteor cracks a scrap hull; a second within the heal time breaches it and the
-  room vents; the largest of the shower breaches scrap alone; a crack in a sealed room's wall raises the weak flash; what it breaks is lost; a machine it breaks spills its slots and loses its cost; a door takes its share and no
-  longer stops it; back walls break to meteors alone. The hole-per-strike cases are rewritten to crack-or-breach;
-  `ReadAWallsArmourNotItsHardnessToDig` deleted; `NetTests` reworded to strength; `WreckScrapTests` loses `Armour`.
-- README: Hazards.
+- Hazards depends on `IBuildingOps` (csproj + Registry), no longer on `IGridOps` or Items. `Strike` is
+  `Burst(Nobody, cell, Charge(power), shower.Reach, Spoils.Lost)`; `Farthest`, the wave and the net handling leave Hazards.
+  `HitProblem`, `Targets` read `Strength`. `Spoils.Lost`: costs gone; a back wall behind a cell entered breaks where what is
+  left there pays its burst cost. A debris net, paid for itself or with its wall, lays its cost down under either spoils
+  (`FreeNet`, 2026-11-03-debris-net), so a meteor never loses it.
+- Removed `Material.Armour` with every `Armour:`, `Meteors.PerStrength`, `Meteors.Step`. `Shower` gains `Charge`, `PerPower`,
+  `Reach`: 0, 220, 4. Deviation: a hull is two cells thick (0104), 1084 to breach in scrap, so `PerPower` is 220, not ~110:
+  power 2 (440) cracks scrap, 3–4 hole the outer cell, 5+ breach (5 % before landing, 20 % after); iron (1352) breaks only to 7.
+  Powers keep their 2–7 scale: a saved incoming meteor needs no bump.
+- `MeteorHit(Cell, Power?)`: with a power it strikes as the shower's meteor; without, it bursts with the wall's own uncracked
+  cost (`BuildingModule.ToBreak`), reach 0, so the dev hit breaks that wall alone and its back wall stands.
+- Client: the weak flash is the breach alarm's red (`Fx.Alarm`, moved out of `AirView`), flashed once in the room behind the
+  wall when it is aired and sealed (`MeteorWarn`, tested in `MeteorWarnTests`), whether the wall cracked or only its outer
+  cell went. `WallStats.Of(material)` shows the leak only; the three `wall.*` keys go. `--meteors=N` sends a second
+  `MeteorHit(cell, N)` at the row's face ten seconds after the first strikes (no rock drawn for it).
+- `Fuzz`: half of its `MeteorHit`s carry a power 0–7, so `Burst` with `Lost` runs in the generic suites.
+- Tests (`HazardsTests.Meteors`): a weak one cracks scrap and power 3 breaks it; iron cracks to 5 and a second breaks it; power
+  4 holes a two-thick room hull and 5 breaches it, nothing on the floor; a second on the crack within the heal time breaches,
+  after it does not; a crusher broken spills its ore and loses its cost; a door cracks by its share; back walls break to a
+  meteor, not to a charge of the same power; on the wreck a strike breaks the scrap struck exactly when it pays 541. The
+  falling-meteor property allows anything broken, nothing added. `NetTests` powers retuned. Proven to bite: back walls under
+  `Drop` only, nets lost under `Lost`.
+- Finding: alloy is natural (600), so the strongest meteors break it while built iron only cracks; the never-breaking test
+  hulls moved from alloy to iron. Left for the ADR's accepted findings.
+- READMEs: Hazards, Building, client hazards and building.
 
 ### 8. `docs`: the ADR and the map
 - `docs/decisions/2026-11-09-unified-damage.md`: rules 1–9, one scale in tenths, `Spoils`, numbers and rounding,
