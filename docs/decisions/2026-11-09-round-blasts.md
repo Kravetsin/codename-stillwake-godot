@@ -19,8 +19,8 @@ way to compute a blast, reused by the meteor as by the charge; it was already on
   per cent of a circle. Callers keep counting in a straight step's units: their charges are multiplied by 5 inside, and what
   reaching a cell cost comes back divided by 5, rounded up, so a back wall a meteor breaks for what is left spends at least that.
 - **Its limit is a circle:** a cell farther than `most` cells from the start (`dx² + dy² > most²`) is not reached.
-- **The charge retuned** to keep its craters' feel round: `Power` 90, `Reach` 12. Stone (10 a cell) opens a bowl 9 out down a
-  shaft, soil the whole circle of 12, the ruins' alloy within 5. Over open ground the air (2 a cell) is the cheap way: a charge
+- **The charge retuned** round, then a third smaller at the user's ask: `Power` 63, `Reach` 8. Stone (10 a cell) opens a bowl 6
+  out down a shaft, soil the whole circle of 8, the ruins' alloy within 3. Over open ground the air (2 a cell) is the cheap way: a charge
   landing on a floor runs along it and then down, a wide shallow bowl, as a blast in the open would.
 - **Meteors keep their numbers:** a hull is a line of walls, so along it nothing changed; across a thick wall aslant, a little
   less goes. Every meteor test passed unchanged.

@@ -12,8 +12,8 @@ public sealed record Blast(int Power, int Reach, int WreckDamage);
 public static class Blasting
 {
     /// <summary>
-    /// The blasting charge's: 90 to spend, so solid stone (10 a cell, its armour 4) opens a round crater 9 cells out, soil (4 a cell)
-    /// the whole circle of 12, and the ruins' alloy (16 a cell) soaks it within 5; 120 off each wreck in reach, most at once.
+    /// The blasting charge's: 63 to spend, so solid stone (10 a cell, its armour 4) opens a round crater 6 cells out, soil (4 a cell)
+    /// the whole circle of 8, and the ruins' alloy (16 a cell) soaks it within 3; 120 off each wreck in reach, most at once.
     /// </summary>
-    public static readonly Blast Charge = new(Power: 90, Reach: 12, WreckDamage: 120);
+    public static readonly Blast Charge = new(Power: 63, Reach: 8, WreckDamage: 120);
 }

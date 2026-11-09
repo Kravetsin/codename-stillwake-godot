@@ -15,11 +15,11 @@ rock holding something only sold.
   (`Research.Understood`) once sulfur is had. In the hand it is a gun that fires itself (`Shots.Thrown`): its own 10 off a
   creature or wreck it strikes, a lob of weight 3 (some 18 cells at 45° on the first planet), at most 40 cells, a throw a
   second. Refusals are the gun's: `creatures.noGun`, `creatures.blocked`, `items.notEnough`.
-- **The burst** (`Content.Blasting.Charge`: `Power` 90, `Reach` 12, `WreckDamage` 120): wherever its shot ends it spreads
+- **The burst** (`Content.Blasting.Charge`: `Power` 63, `Reach` 8, `WreckDamage` 120): wherever its shot ends it spreads
   the meteor's wave ([meteor-wave](2026-10-29-meteor-wave.md)), moved to `sim/Core` `Wave` so both share it. A cell costs
   `Meteors.Step`, a wall `PerStrength` × its armour more: stone 10 a cell, soil 4, ruin alloy 16, 7/5 of that aslant, within
   `Reach` cells: round ([round-blasts](2026-11-09-round-blasts.md)). It starts in the open cell the shot flew from when it met something, so the wall it met is
-  entered at its cost. Measured: soil opens the whole circle, stone a bowl 9 out, alloy 5; on a floor it runs along the air first, a wide bowl.
+  entered at its cost. Measured: soil opens the whole circle, stone a bowl 6 out, alloy 3 (a third smaller than first built: the user found it too big); on a floor it runs along the air first, a wide bowl.
 - **It breaks natural ground only** (`Material.Breaks`, where `Rules.ToolsBreak`; the user's call: built walls stay). A built
   wall, a door, a ladder, a machine, bedrock or fog stops it whole; aboard the ship nothing breaks and the charge is spent.
   Walls reached break in cell order through `IBuildingOps.Blast`: an ore's cost (`Material.In`) and the yields of the growths a
@@ -38,8 +38,8 @@ rock holding something only sold.
   area break wanted (cost spread, walls soaking), so it moved to `Core` rather than a second, square radius beside it; no growth
   yields what only sells, and growths are already scattered by band. One `opal`, not four: the caches differ by look and count,
   and four items would add icons, prices and names for nothing the player does differently.
-- **Cost:** a burst walks a circle of 12 once, in the tick it lands; the client remembers the walls round a charge in flight
-  (`ShotsView`), a box of 29×29 a tick, and nothing per frame but the burst's look.
+- **Cost:** a burst walks a circle of 8 once, in the tick it lands; the client remembers the walls round a charge in flight
+  (`ShotsView`), a box of 21×21 a tick, and nothing per frame but the burst's look.
 
 ## Looks and sounds
 
