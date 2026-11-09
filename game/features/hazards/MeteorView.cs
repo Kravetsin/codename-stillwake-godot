@@ -3,8 +3,10 @@ using System.Collections.Generic;
 using Godot;
 using Stillwake.Game.Render;
 using Stillwake.Game.Shared;
+using Stillwake.Sim.Atmosphere;
 using Stillwake.Sim.Grid;
 using Stillwake.Sim.Hazards;
+using Stillwake.Sim.Rooms;
 using S = Stillwake.Game.Sound;
 
 namespace Stillwake.Game.Features.Hazards;
@@ -13,7 +15,8 @@ namespace Stillwake.Game.Features.Hazards;
 /// A meteor seen coming (2026-10-28-hull-meteors, 2026-10-28-meteor-blast): through its warning a rock, bigger the stronger it
 /// is, flies in from up the drift's side onto the wall it will strike, its front white-hot, trailing light, embers and smoke; at
 /// the strike, sparks and a shock ring at the wall, and out of every wall it broke chunks and dust flung on along its way, with a
-/// metal break or a clang by whether any went. It reads the sim's meteor once a tick.
+/// metal break or a clang by whether any went; a weak flash of the alarm's red in the aired room behind a wall it cracked short of
+/// a breach. It reads the sim's meteor once a tick.
 /// </summary>
 public partial class MeteorView : Node2D
 {
@@ -29,6 +32,8 @@ public partial class MeteorView : Node2D
         Shard = Chunk with { Ramp = [(255, 236, 200), (210, 120, 70), (92, 79, 71)], LifeMs = (600, 1100) };
 
     private readonly IGridQueries _grid;
+    private readonly RoomsModule _rooms;
+    private readonly AtmosphereModule _air;
     private readonly HazardsModule _hazards;
     private readonly Func<double> _progress;
     private readonly Func<int> _tick;
@@ -39,9 +44,11 @@ public partial class MeteorView : Node2D
     private (double X, double Y, double Radius)? _head;
     private readonly Voices _strikes = new(S.World, voices: 2);
 
-    public MeteorView(IGridQueries grid, HazardsModule hazards, Func<double> progress, Func<int> tick)
+    public MeteorView(IGridQueries grid, RoomsModule rooms, AtmosphereModule air, HazardsModule hazards, Func<double> progress, Func<int> tick)
     {
         _grid = grid;
+        _rooms = rooms;
+        _air = air;
         _hazards = hazards;
         _progress = progress;
         _tick = tick;
@@ -87,7 +94,7 @@ public partial class MeteorView : Node2D
     {
         _round.Clear();
         int width = _grid.Width, cx = meteor.Cell % width, cy = meteor.Cell / width;
-        int most = _hazards.Shower is { } shower ? HazardsModule.Farthest(meteor.Power, shower) : 0;
+        int most = _hazards.Shower?.Reach ?? 0;
         for (int y = Math.Max(0, cy - most); y <= Math.Min(_grid.Height - 1, cy + most); y++)
             for (int x = Math.Max(0, cx - most); x <= Math.Min(width - 1, cx + most); x++)
             {
@@ -171,7 +178,16 @@ public partial class MeteorView : Node2D
             stage.Flares.Shock(x, y, 2, 3 * Cell, 250, (255, 220, 170), 0.4 * Fx.Glow, 0.5);
             stage.Flares.Flash(x, y, Glow, 0.6 * Fx.Glow, 6, 0.6f, 0.85);
         }
+        Warn(meteor);
         _strikes.Play(broke > 0 ? S.Break : S.Chop, new Vector2((float)x, (float)y));
         _round.Clear();
+    }
+
+    /// <summary>The breach alarm's red, weak and once, in the aired, sealed room behind <paramref name="meteor"/>'s wall (<see cref="MeteorWarn"/>).</summary>
+    private void Warn(Meteor meteor)
+    {
+        bool SealedAndAired(int room) => _rooms.RoomById(room)?.Openings.Count == 0 && _air.StatusOf(room) is RoomStatus.Aired or RoomStatus.Filling;
+        if (MeteorWarn.Cell(meteor.Cell, _grid.Width, _rooms.RoomAt, SealedAndAired) is not int cell) return;
+        Stages.Of(Layers.Effects).Flares.Flash((cell % _grid.Width + 0.5) * Cell, (cell / _grid.Width + 0.5) * Cell, Fx.Alarm, 0.35 * Fx.Glow, 10, 0.866f, 0.94);
     }
 }

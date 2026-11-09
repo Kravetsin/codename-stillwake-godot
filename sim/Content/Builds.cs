@@ -11,8 +11,8 @@ namespace Stillwake.Content;
 /// <param name="Across">Its piece's cells across, built and taken apart as one (0104): a ladder's two, a door segment's or a hatch's two; 1 for a cell.</param>
 /// <param name="Tall">Its piece's cells down: a ladder's or a door segment's two, a hatch's one; 1 for a cell.</param>
 /// <param name="Menu">Its card in the build menu (0114).</param>
-/// <param name="Strength">What a tool's hits take to break it where tools break what is built (a planet, the fan of rays): two swings of the axe.</param>
-public sealed record Build(string Id, IReadOnlyList<(string Item, int Count)> Cost, int BuildTicks, int Across = 1, int Tall = 1, MenuSlot? Menu = null, int Strength = 8);
+/// <param name="Strength">What a tool's hits take to break it, in tenths, where tools break what is built (a planet, the fan of rays): two swings of the axe.</param>
+public sealed record Build(string Id, IReadOnlyList<(string Item, int Count)> Cost, int BuildTicks, int Across = 1, int Tall = 1, MenuSlot? Menu = null, int Strength = 80);
 
 /// <summary>
 /// What a hero builds besides walls and back walls, which cost their material (<see cref="Materials"/>),
@@ -27,10 +27,10 @@ public static class Builds
     public const int DeconstructSpeedup = 2;
 
     /// <summary>
-    /// Ticks a crack in natural ground lasts with no hit (0077): ten seconds, then it heals whole, as Terraria's. A dig left
-    /// half done is begun again.
+    /// Ticks a crack lasts with no hit (0077): a minute, then it heals whole, as Terraria's. A dig left half done is begun again;
+    /// long enough that a second charge or meteor finds the first one's cracks (unified-damage), and there is no repairing them.
     /// </summary>
-    public const int CrackHeals = 200;
+    public const int CrackHeals = 1200;
 
     /// <summary>
     /// A hatch (0104, 0111): as wide as a door segment and a cell tall, so a ladder meets it flush. Its own build, its own

@@ -107,6 +107,8 @@ public interface IItemsOps
     Stack? TakeFrom(int id, int slot, int count);
     int PutIn(int id, Stack stack);
     void LayDown(Stack stack, int cell);
+    /// <summary>All machine <paramref name="id"/> holds, slots and fitted modules, laid on <paramref name="cell"/> for anyone, as it breaks.</summary>
+    void Spill(int id, int cell);
     /// <summary>Notes a gain to <paramref name="peer"/> at <paramref name="cell"/> that went into no inventory: a delivered blueprint or upgrade, shown as loot (2026-11-08-mafia-deliveries).</summary>
     void NoteDelivered(int peer, string good, int cell);
     /// <summary>Floor stack <paramref name="floorId"/> taken whole, all it holds of its own with it, as a salvage drone takes it (salvage-drones); null for one gone.</summary>

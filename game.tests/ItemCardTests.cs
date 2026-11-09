@@ -25,7 +25,7 @@ public class ItemCardTests
         var tiles = ItemCards.Of("fireAxe").Tiles!;
         double every = (double)Spec.Weapons.Axe.Pace / World.TicksPerSecond;
         Assert.Equal(Spec.Weapons.Axe.Damage.ToString(), tiles[0].Value);
-        Assert.Equal(Spec.Weapons.Axe.BlockDamage.ToString(), tiles[1].Value);
+        Assert.Equal(ItemCards.Number(Spec.Weapons.Axe.BlockDamage / 10.0), tiles[1].Value);
         Assert.Equal($"{ItemCards.Number(every)}s", tiles[2].Value);
         // As content stands: 2 damage, 4 on blocks, every 10 ticks of 20 a second; 64 of a turn's 256 is 90°, 4500 thousandths 4.5 cells.
         Assert.Equal([("2", "Damage"), ("4", "Block"), ("0.5s", "Hits every"), ("90°", "Swing"), ("4.5 cells", "Range")], Said(tiles));
@@ -92,8 +92,12 @@ public class ItemCardTests
         Assert.False(ItemCards.IsTool(Spec.Shots.Nail.Id));
         // The railgun's: 22 and the nail's 2, 4 off a block, 2 s between shots, 65% kept, 120 of the belt's charge a shot.
         var rail = ItemCards.Of(Spec.Shots.Railgun.Item).Tiles;
-        Assert.Equal([("24", "Damage"), ("4", "Block"), ("2s", "Reload time"), ("65%", "Kept through"), ("120", "Charge a shot")], Said(rail));
+        Assert.Equal([("24", "Damage"), ("14", "Block"), ("2s", "Reload time"), ("65%", "Kept through"), ("120", "Charge a shot")], Said(rail));
         Assert.Equal((CardSign.Battery, CardGroup.Special), (rail![4].Sign, rail[4].Group));
+        // A tool that carries on past what it breaks (unified-damage) says so as a gun's pierce: the pickaxe's 70%; the axe none.
+        var pick = ItemCards.Of(Spec.Weapons.Pickaxe.Item).Tiles!;
+        Assert.Equal((("70%", "Kept through"), CardSign.Pierce, CardGroup.Hit), ((pick[3].Value, pick[3].Label), pick[3].Sign, pick[3].Group));
+        Assert.DoesNotContain(ItemCards.Of("fireAxe").Tiles!, t => t.Sign == CardSign.Pierce);
     }
 
     [Fact]

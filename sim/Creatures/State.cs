@@ -201,6 +201,11 @@ public sealed class Shot
     /// <summary>The things it flew on through (2026-10-27-shots-pierce), broken, killed or, for a gun that pierces all, still standing, its damages kept through each; none written while none.</summary>
     [JsonInclude, JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)] public int Pierced { get; internal set; }
     /// <summary>
+    /// What the last cell it broke left it for the next, its gun's share of what went over that cell's strength (unified-damage); null
+    /// till it breaks one, the gun's whole block damage then.
+    /// </summary>
+    [JsonInclude, JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] public int? Carry { get; internal set; }
+    /// <summary>
     /// What a shot that pierces everything hit and flew on through that still stands, in the order hit (2026-10-27-the-railgun): never
     /// hit again, a body spanning cells and ticks. Pierced counts these and what broke.
     /// </summary>

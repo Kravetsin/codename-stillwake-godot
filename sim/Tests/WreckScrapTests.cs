@@ -45,8 +45,8 @@ public class WreckScrapTests
     public void ItIsScrapInEveryRule()
     {
         var (plate, scrap) = (Materials.Get("wreckScrap"), Materials.Get("scrap"));
-        Assert.Equal((scrap.Strength, scrap.Leak, scrap.BuildTicks, scrap.Armour, scrap.Natural, scrap.Clear, scrap.Footing, scrap.Look),
-            (plate.Strength, plate.Leak, plate.BuildTicks, plate.Armour, plate.Natural, plate.Clear, plate.Footing, plate.Look));
+        Assert.Equal((scrap.Strength, scrap.Leak, scrap.BuildTicks, scrap.Natural, scrap.Clear, scrap.Footing, scrap.Look),
+            (plate.Strength, plate.Leak, plate.BuildTicks, plate.Natural, plate.Clear, plate.Footing, plate.Look));
         Assert.Equal(scrap.Cost, plate.Cost);
         Assert.Equal("scrap", plate.As);
     }

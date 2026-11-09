@@ -43,14 +43,14 @@ public class RuinsTests
     private static string[] Kinds(Scenario w) => w.M.Building.Plants.Select(p => p.Kind).ToArray();
 
     [Fact]
-    public void AlloyStandsUnderFiftyNineDamageAndBreaksAtSixtyGivingItsScrap()
+    public void AlloyStandsUnderFiveHundredNinetyDamageAndBreaksAtSixHundredGivingItsScrap()
     {
         var w = Chamber();
         int hits = Materials.Get("alloy").Strength / Weapons.Axe.BlockDamage;
         Assert.Equal(15, hits);
         for (int i = 0; i < hits - 1; i++) w.Do(HewTesting.Dig(w, w.At(7, 4), Axe)).Run();
         Assert.Equal("alloy", w.M.Grid.WallAt(w.At(7, 4))?.Id);
-        Assert.Equal(56, w.M.Building.Cracks.Single().Damage);
+        Assert.Equal(560, w.M.Building.Cracks.Single().Damage);
         w.Do(HewTesting.Dig(w, w.At(7, 4), Axe)).Run();
         Assert.Empty(w.Refusals);
         Assert.Null(w.M.Grid.WallAt(w.At(7, 4)));

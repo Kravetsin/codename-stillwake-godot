@@ -546,9 +546,9 @@ public partial class BuildMenu : CanvasLayer
         if (tool is PlaceTool { Placement: { Layer: "machine", Kind: var kind } }
             && MachineSays.Power(Content.Machines.Get(kind), Content.Machines.Get(kind).Draws ?? 0) is { } power)
             lines = lines.Append(power);
-        // A wall's numbers: what it leaks, how it stands up to the meteors here.
-        if (tool is PlaceTool { Placement: { Kind: "wall" or "backWall", Material: { } material } place })
-            lines = lines.Concat(WallStats.Of(Content.Materials.Get(material), place.Kind == "backWall", m.Hazards.Shower));
+        // A wall's numbers: what it leaks.
+        if (tool is PlaceTool { Placement: { Kind: "wall" or "backWall", Material: { } material } })
+            lines = lines.Concat(WallStats.Of(Content.Materials.Get(material)));
         _tips.Show(new Tip(tool.Label, lines.ToList()));
     }
 }

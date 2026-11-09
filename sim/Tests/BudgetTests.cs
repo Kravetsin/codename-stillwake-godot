@@ -244,6 +244,31 @@ public class BudgetTests(ITestOutputHelper output)
         Assert.True(sweep.Mean < Within(2), $"a sweep of {count} cracks took {sweep.Mean:F2} ms");
     }
 
+    /// <summary>
+    /// Three blasting charges thrown down into soil in one tick by three heroes (unified-damage), each opening the whole circle of its
+    /// reach and dropping what it broke: the tick they burst in, the dearest of their flight.
+    /// </summary>
+    [Fact]
+    public void KeepsThreeChargesBurstingInSoilInOneTickUnderBudget()
+    {
+        const int width = 128, height = 60;
+        var rows = Enumerable.Range(0, height).Select(y => y < 20 ? new string('.', width) : new string('#', width)).ToArray();
+        var looks = Enumerable.Range(0, height).Select(y => y < 20 ? new string('.', width) : new string('s', width));
+        var w = new Scenario(Layout.Parse(rows).WithMaterials(string.Join("\n", looks)).OnPlanet());
+        string charge = Content.Shots.Thrown.Item;
+        int unit = Creatures.CreaturesModule.Unit;
+        for (int peer = 0; peer < 3; peer++) w.Do(new Crew.Enter(19 * width + 10 + peer) { From = peer }).GiveItems(peer, (charge, 2));
+        // One thrown first, untimed, so the timed tick is not the first to run a burst.
+        w.Run().Do(new Creatures.Fire(charge, 120 * unit + unit / 2, 17 * unit + unit / 2, 64)).Run(10);
+        int before = Enumerable.Range(20 * width, (height - 20) * width).Count(c => w.M.Grid.WallAt(c) == null);
+        var bursting = Time(w.World, 10, t => t > 0 ? [] : [.. Enumerable.Range(0, 3).Select(peer =>
+            (Command)new Creatures.Fire(charge, (30 + 34 * peer) * unit + unit / 2, 17 * unit + unit / 2, 64) { From = peer })]);
+        int opened = Enumerable.Range(20 * width, (height - 20) * width).Count(c => w.M.Grid.WallAt(c) == null) - before;
+        output.WriteLine($"three charges in soil: {opened} cells opened; the dearest tick {bursting.Max:F3} ms");
+        Assert.True(opened > 3 * 80, $"only {opened} cells opened");
+        Assert.True(bursting.Max < Within(2), $"three charges bursting took {bursting.Max:F3} ms");
+    }
+
     /// <summary>The reference ship alone, and in the corner of a world of space: rooms are found again only around a door, so the space costs nothing.</summary>
     [Theory]
     [InlineData(512, 256)]

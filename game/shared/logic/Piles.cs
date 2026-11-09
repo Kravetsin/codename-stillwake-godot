@@ -11,4 +11,11 @@ public static class Piles
     /// <summary>The pile at <paramref name="cell"/>, any cell of its footprint, and its hit points; none for anything else.</summary>
     public static (Machine Pile, int Hp)? At(IGridQueries grid, int cell) =>
         grid.MachineAt(cell) is { } machine && Content.Machines.Get(machine.Kind).Hp is int hp ? (machine, hp) : null;
+
+    /// <summary>
+    /// The machine at <paramref name="cell"/> that cracks (unified-damage), a pile or a built one a burst reached, and its hit points;
+    /// none for anything else, the lifepod among them.
+    /// </summary>
+    public static (Machine Machine, int Hp)? Cracked(IGridQueries grid, int cell) =>
+        grid.MachineAt(cell) is { } machine && Content.Machines.Get(machine.Kind).HitPoints is int hp ? (machine, hp) : null;
 }

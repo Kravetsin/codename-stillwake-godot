@@ -1,6 +1,6 @@
 # The blasting charge and the deep caches
 
-- Status: accepted
+- Status: accepted; its crater to dust and ore to the thrower superseded by [unified-damage](2026-11-09-unified-damage.md)
 - Date: 2026-11-08
 
 ## Context
