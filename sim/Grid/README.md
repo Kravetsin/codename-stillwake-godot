@@ -39,7 +39,7 @@ once. A machine needs every footprint cell free of structure and machines; a bac
 - **Queries** (`IGridQueries`): `Width`, `Height`, `Zone`, `Built`, `Reserved`; `Version`, bumped on every change, 0 after a load;
   `ChangedSince(version)` — the cells and `GridLayers` that differ since then, ascending, or null when the log no longer
   reaches back (0051); the layers live and read-only (`StructureLayer`, `MaterialLayer`,
-  `BackLayer`, `BackMaterialLayer`); `StructureAt`, `WallAt` / `BackAt` (the `Material`, null for none), `GrownBack` (0084), `GrownWall` (as grown).
+  `BackLayer`, `BackMaterialLayer`); `StructureAt`, `WallAt` / `BackAt` (the `Material`, null for none), `GrownBack` (0084).
 - **Traits per cell:** `Blocks`, `Supports`, `Climbable`, `Seals`, `BlocksLight`, `Solid` (blocks or supports), `Footing`
   (solid, no doorway; machines-stand); past the grid all block and are solid, nothing else. Code reads `Structures.Is(code, trait)`.
 - **Machines:** `MachineAt`, `MachineById`, `Machines`, `MachinesWith(trait)` (one `MachineTrait`, id order: what a system walks, 0113), `MachinesOf(kind)` (id order: one kind's own rule, the analyzer's), `PortsOf(machine)` (0109), `PortAt(cell)` (its way and fluid, typed-ports).

@@ -51,11 +51,12 @@ public interface IBuildingQueries
     bool ShotTakes(int cell);
 
     /// <summary>
-    /// Whether a catcher may wear the wall in <paramref name="cell"/> away (tracker-catchers): the surface's tools break things, the cell is in
-    /// the grid's zone, and its wall is natural ground that breaks and the ground's own as it grew (<c>GrownWall</c>): never one a hero
-    /// built, a piece, a machine, bedrock, lava or the fog. What <see cref="IBuildingOps.Wear"/> guards by.
+    /// How many strikes of <paramref name="damage"/> break what is solid in <paramref name="cell"/> (catcher-paths), by the one damage rule
+    /// (unified-damage, damage-scale): what is left of its strength, built or natural, in full;
+    /// null where nothing breaks it: tools do not break things here, the fog, bedrock, lava, or nothing solid to break. What
+    /// <see cref="IBuildingOps.Wear"/> guards by and a path weighs.
     /// </summary>
-    bool Wears(int cell);
+    int? Strikes(int cell, int damage);
 
     /// <summary>What a shot's hit in <paramref name="cell"/> strikes, by a cell of it: a built piece by its first cell, whatever cell of it is met; else the cell itself. A thing a shot passed is remembered by this, so a piece over several cells is hit once.</summary>
     int ShotKey(int cell);
@@ -95,9 +96,9 @@ public interface IBuildingOps
     bool Burst(int peer, int cell, int power, int reach, Spoils spoils);
 
     /// <summary>
-    /// A catcher's strike of <paramref name="damage"/> on the grown wall in <paramref name="cell"/> (tracker-catchers): cracked as a hit cracks it,
-    /// broken at its strength giving nothing, the growths it held felled by the sweep. True when it broke; nothing where
-    /// <see cref="IBuildingQueries.Wears"/> says no.
+    /// A catcher's strike of <paramref name="damage"/> on what is solid in <paramref name="cell"/> (catcher-paths): broken where it pays what is
+    /// left, else cracked, by the one damage rule as a burst pays (a built thing its share). Broken ground gives nothing (a hunter is no
+    /// mine); a built wall or piece drops its cost there for anyone. True when it broke; nothing where <see cref="IBuildingQueries.Strikes"/> is null.
     /// </summary>
     bool Wear(int cell, int damage);
 

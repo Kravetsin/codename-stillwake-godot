@@ -210,30 +210,202 @@ public class CatchersTests
     }
 
     [Fact]
-    public void ItNeverWearsABuiltWallBedrockOrOffTheGrid()
+    public void ItsStrikesBreakByTheDamageRuleGroundForNothingBuiltForItsCostBedrockNever()
     {
         var w = Arrive(Field(), 40);
         int sky = Cell(100, Ground - 3), rock = Cell(100, Ground + 3), bedrock = Cell(100, H - 1);
-        w.Do(new Place(sky, Placement.Wall("stone"))).Run();
-        Assert.True(w.M.Building.Wears(rock));
-        Assert.False(w.M.Building.Wears(sky));
-        Assert.False(w.M.Building.Wears(bedrock));
-        Assert.False(w.M.Building.Wears(Cell(100, Ground - 10)));
-        Assert.False(w.M.Building.Wear(sky, 1000));
-        Assert.NotNull(w.M.Grid.WallAt(sky));
-        Assert.True(w.M.Building.Wear(rock, 1000));
-        Assert.Null(w.M.Grid.WallAt(rock));
+        w.Do(new Place(sky, Placement.Wall("scrap"))).Run();
+        var f = (Tune.Flyer)Catcher.Body;
+        Assert.Equal(1, w.M.Building.Strikes(rock, f.Wear));
+        Assert.Null(w.M.Building.Strikes(bedrock, f.Wear));
+        Assert.Null(w.M.Building.Strikes(Cell(100, Ground - 10), f.Wear));
+        // A built wall takes each strike in full (damage-scale), cracking till one pays what is left.
+        int strikes = w.M.Building.Strikes(sky, f.Wear)!.Value;
+        Assert.True(strikes > 1, $"{strikes} strikes");
+        for (int i = 1; i < strikes; i++) Assert.False(w.M.Building.Wear(sky, f.Wear));
+        Assert.True(w.M.Building.Wear(sky, f.Wear));
+        Assert.Null(w.M.Grid.WallAt(sky));
+        Assert.Contains(w.M.Items.Floor, s => s.Item == "scrapChunk");
+        Assert.True(w.M.Building.Wear(rock, f.Wear));
+        Assert.False(w.M.Building.Wear(bedrock, f.Wear));
+        Assert.DoesNotContain(w.M.Items.Floor, s => s.Item is "rock" or "gravel");
     }
 
     [Fact]
-    public void WalledInWithBuiltWallsTheHeroOutlastsItAndItLeavesTheMeterEmptied()
+    public void ShutInABuiltHutTheHeroIsReachedThroughAWallWhoseCostFalls()
     {
         var w = Arrive(Field(), 40);
-        // A box of built stone round the hero, its floor the ground.
         for (int y = Ground - 7; y < Ground; y++)
             foreach (int x in (int[])[37, 43])
-                w.Do(new Place(Cell(x, y), Placement.Wall("stone")));
-        for (int x = 37; x <= 43; x++) w.Do(new Place(Cell(x, Ground - 7), Placement.Wall("stone")));
+                w.Do(new Place(Cell(x, y), Placement.Wall("scrap")));
+        for (int x = 37; x <= 43; x++) w.Do(new Place(Cell(x, Ground - 7), Placement.Wall("scrap")));
+        w.Run();
+        w.Do(new Release(Catcher.Id, Cell(80, Ground - 1))).Run();
+        var c = w.M.Creatures.Creatures.Single();
+        for (int t = 0; t < Hunt.Warn + Hunt.Ticks && c.Act == null; t++)
+        {
+            if (t % 10 == 0) w.Do(new Enter(Cell(40, Ground - 1)));
+            w.Run();
+        }
+        Assert.NotNull(c.Act);
+        Assert.Contains(w.M.Items.Floor, s => s.Item == "scrapChunk");
+    }
+
+    [Fact]
+    public void OnOpenGroundItRunsToItsHeroAndPounces()
+    {
+        var w = Arrive(Field(), 40);
+        w.Do(new Release(Catcher.Id, Cell(140, Ground - 1))).Run();
+        var c = w.M.Creatures.Creatures.Single();
+        w.Run(Hunt.Warn);
+        int afoot = 0, ticks = 0;
+        for (; ticks < 400 && c.Act == null; ticks++)
+        {
+            if (ticks % 10 == 0) w.Do(new Enter(Cell(40, Ground - 1)));
+            w.Run();
+            if (w.M.Creatures.Afoot(c)) afoot++;
+        }
+        Assert.NotNull(c.Act);
+        // About 90 columns at a walk's 1.4 ticks a cell, a few searches waited; running nearly all the way.
+        Assert.True(ticks < 200, $"{ticks} ticks");
+        Assert.True(afoot * 10 >= ticks * 8, $"afoot {afoot} of {ticks}");
+        Assert.Equal(0, CreaturesModule.LastWear(c));
+    }
+
+    [Fact]
+    public void AWideRavineItFliesAcrossRatherThanClimbingDownAndUp()
+    {
+        var w = Arrive(Field((x, y) => x >= 80 && x < 100 && y < H - 2), 40);
+        w.Do(new Release(Catcher.Id, Cell(140, Ground - 1))).Run();
+        var c = w.M.Creatures.Creatures.Single();
+        w.Run(Hunt.Warn);
+        int deepest = 0;
+        for (int t = 0; t < 400 && c.Act == null; t++)
+        {
+            if (t % 10 == 0) w.Do(new Enter(Cell(40, Ground - 1)));
+            w.Run();
+            deepest = Math.Max(deepest, CreaturesModule.Down(c.Y - 1, Unit));
+        }
+        Assert.NotNull(c.Act);
+        Assert.True(deepest < Ground + 2, $"down to row {deepest}");
+    }
+
+    [Fact]
+    public void AHeroOutrunningItSeesItLeapToLandAhead()
+    {
+        var w = Arrive(Field(), 60, y: Ground - 3);
+        w.Do(new Release(Catcher.Id, Cell(20, Ground - 1))).Run();
+        var c = w.M.Creatures.Creatures.Single();
+        w.Run(Hunt.Warn);
+        int x = 60, fastest = 0;
+        bool ahead = false;
+        for (int t = 0; t < 360 && c.Act == null; t++)
+        {
+            x = Math.Min(W - 20, x + 1);
+            w.Do(new Enter(Cell(x, Ground - 3)));
+            w.Run();
+            fastest = Math.Max(fastest, Math.Abs(c.VX));
+            ahead |= Column(c) > x;
+        }
+        // Outrun at 20 cells a second, it leapt at 28 and landed ahead of its hero, or caught it.
+        Assert.Equal(((Tune.Flyer)Catcher.Body).Leap, fastest);
+        Assert.True(ahead || c.Act != null, $"hero {x} catcher {Column(c)},{c.Y} act {c.Act?.Move} hunting {CreaturesModule.Hunting(c)} alive {w.M.Creatures.Creatures.Contains(c)} clock {w.M.Creatures.Clock}");
+    }
+
+    [Fact]
+    public void AWallBuiltAcrossItsWayIsBrokenOrGoneRoundAndItStillArrives()
+    {
+        var w = Arrive(Field(), 40);
+        w.Do(new Release(Catcher.Id, Cell(140, Ground - 1))).Run();
+        var c = w.M.Creatures.Creatures.Single();
+        w.Run(Hunt.Warn + 20);
+        for (int y = 0; y < Ground; y++) w.Do(new Place(Cell(90, y), Placement.Wall("scrap")));
+        for (int t = 0; t < 600 && c.Act == null; t++)
+        {
+            if (t % 10 == 0) w.Do(new Enter(Cell(40, Ground - 1)));
+            w.Run();
+        }
+        Assert.NotNull(c.Act);
+    }
+
+    [Fact]
+    public void TheSearchGivesTheSamePathFromAFreshMemoryAndAUsedOne()
+    {
+        var w = Arrive(Field((x, y) => y >= Ground + 6 && y < Ground + 12 && x >= 150 && x < 160), 40);
+        var m = w.M.Creatures;
+        var f = (Tune.Flyer)Catcher.Body;
+        var used = new PathFinder();
+        var scratch = new List<int>();
+        used.Find(m, f, Hunt.Speed, 60, Ground - 1, 154, Ground + 11, scratch);
+        used.Find(m, f, Hunt.Speed, 200, Ground - 1, 20, Ground - 1, scratch);
+        var a = new List<int>();
+        var b = new List<int>();
+        used.Find(m, f, Hunt.Speed, 120, Ground - 1, 154, Ground + 11, a);
+        new PathFinder().Find(m, f, Hunt.Speed, 120, Ground - 1, 154, Ground + 11, b);
+        Assert.NotEmpty(a);
+        Assert.Equal(b, a);
+    }
+
+    /// <summary>
+    /// On drawn ground of rock, built walls and bedrock, every step a path takes is one a body makes: a run a column across and at most
+    /// a step up or down, a flight or cut a cell any way; never into bedrock; a cut only into what breaks.
+    /// </summary>
+    [Property(MaxTest = 40)]
+    public Property EveryStepOfAPathIsOneTheBodyCanTake() => Prop.ForAll(
+        Gen.Choose(0, 9).ArrayOf(W / 8).ToArbitrary(),
+        Gen.Choose(0, 400).Two().ToArbitrary(),
+        (columns, ends) =>
+        {
+            var w = Arrive(Field(), 5);
+            for (int i = 0; i < columns.Length; i++)
+            {
+                string? wall = columns[i] switch { 0 => "bedrock", 1 or 2 => "scrap", _ => null };
+                if (wall == null) continue;
+                for (int y = Ground - 1 - columns[i] % 4; y < Ground; y++) w.Do(new Place(Cell(i * 8 + 4, y), Placement.Wall(wall)));
+            }
+            w.Run();
+            var m = w.M.Creatures;
+            var f = (Tune.Flyer)Catcher.Body;
+            var path = new List<int>();
+            int sx = 20 + ends.Item1 % 440, gx = 20 + ends.Item2 % 440;
+            m.Paths.Find(m, f, Hunt.Speed, sx, Ground - 12, gx, Ground - 1, path);
+            int px = sx, py = Ground - 12;
+            var broken = new HashSet<int>();
+            foreach (int step in path)
+            {
+                int x = step / 4 % W, y = step / 4 / W;
+                var kind = (StepKind)(step % 4);
+                int dx = x - px, dy = y - py;
+                bool shaped = kind == StepKind.Run ? Math.Abs(dx) == 1 && Math.Abs(dy) <= Tune.StepUp : Math.Max(Math.Abs(dx), Math.Abs(dy)) == 1;
+                if (!shaped) return false;
+                // What a cut step's body covered it broke: later steps may stand in it.
+                for (int row = y - f.Height + 1; row <= y; row++)
+                    for (int column = x - 1; column <= x + 1; column++)
+                    {
+                        if (w.M.Grid.WallAt(Cell(column, row)) is not { } wall || broken.Contains(Cell(column, row))) continue;
+                        if (wall.Id == "bedrock" || kind != StepKind.Cut) return false;
+                        broken.Add(Cell(column, row));
+                    }
+                (px, py) = (x, y);
+            }
+            return true;
+        });
+
+    [Fact]
+    public void WalledInByBedrockTheHeroOutlastsItAndItLeavesTheMeterEmptied()
+    {
+        var w = Arrive(Field(), 40);
+        // A box of bedrock round the hero and under it: nothing breaks it.
+        for (int y = Ground - 7; y < Ground; y++)
+            foreach (int x in (int[])[37, 43])
+                w.Do(new Place(Cell(x, y), Placement.Wall("bedrock")));
+        for (int x = 37; x <= 43; x++) w.Do(new Place(Cell(x, Ground - 7), Placement.Wall("bedrock")));
+        for (int x = 37; x <= 43; x++)
+            for (int y = Ground; y < H - 1; y++)
+            {
+                w.M.Grid.Clear(Cell(x, y), "structure");
+                w.M.Grid.Place(Cell(x, y), Placement.Wall("bedrock"));
+            }
         w.Run();
         Full(w);
         w.Run(Tune.Beat + 1);
@@ -333,27 +505,6 @@ public class CatchersTests
             twin.Run(ticks);
             Assert.Equal(w.World.Save(), twin.World.Save());
         }
-    }
-
-    [Fact]
-    public void AWallDugAndBuiltBackAsItGrewIsGrownAliveAndLoaded()
-    {
-        var w = new Scenario("......\n.S....\n######");
-        w.Do(new Enter(w.M.Crew.Spawn)).Run();
-        w.Do(new OpenSurface(Spec.PlanetTypes.Small.Id)).Run();
-        w.Do(new Transfer(1)).Run();
-        var grid = w.On(1).Grid;
-        int stone = Enumerable.Range(0, grid.Width * grid.Height).First(c => grid.WallAt(c)?.Id == "stone" && grid.GrownWall(c));
-        int other = Enumerable.Range(stone + 1, grid.Width * grid.Height - stone - 1).First(c => grid.WallAt(c)?.Id == "stone");
-        grid.Clear(stone, "structure");
-        grid.Place(stone, Placement.Wall("stone"));
-        grid.Clear(other, "structure");
-        grid.Place(other, Placement.Wall("soil"));
-        Assert.True(grid.GrownWall(stone));
-        Assert.False(grid.GrownWall(other));
-        w.Reload();
-        Assert.True(w.On(1).Grid.GrownWall(stone));
-        Assert.False(w.On(1).Grid.GrownWall(other));
     }
 
     /// <summary>

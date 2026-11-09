@@ -1,6 +1,7 @@
 # Catchers
 
-- Status: accepted (slice 1, the planet); slices 2 and 3 are in [the plan](../plans/catchers.md)
+- Status: accepted (slice 1, the planet); slices 2 and 3 are in [the plan](../plans/catchers.md); superseded in part by
+  [catcher-paths](2026-11-09-catcher-paths.md) (paths, breaking built walls)
 - Date: 2026-11-09
 
 ## Context

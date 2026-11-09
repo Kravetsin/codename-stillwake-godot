@@ -189,6 +189,35 @@ public class BudgetTests(ITestOutputHelper output)
         Assert.True(living.Mean - idle.Mean < Within(0.4), $"forty creatures took {living.Mean - idle.Mean:F3} ms of the tick");
     }
 
+    /// <summary>
+    /// Four catchers on the first planet after a hero forty rows down in rock (catcher-paths): their searches cut short at their cap of
+    /// places, one a tick, while they cut down toward it; the tick against the planet's idle one.
+    /// </summary>
+    [Fact]
+    public void KeepsAPlanetsTickWithFourCatchersSearchingThroughRockUnderBudget()
+    {
+        var w = new Scenario(Layout.Parse(["......", ".S....", "######"]));
+        w.Do(new Crew.Enter(w.M.Crew.Spawn)).Do(new OpenSurface(Content.PlanetTypes.First.Id)).Run();
+        w.Do(new Transfer(1)).Run();
+        var m = w.On(1);
+        w.Do(new Items.SetCreative(true)).Run();
+        var idle = Time(w.World, 300, _ => []);
+        int width = m.Grid.Width, spawn = m.Crew.Spawn, row = spawn / width, deep = spawn + 40 * width;
+        w.Do(new Crew.Enter(deep)).Run();
+        var catcher = Content.Creatures.Catcher;
+        foreach (int dx in (int[])[-80, -60, 60, 80])
+        {
+            int x = spawn % width + dx, y = row - 40;
+            while (y < row + 40 && Enumerable.Range(x - 1, 3).All(c => !m.Grid.Solid((y + 1) * width + c))) y++;
+            w.Do(new Creatures.Release(catcher.Id, y * width + x)).Run();
+        }
+        Assert.Equal(4, m.Creatures.Creatures.Count(c => c.Species == catcher.Id));
+        w.Run(((Content.Creatures.Hunt)catcher.Brain[0]).Warn);
+        var hunting = Time(w.World, 400, t => t % 10 == 0 ? [new Crew.Enter(deep)] : []);
+        output.WriteLine($"the first planet idle {idle.Mean:F3} ms a tick; with four catchers searching {hunting.Mean:F3} ms mean, {hunting.Max:F3} ms max");
+        Assert.True(hunting.Mean < Within(2), $"a planet's tick with four catchers took {hunting.Mean:F3} ms");
+    }
+
 
     /// <summary>
     /// The first planet's deepest lake opened from under its floor into a shaft dug down to a cave or 60 cells deep (liquids): the

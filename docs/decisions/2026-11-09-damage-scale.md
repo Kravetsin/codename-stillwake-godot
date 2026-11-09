@@ -1,7 +1,8 @@
 # One damage scale; the own ship takes a tenth
 
-- Status: accepted; built. Supersedes in part [unified-damage](2026-11-09-unified-damage.md) (the built share, scrap 20 and
-  iron 50, meteors' `PerPower` 220, `ToBreak`)
+- Status: accepted; built; supersedes in part [unified-damage](2026-11-09-unified-damage.md) (the built share, scrap 20 and
+  iron 50, meteors' `PerPower` 220, `ToBreak`) and [catcher-paths](2026-11-09-catcher-paths.md) (a catcher's strike at the
+  built share)
 - Date: 2026-11-09
 
 ## Context
@@ -31,6 +32,8 @@ their own charges, nothing else.
 4. **A burst clears its lists before pricing its first cell.** It read `_burstPaid` for the first cell before clearing it, so a
    machine rebuilt on the cell of one the last burst broke entered free on the host only: a desync, fixed here.
 5. **The client** gives a built wall's breaking blow the whole hit flash, as rock's (`Impacts.ShareAt`).
+6. **A catcher's strike** (`Wear`, `Strikes`) takes what is built in full too, as it only ever strikes where tools break:
+   a scrap wall is four strikes of its 120.
 
 No save step: no strength drops, so every saved crack stays below its cell's strength; old cracks become a few per cent and
 heal within a minute.

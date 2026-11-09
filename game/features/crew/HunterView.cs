@@ -27,7 +27,7 @@ public partial class HunterView : Node2D
         public readonly Figure Figure = figure;
         public readonly JetPlume Plume = plume;
         public readonly CutHeard Cuts = new();
-        public int Tick = -1, FromX, FromY, ToX, ToY, Damage, Facing = 1, LastWear;
+        public int Tick = -1, FromX, FromY, ToX, ToY, Damage, Facing = 1, LastWear, CutCell = -1;
         public string Species = "";
         public CreatureLooks.HeroGear Gear = null!;
         public Hero Drawn;
@@ -109,19 +109,25 @@ public partial class HunterView : Node2D
         else if (c.VX != 0) one.Facing = Math.Sign(c.VX);
         // Its speed in the controller's steps, three to a tick; hovering it is drawn rising a little, legs hanging, never stood on air.
         int vx = c.VX / 3, vy = c.VY / 3;
-        one.Drawn = new Hero(x, y, vx, Math.Min(vy, -1), false, one.Facing);
+        // On ground it runs as a hero does, its jetpack off (catcher-paths).
+        bool afoot = m.Creatures.Afoot(c), cutting = m.Creatures.Cutting(c);
+        one.Drawn = new Hero(x, y, vx, afoot ? 0 : Math.Min(vy, -1), false, one.Facing);
         var figure = one.Figure;
         // Its receiver in its quarry's colour, blinking as the quarry's bracelet; its goggles lit once the warning is over and it comes.
         int? quarry = CreaturesModule.Hunting(c);
         figure.Wear(quarry is int q ? Suits.Of(m.Players, q) : Unclaimed, one.Gear.Helmet, one.Gear.Body);
         figure.GearLights = (quarry != null ? TrackerBlink.LevelOf(TrackerBlink.Hunted, _clockMs) : 0, quarry != null && !m.Creatures.Warning(c) ? 1 : 0, one.Gear.Eyes);
-        figure.Aim = move is Spec.Creatures.Shoot or Spec.Creatures.Pounce && target is { } aimed
-            ? At(aimed.X, aimed.Y - Hero.MiddleUp)
+        // Cutting it holds its drill spinning at what it bites; else its gun.
+        figure.Wields = cutting ? Spec.Weapons.Drill.Item : CreatureLooks.Heroes[spec.Look].Gun;
+        figure.Spinning = cutting;
+        figure.Aim = cutting ? CutAim(one, m.Grid.Width)
+            : move is Spec.Creatures.Shoot or Spec.Creatures.Pounce && target is { } aimed ? At(aimed.X, aimed.Y - Hero.MiddleUp)
             : null;
         if (c.Damage > one.Damage) Struck(one);
         one.Damage = c.Damage;
-        figure.Show(one.Drawn, Pose.Air, 0, false, elapsedMs);
-        one.Plume.Step(figure.Nozzle, (vx, vy), elapsedMs);
+        figure.Show(one.Drawn, afoot ? Poses.PoseOf(one.Drawn, false, false) : Pose.Air, 0, false, elapsedMs);
+        if (afoot) one.Plume.Step(null, null, elapsedMs);
+        else one.Plume.Step(figure.Nozzle, (vx, vy), elapsedMs);
         // Its cuts heard where they bit, the rock's own sound; nothing is sent, it is the sim's wear.
         int wore = CreaturesModule.LastWear(c);
         var grid = m.Grid;
@@ -129,6 +135,8 @@ public partial class HunterView : Node2D
         int left = (int)Math.Floor((double)c.X / Unit - box.Width / 2.0), top = (int)Math.Floor((double)c.Y / Unit) - box.Height;
         var heard = one.Cuts.Look(left, top, box.Width, box.Height, grid.Width, grid.Height, cell => grid.WallAt(cell), wore != one.LastWear);
         one.LastWear = wore;
+        if (heard is var (bit, _, _)) one.CutCell = bit;
+        else if (!cutting) one.CutCell = -1;
         if (heard is var (cell, material, broke) && (broke ? GroundSounds.BreakOf(material) : GroundSounds.HitOf(material)) is { } cue)
             _cuts.Play(cue, new Vector2((float)((cell % grid.Width + 0.5) * Rig.Cell), (float)((cell / grid.Width + 0.5) * Rig.Cell)));
     }
@@ -178,6 +186,11 @@ public partial class HunterView : Node2D
             _falling.RemoveAt(i);
         }
     }
+
+    /// <summary>Where its drill bites: the cell last heard, else ahead of its chest the way it faces.</summary>
+    private static Vector2 CutAim(Shown one, int width) => one.CutCell >= 0
+        ? new Vector2((float)((one.CutCell % width + 0.5) * Rig.Cell), (float)((one.CutCell / width + 0.5) * Rig.Cell))
+        : Chest(one.Drawn) + new Vector2((float)(one.Facing * 3 * Rig.Cell), 0);
 
     private static Vector2 Chest(Hero hero) => At(hero.X, hero.Y - Hero.MiddleUp);
 

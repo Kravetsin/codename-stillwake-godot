@@ -9,12 +9,13 @@
 | `Clinger.cs` | The clinger (the sentry) on its wreck. |
 | `Creatures.cs` | The commands, the queries, the hit path. |
 | `Drives.cs` | The grazers' drives: `Graze`, `Flee`, `Retaliate`, `Escape`. |
-| `Flyer.cs` | The catcher's body: stopped by solid, cutting grown rock. |
+| `Flyer.cs` | The catcher's body: stops at solid or cuts. |
 | `Fuzz.cs` | The `Fuzz` override: commands the desync suite draws. |
 | `Guard.cs` | `Guard` (sentry, lurkers), `Return`, the `CutTether` reflex. |
 | `Hunt.cs` | The catcher's hunt. |
 | `Live.cs` | The system: dead swept, patches aged, creatures ticked. |
 | `Lunge.cs` | The lunge: a ram along the ground in phases (0103). |
+| `Paths.cs` | Weighted A*: run, fly, cut. |
 | `Patches.cs` | Patches (gas, slime): laid, aged, paid by heroes in them. |
 | `Pounce.cs` | The pounce: a straight flight at a hero, never cut. |
 | `Rules.cs` | The rules' contracts (drive, body, move); `RuleBook` finds them. |
@@ -31,9 +32,9 @@ Every creature composed (creatures-are-composed): a species (`Content.Creatures`
 drives, moves and yields, each a rule here. The dead are gone to all from the blow.
 
 - **Depends on:** `Grid`; `Crew` (heroes' cells, `Hunted`; `Blow`, `Shock`, `CallOff`); `Items` (weapons, ammo, drops, charge); `Debris`
-  (queries, `Unreel`, `Hit`); `Building` (`ShotTakes`, `Surplus`, `Hit`, `Burst`, `Wears`, `Wear`, `Relics`, `Posts`, `PostAt`, `FellPost`); `Rooms` (`Afloat`); `Knowledge` (`Earn`).
+  (queries, `Unreel`, `Hit`); `Building` (`ShotTakes`, `Surplus`, `Hit`, `Burst`, `Strikes`, `Wear`, `Relics`, `Posts`, `PostAt`, `FellPost`); `Rooms` (`Afloat`); `Knowledge` (`Earn`).
 - **State** (`CreaturesState`, saved): `Creatures` in id order, each `{ Id, Species, X, Y, VX, VY, Damage, Drive, DriveLeft,
-  Step, Act, Target, Mem, SeenAt }`, bottom middle in thousandths; `Drive` its brain place, `Act` `{ Move, Phase, Left }`,
+  Step, Act, Target, Mem, SeenAt, Path }`, bottom middle in thousandths; `Drive` its brain place, `Act` `{ Move, Phase, Left }`,
   `Mem` rule numbers by key, ordinal; `NextId`; `Clock`; `Shots`, `Arcs`, `Patches`, `Fired`. **Unsaved:** `Dead`. **Derived:** `Posture`, `Fleeing`, `Ended`, `Hits`.
 - **Runs** after `Crew` and `Debris`; shots fly after.
 
@@ -61,9 +62,9 @@ drives, moves and yields, each a rule here. The dead are gone to all from the bl
 - **Lurkers** (lurker-attacks): walkers on `Guard`, seeing in line. The capback `Vent`s at one within `Strike`
   (`Cooldown`); provoked `Provokes` ticks by answering, it lobs at one `From` to `Reach`, a puddle (`Leaves`) laid as it lands
   `Lingers` on, harmless. The snail's `Shell` opens `Hold` past a hero within `Reach`; it bites, a short lunge.
-- **The catcher** (tracker-catchers): on the beat a `Hunted` hero without one gets one `RingFrom..RingTo` columns off,
-  unseen. `Hunt` holds `Warn`, flies at `Speed` at its quarry, pounces within `Strike`, answers blows (`AnswerEvery`).
-  Its `Flyer` stops at solid, `Wear`ing its box every `CutEvery` if all `Wears`. Out of `Ticks`, killed or quarry gone: `CallOff`, up.
+- **The catcher** (tracker-catchers, catcher-paths): on the beat a `Hunted` hero without one gets one `RingFrom..RingTo` columns off,
+  unseen. `Hunt` holds `Warn`, then follows a `Path`: runs, flies, cuts what `Strikes` breaks; lagging, it
+  leaps ahead. Pounces within `Strike`, answers blows. Out of `Ticks`, killed or quarryless: `CallOff`, up.
 - **Patches** (`PatchKind`) last `Lasts`; each breath an awake hero in one seen from its middle pays `Damage` (`Shock`, `Stings`).
 - **The warden** (`Posted`, `Ward`): on the beat at a standing post with a standing relic in its arena, a hero in its keep box,
   none tied to it. Woken by an awake hero in the arena, a blow or a sibling, it pounces if no sibling acts (`Flies`: to the first
@@ -100,6 +101,6 @@ drives, moves and yields, each a rule here. The dead are gone to all from the bl
 - **No collisions** (0006); a clinger senses through rock; despawn loses damage. **No hit-stun.**
 - **A ram aims where the hero was reported** (0103); a second hero pays nothing. **Lifetime:** the keep box's.
 - **A burst hurts no hero or creature.**
-- **A catcher** cuts only grown rock. A planet under twice `RingFrom` wide gets none.
+- **A catcher:** none on a planet under twice `RingFrom` wide.
 - **A derelict escorted aboard** brings its sentry; its pounce passes walls. A blow breaking its wreck: unanswered.
 - **Shots** (0034, the ADRs): muzzle, pace, charge the client's; a guest's copy stops at blocks the nailer breaks.

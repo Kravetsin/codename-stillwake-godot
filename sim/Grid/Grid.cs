@@ -119,11 +119,6 @@ public interface IGridQueries
     /// none, for one a hero built, and on a surface that did not grow, the ship or a drawn map.
     /// </summary>
     bool GrownBack(int cell);
-    /// <summary>
-    /// Whether the wall in <paramref name="cell"/> is the ground's own, as it grew from the seed (0077), its layers compared with the
-    /// grown ones so a save agrees: false for none, for one a hero built (one rebuilt just as it grew counts as grown), and on a surface that did not grow.
-    /// </summary>
-    bool GrownWall(int cell);
     Machine? MachineAt(int cell);
     /// <summary>Machine <paramref name="id"/>; null for none, or one taken apart.</summary>
     Machine? MachineById(int id);
