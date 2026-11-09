@@ -88,7 +88,7 @@ public static class ItemCardView
             (words.AutowrapMode, words.CustomMinimumSize) = (TextServer.AutowrapMode.WordSmart, new Vector2(ToolWidth - 2 * Pad, 0));
             column.AddChild(Padded(words, 9, 0, 9, 6));
         }
-        // A canister is breathed with a key of its own: the one thing its slot cannot say.
+        // An item used by a key of its own shows it: the one thing its slot cannot say.
         if (card.Use is { } how) column.AddChild(Ruled(UseRow(how, null)));
         if (card.Charge is { } charge) column.AddChild(Meter(charge));
         Bottom(card, column);

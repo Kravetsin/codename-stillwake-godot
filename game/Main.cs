@@ -583,7 +583,6 @@ public partial class Main : Node2D, ITogether
         if (_items != null) _items.Panel.Trade = _m.Trade;
         if (_items != null) _items.Panel.Air = _m.Atmosphere;
         if (_items != null) _items.Panel.Water = _m.Water;
-        if (_items != null) _items.Panel.Breath ??= () => _m.Crew.CanisterRefill;
         if (_items != null) _items.Panel.Switching = _m.Power;
         if (_items != null) (_items.Panel.Charger, _items.Panel.ChargeRate) = (_m.Power.Charges, _m.Power.ChargeRate);
         if (_items != null) _items.Panel.Draw = _m.Power.Draw;

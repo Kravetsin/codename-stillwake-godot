@@ -221,7 +221,6 @@ public static partial class Ru
         ["item.cape.kind"] = "Снаряжение · Плащ",
         ["item.battery.kind"] = "Снаряжение · Пояс",
         ["item.accumulator.kind"] = "Снаряжение · Пояс",
-        ["item.canister.key"] = "ПКМ",
         ["equip.head"] = "ГОЛОВА",
         ["equip.back"] = "СПИНА",
         ["equip.belt"] = "ПОЯС",

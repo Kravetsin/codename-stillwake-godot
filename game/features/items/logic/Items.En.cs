@@ -224,7 +224,6 @@ public static partial class En
         ["item.cape.kind"] = "Equipment · Cape",
         ["item.battery.kind"] = "Equipment · Belt",
         ["item.accumulator.kind"] = "Equipment · Belt",
-        ["item.canister.key"] = "RMB",
         // The equipment by the body, each row of slots under its name (0047).
         ["equip.head"] = "HEAD",
         ["equip.back"] = "BACK",

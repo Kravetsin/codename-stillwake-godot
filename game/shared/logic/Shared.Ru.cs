@@ -45,7 +45,6 @@ public static partial class Ru
         ["card.stored"] = "{n} / {all}",
         ["card.volume"] = "{n} л",
         ["card.volumes"] = "{n} л · ×{count} = {all} л",
-        ["card.breath"] = "+{n} с воздуха",
         ["charger.empty"] = "пусто",
         ["charger.full"] = "полная",
         ["charger.charging"] = "заряжается",

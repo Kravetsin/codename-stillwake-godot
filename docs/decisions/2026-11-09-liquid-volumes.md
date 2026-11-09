@@ -16,7 +16,8 @@ breathed gave the suit 20 units of air, a second amount in no unit the player sa
 - **A card says its litres:** a canister's and a bottle's card "3 l", a stack's of more "3 l · ×4 = 12 l" (`ItemCards.VolumeOf`).
 - **Litres to the hundredth, rounded down** (`Litres.Of`): "87.99/150.00 l". A tank and a cistern also say the whole canisters
   or bottles they hold, on the pointer's tip and the draw key: "· 29 canisters".
-- **A canister's key says the air it gives:** "+20 s of air", a calm breath a second, upgrades counted (`CrewModule.CanisterRefill`).
+- **A canister's card is a bottle's:** its name, kind and litres, no key: the user took the RMB cap off it, and with it
+  the suit's air it gives.
 
 ## Consequences
 
@@ -27,4 +28,5 @@ breathed gave the suit 20 units of air, a second amount in no unit the player sa
 ## Not done
 
 - Biofuel keeps its count: the user left it as it is.
+- The suit's air a canister breathed gives is not written anywhere: the wrist gauge shows it filling.
 - Rates (leaks, a vaporizer's making) keep their tenth of a millilitre: a wall leaks 0.0015 l a minute.

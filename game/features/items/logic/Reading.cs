@@ -93,21 +93,10 @@ public sealed record Reading(
     /// <summary>The mark in the corner of an inventory slot holding <paramref name="item"/>: the open machine's (<see cref="HereOf"/>).</summary>
     public SlotMark MarkOf(string item) => HereOf(item);
 
-    /// <summary>
-    /// What a canister breathed gives this peer's suit (<c>CrewModule.CanisterRefill</c>, upgrades counted), in units of air: a
-    /// calm breath's each (liquid-volumes).
-    /// </summary>
-    public int Breath { get; init; } = Content.Crew.CanisterRefill;
-
-    /// <summary>
-    /// The one tooltip over a stack of <paramref name="item"/>: its card (<see cref="ItemCards"/>), a canister's key saying the
-    /// seconds of calm breathing it gives (<see cref="Breath"/>).
-    /// </summary>
+    /// <summary>The one tooltip over a stack of <paramref name="item"/>: its card (<see cref="ItemCards"/>).</summary>
     public Tip TipOf(string item)
     {
         var card = ItemCards.Of(item);
-        if (item == Content.Crew.Canister && card.Use is { } use)
-            card = card with { Use = use with { Words = T("card.breath", ("n", Breath * Content.Crew.BreathEvery / World.TicksPerSecond)) } };
         return new Tip(card.Name) { Card = card };
     }
 
