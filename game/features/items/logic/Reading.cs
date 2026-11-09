@@ -93,10 +93,21 @@ public sealed record Reading(
     /// <summary>The mark in the corner of an inventory slot holding <paramref name="item"/>: the open machine's (<see cref="HereOf"/>).</summary>
     public SlotMark MarkOf(string item) => HereOf(item);
 
-    /// <summary>The one tooltip over a stack of <paramref name="item"/>: its card (<see cref="ItemCards"/>).</summary>
+    /// <summary>
+    /// What a canister breathed gives this peer's suit (<c>CrewModule.CanisterRefill</c>, upgrades counted), in units of air: a
+    /// calm breath's each (liquid-volumes).
+    /// </summary>
+    public int Breath { get; init; } = Content.Crew.CanisterRefill;
+
+    /// <summary>
+    /// The one tooltip over a stack of <paramref name="item"/>: its card (<see cref="ItemCards"/>), a canister's key saying the
+    /// seconds of calm breathing it gives (<see cref="Breath"/>).
+    /// </summary>
     public Tip TipOf(string item)
     {
         var card = ItemCards.Of(item);
+        if (item == Content.Crew.Canister && card.Use is { } use)
+            card = card with { Use = use with { Words = T("card.breath", ("n", Breath * Content.Crew.BreathEvery / World.TicksPerSecond)) } };
         return new Tip(card.Name) { Card = card };
     }
 
@@ -112,13 +123,18 @@ public sealed record Reading(
     }
 
     /// <summary>
-    /// The one tooltip over <paramref name="stack"/>: its item's card, with what this one holds of its own, a battery's charge and a
-    /// tool's modules (0098), its numbers the sim's fold for them (<see cref="ItemCards.Fitted"/>).
+    /// The one tooltip over <paramref name="stack"/>: its item's card, with what this one holds of its own, a battery's charge, a
+    /// stack's litres all told and a tool's modules (0098), its numbers the sim's fold for them (<see cref="ItemCards.Fitted"/>).
     /// </summary>
     public Tip TipOf(Stack stack)
     {
         var tip = TipOf(stack.Item);
-        var card = tip.Card! with { Charge = Charges.MeterOf(stack), Picture = Charges.Picture(stack.Item, stack.Charge) };
+        var card = tip.Card! with
+        {
+            Charge = Charges.MeterOf(stack),
+            Picture = Charges.Picture(stack.Item, stack.Charge),
+            Volume = ItemCards.VolumeOf(stack.Item, stack.Count),
+        };
         return tip with { Card = ItemCards.Fitted(card, ToolStats.ModulesOf(stack)) };
     }
 

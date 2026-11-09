@@ -7,7 +7,7 @@ public static partial class Ru
         ["atmosphere.noTank"] = "Здесь нет бака",
         ["atmosphere.tankFull"] = "Бак полон",
         ["atmosphere.tankLow"] = "В баке меньше баллона",
-        ["tank.draw"] = "Достать {n} ({held}/{all} л)",
+        ["tank.draw"] = "Достать {n} ({held}/{all} л · {whole} {whole|баллон|баллона|баллонов})",
         ["vaporizer.liquid"] = "Жидкости к испарению: {n} л",
         ["air.aired"] = "Есть воздух · {cells} {cells|клетка|клетки|клеток}",
         ["air.filling"] = "Наполняется · {aired} из {cells} {cells|клетки|клеток|клеток}",
@@ -25,6 +25,6 @@ public static partial class Ru
         ["atmosphere.dry"] = "Бак за испарителем пуст: вставь баллон",
         ["atmosphere.leaky"] = "Стены травят больше, чем дают испарители: построй стены получше или ещё испаритель",
         ["atmosphere.burning"] = "Огонь здесь забирает свою долю воздуха: поставь ещё испаритель или стены получше",
-        ["air.tank"] = "{held}/{of} л",
+        ["air.tank"] = "{held}/{of} л · {whole} {whole|баллон|баллона|баллонов}",
     };
 }

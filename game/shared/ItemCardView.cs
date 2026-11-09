@@ -79,7 +79,9 @@ public static class ItemCardView
         var kind = Text(card.Kind, KindText, HorizontalAlignment.Left);
         kind.SizeFlagsVertical = Control.SizeFlags.ShrinkEnd;
         line.AddChild(kind);
-        var column = Column(0, Padded(line, 9, 5, 9, card.About == null ? 6 : 2));
+        var column = Column(0, Padded(line, 9, 5, 9, card.About == null && card.Volume == null ? 6 : 2));
+        // A canister's or a bottle's litres, a stack's all told (liquid-volumes).
+        if (card.Volume is { } volume) column.AddChild(Padded(Text(volume, StoredText, HorizontalAlignment.Left), 9, 0, 9, card.About == null ? 6 : 2));
         if (card.About is { } about)
         {
             var words = Text(about, DetailText, HorizontalAlignment.Left);

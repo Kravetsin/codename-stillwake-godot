@@ -248,6 +248,30 @@ public class ItemCardTests
     }
 
     [Fact]
+    public void SayACanistersAndABottlesLitresAndAStacksAllToldButNoneOfWhatHoldsNoLiquid()
+    {
+        // A canister and a bottle hold 3 litres each (liquid-volumes); biofuel is counted, not poured.
+        Assert.Equal("3 l", ItemCards.Of(Spec.Crew.Canister).Volume);
+        Assert.Equal("3 l", ItemCards.Of(Spec.Water.Item).Volume);
+        Assert.Null(ItemCards.Of("biofuel").Volume);
+        Assert.Null(ItemCards.Of("iron").Volume);
+        Assert.Equal("3 l · ×4 = 12 l", With(false).TipOf(new Stack(Spec.Crew.Canister, 4)).Card!.Volume);
+        Assert.Equal("3 l · ×5 = 15 l", With(false).TipOf(new Stack(Spec.Water.Item, 5)).Card!.Volume);
+        Assert.Equal("3 l", With(false).TipOf(new Stack(Spec.Water.Item, 1)).Card!.Volume);
+        Assert.NotEqual(ItemCards.Of(Spec.Crew.Canister), ItemCards.Of(Spec.Crew.Canister) with { Volume = null });
+    }
+
+    [Fact]
+    public void SayOnACanistersKeyTheSecondsOfCalmBreathingItGivesTheSuitUpgradesCounted()
+    {
+        // A calm breath is a unit a second: 20 units 20 s, and 40 with the canister upgrade bought (2026-11-03-the-heavy-helmet).
+        Assert.Equal(new CardKey("RMB", "+20 s of air"), With(false).TipOf(new Stack(Spec.Crew.Canister, 1)).Card!.Use);
+        Assert.Equal(new CardKey("RMB", "+40 s of air"), (With(false) with { Breath = 40 }).TipOf(Spec.Crew.Canister).Card!.Use);
+        // A jetpack's key says nothing of air.
+        Assert.Equal("", With(false).TipOf("jetpack").Card!.Use!.Words);
+    }
+
+    [Fact]
     public void TheSalvageDronesCardSaysNoCrateNoFlight()
     {
         var card = ItemCards.Of(Spec.Logistics.SalvageDrone);

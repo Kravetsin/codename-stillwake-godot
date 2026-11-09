@@ -146,6 +146,12 @@ public sealed record ItemCard(
     /// <summary>A line on what a plain item does, under its kind, where its table has one (<c>item.&lt;id&gt;.about</c>): the salvage drone's; null for most.</summary>
     public string? About { get; init; }
 
+    /// <summary>
+    /// What liquid it holds, a line under its name (liquid-volumes): a canister's or a bottle's litres, and a stack's of more
+    /// than one with them all, "3 l · ×4 = 12 l"; null for an item that holds none.
+    /// </summary>
+    public string? Volume { get; init; }
+
     /// <summary>Its picture: its item's, or the empty battery's for one holding no charge.</summary>
     public string Picture { get; init; } = Item;
 
@@ -155,7 +161,7 @@ public sealed record ItemCard(
         && Use == other.Use && Worn == other.Worn && Headline == other.Headline && Detail == other.Detail
         && Price == other.Price && Equals(Station, other.Station) && Charge == other.Charge && Picture == other.Picture && Draw == other.Draw
         && Here == other.Here && Equals(Output, other.Output) && Tech == other.Tech && Fitted.SequenceEqual(other.Fitted)
-        && DrawBoost == other.DrawBoost && About == other.About;
+        && DrawBoost == other.DrawBoost && About == other.About && Volume == other.Volume;
 
     public override int GetHashCode()
     {
@@ -172,6 +178,7 @@ public sealed record ItemCard(
         hash.Add(Headline);
         hash.Add(Tech);
         hash.Add(DrawBoost);
+        hash.Add(Volume);
         foreach (var module in Fitted) hash.Add(module);
         foreach (var tile in Tiles ?? []) hash.Add(tile);
         return hash.ToHashCode();

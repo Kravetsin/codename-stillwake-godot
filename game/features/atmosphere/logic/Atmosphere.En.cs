@@ -7,7 +7,7 @@ public static partial class En
         ["atmosphere.noTank"] = "There is no tank here",
         ["atmosphere.tankFull"] = "The tank is full",
         ["atmosphere.tankLow"] = "Less than a canister in the tank",
-        ["tank.draw"] = "Take {n} ({held}/{all} l)",
+        ["tank.draw"] = "Take {n} ({held}/{all} l · {whole} canisters)",
         ["vaporizer.liquid"] = "Liquid to turn: {n} l",
         ["air.aired"] = "Aired · {cells} cells",
         ["air.filling"] = "Filling · {aired}/{cells} cells",
@@ -26,6 +26,6 @@ public static partial class En
         ["atmosphere.dry"] = "The tank behind the vaporizer is empty: load a canister",
         ["atmosphere.leaky"] = "The walls leak more than the vaporizers make: build better walls or another vaporizer",
         ["atmosphere.burning"] = "The fires burning here take their share of the air: build another vaporizer or better walls",
-        ["air.tank"] = "{held}/{of} l",
+        ["air.tank"] = "{held}/{of} l · {whole} canisters",
     };
 }
