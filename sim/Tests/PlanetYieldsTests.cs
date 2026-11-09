@@ -216,7 +216,7 @@ public class PlanetYieldsTests
     {
         var w = Meadow();
         int axe = Weapons.Axe.BlockDamage, pace = Weapons.Axe.Pace;
-        Assert.Equal((24, 16, 8), (Flora.Get("acacia").Strength, Flora.Get("rock").Strength, Flora.Get("bush").Strength));
+        Assert.Equal((240, 160, 80), (Flora.Get("acacia").Strength, Flora.Get("rock").Strength, Flora.Get("bush").Strength));
         // Swings at the axe's pace, the first at once: a tree's sixth lands two and a half seconds in, three of swinging.
         Assert.Equal(Flora.Get("acacia").Strength / axe, Fell(w, w.At(1, 1)));
         Assert.Equal(3 * World.TicksPerSecond, Flora.Get("acacia").Strength / axe * pace);

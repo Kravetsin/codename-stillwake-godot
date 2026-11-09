@@ -143,7 +143,7 @@ public class CountsTests
         var w = Meadow();
         var cost = w.M.Grid.WallAt(w.At(5, 2))!.Cost;
         // A shot from a peer with no hero here: the wall breaks, and the tree it held falls, for nobody.
-        Assert.True(w.M.Building.Hit(7, w.At(5, 2), 100_000));
+        Assert.NotNull(w.M.Building.Hit(7, w.At(5, 2), 100_000));
         Assert.All(w.M.Items.Floor, s => Assert.Equal(FloorStack.Nobody, s.By));
         Assert.All(cost, c => Assert.Equal(Lying(w, c.Item), Got(w, c.Item)));
         Assert.All(Flora.Get("acacia").Yields, y => Assert.Equal(Lying(w, y.Item), Got(w, y.Item)));

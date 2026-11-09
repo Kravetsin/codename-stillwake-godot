@@ -62,7 +62,6 @@ public partial class AirView : Node2D
     /// <summary>Each venting room's red light: its id, its middle in pixels, how far it reaches in cells.</summary>
     private List<(int Room, Vector2 At, int Reach)> _alarms = [];
     private static readonly object Alarm = new();
-    private static readonly (int, int, int) AlarmLight = (255, 50, 44);
     /// <summary>Fresh air owed to each filling vent on the screen, a faint veil now and then.</summary>
     private double _breaths;
     private const double BreathsPerSecond = 1.6;
@@ -101,7 +100,7 @@ public partial class AirView : Node2D
         // The alarm is light (0075): each venting room lit red on the beat, its cells only faintly painted over.
         _pulse.Modulate = new Color(1, 1, 1, (float)(0.06 + 0.12 * pulse));
         foreach (var (room, at, reach) in _alarms)
-            Stages.Of(Layers.Effects).Flares.Hold((Alarm, room), at.X, at.Y, AlarmLight, (0.12 + 0.3 * pulse) * Fx.Glow, reach, 0.866f, 0.6);
+            Stages.Of(Layers.Effects).Flares.Hold((Alarm, room), at.X, at.Y, Fx.Alarm, (0.12 + 0.3 * pulse) * Fx.Glow, reach, 0.866f, 0.6);
         _vents.Step(_streams, elapsedMs);
         Breathe(elapsedMs);
         Nearest(_hiss, _streams.Select(s => new Vector2((float)s.X, (float)s.Y) * Cell));

@@ -26,6 +26,9 @@ public class DesyncTests(ITestOutputHelper output)
     /// </summary>
     private const int CoverTries = 12;
 
+    /// <summary>The stations the stations' run tends, each standing once at least.</summary>
+    private static readonly string[] Stations = ["former", "furnace", "burnerGenerator", "smelter", "assembler", "growCapsule", "crusher"];
+
     /// <summary>
     /// Fuzzes seed <paramref name="first"/>, then the next a hundred on, until <paramref name="fuzz"/> says a run reached what
     /// the test needs (nothing missed): a change that shifts the random stream costs a try, not a seed bumped by hand. Every
@@ -612,6 +615,8 @@ public class DesyncTests(ITestOutputHelper output)
                 var first = clients[0];
                 var grid = game.Module<GridModule>(first.World);
                 var crafting = game.Module<CraftingModule>(first.World);
+                // A charge the fuzz throws may break a station (unified-damage): that run is tended no more, still checked in sync.
+                if (Stations.Any(k => grid.MachinesOf(k).Count == 0) || grid.MachinesOf("burnerGenerator").Count < 2) return;
                 int former = grid.MachinesOf("former")[0].Id, furnace = grid.MachinesOf("furnace")[0].Id;
                 int burner = grid.MachinesOf("burnerGenerator")[0].Id, smelter = grid.MachinesOf("smelter")[0].Id;
                 int assembler = grid.MachinesOf("assembler")[0].Id, capsule = grid.MachinesOf("growCapsule")[0].Id;

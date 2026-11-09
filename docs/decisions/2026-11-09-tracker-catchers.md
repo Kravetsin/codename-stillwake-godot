@@ -25,7 +25,7 @@ on its shin, and the owners hire catchers, a third party neutral to the warring 
 - **The catcher** (`Lifetime.Hunter`, faction `catchers`, hunting crew), one species: a `Flyer` body 3×5 cells, `Hunt` drive,
   the sentry's pounce and shot. It hovers its warning (`Warn`, 10 s), flies at its quarry at 8 cells/s, pounces within
   `Strike` in line. Blocked, its body `Wear`s every cell of its next box every `CutEvery` ticks if all of them `Wears`:
-  grown rock as it grew (`IGridQueries.GrownWall`, `Blasts`), never a built wall, a machine or bedrock. Out of `Ticks`
+  grown rock as it grew (`IGridQueries.GrownWall`), never a built wall, a machine or bedrock. Out of `Ticks`
   (90 s) it calls the hunt off; its quarry out or gone, the same; then it flies up through anything, gone once unseen. A blow
   from another hero it answers with its shot, once per `AnswerEvery`, then turns back. Hp 40. Killed: scrap, a circuit, a crystal one in 5, an opal one in 10, and its `Purse`, 150..300
   credits earned by the ship (`IKnowledgeOps.Earn`): what it was paid for the hero. Catchers are worth hunting back.

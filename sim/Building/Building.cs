@@ -51,19 +51,17 @@ public interface IBuildingQueries
     bool ShotTakes(int cell);
 
     /// <summary>
-    /// Whether a burst breaks the wall in <paramref name="cell"/> (blasting-charge): the surface's tools break things, the cell is in the
-    /// grid's zone, and its wall is natural ground that breaks: never a built wall, bedrock or lava. What <see cref="IBuildingOps.Blast"/> guards by.
-    /// </summary>
-    bool Blasts(int cell);
-
-    /// <summary>
-    /// Whether a catcher may wear the wall in <paramref name="cell"/> away (tracker-catchers): as <see cref="Blasts"/>, and the wall the ground's own as it
-    /// grew (<c>GrownWall</c>): never one a hero built, a piece, a machine, bedrock, lava or the fog. What <see cref="IBuildingOps.Wear"/> guards by.
+    /// Whether a catcher may wear the wall in <paramref name="cell"/> away (tracker-catchers): the surface's tools break things, the cell is in
+    /// the grid's zone, and its wall is natural ground that breaks and the ground's own as it grew (<c>GrownWall</c>): never one a hero
+    /// built, a piece, a machine, bedrock, lava or the fog. What <see cref="IBuildingOps.Wear"/> guards by.
     /// </summary>
     bool Wears(int cell);
 
     /// <summary>What a shot's hit in <paramref name="cell"/> strikes, by a cell of it: a built piece by its first cell, whatever cell of it is met; else the cell itself. A thing a shot passed is remembered by this, so a piece over several cells is hit once.</summary>
     int ShotKey(int cell);
+
+    /// <summary>What <see cref="IBuildingOps.Hit"/> of <paramref name="damage"/> on <paramref name="cell"/> would leave over, changing nothing: a client's copy of a shot judges by it.</summary>
+    int? Surplus(int cell, int damage);
 
     /// <summary>The relics the ground grew with, ascending by cell, standing or taken (0096).</summary>
     IReadOnlyList<Relic> Relics { get; }
@@ -81,14 +79,20 @@ public interface IBuildingQueries
 /// <summary>How another module may change what stands on the grid.</summary>
 public interface IBuildingOps
 {
-    /// <summary>A hit of <paramref name="damage"/> by peer <paramref name="peer"/>'s shot on what stands solid in <paramref name="cell"/>: true when it broke.</summary>
-    bool Hit(int peer, int cell, int damage);
+    /// <summary>
+    /// A hit of <paramref name="damage"/> by peer <paramref name="peer"/>'s shot on what stands solid in <paramref name="cell"/>: what was
+    /// left over once it broke (unified-damage), 0 when it took exactly its strength; null when it held, only cracked, or nothing there breaks.
+    /// </summary>
+    int? Hit(int peer, int cell, int damage);
 
     /// <summary>
-    /// The natural wall in <paramref name="cell"/> broken by peer <paramref name="peer"/>'s burst (blasting-charge): an ore's lump and the
-    /// growths it held given to the peer, plain ground none; nothing where <see cref="IBuildingQueries.Blasts"/> says no.
+    /// A burst of <paramref name="power"/> from <paramref name="cell"/>, within <paramref name="reach"/> cells, by peer <paramref name="peer"/>
+    /// (unified-damage): the shared <see cref="Wave"/> through open cells, ground and what is built, each cell it pays for broken, in
+    /// cell order, a piece whole, and each it reaches but cannot pay for cracked by what was left, once, a built one by its
+    /// <see cref="Content.Damage.BuiltTakes"/> share; bedrock, lava, the fog and machines stop it. What breaks goes as
+    /// <paramref name="spoils"/> says; a relic it takes shocks the peer. Whether it went off: not from where it stops.
     /// </summary>
-    void Blast(int peer, int cell);
+    bool Burst(int peer, int cell, int power, int reach, Spoils spoils);
 
     /// <summary>
     /// A catcher's strike of <paramref name="damage"/> on the grown wall in <paramref name="cell"/> (tracker-catchers): cracked as a hit cracks it,
@@ -121,6 +125,7 @@ public sealed partial class BuildingModule : Module<BuildingState>, IBuildingQue
     private readonly IPowerOps _powerOps;
     private readonly IResearchQueries _research;
     private readonly ICraftingQueries _crafting;
+    private readonly ICraftingOps _craftingOps;
     private readonly ICrewQueries _crew;
     private readonly ICrewOps _crewOps;
     private readonly IPipesQueries _pipes;
@@ -129,8 +134,8 @@ public sealed partial class BuildingModule : Module<BuildingState>, IBuildingQue
 
     public BuildingModule(
         IGridQueries grid, IGridOps gridOps, IItemsQueries items, IItemsOps itemsOps,
-        IPowerQueries power, IPowerOps powerOps, IResearchQueries research, ICraftingQueries crafting, ICrewQueries crew, ICrewOps crewOps,
-        IPipesQueries pipes)
+        IPowerQueries power, IPowerOps powerOps, IResearchQueries research, ICraftingQueries crafting, ICraftingOps craftingOps,
+        ICrewQueries crew, ICrewOps crewOps, IPipesQueries pipes)
     {
         _grid = grid;
         _gridOps = gridOps;
@@ -140,6 +145,7 @@ public sealed partial class BuildingModule : Module<BuildingState>, IBuildingQue
         _powerOps = powerOps;
         _research = research;
         _crafting = crafting;
+        _craftingOps = craftingOps;
         _crew = crew;
         _crewOps = crewOps;
         _pipes = pipes;

@@ -1,5 +1,6 @@
 using System.Text.Json.Serialization;
 using Stillwake.Content;
+using Stillwake.Sim.Building;
 using Stillwake.Sim.Grid;
 using Stillwake.Sim.Items;
 using Stillwake.Sim.Power;
@@ -29,8 +30,12 @@ public sealed class HazardsState
     [JsonInclude, JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)] internal int FlareIn { get; set; }
 }
 
-/// <summary>A meteor hits the wall at <paramref name="Cell"/>: from the dev panel, to try a breach and its repair. It always breaks it.</summary>
-public sealed record MeteorHit(int Cell) : Command;
+/// <summary>
+/// A meteor hits the wall at <paramref name="Cell"/>: from the dev panel, to try a breach and its repair. With no
+/// <paramref name="Power"/> it breaks that wall alone, always, with just what that takes, so its back wall stands but behind a deep
+/// crack; with one it strikes as a meteor of the shower falling here would.
+/// </summary>
+public sealed record MeteorHit(int Cell, int? Power = null) : Command;
 
 /// <summary>
 /// The world calmed, or stirred again, from the dev panel: <c>On</c>, no meteors fall and no flares are drawn till it is turned off.
@@ -42,25 +47,26 @@ public sealed record SetCalm(bool On) : Command;
 public sealed partial class HazardsModule : Module<HazardsState>
 {
     private readonly IGridQueries _grid;
-    private readonly IGridOps _ops;
     private readonly IPowerQueries _power;
     private readonly IPowerOps _powerOps;
     private readonly IResearchQueries _research;
-    private readonly IItemsOps _items;
-    private readonly List<int> _targets = [], _blast = [], _backs = [];
-    private readonly Wave _wave = new();
+    private readonly IBuildingOps _building;
+    private readonly List<int> _targets = [];
 
     public override string Id => "hazards";
 
-    public HazardsModule(IGridQueries grid, IGridOps ops, IPowerQueries power, IPowerOps powerOps, IResearchQueries research, IItemsOps items)
+    public HazardsModule(IGridQueries grid, IPowerQueries power, IPowerOps powerOps, IResearchQueries research, IBuildingOps building)
     {
         _grid = grid;
-        _ops = ops;
         _power = power;
         _powerOps = powerOps;
         _research = research;
-        _items = items;
-        Handles<MeteorHit>(c => HitProblem(c.Cell), c => Break(c.Cell));
+        _building = building;
+        Handles<MeteorHit>(c => HitProblem(c.Cell), c =>
+        {
+            if (c.Power is int power) Strike(c.Cell, power, Shower ?? Meteors.StartingSpace);
+            else _building.Burst(FloorStack.Nobody, c.Cell, BuildingModule.ToBreak(_grid.WallAt(c.Cell)!), 0, Spoils.Lost);
+        });
         Handles<FlareNow>(FlareNowProblem, c => State.FlareIn = c.Ticks);
         Handles<SetCalm>(_ => null, c => (State.Calm, State.Incoming, State.NextIn, State.FlareIn) = (c.On, null, 0, 0));
         // In construction, as a command would: building drops a mark on the broken wall and the rooms see the hole on its tick.
@@ -90,7 +96,7 @@ public sealed partial class HazardsModule : Module<HazardsState>
     {
         if (_grid.WallAt(cell) is not { } wall) return "hazards.noWall";
         bool zone = _grid.Zone.Contains(cell % _grid.Width, cell / _grid.Width);
-        return wall.Armour == Material.Unbreakable || !zone ? "hazards.neverBreaks" : null;
+        return wall.Strength == Material.Unbreakable || !zone ? "hazards.neverBreaks" : null;
     }
 
     /// <summary>
@@ -109,7 +115,7 @@ public sealed partial class HazardsModule : Module<HazardsState>
                 return;
             }
             s.Incoming = null;
-            Strike(meteor, shower);
+            Strike(meteor.Cell, meteor.Power, shower);
             s.NextIn = Interval(shower);
             return;
         }
@@ -126,60 +132,17 @@ public sealed partial class HazardsModule : Module<HazardsState>
     }
 
     /// <summary>
-    /// <paramref name="meteor"/> strikes (2026-10-29-meteor-wave): if the wall it meets still stands and its power reaches the wall's
-    /// strength, a blast of <see cref="Charge"/> spreads from it as a wave, cheapest way first. A cell costs it <c>Step</c> to reach
-    /// and a wall <c>PerStrength</c> a point of its strength more, 7/5 of that aslant (round-blasts), which breaks it: what is left goes on, so
-    /// walls soak the blast up and a strong one spares what lies behind it. It goes through open cells and breakable walls only; a
-    /// door, window, ladder, machine or a wall that never breaks stops it. A back wall behind a cell it reached breaks when what is
-    /// left there pays for its strength, spending nothing. A wall that holds the meteor stops it whole. All found, then broken in
-    /// cell order.
+    /// A meteor of <paramref name="power"/> strikes the wall at <paramref name="cell"/> (unified-damage): a burst of <see cref="Charge"/>
+    /// from it within the shower's <c>Reach</c>, what it pays for lost, its back walls too, and what it reaches but cannot pay for,
+    /// the wall struck first, cracked. A wall gone since it was seen coming, or one that never breaks, takes nothing.
     /// </summary>
-    private void Strike(Meteor meteor, Meteors.Shower shower)
+    private void Strike(int cell, int power, Meteors.Shower shower)
     {
-        if (HitProblem(meteor.Cell) != null || meteor.Power < _grid.WallAt(meteor.Cell)!.Armour) return;
-        int charge = Charge(meteor.Power, shower);
-        _blast.Clear();
-        _backs.Clear();
-        _wave.Spread(_grid.Width, _grid.Height, meteor.Cell, Meteors.PerStrength * _grid.WallAt(meteor.Cell)!.Armour, charge, Farthest(meteor.Power, shower),
-            Enter, (cell, cost) =>
-            {
-                if (_grid.WallAt(cell) != null) _blast.Add(cell);
-                if (_grid.BackAt(cell) is { } back && back.Armour != Material.Unbreakable
-                    && charge - cost >= Meteors.PerStrength * back.Armour) _backs.Add(cell);
-            });
-        _blast.Sort();
-        _backs.Sort();
-        foreach (int cell in _blast) Break(cell);
-        foreach (int cell in _backs) _ops.Clear(cell, "back");
+        if (HitProblem(cell) == null) _building.Burst(FloorStack.Nobody, cell, Charge(power, shower), shower.Reach, Spoils.Lost);
     }
 
-    /// <summary>What entering <paramref name="cell"/> costs a meteor's wave besides its step: a wall its strength, nothing open; null where a door, window, ladder, machine or a wall that never breaks stops it.</summary>
-    private int? Enter(int cell)
-    {
-        if (_grid.WallAt(cell) is { } wall) return HitProblem(cell) != null ? null : Meteors.PerStrength * wall.Armour;
-        return _grid.StructureAt(cell) != Structure.Empty || _grid.MachineAt(cell) != null ? null : 0;
-    }
-
-    /// <summary>
-    /// The wall at <paramref name="cell"/> broken (2026-10-29-holes-not-planned): lost, refunding nothing, and left unplanned, for the
-    /// player to patch with what they have. Pipes are spans, running through it untouched (0109); a mark on it is dropped by building.
-    /// A debris net hung on it, in the next cell of its row, goes with it, its whole cost floating at its cell for anyone to take
-    /// (2026-11-03-debris-net); debris drops what it held.
-    /// </summary>
-    private void Break(int cell)
-    {
-        _ops.Clear(cell, "structure");
-        int next = cell + 1;
-        if (next % _grid.Width == 0 || _grid.MachineAt(next) is not { } net || !Machines.Is(net.Kind, MachineTrait.Catches)) return;
-        _ops.Clear(next, "machine");
-        foreach (var (item, count) in Machines.Get(net.Kind).Cost) _items.LayDown(new Stack(item, count), net.Cell);
-    }
-
-    /// <summary>The blast a meteor of <paramref name="power"/> sets off: what it may spend reaching cells and breaking walls.</summary>
+    /// <summary>The burst a meteor of <paramref name="power"/> sets off, in tenths of strength.</summary>
     public static int Charge(int power, Meteors.Shower shower) => shower.Charge + power * shower.PerPower;
-
-    /// <summary>How far, in cells either way, a meteor of <paramref name="power"/>'s blast may reach: its charge a step a cell, the cheapest.</summary>
-    public static int Farthest(int power, Meteors.Shower shower) => Charge(power, shower) / Meteors.Step;
 
     /// <summary>Ticks from one meteor to the next seen coming, drawn evenly between the shower's least and most.</summary>
     private int Interval(Meteors.Shower shower) => shower.EveryMin + (int)Random.Below((uint)(shower.EveryMax - shower.EveryMin + 1));
@@ -229,7 +192,7 @@ public sealed partial class HazardsModule : Module<HazardsState>
     protected override HazardsState Init(Layout layout) => new() { Calm = !layout.Meteors };
 
     /// <summary>
-    /// Meteors by hand, rarely: every hit opens the world a little more. Mostly at a standing wall, now
+    /// Meteors by hand, rarely: every hit cracks or opens the world a little more. Mostly at a standing wall, now
     /// and then anywhere: off the grid, into space, at a wall already gone. As rarely a flare striking at once, so the
     /// suites' short runs see machines broken, and the world calmed or stirred.
     /// </summary>
@@ -245,6 +208,7 @@ public sealed partial class HazardsModule : Module<HazardsState>
         int cell = rng.Below(3) != 0 && walls.Count > 0
             ? walls[(int)rng.Below((uint)walls.Count)]
             : (int)rng.Below((uint)structure.Length + 2) - 1;
-        return new MeteorHit(cell) { From = from };
+        // Half of them a meteor's burst, of any power the showers draw or none, so a crack and a breach both come.
+        return new MeteorHit(cell, rng.Below(2) == 0 ? null : (int)rng.Below(8)) { From = from };
     }
 }

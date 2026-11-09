@@ -208,8 +208,11 @@ public class DigTests
 
 
     [Fact]
-    public void ACrackLeftAloneHealsWholeAndADigBeginsAgain()
+    public void ACrackHealsTwelveHundredTicksAfterItsLastHitAndADigBeginsAgain()
     {
+        // A minute (unified-damage): long enough that a second charge or meteor finds the first one's cracks.
+        Assert.Equal(1200, Builds.CrackHeals);
+        Assert.Equal(60 * Sim.World.TicksPerSecond, Builds.CrackHeals);
         var w = World();
         int cell = At(5, 2);
         for (int i = 0; i < 2; i++) w.Do(HewTesting.Dig(w, cell, Axe)).Run();

@@ -88,6 +88,9 @@ public static class ItemCards
             { Sign = CardSign.Arc, Group = CardGroup.Reach },
             new CardTile(T("card.cells", ("n", Number(weapon.Range / 1000.0))), T("card.range")) { Sign = CardSign.Reach, Group = CardGroup.Reach },
         ];
+        // What of a broken cell's surplus goes on to the one behind (unified-damage), shown as a gun's pierce.
+        if (weapon.Carries > 0)
+            tiles.Insert(3, new CardTile(T("card.percent", ("n", Number(weapon.Carries))), T("card.pierce")) { Sign = CardSign.Pierce, Group = CardGroup.Hit });
         if (Spec.Weapons.Salvages(weapon))
             tiles.Add(new CardTile(T("card.more", ("n", (Spec.Weapons.CutBonus - 1000) / 10)), T("card.loot")) { Sign = CardSign.Loot, Group = CardGroup.Special });
         return tiles;
@@ -97,9 +100,9 @@ public static class ItemCards
     private static CardTile Hits(string value, CardBoost? boost, CardGroup group) =>
         new(value, T("card.damage"), boost) { Sign = CardSign.Damage, Group = group, Note = T("card.onWrecks") };
 
-    /// <summary>A hit's damage off rock, walls and plants; for none, the words that it cuts no rock, dimmed.</summary>
+    /// <summary>A hit's damage off rock, walls and plants, its tenths shown as whole points; for none, the words that it cuts no rock, dimmed.</summary>
     private static CardTile Rock(int block, CardBoost? boost, CardGroup group) =>
-        new(block > 0 ? Number(block) : T("card.noRock"), T("card.block"), boost)
+        new(block > 0 ? Number(block / 10.0) : T("card.noRock"), T("card.block"), boost)
         { Sign = CardSign.Block, Group = group, Note = T("card.onRock"), Off = block == 0 };
 
     /// <summary>
@@ -127,7 +130,7 @@ public static class ItemCards
         return
         [
             Hits($"+{projectile.Damage}", null, CardGroup.Shot),
-            new CardTile($"+{projectile.BlockDamage}", T("card.block")) { Sign = CardSign.Block, Group = CardGroup.Shot, Note = T("card.onRock") },
+            new CardTile($"+{Number(projectile.BlockDamage / 10.0)}", T("card.block")) { Sign = CardSign.Block, Group = CardGroup.Shot, Note = T("card.onRock") },
         ];
     }
 

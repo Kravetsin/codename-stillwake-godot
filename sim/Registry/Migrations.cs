@@ -292,6 +292,14 @@ public static class Migrations
                 foreach (var grant in granted.Where(Gone).ToList()) granted.Remove(grant);
             return root;
         },
+        // 60 → 61 (unified-damage): strengths and block damages move to tenths, so a saved crack's damage changes meaning; cracks
+        // heal in seconds anyway, so they go rather than being scaled (a pile's, still in hit points, with them).
+        root =>
+        {
+            foreach (var slices in new[] { root["slices"]! }.Concat((root["surfaces"]?.AsArray() ?? []).Select(s => s!["slices"]!)))
+                if (slices["building"]?["cracks"] is JsonArray cracks) cracks.Clear();
+            return root;
+        },
     ];
 
     /// <summary>The slices with liquids' empty one after building's, where its module runs: a save holds them in that order.</summary>

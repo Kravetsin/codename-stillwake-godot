@@ -219,9 +219,9 @@ public class CatchersTests
         Assert.False(w.M.Building.Wears(sky));
         Assert.False(w.M.Building.Wears(bedrock));
         Assert.False(w.M.Building.Wears(Cell(100, Ground - 10)));
-        Assert.False(w.M.Building.Wear(sky, 100));
+        Assert.False(w.M.Building.Wear(sky, 1000));
         Assert.NotNull(w.M.Grid.WallAt(sky));
-        Assert.True(w.M.Building.Wear(rock, 100));
+        Assert.True(w.M.Building.Wear(rock, 1000));
         Assert.Null(w.M.Grid.WallAt(rock));
     }
 

@@ -315,7 +315,7 @@ public static class Creatures
     /// at most once in 3 s. Forty hit points, never knocked. Killed, scrap, a circuit, now and then a crystal or an opal, and 150 to 300
     /// credits for the ship: what it was paid for the hero. Placeholder numbers, for a play pass.
     /// </summary>
-    public static readonly Species Catcher = new("catcher", Look: "catcher", Body: new Flyer(Width: 3, Height: 5, Wear: 12, CutEvery: 4),
+    public static readonly Species Catcher = new("catcher", Look: "catcher", Body: new Flyer(Width: 3, Height: 5, Wear: 120, CutEvery: 4),
         Life: new(Hp: 40, Knock: 0, Hop: 0), Faction: Catchers, Lifetime: Lifetime.Hunter,
         Brain: [new Hunt(Warn: 200, Ticks: 1800, Strike: 12, Speed: 400, AnswerEvery: 60)],
         Moves: [new Pounce(WindUp: 16, Speed: 1600, Ticks: 10, Damage: 6), new Shoot(WindUp: 6, Lock: 2, Recover: 20, Projectile: "bolt", Reach: 60, Lingers: 10)],

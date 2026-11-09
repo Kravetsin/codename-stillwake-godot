@@ -69,6 +69,11 @@ public interface ICraftingOps
     /// (more while blown, industrial-oxygen): told before crafting works, forgotten after.
     /// </summary>
     void Heat(int machine, int share);
+    /// <summary>
+    /// Station <paramref name="machine"/>'s queue and smelt forgotten as it breaks (unified-damage): what its entries paid and did not
+    /// make, as a cancel refunds each, summed in queue order; nothing for a machine with none.
+    /// </summary>
+    IReadOnlyList<(string Item, int Count)> Scrap(int machine);
 }
 
 /// <summary>
@@ -205,6 +210,16 @@ public sealed partial class CraftingModule : Module<CraftingState>, ICraftingQue
         if (at == 0) queue.Progress = 0;
         // To whoever cancels, not whoever paid: friends share a ship, and no record of who paid is kept.
         _itemsOps.GiveStock(c.From, refund);
+    }
+
+    public IReadOnlyList<(string Item, int Count)> Scrap(int machine)
+    {
+        State.Smelts.RemoveAll(s => s.Machine == machine);
+        if (QueueOf(machine) is not { } queue) return [];
+        var refund = new List<(string Item, int Count)>();
+        for (int at = 0; at < queue.Entries.Count; at++) refund.AddRange(Refund(queue, at));
+        State.Queues.Remove(queue);
+        return refund;
     }
 
     private string? EndlessProblem(SetEndless c)

@@ -27,9 +27,9 @@ public partial class DigView : Node2D
 
     private Material? MaterialAt(int cell, bool back) => back ? _grid.BackAt(cell) : _grid.WallAt(cell) ?? PileMaterial(cell);
 
-    /// <summary>A pile cracks and bursts as the metal it is, at its own hit points.</summary>
+    /// <summary>A machine, a pile or a built one, cracks and bursts as the metal it is, at its own hit points.</summary>
     private Material? PileMaterial(int cell) =>
-        Piles.At(_grid, cell) is var (_, hp)
+        Piles.Cracked(_grid, cell) is var (_, hp)
             ? Stillwake.Content.Materials.Get("alloy") with { Strength = hp } : null;
 
     /// <summary>The stages of cracks, three (0079).</summary>
@@ -115,10 +115,12 @@ public partial class DigView : Node2D
     /// </summary>
     private bool ShowPile(int cell, int damage)
     {
-        if (Piles.At(_grid, cell) is not var (pile, hp)) return false;
+        if (Piles.Cracked(_grid, cell) is not var (pile, hp)) return false;
         if (!_piles.TryGetValue(pile.Cell, out var shown))
         {
             string name = $"machine_{pile.Kind}";
+            // A machine drawn by a picture of another name keeps its head cell's crack alone.
+            if (HiRes.Load(name) is not { } image) return false;
             var texture = PixelArt.Picture(name);
             var size = texture.GetSize();
             // Its picture, in world pixels, lies from its cell's corner as the ship's tiles lay it; the network runs from its middle.
@@ -136,7 +138,6 @@ public partial class DigView : Node2D
             Lit.Set(ink, Stillwake.Game.Light.WallIn);
             clip.AddChild(ink);
             AddChild(clip);
-            var image = HiRes.Load(name)!;
             bool Solid(double x, double y)
             {
                 double per = image.GetWidth() / (double)size.X;
