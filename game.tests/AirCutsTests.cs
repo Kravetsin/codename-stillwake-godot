@@ -18,56 +18,51 @@ public class AirCutsTests
     }
 
     [Fact]
-    public void ASwingsDustStaysInItsFanAndRangeAndMovesTheWayTheBladeGoes()
+    public void AMoteShedOffTheBladeFliesStraightOutToTheRangeAndIsGone()
     {
         var cuts = new AirCuts();
         Assert.False(cuts.Live);
-        // The axe's quarter turn, aimed straight ahead, 36 px long, the blade reaching 26.
-        double half = Math.PI / 4;
-        cuts.Strike(thrust: false, aim: 0, half, range: 36, inner: 26, sweepMs: 40, fadeMs: 220);
-        double? early = null, late = null;
-        for (int frame = 0; frame < 30; frame++)
+        // Off the axe's edge 26 px out, 0.3 rad below the line ahead; its range 36.
+        double a = 0.3;
+        cuts.Shed((26 * Math.Cos(a), 26 * Math.Sin(a)), range: 36, fadeMs: 220);
+        var furthest = new List<double>();
+        for (int frame = 0; frame < 20; frame++)
         {
             cuts.Step(Frame, null);
             var points = Drawn(cuts);
             foreach (var (x, y) in points)
             {
-                Assert.InRange(Math.Sqrt(x * x + y * y), 26 * 0.25, 36 + 1);
-                Assert.InRange(Math.Atan2(y, x), -half - 0.1, half + 0.1);
+                Assert.InRange(Math.Atan2(y, x), a - 0.02, a + 0.02);
+                Assert.InRange(Math.Sqrt(x * x + y * y), 26 - 1, 36 + 0.5);
             }
-            if (points.Count == 0) continue;
-            double mean = points.Average(p => Math.Atan2(p.Y, p.X));
-            if (frame == 2) early = mean;
-            if (frame == 10) late = mean;
+            if (points.Count > 0) furthest.Add(points.Max(p => Math.Sqrt(p.X * p.X + p.Y * p.Y)));
         }
-        // Carried round the way the blade comes down: from the fan's top edge toward its bottom.
-        Assert.True(late > early, $"dust went from {early} to {late}");
+        // From the blade outward, never back, stopping near the range; then gone.
+        Assert.True(furthest[0] < 30, $"born at {furthest[0]}");
+        for (int i = 1; i < furthest.Count; i++) Assert.True(furthest[i] >= furthest[i - 1] - 1e-6, string.Join(' ', furthest));
+        Assert.True(furthest[^1] > 33, $"it stopped at {furthest[^1]}");
         Assert.False(cuts.Live);
     }
 
     [Fact]
-    public void ARisingSwingsDustIsCarriedUpTheFan()
+    public void ABladeCutsTheAirOnlyMovingWithinItsFan()
     {
-        var cuts = new AirCuts();
         double half = Math.PI / 4;
-        cuts.Strike(thrust: false, aim: 0, half, range: 36, inner: 26, sweepMs: 40, fadeMs: 220, rising: true);
-        var means = new List<double>();
-        for (int frame = 0; frame < 12; frame++)
-        {
-            cuts.Step(Frame, null);
-            var points = Drawn(cuts);
-            foreach (var (x, y) in points) Assert.InRange(Math.Atan2(y, x), -half - 0.1, half + 0.1);
-            if (points.Count > 0) means.Add(points.Average(p => Math.Atan2(p.Y, p.X)));
-        }
-        // From the fan's bottom edge toward its top, as a backhand comes up.
-        Assert.True(means[^1] < means[1], $"dust went from {means[1]} to {means[^1]}");
+        (double, double) At(double angle) => (26 * Math.Cos(angle), 26 * Math.Sin(angle));
+        Assert.True(AirCuts.Cutting(At(0.1), At(0.0), aim: 0, half));
+        // Wound up over the shoulder, past the fan's edge: nothing yet.
+        Assert.False(AirCuts.Cutting(At(-1.2), At(-1.4), aim: 0, half));
+        // Held on a bite: nothing.
+        Assert.False(AirCuts.Cutting(At(0.1), At(0.1), aim: 0, half));
+        // Facing the other way round the circle, the fan is found across ±pi.
+        Assert.True(AirCuts.Cutting(At(Math.PI - 0.1), At(Math.PI - 0.2), aim: -Math.PI + 0.1, half));
     }
 
     [Fact]
     public void AThrustsDustIsCarriedOutAlongItToItsRange()
     {
         var cuts = new AirCuts();
-        cuts.Strike(thrust: true, aim: 0, half: Math.PI / 32, range: 48, inner: 40, sweepMs: 65, fadeMs: 220);
+        cuts.Thrust(aim: 0, half: Math.PI / 32, range: 48, inner: 40, sweepMs: 65, fadeMs: 220);
         for (int frame = 0; frame < 20; frame++)
         {
             cuts.Step(Frame, null);

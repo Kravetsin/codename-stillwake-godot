@@ -2,7 +2,8 @@
 
 - Status: accepted; supersedes in part [swing-motions](2026-11-07-swing-motions.md): a combo's steps begin and end away from
   rest, each spliced from where the last left the arm; supersedes in part [one-arm-holds](2026-10-27-one-arm-holds.md): in a
-  combo the far hand grips the fire axe's haft
+  combo the far hand grips the fire axe's haft; supersedes in part [tool-reach](2026-11-05-tool-reach.md): a swing's
+  dust is shed off the blade
 - Date: 2026-11-09
 
 ## Context
@@ -40,9 +41,11 @@ trail on each cut.
   the legs. The far arm keeps its turn in the body's frame; gripping, it closes on the haft (`HaftGrip`: 3.5 px below the
   near fist, slid within −4 to 5.5 px to where it reaches, 0.2 px short of straight). The head takes back 0.6 of the lean
   and follows the blade by 0.08 of its turn.
-- **The air's cut, no trail:** the dust showing the fan and the reach sweeps it the way the blade crosses it, up for the
-  backhand (`MotionPlay.Rising`). The picked pale trail on the blade was dropped once played: two marks of one cut fought,
-  and the dust is the one that says something, how far and how wide the axe hits.
+- **The air's cut, no trail:** a swing's dust is shed off the blade's edge (`AirCuts.Shed`), a mote every 14 ms while the
+  edge moves within the fan in the cut, each flying straight out from the shoulder and stopping at the range: it reads as off
+  the blade and still shows how far it reaches. It was a sweep laid out from the cut's timing, which began at the wind-up and
+  ran ahead of the blade. The picked pale trail was dropped once played: it fought the dust. A wave sent out by the swing,
+  doing the damage, was played and rejected as out of the setting (PR 519, closed).
 - **Friends:** `Busy.Step` carries the step begun; a friend's figure plays it spliced from its own pose. No new swing number
   by a step's end plays the back, as a hero let go does.
 

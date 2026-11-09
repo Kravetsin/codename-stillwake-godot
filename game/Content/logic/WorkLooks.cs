@@ -28,6 +28,12 @@ public static class WorkLooks
     /// <summary>The air a tool works (tool-reach): pale cyan as the air round a hero (<c>AirSwirl</c>); a stroke's dust, paler grey.</summary>
     public static readonly Ink.Tone AirInk = Ink.Tone.Of(200, 240, 255, 1), DustInk = Ink.Tone.Of(222, 228, 234, 1);
 
+    /// <summary>
+    /// A swing's blade sheds a mote every <see cref="ShedEveryMs"/> while it cuts the air: within its fan and its edge moving at
+    /// least <see cref="ShedMoving"/> pixels a frame.
+    /// </summary>
+    public const double ShedEveryMs = 14, ShedMoving = 0.3;
+
     /// <summary>A thrust's dust thrown out over this many ms; a stroke's seen this long after it, the sledgehammer's longer.</summary>
     public const double ThrustSweepMs = 65;
 
