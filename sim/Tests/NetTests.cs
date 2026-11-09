@@ -429,6 +429,23 @@ public class NetTests
     }
 
     [Fact]
+    public void BreakTheNetWithTheWallABurstBreaksItsCostLaidDownAtItsCellAndWhatItHeldFloatingOut()
+    {
+        var w = Struck();
+        int cell = w.M.Grid.MachinesOf("net")[0].Cell;
+        // From inside the room, a burst to break the hull beside it (unified-damage): no net left hanging in the air.
+        Assert.True(w.M.Building.Burst(0, 3 * 10 + 4, 2000, 8, Spoils.Drop));
+        Assert.Null(w.M.Grid.WallAt(3 * 10 + 5));
+        Assert.Empty(w.M.Grid.MachinesOf("net"));
+        w.Run();
+        Assert.Empty(w.M.Debris.Held);
+        foreach (var (item, count) in Machines.Get("net").Cost)
+            Assert.Equal(count, w.M.Items.Floor.Where(s => s.Item == item && s.Cell == cell).Sum(s => s.Count));
+        Assert.All(Machines.Get("net").Cost, c => Assert.Equal(0, w.M.Knowledge.ObtainedOf(c.Item)));
+        Assert.Equal(1, Lying(w, "hullPlate"));
+    }
+
+    [Fact]
     public void ATakenApartNetRefundsItsCostToItsWorkerAsBeforeLeavingNoneOfItLying()
     {
         var w = Caught(Quiet(), "scrapChunk");

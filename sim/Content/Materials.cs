@@ -46,10 +46,14 @@ namespace Stillwake.Content;
 /// <param name="As">
 /// The material it is otherwise taken for by the client: drawn with its pictures, and picked as its card. None for any other.
 /// </param>
+/// <param name="Crushed">
+/// What a burst breaking a wall of it drops instead of its <see cref="Cost"/>, one (unified-damage): stone's gravel, a charge quick
+/// but wasteful beside a pickaxe's rock. None for one that falls as its cost.
+/// </param>
 public sealed record Material(
     string Id, int Code, int Strength, int Leak, IReadOnlyList<(string Item, int Count)> Cost, int BuildTicks, bool Natural = false,
     bool Hurts = false, bool Grows = false, Tread Footing = Tread.Deck, MaterialLook Look = MaterialLook.Cut, MenuSlot? Menu = null,
-    MenuSlot? BackMenu = null, string? In = null, int Armour = 0, bool Clear = false, string? As = null)
+    MenuSlot? BackMenu = null, string? In = null, int Armour = 0, bool Clear = false, string? As = null, string? Crushed = null)
 {
     /// <summary>The <see cref="Strength"/> of a material nothing breaks.</summary>
     public const int Unbreakable = 0;
@@ -98,7 +102,7 @@ public static class Materials
         // shovelful of soil and a lump of rock, the asteroids' own, come out of it, and build it back. Laid stone stands up to meteors
         // better than scrap, soil worse.
         new("soil", Code: 3, Strength: 40, Leak: 120, Cost: [("soil", 1)], BuildTicks: 5, Natural: true, Grows: true, Footing: Tread.Soil, Menu: new(MenuTabs.Structure, 30), BackMenu: new(MenuTabs.Structure, 130), Armour: 1),
-        new("stone", Code: 4, Strength: 120, Leak: 90, Cost: [("rock", 1)], BuildTicks: 10, Natural: true, Footing: Tread.Stone, Menu: new(MenuTabs.Structure, 40), BackMenu: new(MenuTabs.Structure, 140), Armour: 4),
+        new("stone", Code: 4, Strength: 120, Leak: 90, Cost: [("rock", 1)], BuildTicks: 10, Natural: true, Footing: Tread.Stone, Menu: new(MenuTabs.Structure, 40), BackMenu: new(MenuTabs.Structure, 140), Armour: 4, Crushed: "gravel"),
         new("bedrock", Code: 5, Strength: Material.Unbreakable, Leak: 36, Cost: [], BuildTicks: 0, Natural: true, Footing: Tread.Stone),
         // The planet's core over its bedrock: molten rock nothing digs or builds, burning a hero who touches it (Content.Lava).
         new(Lava.Material, Code: 6, Strength: Material.Unbreakable, Leak: 36, Cost: [], BuildTicks: 0, Natural: true,

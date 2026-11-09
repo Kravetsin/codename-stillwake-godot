@@ -264,26 +264,15 @@ public sealed partial class CreaturesModule
     }
 
 
-    private readonly Wave _wave = new();
-    private readonly List<int> _blasted = [];
-
     /// <summary>
-    /// <paramref name="s"/>'s burst from <paramref name="cell"/> (blasting-charge): the meteor's wave of <paramref name="blast"/>'s power through
-    /// open cells and natural ground, each wall it reaches broken for the thrower in cell order (<see cref="IBuildingOps.Blast"/>); a
-    /// built wall, a piece or a machine stops it, as bedrock does. Then every wreck within its reach takes its damage, in spawn order.
-    /// Heroes and creatures are untouched. The cell it spread from; -1 where it could not, inside a wall it does not break.
+    /// <paramref name="s"/>'s burst from <paramref name="cell"/> (blasting-charge, unified-damage): <see cref="IBuildingOps.Burst"/> of
+    /// <paramref name="blast"/>'s power, what it breaks dropped there for anyone. Then every wreck within its reach takes its damage, in
+    /// spawn order. Heroes and creatures are untouched. The cell it spread from; -1 where it could not, from where a burst stops.
     /// </summary>
     private int Burst(Shot s, Content.Blast blast, int cell)
     {
-        if (cell < 0 || cell >= _grid.Width * _grid.Height || Enter(cell) is not int first) return -1;
         int peer = s.By.Kind == RefKind.Hero ? s.By.Id : FloorStack.Nobody;
-        _blasted.Clear();
-        _wave.Spread(_grid.Width, _grid.Height, cell, first, blast.Power, blast.Reach, Enter, (at, _) =>
-        {
-            if (_grid.WallAt(at) != null) _blasted.Add(at);
-        });
-        _blasted.Sort();
-        foreach (int at in _blasted) _building.Blast(peer, at);
+        if (!_building.Burst(peer, cell, blast.Power, blast.Reach, Sim.Building.Spoils.Drop)) return -1;
         long cx = cell % _grid.Width * Unit + Unit / 2, cy = cell / _grid.Width * Unit + Unit / 2, reach = (long)blast.Reach * Unit;
         foreach (var w in _wrecks)
         {
@@ -291,13 +280,6 @@ public sealed partial class CreaturesModule
             if (dx * dx + dy * dy <= reach * reach && _debris.PieceById(w.Piece) != null) _debrisOps.Hit(peer, w.Piece, blast.WreckDamage);
         }
         return cell;
-    }
-
-    /// <summary>What entering <paramref name="cell"/> costs a burst besides its step: natural ground its armour, nothing open; null where it stops.</summary>
-    private int? Enter(int cell)
-    {
-        if (_grid.WallAt(cell) is { } wall) return _built.Blasts(cell) ? Content.Meteors.PerStrength * wall.Armour : null;
-        return _grid.StructureAt(cell) != Content.Structure.Empty || _grid.MachineAt(cell) != null ? null : 0;
     }
 
     /// <summary>What a shot of <paramref name="p"/> from <paramref name="gun"/> at (<paramref name="x"/>, <paramref name="y"/>) gains falling this tick: by the cell it starts the tick in, none afloat.</summary>

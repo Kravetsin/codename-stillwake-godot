@@ -50,12 +50,6 @@ public interface IBuildingQueries
     /// </summary>
     bool ShotTakes(int cell);
 
-    /// <summary>
-    /// Whether a burst breaks the wall in <paramref name="cell"/> (blasting-charge): the surface's tools break things, the cell is in the
-    /// grid's zone, and its wall is natural ground that breaks: never a built wall, bedrock or lava. What <see cref="IBuildingOps.Blast"/> guards by.
-    /// </summary>
-    bool Blasts(int cell);
-
     /// <summary>What a shot's hit in <paramref name="cell"/> strikes, by a cell of it: a built piece by its first cell, whatever cell of it is met; else the cell itself. A thing a shot passed is remembered by this, so a piece over several cells is hit once.</summary>
     int ShotKey(int cell);
 
@@ -85,10 +79,13 @@ public interface IBuildingOps
     int? Hit(int peer, int cell, int damage);
 
     /// <summary>
-    /// The natural wall in <paramref name="cell"/> broken by peer <paramref name="peer"/>'s burst (blasting-charge): an ore's lump and the
-    /// growths it held given to the peer, plain ground none; nothing where <see cref="IBuildingQueries.Blasts"/> says no.
+    /// A burst of <paramref name="power"/> from <paramref name="cell"/>, within <paramref name="reach"/> cells, by peer <paramref name="peer"/>
+    /// (unified-damage): the shared <see cref="Wave"/> through open cells, ground and what is built, each cell it pays for broken, in
+    /// cell order, a piece whole, and each it reaches but cannot pay for cracked by what was left, once, a built one by its
+    /// <see cref="Content.Damage.BuiltTakes"/> share; bedrock, lava, the fog and machines stop it. What breaks goes as
+    /// <paramref name="spoils"/> says; a relic it takes shocks the peer. Whether it went off: not from where it stops.
     /// </summary>
-    void Blast(int peer, int cell);
+    bool Burst(int peer, int cell, int power, int reach, Spoils spoils);
 
     /// <summary>Fells the post at <paramref name="cell"/> for good, its creature killed; nothing if it is gone already.</summary>
     void FellPost(int cell);

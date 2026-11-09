@@ -76,12 +76,13 @@ The plan for [unified-damage.md](unified-damage.md). One step, one commit; the b
   cell once).
 
 ### 5. `feat(building)`: `Burst` owns the wave; the charge cracks, drops and crushes
-- `IBuildingOps.Burst(peer, cell, power, reach, spoils)` → broken cells, replacing `Blast` (the `Blasts` query goes).
-  `Spoils { Drop, Lost }`: `Drop` (the charge) drops what breaks and leaves back walls; `Lost` (meteors, from step 7)
-  loses it and also breaks the back wall behind each entered cell, paid from what was left there, as Hazards does today.
-- Entering: open cell or plant 0; natural ground its remaining strength; a built wall or piece
-  `ceil(remaining·1000/BuiltTakes)`; bedrock, lava, fog, `Fixed` stop it; machines stop it until step 6. `ToolsBreak` no
-  longer gates bursts. A piece (later a machine) pays once, at the cheapest of its cells the wave reaches; its other
+- `IBuildingOps.Burst(peer, cell, power, reach, spoils)` → whether it went off (false from a cell that stops it), replacing
+  `Blast` (the `Blasts` query goes); the shot reads nothing back. `Spoils { Drop }`, `Lost` added in step 7: `Drop` (the
+  charge) drops what breaks and leaves back walls; `Lost` (meteors) loses it and also breaks the back wall behind each
+  entered cell, paid from what was left there, as Hazards does today.
+- Entering: open cell or plant 0 (a `Fixed` ruins piece is a plant: never struck, it falls only with its hold, as when
+  dug); natural ground its remaining strength; a built wall or piece `ceil(remaining·1000/BuiltTakes)`; bedrock, lava,
+  fog stop it; machines and other structures stop it until step 6. `ToolsBreak` no longer gates bursts. A piece (later a machine) pays once, at the cheapest of its cells the wave reaches; its other
   cells cost the same and then cost nothing, so it never pays twice.
 - Entered cells break once each (a piece by its head), ascending; unpaid cells crack once by `left` (built:
   ·BuiltTakes/1000, rounded down, nothing when 0), a piece at its head with its largest `left`.
@@ -90,15 +91,16 @@ The plan for [unified-damage.md](unified-damage.md). One step, one commit; the b
 - `Drop`: what breaks falls at its cell for `FloorStack.Nobody`, from `Material.Crushed` when set (stone: 1 gravel) or
   `Cost`; held plants felled with `Fell(plant, null)`. A felled `Ruins.Cradle` shocks `peer` by `CradleShock` once; two
   bursts in one tick are applied in command order, so the first to break it is shocked.
-- Creatures loses `_wave`, `Enter`, `_blasted` and calls `_building.Burst(..., Spoils.Drop)`. Charge power retuned:
-  stone ~4 out, soil the whole circle of 8, alloy cracked. `BuiltTakes` tuned so one charge cracks scrap and a second
+- Creatures loses `_wave`, `Enter`, `_blasted` and calls `_building.Burst(..., Spoils.Drop)`. Charge power 500, reach 8:
+  stone 4 out, soil the whole circle of 8, alloy cracked to 496. `BuiltTakes` tuned so one charge cracks scrap and a second
   breaks it (a derelict's iron hull then takes more: see "Accepted findings").
-- Tests (`BlastChargeTests`, rewritten): crater about four out with its rim cracked and gravel and ore in it; a second
-  goes further; soil the whole circle; alloy cracks and a second within the heal time opens it; three charges under the
-  hall floor drop the relic and shock the thrower wherever they stand; a warden whose post breaks stands down; scrap
-  cracks and a second breaks it; a built piece cracks at its head once; bedrock, lava, fog stop it; aboard it cracks the
-  hull; a net on a wall it breaks goes with it; a door it pays for once across both cells; `[Property]`: nothing it could
-  not pay for breaks. `BudgetTests`: three charges bursting in one tick in soil stay under the 2 ms tick. Old cases ("giving no rock", "a built wall stops it", "ore to
+- Tests (`BlastChargeTests`, rewritten): crater four out with its rim cracked and gravel and ore in it; a second
+  goes further; soil the whole circle, stone as far aslant as down (within 1.5 cells); alloy cracks and a second within
+  the heal time opens it; scrap cracks and a second breaks it; aboard it cracks the hull. `BurstTests` (the op called
+  directly): charges under the hall floor drop the relic and shock the thrower once; a warden whose post breaks stands
+  down; a built piece cracks at its head once; bedrock, lava, fog stop it; a door it pays for once across both cells;
+  `[Property]`: nothing it could not pay for breaks (proven to bite by costing built things as natural). `NetTests`: a
+  net on a wall it breaks goes with it. `BudgetTests`: three charges bursting in one tick in soil stay under the 2 ms tick. Old cases ("giving no rock", "a built wall stops it", "ore to
   the thrower", "aboard breaks nothing", the crater radii) rewritten.
 - `--charges` still works (`tools/snap.ps1 -- --planet --charges`). READMEs: Building, Creatures.
 
