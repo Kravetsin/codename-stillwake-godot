@@ -49,8 +49,8 @@ Building owns damage: it already owns cracks, `Hit`, `Blast` and what breaking g
 
 ## Numbers to start from (sim/Content)
 
-- In tenths: soil 40, stone 120, alloy 600, scrap 20, iron/hull 50. Pickaxe about 70 so stone leaves a surplus, pierce
-  50 %; railgun pierce 65 % with block damage raised so soil leaves a surplus; others 0.
+- In tenths: soil 40, stone 120, alloy 600, scrap 20, iron/hull 50. Pickaxe 75 so stone leaves a surplus, pierce
+  70 %; railgun pierce 65 % with block damage raised so soil leaves a surplus; others 0.
 - The charge's power and step are retuned on the one scale: stone opens about 4 out, soil the whole circle of 8, alloy only
   cracks; a second charge breaks alloy's first layer.
 - `BuiltTakes` in permille, tuned so one charge cracks scrap and a second breaks it (about 37); an iron hull takes 4–5.

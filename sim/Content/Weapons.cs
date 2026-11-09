@@ -8,9 +8,10 @@ namespace Stillwake.Content;
 /// <paramref name="Rays"/> rays spread evenly over <paramref name="Arc"/> steps of a turn (<see cref="Headings"/>) round the
 /// aim, each <paramref name="Range"/> thousandths of a cell long from the hand, each striking the first thing it meets
 /// (the fan of rays). An electric weapon pays nothing a hit: its item draws its <c>Draw</c> every tick it runs (0055).
-/// <paramref name="Effects"/> are what a hit does besides, each a chip on its card.
+/// <paramref name="Effects"/> are what a hit does besides, each a chip on its card. A wall or piece a hit breaks passes
+/// <paramref name="Carries"/> percent of what went over its strength, rounded down, to the cell behind it (unified-damage).
 /// </summary>
-public sealed record Weapon(string Item, int Damage, int BlockDamage, int Pace, int Arc, int Rays, int Range, IReadOnlyList<HitEffect> Effects);
+public sealed record Weapon(string Item, int Damage, int BlockDamage, int Pace, int Arc, int Rays, int Range, IReadOnlyList<HitEffect> Effects, int Carries = 0);
 
 /// <summary>
 /// Everything that deals damage, by its item. A better weapon is more damage a second, nothing else: what
@@ -59,13 +60,13 @@ public static class Weapons
     public static readonly Weapon Sledgehammer = new("sledgehammer", Damage: 12, BlockDamage: 60, Pace: 36, Arc: 96, Rays: 13, Range: 5500, Effects: []);
 
     /// <summary>
-    /// The pickaxe (the-pickaxe): the drill's fallback underground, needing no charge. 6 on blocks a blow every 6 ticks, 20 a second, half
-    /// the drill's 40 and two and a half times the axe's 8: stone and ore at the second blow, 0.6 s, where the drill takes 0.3 s and
-    /// the axe 1.5 s; never at the first, so a wall still cracks first. 1 a blow on wrecks, under the axe. Its fan 48 steps (three
-    /// sixteenths of a turn) wide, 9 rays, 4.5 cells from the shoulder, the axe's: wider than the drill's and close by, so its cut runs
-    /// along its point's path (pick-reach).
+    /// The pickaxe (the-pickaxe): the drill's fallback underground, needing no charge. 75 on blocks a blow every 6 ticks, 250 a second,
+    /// near two thirds of the drill's 400 and three times the axe's 80: fresh stone and ore at the second blow, 0.6 s, where the
+    /// drill takes 0.3 s and the axe 1.5 s; never at the first, so a wall still cracks first, nor a bush (80). 70% of what a broken
+    /// cell leaves goes to the one behind (unified-damage): digging stone straight on, every fourth cell falls at one blow; at
+    /// half, the carry would settle under what a second-blow cell needs.
     /// </summary>
-    public static readonly Weapon Pickaxe = new("pickaxe", Damage: 1, BlockDamage: 60, Pace: 6, Arc: 48, Rays: 9, Range: 4500, Effects: []);
+    public static readonly Weapon Pickaxe = new("pickaxe", Damage: 1, BlockDamage: 75, Pace: 6, Arc: 48, Rays: 9, Range: 4500, Effects: [], Carries: 70);
 
     public static readonly IReadOnlyList<Weapon> All = [Axe, Drill, Grinder, Spear, PlasmaCutter, Sledgehammer, Pickaxe];
 

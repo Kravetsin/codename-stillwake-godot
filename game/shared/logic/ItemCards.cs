@@ -88,6 +88,9 @@ public static class ItemCards
             { Sign = CardSign.Arc, Group = CardGroup.Reach },
             new CardTile(T("card.cells", ("n", Number(weapon.Range / 1000.0))), T("card.range")) { Sign = CardSign.Reach, Group = CardGroup.Reach },
         ];
+        // What of a broken cell's surplus goes on to the one behind (unified-damage), shown as a gun's pierce.
+        if (weapon.Carries > 0)
+            tiles.Insert(3, new CardTile(T("card.percent", ("n", Number(weapon.Carries))), T("card.pierce")) { Sign = CardSign.Pierce, Group = CardGroup.Hit });
         if (Spec.Weapons.Salvages(weapon))
             tiles.Add(new CardTile(T("card.more", ("n", (Spec.Weapons.CutBonus - 1000) / 10)), T("card.loot")) { Sign = CardSign.Loot, Group = CardGroup.Special });
         return tiles;

@@ -137,26 +137,79 @@ public sealed partial class BuildingModule
     /// first: one at its strength goes, what it is made of given to the sender, a wall's held growths' yields too; a plant at its strength is
     /// felled. A relic's cradle among them discharges into the sender once (0096).
     /// </summary>
-    private void ApplyHew(Hew c) => HitAll(Struck(c.Tool, c.X, c.Y, c.Heading), c.Tool, c.From);
+    private void ApplyHew(Hew c) => HitAll(Struck(c.Tool, c.X, c.Y, c.Heading), c.Tool, c.From, (c.X, c.Y));
 
-    private void ApplyHewCells(HewCells c) => HitAll(Listed(c.Cells), c.Tool, c.From);
+    // A hero not on this surface aims no carry: the cells' own word says nothing of where the blow came from.
+    private void ApplyHewCells(HewCells c) =>
+        HitAll(Listed(c.Cells), c.Tool, c.From, _crew.HeroOf(c.From) is { } hero ? (hero.Cell % _grid.Width * 1000 + 500, hero.Cell / _grid.Width * 1000 + 500) : null);
 
-    private void HitAll(Hewn hewn, string tool, int from)
+    /// <summary>
+    /// The fan's hits (<see cref="Hew"/>), then each wall or piece one broke passes its weapon's <c>Carries</c> share of what went
+    /// over, rounded down, to the cell one step further along the line from <paramref name="origin"/>, in thousandths of a cell,
+    /// through it (unified-damage): a cell two carries reach takes the larger, once; a carry is not carried again.
+    /// </summary>
+    private void HitAll(Hewn hewn, string tool, int from, (int X, int Y)? origin)
     {
         int hit = _items.BlockDamage(from, tool);
         // A tool that cuts wrecks only (the plasma cutter) touches no block nor pile: no crack, no felling, no cradle's shock.
         if (hit <= 0) return;
         // A relic's cradle discharges into whoever strikes it (0096), the felling hit too, before it gives its shards.
         if (hewn.Plants.Any(p => p.Kind == Ruins.Cradle)) _crewOps.Shock(from, ShockOf(tool), Harm.Shock);
+        int share = Weapons.Of(tool)!.Carries;
+        var carries = new List<(int Key, int Carry)>();
         foreach (int cell in hewn.Cells)
         {
-            if (PileAt(cell) is { } pile) HitPile(from, pile, _items.Damage(from, tool));
-            else if (_grid.WallAt(cell) != null) HitWall(from, cell, hit);
-            else HitPiece(from, cell, hit);
+            int? left;
+            if (PileAt(cell) is { } pile)
+            {
+                HitPile(from, pile, _items.Damage(from, tool));
+                continue;
+            }
+            else if (_grid.WallAt(cell) != null) left = HitWall(from, cell, hit);
+            else left = HitPiece(from, cell, hit);
+            if (left is int l && origin is { } o && l * share / 100 is var carry and > 0 && Behind(o, cell) is int key)
+                carries.Add((key, carry));
         }
         // A plant its wall took with it is gone; one of no strength falls to any hit.
         foreach (var plant in hewn.Plants)
             if (_plantOwn.GetValueOrDefault(plant.Cell) == plant && Cracked(plant.Cell, Kinds[plant.Kind].Strength, hit) != null) Fell(plant, from);
+        // What the fan struck took its hit already; what it broke is gone.
+        for (int i = carries.Count - 1; i >= 0; i--)
+            if (Carried(carries[i].Key) is int key && !hewn.Cells.Contains(key)) carries[i] = (key, carries[i].Carry);
+            else carries.RemoveAt(i);
+        carries.Sort((a, b) => a.Key != b.Key ? a.Key.CompareTo(b.Key) : b.Carry.CompareTo(a.Carry));
+        for (int i = 0; i < carries.Count; i++)
+        {
+            if (i > 0 && carries[i].Key == carries[i - 1].Key) continue;
+            if (_grid.WallAt(carries[i].Key) != null) HitWall(from, carries[i].Key, carries[i].Carry);
+            else HitPiece(from, carries[i].Key, carries[i].Carry);
+        }
+    }
+
+    /// <summary>
+    /// The cell one step further than <paramref name="cell"/> along the line from <paramref name="origin"/> through its centre,
+    /// in eight directions (x steps when 5·|dx| ≥ 2·|dy|, likewise y); none from its very centre or off the grid.
+    /// </summary>
+    private int? Behind((int X, int Y) origin, int cell)
+    {
+        int x = cell % _grid.Width, y = cell / _grid.Width;
+        int dx = x * 1000 + 500 - origin.X, dy = y * 1000 + 500 - origin.Y;
+        int sx = 5 * Math.Abs(dx) >= 2 * Math.Abs(dy) ? Math.Sign(dx) : 0, sy = 5 * Math.Abs(dy) >= 2 * Math.Abs(dx) ? Math.Sign(dy) : 0;
+        if (sx == 0 && sy == 0) return null;
+        int bx = x + sx, by = y + sy;
+        return bx < 0 || by < 0 || bx >= _grid.Width || by >= _grid.Height ? null : by * _grid.Width + bx;
+    }
+
+    /// <summary>
+    /// What a carry strikes at <paramref name="cell"/>: a wall that breaks, by its cell, or a built piece, by its first cell,
+    /// where the surface's tools break things in its known zone, or in a vessel's box; never a pile, a plant or the fog.
+    /// </summary>
+    private int? Carried(int cell)
+    {
+        bool open = Rules.ToolsBreak ? _grid.Zone.Contains(cell % _grid.Width, cell / _grid.Width) : InVessel(cell);
+        if (!open || PileAt(cell) != null) return null;
+        if (_grid.WallAt(cell) is { } wall) return wall.Strength != Material.Unbreakable ? cell : null;
+        return PieceAt(cell)?.Head;
     }
 
     /// <summary>

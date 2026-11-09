@@ -43,7 +43,8 @@ The plan for [unified-damage.md](unified-damage.md). One step, one commit; the b
 - README: Creatures `## Rules`.
 
 ### 2. `feat(building)`: tools carry one cell behind
-- `Weapon` gains `Pierce` (percent): pickaxe 50 (block damage nudged so stone leaves a surplus), others 0.
+- `Weapon` gains `Carries` (percent, as `Gun`): pickaxe 70 at block damage 75 (at half, below a bush's 80, the carry settles
+  under what fells stone at one blow; at 75/70 straight digging goes 2, 2, 2, 1 blows a cell), others 0. Tests in `CarryTests`.
 - `HitAll` keeps each broken wall or piece's surplus; a second pass, once per command after all primary hits, sends
   surplus × pierce / 100, rounded down, to the neighbour one step further along the line from the origin through that
   cell. dx, dy run from the origin to the broken cell's centre, in thousandths of a cell (integer octant test: x steps
@@ -168,7 +169,7 @@ The plan for [unified-damage.md](unified-damage.md). One step, one commit; the b
    a derelict's hull takes 4–5 charges.
 2. Two small meteors on one patch within a minute are rare at one each 4–6 min: until the shower event, breaches come
    mostly from the largest meteors alone; `--meteors` shows the two-strike case.
-3. The carry alone never breaks fresh soil; its effect is a head start, so digging straight takes fewer swings.
+3. The carry alone never breaks fresh soil; its effect is a head start: in stone, straight on, every fourth cell at one blow.
 4. Charges from the side open the spire's hall and leave the relic standing; it falls when the floor under it breaks.
 5. `HewCells` aims its carry from `Hero.Cell`, up to `Crew.ReportEvery` ticks old and the body's middle: a hero digging
    on the run may carry a step off their aim.

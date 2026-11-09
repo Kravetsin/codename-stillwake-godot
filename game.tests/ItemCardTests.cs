@@ -94,6 +94,10 @@ public class ItemCardTests
         var rail = ItemCards.Of(Spec.Shots.Railgun.Item).Tiles;
         Assert.Equal([("24", "Damage"), ("14", "Block"), ("2s", "Reload time"), ("65%", "Kept through"), ("120", "Charge a shot")], Said(rail));
         Assert.Equal((CardSign.Battery, CardGroup.Special), (rail![4].Sign, rail[4].Group));
+        // A tool that carries on past what it breaks (unified-damage) says so as a gun's pierce: the pickaxe's 70%; the axe none.
+        var pick = ItemCards.Of(Spec.Weapons.Pickaxe.Item).Tiles!;
+        Assert.Equal((("70%", "Kept through"), CardSign.Pierce, CardGroup.Hit), ((pick[3].Value, pick[3].Label), pick[3].Sign, pick[3].Group));
+        Assert.DoesNotContain(ItemCards.Of("fireAxe").Tiles!, t => t.Sign == CardSign.Pierce);
     }
 
     [Fact]
