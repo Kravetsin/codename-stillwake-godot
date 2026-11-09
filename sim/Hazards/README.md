@@ -34,17 +34,17 @@ here unchanged. Magnetic flares break machines ([magnetic-flare](../../docs/deci
   met first shields its row; a debris net (`Catches`) does not: the aim passes it to the wall it hangs on. A vessel's
   box is passed over: no vessel shields the ship (generated-vessels).
 - **`Warning` ticks later it strikes** (3 s), if a breakable wall still stands there: Building's `Burst` from it of
-  `Charge(power)` (`PerPower` 220 a point: 440 to 1540), within the shower's `Reach` (4), `Spoils.Lost`. The one burst rule
-  (sim/Building README): a cell costs `Damage.Step`, natural ground its strength, a built wall, piece or machine that over
-  `BuiltTakes`; what it pays for breaks and is lost, what it reaches unpaid cracks, the wall struck first. A scrap hull two
-  thick (541 a cell): 2 cracks it, 3–4 hole its outer cell, 5 and up breach it; a second within the heal time on a cracked
+  `Charge(power)` (`PerPower` 170 a point: 340 to 1190), within the shower's `Reach` (4), `Spoils.Lost`. The one burst rule
+  (sim/Building README): a cell costs `Damage.Step` and its strength left, in full (no player's
+  share); what it pays for breaks and is lost, what it reaches unpaid cracks, the wall struck first. A scrap hull two
+  thick (400 a cell): 2 cracks it, 3–4 hole its outer cell, 5 and up breach it; iron holes at 3, breaches at 6; a second within the heal time on a cracked
   patch breaches too. A back wall behind a cell entered breaks where what is left pays for it. Then the next interval is drawn.
 - **What breaks** is lost, refunding nothing, its pipes left whole (0109), nothing planned in its place: the player patches
   it with what they have. A machine spills what it held; a debris net, struck or with its wall, lays its cost at its cell
   for anyone, once, and `debris` drops what it held. A hole is an opening of its room: `atmosphere` vents it and drains its
   vents' networks until a valve cuts them off or a wall is built again. A deconstruction mark on it is dropped by `building`.
-- `MeteorHit(cell)` (dev) bursts with just what the wall at `cell` costs uncracked (`BuildingModule.ToBreak`), reach 0: that
-  wall breaks, its back wall stands but behind a deep crack. `MeteorHit(cell, power)` strikes as the shower's meteor would.
+- `MeteorHit(cell)` (dev) bursts with the wall's full `Strength`, reach 0 (damage-scale): that wall breaks, its back wall
+  stands but behind a deep crack. `MeteorHit(cell, power)` strikes as the shower's meteor would.
 - **A flare**, each tick in construction after the shower: a `FlareIn` above 0 counts down, armed or not, and strikes on
   reaching 0. Then, with none drawn, where the kind has `Flares`, the world is not `Calm` and `Knows("generator")`, the next
   is drawn evenly in `EveryMin..EveryMax`, not counted down that tick. Its last `Warning` ticks are its warning.
@@ -79,7 +79,6 @@ here unchanged. Magnetic flares break machines ([magnetic-flare](../../docs/deci
 
 - Meteors aim at walls only, never heroes; they come only from the right, never through an open door. What the burst
   reaches round the wall, doors and machines too, it cracks or breaks. Showers do not change with where the ship goes yet.
-- Alloy is natural ground (600), so the strongest meteors break it where built iron (1352) only cracks.
 - A client joining between a strike and its next frame misses the strike's look.
 - Nothing shields a machine from a flare yet; fuses and shielded walls will shrink the candidates. No grace before the
   first flare, and a machine just repaired may break in the next.
