@@ -1,7 +1,6 @@
 # crew (client): the heroes
 
-This machine's hero and the others', client-authoritative (0002): the controller runs here; only commands reach
-the sim.
+This hero and others', client-authoritative (0002): only commands reach the sim.
 
 ## Files
 
@@ -38,7 +37,7 @@ the sim.
 | `ToolWork.cs` | tools at work |
 | `logic/ToolSparks.cs` | sparks off a wreck |
 | `logic/CutterJet.cs` | the cutter's jet |
-| `logic/Motor.cs` | `Run` till the sim agrees (0055) |
+| `logic/Motor.cs` | `Run` till the sim agrees |
 | `logic/Remote.cs` | heroes sent and kept |
 | `logic/RemoteRod.cs` | another's harpoon rod (0065) |
 | `logic/RodFlourish.cs` | when its lights play |
@@ -57,7 +56,7 @@ the sim.
 | `HeroView.Others.cs` | others' heroes |
 | `logic/CameraFollow.cs` | the camera's aim |
 | `JetPlume.cs` | a jetpack's plume |
-| `RodLight.cs` | harpoon light (0075) |
+| `RodLight.cs` | harpoon light |
 | `AimOutline.cs` | the aim's outline |
 | `ModeGlyph.cs` | the driver's mode mark |
 | `logic/DriverMode.cs` | its dots |
@@ -82,8 +81,10 @@ the sim.
 | `logic/Bodies.cs` | bodies (0061) |
 | `BodyView.cs` | bodies, beacons, tips (0061) |
 | `logic/Rams.cs` | a creature's ram (0103) |
-| `HunterView.cs` | catchers as heroes |
-| `logic/CutHeard.cs` | their cuts heard |
+| `HunterView.cs` | catchers as heroes, fighting |
+| `CatcherFxView.cs` | its light |
+| `Glitch.cs` | in bands |
+| `logic/CatcherFx.cs` | its picks |
 | `logic/Crew.En.cs` | its text |
 | `logic/Crew.Ru.cs` | Russian |
 

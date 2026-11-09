@@ -16,7 +16,7 @@ namespace Stillwake.Game.Features.Creatures;
 /// (<see cref="ShotDraws"/>): each drawn a tick behind, between where it was and is, heard fired where it first shows but the
 /// host's own, heard at the click, and every hit shown and heard as what it met (<see cref="ShotEnds"/>, 2026-10-27-shots-pierce). A
 /// charge's burst (blasting-charge) shown and heard wherever its shot ends, whoever threw it. And the creatures' arcs (2026-10-27-sentry-arc), each shown once the tick it struck: an electric arc
-/// as the relic's, a flash and sparks where it struck, heard where it left and where it struck.
+/// as the relic's, a flash and sparks where it struck, heard where it left and where it struck; but a catcher's, which the crew draws.
 /// </summary>
 public partial class ShotsView : Node2D
 {
@@ -99,13 +99,14 @@ public partial class ShotsView : Node2D
             if (hit.By != mine && hit.Shot != bornAndEnded && !_seen.ContainsKey(hit.Shot) && !Flying(creatures, hit.Shot))
             {
                 bornAndEnded = hit.Shot;
-                _fired.Play(S.FiredBy(hit.Gun), new Vector2(hit.From.X, hit.From.Y) * (float)(Camera.Cell / 1000.0));
+                _fired.Play(S.FiredOf(hit.Projectile, hit.Gun), new Vector2(hit.From.X, hit.From.Y) * (float)(Camera.Cell / 1000.0));
             }
         }
         foreach (var end in creatures.Ended)
             if (end.Burst >= 0) Burst(end, own);
         Round(creatures);
         var flying = new HashSet<int>();
+        int launched = 0;
         foreach (var shot in creatures.Shots)
         {
             if (!ShotDraws.DrawsSims(shot.By, own, hosts)) continue;
@@ -116,7 +117,9 @@ public partial class ShotsView : Node2D
             {
                 // Seen first a step out of the muzzle: drawn from where it was fired, a step back.
                 _seen[shot.Id] = (motion with { X = motion.X - motion.VX, Y = motion.Y - motion.VY }, motion);
-                if (shot.By != Ref.Hero(own)) _fired.Play(S.FiredBy(shot.Gun), new Vector2(motion.X, motion.Y) * (float)(Camera.Cell / 1000.0));
+                // A salvo's shells all leave at once: its mortar heard once.
+                var cue = S.FiredOf(shot.Projectile, shot.Gun);
+                if (shot.By != Ref.Hero(own) && (cue != S.CatcherLaunch || launched++ == 0)) _fired.Play(cue, new Vector2(motion.X, motion.Y) * (float)(Camera.Cell / 1000.0));
             }
         }
         foreach (var id in new List<int>(_seen.Keys))
@@ -267,8 +270,8 @@ public partial class ShotsView : Node2D
         float k = (float)(Camera.Cell / 1000.0);
         foreach (var arc in arcs)
         {
-            // A capback's glob is no electric arc: LurkerFxView flies it.
-            if (!_arcsShown.Add(arc.Id) || arc.Projectile == Stillwake.Content.Shots.Glob.Id) continue;
+            // A capback's glob is no electric arc: LurkerFxView flies it. A catcher's bolt the crew draws, red, from its gun (catcher-combat).
+            if (!_arcsShown.Add(arc.Id) || arc.Projectile == Stillwake.Content.Shots.Glob.Id || DrawnAsHero(arc.By)) continue;
             var (from, to) = (new Vector2(arc.X0, arc.Y0) * k, new Vector2(arc.X1, arc.Y1) * k);
             Chain(from, to, 9, 1.2, 1);
             Stages.Of(Layers.Effects).Flares.Flash(to.X, to.Y, Cyan, 1.0 * Fx.Glow, 10, CreatureLooks.LightKeep, 0.8);
@@ -304,6 +307,14 @@ public partial class ShotsView : Node2D
             Stages.Of(Layers.Effects).Bolts.Add(() => (p.X, p.Y, q.X, q.Y, 0), life, intensity, width, branchy: true);
             a = b;
         }
+    }
+
+    /// <summary>Whether the creature <paramref name="id"/> is drawn as a hero (<see cref="CreatureLooks.Heroes"/>), which draws its own bolts.</summary>
+    private bool DrawnAsHero(int id)
+    {
+        foreach (var c in _m.Creatures.Creatures)
+            if (c.Id == id) return CreatureLooks.Heroes.ContainsKey(Spec.Creatures.Get(c.Species).Look);
+        return false;
     }
 
     private static bool Lingers(IReadOnlyList<Arc> arcs, int id)

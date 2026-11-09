@@ -52,6 +52,7 @@ public sealed partial class CreaturesModule
         State.Arcs.Add(new Arc
         {
             Id = State.Fired,
+            By = c.Id,
             Projectile = shoot.Projectile,
             X0 = x,
             Y0 = y,

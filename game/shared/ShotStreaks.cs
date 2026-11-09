@@ -12,13 +12,16 @@ namespace Stillwake.Game.Shared;
 /// Shots in flight drawn (shots-are-the-sims): each a streak behind its point along its way (<see cref="ShotLooks"/>), handed in
 /// every frame; the sim's by <c>ShotsView</c>, this player's own by its hero's hands, which fly them ahead of the sim's. One thrown
 /// whole (<see cref="ShotLook.Picture"/>) is drawn as itself instead: its picture lit by the world and turning, its spark unlit over
-/// it, a trail of sparks behind, its light about it.
+/// it, a trail of sparks behind, its light about it. A bomb (<see cref="ShotLook.Bomb"/>) is drawn as its shapes, lit, point first, a
+/// short trail of sparks behind.
 /// </summary>
 public partial class ShotStreaks : Node2D
 {
     private readonly List<(Vector2 At, Vector2 Way, ShotLook Look)> _streaks = [];
     /// <summary>Those thrown whole this frame: where, turned how far, and their spark's frame.</summary>
     private readonly List<(Vector2 At, float Turn, ShotPicture Picture, int Frame)> _thrown = [];
+    /// <summary>The bombs this frame: where, and turned along their flight.</summary>
+    private readonly List<(Vector2 At, float Turn, ShotBomb Bomb)> _bombs = [];
     private readonly Bodies _bodies;
     /// <summary>A key a thrown one's light is held under, one per place in this frame's list: kept, never made anew.</summary>
     private readonly List<object> _lights = [];
@@ -30,8 +33,10 @@ public partial class ShotStreaks : Node2D
         _streaks.AddRange(streaks);
         _thrown.Clear();
         double seconds = Time.GetTicksMsec() / 1000.0;
+        _bombs.Clear();
         foreach (var (at, way, look) in _streaks)
         {
+            if (look.Bomb is { } bomb) _bombs.Add((at, way.Angle(), bomb));
             if (look.Picture is not { } picture) continue;
             int frame = (int)(seconds * picture.Fps) % picture.Frames;
             // Turned the way it was thrown: over the top, forward.
@@ -57,7 +62,7 @@ public partial class ShotStreaks : Node2D
     public ShotStreaks()
     {
         Material = new CanvasItemMaterial { LightMode = CanvasItemMaterial.LightModeEnum.Unshaded };
-        _bodies = new Bodies { Thrown = _thrown, ShowBehindParent = true };
+        _bodies = new Bodies { Thrown = _thrown, Bombs = _bombs, ShowBehindParent = true };
         // Lit as what is held is: with no material of its own it drew black in the dark of the caves.
         Lit.Set(_bodies);
         AddChild(_bodies);
@@ -70,6 +75,11 @@ public partial class ShotStreaks : Node2D
             if (look.Picture != null)
             {
                 Sparks(at, way, look);
+                continue;
+            }
+            if (look.Bomb is { } bomb)
+            {
+                Trail(at, way, look, bomb);
                 continue;
             }
             var tail = at - way.Normalized() * (float)look.Length;
@@ -119,6 +129,20 @@ public partial class ShotStreaks : Node2D
         }
     }
 
+    /// <summary>A bomb's trail: a few specks behind its fins, each jittered across its flight anew thirty times a second, fading back.</summary>
+    private void Trail(Vector2 at, Vector2 way, ShotLook look, ShotBomb bomb)
+    {
+        var back = -way.Normalized();
+        int roll = (int)(Time.GetTicksMsec() / 33);
+        float r = (float)look.Width / 2;
+        var point = new Color(look.Point);
+        for (int i = 1; i <= bomb.Sparks; i++)
+        {
+            var p = at + back * (float)(bomb.First + (i - 1) * bomb.Gap) + new Vector2(Jitter(i, roll) * 0.6f, 0);
+            DrawCircle(p, r, point with { A = 0.7f * (1 - i / (bomb.Sparks + 1f)) });
+        }
+    }
+
     /// <summary>A number from -0.5 to 0.5 for <paramref name="a"/> and <paramref name="b"/>, the same each time.</summary>
     private static float Jitter(int a, int b)
     {
@@ -139,6 +163,12 @@ public partial class ShotStreaks : Node2D
     private sealed partial class Bodies : Node2D
     {
         public List<(Vector2 At, float Turn, ShotPicture Picture, int Frame)> Thrown = [];
+        public List<(Vector2 At, float Turn, ShotBomb Bomb)> Bombs = [];
+
+        /// <summary>A round body's outline, a unit across, turned along x: scaled to a bomb's.</summary>
+        private static readonly Vector2[] Round = MakeRound(12);
+
+        private readonly Vector2[] _body = new Vector2[Round.Length], _rim = new Vector2[Round.Length + 1];
 
         public override void _Draw()
         {
@@ -147,7 +177,27 @@ public partial class ShotStreaks : Node2D
                 DrawSetTransform(at, turn);
                 DrawTexture(PictureOf(picture.Still), -new Vector2((float)picture.Middle.X, (float)picture.Middle.Y));
             }
+            // A bomb point first along its flight: its body, its rim, two fins splayed behind.
+            foreach (var (at, turn, bomb) in Bombs)
+            {
+                DrawSetTransform(at, turn);
+                var size = new Vector2((float)bomb.Length / 2, (float)bomb.Width / 2);
+                for (int i = 0; i < Round.Length; i++) _body[i] = _rim[i] = Round[i] * size;
+                _rim[^1] = _rim[0];
+                DrawColoredPolygon(_body, new Color(bomb.Fill));
+                DrawPolyline(_rim, new Color(bomb.Rim), 0.3f, true);
+                var fins = new Color(bomb.Fins);
+                for (int s = -1; s <= 1; s += 2)
+                    DrawLine(new Vector2(-1.2f, 0), new Vector2(-2.2f, 0.9f * s), fins, 0.35f, true);
+            }
             DrawSetTransform(Vector2.Zero);
+        }
+
+        private static Vector2[] MakeRound(int n)
+        {
+            var points = new Vector2[n];
+            for (int i = 0; i < n; i++) points[i] = Vector2.FromAngle(Mathf.Tau * i / n);
+            return points;
         }
     }
 

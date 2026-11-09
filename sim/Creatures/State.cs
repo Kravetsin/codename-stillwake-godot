@@ -197,7 +197,7 @@ public sealed class Shot
     [JsonInclude] public string Projectile { get; internal set; } = "";
     /// <summary>The gun it was fired from, by its item; none for a creature's, whose damage is its projectile's alone.</summary>
     [JsonInclude, JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] public string? Gun { get; internal set; }
-    /// <summary>Its shooter: a hero by its peer, or none.</summary>
+    /// <summary>Its shooter: a hero by its peer, or none: a creature's (catcher-combat).</summary>
     [JsonInclude] public Ref By { get; internal set; }
     [JsonInclude] public int X { get; internal set; }
     [JsonInclude] public int Y { get; internal set; }
@@ -255,6 +255,8 @@ public readonly record struct ShotHit(int Shot, Ref By, string Projectile, strin
 public sealed class Arc
 {
     [JsonInclude] public int Id { get; internal set; }
+    /// <summary>The creature that struck it, by id; 0 in a save from before it was kept (catcher-combat): a catcher draws its own.</summary>
+    [JsonInclude, JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)] public int By { get; internal set; }
     /// <summary>Its projectile, by its id in <c>Shots.Projectiles</c>.</summary>
     [JsonInclude] public string Projectile { get; internal set; } = "";
     [JsonInclude] public int X0 { get; internal set; }

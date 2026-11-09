@@ -19,6 +19,7 @@ namespace Stillwake.Game.Dev;
 [Dev("--beam-twice", "with --planet, back aboard two seconds in and down again two seconds later: the second descent (heard-every-other)", Order = 5)]
 [Dev("--charges", "with --planet, fifty blasting charges in the third slot, the spear in the fourth, and the hero beamed into the cave by the shallowest deep cache (blasting-charge)", Order = 5)]
 [Dev("--catcher", "with --planet, the hero out of creative mode and its hunt brought ten breaths of walking near once it stands there, so the bracelet blinks and a catcher soon comes (tracker-catchers); =N that many breaths", Order = 5, Shape = DevShape.Either)]
+[Dev("--fight", "with --planet --catcher, the hero kept from harm once hunted (creative mode again), to watch the catcher fight it (catcher-combat)", Order = 5)]
 [Dev("--dig", "with --planet, the ground under the hero hewn at the drill's pace from four seconds in, so it digs down: to measure what digging costs a frame; =SECONDS stops then, --frames counting afresh, to measure the depth reached", Order = 5, Shape = DevShape.Either)]
 public sealed class PlanetScenario : DevScenario
 {
@@ -140,6 +141,7 @@ public sealed class PlanetScenario : DevScenario
         client.Send(new Sim.Items.SetCreative(false));
         client.Send(new Sim.Crew.Track(breaths));
         log($"catcher: the hunt {breaths} breaths of walking away");
+        if (Args.Has("--fight")) client.Send(new Sim.Items.SetCreative(true));
     }
 
     /// <summary><c>--dig</c>: a pickaxe's hit on the cells under the hero's body, three across and four down, at the drill's pace: what a hit costs, without the drill run by hand.</summary>

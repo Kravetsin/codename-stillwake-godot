@@ -82,9 +82,37 @@ public sealed partial class CreaturesModule
     /// <summary>The catcher hunting <paramref name="peer"/>'s hero here, alive and not leaving; null for none: what its mark points at.</summary>
     public Creature? HunterOf(int peer) => State.Creatures.Find(c => !c.Dead && Hunting(c) == peer);
 
+    /// <summary>
+    /// What a hunter shows of its fight (catcher-combat): whether it aims at its quarry in sight, free of any move, and the cell its aim
+    /// holds before a shot (-1 for none); the spot it gathers for (-1 for none) and the ticks left of the gather; the clock it last
+    /// blinked at (0 for never).
+    /// </summary>
+    public readonly record struct Fight(bool Aims, int Held, int Ghost, int GatherLeft, int Blinked);
 
-    /// <summary>The creatures' clock of <paramref name="c"/>'s last strike on rock (a catcher cutting); 0 for none: what its sound plays by.</summary>
-    public static int LastWear(Creature c) => c.Recall(FlyerBody.LastCut);
+    /// <summary><paramref name="c"/>'s fight as it stands (<see cref="Fight"/>); nothing for one leaving or not a hunter.</summary>
+    public Fight FightOf(Creature c)
+    {
+        if (HuntDrive.QuarryOf(c) == null || HuntDrive.Leaving(c)) return new(false, -1, -1, 0, 0);
+        int ghost = c.Recall(HuntDrive.BlinkTo) - 1;
+        return new(c.Act == null && c.Recall(HuntDrive.Aiming) == 1, c.Recall(HuntDrive.Held) - 1, ghost,
+            ghost >= 0 ? Math.Max(0, c.Recall(HuntDrive.BlinkAt) - State.Clock) : 0, c.Recall(HuntDrive.BlinkedAt));
+    }
+
+    /// <summary>A shell's mark: the cell it lands on, the ticks left till it does, and its whole flight.</summary>
+    public readonly record struct Mark(int Cell, int Left, int Flight);
+
+    /// <summary>The marks of <paramref name="c"/>'s shells still flying, in throw order: what its marks are drawn by.</summary>
+    public IEnumerable<Mark> MarksOf(Creature c)
+    {
+        if (c.Recall(HuntDrive.Thrown) <= 0) yield break;
+        int thrown = c.Recall(HuntDrive.Thrown) - 1;
+        var salvo = Spec.Get(c.Species).Brain.OfType<Spec.Hunt>().Single().Salvo;
+        for (int i = 0; i < HuntDrive.Marks.Length; i++)
+        {
+            int cell = c.Recall(HuntDrive.Marks[i]) - 1, flight = salvo.Flight + i * salvo.Stagger, left = thrown + flight - State.Clock;
+            if (cell >= 0 && left >= 0) yield return new(cell, left, flight);
+        }
+    }
 
     /// <summary>
     /// Whether <paramref name="c"/>, a flyer, follows a path's run step (up a step too, as a hero steps up) or stands on ground not
@@ -101,8 +129,4 @@ public sealed partial class CreaturesModule
             if (Solid(column, row)) return true;
         return false;
     }
-
-    /// <summary>Whether <paramref name="c"/>, a flyer, struck what is in its way within its last <c>CutEvery</c> ticks: drawn drilling.</summary>
-    public bool Cutting(Creature c) =>
-        Spec.Get(c.Species).Body is Spec.Flyer { CutEvery: > 0 } f && LastWear(c) > 0 && State.Clock - LastWear(c) <= f.CutEvery;
 }

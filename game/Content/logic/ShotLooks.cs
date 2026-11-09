@@ -12,7 +12,18 @@ public sealed record ShotLook(double Length, double Width, string Tail, string B
 {
     /// <summary>What is drawn of one thrown whole; none for a streak.</summary>
     public ShotPicture? Picture { get; init; }
+
+    /// <summary>A bomb drawn in its place, pointing along its flight, its line then a short trail of sparks; none for a streak.</summary>
+    public ShotBomb? Bomb { get; init; }
 }
+
+/// <summary>
+/// A small bomb in flight, drawn as shapes lit by the world: a body <paramref name="Length"/> by <paramref name="Width"/> pixels of the
+/// world, <paramref name="Fill"/> inside a <paramref name="Rim"/>, two <paramref name="Fins"/> splayed behind; behind them
+/// <paramref name="Sparks"/> specks of its look's <see cref="ShotLook.Point"/> colour, every <paramref name="Gap"/> pixels from
+/// <paramref name="First"/> back, fading.
+/// </summary>
+public sealed record ShotBomb(double Length, double Width, string Fill, string Rim, string Fins, int Sparks, double First, double Gap);
 
 /// <summary>
 /// A shot thrown whole, drawn as itself: its <paramref name="Still"/> picture (in <c>art/hd</c>), lit by the world, turning round its
@@ -51,7 +62,19 @@ public static class ShotLooks
             (240, 160, 64), 0.35, 2, 0.5f, [1, 0.35, 0.8, 0.15]),
     };
 
-    /// <summary>The look of projectile <paramref name="id"/> fired from <paramref name="gun"/>: the railgun's and a thrown charge's their own, else the nail's.</summary>
+    /// <summary>
+    /// A catcher's shell (catcher-combat), the user's pick «Столбы света»: a small feathered bomb, point first along its flight, two fins,
+    /// four warm sparks trailing behind.
+    /// </summary>
+    public static readonly ShotLook Shell = new(8, 0.9, Tail: "ffdc8c", Body: "ffdc8c", Point: "ffdc8c")
+    {
+        Bomb = new ShotBomb(2.8, 1.1, Fill: "3a3d42", Rim: "16181b", Fins: "202226", Sparks: 4, First: 3.1, Gap: 1.6),
+    };
+
+    /// <summary>
+    /// The look of projectile <paramref name="id"/> fired from <paramref name="gun"/>: the railgun's its own, a charge its own whoever
+    /// threw it (a catcher's has no gun, catcher-combat), a catcher's shell its own, else the nail's.
+    /// </summary>
     public static ShotLook Of(string id, string? gun) =>
-        gun == Content.Shots.Railgun.Item ? Railed : gun == Content.Shots.Thrown.Item ? Charge : Nail;
+        gun == Content.Shots.Railgun.Item ? Railed : id == Content.Shots.BlastCharge.Id ? Charge : id == Content.Shots.Shell.Id ? Shell : Nail;
 }

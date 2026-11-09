@@ -71,12 +71,18 @@ public static class Shots
     public static readonly Projectile BlastCharge = new("blastCharge", Damage: 10, BlockDamage: 0, Weight: 3, HitsBodies: true, Bursts: Blasting.Charge);
 
     /// <summary>
+    /// The catcher's shell (catcher-combat), lobbed in a salvo: only solid cells stop it; it bursts where it ends (<see cref="Blasting.Shell"/>),
+    /// three units of a suit off each hero within the burst's reach, as every creature's burst takes its projectile's damage.
+    /// </summary>
+    public static readonly Projectile Shell = new("shell", Damage: 3, BlockDamage: 0, Weight: 1, HitsBodies: false, Bursts: Blasting.Shell);
+
+    /// <summary>
     /// The charge thrown from the hand: its own 10 and nothing more, a full knock; 30 cells a second, gone at 40 cells' worth, bursting
     /// in the air there (in space, where nothing pulls it down); a throw a second.
     /// </summary>
     public static readonly Gun Thrown = new("blastCharge", ["blastCharge"], Damage: 0, BlockDamage: 0, Knock: 10, Speed: 1500, Reach: 40, Pace: 20, PierceKeep: 0);
 
-    public static readonly IReadOnlyList<Projectile> Projectiles = [Nail, Bolt, Glob, BlastCharge];
+    public static readonly IReadOnlyList<Projectile> Projectiles = [Nail, Bolt, Glob, BlastCharge, Shell];
 
     public static readonly IReadOnlyList<Gun> Guns = [Nailer, Railgun, Thrown];
 

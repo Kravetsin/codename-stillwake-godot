@@ -7,7 +7,7 @@
 | `Building.cs` | Plans and the work turning them into the ship. |
 | `Costs.cs` | Costs, ticks to build or repair; what a blueprint lacks. |
 | `Bursts.cs` | `Burst`: a charge's wave and what it breaks. |
-| `Digging.cs` | Hits on a planet's ground (`Hew`, `HewCells`, `Hit`, `Wear`). |
+| `Digging.cs` | Hits on a planet's ground (`Hew`, `HewCells`, `Hit`). |
 | `Flora.cs` | Plants, stones, cave growths and ruins' pieces. |
 | `Fuzz.cs` | The commands the desync suite draws. |
 | `Repairs.cs` | Repairing a machine a magnetic flare broke (`Repair`). |
@@ -53,8 +53,7 @@
   Each takes `BlockDamage` (0098) once (0: none, no shock), a pile `Damage` at its `Hp`: at its strength a wall goes for its
   `Cost` and held growths, a piece whole; `Carries`% of the surplus to the next cell on the line from the hand (`HewCells`: the
   hero's), the larger, once. `building.nothingToDig`, then `items.flat` / `items.notRunning`. `Hit`, a shot's, strikes a cell
-  `ShotTakes` allows, returning its surplus if it broke, the yield the shooter's here, else anyone's. No tool hits back walls. `Wear`
-  (a catcher's) strikes as a burst, ground for nothing (`Strikes`).
+  `ShotTakes` allows, returning its surplus if it broke, the yield the shooter's here, else anyone's. No tool hits back walls.
 - **`Burst(peer, cell, power, reach, Spoils)`** (damage-scale): a `Wave`, steps `Damage.Step`; a cell costs its
   strength left (pile `Hp`, machine `HitPoints`), a piece or machine once, ×10 (`OwnShipTakes`) for a hero's own burst
   `Aboard`; bedrock, lava, fog, the lifepod stop it. Paid ones break, unpaid crack at their head by what was left (÷10 there).
