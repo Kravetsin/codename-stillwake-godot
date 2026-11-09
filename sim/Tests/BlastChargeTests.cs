@@ -7,8 +7,8 @@ using Spec = Stillwake.Content;
 namespace Stillwake.Sim.Tests;
 
 /// <summary>
-/// The blasting charge (blasting-charge): thrown as a gun fires, it bursts where its shot ends, the meteor's wave through open cells and
-/// natural ground, every wall it reaches broken for the thrower; built walls, pieces and machines stop it, and wrecks in reach take its damage.
+/// The blasting charge (blasting-charge, unified-damage): thrown as a gun fires, it bursts where its shot ends, a hit in every direction,
+/// what it breaks dropped there for anyone and what it cannot pay for cracked; wrecks in reach take its damage.
 /// </summary>
 public class BlastChargeTests
 {
@@ -70,8 +70,12 @@ public class BlastChargeTests
 
     private static int Count(Scenario w, string item) => w.M.Items.Totals(0).Where(t => t.Item == item).Sum(t => t.Count);
 
+    private static int Lying(Scenario w, string item) => w.M.Items.Floor.Where(s => s.Item == item).Sum(s => s.Count);
+
+    private static int CrackAt(Scenario w, int cell) => w.M.Building.Cracks.SingleOrDefault(c => c.Cell == cell)?.Damage ?? 0;
+
     [Fact]
-    public void ThrownDownOnStoneItBurstsShortOfItAndOpensACraterWithinItsReachGivingNoRock()
+    public void ThrownDownOnStoneItOpensACraterFourDeepCracksItsRimAndDropsGravelForAnyone()
     {
         var w = Pit('t');
         var end = Thrown(w, At(20, 8, Down));
@@ -81,18 +85,29 @@ public class BlastChargeTests
         Assert.True(end.Met);
         Assert.Equal(8 * W + 20, end.Burst);
         var opened = Opened(w);
-        Assert.Contains(10 * W + 20, opened);
-        Assert.Contains(15 * W + 20, opened);
-        // Nothing past its reach either way, the stone below its box whole.
+        Assert.All([10, 11, 12, 13], y => Assert.Contains(y * W + 20, opened));
+        Assert.DoesNotContain(14 * W + 20, opened);
+        Assert.True(CrackAt(w, 14 * W + 20) > 0);
         Assert.All(opened, c => Assert.True(Math.Abs(c % W - 20) <= Blast.Reach && c / W - 8 <= Blast.Reach));
-        Assert.NotNull(w.M.Grid.WallAt((8 + Blast.Reach + 1) * W + 20));
-        // A crater's plain rock goes to dust: a way down, not a mine.
-        Assert.Equal(0, Count(w, "rock"));
-        Assert.Empty(w.M.Items.Floor);
+        // Each stone it broke lies where it was as a gravel, anyone's: quick, but no rock to build with.
+        Assert.Equal(opened.Count, Lying(w, "gravel"));
+        Assert.Equal(0, Lying(w, "rock") + Count(w, "rock"));
+        Assert.All(w.M.Items.Floor, s => Assert.Equal(FloorStack.Nobody, s.By));
     }
 
     [Fact]
-    public void SoilOpensWiderThanStoneAndAlloySoaksItNearest()
+    public void ASecondChargeOnTheSameStoneGoesFurther()
+    {
+        var w = Pit('t');
+        Thrown(w, At(20, 8, Down));
+        int first = Opened(w).Count;
+        Thrown(w, At(20, 8, Down));
+        Assert.Contains(14 * W + 20, Opened(w));
+        Assert.True(Opened(w).Count > first);
+    }
+
+    [Fact]
+    public void SoilOpensWiderThanStoneAndAlloyNotAtAll()
     {
         int Crater(char ground)
         {
@@ -102,8 +117,8 @@ public class BlastChargeTests
         }
         int soil = Crater('s'), stone = Crater('t'), alloy = Crater('a');
         Assert.True(soil > stone, $"soil {soil}, stone {stone}");
-        Assert.True(stone > alloy, $"stone {stone}, alloy {alloy}");
-        Assert.True(alloy > 0);
+        Assert.True(stone > 0);
+        Assert.Equal(0, alloy);
     }
 
     [Fact]
@@ -119,18 +134,42 @@ public class BlastChargeTests
             Assert.True(dx * dx + dy * dy <= Blast.Reach * Blast.Reach == open.Contains(c), $"({c % W}, {c / W})");
         }
         // Stone soaks it within its reach: dropped down a shaft into solid stone, the air no shortcut round it, it opens as far out
-        // down the diagonal as straight down, give or take a cell.
+        // down the diagonal as straight down, give or take the cell and a half four cells' 7/5 steps round to.
         var stone = Pit('t', (x, y) => y < 10 && x is >= 8 and <= 32 && (x != 20 || y == 9) ? 't' : null);
         Thrown(stone, At(20, 5, Down));
         var opened = Opened(stone).ToHashSet();
         int down = Enumerable.Range(1, 21).Last(k => opened.Contains((8 + k) * W + 20) || k == 1);
         int aslant = Enumerable.Range(1, 21).Last(k => opened.Contains((8 + k) * W + 20 + k) || k == 1);
-        Assert.True(Math.Abs(aslant * Math.Sqrt(2) - down) <= 1, $"stone {down} deep, {aslant} aslant");
+        Assert.True(Math.Abs(aslant * Math.Sqrt(2) - down) <= 1.5, $"stone {down} deep, {aslant} aslant");
         Assert.True(down < Blast.Reach, $"stone {down} deep: soaked short of its reach");
     }
 
     [Fact]
-    public void ABuiltWallStopsItAndBedrockTooWhatLiesBehindThemStays()
+    public void AlloyOnlyCracksAndASecondChargeBeforeItHealsOpensIt()
+    {
+        var w = Pit('a');
+        Thrown(w, At(20, 8, Down));
+        Assert.Empty(Opened(w));
+        // What was left after the two steps down to it.
+        Assert.Equal(Blast.Power - 2 * Spec.Damage.Step, CrackAt(w, 10 * W + 20));
+        Thrown(w, At(20, 8, Down));
+        Assert.Contains(10 * W + 20, Opened(w));
+    }
+
+    [Fact]
+    public void AScrapWallInTheGroundCracksAndASecondChargeBreaksIt()
+    {
+        var w = Pit('t', (x, y) => x == 20 && y == 10 ? 'w' : null);
+        Thrown(w, At(20, 8, Down));
+        Assert.NotNull(w.M.Grid.WallAt(10 * W + 20));
+        Assert.Equal((Blast.Power - 2 * Spec.Damage.Step) * Spec.Damage.BuiltTakes / 1000, CrackAt(w, 10 * W + 20));
+        Thrown(w, At(20, 8, Down));
+        Assert.Null(w.M.Grid.WallAt(10 * W + 20));
+        Assert.Equal(1, Lying(w, "scrapChunk"));
+    }
+
+    [Fact]
+    public void AnIronWallOnlyCracksAndBedrockStopsItWhatLiesBehindThemStays()
     {
         // An iron wall down column 15 through the open and the stone; bedrock down column 25.
         var w = Pit('t', (x, y) => x == 15 ? 'n' : x == 25 ? 'b' : null);
@@ -138,39 +177,33 @@ public class BlastChargeTests
         var opened = Opened(w);
         Assert.Contains(12 * W + 20, opened);
         Assert.All(opened, c => Assert.InRange(c % W, 16, 24));
-        Assert.Empty(w.M.Building.Cracks);
+        Assert.Contains(w.M.Building.Cracks, c => c.Cell % W == 15);
+        Assert.DoesNotContain(w.M.Building.Cracks, c => c.Cell % W is < 15 or >= 25);
     }
 
     [Fact]
-    public void OreAGeodeAndADeepCacheItBreaksGoToTheThrower()
+    public void OreAGeodeAndADeepCacheItBreaksFallWhereTheyWereForAnyone()
     {
         // Sulfur at (20, 11) and (21, 11), a geode in the stone at (17, 11), an amber cache at (23, 12).
         var w = Pit('t', (x, y) => y == 11 && x is 20 or 21 ? 'y' : null, [(11 * W + 17, "geode"), (12 * W + 23, "amberCache")]);
         Thrown(w, At(20, 8, Down));
         Assert.Null(w.M.Grid.WallAt(11 * W + 20));
-        Assert.Equal(2, Count(w, "sulfur"));
-        Assert.Equal(Spec.Flora.Get("geode").Yields.Single().Count, Count(w, "crystal"));
-        Assert.Equal(Spec.Flora.Get("amberCache").Yields.Single().Count, Count(w, "opal"));
+        Assert.Equal(2, Lying(w, "sulfur"));
+        Assert.Equal(Spec.Flora.Get("geode").Yields.Single().Count, Lying(w, "crystal"));
+        Assert.Equal(Spec.Flora.Get("amberCache").Yields.Single().Count, Lying(w, "opal"));
+        Assert.Equal(0, Count(w, "sulfur") + Count(w, "crystal") + Count(w, "opal"));
         Assert.Empty(w.M.Building.Plants);
     }
 
     [Fact]
-    public void WithItsThrowerGoneFromTheSurfaceWhatItBreaksFallsThereAnyones()
-    {
-        var w = Pit('t', (x, y) => y == 11 && x == 20 ? 'y' : null).GiveItems(1, (Charge, 1));
-        Thrown(w, At(20, 8, Down) with { From = 1 });
-        Assert.Null(w.M.Grid.WallAt(11 * W + 20));
-        Assert.Equal(FloorStack.Nobody, w.M.Items.Floor.Single(f => f.Item == "sulfur").By);
-    }
-
-    [Fact]
-    public void AboardTheShipItBurstsAndBreaksNothing()
+    public void AboardTheShipItCracksTheHullAndBreaksNone()
     {
         var w = new Scenario(".....#....\n..........\n##########", cells: true).Do(new Crew.Enter(12)).GiveItems(0, (Charge, 1)).Run();
         var end = Thrown(w, At(1, 0, Right));
         Assert.True(end.Burst >= 0);
         Assert.Equal(0, Count(w, Charge));
         Assert.NotNull(w.M.Grid.WallAt(5));
+        Assert.True(CrackAt(w, 5) > 0);
         Assert.All(Enumerable.Range(20, 10), c => Assert.NotNull(w.M.Grid.WallAt(c)));
     }
 

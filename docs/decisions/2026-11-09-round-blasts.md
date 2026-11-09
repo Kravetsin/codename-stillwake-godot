@@ -1,6 +1,6 @@
 # Blasts are round
 
-- Status: accepted
+- Status: accepted; a wall's cost by its armour and the charge's numbers superseded by [unified-damage](2026-11-09-unified-damage.md)
 - Date: 2026-11-09
 - Supersedes the aslant cost and the box of [meteor-wave](2026-10-29-meteor-wave.md); its wave, soaking and order stand
 

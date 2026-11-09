@@ -44,7 +44,7 @@ public partial class HazardsTests
             var before = new List<(int Cell, Content.Material Wall)>();
             if (coming is { Left: 1 } m)
             {
-                int most = HazardsModule.Farthest(m.Power, shower), cx = m.Cell % grid.Width, cy = m.Cell / grid.Width;
+                int most = shower.Reach, cx = m.Cell % grid.Width, cy = m.Cell / grid.Width;
                 for (int y = Math.Max(0, cy - most); y <= Math.Min(grid.Height - 1, cy + most); y++)
                     for (int x = Math.Max(0, cx - most); x <= Math.Min(grid.Width - 1, cx + most); x++)
                         if (grid.WallAt(y * grid.Width + x) is { } wall) before.Add((y * grid.Width + x, wall));
@@ -57,9 +57,12 @@ public partial class HazardsTests
         return (strikes, seen);
     }
 
-    /// <summary>Twenty-four rows of an alloy hull four thick, which no meteor here breaks: they keep striking it.</summary>
+    /// <summary>
+    /// Twenty-four rows of an iron hull four thick, 1352 a cell to break: before anyone lands no meteor breaks it, and a crack heals
+    /// before the next, so they keep striking it.
+    /// </summary>
     private static Scenario Hull() =>
-        new(Layout.Parse(string.Join('\n', Enumerable.Repeat("..####..", 24))).WithMaterials(string.Join('\n', Enumerable.Repeat("aaaaaaaa", 24)))
+        new(Layout.Parse(string.Join('\n', Enumerable.Repeat("..####..", 24))).WithMaterials(string.Join('\n', Enumerable.Repeat("nnnnnnnn", 24)))
             with
         { Meteors = true });
 
@@ -109,17 +112,133 @@ public partial class HazardsTests
         Assert.Null(new Scenario(Layout.Parse("..#..").OnPlanet() with { Meteors = true }).M.Hazards.Shower);
     }
 
+    /// <summary>What a scrap wall costs a burst, built (unified-damage): 541.</summary>
+    private static readonly int Scrap = BuildingModule.ToBreak(Content.Materials.Get("scrap"));
+
+    /// <summary>What a built cell is cracked by when <paramref name="left"/> of a burst reached it unpaid (unified-damage).</summary>
+    private static int Share(int left) => left * Content.Damage.BuiltTakes / 1000;
+
+    /// <summary>The front cracks, cell and damage.</summary>
+    private static (int Cell, int Damage)[] Cracks(Scenario w) => [.. w.M.Building.Cracks.Where(c => !c.Back).Select(c => (c.Cell, c.Damage))];
+
     /// <summary>
-    /// Before anyone lands (2026-10-29-weak-meteors-till-landing): a blast of 7 at power 2 breaks the scrap struck alone, 16 at 5 two
-    /// more along a row; iron stands to all but 5, which breaks the iron struck and nothing past it.
+    /// Before anyone lands (2026-10-29-weak-meteors-till-landing), on a row of scrap: power 2's burst, short of the 541 the wall struck
+    /// costs, cracks it by its share; power 3 breaks it and cracks the next by the share of what is left past the step.
     /// </summary>
     [Fact]
-    public void BreakLittleBeforeAnyoneLandsIronOnlyAtTheirStrongestAndOnlyTheCellStruck()
+    public void CrackAScrapWallBeforeAnyoneLandsAndBreakItFromPowerThree()
     {
-        Assert.Equal([15], StrikeAt(Row("..##############"), 15, 2, landed: false).Walls);
-        Assert.Equal([13, 14, 15], StrikeAt(Row("..##############"), 15, 5, landed: false).Walls);
-        Assert.Empty(StrikeAt(Row("......", 2, 3, 4, 5), 5, 4, landed: false).Walls);
-        Assert.Equal([5], StrikeAt(Row("......", 2, 3, 4, 5), 5, 5, landed: false).Walls);
+        var weak = Row("..##############");
+        Assert.Empty(StrikeAt(weak, 15, 2, landed: false).Walls);
+        Assert.Equal([(15, Share(HazardsModule.Charge(2, Weak)))], Cracks(weak));
+        var strong = Row("..##############");
+        Assert.Equal([15], StrikeAt(strong, 15, 3, landed: false).Walls);
+        Assert.Equal([(14, Share(HazardsModule.Charge(3, Weak) - Scrap - Content.Damage.Step))], Cracks(strong));
+    }
+
+    /// <summary>Iron, 1352 a cell to break, built: the weak shower's strongest cracks it by 40 of its 50, and a second breaks it.</summary>
+    [Fact]
+    public void CrackIronBeforeAnyoneLandsAndBreakItWithASecondOfTheirStrongest()
+    {
+        var w = Row("......", 2, 3, 4, 5);
+        Assert.Empty(StrikeAt(w, 5, 5, landed: false).Walls);
+        Assert.Equal([(5, Share(HazardsModule.Charge(5, Weak)))], Cracks(w));
+        Assert.Equal([5], StrikeAt(w, 5, 5, landed: false).Walls);
+    }
+
+    /// <summary>
+    /// A meteor of <paramref name="power"/> at the nine-wide <see cref="Room"/>'s right face on drawn row 2, its hull two cells thick
+    /// (0104), and the tick run.
+    /// </summary>
+    private static Scenario HitRoom(Scenario w, int power) => w.Do(new MeteorHit(w.At(8, 2) + 1, power)).Run();
+
+    /// <summary>Whether <see cref="Room"/> is open to nothing.</summary>
+    private static bool Sealed(Scenario w) => w.M.Rooms.RoomById(w.M.Rooms.RoomAt(w.At(4, 2))!.Value)!.Openings.Count == 0;
+
+    /// <summary>
+    /// On a scrap hull two thick: power 4 holes its outer cell, short of the 1084 to reach the inner one; 5 and up, one in five once
+    /// landed, breach it alone, and what they break is lost.
+    /// </summary>
+    [Fact]
+    public void BreachAScrapHullTwoThickAloneFromPowerFiveLosingWhatTheyBreak()
+    {
+        var holed = HitRoom(new Scenario(Room), 4);
+        Assert.Null(holed.M.Grid.WallAt(holed.At(8, 2) + 1));
+        Assert.True(Sealed(holed));
+        var breached = HitRoom(new Scenario(Room), 5);
+        Assert.False(Sealed(breached));
+        Assert.Empty(breached.M.Items.Floor);
+        Assert.Equal(20, Shower.Powers.Where(p => p.Power >= 5).Sum(p => p.Weight) * 100 / Shower.Powers.Sum(p => p.Weight));
+    }
+
+    /// <summary>
+    /// A second on a cracked patch within the heal time breaches (unified-damage): power 2 cracks the outer cell by 16, leaving 109 to
+    /// break it; ten seconds on, power 3 pays that and the inner's 543. Once the crack has healed, the same pair only holes the outer.
+    /// </summary>
+    [Fact]
+    public void BreachAScrapHullWithASecondOnTheCrackTheFirstLeftWithinTheHealTime()
+    {
+        var w = HitRoom(new Scenario(Room), 2);
+        Assert.True(Sealed(w));
+        Assert.Equal([(w.At(8, 2) + 1, Share(HazardsModule.Charge(2, Shower)))], Cracks(w));
+        Assert.False(Sealed(HitRoom(w.Run(10 * World.TicksPerSecond), 3)));
+        var healed = HitRoom(new Scenario(Room), 2).Run(Content.Builds.CrackHeals);
+        Assert.Empty(Cracks(healed));
+        Assert.True(Sealed(HitRoom(healed, 3)));
+    }
+
+    /// <summary>
+    /// A machine a meteor pays for breaks as to a charge, but lost (unified-damage): what it held spills at its cell, its cost goes.
+    /// A crusher beside a scrap wall in bedrock, the wall struck by the strongest: 541 for the wall, 543 more for the crusher.
+    /// </summary>
+    [Fact]
+    public void LoseTheCostOfAMachineTheyBreakSpillingWhatItHeld()
+    {
+        var spec = Content.Machines.Get("crusher");
+        int wide = spec.Width + 4;
+        var rows = new List<string> { new('#', wide) };
+        for (int y = 0; y < spec.Height; y++) rows.Add("#." + new string(spec.Char!.Value, spec.Width) + "#.");
+        rows.Add(new string('#', wide));
+        var rock = rows.Select((r, y) => y == 0 || y == rows.Count - 1 ? new string('b', wide) : "b" + new string('.', wide - 1)).ToList();
+        var w = new Scenario(Layout.Parse(rows).WithMaterials(rock)).GiveItems(0, ("asteroidOre", 4)).Run();
+        var crusher = w.M.Grid.MachinesOf("crusher").Single();
+        int slot = w.M.Items.Inventory(0).ToList().FindIndex(s => s?.Item == "asteroidOre");
+        w.Do(new Items.Move(new Items.Place(slot), new Items.Target(0, crusher.Id), 4)).Run();
+        Assert.Empty(w.Refusals);
+        w.Do(new MeteorHit(spec.Height * w.M.Grid.Width + 2 + spec.Width, 7)).Run();
+        Assert.Empty(w.M.Grid.MachinesOf("crusher"));
+        Assert.Equal(4, w.M.Items.Floor.Where(s => s.Item == "asteroidOre").Sum(s => s.Count));
+        Assert.All(spec.Cost, c => Assert.DoesNotContain(w.M.Items.Floor, s => s.Item == c.Item));
+    }
+
+    /// <summary>
+    /// A door no longer stops a meteor (unified-damage): it takes a built share, as a wall does. Three cells in from the wall struck,
+    /// what the strongest has left there, 993 of the 2163 a door costs, cracks it at its head.
+    /// </summary>
+    [Fact]
+    public void CrackADoorInReachByItsShareOfWhatIsLeftThere()
+    {
+        var w = new Scenario(Layout.Parse("....DD..#\n....DD..#")).Do(new MeteorHit(17, 7)).Run();
+        Assert.Equal(Structure.DoorClosed, w.M.Grid.StructureAt(5));
+        var door = Assert.Single(Cracks(w), c => w.M.Grid.StructureAt(c.Cell) == Structure.DoorClosed);
+        Assert.Equal(Share(HazardsModule.Charge(7, Shower) - Scrap - 3 * Content.Damage.Step), door.Damage);
+    }
+
+    /// <summary>
+    /// A meteor breaks the back wall behind each cell it enters where what is left there pays for it (unified-damage); a charge never
+    /// does. Power 2's 440 into soil, 40 a cell and 42 a step on: walls and back walls four out.
+    /// </summary>
+    [Fact]
+    public void BreakTheBackWallsBehindWhatTheyEnterAsNoChargeDoes()
+    {
+        static Scenario Soil() => new(Layout.Parse("..######").WithMaterials("..ssssss") with { Meteors = true });
+        var (walls, backs) = StrikeAt(Soil(), 7, 2);
+        Assert.Equal([3, 4, 5, 6, 7], walls);
+        Assert.Equal(walls, backs);
+        var charged = Soil();
+        Assert.True(charged.M.Building.Burst(0, 7, HazardsModule.Charge(2, Shower), Shower.Reach, Spoils.Drop));
+        Assert.All(walls, c => Assert.Null(charged.M.Grid.WallAt(c)));
+        Assert.All(Enumerable.Range(0, 8), c => Assert.NotNull(charged.M.Grid.BackAt(c)));
     }
 
     /// <summary>
@@ -150,89 +269,29 @@ public partial class HazardsTests
         return w;
     }
 
-    [Fact]
-    public void TearAScrapHullAsFarAsTheirBlastPaysForBreakingTheBackWallsItLeavesSomethingFor()
-    {
-        // The struck wall costs 4 of the blast, each wall more a step and its strength, 6: 22 at power 2 pays for four.
-        var weak = StrikeAt(Row("..##############"), 15, 2);
-        Assert.Equal([12, 13, 14, 15], weak.Walls);
-        Assert.Equal([13, 14, 15], weak.Backs);
-        // 52 at power 7 pays for nine; a back wall breaks where 4 of it is left.
-        var strong = StrikeAt(Row("..##############"), 15, 7);
-        Assert.Equal([7, 8, 9, 10, 11, 12, 13, 14, 15], strong.Walls);
-        Assert.Equal([8, 9, 10, 11, 12, 13, 14, 15], strong.Backs);
-    }
-
-    [Fact]
-    public void HaveTheirBlastSoakedUpByIronSparingWhatLiesBehindIt()
-    {
-        // Scrap face, then six iron: each iron costs 12, so the 52 of power 7 dies three into it, where all scrap went nine deep.
-        var w = Row("..######......##", 8, 9, 10, 11, 12, 13);
-        Assert.Equal([11, 12, 13, 14, 15], StrikeAt(w, 15, 7).Walls);
-        Assert.Equal("iron", w.M.Grid.WallAt(10)?.Id);
-    }
-
-    [Fact]
-    public void BreakNothingWhenTheWallTheyStrikeIsStrongerThanTheirPower()
-    {
-        var held = StrikeAt(Row("..###.", 5), 5, 4);
-        Assert.Empty(held.Walls);
-        Assert.Empty(held.Backs);
-        Assert.Contains(5, StrikeAt(Row("..###.", 5), 5, 5).Walls);
-    }
-
-    /// <summary>A wall stands up to meteors by its armour, not by how hard it is to dig (wall-roles): stone digs at 12, stands at 4.</summary>
-    [Fact]
-    public void ReadAWallsArmourNotItsHardnessToDig()
-    {
-        Scenario Stone() => new(Layout.Parse("..###").WithMaterials("..sst") with { Meteors = true });
-        Assert.Empty(StrikeAt(Stone(), 4, 3).Walls);
-        Assert.Contains(4, StrikeAt(Stone(), 4, 4).Walls);
-        // A seal gives way to the weakest, soaking little: power 2 on glass goes as far as on soil.
-        var w = new Scenario(Layout.Parse("..#####") with { Meteors = true }).Do(new SetInstant(true));
-        for (int x = 2; x < 7; x++) w.Do(new ClearAt(x, "structure")).Do(new PlacePlan(x, Placement.Wall("glass")));
-        w.Do(new SetInstant(false)).Run();
-        Assert.Equal([2, 3, 4, 5, 6], StrikeAt(w, 6, 2).Walls);
-    }
-
-    [Fact]
-    public void StopAtADoorItsBlastBreakingTheBackWallsBeforeIt()
-    {
-        var w = Row("....D...#");
-        var (walls, backs) = StrikeAt(w, 8, 7);
-        Assert.Equal([8], walls);
-        Assert.Equal([5, 6, 7, 8], backs);
-        Assert.Equal(Structure.DoorClosed, w.M.Grid.StructureAt(4));
-        Assert.Empty(w.M.Building.Plans);
-    }
-
     private static string Seen(IEnumerable<Strike> strikes) =>
         string.Join("; ", strikes.Select(s => $"power {s.Power} at {s.Cell} (strength {s.Strength}): {s.Gone.Count} gone"));
-
-    /// <summary>The bug from play: on the new game's wreck, its hull scrap, meteors broke one cell or none; once landed, an area.</summary>
-    [Fact]
-    public void TearAnAreaOutOfTheStartingWrecksScrapHullOnEveryStrikeOnceAHeroHasLanded()
-    {
-        var (strikes, _) = Fall(Landed(new Scenario(Registry.Wreck)), 6);
-        Assert.NotEmpty(OnScrap(strikes));
-        Assert.True(OnScrap(strikes).All(s => s.Gone.Count >= 5), Seen(strikes));
-    }
 
     /// <summary>Strikes on the hull's scrap: its iron is too strong for many, and stands.</summary>
     private static IEnumerable<Strike> OnScrap(List<Strike> strikes) => strikes.Where(s => s.Strength == Content.Materials.Get("scrap").Strength);
 
     /// <summary>
-    /// The softlock from play: a strike tore more than a castaway could patch before the next. Till anyone lands each takes a cell or
-    /// a few, a corner's most at the strongest: patched in the minutes before the next.
+    /// The new game's wreck, its hull scrap two thick, before anyone lands and after: a strike on scrap breaks the cell struck exactly
+    /// when its burst pays the 541, and else cracks it, nothing gone. Before landing a hole is one a castaway patches: at most the
+    /// strongest's eight, the face three up and down and the cell behind.
     /// </summary>
     [Fact]
-    public void TakeACellOrAFewOfTheStartingWrecksScrapHullBeforeAnyoneLands()
+    public void BreakTheStartingWrecksScrapStruckOnlyWhenTheirBurstPaysForItAndCrackItElse()
     {
-        var (strikes, _) = Fall(new Scenario(Registry.Wreck), 10);
-        Assert.NotEmpty(OnScrap(strikes));
-        // 8 at most: the radar's first contact (15 min in) draws from the world's Rng, and the strikes after it took 8 once.
-        Assert.True(OnScrap(strikes).All(s => s.Gone.Count is >= 1 and <= 8), Seen(strikes));
-        Assert.True(OnScrap(strikes).Average(s => s.Gone.Count) <= 4, Seen(strikes));
+        foreach (var w in new[] { new Scenario(Registry.Wreck), Landed(new Scenario(Registry.Wreck)) })
+        {
+            var shower = w.M.Hazards.Shower!;
+            var (strikes, _) = Fall(w, 8);
+            Assert.NotEmpty(OnScrap(strikes));
+            Assert.All(OnScrap(strikes), s => Assert.Equal(HazardsModule.Charge(s.Power, shower) >= Scrap, s.Broke));
+            Assert.All(OnScrap(strikes).Where(s => !s.Broke), s => Assert.Empty(s.Gone));
+            if (shower == Weak) Assert.True(OnScrap(strikes).All(s => s.Gone.Count <= 8), Seen(strikes));
+        }
     }
 
     /// <summary>A hole is patched of a raw scrap chunk (2026-10-29-weak-meteors-till-landing): no furnace, so no air, is needed.</summary>
@@ -254,8 +313,8 @@ public partial class HazardsTests
     [Fact]
     public void StrikeTheFirstThingFromTheRightInARowOnlyWhenItIsABreakableWallInTheZone()
     {
-        // Alloy never breaks to these, so the targets stay. Column 5 is out of the zone; a door shields row 1, bedrock row 2.
-        var layout = Layout.Parse("#...##\n#..D.#\n#...##\n#....#").WithMaterials("aaaaaa\naaaaaa\naaaaba\naaaaaa")
+        // Iron never breaks to these before landing, so the targets stay. Column 5 is out of the zone; a door shields row 1, bedrock row 2.
+        var layout = Layout.Parse("#...##\n#..D.#\n#...##\n#....#").WithMaterials("nnnnnn\nnnnnnn\nnnnnbn\nnnnnnn")
             with
         { Zone = new Box(0, 0, 4, 3), Meteors = true };
         var (strikes, _) = Fall(new Scenario(layout), 12);
@@ -310,9 +369,12 @@ public partial class HazardsTests
         Assert.Equal((coming.Cell, coming.Power), (strikes[0].Cell, strikes[0].Power));
     }
 
-    /// <summary>The README's invariant, for meteors falling by themselves: a wall or a back wall turned empty, nothing else touched, nothing planned.</summary>
+    /// <summary>
+    /// The README's invariant, for meteors falling by themselves (unified-damage): what they break, a wall, a piece, a machine or a
+    /// back wall, turned empty; nothing added, no pipe touched, nothing planned.
+    /// </summary>
     [Property(MaxTest = 25)]
-    public Property FallingMeteorsOnlyEverTurnAWallIntoAnEmptyCell()
+    public Property FallingMeteorsOnlyEverBreakAndNeverAdd()
     {
         var gen =
             from width in Gen.Choose(1, 10)
@@ -336,12 +398,12 @@ public partial class HazardsTests
             for (int c = 0; c < size; c++)
             {
                 if (grid.StructureAt(c) == structure[c]) continue;
-                if (structure[c] != Structure.Wall || grid.StructureAt(c) != Structure.Empty) return false;
+                if (grid.StructureAt(c) != Structure.Empty) return false;
             }
             // A back wall may go, as a wall may; none comes.
             for (int c = 0; c < size; c++)
                 if (grid.BackLayer[c] != back[c] && grid.BackLayer[c] != Back.None) return false;
-            return w.M.Building.Plans.Count == 0 && grid.Machines.SequenceEqual(machines)
+            return w.M.Building.Plans.Count == 0 && grid.Machines.All(machines.Contains)
                 && w.M.Pipes.Spans.SequenceEqual(spans) && w.Refusals.Count == 0;
         });
     }

@@ -69,10 +69,10 @@ public class ShotsTests
     }
 
     [Fact]
-    public void WhatAShotKeepsThroughWhatItPiercedIsItsGunsKeepRoundedDownEachTimeAndNoGunKeepsAll()
+    public void WhatAShotKeepsThroughTheBodiesItPiercedIsItsGunsKeepRoundedDownEachTimeAndNoGunKeepsAll()
     {
         Assert.Equal([6, 3, 1, 0], Enumerable.Range(0, 4).Select(n => Spec.Shots.DamageOf(Nailer, Nail.Id, n)));
-        Assert.Equal([1, 0, 0, 0], Enumerable.Range(0, 4).Select(n => Spec.Shots.BlockDamageOf(Nailer, Nail.Id, n)));
+        Assert.Equal(10, Spec.Shots.BlockDamageOf(Nailer, Nail.Id));
         Assert.Equal(Nail.Damage, Spec.Shots.DamageOf(null, Nail.Id, 3));
     }
 
@@ -191,19 +191,18 @@ public class ShotsTests
     }
 
     [Fact]
-    public void SoilTakesANailsBlockDamageAndBreaksAtItsStrengthBedrockNeverAndAboardNothing()
+    public void SoilTakesANailsBlockDamageAndBreaksAtItsStrengthTheNailEndingThereBedrockNeverAndAboardNothing()
     {
         var w = Ground();
         int pillar = EndOf(w, At(80, 20, Right));
         Assert.Equal(90, pillar % 100);
         Assert.Equal(BlockHit, CrackAt(w, pillar));
-        for (int i = 1; i < Spec.Materials.Get("soil").Strength - 1; i++) Assert.Equal(pillar, EndOf(w, At(80, 20, Right)));
-        // The nail that breaks it flies on through, nothing left for a block: the soil it falls onto stays uncracked.
+        for (int i = 1; i < Spec.Materials.Get("soil").Strength / BlockHit - 1; i++) Assert.Equal(pillar, EndOf(w, At(80, 20, Right)));
+        // The nail that breaks it ends there: the nailer carries nothing past a cell (unified-damage), so nothing behind is cracked.
         int past = EndOf(w, At(80, 20, Right));
         Assert.Null(w.M.Grid.WallAt(pillar));
-        // Falling on past it into the soil below its foot, on the next row of the ground.
-        Assert.Equal((pillar + 100, true, "soil"), (past, w.M.Creatures.Ended.Single().Met, w.M.Grid.WallAt(past)?.Id));
-        Assert.Null(CrackAt(w, past));
+        Assert.Equal((pillar, true), (past, w.M.Creatures.Ended.Single().Met));
+        Assert.Empty(w.M.Building.Cracks);
         Assert.Equal(1, w.M.Items.Totals(0).Where(t => t.Item == "soil").Sum(t => t.Count));
         int bedrock = EndOf(w, At(92, 20, Right));
         Assert.Equal("bedrock", w.M.Grid.WallAt(bedrock)?.Id);

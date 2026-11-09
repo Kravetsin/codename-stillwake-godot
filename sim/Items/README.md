@@ -23,7 +23,7 @@ Every stack of items (0008).
 - **State** (all saved, as sorted lists; derived only `Gains`): `Inventories`, those changed at least once, by peer;
   `Crates`, machines holding something, by id; `Creative`, peers; `Floor` (`FloorStack`, id order) and `NextFloorId`; `Ticks`;
   `Kept` (0062); `Running`, one `Runner` a peer (0055); `Fitted`, by machine then module (0086), saved only when set.
-- **Start:** all empty; `Kit` gives `Inventory.Kit` (the screwdriver; 0107) to a peer's first hero.
+- **Start:** all empty; `Kit` gives `Inventory.Kit` (0107) to a peer's first hero.
 
 ## Rules
 
@@ -31,8 +31,8 @@ Every stack of items (0008).
   says which are open (upgrades). A `Stack` is `Item`, `Count`, `Charge`, `Module`. The first row is the hotbar.
 - **Per-item values** (0053, 0098): `Charge` (thousandths of a power-tick) and `Module` (a module on a
   tool among its `Hosts`) live on a stack of one and go with it, the floor included. Stacks merge only
-  when `Alike` (item, charge, module); a whole stack onto one not alike swaps. Stacks made from a cost hold none, and no
-  cost names an item with a capacity or a drill (`ContentTests`). Saved only when set.
+  when `Alike` (item, charge, module); a whole stack onto one not alike swaps. Stacks made from a cost hold none
+  (`ContentTests`). Saved only when set.
 - **A tool works with its stack** (0098): `ToolStack(peer, item)` is the first carried, a fitted one first.
   `ToolStats.Of(stack)` folds the modules' trades (`Boost.Plus`, 0100): damage a gain rounded
   down, draw a cost rounded up, pace the weapon's. `Damage(peer, tool)` is that stack's, the weapon's own if none.
@@ -51,7 +51,7 @@ Every stack of items (0008).
   items with a `Capacity` (`items.notBattery`, 0053); an arc bench's vise only a tool a module fits (`items.notTool`,
   0099); one that `Takes` an item only it; a `SlotTakes` slot (a bay's fuel) only with its item, checked first, deliveries
   too (`items.notTaken`).
-- **Sort** (0008): the bag past the hotbar, or every slot of a `crate` (`items.notCrate` for other machines). Alike
+- **Sort** (0008): the bag past the hotbar, or every slot of a `crate`. Alike
   stacks merge, then lay by `ItemGroup`, id, module, charge (fullest first), count; hotbar and equipment stay.
 - **Stash** (2026-11-06-quick-stash): bag stacks not in `Keep` move into each `Container` within `StashReach` of
   `Cell`, through walls, that holds the item, nearest then by id.
@@ -64,9 +64,10 @@ Every stack of items (0008).
 - **Modules** (0086): `Fit` takes a module out of every slot into one of its `Hosts`, one of each kind a machine;
   `Unfit` returns it. `Boost(machine)` sums their trades in thousandths over 1000 (`Gain` rounds down, `Cost` up).
   At an arc bench (0099) `Fit`/`Unfit` act on the vise's tool stack; its `Fitted` stays empty.
+- **`Spill(machine, cell)`** (unified-damage): a breaking machine's slots, stacks whole, then its modules, laid at the cell for
+  anyone; its `Kept` forgotten.
 - **Inputs remember** their last item (`KeptAt`) till a hand empties one (0062).
-- **Deliveries** (0062): a fuel only into a `FuelSlot`, else inputs, a crate's all slots, a charger only what
-  has a capacity, a `Takes` only its item. Outputs are the slots past the inputs (0057).
+- **Deliveries** (0062) go where `Receiving` says, a fuel to a `FuelSlot`. Outputs are the slots past the inputs (0057).
 - **Surfaces** (0076): `Depart`/`Arrive` (`ICarries`) carry a peer's inventory, charge and run to the next surface;
   the rest stays; `Inherit` keeps `Creative`.
 - **The floor**: a drop is thrown the way its hero faces. Each tick, by id: a stack
@@ -93,13 +94,13 @@ cost throws.
 - Stacks hold 1 to their limit; equipment only its kind (`EquipmentTests`). A machine has an entry only while it holds.
 - Take and give change totals by exactly the cost or not at all; move, drop, pick-up, sort and stash change none (`StashTests`); a sort is
   idempotent (`SortTests`). Charge stays within capacity on stacks of one (`ChargeTests`); a run draws exactly its
-  `Draw` or stops (`RunTests`). Fits and deaths make and lose nothing (`ArcModuleTests`, `DeathTests`).
+  `Draw` or stops (`RunTests`). Fits, spills, deaths make and lose nothing (`ArcModuleTests`, `DeathTests`, `MachineBreakTests`).
 
 ## Deliberately not handled
 
 - An inventory or body is a peer id's: after a load, whoever joins in it; a body outlasts its owner.
 - Reach is the client's, a stash's `Cell` too. A stale pick, or a drone after a sort, takes what is there.
 - A stack pushed out of a wall in space with no room in reach drifts away.
-- A module in a machine gone but by `Building` stays in `Fitted`: no player causes it.
+- A module in a machine gone not by `Building` stays in `Fitted`: none goes so.
 - A fit shows once its tick runs (0014). Of two drills the fitted works (0098).
 - Charge never leaks; short of a tick's draw, it waits (0053).

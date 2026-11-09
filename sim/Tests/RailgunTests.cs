@@ -25,9 +25,12 @@ public class RailgunTests
     /// The first planet, a cell a character: 60 open columns by 20 over three rows of soil, and soil standing in columns
     /// <paramref name="from"/> to <paramref name="to"/>; the hero at column 2 with the railgun, nails and a full battery.
     /// </summary>
-    private static Scenario Ground(int from, int to)
+    private static Scenario Ground(int from, int to) => Ground(x => x >= from && x <= to);
+
+    /// <summary>The strip of the first planet with soil standing in the columns <paramref name="soil"/> picks, the hero armed with the railgun.</summary>
+    private static Scenario Ground(Func<int, bool> soil)
     {
-        var rows = Enumerable.Range(0, 20).Select(_ => string.Concat(Enumerable.Range(0, 60).Select(x => x >= from && x <= to ? '#' : '.')))
+        var rows = Enumerable.Range(0, 20).Select(_ => string.Concat(Enumerable.Range(0, 60).Select(x => soil(x) ? '#' : '.')))
             .Concat(Enumerable.Repeat(new string('#', 60), 3));
         var layout = Layout.Parse(string.Join('\n', rows)).WithMaterials(string.Join('\n', Enumerable.Repeat(new string('s', 60), 23)))
             with
@@ -51,28 +54,51 @@ public class RailgunTests
     }
 
     [Fact]
-    public void ItBreaksTheFirstCellOfSoilScarsTheNextTwoAndHurtsTheLoperBehindForFive()
+    public void ItBreaksTwoCellsOfSoilCracksTheThirdWithWhatTheSecondLeftAndStopsThereTheLoperBehindUnhurt()
     {
+        // 140 breaks soil's 40, 65 % of the 100 left (65) the next, 65 % of its 25 (16) cracks the third and ends there (unified-damage).
         var w = Ground(30, 32);
         var loper = w.Let(Spec.Creatures.Loper, 40, 19);
         int row = 17 * 60;
-        var (hits, _) = PierceTests.Flown(w, new Fire(Gun.Item, 25 * Unit, 17 * Unit + Unit / 2, Right));
-        Assert.Equal([(ShotTarget.Solid, 4, true), (ShotTarget.Solid, 2, false), (ShotTarget.Solid, 1, false), (ShotTarget.Creature, 5, false)],
-            hits.Take(4).Select(h => (h.What, h.Damage, h.Broke)));
-        Assert.Null(w.M.Grid.WallAt(row + 30));
-        Assert.Equal((2, 1), (w.M.Building.Cracks.Single(c => c.Cell == row + 31).Damage, w.M.Building.Cracks.Single(c => c.Cell == row + 32).Damage));
-        Assert.Equal(5, loper.Damage);
+        var (hits, end) = PierceTests.Flown(w, new Fire(Gun.Item, 25 * Unit, 17 * Unit + Unit / 2, Right));
+        Assert.Equal([(ShotTarget.Solid, 140, true), (ShotTarget.Solid, 65, true), (ShotTarget.Solid, 16, false)], hits.Select(h => (h.What, h.Damage, h.Broke)));
+        Assert.Equal((null, null), (w.M.Grid.WallAt(row + 30)?.Id, w.M.Grid.WallAt(row + 31)?.Id));
+        Assert.Equal(16, w.M.Building.Cracks.Single(c => c.Cell == row + 32).Damage);
+        Assert.Equal((row + 32, true), (end.Cell, end.Met));
+        Assert.Equal(0, loper.Damage);
     }
 
     [Fact]
-    public void AFourthCellOfSoilEndsItWithNothingLeftForABlockTheLoperBehindUnhurt()
+    public void PastTwoCellsOfSoilItFliesOnAndHurtsTheLoperBehindAsAShotThatPiercedTwo()
     {
-        var w = Ground(30, 33);
+        var w = Ground(30, 31);
         var loper = w.Let(Spec.Creatures.Loper, 40, 19);
-        var (hits, end) = PierceTests.Flown(w, new Fire(Gun.Item, 25 * Unit, 17 * Unit + Unit / 2, Right));
-        Assert.Equal((ShotTarget.Solid, 0, false), (hits[^1].What, hits[^1].Damage, hits[^1].Broke));
-        Assert.Equal((17 * 60 + 33, true), (end.Cell, end.Met));
-        Assert.Equal(0, loper.Damage);
+        var (hits, _) = PierceTests.Flown(w, new Fire(Gun.Item, 25 * Unit, 17 * Unit + Unit / 2, Right));
+        Assert.Equal([(ShotTarget.Solid, 140, true), (ShotTarget.Solid, 65, true), (ShotTarget.Creature, 9, false)], hits.Take(3).Select(h => (h.What, h.Damage, h.Broke)));
+        Assert.Equal(9, loper.Damage);
+    }
+
+    [Fact]
+    public void ALoperBeforeTheSoilLeavesItsBlockDamageWholeABodyFoldingOnlyWhatBodiesTake()
+    {
+        var w = Ground(34, 34);
+        var loper = w.Let(Spec.Creatures.Loper, 28, 19);
+        var (hits, _) = PierceTests.Flown(w, new Fire(Gun.Item, 25 * Unit, 17 * Unit + Unit / 2, Right));
+        Assert.Equal([(ShotTarget.Creature, 24), (ShotTarget.Solid, 140)], hits.Take(2).Select(h => (h.What, h.Damage)));
+        Assert.Equal(24, loper.Damage);
+    }
+
+    [Fact]
+    public void AShotSavedMidFlightKeepsWhatItCarriesForTheNextCell()
+    {
+        // Two cells broken in the first tick leave 16 for the soil at 48, met the next tick, after a save.
+        Scenario Fired() => Ground(x => x is 30 or 31 or 48).Do(new Fire(Gun.Item, 25 * Unit, 17 * Unit + Unit / 2, Right)).Run();
+        var (kept, loaded) = (Fired(), Fired().Reload());
+        Assert.Equal(16, loaded.M.Creatures.Shots.Single().Carry);
+        kept.Run(5);
+        loaded.Run(5);
+        Assert.Equal(16, loaded.M.Building.Cracks.Single(c => c.Cell == 17 * 60 + 48).Damage);
+        Assert.Equal(kept.M.Building.Cracks, loaded.M.Building.Cracks);
     }
 
     [Fact]
@@ -179,7 +205,7 @@ public class RailgunTests
     }
 
     [Fact]
-    public void AClientsCopyFliesThroughTheWreckAndTheSoilAsTheSimDoes()
+    public void AClientsCopyFliesThroughTheWreckAndTheSoilAsTheSimDoesCarryingWhatEachBrokenCellLeft()
     {
         var wrecked = Space();
         PierceTests.Wreck(wrecked, 40, 180);
@@ -187,17 +213,18 @@ public class RailgunTests
         {
             var copy = ShotFlight.Launch(Gun, fire.X, fire.Y, fire.Heading);
             IReadOnlyList<ShotPass> passed = [];
-            var predicted = new List<(ShotTarget, bool)>();
+            int? carry = null;
+            var predicted = new List<(ShotTarget, int, bool)>();
             int? copyEnd = null;
             for (int t = 0; t < 60 && copyEnd == null; t++)
             {
-                var step = w.M.Creatures.StepOf(copy, Spec.Shots.Nail, Gun.Item, passed);
-                predicted.AddRange(step.Hits.Select(h => (h.What, h.Damage > 0)));
-                (copy, passed) = (step.Next, step.Passed);
+                var step = w.M.Creatures.StepOf(copy, Spec.Shots.Nail, Gun.Item, passed, carry);
+                predicted.AddRange(step.Hits.Select(h => (h.What, h.Damage, h.Broke)));
+                (copy, passed, carry) = (step.Next, step.Passed, step.Carry);
                 if (step.Met >= 0 || step.Next.Left <= 0) copyEnd = step.Met;
             }
             var (hits, end) = PierceTests.Flown(w, fire);
-            Assert.Equal(hits.Select(h => (h.What, h.Damage > 0)), predicted);
+            Assert.Equal(hits.Select(h => (h.What, h.Damage, h.Broke)), predicted);
             Assert.Equal(end.Met ? end.Cell : -1, copyEnd);
         }
     }
@@ -246,16 +273,16 @@ public class RailgunTests
     }
 
     [Fact]
-    public void WhatItKeepsThroughEachPierceIs650RoundedDown()
+    public void WhatItKeepsThroughEachBodyIs650RoundedDownAndItsBlockDamageMeetsTheFirstCellWhole()
     {
         Assert.Equal([24, 15, 9, 5, 3, 1, 0], Enumerable.Range(0, 7).Select(n => Spec.Shots.DamageOf(Gun.Item, Spec.Shots.Nail.Id, n)));
-        Assert.Equal([4, 2, 1, 0], Enumerable.Range(0, 4).Select(n => Spec.Shots.BlockDamageOf(Gun.Item, Spec.Shots.Nail.Id, n)));
+        Assert.Equal(140, Spec.Shots.BlockDamageOf(Gun.Item, Spec.Shots.Nail.Id));
     }
 
     /// <summary>
     /// Heroes armed with the railgun and a battery of five shots, firing every third tick any way from beside them, through the
     /// strip's soil past two lopers or in space through wrecks: a world saved and loaded every tick plays on as the live one, shots
-    /// passing what stands and the belt refusing once flat. The generic suites never arm a hero so. On the test strip itself, not a
+    /// passing what stands or carrying what a broken cell left, and the belt refusing once flat. The generic suites never arm a hero so. On the test strip itself, not a
     /// planet of CreaturesTesting's, whose creatures' surface a reload forgets.
     /// </summary>
     [Theory]
@@ -290,9 +317,9 @@ public class RailgunTests
             live.Run();
             loaded = loaded.Run().Reload();
             Assert.Equal(live.World.Hash(), loaded.World.Hash());
-            if (live.M.Creatures.Shots.Any(s => s.Passed.Count > 0)) passing++;
+            if (live.M.Creatures.Shots.Any(s => s.Passed.Count > 0 || s.Carry != null)) passing++;
         }
-        Assert.True(passing > 0, "no shot passed anything");
+        Assert.True(passing > 0, "no shot passed anything nor carried a cell's surplus");
         Assert.Contains(live.Refusals, r => r.Reason == "items.flat");
     }
 }

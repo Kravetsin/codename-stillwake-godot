@@ -28,10 +28,10 @@ Every creature composed (creatures-are-composed): a species (`Content.Creatures`
 of ranked drives, moves and yields, each served by one rule here.
 
 - **Depends on:** `Grid`; `Crew` (heroes' cells; `Blow`, `Shock`); `Items` (weapons, ammo, drops, charge); `Debris`
-  (queries, `Unreel`, `Hit`); `Building` (`ShotTakes`, `Hit`, `Blast`, `Relics`, `Posts`, `PostAt`, `FellPost`); `Rooms` (`Afloat`).
+  (queries, `Unreel`, `Hit`); `Building` (`ShotTakes`, `Surplus`, `Hit`, `Burst`, `Relics`, `Posts`, `PostAt`, `FellPost`); `Rooms` (`Afloat`).
 - **State** (`CreaturesState`, saved): `Creatures` in id order, each `{ Id, Species, X, Y, VX, VY, Damage, Drive, DriveLeft,
   Step, Act, Target, Mem, SeenAt }`, bottom middle in thousandths; `Drive` its brain place, `Act` `{ Move, Phase, Left }`,
-  `Mem` its rules' numbers by key, ordinal; `NextId`; `Clock`; `Shots`, `Arcs`, `Patches`, `Fired`. **Unsaved:** `Dead`. **Derived:** `Posture`, `Fleeing`, `Ended`, `Hits`.
+  `Mem` rule numbers by key, ordinal; `NextId`; `Clock`; `Shots`, `Arcs`, `Patches`, `Fired`. **Unsaved:** `Dead`. **Derived:** `Posture`, `Fleeing`, `Ended`, `Hits`.
 - **Runs** after `Crew` and `Debris` (simulation); shots fly after.
 
 ## Adding a species or a rule
@@ -67,8 +67,8 @@ of ranked drives, moves and yields, each served by one rule here.
 - **The hit path** (`Strike`, a shot): unless a drive `Shields` (a shut shell, a shot), damage; dead at hit points, `Yields` sprayed; else knocked
   (`Life.Knock`, `Hop`), its act cut if interruptible, its drives told in brain order till one claims it.
 - **Shots:** `Fire` takes an ammo and its gun's `Energy`; each tick, in id order, one steps, hitting a cell's solid, lowest-id
-  creature, wreck (not `Passed`), on through what its gun `Pierces`. It falls (`ShotFlight.Gravity`). One that `Bursts`
-  (blasting-charge) spreads a `Wave` where it ends: `Blast`s each wall `Blasts` lets in; wrecks in `Reach` take `WreckDamage`.
+  creature, wreck (not `Passed`), through bodies its gun `Pierces`, broken cells while it `Carries` some. It falls (`ShotFlight.Gravity`). One that `Bursts`
+  `Burst`s where it ends (`Spoils.Drop`; a relic shocks the thrower); wrecks in `Reach` take `WreckDamage`.
 - **The dead** are gone to all from the blow, swept within the tick.
 - **`HitBy(Creature)`** (0103), **`Bolted(Arc)`**, as the hero's client saw it: a `Blow` of the move's `Damage`, the act ends; or
   the arc's projectile's, once a hero.
@@ -95,6 +95,6 @@ of ranked drives, moves and yields, each served by one rule here.
 
 - **No collisions** (0006); a clinger senses through rock; despawn loses damage. **No hit-stun.**
 - **A ram aims where the hero was reported** (0103); a second hero pays nothing. **Lifetime:** the keep box's.
-- **A burst hurts no hero or creature**; only a direct hit does.
+- **A burst hurts no hero or creature.**
 - **A derelict escorted aboard** brings its sentry; its pounce passes walls. A blow breaking its wreck: unanswered.
 - **Shots** (0034, the ADRs): muzzle, pace, charge the client's; a guest's copy stops at blocks the nailer breaks.

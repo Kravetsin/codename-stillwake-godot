@@ -18,6 +18,8 @@ public sealed class OwnShot(Projectile projectile, Gun gun, ShotMotion launched)
     public ShotMotion Was { get; internal set; } = launched;
     public ShotMotion Now { get; internal set; } = launched;
     public IReadOnlyList<ShotPass> Passed { get; internal set; } = [];
+    /// <summary>What the last cell it broke left it for the next (unified-damage); null till one breaks.</summary>
+    public int? Carry { get; internal set; }
     public int? EndCell { get; internal set; }
 }
 
@@ -137,13 +139,13 @@ public sealed class GunHand
     /// would take kept to show (<see cref="TakeHits"/>), through what they would break; one that met something it would not, ran out
     /// or left the grid ends there.
     /// </summary>
-    public void Tick(Func<ShotMotion, Projectile, string?, IReadOnlyList<ShotPass>, ShotTick> step, int width, int height)
+    public void Tick(Func<ShotMotion, Projectile, string?, IReadOnlyList<ShotPass>, int?, ShotTick> step, int width, int height)
     {
         foreach (var shot in _shots)
         {
             if (shot.EndCell != null) continue;
-            var next = step(shot.Now, shot.Projectile, shot.Gun.Item, shot.Passed);
-            (shot.Was, shot.Passed) = (shot.Now, next.Passed);
+            var next = step(shot.Now, shot.Projectile, shot.Gun.Item, shot.Passed, shot.Carry);
+            (shot.Was, shot.Passed, shot.Carry) = (shot.Now, next.Passed, next.Carry);
             _hits.AddRange(next.Hits);
             if (next.Met >= 0) shot.EndCell = next.Met;
             else if (next.Next.Left <= 0 || !ShotFlight.OnGrid(next.Next.X, next.Next.Y, width, height)) shot.EndCell = next.Last;
