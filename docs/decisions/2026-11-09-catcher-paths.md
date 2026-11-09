@@ -26,12 +26,13 @@ its hero rather than tailing it, designed now and built with slice 2.
 - **One search a tick:** before creatures run, the catcher due longest (then the least id) searches; the rest wait. A path
   is due every `Paths.Replan` (10) ticks, twice that after a search fell short of an unmoved goal, and at once when it runs
   out or its next step is no longer passable as planned.
-- **Following:** a creature's saved `Path` holds each node with its kind. Running it rises before moving across up a step,
-  moves across before dropping down one, at `Run` (720, the hero's walk) a tick through the corners of its run steps, so
-  it never halts at one; otherwise at `Speed` (400). A Cut step sets it cutting. Rising it moves up first, else across first.
-  A search never sends it back to the middle of its cell when the way on is clear.
+- **Following:** a creature's saved `Path` holds each node with its kind. Running, it rises before moving across up a step and
+  moves across before dropping down one, at `Run` (1320, the hero's sprint: a playtest found the walk's 720 a stroll) a tick
+  through the corners of its run steps, a step up or down free as a hero's, so it never halts at one; a tick's run may pass
+  several nodes. Otherwise at `Speed` (400). A Cut step sets it cutting. Rising, its body moves up first, else across first. A
+  search never sends it back to the middle of its cell when the way on is clear.
 - **No warning:** it hunts from the tick it comes (a playtest found it hanging still for its 10 s); the beep, the reticle
-  and its spawn out of view, some 9 s off at a run, warn the hero.
+  and its spawn out of view, some 5 s off at a sprint, warn the hero.
 - **Breaking by the rule:** `Building.Wear` strikes as a burst does: ground at its strength, giving nothing (a hunter is no
   mine); a built wall or piece at the built share, dropping its cost for anyone (`Spoils.Drop`). `Strikes(cell, damage)`
   says how many strikes break a cell, null where none does (bedrock, lava, fog, the lifepod). Catcher `Wear` 120, every

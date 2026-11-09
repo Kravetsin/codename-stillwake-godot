@@ -264,7 +264,7 @@ public class CatchersTests
         w.Run();
         w.Do(new Release(Catcher.Id, Cell(140, Ground - 1))).Run();
         var c = w.M.Creatures.Creatures.Single();
-        int turns = 0, stops = 0, way = 0;
+        int turns = 0, stops = 0, slow = 0, aloft = 0, way = 0, run = ((Tune.Flyer)Catcher.Body).Run;
         var trace = new System.Text.StringBuilder();
         for (int t = 0; t < 400 && c.Act == null; t++)
         {
@@ -273,10 +273,12 @@ public class CatchersTests
             trace.Append($"{c.X / 1000.0:F2},{c.Y / 1000.0:F2}/{c.VX},{c.VY} ");
             if (Math.Abs(Column(c) - 40) <= Hunt.Strike + 2) continue;
             if (c.VX == 0 && c.VY == 0) stops++;
+            if (Math.Abs(c.VX) < run / 2) slow++;
+            if (!w.M.Creatures.Afoot(c)) aloft++;
             else if (c.VX != 0 && way != 0 && Math.Sign(c.VX) != way) turns++;
             if (c.VX != 0) way = Math.Sign(c.VX);
         }
-        Assert.True(turns == 0 && stops == 0, $"turns {turns}, stops {stops}: {trace}");
+        Assert.True(turns == 0 && stops == 0 && slow <= 2 && aloft == 0, $"turns {turns}, stops {stops}, slow {slow}, aloft {aloft}: {trace}");
     }
 
     [Fact]
@@ -326,13 +328,13 @@ public class CatchersTests
         bool ahead = false;
         for (int t = 0; t < 360 && c.Act == null; t++)
         {
-            x = Math.Min(W - 20, x + 1);
+            x = Math.Min(W - 20, 60 + (t + 1) * 3 / 2);
             w.Do(new Enter(Cell(x, Ground - 3)));
             w.Run();
             fastest = Math.Max(fastest, Math.Abs(c.VX));
             ahead |= Column(c) > x;
         }
-        // Outrun at 20 cells a second, it leapt at 28 and landed ahead of its hero, or caught it.
+        // Outrun at 30 cells a second, past its sprint, it leapt at 48 and landed ahead of its hero, or caught it.
         Assert.Equal(((Tune.Flyer)Catcher.Body).Leap, fastest);
         Assert.True(ahead || c.Act != null, $"hero {x} catcher {Column(c)},{c.Y} act {c.Act?.Move} hunting {CreaturesModule.Hunting(c)} alive {w.M.Creatures.Creatures.Contains(c)} clock {w.M.Creatures.Clock}");
     }
