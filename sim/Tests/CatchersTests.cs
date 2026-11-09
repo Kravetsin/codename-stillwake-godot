@@ -1,0 +1,383 @@
+using FsCheck;
+using FsCheck.Fluent;
+using FsCheck.Xunit;
+using Stillwake.Sim.Building;
+using Stillwake.Sim.Creatures;
+using Stillwake.Sim.Crew;
+using Stillwake.Sim.Grid;
+using Stillwake.Sim.Items;
+using Xunit;
+using Spec = Stillwake.Content;
+using Tune = Stillwake.Content.Creatures;
+
+namespace Stillwake.Sim.Tests;
+
+/// <summary>
+/// Catchers (tracker-catchers): a hero's hidden wanted meter fills while it acts on a planet, slower under rock; full, a catcher comes for
+/// it out of view, warns, hunts it through grown rock, answers another hero's blow, and leaves when its time is out, its quarry
+/// gone, or dies. Every end empties the meter.
+/// </summary>
+public class CatchersTests
+{
+    private const int Unit = CreaturesModule.Unit;
+    private const int W = 480, H = 48, Ground = 24;
+    private static readonly Tune.Species Catcher = Tune.Catcher;
+    private static readonly Tune.Hunt Hunt = (Tune.Hunt)Catcher.Brain[0];
+
+    /// <summary>
+    /// A planet's rules on drawn grown ground, a cell a character: open sky over stone from row <see cref="Ground"/>, bedrock at the
+    /// bottom; <paramref name="cave"/> says which cells under ground are a cave, open with a stone back wall.
+    /// </summary>
+    private static Scenario Field(Func<int, int, bool>? cave = null)
+    {
+        var rows = new List<string>();
+        var looks = new List<string>();
+        for (int y = 0; y < H; y++)
+        {
+            var row = new char[W];
+            var look = new char[W];
+            for (int x = 0; x < W; x++)
+            {
+                bool open = y < Ground || cave?.Invoke(x, y) == true;
+                row[x] = y < Ground ? ' ' : open ? '.' : '#';
+                look[x] = y == H - 1 ? 'b' : y < Ground ? ' ' : 't';
+            }
+            rows.Add(new string(row));
+            looks.Add(new string(look));
+        }
+        var layout = Layout.Parse(rows).WithMaterials(looks) with { Kind = Spec.Surfaces.TestStrip.Id, Grown = true, Flora = [] };
+        return new Scenario(layout);
+    }
+
+    private static int Cell(int x, int y) => y * W + x;
+
+    /// <summary>Hero <paramref name="peer"/> on the ground's top at column <paramref name="x"/>, out of creative mode.</summary>
+    private static Scenario Arrive(Scenario w, int x, int peer = 0, int y = Ground - 1) =>
+        w.Do(new Enter(Cell(x, y)) { From = peer }).Do(new SetCreative(false) { From = peer }).Run();
+
+    /// <summary>Hero <paramref name="peer"/>'s meter set full, its need the least.</summary>
+    private static void Full(Scenario w, int peer = 0)
+    {
+        var hero = w.M.Crew.HeroOf(peer)!;
+        (hero.Need, hero.Wanted) = (Spec.Wanted.NeedLeast, Spec.Wanted.NeedLeast);
+    }
+
+    /// <summary>Hero <paramref name="peer"/> walking back and forth by a cell at column <paramref name="x"/> for <paramref name="ticks"/>, a step every ten.</summary>
+    private static void Walk(Scenario w, int x, int y, int ticks, int peer = 0)
+    {
+        for (int t = 0; t < ticks; t++)
+        {
+            if (t % 10 == 0) w.Do(new Enter(Cell(x + t / 10 % 2, y)) { From = peer });
+            w.Run();
+        }
+    }
+
+    private static Creature? CatcherOf(Scenario w, int peer) =>
+        w.M.Creatures.Creatures.SingleOrDefault(c => c.Species == Catcher.Id && CreaturesModule.Hunting(c) == peer);
+
+    private static int Column(Creature c) => CreaturesModule.Down(c.X, Unit);
+
+    [Fact]
+    public void TheMeterFillsWhileTheHeroActsHalfAsFastUnderRockAndNeverIdle()
+    {
+        var sky = Arrive(Field(), 40);
+        Walk(sky, 40, Ground - 1, 400);
+        var cave = Arrive(Field((x, y) => y >= Ground + 2 && y < Ground + 8 && x >= 30 && x < 60), 40, y: Ground + 7);
+        Walk(cave, 40, Ground + 7, 400);
+        var open = sky.M.Crew.HeroOf(0)!;
+        var under = cave.M.Crew.HeroOf(0)!;
+        Assert.True(under.Wanted > 0);
+        Assert.Equal(2 * under.Wanted, open.Wanted);
+        Assert.InRange(open.Need, Spec.Wanted.NeedLeast, Spec.Wanted.NeedMost);
+        // Standing still, it stops once its last step is past ActiveFor.
+        sky.Run(Spec.Wanted.ActiveFor);
+        int still = open.Wanted;
+        sky.Run(1000);
+        Assert.Equal(still, open.Wanted);
+    }
+
+    [Fact]
+    public void TrackBringsTheHuntThatManyBreathsNearAndIsRefusedWithoutAHero()
+    {
+        var w = Arrive(Field(), 40);
+        w.Do(new Track(20)).Run();
+        var hero = w.M.Crew.HeroOf(0)!;
+        Assert.InRange(hero.Need, Spec.Wanted.NeedLeast, Spec.Wanted.NeedMost);
+        Assert.Equal(hero.Need - 20 * Spec.Wanted.Open, hero.Wanted);
+        Assert.Equal(Signal.Blinking, w.M.Crew.SignalOf(0));
+        Walk(w, 40, Ground - 1, 20 * 20 + 20);
+        Assert.Equal(Signal.Hunted, w.M.Crew.SignalOf(0));
+        w.Do(new Track(20) { From = 5 }).Run();
+        Assert.Equal("crew.noHero", w.Refusals.Single().Reason);
+    }
+
+    [Fact]
+    public void TheMeterNeverFillsAboardTheShip()
+    {
+        var w = new Scenario(new string('.', 40) + "\n" + new string('.', 40), cells: true);
+        w.Do(new Enter(1)).Do(new SetCreative(false)).Run();
+        for (int t = 0; t < 400; t++)
+        {
+            if (t % 10 == 0) w.Do(new Enter(1 + t / 10 % 2));
+            w.Run();
+        }
+        Assert.Equal((0, 0), (w.M.Crew.HeroOf(0)!.Wanted, w.M.Crew.HeroOf(0)!.Need));
+    }
+
+    [Fact]
+    public void TheBraceletIsCalmUndrawnBlinksFromTwoThirdsAndShowsTheHunt()
+    {
+        var w = Arrive(Field(), 40);
+        var hero = w.M.Crew.HeroOf(0)!;
+        (hero.Need, hero.Wanted) = (0, 0);
+        Assert.Equal(Signal.Calm, w.M.Crew.SignalOf(0));
+        Assert.False(w.M.Crew.Hunted(0));
+        (hero.Need, hero.Wanted) = (1200, 799);
+        Assert.Equal(Signal.Calm, w.M.Crew.SignalOf(0));
+        hero.Wanted = 800;
+        Assert.Equal(Signal.Blinking, w.M.Crew.SignalOf(0));
+        hero.Wanted = 1200;
+        Assert.Equal(Signal.Hunted, w.M.Crew.SignalOf(0));
+        Assert.Equal(Signal.Calm, w.M.Crew.SignalOf(7));
+    }
+
+    [Fact]
+    public void AFullMeterBringsOneCatcherForThatHeroOutOfViewWhereItWaitsItsWarning()
+    {
+        var w = Arrive(Arrive(Field(), 40), 10, peer: 1);
+        Full(w);
+        w.Run(Tune.Beat + 1);
+        var c = CatcherOf(w, 0);
+        Assert.NotNull(c);
+        Assert.Null(CatcherOf(w, 1));
+        // The left side is off the grid: it comes on the right, past the view.
+        Assert.InRange(Column(c!) - 40, Tune.RingFrom, Tune.RingTo + Catcher.Body.Width);
+        Assert.False(w.M.Creatures.Overlaps(Catcher.Body, c!.X, c.Y));
+        Assert.True(w.M.Creatures.Warning(c));
+        var (x, y) = (c.X, c.Y);
+        w.Run(Hunt.Warn - Tune.Beat - 2);
+        Assert.Equal((x, y), (c.X, c.Y));
+        Assert.Single(w.M.Creatures.Creatures, k => k.Species == Catcher.Id);
+        // Then it comes at its hero.
+        w.Run(Tune.Beat + 20);
+        Assert.False(w.M.Creatures.Warning(c));
+        Assert.True(c.X < x);
+    }
+
+    [Fact]
+    public void TwoHuntedHeroesGetACatcherEach()
+    {
+        var w = Arrive(Arrive(Field(), 40), 440, peer: 1);
+        Full(w);
+        Full(w, 1);
+        w.Run(Tune.Beat + 1);
+        Assert.NotNull(CatcherOf(w, 0));
+        Assert.NotNull(CatcherOf(w, 1));
+    }
+
+    [Fact]
+    public void NoPlaceEitherSideAndTheCatcherWaitsTheMeterStayingFull()
+    {
+        // A hero in the middle of a field too narrow for the ring: nothing comes, and the hunt waits.
+        var w = new Scenario(Layout.Parse([.. Enumerable.Repeat(new string(' ', 100), 20), new string('#', 100)]) with { Kind = Spec.Surfaces.TestStrip.Id });
+        Arrive(w, 50, y: 19);
+        Full(w);
+        w.Run(4 * Tune.Beat);
+        Assert.Empty(w.M.Creatures.Creatures);
+        Assert.True(w.M.Crew.Hunted(0));
+    }
+
+    [Fact]
+    public void ItCutsGrownRockToAHeroInASealedCaveGivingNothing()
+    {
+        var w = Arrive(Field((x, y) => y >= Ground + 6 && y < Ground + 12 && x >= 150 && x < 160), 154, y: Ground + 11);
+        Full(w);
+        w.Run(Tune.Beat + 1);
+        var c = CatcherOf(w, 0)!;
+        int far = int.MaxValue;
+        for (int t = 0; t < Hunt.Warn + Hunt.Ticks && c.Act == null; t++)
+        {
+            w.Do(new Enter(Cell(154 + t / 10 % 2, Ground + 11)));
+            w.Run();
+            far = Math.Min(far, Math.Abs(Column(c) - 154));
+        }
+        // It cut its way in and made its move at the hero.
+        Assert.NotNull(c.Act);
+        Assert.True(far <= Hunt.Strike, $"{far} columns off at best");
+        Assert.True(CreaturesModule.LastWear(c) > 0);
+        Assert.Empty(w.M.Items.Floor);
+        Assert.DoesNotContain(w.M.Items.Totals(0), t => t.Item == "rock");
+    }
+
+    [Fact]
+    public void ItNeverWearsABuiltWallBedrockOrOffTheGrid()
+    {
+        var w = Arrive(Field(), 40);
+        int sky = Cell(100, Ground - 3), rock = Cell(100, Ground + 3), bedrock = Cell(100, H - 1);
+        w.Do(new Place(sky, Placement.Wall("stone"))).Run();
+        Assert.True(w.M.Building.Wears(rock));
+        Assert.False(w.M.Building.Wears(sky));
+        Assert.False(w.M.Building.Wears(bedrock));
+        Assert.False(w.M.Building.Wears(Cell(100, Ground - 10)));
+        Assert.False(w.M.Building.Wear(sky, 1000));
+        Assert.NotNull(w.M.Grid.WallAt(sky));
+        Assert.True(w.M.Building.Wear(rock, 1000));
+        Assert.Null(w.M.Grid.WallAt(rock));
+    }
+
+    [Fact]
+    public void WalledInWithBuiltWallsTheHeroOutlastsItAndItLeavesTheMeterEmptied()
+    {
+        var w = Arrive(Field(), 40);
+        // A box of built stone round the hero, its floor the ground.
+        for (int y = Ground - 7; y < Ground; y++)
+            foreach (int x in (int[])[37, 43])
+                w.Do(new Place(Cell(x, y), Placement.Wall("stone")));
+        for (int x = 37; x <= 43; x++) w.Do(new Place(Cell(x, Ground - 7), Placement.Wall("stone")));
+        w.Run();
+        Full(w);
+        w.Run(Tune.Beat + 1);
+        var c = CatcherOf(w, 0)!;
+        w.Run(Hunt.Warn + Hunt.Ticks);
+        Assert.All(Enumerable.Range(Ground - 7, 7), y => Assert.NotNull(w.M.Grid.WallAt(Cell(43, y))));
+        Assert.Null(CreaturesModule.Hunting(c));
+        Assert.Equal((0, 0), (w.M.Crew.HeroOf(0)!.Wanted, w.M.Crew.HeroOf(0)!.Need));
+        // It flies off up and is gone once out of view.
+        w.Run(200);
+        Assert.DoesNotContain(w.M.Creatures.Creatures, k => k.Id == c.Id);
+    }
+
+    [Fact]
+    public void KilledItGivesItsYieldsAndItsPurseAndEmptiesItsQuarrysMeter()
+    {
+        var w = Arrive(Arrive(Field(), 40), 10, peer: 1);
+        Full(w);
+        w.Run(Tune.Beat + 1);
+        var c = CatcherOf(w, 0)!;
+        c.Damage = Catcher.Life.Hp - 1;
+        int credits = w.M.Knowledge.Credits;
+        w.Do(new Strike(c.Id, Spec.Weapons.Axe.Item) { From = 1 }).Run();
+        Assert.DoesNotContain(w.M.Creatures.Creatures, k => k.Id == c.Id);
+        Assert.Contains(w.M.Items.Floor, s => s.Item == "circuit");
+        Assert.InRange(w.M.Knowledge.Credits - credits, Catcher.Purse!.Min, Catcher.Purse.Max);
+        Assert.Equal(0, w.M.Crew.HeroOf(0)!.Need);
+    }
+
+    [Fact]
+    public void ItsQuarryPassedOutOrGoneItLeavesTheMeterAlreadyEmptied()
+    {
+        var w = Arrive(Field(), 40);
+        Full(w);
+        w.Run(Tune.Beat + 1);
+        var c = CatcherOf(w, 0)!;
+        w.M.Crew.Shock(0, 1000, Harm.Blow);
+        Assert.Equal(0, w.M.Crew.HeroOf(0)!.Need);
+        w.Run();
+        Assert.Null(CreaturesModule.Hunting(c));
+        // Departing the surface empties it too: launching home is an escape.
+        var hero = Arrive(Field(), 40).M.Crew;
+        var h = hero.HeroOf(0)!;
+        (h.Need, h.Wanted) = (1500, 1500);
+        var left = (Hero)hero.Depart(0)!;
+        Assert.Equal((0, 0), (left.Wanted, left.Need));
+    }
+
+    [Fact]
+    public void AnotherHerosBlowIsAnsweredOnceAnAnswerAtItThenItTurnsBack()
+    {
+        var w = Arrive(Arrive(Field(), 40), 10, peer: 1);
+        Full(w);
+        w.Run(Tune.Beat + 1);
+        var c = CatcherOf(w, 0)!;
+        w.Do(new Strike(c.Id, Spec.Weapons.Axe.Item) { From = 0 }).Run();
+        Assert.Null(c.Act);
+        w.Do(new Strike(c.Id, Spec.Weapons.Axe.Item) { From = 1 }).Run();
+        Assert.Equal(1, c.Act?.Move);
+        Assert.Equal(Ref.Hero(1), c.Target);
+        // Its arc over, it hunts its quarry again; another blow within AnswerEvery goes unanswered.
+        w.Run(((Tune.Shoot)Catcher.Moves[1]).WindUp + ((Tune.Shoot)Catcher.Moves[1]).Recover + 1);
+        Assert.Null(c.Act);
+        Assert.Equal(Ref.Hero(0), c.Target);
+        w.Do(new Strike(c.Id, Spec.Weapons.Axe.Item) { From = 1 }).Run();
+        Assert.Null(c.Act);
+        w.Run(Hunt.AnswerEvery);
+        w.Do(new Strike(c.Id, Spec.Weapons.Axe.Item) { From = 1 }).Run();
+        Assert.Equal(1, c.Act?.Move);
+    }
+
+    [Fact]
+    public void ACatcherLetOutHuntsItsSender()
+    {
+        var w = Arrive(Arrive(Field(), 40), 10, peer: 1);
+        w.Do(new Release(Catcher.Id, Cell(100, Ground - 1)) { From = 1 }).Run();
+        Assert.Equal(1, CreaturesModule.Hunting(w.M.Creatures.Creatures.Single()));
+    }
+
+    [Fact]
+    public void AWorldSavedMidHuntLoadsAndPlaysOnAlike()
+    {
+        // The first planet: wide enough for the ring, grown, saved as its edits.
+        var w = new Scenario("......\n.S....\n######");
+        w.Do(new Enter(w.M.Crew.Spawn)).Run();
+        w.Do(new OpenSurface(Spec.PlanetTypes.First.Id)).Run();
+        w.Do(new Transfer(1)).Run();
+        var hero = w.On(1).Crew.HeroOf(0)!;
+        (hero.Need, hero.Wanted) = (Spec.Wanted.NeedLeast, Spec.Wanted.NeedLeast);
+        w.Run(Tune.Beat + 1);
+        Assert.Single(w.On(1).Creatures.Creatures, c => c.Species == Catcher.Id);
+        foreach (int ticks in (int[])[Hunt.Warn / 2, Hunt.Warn + 300])
+        {
+            string save = w.World.Save();
+            var twin = new Scenario("......\n.S....\n######").Reload(save);
+            w.Run(ticks);
+            twin.Run(ticks);
+            Assert.Equal(w.World.Save(), twin.World.Save());
+        }
+    }
+
+    [Fact]
+    public void AWallDugAndBuiltBackAsItGrewIsGrownAliveAndLoaded()
+    {
+        var w = new Scenario("......\n.S....\n######");
+        w.Do(new Enter(w.M.Crew.Spawn)).Run();
+        w.Do(new OpenSurface(Spec.PlanetTypes.Small.Id)).Run();
+        w.Do(new Transfer(1)).Run();
+        var grid = w.On(1).Grid;
+        int stone = Enumerable.Range(0, grid.Width * grid.Height).First(c => grid.WallAt(c)?.Id == "stone" && grid.GrownWall(c));
+        int other = Enumerable.Range(stone + 1, grid.Width * grid.Height - stone - 1).First(c => grid.WallAt(c)?.Id == "stone");
+        grid.Clear(stone, "structure");
+        grid.Place(stone, Placement.Wall("stone"));
+        grid.Clear(other, "structure");
+        grid.Place(other, Placement.Wall("soil"));
+        Assert.True(grid.GrownWall(stone));
+        Assert.False(grid.GrownWall(other));
+        w.Reload();
+        Assert.True(w.On(1).Grid.GrownWall(stone));
+        Assert.False(w.On(1).Grid.GrownWall(other));
+    }
+
+    /// <summary>
+    /// The meter, over a hero moving now and then between the open sky and a cave, its need drawn anew as it is called off: never past
+    /// its need, never growing in a tick that leaves the hero idle, and full only when hunted.
+    /// </summary>
+    [Property(MaxTest = 20)]
+    public Property TheMeterNeverPassesItsNeedNorGrowsIdle() =>
+        Prop.ForAll(Gen.Choose(0, int.MaxValue).ToArbitrary(), seed =>
+        {
+            var w = Arrive(Field((x, y) => y >= Ground + 2 && y < Ground + 8 && x < 80), 40);
+            var rng = new Rng(new RngState { S = (uint)seed });
+            var hero = w.M.Crew.HeroOf(0)!;
+            (hero.Need, hero.Wanted) = (60, (int)rng.Below(60));
+            for (int t = 0; t < 1500; t++)
+            {
+                if (rng.Below(4) == 0) w.Do(new Enter(Cell(30 + (int)rng.Below(20), rng.Below(2) == 0 ? Ground - 1 : Ground + 7)));
+                if (rng.Below(300) == 0) w.M.Crew.CallOff(0);
+                int before = hero.Wanted;
+                w.Run();
+                if (hero.Wanted > hero.Need) return false.Label($"{hero.Wanted} over {hero.Need} at {t}");
+                if (hero.Wanted > before && hero.Stirring == 0) return false.Label($"grew idle at {t}");
+                if (w.M.Crew.Hunted(0) != (hero.Need > 0 && hero.Wanted == hero.Need)) return false.Label($"hunted wrong at {t}");
+            }
+            return true.ToProperty();
+        });
+}

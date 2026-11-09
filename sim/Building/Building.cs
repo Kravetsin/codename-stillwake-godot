@@ -50,6 +50,13 @@ public interface IBuildingQueries
     /// </summary>
     bool ShotTakes(int cell);
 
+    /// <summary>
+    /// Whether a catcher may wear the wall in <paramref name="cell"/> away (tracker-catchers): the surface's tools break things, the cell is in
+    /// the grid's zone, and its wall is natural ground that breaks and the ground's own as it grew (<c>GrownWall</c>): never one a hero
+    /// built, a piece, a machine, bedrock, lava or the fog. What <see cref="IBuildingOps.Wear"/> guards by.
+    /// </summary>
+    bool Wears(int cell);
+
     /// <summary>What a shot's hit in <paramref name="cell"/> strikes, by a cell of it: a built piece by its first cell, whatever cell of it is met; else the cell itself. A thing a shot passed is remembered by this, so a piece over several cells is hit once.</summary>
     int ShotKey(int cell);
 
@@ -86,6 +93,13 @@ public interface IBuildingOps
     /// <paramref name="spoils"/> says; a relic it takes shocks the peer. Whether it went off: not from where it stops.
     /// </summary>
     bool Burst(int peer, int cell, int power, int reach, Spoils spoils);
+
+    /// <summary>
+    /// A catcher's strike of <paramref name="damage"/> on the grown wall in <paramref name="cell"/> (tracker-catchers): cracked as a hit cracks it,
+    /// broken at its strength giving nothing, the growths it held felled by the sweep. True when it broke; nothing where
+    /// <see cref="IBuildingQueries.Wears"/> says no.
+    /// </summary>
+    bool Wear(int cell, int damage);
 
     /// <summary>Fells the post at <paramref name="cell"/> for good, its creature killed; nothing if it is gone already.</summary>
     void FellPost(int cell);

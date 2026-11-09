@@ -7,7 +7,7 @@
 | `Building.cs` | Plans and the work turning them into the ship. |
 | `Costs.cs` | Costs, ticks to build or repair; what a blueprint lacks. |
 | `Bursts.cs` | `Burst`: a charge's wave and what it breaks. |
-| `Digging.cs` | Hits on a planet's ground (`Hew`, `HewCells`, `Hit`). |
+| `Digging.cs` | Hits on a planet's ground (`Hew`, `HewCells`, `Hit`, `Wear`). |
 | `Flora.cs` | Plants, stones, cave growths and ruins' pieces. |
 | `Fuzz.cs` | The commands the desync suite draws. |
 | `Repairs.cs` | Repairing a machine a magnetic flare broke (`Repair`). |
@@ -53,7 +53,8 @@
   Each takes `BlockDamage` (0098) once (0: none, no shock), a pile `Damage` at its `Hp`: at its strength a wall goes for its
   `Cost` and held growths, a piece whole; `Carries`% of the surplus to the next cell on the line from the hand (`HewCells`: the
   hero's), the larger, once. `building.nothingToDig`, then `items.flat` / `items.notRunning`. `Hit`, a shot's, strikes a cell
-  `ShotTakes` allows, returning its surplus if it broke, the yield the shooter's here, else anyone's. No tool hits back walls.
+  `ShotTakes` allows, returning its surplus if it broke, the yield the shooter's here, else anyone's. No tool hits back walls. `Wear`
+  (a catcher's) cracks a grown wall to dust.
 - **`Burst(peer, cell, power, reach, Spoils)`** (unified-damage): a `Wave`, steps `Damage.Step`; ground costs its strength left,
   a pile its `Hp`, built things (machines: `HitPoints`) that ×1000/`BuiltTakes` (up; `ToBreak`), a piece or machine once;
   bedrock, lava, fog, the lifepod stop it. Paid ones break, unpaid crack at their head by what was left (built: its share).
@@ -91,10 +92,10 @@
 
 ## Deliberately not handled
 
-- A drawn map's growths are not brought back by a load: only grown ground grows again.
-- Reach, a fan's hand, a shot's muzzle and which plan is worked are the client's.
+- A load brings back no drawn map's growths.
+- Reach, a fan's hand, a muzzle, the plan worked: the client's.
 - A blueprint finished on its hero's cell holds the hero.
 - A machine whose floor a burst breaks stands on.
 - Taking apart needs no knowledge (0024).
-- A part-built blueprint is nothing in the grid till its last tick (0063).
+- A part-built blueprint is nothing in the grid till done (0063).
 - An old save's plan past what was paid: each later tick pays an item.

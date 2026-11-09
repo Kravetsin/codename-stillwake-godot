@@ -233,6 +233,20 @@ public sealed partial class BuildingModule
         && (_grid.WallAt(cell) is { } wall ? wall.Strength != Material.Unbreakable : PieceAt(cell) != null);
 
     /// <inheritdoc/>
+    public bool Wears(int cell) =>
+        Rules.ToolsBreak && _grid.Zone.Contains(cell % _grid.Width, cell / _grid.Width)
+        && _grid.WallAt(cell) is { Breaks: true } && _grid.GrownWall(cell);
+
+    /// <inheritdoc/>
+    // Cut rock gives nothing: a hunter is no mine. What the wall held the sweep fells, giving nothing too.
+    public bool Wear(int cell, int damage)
+    {
+        if (damage <= 0 || !Wears(cell) || Cracked(cell, _grid.WallAt(cell)!.Strength, damage) == null) return false;
+        _gridOps.Clear(cell, "structure");
+        return true;
+    }
+
+    /// <inheritdoc/>
     public int ShotKey(int cell) => _grid.WallAt(cell) == null && PieceAt(cell) is { } piece ? piece.Head : cell;
 
     /// <inheritdoc/>

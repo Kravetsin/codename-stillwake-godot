@@ -3,6 +3,7 @@ using Stillwake.Sim.Crew;
 using Stillwake.Sim.Debris;
 using Stillwake.Sim.Grid;
 using Stillwake.Sim.Items;
+using Stillwake.Sim.Knowledge;
 using Stillwake.Sim.Rooms;
 using Spec = Stillwake.Content.Creatures;
 
@@ -49,12 +50,15 @@ public sealed partial class CreaturesModule : Module<CreaturesState>
     private readonly IBuildingQueries _built;
     private readonly IBuildingOps _building;
     private readonly IRoomsQueries _rooms;
+    private readonly IKnowledgeOps _knowledge;
 
     public override string Id => "creatures";
 
     public CreaturesModule(IGridQueries grid, ICrewQueries crew, ICrewOps crewOps, IItemsQueries held, IItemsOps items, IDebrisQueries debris, IDebrisOps debrisOps,
-        IBuildingQueries built, IBuildingOps building, IRoomsQueries rooms)
+        IBuildingQueries built, IBuildingOps building, IRoomsQueries rooms,
+        IKnowledgeOps knowledge)
     {
+        _knowledge = knowledge;
         _rooms = rooms;
         _debris = debris;
         _debrisOps = debrisOps;
@@ -242,8 +246,12 @@ public sealed partial class CreaturesModule : Module<CreaturesState>
     {
         c.Dead = true;
         if (spec.Lifetime == Spec.Lifetime.Posted) _building.FellPost(c.Recall(PostKey));
+        // A catcher killed ends its hunt: its quarry's meter fills again from nothing.
+        if (spec.Lifetime == Spec.Lifetime.Hunter && !HuntDrive.Leaving(c) && HuntDrive.QuarryOf(c) is int quarry) _crewOps.CallOff(quarry);
         // Out of its top row, so what it gives flies out of it (2026-10-29-kill-feel); anyone may sweep it up at once.
         _items.Spray(Loots.Roll(spec.Yields, Random), TopCell(c, spec), away);
+        // What it was paid for its hero goes to the ship, whoever struck it (tracker-catchers).
+        if (spec.Purse is { } purse) _knowledge.Earn(purse.Min + (int)Random.Below((uint)(purse.Max - purse.Min + 1)));
     }
 
     private void Apply(HitBy c)
@@ -260,7 +268,10 @@ public sealed partial class CreaturesModule : Module<CreaturesState>
     private void Apply(Release c)
     {
         var spec = Spec.Get(c.Species);
-        RuleBook.Body(spec.Body).Place(this, Add(spec, 0, 0), spec, c.Cell);
+        var creature = Add(spec, 0, 0);
+        RuleBook.Body(spec.Body).Place(this, creature, spec, c.Cell);
+        // A catcher let out (--catcher) hunts its sender.
+        if (spec.Lifetime == Spec.Lifetime.Hunter) HuntDrive.Start(this, creature, spec, c.From);
     }
 
     /// <summary>

@@ -18,10 +18,11 @@ namespace Stillwake.Game.Dev;
 [Dev("--valley", "with --planet, the hero beamed down into the planet's deepest valley rather than at the pod, to see the land behind follow (composed-backdrops)", Order = 5)]
 [Dev("--beam-twice", "with --planet, back aboard two seconds in and down again two seconds later: the second descent (heard-every-other)", Order = 5)]
 [Dev("--charges", "with --planet, fifty blasting charges in the third slot, the spear in the fourth, and the hero beamed into the cave by the shallowest deep cache (blasting-charge)", Order = 5)]
+[Dev("--catcher", "with --planet, the hero out of creative mode and its hunt brought ten breaths of walking near once it stands there, so the bracelet blinks and a catcher soon comes (tracker-catchers); =N that many breaths", Order = 5, Shape = DevShape.Either)]
 [Dev("--dig", "with --planet, the ground under the hero hewn at the drill's pace from four seconds in, so it digs down: to measure what digging costs a frame; =SECONDS stops then, --frames counting afresh, to measure the depth reached", Order = 5, Shape = DevShape.Either)]
 public sealed class PlanetScenario : DevScenario
 {
-    private bool _beamedBack, _beamedAgain, _dusk, _valley;
+    private bool _beamedBack, _beamedAgain, _dusk, _valley, _tracked;
     private int _dug;
     private bool _stopped;
 
@@ -112,6 +113,7 @@ public sealed class PlanetScenario : DevScenario
             _cached = true;
             Cache(client, log);
         }
+        Track(client, m, log);
         if (client.World.Tick < 2 * World.TicksPerSecond) return;
         Dig(client, m);
         if (!_dusk && Args.Has("--dusk") && m.Rules.Cycle is { } day)
@@ -127,6 +129,17 @@ public sealed class PlanetScenario : DevScenario
         if (_beamedBack || !Args.Has("--beam-back") && !Args.Has("--beam-twice")) return;
         _beamedBack = true;
         client.Send(new Transfer(0));
+    }
+
+    /// <summary><c>--catcher</c>: once the hero stands on the planet, out of creative mode and its hunt brought near (<c>Track</c>).</summary>
+    private void Track(Client client, Registry m, Action<string> log)
+    {
+        if (_tracked || Args.Given("--catcher") is not { } given || m.Rules.Floats || m.Crew.HeroOf(client.Id) == null) return;
+        _tracked = true;
+        int breaths = int.TryParse(given, out int n) ? n : 10;
+        client.Send(new Sim.Items.SetCreative(false));
+        client.Send(new Sim.Crew.Track(breaths));
+        log($"catcher: the hunt {breaths} breaths of walking away");
     }
 
     /// <summary><c>--dig</c>: a pickaxe's hit on the cells under the hero's body, three across and four down, at the drill's pace: what a hit costs, without the drill run by hand.</summary>

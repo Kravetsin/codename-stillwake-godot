@@ -11,7 +11,7 @@ public sealed partial class CrewModule
     /// colour, one past the last now and then, so taken and missing colours are refused; chooses a look; thrusts or stops,
     /// mostly with no jetpack worn, so <c>crew.noJetpack</c> is drawn; breathes a canister, refused with a
     /// full suit or none carried; switches its suit's mode, refused (<c>crew.noSuitMode</c>) unless the items fuzz spawned and
-    /// put on a regen suit; and rarely one leaves.
+    /// put on a regen suit; brings a hunt near (<c>Track</c>); and rarely one leaves.
     /// </summary>
     public override Command? Fuzz(Rng rng, int from)
     {
@@ -19,6 +19,7 @@ public sealed partial class CrewModule
         if (rng.Below(6) == 0) return new Exert(rng.Below(2) == 0) { From = from };
         if (rng.Below(8) == 0) return new Thrust(rng.Below(2) == 0) { From = from };
         if (rng.Below(12) == 0) return new Refill { From = from };
+        if (rng.Below(40) == 0) return new Track((int)rng.Below(40)) { From = from };
         if (rng.Below(10) == 0) return new SuitMode(rng.Below(2) == 0) { From = from };
         if (rng.Below(5) == 0) return new PickColour((int)rng.Below(Content.Crew.Colours + 1)) { From = from };
         if (rng.Below(10) == 0) return new ChooseLook(new Look(Pick(), Pick(), Pick(), Pick(), Pick(), Pick())) { From = from };
