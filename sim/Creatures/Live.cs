@@ -55,6 +55,27 @@ public sealed partial class CreaturesModule
                 (best, Searcher) = (due, c.Id);
     }
 
+    /// <summary>
+    /// <paramref name="c"/> held still for a move: at once, but a flyer where things float sheds a quarter of its speed a tick, toward
+    /// none, so it eases to rest rather than stopping dead (catcher-motion).
+    /// </summary>
+    internal void Slow(Creature c, Spec.Species spec)
+    {
+        if (!Drifts(spec))
+        {
+            (c.VX, c.VY) = (0, 0);
+            return;
+        }
+        (c.VX, c.VY) = (Shed(c.VX), Shed(c.VY));
+        static int Shed(int v) => Math.Abs(v) < SlowLeast ? 0 : v - v / 4;
+    }
+
+    /// <summary>Whether a body of <paramref name="spec"/>'s drifts on where it is not driven: a flyer where things float.</summary>
+    internal bool Drifts(Spec.Species spec) => Rules.Floats && spec.Body is Spec.Flyer;
+
+    /// <summary>The speed, thousandths of a cell a tick, under which a slowing flyer is at rest.</summary>
+    private const int SlowLeast = 8;
+
     /// <summary>Whether a body of <paramref name="s"/> standing on cell (<paramref name="x"/>, <paramref name="y"/>) has something solid under its feet.</summary>
     internal bool Grounded(Spec.Shape s, int x, int y)
     {

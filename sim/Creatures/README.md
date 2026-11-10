@@ -4,18 +4,18 @@
 
 | File | Purpose |
 | --- | --- |
-| `Arcs.cs` | `Bolted`, `StrikeArc`, `Linger`; `Arcs`. |
+| `Arcs.cs` | `Bolted`, `StrikeArc`, `Linger`; `Arcs`, `BeamStop`. |
 | `Bounty.cs` | Catchers for hunted heroes. |
 | `Clinger.cs` | The sentry clinging to its wreck. |
 | `Creatures.cs` | Commands, queries, the hit path. |
 | `Drives.cs` | Grazers: `Graze`, `Flee`, `Retaliate`, `Escape`. |
 | `Flyer.cs` | The catcher's body: stops at solid. |
 | `Fuzz.cs` | Commands the desync suite draws. |
-| `Guard.cs` | `Guard` (sentry, lurkers), `Return`, the `CutTether` reflex. |
+| `Guard.cs` | `Guard` (sentry, lurkers), `Return`, `CutTether`. |
 | `Hunt.cs` | The catcher's hunt. |
-| `Live.cs` | Dead swept, patches aged, creatures ticked. |
+| `Live.cs` | Dead swept, patches aged, ticks. |
 | `Lunge.cs` | A ram along the ground in phases. |
-| `Paths.cs` | Weighted A*: runs. |
+| `Paths.cs` | Weighted A*: runs, flights. |
 | `Patches.cs` | Gas, slime: laid, aged, paid by heroes in them. |
 | `Pounce.cs` | A straight flight at a hero, never cut. |
 | `Rules.cs` | Rule contracts; `RuleBook` finds them. |
@@ -62,11 +62,11 @@ drives, moves and yields, each a rule here. The dead are gone to all from the bl
 - **Lurkers** (lurker-attacks): walkers on `Guard`, seeing in line. The capback `Vent`s at one within `Strike`
   (`Cooldown`); provoked `Provokes` ticks by answering, it lobs at one `From` to `Reach`, a puddle (`Leaves`) laid as it lands
   `Lingers` on, harmless. The snail's `Shell` opens `Hold` past a hero in `Reach`; it bites, a short lunge.
-- **The catcher** (tracker-catchers and on): on the beat a `Hunted` hero with none gets one
-  `RingFrom..RingTo` columns off, unseen. `Hunt` runs a `Path`, beams at its quarry seen (`Gunfire`); lagging or short, `Blink`s
-  ahead or near; lifts for a `Salvo`; shut out, lobs a charge (`Lob`), held `Tell`. Pounces in `Strike`, answers blows. Out of `Ticks`,
-  killed or quarryless: `CallOff`, up. Afloat, all in `Space`, no path or salvo: it flies at `Accel`,
-  sliding; shut out: its quarry in a room, thrown `Standoff` off.
+- **The catcher** (tracker-catchers): a `Hunted` hero gets one
+  `RingFrom..RingTo` columns off, unseen. `Hunt` runs a `Path`, beams along its gun (`Gunfire`); lagging or short, `Blink`s
+  ahead or near; a `Salvo`; shut out, lobs a charge (`Lob`), held `Tell`. Pounces in `Strike`, answers blows. Out of `Ticks`,
+  killed or quarryless: `CallOff`, up. Afloat, all in `Space`, no salvo: it keeps its `Range` at `Accel`, round a flown path,
+  leads its beam, fires a `Barrage`; its quarry in a room, thrown `Standoff` off.
 - **Patches** (`PatchKind`) last `Lasts`; each breath an awake hero in one seen from its middle pays `Damage` (`Shock`, `Stings`).
 - **The warden** (`Posted`, `Ward`): on the beat at a standing post with a standing relic in its arena, a hero in its keep box,
   none tied to it. Woken by an awake hero in the arena, a blow or a sibling, it pounces if no sibling acts (`Flies`: to the first
@@ -93,7 +93,7 @@ drives, moves and yields, each a rule here. The dead are gone to all from the bl
 
 ## Guarantees
 
-- Every creature on the grid, a walker or catcher out of solid, one afloat all in `Space`; damage below hit points; ids only grow; at most `Max`;
+- Every creature on the grid, walker or catcher out of solid, one afloat all in `Space`; damage below hit points; ids only grow; at most `Max`;
   ticks never past a length; a charge, or an arc a hero, hurts at most once; suits in range; a shut
   shell never hurt; a patch on the grid within `Lasts` (`CreaturesInvariantTests`). Every shot on the grid, in reach, never through solid (`ShotsInvariantTests`).
 - Nothing to spawn: nothing drawn; only `Watermark` moves.

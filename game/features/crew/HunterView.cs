@@ -30,7 +30,14 @@ public partial class HunterView : Node2D
         public readonly Figure Figure = figure;
         public readonly JetPlume Plume = plume;
         public readonly Glitch Group = group;
-        public int Tick = -1, FromX, FromY, ToX, ToY, Damage, Facing = 1, Blinked, Held = -1, Ghost = -1;
+        public int Tick = -1, BeforeX, BeforeY, FromX, FromY, ToX, ToY, Damage, Facing = 1, Blinked, Held = -1, Ghost = -1;
+        /// <summary>Its speed last tick and how much it changed (catcher-motion): its plume and its lean.</summary>
+        public int VX, VY, DVX, DVY;
+        /// <summary>Its gun's fine heading last tick and this, the sim's (catcher-motion; -1 for none): drawn turning between them.</summary>
+        public int GunFrom = -1, GunTo = -1;
+        /// <summary>Its gun as drawn, radians (none before it first aimed); the clock its charge left its hand.</summary>
+        public double? AimAngle, ThrewMs;
+        public bool Throwing;
         public string Species = "";
         public CreatureLooks.HeroGear Gear = null!;
         public Spec.Creatures.Hunt? Hunt;
@@ -39,7 +46,10 @@ public partial class HunterView : Node2D
         public Vector2 Muzzle;
         /// <summary>The clock its tell began, its last laser struck and it last blinked; where it ended and where it blinked from.</summary>
         public double TellMs, ShotMs = double.MinValue / 2, BlinkMs = double.MinValue / 2;
-        public Vector2 ShotTo, BlinkFrom;
+        public Vector2 ShotTo, ShotFrom, BlinkFrom;
+
+        /// <summary>Blinked since its last shot: the beam still burning stays where it was fired from (catcher-motion).</summary>
+        public bool Loose;
         /// <summary>How far its laser runs, in cells (its <c>Shoot.Through</c>); whether its last stopped on solid, and melts it.</summary>
         public int Through;
         public bool Melts;
@@ -114,21 +124,34 @@ public partial class HunterView : Node2D
                 {
                     Gear = look.Of(c.Id),
                     Species = c.Species,
+                    BeforeX = c.X,
+                    BeforeY = c.Y,
+                    VX = c.VX,
+                    VY = c.VY,
                     FromX = c.X,
                     FromY = c.Y,
                     ToX = c.X,
                     ToY = c.Y,
                     Damage = c.Damage,
                     Blinked = fight.Blinked,
+                    GunFrom = fight.Gun,
+                    GunTo = fight.Gun,
                     Hunt = spec.Brain.OfType<Spec.Creatures.Hunt>().FirstOrDefault(),
                     Through = spec.Moves.OfType<Spec.Creatures.Shoot>().FirstOrDefault()?.Through ?? 0,
                 };
             }
-            if (one.Tick != tick) (one.Tick, one.FromX, one.FromY, one.ToX, one.ToY) = (tick, one.ToX, one.ToY, c.X, c.Y);
+            if (one.Tick != tick)
+            {
+                (one.Tick, one.BeforeX, one.BeforeY, one.FromX, one.FromY, one.ToX, one.ToY) = (tick, one.FromX, one.FromY, one.ToX, one.ToY, c.X, c.Y);
+                (one.DVX, one.DVY, one.VX, one.VY) = (c.VX - one.VX, c.VY - one.VY, c.VX, c.VY);
+                (one.GunFrom, one.GunTo) = (one.GunTo, fight.Gun);
+            }
             // A blink is a jump: drawn where it landed at once, never slid across the ground between.
             if (fight.Blinked != one.Blinked)
             {
-                (one.Blinked, one.FromX, one.FromY) = (fight.Blinked, c.X, c.Y);
+                (one.Blinked, one.BeforeX, one.BeforeY, one.FromX, one.FromY) = (fight.Blinked, c.X, c.Y, c.X, c.Y);
+                // Its gun too: set on its quarry as it lands, never swept round across the jump.
+                (one.GunFrom, one.GunTo, one.AimAngle, one.Loose) = (fight.Gun, fight.Gun, null, true);
                 (one.BlinkMs, one.BlinkFrom) = (_clockMs, At(one.Drawn.X, one.Drawn.Y));
                 _fight.Play(S.CatcherBlink, Chest(one.Drawn));
             }
@@ -158,19 +181,34 @@ public partial class HunterView : Node2D
     private void Show(Registry m, Shown one, Creature c, Spec.Creatures.Species spec, CreaturesModule.Fight fight, double progress, double elapsedMs,
         Func<int, Hero?> heroOf)
     {
-        int x = one.FromX + (int)Math.Round((one.ToX - one.FromX) * progress), y = one.FromY + (int)Math.Round((one.ToY - one.FromY) * progress);
+        // On ground it runs as a hero does, its jetpack off (catcher-paths); in the air along a curve through the ticks' places (catcher-motion).
+        bool afoot = m.Creatures.Afoot(c), afloat = !afoot && m.Rules.Floats;
+        int x = afoot ? one.FromX + (int)Math.Round((one.ToX - one.FromX) * progress) : (int)Math.Round(CatcherMotion.Along(one.BeforeX, one.FromX, one.ToX, progress));
+        int y = afoot ? one.FromY + (int)Math.Round((one.ToY - one.FromY) * progress) : (int)Math.Round(CatcherMotion.Along(one.BeforeY, one.FromY, one.ToY, progress));
         var target = c.Target is { Kind: RefKind.Hero, Id: var peer } ? heroOf(peer) : null;
         var move = c.Act is { } act ? spec.Moves[act.Move] : null;
-        // Facing whom it acts on, else the way it flies, else as it was.
-        if (move != null && target is { } t) one.Facing = t.X >= x ? 1 : -1;
-        else if (c.VX != 0) one.Facing = Math.Sign(c.VX);
-        // Its speed in the controller's steps, three to a tick; hovering it is drawn rising a little, legs hanging, never stood on air.
+        // Its gun raised on whom it acts on, on its quarry while it aims on the run, held on the cell its shot will strike in the tell (catcher-combat).
+        Vector2? held = fight.Held >= 0 ? Middle(fight.Held, m.Grid.Width) : null;
+        // Along its laser while it burns and rests: played, a gun turned back on its quarry left the laser running off from it.
+        Vector2? fired = !one.Loose && _clockMs - one.ShotMs < CatcherFx.BeamMs + CatcherFx.RestMs ? one.ShotTo : null;
+        Vector2? quarryAt = fight.Aims && target is { } sighted ? Chest(sighted) : null;
+        var acted = move is Spec.Creatures.Shoot or Spec.Creatures.Pounce ? target : null;
+        // Pointed where the sim turned it, between the ticks' headings (catcher-motion: played, its beam left where its gun did not
+        // point); on whom it acts on; along its laser. Its drawn gun chases a change of these, never jumps.
+        var chest = Chest(new Hero(x, y, 0, 0, false, one.Facing));
+        double? wants = acted is { } a ? Angle(chest, Chest(a)) : fired is { } f ? Angle(chest, f)
+            : one.GunTo >= 0 ? CatcherMotion.GunAngle(one.GunFrom, one.GunTo, progress) : null;
+        if (wants is double w) one.AimAngle = one.AimAngle is double was ? CatcherMotion.Chase(was, w, elapsedMs) : w;
+        bool raised = acted != null || (held ?? fired ?? quarryAt) != null;
+        // Facing whom it acts on, or afloat its raised gun, turning round only past upright; else the way it flies, past a dead band afloat.
+        if (move != null && target is { } t) one.Facing = At(t.X, t.Y).X >= At(x, y).X ? 1 : -1;
+        else if (afloat && raised && one.AimAngle is double aim) one.Facing = CatcherMotion.FacingOf(aim, one.Facing);
+        else if (Math.Abs(c.VX) > (afloat ? CatcherMotion.FaceBand : 0)) one.Facing = Math.Sign(c.VX);
+        // Its speed in the controller's steps, three to a tick; hovering on a planet it is drawn rising a little, legs hanging, never stood on air.
         int vx = c.VX / 3, vy = c.VY / 3;
-        // On ground it runs as a hero does, its jetpack off (catcher-paths).
-        bool afoot = m.Creatures.Afoot(c);
         // Stepping straight up a step it still strides, as fast as it rises.
         int stride = afoot && vx == 0 && vy != 0 ? one.Facing * Math.Abs(vy) : vx;
-        one.Drawn = new Hero(x, y, afoot ? stride : vx, afoot ? 0 : Math.Min(vy, -1), false, one.Facing);
+        one.Drawn = new Hero(x, y, afoot ? stride : vx, afoot ? 0 : afloat ? vy : Math.Min(vy, -1), false, one.Facing);
         var figure = one.Figure;
         // Its receiver in its quarry's colour, blinking as the quarry's bracelet; its goggles lit while it hunts.
         int? quarry = CreaturesModule.Hunting(c);
@@ -184,19 +222,23 @@ public partial class HunterView : Node2D
         }
         if (fight.Ghost >= 0 && one.Ghost < 0) _fight.Play(S.CatcherGather, Chest(one.Drawn));
         (one.Held, one.Ghost) = (fight.Held, fight.Ghost);
-        // Its gun on whom it acts on, on its quarry while it aims on the run, and held on the cell its shot will strike in the tell (catcher-combat).
-        Vector2? held = fight.Held >= 0 ? Middle(fight.Held, m.Grid.Width) : null;
-        bool aims = move is Spec.Creatures.Shoot or Spec.Creatures.Pounce || fight.Aims;
-        // Along its laser while it burns and rests: played, a gun turned back on its quarry left the laser running off from it.
-        Vector2? fired = _clockMs - one.ShotMs < CatcherFx.BeamMs + CatcherFx.RestMs ? one.ShotTo : null;
-        figure.Aim = held ?? fired ?? (aims && target is { } aimed ? Chest(aimed) : null);
+        figure.Aim = raised && one.AimAngle is double pointing
+            ? Chest(one.Drawn) + new Vector2((float)Math.Cos(pointing), (float)Math.Sin(pointing)) * (float)AimFar
+            : null;
+        Throw(one, fight, progress, afloat);
         if (c.Damage > one.Damage) Struck(one);
         one.Damage = c.Damage;
-        figure.Show(one.Drawn, afoot ? Poses.PoseOf(one.Drawn, false, false) : Pose.Air, 0, false, elapsedMs);
+        figure.Show(one.Drawn, afoot ? Poses.PoseOf(one.Drawn, false, false) : afloat ? Pose.Float : Pose.Air, 0, false, elapsedMs);
+        // Its plume blown against how it speeds up or brakes, else against its way; long as it thrusts hard, short coasting.
+        bool thrusts = one.DVX != 0 || one.DVY != 0;
+        one.Plume.Thrust = afloat ? CatcherMotion.Thrust(one.DVX, one.DVY, one.Hunt?.Accel ?? 0) : 1;
         if (afoot) one.Plume.Step(null, null, elapsedMs);
-        else one.Plume.Step(figure.Nozzle, (vx, vy), elapsedMs);
+        else one.Plume.Step(figure.Nozzle, afloat && thrusts ? (one.DVX, one.DVY) : (vx, vy), elapsedMs);
         one.Muzzle = figure.Muzzle ?? Chest(one.Drawn);
-        Aim(one, held, fight.Aims && target is { } quarryAt ? Chest(quarryAt) : null);
+        // The charge in its hand, its fuse lit, glowing warm.
+        if (figure.OffHeldAt is { } lit && figure.OffHand is { Fuse: { } fuse })
+            CatcherFxView.Glow(lit, 10, fuse.Light, 0.22 + 0.1 * fuse.Flicker[(int)(_clockMs / 1000 * fuse.Fps) % fuse.Flicker.Length]);
+        Aim(m, one, held, quarryAt, target);
         Laser(one);
         Blink(m, one, fight, progress, target, elapsedMs);
         foreach (var mark in m.Creatures.MarksOf(c))
@@ -204,19 +246,67 @@ public partial class HunterView : Node2D
                 Math.Clamp((mark.Flight - mark.Left + progress) / mark.Flight, 0, 1));
     }
 
+    /// <summary>The angle, radians, from <paramref name="from"/> to <paramref name="to"/> as the screen shows it, y down.</summary>
+    private static double Angle(Vector2 from, Vector2 to) => Math.Atan2(to.Y - from.Y, to.X - from.X);
+
+    /// <summary>How far off along its aim its gun is pointed at, pixels: far enough that the arm's turn follows the gun's.</summary>
+    private const double AimFar = 240;
+
     /// <summary>
-    /// Its aim «Красная нить»: in the tell a still line brightening to the cell it holds, else, aiming, a dim one wobbling on its quarry,
-    /// back a while after a shot.
+    /// Its charge «С пояса, толчком» (catcher-motion): hung at its belt; in the tell unhooked, its fuse flaring, drawn to its chest and pushed
+    /// off ahead as it is thrown, the hand back as it floats a while after; its body leaning into the push, and afloat against its thrust.
     /// </summary>
-    private void Aim(Shown one, Vector2? held, Vector2? quarry)
+    private void Throw(Shown one, CreaturesModule.Fight fight, double progress, bool afloat)
+    {
+        double? throwMs = null;
+        if (fight.ThrowLeft > 0 && one.Hunt is { } hunt)
+        {
+            throwMs = (hunt.Lob.Tell - fight.ThrowLeft + progress) * TickMs;
+            (one.Throwing, one.ThrewMs) = (true, null);
+        }
+        else if (one.Throwing) (one.Throwing, one.ThrewMs) = (false, _clockMs);
+        if (throwMs == null && one.ThrewMs is double threw) throwMs = CatcherMotion.ReleaseMs + _clockMs - threw;
+        var thrown = CatcherMotion.ThrowOf(throwMs);
+        var figure = one.Figure;
+        bool lobs = one.Hunt != null;
+        figure.Belt = lobs && thrown.OnBelt ? HeldLook.BlastCharge : null;
+        figure.OffHand = lobs && (thrown.Share > 0 || thrown.InHand)
+            ? (thrown.Arm, thrown.Share, thrown.Hold, thrown.InHand ? HeldLook.BlastCharge : null, thrown.InHand ? ShotLooks.Charge.Picture : null)
+            : null;
+        figure.Lean = thrown.Lean + (afloat ? CatcherMotion.Leaning(one.DVX, one.Facing, one.Hunt?.Accel ?? 0) : 0);
+        if (thrown.Flare > 0)
+        {
+            var belt = At(one.Drawn.X, one.Drawn.Y) + new Vector2((float)(CatcherMotion.BeltAt.X * one.Facing), (float)CatcherMotion.BeltAt.Y);
+            CatcherFxView.Glow(belt, 5, CatcherMotion.Flare, 0.8 * thrown.Flare, CatcherMotion.FlareCore);
+        }
+    }
+
+    /// <summary>
+    /// Its aim «Красная нить» as «Поиск» draws it (catcher-motion): from its muzzle along its gun, marking its quarry where it crosses it, on
+    /// past it fading to where its laser would stop; in the tell a brightening line held on the cell it holds, back a while after a shot.
+    /// </summary>
+    private void Aim(Registry m, Shown one, Vector2? held, Vector2? quarryAt, Hero? quarry)
     {
         double since = _clockMs - one.ShotMs;
-        if ((held ?? quarry) is not { } end) return;
+        if ((held ?? quarryAt) == null || one.Figure.Aim is not { } pointed) return;
         double tellMs = (one.Hunt?.Gunfire.Tell ?? 1) * TickMs;
         var thread = CatcherFx.AimOf(held != null ? (_clockMs - one.TellMs) / tellMs : null, CatcherFx.BackOf(since), _clockMs);
         if (thread.Alpha <= 0.004) return;
+        var muzzle = one.Muzzle;
+        var way = (pointed - muzzle).Normalized();
+        // Its quarry's place along the line, the line's end wobbling there, turning on the muzzle.
+        var chest = quarry is { } hero ? Chest(hero) : held ?? pointed;
+        float along = Math.Max((float)Rig.Cell, (chest - muzzle).Dot(way));
         var (wx, wy) = CatcherFx.Wobble(_clockMs, thread.Sway);
-        _fx.Aim(one.Muzzle, end + new Vector2((float)wx, (float)wy), thread);
+        way = (way * along + new Vector2((float)wx, (float)wy)).Normalized();
+        // Where its laser would stop: its whole Through, or where it meets solid.
+        double reach = one.Through * Rig.Cell, k = Unit / Rig.Cell;
+        var (sx, sy) = m.Creatures.BeamStop((int)(muzzle.X * k), (int)(muzzle.Y * k), (long)(way.X * reach * k), (long)(way.Y * reach * k));
+        var stop = new Vector2((float)(sx / k), (float)(sy / k));
+        float stops = muzzle.DistanceTo(stop);
+        var end = muzzle + way * Math.Min(along, stops);
+        bool marks = along < stops && quarry != null && (chest - (muzzle + way * along)).Length() < CatcherMotion.Marks;
+        _fx.Aim(muzzle, end, stop, marks, stops < reach - 1, thread);
     }
 
     /// <summary>
@@ -302,6 +392,7 @@ public partial class HunterView : Node2D
             // Run on its whole Through, it stopped on nothing; short of it, on solid.
             long far = Math.Max(Math.Abs((long)arc.X1 - arc.X0), Math.Abs((long)arc.Y1 - arc.Y0));
             (one.ShotMs, one.ShotTo, one.Melts, one.Drips, one.Puffs) = (_clockMs, new Vector2(arc.X1, arc.Y1) * k, far < (long)one.Through * Unit - 1, 0, 0);
+            (one.ShotFrom, one.Loose) = (one.Muzzle, false);
             _fight.Play(S.CatcherLaser, one.Muzzle);
         }
     }
@@ -316,12 +407,13 @@ public partial class HunterView : Node2D
         if (since >= CatcherFx.BeamMs + CatcherFx.CoolMs) return;
         var stage = Stages.Of(Layers.Effects);
         double swell = CatcherFx.Swell(since);
+        var from = one.Loose ? one.ShotFrom : one.Muzzle;
         if (swell > 0)
         {
-            _fx.Beam(one.Muzzle, one.ShotTo, swell, _clockMs, one.Melts);
+            _fx.Beam(from, one.ShotTo, swell, _clockMs, one.Melts);
             for (int i = 0; i < one.Lamps.Length; i++)
             {
-                var at = one.Muzzle.Lerp(one.ShotTo, (i + 0.5f) / one.Lamps.Length);
+                var at = from.Lerp(one.ShotTo, (i + 0.5f) / one.Lamps.Length);
                 stage.Flares.Hold(one.Lamps[i], at.X, at.Y, CatcherFx.BeamMuzzle, 0.35 * swell * Fx.Glow, 4, CreatureLooks.LightKeep, 0.5);
             }
         }

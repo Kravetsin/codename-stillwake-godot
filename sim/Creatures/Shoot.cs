@@ -22,12 +22,13 @@ internal sealed class ShootMove : MoveRule
     {
         c.Act = new Act { Move = at, Phase = ActPhase.WindUp, Left = ((Spec.Shoot)spec.Moves[at]).WindUp };
         c.Keep(Aim, 0);
-        (c.VX, c.VY) = (0, 0);
+        m.Slow(c, spec);
     }
 
     internal override void Count(CreaturesModule m, Creature c, Spec.Species spec, Spec.Move mv, bool grounded)
     {
         var act = c.Act!;
+        if (m.Drifts(spec)) m.Slow(c, spec);
         var shoot = (Spec.Shoot)mv;
         if (act.Left > 0) act.Left -= 1;
         if (act.Phase == ActPhase.WindUp && act.Left == Math.Min(shoot.Lock, shoot.WindUp - 1))
