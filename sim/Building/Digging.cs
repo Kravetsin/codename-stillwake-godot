@@ -248,7 +248,11 @@ public sealed partial class BuildingModule
     /// <summary>Gives <paramref name="cost"/> to peer <paramref name="peer"/>, what does not fit falling at <paramref name="cell"/>; for none, all of it there, anyone's.</summary>
     private void Yield(int? peer, IReadOnlyList<(string Item, int Count)> cost, int cell)
     {
-        if (peer is int p) _itemsOps.GiveOrDrop(p, cost, cell);
+        if (peer is int p)
+        {
+            _itemsOps.GiveOrDrop(p, cost, cell);
+            _crewOps.Loot(p, cost);
+        }
         else _itemsOps.DropAt(FloorStack.Nobody, cost, cell);
     }
 

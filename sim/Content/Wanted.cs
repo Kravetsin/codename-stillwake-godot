@@ -1,26 +1,17 @@
 namespace Stillwake.Content;
 
 /// <summary>
-/// The hidden "wanted" meter on every hero (tracker-catchers): its former owners' tracker on its shin. While the hero acts on a planet
-/// it fills each breath, slower under rock; full, a catcher comes for it. In units and ticks.
+/// The hidden "wanted" meter on every hero (tracker-catchers, catcher-loot): its former owners' tracker on its shin. It fills by the
+/// worth (<see cref="Market.WorthOf"/>) of what the hero breaks or kills; full, a catcher is sent, and comes after a warning.
 /// </summary>
 public static class Wanted
 {
-    /// <summary>The ticks a hero counts as active after it last moved a cell or ran: three of its client's reports.</summary>
-    public const int ActiveFor = 60;
-
-    /// <summary>What a breath of an active hero adds under the open sky: no back wall behind it.</summary>
-    public const int Open = 2;
-
-    /// <summary>What a breath adds with a back wall behind the hero: under rock, a weak signal.</summary>
-    public const int Under = 1;
-
     /// <summary>
-    /// The least and most a full meter needs, both included, drawn at random after each reset: 10 to 15 minutes of activity
-    /// under the open sky.
+    /// The least and most worth a full meter needs, both included, drawn at random after each reset: placeholders for 10 to 20
+    /// minutes of greedy salvage, till a play pass measures them.
     /// </summary>
-    public const int NeedLeast = 1200, NeedMost = 1800;
+    public const int NeedLeast = 4000, NeedMost = 8000;
 
-    /// <summary>The meter blinks the bracelet from this many thirds of full: <c>Wanted × 3 ≥ Need × Blink</c>.</summary>
-    public const int Blink = 2;
+    /// <summary>The least and most breaths, both included, between a full meter and its catcher: the bracelet's alarm.</summary>
+    public const int ComingLeast = 30, ComingMost = 60;
 }

@@ -8,10 +8,10 @@ namespace Stillwake.Game.Tests;
 public class TrackerBlinkTests
 {
     [Fact]
-    public void ACalmTrackerIsSteadyAndTheOthersKeepTheirPatternsRepeating()
+    public void ACalmTrackerIsSteadyAndAnAlarmedOrHuntedOneBlinksUrgentlyRepeating()
     {
         Assert.All(new[] { 0.0, 333, 10_000 }, ms => Assert.Equal(1, TrackerBlink.Of(Signal.Calm, ms)));
-        foreach (var (signal, steps) in new[] { (Signal.Blinking, TrackerBlink.Blinking), (Signal.Hunted, TrackerBlink.Hunted) })
+        foreach (var (signal, steps) in new[] { (Signal.Coming, TrackerBlink.Hunted), (Signal.Hunted, TrackerBlink.Hunted) })
         {
             double period = steps.Sum(s => s.Ms);
             Assert.All(new[] { 0.0, 45, 400, period - 1 }, ms => Assert.Equal(TrackerBlink.Of(signal, ms), TrackerBlink.Of(signal, ms + 3 * period), 9));

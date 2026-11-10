@@ -64,10 +64,10 @@ a room's, its own, then its last breath; passing out, made again at the pod.
   lava are hurts (hurts-are-shown): counted in `Hero.Hurts`, the last's `Harm` in `Hero.Hurt`.
 - **The cape** (2026-10-27-the-cape-is-worn) spares `Cape.Guard`‰ of a blow, `Cape.Warmth`‰ of the cold (not the
   breath or lava), rounded down, the rest in `Hero.Spared` for either; a blow lands before the breath.
-- **The wanted meter** (tracker-catchers): each breath an awake hero off the ship, not creative, that moved a cell, ran or thrust in
-  the last `Wanted.ActiveFor` ticks (`Stirring`) adds `Wanted.Open` to `Wanted`, under a back wall `Wanted.Under`, up to `Need`,
-  drawn when 0. Full, it is `Hunted` (Creatures sends its catcher). `CallOff` empties it: passing out, departing, a hunt's end.
-  `SignalOf`: `Calm`, `Blinking` from two thirds, `Hunted`. `Track(Breaths)`, a dev's, sets it so many breaths short.
+- **The wanted meter** (catcher-loot): `Loot(peer, yield)` adds its `Market.WorthOf` to an awake, not creative hero's `Wanted`,
+  up to `Need`, drawn when 0; never where things float yet. Filled, `Coming` draws `Wanted.ComingLeast..Most` breaths, counted
+  down each breath. `SignalOf`: `Calm`, `Coming` (the alarm), `Hunted` (full, `Coming` 0: Creatures sends its catcher). `CallOff`
+  empties it: passing out, departing, a hunt's end. `Track(Short)` (dev) sets it that short.
 - **Creative mode** (`Items`): an awake hero's air fills each tick, drawing no pod or room air; one out wakes as ever.
 - **Order:** breaths run in the simulation phase after `Atmosphere`'s and `Sky`'s, reading this tick's air.
 
@@ -80,7 +80,7 @@ a room's, its own, then its last breath; passing out, made again at the pod.
 - **Commands:** `Enter(Cell)`, `ChooseLook(Look)`, never refused; `PickColour(Colour)` —
   `crew.noHero`, `crew.noSuchColour`, `crew.colourTaken`; `Leave`, `Exert(On)` — `crew.noHero`; `Thrust(On)` —
   `crew.noHero`, `crew.noJetpack`; `Refill` — `crew.noHero`, `crew.suitFull`, `items.notEnough`; `SuitMode(On)` —
-  `crew.noHero`, on `crew.noSuitMode`; `Track` — `crew.noHero`. **Ops** (`ICrewOps`) add `CallOff(peer)`.
+  `crew.noHero`, on `crew.noSuitMode`; `Track` — `crew.noHero`. **Ops** (`ICrewOps`) add `Loot(peer, yield)`, `CallOff(peer)`.
 - **Fuzz:** every command and refusal; `Enter` near the spawn, anywhere, or off the grid.
 
 ## Invariants

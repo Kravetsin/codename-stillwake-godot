@@ -94,7 +94,7 @@ public sealed class Registry
         // the run order and the saves', before pipes and crew (0077: a wall does not finish on a hero; 2026-10-29-typed-ports).
         Building = new BuildingModule(Grid, Grid, Items, Items, Power, Power, Research, Crafting, Crafting, Crew, Crew, Pipes);
         Hazards = new HazardsModule(Grid, Power, Power, Research, Building);
-        Debris = new DebrisModule(Grid, Crew, Rooms, Items, Items, Knowledge, Knowledge);
+        Debris = new DebrisModule(Grid, Crew, Crew, Rooms, Items, Items, Knowledge, Knowledge);
         Furnace = new FurnaceModule(Grid, Items, Items, Atmosphere, Atmosphere, Power, Power, Crafting, Crafting);
         Logistics = new LogisticsModule(Grid, Atmosphere, Items, Items, Crafting, Debris, Debris, Rooms);
         // Last, after crew, as its system reads where heroes are; saved last, so its slice is the newest.

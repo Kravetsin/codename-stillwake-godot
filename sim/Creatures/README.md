@@ -31,7 +31,7 @@
 Every creature composed (creatures-are-composed): a species (`Content.Creatures`) names a body, life, faction, ranked
 drives, moves and yields, each a rule here. The dead are gone to all from the blow.
 
-- **Depends on:** `Grid`; `Crew` (heroes' cells, `Hunted`; `Blow`, `Shock`, `CallOff`); `Items` (weapons, ammo, drops, charge); `Debris`
+- **Depends on:** `Grid`; `Crew` (heroes' cells, `Hunted`; `Blow`, `Shock`, `CallOff`, `Loot`); `Items` (weapons, ammo, drops, charge); `Debris`
   (queries, `Unreel`, `Hit`); `Building` (`TargetAt`, `ShotTakes`, `Surplus`, `Hit`, `Burst`, `Relics`, `Posts`, `PostAt`, `FellPost`); `Rooms` (`Afloat`); `Knowledge` (`Earn`).
 - **State** (`CreaturesState`, saved): `Creatures` in id order, each `{ Id, Species, X, Y, VX, VY, Damage, Drive, DriveLeft,
   Step, Act, Target, Mem, SeenAt, Path }`, bottom middle in thousandths; `Drive` its brain place, `Act` `{ Move, Phase, Left }`,
@@ -62,9 +62,9 @@ drives, moves and yields, each a rule here. The dead are gone to all from the bl
 - **Lurkers** (lurker-attacks): walkers on `Guard`, seeing in line. The capback `Vent`s at one within `Strike`
   (`Cooldown`); provoked `Provokes` ticks by answering, it lobs at one `From` to `Reach`, a puddle (`Leaves`) laid as it lands
   `Lingers` on, harmless. The snail's `Shell` opens `Hold` past a hero within `Reach`; it bites, a short lunge.
-- **The catcher** (tracker-catchers, catcher-paths, catcher-combat): on the beat a `Hunted` hero without one gets one
+- **The catcher** (tracker-catchers, catcher-paths, catcher-combat): on the beat a `Hunted` hero with none gets one
   `RingFrom..RingTo` columns off, unseen. `Hunt` runs a `Path`, beams at its quarry in sight (`Gunfire`); lagging or short, `Blink`s
-  ahead or near it; lifts for a `Salvo`; shut out, lobs a charge (`Lob`). Pounces within `Strike`, answers blows. Out of `Ticks`,
+  ahead or near; lifts for a `Salvo`; shut out, lobs a charge (`Lob`). Pounces within `Strike`, answers blows. Out of `Ticks`,
   killed or quarryless: `CallOff`, up.
 - **Patches** (`PatchKind`) last `Lasts`; each breath an awake hero in one seen from its middle pays `Damage` (`Shock`, `Stings`).
 - **The warden** (`Posted`, `Ward`): on the beat at a standing post with a standing relic in its arena, a hero in its keep box,

@@ -68,6 +68,7 @@ public sealed partial class BuildingModule
                 if (_plantOwn.GetValueOrDefault(plant.Cell) != plant) continue;
                 shocked |= plant.Kind == Ruins.Cradle;
                 Fell(plant, null);
+                if (peer != FloorStack.Nobody && Kinds[plant.Kind].Yields is { Count: > 0 } yields) _crewOps.Loot(peer, yields);
             }
         if (shocked && peer != FloorStack.Nobody) _crewOps.Shock(peer, Ruins.CradleShock, Harm.Shock);
         _burstBacks.Sort();
@@ -123,10 +124,15 @@ public sealed partial class BuildingModule
     private int Remaining(int key, int strength, bool back = false) =>
         strength - (CrackIndex(key, back) is >= 0 and var at ? State.Cracks[at].Damage : 0);
 
-    /// <summary><paramref name="cost"/> fallen at <paramref name="cell"/> for anyone, as <paramref name="spoils"/> says: none when lost.</summary>
+    /// <summary>
+    /// <paramref name="cost"/> fallen at <paramref name="cell"/> for anyone, as <paramref name="spoils"/> says: none when lost. Its worth
+    /// fills the thrower's wanted meter (catcher-loot).
+    /// </summary>
     private void Leave(Spoils spoils, IReadOnlyList<(string Item, int Count)> cost, int cell)
     {
-        if (spoils == Spoils.Drop) _itemsOps.DropAt(FloorStack.Nobody, cost, cell);
+        if (spoils != Spoils.Drop) return;
+        _itemsOps.DropAt(FloorStack.Nobody, cost, cell);
+        if (_burstPeer != FloorStack.Nobody) _crewOps.Loot(_burstPeer, cost);
     }
 
     /// <summary>
