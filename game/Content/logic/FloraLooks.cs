@@ -85,9 +85,6 @@ public static class FloraLooks
     public static readonly Luminous Pebble = Luminous.Chip with { Ramp = [(138, 146, 160), (82, 88, 102)], Gravity = 420, Bounce = 0.25, Size = 1.6, Low = true };
     public const int Fallen = 10;
 
-    /// <summary>A leaf shaken off by a runner (plant-stirs): light, drifting and turning on its way down.</summary>
-    public static readonly Luminous ShedLeaf = Leaf with { Gravity = 70, Drag = 1.6, Turbulence = 22, NoiseScale = 0.05, LifeMs = (1800, 2600) };
-
     /// <summary>A hit that cracks a plant without felling it: a shake of this many pixels for this many seconds; what it knocks off is <see cref="HitLooks"/>'.</summary>
     public const float Shake = 1f, ShakeSeconds = 0.18f;
 
@@ -109,42 +106,58 @@ public static class FloraLooks
     /// <summary>The feel shown: <see cref="Feels"/>' first, another only while compared in a dev room.</summary>
     public static Feel Feeling { get; set; } = Feels[0];
 
-    /// <summary>
-    /// A runner sheds leaves off a bush or an acacia its body meets: faster than <see cref="ScatterSpeed"/> pixels a second (a
-    /// walk is 115, a run 211), at most once a plant each <see cref="ScatterEvery"/> seconds; a walker only sways it.
-    /// </summary>
-    public const float ScatterSpeed = 160, ScatterEvery = 1.2f;
-
     /// <summary>A body faster than <see cref="BrushSpeed"/> pixels a second sways a bush or a tree it brushes, once each <see cref="BrushEvery"/> seconds.</summary>
     public const float BrushSpeed = 40, BrushEvery = 0.6f;
 
     /// <summary>
     /// How a bush or a tree sways about its foot: at <see cref="Hz"/>, <see cref="Damping"/> of critical, a brush or a hit
     /// kicking it <see cref="Kick"/> radians a second, never past <see cref="Most"/> radians; a full gust holds it
-    /// <see cref="Gust"/> radians over. Leaves it sheds: <see cref="Brushed"/> when a runner brushes it, <see cref="Hit"/> a hit.
+    /// <see cref="Gust"/> radians over. Leaves it sheds: <see cref="Hit"/> a hit, <see cref="Trail"/> a second dragged
+    /// behind a runner going through it; at most <see cref="Leafage"/> before it grows them back, <see cref="Regrow"/> a second.
     /// </summary>
-    public sealed record Swing(float Hz, float Damping, float Kick, float Most, float Gust, int Brushed, int Hit);
+    public sealed record Swing(float Hz, float Damping, float Kick, float Most, float Gust, int Hit, float Trail, float Leafage, float Regrow);
 
     /// <summary>A bush: light, quick, its leaves few.</summary>
-    public static readonly Swing Bush = new(Hz: 1.4f, Damping: 0.22f, Kick: 0.5f, Most: 0.12f, Gust: 0.05f, Brushed: 7, Hit: 10);
+    public static readonly Swing Bush = new(Hz: 1.4f, Damping: 0.22f, Kick: 0.5f, Most: 0.12f, Gust: 0.05f, Hit: 40, Trail: 90, Leafage: 60, Regrow: 6);
 
     /// <summary>An acacia: heavy and slow, a crown full of leaves.</summary>
-    public static readonly Swing Tree = new(Hz: 0.7f, Damping: 0.18f, Kick: 0.1f, Most: 0.05f, Gust: 0.02f, Brushed: 12, Hit: 22);
+    public static readonly Swing Tree = new(Hz: 0.7f, Damping: 0.18f, Kick: 0.1f, Most: 0.05f, Gust: 0.02f, Hit: 80, Trail: 0, Leafage: 320, Regrow: 15);
 
     /// <summary>How <paramref name="stir"/> sways; null for what does not.</summary>
     public static Swing? SwingOf(Stir stir) => stir switch { Stir.Sheds => Bush, Stir.Topples => Tree, _ => null };
 
     /// <summary>
     /// The wind on a surface with plants, a look only: calm for <see cref="Calm"/> seconds, then a gust for <see cref="Gust"/>
-    /// that leans grass's tips <see cref="Lean"/> pixels at full strength and blows <see cref="Leaves"/> leaves a second across
-    /// the view, from the crowns in view and the air upwind.
+    /// that leans grass's tips <see cref="Lean"/> pixels at full strength, carries leaves at <see cref="Speed"/> pixels a second
+    /// and blows <see cref="Leaves"/> a second across the view, from the crowns in view and the air upwind.
     /// </summary>
-    public sealed record Wind((double From, double To) Calm, (double From, double To) Gust, float Lean, double Leaves);
+    public sealed record Wind((double From, double To) Calm, (double From, double To) Gust, float Lean, float Speed, double Leaves);
 
-    public static readonly Wind Breeze = new(Calm: (25, 70), Gust: (5, 9), Lean: 3, Leaves: 14);
+    public static readonly Wind Breeze = new(Calm: (25, 70), Gust: (5, 9), Lean: 3, Speed: 110, Leaves: 80);
 
-    /// <summary>A leaf the wind carries: lighter still, flying across the view, turning as it goes.</summary>
-    public static readonly Luminous BlownLeaf = Leaf with { Gravity = 22, Drag = 0.25, Turbulence = 40, NoiseScale = 0.03, LifeMs = (4000, 6500) };
+    /// <summary>
+    /// How each look of leaf (<c>tools/anime-art</c> <c>leaves</c>, picked in plant-stirs) flies: the leaflet swings like a
+    /// pendulum, the blot flutters wide and slow, the dry leaf spins and falls faster, the sprig tumbles and falls fastest.
+    /// All four are drawn for an acacia and a bush, kept for the plants to come.
+    /// </summary>
+    public static readonly IReadOnlyDictionary<string, Leaves.Flight> Flights = new Dictionary<string, Leaves.Flight>
+    {
+        ["leaflet"] = new(Fall: 26, Sway: 15, SwayHz: 0.85f, FlipHz: 1.3f, Spin: 0.7f, Tilt: 0.55f, Catch: 1),
+        ["blot"] = new(Fall: 19, Sway: 20, SwayHz: 0.65f, FlipHz: 0.9f, Spin: 0.5f, Tilt: 0.7f, Catch: 1.15f),
+        ["dry"] = new(Fall: 34, Sway: 6, SwayHz: 1.3f, FlipHz: 2.4f, Spin: 3.2f, Tilt: 0.2f, Catch: 0.85f),
+        ["sprig"] = new(Fall: 40, Sway: 4, SwayHz: 1, FlipHz: 1.1f, Spin: 4.2f, Tilt: 0.15f, Catch: 0.7f),
+    };
+
+    /// <summary>The leaves the plants shed, front and back, and how each flies: the acacia's blots, then the bush's sprigs.</summary>
+    public static readonly IReadOnlyList<(string Front, string Back, Leaves.Flight Flight)> LeafPictures = [.. Shed("blot", "acacia"), .. Shed("sprig", "bush")];
+
+    private static IEnumerable<(string, string, Leaves.Flight)> Shed(string look, string plant)
+    {
+        for (int n = 0; n < 3; n++) yield return ($"planet/leaf_{look}_{plant}_{n}", $"planet/leaf_{look}_{plant}_{n}_back", Flights[look]);
+    }
+
+    /// <summary>Which of <see cref="LeafPictures"/> a plant of <paramref name="kind"/> sheds: the first and how many.</summary>
+    public static (int First, int Count) LeavesOf(string kind) => kind == "bush" ? (3, 3) : (0, 3);
 
     /// <summary>
     /// A felled acacia falls away from the nearest hero within <see cref="FellerReach"/> pixels, as a rod tips, gaining
@@ -153,5 +166,5 @@ public static class FloraLooks
     /// <see cref="FadeSeconds"/>.
     /// </summary>
     public const float FellerReach = 6 * 8, FallPull = 7, LieSeconds = 3, FadeSeconds = 1.5f;
-    public const int FallLeaves = 6, LandLeaves = 14;
+    public const int FallLeaves = 80, LandLeaves = 160;
 }

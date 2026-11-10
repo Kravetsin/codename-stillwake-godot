@@ -31,11 +31,14 @@ by a runner, and a felled tree that falls over.
    and a cave's floor moss (`CaveView`'s `Front` and `FrontShine`, which hold only that).
 4. **Bushes and trees sway, and shed.** A bush or an acacia sways about its foot (`Sway`, a spring in how far its top
    leans, drawn as the picture's skew; its glow a child, so it moves with it): a body faster than `BrushSpeed` meeting its
-   box (found by `BoxesByLeft`, never a walk over every plant) kicks it its way, once each `BrushEvery`; a runner (over
-   `ScatterSpeed`, between a walk and a run) also sheds `Swing.Brushed` drifting leaves off its crown, once each
-   `ScatterEvery` (`Brushes`). An axe's hit that leaves it standing keeps its short shake, kicks it away from the hero
-   and sheds `Swing.Hit` leaves. A bush is light and quick, a tree heavy and slow (`FloraLooks.Bush`, `Tree`). The first
-   try shook a brushed bush as a hit does, which the user found too sharp, with three leaves, too few.
+   box (found by `BoxesByLeft`, never a walk over every plant) kicks it its way, once each `BrushEvery`. A body going
+   through a bush drags its leaves behind it: `Swing.Trail` a second at a run, fewer slower, from where its body is in the
+   bush, thrown at about its speed, so the air slows them behind it. A tree passed only sways: leaves shaken off a crown
+   by a runner looked wrong to the user. An axe's hit that leaves it standing keeps
+   its short shake, kicks it away from the hero and throws `Swing.Hit` leaves up. A plant has `Leafage` leaves to lose,
+   growing back `Regrow` a second (`Leafage`), so going back and forth thins the trail. A bush is light and quick, a tree
+   heavy and slow (`FloraLooks.Bush`, `Tree`). The first try shook a brushed bush as a hit does, which the user found too
+   sharp; the second shook leaves off a bush at a touch, which read as thrown rather than dragged.
 5. **A felled acacia falls.** Its picture is kept, pivoted at its foot, and tips away from the nearest hero
    (`FloraLooks.FellerReach`; right with none): slowly, then fast, as a rod falls (`Topple`), to `Topple.Lie` from upright,
    rebounding once. Leaves fly from its crown as it starts and where it lands; it lies `LieSeconds`, then fades. Other
@@ -45,6 +48,14 @@ by a runner, and a felled tree that falls over.
    tips (`Bend`'s `wind`; the top corners of a quad, `VERTEX_ID` 0 and 3; never a cave's moss), holds the bushes and trees in
    view over and blows leaves across the view, off their crowns and through the air upwind. Each peer blows its own. F9
    in `--planet` blows one now.
+   The leaves (`render/logic/Leaves.cs`): each a small drawn picture of its plant's (`FloraLooks.LeafPictures`), falling at
+   its look's pace, swinging side to side as a pendulum, turning and flipping over to show its back (its width the cosine
+   of its tumble), taken by the wind; it lands on the first solid cell under it, looked up only when it enters a new column,
+   lies `Leaves.Lie` and fades; at most `Leaves.Most`, the oldest go first. `LeafLayer` draws them in four multimeshes a
+   picture (face and back), lit, behind the heroes and before them. They were glims, which drew triangles.
+   The user picked from four looks drawn by `tools/anime-art` `leaves`, each with its own flight (`FloraLooks.Flights`): a
+   leaflet that swings like a pendulum, a watercolour blot that flutters, a dry curled leaf that spins, a sprig that tumbles.
+   All four are kept for plants to come: the acacia sheds blots, the thorn bush sprigs, which look like its twigs.
 7. **Trees stand thick.** The first planet grows over twice the acacias (`Content.Flora`: on level ground one column
    either side, ten apart, chance 370): a walk passes woods. More planks lie about; a tree still takes three seconds of
    the axe.
@@ -60,10 +71,12 @@ Client only: nothing enters the sim. Each peer stirs the plants from the heroes 
 - Grass is not flattened under a landed trunk; it is hidden under it.
 - A steady wind, seasons; trampled grass that stays down. No sound of wind yet: a sound is the user's pick.
 - Peers see different gusts; nothing depends on them.
-- Bells, rocks, glowcaps and stalagmites do not bend; bushes and rocks fall away as before. A sway is a skew of one
+- Bells, rocks, glowcaps and stalagmites do not bend; rocks fall away as before, a felled bush throws up its leaves. A sway is a skew of one
   picture, its crown and trunk leaning as one.
 - Ceiling threads and roots, which a head could brush in a tunnel near the surface.
 - Explosions push out from a point, which a sideways stir cannot say; they wait for their own design.
 - A tuft is one quad, so it leans whole rather than curving; grass tiles are 8 px wide, so the parting moves by 8 px
   columns. A bent blade is lit where it would stand. At these sizes in ink it reads as a bend.
+- A leaf meets only the ground under it: it drifts through a wall sideways, and one lying on a cell dug away hangs
+  there till it fades. Leaves are blown about in the open, where walls are few, and lie three seconds.
 - Four heroes running in one view may stir more than `Stirs.Most` points; the stillest go first, a little early.

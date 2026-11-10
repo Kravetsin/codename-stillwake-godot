@@ -5,8 +5,7 @@ namespace Stillwake.Game.Features.Flora;
 
 /// <summary>
 /// When a body brushing a plant moves it again (plant-stirs): going faster than a speed, and not that plant again for a while,
-/// so walking by a bush sways it once rather than every frame its body overlaps it, and running back and forth by one sheds a
-/// few leaves at a time, never a stream. Plain C#.
+/// so walking by a bush sways it once rather than every frame its body overlaps it. Plain C#.
 /// </summary>
 public sealed class Brushes(float speed, double every)
 {
