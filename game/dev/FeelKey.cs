@@ -4,7 +4,7 @@ namespace Stillwake.Game.Dev;
 
 /// <summary>
 /// F8 in a dev room on a planet: the next of <see cref="FloraLooks.Feels"/>, how grass answers a body (plant-stirs), its name
-/// shown a moment in a corner, so the user compares them in play and picks one.
+/// shown a moment in a corner, so the user compares them in play and picks one. F9: a gust of wind now, not after a calm.
 /// </summary>
 public partial class FeelKey : CanvasLayer
 {
@@ -22,13 +22,25 @@ public partial class FeelKey : CanvasLayer
 
     public override void _UnhandledInput(InputEvent e)
     {
+        if (e is InputEventKey { Pressed: true, Echo: false, PhysicalKeycode: Key.F9 })
+        {
+            Features.Flora.Gusts.Asked = true;
+            Say("wind: a gust");
+            GetViewport().SetInputAsHandled();
+            return;
+        }
         if (e is not InputEventKey { Pressed: true, Echo: false, PhysicalKeycode: Key.F8 }) return;
         int next = (IndexOf(FloraLooks.Feeling) + 1) % FloraLooks.Feels.Count;
         FloraLooks.Feeling = FloraLooks.Feels[next];
-        _name.Text = $"grass: {FloraLooks.Feeling.Name} ({next + 1}/{FloraLooks.Feels.Count})";
+        Say($"grass: {FloraLooks.Feeling.Name} ({next + 1}/{FloraLooks.Feels.Count})");
+        GetViewport().SetInputAsHandled();
+    }
+
+    private void Say(string text)
+    {
+        _name.Text = text;
         _name.Visible = true;
         _shown = 2.5;
-        GetViewport().SetInputAsHandled();
     }
 
     public override void _Process(double delta)

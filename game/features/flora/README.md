@@ -9,7 +9,9 @@
 | `logic/BoxesByLeft.cs` | Boxes kept sorted by their left edge: the glowing plants near the view found each frame without walking every plant (planet-frame-rate). |
 | `logic/Felling.cs` | Which plants were felled since the cave view last looked: the cells it kept and those standing halved by binary search, not a set of all. |
 | `logic/Planting.cs` | Where what grows is drawn against what holds it (0079, 0080), in world pixels, plain C# so it is tested. |
-| `logic/Shedding.cs` | When a runner shakes leaves off a plant it brushes, at most once a while each (plant-stirs). |
+| `logic/Brushes.cs` | When a body brushing a plant sways it or a runner sheds its leaves: once a while a plant (plant-stirs). |
+| `logic/Gusts.cs` | The wind, a look only: calm, then a gust one way, rising, fluttering, dying (plant-stirs). |
+| `logic/Sway.cs` | A bush or a tree swaying about its foot: kicked by a brush or a hit, held over by a gust (plant-stirs). |
 | `logic/Topple.cs` | A felled tree falling over about its foot, away from its feller, rebounding once (plant-stirs). |
 | `logic/VeinGlints.cs` | Which vein cells glint on their open faces: one in `CaveLooks.VeinGlintEvery`, by the planet's seed and the cell. |
 
@@ -35,9 +37,11 @@ only draws them — the surface's in `FloraView`, the caves' in `CaveView`; the 
   its crown as it starts and where it lands; it lies `LieSeconds`, then fades.
 - **Stirred** ([plant-stirs](../../../docs/decisions/2026-11-10-plant-stirs.md)): every hero's feet push the grass round them
   (`Stirs`, fed here each frame and handed to `Bend`); the grid's grass edge and the tufts (`Stir.Bends`) bend by it. A
-  runner whose body meets a bush or an acacia (its box in `BoxesByLeft`) shakes it and sheds `ScatterLeaves` off its crown,
-  at most once a plant each `ScatterEvery` (`Shedding`). How grass answers is `FloraLooks.Feeling`; F8 cycles `Feels` in
-  `--planet`.
+  body brushing a bush or an acacia (its box in `BoxesByLeft`) sways it about its foot (`Sway`, the picture's skew, its glow
+  a child); a runner, or a hit left standing, sheds leaves off its crown (`Swing.Brushed`, `Hit`; `Brushes`). How grass
+  answers is `FloraLooks.Feeling`; F8 cycles `Feels` in `--planet`.
+- **Wind** (plant-stirs): on a surface with plants, a gust now and then (`Gusts`) leans grass's and tufts' tips, holds the
+  bushes and trees in view over and blows `Breeze.Leaves` a second across the view. F9 in `--planet` blows one now.
 - **Motes** (0075): while a glowing plant is in view, `FloraLooks.MotesASecond` soft dots, at most `MostMotes` alive:
   `NearShare` by a glowing part in its colour, the rest pale gold in the open air of a column in view (its first wall
   down, under no back wall). They drift up, curling, fade over 3.5–7 s and give no light; none off the screen.
@@ -79,6 +83,6 @@ warm amber and red near the bottom.
 
 ## Deliberately not handled
 
-- Wind, idle sway, seasons: a plant moves only when a body brushes it or a hit shakes it (plant-stirs).
+- A steady wind, seasons: a plant moves when a body brushes it, a hit shakes it or a gust blows (plant-stirs).
 - A plant's light is a small lamp's in daylight too, where it hardly shows (no ADR).
 - Moss grows only on stone, on whichever faces are open now, so digging beside it shows more of it.

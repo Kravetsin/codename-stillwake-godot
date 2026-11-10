@@ -29,14 +29,26 @@ by a runner, and a felled tree that falls over.
    cave's floor moss bends by the same snippet (`Bend.Glow`).
 3. **What bends:** the grass edge (`GridView`'s `_tops` and `_topsFront`), the surface's tufts (`FloraLooks.Stir.Bends`),
    and a cave's floor moss (`CaveView`'s `Front` and `FrontShine`, which hold only that).
-4. **Leaves shed.** A hero running past (`|vx|` over `FloraLooks.ScatterSpeed`, between a walk and a run) whose body meets
-   a bush's or an acacia's box (found by `BoxesByLeft`, never a walk over every plant) shakes it the hit's way and sheds
-   `ScatterLeaves` from its crown, at most once a plant each `ScatterEvery` (`Shedding`).
+4. **Bushes and trees sway, and shed.** A bush or an acacia sways about its foot (`Sway`, a spring in how far its top
+   leans, drawn as the picture's skew; its glow a child, so it moves with it): a body faster than `BrushSpeed` meeting its
+   box (found by `BoxesByLeft`, never a walk over every plant) kicks it its way, once each `BrushEvery`; a runner (over
+   `ScatterSpeed`, between a walk and a run) also sheds `Swing.Brushed` drifting leaves off its crown, once each
+   `ScatterEvery` (`Brushes`). An axe's hit that leaves it standing keeps its short shake, kicks it away from the hero
+   and sheds `Swing.Hit` leaves. A bush is light and quick, a tree heavy and slow (`FloraLooks.Bush`, `Tree`). The first
+   try shook a brushed bush as a hit does, which the user found too sharp, with three leaves, too few.
 5. **A felled acacia falls.** Its picture is kept, pivoted at its foot, and tips away from the nearest hero
    (`FloraLooks.FellerReach`; right with none): slowly, then fast, as a rod falls (`Topple`), to `Topple.Lie` from upright,
    rebounding once. Leaves fly from its crown as it starts and where it lands; it lies `LieSeconds`, then fades. Other
    kinds fall away as before.
-6. **Feels are data.** `FloraLooks.Feels` holds three candidates of `Feel(Reach, Part, Lean, SpringHz, Damping)`, soft,
+6. **Wind, a look only.** On a surface with plants, a gust now and then (`Gusts`, `FloraLooks.Breeze`: calm 25–70 s,
+   gusts 5–9 s, one way, rising, fluttering and dying, its strength rolling along the ground) leans the grass's and tufts'
+   tips (`Bend`'s `wind`; the top corners of a quad, `VERTEX_ID` 0 and 3; never a cave's moss), holds the bushes and trees in
+   view over and blows leaves across the view, off their crowns and through the air upwind. Each peer blows its own. F9
+   in `--planet` blows one now.
+7. **Trees stand thick.** The first planet grows over twice the acacias (`Content.Flora`: on level ground one column
+   either side, ten apart, chance 370): a walk passes woods. More planks lie about; a tree still takes three seconds of
+   the axe.
+8. **Feels are data.** `FloraLooks.Feels` holds three candidates of `Feel(Reach, Part, Lean, SpringHz, Damping)`, soft,
    springy and heavy; F8 cycles them in a dev room (`--planet`), its name shown a moment. The user picks one in play.
 
 Client only: nothing enters the sim. Each peer stirs the plants from the heroes as it sees them.
@@ -46,8 +58,10 @@ Client only: nothing enters the sim. Each peer stirs the plants from the heroes 
 - A falling tree meets no ground: it tips to the same angle on a slope or by a wall and may sink into it for the seconds
   it lies there, as sprites overlap today. Trees stand on open ground, and a slope steep enough to show it is rare.
 - Grass is not flattened under a landed trunk; it is hidden under it.
-- Wind, idle sway, seasons; trampled grass that stays down.
-- Bushes, bells, rocks, glowcaps and stalagmites do not bend; bushes and rocks fall away as before.
+- A steady wind, seasons; trampled grass that stays down. No sound of wind yet: a sound is the user's pick.
+- Peers see different gusts; nothing depends on them.
+- Bells, rocks, glowcaps and stalagmites do not bend; bushes and rocks fall away as before. A sway is a skew of one
+  picture, its crown and trunk leaning as one.
 - Ceiling threads and roots, which a head could brush in a tunnel near the surface.
 - Explosions push out from a point, which a sideways stir cannot say; they wait for their own design.
 - A tuft is one quad, so it leans whole rather than curving; grass tiles are 8 px wide, so the parting moves by 8 px

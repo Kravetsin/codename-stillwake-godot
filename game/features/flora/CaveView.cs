@@ -571,7 +571,7 @@ public partial class CaveView : Node2D, ILightSource
         public Patch()
         {
             Lit.Set(Pictures);
-            Lit.SetBending(Front);
+            Lit.SetBending(Front, windy: false);
             AddChild(Pictures);
             AddChild(Shine);
             AddChild(Front);

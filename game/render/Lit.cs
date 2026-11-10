@@ -39,7 +39,7 @@ public static class Lit
 
             void vertex() {
                 world = (MODEL_MATRIX * vec4(VERTEX, 0.0, 1.0)).xy;
-                vec2 by = stirred(world);
+                vec2 by = stirred(world, VERTEX_ID == 0 || VERTEX_ID == 3);
                 VERTEX += by;
                 world += by;
             }
@@ -159,7 +159,7 @@ public static class Lit
             }
             """;
 
-    private static readonly Dictionary<(float Share, bool Shines, bool Bends), ShaderMaterial> Made = new();
+    private static readonly Dictionary<(float Share, bool Shines, bool Bends, bool Windy), ShaderMaterial> Made = new();
     private static (Texture2DArray Tiles, Rect2 Rect, Vector2I Cells, int Tile)? _starlight;
     private static (Texture2D Main, Texture2D Spots)? _lightmaps;
     private static (Vector2 At, float Texel) _placed = (Vector2.Zero, 1);
@@ -191,10 +191,13 @@ public static class Lit
     /// drawn in wall cells and takes the stars' light from its own side. One that <paramref name="shines"/> (the walls' layer) has its ore
     /// shine in the lamps' light, by its texture's specular mask (<see cref="Light.OreShine"/>); others have none.
     /// </summary>
-    public static void Set(CanvasItem item, float share = 1f, bool shines = false) => item.Material = MaterialOf(share, shines, false);
+    public static void Set(CanvasItem item, float share = 1f, bool shines = false) => item.Material = MaterialOf(share, shines, false, false);
 
-    /// <summary>Lights <paramref name="item"/> as <see cref="Set"/> does, and bends it as bodies brush it (<see cref="Bend"/>, plant-stirs): grass, tufts, moss.</summary>
-    public static void SetBending(CanvasItem item) => item.Material = MaterialOf(1f, false, true);
+    /// <summary>
+    /// Lights <paramref name="item"/> as <see cref="Set"/> does, and bends it as bodies brush it (<see cref="Bend"/>, plant-stirs):
+    /// grass, tufts, moss; <paramref name="windy"/> for what stands in the open, which a gust leans too.
+    /// </summary>
+    public static void SetBending(CanvasItem item, bool windy) => item.Material = MaterialOf(1f, false, true, windy);
 
     private static Vector3 _ambient = new(Light.Ambient.R, Light.Ambient.G, Light.Ambient.B);
 
@@ -222,11 +225,11 @@ public static class Lit
         foreach (var (_, material) in Made) material.SetShaderParameter("sky", _sky);
     }
 
-    private static ShaderMaterial MaterialOf(float share, bool shines, bool bends)
+    private static ShaderMaterial MaterialOf(float share, bool shines, bool bends, bool windy)
     {
-        if (Made.TryGetValue((share, shines, bends), out var kept)) return kept;
+        if (Made.TryGetValue((share, shines, bends, windy), out var kept)) return kept;
         kept = new ShaderMaterial { Shader = bends ? Bending : Plain };
-        if (bends) Bend.Add(kept);
+        if (bends) Bend.Add(kept, windy);
         kept.SetShaderParameter("share", share);
         kept.SetShaderParameter("blocks", share < 1f);
         kept.SetShaderParameter("ambient", _ambient);
@@ -237,7 +240,7 @@ public static class Lit
         if (_lightmaps is var (main, spots)) ShowMaps(kept, main, spots);
         Place(kept);
         See(kept);
-        return Made[(share, shines, bends)] = kept;
+        return Made[(share, shines, bends, windy)] = kept;
     }
 
     /// <summary>

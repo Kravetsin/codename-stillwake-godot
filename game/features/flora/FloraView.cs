@@ -47,11 +47,17 @@ public partial class FloraView : Node2D, ILightSource
     /// <summary>Every hero on this surface, its feet and speed across: what stirs the plants (plant-stirs).</summary>
     private readonly Func<IReadOnlyList<(Vector2 Feet, float Vx)>> _heroes;
     private readonly Stirs _stirs = new();
-    private readonly Shedding _shedding = new();
-    /// <summary>The plants a runner shakes leaves off, by their pictures' boxes: each with its crown, where they fall from.</summary>
-    private readonly BoxesByLeft<(int Cell, Rect2 Crown)> _leafy = new();
-    private readonly List<(int Cell, Rect2 Crown)> _met = [];
+    /// <summary>A body brushing a plant sways it, a runner sheds its leaves: each once a while a plant.</summary>
+    private readonly Brushes _brushes = new(FloraLooks.BrushSpeed, FloraLooks.BrushEvery), _sheds = new(FloraLooks.ScatterSpeed, FloraLooks.ScatterEvery);
+    /// <summary>The plants that sway and shed leaves, by their pictures' boxes; each one's crown, where its leaves fall from, and its swing.</summary>
+    private readonly BoxesByLeft<int> _leafy = new();
+    private readonly Dictionary<int, (Rect2 Crown, FloraLooks.Swing Swing)> _crowns = new();
+    private readonly Dictionary<int, Sway> _swaying = new();
+    private readonly List<int> _met = [];
     private readonly List<Falling> _falling = [];
+    private static readonly Random Chance = new();
+    private readonly Gusts _wind = new(FloraLooks.Breeze, Chance.NextDouble);
+    private double _blownDue;
 
     public FloraView(IGridQueries grid, BuildingModule building, Func<IReadOnlyList<(Vector2 Feet, float Vx)>> heroes)
     {
@@ -66,10 +72,12 @@ public partial class FloraView : Node2D, ILightSource
         long started = Game.Dev.FrameLog.Begin();
         _seconds += delta;
         if (_building.Plants.Count != _count) Follow();
+        var view = GetViewport().GetCanvasTransform().AffineInverse() * GetViewport().GetVisibleRect();
         Hits(delta);
         Stir(delta);
+        Wind(view, delta);
+        Sways(delta);
         Falls(delta);
-        var view = GetViewport().GetCanvasTransform().AffineInverse() * GetViewport().GetVisibleRect();
         var near = view.Grow(Cell * FloraLooks.LightReach);
         _lights.Clear();
         _sources.Clear();
@@ -104,15 +112,14 @@ public partial class FloraView : Node2D, ILightSource
             _shown.Remove(cell);
             _glowing.Remove(cell);
             _leafy.Remove(cell);
-            _shedding.Forget(cell);
+            _crowns.Remove(cell);
+            _swaying.Remove(cell);
+            _brushes.Forget(cell);
+            _sheds.Forget(cell);
             bool topples = !first && FloraLooks.Of[kind].Stir == FloraLooks.Stir.Topples;
             if (!first) Felled(cell, kind, picture.Texture.GetSize().Y, spray: !topples);
-            if (topples) Fall(cell, picture, glow);
-            else
-            {
-                picture.QueueFree();
-                glow?.QueueFree();
-            }
+            if (topples) Fall(cell, picture);
+            else picture.QueueFree();
         }
     }
 
@@ -130,30 +137,34 @@ public partial class FloraView : Node2D, ILightSource
         var (top, bottom) = UsedRows(drawn);
         var (px, py, from, rows) = Planting.Picture(Spec.Anchor.Floor, x, y, Cell, Spec.Get(plant.Kind).Across, (int)size.X, (int)size.Y, top, bottom, look.Sink);
         var corner = new Vector2(px, py);
+        // Placed by its foot, the middle of its lowest drawn row at the top of the soil, so it sways and falls about it.
+        var foot = corner + new Vector2(size.X / 2, from + rows);
         var picture = new Sprite2D
         {
             Texture = texture,
             Centered = false,
-            Position = corner + new Vector2(0, from),
+            Position = foot,
+            Offset = new Vector2(-size.X / 2, -rows),
             RegionEnabled = true,
             RegionRect = new Rect2(0, from, size.X, rows),
             ZIndex = Layers.Flora,
         };
-        if (look.Stir == FloraLooks.Stir.Bends) Lit.SetBending(picture);
+        if (look.Stir == FloraLooks.Stir.Bends) Lit.SetBending(picture, windy: true);
         else Lit.Set(picture);
         AddChild(picture);
-        if (look.Stir is FloraLooks.Stir.Sheds or FloraLooks.Stir.Topples)
+        if (FloraLooks.SwingOf(look.Stir) is { } swing)
         {
             // Its leaves: the upper part of what is drawn of it.
-            var crown = new Rect2(corner.X, corner.Y + top, size.X, (bottom - top) * 0.45f);
-            _leafy.Add(plant.Cell, corner.X, corner.Y + from, corner.X + size.X, corner.Y + from + rows, (plant.Cell, crown));
+            _crowns[plant.Cell] = (new Rect2(corner.X, corner.Y + top, size.X, (bottom - top) * 0.45f), swing);
+            _leafy.Add(plant.Cell, corner.X, corner.Y + from, corner.X + size.X, corner.Y + from + rows, plant.Cell);
         }
         Sprite2D? glow = null;
         var lights = Array.Empty<(Vector2, Color)>();
         if (Glows(name) is { } shine)
         {
-            glow = new Sprite2D { Texture = shine.Texture, Centered = false, Position = corner, ZIndex = Layers.Flora, Material = GlowMaterial };
-            AddChild(glow);
+            // Over its picture and moving with it, as it sways and falls.
+            glow = new Sprite2D { Texture = shine.Texture, Centered = false, Position = corner - foot, Material = GlowMaterial };
+            picture.AddChild(glow);
             lights = shine.Points.Select(p => (corner + p.At, p.Colour)).ToArray();
             _glowing.Add(plant.Cell, corner.X, corner.Y + from, corner.X + size.X, corner.Y + from + size.Y, lights);
         }
@@ -193,6 +204,7 @@ public partial class FloraView : Node2D, ILightSource
             if (_cracks.TryGetValue(crack.Cell, out int was) && was >= crack.Damage) continue;
             _cracks[crack.Cell] = crack.Damage;
             Shake(crack.Cell, shown.Picture);
+            Struck(crack.Cell);
         }
         foreach (int cell in _cracks.Keys.Where(c => !_scratch.Contains(c)).ToList()) _cracks.Remove(cell);
         foreach (var (cell, (rest, left)) in _shaking.ToList())
@@ -226,26 +238,107 @@ public partial class FloraView : Node2D, ILightSource
         foreach (var (feet, vx) in _heroes())
         {
             _stirs.Body(feet.X, feet.Y, vx, feel);
-            if (Math.Abs(vx) < FloraLooks.ScatterSpeed) continue;
+            if (Math.Abs(vx) < FloraLooks.BrushSpeed) continue;
             _met.Clear();
             _leafy.Meeting(feet.X - half, feet.Y - tall, feet.X + half, feet.Y, _met);
-            foreach (var (cell, crown) in _met)
-                if (_shedding.Sheds(cell, vx, _seconds)) Shed(cell, crown, vx);
+            foreach (int cell in _met)
+            {
+                var (crown, swing) = _crowns[cell];
+                if (_brushes.Answers(cell, vx, _seconds)) SwayOf(cell, swing).Kick(Math.Sign(vx), Math.Min(1, Math.Abs(vx) / Stirs.Run));
+                if (_sheds.Answers(cell, vx, _seconds)) Shed(cell, crown, swing.Brushed, vx > 0 ? 0 : Math.PI, (-0.6, 0.6));
+            }
         }
         _stirs.Advance(delta, feel);
         Bend.Push(_stirs);
     }
 
-    /// <summary>A plant brushed by a runner: the hit's shake, and leaves drifting off its crown the way the runner went.</summary>
-    private void Shed(int cell, Rect2 crown, float vx)
+    /// <summary>A hit on a bush or a tree left standing: swayed away from the hero nearest it, a shower of leaves off its crown.</summary>
+    private void Struck(int cell)
     {
-        if (!_shown.TryGetValue(cell, out var shown)) return;
-        Shake(cell, shown.Picture);
+        if (!_crowns.TryGetValue(cell, out var leafy) || !_shown.TryGetValue(cell, out var shown)) return;
+        var heroes = _heroes();
+        var xs = new float[heroes.Count];
+        for (int i = 0; i < xs.Length; i++) xs[i] = heroes[i].Feet.X;
+        int way = Topple.Away(shown.Picture.Position.X, xs, FloraLooks.FellerReach);
+        SwayOf(cell, leafy.Swing).Kick(way);
+        Shed(cell, leafy.Crown, leafy.Swing.Hit, -Math.PI / 2, (-1.8, 1.8));
+    }
+
+    /// <summary><paramref name="count"/> leaves drifting off a crown, flung toward <paramref name="heading"/> turned by up to <paramref name="turn"/>.</summary>
+    private void Shed(int cell, Rect2 crown, int count, double heading, (double, double) turn)
+    {
         var glims = Stages.Of(Layers.Effects).Glims;
-        double ground = (cell / _grid.Width + 1) * Cell, heading = vx > 0 ? 0 : Math.PI;
-        for (int i = 0; i < FloraLooks.ScatterLeaves; i++)
+        double ground = (cell / _grid.Width + 1) * Cell;
+        for (int i = 0; i < (int)Math.Round(count * Fx.Count); i++)
             glims.Spray(FloraLooks.ShedLeaf, glims.Between(crown.Position.X, crown.End.X), glims.Between(crown.Position.Y, crown.End.Y), 1,
-                heading, (-0.6, 0.6), (10, 35), ground);
+                heading, turn, (10, 40), ground);
+    }
+
+    private Sway SwayOf(int cell, FloraLooks.Swing swing)
+    {
+        if (!_swaying.TryGetValue(cell, out var sway)) _swaying[cell] = sway = new Sway(swing);
+        return sway;
+    }
+
+    /// <summary>The bushes and trees swaying sway on, slanted about their feet; one still again is let go.</summary>
+    private void Sways(double delta)
+    {
+        _met.Clear();
+        foreach (var (cell, sway) in _swaying)
+        {
+            sway.Advance(delta);
+            if (_shown.TryGetValue(cell, out var shown)) shown.Picture.Skew = sway.Lean;
+            if (sway.Still) _met.Add(cell);
+        }
+        foreach (int cell in _met) _swaying.Remove(cell);
+    }
+
+    /// <summary>
+    /// The wind, while this surface has plants: a gust now and then leans the grass's tips (<see cref="Bend"/>), holds the bushes
+    /// and trees in view over and blows leaves across the view, off their crowns and through the air upwind.
+    /// </summary>
+    private void Wind(Rect2 view, double delta)
+    {
+        if (_crowns.Count == 0)
+        {
+            Bend.Wind(0, 0);
+            return;
+        }
+        if (Gusts.Asked)
+        {
+            Gusts.Asked = false;
+            _wind.Now();
+        }
+        _wind.Advance(delta);
+        Bend.Wind(_wind.Strength * FloraLooks.Breeze.Lean, (float)_wind.Seconds * _wind.Way * 3);
+        foreach (var (_, sway) in _swaying) sway.Held = 0;
+        if (!_wind.Blowing) return;
+        _met.Clear();
+        _leafy.Meeting(view.Position.X, view.Position.Y, view.End.X, view.End.Y, _met);
+        foreach (int cell in _met)
+            if (_shown.TryGetValue(cell, out var shown))
+            {
+                var swing = _crowns[cell].Swing;
+                SwayOf(cell, swing).Held = swing.Gust * _wind.At(shown.Picture.Position.X);
+            }
+        var glims = Stages.Of(Layers.Effects).Glims;
+        _blownDue += delta * FloraLooks.Breeze.Leaves * Math.Abs(_wind.Strength) * Fx.Count;
+        for (; _blownDue >= 1; _blownDue--)
+        {
+            double x, y;
+            if (_met.Count > 0 && glims.Between(0, 1) < 0.5)
+            {
+                var crown = _crowns[_met[(int)glims.Between(0, _met.Count - 0.001)]].Crown;
+                (x, y) = (glims.Between(crown.Position.X, crown.End.X), glims.Between(crown.Position.Y, crown.End.Y));
+            }
+            else
+            {
+                x = _wind.Way > 0 ? view.Position.X + glims.Between(0, 24) : view.End.X - glims.Between(0, 24);
+                if (GroundUnder(x, view) is not double ground) continue;
+                y = ground - glims.Between(2, 10) * Cell;
+            }
+            glims.Add(FloraLooks.BlownLeaf, x, y, _wind.Way * glims.Between(60, 140), glims.Between(-25, 5), size: glims.Between(0.8, 1.2));
+        }
     }
 
     /// <summary>A felled tree falling: its picture turned about its foot, the fall, and the seconds it has lain.</summary>
@@ -266,15 +359,12 @@ public partial class FloraView : Node2D, ILightSource
     /// A felled acacia kept to fall over (plant-stirs): pivoted at its foot, tipping away from the hero nearest it, leaves flying
     /// off its crown as it goes.
     /// </summary>
-    private void Fall(int cell, Sprite2D picture, Sprite2D? glow)
+    private void Fall(int cell, Sprite2D picture)
     {
-        var rest = _shaking.Remove(cell, out var shaking) ? shaking.Home : picture.Position;
+        var foot = _shaking.Remove(cell, out var shaking) ? shaking.Home : picture.Position;
         var size = picture.RegionRect.Size;
-        // Its foot: the middle of its lowest drawn row, at the top of the soil.
-        var foot = rest + new Vector2(size.X / 2, size.Y);
-        picture.Offset = -new Vector2(size.X / 2, size.Y);
         picture.Position = foot;
-        glow?.Reparent(picture);
+        picture.Skew = 0;
         var heroes = _heroes();
         var xs = new float[heroes.Count];
         for (int i = 0; i < xs.Length; i++) xs[i] = heroes[i].Feet.X;

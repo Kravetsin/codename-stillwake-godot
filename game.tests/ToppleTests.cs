@@ -67,14 +67,24 @@ public class ToppleTests
     [Fact]
     public void ARunnerShedsAPlantOnceAWhileAndAWalkerNever()
     {
-        var shedding = new Shedding();
+        var sheds = new Brushes(FloraLooks.ScatterSpeed, FloraLooks.ScatterEvery);
         float run = FloraLooks.ScatterSpeed + 1, walk = FloraLooks.ScatterSpeed - 1;
-        Assert.False(shedding.Sheds(1, walk, 0));
-        Assert.True(shedding.Sheds(1, -run, 0));
-        Assert.False(shedding.Sheds(1, run, FloraLooks.ScatterEvery - 0.01));
-        Assert.True(shedding.Sheds(2, run, 0.1));
-        Assert.True(shedding.Sheds(1, run, FloraLooks.ScatterEvery));
-        shedding.Forget(1);
-        Assert.True(shedding.Sheds(1, run, FloraLooks.ScatterEvery + 0.1));
+        Assert.False(sheds.Answers(1, walk, 0));
+        Assert.True(sheds.Answers(1, -run, 0));
+        Assert.False(sheds.Answers(1, run, FloraLooks.ScatterEvery - 0.01));
+        Assert.True(sheds.Answers(2, run, 0.1));
+        Assert.True(sheds.Answers(1, run, FloraLooks.ScatterEvery));
+        sheds.Forget(1);
+        Assert.True(sheds.Answers(1, run, FloraLooks.ScatterEvery + 0.1));
+    }
+
+    [Fact]
+    public void AWalkerSwaysABushItBrushesOnceAWhileAndARunnerShedsOnlyFaster()
+    {
+        var brushes = new Brushes(FloraLooks.BrushSpeed, FloraLooks.BrushEvery);
+        Assert.False(brushes.Answers(1, FloraLooks.BrushSpeed - 1, 0));
+        Assert.True(brushes.Answers(1, 115, 0));
+        Assert.False(brushes.Answers(1, 115, FloraLooks.BrushEvery / 2));
+        Assert.True(FloraLooks.BrushSpeed < FloraLooks.ScatterSpeed);
     }
 }

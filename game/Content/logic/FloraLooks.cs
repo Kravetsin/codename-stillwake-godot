@@ -111,11 +111,40 @@ public static class FloraLooks
 
     /// <summary>
     /// A runner sheds leaves off a bush or an acacia its body meets: faster than <see cref="ScatterSpeed"/> pixels a second (a
-    /// walk is 115, a run 211), <see cref="ScatterLeaves"/> of them from its crown, at most once a plant each
-    /// <see cref="ScatterEvery"/> seconds.
+    /// walk is 115, a run 211), at most once a plant each <see cref="ScatterEvery"/> seconds; a walker only sways it.
     /// </summary>
     public const float ScatterSpeed = 160, ScatterEvery = 1.2f;
-    public const int ScatterLeaves = 3;
+
+    /// <summary>A body faster than <see cref="BrushSpeed"/> pixels a second sways a bush or a tree it brushes, once each <see cref="BrushEvery"/> seconds.</summary>
+    public const float BrushSpeed = 40, BrushEvery = 0.6f;
+
+    /// <summary>
+    /// How a bush or a tree sways about its foot: at <see cref="Hz"/>, <see cref="Damping"/> of critical, a brush or a hit
+    /// kicking it <see cref="Kick"/> radians a second, never past <see cref="Most"/> radians; a full gust holds it
+    /// <see cref="Gust"/> radians over. Leaves it sheds: <see cref="Brushed"/> when a runner brushes it, <see cref="Hit"/> a hit.
+    /// </summary>
+    public sealed record Swing(float Hz, float Damping, float Kick, float Most, float Gust, int Brushed, int Hit);
+
+    /// <summary>A bush: light, quick, its leaves few.</summary>
+    public static readonly Swing Bush = new(Hz: 1.4f, Damping: 0.22f, Kick: 0.5f, Most: 0.12f, Gust: 0.05f, Brushed: 7, Hit: 10);
+
+    /// <summary>An acacia: heavy and slow, a crown full of leaves.</summary>
+    public static readonly Swing Tree = new(Hz: 0.7f, Damping: 0.18f, Kick: 0.1f, Most: 0.05f, Gust: 0.02f, Brushed: 12, Hit: 22);
+
+    /// <summary>How <paramref name="stir"/> sways; null for what does not.</summary>
+    public static Swing? SwingOf(Stir stir) => stir switch { Stir.Sheds => Bush, Stir.Topples => Tree, _ => null };
+
+    /// <summary>
+    /// The wind on a surface with plants, a look only: calm for <see cref="Calm"/> seconds, then a gust for <see cref="Gust"/>
+    /// that leans grass's tips <see cref="Lean"/> pixels at full strength and blows <see cref="Leaves"/> leaves a second across
+    /// the view, from the crowns in view and the air upwind.
+    /// </summary>
+    public sealed record Wind((double From, double To) Calm, (double From, double To) Gust, float Lean, double Leaves);
+
+    public static readonly Wind Breeze = new(Calm: (25, 70), Gust: (5, 9), Lean: 3, Leaves: 14);
+
+    /// <summary>A leaf the wind carries: lighter still, flying across the view, turning as it goes.</summary>
+    public static readonly Luminous BlownLeaf = Leaf with { Gravity = 22, Drag = 0.25, Turbulence = 40, NoiseScale = 0.03, LifeMs = (4000, 6500) };
 
     /// <summary>
     /// A felled acacia falls away from the nearest hero within <see cref="FellerReach"/> pixels, as a rod tips, gaining
