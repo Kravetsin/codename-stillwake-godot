@@ -119,13 +119,13 @@ public sealed partial class CreaturesModule
         {
             // It met something this tick: it bursts from the cell it flew from, short of what it met, so a wall there is entered at its cost.
             int burst = p.Bursts is { } blast ? Burst(s, blast, from.X / Unit + from.Y / Unit * _grid.Width) : -1;
-            _ended.Add(new ShotEnd(s.Id, s.Projectile, s.Gun, met, Met: true, burst));
+            _ended.Add(new ShotEnd(s.Id, s.By, s.Projectile, s.Gun, met, Met: true, burst));
             return false;
         }
         if (next.Left <= 0 || !ShotFlight.OnGrid(next.X, next.Y, _grid.Width, _grid.Height))
         {
             int burst = p.Bursts is { } blast ? Burst(s, blast, last) : -1;
-            _ended.Add(new ShotEnd(s.Id, s.Projectile, s.Gun, last, Met: false, burst));
+            _ended.Add(new ShotEnd(s.Id, s.By, s.Projectile, s.Gun, last, Met: false, burst));
             return false;
         }
         (s.X, s.Y, s.VY, s.Left) = (next.X, next.Y, next.VY, next.Left);
