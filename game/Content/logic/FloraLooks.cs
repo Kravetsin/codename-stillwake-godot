@@ -15,17 +15,31 @@ public static class FloraLooks
     /// there cut off: planted in the ground, not set on it.
     /// </summary>
     /// <param name="Ink">What else its pictures may be drawn as, each the same size with its light in the same place, one a plant.</param>
-    public sealed record Look(int Variants, int Sink, IReadOnlyList<string>? Ink = null);
+    /// <param name="Stir">How it answers a body brushing it (plant-stirs).</param>
+    public sealed record Look(int Variants, int Sink, IReadOnlyList<string>? Ink = null, Stir Stir = Stir.None);
+
+    /// <summary>How a plant answers a body brushing it (plant-stirs).</summary>
+    public enum Stir
+    {
+        /// <summary>Not at all: a rock, a bell.</summary>
+        None,
+        /// <summary>It bends with the grass: a tuft.</summary>
+        Bends,
+        /// <summary>A runner shakes leaves off it: a bush.</summary>
+        Sheds,
+        /// <summary>It sheds, and once felled it falls over: an acacia.</summary>
+        Topples,
+    }
 
     public static readonly IReadOnlyDictionary<string, Look> Of = new Dictionary<string, Look>
     {
-        ["acacia"] = new(3, 2),
-        ["bush"] = new(2, 2),
+        ["acacia"] = new(3, 2, Stir: Stir.Topples),
+        ["bush"] = new(2, 2, Stir: Stir.Sheds),
         ["rock"] = new(2, 2),
         ["bellTeal"] = new(2, 1),
         ["bellViolet"] = new(2, 1),
         ["bellAmber"] = new(2, 1),
-        ["tuft"] = new(3, 1, ["tuft", "tuftReed", "tuftFungus"]),
+        ["tuft"] = new(3, 1, ["tuft", "tuftReed", "tuftFungus"], Stir.Bends),
     };
 
     /// <summary>The picture a plant of <paramref name="kind"/> is drawn with, by a hash of its cell; its shape and light are read from <c>{kind}_{variant}</c> whatever this says.</summary>
@@ -71,6 +85,44 @@ public static class FloraLooks
     public static readonly Luminous Pebble = Luminous.Chip with { Ramp = [(138, 146, 160), (82, 88, 102)], Gravity = 420, Bounce = 0.25, Size = 1.6, Low = true };
     public const int Fallen = 10;
 
+    /// <summary>A leaf shaken off by a runner (plant-stirs): light, drifting and turning on its way down.</summary>
+    public static readonly Luminous ShedLeaf = Leaf with { Gravity = 70, Drag = 1.6, Turbulence = 22, NoiseScale = 0.05, LifeMs = (1800, 2600) };
+
     /// <summary>A hit that cracks a plant without felling it: a shake of this many pixels for this many seconds; what it knocks off is <see cref="HitLooks"/>'.</summary>
     public const float Shake = 1f, ShakeSeconds = 0.18f;
+
+    /// <summary>
+    /// How grass answers a body (plant-stirs): parted <see cref="Part"/> pixels at its tips either side of the feet, out to about
+    /// <see cref="Reach"/> pixels; leaned <see cref="Lean"/> more the way a runner goes, at a run; sprung back at
+    /// <see cref="SpringHz"/>, <see cref="Damping"/> of the way to critical (under 1 overshoots, 1 does not).
+    /// </summary>
+    public sealed record Feel(string Name, float Reach, float Part, float Lean, float SpringHz, float Damping);
+
+    /// <summary>The feels the user compares in play, F8 in a dev room; the first is the game's.</summary>
+    public static readonly IReadOnlyList<Feel> Feels =
+    [
+        new("soft", Reach: 12, Part: 4, Lean: 3, SpringHz: 2.5f, Damping: 0.3f),
+        new("springy", Reach: 10, Part: 4, Lean: 2, SpringHz: 4f, Damping: 0.2f),
+        new("heavy", Reach: 14, Part: 5, Lean: 4, SpringHz: 1.5f, Damping: 1f),
+    ];
+
+    /// <summary>The feel shown: <see cref="Feels"/>' first, another only while compared in a dev room.</summary>
+    public static Feel Feeling { get; set; } = Feels[0];
+
+    /// <summary>
+    /// A runner sheds leaves off a bush or an acacia its body meets: faster than <see cref="ScatterSpeed"/> pixels a second (a
+    /// walk is 115, a run 211), <see cref="ScatterLeaves"/> of them from its crown, at most once a plant each
+    /// <see cref="ScatterEvery"/> seconds.
+    /// </summary>
+    public const float ScatterSpeed = 160, ScatterEvery = 1.2f;
+    public const int ScatterLeaves = 3;
+
+    /// <summary>
+    /// A felled acacia falls away from the nearest hero within <see cref="FellerReach"/> pixels, as a rod tips, gaining
+    /// <see cref="FallPull"/> radians a second each second for every radian it leans; <see cref="FallLeaves"/> fly off its crown
+    /// as it starts, <see cref="LandLeaves"/> where it lands; it lies <see cref="LieSeconds"/>, then fades over
+    /// <see cref="FadeSeconds"/>.
+    /// </summary>
+    public const float FellerReach = 6 * 8, FallPull = 7, LieSeconds = 3, FadeSeconds = 1.5f;
+    public const int FallLeaves = 6, LandLeaves = 14;
 }

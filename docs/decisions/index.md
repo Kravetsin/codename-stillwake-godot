@@ -326,3 +326,4 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [catcher-loot](2026-11-10-catcher-loot.md) | Catcher loot | accepted |  |
 | [hit-targets](2026-11-10-hit-targets.md) | One answer to what a hit strikes | accepted |  |
 | [one-damage-rule](2026-11-10-one-damage-rule.md) | One damage rule for every hit | accepted |  |
+| [plant-stirs](2026-11-10-plant-stirs.md) | Plants stirred by bodies | accepted |  |

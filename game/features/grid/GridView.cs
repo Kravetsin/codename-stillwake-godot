@@ -86,6 +86,9 @@ public partial class GridView : Node2D
         // The living edge over its ground, lit as the open air its top faces; over the edges, as added after them; its tufts before the heroes.
         _tops = Layer(Layers.Edges);
         _topsFront = Layer(Layers.GroundFront);
+        // Bent as bodies brush it (plant-stirs).
+        Lit.SetBending(_tops);
+        Lit.SetBending(_topsFront);
         _fixtures = Layer(Layers.Fixtures);
         _doors = Layer(Layers.Doors, L.WallIn);
         _machines = Layer(Layers.Machines);

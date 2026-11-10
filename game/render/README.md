@@ -5,6 +5,7 @@
 | File | Purpose |
 | --- | --- |
 | `AsciiArt.cs` | Small pictures drawn as ASCII in code, kept under a key. |
+| `Bend.cs` | Grass bent by `Stirs` (plant-stirs). |
 | `logic/Blueprint.cs` | How plans join the plans beside them when drawn. |
 | `BlueprintArt.cs` | What a placement looks like built: for plans, ghosts and build menu thumbnails. |
 | `logic/Bolts.cs` | The electric arcs in the world (0075). |
@@ -59,6 +60,7 @@
 | `Sketch.cs` | A node drawn by a callback: lines, boxes and dots a view works out itself. |
 | `SoftDots.cs` | Soft round pictures luminous things are drawn with (0075). |
 | `logic/Stages.cs` | Each draw layer's effects, a stage a z, and the figures' held stages. |
+| `logic/Stirs.cs` | Grass pushed by bodies' feet, springing back (plant-stirs). |
 | `Stars.cs` | Space behind the ship: a tile of stars over the screen, also behind the title. |
 | `WorldShot.cs` | A small picture of the world as the camera sees it, no HUD in it: the title's world cards. |
 | `Strokes.cs` | Many soft-edged strokes of light in one draw call (0075). |
@@ -84,14 +86,12 @@ and the files' constants; the rest of `render/` is described where it is used an
     faster than the wrecks, slower than the debris.
 - **A plane** (`DriftLayer`, no ADR): a point `(x, y)` is on screen at `screen/2 + ((x, y) − centre) × zoom`, the centre
   the camera's times its parallax plus its drift (`Scatter.Centre`): it moves its parallax at every zoom and zooms about
-  the screen's middle without reshuffling. Past the farthest zoom (`ShipCamera.FarthestZoom`), a dev view's, it is
-  drawn as at that zoom.
+  the screen's middle without reshuffling. Past `ShipCamera.FarthestZoom` (a dev view's) it is drawn as at that zoom.
 - **Placed by a hash** (`Scatter`, no ADR): each tile holds `Mean` things, rounded down or up by a hash of the plane's
   seed and the tile; each thing's place and looks come from its own hash, so panning away and back shows the same
-  (`ScatterTests`). Wrecks and dust drift by the world's time (`Stars.Seconds`, set by `Main`), so every peer sees
-  the same; the stars keep their local stream.
-- **Drawn once** (no ADR): a plane is drawn into its canvas item and carried by the node's position and scale; it
-  redraws only when the screen reaches past the tiles drawn (a tile of margin each way) or the zoom changes.
+  (`ScatterTests`). Wrecks and dust drift by the world's time (`Stars.Seconds`), alike for every peer; stars by local time.
+- **Drawn once** (no ADR): a plane is drawn into its canvas item, moved by its node, and redrawn only when the screen
+  passes the tiles drawn (a tile of margin) or the zoom changes.
 
 - **A tool's icon** (2026-10-27-tool-icons): a held look has no 16 px picture. `ItemIcons.Icon(item, side)` bakes its icon
   picture (`icons/`, driver-icons) for the side it is drawn at (`ToolIcon`), drawn 1:1. `Icon(item)` is the world's, at its real size:
