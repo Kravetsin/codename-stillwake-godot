@@ -186,8 +186,8 @@ public sealed partial class CreaturesModule
 
     /// <summary>
     /// The first thing a shot of <paramref name="p"/> meets in <paramref name="cell"/>, past those in <paramref name="passed"/>: what is
-    /// solid as for a body, else, for a projectile that hits bodies, the lowest-id live creature in it, else a machine that breaks,
-    /// once by its top-left (hit-targets), else the first wreck of <paramref name="wrecks"/> still out; null for none.
+    /// solid as for a body, else, for a projectile that hits bodies, the lowest-id live creature in it, else a machine,
+    /// once by its top-left, the lifepod stopping it whole (one-damage-rule), else the first wreck of <paramref name="wrecks"/> still out; null for none.
     /// </summary>
     private Target? TargetIn(int cell, Content.Projectile p, IReadOnlyList<WreckBox> wrecks, IReadOnlyList<ShotPass> passed)
     {
@@ -199,7 +199,7 @@ public sealed partial class CreaturesModule
         }
         if (!p.HitsBodies) return null;
         if (CreatureIn(cell, passed) is { } creature) return new Target(new ShotPass(ShotTarget.Creature, creature.Id), creature);
-        if (_built.TargetAt(cell) is { Kind: TargetKind.Machine, Strength: not null, Wreck: false } machine
+        if (_built.TargetAt(cell) is { Kind: TargetKind.Machine, Wreck: false } machine
             && new ShotPass(ShotTarget.Machine, machine.Key) is var met && !passed.Contains(met))
             return new Target(met, null);
         return WreckIn(cell, wrecks, passed) is { } wreck ? new Target(new ShotPass(ShotTarget.Wreck, wreck.Piece), null) : null;
@@ -276,13 +276,14 @@ public sealed partial class CreaturesModule
     /// <paramref name="s"/>'s burst from <paramref name="cell"/> (blasting-charge, unified-damage): <see cref="IBuildingOps.Burst"/> of
     /// <paramref name="blast"/>'s power, what it breaks dropped there for anyone. Then every wreck within its reach takes its damage, in
     /// spawn order; a creature's burst (catcher-combat) takes its projectile's damage off every awake hero within its reach in its sight,
-    /// in id order, once. Creatures are untouched, and heroes by a hero's. The cell it spread from; -1 where it could not, from where a
-    /// burst stops.
+    /// in id order, once. Creatures are untouched, and heroes by a hero's. The cell it went off at: it goes off wherever its shot ends,
+    /// the grid taking it only where a burst may enter (one-damage-rule).
     /// </summary>
     private int Burst(Shot s, Content.Blast blast, int cell)
     {
         int peer = s.By.Kind == RefKind.Hero ? s.By.Id : FloorStack.Nobody;
-        if (!_building.Burst(peer, cell, blast.Power, blast.Reach, Sim.Building.Spoils.Drop)) return -1;
+        // It goes off wherever it ends: the grid takes it only where a burst may enter (not past the zone, nor in the lifepod).
+        _building.Burst(peer, cell, blast.Power, blast.Reach, Sim.Building.Spoils.Drop);
         long cx = cell % _grid.Width * Unit + Unit / 2, cy = cell / _grid.Width * Unit + Unit / 2, reach = (long)blast.Reach * Unit;
         foreach (var w in _wrecks)
         {
