@@ -240,6 +240,25 @@ public class BlastChargeTests
     }
 
     [Fact]
+    public void AWreckItsHitBreaksStopsItThereNeverFlownThrough()
+    {
+        var w = ShotsTests.Space().GiveItems(0, (Charge, 1));
+        var debris = (DebrisState)w.M.Debris.Slice;
+        Piece Wreck(int x) => new() { Id = debris.NextId++, Zone = Spec.Debris.Far.Id, Item = "engineBlock", X = x, Y = 10_000, Start = x, SeenAt = debris.Clock };
+        // The first all but broken, so the charge's own hit breaks it; the second behind it, past the burst's reach.
+        var weak = Wreck(30_000);
+        weak.Damage = Spec.Wreckage.HpOf(weak.Item)!.Value - 1;
+        var behind = Wreck(80_000);
+        debris.Pieces.AddRange([weak, behind]);
+        SentryTests.Guarded(w);
+        var end = Thrown(w, At(10, 10, Right));
+        Assert.True(end.Met);
+        Assert.True(end.Burst >= 0 && end.Burst % 320 < 30, "it bursts where it struck the first");
+        Assert.DoesNotContain(weak, debris.Pieces);
+        Assert.Equal(0, behind.Damage);
+    }
+
+    [Fact]
     public void InAVesselItBurstsOnItsHullInFull()
     {
         var w = new Scenario(Registry.Wreck);
