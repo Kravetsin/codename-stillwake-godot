@@ -5,10 +5,10 @@ namespace Stillwake.Game.Render;
 
 /// <summary>
 /// What bends as bodies brush it (plant-stirs): grass, tufts and a cave's floor moss, drawn with a material whose
-/// <c>vertex()</c> moves each vertex by the <see cref="Stirs"/> pushed here each frame — by its height over a point's ground
-/// (none at or under it, whole a blade's height up, none two blades up) and across a cell either side of it. A quad's top
-/// leans whole by its middle, so its blades bend as a clump rather than stretch; its tips drop along their arc. Lit pictures
-/// bend through <see cref="Lit.SetBending"/>; a glow added over them through <see cref="Glow"/>.
+/// <c>vertex()</c> moves each vertex sideways by the <see cref="Stirs"/> pushed here each frame — by its height over a point's
+/// ground (none at or under it, whole a blade's height up, none two blades up) and across a cell either side of it. The push
+/// depends only on where a vertex is in the world, so tiles side by side stay joined. Lit pictures bend through
+/// <see cref="Lit.SetBending"/>; a glow added over them through <see cref="Glow"/>.
 /// </summary>
 public static class Bend
 {
@@ -24,25 +24,17 @@ public static class Bend
             uniform float wind_roll = 0.0;
             uniform float windy = 0.0;
 
-            // The push on vertex `corner` (VERTEX_ID: 0 top left, 3 top right) of a quad at `at` in the world. A quad's top leans
-            // whole, both corners by its middle a cell in, so its blades bend as a clump and are never stretched; each clump a
-            // little stiffer or softer than the next; a bent tip drops along its arc, a 16 px blade by lean² / 32.
-            vec2 stirred(vec2 at, int corner) {
-                bool tip = corner == 0 || corner == 3;
-                float x = at.x + (corner == 0 ? 4.0 : (corner == 3 ? -4.0 : 0.0));
+            vec2 stirred(vec2 at, bool tip) {
                 float by = 0.0;
                 for (int i = 0; i < stir_count; i++) {
                     vec4 s = stirs[i];
-                    float across = 1.0 - abs(x - s.x) / 8.0;
+                    float across = 1.0 - abs(at.x - s.x) / 8.0;
                     if (across <= 0.0) continue;
                     float up = s.y - at.y;
                     by += s.z * across * clamp(up / 16.0, 0.0, 1.0) * (1.0 - smoothstep(16.0, 32.0, up));
                 }
-                float stiff = fract(sin(floor(x / 8.0) * 12.9898) * 43758.5453);
-                by *= 0.7 + 0.6 * stiff;
-                if (tip) by += windy * wind * (0.8 + 0.2 * sin(x * 0.045 - wind_roll) + 0.15 * sin(wind_roll * 2.0 + stiff * 40.0));
-                by = clamp(by, -8.0, 8.0);
-                return vec2(by, by * by / 32.0);
+                if (tip) by += windy * wind * (0.8 + 0.2 * sin(at.x * 0.045 - wind_roll));
+                return vec2(clamp(by, -8.0, 8.0), 0.0);
             }
             """;
 
@@ -60,7 +52,7 @@ public static class Bend
             Code = "shader_type canvas_item;\nrender_mode blend_add, unshaded;\n" + Code + """
 
                 void vertex() {
-                    VERTEX += stirred((MODEL_MATRIX * vec4(VERTEX, 0.0, 1.0)).xy, VERTEX_ID);
+                    VERTEX += stirred((MODEL_MATRIX * vec4(VERTEX, 0.0, 1.0)).xy, VERTEX_ID == 0 || VERTEX_ID == 3);
                 }
                 """,
         },

@@ -69,10 +69,9 @@ public sealed class Stirs
         _gone.Clear();
         foreach (var (key, point) in _points)
         {
-            float k = w * Uneven(key.Column);
             for (int i = 0; i < steps; i++)
             {
-                point.Speed += (k * k * (point.Push - point.Offset) - 2 * z * k * point.Speed) * h;
+                point.Speed += (w * w * (point.Push - point.Offset) - 2 * z * w * point.Speed) * h;
                 point.Offset += point.Speed * h;
             }
             if (point.Push == 0 && MathF.Abs(point.Offset) < Still && MathF.Abs(point.Speed) < Still * w) _gone.Add(key);
@@ -85,19 +84,6 @@ public sealed class Stirs
         _gone.Sort((a, b) => Stirring(_points[a], w).CompareTo(Stirring(_points[b], w)));
         int excess = _points.Count - Most;
         for (int i = 0; i < excess; i++) _points.Remove(_gone[i]);
-    }
-
-    /// <summary>
-    /// How much faster or slower than the feel's rate the grass at <paramref name="column"/> springs, 0.8 to 1.2 by a hash: side
-    /// by side, clumps move out of step, as blades do, never as one sheet.
-    /// </summary>
-    public static float Uneven(int column)
-    {
-        uint h = unchecked((uint)column * 0x9E3779B1u);
-        h ^= h >> 15;
-        h = unchecked(h * 0x85EBCA77u);
-        h ^= h >> 13;
-        return 0.8f + 0.4f * (h & 0xFFFF) / 65535f;
     }
 
     private static float Stirring(Point point, float w) => MathF.Abs(point.Offset) + MathF.Abs(point.Speed) / w;
