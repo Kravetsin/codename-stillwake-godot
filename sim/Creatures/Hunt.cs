@@ -141,33 +141,57 @@ internal sealed class HuntDrive : DriveRule
     }
 
     /// <summary>
-    /// Its hunt where things float (catchers-space): no path, no salvo. Its quarry shut in a room, it is short and lobs its charge at
-    /// what stands between them; lagging, it blinks ahead or near in open space; else it flies straight at its quarry, sliding along
-    /// what it meets.
+    /// Its hunt where things float (catchers-space): no path, no salvo. Its quarry shut in a room, it is short and stands off the hull to
+    /// lob its charge (<see cref="StandOff"/>); lagging, it blinks ahead or near in open space; else it flies straight at its quarry,
+    /// sliding along what it meets.
     /// </summary>
     private static void Afloat(CreaturesModule m, Creature c, Spec.Species spec, Spec.Hunt hunt, Spec.Flyer f, (int X, int Y) at, bool lags)
     {
         bool shut = m.InRoom(m.CellOf(at));
         c.Keep(Short, shut ? 1 : 0);
-        if (shut) LobAtShelter(m, c, spec, hunt, at);
-        else if (lags && m.Clock >= c.Recall(BlinkNext) && StartBlink(m, c, hunt, f, at)) return;
+        if (shut && StandOff(m, c, spec, hunt, at)) return;
+        if (!shut && lags && m.Clock >= c.Recall(BlinkNext) && StartBlink(m, c, hunt, f, at)) return;
         FlyAt(c, spec, hunt, at, m);
     }
 
+    /// <summary>How many cells either side of <c>Lob.Standoff</c> a catcher holds and throws: a band, so it does not hunt for the cell.</summary>
+    private const int StandoffSlack = 2;
+
     /// <summary>
-    /// Its way straight at its quarry, its middle on the middle of its quarry's cell: at <c>Speed</c> on the longer axis, the other
-    /// its share, rounded toward none; never past it. The body stops each axis at what it meets, so it slides along a hull.
+    /// Its quarry shut in a room where things float (catcher-standoff): from <c>Lob.Standoff</c> cells off the hull it meets on the line
+    /// to its quarry, give or take <see cref="StandoffSlack"/>, it holds and throws its charge, the throw seen; nearer, it backs off along
+    /// that line, throwing from where it can back off no more. Farther, or no hull on the line, false: it comes on.
     /// </summary>
-    private static void FlyAt(Creature c, Spec.Species spec, Spec.Hunt hunt, (int X, int Y) at, CreaturesModule m)
+    private static bool StandOff(CreaturesModule m, Creature c, Spec.Species spec, Spec.Hunt hunt, (int X, int Y) at)
     {
-        int dx = m.Middle(at.X) - c.X, dy = m.Middle(at.Y) + spec.Body.Height * Unit / 2 - c.Y;
-        int longer = Math.Max(Math.Abs(dx), Math.Abs(dy));
-        if (longer <= hunt.Speed)
+        int x = c.X, y = c.Y - spec.Body.Height * Unit / 2;
+        if (m.FirstSolid(x, y, m.Middle(at.X), m.Middle(at.Y)) is not int hull) return false;
+        int dx = m.Middle(hull % m.GridWidth) - x, dy = m.Middle(hull / m.GridWidth) - y;
+        int off = Math.Max(Math.Abs(dx), Math.Abs(dy)) / Unit;
+        if (off > hunt.Lob.Standoff + StandoffSlack) return false;
+        if (off < hunt.Lob.Standoff - StandoffSlack)
         {
-            (c.VX, c.VY) = (dx, dy);
-            return;
+            var (vx, vy) = Toward(-dx, -dy, hunt.Speed);
+            if (m.Clear(spec.Body, c.X, c.Y, c.X + vx, c.Y + vy))
+            {
+                (c.VX, c.VY) = (vx, vy);
+                return true;
+            }
         }
-        (c.VX, c.VY) = ((int)((long)dx * hunt.Speed / longer), (int)((long)dy * hunt.Speed / longer));
+        Hold(c);
+        LobAtShelter(m, c, spec, hunt, at);
+        return true;
+    }
+
+    /// <summary>Its way straight at its quarry, its middle on the middle of its quarry's cell (<see cref="Toward"/>). The body stops each axis at what it meets, so it slides along a hull.</summary>
+    private static void FlyAt(Creature c, Spec.Species spec, Spec.Hunt hunt, (int X, int Y) at, CreaturesModule m) =>
+        (c.VX, c.VY) = Toward(m.Middle(at.X) - c.X, m.Middle(at.Y) + spec.Body.Height * Unit / 2 - c.Y, hunt.Speed);
+
+    /// <summary>A velocity along (<paramref name="dx"/>, <paramref name="dy"/>): <paramref name="speed"/> on the longer axis, the other its share, rounded toward none; never past the end.</summary>
+    private static (int, int) Toward(int dx, int dy, int speed)
+    {
+        int longer = Math.Max(Math.Abs(dx), Math.Abs(dy));
+        return longer <= speed ? (dx, dy) : ((int)((long)dx * speed / longer), (int)((long)dy * speed / longer));
     }
 
     /// <summary>Every <c>Sample</c> ticks, how far its quarry went since the last sample, and where it is now.</summary>

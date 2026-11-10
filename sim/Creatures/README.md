@@ -62,11 +62,11 @@ drives, moves and yields, each a rule here. The dead are gone to all from the bl
 - **Lurkers** (lurker-attacks): walkers on `Guard`, seeing in line. The capback `Vent`s at one within `Strike`
   (`Cooldown`); provoked `Provokes` ticks by answering, it lobs at one `From` to `Reach`, a puddle (`Leaves`) laid as it lands
   `Lingers` on, harmless. The snail's `Shell` opens `Hold` past a hero in `Reach`; it bites, a short lunge.
-- **The catcher** (tracker-catchers, catcher-paths, -combat): on the beat a `Hunted` hero with none gets one
-  `RingFrom..RingTo` columns off, unseen. `Hunt` runs a `Path`, beams at its quarry in sight (`Gunfire`); lagging or short, `Blink`s
-  ahead or near; lifts for a `Salvo`; shut out, lobs a charge (`Lob`). Pounces within `Strike`, answers blows. Out of `Ticks`,
-  killed or quarryless: `CallOff`, up. Afloat, all in `Space`: no path or salvo, it flies straight,
-  sliding; shut out: its quarry in a room.
+- **The catcher** (tracker-catchers and on): on the beat a `Hunted` hero with none gets one
+  `RingFrom..RingTo` columns off, unseen. `Hunt` runs a `Path`, beams at its quarry seen (`Gunfire`); lagging or short, `Blink`s
+  ahead or near; lifts for a `Salvo`; shut out, lobs a charge (`Lob`). Pounces in `Strike`, answers blows. Out of `Ticks`,
+  killed or quarryless: `CallOff`, up. Afloat, all in `Space`, no path or salvo: it flies straight,
+  sliding; shut out: its quarry in a room, thrown `Standoff` off.
 - **Patches** (`PatchKind`) last `Lasts`; each breath an awake hero in one seen from its middle pays `Damage` (`Shock`, `Stings`).
 - **The warden** (`Posted`, `Ward`): on the beat at a standing post with a standing relic in its arena, a hero in its keep box,
   none tied to it. Woken by an awake hero in the arena, a blow or a sibling, it pounces if no sibling acts (`Flies`: to the first
