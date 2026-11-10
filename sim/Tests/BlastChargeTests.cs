@@ -259,6 +259,21 @@ public class BlastChargeTests
     }
 
     [Fact]
+    public void ThrownPointBlankAtAWreckItBurstsTheTickItIsThrownSayingWhoseItIs()
+    {
+        var w = ShotsTests.Space().GiveItems(0, (Charge, 1));
+        var debris = (DebrisState)w.M.Debris.Slice;
+        var wreck = new Piece { Id = debris.NextId++, Zone = Spec.Debris.Far.Id, Item = "engineBlock", X = 12_000, Y = 10_000, Start = 12_000, SeenAt = debris.Clock };
+        debris.Pieces.Add(wreck);
+        SentryTests.Guarded(w);
+        w.Do(At(10, 10, Right)).Run();
+        var end = Assert.Single(w.M.Creatures.Ended);
+        Assert.True(end.Met && end.Burst >= 0);
+        Assert.Equal(Ref.Hero(0), end.By);
+        Assert.Empty(w.M.Creatures.Shots);
+    }
+
+    [Fact]
     public void InAVesselItBurstsOnItsHullInFull()
     {
         var w = new Scenario(Registry.Wreck);
