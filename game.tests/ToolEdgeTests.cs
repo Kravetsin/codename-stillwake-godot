@@ -36,7 +36,7 @@ public class ToolEdgeTests
             near["y"] = 8 * Unit;
             var far = near.DeepClone();
             far["id"] = 99;
-            far["x"] = 16 * Unit;
+            far["x"] = 14 * Unit;
             pieces.Add(far);
         });
         return (w, w.M.Debris.Pieces[0], w.M.Debris.Pieces.Single(p => p.Id == 99));

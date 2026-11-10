@@ -25,21 +25,14 @@ public static class WorkLooks
         return each * perSecond / ThrowsPerSecond;
     }
 
-    /// <summary>The air a tool works (tool-reach): pale cyan as the air round a hero (<c>AirSwirl</c>); a stroke's dust, paler grey.</summary>
-    public static readonly Ink.Tone AirInk = Ink.Tone.Of(200, 240, 255, 1), DustInk = Ink.Tone.Of(222, 228, 234, 1);
-
-    /// <summary>A thrust's dust thrown out over this many ms; a stroke's seen this long after it, the sledgehammer's longer.</summary>
-    public const double ThrustSweepMs = 65;
-
-    /// <summary>How long a stroke's dust is seen after its blade crosses: the sledgehammer's blow lingers.</summary>
-    public static double CutFadeOf(string? tool) => tool == Content.Weapons.Sledgehammer.Item ? 320 : 220;
+    /// <summary>The air a tool works (tool-reach): pale cyan as the air round a hero (<c>AirSwirl</c>).</summary>
+    public static readonly Ink.Tone AirInk = Ink.Tone.Of(200, 240, 255, 1);
 
     /// <summary>
-    /// A running tool's zone: eased in over <see cref="ZoneIn"/> ms and out over <see cref="ZoneOut"/>; its dry-brush strokes step
-    /// round every <see cref="BrushStepMs"/>, the drill's cone a turn in <see cref="DrillTurnMs"/>, the grinder's disc in
-    /// <see cref="DiscTurnMs"/>; the cone <see cref="ConeBase"/> pixels either side at the bit, the disc <see cref="DiscRadius"/> round its hub.
+    /// A running tool's zone: eased in over <see cref="ZoneIn"/> ms and out over <see cref="ZoneOut"/>; the grinder's disc
+    /// <see cref="DiscRadius"/> pixels round its hub.
     /// </summary>
-    public const double ZoneIn = 120, ZoneOut = 220, BrushStepMs = 45, DrillTurnMs = 520, DiscTurnMs = 900, ConeBase = 12, DiscRadius = 24;
+    public const double ZoneIn = 120, ZoneOut = 220, DiscRadius = 24;
 
     /// <summary>
     /// Sparks a second off a wreck, each living <see cref="SparkLife"/> ms and flying <see cref="SparkSpeed"/> pixels a second at

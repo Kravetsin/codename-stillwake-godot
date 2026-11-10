@@ -38,7 +38,7 @@ public partial class HeroView
     /// drawn as the sim flies them, the fire heard here as it fires. A gun held to charge (2026-10-27-the-railgun) charges while held
     /// with its cooldown out, heard rising, pinged full, its coils lit as it fills (<see cref="Figure.Charge"/>); a belt that cannot
     /// pay its charge clicks dry, as no ammo does. Out in space a shot kicks the hero back along the barrel by its gun's
-    /// <c>Recoil</c> (<see cref="Hero.Kicked"/>).
+    /// <c>Recoil</c>, on the ground shoves it (<see cref="Hero.Kicked"/>), and the body answers it (<see cref="Figure.Recoiled"/>, body-answers).
     /// </summary>
     private void Shoot(Client client, Registry m, Content.Gun? gun, bool wields, bool clicked, bool held, bool hosts, double elapsedMs)
     {
@@ -62,10 +62,15 @@ public partial class HeroView
         {
             client.Send(fire);
             if (gun != null && _ship != null)
-                _current = _current.Kicked(Mathf.RoundToInt(-_figure.Barrel.X * gun.Recoil), Mathf.RoundToInt(-_figure.Barrel.Y * gun.Recoil), _ship);
+            {
+                _current = _current.Kicked(Mathf.RoundToInt(-_figure.Barrel.X * gun.Recoil), Mathf.RoundToInt(-_figure.Barrel.Y * gun.Recoil), _ship,
+                    Mathf.RoundToInt(-_figure.Barrel.X * gun.Recoil * BodyAnswers.Shove));
+                if (gun.Recoil > 0) _figure.Recoiled((double)gun.Recoil / BodyAnswers.FullRecoil);
+            }
             bool thrown = fire.Tool == Content.Shots.Thrown.Item;
             (thrown ? _chargeThrow : fire.Tool == Content.Shots.Railgun.Item ? _railShot : _nailShot).Play();
             if (!thrown) Puff(_figure);
+            if (fire.Tool == Content.Shots.Railgun.Item) ShotGust(m);
         }
         if (step.Dry)
         {

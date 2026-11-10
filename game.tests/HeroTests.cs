@@ -1104,9 +1104,10 @@ public class HeroTests
         // Swimming against it, the hero gains on it at once and the kick still fades.
         var against = adrift.Kicked(-200, 0, opened).Step(new HeroInput(1, 0, false), opened);
         Assert.Equal(adrift.X - 200 + Spec.Swim, against.X);
-        // Aboard, under gravity, a shot kicks no one.
+        // Aboard, under gravity, a shot drifts no one: standing, it may be shoved across instead (body-answers).
         var woke = Hero.At(opened, Spawn);
-        Assert.Equal(woke, woke.Kicked(-200, 0, opened));
+        Assert.Equal(woke with { Vx = -260 }, woke.Kicked(-200, 300, opened, -260));
+        Assert.Equal(woke, woke.Kicked(-200, 300, opened));
     }
 
     [Fact]

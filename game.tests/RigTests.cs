@@ -49,17 +49,17 @@ public class RigTests
         Close(-Math.PI / 2, Rig.HeldTurn(arm, axe), 9);
         Close(fist, Rig.HeldAt(arm, axe, axe.Grip).X, 9);
         Close(0, Rig.HeldAt(arm, axe, axe.Grip).Y, 9);
-        // Ten pixels on along the haft is ten up; three toward the blade, three on.
+        // Ten pixels on along the haft is ten up, drawn at its size; three toward the blade, three on.
         var up = Rig.HeldAt(arm, axe, (axe.Grip.X + 10, axe.Grip.Y));
         var on = Rig.HeldAt(arm, axe, (axe.Grip.X, axe.Grip.Y + 3));
         Close(fist, up.X, 9);
-        Close(-10, up.Y, 9);
-        Close(fist + 3, on.X, 9);
+        Close(-10 * axe.Size, up.Y, 9);
+        Close(fist + 3 * axe.Size, on.X, 9);
         Close(0, on.Y, 9);
         // Hanging, the haft points ahead and the blade down.
         var hanging = new Bend(0, 0);
         var head = Rig.HeldAt(hanging, axe, (axe.Grip.X + 10, axe.Grip.Y));
-        Close(10, head.X, 9);
+        Close(10 * axe.Size, head.X, 9);
         Close(Rig.Arm.Upper + Rig.Arm.Lower - Rig.FistBack, head.Y, 9);
     }
 

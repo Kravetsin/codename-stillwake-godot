@@ -43,11 +43,21 @@ public struct SwingArm
         if (handOver && _drawn is Bend was)
             (_offset, _sinceMs, _blendMs) = (new Bend(Poses.Apart(wanted.Upper, was.Upper), was.Lower - wanted.Lower), 0, blendMs ?? BlendMs);
         else _sinceMs += elapsedMs;
-        double t = Math.Min(1, _sinceMs / (_blendMs ?? BlendMs)), left = 1 - t * t * (3 - 2 * t);
+        double left = Left(_sinceMs, _blendMs ?? BlendMs);
         // The elbow never folds back further than the arm wanted, whatever the pose does meanwhile.
         var drawn = new Bend(wanted.Upper + _offset.Upper * left, Math.Max(Math.Min(0, wanted.Lower), wanted.Lower + _offset.Lower * left));
         _drawn = drawn;
         return drawn;
+    }
+
+    /// <summary>
+    /// How much of a hand-over's offset is left <paramref name="sinceMs"/> into one eased over <paramref name="blendMs"/>: all of it at
+    /// first, none at the end, eased in and out. The body's layer eases so too (<see cref="BodyBlend"/>).
+    /// </summary>
+    public static double Left(double sinceMs, double blendMs)
+    {
+        double t = Math.Min(1, sinceMs / blendMs);
+        return 1 - t * t * (3 - 2 * t);
     }
 
     /// <summary>

@@ -193,6 +193,7 @@ public sealed record MotionPlay(Sector Sector, SwingMotion Motion, IReadOnlyList
     {
         Ease.Sine => (1 - Math.Cos(t * Math.PI)) / 2,
         Ease.In => t * t,
+        Ease.Out => 1 - (1 - t) * (1 - t),
         _ => t,
     };
 

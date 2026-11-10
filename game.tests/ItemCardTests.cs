@@ -341,12 +341,12 @@ public class ItemCardTests
         Assert.Equal(stats.Damage.ToString(), fitted.Tiles![0].Value);
         Assert.Equal(stats.Draw, fitted.Draw);
         var up = new CardBoost("arc", true, "×2");
-        Assert.Equal([("2", "Damage"), ("8", "Block"), ("0.1s", "Hits every"), ("45°", "Swing"), ("8 cells", "Range")], Said(fitted.Tiles));
+        Assert.Equal([("2", "Damage"), ("8", "Block"), ("0.1s", "Hits every"), ("45°", "Swing"), ("5.5 cells", "Range")], Said(fitted.Tiles));
         Assert.Equal([up, up, null, null, null], fitted.Tiles.Select(t => t.Boost));
         Assert.Equal((2, up), (fitted.Draw, fitted.DrawBoost));
         Assert.Equal([arc], fitted.Fitted);
         // The plain drill's, unmarked: no stale draw of 1 on the fitted one, nor a mark on the plain.
-        Assert.Equal([("1", "Damage"), ("4", "Block"), ("0.1s", "Hits every"), ("45°", "Swing"), ("8 cells", "Range")], Said(plain.Tiles));
+        Assert.Equal([("1", "Damage"), ("4", "Block"), ("0.1s", "Hits every"), ("45°", "Swing"), ("5.5 cells", "Range")], Said(plain.Tiles));
         Assert.All(plain.Tiles!, t => Assert.Null(t.Boost));
         Assert.Equal((1, (CardBoost?)null), (plain.Draw, plain.DrawBoost));
         Assert.Empty(plain.Fitted);

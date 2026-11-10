@@ -22,7 +22,11 @@ public class BenchLookTests
         var (cx, cy) = look.Clamp!.Value;
         Assert.True(cx < w && cy < h, $"{item}'s clamp lies outside its picture");
         var at = BenchLook.ToolAt(look);
-        Assert.True(BenchLook.Fits(at, w, h), $"{item} at {at}, {w}×{h}, sticks out past the bench");
+        // Drawn at its size, its clamp on the jaws to the nearest pixel.
+        var (dw, dh) = ((int)Math.Ceiling(w * look.Size), (int)Math.Ceiling(h * look.Size));
+        Assert.True(BenchLook.Fits(at, dw, dh), $"{item} at {at}, {dw}×{dh}, sticks out past the bench");
+        Assert.InRange(at.X + cx * look.Size - BenchLook.Clamp.X, -0.5, 0.5);
+        Assert.InRange(at.Y + cy * look.Size - BenchLook.Clamp.Y, -0.5, 0.5);
         // Every frame it is drawn in is its picture's size, so a spun or loaded one lies alike (only the still one is drawn there).
         foreach (var frame in look.Spin ?? []) Assert.Equal((w, h), Png.SizeOf(frame));
     }
@@ -39,13 +43,14 @@ public class BenchLookTests
     }
 
     [Fact]
-    public void TheDrillLiesAsThePickedDesignDrewItItsCoilWhereTheBurstStrikes()
+    public void TheDrillLiesAtItsSizeByItsMotorItsCoilOverTheTable()
     {
-        // The vise's manifest: the drill's top-left at (0, 4), its coil from (3, 7.5) to (11, 10.5).
+        // The vise's manifest drew it whole at (0, 4); at three quarters (tool-size) it lies at (4, 6), its coil from (6.25, 8.6) to (12.25, 10.9).
         var drill = HeldLook.Drill;
-        Assert.Equal((0, 4), BenchLook.ToolAt(drill));
+        Assert.Equal((4, 6), BenchLook.ToolAt(drill));
         var box = drill.Mounts![0].Box;
-        Assert.Equal((3, 7.5, 11, 10.5), (box.X0, box.Y0 + 4, box.X1, box.Y1 + 4));
+        var (x0, y0, x1, y1) = (4 + box.X0 * drill.Size, 6 + box.Y0 * drill.Size, 4 + box.X1 * drill.Size, 6 + box.Y1 * drill.Size);
+        Assert.True(x0 >= 0 && x1 <= BenchLook.Width && y1 <= BenchLook.TableTop, $"its coil at ({x0}, {y0})–({x1}, {y1}) is off the table");
     }
 
     [Fact]
