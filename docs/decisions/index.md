@@ -319,12 +319,17 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [switched-off-sign](2026-11-08-switched-off-sign.md) | Switched-off sign | accepted |  |
 | [catcher-combat](2026-11-09-catcher-combat.md) | Catcher combat | accepted |  |
 | [catcher-paths](2026-11-09-catcher-paths.md) | Catcher paths | accepted | catcher-combat, damage-scale (in part) |
-| [damage-scale](2026-11-09-damage-scale.md) | One damage scale; the own ship takes a tenth | accepted |  |
+| [damage-scale](2026-11-09-damage-scale.md) | One damage scale; the own ship takes a tenth | accepted | one-damage-rule (in part) |
 | [round-blasts](2026-11-09-round-blasts.md) | Blasts are round | accepted | unified-damage (in part) |
-| [tracker-catchers](2026-11-09-tracker-catchers.md) | Catchers | accepted | catcher-combat, catcher-paths (in part) |
+| [tracker-catchers](2026-11-09-tracker-catchers.md) | Catchers | accepted | catcher-combat, catcher-paths, catcher-loot (in part) |
 | [unified-damage](2026-11-09-unified-damage.md) | One rule for damage | accepted | damage-scale (in part) |
 | [air-gusts](2026-11-10-air-gusts.md) | An action stirs its surroundings | accepted |  |
 | [blade-trail](2026-11-10-blade-trail.md) | A blade leaves its own trail, a haze | accepted |  |
 | [body-answers](2026-11-10-body-answers.md) | The body answers the weapon | accepted |  |
+| [catcher-loot](2026-11-10-catcher-loot.md) | Catcher loot | accepted |  |
+| [catcher-missile](2026-11-10-catcher-missile.md) | Catcher missile | accepted |  |
+| [catcher-motion](2026-11-10-catcher-motion.md) | Catcher motion | accepted |  |
 | [hit-targets](2026-11-10-hit-targets.md) | One answer to what a hit strikes | accepted |  |
+| [one-damage-rule](2026-11-10-one-damage-rule.md) | One damage rule for every hit | accepted |  |
+| [plant-stirs](2026-11-10-plant-stirs.md) | Plants stirred by bodies | accepted |  |
 | [tool-size](2026-11-10-tool-size.md) | Held tools are drawn smaller, and reach no longer follows the model | accepted |  |

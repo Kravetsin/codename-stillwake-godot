@@ -558,9 +558,10 @@ public partial class CaveView : Node2D, ILightSource
     {
         public readonly Pictures Pictures = new() { ZIndex = Layers.Flora, Texture = Atlas.Pictures };
         public readonly Pictures Shine = new() { ZIndex = Layers.Flora, Material = GlowMaterial, Texture = Atlas.Glows };
-        // Moss on a floor over the living edge's chips laid before the heroes' feet, which hid it: added after the ground's.
+        // Moss on a floor over the living edge's chips laid before the heroes' feet, which hid it: added after the ground's. It bends
+        // as bodies brush it (plant-stirs).
         public readonly Pictures Front = new() { ZIndex = Layers.GroundFront, Texture = Atlas.Pictures };
-        public readonly Pictures FrontShine = new() { ZIndex = Layers.GroundFront, Material = GlowMaterial, Texture = Atlas.Glows };
+        public readonly Pictures FrontShine = new() { ZIndex = Layers.GroundFront, Material = Bend.Glow, Texture = Atlas.Glows };
         public readonly List<LightSource> Lights = [];
         public readonly List<(Vector2 At, Color Colour, int Own)> Glints = [];
         public readonly List<(Vector2 At, Color Colour)> Spores = [];
@@ -570,7 +571,7 @@ public partial class CaveView : Node2D, ILightSource
         public Patch()
         {
             Lit.Set(Pictures);
-            Lit.Set(Front);
+            Lit.SetBending(Front, windy: false);
             AddChild(Pictures);
             AddChild(Shine);
             AddChild(Front);

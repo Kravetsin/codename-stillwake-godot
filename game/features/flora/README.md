@@ -6,13 +6,18 @@
 | --- | --- |
 | `CaveView.cs` | What grows in a planet's caves, seen (0080): chunks of growths, their glows, lights, glints and drift. |
 | `FloraView.cs` | What grows on a planet's surface, seen (0079): a sprite per plant standing, its glow, lights and motes. |
-| `logic/BoxesByLeft.cs` | Boxes kept sorted by their left edge: the glowing plants near the view found each frame without walking every plant (planet-frame-rate). |
+| `logic/BoxesByLeft.cs` | Boxes sorted by their left edge: the plants meeting a box found without walking every plant (planet-frame-rate). |
 | `logic/Felling.cs` | Which plants were felled since the cave view last looked: the cells it kept and those standing halved by binary search, not a set of all. |
 | `logic/Planting.cs` | Where what grows is drawn against what holds it (0079, 0080), in world pixels, plain C# so it is tested. |
+| `logic/Brushes.cs` | When a body brushing a plant sways it: once a while a plant (plant-stirs). |
+| `logic/Leafage.cs` | How many leaves a bush or a tree has left to lose, growing back (plant-stirs). |
+| `logic/Gusts.cs` | The wind, a look only: calm, then a gust one way, rising, fluttering, dying (plant-stirs). |
+| `logic/Sway.cs` | A bush or a tree swaying about its foot: kicked by a brush or a hit, held over by a gust (plant-stirs). |
+| `logic/Topple.cs` | A felled tree falling over about its foot, away from its feller, rebounding once (plant-stirs). |
 | `logic/VeinGlints.cs` | Which vein cells glint on their open faces: one in `CaveLooks.VeinGlintEvery`, by the planet's seed and the cell. |
 
 What grows on a planet, seen: on its surface (0079) and in its caves (0080). The plants are Building's
-(`sim/Building/Flora.cs`): grown from the seed with the ground, felled by a hit or with what holds them. This feature
+(`sim/Building/Flora.cs`), grown from the seed with the ground, felled by a hit or with what holds them. This feature
 only draws them — the surface's in `FloraView`, the caves' in `CaveView`; the stone by depth is the grid's (`Strata`).
 
 ## Surface (0079)
@@ -25,10 +30,19 @@ only draws them — the surface's in `FloraView`, the caves' in `CaveView`; the 
   the middle of its cell, those rows not drawn, so it stands in the ground. What glows (`{kind}_{variant}_glow`) is a
   second sprite added unlit at `Layers.Flora`, never over a hero in front of it.
 - **Light:** each glow picture's brightest six-pixel squares, at most `FloraLooks.MostLights` a plant, light in their
-  colour (`Lights`, read by the light feature for the plants near the view), found by their boxes (`BoxesByLeft`), never by
-  a walk over every plant each frame.
-- **Felled:** a plant gone from `Plants` falls away in `FloraLooks.Fallen` leaves (a rock's pebbles), matter behind the
-  walls (`Luminous.Low`). Only the count is compared each frame; the list is walked only when it changed (no ADR).
+  colour (`Lights`, read by the light feature for the plants near the view), found by their boxes (`BoxesByLeft`).
+- **Felled:** a plant gone from `Plants` falls away in `FloraLooks.Fallen` chips (a rock's pebbles, a bush its leaves), matter behind the
+  walls (`Luminous.Low`). The list is walked only when its count changed (no ADR). An
+  acacia (`Stir.Topples`) instead falls over about its foot, away from the hero nearest it (`Topple`), leaves flying off
+  its crown as it starts and where it lands; it lies `LieSeconds`, then fades.
+- **Stirred** ([plant-stirs](../../../docs/decisions/2026-11-10-plant-stirs.md)): every hero's feet push the grass round them
+  (`Stirs`, fed here, handed to `Bend`); the grid's grass edge and the tufts (`Stir.Bends`) bend by it. A
+  body brushing a bush or an acacia (`BoxesByLeft`) sways it about its foot (`Sway`, the picture's skew, its glow a child);
+  one going through a bush drags its leaves behind it (`Swing.Trail`), a hit shakes them off a crown
+  (`Hit`), `Leafage` at most; a tree only sways. The leaves are `render/Leaves`, drawn by `LeafLayer` with
+  `LeafPictures`: an acacia's blots, a bush's sprigs (`Flights`). How grass answers is `FloraLooks.Grass`.
+- **Wind** (plant-stirs): on a surface with plants, a gust now and then (`Gusts`) leans grass's and tufts' tips, holds the
+  bushes and trees in view over and blows `Breeze.Leaves` a second across the view. F9 in `--planet` blows one now.
 - **Motes** (0075): while a glowing plant is in view, `FloraLooks.MotesASecond` soft dots, at most `MostMotes` alive:
   `NearShare` by a glowing part in its colour, the rest pale gold in the open air of a column in view (its first wall
   down, under no back wall). They drift up, curling, fade over 3.5–7 s and give no light; none off the screen.
@@ -48,6 +62,7 @@ warm amber and red near the bottom.
   `{kind}_{band}_{variant}`, in its band's stone. Moss is one picture per open face of its stone (`top` tufts, `bottom`
   strands, `left`/`right` a film), green in the cold band, teal deeper; a run of moss on one face has its pieces cut to meet at their blocks' edges
   (`Planting.Piece`, [its ADR](../../../docs/decisions/2026-11-01-moss-in-ink.md)). No other kind tiles.
+- **Stirred:** a floor's moss and its glow (`Front`, `FrontShine`) bend as heroes brush them (plant-stirs).
 - **Redrawn:** a felled growth's chunk (a glowing one puffing spores, a spike its pebbles); the chunks round a grid change.
 - **Pictures** are cut from the cave concept's drawing code by its export, glow blooms in `_glow`: change the code and
   export again, never edit the pictures. The ruins' cache and the spire's lens (0085, 0096): the lens lit while its
@@ -69,6 +84,6 @@ warm amber and red near the bottom.
 
 ## Deliberately not handled
 
-- Swaying, wind, seasons: the pictures stand still.
+- A steady wind, seasons: a plant moves when a body brushes it, a hit shakes it or a gust blows (plant-stirs).
 - A plant's light is a small lamp's in daylight too, where it hardly shows (no ADR).
 - Moss grows only on stone, on whichever faces are open now, so digging beside it shows more of it.

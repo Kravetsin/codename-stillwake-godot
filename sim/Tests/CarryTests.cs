@@ -166,7 +166,7 @@ public class CarryTests
     }
 
     [Fact]
-    public void AboardTheShipNoCarryLeavesAVesselsBox()
+    public void ACarryOutOfAVesselsBoxTakesATenthOffTheShip()
     {
         var w = new Scenario(Registry.Wreck);
         w.Do(new Find("shuttle")).Run();
@@ -184,7 +184,7 @@ public class CarryTests
         Assert.Empty(w.Refusals);
         Assert.Null(w.M.Grid.WallAt(hull));
         Assert.NotNull(w.M.Grid.WallAt(hull - 1));
-        Assert.Empty(Cracks(w));
+        Assert.Equal([(hull - 1, (blows * Pick.BlockDamage - strength) * Pick.Carries / 100 * Damage.OwnShipTakes / 1000)], Cracks(w));
     }
 
     [Fact]

@@ -658,9 +658,16 @@ public static class Sound
     public static readonly Cue CatcherLaunch = new(Shots("creatures/catcher-launch", 1), -1.5f, Pitch: 0.04f, Heard: BreakReach);
     public static readonly Cue CatcherLaser = new(Shots("creatures/catcher-laser", 1), -1.5f, Pitch: 0.04f, Heard: ToolReach);
 
+    /// <summary>
+    /// The catcher's missile (catcher-missile), the user's picks: a fighter's lock-on warble as its tell begins, heard as far as its salvo
+    /// (<see cref="CatcherLock"/>); a rocket's hiss looped where it flies (<see cref="MissileFlight"/>). It leaves as the salvo, bursts as the charge.
+    /// </summary>
+    public static readonly Cue CatcherLock = new(Shots("creatures/catcher-lock", 1), -1.5f, Pitch: 0.02f, Heard: BreakReach);
+    public static readonly Cue MissileFlight = Looped("creatures/missile-flight", -1.5f, ToolReach);
+
     /// <summary>What <paramref name="projectile"/> fired from <paramref name="gun"/> sounds like leaving: a creature's, gunless, by what it is.</summary>
     public static Cue FiredOf(string projectile, string? gun) =>
-        gun != null ? FiredBy(gun) : projectile == Content.Shots.Shell.Id ? CatcherLaunch : projectile == Content.Shots.BlastCharge.Id ? ChargeThrow : NailShot;
+        gun != null ? FiredBy(gun) : projectile == Content.Shots.Shell.Id || projectile == Content.Shots.Missile.Id ? CatcherLaunch : projectile == Content.Shots.BlastCharge.Id ? ChargeThrow : NailShot;
 
     /// <summary>
     /// The cave lurkers' attacks (lurker-attacks), the user's picks: a capback venting its gas or spitting its glob, a valve's hiss
@@ -741,7 +748,7 @@ public static class Sound
     /// <summary>The descent's cues, made from others declared above.</summary>
     public static readonly IReadOnlyList<Cue> Pod = [PodThrust, PodRelease, PodTouchdown, PodRumble, PodFlash, PodBlast];
 
-    public static readonly IReadOnlyList<Cue> All = [Title, Space, Step, Land, Jump, Alarm, CatcherBeep, Screwdriver, PowerDriverBite, PowerDriverLoop, PowerDriverOff, Hiss, Click, Clink, VentHum, DoorOpen, DoorClose, Valve, Act, ActInSpace, Fire, Swing, Chop, Break, Shot, Drum, Ready, NailShot, DryClick, NailHit, NailReady, RailCharge, RailReady, RailShot, ChargeThrow, ChargeBurst, ArcStruck, ArcHit, CatcherAim, CatcherGather, CatcherBlink, CatcherLaunch, CatcherLaser, CapbackHiss, CapbackSplat, ShellClink, Hurt, AirFill, Inhale, Thrust, ChargerHum, ChargeFull, DrillWhir, FormerStroke, FormerMotor, SmelterHum, SmelterCrackle, CrusherRun, DroneWhir, DroneDock, DroneGrab, SalvageThrust, MusicBox, Zap,
+    public static readonly IReadOnlyList<Cue> All = [Title, Space, Step, Land, Jump, Alarm, CatcherBeep, Screwdriver, PowerDriverBite, PowerDriverLoop, PowerDriverOff, Hiss, Click, Clink, VentHum, DoorOpen, DoorClose, Valve, Act, ActInSpace, Fire, Swing, Chop, Break, Shot, Drum, Ready, NailShot, DryClick, NailHit, NailReady, RailCharge, RailReady, RailShot, ChargeThrow, ChargeBurst, ArcStruck, ArcHit, CatcherAim, CatcherGather, CatcherBlink, CatcherLaunch, CatcherLaser, CatcherLock, MissileFlight, CapbackHiss, CapbackSplat, ShellClink, Hurt, AirFill, Inhale, Thrust, ChargerHum, ChargeFull, DrillWhir, FormerStroke, FormerMotor, SmelterHum, SmelterCrackle, CrusherRun, DroneWhir, DroneDock, DroneGrab, SalvageThrust, MusicBox, Zap,
         StepGrass, StepSoil, StepStone, StepAlloy, LandSoft, LandHard, LandAlloy, HitSoil, HitStone, BreakSoil, BreakStone,
         ChopWood, TreeFall, Bush, Grass, Crystal, Glowcap, WoodBreak, ClothTear, GlassBreak, MetalBreak, CeramicBreak, LavaBed,
         LavaBubble, LavaBurn, CaveDrip, SplashIn, SplashOut, SwimStroke, WaterPour, CreatureDeath, .. Ticks.Values.SelectMany(t => new[] { t.Alert, t.WindUp, t.Unclamp, t.Clamp, t.Snap, t.Death }), .. Istukans.Values.SelectMany(g => new[] { g.Wake, g.Alert, g.WindUp, g.Pounce, g.Killed, g.ShutDown }), .. RamHits.Values, .. Pod];

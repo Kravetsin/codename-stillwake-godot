@@ -16,17 +16,18 @@ public readonly record struct HitPoint(double X, double Y, double Nx, double Ny)
 public static class Impacts
 {
     /// <summary>
-    /// A hit at <paramref name="cell"/>: the natural wall's material there decides; the ship's hull, never broken, sparks as metal,
-    /// so a shot is seen to land; a pile in the hold as a wreck (2026-11-07-pile-hits-felt); else the growth's kind; none for what is
-    /// never struck.
+    /// A hit at <paramref name="cell"/>, as what it strikes there (<see cref="BuildingModule.TargetAt"/>, hit-targets): a natural wall
+    /// by its material; what is built, a wall, a piece or a machine, sparks as metal; a pile in the hold as a wreck
+    /// (2026-11-07-pile-hits-felt); a plant as its growth; none for open air.
     /// </summary>
-    public static Impact? At(IGridQueries grid, BuildingModule building, int cell)
+    public static Impact? At(IGridQueries grid, BuildingModule building, int cell) => building.TargetAt(cell) switch
     {
-        if (grid.WallAt(cell) is { } wall)
-            return !wall.Natural ? Impact.Alloy : HitLooks.GroundOf(wall);
-        if (building.TargetAt(cell) is { Wreck: true }) return Impact.Wreck;
-        return building.PlantAt(cell) is { } plant && HitLooks.Growths.TryGetValue(plant.Kind, out var growth) ? growth : null;
-    }
+        { Kind: TargetKind.Wall } when grid.WallAt(cell) is { Natural: true } wall => HitLooks.GroundOf(wall),
+        { Wreck: true } => Impact.Wreck,
+        { Kind: TargetKind.Wall or TargetKind.Piece or TargetKind.Machine } => Impact.Alloy,
+        { Kind: TargetKind.Plant } when building.PlantAt(cell) is { } plant && HitLooks.Growths.TryGetValue(plant.Kind, out var growth) => growth,
+        _ => null,
+    };
 
     /// <summary>
     /// The share of a whole hit, the axe's, that one of <paramref name="tool"/>'s throws: its pace over the axe's, so a drill's ten
@@ -37,23 +38,12 @@ public static class Impacts
 
     /// <summary>
     /// The share of a whole hit <paramref name="tool"/>'s hit at <paramref name="cell"/> throws: a tool's own (<see cref="ShareOf"/>),
-    /// but the whole for the hit that breaks the wall there or fells the growth, once an object, a crystal's only hit among them:
-    /// one whose <paramref name="damage"/>, the sim's for its sender (<c>IItemsQueries.Damage</c>, a module's boost in it), reaches it.
+    /// but the whole for the hit that breaks what it strikes there, once an object, a crystal's only hit among them: one whose
+    /// <paramref name="damage"/>, the sim's for its sender <paramref name="peer"/> (a module's boost in it), breaks it as the sim
+    /// would (<see cref="BuildingModule.Breaks"/>), their own ship at a tenth.
     /// </summary>
-    public static double ShareAt(IGridQueries grid, BuildingModule building, int cell, string tool, int damage)
-    {
-        if (grid.WallAt(cell) is { } wall && wall.Strength != Spec.Material.Unbreakable) return CrackAt(building, cell) + damage >= wall.Strength ? 1 : ShareOf(tool);
-        if (building.TargetAt(cell) is { Wreck: true, Strength: int hp } pile) return CrackAt(building, pile.Key) + damage >= hp ? 1 : ShareOf(tool);
-        if (building.PlantAt(cell) is not { } plant) return ShareOf(tool);
-        return CrackAt(building, plant.Cell) + damage >= Spec.Flora.Get(plant.Kind).Strength ? 1 : ShareOf(tool);
-    }
-
-    private static int CrackAt(BuildingModule building, int cell)
-    {
-        foreach (var crack in building.Cracks)
-            if (crack.Cell == cell) return crack.Damage;
-        return 0;
-    }
+    public static double ShareAt(BuildingModule building, int cell, string tool, int damage, int peer) =>
+        building.Breaks(peer, cell, damage) ? 1 : ShareOf(tool);
 
     /// <summary>
     /// Where a hit on <paramref name="cell"/> from a hero at (<paramref name="fromX"/>, <paramref name="fromY"/>), in cells, lands:

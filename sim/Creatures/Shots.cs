@@ -1,3 +1,4 @@
+using Stillwake.Sim.Building;
 using Stillwake.Sim.Crew;
 using Stillwake.Sim.Debris;
 using Stillwake.Sim.Items;
@@ -113,22 +114,53 @@ public sealed partial class CreaturesModule
         var p = Content.Shots.Get(s.Projectile);
         var from = (s.X, s.Y);
         var gun = Content.Shots.GunOf(s.Gun);
+        if (p.Homes is { } homes && s.Heading is int heading && Steer(s, p, homes, heading))
+        {
+            int here = s.X / Unit + s.Y / Unit * _grid.Width;
+            _ended.Add(new ShotEnd(s.Id, s.By, s.Projectile, s.Gun, here, Met: false, p.Bursts is { } fuse ? Burst(s, fuse, here) : -1));
+            return false;
+        }
         var (next, met, last) = ShotFlight.Step(s.Motion, GravityAt(s.X, s.Y, p, gun), _grid.Width, _grid.Height, cell => Meets(s, p, gun, cell, from));
         if (met >= 0)
         {
             // It met something this tick: it bursts from the cell it flew from, short of what it met, so a wall there is entered at its cost.
             int burst = p.Bursts is { } blast ? Burst(s, blast, from.X / Unit + from.Y / Unit * _grid.Width) : -1;
-            _ended.Add(new ShotEnd(s.Id, s.Projectile, s.Gun, met, Met: true, burst));
+            _ended.Add(new ShotEnd(s.Id, s.By, s.Projectile, s.Gun, met, Met: true, burst));
             return false;
         }
         if (next.Left <= 0 || !ShotFlight.OnGrid(next.X, next.Y, _grid.Width, _grid.Height))
         {
             int burst = p.Bursts is { } blast ? Burst(s, blast, last) : -1;
-            _ended.Add(new ShotEnd(s.Id, s.Projectile, s.Gun, last, Met: false, burst));
+            _ended.Add(new ShotEnd(s.Id, s.By, s.Projectile, s.Gun, last, Met: false, burst));
             return false;
         }
         (s.X, s.Y, s.VY, s.Left) = (next.X, next.Y, next.VY, next.Left);
         return true;
+    }
+
+    /// <summary>
+    /// A homing shot's turn before its step (catcher-missile): the nearest awake hero (by squared distance, the first in the crew's
+    /// order at a tie) within its burst's reach and in its sight, true: it bursts where it is. Else its heading turns toward that
+    /// hero's middle by at most its <c>Turn</c> and its speed is set along it, rounded toward zero; no awake hero, it flies on straight.
+    /// </summary>
+    private bool Steer(Shot s, Content.Projectile p, Content.Homing homes, int heading)
+    {
+        (int X, int Y)? target = null;
+        long best = long.MaxValue;
+        foreach (var hero in _crew.Heroes)
+        {
+            if (HeroAt(hero.Id, awake: true) is not { } at) continue;
+            long dx = Middle(at.X) - s.X, dy = Middle(at.Y) - s.Y;
+            if (dx * dx + dy * dy < best) (best, target) = (dx * dx + dy * dy, at);
+        }
+        if (target is not { } t) return false;
+        int reach = p.Bursts?.Reach ?? 0, ex = t.X - s.X / Unit, ey = t.Y - s.Y / Unit;
+        if (ex * ex + ey * ey <= reach * reach && Sees(s.X, s.Y, t)) return true;
+        int turn = Math.Clamp(Rays.FineApart(heading, Rays.FineHeadingTo(Middle(t.X) - s.X, Middle(t.Y) - s.Y)), -homes.Turn, homes.Turn);
+        s.Heading = (heading + turn) & (Rays.FineTurn - 1);
+        var (ux, uy) = Rays.FineDirection(s.Heading.Value);
+        (s.VX, s.VY) = (ux * homes.Speed / Unit, uy * homes.Speed / Unit);
+        return false;
     }
 
     /// <summary>
@@ -144,12 +176,12 @@ public sealed partial class CreaturesModule
         while (TargetIn(cell, p, _wrecks, s.Passed) is { } target)
         {
             if (target.Pass == broken) throw new InvalidOperationException($"creatures.shot: {target.Pass} still in {cell} once broken");
-            if (target.Pass.What == ShotTarget.Solid)
+            if (Built(target.Pass))
             {
                 int block = s.Carry ?? Content.Shots.BlockDamageOf(s.Gun, p.Id);
                 bool hits = Takes(target.Pass, block);
                 int? left = hits ? _building.Hit(peer, target.Pass.Id, block) : null;
-                _hits.Add(new ShotHit(s.Id, s.By, s.Projectile, s.Gun, cell, from, ShotTarget.Solid, hits ? block : 0, left != null, target.Pass.Id));
+                _hits.Add(new ShotHit(s.Id, s.By, s.Projectile, s.Gun, cell, from, target.Pass.What, hits ? block : 0, left != null, target.Pass.Id));
                 if (CarryPast(gun, left) is not int carry) return true;
                 (s.Carry, s.Pierced, broken) = (carry, s.Pierced + 1, target.Pass);
                 continue;
@@ -157,7 +189,7 @@ public sealed partial class CreaturesModule
             int damage = Content.Shots.DamageOf(s.Gun, p.Id, s.Pierced);
             bool takes = Takes(target.Pass, damage), broke = takes && HitAt(s, peer, target, damage);
             _hits.Add(new ShotHit(s.Id, s.By, s.Projectile, s.Gun, cell, from, target.Pass.What, takes ? damage : 0, broke, target.Pass.Id));
-            if (!Pierces(gun, takes, broke)) return true;
+            if (!Pierces(p, gun, takes, broke)) return true;
             s.Pierced += 1;
             if (broke) broken = target.Pass;
             else s.Passed.Add(target.Pass);
@@ -165,11 +197,19 @@ public sealed partial class CreaturesModule
         return false;
     }
 
-    /// <summary>Whether a hit of <paramref name="damage"/> on <paramref name="target"/> takes anything: some left, and what is solid there breakable by a shot (<see cref="IBuildingQueries.ShotTakes"/>).</summary>
-    private bool Takes(ShotPass target, int damage) => damage > 0 && (target.What != ShotTarget.Solid || _built.ShotTakes(target.Id));
+    /// <summary>Whether a hit of <paramref name="damage"/> on <paramref name="target"/> takes anything: some left, and what is built there breakable by a shot (<see cref="IBuildingQueries.ShotTakes"/>).</summary>
+    private bool Takes(ShotPass target, int damage) => damage > 0 && (!Built(target) || _built.ShotTakes(target.Id));
 
-    /// <summary>Whether a shot of <paramref name="gun"/> flies on through the body its hit took (<paramref name="takes"/>) and killed or broke (<paramref name="broke"/>): every one it takes for a gun that pierces all, else what died.</summary>
-    private static bool Pierces(Content.Gun? gun, bool takes, bool broke) => gun?.Pierces == Content.Pierce.All ? takes : broke;
+    /// <summary>Whether <paramref name="target"/> is what stands on the grid, taking block damage: what is solid, or a machine (hit-targets).</summary>
+    private static bool Built(ShotPass target) => target.What is ShotTarget.Solid or ShotTarget.Machine;
+
+    /// <summary>
+    /// Whether a shot of <paramref name="p"/> from <paramref name="gun"/> flies on through the body its hit took (<paramref name="takes"/>) and
+    /// killed or broke (<paramref name="broke"/>): every one it takes for a gun that pierces all, else what died; never one that bursts, which
+    /// goes off at the first thing it meets.
+    /// </summary>
+    private static bool Pierces(Content.Projectile p, Content.Gun? gun, bool takes, bool broke) =>
+        p.Bursts == null && (gun?.Pierces == Content.Pierce.All ? takes : broke);
 
     /// <summary>
     /// What a shot of <paramref name="gun"/> carries past a cell whose hit left <paramref name="left"/> (unified-damage): the gun's share of
@@ -182,8 +222,8 @@ public sealed partial class CreaturesModule
 
     /// <summary>
     /// The first thing a shot of <paramref name="p"/> meets in <paramref name="cell"/>, past those in <paramref name="passed"/>: what is
-    /// solid as for a body, else, for a projectile that hits bodies, the lowest-id live creature in it, else the first wreck of
-    /// <paramref name="wrecks"/> still out; null for none.
+    /// solid as for a body, else, for a projectile that hits bodies, the lowest-id live creature in it, else a machine,
+    /// once by its top-left, the lifepod stopping it whole (one-damage-rule), else the first wreck of <paramref name="wrecks"/> still out; null for none.
     /// </summary>
     private Target? TargetIn(int cell, Content.Projectile p, IReadOnlyList<WreckBox> wrecks, IReadOnlyList<ShotPass> passed)
     {
@@ -195,6 +235,9 @@ public sealed partial class CreaturesModule
         }
         if (!p.HitsBodies) return null;
         if (CreatureIn(cell, passed) is { } creature) return new Target(new ShotPass(ShotTarget.Creature, creature.Id), creature);
+        if (_built.TargetAt(cell) is { Kind: TargetKind.Machine, Wreck: false } machine
+            && new ShotPass(ShotTarget.Machine, machine.Key) is var met && !passed.Contains(met))
+            return new Target(met, null);
         return WreckIn(cell, wrecks, passed) is { } wreck ? new Target(new ShotPass(ShotTarget.Wreck, wreck.Piece), null) : null;
     }
 
@@ -226,7 +269,7 @@ public sealed partial class CreaturesModule
     /// <see cref="Shot.Pierced"/> does: a copy starts with none. For the shooter's client to fly its own shot ahead of the sim's
     /// (shots-are-the-sims, 2026-10-27-shots-pierce, unified-damage).
     /// </summary>
-    public ShotTick StepOf(ShotMotion f, Content.Projectile p, string? gun, IReadOnlyList<ShotPass> passed, int? carry = null)
+    public ShotTick StepOf(ShotMotion f, Content.Projectile p, string? gun, IReadOnlyList<ShotPass> passed, int? carry = null, int peer = FloorStack.Nobody)
     {
         var wrecks = p.HitsBodies && _debris.Pieces.Count > 0 ? _debris.Wrecks() : [];
         var hits = new List<ShotHit>();
@@ -237,12 +280,12 @@ public sealed partial class CreaturesModule
         {
             while (TargetIn(cell, p, wrecks, through) is { } target)
             {
-                if (target.Pass.What == ShotTarget.Solid)
+                if (Built(target.Pass))
                 {
                     int block = carry ?? Content.Shots.BlockDamageOf(gun, p.Id);
                     bool strikes = Takes(target.Pass, block);
-                    int? left = strikes ? _built.Surplus(cell, block) : null;
-                    hits.Add(new ShotHit(0, Ref.None, p.Id, gun, cell, from, ShotTarget.Solid, strikes ? block : 0, left != null, target.Pass.Id));
+                    int? left = strikes ? _built.Surplus(peer, cell, block) : null;
+                    hits.Add(new ShotHit(0, Ref.None, p.Id, gun, cell, from, target.Pass.What, strikes ? block : 0, left != null, target.Pass.Id));
                     if (CarryPast(spec, left) is not int more) return true;
                     carry = more;
                     through.Add(target.Pass);
@@ -255,7 +298,7 @@ public sealed partial class CreaturesModule
                     _ => _debris.Breaks(target.Pass.Id, damage),
                 };
                 hits.Add(new ShotHit(0, Ref.None, p.Id, gun, cell, from, target.Pass.What, takes ? damage : 0, breaks, target.Pass.Id));
-                if (!Pierces(spec, takes, breaks)) return true;
+                if (!Pierces(p, spec, takes, breaks)) return true;
                 through.Add(target.Pass);
             }
             return false;
@@ -269,13 +312,14 @@ public sealed partial class CreaturesModule
     /// <paramref name="s"/>'s burst from <paramref name="cell"/> (blasting-charge, unified-damage): <see cref="IBuildingOps.Burst"/> of
     /// <paramref name="blast"/>'s power, what it breaks dropped there for anyone. Then every wreck within its reach takes its damage, in
     /// spawn order; a creature's burst (catcher-combat) takes its projectile's damage off every awake hero within its reach in its sight,
-    /// in id order, once. Creatures are untouched, and heroes by a hero's. The cell it spread from; -1 where it could not, from where a
-    /// burst stops.
+    /// in id order, once. Creatures are untouched, and heroes by a hero's. The cell it went off at: it goes off wherever its shot ends,
+    /// the grid taking it only where a burst may enter (one-damage-rule).
     /// </summary>
     private int Burst(Shot s, Content.Blast blast, int cell)
     {
         int peer = s.By.Kind == RefKind.Hero ? s.By.Id : FloorStack.Nobody;
-        if (!_building.Burst(peer, cell, blast.Power, blast.Reach, Sim.Building.Spoils.Drop)) return -1;
+        // It goes off wherever it ends: the grid takes it only where a burst may enter (not past the zone, nor in the lifepod).
+        _building.Burst(peer, cell, blast.Power, blast.Reach, Sim.Building.Spoils.Drop);
         long cx = cell % _grid.Width * Unit + Unit / 2, cy = cell / _grid.Width * Unit + Unit / 2, reach = (long)blast.Reach * Unit;
         foreach (var w in _wrecks)
         {
@@ -307,6 +351,23 @@ public sealed partial class CreaturesModule
         int vy = (int)((y1 - y0 - g * flight * (flight - 1) / 2 - flight * (g / 2)) / flight);
         State.Fired += 1;
         var shot = new Shot { Id = State.Fired, Projectile = p.Id, By = Ref.None, X = x0, Y = y0, VX = (x1 - x0) / flight, VY = vy, Left = 3 * flight };
+        shot.Passed.Add(new ShotPass(ShotTarget.Creature, c.Id));
+        State.Shots.Add(shot);
+    }
+
+    /// <summary>
+    /// <paramref name="c"/>'s launch of a homing <paramref name="projectile"/> (catcher-missile) from (<paramref name="x"/>, <paramref name="y"/>)
+    /// along fine heading <paramref name="heading"/> at its speed, rounded toward zero, flying <paramref name="flight"/> ticks at most; its
+    /// launcher flown through. None from off the grid.
+    /// </summary>
+    internal void Launch(Creature c, string projectile, int x, int y, int heading, int flight)
+    {
+        if (!ShotFlight.OnGrid(x, y, _grid.Width, _grid.Height)) return;
+        var p = Content.Shots.Get(projectile);
+        var (ux, uy) = Rays.FineDirection(heading);
+        int speed = p.Homes!.Speed;
+        State.Fired += 1;
+        var shot = new Shot { Id = State.Fired, Projectile = p.Id, By = Ref.None, X = x, Y = y, VX = ux * speed / Unit, VY = uy * speed / Unit, Left = flight, Heading = heading };
         shot.Passed.Add(new ShotPass(ShotTarget.Creature, c.Id));
         State.Shots.Add(shot);
     }

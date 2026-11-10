@@ -35,6 +35,6 @@ public static class Cues
             Stream = Of(cue),
             PitchScale = cue.Tune,
             Bus = bus,
-            MaxPolyphony = voices,
+            Voices = voices,
         };
 }

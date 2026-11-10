@@ -466,7 +466,7 @@ public partial class Main : Node2D, ITogether
         var context = new SurfaceContext(_m, _hands, () => (_session as Session)?.Progress ?? 0, () => _hero?.HeadLamps() ?? [], HeroBodies,
             Homes: !Has("--no-homes"), HomesMood: Arg("--homes") switch { "lit" => true, "dark" => false, _ => null },
             Peer: () => (_session as Session)?.Client.Id ?? 0, Tick: () => (_session as Session)?.Client.World.Tick ?? 0,
-            Hosts: () => (_session as Session)?.Host != null, Arrivals: _arrivals, Seed: _seed);
+            Hosts: () => (_session as Session)?.Host != null, Arrivals: _arrivals, Seed: _seed, Heroes: HeroFeet);
         foreach (var each in SurfaceViews.All)
         {
             if (each.Make(context) is not { } view) continue;
@@ -672,6 +672,22 @@ public partial class Main : Node2D, ITogether
     }
 
     private readonly List<Godot.Vector2> _heroBodies = [];
+
+    /// <summary>Every hero on this surface: its feet, in pixels of the world, and how fast it goes across, in pixels a second (plant-stirs).</summary>
+    private IReadOnlyList<(Godot.Vector2 Feet, float Vx)> HeroFeet()
+    {
+        _heroFeet.Clear();
+        if (_hero == null) return _heroFeet;
+        foreach (var other in _hero.Others) _heroFeet.Add(FeetOf(other.Hero));
+        _heroFeet.Add(FeetOf(_hero.Current));
+        return _heroFeet;
+    }
+
+    private readonly List<(Godot.Vector2 Feet, float Vx)> _heroFeet = [];
+
+    // Its speed in thousandths of a cell a controller step, 60 steps a second (Content.Hero).
+    private static (Godot.Vector2, float) FeetOf(Hero h) =>
+        (new((float)(h.X / (double)Hero.Unit * ShipCamera.Cell), (float)(h.Y / (double)Hero.Unit * ShipCamera.Cell)), (float)(h.Vx * 60.0 / Hero.Unit * ShipCamera.Cell));
 
     private static Godot.Vector2 MiddleOf(Hero h) =>
         new((float)(h.X / (double)Hero.Unit * ShipCamera.Cell), (float)((h.Y - Content.Hero.Height / 2.0) / Hero.Unit * ShipCamera.Cell));

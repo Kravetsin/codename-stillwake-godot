@@ -5,13 +5,14 @@
 | File | Purpose |
 | --- | --- |
 | `AsciiArt.cs` | Small pictures drawn as ASCII in code, kept under a key. |
+| `Bend.cs` | Grass bent by `Stirs` (plant-stirs). |
 | `logic/Blueprint.cs` | How plans join the plans beside them when drawn. |
-| `BlueprintArt.cs` | What a placement looks like built: for plans, ghosts and build menu thumbnails. |
+| `BlueprintArt.cs` | A placement as built: for plans, ghosts and build menu thumbnails. |
 | `logic/Bolts.cs` | The electric arcs in the world (0075). |
 | `logic/Breath.cs` | How what is aimed at breathes: its outline and a tool's glowing faces on one clock. |
 | `BuiltParts.cs` | What of the plans being built is already real (0063). |
 | `logic/Buttons.cs` | The mouse buttons as the world reads them: presses and releases since the last take. |
-| `logic/CableShape.cs` | A cable as drawn: where it meets its nodes, how it hangs, where it goes through the hull. |
+| `logic/CableShape.cs` | A cable as drawn: its ends at nodes, its hang, its way through the hull. |
 | `logic/DoorShape.cs` | One door, every shape (0067): a doorway's pictures by the joins of its cells. |
 | `DriftLayer.cs` | A plane of the backdrop behind the ship, things scattered over its tiles by `Scatter`. |
 | `DrillLight.cs` | A drill's own light while it runs (0054, 0075, 0094). |
@@ -26,14 +27,16 @@
 | `logic/HitBurst.cs` | A hit's look thrown where it lands (0094). |
 | `logic/IconCanvas.cs` | A glowing line icon's pixels (`IconLooks`). |
 | `logic/WreckDress.cs` | Which wreck plates show rust, stripes or a tear; a torn cell's pixels. |
-| `logic/ToolIcon.cs` | A tool's icon: its held picture turned up-right, fitted, drawn off the grid. |
+| `logic/ToolIcon.cs` | A tool's icon: its held picture turned up-right and fitted. |
 | `logic/IconShow.cs` | Where and how a glowing line icon is drawn (0086, 0097). |
 | `logic/Ink.cs` | The picked looks' pen, blob and band as triangles (damage-looks). |
 | `InkCanvas.cs` | An `Ink` drawn in one call, its arrays kept. |
-| `HiRes.cs` | The anime art's pictures, 4x their logical pixels, sampled smoothly. |
+| `HiRes.cs` | The anime art's pictures at 4x, sampled smoothly. |
 | `GoodIcons.cs` | A good the mafia sells, as a picture. |
 | `ItemIcons.cs` | Each item's 16 px picture, a tool's baked icon a side, their white silhouettes. |
 | `logic/Layers.cs` | Where each thing in the world is drawn, back to front. |
+| `LeafLayer.cs` | `Leaves` drawn, lit, in a multimesh a picture. |
+| `logic/Leaves.cs` | Falling leaves: tumbling, blown, lying, fading (plant-stirs). |
 | `Lit.cs` | How light falls on everything the ship draws, one model. |
 | `logic/Luminous.cs` | How one kind of luminous particle looks and moves (0075). |
 | `MarchingDashes.cs` | Dashes marching along `OutlineRun`s. |
@@ -59,14 +62,15 @@
 | `Sketch.cs` | A node drawn by a callback: lines, boxes and dots a view works out itself. |
 | `SoftDots.cs` | Soft round pictures luminous things are drawn with (0075). |
 | `logic/Stages.cs` | Each draw layer's effects, a stage a z, and the figures' held stages. |
+| `logic/Stirs.cs` | Grass pushed by bodies' feet, springing back (plant-stirs). |
 | `Stars.cs` | Space behind the ship: a tile of stars over the screen, also behind the title. |
-| `WorldShot.cs` | A small picture of the world as the camera sees it, no HUD in it: the title's world cards. |
+| `WorldShot.cs` | The world as the camera sees it, without the HUD: the title's cards. |
 | `Strokes.cs` | Many soft-edged strokes of light in one draw call (0075). |
 | `Style.cs` | The panels' colours and boxes as Godot style boxes and label settings. |
 | `WorldButtons.cs` | The mouse over the world: feeds `Buttons`, a press only when no panel took it. |
 
 The backdrop behind the ship, drawn by the client only: nothing of it reaches the sim. Numbers: `Content/logic/Backdrop.cs`
-and the files' constants; the rest of `render/` is described where it is used and in its `///` summaries.
+and the files' constants; the rest in its `///` summaries.
 
 ## Rules
 
@@ -84,15 +88,12 @@ and the files' constants; the rest of `render/` is described where it is used an
     faster than the wrecks, slower than the debris.
 - **A plane** (`DriftLayer`, no ADR): a point `(x, y)` is on screen at `screen/2 + ((x, y) − centre) × zoom`, the centre
   the camera's times its parallax plus its drift (`Scatter.Centre`): it moves its parallax at every zoom and zooms about
-  the screen's middle without reshuffling. Past the farthest zoom (`ShipCamera.FarthestZoom`), a dev view's, it is
-  drawn as at that zoom.
+  the screen's middle without reshuffling. Past `ShipCamera.FarthestZoom` (a dev view's) it is drawn as at that zoom.
 - **Placed by a hash** (`Scatter`, no ADR): each tile holds `Mean` things, rounded down or up by a hash of the plane's
   seed and the tile; each thing's place and looks come from its own hash, so panning away and back shows the same
-  (`ScatterTests`). Wrecks and dust drift by the world's time (`Stars.Seconds`, set by `Main`), so every peer sees
-  the same; the stars keep their local stream.
-- **Drawn once** (no ADR): a plane is drawn into its canvas item and carried by the node's position and scale; it
-  redraws only when the screen reaches past the tiles drawn (a tile of margin each way) or the zoom changes.
-
+  (`ScatterTests`). Wrecks and dust drift by the world's time (`Stars.Seconds`), alike for every peer; stars by local time.
+- **Drawn once** (no ADR): a plane is drawn into its canvas item, moved by its node, and redrawn only when the screen
+  passes the tiles drawn (a tile of margin) or the zoom changes.
 - **A tool's icon** (2026-10-27-tool-icons): a held look has no 16 px picture. `ItemIcons.Icon(item, side)` bakes its icon
   picture (`icons/`, driver-icons) for the side it is drawn at (`ToolIcon`), drawn 1:1. `Icon(item)` is the world's, at its real size:
   a tool's plain held picture, any other's 16 px one.

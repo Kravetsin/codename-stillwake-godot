@@ -130,7 +130,7 @@ public class HitTargetTests
     }
 
     [Fact]
-    public void AboardARayPassesALadderToThePileBehindIt()
+    public void AboardARayStrikesALadderAndPassesItToThePileBehind()
     {
         var w = new Scenario(Layout.Parse("""
             .......
@@ -140,11 +140,13 @@ public class HitTargetTests
             =======
             """));
         var pile = w.M.Grid.MachinesOf("pileScrap").Single();
-        Assert.Equal([pile.Cell], Struck(w, Weapons.Axe.Item, 0, 2, Right).Cells);
+        var cells = Struck(w, Weapons.Axe.Item, 0, 2, Right).Cells;
+        Assert.Contains(pile.Cell, cells);
+        Assert.Contains(w.M.Building.TargetAt(2 * 7 + 1)!.Value.Key, cells);
     }
 
     [Fact]
-    public void OnAPlanetARayPassesAStationToTheWallBehindIt()
+    public void OnAPlanetARayStrikesAStationAndPassesItToTheWallBehind()
     {
         var w = Ground("""
             ........
@@ -164,6 +166,6 @@ public class HitTargetTests
         var furnace = w.M.Grid.MachinesOf("furnace").Single();
         var cells = Struck(w, Weapons.Drill.Item, 0, 2, Right).Cells;
         Assert.Contains(At(w, 5, 2), cells);
-        Assert.DoesNotContain(cells, c => w.M.Grid.MachineAt(c) == furnace);
+        Assert.Contains(furnace.Cell, cells);
     }
 }

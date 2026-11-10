@@ -85,10 +85,11 @@ This hero and others', client-authoritative (0002): only commands reach the sim.
 | `logic/Bodies.cs` | bodies (0061) |
 | `BodyView.cs` | bodies, beacons, tips (0061) |
 | `logic/Rams.cs` | rams and arcs |
-| `HunterView.cs` | catchers as heroes, fighting |
+| `HunterView.cs` | catchers |
 | `CatcherFxView.cs` | its light |
 | `Glitch.cs` | in bands |
-| `logic/CatcherFx.cs` | its picks |
+| `logic/CatcherFx.cs` | its fight |
+| `logic/CatcherMotion.cs` | moves |
 | `logic/Crew.En.cs` | its text |
 | `logic/Crew.Ru.cs` | Russian |
 
@@ -97,17 +98,17 @@ This hero and others', client-authoritative (0002): only commands reach the sim.
 - Lengths, speeds: thousandths of a cell (`Content.Hero`); a step 1000/60 ms (`Net.Clock`).
 - A step never ends in a wall, shut door or hatch, or past the grid; afloat with no jetpack the middle stays within
   `Hero.Tether` of its anchor. A door shut on it pushes it `Hero.PushStep` to the nearest fit, no speed (0089).
-- Doors walk as this peer shows them (0014); a press sends `SetDoor`/`SetValve` (0071), `SetPlatform`.
+- Doors go as this peer shows them (0014); a press sends `SetDoor`/`SetValve` (0071), `SetPlatform`.
 - **Holes, floors:** falls into holes it fits; down drops through floors; jump wins.
-- **Steps** (0106): a walk steps a cell up or down; two up stop it; drawn eased.
+- **Steps** (0106): a walk steps a cell up or down, two stop it; eased.
 - **Jump feel** (0089): coyote, buffer, short hop, eased apex.
-- **The figure follows its motion** (0090, hero-gait).
+- **The figure answers its motion** (0090, hero-gait), as sent.
 - **Rammed** (0103) **or arced** (`Rams.Hits`, once; beams burn): `HitBy`/`Bolted` sent, thrown, keys masked.
 - **Surfaces** (0076): `Ship.Of` rules: nothing floats on a planet, gravity the kind's `Fall`; fog glides
   a seam (`FogMove`, fog-edges).
-- **Camera:** leads, eases, snaps. **Markers** (0061): home, last body, friends heard, deliveries (lost: red), one's catcher. **Hurts**
+- **Camera:** leads, eases, snaps. **Markers** (0061): home, last body, friends heard, deliveries (lost red), a catcher. **Hurts**
   (hurts-are-shown) tint edges and gauge.
-- **Water** (liquids): swum `SwimDepth` deep, left by Space or shore; feet `WadeDepth` deep splash.
+- **Water** (liquids): swum `SwimDepth` deep, left by Space or shore; `WadeDepth` feet splash.
 - **Swim, haul, jetpack** (0047, tether-haul): afloat through floors, tied where it left the hull;
   Shift hauls in along the tether's bends (`Wraps`); a jetpack unties, Shift thrusts, `Thrust` sent while unlike the sim's.
 - **A canister** (0047, 0081): right click or R sends `Refill`, V `SuitMode` (regen-suit) if taken.
@@ -134,9 +135,9 @@ This hero and others', client-authoritative (0002): only commands reach the sim.
 - **One aim** (`Aiming.AimAt`): a plan (back walls first), machine (0099), tank, door, valve, a wreck
   pointed at, else the nearest small piece. Outlined green/red, `UsePrompt` says why; plan in hand, E idle. Armed, small pieces.
 - **Hits are rays** (tool-reach, hits-pass-wrecks): a fan (`ToolRays`) to a wall, through wrecks; ground rings, sparks.
-- **Struck tools** (0038, swing-motions): swung by sector, hitting as the blade crosses the aim; the body leans in.
+- **Struck tools** (0038, swing-motions): by sector, hitting as the blade crosses the aim; the body leans in.
 - **Harpoon, grapple** (0044, grapple-climbs): reel pieces, pull to walls; hung, refire; Space/RMB let go.
-- **A gun** (hold-to-fire): left held fires each cooldown; a `Charge` one fires let go full; flat, clicks dry. Afloat it kicks, standing shoves (`Recoil`, body-answers).
+- **A gun** (hold-to-fire): left held fires each cooldown; a `Charge` one fires let go full; flat, clicks dry. Kicks afloat, shoves standing (`Recoil`, body-answers).
 - **Drill, grinder, cutter** (0054, 0055): left held runs it (`Run`), hitting each `Pace` ticks, the cutter by its
   beam (`ToolEdges`), sparking (`ToolWork`).
 - **Power driver** (driver-at-work, driver-order): charged, works a 2×2 square (`WorkedSquare`); right click toggles (mode-glyph).

@@ -300,6 +300,20 @@ public static class Migrations
                 if (slices["building"]?["cracks"] is JsonArray cracks) cracks.Clear();
             return root;
         },
+        // 61 → 62 (catcher-loot): the wanted meter fills by the worth of loot, not by breaths of activity, so a saved one changes
+        // meaning; it empties, its need drawn again. A hunt on goes on: its catcher calls it off as it ends.
+        root =>
+        {
+            foreach (var slices in new[] { root["slices"]! }.Concat((root["surfaces"]?.AsArray() ?? []).Select(s => s!["slices"]!)))
+                if (slices["crew"]?["heroes"] is JsonArray heroes)
+                    foreach (var hero in heroes.OfType<JsonObject>())
+                    {
+                        hero.Remove("stirring");
+                        hero.Remove("wanted");
+                        hero.Remove("need");
+                    }
+            return root;
+        },
     ];
 
     /// <summary>The slices with liquids' empty one after building's, where its module runs: a save holds them in that order.</summary>

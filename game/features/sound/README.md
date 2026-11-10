@@ -34,7 +34,7 @@ Effects → World, Suit, Helmet); `game/shared/` `Cues.cs`, `ActSound.cs`, `Hear
   loud as the next. `Heard2D` turns Godot's fall-off off and sets the volume each frame; Godot still pans.
 - **Starts**: Godot starts a placed sound on the next physics tick, a second play before it replacing the first. So
   physics ticks 60 a second (the client has none; at 20 a drill lost half its hits), and `Heard2D` gives a second
-  play in one tick a spare voice (`VoiceStarts`), up to its `voices`.
+  play in one tick, or one while another rings, a free voice (`VoiceStarts`): a voice is one place.
 - **Tool idle** (0068): a tool working nothing (`DrillWhir`, `Swing`) plays at the one `Sound.ToolIdleDb`.
 - **Music** (0035, 0042) on Music, loops stopped once silent: the title's track while the title shows; the bed of
   space (`Sound.Space`) while the hero floats, the vents' hum taking over aboard.
