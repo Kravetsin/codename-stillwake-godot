@@ -39,7 +39,7 @@ public static class Lit
 
             void vertex() {
                 world = (MODEL_MATRIX * vec4(VERTEX, 0.0, 1.0)).xy;
-                vec2 by = stirred(world, VERTEX_ID == 0 || VERTEX_ID == 3);
+                vec2 by = stirred(world, VERTEX_ID);
                 VERTEX += by;
                 world += by;
             }

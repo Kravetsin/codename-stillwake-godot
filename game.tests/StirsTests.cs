@@ -123,4 +123,12 @@ public class StirsTests
             Assert.True(stirs.Count <= Stirs.Most, $"{stirs.Count} points");
         }
     }
+
+    [Fact]
+    public void ClumpsSideBySideSpringOutOfStepWithinAFifthOfTheFeel()
+    {
+        var rates = Enumerable.Range(-50, 100).Select(Stirs.Uneven).ToList();
+        Assert.All(rates, r => Assert.InRange(r, 0.8f, 1.2f));
+        Assert.True(rates.Zip(rates.Skip(1)).Count(p => Math.Abs(p.First - p.Second) > 0.05f) > 60, "neighbours differ");
+    }
 }
