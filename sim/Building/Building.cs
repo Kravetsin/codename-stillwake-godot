@@ -44,6 +44,9 @@ public sealed record SetInstant(bool On) : Command;
 /// <summary>What another module may read of what stands on the grid.</summary>
 public interface IBuildingQueries
 {
+    /// <summary>What a hit at <paramref name="cell"/> strikes (hit-targets): the one answer every hitter and view reads; none for open air.</summary>
+    HitTarget? TargetAt(int cell);
+
     /// <summary>
     /// Whether a shot's hit in <paramref name="cell"/> would take anything (2026-10-27-the-railgun): the surface's tools break things,
     /// the cell is in the grid's zone, and a breakable wall or a built piece stands there; what <see cref="IBuildingOps.Hit"/> guards by.

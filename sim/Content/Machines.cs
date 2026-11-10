@@ -68,7 +68,7 @@ namespace Stillwake.Content;
 /// <param name="Hp">
 /// Its hit points: broken by tools anywhere, each hit taking the weapon's damage as a wreck's do, giving its cost; never marked
 /// (the-scoop, 2026-11-07-pile-hit-points): a pile. Null for one only a mark takes apart, which bursts break at
-/// <see cref="Damage.MachineHp"/> (<see cref="HitPoints"/>).
+/// <see cref="Damage.MachineHp"/> (<see cref="Strength"/>).
 /// </param>
 /// <param name="Menu">Its card in the build menu (0114), and with it a blueprint; none for one never built (the lifepod, the piles).</param>
 /// <param name="Char">Its character in an ASCII map (<see cref="Legend"/>): drawn over its whole footprint, a character a 16 px cell; null for none.</param>
@@ -111,10 +111,13 @@ public sealed record MachineSpec(
     public bool Is(MachineTrait trait) => (Traits & trait) != 0;
 
     /// <summary>
-    /// What breaks it (unified-damage): a pile's <see cref="Hp"/>, in a weapon's damage; a built machine's <see cref="Damage.MachineHp"/>,
-    /// in tenths of strength, a scrap wall's, taken by bursts as walls take them; none for a <see cref="Fixed"/> one (the lifepod).
+    /// What breaks it (hit-targets): a pile's <see cref="Hp"/>, in a weapon's damage (<see cref="Wreck"/>); a built machine's
+    /// <see cref="Damage.MachineHp"/>, in tenths of strength, a scrap wall's; none for a <see cref="Fixed"/> one (the lifepod).
     /// </summary>
-    public int? HitPoints => Fixed ? null : Hp ?? Damage.MachineHp;
+    public int? Strength => Fixed ? null : Hp ?? Damage.MachineHp;
+
+    /// <summary>Whether its <see cref="Strength"/> is in a weapon's damage, as a wreck's: a pile.</summary>
+    public bool Wreck => !Fixed && Hp != null;
 
     /// <summary>Whether it makes power only under the stars: a maker with no fire, not made to work <see cref="Anywhere"/> (a solar panel).</summary>
     public bool NeedsStars => Makes != null && FuelSlot == null && !Anywhere;

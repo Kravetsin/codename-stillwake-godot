@@ -24,7 +24,7 @@ public static class Impacts
     {
         if (grid.WallAt(cell) is { } wall)
             return !wall.Natural ? Impact.Alloy : HitLooks.GroundOf(wall);
-        if (Shared.Piles.At(grid, cell) != null) return Impact.Wreck;
+        if (building.TargetAt(cell) is { Wreck: true }) return Impact.Wreck;
         return building.PlantAt(cell) is { } plant && HitLooks.Growths.TryGetValue(plant.Kind, out var growth) ? growth : null;
     }
 
@@ -43,7 +43,7 @@ public static class Impacts
     public static double ShareAt(IGridQueries grid, BuildingModule building, int cell, string tool, int damage)
     {
         if (grid.WallAt(cell) is { } wall && wall.Strength != Spec.Material.Unbreakable) return CrackAt(building, cell) + damage >= wall.Strength ? 1 : ShareOf(tool);
-        if (Shared.Piles.At(grid, cell) is var (pile, hp)) return CrackAt(building, pile.Cell) + damage >= hp ? 1 : ShareOf(tool);
+        if (building.TargetAt(cell) is { Wreck: true, Strength: int hp } pile) return CrackAt(building, pile.Key) + damage >= hp ? 1 : ShareOf(tool);
         if (building.PlantAt(cell) is not { } plant) return ShareOf(tool);
         return CrackAt(building, plant.Cell) + damage >= Spec.Flora.Get(plant.Kind).Strength ? 1 : ShareOf(tool);
     }
