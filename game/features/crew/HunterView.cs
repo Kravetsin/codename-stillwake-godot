@@ -31,6 +31,9 @@ public partial class HunterView : Node2D
         public readonly JetPlume Plume = plume;
         public readonly Glitch Group = group;
         public int Tick = -1, BeforeX, BeforeY, FromX, FromY, ToX, ToY, Damage, Facing = 1, Blinked, Held = -1, Ghost = -1;
+        /// <summary>Its missile's tell's ticks left last frame; the clock its lock last snapped shut.</summary>
+        public int LaunchLeft;
+        public double SnapMs = double.MinValue / 2;
         /// <summary>Its speed last tick and how much it changed (catcher-motion): its plume and its lean.</summary>
         public int VX, VY, DVX, DVY;
         /// <summary>Its gun's fine heading last tick and this, the sim's (catcher-motion; -1 for none): drawn turning between them.</summary>
@@ -79,6 +82,8 @@ public partial class HunterView : Node2D
     /// <summary>The receiver's colour while it hunts no one: a dull grey.</summary>
     private const int Unclaimed = 0x8a8a8a;
     private readonly Voices _world = new(S.World, voices: 4), _fight = new(S.World, voices: 4);
+    // Its missile is a fight in space, where the World bus is silent: its tell heard on the Suit bus, as the sentry's arc is.
+    private readonly Voices _suit = new(S.Suit, voices: 2);
 
     /// <summary>A drop of rock its laser melts, falling off where it stops.</summary>
     private static readonly Luminous Drip = new(Glimmer.Mote, [(255, 190, 110), CatcherFx.Drip, (190, 60, 25)], (220, 330))
@@ -93,6 +98,7 @@ public partial class HunterView : Node2D
         ZIndex = Layers.OtherHeroes;
         AddChild(_world);
         AddChild(_fight);
+        AddChild(_suit);
         AddChild(_fx);
     }
 
@@ -222,6 +228,7 @@ public partial class HunterView : Node2D
         }
         if (fight.Ghost >= 0 && one.Ghost < 0) _fight.Play(S.CatcherGather, Chest(one.Drawn));
         (one.Held, one.Ghost) = (fight.Held, fight.Ghost);
+        Lock(one, fight, target, progress);
         figure.Aim = raised && one.AimAngle is double pointing
             ? Chest(one.Drawn) + new Vector2((float)Math.Cos(pointing), (float)Math.Sin(pointing)) * (float)AimFar
             : null;
@@ -244,6 +251,21 @@ public partial class HunterView : Node2D
         foreach (var mark in m.Creatures.MarksOf(c))
             _fx.Pillar(new Vector2((float)((mark.Cell % m.Grid.Width + 0.5) * Rig.Cell), (float)((mark.Cell / m.Grid.Width + 1) * Rig.Cell)),
                 Math.Clamp((mark.Flight - mark.Left + progress) / mark.Flight, 0, 1));
+    }
+
+    /// <summary>
+    /// Its missile's tell «Захват» (catcher-missile): amber corners closing on its quarry, heard as it begins; snapped shut on it as it
+    /// ends, the missile away.
+    /// </summary>
+    private void Lock(Shown one, CreaturesModule.Fight fight, Hero? quarry, double progress)
+    {
+        if (fight.LaunchLeft > 0 && one.LaunchLeft == 0) _suit.Play(S.CatcherLock, Chest(one.Drawn));
+        if (fight.LaunchLeft == 0 && one.LaunchLeft > 0) one.SnapMs = _clockMs;
+        one.LaunchLeft = fight.LaunchLeft;
+        if (quarry is not { } locked) return;
+        double tell = one.Hunt?.Missile.Tell ?? 1;
+        if (fight.LaunchLeft > 0) _fx.Lock(Chest(locked), (tell - fight.LaunchLeft + progress) / tell, _clockMs);
+        else _fx.Snap(Chest(locked), _clockMs - one.SnapMs);
     }
 
     /// <summary>The angle, radians, from <paramref name="from"/> to <paramref name="to"/> as the screen shows it, y down.</summary>

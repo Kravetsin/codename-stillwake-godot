@@ -132,6 +132,36 @@ public partial class CatcherFxView : Node2D
     }
 
     /// <summary>
+    /// The missile's lock «Захват» round <paramref name="at"/>, <paramref name="k"/> of the way through its tell, <paramref name="ms"/> on
+    /// the clock (<see cref="CatcherFx.LockOf"/>): four amber corners, each a halo and a line, closing in and untwisting.
+    /// </summary>
+    public void Lock(Vector2 at, double k, double ms)
+    {
+        var (radius, turn, alpha) = CatcherFx.LockOf(k, ms);
+        Corners(at, radius, turn, CatcherFx.LockArm, CatcherFx.LockHalo, 0.25 * alpha, 2.4);
+        Corners(at, radius, turn, CatcherFx.LockArm, CatcherFx.LockLine, 0.95 * alpha, 0.7);
+    }
+
+    /// <summary>The lock snapped shut on <paramref name="at"/> <paramref name="ms"/> after the launch, fading (<see cref="CatcherFx.SnapOf"/>).</summary>
+    public void Snap(Vector2 at, double ms) =>
+        Corners(at, CatcherFx.SnapRadius, 0, CatcherFx.SnapArm, CatcherFx.Snap, CatcherFx.SnapOf(ms), 0.8);
+
+    /// <summary>Four corners of a box 1.6 by 2.2 <paramref name="radius"/> round <paramref name="at"/>, turned by <paramref name="turn"/>, their arms pointing in.</summary>
+    private void Corners(Vector2 at, double radius, double turn, double arm, (int R, int G, int B) rgb, double alpha, double width)
+    {
+        if (alpha <= 0.004) return;
+        float a = (float)arm;
+        for (int q = 0; q < 4; q++)
+        {
+            float sx = (q & 1) != 0 ? 1 : -1, sy = (q & 2) != 0 ? 1 : -1;
+            var corner = new Vector2(sx * (float)radius * 0.8f, sy * (float)radius * 1.1f);
+            var (side, end, tip) = (corner - new Vector2(sx * a, 0), corner, corner - new Vector2(0, sy * a));
+            Add(at + side.Rotated((float)turn), at + end.Rotated((float)turn), rgb, alpha, width);
+            Add(at + end.Rotated((float)turn), at + tip.Rotated((float)turn), rgb, alpha, width);
+        }
+    }
+
+    /// <summary>
     /// A soft light of <paramref name="radius"/> at <paramref name="at"/>, as the page's glow: <paramref name="rgb"/> fading out, a
     /// <paramref name="core"/> in its middle.
     /// </summary>

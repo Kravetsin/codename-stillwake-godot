@@ -324,6 +324,7 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [tracker-catchers](2026-11-09-tracker-catchers.md) | Catchers | accepted | catcher-combat, catcher-paths, catcher-loot (in part) |
 | [unified-damage](2026-11-09-unified-damage.md) | One rule for damage | accepted | damage-scale (in part) |
 | [catcher-loot](2026-11-10-catcher-loot.md) | Catcher loot | accepted |  |
+| [catcher-missile](2026-11-10-catcher-missile.md) | Catcher missile | accepted |  |
 | [catcher-motion](2026-11-10-catcher-motion.md) | Catcher motion | accepted |  |
 | [hit-targets](2026-11-10-hit-targets.md) | One answer to what a hit strikes | accepted |  |
 | [one-damage-rule](2026-11-10-one-damage-rule.md) | One damage rule for every hit | accepted |  |
