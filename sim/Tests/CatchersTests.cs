@@ -113,12 +113,8 @@ public class CatchersTests
     }
 
     [Fact]
-    public void NothingFillsWhereThingsFloatNorInCreativeMode()
+    public void NothingFillsInCreativeMode()
     {
-        var space = new Scenario(new string('.', 40) + "\n" + new string('.', 40), cells: true);
-        space.Do(new Enter(1)).Do(new SetCreative(false)).Run();
-        space.M.Crew.Loot(0, [("opal", 10)]);
-        Assert.Equal((0, 0), (space.M.Crew.HeroOf(0)!.Wanted, space.M.Crew.HeroOf(0)!.Need));
         var creative = Arrive(Field(), 40).Do(new SetCreative(true)).Run();
         creative.M.Crew.Loot(0, [("opal", 10)]);
         Assert.Equal(0, creative.M.Crew.HeroOf(0)!.Wanted);
@@ -784,6 +780,137 @@ public class CatchersTests
                 if (hero.Wanted > hero.Need) return false.Label($"{hero.Wanted} over {hero.Need} at {t}");
                 if (hero.Coming > 0 && !full) return false.Label($"an alarm on a meter not full at {t}");
                 if (w.M.Crew.Hunted(0) != (full && hero.Coming == 0)) return false.Label($"hunted wrong at {t}");
+            }
+            return true.ToProperty();
+        });
+
+    // In space (catchers-space).
+
+    private const int SW = 600, SH = 140;
+
+    /// <summary>The ship's rules on open space, a cell a character, <see cref="SW"/> by <see cref="SH"/>; <paramref name="draw"/> says which cells hold another character.</summary>
+    private static Scenario Space(Func<int, int, char?>? draw = null) =>
+        new(Layout.Parse([.. Enumerable.Range(0, SH).Select(y => new string([.. Enumerable.Range(0, SW).Select(x => draw?.Invoke(x, y) ?? ' ')]))]));
+
+    private static int At(int x, int y) => y * SW + x;
+
+    /// <summary>Hero <paramref name="peer"/> at (<paramref name="x"/>, <paramref name="y"/>) in space, out of creative mode.</summary>
+    private static Scenario Afloat(Scenario w, int x, int y, int peer = 0) =>
+        w.Do(new Enter(At(x, y)) { From = peer }).Do(new SetCreative(false) { From = peer }).Run();
+
+    /// <summary>A sealed room of hull round (<paramref name="x"/>, <paramref name="y"/>): eleven cells across inside, eight down.</summary>
+    private static char? Room(int cx, int cy, int x, int y) =>
+        Math.Abs(x - cx) > 6 || y < cy - 7 || y > cy + 2 ? null : Math.Abs(x - cx) == 6 || y == cy - 7 || y == cy + 2 ? '#' : '.';
+
+    [Fact]
+    public void InSpaceTheMeterFillsAnywhereAndDrainsInTheStartingBeltTillFull()
+    {
+        var w = Afloat(Space(), 20, SH / 2);
+        var hero = HeroOf(w);
+        w.M.Crew.Loot(0, [("opal", 1)]);
+        Assert.Equal(Spec.Market.WorthOf("opal"), hero.Wanted);
+        w.Run(3 * Spec.Crew.BreathEvery);
+        Assert.Equal(Spec.Market.WorthOf("opal"), hero.Wanted);
+        // In the belt round the grid's middle it drains a breath at a time, to none.
+        w.Do(new Enter(At(SW / 2 + Spec.Wanted.Belt.X, SH / 2))).Run(3 * Spec.Crew.BreathEvery - 1);
+        Assert.Equal(Spec.Market.WorthOf("opal") - 3 * Spec.Wanted.Drain, hero.Wanted);
+        w.Run(Spec.Crew.BreathEvery * Spec.Market.WorthOf("opal") / Spec.Wanted.Drain);
+        Assert.Equal(0, hero.Wanted);
+        // Full, it stays full: the catcher is on its way.
+        Full(w);
+        w.Run(3 * Spec.Crew.BreathEvery);
+        Assert.Equal(hero.Need, hero.Wanted);
+    }
+
+    [Fact]
+    public void TakingTheShipApartFillsNothing()
+    {
+        var w = Afloat(Space((x, y) => x == 22 && y == SH / 2 ? '#' : null), 20, SH / 2);
+        w.Do(new Deconstruct(At(22, SH / 2), "structure")).Run();
+        int plan = Assert.Single(w.M.Building.Plans).Id;
+        for (int t = 0; t < 2000 && w.M.Grid.Solid(At(22, SH / 2)); t++) w.Do(new Work(plan)).Run();
+        Assert.Empty(w.Refusals);
+        Assert.False(w.M.Grid.Solid(At(22, SH / 2)));
+        Assert.Equal(0, HeroOf(w).Wanted);
+    }
+
+    [Fact]
+    public void InSpaceItComesOutOfViewInOpenSpaceAndFliesStraightAtItsHero()
+    {
+        var w = Afloat(Space(), 100, SH / 2);
+        Full(w);
+        w.Run(Tune.Beat + 1);
+        var c = CatcherOf(w, 0)!;
+        Assert.NotNull(c);
+        var m = w.M.Creatures;
+        Assert.InRange(Column(c) - 100, Tune.RingFrom, Tune.RingTo + Catcher.Body.Width);
+        Assert.True(m.InSpace(Catcher.Body, c.X, c.Y));
+        int far = Column(c) - 100, ticks = 0;
+        for (; ticks < 400 && c.Act == null; ticks++)
+        {
+            w.Run();
+            Assert.False(m.Overlaps(Catcher.Body, c.X, c.Y));
+        }
+        // No path nor blink: straight at it a cell a tick, and its pounce from its strike's reach.
+        Assert.NotNull(c.Act);
+        Assert.Equal(0, m.FightOf(c).Blinked);
+        Assert.InRange(ticks, far - Hunt.Strike - Catcher.Body.Width, far - Hunt.Strike + Catcher.Body.Width);
+    }
+
+    [Fact]
+    public void AHullPlateInItsWayItBlinksPast()
+    {
+        var w = Afloat(Space((x, y) => x >= 160 && x < 164 && y >= SH / 2 - 30 && y < SH / 2 + 30 ? '#' : null), 100, SH / 2);
+        Full(w);
+        w.Run(Tune.Beat + 1);
+        var c = CatcherOf(w, 0)!;
+        for (int t = 0; t < 600 && Column(c) >= 160; t++) w.Run();
+        Assert.True(Column(c) < 160, $"column {Column(c)}");
+        Assert.NotEqual(0, w.M.Creatures.FightOf(c).Blinked);
+        Assert.True(w.M.Grid.Solid(At(161, SH / 2)));
+    }
+
+    [Fact]
+    public void ShutInARoomAboardItsHeroGetsAChargeThroughTheHullAndTheRoomVents()
+    {
+        int x = 100, y = SH / 2;
+        var w = Afloat(Space((cx, cy) => Room(x, y, cx, cy)), x, y);
+        Assert.True(w.M.Rooms.RoomAt(At(x, y)) >= 0);
+        Full(w);
+        w.Run(Tune.Beat + 1);
+        var c = CatcherOf(w, 0)!;
+        bool lobbed = false;
+        for (int t = 0; t < 1200 && w.M.Rooms.RoomAt(At(x, y)) >= 0; t++)
+        {
+            w.Run();
+            lobbed |= w.M.Creatures.Shots.Any(s => s.Projectile == Hunt.Lob.Projectile);
+        }
+        Assert.True(lobbed);
+        Assert.Equal(0, w.M.Creatures.FightOf(c).Blinked);
+        Assert.Equal(Stillwake.Sim.Rooms.RoomsModule.Space, w.M.Rooms.RoomAt(At(x, y)));
+    }
+
+    /// <summary>Whatever its hero does among hull plates, every cell of a hunting catcher's body in space is in open space: never in a plate nor a room.</summary>
+    [Property(MaxTest = 20)]
+    public Property InSpaceItsBodyIsAlwaysInOpenSpace() => Prop.ForAll(
+        Gen.Choose(0, int.MaxValue).ToArbitrary(),
+        seed =>
+        {
+            var rng = new Rng(new RngState { S = (uint)seed });
+            var plates = Enumerable.Range(0, 60).Select(_ => (X: 20 + (int)rng.Below(SW - 40), Y: 10 + (int)rng.Below(SH - 20), Long: 4 + (int)rng.Below(30), Up: rng.Below(2) == 0)).ToArray();
+            var w = Afloat(Space((x, y) => plates.Any(p => p.Up ? x == p.X && y >= p.Y && y < p.Y + p.Long : y == p.Y && x >= p.X && x < p.X + p.Long) ? '#' : null), SW / 2, SH / 2);
+            Full(w);
+            var m = w.M.Creatures;
+            for (int t = 0; t < 900; t++)
+            {
+                if (t % 40 == 0) w.Do(new Enter(At(SW / 2 - 150 + (int)rng.Below(300), SH / 2 - 40 + (int)rng.Below(80))));
+                w.Run();
+                foreach (var c in m.Creatures)
+                {
+                    if (CreaturesModule.Hunting(c) == null) continue;
+                    if (m.Overlaps(Catcher.Body, c.X, c.Y)) return false.Label($"in a wall at {t}");
+                    if (!m.InSpace(Catcher.Body, c.X, c.Y)) return false.Label($"out of space at {t}");
+                }
             }
             return true.ToProperty();
         });
