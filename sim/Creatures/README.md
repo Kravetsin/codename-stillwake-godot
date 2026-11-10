@@ -10,29 +10,29 @@
 | `Creatures.cs` | The commands, the queries, the hit path. |
 | `Drives.cs` | The grazers' drives: `Graze`, `Flee`, `Retaliate`, `Escape`. |
 | `Flyer.cs` | The catcher's body: stops at solid. |
-| `Fuzz.cs` | The `Fuzz` override: commands the desync suite draws. |
+| `Fuzz.cs` | Commands the desync suite draws. |
 | `Guard.cs` | `Guard` (sentry, lurkers), `Return`, the `CutTether` reflex. |
 | `Hunt.cs` | The catcher's hunt. |
-| `Live.cs` | The system: dead swept, patches aged, creatures ticked. |
+| `Live.cs` | Dead swept, patches aged, creatures ticked. |
 | `Lunge.cs` | The lunge: a ram along the ground in phases (0103). |
 | `Paths.cs` | Weighted A*: runs. |
 | `Patches.cs` | Patches (gas, slime): laid, aged, paid by heroes in them. |
 | `Pounce.cs` | The pounce: a straight flight at a hero, never cut. |
 | `Rules.cs` | Rule contracts; `RuleBook` finds them. |
 | `Shell.cs` | The shell (the snail): open near a hero, shut it shields. |
-| `Shoot.cs` | The arc: crouched, its aim held, struck, a recovery. |
+| `Shoot.cs` | The arc: aimed, struck, recovered. |
 | `Shots.cs` | Shots: `Fire`, flight, hits, pierces, bursts. |
 | `Spawn.cs` | Spawning: posts, herds, guards. |
 | `State.cs` | The saved slice: `Creature`, `Shot`. |
 | `Ward.cs` | The spire guards' drive. |
 | `Vent.cs` | The vent (the capback): its gas, a cooldown. |
-| `Walker.cs` | The walker: steering, stepping, falling, leaping (0102, 0106). |
+| `Walker.cs` | The walker: steering, stepping, leaping (0102, 0106). |
 
 Every creature composed (creatures-are-composed): a species (`Content.Creatures`) names a body, life, faction, ranked
 drives, moves and yields, each a rule here. The dead are gone to all from the blow.
 
 - **Depends on:** `Grid`; `Crew` (heroes' cells, `Hunted`; `Blow`, `Shock`, `CallOff`); `Items` (weapons, ammo, drops, charge); `Debris`
-  (queries, `Unreel`, `Hit`); `Building` (`ShotTakes`, `Surplus`, `Hit`, `Burst`, `Relics`, `Posts`, `PostAt`, `FellPost`); `Rooms` (`Afloat`); `Knowledge` (`Earn`).
+  (queries, `Unreel`, `Hit`); `Building` (`TargetAt`, `ShotTakes`, `Surplus`, `Hit`, `Burst`, `Relics`, `Posts`, `PostAt`, `FellPost`); `Rooms` (`Afloat`); `Knowledge` (`Earn`).
 - **State** (`CreaturesState`, saved): `Creatures` in id order, each `{ Id, Species, X, Y, VX, VY, Damage, Drive, DriveLeft,
   Step, Act, Target, Mem, SeenAt, Path }`, bottom middle in thousandths; `Drive` its brain place, `Act` `{ Move, Phase, Left }`,
   `Mem` rule numbers by key, ordinal; `NextId`; `Clock`; `Shots`, `Arcs`, `Patches`, `Fired`. **Unsaved:** `Dead`. **Derived:** `Posture`, `Fleeing`, `Ended`, `Hits`.
@@ -73,8 +73,8 @@ drives, moves and yields, each a rule here. The dead are gone to all from the bl
 - **The hit path** (`Strike`, a shot): unless a drive `Shields` (a shut shell, a shot), damage; dead at hit points, `Yields` sprayed, its `Purse` earned; else knocked
   (`Life.Knock`, `Hop`), its act cut if interruptible, drives told in brain order till one claims it.
 - **Shots:** `Fire` takes ammo and its gun's `Energy`; each tick, in id order, one steps, hitting a cell's solid, lowest-id
-  creature, machine, wreck (not `Passed`), through bodies its gun `Pierces`, broken cells while it `Carries` some. Falls (`ShotFlight.Gravity`). One that `Bursts`
-  `Burst`s where it ends (`Spoils.Drop`; a relic shocks the thrower); wrecks in `Reach` take `WreckDamage`, a creature's heroes it sees its `Damage`.
+  creature, machine (the lifepod stops it), wreck (not `Passed`), through bodies its gun `Pierces`, broken cells while it `Carries` some. Falls (`ShotFlight.Gravity`). One that `Bursts`
+  `Burst`s wherever it ends (`Spoils.Drop`; a relic shocks the thrower); wrecks in `Reach` take `WreckDamage`, a creature's heroes it sees its `Damage`.
 - **`HitBy(Creature)`** (0103), **`Bolted(Arc)`**, as the hero's client saw it: a `Blow` of the move's `Damage`, the act ends; or
   the arc's projectile's, once a hero.
 - **`Release`** (dev): `Place`.
