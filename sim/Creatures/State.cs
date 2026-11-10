@@ -225,10 +225,10 @@ public sealed class Shot
 }
 
 /// <summary>
-/// A shot that ended this tick: its id, its projectile, its gun (none for a creature's), the cell it met or last flew in, and
-/// whether it met something there or ran out of reach or grid; the cell its burst spread from (blasting-charge), -1 for none.
+/// A shot that ended this tick: its id, who fired it, its projectile, its gun (none for a creature's), the cell it met or last flew
+/// in, and whether it met something there or ran out of reach or grid; the cell its burst spread from (blasting-charge), -1 for none.
 /// </summary>
-public readonly record struct ShotEnd(int Id, string Projectile, string? Gun, int Cell, bool Met, int Burst = -1);
+public readonly record struct ShotEnd(int Id, Ref By, string Projectile, string? Gun, int Cell, bool Met, int Burst = -1);
 
 /// <summary>What a shot hits in a cell: what is solid there, a creature, a wreck, or a machine by its top-left (hit-targets). Saved by number in what a shot passed, so never renumber one.</summary>
 public enum ShotTarget

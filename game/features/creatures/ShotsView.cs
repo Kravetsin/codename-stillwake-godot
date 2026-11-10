@@ -34,10 +34,10 @@ public partial class ShotsView : Node2D
     /// <summary>Each shot drawn, by id: where it was a tick ago and is now.</summary>
     private readonly Dictionary<int, (ShotMotion Was, ShotMotion Now)> _seen = [];
     /// <summary>
-    /// Each charge in flight, by id: who threw it and the walls round it as the last tick left them, with what they were; those gone
+    /// Each charge in flight, by id: the walls round it as the last tick left them, with what they were; those gone
     /// at its burst are what it broke.
     /// </summary>
-    private readonly Dictionary<int, (Ref By, List<(int Cell, Spec.Material Wall)> Round)> _charges = [];
+    private readonly Dictionary<int, List<(int Cell, Spec.Material Wall)>> _charges = [];
     /// <summary>The arcs shown, by id, forgotten once they are gone.</summary>
     private readonly HashSet<int> _arcsShown = [];
     private int _shownTick = -1;
@@ -138,12 +138,12 @@ public partial class ShotsView : Node2D
         foreach (var shot in creatures.Shots)
         {
             if (Spec.Shots.Get(shot.Projectile).Bursts == null) continue;
-            if (!_charges.TryGetValue(shot.Id, out var kept)) _charges[shot.Id] = kept = (shot.By, []);
-            kept.Round.Clear();
+            if (!_charges.TryGetValue(shot.Id, out var round)) _charges[shot.Id] = round = [];
+            round.Clear();
             int cx = shot.X / CreaturesModule.Unit, cy = shot.Y / CreaturesModule.Unit;
             for (int y = Math.Max(0, cy - RoundReach); y <= Math.Min(grid.Height - 1, cy + RoundReach); y++)
                 for (int x = Math.Max(0, cx - RoundReach); x <= Math.Min(grid.Width - 1, cx + RoundReach); x++)
-                    if (grid.WallAt(y * grid.Width + x) is { } wall) kept.Round.Add((y * grid.Width + x, wall));
+                    if (grid.WallAt(y * grid.Width + x) is { } wall) round.Add((y * grid.Width + x, wall));
         }
     }
 
@@ -177,11 +177,9 @@ public partial class ShotsView : Node2D
         var stage = Stages.Of(Layers.Effects);
         var glims = stage.Glims;
         double farthest = 2 * cell;
-        Ref? by = null;
         if (_charges.Remove(end.Id, out var kept))
         {
-            by = kept.By;
-            foreach (var (at, wall) in kept.Round)
+            foreach (var (at, wall) in kept)
             {
                 if (grid.WallAt(at) != null) continue;
                 double wx = (at % grid.Width + 0.5) * cell, wy = (at / grid.Width + 0.5) * cell, dx = wx - x, dy = wy - y;
@@ -220,7 +218,8 @@ public partial class ShotsView : Node2D
         stage.Flares.Flash(x, y, White, 1.4 * Fx.Glow, 20, 0.6f, 0.8);
         // The sulfur burning on: a warm light lingering in the dark after the white is gone.
         stage.Flares.Flash(x, y, Afterglow, 0.7 * Fx.Glow, 16, 0.5f, 0.96);
-        (by == Ref.Hero(own) ? _ownEnds : _ends).Play(S.ChargeBurst, new Vector2((float)x, (float)y));
+        // Whose it is, from the end itself: a charge thrown point-blank ends the tick it is born, never seen in flight.
+        (end.By == Ref.Hero(own) ? _ownEnds : _ends).Play(S.ChargeBurst, new Vector2((float)x, (float)y));
     }
 
     /// <summary>The sparks, streaks and embers of a burst at (<paramref name="x"/>, <paramref name="y"/>), thrown about as far as <paramref name="ring"/>; weightless afloat, else bouncing on <paramref name="floor"/>.</summary>
