@@ -8,7 +8,7 @@ namespace Stillwake.Game.Tests;
 /// <summary>Grass parted by a body, leaned the way it runs and sprung back behind it (plant-stirs).</summary>
 public class StirsTests
 {
-    private static readonly FloraLooks.Feel Soft = new("test", Reach: 12, Part: 4, Lean: 3, SpringHz: 2.5f, Damping: 0.3f);
+    private static readonly FloraLooks.Feel Soft = new(Reach: 12, Part: 4, Lean: 3, SpringHz: 2.5f, Damping: 0.3f);
     private const double Frame = 1 / 60.0;
 
     /// <summary>A hero standing on the ground at row 10, its feet at column 50's point, for <paramref name="frames"/>.</summary>

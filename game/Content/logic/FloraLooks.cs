@@ -93,18 +93,10 @@ public static class FloraLooks
     /// <see cref="Reach"/> pixels; leaned <see cref="Lean"/> more the way a runner goes, at a run; sprung back at
     /// <see cref="SpringHz"/>, <see cref="Damping"/> of the way to critical (under 1 overshoots, 1 does not).
     /// </summary>
-    public sealed record Feel(string Name, float Reach, float Part, float Lean, float SpringHz, float Damping);
+    public sealed record Feel(float Reach, float Part, float Lean, float SpringHz, float Damping);
 
-    /// <summary>The feels the user compares in play, F8 in a dev room; the first is the game's.</summary>
-    public static readonly IReadOnlyList<Feel> Feels =
-    [
-        new("soft", Reach: 12, Part: 4, Lean: 3, SpringHz: 2.5f, Damping: 0.3f),
-        new("springy", Reach: 10, Part: 4, Lean: 2, SpringHz: 4f, Damping: 0.2f),
-        new("heavy", Reach: 14, Part: 5, Lean: 4, SpringHz: 1.5f, Damping: 1f),
-    ];
-
-    /// <summary>The feel shown: <see cref="Feels"/>' first, another only while compared in a dev room.</summary>
-    public static Feel Feeling { get; set; } = Feels[0];
+    /// <summary>The grass's, picked in play from three (plant-stirs): soft, it parts wide and rings back a little.</summary>
+    public static readonly Feel Grass = new(Reach: 12, Part: 4, Lean: 3, SpringHz: 2.5f, Damping: 0.3f);
 
     /// <summary>A body faster than <see cref="BrushSpeed"/> pixels a second sways a bush or a tree it brushes, once each <see cref="BrushEvery"/> seconds.</summary>
     public const float BrushSpeed = 40, BrushEvery = 0.6f;

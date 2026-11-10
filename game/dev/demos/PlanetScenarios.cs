@@ -12,7 +12,7 @@ namespace Stillwake.Game.Dev;
 /// A planet opened and the hero beamed down at once (0077), or the test strip (0076). After the hero's own scenarios, whose
 /// scripts (--ladders, --feel, --hills) win over the strip's.
 /// </summary>
-[Dev("--planet", "a planet grown from its seed, the hero beamed down with the axe, the drill and the helmet lamp (0077); F8 cycles how grass answers a body, F9 blows a gust (plant-stirs)", Order = 5)]
+[Dev("--planet", "a planet grown from its seed, the hero beamed down with the axe, the drill and the helmet lamp (0077); F9 blows a gust (plant-stirs)", Order = 5)]
 [Dev("--strip", "the test strip (0076); with --autopilot played by a script (HeroAutopilot.PlanetRun)", Order = 5)]
 [Dev("--dusk", "with --planet or --strip, the planet's dusk starting two seconds in, its night a minute on (2026-11-07-night-chills)", Order = 5)]
 [Dev("--valley", "with --planet, the hero beamed down into the planet's deepest valley rather than at the pod, to see the land behind follow (composed-backdrops)", Order = 5)]
@@ -50,10 +50,10 @@ public sealed class PlanetScenario : DevScenario
 
     public override HeroAutopilot? Script => Strip && Args.Has("--autopilot") ? HeroAutopilot.PlanetRun() : null;
 
-    /// <summary>On a planet, F8 compares how grass answers a body (plant-stirs).</summary>
+    /// <summary>On a planet, F9 calls a gust (plant-stirs).</summary>
     public override void Attach(DevContext c)
     {
-        if (Down) c.Add(new FeelKey());
+        if (Down) c.Add(new GustKey());
     }
 
     public override void Started(Client client)

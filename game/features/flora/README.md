@@ -40,7 +40,7 @@ only draws them — the surface's in `FloraView`, the caves' in `CaveView`; the 
   body brushing a bush or an acacia (`BoxesByLeft`) sways it about its foot (`Sway`, the picture's skew, its glow a child);
   one going through a bush drags its leaves behind it (`Swing.Trail`), a hit shakes them off a crown
   (`Hit`), `Leafage` at most; a tree only sways. The leaves are `render/Leaves`, drawn by `LeafLayer` with
-  `LeafPictures`: an acacia's blots, a bush's sprigs (`Flights`). F8 cycles the grass's `Feels` in `--planet`.
+  `LeafPictures`: an acacia's blots, a bush's sprigs (`Flights`). How grass answers is `FloraLooks.Grass`.
 - **Wind** (plant-stirs): on a surface with plants, a gust now and then (`Gusts`) leans grass's and tufts' tips, holds the
   bushes and trees in view over and blows `Breeze.Leaves` a second across the view. F9 in `--planet` blows one now.
 - **Motes** (0075): while a glowing plant is in view, `FloraLooks.MotesASecond` soft dots, at most `MostMotes` alive:

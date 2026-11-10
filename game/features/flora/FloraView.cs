@@ -254,7 +254,7 @@ public partial class FloraView : Node2D, ILightSource
     /// </summary>
     private void Stir(double delta)
     {
-        var feel = FloraLooks.Feeling;
+        var feel = FloraLooks.Grass;
         foreach (var (feet, vx) in _heroes())
         {
             _stirs.Body(feet.X, feet.Y, vx, feel);

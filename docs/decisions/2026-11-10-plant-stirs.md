@@ -59,8 +59,9 @@ by a runner, and a felled tree that falls over.
 7. **Trees stand thick.** The first planet grows over twice the acacias (`Content.Flora`: on level ground one column
    either side, ten apart, chance 370): a walk passes woods. More planks lie about; a tree still takes three seconds of
    the axe.
-8. **Feels are data.** `FloraLooks.Feels` holds three candidates of `Feel(Reach, Part, Lean, SpringHz, Damping)`, soft,
-   springy and heavy; F8 cycles them in a dev room (`--planet`), its name shown a moment. The user picks one in play.
+8. **The feel is data.** `FloraLooks.Grass` is a `Feel(Reach, Part, Lean, SpringHz, Damping)`. The user compared three in
+   play, cycled by a dev key, and picked soft: parted wide, ringing back a little. A try at bending a tile's top whole, so its
+   blades would not stretch, tore the grass apart at the tiles' edges and was dropped. F9 in `--planet` calls a gust (`GustKey`).
 
 Client only: nothing enters the sim. Each peer stirs the plants from the heroes as it sees them.
 
