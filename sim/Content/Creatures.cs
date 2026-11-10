@@ -153,9 +153,10 @@ public static class Creatures
 
     /// <summary>
     /// A hunter's lob at a shelter (catcher-combat): no run to its quarry nor a spot in its sight, every <paramref name="Every"/> ticks a
-    /// <paramref name="Projectile"/> at what stands between them nearest its quarry, landing <paramref name="Flight"/> ticks later.
+    /// <paramref name="Projectile"/> at what stands between them nearest its quarry, landing <paramref name="Flight"/> ticks later. Where
+    /// things float it first keeps <paramref name="Standoff"/> cells off the hull it meets on the way (catcher-standoff), so the throw is seen.
     /// </summary>
-    public sealed record Lob(int Every, int Flight, string Projectile);
+    public sealed record Lob(int Every, int Flight, int Standoff, string Projectile);
 
     /// <summary>An act a creature makes, in phases, the suit units it takes from a hero it hits.</summary>
     public abstract record Move(int Damage);
@@ -364,7 +365,7 @@ public static class Creatures
         Brain: [new Hunt(Ticks: 1800, Strike: 12, Speed: 1000, AnswerEvery: 60, LagAfter: 60, Sample: 10,
             Blink: new(Gather: 12, Spent: 10, Every: 120, Ahead: 20, LeadMost: 96, Near: 8), Gunfire: new(Every: 50, Tell: 6),
             Salvo: new(Every: 240, Hover: 20, Headroom: 6, Shells: 7, Spread: 48, Flight: 24, Stagger: 2, Projectile: "shell"),
-            Lob: new(Every: 160, Flight: 20, Projectile: "blastCharge"))],
+            Lob: new(Every: 160, Flight: 20, Standoff: 16, Projectile: "blastCharge"))],
         Moves: [new Pounce(WindUp: 16, Speed: 1600, Ticks: 10, Damage: 6), new Shoot(WindUp: 6, Lock: 2, Recover: 20, Projectile: "laser", Reach: 60, Lingers: 6, Through: 120)],
         Yields: [new("scrapChunk", 2, 4), new("circuit", 1, 1), new("crystal", 1, 1, OneIn: 5), new("opal", 1, 1, OneIn: 10)],
         Purse: new(150, 300));

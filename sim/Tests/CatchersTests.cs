@@ -870,26 +870,33 @@ public class CatchersTests
         Assert.True(w.M.Grid.Solid(At(161, SH / 2)));
     }
 
-    [Fact]
-    public void ShutInARoomAboardItsHeroGetsAChargeThroughTheHullAndTheRoomVents()
+    /// <summary>
+    /// A playtest (2026-11-10): pressed against the hull it blew it at once, the throw unseen. It throws from <c>Standoff</c> cells off
+    /// the hull, backing off first when put right by it.
+    /// </summary>
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void ShutInARoomAboardItsHeroGetsAChargeThrownFromOffTheHullAndTheRoomVents(bool pressed)
     {
-        int x = 100, y = SH / 2;
+        int x = 100, y = SH / 2, hull = x + 6;
         var w = Afloat(Space((cx, cy) => Room(x, y, cx, cy)), x, y);
         Assert.True(w.M.Rooms.RoomAt(At(x, y)) >= 0);
         Full(w);
         w.Run(Tune.Beat + 1);
         var c = CatcherOf(w, 0)!;
-        bool lobbed = false;
+        if (pressed) (c.X, c.Y) = (w.M.Creatures.Middle(hull + 1 + Catcher.Body.Width / 2), (y + 3) * Unit);
+        int? from = null;
         for (int t = 0; t < 1200 && w.M.Rooms.RoomAt(At(x, y)) >= 0; t++)
         {
             w.Run();
-            lobbed |= w.M.Creatures.Shots.Any(s => s.Projectile == Hunt.Lob.Projectile);
+            if (from == null && w.M.Creatures.Shots.Any(s => s.Projectile == Hunt.Lob.Projectile)) from = Column(c) - hull;
         }
-        Assert.True(lobbed);
+        Assert.NotNull(from);
+        Assert.InRange(from!.Value, Hunt.Lob.Standoff - 3, Hunt.Lob.Standoff + 3);
         Assert.Equal(0, w.M.Creatures.FightOf(c).Blinked);
         Assert.Equal(Stillwake.Sim.Rooms.RoomsModule.Space, w.M.Rooms.RoomAt(At(x, y)));
     }
-
     /// <summary>Whatever its hero does among hull plates, every cell of a hunting catcher's body in space is in open space: never in a plate nor a room.</summary>
     [Property(MaxTest = 20)]
     public Property InSpaceItsBodyIsAlwaysInOpenSpace() => Prop.ForAll(
