@@ -158,7 +158,7 @@ public sealed partial class CreaturesModule
             int damage = Content.Shots.DamageOf(s.Gun, p.Id, s.Pierced);
             bool takes = Takes(target.Pass, damage), broke = takes && HitAt(s, peer, target, damage);
             _hits.Add(new ShotHit(s.Id, s.By, s.Projectile, s.Gun, cell, from, target.Pass.What, takes ? damage : 0, broke, target.Pass.Id));
-            if (!Pierces(gun, takes, broke)) return true;
+            if (!Pierces(p, gun, takes, broke)) return true;
             s.Pierced += 1;
             if (broke) broken = target.Pass;
             else s.Passed.Add(target.Pass);
@@ -172,8 +172,13 @@ public sealed partial class CreaturesModule
     /// <summary>Whether <paramref name="target"/> is what stands on the grid, taking block damage: what is solid, or a machine (hit-targets).</summary>
     private static bool Built(ShotPass target) => target.What is ShotTarget.Solid or ShotTarget.Machine;
 
-    /// <summary>Whether a shot of <paramref name="gun"/> flies on through the body its hit took (<paramref name="takes"/>) and killed or broke (<paramref name="broke"/>): every one it takes for a gun that pierces all, else what died.</summary>
-    private static bool Pierces(Content.Gun? gun, bool takes, bool broke) => gun?.Pierces == Content.Pierce.All ? takes : broke;
+    /// <summary>
+    /// Whether a shot of <paramref name="p"/> from <paramref name="gun"/> flies on through the body its hit took (<paramref name="takes"/>) and
+    /// killed or broke (<paramref name="broke"/>): every one it takes for a gun that pierces all, else what died; never one that bursts, which
+    /// goes off at the first thing it meets.
+    /// </summary>
+    private static bool Pierces(Content.Projectile p, Content.Gun? gun, bool takes, bool broke) =>
+        p.Bursts == null && (gun?.Pierces == Content.Pierce.All ? takes : broke);
 
     /// <summary>
     /// What a shot of <paramref name="gun"/> carries past a cell whose hit left <paramref name="left"/> (unified-damage): the gun's share of
@@ -262,7 +267,7 @@ public sealed partial class CreaturesModule
                     _ => _debris.Breaks(target.Pass.Id, damage),
                 };
                 hits.Add(new ShotHit(0, Ref.None, p.Id, gun, cell, from, target.Pass.What, takes ? damage : 0, breaks, target.Pass.Id));
-                if (!Pierces(spec, takes, breaks)) return true;
+                if (!Pierces(p, spec, takes, breaks)) return true;
                 through.Add(target.Pass);
             }
             return false;

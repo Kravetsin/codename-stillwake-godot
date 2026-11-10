@@ -74,8 +74,8 @@ drives, moves and yields, each a rule here. The dead are gone to all from the bl
 - **The hit path** (`Strike`, a shot): unless a drive `Shields` (a shut shell, a shot), damage; dead at hit points, `Yields` sprayed, its `Purse` earned; else knocked
   (`Life.Knock`, `Hop`), its act cut if it may be, drives told in order till one claims it.
 - **Shots:** `Fire` takes ammo and its gun's `Energy`; each tick, in id order, one steps, hitting a cell's solid, lowest-id
-  creature, machine (the lifepod stops it), wreck (not `Passed`), through bodies its gun `Pierces`, broken cells while it `Carries` some. Falls (`ShotFlight.Gravity`). One that `Bursts`
-  `Burst`s wherever it ends (`Spoils.Drop`; a relic shocks the thrower); wrecks in `Reach` take `WreckDamage`, a creature's heroes it sees its `Damage`.
+  creature, machine (the lifepod stops it), wreck (not `Passed`), through bodies its gun `Pierces`, broken cells while it `Carries` some. Falls (`ShotFlight`). One that `Bursts`
+  `Burst`s at the first it meets (`Spoils.Drop`; a relic shocks the thrower); wrecks in `Reach` take `WreckDamage`, a creature's heroes it sees its `Damage`.
 - **`HitBy(Creature)`** (0103), **`Bolted(Arc)`**, as the hero's client saw it: a `Blow` of the move's `Damage`, the act ends; or
   the arc's projectile's, once a hero.
 - **`Release`** (dev): `Place`.
