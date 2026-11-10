@@ -81,10 +81,11 @@ This hero and others', client-authoritative (0002): only commands reach the sim.
 | `logic/Bodies.cs` | bodies (0061) |
 | `BodyView.cs` | bodies, beacons, tips (0061) |
 | `logic/Rams.cs` | rams and arcs |
-| `HunterView.cs` | catchers as heroes, fighting |
+| `HunterView.cs` | catchers |
 | `CatcherFxView.cs` | its light |
 | `Glitch.cs` | in bands |
-| `logic/CatcherFx.cs` | its picks |
+| `logic/CatcherFx.cs` | its fight |
+| `logic/CatcherMotion.cs` | moves |
 | `logic/Crew.En.cs` | its text |
 | `logic/Crew.Ru.cs` | Russian |
 
@@ -101,7 +102,7 @@ This hero and others', client-authoritative (0002): only commands reach the sim.
 - **Rammed** (0103) **or arced** (`Rams.Hits`, once; beams burn): `HitBy`/`Bolted` sent, thrown, keys masked.
 - **Surfaces** (0076): `Ship.Of` rules: nothing floats on a planet, gravity the kind's `Fall`; fog glides (`FogMove`)
   over a seam (fog-edges).
-- **Camera:** leads, eases, snaps. **Markers** (0061): home, last body, friends heard, deliveries (lost: red), one's catcher. **Hurts**
+- **Camera:** leads, eases, snaps. **Markers** (0061): home, last body, friends heard, deliveries (lost red), a catcher. **Hurts**
   (hurts-are-shown) tint edges and gauge.
 - **Water** (liquids): swum `SwimDepth` deep, left by Space or shore; feet `WadeDepth` deep splash.
 - **Swim, haul, jetpack** (0047, tether-haul): afloat through floors, tied where it left the hull (0007);
@@ -111,8 +112,8 @@ This hero and others', client-authoritative (0002): only commands reach the sim.
   differ, every `Crew.ReportEvery` ticks off its cell, each tick if threatened; none out (0050); a closed link's host: `Leave`.
 - **Dressed as worn**: helmet, body, hair, clothes, a lamp; the colour on the near shin; a switched body lit by
   `SuitOn` and charge (`SuitGlow`), lit round (hero-lights).
-- **Tracker** blinks by `SignalOf` (`TrackerBlink`); **catchers** are heroes in their gear (`CreatureLooks.Heroes`), untracked;
-  killed in view, they tumble (tracker-catchers).
+- **Tracker** blinks by `SignalOf` (`TrackerBlink`); **catchers**: heroes in gear (`CreatureLooks.Heroes`), untracked,
+  tumbling killed in view (tracker-catchers).
 
 ## Others' heroes
 

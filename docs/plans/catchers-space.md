@@ -59,7 +59,8 @@ planet fight is [catcher-combat](../decisions/2026-11-09-catcher-combat.md); the
 **The catcher in space (Creatures).**
 - The bounty runs where things float too: the same ring out of view, every body cell in `Space`, never in a room.
 - No path in space (`Plan` does not run): it flies straight at its quarry's reported cell at `Speed`, sliding along what
-  blocks it. `Short` is set in space when the quarry's cell lies in a room (redefined, not the path search's flag).
+  blocks it. Superseded: it keeps its range by a flown path, leads its laser and fires a barrage
+  ([catcher-motion](../decisions/2026-11-10-catcher-motion.md)); the missile below still comes on its own beat. `Short` is set in space when the quarry's cell lies in a room (redefined, not the path search's flag).
 - The lag blink is the planet's, its spot needing no ground and lying wholly in `Space`.
 - Short, it throws the charge (`LobAtShelter`) at the first solid on the line to its quarry. A creature's burst breaks hull
   at full strength; Rooms and Atmosphere vent the room as for any breach.

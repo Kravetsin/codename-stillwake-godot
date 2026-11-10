@@ -18,13 +18,14 @@ public partial class CatcherFxView : Node2D
         LightMode = CanvasItemMaterial.LightModeEnum.Unshaded,
     };
 
-    private readonly record struct Line(Vector2 From, Vector2 To, Color Colour, float Width);
+    private readonly record struct Line(Vector2 From, Vector2 To, Color Colour, float Width, float FadeTo = 1);
 
     private readonly List<Line> _lines = [];
     private readonly List<(Vector2 Ground, double K)> _pillars = [];
     private readonly List<(Vector2 From, Vector2 To, double Swell, double Ms)> _beams = [];
     private readonly Vector2[] _corners = new Vector2[4];
-    private readonly Color[] _shades = new Color[4];
+    private readonly Color[] _shades = new Color[4], _endShades = new Color[2];
+    private readonly Vector2[] _ends = new Vector2[2];
     private readonly Heat _heat = new();
     // The screen copied fresh for the heat to read: a figure's glitch (a canvas group) earlier in the frame leaves the copy empty.
     private readonly BackBufferCopy _copy = new() { CopyMode = BackBufferCopy.CopyModeEnum.Viewport, ShowBehindParent = true, Visible = false };
@@ -55,13 +56,26 @@ public partial class CatcherFxView : Node2D
         _copy.Visible = _heat.End();
     }
 
-    /// <summary>An aim line from <paramref name="muzzle"/> to <paramref name="end"/> as <paramref name="thread"/> says: its halo, the line, the dot on its end, the light at the muzzle.</summary>
-    public void Aim(Vector2 muzzle, Vector2 end, CatcherFx.Thread thread)
+    /// <summary>
+    /// An aim line from <paramref name="muzzle"/> to <paramref name="end"/> as <paramref name="thread"/> says: its halo, the line, the light
+    /// at the muzzle, and the dot on its end where it <paramref name="marks"/> its quarry; then on past it to <paramref name="stop"/>, fading
+    /// out over <see cref="CatcherMotion.FadeOver"/> pixels (catcher-motion «Поиск»), lit where solid stops it.
+    /// </summary>
+    public void Aim(Vector2 muzzle, Vector2 end, Vector2 stop, bool marks, bool solid, CatcherFx.Thread thread)
     {
         if (thread.Halo > 0) Add(muzzle, end, CatcherFx.Halo, thread.Halo, 2.6);
         Add(muzzle, end, CatcherFx.Line, thread.Alpha, thread.Width);
-        Glow(end, thread.DotRadius, CatcherFx.Halo, thread.DotAlpha, CatcherFx.DotCore);
+        if (marks) Glow(end, thread.DotRadius, CatcherFx.Halo, thread.DotAlpha, CatcherFx.DotCore);
         Glow(muzzle, thread.MuzzleRadius, CatcherFx.Line, 0.5);
+        float past = end.DistanceTo(stop);
+        if (past >= 1)
+        {
+            float run = Math.Min(past, (float)CatcherMotion.FadeOver), left = 1 - run / (float)CatcherMotion.FadeOver;
+            var to = end + (stop - end) / past * run;
+            if (thread.Halo > 0) Add(end, to, CatcherFx.Halo, thread.Halo, 2.6, left);
+            Add(end, to, CatcherFx.Line, thread.Alpha, thread.Width, left);
+        }
+        if (solid) Glow(stop, 1.6 + 1.6 * thread.Halo / 0.2, CatcherFx.Halo, 0.25 + 0.5 * thread.Alpha, CatcherFx.DotCore);
     }
 
     /// <summary>
@@ -129,9 +143,9 @@ public partial class CatcherFxView : Node2D
         flares.Bloom(at.X, at.Y, 0.8 * radius, core ?? rgb, alpha);
     }
 
-    private void Add(Vector2 from, Vector2 to, (int R, int G, int B) rgb, double alpha, double width)
+    private void Add(Vector2 from, Vector2 to, (int R, int G, int B) rgb, double alpha, double width, float fadeTo = 1)
     {
-        if (alpha > 0.004) _lines.Add(new Line(from, to, new Color(rgb.R / 255f, rgb.G / 255f, rgb.B / 255f, (float)Math.Min(1, alpha)), (float)width));
+        if (alpha > 0.004) _lines.Add(new Line(from, to, new Color(rgb.R / 255f, rgb.G / 255f, rgb.B / 255f, (float)Math.Min(1, alpha)), (float)width, fadeTo));
     }
 
     public override void _Draw()
@@ -150,7 +164,15 @@ public partial class CatcherFxView : Node2D
             if (lit > 0.004) DrawLine(ground, new Vector2(x, y - h * 0.8f), thread with { A = (float)lit }, 0.35f, true);
         }
         foreach (var (from, to, swell, ms) in _beams) DrawBeam(from, to, swell, ms);
-        foreach (var line in _lines) DrawLine(line.From, line.To, line.Colour, line.Width, true);
+        foreach (var line in _lines)
+        {
+            if (line.FadeTo >= 1) DrawLine(line.From, line.To, line.Colour, line.Width, true);
+            else
+            {
+                (_ends[0], _ends[1], _endShades[0], _endShades[1]) = (line.From, line.To, line.Colour, line.Colour with { A = line.Colour.A * line.FadeTo });
+                DrawPolylineColors(_ends, _endShades, line.Width, true);
+            }
+        }
     }
 
     /// <summary>A laser's halo and body as strips of quads along it, their edges flowing (<see cref="CatcherFx.Edges"/>), then its core.</summary>
