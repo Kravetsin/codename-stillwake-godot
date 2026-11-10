@@ -12,8 +12,8 @@
 
 Pieces drifting by in zones and the mafia's deliveries; caught by hand or net, reeled in, wrecks broken; kinds found (0006, 0009, 0034, 0041, 0044, 0052, 0054, 0056, 0060, 0066).
 
-- **Depends on:** `Grid` (size, `Version`, the log, the hull's bounds, machines and their traits), `Crew` (the sender's
-  hero, every hero's reported cell), `Knowledge` (deliveries), `Rooms` (what is space), `Items` (weapons and bags;
+- **Depends on:** `Grid` (size, `Version`, the log, the hull's bounds, machines and their traits), `Crew` (heroes;
+  `Loot` of what one breaks), `Knowledge` (deliveries), `Rooms` (what is space), `Items` (weapons and bags;
   `GiveOrDrop`, `GiveWhatFits`, `DropAt`). Runs after `Hazards` and before `Furnace`. Creatures reads it
   (`Breaks`) and changes it (`Unreel`, `Hit`).
 - **State** (`DebrisState`, saved): `Pieces` in id order, each `{ Id, Zone, Item, X, Y, Speed, Start, End, Damage,

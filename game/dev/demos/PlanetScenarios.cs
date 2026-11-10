@@ -132,15 +132,15 @@ public sealed class PlanetScenario : DevScenario
         client.Send(new Transfer(0));
     }
 
-    /// <summary><c>--catcher</c>: once the hero stands on the planet, out of creative mode and its hunt brought near (<c>Track</c>).</summary>
+    /// <summary><c>--catcher</c>: once the hero stands on the planet, out of creative mode and its meter filled (<c>Track</c>): the alarm sounds, its catcher comes after it; <c>--catcher=N</c> leaves it N worth short.</summary>
     private void Track(Client client, Registry m, Action<string> log)
     {
         if (_tracked || Args.Given("--catcher") is not { } given || m.Rules.Floats || m.Crew.HeroOf(client.Id) == null) return;
         _tracked = true;
-        int breaths = int.TryParse(given, out int n) ? n : 10;
+        int @short = int.TryParse(given, out int n) ? n : 0;
         client.Send(new Sim.Items.SetCreative(false));
-        client.Send(new Sim.Crew.Track(breaths));
-        log($"catcher: the hunt {breaths} breaths of walking away");
+        client.Send(new Sim.Crew.Track(@short));
+        log($"catcher: the meter {@short} worth short of full");
         if (Args.Has("--fight")) client.Send(new Sim.Items.SetCreative(true));
     }
 

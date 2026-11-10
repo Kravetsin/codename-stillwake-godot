@@ -28,6 +28,7 @@ public sealed partial class BuildingModule
     private readonly List<int> _burstBroken = [], _burstPaid = [], _burstBacks = [];
     private readonly List<(int Key, int Left)> _burstCracked = [];
     private bool _burstOwn;
+    private int _burstPeer = FloorStack.Nobody;
 
     /// <inheritdoc/>
     public bool Burst(int peer, int cell, int power, int reach, Spoils spoils)
@@ -39,6 +40,7 @@ public sealed partial class BuildingModule
         _burstBacks.Clear();
         _burstCracked.Clear();
         _burstOwn = peer != FloorStack.Nobody;
+        _burstPeer = peer;
         if (BurstEnter(cell) is not int first) return false;
         _wave.Spread(_grid.Width, _grid.Height, cell, first, power, reach, BurstEnter, (at, cost) =>
         {
@@ -68,6 +70,7 @@ public sealed partial class BuildingModule
                 if (_plantOwn.GetValueOrDefault(plant.Cell) != plant) continue;
                 shocked |= plant.Kind == Ruins.Cradle;
                 Fell(plant, null);
+                if (peer != FloorStack.Nobody && Kinds[plant.Kind].Yields is { Count: > 0 } yields) _crewOps.Loot(peer, yields);
             }
         if (shocked && peer != FloorStack.Nobody) _crewOps.Shock(peer, Ruins.CradleShock, Harm.Shock);
         _burstBacks.Sort();
@@ -133,10 +136,15 @@ public sealed partial class BuildingModule
     private int Share(int cell, int left) =>
         Softened(cell) ? (left * 1000 + Damage.OwnShipTakes - 1) / Damage.OwnShipTakes : left;
 
-    /// <summary><paramref name="cost"/> fallen at <paramref name="cell"/> for anyone, as <paramref name="spoils"/> says: none when lost.</summary>
+    /// <summary>
+    /// <paramref name="cost"/> fallen at <paramref name="cell"/> for anyone, as <paramref name="spoils"/> says: none when lost. Its worth
+    /// fills the thrower's wanted meter (catcher-loot).
+    /// </summary>
     private void Leave(Spoils spoils, IReadOnlyList<(string Item, int Count)> cost, int cell)
     {
-        if (spoils == Spoils.Drop) _itemsOps.DropAt(FloorStack.Nobody, cost, cell);
+        if (spoils != Spoils.Drop) return;
+        _itemsOps.DropAt(FloorStack.Nobody, cost, cell);
+        if (_burstPeer != FloorStack.Nobody) _crewOps.Loot(_burstPeer, cost);
     }
 
     /// <summary>

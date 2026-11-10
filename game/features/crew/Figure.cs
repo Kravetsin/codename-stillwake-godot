@@ -441,7 +441,7 @@ public partial class Figure : Node2D
     /// <summary>The suit's mode, its belt's charge and the breath's phase (<see cref="SuitGlow.Of"/>): what a switched body's lights show; all off by default.</summary>
     public (bool On, bool Charged, double Phase) Suit { get; set; }
 
-    /// <summary>What its tracker shows (tracker-catchers): steady, blinking now and then, or hunted (<see cref="TrackerBlink"/>).</summary>
+    /// <summary>What its tracker shows (tracker-catchers): steady, or blinking urgently from the alarm on (<see cref="TrackerBlink"/>).</summary>
     public Sim.Crew.Signal Signal { get; set; }
 
     /// <summary>Whether it wears the tracker on its shin: every hero does; a catcher drawn as one does not (tracker-catchers).</summary>

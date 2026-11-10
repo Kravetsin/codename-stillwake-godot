@@ -19,7 +19,7 @@ public sealed partial class CrewModule
         if (rng.Below(6) == 0) return new Exert(rng.Below(2) == 0) { From = from };
         if (rng.Below(8) == 0) return new Thrust(rng.Below(2) == 0) { From = from };
         if (rng.Below(12) == 0) return new Refill { From = from };
-        if (rng.Below(40) == 0) return new Track((int)rng.Below(40)) { From = from };
+        if (rng.Below(40) == 0) return new Track((int)rng.Below(400)) { From = from };
         if (rng.Below(10) == 0) return new SuitMode(rng.Below(2) == 0) { From = from };
         if (rng.Below(5) == 0) return new PickColour((int)rng.Below(Content.Crew.Colours + 1)) { From = from };
         if (rng.Below(10) == 0) return new ChooseLook(new Look(Pick(), Pick(), Pick(), Pick(), Pick(), Pick())) { From = from };

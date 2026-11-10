@@ -94,6 +94,7 @@ public sealed partial class DebrisModule : Module<DebrisState>, IDebrisQueries, 
 
     private readonly IGridQueries _grid;
     private readonly ICrewQueries _crew;
+    private readonly ICrewOps _crewOps;
     private readonly IRoomsQueries _rooms;
     private readonly IItemsQueries _held;
     private readonly IItemsOps _items;
@@ -102,12 +103,13 @@ public sealed partial class DebrisModule : Module<DebrisState>, IDebrisQueries, 
 
     public override string Id => "debris";
 
-    public DebrisModule(IGridQueries grid, ICrewQueries crew, IRoomsQueries rooms, IItemsQueries held, IItemsOps items, IKnowledgeQueries knowledge, IKnowledgeOps knowledgeOps)
+    public DebrisModule(IGridQueries grid, ICrewQueries crew, ICrewOps crewOps, IRoomsQueries rooms, IItemsQueries held, IItemsOps items, IKnowledgeQueries knowledge, IKnowledgeOps knowledgeOps)
     {
         _knowledge = knowledge;
         _knowledgeOps = knowledgeOps;
         _grid = grid;
         _crew = crew;
+        _crewOps = crewOps;
         _rooms = rooms;
         _held = held;
         _items = items;
@@ -178,8 +180,9 @@ public sealed partial class DebrisModule : Module<DebrisState>, IDebrisQueries, 
         if (piece.Delivery != 0) _knowledgeOps.Delivered(piece.Delivery);
         var loot = CutLoot(piece, LootOf(piece.Item, Random));
         Record(piece, loot);
-        // Dropped by nobody, so whoever broke it may sweep it up at once, as anyone may.
+        // Dropped by nobody, so whoever broke it may sweep it up at once, as anyone may; its worth is the breaker's (catcher-loot).
         _items.DropAt(FloorStack.Nobody, loot, CellOf(piece.X, piece.Y, _grid.Width));
+        _crewOps.Loot(peer, loot);
         return true;
     }
 
@@ -391,6 +394,7 @@ public sealed partial class DebrisModule : Module<DebrisState>, IDebrisQueries, 
         // From the roll, not from what went in: what floats off a full inventory was seen all the same.
         Record(piece, loot);
         Report(piece.Id, c.From, _items.GiveOrDrop(c.From, loot, hero.Cell, noted: false));
+        _crewOps.Loot(c.From, loot);
     }
 
     private void Apply(HewWrecks c)

@@ -15,7 +15,7 @@
 | `Targets.cs` | `TargetAt`: what a hit at a cell strikes. |
 | `State.cs` | The saved slice: `Plan`, `Crack`, `Repairing`, `BuildingState`. |
 
-- **Depends on:** `Grid` (queries, ops); `Items` (queries, ops); `Crew` (`Heroes`; `Shock`); `Power`
+- **Depends on:** `Grid`, `Items` (queries, ops); `Crew` (`Heroes`; `Shock`, `Loot`); `Power`
   (`Unplug`, `Plug`; `IsBroken`, `Mend`); `Research` (`Knows`); `Crafting` (`Queue`, `Scrap`); `Pipes` (`SeatProblem`). Creatures uses `ShotTakes`, `Surplus`, `Hit`, `Burst`, Hazards `Burst`; Places, `Wipe`.
 - **State** (`BuildingState`, all saved): `Plans` in order made, each with `Progress` ticks and, for a blueprint,
   `Delivered` stacks in first-given order; `NextPlanId`; `Cracks`, sorted by cell (`Crack(Cell, Damage, At, Back)`);

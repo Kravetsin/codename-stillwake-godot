@@ -49,10 +49,10 @@ public sealed record Refill : Command;
 public sealed record SuitMode(bool On) : Command;
 
 /// <summary>
-/// Brings the sender's hunt near (tracker-catchers): its meter <c>Breaths</c> breaths of activity under the open sky short of full, its need
-/// drawn if it has none. A dev command (<c>--catcher</c>), as <c>Release</c> is.
+/// Brings the sender's hunt near (tracker-catchers): its meter <c>Short</c> worth short of full, its need drawn if it has none; at 0
+/// full, its alarm drawn. A dev command (<c>--catcher</c>), as <c>Release</c> is.
 /// </summary>
-public sealed record Track(int Breaths) : Command;
+public sealed record Track(int Short) : Command;
 
 /// <summary>What any module or the client may read of the heroes.</summary>
 public interface ICrewQueries
@@ -120,6 +120,12 @@ public interface ICrewOps
     void Blow(int peer, int units, Harm harm);
 
     /// <summary>
+    /// Hero <paramref name="peer"/> broke or killed what gave <paramref name="yield"/> (catcher-loot): its wanted meter fills by its worth,
+    /// up to its need, the alarm drawn as it fills; nothing in creative mode, where things float, nor for a hero out or none.
+    /// </summary>
+    void Loot(int peer, IReadOnlyList<(string Item, int Count)> yield);
+
+    /// <summary>
     /// Hero <paramref name="peer"/>'s hunt is over (tracker-catchers): its catcher out of time or dead. Its wanted meter empties, to fill
     /// again to a new need; nothing with no hero.
     /// </summary>
@@ -163,7 +169,6 @@ public sealed partial class CrewModule : Module<CrewState>, ICrewQueries, ICrewO
             var hero = HeroOf(c.From);
             if (hero != null)
             {
-                if (hero.Cell != c.Cell) hero.Stirring = Content.Wanted.ActiveFor;
                 hero.Cell = c.Cell;
                 return;
             }
@@ -197,7 +202,7 @@ public sealed partial class CrewModule : Module<CrewState>, ICrewQueries, ICrewO
             hero.Air = Math.Min(CapacityOf(c.From), hero.Air + CanisterRefill);
         });
         Handles<SuitMode>(c => c.On ? SuitModeProblem(c.From) : HeroOf(c.From) == null ? "crew.noHero" : null, c => HeroOf(c.From)!.SuitOn = c.On);
-        Handles<Track>(c => HeroOf(c.From) == null ? "crew.noHero" : null, c => Track(HeroOf(c.From)!, c.Breaths));
+        Handles<Track>(c => HeroOf(c.From) == null ? "crew.noHero" : null, c => Track(HeroOf(c.From)!, c.Short));
         // After atmosphere in the simulation phase, so a breath reads this tick's air.
         System(Phase.Simulation, () =>
         {
@@ -226,8 +231,8 @@ public sealed partial class CrewModule : Module<CrewState>, ICrewQueries, ICrewO
                 int capacity = CapacityOf(hero.Id);
                 hero.Air = Math.Min(hero.Air, capacity);
                 Thrusts(hero);
-                if (hero.Exerting || hero.Thrusting) hero.Stirring = Content.Wanted.ActiveFor;
-                else if (hero.Stirring > 0) hero.Stirring -= 1;
+                // The alarm runs out whatever the hero does, creative or not.
+                if (breath && hero.Coming > 0) hero.Coming -= 1;
                 if (_items.Creative(hero.Id))
                 {
                     // A creative peer's air is endless, and its hero takes no room's air.
@@ -243,7 +248,6 @@ public sealed partial class CrewModule : Module<CrewState>, ICrewQueries, ICrewO
                     continue;
                 }
                 if (!breath) continue;
-                Wants(hero);
                 // The pod's air first, for the breath and the suit alike; then one draw from the room for
                 // what is left of both, the room's refill as before. What the air falls short of the breath the
                 // hero's own air pays, and the cold after that, its own air alone.
@@ -477,22 +481,32 @@ public sealed partial class CrewModule : Module<CrewState>, ICrewQueries, ICrewO
         return null;
     }
 
-    /// <summary>
-    /// A breath of an awake hero's wanted meter (tracker-catchers): under gravity, on a planet, an active hero's fills by <c>Wanted.Open</c>, or
-    /// <c>Wanted.Under</c> with a back wall behind it, never past its need, drawn here first when not drawn yet.
-    /// </summary>
-    private void Wants(Hero hero)
+    public void Loot(int peer, IReadOnlyList<(string Item, int Count)> yield)
     {
-        if (Rules.Floats || hero.Stirring == 0) return;
-        Draw(hero);
-        int rate = _grid.BackAt(hero.Cell) == null ? Content.Wanted.Open : Content.Wanted.Under;
-        hero.Wanted = Math.Min(hero.Need, hero.Wanted + rate);
+        // Space waits for its catchers (catchers-space): till then nothing fills there, so no hunt is left with none to come.
+        if (Rules.Floats || HeroOf(peer) is not { Out: 0 } hero || _items.Creative(peer)) return;
+        long worth = 0;
+        foreach (var (item, count) in yield) worth += (long)Content.Market.WorthOf(item) * count;
+        if (worth > 0) Fill(hero, worth);
     }
 
-    private void Track(Hero hero, int breaths)
+    /// <summary>Fills <paramref name="hero"/>'s meter by <paramref name="worth"/>, never past its need, drawn first; filled now, its alarm drawn.</summary>
+    private void Fill(Hero hero, long worth)
     {
         Draw(hero);
-        hero.Wanted = Math.Clamp(hero.Need - breaths * Content.Wanted.Open, 0, hero.Need);
+        if (hero.Wanted >= hero.Need) return;
+        hero.Wanted = (int)Math.Min(hero.Need, hero.Wanted + worth);
+        if (hero.Wanted == hero.Need)
+            hero.Coming = Content.Wanted.ComingLeast + (int)Random.Below(Content.Wanted.ComingMost - Content.Wanted.ComingLeast + 1);
+    }
+
+    private void Track(Hero hero, int @short)
+    {
+        Draw(hero);
+        if (hero.Wanted >= hero.Need) return;
+        hero.Wanted = Math.Max(0, hero.Need - Math.Max(@short, 1));
+        // Filled as loot fills it: its alarm drawn.
+        if (@short <= 0) Fill(hero, 1);
     }
 
     /// <summary>A need drawn for <paramref name="hero"/> if it has none: how much activity its next hunt takes.</summary>
@@ -511,12 +525,13 @@ public sealed partial class CrewModule : Module<CrewState>, ICrewQueries, ICrewO
     {
         hero.Wanted = 0;
         hero.Need = 0;
+        hero.Coming = 0;
     }
 
     public Signal SignalOf(int peer) => HeroOf(peer) switch
     {
+        { Need: > 0, Coming: > 0 } hero when hero.Wanted >= hero.Need => Signal.Coming,
         { Need: > 0 } hero when hero.Wanted >= hero.Need => Signal.Hunted,
-        { Need: > 0 } hero when hero.Wanted * 3 >= hero.Need * Content.Wanted.Blink => Signal.Blinking,
         _ => Signal.Calm,
     };
 
