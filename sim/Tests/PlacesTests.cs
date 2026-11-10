@@ -168,7 +168,7 @@ public class PlacesTests
     }
 
     [Fact]
-    public void TheAxeBreaksAVesselsWallAndNothingOfTheShips()
+    public void TheAxeTakesAVesselsWallInFullAndTheShipsAtATenth()
     {
         var (w, box) = Jumped();
         int width = w.M.Grid.Width, row = box.Top + box.Height / 2;
@@ -178,13 +178,13 @@ public class PlacesTests
         w.Do(hew).Run();
         Assert.Empty(w.Refusals);
         Assert.True(w.M.Grid.WallAt(wall) == null || w.M.Building.Cracks.Any(k => k.Cell == wall));
-        // Elsewhere aboard the axe takes nothing: the plan takes the ship apart.
-        int shipWall = Enumerable.Range(0, width * w.M.Grid.Height).First(c => !box.Contains(c % width, c / width) && w.M.Grid.WallAt(c) != null);
-        Assert.Equal("building.notHere", HewTesting.DigProblem(w, 0, shipWall, Axe));
+        // Elsewhere aboard the axe takes a tenth: the hero's own ship.
+        int shipWall = Enumerable.Range(0, width * w.M.Grid.Height).First(c => !box.Contains(c % width, c / width) && w.M.Grid.WallAt(c) is { Strength: > 100 });
+        Assert.Null(HewTesting.DigProblem(w, 0, shipWall, Axe));
         w.Do(HewTesting.Dig(w, shipWall, Axe)).Run();
-        Assert.Equal("building.notHere", w.Refusals[^1].Reason);
+        Assert.Empty(w.Refusals);
         Assert.NotNull(w.M.Grid.WallAt(shipWall));
-        Assert.DoesNotContain(w.M.Building.Cracks, k => k.Cell == shipWall);
+        Assert.Equal(Weapons.Axe.BlockDamage * Damage.OwnShipTakes / 1000, w.M.Building.Cracks.Single(k => k.Cell == shipWall).Damage);
     }
 
     [Fact]

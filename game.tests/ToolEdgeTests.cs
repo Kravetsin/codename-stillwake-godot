@@ -179,14 +179,14 @@ public class ToolEdgeTests
     }
 
     [Fact]
-    public void AHullAboardTakesNoHitButIsStillTouchedAndAirShortOfTheWallTouchesNothing()
+    public void AHullAboardIsHewnLikeAnyWallAndAirShortOfTheWallTouchesNothing()
     {
         var hero = new Hero(28 * Unit + Unit / 2, 9 * Unit, 0, 0, false, 1);
-        // Aboard, the hull takes no hit, but a ray still lands on it, to ring and spark there (melee-edge).
+        // Aboard, the hull is hewn like any wall, at the tenth the sim takes off a hero's own ship (hit-targets).
         var hull = Hull();
         var rings = Right(hull, hero, Axe);
         Assert.Equal(31, rings.Ground!.Value.Cell!.Value % hull.M.Grid.Width);
-        Assert.Null(ToolEdges.CommandsOf(hull.M, 0, Axe, rings).Cells);
+        Assert.NotNull(ToolEdges.CommandsOf(hull.M, 0, Axe, rings).Cells);
         // Out of reach of the wall, the axe's rays end in air.
         var air = Right(Strip(), hero with { X = 20 * Unit }, Axe);
         Assert.Null(air.Contact);
@@ -265,7 +265,7 @@ public class ToolEdgeTests
         }
         // The blow that breaks it throws the whole look, as a wreck's last.
         int any = pile.Cell;
-        Assert.Equal(1, Features.Effects.Impacts.ShareAt(w.M.Grid, w.M.Building, any, Axe, 6));
-        Assert.Equal(Features.Effects.Impacts.ShareOf(Axe), Features.Effects.Impacts.ShareAt(w.M.Grid, w.M.Building, any, Axe, 2));
+        Assert.Equal(1, Features.Effects.Impacts.ShareAt(w.M.Building, any, Axe, 6, 0));
+        Assert.Equal(Features.Effects.Impacts.ShareOf(Axe), Features.Effects.Impacts.ShareAt(w.M.Building, any, Axe, 2, 0));
     }
 }

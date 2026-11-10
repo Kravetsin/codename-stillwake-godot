@@ -1,3 +1,4 @@
+using Stillwake.Sim.Building;
 using Stillwake.Sim.Crew;
 using Stillwake.Sim.Debris;
 using Stillwake.Sim.Items;
@@ -144,12 +145,12 @@ public sealed partial class CreaturesModule
         while (TargetIn(cell, p, _wrecks, s.Passed) is { } target)
         {
             if (target.Pass == broken) throw new InvalidOperationException($"creatures.shot: {target.Pass} still in {cell} once broken");
-            if (target.Pass.What == ShotTarget.Solid)
+            if (Built(target.Pass))
             {
                 int block = s.Carry ?? Content.Shots.BlockDamageOf(s.Gun, p.Id);
                 bool hits = Takes(target.Pass, block);
                 int? left = hits ? _building.Hit(peer, target.Pass.Id, block) : null;
-                _hits.Add(new ShotHit(s.Id, s.By, s.Projectile, s.Gun, cell, from, ShotTarget.Solid, hits ? block : 0, left != null, target.Pass.Id));
+                _hits.Add(new ShotHit(s.Id, s.By, s.Projectile, s.Gun, cell, from, target.Pass.What, hits ? block : 0, left != null, target.Pass.Id));
                 if (CarryPast(gun, left) is not int carry) return true;
                 (s.Carry, s.Pierced, broken) = (carry, s.Pierced + 1, target.Pass);
                 continue;
@@ -165,8 +166,11 @@ public sealed partial class CreaturesModule
         return false;
     }
 
-    /// <summary>Whether a hit of <paramref name="damage"/> on <paramref name="target"/> takes anything: some left, and what is solid there breakable by a shot (<see cref="IBuildingQueries.ShotTakes"/>).</summary>
-    private bool Takes(ShotPass target, int damage) => damage > 0 && (target.What != ShotTarget.Solid || _built.ShotTakes(target.Id));
+    /// <summary>Whether a hit of <paramref name="damage"/> on <paramref name="target"/> takes anything: some left, and what is built there breakable by a shot (<see cref="IBuildingQueries.ShotTakes"/>).</summary>
+    private bool Takes(ShotPass target, int damage) => damage > 0 && (!Built(target) || _built.ShotTakes(target.Id));
+
+    /// <summary>Whether <paramref name="target"/> is what stands on the grid, taking block damage: what is solid, or a machine (hit-targets).</summary>
+    private static bool Built(ShotPass target) => target.What is ShotTarget.Solid or ShotTarget.Machine;
 
     /// <summary>Whether a shot of <paramref name="gun"/> flies on through the body its hit took (<paramref name="takes"/>) and killed or broke (<paramref name="broke"/>): every one it takes for a gun that pierces all, else what died.</summary>
     private static bool Pierces(Content.Gun? gun, bool takes, bool broke) => gun?.Pierces == Content.Pierce.All ? takes : broke;
@@ -182,8 +186,8 @@ public sealed partial class CreaturesModule
 
     /// <summary>
     /// The first thing a shot of <paramref name="p"/> meets in <paramref name="cell"/>, past those in <paramref name="passed"/>: what is
-    /// solid as for a body, else, for a projectile that hits bodies, the lowest-id live creature in it, else the first wreck of
-    /// <paramref name="wrecks"/> still out; null for none.
+    /// solid as for a body, else, for a projectile that hits bodies, the lowest-id live creature in it, else a machine that breaks,
+    /// once by its top-left (hit-targets), else the first wreck of <paramref name="wrecks"/> still out; null for none.
     /// </summary>
     private Target? TargetIn(int cell, Content.Projectile p, IReadOnlyList<WreckBox> wrecks, IReadOnlyList<ShotPass> passed)
     {
@@ -195,6 +199,9 @@ public sealed partial class CreaturesModule
         }
         if (!p.HitsBodies) return null;
         if (CreatureIn(cell, passed) is { } creature) return new Target(new ShotPass(ShotTarget.Creature, creature.Id), creature);
+        if (_built.TargetAt(cell) is { Kind: TargetKind.Machine, Strength: not null, Wreck: false } machine
+            && new ShotPass(ShotTarget.Machine, machine.Key) is var met && !passed.Contains(met))
+            return new Target(met, null);
         return WreckIn(cell, wrecks, passed) is { } wreck ? new Target(new ShotPass(ShotTarget.Wreck, wreck.Piece), null) : null;
     }
 
@@ -226,7 +233,7 @@ public sealed partial class CreaturesModule
     /// <see cref="Shot.Pierced"/> does: a copy starts with none. For the shooter's client to fly its own shot ahead of the sim's
     /// (shots-are-the-sims, 2026-10-27-shots-pierce, unified-damage).
     /// </summary>
-    public ShotTick StepOf(ShotMotion f, Content.Projectile p, string? gun, IReadOnlyList<ShotPass> passed, int? carry = null)
+    public ShotTick StepOf(ShotMotion f, Content.Projectile p, string? gun, IReadOnlyList<ShotPass> passed, int? carry = null, int peer = FloorStack.Nobody)
     {
         var wrecks = p.HitsBodies && _debris.Pieces.Count > 0 ? _debris.Wrecks() : [];
         var hits = new List<ShotHit>();
@@ -237,12 +244,12 @@ public sealed partial class CreaturesModule
         {
             while (TargetIn(cell, p, wrecks, through) is { } target)
             {
-                if (target.Pass.What == ShotTarget.Solid)
+                if (Built(target.Pass))
                 {
                     int block = carry ?? Content.Shots.BlockDamageOf(gun, p.Id);
                     bool strikes = Takes(target.Pass, block);
-                    int? left = strikes ? _built.Surplus(cell, block) : null;
-                    hits.Add(new ShotHit(0, Ref.None, p.Id, gun, cell, from, ShotTarget.Solid, strikes ? block : 0, left != null, target.Pass.Id));
+                    int? left = strikes ? _built.Surplus(peer, cell, block) : null;
+                    hits.Add(new ShotHit(0, Ref.None, p.Id, gun, cell, from, target.Pass.What, strikes ? block : 0, left != null, target.Pass.Id));
                     if (CarryPast(spec, left) is not int more) return true;
                     carry = more;
                     through.Add(target.Pass);

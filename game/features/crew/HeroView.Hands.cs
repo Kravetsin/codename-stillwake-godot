@@ -406,7 +406,7 @@ public partial class HeroView
             voices.Play(hit, point, offsetDb: GroundSounds.HitDbOf(tool));
         if (Impacts.At(m.Grid, m.Building, cell) is not { } impact) return;
         double? floor = Impacts.FloorUnder(m.Grid, at) * Rig.Cell;
-        double share = Impacts.ShareAt(m.Grid, m.Building, cell, tool, damage);
+        double share = Impacts.ShareAt(m.Building, cell, tool, damage, peer);
         // A running tool is seen at work all along (ToolWork): only the hit that breaks the wall or fells the growth throws.
         if (HeldLook.IsDrill(tool) && share < 1) return;
         Stages.Of(Layers.Effects).Hits.Throw(HitLooks.Of[impact], point.X, point.Y, at.Nx, at.Ny, share, floor);

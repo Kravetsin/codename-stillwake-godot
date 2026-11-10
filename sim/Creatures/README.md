@@ -72,8 +72,8 @@ drives, moves and yields, each a rule here. The dead are gone to all from the bl
   solid cell), then `Stuck`. **Kept loop, no drop, never `Dead`:** post or relic gone, or `Calm`. Killed, it fells its post.
 - **The hit path** (`Strike`, a shot): unless a drive `Shields` (a shut shell, a shot), damage; dead at hit points, `Yields` sprayed, its `Purse` earned; else knocked
   (`Life.Knock`, `Hop`), its act cut if interruptible, drives told in brain order till one claims it.
-- **Shots:** `Fire` takes an ammo and its gun's `Energy`; each tick, in id order, one steps, hitting a cell's solid, lowest-id
-  creature, wreck (not `Passed`), through bodies its gun `Pierces`, broken cells while it `Carries` some. It falls (`ShotFlight.Gravity`). One that `Bursts`
+- **Shots:** `Fire` takes ammo and its gun's `Energy`; each tick, in id order, one steps, hitting a cell's solid, lowest-id
+  creature, machine, wreck (not `Passed`), through bodies its gun `Pierces`, broken cells while it `Carries` some. Falls (`ShotFlight.Gravity`). One that `Bursts`
   `Burst`s where it ends (`Spoils.Drop`; a relic shocks the thrower); wrecks in `Reach` take `WreckDamage`, a creature's heroes it sees its `Damage`.
 - **`HitBy(Creature)`** (0103), **`Bolted(Arc)`**, as the hero's client saw it: a `Blow` of the move's `Damage`, the act ends; or
   the arc's projectile's, once a hero.
