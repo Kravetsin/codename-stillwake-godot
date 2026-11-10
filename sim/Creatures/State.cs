@@ -212,6 +212,11 @@ public sealed class Shot
     /// </summary>
     [JsonInclude, JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] public int? Carry { get; internal set; }
     /// <summary>
+    /// A homing shot's fine heading (catcher-missile, <see cref="Rays.FineTurn"/>): what it turns and its speed is set along each tick,
+    /// as turning its speeds in whole thousandths would shrink them; null for a shot that does not home.
+    /// </summary>
+    [JsonInclude, JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] public int? Heading { get; internal set; }
+    /// <summary>
     /// What a shot that pierces everything hit and flew on through that still stands, in the order hit (2026-10-27-the-railgun): never
     /// hit again, a body spanning cells and ticks. Pierced counts these and what broke.
     /// </summary>

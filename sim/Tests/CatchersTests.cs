@@ -1304,4 +1304,230 @@ public class CatchersTests
             }
             return true.ToProperty();
         });
+
+    // Its missile (catcher-missile).
+
+    private static readonly Spec.Homing Homes = Spec.Shots.Missile.Homes!;
+
+    /// <summary>Its hero still at (<paramref name="hx"/>, <paramref name="hy"/>), its catcher come, its barrage and its own missiles held off: a missile launched by hand flies alone.</summary>
+    private static (Scenario W, Creature C) Missiled(int hx = SW / 2, int hy = SH / 2, Func<int, int, char?>? draw = null)
+    {
+        var w = Afloat(Space(draw), hx, hy);
+        Full(w);
+        w.Run(Tune.Beat + 1);
+        var c = CatcherOf(w, 0)!;
+        c.Keep(HuntDrive.BarrageAt, int.MaxValue);
+        c.Keep(HuntDrive.MissileAt, int.MaxValue);
+        c.Keep(HuntDrive.LobAt, int.MaxValue);
+        return (w, c);
+    }
+
+    /// <summary>Its missile in flight, if any.</summary>
+    private static Shot? MissileOf(Scenario w) => w.M.Creatures.Shots.SingleOrDefault(s => s.Projectile == Hunt.Missile.Projectile);
+
+    /// <summary>Its missile's end this tick, if it ended.</summary>
+    private static ShotEnd? MissileEnd(Scenario w) =>
+        w.M.Creatures.Ended.Where(e => e.Projectile == Hunt.Missile.Projectile).Select(e => (ShotEnd?)e).FirstOrDefault();
+
+    /// <summary>Its missile flown by hand from cell (<paramref name="x"/>, <paramref name="y"/>) along fine heading <paramref name="heading"/>, till it ends.</summary>
+    private static ShotEnd Flown(Scenario w, Creature c, int x, int y, int heading, Action<Shot>? each = null)
+    {
+        var m = w.M.Creatures;
+        m.Launch(c, Hunt.Missile.Projectile, m.Middle(x), m.Middle(y), heading, Hunt.Missile.Flight);
+        for (int t = 0; t <= Hunt.Missile.Flight + 1; t++)
+        {
+            var shot = MissileOf(w)!;
+            each?.Invoke(shot);
+            w.Run();
+            if (MissileEnd(w) is { } end) return end;
+        }
+        throw new InvalidOperationException("the missile never ended");
+    }
+
+    /// <summary>How far, in cells, cell <paramref name="cell"/> lies from its hero's.</summary>
+    private static double FromItsHero(Scenario w, int cell)
+    {
+        var (x, y) = w.M.Creatures.HeroAt(0)!.Value;
+        return Math.Sqrt(Math.Pow(cell % SW - x, 2) + Math.Pow(cell / SW - y, 2));
+    }
+
+    /// <summary>
+    /// A whole <c>Every</c> after its first look, its hero in reach, the tell, then the missile; its next a whole wait on. Its hero still,
+    /// the missile reaches it and bursts within its reach.
+    /// </summary>
+    [Fact]
+    public void InSpaceItsMissileComesOnItsBeatAfterItsTellAndBurstsAtAStillHero()
+    {
+        var w = Afloat(Space(), SW / 2, SH / 2);
+        Full(w);
+        w.Run(Tune.Beat + 1);
+        var c = CatcherOf(w, 0)!;
+        c.Keep(HuntDrive.BarrageAt, int.MaxValue);
+        var m = w.M.Creatures;
+        int start = m.Clock, next = 0;
+        int? tell = null, launched = null;
+        ShotEnd? end = null;
+        for (int t = 0; t < 900 && end == null; t++)
+        {
+            w.Run();
+            if (tell == null && m.FightOf(c).LaunchLeft > 0) tell = m.Clock;
+            if (launched == null && MissileOf(w) != null) (launched, next) = (m.Clock, c.Recall(HuntDrive.MissileAt));
+            end = MissileEnd(w);
+        }
+        Assert.NotNull(tell);
+        Assert.InRange(tell!.Value - start, Hunt.Missile.Every - 2, Hunt.Missile.Every + 60);
+        Assert.Equal(Hunt.Missile.Tell, launched - tell);
+        Assert.Equal(launched + Hunt.Missile.Every, next);
+        Assert.NotNull(end);
+        Assert.True(end!.Value.Burst >= 0);
+        Assert.True(FromItsHero(w, end.Value.Burst) <= Spec.Blasting.Missile.Reach, $"{FromItsHero(w, end.Value.Burst):F1} off");
+    }
+
+    /// <summary>
+    /// It turns at most its <c>Turn</c> a tick, so a hero who waits till it is near, then flies off across its way and keeps going,
+    /// escapes it: it ends at the end of its flight, bursting out of its hero's reach.
+    /// </summary>
+    [Fact]
+    public void ItsMissileTurnsAtMostItsTurnAndAHeroSidesteppingLateEscapesIt()
+    {
+        var (w, c) = Missiled();
+        int hx = SW / 2, hy = SH / 2, x = hx, heading = 3 * Rays.FineTurn / 4;
+        bool dodging = false;
+        var end = Flown(w, c, hx, hy + 60, heading, shot =>
+        {
+            Assert.True(Math.Abs(Rays.FineApart(heading, shot.Heading!.Value)) <= Homes.Turn, $"{heading} to {shot.Heading}");
+            heading = shot.Heading!.Value;
+            dodging |= shot.Y / Unit - hy <= 16;
+            if (dodging) w.Do(new Enter(At(++x, hy)));
+        });
+        Assert.True(dodging);
+        Assert.False(end.Met);
+        Assert.True(end.Burst >= 0);
+        Assert.True(FromItsHero(w, end.Burst) > Spec.Blasting.Missile.Reach, $"{FromItsHero(w, end.Burst):F1} off");
+    }
+
+    /// <summary>Led into a wreck on its way, it bursts there: the wreck takes its hit and its burst.</summary>
+    [Fact]
+    public void ItsMissileLedIntoAWreckBurstsOnIt()
+    {
+        var (w, c) = Missiled();
+        int hx = SW / 2, hy = SH / 2;
+        var debris = (Stillwake.Sim.Debris.DebrisState)w.M.Debris.Slice;
+        var wreck = new Stillwake.Sim.Debris.Piece
+        {
+            Id = debris.NextId++,
+            Zone = Spec.Debris.Far.Id,
+            Item = "engineBlock",
+            X = (hx - 40) * Unit,
+            Y = (hy - 2) * Unit,
+            Start = (hx - 40) * Unit,
+            SeenAt = debris.Clock,
+        };
+        debris.Pieces.Add(wreck);
+        var end = Flown(w, c, hx - 70, hy, 0);
+        Assert.True(end.Met);
+        Assert.True(end.Burst % SW < hx - 30, "bursts at the wreck");
+        Assert.Equal(Spec.Shots.Missile.Damage + Spec.Blasting.Missile.WreckDamage, wreck.Damage);
+    }
+
+    /// <summary>Its hero gone into a room after it left, it bursts on the hull: a scrap hull's cell breaks and the room vents.</summary>
+    [Fact]
+    public void ItsMissileMeetingTheHullOfItsHerosRoomBreaksItAndTheRoomVents()
+    {
+        int x = SW / 2, y = SH / 2;
+        var (w, c) = Missiled(x, y, (cx, cy) => Room(x, y, cx, cy));
+        Assert.True(w.M.Rooms.RoomAt(At(x, y)) >= 0);
+        var end = Flown(w, c, x - 50, y - 2, 0);
+        Assert.True(end.Met);
+        w.Run(5);
+        Assert.Equal(Stillwake.Sim.Rooms.RoomsModule.Space, w.M.Rooms.RoomAt(At(x, y)));
+    }
+
+    /// <summary>Two heroes awake, it turns toward the nearer, not its catcher's quarry: in co-op a friend draws it off.</summary>
+    [Fact]
+    public void ItsMissileTurnsTowardTheNearerHero()
+    {
+        var (w, c) = Missiled();
+        int hx = SW / 2, hy = SH / 2;
+        Afloat(w, hx + 40, hy - 20, peer: 1);
+        // Headed east between them: its quarry 40 cells below-right, the other 20 above-right; it turns up, counterclockwise.
+        var m = w.M.Creatures;
+        w.Do(new Enter(At(hx + 40, hy + 40)));
+        m.Launch(c, Hunt.Missile.Projectile, m.Middle(hx), m.Middle(hy), 0, Hunt.Missile.Flight);
+        w.Run();
+        Assert.Equal(-Homes.Turn & (Rays.FineTurn - 1), MissileOf(w)!.Heading);
+    }
+
+    /// <summary>
+    /// No missile at a hero shut in a room, nor a tell in its barrage; no barrage in its tell; a tell ending in a barrage's blink still
+    /// launches; a barrage's end restarts its wait.
+    /// </summary>
+    [Fact]
+    public void ItsMissileWaitsOutABarrageAndABarrageItsTell()
+    {
+        var (w, c) = Barrage();
+        var m = w.M.Creatures;
+        c.Keep(HuntDrive.MissileAt, m.Clock);
+        while (c.Recall(HuntDrive.Volley) != 0)
+        {
+            w.Run();
+            Assert.Equal(0, m.FightOf(c).LaunchLeft);
+        }
+        Assert.Equal(m.Clock + Hunt.Missile.Every, c.Recall(HuntDrive.MissileAt));
+        Assert.Null(MissileOf(w));
+        // In its tell, a barrage due waits for the launch.
+        c.Keep(HuntDrive.MissileAt, m.Clock);
+        while (m.FightOf(c).LaunchLeft == 0) w.Run();
+        c.Keep(HuntDrive.BarrageAt, m.Clock);
+        while (MissileOf(w) == null)
+        {
+            Assert.Equal(0, c.Recall(HuntDrive.Volley));
+            w.Run();
+        }
+        // A tell left running into a barrage's blink: the missile leaves all the same.
+        for (int t = 0; t < 20 && c.Recall(HuntDrive.Volley) == 0; t++) w.Run();
+        Assert.NotEqual(0, c.Recall(HuntDrive.Volley));
+        while (MissileOf(w) != null) w.Run();
+        c.Keep(HuntDrive.LaunchAt, m.Clock + 2);
+        w.Run(3);
+        Assert.NotNull(MissileOf(w));
+        Assert.Equal(0, c.Recall(HuntDrive.LaunchAt));
+    }
+
+    /// <summary>Its hero shut in a room aboard, no tell begins.</summary>
+    [Fact]
+    public void NoMissileAtAHeroShutInARoom()
+    {
+        int x = SW / 2, y = SH / 2;
+        var (w, c) = Missiled(x, y, (cx, cy) => Room(x, y, cx, cy));
+        c.Keep(HuntDrive.MissileAt, w.M.Creatures.Clock);
+        for (int t = 0; t < 200; t++)
+        {
+            w.Run();
+            Assert.Equal(0, w.M.Creatures.FightOf(c).LaunchLeft);
+        }
+        Assert.Null(MissileOf(w));
+    }
+
+    /// <summary>A world saved in its missile's tell, on its launch tick, or with one flying due east (heading 0) loads and plays on alike.</summary>
+    [Theory]
+    [InlineData(0)]
+    [InlineData(1)]
+    [InlineData(2)]
+    public void AWorldSavedWithItsMissileLoadsAndPlaysOnAlike(int when)
+    {
+        var (w, c) = Missiled();
+        var m = w.M.Creatures;
+        if (when == 2) m.Launch(c, Hunt.Missile.Projectile, m.Middle(SW / 2 - 60), m.Middle(SH / 2 + 3), 0, Hunt.Missile.Flight);
+        else
+        {
+            c.Keep(HuntDrive.MissileAt, m.Clock);
+            while (m.FightOf(c).LaunchLeft == 0) w.Run();
+            if (when == 1) while (MissileOf(w) == null) w.Run();
+        }
+        var twin = Space().Reload(w.World.Save());
+        w.Run(120);
+        twin.Run(120);
+        Assert.Equal(w.World.Save(), twin.World.Save());
+    }
 }
