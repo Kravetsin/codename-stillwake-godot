@@ -114,6 +114,12 @@ public sealed partial class CreaturesModule
         var p = Content.Shots.Get(s.Projectile);
         var from = (s.X, s.Y);
         var gun = Content.Shots.GunOf(s.Gun);
+        if (p.Homes is { } homes && s.Heading is int heading && Steer(s, p, homes, heading))
+        {
+            int here = s.X / Unit + s.Y / Unit * _grid.Width;
+            _ended.Add(new ShotEnd(s.Id, s.By, s.Projectile, s.Gun, here, Met: false, p.Bursts is { } fuse ? Burst(s, fuse, here) : -1));
+            return false;
+        }
         var (next, met, last) = ShotFlight.Step(s.Motion, GravityAt(s.X, s.Y, p, gun), _grid.Width, _grid.Height, cell => Meets(s, p, gun, cell, from));
         if (met >= 0)
         {
@@ -130,6 +136,31 @@ public sealed partial class CreaturesModule
         }
         (s.X, s.Y, s.VY, s.Left) = (next.X, next.Y, next.VY, next.Left);
         return true;
+    }
+
+    /// <summary>
+    /// A homing shot's turn before its step (catcher-missile): the nearest awake hero (by squared distance, the first in the crew's
+    /// order at a tie) within its burst's reach and in its sight, true: it bursts where it is. Else its heading turns toward that
+    /// hero's middle by at most its <c>Turn</c> and its speed is set along it, rounded toward zero; no awake hero, it flies on straight.
+    /// </summary>
+    private bool Steer(Shot s, Content.Projectile p, Content.Homing homes, int heading)
+    {
+        (int X, int Y)? target = null;
+        long best = long.MaxValue;
+        foreach (var hero in _crew.Heroes)
+        {
+            if (HeroAt(hero.Id, awake: true) is not { } at) continue;
+            long dx = Middle(at.X) - s.X, dy = Middle(at.Y) - s.Y;
+            if (dx * dx + dy * dy < best) (best, target) = (dx * dx + dy * dy, at);
+        }
+        if (target is not { } t) return false;
+        int reach = p.Bursts?.Reach ?? 0, ex = t.X - s.X / Unit, ey = t.Y - s.Y / Unit;
+        if (ex * ex + ey * ey <= reach * reach && Sees(s.X, s.Y, t)) return true;
+        int turn = Math.Clamp(Rays.FineApart(heading, Rays.FineHeadingTo(Middle(t.X) - s.X, Middle(t.Y) - s.Y)), -homes.Turn, homes.Turn);
+        s.Heading = (heading + turn) & (Rays.FineTurn - 1);
+        var (ux, uy) = Rays.FineDirection(s.Heading.Value);
+        (s.VX, s.VY) = (ux * homes.Speed / Unit, uy * homes.Speed / Unit);
+        return false;
     }
 
     /// <summary>
@@ -320,6 +351,23 @@ public sealed partial class CreaturesModule
         int vy = (int)((y1 - y0 - g * flight * (flight - 1) / 2 - flight * (g / 2)) / flight);
         State.Fired += 1;
         var shot = new Shot { Id = State.Fired, Projectile = p.Id, By = Ref.None, X = x0, Y = y0, VX = (x1 - x0) / flight, VY = vy, Left = 3 * flight };
+        shot.Passed.Add(new ShotPass(ShotTarget.Creature, c.Id));
+        State.Shots.Add(shot);
+    }
+
+    /// <summary>
+    /// <paramref name="c"/>'s launch of a homing <paramref name="projectile"/> (catcher-missile) from (<paramref name="x"/>, <paramref name="y"/>)
+    /// along fine heading <paramref name="heading"/> at its speed, rounded toward zero, flying <paramref name="flight"/> ticks at most; its
+    /// launcher flown through. None from off the grid.
+    /// </summary>
+    internal void Launch(Creature c, string projectile, int x, int y, int heading, int flight)
+    {
+        if (!ShotFlight.OnGrid(x, y, _grid.Width, _grid.Height)) return;
+        var p = Content.Shots.Get(projectile);
+        var (ux, uy) = Rays.FineDirection(heading);
+        int speed = p.Homes!.Speed;
+        State.Fired += 1;
+        var shot = new Shot { Id = State.Fired, Projectile = p.Id, By = Ref.None, X = x, Y = y, VX = ux * speed / Unit, VY = uy * speed / Unit, Left = flight, Heading = heading };
         shot.Passed.Add(new ShotPass(ShotTarget.Creature, c.Id));
         State.Shots.Add(shot);
     }

@@ -9,6 +9,9 @@ public static class Headings
     /// <summary>The steps of a full turn: 256, a step a little under 1.5°.</summary>
     public const int Turn = 256;
 
+    /// <summary>A step split this many times, for an aim that turns smoothly (catcher-motion): 4096 fine headings to the turn.</summary>
+    public const int Fine = 16;
+
     /// <summary>The sine of each step of the first quarter turn, 0 to 64, in thousandths, rounded to nearest; the rest mirror it.</summary>
     public static readonly IReadOnlyList<int> Sines =
     [

@@ -59,7 +59,8 @@ planet fight is [catcher-combat](../decisions/2026-11-09-catcher-combat.md); the
 **The catcher in space (Creatures).**
 - The bounty runs where things float too: the same ring out of view, every body cell in `Space`, never in a room.
 - No path in space (`Plan` does not run): it flies straight at its quarry's reported cell at `Speed`, sliding along what
-  blocks it. `Short` is set in space when the quarry's cell lies in a room (redefined, not the path search's flag).
+  blocks it. Superseded: it keeps its range by a flown path, leads its laser and fires a barrage
+  ([catcher-motion](../decisions/2026-11-10-catcher-motion.md)); the missile below still comes on its own beat. `Short` is set in space when the quarry's cell lies in a room (redefined, not the path search's flag).
 - The lag blink is the planet's, its spot needing no ground and lying wholly in `Space`.
 - Short, it throws the charge (`LobAtShelter`) at the first solid on the line to its quarry. A creature's burst breaks hull
   at full strength; Rooms and Atmosphere vent the room as for any breach.
@@ -105,5 +106,5 @@ id order. A joiner gets the meter, `Coming` and the shots in the save. New saved
 2. Done: space opens: `Loot` fills where things float, the belt's drain; a test that taking apart fills nothing (only the ship has
    `Deconstruct`). Creatures: the bounty and the flight in space, the space blink, short → charge; `--catcher` alone aboard.
 3. The laser meeting and damaging wrecks.
-4. The missile: `Homing`, `Heading`, the beat, the burst.
-5. Pick pages (missile, tell, lock tone, alarm, laser on a wreck), then the client; ADR, READMEs, glossary; a dev room in space.
+4. Done (catcher-missile): the missile, its beat, its flight and burst; its look, tell and sounds picked and in the client.
+5. Pick pages (alarm, laser on a wreck), then the client; ADR, READMEs, glossary; a dev room in space.

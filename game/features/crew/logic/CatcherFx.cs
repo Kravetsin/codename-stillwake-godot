@@ -187,4 +187,26 @@ public static class CatcherFx
         k = Math.Clamp(k, 0, 1);
         return (6 + (1.4 - 6) * Ease(k), 0.32 + 0.45 * k, 0.8 * k, 0.35 + 0.3 * k);
     }
+
+    // The missile's tell (catcher-missile), the user's pick «Захват».
+
+    /// <summary>The lock's amber: its halo and its line; how long its corners' arms are and how long it snaps shut at the launch.</summary>
+    public static readonly (int R, int G, int B) LockHalo = (255, 150, 40), LockLine = (255, 200, 110), Snap = (255, 210, 120);
+    public const double LockArm = 6, SnapArm = 5, SnapRadius = 20, SnapMs = 160;
+
+    /// <summary>
+    /// Its four corners round the quarry <paramref name="k"/> of the way through the tell, <paramref name="ms"/> on the clock: how far out
+    /// (40 pixels closing to 22), turned how far (0.8 radians to none) and how bright, fading in over its first tenth, blinking fast over
+    /// its last quarter.
+    /// </summary>
+    public static (double Radius, double Turn, double Alpha) LockOf(double k, double ms)
+    {
+        k = Math.Clamp(k, 0, 1);
+        double e = Ease(k);
+        bool on = k < 0.75 || Math.Floor(ms / 55) % 2 == 0;
+        return (40 + (22 - 40) * e, (1 - e) * 0.8, (k < 0.1 ? k / 0.1 : 1) * (on ? 1 : 0.25));
+    }
+
+    /// <summary>Its corners snapped shut <paramref name="ms"/> after the launch: their brightness, gone after <see cref="SnapMs"/>.</summary>
+    public static double SnapOf(double ms) => ms < 0 || ms >= SnapMs ? 0 : 1 - ms / SnapMs;
 }
