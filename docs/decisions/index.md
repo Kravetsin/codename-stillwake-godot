@@ -323,3 +323,4 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [round-blasts](2026-11-09-round-blasts.md) | Blasts are round | accepted | unified-damage (in part) |
 | [tracker-catchers](2026-11-09-tracker-catchers.md) | Catchers | accepted | catcher-combat, catcher-paths (in part) |
 | [unified-damage](2026-11-09-unified-damage.md) | One rule for damage | accepted | damage-scale (in part) |
+| [hit-targets](2026-11-10-hit-targets.md) | One answer to what a hit strikes | accepted |  |

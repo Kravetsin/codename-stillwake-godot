@@ -12,6 +12,7 @@
 | `Fuzz.cs` | The commands the desync suite draws. |
 | `Repairs.cs` | Repairing a machine a magnetic flare broke (`Repair`). |
 | `Rules.cs` | Which plans may be made and worked. |
+| `Targets.cs` | `TargetAt`: what a hit at a cell strikes. |
 | `State.cs` | The saved slice: `Plan`, `Crack`, `Repairing`, `BuildingState`. |
 
 - **Depends on:** `Grid` (queries, ops); `Items` (queries, ops); `Crew` (`Heroes`; `Shock`); `Power`
@@ -44,18 +45,18 @@
 - **Instant** (`SetInstant`, dev): blueprints built free, removals refunded.
 - **Cancelling** a blueprint drops exactly what was put in (`DropAt`); a mark drops nothing (0063). Anyone may cancel
   or work any plan; a mark on what broke drops in derivation, refunding nothing.
-- **A wall does not finish on a hero** (0077): the `Work` completing a wall (instant: placing) is refused `building.heroInside`
-  while its cell is in a body round a hero's reported middle; building runs before crew.
-  So is a last tick the grid, `SeatProblem` or an unlaid floor refuses.
+- **A wall does not finish on a hero** (0077): its last `Work` (instant: placing) is refused `building.heroInside` while its
+  cell is in a body round a hero's reported middle (building runs before crew); so is one the grid, `SeatProblem` or an unlaid floor refuses.
+- **A hit's target** (hit-targets) is `TargetAt` alone: wall, machine, piece, plant; `Key`, `Strength` (null: never), `Wreck`.
 - **`Hew(Tool, X, Y, Heading)`** (fan-of-rays), where `ToolsBreak` or in a vessel's box (else `building.notHere`): the weapon's
-  `Rays` from the hand; a ray stops at a wall or what stops a body, striking it if it breaks (not bedrock, lava; a piece by its
-  first cell), passing and striking ladders, open doors and plants (`Struck`). `HewCells(Tool, Cells)` strikes each cell once.
-  Each takes `BlockDamage` (0098) once (0: none, no shock), a pile `Damage` at its `Hp`: at its strength a wall goes for its
+  `Rays` from the hand; a ray stops at a wall or what stops a body, striking it if it breaks, passing and striking
+  ladders, open doors and plants (`Struck`). `HewCells(Tool, Cells)` strikes each cell once.
+  Each takes `BlockDamage` (0098) once (0: none, no shock), a pile `Damage`: at its strength a wall goes for its
   `Cost` and held growths, a piece whole; `Carries`% of the surplus to the next cell on the line from the hand (`HewCells`: the
   hero's), the larger, once. `building.nothingToDig`, then `items.flat` / `items.notRunning`. `Hit`, a shot's, strikes a cell
   `ShotTakes` allows, returning its surplus if it broke, the yield the shooter's here, else anyone's. No tool hits back walls.
 - **`Burst(peer, cell, power, reach, Spoils)`** (damage-scale): a `Wave`, steps `Damage.Step`; a cell costs its
-  strength left (pile `Hp`, machine `HitPoints`), a piece or machine once, ×10 (`OwnShipTakes`) for a hero's own burst
+  strength left (a pile's read as tenths), a piece or machine once, ×10 (`OwnShipTakes`) for a hero's own burst
   `Aboard`; bedrock, lava, fog, the lifepod stop it. Paid ones break, unpaid crack at their head by what was left (÷10 there).
   `Drop` (a charge): all for anyone, `Crushed` if set; `Lost` (a meteor): costs gone, and back walls entered where what is
   left pays. A machine `Spill`s and `Scrap`s, cables on a peg; a net lays its cost down; a felled cradle

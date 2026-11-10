@@ -79,7 +79,7 @@ public static class ToolRays
             foreach (var (cell, enter) in walked)
             {
                 if (!cells.Contains(cell)) cells.Add(cell);
-                if (!grounded && (cell == stopped || m.Building.PlantAt(cell) != null || Piles.At(grid, cell) != null))
+                if (!grounded && (cell == stopped || m.Building.PlantAt(cell) != null || m.Building.TargetAt(cell) is { Wreck: true }))
                 {
                     double at = Math.Max(enter, 0);
                     touches.Add(new((from.X + ux * at, from.Y + uy * at), cell, null));

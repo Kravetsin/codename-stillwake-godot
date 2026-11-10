@@ -29,7 +29,7 @@ public partial class DigView : Node2D
 
     /// <summary>A machine, a pile or a built one, cracks and bursts as the metal it is, at its own hit points.</summary>
     private Material? PileMaterial(int cell) =>
-        Piles.Cracked(_grid, cell) is var (_, hp)
+        _building.TargetAt(cell) is { Kind: TargetKind.Machine, Strength: int hp }
             ? Stillwake.Content.Materials.Get("alloy") with { Strength = hp } : null;
 
     /// <summary>The stages of cracks, three (0079).</summary>
@@ -115,7 +115,7 @@ public partial class DigView : Node2D
     /// </summary>
     private bool ShowPile(int cell, int damage)
     {
-        if (Piles.Cracked(_grid, cell) is not var (pile, hp)) return false;
+        if (_building.TargetAt(cell) is not { Kind: TargetKind.Machine, Strength: int hp } || _grid.MachineAt(cell) is not { } pile) return false;
         if (!_piles.TryGetValue(pile.Cell, out var shown))
         {
             string name = $"machine_{pile.Kind}";

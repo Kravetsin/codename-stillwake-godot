@@ -42,19 +42,22 @@ public sealed partial class BuildingModule
         if (BurstEnter(cell) is not int first) return false;
         _wave.Spread(_grid.Width, _grid.Height, cell, first, power, reach, BurstEnter, (at, cost) =>
         {
-            if (_grid.WallAt(at) != null) _burstBroken.Add(at);
-            else if (HeadAt(at) is int head && !_burstPaid.Contains(head))
+            // A wall by its cell; a machine or piece once, by its key, whichever of its cells is paid for first.
+            switch (TargetAt(at))
             {
-                _burstPaid.Add(head);
-                _burstBroken.Add(head);
+                case { Kind: TargetKind.Wall }:
+                    _burstBroken.Add(at);
+                    break;
+                case { Kind: TargetKind.Machine or TargetKind.Piece } t when !_burstPaid.Contains(t.Key):
+                    _burstPaid.Add(t.Key);
+                    _burstBroken.Add(t.Key);
+                    break;
             }
             if (spoils == Spoils.Lost && BackCost(at) is int back && power - cost >= back) _burstBacks.Add(at);
         }, (at, left) =>
         {
             int crack = Softened(at) ? left * Damage.OwnShipTakes / 1000 : left;
-            if (_grid.WallAt(at) != null) _burstCracked.Add((at, crack));
-            else if (_grid.MachineAt(at) is { } machine) _burstCracked.Add((machine.Cell, crack));
-            else if (PieceAt(at) is { } piece) _burstCracked.Add((piece.Head, crack));
+            if (TargetAt(at) is { Kind: not TargetKind.Plant } t) _burstCracked.Add((t.Key, crack));
         });
         _burstBroken.Sort();
         bool shocked = false;
@@ -79,31 +82,25 @@ public sealed partial class BuildingModule
         {
             var (key, left) = _burstCracked[i];
             if (left <= 0 || i > 0 && _burstCracked[i - 1].Key == key) continue;
-            if (_grid.WallAt(key) is { } wall) Cracked(key, wall.Strength, left);
-            else if (_grid.MachineAt(key) is { } machine && machine.Cell == key) Cracked(key, Machines.Get(machine.Kind).HitPoints!.Value, left);
-            else if (PieceAt(key) is { } piece && piece.Head == key) Cracked(key, piece.Build.Strength, left);
+            if (TargetAt(key) is { Strength: int strength } t && t.Key == key) Cracked(key, strength, left);
         }
         return true;
     }
 
     /// <summary>
-    /// What a burst pays to enter <paramref name="cell"/> besides its step: nothing open; a wall, piece or machine what is left of its
-    /// strength (a pile of its hit points), over <see cref="Damage.OwnShipTakes"/> where <see cref="Softened"/>, a piece or machine
-    /// once, nothing more once one cell of it is entered; null where it stops: bedrock, lava, the fog, a <c>Fixed</c> machine.
+    /// What a burst pays to enter <paramref name="cell"/> besides its step (<see cref="TargetAt"/>): nothing open or for a plant; a wall,
+    /// piece or machine what is left of its strength (a pile's read as tenths), over <see cref="Damage.OwnShipTakes"/> where
+    /// <see cref="Softened"/>, a piece or machine once, nothing more once one cell of it is entered; null where it stops: the fog,
+    /// what nothing breaks (bedrock, lava, the lifepod), a structure that is no target (a grate).
     /// </summary>
     private int? BurstEnter(int cell)
     {
         if (!_grid.Zone.Contains(cell % _grid.Width, cell / _grid.Width)) return null;
-        if (_grid.WallAt(cell) is { } wall) return Cost(cell, wall, back: false) is int cost ? Share(cell, cost) : null;
-        if (_grid.MachineAt(cell) is { } machine)
-        {
-            var spec = Machines.Get(machine.Kind);
-            if (spec.HitPoints is not int hp) return null;
-            if (_burstPaid.Contains(machine.Cell)) return 0;
-            return Share(cell, Remaining(machine.Cell, hp));
-        }
-        if (PieceAt(cell) is { } piece) return _burstPaid.Contains(piece.Head) ? 0 : Share(cell, Remaining(piece.Head, piece.Build.Strength));
-        return _grid.StructureAt(cell) != Structure.Empty ? null : 0;
+        if (TargetAt(cell) is not { } target) return _grid.StructureAt(cell) != Structure.Empty ? null : 0;
+        if (target.Kind == TargetKind.Plant) return 0;
+        if (target.Strength is not int strength) return null;
+        if (target.Kind != TargetKind.Wall && _burstPaid.Contains(target.Key)) return 0;
+        return Share(cell, Remaining(target.Key, strength));
     }
 
     /// <summary>What breaking <paramref name="wall"/> at <paramref name="cell"/> costs a burst in full: what is left of it; null for one that never breaks.</summary>
@@ -114,13 +111,13 @@ public sealed partial class BuildingModule
     private int? BackCost(int cell) => _grid.BackAt(cell) is { } back ? Cost(cell, back, back: true) : null;
 
     /// <summary>What a burst paid for at <paramref name="at"/> broken; nothing for a net a wall broken before took with it.</summary>
-    private List<Plant> Break(int at, Spoils spoils) =>
-        _grid.WallAt(at) != null ? BreakWall(at, spoils)
-        : _grid.MachineAt(at) is { } machine ? machine.Cell == at ? BreakMachine(at, spoils) : []
-        : PieceAt(at) is { } piece && piece.Head == at ? BreakPiece(at, spoils) : [];
-
-    /// <summary>The cell a burst keeps a machine or built piece at <paramref name="cell"/> by: its top-left, its head; none for anything else.</summary>
-    private int? HeadAt(int cell) => _grid.MachineAt(cell)?.Cell ?? PieceAt(cell)?.Head;
+    private List<Plant> Break(int at, Spoils spoils) => TargetAt(at) switch
+    {
+        { Kind: TargetKind.Wall } => BreakWall(at, spoils),
+        { Kind: TargetKind.Machine } t when t.Key == at => BreakMachine(at, spoils),
+        { Kind: TargetKind.Piece } t when t.Key == at => BreakPiece(at, spoils),
+        _ => [],
+    };
 
     /// <summary>What is left of <paramref name="strength"/> at <paramref name="key"/> after its crack, in the <paramref name="back"/> layer or the front.</summary>
     private int Remaining(int key, int strength, bool back = false) =>
