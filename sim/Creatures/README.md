@@ -4,10 +4,10 @@
 
 | File | Purpose |
 | --- | --- |
-| `Arcs.cs` | Arcs: `Bolted`, `StrikeArc`, `Linger`; `Arcs`. |
+| `Arcs.cs` | `Bolted`, `StrikeArc`, `Linger`; `Arcs`. |
 | `Bounty.cs` | Catchers for hunted heroes. |
 | `Clinger.cs` | The sentry clinging to its wreck. |
-| `Creatures.cs` | The commands, the queries, the hit path. |
+| `Creatures.cs` | Commands, queries, the hit path. |
 | `Drives.cs` | Grazers: `Graze`, `Flee`, `Retaliate`, `Escape`. |
 | `Flyer.cs` | The catcher's body: stops at solid. |
 | `Fuzz.cs` | Commands the desync suite draws. |
@@ -64,8 +64,8 @@ drives, moves and yields, each a rule here. The dead are gone to all from the bl
   `Lingers` on, harmless. The snail's `Shell` opens `Hold` past a hero in `Reach`; it bites, a short lunge.
 - **The catcher** (tracker-catchers and on): on the beat a `Hunted` hero with none gets one
   `RingFrom..RingTo` columns off, unseen. `Hunt` runs a `Path`, beams at its quarry seen (`Gunfire`); lagging or short, `Blink`s
-  ahead or near; lifts for a `Salvo`; shut out, lobs a charge (`Lob`). Pounces in `Strike`, answers blows. Out of `Ticks`,
-  killed or quarryless: `CallOff`, up. Afloat, all in `Space`, no path or salvo: it flies straight,
+  ahead or near; lifts for a `Salvo`; shut out, lobs a charge (`Lob`), held `Tell`. Pounces in `Strike`, answers blows. Out of `Ticks`,
+  killed or quarryless: `CallOff`, up. Afloat, all in `Space`, no path or salvo: it flies at `Accel`,
   sliding; shut out: its quarry in a room, thrown `Standoff` off.
 - **Patches** (`PatchKind`) last `Lasts`; each breath an awake hero in one seen from its middle pays `Damage` (`Shock`, `Stings`).
 - **The warden** (`Posted`, `Ward`): on the beat at a standing post with a standing relic in its arena, a hero in its keep box,
