@@ -23,11 +23,9 @@ by a runner, and a felled tree that falls over.
    ringing wakes: holding parted while standing and overshooting once let go fall out of it with no special case.
 2. **The bend is a vertex shader.** `Lit` makes a bending material (`Lit.SetBending`), its own shader: the lit fragment with
    a `vertex()` that moves each vertex sideways by the points near it: by its height over a point's ground (none at or
-   under it, whole a blade's 16 px up, none past two) and across, blended between the two points either side. A quad's
-   top leans whole, both its top corners by its middle (`VERTEX_ID` 0 and 3), each clump a little stiffer or softer by a
-   hash, its tips dropping along their arc; columns spring at rates up to a fifth apart (`Stirs.Uneven`). The first try
-   moved each corner by its own column, which stretched a tile's blades and read as jelly. A tile's bottom sits on the
-   soil, so roots stay put. Heroes, machines and walls keep the plain shader and pay nothing. The additive glow of a
+   under it, whole a blade's 16 px up, none past two) and across, blended between the two points either side.
+   The push depends only on where a vertex is in the world, so tiles stay joined at their edges; a tile's bottom sits on
+   the soil, so roots stay put. Heroes, machines and walls keep the plain shader and pay nothing. The additive glow of a
    cave's floor moss bends by the same snippet (`Bend.Glow`).
 3. **What bends:** the grass edge (`GridView`'s `_tops` and `_topsFront`), the surface's tufts (`FloraLooks.Stir.Bends`),
    and a cave's floor moss (`CaveView`'s `Front` and `FrontShine`, which hold only that).
