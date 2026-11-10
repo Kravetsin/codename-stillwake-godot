@@ -105,7 +105,7 @@ public static class GroundSounds
     public static S.Cue? HitAt(IGridQueries grid, BuildingModule building, int cell, int damage, string? tool = null)
     {
         if (grid.WallAt(cell) is { } wall) return wall.Natural ? HitOf(wall) : S.WreckHitOf(tool);
-        if (building.TargetAt(cell) is { Wreck: true }) return S.WreckHitOf(tool);
+        if (building.TargetAt(cell) is { Kind: TargetKind.Piece or TargetKind.Machine }) return S.WreckHitOf(tool);
         if (building.PlantAt(cell) is not { } plant || !S.Growths.TryGetValue(plant.Kind, out var sounds) || sounds.Hit is not { } hit)
             return null;
         if (hit != sounds.Fall) return hit;

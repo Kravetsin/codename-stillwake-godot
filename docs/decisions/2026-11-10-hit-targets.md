@@ -1,6 +1,6 @@
 # One answer to what a hit strikes
 
-- Status: accepted; the sim built, the client's views and machines struck by tools and shots to follow ([plan](../plans/hit-targets.md))
+- Status: accepted; built; how much each hit takes, and machines struck by tools and shots, in [one-damage-rule](2026-11-10-one-damage-rule.md)
 - Date: 2026-11-10
 
 ## Context

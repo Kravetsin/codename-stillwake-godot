@@ -161,11 +161,11 @@ public class MachineBreakTests
         Assert.Null(w.M.Grid.MachineById(pile.Id));
         Assert.All(Machines.Get("pileScrap").Cost, c => Assert.Equal(c.Count, Lying(w, c.Item)));
         Assert.All(w.M.Items.Floor, s => Assert.Equal(FloorStack.Nobody, s.By));
-        // A faint one only cracks it, by a tenth of what was left: a pile aboard is of the ship too.
+        // A faint one only cracks it, by all that was left: a pile is a wreck, never the ship (hit-targets).
         var faint = Room(["pileScrap"]);
         var other = Of(faint, "pileScrap");
-        Burst(faint, Beside(faint, other), Damage.Step + 30);
-        Assert.Equal(3, CrackAt(faint, other.Cell));
+        Burst(faint, Beside(faint, other), Damage.Step + 4);
+        Assert.Equal(4, CrackAt(faint, other.Cell));
     }
 
     [Fact]

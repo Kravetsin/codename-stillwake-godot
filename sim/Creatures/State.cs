@@ -230,12 +230,13 @@ public sealed class Shot
 /// </summary>
 public readonly record struct ShotEnd(int Id, string Projectile, string? Gun, int Cell, bool Met, int Burst = -1);
 
-/// <summary>What a shot hits in a cell: what is solid there, a creature, or a wreck. Saved by number in what a shot passed, so never renumber one.</summary>
+/// <summary>What a shot hits in a cell: what is solid there, a creature, a wreck, or a machine by its top-left (hit-targets). Saved by number in what a shot passed, so never renumber one.</summary>
 public enum ShotTarget
 {
     Solid = 0,
     Creature = 1,
     Wreck = 2,
+    Machine = 3,
 }
 
 /// <summary>
