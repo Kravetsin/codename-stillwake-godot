@@ -1,20 +1,20 @@
 # Anime art
 
 Draws the anime art's pictures in code and writes them into `game/art/hd/`, where `game/render/HiRes.cs` picks
-them up: the game's only pictures, reduced to the world's pixels where a size or shape is needed ([the pixels gone](../../docs/decisions/2026-11-03-pixel-art-removed.md)).
+them up: the game's only pictures, reduced to the world's pixels where a size is needed ([the pixels gone](../../docs/decisions/2026-11-03-pixel-art-removed.md)).
 
 ## The style
 
 Ink and watercolour ([why](../../docs/decisions/2026-11-01-ink-and-watercolour.md)), neutral to slightly grim, **never a cartoon**. The
 finish is `wash.js`, one for every subject; these are the rules a drawing must follow for it to work.
 
-- **Mood before readability.** A lone scavenger's world: judge a picture by that first, beside what it replaces.
+- **Mood before readability.** A lone scavenger's world: judge a picture by that first, by what it replaces.
 - **Colour:** clean, slightly grey paint, neither dusty nor faded. Metals are cool greys; suit, copper and wood are warm and worn. Full
   saturation is only for what works or warns: fire, lamps, screens, hazard stripes.
 - **Light:** hard steps of tone, one shade and one deep, no gradients and no painted glow. The hero is lit from straight above, so
   turning changes nothing; the world from the side. The game's own light does the rest.
 - **Line:** a thin pen that wanders, swells and lifts off. Heavier round an object, lighter inside, never an even border like a sticker's.
-  Paint may miss the line a little, never so it looks careless.
+  Paint may miss the line a little, never carelessly.
 - **Water:** a trace of tide lines, pooling and grain. It is the finish's, one strength for all: never tune it per picture. It darkens or
   lightens paint by a factor and never mixes in paper: on a dark colour that reads as dust.
 - **Parting from the wall:** back walls stay well darker than anything before them, and every outlined shape has a thin lit edge at the
@@ -33,7 +33,7 @@ finish is `wash.js`, one for every subject; these are the rules a drawing must f
 | --- | --- |
 | `hero` | `hero_<part>`: the suit's parts, helmet shell and visor apart, the heavy helmet's, the regen suit's (lights `_lit`, `_arcs`, `_pip`); `hero_outfit_<n>_<part>`, clothes, `_skin` under bare skin; hair, faces, beards tinted by `LookTint`; cape, jetpack, lamp, sheet, held tools; `hero_tracker`, `_light`: the player's colour, white, by Modulate. Top-lit |
 | `catchergear` | the catchers' four outfits: `hero_catcher<Body>_<part>`, `_upperArm_lit`; `hero_catcher<Helmet>_shell`, `_visor`, `_lit`, on `hero.js`'s `HeroKit` |
-| `machines` | `machine_<kind>` and their working overlays, fire, tank and cistern fill, the electrolyser's bubbles; a machine's `fitting` stands on its port in `Machines.Ports`; exposes `AnimeKit` |
+| `machines` | `machine_<kind>` and their working overlays (fire, fills, bubbles); a `fitting` stands on its port (`Machines.Ports`); exposes `AnimeKit` |
 | `zfittings` | `pipe_run` (repeated along a span), `pipe_<arms>`, valves, sockets, hatches, platforms, ladder, floor, drone, lamps, held axe and drill; sorts after `machines` to read `AnimeKit` |
 | `items` | `items/<id>`: every item; `_empty` states are the full picture's calls with only the changing part dark; `tool_screwdriver` |
 | `room` | `wall_`, `wall-edge_` and `back_` of scrap (rusted by `wreck`'s `AnimeSheetRust`), cast scrap (clean) and iron, `door_*` |
@@ -47,6 +47,7 @@ finish is `wash.js`, one for every subject; these are the rules a drawing must f
 | `tufts` | `planet/tuft_*`, `tuftReed_*`, `tuftFungus_*`: one plant of three to a tuft, by `FloraLooks.Drawn` |
 | `flora` | `planet/acacia_*` and their `_glow`: the pods stand where the logical glow picture has them, for the game lights from there |
 | `shrubs` | `planet/bush_*`, `rock_*`, `bell*_*` and their `_glow`: dead thorn, boulders, hooded bells; light only in `_glow` |
+| `leaves` | `planet/leaf_<look>_<plant>_<n>[_back]`: four falling leaves |
 | `heavens` | `planet/sky`, `clouds` (far layers, any size), `giant`, `sun` |
 | `cavelife` | `caves/` crystals, dripstone, fungi, threads, roots, cracks, geodes, fossils, opal caches, the spire's cache, lamp, `_glow`: dim |
 | `homes`, `homeskeep`, `homeslights`, `homeswall`, `homesruin` | `homes/*` and their `_dark`, `_fed`, `_glow`; `ruins/spireLens_*`. `homes.js` exposes `HomeKit`; the others sort after it |
@@ -59,7 +60,7 @@ finish is `wash.js`, one for every subject; these are the rules a drawing must f
 | `edgekeys` | `holo_<key>`, `holo_<key>_glow`: the edge keys' white masks and glows |
 | `signs`, `credit`, `capsule`, `gauge` | `sign_*`: bolts, plug, wrench, tips; `credit`: the chip; `capsule`, `capsule_flame_<n>`: the trade capsule; `gauge_lamp[Wide]_<shape>_<tone>`: air lamps |
 | `upgrades` | `upgrade_bag`, `upgrade_belt`, `upgrade_tradeSlots`, `upgrade_canister`: wares that are no item |
-| `zleftovers` | the arc bench's and lamp's glows, `machine_emergencyLamp`, `module_arc_coil`, the pod's lit state and porthole, `wrist_*`, `tablet_*`: frames repeat, so a 9-slice has no seam |
+| `zleftovers` | the arc bench's and lamp's glows, `machine_emergencyLamp`, `module_arc_coil`, the pod's lit state and porthole, `wrist_*`, `tablet_*`: frames repeat for a seamless 9-slice |
 
 ## Run
 

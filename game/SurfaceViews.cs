@@ -20,10 +20,11 @@ namespace Stillwake.Game;
 /// <param name="Hosts">Whether this peer hosts its world, so draws its own shots as the sim flies them (<c>ShotDraws</c>).</param>
 /// <param name="Arrivals">The drop pods still coming down on this surface (the landing feature's): held out of the grid's drawing till they stand.</param>
 /// <param name="Seed">The surface's seed, 0 for the ship: what its ground grew from.</param>
+/// <param name="Heroes">Every hero on this surface: its feet, in pixels of the world, and how fast it goes across, in pixels a second: what stirs the plants (plant-stirs).</param>
 public sealed record SurfaceContext(
     Registry M, Hands Hands, Func<double> Progress, Func<IReadOnlyList<(Vector2 At, Vector2 Toward, Vector2 Head)>> HeadLamps,
     Func<IReadOnlyList<Vector2>> HeroBodies, bool Homes, bool? HomesMood, Func<int> Peer, Func<int> Tick, Func<bool> Hosts,
-    Features.Landing.Arrivals Arrivals, uint Seed);
+    Features.Landing.Arrivals Arrivals, uint Seed, Func<IReadOnlyList<(Vector2 Feet, float Vx)>> Heroes);
 
 /// <summary>One view of a surface: how it is made, null where it has nothing to draw; whether it fades with the plan's front layer.</summary>
 public sealed record SurfaceView(Func<SurfaceContext, Node?> Make, bool Fades = false);
@@ -41,7 +42,7 @@ public static class SurfaceViews
         // What still moves on the wreck: nothing on a surface with no tear of it (2026-10-31-the-scoop).
         new(c => new WreckMotionView(c.M.Grid), Fades: true),
         new(c => new DigView(c.M.Grid, c.M.Building)),
-        new(c => new Features.Flora.FloraView(c.M.Grid, c.M.Building)),
+        new(c => new Features.Flora.FloraView(c.M.Grid, c.M.Building, c.Heroes)),
         new(c => c.M.Rules is Content.PlanetType p ? new Features.Flora.CaveView(c.M.Grid, c.M.Building, p, c.HeadLamps, c.Seed) : null),
         // The arc makers' homes in its ground (0091), and the spires alight round their relics, dark once taken (0096).
         new(c => c.M.Rules is Content.PlanetType && c.Homes ? new Features.Ruins.HomesView(c.M.Grid, c.M.Building, c.HeroBodies) { Mood = c.HomesMood } : null),
