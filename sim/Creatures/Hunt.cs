@@ -24,7 +24,8 @@ internal sealed class HuntDrive : DriveRule
         SampleX = "sampleX", SampleY = "sampleY", DriftX = "driftX", DriftY = "driftY",
         Aiming = "aiming", Held = "held", FireAt = "fireAt", Gun = "gun", Spot = "spot", BarrageAt = "barrageAt", Volley = "volley",
         BlinkTo = "blinkTo", BlinkAt = "blinkAt", BlinkedAt = "blinkedAt", SpentTill = "spentTill", BlinkNext = "blinkNext",
-        Salvo = "salvo", SalvoTop = "salvoTop", SalvoAt = "salvoAt", Thrown = "thrown", LobAt = "lobAt", ThrowAt = "throwAt";
+        Salvo = "salvo", SalvoTop = "salvoTop", SalvoAt = "salvoAt", Thrown = "thrown", LobAt = "lobAt", ThrowAt = "throwAt",
+        MissileAt = "missileAt", LaunchAt = "launchAt";
 
     /// <summary>Its shells' marks, by shell: a cell plus one.</summary>
     internal static readonly string[] Marks = [.. Enumerable.Range(0, 16).Select(i => "mark" + i)];
@@ -93,6 +94,8 @@ internal sealed class HuntDrive : DriveRule
         int middle = c.Y - spec.Body.Height * Unit / 2;
         int far = Math.Max(Math.Abs(at.X - Down(c.X, Unit)), Math.Abs(at.Y - Down(middle, Unit)));
         Sample(m, c, hunt, at);
+        // A tell is a promise (catcher-missile): the missile leaves whatever the catcher does by then.
+        if (c.Recall(LaunchAt) is > 0 and var launch && m.Clock >= launch) LaunchMissile(m, c, spec, hunt, at);
         if (c.Recall(Salvo) != 0)
         {
             Salvoing(m, c, spec, hunt, at);
@@ -165,6 +168,7 @@ internal sealed class HuntDrive : DriveRule
         c.Keep(Short, shut ? 1 : 0);
         if (shut && StandOff(m, c, spec, hunt, at)) return;
         if (!shut && BarrageDue(m, c, spec, hunt, at, far) && StartBarrage(m, c, spec, hunt, f, at)) return;
+        if (!shut) MissileDue(m, c, spec, hunt, at, far);
         if (!shut && RangeSpot(m, c, spec, hunt, f, at) is int spot)
         {
             int sx = spot % m.GridWidth, sy = spot / m.GridWidth;
@@ -187,13 +191,37 @@ internal sealed class HuntDrive : DriveRule
     private const int Third = Rays.FineTurn / 3;
 
     /// <summary>
-    /// Whether its barrage is due (catcher-motion): its clock come, its quarry in its sight within its range's <c>Far</c>; its
-    /// first clock a whole wait from when it first looks.
+    /// Whether its barrage is due (catcher-motion): its clock come, no missile tell running (catcher-missile), its quarry in reach
+    /// (<see cref="InReach"/>); its first clock a whole wait from when it first looks.
     /// </summary>
     private static bool BarrageDue(CreaturesModule m, Creature c, Spec.Species spec, Spec.Hunt hunt, (int X, int Y) at, int far)
     {
         if (c.Recall(BarrageAt) == 0) c.Keep(BarrageAt, m.Clock + hunt.Barrage.Every);
-        return m.Clock >= c.Recall(BarrageAt) && far <= hunt.Range.Far && m.Sees(c.X, c.Y - spec.Body.Height * Unit / 2, at);
+        return m.Clock >= c.Recall(BarrageAt) && c.Recall(LaunchAt) == 0 && InReach(m, c, spec, hunt, at, far);
+    }
+
+    /// <summary>Whether its quarry is in its sight within its range's <c>Far</c>: what its barrage and its missile wait for.</summary>
+    private static bool InReach(CreaturesModule m, Creature c, Spec.Species spec, Spec.Hunt hunt, (int X, int Y) at, int far) =>
+        far <= hunt.Range.Far && m.Sees(c.X, c.Y - spec.Body.Height * Unit / 2, at);
+
+    /// <summary>
+    /// Its missile's tell begun when due (catcher-missile): its clock come, no tell running nor barrage, its quarry in reach
+    /// (<see cref="InReach"/>); its first clock a whole wait from when it first looks. It keeps its range through the tell.
+    /// </summary>
+    private static void MissileDue(CreaturesModule m, Creature c, Spec.Species spec, Spec.Hunt hunt, (int X, int Y) at, int far)
+    {
+        if (c.Recall(MissileAt) == 0) c.Keep(MissileAt, m.Clock + hunt.Missile.Every);
+        if (m.Clock >= c.Recall(MissileAt) && c.Recall(LaunchAt) == 0 && c.Recall(Volley) == 0 && InReach(m, c, spec, hunt, at, far))
+            c.Keep(LaunchAt, m.Clock + hunt.Missile.Tell);
+    }
+
+    /// <summary>Its missile away at its tell's end (catcher-missile): from its middle, headed at its quarry's; its next a whole wait on.</summary>
+    private static void LaunchMissile(CreaturesModule m, Creature c, Spec.Species spec, Spec.Hunt hunt, (int X, int Y) at)
+    {
+        int y = c.Y - spec.Body.Height * Unit / 2;
+        m.Launch(c, hunt.Missile.Projectile, c.X, y, Rays.FineHeadingTo(m.Middle(at.X) - c.X, m.Middle(at.Y) - y), hunt.Missile.Flight);
+        c.Keep(LaunchAt, 0);
+        c.Keep(MissileAt, m.Clock + hunt.Missile.Every);
     }
 
     /// <summary>
@@ -277,6 +305,7 @@ internal sealed class HuntDrive : DriveRule
         c.Keep(Volley, 0);
         c.Keep(Held, 0);
         c.Keep(BarrageAt, m.Clock + hunt.Barrage.Every);
+        c.Keep(MissileAt, m.Clock + hunt.Missile.Every);
         c.Keep(FireAt, m.Clock + hunt.Gunfire.Every);
         c.Keep(BlinkNext, m.Clock + hunt.Blink.Every);
     }
@@ -914,6 +943,7 @@ internal sealed class HuntDrive : DriveRule
         c.Keep(Held, 0);
         c.Keep(Salvo, 0);
         c.Keep(ThrowAt, 0);
+        c.Keep(LaunchAt, 0);
         c.Keep(Aiming, 0);
         c.Keep(FlyerBody.Through, 1);
         c.Target = Ref.None;

@@ -129,10 +129,11 @@ public static class Creatures
     /// Its fight (catcher-combat): its second move's arc fired on the run (<paramref name="Gunfire"/>); its distance not shrunk for
     /// <paramref name="LagAfter"/> ticks, or no run reaching its quarry, a <paramref name="Blink"/> ahead of it, by how far it went in the last
     /// <paramref name="Sample"/> ticks; a <paramref name="Salvo"/> from the air; a <paramref name="Lob"/> at a shelter it has no way into.
-    /// Where things float (catcher-motion) it keeps its <paramref name="Range"/> and now and then fires a <paramref name="Barrage"/>.
+    /// Where things float (catcher-motion) it keeps its <paramref name="Range"/>, now and then fires a <paramref name="Barrage"/>, and
+    /// on its beat a homing <paramref name="Missile"/> (catcher-missile).
     /// </remarks>
     public sealed record Hunt(int Ticks, int Strike, int Speed, int Accel, int AnswerEvery, int LagAfter, int Sample, Blink Blink, Gunfire Gunfire, Salvo Salvo, Lob Lob,
-        Range Range, Barrage Barrage) : Drive;
+        Range Range, Barrage Barrage, Missile Missile) : Drive;
 
     /// <summary>
     /// A hunter's teleport (catcher-combat): <paramref name="Gather"/> ticks standing, then there, <paramref name="Spent"/> ticks still; at
@@ -163,6 +164,13 @@ public static class Creatures
     /// after; the first after a blink's gather.
     /// </summary>
     public sealed record Barrage(int Every, int Blinks, int Step, int From, int To);
+
+    /// <summary>
+    /// A hunter's homing missile where things float (catcher-missile): every <paramref name="Every"/> ticks, no barrage running and its
+    /// quarry in sight within its range's <c>Far</c>, a tell of <paramref name="Tell"/> ticks, then a <paramref name="Projectile"/> that
+    /// homes (<see cref="Homing"/>) for <paramref name="Flight"/> ticks at most, under <paramref name="Every"/>, so one flies at a time.
+    /// </summary>
+    public sealed record Missile(int Every, int Tell, int Flight, string Projectile);
 
     /// <summary>
     /// A hunter's salvo (catcher-combat): every <paramref name="Every"/> ticks, <paramref name="Headroom"/> cells clear above it (not under
@@ -389,7 +397,8 @@ public static class Creatures
             Blink: new(Gather: 12, Spent: 10, Every: 120, Ahead: 20, LeadMost: 96, Near: 8), Gunfire: new(Every: 50, Tell: 6, Turn: 98),
             Salvo: new(Every: 240, Hover: 20, Headroom: 6, Shells: 7, Spread: 48, Flight: 24, Stagger: 2, Projectile: "shell"),
             Lob: new(Every: 160, Tell: 12, Flight: 20, Standoff: 16, Projectile: "blastCharge"),
-            Range: new(Near: 20, Far: 35, Orbit: 32), Barrage: new(Every: 500, Blinks: 10, Step: 8, From: 12, To: 20))],
+            Range: new(Near: 20, Far: 35, Orbit: 32), Barrage: new(Every: 500, Blinks: 10, Step: 8, From: 12, To: 20),
+            Missile: new(Every: 300, Tell: 20, Flight: 160, Projectile: "missile"))],
         Moves: [new Pounce(WindUp: 16, Speed: 1600, Ticks: 10, Damage: 6), new Shoot(WindUp: 6, Lock: 2, Recover: 20, Projectile: "laser", Reach: 60, Lingers: 6, Through: 120)],
         Yields: [new("scrapChunk", 2, 4), new("circuit", 1, 1), new("crystal", 1, 1, OneIn: 5), new("opal", 1, 1, OneIn: 10)],
         Purse: new(150, 300));

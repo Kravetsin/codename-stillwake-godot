@@ -106,5 +106,5 @@ id order. A joiner gets the meter, `Coming` and the shots in the save. New saved
 2. Done: space opens: `Loot` fills where things float, the belt's drain; a test that taking apart fills nothing (only the ship has
    `Deconstruct`). Creatures: the bounty and the flight in space, the space blink, short → charge; `--catcher` alone aboard.
 3. The laser meeting and damaging wrecks.
-4. The missile: `Homing`, `Heading`, the beat, the burst.
-5. Pick pages (missile, tell, lock tone, alarm, laser on a wreck), then the client; ADR, READMEs, glossary; a dev room in space.
+4. Done (catcher-missile): the missile, its beat, its flight and burst; its look, tell and sounds picked and in the client.
+5. Pick pages (alarm, laser on a wreck), then the client; ADR, READMEs, glossary; a dev room in space.
