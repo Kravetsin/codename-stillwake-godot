@@ -31,13 +31,13 @@ or a share of it); `Content/logic/Fx.cs` (the knobs, the lights' cap) and `Conte
   the face off its corners; a growth's cell's middle a quarter cell toward the hero; a wreck at a running drill's bit,
   else its side facing the nearest hero. Chips fall to the floor under the face, within `HitLooks.FloorRows`. A hit's look is never drawn behind the walls.
 - **Looks by object** (0094): one table by the natural wall's material, one by the growth's kind (`HitLooks.Ground`,
-  `HitLooks.Growths`), beside the sound's; what lies in the rock is struck as its stone; a pile in the hold as a wreck, its ring the wreck's (2026-11-07-pile-hits-felt); the hull, never broken, as alloy, so a
-  shot is seen to land. Metal throws sparks, glint and warm flash; stone fine sparks and dust; soil and plaster dust,
+  `HitLooks.Growths`), beside the sound's; what lies in the rock is struck as its stone; a pile in the hold as a wreck, its ring the wreck's (2026-11-07-pile-hits-felt); what is built, a wall, door, hatch, station or
+  the lifepod, as alloy (one-damage-rule). Metal throws sparks, glint and warm flash; stone fine sparks and dust; soil and plaster dust,
   no chips: they lay in a sheet at the hit's floor, over any step (planet-frame-rate); wood splinters; plants leaves; crystal and glass cold glitter and shards; caps spores; cloth fibres; crockery
   glazed chips.
 - **A whole hit is the axe's** (0094): a faster tool throws its pace over the axe's (`Impacts.ShareOf`), so a second of
   drilling throws what a second of chopping does: each count by chance, rounded so it adds up, the glint and ring by
-  the same chance, the light to the share's root. The hit that breaks or fells an object throws the whole, once.
+  the same chance, the light to the share's root. The hit that breaks or fells an object throws the whole, once, as the sim judges it (`BuildingModule.Breaks`: a tenth on the hero's own ship).
 - **Motion** (0075): each look's gravity (none in space, chosen by the emitter), drag, a turn by smooth value noise
   (`Spin`) and a push along its curl (`Turbulence`), a floor it may bounce off; a streak samples its path every 60th
   of a second whatever the frame rate, its last 24 points, drawn back along them by speed times `Stretch`.

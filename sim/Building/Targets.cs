@@ -1,5 +1,6 @@
 using Stillwake.Content;
 using Stillwake.Sim.Grid;
+using Stillwake.Sim.Items;
 
 namespace Stillwake.Sim.Building;
 
@@ -51,4 +52,27 @@ public sealed partial class BuildingModule
         if (structure == Structure.Empty || _grid.WallAt(cell) != null || Structures.Of(structure).Build is not { } build) return null;
         return (_grid.PieceOf(cell)[0], Builds.Get(build));
     }
+
+    /// <summary>
+    /// Whether peer <paramref name="peer"/>'s hit at <paramref name="cell"/> is on their own ship (one-damage-rule): a
+    /// player's, <see cref="Aboard"/>, on anything but a pile, which is cargo. Every hitter's one rule: tools, shots, charges.
+    /// </summary>
+    private bool OwnShip(int peer, int cell) => peer != FloorStack.Nobody && Aboard(cell) && TargetAt(cell) is not { Wreck: true };
+
+    /// <summary>
+    /// What peer <paramref name="peer"/>'s hit pays to break what is <paramref name="left"/> of the target at <paramref name="cell"/>:
+    /// that, or over <see cref="Damage.OwnShipTakes"/> on their own ship, rounded up, so a crack always stays below what is left.
+    /// </summary>
+    private int CostOf(int peer, int cell, int left) =>
+        OwnShip(peer, cell) ? (left * 1000 + Damage.OwnShipTakes - 1) / Damage.OwnShipTakes : left;
+
+    /// <summary>What of peer <paramref name="peer"/>'s <paramref name="hit"/> that holds goes into the crack at <paramref name="cell"/>: all, or a tenth on their own ship, rounded down.</summary>
+    private int CrackOf(int peer, int cell, int hit) => OwnShip(peer, cell) ? hit * Damage.OwnShipTakes / 1000 : hit;
+
+    /// <summary>
+    /// Whether peer <paramref name="peer"/>'s hit of <paramref name="hit"/> at <paramref name="cell"/> breaks what it strikes there
+    /// (<see cref="TargetAt"/>), its crack and their own ship counted: the client's blow that breaks, changing nothing.
+    /// </summary>
+    public bool Breaks(int peer, int cell, int hit) =>
+        TargetAt(cell) is { Strength: int strength } t && hit >= CostOf(peer, t.Key, Remaining(t.Key, strength));
 }

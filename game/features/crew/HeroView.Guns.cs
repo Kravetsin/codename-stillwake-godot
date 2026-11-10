@@ -76,7 +76,8 @@ public partial class HeroView
         Charge(step);
         int tick = client.World.Tick;
         if (_gunTick < 0 || _gunTick > tick) _gunTick = tick;
-        for (; _gunTick < tick; _gunTick++) _guns.Tick(m.Creatures.StepOf, m.Grid.Width, m.Grid.Height);
+        int me = client.Id;
+        for (; _gunTick < tick; _gunTick++) _guns.Tick((f, p, g, passed, carry) => m.Creatures.StepOf(f, p, g, passed, carry, me), m.Grid.Width, m.Grid.Height);
         _guns.TakeEnded();
         foreach (var hit in _guns.TakeHits()) ShotEnds.Show(m, _ownShotEnds, hit);
         _ownShots.Show(_guns.Shots.Select(s =>
