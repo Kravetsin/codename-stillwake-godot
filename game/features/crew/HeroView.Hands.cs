@@ -121,6 +121,8 @@ public partial class HeroView
             foreach (var strike in sent.Strikes) client.Send(strike);
             // The ground it bites first heard and seen there, the ship's hull too, which takes no harm: a clang and sparks.
             if (hit.Ground?.Cell is int bitten) Struck(_groundHits, m, bitten, struck!, _current, client.Id);
+            // Landed or not, the air it drives on stirs what lies near the blade (air-gusts).
+            StrokeGust(m, struck!, hit);
             // A blade that bites is drawn stopped on contact a moment (0075).
             if (hit.Contact != null || sent.Strikes.Count > 0) _figure.Bit();
         }

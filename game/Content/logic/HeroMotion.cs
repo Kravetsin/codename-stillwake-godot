@@ -79,14 +79,6 @@ public static class HeroMotion
         public const int PerDepth = 840, RunningSpeed = 120, LongFall = 1200, Heavy = 960;
         public const double Least = 0.35, Most = 1.8, Running = 0.6, Ms = 150, LongerMs = 110;
 
-        /// <summary>
-        /// The ring a landing sends along the floor, in pixels: from 3 out to <see cref="Ring"/> times the fall over
-        /// <see cref="RingFall"/> (at least <see cref="RingLeast"/> of it), out to <see cref="HeavyRing"/> landing heavy;
-        /// it fades in <see cref="RingMs"/>, <see cref="HeavyRingMs"/> heavy, at <see cref="RingAlpha"/> or <see cref="HeavyRingAlpha"/>.
-        /// </summary>
-        public const double Ring = 26, RingFall = 2400, RingLeast = 0.2, HeavyRing = 34, RingMs = 1000.0 / 6, HeavyRingMs = 260,
-            RingAlpha = 0.32, HeavyRingAlpha = 0.45;
-
         /// <summary>Light streaks a heavy landing sends along the floor to either side.</summary>
         public const int HeavyStreaks = 2;
     }

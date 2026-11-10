@@ -147,10 +147,21 @@ public readonly record struct Hero(
 
     /// <summary>
     /// This hero kicked by (<paramref name="x"/>, <paramref name="y"/>) thousandths of a cell a step, a gun's recoil: out in space it
-    /// drifts so, the kick fading as it goes; anywhere else it stands its ground.
+    /// drifts so, the kick fading as it goes; standing on the ground it is shoved across at <paramref name="shove"/> a step, braked
+    /// as a walk let go is, walls stopping it and an edge dropping it (body-answers); anywhere else, in the air or on a ladder, it
+    /// stays as it goes.
     /// </summary>
-    public Hero Kicked(int x, int y, Ship ship) =>
-        ship.Space(BodyCell(ship.Width)) ? this with { Kx = Kx + x, Ky = Ky + y } : this;
+    public Hero Kicked(int x, int y, Ship ship, int shove = 0) =>
+        ship.Space(BodyCell(ship.Width)) ? this with { Kx = Kx + x, Ky = Ky + y }
+        : shove != 0 && !Climbing && !Gliding && Vy >= 0 && Grounded(ship, X, Y) ? this with { Vx = shove }
+        : this;
+
+    /// <summary>
+    /// How far <paramref name="hero"/>'s body could go <paramref name="way"/> (1 ahead of the facing, −1 behind) before something
+    /// solid stops it, in thousandths of a cell, looking no further than <paramref name="most"/>: the cells a walk tests. What an
+    /// answer's stance steps into (body-answers).
+    /// </summary>
+    public static int Room(Ship ship, Hero hero, int way, int most) => Math.Abs(MoveX(ship, hero.X, hero.Y, way * hero.Facing * most) - hero.X);
 
     /// <summary>
     /// One controller step. Walls, closed doors and the grid's edges block; floors and the tops of

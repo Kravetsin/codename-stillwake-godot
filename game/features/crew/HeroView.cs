@@ -581,6 +581,7 @@ public partial class HeroView : Node2D
         _figure.Scanner = m.Items.Equipped(client.Id, Content.Helmet.Scanner);
         _figure.WearsCape = m.Items.Equipped(client.Id, Content.Cape.Item);
         _figure.FloorRoom = FloorRoom(m.Grid, drawn);
+        _figure.Room = RoomOf(ship, drawn);
         _figure.Footing = FootingOf(m, drawn, _figure.Footing);
         _figure.InWater = ship.Wading(drawn.FeetCell(ship.Width));
         _figure.Ledge = LedgeOf(ship, drawn);

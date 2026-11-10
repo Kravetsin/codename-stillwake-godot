@@ -95,7 +95,7 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [0087](0087-the-planets-core-is-lava.md) | The planet's core is lava | accepted |  |
 | [0088](0088-back-walls-recede-solid-edges-catch-light.md) | Back walls recede, the ground's edges catch the light | accepted |  |
 | [0089](0089-the-jump-forgives-and-the-walk-eases.md) | The jump forgives, its height follows Space, the walk eases in and out | accepted |  |
-| [0090](0090-the-figure-leans-skids-and-lands-by-its-motion.md) | The figure leans, skids and lands by its motion | accepted |  |
+| [0090](0090-the-figure-leans-skids-and-lands-by-its-motion.md) | The figure leans, skids and lands by its motion | accepted | body-answers (in part) |
 | [0091](0091-homes-of-the-arc-makers.md) | Homes of the arc makers: furnished ruins in the first planet's ground | accepted |  |
 | [0092](0092-the-whole-ladder.md) | The whole ladder, and a jump that steps up onto a ledge it looked to reach | accepted |  |
 | [0093](0093-a-planet-is-heard.md) | A planet is heard | accepted |  |
@@ -139,7 +139,7 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [sentry-arc](2026-10-27-sentry-arc.md) | The sentry strikes with an arc | accepted |  |
 | [shots-fall-aboard](2026-10-27-shots-fall-aboard.md) | Shots fall aboard | accepted |  |
 | [shots-pierce](2026-10-27-shots-pierce.md) | Shots pierce what they break | accepted | unified-damage (in part) |
-| [space-recoil](2026-10-27-space-recoil.md) | Space recoil | accepted |  |
+| [space-recoil](2026-10-27-space-recoil.md) | Space recoil | accepted | body-answers (in part) |
 | [suits-are-worn](2026-10-27-suits-are-worn.md) | Suits are worn | accepted |  |
 | [the-cape-floats](2026-10-27-the-cape-floats.md) | The cape floats | accepted | the-cape-flows (in part) |
 | [the-cape-is-worn](2026-10-27-the-cape-is-worn.md) | The cape is worn | accepted |  |
@@ -256,7 +256,7 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [tip-signs](2026-11-05-tip-signs.md) | Tips speak in signs and the bubble's numbers | accepted |  |
 | [tool-contact](2026-11-05-tool-contact.md) | A running tool is seen at work all along | accepted | damage-looks, tool-edge (in part) |
 | [tool-edge](2026-11-05-tool-edge.md) | A running tool hits with what is drawn | accepted | tool-reach (in part) |
-| [tool-reach](2026-11-05-tool-reach.md) | A tool hits by a fan of rays from the shoulder and shows its reach in use | accepted | hits-pass-wrecks (in part) |
+| [tool-reach](2026-11-05-tool-reach.md) | A tool hits by a fan of rays from the shoulder and shows its reach in use | accepted | hits-pass-wrecks, blade-trail, tool-size (in part) |
 | [creatures-in-herds](2026-11-06-creatures-in-herds.md) | Wild creatures come in small herds of one kind | accepted |  |
 | [energy-ring](2026-11-06-energy-ring.md) | The energy tab's ring and beating bolt | accepted |  |
 | [gain-spots](2026-11-06-gain-spots.md) | What a hero gains, counted beside where it came from | accepted |  |
@@ -323,9 +323,13 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [round-blasts](2026-11-09-round-blasts.md) | Blasts are round | accepted | unified-damage (in part) |
 | [tracker-catchers](2026-11-09-tracker-catchers.md) | Catchers | accepted | catcher-combat, catcher-paths, catcher-loot (in part) |
 | [unified-damage](2026-11-09-unified-damage.md) | One rule for damage | accepted | damage-scale (in part) |
+| [air-gusts](2026-11-10-air-gusts.md) | An action stirs its surroundings | accepted |  |
+| [blade-trail](2026-11-10-blade-trail.md) | A blade leaves its own trail, a haze | accepted |  |
+| [body-answers](2026-11-10-body-answers.md) | The body answers the weapon | accepted |  |
 | [catcher-loot](2026-11-10-catcher-loot.md) | Catcher loot | accepted |  |
 | [catcher-missile](2026-11-10-catcher-missile.md) | Catcher missile | accepted |  |
 | [catcher-motion](2026-11-10-catcher-motion.md) | Catcher motion | accepted |  |
 | [hit-targets](2026-11-10-hit-targets.md) | One answer to what a hit strikes | accepted |  |
 | [one-damage-rule](2026-11-10-one-damage-rule.md) | One damage rule for every hit | accepted |  |
 | [plant-stirs](2026-11-10-plant-stirs.md) | Plants stirred by bodies | accepted |  |
+| [tool-size](2026-11-10-tool-size.md) | Held tools are drawn smaller, and reach no longer follows the model | accepted |  |

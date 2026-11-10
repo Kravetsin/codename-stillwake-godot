@@ -7,10 +7,10 @@ namespace Stillwake.Game;
 public enum MotionKind { Swing, Thrust }
 
 /// <summary>
-/// How a motion's key is eased into from the one before: evenly, by (1 − cos πt) / 2, or by t², slow off the key before and
-/// fastest into this one.
+/// How a motion's key is eased into from the one before: evenly, by (1 − cos πt) / 2, by t², slow off the key before and
+/// fastest into this one, or by 1 − (1 − t)², a jolt off it slowing into this one (a recoil, body-answers).
 /// </summary>
-public enum Ease { Linear, Sine, In }
+public enum Ease { Linear, Sine, In, Out }
 
 /// <summary>
 /// One key of a swung motion (swing-motions): at <paramref name="Share"/> of the stroke, the shoulder turned

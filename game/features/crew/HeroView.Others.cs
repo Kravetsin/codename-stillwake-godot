@@ -92,6 +92,7 @@ public partial class HeroView
             shown.Figure.Scanner = m.Items.Equipped(id, Content.Helmet.Scanner);
             shown.Figure.WearsCape = m.Items.Equipped(id, Content.Cape.Item);
             shown.Figure.FloorRoom = FloorRoom(m.Grid, hero);
+            shown.Figure.Room = RoomOf(ship, hero);
             shown.Figure.Footing = FootingOf(m, hero, shown.Figure.Footing);
             shown.Figure.InWater = ship.Wading(hero.FeetCell(ship.Width));
             shown.Figure.Ledge = LedgeOf(ship, hero);
@@ -224,7 +225,7 @@ public partial class HeroView
         // Stuck in the structure it keeps the way it flew in; riding a piece or winding back, it points along the line.
         if (rod is Rod.Reeling or Rod.Returning && far > 1) pointing = ((tip.X - gun.X) / far, (tip.Y - gun.Y) / far);
         // The rod's eye this far behind its point, in thousandths of a cell, as its picture is drawn.
-        double length = (look.Tip.X - look.Eye.X) / Rig.Cell * Hero.Unit;
+        double length = (look.Tip.X - look.Eye.X) * look.Size / Rig.Cell * Hero.Unit;
         var eye = (tip.X - pointing.X * length, tip.Y - pointing.Y * length);
         var end = HarpoonLine.EndOf(gun, tip, pointing, length);
         line ??= new HarpoonLine(gun, end, seed);
@@ -233,6 +234,7 @@ public partial class HeroView
         picture.Visible = end != gun || rod is not (Rod.Flying or Rod.Returning);
         picture.Position = Pixels(eye);
         picture.Rotation = (float)Math.Atan2(pointing.Y, pointing.X);
+        picture.Scale = Vector2.One * (float)look.Size;
         light.Step(rod, Pixels(tip), Unit(pointing), Pixels(eye), at, elapsedMs);
     }
 

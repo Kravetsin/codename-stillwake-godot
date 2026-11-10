@@ -21,26 +21,34 @@ namespace Stillwake.Game;
 /// either side of it (tool-edge); every other tool by its fan of rays from the shoulder (tool-reach).
 /// An aimed one held by a shaft through the fist, not a pistol's grip, lies <see cref="Rest"/> radians more back from the forearm
 /// while it hangs, across the fist as the axe is, and comes along the forearm as the arm comes up to aim or thrust.
+/// It is drawn, in the hand and on a bench, at <see cref="Size"/> of its picture's pixels about its grip (tool-size); every
+/// point given here is the picture's own, so a new size moves its edge with it.
 /// </summary>
 public sealed record HeldLook(
     string Picture, (double X, double Y) Grip, double Hold, (double X, double Y) EdgeFrom, (double X, double Y) EdgeTo, string? Loaded = null,
     bool Aimed = false, IReadOnlyList<string>? Spin = null, (double X, double Y)? Lamp = null, IReadOnlyList<ToolMount>? Mounts = null,
     double Elbow = 0, (double X, double Y)? Clamp = null, string? Charged = null,
     IReadOnlyList<(double X0, double Y0, double X1, double Y1)>? Arcs = null, string? Twist = null, string? Driven = null,
-    double Bite = 0.75, double Rest = 0)
+    double Bite = 0.75, double Rest = 0, double Size = 1)
 {
     /// <summary>
-    /// The fire axe, <c>art/hero_axe.png</c>: gripped on the dark wrap a third up its haft; held square to
+    /// What a tool or gun is drawn at (tool-size): its pictures came from the pixel art, drawn for a larger hero, and looked
+    /// bulky beside the inked one; at three quarters they look right (the user's pick, in play, over real sizes made a third larger).
+    /// </summary>
+    public const double Drawn = 0.75;
+
+    /// <summary>
+    /// The fire axe, <c>art/hero_axe.png</c>: gripped round the middle of the dark wrap at its haft's end; held square to
     /// the forearm, as a hammer is, the blade facing along it; the bright steel's outer line the edge.
     /// </summary>
-    public static readonly HeldLook FireAxe = new("res://art/hero_axe.png", (7.5, 7), System.Math.PI / 2, (18, 13), (27, 13), Clamp: (10.5, 7));
+    public static readonly HeldLook FireAxe = new("res://art/hero_axe.png", (4.5, 7), System.Math.PI / 2, (18, 13), (27, 13), Clamp: (10.5, 7), Size: Drawn);
 
     /// <summary>
     /// The spring harpoon, <c>art/hero_harpoon.png</c> (0044): gripped by its plank stock, held as a pistol
     /// is, the barrel along the forearm; the edge the rod seated in the tube, from its eye to the muzzle.
     /// </summary>
     public static readonly HeldLook Harpoon = new(
-        "res://art/hero_harpoon.png", (4.5, 8), 0, (9, 3.5), (25, 3.5), Loaded: "res://art/hero_harpoon_loaded.png", Aimed: true, Clamp: (10.5, 4));
+        "res://art/hero_harpoon.png", (4.5, 8), 0, (9, 3.5), (25, 3.5), Loaded: "res://art/hero_harpoon_loaded.png", Aimed: true, Clamp: (10.5, 4), Size: Drawn);
 
     /// <summary>
     /// The grappling gun, <c>art/hero_grapple.png</c> (grapple-climbs), the user's pick, «Кошка»: the harpoon's plank stock under a
@@ -48,7 +56,7 @@ public sealed record HeldLook(
     /// the grapnel's shank seated in the tube, to the bell. Loaded, the grapnel's folded crown shows out of the bell.
     /// </summary>
     public static readonly HeldLook Grapple = new(
-        "res://art/hero_grapple.png", (4.5, 8), 0, (9, 3.5), (27.5, 3.5), Loaded: "res://art/hero_grapple_loaded.png", Aimed: true, Clamp: (10.5, 4));
+        "res://art/hero_grapple.png", (4.5, 8), 0, (9, 3.5), (27.5, 3.5), Loaded: "res://art/hero_grapple_loaded.png", Aimed: true, Clamp: (10.5, 4), Size: Drawn);
 
     /// <summary>
     /// The nailer, <c>art/hero_nailer.png</c> (shots-are-the-sims), the user's pick, «Самоделка»: a pipe barrel bound with copper
@@ -57,19 +65,19 @@ public sealed record HeldLook(
     /// at the muzzle while it is ready.
     /// </summary>
     public static readonly HeldLook Nailer = new(
-        "res://art/hero_nailer.png", (4.5, 7), 0, (7, 2.5), (25, 2.5), Loaded: "res://art/hero_nailer_loaded.png", Aimed: true, Clamp: (14, 2.5));
+        "res://art/hero_nailer.png", (4.5, 7), 0, (7, 2.5), (25, 2.5), Loaded: "res://art/hero_nailer_loaded.png", Aimed: true, Clamp: (14, 2.5), Size: Drawn);
 
     /// <summary>
-    /// The drill, <c>art/hero_drill.png</c> (0054): the tube hammer, a motor in a length of tube, held in one hand by the
-    /// frame bent into a loop under its rear, the elbow a little bent, aimed at the pointer (2026-10-27-one-arm-holds); the edge its long bit, from the chuck to the point, which is what
+    /// The drill, <c>art/hero_drill.png</c> (0054): the tube hammer, a motor in a length of tube, held in one hand round the
+    /// middle of the pistol grip under its rear, the elbow a little bent, aimed at the pointer (2026-10-27-one-arm-holds); the edge its long bit, from the chuck to the point, which is what
     /// drills. Running, the bit turns through three frames and the lamp on its rear cap lights. Its one mount (0098), the
     /// coil wound round its stock: its turns from (4, 4), the box of the stock it is wound round. Clamped on the bench by the
     /// belly of its motor, the bit out past the jaws.
     /// </summary>
     public static readonly HeldLook Drill = new(
-        "res://art/hero_drill.png", (3, 10.5), 0, (25, 5.5), (32, 5.5), Aimed: true,
+        "res://art/hero_drill.png", (5.5, 10.5), 0, (25, 5.5), (32, 5.5), Aimed: true,
         Spin: ["res://art/hero_drill_spin1.png", "res://art/hero_drill_spin2.png", "res://art/hero_drill_spin3.png"], Lamp: (1.5, 4.5),
-        Mounts: [new ToolMount("coil", 4, 4, (3, 3.5, 11, 6.5))], Elbow: 0.4, Clamp: (17.5, 7));
+        Mounts: [new ToolMount("coil", 4, 4, (3, 3.5, 11, 6.5))], Elbow: 0.4, Clamp: (17.5, 7), Size: Drawn);
 
     /// <summary>
     /// The screwdriver, <c>art/hero_screwdriver_held.png</c>, the first frame of the twist the hand works plans with
@@ -98,7 +106,7 @@ public sealed record HeldLook(
     /// </summary>
     public static readonly HeldLook Railgun = new(
         "res://art/hero_railgun.png", (12, 10.5), 0, (17, 6.5), (38, 6.5), Aimed: true, Elbow: 0.4, Clamp: (21.5, 6.5),
-        Charged: "res://art/hero_railgun_charged.png", Arcs: [(17, 4, 24, 8), (24, 4, 31, 8), (31, 4, 38, 8)]);
+        Charged: "res://art/hero_railgun_charged.png", Arcs: [(17, 4, 24, 8), (24, 4, 31, 8), (31, 4, 38, 8)], Size: Drawn);
 
     /// <summary>
     /// The angle grinder, <c>art/hero_grinder.png</c> (salvage-tools), the user's pick, «Заводская»: a long motor tube in worn ochre
@@ -109,7 +117,7 @@ public sealed record HeldLook(
     public static readonly HeldLook Grinder = new(
         "res://art/hero_grinder.png", (5.2, 9.8), 0, (22.6, 7.2), (27.2, 7.2), Aimed: true,
         Spin: ["res://art/hero_grinder_spin1.png", "res://art/hero_grinder_spin2.png", "res://art/hero_grinder_spin3.png"], Lamp: (1.5, 4.5),
-        Mounts: [new ToolMount("coil", 2, 4, (2, 3.5, 9, 6.5))], Elbow: 0.4, Clamp: (14.5, 7));
+        Mounts: [new ToolMount("coil", 2, 4, (2, 3.5, 9, 6.5))], Elbow: 0.4, Clamp: (14.5, 7), Size: Drawn);
 
     /// <summary>
     /// The plasma cutter, <c>art/hero_plasmaCutter.png</c> (salvage-tools), the user's pick, «Кольца»: a short dark body banded in brass,
@@ -119,7 +127,7 @@ public sealed record HeldLook(
     /// </summary>
     public static readonly HeldLook PlasmaCutter = new(
         "res://art/hero_plasmaCutter.png", (4.6, 8), 0, (13.8, 4.4), (27.1, 4.4), Aimed: true,
-        Spin: ["res://art/hero_plasmaCutter_on.png"], Elbow: 0.4, Clamp: (14, 8.3));
+        Spin: ["res://art/hero_plasmaCutter_on.png"], Elbow: 0.4, Clamp: (14, 8.3), Size: Drawn);
 
     /// <summary>
     /// The spear, <c>art/hero_spear.png</c> (salvage-tools), the user's pick, «Труба и лист»: a hull plate's leaf driven into a flattened
@@ -127,7 +135,7 @@ public sealed record HeldLook(
     /// riveted round the shaft. Clamped by the bare shaft before the sleeve.
     /// </summary>
     public static readonly HeldLook Spear = new(
-        "res://art/hero_spear.png", (10.5, 5), 0, (42, 5), (47.8, 5), Aimed: true, Elbow: 1.2, Mounts: [new ToolMount("coil", 23, 4, (22, 3.5, 30, 6.5))], Clamp: (17.5, 5), Rest: System.Math.PI / 2);
+        "res://art/hero_spear.png", (10.5, 5), 0, (42, 5), (47.8, 5), Aimed: true, Elbow: 1.2, Mounts: [new ToolMount("coil", 23, 4, (22, 3.5, 30, 6.5))], Clamp: (17.5, 5), Rest: System.Math.PI / 2, Size: Drawn);
 
     /// <summary>
     /// The sledgehammer, <c>art/hero_sledgehammer.png</c> (salvage-tools), the user's pick, «Пакет плит»: five cut plates bolted into a
@@ -135,14 +143,14 @@ public sealed record HeldLook(
     /// the block's striking face along its bottom. Clamped by the plank.
     /// </summary>
     public static readonly HeldLook Sledgehammer = new(
-        "res://art/hero_sledgehammer.png", (6.6, 8), System.Math.PI / 2, (21.4, 15), (31.4, 15), Clamp: (14.5, 8));
+        "res://art/hero_sledgehammer.png", (6.6, 8), System.Math.PI / 2, (21.4, 15), (31.4, 15), Clamp: (14.5, 8), Size: Drawn);
 
     /// <summary>
     /// The pickaxe, <c>art/hero_pickaxe.png</c> (the-pickaxe), the user's pick, «Шип из шпангоута»: a ship's rib in old primer, its lightening
     /// hole kept, torch-cut into a spike and welded to a pipe haft gripped in rubber; held square to the forearm as the axe is; the edge
     /// the spike's point. Clamped by the pipe, its spike hanging past the table.
     /// </summary>
-    public static readonly HeldLook Pickaxe = new("res://art/hero_pickaxe.png", (5.5, 9), System.Math.PI / 2, (28.1, 17.3), (29.1, 17.3), Clamp: (14, 10));
+    public static readonly HeldLook Pickaxe = new("res://art/hero_pickaxe.png", (5.5, 9), System.Math.PI / 2, (28.1, 17.3), (29.1, 17.3), Clamp: (14, 10), Size: Drawn);
 
     /// <summary>
     /// The blasting charge, <c>art/hero_blastCharge.png</c> (blasting-charge), the user's pick, «Труба с серой»: an iron pipe packed
@@ -183,15 +191,15 @@ public sealed record HeldLook(
 
 /// <summary>
 /// A gun's rod as it flies, its point along +x: its picture, where the line ties on (<see cref="Eye"/>) and its point
-/// (<see cref="Tip"/>), in pixels of its picture.
+/// (<see cref="Tip"/>), in pixels of its picture, drawn at <see cref="Size"/> as its gun is.
 /// </summary>
-public sealed record RodLook(string Picture, (double X, double Y) Eye, (double X, double Y) Tip)
+public sealed record RodLook(string Picture, (double X, double Y) Eye, (double X, double Y) Tip, double Size = 1)
 {
     /// <summary>The harpoon's rod, <c>art/hero_harpoon_rod.png</c> (0044).</summary>
-    public static readonly RodLook Harpoon = new("res://art/hero_harpoon_rod.png", (3, 2.5), (23, 2.5));
+    public static readonly RodLook Harpoon = new("res://art/hero_harpoon_rod.png", (3, 2.5), (23, 2.5), HeldLook.Drawn);
 
     /// <summary>The grappling gun's grapnel, <c>art/hero_grapple_hook.png</c> (grapple-climbs): three prongs sprung open, swept back.</summary>
-    public static readonly RodLook Grapple = new("res://art/hero_grapple_hook.png", (2.2, 5.5), (15.9, 5.5));
+    public static readonly RodLook Grapple = new("res://art/hero_grapple_hook.png", (2.2, 5.5), (15.9, 5.5), HeldLook.Drawn);
 
     /// <summary>The rod of the gun <paramref name="item"/>: the grappling gun's, else the harpoon's.</summary>
     public static RodLook Of(string? item) => item == Content.Grapple.Item ? Grapple : Harpoon;

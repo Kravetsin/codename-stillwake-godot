@@ -8,6 +8,7 @@
 | `StagesView.cs` | The world's stages drawn: a view a stage at its layer's z, kept last among the world's views. |
 | `logic/Impacts.cs` | What a hit at a cell strikes and where on it (0094): the face toward the hero, its floor, a tool's share. |
 | `logic/ChipShape.cs` | A chip's triangle turned and sized where it flies: a frame's chips drawn as one list of triangles. |
+| `logic/Gusts.cs` | What a push of air stirs (air-gusts): the floor's dust in its colour, a strong push's grit. |
 
 Particles without a word, in the luminous style (0075): what glows is light added over the world — streaks white-hot
 at the head, stretched along their curling path, fading as they cool, lighting the room a little; a one-frame glint
@@ -75,6 +76,7 @@ Tested in `LuminousTests`: the luminous arithmetic, trails, blooms, floor rings 
 ## Deliberately not handled
 
 - Particles fly through walls: only a floor an emitter names stops them.
+- A gust (air-gusts) is only this hero's; plants and loose items do not answer it yet.
 - A peer is not told which tool hit a wreck: a hit under a running drill's bit is taken for that drill's (0094).
 - A hit on a tree's crown lands in the struck cell, maybe air between branches: nothing finds the wood in the picture (0094).
 - A chip keeps the floor it was thrown over; one flying past a step's edge rests on air at its height (0094).

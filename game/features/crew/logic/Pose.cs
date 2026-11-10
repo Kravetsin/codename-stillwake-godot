@@ -298,21 +298,22 @@ public static class Poses
     }
 
     /// <summary>How far a boot turns from its shin's line to lie flat, the body turned <paramref name="tilt"/>, within how far an ankle turns.</summary>
-    private static double Flat(Bend leg, double tilt) => Math.Clamp(tilt - leg.Upper - leg.Lower, -Feel.Feet.Down, Feel.Feet.Up);
+    internal static double Flat(Bend leg, double tilt) => Math.Clamp(tilt - leg.Upper - leg.Lower, -Feel.Feet.Down, Feel.Feet.Up);
 
     /// <summary>
     /// How low a boot's sole reaches, its leg bent as <paramref name="leg"/> from a hip <paramref name="hipX"/> ahead, turned
     /// <paramref name="foot"/> at the ankle, the body turned <paramref name="tilt"/> about its middle: in pixels under the feet' line, +y down.
+    /// The hip may stand <paramref name="shift"/> from its place, as a combo's body moves it (axe-combos).
     /// </summary>
-    private static double SoleOf(Bend leg, double foot, double hipX, double tilt)
+    internal static double SoleOf(Bend leg, double foot, double hipX, double tilt, Vec shift = default)
     {
         var ankle = Rig.EndOf(leg, Rig.ToAnkle);
         double turn = leg.Upper + leg.Lower + foot, cos = Math.Cos(turn), sin = Math.Sin(turn), c = Math.Cos(tilt), s = Math.Sin(tilt);
         // From the body's middle, Rig.H / 2 over the feet, where it turns.
         double Corner(double along)
         {
-            double x = hipX + ankle.X + along * cos + Rig.Sole * sin;
-            double y = Rig.H / 2 - Rig.Hip - Rig.HipRise(hipX, tilt) + ankle.Y - along * sin + Rig.Sole * cos;
+            double x = hipX + shift.X + ankle.X + along * cos + Rig.Sole * sin;
+            double y = Rig.H / 2 - Rig.Hip - Rig.HipRise(hipX, tilt) + shift.Y + ankle.Y - along * sin + Rig.Sole * cos;
             return x * s + y * c - Rig.H / 2;
         }
         return Math.Max(Corner(-Rig.Heel), Corner(Rig.Toe));
@@ -683,38 +684,42 @@ public static class Poses
         for (int i = 0; i < 4; i++)
         {
             limbs = FeetOver(limbs, lift);
-            var (frontLeg, frontFoot) = Bent(limbs.FrontLeg, limbs.FrontFoot, Rig.HipApart);
-            var (backLeg, backFoot) = Bent(limbs.BackLeg, limbs.BackFoot, -Rig.HipApart);
+            var (frontLeg, frontFoot) = OnFloor(limbs.FrontLeg, limbs.FrontFoot, Rig.HipApart, limbs.Tilt, lift);
+            var (backLeg, backFoot) = OnFloor(limbs.BackLeg, limbs.BackFoot, -Rig.HipApart, limbs.Tilt, lift);
             limbs = limbs with { FrontLeg = frontLeg, FrontFoot = frontFoot, BackLeg = backLeg, BackFoot = backFoot };
         }
         return limbs with { Lift = lift };
+    }
 
-        (Bend, double) Bent(Bend leg, double foot, double hipX)
+    /// <summary>
+    /// A leg and its boot kept out of a floor <paramref name="lift"/> under the feet' line: a toe or heel through it turns the boot
+    /// flatter, then the knee bends until it stands on it; the hip <paramref name="shift"/> from where <paramref name="hipX"/> puts it.
+    /// </summary>
+    internal static (Bend Leg, double Foot) OnFloor(Bend leg, double foot, double hipX, double tilt, double lift, Vec shift = default)
+    {
+        double under = SoleOf(leg, foot, hipX, tilt, shift) - lift;
+        if (under <= 0) return (leg, foot);
+        // A toe or heel under the floor turns the boot flatter first: a leg nearly straight folds its knee half a radian to
+        // lift its ankle half a pixel, and pushing off it buckled for a frame.
+        double flat = Flat(leg, tilt);
+        if (SoleOf(leg, flat, hipX, tilt, shift) - lift <= 0)
         {
-            double under = SoleOf(leg, foot, hipX, limbs.Tilt) - lift;
-            if (under <= 0) return (leg, foot);
-            // A toe or heel under the floor turns the boot flatter first: a leg nearly straight folds its knee half a radian to
-            // lift its ankle half a pixel, and pushing off it buckled for a frame.
-            double flat = Flat(leg, limbs.Tilt);
-            if (SoleOf(leg, flat, hipX, limbs.Tilt) - lift <= 0)
+            double kept = foot, level = flat;
+            for (int i = 0; i < 12; i++)
             {
-                double kept = foot, level = flat;
-                for (int i = 0; i < 12; i++)
-                {
-                    double mid = (kept + level) / 2;
-                    if (SoleOf(leg, mid, hipX, limbs.Tilt) - lift > 0) kept = mid;
-                    else level = mid;
-                }
-                return (leg, level);
+                double mid = (kept + level) / 2;
+                if (SoleOf(leg, mid, hipX, tilt, shift) - lift > 0) kept = mid;
+                else level = mid;
             }
-            foot = flat;
-            under = SoleOf(leg, foot, hipX, limbs.Tilt) - lift;
-            if (under <= 0) return (leg, foot);
-            // Straight up from the floor, in the turned body's own lines, the boot turned as before.
-            var ankle = Rig.EndOf(leg, Rig.ToAnkle);
-            var bent = Rig.Reach(new Vec(ankle.X - under * Math.Sin(limbs.Tilt), ankle.Y - under * Math.Cos(limbs.Tilt)), Rig.ToAnkle, -1);
-            return (bent, foot + leg.Upper + leg.Lower - bent.Upper - bent.Lower);
+            return (leg, level);
         }
+        foot = flat;
+        under = SoleOf(leg, foot, hipX, tilt, shift) - lift;
+        if (under <= 0) return (leg, foot);
+        // Straight up from the floor, in the turned body's own lines, the boot turned as before.
+        var ankle = Rig.EndOf(leg, Rig.ToAnkle);
+        var bent = Rig.Reach(new Vec(ankle.X - under * Math.Sin(tilt), ankle.Y - under * Math.Cos(tilt)), Rig.ToAnkle, -1);
+        return (bent, foot + leg.Upper + leg.Lower - bent.Upper - bent.Lower);
     }
 
     /// <summary>

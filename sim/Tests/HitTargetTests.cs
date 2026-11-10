@@ -150,22 +150,22 @@ public class HitTargetTests
     {
         var w = Ground("""
             ........
-            .FFFF.#.
-            .FFFF.#.
-            .FFFF.#.
-            .FFFF.#.
+            .FFFF#..
+            .FFFF#..
+            .FFFF#..
+            .FFFF#..
             ########
             """, """
             ........
-            ......s.
-            ......s.
-            ......s.
-            ......s.
+            .....s..
+            .....s..
+            .....s..
+            .....s..
             ssssssss
             """);
         var furnace = w.M.Grid.MachinesOf("furnace").Single();
         var cells = Struck(w, Weapons.Drill.Item, 0, 2, Right).Cells;
-        Assert.Contains(At(w, 6, 2), cells);
+        Assert.Contains(At(w, 5, 2), cells);
         Assert.Contains(furnace.Cell, cells);
     }
 }
