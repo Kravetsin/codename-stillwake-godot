@@ -6,33 +6,33 @@
 | --- | --- |
 | `Arcs.cs` | Arcs: `Bolted`, `StrikeArc`, `Linger`; `Arcs`. |
 | `Bounty.cs` | Catchers for hunted heroes. |
-| `Clinger.cs` | The clinger (the sentry) on its wreck. |
+| `Clinger.cs` | The sentry clinging to its wreck. |
 | `Creatures.cs` | The commands, the queries, the hit path. |
 | `Drives.cs` | Grazers: `Graze`, `Flee`, `Retaliate`, `Escape`. |
 | `Flyer.cs` | The catcher's body: stops at solid. |
 | `Fuzz.cs` | Commands the desync suite draws. |
 | `Guard.cs` | `Guard` (sentry, lurkers), `Return`, the `CutTether` reflex. |
 | `Hunt.cs` | The catcher's hunt. |
-| `Live.cs` | The system: dead swept, patches aged, all ticked. |
+| `Live.cs` | Dead swept, patches aged, creatures ticked. |
 | `Lunge.cs` | A ram along the ground in phases. |
 | `Paths.cs` | Weighted A*: runs. |
 | `Patches.cs` | Gas, slime: laid, aged, paid by heroes in them. |
 | `Pounce.cs` | A straight flight at a hero, never cut. |
 | `Rules.cs` | Rule contracts; `RuleBook` finds them. |
-| `Shell.cs` | The shell (the snail): open near a hero, shut it shields. |
-| `Shoot.cs` | The arc: crouched, its aim held, struck, a recovery. |
+| `Shell.cs` | The snail's shell: open near a hero, shut it shields. |
+| `Shoot.cs` | The arc: aimed, struck, recovered. |
 | `Shots.cs` | Shots: `Fire`, flight, hits, pierces, bursts. |
 | `Spawn.cs` | Spawning: posts, herds, guards. |
 | `State.cs` | The saved slice: `Creature`, `Shot`. |
 | `Ward.cs` | The spire guards' drive. |
-| `Vent.cs` | The vent (the capback): its gas, a cooldown. |
-| `Walker.cs` | The walker: steering, stepping, falling, leaping. |
+| `Vent.cs` | The capback's vent: its gas, a cooldown. |
+| `Walker.cs` | The walker: steering, stepping, leaping (0102, 0106). |
 
 Every creature composed (creatures-are-composed): a species names a body, life, faction, ranked
 drives, moves and yields, each a rule here. The dead are gone to all from the blow.
 
 - **Depends on:** `Grid`; `Crew` (heroes' cells, `Hunted`; `Blow`, `Shock`, `CallOff`, `Loot`); `Items` (weapons, ammo, drops, charge); `Debris`
-  (queries, `Unreel`, `Hit`); `Building` (`ShotTakes`, `Surplus`, `Hit`, `Burst`, `Relics`, `Posts`, `PostAt`, `FellPost`); `Rooms` (`Afloat`, `RoomAt`); `Knowledge` (`Earn`).
+  (queries, `Unreel`, `Hit`); `Building` (`TargetAt`, `ShotTakes`, `Surplus`, `Hit`, `Burst`, `Relics`, `Posts`, `PostAt`, `FellPost`); `Rooms` (`Afloat`, `RoomAt`); `Knowledge` (`Earn`).
 - **State** (`CreaturesState`, saved): `Creatures` in id order, each `{ Id, Species, X, Y, VX, VY, Damage, Drive, DriveLeft,
   Step, Act, Target, Mem, SeenAt, Path }`, bottom middle in thousandths; `Drive` its brain place, `Act` `{ Move, Phase, Left }`,
   `Mem` rule numbers by key, ordinal; `NextId`; `Clock`; `Shots`, `Arcs`, `Patches`, `Fired`. **Unsaved:** `Dead`. **Derived:** `Posture`, `Fleeing`, `Ended`, `Hits`.
@@ -73,9 +73,9 @@ drives, moves and yields, each a rule here. The dead are gone to all from the bl
   solid cell), then `Stuck`. **Kept loop, no drop, never `Dead`:** post or relic gone, or `Calm`. Killed, it fells its post.
 - **The hit path** (`Strike`, a shot): unless a drive `Shields` (a shut shell, a shot), damage; dead at hit points, `Yields` sprayed, its `Purse` earned; else knocked
   (`Life.Knock`, `Hop`), its act cut if it may be, drives told in order till one claims it.
-- **Shots:** `Fire` takes an ammo and its gun's `Energy`; each tick, in id order, one steps, hitting a cell's solid, lowest-id
-  creature, wreck (not `Passed`), through bodies its gun `Pierces`, broken cells while it `Carries` some. It falls (`ShotFlight.Gravity`). One that `Bursts`
-  `Burst`s where it ends (`Spoils.Drop`; a relic shocks the thrower); wrecks in `Reach` take `WreckDamage`, a creature's heroes it sees its `Damage`.
+- **Shots:** `Fire` takes ammo and its gun's `Energy`; each tick, in id order, one steps, hitting a cell's solid, lowest-id
+  creature, machine (the lifepod stops it), wreck (not `Passed`), through bodies its gun `Pierces`, broken cells while it `Carries` some. Falls (`ShotFlight.Gravity`). One that `Bursts`
+  `Burst`s wherever it ends (`Spoils.Drop`; a relic shocks the thrower); wrecks in `Reach` take `WreckDamage`, a creature's heroes it sees its `Damage`.
 - **`HitBy(Creature)`** (0103), **`Bolted(Arc)`**, as the hero's client saw it: a `Blow` of the move's `Damage`, the act ends; or
   the arc's projectile's, once a hero.
 - **`Release`** (dev): `Place`.
@@ -100,7 +100,7 @@ drives, moves and yields, each a rule here. The dead are gone to all from the bl
 
 ## Deliberately not handled
 
-- **No collisions** (0006); a clinger senses through rock; despawn loses damage. **No hit-stun.**
+- **No collisions** (0006); a clinger senses through rock; despawn loses damage; no hit-stun.
 - **A ram aims where the hero was reported** (0103); a second hero pays nothing. **Lifetime:** the keep box's.
 - **A burst hurts no creature; a hero's, no hero.**
 - **A catcher:** none on a planet under twice `RingFrom` wide.

@@ -105,16 +105,15 @@ public class PilesTests
         Assert.Empty(w.M.Building.Plans);
     }
 
-    /// <summary>Aboard a tool still breaks nothing else: the wall, the deck and the back wall it swings at are the plan's.</summary>
+    /// <summary>Aboard an axe strikes what it reaches as anywhere (hit-targets): the pile it stands in, whichever way it swings.</summary>
     [Fact]
-    public void AnAxeAboardStrikesOnlyPiles()
+    public void AnAxeAboardStrikesThePileItSwingsInWhicheverWay()
     {
         var w = new Scenario(Wreck);
         var pile = PileOf(w, "pileBits");
         var (x, y) = (pile.Cell % Wreck.Width * 1000 + 500, pile.Cell / Wreck.Width * 1000 + 500);
         for (int heading = 0; heading < Headings.Turn; heading += 8)
-            Assert.Equal([pile.Cell], w.M.Building.Struck(Axe, x, y, heading).Cells);
-        Assert.Empty(w.M.Building.Struck(Axe, w.M.Crew.Spawn % Wreck.Width * 1000 + 500, w.M.Crew.Spawn / Wreck.Width * 1000 + 500, 0).Cells);
+            Assert.Contains(pile.Cell, w.M.Building.Struck(Axe, x, y, heading).Cells);
     }
 
     [Fact]

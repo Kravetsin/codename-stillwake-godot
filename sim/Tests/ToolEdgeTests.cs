@@ -168,10 +168,12 @@ public class ToolEdgeTests
     }
 
     [Fact]
-    public void TheShipsWallsAreTakenApartByThePlanNotHewn()
+    public void TheShipsWallsAreHewnAtATenth()
     {
         var (w, _, _) = Space();
         w.Do(new HewCells(Axe, new List<int> { 0 * 20 + 1, 3 * 20 + 1 })).Run();
-        Assert.Equal(["building.notHere"], Reasons(w));
+        Assert.Empty(Reasons(w));
+        int tenth = Weapons.Axe.BlockDamage * Damage.OwnShipTakes / 1000;
+        Assert.Equal([(1, tenth), (61, tenth)], w.M.Building.Cracks.Select(c => (c.Cell, c.Damage)).OrderBy(c => c.Cell));
     }
 }

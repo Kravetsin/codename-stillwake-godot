@@ -27,8 +27,7 @@ public sealed partial class BuildingModule
     private readonly Wave _wave = new();
     private readonly List<int> _burstBroken = [], _burstPaid = [], _burstBacks = [];
     private readonly List<(int Key, int Left)> _burstCracked = [];
-    private bool _burstOwn;
-    private int _burstPeer = FloorStack.Nobody;
+    private int _burstPeer;
 
     /// <inheritdoc/>
     public bool Burst(int peer, int cell, int power, int reach, Spoils spoils)
@@ -39,7 +38,6 @@ public sealed partial class BuildingModule
         _burstPaid.Clear();
         _burstBacks.Clear();
         _burstCracked.Clear();
-        _burstOwn = peer != FloorStack.Nobody;
         _burstPeer = peer;
         if (BurstEnter(cell) is not int first) return false;
         _wave.Spread(_grid.Width, _grid.Height, cell, first, power, reach, BurstEnter, (at, cost) =>
@@ -58,7 +56,7 @@ public sealed partial class BuildingModule
             if (spoils == Spoils.Lost && BackCost(at) is int back && power - cost >= back) _burstBacks.Add(at);
         }, (at, left) =>
         {
-            int crack = Softened(at) ? left * Damage.OwnShipTakes / 1000 : left;
+            int crack = CrackOf(_burstPeer, at, left);
             if (TargetAt(at) is { Kind: not TargetKind.Plant } t) _burstCracked.Add((t.Key, crack));
         });
         _burstBroken.Sort();
@@ -93,7 +91,7 @@ public sealed partial class BuildingModule
     /// <summary>
     /// What a burst pays to enter <paramref name="cell"/> besides its step (<see cref="TargetAt"/>): nothing open or for a plant; a wall,
     /// piece or machine what is left of its strength (a pile's read as tenths), over <see cref="Damage.OwnShipTakes"/> where
-    /// <see cref="Softened"/>, a piece or machine once, nothing more once one cell of it is entered; null where it stops: the fog,
+    /// the burst's peer's own ship (<see cref="OwnShip"/>), a piece or machine once, nothing more once one cell of it is entered; null where it stops: the fog,
     /// what nothing breaks (bedrock, lava, the lifepod), a structure that is no target (a grate).
     /// </summary>
     private int? BurstEnter(int cell)
@@ -103,7 +101,7 @@ public sealed partial class BuildingModule
         if (target.Kind == TargetKind.Plant) return 0;
         if (target.Strength is not int strength) return null;
         if (target.Kind != TargetKind.Wall && _burstPaid.Contains(target.Key)) return 0;
-        return Share(cell, Remaining(target.Key, strength));
+        return CostOf(_burstPeer, cell, Remaining(target.Key, strength));
     }
 
     /// <summary>What breaking <paramref name="wall"/> at <paramref name="cell"/> costs a burst in full: what is left of it; null for one that never breaks.</summary>
@@ -125,16 +123,6 @@ public sealed partial class BuildingModule
     /// <summary>What is left of <paramref name="strength"/> at <paramref name="key"/> after its crack, in the <paramref name="back"/> layer or the front.</summary>
     private int Remaining(int key, int strength, bool back = false) =>
         strength - (CrackIndex(key, back) is >= 0 and var at ? State.Cracks[at].Damage : 0);
-
-    /// <summary>Whether this burst takes only its share at <paramref name="cell"/>: a player's own, on their ship (damage-scale).</summary>
-    private bool Softened(int cell) => _burstOwn && Aboard(cell);
-
-    /// <summary>
-    /// What a burst pays at <paramref name="cell"/> for what is <paramref name="left"/> of its strength: that, or over its share where
-    /// <see cref="Softened"/>, rounded up, so the crack an unpaid cell takes always stays below what is left of it.
-    /// </summary>
-    private int Share(int cell, int left) =>
-        Softened(cell) ? (left * 1000 + Damage.OwnShipTakes - 1) / Damage.OwnShipTakes : left;
 
     /// <summary>
     /// <paramref name="cost"/> fallen at <paramref name="cell"/> for anyone, as <paramref name="spoils"/> says: none when lost. Its worth
@@ -176,14 +164,24 @@ public sealed partial class BuildingModule
             FreeNet(machine);
             return [];
         }
+        Leave(spoils, Unbuild(head), head);
+        return [];
+    }
+
+    /// <summary>
+    /// The machine at <paramref name="head"/>, its top-left, gone to a hit or a burst: its crack dropped, what it holds spilled and
+    /// its queue's refund fallen there for anyone, its cables left on a peg (0110); gas or water it held goes with it. Its cost.
+    /// </summary>
+    private IReadOnlyList<(string Item, int Count)> Unbuild(int head)
+    {
+        var machine = _grid.MachineAt(head)!;
         if (CrackIndex(head) is >= 0 and var at) State.Cracks.RemoveAt(at);
         _itemsOps.Spill(machine.Id, head);
         _itemsOps.DropAt(FloorStack.Nobody, _craftingOps.Scrap(machine.Id), head);
         var cost = Costs.BuiltAt(_grid, head, "machine")!.Cost;
         _powerOps.Unplug(machine.Id);
         _gridOps.Clear(head, "machine");
-        Leave(spoils, cost, head);
-        return [];
+        return cost;
     }
 
     /// <summary>

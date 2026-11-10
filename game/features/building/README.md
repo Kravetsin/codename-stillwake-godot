@@ -17,7 +17,7 @@ The plan, its menu and the hand at work (0022, 0030). Game rules stay in `sim/Bu
 | `logic/SquareTip.cs` | The power driver's square's cost. |
 | `logic/Sliver.cs` | Glow too thin to draw. |
 | `BuildGlow.cs` | Work's light (0075): sparks, glints, molten spot, cut, sweep. |
-| `Shafts.cs` | Platform shafts kept clear: red hatch while building, a ghost's green or red. |
+| `Shafts.cs` | Platform shafts kept clear, drawn red or green. |
 | `logic/Catalogue.cs` | The menu's frame (0073): slot size, scrolled rows, hover, scrollbar. |
 | `BuildMenu.cs` | The tablet menu: modes, tabs with counts, search, cards, card in hand, tooltip. |
 | `logic/WallStats.cs` | A wall's card numbers: its leak. |
@@ -89,7 +89,7 @@ Shared: `game/shared/` (`Ui`, `Hands`, `PointerTip`, `Tablet`, `TabletMotion`, `
   peers; a molten spot, smoke, shimmer; the cut glows; swept when done. The
   ratchet there; by a power driver, its motor (`Ui.Driven`).
 - **Digging** (0077, 0079, damage-looks): a fault's stage is its share of strength; a hit's look is the crew's (0094);
-  a breakable machine cracks as a wreck (pile-crack-net).
+  a breakable machine cracks as a wreck (pile-crack-net); a piece's crack and dust span its cells (one-damage-rule).
 
 ## Deliberately not handled
 
