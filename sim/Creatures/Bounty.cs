@@ -84,17 +84,18 @@ public sealed partial class CreaturesModule
     /// <summary>
     /// What a hunter shows of its fight (catcher-combat): whether it aims at its quarry in sight, free of any move, and the cell its aim
     /// holds before a shot (-1 for none); the spot it gathers for (-1 for none) and the ticks left of the gather; the clock it last
-    /// blinked at (0 for never).
+    /// blinked at (0 for never); the ticks left of the charge held in its hand before it throws (catcher-motion; 0 for none).
     /// </summary>
-    public readonly record struct Fight(bool Aims, int Held, int Ghost, int GatherLeft, int Blinked);
+    public readonly record struct Fight(bool Aims, int Held, int Ghost, int GatherLeft, int Blinked, int ThrowLeft);
 
     /// <summary><paramref name="c"/>'s fight as it stands (<see cref="Fight"/>); nothing for one leaving or not a hunter.</summary>
     public Fight FightOf(Creature c)
     {
-        if (HuntDrive.QuarryOf(c) == null || HuntDrive.Leaving(c)) return new(false, -1, -1, 0, 0);
+        if (HuntDrive.QuarryOf(c) == null || HuntDrive.Leaving(c)) return new(false, -1, -1, 0, 0, 0);
         int ghost = c.Recall(HuntDrive.BlinkTo) - 1;
         return new(c.Act == null && c.Recall(HuntDrive.Aiming) == 1, c.Recall(HuntDrive.Held) - 1, ghost,
-            ghost >= 0 ? Math.Max(0, c.Recall(HuntDrive.BlinkAt) - State.Clock) : 0, c.Recall(HuntDrive.BlinkedAt));
+            ghost >= 0 ? Math.Max(0, c.Recall(HuntDrive.BlinkAt) - State.Clock) : 0, c.Recall(HuntDrive.BlinkedAt),
+            c.Recall(HuntDrive.ThrowAt) is > 0 and var throwAt ? Math.Max(0, throwAt - State.Clock) : 0);
     }
 
     /// <summary>A shell's mark: the cell it lands on, the ticks left till it does, and its whole flight.</summary>

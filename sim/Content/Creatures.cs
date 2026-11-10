@@ -120,7 +120,8 @@ public static class Creatures
     /// <summary>
     /// Hunting one hero (tracker-catchers): <paramref name="Ticks"/> on its way to it from the tick it comes, running its path on the
     /// ground (catcher-paths), flying or falling at <paramref name="Speed"/> a tick, making its first move at it within
-    /// <paramref name="Strike"/> cells in line. Out of time it calls the hunt off and leaves straight up. Struck by another hero, it
+    /// <paramref name="Strike"/> cells in line; where things float its velocity turns toward its way by at most <paramref name="Accel"/> a
+    /// tick on each axis (catcher-motion), so it swings wide and overshoots. Out of time it calls the hunt off and leaves straight up. Struck by another hero, it
     /// answers with its second move at most every <paramref name="AnswerEvery"/> ticks, then hunts on.
     /// </summary>
     /// <remarks>
@@ -128,7 +129,7 @@ public static class Creatures
     /// <paramref name="LagAfter"/> ticks, or no run reaching its quarry, a <paramref name="Blink"/> ahead of it, by how far it went in the last
     /// <paramref name="Sample"/> ticks; a <paramref name="Salvo"/> from the air; a <paramref name="Lob"/> at a shelter it has no way into.
     /// </remarks>
-    public sealed record Hunt(int Ticks, int Strike, int Speed, int AnswerEvery, int LagAfter, int Sample, Blink Blink, Gunfire Gunfire, Salvo Salvo, Lob Lob) : Drive;
+    public sealed record Hunt(int Ticks, int Strike, int Speed, int Accel, int AnswerEvery, int LagAfter, int Sample, Blink Blink, Gunfire Gunfire, Salvo Salvo, Lob Lob) : Drive;
 
     /// <summary>
     /// A hunter's teleport (catcher-combat): <paramref name="Gather"/> ticks standing, then there, <paramref name="Spent"/> ticks still; at
@@ -155,8 +156,9 @@ public static class Creatures
     /// A hunter's lob at a shelter (catcher-combat): no run to its quarry nor a spot in its sight, every <paramref name="Every"/> ticks a
     /// <paramref name="Projectile"/> at what stands between them nearest its quarry, landing <paramref name="Flight"/> ticks later. Where
     /// things float it first keeps <paramref name="Standoff"/> cells off the hull it meets on the way (catcher-standoff), so the throw is seen.
+    /// It holds the charge still in its hand <paramref name="Tell"/> ticks before it throws (catcher-motion).
     /// </summary>
-    public sealed record Lob(int Every, int Flight, int Standoff, string Projectile);
+    public sealed record Lob(int Every, int Tell, int Flight, int Standoff, string Projectile);
 
     /// <summary>An act a creature makes, in phases, the suit units it takes from a hero it hits.</summary>
     public abstract record Move(int Damage);
@@ -362,10 +364,10 @@ public static class Creatures
     /// </summary>
     public static readonly Species Catcher = new("catcher", Look: "catcher", Body: new Flyer(Width: 3, Height: 5, Run: 1320),
         Life: new(Hp: 40, Knock: 0, Hop: 0), Faction: Catchers, Lifetime: Lifetime.Hunter,
-        Brain: [new Hunt(Ticks: 1800, Strike: 12, Speed: 1000, AnswerEvery: 60, LagAfter: 60, Sample: 10,
+        Brain: [new Hunt(Ticks: 1800, Strike: 12, Speed: 1000, Accel: 100, AnswerEvery: 60, LagAfter: 60, Sample: 10,
             Blink: new(Gather: 12, Spent: 10, Every: 120, Ahead: 20, LeadMost: 96, Near: 8), Gunfire: new(Every: 50, Tell: 6),
             Salvo: new(Every: 240, Hover: 20, Headroom: 6, Shells: 7, Spread: 48, Flight: 24, Stagger: 2, Projectile: "shell"),
-            Lob: new(Every: 160, Flight: 20, Standoff: 16, Projectile: "blastCharge"))],
+            Lob: new(Every: 160, Tell: 12, Flight: 20, Standoff: 16, Projectile: "blastCharge"))],
         Moves: [new Pounce(WindUp: 16, Speed: 1600, Ticks: 10, Damage: 6), new Shoot(WindUp: 6, Lock: 2, Recover: 20, Projectile: "laser", Reach: 60, Lingers: 6, Through: 120)],
         Yields: [new("scrapChunk", 2, 4), new("circuit", 1, 1), new("crystal", 1, 1, OneIn: 5), new("opal", 1, 1, OneIn: 10)],
         Purse: new(150, 300));

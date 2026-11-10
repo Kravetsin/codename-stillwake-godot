@@ -24,7 +24,7 @@ internal sealed class HuntDrive : DriveRule
         SampleX = "sampleX", SampleY = "sampleY", DriftX = "driftX", DriftY = "driftY",
         Aiming = "aiming", Held = "held", FireAt = "fireAt",
         BlinkTo = "blinkTo", BlinkAt = "blinkAt", BlinkedAt = "blinkedAt", SpentTill = "spentTill", BlinkNext = "blinkNext",
-        Salvo = "salvo", SalvoTop = "salvoTop", SalvoAt = "salvoAt", Thrown = "thrown", LobAt = "lobAt";
+        Salvo = "salvo", SalvoTop = "salvoTop", SalvoAt = "salvoAt", Thrown = "thrown", LobAt = "lobAt", ThrowAt = "throwAt";
 
     /// <summary>Its shells' marks, by shell: a cell plus one.</summary>
     internal static readonly string[] Marks = [.. Enumerable.Range(0, 16).Select(i => "mark" + i)];
@@ -59,7 +59,8 @@ internal sealed class HuntDrive : DriveRule
     internal static bool Leaving(Creature c) => c.Recall(FlyerBody.Through) == 1;
 
     /// <summary>Whether <paramref name="c"/> is gathering for a blink, spent after one, or in a salvo: off its path.</summary>
-    internal static bool Busy(CreaturesModule m, Creature c) => c.Recall(BlinkTo) != 0 || c.Recall(Salvo) != 0 || m.Clock < c.Recall(SpentTill);
+    internal static bool Busy(CreaturesModule m, Creature c) =>
+        c.Recall(BlinkTo) != 0 || c.Recall(Salvo) != 0 || c.Recall(ThrowAt) != 0 || m.Clock < c.Recall(SpentTill);
 
     /// <summary>
     /// When <paramref name="c"/> wants a path searched: the clock it is due at, free of any move, busy with nothing else and on the
@@ -93,6 +94,11 @@ internal sealed class HuntDrive : DriveRule
         if (c.Recall(Salvo) != 0)
         {
             Salvoing(m, c, spec, hunt, at);
+            return true;
+        }
+        if (c.Recall(ThrowAt) != 0)
+        {
+            Throwing(m, c, spec, hunt, at);
             return true;
         }
         if (m.Clock < c.Recall(SpentTill))
@@ -160,32 +166,42 @@ internal sealed class HuntDrive : DriveRule
     /// <summary>
     /// Its quarry shut in a room where things float (catcher-standoff): from <c>Lob.Standoff</c> cells off the hull it meets on the line
     /// to its quarry, give or take <see cref="StandoffSlack"/>, it holds and throws its charge, the throw seen; nearer, it backs off along
-    /// that line, throwing from where it can back off no more. Farther, or no hull on the line, false: it comes on.
+    /// that line, throwing once at rest where it can back off no more; braking where it would run on past the band (catcher-motion).
+    /// Farther, or no hull on the line, false: it comes on.
     /// </summary>
     private static bool StandOff(CreaturesModule m, Creature c, Spec.Species spec, Spec.Hunt hunt, (int X, int Y) at)
     {
         int x = c.X, y = c.Y - spec.Body.Height * Unit / 2;
         if (m.FirstSolid(x, y, m.Middle(at.X), m.Middle(at.Y)) is not int hull) return false;
         int dx = m.Middle(hull % m.GridWidth) - x, dy = m.Middle(hull / m.GridWidth) - y;
-        int off = Math.Max(Math.Abs(dx), Math.Abs(dy)) / Unit;
-        if (off > hunt.Lob.Standoff + StandoffSlack) return false;
-        if (off < hunt.Lob.Standoff - StandoffSlack)
+        int off = Math.Max(Math.Abs(dx), Math.Abs(dy)) / Unit, speed = Math.Max(Math.Abs(c.VX), Math.Abs(c.VY));
+        // What it runs on slowing to none at its Accel, v² / 2a, so it comes to rest in the band rather than past it.
+        int brake = (int)((long)speed * speed / (2L * hunt.Accel) / Unit);
+        if (off > hunt.Lob.Standoff + StandoffSlack + brake) return false;
+        if (off + brake < hunt.Lob.Standoff - StandoffSlack)
         {
-            var (vx, vy) = Toward(-dx, -dy, hunt.Speed);
-            if (m.Clear(spec.Body, c.X, c.Y, c.X + vx, c.Y + vy))
+            var away = Toward(-dx, -dy, hunt.Speed);
+            if (m.Clear(spec.Body, c.X, c.Y, c.X + away.Item1, c.Y + away.Item2))
             {
-                (c.VX, c.VY) = (vx, vy);
+                Steer(c, hunt, away);
                 return true;
             }
         }
-        Hold(c);
-        LobAtShelter(m, c, spec, hunt, at);
+        Steer(c, hunt, (0, 0));
+        if (Math.Abs(off - hunt.Lob.Standoff) <= StandoffSlack || speed == 0) LobAtShelter(m, c, spec, hunt, at);
         return true;
     }
 
-    /// <summary>Its way straight at its quarry, its middle on the middle of its quarry's cell (<see cref="Toward"/>). The body stops each axis at what it meets, so it slides along a hull.</summary>
+    /// <summary>Its way straight at its quarry, its middle on the middle of its quarry's cell (<see cref="Toward"/>), steered to (<see cref="Steer"/>). The body stops each axis at what it meets, so it slides along a hull.</summary>
     private static void FlyAt(Creature c, Spec.Species spec, Spec.Hunt hunt, (int X, int Y) at, CreaturesModule m) =>
-        (c.VX, c.VY) = Toward(m.Middle(at.X) - c.X, m.Middle(at.Y) + spec.Body.Height * Unit / 2 - c.Y, hunt.Speed);
+        Steer(c, hunt, Toward(m.Middle(at.X) - c.X, m.Middle(at.Y) + spec.Body.Height * Unit / 2 - c.Y, hunt.Speed));
+
+    /// <summary>
+    /// Its velocity turned toward <paramref name="want"/> by at most <c>Accel</c> on each axis where things float (catcher-motion): it
+    /// swings wide on a turn and overshoots, never snapping onto its quarry.
+    /// </summary>
+    private static void Steer(Creature c, Spec.Hunt hunt, (int X, int Y) want) =>
+        (c.VX, c.VY) = (c.VX + Math.Clamp(want.X - c.VX, -hunt.Accel, hunt.Accel), c.VY + Math.Clamp(want.Y - c.VY, -hunt.Accel, hunt.Accel));
 
     /// <summary>A velocity along (<paramref name="dx"/>, <paramref name="dy"/>): <paramref name="speed"/> on the longer axis, the other its share, rounded toward none; never past the end.</summary>
     private static (int, int) Toward(int dx, int dy, int speed)
@@ -413,11 +429,34 @@ internal sealed class HuntDrive : DriveRule
     /// <summary>Its lob at a shelter, every <c>Every</c> ticks: from its middle at the solid cell nearest its quarry on the straight line between them.</summary>
     private static void LobAtShelter(CreaturesModule m, Creature c, Spec.Species spec, Spec.Hunt hunt, (int X, int Y) at)
     {
-        if (m.Clock < c.Recall(LobAt)) return;
-        int x = c.X, y = c.Y - spec.Body.Height * Unit / 2;
-        if (m.FirstSolid(m.Middle(at.X), m.Middle(at.Y), x, y) is not int wall) return;
+        if (m.Clock < c.Recall(LobAt) || ShelterOf(m, c, spec, at) == null) return;
         c.Keep(LobAt, m.Clock + hunt.Lob.Every);
-        m.Lob(c, hunt.Lob.Projectile, x, y, m.Middle(wall % m.GridWidth), m.Middle(wall / m.GridWidth), hunt.Lob.Flight);
+        c.Keep(ThrowAt, m.Clock + hunt.Lob.Tell);
+        StandStill(m, c, hunt);
+    }
+
+    /// <summary>
+    /// The charge in its hand (catcher-motion): still <c>Lob.Tell</c> ticks, then thrown from its middle at the shelter as it stands
+    /// then; none left to throw at, it is kept.
+    /// </summary>
+    private static void Throwing(CreaturesModule m, Creature c, Spec.Species spec, Spec.Hunt hunt, (int X, int Y) at)
+    {
+        StandStill(m, c, hunt);
+        if (m.Clock < c.Recall(ThrowAt)) return;
+        c.Keep(ThrowAt, 0);
+        if (ShelterOf(m, c, spec, at) is not int wall) return;
+        m.Lob(c, hunt.Lob.Projectile, c.X, c.Y - spec.Body.Height * Unit / 2, m.Middle(wall % m.GridWidth), m.Middle(wall / m.GridWidth), hunt.Lob.Flight);
+    }
+
+    /// <summary>The solid cell nearest its quarry on the straight line from its middle to it: what its charge is thrown at; null for none.</summary>
+    private static int? ShelterOf(CreaturesModule m, Creature c, Spec.Species spec, (int X, int Y) at) =>
+        m.FirstSolid(m.Middle(at.X), m.Middle(at.Y), c.X, c.Y - spec.Body.Height * Unit / 2);
+
+    /// <summary>Held still: at once on ground, slowing at its <c>Accel</c> where things float.</summary>
+    private static void StandStill(CreaturesModule m, Creature c, Spec.Hunt hunt)
+    {
+        if (m.Rules.Floats) Steer(c, hunt, (0, 0));
+        else Hold(c);
     }
 
     /// <summary>
@@ -588,6 +627,7 @@ internal sealed class HuntDrive : DriveRule
         Stop(c);
         c.Keep(BlinkTo, 0);
         c.Keep(Salvo, 0);
+        c.Keep(ThrowAt, 0);
         c.Keep(Aiming, 0);
         c.Keep(FlyerBody.Through, 1);
         c.Target = Ref.None;

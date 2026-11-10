@@ -848,13 +848,39 @@ public class CatchersTests
         int far = Column(c) - 100, ticks = 0;
         for (; ticks < 400 && c.Act == null; ticks++)
         {
+            int vx = c.VX, vy = c.VY;
             w.Run();
             Assert.False(m.Overlaps(Catcher.Body, c.X, c.Y));
+            if (c.Act == null) Assert.True(Math.Abs(c.VX - vx) <= Hunt.Accel && Math.Abs(c.VY - vy) <= Hunt.Accel, $"{vx},{vy} to {c.VX},{c.VY}");
         }
-        // No path nor blink: straight at it a cell a tick, and its pounce from its strike's reach.
+        // No path nor blink: straight at it, up to a cell a tick from rest at its Accel, and its pounce from its strike's reach.
         Assert.NotNull(c.Act);
         Assert.Equal(0, m.FightOf(c).Blinked);
-        Assert.InRange(ticks, far - Hunt.Strike - Catcher.Body.Width, far - Hunt.Strike + Catcher.Body.Width);
+        int spinUp = Hunt.Speed / Hunt.Accel / 2;
+        Assert.InRange(ticks, far - Hunt.Strike + spinUp - Catcher.Body.Width, far - Hunt.Strike + spinUp + Catcher.Body.Width);
+    }
+
+    /// <summary>A playtest (2026-11-10): it snapped onto its hero each tick, no life in it. Its hero darting behind it, it swings round.</summary>
+    [Fact]
+    public void InSpaceItsHeroDartingBehindItItOvershootsAndSwingsRound()
+    {
+        var w = Afloat(Space(), 100, SH / 2);
+        Full(w);
+        w.Run(Tune.Beat + 1);
+        var c = CatcherOf(w, 0)!;
+        while (c.VX > -Hunt.Speed) w.Run();
+        int at = Column(c);
+        w.Do(new Enter(At(at + 60, SH / 2 - 20))).Run();
+        int ticks = 1, farthest = Column(c);
+        for (; ticks < 100 && c.VX < 0; ticks++)
+        {
+            w.Run();
+            farthest = Math.Min(farthest, Column(c));
+        }
+        // From a cell a tick one way to none takes Speed / Accel ticks, half a cell a tick on average: it runs on past where it turned.
+        Assert.InRange(ticks, Hunt.Speed / Hunt.Accel, Hunt.Speed / Hunt.Accel + 1);
+        Assert.True(at - farthest >= Hunt.Speed / Hunt.Accel / 2 - 1, $"ran on {at - farthest} cells");
+        Assert.Equal(0, w.M.Creatures.FightOf(c).Blinked);
     }
 
     [Fact]
@@ -886,14 +912,17 @@ public class CatchersTests
         w.Run(Tune.Beat + 1);
         var c = CatcherOf(w, 0)!;
         if (pressed) (c.X, c.Y) = (w.M.Creatures.Middle(hull + 1 + Catcher.Body.Width / 2), (y + 3) * Unit);
-        int? from = null;
+        int? from = null, held = null, thrown = null;
         for (int t = 0; t < 1200 && w.M.Rooms.RoomAt(At(x, y)) >= 0; t++)
         {
             w.Run();
-            if (from == null && w.M.Creatures.Shots.Any(s => s.Projectile == Hunt.Lob.Projectile)) from = Column(c) - hull;
+            held ??= w.M.Creatures.FightOf(c).ThrowLeft > 0 ? t : null;
+            if (from == null && w.M.Creatures.Shots.Any(s => s.Projectile == Hunt.Lob.Projectile)) (from, thrown) = (Column(c) - hull, t);
         }
         Assert.NotNull(from);
         Assert.InRange(from!.Value, Hunt.Lob.Standoff - 3, Hunt.Lob.Standoff + 3);
+        // The charge held in its hand its tell first (catcher-motion), shown to the client.
+        Assert.Equal(Hunt.Lob.Tell, thrown - held);
         Assert.Equal(0, w.M.Creatures.FightOf(c).Blinked);
         Assert.Equal(Stillwake.Sim.Rooms.RoomsModule.Space, w.M.Rooms.RoomAt(At(x, y)));
     }
