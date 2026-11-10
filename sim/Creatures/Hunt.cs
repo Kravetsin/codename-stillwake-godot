@@ -66,7 +66,7 @@ internal sealed class HuntDrive : DriveRule
     /// ground or on its way; null for one that wants none now.
     /// </summary>
     internal static int? DueAt(CreaturesModule m, Creature c) =>
-        QuarryOf(c) == null || Leaving(c) || c.Act != null || Busy(m, c) || c.Recall(PlanAt) > m.Clock
+        m.Rules.Floats || QuarryOf(c) == null || Leaving(c) || c.Act != null || Busy(m, c) || c.Recall(PlanAt) > m.Clock
         || c.Path is not { Count: > 0 } && !Landed(m, c, Spec.Get(c.Species).Body) ? null : c.Recall(PlanAt);
 
     internal override bool Run(CreaturesModule m, Creature c, Spec.Species spec, Spec.Drive d)
@@ -115,6 +115,11 @@ internal sealed class HuntDrive : DriveRule
         var f = (Spec.Flyer)spec.Body;
         Sample(m, c, hunt, at);
         bool lags = Lags(m, c, hunt, far);
+        if (m.Rules.Floats)
+        {
+            Afloat(m, c, spec, hunt, f, at, lags);
+            return true;
+        }
         if (SalvoDue(m, c, spec, hunt, far))
         {
             StartSalvo(m, c, hunt);
@@ -133,6 +138,36 @@ internal sealed class HuntDrive : DriveRule
         if (m.Searcher == c.Id) Plan(m, c, spec, f, at);
         Follow(m, c, spec, f);
         return true;
+    }
+
+    /// <summary>
+    /// Its hunt where things float (catchers-space): no path, no salvo. Its quarry shut in a room, it is short and lobs its charge at
+    /// what stands between them; lagging, it blinks ahead or near in open space; else it flies straight at its quarry, sliding along
+    /// what it meets.
+    /// </summary>
+    private static void Afloat(CreaturesModule m, Creature c, Spec.Species spec, Spec.Hunt hunt, Spec.Flyer f, (int X, int Y) at, bool lags)
+    {
+        bool shut = m.InRoom(m.CellOf(at));
+        c.Keep(Short, shut ? 1 : 0);
+        if (shut) LobAtShelter(m, c, spec, hunt, at);
+        else if (lags && m.Clock >= c.Recall(BlinkNext) && StartBlink(m, c, hunt, f, at)) return;
+        FlyAt(c, spec, hunt, at, m);
+    }
+
+    /// <summary>
+    /// Its way straight at its quarry, its middle on the middle of its quarry's cell: at <c>Speed</c> on the longer axis, the other
+    /// its share, rounded toward none; never past it. The body stops each axis at what it meets, so it slides along a hull.
+    /// </summary>
+    private static void FlyAt(Creature c, Spec.Species spec, Spec.Hunt hunt, (int X, int Y) at, CreaturesModule m)
+    {
+        int dx = m.Middle(at.X) - c.X, dy = m.Middle(at.Y) + spec.Body.Height * Unit / 2 - c.Y;
+        int longer = Math.Max(Math.Abs(dx), Math.Abs(dy));
+        if (longer <= hunt.Speed)
+        {
+            (c.VX, c.VY) = (dx, dy);
+            return;
+        }
+        (c.VX, c.VY) = ((int)((long)dx * hunt.Speed / longer), (int)((long)dy * hunt.Speed / longer));
     }
 
     /// <summary>Every <c>Sample</c> ticks, how far its quarry went since the last sample, and where it is now.</summary>
@@ -226,9 +261,13 @@ internal sealed class HuntDrive : DriveRule
         var b = hunt.Blink;
         int driftX = c.Recall(DriftX), driftY = c.Recall(DriftY);
         int lead = driftX != 0 ? driftX * b.Gather / hunt.Sample + Math.Sign(driftX) * b.Ahead : Math.Sign(Down(c.X, Unit) - at.X) * hunt.Strike / 2;
-        int x = at.X + Math.Clamp(lead, -b.LeadMost, b.LeadMost);
-        return Footing(m, f, x, at.Y + Math.Clamp(driftY * b.Gather / hunt.Sample, -b.LeadMost, b.LeadMost) + f.Height / 2);
+        int x = at.X + Math.Clamp(lead, -b.LeadMost, b.LeadMost), y = at.Y + Math.Clamp(driftY * b.Gather / hunt.Sample, -b.LeadMost, b.LeadMost) + f.Height / 2;
+        return m.Rules.Floats ? Open(m, f, x, y) : Footing(m, f, x, y);
     }
+
+    /// <summary>Where things float, (<paramref name="x"/>, <paramref name="y"/>) as a cell if a body of <paramref name="f"/> standing there lies wholly in open space; else none.</summary>
+    private static int? Open(CreaturesModule m, Spec.Flyer f, int x, int y) =>
+        x >= 0 && x < m.GridWidth && y >= 0 && y < m.GridHeight && m.InSpace(f, m.Middle(x), (y + 1) * Unit) ? y * m.GridWidth + x : null;
 
     /// <summary>
     /// Where a body of <paramref name="f"/> stands nearest (<paramref name="x"/>, <paramref name="y"/>), as a cell: risen out of the
@@ -266,7 +305,8 @@ internal sealed class HuntDrive : DriveRule
                     if (Math.Max(Math.Abs(dx), Math.Abs(dy)) != d) continue;
                     int x = at.X + dx, y = feet + dy, bottom = (y + 1) * Unit;
                     if (x < 0 || y < 0 || x >= m.GridWidth || y >= m.GridHeight) continue;
-                    if (m.Overlaps(f, m.Middle(x), bottom) || !m.Grounded(f, x, y) || !m.Sees(m.Middle(x), bottom - f.Height * Unit / 2, at)) continue;
+                    bool stands = m.Rules.Floats ? m.InSpace(f, m.Middle(x), bottom) : !m.Overlaps(f, m.Middle(x), bottom) && m.Grounded(f, x, y);
+                    if (!stands || !m.Sees(m.Middle(x), bottom - f.Height * Unit / 2, at)) continue;
                     return y * m.GridWidth + x;
                 }
         return null;

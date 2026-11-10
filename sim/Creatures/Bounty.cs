@@ -4,7 +4,7 @@ using Spec = Stillwake.Content.Creatures;
 namespace Stillwake.Sim.Creatures;
 
 /// <summary>
-/// The bounty (tracker-catchers): on the beat, a catcher for each hunted hero on a planet with none here, out of every hero's view; gone
+/// The bounty (tracker-catchers, catchers-space): on the beat, a catcher for each hunted hero with none here, out of every hero's view; gone
 /// once it has left. Plain code until the raid needs a shared spawn rule (creatures-are-composed).
 /// </summary>
 public sealed partial class CreaturesModule
@@ -12,7 +12,6 @@ public sealed partial class CreaturesModule
     /// <summary>Whether some hero here is hunted: then the creatures run on a surface with no life, for its catcher.</summary>
     private bool AnyHunted()
     {
-        if (Rules.Floats) return false;
         foreach (var hero in _crew.Heroes)
             if (_crew.Hunted(hero.Id)) return true;
         return false;
@@ -24,11 +23,11 @@ public sealed partial class CreaturesModule
     /// <summary>
     /// Per hero in id order, hunted, awake, on the grid, with no catcher here, under the cap: two draws, the side and how many
     /// columns out (<c>Creatures.RingFrom</c> to <c>RingTo</c>), then the place nearest the hero's row in that column where a catcher
-    /// fits unseen; none there, the other side's; none either side, it waits for a later beat. Never where nothing has gravity.
+    /// fits unseen, where things float wholly in open space (catchers-space); none there, the other side's; none either side, it waits for a
+    /// later beat.
     /// </summary>
     private void Bounty()
     {
-        if (Rules.Floats) return;
         var spec = Bounties;
         foreach (var hero in _crew.Heroes)
         {
@@ -58,7 +57,7 @@ public sealed partial class CreaturesModule
             {
                 if (row < height - 1 || row >= _grid.Height || d == 0 && row != at.Y) continue;
                 var (x, y) = Standing(spec, left, row);
-                if (!Overlaps(spec.Body, x, y) && !Seen(left, row - height + 1, spec)) return (x, y);
+                if (!Overlaps(spec.Body, x, y) && !Seen(left, row - height + 1, spec) && (!Rules.Floats || InSpace(spec.Body, x, y))) return (x, y);
             }
         return null;
     }

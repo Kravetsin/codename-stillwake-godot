@@ -1,6 +1,6 @@
 # Plan: Catchers in space, and a silent bracelet
 
-Status: designed and agreed with the user (2026-11-10); step 1 built as [catcher-loot](../decisions/2026-11-10-catcher-loot.md), which wins where they differ. Slice 2 of [catchers](catchers.md), less its kits. The
+Status: designed and agreed with the user (2026-11-10); step 1 built as [catcher-loot](../decisions/2026-11-10-catcher-loot.md), which wins where they differ; step 2 built. Slice 2 of [catchers](catchers.md), less its kits. The
 planet fight is [catcher-combat](../decisions/2026-11-09-catcher-combat.md); the meter is
 [tracker-catchers](../decisions/2026-11-09-tracker-catchers.md).
 
@@ -102,8 +102,8 @@ id order. A joiner gets the meter, `Coming` and the shots in the save. New saved
 ## Steps
 
 1. Done (catcher-loot): `Loot` and its callers, `Coming`, the `Signal` change, the alarm; `TrackerBlink` kept for the urgent blink.
-2. Space opens: `Loot` fills where things float, the belt's drain; a test that taking apart fills nothing (only the ship has
-   `Deconstruct`). Creatures: the bounty and the flight in space, the space blink, short → charge.
+2. Done: space opens: `Loot` fills where things float, the belt's drain; a test that taking apart fills nothing (only the ship has
+   `Deconstruct`). Creatures: the bounty and the flight in space, the space blink, short → charge; `--catcher` alone aboard.
 3. The laser meeting and damaging wrecks.
 4. The missile: `Homing`, `Heading`, the beat, the burst.
 5. Pick pages (missile, tell, lock tone, alarm, laser on a wreck), then the client; ADR, READMEs, glossary; a dev room in space.

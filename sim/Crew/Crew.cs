@@ -121,7 +121,7 @@ public interface ICrewOps
 
     /// <summary>
     /// Hero <paramref name="peer"/> broke or killed what gave <paramref name="yield"/> (catcher-loot): its wanted meter fills by its worth,
-    /// up to its need, the alarm drawn as it fills; nothing in creative mode, where things float, nor for a hero out or none.
+    /// up to its need, the alarm drawn as it fills; nothing in creative mode, nor for a hero out or none.
     /// </summary>
     void Loot(int peer, IReadOnlyList<(string Item, int Count)> yield);
 
@@ -233,6 +233,7 @@ public sealed partial class CrewModule : Module<CrewState>, ICrewQueries, ICrewO
                 Thrusts(hero);
                 // The alarm runs out whatever the hero does, creative or not.
                 if (breath && hero.Coming > 0) hero.Coming -= 1;
+                if (breath) Drain(hero);
                 if (_items.Creative(hero.Id))
                 {
                     // A creative peer's air is endless, and its hero takes no room's air.
@@ -483,11 +484,28 @@ public sealed partial class CrewModule : Module<CrewState>, ICrewQueries, ICrewO
 
     public void Loot(int peer, IReadOnlyList<(string Item, int Count)> yield)
     {
-        // Space waits for its catchers (catchers-space): till then nothing fills there, so no hunt is left with none to come.
-        if (Rules.Floats || HeroOf(peer) is not { Out: 0 } hero || _items.Creative(peer)) return;
+        if (HeroOf(peer) is not { Out: 0 } hero || _items.Creative(peer)) return;
         long worth = 0;
         foreach (var (item, count) in yield) worth += (long)Content.Market.WorthOf(item) * count;
         if (worth > 0) Fill(hero, worth);
+    }
+
+    /// <summary>
+    /// A breath of <paramref name="hero"/> in the starting belt (catchers-space), where things float: its meter, not full, loses
+    /// <c>Wanted.Drain</c>, never below none. Out of the belt, or full with its catcher coming, nothing.
+    /// </summary>
+    private void Drain(Hero hero)
+    {
+        if (!Rules.Floats || hero.Wanted == 0 || hero.Wanted >= hero.Need || !InBelt(hero.Cell)) return;
+        hero.Wanted = Math.Max(0, hero.Wanted - Content.Wanted.Drain);
+    }
+
+    /// <summary>Whether <paramref name="cell"/> lies in <c>Wanted.Belt</c> round the middle of the grid.</summary>
+    private bool InBelt(int cell)
+    {
+        int width = _grid.Width, height = _grid.Height;
+        if (cell < 0 || cell >= width * height) return false;
+        return Math.Abs(cell % width - width / 2) <= Content.Wanted.Belt.X && Math.Abs(cell / width - height / 2) <= Content.Wanted.Belt.Y;
     }
 
     /// <summary>Fills <paramref name="hero"/>'s meter by <paramref name="worth"/>, never past its need, drawn first; filled now, its alarm drawn.</summary>
