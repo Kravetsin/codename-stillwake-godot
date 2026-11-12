@@ -73,7 +73,10 @@ A living document: what is decided about the game and what is still open. Techni
   keeps the cold out; the basic ones free at the pod, more to come ([suits-are-worn](decisions/2026-10-27-suits-are-worn.md)). The heavy
   helmet holds 100 to the basic 45, sold on the black market by the jetpack's time ([heavy-helmet](decisions/2026-11-03-the-heavy-helmet.md)).
   A canister breathed gives 20, then not another for 25 s; more air a canister is food's, not gear's
-  ([food-and-the-body](decisions/2026-11-12-food-and-the-body.md)).
+  ([food-and-the-body](decisions/2026-11-12-food-and-the-body.md)). A hero has three meal slots: each food lasts
+  minutes and changes the body's rates (calm: a breath costs less; deep: a canister gives more); the pod prints a
+  hero fed with paste, and with all three empty it is hungry and running costs more air. Rations and canned meat are
+  found in supply pods.
   The regen suit, a body sold there with the belt's third slot, turns belt charge into air while its mode is on (V): a
   unit a breath at most, so it holds the air at rest and only slows its fall in flight ([regen-suit](decisions/2026-11-03-the-regen-suit.md)).
 - **Parts are made by machines only,** as in Subnautica and RimWorld: wire of scrap; plates, gears and

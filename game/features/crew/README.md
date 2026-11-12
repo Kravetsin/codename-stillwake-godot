@@ -6,14 +6,14 @@ This hero and others', client-authoritative (0002): only commands reach the sim.
 
 | File | Holds |
 | --- | --- |
-| `logic/Hero.cs` | `Hero`, `Step` (0047, 0106) |
-| `logic/Rig.cs` | joints, limbs, the fist (0040) |
-| `logic/Pose.cs` | poses, head, air's blend (0090) |
-| `logic/Motion.cs` | lean and landing (0090) |
+| `logic/Hero.cs` | `Hero`, `Step` |
+| `logic/Rig.cs` | joints, limbs, the fist |
+| `logic/Pose.cs` | poses, head, air's blend |
+| `logic/Motion.cs` | lean and landing |
 | `logic/Splashes.cs` | water heard |
 | `logic/LookTint.cs` | skin, hair tints |
 | `logic/Aim.cs` | reach, aim, what hands send |
-| `logic/AxeSwing.cs` | a stroke's clock (0038-0040) |
+| `logic/AxeSwing.cs` | a stroke's clock |
 | `logic/Strokes.cs` | each tool's stroke |
 | `logic/MotionPlay.cs` | its motion |
 | `ReachAir.cs` | a grinder's haze |
@@ -24,15 +24,15 @@ This hero and others', client-authoritative (0002): only commands reach the sim.
 | `logic/BodyPlay.cs` | its answers |
 | `logic/HaftGrip.cs` | far hand |
 | `logic/ArmUp.cs` | when an aim is up |
-| `logic/HarpoonShot.cs` | harpoon, grapple (0044) |
+| `logic/HarpoonShot.cs` | harpoon, grapple |
 | `logic/HarpoonLine.cs` | its line |
 | `logic/Prompt.cs` | what E does |
 | `logic/Seating.cs` | seats; hands tied |
-| `logic/FogMove.cs` | across fog (fog-edges) |
+| `logic/FogMove.cs` | across fog |
 | `SeatedHeroes.cs` | behind the porthole |
 | `UsePrompt.cs` | that prompt shown |
 | `logic/Tether.cs` | the tether |
-| `logic/DrillPace.cs` | when the drill hits (0054) |
+| `logic/DrillPace.cs` | when the drill hits |
 | `logic/RunSounds.cs` | tools heard |
 | `logic/ToolEdge.cs` | the cutter's beam |
 | `logic/ToolRays.cs` | what a tool hits |
@@ -42,13 +42,13 @@ This hero and others', client-authoritative (0002): only commands reach the sim.
 | `logic/CutterJet.cs` | the cutter's jet |
 | `logic/Motor.cs` | `Run` till the sim agrees |
 | `logic/Remote.cs` | heroes sent and kept |
-| `logic/RemoteRod.cs` | another's harpoon rod (0065) |
+| `logic/RemoteRod.cs` | another's harpoon rod |
 | `logic/RodFlourish.cs` | when its lights play |
 | `logic/Suits.cs` | suit colours, what is worn |
 | `logic/SuitGlow.cs` | a body's lights |
 | `logic/TrackerBlink.cs` | the tracker's blink |
 | `SuitKeys.cs` | V on the tablet's edge |
-| `Figure.cs` | the rig, lit, dressed (0075, 0090) |
+| `Figure.cs` | the rig, lit, dressed |
 | `logic/Cape.cs` | a worn cape's cloth |
 | `logic/Spring.cs` | a held arm's swing |
 | `CapeView.cs` | it drawn, lined |
@@ -65,13 +65,15 @@ This hero and others', client-authoritative (0002): only commands reach the sim.
 | `ModeGlyph.cs` | the driver's mode mark |
 | `logic/DriverMode.cs` | its dots |
 | `HeroAutopilot.cs` | scripted runs |
-| `logic/Report.cs` | Enter reports (0050) |
-| `Frost.cs` | frost past the field (0050) |
+| `logic/Report.cs` | Enter reports |
+| `Frost.cs` | frost past the field |
 | `logic/Danger.cs` | the gauge's read |
-| `logic/AirCues.cs` | air back (0081) |
+| `logic/AirCues.cs` | air back |
 | `logic/CanistersSeen.cs` | others' tanks |
-| `AirSwirl.cs` | fling, breath, leak (0081, 0103) |
-| `SuitGauge.cs` | the suit gauge (0081) |
+| `AirSwirl.cs` | fling, breath, leak |
+| `SuitGauge.cs` | the suit gauge |
+| `MealSlots.cs` | meals |
+| `logic/MealTips.cs` | their tips |
 | `logic/Tunnel.cs` | the last breath |
 | `TunnelView.cs` | it drawn |
 | `logic/VisorFog.cs` | a low suit's fog |
@@ -82,8 +84,8 @@ This hero and others', client-authoritative (0002): only commands reach the sim.
 | `LookEditor.cs` | the look editor |
 | `logic/Markers.cs` | markers |
 | `MarkerLayer.cs` | edge arrows |
-| `logic/Bodies.cs` | bodies (0061) |
-| `BodyView.cs` | bodies, beacons, tips (0061) |
+| `logic/Bodies.cs` | bodies |
+| `BodyView.cs` | bodies, beacons, tips |
 | `logic/Rams.cs` | rams and arcs |
 | `HunterView.cs` | catchers |
 | `CatcherFxView.cs` | its light |
@@ -113,6 +115,7 @@ This hero and others', client-authoritative (0002): only commands reach the sim.
   Shift hauls in along the tether's bends (`Wraps`); a jetpack unties, Shift thrusts, `Thrust` sent while unlike the sim's.
 - **A canister** (0047, 0081): right click or R sends `Refill`, V `SuitMode` (regen-suit) if taken. Cooling, the O₂ sign greys
   in a sweeping ring, too soon blinks red (canister-mark).
+- **Meals:** a food right-clicked sends `Eat`; its icon pulses in its last minute.
 - **The crew module:** made at `Spawn`; passed out: no orders, lies at the sim's cell, takes none (0061). `Enter` goes when the sim's room or field side
   differ, every `Crew.ReportEvery` ticks off its cell, each tick if threatened; none out (0050); a closed link's host: `Leave`.
 - **Dressed as worn**: helmet, body, hair, clothes, lamp; the colour on the shin; a switched body lit by

@@ -45,7 +45,7 @@ properties, never a tuple: the save writes no fields). Time is kept as ticks lef
 surface has its own clock, and a hero carries these across `Depart` and `Arrive`. Crew counts `CanisterIn` and every
 `Left` down each tick, for every hero, creative too, and drops a meal at 0; nothing reads an expired meal.
 
-**Rates** (`Content.Body`) in thousandths, summed over a hero's meals, then capped. A hungry hero has no meals and so no
+**Rates** (`Content.Diet`) in thousandths, summed over a hero's meals, then capped. A hungry hero has no meals and so no
 rates; the Hungry column is its base instead.
 
 | Rate | Scales | Base | Hungry | Cap of food |
@@ -133,13 +133,15 @@ Rule 4; `CanisterIn` and its countdown; death clears it. `canister1` leaves `Upg
 blinking on R while cooling; a canister on the hotbar greys too.
 
 ### A2: meals, hunger and the breath rates
-`Content.Body`, `Content.Foods`, the `ration` item and its supply-pod loot; `Meals`, `Owed`, `Eat`, paste on print;
+`Content.Diet`, `Content.Foods`, the `ration` item and its supply-pod loot; `Meals`, `Owed`, `Eat`, paste on print;
 rules 1, 2, 5, 6. Scenario heroes are pasted on entry; a test that outruns 24 000 ticks with a hero feeds it
 explicitly, and hunger is tested on purpose. Client: three slots by the air meter (icon flat, pulsing in the last
 minute, empty when hungry), eating by using a food from the hotbar or inventory, `Report.EatOf` guarding a second send
 as `Report.RefillOf` does, rates on hover, i18n En and Ru. ADR `food-and-the-body`: the shell/body rule, rates, hunger,
 cooldown, superseding the upgrade part of [the heavy helmet](../decisions/2026-11-03-the-heavy-helmet.md). Crew README,
 concept, glossary.
+As built: `Content.Diet` is named so for `Render.Body`; canned meat came in A2, in supply pods at
+`OneIn: 4` till A4 brings the fridge; the HUD slots are a stand-in (`MealSlots`) till the gauges' redesign places food.
 
 ### A3: work speed
 `Worked`, `ICrewOps.Works`, rule 3 in Building's `ApplyWork`. Building README.
