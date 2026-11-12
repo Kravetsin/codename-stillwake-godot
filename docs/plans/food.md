@@ -141,7 +141,7 @@ as `Report.RefillOf` does, rates on hover, i18n En and Ru. ADR `food-and-the-bod
 cooldown, superseding the upgrade part of [the heavy helmet](../decisions/2026-11-03-the-heavy-helmet.md). Crew README,
 concept, glossary.
 As built: `Content.Diet` is named so for `Render.Body`; canned meat came in A2, in supply pods at
-`OneIn: 4` till A4 brings the fridge; the HUD slots are a stand-in (`MealSlots`) till the gauges' redesign places food.
+`OneIn: 4` till A4 brings the fridge; the HUD slots are a stand-in (`MealSlots`) till the gauges' redesign places food ([hud-vitals](hud-vitals.md), H2).
 
 ### A3: work speed
 `Worked`, `ICrewOps.Works`, rule 3 in Building's `ApplyWork`. Building README.
