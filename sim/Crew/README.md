@@ -22,7 +22,7 @@ Heroes in the sim: where each is, as its client says, and how it breathes; passi
 
 - A hero is named by its peer, the `From` the host stamps.
 - **Air** (suits-are-worn): `Hero.Air`, below "the suit"; capacity `CapacityOf`: the worn helmet's `Tank`,
-  or `Crew.Lungs`. Each tick, first, a conscious hero's air is cut to it. Every hero made starts full.
+  or `Crew.Lungs`. Each tick, first, a conscious hero's air is cut to it.
 - **Enter and report**: `Enter(Cell)` puts the sender's hero at `Cell`, making it full (bare, empty on a peer's
   first) if none. Sent on a new room or air side, every `Crew.ReportEvery` ticks while the cells differ,
   `Crew.ReportThreatened` while threatened. Passed out, a client sends none.
@@ -47,9 +47,10 @@ Heroes in the sim: where each is, as its client says, and how it breathes; passi
 - **A canister** (food-and-the-body): `Refill` takes one (none in creative), adds `RefillOf(peer)` up to capacity,
   sets `CanisterIn` to `Crew.CanisterCooldown` ticks (not in creative), counted down.
 - **Meals** (food-and-the-body): `Hero.Meals`, up to `Diet.Meals`, ticks `Left` counted down. `Eat(Item)` adds one or,
-  in its last `Diet.RefreshWithin`, refreshes it; a print holds paste. `RatesOf` sums them to `Diet.Caps`: calm cuts a breath, deep adds to a canister. A breath's thousandths go to `Owed`, whole
-  units paid; hungry (no meal, not creative), a sprint costs `Diet.HungrySprint`. `Works` (a `Work`,
-  Building) adds `Diet.Work` and food's, hungry `Diet.HungryWork`, to `Worked`, returning whole ticks.
+  in its last `Diet.RefreshWithin`, refreshes it; a print holds paste. A fruit eaten rolls its `Byproducts` (its seed),
+  given or dropped. `RatesOf` sums meals to `Diet.Caps`: calm cuts a breath, deep adds to a canister. A breath's thousandths
+  go to `Owed`, whole units paid; hungry, a sprint costs `Diet.HungrySprint`. `Works` (Building's `Work`) adds
+  `Diet.Work` and food's, hungry `Diet.HungryWork`, to `Worked`, returning whole ticks.
 - **The last breath** (the-last-breath): air run dry starts `Hero.Gasp` at `Crew.LastBreath`, counted
   down; air back (the regen suit's too) ends it. Lava, shocks and blows past the air cut
   `Crew.LastBreathPerUnit` a unit; cold, running, thrust nothing.
@@ -78,7 +79,7 @@ Heroes in the sim: where each is, as its client says, and how it breathes; passi
 
 - **Queries** (`ICrewQueries`): `Spawn`; `ByPod(cell)`; `EdgeCost(cell)`; `CapacityOf(peer)`; `RefillOf`, `RatesOf`, `Hungry(peer)`; `Cold`, `Warmth` (frost);
   `SuitOn`, `SuitModeProblem`; `SignalOf(peer)`, `Hunted(peer)`;
-  `HeroOf(id)` — `Hero` or null; `Heroes` — live, read-only, in id order. On the
+  `HeroOf(id)` or null; `Heroes`, live, in id order. On the
   module: `Burns(cell)`, `RefillProblem(peer)`, `EatProblem(peer, food)`: the client sends nothing they refuse.
 - **Commands:** `Enter(Cell)`, `ChooseLook(Look)`, never refused; `PickColour(Colour)` —
   `crew.noHero`, `crew.noSuchColour`, `crew.colourTaken`; `Leave`, `Exert(On)` — `crew.noHero`; `Thrust(On)` —

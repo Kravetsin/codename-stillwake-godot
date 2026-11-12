@@ -29,6 +29,9 @@ with it. The plan is [food](../plans/food.md).
 - **The first foods' pictures** (food-icons, each picked from four on a page): the ration a pressed bar in waxed paper
   torn back off its end, with a rust band and an ink stamp; canned meat a tall tin with an oxblood label and a cream band,
   rust at its foot; the pod paste a crimped squeeze tube with the pod's teal band, paste curling from its nozzle.
+- **The farm's crops' pictures** (picked on a page, step B1): fruit a ribbed gourd, olive going ochre, on a dry woody
+  stalk with a curled tendril (fruit_B); the glowberry a cluster of small dusky berries, their light showing through,
+  brightest at each heart (glowberry_A).
 
 ## Consequences
 

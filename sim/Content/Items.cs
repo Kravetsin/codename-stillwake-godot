@@ -15,13 +15,10 @@ namespace Stillwake.Content;
 /// electric smelter), "crush" (the crusher), "grow" (a grow capsule) or "ferment" (the fermenter). At a station of another
 /// process it sits in the input, never worked.
 /// </param>
-/// <param name="Returns">
-/// Weights of how many of itself one gives back besides its yields when worked, entry n the weight of n: a crop's
-/// seeds. Drawn from the world's Rng as the work completes; its outputs must take the most. None for anything else.
-/// </param>
 /// <param name="Byproducts">
 /// What one gives besides its yields only by chance, each entry a loot roll (<see cref="LootEntry"/>, its <c>OneIn</c> the
-/// chance): ore's quartz. Drawn after <paramref name="Returns"/> as the work completes; its outputs must take every entry's most.
+/// chance): ore's quartz, a fruit's seed. Drawn from the world's Rng as the work completes, and as a raw food is eaten; its
+/// outputs must take every entry's most.
 /// </param>
 /// <param name="SmeltTakes">How many of it one smelt works, all taken as it completes: a fed station waits for them in its input.</param>
 /// <param name="BurnTicks">Ticks a fire, a furnace's or a burner generator's, burns on one: a fuel.</param>
@@ -50,7 +47,6 @@ public sealed record ItemSpec(
     int? SmeltTicks = null,
     int Heat = 1,
     string Process = "smelt",
-    IReadOnlyList<int>? Returns = null,
     IReadOnlyList<LootEntry>? Byproducts = null,
     int SmeltTakes = 1,
     int? BurnTicks = null,
@@ -116,9 +112,9 @@ public static class Items
         new(Water.Item, 5),
         // Broken off the deep's crystals and out of geodes: for sensors and machine modules to come.
         new("crystal", 100),
-        // Off the violet glowcaps: the farm's second crop, grown as a seed is into less biomass but giving back 1.1 spores on
-        // average, so a farm of them keeps itself where seeds slowly run out (0060). Had only on a planet.
-        new("spore", 250, Yields: [("biomass", 3)], SmeltTicks: 9600, Process: "grow", Returns: [20, 50, 30]),
+        // Off the violet glowcaps: the farm's second crop, grown as a seed is into three glowberries, whose crushing gives back
+        // 1.1 spores on average, so a farm of them keeps itself where seeds slowly run out (fruit-not-biomass). Had only on a planet.
+        new("spore", 250, Yields: [("glowberry", 3)], SmeltTicks: 9600, Process: "grow"),
         // Flakes out of the glinting mica in cave walls: for sensors and the radar to come.
         new("mica", 250),
         // Lodestone, a natural magnet, out of the heat's cracks over the bedrock: a motor's magnet.
@@ -201,9 +197,12 @@ public static class Items
         new("drone", 1, Capacity: Charge.Drone, Group: ItemGroup.Other),
         // Its kin for space (salvage-drones): a battery as a drone's, and a canister's air from its bay to fly out on.
         new("salvageDrone", 1, Capacity: Charge.Drone, Group: ItemGroup.Other),
-        // The farm (0060): a seed grows in a grow capsule into biomass, giving back none, one or two seeds, 0.8 on
-        // average, so the farm slowly eats seeds and supply pods refill it. Biomass ferments into biofuel, at the fermenter only (power-chain).
-        new("seed", 100, Yields: [("biomass", 4)], SmeltTicks: 9600, Process: "grow", Returns: [35, 50, 15]),
+        // The farm (fruit-not-biomass): a seed grows in a grow capsule into four fruit, each eaten, or crushed into biomass and,
+        // one time in five, its seed: 0.8 a crop, so the farm slowly eats seeds and supply pods refill it. A glowberry gives a
+        // spore one time in 3 and another one time in 30: 1.1 a crop of three. Biomass ferments into biofuel, at the fermenter only (power-chain).
+        new("seed", 100, Yields: [("fruit", 4)], SmeltTicks: 9600, Process: "grow"),
+        new("fruit", 100, Yields: [("biomass", 1)], SmeltTicks: 40, Process: "crush", Byproducts: [new("seed", 1, 1, OneIn: 5)]),
+        new("glowberry", 100, Yields: [("biomass", 1)], SmeltTicks: 40, Process: "crush", Byproducts: [new("spore", 1, 1, OneIn: 3), new("spore", 1, 1, OneIn: 30)]),
         // Pressed at the Former of rock and planks: what a grow capsule is built on.
         new("soil", 999),
         new("biomass", 250, Yields: [("biofuel", 1)], SmeltTicks: 160, Process: "ferment"),

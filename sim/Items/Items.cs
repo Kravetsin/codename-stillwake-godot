@@ -969,13 +969,12 @@ public sealed partial class ItemsModule : Module<ItemsState>, IItemsQueries, IIt
     }
 
     /// <summary>
-    /// The most one smelt of <paramref name="spec"/> makes: its yields, the most of itself its <c>Returns</c> give back,
-    /// every byproduct at its <c>Max</c>. What a fed station's outputs must have room for before it works.
+    /// The most one smelt of <paramref name="spec"/> makes: its yields and every byproduct at its <c>Max</c>, a glowberry's two
+    /// spores both. What a fed station's outputs must have room for before it works.
     /// </summary>
     public static IReadOnlyList<(string Item, int Count)> MostMade(ItemSpec spec)
     {
         var made = new List<(string Item, int Count)>(spec.Yields ?? []);
-        if (spec.Returns is { Count: > 1 } weights) made.Add((spec.Id, weights.Count - 1));
         foreach (var by in spec.Byproducts ?? [])
             if (by.Max > 0) made.Add((by.Item, by.Max));
         return made;

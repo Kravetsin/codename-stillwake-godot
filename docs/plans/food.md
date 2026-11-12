@@ -154,6 +154,8 @@ The rest of rule 7, canned meat, the seed as a snack. Debris README.
 Rule 8: fruit and glowberry items, the capsule's yields, the crusher's byproducts, the seed draw on eating. ADR
 `fruit-not-biomass` amending [0060](../decisions/0060-the-farm-a-grow-capsule-is-a-fed-station.md). Fix the farm and
 biofuel tests that read biomass off a capsule.
+As built: eating draws any raw food's `Byproducts`, given or dropped at the hero; fruit and glowberries are hand-priced 20
+as biomass is, and unsold. "A cooked one never does" is tested with the galley in B2.
 
 ### B2: the galley and its dishes
 Rule 9 and the dish table. The galley panel is the workbench's.

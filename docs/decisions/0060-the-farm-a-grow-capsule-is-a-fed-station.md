@@ -1,7 +1,8 @@
 # 0060 — The farm: a grow capsule is a fed station
 
 - Status: accepted; amends [0057](0057-stations-one-model-for-every-crafting-machine.md) with a fed station's process;
-  "nothing else gives seeds" amended below by the soil clod, a second source (2026-10-18)
+  "nothing else gives seeds" amended below by the soil clod, a second source (2026-10-18); a crop gives fruit, its seeds
+  back from the fruit, by [fruit-not-biomass](2026-11-12-fruit-not-biomass.md)
 - Date: 2026-10-18
 - Design: "Stage 1 — wreck to radar, farm and first jump", slice 1, with the user's decisions of 2026-10-18
 

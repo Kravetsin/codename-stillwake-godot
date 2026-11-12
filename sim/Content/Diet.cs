@@ -37,7 +37,7 @@ public static class Foods
 {
     /// <summary>What the pod prints into every hero it makes: no rates, it only keeps hunger off for 20 minutes.</summary>
     public const string Paste = "podPaste";
-    public const string Ration = "ration", CannedMeat = "cannedMeat";
+    public const string Ration = "ration", CannedMeat = "cannedMeat", Fruit = "fruit", Glowberry = "glowberry";
 
     /// <summary>Every food, a first guess for the playtest (docs/plans/food.md).</summary>
     public static readonly IReadOnlyList<Food> All =
@@ -47,6 +47,9 @@ public static class Foods
         new(Ration, 18_000, new(Calm: 50, Work: 300)),
         // A fridge or a vending machine (step A4): a deeper breath, a canister 26.
         new(CannedMeat, 18_000, new(Deep: 300)),
+        // The farm's crops (fruit-not-biomass), eaten raw: each may give back its seed or spore, as crushing it does.
+        new(Fruit, 12_000, new(Work: 100)),
+        new(Glowberry, 12_000, new(Calm: 120)),
     ];
 
     private static readonly Dictionary<string, Food> ById = All.ToDictionary(f => f.Id, StringComparer.Ordinal);

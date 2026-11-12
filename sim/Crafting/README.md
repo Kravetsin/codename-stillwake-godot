@@ -70,9 +70,10 @@ smelt, crush, grow (0060), ferment (power-chain).
 - **Too cold / wrong process / too few** (0057): such an item is taken in and sits unworked, the station resting, a
   furnace never lit for it; `TooCold` and `TooFew` tell those cases.
 - **Drawn as a smelt completes** from the world `Rng`, stations by machine id
-  ([smelt-chances](../../docs/decisions/2026-10-28-smelt-chances.md)): a crop's (seed, spore) none, one or two of itself
-  by its `Returns` weights (0060), then each `Byproducts` entry as loot is rolled (`Loots.Roll`); none for an item
-  without either. It works only with room for its yields, the most of itself and each byproduct's `Max` (`MostMade`).
+  ([smelt-chances](../../docs/decisions/2026-10-28-smelt-chances.md)): each `Byproducts` entry as loot is rolled
+  (`Loots.Roll`), a fruit's seed among them; none for an item without them. A crop gives only its fruit
+  ([fruit-not-biomass](../../docs/decisions/2026-11-12-fruit-not-biomass.md)). It works only with room for its yields
+  and each byproduct's `Max` (`MostMade`).
 - **A furnace smelts while its fire burns at the tick's start** (0057): `Furnace` calls `Heat` in construction from
   the fire as the last tick left it, so it starts the tick after lighting and smelts on the tick it goes out.
 
