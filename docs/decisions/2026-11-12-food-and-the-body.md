@@ -26,6 +26,9 @@ with it. The plan is [food](../plans/food.md).
 - **The canister upgrade (`canister1`) is gone.** More air a canister comes from food (deep breath).
 - **Three food slots, hunger when all are empty.** Hunger slows building and makes sprinting dearer; it never kills or
   hurts. The pod prints a hero fed. Dishes are named, their rates set by hand; a dish beats the raw foods of its recipe.
+- **The first foods' pictures** (food-icons, each picked from four on a page): the ration a pressed bar in waxed paper
+  torn back off its end, with a rust band and an ink stamp; canned meat a tall tin with an oxblood label and a cream band,
+  rust at its foot; the pod paste a crimped squeeze tube with the pod's teal band, paste curling from its nozzle.
 
 ## Consequences
 

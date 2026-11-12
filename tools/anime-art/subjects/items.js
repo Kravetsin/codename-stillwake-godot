@@ -1015,6 +1015,61 @@ P.tankCluster = (a) => {
   a.shape(rr(.5, 13.4, 15, 1.7, .2), GUN, { lite: band(.5, 13.4, 15.5, 13.9), shade: band(.5, 14.5, 15.5, 15.1) });
   a.flat(rr(6.8, 10.4, 2.4, 1.6, .1), '#d4d4cc');
 };
+P.ration = (a) => {
+  // A bar of pressed ration in waxed paper, torn back off its end; a red-brown band and an inked stamp.
+  const PAPER = { base: '#988a64', shade: '#6a6048', deep: '#4c4636', lite: '#bcae84', spec: '#d8cca4' };
+  const BAR = { base: '#6c4a34', shade: '#4a3226', deep: '#33221c', lite: '#8c6444', spec: '#a8805a' };
+  const RUST = { base: '#8a3e30', shade: '#5e2a26', deep: '#401c1c', lite: '#a85a44' };
+  const at = (s, t) => [1.9 + s * .78 + t * .62, 12.3 - s * .62 + t * .78];
+  const q = (...st) => poly(st.flatMap(([s, t]) => at(s, t)));
+  const l = (...st) => 'M' + st.map(([s, t]) => at(s, t).map((v) => v.toFixed(2)).join(' ')).join('L');
+  a.shape(q([10.4, -1.9], [15, -1.9], [15, 1.9], [10.4, 1.9]), BAR, {
+    lite: q([10.4, -1.9], [15, -1.9], [15, -1.2], [10.4, -1.2]), shade: q([10.4, 1.1], [15, 1.1], [15, 1.9], [10.4, 1.9]), lines: [l([12.8, -1.9], [12.8, 1.9]), l([13.4, -.4], [14.2, .2])] });
+  a.shape(q([0, -2.2], [11.4, -2.2], [10.8, -1.3], [11.6, -.3], [10.9, .7], [11.5, 1.5], [11, 2.2], [0, 2.2]), PAPER, {
+    lite: q([0, -2.2], [11.4, -2.2], [11, -1.5], [0, -1.5]), shade: q([0, 1.3], [11.4, 1.3], [11.4, 2.2], [0, 2.2]),
+    lines: [l([0, -2.2], [1.5, 0], [0, 2.2]), l([6.4, -2], [6.8, 2])] });
+  a.shape(q([3, -2.2], [5.6, -2.2], [5.6, 2.2], [3, 2.2]), RUST, { outer: false, lite: q([3, -2.2], [5.6, -2.2], [5.6, -1.5], [3, -1.5]), shade: q([3, 1.3], [5.6, 1.3], [5.6, 2.2], [3, 2.2]) });
+  a.line(l([7.6, -1.1], [9.8, -1.1], [9.8, .9], [7.6, .9], [7.6, -1.1]), { c: '#3c2a24', w: 1.2 });
+  a.flat(poly(at(8.2, -.4).concat(at(9.2, -.4), at(9.2, .3), at(8.2, .3))), '#4a3428');
+  // The torn flap, lifting off the bar.
+  a.shape(q([11.4, -2.2], [12.8, -3], [12.2, -1.9], [11.1, -1.4]), PAPER, { shade: .25 });
+};
+P.cannedMeat = (a) => {
+  // A tall tin of stewed meat: an oxblood label with a cream band, the tin's beads above and below, rust at the foot.
+  const TIN = { base: '#a6acb6', shade: '#686e80', deep: '#464a5c', lite: '#d2d6dc', spec: '#f4f4f0' };
+  const LABEL = { base: '#8c3a32', shade: '#62282a', deep: '#441c20', lite: '#ac5444' };
+  const CREAM = { base: '#d0c4a6', shade: '#9a9076', deep: '#746c5a', lite: '#ece2c6' };
+  a.shape('M3.4 3.8L12.6 3.8L12.6 13.6C12.6 15.4 3.4 15.4 3.4 13.6Z', TIN, {
+    lite: band(4.4, 3.8, 6.2, 15.4), spec: band(4.9, 4.6, 5.4, 5.6), shade: band(10.6, 3.8, 12.6, 15.6), deep: 'M3.4 14.2C5 15 11 15 12.6 14.2L12.6 15.6L3.4 15.6Z',
+    lines: ['M3.4 5C5 5.9 11 5.9 12.6 5', 'M3.4 13C5 13.9 11 13.9 12.6 13'] });
+  a.shape('M3.4 6C5 7 11 7 12.6 6L12.6 12C11 13 5 13 3.4 12Z', LABEL, { outer: false, lite: band(4.4, 5.4, 6.2, 13.2), shade: band(10.6, 5.4, 12.6, 13.2) });
+  a.shape('M3.4 7.8C5 8.8 11 8.8 12.6 7.8L12.6 10.2C11 11.2 5 11.2 3.4 10.2Z', CREAM, { outer: false, lite: band(4.4, 7.4, 6.2, 11.4), shade: band(10.6, 7.4, 12.6, 11.4) });
+  a.flat(ell(7.9, 9.5, 1.7, .95), '#6c3428');
+  a.line('M6.8 9.3C7.4 8.9 8.4 8.9 9.1 9.4', { c: '#e4d6b4', w: 1.1 });
+  a.shape(ell(8, 3.8, 4.6, 1.4), TIN, { lite: ell(7.2, 3.5, 3.2, .8), shade: 'M10 3.2L12.6 3.6L12.4 4.6L10 4.8Z', lines: ['M4.6 3.9C5.6 4.6 10.4 4.6 11.4 3.9'] });
+  // Rust where water sat on the bottom rim; a crease in the label.
+  a.flat('M10.4 14.5C11.1 14.2 11.8 13.9 12.2 13.5L12.3 14.1C11.8 14.6 11.1 14.9 10.6 14.9Z', '#7a4a32');
+  a.flat(ell(11.4, 14.2, .35, .25), '#4e2c22');
+  a.line('M10.6 6.8L11.2 7.6', { w: 1 });
+};
+// Never an item: the pod paste a hero is printed with, drawn for its meal slot.
+P.podPaste = (a) => {
+  // A squeeze tube from the pod, crimped and dented where it was pressed, the pod's teal band; a ribbon of grey paste from its nozzle.
+  const TUBE = { base: '#c2c6c4', shade: '#868c92', deep: '#5e646c', lite: '#e4e6e2', spec: '#f6f6f2' };
+  const TEAL = { base: '#4b8f96', shade: '#2d606e', deep: '#20465a', lite: '#7cc0c0' };
+  const PASTE = { base: '#8e908a', shade: '#62645e', deep: '#474844', lite: '#b4b6ae', spec: '#dcdcd4' };
+  const at = (s, t) => [2.2 + s * .707 + t * .707, 13.8 - s * .707 + t * .707];
+  const q = (...st) => poly(st.flatMap(([s, t]) => at(s, t)));
+  const l = (...st) => 'M' + st.map(([s, t]) => at(s, t).map((v) => v.toFixed(2)).join(' ')).join('L');
+  a.shape(q([1.8, -3], [9.6, -2.2], [10.8, -1.2], [11.4, -.8], [11.4, .8], [10.8, 1.2], [9.6, 2.2], [1.8, 3]), TUBE, {
+    lite: q([1.8, -3], [9.6, -2.2], [10.8, -1.2], [10.4, -.8], [9.4, -1.5], [1.8, -2.1]), shade: q([1.8, 2], [9.4, 1.4], [10.8, 1.2], [9.6, 2.2], [1.8, 3]),
+    lines: [l([3.8, -1.2], [5, .2], [4.2, 1.8]), l([7.4, -1.6], [8.2, -.2])] });
+  a.shape(q([6, -2.47], [7.4, -2.33], [7.4, 2.33], [6, 2.47]), TEAL, { outer: false, lite: q([6, -2.47], [7.4, -2.33], [7.4, -1.8], [6, -1.9]) });
+  a.shape(q([-.2, -3.3], [1.9, -3.3], [1.9, 3.3], [-.2, 3.3]), TUBE, { lite: q([-.2, -3.3], [1.9, -3.3], [1.9, -2.6], [-.2, -2.6]), shade: q([-.2, 2.5], [1.9, 2.5], [1.9, 3.3], [-.2, 3.3]),
+    lines: [-2.2, -1.1, 0, 1.1, 2.2].map((t) => l([.2, t], [1.5, t])) });
+  a.shape(q([11.3, -.8], [12.8, -.8], [12.8, .8], [11.3, .8]), STEEL, { shade: q([11.3, .3], [12.8, .3], [12.8, .8], [11.3, .8]), lines: [l([12, -.8], [12, .8])] });
+  a.tube('M11.3 4.7C12.3 3.5 13.9 3.2 14.4 4.3C14.8 5.3 13.6 6 12.9 5.3', 1.3, PASTE);
+};
 // A loose picture in the art folder, no longer called by the game: the screwdriver across the square.
 P['tool_screwdriver'] = (a) => {
   a.tube('M9.4 6.6L14.6 1.4', .9, STEEL);
