@@ -139,6 +139,7 @@ public static class Items
         new("arcModule", 1, Gear: true, Group: ItemGroup.Tool),
         // Containers: caught, they open into their loot (Loot), and are never carried.
         new("supplyPod", 1, Group: ItemGroup.Other),
+        new("fridge", 1, Group: ItemGroup.Other),
         new("cargoCrate", 1, Group: ItemGroup.Other),
         // Wreckage: broken by a weapon into its loot (Wreckage), and never carried either.
         new("hullSection", 1, Group: ItemGroup.Other),

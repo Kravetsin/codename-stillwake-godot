@@ -44,10 +44,10 @@ farther ones bigger, 0050, 0056); **`asteroids`** (`HullBand`, 0054: rows above 
 - **The far field's beat** (0052): each tick, each hero on the grid in id order while fewer than `Max` are out, but
   one in a stream's box or with `PerHero` in its `Keep` box (no draw): a point on its ring (side, offset, depth), a kind
   by its tier, a speed; off the grid, in a stream's box or a view, none. `End` 0, `SeenAt` the clock.
-- **Despawn**, far pieces only (0052): seen in some hero's `Keep` box, it stays; else while within some `Hard` box and
-  seen less than `Linger` ago.
+- **Despawn**, far pieces only (0052): seen in some hero's `Keep` box, it stays; else while in a `Hard` box,
+  seen under `Linger` ago.
 - **First tick:** `Layout.DebrisAtStart` of the stream goes out (at most `Max`), spread along its way. Nothing collides (0006) but a net.
-- **`Grab(Piece)`** (0034): the sender gets the item, or a container's `Loot` by `LootOf`, the rest floating at the
+- **`Grab(Piece)`** (0034): the sender gets the item, or a container's (crate, pod, fridge) `Loot`, the rest floating at the
   hero (`GiveOrDrop`). Refused `debris.gone`, `debris.notOutside` (either not in space), `debris.tooBig` (a wreck).
 - **Wreckage** (0034, 0041, 0054, 0056): a kind with hit points in `Wreckage`; every weapon breaks every kind.
   `HewWrecks(Tool, X, Y, Heading)`: each fan ray strikes the first wreck whose box covers a cell
@@ -59,7 +59,7 @@ farther ones bigger, 0050, 0056); **`asteroids`** (`HullBand`, 0054: rows above 
   no piece out spawns at the stream's start on a trade station's row, spaced by `DeliveryGap`, zone `delivery`, never netted. A
   `parcel` is grabbed, a `deliveryCrate` or the container broken, only the container found; past its `End`, lost.
 - **Found** (0066): every catch (grab, break, net, salvage drone) records the kind, the
-  items `LootOf` drew (the same roll, overflow too) and the look worn (`Content.Looks.Of`), each the first time.
+  items `LootOf` drew (the same roll, overflow too) and the look worn (`Content.Looks.Of`, by id, alike on all peers), each once.
 - **The harpoon** (0044): `Reel(Piece, ToX, ToY)` pulls it to the point, clamped to the grid, over the longer
   axis's ticks at `ReelSpeed`, at least one (`Reel { By, ToX, ToY, Left }`; `X += (ToX − X) / Left`, truncating), then it drifts on.
   The last wins; refused as `Grab`; caught or broken, its reel goes too.

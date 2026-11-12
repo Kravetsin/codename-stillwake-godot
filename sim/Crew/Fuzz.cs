@@ -33,6 +33,6 @@ public sealed partial class CrewModule
         int Pick() => (int)rng.Below(12) - 2;
     }
 
-    /// <summary>What a hero tries to eat: the foods, a fruit drawing its seed, the paste no one carries, and a canister, no food.</summary>
-    private static readonly string[] Edible = [Content.Foods.Ration, Content.Foods.CannedMeat, Content.Foods.Fruit, Content.Foods.Paste, Content.Crew.Canister];
+    /// <summary>What a hero tries to eat: the foods, a fruit drawing its seed, a seed, the paste no one carries, and a canister, no food.</summary>
+    private static readonly string[] Edible = [Content.Foods.Ration, Content.Foods.CannedMeat, Content.Foods.Fruit, Content.Foods.Seed, Content.Foods.Paste, Content.Crew.Canister];
 }

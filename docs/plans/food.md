@@ -149,6 +149,13 @@ As built: a repair takes both ticks of a `Work` worth two, its last mending, sin
 
 ### A4: the fridge, the vending machine, canned meat, seeds eaten
 The rest of rule 7, canned meat, the seed as a snack. Debris README.
+As built: the looks are chosen as every drifting piece's and every vessel's salvage already were, not by a new client
+rule: a fridge's by its id (`Content.Looks`, two), a vending machine's when its vessel is stamped (`Looks: 2`, its rows
+`salvageVending` and `salvageVending2`). The vending machine stands 4 × 5 cells in a new quarters interior, `mess`, gives
+the fridge's mean five times over (10 rations, 5 canned meat) as `salvagePod` does, and glows as the emergency lamp does
+(`MachineTrait.Glow`, no power): its sign and screen drawn unlit over it (`Light.Lamps`' `Alight`). Seeds stay sold:
+rule 7's unsold list names the other foods, and a seed is the farm's input. The stream's draw test now checks each
+kind's count against its weight's share; the fridge's 10 and a hull section's 9 cannot be told apart by which came more.
 
 ### B1: fruit
 Rule 8: fruit and glowberry items, the capsule's yields, the crusher's byproducts, the seed draw on eating. ADR

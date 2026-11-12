@@ -80,7 +80,8 @@ Game words → code. One line a term: Russian / English → identifiers → modu
 - ценность, наценка / worth, markup → `Content.Market.WorthOf`, `Markup`; цена блока → `Research.Prices` → Research
 - улучшения, слоты инвентаря, пояса, терминала / upgrades → `Content.Upgrades`, `Items.SlotOpen` → Items, Research
 - откат баллона / canister cooldown → `Crew.CanisterCooldown`, `Hero.CanisterIn`, `crew.canisterCooling` → Crew
-- еда, блюдо, голод / food, meal, hunger → `Content.Foods`, `Content.Diet`, `Hero.Meals`, `Eat`, `Hungry`; паёк `ration`, тушёнка `cannedMeat`, паста из капсулы `podPaste` (never an item), фрукт `fruit`, светоягода `glowberry` (crops, crushed or eaten for their seed back) → Crew
+- еда, блюдо, голод / food, meal, hunger → `Content.Foods`, `Content.Diet`, `Hero.Meals`, `Eat`, `Hungry`; паёк `ration`, тушёнка `cannedMeat`, паста из капсулы `podPaste` (never an item), фрукт `fruit`, светоягода `glowberry` (crops, crushed or eaten for their seed back), семечко `seed` (a snack) → Crew
+- холодильник, торговый автомат / fridge, vending machine → debris `fridge` (`Content.Loot`), salvage `salvageVending` (`Vessels.Salvage`) → Debris
 - спокойствие, глубокий вдох, работа / calm, deep, work (a food's rates) → `Content.Rates`, `RatesOf` → Crew
 - торговая станция / trade station → machine `tradeStation`, `TradeModule` → Trade; авто / auto trade station → `autoTradeStation`
 - капсула с товаром / trade capsule → `SendCapsule`, `Flight`, `Market.CapsuleFlight` → Trade; `CapsuleFlights` drawn in f/research

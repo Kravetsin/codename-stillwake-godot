@@ -37,15 +37,17 @@ public static class Foods
 {
     /// <summary>What the pod prints into every hero it makes: no rates, it only keeps hunger off for 20 minutes.</summary>
     public const string Paste = "podPaste";
-    public const string Ration = "ration", CannedMeat = "cannedMeat", Fruit = "fruit", Glowberry = "glowberry";
+    public const string Seed = "seed", Ration = "ration", CannedMeat = "cannedMeat", Fruit = "fruit", Glowberry = "glowberry";
 
     /// <summary>Every food, a first guess for the playtest (docs/plans/food.md).</summary>
     public static readonly IReadOnlyList<Food> All =
     [
         new(Paste, 24_000, new()),
+        // A snack: eat it or plant it, the player's choice. No rates; it only keeps hunger off for five minutes.
+        new(Seed, 6_000, new()),
         // Supply pods and a derelict's fridge: a spacer's ration, for work and a steadier breath.
         new(Ration, 18_000, new(Calm: 50, Work: 300)),
-        // A fridge or a vending machine (step A4): a deeper breath, a canister 26.
+        // A fridge or a vending machine: a deeper breath, a canister 26.
         new(CannedMeat, 18_000, new(Deep: 300)),
         // The farm's crops (fruit-not-biomass), eaten raw: each may give back its seed or spore, as crushing it does.
         new(Fruit, 12_000, new(Work: 100)),
