@@ -193,7 +193,7 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [board-edges](2026-11-02-board-edges.md) | The board has edges, and what is bought stands by its parts | accepted |  |
 | [board-pile](2026-11-02-board-pile.md) | New finds come to the board as a pile | accepted |  |
 | [board-room](2026-11-02-board-room.md) | The camera stops at a size, and the player has room for heaps | accepted |  |
-| [board-thoughts](2026-11-02-board-thoughts.md) | The board says what the hero is thinking | accepted |  |
+| [board-thoughts](2026-11-02-board-thoughts.md) | The board says what the hero is thinking | accepted | one-to-understand (in part) |
 | [bulb-signal](2026-11-02-bulb-signal.md) | A bulb over the hero says something new waits on the board | superseded | hologram-keys |
 | [far-land-in-ink](2026-11-02-far-land-in-ink.md) | The far land in ink | accepted | composed-backdrops (in part) |
 | [hero-clothes](2026-11-02-hero-clothes.md) | One body, four sets of clothes | accepted |  |
@@ -251,7 +251,7 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [damage-looks](2026-11-05-damage-looks.md) | Damage and work drawn in ink | accepted | tool-reach, cracks-to-end (in part) |
 | [hologram-keys](2026-11-05-hologram-keys.md) | The edge's keys are holograms of what can be used, and the bulb bursts at the screen's top | accepted | edge-flash (in part) |
 | [melee-edge](2026-11-05-melee-edge.md) | A stroke hits with its swept blade | accepted | tool-reach (in part) |
-| [the-board](2026-11-05-the-board.md) | Things are learned by having them, on the scavenger's board | accepted |  |
+| [the-board](2026-11-05-the-board.md) | Things are learned by having them, on the scavenger's board | accepted | one-to-understand (in part) |
 | [the-last-breath](2026-11-05-the-last-breath.md) | The last breath | accepted |  |
 | [tip-signs](2026-11-05-tip-signs.md) | Tips speak in signs and the bubble's numbers | accepted |  |
 | [tool-contact](2026-11-05-tool-contact.md) | A running tool is seen at work all along | accepted | damage-looks, tool-edge (in part) |
@@ -267,7 +267,7 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [quick-stash](2026-11-06-quick-stash.md) | The bag stashed into nearby crates with one key | accepted |  |
 | [settings-menu](2026-11-06-settings-menu.md) | The Esc menu on the tablet, Settings in categories | accepted |  |
 | [the-power-chain](2026-11-06-the-power-chain.md) | The power chain | accepted |  |
-| [trade-station-later](2026-11-06-trade-station-later.md) | The trade station comes with circuits | accepted |  |
+| [trade-station-later](2026-11-06-trade-station-later.md) | The trade station comes with circuits | accepted | one-to-understand (in part) |
 | [air-feedback](2026-11-07-air-feedback.md) | Air and power answer the player loudly | accepted |  |
 | [back-focus-clear](2026-11-07-back-focus-clear.md) | The back walls' focus hides the front | accepted |  |
 | [battery-workbench](2026-11-07-battery-workbench.md) | The workbench makes batteries | accepted |  |
@@ -333,3 +333,4 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [one-damage-rule](2026-11-10-one-damage-rule.md) | One damage rule for every hit | accepted |  |
 | [plant-stirs](2026-11-10-plant-stirs.md) | Plants stirred by bodies | accepted |  |
 | [tool-size](2026-11-10-tool-size.md) | Held tools are drawn smaller, and reach no longer follows the model | accepted |  |
+| [one-to-understand](2026-11-12-one-to-understand.md) | One of each part is enough to understand a thing | accepted |  |

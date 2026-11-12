@@ -32,18 +32,12 @@ public static class Research
 {
     /// <summary>
     /// What the wreck knows from its start: nothing (docs/decisions/2026-11-05-the-board.md). A castaway writes down what they find, the first walls at
-    /// ten chunks, and what the pod makes for nothing is understood on the first tick, having no part to wait for.
+    /// the first chunk, and what the pod makes for nothing is understood on the first tick, having no part to wait for.
     /// </summary>
     public static readonly IReadOnlyList<string> StartKnown = [];
 
     /// <summary>The tab of what only credits open: what is on it stays outside the rule that grants the rest (docs/decisions/2026-11-05-the-board.md).</summary>
     public const string Market = "blackMarket";
-
-    /// <summary>What a part understood must have been obtained to, in credits of its worth: a rare part takes few, a common one many.</summary>
-    public const int EnoughWorth = 200;
-
-    /// <summary>However cheap a part, no more than this many are needed to understand it.</summary>
-    public const int EnoughMost = 10;
 
     /// <summary>What a good sold beyond what a level wants is divided by, as reputation: a seventh of its worth (2026-11-08-mafia-reputation).</summary>
     public const int OffWanted = 7;

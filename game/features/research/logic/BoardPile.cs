@@ -26,7 +26,7 @@ public sealed class BoardPile
             if (!waiting.Contains(slot.Id)) continue;
             first ??= slot.Id;
             if (things.FirstOrDefault(t => t.Id == slot.Id) is not { } thing) return slot.Id;
-            if (!thing.Parts.Any(p => waiting.Contains(p.Item)) && !(thing.Stations?.Any(waiting.Contains) ?? false)) return slot.Id;
+            if (!thing.Parts.Any(waiting.Contains) && !(thing.Stations?.Any(waiting.Contains) ?? false)) return slot.Id;
         }
         return first;
     }
@@ -77,20 +77,20 @@ public sealed class BoardPile
         foreach (string id in shapes)
         {
             if (things.FirstOrDefault(t => t.Id == id) is not { } thing) continue;
-            double pencil = BoardPencil.Of(thing, read.Count, read.Stands);
+            double pencil = BoardPencil.Of(thing, read.Has, read.Stands);
             if (pencil <= most) continue;
             (best, most) = (id, pencil);
         }
         return best;
     }
 
-    /// <summary>What <paramref name="thing"/> still lacks: each part short of enough with how many more, and the first station if none stands.</summary>
+    /// <summary>What <paramref name="thing"/> still lacks: each part never had, and the first station if none stands.</summary>
     public static BoardLack Lack(BoardThing thing, BoardRead read) => new(
-        thing.Parts.Where(p => read.Count(p.Item) < p.Enough).Select(p => (p.Item, p.Enough - read.Count(p.Item))).ToList(),
+        thing.Parts.Where(p => !read.Has(p)).ToList(),
         thing.Stations is { Count: > 0 } stations && !stations.Any(read.Stands) ? stations[0] : null);
 }
 
 /// <summary>What a shape lacks.</summary>
-/// <param name="Parts">Each part short of enough, and how many more.</param>
+/// <param name="Parts">Each part never had.</param>
 /// <param name="Station">A machine to stand, if none making it does.</param>
-public sealed record BoardLack(IReadOnlyList<(string Item, int More)> Parts, string? Station);
+public sealed record BoardLack(IReadOnlyList<string> Parts, string? Station);
