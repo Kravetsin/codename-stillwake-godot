@@ -9,8 +9,8 @@ namespace Stillwake.Sim.Tests;
 public partial class ContentTests
 {
     /// <summary>
-    /// Every fed station's outputs take the most any one smelt of its process makes, with the most of itself it may give
-    /// back and every byproduct at its most (<c>ItemsModule.MostMade</c>): a grow capsule's two, biomass and a seed's stack (0060).
+    /// Every fed station's outputs take the most any one smelt of its process makes, its yields and
+    /// every byproduct at its most (<c>ItemsModule.MostMade</c>): a crusher's three for a glowberry, biomass and both spores.
     /// </summary>
     [Fact]
     public void ItemsSmeltAtEveryFedStationOfTheirProcessWhoseOutputsTakeTheMostOneSmeltMakes()
@@ -49,23 +49,23 @@ public partial class ContentTests
 
     /// <summary>
     /// Four processes, each with a station: crush (the crusher), ferment (the fermenter), grow (the grow capsule) and smelt (the
-    /// furnace, the smelter); an item's is one of them. Returns are weights, none negative, some above zero, only on what is worked (0060).
+    /// furnace, the smelter); an item's is one of them. A crop grows into its fruit, crushed for its seed back (fruit-not-biomass).
     /// </summary>
     [Fact]
-    public void EveryItemsProcessHasAFedStationAndItsReturnsAreWeightsOfWhatIsWorked()
+    public void EveryItemsProcessHasAFedStationAndACropGrowsIntoFruitCrushedForItsSeed()
     {
         var processes = Stations.All.Where(s => s.Fed).Select(s => s.Process).Distinct().Order(StringComparer.Ordinal);
         Assert.Equal(["crush", "ferment", "grow", "smelt"], processes);
         Assert.All(Stations.All.Where(s => !s.Fed), s => Assert.Equal("smelt", s.Process));
-        foreach (var item in Content.Items.All)
-        {
-            Assert.Contains(item.Process, processes);
-            if (item.Returns is not { } weights) continue;
-            Assert.NotNull(item.Yields);
-            Assert.All(weights, w => Assert.True(w >= 0, item.Id));
-            Assert.True(weights.Sum() > 0, item.Id);
-        }
+        Assert.All(Content.Items.All, item => Assert.Contains(item.Process, processes));
         Assert.Equal(["spore", "seed"], Content.Items.All.Where(i => i.Process == "grow").Select(i => i.Id));
+        foreach (var crop in Content.Items.All.Where(i => i.Process == "grow"))
+        {
+            var fruit = Content.Items.Get(crop.Yields!.Single().Item);
+            Assert.Equal("crush", fruit.Process);
+            Assert.NotNull(Foods.Of(fruit.Id));
+            Assert.Contains(fruit.Byproducts!, b => b.Item == crop.Id);
+        }
         Assert.Equal(["growCapsule"], Stations.All.Where(s => s.Process == "grow").Select(s => s.Machine));
         // Biofuel only at the fermenter (power-chain): of biomass and fat.
         Assert.Equal(["fermenter"], Stations.All.Where(s => s.Process == "ferment").Select(s => s.Machine));
@@ -112,7 +112,7 @@ public partial class ContentTests
     [Fact]
     public void SmeltingMakesWholeAmountsInWholeTicksOfItemsThatAreNotSalvageAndChainsOnlyUpInHeat()
     {
-        string[] refined = ["silicon", "glass", "biomass", "biofuel", "copper", "ironOre", "gravel", "quartz", Content.Water.Item];
+        string[] refined = ["silicon", "glass", "biomass", "biofuel", "copper", "ironOre", "gravel", "quartz", Content.Water.Item, "fruit", "glowberry", "seed", "spore"];
         foreach (var spec in Content.Items.All)
         {
             Assert.True(spec.Yields != null == (spec.SmeltTicks != null), spec.Id);
@@ -122,7 +122,7 @@ public partial class ContentTests
             foreach (var (item, amount) in spec.Yields.Concat((spec.Byproducts ?? []).Select(b => (b.Item, b.Max))))
             {
                 // What the Yields type held in TypeScript, materials and canisters, then silicon, glass, biomass, biofuel and
-                // copper, and the crusher's iron ore, gravel and quartz; and water melted of ice (water).
+                // copper, and the crusher's iron ore, gravel and quartz; water melted of ice (water); the farm's fruit and crops.
                 Assert.True(Materials.TryGet(item, out _) || item == "canister" || refined.Contains(item), item);
                 Assert.True(Content.Items.TryGet(item, out var yielded), item);
                 Assert.Null(Loot.Of(item));
@@ -132,11 +132,13 @@ public partial class ContentTests
             // Taken apart in its own slot, one piece yields what that slot and an empty inventory hold.
             Assert.True(SlotsFor(spec.Yields) <= Inventory.Slots, spec.Id);
         }
-        // What is smelted from something and smelts on yields what smelts no more: a chain of two, no cycle.
+        // What is smelted from something and smelts on yields what smelts no more: a chain of two, no cycle. The farm alone
+        // loops, on purpose: a crop grows into fruit, crushed into biomass and, by chance, its crop back (fruit-not-biomass).
+        string[] farm = ["spore", "seed", "fruit", "glowberry"];
         var chained = Content.Items.All.Where(i => i.Yields != null && Content.Items.All.Any(f =>
             f.Yields?.Any(y => y.Item == i.Id) == true || f.Byproducts?.Any(b => b.Item == i.Id) == true)).ToList();
-        Assert.Equal(["scrap", "ironOre", "quartz", "gravel", "biomass"], chained.Select(i => i.Id));
-        Assert.All(chained, spec => Assert.All(spec.Yields!, y => Assert.Null(Content.Items.Get(y.Item).Yields)));
+        Assert.Equal(["scrap", "ironOre", "quartz", "gravel", .. farm, "biomass"], chained.Select(i => i.Id));
+        Assert.All(chained.Where(c => !farm.Contains(c.Id)), spec => Assert.All(spec.Yields!, y => Assert.Null(Content.Items.Get(y.Item).Yields)));
     }
 
     // Research
@@ -447,7 +449,7 @@ public partial class ContentTests
     }
 
     /// <summary>What no one buys: wreckage whole, tools, what is worn, what stores or flies by itself, the arc's, the photosensitive panel nothing makes.</summary>
-    private static readonly string[] Unpriced = ["ration", "cannedMeat", "arcShard", "arcModule", "supplyPod", "cargoCrate", "hullSection", "cargoContainer", "machineBlock", "cableRack", "tankCluster", "shieldSlab", "soilClod", "asteroid", "asteroidSmall", "asteroidLarge", "asteroidRich", "engineBlock", "cargoHold", "podCluster", "parcel", "deliveryCrate", "confiscated", "photoPanel", "drone", "salvageDrone", "screwdriver", "fireAxe", "harpoon", "grapple", "nailer", "railgun", "drill", "powerDriver", "grinder", "plasmaCutter", "spear", "sledgehammer", "pickaxe", "jetpack", "helmetLamp", "scanner", "battery", "accumulator", "helmet", "suit", "heavyHelmet", "regenSuit", "cape"];
+    private static readonly string[] Unpriced = ["ration", "cannedMeat", "fruit", "glowberry", "arcShard", "arcModule", "supplyPod", "cargoCrate", "hullSection", "cargoContainer", "machineBlock", "cableRack", "tankCluster", "shieldSlab", "soilClod", "asteroid", "asteroidSmall", "asteroidLarge", "asteroidRich", "engineBlock", "cargoHold", "podCluster", "parcel", "deliveryCrate", "confiscated", "photoPanel", "drone", "salvageDrone", "screwdriver", "fireAxe", "harpoon", "grapple", "nailer", "railgun", "drill", "powerDriver", "grinder", "plasmaCutter", "spear", "sledgehammer", "pickaxe", "jetpack", "helmetLamp", "scanner", "battery", "accumulator", "helmet", "suit", "heavyHelmet", "regenSuit", "cape"];
 
     /// <summary>Everything is priced or named here as what no one buys; raw salvage is, so the first credits need nothing made.</summary>
     [Fact]

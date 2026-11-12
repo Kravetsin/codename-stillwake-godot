@@ -336,31 +336,11 @@ public sealed partial class CraftingModule : Module<CraftingState>, ICraftingQue
 
     /// <summary>
     /// What one smelt of <paramref name="spec"/> makes besides its yields as its work completes, drawn from the world's
-    /// Rng, stations in machine id order: the seeds its <c>Returns</c> give back (<see cref="Returned"/>), then its
-    /// <c>Byproducts</c> entry by entry, as loot is (<see cref="Loots.Roll"/>). No draw for an item without either.
+    /// Rng, stations in machine id order: its <c>Byproducts</c> entry by entry, as loot is (<see cref="Loots.Roll"/>). No
+    /// draw for an item without them.
     /// </summary>
-    private IReadOnlyList<(string Item, int Count)> Drawn(ItemSpec spec)
-    {
-        int back = Returned(spec);
-        var by = spec.Byproducts is { } entries ? Loots.Roll(entries, Random) : [];
-        return back > 0 ? [(spec.Id, back), .. by] : by;
-    }
-
-    /// <summary>
-    /// How many of <paramref name="spec"/> one gives back as its work completes: drawn from the world's Rng by its
-    /// <c>Returns</c> weights; none, and no draw, for an item without them.
-    /// </summary>
-    private int Returned(ItemSpec spec)
-    {
-        if (spec.Returns is not { } weights) return 0;
-        int roll = (int)Random.Below((ulong)weights.Sum());
-        for (int n = 0; n < weights.Count; n++)
-        {
-            if (roll < weights[n]) return n;
-            roll -= weights[n];
-        }
-        throw new InvalidOperationException($"crafting: a roll past {spec.Id}'s returns");
-    }
+    private IReadOnlyList<(string Item, int Count)> Drawn(ItemSpec spec) =>
+        spec.Byproducts is { } entries ? Loots.Roll(entries, Random) : [];
 
     // Helpers.
 

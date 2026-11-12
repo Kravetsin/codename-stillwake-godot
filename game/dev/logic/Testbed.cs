@@ -27,7 +27,7 @@ public static class Testbed
     public static IEnumerable<ItemSpec> Carried => Items.All.Where(i => Wreckage.HpOf(i.Id) == null && !Debris.DeliveryKinds.Contains(i.Id) && !Inventory.Kit.Any(k => k.Item == i.Id) && i.Equip != Suit.Slot && i.Equip != Helmet.Slot);
 
     /// <summary>The farm's items (0060), in the second crate by the grow capsule with the crusher's and planks: the first is full.</summary>
-    public static readonly IReadOnlyList<string> Farm = ["seed", "soil", "biomass", "biofuel"];
+    public static readonly IReadOnlyList<string> Farm = ["seed", "fruit", "glowberry", "soil", "biomass", "biofuel"];
 
     /// <summary>What the crusher takes and gives, in the farm's crate too, gravel with planks for soil; quartz, the smelter's, stays in the full one for drones to bring.</summary>
     public static readonly IReadOnlyList<string> Crushed = ["rock", "asteroidOre", "ironOre", "gravel"];

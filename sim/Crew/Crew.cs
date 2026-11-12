@@ -228,6 +228,9 @@ public sealed partial class CrewModule : Module<CrewState>, ICrewQueries, ICrewO
             // The same food eaten again keeps its slot, its ticks back to full.
             if (hero.Eaten.Find(m => m.Food == c.Item) is { } meal) meal.Left = lasts;
             else hero.Eaten.Add(new Meal { Food = c.Item, Left = lasts });
+            // A fruit eaten raw draws the rolls its crushing would: its seed back now and then (fruit-not-biomass).
+            if (Content.Items.Get(c.Item).Byproducts is { } kept && Loots.Roll(kept, Random) is { Count: > 0 } back)
+                _itemsOps.GiveOrDrop(c.From, back, hero.Cell);
         });
         Handles<SuitMode>(c => c.On ? SuitModeProblem(c.From) : HeroOf(c.From) == null ? "crew.noHero" : null, c => HeroOf(c.From)!.SuitOn = c.On);
         Handles<Track>(c => HeroOf(c.From) == null ? "crew.noHero" : null, c => Track(HeroOf(c.From)!, c.Short));
