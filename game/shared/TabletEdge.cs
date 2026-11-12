@@ -16,7 +16,7 @@ public partial class TabletEdge : CanvasLayer
 {
     /// <summary>How long the rest of the row takes to slide as a key comes or goes, and how long a key flickers in or out.</summary>
     private const double SlideS = 0.25, FlickerS = 0.35;
-    /// <summary>How far in from the art's right edge the credits end: short of the bezel's charge lamps, off the keys in the middle.</summary>
+    /// <summary>How far in from the rim's right edge the credits end, a tablet up or not: short of the bezel's charge lamps, off the keys in the middle.</summary>
     private const float ReadoutIn = 160;
 
     private readonly Ui _ui;
@@ -122,7 +122,8 @@ public partial class TabletEdge : CanvasLayer
         var art = Art = (up ?? _rim).Covers;
         var (middle, foot) = TabletPeek.RowAt(art.Position.X, art.Position.Y, art.Size.X);
         float grown = EdgeRow.Grown(_ui.Slot), top = EdgeRow.Top(foot, EdgeKey.Side, grown);
-        Lay(middle, top, art.End.X - ReadoutIn, grown, delta);
+        // The credits stay where the rim has them, a tablet up or not: over a narrower one they ran into the keys.
+        Lay(middle, top, _rim.Covers.End.X - ReadoutIn, grown, delta);
         if (_keysAway.Exists(t => t.Shown)) HideKeys();
         var pointer = _root.GetViewport().GetMousePosition();
         _near.Step(delta, EdgeRow.Bright(pointer.Y, top, up != null && art.HasPoint(pointer), new Rect2(Vector2.Zero, window).HasPoint(pointer)));
