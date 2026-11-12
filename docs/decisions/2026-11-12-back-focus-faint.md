@@ -10,8 +10,8 @@ machines or front walls, and the player lost where the rooms were.
 
 ## Decision
 
-- **With the back walls focused the front is drawn faint** (`Tools.FrontInBack`, 25%): walls, doors, machines, cables,
-  pipes and the front's plans. Fainter than the old 35% (0110), which covered the back walls.
+- **With the back walls focused the front is drawn faint** (`Tools.FrontInBack`, 35%, as 0110 had it): walls, doors, machines, cables,
+  pipes and the front's plans. It covered the back walls before because they were lit and dim under it.
 - **The back walls stay drawn as painted, out of the light** (`Tools.BackUnlit`): that, not hiding the front, is what lets
   a dark room's back walls read.
 

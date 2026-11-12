@@ -156,7 +156,7 @@ public static class Tools
     public const float Faded = 0.35f;
 
     /// <summary>How opaque the front is drawn with the back walls focused: faint, so the rooms still read over the unlit back walls (back-focus-faint).</summary>
-    public const float FrontInBack = 0.25f;
+    public const float FrontInBack = 0.35f;
 
     /// <summary>How opaque the front and the back walls are drawn: the focused layer whole, the other faded; both whole with no focus.</summary>
     public static (float Front, float Back) AlphasOf(Focus? focus) => focus switch
