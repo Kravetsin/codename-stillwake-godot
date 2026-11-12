@@ -1052,6 +1052,31 @@ P.cannedMeat = (a) => {
   a.flat(ell(11.4, 14.2, .35, .25), '#4e2c22');
   a.line('M10.6 6.8L11.2 7.6', { w: 1 });
 };
+P.fruit = (a) => {
+  // A ribbed gourd, narrow at the neck, olive going ochre; a dry woody stalk with its tendril curled, a healed scar on one rib.
+  const GOURD = { base: '#9a9448', shade: '#686634', deep: '#4a4a2a', lite: '#bab45e', spec: '#dcd690' };
+  a.shape('M8 3.8C9.6 3.8 10.2 5 10.4 6.6C10.6 8 13.6 9.2 13.6 12C13.6 14.6 11.2 15.6 8 15.6C4.8 15.6 2.4 14.6 2.4 12C2.4 9.2 5.4 8 5.6 6.6C5.8 5 6.4 3.8 8 3.8Z', GOURD, {
+    shade: 1, deep: 'M2.6 13.4C4 15 12 15 13.4 13.4L13.8 16L2.2 16Z',
+    lite: 'M6 6.6C6.2 5 6.8 4.2 7.6 4.2C7 5.6 6.8 7.4 5 9.6C4 10.6 3.4 11.4 3.2 12.4L2.6 12C2.8 9.4 5.6 8.2 6 6.6Z',
+    spec: 'M3.8 10.6C4.2 9.9 4.8 9.4 5.3 9.2L4.7 10.5Z',
+    lines: ['M7.6 4.4C6.8 7 5.6 9.8 5.4 15.2', 'M8.4 4.4C9.2 7 10.4 9.8 10.6 15.2', 'M8 6.2C7.9 9.2 8.1 12.2 8 15.4'] });
+  a.flat('M10.6 11.8C11.2 11.4 11.8 11.6 12 12.2C11.6 12.8 11 12.8 10.6 12.4Z', '#6e5a2c');
+  a.line('M10.7 12L11.8 12.2', { w: 1 });
+  a.shape(rr(6.6, 3.2, 2.8, 1.2, .4), WOOD, { lite: band(6.8, 3.2, 9.2, 3.6) });
+  a.tube('M8 3.4C8 2.4 7.6 1.6 6.6 1', 1.1, WOOD, { spec: false });
+  a.line('M8.4 2.6C9.4 1.4 11.2 1.2 11.6 2.4C11.9 3.4 10.8 3.8 10.4 3', { c: '#3e4a26', w: 1.3 });
+};
+P.glowberry = (a) => {
+  // A cluster of small berries on a thin stalk: dusky skins with their light showing through, brightest at each heart.
+  const BERRY = { base: '#706a3e', shade: '#4c4830', deep: '#363426', lite: '#9a9254', spec: '#f0e8b8' };
+  const b = (x, y, r) => {
+    a.shape(ell(x, y, r), BERRY, { shade: r * .3, spec: ell(x - r * .42, y - r * .46, r * .2, r * .15) });
+    a.glow(`M${x - r * .5} ${y + r * .1}C${x - r * .4} ${y - r * .4} ${x + r * .5} ${y - r * .3} ${x + r * .62} ${y + r * .2}C${x + r * .6} ${y + r * .66} ${x - r * .3} ${y + r * .7} ${x - r * .5} ${y + r * .1}Z`, '#a09452', { core: ell(x + r * .12, y + r * .26, r * .26, r * .2), coreC: '#d8c47a' });
+  };
+  a.tube('M9.4 .6C9.2 2 8.6 3.4 7.8 4.6', .6, WOOD, { spec: false });
+  a.line('M7.8 4.6L5.8 6.2M7.8 4.6L10 6M7.8 4.6L7.6 9', { c: '#3e3424', w: 1.2 });
+  b(5.6, 6.6, 2); b(10, 6.4, 2.1); b(7.6, 9.2, 2.3); b(4.1, 10.6, 2.1); b(11.6, 10.2, 2.2); b(7.8, 13.2, 2.3);
+};
 // Never an item: the pod paste a hero is printed with, drawn for its meal slot.
 P.podPaste = (a) => {
   // A squeeze tube from the pod, crimped and dented where it was pressed, the pod's teal band; a ribbon of grey paste from its nozzle.
