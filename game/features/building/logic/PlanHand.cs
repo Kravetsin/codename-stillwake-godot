@@ -39,8 +39,11 @@ public sealed class PlanHand
     /// <summary>The focus the world is drawn by: the open plan's aboard, building; none otherwise, so nothing fades and the ground hides what is in it.</summary>
     public Focus? Shown => PlanOut.Get() && Aboard.Get() && Builds ? Focus.Get() : null;
 
-    /// <summary>Whether the front fades round the pointer as a hand <paramref name="digsBack"/>: with the plan away, aboard only (0110).</summary>
-    public bool SeesThrough(bool digsBack) => digsBack && !PlanOut.Get() && Aboard.Get();
+    /// <summary>Whether the front fades round the pointer: as a hand <paramref name="digsBack"/> with the plan away, aboard (0110); always while it <see cref="Clears"/>.</summary>
+    public bool SeesThrough(bool digsBack) => digsBack && !PlanOut.Get() && Aboard.Get() || Clears;
+
+    /// <summary>Whether the front walls and doors clear round the pointer whatever the buttons do: with the back walls focused (back-focus-faint).</summary>
+    public bool Clears => Shown == Building.Focus.Back;
 
     /// <summary>The wiring's or the piping's card picked (0110): what the left button lays; the mode's first as it is entered.</summary>
     public Store<HandCard?> ToolCard { get; } = new(null);

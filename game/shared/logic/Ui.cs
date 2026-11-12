@@ -306,6 +306,12 @@ public sealed class Ui
     public float? MenuTop { get; set; }
 
     /// <summary>
+    /// Where the tablet edge's keys top on the screen while they show; null when not. Set by <c>TabletEdge</c> every frame;
+    /// <c>crew</c> lifts the prompt for E above them too, as they ride an open tablet over its top.
+    /// </summary>
+    public float? EdgeTop { get; set; }
+
+    /// <summary>
     /// Every hero's chest as drawn this frame, in the world's pixels, this machine's own first. Set by
     /// <c>crew</c> every frame; <c>building</c> throws a plan's sparks from its side facing the nearest.
     /// </summary>

@@ -77,6 +77,9 @@ public static class Lit
             uniform vec2 see_at = vec2(0.0);
             uniform float see_radius = 0.0;
             uniform float see_least = 0.35;
+            // A bare picture (the back walls) is drawn as painted, out of the light, as near see_at as see_bare has it (back-focus-faint).
+            uniform bool bare = false;
+            uniform float see_bare = 0.0;
             // Ore shines in the lamps' light by its atlas's specular mask, past whole (Light.OreShine); only the walls' layer asks.
             uniform float ore_shine = 0.0;
             varying vec2 world;
@@ -153,13 +156,16 @@ public static class Lit
                 vec3 light = lit + spotted;
                 // Lamps, fires and glows only, never the stars: unlit ore stays as dark as its rock.
                 vec3 shine = SPECULAR_SHININESS.rgb * dot(COLOR.rgb, LUMA) * (lamps + spotted) * share * ore_shine;
+                vec3 painted = COLOR.rgb;
                 COLOR.rgb = COLOR.rgb * (ambient + light * share) + shine;
                 if (blocks && see_radius > 0.0)
                     COLOR.a *= mix(see_least, 1.0, smoothstep(see_radius * 0.5, see_radius, distance(world, see_at)));
+                if (bare && see_radius > 0.0)
+                    COLOR.rgb = mix(COLOR.rgb, painted, see_bare * (1.0 - smoothstep(see_radius * 0.5, see_radius, distance(world, see_at))));
             }
             """;
 
-    private static readonly Dictionary<(float Share, bool Shines, bool Bends, bool Windy), ShaderMaterial> Made = new();
+    private static readonly Dictionary<(float Share, bool Shines, bool Bends, bool Windy, bool Bare), ShaderMaterial> Made = new();
     private static (Texture2DArray Tiles, Rect2 Rect, Vector2I Cells, int Tile)? _starlight;
     private static (Texture2D Main, Texture2D Spots)? _lightmaps;
     private static (Vector2 At, float Texel) _placed = (Vector2.Zero, 1);
@@ -169,20 +175,29 @@ public static class Lit
     public const float SeeRadius = 3 * ShipCamera.Cell;
 
     /// <summary>
-    /// Fades the walls, edges and doors round <paramref name="at"/>, in pixels of the world, to about a third, so the back wall
-    /// the right button works shows through them (0107); null for none. Set every frame, sent only when it moves.
+    /// Fades the walls, edges and doors round <paramref name="at"/>, in pixels of the world, to <paramref name="least"/>, so the back
+    /// wall the right button works shows through them (0107); null for none. While <paramref name="bare"/> the back walls there are
+    /// drawn as painted, out of the light (back-focus-faint). <paramref name="radius"/> in pixels. Set every frame, sent only when it changes.
     /// </summary>
-    public static void SeeThrough(Vector2? at)
+    public static void SeeThrough(Vector2? at, float least = SeeLeast, bool bare = false, float radius = SeeRadius)
     {
-        if (at == _seeThrough) return;
-        _seeThrough = at;
+        if (at == _seeThrough && least == _seeLeast && bare == _seeBare && radius == _seeRadius) return;
+        (_seeThrough, _seeLeast, _seeBare, _seeRadius) = (at, least, bare, radius);
         foreach (var material in Made.Values) See(material);
     }
+
+    /// <summary>How much of the walls is left at the pointer as a hand digs the back layer (0107): about a third.</summary>
+    public const float SeeLeast = 0.35f;
+
+    private static float _seeLeast = SeeLeast, _seeRadius = SeeRadius;
+    private static bool _seeBare;
 
     private static void See(ShaderMaterial material)
     {
         material.SetShaderParameter("see_at", _seeThrough ?? Vector2.Zero);
-        material.SetShaderParameter("see_radius", _seeThrough == null ? 0f : SeeRadius);
+        material.SetShaderParameter("see_radius", _seeThrough == null ? 0f : _seeRadius);
+        material.SetShaderParameter("see_least", _seeLeast);
+        material.SetShaderParameter("see_bare", _seeBare ? 1f : 0f);
     }
 
     /// <summary>
@@ -191,13 +206,16 @@ public static class Lit
     /// drawn in wall cells and takes the stars' light from its own side. One that <paramref name="shines"/> (the walls' layer) has its ore
     /// shine in the lamps' light, by its texture's specular mask (<see cref="Light.OreShine"/>); others have none.
     /// </summary>
-    public static void Set(CanvasItem item, float share = 1f, bool shines = false) => item.Material = MaterialOf(share, shines, false, false);
+    public static void Set(CanvasItem item, float share = 1f, bool shines = false) => item.Material = MaterialOf(share, shines, false, false, false);
 
     /// <summary>
     /// Lights <paramref name="item"/> as <see cref="Set"/> does, and bends it as bodies brush it (<see cref="Bend"/>, plant-stirs):
     /// grass, tufts, moss; <paramref name="windy"/> for what stands in the open, which a gust leans too.
     /// </summary>
-    public static void SetBending(CanvasItem item, bool windy) => item.Material = MaterialOf(1f, false, true, windy);
+    public static void SetBending(CanvasItem item, bool windy) => item.Material = MaterialOf(1f, false, true, windy, false);
+
+    /// <summary>Lights <paramref name="item"/> as <see cref="Set"/> does, drawn as painted round the pointer while <see cref="SeeThrough"/> has it bare: the back walls (back-focus-faint).</summary>
+    public static void SetBare(CanvasItem item) => item.Material = MaterialOf(1f, false, false, false, true);
 
     private static Vector3 _ambient = new(Light.Ambient.R, Light.Ambient.G, Light.Ambient.B);
 
@@ -225,13 +243,14 @@ public static class Lit
         foreach (var (_, material) in Made) material.SetShaderParameter("sky", _sky);
     }
 
-    private static ShaderMaterial MaterialOf(float share, bool shines, bool bends, bool windy)
+    private static ShaderMaterial MaterialOf(float share, bool shines, bool bends, bool windy, bool bare)
     {
-        if (Made.TryGetValue((share, shines, bends, windy), out var kept)) return kept;
+        if (Made.TryGetValue((share, shines, bends, windy, bare), out var kept)) return kept;
         kept = new ShaderMaterial { Shader = bends ? Bending : Plain };
         if (bends) Bend.Add(kept, windy);
         kept.SetShaderParameter("share", share);
         kept.SetShaderParameter("blocks", share < 1f);
+        kept.SetShaderParameter("bare", bare);
         kept.SetShaderParameter("ambient", _ambient);
         kept.SetShaderParameter("sky", _sky);
         kept.SetShaderParameter("spot_most", Light.ParticleMost);
@@ -240,7 +259,7 @@ public static class Lit
         if (_lightmaps is var (main, spots)) ShowMaps(kept, main, spots);
         Place(kept);
         See(kept);
-        return Made[(share, shines, bends, windy)] = kept;
+        return Made[(share, shines, bends, windy, bare)] = kept;
     }
 
     /// <summary>
