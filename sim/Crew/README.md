@@ -14,7 +14,7 @@ Heroes in the sim: where each is, as its client says, and how it breathes: the p
 a room's, its own, then its last breath; passing out, made again at the pod.
 
 - **Depends on:** `Atmosphere` (`Breathe`, `AiredAt`); `Grid` (`Width`, `Height`, `Zone`, `WallAt`, `BackAt`); `Items` (`Equipped`, `WornIn`,
-  `ShortOf`, `Creative`; ops `Take`, `Drain`, `StopRunning`, `LeaveBody`, `Kit`); `Players` (`Worn`, `IPlayersOps`); `Knowledge` (`Granted`); `Sky` (`Now`).
+  `ShortOf`, `Creative`; ops `Take`, `Drain`, `StopRunning`, `LeaveBody`, `Kit`); `Players` (`Worn`, `IPlayersOps`); `Sky` (`Now`).
 - **State** (`CrewState`, all saved): `Spawn` — the first lifepod's hatch (`Content.Crew.PodHatch`), else the
   first `S`, else cell 0; `Pod` — its top-left or null (`Fixed`); `Clock`; `Heroes` — by peer id, in id
   order (`Hero`, fields told on it).
@@ -23,7 +23,7 @@ a room's, its own, then its last breath; passing out, made again at the pod.
 
 - A hero is named by its peer, the `From` the host stamps.
 - **Air** (2026-10-27-suits-are-worn): `Hero.Air`, below "the suit"; capacity `CapacityOf`: the worn helmet's `Tank`,
-  or `Crew.Lungs`. Each tick, first, a conscious hero's air is cut to it. Every hero made starts full to it.
+  or `Crew.Lungs`. Each tick, first, a conscious hero's air is cut to it. Every hero made starts full.
 - **Enter and report** (0050): `Enter(Cell)` puts the sender's hero at `Cell`, making it full (bare, empty on a peer's
   first) if none. Sent on a new room or air side, every `Crew.ReportEvery` ticks while the cells differ,
   `Crew.ReportThreatened` while threatened (creatures-are-composed). Passed out, a client sends none.
@@ -46,8 +46,8 @@ a room's, its own, then its last breath; passing out, made again at the pod.
 - **The suit's mode** (regen-suit): `SuitMode(On)` sets `Hero.SuitOn`, working in a body with `Switch`. The regen
   suit on, after the thin-air clamp, gives back what a breath took, up to `Suit.RegenMost`, for `Suit.RegenCost`
   power-ticks a unit (`Drain`, after any tool).
-- **A canister** (heavy-helmet): `Refill` takes one (`Take`; none in creative) and adds `CanisterRefill` to the
-  air, up to capacity: `Crew.CanisterRefill`, `Crew.CanisterUp` more per canister upgrade.
+- **A canister** (food-and-the-body): `Refill` takes one (none in creative), adds `RefillOf(peer)` up to capacity,
+  sets `CanisterIn = Crew.CanisterCooldown` (creative not): ticks left, counted down, cleared by passing out.
 - **The last breath** (2026-11-05-the-last-breath): air run dry starts `Hero.Gasp` at `Crew.LastBreath`, a tick off
   each tick; air back or a breath air made (the regen suit) ends it. Lava, shocks and blows past the air cut
   `Crew.LastBreathPerUnit` a unit; cold, running, thrust nothing.
@@ -68,18 +68,18 @@ a room's, its own, then its last breath; passing out, made again at the pod.
   up to `Need`, drawn when 0. Afloat, not full, it loses `Wanted.Drain` a breath in `Wanted.Belt` (catchers-space). Filled, `Coming` draws `Wanted.ComingLeast..Most` breaths, counted
   down each breath. `SignalOf`: `Calm`, `Coming` (the alarm), `Hunted` (full, `Coming` 0: Creatures sends its catcher). `CallOff`
   empties it: passing out, departing, a hunt's end. `Track(Short)` (dev) sets it that short.
-- **Creative mode** (`Items`): an awake hero's air fills each tick, drawing no pod or room air; one out wakes as ever.
-- **Order:** breaths run in the simulation phase after `Atmosphere`'s and `Sky`'s, reading this tick's air.
+- **Creative mode** (`Items`): an awake hero's air fills each tick, drawing no pod or room air.
+- **Order:** breaths run in simulation after `Atmosphere`'s and `Sky`'s, reading this tick's air.
 
 ## API
 
-- **Queries** (`ICrewQueries`): `Spawn`; `ByPod(cell)`; `EdgeCost(cell)`; `CapacityOf(peer)`; `CanisterRefill`; `Cold`, `Warmth` (frost);
+- **Queries** (`ICrewQueries`): `Spawn`; `ByPod(cell)`; `EdgeCost(cell)`; `CapacityOf(peer)`; `RefillOf(peer)`; `Cold`, `Warmth` (frost);
   `SuitOn`, `SuitModeProblem`; `SignalOf(peer)`, `Hunted(peer)`;
   `HeroOf(id)` — `Hero` (`Id`, `Cell`, `Air`, `Gasp`, `Out`) or null; `Heroes` — live, read-only, in id order. On the
   module: `Burns(cell)`; `RefillProblem(peer)`, so the client sends no `Refill` the sim would refuse.
 - **Commands:** `Enter(Cell)`, `ChooseLook(Look)`, never refused; `PickColour(Colour)` —
   `crew.noHero`, `crew.noSuchColour`, `crew.colourTaken`; `Leave`, `Exert(On)` — `crew.noHero`; `Thrust(On)` —
-  `crew.noHero`, `crew.noJetpack`; `Refill` — `crew.noHero`, `crew.suitFull`, `items.notEnough`; `SuitMode(On)` —
+  `crew.noHero`, `crew.noJetpack`; `Refill` — `crew.noHero` (or out), `crew.suitFull`, `crew.canisterCooling`, `items.notEnough`; `SuitMode(On)` —
   `crew.noHero`, on `crew.noSuitMode`; `Track` — `crew.noHero`. **Ops** (`ICrewOps`) add `Loot(peer, yield)`, `CallOff(peer)`.
 - **Fuzz:** every command and refusal; `Enter` near the spawn, anywhere, or off the grid.
 

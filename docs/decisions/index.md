@@ -224,7 +224,7 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [pixels-unsupported](2026-11-03-pixels-unsupported.md) | The pixel art is unsupported | accepted |  |
 | [power-driver](2026-11-03-power-driver.md) | The power driver works a square | accepted |  |
 | [salvage-drones](2026-11-03-salvage-drones.md) | Salvage drones | accepted | salvage-trips (in part) |
-| [the-heavy-helmet](2026-11-03-the-heavy-helmet.md) | The heavy helmet and richer canisters | accepted |  |
+| [the-heavy-helmet](2026-11-03-the-heavy-helmet.md) | The heavy helmet and richer canisters | accepted | food-and-the-body (in part) |
 | [the-regen-suit](2026-11-03-the-regen-suit.md) | The regen suit and the suit's mode | accepted |  |
 | [credit-counter](2026-11-04-credit-counter.md) | The credit chip stands upright and larger, and changing numbers count with a flare | accepted |  |
 | [door-swing](2026-11-04-door-swing.md) | A door takes no other toggle while it moves | accepted |  |
@@ -333,4 +333,5 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [one-damage-rule](2026-11-10-one-damage-rule.md) | One damage rule for every hit | accepted |  |
 | [plant-stirs](2026-11-10-plant-stirs.md) | Plants stirred by bodies | accepted |  |
 | [tool-size](2026-11-10-tool-size.md) | Held tools are drawn smaller, and reach no longer follows the model | accepted |  |
+| [food-and-the-body](2026-11-12-food-and-the-body.md) | Food and the body | accepted |  |
 | [one-to-understand](2026-11-12-one-to-understand.md) | One of each part is enough to understand a thing | accepted |  |

@@ -385,6 +385,14 @@ public sealed class Ui
     public void PressFlat() => PressedFlat?.Invoke();
 
     /// <summary>
+    /// This player asked for a canister while one cools (canister-mark): <c>crew</c> says so, once a press; the suit gauge's
+    /// oxygen sign and the canister's slots blink red.
+    /// </summary>
+    public event Action? PressedCooling;
+
+    public void PressCooling() => PressedCooling?.Invoke();
+
+    /// <summary>
     /// The UI's click asked for (0081): an inventory action (a stack picked, put, swapped, split, sent across, dropped, a
     /// hotbar slot chosen, a sort), a canister breathed. The sound feature plays it, once a frame at most.
     /// </summary>

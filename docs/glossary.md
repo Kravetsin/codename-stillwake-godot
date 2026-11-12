@@ -78,7 +78,8 @@ Game words → code. One line a term: Russian / English → identifiers → modu
 - репутация, уровень мафии / reputation, level → `Knowledge.Level`, `Research.Standing()` (2026-11-08-mafia-reputation) → Knowledge, Research
 - связи ноды / a node's ties → `TechLinks` (client)
 - ценность, наценка / worth, markup → `Content.Market.WorthOf`, `Markup`; цена блока → `Research.Prices` → Research
-- улучшения, слоты инвентаря, пояса, терминала, баллонов / upgrades → `Content.Upgrades`, `Items.SlotOpen`, `Crew.CanisterRefill` → Items, Crew, Research
+- улучшения, слоты инвентаря, пояса, терминала / upgrades → `Content.Upgrades`, `Items.SlotOpen` → Items, Research
+- откат баллона / canister cooldown → `Crew.CanisterCooldown`, `Hero.CanisterIn`, `crew.canisterCooling` → Crew
 - торговая станция / trade station → machine `tradeStation`, `TradeModule` → Trade; авто / auto trade station → `autoTradeStation`
 - капсула с товаром / trade capsule → `SendCapsule`, `Flight`, `Market.CapsuleFlight` → Trade; `CapsuleFlights` drawn in f/research
 - кредиты, цены / credits, prices → `Knowledge.Credits`; `Content.Market` → Trade

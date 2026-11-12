@@ -73,7 +73,7 @@ public class LastBreathTests
         var w = Dry().GiveItems(0, (Content.Crew.Canister, 1));
         w.Run(Content.Crew.LastBreath / 2);
         w.Do(new Refill { From = 0 }).Run();
-        Assert.Equal((w.M.Crew.CanisterRefill, 0), (HeroOf(w).Air, HeroOf(w).Gasp));
+        Assert.Equal((Content.Crew.CanisterRefill, 0), (HeroOf(w).Air, HeroOf(w).Gasp));
         w.Run(Content.Crew.LastBreath);
         Assert.Equal(0, HeroOf(w).Out);
     }

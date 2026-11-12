@@ -163,9 +163,9 @@ public class FieldTests
         var w = BroughtIn(At(Left / 2, MidY)).GiveItems(0, (Content.Crew.Canister, 1));
         HeroOf(w).Air = 2;
         w.Do(new Refill { From = 0 }).Run();
-        Assert.Equal(2 + w.M.Crew.CanisterRefill, HeroOf(w).Air);
+        Assert.Equal(2 + Content.Crew.CanisterRefill, HeroOf(w).Air);
         ToBreath(w).Run();
-        Assert.Equal(2 + w.M.Crew.CanisterRefill - 13, HeroOf(w).Air);
+        Assert.Equal(2 + Content.Crew.CanisterRefill - 13, HeroOf(w).Air);
     }
 
     [Fact]

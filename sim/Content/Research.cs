@@ -89,7 +89,6 @@ public static class Research
                 ("solarPanel", 5),
                 Up("bag9"),
                 Up("tradeSlots6"),
-                Up("canister1"),
                 ("salvageDrone", 3),
                 ("plasmaCutter", 4)),
             new("order5", [("copper", 40), ("mica", 20), ("hide", 15)],

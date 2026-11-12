@@ -134,6 +134,7 @@ public partial class InventoryPanel : CanvasLayer
         // The chosen slot is outlined only while the hand holds what is in it.
         ui.Hand.Subscribe(Refresh);
         // A canister breathed pulses its slot as a shifted stack's landing does: the one clicked, else the hand's (0081).
+        ui.PressedCooling += _refused.Press;
         ui.Refilled += () =>
         {
             var from = _breathedFrom is var (place, frame) && Engine.GetProcessFrames() - frame <= 2 ? place : new Place(_chosen);
@@ -193,6 +194,13 @@ public partial class InventoryPanel : CanvasLayer
 
     /// <summary>Whether something in a bay's reach holds that item for that machine: a kept slot's tooltip (0062). Set by <c>Main</c>.</summary>
     public Func<int, string, bool>? Supplied { get; set; }
+
+    /// <summary>This player's hero's ticks left before another canister (canister-mark): its slots sweep round while it cools. Set by <c>Main</c>.</summary>
+    public Func<int>? CanisterIn { get; set; }
+
+    private readonly CanisterCooling _cooling = new();
+    private readonly FlatBlink _refused = new();
+    private bool _coolShown;
 
     /// <summary>The hotbar slot chosen, with 1–9 or the wheel.</summary>
     public int Chosen => _chosen;
@@ -319,6 +327,7 @@ public partial class InventoryPanel : CanvasLayer
         _sinceRead = 0;
         if (_client == null || _items == null || _grid == null) return;
         _reading = Reading.Of(_client.Id, _client.InFlight, _items, _grid, Crate);
+        _cooling.Read(CanisterIn?.Invoke() ?? 0);
         Refresh();
     }
 
@@ -528,12 +537,26 @@ public partial class InventoryPanel : CanvasLayer
         _ui.OnPointer.Set(carrying ? _held.Size.X : 0);
         Power(delta);
         Hologram(delta);
+        Cooling(delta);
         // The equipment keeps its margin from the right edge, whatever the window's width and its own.
         _body.Position = new Vector2(_root.GetViewportRect().Size.X - Slots.Margin - _body.Size.X, Slots.InventoryTop(_ui.Slot));
         var grid = _inventory.GetGlobalRect();
         _ui.InventoryFoot.Set(_shown.Visible ? (grid.Position.X, grid.End.Y) : null);
         // A hidden slot says nothing; under the open menu none is pointed at.
         _tipSpots.Frame(_ui.MenuOpen.Get() ? null : _mouse);
+    }
+
+    /// <summary>The canister's own slots while it cools, is refused or turns ready: each frame only then, and once more to clear.</summary>
+    private void Cooling(double delta)
+    {
+        _cooling.Step(delta);
+        _refused.Step(delta);
+        bool showing = _cooling.Cooling || _cooling.Ready > 0 || _refused.Red > 0;
+        if (!showing && !_coolShown) return;
+        _coolShown = showing;
+        SlotCooling? look = showing ? new(_cooling.Cooling ? _cooling.Passed : null, _refused.Red, _cooling.Ready) : null;
+        foreach (var box in _slots)
+            box.Cooling(look != null && box.Place.Crate == null && _reading?.At(box.Place)?.Item == Content.Crew.Canister ? look : null);
     }
 
     private void Refresh()

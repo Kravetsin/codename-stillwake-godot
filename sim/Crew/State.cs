@@ -50,6 +50,11 @@ public sealed class Hero
     [JsonInclude, JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)] public int Need { get; internal set; }
     /// <summary>Breaths left of the alarm, drawn as its meter filled: at 0 with the meter full, its catcher hunts it.</summary>
     [JsonInclude, JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)] public int Coming { get; internal set; }
+    /// <summary>
+    /// Ticks until it may breathe another canister, 0 when it may: ticks left, never a tick of the clock, as each surface
+    /// keeps its own and a hero carries this across (food-and-the-body).
+    /// </summary>
+    [JsonInclude, JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)] public int CanisterIn { get; internal set; }
 }
 
 /// <summary>
