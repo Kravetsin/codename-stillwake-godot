@@ -8,7 +8,7 @@ using Diet = Stillwake.Content.Diet;
 namespace Stillwake.Game.Features.Crew;
 
 /// <summary>
-/// The hero's three meals under the suit's gauge (food plan, A2): each food's icon, pulsing in its last minute; empty
+/// The hero's three meals under the suit's gauge (food-and-the-body): each food's icon, pulsing in its last minute; empty
 /// slots when there is room, a red rim round all three when hungry; what each does on hover. A plain stand-in until the
 /// gauges' redesign places food on the HUD. Reads the sim four times a second.
 /// </summary>

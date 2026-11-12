@@ -3,7 +3,7 @@
 ## Why
 
 The wrist's gauge row under the hotbar ([0081](../decisions/0081-the-wrist-is-one-column-of-gauges-and-keys.md)) shows air as 15 pixel-echo lamps and charge as a small ring and a
-number. A heavy helmet looks the same as a basic one, the row is cramped, and food's meals (food plan A2) sit there as
+number. A heavy helmet looks the same as a basic one, the row is cramped, and food's meals ([food and the body](../decisions/2026-11-12-food-and-the-body.md)) sit there as
 a stand-in (`MealSlots`). The vitals move to the bottom-left corner, larger, drawn in the game's ink and watercolour.
 
 **Decided with the user** (2026-11-12, six rounds on the pick page `2QwfBBTq9K8MbmUe3ZbBuq`, picks in its `db`):
@@ -70,7 +70,7 @@ bottom 24 px above the screen's, clear of the tablet's rim. Top down:
 
 ## Meals row
 
-Replaces the stand-in `MealSlots` (food plan A2, "as built").
+Replaces the stand-in `MealSlots` ([food and the body](../decisions/2026-11-12-food-and-the-body.md), as built).
 
 - **Slot:** the dish's own item picture (`game/art/hd/items`, the one the hotbar shows) at 20 px, in its own paint,
   never tinted; under it a thin time light (3 px) in a neutral grey (`#a4aec2`). Empty: the time light's dark wash only.

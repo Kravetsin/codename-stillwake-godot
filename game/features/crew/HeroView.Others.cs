@@ -156,12 +156,12 @@ public partial class HeroView
         _ui.Refill();
     }
 
-    /// <summary>Eats <paramref name="food"/> (food-and-the-body): sent, a click heard, when the sim would take it now and no meal is in flight.</summary>
+    /// <summary>Eats <paramref name="food"/> (food-and-the-body): sent, its chewing heard in the helmet, when the sim would take it now and no meal is in flight.</summary>
     private void Eat(Client client, Registry m, string food)
     {
         if (Report.EatOf(food, m.Crew.EatProblem(client.Id, food), client.InFlight) is not { } eat) return;
         client.Send(eat);
-        _ui.Click();
+        _eats.Play();
     }
 
     /// <summary>This player's hero breathes room air again: a few pale motes off its visor (0081).</summary>

@@ -250,7 +250,7 @@ public partial class Main : Node2D, ITogether
             var gauge = new SuitGauge(() => _session is Session s ? Danger.Read(_m.Crew, _m.Atmosphere, s.Client.Id) : (1, 1, SuitDanger.None, true),
                 CanisterIn, _hands.Ui);
             AddChild(gauge);
-            // The hero's meals under the gauge, a stand-in until the gauges' redesign (food plan, A2).
+            // The hero's meals under the gauge, a stand-in until the gauges' redesign (food-and-the-body).
             AddChild(new MealSlots(() => _session is Session s && _m.Crew.HeroOf(s.Client.Id) is { } fed
                 ? (fed.Meals.Select(m => (m.Food, m.Left)).ToList(), _m.Crew.Hungry(s.Client.Id)) : null, _hands.Ui));
             if (_hero is { } breathing) gauge.BreathesAgain += breathing.BreathesAgain;

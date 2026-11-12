@@ -104,7 +104,7 @@ public class TestbedTests
         int pod = IdOf(m, "dropPod");
         Assert.Equal(Testbed.PodFuel, m.Items.HeldFor(pod, "biofuel"));
         // A hero in the airlock boards it; its run is powered and its shaft clear, so it flies.
-        world.Step([new Stillwake.Sim.Crew.Enter(Testbed.Map.Width * 15 + 94), new Stillwake.Sim.Landing.Board(pod)]);
+        world.Step([new Stillwake.Sim.Crew.Enter(Testbed.Map.Width * 15 + 98), new Stillwake.Sim.Landing.Board(pod)]);
         Assert.Null(m.Landing.LaunchProblem(0));
         Assert.Empty(world.Step([new Stillwake.Sim.Landing.Launch()]));
         Assert.NotNull(m.Landing.FlightOf(0));
@@ -117,7 +117,7 @@ public class TestbedTests
         Assert.True(m.Items.Creative(0));
         Assert.True(m.Furnace.At(IdOf(m, "furnace")).Burning);
         Assert.True(m.Furnace.At(IdOf(m, "burnerGenerator")).Burning);
-        var airlock = m.Rooms.RoomAt(Testbed.Map.Width * 12 + 92);
+        var airlock = m.Rooms.RoomAt(Testbed.Map.Width * 12 + 96);
         Assert.NotNull(airlock);
         Assert.All(m.Rooms.All, room => Assert.Equal(room.Id == airlock ? RoomStatus.Vacuum : RoomStatus.Aired, Held(m, room.Id)));
         Assert.All(m.Grid.Machines.Where(x => Spec.Machines.Get(x.Kind).Draws != null), x => Assert.Equal(1000, m.Power.Satisfaction(x.Id)));
@@ -195,7 +195,7 @@ public class TestbedTests
         int left = m.Items.Crate(crates[0]).Sum(s => s?.Item == "scrapChunk" ? s.Count : 0);
         Assert.True(Testbed.Supplies.Where(s => s.Item == "scrapChunk").Sum(s => s.Count) - left >= 120, $"{left} chunks left");
         // The air held: every room but the airlock aired.
-        var airlock = m.Rooms.RoomAt(Testbed.Map.Width * 12 + 92);
+        var airlock = m.Rooms.RoomAt(Testbed.Map.Width * 12 + 96);
         Assert.All(m.Rooms.All.Where(r => r.Id != airlock), r => Assert.Equal(RoomStatus.Aired, Held(m, r.Id)));
         // Two drones, many jobs, few launches: a drone takes its next job from where it is.
         Assert.True(launched.Count < 60, $"{launched.Count} launches");

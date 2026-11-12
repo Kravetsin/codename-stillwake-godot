@@ -55,6 +55,8 @@ public static class Stations
         new("growCapsule", Speed: 1000, QueueMost: 0, Rows: [], Heat: 1, Process: "grow"),
         // Ferments biomass and fat into biofuel on power, the only way to biofuel (power-chain): one in 160 ticks at a full share.
         new("fermenter", Speed: 1000, QueueMost: 0, Rows: [], Heat: 1, Process: "ferment"),
+        // The galley (food-and-the-body): the dishes, paid by hand, at full speed with no power, a queue of four.
+        new("galley", Speed: 1000, QueueMost: 4, Rows: [[Foods.Porridge, Foods.Hash, Foods.Broth], [Foods.Roast, Foods.Stew]]),
         // The arc branch's station (0099): every craft of a sky shard, the arc module, the accumulator and the railgun, paid by
         // hand, at full speed with no power, a queue of four.
         new("arcBench", Speed: 1000, QueueMost: 4, Rows: [["arcModule", "accumulator"], ["railgun"]]),

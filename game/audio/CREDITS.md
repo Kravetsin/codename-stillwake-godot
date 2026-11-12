@@ -47,6 +47,12 @@ shut shell struck; each mono 48 kHz WAV from its attack (a −45 dB gate), its l
 The hero's hurt (hurts-are-shown) is its pick page's «oof», cut and levelled as those; its three takes then matched by mean loudness,
 the louder turned down.
 
+The galley's and eating's sounds (food-and-the-body) are their pick pages' picks, cut and levelled there from the Freesound HQ
+previews, mono 48 kHz: the boil a 5.0 s loop from 30.0 s, closed on itself by a 0.3 s crossfade, −25 LUFS, encoded here as OGG; the
+knock the whole 1.0 s, its last 40% faded, −22 LUFS max momentary; the chewing 0.85 s from its start, high-passed at 80 Hz, its
+last 30% faded, raised 18.5 dB to −20 LUFS max momentary, then gated here (−40 dBFS, 24 dB down, 40 ms release) so the
+microphone's hiss under its tail is gone.
+
 | File | Source | Author | Licence |
 | ---- | ------ | ------ | ------- |
 | `atmosphere/hiss-1.ogg` | generated for Stillwake | Stillwake team | CC0 |
@@ -76,6 +82,8 @@ the louder turned down.
 | `building/hit-stone-4.wav` | Freesound, "Stone Strike/Hit" (0.4 s from 7.947 s), https://freesound.org/people/Bricklover/sounds/560966/ | Bricklover | CC0 |
 | `building/hit-stone-5.wav` | Freesound, "Stone Strike/Hit" (0.4 s from 10.232 s), https://freesound.org/people/Bricklover/sounds/560966/ | Bricklover | CC0 |
 | `crafting/crusher-run-1.ogg` | Freesound, "quarry_close_up.aif" (2.98 s from 54.40 s, closed on itself by a 0.15 s equal-power crossfade where the wave matches best; mono 48 kHz, −23.2 LUFS, OGG), https://freesound.org/people/f_ilippo/sounds/59244/ | f_ilippo | CC0 |
+| `crafting/galley-boil-1.ogg` | Freesound, "water boiling in pot hollow1.flac" (5.0 s from 30.0 s, looped), https://freesound.org/people/kyles/sounds/637935/ | kyles | CC0 |
+| `crafting/galley-done-1.wav` | Freesound, "hit - metallic - lid of candle 01.wav", https://freesound.org/people/Anthousai/sounds/406525/ | Anthousai | CC0 |
 | `crafting/former-motor-1.ogg` | generated for Stillwake: 80 Hz at 0.6 and 160 Hz at 0.3 under white noise (mulberry32 seed 14) band-passed at 900 Hz, Q 3, gain 2.2, swaying ±45% at 2.25 Hz, a 4 s loop rendered offline to −23 dBFS RMS (the audition's "Flywheel whoosh") | Stillwake team | CC0 |
 | `crafting/former-stroke-1.wav` | Freesound, "Punch Press, 10 Ton" (0.5 s from the attack after 9.4 s), https://freesound.org/people/dnewtonjr/sounds/232598/ | dnewtonjr | CC0 |
 | `crafting/smelter-hum-1.ogg` | generated for Stillwake: 100 Hz and its harmonics at 1, 0.35 and 0.15 under white noise (mulberry32 seed 25) band-passed at 3.5 kHz, Q 0.7, gain 0.1, swaying ±30% at 0.75 Hz, a 4 s loop rendered offline to −23 dBFS RMS (the audition's "Hum and hiss") | Stillwake team | CC0 |
@@ -155,6 +163,7 @@ the louder turned down.
 | `crew/land-soft-1.wav` | Freesound, "land a jump.wav" (0.307 s from 0.001 s), https://freesound.org/people/zepurple/sounds/540272/ | zepurple | CC0 |
 | `crew/lava-burn-1.wav` | Freesound, "Pressure Hiss" (0.8 s), https://freesound.org/people/unfa/sounds/211096/ | unfa | CC0 |
 | `crew/catcher-beep-1.wav` | Freesound, "motion tracker beep.wav" (the first ping: 1.1 s from 0.04 s, its last 0.25 s faded; the warning page's pick, tracker-catchers), https://freesound.org/people/Balcoran/sounds/478186/ | Balcoran | CC0 |
+| `crew/eat-1.wav` | Freesound, "Eat_sound" (0.85 s from its start), https://freesound.org/people/dinoworld112/sounds/867040/ | dinoworld112 | CC0 |
 | `crew/hurt-1.wav` | Freesound, "Oof (original)" (all of it from its attack, band 130 Hz–2 kHz, echoes at 7 and 15 ms), https://freesound.org/people/unfa/sounds/719053/ | unfa | CC0 |
 | `crew/hurt-2.wav` | the same, raised 6% in pitch at its length | unfa | CC0 |
 | `crew/hurt-3.wav` | the same, lowered 7% in pitch at its length | unfa | CC0 |

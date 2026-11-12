@@ -9,7 +9,7 @@ The game grew in length, one craft chain after another, but not in breadth. A he
 them back to back and never ran dry, so air, the only health, stopped mattering short of the farthest ring. The
 canister upgrade of [the heavy helmet](2026-11-03-the-heavy-helmet.md) sold a body effect, more air a breath, for gear
 money. The user wanted a semi-mandatory side loop like Valheim's food: a crew can play on without it but plays better
-with it. The plan is [food](../plans/food.md).
+with it. It was built in six steps the same day, the plan since retired into this record.
 
 ## Decision
 
@@ -38,6 +38,35 @@ with it. The plan is [food](../plans/food.md).
   of bottles (vendingMachine_D), their sign and screen still faintly lit. A piece is one or the other at random: a fridge by
   its id (`Content.Looks`), as every drifting piece; a vending machine by the vessel's seed as it is stamped, as consoles
   and main engines are.
+- **The galley's look and sounds** (picked on pages, step B2): the galley a cast-iron range, its stock pot on the hob
+  rattling its lid under steam, the fire in its box flickering through the draught slots, the flue up through the deck
+  (galley_A); the dishes galley ware seen from the side, each its own vessel (dishes_A), their fruit and berries
+  recoloured to the picked crops; its pot boiling hard while it cooks (galleyLoop_C), a wooden spoon knocked on a tin
+  lid as a dish is done (galleyDone_D), and three soft chews whenever a hero eats (eat_A).
+
+## As built
+
+- Every number is a first guess for the playtest, in `Content.Diet` and `Content.Foods`: the raw foods' rates, the
+  dishes' (each lasts 18 000 ticks; no loadout fills every cap), the caps, hunger's sprint and work.
+- The HUD's meal slots are a stand-in (`MealSlots`) till the gauges' redesign places food ([hud-vitals](../plans/hud-vitals.md)).
+- A repair takes both ticks of a `Work` worth two, its last mending: it has no part to pay nor last-tick check.
+- A vending machine stands 4 × 5 cells in derelicts' quarters (`mess`), gives the fridge's mean five times over and
+  glows as the emergency lamp does, no power. Seeds stay sold: they are the farm's input; every other food is unsold.
+- The galley is 4 × 5 like the workbench, works at full speed, a dish in 200 ticks, roast and stew in 300. A hero's own
+  eating is heard, a friend's not.
+
+## Not done
+
+- Death or damage from hunger; a hunger meter; walking slower.
+- Free mixing or computed dishes; black-market recipes; feeding another hero.
+- Legs, strike and harvest yield: the rates named next.
+- The jetpack's cost, rest breath, base air: playtest tuning.
+- Deep breath on tank canisters or drone trips.
+
+Accepted: water cooked is oxygen not made; paste takes a slot; a cooked fruit gives no seed back; with canned meat and a
+stack of canisters a resting hero breathes indefinitely, as canisters stay scarce
+([scarce-oxygen](2026-11-07-scarce-oxygen.md)); a fed hero's extra `Work` tick is lost where it would finish a plan or
+start a part; leaving and rejoining wipes meals and the cooldown and prints paste.
 
 ## Consequences
 

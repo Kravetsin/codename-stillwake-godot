@@ -1089,6 +1089,97 @@ P.glowberry = (a) => {
   a.line('M7.8 4.6L5.8 6.2M7.8 4.6L10 6M7.8 4.6L7.6 9', { c: '#3e3424', w: 1.2 });
   b(5.6, 6.6, 2); b(10, 6.4, 2.1); b(7.6, 9.2, 2.3); b(4.1, 10.6, 2.1); b(11.6, 10.2, 2.2); b(7.8, 13.2, 2.3);
 };
+// The galley's dishes (food-and-the-body), galley ware seen from the side as the user picked them (dishes_A). Their fruit
+// pulp and berries are recoloured to the picked fruit's olive-ochre and the glowberry's dusky olive with its light.
+P.porridge = (a) => {
+  // A deep tin bowl heaped with pale porridge, fruit pressed into it, a spoon left standing.
+  const TIN = { base: '#a2a8b2', shade: '#666c7c', deep: '#464a5a', lite: '#ccd0d8', spec: '#f0f2f0' };
+  const OAT = { base: '#c4b48a', shade: '#93835e', deep: '#6c5f45', lite: '#ddd0a8', spec: '#efe6c8' };
+  const PULP = { base: '#b09a46', shade: '#7c6c32', deep: '#564c28', lite: '#cdb860' };
+  a.shape('M2.4 9C2.6 5.6 5 3.6 8 3.6C11 3.6 13.4 5.6 13.6 9Z', OAT, {
+    lite: 'M2.4 9C2.6 5.6 5 3.6 8 3.6C6 4.8 4.6 6.6 4.2 9Z', shade: 'M13.6 9C13.4 5.6 11 3.6 8 3.6C10.4 5 11.6 7 11.8 9Z',
+    lines: ['M4.8 7.8Q6 7 7.2 7.6', 'M9.2 8.4Q10.2 7.8 11.2 8.3'] });
+  a.shape(ell(6, 5.6, 1.2, .9), PULP, { shade: .35 });
+  a.shape(ell(9.2, 5, 1.05, .8), PULP, { shade: .35 });
+  a.shape(ell(10.9, 7.2, 1, .75), PULP, { shade: .35 });
+  a.flat(ell(7.8, 6.6, .5, .36), '#6c4a34'); a.flat(ell(4.4, 7.8, .45, .3), '#6c4a34');
+  a.tube('M9.6 6.4L13.8 1.6', .95, TIN);
+  a.shape('M1.6 8.6C1.6 10.6 14.4 10.6 14.4 8.6C14.4 13.2 11.6 15 8 15C4.4 15 1.6 13.2 1.6 8.6Z', TIN, {
+    lite: 'M1.6 8.6C1.6 9.4 3 9.8 4 10C3.6 12 4.2 13.6 5.4 14.6C3 13.8 1.6 11.6 1.6 8.6Z',
+    shade: 'M14.4 8.6C14.4 13.2 11.6 15 8 15C10.4 14 12 12 12 9.9C13.4 9.6 14.4 9.2 14.4 8.6Z',
+    lines: ['M10.4 11.4L11 12.6'] });
+  a.tube('M1.6 8.6C1.6 10.6 14.4 10.6 14.4 8.6', .7, TIN, { spec: false });
+};
+
+P.hash = (a) => {
+  // A black iron skillet of hash, fried meat and fruit browned together; the handle out to the right.
+  const IRON = { base: '#4a4e5c', shade: '#30323e', deep: '#20212c', lite: '#6c7080', spec: '#a8b0bc' };
+  const PANIN = { base: '#2a2c38', shade: '#1c1d28', deep: '#14151e', lite: '#3c3e4c' };
+  const FRY = { base: '#86543a', shade: '#5c3a2c', deep: '#3e2822', lite: '#a8724c', spec: '#c89a6c' };
+  const PULP = { base: '#b09a46', shade: '#7c6c32', deep: '#564c28', lite: '#cdb860' };
+  a.tube('M12.2 8.6L15.4 5.4', 1.5, IRON);
+  a.shape(ell(7.2, 9.8, 6.4, 3.9), IRON, { lite: 'M.8 9.8C.8 7.6 3.4 6 6.6 5.9L6.2 7C3.8 7.2 2 8.4 2 9.8Z', shade: .5 });
+  a.shape(ell(7.2, 9.5, 5.2, 2.9), PANIN, { outer: false, shade: .4 });
+  a.shape('M2.4 10.2C2.2 7.8 4.2 5.8 7 5.8C9.8 5.8 12 7.6 11.8 10.2C10.4 11.8 3.8 11.8 2.4 10.2Z', FRY, {
+    outer: false, lite: 'M2.4 10.2C2.2 7.8 4.2 5.8 7 5.8C5.6 6.8 4.4 8.2 4.2 10.4Z', shade: 'M11.8 10.2C12 7.6 9.8 5.8 7 5.8C9 7 10.2 8.6 10 11Z',
+    lines: ['M4.4 8.6L5.4 9.8', 'M7.8 7L8.4 8.6L7.4 9.8', 'M9.4 9.6L10.6 9.2'] });
+  a.shape(rr(5, 6.8, 1.9, 1.5, .35), PULP, { shade: .35 });
+  a.shape(rr(8.6, 8.2, 1.8, 1.4, .35), PULP, { shade: .35 });
+  a.shape(rr(3.4, 9.2, 1.5, 1.1, .3), PULP, { shade: .3 });
+  a.flat(rr(6.4, 9.4, 1.3, .9, .3), '#4a2e24');
+  a.tube('M1 10.4C1.6 14.2 12.8 14.2 13.4 10.4', .9, IRON, { spec: false });
+};
+
+P.broth = (a) => {
+  // A wide steel mug of thin broth, blue-violet and faintly alight from the glowberries; one floats at the brim.
+  const TIN = { base: '#a2a8b2', shade: '#666c7c', deep: '#464a5a', lite: '#ccd0d8', spec: '#f0f2f0' };
+  const BROTH = { base: '#5c5c98', shade: '#403e74', deep: '#2c2a54', lite: '#7e7cb8', spec: '#b4b2e0' };
+  const BERRY = { base: '#706a3e', shade: '#4c4830', deep: '#363426', lite: '#9a9254', spec: '#f0e8b8' };
+  a.tube('M12 7.6C15.2 7.6 15.2 12.6 12 12.6', 1.3, TIN, { spec: false });
+  cyl(a, 2.6, 6, 9.8, 9, TIN, { r: 1.4, lines: ['M5 10.6L5.6 11.8'] });
+  a.shape(ell(7.5, 6.2, 4.9, 2.1), TIN, { shade: .3 });
+  a.shape(ell(7.5, 6.4, 4.1, 1.6), BROTH, { outer: false, shade: .35 });
+  a.glow(ell(7.1, 6.5, 2.9, 1), '#a09452', { core: ell(6.6, 6.4, 1.3, .45), coreC: '#d8c47a' });
+  a.shape(ell(9.8, 6.3, .8, .6), BERRY, { lite: ell(9.6, 6.1, .35, .22) });
+  a.shape(ell(5, 6.9, .6, .45), BERRY, {});
+};
+
+P.roast = (a) => {
+  // Fat roasted on a steel skewer: three dark crusted pieces, a rim of rendered fat on each, the ring of the skewer below.
+  const CRUST = { base: '#7c3c24', shade: '#56281c', deep: '#3a1a16', lite: '#a65a32', spec: '#d89058' };
+  const piece = (x, y, s, j) => {
+    const p = [];
+    for (let k = 0; k < 8; k++) { const t = (k + .5) * Math.PI / 4, r = s * (1 + j[k] * .1); p.push(x + Math.cos(t) * r, y + Math.sin(t) * r * .92); }
+    a.shape(poly(p), CRUST, { shade: .55, lite: ell(x - s * .32, y - s * .34, s * .46, s * .3), lines: [`M${x - s * .3} ${y + s * .2}L${x + s * .2} ${y - s * .1}`] });
+    a.flat(`M${x - s * .9} ${y - s * .1}Q${x - s * .7} ${y - s * .8} ${x - s * .05} ${y - s * .92}L${x + s * .05} ${y - s * .6}Q${x - s * .5} ${y - s * .5} ${x - s * .62} ${y}Z`, '#d8c49a');
+  };
+  a.tube('M1.2 14.8L14.8 1.2', .75, STEEL);
+  a.tube(ell(1.7, 14.3, .95, .95), .45, STEEL, { spec: false });
+  piece(4.5, 11.5, 2.5, [1, -1, 0, 1, -1, 1, 0, -1]);
+  piece(8, 8, 2.8, [0, 1, -1, 0, 1, -1, 1, 0]);
+  piece(11.5, 4.5, 2.3, [-1, 0, 1, -1, 0, 1, -1, 1]);
+};
+
+P.stew = (a) => {
+  // A dented, soot-black pot of thick stew under its bail: olive-brown gravy, glowberries alight, beads of fat.
+  const SOOT = { base: '#545866', shade: '#383a48', deep: '#262834', lite: '#767a88', spec: '#b0b6c0' };
+  const GRAVY = { base: '#5c4a2e', shade: '#40321e', deep: '#2c2216', lite: '#7c6842', spec: '#a48e64' };
+  const BERRY = { base: '#706a3e', shade: '#4c4830', deep: '#363426', lite: '#9a9254', spec: '#f0e8b8' };
+  a.tube('M2.4 8.2C2.2 1.6 13.8 1.6 13.6 8.2', .65, STEEL, { spec: false });
+  a.shape(ell(8, 7.8, 6.2, 1.9), SOOT, { shade: .3 });
+  a.shape(ell(8, 8, 5.3, 1.4), GRAVY, { outer: false, shade: .3, lite: ell(6.4, 7.7, 2.2, .5) });
+  for (const [x, y, r] of [[5.6, 8, .7], [8.8, 8.4, .65], [10.6, 7.6, .6]]) {
+    a.shape(ell(x, y, r, r * .8), BERRY, { lite: ell(x - r * .3, y - r * .3, r * .35, r * .25) });
+    a.glow(ell(x + r * .1, y + r * .15, r * .5, r * .35), '#a09452', { core: ell(x + r * .1, y + r * .2, r * .22, r * .16), coreC: '#d8c47a' });
+  }
+  a.flat(ell(7.4, 7.6, .4, .25), '#d4c08a'); a.flat(ell(4.2, 8.4, .3, .2), '#d4c08a');
+  a.shape('M1.8 7.8C1.8 9.8 14.2 9.8 14.2 7.8L13.6 13.2C13.4 14.8 11.6 15.2 8 15.2C4.4 15.2 2.6 14.8 2.4 13.2Z', SOOT, {
+    lite: 'M1.8 7.8C1.8 8.8 2.8 9.2 4 9.5L3.8 14.4C3 14.2 2.5 13.8 2.4 13.2Z', shade: 'M14.2 7.8C14.2 8.8 13 9.3 11.8 9.5L11.6 15C12.8 14.7 13.5 14.2 13.6 13.2Z',
+    lines: ['M8.6 10.6Q9.6 11.6 8.8 12.8'] });
+  a.tube('M1.8 7.8C1.8 9.8 14.2 9.8 14.2 7.8', .7, SOOT, { spec: false });
+  a.shape(rr(.6, 8.2, 1.6, 1.3, .3), SOOT, { shade: .3 });
+  a.shape(rr(13.8, 8.2, 1.6, 1.3, .3), SOOT, { shade: .3 });
+};
 // Never an item: the pod paste a hero is printed with, drawn for its meal slot.
 P.podPaste = (a) => {
   // A squeeze tube from the pod, crimped and dented where it was pressed, the pod's teal band; a ribbon of grey paste from its nozzle.

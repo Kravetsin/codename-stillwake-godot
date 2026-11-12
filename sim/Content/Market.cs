@@ -35,7 +35,7 @@ public static class Market
         ["seed"] = 30,
         ["spore"] = 20,
         ["biomass"] = 20,
-        // Grown, priced as the biomass each is crushed into: never sold (rule 7 of the food plan), but a dish is worth its fruit.
+        // Grown, priced as the biomass each is crushed into: never sold (food-and-the-body), but a dish is worth its fruit.
         ["fruit"] = 20,
         ["glowberry"] = 20,
         ["ice"] = 30,
@@ -61,7 +61,7 @@ public static class Market
     /// <summary>What has a worth but no one buys: tools and what is worn, what stores or flies by itself, the arc's.</summary>
     private static readonly HashSet<string> Unsold = new(StringComparer.Ordinal)
     {
-        "ration", "cannedMeat", "fruit", "glowberry", "arcShard", "arcModule", "drone", "salvageDrone", "screwdriver", "fireAxe", "harpoon", "grapple", "nailer", "railgun", "drill", "powerDriver", "grinder", "plasmaCutter", "spear", "sledgehammer", "pickaxe", "jetpack", "helmetLamp", "scanner", "battery", "accumulator", "helmet", "heavyHelmet", "suit", "regenSuit", "cape",
+        "ration", "cannedMeat", "fruit", "glowberry", "porridge", "hash", "broth", "roast", "stew", "arcShard", "arcModule", "drone", "salvageDrone", "screwdriver", "fireAxe", "harpoon", "grapple", "nailer", "railgun", "drill", "powerDriver", "grinder", "plasmaCutter", "spear", "sledgehammer", "pickaxe", "jetpack", "helmetLamp", "scanner", "battery", "accumulator", "helmet", "heavyHelmet", "suit", "regenSuit", "cape",
     };
 
     private static readonly Dictionary<string, int> Worths = Worked();

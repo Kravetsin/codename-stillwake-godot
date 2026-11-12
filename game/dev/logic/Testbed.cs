@@ -50,15 +50,18 @@ public static class Testbed
     /// <summary>
     /// What the supply crate by the door holds besides its supplies, the first crate being full: the helmet lamp (0077), the scanner (2026-11-07-the-scanner), an empty accumulator
     /// (0099), a part of each of the computer's (<see cref="ComputerParts"/>), a launch platform's deck drive and the engine's parts
-    /// (<see cref="EngineParts"/>), the nailer and its nails and the blasting charges, a ration, canned meat and a fridge, the full crate having no slot left. A drill with the arc fitted lies there too (0098); a plain one is on the arc bench, to be fitted there (0099).
+    /// (<see cref="EngineParts"/>), the nailer and its nails and the blasting charges, <see cref="Cooking"/> rations and canned meat for the galley, a fridge, the full crate having no slot left. A drill with the arc fitted lies there too (0098); a plain one is on the arc bench, to be fitted there (0099).
     /// </summary>
     public static IEnumerable<string> InSupply => [HelmetLamp.Item, Helmet.Scanner, Foods.Ration, Foods.CannedMeat, "fridge", "accumulator", .. ComputerParts, "deckDrive", .. EngineParts, Shots.Nailer.Item, Shots.Railgun.Item, Shots.Nail.Id, Shots.Thrown.Item];
 
     /// <summary>
     /// What the tools crate on the lifepod holds, the others being full: the salvage tools (salvage-tools), the pickaxe (the-pickaxe), the grappling gun (grapple-climbs), and an arc
-    /// module for each machine and tool it fits (0086, 0098, 0100), which takes a spire's relic to make.
+    /// module for each machine and tool it fits (0086, 0098, 0100), which takes a spire's relic to make; and one of each of the galley's dishes, cooked ahead.
     /// </summary>
-    public static IEnumerable<string> InTools => [Weapons.Grinder.Item, Weapons.Spear.Item, Weapons.Sledgehammer.Item, Weapons.PlasmaCutter.Item, Weapons.Pickaxe.Item, Grapple.Item, .. Modules.Arc.Hosts.Select(_ => Modules.Arc.Item)];
+    public static IEnumerable<string> InTools => [Weapons.Grinder.Item, Weapons.Spear.Item, Weapons.Sledgehammer.Item, Weapons.PlasmaCutter.Item, Weapons.Pickaxe.Item, Grapple.Item, .. Modules.Arc.Hosts.Select(_ => Modules.Arc.Item), .. Stations.Get("galley").Rows.SelectMany(r => r)];
+
+    /// <summary>How many rations and canned meat the supply crate holds: enough to cook at the galley a while, its fruit, glowberries, water and fat in the farm's crate.</summary>
+    public const int Cooking = 10;
 
     /// <summary>What the bay holds beside its drones, the crates being full: a salvage drone, charged, its fuel slot empty, so it never flies here (salvage-drones).</summary>
     public static readonly IReadOnlyList<string> InBay = [Logistics.SalvageDrone];
@@ -83,7 +86,7 @@ public static class Testbed
     /// piped along the floor to an oxygen vaporizer, the vaporizer's air to the vent; and a capacitor bank on the supply crate by the pod; room two
     /// a tank by its door, the arc bench, the
     /// furnace, the Former with the crusher on it, the electric smelter, the circuit assembler, the grow capsule and the farm's crate, the trade station on the drone bay, the charging station
-    /// and the burner generator, two cisterns over the smelter and the assembler, the first piped to the second, and two vaporizers
+    /// and the burner generator, the galley by the airlock's door, two cisterns over the smelter and the assembler, the first piped to the second, and two vaporizers
     /// one over the other right of the grow capsule, the tank's liquid along the floor to both, their air to the vent past the farm's crate;
     /// then the airlock, no vent in it. The ship's computer hangs over room one's vaporizer, the radar
     /// antenna stands on the roof at the bow. The drop pod stands in the airlock on a launch platform laid in its floor over space,
@@ -107,15 +110,15 @@ public static class Testbed
     /// </summary>
     public static readonly Layout Map = Layout.Parse(
         [
-            "   NN".PadRight(96),
+            "   NN".PadRight(98),
             "   NN",
-            "   NN  PPP  PPPPPP PPPPPPPPP PPP PPP PPP PPP PPP PPP PPP",
-            "  ###############################################",
-            "  ##KK...LUUUII###..TTL.kk.cc.ccJ.GG.yy.L.$$#..L#",
-            "  #.OOOQQ.UUUIIRRD..TT..kk.cc.ccggGG.yy...$$DZZ.D",
-            "  #.OOOQQTTGGIIRRDWW.FF.MM.EE.YYggGG.yyAACBBDZZ.D",
-            "  #.OOOKKTTGGVKK.DWW.FF.MM.EE.YYggGGKKVAACBBDZZ.D",
-            "  #o#########www#############################__##",
+            "   NN  PPP  PPPPPP PPPPPPPPP PPP PPP PPP PPP   PPP PPP PPP",
+            "  #################################################",
+            "  ##KK...LUUUII###..TTL.kk.cc.ccJ.GG.yy.L.$$..#..L#",
+            "  #.OOOQQ.UUUIIRRD..TT..kk.cc.ccggGG.yy...$$&&DZZ.D",
+            "  #.OOOQQTTGGIIRRDWW.FF.MM.EE.YYggGG.yyAACBB&&DZZ.D",
+            "  #.OOOKKTTGGVKK.DWW.FF.MM.EE.YYggGGKKVAACBB&&DZZ.D",
+            "  #o#########www###############################__##",
             "  #XXXL.uuqqqwww#n",
             "  #XXX..uuqqqwww#n",
             "  ###############n",
@@ -132,10 +135,10 @@ public static class Testbed
         ],
         [
             ((7, 2), (9, 4)), ((7, 2), (11, 6)), ((7, 2), (19, 2)),
-            ((19, 2), (22, 4)), ((42, 6), (40, 4)), ((40, 4), (47, 4)), ((42, 6), (24, 6)), ((45, 2), (41, 6)),
+            ((19, 2), (22, 4)), ((42, 6), (40, 4)), ((40, 4), (49, 4)), ((42, 6), (24, 6)), ((47, 2), (41, 6)),
             ((29, 2), (27, 6)), ((33, 2), (30, 6)), ((33, 2), (33, 6)), ((12, 2), (15, 5)), ((37, 2), (34, 6)), ((41, 2), (34, 4)),
-            ((37, 2), (32, 4)), ((45, 2), (49, 2)), ((49, 2), (53, 2)), ((7, 2), (7, 5)), ((15, 2), (4, 2)), ((15, 2), (12, 4)),
-            ((7, 5), (3, 9)), ((3, 9), (6, 9)), ((45, 2), (45, 8)), ((22, 2), (24, 4)), ((25, 2), (37, 4)), ((6, 9), (8, 9)), ((10, 9), (8, 9)), ((13, 8), (10, 9)),
+            ((37, 2), (32, 4)), ((47, 2), (51, 2)), ((51, 2), (55, 2)), ((7, 2), (7, 5)), ((15, 2), (4, 2)), ((15, 2), (12, 4)),
+            ((7, 5), (3, 9)), ((3, 9), (6, 9)), ((47, 2), (47, 8)), ((22, 2), (24, 4)), ((25, 2), (37, 4)), ((6, 9), (8, 9)), ((10, 9), (8, 9)), ((13, 8), (10, 9)),
         ]).Doubled();
 
     /// <summary>Ticks run before the items go in: a vaporizer makes a unit a tick, room one's one airing its 260 cells, room two's two its 416.</summary>
@@ -217,7 +220,7 @@ public static class Testbed
             new() { ["id"] = At(Full), ["slots"] = Slots("crate", [.. Carried.Where(i => !InFarmCrate(i.Id) && !InSupply.Contains(i.Id) && !InTools.Contains(i.Id) && !InBay.Contains(i.Id)).Select(i => Stack(i.Id, i.Stack)), Battery(1000)]) },
             new() { ["id"] = At(FarmAt), ["slots"] = Slots("crate", [.. FarmCrate.Select(i => Stack(i, Items.Get(i).Stack))]) },
             new() { ["id"] = At(Tools), ["slots"] = Slots("crate", [.. InTools.Select(f => Stack(f, 1))]) },
-            new() { ["id"] = At(Supply), ["slots"] = Slots("crate", [.. Supplies.Select(s => Stack(s.Item, s.Count)), .. InSupply.Select(f => Stack(f, 1)), FittedDrill(Modules.Arc.Item)]) },
+            new() { ["id"] = At(Supply), ["slots"] = Slots("crate", [.. Supplies.Select(s => Stack(s.Item, s.Count)), .. InSupply.Select(f => Stack(f, f is Foods.Ration or Foods.CannedMeat ? Cooking : 1)), FittedDrill(Modules.Arc.Item)]) },
             new() { ["id"] = Id("growCapsule"), ["slots"] = Slots("growCapsule", [Stack("seed", Planted)]) },
             new()
             {

@@ -39,7 +39,10 @@ public static class Foods
     public const string Paste = "podPaste";
     public const string Seed = "seed", Ration = "ration", CannedMeat = "cannedMeat", Fruit = "fruit", Glowberry = "glowberry";
 
-    /// <summary>Every food, a first guess for the playtest (docs/plans/food.md).</summary>
+    /// <summary>The galley's dishes: builder's porridge, spacer's hash, glow broth, roast and hunter's stew.</summary>
+    public const string Porridge = "porridge", Hash = "hash", Broth = "broth", Roast = "roast", Stew = "stew";
+
+    /// <summary>Every food, a first guess for the playtest (food-and-the-body).</summary>
     public static readonly IReadOnlyList<Food> All =
     [
         new(Paste, 24_000, new()),
@@ -52,6 +55,12 @@ public static class Foods
         // The farm's crops (fruit-not-biomass), eaten raw: each may give back its seed or spore, as crushing it does.
         new(Fruit, 12_000, new(Work: 100)),
         new(Glowberry, 12_000, new(Calm: 120)),
+        // The galley's dishes, their rates set by hand, each stronger than any raw food of its recipe; no loadout fills every cap.
+        new(Porridge, 18_000, new(Calm: 50, Work: 400)),
+        new(Hash, 18_000, new(Deep: 300, Work: 200)),
+        new(Broth, 18_000, new(Calm: 300)),
+        new(Roast, 18_000, new(Deep: 500)),
+        new(Stew, 18_000, new(Calm: 150, Deep: 300)),
     ];
 
     private static readonly Dictionary<string, Food> ById = All.ToDictionary(f => f.Id, StringComparer.Ordinal);

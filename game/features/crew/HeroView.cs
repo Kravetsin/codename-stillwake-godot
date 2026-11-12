@@ -226,7 +226,7 @@ public partial class HeroView : Node2D
     /// <summary>Whether the player asked to switch its suit's mode, by V or its edge key, since the last frame.</summary>
     private bool _switchSuit;
     // A canister breathed is heard in the helmet, never muffled; a friend's on World, where it is.
-    private readonly AudioStreamPlayer _breathes = Cues.Player(S.AirFill, S.Helmet);
+    private readonly AudioStreamPlayer _breathes = Cues.Player(S.AirFill, S.Helmet), _eats = Cues.Player(S.Eat, S.Helmet);
     private readonly Heard2D _othersBreathe = Cues.Player2D(S.AirFill, S.World, voices: 2);
     /// <summary>Air coming back round the heroes: a canister's vortex, a breath of room air at the visor (0081).</summary>
     private readonly AirSwirl _air = new();
@@ -276,7 +276,7 @@ public partial class HeroView : Node2D
         AddChild(_lines);
         AddChild(_work);
         _rod = NewRod();
-        foreach (var player in new Node[] { _shot, _drum, _ready, _swingSound, _hammerSwing, _spearThrust, _bite, _breathes, _drillChop, _whir, _thrustLoop, _othersShot, _othersBite,
+        foreach (var player in new Node[] { _shot, _drum, _ready, _swingSound, _hammerSwing, _spearThrust, _bite, _breathes, _eats, _drillChop, _whir, _thrustLoop, _othersShot, _othersBite,
                      _othersThump, _othersBreathe, _air, _groundHits, _othersGroundHits, _burn, _othersBurn, _thud, _othersThud, _ownShots, _nailShot, _dryClick, _nailReady, _railShot, _railCharge, _railReady, _chargeThrow,
                      _ownShotEnds, _grinderRun, _grinderBite, _cutterStrike, _cutterRun, _cutterOff })
             AddChild(player);

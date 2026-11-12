@@ -829,6 +829,103 @@ const treadWheelTurn = (f) => (a) => { treadWheelBack(a); treadWheelDrum((f / WH
 /** The wheel standing empty: its back, its hoop still, its rail. */
 const treadWheel = (a) => { treadWheelTurn(0)(a); treadWheelFront(a); };
 
+
+// ---------- The galley (food-and-the-body): a cast-iron range, its stock pot on the hob, a firebox under it, the flue up
+// through the deck above, as the user picked it (galley_A). Its paints and helpers came with it from the pick page.
+// New paints: blackened cast iron, a cook's dull pot metal, army drab; steam is paint thinned to a veil.
+const IRON = { base: '#3e4048', shade: '#2a2b33', deep: '#1c1d24', lite: '#5c5f6a', spec: '#a4a8b4', rim: '#5c5f6a' };
+const TIN = { base: '#8a8e94', shade: '#5a5e66', deep: '#3e414a', lite: '#aeb2b6', spec: '#dfe1e3', rim: '#aeb2b6' };
+const DRAB = { base: '#5e6648', shade: '#40472f', deep: '#2c3122', lite: '#7c8460', spec: '#a4aa84', rim: '#7c8460' };
+const STEAM = ['rgba(206,212,220,0.4)', 'rgba(190,198,206,0.27)', 'rgba(172,180,190,0.15)'];
+const GAP = '#17181f';
+const FRAMES = 6;
+
+/** Rust grown from a seam or rivet: a torn patch, a darker heart; placed by hand. */
+const rustAt = (a, x, y, w, h) => { a.flat(poly(x, y, x + w * .4, y - h * .2, x + w, y + h * .1, x + w * .8, y + h, x + w * .3, y + h * .8), RUST.base); a.flat(ell(x + w * .5, y + h * .4, w * .18, h * .22), RUST.deep); };
+/** Enamel knocked off down to the iron. */
+const chip = (a, x, y, w, h) => a.flat(poly(x, y, x + w, y + h * .2, x + w * .7, y + h, x + w * .1, y + h * .7), '#3c3e46');
+/** A puff of steam: three thin overlapping lobes, wider than tall, denser where they cross. */
+const puff = (a, x, y, r, k) => { const c = STEAM[k]; a.flat(ell(x - r * .45, y + r * .12, r * .62, r * .4), c); a.flat(ell(x + r * .4, y, r * .7, r * .44), c); a.flat(ell(x, y - r * .3, r * .5, r * .36), c); };
+/** Steam rising from (x, y): n puffs spread through the loop, each rising <rise> and leaning <lean>, growing and thinning as it goes. */
+function steam(a, x, y, f, n, rise, lean, r0, r1, wob) {
+  for (let i = 0; i < n; i++) {
+    const t = (f / FRAMES + i / n) % 1, side = [.0, .45, -.35, .25, -.2][i % 5] * (wob ?? 1);
+    puff(a, x + lean * t + side * Math.sin(t * Math.PI), y - rise * t, r0 + (r1 - r0) * t, t < .34 ? 0 : t < .67 ? 1 : 2);
+  }
+}
+/** Fire seen through a slot: ember red, its tongue orange to yellow, as high as <k> of it. */
+const ember = (a, x, y, w, h, k) => {
+  a.flat(band(x, y, x + w, y + h), '#7a2a16');
+  a.flat(band(x, y + h * (1 - k), x + w, y + h), '#c84c1c');
+  a.flat(band(x + w * .18, y + h * (1 - k * .7), x + w * .82, y + h), '#ff9a36');
+  a.flat(band(x + w * .32, y + h * (1 - k * .35), x + w * .68, y + h), '#ffd060');
+};
+
+
+const A_LID = (a, dy) => {
+  a.shape(`M4.4 ${13.7 + dy}Q10 ${10.9 + dy} 15.6 ${13.7 + dy}Z`, TIN, { lite: `M5.4 ${13.2 + dy}Q8 ${11.6 + dy} 10 ${11.5 + dy}L10 ${12.2 + dy}Q7.6 ${12.4 + dy} 5.4 ${13.6 + dy}Z`, shade: band(12.8, 12.6 + dy, 15.6, 13.7 + dy) });
+  a.shape(rr(9.1, 10.6 + dy, 1.8, 1.1, .4), GUN, { lite: band(9.2, 10.6 + dy, 10.8, 10.9 + dy) });
+};
+const galleyA = (a) => {
+  // The flue, its collar and damper, a rust run from the collar.
+  cyl(a, 24.6, 0, 3.2, 21.6, GUN);
+  a.shape(rr(24, 11, 4.4, 1.3, .3), IRON, { lite: band(24.2, 11, 28.2, 11.4) });
+  a.tube('M24.4 16.2L22.6 16.2', .5, BRASS);
+  a.flat('M25.6 12.3L26.2 12.3L26 15.4L25.5 15.4Z', RUST.base);
+  // A shelf of stores: two tins, a ration box, a tin with its label gone.
+  for (const x of [3.6, 18]) a.shape(poly(x, 7.8, x + 1.8, 7.8, x + .4, 9.6), GUN, { outer: false });
+  cyl(a, 3.4, 3.2, 2.8, 3.8, TIN, { outer: false });
+  a.flat(band(3.4, 4.4, 6.2, 5.8), '#7a3a30');
+  cyl(a, 6.6, 3.6, 2.8, 3.4, TIN, { outer: false });
+  a.flat(band(6.6, 4.6, 9.4, 5.8), '#5c6a3c');
+  box(a, 10.2, 3, 5.4, 4, DRAB, { outer: false });
+  a.flat(band(10.6, 4.4, 15.2, 5), '#a4aa84');
+  cyl(a, 16.2, 4.4, 2.6, 2.6, TIN, { outer: false });
+  box(a, 2.2, 6.8, 19.4, 1.2, WOOD, { outer: true });
+  // A ladle on a hook under the shelf.
+  a.tube('M20.2 8L20.2 13.6', .45, TIN, { spec: false });
+  a.shape(ell(20.2, 14.3, 1.3, .9), TIN, { shade: band(20.4, 14, 21.6, 15.2) });
+  // The hob, a brass towel rail along its front.
+  box(a, 1, 20.8, 30, 2.6, IRON, { spec: true });
+  a.tube('M2.4 24.2L29.6 24.2', .45, BRASS, { spec: false });
+  // The stock pot: dented, its ears, its lid.
+  a.shape(rr(4, 13.6, 12, 7.4, .9), TIN, { lite: band(4.8, 13.6, 6.4, 21), shade: band(13.6, 13.6, 16, 21), deep: band(4, 19.8, 16, 21), lines: ['M12.4 15.8Q13.4 17 12.6 18.6'] });
+  a.flat(band(4.2, 13.5, 15.8, 14.1), TIN.shade);
+  for (const x of [2.7, 15.7]) a.shape(rr(x, 14.6, 1.6, 1.1, .3), GUN, { outer: false });
+  A_LID(a, 0);
+  // The cast-iron body: the firebox's door with its draught slots, the oven's with a patched plate; the ash slot.
+  box(a, 2, 23.6, 28, 13.6, IRON, { spec: true });
+  inner(a, 3.6, 25.2, 11, 9.4, GUN);
+  for (let i = 0; i < 4; i++) a.flat(rr(5.2 + i * 2.2, 27, 1, 4.8, .3), GAP);
+  a.shape(rr(12.6, 28.6, 1.4, 1.6, .3), BRASS, { outer: false });
+  inner(a, 16, 25.2, 12.4, 9.4, GUN);
+  a.tube('M17.8 26.8L26.6 26.8', .7, BRASS);
+  inner(a, 21.2, 29.6, 5.4, 3.8, { ...STEEL, base: '#7f8796', lite: '#a9b1be' });
+  rivets(a, [21.8, 30.2], [26, 30.2], [21.8, 32.8], [26, 32.8]);
+  a.flat(rr(5, 35.4, 8.6, .9, .2), GAP);
+  rivets(a, [3, 24.6], [29, 24.6]);
+  rustAt(a, 26.4, 33.6, 1.8, 1.1);
+  rustAt(a, 2.6, 34.6, 1.4, 1);
+  feet(a, 37.2, 2.8, [3, 3.4], [25.6, 3.4]);
+};
+/** The lid rattling on the boil, steam out from under it and up from its knob. */
+const galleyA_work = (f) => (a) => {
+  const L = [0, .55, .1, 0, .45, .05][f];
+  if (L > 0) a.flat(band(4.8, 13.6 - L - .2, 15.2, 13.8), GAP);
+  a.flat(band(4.2, 13.5, 15.8, 14.1), TIN.shade);
+  A_LID(a, -L);
+  if (L > .3) { puff(a, 3.8, 12.6, .8, 0); puff(a, 16.4, 12.4, .7, 0); }
+  steam(a, 10, 10.2, f, 3, 3.6, 3.2, 1.1, 2.8);
+  steam(a, 5.8, 12, (f + 2) % FRAMES, 2, 3, -1.6, .8, 1.9, .6);
+};
+/** The fire in the box, through the draught slots, flickering; its light leaking under the door. */
+const galleyA_screen = (f) => (a) => {
+  const k = [[.8, .6, .9, .7], [.6, .9, .7, .8], [.9, .7, .6, .9], [.7, .8, .9, .6], [.85, .6, .8, .75], [.65, .85, .7, .9]][f];
+  for (let i = 0; i < 4; i++) ember(a, 5.3 + i * 2.2, 27.2, .8, 4.4, k[i]);
+  a.flat(band(3.9, 34.4, 14.3, 34.7), '#a8401c');
+};
+
+
 Subjects.machines = function () {
   // A fire's liquid-oxygen input, its port at 0, 2 (industrial-oxygen).
   const blowable = (draw) => (a) => { draw(a); fitting(a, 4, 20, 0); };
@@ -836,7 +933,7 @@ Subjects.machines = function () {
     vent: [16, 16, vent], crate: [32, 16, crate], cistern: [32, 32, cistern], growCapsule: [32, 48, growCapsule], charger: [16, 32, charger], burnerGenerator: [32, 32, blowable(burnerGenerator)],
     autoTradeStation: [32, 32, terminal(true)], tradeStation: [32, 32, terminal(false)], lifepod: [48, 48, lifepod], generator: [32, 32, generator], tank: [32, 32, tank],
     computer: [48, 32, computer], capacitorBank: [32, 32, capacitorBank], engine: [72, 32, engine], solarPanel: [48, 16, solarPanel], lamp: [16, 16, lamp], arcLamp: [16, 16, arcLampBody(false)], dropPod: [32, 56, dropPod], electrolyser: [32, 48, electrolyser],
-    fermenter: [32, 32, fermenter], biofuelGenerator: [48, 32, blowable(biofuelGenerator)], treadWheel: [48, 48, treadWheel] };
+    fermenter: [32, 32, fermenter], galley: [32, 40, galleyA], biofuelGenerator: [48, 32, blowable(biofuelGenerator)], treadWheel: [48, 48, treadWheel] };
   for (const [kind, [w, h, draw]] of Object.entries(whole)) out(`machine_${kind}`, bake({ w, h, draw }));
   out('machine_arcLamp_lit', flat(16, 16, arcLampBody(true)));
   out('machine_radarAntenna', flat(32, 48, (a) => { radarMast(a); radarDish(2)(a); }));
@@ -867,6 +964,7 @@ Subjects.machines = function () {
   for (let f = 0; f < 4; f++) out(`fermenter_work_${f}`, flat(32, 32, fermenter_work(f)));
   for (let f = 0; f < 8; f++) out(`biofuelGenerator_run_${f}`, flat(48, 32, biofuelRun((f / 8) * Math.PI * 2)));
   for (let f = 0; f < WHEEL_FRAMES; f++) out(`treadWheel_turn_${f}`, flat(48, 48, treadWheelTurn(f)));
+  for (let f = 0; f < FRAMES; f++) { out(`galley_work_${f}`, flat(32, 40, galleyA_work(f))); out(`galley_screen_${f}`, flat(32, 40, galleyA_screen(f))); }
   out('treadWheel_front', flat(48, 48, treadWheelFront));
 };
 window.AnimeKit = { STEEL, GUN, DARK, COPPER, PIPE, band, box, inner, cyl, rivets, hazard };
