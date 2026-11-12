@@ -569,17 +569,55 @@ const computerScreen = (f) => (a) => {
   a.flat(band(9.6, 2.8, 30, 12), '#0c2438');
   for (let i = 0; i < 5; i++) { const y = 3.8 + i * 1.6, w = 6 + ((i * 7 + f * 5) % 12); a.flat(band(11, y, 11 + w, y + .8), i % 3 ? '#8ad8f0' : '#e0f6ff'); }
 };
+// The capsule's gourd vine (picked 2026-11-13): it winds up a rusted stake, heart leaves droop off it, four pear gourds hang at the last stage.
+const VINE = { base: '#56723e', shade: '#3a5230', deep: '#26381f', lite: '#738e4e', spec: '#9aac6c', ink: '#0d1a10' };
+const LEAF = { base: '#4c6a3a', shade: '#34502e', deep: '#22361f', lite: '#6a8648', spec: '#93a866', ink: '#0d1a10' };
+const GOURD = { base: '#8a9246', shade: '#5c6832', deep: '#3c4824', lite: '#a8b25e', spec: '#d4d896', ink: '#1a1e0e' };
+const TWIG = { base: '#7a5a36', shade: '#523a26', lite: '#9a7648', spec: '#9a7648', ink: '#1c1210' };
 const plantStage = (s) => (a) => {
-  const foot = 31, top = [26, 20, 12, 7][s], cx = 16, wide = [2.6, 4.6, 6.6, 8.6][s];
-  const leaf = (x, y, dir, l, m) => a.shape(poly(x, y, x + dir * l * .5, y - l * .55, x + dir * l, y - l * .4, x + dir * l * .55, y + l * .1), m, { outer: s > 0 ? undefined : false, lite: poly(x, y, x + dir * l * .5, y - l * .55, x + dir * l, y - l * .4) });
-  const G1 = { base: '#3f9a3c', shade: '#256a36', lite: '#79c850', spec: '#c8ec84', ink: '#0d2a18' };
-  a.tube(`M${cx} ${foot}L${cx} ${top + 1}`, .8, G1, { bare: true });
-  const n = [1, 2, 4, 6][s];
-  for (let i = 0; i < n; i++) {
-    const y = foot - 1.4 - (i * (foot - top - 2)) / Math.max(1, n - .5), l = wide * (1 - i * .08);
-    leaf(cx, y, 1, l, G1); leaf(cx, y - .8, -1, l, G1);
+  const foot = 31, cx = 16, top = [25.5, 19, 12.5, 11][s], stakeTop = 11.6, r = 1.25, pitch = 5.2;
+  // The vine as a helix round the stake: the runs behind it drawn first, the stake, then the runs in front.
+  const runs = [[], []];
+  let run = null, front = null;
+  for (let y = foot; y >= top - .01; y -= .25) {
+    const t = ((foot - y) / pitch) * 2 * Math.PI, x = cx + r * Math.sin(t), f = Math.cos(t) > 0 ? 1 : 0;
+    if (f !== front) { if (run) run.push([x, y]); run = [[x, y]]; runs[f].push(run); front = f; } else run.push([x, y]);
   }
-  if (s === 3) for (const [x, y] of [[10, 16], [21, 15], [13, 24], [20, 22], [15, 10]]) { a.flat(ell(x, y, .9), '#f0d040'); a.flat(ell(x - .2, y - .2, .35), '#fff4b0'); }
+  const path = (pts) => 'M' + pts.map(([x, y]) => `${x.toFixed(2)} ${y.toFixed(2)}`).join('L');
+  const vineX = (y) => cx + r * Math.sin(((foot - y) / pitch) * 2 * Math.PI);
+  for (const p of runs[0]) if (p.length > 1) a.tube(path(p), .75, VINE);
+  a.tube(`M${cx} ${foot}L${cx} ${stakeTop + .6}`, 1, GUN);
+  a.shape(rr(cx - .8, stakeTop, 1.6, .8, .3), GUN, { lite: band(cx - .8, stakeTop, cx + .8, stakeTop + .3) });
+  for (const [x, y] of [[cx - .2, 17.4], [cx + .2, 24.6], [cx, 28.4]]) a.flat(ell(x, y, .35, .5), '#8a5a3a');
+  for (const p of runs[1]) if (p.length > 1) a.tube(path(p), .75, VINE);
+  // A tendril curls off the vine's tip, brown as the gourds' stems.
+  if (s > 0) a.tube(`M${vineX(top).toFixed(2)} ${top}Q${(vineX(top) + 1.2).toFixed(2)} ${top - 1.4} ${(vineX(top) + .2).toFixed(2)} ${top - 2}Q${(vineX(top) - .6).toFixed(2)} ${top - 1.4} ${(vineX(top) + .1).toFixed(2)} ${top - 1.1}`, .35, TWIG, { spec: false });
+  // A heart leaf on its stalk: base by the vine, the tip drooping outward.
+  const leaf = (y, dir, l) => {
+    const bx = vineX(y) + dir * .9, by = y - .2, tx = bx + dir * l, ty = by + l * .5;
+    a.tube(`M${vineX(y).toFixed(2)} ${y}L${bx.toFixed(2)} ${by}`, .3, VINE, { spec: false });
+    const up = `C${bx + dir * l * .05} ${by - l * .5} ${bx + dir * l * .8} ${by - l * .4} ${tx} ${ty}`;
+    const d = `M${bx} ${by}${up}C${bx + dir * l * .7} ${by + l * .62} ${bx + dir * l * .12} ${by + l * .55} ${bx} ${by}Z`;
+    a.shape(d, LEAF, { lite: `M${bx} ${by}${up}Q${bx + dir * l * .45} ${by + l * .1} ${bx} ${by}Z`, shade: .5, lines: [`M${bx} ${by}Q${bx + dir * l * .5} ${by + l * .12} ${tx} ${ty}`] });
+  };
+  const leaves = [
+    [[28.4, 1, 2.8], [27, -1, 2.4]],
+    [[28, -1, 3.4], [24.8, 1, 4.2], [21.2, -1, 3.8]],
+    [[27.6, 1, 4.4], [24, -1, 5], [19.6, 1, 5.2], [15.6, -1, 4.8]],
+    [[27.6, 1, 3.4], [21, -1, 5.2], [20.4, 1, 5.2], [13.6, -1, 4.8], [13, 1, 4.8]],
+  ][s];
+  for (const [y, dir, l] of leaves) leaf(y, dir, l);
+  if (s < 3) return;
+  // A pear gourd: a narrow neck under its curled stem, the belly low; its stalk runs back to the vine.
+  const gourd = (x, y0, h, from) => {
+    const w = h * .64;
+    a.tube(`M${vineX(from).toFixed(2)} ${from}Q${(x + vineX(from)) / 2} ${from - 1.6} ${x} ${y0 - .4}`, .3, VINE, { spec: false });
+    const d = `M${x} ${y0}C${x + w * .2} ${y0} ${x + w * .18} ${y0 + h * .32} ${x + w * .42} ${y0 + h * .55}C${x + w * .62} ${y0 + h * .78} ${x + w * .42} ${y0 + h} ${x} ${y0 + h}` +
+      `C${x - w * .42} ${y0 + h} ${x - w * .62} ${y0 + h * .78} ${x - w * .42} ${y0 + h * .55}C${x - w * .18} ${y0 + h * .32} ${x - w * .2} ${y0} ${x} ${y0}Z`;
+    a.shape(d, GOURD, { shade: .7, lite: ell(x - w * .16, y0 + h * .62, w * .16, h * .16), spec: ell(x - w * .2, y0 + h * .56, w * .05, h * .05) });
+    a.tube(`M${x} ${y0 + .1}Q${x + .2} ${y0 - .9} ${x + .9} ${y0 - 1}Q${x + 1.3} ${y0 - .6} ${x + .8} ${y0 - .4}`, .35, TWIG, { spec: false });
+  };
+  gourd(10.6, 16, 5.4, 14); gourd(21.4, 15.4, 5.4, 13.4); gourd(10.4, 23, 6, 21.4); gourd(21.6, 22.4, 6, 20.8);
 };
 const growLight = (a) => { a.flat(band(9, 7, 23, 8), '#ff78c0'); a.flat(band(12, 7.2, 20, 7.7), '#ffd8ec'); };
 const podGlass = (a) => {
