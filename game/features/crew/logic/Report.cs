@@ -105,6 +105,18 @@ public static class Report
     }
 
     /// <summary>
+    /// <c>Eat</c> of <paramref name="food"/> when the player asks and the sim would take it now (<paramref name="problem"/>,
+    /// <c>EatProblem</c>'s, is null) with no meal in <paramref name="inFlight"/>; null otherwise: a second click before the
+    /// first lands eats nothing (food-and-the-body).
+    /// </summary>
+    public static Eat? EatOf(string food, string? problem, IReadOnlyList<Command> inFlight)
+    {
+        foreach (var c in inFlight)
+            if (c is Eat) return null;
+        return problem == null ? new Eat(food) : null;
+    }
+
+    /// <summary>
     /// <c>SuitMode</c> flipping the suit's mode on a press (V, its edge key; 2026-11-03-the-regen-suit): from the last one in
     /// <paramref name="inFlight"/>, sent and not yet applied, else from the sim's <paramref name="on"/>; switching on only
     /// where <paramref name="problem"/>, <c>SuitModeProblem</c>'s, is null. Off is always sent.

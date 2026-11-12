@@ -91,6 +91,9 @@ public static class Items
         new("iron", 999),
         // Liquids are kept in tanks and cisterns, not crates (industrial-oxygen): a few a slot.
         new("canister", 5),
+        // Eaten (food-and-the-body): a meal each, from supply pods and fridges.
+        new("ration", 20),
+        new("cannedMeat", 20),
         new("planks", 200, BurnTicks: 400),
         new("scrapChunk", 250, Yields: [("scrap", 4)], SmeltTicks: 60, Group: ItemGroup.Salvage),
         new("hullPlate", 250, Yields: [("iron", 2), ("scrap", 1)], SmeltTicks: 100, Group: ItemGroup.Salvage),

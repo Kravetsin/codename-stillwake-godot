@@ -55,6 +55,27 @@ public sealed class Hero
     /// keeps its own and a hero carries this across (food-and-the-body).
     /// </summary>
     [JsonInclude, JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)] public int CanisterIn { get; internal set; }
+    /// <summary>
+    /// Thousandths of a unit its breaths have cost short of a whole one, 0 to 999, kept for the next (food-and-the-body): a calm
+    /// breath costs a share of a unit, paid whole as the shares add up.
+    /// </summary>
+    [JsonInclude, JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)] public int Owed { get; internal set; }
+    /// <summary>What it has eaten, up to <c>Diet.Meals</c>, each with its ticks left; none, it is hungry (food-and-the-body).</summary>
+    [JsonIgnore] internal List<Meal> Eaten { get; set; } = [];
+    /// <summary>Its meals as saved: left out with none, as a field at its default is.</summary>
+    [JsonInclude, JsonPropertyName("meals"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    internal List<Meal>? Saved { get => Eaten.Count > 0 ? Eaten : null; set => Eaten = value ?? []; }
+    /// <summary>Its meals, in the slots they were eaten into.</summary>
+    [JsonIgnore] public IReadOnlyList<Meal> Meals => Eaten;
+}
+
+/// <summary>A food a hero has eaten (food-and-the-body): its rates last while <see cref="Left"/> runs.</summary>
+public sealed class Meal
+{
+    /// <summary>The food, of <c>Foods.All</c>.</summary>
+    [JsonInclude] public string Food { get; internal set; } = "";
+    /// <summary>Ticks left, counted down each tick: ticks, never a tick of the clock, so it crosses surfaces.</summary>
+    [JsonInclude] public int Left { get; internal set; }
 }
 
 /// <summary>

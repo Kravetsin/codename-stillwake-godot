@@ -3,6 +3,9 @@ using Stillwake.Sim.Grid;
 using Stillwake.Sim.Items;
 using Stillwake.Sim.Players;
 using Stillwake.Sim.Sky;
+using Diet = Stillwake.Content.Diet;
+using Foods = Stillwake.Content.Foods;
+using Rates = Stillwake.Content.Rates;
 
 namespace Stillwake.Sim.Crew;
 
@@ -42,6 +45,12 @@ public sealed record Thrust(bool On) : Command;
 public sealed record Refill : Command;
 
 /// <summary>
+/// The sender's hero eats one <c>Item</c> it carries (food-and-the-body): a meal for the food's <c>Lasts</c> ticks in a free slot, or the
+/// same food's meal back to full in its last minute.
+/// </summary>
+public sealed record Eat(string Item) : Command;
+
+/// <summary>
 /// The sender's hero switches its suit's mode on (<c>On</c>) or off: V, or its key on the tablet's edge; on only in a body
 /// with <c>Switch</c> (2026-11-03-the-regen-suit).
 /// </summary>
@@ -75,8 +84,12 @@ public interface ICrewQueries
     /// (2026-10-27-suits-are-worn). Its air is cut to it each tick.
     /// </summary>
     int CapacityOf(int peer);
-    /// <summary>What a canister breathed gives hero <paramref name="peer"/>'s air, up to full: <c>Crew.CanisterRefill</c>.</summary>
+    /// <summary>What a canister breathed gives hero <paramref name="peer"/>'s air, up to full: <c>Crew.CanisterRefill</c>, more by its deep rate.</summary>
     int RefillOf(int peer);
+    /// <summary>The rates hero <paramref name="peer"/>'s meals give, summed and capped by <c>Diet.Caps</c>; none with no hero or no meal.</summary>
+    Rates RatesOf(int peer);
+    /// <summary>Whether hero <paramref name="peer"/> is hungry: awake, every meal gone, not creative; its running costs <c>Diet.HungrySprint</c>.</summary>
+    bool Hungry(int peer);
     /// <summary>
     /// What the cold takes from hero <paramref name="peer"/>'s air a breath where it was last reported: the edge's cold, and
     /// with no body worn where the air is not aired <c>Crew.BareCold</c>, and at night with no back wall the sky's chill (each paid on
@@ -176,6 +189,7 @@ public sealed partial class CrewModule : Module<CrewState>, ICrewQueries, ICrewO
             _itemsOps.Kit(c.From);
             // Printed full in what it wears: bare as a peer's first hero, in its kept helmet coming back after Leave.
             hero.Air = CapacityOf(c.From);
+            Feed(hero);
         });
         Handles<Leave>(
             c => HeroOf(c.From) == null ? "crew.noHero" : null,
@@ -199,6 +213,15 @@ public sealed partial class CrewModule : Module<CrewState>, ICrewQueries, ICrewO
             hero.Air = Math.Min(CapacityOf(c.From), hero.Air + RefillOf(c.From));
             if (!_items.Creative(c.From)) hero.CanisterIn = Content.Crew.CanisterCooldown;
         });
+        Handles<Eat>(c => EatProblem(c.From, c.Item), c =>
+        {
+            _itemsOps.Take(c.From, [(c.Item, 1)]);
+            var hero = HeroOf(c.From)!;
+            int lasts = Foods.Of(c.Item)!.Lasts;
+            // The same food eaten again keeps its slot, its ticks back to full.
+            if (hero.Eaten.Find(m => m.Food == c.Item) is { } meal) meal.Left = lasts;
+            else hero.Eaten.Add(new Meal { Food = c.Item, Left = lasts });
+        });
         Handles<SuitMode>(c => c.On ? SuitModeProblem(c.From) : HeroOf(c.From) == null ? "crew.noHero" : null, c => HeroOf(c.From)!.SuitOn = c.On);
         Handles<Track>(c => HeroOf(c.From) == null ? "crew.noHero" : null, c => Track(HeroOf(c.From)!, c.Short));
         // After atmosphere in the simulation phase, so a breath reads this tick's air.
@@ -209,6 +232,8 @@ public sealed partial class CrewModule : Module<CrewState>, ICrewQueries, ICrewO
             foreach (var hero in State.Heroes)
             {
                 if (hero.CanisterIn > 0) hero.CanisterIn -= 1;
+                for (int i = hero.Eaten.Count - 1; i >= 0; i--)
+                    if (--hero.Eaten[i].Left <= 0) hero.Eaten.RemoveAt(i);
                 if (hero.Out > 0)
                 {
                     // A thrust or a run sent before passing out lands on a hero already out: it thrusts and runs nothing.
@@ -221,6 +246,7 @@ public sealed partial class CrewModule : Module<CrewState>, ICrewQueries, ICrewO
                         _playersOps.Print(hero.Id);
                         // Printed again in what it died in: the suit is gear (2026-10-27-suits-are-worn).
                         hero.Air = CapacityOf(hero.Id);
+                        Feed(hero);
                         // Off the ship a hero wakes aboard, at the pod; its body stays where it fell (0076).
                         if (Surfaces.Here != 0) Surfaces.Send(hero.Id, 0);
                     }
@@ -251,7 +277,9 @@ public sealed partial class CrewModule : Module<CrewState>, ICrewQueries, ICrewO
                 // The pod's air first, for the breath and the suit alike; then one draw from the room for
                 // what is left of both, the room's refill as before. What the air falls short of the breath the
                 // hero's own air pays, and the cold after that, its own air alone.
-                int breathes = hero.Exerting ? Content.Crew.Exerted : 1;
+                // A breath costs a share of a unit by its meals (food-and-the-body), paid whole as the shares add up.
+                int owed = hero.Owed + BreathCost(hero);
+                int breathes = owed / 1000;
                 int lack = capacity - hero.Air;
                 int pod = ByPod(hero.Cell) ? Math.Min(Content.Crew.PodRefill, breathes + lack) : 0;
                 int want = Math.Min(breathes + Math.Min(Content.Crew.Refill, lack), breathes + lack - pod);
@@ -262,6 +290,9 @@ public sealed partial class CrewModule : Module<CrewState>, ICrewQueries, ICrewO
                 // Thin air (0076): what the air falls short of the breath, and the cold without a body, paid one breath in ThinAir.
                 bool beat = Rules.ThinAir is not int every || State.Clock / Content.Crew.BreathEvery % every == 0;
                 if (net < 0 && !beat) net = 0;
+                // Off the beat a breath owes only where air made it: in vacuum the shares move on the beat alone, or they would pile
+                // up off it and every beat would pay whole.
+                if (beat || covered && (_air.AiredAt(hero.Cell) || ByPod(hero.Cell))) hero.Owed = owed % 1000;
                 // The regen suit gives back what the breath took, paid from the belt after any tool's draw; never the cold.
                 if (net < 0 && SuitOn(hero.Id) && _items.WornIn(hero.Id, Content.Suit.Slot) == Content.Suit.Regen)
                 {
@@ -312,8 +343,10 @@ public sealed partial class CrewModule : Module<CrewState>, ICrewQueries, ICrewO
     {
         hero.Gasp = 0;
         hero.Out = Content.Crew.PassOut;
-        // The pod prints a new person: what the body was waiting on goes with it.
+        // The pod prints a new person: what the body ate and was waiting on goes with it.
         hero.CanisterIn = 0;
+        hero.Eaten.Clear();
+        hero.Owed = 0;
         CallOff(hero);
         hero.Exerting = false;
         hero.Thrusting = false;
@@ -389,6 +422,20 @@ public sealed partial class CrewModule : Module<CrewState>, ICrewQueries, ICrewO
         if (hero.Air >= CapacityOf(peer)) return "crew.suitFull";
         if (hero.CanisterIn > 0 && !_items.Creative(peer)) return "crew.canisterCooling";
         return _items.ShortOf(peer, Canister);
+    }
+
+    /// <summary>
+    /// Why hero <paramref name="peer"/> could not eat a <paramref name="item"/> now: none or passed out, not a food, none carried
+    /// (never in creative), the same food eaten and not in its last minute (<c>Diet.RefreshWithin</c>), or every slot full. Null
+    /// when it could.
+    /// </summary>
+    public string? EatProblem(int peer, string item)
+    {
+        if (HeroOf(peer) is not { Out: 0 } hero) return "crew.noHero";
+        if (item == Foods.Paste || Foods.Of(item) is null) return "crew.notFood";
+        if (_items.ShortOf(peer, [(item, 1)]) is { } none) return none;
+        if (hero.Eaten.Find(m => m.Food == item) is { } meal) return meal.Left > Diet.RefreshWithin ? "crew.sameFood" : null;
+        return hero.Eaten.Count >= Diet.Meals ? "crew.mealsFull" : null;
     }
 
     public bool SuitOn(int peer) => HeroOf(peer) is { SuitOn: true } && Switched(peer);
@@ -567,7 +614,31 @@ public sealed partial class CrewModule : Module<CrewState>, ICrewQueries, ICrewO
     public int CapacityOf(int peer) =>
         _items.WornIn(peer, Content.Helmet.Slot) is { } helmet ? Content.Items.Get(helmet).Tank : Content.Crew.Lungs;
 
-    public int RefillOf(int peer) => Content.Crew.CanisterRefill;
+    public int RefillOf(int peer) => Content.Crew.CanisterRefill * (1000 + RatesOf(peer).Deep) / 1000;
+
+    public Rates RatesOf(int peer) => HeroOf(peer) is { } hero ? RatesOf(hero) : default;
+
+    public bool Hungry(int peer) => HeroOf(peer) is { Out: 0, Eaten.Count: 0 } && !_items.Creative(peer);
+
+    private static Rates RatesOf(Hero hero)
+    {
+        int calm = 0, deep = 0, work = 0;
+        foreach (var meal in hero.Eaten)
+            if (Foods.Of(meal.Food) is { Rates: var r })
+                (calm, deep, work) = (calm + r.Calm, deep + r.Deep, work + r.Work);
+        var cap = Diet.Caps;
+        return new(Math.Min(calm, cap.Calm), Math.Min(deep, cap.Deep), Math.Min(work, cap.Work));
+    }
+
+    /// <summary>Thousandths of a unit a breath costs <paramref name="hero"/>: at rest or running, dearer running hungry, less by its calm.</summary>
+    private static int BreathCost(Hero hero)
+    {
+        int cost = !hero.Exerting ? Diet.Rest : hero.Eaten.Count == 0 ? Diet.HungrySprint : Diet.Sprint;
+        return cost * (1000 - RatesOf(hero).Calm) / 1000;
+    }
+
+    /// <summary>A hero printed by the pod (on <see cref="Enter"/> and on waking) holds pod paste and nothing else.</summary>
+    private static void Feed(Hero hero) => hero.Eaten = [new Meal { Food = Foods.Paste, Left = Foods.Of(Foods.Paste)!.Lasts }];
 
     public int Cold(int peer) => HeroOf(peer) is { } hero ? ColdAt(peer, hero.Cell, bare: true, chill: true) : 0;
 

@@ -227,10 +227,13 @@ public static class Loot
             new("planks", 3, 6),
         ]),
         // The farm's seeds come from supply pods (0060): one or two in every other pod; and from soil clods. A canister in
-        // every other pod too (scarce-oxygen).
+        // every other pod too (scarce-oxygen), and a ration (food-and-the-body).
         ("supplyPod",
         [
             new("canister", 1, 1, OneIn: 2),
+            new("ration", 1, 1, OneIn: 2),
+            // Until the fridge and the vending machine come (food plan, A4).
+            new("cannedMeat", 1, 1, OneIn: 4),
             new("scrap", 6, 6),
             new("seed", 1, 2, OneIn: 2),
         ]),

@@ -24,6 +24,17 @@ public class AirCuesTests
         Assert.NotNull(Report.RefillOf(null, [new Exert(true)]));
     }
 
+    /// <summary>A food clicked again before the first meal lands eats nothing more; one the sim would refuse is not sent (food-and-the-body).</summary>
+    [Fact]
+    public void EatsOnceUntilTheFirstHasLandedAndNothingTheSimWouldRefuse()
+    {
+        var eat = Report.EatOf("ration", null, []);
+        Assert.Equal(new Eat("ration"), eat);
+        Assert.Null(Report.EatOf("cannedMeat", null, [eat!]));
+        Assert.Null(Report.EatOf("ration", "crew.sameFood", []));
+        Assert.NotNull(Report.EatOf("ration", null, [new Exert(true)]));
+    }
+
     /// <summary>V flips the suit's mode from the last one sent and not yet applied, else the sim's (2026-11-03-the-regen-suit).</summary>
     [Fact]
     public void SwitchesTheSuitsModeFromWhatWasLastSent()
