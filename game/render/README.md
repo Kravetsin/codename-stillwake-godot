@@ -11,10 +11,10 @@
 | `logic/Bolts.cs` | The electric arcs in the world (0075). |
 | `logic/Breath.cs` | How what is aimed at breathes: its outline and a tool's glowing faces on one clock. |
 | `BuiltParts.cs` | What of the plans being built is already real (0063). |
-| `logic/Buttons.cs` | The mouse buttons as the world reads them: presses and releases since the last take. |
+| `logic/Buttons.cs` | The mouse buttons as the world reads them, since the last take. |
 | `logic/CableShape.cs` | A cable as drawn: its ends at nodes, its hang, its way through the hull. |
 | `logic/DoorShape.cs` | One door, every shape (0067): a doorway's pictures by the joins of its cells. |
-| `DriftLayer.cs` | A plane of the backdrop behind the ship, things scattered over its tiles by `Scatter`. |
+| `DriftLayer.cs` | A plane of the backdrop, things scattered over its tiles by `Scatter`. |
 | `DrillLight.cs` | A drill's own light while it runs (0054, 0075, 0094). |
 | `Dust.cs` | Faint dust between the far wrecks and the ship. |
 | `FarWrecks.cs` | Wreckage far behind the ship, from the wrecks' own pictures. |
@@ -31,9 +31,10 @@
 | `logic/IconShow.cs` | Where and how a glowing line icon is drawn (0086, 0097). |
 | `logic/Ink.cs` | The picked looks' pen, blob and band as triangles (damage-looks). |
 | `InkCanvas.cs` | An `Ink` drawn in one call, its arrays kept. |
-| `HiRes.cs` | The anime art's pictures at 4x, sampled smoothly. |
+| `HiRes.cs` | The anime art's pictures at 4x. |
 | `GoodIcons.cs` | A good the mafia sells, as a picture. |
-| `ItemIcons.cs` | Each item's 16 px picture, a tool's baked icon a side, their white silhouettes. |
+| `Greyed.cs` | A picture greyed (canister-mark). |
+| `ItemIcons.cs` | Each item's 16 px picture, a tool's baked icon a side, silhouettes. |
 | `logic/Layers.cs` | Where each thing in the world is drawn, back to front. |
 | `LeafLayer.cs` | `Leaves` drawn, lit, in a multimesh a picture. |
 | `logic/Leaves.cs` | Falling leaves: tumbling, blown, lying, fading (plant-stirs). |

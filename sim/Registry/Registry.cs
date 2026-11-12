@@ -89,7 +89,7 @@ public sealed class Registry
         Liquids = new LiquidsModule(Grid);
         Pipes = new PipesModule(Grid, Items, Items);
         Atmosphere = new AtmosphereModule(Grid, Items, Items, Rooms, Pipes, Power);
-        Crew = new CrewModule(Atmosphere, Atmosphere, Grid, Items, Items, Players, Players, Knowledge, Sky);
+        Crew = new CrewModule(Atmosphere, Atmosphere, Grid, Items, Items, Players, Players, Sky);
         // Building reads where heroes are and the pipes only as its commands apply, never in a system, so it keeps its place in
         // the run order and the saves', before pipes and crew (0077: a wall does not finish on a hero; 2026-10-29-typed-ports).
         Building = new BuildingModule(Grid, Grid, Items, Items, Power, Power, Research, Crafting, Crafting, Crew, Crew, Pipes);

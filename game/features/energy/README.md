@@ -15,7 +15,6 @@ belt's stores hold and whether a tool is drawing on them. It reads the sim throu
 | `logic/EnergyCount.cs` | the number's count between reads |
 | `logic/EnergyRing.cs` | the ring: an arc a slot, the store drained, a store put on, the hop to the next |
 | `logic/BoltPulse.cs` | the bolt: its beat and current, its sputter and kindling, its discharges |
-| `logic/FlatBlink.cs` | the red blink of a press the belt cannot pay |
 
 ## Rules
 

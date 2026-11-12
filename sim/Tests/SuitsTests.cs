@@ -221,15 +221,14 @@ public class SuitsTests
     }
 
     [Fact]
-    public void ACanisterGivesTwentyAndFortyOnceItsUpgradeIsBoughtNeverPastTheHelmet()
+    public void ACanisterGivesTwentyNeverPastTheHelmet()
     {
-        var w = Heavy(Beyond).GiveItems(0, (Content.Crew.Canister, 3));
+        var w = Heavy(Beyond).GiveItems(0, (Content.Crew.Canister, 2));
         HeroOf(w).Air = 10;
         w.Do(new Refill { From = 0 }).Run();
-        Assert.Equal((20, 30), (w.M.Crew.CanisterRefill, HeroOf(w).Air));
-        w.M.Knowledge.Grant("canister1");
-        w.Do(new Refill { From = 0 }).Run();
-        Assert.Equal((40, 70), (w.M.Crew.CanisterRefill, HeroOf(w).Air));
+        Assert.Equal((20, 30), (w.M.Crew.RefillOf(0), HeroOf(w).Air));
+        HeroOf(w).Air = 95;
+        HeroOf(w).CanisterIn = 0;
         w.Do(new Refill { From = 0 }).Run();
         Assert.Equal(100, HeroOf(w).Air);
     }
@@ -284,11 +283,10 @@ public class SuitsTests
         select new Step("thrust", hero, Ticks: thrusting),
         from hero in Gen.Choose(0, 2) select new Step("refill", hero),
         from hero in Gen.Choose(0, 2) from units in Gen.Choose(1, 60) select new Step("shock", hero, Ticks: units),
-        Gen.Constant(new Step("upgrade")),
         Gen.Frequency((2, Gen.Choose(1, 20)), (1, Gen.Choose(1, 600))).Select(t => new Step("wait", Ticks: t)));
 
     [Property(MaxTest = 40)]
-    public Property KeepsEveryHerosAirBetweenNothingAndItsCapacityAndItsLastBreathOnlyWithNoneThroughSwapsRefillsUpgradesColdThrustAndShocks()
+    public Property KeepsEveryHerosAirBetweenNothingAndItsCapacityAndItsLastBreathOnlyWithNoneThroughSwapsRefillsColdThrustAndShocks()
     {
         var steps = from n in Gen.Choose(0, 25) from s in Steps.ArrayOf(n) select s;
         return Prop.ForAll(steps.ToArbitrary(), all =>
@@ -301,7 +299,6 @@ public class SuitsTests
                 else if (s.Type == "thrust") w.Do(new Thrust(s.Ticks == 1) { From = s.Hero });
                 else if (s.Type == "refill") w.Do(new Refill { From = s.Hero });
                 else if (s.Type == "shock") w.M.Crew.Shock(s.Hero, s.Ticks, Harm.Shock);
-                else if (s.Type == "upgrade") w.M.Knowledge.Grant("canister1");
                 else if (s.Type == "swap")
                 {
                     var (item, slot) = s.Cell switch { 0 => (Helmet, HeadSlot), 1 => (Body, BodySlot), _ => (Content.Helmet.Heavy, HeadSlot) };

@@ -68,6 +68,18 @@ public partial class WristGauge : Control
     /// <summary>How bright its picture and cells are: dim with nothing to measure, a belt with no battery.</summary>
     public float Bright { get; set; } = 1;
 
+    /// <summary>Whether its picture shows grey: what it measures cannot be had now, a canister cooling (canister-mark).</summary>
+    public bool Greyed { get; set; }
+
+    /// <summary>Where its picture is drawn in the tab: what a mark round it centres on.</summary>
+    public Rect2 IconAt => _iconAt;
+
+    /// <summary>Drawn over its picture and under its frame by the feature it measures for: the canister's ring.</summary>
+    public Action<CanvasItem>? DrawMark { get; set; }
+
+    /// <summary>Added over all with the gauge's own light: the ring's glow.</summary>
+    public Action<CanvasItem>? LightMark { get; set; }
+
     /// <summary>Where its screen lies and how wide it is; its tab and cells laid round and across it.</summary>
     public void Place(Vector2 at, int width)
     {
@@ -157,8 +169,10 @@ public partial class WristGauge : Control
         float surge = (float)(_surge / Look.SurgeS);
         if (_wash.Flood > 0) DrawRect(new Rect2(Vector2.Zero, Size), _colour with { A = (float)_wash.Flood });
         if (_wash.Flash > 0) DrawRect(new Rect2(Vector2.Zero, Size), Colors.White with { A = (float)_wash.Flash });
-        if (Short && _shortIcon != null) DrawTextureRect(_shortIcon, _iconAt, false, Colors.White with { A = Bright * Pulse(_clock * 2) });
+        if (Greyed) DrawTextureRect(Render.Greyed.Of(_icon), _iconAt, false, Colors.White with { A = 0.8f * Bright });
+        else if (Short && _shortIcon != null) DrawTextureRect(_shortIcon, _iconAt, false, Colors.White with { A = Bright * Pulse(_clock * 2) });
         else DrawTextureRect(_icon, _iconAt, false, Colors.White with { A = Bright });
+        DrawMark?.Invoke(this);
         float pulse = Low ? Pulse(_clock) : 1, t = (float)_clock;
         int lastLit = (int)Math.Ceiling(m.Fill * _count - 1e-6) - 1;
         // A slow refill's light running along the lit lamps; a canister's wash has its own.
@@ -270,6 +284,7 @@ public partial class WristGauge : Control
             float q = (float)(s.Age / s.Life);
             on.DrawLine(new Vector2(s.X, s.Y), new Vector2(s.X - s.Vx * 0.03f, s.Y - s.Vy * 0.03f), Colors.White.Lerp(Mote, q) with { A = (1 - q) * Bright }, 0.9f, true);
         }
+        LightMark?.Invoke(on);
     }
 
     /// <summary>A layer of the gauge over its frame: <see cref="DrawOver"/>, or <see cref="DrawLight"/> added.</summary>

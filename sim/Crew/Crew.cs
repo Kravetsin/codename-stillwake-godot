@@ -1,7 +1,6 @@
 using Stillwake.Sim.Atmosphere;
 using Stillwake.Sim.Grid;
 using Stillwake.Sim.Items;
-using Stillwake.Sim.Knowledge;
 using Stillwake.Sim.Players;
 using Stillwake.Sim.Sky;
 
@@ -39,7 +38,7 @@ public sealed record Exert(bool On) : Command;
 /// </summary>
 public sealed record Thrust(bool On) : Command;
 
-/// <summary>The sender's hero breathes a canister it carries, refilling its air.</summary>
+/// <summary>The sender's hero breathes a canister it carries, refilling its air; then not again for <c>Crew.CanisterCooldown</c> ticks.</summary>
 public sealed record Refill : Command;
 
 /// <summary>
@@ -76,8 +75,8 @@ public interface ICrewQueries
     /// (2026-10-27-suits-are-worn). Its air is cut to it each tick.
     /// </summary>
     int CapacityOf(int peer);
-    /// <summary>What a canister breathed gives any hero's air: <c>Crew.CanisterRefill</c>, and <c>Crew.CanisterUp</c> more for each canister upgrade bought.</summary>
-    int CanisterRefill { get; }
+    /// <summary>What a canister breathed gives hero <paramref name="peer"/>'s air, up to full: <c>Crew.CanisterRefill</c>.</summary>
+    int RefillOf(int peer);
     /// <summary>
     /// What the cold takes from hero <paramref name="peer"/>'s air a breath where it was last reported: the edge's cold, and
     /// with no body worn where the air is not aired <c>Crew.BareCold</c>, and at night with no back wall the sky's chill (each paid on
@@ -147,18 +146,16 @@ public sealed partial class CrewModule : Module<CrewState>, ICrewQueries, ICrewO
     private readonly IItemsOps _itemsOps;
     private readonly IPlayersQueries _players;
     private readonly IPlayersOps _playersOps;
-    private readonly IKnowledgeQueries _knowledge;
     private readonly ISkyQueries _sky;
 
     private static readonly IReadOnlyList<(string Item, int Count)> Canister = [(Content.Crew.Canister, 1)];
 
     public CrewModule(
         IAtmosphereQueries air, IAtmosphereOps atmosphere, IGridQueries grid, IItemsQueries items, IItemsOps itemsOps, IPlayersQueries players, IPlayersOps playersOps,
-        IKnowledgeQueries knowledge, ISkyQueries sky)
+        ISkyQueries sky)
     {
         _players = players;
         _playersOps = playersOps;
-        _knowledge = knowledge;
         _sky = sky;
         _air = air;
         _grid = grid;
@@ -199,7 +196,8 @@ public sealed partial class CrewModule : Module<CrewState>, ICrewQueries, ICrewO
         {
             _itemsOps.Take(c.From, Canister);
             var hero = HeroOf(c.From)!;
-            hero.Air = Math.Min(CapacityOf(c.From), hero.Air + CanisterRefill);
+            hero.Air = Math.Min(CapacityOf(c.From), hero.Air + RefillOf(c.From));
+            if (!_items.Creative(c.From)) hero.CanisterIn = Content.Crew.CanisterCooldown;
         });
         Handles<SuitMode>(c => c.On ? SuitModeProblem(c.From) : HeroOf(c.From) == null ? "crew.noHero" : null, c => HeroOf(c.From)!.SuitOn = c.On);
         Handles<Track>(c => HeroOf(c.From) == null ? "crew.noHero" : null, c => Track(HeroOf(c.From)!, c.Short));
@@ -210,6 +208,7 @@ public sealed partial class CrewModule : Module<CrewState>, ICrewQueries, ICrewO
             bool breath = State.Clock % Content.Crew.BreathEvery == 0;
             foreach (var hero in State.Heroes)
             {
+                if (hero.CanisterIn > 0) hero.CanisterIn -= 1;
                 if (hero.Out > 0)
                 {
                     // A thrust or a run sent before passing out lands on a hero already out: it thrusts and runs nothing.
@@ -313,6 +312,8 @@ public sealed partial class CrewModule : Module<CrewState>, ICrewQueries, ICrewO
     {
         hero.Gasp = 0;
         hero.Out = Content.Crew.PassOut;
+        // The pod prints a new person: what the body was waiting on goes with it.
+        hero.CanisterIn = 0;
         CallOff(hero);
         hero.Exerting = false;
         hero.Thrusting = false;
@@ -377,14 +378,16 @@ public sealed partial class CrewModule : Module<CrewState>, ICrewQueries, ICrewO
     }
 
     /// <summary>
-    /// Why hero <paramref name="peer"/> could not breathe a canister now: none, its air already
-    /// full, or no canister carried (<c>items.notEnough</c>, never in creative mode); null when it could.
+    /// Why hero <paramref name="peer"/> could not breathe a canister now: none or passed out, its air already full, the last
+    /// canister too recent (<c>crew.canisterCooling</c>), or no canister carried (<c>items.notEnough</c>); creative mode
+    /// skips the last two. Null when it could.
     /// </summary>
     public string? RefillProblem(int peer)
     {
         var hero = HeroOf(peer);
-        if (hero == null) return "crew.noHero";
+        if (hero is null or { Out: > 0 }) return "crew.noHero";
         if (hero.Air >= CapacityOf(peer)) return "crew.suitFull";
+        if (hero.CanisterIn > 0 && !_items.Creative(peer)) return "crew.canisterCooling";
         return _items.ShortOf(peer, Canister);
     }
 
@@ -564,8 +567,7 @@ public sealed partial class CrewModule : Module<CrewState>, ICrewQueries, ICrewO
     public int CapacityOf(int peer) =>
         _items.WornIn(peer, Content.Helmet.Slot) is { } helmet ? Content.Items.Get(helmet).Tank : Content.Crew.Lungs;
 
-    public int CanisterRefill =>
-        Content.Crew.CanisterRefill + Content.Crew.CanisterUp * Content.Upgrades.Added(Content.Upgrades.Canister, _knowledge.Granted);
+    public int RefillOf(int peer) => Content.Crew.CanisterRefill;
 
     public int Cold(int peer) => HeroOf(peer) is { } hero ? ColdAt(peer, hero.Cell, bare: true, chill: true) : 0;
 

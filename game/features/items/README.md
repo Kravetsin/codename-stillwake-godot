@@ -23,7 +23,7 @@ and changes it only by sending `Move`, `Drop`, `PickUp`, `Sort`, `Stash`, `Fit` 
 | `StashButton.cs` | the stash key under it, the fan glyph |
 | `FavouriteStar.cs` | the kept mark, in a slot and by the pointer |
 | `SortSweep.cs` | a sort's light across the sorted grid (0081) |
-| `SlotBox.cs` | one slot: icon, count, tint, digit, mark, badge, ghost |
+| `SlotBox.cs` | one slot: icon, count, tint, digit, mark, badge, ghost, cooling |
 | `ModuleSocket.cs` | a machine's socket for one module (0086) |
 | `InventoryPanel.cs` | hotbar, inventory, equipment, the open machine's frame; the stack in hand |
 | `InventoryPanel.Machine.cs` | the open machine's body by kind and its readouts |
@@ -69,19 +69,19 @@ The wrist's metal, screens, keys and gauge (0074, 0081) are `game/shared/`'s (`W
 - **Module sockets** (0086): one per module a host takes, empty showing its tech's ghost, glowing while one that fits
   is carried; fit by drop, click or shift; take out by press. Slots holding a fitting module show its tech icon.
 - **Icons** (0097): glowing lines, a hexagon a tech, a ring a station's work; only seen ones move. Inventory actions click
-  (0081), not the wheel; a breathed canister pulses.
-- **A tool in a slot** (2026-10-27-tool-icons): its icon fills the slot, its margin baked in (`Slots.IconBox`); any other
+  (0081), not the wheel; a breathed canister pulses; cooling, its slots grey, swept back (canister-mark).
+- **A tool in a slot** (2026-10-27-tool-icons): its icon fills the slot (`Slots.IconBox`); any other
   item sits in the inset, in hand and flying too.
 - **Station marks** (0097): an open station marks the slots it works (`Smelts`, `Burns`, `Grows`), the card what
   it makes; an empty one shows the mark's ghost, lit while a fitting stack is carried.
 - **Sorting** (0008, 0081): the bag's or a crate's key sends `Sort`, shown at once with a sweep; a picked stack is put
-  back first, as for a stash; one whose slot changed is let go (`Clicks.StillHeld`).
+  back first; one whose slot changed is let go (`Clicks.StillHeld`).
 - **Stash** (2026-11-06-quick-stash): `Bind.Stash` or the key under sort sends `Stash` when `StashPlan` moves anything;
   icons fly from the chest to each crate. Alt+click marks an item kept (`Ui.Favourites`, this machine's): a star on it.
 - **The one tooltip** (0073): a stack's card follows the pointer, never covering its slot. A tool shows its `ToolStats`
   numbers as icon rows in groups, no damage a second (2026-11-07-tool-card-rows), boosted ones in the module's colour (0098); equipment its picture and one number; a battery its
-  charge in power units, never time (0053).
-- **Charge** (0053): a battery slot draws a bar (amber under a quarter); an empty one its own picture. The energy tab
+  charge in power units (0053).
+- **Charge** (0053): a battery slot draws a bar (amber under a quarter), an empty one its picture. The energy tab
   (0081) is energy's.
 - **Floor stacks** (0075, 0106): drawn unlit with a breathing rim, resting on the sim's point (`ClearBelow`), level,
   between the last two ticks, side by side when still; over machines, under heroes. Flying they spin; landing they

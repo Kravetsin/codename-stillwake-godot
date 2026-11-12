@@ -20,6 +20,7 @@ public static partial class Ru
         ["crew.colourTaken"] = "Этот цвет уже занят",
         ["crew.noJetpack"] = "На тебе нет джетпака",
         ["crew.suitFull"] = "Скафандр полон",
+        ["crew.canisterCooling"] = "Рано для нового баллона",
         ["crew.noSuitMode"] = "У твоего костюма нет режима",
         ["suit.key"] = "Режим костюма ({key:suit})",
         ["markers.home"] = "Спасательная капсула",

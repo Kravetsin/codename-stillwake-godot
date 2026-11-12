@@ -250,6 +250,91 @@ public partial class SlotBox : Panel
         if (_badge != null) _badge.SelfModulate = shown;
     }
 
+    private CanisterWipe? _wipe;
+
+    /// <summary>
+    /// A canister's slot while its cooldown runs (canister-mark): its icon greyed, the colour swept back clockwise; red edged
+    /// while one asked for too soon blinks, sky edged as it turns ready. Null shows the slot plain.
+    /// </summary>
+    public void Cooling(SlotCooling? look)
+    {
+        if (look is not { } shown)
+        {
+            if (_wipe is { Visible: true })
+            {
+                _wipe.Visible = false;
+                _icon.Visible = true;
+            }
+            return;
+        }
+        if (_wipe == null)
+        {
+            AddChild(_wipe = new CanisterWipe(_icon));
+            MoveChild(_wipe, _icon.GetIndex() + 1);
+            _wipe.SetAnchorsAndOffsetsPreset(LayoutPreset.FullRect);
+        }
+        _wipe.Look = shown;
+        _wipe.Visible = true;
+        // While it cools the wipe draws the icon, greyed and swept.
+        _icon.Visible = shown.Passed == null;
+        _wipe.QueueRedraw();
+    }
+
+    /// <summary>Drawn over a canister's slot by <see cref="Cooling"/>.</summary>
+    private sealed partial class CanisterWipe : Control
+    {
+        private static readonly Color Refused = new(1, 70 / 255f, 60 / 255f);
+        private readonly TextureRect _icon;
+        private readonly StyleBoxFlat _edge = new() { DrawCenter = false };
+
+        public SlotCooling Look { get; set; }
+
+        public CanisterWipe(TextureRect icon)
+        {
+            _icon = icon;
+            MouseFilter = MouseFilterEnum.Ignore;
+            _edge.SetBorderWidthAll(2);
+            _edge.SetCornerRadiusAll(3);
+        }
+
+        public override void _Draw()
+        {
+            if (Look.Passed is double passed && _icon.Texture is { } picture)
+            {
+                var at = new Rect2(_icon.Position, _icon.Size);
+                DrawTextureRect(Render.Greyed.Of(picture), at, false, new Color(1, 1, 1, 0.7f));
+                var wedge = ClockWipe.Of(passed);
+                if (wedge.Count > 0)
+                {
+                    var uvs = new Vector2[wedge.Count];
+                    var points = new Vector2[wedge.Count];
+                    for (int i = 0; i < wedge.Count; i++)
+                    {
+                        uvs[i] = new Vector2(wedge[i].X, wedge[i].Y);
+                        points[i] = at.Position + uvs[i] * at.Size;
+                    }
+                    DrawPolygon(points, new[] { Colors.White }, uvs, picture);
+                }
+                var (ex, ey) = ClockWipe.Edge(-Mathf.Pi / 2 + Mathf.Tau * passed);
+                var centre = at.GetCenter();
+                DrawLine(centre, centre + new Vector2(ex - 0.5f, ey - 0.5f) * (at.Size + new Vector2(4, 4)), Style.Sky200 with { A = 0.7f }, 1);
+            }
+            if (Look.Red > 0) Edge(Refused with { A = 0.9f * (float)Look.Red });
+            if (Look.Ready > 0)
+            {
+                Edge(Style.Sky400 with { A = 0.9f * (float)Look.Ready });
+                var mid = Size / 2;
+                DrawTextureRect(PixelArt.Glow, new Rect2(mid - Size * 0.65f, Size * 1.3f), false, Style.Sky400 with { A = 0.3f * (float)Look.Ready });
+            }
+        }
+
+        private void Edge(Color colour)
+        {
+            _edge.BorderColor = colour;
+            DrawStyleBox(_edge, new Rect2(Vector2.One, Size - 2 * Vector2.One));
+        }
+    }
+
     private Tween? _shake;
 
     /// <summary>A shift-click with nowhere to send its stack: the icon shakes side to side, a fifth of a second, and settles.</summary>
@@ -292,3 +377,6 @@ public partial class SlotBox : Panel
         Pressed?.Invoke(Place, b.ButtonIndex == MouseButton.Right, b.ShiftPressed);
     }
 }
+
+/// <summary>What a canister's slot shows of its cooldown (canister-mark): how much has passed while it cools, else null; the red of a refused press; the ready glow.</summary>
+public readonly record struct SlotCooling(double? Passed, double Red, double Ready);

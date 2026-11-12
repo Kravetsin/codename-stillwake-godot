@@ -40,8 +40,8 @@ public static class Crew
     /// </summary>
     public const int CanisterRefill = 20;
 
-    /// <summary>What each canister upgrade bought (<c>Upgrades.Canister</c>) adds to <see cref="CanisterRefill"/>: one makes a canister 40 (2026-11-03-the-heavy-helmet).</summary>
-    public const int CanisterUp = 20;
+    /// <summary>Ticks after a canister breathed before a hero may breathe another, 25 s (food-and-the-body).</summary>
+    public const int CanisterCooldown = 500;
 
     /// <summary>
     /// The fewest ticks between two of a client's reports of its hero's cell while the sim's is not the

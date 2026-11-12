@@ -104,7 +104,7 @@ public class JetpackTests
     public void BreathesACanisterIntoTheSuitItsUnitsUpToFull()
     {
         var w = Breathing(2, 2).Do(new Refill { From = 0 }).Run();
-        Assert.Equal(2 + w.M.Crew.CanisterRefill, HeroOf(w).Air);
+        Assert.Equal(2 + Content.Crew.CanisterRefill, HeroOf(w).Air);
         Assert.Equal(1, Canisters(w));
         w = Breathing(Scenario.Full - 5, 2).Do(new Refill { From = 0 }).Run();
         Assert.Equal(Scenario.Full, HeroOf(w).Air);

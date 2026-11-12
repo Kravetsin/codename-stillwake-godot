@@ -20,6 +20,7 @@ public static partial class En
         ["crew.colourTaken"] = "Someone wears that colour",
         ["crew.noJetpack"] = "You wear no jetpack",
         ["crew.suitFull"] = "Your suit is full",
+        ["crew.canisterCooling"] = "Too soon for another canister",
         ["crew.noSuitMode"] = "Your suit has no mode",
         ["suit.key"] = "Suit mode ({key:suit})",
         ["markers.home"] = "Lifepod",

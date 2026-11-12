@@ -1,6 +1,6 @@
 # The heavy helmet and richer canisters
 
-- Status: accepted
+- Status: accepted; the canister upgrade superseded by [food-and-the-body](2026-11-12-food-and-the-body.md)
 - Date: 2026-11-03
 
 ## Context

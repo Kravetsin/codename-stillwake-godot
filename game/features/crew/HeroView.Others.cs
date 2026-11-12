@@ -142,11 +142,13 @@ public partial class HeroView
 
     /// <summary>
     /// Breathes a canister into the suit (0047): sent, the hiss heard, when the sim would take it now and
-    /// none is in flight; a full suit or no canister does nothing.
+    /// none is in flight; a full suit or no canister does nothing; one cooling blinks the ring (canister-mark).
     /// </summary>
     private void Breathe(Client client, Registry m)
     {
-        if (Report.RefillOf(m.Crew.RefillProblem(client.Id), client.InFlight) is not { } refill) return;
+        string? problem = m.Crew.RefillProblem(client.Id);
+        if (problem == "crew.canisterCooling") _ui.PressCooling();
+        if (Report.RefillOf(problem, client.InFlight) is not { } refill) return;
         client.Send(refill);
         _breathes.Play();
         _ui.Click();

@@ -69,10 +69,9 @@ public class ResearchTests
     }
 
     [Fact]
-    public void TheHeavyHelmetCostsTwoAndAHalfThousandAndTheCanistersUpgradeTenAndBoughtTheHelmetIsDelivered()
+    public void TheHeavyHelmetCostsFiveThousandAndBoughtIsDelivered()
     {
         Assert.Equal(5000, Prices.Of(Node("heavyHelmet")));
-        Assert.Equal(10000, Prices.Of(Node("canister1")));
         var w = SetUp(credits: 100_000);
         Mafia.Reach(w, Node("heavyHelmet").Ring);
         Assert.False(w.M.Research.Knows("heavyHelmet"));
