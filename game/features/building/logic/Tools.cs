@@ -161,6 +161,9 @@ public static class Tools
     /// <summary>How much of the front walls and doors is left round the pointer with the back walls focused: none (back-focus-faint).</summary>
     public const float ClearedRound = 0f;
 
+    /// <summary>How far round the pointer, in cells, the front clears with the back walls focused: thrice the dig's see-through (back-focus-faint).</summary>
+    public const int ClearedCells = 9;
+
     /// <summary>How opaque the front and the back walls are drawn: the focused layer whole, the other faded; both whole with no focus.</summary>
     public static (float Front, float Back) AlphasOf(Focus? focus) => focus switch
     {

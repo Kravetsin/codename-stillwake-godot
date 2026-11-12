@@ -177,25 +177,25 @@ public static class Lit
     /// <summary>
     /// Fades the walls, edges and doors round <paramref name="at"/>, in pixels of the world, to <paramref name="least"/>, so the back
     /// wall the right button works shows through them (0107); null for none. While <paramref name="bare"/> the back walls there are
-    /// drawn as painted, out of the light (back-focus-faint). Set every frame, sent only when it changes.
+    /// drawn as painted, out of the light (back-focus-faint). <paramref name="radius"/> in pixels. Set every frame, sent only when it changes.
     /// </summary>
-    public static void SeeThrough(Vector2? at, float least = SeeLeast, bool bare = false)
+    public static void SeeThrough(Vector2? at, float least = SeeLeast, bool bare = false, float radius = SeeRadius)
     {
-        if (at == _seeThrough && least == _seeLeast && bare == _seeBare) return;
-        (_seeThrough, _seeLeast, _seeBare) = (at, least, bare);
+        if (at == _seeThrough && least == _seeLeast && bare == _seeBare && radius == _seeRadius) return;
+        (_seeThrough, _seeLeast, _seeBare, _seeRadius) = (at, least, bare, radius);
         foreach (var material in Made.Values) See(material);
     }
 
     /// <summary>How much of the walls is left at the pointer as a hand digs the back layer (0107): about a third.</summary>
     public const float SeeLeast = 0.35f;
 
-    private static float _seeLeast = SeeLeast;
+    private static float _seeLeast = SeeLeast, _seeRadius = SeeRadius;
     private static bool _seeBare;
 
     private static void See(ShaderMaterial material)
     {
         material.SetShaderParameter("see_at", _seeThrough ?? Vector2.Zero);
-        material.SetShaderParameter("see_radius", _seeThrough == null ? 0f : SeeRadius);
+        material.SetShaderParameter("see_radius", _seeThrough == null ? 0f : _seeRadius);
         material.SetShaderParameter("see_least", _seeLeast);
         material.SetShaderParameter("see_bare", _seeBare ? 1f : 0f);
     }

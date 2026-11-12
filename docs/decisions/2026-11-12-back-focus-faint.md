@@ -15,7 +15,7 @@ over them again, a front wall over a back wall and one over nothing looked alike
 - **With the back walls focused the world is drawn as 0110 had it:** the front at 35% (`Tools.FrontInBack`), the back
   walls whole and lit.
 - **Round the pointer the front walls and doors are gone and the back walls drawn as painted, out of the light**
-  (`Tools.ClearedRound`, `PlanHand.Clears`, `Lit.SetBare`): the dig's see-through (0107), three cells, down to nothing
+  (`Tools.ClearedRound`, `PlanHand.Clears`, `Lit.SetBare`): the dig's see-through (0107), nine cells (`Tools.ClearedCells`, thrice its three), down to nothing
   instead of a third, no button held. There a back wall shows whole in its material, and where there is none, the stars.
 
 ## Accepted limitations
