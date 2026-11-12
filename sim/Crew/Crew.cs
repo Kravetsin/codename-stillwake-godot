@@ -142,6 +142,13 @@ public interface ICrewOps
     /// again to a new need; nothing with no hero.
     /// </summary>
     void CallOff(int peer);
+
+    /// <summary>
+    /// A <c>Work</c> command of hero <paramref name="peer"/>'s, a building's or a repair's (food-and-the-body): its work rate, hungry
+    /// <c>Diet.HungryWork</c>, fed <c>Diet.Work</c> and food's, adds to <c>Worked</c>; the whole ticks it is worth, 0 to 2, come back.
+    /// No hero, one out or creative: 1, <c>Worked</c> untouched.
+    /// </summary>
+    int Works(int peer);
 }
 
 /// <summary>
@@ -347,6 +354,7 @@ public sealed partial class CrewModule : Module<CrewState>, ICrewQueries, ICrewO
         hero.CanisterIn = 0;
         hero.Eaten.Clear();
         hero.Owed = 0;
+        hero.Worked = 0;
         CallOff(hero);
         hero.Exerting = false;
         hero.Thrusting = false;
@@ -586,6 +594,14 @@ public sealed partial class CrewModule : Module<CrewState>, ICrewQueries, ICrewO
     public void CallOff(int peer)
     {
         if (HeroOf(peer) is { } hero) CallOff(hero);
+    }
+
+    public int Works(int peer)
+    {
+        if (HeroOf(peer) is not { Out: 0 } hero || _items.Creative(peer)) return 1;
+        int worked = hero.Worked + (hero.Eaten.Count == 0 ? Diet.HungryWork : Diet.Work + RatesOf(hero).Work);
+        hero.Worked = worked % 1000;
+        return worked / 1000;
     }
 
     /// <summary>Empties <paramref name="hero"/>'s wanted meter, its need drawn again once it fills.</summary>
