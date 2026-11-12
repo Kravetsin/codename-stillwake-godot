@@ -103,6 +103,7 @@ public partial class TabletEdge : CanvasLayer
         if (!shown)
         {
             _tips.Show(null);
+            _ui.EdgeTop = null;
             _laid = false;
             return;
         }
@@ -122,6 +123,7 @@ public partial class TabletEdge : CanvasLayer
         var art = Art = (up ?? _rim).Covers;
         var (middle, foot) = TabletPeek.RowAt(art.Position.X, art.Position.Y, art.Size.X);
         float grown = EdgeRow.Grown(_ui.Slot), top = EdgeRow.Top(foot, EdgeKey.Side, grown);
+        _ui.EdgeTop = top;
         // The credits stay where the rim has them, a tablet up or not: over a narrower one they ran into the keys.
         Lay(middle, top, _rim.Covers.End.X - ReadoutIn, grown, delta);
         if (_keysAway.Exists(t => t.Shown)) HideKeys();

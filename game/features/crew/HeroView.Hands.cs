@@ -62,7 +62,7 @@ public partial class HeroView
         if (square is { } sq) TraceSquare(m, (sq.X, sq.Y, side), targets!);
         else TraceAim(m, shown, prompt != null && aim is { Piece: null } ? aim : null, prompt?.Problem != null);
         _prompt.Show(prompt);
-        _prompt.Place(_ui.MenuTop);
+        _prompt.Place(_ui.MenuTop is float menu && _ui.EdgeTop is float keys ? Mathf.Min(menu, keys) : _ui.MenuTop ?? _ui.EdgeTop);
         _ui.AimedPiece.Set(prompt != null && aim?.Piece is int piece ? (piece, prompt.Problem != null) : null);
 
         // The press is taken every frame, so one made out of reach is spent rather than kept. The left
