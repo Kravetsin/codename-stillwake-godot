@@ -155,10 +155,10 @@ public static class Tools
     /// <summary>How opaque the back walls are drawn with the front focused (0110).</summary>
     public const float Faded = 0.35f;
 
-    /// <summary>How opaque the front is drawn with the back walls focused: hidden, so a back wall's material reads whole (back-focus-clear).</summary>
-    public const float FrontInBack = 0f;
+    /// <summary>How opaque the front is drawn with the back walls focused: faint, so the rooms still read over the unlit back walls (back-focus-faint).</summary>
+    public const float FrontInBack = 0.25f;
 
-    /// <summary>How opaque the front and the back walls are drawn: the focused layer whole, the other faded or hidden; both whole with no focus.</summary>
+    /// <summary>How opaque the front and the back walls are drawn: the focused layer whole, the other faded; both whole with no focus.</summary>
     public static (float Front, float Back) AlphasOf(Focus? focus) => focus switch
     {
         Focus.Front => (1, Faded),

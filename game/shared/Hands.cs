@@ -90,7 +90,7 @@ public partial class Hands : Node2D
         bool driver = Content.Screwdrivers.Of(Ui.Wielded.Get()) is { Area: > 1 };
         bool seeThrough = Plan.SeesThrough(!wiring && !piping && !driver && Layering.Back(buttons.HoldsLeft, buttons.HoldsRight));
         Lit.SeeThrough(pointer is { } at && seeThrough ? new Vector2((float)at.X, (float)at.Y) * ShipCamera.Cell : null);
-        // Cables and pipes are the front's: hidden with the back walls focused (back-focus-clear).
+        // Cables and pipes are the front's: faint with the back walls focused (back-focus-faint).
         var front = new Color(1, 1, 1, Tools.AlphasOf(Plan.Shown).Front);
         _power.Modulate = _pipesBuilt.Modulate = front;
         _power.Frame(client, m, buttons, wiring ? cuts : [], pointer, bodies, elapsedMs);
