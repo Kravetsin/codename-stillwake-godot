@@ -1,4 +1,4 @@
-# Plan: HUD vitals, air and charge as frameless light, meals as rate signs
+# Plan: HUD vitals, air and charge as frameless light, meals as dish pictures
 
 ## Why
 
@@ -6,7 +6,7 @@ The wrist's gauge row under the hotbar ([0081](../decisions/0081-the-wrist-is-on
 number. A heavy helmet looks the same as a basic one, the row is cramped, and food's meals (food plan A2) sit there as
 a stand-in (`MealSlots`). The vitals move to the bottom-left corner, larger, drawn in the game's ink and watercolour.
 
-**Decided with the user** (2026-11-12, five rounds on the pick page `2QwfBBTq9K8MbmUe3ZbBuq`, picks in its `db`):
+**Decided with the user** (2026-11-12, six rounds on the pick page `2QwfBBTq9K8MbmUe3ZbBuq`, picks in its `db`):
 - **Look `look3` = D, "light and water":** frameless pieces of light, each a wash baked by `wash.js` with a slightly
   darker wandering rim (the tide line), an even glow under the lit part. No frame, channel or plate; no rings; no scan
   lines or flicker; no pictures of objects. Separate pieces with real gaps.
@@ -19,8 +19,9 @@ a stand-in (`MealSlots`). The vitals move to the bottom-left corner, larger, dra
 - **Charge:** one piece per belt store; an accumulator is one piece three batteries long. **No number** (`number` = N2);
   the amount is on hover.
 - **Hover** on a piece names its source: «Шлем: 45», «Тяжёлый шлем: 100», «Аккумулятор: 3 200 / 5 400».
-- **Meals `food2` = D:** three light pieces under the charge row, each showing the meal's rates as signs, its light
-  draining as time passes; the food's name on hover.
+- **Meals `food6` = S2:** three slots under the charge row, each the dish's own picture (the hotbar's) over a thin
+  light draining as time passes; no rate signs in the slot, a minimal row: the player learns what a dish does by its
+  picture, and the hover says it. Signs alone (`food2` = D, S1) and picture with signs (S3) were tried and not taken.
 - **Food is not shown on the bars.** The tint (`tint` = T2) and round five's bubbles were tried and dropped: the bars'
   colour is kept for what matters, damage and poison. A poison damage-over-time is the named next user of a bar tint.
 - **Fit:** a row keeps its scale until it would pass its maximum width, then the whole row shrinks; gaps stay.
@@ -34,12 +35,12 @@ bottom 24 px above the screen's, clear of the tablet's rim. Top down:
 | --- | --- | --- |
 | air | O₂ sign 33 px, its centre 20 px in; the canister ring round it (radius 12.5 × 1.5); the pieces from x 44 | pieces 10 px tall |
 | charge | the bolt 21 × 27, same centre x; the pieces from x 44 | 38 px under the air row |
-| meals | three pieces 30 × 12, 34 px apart, from x 44 | 17 px under the charge row |
+| meals | three pictures 20 × 20, 24 px apart, from x 44; a time light 20 × 3 under each | the pictures' top 9 px under the charge row; the light 2.5 px under the picture |
 
 - Air scale 2.3 px per unit (heavy: 230 px); charge 40 px a battery, 126 px an accumulator; 4 px between pieces.
 - **Maximum row width 300 px** (420 large). Past it, px per unit = (300 − gaps) / units. Today only three accumulators
   pass it (386 px), so fit is needed now, at large size especially.
-- The block ends left of x 540 at both sizes (the edge keys start at ~550); its top is at y ~603 (569 large).
+- The block ends left of x 540 at both sizes (the edge keys start at ~550); its top is at y ~597 (561 large).
 - **The hotbar stays alone top-left.** The gauge row goes: `Slots.GaugeTop`, `GaugeRowOf`, `GaugeRow` go with it, and
   `InventoryTop` becomes the hotbar's bottom + 18: the bag and equipment open 48 px higher.
 - The build catalogue opens bottom-centre (x ~329–951, 249–1031 large) and covers the long rows' tails while it is
@@ -71,17 +72,17 @@ bottom 24 px above the screen's, clear of the tablet's rim. Top down:
 
 Replaces the stand-in `MealSlots` (food plan A2, "as built").
 
-- **Slot:** a light piece 30 × 12 in a neutral slate light; empty: its dark wash only.
-- **Signs:** the meal's rates as small light glyphs centred in the piece: Calm a wave, Deep an arrow down onto a line,
-  Work a double chevron; pod paste (no rates) a dot. Each rate has a colour, on its glyph and on its tip line: Calm
-  violet `#b49ae6`, Deep sea-teal `#3ccfb6`, Work wheat `#e2c27e`. The glyphs are drawn by `tools/anime-art` (subject
-  `signs`), white masks tinted in code.
-- **Time left:** the piece's light drains right to left (`Left / Lasts`). Its last minute (`RefreshWithin`): the piece
-  pulses (`WristGauge.Pulse` rate × 2.4).
-- **Eating:** the piece flashes in (0.6 s glow). **Refused** (`crew.mealsFull` on all three, `crew.sameFood` on that
-  meal's): `FlatBlink` red light behind and its jolt.
-- **Hungry** (all three empty): the empty pieces breathe a muted ochre (`#d2a866`, 2.6 s), never red.
-- Hover: `MealTips.Of` / `MealTips.Empty` as built, with each rate line in its colour.
+- **Slot:** the dish's own item picture (`game/art/hd/items`, the one the hotbar shows) at 20 px, in its own paint,
+  never tinted; under it a thin time light (3 px) in a neutral grey (`#a4aec2`). Empty: the time light's dark wash only.
+  No rate signs in the slot.
+- **Time left:** the time light drains right to left (`Left / Lasts`). Its last minute (`RefreshWithin`): the picture
+  and its light pulse (`WristGauge.Pulse` rate × 2.4).
+- **Eating:** the picture pops in from 1.3× with a 0.6 s glow. **Refused** (`crew.mealsFull` on all three,
+  `crew.sameFood` on that meal's): `FlatBlink` red light behind and its jolt.
+- **Ending:** the picture greys (`Greyed.Of`) and fades over 0.8 s.
+- **Hungry** (all three empty): the empty time lights breathe a muted ochre (`#d2a866`, 2.6 s), never red.
+- Hover: `MealTips.Of` / `MealTips.Empty` as built, each rate line in its colour: Calm violet `#b49ae6`, Deep sea-teal
+  `#3ccfb6`, Work wheat `#e2c27e`.
 
 ## Hover
 
@@ -93,11 +94,11 @@ thousands spaced).
 ## Art
 
 - `tools/anime-art/subjects/gauge.js` stops drawing `gauge_lamp*`; it draws the D strips instead: per tone (sky, red,
-  pale, white, green, amber, slate, hunger ochre, and their dark washes) a long strip 304 × 10 cut to length in code
-  (its start, then its own 8 px end), and the meal piece 34 × 12, two variants each so neighbours differ. The game
+  pale, white, green, amber, time grey, hunger ochre, and their dark washes) a long strip 304 × 10 cut to length in code
+  (its start, then its own 8 px end), and the meal's time light 24 × 3, two variants each so neighbours differ. The game
   restores a light's saturation before the finish greys it, as `gauge.js` does today.
 - The glow under a lit part is drawn in code (a soft add), not baked.
-- The three rate glyphs and the dot join `signs.js`.
+- The meals use the items' existing pictures; no new art for them.
 - `gauge_lamp*` pictures and their code are deleted.
 
 ## Steps, one PR each
@@ -108,7 +109,7 @@ the gauge row and `GaugeRowOf` go; `InventoryTop` follows the hotbar; fit; hover
 `gauge.js`. ADR `hud-vitals` (supersedes the gauge row of 0081): the rules above. Crew, energy and items READMEs.
 
 ### H2: the meals row
-`MealSlots` redrawn as the meals row with the glyphs from `signs.js`, under the charge row; rate colours on its tips.
+`MealSlots` redrawn as the meals row of dish pictures and time lights, under the charge row; rate colours on its tips.
 Food plan A2's stand-in note removed.
 
 ## Tests
@@ -122,6 +123,7 @@ Food plan A2's stand-in note removed.
 
 ## Not done
 
+- Rate signs in the meal slots (alone or beside the picture): tried, not taken; the row stays minimal.
 - Food on the bars (tint, bubbles, currents): tried, dropped. Poison damage-over-time tinting the air bar is the next
   user of a bar colour, not designed.
 - A buff area for effects other than meals: decided with the first such effect.
@@ -131,7 +133,7 @@ Food plan A2's stand-in note removed.
 - The page's dark-glass tooltip: the game's tooltip is restyled game-wide or not at all.
 
 **Accepted:**
-- The block is taller than today's row (~117 px vs 30) and sits over the world's bottom-left corner.
+- The block is taller than today's row (~123 px vs 30) and sits over the world's bottom-left corner.
 - The build catalogue covers a long row's tail while open.
-- A meal's identity is on hover; two foods with the same rates look alike in their slots.
+- What a meal does is on hover only; the player learns it by the dish's picture.
 - A fitted row's length no longer says its total: the hover does.
