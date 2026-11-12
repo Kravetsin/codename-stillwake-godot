@@ -333,6 +333,6 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [one-damage-rule](2026-11-10-one-damage-rule.md) | One damage rule for every hit | accepted |  |
 | [plant-stirs](2026-11-10-plant-stirs.md) | Plants stirred by bodies | accepted |  |
 | [tool-size](2026-11-10-tool-size.md) | Held tools are drawn smaller, and reach no longer follows the model | accepted |  |
-| [back-focus-faint](2026-11-12-back-focus-faint.md) | The back walls' focus keeps the front faint | accepted |  |
+| [back-focus-faint](2026-11-12-back-focus-faint.md) | The back walls' focus clears the front round the pointer | accepted |  |
 | [food-and-the-body](2026-11-12-food-and-the-body.md) | Food and the body | accepted |  |
 | [one-to-understand](2026-11-12-one-to-understand.md) | One of each part is enough to understand a thing | accepted |  |

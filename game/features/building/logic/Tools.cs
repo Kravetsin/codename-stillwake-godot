@@ -155,8 +155,11 @@ public static class Tools
     /// <summary>How opaque the back walls are drawn with the front focused (0110).</summary>
     public const float Faded = 0.35f;
 
-    /// <summary>How opaque the front is drawn with the back walls focused: faint, so the rooms still read over the unlit back walls (back-focus-faint).</summary>
+    /// <summary>How opaque the front is drawn with the back walls focused: faint, so the rooms still read (0110, back-focus-faint).</summary>
     public const float FrontInBack = 0.35f;
+
+    /// <summary>How much of the front walls and doors is left round the pointer with the back walls focused: none (back-focus-faint).</summary>
+    public const float ClearedRound = 0f;
 
     /// <summary>How opaque the front and the back walls are drawn: the focused layer whole, the other faded; both whole with no focus.</summary>
     public static (float Front, float Back) AlphasOf(Focus? focus) => focus switch
@@ -165,9 +168,6 @@ public static class Tools
         Focus.Back => (FrontInBack, 1),
         _ => (1, 1),
     };
-
-    /// <summary>Whether the back walls are drawn as painted, out of the light: while focused, so a dark room's still read (back-focus-clear).</summary>
-    public static bool BackUnlit(Focus? focus) => focus == Focus.Back;
 
     /// <summary>The wiring's card (0110): a cable, a wire each.</summary>
     public static readonly HandCard Cable = new("cable", "tool.cable", "wire", Content.Power.CableCost);

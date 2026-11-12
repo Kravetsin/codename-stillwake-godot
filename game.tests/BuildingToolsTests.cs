@@ -234,12 +234,10 @@ public class BuildingToolsTests
         // Only the focused layer is whole.
         Assert.Equal((1f, 1f), Tools.AlphasOf(null));
         Assert.Equal((1f, Tools.Faded), Tools.AlphasOf(Focus.Front));
-        // The back walls focused, the front is faint, fainter than they are under it, and they are drawn out of the light (back-focus-faint).
+        // The back walls focused, the front is faint, cleared round the pointer (back-focus-faint).
         Assert.Equal((Tools.FrontInBack, 1f), Tools.AlphasOf(Focus.Back));
         Assert.InRange(Tools.FrontInBack, 0.01f, Tools.Faded);
-        Assert.True(Tools.BackUnlit(Focus.Back));
-        Assert.False(Tools.BackUnlit(Focus.Front));
-        Assert.False(Tools.BackUnlit(null));
+        Assert.Equal(0f, Tools.ClearedRound);
     }
 
     [Fact]
@@ -278,6 +276,11 @@ public class BuildingToolsTests
         Assert.Equal((1f, 1f), Tools.AlphasOf(plan.Shown));
         plan.Aboard.Set(true);
         Assert.Equal(Focus.Back, plan.Shown);
+        // Aboard with the back walls focused the front clears round the pointer, no button held (back-focus-faint).
+        Assert.True(plan.Clears);
+        Assert.True(plan.SeesThrough(digsBack: false));
+        plan.ToggleFocus();
+        Assert.False(plan.Clears);
     }
 
     [Fact]
