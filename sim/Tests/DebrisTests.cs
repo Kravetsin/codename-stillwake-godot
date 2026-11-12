@@ -250,15 +250,20 @@ public class DebrisTests
     }
 
     [Fact]
-    public void DrawsEveryKindTheHeavierOnesMoreOften()
+    public void DrawsEveryKindByItsWeight()
     {
-        // Short paths and no cap reached: about ten thousand spawns, each a draw, the rarest, the soil clod, some 150 times.
+        // Short paths and no cap reached: some 25 000 spawns, each a draw, the rarest, the cable rack, some 80 times. Each kind's
+        // count is within three standard deviations of its weight's share: weights as close as the fridge's 10 and a hull section's
+        // 9 cannot be told apart on one seed by which came more.
         var kinds = Watch(new Scenario(Layout.Parse(["   #   "])), 2_000_000).Select(p => p.Item).ToList();
         var share = DebrisSpec.Kinds.Select(k => (k.Weight, Count: kinds.Count(item => item == k.Item))).ToList();
-        Assert.All(share, s => Assert.True(s.Count > 0));
-        foreach (var heavier in share)
-            foreach (var lighter in share.Where(s => s.Weight < heavier.Weight))
-                Assert.True(heavier.Count > lighter.Count, $"weight {heavier.Weight} drawn {heavier.Count} times, {lighter.Weight} {lighter.Count}");
+        int drawn = share.Sum(s => s.Count), total = DebrisSpec.Kinds.Sum(k => k.Weight);
+        Assert.InRange(drawn, 20_000, 30_000);
+        foreach (var (weight, count) in share)
+        {
+            double p = (double)weight / total, mean = drawn * p;
+            Assert.True(Math.Abs(count - mean) <= 3 * Math.Sqrt(mean * (1 - p)), $"weight {weight} drawn {count} times of {drawn}, {mean:0} expected");
+        }
     }
 
     [Fact]

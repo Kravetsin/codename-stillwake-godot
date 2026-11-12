@@ -15,7 +15,7 @@ public static class Handbook
     /// <summary>The kinds of debris, a row by where to look for them, in the order shown.</summary>
     public static readonly IReadOnlyList<DebrisRow> DebrisRows =
     [
-        new("salvage", ["scrapChunk", "hullPlate", "cargoCrate", "supplyPod"]),
+        new("salvage", ["scrapChunk", "hullPlate", "cargoCrate", "supplyPod", "fridge"]),
         new("wrecks", ["hullSection", "cargoContainer", "machineBlock", "cableRack", "tankCluster", "shieldSlab", "soilClod"]),
         new("asteroids", ["asteroidSmall", "asteroid", "asteroidLarge", "asteroidRich"]),
         new("derelicts", ["engineBlock", "cargoHold", "podCluster"]),

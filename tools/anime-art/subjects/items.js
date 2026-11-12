@@ -1003,6 +1003,18 @@ P.supplyPod = (a) => {
   a.flat(band(6.7, 6.2, 9.3, 8), '#1a1c28');
   a.flat(band(7.8, 6.2, 8.2, 8), '#5c6474');
 };
+P.fridge = (a) => {
+  // The galley fridge: bone enamel, round shoulders, the freezer door over the long one, the bar handle, the grille at its foot.
+  const BONE = { base: '#b4ae9e', shade: '#74706a', deep: '#4c4a4c', lite: '#cbc6b6', spec: '#e2ded0' };
+  const body = 'M3 3.8Q3 .8 6 .8L10 .8Q13 .8 13 3.8L13 15.2L3 15.2Z';
+  a.shape(body, BONE, { lite: band(3, 1.6, 4.4, 12.8), shade: band(11.6, 1.2, 13, 15.2), lines: ['M3.4 5.6L12.6 5.6', 'M3.4 12.8L12.6 12.8'] });
+  a.shape(rr(10.1, 2.2, 1.2, 2.4, .45), STEEL, { lite: band(10.1, 2.2, 10.6, 4.6), shade: band(10.8, 2.2, 11.3, 4.6) });
+  a.shape(rr(10.1, 6.8, 1.2, 5, .5), STEEL, { lite: band(10.1, 6.8, 10.6, 11.8), shade: band(10.8, 6.8, 11.3, 11.8) });
+  a.flat(band(4, 13.4, 12, 14.8), '#1a1c2a'); a.flat(band(4.2, 13.8, 11.8, 14.1), '#5c6474'); a.flat(band(4.2, 14.4, 11.8, 14.6), '#474c68');
+  a.flat(poly(4.6, 8.6, 5.6, 8.2, 5.8, 9.2, 4.9, 9.5), '#2a2d3c');
+  a.flat(ell(11.6, 12.2, .8, .5), '#7c4e34'); a.flat(ell(11.6, 12.2, .4, .25), '#553425');
+  a.flat(poly(4.4, 5.4, 7.6, 5.3, 7, 6.1, 5, 6.2), '#c8dade');
+};
 P.tankCluster = (a) => {
   // The tanks in space: three blue bottles in a steel rack, one valve painted red-brown.
   const tank = (x, y, w, h) => {

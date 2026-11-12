@@ -80,9 +80,10 @@ public sealed record VesselLoot(string Item, int Min, int Max);
 /// <param name="Hp">Its hit points for a piece that is no wreckage; else the wreck's.</param>
 /// <param name="Looks">How many pictures it has, each a machine row of its own alike but for it (<see cref="Vessels.LookKind"/>): one
 /// is drawn for each stamped, interiors drawing the first.</param>
+/// <param name="Has">What its machine rows do besides being taken apart: a vending machine still glows.</param>
 public sealed record VesselSalvage(
     string Kind, string From, char Char, IReadOnlyList<VesselRole> Roles, int Times = Vessels.SalvageTimes,
-    (int W, int H)? Size = null, int? Hp = null, bool Torn = false, int Looks = 1);
+    (int W, int H)? Size = null, int? Hp = null, bool Torn = false, int Looks = 1, MachineTrait Has = MachineTrait.None);
 
 /// <summary>Generated vessels and their wrecks (generated-vessels): classes, interiors, loot and where a vessel lies.</summary>
 public static class Vessels
@@ -135,6 +136,9 @@ public static class Vessels
         new("salvageMainEngine", "engineBlock", '4', [VesselRole.Engine], Times: 3, Size: (12, 6), Looks: 3),
         // A bridge's console, its screens and switches a cable rack's insides.
         new("salvageConsole", "cableRack", '5', [VesselRole.Bridge], Size: (4, 3), Looks: 4),
+        // A vending machine in the mess (food-and-the-body): a fridge's food, its sign still lit by a battery of its own, as the
+        // emergency lamp is; an enamel cabinet or a glass case.
+        new("salvageVending", "fridge", '6', [VesselRole.Quarters], Size: (4, 5), Hp: 8, Looks: 2, Has: MachineTrait.Glow),
     ];
 
     /// <summary>
@@ -171,7 +175,7 @@ public static class Vessels
         var (w, h) = s.Size ?? Wreckage.Sizes.Where(z => z.Item == s.From).Select(z => (z.W, z.H)).First();
         int hp = s.Hp ?? Wreckage.HpOf(s.From) ?? throw new InvalidOperationException($"vessels: {s.From} has no hit points");
         var cost = SalvageCost(s);
-        return Enumerable.Range(0, s.Looks).Select(look => new MachineSpec(LookKind(s, look), w, h, [], cost, BuildTicks: 160, Hp: hp,
+        return Enumerable.Range(0, s.Looks).Select(look => new MachineSpec(LookKind(s, look), w, h, [], cost, BuildTicks: 160, Hp: hp, Has: s.Has,
             Char: look == 0 ? s.Char : null, Means: look == 0 ? $"salvage, a {s.From} {s.Times} times over: draw its whole footprint" : null));
     }).ToList();
 
@@ -223,7 +227,7 @@ public static class Vessels
     [
         // Salvage stands on the deck, its bottom row the interior's last: j container, l crate, m pod, p tanks, r machine
         // block, s engine block, t cable rack, z soil clod, 3 cargo hold, 1 hull section, 2 shield slab, 4 the main engine, 5 a
-        // console; K a storage crate, L a lamp, = a shelf or bunk.
+        // console, 6 a vending machine; K a storage crate, L a lamp, = a shelf or bunk.
         new("holdContainer", VesselRole.Hold,
         [
             "............LL..",
@@ -286,6 +290,15 @@ public static class Vessels
             "................",
             "..lll..mm.KKKK..",
             "..lll..mm.KKKK..",
+        ]),
+        new("mess", VesselRole.Quarters,
+        [
+            "....LL..........",
+            "....LL....6666..",
+            "..........6666..",
+            "..====....6666..",
+            "..lll.mm..6666..",
+            "..lll.mm..6666..",
         ]),
         new("cabin", VesselRole.Quarters,
         [

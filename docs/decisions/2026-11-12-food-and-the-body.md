@@ -32,6 +32,12 @@ with it. The plan is [food](../plans/food.md).
 - **The farm's crops' pictures** (picked on a page, step B1): fruit a ribbed gourd, olive going ochre, on a dry woody
   stalk with a curled tendril (fruit_B); the glowberry a cluster of small dusky berries, their light showing through,
   brightest at each heart (glowberry_A).
+- **Space's food pictures** (picked on a page, step A4, two of four each, mixed for variety): two fridges, the galley
+  fridge in chipped bone enamel (fridge_A) and the bar cooler, dark iron with a glass door and an oxblood header
+  (fridge_D); two vending machines, the enamel one on the galley fridge's cabinet (vendingMachine_A) and the glass case
+  of bottles (vendingMachine_D), their sign and screen still faintly lit. A piece is one or the other at random: a fridge by
+  its id (`Content.Looks`), as every drifting piece; a vending machine by the vessel's seed as it is stamped, as consoles
+  and main engines are.
 
 ## Consequences
 

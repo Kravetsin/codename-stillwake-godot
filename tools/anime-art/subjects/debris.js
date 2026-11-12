@@ -24,6 +24,11 @@ const BLUE = { base: '#3f7bb0', shade: '#2b5784', deep: '#1d3c60', lite: '#6aa2c
 const CREAM = { base: '#d0cdc1', shade: '#6c6c6e', deep: '#46464c', lite: '#d6d4c8', spec: '#f2efe4', ink: '#0e1018' };
 const GLASS = { base: '#5d94ac', shade: '#3a6a84', deep: '#274a62', lite: '#8cc0d0', spec: '#d6eef2', ink: '#0c1420' };
 const TEAL = { base: '#3f7f86', shade: '#2a5a64', deep: '#1c3f4a', lite: '#62a0a2', spec: '#a8d0cc', ink: '#0c1418' };
+// A fridge's and the vending machine's: its enamel, the dark inside its glass, the oxblood of a bar cooler's sign, rime.
+const BONE = { base: '#b4ae9e', shade: '#74706a', deep: '#4c4a4c', lite: '#cbc6b6', spec: '#e2ded0', ink: '#0e1018' };
+const INSIDE = { base: '#1c262e', shade: '#141b22', deep: '#0d1217', lite: '#2a3842', spec: '#9ab8c2', ink: '#0c1018' };
+const OX = { base: '#6a2e2a', shade: '#48201e', deep: '#311616', lite: '#884434', spec: '#a45c4a', ink: '#120a0a' };
+const FROST = ['#9fb6bc', '#c4d6da'];
 const RUST = ['#7c4e34', '#553425', '#3a241c'];
 const STRIPE = ['#b8922e', '#94762a'];
 const WIRES = { red: '#a83c30', yellow: '#b8922e', blue: '#35649c', orange: '#a8642e', white: '#a9aeb4' };
@@ -457,6 +462,54 @@ draw('pod_04', 14, 20, (a) => {
   a.shape(band(3.4, 17.2, 11, 19.6), OLD, { lite: band(3, 17, 11, 17.8) });
   const d = plate(a, [[3.6, 5], [10.2, 5], [12.4, 7.4], [12.4, 16], [10.6, 18], [3.2, 18], [1.4, 16], [1.4, 7.4]], PAINT, { seed: 46, lite: band(2.4, 6, 5, 17), shade: [band(10, 5, 13, 18), band(0, 16.6, 14, 18)] });
   rusted(a, 3, 15.6, 1, 1, d); seam(a, 9, 8, 9.6, 10.6);
+});
+
+// ---------- fridges (food-and-the-body): the galley fridge, the bar cooler ----------
+draw('fridge_01', 16, 24, (a) => {
+  // A galley fridge, round-shouldered, its bone enamel chipped: the freezer door over the long one, the bar handle, a grille at its foot.
+  for (const y of [2.6, 9.6, 17.2]) a.shape(rr(.4, y, 1.6, 2.2, .3), OLD, { lite: band(.4, y, 2, y + .5) });
+  const body = 'M1.4 4.4Q1.4 .6 5 .6L11 .6Q14.6 .6 14.6 4.4L14.6 22.8Q14.6 23.4 14 23.4L2 23.4Q1.4 23.4 1.4 22.8Z';
+  a.shape(body, BONE, {
+    lite: 'M1.4 4.4Q1.4 .6 5 .6L11 .6Q13.2 .6 14 1.8L4.6 2Q2.8 2.4 2.8 4.6L2.8 19.6L1.4 19.6Z',
+    shade: [band(12.8, 1.4, 14.6, 23.4), band(1.4, 19.1, 14.6, 19.7)],
+    lines: ['M1.8 7.4L14.2 7.4', 'M1.8 19.6L14.2 19.6'] });
+  well(a, 2.6, 20.4, 10.8, 2.4); slats(a, 2.8, 20.6, 10.4, 2, 3);
+  a.shape(rr(11.4, 3, 1.4, 2.8, .5), PLATE, { lite: band(11.4, 3, 12, 5.8), shade: band(12.3, 3, 12.8, 5.8) });
+  a.shape(rr(11.4, 9, 1.4, 7.4, .6), PLATE, { lite: band(11.4, 9, 12, 16.4), shade: band(12.3, 9, 12.8, 16.4), spec: band(11.6, 9.8, 11.8, 12.6) });
+  // Enamel knocked off to the iron; rust where the door seam held water.
+  a.flat(poly(3.6, 12.4, 4.8, 11.8, 5.2, 12.8, 4.2, 13.6), SOOT.base, { clip: body });
+  a.flat(poly(8.6, 1.2, 10, 1, 9.8, 1.8, 8.8, 2.2), SOOT.base, { clip: body });
+  rusted(a, 12.4, 18.6, 1.4, .9, body); rusted(a, 2.4, 7.6, .9, .7, body);
+  // A dent where it struck something, lit along its lower lip.
+  a.flat(poly(5.4, 14.6, 6.6, 13.8, 8.4, 13.9, 9.2, 15, 8.6, 15.9, 6.8, 16.2, 5.8, 15.6), BONE.shade, { clip: body });
+  a.flat(poly(5.8, 15.6, 6.8, 16.2, 8.6, 15.9, 9.2, 15, 9.5, 15.5, 8.8, 16.5, 6.6, 16.8), BONE.lite, { clip: body });
+  a.line('M5.6 14.4L6.8 13.6L8.6 13.7', { w: 1 });
+  seam(a, 1.8, 7.4, 14.2, 7.4);
+  // Rime breathing out of the freezer's seam.
+  a.flat(poly(3.4, 7.1, 6.8, 6.9, 6.2, 7.9, 4.2, 8.1), FROST[1]);
+  a.flat(poly(8, 7.5, 9.6, 7.4, 9, 8.2), FROST[0]);
+});
+draw('fridge_02', 16, 22, (a) => {
+  // A bar cooler with a glass door: dark iron, an oxblood header with its light dead, bottles left on the shelves, the glass starred.
+  const d = plate(a, [[.6, .6], [15.4, .6], [15.4, 21.4], [.6, 21.4]], GUN, { seed: 61, l: .5, b: .8, e: .9 });
+  a.shape(band(.6, .6, 15.4, 3.4), OX, { outer: false, lite: band(.6, .6, 15.4, 1.1), shade: band(.6, 2.8, 15.4, 3.4) });
+  a.flat(rr(2.8, 1.5, 10.4, 1.1, .3), OX.deep);
+  a.shape(band(1.6, 4.2, 14.4, 18.4), OLD, { outer: false, lite: band(1.6, 4.2, 14.4, 4.7), shade: band(13.8, 4.2, 14.4, 18.4) });
+  a.shape(band(2.8, 5.2, 13.4, 17.4), INSIDE, { outer: false, deep: band(2.8, 5.2, 13.4, 5.8) });
+  for (const y of [9.4, 13.4]) { a.flat(band(2.8, y, 13.4, y + .5), OLD.base); a.flat(band(2.8, y, 13.4, y + .18), OLD.lite); }
+  // What is left: a brown bottle, a tin, a green bottle; two tins below; one bottle fallen to the floor.
+  const BROWN = '#5c4230', GREEN = '#3c5640', TIN = '#7c7466';
+  a.flat(rr(3.6, 6.8, 1.3, 2.6, .4), BROWN); a.flat(band(4, 6, 4.5, 7), BROWN);
+  a.flat(rr(6, 7.6, 1.8, 1.8, .2), TIN); a.flat(band(6, 8.2, 7.8, 8.6), OX.base);
+  a.flat(rr(10.8, 6.6, 1.3, 2.8, .4), GREEN); a.flat(band(11.2, 5.8, 11.7, 6.8), GREEN);
+  for (const x of [3.4, 5.4]) { a.flat(rr(x, 11.4, 1.7, 2, .2), TIN); a.flat(band(x, 12, x + 1.7, 12.4), OX.base); }
+  a.flat(poly(7.6, 16.8, 11.4, 15.4, 11.8, 16.2, 8, 17.4), BROWN);
+  // Glare on the glass, and the star of a blow.
+  a.flat(poly(4.2, 17.4, 4.8, 17.4, 9.4, 5.2, 8.8, 5.2), '#34444e');
+  a.line('M10.6 11.6L12.9 9.8M10.6 11.6L13.2 12.8M10.6 11.6L9.4 14.8M10.6 11.6L8.8 9.2M10.6 11.6L11.4 15.6', { w: .9, c: '#9ab4be' });
+  a.shape(rr(1.9, 8, 1, 6, .4), PLATE, { lite: band(1.9, 8, 2.3, 14) });
+  well(a, 2.2, 19, 11.6, 1.8); slats(a, 2.4, 19.1, 11.2, 1.6, 2);
+  rusted(a, 14.2, 20, 1, .8, d); rusted(a, 1.8, 3.8, .7, .6, d);
 });
 
 // ---------- scrap ----------
@@ -984,6 +1037,6 @@ Subjects.debris = function () {
   for (const [n, [w, h, draw]] of Object.entries(DRAWN)) out(`debris/${n}`, bake({ w, h, draw }));
 };
 // For aboard.js, which draws these pieces whole; it reads the kit when it runs, for it sorts first.
-window.DebrisKit = { HULL, PLATE, OLD, GUN, SOOT, PLANK, STAINED, COPPER, PAINT, ARMY, BLUE, CREAM, RUST, STRIPE, WIRES,
+window.DebrisKit = { HULL, PLATE, OLD, GUN, SOOT, PLANK, STAINED, COPPER, PAINT, ARMY, BLUE, CREAM, BONE, INSIDE, OX, FROST, RUST, STRIPE, WIRES,
   band, plate, well, rv, seam, rusted, hazard, slats, wire, port, boards, grain, bell, neck, block, vent, strut, boxCrate, planksStack, bottle, wall, door, shelf, tag };
 })();
