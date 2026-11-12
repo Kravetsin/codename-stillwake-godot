@@ -124,6 +124,27 @@ public class PlanetRulesTests
         Assert.Equal(Scenario.Full - every, ship.M.Crew.HeroOf(0)!.Air);
     }
 
+    /// <summary>A calm hero pays its share on thin air's beat only: in vacuum the shares move only on a paying breath (food-and-the-body).</summary>
+    [Fact]
+    public void ACalmHeroOutsideOnAPlanetPaysItsShareOnThePayingBreathsOnly()
+    {
+        // Twenty paying breaths: a ration's calm 50 saves one of them, whatever else the planet takes of both.
+        Assert.Equal(Paid(fed: false) - 1, Paid(fed: true));
+
+        static int Paid(bool fed)
+        {
+            var w = new Scenario(Ship);
+            w.Do(new Enter(w.M.Crew.Spawn)).Do(new OpenSurface(Strip.Id)).Run();
+            w.GiveItems(0, (Content.Foods.Ration, 1));
+            if (fed) w.Do(new Eat(Content.Foods.Ration));
+            w.Run().Do(new Transfer(1)).Run();
+            var hero = w.On(1).Crew.HeroOf(0)!;
+            int air = hero.Air;
+            w.Run(20 * Strip.ThinAir!.Value * Content.Crew.BreathEvery);
+            return air - hero.Air;
+        }
+    }
+
     [Fact]
     public void ARunningHeroOutsideOnAPlanetPaysItsWholeExertionOnAPayingBreathOnly()
     {

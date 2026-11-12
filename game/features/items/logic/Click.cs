@@ -65,10 +65,10 @@ public sealed record Flight(Spot From, Spot? To = null);
 
 /// <summary>
 /// What a click leaves picked, the command it sends, if any: a move, a module fitted or taken out (0086); whether it
-/// breathes a canister (0047); where a stack sent with shift flies (<see cref="Flight"/>), which every shift that sends one
+/// breathes a canister (0047) or eats a food, which (food-and-the-body); where a stack sent with shift flies (<see cref="Flight"/>), which every shift that sends one
 /// has; whether it begins taking a socket's module out by hand.
 /// </summary>
-public readonly record struct Clicked(Picked? Picked, Command? Command = null, bool Breathes = false, Flight? Flight = null, bool TakesOut = false);
+public readonly record struct Clicked(Picked? Picked, Command? Command = null, bool Breathes = false, Flight? Flight = null, bool TakesOut = false, string? Eats = null);
 
 /// <summary>The rules of clicks on slots (apps/game/src/features/items/click.ts).</summary>
 public static class Clicks
@@ -144,6 +144,7 @@ public static class Clicks
                 return new Clicked(left > 0 ? p with { Count = left } : null, new Move(p.Place, place, 1));
             }
             if (picked == null && place.Crate == null && stack?.Item == CrewSpec.Canister) return new Clicked(null, Breathes: true);
+            if (picked == null && place.Crate == null && stack is { } food && Stillwake.Content.Foods.Of(food.Item) != null) return new Clicked(null, Eats: food.Item);
             return new Clicked(stack != null ? new Picked(place, (stack.Count + 1) / 2) : null);
         }
         if (picked is not { } held) return new Clicked(stack != null ? new Picked(place, stack.Count) : null);

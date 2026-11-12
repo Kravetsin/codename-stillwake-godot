@@ -361,6 +361,14 @@ public sealed class Ui
     public void Breathe() => Breathed?.Invoke();
 
     /// <summary>
+    /// This player asked to eat a food (food-and-the-body): <c>items</c> says so on a right click on one in the inventory;
+    /// <c>crew</c> sends <c>Eat</c> when the sim would take it, as it does for one in hand.
+    /// </summary>
+    public event Action<string>? Ate;
+
+    public void Eat(string food) => Ate?.Invoke(food);
+
+    /// <summary>
     /// This player asked to switch its suit's mode (2026-11-03-the-regen-suit): the suit's key on the tablet's edge says so;
     /// <c>crew</c> sends it, as it does for V.
     /// </summary>

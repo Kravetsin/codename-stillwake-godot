@@ -221,6 +221,8 @@ public partial class HeroView : Node2D
     private readonly Dictionary<int, JetPlume> _plumes = new();
     /// <summary>Whether the player asked to breathe a canister, from the inventory, R or its edge key, since the last frame.</summary>
     private bool _breathe;
+    /// <summary>A food asked to be eaten from the inventory this frame (food-and-the-body); eaten in the next frame.</summary>
+    private string? _eat;
     /// <summary>Whether the player asked to switch its suit's mode, by V or its edge key, since the last frame.</summary>
     private bool _switchSuit;
     // A canister breathed is heard in the helmet, never muffled; a friend's on World, where it is.
@@ -255,6 +257,7 @@ public partial class HeroView : Node2D
             (_beamAt, _beamLeftMs) = (Middle(cells[0]), Figure.BeamMs);
         };
         _ui.Breathed += () => _breathe = true;
+        _ui.Ate += food => _eat = food;
         _ui.SuitSwitched += () => _switchSuit = true;
         _mouse = mouse;
         _autopilot = autopilot;
@@ -530,6 +533,8 @@ public partial class HeroView : Node2D
         for (int burnt = _burns.Due(elapsedMs, Burns(m, known), 1 / S.LavaBurnEveryS); burnt > 0; burnt--) _burn.Play();
         if (_breathe && !passedOut) Breathe(client, m);
         _breathe = false;
+        if (_eat is { } food && !passedOut) Eat(client, m, food);
+        _eat = null;
         if (_switchSuit && Report.SuitModeOf(m.Crew.HeroOf(client.Id)?.SuitOn ?? false, m.Crew.SuitModeProblem(client.Id), client.InFlight) is { } mode)
         {
             client.Send(mode);
