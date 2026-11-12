@@ -22,6 +22,9 @@ public static class Diet
     /// <summary>What a running breath costs a hungry hero, every meal gone: hunger never kills, it tires.</summary>
     public const int HungrySprint = 2500;
 
+    /// <summary>Thousandths of a tick a <c>Work</c> command is worth: fed, before food's work rate; hungry, every fourth moves nothing.</summary>
+    public const int Work = 1000, HungryWork = 750;
+
     /// <summary>How many meals a hero holds at once.</summary>
     public const int Meals = 3;
 

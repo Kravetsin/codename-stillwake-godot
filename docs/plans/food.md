@@ -145,6 +145,7 @@ As built: `Content.Diet` is named so for `Render.Body`; canned meat came in A2, 
 
 ### A3: work speed
 `Worked`, `ICrewOps.Works`, rule 3 in Building's `ApplyWork`. Building README.
+As built: a repair takes both ticks of a `Work` worth two, its last mending, since it has no part to pay nor last-tick check.
 
 ### A4: the fridge, the vending machine, canned meat, seeds eaten
 The rest of rule 7, canned meat, the seed as a snack. Debris README.

@@ -265,6 +265,9 @@ public sealed partial class BuildingModule : Module<BuildingState>, IBuildingQue
     /// </summary>
     private void ApplyWork(Work c)
     {
+        // A hungry hero's every fourth moves nothing; a fed one's is worth a second tick now and then (food-and-the-body).
+        int ticks = _crewOps.Works(c.From);
+        if (ticks == 0) return;
         int at = State.Plans.FindIndex(p => p.Id == c.Plan);
         var plan = State.Plans[at];
         if (Owes(plan))
@@ -279,8 +282,11 @@ public sealed partial class BuildingModule : Module<BuildingState>, IBuildingQue
             plan = plan with { Delivered = delivered };
         }
         var worked = plan with { Progress = plan.Progress + 1 };
+        int needs = Costs.TicksFor(_grid, worked);
+        // A second tick never finishes the plan nor begins an unpaid part: the last tick's checks ran for the first alone.
+        if (ticks == 2 && worked.Progress + 1 < needs && !Owes(worked)) worked = worked with { Progress = worked.Progress + 1 };
         State.Plans[at] = worked;
-        if (worked.Progress >= Costs.TicksFor(_grid, worked)) Complete(worked, c.From);
+        if (worked.Progress >= needs) Complete(worked, c.From);
     }
 
     /// <summary>

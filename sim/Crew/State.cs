@@ -60,6 +60,8 @@ public sealed class Hero
     /// breath costs a share of a unit, paid whole as the shares add up.
     /// </summary>
     [JsonInclude, JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)] public int Owed { get; internal set; }
+    /// <summary>Thousandths of a tick its <c>Work</c> commands have earned short of a whole one, 0 to 999, kept for the next (food-and-the-body).</summary>
+    [JsonInclude, JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)] public int Worked { get; internal set; }
     /// <summary>What it has eaten, up to <c>Diet.Meals</c>, each with its ticks left; none, it is hungry (food-and-the-body).</summary>
     [JsonIgnore] internal List<Meal> Eaten { get; set; } = [];
     /// <summary>Its meals as saved: left out with none, as a field at its default is.</summary>

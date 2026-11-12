@@ -39,6 +39,9 @@ public sealed partial class BuildingModule
     /// <summary>A tick of repair: the last mends the machine.</summary>
     private void ApplyRepair(Repair c)
     {
+        // Worth what a Work is (food-and-the-body); a repair has no part to pay, so a second tick may mend it.
+        int ticks = _crewOps.Works(c.From);
+        if (ticks == 0) return;
         string kind = _grid.MachineById(c.Machine)!.Kind;
         int at = RepairAt(c.Machine);
         if (at < 0)
@@ -46,7 +49,7 @@ public sealed partial class BuildingModule
             at = ~at;
             State.Repairs.Insert(at, new Repairing(c.Machine, 0));
         }
-        var worked = State.Repairs[at] with { Progress = State.Repairs[at].Progress + 1 };
+        var worked = State.Repairs[at] with { Progress = State.Repairs[at].Progress + ticks };
         if (worked.Progress < Costs.RepairTicks(kind))
         {
             State.Repairs[at] = worked;
