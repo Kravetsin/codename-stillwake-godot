@@ -74,6 +74,7 @@ public static partial class En
         ["use.open.assembler"] = "[{key:use}] Circuit assembler",
         ["use.open.growCapsule"] = "[{key:use}] Open grow capsule",
         ["use.open.fermenter"] = "[{key:use}] Open fermenter",
+        ["use.open.galley"] = "[{key:use}] Galley",
         ["use.open.droneBay"] = "[{key:use}] Open drone bay",
         ["use.catch"] = "[{key:use}] Catch",
         ["use.collect"] = "[{key:use}] Empty the net",

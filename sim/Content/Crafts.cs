@@ -71,6 +71,12 @@ public static class Crafts
         new("nozzle", [("alloyScrap", 12), ("copper", 6)], Ticks: 300),
         new("fuelPump", [("motor", 2), ("tube", 4), ("plate", 2)], Ticks: 240),
         new("igniter", [("crystal", 2), ("circuit", 2), ("wire", 4)], Ticks: 180),
+        // The galley's dishes (food-and-the-body): a dish's recipe is its cost, its rates its own (Foods).
+        new(Foods.Porridge, [(Foods.Fruit, 2), (Foods.Ration, 1)], Ticks: 200),
+        new(Foods.Hash, [(Foods.CannedMeat, 1), (Foods.Fruit, 2)], Ticks: 200),
+        new(Foods.Broth, [(Foods.Glowberry, 2), (Water.Item, 1)], Ticks: 200),
+        new(Foods.Roast, [("fat", 2)], Ticks: 300),
+        new(Foods.Stew, [("fat", 1), (Foods.Glowberry, 1), (Water.Item, 1)], Ticks: 300),
         // At the arc bench (0099): a sky shard wound into a module an electric station or the drill takes (0086, 0096), in ten seconds.
         new("arcModule", [("arcShard", 1), ("crystal", 2), ("mica", 2), ("coil", 4), ("circuit", 4), ("frame", 1)], Ticks: 200),
         // At the arc bench (0099): a battery wound round a sky shard with a planet's copper, three batteries' charge, in ten seconds.

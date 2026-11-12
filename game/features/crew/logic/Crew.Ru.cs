@@ -74,6 +74,7 @@ public static partial class Ru
         ["use.open.assembler"] = "[{key:use}] Сборщик схем",
         ["use.open.growCapsule"] = "[{key:use}] Открыть капсулу роста",
         ["use.open.fermenter"] = "[{key:use}] Открыть ферментёр",
+        ["use.open.galley"] = "[{key:use}] Камбуз",
         ["use.open.droneBay"] = "[{key:use}] Открыть отсек дронов",
         ["use.catch"] = "[{key:use}] Поймать",
         ["use.collect"] = "[{key:use}] Опустошить сеть",

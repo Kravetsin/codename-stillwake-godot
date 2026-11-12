@@ -259,6 +259,16 @@ public static class Sound
     public const double CrusherRunInS = 0.4, CrusherRunOutS = 0.8;
 
     /// <summary>
+    /// The galley's pot while it cooks (food-and-the-body): a full pot boiling hard, its hollow metal walls, risen over
+    /// <see cref="GalleyBoilInS"/> and fallen over <see cref="GalleyBoilOutS"/>; a cramped range heard near it, under the crusher.
+    /// </summary>
+    public static readonly Cue GalleyBoil = Looped("crafting/galley-boil", -14, StationReach);
+    public const double GalleyBoilInS = 0.5, GalleyBoilOutS = 1.0;
+
+    /// <summary>A dish done at the galley: a wooden spoon knocked once on a tin lid, dull, hardly ringing.</summary>
+    public static readonly Cue GalleyDone = new(Shots("crafting/galley-done", 1), -10, Pitch: 0, Heard: StationReach);
+
+    /// <summary>
     /// The melt bubbling in the smelter while it works: six low pops, played at random moments, <see cref="SmelterCracklesPerSecond"/>
     /// a second on average, each its pitch within ±<see cref="SmelterCracklePitch"/> and its volume up to
     /// <see cref="SmelterCrackleLowDb"/> under its cue's.
@@ -693,6 +703,9 @@ public static class Sound
     /// </summary>
     public static readonly Cue Inhale = new(Shots("crew/inhale", 1), -18);
 
+    /// <summary>This player's hero eating any food (food-and-the-body): three soft closed-mouth chews, in the helmet as the canister's hiss.</summary>
+    public static readonly Cue Eat = new(Shots("crew/eat", 1), -12);
+
     /// <summary>
     /// A ram (0103), placeholders from what is here till the audition: its hit a heavy landing's thud, lower, this player's own
     /// on Suit, a friend's on World; a creature winding up snorts, a canister's hiss low and short, where it stands.
@@ -748,7 +761,7 @@ public static class Sound
     /// <summary>The descent's cues, made from others declared above.</summary>
     public static readonly IReadOnlyList<Cue> Pod = [PodThrust, PodRelease, PodTouchdown, PodRumble, PodFlash, PodBlast];
 
-    public static readonly IReadOnlyList<Cue> All = [Title, Space, Step, Land, Jump, Alarm, CatcherBeep, Screwdriver, PowerDriverBite, PowerDriverLoop, PowerDriverOff, Hiss, Click, Clink, VentHum, DoorOpen, DoorClose, Valve, Act, ActInSpace, Fire, Swing, Chop, Break, Shot, Drum, Ready, NailShot, DryClick, NailHit, NailReady, RailCharge, RailReady, RailShot, ChargeThrow, ChargeBurst, ArcStruck, ArcHit, CatcherAim, CatcherGather, CatcherBlink, CatcherLaunch, CatcherLaser, CatcherLock, MissileFlight, CapbackHiss, CapbackSplat, ShellClink, Hurt, AirFill, Inhale, Thrust, ChargerHum, ChargeFull, DrillWhir, FormerStroke, FormerMotor, SmelterHum, SmelterCrackle, CrusherRun, DroneWhir, DroneDock, DroneGrab, SalvageThrust, MusicBox, Zap,
+    public static readonly IReadOnlyList<Cue> All = [Title, Space, Step, Land, Jump, Alarm, CatcherBeep, Screwdriver, PowerDriverBite, PowerDriverLoop, PowerDriverOff, Hiss, Click, Clink, VentHum, DoorOpen, DoorClose, Valve, Act, ActInSpace, Fire, Swing, Chop, Break, Shot, Drum, Ready, NailShot, DryClick, NailHit, NailReady, RailCharge, RailReady, RailShot, ChargeThrow, ChargeBurst, ArcStruck, ArcHit, CatcherAim, CatcherGather, CatcherBlink, CatcherLaunch, CatcherLaser, CatcherLock, MissileFlight, CapbackHiss, CapbackSplat, ShellClink, Hurt, AirFill, Inhale, Thrust, ChargerHum, ChargeFull, DrillWhir, FormerStroke, FormerMotor, SmelterHum, SmelterCrackle, CrusherRun, GalleyBoil, GalleyDone, Eat, DroneWhir, DroneDock, DroneGrab, SalvageThrust, MusicBox, Zap,
         StepGrass, StepSoil, StepStone, StepAlloy, LandSoft, LandHard, LandAlloy, HitSoil, HitStone, BreakSoil, BreakStone,
         ChopWood, TreeFall, Bush, Grass, Crystal, Glowcap, WoodBreak, ClothTear, GlassBreak, MetalBreak, CeramicBreak, LavaBed,
         LavaBubble, LavaBurn, CaveDrip, SplashIn, SplashOut, SwimStroke, WaterPour, CreatureDeath, .. Ticks.Values.SelectMany(t => new[] { t.Alert, t.WindUp, t.Unclamp, t.Clamp, t.Snap, t.Death }), .. Istukans.Values.SelectMany(g => new[] { g.Wake, g.Alert, g.WindUp, g.Pounce, g.Killed, g.ShutDown }), .. RamHits.Values, .. Pod];

@@ -3,7 +3,7 @@
 - Status: accepted; amends [0060](0060-the-farm-a-grow-capsule-is-a-fed-station.md): a crop gives fruit, its seeds come
   back from the fruit
 - Date: 2026-11-12
-- Plan: [food](../plans/food.md), step B1
+- Built as step B1 of [food and the body](2026-11-12-food-and-the-body.md)
 
 ## Context
 

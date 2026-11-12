@@ -9,7 +9,7 @@
 | `State.cs` | The saved slice: `Entry`, `Smelt`, `CraftingState`. |
 
 Stations ([0057](../../docs/decisions/0057-stations-one-model-for-every-crafting-machine.md)): every crafting machine
-on one model. A **queued** station (pod, workbench, Former, assembler, arc bench) makes crafts from a queue shared by the
+on one model. A **queued** station (pod, workbench, Former, assembler, galley, arc bench) makes crafts from a queue shared by the
 crew (0028); a **fed** one (furnace, smelter, crusher, capsule, fermenter) turns its input into yields by process:
 smelt, crush, grow (0060), ferment (power-chain).
 
@@ -41,9 +41,9 @@ smelt, crush, grow (0060), ferment (power-chain).
 
 - A craft is named by the item it makes; cost and `Ticks` per unit come from `Content.Crafts`; a unit takes
   `Ticks × 1000` of work; crafts layer parts, components, products (0046). Rosters are content's: the pod's the suit and
-  screwdriver, the workbench's tools, the Former's parts, the assembler's electronics, the arc bench's shard crafts (0099).
-- **Inputs** (0057): as many slots as the most distinct items any of its crafts needs (`ContentTests`). The pod and the
-  workbench have none and the arc bench's one is a vise (0099): a craft from inputs there is refused `crafting.noInputs`.
+  screwdriver, the workbench's tools, the Former's parts, the assembler's electronics, the galley's dishes, the arc bench's shard crafts (0099).
+- **Inputs** (0057): as many slots as the most distinct items any of its crafts needs (`ContentTests`). The pod, the
+  workbench and the galley have none, and the arc bench's one is a vise (0099): a craft from inputs there is refused `crafting.noInputs`.
 - **`Craft(Machine, Recipe, Count, FromInputs, Endless)`**: paid (the default) takes all `Count` units' cost from the
   sender's stock, its own then every crate's (craft-from-crates), at once (none in creative); fed from the inputs
   takes nothing, `Endless` repeating it. Either appends an entry by the sender with the queue's next id. Refused whole: `crafting.noStation`, `crafting.unknown` (or not known),
@@ -91,7 +91,7 @@ smelt, crush, grow (0060), ferment (power-chain).
 - A queue holds at most `QueueMost` entries; the head's progress stays below its work but while its unit waits for
   room; ids within a queue only grow.
 - Items are conserved: what a craft took comes back as units or a refund; a smelt turns its `SmeltTakes` into its
-  yields and at most each byproduct's most, a crop one of itself into its yields and 0–2 of itself (`CraftingTests`).
+  yields and at most each byproduct's most (`CraftingTests`).
 - Every item is reachable from the wreck (`ContentTests`).
 
 ## Deliberately not handled

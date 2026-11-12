@@ -167,7 +167,7 @@ public partial class ContentTests
     /// screwdriver (0046, 0107); the workbench the basic parts and what is assembled, the jetpack, the drill and the cape
     /// among them (2026-10-27-the-cape-is-worn), and the battery, which the assembler makes too (battery-workbench); the Former those parts again, and alone frames, soil (0060), the motor of a
     /// planet's copper and the nozzle; the electronics, circuits, solar cells and the deck drive, and the fuel pump, the circuit
-    /// assembler alone; the arc crafts the arc bench (0099, 2026-10-27-the-railgun).
+    /// assembler alone; the arc crafts the arc bench (0099, 2026-10-27-the-railgun); the dishes the galley (food-and-the-body).
     /// </summary>
     [Fact]
     public void EveryCraftIsMadeSomewhereThePodTheSuitTheWorkbenchWhatIsAssembledTheFormerWhatIsStampedAndEveryQueuedStationLaysEachOfItsCraftsOutOnce()
@@ -177,7 +177,9 @@ public partial class ContentTests
         string[] tools = ["fireAxe", "harpoon", "nailer", "nail", "helmetLamp", "jetpack", "drill", "cape", "grinder", "spear", "sledgehammer", "pickaxe", "grapple", "blastCharge"];
         string[] electronics = ["circuit", "solarCell", "battery", "drone", "salvageDrone", "deckDrive", "processor", "display", "transceiver", "igniter", "fuelPump"], arc = ["arcModule", "accumulator", "railgun"];
         string[] formed = ["frame", "motor", "soil", "nozzle"];
-        Assert.Empty(Crafts.All.Select(c => c.Item).Except([.. pod, .. parts, .. tools, .. formed, .. electronics, .. arc]));
+        string[] dishes = [Foods.Porridge, Foods.Hash, Foods.Broth, Foods.Roast, Foods.Stew];
+        Assert.Empty(Crafts.All.Select(c => c.Item).Except([.. pod, .. parts, .. tools, .. formed, .. electronics, .. arc, .. dishes]));
+        Assert.Equal(dishes, Stations.Get("galley").Rows.SelectMany(r => r));
         Assert.Equal(pod, Stations.Get("lifepod").Rows.SelectMany(r => r));
         Assert.Equal(parts.Concat(tools).Append("battery").Order(StringComparer.Ordinal), Stations.Get("workbench").Rows.SelectMany(r => r).Order(StringComparer.Ordinal));
         Assert.Equal(parts.Concat(formed).Order(StringComparer.Ordinal), Stations.Get("former").Rows.SelectMany(r => r).Order(StringComparer.Ordinal));
@@ -247,8 +249,8 @@ public partial class ContentTests
             {
                 Assert.True(station.QueueMost > 0, station.Machine);
                 int most = station.Rows.SelectMany(r => r).Max(craft => Crafts.Get(craft).Cost.Select(c => c.Item).Distinct().Count());
-                // The pod and the workbench are paid by hand, so they take nothing in.
-                if (station.Machine is "lifepod" or "workbench") Assert.Equal(0, spec.Inputs);
+                // The pod, the workbench and the galley are paid by hand, so they take nothing in.
+                if (station.Machine is "lifepod" or "workbench" or "galley") Assert.Equal(0, spec.Inputs);
                 // The arc bench is paid by hand too; its one input is its tool's (0099).
                 else if (spec.Tunes) Assert.Equal(1, spec.Inputs);
                 else Assert.True(spec.Inputs >= most, $"{station.Machine}: {spec.Inputs} inputs, a craft of {most} items");
@@ -449,7 +451,7 @@ public partial class ContentTests
     }
 
     /// <summary>What no one buys: wreckage whole, tools, what is worn, what stores or flies by itself, the arc's, the photosensitive panel nothing makes.</summary>
-    private static readonly string[] Unpriced = ["ration", "cannedMeat", "fruit", "glowberry", "arcShard", "arcModule", "supplyPod", "fridge", "cargoCrate", "hullSection", "cargoContainer", "machineBlock", "cableRack", "tankCluster", "shieldSlab", "soilClod", "asteroid", "asteroidSmall", "asteroidLarge", "asteroidRich", "engineBlock", "cargoHold", "podCluster", "parcel", "deliveryCrate", "confiscated", "photoPanel", "drone", "salvageDrone", "screwdriver", "fireAxe", "harpoon", "grapple", "nailer", "railgun", "drill", "powerDriver", "grinder", "plasmaCutter", "spear", "sledgehammer", "pickaxe", "jetpack", "helmetLamp", "scanner", "battery", "accumulator", "helmet", "suit", "heavyHelmet", "regenSuit", "cape"];
+    private static readonly string[] Unpriced = ["ration", "cannedMeat", "fruit", "glowberry", "porridge", "hash", "broth", "roast", "stew", "arcShard", "arcModule", "supplyPod", "fridge", "cargoCrate", "hullSection", "cargoContainer", "machineBlock", "cableRack", "tankCluster", "shieldSlab", "soilClod", "asteroid", "asteroidSmall", "asteroidLarge", "asteroidRich", "engineBlock", "cargoHold", "podCluster", "parcel", "deliveryCrate", "confiscated", "photoPanel", "drone", "salvageDrone", "screwdriver", "fireAxe", "harpoon", "grapple", "nailer", "railgun", "drill", "powerDriver", "grinder", "plasmaCutter", "spear", "sledgehammer", "pickaxe", "jetpack", "helmetLamp", "scanner", "battery", "accumulator", "helmet", "suit", "heavyHelmet", "regenSuit", "cape"];
 
     /// <summary>Everything is priced or named here as what no one buys; raw salvage is, so the first credits need nothing made.</summary>
     [Fact]
@@ -585,7 +587,7 @@ public partial class ContentTests
     [Fact]
     public void EverythingButAPlanetsOwnOpensFromWhatSpaceGivesAloneTheDropPodAmongThem()
     {
-        string[] planetary = ["accumulator", "arcBench", "arcLamp", "arcModule", "backWallAlloy", "backWallHide", "backWallMica", "backWallStone", "biofuelGenerator", "blastCharge", "cape", "computer", "electrolyser", "engine", "fuelPump", "grinder", "igniter", "motor", "nozzle", "radarAntenna", "railgun", "salvageDrone", "wallAlloy", "wallHide", "wallMica", "wallStone"];
+        string[] planetary = ["accumulator", "arcBench", "arcLamp", "arcModule", "backWallAlloy", "backWallHide", "backWallMica", "backWallStone", "biofuelGenerator", "blastCharge", "broth", "cape", "computer", "electrolyser", "engine", "fuelPump", "grinder", "igniter", "motor", "nozzle", "radarAntenna", "railgun", "roast", "salvageDrone", "stew", "wallAlloy", "wallHide", "wallMica", "wallStone"];
         var (had, known) = Reachable(Stations.All);
         var recipes = Stillwake.Sim.Research.Blueprints.All.Select(b => (b.Id, b.Cost)).Concat(Crafts.All.Select(c => (Id: c.Item, c.Cost)));
         var locked = recipes.Where(r => !known.Contains(r.Id) || !r.Cost.All(c => had.Contains(c.Item))).Select(r => r.Id).Distinct().Order(StringComparer.Ordinal).ToArray();

@@ -112,10 +112,10 @@ This hero and others', client-authoritative (0002): only commands reach the sim.
   (hurts-are-shown) tint edges and gauge.
 - **Water** (liquids): swum `SwimDepth` deep, left by Space or shore; wading splashes.
 - **Swim, haul, jetpack** (0047, tether-haul): afloat through floors, tied where it left the hull;
-  Shift hauls in along the tether's bends (`Wraps`); a jetpack unties, Shift thrusts, `Thrust` sent while unlike the sim's.
-- **A canister** (0047, 0081): right click or R sends `Refill`, V `SuitMode` (regen-suit) if taken. Cooling, the O₂ sign greys
+  Shift hauls in along the tether's bends (`Wraps`); a jetpack unties, Shift thrusts, `Thrust` sent if unlike the sim's.
+- **A canister** (0047, 0081): RMB or R sends `Refill`, V `SuitMode` (regen-suit) if taken. Cooling, the O₂ sign greys
   in a sweeping ring, too soon blinks red (canister-mark).
-- **Meals:** a food right-clicked sends `Eat`; its icon pulses in its last minute.
+- **Meals:** a food right-clicked sends `Eat`, chewing heard; its icon pulses in its last minute.
 - **The crew module:** made at `Spawn`; passed out: no orders, lies at the sim's cell, takes none (0061). `Enter` goes when the sim's room or field side
   differ, every `Crew.ReportEvery` ticks off its cell, each tick if threatened; none out (0050); a closed link's host: `Leave`.
 - **Dressed as worn**: helmet, body, hair, clothes, lamp; the colour on the shin; a switched body lit by

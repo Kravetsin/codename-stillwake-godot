@@ -7,7 +7,7 @@ using Foods = Stillwake.Content.Foods;
 
 namespace Stillwake.Game.Tests;
 
-/// <summary>The HUD's meal slots (food plan, A2): a meal pulses in its last minute; its tip names it, its rates and its time.</summary>
+/// <summary>The HUD's meal slots (food-and-the-body): a meal pulses in its last minute; its tip names it, its rates and its time.</summary>
 public class MealTipsTests
 {
     [Fact]

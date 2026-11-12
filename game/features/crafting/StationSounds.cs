@@ -11,7 +11,7 @@ namespace Stillwake.Game.Features.Crafting;
 /// A station heard at work where it stands, on the World bus (0059), told by <see cref="StationView"/> every frame what it shows:
 /// the Former's press strikes each time its head comes down in its pictures, over its motor spinning up, dipping at each stroke
 /// and running down after; the electric smelter's coils hum, risen and fallen, and its melt pops at random moments; the crusher's
-/// rollers rumble, risen and fallen. Each
+/// rollers rumble, risen and fallen; the galley's pot boils, risen and fallen, and a spoon knocks on its lid each time a dish is done. Each
 /// machine has its own players, its loop begun somewhere along it, so two never sound in step.
 /// </summary>
 public partial class StationSounds : Node2D
@@ -23,6 +23,8 @@ public partial class StationSounds : Node2D
         public LoopEnvelope Envelope;
         public FrameBeat Beat;
         public RandomTrain Pops;
+        /// <summary>What the galley held made last frame; null until first heard, so what it holds then is no dish done.</summary>
+        public int? Made;
         public bool Seen;
     }
 
@@ -33,17 +35,19 @@ public partial class StationSounds : Node2D
     /// <summary>
     /// Machine <paramref name="id"/> of <paramref name="kind"/> this frame of <paramref name="elapsedS"/> seconds, its middle at
     /// <paramref name="at"/>, working or not; its pictures at step <paramref name="step"/> of <paramref name="frames"/>, its press
-    /// head down on picture <paramref name="down"/>. A kind with no sound of its own is passed over.
+    /// head down on picture <paramref name="down"/>; a galley holding <paramref name="made"/> dishes made. A kind with no sound of its
+    /// own is passed over.
     /// </summary>
-    public void Hear(int id, string kind, Vector2 at, bool works, long step, int frames, int? down, double elapsedS)
+    public void Hear(int id, string kind, Vector2 at, bool works, long step, int frames, int? down, double elapsedS, int made = 0)
     {
-        if (kind is not ("former" or "smelter" or "crusher")) return;
+        if (kind is not ("former" or "smelter" or "crusher" or "galley")) return;
         if (!_heard.TryGetValue(id, out var heard)) _heard[id] = heard = Made(kind);
         heard.Seen = true;
         heard.Loop!.Position = at;
         if (heard.Shots != null) heard.Shots.Position = at;
         if (kind == "former") Press(heard, works, step, frames, down ?? 0, elapsedS);
         else if (kind == "smelter") Smelt(heard, works, elapsedS);
+        else if (kind == "galley") Cook(heard, works, made, elapsedS);
         else Crush(heard, works, elapsedS);
     }
 
@@ -68,6 +72,7 @@ public partial class StationSounds : Node2D
         {
             "former" => new Heard { Loop = Cues.Player2D(S.FormerMotor, S.World), Shots = Cues.Player2D(S.FormerStroke, S.World, voices: 2) },
             "smelter" => new Heard { Loop = Cues.Player2D(S.SmelterHum, S.World), Shots = Cues.Player2D(S.SmelterCrackle, S.World, voices: 3) },
+            "galley" => new Heard { Loop = Cues.Player2D(S.GalleyBoil, S.World), Shots = Cues.Player2D(S.GalleyDone, S.World) },
             _ => new Heard { Loop = Cues.Player2D(S.CrusherRun, S.World) },
         };
         AddChild(heard.Loop);
@@ -111,6 +116,16 @@ public partial class StationSounds : Node2D
         heard.Envelope.Step(works, elapsedS, S.CrusherRunInS, S.CrusherRunOutS);
         Loop(heard.Loop!, heard.Envelope.Playing);
         heard.Loop!.OffsetDb = heard.Envelope.GainDb;
+    }
+
+    /// <summary>The galley: its pot boiling, risen while it cooks and fallen after; a knock on the lid as each dish is done.</summary>
+    private void Cook(Heard heard, bool works, int made, double elapsedS)
+    {
+        heard.Envelope.Step(works, elapsedS, S.GalleyBoilInS, S.GalleyBoilOutS);
+        Loop(heard.Loop!, heard.Envelope.Playing);
+        heard.Loop!.OffsetDb = heard.Envelope.GainDb;
+        if (made > heard.Made) heard.Shots!.PlayAt(heard.Shots.GlobalPosition);
+        heard.Made = made;
     }
 
     /// <summary>A loop started somewhere along it while heard, stopped once not.</summary>

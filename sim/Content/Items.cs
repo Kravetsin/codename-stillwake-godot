@@ -90,6 +90,12 @@ public static class Items
         // Eaten (food-and-the-body): a meal each, from supply pods and fridges.
         new("ration", 20),
         new("cannedMeat", 20),
+        // Cooked at the galley: a meal each.
+        new("porridge", 20),
+        new("hash", 20),
+        new("broth", 20),
+        new("roast", 20),
+        new("stew", 20),
         new("planks", 200, BurnTicks: 400),
         new("scrapChunk", 250, Yields: [("scrap", 4)], SmeltTicks: 60, Group: ItemGroup.Salvage),
         new("hullPlate", 250, Yields: [("iron", 2), ("scrap", 1)], SmeltTicks: 100, Group: ItemGroup.Salvage),
