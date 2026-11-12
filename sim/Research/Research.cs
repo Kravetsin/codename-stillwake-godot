@@ -22,8 +22,8 @@ public sealed record Want(string Item, int Sold, int Count);
 public sealed record Standing(TechNode? Next, IReadOnlyList<Want> Wanted, long Points, long Target);
 
 
-/// <summary>What the rule grants by: a thing, how many of each part are enough, and for a craft the machines that make it; null for a blueprint.</summary>
-internal sealed record Walkable(string Id, (string Item, int Enough)[] Parts, string[]? Stations);
+/// <summary>What the rule grants by: a thing, its parts, and for a craft the machines that make it; null for a blueprint.</summary>
+internal sealed record Walkable(string Id, string[] Parts, string[]? Stations);
 
 /// <summary>
 /// The research slice: empty, as what is known, earned and sold is the world's <c>Knowledge</c>. Public so modules can be
@@ -83,7 +83,7 @@ public sealed class ResearchModule : Module<ResearchState>, IResearchQueries
     [
         .. Every.Where(e => Content.Research.Node(e.Id) is not { Tab: Content.Research.Market }).Select(e => new Walkable(
             e.Id,
-            [.. e.Cost.Select(c => (c.Item, Understanding.Enough(c.Item)))],
+            [.. e.Cost.Select(c => c.Item)],
             e.Placement != null ? null : [.. Content.Stations.All.Where(s => s.Rows.Any(r => r.Contains(e.Id))).Select(s => s.Machine)])),
     ];
 
@@ -168,11 +168,11 @@ public sealed class ResearchModule : Module<ResearchState>, IResearchQueries
         return points + Math.Max(0, _knowledge.SoldWorth - _knowledge.BaseWorth - wanted);
     }
 
-    /// <summary>Whether each part of <paramref name="thing"/> is enough and, for a craft, a machine that makes it stands on this surface.</summary>
+    /// <summary>Whether each part of <paramref name="thing"/> was ever obtained and, for a craft, a machine that makes it stands on this surface.</summary>
     private bool Understood(Walkable thing)
     {
         for (int i = 0; i < thing.Parts.Length; i++)
-            if (_knowledge.ObtainedOf(thing.Parts[i].Item) < thing.Parts[i].Enough) return false;
+            if (_knowledge.ObtainedOf(thing.Parts[i]) == 0) return false;
         if (thing.Stations is not { } stations) return true;
         for (int i = 0; i < stations.Length; i++)
             if (_grid.MachinesOf(stations[i]).Count > 0) return true;

@@ -401,8 +401,8 @@ public partial class ContentTests
     }
 
     /// <summary>
-    /// The way to power and the press, under the rule: at most this much of the workbench's work. Each item is made as many times as
-    /// its own count or what is made from it asks, the more: a rotor's gear counts towards the gears too.
+    /// The way to power and the press, under the rule: at most this much of the workbench's work. Each item is made once if it is a part,
+    /// or as many times as what is made from it asks, the more: a rotor's gear counts towards the gears too.
     /// </summary>
     [Fact]
     public void TheFormerAndBurnerAreUnderstoodWithin540SecondsOfTheBench()
@@ -411,7 +411,7 @@ public partial class ContentTests
         var made = Crafts.All.Where(c => bench.Rows.Any(r => r.Contains(c.Item))).ToList();
         var parts = Machines.Get("former").Cost.Concat(Machines.Get("burnerGenerator").Cost).Select(c => c.Item).ToHashSet(StringComparer.Ordinal);
         int Times(string item) => Math.Max(
-            parts.Contains(item) ? Stillwake.Sim.Research.Understanding.Enough(item) : 0,
+            parts.Contains(item) ? 1 : 0,
             made.Sum(c => c.Cost.Where(x => x.Item == item).Sum(x => x.Count * Times(c.Item))));
         int total = made.Sum(c => Times(c.Item) * (c.Ticks * 1000 / bench.Speed));
         Assert.True(total <= 540 * 20, $"{total / 20} s of the workbench");

@@ -1,6 +1,6 @@
 # The board says what the hero is thinking
 
-- Status: accepted
+- Status: accepted; a shape's count of what it lacks superseded by [one-to-understand](2026-11-12-one-to-understand.md)
 - Date: 2026-11-02
 - Amends [the pile](2026-11-02-board-pile.md): what the board says after a pile, and [tablet-key](2026-10-31-tablet-key.md): how long a mark lasts
 

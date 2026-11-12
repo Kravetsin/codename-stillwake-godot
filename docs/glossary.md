@@ -72,7 +72,7 @@ Game words → code. One line a term: Russian / English → identifiers → modu
 - доска / the board **≠** → `BoardPage` in `ResearchTablet` on the tablet (T); `BoardSlots`, `BoardView`, `BoardPile` (client) → Research. The tech tree is gone (the-board): the board learns, the black market sells
 - заметка, силуэт, нить / note, silhouette (shape), thread → `BoardView`, `BoardThreads`, `BoardPencil` (how far a shape has come) (client)
 - найдено, счёт / obtained, count → `Knowledge.Obtained` (`Tally`), `ObtainedOf`, counted in `Items` → Knowledge, Items
-- достаточно / enough → `Understanding.Enough`, `Content.Research.EnoughWorth`, `EnoughMost`; понять / understood (the rule) → `ResearchModule`'s walk, `Knowledge.Granted` → Research
+- понять / understood (the rule: one of each part, a machine for a craft) → `ResearchModule`'s walk, `Knowledge.Granted` → Research
 - продано / sold → `Knowledge.Sold`, `SoldOf`, counted at a capsule's launch → Knowledge, Trade
 - строка рынка, блок, заказ / market ring, block, order → `Content.Research.Tabs` (the one `blackMarket`), `TechRing`, `TechNode` (`Gate`, `Order`: what a level wants sold) → Research
 - репутация, уровень мафии / reputation, level → `Knowledge.Level`, `Research.Standing()` (2026-11-08-mafia-reputation) → Knowledge, Research

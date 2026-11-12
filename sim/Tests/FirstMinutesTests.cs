@@ -63,21 +63,21 @@ public class FirstMinutesTests
         w.Do(new Enter(w.M.Crew.Spawn)).Run();
         Assert.False(w.M.Research.Knows("furnace"));
 
-        // At 10 chunks and 5 hull plates, the furnace; one short is not enough.
+        // At a chunk and a hull plate, the furnace; chunks alone are not enough, however many.
         Catch(w, "scrapChunk", 11);
-        Catch(w, "hullPlate", 4);
         Assert.False(w.Run().M.Research.Knows("furnace"));
         Catch(w, "hullPlate", 1);
         Assert.True(w.Run().M.Research.Knows("furnace"));
         Assert.False(w.M.Research.Knows("workbench"));
-        Catch(w, "hullPlate", 4);
+        Catch(w, "hullPlate", 8);
 
         int furnace = Build(w, "furnace");
-        Catch(w, "planks", 10);
+        Catch(w, "planks", 1);
         Assert.True(w.Run().M.Research.Knows("workbench"));
         Assert.False(w.M.Research.Knows("floor"));
+        Catch(w, "planks", 9);
 
-        // A chunk gives 4 scrap: at 3, floor and ladder ink in. A hull plate gives 2 iron: at 5, the bench has what it opens things with.
+        // A chunk gives 4 scrap, the first of which inks in floor and ladder. A hull plate gives 2 iron: at 5, the bench has what it opens things with.
         for (int i = 0; i < 2000 && !w.M.Atmosphere.AiredAt(w.M.Grid.Machines.First(m => m.Id == furnace).Cell); i++) w.Run();
         Put(w, "planks", 3, new Target(Machines.Get("furnace").FuelSlot, furnace));
         Put(w, "scrapChunk", 3, new Target(Crate: furnace));

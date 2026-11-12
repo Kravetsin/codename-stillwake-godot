@@ -38,9 +38,9 @@ A living document: what is decided about the game and what is still open. Techni
   ([0048](decisions/0048-a-big-world-a-build-zone-inside-it.md)).
 - **Room is bought:** a hero starts with the hotbar and two rows, one belt slot, and two slots in a trade station. The black
   market's rings sell more for credits, a slot at a time, for the whole crew ([upgrades](decisions/2026-10-30-room-upgrades.md)).
-- **Things are learned by having them:** a blueprint or craft is understood once enough of each of its parts has been caught, made,
-  taken apart, dug, felled or looted, few of a rare part and up to ten of a common one, and a craft once a machine making it stands
-  too; known stays known. The wreck knows nothing from its start: the first walls at ten chunks. The tablet holds a board that writes
+- **Things are learned by having them:** a blueprint or craft is understood once one of each of its parts has been caught, made,
+  taken apart, dug, felled or looted, and a craft once a machine making it stands
+  too; known stays known. The wreck knows nothing from its start: the first walls at the first chunk. The tablet holds a board that writes
   itself: a note for each thing found, threads to pale shapes of what is closest to done, each saying what it lacks; a note picked
   shows what it takes, where it is made and what it goes into ([the-board](decisions/2026-11-05-the-board.md)).
 - **Salvage is sold:** a trade station, of plates, wire and a found circuit so it comes after the first benches

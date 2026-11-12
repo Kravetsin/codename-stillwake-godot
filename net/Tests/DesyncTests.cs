@@ -694,13 +694,12 @@ public class DesyncTests(ITestOutputHelper output)
     [Fact]
     public void KeepsEveryClientAndAJoinerInSyncAsTheRuleGrants()
     {
-        // The rule (docs/decisions/2026-11-05-the-board.md): one plate short of an iron wall until a joiner is in, whose welcome holds the count; then
+        // The rule (docs/decisions/2026-11-12-one-to-understand.md): no plate had, so no iron wall, until a joiner is in; then
         // the first client's plates reach it and everyone's walk grants on the same tick, the joiner's too.
         var layout = Layout.Parse(["##########", "#II......#", "#II......#", "#II......#", "##########"]).Doubled() with { Known = [.. Content.Research.StartKnown, "plate"] };
         static string Seeded(string save)
         {
             var root = JsonNode.Parse(save)!;
-            root["slices"]!["knowledge"]!["obtained"] = new JsonArray(new JsonObject { ["item"] = "plate", ["count"] = Sim.Research.Understanding.Enough("plate") - 1 });
             var inventories = new JsonArray();
             for (int id = 0; id < 4; id++)
             {
