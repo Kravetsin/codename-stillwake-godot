@@ -36,7 +36,7 @@ This hero and others', client-authoritative (0002): only commands reach the sim.
 | `logic/RunSounds.cs` | tools heard |
 | `logic/ToolEdge.cs` | the cutter's beam |
 | `logic/ToolRays.cs` | what a tool hits |
-| `WreckPixels.cs` | wrecks' opaque pixels |
+| `WreckPixels.cs` | wrecks' pixels |
 | `ToolWork.cs` | tools at work |
 | `logic/ToolSparks.cs` | sparks off a wreck |
 | `logic/CutterJet.cs` | the cutter's jet |
@@ -44,12 +44,12 @@ This hero and others', client-authoritative (0002): only commands reach the sim.
 | `logic/Remote.cs` | heroes sent and kept |
 | `logic/RemoteRod.cs` | another's harpoon rod |
 | `logic/RodFlourish.cs` | when its lights play |
-| `logic/Suits.cs` | suit colours, what is worn |
+| `logic/Suits.cs` | suits, what is worn |
 | `logic/SuitGlow.cs` | a body's lights |
 | `logic/TrackerBlink.cs` | the tracker's blink |
-| `SuitKeys.cs` | V on the tablet's edge |
+| `SuitKeys.cs` | V on the tablet |
 | `Figure.cs` | the rig, lit, dressed |
-| `logic/Cape.cs` | a worn cape's cloth |
+| `logic/Cape.cs` | a cape's cloth |
 | `logic/Spring.cs` | a held arm's swing |
 | `CapeView.cs` | it drawn, lined |
 | `HeroView.cs` | keys, steps, camera |
@@ -60,13 +60,14 @@ This hero and others', client-authoritative (0002): only commands reach the sim.
 | `HeroView.Others.cs` | others' heroes |
 | `logic/CameraFollow.cs` | the camera's aim |
 | `JetPlume.cs` | a jetpack's plume |
+| `logic/PlumeWay.cs` | its way |
 | `RodLight.cs` | harpoon light |
 | `AimOutline.cs` | the aim's outline |
-| `ModeGlyph.cs` | the driver's mode mark |
+| `ModeGlyph.cs` | the driver's mark |
 | `logic/DriverMode.cs` | its dots |
 | `HeroAutopilot.cs` | scripted runs |
 | `logic/Report.cs` | Enter reports |
-| `Frost.cs` | frost past the field |
+| `Frost.cs` | past the field |
 | `logic/Danger.cs` | the gauge's read |
 | `logic/AirCues.cs` | air back |
 | `logic/CanistersSeen.cs` | others' tanks |
