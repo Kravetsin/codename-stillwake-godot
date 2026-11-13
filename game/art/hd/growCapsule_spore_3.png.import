@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://b80ybg3i0j7dx"
-path="res://.godot/imported/growCapsule_plant_3.png-0c3b1940bdc56405e7202d510c30cc7f.ctex"
+uid="uid://lfdmn88yuads"
+path="res://.godot/imported/growCapsule_spore_3.png-e88d1700bc359a354bc81b9c040f2b26.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://art/hd/growCapsule_plant_3.png"
-dest_files=["res://.godot/imported/growCapsule_plant_3.png-0c3b1940bdc56405e7202d510c30cc7f.ctex"]
+source_file="res://art/hd/growCapsule_spore_3.png"
+dest_files=["res://.godot/imported/growCapsule_spore_3.png-e88d1700bc359a354bc81b9c040f2b26.ctex"]
 
 [params]
 
