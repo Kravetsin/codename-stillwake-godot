@@ -54,7 +54,7 @@ public partial class StationView : Node2D
         ["galley"] = new(6, 150, Lights: [new(9.4f, 29.6f)], Light: new(1f, 138 / 255f, 60 / 255f), Levels: [0.5f, 0.6f, 0.45f, 0.58f, 0.5f, 0.62f], Screen: true),
     };
 
-    /// <summary>How many pictures a plant grows through, a quarter of its crop each (<c>art/{kind}_plant_*.png</c>).</summary>
+    /// <summary>How many pictures a plant grows through, a quarter of its crop each (<c>art/{kind}_{crop}_*.png</c>).</summary>
     private const int Stages = 4;
 
     /// <summary>Where a fed station shows it is too cold, in pixels of its picture: the furnace's mouth, the smelter's grate.</summary>
@@ -213,8 +213,8 @@ public partial class StationView : Node2D
 
     /// <summary>
     /// What grows in a grow capsule (0060), lit as the machine is: whatever its input holds of its process, planted, at the
-    /// quarter of its crop it has grown to, working or paused; nothing for an empty capsule or one holding what it does
-    /// not grow.
+    /// quarter of its crop it has grown to, working or paused, each crop its own plant (<c>{kind}_{crop}_{stage}</c>);
+    /// nothing for an empty capsule or one holding what it does not grow.
     /// </summary>
     private void ShowPlant(int id, string kind, Vector2 corner)
     {
@@ -229,7 +229,7 @@ public partial class StationView : Node2D
         }
         plant.Position = corner;
         int stage = (int)Math.Min(Stages - 1, (long)_crafting.Progress(id) * Stages / work);
-        plant.Texture = PixelArt.Picture($"{kind}_plant_{stage}");
+        plant.Texture = PixelArt.Picture($"{kind}_{_items.Crate(id)[0]!.Item}_{stage}");
     }
 
     /// <summary>A station's pictures at work over its own: lit as the machine is, or unlit when they glow; a screen's unlit over them; its lights.</summary>

@@ -574,8 +574,16 @@ const VINE = { base: '#56723e', shade: '#3a5230', deep: '#26381f', lite: '#738e4
 const LEAF = { base: '#4c6a3a', shade: '#34502e', deep: '#22361f', lite: '#6a8648', spec: '#93a866', ink: '#0d1a10' };
 const GOURD = { base: '#8a9246', shade: '#5c6832', deep: '#3c4824', lite: '#a8b25e', spec: '#d4d896', ink: '#1a1e0e' };
 const TWIG = { base: '#7a5a36', shade: '#523a26', lite: '#9a7648', spec: '#9a7648', ink: '#1c1210' };
+const STAKE_X = 16, STAKE_FOOT = 31, STAKE_TOP = 11.6;
+/** The rusted stake every crop stands on, part of the capsule's soil rather than of a plant. */
+const stake = (a) => {
+  const cx = STAKE_X, top = STAKE_TOP;
+  a.tube(`M${cx} ${STAKE_FOOT}L${cx} ${top + .6}`, 1, GUN);
+  a.shape(rr(cx - .8, top, 1.6, .8, .3), GUN, { lite: band(cx - .8, top, cx + .8, top + .3) });
+  for (const [x, y] of [[cx - .2, 17.4], [cx + .2, 24.6], [cx, 28.4]]) a.flat(ell(x, y, .35, .5), '#8a5a3a');
+};
 const plantStage = (s) => (a) => {
-  const foot = 31, cx = 16, top = [25.5, 19, 12.5, 11][s], stakeTop = 11.6, r = 1.25, pitch = 5.2;
+  const foot = STAKE_FOOT, cx = STAKE_X, top = [25.5, 19, 12.5, 11][s], r = 1.25, pitch = 5.2;
   // The vine as a helix round the stake: the runs behind it drawn first, the stake, then the runs in front.
   const runs = [[], []];
   let run = null, front = null;
@@ -586,9 +594,7 @@ const plantStage = (s) => (a) => {
   const path = (pts) => 'M' + pts.map(([x, y]) => `${x.toFixed(2)} ${y.toFixed(2)}`).join('L');
   const vineX = (y) => cx + r * Math.sin(((foot - y) / pitch) * 2 * Math.PI);
   for (const p of runs[0]) if (p.length > 1) a.tube(path(p), .75, VINE);
-  a.tube(`M${cx} ${foot}L${cx} ${stakeTop + .6}`, 1, GUN);
-  a.shape(rr(cx - .8, stakeTop, 1.6, .8, .3), GUN, { lite: band(cx - .8, stakeTop, cx + .8, stakeTop + .3) });
-  for (const [x, y] of [[cx - .2, 17.4], [cx + .2, 24.6], [cx, 28.4]]) a.flat(ell(x, y, .35, .5), '#8a5a3a');
+  stake(a);
   for (const p of runs[1]) if (p.length > 1) a.tube(path(p), .75, VINE);
   // A tendril curls off the vine's tip, brown as the gourds' stems.
   if (s > 0) a.tube(`M${vineX(top).toFixed(2)} ${top}Q${(vineX(top) + 1.2).toFixed(2)} ${top - 1.4} ${(vineX(top) + .2).toFixed(2)} ${top - 2}Q${(vineX(top) - .6).toFixed(2)} ${top - 1.4} ${(vineX(top) + .1).toFixed(2)} ${top - 1.1}`, .35, TWIG, { spec: false });
@@ -618,6 +624,60 @@ const plantStage = (s) => (a) => {
     a.tube(`M${x} ${y0 + .1}Q${x + .2} ${y0 - .9} ${x + .9} ${y0 - 1}Q${x + 1.3} ${y0 - .6} ${x + .8} ${y0 - .4}`, .35, TWIG, { spec: false });
   };
   gourd(10.6, 16, 5.4, 14); gourd(21.4, 15.4, 5.4, 13.4); gourd(10.4, 23, 6, 21.4); gourd(21.6, 22.4, 6, 20.8);
+};
+// The spore's glowberry bush (picked 2026-11-13): a stiff upright shrub before the stake, narrow grey-green leaves in
+// pairs up its branches, clusters of dusky berries on short spurs at the last stage, lit from within as the item's are.
+const STEM = { base: '#806440', shade: '#5a462e', deep: '#3a2e20', lite: '#9e8054', spec: '#b29a6a', ink: '#1c1410' };
+const SAGE = { base: '#748458', shade: '#56663f', deep: '#3a4630', lite: '#92a06e', spec: '#b4bc8a', ink: '#141a10' };
+const BERRY = { base: '#706a3e', shade: '#4c4830', deep: '#363426', lite: '#9a9254', spec: '#f0e8b8', ink: '#1a180e' };
+/** The grown bush in its own frame, u across from the trunk and v up from the soil: the trunk's points, and each branch from the trunk's height v0 to its tip. */
+const TRUNK = [[0, 0], [.25, 6], [-.1, 12], [.1, 19]];
+const BRANCHES = [[4.6, -4.8, 10.4], [6.6, 4.6, 12.6], [10.6, -4.2, 15.8], [12.8, 4, 17.2]];
+const bushStage = (s) => (a) => {
+  stake(a);
+  // Younger stages are the grown bush drawn shorter and narrower from the same foot; the sprout is three leaves.
+  const k = [.3, .55, 1, 1][s], kx = .5 + .5 * k;
+  const X = (u) => STAKE_X + .4 + u * kx, Y = (v) => STAKE_FOOT - v * k, P = (u, v) => `${X(u).toFixed(2)} ${Y(v).toFixed(2)}`;
+  const f = (n) => n.toFixed(2);
+  // A narrow leaf from its base at (u, v), pointing at angle ang (up is π/2), l long: its upper half lit, a vein to the middle.
+  const leaf = (u, v, ang, l) => {
+    const x = X(u), y = Y(v), c = Math.cos(ang), n = Math.sin(ang), w = l * .28;
+    const tx = x + c * l, ty = y - n * l, mx = x + c * l * .5, my = y - n * l * .5, px = -n * w, py = -c * w;
+    const d = `M${f(x)} ${f(y)}Q${f(mx + px)} ${f(my + py)} ${f(tx)} ${f(ty)}Q${f(mx - px)} ${f(my - py)} ${f(x)} ${f(y)}Z`;
+    const lite = `M${f(x)} ${f(y)}Q${f(mx + px)} ${f(my + py)} ${f(tx)} ${f(ty)}Q${f(mx + px * .2)} ${f(my + py * .2)} ${f(x)} ${f(y)}Z`;
+    a.shape(d, SAGE, { lite, shade: .45, lines: [`M${f(x)} ${f(y)}L${f(mx + c * l * .3)} ${f(my - n * l * .3)}`] });
+  };
+  if (s === 0) {
+    a.tube(`M${P(0, 0)}L${P(0, 4)}`, .5, STEM, { spec: false });
+    leaf(0, 4, 2.4, 4.2); leaf(0, 4, .75, 4.2); leaf(0, 4.4, 1.6, 3.2);
+    return;
+  }
+  // The branches first, then the trunk, so it stands before their roots.
+  for (const [v0, u, v] of BRANCHES) a.tube(`M${P(0, v0)}Q${P(u * .35, v0 + (v - v0) * .65)} ${P(u, v)}`, .75, STEM, { spec: false });
+  a.tube('M' + TRUNK.map(([u, v]) => P(u, v)).join('L'), 1.3, STEM, { spec: false });
+  // Leaves in pairs up each branch, pointing up and out, one at its tip; the trunk ends in a crown of three, two more down it.
+  for (const [v0, u, v] of BRANCHES) {
+    const dir = Math.atan2((v - v0) * k, u * kx);
+    for (const t of [.45, .75]) {
+      const bu = u * (t * t * .35 + t * .65), bv = v0 + (v - v0) * t;
+      leaf(bu, bv, dir + .6, 3.6); leaf(bu, bv, dir - .6, 3.6);
+    }
+    leaf(u, v, dir, 4);
+  }
+  for (const [ang, l] of [[1.15, 3.8], [1.62, 4.2], [2.05, 3.8]]) leaf(.1, 19, ang, l);
+  for (const [v, ang] of [[3.6, 2.5], [8.8, .6]]) leaf(0, v, ang, 3.4);
+  if (s < 3) return;
+  // A cluster of four berries hanging on a short spur under a branch, each lit from within as the item's are.
+  const cluster = (u, v, side) => {
+    const x = X(u) + side * 1.2, y = Y(v) + 2;
+    a.tube(`M${P(u, v)}Q${f(x)} ${f(Y(v))} ${f(x)} ${f(y - 1.2)}`, .3, STEM, { spec: false });
+    for (const [dx, dy] of [[0, -.9], [-.8, .2], [.8, .2], [0, 1.2]]) {
+      const bx = x + dx, by = y + dy, r = .72;
+      a.shape(ell(bx, by, r), BERRY, { shade: r * .3, spec: ell(bx - r * .42, by - r * .46, r * .22, r * .18) });
+      a.glow(ell(bx + r * .1, by + r * .2, r * .4, r * .32), '#a09452', { core: ell(bx + r * .12, by + r * .26, r * .2, r * .16), coreC: '#d8c47a' });
+    }
+  };
+  cluster(-3.4, 9.4, -1); cluster(3.4, 11.6, 1); cluster(-3, 14.8, -1); cluster(2.8, 16.4, 1);
 };
 const growLight = (a) => { a.flat(band(9, 7, 23, 8), '#ff78c0'); a.flat(band(12, 7.2, 20, 7.7), '#ffd8ec'); };
 const podGlass = (a) => {
@@ -986,7 +1046,8 @@ Subjects.machines = function () {
     out(`workbench_work_${f}`, flat(32, 40, workbench_work(f)));
     out(`burner_wheel_${f}`, flat(13, 13, burnerWheel(f)));
     out(`computer_screen_${f}`, flat(48, 32, computerScreen(f)));
-    out(`growCapsule_plant_${f}`, flat(32, 48, plantStage(f)));
+    out(`growCapsule_seed_${f}`, flat(32, 48, plantStage(f)));
+    out(`growCapsule_spore_${f}`, flat(32, 48, bushStage(f)));
   }
   for (let f = 0; f < 2; f++) out(`computer_lights_${f}`, flat(48, 32, computerLights(f)));
   for (let f = 0; f < 3; f++) out(`fire_${f}`, flat(10, 11, fire(f)));
