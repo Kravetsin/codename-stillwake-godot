@@ -93,7 +93,7 @@ public static class ToolEdges
                     int cell = cy * width + cx;
                     if (!cells.Contains(cell)) cells.Add(cell);
                     bool solidCell = grid.WallAt(cell) != null || grid.Blocks(cell);
-                    if (!grounded && (solidCell || m.Building.PlantAt(cell) != null || Piles.At(grid, cell) != null))
+                    if (!grounded && (solidCell || m.Building.PlantAt(cell) != null || m.Building.TargetAt(cell) is { Kind: TargetKind.Machine }))
                     {
                         touches.Add(new((px, py), cell, null));
                         grounded = true;

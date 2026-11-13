@@ -113,7 +113,7 @@ public partial class BuildingView : Node2D
         var building = m.Building;
         int width = _width = grid.Width, height = grid.Height;
         DrawPlans(grid, building, m.Rooms, m.Power);
-        // With the back walls focused the front's plans hide with the front (back-focus-clear).
+        // With the back walls focused the front's plans fade with the front (back-focus-faint).
         float front = Tools.AlphasOf(_hand.Shown).Front;
         _plans.FadeFront(front);
         _outline.Modulate = Dashes with { A = Dashes.A * front };

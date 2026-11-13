@@ -44,12 +44,40 @@ public sealed class Hero
     [JsonInclude, JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)] public int Hurts { get; internal set; }
     /// <summary>What hurt it last; <see cref="Harm.None"/> before anything has.</summary>
     [JsonInclude, JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)] public Harm Hurt { get; internal set; }
-    /// <summary>Ticks left that it counts as active, from <c>Wanted.ActiveFor</c> when it last moved a cell or ran (tracker-catchers).</summary>
-    [JsonInclude, JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)] public int Stirring { get; internal set; }
-    /// <summary>Its hidden wanted meter, 0 to <see cref="Need"/>: full, a catcher hunts it (tracker-catchers).</summary>
+    /// <summary>Its hidden wanted meter, the worth of what it broke and killed, 0 to <see cref="Need"/>: full, a catcher is sent (catcher-loot).</summary>
     [JsonInclude, JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)] public int Wanted { get; internal set; }
     /// <summary>What fills its meter, drawn after each reset; 0 while not drawn yet.</summary>
     [JsonInclude, JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)] public int Need { get; internal set; }
+    /// <summary>Breaths left of the alarm, drawn as its meter filled: at 0 with the meter full, its catcher hunts it.</summary>
+    [JsonInclude, JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)] public int Coming { get; internal set; }
+    /// <summary>
+    /// Ticks until it may breathe another canister, 0 when it may: ticks left, never a tick of the clock, as each surface
+    /// keeps its own and a hero carries this across (food-and-the-body).
+    /// </summary>
+    [JsonInclude, JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)] public int CanisterIn { get; internal set; }
+    /// <summary>
+    /// Thousandths of a unit its breaths have cost short of a whole one, 0 to 999, kept for the next (food-and-the-body): a calm
+    /// breath costs a share of a unit, paid whole as the shares add up.
+    /// </summary>
+    [JsonInclude, JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)] public int Owed { get; internal set; }
+    /// <summary>Thousandths of a tick its <c>Work</c> commands have earned short of a whole one, 0 to 999, kept for the next (food-and-the-body).</summary>
+    [JsonInclude, JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)] public int Worked { get; internal set; }
+    /// <summary>What it has eaten, up to <c>Diet.Meals</c>, each with its ticks left; none, it is hungry (food-and-the-body).</summary>
+    [JsonIgnore] internal List<Meal> Eaten { get; set; } = [];
+    /// <summary>Its meals as saved: left out with none, as a field at its default is.</summary>
+    [JsonInclude, JsonPropertyName("meals"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    internal List<Meal>? Saved { get => Eaten.Count > 0 ? Eaten : null; set => Eaten = value ?? []; }
+    /// <summary>Its meals, in the slots they were eaten into.</summary>
+    [JsonIgnore] public IReadOnlyList<Meal> Meals => Eaten;
+}
+
+/// <summary>A food a hero has eaten (food-and-the-body): its rates last while <see cref="Left"/> runs.</summary>
+public sealed class Meal
+{
+    /// <summary>The food, of <c>Foods.All</c>.</summary>
+    [JsonInclude] public string Food { get; internal set; } = "";
+    /// <summary>Ticks left, counted down each tick: ticks, never a tick of the clock, so it crosses surfaces.</summary>
+    [JsonInclude] public int Left { get; internal set; }
 }
 
 /// <summary>

@@ -1,7 +1,8 @@
 # Catchers
 
 - Status: accepted (slice 1, the planet); slices 2 and 3 are in [the plan](../plans/catchers.md); superseded in part by
-  [catcher-paths](2026-11-09-catcher-paths.md) (paths, breaking built walls) and [catcher-combat](2026-11-09-catcher-combat.md) (its drill)
+  [catcher-paths](2026-11-09-catcher-paths.md) (paths, breaking built walls), [catcher-combat](2026-11-09-catcher-combat.md) (its drill) and
+  [catcher-loot](2026-11-10-catcher-loot.md) (what fills the meter, the blink)
 - Date: 2026-11-09
 
 ## Context

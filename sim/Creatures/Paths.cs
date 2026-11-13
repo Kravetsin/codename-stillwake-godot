@@ -11,6 +11,9 @@ internal enum StepKind
 {
     /// <summary>Along the ground, up or down a step, ground under the feet at both ends.</summary>
     Run = 0,
+
+    /// <summary>Flown where things float (catcher-motion): a cell or a diagonal across, the body free all the way.</summary>
+    Fly = 3,
 }
 
 /// <summary>
@@ -33,24 +36,27 @@ internal sealed class PathFinder
     // The window, and what this search moves: set by Find, read by the steps.
     private int _x0, _y0, _x1, _y1, _lo, _hi, _height, _run;
     private CreaturesModule _m = null!;
+    private bool _flies;
 
     /// <summary>
     /// Fills <paramref name="path"/> with the run steps from (<paramref name="sx"/>, <paramref name="sy"/>) toward (<paramref name="gx"/>,
     /// <paramref name="gy"/>) for a body of <paramref name="f"/>, each a cell times four plus its <see cref="StepKind"/>; empty where it
-    /// stands best already, or for a body that never runs. Whether it reached the goal.
+    /// stands best already, or for a body that never runs. One that <paramref name="flies"/> (catcher-motion) takes flown steps, a cell
+    /// across, up, down or diagonally, a room's cells as walls. Whether it reached the goal.
     /// </summary>
-    internal bool Find(CreaturesModule m, Spec.Flyer f, int sx, int sy, int gx, int gy, List<int> path)
+    internal bool Find(CreaturesModule m, Spec.Flyer f, int sx, int sy, int gx, int gy, List<int> path, bool flies = false)
     {
-        _m = m;
+        (_m, _flies) = (m, flies);
         int width = m.GridWidth;
         _lo = Down(Unit / 2 - f.Width * Unit / 2, Unit);
         _hi = Down(Unit / 2 + f.Width * Unit / 2 - 1, Unit);
         _height = f.Height;
         _run = f.Run > 0 ? Up(100_000, f.Run) : 0;
-        _x0 = Math.Max(Math.Max(0, Math.Min(sx, gx) - Spec.Paths.Margin), sx - Size / 2);
-        _x1 = Math.Min(Math.Min(width - 1, Math.Max(sx, gx) + Spec.Paths.Margin), _x0 + Size - 1);
-        _y0 = Math.Max(Math.Max(0, Math.Min(sy, gy) - Spec.Paths.Margin), sy - Size / 2);
-        _y1 = Math.Min(Math.Min(m.GridHeight - 1, Math.Max(sy, gy) + Spec.Paths.Margin), _y0 + Size - 1);
+        int margin = flies ? Spec.Paths.FlownMargin : Spec.Paths.Margin;
+        _x0 = Math.Max(Math.Max(0, Math.Min(sx, gx) - margin), sx - Size / 2);
+        _x1 = Math.Min(Math.Min(width - 1, Math.Max(sx, gx) + margin), _x0 + Size - 1);
+        _y0 = Math.Max(Math.Max(0, Math.Min(sy, gy) - margin), sy - Size / 2);
+        _y1 = Math.Min(Math.Min(m.GridHeight - 1, Math.Max(sy, gy) + margin), _y0 + Size - 1);
         path.Clear();
         if (_run == 0 || sx < _x0 || sx > _x1 || sy < _y0 || sy > _y1) return false;
         _stamp += 1;
@@ -75,7 +81,7 @@ internal sealed class PathFinder
             if (++weighed >= Spec.Paths.Nodes) break;
             Expand(x, y, g, gx, gy);
         }
-        for (int at = best; _from[at] >= 0; at = _from[at]) path.Add(Global(at, width) * 4 + (int)StepKind.Run);
+        for (int at = best; _from[at] >= 0; at = _from[at]) path.Add(Global(at, width) * 4 + (int)(_flies ? StepKind.Fly : StepKind.Run));
         path.Reverse();
         return reached;
     }
@@ -83,11 +89,34 @@ internal sealed class PathFinder
     /// <summary>Every run from (<paramref name="x"/>, <paramref name="y"/>), standing on ground, in a fixed order: left then right, each from the highest step.</summary>
     private void Expand(int x, int y, int g, int gx, int gy)
     {
+        if (_flies)
+        {
+            Fly(x, y, g, gx, gy);
+            return;
+        }
         if (!Grounded(x, y)) return;
         int here = Local(x, y);
         for (int dx = -1; dx <= 1; dx += 2)
             for (int dy = -Spec.StepUp; dy <= Spec.StepUp; dy++)
                 if (RunsTo(x, y, dx, dy)) Offer(here, x + dx, y + dy, g + _run, gx, gy);
+    }
+
+    /// <summary>
+    /// Every flown step from (<paramref name="x"/>, <paramref name="y"/>), in a fixed order, rows from the top, columns from the left: a
+    /// diagonal one only where the body is free going either way round its corner, costing seven fifths of a straight one.
+    /// </summary>
+    private void Fly(int x, int y, int g, int gx, int gy)
+    {
+        int here = Local(x, y);
+        for (int dy = -1; dy <= 1; dy++)
+            for (int dx = -1; dx <= 1; dx++)
+            {
+                if (dx == 0 && dy == 0) continue;
+                bool free = dx == 0 ? Open(x, y, 0, dy)
+                    : dy == 0 ? Open(x, y, dx, 0)
+                    : Open(x, y, dx, 0) && Open(x + dx, y, 0, dy) && Open(x, y, 0, dy) && Open(x, y + dy, dx, 0);
+                if (free) Offer(here, x + dx, y + dy, g + (dx != 0 && dy != 0 ? _run * 7 / 5 : _run), gx, gy);
+            }
     }
 
     /// <summary>A step to (<paramref name="x"/>, <paramref name="y"/>) from <paramref name="from"/> at cost <paramref name="g"/>: kept only where strictly cheaper.</summary>
@@ -148,12 +177,16 @@ internal sealed class PathFinder
     private bool Solid(int column, int row)
     {
         int lx = column - _x0 + Pad, ly = row - _y0 + Pad;
-        if ((uint)lx >= Span || (uint)ly >= Span) return _m.Solid(column, row);
+        if ((uint)lx >= Span || (uint)ly >= Span) return Blocks(column, row);
         int at = ly * Span + lx;
         if (_known[at] != _stamp) (_what[at], _known[at]) = (Unknown, _stamp);
-        if (_what[at] == Unknown) _what[at] = _m.Solid(column, row) ? Held : Free;
+        if (_what[at] == Unknown) _what[at] = Blocks(column, row) ? Held : Free;
         return _what[at] == Held;
     }
+
+    /// <summary>What stops the body: anything solid; flying, a room's cell too, where it never goes (catchers-space).</summary>
+    private bool Blocks(int column, int row) =>
+        _m.Solid(column, row) || _flies && column >= 0 && row >= 0 && column < _m.GridWidth && row < _m.GridHeight && _m.InRoom(row * _m.GridWidth + column);
 
     private int Estimate(int x, int y, int gx, int gy) =>
         (int)Math.Min(int.MaxValue / 4, (long)_run * Math.Max(Math.Abs(x - gx), Math.Abs(y - gy)) * 3 / 2);

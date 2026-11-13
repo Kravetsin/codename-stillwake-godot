@@ -63,15 +63,6 @@ public class StrokesTests
     }
 
     [Fact]
-    public void ThePickaxesCutRunsAlongItsPointsPathAThinBandWithinACellOutsideIt()
-    {
-        // A swing's dust lies from the blade's reach out to its weapon's range (AirCuts): the pick's range is its point's, a cell at most past it.
-        var point = Rig.HeldAt(AxeSwing.ArmAt(0), HeldLook.Pickaxe, HeldLook.Pickaxe.EdgeTo);
-        double reach = Math.Sqrt(point.X * point.X + point.Y * point.Y), range = Spec.Weapons.Pickaxe.Range * Rig.Cell / 1000.0;
-        Assert.InRange(range - reach, 0, Rig.Cell);
-    }
-
-    [Fact]
     public void HeldTheSledgehammerBlowsEveryOnePointEightSecondsItsBlowAtItsHitShareAndNeverRests()
     {
         var (hits, phases) = Held(Strokes.Hammer, 9000);

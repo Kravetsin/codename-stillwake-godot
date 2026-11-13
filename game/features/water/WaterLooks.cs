@@ -8,7 +8,7 @@ namespace Stillwake.Game.Features.Water;
 
 /// <summary>
 /// Water without a word (water): each cistern's water up its sight glass, each electrolyser's bubbles rising while it works and
-/// its lamp red while it stands (<see cref="WaterShows"/>). Drawn unlit over their pictures, for the glass and the lamp glow.
+/// its lamp green or red (<see cref="WaterShows"/>). The glass and the lamps drawn unlit, for they glow; the bubbles lit, as their machine.
 /// </summary>
 public partial class WaterLooks : Node2D
 {
@@ -19,8 +19,8 @@ public partial class WaterLooks : Node2D
 
     private readonly IGridQueries _grid;
     private readonly IWaterQueries _water;
-    /// <summary>Each machine's overlay, by machine id, and for an electrolyser whether it works.</summary>
-    private readonly Dictionary<int, (Sprite2D Over, bool Works)> _shown = new();
+    /// <summary>Each machine's glowing overlay, by machine id, and an electrolyser's bubbles, shown while it works.</summary>
+    private readonly Dictionary<int, (Sprite2D Over, Sprite2D? Bubbles)> _shown = new();
     private readonly HashSet<int> _seen = new();
     private readonly List<int> _gone = new();
     private double _sinceRead = RefreshMs, _ms;
@@ -40,20 +40,20 @@ public partial class WaterLooks : Node2D
             _sinceRead = 0;
             Read();
         }
-        int frame = WaterShows.WorkFrame(_ms);
-        foreach (var (over, works) in _shown.Values)
-            if (works) over.Texture = PixelArt.Picture($"electrolyser_work_{frame}");
+        var bubbles = PixelArt.Picture($"electrolyser_work_{WaterShows.WorkFrame(_ms)}");
+        foreach (var (_, rising) in _shown.Values)
+            if (rising is { Visible: true }) rising.Texture = bubbles;
     }
 
     private void Read()
     {
         _seen.Clear();
         foreach (var m in _grid.MachinesWith(Stillwake.Content.MachineTrait.HoldsWater))
-            Show(m, PixelArt.Picture($"cistern_fill_{WaterShows.CisternFrame(_water.WaterIn(m.Id))}"), false);
+            Show(m, PixelArt.Picture($"cistern_fill_{WaterShows.CisternFrame(_water.WaterIn(m.Id))}"), null);
         foreach (var m in _grid.MachinesWith(Stillwake.Content.MachineTrait.Electrolyses))
         {
             bool works = _water.Stalled(m.Id) == null;
-            Show(m, PixelArt.Picture(works ? "electrolyser_work_0" : "electrolyser_stalled"), works);
+            Show(m, PixelArt.Picture(works ? "electrolyser_working" : "electrolyser_stalled"), works);
         }
         _gone.Clear();
         foreach (int id in _shown.Keys)
@@ -61,20 +61,29 @@ public partial class WaterLooks : Node2D
         foreach (int id in _gone)
         {
             _shown[id].Over.QueueFree();
+            _shown[id].Bubbles?.QueueFree();
             _shown.Remove(id);
         }
     }
 
-    private void Show(Machine m, Texture2D picture, bool works)
+    /// <summary>A machine's glowing <paramref name="picture"/>; for an electrolyser (<paramref name="works"/> not null) its bubbles too.</summary>
+    private void Show(Machine m, Texture2D picture, bool? works)
     {
         _seen.Add(m.Id);
         if (!_shown.TryGetValue(m.Id, out var shown))
         {
-            shown = (new Sprite2D { Centered = false, Material = Unlit }, works);
+            shown = (new Sprite2D { Centered = false, Material = Unlit }, works == null ? null : new Sprite2D { Centered = false });
             AddChild(shown.Over);
+            if (shown.Bubbles != null) AddChild(shown.Bubbles);
+            _shown[m.Id] = shown;
         }
-        shown.Over.Position = new Vector2(m.Cell % _grid.Width, m.Cell / _grid.Width) * ShipCamera.Cell;
+        var corner = new Vector2(m.Cell % _grid.Width, m.Cell / _grid.Width) * ShipCamera.Cell;
+        shown.Over.Position = corner;
         shown.Over.Texture = picture;
-        _shown[m.Id] = (shown.Over, works);
+        if (shown.Bubbles is { } rising)
+        {
+            rising.Position = corner;
+            rising.Visible = works == true;
+        }
     }
 }

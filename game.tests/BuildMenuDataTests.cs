@@ -19,7 +19,7 @@ public class BuildMenuDataTests
                 + "backWallAlloy floor ladder door hatch",
             "air: vent tank cistern generator electrolyser",
             "power: solarPanel treadWheel burnerGenerator biofuelGenerator lamp arcLamp charger capacitorBank",
-            "production: furnace workbench tradeStation autoTradeStation former crusher smelter assembler growCapsule fermenter arcBench",
+            "production: furnace workbench tradeStation autoTradeStation former crusher smelter assembler growCapsule galley fermenter arcBench",
             "storage: crate net droneBay",
             "ship: launchPlatform dropPod computer radarAntenna engine",
         ], Tools.Tabs.Select(Ids));

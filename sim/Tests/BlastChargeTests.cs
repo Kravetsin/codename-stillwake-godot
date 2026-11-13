@@ -224,6 +224,91 @@ public class BlastChargeTests
     }
 
     [Fact]
+    public void OutOfTheBuildZoneItStillBurstsOnTheWrecksInReach()
+    {
+        // The ship's open space past its zone: nothing built there, but the wrecks drifting in it.
+        var layout = Layout.Parse(string.Join('\n', Enumerable.Repeat(new string('.', 320), 20))) with { Zone = new Box(0, 0, 15, 19) };
+        var w = new Scenario(layout).Do(new Crew.Enter(10 * 320 + 2)).GiveItems(0, (Charge, 1)).Run();
+        var debris = (DebrisState)w.M.Debris.Slice;
+        var struck = new Piece { Id = debris.NextId++, Zone = Spec.Debris.Far.Id, Item = "engineBlock", X = 30_000, Y = 10_000, Start = 30_000, SeenAt = debris.Clock };
+        debris.Pieces.Add(struck);
+        SentryTests.Guarded(w);
+        var end = Thrown(w, At(10, 10, Right));
+        Assert.True(end.Met);
+        Assert.True(end.Burst >= 0);
+        Assert.Equal(Spec.Shots.DamageOf(Charge, Charge) + Blast.WreckDamage, struck.Damage);
+    }
+
+    [Fact]
+    public void AWreckItsHitBreaksStopsItThereNeverFlownThrough()
+    {
+        var w = ShotsTests.Space().GiveItems(0, (Charge, 1));
+        var debris = (DebrisState)w.M.Debris.Slice;
+        Piece Wreck(int x) => new() { Id = debris.NextId++, Zone = Spec.Debris.Far.Id, Item = "engineBlock", X = x, Y = 10_000, Start = x, SeenAt = debris.Clock };
+        // The first all but broken, so the charge's own hit breaks it; the second behind it, past the burst's reach.
+        var weak = Wreck(30_000);
+        weak.Damage = Spec.Wreckage.HpOf(weak.Item)!.Value - 1;
+        var behind = Wreck(80_000);
+        debris.Pieces.AddRange([weak, behind]);
+        SentryTests.Guarded(w);
+        var end = Thrown(w, At(10, 10, Right));
+        Assert.True(end.Met);
+        Assert.True(end.Burst >= 0 && end.Burst % 320 < 30, "it bursts where it struck the first");
+        Assert.DoesNotContain(weak, debris.Pieces);
+        Assert.Equal(0, behind.Damage);
+    }
+
+    [Fact]
+    public void ThrownPointBlankAtAWreckItBurstsTheTickItIsThrownSayingWhoseItIs()
+    {
+        var w = ShotsTests.Space().GiveItems(0, (Charge, 1));
+        var debris = (DebrisState)w.M.Debris.Slice;
+        var wreck = new Piece { Id = debris.NextId++, Zone = Spec.Debris.Far.Id, Item = "engineBlock", X = 12_000, Y = 10_000, Start = 12_000, SeenAt = debris.Clock };
+        debris.Pieces.Add(wreck);
+        SentryTests.Guarded(w);
+        w.Do(At(10, 10, Right)).Run();
+        var end = Assert.Single(w.M.Creatures.Ended);
+        Assert.True(end.Met && end.Burst >= 0);
+        Assert.Equal(Ref.Hero(0), end.By);
+        Assert.Empty(w.M.Creatures.Shots);
+    }
+
+    [Fact]
+    public void InAVesselItBurstsOnItsHullInFull()
+    {
+        var w = new Scenario(Registry.Wreck);
+        w.Do(new Places.Find("shuttle")).Run();
+        w.Do(new Places.Jump(w.M.Places.Contacts[^1].Id)).Run();
+        var box = w.M.Grid.Reserved!.Value;
+        int width = w.M.Grid.Width;
+        int hull = Enumerable.Range(box.Top, box.Bottom - box.Top + 1).Select(y => y * width + box.Left).First(c => w.M.Grid.WallAt(c) != null);
+        w.Do(new Crew.Enter(hull + 5)).GiveItems(0, (Charge, 1)).Run();
+        var end = Thrown(w, new Fire(Charge, (hull % width + 3) * Unit + Unit / 2, hull / width * Unit + Unit / 2, Spec.Headings.Turn / 2));
+        Assert.True(end.Burst >= 0);
+        Assert.True(w.M.Grid.WallAt(hull) == null || CrackAt(w, hull) > 0);
+    }
+
+    [Fact]
+    public void ThrownAtTheLifepodItBurstsShortOfIt()
+    {
+        // The pod with a wall flush behind it: a charge that flew into the pod ended in it, bursting nowhere.
+        var w = new Scenario(Layout.Parse("""
+            ..........OOOOOO#...
+            ..........OOOOOO#...
+            ..........OOOOOO#...
+            ..........OOOOOO#...
+            ..........OOOOOO#...
+            ..........OOOOOO#...
+            ####################
+            """)).Do(new Crew.Enter(5 * 20 + 2)).GiveItems(0, (Charge, 1)).Run();
+        var end = Thrown(w, new Fire(Charge, 3 * Unit + Unit / 2, 2 * Unit + Unit / 2, Right));
+        Assert.True(end.Met);
+        Assert.True(end.Burst >= 0);
+        Assert.True(end.Burst % 20 < 10, "it bursts short of the pod");
+        Assert.NotEmpty(w.M.Building.Cracks);
+    }
+
+    [Fact]
     public void WithNoChargeItIsRefused()
     {
         var w = Pit('t');

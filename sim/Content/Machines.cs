@@ -68,7 +68,7 @@ namespace Stillwake.Content;
 /// <param name="Hp">
 /// Its hit points: broken by tools anywhere, each hit taking the weapon's damage as a wreck's do, giving its cost; never marked
 /// (the-scoop, 2026-11-07-pile-hit-points): a pile. Null for one only a mark takes apart, which bursts break at
-/// <see cref="Damage.MachineHp"/> (<see cref="HitPoints"/>).
+/// <see cref="Damage.MachineHp"/> (<see cref="Strength"/>).
 /// </param>
 /// <param name="Menu">Its card in the build menu (0114), and with it a blueprint; none for one never built (the lifepod, the piles).</param>
 /// <param name="Char">Its character in an ASCII map (<see cref="Legend"/>): drawn over its whole footprint, a character a 16 px cell; null for none.</param>
@@ -111,10 +111,13 @@ public sealed record MachineSpec(
     public bool Is(MachineTrait trait) => (Traits & trait) != 0;
 
     /// <summary>
-    /// What breaks it (unified-damage): a pile's <see cref="Hp"/>, in a weapon's damage; a built machine's <see cref="Damage.MachineHp"/>,
-    /// in tenths of strength, a scrap wall's, taken by bursts as walls take them; none for a <see cref="Fixed"/> one (the lifepod).
+    /// What breaks it (hit-targets): a pile's <see cref="Hp"/>, in a weapon's damage (<see cref="Wreck"/>); a built machine's
+    /// <see cref="Damage.MachineHp"/>, in tenths of strength, a scrap wall's; none for a <see cref="Fixed"/> one (the lifepod).
     /// </summary>
-    public int? HitPoints => Fixed ? null : Hp ?? Damage.MachineHp;
+    public int? Strength => Fixed ? null : Hp ?? Damage.MachineHp;
+
+    /// <summary>Whether its <see cref="Strength"/> is in a weapon's damage, as a wreck's: a pile.</summary>
+    public bool Wreck => !Fixed && Hp != null;
 
     /// <summary>Whether it makes power only under the stars: a maker with no fire, not made to work <see cref="Anywhere"/> (a solar panel).</summary>
     public bool NeedsStars => Makes != null && FuelSlot == null && !Anywhere;
@@ -243,6 +246,9 @@ public static class Machines
         new("growCapsule", 4, 6, [], [("frame", 2), ("glass", 6), ("soil", 8), ("circuit", 2), ("wire", 4)], BuildTicks: 200, Draws: 2, Plug: (4, 42), Slots: 3, Inputs: 1, Menu: new(MenuTabs.Production, 60), Char: 'g', Means: "grow capsule: draw its whole footprint"),
         // Ferments biomass and fat into biofuel on power (Stations), the grow capsule's tier: its input, then its output. Rests idle.
         new("fermenter", 4, 4, [], [("frame", 2), ("glass", 4), ("tube", 4), ("plate", 4), ("circuit", 1)], BuildTicks: 200, Draws: 2, Plug: (5, 27), Slots: 2, Inputs: 1, Menu: new(MenuTabs.Production, 65), Char: 'u', Means: "fermenter: draw its whole footprint"),
+        // The galley (food-and-the-body): a cast-iron range cooking dishes paid by hand, as the workbench does, with no power; its
+        // three slots what it made. Its oven window's glass sets it at the grow capsule's tier, with the fruit it cooks.
+        new("galley", 4, 5, [], [("frame", 2), ("plate", 8), ("tube", 4), ("glass", 2)], BuildTicks: 160, Slots: 3, Inputs: 0, Menu: new(MenuTabs.Production, 62), Char: '&', Means: "galley: draw its whole footprint, three characters tall on a 16 px map (its top cells open)"),
         // Where heroes are made and where parts are crafted (Stations); its slots are the crafts made: paid by hand, no inputs (0057).
         // Launches the drones docked in its four slots to keep the machines in its zone going (0062), and charges them as a charging station does;
         // its fifth, the fuel slot, holds the canisters a salvage drone flies out on (salvage-drones).

@@ -86,7 +86,7 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [0078](0078-two-handed-items-are-held-as-a-rifle.md) | Two-handed items are held as a rifle | superseded | one-arm-holds |
 | [0079](0079-a-planets-surface-has-its-look-and-grows-plants.md) | A planet's surface has its look, and grows plants from its seed | accepted | 0082, composed-backdrops (in part) |
 | [0080](0080-caves-glow-by-depth.md) | Caves glow by depth: what grows in them is the surface's flora, held by floor, ceiling or rock | accepted | veins-and-stairs (in part) |
-| [0081](0081-the-wrist-is-one-column-of-gauges-and-keys.md) | The wrist is one column: segmented gauges that never step, and hardware keys | accepted |  |
+| [0081](0081-the-wrist-is-one-column-of-gauges-and-keys.md) | The wrist is one column: segmented gauges that never step, and hardware keys | accepted | hud-vitals (in part) |
 | [0082](0082-the-grounds-chipped-look-details-and-living-edge.md) | The ground's chipped look: details over it and a living edge on top | accepted |  |
 | [0083](0083-the-handbook-is-a-tablet.md) | The Handbook is a tablet | accepted |  |
 | [0084](0084-back-walls-of-natural-materials.md) | Back walls of natural materials | accepted |  |
@@ -95,7 +95,7 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [0087](0087-the-planets-core-is-lava.md) | The planet's core is lava | accepted |  |
 | [0088](0088-back-walls-recede-solid-edges-catch-light.md) | Back walls recede, the ground's edges catch the light | accepted |  |
 | [0089](0089-the-jump-forgives-and-the-walk-eases.md) | The jump forgives, its height follows Space, the walk eases in and out | accepted |  |
-| [0090](0090-the-figure-leans-skids-and-lands-by-its-motion.md) | The figure leans, skids and lands by its motion | accepted |  |
+| [0090](0090-the-figure-leans-skids-and-lands-by-its-motion.md) | The figure leans, skids and lands by its motion | accepted | body-answers (in part) |
 | [0091](0091-homes-of-the-arc-makers.md) | Homes of the arc makers: furnished ruins in the first planet's ground | accepted |  |
 | [0092](0092-the-whole-ladder.md) | The whole ladder, and a jump that steps up onto a ledge it looked to reach | accepted |  |
 | [0093](0093-a-planet-is-heard.md) | A planet is heard | accepted |  |
@@ -139,7 +139,7 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [sentry-arc](2026-10-27-sentry-arc.md) | The sentry strikes with an arc | accepted |  |
 | [shots-fall-aboard](2026-10-27-shots-fall-aboard.md) | Shots fall aboard | accepted |  |
 | [shots-pierce](2026-10-27-shots-pierce.md) | Shots pierce what they break | accepted | unified-damage (in part) |
-| [space-recoil](2026-10-27-space-recoil.md) | Space recoil | accepted |  |
+| [space-recoil](2026-10-27-space-recoil.md) | Space recoil | accepted | body-answers (in part) |
 | [suits-are-worn](2026-10-27-suits-are-worn.md) | Suits are worn | accepted |  |
 | [the-cape-floats](2026-10-27-the-cape-floats.md) | The cape floats | accepted | the-cape-flows (in part) |
 | [the-cape-is-worn](2026-10-27-the-cape-is-worn.md) | The cape is worn | accepted |  |
@@ -193,7 +193,7 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [board-edges](2026-11-02-board-edges.md) | The board has edges, and what is bought stands by its parts | accepted |  |
 | [board-pile](2026-11-02-board-pile.md) | New finds come to the board as a pile | accepted |  |
 | [board-room](2026-11-02-board-room.md) | The camera stops at a size, and the player has room for heaps | accepted |  |
-| [board-thoughts](2026-11-02-board-thoughts.md) | The board says what the hero is thinking | accepted |  |
+| [board-thoughts](2026-11-02-board-thoughts.md) | The board says what the hero is thinking | accepted | one-to-understand (in part) |
 | [bulb-signal](2026-11-02-bulb-signal.md) | A bulb over the hero says something new waits on the board | superseded | hologram-keys |
 | [far-land-in-ink](2026-11-02-far-land-in-ink.md) | The far land in ink | accepted | composed-backdrops (in part) |
 | [hero-clothes](2026-11-02-hero-clothes.md) | One body, four sets of clothes | accepted |  |
@@ -224,7 +224,7 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [pixels-unsupported](2026-11-03-pixels-unsupported.md) | The pixel art is unsupported | accepted |  |
 | [power-driver](2026-11-03-power-driver.md) | The power driver works a square | accepted |  |
 | [salvage-drones](2026-11-03-salvage-drones.md) | Salvage drones | accepted | salvage-trips (in part) |
-| [the-heavy-helmet](2026-11-03-the-heavy-helmet.md) | The heavy helmet and richer canisters | accepted |  |
+| [the-heavy-helmet](2026-11-03-the-heavy-helmet.md) | The heavy helmet and richer canisters | accepted | food-and-the-body (in part) |
 | [the-regen-suit](2026-11-03-the-regen-suit.md) | The regen suit and the suit's mode | accepted |  |
 | [credit-counter](2026-11-04-credit-counter.md) | The credit chip stands upright and larger, and changing numbers count with a flare | accepted |  |
 | [door-swing](2026-11-04-door-swing.md) | A door takes no other toggle while it moves | accepted |  |
@@ -251,14 +251,14 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [damage-looks](2026-11-05-damage-looks.md) | Damage and work drawn in ink | accepted | tool-reach, cracks-to-end (in part) |
 | [hologram-keys](2026-11-05-hologram-keys.md) | The edge's keys are holograms of what can be used, and the bulb bursts at the screen's top | accepted | edge-flash (in part) |
 | [melee-edge](2026-11-05-melee-edge.md) | A stroke hits with its swept blade | accepted | tool-reach (in part) |
-| [the-board](2026-11-05-the-board.md) | Things are learned by having them, on the scavenger's board | accepted |  |
+| [the-board](2026-11-05-the-board.md) | Things are learned by having them, on the scavenger's board | accepted | one-to-understand (in part) |
 | [the-last-breath](2026-11-05-the-last-breath.md) | The last breath | accepted |  |
 | [tip-signs](2026-11-05-tip-signs.md) | Tips speak in signs and the bubble's numbers | accepted |  |
 | [tool-contact](2026-11-05-tool-contact.md) | A running tool is seen at work all along | accepted | damage-looks, tool-edge (in part) |
 | [tool-edge](2026-11-05-tool-edge.md) | A running tool hits with what is drawn | accepted | tool-reach (in part) |
-| [tool-reach](2026-11-05-tool-reach.md) | A tool hits by a fan of rays from the shoulder and shows its reach in use | accepted | hits-pass-wrecks (in part) |
+| [tool-reach](2026-11-05-tool-reach.md) | A tool hits by a fan of rays from the shoulder and shows its reach in use | accepted | hits-pass-wrecks, blade-trail, tool-size (in part) |
 | [creatures-in-herds](2026-11-06-creatures-in-herds.md) | Wild creatures come in small herds of one kind | accepted |  |
-| [energy-ring](2026-11-06-energy-ring.md) | The energy tab's ring and beating bolt | accepted |  |
+| [energy-ring](2026-11-06-energy-ring.md) | The energy tab's ring and beating bolt | accepted | hud-vitals (in part) |
 | [gain-spots](2026-11-06-gain-spots.md) | What a hero gains, counted beside where it came from | accepted |  |
 | [head-tally](2026-11-06-head-tally.md) | What a hero gains, counted steady over its head | accepted | gain-spots (in part) |
 | [leaks-tripled](2026-11-06-leaks-tripled.md) | Leaks tripled, the pod with them | accepted | scarce-oxygen, leaks-a-minute (in part) |
@@ -267,9 +267,9 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [quick-stash](2026-11-06-quick-stash.md) | The bag stashed into nearby crates with one key | accepted |  |
 | [settings-menu](2026-11-06-settings-menu.md) | The Esc menu on the tablet, Settings in categories | accepted |  |
 | [the-power-chain](2026-11-06-the-power-chain.md) | The power chain | accepted |  |
-| [trade-station-later](2026-11-06-trade-station-later.md) | The trade station comes with circuits | accepted |  |
+| [trade-station-later](2026-11-06-trade-station-later.md) | The trade station comes with circuits | accepted | one-to-understand (in part) |
 | [air-feedback](2026-11-07-air-feedback.md) | Air and power answer the player loudly | accepted |  |
-| [back-focus-clear](2026-11-07-back-focus-clear.md) | The back walls' focus hides the front | accepted |  |
+| [back-focus-clear](2026-11-07-back-focus-clear.md) | The back walls' focus hides the front | accepted | back-focus-faint (in part) |
 | [battery-workbench](2026-11-07-battery-workbench.md) | The workbench makes batteries | accepted |  |
 | [board-search-related](2026-11-07-board-search-related.md) | The board's search finds what is tied | accepted |  |
 | [board-search](2026-11-07-board-search.md) | The board has its own search | accepted |  |
@@ -321,6 +321,24 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [catcher-paths](2026-11-09-catcher-paths.md) | Catcher paths | accepted | catcher-combat, damage-scale (in part) |
 | [damage-scale](2026-11-09-damage-scale.md) | One damage scale; the own ship takes a tenth | accepted |  |
 | [liquid-volumes](2026-11-09-liquid-volumes.md) | Liquid volumes | accepted |  |
+| [damage-scale](2026-11-09-damage-scale.md) | One damage scale; the own ship takes a tenth | accepted | one-damage-rule (in part) |
 | [round-blasts](2026-11-09-round-blasts.md) | Blasts are round | accepted | unified-damage (in part) |
-| [tracker-catchers](2026-11-09-tracker-catchers.md) | Catchers | accepted | catcher-combat, catcher-paths (in part) |
+| [tracker-catchers](2026-11-09-tracker-catchers.md) | Catchers | accepted | catcher-combat, catcher-paths, catcher-loot (in part) |
 | [unified-damage](2026-11-09-unified-damage.md) | One rule for damage | accepted | damage-scale (in part) |
+| [air-gusts](2026-11-10-air-gusts.md) | An action stirs its surroundings | accepted |  |
+| [blade-trail](2026-11-10-blade-trail.md) | A blade leaves its own trail, a haze | accepted |  |
+| [body-answers](2026-11-10-body-answers.md) | The body answers the weapon | accepted |  |
+| [catcher-loot](2026-11-10-catcher-loot.md) | Catcher loot | accepted |  |
+| [catcher-missile](2026-11-10-catcher-missile.md) | Catcher missile | accepted |  |
+| [catcher-motion](2026-11-10-catcher-motion.md) | Catcher motion | accepted |  |
+| [hit-targets](2026-11-10-hit-targets.md) | One answer to what a hit strikes | accepted |  |
+| [one-damage-rule](2026-11-10-one-damage-rule.md) | One damage rule for every hit | accepted |  |
+| [plant-stirs](2026-11-10-plant-stirs.md) | Plants stirred by bodies | accepted |  |
+| [tool-size](2026-11-10-tool-size.md) | Held tools are drawn smaller, and reach no longer follows the model | accepted |  |
+| [back-focus-faint](2026-11-12-back-focus-faint.md) | The back walls' focus clears the front round the pointer | accepted |  |
+| [food-and-the-body](2026-11-12-food-and-the-body.md) | Food and the body | accepted |  |
+| [fruit-not-biomass](2026-11-12-fruit-not-biomass.md) | Fruit, not biomass | accepted |  |
+| [one-to-understand](2026-11-12-one-to-understand.md) | One of each part is enough to understand a thing | accepted |  |
+| [glowberry-bush](2026-11-13-glowberry-bush.md) | Spores grow a glowberry bush | accepted |  |
+| [gourd-vine](2026-11-13-gourd-vine.md) | The grow capsule grows a gourd vine | accepted |  |
+| [hud-vitals](2026-11-13-hud-vitals.md) | The vitals: air, charge and meals as frameless light at the bottom-left | accepted |  |

@@ -44,17 +44,20 @@ public sealed record SetInstant(bool On) : Command;
 /// <summary>What another module may read of what stands on the grid.</summary>
 public interface IBuildingQueries
 {
+    /// <summary>What a hit at <paramref name="cell"/> strikes (hit-targets): the one answer every hitter and view reads; none for open air.</summary>
+    HitTarget? TargetAt(int cell);
+
     /// <summary>
-    /// Whether a shot's hit in <paramref name="cell"/> would take anything (2026-10-27-the-railgun): the surface's tools break things,
-    /// the cell is in the grid's zone, and a breakable wall or a built piece stands there; what <see cref="IBuildingOps.Hit"/> guards by.
+    /// Whether a shot's hit in <paramref name="cell"/> would take anything (2026-10-27-the-railgun): the cell is in the grid's zone or a
+    /// vessel's box, and a wall, built piece or machine that breaks stands there (hit-targets); what <see cref="IBuildingOps.Hit"/> guards by.
     /// </summary>
     bool ShotTakes(int cell);
 
     /// <summary>What a shot's hit in <paramref name="cell"/> strikes, by a cell of it: a built piece by its first cell, whatever cell of it is met; else the cell itself. A thing a shot passed is remembered by this, so a piece over several cells is hit once.</summary>
     int ShotKey(int cell);
 
-    /// <summary>What <see cref="IBuildingOps.Hit"/> of <paramref name="damage"/> on <paramref name="cell"/> would leave over, changing nothing: a client's copy of a shot judges by it.</summary>
-    int? Surplus(int cell, int damage);
+    /// <summary>What <see cref="IBuildingOps.Hit"/> of <paramref name="damage"/> by <paramref name="peer"/> on <paramref name="cell"/> would leave over, changing nothing: a client's copy of a shot judges by it.</summary>
+    int? Surplus(int peer, int cell, int damage);
 
     /// <summary>The relics the ground grew with, ascending by cell, standing or taken (0096).</summary>
     IReadOnlyList<Relic> Relics { get; }
@@ -73,8 +76,9 @@ public interface IBuildingQueries
 public interface IBuildingOps
 {
     /// <summary>
-    /// A hit of <paramref name="damage"/> by peer <paramref name="peer"/>'s shot on what stands solid in <paramref name="cell"/>: what was
-    /// left over once it broke (unified-damage), 0 when it took exactly its strength; null when it held, only cracked, or nothing there breaks.
+    /// A hit of <paramref name="damage"/> by peer <paramref name="peer"/>'s shot on what stands solid or a machine in <paramref name="cell"/>,
+    /// a tenth on their own ship (hit-targets): what was left over once it broke (unified-damage), 0 when it took exactly its strength;
+    /// null when it held, only cracked, or nothing there breaks.
     /// </summary>
     int? Hit(int peer, int cell, int damage);
 
@@ -261,6 +265,9 @@ public sealed partial class BuildingModule : Module<BuildingState>, IBuildingQue
     /// </summary>
     private void ApplyWork(Work c)
     {
+        // A hungry hero's every fourth moves nothing; a fed one's is worth a second tick now and then (food-and-the-body).
+        int ticks = _crewOps.Works(c.From);
+        if (ticks == 0) return;
         int at = State.Plans.FindIndex(p => p.Id == c.Plan);
         var plan = State.Plans[at];
         if (Owes(plan))
@@ -275,8 +282,11 @@ public sealed partial class BuildingModule : Module<BuildingState>, IBuildingQue
             plan = plan with { Delivered = delivered };
         }
         var worked = plan with { Progress = plan.Progress + 1 };
+        int needs = Costs.TicksFor(_grid, worked);
+        // A second tick never finishes the plan nor begins an unpaid part: the last tick's checks ran for the first alone.
+        if (ticks == 2 && worked.Progress + 1 < needs && !Owes(worked)) worked = worked with { Progress = worked.Progress + 1 };
         State.Plans[at] = worked;
-        if (worked.Progress >= Costs.TicksFor(_grid, worked)) Complete(worked, c.From);
+        if (worked.Progress >= needs) Complete(worked, c.From);
     }
 
     /// <summary>

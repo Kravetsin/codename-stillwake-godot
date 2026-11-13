@@ -15,6 +15,9 @@ public sealed record ShotLook(double Length, double Width, string Tail, string B
 
     /// <summary>A bomb drawn in its place, pointing along its flight, its line then a short trail of sparks; none for a streak.</summary>
     public ShotBomb? Bomb { get; init; }
+
+    /// <summary>A rocket drawn in its place, nose along its flight, its flame and smoke behind; none for a streak.</summary>
+    public ShotRocket? Rocket { get; init; }
 }
 
 /// <summary>
@@ -24,6 +27,18 @@ public sealed record ShotLook(double Length, double Width, string Tail, string B
 /// <paramref name="First"/> back, fading.
 /// </summary>
 public sealed record ShotBomb(double Length, double Width, string Fill, string Rim, string Fins, int Sparks, double First, double Gap);
+
+/// <summary>
+/// A rocket in flight drawn as itself: its <paramref name="Still"/> picture (in <c>art/hd</c>), lit by the world, nose along its flight, its
+/// <paramref name="Middle"/> (in that picture's pixels) on the shot's point, flipped flying left so its top stays up. Out of its nozzle,
+/// <paramref name="Nozzle"/> pixels of the world behind its middle, a torn flame, unlit, <paramref name="Flame"/> long and
+/// <paramref name="FlameWidth"/> wide at most, flickering anew every <paramref name="FlickerMs"/>; a light of <paramref name="Light"/> there to
+/// <paramref name="Strength"/>, out to <paramref name="Reach"/> cells; a puff of <paramref name="Smoke"/> left behind every
+/// <paramref name="SmokeMs"/>, blown back <paramref name="Push"/> and out <paramref name="Spread"/> pixels a second at most.
+/// </summary>
+public sealed record ShotRocket(
+    string Still, (double X, double Y) Middle, double Nozzle, double Flame, double FlameWidth, double FlickerMs,
+    (int R, int G, int B) Light, double Strength, int Reach, Render.Luminous Smoke, double SmokeMs, double Push, double Spread);
 
 /// <summary>
 /// A shot thrown whole, drawn as itself: its <paramref name="Still"/> picture (in <c>art/hd</c>), lit by the world, turning round its
@@ -71,10 +86,25 @@ public static class ShotLooks
         Bomb = new ShotBomb(2.8, 1.1, Fill: "3a3d42", Rim: "16181b", Fins: "202226", Sparks: 4, First: 3.1, Gap: 1.6),
     };
 
+    /// <summary>The missile's smoke: grey puffs swelling and thinning out over a second and a half, so its whole arc shows.</summary>
+    private static readonly Render.Luminous Smoke = new(Render.Glimmer.Wisp, [(92, 90, 88)], (1400, 1800))
+    { Matter = true, Fade = 2, Drag = 1.4, Turbulence = 10, Spin = 1, Size = 2, Grow = 3.5, Alpha = 0.34 };
+
+    /// <summary>
+    /// A catcher's missile (catcher-missile), the user's pick «Самоделка»: a scrap pipe with a welded cone, its torn orange flame and its
+    /// grey smoke behind, a warm light at its nozzle. No streak of its own.
+    /// </summary>
+    public static readonly ShotLook Missile = new(0, 0, Tail: "00000000", Body: "00000000", Point: "00000000")
+    {
+        Rocket = new ShotRocket("shot_missile", (10, 5), Nozzle: 9.4, Flame: 10, FlameWidth: 1.5, FlickerMs: 40,
+            Light: (255, 120, 40), Strength: 0.45, Reach: 3, Smoke, SmokeMs: 22, Push: 14, Spread: 18),
+    };
+
     /// <summary>
     /// The look of projectile <paramref name="id"/> fired from <paramref name="gun"/>: the railgun's its own, a charge its own whoever
-    /// threw it (a catcher's has no gun, catcher-combat), a catcher's shell its own, else the nail's.
+    /// threw it (a catcher's has no gun, catcher-combat), a catcher's shell and missile their own, else the nail's.
     /// </summary>
     public static ShotLook Of(string id, string? gun) =>
-        gun == Content.Shots.Railgun.Item ? Railed : id == Content.Shots.BlastCharge.Id ? Charge : id == Content.Shots.Shell.Id ? Shell : Nail;
+        gun == Content.Shots.Railgun.Item ? Railed : id == Content.Shots.BlastCharge.Id ? Charge : id == Content.Shots.Shell.Id ? Shell
+        : id == Content.Shots.Missile.Id ? Missile : Nail;
 }

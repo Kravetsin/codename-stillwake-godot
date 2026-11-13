@@ -12,14 +12,14 @@ namespace Stillwake.Game.Dev;
 /// A planet opened and the hero beamed down at once (0077), or the test strip (0076). After the hero's own scenarios, whose
 /// scripts (--ladders, --feel, --hills) win over the strip's.
 /// </summary>
-[Dev("--planet", "a planet grown from its seed, the hero beamed down with the axe, the drill and the helmet lamp (0077)", Order = 5)]
+[Dev("--planet", "a planet grown from its seed, the hero beamed down with the axe, the drill and the helmet lamp (0077); F9 blows a gust (plant-stirs)", Order = 5)]
 [Dev("--strip", "the test strip (0076); with --autopilot played by a script (HeroAutopilot.PlanetRun)", Order = 5)]
 [Dev("--dusk", "with --planet or --strip, the planet's dusk starting two seconds in, its night a minute on (2026-11-07-night-chills)", Order = 5)]
 [Dev("--valley", "with --planet, the hero beamed down into the planet's deepest valley rather than at the pod, to see the land behind follow (composed-backdrops)", Order = 5)]
 [Dev("--beam-twice", "with --planet, back aboard two seconds in and down again two seconds later: the second descent (heard-every-other)", Order = 5)]
 [Dev("--charges", "with --planet, fifty blasting charges in the third slot, the spear in the fourth, and the hero beamed into the cave by the shallowest deep cache (blasting-charge)", Order = 5)]
-[Dev("--catcher", "with --planet, the hero out of creative mode and its hunt brought ten breaths of walking near once it stands there, so the bracelet blinks and a catcher soon comes (tracker-catchers); =N that many breaths", Order = 5, Shape = DevShape.Either)]
-[Dev("--fight", "with --planet --catcher, the hero kept from harm once hunted (creative mode again), to watch the catcher fight it (catcher-combat)", Order = 5)]
+[Dev("--catcher", "the hero out of creative mode and its meter filled, so the alarm sounds and a catcher comes after it (catcher-loot): aboard, in space (catchers-space), or with --planet once it stands there; =N that much worth short of full, for loot to fill", Order = 5, Shape = DevShape.Either)]
+[Dev("--fight", "with --catcher, the hero kept from harm once hunted (creative mode again), to watch the catcher fight it (catcher-combat)", Order = 5)]
 [Dev("--dig", "with --planet, the ground under the hero hewn at the drill's pace from four seconds in, so it digs down: to measure what digging costs a frame; =SECONDS stops then, --frames counting afresh, to measure the depth reached", Order = 5, Shape = DevShape.Either)]
 public sealed class PlanetScenario : DevScenario
 {
@@ -28,6 +28,9 @@ public sealed class PlanetScenario : DevScenario
     private bool _stopped;
 
     private bool Strip => Args.Has("--strip");
+
+    /// <summary>Whether the hero goes down to a surface: <c>--catcher</c> alone keeps it aboard.</summary>
+    private bool Down => Strip || Args.Has("--planet");
 
     private bool Valleys => Args.Has("--valley") && !Strip;
 
@@ -47,8 +50,15 @@ public sealed class PlanetScenario : DevScenario
 
     public override HeroAutopilot? Script => Strip && Args.Has("--autopilot") ? HeroAutopilot.PlanetRun() : null;
 
+    /// <summary>On a planet, F9 calls a gust (plant-stirs).</summary>
+    public override void Attach(DevContext c)
+    {
+        if (Down) c.Add(new GustKey());
+    }
+
     public override void Started(Client client)
     {
+        if (!Down) return;
         client.Send(new OpenSurface((Strip ? Content.Surfaces.TestStrip : Content.PlanetTypes.First).Id));
         if (!Valleys && !Charges) client.Send(new Transfer(client.World.Surfaces.Count));
     }
@@ -132,15 +142,15 @@ public sealed class PlanetScenario : DevScenario
         client.Send(new Transfer(0));
     }
 
-    /// <summary><c>--catcher</c>: once the hero stands on the planet, out of creative mode and its hunt brought near (<c>Track</c>).</summary>
+    /// <summary><c>--catcher</c>: once the hero stands aboard, or on the planet with <c>--planet</c>, out of creative mode and its meter filled (<c>Track</c>): the alarm sounds, its catcher comes after it; <c>--catcher=N</c> leaves it N worth short.</summary>
     private void Track(Client client, Registry m, Action<string> log)
     {
-        if (_tracked || Args.Given("--catcher") is not { } given || m.Rules.Floats || m.Crew.HeroOf(client.Id) == null) return;
+        if (_tracked || Args.Given("--catcher") is not { } given || Down != !m.Rules.Floats || m.Crew.HeroOf(client.Id) == null) return;
         _tracked = true;
-        int breaths = int.TryParse(given, out int n) ? n : 10;
+        int @short = int.TryParse(given, out int n) ? n : 0;
         client.Send(new Sim.Items.SetCreative(false));
-        client.Send(new Sim.Crew.Track(breaths));
-        log($"catcher: the hunt {breaths} breaths of walking away");
+        client.Send(new Sim.Crew.Track(@short));
+        log($"catcher: the meter {@short} worth short of full");
         if (Args.Has("--fight")) client.Send(new Sim.Items.SetCreative(true));
     }
 

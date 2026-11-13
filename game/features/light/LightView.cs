@@ -58,7 +58,7 @@ public partial class LightView : Node2D
     private readonly Lightmap _lightmap = new();
     private readonly Starlight _starlight;
     private readonly Node2D _lamps = new();
-    private readonly List<(Machine Lamp, Vector2 At, Sprite2D Glow, double Floor, (Sprite2D Alight, Sprite2D Glow)? Glass)> _shown = new();
+    private readonly List<(Machine Lamp, Vector2 At, Sprite2D Glow, double Floor, (Sprite2D Alight, Sprite2D Glow)? Glass, Sprite2D? Alight)> _shown = new();
     /// <summary>Rolls an arc lamp's crackle (0091).</summary>
     private readonly Random _random = new();
     /// <summary>The sparks, glints, ember and arcs of lamps short of power (0075).</summary>
@@ -166,10 +166,13 @@ public partial class LightView : Node2D
         _shown.Clear();
         foreach (var lamp in _machines.Where(m => Stillwake.Content.Machines.Is(m.Kind, Stillwake.Content.MachineTrait.Glow)))
         {
-            bool glass = L.Lamps[lamp.Kind].Glass;
-            // The middle of its picture, its footprint's (two by two cells, 0104).
+            var light = L.Lamps[lamp.Kind];
+            bool glass = light.Glass;
+            // The middle of its picture, its footprint's (two by two cells, 0104); or where its light is drawn in it.
             var spec = Stillwake.Content.Machines.Get(lamp.Kind);
-            var at = new Vector2(lamp.Cell % _grid.Width + spec.Width / 2f, lamp.Cell / _grid.Width + spec.Height / 2f) * Cell;
+            var corner = new Vector2(lamp.Cell % _grid.Width, lamp.Cell / _grid.Width) * Cell;
+            var middle = corner + new Vector2(spec.Width, spec.Height) * Cell / 2f;
+            var at = light.At is { } from ? corner + new Vector2(from.X, from.Y) : middle;
             var glow = new Sprite2D
             {
                 Texture = PixelArt.Glow,
@@ -181,7 +184,13 @@ public partial class LightView : Node2D
                 Material = GlowMaterial,
             };
             _lamps.AddChild(glow);
-            _shown.Add((lamp, at, glow, FloorUnder(lamp.Cell), glass ? Glass(at) : null));
+            Sprite2D? alight = null;
+            if (light.Alight is { } lit)
+            {
+                alight = new Sprite2D { Texture = PixelArt.Picture(lit), Position = middle, ZIndex = Layers.Screens, Material = Unlit, Visible = false };
+                _lamps.AddChild(alight);
+            }
+            _shown.Add((lamp, at, glow, FloorUnder(lamp.Cell), glass ? Glass(at) : null, alight));
         }
         _fires.Clear();
         foreach (var m in _machines)
@@ -234,10 +243,11 @@ public partial class LightView : Node2D
         _main.Clear();
         _spots.Clear();
         _sparks.Begin();
-        foreach (var (lamp, at, glow, floor, glass) in _shown)
+        foreach (var (lamp, at, glow, floor, glass, alight) in _shown)
         {
             float share = LampShare(lamp), shines = Flicker.BrightnessOf(share, _timeMs, lamp.Id);
             if (glass is { } g) ShowGlass(g.Alight, g.Glow, at, share, shines, delta);
+            if (alight != null) (alight.Visible, alight.Modulate) = (shines > 0, new Color(1, 1, 1, shines));
             if (share > 0 && share < 1) _sparks.Lamp(lamp.Id, at, shines, floor, delta * 1000);
             glow.Visible = shines > 0;
             glow.Modulate = GlowOf(lamp) with { A = shines * GlowAlpha };

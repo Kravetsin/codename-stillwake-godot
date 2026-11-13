@@ -56,14 +56,6 @@ public sealed class Motion
     /// <summary>How long a landing from a fall of <paramref name="fall"/> takes to spring back, in milliseconds.</summary>
     public static double LandingMs(int fall) => Look.Landing.Ms + Look.Landing.LongerMs * Math.Clamp((double)fall / Look.Landing.LongFall, 0, 1);
 
-    /// <summary>The radius, in pixels, a landing's ring starts from.</summary>
-    public const double RingFrom = 3;
-
-    /// <summary>How far out a landing's ring goes from a fall of <paramref name="fall"/>, in pixels, how long it lasts and how bright it is.</summary>
-    public static (double To, double Ms, double Alpha) RingOf(int fall) => Heavy(fall)
-        ? (Look.Landing.HeavyRing, Look.Landing.HeavyRingMs, Look.Landing.HeavyRingAlpha)
-        : (RingFrom + Look.Landing.Ring * Math.Clamp(fall / Look.Landing.RingFall, Look.Landing.RingLeast, 1), Look.Landing.RingMs, Look.Landing.RingAlpha);
-
     /// <summary>The lean of an acceleration across of <paramref name="acceleration"/>, for a hero facing <paramref name="facing"/>.</summary>
     public static double LeanOf(double acceleration, int facing) =>
         Math.Clamp(acceleration * facing * Look.Lean.Gain, -Look.Lean.Back, Look.Lean.Forward);

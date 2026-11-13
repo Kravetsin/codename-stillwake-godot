@@ -1,4 +1,5 @@
 using Stillwake.Sim.Crew;
+using Stillwake.Sim.Items;
 using Xunit;
 using Xunit.Abstractions;
 using DebrisSpec = Stillwake.Content.Debris;
@@ -29,7 +30,8 @@ public class DebrisDensityTests(ITestOutputHelper output)
     /// </summary>
     private static Seen Measure(Layout map, Func<int, (double X, double Y)> body, int ticks, int settle)
     {
-        var w = new Scenario(map).GiveItems(0, ("canister", 60));
+        // Creative: the hero's air endless, so it flies the whole way past the field's cold.
+        var w = new Scenario(map).Do(new SetCreative(true));
         long near = 0, wide = 0;
         int nearMin = int.MaxValue, wideMin = int.MaxValue, firstNear = -1, firstWide = -1, arrivals = 0, empty = 0, longest = 0, peak = 0, nearMax = 0;
         var seen = new HashSet<int>();
@@ -37,7 +39,6 @@ public class DebrisDensityTests(ITestOutputHelper output)
         {
             var (x, y) = body(t);
             if (t % Content.Crew.ReportEvery == 0) w.Do(new Enter((int)y * map.Width + (int)x));
-            if (t % 400 == 399) w.Do(new Refill());
             w.Run();
             int inNear = 0, inWide = 0, far = 0;
             foreach (var p in w.M.Debris.Pieces)

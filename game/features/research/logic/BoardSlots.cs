@@ -40,7 +40,7 @@ public static class BoardSlots
             // Sooner than its parts: nothing noted to go round but the note before it.
             if (!at.ContainsKey(item)) Take(item, i == 0 ? null : found[i - 1]);
             foreach (var thing in things)
-                if (!at.ContainsKey(thing.Id) && thing.Parts.Any(p => p.Item == item)) Take(thing.Id, item);
+                if (!at.ContainsKey(thing.Id) && thing.Parts.Contains(item)) Take(thing.Id, item);
         }
         var known = granted.ToHashSet(StringComparer.Ordinal);
         int along = 0;

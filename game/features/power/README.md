@@ -46,7 +46,7 @@ moving on every frame at 240 Hz, let go between two steps, and moved off a hull 
   in its colour, more the fuller it is, none when empty (a `Glow`). Read every 100 ms. The power overlay's tip on a node
   of a network with stores adds what they hold of full under what it makes and draws; out of every overlay, with no card
   in hand, the pointer on a bank shows the one tooltip saying only "8 400 / 12 000 ↑" (`StoreGauge.Reading`: grouped as
-  the wrist's energy tab, ↑ charging, ↓ giving out), read from `IPowerQueries.Store` as the world runs (`PowerView`).
+  a store's tip on the charge row, ↑ charging, ↓ giving out), read from `IPowerQueries.Store` as the world runs (`PowerView`).
 - **A magnetic flare without a word** (magnetic-flare): while one is coming (`HazardsModule.FlareComing`) the cables glow
   pale blue over themselves, unlit, brighter and pulsing faster toward the strike (`FlareLook.CableGlow`). A machine it
   broke (`IPowerQueries.Broken`) has its picture dimmed under its bolt, the wall round it lit as ever, and throws a few

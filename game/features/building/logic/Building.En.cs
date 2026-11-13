@@ -49,6 +49,7 @@ public static partial class En
         ["tool.assembler"] = "Circuit assembler",
         ["tool.growCapsule"] = "Grow capsule",
         ["tool.fermenter"] = "Fermenter",
+        ["tool.galley"] = "Galley",
         ["tool.charger"] = "Charging station",
         ["tool.capacitorBank"] = "Capacitor bank",
         ["tool.vent"] = "Vent",
@@ -168,6 +169,7 @@ public static partial class En
         ["tool.assembler.about"] = "Assembles circuits and solar cells of silicon, glass and wire, on power, eight crafts in its queue. Draws nothing while idle.",
         ["tool.growCapsule.about"] = "Grows a seed into biomass under its lamp in eight minutes, on power, giving back none, one or two seeds. Draws nothing while idle.",
         ["tool.fermenter.about"] = "Ferments biomass and fat into biofuel on power: the only way to biofuel. Draws nothing while idle.",
+        ["tool.galley.about"] = "A cast-iron range: cooks dishes of fruit, rations, meat, fat, glowberries and water, each a meal stronger than what went in. Paid by hand, four in its queue. Needs no power.",
         ["tool.droneBay.about"] = "Charges the drones docked in it and sends them to keep machines within sixteen cells going: they refill what an input holds from crates and carry what machines make to crates. Drones fly through air and closed doors. Its fifth slot takes canisters: a salvage drone docked here flies out on one into space for drifting debris and floating stacks.",
         ["building.unknown"] = "You do not know how to build this yet",
     };

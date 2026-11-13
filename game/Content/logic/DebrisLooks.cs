@@ -14,7 +14,7 @@ public static class DebrisLooks
     /// <summary>The name of each kind's pictures, <c>&lt;name&gt;_NN.png</c>; how many there are is the sim's (<c>Content.Looks</c>).</summary>
     private static readonly (string Kind, string Look)[] Names =
     [
-        ("scrapChunk", "scrap"), ("hullPlate", "hull"), ("cargoCrate", "crate"), ("supplyPod", "pod"),
+        ("scrapChunk", "scrap"), ("hullPlate", "hull"), ("cargoCrate", "crate"), ("supplyPod", "pod"), ("fridge", "fridge"),
         ("hullSection", "section"), ("cargoContainer", "container"), ("machineBlock", "machine"), ("cableRack", "rack"),
         ("tankCluster", "tanks"), ("shieldSlab", "slab"), ("soilClod", "soilclod"),
         ("asteroid", "asteroid"), ("asteroidSmall", "smallrock"), ("asteroidLarge", "bigrock"), ("asteroidRich", "orerock"),

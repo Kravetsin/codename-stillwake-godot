@@ -311,4 +311,19 @@ public class MigrationsTests
         Assert.Empty(w.M.Building.Cracks);
         Assert.NotNull(w.M.Grid.WallAt(cell));
     }
+
+    [Fact]
+    public void EmptiesAFormatSixtyOneWantedMeterCountedInBreathsAndDropsItsStirring()
+    {
+        var w = new Scenario(Layout.Parse("................\n................").OnPlanet());
+        w.Do(new Crew.Enter(2)).Run();
+        var hero = w.M.Crew.HeroOf(0)!;
+        (hero.Need, hero.Wanted) = (1500, 900);
+        var save = JsonNode.Parse(w.World.Save())!.AsObject();
+        save["format"] = 61;
+        save["slices"]!["crew"]!["heroes"]![0]!["stirring"] = 40;
+
+        w.Reload(Migrations.Upgrade(save.ToJsonString()));
+        Assert.Equal((0, 0, 0), (w.M.Crew.HeroOf(0)!.Wanted, w.M.Crew.HeroOf(0)!.Need, w.M.Crew.HeroOf(0)!.Coming));
+    }
 }

@@ -18,7 +18,8 @@ namespace Stillwake.Game.Features.Crafting;
 /// turning, while its screen runs green, drawn unlit over it (<c>art/{kind}_screen_*.png</c>, in step), lighting the
 /// room green. Idle, waiting full or without power, it stands still and dark. A fed station too cold for what its
 /// input holds shows a cold-blue mark where it would work it, pulsing, its own faint light. Heard where it stands as it works
-/// (<see cref="StationSounds"/>): the Former's strokes in step with its head, its motor; the smelter's hum and its melt.
+/// (<see cref="StationSounds"/>): the Former's strokes in step with its head, its motor; the smelter's hum and its melt; the galley's
+/// pot on the boil and a knock on its lid as a dish is done.
 /// </summary>
 public partial class StationView : Node2D
 {
@@ -48,9 +49,12 @@ public partial class StationView : Node2D
         ["growCapsule"] = new(1, 1000, Glows: true, Lights: [new(16, 9)], Light: new(1f, 0.42f, 0.8f), Levels: [0.6f]),
         // The fermenter's mash bubbling up its column, a drop falling from its tap, its lamp a dim green (power-chain).
         ["fermenter"] = new(4, 300, Lights: [new(15.7f, 25.6f)], Light: new("54ba74"), Levels: [0.2f]),
+        // The galley's lid rattling on the boil under its steam, the fire in its box flickering through the draught slots,
+        // drawn unlit in step and lighting the floor round it orange (food-and-the-body).
+        ["galley"] = new(6, 150, Lights: [new(9.4f, 29.6f)], Light: new(1f, 138 / 255f, 60 / 255f), Levels: [0.5f, 0.6f, 0.45f, 0.58f, 0.5f, 0.62f], Screen: true),
     };
 
-    /// <summary>How many pictures a plant grows through, a quarter of its crop each (<c>art/{kind}_plant_*.png</c>).</summary>
+    /// <summary>How many pictures a plant grows through, a quarter of its crop each (<c>art/{kind}_{crop}_*.png</c>).</summary>
     private const int Stages = 4;
 
     /// <summary>Where a fed station shows it is too cold, in pixels of its picture: the furnace's mouth, the smelter's grate.</summary>
@@ -96,6 +100,14 @@ public partial class StationView : Node2D
         _marks.Draw += DrawMarks;
     }
 
+    /// <summary>What a station paid by hand holds made, its slots being all outputs: one more is a unit done.</summary>
+    private int Made(int machine)
+    {
+        int made = 0;
+        foreach (var stack in _items.Crate(machine)) made += stack?.Count ?? 0;
+        return made;
+    }
+
     /// <summary>The stations shown at work, the plants shown and the marks of those too cold: what a recording checks.</summary>
     public int Working => _shown.Count;
     public int Plants => _plants.Count;
@@ -121,7 +133,7 @@ public partial class StationView : Node2D
             // Each machine a step apart from the next, so two never beat in step.
             long step = (long)(_clock / motion.StepMs) + m.Id;
             var middle = art + PixelArt.Picture($"{m.Kind}_work_0").GetSize() / 2;
-            _sounds.Hear(m.Id, m.Kind, middle, works, step, motion.Frames, motion.Down, delta);
+            _sounds.Hear(m.Id, m.Kind, middle, works, step, motion.Frames, motion.Down, delta, m.Kind == "galley" ? Made(m.Id) : 0);
             if (!works) continue;
             _working.Add(m.Id);
             if (!_shown.TryGetValue(m.Id, out var shown)) _shown[m.Id] = shown = Shown(motion);
@@ -201,8 +213,8 @@ public partial class StationView : Node2D
 
     /// <summary>
     /// What grows in a grow capsule (0060), lit as the machine is: whatever its input holds of its process, planted, at the
-    /// quarter of its crop it has grown to, working or paused; nothing for an empty capsule or one holding what it does
-    /// not grow.
+    /// quarter of its crop it has grown to, working or paused, each crop its own plant (<c>{kind}_{crop}_{stage}</c>);
+    /// nothing for an empty capsule or one holding what it does not grow.
     /// </summary>
     private void ShowPlant(int id, string kind, Vector2 corner)
     {
@@ -217,7 +229,7 @@ public partial class StationView : Node2D
         }
         plant.Position = corner;
         int stage = (int)Math.Min(Stages - 1, (long)_crafting.Progress(id) * Stages / work);
-        plant.Texture = PixelArt.Picture($"{kind}_plant_{stage}");
+        plant.Texture = PixelArt.Picture($"{kind}_{_items.Crate(id)[0]!.Item}_{stage}");
     }
 
     /// <summary>A station's pictures at work over its own: lit as the machine is, or unlit when they glow; a screen's unlit over them; its lights.</summary>

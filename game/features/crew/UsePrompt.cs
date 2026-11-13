@@ -38,7 +38,7 @@ public partial class UsePrompt : CanvasLayer
     /// <summary>The line's bottom, in pixels above the screen's, and its gap over the open build menu.</summary>
     private const float Bottom = 112, AboveMenu = 8;
 
-    /// <summary>Lays the line above the build menu, every frame: the menu grows with its tab's cards.</summary>
+    /// <summary>Lays the line above <paramref name="menuTop"/>, the open build menu or the tablet edge's keys, every frame: the menu grows with its tab's cards.</summary>
     public void Place(float? menuTop)
     {
         float height = _panel.GetViewportRect().Size.Y;

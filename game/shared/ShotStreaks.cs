@@ -22,6 +22,12 @@ public partial class ShotStreaks : Node2D
     private readonly List<(Vector2 At, float Turn, ShotPicture Picture, int Frame)> _thrown = [];
     /// <summary>The bombs this frame: where, and turned along their flight.</summary>
     private readonly List<(Vector2 At, float Turn, ShotBomb Bomb)> _bombs = [];
+    /// <summary>The rockets this frame: where, turned along their flight, flipped flying left, and their flame's flicker.</summary>
+    private readonly List<(Vector2 At, float Turn, bool Flip, ShotRocket Rocket, float Flicker)> _rockets = [];
+    private readonly Flames _flames;
+    /// <summary>A key a rocket's light is held under, one per place in this frame's list.</summary>
+    private readonly List<object> _rocketLights = [];
+    private double _lastMs;
     private readonly Bodies _bodies;
     /// <summary>A key a thrown one's light is held under, one per place in this frame's list: kept, never made anew.</summary>
     private readonly List<object> _lights = [];
@@ -34,9 +40,13 @@ public partial class ShotStreaks : Node2D
         _thrown.Clear();
         double seconds = Time.GetTicksMsec() / 1000.0;
         _bombs.Clear();
+        _rockets.Clear();
+        double nowMs = Time.GetTicksMsec(), elapsedMs = _lastMs > 0 ? System.Math.Min(nowMs - _lastMs, 100) : 0;
+        _lastMs = nowMs;
         foreach (var (at, way, look) in _streaks)
         {
             if (look.Bomb is { } bomb) _bombs.Add((at, way.Angle(), bomb));
+            if (look.Rocket is { } rocket) Rocket(at, way, rocket, nowMs, elapsedMs);
             if (look.Picture is not { } picture) continue;
             int frame = (int)(seconds * picture.Fps) % picture.Frames;
             // Turned the way it was thrown: over the top, forward.
@@ -49,6 +59,32 @@ public partial class ShotStreaks : Node2D
         }
         QueueRedraw();
         _bodies.QueueRedraw();
+        _flames.QueueRedraw();
+    }
+
+    /// <summary>
+    /// A rocket at <paramref name="at"/> flying along <paramref name="way"/>: kept for its picture and its flame, its light held at its
+    /// nozzle, flickering with the flame, and its smoke left behind for the <paramref name="elapsedMs"/> since the last frame.
+    /// </summary>
+    private void Rocket(Vector2 at, Vector2 way, ShotRocket rocket, double nowMs, double elapsedMs)
+    {
+        var ahead = way.Normalized();
+        float flicker = 0.75f + 0.25f * (Jitter((int)(nowMs / rocket.FlickerMs), 7) + 0.5f);
+        var nozzle = ToGlobal(at - ahead * (float)rocket.Nozzle);
+        var stage = Stages.Of(Layers.Effects);
+        if (_rockets.Count == _rocketLights.Count) _rocketLights.Add(new object());
+        stage.Flares.Hold(_rocketLights[_rockets.Count], nozzle.X, nozzle.Y, rocket.Light, rocket.Strength * flicker * Fx.Glow, rocket.Reach, 0.5f, 0.6);
+        stage.Flares.Bloom(nozzle.X, nozzle.Y, 18 * flicker, rocket.Light, 0.36 * flicker * Fx.Glow);
+        var glims = stage.Glims;
+        double due = elapsedMs / rocket.SmokeMs;
+        int puffs = (int)due + (glims.Between(0, 1) < due - System.Math.Floor(due) ? 1 : 0);
+        for (int i = 0; i < puffs; i++)
+        {
+            double push = rocket.Push * glims.Between(0.3, 1), turn = glims.Between(0, Mathf.Tau), spread = rocket.Spread * glims.Between(0, 1);
+            glims.Add(rocket.Smoke, nozzle.X + glims.Between(-1, 1), nozzle.Y + glims.Between(-1, 1),
+                -ahead.X * push + System.Math.Cos(turn) * spread, -ahead.Y * push + System.Math.Sin(turn) * spread, size: rocket.Smoke.Size * glims.Between(0.8, 1.2));
+        }
+        _rockets.Add((at, way.Angle(), ahead.X < 0, rocket, flicker));
     }
 
     /// <summary>The steps a streak fades over, tail to head.</summary>
@@ -62,7 +98,9 @@ public partial class ShotStreaks : Node2D
     public ShotStreaks()
     {
         Material = new CanvasItemMaterial { LightMode = CanvasItemMaterial.LightModeEnum.Unshaded };
-        _bodies = new Bodies { Thrown = _thrown, Bombs = _bombs, ShowBehindParent = true };
+        _bodies = new Bodies { Thrown = _thrown, Bombs = _bombs, Rockets = _rockets, ShowBehindParent = true };
+        _flames = new Flames { Rockets = _rockets };
+        AddChild(_flames);
         // Lit as what is held is: with no material of its own it drew black in the dark of the caves.
         Lit.Set(_bodies);
         AddChild(_bodies);
@@ -72,6 +110,7 @@ public partial class ShotStreaks : Node2D
     {
         foreach (var (at, way, look) in _streaks)
         {
+            if (look.Rocket != null) continue;
             if (look.Picture != null)
             {
                 Sparks(at, way, look);
@@ -164,6 +203,7 @@ public partial class ShotStreaks : Node2D
     {
         public List<(Vector2 At, float Turn, ShotPicture Picture, int Frame)> Thrown = [];
         public List<(Vector2 At, float Turn, ShotBomb Bomb)> Bombs = [];
+        public List<(Vector2 At, float Turn, bool Flip, ShotRocket Rocket, float Flicker)> Rockets = [];
 
         /// <summary>A round body's outline, a unit across, turned along x: scaled to a bomb's.</summary>
         private static readonly Vector2[] Round = MakeRound(12);
@@ -190,6 +230,12 @@ public partial class ShotStreaks : Node2D
                 for (int s = -1; s <= 1; s += 2)
                     DrawLine(new Vector2(-1.2f, 0), new Vector2(-2.2f, 0.9f * s), fins, 0.35f, true);
             }
+            // A rocket nose first, flipped flying left so its top stays up.
+            foreach (var (at, turn, flip, rocket, _) in Rockets)
+            {
+                DrawSetTransform(at, turn, new Vector2(1, flip ? -1 : 1));
+                DrawTexture(PictureOf(rocket.Still), -new Vector2((float)rocket.Middle.X, (float)rocket.Middle.Y));
+            }
             DrawSetTransform(Vector2.Zero);
         }
 
@@ -198,6 +244,57 @@ public partial class ShotStreaks : Node2D
             var points = new Vector2[n];
             for (int i = 0; i < n; i++) points[i] = Vector2.FromAngle(Mathf.Tau * i / n);
             return points;
+        }
+    }
+
+    /// <summary>
+    /// The rockets' flames, added over the world: out of each nozzle a torn orange tongue with a pale heart, as long and as wide as its
+    /// flicker says, as the pick drew it.
+    /// </summary>
+    private sealed partial class Flames : Node2D
+    {
+        public List<(Vector2 At, float Turn, bool Flip, ShotRocket Rocket, float Flicker)> Rockets = [];
+
+        private static readonly Color Orange = new(1, 120 / 255f, 40 / 255f, 0.75f), Pale = new(1, 236 / 255f, 190 / 255f, 0.95f);
+        /// <summary>The points along each side of a flame, nozzle to tip.</summary>
+        private const int Steps = 6;
+        private readonly Vector2[] _outline = new Vector2[2 * Steps];
+
+        public Flames()
+        {
+            Material = new CanvasItemMaterial { BlendMode = CanvasItemMaterial.BlendModeEnum.Add, LightMode = CanvasItemMaterial.LightModeEnum.Unshaded };
+        }
+
+        public override void _Draw()
+        {
+            foreach (var (at, turn, _, rocket, flicker) in Rockets)
+            {
+                DrawSetTransform(at, turn);
+                float nozzle = -(float)rocket.Nozzle, length = (float)rocket.Flame * (0.6f + 0.4f * flicker), width = (float)rocket.FlameWidth * flicker;
+                Tongue(nozzle, length, width, Orange);
+                Tongue(nozzle, length * 0.5f, width * 0.53f, Pale);
+            }
+            DrawSetTransform(Vector2.Zero);
+        }
+
+        /// <summary>
+        /// A flame from the nozzle at x <paramref name="nozzle"/> back <paramref name="length"/>: each side a curve bent toward a point
+        /// <paramref name="width"/> off its middle, two fifths of its way back.
+        /// </summary>
+        private void Tongue(float nozzle, float length, float width, Color colour)
+        {
+            var n = new Vector2(nozzle, 0);
+            var tip = new Vector2(nozzle - length, 0);
+            for (int side = 0; side < 2; side++)
+            {
+                var control = new Vector2(nozzle - length * 0.4f, side == 0 ? width : -width);
+                for (int i = 0; i < Steps; i++)
+                {
+                    float t = side == 0 ? i / (float)Steps : 1 - i / (float)Steps;
+                    _outline[side * Steps + i] = n.Lerp(control, t).Lerp(control.Lerp(tip, t), t);
+                }
+            }
+            DrawColoredPolygon(_outline, colour);
         }
     }
 

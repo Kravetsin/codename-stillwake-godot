@@ -17,7 +17,7 @@ public sealed class BoardPileTests : IDisposable
         if (Directory.Exists(_folder)) Directory.Delete(_folder, true);
     }
 
-    private static BoardThing Thing(string id, string[] parts, string[]? stations = null) => new(id, parts.Select(p => (p, 2)).ToList(), stations, false);
+    private static BoardThing Thing(string id, string[] parts, string[]? stations = null) => new(id, parts, stations, false);
 
     /// <summary>Plate from scrap at the bench, bench from plate; a loop of two; and things with no recipe.</summary>
     private static readonly BoardThing[] Things =
@@ -30,7 +30,7 @@ public sealed class BoardPileTests : IDisposable
 
     private static List<BoardSlot> Slots(params string[] ids) => [.. ids.Select((id, i) => new BoardSlot(id, i * 100, 0, false))];
 
-    private static BoardRead ReadOf(Func<string, int>? count = null, Func<string, bool>? stands = null) => new([], [], count ?? (_ => 0), stands ?? (_ => false));
+    private static BoardRead ReadOf(Func<string, bool>? has = null, Func<string, bool>? stands = null) => new([], [], has ?? (_ => false), stands ?? (_ => false));
 
     private static (BoardSeen Seen, BoardPile Pile) Reading(string[] notes, params string[] seen)
     {
@@ -192,7 +192,7 @@ public sealed class BoardPileTests : IDisposable
     [Fact]
     public void ClosestIsTheHighestPencilTiesInTheOrderGiven()
     {
-        var read = ReadOf(item => item == "b" ? 1 : 0);
+        var read = ReadOf(item => item == "b");
         BoardThing[] things = [Thing("none", ["a"]), Thing("half", ["b"]), Thing("alsoHalf", ["b"])];
         Assert.Equal("half", BoardPile.Closest(["none", "half", "alsoHalf"], read, things));
         Assert.Null(BoardPile.Closest([], read, things));
@@ -200,13 +200,13 @@ public sealed class BoardPileTests : IDisposable
     }
 
     [Fact]
-    public void LackSaysPartsShortAndAStationNoneStands()
+    public void LackSaysPartsNeverHadAndAStationNoneStands()
     {
         var thing = Thing("plate", ["scrap", "iron"], ["bench", "press"]);
-        var lack = BoardPile.Lack(thing, ReadOf(item => item == "scrap" ? 1 : item == "iron" ? 2 : 0));
-        Assert.Equal([("scrap", 1)], lack.Parts);
+        var lack = BoardPile.Lack(thing, ReadOf(item => item == "iron"));
+        Assert.Equal(["scrap"], lack.Parts);
         Assert.Equal("bench", lack.Station);
-        var done = BoardPile.Lack(thing, ReadOf(_ => 2, kind => kind == "press"));
+        var done = BoardPile.Lack(thing, ReadOf(_ => true, kind => kind == "press"));
         Assert.Empty(done.Parts);
         Assert.Null(done.Station);
     }

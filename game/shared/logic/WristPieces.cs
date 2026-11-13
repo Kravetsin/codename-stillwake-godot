@@ -45,9 +45,6 @@ public static class WristPieces
     /// <summary>Round the hotbar: a thin rim, two small bumpers on top, a dim status light.</summary>
     public static readonly WristPiece Cuff = new("res://art/wrist_cuff.png", new(7, 7, 12, 4), new(4, 4, 4, 4));
 
-    /// <summary>A gauge's tab under the cuff, its top outline the cuff's bottom one; the suit's and the energy bar.</summary>
-    public static readonly WristPiece Gauge = new("res://art/wrist_gauge.png", new(4, 3, 4, 4), new(4, 3, 4, 4));
-
     /// <summary>Round the bag: bumpers, a warning stripe, screws, signal pips and a lamp.</summary>
     public static readonly WristPiece Display = new("res://art/wrist_display.png", new(54, 9, 34, 9), new(5, 6, 5, 5), (16, 4));
 

@@ -40,6 +40,8 @@ public partial class MarkerLayer : CanvasLayer
     private int _lost;
     /// <summary>The catcher hunting this player as last read, and its beep in the helmet as a new one comes.</summary>
     private int? _hunter;
+    /// <summary>This player's tracker as last read: turning <see cref="Sim.Crew.Signal.Coming"/>, the alarm beeps (catcher-loot).</summary>
+    private Sim.Crew.Signal _signal;
     private readonly AudioStreamPlayer _beep = Cues.Player(S.CatcherBeep, S.Helmet);
 
     /// <param name="ui">The slots' size, the menu open and the one tooltip.</param>
@@ -81,7 +83,9 @@ public partial class MarkerLayer : CanvasLayer
             var friends = hero.Others.Select(o => (o.Id, o.Hero, Suits.Of(m.Players, o.Id))).ToList();
             var body = Bodies.Latest(m.Items.Floor, peer) is { } pile ? (pile, Suits.Of(m.Players, peer)) : ((Pile, int)?)null;
             var hunter = HunterOf(m, peer);
-            if (Markers.HunterCame(_hunter, hunter?.Id)) _beep.Play();
+            var signal = m.Crew.SignalOf(peer);
+            if (Markers.HunterCame(_hunter, hunter?.Id) || signal == Sim.Crew.Signal.Coming && _signal != signal) _beep.Play();
+            _signal = signal;
             _hunter = hunter?.Id;
             Show(Markers.Of(m.Crew.Spawn, m.Grid.Width, friends, body, DeliveriesOf(m), hunter), hero.Current.Middle, hero.PromptCovers, delta);
             lost = m.Knowledge.Lost > _lost;

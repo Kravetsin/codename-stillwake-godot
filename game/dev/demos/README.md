@@ -31,6 +31,7 @@ effect, so a release build has none of this folder and no `*Demo.cs` anywhere.
 | `CreatureHands.cs` | `--creatures`'s hands: the hero hunting the creatures with the axe, then the drill |
 | `ClimbScenario.cs` | `--climb`: the first planet, the hero at the bottom of its deepest chasm, grappling gun in hand, the harpoon beside, creative (grapple-climbs) |
 | `MeleeScenario.cs` | `--melee`: the hero in space by a hull, still pieces all round, the axe, pickaxe, sledgehammer and spear on 1-4, creative (swing-motions) |
+| `VitalsScenario.cs` | `--vitals`: the hero in space with three stores on the belt, the grinder, canisters, foods, the heavy helmet and a spare accumulator, not creative (hud-vitals) |
 
 ## How a run is put together
 

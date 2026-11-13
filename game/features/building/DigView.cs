@@ -21,16 +21,32 @@ public partial class DigView : Node2D
 
     private readonly IGridQueries _grid;
     private readonly BuildingModule _building;
-    /// <summary>The cracks drawn, by cell and layer, a back wall's too (0107): how deep, and what the wall was made of, for its dust once it breaks.</summary>
-    private readonly Dictionary<(int Cell, bool Back), (int Damage, Material Material)> _drawn = new();
+    /// <summary>
+    /// The cracks drawn, by cell and layer, a back wall's too (0107): how deep, what it was made of and the cells it covers (a built
+    /// piece's every cell, hit-targets), for its dust once it breaks.
+    /// </summary>
+    private readonly Dictionary<(int Cell, bool Back), (int Damage, Material Material, IReadOnlyList<int> Cells)> _drawn = new();
     private readonly List<(int Cell, bool Back)> _gone = [];
 
-    private Material? MaterialAt(int cell, bool back) => back ? _grid.BackAt(cell) : _grid.WallAt(cell) ?? PileMaterial(cell);
+    /// <summary>
+    /// What the crack kept at <paramref name="cell"/> is drawn as: a wall as its material; a machine as metal at its strength; a built
+    /// piece, a door or hatch, as built scrap at its build's strength (<see cref="BuildingModule.TargetAt"/>); none once it is gone.
+    /// </summary>
+    private Material? MaterialAt(int cell, bool back)
+    {
+        if (back) return _grid.BackAt(cell);
+        if (_grid.WallAt(cell) is { } wall) return wall;
+        return _building.TargetAt(cell) switch
+        {
+            { Kind: TargetKind.Machine, Strength: int hp } => Stillwake.Content.Materials.Get("alloy") with { Strength = hp },
+            { Kind: TargetKind.Piece, Strength: int strength } t when t.Key == cell => Stillwake.Content.Materials.Get("scrap") with { Strength = strength },
+            _ => null,
+        };
+    }
 
-    /// <summary>A machine, a pile or a built one, cracks and bursts as the metal it is, at its own hit points.</summary>
-    private Material? PileMaterial(int cell) =>
-        Piles.Cracked(_grid, cell) is var (_, hp)
-            ? Stillwake.Content.Materials.Get("alloy") with { Strength = hp } : null;
+    /// <summary>The cells a crack kept at <paramref name="cell"/> is drawn over: a built piece's every cell, else its own.</summary>
+    private IReadOnlyList<int> CellsOf(int cell, bool back) =>
+        !back && _grid.WallAt(cell) == null && _building.TargetAt(cell) is { Kind: TargetKind.Piece } ? _grid.PieceOf(cell) : [cell];
 
     /// <summary>The stages of cracks, three (0079).</summary>
     private const int Stages = 3;
@@ -62,7 +78,7 @@ public partial class DigView : Node2D
             var key = (crack.Cell, crack.Back);
             if (_drawn.TryGetValue(key, out var was) && was.Damage == crack.Damage) continue;
             if (MaterialAt(crack.Cell, crack.Back) is not { } material) continue;
-            _drawn[key] = (crack.Damage, material);
+            _drawn[key] = (crack.Damage, material, was.Cells ?? CellsOf(crack.Cell, crack.Back));
             if (!crack.Back) ShowPile(crack.Cell, crack.Damage);
             changed = true;
         }
@@ -72,7 +88,7 @@ public partial class DigView : Node2D
         foreach (var key in _gone)
         {
             // Gone with its wall: broken out. A crack gone with the wall still there was swept: nothing to show.
-            if (MaterialAt(key.Cell, key.Back) == null) Break(key.Cell, _drawn[key].Material);
+            if (MaterialAt(key.Cell, key.Back) == null) Break(_drawn[key].Cells, _drawn[key].Material);
             _drawn.Remove(key);
             if (!key.Back) DropPile(key.Cell);
             changed = true;
@@ -93,12 +109,13 @@ public partial class DigView : Node2D
         _pixel = InkCanvas.PixelOf(this);
         _ink.Clear();
         _ink.Feather = _pixel;
-        foreach (var ((cell, back), (damage, material)) in _drawn)
+        foreach (var ((cell, back), (damage, material, cells)) in _drawn)
         {
             if (!back && _piles.ContainsKey(cell)) continue;
             int stage = System.Math.Clamp(damage * Stages / System.Math.Max(1, material.Strength), 0, Stages - 1);
             var tones = material.Natural ? DamageLooks.Stone : DamageLooks.Scrap;
-            BlockFault.Draw(_ink, stage, BlockFault.SeedOf(cell, back), tones, cell % w * Cell, cell / w * Cell);
+            foreach (int at in cells)
+                BlockFault.Draw(_ink, stage, BlockFault.SeedOf(at, back), tones, at % w * Cell, at / w * Cell);
         }
         _canvas.Draw(this, _ink);
     }
@@ -115,7 +132,7 @@ public partial class DigView : Node2D
     /// </summary>
     private bool ShowPile(int cell, int damage)
     {
-        if (Piles.Cracked(_grid, cell) is not var (pile, hp)) return false;
+        if (_building.TargetAt(cell) is not { Kind: TargetKind.Machine, Strength: int hp } || _grid.MachineAt(cell) is not { } pile) return false;
         if (!_piles.TryGetValue(pile.Cell, out var shown))
         {
             string name = $"machine_{pile.Kind}";
@@ -158,12 +175,19 @@ public partial class DigView : Node2D
         shown.Clip.QueueFree();
     }
 
-    /// <summary><paramref name="cell"/> broken out: a cloud of its dust where it stood, and chips falling.</summary>
-    private void Break(int cell, Material material)
+    /// <summary><paramref name="cells"/>, a wall's one or a piece's every one, broken out: a cloud of its dust where each stood, and chips falling, heard once.</summary>
+    private void Break(IReadOnlyList<int> cells, Material material)
+    {
+        var (bx, by, _) = Where(cells[0]);
+        if (GroundSounds.BreakOf(material) is { } broke) _breaks.Play(broke, new Vector2((float)bx, (float)by));
+        foreach (int cell in cells) Burst(cell, material);
+    }
+
+    /// <summary>A cloud of <paramref name="material"/>'s dust where <paramref name="cell"/> stood, and chips falling.</summary>
+    private void Burst(int cell, Material material)
     {
         var (chip, dust, cloud) = LooksOf(material.Id);
         var (x, y, floor) = Where(cell);
-        if (GroundSounds.BreakOf(material) is { } broke) _breaks.Play(broke, new Vector2((float)x, (float)y));
         var glims = Render.Stages.Of(Layers.Effects).Glims;
         for (int i = 0; i < System.Math.Round(GroundLooks.BreakDust * Fx.Count); i++)
         {

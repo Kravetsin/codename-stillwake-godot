@@ -94,11 +94,17 @@ public static class Light
     public const float ArcLampKeep = 0.883f, ArcLampStrength = 1.3f;
     public const int ArcLampReach = 20;
 
+    /// <summary>How far a derelict's vending machine's sign lights: its mess, not the deck.</summary>
+    public const int VendingReach = 10;
+
     /// <summary>
     /// How a glowing machine (<c>MachineTrait.Glow</c>, 0113) lights, by its kind: its light's colour, strength at full power,
-    /// reach and keep; its halo's colour, as <c>0xRRGGBBAA</c>; and whether the arc makers' glass is drawn over it (<c>ArcLampLooks</c>).
+    /// reach and keep; its halo's colour, as <c>0xRRGGBBAA</c>; whether the arc makers' glass is drawn over it (<c>ArcLampLooks</c>);
+    /// a picture of what of it is alight, drawn unlit over it as bright as it shines; and where in its picture, in pixels from its
+    /// top-left, its light and halo are, its middle if none.
     /// </summary>
-    public sealed record LampLight((float R, float G, float B) Colour, float Strength, int Reach, float Keep, uint Halo, bool Glass = false);
+    public sealed record LampLight((float R, float G, float B) Colour, float Strength, int Reach, float Keep, uint Halo, bool Glass = false,
+        string? Alight = null, (float X, float Y)? At = null);
 
     /// <summary>Every glowing machine's light, by its kind.</summary>
     public static readonly IReadOnlyDictionary<string, LampLight> Lamps = new Dictionary<string, LampLight>(System.StringComparer.Ordinal)
@@ -108,6 +114,10 @@ public static class Light
         ["emergencyLamp"] = new((1f, 0.22f, 0.16f), 0.75f, LampReach, LampKeep, 0xff3a2cff),
         // An arc makers' lamp (0091): their cold light, brighter and further.
         ["arcLamp"] = new(ArcLamp, ArcLampStrength, ArcLampReach, ArcLampKeep, 0xb4dcffff, Glass: true),
+        // A derelict's vending machine (food-and-the-body): only its sign and screen still lit, faint, from the header: the enamel
+        // cabinet's pale green tube, the glass case's oxblood one.
+        ["salvageVending"] = new((0.72f, 0.86f, 0.77f), 0.45f, VendingReach, LampKeep, 0xb8dcc4ff, Alight: "machine_salvageVending_lit", At: (16, 4)),
+        ["salvageVending2"] = new((0.85f, 0.53f, 0.45f), 0.45f, VendingReach, LampKeep, 0xd88872ff, Alight: "machine_salvageVending2_lit", At: (16, 3)),
     };
     public static readonly (float R, float G, float B) Fire = (1f, 0.48f, 0.14f);
     public const float FireKeep = 0.849f;

@@ -569,17 +569,115 @@ const computerScreen = (f) => (a) => {
   a.flat(band(9.6, 2.8, 30, 12), '#0c2438');
   for (let i = 0; i < 5; i++) { const y = 3.8 + i * 1.6, w = 6 + ((i * 7 + f * 5) % 12); a.flat(band(11, y, 11 + w, y + .8), i % 3 ? '#8ad8f0' : '#e0f6ff'); }
 };
+// The capsule's gourd vine (picked 2026-11-13): it winds up a rusted stake, heart leaves droop off it, four pear gourds hang at the last stage.
+const VINE = { base: '#56723e', shade: '#3a5230', deep: '#26381f', lite: '#738e4e', spec: '#9aac6c', ink: '#0d1a10' };
+const LEAF = { base: '#4c6a3a', shade: '#34502e', deep: '#22361f', lite: '#6a8648', spec: '#93a866', ink: '#0d1a10' };
+const GOURD = { base: '#8a9246', shade: '#5c6832', deep: '#3c4824', lite: '#a8b25e', spec: '#d4d896', ink: '#1a1e0e' };
+const TWIG = { base: '#7a5a36', shade: '#523a26', lite: '#9a7648', spec: '#9a7648', ink: '#1c1210' };
+const STAKE_X = 16, STAKE_FOOT = 31, STAKE_TOP = 11.6;
+/** The rusted stake every crop stands on, part of the capsule's soil rather than of a plant. */
+const stake = (a) => {
+  const cx = STAKE_X, top = STAKE_TOP;
+  a.tube(`M${cx} ${STAKE_FOOT}L${cx} ${top + .6}`, 1, GUN);
+  a.shape(rr(cx - .8, top, 1.6, .8, .3), GUN, { lite: band(cx - .8, top, cx + .8, top + .3) });
+  for (const [x, y] of [[cx - .2, 17.4], [cx + .2, 24.6], [cx, 28.4]]) a.flat(ell(x, y, .35, .5), '#8a5a3a');
+};
 const plantStage = (s) => (a) => {
-  const foot = 31, top = [26, 20, 12, 7][s], cx = 16, wide = [2.6, 4.6, 6.6, 8.6][s];
-  const leaf = (x, y, dir, l, m) => a.shape(poly(x, y, x + dir * l * .5, y - l * .55, x + dir * l, y - l * .4, x + dir * l * .55, y + l * .1), m, { outer: s > 0 ? undefined : false, lite: poly(x, y, x + dir * l * .5, y - l * .55, x + dir * l, y - l * .4) });
-  const G1 = { base: '#3f9a3c', shade: '#256a36', lite: '#79c850', spec: '#c8ec84', ink: '#0d2a18' };
-  a.tube(`M${cx} ${foot}L${cx} ${top + 1}`, .8, G1, { bare: true });
-  const n = [1, 2, 4, 6][s];
-  for (let i = 0; i < n; i++) {
-    const y = foot - 1.4 - (i * (foot - top - 2)) / Math.max(1, n - .5), l = wide * (1 - i * .08);
-    leaf(cx, y, 1, l, G1); leaf(cx, y - .8, -1, l, G1);
+  const foot = STAKE_FOOT, cx = STAKE_X, top = [25.5, 19, 12.5, 11][s], r = 1.25, pitch = 5.2;
+  // The vine as a helix round the stake: the runs behind it drawn first, the stake, then the runs in front.
+  const runs = [[], []];
+  let run = null, front = null;
+  for (let y = foot; y >= top - .01; y -= .25) {
+    const t = ((foot - y) / pitch) * 2 * Math.PI, x = cx + r * Math.sin(t), f = Math.cos(t) > 0 ? 1 : 0;
+    if (f !== front) { if (run) run.push([x, y]); run = [[x, y]]; runs[f].push(run); front = f; } else run.push([x, y]);
   }
-  if (s === 3) for (const [x, y] of [[10, 16], [21, 15], [13, 24], [20, 22], [15, 10]]) { a.flat(ell(x, y, .9), '#f0d040'); a.flat(ell(x - .2, y - .2, .35), '#fff4b0'); }
+  const path = (pts) => 'M' + pts.map(([x, y]) => `${x.toFixed(2)} ${y.toFixed(2)}`).join('L');
+  const vineX = (y) => cx + r * Math.sin(((foot - y) / pitch) * 2 * Math.PI);
+  for (const p of runs[0]) if (p.length > 1) a.tube(path(p), .75, VINE);
+  stake(a);
+  for (const p of runs[1]) if (p.length > 1) a.tube(path(p), .75, VINE);
+  // A tendril curls off the vine's tip, brown as the gourds' stems.
+  if (s > 0) a.tube(`M${vineX(top).toFixed(2)} ${top}Q${(vineX(top) + 1.2).toFixed(2)} ${top - 1.4} ${(vineX(top) + .2).toFixed(2)} ${top - 2}Q${(vineX(top) - .6).toFixed(2)} ${top - 1.4} ${(vineX(top) + .1).toFixed(2)} ${top - 1.1}`, .35, TWIG, { spec: false });
+  // A heart leaf on its stalk: base by the vine, the tip drooping outward.
+  const leaf = (y, dir, l) => {
+    const bx = vineX(y) + dir * .9, by = y - .2, tx = bx + dir * l, ty = by + l * .5;
+    a.tube(`M${vineX(y).toFixed(2)} ${y}L${bx.toFixed(2)} ${by}`, .3, VINE, { spec: false });
+    const up = `C${bx + dir * l * .05} ${by - l * .5} ${bx + dir * l * .8} ${by - l * .4} ${tx} ${ty}`;
+    const d = `M${bx} ${by}${up}C${bx + dir * l * .7} ${by + l * .62} ${bx + dir * l * .12} ${by + l * .55} ${bx} ${by}Z`;
+    a.shape(d, LEAF, { lite: `M${bx} ${by}${up}Q${bx + dir * l * .45} ${by + l * .1} ${bx} ${by}Z`, shade: .5, lines: [`M${bx} ${by}Q${bx + dir * l * .5} ${by + l * .12} ${tx} ${ty}`] });
+  };
+  const leaves = [
+    [[28.4, 1, 2.8], [27, -1, 2.4]],
+    [[28, -1, 3.4], [24.8, 1, 4.2], [21.2, -1, 3.8]],
+    [[27.6, 1, 4.4], [24, -1, 5], [19.6, 1, 5.2], [15.6, -1, 4.8]],
+    [[27.6, 1, 3.4], [21, -1, 5.2], [20.4, 1, 5.2], [13.6, -1, 4.8], [13, 1, 4.8]],
+  ][s];
+  for (const [y, dir, l] of leaves) leaf(y, dir, l);
+  if (s < 3) return;
+  // A pear gourd: a narrow neck under its curled stem, the belly low; its stalk runs back to the vine.
+  const gourd = (x, y0, h, from) => {
+    const w = h * .64;
+    a.tube(`M${vineX(from).toFixed(2)} ${from}Q${(x + vineX(from)) / 2} ${from - 1.6} ${x} ${y0 - .4}`, .3, VINE, { spec: false });
+    const d = `M${x} ${y0}C${x + w * .2} ${y0} ${x + w * .18} ${y0 + h * .32} ${x + w * .42} ${y0 + h * .55}C${x + w * .62} ${y0 + h * .78} ${x + w * .42} ${y0 + h} ${x} ${y0 + h}` +
+      `C${x - w * .42} ${y0 + h} ${x - w * .62} ${y0 + h * .78} ${x - w * .42} ${y0 + h * .55}C${x - w * .18} ${y0 + h * .32} ${x - w * .2} ${y0} ${x} ${y0}Z`;
+    a.shape(d, GOURD, { shade: .7, lite: ell(x - w * .16, y0 + h * .62, w * .16, h * .16), spec: ell(x - w * .2, y0 + h * .56, w * .05, h * .05) });
+    a.tube(`M${x} ${y0 + .1}Q${x + .2} ${y0 - .9} ${x + .9} ${y0 - 1}Q${x + 1.3} ${y0 - .6} ${x + .8} ${y0 - .4}`, .35, TWIG, { spec: false });
+  };
+  gourd(10.6, 16, 5.4, 14); gourd(21.4, 15.4, 5.4, 13.4); gourd(10.4, 23, 6, 21.4); gourd(21.6, 22.4, 6, 20.8);
+};
+// The spore's glowberry bush (picked 2026-11-13): a stiff upright shrub before the stake, narrow grey-green leaves in
+// pairs up its branches, clusters of dusky berries on short spurs at the last stage, lit from within as the item's are.
+const STEM = { base: '#806440', shade: '#5a462e', deep: '#3a2e20', lite: '#9e8054', spec: '#b29a6a', ink: '#1c1410' };
+const SAGE = { base: '#748458', shade: '#56663f', deep: '#3a4630', lite: '#92a06e', spec: '#b4bc8a', ink: '#141a10' };
+const BERRY = { base: '#706a3e', shade: '#4c4830', deep: '#363426', lite: '#9a9254', spec: '#f0e8b8', ink: '#1a180e' };
+/** The grown bush in its own frame, u across from the trunk and v up from the soil: the trunk's points, and each branch from the trunk's height v0 to its tip. */
+const TRUNK = [[0, 0], [.25, 6], [-.1, 12], [.1, 19]];
+const BRANCHES = [[4.6, -4.8, 10.4], [6.6, 4.6, 12.6], [10.6, -4.2, 15.8], [12.8, 4, 17.2]];
+const bushStage = (s) => (a) => {
+  stake(a);
+  // Younger stages are the grown bush drawn shorter and narrower from the same foot; the sprout is three leaves.
+  const k = [.3, .55, 1, 1][s], kx = .5 + .5 * k;
+  const X = (u) => STAKE_X + .4 + u * kx, Y = (v) => STAKE_FOOT - v * k, P = (u, v) => `${X(u).toFixed(2)} ${Y(v).toFixed(2)}`;
+  const f = (n) => n.toFixed(2);
+  // A narrow leaf from its base at (u, v), pointing at angle ang (up is π/2), l long: its upper half lit, a vein to the middle.
+  const leaf = (u, v, ang, l) => {
+    const x = X(u), y = Y(v), c = Math.cos(ang), n = Math.sin(ang), w = l * .28;
+    const tx = x + c * l, ty = y - n * l, mx = x + c * l * .5, my = y - n * l * .5, px = -n * w, py = -c * w;
+    const d = `M${f(x)} ${f(y)}Q${f(mx + px)} ${f(my + py)} ${f(tx)} ${f(ty)}Q${f(mx - px)} ${f(my - py)} ${f(x)} ${f(y)}Z`;
+    const lite = `M${f(x)} ${f(y)}Q${f(mx + px)} ${f(my + py)} ${f(tx)} ${f(ty)}Q${f(mx + px * .2)} ${f(my + py * .2)} ${f(x)} ${f(y)}Z`;
+    a.shape(d, SAGE, { lite, shade: .45, lines: [`M${f(x)} ${f(y)}L${f(mx + c * l * .3)} ${f(my - n * l * .3)}`] });
+  };
+  if (s === 0) {
+    a.tube(`M${P(0, 0)}L${P(0, 4)}`, .5, STEM, { spec: false });
+    leaf(0, 4, 2.4, 4.2); leaf(0, 4, .75, 4.2); leaf(0, 4.4, 1.6, 3.2);
+    return;
+  }
+  // The branches first, then the trunk, so it stands before their roots.
+  for (const [v0, u, v] of BRANCHES) a.tube(`M${P(0, v0)}Q${P(u * .35, v0 + (v - v0) * .65)} ${P(u, v)}`, .75, STEM, { spec: false });
+  a.tube('M' + TRUNK.map(([u, v]) => P(u, v)).join('L'), 1.3, STEM, { spec: false });
+  // Leaves in pairs up each branch, pointing up and out, one at its tip; the trunk ends in a crown of three, two more down it.
+  for (const [v0, u, v] of BRANCHES) {
+    const dir = Math.atan2((v - v0) * k, u * kx);
+    for (const t of [.45, .75]) {
+      const bu = u * (t * t * .35 + t * .65), bv = v0 + (v - v0) * t;
+      leaf(bu, bv, dir + .6, 3.6); leaf(bu, bv, dir - .6, 3.6);
+    }
+    leaf(u, v, dir, 4);
+  }
+  for (const [ang, l] of [[1.15, 3.8], [1.62, 4.2], [2.05, 3.8]]) leaf(.1, 19, ang, l);
+  for (const [v, ang] of [[3.6, 2.5], [8.8, .6]]) leaf(0, v, ang, 3.4);
+  if (s < 3) return;
+  // A cluster of four berries hanging on a short spur under a branch, each lit from within as the item's are.
+  const cluster = (u, v, side) => {
+    const x = X(u) + side * 1.2, y = Y(v) + 2;
+    a.tube(`M${P(u, v)}Q${f(x)} ${f(Y(v))} ${f(x)} ${f(y - 1.2)}`, .3, STEM, { spec: false });
+    for (const [dx, dy] of [[0, -.9], [-.8, .2], [.8, .2], [0, 1.2]]) {
+      const bx = x + dx, by = y + dy, r = .72;
+      a.shape(ell(bx, by, r), BERRY, { shade: r * .3, spec: ell(bx - r * .42, by - r * .46, r * .22, r * .18) });
+      a.glow(ell(bx + r * .1, by + r * .2, r * .4, r * .32), '#a09452', { core: ell(bx + r * .12, by + r * .26, r * .2, r * .16), coreC: '#d8c47a' });
+    }
+  };
+  cluster(-3.4, 9.4, -1); cluster(3.4, 11.6, 1); cluster(-3, 14.8, -1); cluster(2.8, 16.4, 1);
 };
 const growLight = (a) => { a.flat(band(9, 7, 23, 8), '#ff78c0'); a.flat(band(12, 7.2, 20, 7.7), '#ffd8ec'); };
 const podGlass = (a) => {
@@ -619,15 +717,15 @@ const electrolyser = (a) => {
 };
 /** Where bubbles rise: the left column above its water, the reservoir's water, the right column's liquid, by x and the rows they span. */
 const RISES = [[5, 8, 29], [8.6, 8, 29], [14.6, 17, 36], [17.4, 17, 36], [23, 19, 36], [26.4, 19, 36]];
-/** The electrolyser at work, frame <f>: its lamp green, bubbles up each column, two rows a frame. */
+/** The electrolyser at work, frame <f>: bubbles up each column, two rows a frame; lit by the room, unlike its lamp. */
 const bubbles = (f) => (a) => {
-  a.flat(ell(16, 42.5, 1), '#7fe08a');
-  a.flat(ell(15.7, 42.2, .4), '#d8ffd8');
   RISES.forEach(([x, lo, hi], i) => {
     const span = hi - lo;
     for (let k = 0; k < 2; k++) a.flat(ell(x, hi - ((i * 5 + k * span / 2 + f * 2) % span), .5), '#eef8fb');
   });
 };
+/** The electrolyser at work: its lamp green. */
+const working = (a) => { a.flat(ell(16, 42.5, 1), '#7fe08a'); a.flat(ell(15.7, 42.2, .4), '#d8ffd8'); };
 /** The electrolyser standing: its lamp red. */
 const stalled = (a) => { a.flat(ell(16, 42.5, 1), '#e05555'); a.flat(ell(15.7, 42.2, .4), '#ffd0c8'); };
 /** A cistern's water up its window by quarters, <n> of 4; none at 0. */
@@ -829,6 +927,103 @@ const treadWheelTurn = (f) => (a) => { treadWheelBack(a); treadWheelDrum((f / WH
 /** The wheel standing empty: its back, its hoop still, its rail. */
 const treadWheel = (a) => { treadWheelTurn(0)(a); treadWheelFront(a); };
 
+
+// ---------- The galley (food-and-the-body): a cast-iron range, its stock pot on the hob, a firebox under it, the flue up
+// through the deck above, as the user picked it (galley_A). Its paints and helpers came with it from the pick page.
+// New paints: blackened cast iron, a cook's dull pot metal, army drab; steam is paint thinned to a veil.
+const IRON = { base: '#3e4048', shade: '#2a2b33', deep: '#1c1d24', lite: '#5c5f6a', spec: '#a4a8b4', rim: '#5c5f6a' };
+const TIN = { base: '#8a8e94', shade: '#5a5e66', deep: '#3e414a', lite: '#aeb2b6', spec: '#dfe1e3', rim: '#aeb2b6' };
+const DRAB = { base: '#5e6648', shade: '#40472f', deep: '#2c3122', lite: '#7c8460', spec: '#a4aa84', rim: '#7c8460' };
+const STEAM = ['rgba(206,212,220,0.4)', 'rgba(190,198,206,0.27)', 'rgba(172,180,190,0.15)'];
+const GAP = '#17181f';
+const FRAMES = 6;
+
+/** Rust grown from a seam or rivet: a torn patch, a darker heart; placed by hand. */
+const rustAt = (a, x, y, w, h) => { a.flat(poly(x, y, x + w * .4, y - h * .2, x + w, y + h * .1, x + w * .8, y + h, x + w * .3, y + h * .8), RUST.base); a.flat(ell(x + w * .5, y + h * .4, w * .18, h * .22), RUST.deep); };
+/** Enamel knocked off down to the iron. */
+const chip = (a, x, y, w, h) => a.flat(poly(x, y, x + w, y + h * .2, x + w * .7, y + h, x + w * .1, y + h * .7), '#3c3e46');
+/** A puff of steam: three thin overlapping lobes, wider than tall, denser where they cross. */
+const puff = (a, x, y, r, k) => { const c = STEAM[k]; a.flat(ell(x - r * .45, y + r * .12, r * .62, r * .4), c); a.flat(ell(x + r * .4, y, r * .7, r * .44), c); a.flat(ell(x, y - r * .3, r * .5, r * .36), c); };
+/** Steam rising from (x, y): n puffs spread through the loop, each rising <rise> and leaning <lean>, growing and thinning as it goes. */
+function steam(a, x, y, f, n, rise, lean, r0, r1, wob) {
+  for (let i = 0; i < n; i++) {
+    const t = (f / FRAMES + i / n) % 1, side = [.0, .45, -.35, .25, -.2][i % 5] * (wob ?? 1);
+    puff(a, x + lean * t + side * Math.sin(t * Math.PI), y - rise * t, r0 + (r1 - r0) * t, t < .34 ? 0 : t < .67 ? 1 : 2);
+  }
+}
+/** Fire seen through a slot: ember red, its tongue orange to yellow, as high as <k> of it. */
+const ember = (a, x, y, w, h, k) => {
+  a.flat(band(x, y, x + w, y + h), '#7a2a16');
+  a.flat(band(x, y + h * (1 - k), x + w, y + h), '#c84c1c');
+  a.flat(band(x + w * .18, y + h * (1 - k * .7), x + w * .82, y + h), '#ff9a36');
+  a.flat(band(x + w * .32, y + h * (1 - k * .35), x + w * .68, y + h), '#ffd060');
+};
+
+
+const A_LID = (a, dy) => {
+  a.shape(`M4.4 ${13.7 + dy}Q10 ${10.9 + dy} 15.6 ${13.7 + dy}Z`, TIN, { lite: `M5.4 ${13.2 + dy}Q8 ${11.6 + dy} 10 ${11.5 + dy}L10 ${12.2 + dy}Q7.6 ${12.4 + dy} 5.4 ${13.6 + dy}Z`, shade: band(12.8, 12.6 + dy, 15.6, 13.7 + dy) });
+  a.shape(rr(9.1, 10.6 + dy, 1.8, 1.1, .4), GUN, { lite: band(9.2, 10.6 + dy, 10.8, 10.9 + dy) });
+};
+const galleyA = (a) => {
+  // The flue, its collar and damper, a rust run from the collar.
+  cyl(a, 24.6, 0, 3.2, 21.6, GUN);
+  a.shape(rr(24, 11, 4.4, 1.3, .3), IRON, { lite: band(24.2, 11, 28.2, 11.4) });
+  a.tube('M24.4 16.2L22.6 16.2', .5, BRASS);
+  a.flat('M25.6 12.3L26.2 12.3L26 15.4L25.5 15.4Z', RUST.base);
+  // A shelf of stores: two tins, a ration box, a tin with its label gone.
+  for (const x of [3.6, 18]) a.shape(poly(x, 7.8, x + 1.8, 7.8, x + .4, 9.6), GUN, { outer: false });
+  cyl(a, 3.4, 3.2, 2.8, 3.8, TIN, { outer: false });
+  a.flat(band(3.4, 4.4, 6.2, 5.8), '#7a3a30');
+  cyl(a, 6.6, 3.6, 2.8, 3.4, TIN, { outer: false });
+  a.flat(band(6.6, 4.6, 9.4, 5.8), '#5c6a3c');
+  box(a, 10.2, 3, 5.4, 4, DRAB, { outer: false });
+  a.flat(band(10.6, 4.4, 15.2, 5), '#a4aa84');
+  cyl(a, 16.2, 4.4, 2.6, 2.6, TIN, { outer: false });
+  box(a, 2.2, 6.8, 19.4, 1.2, WOOD, { outer: true });
+  // A ladle on a hook under the shelf.
+  a.tube('M20.2 8L20.2 13.6', .45, TIN, { spec: false });
+  a.shape(ell(20.2, 14.3, 1.3, .9), TIN, { shade: band(20.4, 14, 21.6, 15.2) });
+  // The hob, a brass towel rail along its front.
+  box(a, 1, 20.8, 30, 2.6, IRON, { spec: true });
+  a.tube('M2.4 24.2L29.6 24.2', .45, BRASS, { spec: false });
+  // The stock pot: dented, its ears, its lid.
+  a.shape(rr(4, 13.6, 12, 7.4, .9), TIN, { lite: band(4.8, 13.6, 6.4, 21), shade: band(13.6, 13.6, 16, 21), deep: band(4, 19.8, 16, 21), lines: ['M12.4 15.8Q13.4 17 12.6 18.6'] });
+  a.flat(band(4.2, 13.5, 15.8, 14.1), TIN.shade);
+  for (const x of [2.7, 15.7]) a.shape(rr(x, 14.6, 1.6, 1.1, .3), GUN, { outer: false });
+  A_LID(a, 0);
+  // The cast-iron body: the firebox's door with its draught slots, the oven's with a patched plate; the ash slot.
+  box(a, 2, 23.6, 28, 13.6, IRON, { spec: true });
+  inner(a, 3.6, 25.2, 11, 9.4, GUN);
+  for (let i = 0; i < 4; i++) a.flat(rr(5.2 + i * 2.2, 27, 1, 4.8, .3), GAP);
+  a.shape(rr(12.6, 28.6, 1.4, 1.6, .3), BRASS, { outer: false });
+  inner(a, 16, 25.2, 12.4, 9.4, GUN);
+  a.tube('M17.8 26.8L26.6 26.8', .7, BRASS);
+  inner(a, 21.2, 29.6, 5.4, 3.8, { ...STEEL, base: '#7f8796', lite: '#a9b1be' });
+  rivets(a, [21.8, 30.2], [26, 30.2], [21.8, 32.8], [26, 32.8]);
+  a.flat(rr(5, 35.4, 8.6, .9, .2), GAP);
+  rivets(a, [3, 24.6], [29, 24.6]);
+  rustAt(a, 26.4, 33.6, 1.8, 1.1);
+  rustAt(a, 2.6, 34.6, 1.4, 1);
+  feet(a, 37.2, 2.8, [3, 3.4], [25.6, 3.4]);
+};
+/** The lid rattling on the boil, steam out from under it and up from its knob. */
+const galleyA_work = (f) => (a) => {
+  const L = [0, .55, .1, 0, .45, .05][f];
+  if (L > 0) a.flat(band(4.8, 13.6 - L - .2, 15.2, 13.8), GAP);
+  a.flat(band(4.2, 13.5, 15.8, 14.1), TIN.shade);
+  A_LID(a, -L);
+  if (L > .3) { puff(a, 3.8, 12.6, .8, 0); puff(a, 16.4, 12.4, .7, 0); }
+  steam(a, 10, 10.2, f, 3, 3.6, 3.2, 1.1, 2.8);
+  steam(a, 5.8, 12, (f + 2) % FRAMES, 2, 3, -1.6, .8, 1.9, .6);
+};
+/** The fire in the box, through the draught slots, flickering; its light leaking under the door. */
+const galleyA_screen = (f) => (a) => {
+  const k = [[.8, .6, .9, .7], [.6, .9, .7, .8], [.9, .7, .6, .9], [.7, .8, .9, .6], [.85, .6, .8, .75], [.65, .85, .7, .9]][f];
+  for (let i = 0; i < 4; i++) ember(a, 5.3 + i * 2.2, 27.2, .8, 4.4, k[i]);
+  a.flat(band(3.9, 34.4, 14.3, 34.7), '#a8401c');
+};
+
+
 Subjects.machines = function () {
   // A fire's liquid-oxygen input, its port at 0, 2 (industrial-oxygen).
   const blowable = (draw) => (a) => { draw(a); fitting(a, 4, 20, 0); };
@@ -836,7 +1031,7 @@ Subjects.machines = function () {
     vent: [16, 16, vent], crate: [32, 16, crate], cistern: [32, 32, cistern], growCapsule: [32, 48, growCapsule], charger: [16, 32, charger], burnerGenerator: [32, 32, blowable(burnerGenerator)],
     autoTradeStation: [32, 32, terminal(true)], tradeStation: [32, 32, terminal(false)], lifepod: [48, 48, lifepod], generator: [32, 32, generator], tank: [32, 32, tank],
     computer: [48, 32, computer], capacitorBank: [32, 32, capacitorBank], engine: [72, 32, engine], solarPanel: [48, 16, solarPanel], lamp: [16, 16, lamp], arcLamp: [16, 16, arcLampBody(false)], dropPod: [32, 56, dropPod], electrolyser: [32, 48, electrolyser],
-    fermenter: [32, 32, fermenter], biofuelGenerator: [48, 32, blowable(biofuelGenerator)], treadWheel: [48, 48, treadWheel] };
+    fermenter: [32, 32, fermenter], galley: [32, 40, galleyA], biofuelGenerator: [48, 32, blowable(biofuelGenerator)], treadWheel: [48, 48, treadWheel] };
   for (const [kind, [w, h, draw]] of Object.entries(whole)) out(`machine_${kind}`, bake({ w, h, draw }));
   out('machine_arcLamp_lit', flat(16, 16, arcLampBody(true)));
   out('machine_radarAntenna', flat(32, 48, (a) => { radarMast(a); radarDish(2)(a); }));
@@ -851,13 +1046,15 @@ Subjects.machines = function () {
     out(`workbench_work_${f}`, flat(32, 40, workbench_work(f)));
     out(`burner_wheel_${f}`, flat(13, 13, burnerWheel(f)));
     out(`computer_screen_${f}`, flat(48, 32, computerScreen(f)));
-    out(`growCapsule_plant_${f}`, flat(32, 48, plantStage(f)));
+    out(`growCapsule_seed_${f}`, flat(32, 48, plantStage(f)));
+    out(`growCapsule_spore_${f}`, flat(32, 48, bushStage(f)));
   }
   for (let f = 0; f < 2; f++) out(`computer_lights_${f}`, flat(48, 32, computerLights(f)));
   for (let f = 0; f < 3; f++) out(`fire_${f}`, flat(10, 11, fire(f)));
   for (let n = 0; n < 6; n++) out(`tank_fill_${n}`, flat(32, 32, fill(n)));
   for (let n = 0; n < 5; n++) out(`cistern_fill_${n}`, flat(32, 32, cisternFill(n)));
   for (let f = 0; f < 4; f++) out(`electrolyser_work_${f}`, flat(32, 48, bubbles(f)));
+  out('electrolyser_working', flat(32, 48, working));
   out('electrolyser_stalled', flat(32, 48, stalled));
   out('growCapsule_work_0', flat(32, 48, growLight));
   out('lifepod_glass', flat(48, 48, podGlass));
@@ -866,6 +1063,7 @@ Subjects.machines = function () {
   for (let f = 0; f < 4; f++) out(`fermenter_work_${f}`, flat(32, 32, fermenter_work(f)));
   for (let f = 0; f < 8; f++) out(`biofuelGenerator_run_${f}`, flat(48, 32, biofuelRun((f / 8) * Math.PI * 2)));
   for (let f = 0; f < WHEEL_FRAMES; f++) out(`treadWheel_turn_${f}`, flat(48, 48, treadWheelTurn(f)));
+  for (let f = 0; f < FRAMES; f++) { out(`galley_work_${f}`, flat(32, 40, galleyA_work(f))); out(`galley_screen_${f}`, flat(32, 40, galleyA_screen(f))); }
   out('treadWheel_front', flat(48, 48, treadWheelFront));
 };
 window.AnimeKit = { STEEL, GUN, DARK, COPPER, PIPE, band, box, inner, cyl, rivets, hazard };

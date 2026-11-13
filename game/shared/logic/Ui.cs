@@ -306,6 +306,12 @@ public sealed class Ui
     public float? MenuTop { get; set; }
 
     /// <summary>
+    /// Where the tablet edge's keys top on the screen while they show; null when not. Set by <c>TabletEdge</c> every frame;
+    /// <c>crew</c> lifts the prompt for E above them too, as they ride an open tablet over its top.
+    /// </summary>
+    public float? EdgeTop { get; set; }
+
+    /// <summary>
     /// Every hero's chest as drawn this frame, in the world's pixels, this machine's own first. Set by
     /// <c>crew</c> every frame; <c>building</c> throws a plan's sparks from its side facing the nearest.
     /// </summary>
@@ -361,6 +367,22 @@ public sealed class Ui
     public void Breathe() => Breathed?.Invoke();
 
     /// <summary>
+    /// This player asked to eat a food (food-and-the-body): <c>items</c> says so on a right click on one in the inventory;
+    /// <c>crew</c> sends <c>Eat</c> when the sim would take it, as it does for one in hand.
+    /// </summary>
+    public event Action<string>? Ate;
+
+    public void Eat(string food) => Ate?.Invoke(food);
+
+    /// <summary>
+    /// This player asked to eat <c>food</c> and the sim would refuse it for <c>problem</c> (hud-vitals): <c>crew</c> says so, once a
+    /// press; the meal slots blink red.
+    /// </summary>
+    public event Action<string, string>? MealRefused;
+
+    public void RefuseMeal(string food, string problem) => MealRefused?.Invoke(food, problem);
+
+    /// <summary>
     /// This player asked to switch its suit's mode (2026-11-03-the-regen-suit): the suit's key on the tablet's edge says so;
     /// <c>crew</c> sends it, as it does for V.
     /// </summary>
@@ -383,6 +405,14 @@ public sealed class Ui
     public event Action? PressedFlat;
 
     public void PressFlat() => PressedFlat?.Invoke();
+
+    /// <summary>
+    /// This player asked for a canister while one cools (canister-mark): <c>crew</c> says so, once a press; the suit gauge's
+    /// oxygen sign and the canister's slots blink red.
+    /// </summary>
+    public event Action? PressedCooling;
+
+    public void PressCooling() => PressedCooling?.Invoke();
 
     /// <summary>
     /// The UI's click asked for (0081): an inventory action (a stack picked, put, swapped, split, sent across, dropped, a

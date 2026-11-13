@@ -16,8 +16,11 @@ public partial class TabletEdge : CanvasLayer
 {
     /// <summary>How long the rest of the row takes to slide as a key comes or goes, and how long a key flickers in or out.</summary>
     private const double SlideS = 0.25, FlickerS = 0.35;
-    /// <summary>How far in from the art's right edge the credits end: short of the bezel's charge lamps, off the keys in the middle.</summary>
+    /// <summary>How far in from the rim's right edge the credits end: short of the bezel's charge lamps, off the keys in the middle.</summary>
     private const float ReadoutIn = 160;
+
+    /// <summary>How far in from a tablet's right edge the credits end while it is up: just before its stylus, clear of the keys.</summary>
+    private const float ReadoutBeforeStylus = TabletLayout.BezelSide + 4;
 
     private readonly Ui _ui;
     private readonly Func<bool> _inWorld;
@@ -103,6 +106,7 @@ public partial class TabletEdge : CanvasLayer
         if (!shown)
         {
             _tips.Show(null);
+            _ui.EdgeTop = null;
             _laid = false;
             return;
         }
@@ -122,7 +126,9 @@ public partial class TabletEdge : CanvasLayer
         var art = Art = (up ?? _rim).Covers;
         var (middle, foot) = TabletPeek.RowAt(art.Position.X, art.Position.Y, art.Size.X);
         float grown = EdgeRow.Grown(_ui.Slot), top = EdgeRow.Top(foot, EdgeKey.Side, grown);
-        Lay(middle, top, art.End.X - ReadoutIn, grown, delta);
+        _ui.EdgeTop = top;
+        // On a tablet up the credits stand just before its stylus: 160 in from its edge they ran into the keys.
+        Lay(middle, top, up == null ? art.End.X - ReadoutIn : art.End.X - ReadoutBeforeStylus, grown, delta);
         if (_keysAway.Exists(t => t.Shown)) HideKeys();
         var pointer = _root.GetViewport().GetMousePosition();
         _near.Step(delta, EdgeRow.Bright(pointer.Y, top, up != null && art.HasPoint(pointer), new Rect2(Vector2.Zero, window).HasPoint(pointer)));

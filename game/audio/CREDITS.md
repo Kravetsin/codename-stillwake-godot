@@ -26,7 +26,7 @@ death is two sources mixed as the audition mixed them. Its burner is the jetpack
 
 The warden's sounds are the guard audition's picks, cut and levelled as the sentry's: each the length given here from its attack, its last 45% faded out. Its landing is a hero's on alloy and its hit a tool's on alloy, so they are not here.
 
-The catcher's fight (catcher-combat) is its page's picks, cut there from the Freesound HQ previews: mono, high-passed at 40 Hz, faded in over 4 ms and out over the last share given, the loudest 100 ms RMS at −16 dBFS with peaks at −1 dBFS at most, then decoded to mono 48 kHz WAV here and turned down 4 dB to the sentry's level. Its shells burst as the blasting charge, so those are not here.
+The catcher's fight (catcher-combat) is its page's picks, cut there from the Freesound HQ previews: mono, high-passed at 40 Hz, faded in over 4 ms and out over the last share given, the loudest 100 ms RMS at −16 dBFS with peaks at −1 dBFS at most, then decoded to mono 48 kHz WAV here and turned down 4 dB to the sentry's level. Its shells burst as the blasting charge, so those are not here. Its missile's (catcher-missile) are its page's picks, cut there from the HQ previews, the loudest 100 ms RMS at −16 dBFS with peaks at −1 dBFS at most, and turned down 4 dB here alike: the lock a one-shot decoded to mono 48 kHz WAV here, its steady tone after 0.68 s raised 9 dB on the page; the hiss a loop closed on itself there by a crossfade, encoded here as OGG at its own 44.1 kHz so its seam stays where it was cut. It leaves as the salvo and bursts as the charge.
 
 The salvage tools' sounds (salvage-tools) are their audition's picks, cut and levelled as heard there: each mono 48 kHz, high-passed
 (40 Hz, the spear's whoosh 100 Hz and its hit 80 Hz); a one-shot from 5 ms before its onset (or the point given here) to the length
@@ -46,6 +46,12 @@ The cave lurkers' attack sounds (lurker-attacks) are their pick page's picks: th
 shut shell struck; each mono 48 kHz WAV from its attack (a −45 dB gate), its last 60 ms faded, normalised to −3 dBFS peak; the cue sets the mix.
 The hero's hurt (hurts-are-shown) is its pick page's «oof», cut and levelled as those; its three takes then matched by mean loudness,
 the louder turned down.
+
+The galley's and eating's sounds (food-and-the-body) are their pick pages' picks, cut and levelled there from the Freesound HQ
+previews, mono 48 kHz: the boil a 5.0 s loop from 30.0 s, closed on itself by a 0.3 s crossfade, −25 LUFS, encoded here as OGG; the
+knock the whole 1.0 s, its last 40% faded, −22 LUFS max momentary; the chewing 0.85 s from its start, high-passed at 80 Hz, its
+last 30% faded, raised 18.5 dB to −20 LUFS max momentary, then gated here (−40 dBFS, 24 dB down, 40 ms release) so the
+microphone's hiss under its tail is gone.
 
 | File | Source | Author | Licence |
 | ---- | ------ | ------ | ------- |
@@ -76,6 +82,8 @@ the louder turned down.
 | `building/hit-stone-4.wav` | Freesound, "Stone Strike/Hit" (0.4 s from 7.947 s), https://freesound.org/people/Bricklover/sounds/560966/ | Bricklover | CC0 |
 | `building/hit-stone-5.wav` | Freesound, "Stone Strike/Hit" (0.4 s from 10.232 s), https://freesound.org/people/Bricklover/sounds/560966/ | Bricklover | CC0 |
 | `crafting/crusher-run-1.ogg` | Freesound, "quarry_close_up.aif" (2.98 s from 54.40 s, closed on itself by a 0.15 s equal-power crossfade where the wave matches best; mono 48 kHz, −23.2 LUFS, OGG), https://freesound.org/people/f_ilippo/sounds/59244/ | f_ilippo | CC0 |
+| `crafting/galley-boil-1.ogg` | Freesound, "water boiling in pot hollow1.flac" (5.0 s from 30.0 s, looped), https://freesound.org/people/kyles/sounds/637935/ | kyles | CC0 |
+| `crafting/galley-done-1.wav` | Freesound, "hit - metallic - lid of candle 01.wav", https://freesound.org/people/Anthousai/sounds/406525/ | Anthousai | CC0 |
 | `crafting/former-motor-1.ogg` | generated for Stillwake: 80 Hz at 0.6 and 160 Hz at 0.3 under white noise (mulberry32 seed 14) band-passed at 900 Hz, Q 3, gain 2.2, swaying ±45% at 2.25 Hz, a 4 s loop rendered offline to −23 dBFS RMS (the audition's "Flywheel whoosh") | Stillwake team | CC0 |
 | `crafting/former-stroke-1.wav` | Freesound, "Punch Press, 10 Ton" (0.5 s from the attack after 9.4 s), https://freesound.org/people/dnewtonjr/sounds/232598/ | dnewtonjr | CC0 |
 | `crafting/smelter-hum-1.ogg` | generated for Stillwake: 100 Hz and its harmonics at 1, 0.35 and 0.15 under white noise (mulberry32 seed 25) band-passed at 3.5 kHz, Q 0.7, gain 0.1, swaying ±30% at 0.75 Hz, a 4 s loop rendered offline to −23 dBFS RMS (the audition's "Hum and hiss") | Stillwake team | CC0 |
@@ -110,6 +118,8 @@ the louder turned down.
 | `creatures/catcher-blink-1.wav` | Freesound, "Electric zap.wav" (all of it, 0.22 s; the catcher-combat page's pick), https://freesound.org/people/michael_grinnell/sounds/512471/ | michael_grinnell | CC0 |
 | `creatures/catcher-launch-1.wav` | Freesound, "Mortar Shots.flac" (the second shot, 4.28–5.38 s, its last 0.3 s faded; the catcher-combat page's pick), https://freesound.org/people/qubodup/sounds/184382/ | qubodup | CC0 |
 | `creatures/catcher-laser-1.wav` | Freesound, "Ion Cannon" (0.00–0.60 s, its last 0.25 s faded; the catcher-combat laser page's pick), https://freesound.org/people/qubodup/sounds/814049/ | qubodup | CC0 |
+| `creatures/catcher-lock-1.wav` | Freesound, "missile lock on sound" (2.85–3.85 s, its tone after 0.68 s raised 9 dB; the catcher-missile page's pick), https://freesound.org/people/Alxy/sounds/189327/ | Alxy | CC0 |
+| `creatures/missile-flight-1.ogg` | Freesound, "Rocket Loop" (1.43 s from 0.05 s, its seam crossfaded over 0.12 s, looped; the catcher-missile page's pick), https://freesound.org/people/Mozfoo/sounds/458377/ | Mozfoo | CC0 |
 | `crew/air-fill-1.wav` | generated for Stillwake: white noise (mulberry32 seed 47) through two band-passes, Q 1.1, their centre rising from 2.6 to 4.8 kHz, 0.55 s: in over 50 ms, held, falling away over the last 38 %, to −3 dBFS peak (a placeholder till an audition) | Stillwake team | CC0 |
 | `crew/alarm-1.wav` | generated for Stillwake | Stillwake team | CC0 |
 | `crew/charge-burst-1.wav` | Freesound, "1 Liter Stoichiometric Oxyhydrogen Detonation (Tampere, Mustavuori)" (2.5 s from its start), https://freesound.org/people/modusmogulus/sounds/734099/ | modusmogulus | CC0 |
@@ -153,6 +163,7 @@ the louder turned down.
 | `crew/land-soft-1.wav` | Freesound, "land a jump.wav" (0.307 s from 0.001 s), https://freesound.org/people/zepurple/sounds/540272/ | zepurple | CC0 |
 | `crew/lava-burn-1.wav` | Freesound, "Pressure Hiss" (0.8 s), https://freesound.org/people/unfa/sounds/211096/ | unfa | CC0 |
 | `crew/catcher-beep-1.wav` | Freesound, "motion tracker beep.wav" (the first ping: 1.1 s from 0.04 s, its last 0.25 s faded; the warning page's pick, tracker-catchers), https://freesound.org/people/Balcoran/sounds/478186/ | Balcoran | CC0 |
+| `crew/eat-1.wav` | Freesound, "Eat_sound" (0.85 s from its start), https://freesound.org/people/dinoworld112/sounds/867040/ | dinoworld112 | CC0 |
 | `crew/hurt-1.wav` | Freesound, "Oof (original)" (all of it from its attack, band 130 Hz–2 kHz, echoes at 7 and 15 ms), https://freesound.org/people/unfa/sounds/719053/ | unfa | CC0 |
 | `crew/hurt-2.wav` | the same, raised 6% in pitch at its length | unfa | CC0 |
 | `crew/hurt-3.wav` | the same, lowered 7% in pitch at its length | unfa | CC0 |

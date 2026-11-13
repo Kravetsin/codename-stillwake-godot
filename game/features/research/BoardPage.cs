@@ -389,7 +389,7 @@ public sealed class BoardPage : ITabletPage
     private string LackOf(BoardThing thing)
     {
         var lack = BoardPile.Lack(thing, _read!);
-        if (lack.Parts is [var (item, more), ..]) return T("research.pile.lackPart", ("n", more), ("what", _strip.NameOf(item)));
+        if (lack.Parts is [var item, ..]) return T("research.pile.lackPart", ("what", _strip.NameOf(item)));
         if (lack.Station is { } station) return T("research.pile.lackStation", ("what", _strip.NameOf(station)));
         return "";
     }
@@ -403,7 +403,7 @@ public sealed class BoardPage : ITabletPage
 
     /// <summary>What the board reads of <paramref name="m"/>.</summary>
     public static BoardRead ReadOf(Registry m) =>
-        new(m.Knowledge.Obtained.Select(t => t.Item).ToList(), m.Knowledge.GrantedIds, m.Knowledge.ObtainedOf, kind => m.Grid.MachinesOf(kind).Count > 0);
+        new(m.Knowledge.Obtained.Select(t => t.Item).ToList(), m.Knowledge.GrantedIds, item => m.Knowledge.ObtainedOf(item) > 0, kind => m.Grid.MachinesOf(kind).Count > 0);
 
     public Vector2 ScreenOf(string id) => _view.GlobalPosition + _notes[id].Root.Position;
 
@@ -565,7 +565,7 @@ public sealed class BoardPage : ITabletPage
                 _strip.Tips.Add(view.Box, () => _side.Visible && _side.GetGlobalRect().HasPoint(_side.GetGlobalMousePosition()) ? null : TipOf(id));
             }
             bool note = show == BoardShow.Note;
-            double pencil = note ? 1 : BoardPencil.Of(BoardThings.All.First(t => t.Id == id), _read!.Count, _read.Stands);
+            double pencil = note ? 1 : BoardPencil.Of(BoardThings.All.First(t => t.Id == id), _read!.Has, _read.Stands);
             Inked(view, id, show, note ? default : BoardInk.SketchOf(pencil));
             view.Box.QueueRedraw();
             view.Mark.Visible = note && _keep.Seen.Marked(id);
@@ -586,12 +586,12 @@ public sealed class BoardPage : ITabletPage
         _sizedAt = null;
     }
 
-    /// <summary>Writes in a shape's box the first thing it lacks: how many and its picture, which stays readable when the board is small.</summary>
+    /// <summary>Writes in a shape's box the first thing it lacks: its picture, which stays readable when the board is small.</summary>
     private void SayLack(NoteView view, BoardThing thing)
     {
         var lack = BoardPile.Lack(thing, _read!);
-        string? what = lack.Parts.Count > 0 ? lack.Parts[0].Item : lack.Station;
-        view.LackWords.Text = lack.Parts.Count > 0 ? T("research.board.more", ("n", lack.Parts[0].More)) : what == null ? "" : T("research.board.needs");
+        string? what = lack.Parts.Count > 0 ? lack.Parts[0] : lack.Station;
+        view.LackWords.Text = what == null ? "" : T("research.board.needs");
         if (what == view.LackOf) return;
         view.LackOf = what;
         view.LackPicture?.QueueFree();
@@ -819,7 +819,7 @@ public sealed class BoardPage : ITabletPage
             return;
         }
         var thing = BoardThings.All.FirstOrDefault(t => t.Id == id);
-        double? pencil = _had.Contains(id) || thing == null ? null : BoardPencil.Of(thing, read.Count, read.Stands);
+        double? pencil = _had.Contains(id) || thing == null ? null : BoardPencil.Of(thing, read.Has, read.Stands);
         facts.AddChild(_strip.Title(_strip.NameOf(id), KindOf(id), id, TipOf, pencil));
         FactsOf(id, facts);
     }
@@ -922,7 +922,7 @@ public sealed class BoardPage : ITabletPage
             int more = link.UsedIn.Count - named.Count;
             yield return Line("research.usedIn", more == 0 ? names : T("research.pile.andMore", ("names", names), ("n", more)));
         }
-        double Pencil(BoardThing thing) => BoardPencil.Of(thing, _read!.Count, _read.Stands);
+        double Pencil(BoardThing thing) => BoardPencil.Of(thing, _read!.Has, _read.Stands);
         bool Shape(string other) => other != id && _picture.Shows.ContainsKey(other) && _picture.Shows[other] != BoardShow.Note;
         if (BoardThreads.Of(id, BoardThings.All, Shape, Pencil) is [var next, ..])
         {
@@ -945,7 +945,7 @@ public sealed class BoardPage : ITabletPage
         {
             var takes = Flow(10);
             foreach (var (item, count) in link.Takes) takes.AddChild(PartOf(item, count, note));
-            string heading = note || thing == null ? "research.takes" : BoardPile.Lack(thing, _read!).Parts.Count > 0 ? "research.board.needMore" : "research.board.haveEnough";
+            string heading = note || thing == null ? "research.takes" : BoardPile.Lack(thing, _read!).Parts.Count > 0 ? "research.board.needEach" : "research.board.haveEnough";
             facts.AddChild(Fact(T(heading), From, takes, 3));
         }
         else if (link.From.Count > 0)
@@ -961,16 +961,14 @@ public sealed class BoardPage : ITabletPage
         if (link.UsedIn.Count > 0) facts.AddChild(Fact(T("research.usedIn"), UsedIn, _strip.Pictures(link.UsedIn, TipOf, used => !_had.Contains(used)), 5));
     }
 
-    /// <summary>A part: of what is known, as in a recipe; of a shape, what was had of it over enough, dim while never had.</summary>
+    /// <summary>A part: of what is known, as in a recipe; of a shape, ticked once ever had, dim till then.</summary>
     private Control PartOf(string item, int count, bool known)
     {
         string name = _strip.NameOf(item);
         if (known) return _strip.Named(item, T("research.taken", ("n", count), ("what", name)), Style.Slate100);
-        int have = _read!.Count(item), enough = Understanding.Enough(item);
-        // Enough had is a tick: the count would only climb on past it, telling nothing more.
-        return have >= enough
+        return _read!.Has(item)
             ? _strip.Named(item, T("research.board.partDone", ("what", name)), Bought)
-            : _strip.Named(item, T("research.board.part", ("what", name), ("have", have), ("enough", enough)), _had.Contains(item) ? Style.Slate100 : Style.Slate500);
+            : _strip.Named(item, name, Style.Slate500);
     }
 
     /// <summary>A station: named while one stands; a pale picture while none does, named by the pointer.</summary>

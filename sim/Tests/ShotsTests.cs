@@ -191,7 +191,7 @@ public class ShotsTests
     }
 
     [Fact]
-    public void SoilTakesANailsBlockDamageAndBreaksAtItsStrengthTheNailEndingThereBedrockNeverAndAboardNothing()
+    public void SoilTakesANailsBlockDamageAndBreaksAtItsStrengthTheNailEndingThereBedrockNeverAndAboardATenth()
     {
         var w = Ground();
         int pillar = EndOf(w, At(80, 20, Right));
@@ -210,7 +210,7 @@ public class ShotsTests
 
         var aboard = new Scenario(".....#....\n..........", cells: true).Do(new Crew.Enter(2)).GiveItems(0, (Nailer, 1), ("nail", 1)).Run();
         Assert.Equal(5, EndOf(aboard, At(1, 0, Right)));
-        Assert.Empty(aboard.M.Building.Cracks);
+        Assert.Equal(BlockHit * Spec.Damage.OwnShipTakes / 1000, CrackAt(aboard, 5));
         Assert.NotNull(aboard.M.Grid.WallAt(5));
     }
 

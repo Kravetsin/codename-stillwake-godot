@@ -555,8 +555,8 @@ public class DesyncTests(ITestOutputHelper output)
         // to a burner generator, and a grow capsule and a crusher to one of their own (0057, 0060), each peer carrying chunks,
         // planks, quartz, asteroid ore and seeds. The fuzz crafts and cancels at every station; the first client, in creative
         // mode, keeps the Former's and the assembler's queues going and the furnace, the smelter, the crusher, the capsule and
-        // the generators fed. The capsule starts a hundred ticks of full power from its crop, so the seeds it gives back are
-        // drawn on every peer; the crusher's quartz, one ore in two, is drawn too.
+        // the generators fed. The capsule starts a hundred ticks of full power from its crop, so its fruit comes in on every
+        // peer; the crusher's quartz, one ore in two, is drawn too.
         // The room is aired by the chain under its hull, in space (liquid-oxygen): it leaks some 1.2 units a tick and a
         // vaporizer makes 1, so three, each powered by a panel, their outputs (each one's top right character's right cell)
         // on a gas line up to the vent; a filled tank, its output on its right, on a liquid line to their inputs.
@@ -650,7 +650,7 @@ public class DesyncTests(ITestOutputHelper output)
                 if (crafting.Works(crusher)) crushed++;
                 if (crafting.Works(assembler)) assembled++;
                 if (crafting.Works(capsule)) grew++;
-                if (game.Module<ItemsModule>(first.World).Crate(capsule).Skip(1).Any(s => s is { Item: "biomass" })) harvested++;
+                if (game.Module<ItemsModule>(first.World).Crate(capsule).Skip(1).Any(s => s is { Item: "fruit" })) harvested++;
             });
             return (run, formed > 100 && smelted > 30 && heated > 30 && crushed > 30 && assembled > 100 && grew > 100 && harvested > 0 ? null
                 : $"the Former worked on {formed} ticks, the furnace smelted on {smelted}, the smelter on {heated}, the crusher on {crushed}, the assembler worked on "
@@ -694,13 +694,12 @@ public class DesyncTests(ITestOutputHelper output)
     [Fact]
     public void KeepsEveryClientAndAJoinerInSyncAsTheRuleGrants()
     {
-        // The rule (docs/decisions/2026-11-05-the-board.md): one plate short of an iron wall until a joiner is in, whose welcome holds the count; then
+        // The rule (docs/decisions/2026-11-12-one-to-understand.md): no plate had, so no iron wall, until a joiner is in; then
         // the first client's plates reach it and everyone's walk grants on the same tick, the joiner's too.
         var layout = Layout.Parse(["##########", "#II......#", "#II......#", "#II......#", "##########"]).Doubled() with { Known = [.. Content.Research.StartKnown, "plate"] };
         static string Seeded(string save)
         {
             var root = JsonNode.Parse(save)!;
-            root["slices"]!["knowledge"]!["obtained"] = new JsonArray(new JsonObject { ["item"] = "plate", ["count"] = Sim.Research.Understanding.Enough("plate") - 1 });
             var inventories = new JsonArray();
             for (int id = 0; id < 4; id++)
             {

@@ -221,10 +221,12 @@ public partial class HeroView : Node2D
     private readonly Dictionary<int, JetPlume> _plumes = new();
     /// <summary>Whether the player asked to breathe a canister, from the inventory, R or its edge key, since the last frame.</summary>
     private bool _breathe;
+    /// <summary>A food asked to be eaten from the inventory this frame (food-and-the-body); eaten in the next frame.</summary>
+    private string? _eat;
     /// <summary>Whether the player asked to switch its suit's mode, by V or its edge key, since the last frame.</summary>
     private bool _switchSuit;
     // A canister breathed is heard in the helmet, never muffled; a friend's on World, where it is.
-    private readonly AudioStreamPlayer _breathes = Cues.Player(S.AirFill, S.Helmet);
+    private readonly AudioStreamPlayer _breathes = Cues.Player(S.AirFill, S.Helmet), _eats = Cues.Player(S.Eat, S.Helmet);
     private readonly Heard2D _othersBreathe = Cues.Player2D(S.AirFill, S.World, voices: 2);
     /// <summary>Air coming back round the heroes: a canister's vortex, a breath of room air at the visor (0081).</summary>
     private readonly AirSwirl _air = new();
@@ -255,6 +257,7 @@ public partial class HeroView : Node2D
             (_beamAt, _beamLeftMs) = (Middle(cells[0]), Figure.BeamMs);
         };
         _ui.Breathed += () => _breathe = true;
+        _ui.Ate += food => _eat = food;
         _ui.SuitSwitched += () => _switchSuit = true;
         _mouse = mouse;
         _autopilot = autopilot;
@@ -273,7 +276,7 @@ public partial class HeroView : Node2D
         AddChild(_lines);
         AddChild(_work);
         _rod = NewRod();
-        foreach (var player in new Node[] { _shot, _drum, _ready, _swingSound, _hammerSwing, _spearThrust, _bite, _breathes, _drillChop, _whir, _thrustLoop, _othersShot, _othersBite,
+        foreach (var player in new Node[] { _shot, _drum, _ready, _swingSound, _hammerSwing, _spearThrust, _bite, _breathes, _eats, _drillChop, _whir, _thrustLoop, _othersShot, _othersBite,
                      _othersThump, _othersBreathe, _air, _groundHits, _othersGroundHits, _burn, _othersBurn, _thud, _othersThud, _ownShots, _nailShot, _dryClick, _nailReady, _railShot, _railCharge, _railReady, _chargeThrow,
                      _ownShotEnds, _grinderRun, _grinderBite, _cutterStrike, _cutterRun, _cutterOff })
             AddChild(player);
@@ -530,6 +533,8 @@ public partial class HeroView : Node2D
         for (int burnt = _burns.Due(elapsedMs, Burns(m, known), 1 / S.LavaBurnEveryS); burnt > 0; burnt--) _burn.Play();
         if (_breathe && !passedOut) Breathe(client, m);
         _breathe = false;
+        if (_eat is { } food && !passedOut) Eat(client, m, food);
+        _eat = null;
         if (_switchSuit && Report.SuitModeOf(m.Crew.HeroOf(client.Id)?.SuitOn ?? false, m.Crew.SuitModeProblem(client.Id), client.InFlight) is { } mode)
         {
             client.Send(mode);
@@ -581,6 +586,7 @@ public partial class HeroView : Node2D
         _figure.Scanner = m.Items.Equipped(client.Id, Content.Helmet.Scanner);
         _figure.WearsCape = m.Items.Equipped(client.Id, Content.Cape.Item);
         _figure.FloorRoom = FloorRoom(m.Grid, drawn);
+        _figure.Room = RoomOf(ship, drawn);
         _figure.Footing = FootingOf(m, drawn, _figure.Footing);
         _figure.InWater = ship.Wading(drawn.FeetCell(ship.Width));
         _figure.Ledge = LedgeOf(ship, drawn);

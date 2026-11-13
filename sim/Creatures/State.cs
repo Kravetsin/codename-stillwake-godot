@@ -212,6 +212,11 @@ public sealed class Shot
     /// </summary>
     [JsonInclude, JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] public int? Carry { get; internal set; }
     /// <summary>
+    /// A homing shot's fine heading (catcher-missile, <see cref="Rays.FineTurn"/>): what it turns and its speed is set along each tick,
+    /// as turning its speeds in whole thousandths would shrink them; null for a shot that does not home.
+    /// </summary>
+    [JsonInclude, JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] public int? Heading { get; internal set; }
+    /// <summary>
     /// What a shot that pierces everything hit and flew on through that still stands, in the order hit (2026-10-27-the-railgun): never
     /// hit again, a body spanning cells and ticks. Pierced counts these and what broke.
     /// </summary>
@@ -225,17 +230,18 @@ public sealed class Shot
 }
 
 /// <summary>
-/// A shot that ended this tick: its id, its projectile, its gun (none for a creature's), the cell it met or last flew in, and
-/// whether it met something there or ran out of reach or grid; the cell its burst spread from (blasting-charge), -1 for none.
+/// A shot that ended this tick: its id, who fired it, its projectile, its gun (none for a creature's), the cell it met or last flew
+/// in, and whether it met something there or ran out of reach or grid; the cell its burst spread from (blasting-charge), -1 for none.
 /// </summary>
-public readonly record struct ShotEnd(int Id, string Projectile, string? Gun, int Cell, bool Met, int Burst = -1);
+public readonly record struct ShotEnd(int Id, Ref By, string Projectile, string? Gun, int Cell, bool Met, int Burst = -1);
 
-/// <summary>What a shot hits in a cell: what is solid there, a creature, or a wreck. Saved by number in what a shot passed, so never renumber one.</summary>
+/// <summary>What a shot hits in a cell: what is solid there, a creature, a wreck, or a machine by its top-left (hit-targets). Saved by number in what a shot passed, so never renumber one.</summary>
 public enum ShotTarget
 {
     Solid = 0,
     Creature = 1,
     Wreck = 2,
+    Machine = 3,
 }
 
 /// <summary>

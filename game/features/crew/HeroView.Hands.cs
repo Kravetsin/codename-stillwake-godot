@@ -62,7 +62,7 @@ public partial class HeroView
         if (square is { } sq) TraceSquare(m, (sq.X, sq.Y, side), targets!);
         else TraceAim(m, shown, prompt != null && aim is { Piece: null } ? aim : null, prompt?.Problem != null);
         _prompt.Show(prompt);
-        _prompt.Place(_ui.MenuTop);
+        _prompt.Place(_ui.MenuTop is float menu && _ui.EdgeTop is float keys ? Mathf.Min(menu, keys) : _ui.MenuTop ?? _ui.EdgeTop);
         _ui.AimedPiece.Set(prompt != null && aim?.Piece is int piece ? (piece, prompt.Problem != null) : null);
 
         // The press is taken every frame, so one made out of reach is spent rather than kept. The left
@@ -90,6 +90,8 @@ public partial class HeroView
         // A right click with a canister in hand breathes it (0047); with the power driver, switches its square and one cell.
         bool rightClicked = _mouse.Buttons.TakeRightClick();
         if (rightClicked && acts && _ui.Wielded.Get() == Content.Crew.Canister) Breathe(client, m);
+        // A food in hand is eaten by a right click (food-and-the-body).
+        if (rightClicked && acts && _ui.Wielded.Get() is { } wielded && Content.Foods.Of(wielded) != null) Eat(client, m, wielded);
         if (rightClicked && acts && driver is { Area: > 1 }) _ui.DriverSquare.Set(!_ui.DriverSquare.Get());
         // The axe: a swing begun toward the pointer plays through and, as it strikes, its fan hits what it meets, let go or not;
         // put away, it stops unstruck. A wreck's chop is heard where it takes the hit (DebrisView).
@@ -121,6 +123,8 @@ public partial class HeroView
             foreach (var strike in sent.Strikes) client.Send(strike);
             // The ground it bites first heard and seen there, the ship's hull too, which takes no harm: a clang and sparks.
             if (hit.Ground?.Cell is int bitten) Struck(_groundHits, m, bitten, struck!, _current, client.Id);
+            // Landed or not, the air it drives on stirs what lies near the blade (air-gusts).
+            StrokeGust(m, struck!, hit);
             // A blade that bites is drawn stopped on contact a moment (0075).
             if (hit.Contact != null || sent.Strikes.Count > 0) _figure.Bit();
         }
@@ -399,14 +403,14 @@ public partial class HeroView
         var at = Impacts.On(m.Grid, cell, (double)middle.X / Hero.Unit, (double)middle.Y / Hero.Unit);
         var point = new Vector2((float)(at.X * Rig.Cell), (float)(at.Y * Rig.Cell));
         // A pile takes the weapon's damage, as a wreck does, but a tool dealing no block damage, the cutter, never hits one (pile-hit-points).
-        bool pile = Shared.Piles.At(m.Grid, cell) != null;
+        bool pile = m.Building.TargetAt(cell) is { Wreck: true };
         if (pile && m.Items.BlockDamage(peer, tool) == 0) return;
         int damage = pile ? m.Items.Damage(peer, tool) : m.Items.BlockDamage(peer, tool);
         if (GroundSounds.HitAt(m.Grid, m.Building, cell, damage, tool) is { } hit)
             voices.Play(hit, point, offsetDb: GroundSounds.HitDbOf(tool));
         if (Impacts.At(m.Grid, m.Building, cell) is not { } impact) return;
         double? floor = Impacts.FloorUnder(m.Grid, at) * Rig.Cell;
-        double share = Impacts.ShareAt(m.Grid, m.Building, cell, tool, damage);
+        double share = Impacts.ShareAt(m.Building, cell, tool, damage, peer);
         // A running tool is seen at work all along (ToolWork): only the hit that breaks the wall or fells the growth throws.
         if (HeldLook.IsDrill(tool) && share < 1) return;
         Stages.Of(Layers.Effects).Hits.Throw(HitLooks.Of[impact], point.X, point.Y, at.Nx, at.Ny, share, floor);

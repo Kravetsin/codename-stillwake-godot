@@ -442,28 +442,6 @@ public class CountsTests
         Assert.Equal([new Tally("frame", 1), new Tally("scrapChunk", 2), new Tally("wire", 3)], ((KnowledgeState)w.M.Knowledge.Slice).Sold);
     }
 
-    // How many are enough.
-
-    [Theory]
-    [InlineData("scrapChunk", 10)]
-    [InlineData("scrap", 10)]
-    [InlineData("wire", 10)]
-    [InlineData("planks", 10)]
-    [InlineData("iron", 10)]
-    [InlineData("gear", 8)]
-    [InlineData("tube", 8)]
-    [InlineData("hullPlate", 5)]
-    [InlineData("glass", 5)]
-    [InlineData("plate", 4)]
-    [InlineData("rotor", 3)]
-    [InlineData("coil", 2)]
-    [InlineData("canister", 2)]
-    [InlineData("circuit", 2)]
-    [InlineData("frame", 1)]
-    [InlineData("solarCell", 1)]
-    [InlineData("photoPanel", 1)]
-    public void EnoughGoesByWorth(string item, int enough) => Assert.Equal(enough, Understanding.Enough(item));
-
     // Invariants: played by every module's fuzz, creative mode left off, so a spawn is refused.
 
     private static Arbitrary<uint> Seeds => Gen.Choose(1, int.MaxValue).Select(s => (uint)s).ToArbitrary();

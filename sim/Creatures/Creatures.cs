@@ -212,7 +212,7 @@ public sealed partial class CreaturesModule : Module<CreaturesState>
         c.Damage += damage;
         if (dies)
         {
-            Kill(c, spec, hit.Away);
+            Kill(c, spec, hit.Away, hit.Peer);
             return true;
         }
         // A blow never slows one already going the knock's way: a run of the drill's quick hits cannot hold it.
@@ -240,16 +240,19 @@ public sealed partial class CreaturesModule : Module<CreaturesState>
 
     /// <summary>
     /// <paramref name="c"/> dies, giving what it gives: struck down, sprayed <paramref name="away"/> from the striker, or gone with
-    /// the wreck it clung to, either way (0).
+    /// the wreck it clung to, either way (0). What it gives fills the wanted meter of <paramref name="by"/>, the hero that struck it
+    /// down (catcher-loot).
     /// </summary>
-    internal void Kill(Creature c, Spec.Species spec, int away)
+    internal void Kill(Creature c, Spec.Species spec, int away, int by = FloorStack.Nobody)
     {
         c.Dead = true;
         if (spec.Lifetime == Spec.Lifetime.Posted) _building.FellPost(c.Recall(PostKey));
         // A catcher killed ends its hunt: its quarry's meter fills again from nothing.
         if (spec.Lifetime == Spec.Lifetime.Hunter && !HuntDrive.Leaving(c) && HuntDrive.QuarryOf(c) is int quarry) _crewOps.CallOff(quarry);
         // Out of its top row, so what it gives flies out of it (2026-10-29-kill-feel); anyone may sweep it up at once.
-        _items.Spray(Loots.Roll(spec.Yields, Random), TopCell(c, spec), away);
+        var yields = Loots.Roll(spec.Yields, Random);
+        _items.Spray(yields, TopCell(c, spec), away);
+        _crewOps.Loot(by, yields);
         // What it was paid for its hero goes to the ship, whoever struck it (tracker-catchers).
         if (spec.Purse is { } purse) _knowledge.Earn(purse.Min + (int)Random.Below((uint)(purse.Max - purse.Min + 1)));
     }

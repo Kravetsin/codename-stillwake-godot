@@ -38,9 +38,9 @@ A living document: what is decided about the game and what is still open. Techni
   ([0048](decisions/0048-a-big-world-a-build-zone-inside-it.md)).
 - **Room is bought:** a hero starts with the hotbar and two rows, one belt slot, and two slots in a trade station. The black
   market's rings sell more for credits, a slot at a time, for the whole crew ([upgrades](decisions/2026-10-30-room-upgrades.md)).
-- **Things are learned by having them:** a blueprint or craft is understood once enough of each of its parts has been caught, made,
-  taken apart, dug, felled or looted, few of a rare part and up to ten of a common one, and a craft once a machine making it stands
-  too; known stays known. The wreck knows nothing from its start: the first walls at ten chunks. The tablet holds a board that writes
+- **Things are learned by having them:** a blueprint or craft is understood once one of each of its parts has been caught, made,
+  taken apart, dug, felled or looted, and a craft once a machine making it stands
+  too; known stays known. The wreck knows nothing from its start: the first walls at the first chunk. The tablet holds a board that writes
   itself: a note for each thing found, threads to pale shapes of what is closest to done, each saying what it lacks; a note picked
   shows what it takes, where it is made and what it goes into ([the-board](decisions/2026-11-05-the-board.md)).
 - **Salvage is sold:** a trade station, of plates, wire and a found circuit so it comes after the first benches
@@ -71,8 +71,14 @@ A living document: what is decided about the game and what is still open. Techni
   the room can always get it back ([the-scoop](decisions/2026-10-31-the-scoop.md)).
 - **Suits are worn** and taken off, a helmet and a body mixed as the player likes: the helmet holds the air, the body
   keeps the cold out; the basic ones free at the pod, more to come ([suits-are-worn](decisions/2026-10-27-suits-are-worn.md)). The heavy
-  helmet holds 100 to the basic 45, sold on the black market by the jetpack's time; a canister upgrade there makes
-  a canister breathed give 40 instead of 20 ([heavy-helmet](decisions/2026-11-03-the-heavy-helmet.md)).
+  helmet holds 100 to the basic 45, sold on the black market by the jetpack's time ([heavy-helmet](decisions/2026-11-03-the-heavy-helmet.md)).
+  A canister breathed gives 20, then not another for 25 s; more air a canister is food's, not gear's
+  ([food-and-the-body](decisions/2026-11-12-food-and-the-body.md)). A hero has three meal slots: each food lasts
+  minutes and changes the body's rates (calm: a breath costs less; deep: a canister gives more); the pod prints a
+  hero fed with paste, and with all three empty it is hungry and running costs more air. Rations are found in supply
+  pods, rations and canned meat in drifting fridges and in derelicts' vending machines; a seed may be eaten as a snack.
+  The farm grows fruit and glowberries; the galley, a range needing no power, cooks them with rations, meat, fat and
+  water into five dishes, each stronger than what went in.
   The regen suit, a body sold there with the belt's third slot, turns belt charge into air while its mode is on (V): a
   unit a breath at most, so it holds the air at rest and only slows its fall in flight ([regen-suit](decisions/2026-11-03-the-regen-suit.md)).
 - **Parts are made by machines only,** as in Subnautica and RimWorld: wire of scrap; plates, gears and
@@ -94,8 +100,8 @@ A living document: what is decided about the game and what is still open. Techni
   soil clods, earth torn from some ship's farm drifting by now and then with a sprout, broken into one to three
   seeds and a little soil; soil is pressed at the Former of gravel and planks; a grow capsule, a glass capsule on a base built of soil, glass, a frame,
   a circuit and wire, grows a planted seed under its pink lamp on power in eight minutes, the plant rising through
-  four pictures, into 4 biomass and none, one or two seeds, so the farm slowly eats its seeds and salvage refills
-  them; a planet's spores grow the same way into 3 biomass and 1.1 spores on average, a farm that keeps itself.
+  four pictures, into 4 fruit, eaten raw or crushed into biomass, either way its seed back one time in 5, so the farm
+  slowly eats its seeds and salvage refills them; a planet's spores grow the same way into 3 glowberries, 1.1 spores back on average, a farm that keeps itself.
   Biomass ferments into biofuel at the fermenter, a powered vat of the capsule's parts and the only way to biofuel: the
   fuel the drop pod burns going down and the engine will burn on the first jump
   ([0060](decisions/0060-the-farm-a-grow-capsule-is-a-fed-station.md), [the-power-chain](decisions/2026-11-06-the-power-chain.md)).

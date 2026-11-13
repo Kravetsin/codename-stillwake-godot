@@ -35,11 +35,14 @@ public static class BenchLook
     /// </summary>
     public const int Overhang = 16, Hang = 2;
 
-    /// <summary>Where a tool of <paramref name="look"/> has its picture's top-left on the bench: its clamp on the jaws', whole pixels.</summary>
+    /// <summary>
+    /// Where a tool of <paramref name="look"/> has its picture's top-left on the bench, drawn at its <see cref="HeldLook.Size"/>:
+    /// its clamp on the jaws', whole pixels.
+    /// </summary>
     public static (int X, int Y) ToolAt(HeldLook look)
     {
         var clamp = look.Clamp ?? throw new InvalidOperationException($"{look.Picture} declares no clamp");
-        return ((int)Math.Round(Clamp.X - clamp.X), (int)Math.Round(Clamp.Y - clamp.Y));
+        return ((int)Math.Round(Clamp.X - clamp.X * look.Size), (int)Math.Round(Clamp.Y - clamp.Y * look.Size));
     }
 
     /// <summary>Whether a tool picture <paramref name="width"/> by <paramref name="height"/>, its top-left at <paramref name="at"/>, lies where a clamped tool may.</summary>

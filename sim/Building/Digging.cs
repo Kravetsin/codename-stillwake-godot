@@ -11,9 +11,8 @@ namespace Stillwake.Sim.Building;
 /// drill's pace. Each ray strikes the first wall it meets, a closed door or hatch, a floor, and stops there; it passes through
 /// the plants, ladders and open doors it crosses, striking them. What stands takes the weapon's block damage
 /// (<c>BlockDamage</c>) once, however many rays meet it: a wall at its material's strength, a built piece at its build's, and
-/// gives the sender what it is made of. Only where the surface's tools break things (<c>ToolsBreak</c>), and aboard inside a
-/// vessel's box (generated-vessels): elsewhere on the ship the plan takes things apart, and only a machine of some strength, a
-/// pile, is struck, anywhere.
+/// gives the sender what it is made of. Anywhere: the sender's own ship takes a tenth (hit-targets), a pile in full; a ray
+/// passes a machine, striking it.
 /// </summary>
 public sealed record Hew(string Tool, int X, int Y, int Heading) : Command;
 
@@ -73,48 +72,39 @@ public sealed partial class BuildingModule
     /// <summary>
     /// Whether a ray stops at <paramref name="cell"/>: at a wall, one that breaks added to <paramref name="cells"/>; at a built
     /// piece that stops a body, added by its first cell; through a piece that does not (a ladder, an open door) and a plant in an
-    /// open cell, each added once; at a pile, added by its top-left cell. Where the surface's tools break nothing, a ray only stops.
+    /// open cell, each added once; at a pile, added by its top-left cell; through a machine, added by its top-left cell. What it strikes is <see cref="TargetAt"/>'s; whether it stops, the wall's or the structure's (<c>Blocks</c>).
     /// </summary>
     private bool Stops(int cell, List<int> cells, List<Plant> plants)
     {
-        if (PileAt(cell) is { } pile)
+        switch (TargetAt(cell))
         {
-            cells.Add(pile.Cell);
-            return true;
+            case { Wreck: true } pile:
+                cells.Add(pile.Key);
+                return true;
+            case { Kind: TargetKind.Wall } wall:
+                if (wall.Strength != null) cells.Add(cell);
+                return true;
+            case { Kind: TargetKind.Piece } piece:
+                cells.Add(piece.Key);
+                return _grid.Blocks(cell);
+            case { Kind: TargetKind.Machine, Strength: not null } machine:
+                cells.Add(machine.Key);
+                return false;
+            case { Kind: TargetKind.Plant } when PlantAt(cell) is { } plant && !plants.Contains(plant):
+                plants.Add(plant);
+                return false;
         }
-        // Aboard, tools break only a vessel's things (generated-vessels): a ray elsewhere only stops, the ship untouched.
-        if (Aboard(cell)) return _grid.WallAt(cell) != null || _grid.Blocks(cell);
-        if (_grid.WallAt(cell) is { } wall)
-        {
-            if (wall.Strength != Material.Unbreakable) cells.Add(cell);
-            return true;
-        }
-        if (PieceAt(cell) is { } piece)
-        {
-            cells.Add(piece.Head);
-            return _grid.Blocks(cell);
-        }
-        if (_grid.Blocks(cell)) return true;
-        if (_grid.StructureAt(cell) == Structure.Empty && PlantAt(cell) is { } plant && !plants.Contains(plant)) plants.Add(plant);
-        return false;
+        return _grid.Blocks(cell);
     }
 
     /// <summary>The machine tools break at <paramref name="cell"/>, a pile (the-scoop); none for any other.</summary>
-    private Machine? PileAt(int cell) => _grid.MachineAt(cell) is { } machine && Machines.Get(machine.Kind).Hp != null ? machine : null;
+    private Machine? PileAt(int cell) => TargetAt(cell) is { Wreck: true } ? _grid.MachineAt(cell) : null;
 
     /// <summary>Whether <paramref name="cell"/> is in the box a vessel was written into (generated-vessels).</summary>
     private bool InVessel(int cell) => _grid.Reserved is { } box && box.Contains(cell % _grid.Width, cell / _grid.Width);
 
     /// <summary>Whether <paramref name="cell"/> is of the player's own ship: where the surface's tools break nothing, out of a vessel's box.</summary>
     private bool Aboard(int cell) => !Rules.ToolsBreak && !InVessel(cell);
-
-    /// <summary>The built piece at <paramref name="cell"/>, a floor, ladder, door or hatch: its first cell, kept by, and its build; none for a wall or nothing.</summary>
-    private (int Head, Build Build)? PieceAt(int cell)
-    {
-        int structure = _grid.StructureAt(cell);
-        if (structure == Structure.Empty || _grid.WallAt(cell) != null || Structures.Of(structure).Build is not { } build) return null;
-        return (_grid.PieceOf(cell)[0], Builds.Get(build));
-    }
 
     /// <summary>
     /// Why peer <paramref name="peer"/>'s hit of <paramref name="tool"/> (<see cref="Hew"/>) would be refused: what the client
@@ -128,12 +118,11 @@ public sealed partial class BuildingModule
         HewProblemOf(peer, Listed(cells), tool, running: false);
 
     /// <summary>
-    /// For a fan that strikes nothing, <c>building.notHere</c> where the surface's tools break nothing (the ship: the plan takes
-    /// things apart), else <c>building.nothingToDig</c> (bedrock and lava only stop it); then what the weapon says
+    /// For a fan that strikes nothing, <c>building.nothingToDig</c> (bedrock, lava and the lifepod only stop it); then what the weapon says
     /// (<see cref="IItemsQueries.WeaponProblem"/>): flat, or, as the command applies, not running.
     /// </summary>
     private string? HewProblemOf(int peer, Hewn hewn, string tool, bool running) =>
-        hewn.IsEmpty ? (Rules.ToolsBreak ? "building.nothingToDig" : "building.notHere") : _items.WeaponProblem(peer, tool, running);
+        hewn.IsEmpty ? "building.nothingToDig" : _items.WeaponProblem(peer, tool, running);
 
     /// <summary>
     /// The weapon's block damage added once to each wall, piece and plant the fan strikes, its damage to each pile, walls and pieces
@@ -162,20 +151,18 @@ public sealed partial class BuildingModule
         var carries = new List<(int Key, int Carry)>();
         foreach (int cell in hewn.Cells)
         {
-            int? left;
-            if (PileAt(cell) is { } pile)
+            if (TargetAt(cell) is { Wreck: true })
             {
-                HitPile(from, pile, _items.Damage(from, tool));
+                HitPile(from, _grid.MachineAt(cell)!, _items.Damage(from, tool));
                 continue;
             }
-            else if (_grid.WallAt(cell) != null) left = HitWall(from, cell, hit);
-            else left = HitPiece(from, cell, hit);
+            int? left = Strike(from, from, cell, hit);
             if (left is int l && origin is { } o && l * share / 100 is var carry and > 0 && Behind(o, cell) is int key)
                 carries.Add((key, carry));
         }
         // A plant its wall took with it is gone; one of no strength falls to any hit.
         foreach (var plant in hewn.Plants)
-            if (_plantOwn.GetValueOrDefault(plant.Cell) == plant && Cracked(plant.Cell, Kinds[plant.Kind].Strength, hit) != null) Fell(plant, from);
+            if (_plantOwn.GetValueOrDefault(plant.Cell) == plant && Cracked(plant.Cell, Kinds[plant.Kind].Strength, hit, peer: from) != null) Fell(plant, from);
         // What the fan struck took its hit already; what it broke is gone.
         for (int i = carries.Count - 1; i >= 0; i--)
             if (Carried(carries[i].Key) is int key && !hewn.Cells.Contains(key)) carries[i] = (key, carries[i].Carry);
@@ -184,8 +171,7 @@ public sealed partial class BuildingModule
         for (int i = 0; i < carries.Count; i++)
         {
             if (i > 0 && carries[i].Key == carries[i - 1].Key) continue;
-            if (_grid.WallAt(carries[i].Key) != null) HitWall(from, carries[i].Key, carries[i].Carry);
-            else HitPiece(from, carries[i].Key, carries[i].Carry);
+            Strike(from, from, carries[i].Key, carries[i].Carry);
         }
     }
 
@@ -204,79 +190,109 @@ public sealed partial class BuildingModule
     }
 
     /// <summary>
-    /// What a carry strikes at <paramref name="cell"/>: a wall that breaks, by its cell, or a built piece, by its first cell,
-    /// where the surface's tools break things in its known zone, or in a vessel's box; never a pile, a plant or the fog.
+    /// What a carry strikes at <paramref name="cell"/>: a wall, built piece or machine that breaks, by its key (<see cref="Struckable"/>);
+    /// never a pile, a plant or the fog.
     /// </summary>
-    private int? Carried(int cell)
+    private int? Carried(int cell) => Struckable(cell) is { } t ? t.Key : null;
+
+    /// <summary>
+    /// What a hit lands on at <paramref name="cell"/> to crack or break: a wall, built piece or machine with a strength, not a pile,
+    /// in the grid's known zone or a vessel's box; none in a planet's fog.
+    /// </summary>
+    private HitTarget? Struckable(int cell) =>
+        (_grid.Zone.Contains(cell % _grid.Width, cell / _grid.Width) || InVessel(cell))
+        && TargetAt(cell) is { Kind: TargetKind.Wall or TargetKind.Piece or TargetKind.Machine, Strength: not null, Wreck: false } t ? t : null;
+
+    /// <summary>
+    /// A hit of <paramref name="hit"/> by <paramref name="peer"/> on what <see cref="Struckable"/> finds at <paramref name="cell"/>,
+    /// at a tenth on their own ship (<see cref="OwnShip"/>): what breaks given to <paramref name="to"/>, or anyone's for none. What
+    /// was left over once it broke, in the hitter's damage; null when it held or nothing is there.
+    /// </summary>
+    private int? Strike(int? to, int peer, int cell, int hit) => Struckable(cell) switch
     {
-        bool open = Rules.ToolsBreak ? _grid.Zone.Contains(cell % _grid.Width, cell / _grid.Width) : InVessel(cell);
-        if (!open || PileAt(cell) != null) return null;
-        if (_grid.WallAt(cell) is { } wall) return wall.Strength != Material.Unbreakable ? cell : null;
-        return PieceAt(cell)?.Head;
-    }
+        { Kind: TargetKind.Wall } => HitWall(to, peer, cell, hit),
+        { Kind: TargetKind.Piece } t => HitPiece(to, peer, t.Key, hit),
+        { Kind: TargetKind.Machine } t => HitMachine(to, peer, t.Key, hit),
+        _ => null,
+    };
 
     /// <summary>
     /// A hit of <paramref name="damage"/> on what stands solid in <paramref name="cell"/> alone, by peer <paramref name="peer"/>'s
-    /// shot (shots-are-the-sims): a wall that breaks, or a built piece, a floor too, as a <see cref="Hew"/>'s ray strikes it; what
-    /// it gives to the peer, or, its hero not on this surface (gone aboard, left, or none), falling there, anyone's. Nothing where
-    /// the surface's tools break nothing, nor on what never breaks (bedrock, lava). A shot stops only where it is solid, so never
-    /// here for a ladder, an open door, a back wall or a plant. What was left over once it broke; null when it held (unified-damage).
+    /// shot (shots-are-the-sims): a wall that breaks, a built piece, a floor too, or a machine, as a <see cref="Hew"/>'s ray strikes it,
+    /// a tenth on the shooter's own ship; what it gives to the peer, or, its hero not on this surface (gone aboard, left, or none),
+    /// falling there, anyone's. Nothing on what never breaks (bedrock, lava, the lifepod) nor in the fog. What was left over once it
+    /// broke; null when it held (unified-damage).
     /// </summary>
     public int? Hit(int peer, int cell, int damage)
     {
         if (damage <= 0 || !ShotTakes(cell)) return null;
         int? here = _crew.HeroOf(peer) != null ? peer : null;
-        return _grid.WallAt(cell) != null ? HitWall(here, cell, damage) : HitPiece(here, PieceAt(cell)!.Value.Head, damage);
+        return Strike(here, peer, cell, damage);
     }
 
     /// <inheritdoc/>
     // Nothing breaks in a planet's fog, where a shot already stops as at a wall.
-    public bool ShotTakes(int cell) =>
-        Rules.ToolsBreak && _grid.Zone.Contains(cell % _grid.Width, cell / _grid.Width)
-        && (_grid.WallAt(cell) is { } wall ? wall.Strength != Material.Unbreakable : PieceAt(cell) != null);
+    public bool ShotTakes(int cell) => Struckable(cell) != null;
 
     /// <inheritdoc/>
-    public int ShotKey(int cell) => _grid.WallAt(cell) == null && PieceAt(cell) is { } piece ? piece.Head : cell;
+    public int ShotKey(int cell) => TargetAt(cell) is { Kind: TargetKind.Piece } piece ? piece.Key : cell;
 
     /// <inheritdoc/>
-    public int? Surplus(int cell, int damage)
+    public int? Surplus(int peer, int cell, int damage)
     {
-        if (damage <= 0 || !ShotTakes(cell)) return null;
-        int key = ShotKey(cell), strength = _grid.WallAt(cell) is { } wall ? wall.Strength : PieceAt(key)!.Value.Build.Strength;
-        int at = CrackIndex(key), taken = (at >= 0 ? State.Cracks[at].Damage : 0) + damage;
-        return taken >= strength ? taken - strength : null;
+        if (damage <= 0 || Struckable(cell) is not { Strength: int strength } t) return null;
+        int cost = CostOf(peer, t.Key, Remaining(t.Key, strength));
+        return damage >= cost ? damage - cost : null;
     }
 
     /// <summary>Gives <paramref name="cost"/> to peer <paramref name="peer"/>, what does not fit falling at <paramref name="cell"/>; for none, all of it there, anyone's.</summary>
     private void Yield(int? peer, IReadOnlyList<(string Item, int Count)> cost, int cell)
     {
-        if (peer is int p) _itemsOps.GiveOrDrop(p, cost, cell);
+        if (peer is int p)
+        {
+            _itemsOps.GiveOrDrop(p, cost, cell);
+            _crewOps.Loot(p, cost);
+        }
         else _itemsOps.DropAt(FloorStack.Nobody, cost, cell);
     }
 
-    /// <summary>A hit of <paramref name="hit"/> on <paramref name="cell"/>'s wall: broken at its strength, for <paramref name="peer"/>: what was left over, null when it held.</summary>
-    private int? HitWall(int? peer, int cell, int hit)
+    /// <summary>A hit of <paramref name="hit"/> by <paramref name="peer"/> on <paramref name="cell"/>'s wall: broken at its strength, for <paramref name="to"/>: what was left over, null when it held.</summary>
+    private int? HitWall(int? to, int peer, int cell, int hit)
     {
         var wall = _grid.WallAt(cell)!;
-        if (Cracked(cell, wall.Strength, hit) is not int surplus) return null;
+        if (Cracked(cell, wall.Strength, hit, peer: peer) is not int surplus) return null;
         _gridOps.Clear(cell, "structure");
-        Yield(peer, wall.Cost, cell);
+        Yield(to, wall.Cost, cell);
         // What the wall held goes to its digger now; the sweep would fell it the same tick, giving nothing.
         foreach (var plant in HeldBy(cell))
-            if (_plantOwn.GetValueOrDefault(plant.Cell) == plant) Fell(plant, peer);
+            if (_plantOwn.GetValueOrDefault(plant.Cell) == plant) Fell(plant, to);
         return surplus;
     }
 
     /// <summary>
     /// A hit of <paramref name="hit"/> on the built piece kept by <paramref name="head"/>: at its build's strength it comes apart
-    /// whole, as a mark takes it (0104), and gives <paramref name="peer"/> what it cost: what was left over, null when it held.
+    /// whole, as a mark takes it (0104), and gives <paramref name="to"/> what it cost: what was left over, null when it held.
     /// </summary>
-    private int? HitPiece(int? peer, int head, int hit)
+    private int? HitPiece(int? to, int peer, int head, int hit)
     {
-        if (PieceAt(head) is not { } piece || Cracked(head, piece.Build.Strength, hit) is not int surplus) return null;
+        if (TargetAt(head) is not { Kind: TargetKind.Piece, Strength: int strength } || Cracked(head, strength, hit, peer: peer) is not int surplus) return null;
         var cost = Costs.BuiltAt(_grid, head, "structure")!.Cost;
         foreach (int cell in _grid.PieceOf(head)) _gridOps.Clear(cell, "structure");
-        Yield(peer, cost, head);
+        Yield(to, cost, head);
+        return surplus;
+    }
+
+    /// <summary>
+    /// A hit of <paramref name="hit"/> by <paramref name="peer"/> on the machine kept by <paramref name="head"/>, its top-left: at
+    /// its strength it breaks as to a burst (<see cref="Unbuild"/>), its cost given to <paramref name="to"/>: what was left over,
+    /// null when it held.
+    /// </summary>
+    private int? HitMachine(int? to, int peer, int head, int hit)
+    {
+        if (TargetAt(head) is not { Kind: TargetKind.Machine, Strength: int strength } || Cracked(head, strength, hit, peer: peer) is not int surplus) return null;
+        var machine = _grid.MachineAt(head)!;
+        if (Machines.Is(machine.Kind, MachineTrait.Catches)) FreeNet(machine);
+        else Yield(to, Unbuild(head), head);
         return surplus;
     }
 
@@ -287,7 +303,7 @@ public sealed partial class BuildingModule
     private void HitPile(int peer, Machine pile, int hit)
     {
         var spec = Machines.Get(pile.Kind);
-        if (Cracked(pile.Cell, spec.Hp!.Value, hit) == null) return;
+        if (Cracked(pile.Cell, spec.Strength!.Value, hit) == null) return;
         _gridOps.Clear(pile.Cell, "machine");
         Yield(peer, spec.Cost, pile.Cell);
     }
@@ -319,18 +335,21 @@ public sealed partial class BuildingModule
 
     /// <summary>
     /// Adds a hit's <paramref name="hit"/> damage, its sender's weapon's on blocks (<see cref="IItemsQueries.BlockDamage"/>), to
-    /// <paramref name="cell"/>'s crack: once it reaches <paramref name="strength"/>, its crack dropped, what went over it (0 for
-    /// none); else null, the crack kept deeper, its last hit now.
+    /// <paramref name="cell"/>'s crack, by <paramref name="peer"/>, a tenth on their own ship (hit-targets): once it reaches
+    /// <paramref name="strength"/>, its crack dropped, what went over it (0 for none); else null, the crack kept deeper, its last hit now.
     /// </summary>
-    private int? Cracked(int cell, int strength, int hit, bool back = false)
+    private int? Cracked(int cell, int strength, int hit, bool back = false, int peer = FloorStack.Nobody)
     {
-        int at = CrackIndex(cell, back);
-        int damage = (at >= 0 ? State.Cracks[at].Damage : 0) + hit;
-        if (damage >= strength)
+        int at = CrackIndex(cell, back), had = at >= 0 ? State.Cracks[at].Damage : 0;
+        int cost = CostOf(peer, cell, strength - had);
+        if (hit >= cost)
         {
             if (at >= 0) State.Cracks.RemoveAt(at);
-            return damage - strength;
+            return hit - cost;
         }
+        int damage = had + CrackOf(peer, cell, hit);
+        // A tenth of a carry's few rounds to nothing: no crack begun.
+        if (at < 0 && damage == 0) return null;
         if (at >= 0) State.Cracks[at] = new Crack(cell, damage, State.Clock, back);
         else State.Cracks.Insert(~at, new Crack(cell, damage, State.Clock, back));
         return null;
@@ -374,8 +393,6 @@ public sealed partial class BuildingModule
     /// left the back walls, healing out of old saves).
     /// </summary>
     private bool Crackable(int cell, bool back) => back ? _grid.BackAt(cell) is { } behind && behind.Strength != Material.Unbreakable
-        : _grid.WallAt(cell) is { } wall ? wall.Strength != Material.Unbreakable
-        : PieceAt(cell) is { } piece ? piece.Head == cell
-        : _grid.MachineAt(cell) is { } machine ? machine.Cell == cell && Machines.Get(machine.Kind).HitPoints != null
+        : TargetAt(cell) is { Kind: not TargetKind.Plant } t ? t.Key == cell && t.Strength != null
         : _plantOwn.TryGetValue(cell, out var plant) && Kinds[plant.Kind].Strength > 0;
 }
