@@ -2,6 +2,7 @@ using System;
 using Godot;
 using Stillwake.Game.Render;
 using Stillwake.Game.Shared;
+using static Stillwake.Game.I18n.En;
 using CrewSpec = Stillwake.Content.Crew;
 using Look = Stillwake.Game.WristLook;
 using S = Stillwake.Game.Sound;
@@ -9,9 +10,9 @@ using S = Stillwake.Game.Sound;
 namespace Stillwake.Game.Features.Crew;
 
 /// <summary>
-/// The suit without a word (SuitGauge.tsx, 0081): a segmented gauge under the cuff, the oxygen sign for its label, red and
-/// pulsing while the suit runs low as the beep sounds (<see cref="Danger.Low"/>). A suit
-/// running low out of room air fogs the visor, its last lamp dimming with each breath (<see cref="VisorFog"/>; the last
+/// The suit without a word (hud-vitals): the air row of the vitals at the screen's bottom-left, the oxygen sign and a piece of
+/// light as long as the suit holds, its source named on hover; red and pulsing while the suit runs low as the beep sounds
+/// (<see cref="Danger.Low"/>). A suit running low out of room air fogs the visor, its last units dimming with each breath (<see cref="VisorFog"/>; the last
 /// breath and passing out darken it in <see cref="TunnelView"/>), and beeps softly every <see cref="S.AlarmEveryS"/>,
 /// silent once passed out; out of danger the fog evaporates. Reads the sim four times a second, never every frame; the
 /// gauge moves smoothly between reads (<see cref="GaugeMotion"/>). Air coming back is felt (<see cref="AirCues"/>): a
@@ -24,10 +25,12 @@ public partial class SuitGauge : CanvasLayer
 
     private readonly Func<(int Air, int Capacity, SuitDanger Danger, bool InAir)> _read;
     private static readonly Texture2D RedSign = Signs.Of(Sign.Oxygen, bad: true);
-    private readonly WristGauge _gauge = new(
-        // The oxygen sign the rooms' air is read by (tip-signs), as tall as the energy tab's bolt beside it; red while low.
-        Signs.Of(Sign.Oxygen), new Rect2(4, 4, 22, 22), Look.SuitMeterLeft, Look.SuitCells, AsciiArt.Colour(Look.Suit), RedSign);
+    // The oxygen sign the rooms' air is read by (tip-signs); red while low.
+    private readonly AirRow _gauge = new(Signs.Of(Sign.Oxygen), RedSign);
     private readonly Func<int> _canisterIn;
+    private readonly Func<string?> _helmet;
+    private readonly Ui _ui;
+    private readonly TipSpots _tips;
     private readonly CanisterCooling _cooling = new();
     private readonly FlatBlink _refused = new();
     private readonly VisorFog _fog = new();
@@ -42,21 +45,17 @@ public partial class SuitGauge : CanvasLayer
 
     /// <param name="read">This player's suit and its danger, as <see cref="Danger.Read"/> gives them.</param>
     /// <param name="canisterIn">This player's hero's ticks left before another canister, <c>CanisterIn</c>; none without a hero.</param>
-    /// <param name="ui">The slots' size, which the hotbar's size and so the gauge's place and width follow (0058).</param>
-    public SuitGauge(Func<(int Air, int Capacity, SuitDanger Danger, bool InAir)> read, Func<int> canisterIn, Ui ui)
+    /// <param name="helmet">The helmet this player's hero wears, none bare: what the piece's tip names.</param>
+    /// <param name="ui">The slots' size, which the block's size follows (0058), and the one tooltip.</param>
+    public SuitGauge(Func<(int Air, int Capacity, SuitDanger Danger, bool InAir)> read, Func<int> canisterIn, Func<string?> helmet, Ui ui)
     {
-        (_read, _canisterIn) = (read, canisterIn);
+        (_read, _canisterIn, _helmet, _ui) = (read, canisterIn, helmet, ui);
+        _tips = new TipSpots(ui.Tip);
+        _tips.Add(_gauge.Spot, () => _capacity > 0 ? new Tip(T("hud.holds", ("name", _helmet() is { } worn ? T($"item.{worn}") : T("hud.lungs")), ("n", _capacity)), []) : null);
         ui.Refilled += _gauge.Surge;
         ui.PressedCooling += _refused.Press;
         _gauge.DrawMark = DrawRing;
         _gauge.LightMark = LightRing;
-        void Place()
-        {
-            var row = Slots.GaugeRowOf(ui.Slot);
-            _gauge.Place(new Vector2(row.SuitX, Slots.GaugeTop(ui.Slot)), row.SuitWidth);
-        }
-        Place();
-        ui.SlotScale.Subscribe(Place);
         Layer = ScreenLayers.Hud;
         AddChild(_gauge);
         AddChild(_fogView);
@@ -77,11 +76,21 @@ public partial class SuitGauge : CanvasLayer
         _gauge.Hurt(tint);
     }
 
-    /// <summary>Where the gauge lies on the screen: what the markers keep out of.</summary>
-    public Rect2 Covers => _gauge.GetGlobalRect();
+    /// <summary>Where the vitals lie on the screen, the whole block: what the markers keep out of.</summary>
+    public Rect2 Covers
+    {
+        get
+        {
+            var (x, y, w, h) = Vitals.Covers(GetViewport().GetVisibleRect().Size.Y, _ui.Slot);
+            return new Rect2(x, y, w, h);
+        }
+    }
 
     public override void _Process(double delta)
     {
+        var (x, y) = Vitals.Origin(GetViewport().GetVisibleRect().Size.Y, _ui.Slot);
+        _gauge.Place(new Vector2(x, y), Vitals.ScaleOf(_ui.Slot));
+        _tips.Frame(!_ui.MenuOpen.Get() ? GetViewport().GetMousePosition() : null);
         _sinceRead += delta;
         if (_sinceRead >= RefreshS)
         {
@@ -92,7 +101,7 @@ public partial class SuitGauge : CanvasLayer
             if (_capacity != 0 && capacity != _capacity) _gauge.Motion.Show((double)suit / capacity);
             // A hit is more than the dearest breath, running bare in the cold: bare lungs are small enough for a breath to look like one.
             else _gauge.Motion.Read((double)suit / capacity, Math.Max(WristLook.BigDrop, (CrewSpec.Exerted + CrewSpec.BareCold + 0.5) / capacity));
-            _capacity = capacity;
+            _capacity = _gauge.Units = capacity;
             _fog.Read(_danger, (double)suit / capacity);
             _cooling.Read(_canisterIn());
             _gauge.Short = _danger != SuitDanger.None;
@@ -112,8 +121,8 @@ public partial class SuitGauge : CanvasLayer
         _gauge.LastDim = (float)fog.LastDim;
     }
 
-    /// <summary>The ring's radius round the oxygen sign, in tab pixels; how wide it is drawn.</summary>
-    private const float RingRadius = 12.5f, RingWidth = 1.5f;
+    /// <summary>The ring's radius round the oxygen sign, in block units, grown with the sign; how wide it is drawn.</summary>
+    private const float RingRadius = 12.5f * Vitals.SignScale, RingWidth = 2;
     private static readonly Color Refused = new(1, 70 / 255f, 60 / 255f);
 
     /// <summary>

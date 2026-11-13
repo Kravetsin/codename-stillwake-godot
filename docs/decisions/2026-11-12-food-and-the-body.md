@@ -48,7 +48,7 @@ with it. It was built in six steps the same day, the plan since retired into thi
 
 - Every number is a first guess for the playtest, in `Content.Diet` and `Content.Foods`: the raw foods' rates, the
   dishes' (each lasts 18 000 ticks; no loadout fills every cap), the caps, hunger's sprint and work.
-- The HUD's meal slots are a stand-in (`MealSlots`) till the gauges' redesign places food ([hud-vitals](../plans/hud-vitals.md)).
+- The HUD's meal slots were a stand-in (`MealSlots`) until [hud-vitals](2026-11-13-hud-vitals.md) placed food under the charge row.
 - A repair takes both ticks of a `Work` worth two, its last mending: it has no part to pay nor last-tick check.
 - A vending machine stands 4 × 5 cells in derelicts' quarters (`mess`), gives the fridge's mean five times over and
   glows as the emergency lamp does, no power. Seeds stay sold: they are the farm's input; every other food is unsold.

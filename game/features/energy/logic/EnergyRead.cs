@@ -9,9 +9,10 @@ namespace Stillwake.Game.Features.Energy;
 
 /// <summary>
 /// What the energy tab reads four times a second (energy-ring): the belt summed, each open belt slot's store (its charge and
-/// what it holds full, in stored units, null for a slot without one) and what the tool running draws a tick, 0 for none.
+/// what it holds full, in stored units, null for a slot without one), what the tool running draws a tick, 0 for none, and
+/// the item each store is, for its tip.
 /// </summary>
-public sealed record EnergyRead(Belt Belt, IReadOnlyList<(int Charge, int Capacity)?> Stores, int Draw)
+public sealed record EnergyRead(Belt Belt, IReadOnlyList<(int Charge, int Capacity)?> Stores, int Draw, IReadOnlyList<string?> Items)
 {
     /// <summary>The hero's belt slots, in slot order: the stores an electric tool drains, left to right.</summary>
     public static readonly IReadOnlyList<Place> BeltSlots =
@@ -26,6 +27,7 @@ public sealed record EnergyRead(Belt Belt, IReadOnlyList<(int Charge, int Capaci
         var slots = BeltSlots.Where(open).ToList();
         var stores = slots.Select(p => inventory[p.Slot] is { } s && Charges.CapacityOf(s.Item) is int full ? (s.Charge, full) : ((int, int)?)null).ToList();
         int draw = running is null ? 0 : Spec.Items.Get(running).Draw ?? 0;
-        return new EnergyRead(Charges.BeltOf(belt, slots.Count), stores, draw);
+        var items = slots.Select(p => inventory[p.Slot] is { } s && Charges.CapacityOf(s.Item) != null ? s.Item : null).ToList();
+        return new EnergyRead(Charges.BeltOf(belt, slots.Count), stores, draw, items);
     }
 }

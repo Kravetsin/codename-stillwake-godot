@@ -86,7 +86,7 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [0078](0078-two-handed-items-are-held-as-a-rifle.md) | Two-handed items are held as a rifle | superseded | one-arm-holds |
 | [0079](0079-a-planets-surface-has-its-look-and-grows-plants.md) | A planet's surface has its look, and grows plants from its seed | accepted | 0082, composed-backdrops (in part) |
 | [0080](0080-caves-glow-by-depth.md) | Caves glow by depth: what grows in them is the surface's flora, held by floor, ceiling or rock | accepted | veins-and-stairs (in part) |
-| [0081](0081-the-wrist-is-one-column-of-gauges-and-keys.md) | The wrist is one column: segmented gauges that never step, and hardware keys | accepted |  |
+| [0081](0081-the-wrist-is-one-column-of-gauges-and-keys.md) | The wrist is one column: segmented gauges that never step, and hardware keys | accepted | hud-vitals (in part) |
 | [0082](0082-the-grounds-chipped-look-details-and-living-edge.md) | The ground's chipped look: details over it and a living edge on top | accepted |  |
 | [0083](0083-the-handbook-is-a-tablet.md) | The Handbook is a tablet | accepted |  |
 | [0084](0084-back-walls-of-natural-materials.md) | Back walls of natural materials | accepted |  |
@@ -258,7 +258,7 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [tool-edge](2026-11-05-tool-edge.md) | A running tool hits with what is drawn | accepted | tool-reach (in part) |
 | [tool-reach](2026-11-05-tool-reach.md) | A tool hits by a fan of rays from the shoulder and shows its reach in use | accepted | hits-pass-wrecks, blade-trail, tool-size (in part) |
 | [creatures-in-herds](2026-11-06-creatures-in-herds.md) | Wild creatures come in small herds of one kind | accepted |  |
-| [energy-ring](2026-11-06-energy-ring.md) | The energy tab's ring and beating bolt | accepted |  |
+| [energy-ring](2026-11-06-energy-ring.md) | The energy tab's ring and beating bolt | accepted | hud-vitals (in part) |
 | [gain-spots](2026-11-06-gain-spots.md) | What a hero gains, counted beside where it came from | accepted |  |
 | [head-tally](2026-11-06-head-tally.md) | What a hero gains, counted steady over its head | accepted | gain-spots (in part) |
 | [leaks-tripled](2026-11-06-leaks-tripled.md) | Leaks tripled, the pod with them | accepted | scarce-oxygen, leaks-a-minute (in part) |
@@ -338,3 +338,4 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [fruit-not-biomass](2026-11-12-fruit-not-biomass.md) | Fruit, not biomass | accepted |  |
 | [one-to-understand](2026-11-12-one-to-understand.md) | One of each part is enough to understand a thing | accepted |  |
 | [gourd-vine](2026-11-13-gourd-vine.md) | The grow capsule grows a gourd vine | accepted |  |
+| [hud-vitals](2026-11-13-hud-vitals.md) | The vitals: air, charge and meals as frameless light at the bottom-left | accepted |  |

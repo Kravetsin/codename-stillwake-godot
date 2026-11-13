@@ -22,18 +22,10 @@ public class WristPiecesTests
 
     [Theory]
     [MemberData(nameof(Scales))]
-    public void TheGaugesTabsHangFromTheCuffSharingItsBottomOutline(SlotScale scale)
+    public void TheDisplaysBumpersClearTheCuff(SlotScale scale)
     {
+        // The bag opens under the hotbar now the gauges have left it (hud-vitals): its bumpers stand clear of the cuff's outline.
         int slot = Slots.SizeOf(scale), hotbarFoot = Slots.Margin + slot + 2 * Padding;
-        Assert.Equal(WristPieces.Cuff.OutlineBelow(hotbarFoot), WristPieces.Gauge.OutlineAbove((int)Slots.GaugeTop(slot)));
-    }
-
-    [Theory]
-    [MemberData(nameof(Scales))]
-    public void TheDisplaysBumpersClearTheGaugesTabs(SlotScale scale)
-    {
-        // The tab's transparent pad may lie under the bumpers; its outline may not.
-        int slot = Slots.SizeOf(scale), tabFoot = (int)Slots.GaugeTop(slot) + 30 + WristPiece.Scale * (WristPieces.Gauge.Window.Bottom - WristPieces.Pad);
-        Assert.True(tabFoot <= Slots.InventoryTop(slot) - WristPiece.Scale * WristPieces.Display.Window.Top);
+        Assert.True(WristPieces.Cuff.OutlineBelow(hotbarFoot) <= Slots.InventoryTop(slot) - WristPiece.Scale * WristPieces.Display.Window.Top);
     }
 }

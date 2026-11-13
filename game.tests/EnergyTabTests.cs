@@ -9,7 +9,7 @@ using Spec = Stillwake.Content;
 
 namespace Stillwake.Game.Tests;
 
-/// <summary>The energy tab as picked (energy-ring): the even count, the ring of the belt's stores and the beating bolt.</summary>
+/// <summary>The charge row (energy-ring, hud-vitals): the belt's stores as the row shows them and the beating bolt.</summary>
 public class EnergyTabTests
 {
     private static readonly int Full = Spec.Charge.Battery, S = Spec.Charge.Scale;
@@ -18,42 +18,6 @@ public class EnergyTabTests
     private static void Run(Action<double> step, double seconds, double frame = 0.005)
     {
         for (int i = 0, n = (int)Math.Round(seconds / frame); i < n; i++) step(frame);
-    }
-
-    [Fact]
-    public void TheCountShowsItsFirstReadAtOnceFallsEvenlyAndEasesOutARise()
-    {
-        var count = new EnergyCount();
-        count.Read(1000);
-        Assert.Equal(1000, count.Value);
-        count.Read(900);
-        Run(count.Step, EnergyCount.FallS / 2);
-        Assert.Equal(950, count.Value, 3);
-        Run(count.Step, EnergyCount.FallS / 2);
-        Assert.Equal(900, count.Value, 3);
-        count.Read(1800);
-        Run(count.Step, EnergyCount.RiseS / 2);
-        Assert.True(count.Value > 1350, $"{count.Value}: a rise comes most of the way at once");
-        Run(count.Step, EnergyCount.RiseS / 2);
-        Assert.Equal(1800, count.Value, 3);
-    }
-
-    [Theory]
-    [InlineData(1)]
-    [InlineData(2)]
-    [InlineData(3)]
-    [InlineData(6)]
-    [InlineData(12)]
-    public void TheRingSharesTheCircleAlikeWithAGapBetweenArcsForAnyNumberOfSlots(int n)
-    {
-        var arcs = Enumerable.Range(0, n).Select(k => EnergyRing.Arc(k, n)).ToList();
-        float seg = MathF.Tau / n;
-        Assert.All(arcs, a => Assert.Equal(arcs[0].End - arcs[0].Start, a.End - a.Start, 4));
-        Assert.All(arcs, a => Assert.True(a.End - a.Start >= seg * 0.6f - 1e-4f));
-        // In order, clockwise from the top, never touching: a gap before the next and round to the first.
-        for (int k = 0; k + 1 < n; k++) Assert.True(arcs[k].End < arcs[k + 1].Start);
-        Assert.True(arcs[^1].End < arcs[0].Start + MathF.Tau);
-        Assert.Equal(-MathF.PI / 2, arcs[0].Start - (seg - (arcs[0].End - arcs[0].Start)) / 2, 4);
     }
 
     [Fact]
@@ -231,6 +195,7 @@ public class EnergyTabTests
         bool Open(Place p) => p != belt[1];
         var read = EnergyRead.Of(inventory, (Full / 2 + 7, Full + Spec.Charge.Accumulator), Open, "grinder");
         Assert.Equal([(Full / 2, Full), (7, Spec.Charge.Accumulator)], read.Stores);
+        Assert.Equal(["battery", "accumulator"], read.Items);
         Assert.Equal(Spec.Items.Get("grinder").Draw, read.Draw);
         Assert.Equal(Charges.BeltMost(2), read.Belt.Most);
         Assert.Equal(0, EnergyRead.Of(inventory, (0, 0), _ => true, null).Draw);
