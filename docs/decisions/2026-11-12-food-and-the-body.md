@@ -54,6 +54,9 @@ with it. It was built in six steps the same day, the plan since retired into thi
   glows as the emergency lamp does, no power. Seeds stay sold: they are the farm's input; every other food is unsold.
 - The galley is 4 × 5 like the workbench, works at full speed, a dish in 200 ticks, roast and stew in 300. A hero's own
   eating is heard, a friend's not.
+- The galley burns fuel like the furnace (0023), its first slot (2026-11-13, after the user's playtest: its fire burned on
+  nothing): a dish needs fire, so air or liquid oxygen, and blown it cooks half as fast again. Its fire lights only with
+  a dish to cook, so one idle burns nothing; a plank cooks two short dishes. Drones keep its fuel as a furnace's.
 
 ## Not done
 

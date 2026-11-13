@@ -248,7 +248,7 @@ public static class Machines
         new("fermenter", 4, 4, [], [("frame", 2), ("glass", 4), ("tube", 4), ("plate", 4), ("circuit", 1)], BuildTicks: 200, Draws: 2, Plug: (5, 27), Slots: 2, Inputs: 1, Menu: new(MenuTabs.Production, 65), Char: 'u', Means: "fermenter: draw its whole footprint"),
         // The galley (food-and-the-body): a cast-iron range cooking dishes paid by hand, as the workbench does, with no power; its
         // three slots what it made. Its oven window's glass sets it at the grow capsule's tier, with the fruit it cooks.
-        new("galley", 4, 5, [], [("frame", 2), ("plate", 8), ("tube", 4), ("glass", 2)], BuildTicks: 160, Slots: 3, Inputs: 0, Menu: new(MenuTabs.Production, 62), Char: '&', Means: "galley: draw its whole footprint, three characters tall on a 16 px map (its top cells open)"),
+        new("galley", 4, 5, [new(0, 2, Way.In, Fluids.LiquidOxygen)], [("frame", 2), ("plate", 8), ("tube", 4), ("glass", 2)], BuildTicks: 160, Slots: 4, Inputs: 1, FuelSlot: 0, Menu: new(MenuTabs.Production, 62), Char: '&', Means: "galley: draw its whole footprint, three characters tall on a 16 px map (its top cells open)"),
         // Where heroes are made and where parts are crafted (Stations); its slots are the crafts made: paid by hand, no inputs (0057).
         // Launches the drones docked in its four slots to keep the machines in its zone going (0062), and charges them as a charging station does;
         // its fifth, the fuel slot, holds the canisters a salvage drone flies out on (salvage-drones).

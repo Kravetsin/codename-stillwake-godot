@@ -7,20 +7,47 @@ using Craft = Stillwake.Sim.Crafting.Craft;
 namespace Stillwake.Sim.Tests;
 
 /// <summary>
-/// The galley (food-and-the-body, rule 9): an unpowered queued station cooking the five dishes, each paid by hand from its
+/// The galley (food-and-the-body, rule 9): a queued station over a fire cooking the five dishes, each paid by hand from its
 /// recipe and eaten as a meal stronger than anything raw in it; the board understands a dish with one of each ingredient
-/// and a galley standing.
+/// and a galley standing. Its fire is the furnace's (0023), lit only with a dish to cook.
 /// </summary>
 public class GalleyTests
 {
     private static readonly string[] Dishes = [Foods.Porridge, Foods.Hash, Foods.Broth, Foods.Roast, Foods.Stew];
+    private static readonly int Fuel = Machines.Get("galley").FuelSlot!.Value;
 
-    /// <summary>A bare room with a galley and a workbench, no power anywhere; knowing everything, or the wreck's start alone.</summary>
-    private static Scenario Kitchen(bool wreck = false)
+    /// <summary>
+    /// A room with a galley, a workbench and a vaporizer, no power in it; aired by a vent, or with none, in vacuum; knowing
+    /// everything, or the wreck's start alone. The tank under the hull holds liquid oxygen either way (<see cref="Blown"/>).
+    /// </summary>
+    private static Scenario Kitchen(bool wreck = false, bool vented = true)
     {
-        var layout = Layout.Parse(["##########", "#&&..II..#", "#&&..II..#", "#&&..II..#", "##########"], null);
-        return new Scenario(wreck ? layout with { Known = Content.Research.StartKnown } : layout, doubled: true);
+        var layout = AirTesting.Vaporized(["##########", "#&&....II#", "#&&.TT.II#", vented ? "#&&.TTVII#" : "#&&.TT.II#", "##########"], ["", "", "    o", "    ---"]);
+        var w = new Scenario(wreck ? layout with { Known = Content.Research.StartKnown } : layout, doubled: true);
+        for (int i = 0; i < 2000 && !LogisticsTests.AllAired(w); i++) w.Run();
+        Assert.True(LogisticsTests.AllAired(w));
+        return w;
     }
+
+    /// <summary>The kitchen with <paramref name="planks"/> planks in its galley's fuel slot, from peer 0's bag.</summary>
+    private static Scenario Fuelled(Scenario w, int planks = 10)
+    {
+        w.GiveItems(0, ("planks", planks));
+        int from = w.M.Items.Inventory(0).ToList().FindIndex(s => s?.Item == "planks");
+        return w.Do(new Move(new Items.Place(from), new Target(Fuel, Galley(w)), planks)).Run();
+    }
+
+    /// <summary>The galley piped from its liquid input down through the floor to the tank's pipe under the hull (industrial-oxygen).</summary>
+    private static Scenario Blown(Scenario w)
+    {
+        var galley = w.M.Grid.MachineById(Galley(w))!;
+        int port = galley.Cell + 2 * w.Layout.Width, under = 5 * w.Scale * w.Layout.Width;
+        w.GiveItems(0, ("tube", 20)).Pipe(port, under + port % w.Layout.Width, under + 4 * w.Scale).Run();
+        Assert.Empty(w.Refusals);
+        return w;
+    }
+
+    private static int Planks(Scenario w) => w.M.Items.Crate(Galley(w))[Fuel]?.Count ?? 0;
 
     /// <summary>One of each ingredient of every dish, many times over.</summary>
     private static Scenario Stocked(Scenario w) => w.GiveItems(0,
@@ -34,21 +61,93 @@ public class GalleyTests
 
     public static TheoryData<string> EachDish() => [.. Dishes];
 
-    /// <summary>Paid from the bag as it is queued, made in its ticks at full speed with no power, into the galley's slots.</summary>
+    /// <summary>
+    /// Paid from the bag as it is queued, made in its ticks at full speed over its fire, no power, into the galley's outputs;
+    /// the fire lit the tick it is queued cooks from the next.
+    /// </summary>
     [Theory]
     [MemberData(nameof(EachDish))]
-    public void TheGalleyCooksEachDishFromItsRecipeWithNoPower(string dish)
+    public void TheGalleyCooksEachDishFromItsRecipeOverItsFire(string dish)
     {
-        var w = Stocked(Kitchen()).Run();
+        var w = Fuelled(Stocked(Kitchen()));
         var before = Content.Crafts.Get(dish).Cost.ToDictionary(c => c.Item, c => Carried(w, c.Item));
         w.Do(new Craft(Galley(w), dish, 2)).Run();
         Assert.Empty(w.Refusals);
         Assert.All(Content.Crafts.Get(dish).Cost, c => Assert.Equal(before[c.Item] - 2 * c.Count, Carried(w, c.Item)));
         int ticks = Content.Crafts.Get(dish).Ticks * 1000 / Stations.Get("galley").Speed;
-        w.Run(ticks - 2);
-        Assert.Equal(0, Made(w, dish));
-        w.Run(ticks + 1);
+        w.Run(2 * ticks - 1);
+        Assert.Equal(1, Made(w, dish));
+        w.Run();
         Assert.Equal(2, Made(w, dish));
+    }
+
+    /// <summary>A plank burns 400 ticks, two short dishes: one used up as the fire lights, the next as it burns out, still cooking.</summary>
+    [Fact]
+    public void ADishQueuedLightsTheFireUsingAFuelUpAndTheNextAsItBurnsOut()
+    {
+        var w = Fuelled(Stocked(Kitchen()), planks: 3).Run(50);
+        Assert.Equal(3, Planks(w));
+        w.Do(new Craft(Galley(w), Foods.Porridge, 3)).Run();
+        Assert.True(w.M.Furnace.Burning(Galley(w)));
+        Assert.Equal(2, Planks(w));
+        w.Run(Content.Items.Get("planks").BurnTicks!.Value);
+        Assert.True(w.M.Furnace.Burning(Galley(w)));
+        Assert.Equal(1, Planks(w));
+        Assert.Equal(2, Made(w, Foods.Porridge));
+    }
+
+    [Fact]
+    public void WithNoFuelItCooksNothingAndSaysSo()
+    {
+        var w = Stocked(Kitchen());
+        w.Do(new Craft(Galley(w), Foods.Roast, 1)).Run(500);
+        Assert.Empty(w.Refusals);
+        Assert.Equal(0, Made(w, Foods.Roast));
+        Assert.Equal(0, w.M.Crafting.Progress(Galley(w)));
+        Assert.Equal(new Furnace.Smelting(false, Problem: "furnace.noFuel"), w.M.Furnace.At(Galley(w)));
+    }
+
+    /// <summary>An empty queue never lights it; a fire lit for a dish burns to its end, then none lights again.</summary>
+    [Fact]
+    public void AnIdleGalleyNeverLightsItsFire()
+    {
+        var w = Fuelled(Stocked(Kitchen()), planks: 2).Run(500);
+        Assert.False(w.M.Furnace.Burning(Galley(w)));
+        Assert.Equal(2, Planks(w));
+        w.Do(new Craft(Galley(w), Foods.Porridge, 1)).Run(250);
+        Assert.Equal(1, Made(w, Foods.Porridge));
+        Assert.True(w.M.Furnace.Burning(Galley(w)));
+        w.Run(200);
+        Assert.False(w.M.Furnace.Burning(Galley(w)));
+        Assert.Equal(1, Planks(w));
+    }
+
+    /// <summary>In vacuum it does not light; blown by liquid oxygen it does, and cooks at Blown / BlownOf its speed.</summary>
+    [Fact]
+    public void InVacuumItLightsOnlyBlownAndCooksFasterSo()
+    {
+        var w = Fuelled(Stocked(Kitchen(vented: false)));
+        int galley = Galley(w);
+        w.Do(new Craft(galley, Foods.Roast, 1)).Run(50);
+        Assert.False(w.M.Furnace.Burning(galley));
+        Assert.Equal("furnace.noAir", w.M.Furnace.At(galley).Problem);
+        Blown(w);
+        Assert.True(w.M.Furnace.At(galley) is { Burning: true, Blown: true });
+        w.Run();
+        Assert.Equal(Stations.Get("galley").Speed * Content.Furnace.Blown / Content.Furnace.BlownOf, w.M.Crafting.Progress(galley));
+    }
+
+    /// <summary>Drones bring fuel to its fuel slot, as to a furnace's, though nothing is queued: here all the crate holds, short of a stack.</summary>
+    [Fact]
+    public void DronesKeepItsFuelAtAStack()
+    {
+        var w = LogisticsTests.Aired(["##############", "#&&..........#", "#&&.RR.TT....#", "#&&.RR.TTVKK.#", "##############"], ["", "", "       o", "       ---"]);
+        int crate = w.M.Grid.MachinesOf("crate").Single().Id;
+        w.FillCrate(crate, ("planks", 50)).Put(Fuel, new Stack("planks", 10), crate: Galley(w));
+        for (int i = 0; i < 1500 && !(Planks(w) == 60 && w.M.Logistics.Drones.Count == 0); i++) w.Run();
+        Assert.Equal(60, Planks(w));
+        Assert.Equal(0, LogisticsTests.Count(w.M.Items.Crate(crate), "planks"));
+        Assert.False(w.M.Furnace.Burning(Galley(w)));
     }
 
     [Fact]
@@ -87,7 +186,7 @@ public class GalleyTests
     [Fact]
     public void ACookedFruitNeverGivesItsSeed()
     {
-        var w = Stocked(Kitchen()).Run();
+        var w = Fuelled(Stocked(Kitchen()));
         w.Do(new Craft(Galley(w), Foods.Porridge, 10)).Run(10 * 200 + 5);
         Assert.Equal(10, Made(w, Foods.Porridge));
         Assert.Equal(0, Carried(w, "seed"));
@@ -122,7 +221,7 @@ public class GalleyTests
     }
 
     [Fact]
-    public void RefusesAFifthDishQueuedAndOneFromInputsItHasNone()
+    public void RefusesAFifthDishQueuedAndOneFromItsFuelSlot()
     {
         var w = Stocked(Kitchen()).Run();
         int galley = Galley(w);

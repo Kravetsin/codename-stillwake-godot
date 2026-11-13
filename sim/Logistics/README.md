@@ -30,7 +30,7 @@ unless marked.
 - **Never the arc bench** (0099): a machine with `Tunes` is neither target nor source (`Takes`, `OutputsOf`), so
   `Servable` says no: its vise and crafts are by hand.
 - **What is wanted** (`Wants`), of a served machine in the flood:
-  - a fed station (furnace, smelter, grow capsule) or one with a fire (burner generator): each item its inputs
+  - a fed station (furnace, smelter, grow capsule) or one with a fire (generator, galley): each item its inputs
     hold, fuel slot included, or remember (`KeptAt`) once burnt down, kept at its stack: wanted when what it holds
     where a delivery goes (`HeldFor`) plus what drones bring is under half that, or under one smelt's
     (`SmeltTakes`); the rest of a stack;

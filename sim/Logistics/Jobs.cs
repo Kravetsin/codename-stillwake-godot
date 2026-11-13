@@ -110,6 +110,9 @@ public sealed partial class LogisticsModule
         _wants.Clear();
         if (Stations.TryGet(t.Kind, out var station) && !station.Fed)
         {
+            // A galley's fuel, as a furnace's: what its fuel slot holds or remembers.
+            if (Machines.Get(t.Kind).FuelSlot is int fuel && (_items.Crate(t.Id)[fuel]?.Item ?? _items.KeptAt(t.Id, fuel)) is { } burns)
+                Short(t, burns, Content.Items.Get(burns).Stack, 1);
             var queue = _crafting.Queue(t.Id);
             if (queue.Count == 0 || queue[0] is not { FromInputs: true } head) return;
             // The unit begun took its cost as it began.

@@ -31,6 +31,8 @@ public static partial class En
         ["fabricator.shared"] = "shared",
         ["fabricator.inputs"] = "Inputs",
         ["fabricator.tool"] = "Tool",
+        ["fabricator.fuel"] = "Fuel",
+        ["fabricator.burning"] = "Burning",
         ["fabricator.output"] = "Output",
         ["fabricator.screenReady"] = "READY",
         ["fabricator.yours"] = "yours",

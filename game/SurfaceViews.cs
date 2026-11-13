@@ -65,7 +65,7 @@ public static class SurfaceViews
         // What each debris net holds, over its booms and behind its net (2026-11-03-debris-net).
         new(c => new Features.Debris.NetView(c.M.Grid, c.M.Debris), Fades: true),
         new(c => new PodView(c.M.Grid, c.M.Crafting, c.M.Items, c.M.Crew), Fades: true),
-        new(c => new StationView(c.M.Grid, c.M.Crafting, c.M.Items), Fades: true),
+        new(c => new StationView(c.M.Grid, c.M.Crafting, c.M.Items, c.M.Furnace.Burning), Fades: true),
         new(c => new BenchView(c.M.Grid, c.M.Items), Fades: true),
         new(Drones),
         // Water in the cells (flowing-liquids): over the heroes swimming in it, by its z.

@@ -139,6 +139,21 @@ public class MigrationsTests
     }
 
     [Fact]
+    public void GivesAGalleyItsFuelSlotFirstWhatItMadeOneSlotOn()
+    {
+        // A format-62 galley held three outputs; after the upgrade its first slot is its fuel, its dishes in the outputs after it.
+        static JsonObject Slices(string kind) => JsonNode.Parse(
+            """{"grid":{"machines":[{"id":3,"kind":"KIND"}]},"items":{"crates":[{"id":3,"slots":[{"item":"roast","count":2},null,null]}]}}""".Replace("KIND", kind))!.AsObject();
+        var old = new JsonObject { ["slices"] = Slices("crate"), ["surfaces"] = new JsonArray(new JsonObject { ["slices"] = Slices("galley") }) };
+        var upgraded = Migrations.Steps[62 - Migrations.Oldest](old);
+        Assert.Equal(3, upgraded["slices"]!["items"]!["crates"]![0]!["slots"]!.AsArray().Count);
+        var galley = upgraded["surfaces"]![0]!["slices"]!["items"]!["crates"]![0]!["slots"]!.AsArray();
+        Assert.Equal(4, galley.Count);
+        Assert.Null(galley[0]);
+        Assert.Equal("roast", galley[1]!["item"]!.GetValue<string>());
+    }
+
+    [Fact]
     public void PutsWhatASalvageDroneCaughtInItsNet()
     {
         // One carrying a piece's loot, one a stack it lifted, one still on its way out.

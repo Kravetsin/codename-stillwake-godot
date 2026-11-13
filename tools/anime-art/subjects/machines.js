@@ -1031,7 +1031,7 @@ Subjects.machines = function () {
     vent: [16, 16, vent], crate: [32, 16, crate], cistern: [32, 32, cistern], growCapsule: [32, 48, growCapsule], charger: [16, 32, charger], burnerGenerator: [32, 32, blowable(burnerGenerator)],
     autoTradeStation: [32, 32, terminal(true)], tradeStation: [32, 32, terminal(false)], lifepod: [48, 48, lifepod], generator: [32, 32, generator], tank: [32, 32, tank],
     computer: [48, 32, computer], capacitorBank: [32, 32, capacitorBank], engine: [72, 32, engine], solarPanel: [48, 16, solarPanel], lamp: [16, 16, lamp], arcLamp: [16, 16, arcLampBody(false)], dropPod: [32, 56, dropPod], electrolyser: [32, 48, electrolyser],
-    fermenter: [32, 32, fermenter], galley: [32, 40, galleyA], biofuelGenerator: [48, 32, blowable(biofuelGenerator)], treadWheel: [48, 48, treadWheel] };
+    fermenter: [32, 32, fermenter], galley: [32, 40, blowable(galleyA)], biofuelGenerator: [48, 32, blowable(biofuelGenerator)], treadWheel: [48, 48, treadWheel] };
   for (const [kind, [w, h, draw]] of Object.entries(whole)) out(`machine_${kind}`, bake({ w, h, draw }));
   out('machine_arcLamp_lit', flat(16, 16, arcLampBody(true)));
   out('machine_radarAntenna', flat(32, 48, (a) => { radarMast(a); radarDish(2)(a); }));

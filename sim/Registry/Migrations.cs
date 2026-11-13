@@ -314,6 +314,17 @@ public static class Migrations
                     }
             return root;
         },
+        // 62 → 63 (food-and-the-body): the galley burns fuel, its first slot; what it made moves one slot on, into its outputs.
+        root =>
+        {
+            foreach (var slices in new[] { root["slices"]! }.Concat((root["surfaces"]?.AsArray() ?? []).Select(s => s!["slices"]!)))
+            {
+                var galleys = slices["grid"]!["machines"]!.AsArray().Where(m => m!["kind"]!.GetValue<string>() == "galley").Select(m => m!["id"]!.GetValue<int>()).ToHashSet();
+                foreach (var held in slices["items"]!["crates"]!.AsArray())
+                    if (galleys.Contains(held!["id"]!.GetValue<int>())) held["slots"]!.AsArray().Insert(0, null);
+            }
+            return root;
+        },
     ];
 
     /// <summary>The slices with liquids' empty one after building's, where its module runs: a save holds them in that order.</summary>

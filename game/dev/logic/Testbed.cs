@@ -63,6 +63,9 @@ public static class Testbed
     /// <summary>How many rations and canned meat the supply crate holds: enough to cook at the galley a while, its fruit, glowberries, water and fat in the farm's crate.</summary>
     public const int Cooking = 10;
 
+    /// <summary>The planks in the galley's fuel slot: ten short dishes.</summary>
+    public const int GalleyFuel = 20;
+
     /// <summary>What the bay holds beside its drones, the crates being full: a salvage drone, charged, its fuel slot empty, so it never flies here (salvage-drones).</summary>
     public static readonly IReadOnlyList<string> InBay = [Logistics.SalvageDrone];
 
@@ -232,6 +235,8 @@ public static class Testbed
             new() { ["id"] = Id("engine"), ["slots"] = Slots("engine", [Stack("biofuel", Fuelled)]) },
             new() { ["id"] = Id("dropPod"), ["slots"] = Slots("dropPod", [Stack("biofuel", PodFuel)]) },
             new() { ["id"] = Id("burnerGenerator"), ["slots"] = Slots("burnerGenerator", [Stack("planks", Items.Get("planks").Stack)]) },
+            // A fire laid under its pot (0023): a dish queued cooks at once, more planks and fat in the farm's crate.
+            new() { ["id"] = Id("galley"), ["slots"] = Slots("galley", [Stack("planks", GalleyFuel)]) },
             new() { ["id"] = Id("biofuelGenerator"), ["slots"] = Slots("biofuelGenerator", [Stack("biofuel", Fuelled)]) },
             new() { ["id"] = Id("fermenter"), ["slots"] = Slots("fermenter", [Stack("biomass", Items.Get("biomass").Stack)]) },
             new() { ["id"] = Id("smelter"), ["slots"] = Slots("smelter", [Stack(Smelting, Items.Get(Smelting).Stack)]) },
