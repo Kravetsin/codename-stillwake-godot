@@ -1,74 +1,79 @@
 using System;
+using System.Collections.Generic;
 using Godot;
 using Stillwake.Game.Render;
 using Stillwake.Game.Shared;
+using static Stillwake.Game.I18n.En;
 using Look = Stillwake.Game.WristLook;
+using Spec = Stillwake.Content;
 
 namespace Stillwake.Game.Features.Energy;
 
 /// <summary>
-/// The energy tab at the gauge row's right end (0053, 0081, energy-ring): the belt's charge in power units ("4 300"), never
-/// seconds, counting down evenly between reads (<see cref="EnergyCount"/>); round the bolt a ring of the belt's stores
-/// (<see cref="EnergyRing"/>); the bolt beating while a tool draws and throwing discharges onto the frame
-/// (<see cref="BoltPulse"/>). Amber and pulsing while the belt runs low, dim with none worn; a press of a tool it cannot pay
-/// blinks its bolt red, throwing red light (<see cref="FlatBlink"/>). Read four times a second.
+/// The charge row of the vitals (hud-vitals): the bolt, and a piece of light for each store on the belt, as long as it holds
+/// full (a battery <see cref="Vitals.BatteryWidth"/>), lit as far as it holds now (<see cref="EnergyRing"/>); no number, a
+/// store's charge on hover. The stores stand in reverse slot order, so the one a tool drains is at the right end. The bolt
+/// beats while a tool draws and throws discharges (<see cref="BoltPulse"/>). Amber and pulsing while the belt runs low, dim
+/// with none worn; a press of a tool it cannot pay blinks the bolt and the pieces red (<see cref="FlatBlink"/>). Read four
+/// times a second.
 /// </summary>
 public partial class EnergyBar : CanvasLayer
 {
     private const double RefreshS = 0.25;
 
     private readonly Func<EnergyRead?> _read;
-    private readonly Tab _tab = new();
+    private readonly Ui _ui;
+    private readonly Row _row = new();
+    private readonly TipSpots _tips;
     private double _sinceRead = RefreshS;
 
     /// <param name="read">The belt as <see cref="EnergyRead.Of"/> gives it; null with no world to read, which hides it.</param>
-    /// <param name="ui">The slots' size, which the hotbar's size and so the tab's place follow (0058).</param>
+    /// <param name="ui">The slots' size, which the block's size follows (0058), and the one tooltip.</param>
     public EnergyBar(Func<EnergyRead?> read, Ui ui)
     {
-        _read = read;
-        void Place()
-        {
-            var row = Slots.GaugeRowOf(ui.Slot);
-            _tab.Place(new Vector2(row.EnergyX, Slots.GaugeTop(ui.Slot)), row.EnergyWidth);
-        }
-        Place();
-        ui.SlotScale.Subscribe(Place);
-        ui.PressedFlat += _tab.Blink.Press;
+        (_read, _ui) = (read, ui);
+        _tips = new TipSpots(ui.Tip);
+        ui.PressedFlat += _row.Blink.Press;
         Layer = ScreenLayers.Hud;
-        AddChild(_tab);
-        _tab.Visible = false;
+        AddChild(_row);
+        _row.Visible = false;
+        for (int i = 0; i < _row.Spots.Length; i++)
+        {
+            int k = i;
+            _tips.Add(_row.Spots[k], () => _row.TipOf(k));
+        }
     }
 
     /// <summary>What it shows now, null while hidden: for scripted runs.</summary>
     public Belt? Shown { get; private set; }
 
-    /// <summary>Where the tab lies on the screen: what the markers keep out of.</summary>
-    public Rect2 Covers => _tab.GetGlobalRect();
-
     public override void _Process(double delta)
     {
+        var (x, y) = Vitals.Origin(GetViewport().GetVisibleRect().Size.Y, _ui.Slot);
+        _row.Place(new Vector2(x, y), Vitals.ScaleOf(_ui.Slot));
+        _tips.Frame(_row.Visible && !_ui.MenuOpen.Get() ? GetViewport().GetMousePosition() : null);
         _sinceRead += delta;
         if (_sinceRead < RefreshS) return;
         _sinceRead = 0;
         var read = _read();
         Shown = read?.Belt;
-        _tab.Visible = read != null;
+        _row.Visible = read != null;
         if (read is not { Belt: var belt }) return;
-        _tab.Count.Read(belt.Units);
-        _tab.Ring.Read(read.Stores, read.Draw);
-        _tab.Pulse.Read(belt.Units, read.Draw, belt.Low);
-        _tab.Low = belt.Low;
-        _tab.Bright = belt.Worn ? 1 : Look.NoBattery;
+        _row.Read(read);
+        _row.Pulse.Read(belt.Units, read.Draw, belt.Low);
+        _row.Low = belt.Low;
+        _row.Bright = belt.Worn ? 1 : Look.NoBattery;
     }
 
-    /// <summary>The tab: its screen, the ring and the bolt, the belt's charge grouped by thin spaces, right-aligned.</summary>
-    private sealed partial class Tab : Control
+    /// <summary>The row: the bolt at the block's sign column, the stores' pieces from <see cref="Vitals.RowLeft"/>.</summary>
+    private sealed partial class Row : Control
     {
-        private const int FontSize = 13, ThinWidth = 3;
         private static readonly Texture2D Bolt = Signs.Bolt(false), Dark = Signs.Bolt(true);
+        // The bolt's place in its own pixels, as the old tab drew it: the beat's discharges are laid out round it there.
         private static readonly Rect2 BoltAt = new(9, 6, 14, 18);
-        private static readonly Vector2 Centre = BoltAt.GetCenter();
-        // What a discharge burns in and how its core and the light it strikes look.
+        private const float BoltHeight = 30;
+        private static readonly Vector2 Centre = BoltAt.GetCenter(), BoltCentre = new(Vitals.SignX, Vitals.ChargeY);
+        private const float Top = Vitals.ChargeY - Vitals.PieceHeight / 2, Height = Vitals.PieceHeight;
         /// <summary>The red a press of a flat belt blinks the bolt, and the hot heart of its light.</summary>
         private static readonly Color Flat = new(1, 70 / 255f, 60 / 255f);
         private static readonly Color FlatCore = new(1, 190 / 255f, 160 / 255f);
@@ -83,110 +88,101 @@ public partial class EnergyBar : CanvasLayer
             Height = 32,
         };
 
-        private readonly NinePatchRect _frame = WristArt.Frame(WristPieces.Gauge, MouseFilterEnum.Ignore);
         private readonly Light _light = new();
         private readonly BoltLayer _bolt = new();
-        private readonly System.Collections.Generic.List<float> _drawn = [], _now = [];
         private double _clock;
+        private IReadOnlyList<(int Charge, int Capacity)?> _stores = [];
+        private IReadOnlyList<string?> _items = [];
+        /// <summary>Each store's piece by its slot order: its left edge and width in block units, none for a slot with no store.</summary>
+        private (float X, float W)?[] _pieces = [];
 
-        public Tab()
+        public Row()
         {
             MouseFilter = MouseFilterEnum.Ignore;
-            _bolt.Tab = this;
+            _bolt.Row = this;
             AddChild(_bolt);
-            AddChild(_frame);
-            _light.Tab = this;
+            _light.Row = this;
             AddChild(_light);
+            Spots = new Control[Charges.BeltSlots];
+            for (int i = 0; i < Spots.Length; i++) AddChild(Spots[i] = new Control { MouseFilter = MouseFilterEnum.Ignore });
         }
 
-        public EnergyCount Count { get; } = new();
         public EnergyRing Ring { get; } = new();
-        public BoltPulse Pulse { get; } = new((BoltAt.Position.X, BoltAt.Position.Y, BoltAt.Size.X, BoltAt.Size.Y), Look.TabHeight, new Random());
+        public BoltPulse Pulse { get; } = new((BoltAt.Position.X, BoltAt.Position.Y, BoltAt.Size.X, BoltAt.Size.Y), BoltHeight, new Random());
         public FlatBlink Blink { get; } = new();
         public bool Low { get; set; }
         public float Bright { get; set; } = 1;
 
-        public void Place(Vector2 at, int width)
+        /// <summary>A hover spot over each store's piece, by slot order; empty for a slot with none.</summary>
+        public Control[] Spots { get; }
+
+        public void Place(Vector2 origin, float scale)
         {
-            Position = at;
-            Size = new Vector2(width, Look.TabHeight);
-            _light.Size = Size;
-            WristArt.Fit(_frame, WristPieces.Gauge, Size);
+            Position = origin;
+            Scale = new Vector2(scale, scale);
         }
+
+        /// <summary>A read: the stores and what they are, laid out a piece each, in reverse slot order, fitted to the row.</summary>
+        public void Read(EnergyRead read)
+        {
+            Ring.Read(read.Stores, read.Draw);
+            (_stores, _items) = (read.Stores, read.Items);
+            var order = Vitals.ChargeOrder(_stores.Count);
+            var worn = new List<int>();
+            foreach (int k in order)
+                if (_stores[k] is not null) worn.Add(k);
+            var row = Vitals.Fit(worn.ConvertAll(k => (double)_stores[k]!.Value.Capacity / Spec.Charge.Battery), Vitals.BatteryWidth);
+            _pieces = new (float, float)?[_stores.Count];
+            for (int i = 0; i < worn.Count; i++) _pieces[worn[i]] = row[i];
+            for (int k = 0; k < Spots.Length; k++)
+                (Spots[k].Position, Spots[k].Size) = k < _pieces.Length && _pieces[k] is { } p
+                    ? (new Vector2(p.X, Top), new Vector2(Math.Max(8, p.W), Height)) : (Vector2.Zero, Vector2.Zero);
+        }
+
+        /// <summary>Store <paramref name="k"/>'s tip: what it is, what it holds of its full, in power units.</summary>
+        public Tip? TipOf(int k) =>
+            k < _stores.Count && _stores[k] is { } s && _items[k] is { } item
+                ? new Tip(T("hud.store", ("name", T($"item.{item}")), ("charge", Charges.Grouped(s.Charge / Spec.Charge.Scale)), ("capacity", Charges.Grouped(s.Capacity / Spec.Charge.Scale))), [])
+                : null;
 
         public override void _Process(double delta)
         {
             _clock += delta;
-            Count.Step(delta);
             Ring.Step(delta);
             Pulse.Step(delta);
             Blink.Step(delta);
-            // The ring and the count, the most of its drawing, change only with the belt: drawn again then; the bolt and its light move.
-            if (Changed()) QueueRedraw();
+            QueueRedraw();
             _bolt.QueueRedraw();
             _light.QueueRedraw();
         }
 
-        /// <summary>Whether what the ring and the count show differs from when they were last drawn.</summary>
-        private bool Changed()
-        {
-            _now.Clear();
-            var tone = Tone();
-            _now.Add((float)Math.Round(Count.Value));
-            _now.Add(tone.R);
-            _now.Add(tone.A);
-            _now.Add(Size.X);
-            for (int k = 0; k < Ring.Count; k++)
-            {
-                _now.Add(Ring.Share(k));
-                _now.Add(Ring.Lit(k));
-            }
-            var now = System.Runtime.InteropServices.CollectionsMarshal.AsSpan(_now);
-            if (now.SequenceEqual(System.Runtime.InteropServices.CollectionsMarshal.AsSpan(_drawn))) return false;
-            _drawn.Clear();
-            _drawn.AddRange(_now);
-            return true;
-        }
+        private string Tone => Low ? "amber" : "green";
 
-        private Color Tone(float alpha = 1)
-        {
-            float pulse = Low ? WristGauge.Pulse(_clock) : 1;
-            return AsciiArt.Colour(Low ? Look.EnergyLow : Look.Energy) with { A = alpha * pulse * Bright };
-        }
+        private float PulseOf => Low ? Vitals.Pulse(_clock) : 1;
+
+        private void Span(CanvasItem on, string tone, (float X, float W) p, int k, float from, float to, float alpha) =>
+            LightStrip.Span(on, LightStrip.Of(tone, k), p.X, Top, p.W, Height, from, to, Colors.White with { A = alpha });
 
         public override void _Draw()
         {
-            WristArt.DrawScreen(this, Size, WristArt.Screen, glare: false);
-            DrawRingArcs();
-            var groups = Charges.Grouped((int)Math.Round(Count.Value)).Split(Charges.Thin);
-            // Right-aligned, a group at a time from the right, a thin space between.
-            float x = Size.X - Look.EnergyRight;
-            var colour = Tone();
-            for (int i = groups.Length - 1; i >= 0; i--)
+            for (int k = 0; k < _pieces.Length; k++)
             {
-                var font = Style.Mono;
-                x -= font.GetStringSize(groups[i], HorizontalAlignment.Left, -1, FontSize).X;
-                DrawString(font, new Vector2(x, Look.EnergyBaseline), groups[i], HorizontalAlignment.Left, -1, FontSize, colour);
-                x -= ThinWidth;
+                if (_pieces[k] is not { } p) continue;
+                Span(this, "darkGreen", p, k, 0, p.W, 0.9f * Bright);
+                float share = Ring.Share(k);
+                if (share > 0) Span(this, Tone, p, k, 0, p.W * share, (0.3f + 0.65f * Ring.Lit(k)) * PulseOf * Bright);
             }
         }
 
-        private void DrawRingArcs()
-        {
-            for (int k = 0; k < Ring.Count; k++)
-            {
-                var (a0, a1) = EnergyRing.Arc(k, Ring.Count);
-                Arc(this, a0, a1, Tone(0.12f));
-                float share = Ring.Share(k);
-                if (share > 0) Arc(this, a0, a0 + (a1 - a0) * share, Tone(0.3f + 0.65f * Ring.Lit(k)));
-            }
-        }
+        /// <summary>The bolt in its own pixels, scaled to the block's sign and centred on the charge row, thrown by the beat and a flat press.</summary>
+        private void BoltTransform(CanvasItem on) =>
+            on.DrawSetTransform(BoltCentre - Centre * Vitals.SignScale + new Vector2(Pulse.Jolt.X + Blink.Jolt.X, Pulse.Jolt.Y + Blink.Jolt.Y) * Vitals.SignScale, 0, new Vector2(Vitals.SignScale, Vitals.SignScale));
 
         private void DrawBolt(CanvasItem layer)
         {
             var (on, bright) = Pulse.Look();
             var white = Colors.White with { A = Bright };
-            layer.DrawSetTransform(Jolt);
+            BoltTransform(layer);
             if (Pulse.Kindle is double k && k < 0.45)
             {
                 // Kindled from below: the dark bolt, lit up from its tip.
@@ -204,27 +200,27 @@ public partial class EnergyBar : CanvasLayer
             layer.DrawSetTransform(Vector2.Zero);
         }
 
-        /// <summary>Where the beat has thrown the bolt, with its current and halo.</summary>
-        private Vector2 Jolt => new(Pulse.Jolt.X + Blink.Jolt.X, Pulse.Jolt.Y + Blink.Jolt.Y);
-
-        /// <summary>What lights the tab, added over it: the bolt's halo and current, the drained arc's glint, the hop, discharges.</summary>
+        /// <summary>What lights the row, added over it: the glow under the lit pieces, the drained store's glint, the hop, the bolt's light, discharges.</summary>
         private void DrawLight(Control on)
         {
+            DrawPiecesLight(on);
             var (lit, _) = Pulse.Look();
             if (Blink.Red > 0)
             {
                 float red = (float)Blink.Red;
-                // The red bolt throws its light round it, past the tab's edge, a hot core at its heart.
-                on.DrawSetTransform(Jolt);
+                for (int k = 0; k < _pieces.Length; k++)
+                    if (_pieces[k] is { } p) Span(on, "red", p, k, 0, p.W, 0.45f * red);
+                // The red bolt throws its light round it, a hot core at its heart.
+                BoltTransform(on);
                 Glow(on, Centre, 24, Flat with { A = 0.5f * red });
                 Glow(on, Centre, 12, Flat with { A = 0.75f * red });
                 on.DrawTextureRect(Dark, BoltAt, false, Colors.White with { A = 0.8f * red });
                 Glow(on, Centre, 5, FlatCore with { A = 0.55f * red });
                 on.DrawSetTransform(Vector2.Zero);
             }
-            double kindle = Pulse.Kindle is double k ? 0.35 * (1 - k / BoltPulse.KindleS) : 0;
+            double kindle = Pulse.Kindle is double kd ? 0.35 * (1 - kd / BoltPulse.KindleS) : 0;
             float halo = lit ? (float)Math.Clamp(0.05 + 0.16 * Pulse.Beat * Pulse.Level + kindle + Pulse.Flare, 0, 0.8) : 0;
-            on.DrawSetTransform(Jolt);
+            BoltTransform(on);
             if (halo > 0) Glow(on, Centre, 12, Hot with { A = halo * Bright });
             if (lit && Pulse.Level > 0.02 && Pulse.Kindle is null)
                 for (int band = 0; band < 2; band++)
@@ -235,8 +231,6 @@ public partial class EnergyBar : CanvasLayer
                     BoltPart(on, Bolt, y - 2, y - 1, Current with { A = a * 0.4f });
                     BoltPart(on, Bolt, y + 1, y + 2, Current with { A = a * 0.4f });
                 }
-            on.DrawSetTransform(Vector2.Zero);
-            DrawRingLight(on);
             foreach (var arc in Pulse.Arcs)
             {
                 float a = (float)arc.Life * arc.Strength * Bright;
@@ -248,46 +242,42 @@ public partial class EnergyBar : CanvasLayer
                 }
                 Glow(on, new Vector2(arc.End.X, arc.End.Y), arc.Harsh ? 3 : 2, Hot with { A = 0.6f * a });
             }
+            on.DrawSetTransform(Vector2.Zero);
         }
 
-        private void DrawRingLight(Control on)
+        /// <summary>The glow under each lit piece; on the drained one a bright end and a glint running back; a store put on filling in; the hop.</summary>
+        private void DrawPiecesLight(Control on)
         {
-            var bright = Tone().Lerp(Colors.White, 0.55f);
-            for (int k = 0; k < Ring.Count; k++)
+            for (int k = 0; k < _pieces.Length; k++)
             {
-                var (a0, a1) = EnergyRing.Arc(k, Ring.Count);
-                float share = Ring.Share(k), lit = Ring.Lit(k), end = a0 + (a1 - a0) * share;
+                if (_pieces[k] is not { } p) continue;
+                float share = Ring.Share(k), lit = Ring.Lit(k), end = p.W * share;
                 if (share <= 0) continue;
+                LightStrip.Glow(on, LightStrip.Of(Tone, k), p.X, Top, p.W, Height, 0, end, lit * PulseOf * Bright);
                 if (lit > 0.85f)
                 {
-                    Arc(on, MathF.Max(a0, end - 0.09f), end, bright);
-                    float at = end - (float)Ring.Glint * (end - a0);
-                    Arc(on, MathF.Max(a0, at - 0.12f), MathF.Min(end, at + 0.12f), bright with { A = bright.A * 0.5f * (lit - 0.85f) / 0.15f });
+                    Span(on, "paleGreen", p, k, end - 2, end, 0.6f * Bright);
+                    float at = end - (float)Ring.Glint * end;
+                    Span(on, "paleGreen", p, k, at - 3, Math.Min(end, at + 3), 0.75f * (lit - 0.85f) / 0.15f * Bright);
                 }
-                if (Ring.FillingIn(k)) Arc(on, MathF.Max(a0, end - 0.18f), end, bright with { A = bright.A * (float)(0.8 * (1 - Ring.FillIn(k)) + 0.3) });
+                if (Ring.FillingIn(k)) Span(on, "paleGreen", p, k, end - 6, end, (float)(0.8 * (1 - Ring.FillIn(k)) + 0.3) * Bright);
             }
-            if (Ring.Hop is { Gone: < 1 } hop)
+            if (Ring.Hop is { Gone: < 1 } hop && FillEnd(hop.From) is { } from && FillEnd(hop.To) is { } to)
             {
-                float from = EnergyRing.Arc(hop.From, Ring.Count).Start, to = EnergyRing.Arc(hop.To, Ring.Count).End;
-                if (to < from) to += MathF.Tau;
-                float angle = from + (to - from) * (float)(1 - Math.Pow(1 - hop.Gone, 3));
-                var at = Centre + new Vector2(MathF.Cos(angle), MathF.Sin(angle)) * EnergyRing.Radius;
-                Glow(on, at, 4, Tone().Lerp(Colors.White, 0.6f) with { A = 0.7f * Bright });
+                float x = from + (to - from) * (float)(1 - Math.Pow(1 - hop.Gone, 3));
+                var at = new Vector2(x, Vitals.ChargeY);
+                Glow(on, at, 5, new Color(Charges.Green).Lerp(Colors.White, 0.6f) with { A = 0.7f * Bright });
                 on.DrawRect(new Rect2(at - new Vector2(0.75f, 0.75f), new Vector2(1.5f, 1.5f)), Colors.White with { A = 0.9f * Bright });
             }
         }
 
-        private static void Arc(CanvasItem on, float start, float end, Color colour)
-        {
-            if (end <= start) return;
-            int points = Math.Max(3, (int)((end - start) * EnergyRing.Radius / 1.5f));
-            on.DrawArc(Centre, EnergyRing.Radius, start, end, points, colour, 1.5f, true);
-        }
+        /// <summary>Where store <paramref name="k"/>'s light ends, in block units; null for a slot with no store.</summary>
+        private float? FillEnd(int k) => k < _pieces.Length && _pieces[k] is { } p ? p.X + p.W * Ring.Share(k) : null;
 
         private static void Glow(CanvasItem on, Vector2 at, float radius, Color colour) =>
             on.DrawTextureRect(Soft, new Rect2(at - new Vector2(radius, radius), new Vector2(2 * radius, 2 * radius)), false, colour);
 
-        /// <summary>The rows of the bolt's picture between <paramref name="top"/> and <paramref name="bottom"/>, in the tab's pixels.</summary>
+        /// <summary>The rows of the bolt's picture between <paramref name="top"/> and <paramref name="bottom"/>, in the bolt's pixels.</summary>
         private static void BoltPart(CanvasItem on, Texture2D picture, float top, float bottom, Color colour)
         {
             top = Math.Max(top, BoltAt.Position.Y);
@@ -299,18 +289,18 @@ public partial class EnergyBar : CanvasLayer
                 new Rect2(0, from * size.Y, size.X, (to - from) * size.Y), colour);
         }
 
-        /// <summary>The bolt, over the ring and under the frame: drawn every frame as it beats, the tab under it only when it changes.</summary>
+        /// <summary>The bolt, over the pieces: drawn every frame as it beats.</summary>
         private sealed partial class BoltLayer : Node2D
         {
-            public Tab? Tab { get; set; }
+            public Row? Row { get; set; }
 
-            public override void _Draw() => Tab?.DrawBolt(this);
+            public override void _Draw() => Row?.DrawBolt(this);
         }
 
-        /// <summary>The tab's light, drawn added over it.</summary>
+        /// <summary>The row's light, drawn added over it.</summary>
         private sealed partial class Light : Control
         {
-            public Tab? Tab { get; set; }
+            public Row? Row { get; set; }
 
             public Light()
             {
@@ -318,7 +308,7 @@ public partial class EnergyBar : CanvasLayer
                 Material = new CanvasItemMaterial { BlendMode = CanvasItemMaterial.BlendModeEnum.Add };
             }
 
-            public override void _Draw() => Tab?.DrawLight(this);
+            public override void _Draw() => Row?.DrawLight(this);
         }
     }
 }

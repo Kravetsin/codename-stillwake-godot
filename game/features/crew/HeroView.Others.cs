@@ -156,10 +156,15 @@ public partial class HeroView
         _ui.Refill();
     }
 
-    /// <summary>Eats <paramref name="food"/> (food-and-the-body): sent, its chewing heard in the helmet, when the sim would take it now and no meal is in flight.</summary>
+    /// <summary>
+    /// Eats <paramref name="food"/> (food-and-the-body): sent, its chewing heard in the helmet, when the sim would take it now and
+    /// no meal is in flight; refused, the meal slots blink.
+    /// </summary>
     private void Eat(Client client, Registry m, string food)
     {
-        if (Report.EatOf(food, m.Crew.EatProblem(client.Id, food), client.InFlight) is not { } eat) return;
+        string? problem = m.Crew.EatProblem(client.Id, food);
+        if (problem != null) _ui.RefuseMeal(food, problem);
+        if (Report.EatOf(food, problem, client.InFlight) is not { } eat) return;
         client.Send(eat);
         _eats.Play();
     }

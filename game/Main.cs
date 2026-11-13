@@ -239,7 +239,7 @@ public partial class Main : Node2D, ITogether
             _items.Panel.Launch = LaunchOf;
             AddChild(new Features.Landing.FlightOverlay(() => _session is Session s ? (s.Client.World.SurfaceOf(s.Client.Id), _m.Landing.FlightOf(s.Client.Id)) : null,
                 () => (_session as Session)?.Progress ?? 0, () => _camera.CurrentZoom));
-            // The belt's energy beside the suit's, whatever is held, so the gauge row never changes width (0081). Before the
+            // The vitals at the bottom-left (hud-vitals): the belt's charge under the suit's air, whatever is held. Before the
             // suit's gauge, so the red edges cover it as they cover the rest of the HUD.
             var energy = new EnergyBar(() => _session is Session s ? EnergyRead.Of(_m.Items.Inventory(s.Client.Id), _m.Items.BeltCharge(s.Client.Id), p => _m.Items.SlotOpen(s.Client.Id, p), _m.Items.Running(s.Client.Id)) : null, _hands.Ui);
             AddChild(energy);
@@ -248,9 +248,9 @@ public partial class Main : Node2D, ITogether
             _items.Panel.CanisterIn = CanisterIn;
             // Its own layer, above the world: read from whatever registry the session runs now.
             var gauge = new SuitGauge(() => _session is Session s ? Danger.Read(_m.Crew, _m.Atmosphere, s.Client.Id) : (1, 1, SuitDanger.None, true),
-                CanisterIn, _hands.Ui);
+                CanisterIn, () => _session is Session s ? _m.Items.WornIn(s.Client.Id, Content.Helmet.Slot) : null, _hands.Ui);
             AddChild(gauge);
-            // The hero's meals under the gauge, a stand-in until the gauges' redesign (food-and-the-body).
+            // The hero's meals, the vitals' bottom row (hud-vitals).
             AddChild(new MealSlots(() => _session is Session s && _m.Crew.HeroOf(s.Client.Id) is { } fed
                 ? (fed.Meals.Select(m => (m.Food, m.Left)).ToList(), _m.Crew.Hungry(s.Client.Id)) : null, _hands.Ui));
             if (_hero is { } breathing) gauge.BreathesAgain += breathing.BreathesAgain;
@@ -263,7 +263,6 @@ public partial class Main : Node2D, ITogether
             {
                 foreach (var covered in panel.Covers()) yield return covered;
                 yield return gauge.Covers;
-                yield return energy.Covers;
                 if (building.Covers is { } plan) yield return plan;
                 if (fabricator.Covers is { } crafts) yield return crafts;
                 if (_edge != null) yield return _edge.Covers;

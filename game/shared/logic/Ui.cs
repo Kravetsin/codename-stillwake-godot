@@ -375,6 +375,14 @@ public sealed class Ui
     public void Eat(string food) => Ate?.Invoke(food);
 
     /// <summary>
+    /// This player asked to eat <c>food</c> and the sim would refuse it for <c>problem</c> (hud-vitals): <c>crew</c> says so, once a
+    /// press; the meal slots blink red.
+    /// </summary>
+    public event Action<string, string>? MealRefused;
+
+    public void RefuseMeal(string food, string problem) => MealRefused?.Invoke(food, problem);
+
+    /// <summary>
     /// This player asked to switch its suit's mode (2026-11-03-the-regen-suit): the suit's key on the tablet's edge says so;
     /// <c>crew</c> sends it, as it does for V.
     /// </summary>

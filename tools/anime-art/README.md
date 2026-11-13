@@ -58,7 +58,7 @@ finish is `wash.js`, one for every subject; these are the rules a drawing must f
 | `scanner` | `hero_scanner`, `hero_heavyHelmet_scanner`, `_lit_<n>`, `items/scanner`; `ScannerInk.cs` |
 | `charge`, `missile` | `hero_blastCharge` (`icons/` lit), `shot_blastCharge_spark`: its fuse in flight; `shot_missile` |
 | `edgekeys` | `holo_<key>`, `holo_<key>_glow`: the edge keys' white masks and glows |
-| `signs`, `credit`, `capsule`, `gauge` | `sign_*`: bolts, plug, wrench, tips; `credit`: the chip; `capsule`, `capsule_flame_<n>`: the trade capsule; `gauge_lamp[Wide]_<shape>_<tone>`: air lamps |
+| `signs`, `credit`, `capsule`, `gauge` | `sign_*`: bolts, plug, wrench, tips; `credit`: the chip; `capsule`, `capsule_flame_<n>`: the trade capsule; `gauge_*`: the vitals' light |
 | `upgrades` | `upgrade_bag`, `upgrade_belt`, `upgrade_tradeSlots`, `upgrade_canister`: wares that are no item |
 | `zleftovers` | the arc bench's and lamp's glows, `machine_emergencyLamp`, `module_arc_coil`, the pod's lit state and porthole, `wrist_*`, `tablet_*`: frames repeat for a seamless 9-slice |
 
