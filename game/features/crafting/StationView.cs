@@ -16,7 +16,8 @@ namespace Stillwake.Game.Features.Crafting;
 /// die, lit as the machine is; the electric smelter's coils glow behind their grate, drawn unlit, each lighting the
 /// room round it in its glow's colour; the circuit assembler's arm dips to its board under the glass, its rotor joint
 /// turning, while its screen runs green, drawn unlit over it (<c>art/{kind}_screen_*.png</c>, in step), lighting the
-/// room green. Idle, waiting full or without power, it stands still and dark. A fed station too cold for what its
+/// room green; the galley's pot steams and its firebox glows while its fire burns (the furnace module's, 0023). Idle, waiting
+/// full or without power, it stands still and dark. A fed station too cold for what its
 /// input holds shows a cold-blue mark where it would work it, pulsing, its own faint light. Heard where it stands as it works
 /// (<see cref="StationSounds"/>): the Former's strokes in step with its head, its motor; the smelter's hum and its melt; the galley's
 /// pot on the boil and a knock on its lid as a dish is done.
@@ -70,6 +71,8 @@ public partial class StationView : Node2D
     private readonly IGridQueries _grid;
     private readonly CraftingModule _crafting;
     private readonly IItemsQueries _items;
+    /// <summary>Whether a machine's fire burns (the furnace module's <c>Burning</c>): what a galley's motion follows.</summary>
+    private readonly Func<int, bool> _burning;
     /// <summary>Each station's arcs while the arc module is fitted (<see cref="ArcCrackle"/>, 0086), by machine id, and those seen this frame.</summary>
     private readonly Dictionary<int, ArcCrackle> _arcs = new();
     private readonly HashSet<int> _arced = new();
@@ -90,21 +93,23 @@ public partial class StationView : Node2D
     private readonly HashSet<int> _heated = new();
     private double _clock;
 
-    public StationView(IGridQueries grid, CraftingModule crafting, IItemsQueries items)
+    public StationView(IGridQueries grid, CraftingModule crafting, IItemsQueries items, Func<int, bool> burning)
     {
         _grid = grid;
         _crafting = crafting;
         _items = items;
+        _burning = burning;
         AddChild(_marks);
         AddChild(_sounds);
         _marks.Draw += DrawMarks;
     }
 
-    /// <summary>What a station paid by hand holds made, its slots being all outputs: one more is a unit done.</summary>
-    private int Made(int machine)
+    /// <summary>What a galley holds made, in its outputs past its fuel: one more is a unit done.</summary>
+    private int Made(int machine, string kind)
     {
         int made = 0;
-        foreach (var stack in _items.Crate(machine)) made += stack?.Count ?? 0;
+        var slots = _items.Crate(machine);
+        for (int i = Content.Machines.Get(kind).Inputs ?? 0; i < slots.Count; i++) made += slots[i]?.Count ?? 0;
         return made;
     }
 
@@ -127,13 +132,17 @@ public partial class StationView : Node2D
             if (!Moving.TryGetValue(m.Kind, out var motion)) continue;
             // A picture taller than its footprint, a bench's, rises over it (ShipTiles.RiseOf): its frames rise with it.
             var art = corner - new Vector2(0, ShipTiles.RiseOf(m.Kind) * Cell);
-            bool works = _crafting.Works(m.Id);
+            // A fire's share is told to crafting only within a tick: a galley's fire and pot move while it burns, its pot heard
+            // only while a dish cooks on it.
+            bool fired = Content.Machines.Get(m.Kind).FuelSlot != null;
+            bool works = fired ? _burning(m.Id) : _crafting.Works(m.Id);
+            bool heard = fired ? works && _crafting.HasWork(m.Id) : works;
             if (m.Kind == "smelter") Heat(m.Id, corner, works, delta);
             if (Content.Modules.Fits(Content.Modules.Arc.Item, m.Kind)) Arc(m, corner, works, delta);
             // Each machine a step apart from the next, so two never beat in step.
             long step = (long)(_clock / motion.StepMs) + m.Id;
             var middle = art + PixelArt.Picture($"{m.Kind}_work_0").GetSize() / 2;
-            _sounds.Hear(m.Id, m.Kind, middle, works, step, motion.Frames, motion.Down, delta, m.Kind == "galley" ? Made(m.Id) : 0);
+            _sounds.Hear(m.Id, m.Kind, middle, heard, step, motion.Frames, motion.Down, delta, m.Kind == "galley" ? Made(m.Id, m.Kind) : 0);
             if (!works) continue;
             _working.Add(m.Id);
             if (!_shown.TryGetValue(m.Id, out var shown)) _shown[m.Id] = shown = Shown(motion);

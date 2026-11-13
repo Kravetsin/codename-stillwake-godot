@@ -79,6 +79,8 @@ public partial class FabricatorPanel : CanvasLayer
     /// <summary>Where the station's module sockets go, under its inputs, and their heading (0086).</summary>
     private readonly HBoxContainer _sockets = new() { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill, Alignment = BoxContainer.AlignmentMode.End };
     private readonly Label _socketsHeading = new() { Text = T("module.socket"), LabelSettings = AsideText };
+    /// <summary>A galley's fire by its fuel's heading: why it is out, or that it is blown; orange while it burns.</summary>
+    private readonly Label _fire = new() { LabelSettings = AsideText };
     private readonly Label _opened = new() { LabelSettings = AsideText };
     private readonly FabricatorScreen _screen = new() { SizeFlagsVertical = Control.SizeFlags.ShrinkCenter };
     /// <summary>The machine frame every machine opens in: the station's name, a powered one's bolt, and the screen in its header.</summary>
@@ -147,6 +149,9 @@ public partial class FabricatorPanel : CanvasLayer
     /// <summary>What a station draws while it works, its modules folded in (0086): the power module's <c>Draw</c>. Set by <c>Main</c>.</summary>
     public Func<int, int>? Draw { get; set; }
 
+    /// <summary>A galley's fire as its panel shows it (0023): the furnace module's <c>At</c>. Set by <c>Main</c>.</summary>
+    public Func<int, Sim.Furnace.Smelting>? Fire { get; set; }
+
     /// <summary>The queued station open under the inventory: the machine E opened, while it is one and the inventory is shown.</summary>
     private (int Id, Content.Station Station)? Open =>
         _ui.InventoryFoot.Get() != null && _ui.OpenCrate.Get() is int id && _crafting?.StationOf(id) is { Fed: false } station ? (id, station) : null;
@@ -176,6 +181,7 @@ public partial class FabricatorPanel : CanvasLayer
         // Inputs, queue, outputs: what goes in, what is ordered, what came out (the logistics mockup).
         // The module socket at the inputs' right end, under its own word (0086): a row of its own would push the panel past 720 px.
         right.AddChild(_inputsHeading = Heading(T("fabricator.inputs"), _socketsHeading));
+        _inputsHeading.AddChild(_fire);
         var inputs = Style.Gap(new HBoxContainer(), 12);
         inputs.AddChild(_inputs);
         inputs.AddChild(_sockets);
@@ -287,12 +293,25 @@ public partial class FabricatorPanel : CanvasLayer
             Build(pod, station, queue, outputs, lacks);
         }
         if (_fill != null && queue.Count > 0) Fill(_fill, Crafts.Share(queue[0].Recipe, progress));
-        bool works = _crafting.Works(pod);
+        // A fire's share is told to crafting only within a tick (CraftingModule.Works): a galley works while its fire burns on a dish.
+        var fire = Content.Machines.Get(station.Machine).FuelSlot != null ? Fire?.Invoke(pod) : null;
+        bool works = fire != null ? fire.Burning && _crafting.HasWork(pod) : _crafting.Works(pod);
+        ShowFire(fire);
         _screen.Doing = Crafts.DoingOf(queue, progress, works, lacks.Count > 0);
         // What it draws with its modules: an arc fitted doubles it (0086).
         if (Content.Machines.Get(station.Machine).Draws != null && Draw?.Invoke(pod) is int draw) _panel.Describe(T($"station.{station.Machine}"), draw);
         // A station that draws shows its bolt and what it draws, lit while it works and dark at 0 while it rests or has no power.
         _panel.Light(works);
+    }
+
+    /// <summary>A galley's fire by its fuel: why it is out, or that it is blown, in the fire's orange while it burns; nothing at any other station.</summary>
+    private void ShowFire(Sim.Furnace.Smelting? fire)
+    {
+        _fire.Visible = fire != null;
+        if (fire == null) return;
+        string says = fire.Problem is { } problem ? T(problem) : fire.Blown ? T("furnace.blown") : fire.Burning ? T("fabricator.burning") : "";
+        if (_fire.Text != says) _fire.Text = says;
+        _fire.Modulate = fire.Burning ? Style.Orange400 : Colors.White;
     }
 
     private Look LookOf(string craft) =>
@@ -345,7 +364,7 @@ public partial class FabricatorPanel : CanvasLayer
         int inputs = Inputs(station);
         bool tunes = Content.Machines.Get(station.Machine).Tunes;
         _inputsHeading.Visible = _inputs.Visible = inputs > 0;
-        _inputsHeading.GetChild<Label>(0).Text = T(tunes ? "fabricator.tool" : "fabricator.inputs");
+        _inputsHeading.GetChild<Label>(0).Text = T(tunes ? "fabricator.tool" : Content.Machines.Get(station.Machine).FuelSlot != null ? "fabricator.fuel" : "fabricator.inputs");
         if (_servedFor != pod)
         {
             _servedFor = pod;

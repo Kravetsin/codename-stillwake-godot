@@ -594,7 +594,7 @@ public partial class Main : Node2D, ITogether
         if (_items != null) _items.Panel.Draw = _m.Power.Draw;
         if (_items != null) _items.Panel.Crafting = _m.Crafting;
         if (_items != null) _items.Frame(client, _m.Grid, _m.Rooms, _m.Items, _m.Debris, NetHolds, SpotOf(_hero), session.Progress, session.Drift, delta * 1000);
-        if (_fabricator != null) _fabricator.Draw = _m.Power.Draw;
+        if (_fabricator != null) (_fabricator.Draw, _fabricator.Fire) = (_m.Power.Draw, _m.Furnace.At);
         _fabricator?.Frame(client, _m.Crafting, _m.Research, _m.Items, _m.Grid, delta * 1000);
         _frameLog?.Mark("items");
         _debris.Frame(client, _m.Debris, _camera.View(), session.Drift, delta * 1000);

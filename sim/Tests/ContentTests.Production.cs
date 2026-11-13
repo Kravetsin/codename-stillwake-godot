@@ -249,10 +249,10 @@ public partial class ContentTests
             {
                 Assert.True(station.QueueMost > 0, station.Machine);
                 int most = station.Rows.SelectMany(r => r).Max(craft => Crafts.Get(craft).Cost.Select(c => c.Item).Distinct().Count());
-                // The pod, the workbench and the galley are paid by hand, so they take nothing in.
-                if (station.Machine is "lifepod" or "workbench" or "galley") Assert.Equal(0, spec.Inputs);
-                // The arc bench is paid by hand too; its one input is its tool's (0099).
-                else if (spec.Tunes) Assert.Equal(1, spec.Inputs);
+                // The pod and the workbench are paid by hand, so they take nothing in.
+                if (station.Machine is "lifepod" or "workbench") Assert.Equal(0, spec.Inputs);
+                // The arc bench and the galley are paid by hand too; the one input is the tool's (0099), the fire's.
+                else if (spec.Tunes || spec.FuelSlot != null) Assert.Equal(1, spec.Inputs);
                 else Assert.True(spec.Inputs >= most, $"{station.Machine}: {spec.Inputs} inputs, a craft of {most} items");
                 foreach (var craft in station.Rows.SelectMany(r => r)) Assert.Equal(0, Crafts.Get(craft).Ticks * 1000 % station.Speed);
             }
