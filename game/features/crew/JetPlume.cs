@@ -61,7 +61,8 @@ public partial class JetPlume : Node2D
         if (on)
         {
             var (tx, ty) = toward!.Value;
-            _way = tx == 0 && ty == 0 ? Vector2.Down : new Vector2((float)-tx, (float)-ty).Normalized();
+            var (wx, wy) = PlumeWay.Of(tx, ty);
+            _way = new Vector2(wx, wy);
             _nozzle = nozzle!.Value;
             if (!_on) Stages.Of(Layers.Tethers).Flares.Shock(_nozzle.X + _way.X * 3, _nozzle.Y + _way.Y * 3, 1.5, 10.5, 12 * Glim.SampleMs, Ring, 0.35 * Fx.Glow, 0.3);
             Emit(elapsedMs);
