@@ -195,7 +195,6 @@ const suitParts = (c) => {
   };
 };
 const neck = (a, sk, x0, x1) => a.shape(`M${x0 + .1} -2.6L${x1 - .1} -2.6L${x1 + .2} 1L${x0 - .2} 1Z`, sk, { outer: false, shade: `M${x0 - 1} -1.4L${x1 + 1} -1.4L${x1 + 1} 1.2L${x0 - 1} 1.2Z`, lines: [`M${x0 + .9} -2.2L${x0 + 1.1} .6`] });
-const glassRim = (a, d, F) => a.shape(d, F, { outer: false, shade: .3 });
 
 // ---------- Каторжник: faded rust issue coverall, a stencilled number ----------
 const ROBE = mat('#96603f', '#6c4231', '#4a2e28', '#ab7a58');
@@ -327,7 +326,6 @@ const MUST = mat('#a38749', '#745c38', '#503f2d', '#b89e66');
 const MUST2 = mat('#8f7640', '#655132', '#463729', '#a48b58');
 const CLOTH = mat('#4a4438', '#322e27', '#23201c', '#5c5548');
 const GLASS_SEEN = 0.62;
-const GLASS = 'M6.6 4.4C8.4 3.9 10.8 4 12.2 4.7C12.5 6 12.4 7.6 12 8.6C10.4 9.1 8.2 9.1 6.9 8.4C6.3 7.2 6.2 5.6 6.6 4.4Z';
 const V_TORSO = 'M3.2 .5C4.4 0 7.6 0 8.8 .5C10.2 1 10.8 2.1 10.8 3.6L10.4 8.2C10.3 9.8 10.6 11.4 10.4 13C10 14.4 9 15 7.6 15L4.4 15C3 15 2 14.4 1.6 13C1.4 11.4 1.7 9.8 1.6 8.2L1.2 3.6C1.2 2.1 1.8 1 3.2 .5Z';
 const faded = ((M, M2, Sk, Pad) => ({
   ...suitParts({ M: M2, P: Pad, torso: V_TORSO, mend: {
@@ -343,14 +341,6 @@ const faded = ((M, M2, Sk, Pad) => ({
     a.shape('M.7 1.2C.7 .4 1.3 0 2 0L2.9 0C3.7 0 4.3 .4 4.3 1.2L4.3 10.8C4.3 11.6 3.7 12 2.9 12L2 12C1.3 12 .7 11.6 .7 10.8Z', mat('#6e6c64', '#4b4a44', '#35342f', '#807e74'), { deep: 'M0 10L5 10L5 13L0 13Z', lines: ['M.7 2.6C1.8 3 3.2 3 4.3 2.6', 'M.7 9.5C1.8 9.9 3.2 9.9 4.3 9.5'] });
     a.flat('M1.2 5L2 4.8L2.8 5.6L1.8 6.2Z', '#4a4842');
     taped(a, .7, 6.4, 3.6, '#2f2c28');
-  },
-  s_head(a) {
-    a.shape('M7 1C10 .9 12.3 2.8 12.6 5.8C12.8 8.2 12.2 10.4 10.8 11.4C9.4 12.2 5.2 12.2 3.8 11.5C2.2 10.6 1.4 8.4 1.5 6C1.7 3 3.8 1.1 7 1Z', M2, { shade: 'M1 8.8L14 8.8L14 13L1 13Z', deep: 'M1 10.6L14 10.6L14 13L1 13Z', lines: ['M5.4 1.2C4 3.6 3.8 7.6 4.6 11.8', 'M1.8 8.4C2.4 8.9 3.2 9.2 4.3 9.3', 'M8 2.4L9.8 3', 'M9.6 1.8L10.2 2.8'] });
-    a.flat(poly(1.8, 5, 4, 4.7, 4.2, 6, 1.9, 6.3), '#2f2c28');
-    a.line('M2 5.2L2.2 6.2M3.8 4.9L4 5.9', { w: .9 });
-    a.line('M2.1 7L3.9 6.8M2.2 7.7L4 7.5', { w: 1.1, c: '#26231f' });
-    glassRim(a, 'M6 3.7C8.2 3.1 11 3.2 12.7 4.1C13 5.8 12.9 7.8 12.4 9.1C10.6 9.8 8 9.8 6.4 8.9C5.6 7.4 5.5 5.2 6 3.7Z', Pad);
-    a.shape(GLASS, GL, { outer: false, lite: 'M6.6 4.4C8.4 3.9 10.8 4 12.2 4.7L12.3 5.2C10.6 4.6 8.4 4.5 6.5 5Z' });
   },
   b_torso(a) {
     neck(a, Sk, 5, 7.6);
@@ -705,7 +695,7 @@ const only = (a, skin) => ({
   line(d, o) { if (!skin) a.line(d, o); },
   tube(d, w, m, o) { if (!skin) a.tube(d, w, m, o); },
 });
-const suitPart = (id) => ({ w: { s_pack: 4, s_torso: 12, s_upper: 5, s_fore: 5, s_thigh: 6, s_shin: 9, s_head: 13 }[id], h: { s_pack: 12, s_torso: 15, s_upper: 9, s_fore: 10, s_thigh: 12, s_shin: 11, s_head: 12 }[id], draw: faded[id] });
+const suitPart = (id) => ({ w: { s_pack: 4, s_torso: 12, s_upper: 5, s_fore: 5, s_thigh: 6, s_shin: 9 }[id], h: { s_pack: 12, s_torso: 15, s_upper: 9, s_fore: 10, s_thigh: 12, s_shin: 11 }[id], draw: faded[id] });
 
 /** The tracker's light, white for Modulate to tint: hard in the middle, a soft ring so it carries far off. On the strap's joint and margin. */
 function trackerLight() {
@@ -716,14 +706,11 @@ function trackerLight() {
   return c;
 }
 
-// ---------- The heavy helmet, as picked (2026-11-03-the-heavy-helmet): a diver's steel bell, a barred port in front, a small one at
-// the temple, bolted to a breastplate, its hose from the nape to the pack. In the basic helmet's box and joint, facing +x. ----------
+// ---------- The bell's kit, from the heavy helmet first drawn here (2026-11-03-the-heavy-helmet; now traced, helmets.js): its steel,
+// brass and rubber, rust, a corrugated hose and a dark port, for the catchers' gear and the regen suit. ----------
 const BST = { base: '#7f8796', shade: '#59606f', deep: '#3d4250', lite: '#a5acb8', spec: '#d6dbe2' };
 const BELL_BRASS = { base: '#a5874c', shade: '#6e5636', deep: '#4c3b2a', lite: '#cdb57c', spec: '#efe0b0' };
 const BELL_RUBBER = { base: '#2e2c2a', shade: '#1d1c1b', deep: '#121212', lite: '#45423e' };
-const BELL_PORT = ell(10.1, 6.2, 2.15, 2.25), BELL_SIDE = ell(5.4, 5.6, 1.15, 1.25);
-const BELL_GLASS = BELL_PORT + BELL_SIDE, BELL_BARS = [rr(9.05, 3.7, .6, 5, .2), rr(10.95, 3.75, .6, 4.9, .2)];
-const sq = (x0, y0, x1, y1) => poly(x0, y0, x1, y0, x1, y1, x0, y1);
 const fx = (n) => +n.toFixed(2);
 const rustAt = (a, x, y, s) => {
   a.flat(poly(x - s, y - .2 * s, x - .3 * s, y - .7 * s, x + .5 * s, y - .5 * s, x + s, y + .1 * s, x + .4 * s, y + .45 * s, x - .5 * s, y + .4 * s), '#6e4630');
@@ -741,24 +728,6 @@ const hose = (a, p, w, ribs) => {
   a.line(d, { w: .8 });
 };
 const port = (a, d, lite) => a.shape(d, GL, { outer: false, lite });
-function heavyHelmet(a) {
-  hose(a, [-.3, 7.4, -1.9, 11, -.5, 14.6], 1.15, 7);
-  a.shape(rr(2.4, -.6, 1.7, 1.3, .3), BELL_BRASS, { shade: .35 });
-  a.shape(ell(6.4, 5.4, 6.1, 6), BST, { shade: .9, deep: 'M-1 9.6C2 11 10 11 14 9.6L14 12L-1 12Z', lite: 'M1.6 2.6C3 .3 9.4 -.3 11.3 2.2L10.4 2.6C8.4 1.1 4.4 1.1 2.6 3Z',
-    lines: ['M3.6 -.1C2 3 2 8 3.6 11', 'M8.3 -.2C8 .4 8 .8 8.2 1.2', 'M2 6.6L2.6 7'] });
-  a.shape(rr(-1, 5.8, 1.8, 2, .4), BELL_BRASS, { shade: .4, lines: ['M-.1 5.9L-.1 7.7'] });
-  a.shape(ell(5.4, 5.6, 1.7, 1.8), BELL_BRASS, { shade: .35 });
-  port(a, BELL_SIDE, 'M4.4 4.8C5 4.3 5.9 4.3 6.4 4.8L6.3 5.1C5.8 4.8 5 4.8 4.5 5.1Z');
-  a.shape(ell(10.1, 6.2, 2.95, 3.05), BELL_BRASS, { shade: .45, lines: ['M7.6 4.6L7.9 4.9', 'M12.6 7.9L12.3 8.1'] });
-  port(a, BELL_PORT, 'M8.3 4.9C9.3 4 11 4 11.9 4.9L11.8 5.4C10.9 4.6 9.3 4.6 8.4 5.4Z');
-  for (const x of [9.05, 10.95]) a.shape(rr(x, 3.7, .6, 5, .2), BST, { outer: false, shade: .3, lite: sq(x, 3.7, x + .25, 8.7) });
-  a.shape(rr(2.2, 9.4, 8.6, 1.3, .3), BELL_BRASS, { shade: .35 });
-  a.shape('M-.8 13.8C-.6 11.6 1.4 10.4 3.4 10.2L9.6 10.2C11.6 10.4 13.6 11.6 13.8 13.8L13.6 14.9L-.6 14.9Z', BST,
-    { lite: 'M.6 11.4C1.4 10.7 2.4 10.4 3.4 10.3L9.6 10.3C10.6 10.4 11.6 10.7 12.4 11.4Z', deep: sq(-1, 14, 14, 15), lines: ['M6.2 10.4L6.2 14.6'] });
-  for (const x of [1, 3.8, 8.6, 11.4]) { a.shape(rr(x - .5, 11.3, 1, .9, .2), BELL_BRASS, { outer: false, shade: .3 }); a.line(`M${x - .7} 11.2L${x - .2} 11.5M${x + .7} 11.2L${x + .2} 11.5`, { w: .8 }); }
-  rustAt(a, 11.9, 12.7, .7); rustAt(a, 2.6, 9.2, .5);
-  a.line('M4.6 2.4L5.3 2.9M5.3 2.9L5.9 2.7', { w: .9 });
-}
 
 // ---------- The regen suit, as picked (2026-11-03-the-regen-suit): the "cable harness". Quilted grey, cables in copper bands spiral
 // from a battery socket at the hip to a brass ionizer collar with vent slits. Its whole body on the basic suit's boxes and joints;
@@ -924,11 +893,6 @@ Subjects.hero = function () {
   icon('hero_powerDriver_held', { w: 10, h: 8, draw: powerDriver({ f: 0, mode: 'idle' }), units: 1 / Hand, W });
   out('hero_powerDriver', strip('run'));
   out('hero_powerDriver_flat', strip('flat'));
-  // The helmet whole, for its card: shrunk a little into the pixel picture's box, which its round shell overhangs.
-  out('hero_helmet', bake({ ...suitPart('s_head'), units: 1.12, shift: [.35, .75], light: LIGHT }));
-  const [shell, visor] = cut(faded.s_head, GLASS, []);
-  out('hero_helmet_shell', shell);
-  out('hero_visor', visor);
   // The regen suit's parts in the basic's boxes, each part's bands lit apart, the collar's arcs and the empty belt's pip.
   for (const [name, id] of Object.entries(SUIT)) {
     const { w, h } = suitPart(id);
@@ -943,13 +907,6 @@ Subjects.hero = function () {
   }));
   out('hero_regenSuit_pip', lightPicture(12, 15, (paint) => paint(ell(10.2, 11.5, .4), PIP, PIP)));
   out('items/regenSuit', bake({ w: 16, h: 16, light: [-0.6, -0.8], draw: regenSuitCard }));
-  const [heavyShell, heavyVisor] = cut(heavyHelmet, BELL_GLASS, BELL_BARS);
-  out('hero_heavyHelmet_shell', heavyShell);
-  out('hero_heavyHelmet_visor', heavyVisor);
-  // Its card: the bell fitted into the 16 px square by the box its hose and breastplate reach (picked with its look).
-  const [x0, y0, x1, y1] = [-1.8, -1, 13.8, 14.9], w = x1 - x0, h = y1 - y0, u = Math.max(w, h) / 15.4;
-  out('items/heavyHelmet', bake({ w: 16, h: 16, light: [-0.6, -0.8], units: u, shift: [(16 * u - w) / 2 - x0, (16 * u - h) / 2 - y0],
-    W: { outer: .9 * u, edge: .26 * u, panel: .14 * u }, draw: heavyHelmet }));
 };
 
 /** A helmet's two pictures: the shell with its glass taken out (what crosses the glass, <paramref name="bars"/>, kept), and the glass alone at GLASS_SEEN over the face. */
