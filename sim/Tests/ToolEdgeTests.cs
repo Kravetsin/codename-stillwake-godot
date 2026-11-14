@@ -96,7 +96,7 @@ public class ToolEdgeTests
     public void ARunningToolHitsOnlyWhileItRuns()
     {
         var (w, a, _) = Space();
-        w.GiveItems(0, (Drill, 1)).Do(new SetCreative(true)).Run();
+        w.GiveItems(0, (Drill, 1)).Wields(Drill).Do(new SetCreative(true)).Run();
         w.Do(new HewPieces(Drill, new List<int> { a.Id })).Run();
         Assert.Equal(["items.notRunning"], Reasons(w));
         Assert.Null(w.M.Debris.HewPiecesProblem(0, Drill, [a.Id]));

@@ -120,7 +120,7 @@ public class AsteroidTests
             " #####              ",
         ])).Run(DebrisSpec.Every);
         Pieces(w)[0].Item = kind;
-        w.GiveItems(0, (Drill, 1));
+        w.GiveItems(0, (Drill, 1)).Wields(Drill);
         for (int i = 0; i < batteries.Length; i++) w.Put(Belt + i, Battery(batteries[i]));
         return w.Do(new Enter(1 * 20 + 12)).Run();
     }
@@ -146,7 +146,7 @@ public class AsteroidTests
     public void BreaksAWreckOrAnAsteroidWithAnyWeaponItsDamageAHitTillItsHitPointsAreGone(string tool, string kind)
     {
         // The drill is carried already; any other weapon too, an electric one held to run.
-        var w = Facing(kind, Full, Full).GiveItems(0, (tool, 1));
+        var w = Facing(kind, Full, Full).GiveItems(0, (tool, 1)).Wields(tool);
         var weapon = Weapons.Of(tool)!;
         int hp = WreckageSpec.HpOf(kind)!.Value, hits = (hp + weapon.Damage - 1) / weapon.Damage;
         Hits(w, 1, tool).Run();
@@ -178,7 +178,7 @@ public class AsteroidTests
         {
             var w = new Scenario(DebrisZonesTests.Open(20, 8, 1, 1, w: 1, h: 1), seed).Run(DebrisSpec.Every);
             Pieces(w)[0].Item = "asteroid";
-            w.GiveItems(0, (Drill, 1)).Do(new SetCreative(true)).Do(new Enter(1 * 20 + 12)).Run();
+            w.GiveItems(0, (Drill, 1)).Wields(Drill).Do(new SetCreative(true)).Do(new Enter(1 * 20 + 12)).Run();
             Hits(w, 119, Drill).Run();
             Assert.Equal(119, Pieces(w)[0].Damage);
             Assert.Empty(w.M.Items.Floor);
@@ -300,7 +300,7 @@ public class AsteroidTests
     [Fact]
     public void LetsTwoHeroesDrillOneRockEachFromItsOwnBelt()
     {
-        var w = Facing("asteroid", Full).GiveItems(1, (Drill, 1)).Put(Belt, Battery(Full), peer: 1).Do(new Enter(1 * 20 + 13) { From = 1 }).Run();
+        var w = Facing("asteroid", Full).GiveItems(1, (Drill, 1)).Wields(Drill, 1).Put(Belt, Battery(Full), peer: 1).Do(new Enter(1 * 20 + 13) { From = 1 }).Run();
         Hits(w, 1, Drill);
         Hits(w, 1, Drill, peer: 1).Do(HewTesting.Hit(w, 1, Axe) with { From = 1 }).Run(2);
         Assert.Empty(w.Refusals);
@@ -334,7 +334,7 @@ public class AsteroidTests
         return Prop.ForAll(cases.ToArbitrary(), c =>
         {
             var (m, steps) = c;
-            var w = new Scenario(DebrisZonesTests.Open(m.width, m.height, m.x, m.y, m.w, m.h), (uint)(m.x * 31 + m.y)).Put(Belt, Battery(Full)).GiveItems(0, (Drill, 1));
+            var w = new Scenario(DebrisZonesTests.Open(m.width, m.height, m.x, m.y, m.w, m.h), (uint)(m.x * 31 + m.y)).Put(Belt, Battery(Full)).GiveItems(0, (Drill, 1)).Wields(Drill);
             int cells = m.width * m.height, last = 0;
             foreach (var s in steps)
             {

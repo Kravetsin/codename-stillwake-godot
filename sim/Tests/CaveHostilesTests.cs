@@ -307,7 +307,7 @@ public class CaveHostilesTests
     public void OpenTheSnailIsHurtByABlowAndNotByAShot()
     {
         var (w, c) = Lurker(Snail);
-        w.HeroAt(5, 3).GiveItems(0, (Spec.Shots.Nailer.Item, 1), ("nail", 20)).Run();
+        w.HeroAt(5, 3).GiveItems(0, (Spec.Shots.Nailer.Item, 1), ("nail", 20)).Wields(Spec.Shots.Nailer.Item).Run();
         Assert.False(CreaturesModule.Shut(c));
         // From its left, along +x through it.
         w.Do(new Fire(Spec.Shots.Nailer.Item, 3 * Unit, c.Y - Unit, 0)).Run(6);

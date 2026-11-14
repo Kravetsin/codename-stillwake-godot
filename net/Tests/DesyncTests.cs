@@ -494,7 +494,9 @@ public class DesyncTests(ITestOutputHelper output)
                 else last = -1;
                 foreach (var client in clients)
                     if (items.BeltCharge(client.Id).Capacity > 0) worn++;
-                // And runs its drill now and then, which draws from its belt every tick it runs (0055).
+                // And runs its drill now and then, taken in hand first, which draws from its belt every tick it runs (0055).
+                int drill = own.Take(Content.Inventory.Hotbar).ToList().FindIndex(s => s?.Item == "drill");
+                if (tick % 40 == 0 && drill >= 0) first.Send(new Wield(drill));
                 if (tick % 40 == 0) first.Send(new Run("drill", true));
                 foreach (var client in clients)
                     if (items.Running(client.Id) != null) ran++;

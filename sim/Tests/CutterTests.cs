@@ -31,9 +31,10 @@ public class CutterTests
         return w.GiveItems(0, (Axe, 1), (Drill, 1), (Cutter, 1)).Do(new SetCreative(true)).Do(new Enter(1 * 20 + 12)).Run();
     }
 
-    /// <summary><paramref name="times"/> hits of <paramref name="tool"/> by hero 0, an electric one run first, all on the tick to come.</summary>
+    /// <summary><paramref name="times"/> hits of <paramref name="tool"/> by hero 0, wielded and an electric one run first, all on the tick to come.</summary>
     private static Scenario Hits(Scenario w, string tool, int times)
     {
+        w.Do(new Wield(w.M.Items.Inventory(0).ToList().FindIndex(s => s?.Item == tool)));
         if (Stillwake.Content.Items.Get(tool).Draw != null) w.Do(new Run(tool, true));
         for (int i = 0; i < times; i++) w.Do(HewTesting.Hit(w, 1, tool));
         return w;
