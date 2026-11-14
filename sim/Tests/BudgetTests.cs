@@ -285,7 +285,7 @@ public class BudgetTests(ITestOutputHelper output)
         var w = new Scenario(Layout.Parse(rows).WithMaterials(string.Join("\n", looks)).OnPlanet());
         string charge = Content.Shots.Thrown.Item;
         int unit = Creatures.CreaturesModule.Unit;
-        for (int peer = 0; peer < 3; peer++) w.Do(new Crew.Enter(19 * width + 10 + peer) { From = peer }).GiveItems(peer, (charge, 2));
+        for (int peer = 0; peer < 3; peer++) w.Do(new Crew.Enter(19 * width + 10 + peer) { From = peer }).GiveItems(peer, (charge, 2)).Wields(charge, peer);
         // One thrown first, untimed, so the timed tick is not the first to run a burst.
         w.Run().Do(new Creatures.Fire(charge, 120 * unit + unit / 2, 17 * unit + unit / 2, 64)).Run(10);
         int before = Enumerable.Range(20 * width, (height - 20) * width).Count(c => w.M.Grid.WallAt(c) == null);

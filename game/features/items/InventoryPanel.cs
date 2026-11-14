@@ -565,6 +565,7 @@ public partial class InventoryPanel : CanvasLayer
         BuildCrate();
         _shown.Visible = _body.Visible = Shown;
         _creative.Visible = reading.Creative;
+        _ui.Chosen.Set(_chosen);
         _ui.Wielded.Set(HandFree ? reading.Inventory[_chosen]?.Item : null);
         var held = Held;
         // Carried, a stack lights the equipment slots that would wear it and dims the rest (0047).

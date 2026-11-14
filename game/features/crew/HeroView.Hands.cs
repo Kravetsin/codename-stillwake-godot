@@ -29,6 +29,8 @@ public partial class HeroView
     {
         // Flying in a drop pod, the hands do nothing, as passed out: E is no one's until it lands.
         passedOut |= m.Landing.FlightOf(client.Id) != null;
+        // The hand first, before any run or hit of this frame: the stack in it is the one that works (tool-in-hand).
+        if (m.Items.Wielding(client.Id) != _ui.Chosen.Get()) client.Send(new Sim.Items.Wield(_ui.Chosen.Get()));
         // A tool struck with by hand, the axe, the sledgehammer or the spear: its strokes (Strokes).
         string? struck = handFree && Strokes.Of(_ui.Wielded.Get()) != null ? _ui.Wielded.Get() : null;
         var stroke = Strokes.Of(struck);
@@ -201,7 +203,7 @@ public partial class HeroView
             : _beamLeftMs > 0 && !handFree && !passedOut ? new Busy(Handwork.Beam, _beamAt)
             : null;
         _driverHeard.Step(drives && working, _busy is { Work: Handwork.Work, At: var worked } ? Pixels(worked) : null, elapsedMs / 1000);
-        ShowHands(_figure, _wields, FittedOf(m, client.Id, _wields), _busy, _swing);
+        ShowHands(_figure, _wields, Fittings.Of(m.Items, client.Id, _wields), _busy, _swing);
         // The computer opens its own window; every other machine its slots under the inventory.
         if (uses.Open is int open && m.Grid.MachineById(open) is { } machine)
         {
@@ -449,13 +451,6 @@ public partial class HeroView
         figure.Chop(swing is { Phase: double phase, Play: { } play } ? (Pixels(swing.Aim), phase, play) : null);
         figure.Work(busy is { Work: Handwork.Work, At: var plan } ? Pixels(plan) : null);
     }
-
-    /// <summary>
-    /// The modules fitted into the stack of <paramref name="wields"/> peer <paramref name="peer"/> works with, as the sim holds
-    /// its slots (0098, <see cref="Sim.Items.ToolStats.ModulesOf"/>): every peer's alike, a friend's too; none for an empty hand or a plain tool.
-    /// </summary>
-    private static IReadOnlyList<Content.ModuleSpec> FittedOf(Registry m, int peer, string? wields) =>
-        wields != null && m.Items.ToolStack(peer, wields) is { } stack ? Sim.Items.ToolStats.ModulesOf(stack) : [];
 
     /// <summary>
     /// How far the floor runs open from <paramref name="hero"/>'s feet to either side, in pixels of the world, looking eight

@@ -51,6 +51,16 @@ public static class ItemsTesting
         return w;
     }
 
+    /// <summary>Puts <paramref name="peer"/>'s hand on the first hotbar slot holding <paramref name="item"/>, as its client's <c>Wield</c> would: a test's starting hand.</summary>
+    public static Scenario Wields(this Scenario w, string item, int peer = 0)
+    {
+        var slots = w.M.Items.Inventory(peer);
+        int slot = Enumerable.Range(0, Content.Inventory.Hotbar).FirstOrDefault(i => slots[i]?.Item == item, -1);
+        if (slot < 0) throw new InvalidOperationException($"peer {peer} has no {item} on its hotbar");
+        ItemsModule.SetHand(StateOf(w), peer, slot);
+        return w;
+    }
+
     /// <summary>The peers with an inventory kept, and the machines with an entry, in the order the slice keeps them.</summary>
     public static (int[] Inventories, int[] Crates) Stored(this Scenario w)
     {

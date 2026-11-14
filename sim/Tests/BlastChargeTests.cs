@@ -46,7 +46,7 @@ public class BlastChargeTests
             Kind = Spec.Surfaces.TestStrip.Id,
             Flora = flora ?? [],
         };
-        return new Scenario(layout).Do(new Crew.Enter(9 * W + 2)).GiveItems(0, (Charge, 5)).Run();
+        return new Scenario(layout).Do(new Crew.Enter(9 * W + 2)).GiveItems(0, (Charge, 5)).Wields(Charge).Run();
     }
 
     /// <summary>A charge thrown from the middle of the cell at (<paramref name="column"/>, <paramref name="row"/>).</summary>
@@ -195,7 +195,7 @@ public class BlastChargeTests
     [Fact]
     public void AboardTheShipItCracksTheHullAndBreaksNone()
     {
-        var w = new Scenario(".....#....\n..........\n##########", cells: true).Do(new Crew.Enter(12)).GiveItems(0, (Charge, 1)).Run();
+        var w = new Scenario(".....#....\n..........\n##########", cells: true).Do(new Crew.Enter(12)).GiveItems(0, (Charge, 1)).Wields(Charge).Run();
         var end = Thrown(w, At(1, 0, Right));
         Assert.True(end.Burst >= 0);
         Assert.Equal(0, Count(w, Charge));
@@ -207,7 +207,7 @@ public class BlastChargeTests
     [Fact]
     public void InSpaceEveryWreckInItsReachTakesItsDamageTheOneItStruckItsOwnTooAndOnesFartherNothing()
     {
-        var w = ShotsTests.Space().GiveItems(0, (Charge, 1));
+        var w = ShotsTests.Space().GiveItems(0, (Charge, 1)).Wields(Charge);
         var debris = (DebrisState)w.M.Debris.Slice;
         Piece Wreck(int x, int y) => new() { Id = debris.NextId++, Zone = Spec.Debris.Far.Id, Item = "engineBlock", X = x, Y = y, Start = x, SeenAt = debris.Clock };
         // Struck at its left edge, 25 cells across; one above the path, its box within reach of the burst; one far beyond.
@@ -228,7 +228,7 @@ public class BlastChargeTests
     {
         // The ship's open space past its zone: nothing built there, but the wrecks drifting in it.
         var layout = Layout.Parse(string.Join('\n', Enumerable.Repeat(new string('.', 320), 20))) with { Zone = new Box(0, 0, 15, 19) };
-        var w = new Scenario(layout).Do(new Crew.Enter(10 * 320 + 2)).GiveItems(0, (Charge, 1)).Run();
+        var w = new Scenario(layout).Do(new Crew.Enter(10 * 320 + 2)).GiveItems(0, (Charge, 1)).Wields(Charge).Run();
         var debris = (DebrisState)w.M.Debris.Slice;
         var struck = new Piece { Id = debris.NextId++, Zone = Spec.Debris.Far.Id, Item = "engineBlock", X = 30_000, Y = 10_000, Start = 30_000, SeenAt = debris.Clock };
         debris.Pieces.Add(struck);
@@ -242,7 +242,7 @@ public class BlastChargeTests
     [Fact]
     public void AWreckItsHitBreaksStopsItThereNeverFlownThrough()
     {
-        var w = ShotsTests.Space().GiveItems(0, (Charge, 1));
+        var w = ShotsTests.Space().GiveItems(0, (Charge, 1)).Wields(Charge);
         var debris = (DebrisState)w.M.Debris.Slice;
         Piece Wreck(int x) => new() { Id = debris.NextId++, Zone = Spec.Debris.Far.Id, Item = "engineBlock", X = x, Y = 10_000, Start = x, SeenAt = debris.Clock };
         // The first all but broken, so the charge's own hit breaks it; the second behind it, past the burst's reach.
@@ -261,7 +261,7 @@ public class BlastChargeTests
     [Fact]
     public void ThrownPointBlankAtAWreckItBurstsTheTickItIsThrownSayingWhoseItIs()
     {
-        var w = ShotsTests.Space().GiveItems(0, (Charge, 1));
+        var w = ShotsTests.Space().GiveItems(0, (Charge, 1)).Wields(Charge);
         var debris = (DebrisState)w.M.Debris.Slice;
         var wreck = new Piece { Id = debris.NextId++, Zone = Spec.Debris.Far.Id, Item = "engineBlock", X = 12_000, Y = 10_000, Start = 12_000, SeenAt = debris.Clock };
         debris.Pieces.Add(wreck);
@@ -282,7 +282,7 @@ public class BlastChargeTests
         var box = w.M.Grid.Reserved!.Value;
         int width = w.M.Grid.Width;
         int hull = Enumerable.Range(box.Top, box.Bottom - box.Top + 1).Select(y => y * width + box.Left).First(c => w.M.Grid.WallAt(c) != null);
-        w.Do(new Crew.Enter(hull + 5)).GiveItems(0, (Charge, 1)).Run();
+        w.Do(new Crew.Enter(hull + 5)).GiveItems(0, (Charge, 1)).Wields(Charge).Run();
         var end = Thrown(w, new Fire(Charge, (hull % width + 3) * Unit + Unit / 2, hull / width * Unit + Unit / 2, Spec.Headings.Turn / 2));
         Assert.True(end.Burst >= 0);
         Assert.True(w.M.Grid.WallAt(hull) == null || CrackAt(w, hull) > 0);
@@ -300,7 +300,7 @@ public class BlastChargeTests
             ..........OOOOOO#...
             ..........OOOOOO#...
             ####################
-            """)).Do(new Crew.Enter(5 * 20 + 2)).GiveItems(0, (Charge, 1)).Run();
+            """)).Do(new Crew.Enter(5 * 20 + 2)).GiveItems(0, (Charge, 1)).Wields(Charge).Run();
         var end = Thrown(w, new Fire(Charge, 3 * Unit + Unit / 2, 2 * Unit + Unit / 2, Right));
         Assert.True(end.Met);
         Assert.True(end.Burst >= 0);

@@ -103,7 +103,7 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [0095](0095-a-planet-is-a-type-and-a-seed.md) | A planet is a type and a seed | accepted |  |
 | [0096](0096-the-sky-shard.md) | The sky shard: the arc relic, its spire a light well, a home's heart | accepted |  |
 | [0097](0097-station-marks-are-glowing-line-icons.md) | Station marks are glowing line icons | accepted |  |
-| [0098](0098-the-tool-bench-modules-in-tools.md) | The tool bench: modules in tools | accepted |  |
+| [0098](0098-the-tool-bench-modules-in-tools.md) | The tool bench: modules in tools | accepted | tool-in-hand (in part) |
 | [0099](0099-the-arc-bench.md) | The arc bench: a vise that fits tools, the arc branch's station | accepted |  |
 | [0100](0100-tech-branches.md) | Tech branches | accepted | crusher-takes-arc (in part) |
 | [0101](0101-a-network-stores-its-spare-power.md) | A network stores its spare power | accepted |  |
@@ -361,3 +361,4 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [temperature-in-degrees](2026-11-14-temperature-in-degrees.md) | Temperature in degrees | accepted |  |
 | [the-thermometer](2026-11-14-the-thermometer.md) | The thermometer: a frost star and the degrees, a row under the charge | accepted |  |
 | [tool-card-pictures](2026-11-14-tool-card-pictures.md) | A tool's card shows its picture enlarged | accepted |  |
+| [tool-in-hand](2026-11-14-tool-in-hand.md) | The tool in hand is the one that works | accepted |  |

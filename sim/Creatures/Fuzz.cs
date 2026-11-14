@@ -44,14 +44,19 @@ public sealed partial class CreaturesModule
     /// <summary>
     /// A <see cref="Fire"/>: one of the guns three times in four, else the axe (no gun); from within four cells of the hero, or anywhere
     /// with none, a cell past the grid at most, or a quarter of the time from beside a wreck at it, so hits land and pierce. A sender
-    /// without the gun drawn half the time switches creative mode on or spawns one; one with no ammo spawns some. A gun's draw on the
+    /// without the gun drawn in hand half the time wields it off its hotbar, else switches creative mode on or spawns one; one with no ammo spawns some. A gun's draw on the
     /// belt is met here only as creative pays it or as refused; RailgunTests arms heroes for a paid one.
     /// </summary>
     private Command FuzzFire(Rng rng, int from)
     {
         var gun = Content.Shots.Guns[(int)rng.Below((uint)Content.Shots.Guns.Count)];
         if (_held.ToolStack(from, gun.Item) == null && rng.Below(2) == 0)
+        {
+            var slots = _held.Inventory(from);
+            for (int i = 0; i < Content.Inventory.Hotbar && i < slots.Count; i++)
+                if (slots[i]?.Item == gun.Item) return new Items.Wield(i) { From = from };
             return rng.Below(2) == 0 ? new Items.SetCreative(true) { From = from } : new Items.Spawn(gun.Item, 1) { From = from };
+        }
         if (AmmoOf(from, gun) == null && rng.Below(2) == 0)
             return new Items.Spawn(gun.Ammo[0], 20) { From = from };
         string tool = rng.Below(4) == 0 ? Content.Weapons.Axe.Item : gun.Item;

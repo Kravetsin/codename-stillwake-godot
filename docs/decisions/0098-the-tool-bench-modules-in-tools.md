@@ -2,7 +2,8 @@
 
 - Status: accepted; slice 1 built (a drill carries its arc module, its card and picture put together from what is fitted);
   the bench, slice 2, built as the arc bench ([0099](0099-the-arc-bench.md)); the card's live picture removed by
-  [tool icons](2026-10-27-tool-icons.md)
+  [tool icons](2026-10-27-tool-icons.md); which stack a tool works with, by
+  [tool in hand](2026-11-14-tool-in-hand.md)
 - Date: 2026-10-21
 - Design: `designs/tool-bench.md` (the session's scratchpad) and its review, which overrides its top
 - Amends: [0086](0086-modules-one-socket-for-machines-and-tools.md)'s slice 2 (no `Run(Slot)`: a tool works with its

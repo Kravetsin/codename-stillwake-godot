@@ -212,7 +212,7 @@ public class SurfacesTests
     public void CarriesTheHerosSuitAndThrustTheInventoryAndARunningDrillAcross()
     {
         var w = Opened();
-        w.GiveItems(0, (Drill, 1), ("scrap", 30)).Put(Belt, new Stack("battery", 1, 500_000)).Wear(0, Content.Jetpack.Item);
+        w.GiveItems(0, (Drill, 1), ("scrap", 30)).Wields(Drill).Put(Belt, new Stack("battery", 1, 500_000)).Wear(0, Content.Jetpack.Item);
         w.Do(new Exert(true)).Do(new Run(Drill, true)).Run(Content.Crew.BreathEvery);
         var hero = w.M.Crew.HeroOf(0)!;
         var before = (hero.Air, hero.Exerting, hero.ThrustTicks);

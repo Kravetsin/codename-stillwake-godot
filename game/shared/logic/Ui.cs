@@ -197,6 +197,12 @@ public sealed class Ui
     public Store<string?> Wielded { get; } = new(null);
 
     /// <summary>
+    /// The chosen hotbar slot, the hand free or not: set by <c>items</c> with <see cref="Wielded"/>; <c>crew</c> tells the sim it
+    /// as the hero's hand (<c>Wield</c>), so the stack there is the one that works, fitted or not (tool-in-hand).
+    /// </summary>
+    public Store<int> Chosen { get; } = new(0);
+
+    /// <summary>
     /// Whether the power driver works its square or one cell (power-driver): this player's, not saved, the square at the start;
     /// <c>crew</c> switches it on a right click with the driver in hand.
     /// </summary>

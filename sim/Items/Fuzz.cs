@@ -12,7 +12,7 @@ public sealed partial class ItemsModule
     /// of the bag or of a machine, a crate or not (<c>items.notCrate</c>) or none (<c>items.noCrate</c>). Now and then a stash (<see cref="StashNear"/>).
     /// Creative mode switches now and then, mostly off; now and then a run of an electric tool (<see cref="RunOrStop"/>). Now and then a drop onto a cell, off the grid
     /// too, or a pick-up of a stack on the floor or of one long gone. Now and then a module fitted or taken out
-    /// (<see cref="FitOrUnfit"/>). Now and then a spawn of any item, up to two stacks of it, refused outside creative mode.
+    /// (<see cref="FitOrUnfit"/>), or a hotbar slot wielded (<see cref="WieldSome"/>). Now and then a spawn of any item, up to two stacks of it, refused outside creative mode.
     /// </summary>
     public override Command? Fuzz(Rng rng, int from)
     {
@@ -25,6 +25,7 @@ public sealed partial class ItemsModule
         if (rng.Below(10) == 0) return RunOrStop(rng, from);
         var own = State.Inventories.Find(h => h.Id == from)?.Slots;
         if (rng.Below(10) == 0) return FitOrUnfit(rng, from, own);
+        if (rng.Below(10) == 0) return WieldSome(rng, from, own);
         if (rng.Below(12) == 0 && SuitOnOrOff(rng, from, own) is { } dress) return dress;
         // Mostly a machine that holds something; the wreck's other machines and missing ids otherwise.
         int AnyCrate() => State.Crates.Count > 0 && rng.Below(4) != 0

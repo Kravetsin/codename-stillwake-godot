@@ -32,6 +32,7 @@ This hero and others', client-authoritative (0002): only commands reach the sim.
 | `logic/Prompt.cs` | what E does |
 | `logic/Seating.cs` | seats; hands tied |
 | `logic/FogMove.cs` | across fog |
+| `logic/Fittings.cs` | modules in hand |
 | `SeatedHeroes.cs` | in the porthole |
 | `UsePrompt.cs` | that prompt shown |
 | `logic/Tether.cs` | the tether |

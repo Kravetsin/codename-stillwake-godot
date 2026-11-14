@@ -73,25 +73,8 @@ public sealed partial class ItemsModule
     }
 
     /// <summary>
-    /// The stack of tool <paramref name="item"/> <paramref name="peer"/> works with (0098): the first it carries, in slot order,
-    /// with a module fitted, else the first it carries; none while it carries none. With two drills, the fitted one drills.
-    /// </summary>
-    public Stack? ToolStack(int peer, string item)
-    {
-        var slots = Inventory(peer);
-        Stack? first = null;
-        for (int i = 0; i < slots.Count; i++)
-        {
-            if (slots[i] is not { } s || s.Item != item) continue;
-            if (s.Module != null) return s;
-            first ??= s;
-        }
-        return first;
-    }
-
-    /// <summary>
     /// What a hit of weapon <paramref name="tool"/> by <paramref name="peer"/> takes (0098): the damage of the stack it works
-    /// with (<see cref="ToolStack"/>), its modules in it (<see cref="ToolStats"/>); the weapon's own while the peer carries
+    /// with (<see cref="ToolStack"/>), its modules in it (<see cref="ToolStats"/>); the weapon's own while its hand holds
     /// none, as a hit's sender is not checked for holding its weapon (0034).
     /// </summary>
     public int Damage(int peer, string tool)

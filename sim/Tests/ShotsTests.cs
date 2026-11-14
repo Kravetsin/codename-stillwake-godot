@@ -39,13 +39,13 @@ public class ShotsTests
             looks.Add(new string('s', 100));
         }
         var layout = Layout.Parse(string.Join('\n', rows)).WithMaterials(string.Join('\n', looks)) with { Kind = Spec.Surfaces.TestStrip.Id };
-        return new Scenario(layout).Do(new Crew.Enter(29 * 100 + 2)).GiveItems(0, (Nailer, 1), ("nail", 20)).Run();
+        return new Scenario(layout).Do(new Crew.Enter(29 * 100 + 2)).GiveItems(0, (Nailer, 1), ("nail", 20)).Wields(Nailer).Run();
     }
 
     /// <summary>Open space aboard the ship's surface, a cell a character: 320 cells by 20, no hull, so no stream of debris.</summary>
     internal static Scenario Space() =>
         new Scenario(string.Join('\n', Enumerable.Repeat(new string('.', 320), 20)), cells: true)
-            .Do(new Crew.Enter(10 * 320 + 2)).GiveItems(0, (Nailer, 1), ("nail", 20)).Run();
+            .Do(new Crew.Enter(10 * 320 + 2)).GiveItems(0, (Nailer, 1), ("nail", 20)).Wields(Nailer).Run();
 
     private static int Nails(Scenario w, int peer = 0) => w.M.Items.Totals(peer).Where(t => t.Item == "nail").Sum(t => t.Count);
 
@@ -122,7 +122,7 @@ public class ShotsTests
         var rows = new List<string> { new string('#', 60) };
         for (int y = 0; y < 10; y++) rows.Add("#" + new string('.', 58) + "#");
         rows.Add(new string('#', 60));
-        var w = new Scenario(string.Join('\n', rows), cells: true).Do(new Crew.Enter(10 * 60 + 2)).GiveItems(0, (Nailer, 1), ("nail", 20)).Run();
+        var w = new Scenario(string.Join('\n', rows), cells: true).Do(new Crew.Enter(10 * 60 + 2)).GiveItems(0, (Nailer, 1), ("nail", 20)).Wields(Nailer).Run();
         Assert.False(w.M.Rooms.Afloat(2 * 60 + 2));
         w.Do(new Fire(Nailer, 2 * Unit + Unit / 2, 2 * Unit + Unit / 2, Right)).Run();
         int aboard = w.M.Creatures.Shots.Single().VY;
@@ -173,7 +173,7 @@ public class ShotsTests
     {
         // In open space, so it flies straight: from the middle of (1, 1), down and right at 45°, through the corner of (2, 1) and
         // (1, 2), both walls.
-        var w = new Scenario("......\n..#...\n.#....\n......", cells: true).Do(new Crew.Enter(3 * 6 + 5)).GiveItems(0, (Nailer, 1), ("nail", 1)).Run();
+        var w = new Scenario("......\n..#...\n.#....\n......", cells: true).Do(new Crew.Enter(3 * 6 + 5)).GiveItems(0, (Nailer, 1), ("nail", 1)).Wields(Nailer).Run();
         w.Do(At(1, 1, 32)).Run();
         Assert.Equal(1 * 6 + 2, w.M.Creatures.Ended.Single().Cell);
     }
@@ -208,7 +208,7 @@ public class ShotsTests
         Assert.Equal("bedrock", w.M.Grid.WallAt(bedrock)?.Id);
         Assert.Empty(w.M.Building.Cracks);
 
-        var aboard = new Scenario(".....#....\n..........", cells: true).Do(new Crew.Enter(2)).GiveItems(0, (Nailer, 1), ("nail", 1)).Run();
+        var aboard = new Scenario(".....#....\n..........", cells: true).Do(new Crew.Enter(2)).GiveItems(0, (Nailer, 1), ("nail", 1)).Wields(Nailer).Run();
         Assert.Equal(5, EndOf(aboard, At(1, 0, Right)));
         Assert.Equal(BlockHit * Spec.Damage.OwnShipTakes / 1000, CrackAt(aboard, 5));
         Assert.NotNull(aboard.M.Grid.WallAt(5));
@@ -217,7 +217,7 @@ public class ShotsTests
     [Fact]
     public void WithItsShooterGoneFromTheSurfaceWhatItBreaksFallsThereAnyones()
     {
-        var w = Ground().GiveItems(1, (Nailer, 1), ("nail", 4));
+        var w = Ground().GiveItems(1, (Nailer, 1), ("nail", 4)).Wields(Nailer, 1);
         int pillar = EndOf(w, At(80, 20, Right) with { From = 1 });
         for (int i = 1; i < 4; i++) EndOf(w, At(80, 20, Right) with { From = 1 });
         Assert.Null(w.M.Grid.WallAt(pillar));
@@ -228,7 +228,7 @@ public class ShotsTests
     [Fact]
     public void ALoperTakesANailsDamageAndBoltsTheShotsWayNotRetaliatingFromAfar()
     {
-        var w = CreaturesTesting.Planet(Map, CreaturesTesting.Lifeless, cells: true).Do(new Crew.Enter(19 * 80 + 2)).GiveItems(0, (Nailer, 1), ("nail", 5)).Run();
+        var w = CreaturesTesting.Planet(Map, CreaturesTesting.Lifeless, cells: true).Do(new Crew.Enter(19 * 80 + 2)).GiveItems(0, (Nailer, 1), ("nail", 5)).Wields(Nailer).Run();
         var loper = w.Let(Spec.Creatures.Loper, 40, 19);
         // The muzzle is the client's word: here two cells short of the loper, its hero 38 cells off.
         w.Do(new Fire(Nailer, 38 * Unit, 18 * Unit, Right)).Run();
@@ -240,7 +240,7 @@ public class ShotsTests
     [Fact]
     public void ANailStraightDownKnocksACreatureAwayFromItsShooter()
     {
-        var w = CreaturesTesting.Planet(Map, CreaturesTesting.Lifeless, cells: true).Do(new Crew.Enter(19 * 80 + 70)).GiveItems(0, (Nailer, 1), ("nail", 5)).Run();
+        var w = CreaturesTesting.Planet(Map, CreaturesTesting.Lifeless, cells: true).Do(new Crew.Enter(19 * 80 + 70)).GiveItems(0, (Nailer, 1), ("nail", 5)).Wields(Nailer).Run();
         var loper = w.Let(Spec.Creatures.Loper, 40, 19);
         w.Do(new Fire(Nailer, loper.X, 12 * Unit, Down)).Run(3);
         Assert.Equal(Hit, loper.Damage);
@@ -250,7 +250,7 @@ public class ShotsTests
     [Fact]
     public void OfTwoCreaturesInOneCellTheLowerIdTakesTheNailAndAHeroInTheWayIsPassed()
     {
-        var w = CreaturesTesting.Planet(Map, CreaturesTesting.Lifeless, cells: true).Do(new Crew.Enter(19 * 80 + 2)).GiveItems(0, (Nailer, 1), ("nail", 5)).Run();
+        var w = CreaturesTesting.Planet(Map, CreaturesTesting.Lifeless, cells: true).Do(new Crew.Enter(19 * 80 + 2)).GiveItems(0, (Nailer, 1), ("nail", 5)).Wields(Nailer).Run();
         var first = w.Let(Spec.Creatures.Loper, 40, 19);
         var second = w.Let(Spec.Creatures.Loper, 40, 19);
         w.Do(new Crew.Enter(19 * 80 + 36)).Do(new Fire(Nailer, 34 * Unit, 18 * Unit, Right)).Run(3);
@@ -325,7 +325,7 @@ public class ShotsTests
     {
         Scenario Killed()
         {
-            var w = CreaturesTesting.Planet(Map, CreaturesTesting.Lifeless, cells: true).Do(new Crew.Enter(19 * 80 + 2)).GiveItems(0, (Nailer, 1), ("nail", 5)).Run();
+            var w = CreaturesTesting.Planet(Map, CreaturesTesting.Lifeless, cells: true).Do(new Crew.Enter(19 * 80 + 2)).GiveItems(0, (Nailer, 1), ("nail", 5)).Wields(Nailer).Run();
             w.Let(Spec.Creatures.Loper, 40, 19);
             // Two nails from beside it on one tick: 12, the loper's hit points.
             return w.Do(new Fire(Nailer, 38 * Unit, 18 * Unit, Right)).Do(new Fire(Nailer, 38 * Unit, 18 * Unit, Right)).Run();
