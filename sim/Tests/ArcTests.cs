@@ -154,7 +154,7 @@ public class ArcTests
         Assert.Equal("creatures.gone", w.Refusals.Single().Reason);
 
         var armed = new Scenario(string.Join('\n', Enumerable.Repeat(new string('.', 60), 20)), cells: true)
-            .Do(new Crew.Enter(10 * 60 + 2)).GiveItems(0, (Spec.Shots.Nailer.Item, 1), (Spec.Shots.Nail.Id, 1)).Run();
+            .Do(new Crew.Enter(10 * 60 + 2)).GiveItems(0, (Spec.Shots.Nailer.Item, 1), (Spec.Shots.Nail.Id, 1)).Wields(Spec.Shots.Nailer.Item).Run();
         armed.Do(new Fire(Spec.Shots.Nailer.Item, 10_500, 10_500, 0)).Run();
         armed.Do(new Bolted(armed.M.Creatures.Shots.Single().Id)).Run();
         Assert.Equal("creatures.gone", armed.Refusals.Single().Reason);
@@ -177,7 +177,7 @@ public class ArcTests
     {
         var (w, _, c) = SentryTests.OnAWreck();
         Assert.Equal(5, (Tune.Sentry.Life.Hp + Spec.Shots.DamageOf(Spec.Shots.Nailer.Item, Spec.Shots.Nail.Id) - 1) / Spec.Shots.DamageOf(Spec.Shots.Nailer.Item, Spec.Shots.Nail.Id));
-        w.GiveItems(0, (Spec.Shots.Nailer.Item, 1), (Spec.Shots.Nail.Id, 5));
+        w.GiveItems(0, (Spec.Shots.Nailer.Item, 1), (Spec.Shots.Nail.Id, 5)).Wields(Spec.Shots.Nailer.Item);
         for (int i = 0; i < 4; i++) w.Do(new Fire(Spec.Shots.Nailer.Item, c.X - 2000, c.Y - 1000, 0)).Run();
         Assert.Contains(c, w.M.Creatures.Creatures);
         w.Do(new Fire(Spec.Shots.Nailer.Item, c.X - 2000, c.Y - 1000, 0)).Run();
