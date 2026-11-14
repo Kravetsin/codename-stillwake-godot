@@ -67,8 +67,20 @@ public static class ToolContact
     }
 
     /// <summary>
+    /// The point of <paramref name="wheel"/>'s rim nearest a touch <paramref name="at"/>, as an exit of no stretch: where a wreck the
+    /// rim has no exit from throws, the wheel wholly in it or it wholly inside the wheel; toward the tool, <paramref name="toward"/>,
+    /// for a touch at the hub.
+    /// </summary>
+    public static Exit Nearest(Circle wheel, (double X, double Y) at, (double X, double Y) toward)
+    {
+        double dx = at.X - wheel.Centre.X, dy = at.Y - wheel.Centre.Y;
+        double angle = dx * dx + dy * dy > 1e-12 ? Math.Atan2(dy, dx) : Math.Atan2(toward.Y, toward.X);
+        return new(wheel.At(angle), wheel.Along(angle), angle, 0);
+    }
+
+    /// <summary>
     /// The drill's haze spiral in pixels of the world: the bit's point, the unit way to the reach and the unit way across it, how
-    /// far back the bit runs from its point and how far the reach goes past it; and its phase at the point as it is told.
+    /// far back the tool reaches from its point to the shoulder and how far the reach goes past it; and its phase at the point as it is told.
     /// At <c>s</c> along the axis the spiral stands <see cref="WorkLooks.ScrewRadius"/> times the sine of the phase plus
     /// <see cref="ScrewK"/>·s across it, the phase turning <see cref="WorkLooks.ScrewTurns"/> turns a second, so its waves run back
     /// to the hand.
@@ -109,8 +121,8 @@ public static class ToolContact
 
     /// <summary>
     /// The bore of <paramref name="screw"/>'s axis into what <paramref name="inside"/> says is matter (world pixels), walked every
-    /// <paramref name="step"/> pixels from the bit's back to its reach: none while it misses, or while the bit's back is already in,
-    /// so a bore always has a mouth to come out of.
+    /// <paramref name="step"/> pixels from the shoulder to the reach; its mouth at the shoulder while the shoulder is in. None while
+    /// it misses.
     /// </summary>
     public static Bore? BoreOf(Screw screw, double step, Func<double, double, bool> inside)
     {
@@ -125,10 +137,19 @@ public static class ToolContact
                 if (mouth != null) break;
                 continue;
             }
-            if (mouth == null && s <= -screw.Back + 1e-9) return null;
             mouth ??= s;
             deepest = s;
         }
         return mouth is { } m ? new Bore(m, deepest) : null;
+    }
+
+    /// <summary>
+    /// A bore of no depth at the axis's point nearest a touch <paramref name="at"/>: where a wreck the axis misses throws, one an
+    /// outer ray of the fan touched.
+    /// </summary>
+    public static Bore Under(Screw screw, (double X, double Y) at)
+    {
+        double s = Math.Clamp((at.X - screw.Tip.X) * screw.Way.X + (at.Y - screw.Tip.Y) * screw.Way.Y, -screw.Back, screw.Length);
+        return new(s, s);
     }
 }

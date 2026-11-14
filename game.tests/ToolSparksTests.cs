@@ -78,12 +78,14 @@ public class ToolSparksTests
     }
 
     [Fact]
-    public void WithNoExitItThrowsFromTheTouchAsBefore()
+    public void WithNoExitItStillThrowsOffTheRimNearestTheTouch()
     {
-        var sparks = Ground([], ms: 60);
-        for (int n = 0; n < sparks.Count; n++)
-            if (sparks.At(n) is var (_, head, _))
-                Assert.True(Math.Abs(head.X - 30) + Math.Abs(head.Y) < 15, $"spark {n} at {head}");
-        Assert.True(sparks.Count > 0);
+        // The touch is at (30, 0): the rim's nearest point is (14, 0).
+        var nearest = ToolContact.Nearest(Wheel, (30, 0), (-1, 0));
+        Assert.Equal(14, nearest.At.X, 9);
+        Assert.Equal(0, nearest.At.Y, 9);
+        var (none, near) = (Ground([], ms: 200), Ground([nearest], ms: 200));
+        Assert.Equal(near.Count, none.Count);
+        for (int n = 0; n < none.Count; n++) Assert.Equal(near.At(n), none.At(n));
     }
 }

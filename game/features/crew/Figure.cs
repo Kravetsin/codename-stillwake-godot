@@ -1490,7 +1490,7 @@ public partial class Figure : Node2D
         var zone = Spinning && inHand && item != null ? ZoneOf(frontArm, item) : null;
         WheelRadius = zone is { Disc: true } disc ? disc.Size : null;
         _air.Follow(zone, elapsedMs, bladeHeld ? _edge : null);
-        Screw = zone is { Disc: false } bit && Muzzle is { } bitPoint && EdgeStart is { } chuck ? ScrewOf(bit, (bitPoint - chuck).Length()) : null;
+        Screw = zone is { Disc: false } bit ? ScrewOf(bit) : null;
         _beamMs = Math.Max(0, _beamMs - elapsedMs);
         ShowBeams(holding);
         // A drill crackles as it spins; a gun held to charge, as it fills.
@@ -1526,8 +1526,8 @@ public partial class Figure : Node2D
         return length < 1 ? null : new(false, (at.X, at.Y), (cx / length, cy / length), length);
     }
 
-    /// <summary>The drill's <paramref name="bit"/> zone as its haze spiral in the world, the bit <paramref name="back"/> pixels long behind its point.</summary>
-    private ToolContact.Screw ScrewOf(AirCuts.Zone bit, double back)
+    /// <summary>The drill's <paramref name="bit"/> zone as its haze spiral in the world, its axis back to the shoulder.</summary>
+    private ToolContact.Screw ScrewOf(AirCuts.Zone bit)
     {
         Vector2 World((double X, double Y) p) => _air.ToGlobal(new Vector2((float)p.X, (float)p.Y));
         var (dx, dy) = bit.Toward;
@@ -1535,6 +1535,7 @@ public partial class Figure : Node2D
         var far = World((bit.At.X + dx * bit.Size, bit.At.Y + dy * bit.Size)) - point;
         var across = (World((bit.At.X - dy, bit.At.Y + dx)) - point).Normalized();
         var way = far.Normalized();
+        double back = (point - World((0, 0))).Length();
         return new((point.X, point.Y), (way.X, way.Y), (across.X, across.Y), back, far.Length(), _air.ScrewPhase);
     }
 

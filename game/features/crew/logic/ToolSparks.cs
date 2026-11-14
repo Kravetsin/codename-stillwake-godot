@@ -43,13 +43,16 @@ public sealed class ToolSparks
     /// first at once when it starts touching. A grinder's <paramref name="wheel"/> with <paramref name="exits"/> from the wreck
     /// throws them off its rim instead (grinder-contact): each rides the rim along the spin to an exit and flies on along it there.
     /// A drill's <paramref name="screw"/> with its <paramref name="bore"/> into the wreck throws them up its spiral (drill-contact):
-    /// each rides it back from inside the bore to the mouth and flies on along it there.
+    /// each rides it back from inside the bore to the mouth and flies on along it there. Without an exit or a bore they still come
+    /// off the haze, from its point nearest the touch.
     /// </summary>
     public void Touch((int Hero, int Piece) touch, string tool, (double X, double Y) at, (double X, double Y) toward, double elapsedMs,
         ToolContact.Circle? wheel = null, IReadOnlyList<ToolContact.Exit>? exits = null, ToolContact.Screw? screw = null, ToolContact.Bore? bore = null)
     {
         _touching.Add(touch);
-        bool rim = wheel != null && exits is { Count: > 0 }, up = !rim && screw != null && bore != null;
+        if (wheel is { } round && exits is not { Count: > 0 }) exits = [ToolContact.Nearest(round, at, toward)];
+        if (screw is { } spiral && bore == null) bore = ToolContact.Under(spiral, at);
+        bool rim = wheel != null, up = !rim && screw != null;
         // The grinder's and the drill's sparks come off the tool itself, with no bead where it touches (grinder-contact, drill-contact).
         if (tool != Content.Weapons.Grinder.Item && tool != Content.Weapons.Drill.Item) _beads.Add(at);
         double owed = _owed.TryGetValue(touch, out var o) ? o + WorkLooks.SparksPerSecond * Fx.Count * elapsedMs / 1000 : 1;

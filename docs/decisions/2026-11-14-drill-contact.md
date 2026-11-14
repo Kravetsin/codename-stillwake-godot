@@ -17,14 +17,19 @@ pale spiral, sparks riding it back out of the wreck.
   (`ScrewStrokes`), `ScrewRadius` either side of the axis, a turn every `ScrewPitch` px, turning `ScrewTurns` times a
   second so its waves run back toward the hand; the half behind the axis paler. It eases in and out with the zone, and
   shows whenever the drill runs, touching or not.
-- **The bore** (`ToolContact.BoreOf`): the drill's axis, from the back of its bit to its reach, walked every `ScrewStep` px
+- **The bore** (`ToolContact.BoreOf`): the drill's axis, from the shoulder through the bit to its reach, walked every `ScrewStep` px
   against each touched wreck's drawn pixels. The first stretch inside is the bore: its mouth and its deepest point.
 - **Sparks:** a wreck throws at the same rate as before. Each spark is born in the bore past the bit's point (or along the
   bit, while only the bit is in), rides the spiral back to the mouth at its own speed, and flies on along the spiral's way
   there, spread `ScrewSpread`. The spiral's phase is the drawn haze's, so the sparks ride what is seen.
 - **No bead** for the drill, as for the grinder. The plasma cutter keeps its own.
-- **No bore** (the whole bit already in the wreck, or the axis missing a wreck an outer ray touched): sparks come from the
-  fan's touch, as before, without the bead.
+- **Always off the haze**, for the grinder too. The user, after the first build, with the drill pushed in: «Предлагаю, чтобы
+  искры всегда все равно шли из спирали. И надо перепроверить болгарку». So the bore is walked from the shoulder, and a
+  drill pushed in past its bit has its mouth where the axis enters the wreck, or at the shoulder if all of it is in. A wreck
+  the axis misses (an outer ray touched it) is bored at no depth where the axis passes nearest the touch
+  (`ToolContact.Under`). A grinder with no exit (its rim all in a wreck, or a pebble inside its circle) throws off the rim's
+  point nearest the touch (`ToolContact.Nearest`), its sparks riding the whole rim to it. This supersedes the no-exit
+  fallback of grinder-contact.
 - The grinder's `WheelContact` and the drill's contact are one module, `ToolContact`: where a running tool's sparks come out
   of what it cuts.
 

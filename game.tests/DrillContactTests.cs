@@ -37,11 +37,21 @@ public class DrillContactTests
     }
 
     [Fact]
-    public void NoBoreWhileItMissesOrItsWholeBitIsIn()
+    public void NoBoreWhileItMissesAndItsMouthAtTheShoulderWhenAllIsIn()
     {
         Assert.Null(Bore((_, _) => false));
-        Assert.Null(Bore((x, _) => x > -10));
         Assert.Null(Bore((_, y) => y > 1));
+        var all = Assert.NotNull(Bore((x, _) => x > -10));
+        Assert.Equal(-7, all.Mouth, 9);
+        Assert.Equal(12, all.Deepest, 9);
+    }
+
+    [Fact]
+    public void AMissedTouchIsBoredWhereTheAxisPassesNearestIt()
+    {
+        Assert.Equal(new ToolContact.Bore(4, 4), ToolContact.Under(Right, (4, 3)));
+        Assert.Equal(new ToolContact.Bore(12, 12), ToolContact.Under(Right, (30, 0)));
+        Assert.Equal(new ToolContact.Bore(-7, -7), ToolContact.Under(Right, (-20, 1)));
     }
 
     [Fact]
@@ -56,15 +66,16 @@ public class DrillContactTests
         Assert.Equal(0, wy, 9);
     }
 
-    private static ToolSparks Bored(ToolContact.Bore? bore, double ms)
+    private static ToolSparks Bored(ToolContact.Bore? bore, double ms, (double X, double Y)? at = null)
     {
         var sparks = new ToolSparks();
         string drill = Content.Weapons.Drill.Item;
+        var touch = at ?? (5, 0);
         sparks.Begin(0);
-        sparks.Touch((1, 7), drill, (5, 0), (-1, 0), 0, screw: Right, bore: bore);
+        sparks.Touch((1, 7), drill, touch, (-1, 0), 0, screw: Right, bore: bore);
         sparks.End();
         sparks.Begin(ms);
-        sparks.Touch((1, 7), drill, (5, 0), (-1, 0), ms, screw: Right, bore: bore);
+        sparks.Touch((1, 7), drill, touch, (-1, 0), ms, screw: Right, bore: bore);
         sparks.End();
         return sparks;
     }
@@ -94,5 +105,13 @@ public class DrillContactTests
     public void ABoreThrowsAsManyAsATouchDoes()
     {
         Assert.Equal(Bored(null, 1000).Count, Bored(new ToolContact.Bore(5.5, 12), 1000).Count);
+    }
+
+    [Fact]
+    public void WithNoBoreItStillThrowsOffTheSpiralNearestTheTouch()
+    {
+        var (none, under) = (Bored(null, 200, (4, 3)), Bored(ToolContact.Under(Right, (4, 3)), 200, (4, 3)));
+        Assert.Equal(under.Count, none.Count);
+        for (int n = 0; n < none.Count; n++) Assert.Equal(under.At(n), none.At(n));
     }
 }

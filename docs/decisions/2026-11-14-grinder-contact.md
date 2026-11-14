@@ -1,7 +1,7 @@
 # The grinder's sparks leave its haze's rim where it comes out of a wreck
 
 - Status: accepted; supersedes the grinder's haze size in [tool-reach](2026-11-05-tool-reach.md) and its sparks' start in
-  [damage-looks](2026-11-05-damage-looks.md)
+  [damage-looks](2026-11-05-damage-looks.md); its no-exit fallback superseded by [drill-contact](2026-11-14-drill-contact.md)
 - Date: 2026-11-14
 
 ## Context
