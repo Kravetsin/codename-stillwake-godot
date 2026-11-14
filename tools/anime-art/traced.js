@@ -153,5 +153,8 @@ function fit(name, W, H, along = W - 1) {
   return { s, at, X: (x) => x * s + at[0], Y: (y) => y * s + at[1] };
 }
 
-window.Traced = { placed, drawer, icon, into, straighten, onHead, crown, loadRaw, raw, fit };
+/** A raw subject's own decoded picture, for a subject that cuts a moving part out of it. */
+const picture = (name) => RAW[name];
+
+window.Traced = { placed, drawer, icon, into, straighten, onHead, crown, loadRaw, raw, fit, picture };
 })();
