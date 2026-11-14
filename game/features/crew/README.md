@@ -19,6 +19,9 @@ This hero and others', client-authoritative (0002): only commands reach the sim.
 | `ReachAir.cs` | grinder haze |
 | `logic/AirCuts.cs` | dust, brush |
 | `logic/BladeTrail.cs` | blade haze |
+| `SpearLight.cs` | spear's |
+| `logic/SpearFx.cs` | when |
+| `logic/SpearWake.cs` | wake |
 | `logic/SwingArc.cs` | its angle kept |
 | `logic/SwingArm.cs` | front arm swung |
 | `logic/HandOver.cs` | with it |
@@ -108,7 +111,7 @@ This hero and others', client-authoritative (0002): only commands reach the sim.
 
 - Lengths, speeds: thousandths of a cell (`Content.Hero`); step 1000/60 ms.
 - A step never ends in a wall, shut door, hatch or past the grid; afloat, no jetpack, the middle stays within
-  `Hero.Tether` of its anchor. A shut door pushes it `Hero.PushStep` to the nearest fit, no speed (0089).
+  `Hero.Tether` of its anchor. A shut door pushes it `Hero.PushStep` to a fit (0089).
 - Doors go as this peer shows them (0014); a press sends `SetDoor`/`SetValve` (0071), `SetPlatform`.
 - **Holes, floors:** falls into holes it fits; down drops through; jump wins.
 - **Steps** (0106): a cell up or down, two stop it.
@@ -120,12 +123,12 @@ This hero and others', client-authoritative (0002): only commands reach the sim.
   (hurts-are-shown) tint edges and gauge.
 - **Water** (liquids): swum `SwimDepth` deep, left by Space or shore; wading splashes.
 - **Swim, haul, jetpack** (0047, tether-haul): afloat through floors, tied where it left the hull;
-  Shift hauls in along the tether's bends (`Wraps`); a jetpack unties, Shift thrusts, `Thrust` sent if unlike the sim's.
+  Shift hauls in along its bends (`Wraps`); a jetpack unties, Shift thrusts, `Thrust` sent if unlike the sim's.
 - **A canister** (0047, 0081): RMB or R sends `Refill`, V `SuitMode` (regen-suit) if taken. Cooling greys the O₂ sign
   in a ring; too soon, red (canister-mark).
 - **Meals:** a food right-clicked sends `Eat`, chewed; refused, slots blink (hud-vitals). **Degrees** over them (the-thermometer).
-- **The crew module:** made at `Spawn`; passed out: no orders, lies at the sim's cell, takes none (0061). `Enter` goes when the sim's room or field side
-  differ, every `Crew.ReportEvery` ticks off its cell, each tick if threatened; none out (0050); a closed link's host: `Leave`.
+- **The crew module:** made at `Spawn`; passed out: lies at the sim's cell, takes no orders (0061). `Enter` goes when the sim's room or field side
+  differ, every `Crew.ReportEvery` ticks off its cell, each tick threatened; none out (0050); a closed link's host: `Leave`.
 - **Dressed as worn**: helmet, body, hair, clothes, lamp; the colour on the shin; a switched body lit by
   `SuitOn` and charge (`SuitGlow`, hero-lights). **Limbs bend** whole (bent-limbs); **helmets** turn their own way (helmets-fit-the-suit).
 - **Tracker** blinks (`SignalOf`); **catchers**: heroes in gear, untracked, tumble killed (tracker-catchers).
@@ -134,24 +137,23 @@ This hero and others', client-authoritative (0002): only commands reach the sim.
 
 - Sent (`SentHero`) every 50 ms while it changes, each second still, at once on a rod's change (0002, 0065); hands by
   item and `Busy` (0037).
-- Drawn 150 ms behind (0013), walking 100 ms past the last, hidden after 3 silent s; only those
+- Drawn 150 ms behind (0013), walking 100 ms past the last, hidden 3 silent s on; only those
   here (0076). A friend's tool strikes per number heard (0038), from the hero sent with it; its rod plays out by `RemoteRod`
-  (0065); its drill or driver runs as the sim says (0055).
+  (0065); its drill, driver run as the sim says (0055).
 
 ## The hands
 
 - **What the hand holds shows** (`HeldLook`); a builder twists a plan or a motor (`Twist`, `Driven`).
-- **Aimed only in use** (aim-on-use): up while used and `LingerMs` after, facing the pointer; shots and hits wait for it.
-- **Left is the front, right the back** (0107, 0108): a screwdriver works plans or repairs on the left;
+- **Aimed only in use** (aim-on-use): up in use and `LingerMs` after, at the pointer; shots and hits wait for it.
+- **Left is the front, right the back** (0107, 0108): a screwdriver works plans, repairs on the left;
   the plan, wiring, lays cables; a tool on the right, nothing.
 - **One aim** (`Aiming.AimAt`): a plan (back walls first), machine (0099), tank, door, valve, a wreck
-  pointed at, else the nearest small piece. Outlined green/red, `UsePrompt` says why; plan in hand, E idle. Armed, small pieces.
+  pointed at, else the nearest small piece. Outlined green/red, `UsePrompt` why; plan in hand, E idle. Armed: small ones.
 - **Hits are rays** (tool-reach, hits-pass-wrecks): a fan (`ToolRays`) to a wall, through wrecks; ground rings, sparks.
-- **Struck tools** (0038, swing-motions): by sector, hitting as the blade crosses the aim; the body leans in.
+- **Struck tools** (0038, swing-motions): by sector, hit as the blade crosses the aim, leaned into.
 - **Harpoon, grapple** (0044, grapple-climbs): reel pieces, pull to walls; hung, refire; Space/RMB let go.
 - **A gun** (hold-to-fire): held fires each cooldown; a `Charge` one on release, full; flat, clicks. Kicks afloat, shoves standing (`Recoil`, body-answers).
-- **Drill, grinder, cutter** (0054, 0055): left held runs it (`Run`), a hit each `Pace` ticks, the cutter's by
-  beam (`ToolEdges`).
+- **Drill, grinder, cutter** (0054, 0055): held runs it (`Run`), hits a `Pace`, the cutter's by beam (`ToolEdges`).
 - **Power driver** (driver-at-work, driver-order): charged, works a 2×2 square (`WorkedSquare`); right click toggles (mode-glyph).
 - **Seated** (`Seating.Held`): no tool; E leaves. **Ladders, ledges** (0092): grab, climb, slide, leap off; a hatch open climbs, shut floors (0112); a jump a foot
   short mantles.
@@ -160,4 +162,4 @@ This hero and others', client-authoritative (0002): only commands reach the sim.
 
 - Friends are marked only while heard, unnamed; markers one way overlap.
 - A body is dressed as its peer now (gone, the first colour); it and a seated hero show no suit lights.
-- Others' swings do not hold on contact; a friend's gun hangs, aim unsent, unrecoiled.
+- Others' swings do not hold on contact; a friend's gun hangs, unaimed, unrecoiled.

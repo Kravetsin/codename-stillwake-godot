@@ -631,6 +631,7 @@ public partial class Figure : Node2D
 
     /// <summary>The drill's light and arcs on the held stage, made with it the first time a drill runs in the hand.</summary>
     private DrillLight? _drillLight;
+    private SpearLight? _spearLight;
     private Func<(double X, double Y), Vector2>? _heldAt;
 
     private readonly bool _own;
@@ -1318,6 +1319,7 @@ public partial class Figure : Node2D
             frontArm = Rig.Reach(new Vec(Math.Cos(work) * reach + ux * TwistLift * rise, Math.Sin(work) * reach + uy * TwistLift * rise), Rig.Arm, 1);
         }
         (double Angle, double Phase)? swung = null;
+        double? jabMs = null;
         double elbow = item?.Elbow ?? 0, wrist = 0;
         if (chopping && _chop is { Aim: var aimed, Phase: var phase, Play: var play })
         {
@@ -1332,6 +1334,7 @@ public partial class Figure : Node2D
             {
                 var (dx, dy) = FromShoulder(aimed, hero.Facing);
                 swung = (HarpoonShot.ArmFor(item! with { Elbow = elbow }, dx, dy), drawn);
+                jabMs = drawn * stroke!.Ms;
             }
             else swung = (play.AngleAt(AimAngleOf(aimed, hero.Facing), drawn), drawn);
         }
@@ -1487,6 +1490,10 @@ public partial class Figure : Node2D
         // Its stage made only once a drill runs or a gun charges in this hand: a body, a seated hero or the title's figures never need one.
         if (crackling != null && _drillLight == null && IsInsideTree()) _drillLight = new DrillLight(Held.Glims, Held.Flares, Held.Bolts);
         _drillLight?.Step(crackling, drill ? _spin : Charge, _heldAt ??= HeldAt, elapsedMs);
+        // The spear's own (spear-effects): plain, its thrust bends the air; with the arc, the arc runs, trails and creeps along it.
+        bool spear = inHand && Wields == Stillwake.Content.Weapons.Spear.Item;
+        if (spear && _spearLight == null && IsInsideTree()) AddChild(_spearLight = new SpearLight());
+        _spearLight?.Step(elapsedMs, spear ? _heldAt ??= HeldAt : null, jabMs, spear && PartsOf(item!).Crackles.Count > 0, walking ? _moving : 0, Held);
     }
 
     /// <summary>
