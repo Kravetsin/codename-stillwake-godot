@@ -25,7 +25,7 @@ public partial class DressSheet(string path) : Node
     private static readonly double[] Looks = [-0.6, 0, 0.5];
 
     private readonly record struct Case(int Colour, string? Helmet, string? Body, bool Lamp = false, bool InDark = false, bool Lying = false,
-        bool Jetpack = false, Pose Pose = Pose.Stand, double Look = 0.15, bool Scanner = false, bool Aimed = false);
+        bool Jetpack = false, Pose Pose = Pose.Stand, double Look = 0.15, bool Scanner = false, bool Aimed = false, bool Tracked = true);
 
     private readonly List<(Case Case, int Column, int Row)> _cases = [];
     private SubViewport _view = null!;
@@ -49,9 +49,9 @@ public partial class DressSheet(string path) : Node
         string[] helmets = [helmet, Stillwake.Content.Helmet.Quilted, Stillwake.Content.Helmet.Heavy];
         foreach (string body in new[] { suit, "regenSuit", "heatSuit" })
             foreach (string h in helmets)
-                rows.Add(Turns(Suits.All[0], h, body, aimed: true));
+                rows.Add(Turns(Suits.All[0], h, body, aimed: true, tracked: true));
         foreach (var gear in CreatureLooks.Heroes.Values.SelectMany(look => look.Gear))
-            rows.Add(Turns(Suits.All[2], gear.Helmet, gear.Body, aimed: false));
+            rows.Add(Turns(Suits.All[2], gear.Helmet, gear.Body, aimed: false, tracked: false));
         for (int r = 0; r < rows.Count; r++)
             for (int c = 0; c < rows[r].Count; c++) _cases.Add((rows[r][c], c, r));
         _sheet = Image.CreateEmpty(Tile * Across, Tile * rows.Count, false, Image.Format.Rgba8);
@@ -65,12 +65,15 @@ public partial class DressSheet(string path) : Node
         Next();
     }
 
-    /// <summary>A row of one outfit turning its head and moving: each look with the lamp on, walking, running, climbing, and aiming up if <paramref name="aimed"/>.</summary>
-    private static List<Case> Turns(int colour, string helmet, string body, bool aimed)
+    /// <summary>
+    /// A row of one outfit turning its head and moving: each look with the lamp on, walking, running, climbing, and aiming up if
+    /// <paramref name="aimed"/>; a catcher's without the tracker, as <c>HunterView</c> draws it (tracker-catchers).
+    /// </summary>
+    private static List<Case> Turns(int colour, string helmet, string body, bool aimed, bool tracked)
     {
-        var row = Looks.Select(look => new Case(colour, helmet, body, Lamp: true, Look: look)).ToList();
-        foreach (var pose in new[] { Pose.Walk, Pose.Run, Pose.Climb }) row.Add(new(colour, helmet, body, Pose: pose, Scanner: true));
-        if (aimed) row.Add(new(colour, helmet, body, Aimed: true, Look: -0.6));
+        var row = Looks.Select(look => new Case(colour, helmet, body, Lamp: true, Look: look, Tracked: tracked)).ToList();
+        foreach (var pose in new[] { Pose.Walk, Pose.Run, Pose.Climb }) row.Add(new(colour, helmet, body, Pose: pose, Scanner: true, Tracked: tracked));
+        if (aimed) row.Add(new(colour, helmet, body, Aimed: true, Look: -0.6, Tracked: tracked));
         return row;
     }
 
@@ -89,7 +92,7 @@ public partial class DressSheet(string path) : Node
         }
         var c = _cases[_case].Case;
         Lit.Ambient(c.InDark ? Dark : (1, 1, 1));
-        _figure = new Figure(c.Colour, own: false);
+        _figure = new Figure(c.Colour, own: false) { Tracked = c.Tracked };
         _figure.Wear(c.Colour, c.Helmet, c.Body);
         _figure.HeadLamp = c.Lamp;
         _figure.Scanner = c.Scanner;
