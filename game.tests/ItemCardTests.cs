@@ -246,16 +246,32 @@ public class ItemCardTests
     }
 
     [Fact]
-    public void ShowTheKeyACanisterAndAJetpackAreUsedByThoughNeitherIsATool()
+    public void ShowTheKeyAJetpackIsUsedByThoughItIsNoToolButNoneOnACanistersCard()
     {
+        // A canister's card says what a bottle's does, its name, kind and litres (liquid-volumes): the user's pick.
         var canister = ItemCards.Of("canister");
         Assert.False(canister.Tool);
-        Assert.Equal(new CardKey("RMB"), canister.Use);
+        Assert.Null(canister.Use);
         Assert.False(canister.Worn);
+        Assert.Equal(ItemCards.Of(Spec.Water.Item).Use, canister.Use);
         var jetpack = ItemCards.Of("jetpack");
         Assert.False(jetpack.Tool);
         Assert.Equal("Shift", jetpack.Use?.Key);
         Assert.Null(ItemCards.Of("scrap").Use);
+    }
+
+    [Fact]
+    public void SayACanistersAndABottlesLitresAndAStacksAllToldButNoneOfWhatHoldsNoLiquid()
+    {
+        // A canister and a bottle hold 3 litres each (liquid-volumes); biofuel is counted, not poured.
+        Assert.Equal("3 l", ItemCards.Of(Spec.Crew.Canister).Volume);
+        Assert.Equal("3 l", ItemCards.Of(Spec.Water.Item).Volume);
+        Assert.Null(ItemCards.Of("biofuel").Volume);
+        Assert.Null(ItemCards.Of("iron").Volume);
+        Assert.Equal("3 l · ×4 = 12 l", With(false).TipOf(new Stack(Spec.Crew.Canister, 4)).Card!.Volume);
+        Assert.Equal("3 l · ×5 = 15 l", With(false).TipOf(new Stack(Spec.Water.Item, 5)).Card!.Volume);
+        Assert.Equal("3 l", With(false).TipOf(new Stack(Spec.Water.Item, 1)).Card!.Volume);
+        Assert.NotEqual(ItemCards.Of(Spec.Crew.Canister), ItemCards.Of(Spec.Crew.Canister) with { Volume = null });
     }
 
     [Fact]

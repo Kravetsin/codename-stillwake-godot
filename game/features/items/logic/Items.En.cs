@@ -244,7 +244,6 @@ public static partial class En
         ["item.cape.kind"] = "Equipment · Cape",
         ["item.battery.kind"] = "Equipment · Belt",
         ["item.accumulator.kind"] = "Equipment · Belt",
-        ["item.canister.key"] = "RMB",
         ["item.ration.key"] = "RMB",
         ["item.cannedMeat.key"] = "RMB",
         ["item.fruit.key"] = "RMB",

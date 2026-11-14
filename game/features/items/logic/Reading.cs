@@ -112,13 +112,18 @@ public sealed record Reading(
     }
 
     /// <summary>
-    /// The one tooltip over <paramref name="stack"/>: its item's card, with what this one holds of its own, a battery's charge and a
-    /// tool's modules (0098), its numbers the sim's fold for them (<see cref="ItemCards.Fitted"/>).
+    /// The one tooltip over <paramref name="stack"/>: its item's card, with what this one holds of its own, a battery's charge, a
+    /// stack's litres all told and a tool's modules (0098), its numbers the sim's fold for them (<see cref="ItemCards.Fitted"/>).
     /// </summary>
     public Tip TipOf(Stack stack)
     {
         var tip = TipOf(stack.Item);
-        var card = tip.Card! with { Charge = Charges.MeterOf(stack), Picture = Charges.Picture(stack.Item, stack.Charge) };
+        var card = tip.Card! with
+        {
+            Charge = Charges.MeterOf(stack),
+            Picture = Charges.Picture(stack.Item, stack.Charge),
+            Volume = ItemCards.VolumeOf(stack.Item, stack.Count),
+        };
         return tip with { Card = ItemCards.Fitted(card, ToolStats.ModulesOf(stack)) };
     }
 

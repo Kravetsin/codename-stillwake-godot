@@ -142,6 +142,9 @@ public partial class ContentTests
         Assert.Equal((5, 5, 50), (Content.Items.Get(Content.Crew.Canister).Stack, Content.Items.Get(Content.Water.Item).Stack, Content.Items.Get("ice").Stack));
         Assert.Equal(50 * Air.Canister, Air.TankCapacity);
         Assert.Equal(50, Content.Water.CisternBottles);
+        // A bottle is a canister's 3 litres and a cistern a tank's 150 (liquid-volumes): one reads as the other.
+        Assert.Equal((3000, 150_000), (Content.Water.Bottle, Content.Water.CisternCapacity));
+        Assert.Equal(Air.TankCapacity, Content.Water.CisternCapacity);
         Assert.Equal([("ice", 4)], Content.Materials.Get("iceVein").Cost);
         Assert.All(new[] { "crystalIce", "crystalIceHang" }, id => Assert.Equal([("ice", 4)], Content.Flora.Get(id).Yields));
     }

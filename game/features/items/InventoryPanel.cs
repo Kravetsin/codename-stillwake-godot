@@ -167,7 +167,6 @@ public partial class InventoryPanel : CanvasLayer
 
     /// <summary>The water, for an open cistern: what it holds and whether bottles can be drawn out (industrial-oxygen).</summary>
     public Stillwake.Sim.Water.WaterModule? Water { get; set; }
-
     /// <summary>The power, for an open machine that switches: whether it is off (industrial-oxygen).</summary>
     public Stillwake.Sim.Power.PowerModule? Switching { get; set; }
 

@@ -45,6 +45,8 @@ public static partial class Ru
         ["card.charge"] = "Заряд",
         ["card.percent"] = "{n}%",
         ["card.stored"] = "{n} / {all}",
+        ["card.volume"] = "{n} л",
+        ["card.volumes"] = "{n} л · ×{count} = {all} л",
         ["charger.empty"] = "пусто",
         ["charger.full"] = "полная",
         ["charger.charging"] = "заряжается",

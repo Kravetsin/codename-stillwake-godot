@@ -51,6 +51,9 @@ public static partial class En
         ["card.charge"] = "Charge",
         ["card.percent"] = "{n}%",
         ["card.stored"] = "{n} / {all}",
+        // A canister's or a bottle's litres on its card, and a stack's all told.
+        ["card.volume"] = "{n} l",
+        ["card.volumes"] = "{n} l · ×{count} = {all} l",
         // A charging station's panel: what its slot does now.
         ["charger.empty"] = "empty",
         ["charger.full"] = "full",

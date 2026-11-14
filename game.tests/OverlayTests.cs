@@ -156,7 +156,7 @@ public class ExplainTests
     {
         // 1200 made and 198 leaked a minute; the 1280 of liquid leave at the leak, 7757 ticks.
         var aired = Room(RoomStatus.Aired, aired: 96, leak: 1980, oxygen: 1280, made: 12000, budget: 12000, lasts: 7757);
-        Assert.Equal([new("Aired · 96 cells"), Made("1.200"), Leak("0.198"), Liquid("1.280 l · 6 min")], Explain.Of(aired, 96));
+        Assert.Equal([new("Aired · 96 cells"), Made("1.200"), Leak("0.198"), Liquid("1.28 l · 6 min")], Explain.Of(aired, 96));
         // The pod's air never runs out: no liquid to speak of.
         Assert.Equal([new("Aired · 96 cells"), Made("1.200"), Leak("0.198")], Explain.Of(aired with { Oxygen = null, Lasts = null }, 96));
         // A rate that is no whole number of units a minute reads to a tenth, rounded down.
@@ -173,7 +173,7 @@ public class ExplainTests
     {
         var held = Room(RoomStatus.Filling, aired: 90, leak: 5970, oxygen: 900, made: 12000, budget: 6000, lasts: 1800, problem: "atmosphere.leaky");
         Assert.Equal(
-            [new("Filling · 90/96 cells"), Made("0.600"), Leak("0.597", Tone.Bad), Liquid("0.900 l · 1 min"),
+            [new("Filling · 90/96 cells"), Made("0.600"), Leak("0.597", Tone.Bad), Liquid("0.90 l · 1 min"),
                 Bad("The walls leak more than the vaporizers make: build better walls or another vaporizer")],
             Explain.Of(held, 96));
     }
@@ -181,10 +181,10 @@ public class ExplainTests
     [Fact]
     public void TellsARoomInVacuumWhyItsLiquidRedWhenDryAndNoRatesWithNoShare()
     {
-        Assert.Equal([new("No air · 48 cells"), Liquid("0.000 l", Tone.Bad), Bad("The tank behind the vaporizer is empty: load a canister")],
+        Assert.Equal([new("No air · 48 cells"), Liquid("0.00 l", Tone.Bad), Bad("The tank behind the vaporizer is empty: load a canister")],
             Explain.Of(Room(oxygen: 0, problem: "atmosphere.dry"), 48));
         // Its vaporizer unpowered: the liquid waits behind it, drawn by nothing.
-        Assert.Equal([new("No air · 96 cells"), Liquid("0.900 l"), Bad("Vaporizer has no power")], Explain.Of(Room(oxygen: 900, problem: "atmosphere.unpowered"), 96));
+        Assert.Equal([new("No air · 96 cells"), Liquid("0.90 l"), Bad("Vaporizer has no power")], Explain.Of(Room(oxygen: 900, problem: "atmosphere.unpowered"), 96));
         // Its air fading from the far edge: how much is left, and why.
         Assert.Equal([new("Some air · 30/48 cells"), Bad("No vent here")], Explain.Of(Room(aired: 30, leak: 600, problem: "atmosphere.noVent"), 48));
     }
@@ -194,7 +194,7 @@ public class ExplainTests
     {
         // Its vent drains 8 a tick, but liquid leaves at most at its vaporizer's 1: 450 ticks.
         var venting = Room(RoomStatus.Venting, oxygen: 450, made: 12000, lasts: 450);
-        Assert.Equal([new("Venting to space"), Liquid("0.450 l · 23 s")], Explain.Of(venting, 96));
+        Assert.Equal([new("Venting to space"), Liquid("0.45 l · 23 s")], Explain.Of(venting, 96));
         // No vaporizer feeding it: nothing drains.
         Assert.Equal([new("Venting to space")], Explain.Of(venting with { Oxygen = null, Made = 0, Lasts = null }, 96));
     }

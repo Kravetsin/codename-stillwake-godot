@@ -65,6 +65,7 @@ public static class ItemCardView
     private static readonly LabelSettings FromText = Style.Text(Style.Mono, 10, Style.Slate500);
     private static readonly LabelSettings ChargeText = Style.Text(BoldMono, 10, Green);
     private static readonly LabelSettings StoredText = Style.Text(Style.Mono, 10, Style.Slate300);
+    private static readonly LabelSettings VolumeText = Style.Text(Style.Mono, 13, Style.Slate300);
     private static readonly LabelSettings UnitText = Style.Text(Spaced, 9, Style.Slate500);
     private static readonly LabelSettings DetailText = Style.Text(Style.Mono, 10, Hint);
 
@@ -79,14 +80,16 @@ public static class ItemCardView
         var kind = Text(card.Kind, KindText, HorizontalAlignment.Left);
         kind.SizeFlagsVertical = Control.SizeFlags.ShrinkEnd;
         line.AddChild(kind);
-        var column = Column(0, Padded(line, 9, 5, 9, card.About == null ? 6 : 2));
+        var column = Column(0, Padded(line, 9, 5, 9, card.About == null && card.Volume == null ? 6 : 2));
+        // A canister's or a bottle's litres, a stack's all told (liquid-volumes).
+        if (card.Volume is { } volume) column.AddChild(Padded(Text(volume, VolumeText, HorizontalAlignment.Left), 9, 0, 9, card.About == null ? 6 : 2));
         if (card.About is { } about)
         {
             var words = Text(about, DetailText, HorizontalAlignment.Left);
             (words.AutowrapMode, words.CustomMinimumSize) = (TextServer.AutowrapMode.WordSmart, new Vector2(ToolWidth - 2 * Pad, 0));
             column.AddChild(Padded(words, 9, 0, 9, 6));
         }
-        // A canister is breathed with a key of its own: the one thing its slot cannot say.
+        // An item used by a key of its own shows it: the one thing its slot cannot say.
         if (card.Use is { } how) column.AddChild(Ruled(UseRow(how, null)));
         if (card.Charge is { } charge) column.AddChild(Meter(charge));
         Bottom(card, column);

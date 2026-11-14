@@ -44,6 +44,7 @@ public static class ItemCards
         {
             var card = new ItemCard(item, name, kind, null, key, price);
             if (Table.ContainsKey($"item.{item}.about")) card = card with { About = T($"item.{item}.about") };
+            card = card with { Volume = VolumeOf(item) };
             if (Spec.Modules.TryGet(item, out var module)) card = card with { Tech = TechOf(module) };
             return Spec.Items.Get(item).Equip == null ? card : Worn(card);
         }
@@ -258,6 +259,17 @@ public static class ItemCards
     public static string NameIn(Language language, string id, Placement? placement) => placement is { } p
         ? p.Material is { } m ? $"{In(language, $"tool.{p.Kind}")}: {In(language, $"material.{m}")}" : In(language, $"tool.{p.Kind}")
         : In(language, $"item.{id}");
+
+    /// <summary>
+    /// The litres one of <paramref name="item"/> holds, and <paramref name="count"/> of them all told where more than one
+    /// (liquid-volumes): "3 l", "3 l · ×4 = 12 l"; null for an item that holds no liquid.
+    /// </summary>
+    public static string? VolumeOf(string item, int count = 1)
+    {
+        if (Litres.In(item) is not int one) return null;
+        string each = Number(one / 1000.0);
+        return count > 1 ? T("card.volumes", ("n", each), ("count", count), ("all", Number((long)one * count / 1000.0))) : T("card.volume", ("n", each));
+    }
 
     /// <summary><paramref name="n"/> with one decimal at most, half rounded up: 4, 5.3, 0.5.</summary>
     public static string Number(double n) =>
