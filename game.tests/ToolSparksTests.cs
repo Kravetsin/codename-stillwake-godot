@@ -9,12 +9,12 @@ namespace Stillwake.Game.Tests;
 public class ToolSparksTests
 {
     private static readonly string Grinder = Content.Weapons.Grinder.Item;
-    private static readonly WheelContact.Circle Wheel = new((0, 0), 14, 1);
+    private static readonly ToolContact.Circle Wheel = new((0, 0), 14, 1);
 
     [Fact]
     public void ASparkLeavesFromTheFirstExitItMeetsAlongTheSpin()
     {
-        var top = new WheelContact.Exit(Wheel.At(-Math.PI / 2), Wheel.Along(-Math.PI / 2), -Math.PI / 2, 0.5);
+        var top = new ToolContact.Exit(Wheel.At(-Math.PI / 2), Wheel.Along(-Math.PI / 2), -Math.PI / 2, 0.5);
         var sparks = Ground([Low, top], ms: 200);
         int low = 0, high = 0;
         for (int n = 0; n < sparks.Count; n++)
@@ -31,9 +31,9 @@ public class ToolSparksTests
     }
 
     // The rim's lowest point: it moves back, along -x, there.
-    private static readonly WheelContact.Exit Low = new(Wheel.At(Math.PI / 2), Wheel.Along(Math.PI / 2), Math.PI / 2, 1);
+    private static readonly ToolContact.Exit Low = new(Wheel.At(Math.PI / 2), Wheel.Along(Math.PI / 2), Math.PI / 2, 1);
 
-    private static ToolSparks Ground(IReadOnlyList<WheelContact.Exit>? exits, double ms = 1000)
+    private static ToolSparks Ground(IReadOnlyList<ToolContact.Exit>? exits, double ms = 1000)
     {
         var sparks = new ToolSparks();
         sparks.Begin(0);
@@ -72,7 +72,7 @@ public class ToolSparksTests
     [Fact]
     public void AWreckThrowsAsManyFromTwoExitsAsFromOneAndAsWithNone()
     {
-        var other = new WheelContact.Exit(Wheel.At(-Math.PI / 2), Wheel.Along(-Math.PI / 2), -Math.PI / 2, 0.5);
+        var other = new ToolContact.Exit(Wheel.At(-Math.PI / 2), Wheel.Along(-Math.PI / 2), -Math.PI / 2, 0.5);
         Assert.Equal(Ground([Low]).Count, Ground([Low, other]).Count);
         Assert.Equal(Ground([Low]).Count, Ground([]).Count);
     }

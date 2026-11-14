@@ -69,17 +69,23 @@ public partial class ReachAir : Node2D
     public void Follow(AirCuts.Zone? zone, double elapsedMs, System.Collections.Generic.IReadOnlyList<(double X, double Y)>? edge = null)
     {
         _cuts.Step(elapsedMs, zone);
+        _clock += elapsedMs;
         _trail.Step(elapsedMs, edge);
         Visible = _haze!.Visible = _trail.Live || _cuts.Working != null;
         if (!Visible) return;
         QueueRedraw();
-        _haze._working = _cuts.Working;
+        _working = _haze._working = _cuts.Working;
+        _haze._clock = _clock;
         _haze.QueueRedraw();
     }
 
     private (AirCuts.Zone Zone, double On)? _working;
+    private double _clock;
 
-    // A running wheel bends the air round it, its working circle (grinder-contact); a bit and a thrust show nothing of their own.
+    /// <summary>The drill's haze spiral's phase at the bit's point now, radians (drill-contact): what its sparks ride.</summary>
+    public double ScrewPhase => ToolContact.ScrewSpin * _clock / 1000 % (2 * System.Math.PI);
+
+    // A running wheel bends the air round it, its working circle (grinder-contact); a thrust shows nothing of its own.
     private void Wheel()
     {
         if (_working is not ({ Disc: true } zone, var on)) return;
@@ -97,11 +103,42 @@ public partial class ReachAir : Node2D
         _ink.Feather = was;
     }
 
+    // A running drill's reach as pale dry-brush strokes of a spiral from its point (drill-contact), its waves running back to the hand.
+    private void Screw()
+    {
+        if (_working is not ({ Disc: false } zone, var on)) return;
+        var (dx, dy) = zone.Toward;
+        double phase = ScrewPhase, length = zone.Size;
+        int dabs = (int)System.Math.Ceiling(length / WorkLooks.ScrewDab);
+        for (int k = 0; k < WorkLooks.ScrewStrokes.Length; k++)
+        {
+            var (width, offset, alpha) = WorkLooks.ScrewStrokes[k];
+            (double X, double Y) At(double s, double p)
+            {
+                double across = (WorkLooks.ScrewRadius + offset) * System.Math.Sin(p);
+                return (zone.At.X + dx * s - dy * across, zone.At.Y + dy * s + dx * across);
+            }
+            for (int i = 0; i < dabs; i++)
+            {
+                double dry = Ink.Draw.Hash(k + 1, i >> 1);
+                if (dry < WorkLooks.ScrewDry) continue;
+                double a = i * WorkLooks.ScrewDab, b = System.Math.Min(length, a + WorkLooks.ScrewDab);
+                double pa = phase + ToolContact.ScrewK * a, pb = phase + ToolContact.ScrewK * b;
+                double edge = Ink.Draw.Clamp(a / 2) * Ink.Draw.Clamp((length - a) / 3);
+                double strength = alpha * on * edge * (System.Math.Cos(pa) < 0 ? WorkLooks.ScrewBehind : 1) * (0.45 + 0.55 * dry);
+                if (strength < 0.005) continue;
+                _ink.Segment(At(a, pa), At(b, pb), width, WorkLooks.AirInk.Faded((float)strength));
+            }
+        }
+    }
+
     public override void _Draw()
     {
         _ink.Clear();
         _ink.Feather = InkCanvas.PixelOf(this);
-        Wheel();
+        // The wheel only bends the world behind it; the spiral is seen, over it.
+        if (_haze == null) Wheel();
+        else Screw();
         // The trail stays where it was swept in the world, whatever the figure does since.
         _here = GetGlobalTransform().AffineInverse();
         _trail.Draw(_ink, _local, _haze != null ? Breath : Bend);

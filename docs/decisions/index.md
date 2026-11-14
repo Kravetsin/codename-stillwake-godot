@@ -248,7 +248,7 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [build-from-crates](2026-11-05-build-from-crates.md) | Building, pipes and cables pay from every crate on the ship | accepted |  |
 | [build-hints](2026-11-05-build-hints.md) | Build hints: a screen of key caps that changes with the hand | accepted |  |
 | [craft-from-crates](2026-11-05-craft-from-crates.md) | A paid craft takes from every crate on the ship | accepted |  |
-| [damage-looks](2026-11-05-damage-looks.md) | Damage and work drawn in ink | accepted | tool-reach, cracks-to-end, grinder-contact (in part) |
+| [damage-looks](2026-11-05-damage-looks.md) | Damage and work drawn in ink | accepted | tool-reach, cracks-to-end, drill-contact, grinder-contact (in part) |
 | [hologram-keys](2026-11-05-hologram-keys.md) | The edge's keys are holograms of what can be used, and the bulb bursts at the screen's top | accepted | edge-flash (in part) |
 | [melee-edge](2026-11-05-melee-edge.md) | A stroke hits with its swept blade | accepted | tool-reach (in part) |
 | [the-board](2026-11-05-the-board.md) | Things are learned by having them, on the scavenger's board | accepted | one-to-understand (in part) |
@@ -342,6 +342,7 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [hud-vitals](2026-11-13-hud-vitals.md) | The vitals: air, charge and meals as frameless light at the bottom-left | accepted |  |
 | [bent-limbs](2026-11-14-bent-limbs.md) | Limbs bent whole at the joint | accepted |  |
 | [creatures-bend](2026-11-14-creatures-bend.md) | Creatures bend like the hero | accepted |  |
+| [drill-contact](2026-11-14-drill-contact.md) | The drill shows its reach as a turning spiral, and its sparks ride it out of the bore | accepted |  |
 | [drill-redrawn](2026-11-14-drill-redrawn.md) | The drill traced from a picked reference, its bit drawn to turn | accepted | raw-tool-pictures (in part) |
 | [fire-axe-redrawn](2026-11-14-fire-axe-redrawn.md) | The fire axe traced from a picked reference, its trail following the rounded edge | accepted | raw-tool-pictures (in part) |
 | [food-and-gear-cards](2026-11-14-food-and-gear-cards.md) | Food and gear cards list what they guarantee, and food sells | accepted |  |

@@ -13,10 +13,10 @@ namespace Stillwake.Game.Tests;
 public class WheelContactTests
 {
     private const int Steps = 48;
-    private static readonly WheelContact.Circle Right = new((0, 0), 10, 1), Left = new((0, 0), 10, -1);
+    private static readonly ToolContact.Circle Right = new((0, 0), 10, 1), Left = new((0, 0), 10, -1);
 
-    private static List<WheelContact.Exit> Exits(WheelContact.Circle wheel, Func<double, double, bool> inside, int most = 3) =>
-        WheelContact.Of(wheel, Steps, inside, most);
+    private static List<ToolContact.Exit> Exits(ToolContact.Circle wheel, Func<double, double, bool> inside, int most = 3) =>
+        ToolContact.Exits(wheel, Steps, inside, most);
 
     [Fact]
     public void FacingRightIntoAPlateAheadTheRimLeavesItLowAndThrowsDownAndBack()
@@ -61,7 +61,7 @@ public class WheelContactTests
     {
         Assert.Empty(Exits(Right, (_, _) => true));
         Assert.Empty(Exits(Right, (_, _) => false));
-        Assert.Empty(WheelContact.Of(Right with { Radius = 0 }, Steps, (x, _) => x > 0, 3));
+        Assert.Empty(ToolContact.Exits(Right with { Radius = 0 }, Steps, (x, _) => x > 0, 3));
     }
 
     [Fact]
@@ -76,14 +76,14 @@ public class WheelContactTests
     public Property EveryExitIsInsideWithTheNextPointAlongTheSpinOutside() =>
         Prop.ForAll(Gen.ArrayOf(Gen.Elements(true, false), Steps).ToArbitrary(), Gen.Elements(1, -1).ToArbitrary(), (pattern, spin) =>
         {
-            var wheel = new WheelContact.Circle((3, -2), 10, spin);
+            var wheel = new ToolContact.Circle((3, -2), 10, spin);
             int Index(double x, double y)
             {
                 double a = Math.Atan2(y + 2, x - 3) * spin;
                 return (int)Math.Round((a < 0 ? a + 2 * Math.PI : a) / (2 * Math.PI) * Steps) % Steps;
             }
             bool Inside(double x, double y) => pattern[Index(x, y)];
-            var exits = WheelContact.Of(wheel, Steps, Inside, int.MaxValue);
+            var exits = ToolContact.Exits(wheel, Steps, Inside, int.MaxValue);
             int runs = Enumerable.Range(0, Steps).Count(k => pattern[k] && !pattern[(k + 1) % Steps]);
             bool all = pattern.All(p => p) || pattern.All(p => !p);
             return exits.Count == (all ? 0 : runs) && exits.All(e =>

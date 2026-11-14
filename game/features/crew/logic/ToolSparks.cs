@@ -13,8 +13,10 @@ namespace Stillwake.Game.Features.Crew;
 /// </summary>
 public sealed class ToolSparks
 {
-    // Thrown from (X, Y) along (Dx, Dy) once it has ridden Ride ms of the wheel's rim from angle From (grinder-contact).
-    private readonly record struct Spark(double X, double Y, double Dx, double Dy, double Speed, double Life, double Born, WheelContact.Circle? Rim = null, double From = 0, double Ride = 0);
+    // Thrown from (X, Y) along (Dx, Dy) once it has ridden Ride ms: of the wheel's rim from angle From (grinder-contact), or back
+    // along the drill's spiral from From pixels past its point, told at Told ms (drill-contact).
+    private readonly record struct Spark(double X, double Y, double Dx, double Dy, double Speed, double Life, double Born, ToolContact.Circle? Rim = null,
+        double From = 0, double Ride = 0, ToolContact.Screw? Screw = null, double Told = 0);
 
     private readonly List<Spark> _sparks = [];
     private readonly Dictionary<(int Hero, int Piece), double> _owed = new();
@@ -40,16 +42,18 @@ public sealed class ToolSparks
     /// tool <paramref name="toward"/> (a unit vector), through this frame of <paramref name="elapsedMs"/>: its sparks thrown, the
     /// first at once when it starts touching. A grinder's <paramref name="wheel"/> with <paramref name="exits"/> from the wreck
     /// throws them off its rim instead (grinder-contact): each rides the rim along the spin to an exit and flies on along it there.
+    /// A drill's <paramref name="screw"/> with its <paramref name="bore"/> into the wreck throws them up its spiral (drill-contact):
+    /// each rides it back from inside the bore to the mouth and flies on along it there.
     /// </summary>
     public void Touch((int Hero, int Piece) touch, string tool, (double X, double Y) at, (double X, double Y) toward, double elapsedMs,
-        WheelContact.Circle? wheel = null, IReadOnlyList<WheelContact.Exit>? exits = null)
+        ToolContact.Circle? wheel = null, IReadOnlyList<ToolContact.Exit>? exits = null, ToolContact.Screw? screw = null, ToolContact.Bore? bore = null)
     {
         _touching.Add(touch);
-        bool rim = wheel != null && exits is { Count: > 0 };
-        // The grinder's sparks come off the wheel itself, with no bead where it touches (grinder-contact).
-        if (tool != Content.Weapons.Grinder.Item) _beads.Add(at);
+        bool rim = wheel != null && exits is { Count: > 0 }, up = !rim && screw != null && bore != null;
+        // The grinder's and the drill's sparks come off the tool itself, with no bead where it touches (grinder-contact, drill-contact).
+        if (tool != Content.Weapons.Grinder.Item && tool != Content.Weapons.Drill.Item) _beads.Add(at);
         double owed = _owed.TryGetValue(touch, out var o) ? o + WorkLooks.SparksPerSecond * Fx.Count * elapsedMs / 1000 : 1;
-        var (bx, by, spread) = rim ? (0.0, 0.0, WorkLooks.GrinderSpread) : tool == Content.Weapons.Grinder.Item ? Wheel(toward) : (toward.X, toward.Y, Spread(tool));
+        var (bx, by, spread) = rim ? (0.0, 0.0, WorkLooks.GrinderSpread) : up ? (0.0, 0.0, WorkLooks.ScrewSpread) : tool == Content.Weapons.Grinder.Item ? Wheel(toward) : (toward.X, toward.Y, Spread(tool));
         for (; owed >= 1; owed--)
         {
             int i = _thrown++;
@@ -58,6 +62,11 @@ public sealed class ToolSparks
             double speed = WorkLooks.SparkSpeed.Least + Hash(i, 3) * (WorkLooks.SparkSpeed.Most - WorkLooks.SparkSpeed.Least);
             // Thrown through the frame, not all at its end.
             double born = _clock - (owed - 1) / WorkLooks.SparksPerSecond * 1000;
+            if (up)
+            {
+                _sparks.Add(UpTheScrew(screw!.Value, bore!.Value, i, speed, life, born, cos, sin));
+                continue;
+            }
             if (!rim)
             {
                 _sparks.Add(new Spark(at.X, at.Y, bx * cos - by * sin, bx * sin + by * cos, speed, life, born));
@@ -82,8 +91,20 @@ public sealed class ToolSparks
         foreach (var touch in _left) _owed.Remove(touch);
     }
 
+    // Born anywhere in the bore past the point (behind it while the bore is only round the bit), ridden back at its own speed to the
+    // mouth, thrown along the spiral there as it will be when it gets there.
+    private Spark UpTheScrew(ToolContact.Screw screw, ToolContact.Bore bore, int i, double speed, double life, double born, double cos, double sin)
+    {
+        double from = bore.Deepest >= 0 ? Math.Max(bore.Mouth, 0) : bore.Mouth;
+        from += Hash(i, 4) * (bore.Deepest - from);
+        double ride = (from - bore.Mouth) / speed * 1000, phase = screw.Phase + ToolContact.ScrewSpin * (born + ride - _clock) / 1000;
+        var (x, y) = screw.At(bore.Mouth, phase);
+        var (wx, wy) = screw.Rides(bore.Mouth, phase, speed);
+        return new Spark(x, y, wx * cos - wy * sin, wx * sin + wy * cos, speed, life, born, From: from, Ride: ride, Screw: screw, Told: _clock);
+    }
+
     // The first of exits met riding w's rim along its spin from angle from, and how far, radians.
-    private static (WheelContact.Exit Exit, double Way) NextExit(WheelContact.Circle w, double from, IReadOnlyList<WheelContact.Exit> exits)
+    private static (ToolContact.Exit Exit, double Way) NextExit(ToolContact.Circle w, double from, IReadOnlyList<ToolContact.Exit> exits)
     {
         var best = (exits[0], double.MaxValue);
         foreach (var e in exits)
@@ -119,6 +140,14 @@ public sealed class ToolSparks
             var (rx, ry) = w.At(angle);
             var (ux, uy) = w.Along(angle);
             return ((rx - ux * streak, ry - uy * streak), (rx, ry), 0);
+        }
+        if (age < s.Ride && s.Screw is { } sc)
+        {
+            // Up the spiral: its streak along the way it rides there.
+            double along = s.From - s.Speed * age / 1000, phase = sc.Phase + ToolContact.ScrewSpin * (_clock - s.Told) / 1000, streak = s.Speed * WorkLooks.SparkStreak;
+            var (px, py) = sc.At(along, phase);
+            var (ux, uy) = sc.Rides(along, phase, s.Speed);
+            return ((px - ux * streak, py - uy * streak), (px, py), 0);
         }
         age -= s.Ride;
         double q = age / s.Life;

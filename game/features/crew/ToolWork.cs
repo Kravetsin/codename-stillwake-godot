@@ -19,7 +19,8 @@ public partial class ToolWork : Node2D
     /// grinder's working circle and, for each of those wrecks in order, where its rim leaves it (grinder-contact).
     /// </summary>
     public readonly record struct Seen(int Hero, string Tool, Vector2 From, Vector2 At, Vector2 Way, HitLook? Look, double? Floor,
-        IReadOnlyList<(int Piece, Vector2 At)> Wrecks, WheelContact.Circle? Wheel = null, IReadOnlyList<IReadOnlyList<WheelContact.Exit>>? Exits = null);
+        IReadOnlyList<(int Piece, Vector2 At)> Wrecks, ToolContact.Circle? Wheel = null, IReadOnlyList<IReadOnlyList<ToolContact.Exit>>? Exits = null,
+        ToolContact.Screw? Screw = null, IReadOnlyList<ToolContact.Bore?>? Bores = null);
 
     private readonly Dictionary<int, StrikeTrain> _trains = new();
     private readonly List<Seen> _jets = new();
@@ -56,7 +57,7 @@ public partial class ToolWork : Node2D
             for (int i = 0; i < s.Wrecks.Count; i++)
             {
                 var (piece, at) = s.Wrecks[i];
-                _sparks.Touch((s.Hero, piece), s.Tool, (at.X, at.Y), (back.X, back.Y), elapsedMs, s.Wheel, s.Exits?[i]);
+                _sparks.Touch((s.Hero, piece), s.Tool, (at.X, at.Y), (back.X, back.Y), elapsedMs, s.Wheel, s.Exits?[i], s.Screw, s.Bores?[i]);
             }
             if (s.Look is not { } look || look == wreck) continue;
             _working.Add(s.Hero);

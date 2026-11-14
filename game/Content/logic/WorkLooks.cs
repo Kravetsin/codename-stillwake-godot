@@ -45,6 +45,20 @@ public static class WorkLooks
     public const int RimSteps = 48, WheelExits = 3;
 
     /// <summary>
+    /// The drill's haze (drill-contact), as the user picked it («Витки марева»): a spiral from the bit's point to its reach, this
+    /// far either side of the axis, a turn every <see cref="ScrewPitch"/> pixels along it, turning <see cref="ScrewTurns"/> times a
+    /// second; its axis walked every <see cref="ScrewStep"/> pixels for the bore; a spark off its mouth spread this much either way.
+    /// </summary>
+    public const double ScrewRadius = 2.3, ScrewPitch = 5.6, ScrewTurns = 3, ScrewStep = 0.5, ScrewSpread = 0.15;
+
+    /// <summary>
+    /// The spiral drawn in dry-brush strokes, each its width, its offset from the spiral and its strength; drawn every
+    /// <see cref="ScrewDab"/> pixels, a dab in <see cref="ScrewDry"/> skipped, the half behind the axis at <see cref="ScrewBehind"/>.
+    /// </summary>
+    public static readonly (double Width, double Offset, double Alpha)[] ScrewStrokes = [(0.75, 0, 0.2), (0.32, 0.38, 0.16), (0.28, -0.42, 0.11)];
+    public const double ScrewDab = 0.3, ScrewDry = 0.18, ScrewBehind = 0.45;
+
+    /// <summary>
     /// Sparks a second off a wreck, each living <see cref="SparkLife"/> ms and flying <see cref="SparkSpeed"/> pixels a second at
     /// first, slowing by a third; its streak as long as <see cref="SparkStreak"/> seconds of its speed, <see cref="SparkWidth"/> wide.
     /// </summary>

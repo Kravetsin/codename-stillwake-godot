@@ -681,6 +681,9 @@ public partial class Figure : Node2D
     /// <summary>The running grinder's working circle's radius round its hub (<see cref="EdgeStart"/>), pixels; none while none runs.</summary>
     public double? WheelRadius { get; private set; }
 
+    /// <summary>The running drill's haze spiral in the world (drill-contact), from its point to its reach; none while none runs.</summary>
+    public ToolContact.Screw? Screw { get; private set; }
+
     /// <summary>Where the held aimed item's edge begins as drawn this frame: the harpoon's breech, the cutter's nozzle, its jet's start.</summary>
     public Vector2? EdgeStart { get; private set; }
 
@@ -1487,6 +1490,7 @@ public partial class Figure : Node2D
         var zone = Spinning && inHand && item != null ? ZoneOf(frontArm, item) : null;
         WheelRadius = zone is { Disc: true } disc ? disc.Size : null;
         _air.Follow(zone, elapsedMs, bladeHeld ? _edge : null);
+        Screw = zone is { Disc: false } bit && Muzzle is { } bitPoint && EdgeStart is { } chuck ? ScrewOf(bit, (bitPoint - chuck).Length()) : null;
         _beamMs = Math.Max(0, _beamMs - elapsedMs);
         ShowBeams(holding);
         // A drill crackles as it spins; a gun held to charge, as it fills.
@@ -1520,6 +1524,18 @@ public partial class Figure : Node2D
         double range = Stillwake.Content.Weapons.Drill.Range * Rig.Cell / Hero.Unit, cx = dx * range - at.X, cy = dy * range - at.Y;
         double length = Math.Sqrt(cx * cx + cy * cy);
         return length < 1 ? null : new(false, (at.X, at.Y), (cx / length, cy / length), length);
+    }
+
+    /// <summary>The drill's <paramref name="bit"/> zone as its haze spiral in the world, the bit <paramref name="back"/> pixels long behind its point.</summary>
+    private ToolContact.Screw ScrewOf(AirCuts.Zone bit, double back)
+    {
+        Vector2 World((double X, double Y) p) => _air.ToGlobal(new Vector2((float)p.X, (float)p.Y));
+        var (dx, dy) = bit.Toward;
+        var point = World(bit.At);
+        var far = World((bit.At.X + dx * bit.Size, bit.At.Y + dy * bit.Size)) - point;
+        var across = (World((bit.At.X - dy, bit.At.Y + dx)) - point).Normalized();
+        var way = far.Normalized();
+        return new((point.X, point.Y), (way.X, way.Y), (across.X, across.Y), back, far.Length(), _air.ScrewPhase);
     }
 
     /// <summary>A turn by <paramref name="angle"/> about the helmet's pivot, in the neck's frame.</summary>

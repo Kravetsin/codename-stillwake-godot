@@ -20,7 +20,7 @@ Then chose to grow the haze to the tool's real reach.
 - **The working circle** is round the hub as the figure draws it, out to the fan's `Range` from the shoulder
   (`WorkLooks.WheelRadius`); none when that leaves under `WheelLeast` px. The haze draws it, feathered over half its radius.
 - **Spin:** clockwise on screen facing right, mirrored facing left, as the figure flips.
-- **Exits** (`WheelContact.Of`): for each wreck the fan touches, the rim is walked `RimSteps` points along the spin against the
+- **Exits** (`ToolContact.Exits`): for each wreck the fan touches, the rim is walked `RimSteps` points along the spin against the
   wreck's drawn pixels, the test the fan uses. Each stretch inside ends at an exit, the last point inside. A stretch across
   the walk's start is one stretch. At most `WheelExits` a wreck, the longest stretches first.
 - **Sparks:** a wreck throws at the same rate as before, whatever its exits. Each spark starts anywhere on the rim, rides it
