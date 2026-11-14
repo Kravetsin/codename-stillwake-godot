@@ -36,6 +36,9 @@ public static class ItemCards
         string name = T($"item.{item}"), kind = T($"item.{item}.kind");
         // Anything used by a key of its own shows the key, and no words on what it does: the player finds out (0047).
         var key = Table.ContainsKey($"item.{item}.key") ? new CardKey(T($"item.{item}.key")) : null;
+        // A thrown charge is its own gun and ammo: its card is its blast, not what it adds to a gun.
+        if (Spec.Shots.GunOf(item) is { } thrown && Spec.Shots.Get(thrown.Ammo[0]).Bursts is { } blast)
+            return new ItemCard(item, name, kind, BlastTiles(thrown, blast), key, price);
         if (IsAmmo(item)) return new ItemCard(item, name, kind, AmmoTiles(item), key, price);
         if (!IsTool(item))
         {
@@ -122,6 +125,18 @@ public static class ItemCards
         if (gun.Energy > 0) tiles.Add(new CardTile(Number(gun.Energy), T("card.energy")) { Sign = CardSign.Battery, Group = CardGroup.Special });
         return tiles;
     }
+
+    /// <summary>
+    /// A thrown charge's rows, under its blast: what it takes off each wreck within its reach, its power on rock and walls in the
+    /// tenths a tool's block damage is shown in, its reach in cells, and the seconds between throws (<see cref="Spec.Blast"/>).
+    /// </summary>
+    private static List<CardTile> BlastTiles(Spec.Gun gun, Spec.Blast blast) =>
+    [
+        Hits(Number(blast.WreckDamage), null, CardGroup.Blast),
+        Rock(blast.Power, null, CardGroup.Blast),
+        new CardTile(T("card.cells", ("n", Number(blast.Reach))), T("card.radius")) { Sign = CardSign.Reach, Group = CardGroup.Blast },
+        new CardTile(T("card.seconds", ("n", Number((double)gun.Pace / World.TicksPerSecond))), T("card.reload")) { Sign = CardSign.Pace, Group = CardGroup.Blast },
+    ];
 
     /// <summary>Ammo's rows: what it adds to its gun's damage off a body and off a block, "+2".</summary>
     private static List<CardTile> AmmoTiles(string item)
