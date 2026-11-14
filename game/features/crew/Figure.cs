@@ -57,10 +57,10 @@ public partial class Figure : Node2D
     private sealed record Limb(Node2D Upper, Node2D Lower, Node2D? Ankle, BentPicture[] Pictures, Sprite2D UpperPart, Sprite2D LowerPart, double Joint)
     {
         private (Texture2D? Upper, Texture2D? Lower) _seamOf;
-        private double _seam = BentLimb.Plain;
+        private (double From, double To) _seam = BentLimb.Plain;
 
-        /// <summary>Where its lower picture starts as worn now (<see cref="BentLimb.SeamOf"/>), found again only when either picture changes.</summary>
-        private double Seam()
+        /// <summary>Where its two pictures meet as worn now (<see cref="BentLimb.SeamOf"/>), found again only when either picture changes.</summary>
+        private (double From, double To) Seam()
         {
             if (_seamOf == (UpperPart.Texture, LowerPart.Texture)) return _seam;
             _seamOf = (UpperPart.Texture, LowerPart.Texture);

@@ -1,0 +1,80 @@
+{
+ "background": "#020b2d",
+ "backgroundTolerance": 30,
+ "holes": 0.001,
+ "fit": 15.4,
+ "ink": {
+  "maxLum": 24,
+  "relative": 0.7,
+  "around": 12,
+  "width": 7,
+  "bridge": 3,
+  "coarse": {
+   "relative": 0.76,
+   "bridge": 7,
+   "min": 0.02
+  }
+ },
+ "minPart": 0.0015,
+ "epsilon": 4,
+ "seamMin": 1.2,
+ "looseMin": 0.8,
+ "materials": {
+  "steel": {
+   "base": true,
+   "layer": 0,
+   "ref": [
+    "#989894",
+    "#70726f",
+    "#7a7b79",
+    "#787976",
+    "#848687",
+    "#b0b0ae",
+    "#5c5e5c"
+   ],
+   "shade": 0.16,
+   "mat": {
+    "base": "#8a8e96",
+    "shade": "#5c6070",
+    "deep": "#3e4252",
+    "lite": "#b4b8c0",
+    "spec": "#e0e2e6",
+    "ink": "#14162a"
+   }
+  },
+  "tape": {
+   "layer": 1,
+   "ref": [
+    "#2b2a29",
+    "#232322",
+    "#1b1b1b"
+   ],
+   "shade": 0.16,
+   "mat": {
+    "base": "#2c2c30",
+    "shade": "#1c1c20",
+    "deep": "#121216",
+    "lite": "#44444a",
+    "spec": "#64646c"
+   }
+  },
+  "rust": {
+   "layer": 2,
+   "ref": [
+    "#753c1e",
+    "#65402e",
+    "#582b14",
+    "#8a4a28"
+   ],
+   "shade": 0.14,
+   "mat": {
+    "base": "#8c4a2a",
+    "shade": "#663420",
+    "deep": "#482418",
+    "lite": "#a8603a",
+    "spec": "#c88458",
+    "ink": "#20100c"
+   }
+  }
+ }
+}

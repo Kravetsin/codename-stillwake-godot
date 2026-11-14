@@ -1,0 +1,120 @@
+{
+ "background": "#020a2d",
+ "backgroundTolerance": 30,
+ "holes": 0.003,
+ "fit": 15.4,
+ "ink": {
+  "maxLum": 24,
+  "relative": 0.7,
+  "around": 12,
+  "width": 7,
+  "bridge": 3,
+  "coarse": {
+   "relative": 0.76,
+   "bridge": 7,
+   "min": 0.02
+  }
+ },
+ "minPart": 0.0015,
+ "epsilon": 4,
+ "seamMin": 1.2,
+ "looseMin": 0.8,
+ "mend": [
+  {
+   "fill": "background",
+   "poly": [
+    [
+     1162,
+     300
+    ],
+    [
+     1515,
+     300
+    ],
+    [
+     1515,
+     445
+    ],
+    [
+     1162,
+     445
+    ]
+   ]
+  }
+ ],
+ "materials": {
+  "steel": {
+   "base": true,
+   "layer": 0,
+   "ref": [
+    "#828282",
+    "#6c6c6a",
+    "#737371",
+    "#686867",
+    "#7a7b7b",
+    "#5b5a59",
+    "#9a9a98"
+   ],
+   "shade": 0.16,
+   "mat": {
+    "base": "#8a8e96",
+    "shade": "#5c6070",
+    "deep": "#3e4252",
+    "lite": "#b4b8c0",
+    "spec": "#e0e2e6",
+    "ink": "#14162a"
+   }
+  },
+  "dark": {
+   "layer": 1,
+   "ref": [
+    "#4f5152",
+    "#4f5253",
+    "#3c3d3e",
+    "#44464a"
+   ],
+   "shade": 0.16,
+   "mat": {
+    "base": "#46464c",
+    "shade": "#2e2e34",
+    "deep": "#1c1c22",
+    "lite": "#62626a",
+    "spec": "#8a8a92"
+   }
+  },
+  "wood": {
+   "layer": 2,
+   "ref": [
+    "#433324",
+    "#69482d",
+    "#493523",
+    "#8a5a34"
+   ],
+   "shade": 0.16,
+   "mat": {
+    "base": "#8a5c38",
+    "shade": "#5e3c24",
+    "deep": "#40281a",
+    "lite": "#a87648",
+    "spec": "#c89a6a",
+    "ink": "#1c1210"
+   }
+  },
+  "canvas": {
+   "layer": 3,
+   "ref": [
+    "#a98e6a",
+    "#7c6649",
+    "#c4aa80"
+   ],
+   "shade": 0.14,
+   "mat": {
+    "base": "#b09670",
+    "shade": "#84704e",
+    "deep": "#5e4e36",
+    "lite": "#ccb48c",
+    "spec": "#e2d0aa"
+   }
+  }
+ }
+}
