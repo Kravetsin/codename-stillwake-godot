@@ -1,6 +1,6 @@
 # The fire axe traced from a picked reference, its trail following the rounded edge
 
-- Status: accepted; amends [blade-trail](2026-11-10-blade-trail.md): the trail is taken along the edge's shape, not only its ends
+- Status: accepted; amends [blade-trail](2026-11-10-blade-trail.md): the trail is taken along the edge's shape, not only its ends; drawn raw since [raw tool pictures](2026-11-14-raw-tool-pictures.md)
 - Date: 2026-11-14
 
 ## Context

@@ -341,16 +341,17 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [gourd-vine](2026-11-13-gourd-vine.md) | The grow capsule grows a gourd vine | accepted |  |
 | [hud-vitals](2026-11-13-hud-vitals.md) | The vitals: air, charge and meals as frameless light at the bottom-left | accepted |  |
 | [bent-limbs](2026-11-14-bent-limbs.md) | Limbs bent whole at the joint | accepted |  |
-| [drill-redrawn](2026-11-14-drill-redrawn.md) | The drill traced from a picked reference, its bit drawn to turn | accepted |  |
-| [fire-axe-redrawn](2026-11-14-fire-axe-redrawn.md) | The fire axe traced from a picked reference, its trail following the rounded edge | accepted |  |
+| [drill-redrawn](2026-11-14-drill-redrawn.md) | The drill traced from a picked reference, its bit drawn to turn | accepted | raw-tool-pictures (in part) |
+| [fire-axe-redrawn](2026-11-14-fire-axe-redrawn.md) | The fire axe traced from a picked reference, its trail following the rounded edge | accepted | raw-tool-pictures (in part) |
 | [food-and-gear-cards](2026-11-14-food-and-gear-cards.md) | Food and gear cards list what they guarantee, and food sells | accepted |  |
 | [frost-film](2026-11-14-frost-film.md) | Frost: the cold drawn as uneven ice with no edge | accepted |  |
-| [grapple-and-nailer-traced](2026-11-14-grapple-and-nailer-traced.md) | The grappling gun and the nailer traced from picked references | accepted |  |
+| [grapple-and-nailer-traced](2026-11-14-grapple-and-nailer-traced.md) | The grappling gun and the nailer traced from picked references | accepted | raw-tool-pictures (in part) |
 | [heat-limits](2026-11-14-heat-limits.md) | Heat: the other side of the degrees | accepted |  |
 | [helmets-traced](2026-11-14-helmets-traced.md) | The basic and heavy helmets, traced | accepted |  |
-| [pickaxe-and-harpoon-traced](2026-11-14-pickaxe-and-harpoon-traced.md) | The pickaxe and the harpoon traced from picked references | accepted |  |
+| [pickaxe-and-harpoon-traced](2026-11-14-pickaxe-and-harpoon-traced.md) | The pickaxe and the harpoon traced from picked references | accepted | raw-tool-pictures (in part) |
 | [quilted-helmet-and-traced-art](2026-11-14-quilted-helmet-and-traced-art.md) | The quilted helmet and traced art | accepted |  |
-| [railgun-traced](2026-11-14-railgun-traced.md) | The railgun traced from a picked reference | accepted |  |
+| [railgun-traced](2026-11-14-railgun-traced.md) | The railgun traced from a picked reference | accepted | raw-tool-pictures (in part) |
+| [raw-tool-pictures](2026-11-14-raw-tool-pictures.md) | Held tools ship their picked reference's own paint | accepted |  |
 | [temperature-gradients](2026-11-14-temperature-gradients.md) | Temperature gradients: colder away from the ship, smooth down the bands | accepted |  |
 | [temperature-in-degrees](2026-11-14-temperature-in-degrees.md) | Temperature in degrees | accepted |  |
 | [the-thermometer](2026-11-14-the-thermometer.md) | The thermometer: a frost star and the degrees, a row under the charge | accepted |  |

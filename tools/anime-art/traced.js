@@ -132,5 +132,21 @@ function upperHull(name, head) {
   return hull;
 }
 
-window.Traced = { placed, drawer, icon, into, straighten, onHead, crown };
+/** Every raw subject's picture (TRACED[name].raw.png) decoded, before any subject draws: a canvas draws only a decoded image. */
+const RAW = {};
+function loadRaw() {
+  return Promise.all(Object.entries(TRACED).filter(([, t]) => t.raw).map(([name, t]) => {
+    const img = new Image();
+    img.src = t.raw.png;
+    return img.decode().then(() => { RAW[name] = img; });
+  }));
+}
+
+/** draw(a) for a raw subject: its own picture, scaled by s and moved by at as placed() moves a trace, the reference's pixels in. */
+function raw(name, s = 1, at = [0, 0]) {
+  const { at: [x, y], size: [w, h] } = TRACED[name].raw;
+  return (a) => a.image(RAW[name], at[0] + x * s, at[1] + y * s, w * s, h * s);
+}
+
+window.Traced = { placed, drawer, icon, into, straighten, onHead, crown, loadRaw, raw };
 })();

@@ -21,7 +21,10 @@ const wreck = { rows: mapOf('Rows', 'Materials = Placed('), dress: mapOf('Dress'
 /** Every traced subject's shapes (trace.js) with its palette's materials: drawn from these, the reference is never read here. */
 const traced = Object.fromEntries(fs.readdirSync(path.join(here, 'traced')).filter((f) => f.endsWith('.json')).map((f) => {
   const name = f.slice(0, -5), palette = JSON.parse(fs.readFileSync(path.join(here, 'refs', name.split('.')[0] + '.palette.json'), 'utf8'));
-  return [name, { ...JSON.parse(fs.readFileSync(path.join(here, 'traced', f), 'utf8')), materials: palette.materials }];
+  const t = JSON.parse(fs.readFileSync(path.join(here, 'traced', f), 'utf8'));
+  // A raw subject's picture rides along as a data URL: a file:// picture would taint the canvas it is drawn on.
+  if (t.raw) t.raw.png = 'data:image/png;base64,' + fs.readFileSync(path.join(here, 'traced', name + '.png')).toString('base64');
+  return [name, { ...t, materials: palette.materials }];
 }));
 
 const url = (f) => 'file:///' + path.join(here, f).replace(/\\/g, '/');
@@ -32,8 +35,8 @@ const page = `<!doctype html><meta charset="utf-8"><pre id="out"></pre>
 <script src="${url('traced.js')}"></script>
 ${SUBJECTS.map((s) => `<script src="${url('subjects/' + s + '.js')}"></script>`).join('\n')}
 <script>
-try { for (const s of ${JSON.stringify(asked.length ? asked : SUBJECTS)}) Subjects[s](); document.getElementById('out').textContent = String(Made.length); }
-catch (e) { document.getElementById('out').textContent = 'ERROR ' + e.stack; }
+Traced.loadRaw().then(() => { for (const s of ${JSON.stringify(asked.length ? asked : SUBJECTS)}) Subjects[s](); document.getElementById('out').textContent = String(Made.length); })
+  .catch((e) => { document.getElementById('out').textContent = 'ERROR ' + e.stack; });
 </script>`;
 const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'anime-art-'));
 fs.writeFileSync(path.join(dir, 'page.html'), page);

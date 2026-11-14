@@ -1,6 +1,6 @@
 # The drill traced from a picked reference, its bit drawn to turn
 
-- Status: accepted; redraws the drill of [0054](0054-asteroids-and-the-drill.md)
+- Status: accepted; redraws the drill of [0054](0054-asteroids-and-the-drill.md); drawn raw since [raw tool pictures](2026-11-14-raw-tool-pictures.md)
 - Date: 2026-11-14
 
 ## Context

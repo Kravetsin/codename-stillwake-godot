@@ -5,7 +5,8 @@
 // RDP, beziers) in the reference's pixels. Writes the draw ops (the body, every part its own shape, overlays after their part, the
 // reference's loose strokes) and the fit into the icon box; traced.js draws them with the engine's own line, paint and finish.
 // A palette with "segment": "colour" cuts parts by the material nearest each pixel instead, the ink still parting pieces: for
-// paint that meets bare steel with no line (the fire axe).
+// paint that meets bare steel with no line. A palette with "raw": true stops at the silhouette and writes the reference's own
+// pixels inside it, traced/<name>.png, for a held tool (2026-11-14-raw-tool-pictures).
 // Needs ffmpeg on the PATH to read the PNG.
 'use strict';
 const fs = require('fs'), path = require('path'), { spawnSync } = require('child_process');
@@ -116,6 +117,24 @@ if (P.holes) {
 }
 sil = and(fillHoles(sil), not(holeMask));
 const silArea = sil.reduce((a, v) => a + v, 0);
+
+// A raw subject ("raw": true) ships the reference's own paint: its silhouette, cut out of the background and its holes, is written
+// as traced/<name>.png beside its box, and traced.js draws that instead of shapes.
+if (P.raw) {
+  let [x0, y0, x1, y1] = [W, H, 0, 0];
+  for (let i = 0; i < N; i++) if (sil[i]) { const x = i % W, y = (i / W) | 0; x0 = Math.min(x0, x); x1 = Math.max(x1, x); y0 = Math.min(y0, y); y1 = Math.max(y1, y); }
+  const w = x1 - x0 + 1, h = y1 - y0 + 1, cut = Buffer.alloc(w * h * 4);
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+    const i = idx(x + x0, y + y0), o = (y * w + x) * 4;
+    if (sil[i]) { px.copy(cut, o, i * 4, i * 4 + 3); cut[o + 3] = 255; }
+  }
+  const pngFile = outFile.replace(/\.json$/, '.png');
+  const enc = spawnSync('ffmpeg', ['-loglevel', 'error', '-y', '-f', 'rawvideo', '-pix_fmt', 'rgba', '-s', `${w}x${h}`, '-i', '-', pngFile], { input: cut });
+  if (enc.status !== 0) throw new Error('ffmpeg encode failed: ' + enc.stderr);
+  fs.writeFileSync(outFile, JSON.stringify({ raw: { at: [x0 + ox, y0 + oy], size: [w, h] }, fit: { box: [x0 + ox, y0 + oy, x1 + ox, y1 + oy] } }) + '\n');
+  console.log(JSON.stringify({ raw: [w, h], box: [x0 + ox, y0 + oy, x1 + ox, y1 + oy] }));
+  process.exit(0);
+}
 
 // The reference's ink: thin dark ridges, pixels black outright or well darker than the paint round them (a seam between two rolls
 // is dark olive, not black). A dark area wider than a stroke (smoked glass, a shadow patch) is paint, not ink.

@@ -1,6 +1,6 @@
 # The grappling gun and the nailer traced from picked references
 
-- Status: accepted; redraws the grappling gun of [grapple-climbs](2026-11-07-grapple-climbs.md) and the nailer of [shots are the sims](2026-10-26-shots-are-the-sims.md)
+- Status: accepted; redraws the grappling gun of [grapple-climbs](2026-11-07-grapple-climbs.md) and the nailer of [shots are the sims](2026-10-26-shots-are-the-sims.md); drawn raw since [raw tool pictures](2026-11-14-raw-tool-pictures.md)
 - Date: 2026-11-14
 
 ## Context

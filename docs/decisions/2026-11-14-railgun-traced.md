@@ -1,6 +1,6 @@
 # The railgun traced from a picked reference
 
-- Status: accepted; redraws the railgun of [the railgun](2026-10-27-the-railgun.md)
+- Status: accepted; redraws the railgun of [the railgun](2026-10-27-the-railgun.md); drawn raw since [raw tool pictures](2026-11-14-raw-tool-pictures.md)
 - Date: 2026-11-14
 
 ## Context
