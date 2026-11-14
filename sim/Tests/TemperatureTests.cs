@@ -164,7 +164,8 @@ public class TemperatureTests
     }
 
     [Theory]
-    // The heat plan's walk-through (2026-11-14-heat-limits): the amber deep's bottom, a fifth into the ember band, its middle and below.
+    // The heat plan's walk-through (2026-11-14-heat-limits): the amber deep's bottom, a fifth into the ember band, its middle and below;
+    // the heat suit free in the middle.
     [InlineData(43, "suit", false, 0)]
     [InlineData(50, "suit", false, 0)]
     [InlineData(60, "suit", false, 10)]
@@ -172,6 +173,9 @@ public class TemperatureTests
     [InlineData(50, "suit", true, 5)]
     [InlineData(60, "suit", true, 15)]
     [InlineData(60, "regenSuit", false, 10)]
+    [InlineData(60, "heatSuit", false, 0)]
+    [InlineData(65, "heatSuit", false, 5)]
+    [InlineData(60, "heatSuit", true, 5)]
     [InlineData(43, null, false, 13)]
     [InlineData(50, null, false, 20)]
     [InlineData(60, null, false, 30)]
@@ -180,7 +184,7 @@ public class TemperatureTests
         var w = InHeat(degrees, body, caped);
         int cell = HeroOf(w).Cell;
         Assert.Equal(degrees, w.M.Crew.TemperatureAt(cell));
-        Assert.Equal((body == null ? Content.Temperature.BareHigh : 50) - (caped ? Content.Cape.Warmth : 0), w.M.Crew.HighOf(0));
+        Assert.Equal((body == null ? Content.Temperature.BareHigh : body == Content.Suit.Heat ? 60 : 50) - (caped ? Content.Cape.Warmth : 0), w.M.Crew.HighOf(0));
         Assert.Equal((heat, 0), (w.M.Crew.Heat(0, cell), w.M.Crew.Felt(0, cell)));
         // No hero, nothing felt.
         Assert.Equal(0, w.M.Crew.Heat(1, cell));

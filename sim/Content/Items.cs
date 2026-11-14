@@ -261,6 +261,7 @@ public static class Items
         new(Helmet.Basic, 1, Equip: Helmet.Slot, Gear: true, Group: ItemGroup.Wearable, Tank: 45),
         new(Suit.Basic, 1, Equip: Suit.Slot, Gear: true, Group: ItemGroup.Wearable, Low: -40, High: 50),
         new(Suit.Regen, 1, Equip: Suit.Slot, Gear: true, Group: ItemGroup.Wearable, Switch: true, Low: -40, High: 50),
+        new(Suit.Heat, 1, Equip: Suit.Slot, Gear: true, Group: ItemGroup.Wearable, Low: -40, High: 60),
         // For the jetpack's long flights (2026-11-03-the-heavy-helmet): 100, not twice 45, so it reads as more than a doubling.
         new(Helmet.Heavy, 1, Equip: Helmet.Slot, Gear: true, Group: ItemGroup.Wearable, Tank: 100),
         // The middle step, made rather than bought (2026-11-14-quilted-helmet-and-traced-art).

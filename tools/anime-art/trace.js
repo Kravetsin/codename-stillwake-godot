@@ -1,4 +1,5 @@
-// node tools/anime-art/trace.js <name> [debug.png]: traces refs/<name>.png by refs/<name>.palette.json into traced/<name>.json.
+// node tools/anime-art/trace.js <name> [debug.png]: traces refs/<name>.png by refs/<name>.palette.json into traced/<name>.json; a
+// sheet of pieces (`pieces`, each its box in the sheet) traces each into traced/<name>.<piece>.json, or one by <name>.<piece>.
 // Traces an AI-made reference for its form only (README, Traced subjects): the reference's own ink strokes cut its silhouette into
 // parts, each part is named by the palette material nearest its mean colour, and every part's outline is traced (marching squares,
 // RDP, beziers) in the reference's pixels. Writes the draw ops (the body, every part its own shape, overlays after their part, the
@@ -8,21 +9,28 @@
 const fs = require('fs'), path = require('path'), { spawnSync } = require('child_process');
 const [name, debugPng] = process.argv.slice(2);
 if (!name) { console.error('usage: node tools/anime-art/trace.js <name> [debug.png]'); process.exit(2); }
-const refPng = path.join(__dirname, 'refs', name + '.png'), outFile = path.join(__dirname, 'traced', name + '.json');
-const P = JSON.parse(fs.readFileSync(path.join(__dirname, 'refs', name + '.palette.json'), 'utf8'));
+const [sheet, piece] = name.split('.');
+const refPng = path.join(__dirname, 'refs', sheet + '.png'), outFile = path.join(__dirname, 'traced', name + '.json');
+const P = JSON.parse(fs.readFileSync(path.join(__dirname, 'refs', sheet + '.palette.json'), 'utf8'));
+if (P.pieces && !piece) {
+  for (const k of Object.keys(P.pieces)) if (spawnSync(process.execPath, [__filename, sheet + '.' + k], { stdio: 'inherit' }).status !== 0) process.exit(1);
+  process.exit(0);
+}
 const hex = (h) => [1, 3, 5].map((i) => parseInt(h.substr(i, 2), 16));
 const lum = (r, g, b) => .3 * r + .59 * g + .11 * b;
 
 // ---------- Decode ----------
 const png = fs.readFileSync(refPng);
-const W = png.readUInt32BE(16), H = png.readUInt32BE(20), N = W * H;
-const dec = spawnSync('ffmpeg', ['-loglevel', 'error', '-i', refPng, '-f', 'rawvideo', '-pix_fmt', 'rgba', '-'], { maxBuffer: N * 4 + 1024 });
+// A piece is its box of the sheet; mends stay in the sheet's pixels.
+const crop = piece ? P.pieces[piece] : null, [ox, oy] = crop || [0, 0];
+const W = crop ? crop[2] - crop[0] + 1 : png.readUInt32BE(16), H = crop ? crop[3] - crop[1] + 1 : png.readUInt32BE(20), N = W * H;
+const dec = spawnSync('ffmpeg', ['-loglevel', 'error', '-i', refPng, ...(crop ? ['-vf', `crop=${W}:${H}:${ox}:${oy}`] : []), '-f', 'rawvideo', '-pix_fmt', 'rgba', '-'], { maxBuffer: N * 4 + 1024 });
 if (dec.status !== 0 || dec.stdout.length !== N * 4) throw new Error('ffmpeg decode failed: ' + dec.stderr);
 const px = dec.stdout;
 // Mends (`mend`), in order: what the pick leaves out (a lamp the game draws its own of) repainted before tracing, the background
 // or a colour, over a polygon or an ellipse ([cx, cy, rx, ry]) within an optional box ([x0, y0, x1, y1]).
 for (const m of P.mend || []) {
-  const c = hex(m.fill === 'background' ? P.background : m.fill), [bx0, by0, bx1, by1] = m.clip || [0, 0, W - 1, H - 1];
+  const c = hex(m.fill === 'background' ? P.background : m.fill), [bx0, by0, bx1, by1] = (m.clip || [ox, oy, ox + W - 1, oy + H - 1]).map((v, i) => v - (i % 2 ? oy : ox));
   const inside = m.ellipse ? (x, y) => ((x - m.ellipse[0]) / m.ellipse[2]) ** 2 + ((y - m.ellipse[1]) / m.ellipse[3]) ** 2 <= 1 : (x, y) => {
     let on = false;
     for (let i = 0, j = m.poly.length - 1; i < m.poly.length; j = i++) {
@@ -31,7 +39,7 @@ for (const m of P.mend || []) {
     }
     return on;
   };
-  for (let y = Math.max(0, by0); y <= Math.min(H - 1, by1); y++) for (let x = Math.max(0, bx0); x <= Math.min(W - 1, bx1); x++) if (inside(x + .5, y + .5)) px.set([...c, 255], (y * W + x) * 4);
+  for (let y = Math.max(0, by0); y <= Math.min(H - 1, by1); y++) for (let x = Math.max(0, bx0); x <= Math.min(W - 1, bx1); x++) if (inside(x + ox + .5, y + oy + .5)) px.set([...c, 255], (y * W + x) * 4);
 }
 
 // ---------- Mask helpers (Uint8Array W*H) ----------

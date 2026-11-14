@@ -224,6 +224,7 @@ public class ItemCardTests
         Assert.Equal([("−40°", "Withstands down to"), ("+50°", "Withstands heat up to")], Said(suit.Rows));
         Assert.Equal([(CardSign.Cold, CardGroup.Guard), (CardSign.Heat, CardGroup.Guard)], suit.Rows.Select(r => (r.Sign, r.Group)));
         Assert.Null(suit.Use);
+        Assert.Equal([("−40°", "Withstands down to"), ("+60°", "Withstands heat up to")], Said(ItemCards.Of(Spec.Suit.Heat).Rows));
         var regen = ItemCards.Of(Spec.Suit.Regen);
         // A unit a breath, a breath a second; 15 power-ticks a unit.
         Assert.Equal([("−40°", "Withstands down to"), ("+50°", "Withstands heat up to"), ("up to 1 O₂/s", "Makes air"), ($"{Spec.Suit.RegenCost}", "Charge use")], Said(regen.Rows));

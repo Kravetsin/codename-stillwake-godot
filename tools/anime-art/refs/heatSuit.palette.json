@@ -1,0 +1,35 @@
+{
+ "background": "#071434",
+ "backgroundTolerance": 24,
+ "fit": 15.4,
+ "pieces": {
+  "torso": [423, 36, 670, 618],
+  "pack": [188, 96, 409, 372],
+  "upperArm": [204, 373, 403, 696],
+  "forearm": [221, 691, 395, 992],
+  "thigh": [438, 621, 653, 1025],
+  "shin": [439, 1024, 694, 1490]
+ },
+ "mend": [
+  { "fill": "#969592", "ellipse": [516.5, 192, 56, 78] },
+  { "fill": "background", "poly": [[347, 95], [410, 95], [410, 375], [347, 375]] }
+ ],
+ "ink": { "maxLum": 22, "relative": 0.6, "around": 12, "width": 7, "bridge": 3 },
+ "epsilon": 1.6,
+ "looseMin": 0.8,
+ "materials": {
+  "quilt": {
+   "base": true,
+   "layer": 0,
+   "ref": ["#969592", "#a7a6a2", "#777675", "#9b9a97", "#8f8e8b", "#91908d"],
+   "shade": 0.16,
+   "mat": { "base": "#a19f98", "shade": "#7c7a74", "deep": "#5a5854", "lite": "#c2c0b8", "spec": "#e2e0d8" }
+  },
+  "dark": {
+   "layer": 1,
+   "ref": ["#343232", "#312824", "#35302d", "#363230", "#332e2c", "#2e2622", "#2e2e2e"],
+   "shade": 0.16,
+   "mat": { "base": "#4a403a", "shade": "#342d29", "deep": "#231e1c", "lite": "#625650" }
+  }
+ }
+}
