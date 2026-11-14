@@ -646,6 +646,9 @@ public partial class Figure : Node2D
     /// <summary>A held swung tool's edge as last drawn, from its one end to its tip, in pixels of the world; none for any other hand.</summary>
     public (Vector2 From, Vector2 To)? Blade { get; private set; }
 
+    // The held swung edge's points this frame, kept to be filled again.
+    private readonly List<(double X, double Y)> _edge = [];
+
     /// <summary>The way the held harpoon's barrel points as drawn, a unit vector in the world.</summary>
     public Vector2 Barrel { get; private set; } = Vector2.Right;
 
@@ -1351,13 +1354,17 @@ public partial class Figure : Node2D
                 }
             }
         }
-        // A swung tool's edge as it is held this frame, in the world: what its trail is drawn from. Its reach is not shown (tool-size).
-        (Vector2, Vector2)? bladeAt = inHand && item != null && stroke != null && !item.Aimed && !Spinning
-            ? (_held.ToGlobal(new Vector2((float)item.EdgeFrom.X, (float)item.EdgeFrom.Y) + _held.Offset),
-                _held.ToGlobal(new Vector2((float)item.EdgeTo.X, (float)item.EdgeTo.Y) + _held.Offset))
-            : null;
-        Blade = bladeAt;
-        _air.Follow(Spinning && inHand && item != null ? ZoneOf(frontArm, item) : null, elapsedMs, bladeAt);
+        // A swung tool's edge as it is held this frame, in the world, along its shape: what its trail is drawn from. Its reach is not shown (tool-size).
+        bool bladeHeld = inHand && item != null && stroke != null && !item.Aimed && !Spinning;
+        _edge.Clear();
+        if (bladeHeld)
+            for (int i = 0; i < HeldLook.EdgePoints; i++)
+            {
+                var p = HeldAt(item!.EdgePoint((double)i / (HeldLook.EdgePoints - 1)));
+                _edge.Add((p.X, p.Y));
+            }
+        Blade = bladeHeld ? (HeldAt(item!.EdgeFrom), HeldAt(item.EdgeTo)) : null;
+        _air.Follow(Spinning && inHand && item != null ? ZoneOf(frontArm, item) : null, elapsedMs, bladeHeld ? _edge : null);
         _beamMs = Math.Max(0, _beamMs - elapsedMs);
         ShowBeams(holding);
         // A drill crackles as it spins; a gun held to charge, as it fills.

@@ -71,6 +71,8 @@ node tools/anime-art/export.js room caves   # some
 
 Needs Node 22+ and Edge or Chrome (`ANIME_BROWSER` for another). Then `tools/snap.ps1` imports the pictures.
 
+A picked AI reference is traced into a subject's shapes by [`trace/`](trace/README.md).
+
 ## Add a subject
 
 A file `subjects/<name>.js` setting `Subjects.<name>`, which calls `out('<picture>', canvas)` for each picture, the
