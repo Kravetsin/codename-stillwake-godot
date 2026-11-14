@@ -818,18 +818,6 @@ P.jetpack = (a) => {
   for (const y of [5, 9.8]) a.shape(rr(.7, y, 14.6, 1.5, .2), GUN, { lite: band(.7, y, 15.3, y + .5), shade: band(.7, y + 1, 15.3, y + 1.5) });
   rivets(a, [8, 5.7], [8, 10.5]);
 };
-P.helmet = (a) => {
-  // The hero's helmet, as he wears it: an amber shell, a dark band over the brow, the wide grey-rimmed visor, a box at the ear, the collar under.
-  a.shape(rr(3, 13, 10, 2.1, .5), GUN, { lite: band(3, 13, 13, 13.5), shade: band(3, 14.4, 13, 15.1) });
-  a.shape('M1.2 8.4C1 4.4 4 1 8.4 1C12.6 1 15.2 4 15.2 8C15.2 11 13.8 13.2 11.6 14L5.2 14C2.8 13.4 1.4 11.2 1.2 8.4Z', SUIT, {
-    lite: 'M1.6 6.4C2.2 3.4 4.8 1.2 8.4 1.2C5.6 2.4 3.6 4 3 6.6Z', deep: 'M1.8 11C2.6 12.6 3.8 13.6 5.2 14L11.6 14C12.4 13.6 13 13.2 13.6 12.6C10 13 5 13 1.8 11Z', shade: 'M2.2 9.6L6 12.8L12 12.8L5 12.4Z' });
-  a.shape('M3.8 3.4C5.4 2 7 1.4 8.8 1.4C10.8 1.4 12.6 2.2 13.8 3.8L12.8 4.6C10.6 3.4 7 3.2 4.6 4.4Z', DARK, { outer: false, edge: true, lite: 'M6 2.2L10 2L10 2.6L6 2.8Z' });
-  a.shape('M5.6 5.2C8.4 4.4 12 4.6 14.8 5.8C15.4 7.6 15.2 9.8 14 11.6C11.4 12.2 8 12.2 6 11.4C5 9.6 4.8 7 5.6 5.2Z', { base: '#7c828c', shade: '#54586a', deep: '#3a3e4c', lite: '#a0a6ae', spec: '#d0d4d8' }, { outer: false, edge: true });
-  a.shape('M6.4 6C8.8 5.4 11.8 5.6 14.2 6.6C14.6 8 14.4 9.6 13.6 10.8C11.2 11.4 8.6 11.4 6.8 10.8C6 9.2 5.8 7.4 6.4 6Z', { base: '#171d2a', shade: '#10141f', deep: '#0b0e16', lite: '#2a3650', spec: '#a8c4dc' }, { outer: false,
-    lite: 'M6.4 6C8.8 5.4 11.8 5.6 14.2 6.6L14.3 7.2C11.6 6.4 8.6 6.4 6.3 7Z', deep: 'M6.6 10C9 10.8 11.6 10.6 13.8 10L13.6 10.8C11.2 11.4 8.6 11.4 6.8 10.8Z' });
-  a.flat('M8 6.6L10.4 6.4L9.8 7.4L7.8 7.6Z', '#6c8ca8');
-  a.shape(rr(2.2, 6.8, 2.2, 3.4, .4), DARK, { lite: band(2.2, 6.8, 4.4, 7.3) });
-};
 P.suit = (a) => {
   // The suit laid out flat: amber, the belt and straps grey, the collar's ring, red-brown toward the hem as the hero wears it.
   a.shape('M4.6 2.2L11.4 2.2L14.6 4L15.4 11.6L13 12.4L12.2 7.2L12 14.4L9 15.2L8 11.6L7 15.2L4 14.4L3.8 7.2L3 12.4L.6 11.6L1.4 4Z', SUIT, {

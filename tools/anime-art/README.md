@@ -5,7 +5,7 @@ Draws the game's pictures in code into `game/art/hd/`, where `game/render/HiRes.
 ## The style
 
 Ink and watercolour ([why](../../docs/decisions/2026-11-01-ink-and-watercolour.md)), neutral to slightly grim, **never a cartoon**. The
-finish is `wash.js`, one for every subject; these are the rules a drawing must follow for it to work.
+finish is `wash.js`, one for every subject; a drawing follows these rules.
 
 - **Mood before readability.** A lone scavenger's world: judge a picture by that first, by what it replaces.
 - **Colour:** clean, slightly grey paint, neither dusty nor faded. Metals are cool greys; suit, copper and wood are warm and worn. Full
@@ -30,7 +30,7 @@ finish is `wash.js`, one for every subject; these are the rules a drawing must f
 
 | Subject | Pictures |
 | --- | --- |
-| `hero` | `hero_<part>`: the suit, helmet shell and visor apart, later helmets' and bodies' (lights `_lit`, `_arcs`, `_pip`); `hero_outfit_<n>_<part>`, `_skin` under bare skin; hair, faces, beards by `LookTint`; cape, jetpack, lamp, sheet, tools; `hero_tracker`, `_light`: white, the player's colour by Modulate. Top-lit |
+| `hero` | `hero_<part>`: the suits' parts (the regen suit's lights `_lit`, `_arcs`, `_pip`); `hero_outfit_<n>_<part>`, `_skin` under bare skin; hair, faces, beards by `LookTint`; cape, jetpack, lamp, sheet, tools; `hero_tracker`, `_light`: white, tinted by Modulate. Top-lit |
 | `catchergear` | catchers' outfits: `hero_catcher<Body>_<part>`, `_upperArm_lit`; `hero_catcher<Helmet>_shell`, `_visor`, `_lit`, by `HeroKit` |
 | `machines` | `machine_<kind>`, working overlays (fire, fills, bubbles); a `fitting` on its port (`Machines.Ports`); exposes `AnimeKit` |
 | `zfittings` | `pipe_run`, `pipe_<arms>`, valves, sockets, hatches, platforms, ladder, floor, drone, lamps, held axe and drill; after `machines`, for `AnimeKit` |
@@ -55,7 +55,7 @@ finish is `wash.js`, one for every subject; these are the rules a drawing must f
 | `net` | `machine_net` (booms), `net_mount`, `net_front_<n>` (holding n); `NetInk.cs` |
 | `bay`, `salvage` | `machine_droneBay`, `droneBay_*`, `salvage_*`, `items/salvageDrone`; `BayInk.cs`, `SalvageInk.cs` |
 | `scanner` | `hero_scanner`, `hero_<helmet>_scanner`, `_lit_<n>`, `items/scanner`; `ScannerInk.cs` |
-| `quilted` | `hero_quiltedHelmet_shell`, `_visor`, `items/quiltedHelmet`: traced; `QuiltedKit` |
+| `helmets`, `quilted` | `hero_<helmet>_shell`, `_visor` (basic: `hero_visor`, `hero_helmet` the lamp's card), `items/<helmet>`: traced |
 | `charge`, `missile` | `hero_blastCharge` (`icons/` lit), `shot_blastCharge_spark`: its fuse in flight; `shot_missile` |
 | `edgekeys` | `holo_<key>`, `_glow`: the edge keys' white masks, glows |
 | `signs`, `credit`, `capsule`, `gauge` | `sign_*`: bolts, plug, wrench, tips; `credit`, the chip; `capsule`, `capsule_flame_<n>`; `gauge_*`, the vitals' light |
@@ -74,7 +74,8 @@ Needs Node 22+ and Edge or Chrome (`ANIME_BROWSER` for another). Then `tools/sna
 
 A picked AI-made reference is traced for its **form**; the line, paint and water stay ours.
 
-- `refs/<name>.png` and `.palette.json`: its colours (`ref`) and our paint (`mat`); `single`: one part, `overlay`: patches.
+- `refs/<name>.png` and `.palette.json`: its colours (`ref`) and our paint (`mat`); `single`: one part, `overlay`: patches,
+  `mend`: repainted first, `holes`: left open.
 - `node tools/anime-art/trace.js <name>` (ffmpeg) cuts it by its own ink into beziers, `traced/<name>.json`, committed: export
   draws from that, never the reference. `traced.js` places and paints them.
 - AI-made work ships: say so in Steam's AI disclosure.
@@ -82,7 +83,7 @@ A picked AI-made reference is traced for its **form**; the line, paint and water
 ## Add a subject
 
 A file `subjects/<name>.js` setting `Subjects.<name>`, which calls `out('<picture>', canvas)` for each picture, the
-canvas from `Anime.bake({ w, h, draw })`: `w` and `h` the logical picture's pixels, drawn at exactly 4 times, as the game lays out. Line weights
+canvas from `Anime.bake({ w, h, draw })`: `w` and `h` in world pixels, drawn 4 times over, as the game lays out. Line weights
 and the light are the engine's (`engine.js`), per world pixel; use them, not numbers of your own.
 `wash.js` loads after the engine and replaces `bake`; a picture drawn straight on a canvas skips the finish.
 
