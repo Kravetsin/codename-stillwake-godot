@@ -86,16 +86,16 @@ public sealed record HeldLook(
         "res://art/hero_nailer.png", (4.5, 7), 0, (7, 2.5), (25, 2.5), Loaded: "res://art/hero_nailer_loaded.png", Aimed: true, Clamp: (14, 2.5), Size: Drawn);
 
     /// <summary>
-    /// The drill, <c>art/hero_drill.png</c> (0054): the tube hammer, a motor in a length of tube, held in one hand round the
-    /// middle of the pistol grip under its rear, the elbow a little bent, aimed at the pointer (2026-10-27-one-arm-holds); the edge its long bit, from the chuck to the point, which is what
+    /// The drill, <c>art/hero_drill.png</c> (0054; redrawn, 2026-11-14-drill-redrawn): a motor in a length of pipe, held in one hand round the
+    /// tape of the pistol grip under its pipe, the elbow a little bent, aimed at the pointer (2026-10-27-one-arm-holds); the edge its long bit, from the chuck to the point, which is what
     /// drills. Running, the bit turns through three frames and the lamp on its rear cap lights. Its one mount (0098), the
-    /// coil wound round its stock: its turns from (4, 4), the box of the stock it is wound round. Clamped on the bench by the
-    /// belly of its motor, the bit out past the jaws.
+    /// coil wound round its pipe: its turns from (3, 2), the box of the pipe it is wound round. Clamped on the bench by the
+    /// underside of its motor, the battery hanging over the table's edge, the bit out past the jaws.
     /// </summary>
     public static readonly HeldLook Drill = new(
-        "res://art/hero_drill.png", (5.5, 10.5), 0, (25, 5.5), (32, 5.5), Aimed: true,
-        Spin: ["res://art/hero_drill_spin1.png", "res://art/hero_drill_spin2.png", "res://art/hero_drill_spin3.png"], Lamp: (1.5, 4.5),
-        Mounts: [new ToolMount("coil", 4, 4, (3, 3.5, 11, 6.5))], Elbow: 0.4, Clamp: (17.5, 7), Size: Drawn);
+        "res://art/hero_drill.png", (7, 7.5), 0, (25, 3.05), (32.4, 3.05), Aimed: true,
+        Spin: ["res://art/hero_drill_spin1.png", "res://art/hero_drill_spin2.png", "res://art/hero_drill_spin3.png"], Lamp: (1.6, 3),
+        Mounts: [new ToolMount("coil", 3, 2, (2, 1.5, 10, 4.5))], Elbow: 0.4, Clamp: (14.5, 5.4), Size: Drawn);
 
     /// <summary>
     /// The screwdriver, <c>art/hero_screwdriver_held.png</c>, the first frame of the twist the hand works plans with
