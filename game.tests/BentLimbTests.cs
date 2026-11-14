@@ -160,4 +160,64 @@ public class BentLimbTests
         Assert.Equal(1, BentLimb.Share(BentLimb.Band / 2));
         for (double s = -BentLimb.Band / 2; s < BentLimb.Band / 2; s += 0.1) Assert.True(BentLimb.Share(s + 0.1) >= BentLimb.Share(s));
     }
+
+    // A whole leg (raw-basic-suit): one picture from the hip down, the knee at the thigh's length, the ankle where the boot turned.
+    private static readonly double Knee = Rig.Leg.Upper, Ankle = Rig.Leg.Upper + Rig.ToAnkle.Lower;
+
+    /// <summary>A point of the boot's frame, the ankle at its origin, where the figure's nodes put it: the boot turned <paramref name="foot"/> at the ankle, the shin <paramref name="bend"/> at the knee.</summary>
+    private static Vec Noded(Vec boot, double bend, double foot)
+    {
+        var shin = BentLimb.Turned(boot, -foot);
+        var thigh = BentLimb.Turned(new Vec(shin.X, shin.Y + Rig.ToAnkle.Lower), -bend);
+        return new Vec(thigh.X, thigh.Y + Knee);
+    }
+
+    [Fact]
+    public void AWholeLegIsTheThighShinAndBootWhereTheirNodesPutThem()
+    {
+        // Where the two pictures and the boot were placed by their nodes, the one picture's rows away from the bands are the same.
+        foreach (double bend in (double[])[0.4, 1.9, -0.3])
+            foreach (double foot in (double[])[0, -0.5, 0.35])
+            {
+                var thigh = new Vec(1, Knee - BentLimb.Band / 2 - 0.1);
+                Near(thigh, BentLimb.Warp(thigh, Knee, bend, Ankle, foot));
+                var shin = new Vec(-1.5, Knee + BentLimb.Band / 2 + 0.1);
+                Near(Noded(new Vec(shin.X, shin.Y - Ankle), bend, 0), BentLimb.Warp(shin, Knee, bend, Ankle, foot));
+                foreach (double x in (double[])[-Rig.Heel, Rig.Toe])
+                {
+                    var sole = new Vec(x, Ankle + Rig.Sole);
+                    Near(Noded(new Vec(sole.X, Rig.Sole), bend, foot), BentLimb.Warp(sole, Knee, bend, Ankle, foot));
+                }
+            }
+    }
+
+    [Fact]
+    public void AWholeArmsFistIsWhereTheRigHoldsItsGrip()
+    {
+        // The fist of one picture bent at the elbow, turned with the upper arm: where every held item's grip has been (Rig.FistOf).
+        var fist = new Vec(0, Rig.Arm.Upper + Rig.Arm.Lower - Rig.FistBack);
+        foreach (var arm in (Bend[])[new(0, 0), new(0.6, 1.4), new(-0.4, 2.3), new(1.8, 0.2)])
+            Near(Rig.FistOf(arm), BentLimb.Turned(BentLimb.Warp(fist, Rig.Arm.Upper, arm.Lower, lower: false), -arm.Upper));
+    }
+
+    [Fact]
+    public void AWholeLegsGridIsDenseAtTheKneeAndTheAnkleAndWholeEverywhere()
+    {
+        // The leg's picture with its margin, 15 by 27 pixels from (-6, -5.5): no seam, no end of a picture anywhere along it.
+        const double left = -6, top = -5.5;
+        var leg = new BentLimb(left, top, 15, 27, Knee, lower: false, BentLimb.Seamless, ankle: Ankle);
+        var rows = leg.Uvs.Where((_, i) => i % BentLimb.Columns == 0).Select(p => p.Y + top).ToList();
+        Assert.Equal(2 + 2 * BentLimb.BandRows, rows.Count);
+        Assert.Equal(BentLimb.BandRows, rows.Count(y => Math.Abs(y - Ankle) <= BentLimb.Band / 2));
+        Assert.All(leg.Alphas, a => Assert.Equal(1, a));
+        Assert.True(leg.Bend(1.2, -0.4));
+        for (int i = 0; i < leg.Points.Length; i++)
+            Near(BentLimb.Warp(new Vec(left + leg.Uvs[i].X, top + leg.Uvs[i].Y), Knee, 1.2, Ankle, -0.4), leg.Points[i]);
+        Assert.False(leg.Bend(1.2, -0.4));
+        Assert.True(leg.Bend(1.2, 0));
+        // An arm has no ankle: a foot changes nothing.
+        var arm = new BentLimb(-5.5, -5.5, 11, 22, Rig.Arm.Upper, lower: false, BentLimb.Seamless);
+        arm.Bend(1);
+        Assert.False(arm.Bend(1, 0.7));
+    }
 }

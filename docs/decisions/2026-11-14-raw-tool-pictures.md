@@ -3,7 +3,8 @@
 - Status: accepted; supersedes how the tools of [fire axe](2026-11-14-fire-axe-redrawn.md), [drill](2026-11-14-drill-redrawn.md),
   [pickaxe and harpoon](2026-11-14-pickaxe-and-harpoon-traced.md), [railgun](2026-11-14-railgun-traced.md) and
   [grappling gun and nailer](2026-11-14-grapple-and-nailer-traced.md) are drawn; their picks stand; transparent references since
-  [salvage-tools-raw](2026-11-14-salvage-tools-raw.md)
+  [salvage-tools-raw](2026-11-14-salvage-tools-raw.md); worn suits staying traced superseded for the basic suit by
+  [raw-basic-suit](2026-11-14-raw-basic-suit.md)
 - Date: 2026-11-14
 
 ## Context

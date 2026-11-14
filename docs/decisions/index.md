@@ -356,7 +356,8 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [pickaxe-and-harpoon-traced](2026-11-14-pickaxe-and-harpoon-traced.md) | The pickaxe and the harpoon traced from picked references | accepted | raw-tool-pictures (in part) |
 | [quilted-helmet-and-traced-art](2026-11-14-quilted-helmet-and-traced-art.md) | The quilted helmet and traced art | accepted |  |
 | [railgun-traced](2026-11-14-railgun-traced.md) | The railgun traced from a picked reference | accepted | raw-tool-pictures (in part) |
-| [raw-tool-pictures](2026-11-14-raw-tool-pictures.md) | Held tools ship their picked reference's own paint | accepted |  |
+| [raw-basic-suit](2026-11-14-raw-basic-suit.md) | The basic suit ships its picked repaint, its arm and leg one picture each | accepted |  |
+| [raw-tool-pictures](2026-11-14-raw-tool-pictures.md) | Held tools ship their picked reference's own paint | accepted | raw-basic-suit (in part) |
 | [salvage-tools-raw](2026-11-14-salvage-tools-raw.md) | Cutter, spear and sledgehammer drawn raw | accepted | homemade-cutter (in part) |
 | [spear-effects](2026-11-14-spear-effects.md) | The spear's effects | accepted |  |
 | [temperature-gradients](2026-11-14-temperature-gradients.md) | Temperature gradients: colder away from the ship, smooth down the bands | accepted |  |

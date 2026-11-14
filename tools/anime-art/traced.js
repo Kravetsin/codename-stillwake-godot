@@ -141,10 +141,10 @@ function loadRaw() {
   }));
 }
 
-/** draw(a) for a raw subject: its own picture, scaled by s and moved by at as placed() moves a trace, the reference's pixels in. */
-function raw(name, s = 1, at = [0, 0]) {
+/** draw(a) for a raw subject: its own picture, scaled by s and moved by at as placed() moves a trace, the reference's pixels in; o the image op's (wash.js). */
+function raw(name, s = 1, at = [0, 0], o) {
   const { at: [x, y], size: [w, h] } = TRACED[name].raw;
-  return (a) => a.image(RAW[name], at[0] + x * s, at[1] + y * s, w * s, h * s);
+  return (a) => a.image(RAW[name], at[0] + x * s, at[1] + y * s, w * s, h * s, o);
 }
 
 /** Where subject name lies in a picture W × H: its box fitted along `along` units (the width less one), half a unit in, centred down; the scale, the offset, and the reference's pixels mapped in. */

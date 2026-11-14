@@ -51,10 +51,18 @@ public partial class Figure : Node2D
         ["forearm"] = new(2.5f, 2.9f),
         ["thigh"] = new(3, 2.5f),
         ["shin"] = new(3, 2.18f),
+        // A whole limb's picture hangs from its upper part's joint (raw-basic-suit).
+        ["arm"] = new(2.5f, 2.5f),
+        ["leg"] = new(3, 2.5f),
         ["sheet"] = new(0, 5),
     };
 
-    private sealed record Limb(Node2D Upper, Node2D Lower, Node2D? Ankle, BentPicture[] Pictures, Sprite2D UpperPart, Sprite2D LowerPart, double Joint)
+    /// <summary>
+    /// A limb's nodes and pictures: its two parts', or, for a body that brings one, its <paramref name="Whole"/> picture from shoulder
+    /// to glove or hip to sole (raw-basic-suit), shown in their place and bent at the elbow or knee and at the ankle.
+    /// </summary>
+    private sealed record Limb(Node2D Upper, Node2D Lower, Node2D? Ankle, BentPicture[] Pictures, Sprite2D UpperPart, Sprite2D LowerPart, double Joint,
+        Sprite2D Whole, BentPicture WholePicture)
     {
         private (Texture2D? Upper, Texture2D? Lower) _seamOf;
         private (double From, double To) _seam = BentLimb.Plain;
@@ -77,6 +85,11 @@ public partial class Figure : Node2D
             Upper.Rotation = (float)-b.Upper;
             Lower.Rotation = (float)-b.Lower;
             if (Ankle != null) Ankle.Rotation = (float)-foot;
+            if (Whole.Visible)
+            {
+                WholePicture.Show(b.Lower, BentLimb.Seamless, foot);
+                return;
+            }
             var seam = Seam();
             foreach (var picture in Pictures) picture.Show(b.Lower, seam);
         }
@@ -171,6 +184,8 @@ public partial class Figure : Node2D
     private readonly Dictionary<Sprite2D, Vector2> _joints = new();
     /// <summary>The boots: the shin's picture below the ankle, turning there (2026-11-04-hero-gait).</summary>
     private readonly HashSet<Sprite2D> _soles = [];
+    /// <summary>Each limb's whole picture, by its sprite: what a crumbling body breaks into bent at its joint (<see cref="Pixels"/>).</summary>
+    private readonly Dictionary<Sprite2D, Limb> _wholes = [];
     private int? _colour;
 
     /// <summary>The player's mark, a tracker strapped to the near shin (2026-11-02-hero-clothes): the strap lit as the hero is, its light unlit, so it reads in a dark room, tinted by the player's colour.</summary>
@@ -296,12 +311,12 @@ public partial class Figure : Node2D
     {
         _own = own;
         AddChild(_boots = new Voices(S.World, voices: 1, placed: !own));
-        _backLeg = MakeLimb(Rig.Leg, "thigh", "shin", far: true, out var backLeg);
+        _backLeg = MakeLimb(Rig.Leg, "thigh", "shin", "leg", far: true, out var backLeg);
         _backHip = backLeg;
-        _backArm = MakeLimb(Rig.Arm, "upperArm", "forearm", far: true, out var backArm);
-        _frontLeg = MakeLimb(Rig.Leg, "thigh", "shin", far: false, out var frontLeg);
+        _backArm = MakeLimb(Rig.Arm, "upperArm", "forearm", "arm", far: true, out var backArm);
+        _frontLeg = MakeLimb(Rig.Leg, "thigh", "shin", "leg", far: false, out var frontLeg);
         _frontHip = frontLeg;
-        _frontArm = MakeLimb(Rig.Arm, "upperArm", "forearm", far: false, out var frontArm);
+        _frontArm = MakeLimb(Rig.Arm, "upperArm", "forearm", "arm", far: false, out var frontArm);
         _frontArmNode = frontArm;
         backLeg.Position = new Vector2((float)-Rig.HipApart, (float)-Rig.Hip);
         frontLeg.Position = new Vector2((float)Rig.HipApart, (float)-Rig.Hip);
@@ -794,6 +809,15 @@ public partial class Figure : Node2D
         foreach (var (sprite, _, _) in _parts)
         {
             if (!sprite.IsVisibleInTree() || sprite.Texture is not { } texture || SuitArt.PixelsOf(texture) is not var (w, h, data)) continue;
+            if (_wholes.TryGetValue(sprite, out var limb))
+            {
+                // A whole limb: its rows above the elbow or knee with the upper bone, the rest with the lower.
+                int cut = Math.Clamp((int)Math.Round(limb.Joint - sprite.Offset.Y), 0, h);
+                PixelBursts.Paint(into, sprite.GlobalTransform * new Transform2D(0, sprite.Offset), w, cut, data[..(cut * w * 4)]);
+                var below = new Vector2(sprite.Offset.X, sprite.Offset.Y + cut - (float)limb.Joint);
+                PixelBursts.Paint(into, limb.Lower.GlobalTransform * new Transform2D(0, below), w, h - cut, data[(cut * w * 4)..]);
+                continue;
+            }
             if (sprite.RegionEnabled)
             {
                 // A shin or a boot: only its rows of the picture, the first of them at its offset.
@@ -817,6 +841,12 @@ public partial class Figure : Node2D
         int skin = HeroLooks.Wrap(look.Skin, HeroLooks.Skins.Length), hair = HeroLooks.Wrap(look.HairColour, HeroLooks.Hairs.Length);
         foreach (var (sprite, part, isFar) in _parts)
         {
+            // A body brings a whole arm or leg, or its two parts (raw-basic-suit): only the pictures it has are shown.
+            if (WholeOf(part) is { } limb)
+            {
+                sprite.Visible = HiRes.Has($"hero_{PictureOf(limb)}") == (limb == part);
+                if (!sprite.Visible) continue;
+            }
             sprite.Texture = SuitArt.Of(PictureOf(part), colour, skin, hair, isFar);
             sprite.Offset = _joints[sprite] - (sprite.Texture is CanvasTexture ? new Vector2(HiRes.FigureMargin, HiRes.FigureMargin) : Vector2.Zero);
             if (part == "shin") CutAtTheAnkle(sprite, _soles.Contains(sprite));
@@ -895,12 +925,20 @@ public partial class Figure : Node2D
         return bent;
     }
 
+    /// <summary>The whole limb a limb's part is drawn by when its body brings one (raw-basic-suit), the whole limb's own; none for any other part.</summary>
+    private static string? WholeOf(string part) => part switch
+    {
+        "upperArm" or "forearm" or "arm" => "arm",
+        "thigh" or "shin" or "leg" => "leg",
+        _ => null,
+    };
+
     /// <summary>The picture a part is drawn with: bare, the look's clothes in place of the suit; the look's face, hair and beard.</summary>
     private string PictureOf(string part) => part switch
     {
-        "torso" or "upperArm" or "forearm" or "thigh" or "shin" when _bodyWorn == null => $"outfit_{HeroLooks.Wrap(_look.Outfit, HeroLooks.Outfits)}_{part}",
+        "torso" or "upperArm" or "forearm" or "thigh" or "shin" or "arm" or "leg" when _bodyWorn == null => $"outfit_{HeroLooks.Wrap(_look.Outfit, HeroLooks.Outfits)}_{part}",
         // A later body's own pictures, as a later helmet's (2026-11-03-the-regen-suit).
-        "torso" or "pack" or "upperArm" or "forearm" or "thigh" or "shin" when _bodyWorn is { } body && body != Stillwake.Content.Suit.Basic => $"{body}_{part}",
+        "torso" or "pack" or "upperArm" or "forearm" or "thigh" or "shin" or "arm" or "leg" when _bodyWorn is { } body && body != Stillwake.Content.Suit.Basic => $"{body}_{part}",
         "face" => $"face_{HeroLooks.Wrap(_look.Face, HeroLooks.Faces)}",
         "hair" => $"hair_{HeroLooks.Wrap(_look.Hair, HeroLooks.HairStyles)}",
         "beard" => $"beard_{Math.Max(HeroLooks.Wrap(_look.Beard, HeroLooks.Beards + 1) - 1, 0)}",
@@ -1022,11 +1060,16 @@ public partial class Figure : Node2D
 
     /// <summary>
     /// A limb hanging from its joint in two pictures, the upper over the lower, its nodes turned at the joint and at the elbow or
-    /// knee, and each picture drawn bent as one piece round the elbow or knee (<see cref="BentPicture"/>, bent-limbs).
+    /// knee, and each picture drawn bent as one piece round the elbow or knee (<see cref="BentPicture"/>, bent-limbs); or in one,
+    /// <paramref name="whole"/>, bent there and a leg's at the ankle too (raw-basic-suit), under what the lower bone carries.
     /// </summary>
-    private Limb MakeLimb(Segments size, string upper, string lower, bool far, out Node2D view)
+    private Limb MakeLimb(Segments size, string upper, string lower, string whole, bool far, out Node2D view)
     {
         view = new Node2D();
+        var wholePart = Part(whole, far, banded: false);
+        var wholePicture = new BentPicture(wholePart, size.Upper, lower: false, ankle: lower == "shin" ? size.Upper + Rig.ToAnkle.Lower : null);
+        wholePart.AddChild(wholePicture);
+        view.AddChild(wholePart);
         var bend = new Node2D { Position = new Vector2(0, (float)size.Upper) };
         Node2D? ankle = null;
         if (lower == "shin")
@@ -1053,7 +1096,9 @@ public partial class Figure : Node2D
         view.AddChild(bend);
         var upperPart = Bendable(Part(upper, far), size.Upper, lower: false, pictures);
         view.AddChild(upperPart);
-        return new Limb(view, bend, ankle, [.. pictures], upperPart, lowerPart, size.Upper);
+        var limb = new Limb(view, bend, ankle, [.. pictures], upperPart, lowerPart, size.Upper, wholePart, wholePicture);
+        _wholes[wholePart] = limb;
+        return limb;
     }
 
     /// <summary>

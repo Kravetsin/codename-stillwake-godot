@@ -128,9 +128,10 @@ function wash(pic) {
   for (const op of ops) {
     if (op.k === 'shape' && op.o.outer !== false) pen(N, op.d, L0.outer * .4, uw, .16, seed);
     else if (op.k === 'tube' && !op.o.bare) { N.save(); N.strokeStyle = INK; N.lineWidth = op.w + L0.outer * .28; N.stroke(P(op.d)); N.restore(); }
-    // A raw picture's outer line: its silhouette in ink, laid round it as wide as a shape's pen.
+    // A raw picture's outer line: its silhouette in ink, laid round it as wide as a shape's pen; `quality` the canvas's smoothing.
     else if (op.k === 'image') {
       const ink = inked(op.img), r = L0.outer * .4;
+      for (const c of [C, N, Rx]) c.imageSmoothingQuality = op.o.quality || 'low';
       for (const [k, n] of [[1, 16], [.5, 8]]) for (let j = 0; j < n; j++) N.drawImage(ink, op.x + Math.cos(j * Math.PI * 2 / n) * r * k, op.y + Math.sin(j * Math.PI * 2 / n) * r * k, op.w, op.h);
     }
   }
@@ -138,6 +139,7 @@ function wash(pic) {
   for (const op of ops) {
     i++;
     if (op.k === 'image') {
+      for (const c of [C, N, Rx]) c.imageSmoothingQuality = op.o.quality || 'low';
       erase(() => N.drawImage(op.img, op.x, op.y, op.w, op.h));
       C.drawImage(op.img, op.x, op.y, op.w, op.h);
       Rx.drawImage(op.img, op.x, op.y, op.w, op.h);

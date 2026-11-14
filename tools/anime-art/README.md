@@ -54,6 +54,7 @@ finish is `wash.js`, one for every subject.
 | `net` | `machine_net` (booms), `net_mount`, `net_front_<n>` (holding n); `NetInk.cs` |
 | `bay`, `salvage` | `machine_droneBay`, `droneBay_*`, `salvage_*`, `items/salvageDrone`; `BayInk.cs`, `SalvageInk.cs` |
 | `scanner` | `hero_scanner`, `hero_<helmet>_scanner`, `_lit_<n>`, `items/scanner`; `ScannerInk.cs` |
+| `suit` | the basic suit, raw: `hero_torso`, whole `hero_arm`, `hero_leg` |
 | `helmets`, `quilted`, `heatSuit` | traced: `hero_<helmet>_shell`, `_visor` (`_collar`; bell `_seal`; `hero_visor`, card `hero_helmet`), `items/<id>`; `hero_heatSuit_<part>` |
 | `charge`, `missile` | `hero_blastCharge` (`icons/` lit), `shot_blastCharge_spark`: its fuse in flight; `shot_missile` |
 | `edgekeys` | `holo_<key>`, `_glow`: the edge keys' masks |
@@ -67,7 +68,7 @@ finish is `wash.js`, one for every subject.
 node tools/anime-art/export.js [subject...]   # every subject, or some
 ```
 
-Needs Node 22+, Edge or Chrome (`ANIME_BROWSER` for another); `tools/snap.ps1` imports.
+Needs Node 22+, Edge or Chrome (or `ANIME_BROWSER`); `tools/snap.ps1` imports.
 
 ## Traced subjects
 
@@ -78,19 +79,18 @@ A picked AI-made reference is traced for its **form**; the line, paint and water
   `{ keep, ... }` polygons with their own keys (`materials` added), each to `traced/<name>.<piece>.json`.
 - `node tools/anime-art/trace.js <name>` (ffmpeg) cuts it by its ink into beziers, `traced/<name>.json`, drawn by `traced.js`, never
   the reference.
-- `"raw": true`, held tools ([raw](../../docs/decisions/2026-11-14-raw-tool-pictures.md)): the trace cuts out the
-  reference's own paint, `traced/<name>.png`; `Traced.raw` inks round it, no water. Code draws what moves or lights. `over`: a part, an edited ref's pixels unlike `refs/<over>.png` in `clip`.
+- `"raw": true`, held tools ([raw](../../docs/decisions/2026-11-14-raw-tool-pictures.md)), the basic suit: the trace cuts out the
+  reference's paint, `traced/<name>.png`; `Traced.raw` inks round it, no water. Code draws what moves or lights. `over`: a part, an edited ref's pixels unlike `refs/<over>.png` in `clip`.
 - AI-made work ships: say so in Steam's AI disclosure.
 
 ## Add a subject
 
 A file `subjects/<name>.js` setting `Subjects.<name>`, which calls `out('<picture>', canvas)` for each picture from
-`Anime.bake({ w, h, draw })`, `w` and `h` in world pixels, drawn 4 times over. Line weights and the light are the
-engine's (`engine.js`), per world pixel. `wash.js` replaces `bake`; a picture drawn straight on a canvas skips the finish.
+`Anime.bake({ w, h, draw })`, `w` and `h` in world pixels, drawn 4 times over. Weights, light: `engine.js`. `wash.js` replaces `bake`; a picture drawn straight on a canvas skips the finish.
 
 - A sheet that repeats takes `tile: true`. A door's shut and open pictures differ only by the panel, or pixels stay behind.
 - A `top_*` picture has its ground line on row 16: rows above stand on the cell above, rows below lie over the block (`front`).
-- A cave picture keeps the rows its logical one uses (`LOGICAL` in the page), or its plant floats. Moss is cut at its block's edges along a
-  run, px 4 and 20 of 24: every variant's cross-section matches there, its torn end past them.
+- A cave picture keeps its logical one's rows (`LOGICAL`), or its plant floats. Moss is cut at its block's edges along a
+  run, px 4 and 20 of 24: every variant's cross-section matches there.
 - A tool in the fist (about 4 px) is drawn to it: `hero.js` shrinks the drivers' paths by `Hand` (0.6), the pen kept. A held
   tool's `icons/` copy is 384 px long (driver-icons).

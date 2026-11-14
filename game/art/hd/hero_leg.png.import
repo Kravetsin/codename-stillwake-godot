@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://ddgrxfdnv4a04"
-path="res://.godot/imported/hero_shin.png-248ebb2b9d13e81bc92df994467c95fe.ctex"
+uid="uid://dlihols5tyk6r"
+path="res://.godot/imported/hero_leg.png-428037cdc56015980224d21fcbbe3778.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://art/hd/hero_shin.png"
-dest_files=["res://.godot/imported/hero_shin.png-248ebb2b9d13e81bc92df994467c95fe.ctex"]
+source_file="res://art/hd/hero_leg.png"
+dest_files=["res://.godot/imported/hero_leg.png-428037cdc56015980224d21fcbbe3778.ctex"]
 
 [params]
 

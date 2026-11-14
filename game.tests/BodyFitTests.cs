@@ -148,7 +148,8 @@ public class BodyFitTests
     [Fact]
     public void AnUpperArmsTopFadesInSoNoRoundEndShowsAtTheShoulder()
     {
-        foreach (string picture in (string[])["upperArm", "upperArm_lit", "regenSuit_upperArm", "heatSuit_upperArm_lit"])
+        // A whole arm (raw-basic-suit) fades as its upper arm did.
+        foreach (string picture in (string[])["upperArm", "upperArm_lit", "regenSuit_upperArm", "heatSuit_upperArm_lit", "arm", "regenSuit_arm"])
             Assert.Equal(BodyFit.Shoulder, BodyFit.FadeOf(picture));
         var (whole, none) = BodyFit.Shoulder;
         Assert.Equal(0, BodyFit.Alpha(none, whole, none));

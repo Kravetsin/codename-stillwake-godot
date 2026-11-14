@@ -146,8 +146,10 @@ public static class BodyFit
     public static (double Whole, double None)? FadeOf(string picture)
     {
         string name = picture.EndsWith("_lit", StringComparison.Ordinal) ? picture[..^4] : picture;
-        if (name == "upperArm" || name.EndsWith("_upperArm", StringComparison.Ordinal))
-            return Receivers.Contains(name.Length > 9 ? name[..^9] : "") ? null : Shoulder;
+        // A whole arm's top is its upper arm's (raw-basic-suit).
+        string? body = name is "upperArm" or "arm" ? "" : name.EndsWith("_upperArm", StringComparison.Ordinal) ? name[..^9]
+            : name.EndsWith("_arm", StringComparison.Ordinal) ? name[..^4] : null;
+        if (body != null) return Receivers.Contains(body) ? null : Shoulder;
         string? helmet = name.EndsWith("_shell", StringComparison.Ordinal) ? name[..^6] : name.EndsWith("_collar", StringComparison.Ordinal) ? name[..^7] : null;
         return helmet != null && Fits.TryGetValue(helmet, out var fit) ? fit.Fade : null;
     }

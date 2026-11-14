@@ -160,40 +160,8 @@ const boot = (a, M, top, lines, toe = 8.6) => {
   a.flat(poly(-.2, 10.1, toe + .15, 10.1, toe + .05, 10.95, -.15, 10.95), SOLE);
 };
 
-// ---------- the suit's pieces: drab, the rig's boxes, nothing shining ----------
+// ---------- the drawn suit's torso, for the gear drawn over it (HeroKit) ----------
 const BACK_TORSO = 'M3.2 .5C4.4 0 7.8 0 8.9 .5C10.3 1 11 2 11 3.6L10.6 8.4C10.5 10 10.8 11.6 10.6 13.2C10.1 14.6 9 15.1 7.6 15.1L4.4 15.1C3 15.1 1.9 14.6 1.4 13.2C1.2 11.6 1.5 10 1.4 8.4L1 3.6C1 2 1.7 1 3.2 .5Z';
-const suitParts = (c) => {
-  const M = c.M, P = c.P, mend = c.mend || {};
-  return {
-    s_torso(a) {
-      a.shape(rr(c.ringX ?? 3.6, -1.1, 5, 2.1, .5), P, { shade: .4 });
-      a.shape(c.torso || BACK_TORSO, M, { deep: 'M-1 12.4C3 13.4 9 13.4 13 12.2L13 16L-1 16Z', ...folds([2, 6.6, 5.4, 7.6, .9], [10, 5.2, 7, 6.6, .9], [2.2, 11, 5, 11.8, .7], [9.8, 11, 7, 11.8, .7]) });
-      a.shape('M1.5 8.6C4 9.2 8 9.2 10.6 8.6L10.6 10C8 10.6 4 10.6 1.5 10Z', P, { outer: false, shade: .4, lines: ['M4 9L4 10.4', 'M8 9L8 10.4'] });
-      if (mend.torso) mend.torso(a);
-    },
-    s_upper(a) {
-      a.shape(limb(4, 3.6, 2.5, 2.5, 8.6), M, folds([1, 5.2, 3.6, 6, .8], [.8, 7, 4, 7.6, .7]));
-      a.shape('M.4 2.4C.4 .9 1.3 .1 2.5 .1C3.7 .1 4.6 .9 4.6 2.4C4.6 3.2 4.4 3.8 4 4.1C3 4.5 2 4.5 1 4.1C.6 3.8 .4 3.2 .4 2.4Z', P, { outer: false, shade: .5 });
-      if (mend.upper) mend.upper(a);
-    },
-    s_fore(a) {
-      a.shape(limb(3.6, 3.2, 2.5, 2.9, 7), M, folds([1, 4.4, 3.8, 5.2, .7]));
-      glove(a, c.G || P);
-      a.shape('M.6 5.9L4.4 5.9L4.5 7.3C3.4 7.7 1.6 7.7 .5 7.3Z', P, { outer: false, shade: .35 });
-      if (mend.fore) mend.fore(a);
-    },
-    s_thigh(a) {
-      a.shape(limb(5, 4, 3, 2.5, 11.3), M, { deep: 'M-1 11.4L7 11.4L7 15L-1 15Z', ...folds([1.2, 3.8, 4.6, 3.2, .7], [1, 9.2, 4.8, 10, .9]) });
-      if (mend.thigh) mend.thigh(a);
-    },
-    s_shin(a) {
-      a.shape(limb(4.2, 3.8, 3, 2.18, 6.6), M, folds([1.2, 3.4, 4.8, 3.8, .6]));
-      boot(a, c.B || P, c.bootTop ?? 6.3, ['M4 6.8L4.5 9', 'M5.2 6.9L5.6 9'], c.toe);
-      a.shape('M1 -.2C2 -.7 4 -.7 5 -.2C5.4 .6 5.4 2.2 4.9 3C3.9 3.4 2.1 3.4 1.1 3C.6 2.2 .6 .6 1 -.2Z', P, { outer: false, shade: .45 });
-      if (mend.shin) mend.shin(a);
-    },
-  };
-};
 const neck = (a, sk, x0, x1) => a.shape(`M${x0 + .1} -2.6L${x1 - .1} -2.6L${x1 + .2} 1L${x0 - .2} 1Z`, sk, { outer: false, shade: `M${x0 - 1} -1.4L${x1 + 1} -1.4L${x1 + 1} 1.2L${x0 - 1} 1.2Z`, lines: [`M${x0 + .9} -2.2L${x0 + 1.1} .6`] });
 
 // ---------- Каторжник: faded rust issue coverall, a stencilled number ----------
@@ -328,12 +296,6 @@ const CLOTH = mat('#4a4438', '#322e27', '#23201c', '#5c5548');
 const GLASS_SEEN = 0.62;
 const V_TORSO = 'M3.2 .5C4.4 0 7.6 0 8.8 .5C10.2 1 10.8 2.1 10.8 3.6L10.4 8.2C10.3 9.8 10.6 11.4 10.4 13C10 14.4 9 15 7.6 15L4.4 15C3 15 2 14.4 1.6 13C1.4 11.4 1.7 9.8 1.6 8.2L1.2 3.6C1.2 2.1 1.8 1 3.2 .5Z';
 const faded = ((M, M2, Sk, Pad) => ({
-  ...suitParts({ M: M2, P: Pad, torso: V_TORSO, mend: {
-    torso(a) { patch(a, 7.8, 2.6, 2.3, 2.2, M); taped(a, 2.4, 5.8, 3, '#2f2c28'); a.flat('M3 12.2L5.4 12L5.6 13.4L3.4 13.6Z', M.deep); },
-    upper(a) { patch(a, 1, 4.8, 2.8, 1.8, M); },
-    thigh(a) { taped(a, 1, 6.4, 4, '#2f2c28'); a.line('M3.6 3.6L4.4 4.6M4.4 3.6L3.6 4.6', { w: 1.2 }); },
-    shin(a) { a.line('M1.6 4L4.4 4.2', { w: 1.2 }); },
-  } }),
   s_pack(a) {
     a.shape('M2 3L5.6 3L5.6 3.8L2 3.8Z', Pad, { outer: false });
     a.shape('M2 8.6L5.6 8.6L5.6 9.4L2 9.4Z', Pad, { outer: false });
@@ -780,7 +742,8 @@ function lightPicture(w, h, draw) {
 }
 
 Subjects.hero = function () {
-  for (const [name, id] of Object.entries(SUIT)) out('hero_' + name, part(suitPart(id)));
+  // The basic suit's pack; its torso, arm and leg are raw (suit.js, 2026-11-14-raw-basic-suit).
+  out('hero_pack', part(suitPart('s_pack')));
   OUTFITS.forEach((clothes, n) => {
     for (const [name, [id, w, h]] of Object.entries(BOXES)) {
       const draw = clothes[id];

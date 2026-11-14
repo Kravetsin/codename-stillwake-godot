@@ -16,6 +16,10 @@ namespace Stillwake.Game.Shared;
 /// A creature's leg, neck or tail is one picture bent so (creatures-bend), <see cref="Seamless"/>: no end of a picture anywhere near
 /// its knee. A neck or tail lies along its own axis, not straight down its picture; its rows cross that axis.
 /// </para>
+/// <para>
+/// A hero's whole leg is one picture from the hip to the sole (raw-basic-suit), bent again at its ankle by the foot's own angle in
+/// a band of its own, the boot rigid below it; a whole arm only at its elbow.
+/// </para>
 /// </summary>
 public sealed class BentLimb
 {
@@ -41,7 +45,7 @@ public sealed class BentLimb
     /// <summary>No seam: a picture drawn whole, as a soft helmet's are (helmets-fit-the-suit) and a creature's legs (creatures-bend).</summary>
     public static readonly (double From, double To) Seamless = (double.NegativeInfinity, double.PositiveInfinity);
 
-    private readonly double _joint, _band, _axis;
+    private readonly double _joint, _band, _axis, _ankle;
     private readonly bool _lower;
     private readonly Vec[] _rest;
 
@@ -60,6 +64,9 @@ public sealed class BentLimb
     /// <summary>The bend last drawn; none before the first.</summary>
     public double? Bent { get; private set; }
 
+    /// <summary>The foot's angle at the ankle last drawn (<see cref="Bend"/>).</summary>
+    public double Foot { get; private set; }
+
     /// <param name="left">The picture's left edge in its bone's frame, pixels, as it hangs straight down.</param>
     /// <param name="top">Its top edge.</param>
     /// <param name="width">Its width, pixels.</param>
@@ -72,9 +79,14 @@ public sealed class BentLimb
     /// Which way its bone runs from the frame's origin, radians clockwise from straight down: 0 for a limb, down its picture; a
     /// creature's neck or tail its own, the grid then over the picture's box turned onto the bone.
     /// </param>
-    public BentLimb(double left, double top, double width, double height, double joint, bool lower, (double From, double To) seam, double band = Band, double axis = 0)
+    /// <param name="ankle">
+    /// Where a whole leg's ankle is down an upper picture's frame, below the knee at <paramref name="joint"/>: the picture bent there
+    /// too, by the foot (raw-basic-suit); none for any other.
+    /// </param>
+    public BentLimb(double left, double top, double width, double height, double joint, bool lower, (double From, double To) seam, double band = Band, double axis = 0,
+        double? ankle = null)
     {
-        (_joint, _lower, _band, _axis) = (joint, lower, band, axis);
+        (_joint, _lower, _band, _axis, _ankle) = (joint, lower, band, axis, ankle ?? double.NaN);
         var (pictureLeft, pictureTop) = (left, top);
         (left, top, width, height) = OnBone(left, top, width, height, axis);
         double from = lower ? Math.Max(top, joint + seam.From) : top, to = lower ? top + height : Math.Min(top + height, joint + seam.To);
@@ -82,11 +94,12 @@ public sealed class BentLimb
         var rows = new List<double> { from, to };
         foreach (double y in (double[])[joint + seam.From, joint + seam.To])
             if (y > from && y < to && !rows.Contains(y)) rows.Add(y);
-        for (int i = 0; i < BandRows; i++)
-        {
-            double y = joint - band / 2 + band * i / (BandRows - 1);
-            if (y > from && y < to && !rows.Contains(y)) rows.Add(y);
-        }
+        foreach (double at in ankle is double a ? (double[])[joint, a] : [joint])
+            for (int i = 0; i < BandRows; i++)
+            {
+                double y = at - band / 2 + band * i / (BandRows - 1);
+                if (y > from && y < to && !rows.Contains(y)) rows.Add(y);
+            }
         rows.Sort();
         _rest = new Vec[rows.Count * Columns];
         Uvs = new Vec[_rest.Length];
@@ -114,14 +127,16 @@ public sealed class BentLimb
     }
 
     /// <summary>
-    /// Bends the grid by <paramref name="bend"/>, the limb's bend (the hero's <c>Bend.Lower</c>); false when it is bent so already,
-    /// nothing to draw again.
+    /// Bends the grid by <paramref name="bend"/>, the limb's bend (the hero's <c>Bend.Lower</c>), and a whole leg's ankle by
+    /// <paramref name="foot"/>, toe up negative as the figure's; false when it is bent so already, nothing to draw again.
     /// </summary>
-    public bool Bend(double bend)
+    public bool Bend(double bend, double foot = 0)
     {
-        if (Bent == bend) return false;
-        Bent = bend;
-        for (int i = 0; i < _rest.Length; i++) Points[i] = Turned(Warp(_rest[i], _joint, bend, _lower, _band), _axis);
+        if (double.IsNaN(_ankle)) foot = 0;
+        if (Bent == bend && Foot == foot) return false;
+        (Bent, Foot) = (bend, foot);
+        for (int i = 0; i < _rest.Length; i++)
+            Points[i] = Turned(double.IsNaN(_ankle) ? Warp(_rest[i], _joint, bend, _lower, _band) : Warp(_rest[i], _joint, bend, _ankle, foot, _band), _axis);
         return true;
     }
 
@@ -161,9 +176,22 @@ public sealed class BentLimb
     public static Vec Warp(Vec rest, double joint, double bend, bool lower, double band = Band)
     {
         double share = Share(rest.Y - joint, band);
-        double turn = lower ? (1 - share) * bend : -share * bend;
-        double c = Math.Cos(turn), s = Math.Sin(turn), y = rest.Y - joint;
-        return new Vec(rest.X * c - y * s, joint + rest.X * s + y * c);
+        return About(rest, joint, lower ? (1 - share) * bend : -share * bend);
+    }
+
+    /// <summary>
+    /// Where <paramref name="rest"/>, a point of a whole leg's picture hanging straight, is with the knee at <paramref name="joint"/>
+    /// bent <paramref name="bend"/> and the ankle at <paramref name="ankle"/> <paramref name="foot"/>, as the figure's nodes place the
+    /// thigh, shin and boot: turned about the ankle by its share of the foot, then all about the knee by its share of the bend.
+    /// </summary>
+    public static Vec Warp(Vec rest, double joint, double bend, double ankle, double foot, double band = Band) =>
+        About(Warp(rest, ankle, foot, lower: false, band), joint, -Share(rest.Y - joint, band) * bend);
+
+    /// <summary><paramref name="p"/> turned <paramref name="turn"/> radians clockwise about the point <paramref name="pivot"/> down the frame.</summary>
+    private static Vec About(Vec p, double pivot, double turn)
+    {
+        double c = Math.Cos(turn), s = Math.Sin(turn), y = p.Y - pivot;
+        return new Vec(p.X * c - y * s, pivot + p.X * s + y * c);
     }
 
     /// <summary>

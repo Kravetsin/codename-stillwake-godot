@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://x25ndaftodxq"
-path="res://.godot/imported/hero_upperArm.png-4fec63f2267c12b99e80de3422533f95.ctex"
+uid="uid://bda127h6fblbn"
+path="res://.godot/imported/hero_arm.png-794dae6611a3e90c17235b0c01aa6dbf.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://art/hd/hero_upperArm.png"
-dest_files=["res://.godot/imported/hero_upperArm.png-4fec63f2267c12b99e80de3422533f95.ctex"]
+source_file="res://art/hd/hero_arm.png"
+dest_files=["res://.godot/imported/hero_arm.png-794dae6611a3e90c17235b0c01aa6dbf.ctex"]
 
 [params]
 

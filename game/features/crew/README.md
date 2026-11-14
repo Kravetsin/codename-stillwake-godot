@@ -128,7 +128,7 @@ This hero and others', client-authoritative (0002): only commands reach the sim.
 - **The crew module:** made at `Spawn`; passed out: lies at the sim's cell, takes no orders (0061). `Enter` goes when the sim's room or field side
   differ, every `Crew.ReportEvery` ticks off its cell, each tick threatened; none out (0050); a closed link's host: `Leave`.
 - **Dressed as worn**: helmet, body, hair, clothes, lamp; the colour on the shin; a switched body lit by
-  `SuitOn` and charge (`SuitGlow`, hero-lights). **Limbs bend** whole (bent-limbs, game/shared `BentLimb`); **helmets** turn (helmets-fit-the-suit).
+  `SuitOn` and charge (`SuitGlow`, hero-lights). **Limbs bend** whole (bent-limbs, `BentLimb`), a suit's in one piece (raw-basic-suit); **helmets** turn (helmets-fit-the-suit).
 - **Tracker** blinks (`SignalOf`); **catchers**: heroes in gear, untracked, tumble killed (tracker-catchers).
 
 ## Others' heroes
@@ -136,7 +136,7 @@ This hero and others', client-authoritative (0002): only commands reach the sim.
 - Sent (`SentHero`) every 50 ms while it changes, each second still, at once on a rod's change (0002, 0065); hands by
   item and `Busy` (0037).
 - Drawn 150 ms behind (0013), walking 100 ms past the last, hidden 3 silent s on; only those
-  here (0076). A friend's tool strikes per number heard (0038), from the hero sent with it; its rod plays out by `RemoteRod`
+  here (0076). A friend's tool strikes per number heard (0038); its rod plays out by `RemoteRod`
   (0065); its drill, driver run as the sim says (0055).
 
 ## The hands
@@ -160,4 +160,4 @@ This hero and others', client-authoritative (0002): only commands reach the sim.
 
 - Friends are marked only while heard, unnamed; markers one way overlap.
 - A body is dressed as its peer now (gone, the first colour); it and a seated hero show no suit lights.
-- Others' swings do not hold on contact; a friend's gun hangs, unaimed, unrecoiled.
+- Others' swings do not stop on contact; a friend's gun hangs, unaimed, unrecoiled.
