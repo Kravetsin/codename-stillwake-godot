@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Stillwake.Game.Shared;
 
 namespace Stillwake.Game.Features.Crew;
 

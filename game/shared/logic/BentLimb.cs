@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 
-namespace Stillwake.Game.Features.Crew;
+namespace Stillwake.Game.Shared;
 
 /// <summary>
 /// One picture of a limb bent at its elbow or knee as a whole piece (bent-limbs): a grid over the picture, rigid with its bone away
@@ -11,6 +11,10 @@ namespace Stillwake.Game.Features.Crew;
 /// The two pictures meet at a seam round the joint (<see cref="SeamOf"/>), where both are full width, so neither's rounded end
 /// shows and nothing marks where the elbow or knee is: the upper is drawn down to the seam's end, fading out across it over the
 /// lower, drawn from the seam's start.
+/// </para>
+/// <para>
+/// A creature's leg, neck or tail is one picture bent so (creatures-bend), <see cref="Seamless"/>: no end of a picture anywhere near
+/// its knee. A neck or tail lies along its own axis, not straight down its picture; its rows cross that axis.
 /// </para>
 /// </summary>
 public sealed class BentLimb
@@ -34,14 +38,14 @@ public sealed class BentLimb
     /// <summary>The seam where no picture's widths are known: a pixel's fade across the joint.</summary>
     public static readonly (double From, double To) Plain = (-0.5, 0.5);
 
-    /// <summary>No seam: a lower picture drawn whole from its top, as a soft helmet's are (helmets-fit-the-suit).</summary>
+    /// <summary>No seam: a picture drawn whole, as a soft helmet's are (helmets-fit-the-suit) and a creature's legs (creatures-bend).</summary>
     public static readonly (double From, double To) Seamless = (double.NegativeInfinity, double.PositiveInfinity);
 
-    private readonly double _joint, _band;
+    private readonly double _joint, _band, _axis;
     private readonly bool _lower;
     private readonly Vec[] _rest;
 
-    /// <summary>The grid's points as bent last, in the picture's bone frame, row by row down, left to right.</summary>
+    /// <summary>The grid's points as bent last, in the picture's frame, row by row down its bone, left to right.</summary>
     public Vec[] Points { get; }
 
     /// <summary>Each point's place in the picture, in its pixels from its top-left corner.</summary>
@@ -64,9 +68,15 @@ public sealed class BentLimb
     /// <param name="lower">Whether the picture hangs from the lower bone (forearm, shin) rather than the upper.</param>
     /// <param name="seam">Where the pictures meet, from and to, pixels down from the joint (<see cref="SeamOf"/>).</param>
     /// <param name="band">How tall the band it bends in is, pixels: <see cref="Band"/> for a limb, a helmet's own for its seal (helmets-fit-the-suit).</param>
-    public BentLimb(double left, double top, double width, double height, double joint, bool lower, (double From, double To) seam, double band = Band)
+    /// <param name="axis">
+    /// Which way its bone runs from the frame's origin, radians clockwise from straight down: 0 for a limb, down its picture; a
+    /// creature's neck or tail its own, the grid then over the picture's box turned onto the bone.
+    /// </param>
+    public BentLimb(double left, double top, double width, double height, double joint, bool lower, (double From, double To) seam, double band = Band, double axis = 0)
     {
-        (_joint, _lower, _band) = (joint, lower, band);
+        (_joint, _lower, _band, _axis) = (joint, lower, band, axis);
+        var (pictureLeft, pictureTop) = (left, top);
+        (left, top, width, height) = OnBone(left, top, width, height, axis);
         double from = lower ? Math.Max(top, joint + seam.From) : top, to = lower ? top + height : Math.Min(top + height, joint + seam.To);
         if (to <= from) (from, to) = (top, top);
         var rows = new List<double> { from, to };
@@ -84,14 +94,15 @@ public sealed class BentLimb
         for (int r = 0; r < rows.Count; r++)
         {
             double y = rows[r];
-            double fade = lower || seam.To <= seam.From ? 1 : Math.Clamp((joint + seam.To - y) / (seam.To - seam.From), 0, 1);
+            double fade = lower || seam.To <= seam.From || double.IsInfinity(seam.To) ? 1 : Math.Clamp((joint + seam.To - y) / (seam.To - seam.From), 0, 1);
             for (int c = 0; c < Columns; c++)
             {
-                double x = width * c / (Columns - 1);
-                (_rest[r * Columns + c], Uvs[r * Columns + c], Alphas[r * Columns + c]) = (new Vec(left + x, y), new Vec(x, y - top), fade);
+                var rest = new Vec(left + width * c / (Columns - 1), y);
+                var inPicture = Turned(rest, axis);
+                (_rest[r * Columns + c], Uvs[r * Columns + c], Alphas[r * Columns + c]) = (rest, new Vec(inPicture.X - pictureLeft, inPicture.Y - pictureTop), fade);
             }
         }
-        Points = (Vec[])_rest.Clone();
+        Points = Array.ConvertAll(_rest, p => Turned(p, axis));
         Triangles = new int[(rows.Count - 1) * (Columns - 1) * 6];
         int t = 0;
         for (int r = 0; r < rows.Count - 1; r++)
@@ -103,15 +114,36 @@ public sealed class BentLimb
     }
 
     /// <summary>
-    /// Bends the grid by <paramref name="bend"/>, the limb's <see cref="Bend.Lower"/>; false when it is bent so already, nothing
-    /// to draw again.
+    /// Bends the grid by <paramref name="bend"/>, the limb's bend (the hero's <c>Bend.Lower</c>); false when it is bent so already,
+    /// nothing to draw again.
     /// </summary>
     public bool Bend(double bend)
     {
         if (Bent == bend) return false;
         Bent = bend;
-        for (int i = 0; i < _rest.Length; i++) Points[i] = Warp(_rest[i], _joint, bend, _lower, _band);
+        for (int i = 0; i < _rest.Length; i++) Points[i] = Turned(Warp(_rest[i], _joint, bend, _lower, _band), _axis);
         return true;
+    }
+
+    /// <summary><paramref name="v"/> turned <paramref name="turn"/> radians clockwise about the origin: from a bone's frame into its picture's.</summary>
+    public static Vec Turned(Vec v, double turn)
+    {
+        if (turn == 0) return v;
+        double c = Math.Cos(turn), s = Math.Sin(turn);
+        return new Vec(v.X * c - v.Y * s, v.X * s + v.Y * c);
+    }
+
+    /// <summary>The box round a picture's box turned onto a bone running <paramref name="axis"/> from straight down: the box itself for a limb.</summary>
+    private static (double Left, double Top, double Width, double Height) OnBone(double left, double top, double width, double height, double axis)
+    {
+        if (axis == 0) return (left, top, width, height);
+        double x0 = double.PositiveInfinity, y0 = double.PositiveInfinity, x1 = double.NegativeInfinity, y1 = double.NegativeInfinity;
+        foreach (var corner in (ReadOnlySpan<Vec>)[new(left, top), new(left + width, top), new(left, top + height), new(left + width, top + height)])
+        {
+            var p = Turned(corner, -axis);
+            (x0, y0, x1, y1) = (Math.Min(x0, p.X), Math.Min(y0, p.Y), Math.Max(x1, p.X), Math.Max(y1, p.Y));
+        }
+        return (x0, y0, x1 - x0, y1 - y0);
     }
 
     /// <summary>How much of the bend a row <paramref name="along"/> pixels below the joint takes: none above the <paramref name="band"/>, all below it, smoothly between.</summary>

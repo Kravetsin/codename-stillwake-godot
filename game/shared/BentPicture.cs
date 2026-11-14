@@ -1,17 +1,19 @@
 using Godot;
 
-namespace Stillwake.Game.Features.Crew;
+namespace Stillwake.Game.Shared;
 
 /// <summary>
 /// A limb part's picture drawn bent as one piece with its limb (<see cref="BentLimb"/>, bent-limbs) in place of its sprite: a child
 /// of that sprite, which carries the picture, offset, ankle cut and material and draws nothing itself, drawn where the sprite is in
-/// the figure's order. Its grid is made again only when the picture or the seam changes, and drawn again only when the bend does.
+/// the figure's order. A hero's limbs and helmets, a creature's legs, neck and tail (creatures-bend). Its grid is made again only
+/// when the picture or the seam changes, and drawn again only when the bend does.
 /// </summary>
 public partial class BentPicture : Node2D
 {
     private readonly Sprite2D _source;
     private double _joint, _band = BentLimb.Band;
     private readonly bool _lower;
+    private readonly double _axis;
     private BentLimb? _mesh;
     private Texture2D? _texture;
     private Rect2 _cut;
@@ -22,9 +24,10 @@ public partial class BentPicture : Node2D
     /// <param name="source">The sprite it draws in place of, which it hangs from.</param>
     /// <param name="joint">Where the elbow or knee is down the sprite's frame.</param>
     /// <param name="lower">Whether the sprite hangs from the lower bone.</param>
-    public BentPicture(Sprite2D source, double joint, bool lower)
+    /// <param name="axis">Which way its bone runs in the sprite's frame (<see cref="BentLimb"/>): straight down for a limb.</param>
+    public BentPicture(Sprite2D source, double joint, bool lower, double axis = 0)
     {
-        (_source, _joint, _lower) = (source, joint, lower);
+        (_source, _joint, _lower, _axis) = (source, joint, lower, axis);
         UseParentMaterial = true;
         source.SelfModulate = Colors.Transparent;
     }
@@ -53,7 +56,7 @@ public partial class BentPicture : Node2D
         }
     }
 
-    /// <summary>Drawn bent <paramref name="bend"/>, the limb's <see cref="Bend.Lower"/>, meeting the limb's other picture at <paramref name="seam"/> (<see cref="BentLimb.SeamOf"/>).</summary>
+    /// <summary>Drawn bent <paramref name="bend"/> (<see cref="BentLimb.Bend"/>), meeting the limb's other picture at <paramref name="seam"/> (<see cref="BentLimb.SeamOf"/>).</summary>
     public void Show(double bend, (double From, double To) seam)
     {
         var texture = _source.Texture;
@@ -68,7 +71,7 @@ public partial class BentPicture : Node2D
     private void Remake(Texture2D? texture, Rect2 cut, (double From, double To) seam)
     {
         (_texture, _cut, _seam) = (texture, cut, seam);
-        _mesh = texture == null ? null : new BentLimb(cut.Position.X, cut.Position.Y, cut.Size.X, cut.Size.Y, _joint, _lower, seam, _band);
+        _mesh = texture == null ? null : new BentLimb(cut.Position.X, cut.Position.Y, cut.Size.X, cut.Size.Y, _joint, _lower, seam, _band, _axis);
         int n = _mesh?.Points.Length ?? 0;
         (_points, _uvs, _colours) = (new Vector2[n], new Vector2[n], new Color[n]);
         if (_mesh == null || texture == null) return;

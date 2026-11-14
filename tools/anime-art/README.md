@@ -74,12 +74,12 @@ Needs Node 22+ and Edge or Chrome (`ANIME_BROWSER` for another); `tools/snap.ps1
 A picked AI-made reference is traced for its **form**; the line, paint and water stay ours.
 
 - `refs/<name>.png` and `.palette.json`: its colours (`ref`) and our paint (`mat`); `single`: one part, `overlay`: patches,
-  `mend`: repainted first, `holes`: left open; `pieces`: a sheet's boxes, each traced to `traced/<name>.<piece>.json`.
-- `node tools/anime-art/trace.js <name>` (ffmpeg) cuts it by its ink into beziers, committed as `traced/<name>.json`: export
-  draws those (`traced.js`), never the reference.
+  `mend`: repainted first, `holes`: left open; no `background`: cut by alpha. `pieces`: boxes or
+  `{ keep, ... }` polygons with their own keys, each to `traced/<name>.<piece>.json`.
+- `node tools/anime-art/trace.js <name>` (ffmpeg) cuts it by its ink into beziers, `traced/<name>.json`, drawn by `traced.js`, never
+  the reference.
 - `"raw": true`, held tools ([raw](../../docs/decisions/2026-11-14-raw-tool-pictures.md)): the trace cuts out the
-  reference's own paint, `traced/<name>.png`; `Traced.raw` inks round it, no water. Code draws what moves or lights. No
-  `background`: cut by alpha. `over`: a part, an edited ref's pixels unlike `refs/<over>.png` in `clip`.
+  reference's own paint, `traced/<name>.png`; `Traced.raw` inks round it, no water. Code draws what moves or lights. `over`: a part, an edited ref's pixels unlike `refs/<over>.png` in `clip`.
 - AI-made work ships: say so in Steam's AI disclosure.
 
 ## Add a subject

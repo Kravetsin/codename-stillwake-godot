@@ -82,7 +82,7 @@ public class CreatureInkTests
             {
                 if (design.Rig[i].Drive != CreatureArt.Drive.Leg) continue;
                 var j = pose.Joints[i];
-                foot = Math.Max(foot, j.Y + legLen * (Math.Cos(j.A) - 1) + footW * Math.Abs(Math.Sin(j.A)));
+                foot = Math.Max(foot, CreaturePose.Drop(design.Pose with { LegLen = (float)legLen, FootW = (float)footW }, design.Parts[design.Rig[i].Part].Bend?.Joint ?? 0, j));
             }
             double rest = pose.Joints[body].Y + foot;
             (low, high) = (Math.Min(low, rest), Math.Max(high, rest));

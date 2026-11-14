@@ -7,6 +7,9 @@
 // A palette with "segment": "colour" cuts parts by the material nearest each pixel instead, the ink still parting pieces: for
 // paint that meets bare steel with no line. A palette with "raw": true stops at the silhouette and writes the reference's own
 // pixels inside it, traced/<name>.png, for a held tool (2026-11-14-raw-tool-pictures).
+// A piece may be { keep: polygon, ...keys }: only the sheet's pixels inside the polygon, the palette with the piece's own keys over
+// it (its own `mend`, `segment`), for pieces cut out of one whole picture (a creature's legs out of its body). Its ops are in its
+// box's pixels, `origin` that box's corner in the sheet.
 // Needs ffmpeg on the PATH to read the PNG.
 'use strict';
 const fs = require('fs'), path = require('path'), { spawnSync } = require('child_process');
@@ -19,13 +22,25 @@ if (P.pieces && !piece) {
   for (const k of Object.keys(P.pieces)) if (spawnSync(process.execPath, [__filename, sheet + '.' + k], { stdio: 'inherit' }).status !== 0) process.exit(1);
   process.exit(0);
 }
+const spec = piece ? P.pieces[piece] : null, own = spec && !Array.isArray(spec) ? spec : null;
+if (own) Object.assign(P, own);
+/** Whether (x, y) is inside a polygon of [x, y] points (even-odd). */
+const inPoly = (poly, x, y) => {
+  let on = false;
+  for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
+    const [xi, yi] = poly[i], [xj, yj] = poly[j];
+    if (yi > y !== yj > y && x < ((xj - xi) * (y - yi)) / (yj - yi) + xi) on = !on;
+  }
+  return on;
+};
 const hex = (h) => [1, 3, 5].map((i) => parseInt(h.substr(i, 2), 16));
 const lum = (r, g, b) => .3 * r + .59 * g + .11 * b;
 
 // ---------- Decode ----------
 const png = fs.readFileSync(refPng);
-// A piece is its box of the sheet; mends stay in the sheet's pixels.
-const crop = piece ? P.pieces[piece] : null, [ox, oy] = crop || [0, 0];
+// A piece is its box of the sheet, a kept polygon's its bounds; mends stay in the sheet's pixels.
+const bounds = (poly) => [0, 1, 0, 1].map((k, i) => Math.round((i < 2 ? Math.min : Math.max)(...poly.map((p) => p[k]))));
+const crop = own ? bounds(own.keep) : spec, [ox, oy] = crop || [0, 0];
 const W = crop ? crop[2] - crop[0] + 1 : png.readUInt32BE(16), H = crop ? crop[3] - crop[1] + 1 : png.readUInt32BE(20), N = W * H;
 const dec = spawnSync('ffmpeg', ['-loglevel', 'error', '-i', refPng, ...(crop ? ['-vf', `crop=${W}:${H}:${ox}:${oy}`] : []), '-f', 'rawvideo', '-pix_fmt', 'rgba', '-'], { maxBuffer: N * 4 + 1024 });
 if (dec.status !== 0 || dec.stdout.length !== N * 4) throw new Error('ffmpeg decode failed: ' + dec.stderr);
@@ -34,16 +49,10 @@ const px = dec.stdout;
 // or a colour, over a polygon or an ellipse ([cx, cy, rx, ry]) within an optional box ([x0, y0, x1, y1]).
 for (const m of P.mend || []) {
   const c = m.fill !== 'background' ? [...hex(m.fill), 255] : P.background ? [...hex(P.background), 255] : [0, 0, 0, 0], [bx0, by0, bx1, by1] = (m.clip || [ox, oy, ox + W - 1, oy + H - 1]).map((v, i) => v - (i % 2 ? oy : ox));
-  const inside = m.ellipse ? (x, y) => ((x - m.ellipse[0]) / m.ellipse[2]) ** 2 + ((y - m.ellipse[1]) / m.ellipse[3]) ** 2 <= 1 : (x, y) => {
-    let on = false;
-    for (let i = 0, j = m.poly.length - 1; i < m.poly.length; j = i++) {
-      const [xi, yi] = m.poly[i], [xj, yj] = m.poly[j];
-      if (yi > y !== yj > y && x < ((xj - xi) * (y - yi)) / (yj - yi) + xi) on = !on;
-    }
-    return on;
-  };
+  const inside = m.ellipse ? (x, y) => ((x - m.ellipse[0]) / m.ellipse[2]) ** 2 + ((y - m.ellipse[1]) / m.ellipse[3]) ** 2 <= 1 : (x, y) => inPoly(m.poly, x, y);
   for (let y = Math.max(0, by0); y <= Math.min(H - 1, by1); y++) for (let x = Math.max(0, bx0); x <= Math.min(W - 1, bx1); x++) if (inside(x + ox + .5, y + oy + .5)) px.set(c, (y * W + x) * 4);
 }
+if (own) for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) if (!inPoly(own.keep, x + ox + .5, y + oy + .5)) px[(y * W + x) * 4 + 3] = 0;
 
 // ---------- Mask helpers (Uint8Array W*H) ----------
 const idx = (x, y) => y * W + x;
@@ -354,7 +363,7 @@ function strokeOf(cells) {
 }
 
 // ---------- Build the ops ----------
-const out = { reference: path.basename(refPng), size: [W, H], parts: [] };
+const out = { reference: path.basename(refPng), size: [W, H], origin: [ox, oy], parts: [] };
 const sbox = boxOf(sil), bw = sbox[2] - sbox[0] + 1, bh = sbox[3] - sbox[1] + 1, u = Math.max(bw, bh) / (P.fit || 15.4);
 out.fit = { units: +u.toFixed(4), shift: [f1((16 * u - bw) / 2 - sbox[0]), f1((16 * u - bh) / 2 - sbox[1])], box: sbox };
 const crescent = (m, box) => { const e = Math.min(box[2] - box[0], box[3] - box[1]) / u; return +Math.max(.22, Math.min(.9, e * (m.shade ?? .16))).toFixed(3); };

@@ -18,10 +18,9 @@ function placed(name, s = 1, at = [0, 0]) {
 
 /**
  * draw(a) for ops of TRACED[name], each in its palette material. A crescent is traced in the icon's world pixels; k is how many of
- * the ops' units make one (the fit's units for the icon, times the scale for ops placed elsewhere).
+ * the ops' units make one (the fit's units for the icon, times the scale for ops placed elsewhere); M the materials by name, the palette's or a darker copy.
  */
-function drawer(name, ops, k) {
-  const M = TRACED[name].materials;
+function drawer(name, ops, k, M = TRACED[name].materials) {
   return (a) => {
     for (const o of ops) {
       const m = o.mat ? M[o.mat].mat : null;

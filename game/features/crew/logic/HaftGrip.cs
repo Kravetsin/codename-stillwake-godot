@@ -1,4 +1,5 @@
 using System;
+using Stillwake.Game.Shared;
 
 namespace Stillwake.Game.Features.Crew;
 
