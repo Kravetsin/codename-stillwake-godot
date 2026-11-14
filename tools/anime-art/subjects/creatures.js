@@ -114,13 +114,15 @@ function loper() {
   const S = .039, FEET = [715, 985];
   const { at, axis, along, dark, xy, part, materials } = tracer('loper', S);
   // Pivots: the neck's root by its throat (bent about its middle, the wide throat inside a grazing bend folds over),
-  // the ear's base, each near leg's top, the tail's root.
+  // the ear's base, each near leg's hip, the tail's root.
   const NECK = [1067, 473], POLL = [1258, 172], EAR = [1275, 140], EYE = [1358, 155], FORE = [900, 605], HIND = [450, 605], TAIL = [455, 462];
-  // Its knee and hock, how far below each leg's pivot; the far pair this much ahead of the near.
-  const KNEE = (745 - FORE[1]) * S, HOCK = (738 - HIND[1]) * S, FAR = 67 * S;
+  // Its knee and hock, how far below each leg's pivot; the far pair this much ahead of the near. Each leg's picture rises into
+  // its shoulder or haunch, fading in from TOP and whole by WHOLE: on the body however it swings (creatures-bend).
+  const KNEE = (745 - FORE[1]) * S, HOCK = (738 - HIND[1]) * S, FAR = 67 * S, FARF = 40 * S, TOP = 570, WHOLE = 588;
   const M = materials('body'), FARM = dark(M);
   const neckFade = [along(NECK, POLL, -44 * S), along(NECK, POLL, 20 * S)], earFade = [at([1276, 158], EAR), at([1272, 128], EAR)];
-  const leg = (name, pivot, joint, materials) => part(name, pivot, { materials, fade: [[0, -.2], [0, 1.4]], bend: { joint, band: 75 * S, axis: 0 } });
+  const leg = (name, pivot, joint, materials) =>
+    part(name, pivot, { materials, fade: [[0, (TOP - pivot[1]) * S], [0, (WHOLE - pivot[1]) * S]], bend: { joint, band: 75 * S, axis: 0 } });
   const fore = at(FORE, FEET), hind = at(HIND, FEET), neck = at(NECK, FEET), ear = at(EAR, NECK);
   return {
     eye: { travel: [.25, .15], travelWide: [.3, .2] },
@@ -143,7 +145,7 @@ function loper() {
     rig: [
       { id: 'earFar', part: 'earFar', parent: 'head', x: ear[0] - 27 * S, y: ear[1] + 4 * S, drive: 'ear', base: -.28 },
       { id: 'legFH', part: 'hindLegFar', parent: 'body', x: hind[0] + FAR, y: hind[1], drive: 'leg', phase: 0 },
-      { id: 'legFF', part: 'foreLegFar', parent: 'body', x: fore[0] + FAR, y: fore[1], drive: 'leg', phase: .5 },
+      { id: 'legFF', part: 'foreLegFar', parent: 'body', x: fore[0] + FARF, y: fore[1], drive: 'leg', phase: .5 },
       { id: 'tail', part: 'tail', parent: 'body', ...xy(at(TAIL, FEET)), drive: 'tail' },
       { id: 'body', part: 'body', parent: null, x: 0, y: 0, drive: 'body' },
       { id: 'marks', part: 'marks', parent: 'body', x: 0, y: 0 },
@@ -169,10 +171,12 @@ function tapir() {
   // The neck's root low by the throat, its bone forward along the head: it bends JOINT ahead of it, past the shoulder and before the ear.
   const NECK = [930, 700], SNOUT = [1300, 700], JOINT = 75, EAR = [1085, 468], EYE = [1215, 503], SEED = [1448, 634];
   const FORE = [865, 668], HIND = [290, 668], TAIL = [168, 572];
-  // Its knee and hock below each leg's pivot, at the reference's creases; the far legs ahead of the near by the reference's.
-  const KNEE = (775 - FORE[1]) * S, HOCK = (765 - HIND[1]) * S, FARF = 112 * S, FARH = 135 * S;
+  // Its knee and hock below each leg's pivot, at the reference's creases; the far legs ahead of the near by the reference's. Each
+  // leg's picture rises into the body, fading in from TOP and whole by WHOLE, as the loper's.
+  const KNEE = (775 - FORE[1]) * S, HOCK = (765 - HIND[1]) * S, FARF = 112 * S, FARH = 135 * S, TOP = 612, WHOLE = 640;
   const M = materials('body'), FARM = dark(materials('foreLeg'));
-  const leg = (name, pivot, joint, materials) => part(name, pivot, { materials, fade: [[0, -.2], [0, 1.4]], bend: { joint, band: 70 * S, axis: 0 } });
+  const leg = (name, pivot, joint, materials) =>
+    part(name, pivot, { materials, fade: [[0, (TOP - pivot[1]) * S], [0, (WHOLE - pivot[1]) * S]], bend: { joint, band: 70 * S, axis: 0 } });
   const fore = at(FORE, FEET), hind = at(HIND, FEET), neck = at(NECK, FEET), ear = at(EAR, NECK);
   const earFade = [at([1085, 480], EAR), at([1085, 452], EAR)];
   return {
@@ -219,29 +223,35 @@ function tapir() {
 
 /**
  * The sixleg as picked (creatures-bend): a long indigo barrel in bold cream stripes, spines down its back, traced from refs/sixleg.png.
- * Its neck bends by the throat; its six legs are one picture, the far three darker, each folding at its hock; its tail arches over its
- * back hung with glowing berries and bends where it rises, so the whole arch lifts and sways.
+ * Its neck bends by the throat; its legs are the reference's hind, middle and fore, the far three darker, each folding at its hock or
+ * knee and growing out of the body from inside it; its tail arches over its back hung with glowing berries and bends where it rises,
+ * so the whole arch lifts and sways.
  */
 function sixleg() {
   // As long in the trunk as the hand-drawn sixleg was; the feet's middle at FEET.
   const S = .032, FEET = [676, 965];
   const { at, axis, along, dark, xy, part, materials } = tracer('sixleg', S);
   const NECK = [1090, 500], MUZZLE = [1350, 400], EAR = [1290, 370], EYE = [1352, 398];
-  // The leg's pivot at its top, its hock below it; each leg's hip by its hoof in the reference, near and far.
-  const LEG = [655, 605], HOCK = (690 - LEG[1]) * S, NEAR = [305, 655, 978], FAR = [448, 775, 1075];
+  // Each near leg's hip inside the body above the belly, over its hock or knee (a bend far off its bone folds over), its picture
+  // fading in above it; the bend at the reference's bump. The far legs as far ahead of the near as their hoofs are, the fore pair's
+  // kept under the chest.
+  const HIND = [285, 570], MID = [632, 570], FORE = [960, 570], TOP = 512, WHOLE = 545, JOINT_Y = 695, FAR = [137, 121, 10];
   // The tail's pivot on its stem where it turns up behind the rump; it bends JOINT above, the arch over the back past the bend.
   const TAIL = [50, 420], JOINT = 80, BERRIES = [[215, 230], [245, 240], [310, 175], [445, 152], [487, 173], [530, 127], [632, 143], [690, 158]];
-  const M = materials('body'), FARM = dark(materials('leg'));
-  const leg = (materials) => part('leg', LEG, { materials, fade: [[0, -.2], [0, 1.4]], bend: { joint: HOCK, band: 70 * S, axis: 0 } });
-  const neck = at(NECK, FEET), ear = at(EAR, NECK), hip = (x) => at([x, LEG[1]], FEET);
+  const M = materials('body'), FARM = dark(materials('midLeg'));
+  // Its stripes stay the body's marks: a leg's top over one is hide.
+  const leg = (name, pivot, materials) => part(name, pivot, {
+    materials, only: (op) => op.mat !== 'stripe', fade: [[0, (TOP - pivot[1]) * S], [0, (WHOLE - pivot[1]) * S]], bend: { joint: (JOINT_Y - pivot[1]) * S, band: 70 * S, axis: 0 },
+  });
+  const neck = at(NECK, FEET), ear = at(EAR, NECK), hip = (x) => at([x, HIND[1]], FEET);
   const earFade = [at([1290, 380], EAR), at([1288, 350], EAR)];
   // Today's tripods: the near hind and fore with the far middle, then the rest. The four behind fold as hocks, the fore pair as knees.
   const node = ([id, p, x, phase, hind]) => ({ id, part: p, parent: 'body', ...xy(hip(x)), drive: 'leg', phase, hind });
-  const far = [['l4', 'legFar', FAR[0], .5, true], ['l5', 'legFar', FAR[1], 0, true], ['l6', 'legFar', FAR[2], .5, false]].map(node);
-  const near = [['l1', 'leg', NEAR[0], 0, true], ['l2', 'leg', NEAR[1], .5, true], ['l3', 'leg', NEAR[2], 0, false]].map(node);
+  const far = [['l4', 'hindLegFar', HIND[0] + FAR[0], .5, true], ['l5', 'midLegFar', MID[0] + FAR[1], 0, true], ['l6', 'foreLegFar', FORE[0] + FAR[2], .5, false]].map(node);
+  const near = [['l1', 'hindLeg', HIND[0], 0, true], ['l2', 'midLeg', MID[0], .5, true], ['l3', 'foreLeg', FORE[0], 0, false]].map(node);
   return {
     eye: { travel: [0, 0], travelWide: [0, 0] },
-    pose: { earUp: 0, earBack: -.42, earPerk: -.65, legAmp: .38, lift: 1.7, tailAmp: .07, tailFlee: -.25, graze: 1.02, legLen: +((965 - LEG[1]) * S).toFixed(2), footW: +(35 * S).toFixed(2), knee: .5 },
+    pose: { earUp: 0, earBack: -.42, earPerk: -.65, legAmp: .38, lift: 1.7, tailAmp: .07, tailFlee: -.25, graze: 1.02, legLen: +((965 - HIND[1]) * S).toFixed(2), footW: +(35 * S).toFixed(2), knee: .5 },
     parts: {
       body: part('body', FEET, { only: (op) => op.mat !== 'stripe' }),
       // Its cream stripes, each a marking one may or may not wear.
@@ -250,8 +260,12 @@ function sixleg() {
       head: part('head', NECK, { fade: [along(NECK, MUZZLE, -25 * S), along(NECK, MUZZLE, 15 * S)], bend: { joint: 100 * S, band: 180 * S, axis: axis(NECK, MUZZLE) } }),
       ear: part('ear', EAR, { fade: earFade }),
       earFar: part('ear', EAR, { materials: dark(materials('ear')), fade: earFade }),
-      leg: leg(),
-      legFar: leg(FARM),
+      hindLeg: leg('hindLeg', HIND),
+      hindLegFar: leg('hindLeg', HIND, FARM),
+      midLeg: leg('midLeg', MID),
+      midLegFar: leg('midLeg', MID, FARM),
+      foreLeg: leg('foreLeg', FORE),
+      foreLegFar: leg('foreLeg', FORE, FARM),
       // Bent where its stem rises: the arch and its berries above turn whole about the bend.
       tail: part('tail', TAIL, {
         bend: { joint: JOINT * S, band: 80 * S, axis: Math.PI },

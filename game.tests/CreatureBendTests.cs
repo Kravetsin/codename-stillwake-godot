@@ -201,6 +201,72 @@ public class CreatureBendTests
         Assert.True(lit > 0, "its berries glow");
     }
 
+    [Theory]
+    [InlineData("classic")]
+    [InlineData("tapir")]
+    [InlineData("sixleg")]
+    public void EveryLegHangsFromInsideItsBodyItsFadingTopNeverOverTheBackground(string look)
+    {
+        // A leg's picture fades in at its top into the body over it. The user found a sixleg's hind legs hung from the air: their
+        // tops, faded or not, below the body, the background showing through. Through every gait, its hip and every painted pixel
+        // of its top down to where it is whole lie on the body's paint, or a far foreleg's under the neck's root, held straight.
+        var design = CreatureArt.InkDesigns[look];
+        var neck = design.Rig.Single(n => n.Drive == CreatureArt.Drive.Head);
+        var over = new[] { ("body", 0f, 0f), (neck.Part, neck.X, neck.Y) }.Select(o =>
+        {
+            var part = design.Parts[o.Item1];
+            var (w, h, pixels) = Png.Pixels(Path.Combine(Png.Hd, "creatures", design.Id, o.Item1 + ".png"));
+            return (Part: part, X: o.Item2, Y: o.Item3, W: w, H: h, Pixels: pixels, K: w / (double)part.W);
+        }).ToList();
+        // Within the pen's width of its paint: a hind leg's rear outline is its rump's, a foreleg's front its chest's.
+        const double pen = 0.5;
+        bool OnBody(double x, double y) => over.Any(o =>
+        {
+            int r = (int)(pen * o.K), cx = (int)((x - o.X + o.Part.PivotX) * o.K), cy = (int)((y - o.Y + o.Part.PivotY) * o.K);
+            for (int py = Math.Max(0, cy - r); py <= Math.Min(o.H - 1, cy + r); py++)
+                for (int px = Math.Max(0, cx - r); px <= Math.Min(o.W - 1, cx + r); px++)
+                    if ((px - cx) * (px - cx) + (py - cy) * (py - cy) <= r * r && o.Pixels[(py * o.W + px) * 4 + 3] > 128) return true;
+            return false;
+        });
+        var tops = new Dictionary<string, List<Vec>>();
+        foreach (var name in design.Rig.Where(n => n.Drive == CreatureArt.Drive.Leg).Select(n => n.Part).Distinct())
+        {
+            var part = design.Parts[name];
+            var (w, h, pixels) = Png.Pixels(Path.Combine(Png.Hd, "creatures", design.Id, name + ".png"));
+            double k = w / (double)part.W;
+            var top = new List<Vec> { new(0, 0) };
+            for (int y = 0; y < h; y++)
+            {
+                int most = 0;
+                for (int x = 0; x < w; x++)
+                {
+                    int a = pixels[(y * w + x) * 4 + 3];
+                    most = Math.Max(most, a);
+                    if (a > 16) top.Add(new Vec((x + 0.5) / k - part.PivotX, (y + 0.5) / k - part.PivotY));
+                }
+                if (most >= 250) break;
+            }
+            tops[name] = top;
+        }
+        var pose = new CreaturePose(design, CreatureLooks.Runs[design.Id]);
+        var missed = new List<string>();
+        foreach (var (walking, gallop, air) in ((double, double, double)[])[(0, 0, 0), (1, 0, 0), (1, 1, 0), (1, 1, 0.5), (1, 1, 1)])
+            for (int k = 0; k < 20; k++)
+            {
+                pose.Set(new CreaturePose.Doing(k / 20.0, walking, gallop, air, air, 0, 0, k * 97, 0, 1, null));
+                for (int i = 0; i < design.Rig.Count; i++)
+                {
+                    var n = design.Rig[i];
+                    if (n.Drive != CreatureArt.Drive.Leg) continue;
+                    var j = pose.Joints[i];
+                    // Turned about its hip as CreatureBody turns it, in the body's frame.
+                    var off = tops[n.Part].Where(p => !OnBody(n.X + j.X + p.X * Math.Cos(j.A) - p.Y * Math.Sin(j.A), n.Y + j.Y + p.X * Math.Sin(j.A) + p.Y * Math.Cos(j.A))).ToList();
+                    if (off.Count > 0) missed.Add($"{n.Id} (walk {walking}, gallop {gallop}, air {air}) at {k / 20.0:F2}, turned {j.A:F2}: {off.Count} of {tops[n.Part].Count} off, as ({off[0].X:F1}, {off[0].Y:F1})");
+                }
+            }
+        Assert.True(missed.Count == 0, $"{look}'s legs hang off its body in {missed.Count} poses:\n{string.Join("\n", missed.GroupBy(m => m.Split(" at ")[0]).Select(g => g.First()))}");
+    }
+
     [Fact]
     public void ARotatedBoneBendsAsTheSamePictureHangingStraightTurned()
     {

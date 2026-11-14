@@ -46,7 +46,7 @@ fan of rays from the shoulder and the cutter's beam are tested against each crea
 ## Rules
 
 - **Only what the camera sees** (no ADR): a body only for a creature within the view and a margin, from a pool that never
-  frees. One gone while drawn was killed, or is a guard calmed with no hero in its arena.
+  frees. One gone while drawn was killed, or a guard calmed, no hero in its arena.
 - **Drawn between ticks** (0102): kept at the last two ticks, `Progress` of the way, a tick behind the
   sim. Upright (0106) but for `CreatureMotion.Tilt`. Steps eased by `StepEase` over `CreatureLooks.StepMs`, from its positions
   (0106). Faces the way it moves; still, toward a near hero, else the way it last moved.
@@ -56,10 +56,10 @@ fan of rays from the shoulder and the cutter's beam are tested against each crea
   open, half shut, shut or wide, its pupil on a near hero. Idle with no hero near it grazes; with one near it notices.
 - **Bending parts** ([creatures-bend](../../../docs/decisions/2026-11-14-creatures-bend.md)): a part with a `Bend` is one picture bent
   in a band (`shared/BentPicture`): a knee folds back as its foot lifts, a hock (`Hind`, a sixleg's rear four) forward;
-  a neck and tail bend for their turn.
+  a neck and tail bend for their turn. A leg fades in inside its body, there at any swing.
 - **Glowing parts give light** (0102): added over it unlit, their spots lights in their colour (`Lights`, the light
   view's `Creatures`).
-- **Each its own** (`CreatureVariety`, 0102): from its id and the surface's seed by an integer hash, the same on every peer. Size,
+- **Each its own** (`CreatureVariety`, 0102): from its id and the surface's seed, hashed, the same on every peer. Size,
   coat, morphs and markings vary, drawn only.
 - **Its legs** (`CreatureGait`, 0102) go by the ground it moved on its last tick, eased by time, never a frame's step,
   capped by `CreatureLooks.Runs`. Fast, a gallop. Tucked in the air.
@@ -85,15 +85,15 @@ fan of rays from the shoulder and the cutter's beam are tested against each crea
 
 ## Dev
 
-`-- --planet --creatures[=species|look]` lets six creatures out either side of the hero (`dev/CreaturesDemo`,
+`-- --planet --creatures[=species|look]` lets six creatures out by the hero (`dev/CreaturesDemo`,
 `Release`); `--creatures-trace` logs strides and looks; `--creatures-herd` ten in a row; without `--manual` `dev/demos/CreatureHands` hunts them with the axe, then the drill. `--creatures-drill` holds the
 drill on one loper; `--strip --creatures --creatures-course` puts a loper by the strip's walls and shaft for its leaps.
 
 ## Deliberately not handled
 
-- **Creatures overlap** one another and the heroes: a struck herd bunches into one lump.
+- **Creatures overlap** one another and the heroes: a struck herd bunches up.
 - **A friend's strike shows a round trip late,** and its tool is guessed: a running drill's bit by it, else the axe.
 - **No outline** under the rays.
 - **One design and one set of sounds per species;** no calls or cries. Individuals differ drawn only: a big one is struck,
-  jumps and fits where a small one does.
+  jumps and fits as a small one.
 - **A tick saws at its claw,** not where the hook held: the hook point is the harpoon's.
