@@ -145,7 +145,7 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [the-cape-is-worn](2026-10-27-the-cape-is-worn.md) | The cape is worn | accepted | temperature-in-degrees (in part) |
 | [the-descent-pictures](2026-10-27-the-descent-pictures.md) | The drop pod's flight is drawn by the client from the flight's ticks | accepted |  |
 | [the-railgun](2026-10-27-the-railgun.md) | The railgun | accepted | shots-pierce, hold-to-fire (in part) |
-| [tool-icons](2026-10-27-tool-icons.md) | Tool icons from the held picture | accepted |  |
+| [tool-icons](2026-10-27-tool-icons.md) | Tool icons from the held picture | accepted | tool-card-pictures (in part) |
 | [hull-meteors](2026-10-28-hull-meteors.md) | Meteors from the start | accepted |  |
 | [looks-are-printed](2026-10-28-looks-are-printed.md) | Looks are chosen and printed | accepted |  |
 | [meteor-blast](2026-10-28-meteor-blast.md) | A meteor breaks an area | accepted |  |
@@ -345,6 +345,7 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [fire-axe-redrawn](2026-11-14-fire-axe-redrawn.md) | The fire axe traced from a picked reference, its trail following the rounded edge | accepted |  |
 | [food-and-gear-cards](2026-11-14-food-and-gear-cards.md) | Food and gear cards list what they guarantee, and food sells | accepted |  |
 | [frost-film](2026-11-14-frost-film.md) | Frost: the cold drawn as uneven ice with no edge | accepted |  |
+| [grapple-and-nailer-traced](2026-11-14-grapple-and-nailer-traced.md) | The grappling gun and the nailer traced from picked references | accepted |  |
 | [heat-limits](2026-11-14-heat-limits.md) | Heat: the other side of the degrees | accepted |  |
 | [helmets-traced](2026-11-14-helmets-traced.md) | The basic and heavy helmets, traced | accepted |  |
 | [pickaxe-and-harpoon-traced](2026-11-14-pickaxe-and-harpoon-traced.md) | The pickaxe and the harpoon traced from picked references | accepted |  |
@@ -353,3 +354,4 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [temperature-gradients](2026-11-14-temperature-gradients.md) | Temperature gradients: colder away from the ship, smooth down the bands | accepted |  |
 | [temperature-in-degrees](2026-11-14-temperature-in-degrees.md) | Temperature in degrees | accepted |  |
 | [the-thermometer](2026-11-14-the-thermometer.md) | The thermometer: a frost star and the degrees, a row under the charge | accepted |  |
+| [tool-card-pictures](2026-11-14-tool-card-pictures.md) | A tool's card shows its picture enlarged | accepted |  |
