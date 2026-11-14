@@ -1490,10 +1490,10 @@ public partial class Figure : Node2D
         // Its stage made only once a drill runs or a gun charges in this hand: a body, a seated hero or the title's figures never need one.
         if (crackling != null && _drillLight == null && IsInsideTree()) _drillLight = new DrillLight(Held.Glims, Held.Flares, Held.Bolts);
         _drillLight?.Step(crackling, drill ? _spin : Charge, _heldAt ??= HeldAt, elapsedMs);
-        // The spear's own (spear-effects): plain, its thrust bends the air; with the arc, the arc runs, trails and creeps along it.
+        // The spear's own (spear-effects): plain, its thrust bends the air; with the arc, the blade fizzes and tears bolts off.
         bool spear = inHand && Wields == Stillwake.Content.Weapons.Spear.Item;
         if (spear && _spearLight == null && IsInsideTree()) AddChild(_spearLight = new SpearLight());
-        _spearLight?.Step(elapsedMs, spear ? _heldAt ??= HeldAt : null, jabMs, spear && PartsOf(item!).Crackles.Count > 0, walking ? _moving : 0, Held);
+        _spearLight?.Step(elapsedMs, spear ? _heldAt ??= HeldAt : null, jabMs, spear && PartsOf(item!) is { Crackles.Count: > 0 } arc ? arc : null, Held);
     }
 
     /// <summary>

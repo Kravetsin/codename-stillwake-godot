@@ -21,7 +21,6 @@ This hero and others', client-authoritative (0002): only commands reach the sim.
 | `logic/BladeTrail.cs` | blade haze |
 | `SpearLight.cs` | spear's |
 | `logic/SpearFx.cs` | when |
-| `logic/SpearWake.cs` | wake |
 | `logic/SwingArc.cs` | its angle kept |
 | `logic/SwingArm.cs` | front arm swung |
 | `logic/HandOver.cs` | with it |

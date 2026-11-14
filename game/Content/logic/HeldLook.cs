@@ -155,7 +155,7 @@ public sealed record HeldLook(
     /// </summary>
     public static readonly HeldLook Spear = new(
         "res://art/hero_spear.png", (7.9, 5), 0, (54.7, 4.6), (63.1, 3.9), Aimed: true, Elbow: 1.2,
-        Mounts: [new ToolMount("coil", 0, 0, (51.8, 3.1, 63.4, 6.5), new Dictionary<string, string> { [ModuleLooks.ArcCoil] = "res://art/hero_spear_arc.png" })],
+        Mounts: [new ToolMount("coil", 0, 0, (51.8, 3.1, 63.4, 7), new Dictionary<string, string> { [ModuleLooks.ArcCoil] = "res://art/hero_spear_arc.png" })],
         Clamp: (25, 5), Rest: System.Math.PI / 2, Size: Drawn);
 
     /// <summary>

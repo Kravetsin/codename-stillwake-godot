@@ -41,75 +41,7 @@ public class SpearFxTests
     }
 
     [Fact]
-    public void ChargesRollDownTheCableFasterOnARunNeverJumpingAsThePaceChanges()
-    {
-        // Lane 0 over a pass at a stand, then at a run: the run's passes are the quicker.
-        Assert.True(SpearFx.PassesIn(100, 1) > SpearFx.PassesIn(100, 0));
-        double passes = 0, last = -1;
-        int seen = 0;
-        for (int i = 0; i < 200; i++)
-        {
-            passes += SpearFx.PassesIn(8, i < 100 ? 0 : 1);
-            if (SpearFx.ChargeAt(1, passes) is not var (head, alpha)) continue;
-            seen++;
-            Assert.True(alpha > 0 && alpha <= 1);
-            // A head moves on down the cable, or starts a new pass from the coil.
-            Assert.True(head >= last || head < 0.2, $"{head} after {last}");
-            last = head;
-        }
-        Assert.True(seen > 100);
-        Assert.Equal(SpearFx.ChargeAt(2, 7.3), SpearFx.ChargeAt(2, 7.3));
-    }
-
-    [Fact]
-    public void AMovingBladeTearsArcsOffTheWayItGoesAndShedsMotesAndAStillOneNothing()
-    {
-        var wake = new SpearWake(() => 0.5);
-        for (int i = 0; i < 30; i++) wake.Step(16, p => (p.X, p.Y));
-        Assert.Equal(0, wake.Strength);
-        Assert.Empty(wake.Motes);
-        double x = 0;
-        for (int i = 0; i < 30; i++)
-        {
-            x -= 2;
-            wake.Step(16, p => (p.X + x, p.Y));
-        }
-        Assert.True(wake.Strength > 0.9);
-        Assert.Equal((-1.0, 0.0), wake.Heading);
-        Assert.NotEmpty(wake.Motes);
-        wake.Step(16, null);
-        Assert.Equal(0, wake.Strength);
-    }
-
-    [Fact]
-    public void AJumpOfTheBladeIsNoMotion()
-    {
-        var wake = new SpearWake(() => 0.5);
-        for (int i = 0; i < 30; i++) wake.Step(16, p => (p.X, p.Y));
-        // Set down a little lower in one frame (a hard landing): no burst of pieces off it.
-        wake.Step(16, p => (p.X, p.Y + 12));
-        Assert.Equal(0, wake.Strength);
-    }
-
-    [Fact]
-    public void ABladeRaisedOrLoweredTearsFewerPiecesThanOneThrustAlong()
-    {
-        double Strength(bool level)
-        {
-            var wake = new SpearWake(() => 0.5);
-            double d = 0;
-            for (int i = 0; i < 20; i++)
-            {
-                d += 2;
-                wake.Step(16, p => level ? (p.X + d, p.Y) : (p.X + d * 0.3, p.Y + d));
-            }
-            return wake.Strength;
-        }
-        Assert.True(Strength(level: false) < Strength(level: true) / 2);
-    }
-
-    [Fact]
-    public void ASteadyArcKeepsItsShapeAndFadesOutWhereAnotherFlickers()
+    public void ASteadyArcKeepsItsShapeEatenFromBothEndsAndFadesOnlyAtTheLast()
     {
         var bolts = new Render.Bolts(new System.Random(3).NextDouble);
         var steady = bolts.Add(() => (0, 0, 20, 0, 0.2), 12, 1, steady: true)!;
@@ -120,10 +52,27 @@ public class SpearFxTests
             return into[..b.PointsOf(0, 0, 0, 20, 0, into)];
         }
         var (was, plainWas) = (Shape(steady), Shape(plain));
+        Assert.Equal((0.0, 1.0), steady.Shown(0));
         bolts.Step(1000.0 / 60 * 6);
         Assert.Equal(was, Shape(steady));
         Assert.NotEqual(plainWas, Shape(plain));
-        Assert.Equal(0.5, steady.Brightness, 9);
-        Assert.Equal(1, plain.Brightness);
+        // Half its life on: still whole bright, its line eaten a share in from either end, its forks shrunk from their tips.
+        Assert.Equal(1, steady.Brightness, 9);
+        var (from, to) = steady.Shown(0);
+        Assert.True(from > 0.15 && from < 0.3 && to == 1 - from, $"{from}..{to}");
+        Assert.Equal(0, steady.Shown(1).From);
+        Assert.True(steady.Shown(1).To < 0.5);
+        Assert.Equal((0.0, 1.0), plain.Shown(0));
+        bolts.Step(1000.0 / 60 * 4);
+        Assert.True(steady.Brightness is > 0.4 and < 0.7, $"{steady.Brightness}");
+    }
+
+    [Fact]
+    public void ACutLineKeepsItsCornersBetweenTheShares()
+    {
+        (double X, double Y)[] line = [(0, 0), (10, 0), (20, 0)], into = new (double, double)[8];
+        int n = Render.Bolts.Cut(line, 0.25, 0.75, into);
+        Assert.Equal([(5.0, 0.0), (10.0, 0.0), (15.0, 0.0)], into[..n]);
+        Assert.Equal(0, Render.Bolts.Cut(line, 0.5, 0.5, into));
     }
 }

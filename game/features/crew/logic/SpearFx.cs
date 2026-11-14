@@ -6,8 +6,7 @@ namespace Stillwake.Game.Features.Crew;
 /// <summary>
 /// The spear's own effects, the user's picks (spear-effects): plain, a lens of squeezed air before the point on the thrust that
 /// tears off as two eddies (<see cref="HazeAt"/>); with the arc fitted, the arc running down its cable to the point on the
-/// thrust (<see cref="JabAt"/>), a violet wake and motes behind the moving blade (<see cref="SpearWake"/>) and charges rolling
-/// down the cable all the while, faster on a run (<see cref="ChargeAt"/>). Times are ms into a thrust (<see cref="Strokes.Spear"/>).
+/// thrust (<see cref="JabAt"/>). Times are ms into a thrust (<see cref="Strokes.Spear"/>).
 /// </summary>
 public static class SpearFx
 {
@@ -60,43 +59,9 @@ public static class SpearFx
         return new(charge, ms < hit && charge >= 0.3, head, lit, ms >= cock && ms < hit, spits);
     }
 
-    /// <summary>How long a charge takes down the cable standing, and how much a full run cuts off; how much of the cable it lights.</summary>
-    public const double PassMs = 1100, PassRun = 550, ChargeLength = 0.12;
-    /// <summary>How many charges roll down the cable at once, each a share of a pass behind the last; a pass's chance of none.</summary>
-    public const int ChargeLanes = 2;
-    public const double Skipped = 0.2;
-    /// <summary>How often a charge lays a piece of arc over its stretch, ms, and how many 60 Hz frames one fades over.</summary>
-    public const double ChargeEveryMs = 90;
-    public const int ChargeLife = 8;
-
-    /// <summary>
-    /// Pieces of arc torn off the blade a second as it moves fully, from the share of the cable the blade begins at on; how long
-    /// one is, pixels of the world, and how many 60 Hz frames it fades over.
-    /// </summary>
-    public const double TearsPerSecond = 40, TearFrom = 0.66;
-    public static readonly (double From, double To) TearPx = (2.5, 5), TearLife = (9, 16);
-
-    /// <summary>How many passes down the cable <paramref name="elapsedMs"/> makes, the hero running by <paramref name="run"/> (0 to 1).</summary>
-    public static double PassesIn(double elapsedMs, double run) => elapsedMs / (PassMs - PassRun * Math.Clamp(run, 0, 1));
-
-    /// <summary>
-    /// The charge rolling down the cable in <paramref name="lane"/> once <paramref name="passes"/> have gone by (<see cref="PassesIn"/>,
-    /// summed, so a change of pace never jumps it): its head's share of the way, past 1 off the point, and how bright; none while
-    /// its pass is skipped. Each pass rolls its own brightness from its number, the same however often it is asked.
-    /// </summary>
-    public static (double Head, double Alpha)? ChargeAt(int lane, double passes)
-    {
-        double t = passes + (double)lane / ChargeLanes;
-        long pass = (long)Math.Floor(t);
-        var roll = new Random(unchecked((int)(pass * 73856093) ^ (lane + 1) * 19349663));
-        if (roll.NextDouble() < Skipped) return null;
-        double k = t - pass;
-        return (k * (1 + ChargeLength), (0.6 + 0.4 * roll.NextDouble()) * Math.Sqrt(Math.Sin(Math.PI * k)));
-    }
-
     /// <summary>
     /// The arc picture's cable, from the coil's tube to the point, in pixels of the spear's picture (hero_spear_arc.png): what the
-    /// thrust's arc and the charges run down.
+    /// thrust's arc runs down.
     /// </summary>
     public static readonly (double X, double Y)[] Cable =
         [(28.9, 3.1), (31, 2.6), (32.5, 2.9), (33.3, 3.6), (36.8, 4.15), (44, 4.15), (44.6, 4.5), (51.5, 4.8), (57, 4.6), (63.1, 3.9)];

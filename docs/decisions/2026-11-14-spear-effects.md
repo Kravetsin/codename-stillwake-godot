@@ -18,22 +18,28 @@ drawn at the game's scale and asked for two in all: "один для удара,
   a breath paler. The first page's haze was cut in column slices and read square; the picked one is smooth everywhere.
 - **Arc spear, on the thrust: «Бег по кабелю».** The coil glows as the elbow cocks and flicks an arc across its tube; on the
   snap an arc runs down the cable to the point, lighting it behind; at the hit the point spits three short arcs.
-- **Arc spear, all the while it is held: lightning, not a trail.** First the picks «След за клинком» with «Ползущие дуги»
-  (the user: "А можем совместить ползущие дуги и след за клинком?"); in the game the ghost read as a solid bar, and the user
-  asked for more, as in Warframe: "постоянно по оружию прокатываются заряды молнии и такие же молнии когда игрок машет или
-  бежит". Arcs thrown back from the blade read as ropes waving in the wind, the user: "там это отрывающиеся кусочки дуги",
-  and the calm flicker was too fast. So a piece of arc is steady (`Bolt.Steady`): its shape rolled once and held, fading out
-  where it was laid, never re-rolled every two frames as other arcs are. Two charges roll slowly down the cable from the
-  coil to the point, quicker on a run, each laying pieces over its stretch and a glow at its head, now and then one off the
-  point; the moving blade tears pieces off, short crooked arcs left in the world where they tore, trailing back from its
-  way, more the faster and the more level it moves; motes shed off it. A jump of the blade (a turn, a hard landing) is no
-  motion and tears nothing.
+- **Arc spear, all the while it is held: «Срыв разряда».** Tried first and dropped: a solid trail behind the blade (read as
+  a bar), arcs thrown back from it (ropes waving in the wind; the user: "там это отрывающиеся кусочки дуги"), charges rolling
+  down the cable and pieces of equal length ("выглядит теперь как конфетти"), and a quick flicker at rest. The user then
+  asked for no idle animation of its own, sprouts of lightning on the blade that fly off as it moves, built on "одна область
+  произвольной формы, которая генерирует эффект" rather than a few points, so that paid effects later share it. So:
+  - **One area** (`EffectArea`): the drawn pixels of the held picture, modules laid over, inside the module's crackle box;
+    its inside and its outline with the way out. An effect draws its places from it, never from fixed points.
+  - **At rest** the area only fizzes: tiny sparks, under a world pixel or so, here and there over it, calm.
+  - **Moving**, it builds a charge by how far its middle goes; past a threshold drawn anew each time the charge lets go in a
+    burst of a few bolts over some frames, torn off its trailing edge and flung back, left in the world where they tore. Their
+    lengths follow a power law, 1 to 12 px: most short, now and then a long one, forked. A still blade's charge leaks away; a
+    jump of the blade (a turn, a hard landing) is no motion.
+  - **A torn bolt is steady** (`Bolt.Steady`): its shape rolled once and held, never re-rolled every two frames as other
+    arcs are; it dies by being eaten from both ends, its forks from their tips, bright until its last 30%.
 - The arc spear has no haze: its thrust is the arc's.
 - All of it is the client's: light on the held stage and one shader node, keyed to the thrust's drawn ms and the spear's
-  picture, as `SpearFx` and `SpearWake` say.
+  picture, as `SpearFx` and `ArcBurst` say.
 
 ## Deliberately not done
 
 - The other struck tools keep blade-trail's haze; nothing here generalises the lens to them, since none of them thrusts.
 - The cable is a line of the arc picture's pixels; a new arc picture redraws it by hand.
-- The charges and sparks roll from the client's clock, not the sim: friends see their own.
+- The sparks and bolts roll from the client's clock, not the sim: friends see their own.
+- One area an effect: a tool with two crackle boxes uses the first; none has two yet.
+- The burst is the arc's on the spear only; the drill and the guns keep their crackle until a paid effect needs the area.
