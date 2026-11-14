@@ -7,7 +7,8 @@
 | `Trade.cs` | Selling goods for the ship's credits by capsule from trade stations. |
 
 Selling goods for the ship's credits by capsule ([trade-capsule](../../docs/decisions/2026-10-30-trade-capsule.md)). The prices
-and the flight are `Content/Market.cs`; what the ground gives for a swing, soil and rock, sells for 1.
+and the flight are `Content/Market.cs`; what the ground gives for a swing, soil and rock, sells for 1. Food sells, raw and cooked;
+tools and gear never do ([food-and-gear-cards](../../docs/decisions/2026-11-14-food-and-gear-cards.md)).
 
 - **Depends on:** `Grid` (`IGridQueries.MachinesWith`, `MachineById`), `Items` (`IItemsQueries.Crate`, `IItemsOps.TakeFrom`),
   `Knowledge` (`IKnowledgeOps.Earn`, `Sell`).

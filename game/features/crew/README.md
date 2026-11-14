@@ -74,7 +74,7 @@ This hero and others', client-authoritative (0002): only commands reach the sim.
 | `AirSwirl.cs` | fling, breath, leak |
 | `SuitGauge.cs` | the air row |
 | `MealSlots.cs` | meals |
-| `logic/MealTips.cs` | their tips |
+| `logic/MealTips.cs` | their food cards |
 | `Thermometer.cs` | degrees |
 | `logic/Thermometers.cs` | read |
 | `logic/Tunnel.cs` | the last breath |

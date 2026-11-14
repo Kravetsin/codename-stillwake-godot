@@ -10,10 +10,10 @@ namespace Stillwake.Game.Shared;
 /// An <see cref="ItemCard"/> in Control nodes, by what the item is (the item card mockup), each a little screen of the
 /// wrist computer: dark, a faint sheen across its top, a shadow inside its edge. A tool's (layout A) edged amber, no
 /// picture, its icon in the slot showing it (2026-10-27-tool-icons): its name and kind, its numbers as rows with icons under
-/// their groups (2026-11-07-tool-card-rows), its key and hint. A worn item's, the medium card, edged green: its picture (<see cref="WornPicture"/>) beside its
-/// name, kind and one number, the hint under both. Anything else's, the compact card: its name and kind on one line. Under
-/// any of them what the open station does with it, by its slot's mark, with what it makes there; a violet band while
-/// unknown; a station's block at the bottom.
+/// their groups (2026-11-07-tool-card-rows), its key and hint. A worn item's and food's, the medium card, edged green or coral: its
+/// picture (<see cref="WornPicture"/>) beside its name and kind, its rows under both (2026-11-14-food-and-gear-cards), its key.
+/// Anything else's, the compact card: its name and kind on one line. Under any of them what the open station does with it, by
+/// its slot's mark, with what it makes there; a violet band while unknown; a station's block at the bottom.
 /// </summary>
 public static class ItemCardView
 {
@@ -27,6 +27,8 @@ public static class ItemCardView
     public static readonly Color Green = new(Charges.Green);
     private static readonly Color Ground = new("0f1729"), Rule = new("1b2538"), Hint = new("8a97ab");
     private static readonly Color ToolEdge = new("a58b58"), WornEdge = new("65a36a");
+    /// <summary>Food's coral, set A's pick (2026-11-14-food-and-gear-cards): its card's edge and its kind.</summary>
+    private static readonly Color FoodEdge = new("a8705f"), FoodKind = new("f0997a");
 
     // The screen's sheen, the mockup's linear-gradient(162deg, rgba(200,225,255,.055), transparent 38%).
     private static readonly GradientTexture2D Sheen = new()
@@ -45,6 +47,7 @@ public static class ItemCardView
     private static readonly LabelSettings KindText = Style.Text(Style.Mono, 11, Style.Slate400);
     private static readonly LabelSettings ToolKindText = Style.Text(Style.Mono, 11, Amber);
     private static readonly LabelSettings WornKindText = Style.Text(Style.Mono, 11, Green);
+    private static readonly LabelSettings FoodKindText = Style.Text(Style.Mono, 11, FoodKind);
     private static readonly LabelSettings HintText = Style.Text(Style.Mono, 11, Hint);
     private static readonly LabelSettings DotText = Style.Text(Style.Mono, 11, Style.Slate500);
     private static readonly LabelSettings KeyText = Style.Text(BoldMono, 10, Style.Slate300);
@@ -69,7 +72,7 @@ public static class ItemCardView
     private static readonly LabelSettings DetailText = Style.Text(Style.Mono, 10, Hint);
 
     /// <summary>The card of <paramref name="card"/>, sized to its content.</summary>
-    public static Control Build(ItemCard card) => card.Tool ? ToolCard(card) : card.Worn ? WornCard(card) : Compact(card);
+    public static Control Build(ItemCard card) => card.Tool ? ToolCard(card) : card.Worn || card.Food ? WornCard(card) : Compact(card);
 
     /// <summary>Name and kind on one line, under them its line where it has one; a key where it has one, a drone's charge; then the bands and a station's block.</summary>
     private static Control Compact(ItemCard card)
@@ -108,38 +111,43 @@ public static class ItemCardView
         return Screen(column, ToolEdge, 2, ToolWidth);
     }
 
-    /// <summary>The medium card: the picture beside the name, kind and one number; the key and its hint under both.</summary>
+    /// <summary>
+    /// The medium card, a worn item's or food's (2026-11-14-food-and-gear-cards): the picture in its window beside the name and kind,
+    /// a battery's charge under them; then its line or its rows under their groups; the key and its hint; food's price under it.
+    /// </summary>
     private static Control WornCard(ItemCard card)
     {
-        var side = Column(5, Title(card, WornKindText));
+        var side = Column(5, Title(card, card.Food ? FoodKindText : WornKindText));
         if (card.Charge is { } charge)
         {
             var held = Powered(T("card.stored", ("n", charge.Stored), ("all", charge.Capacity)), DetailText);
             side.AddChild(KeyNumber(T("card.percent", ("n", charge.Percent)), T("card.charge").ToUpperInvariant(), Green, Gauge(charge.Share, 8), held));
-        }
-        else if (card.Headline is { } headline)
-        {
-            var (r, g, b) = Light.HeadLamp;
-            var detail = Style.Gap(new HBoxContainer { MouseFilter = Control.MouseFilterEnum.Ignore }, 8);
-            if (card.Detail is { } words) detail.AddChild(Text(words, DetailText, HorizontalAlignment.Left));
-            // What it draws, nothing for the lamp: a bolt and 0 says it is free.
-            detail.AddChild(Powered((card.Draw ?? 0).ToString(CultureInfo.InvariantCulture), DetailText));
-            side.AddChild(KeyNumber(headline.Value, headline.Label, new Color(r, g, b), null, detail));
         }
         side.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
         var top = Style.Gap(new HBoxContainer { MouseFilter = Control.MouseFilterEnum.Ignore }, 10);
         var picture = new WornPicture(card) { SizeFlagsVertical = Control.SizeFlags.ShrinkBegin };
         top.AddChild(picture);
         top.AddChild(side);
-        var column = Column(0, Padded(top, 5, 5, 10, 0));
-        if (card.Use is { } how)
+        var column = Column(0, Padded(top, 5, 5, 10, 0), Spacer(8));
+        if (card.About is { } about)
         {
-            column.AddChild(Spacer(8));
-            column.AddChild(Ruled(UseRow(how, WornWidth)));
+            var words = Text(about, AboutText, HorizontalAlignment.Left);
+            (words.AutowrapMode, words.CustomMinimumSize) = (TextServer.AutowrapMode.WordSmart, new Vector2(WornWidth - 6 - 24, 0));
+            var box = new StyleBoxFlat { BgColor = Colors.Transparent, BorderColor = Rule, BorderWidthTop = 2, ContentMarginLeft = 12, ContentMarginRight = 12, ContentMarginTop = 7, ContentMarginBottom = 9 };
+            column.AddChild(Boxed(box, words));
         }
-        else column.AddChild(Spacer(8));
-        Bottom(card, column);
-        return Screen(column, WornEdge, 2, WornWidth);
+        if (card.Rows.Count > 0) column.AddChild(Rows(card.Rows, null, null));
+        if (card.Use is { } how) column.AddChild(Ruled(UseRow(how, WornWidth)));
+        else if (card.Rows.Count > 0) column.AddChild(Spacer(card.Food ? 6 : 2));
+        // Food's price under its key, as every price is written: the coin and the number.
+        if (card.Food && card.Price is int price)
+        {
+            var sells = new CreditLine(PriceSize) { SizeFlagsHorizontal = Control.SizeFlags.ShrinkBegin };
+            sells.Set(price);
+            column.AddChild(Padded(sells, 12, 0, 12, 8));
+        }
+        Bottom(card.Food ? card with { Price = null } : card, column);
+        return Screen(column, card.Food ? FoodEdge : WornEdge, 2, WornWidth);
     }
 
     /// <summary>Under any card: what the open station does with it, the band while unknown, a station's block.</summary>
@@ -269,6 +277,8 @@ public static class ItemCardView
     private static readonly LabelSettings NoteText = Style.Text(Style.Sans, 11, Hint);
     private static readonly LabelSettings OffValueText = Style.Text(Style.Sans, 12, Dim);
     private static readonly LabelSettings ValueText = Style.Text(BoldMono, 15, Style.Slate100);
+    /// <summary>A worn item's line on what it does, where it has no rows: the scanner's.</summary>
+    private static readonly LabelSettings AboutText = Style.Text(Style.Sans, 12, Soft);
 
     /// <summary>A row's icon's side, in pixels.</summary>
     private const int SignSide = 18;
@@ -325,7 +335,7 @@ public static class ItemCardView
             : tile.Off ? OffValueText
             : tile.Sign == CardSign.Loot ? Style.Text(BoldMono, 15, new Color(CardSigns.Hue(CardSign.Loot)))
             : ValueText;
-        Control number = Text(tile.Value, value);
+        Control number = tile.Bolt ? Powered(tile.Value, value) : Text(tile.Value, value);
         if (tile.Boost != null) number = Boosted(number, tile.Boost);
         var label = tile.Off ? OffRowText : tile.Group == CardGroup.Special ? SpecialText : RowText;
         return SignRow(tile.Sign, tile.Off, tile.Label, tile.Note, label, number);

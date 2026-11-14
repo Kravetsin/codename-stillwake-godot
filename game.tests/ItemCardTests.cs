@@ -174,18 +174,11 @@ public class ItemCardTests
         // From content: a fifth off blows (2026-10-27-the-cape-is-worn), 5° against the cold (2026-11-14-temperature-in-degrees).
         var cape = ItemCards.Of(Spec.Cape.Item);
         Assert.True(cape.Worn);
-        Assert.Equal(new CardTile("20", "% OFF BLOWS"), cape.Headline);
-        Assert.Equal("WARMTH +5°", cape.Detail);
+        Assert.Equal([($"−{Spec.Cape.Guard / 10}%", "Damage from blows"), ($"+{Spec.Cape.Warmth}°", "Warmth")], Said(cape.Rows));
+        Assert.Equal([("−20%", "Damage from blows"), ("+5°", "Warmth")], Said(cape.Rows));
+        Assert.Equal([CardSign.Guard, CardSign.Cold], cape.Rows.Select(r => r.Sign));
+        Assert.All(cape.Rows, r => Assert.Equal(CardGroup.Guard, r.Group));
         Assert.Null(cape.Use);
-    }
-
-    [Fact]
-    public void ABodysCardShowsTheColdestItWithstandsAHelmetsNone()
-    {
-        Assert.Equal("WITHSTANDS DOWN TO −40°", ItemCards.Of(Spec.Suit.Basic).Detail);
-        Assert.Equal("WITHSTANDS DOWN TO −40°", ItemCards.Of(Spec.Suit.Regen).Detail);
-        Assert.True(ItemCards.Of(Spec.Suit.Basic).Worn);
-        Assert.NotEqual("WITHSTANDS DOWN TO −40°", ItemCards.Of(Spec.Helmet.Basic).Detail);
     }
 
     [Fact]
@@ -194,21 +187,137 @@ public class ItemCardTests
         var lamp = ItemCards.Of(Spec.HelmetLamp.Item);
         Assert.True(lamp.Worn);
         Assert.False(lamp.Tool);
-        Assert.Equal(new CardTile(Light.HeadLampReach.ToString(), "CELLS REACH"), lamp.Headline);
-        // As content stands: 18 of the 8 px cells (0104), 30 degrees either side.
-        Assert.Equal(new CardTile("18", "CELLS REACH"), lamp.Headline);
-        Assert.Equal("BEAM 60°", lamp.Detail);
-        // It draws nothing: the card shows a bolt and 0 rather than saying so.
+        // As content stands: 18 of the 8 px cells (0104), 30 degrees either side; it draws nothing, a bolt and 0.
+        Assert.Equal([($"{Light.HeadLampReach} cells", "Range"), ("60°", "Beam"), ("0", "Battery draw")], Said(lamp.Rows));
+        Assert.Equal([CardSign.Light, CardSign.Arc, CardSign.Battery], lamp.Rows.Select(r => r.Sign));
+        Assert.Equal([CardGroup.Light, CardGroup.Light, CardGroup.Special], lamp.Rows.Select(r => r.Group));
+        Assert.True(lamp.Rows[2].Bolt);
         Assert.Null(lamp.Draw);
         // Worn, it takes no key.
         Assert.Null(lamp.Use);
-        // A battery's number is its charge, set per stack; the jetpack has none.
+        // A battery's number is its charge, set per stack: no rows.
         Assert.True(ItemCards.Of("battery").Worn);
-        Assert.Null(ItemCards.Of("battery").Headline);
-        Assert.True(ItemCards.Of("jetpack").Worn);
-        Assert.Null(ItemCards.Of("jetpack").Headline);
+        Assert.Empty(ItemCards.Of("battery").Rows);
         Assert.False(ItemCards.Of("drill").Worn);
         Assert.False(ItemCards.Of("scrap").Worn);
+        Assert.Empty(ItemCards.Of("scrap").Rows);
+    }
+
+    [Fact]
+    public void AHelmetsCardSaysTheAirItHoldsInTheHudsUnits()
+    {
+        foreach (var helmet in new[] { Spec.Helmet.Basic, Spec.Helmet.Heavy })
+        {
+            var card = ItemCards.Of(helmet);
+            Assert.Equal([($"{Spec.Items.Get(helmet).Tank} O₂", "Air supply")], Said(card.Rows));
+            Assert.Equal((CardSign.Tank, CardGroup.Air), (card.Rows[0].Sign, card.Rows[0].Group));
+        }
+        Assert.Equal("45 O₂", ItemCards.Of(Spec.Helmet.Basic).Rows[0].Value);
+        Assert.Equal("100 O₂", ItemCards.Of(Spec.Helmet.Heavy).Rows[0].Value);
+    }
+
+    [Fact]
+    public void ASuitSaysTheColdestItWithstandsAndTheRegenSuitWhatAirItMakesAndWhatEachUnitCosts()
+    {
+        var suit = ItemCards.Of(Spec.Suit.Basic);
+        Assert.Equal([("−40°", "Withstands down to")], Said(suit.Rows));
+        Assert.Equal((CardSign.Cold, CardGroup.Guard), (suit.Rows[0].Sign, suit.Rows[0].Group));
+        Assert.Null(suit.Use);
+        var regen = ItemCards.Of(Spec.Suit.Regen);
+        // A unit a breath, a breath a second; 15 power-ticks a unit.
+        Assert.Equal([("−40°", "Withstands down to"), ("up to 1 O₂/s", "Makes air"), ($"{Spec.Suit.RegenCost}", "Charge use")], Said(regen.Rows));
+        Assert.Equal([CardSign.Cold, CardSign.Regen, CardSign.Battery], regen.Rows.Select(r => r.Sign));
+        Assert.Equal([CardGroup.Guard, CardGroup.Special, CardGroup.Special], regen.Rows.Select(r => r.Group));
+        Assert.Equal(("per 1 O₂", true), (regen.Rows[2].Note, regen.Rows[2].Bolt));
+        Assert.Equal(new CardKey("V", "on / off"), regen.Use);
+    }
+
+    [Fact]
+    public void TheJetpacksCardSaysItsTopSpeedAndTheAirItsThrustSpendsASecond()
+    {
+        var jetpack = ItemCards.Of(Spec.Jetpack.Item);
+        // 500 thousandths of a cell a step, 60 steps a second; a unit every 10 ticks of 20 a second.
+        Assert.Equal([("30 cells/s", "Speed up to"), ("2 O₂/s", "Air used thrusting")], Said(jetpack.Rows));
+        Assert.Equal([CardSign.Speed, CardSign.Tank], jetpack.Rows.Select(r => r.Sign));
+        Assert.All(jetpack.Rows, r => Assert.Equal(CardGroup.Move, r.Group));
+        Assert.Equal(new CardKey("Shift", "in space"), jetpack.Use);
+    }
+
+    [Fact]
+    public void TheScannersCardIsItsLineAndNoRows()
+    {
+        var scanner = ItemCards.Of(Spec.Helmet.Scanner);
+        Assert.True(scanner.Worn);
+        Assert.Empty(scanner.Rows);
+        Assert.NotNull(scanner.About);
+    }
+
+    [Fact]
+    public void AFoodsCardListsItsRatesFromTheDietThenItsDurationItsKeyToEatAndItsPrice()
+    {
+        var ration = ItemCards.Of(Spec.Foods.Ration);
+        Assert.True(ration.Food);
+        Assert.False(ration.Worn);
+        Assert.Equal([("−5%", "Air used breathing"), ("+30%", "Work speed"), ("15:00", "Lasts")], Said(ration.Rows));
+        Assert.Equal([CardSign.Calm, CardSign.Work, CardSign.Pace], ration.Rows.Select(r => r.Sign));
+        Assert.All(ration.Rows, r => Assert.Equal(CardGroup.Effect, r.Group));
+        Assert.Equal(new CardKey("RMB", "eat"), ration.Use);
+        Assert.Equal(30, ration.Price);
+        Assert.Equal([("+30%", "A canister gives more"), ("15:00", "Lasts")], Said(ItemCards.Of(Spec.Foods.CannedMeat).Rows));
+        // Every food's rows from its rates, rounded down to whole percent, and its price the market's.
+        foreach (var food in Spec.Foods.All.Where(f => f.Id != Spec.Foods.Paste))
+        {
+            var card = ItemCards.Of(food.Id);
+            Assert.True(card.Food, food.Id);
+            Assert.Equal(Spec.Market.PriceOf(food.Id), card.Price);
+            Assert.NotNull(card.Price);
+            Assert.Equal(new CardKey(T($"item.{food.Id}.key"), "eat"), card.Use);
+            var r = food.Rates;
+            (string, string)[] rates =
+            [
+                .. r.Calm > 0 ? [($"−{r.Calm / 10}%", "Air used breathing")] : System.Array.Empty<(string, string)>(),
+                .. r.Work > 0 ? [($"+{r.Work / 10}%", "Work speed")] : System.Array.Empty<(string, string)>(),
+                .. r.Deep > 0 ? [($"+{r.Deep / 10}%", "A canister gives more")] : System.Array.Empty<(string, string)>(),
+            ];
+            if (rates.Length > 0) Assert.Equal([.. rates, (ItemCards.Clock(food.Lasts), "Lasts")], Said(card.Rows));
+        }
+    }
+
+    [Fact]
+    public void ASeedOnlyStillsHungerInADimRowWithItsSignStruck()
+    {
+        var seed = ItemCards.Of(Spec.Foods.Seed);
+        Assert.True(seed.Food);
+        Assert.Equal([("only stills hunger", "Effect"), ("5:00", "Lasts")], Said(seed.Rows));
+        Assert.True(seed.Rows[0].Off);
+        Assert.False(seed.Rows[1].Off);
+        Assert.Equal(CardSign.Calm, seed.Rows[0].Sign);
+    }
+
+    [Fact]
+    public void NoFoodOrGearCardProjectsWhatItsNumbersComeTo()
+    {
+        // Only what an item guarantees: no "air for 45 s", no battery that "lasts 2:00", no breath, which the player never sees.
+        var cards = Spec.Items.All.Where(i => i.Equip != null || Spec.Foods.Of(i.Id) != null).Select(i => ItemCards.Of(i.Id)).ToList();
+        Assert.NotEmpty(cards);
+        foreach (var card in cards)
+            foreach (var row in card.Rows)
+            {
+                Assert.DoesNotMatch(@"(?i)\bbreaths?\b", row.Value + row.Label + row.Note);
+                // A time is a meal's duration and nothing else.
+                if (System.Text.RegularExpressions.Regex.IsMatch(row.Value, @"^\d+:\d\d$")) Assert.Equal((true, "Lasts"), (card.Food, row.Label));
+            }
+    }
+
+    [Fact]
+    public void ACardsRowsTellItApart()
+    {
+        var ration = ItemCards.Of(Spec.Foods.Ration);
+        Assert.Equal(ration, ItemCards.Of(Spec.Foods.Ration));
+        Assert.Equal(ration.GetHashCode(), ItemCards.Of(Spec.Foods.Ration).GetHashCode());
+        Assert.NotEqual(ration, ration with { Rows = ration.Rows.Take(1).ToList() });
+        Assert.NotEqual(ration, ration with { Food = false });
+        Assert.NotEqual(ration.Rows[0], ration.Rows[0] with { Bolt = true });
     }
 
     [Fact]
