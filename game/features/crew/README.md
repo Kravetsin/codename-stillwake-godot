@@ -68,11 +68,12 @@ This hero and others', client-authoritative (0002): only commands reach the sim.
 | `HeroAutopilot.cs` | scripted runs |
 | `logic/Report.cs` | Enter reports |
 | `Frost.cs` | the cold |
+| `Haze.cs` | the heat |
 | `logic/Danger.cs` | the gauge's read |
 | `logic/AirCues.cs` | air back |
-| `logic/CanistersSeen.cs` | others' tanks |
+| `logic/CanistersSeen.cs` | tanks |
 | `AirSwirl.cs` | fling, breath, leak |
-| `SuitGauge.cs` | the air row |
+| `SuitGauge.cs` | air row |
 | `MealSlots.cs` | meals |
 | `logic/MealTips.cs` | their food cards |
 | `Thermometer.cs` | degrees |
@@ -83,10 +84,10 @@ This hero and others', client-authoritative (0002): only commands reach the sim.
 | `VisorFogView.cs` | it drawn |
 | `logic/HurtSeen.cs` | hurt |
 | `HurtView.cs` | shown |
-| `SuitColours.cs` | menu's colours |
+| `SuitColours.cs` | colours |
 | `LookEditor.cs` | the look editor |
 | `logic/Markers.cs` | markers |
-| `MarkerLayer.cs` | edge arrows |
+| `MarkerLayer.cs` | arrows |
 | `logic/Bodies.cs` | bodies |
 | `BodyView.cs` | bodies, beacons, tips |
 | `logic/Rams.cs` | rams and arcs |

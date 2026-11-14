@@ -21,6 +21,9 @@ public static class Suit
     /// </summary>
     public static readonly string Regen = "regenSuit";
 
+    /// <summary>The heat suit (2026-11-14-heat-limits): made at the workbench, it withstands heat ten degrees past the basic.</summary>
+    public static readonly string Heat = "heatSuit";
+
     /// <summary>The most air the regen suit gives back a breath, in units.</summary>
     public const int RegenMost = 1;
 

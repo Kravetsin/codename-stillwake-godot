@@ -15,7 +15,8 @@ public readonly record struct ThermometerReading(int Degrees, int Low, int High,
 
 /// <summary>
 /// What the vitals' thermometer says (the-thermometer): the degrees where the hero stands, calm inside its limits, frost-blue
-/// past the cold's and deeper the further; on hover the reading and both limits, the one crossed in red.
+/// past the cold's and ember past the heat's (2026-11-14-heat-limits), deeper the further; on hover the reading and both limits,
+/// the one crossed in red.
 /// </summary>
 public static class Thermometers
 {
@@ -23,8 +24,17 @@ public static class Thermometers
     public static ThermometerReading Read(ICrewQueries crew, int peer, int cell) =>
         new(crew.TemperatureAt(cell), crew.LowOf(peer), crew.HighOf(peer), crew.Felt(peer, cell), crew.Heat(peer, cell));
 
-    /// <summary>How deep the reading's frost is, 0 to 1: the degrees <paramref name="felt"/>, eased as the screen's frost is (<see cref="Report.Cold"/>).</summary>
-    public static float Frost(float felt) => Report.Eased(felt / Report.FeltFull);
+    /// <summary>
+    /// How deep the reading's frost or heat is, 0 to 1: the degrees <paramref name="felt"/> past a limit, eased as the screen's frost
+    /// and haze are (<see cref="Report.Cold"/>, <see cref="Report.Heat"/>).
+    /// </summary>
+    public static float Depth(float felt) => Report.Eased(felt / Report.FeltFull);
+
+    /// <summary>The degrees past the high over which the frost star gives way to the heat's flame (2026-11-14-heat-limits).</summary>
+    public const float SwapDegrees = 1.5f;
+
+    /// <summary>How far the star has given way to the flame, 0 to 1, at <paramref name="heat"/> degrees past the high.</summary>
+    public static float Swap(float heat) => Math.Clamp(heat / SwapDegrees, 0, 1);
 
     /// <summary>The seconds in which the shown reading closes about two thirds of its way to the sim's (<see cref="Glide"/>).</summary>
     public const double GlideS = 0.3;

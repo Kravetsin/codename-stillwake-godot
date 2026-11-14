@@ -7,7 +7,7 @@ Draws the game's pictures in code into `game/art/hd/`, where `game/render/HiRes.
 Ink and watercolour ([why](../../docs/decisions/2026-11-01-ink-and-watercolour.md)), neutral to slightly grim, **never a cartoon**. The
 finish is `wash.js`, one for every subject; a drawing follows these rules.
 
-- **Mood before readability.** A lone scavenger's world: judge a picture by that first, by what it replaces.
+- **Mood before readability.** A lone scavenger's world: judge a picture by that first.
 - **Colour:** clean, slightly grey paint, neither dusty nor faded. Metals are cool greys; suit, copper and wood are warm and worn. Full
   saturation is only for what works or warns: fire, lamps, screens, hazard stripes.
 - **Light:** hard steps of tone, one shade and one deep, no gradients and no painted glow. The hero is lit from straight above, so
@@ -24,7 +24,7 @@ finish is `wash.js`, one for every subject; a drawing follows these rules.
   before them, back walls dark and quietest. Random scatter is for the edge of a placed thing, never for placing it.
 - **Ground:** one body, not paving: large masses of close tone, a hard shadow at their foot, only some cracks drawn. Grass lies over the
   block's top as part of it, thick, a deep muted green.
-- **Do not:** lay a filter or an outline over finished art, or draw a wall as a texture of noise.
+- **Do not:** lay a filter or an outline over finished art, or draw a wall as noise.
 
 ## What it draws
 
@@ -37,16 +37,15 @@ finish is `wash.js`, one for every subject; a drawing follows these rules.
 | `items` | `items/<id>`; an `_empty` state is the full picture's calls, only the changing part dark; `tool_screwdriver` |
 | `room` | `wall_`, `wall-edge_` and `back_` of scrap (rusted by `wreck`'s `AnimeSheetRust`), cast scrap (clean) and iron, `door_*` |
 | `wreck` | `wreck_dress`, `wreck_tears` (a mask, no finish), from `Wreck.cs`; its rust grows from `wall_scrap`'s seams |
-| `piles` | `machine_pile*`: the hold's heaps |
-| `smelter` | `machine_smelter`, `smelter_work_*` |
+| `piles`, `smelter` | `machine_pile*`: the hold's heaps; `machine_smelter`, `smelter_work_*` |
 | `shipwalls`, `grounds`, `doors` | `wall_`, `back_`, `wall-edge_`, `detail_`, `top_` of glass, mica, hide, alloy, bedrock, lava, plaster; `door_*_0` and the links `room` leaves |
 | `caves` | stone, ice, copper veins and soil (`wall_`, `back_`, `wall-edge_`, `top_`, `detail_`), `caves/moss*_*`, `caves/crystalIce*` |
 | `creatures` | `creatures/<id>/<part>`, their numbers in `CreatureInk.cs`: the rigged creatures |
 | `tick`, `warden`, `cavehostiles`, `lurkerattacks` | `creatures/ink<Kind>/*`, `<Rig>Ink.cs`: guards, lurkers, a capback's gas |
-| `tufts` | `planet/tuft_*`, `tuftReed_*`, `tuftFungus_*`: one plant of three to a tuft, by `FloraLooks.Drawn` |
+| `tufts` | `planet/tuft_*`, `tuftReed_*`, `tuftFungus_*`: one of three plants a tuft (`FloraLooks.Drawn`) |
 | `flora` | `planet/acacia_*`, `_glow`: pods where the logical glow picture has them, as the game lights from there |
 | `shrubs` | `planet/bush_*`, `rock_*`, `bell*_*`: dead thorn, boulders, hooded bells; light only in `_glow` |
-| `leaves` | `planet/leaf_<look>_<plant>_<n>[_back]`: four falling leaves |
+| `leaves` | `planet/leaf_<look>_<plant>_<n>[_back]`: falling leaves |
 | `heavens` | `planet/sky`, `clouds` (far layers, any size), `giant`, `sun` |
 | `cavelife` | `caves/` crystals, dripstone, fungi, threads, roots, cracks, geodes, fossils, opal and spire caches, lamp; dim `_glow` |
 | `homes`, `homeskeep`, `homeslights`, `homeswall`, `homesruin` | `homes/*`, `_dark`, `_fed`, `_glow`; `ruins/spireLens_*`; `homes.js` exposes `HomeKit`, the others sort after it |
@@ -55,9 +54,9 @@ finish is `wash.js`, one for every subject; a drawing follows these rules.
 | `net` | `machine_net` (booms), `net_mount`, `net_front_<n>` (holding n); `NetInk.cs` |
 | `bay`, `salvage` | `machine_droneBay`, `droneBay_*`, `salvage_*`, `items/salvageDrone`; `BayInk.cs`, `SalvageInk.cs` |
 | `scanner` | `hero_scanner`, `hero_<helmet>_scanner`, `_lit_<n>`, `items/scanner`; `ScannerInk.cs` |
-| `helmets`, `quilted` | `hero_<helmet>_shell`, `_visor` (basic: `hero_visor`, `hero_helmet` the lamp's card), `items/<helmet>`: traced |
+| `helmets`, `quilted`, `heatSuit` | traced: `hero_<helmet>_shell`, `_visor` (basic: `hero_visor`, `hero_helmet` the lamp's card), `items/<id>`; `hero_heatSuit_<part>` |
 | `charge`, `missile` | `hero_blastCharge` (`icons/` lit), `shot_blastCharge_spark`: its fuse in flight; `shot_missile` |
-| `edgekeys` | `holo_<key>`, `_glow`: the edge keys' white masks, glows |
+| `edgekeys` | `holo_<key>`, `_glow`: the edge keys' masks |
 | `signs`, `credit`, `capsule`, `gauge` | `sign_*`: bolts, plug, wrench, tips; `credit`, the chip; `capsule`, `capsule_flame_<n>`; `gauge_*`, the vitals' light |
 | `upgrades` | `upgrade_bag`, `_belt`, `_tradeSlots`, `_canister`: wares, no item |
 | `zleftovers` | the arc bench's and lamp's glows, `machine_emergencyLamp`, `module_arc_coil`, the pod's lit state and porthole, `wrist_*`, `tablet_*` (9-slice) |
@@ -68,14 +67,14 @@ finish is `wash.js`, one for every subject; a drawing follows these rules.
 node tools/anime-art/export.js [subject...]   # every subject, or some
 ```
 
-Needs Node 22+ and Edge or Chrome (`ANIME_BROWSER` for another). Then `tools/snap.ps1` imports the pictures.
+Needs Node 22+ and Edge or Chrome (`ANIME_BROWSER` for another); `tools/snap.ps1` imports.
 
 ## Traced subjects
 
 A picked AI-made reference is traced for its **form**; the line, paint and water stay ours.
 
 - `refs/<name>.png` and `.palette.json`: its colours (`ref`) and our paint (`mat`); `single`: one part, `overlay`: patches,
-  `mend`: repainted first, `holes`: left open.
+  `mend`: repainted first, `holes`: left open; `pieces`: a sheet's boxes, each traced to `traced/<name>.<piece>.json`.
 - `node tools/anime-art/trace.js <name>` (ffmpeg) cuts it by its own ink into beziers, `traced/<name>.json`, committed: export
   draws from that, never the reference. `traced.js` places and paints them.
 - AI-made work ships: say so in Steam's AI disclosure.
@@ -84,7 +83,7 @@ A picked AI-made reference is traced for its **form**; the line, paint and water
 
 A file `subjects/<name>.js` setting `Subjects.<name>`, which calls `out('<picture>', canvas)` for each picture, the
 canvas from `Anime.bake({ w, h, draw })`: `w` and `h` in world pixels, drawn 4 times over, as the game lays out. Line weights
-and the light are the engine's (`engine.js`), per world pixel; use them, not numbers of your own.
+and the light are the engine's (`engine.js`), per world pixel; use them.
 `wash.js` loads after the engine and replaces `bake`; a picture drawn straight on a canvas skips the finish.
 
 - A sheet that repeats takes `tile: true`. A door's shut and open pictures differ only by the panel, or pixels stay behind.

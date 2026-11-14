@@ -44,6 +44,8 @@ public static class Crafts
         new("helmetLamp", [("plate", 1), ("wire", 2), ("coil", 1)], Ticks: 60),
         // The basic helmet padded with the ruins' cloth, a welder's plate and two canisters' more air (2026-11-14-quilted-helmet-and-traced-art).
         new("quiltedHelmet", [("helmet", 1), ("cloth", 3), ("plate", 2), ("canister", 2)], Ticks: 120),
+        // Mica for its weave and the planet's alloy for its seams (2026-11-14-heat-limits): so after a landing.
+        new("heatSuit", [("mica", 4), ("alloyScrap", 4), ("plate", 2), ("tube", 2)], Ticks: 240),
         new("drill", [("frame", 1), ("rotor", 2), ("coil", 2), ("gear", 4), ("tube", 2), ("circuit", 2)], Ticks: 240),
         // The salvage tools (salvage-tools), all at the workbench: the grinder round a planet's motor, so after a landing;
         // the spear and the sledgehammer of the first parts.
