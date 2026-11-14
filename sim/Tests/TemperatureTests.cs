@@ -68,25 +68,41 @@ public class TemperatureTests
 
     private static int Cell(Scenario w, int x, int y) => y * w.M.Grid.Width + x;
 
-    /// <summary>The first planet with every row a test's map has in band <paramref name="band"/>.</summary>
+    /// <summary>The first planet with every row a test's map has in band <paramref name="band"/>, every band as warm as that one.</summary>
     private static Content.PlanetType InBand(int band) => Content.PlanetTypes.First with
     {
         Bands = [.. Content.PlanetTypes.First.Bands.Select((bottom, i) => i < band ? -1000 - 1000 * (band - i) : bottom)],
+        Temperatures = [.. Content.PlanetTypes.First.Temperatures.Select(_ => Content.PlanetTypes.First.Temperatures[band])],
     };
 
     [Fact]
-    public void AboardEveryAirlessCellIsSpaceAndAnAiredOneIsRoomAndOffTheGridIsSpaceOnAnySurface()
+    public void AboardAnAirlessCellInTheZoneIsTheHullsAndOffTheGridIsSpaceOnAnySurface()
     {
         var w = new Scenario(PodRoom);
         w.Do(new Enter(Beyond) { From = 0 }).Run();
         int size = w.M.Grid.Width * w.M.Grid.Height;
-        Assert.Equal(Content.Temperature.Space, w.M.Crew.TemperatureAt(Beyond));
+        Assert.Equal(Content.Temperature.Hull, w.M.Crew.TemperatureAt(Beyond));
         Assert.Equal((Content.Temperature.Space, Content.Temperature.Space), (w.M.Crew.TemperatureAt(-1), w.M.Crew.TemperatureAt(size)));
         var planet = OpenGround(Content.PlanetTypes.First, night: true);
         int width = planet.M.Grid.Width;
         // A small negative cell rounds into row 0, one past the bottom into the deepest band: neither is a cell.
         Assert.Equal(Content.Temperature.Space, planet.M.Crew.TemperatureAt(-1));
         Assert.Equal(Content.Temperature.Space, planet.M.Crew.TemperatureAt(width * planet.M.Grid.Height + width));
+    }
+
+    [Fact]
+    public void APlanetsDegreesRunFromTheTopBandsToTheLastsADegreeARowAtMostWithNoStepAtABandsEdge()
+    {
+        // The user's ask: no band reads one round number all through (2026-11-14-temperature-in-degrees).
+        var t = Content.PlanetTypes.First;
+        var rows = Enumerable.Range(0, t.Ground.Height).Select(row => Terrain.TemperatureOf(t, row)).ToList();
+        Assert.Equal((t.Temperatures[0], t.Temperatures[^1]), (rows[0], rows[^1]));
+        for (int row = 1; row < rows.Count; row++)
+            Assert.InRange(rows[row] - rows[row - 1], 0, 1);
+        Assert.All(t.Temperatures, degrees => Assert.Contains(degrees, rows));
+        // Where the cold band gives way to the garden, a reading between theirs.
+        int edge = Enumerable.Range(0, t.Ground.Height).First(row => Terrain.BandOf(t, row) == 1);
+        Assert.InRange(rows[edge], t.Temperatures[0] + 1, t.Temperatures[1] - 1);
     }
 
     [Fact]

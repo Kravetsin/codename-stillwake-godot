@@ -132,7 +132,8 @@ A living document: what is decided about the game and what is still open. Techni
   the far field's derelicts, which pounce at a hero near and strike one farther with an arc of static, aimed a moment
   before, at once; at the bottom of each spire, two guards that fly fists first at a hero, stick where they land, and fall with
   the shard, so a hero kills them for circuits or takes the shard and leaves. Which others is open.
-- **Temperature:** every place has one in degrees: space −40°, an aired room +20°, a planet by its depth band. A body withstands
+- **Temperature:** every place has one in degrees: space −20° by the ship to −40° at the field's line, an aired room +20°,
+  a planet smoothly by its depth ([temperature-gradients](decisions/2026-11-14-temperature-gradients.md)). A body withstands
   down to its limit, the cape adds 5°; each degree past it costs air ([temperature-in-degrees](decisions/2026-11-14-temperature-in-degrees.md)).
 - **Night on a planet:** a day of twenty minutes, the last six of them night. At night the open sky is 20° colder: a hero with no
   back wall behind feels it past a suit's limit, the cape halving what it costs; caves, tunnels and back walls

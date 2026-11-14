@@ -15,8 +15,9 @@ namespace Stillwake.Game.Features.Crew;
 public partial class Thermometer : CanvasLayer
 {
     private const double RefreshS = 0.25;
-    // The star as large as the oxygen sign (AirRow's SignAt), its number larger than the pieces are tall.
-    private const float Sign = 22 * Vitals.SignScale, TextSize = 14, Grow = Sign / (11 * Vitals.SignScale);
+    // The star drawn as tall as the oxygen sign and the bolt show (some 17 units: their pictures have more margin), its number
+    // larger than the pieces are tall.
+    private const float Sign = 15 * Vitals.SignScale, TextSize = 14, Grow = Sign / (11 * Vitals.SignScale);
     private static readonly Color Calm = new("d3dee9"), FrostLight = new("9ed8ff"), FrostDeep = new("3a86e0"), Rime = new("e6f7ff");
 
     /// <summary>The rime's strokes: an angle round the star, a length, when in the frost it starts, whether it forks.</summary>
