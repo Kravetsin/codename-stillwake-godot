@@ -7,7 +7,7 @@
 | `CreatureBody.cs` | One creature's body (0102): its rig's parts, posed. |
 | `logic/CreatureGait.cs` | How fast a creature's legs go (0102). |
 | `logic/CreatureMotion.cs` | How a body reacts (0102) to the sim and to blows. |
-| `CreatureParts.cs` | The creatures' parts as pictures in ink (0102), read once, shared; all read as a planet loads. |
+| `CreatureParts.cs` | The creatures' parts as pictures in ink (0102), read once, shared, as a planet loads. |
 | `logic/CreaturePose.cs` | What each node of a creature's rig does this frame (0102), how far it bends. |
 | `logic/CreatureVariety.cs` | How one creature differs from the next of its kind (0102). |
 | `CreaturesView.cs` | The creatures, drawn between ticks where the sim put them. |
@@ -47,7 +47,7 @@ fan of rays from the shoulder and the cutter's beam are tested against each crea
 
 - **Only what the camera sees** (no ADR): a body only for a creature within the view and a margin, from a pool that never
   frees. One gone while drawn was killed, or is a guard calmed with no hero in its arena.
-- **Drawn between ticks** (0102): kept at the tick before and the last, drawn `Progress` of the way, a tick behind the
+- **Drawn between ticks** (0102): kept at the last two ticks, `Progress` of the way, a tick behind the
   sim. Upright (0106) but for `CreatureMotion.Tilt`. Steps eased by `StepEase` over `CreatureLooks.StepMs`, from its positions
   (0106). Faces the way it moves; still, toward a near hero, else the way it last moved.
 - **The body** (`CreatureBody`, 0102): the design its species' `Look` names, in `InkDesigns`: finished pictures, with a white
@@ -55,7 +55,8 @@ fan of rays from the shoulder and the cutter's beam are tested against each crea
   pivot (`CreaturePose`), lit as the world (`Lit`), on `Layers.Creatures` under the heroes. Its eye
   open, half shut, shut or wide, its pupil on a near hero. Idle with no hero near it grazes; with one near it notices.
 - **Bending parts** ([creatures-bend](../../../docs/decisions/2026-11-14-creatures-bend.md)): a part with a `Bend` is one picture bent
-  in a band (`shared/BentPicture`): a knee folds as its foot lifts, a neck and tail bend for their turn.
+  in a band (`shared/BentPicture`): a knee folds back as its foot lifts, a hock (`Hind`, a sixleg's rear four) forward;
+  a neck and tail bend for their turn.
 - **Glowing parts give light** (0102): added over it unlit, their spots lights in their colour (`Lights`, the light
   view's `Creatures`).
 - **Each its own** (`CreatureVariety`, 0102): from its id and the surface's seed by an integer hash, the same on every peer. Size,
@@ -84,13 +85,13 @@ fan of rays from the shoulder and the cutter's beam are tested against each crea
 
 ## Dev
 
-`-- --planet --creatures[=species|look]` lets six creatures out either side of the hero (`dev/CreaturesDemo`, the sim's
+`-- --planet --creatures[=species|look]` lets six creatures out either side of the hero (`dev/CreaturesDemo`,
 `Release`); `--creatures-trace` logs strides and looks; `--creatures-herd` ten in a row; without `--manual` `dev/demos/CreatureHands` hunts them with the axe, then the drill. `--creatures-drill` holds the
 drill on one loper; `--strip --creatures --creatures-course` puts a loper by the strip's walls and shaft for its leaps.
 
 ## Deliberately not handled
 
-- **Creatures overlap** one another and the heroes, as the sim lets them: a struck herd bunches into one lump.
+- **Creatures overlap** one another and the heroes: a struck herd bunches into one lump.
 - **A friend's strike shows a round trip late,** and its tool is guessed: a running drill's bit by it, else the axe.
 - **No outline** under the rays.
 - **One design and one set of sounds per species;** no calls or cries. Individuals differ drawn only: a big one is struck,

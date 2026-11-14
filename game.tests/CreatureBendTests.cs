@@ -32,15 +32,19 @@ public class CreatureBendTests
         _ => [Math.Abs(design.Pose.TailFlee) * 1.6 + design.Pose.TailAmp, -(Math.Abs(design.Pose.TailFlee) * 1.6 + design.Pose.TailAmp)],
     };
 
-    [Fact]
-    public void TheLoperBendsItsFourLegsItsNeckAndItsTail()
+    [Theory]
+    [InlineData("classic", 4, true)]
+    [InlineData("tapir", 4, false)]
+    [InlineData("sixleg", 6, true)]
+    public void EachBendsEveryLegItsNeckAndItsTailButTheTapirsStub(string look, int legs, bool tail)
     {
-        var loper = CreatureArt.InkDesigns["classic"];
-        var bent = loper.Rig.Where(n => loper.Parts.TryGetValue(n.Part, out var p) && p.Bend != null).Select(n => n.Drive).ToList();
-        Assert.Equal(4, bent.Count(d => d == CreatureArt.Drive.Leg));
+        var design = CreatureArt.InkDesigns[look];
+        var bent = design.Rig.Where(n => design.Parts.TryGetValue(n.Part, out var p) && p.Bend != null).Select(n => n.Drive).ToList();
+        Assert.Equal(legs, bent.Count(d => d == CreatureArt.Drive.Leg));
+        Assert.Equal(legs, design.Rig.Count(n => n.Drive == CreatureArt.Drive.Leg));
         Assert.Contains(CreatureArt.Drive.Head, bent);
-        Assert.Contains(CreatureArt.Drive.Tail, bent);
-        Assert.True(loper.Pose.Knee > 0);
+        Assert.Equal(tail, bent.Contains(CreatureArt.Drive.Tail));
+        Assert.True(design.Pose.Knee > 0);
     }
 
     [Theory]
@@ -89,19 +93,23 @@ public class CreatureBendTests
         Assert.Contains(Drawn(leg, BentLimb.Plain).Alphas, a => a < 1);
     }
 
-    [Fact]
-    public void WhatHangsPastABendingNeckRidesItWhole()
+    [Theory]
+    [InlineData("classic")]
+    [InlineData("tapir")]
+    [InlineData("sixleg")]
+    public void WhatHangsPastABendingNeckRidesItWhole(string look)
     {
-        // The eye and ears sit on the skull past the neck's band: turned about its joint, they stay where the skull's picture goes.
-        var loper = CreatureArt.InkDesigns["classic"];
-        var head = loper.Parts["head"];
-        var bend = head.Bend!;
-        var eye = loper.Rig.Single(n => n.Drive == CreatureArt.Drive.Eye);
+        // The eye, ears and a seed pod sit on the skull past the neck's band: turned about its joint, they stay where the skull's
+        // picture goes.
+        var design = CreatureArt.InkDesigns[look];
+        var bend = design.Parts["head"].Bend!;
         var joint = CreaturePose.JointOf(bend);
-        foreach (double turn in (double[])[0.5, loper.Pose.Graze, -0.3])
+        foreach (var n in design.Rig.Where(n => n.Parent == "head"))
+            Assert.True(BentLimb.Turned(new Vec(n.X, n.Y), -bend.Axis).Y > bend.Joint + bend.Band / 2, $"{n.Id} lies past the neck's band");
+        var eye = design.Rig.Single(n => n.Drive == CreatureArt.Drive.Eye);
+        foreach (double turn in (double[])[0.5, design.Pose.Graze, -0.3])
         {
             var onBone = BentLimb.Turned(new Vec(eye.X, eye.Y), -bend.Axis);
-            Assert.True(onBone.Y > bend.Joint + bend.Band / 2, "the eye lies past the neck's band");
             var drawn = BentLimb.Turned(BentLimb.Warp(onBone, bend.Joint, -turn, lower: false, bend.Band), bend.Axis);
             var ridden = BentLimb.Turned(new Vec(eye.X - joint.X, eye.Y - joint.Y), turn);
             Assert.Equal(drawn.X, ridden.X + joint.X, 6);
@@ -109,13 +117,16 @@ public class CreatureBendTests
         }
     }
 
-    [Fact]
-    public void AKneeFoldsBackAndAHockForwardOnlyAsTheFootLiftsStraightOnTheGround()
+    [Theory]
+    [InlineData("classic", "legNF legFF")]
+    [InlineData("tapir", "legNF legFF")]
+    [InlineData("sixleg", "l3 l6")]
+    public void AKneeFoldsBackAndAHockForwardOnlyAsTheFootLiftsStraightOnTheGround(string look, string knees)
     {
-        var loper = CreatureArt.InkDesigns["classic"];
-        var pose = new CreaturePose(loper, CreatureLooks.Runs[loper.Id]);
-        var legs = Enumerable.Range(0, loper.Rig.Count).Where(i => loper.Rig[i].Drive == CreatureArt.Drive.Leg).ToList();
-        double middle = legs.Average(i => loper.Rig[i].X);
+        // The forelegs fold at the knee, the rest at the hock: a sixleg's middle pair, near and far alike, as its hind pair.
+        var design = CreatureArt.InkDesigns[look];
+        var pose = new CreaturePose(design, CreatureLooks.Runs[design.Id]);
+        var legs = Enumerable.Range(0, design.Rig.Count).Where(i => design.Rig[i].Drive == CreatureArt.Drive.Leg).ToList();
         var folded = new HashSet<int>();
         for (int k = 0; k < 40; k++)
         {
@@ -123,12 +134,12 @@ public class CreatureBendTests
             foreach (int i in legs)
             {
                 var j = pose.Joints[i];
-                bool fore = loper.Rig[i].X > middle;
+                bool fore = knees.Split(' ').Contains(design.Rig[i].Id);
                 // On the ground (no lift) it stands straight; lifted, a foreleg's foot folds back (clockwise), a hind one's forward.
                 if (j.Y == 0) Assert.Equal(0, j.Bend);
-                else Assert.True(fore ? j.Bend > 0 : j.Bend < 0, $"{loper.Rig[i].Id} bent {j.Bend:F2} at {k}");
-                Assert.InRange(Math.Abs(j.Bend), 0, loper.Pose.Knee);
-                if (Math.Abs(j.Bend) > loper.Pose.Knee * 0.9) folded.Add(i);
+                else Assert.True(fore ? j.Bend > 0 : j.Bend < 0, $"{design.Rig[i].Id} bent {j.Bend:F2} at {k}");
+                Assert.InRange(Math.Abs(j.Bend), 0, design.Pose.Knee);
+                if (Math.Abs(j.Bend) > design.Pose.Knee * 0.9) folded.Add(i);
             }
         }
         Assert.Equal(legs.Count, folded.Count);
@@ -146,12 +157,48 @@ public class CreatureBendTests
         Assert.Equal(0, pose.Joints[tail].A);
         Assert.True(pose.Joints[tail].Bend < -0.3, $"fleeing it tucks its tail {pose.Joints[tail].Bend:F2}");
         // A design whose head does not bend turns it whole, as before.
-        var tapir = CreatureArt.InkDesigns["tapir"];
-        var still = new CreaturePose(tapir, CreatureLooks.Runs[tapir.Id]);
+        var rigid = loper with { Parts = loper.Parts.ToDictionary(p => p.Key, p => p.Key == "head" ? p.Value with { Bend = null } : p.Value) };
+        var still = new CreaturePose(rigid, CreatureLooks.Runs[rigid.Id]);
         still.Set(new CreaturePose.Doing(0, 0, 0, 0, 0, 1, 0, 0, 0, 1, null));
-        int its = tapir.Rig.ToList().FindIndex(n => n.Drive == CreatureArt.Drive.Head);
-        Assert.Equal(0, still.Joints[its].Bend);
-        Assert.True(still.Joints[its].A > 0.3);
+        Assert.Equal(0, still.Joints[head].Bend);
+        Assert.True(still.Joints[head].A > 0.3);
+    }
+
+    [Fact]
+    public void TheSixlegsArchCrossesItsTailsBandOnceItsBerriesAllPastIt()
+    {
+        // Its tail arches back over its body: a band anywhere else would cut the arch twice, turning one side against the other.
+        // Where the stem rises behind the rump each row of the band is one run of paint, and every berry lies past it, turning whole.
+        var sixleg = CreatureArt.InkDesigns["sixleg"];
+        var part = sixleg.Parts["tail"];
+        var bend = part.Bend!;
+        double Along(double x, double y) => BentLimb.Turned(new Vec(x - part.PivotX, y - part.PivotY), -bend.Axis).Y;
+        var (w, h, pixels) = Png.Pixels(Path.Combine(Png.Hd, "creatures", sixleg.Id, "tail.png"));
+        double k = w / (double)part.W;
+        for (int y = 0; y < h; y++)
+        {
+            if (Math.Abs(Along(0, y / k) - bend.Joint) > bend.Band / 2) continue;
+            // A gap of a few pixels is the pen's ragged edge, not another crossing.
+            int runs = 0, last = -100;
+            for (int x = 0; x < w; x++)
+                if (pixels[(y * w + x) * 4 + 3] > 128)
+                {
+                    if (x - last > 4) runs++;
+                    last = x;
+                }
+            Assert.True(runs <= 1, $"row {y} of the band crosses the tail {runs} times");
+        }
+        var (gw, gh, glow) = Png.Pixels(Path.Combine(Png.Hd, "creatures", sixleg.Id, "tail_glow.png"));
+        double gk = gw / (double)part.W;
+        int lit = 0;
+        for (int y = 0; y < gh; y++)
+            for (int x = 0; x < gw; x++)
+                if (glow[(y * gw + x) * 4 + 3] > 128)
+                {
+                    lit++;
+                    Assert.True(Along(x / gk, y / gk) > bend.Joint + bend.Band / 2, $"a berry's glow at ({x}, {y}) lies before the arch's bend");
+                }
+        Assert.True(lit > 0, "its berries glow");
     }
 
     [Fact]

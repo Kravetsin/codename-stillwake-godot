@@ -21,10 +21,12 @@ const wreck = { rows: mapOf('Rows', 'Materials = Placed('), dress: mapOf('Dress'
 /** Every traced subject's shapes (trace.js) with its palette's materials: drawn from these, the reference is never read here. */
 const traced = Object.fromEntries(fs.readdirSync(path.join(here, 'traced')).filter((f) => f.endsWith('.json')).map((f) => {
   const name = f.slice(0, -5), palette = JSON.parse(fs.readFileSync(path.join(here, 'refs', name.split('.')[0] + '.palette.json'), 'utf8'));
+  // A piece's own materials are added to its palette's (trace.js).
+  const own = (palette.pieces || {})[name.split('.')[1]], materials = { ...palette.materials, ...(own && own.materials) };
   const t = JSON.parse(fs.readFileSync(path.join(here, 'traced', f), 'utf8'));
   // A raw subject's picture rides along as a data URL: a file:// picture would taint the canvas it is drawn on.
   if (t.raw) t.raw.png = 'data:image/png;base64,' + fs.readFileSync(path.join(here, 'traced', name + '.png')).toString('base64');
-  return [name, { ...t, materials: palette.materials }];
+  return [name, { ...t, materials }];
 }));
 
 const url = (f) => 'file:///' + path.join(here, f).replace(/\\/g, '/');

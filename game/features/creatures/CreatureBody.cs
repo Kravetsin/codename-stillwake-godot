@@ -211,7 +211,8 @@ public partial class CreatureBody : Node2D
             foreach (var (at, colour) in d.Spots)
             {
                 if (n++ >= CreatureLooks.MostLights) return;
-                into.Add((toWorld * (_mats[d.Node] * at), colour with { A = colour.A * alpha }));
+                // Past its bend where it bends: a sixleg's berries ride the arch of its tail.
+                into.Add((toWorld * (_tips[d.Node] * at), colour with { A = colour.A * alpha }));
             }
         }
     }
