@@ -5,6 +5,7 @@
 | File | Purpose |
 | --- | --- |
 | `AsciiArt.cs` | Small pictures drawn as ASCII in code, kept under a key. |
+| `logic/ArcBurst.cs` | An arc's fizz and bolts torn off a moving blade (spear-effects). |
 | `Bend.cs` | Grass bent by `Stirs` (plant-stirs). |
 | `logic/Blueprint.cs` | How plans join the plans beside them when drawn. |
 | `BlueprintArt.cs` | A placement as built: for plans, ghosts and build menu thumbnails. |
@@ -17,10 +18,11 @@
 | `DriftLayer.cs` | A plane of the backdrop, things scattered over its tiles by `Scatter`. |
 | `DrillLight.cs` | A drill's own light while it runs (0054, 0075, 0094). |
 | `Dust.cs` | Faint dust between the far wrecks and the ship. |
+| `logic/EffectArea.cs` | Where a held tool's effect lives: its drawn pixels in a box. |
 | `FarWrecks.cs` | Wreckage far behind the ship, from the wrecks' own pictures. |
 | `logic/Flares.cs` | Glints, shock lines and flashes of the world's key moments (0075). |
 | `Glow.cs` | A point that lights what is round it a little while it is shown. |
-| `GroundArt.cs` | A planet's natural ground pictures made here rather than drawn (0077, 0079). |
+| `GroundArt.cs` | A planet's ground pictures made, not drawn (0077, 0079). |
 | `logic/GroundDetails.cs` | Pictures laid over a planet's ground, a rule of drawing (0082). |
 | `logic/GroundShadow.cs` | The soft shadow walls cast on a natural back wall (0088). |
 | `HeldArt.cs` | A held tool's pictures with its modules' overlays (`HeldParts`, 0098). |
@@ -37,38 +39,38 @@
 | `ItemIcons.cs` | Each item's 16 px picture, a tool's baked icon a side, silhouettes. |
 | `logic/Layers.cs` | Where each thing in the world is drawn, back to front. |
 | `LeafLayer.cs` | `Leaves` drawn, lit, in a multimesh a picture. |
-| `logic/Leaves.cs` | Falling leaves: tumbling, blown, lying, fading (plant-stirs). |
+| `logic/Leaves.cs` | Falling leaves (plant-stirs). |
 | `Lit.cs` | How light falls on everything the ship draws, one model. |
 | `logic/Luminous.cs` | How one kind of luminous particle looks and moves (0075). |
 | `MarchingDashes.cs` | Dashes marching along `OutlineRun`s. |
 | `Outline.cs` | A soft light inside the silhouette of what is aimed at, breathing. |
 | `logic/OreMask.cs` | Where a vein's picture shows ore, to shine. |
 | `PixelArt.cs` | The pictures from `game/art/hd`, far layers, relief. |
-| `logic/Risen.cs` | The pointer over a machine's risen picture means the machine (0099). |
+| `logic/Risen.cs` | The pointer over a risen picture means its machine (0099). |
 | `logic/PlanCut.cs` | Where a plan being built stops being a plan (0063). |
 | `logic/PlanOutline.cs` | The dashed line round each group of plans and marks (0064). |
 | `PlanShapes.cs` | The silhouettes of plans and marks, for their dashes. |
 | `PlanTiles.cs` | The ship's tile layers again, for plans and ghosts. |
 | `PlanetSky.cs` | A planet's sky behind its ground (0079). |
-| `logic/PixelDust.cs` | The pixels a killed creature crumbles into: hanging, flying, heaping, fading. |
+| `logic/PixelDust.cs` | The pixels a killed creature crumbles into. |
 | `PixelsLayer.cs` | Those pixels in one multimesh, lit. |
 | `logic/Reduce.cs` | A hi-res picture brought down to the world's pixels. |
-| `logic/Rope.cs` | A rope between two ends: points under speed, gravity and a slow drift. |
+| `logic/Rope.cs` | A rope between two ends: points under speed and gravity. |
 | `logic/Scatter.cs` | Where the backdrop's things lie, by a hash of seed and tile. |
 | `ShadowTiles.cs` | `GroundShadow`'s shadows as tiles of one `TileSet` (0088). |
 | `Shimmer.cs` | Heat shimmer (0075). |
 | `ShipCamera.cs` | The camera over the ship: centring and zoom steps with `-` and `=`. |
-| `ShipTiles.cs` | Every cell picture in one atlas with its normal and ore maps, built once (`Shared`). |
+| `ShipTiles.cs` | Every cell picture in one atlas with its normal and ore maps (`Shared`). |
 | `Signs.cs` | The picked signs: the power bolt, its warnings and the credit chip (ink-signs). |
 | `Sketch.cs` | A node drawn by a callback: lines, boxes and dots a view works out itself. |
 | `SoftDots.cs` | Soft round pictures luminous things are drawn with (0075). |
 | `logic/Stages.cs` | Each draw layer's effects, a stage a z, and the figures' held stages. |
 | `logic/Stirs.cs` | Grass pushed by bodies' feet, springing back (plant-stirs). |
-| `Stars.cs` | Space behind the ship: a tile of stars over the screen, also behind the title. |
+| `Stars.cs` | Space behind the ship and the title: a tile of stars. |
 | `WorldShot.cs` | The world as the camera sees it, without the HUD: the title's cards. |
-| `Strokes.cs` | Many soft-edged strokes of light in one draw call (0075). |
+| `Strokes.cs` | Soft-edged strokes of light in one draw call (0075). |
 | `Style.cs` | The panels' colours and boxes as Godot style boxes and label settings. |
-| `WorldButtons.cs` | The mouse over the world: feeds `Buttons`, a press only when no panel took it. |
+| `WorldButtons.cs` | The mouse over the world for `Buttons`, unless a panel took it. |
 
 The backdrop behind the ship, drawn by the client only: nothing of it reaches the sim. Numbers: `Content/logic/Backdrop.cs`
 and the files' constants; the rest in its `///` summaries.

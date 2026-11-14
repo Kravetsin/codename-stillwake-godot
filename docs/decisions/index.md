@@ -356,6 +356,7 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [railgun-traced](2026-11-14-railgun-traced.md) | The railgun traced from a picked reference | accepted | raw-tool-pictures (in part) |
 | [raw-tool-pictures](2026-11-14-raw-tool-pictures.md) | Held tools ship their picked reference's own paint | accepted |  |
 | [salvage-tools-raw](2026-11-14-salvage-tools-raw.md) | Cutter, spear and sledgehammer drawn raw | accepted | homemade-cutter (in part) |
+| [spear-effects](2026-11-14-spear-effects.md) | The spear's effects | accepted |  |
 | [temperature-gradients](2026-11-14-temperature-gradients.md) | Temperature gradients: colder away from the ship, smooth down the bands | accepted |  |
 | [temperature-in-degrees](2026-11-14-temperature-in-degrees.md) | Temperature in degrees | accepted |  |
 | [the-thermometer](2026-11-14-the-thermometer.md) | The thermometer: a frost star and the degrees, a row under the charge | accepted |  |
