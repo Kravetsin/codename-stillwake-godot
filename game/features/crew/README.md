@@ -112,8 +112,7 @@ This hero and others', client-authoritative (0002): only commands reach the sim.
 - A step never ends in a wall, shut door, hatch or past the grid; afloat, no jetpack, the middle stays within
   `Hero.Tether` of its anchor. A shut door pushes it `Hero.PushStep` to a fit (0089).
 - Doors go as this peer shows them (0014); a press sends `SetDoor`/`SetValve` (0071), `SetPlatform`.
-- **Holes, floors:** falls into holes it fits; down drops through; jump wins.
-- **Steps** (0106): a cell up or down, two stop it.
+- **Holes, floors, steps** (0106): falls into holes it fits; down drops through; jump wins; a cell up or down, two stop it.
 - **Jump** (0089): coyote, buffer, short hop.
 - **The figure answers its motion** (0090, hero-gait).
 - **Rammed** (0103) **or arced** (`Rams.Hits`): `HitBy`/`Bolted` sent, thrown, keys masked.
@@ -129,7 +128,7 @@ This hero and others', client-authoritative (0002): only commands reach the sim.
 - **The crew module:** made at `Spawn`; passed out: lies at the sim's cell, takes no orders (0061). `Enter` goes when the sim's room or field side
   differ, every `Crew.ReportEvery` ticks off its cell, each tick threatened; none out (0050); a closed link's host: `Leave`.
 - **Dressed as worn**: helmet, body, hair, clothes, lamp; the colour on the shin; a switched body lit by
-  `SuitOn` and charge (`SuitGlow`, hero-lights). **Limbs bend** whole (bent-limbs, game/shared `BentLimb`); **helmets** turn their own way (helmets-fit-the-suit).
+  `SuitOn` and charge (`SuitGlow`, hero-lights). **Limbs bend** whole (bent-limbs, game/shared `BentLimb`); **helmets** turn (helmets-fit-the-suit).
 - **Tracker** blinks (`SignalOf`); **catchers**: heroes in gear, untracked, tumble killed (tracker-catchers).
 
 ## Others' heroes
@@ -148,7 +147,7 @@ This hero and others', client-authoritative (0002): only commands reach the sim.
   the plan, wiring, lays cables; a tool on the right, nothing.
 - **One aim** (`Aiming.AimAt`): a plan (back walls first), machine (0099), tank, door, valve, a wreck
   pointed at, else the nearest small piece. Outlined green/red, `UsePrompt` why; plan in hand, E idle. Armed: small ones.
-- **Hits are rays** (tool-reach, hits-pass-wrecks): a fan (`ToolRays`) to a wall, through wrecks; ground rings, rim sparks (grinder-contact).
+- **Hits are rays** (tool-reach, hits-pass-wrecks): a fan (`ToolRays`) to a wall, through wrecks; ground rings, rim sparks.
 - **Struck tools** (0038, swing-motions): by sector, hit as the blade crosses the aim, leaned into.
 - **Harpoon, grapple** (0044, grapple-climbs): reel pieces, pull to walls; hung, refire; Space/RMB let go.
 - **A gun** (hold-to-fire): held fires each cooldown; a `Charge` one on release, full; flat, clicks. Kicks afloat, shoves standing (`Recoil`, body-answers).
