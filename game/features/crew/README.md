@@ -12,7 +12,7 @@ This hero and others', client-authoritative (0002): only commands reach the sim.
 | `logic/Motion.cs` | lean and landing |
 | `logic/Splashes.cs` | water heard |
 | `logic/LookTint.cs` | skin, hair tints |
-| `logic/Aim.cs` | reach, aim, what hands send |
+| `logic/Aim.cs` | reach, aim, sends |
 | `logic/AxeSwing.cs` | a stroke's clock |
 | `logic/Strokes.cs` | each tool's stroke |
 | `logic/MotionPlay.cs` | its motion |
@@ -32,18 +32,18 @@ This hero and others', client-authoritative (0002): only commands reach the sim.
 | `SeatedHeroes.cs` | behind the porthole |
 | `UsePrompt.cs` | that prompt shown |
 | `logic/Tether.cs` | the tether |
-| `logic/DrillPace.cs` | when the drill hits |
+| `logic/DrillPace.cs` | drill hits |
 | `logic/RunSounds.cs` | tools heard |
 | `logic/ToolEdge.cs` | the cutter's beam |
-| `logic/ToolRays.cs` | what a tool hits |
+| `logic/ToolRays.cs` | tool hits |
 | `WreckPixels.cs` | wrecks' pixels |
 | `ToolWork.cs` | tools at work |
-| `logic/ToolSparks.cs` | sparks off a wreck |
+| `logic/ToolSparks.cs` | sparks |
 | `logic/CutterJet.cs` | the cutter's jet |
-| `logic/Motor.cs` | `Run` till the sim agrees |
-| `logic/Remote.cs` | heroes sent and kept |
-| `logic/RemoteRod.cs` | another's harpoon rod |
-| `logic/RodFlourish.cs` | when its lights play |
+| `logic/Motor.cs` | `Run` till agreed |
+| `logic/Remote.cs` | heroes sent |
+| `logic/RemoteRod.cs` | another's rod |
+| `logic/RodFlourish.cs` | its lights |
 | `logic/Suits.cs` | suits, what is worn |
 | `logic/SuitGlow.cs` | a body's lights |
 | `logic/TrackerBlink.cs` | the tracker's blink |
@@ -67,7 +67,7 @@ This hero and others', client-authoritative (0002): only commands reach the sim.
 | `logic/DriverMode.cs` | its dots |
 | `HeroAutopilot.cs` | scripted runs |
 | `logic/Report.cs` | Enter reports |
-| `Frost.cs` | past the field |
+| `Frost.cs` | the cold |
 | `logic/Danger.cs` | the gauge's read |
 | `logic/AirCues.cs` | air back |
 | `logic/CanistersSeen.cs` | others' tanks |
@@ -75,6 +75,8 @@ This hero and others', client-authoritative (0002): only commands reach the sim.
 | `SuitGauge.cs` | the air row |
 | `MealSlots.cs` | meals |
 | `logic/MealTips.cs` | their tips |
+| `Thermometer.cs` | degrees |
+| `logic/Thermometers.cs` | read |
 | `logic/Tunnel.cs` | the last breath |
 | `TunnelView.cs` | it drawn |
 | `logic/VisorFog.cs` | a low suit's fog |
@@ -114,14 +116,14 @@ This hero and others', client-authoritative (0002): only commands reach the sim.
 - **Water** (liquids): swum `SwimDepth` deep, left by Space or shore; wading splashes.
 - **Swim, haul, jetpack** (0047, tether-haul): afloat through floors, tied where it left the hull;
   Shift hauls in along the tether's bends (`Wraps`); a jetpack unties, Shift thrusts, `Thrust` sent if unlike the sim's.
-- **A canister** (0047, 0081): RMB or R sends `Refill`, V `SuitMode` (regen-suit) if taken. Cooling, the O₂ sign greys
-  in a sweeping ring, too soon blinks red (canister-mark).
-- **Meals:** a food right-clicked sends `Eat`, chewing heard; refused, its slots blink (hud-vitals).
+- **A canister** (0047, 0081): RMB or R sends `Refill`, V `SuitMode` (regen-suit) if taken. Cooling greys the O₂ sign
+  in a sweeping ring; too soon, red (canister-mark).
+- **Meals:** a food right-clicked sends `Eat`, chewing heard; refused, its slots blink (hud-vitals). **Degrees** beside them (the-thermometer).
 - **The crew module:** made at `Spawn`; passed out: no orders, lies at the sim's cell, takes none (0061). `Enter` goes when the sim's room or field side
   differ, every `Crew.ReportEvery` ticks off its cell, each tick if threatened; none out (0050); a closed link's host: `Leave`.
 - **Dressed as worn**: helmet, body, hair, clothes, lamp; the colour on the shin; a switched body lit by
   `SuitOn` and charge (`SuitGlow`), lit round (hero-lights).
-- **Tracker** blinks by `SignalOf`; **catchers** are heroes in gear, untracked, tumbling killed (tracker-catchers).
+- **Tracker** blinks (`SignalOf`); **catchers**: heroes in gear, untracked, tumble killed (tracker-catchers).
 
 ## Others' heroes
 
@@ -143,8 +145,8 @@ This hero and others', client-authoritative (0002): only commands reach the sim.
 - **Struck tools** (0038, swing-motions): by sector, hitting as the blade crosses the aim; the body leans in.
 - **Harpoon, grapple** (0044, grapple-climbs): reel pieces, pull to walls; hung, refire; Space/RMB let go.
 - **A gun** (hold-to-fire): left held fires each cooldown; a `Charge` one fires let go full; flat, clicks dry. Kicks afloat, shoves standing (`Recoil`, body-answers).
-- **Drill, grinder, cutter** (0054, 0055): left held runs it (`Run`), hitting each `Pace` ticks, the cutter by its
-  beam (`ToolEdges`), sparking (`ToolWork`).
+- **Drill, grinder, cutter** (0054, 0055): left held runs it (`Run`), a hit each `Pace` ticks, the cutter's by
+  beam (`ToolEdges`), sparking.
 - **Power driver** (driver-at-work, driver-order): charged, works a 2×2 square (`WorkedSquare`); right click toggles (mode-glyph).
 - **Seated** (`Seating.Held`): no tool; E leaves. **Ladders, ledges** (0092): grab, climb, slide, leap off; a hatch open climbs, shut floors (0112); a jump a foot
   short mantles.

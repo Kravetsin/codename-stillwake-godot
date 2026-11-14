@@ -63,7 +63,13 @@ public static class Report
     {
         float felt = (float)crew.Felt(peer, cell) / FeltFull;
         float edge = (float)crew.EdgeCost(cell) / Stillwake.Content.Field.EdgeCost;
-        float share = Math.Clamp(Math.Max(felt, edge), 0f, 1f);
+        return Eased(Math.Max(felt, edge));
+    }
+
+    /// <summary>A share of the cold, clamped to 0 to 1 and eased out (2s − s²): what the frost and the thermometer draw.</summary>
+    public static float Eased(float share)
+    {
+        share = Math.Clamp(share, 0f, 1f);
         return share * (2 - share);
     }
 

@@ -34,6 +34,9 @@ public static class Vitals
     /// <summary>The meals: the dish's picture's side and top, one slot to the next, the time light's top and height.</summary>
     public const float MealSide = 20, MealTop = 89, MealPitch = 24, TimeTop = 111.5f, TimeHeight = 3;
 
+    /// <summary>The thermometer, right of the meals: its sign's centre, and where its number starts (the-thermometer).</summary>
+    public const float ColdX = 124, ColdY = 99, ColdText = 134;
+
     /// <summary>The highest anything is drawn, in block units: the canister's ring round the oxygen sign.</summary>
     public const float Top = AirY - 12.5f * SignScale - 1;
 

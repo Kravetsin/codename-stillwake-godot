@@ -34,6 +34,7 @@ public static partial class En
         ["crew.hungryWhy"] = "Sprinting costs more air; eat something",
         ["crew.mealFree"] = "Room for a meal",
         ["crew.mealHow"] = "Eat a food with the right button",
+        ["crew.withstands"] = "Withstands down to {n}°",
         ["crew.noSuitMode"] = "Your suit has no mode",
         ["suit.key"] = "Suit mode ({key:suit})",
         ["markers.home"] = "Lifepod",

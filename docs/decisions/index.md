@@ -341,3 +341,4 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [gourd-vine](2026-11-13-gourd-vine.md) | The grow capsule grows a gourd vine | accepted |  |
 | [hud-vitals](2026-11-13-hud-vitals.md) | The vitals: air, charge and meals as frameless light at the bottom-left | accepted |  |
 | [temperature-in-degrees](2026-11-14-temperature-in-degrees.md) | Temperature in degrees | accepted |  |
+| [the-thermometer](2026-11-14-the-thermometer.md) | The thermometer: a frost star and the degrees, right of the meals | accepted |  |
