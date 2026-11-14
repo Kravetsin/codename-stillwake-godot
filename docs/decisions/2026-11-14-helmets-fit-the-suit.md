@@ -12,8 +12,9 @@ down tipped the whole helmet, collar and all, about the neck; and the collars en
 ## Decision
 
 - **Each helmet turns its own way** (`HelmetTurn`, `game/features/crew/logic/BodyFit.cs`, client art, not tunables):
-  - `helmet` **ringed**: the ball turns about its middle (6.7, 6) on a black neck ring that stays with the torso, as on a
-    bearing; the ball's picture is kept within its circle under the ring, so no gap opens.
+  - `helmet` **soft**, as the hood: the ball nods whole with the look, its black rubber seal the band that bends, about the
+    seal's middle (row 11.75); the seal's base stays on the torso. The seal is bent as drawn, 3.5 px tall: no taller bellows was
+    needed. (It first turned **ringed**, the ball about its middle on a fixed ring, as on a bearing; see the verdict below.)
   - `quiltedHelmet`, `catcherHood`, `catcherCap`, `catcherBeak` **soft**: the top with its plate or mask turns, the base stays on
     the shoulders, the cloth between bends as a limb does at its joint ([bent-limbs](2026-11-14-bent-limbs.md)), one pixel below
     the neck so a plate over the chin turns whole. The head and face inside bend with it, so none shows through the cloth.
@@ -31,6 +32,17 @@ down tipped the whole helmet, collar and all, about the neck; and the collars en
 - **No straight cut.** The bell's and the quilted hood's bottoms fade into the suit over their last rows.
 - **Seen** on the dress sheet (`-- --dress-sheet=<png>`): every player helmet on every suit at looks −0.6, 0, +0.5, walking,
   running, climbing, aiming up; the catchers' gear.
+
+## The verdict in play
+
+The user played the first cut (PR 577): the ringed basic helmet "animates very badly", and the face turning inside the bell was
+disliked too; the quilted hood "connects well to everything" and stays as it is. The basic helmet became soft like the hood. For
+the bell, keeping the face still behind the glass, only the beam looking, was offered and judged worse still: the bell keeps its
+face turning until a way is found, perhaps after the basic helmet's example.
+
+**F8 in any dev run** (`game/dev/HelmetTurnKey.cs`, `BodyFit.Trial`) turns every helmet worn the next way the code has, named in a
+corner: soft, bolted (the face turning), the ball on a ring, bolted with the face still (`BoltedStill`), then each its own again.
+A soft trial bends about one pixel below the neck, a ring about the basic helmet's ball or the neck, a bolted one about the head.
 
 ## Cost
 

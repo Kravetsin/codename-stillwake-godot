@@ -10,7 +10,7 @@ namespace Stillwake.Game.Features.Crew;
 public partial class BentPicture : Node2D
 {
     private readonly Sprite2D _source;
-    private readonly double _joint;
+    private double _joint;
     private readonly bool _lower;
     private BentLimb? _mesh;
     private Texture2D? _texture;
@@ -27,6 +27,18 @@ public partial class BentPicture : Node2D
         (_source, _joint, _lower) = (source, joint, lower);
         UseParentMaterial = true;
         source.SelfModulate = Colors.Transparent;
+    }
+
+    /// <summary>Where the joint is down the sprite's frame: moved, the grid is made again at the next <see cref="Show"/>.</summary>
+    public double Joint
+    {
+        get => _joint;
+        set
+        {
+            if (value == _joint) return;
+            _joint = value;
+            _texture = null;
+        }
     }
 
     /// <summary>Drawn bent <paramref name="bend"/>, the limb's <see cref="Bend.Lower"/>, meeting the limb's other picture at <paramref name="seam"/> (<see cref="BentLimb.SeamOf"/>).</summary>

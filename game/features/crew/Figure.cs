@@ -98,6 +98,8 @@ public partial class Figure : Node2D
     private readonly Node2D _face = new(), _shellTurn = new(), _crown = new(), _collar;
     /// <summary>The helmet worn's fit, its pivot from the neck, and the way the head looks, radians, as last drawn.</summary>
     private HelmetFit _fit = BodyFit.Whole;
+    /// <summary>The way every helmet was tried as it was last fitted (<see cref="BodyFit.Trial"/>): fitted again when it changes.</summary>
+    private HelmetTurn? _trial;
     private Vector2 _pivot;
     private double _gaze;
     /// <summary>The head's and face's, the shell's, the glass's and the collar's pictures, bent as a soft helmet's cloth bends (<see cref="BentLimb"/>).</summary>
@@ -857,31 +859,32 @@ public partial class Figure : Node2D
     /// </summary>
     private void FitHelmet(string? helmet)
     {
-        _fit = BodyFit.Of(helmet);
+        (_fit, _trial) = (BodyFit.Of(helmet), BodyFit.Trial);
         _pivot = new Vector2((float)(_fit.PivotX - BodyFit.NeckX), (float)(_fit.PivotY - BodyFit.NeckY));
+        // A soft one bends about its pivot; any other is never bent, so where its band would be does not matter.
+        foreach (var picture in _helmetPictures) picture.Joint = _pivot.Y;
         double cut = _fit.Cut ?? double.PositiveInfinity;
         Rows(_shell, double.NegativeInfinity, cut);
         Rows(_visor, double.NegativeInfinity, cut);
-        if (_fit.Cut != null) Rows(_collarPart, cut, double.PositiveInfinity);
-        else _collarPart.RegionEnabled = false;
+        Rows(_collarPart, _fit.Cut ?? double.NegativeInfinity, double.PositiveInfinity);
         _collarPart.Visible = helmet != null && (_fit.Cut == null || _collarPart.RegionRect.Size.Y > 0);
     }
 
     /// <summary>A helmet's picture drawn only from row <paramref name="from"/> to <paramref name="to"/> of its box, each where it is.</summary>
-    private static void Rows(Sprite2D sprite, double from, double to)
+    private void Rows(Sprite2D sprite, double from, double to)
     {
         var size = sprite.Texture.GetSize();
         float margin = sprite.Texture is CanvasTexture ? HiRes.FigureMargin : 0;
         float top = (float)Math.Clamp(from + margin, 0, size.Y), bottom = (float)Math.Clamp(to + margin, top, size.Y);
         (sprite.RegionEnabled, sprite.RegionFilterClipEnabled) = (true, true);
         sprite.RegionRect = new Rect2(0, top, size.X, bottom - top);
-        sprite.Offset = sprite.Offset with { Y = sprite.Offset.Y + top };
+        sprite.Offset = _joints[sprite] + new Vector2(-margin, top - margin);
     }
 
-    /// <summary>A helmet's <paramref name="sprite"/> drawn by a picture bent as a soft one's cloth bends (<see cref="BodyFit.SoftY"/>), still for any other.</summary>
+    /// <summary>A helmet's <paramref name="sprite"/> drawn by a picture bent as a soft one's cloth bends about its fit's pivot (<see cref="FitHelmet"/>), still for any other.</summary>
     private static BentPicture Bent(Sprite2D sprite)
     {
-        var bent = new BentPicture(sprite, BodyFit.SoftY - BodyFit.NeckY, lower: true);
+        var bent = new BentPicture(sprite, 0, lower: true);
         sprite.AddChild(bent);
         return bent;
     }
@@ -1379,6 +1382,7 @@ public partial class Figure : Node2D
         // In an answer it keeps the eyes up as the body leans.
         _gaze = _head - (pose is Pose.Stand or Pose.Walk or Pose.Run ? shown.Tilt * HeroMotion.Run.HeadSteady : 0) - BodyAnswers.HeadSteady * body.Lean;
         // Each part of the helmet turns its fit's way about its pivot (helmets-fit-the-suit); its pictures bend only if it is soft.
+        if (_trial != BodyFit.Trial) FitHelmet(_helmetWorn);
         var (face, shell, bend, crown) = _fit.TurnsBy(_gaze);
         _face.Transform = Turned(face);
         _shellTurn.Transform = Turned(shell);
