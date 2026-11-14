@@ -2,8 +2,9 @@ namespace Stillwake.Content;
 
 /// <summary>
 /// The cape (2026-10-27-the-cape-is-worn), worn in a slot of its own beside the jetpack: it spares <see cref="Guard"/>
-/// thousandths of every enemy's blow, the rest of a unit kept for the next, and lowers the coldest its wearer withstands by
-/// <see cref="Warmth"/> degrees (2026-11-14-temperature-in-degrees).
+/// thousandths of every enemy's blow, the rest of a unit kept for the next, and lowers both the coldest and the hottest its
+/// wearer withstands by <see cref="Warmth"/> degrees (2026-11-14-temperature-in-degrees, 2026-11-14-heat-limits): warm against the
+/// cold, worse in the heat.
 /// Made of cloth at the Former.
 /// </summary>
 public static class Cape
@@ -18,6 +19,6 @@ public static class Cape
     /// <summary>Thousandths of a creature's ram, pounce or bolt it spares: a fifth.</summary>
     public const int Guard = 200;
 
-    /// <summary>The degrees it adds to the cold its wearer withstands; nothing off the field's edge, which is no weather.</summary>
+    /// <summary>The degrees it lowers its wearer's limits by, the cold's and the heat's; nothing off the field's edge, which is no weather.</summary>
     public const int Warmth = 5;
 }

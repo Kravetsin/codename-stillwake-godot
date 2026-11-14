@@ -250,6 +250,7 @@ public static class ItemCards
         var rows = new List<CardTile>();
         if (spec.Tank > 0) rows.Add(Row(CardSign.Tank, CardGroup.Air, T("card.oxygen", ("n", spec.Tank)), "card.tank"));
         if (spec.Low is int low) rows.Add(Row(CardSign.Cold, CardGroup.Guard, T("card.degrees", ("n", Degrees(low))), "card.withstands"));
+        if (spec.High is int high) rows.Add(Row(CardSign.Heat, CardGroup.Guard, T("card.degrees", ("n", Signed(high))), "card.withstandsHeat"));
         if (card.Item == Spec.Suit.Regen)
         {
             double made = (double)Spec.Suit.RegenMost * World.TicksPerSecond / Spec.Crew.BreathEvery;
@@ -326,4 +327,7 @@ public static class ItemCards
 
     /// <summary>Degrees as the cards write them, a minus sign rather than a hyphen below zero: "−40".</summary>
     public static string Degrees(int degrees) => degrees < 0 ? "−" + (-degrees).ToString(CultureInfo.InvariantCulture) : degrees.ToString(CultureInfo.InvariantCulture);
+
+    /// <summary>Whole degrees with a plus above zero, as heat is written: +50, 0, −40.</summary>
+    public static string Signed(int degrees) => (degrees > 0 ? "+" : "") + Degrees(degrees);
 }

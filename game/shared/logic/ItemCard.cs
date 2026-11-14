@@ -37,7 +37,7 @@ public sealed record CardTile(string Value, string Label, CardBoost? Boost = nul
 /// What a number is, its icon and hue on the card: a tool's (2026-11-07-tool-card-rows), then food's and gear's
 /// (2026-11-14-food-and-gear-cards); a meal's duration is a tool's <see cref="Pace"/>.
 /// </summary>
-public enum CardSign { None, Damage, Block, Pace, Pierce, Arc, Reach, Reel, Battery, Loot, Calm, Deep, Work, Tank, Cold, Guard, Regen, Speed, Light }
+public enum CardSign { None, Damage, Block, Pace, Pierce, Arc, Reach, Reel, Battery, Loot, Calm, Deep, Work, Tank, Cold, Guard, Regen, Speed, Light, Heat }
 
 /// <summary>
 /// The groups a card's numbers are listed under, in this order: a tool's hit, its shot or its blast, its reach; a food's effect; gear's

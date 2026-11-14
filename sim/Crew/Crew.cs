@@ -91,6 +91,16 @@ public interface ICrewQueries
     /// it, and 0 with no hero: each costs its air <c>Temperature.Bite</c> thousandths of a unit a breath. What the frost reads.
     /// </summary>
     int Felt(int peer, int cell);
+    /// <summary>
+    /// The hottest hero <paramref name="peer"/> withstands, in degrees (2026-11-14-heat-limits): its body's <c>High</c>, or
+    /// <c>Temperature.BareHigh</c> with none, <c>Cape.Warmth</c> lower with the cape on.
+    /// </summary>
+    int HighOf(int peer);
+    /// <summary>
+    /// The degrees <paramref name="cell"/> is hotter than hero <paramref name="peer"/> withstands (<see cref="HighOf"/>), 0 within
+    /// it, and 0 with no hero: paid as <see cref="Felt"/> is, never both at once. What the haze reads.
+    /// </summary>
+    int Heat(int peer, int cell);
     /// <summary>Hero <paramref name="id"/>, played by that peer; null while the sim has none (TypeScript's <c>hero</c>).</summary>
     Hero? HeroOf(int id);
     /// <summary>Every hero, in id order: live and read-only, for counting who breathes where.</summary>
@@ -314,8 +324,9 @@ public sealed partial class CrewModule : Module<CrewState>, ICrewQueries, ICrewO
                     if (_itemsOps.Drain(hero.Id, made * Content.Suit.RegenCost)) net += made;
                     covered = net >= 0;
                 }
-                // The cold (2026-11-14-temperature-in-degrees): the degrees felt, on their own schedule, thin air or not; the edge's besides.
-                int felt = Felt(hero.Id, hero.Cell);
+                // The cold and the heat (2026-11-14-temperature-in-degrees, 2026-11-14-heat-limits): the degrees felt past either limit, on
+                // their own schedule, thin air or not; the edge's besides.
+                int felt = Felt(hero.Id, hero.Cell) + Heat(hero.Id, hero.Cell);
                 int cold = Chills(felt) + EdgeCost(hero.Cell);
                 int burn = Burns(hero.Cell) ? Content.Lava.Burn : 0;
                 if (burn > 0) Hurt(hero, Harm.Burn);
@@ -326,7 +337,7 @@ public sealed partial class CrewModule : Module<CrewState>, ICrewQueries, ICrewO
                     hero.Gasp = 0;
                     continue;
                 }
-                // With no air of its own, a breath air made ends the last breath where no cold is felt (a breath the cold's
+                // With no air of its own, a breath air made ends the last breath where nothing is felt (a breath the cold's
                 // schedule skips still feels it); one short of it, or the cold, starts it; the lava past what the air held cuts it.
                 if (covered && felt == 0 && cold == 0 && burn == 0) hero.Gasp = 0;
                 else if (net < 0 || cold > 0 || burn > 0) Gasps(hero, burn - Math.Max(0, left));
@@ -551,13 +562,18 @@ public sealed partial class CrewModule : Module<CrewState>, ICrewQueries, ICrewO
         return near + (far - near) * Math.Clamp(beyond, 0, Content.Field.Margin) / Content.Field.Margin;
     }
 
-    public int LowOf(int peer)
-    {
-        int low = _items.WornIn(peer, Content.Suit.Slot) is { } body ? Content.Items.Get(body).Low ?? Content.Temperature.BareLow : Content.Temperature.BareLow;
-        return _items.Equipped(peer, Content.Cape.Item) ? low - Content.Cape.Warmth : low;
-    }
+    public int LowOf(int peer) => Caped(peer, BodyOf(peer)?.Low ?? Content.Temperature.BareLow);
+
+    public int HighOf(int peer) => Caped(peer, BodyOf(peer)?.High ?? Content.Temperature.BareHigh);
+
+    private Content.ItemSpec? BodyOf(int peer) => _items.WornIn(peer, Content.Suit.Slot) is { } body ? Content.Items.Get(body) : null;
+
+    /// <summary>A limit with the cape's warmth taken off it, cold's or heat's alike (2026-11-14-heat-limits).</summary>
+    private int Caped(int peer, int limit) => _items.Equipped(peer, Content.Cape.Item) ? limit - Content.Cape.Warmth : limit;
 
     public int Felt(int peer, int cell) => HeroOf(peer) == null ? 0 : Math.Max(0, LowOf(peer) - TemperatureAt(cell));
+
+    public int Heat(int peer, int cell) => HeroOf(peer) == null ? 0 : Math.Max(0, TemperatureAt(cell) - HighOf(peer));
 
     /// <summary>
     /// The whole units <paramref name="felt"/> degrees cost this breath: <c>Temperature.Bite</c> thousandths each, owed by the

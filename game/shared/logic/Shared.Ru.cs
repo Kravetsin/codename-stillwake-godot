@@ -56,6 +56,7 @@ public static partial class Ru
         ["card.tank"] = "Запас воздуха",
         ["card.oxygen"] = "{n} O₂",
         ["card.withstands"] = "Выдерживает до",
+        ["card.withstandsHeat"] = "Выдерживает жар до",
         ["card.regen"] = "Вырабатывает воздух",
         ["card.oxygenUpTo"] = "до {n} O₂/с",
         ["card.regenCost"] = "Расход заряда",
