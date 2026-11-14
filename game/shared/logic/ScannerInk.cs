@@ -12,4 +12,7 @@ public static class ScannerInk
 
     /// <summary>Where it sits on the heavy helmet's picture.</summary>
     public static readonly (double X, double Y) OnHeavy = (6.2, -2.6);
+
+    /// <summary>Where it sits on the quilted helmet's picture.</summary>
+    public static readonly (double X, double Y) OnQuilted = (6.2, -3);
 }

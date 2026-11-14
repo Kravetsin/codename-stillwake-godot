@@ -26,7 +26,7 @@ public partial class ItemCardsDemo : CanvasLayer
         Add(cards, MealTips.Of(Content.Foods.Paste, 600).Card!);
         string[] gear =
         [
-            Content.Helmet.Basic, Content.Helmet.Heavy, Content.Suit.Basic, Content.Suit.Regen, Content.Cape.Item,
+            Content.Helmet.Basic, Content.Helmet.Quilted, Content.Helmet.Heavy, Content.Suit.Basic, Content.Suit.Regen, Content.Cape.Item,
             Content.Jetpack.Item, Content.HelmetLamp.Item, Content.Helmet.Scanner, "battery", Content.Weapons.Axe.Item,
         ];
         foreach (var item in gear) Add(cards, reading.TipOf(new Stack(item, 1)).Card!);
