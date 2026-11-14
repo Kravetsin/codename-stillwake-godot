@@ -62,11 +62,11 @@ public sealed record HeldLook(
     public static readonly HeldLook FireAxe = new("res://art/hero_axe.png", (4.1, 3.85), System.Math.PI / 2, (25.3, 11.7), (33.4, 10.9), Clamp: (14, 3.85), Size: Drawn, Bow: 1.23);
 
     /// <summary>
-    /// The spring harpoon, <c>art/hero_harpoon.png</c> (0044): gripped by its plank stock, held as a pistol
-    /// is, the barrel along the forearm; the edge the rod seated in the tube, from its eye to the muzzle.
+    /// The spring harpoon, <c>art/hero_harpoon.png</c> (0044; traced, 2026-11-14-pickaxe-and-harpoon-traced): gripped by its wooden
+    /// grip, held as a pistol is, the barrel along the forearm; the edge the rod seated in the tube, from the spring's window to the muzzle.
     /// </summary>
     public static readonly HeldLook Harpoon = new(
-        "res://art/hero_harpoon.png", (4.5, 8), 0, (9, 3.5), (25, 3.5), Loaded: "res://art/hero_harpoon_loaded.png", Aimed: true, Clamp: (10.5, 4), Size: Drawn);
+        "res://art/hero_harpoon.png", (3.6, 5.4), 0, (8.6, 2.55), (25.5, 2.55), Loaded: "res://art/hero_harpoon_loaded.png", Aimed: true, Clamp: (13, 2.7), Size: Drawn);
 
     /// <summary>
     /// The grappling gun, <c>art/hero_grapple.png</c> (grapple-climbs), the user's pick, «Кошка»: the harpoon's plank stock under a
@@ -164,11 +164,11 @@ public sealed record HeldLook(
         "res://art/hero_sledgehammer.png", (6.6, 8), System.Math.PI / 2, (21.4, 15), (31.4, 15), Clamp: (14.5, 8), Size: Drawn);
 
     /// <summary>
-    /// The pickaxe, <c>art/hero_pickaxe.png</c> (the-pickaxe), the user's pick, «Шип из шпангоута»: a ship's rib in old primer, its lightening
-    /// hole kept, torch-cut into a spike and welded to a pipe haft gripped in rubber; held square to the forearm as the axe is; the edge
-    /// the spike's point. Clamped by the pipe, its spike hanging past the table.
+    /// The pickaxe, <c>art/hero_pickaxe.png</c> (the-pickaxe; traced, 2026-11-14-pickaxe-and-harpoon-traced): a rusted plate with a hole,
+    /// a steel spike welded under it, on a pipe haft taped at the butt; held square to the forearm as the axe is; the edge the spike's
+    /// point. Clamped by its head, the haft lying over the table.
     /// </summary>
-    public static readonly HeldLook Pickaxe = new("res://art/hero_pickaxe.png", (5.5, 9), System.Math.PI / 2, (28.1, 17.3), (29.1, 17.3), Clamp: (14, 10), Size: Drawn);
+    public static readonly HeldLook Pickaxe = new("res://art/hero_pickaxe.png", (5.5, 6.05), System.Math.PI / 2, (31.5, 18.3), (32.5, 18.3), Clamp: (31.5, 10.5), Size: Drawn);
 
     /// <summary>
     /// The blasting charge, <c>art/hero_blastCharge.png</c> (blasting-charge), the user's pick, «Труба с серой»: an iron pipe packed
@@ -214,7 +214,7 @@ public sealed record HeldLook(
 public sealed record RodLook(string Picture, (double X, double Y) Eye, (double X, double Y) Tip, double Size = 1)
 {
     /// <summary>The harpoon's rod, <c>art/hero_harpoon_rod.png</c> (0044).</summary>
-    public static readonly RodLook Harpoon = new("res://art/hero_harpoon_rod.png", (3, 2.5), (23, 2.5), HeldLook.Drawn);
+    public static readonly RodLook Harpoon = new("res://art/hero_harpoon_rod.png", (2.4, 2.5), (23.6, 2.5), HeldLook.Drawn);
 
     /// <summary>The grappling gun's grapnel, <c>art/hero_grapple_hook.png</c> (grapple-climbs): three prongs sprung open, swept back.</summary>
     public static readonly RodLook Grapple = new("res://art/hero_grapple_hook.png", (2.2, 5.5), (15.9, 5.5), HeldLook.Drawn);

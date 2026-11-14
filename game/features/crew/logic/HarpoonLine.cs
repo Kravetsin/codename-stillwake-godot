@@ -34,13 +34,16 @@ public sealed class HarpoonLine
 
     /// <summary>
     /// Where the line ends for a rod with its point at <paramref name="tip"/>, pointing <paramref name="pointing"/>, its eye
-    /// <paramref name="rodLength"/> behind it: at its eye, or at <paramref name="gun"/> while that eye is still in the gun, as a
-    /// line tied behind the muzzle would run back through the gun.
+    /// <paramref name="rodLength"/> behind it: at its eye, or at <paramref name="gun"/> while that eye is still in the gun (the gun
+    /// on the rod, between its eye and its point), as a line tied behind the muzzle would run back through the gun. A hero
+    /// anywhere else, behind a stuck rod's point too, keeps the line to the eye.
     /// </summary>
     public static (double X, double Y) EndOf((double X, double Y) gun, (double X, double Y) tip, (double X, double Y) pointing, double rodLength)
     {
         var eye = (X: tip.X - pointing.X * rodLength, Y: tip.Y - pointing.Y * rodLength);
-        return (eye.X - gun.X) * pointing.X + (eye.Y - gun.Y) * pointing.Y > 0 ? eye : gun;
+        double along = (gun.X - eye.X) * pointing.X + (gun.Y - eye.Y) * pointing.Y;
+        double aside = Math.Abs((gun.X - eye.X) * pointing.Y - (gun.Y - eye.Y) * pointing.X);
+        return along >= 0 && along <= rodLength && aside <= rodLength / 2 ? gun : eye;
     }
 
     /// <summary>How long the line is let out now.</summary>

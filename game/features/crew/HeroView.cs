@@ -284,7 +284,7 @@ public partial class HeroView : Node2D
         _tethers.Paint = PaintTethers;
         _lines.Paint = PaintLines;
         _harpoonWorld = new HarpoonWorld(
-            Touches: (from, to) => Aiming.RodMeets(_m!, _ship!, _client!.Id, from, to, _drift),
+            Touches: (from, to) => Aiming.RodMeets(_m!, _ship!, _client!.Id, from, to, _drift, _wreckPixels.Solid(_drift, _ui.DebrisTurns)),
             PieceAt: PieceDrawnAt,
             Reelable: id => _m!.Debris.ReelProblem(_client!.Id, id) == null,
             Reeled: id => ReelInFlight(id) || PieceOf(id)?.Reel?.By == _client!.Id,

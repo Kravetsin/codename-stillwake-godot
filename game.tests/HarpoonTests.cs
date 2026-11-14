@@ -261,6 +261,19 @@ public class HarpoonTests
     }
 
     [Fact]
+    public void TheLineEndsAtTheGunOnlyWhileTheRodsEyeIsStillInIt()
+    {
+        // A rod stuck pointing up and right, its eye two cells behind its point.
+        (double X, double Y) tip = (10_000, 0), pointing = (0.6, -0.8), eye = (8_800, 1_600);
+        // Leaving the muzzle, the gun on the rod between its eye and its point: the line runs back through the gun.
+        Assert.Equal((9_400.0, 800.0), HarpoonLine.EndOf((9_400, 800), tip, pointing, 2_000));
+        // The hero flown up past it, far behind its point as it flew: the line still runs to its eye.
+        var end = HarpoonLine.EndOf((0, -20_000), tip, pointing, 2_000);
+        Assert.Equal(eye.X, end.X, 6);
+        Assert.Equal(eye.Y, end.Y, 6);
+    }
+
+    [Fact]
     public void TheLineHangsSlackHookedAndIsWoundInTautToItsSpanReeling()
     {
         var line = new HarpoonLine((0, 0), (20_000, 0));
