@@ -37,7 +37,7 @@ public sealed class BentLimb
     /// <summary>No seam: a lower picture drawn whole from its top, as a soft helmet's are (helmets-fit-the-suit).</summary>
     public static readonly (double From, double To) Seamless = (double.NegativeInfinity, double.PositiveInfinity);
 
-    private readonly double _joint;
+    private readonly double _joint, _band;
     private readonly bool _lower;
     private readonly Vec[] _rest;
 
@@ -63,9 +63,10 @@ public sealed class BentLimb
     /// <param name="joint">Where the elbow or knee is down the frame: the upper bone's length for an upper picture, 0 for a lower one.</param>
     /// <param name="lower">Whether the picture hangs from the lower bone (forearm, shin) rather than the upper.</param>
     /// <param name="seam">Where the pictures meet, from and to, pixels down from the joint (<see cref="SeamOf"/>).</param>
-    public BentLimb(double left, double top, double width, double height, double joint, bool lower, (double From, double To) seam)
+    /// <param name="band">How tall the band it bends in is, pixels: <see cref="Band"/> for a limb, a helmet's own for its seal (helmets-fit-the-suit).</param>
+    public BentLimb(double left, double top, double width, double height, double joint, bool lower, (double From, double To) seam, double band = Band)
     {
-        (_joint, _lower) = (joint, lower);
+        (_joint, _lower, _band) = (joint, lower, band);
         double from = lower ? Math.Max(top, joint + seam.From) : top, to = lower ? top + height : Math.Min(top + height, joint + seam.To);
         if (to <= from) (from, to) = (top, top);
         var rows = new List<double> { from, to };
@@ -73,7 +74,7 @@ public sealed class BentLimb
             if (y > from && y < to && !rows.Contains(y)) rows.Add(y);
         for (int i = 0; i < BandRows; i++)
         {
-            double y = joint - Band / 2 + Band * i / (BandRows - 1);
+            double y = joint - band / 2 + band * i / (BandRows - 1);
             if (y > from && y < to && !rows.Contains(y)) rows.Add(y);
         }
         rows.Sort();
@@ -109,14 +110,14 @@ public sealed class BentLimb
     {
         if (Bent == bend) return false;
         Bent = bend;
-        for (int i = 0; i < _rest.Length; i++) Points[i] = Warp(_rest[i], _joint, bend, _lower);
+        for (int i = 0; i < _rest.Length; i++) Points[i] = Warp(_rest[i], _joint, bend, _lower, _band);
         return true;
     }
 
-    /// <summary>How much of the bend a row <paramref name="along"/> pixels below the joint takes: none above the band, all below it, smoothly between.</summary>
-    public static double Share(double along)
+    /// <summary>How much of the bend a row <paramref name="along"/> pixels below the joint takes: none above the <paramref name="band"/>, all below it, smoothly between.</summary>
+    public static double Share(double along, double band = Band)
     {
-        double t = Math.Clamp(along / Band + 0.5, 0, 1);
+        double t = Math.Clamp(along / band + 0.5, 0, 1);
         return t * t * (3 - 2 * t);
     }
 
@@ -125,9 +126,9 @@ public sealed class BentLimb
     /// <paramref name="joint"/> down its frame: turned about the joint as the figure's nodes turn, clockwise; in the upper bone's
     /// frame by its <see cref="Share"/> of the bend, in the lower one's back by the rest of it.
     /// </summary>
-    public static Vec Warp(Vec rest, double joint, double bend, bool lower)
+    public static Vec Warp(Vec rest, double joint, double bend, bool lower, double band = Band)
     {
-        double share = Share(rest.Y - joint);
+        double share = Share(rest.Y - joint, band);
         double turn = lower ? (1 - share) * bend : -share * bend;
         double c = Math.Cos(turn), s = Math.Sin(turn), y = rest.Y - joint;
         return new Vec(rest.X * c - y * s, joint + rest.X * s + y * c);

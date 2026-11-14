@@ -10,7 +10,7 @@ namespace Stillwake.Game.Features.Crew;
 public partial class BentPicture : Node2D
 {
     private readonly Sprite2D _source;
-    private double _joint;
+    private double _joint, _band = BentLimb.Band;
     private readonly bool _lower;
     private BentLimb? _mesh;
     private Texture2D? _texture;
@@ -41,6 +41,18 @@ public partial class BentPicture : Node2D
         }
     }
 
+    /// <summary>How tall the band it bends in is (<see cref="BentLimb"/>): changed, the grid is made again at the next <see cref="Show"/>.</summary>
+    public double Band
+    {
+        get => _band;
+        set
+        {
+            if (value == _band) return;
+            _band = value;
+            _texture = null;
+        }
+    }
+
     /// <summary>Drawn bent <paramref name="bend"/>, the limb's <see cref="Bend.Lower"/>, meeting the limb's other picture at <paramref name="seam"/> (<see cref="BentLimb.SeamOf"/>).</summary>
     public void Show(double bend, (double From, double To) seam)
     {
@@ -56,7 +68,7 @@ public partial class BentPicture : Node2D
     private void Remake(Texture2D? texture, Rect2 cut, (double From, double To) seam)
     {
         (_texture, _cut, _seam) = (texture, cut, seam);
-        _mesh = texture == null ? null : new BentLimb(cut.Position.X, cut.Position.Y, cut.Size.X, cut.Size.Y, _joint, _lower, seam);
+        _mesh = texture == null ? null : new BentLimb(cut.Position.X, cut.Position.Y, cut.Size.X, cut.Size.Y, _joint, _lower, seam, _band);
         int n = _mesh?.Points.Length ?? 0;
         (_points, _uvs, _colours) = (new Vector2[n], new Vector2[n], new Color[n]);
         if (_mesh == null || texture == null) return;

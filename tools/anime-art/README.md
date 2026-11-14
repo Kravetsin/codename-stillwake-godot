@@ -54,7 +54,7 @@ finish is `wash.js`, one for every subject; a drawing follows these rules.
 | `net` | `machine_net` (booms), `net_mount`, `net_front_<n>` (holding n); `NetInk.cs` |
 | `bay`, `salvage` | `machine_droneBay`, `droneBay_*`, `salvage_*`, `items/salvageDrone`; `BayInk.cs`, `SalvageInk.cs` |
 | `scanner` | `hero_scanner`, `hero_<helmet>_scanner`, `_lit_<n>`, `items/scanner`; `ScannerInk.cs` |
-| `helmets`, `quilted`, `heatSuit` | traced: `hero_<helmet>_shell`, `_visor` (basic: `_collar`, `hero_visor`, `hero_helmet` the lamp card), `items/<id>`; `hero_heatSuit_<part>` |
+| `helmets`, `quilted`, `heatSuit` | traced: `hero_<helmet>_shell`, `_visor` (`_collar`; bell `_seal`; `hero_visor`, card `hero_helmet`), `items/<id>`; `hero_heatSuit_<part>` |
 | `charge`, `missile` | `hero_blastCharge` (`icons/` lit), `shot_blastCharge_spark`: its fuse in flight; `shot_missile` |
 | `edgekeys` | `holo_<key>`, `_glow`: the edge keys' masks |
 | `signs`, `credit`, `capsule`, `gauge` | `sign_*`: bolts, plug, wrench, tips; `credit`, the chip; `capsule`, `capsule_flame_<n>`; `gauge_*`, the vitals' light |
