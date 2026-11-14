@@ -162,11 +162,9 @@ spares a fifth (12 × 0.8 + 1 = 10.6), from now none (12 + 1 = 13).
 The pick page (CLAUDE.md, art picks), then the piece in the vitals block reading `TemperatureAt`, `LowOf` and `Felt` on the
 panels' timer; a dev room the user plays (day, night, cave, flight out).
 
-### T-3: heat (its own short design first)
+### T-3: heat, designed in [heat](heat.md)
 
-Bodies gain `Item.High`; felt adds `max(0, t − High)` at the same `Bite`; the heat suit, PR 502's (Low −40°, High +40°),
-made at the workbench; the thermometer's and the frost's heat side, a haze picked on a page. Open there, from PR 502: whether
-the amber deep (+15°) already asks for gear, and how the heat suit is unlocked.
+Its own plan, [heat](heat.md), in three steps (H-1 to H-3); its numbers and unlock settled there.
 
 This plan is deleted when T-3 lands, what stays true moved into the ADRs, Crew's README and the concept.
 
@@ -177,4 +175,5 @@ This plan is deleted when T-3 lands, what stays true moved into the ADRs, Crew's
 - Wind, clothing layers, a cold suit, coolant consumables.
 - Storms: they deepen `Chill` later, under [day-night](day-night.md).
 - Spore gas in the garden: not temperature; a later Creatures slice, as PR 502 planned.
-- Caves of the cold band colder than its surface by day (PR 502's Q3): the band is one number until a player sequence needs two.
+- Caves of the cold band colder than its surface by day (PR 502's Q3): degrees run by depth alone
+  ([temperature-gradients](../decisions/2026-11-14-temperature-gradients.md)), never colder under rock.
