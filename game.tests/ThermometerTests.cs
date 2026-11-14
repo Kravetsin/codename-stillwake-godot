@@ -22,10 +22,19 @@ public class ThermometerTests
     [Fact]
     public void ItsFrostIsNoneInsideTheLimitFullAtThirtyDegreesFeltAndEasedOutBetween()
     {
-        Assert.Equal(0f, Thermometers.Frost(0));
-        Assert.Equal(0.75f, Thermometers.Frost(15), 3);
-        Assert.Equal(1f, Thermometers.Frost(Report.FeltFull));
-        Assert.Equal(1f, Thermometers.Frost(50));
+        Assert.Equal(0f, Thermometers.Depth(0));
+        Assert.Equal(0.75f, Thermometers.Depth(15), 3);
+        Assert.Equal(1f, Thermometers.Depth(Report.FeltFull));
+        Assert.Equal(1f, Thermometers.Depth(50));
+    }
+
+    [Fact]
+    public void PastTheHighTheStarGivesWayToTheFlameOverADegreeAndAHalf()
+    {
+        Assert.Equal(0f, Thermometers.Swap(0));
+        Assert.Equal(0.5f, Thermometers.Swap(0.75f), 3);
+        Assert.Equal(1f, Thermometers.Swap(Thermometers.SwapDegrees));
+        Assert.Equal(1f, Thermometers.Swap(30));
     }
 
     [Fact]

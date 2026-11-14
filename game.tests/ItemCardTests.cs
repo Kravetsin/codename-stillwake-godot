@@ -224,6 +224,7 @@ public class ItemCardTests
         Assert.Equal([("−40°", "Withstands down to"), ("+50°", "Withstands heat up to")], Said(suit.Rows));
         Assert.Equal([(CardSign.Cold, CardGroup.Guard), (CardSign.Heat, CardGroup.Guard)], suit.Rows.Select(r => (r.Sign, r.Group)));
         Assert.Null(suit.Use);
+        Assert.Equal([("−40°", "Withstands down to"), ("+60°", "Withstands heat up to")], Said(ItemCards.Of(Spec.Suit.Heat).Rows));
         var regen = ItemCards.Of(Spec.Suit.Regen);
         // A unit a breath, a breath a second; 15 power-ticks a unit.
         Assert.Equal([("−40°", "Withstands down to"), ("+50°", "Withstands heat up to"), ("up to 1 O₂/s", "Makes air"), ($"{Spec.Suit.RegenCost}", "Charge use")], Said(regen.Rows));
@@ -531,8 +532,8 @@ public class ItemCardTests
         var arc = ModuleLooks.Arc;
         // The arc's coil over the drill's coil mount, crackling there; a plain drill has nothing over it.
         var fitted = HeldParts.Of(HeldLook.Drill, [Spec.Modules.Arc]);
-        Assert.Equal([new HeldLayer("res://art/module_arc_coil.png", 4, 4)], fitted.Layers);
-        Assert.Equal([(3.0, 3.5, 11.0, 6.5)], fitted.Crackles);
+        Assert.Equal([new HeldLayer("res://art/module_arc_coil.png", 3, 2)], fitted.Layers);
+        Assert.Equal([(2.0, 1.5, 10.0, 4.5)], fitted.Crackles);
         Assert.Empty(HeldParts.Of(HeldLook.Drill, []).Layers);
         Assert.Empty(HeldParts.Of(HeldLook.FireAxe, [Spec.Modules.Arc]).Layers);
         // The railgun crackles along its own barrel with no module, and nothing is laid over it.

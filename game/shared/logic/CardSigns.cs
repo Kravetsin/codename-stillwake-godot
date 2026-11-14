@@ -39,8 +39,8 @@ public static class CardSigns
         // Two bottles: what is held.
         CardSign.Tank => new("M5 8a2.5 2.5 0 0 1 5 0V20.5H5ZM14 8a2.5 2.5 0 0 1 5 0V20.5h-5Z", "M10 12h4M10 16.5h4M7.5 2.8v2.7M16.5 2.8v2.7"),
         CardSign.Cold => new("M12 3.5L12 20.5M4.64 7.75L19.36 16.25M4.64 16.25L19.36 7.75", "M13.84 4.36L12 6.2L10.16 4.36M6.3 6.59L6.98 9.1L4.47 9.77M4.47 14.23L6.98 14.9L6.3 17.41M10.16 19.64L12 17.8L13.84 19.64M17.7 17.41L17.02 14.9L19.53 14.23M19.53 9.77L17.02 9.1L17.7 6.59"),
-        // Heat rising: a stand-in until the heat sign is picked (2026-11-14-heat-limits).
-        CardSign.Heat => new("M7.5 20.5c-2.2-2.8 2.2-5.2 0-8s2.2-5.2 0-8M12 20.5c-2.2-2.8 2.2-5.2 0-8s2.2-5.2 0-8M16.5 20.5c-2.2-2.8 2.2-5.2 0-8s2.2-5.2 0-8"),
+        // The flame of the thermometer's heat sign (2026-11-14-heat-limits, the user's pick A), its pale heart inside.
+        CardSign.Heat => new("M12.4 2.2L15.6 6.8L18.4 10.2L19.4 14.4L18.4 18.4L15.4 21.2L12 22L8.6 21.2L5.6 18.4L4.6 14.4L5.8 10.6L8.2 8.2L9 11.6L10.8 7.6Z", "M12 19.4C10.3 19.4 9.3 18.3 9.3 16.8C9.3 15.2 10.6 14 12 12.2C13.4 14 14.7 15.2 14.7 16.8C14.7 18.3 13.7 19.4 12 19.4Z"),
         CardSign.Guard => new("M12 3L19.5 5.8V11.5C19.5 16 16.4 19.4 12 21C7.6 19.4 4.5 16 4.5 11.5V5.8Z", "M8.5 10l3.5 2.8 3.5-2.8"),
         // Arrows round a bolt: air made of charge.
         CardSign.Regen => new("M19 12a7 7 0 0 1-12.4 4.45M5 12a7 7 0 0 1 12.4-4.45", "M12.9 8.6L10.4 12.3h3.2L11.1 15.9", "M6.57 19.25L6.6 16.45L9.35 16.96M17.43 4.75L17.4 7.55L14.65 7.04"),

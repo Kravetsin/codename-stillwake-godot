@@ -66,7 +66,13 @@ public static class Report
         return Eased(Math.Max(felt, edge));
     }
 
-    /// <summary>A share of the cold, clamped to 0 to 1 and eased out (2s − s²): what the frost and the thermometer draw.</summary>
+    /// <summary>
+    /// How hard the heat bites hero <paramref name="peer"/> at <paramref name="cell"/>, 0 to 1: the degrees past its high (<c>Heat</c>)
+    /// over <see cref="FeltFull"/>, eased as the cold is (2026-11-14-heat-limits). What the haze on the screen is drawn at.
+    /// </summary>
+    public static float Heat(ICrewQueries crew, int peer, int cell) => Eased((float)crew.Heat(peer, cell) / FeltFull);
+
+    /// <summary>A share of the cold or the heat, clamped to 0 to 1 and eased out (2s − s²): what the frost, the haze and the thermometer draw.</summary>
     public static float Eased(float share)
     {
         share = Math.Clamp(share, 0f, 1f);

@@ -45,9 +45,9 @@ public class BenchLookTests
     [Fact]
     public void TheDrillLiesAtItsSizeByItsMotorItsCoilOverTheTable()
     {
-        // The vise's manifest drew it whole at (0, 4); at three quarters (tool-size) it lies at (4, 6), its coil from (6.25, 8.6) to (12.25, 10.9).
+        // Clamped by its motor's underside, at three quarters (tool-size) it lies at (7, 7), its coil from (8.5, 8.1) to (14.5, 10.4).
         var drill = HeldLook.Drill;
-        Assert.Equal((4, 6), BenchLook.ToolAt(drill));
+        Assert.Equal((7, 7), BenchLook.ToolAt(drill));
         var box = drill.Mounts![0].Box;
         var (x0, y0, x1, y1) = (4 + box.X0 * drill.Size, 6 + box.Y0 * drill.Size, 4 + box.X1 * drill.Size, 6 + box.Y1 * drill.Size);
         Assert.True(x0 >= 0 && x1 <= BenchLook.Width && y1 <= BenchLook.TableTop, $"its coil at ({x0}, {y0})–({x1}, {y1}) is off the table");

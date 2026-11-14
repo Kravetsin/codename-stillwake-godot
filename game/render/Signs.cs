@@ -35,6 +35,9 @@ public static class Signs
     /// <summary>A frost star: the vitals' thermometer's sign (the-thermometer).</summary>
     public static Texture2D Cold() => PixelArt.Picture("sign_cold");
 
+    /// <summary>The thermometer's heat sign: a flame in ember, the star's place once past the body's high (2026-11-14-heat-limits).</summary>
+    public static Texture2D Heat() => PixelArt.Picture("sign_heat");
+
     /// <summary>The chip credits are written with, before every amount.</summary>
     public static Texture2D Credit() => PixelArt.Picture("credit");
 }
