@@ -33,7 +33,10 @@ set the numbers by what each thing is made for, not by round numbers, on 2026-11
   and gauntlets, a small dark pack. Traced from an AI-made sheet of its six pieces (`tools/anime-art/refs/heatSuit.png`), each
   piece apart so each is traced alone (`pieces` in the palette, `traced/heatSuit.<piece>.json`) and stretched over its part's box
   on the basic suit's joints (`subjects/heatSuit.js`). Its card is the jacket as worn: the torso, the near arm and the pack. The
-  game's Steam AI disclosure must say so, as for the traced helmets.
+  game's Steam AI disclosure must say so, as for the traced helmets. Seen worn, the user had it reshaped (2026-11-14): the torso
+  straight, with no waist and no flare under the belt like a skirt; the sleeves fuller; the pack cut short of its strap's loop;
+  the shin taken in under the tracker's strap so it wraps the leg. `Traced.straighten` moves a piece's outline row by row to
+  its box's sides, keeping the quilting's bumps.
 - Content only: no save field, no format bump.
 
 ## Consequences
