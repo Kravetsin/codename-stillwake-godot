@@ -4,6 +4,8 @@
 // parts, each part is named by the palette material nearest its mean colour, and every part's outline is traced (marching squares,
 // RDP, beziers) in the reference's pixels. Writes the draw ops (the body, every part its own shape, overlays after their part, the
 // reference's loose strokes) and the fit into the icon box; traced.js draws them with the engine's own line, paint and finish.
+// A palette with "segment": "colour" cuts parts by the material nearest each pixel instead, the ink still parting pieces: for
+// paint that meets bare steel with no line (the fire axe).
 // Needs ffmpeg on the PATH to read the PNG.
 'use strict';
 const fs = require('fs'), path = require('path'), { spawnSync } = require('child_process');
@@ -140,7 +142,24 @@ const ink = inkAt(rel, P.ink.bridge || 2);
 // The stronger ink is not used everywhere, for it would fill a buckle's thin ring.
 const minPart = (P.minPart || 0.0015) * silArea;
 let [partLab, partsAll] = components(and(sil, not(ink)));
-if (P.ink.coarse) {
+if (P.segment === 'colour') {
+  // Parts by colour: each pixel off the ink takes the material nearest its colour, each material's pixels cleaned of specks and
+  // grain, then cut into pieces by the ink. For a reference whose parts meet without a line (paint worn off onto bare steel).
+  const mats = Object.entries(P.materials).filter(([, m]) => !m.overlay), refs = mats.map(([, m]) => m.ref.map(hex));
+  const which = new Int8Array(N).fill(-1);
+  for (let i = 0; i < N; i++) {
+    if (!sil[i] || ink[i]) continue;
+    let best = -1, bd = 1e9;
+    refs.forEach((rs, k) => { for (const c of rs) { const d = Math.hypot(px[i * 4] - c[0], px[i * 4 + 1] - c[1], px[i * 4 + 2] - c[2]); if (d < bd) { bd = d; best = k; } } });
+    which[i] = best;
+  }
+  const r = P.colourClean || 3, lab2 = new Int32Array(N).fill(-1), comps2 = [];
+  mats.forEach((_, k) => {
+    const [l, cs] = components(and(open(close(which.map((v) => (v === k ? 1 : 0)), r), r), not(ink)));
+    for (const c of cs) { const id = comps2.length; comps2.push({ ...c, id }); for (let y = c.y0; y <= c.y1; y++) for (let x = c.x0; x <= c.x1; x++) { const i = idx(x, y); if (l[i] === c.id && lab2[i] < 0) lab2[i] = id; } }
+  });
+  partLab = lab2; partsAll = comps2;
+} else if (P.ink.coarse) {
   const coarse = inkAt(P.ink.coarse.relative, P.ink.coarse.bridge), [cl] = components(and(sil, not(coarse))), splitMin = (P.ink.coarse.min || 0.02) * silArea;
   const next = new Int32Array(N).fill(-1); let id = 0;
   for (const c of partsAll) {
@@ -239,6 +258,7 @@ function contour(mask, box, blur) {
   }
   let best = loops[0], bl = 0;
   for (const l of loops) { let s = 0; for (let i = 1; i < l.length; i++) s += Math.hypot(l[i][0] - l[i - 1][0], l[i][1] - l[i - 1][1]); if (s > bl) { bl = s; best = l; } }
+  if (!best) return null;
   return best.map(([x, y]) => [x + x0 + .5, y + y0 + .5]);
 }
 function rdp(pts, eps) {
@@ -276,11 +296,12 @@ function bez(pts, closed, corner = 50, tension = 1) {
   return closed ? d + 'Z' : d;
 }
 const boxOf = (m) => { let x0 = W, y0 = H, x1 = 0, y1 = 0, n = 0; for (let i = 0; i < N; i++) if (m[i]) { n++; const x = i % W, y = (i / W) | 0; if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y; } return n ? [x0, y0, x1, y1] : null; };
-const tracePath = (m, box, eps, blur = 2) => bez(simplifyLoop(contour(m, box, blur), eps), true);
+// A part too thin to leave a loop once blurred traces to nothing, and is dropped.
+const tracePath = (m, box, eps, blur = 2) => { const c = contour(m, box, blur); return c && c.length > 4 ? bez(simplifyLoop(c, eps), true) : null; };
 /** A hole's loop wound the other way, so a shape with it appended (nonzero fill) leaves it open. */
 const holeD = (h) => (h.d = h.d || bez(simplifyLoop(contour(h.mask, [h.x0, h.y0, h.x1, h.y1], 2), 1.6).reverse(), true));
 /** The holes inside a filled outline, appended to its path. */
-const withHoles = (d, F) => d + holes.filter((h) => F[h.at]).map(holeD).join('');
+const withHoles = (d, F) => d && d + holes.filter((h) => F[h.at]).map(holeD).join('');
 
 /** An open stroke from a thin pixel set: its two farthest ends by walking it, the walk between them. */
 function strokeOf(cells) {
@@ -300,7 +321,7 @@ const sbox = boxOf(sil), bw = sbox[2] - sbox[0] + 1, bh = sbox[3] - sbox[1] + 1,
 out.fit = { units: +u.toFixed(4), shift: [f1((16 * u - bw) / 2 - sbox[0]), f1((16 * u - bh) / 2 - sbox[1])], box: sbox };
 const crescent = (m, box) => { const e = Math.min(box[2] - box[0], box[3] - box[1]) / u; return +Math.max(.22, Math.min(.9, e * (m.shade ?? .16))).toFixed(3); };
 
-const silD = withHoles(tracePath(sil, sbox, 1.6, 2), fillHoles(sil));
+const silD = withHoles(tracePath(sil, sbox, P.epsilon || 1.6, 2), fillHoles(sil));
 const baseName = Object.entries(P.materials).find(([, m]) => m.base)[0];
 // Each part's filled outline, its material, its nesting depth (how many other parts' filled outlines hold most of it).
 const whole = parts.map((p) => fillHoles(maskOf((i) => lab[i] === p.k, p.box))), filled = whole.map((F) => and(F, not(holeMask)));
@@ -318,6 +339,7 @@ const order = parts.slice().sort((a, b) => a.depth - b.depth || layer(a) - layer
 for (const p of order) {
   const m = P.materials[p.mat];
   p.d = withHoles(tracePath(filled[p.k], p.box, P.epsilon || 1.6, 2), whole[p.k]);
+  if (!p.d) continue;
   p.shade = m.shade === 0 ? 0 : crescent(m, p.box);
   // The material's lit sub-areas the reference paints (a streak on glass): its pixels well above the part's median light.
   if (m.lite) {
@@ -377,6 +399,7 @@ for (const [mname, m] of Object.entries(P.materials)) {
 }
 
 // The body under everything, every part its own shape with a deep step, overlays after their part, loose strokes on top.
+for (let i = order.length - 1; i >= 0; i--) if (!order[i].d) order.splice(i, 1);
 out.ops = [{ op: 'shape', mat: baseName, d: silD, shade: 0, deep: 0, lite: [] }];
 for (const p of order) {
   out.ops.push({ op: 'shape', mat: p.mat, d: p.d, shade: p.shade, deep: p.shade ? +(p.shade * .4).toFixed(3) : 0, lite: p.lite || [] });
