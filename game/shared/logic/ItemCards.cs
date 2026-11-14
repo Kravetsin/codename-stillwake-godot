@@ -197,8 +197,8 @@ public static class ItemCards
 
     /// <summary>
     /// A worn item's card: the helmet lamp's reach in cells and its beam across, in degrees, from the light it gives
-    /// (<see cref="Light.HeadLampReach"/>); the cape's share off enemies' blows and off the cold, in percent; a battery's number
-    /// is its charge, set per stack; the jetpack has none.
+    /// (<see cref="Light.HeadLampReach"/>); the cape's share off enemies' blows in percent and the degrees it adds; a body's
+    /// coldest it withstands (2026-11-14-temperature-in-degrees); a battery's number is its charge, set per stack; the jetpack has none.
     /// </summary>
     private static ItemCard Worn(ItemCard card)
     {
@@ -207,8 +207,10 @@ public static class ItemCards
             {
                 Worn = true,
                 Headline = new CardTile((Spec.Cape.Guard / 10).ToString(CultureInfo.InvariantCulture), T("card.guard")),
-                Detail = T("card.warmth", ("n", Spec.Cape.Warmth / 10)),
+                Detail = T("card.warmth", ("n", Spec.Cape.Warmth)),
             };
+        if (Spec.Items.Get(card.Item).Low is int low)
+            return card with { Worn = true, Detail = T("card.low", ("n", Degrees(low))) };
         if (card.Item != Spec.HelmetLamp.Item) return card with { Worn = true };
         int beam = (int)Math.Round(Light.HeadLampHalfAngle * 2 * 180 / Math.PI);
         return card with
@@ -258,6 +260,9 @@ public static class ItemCards
     public static string NameIn(Language language, string id, Placement? placement) => placement is { } p
         ? p.Material is { } m ? $"{In(language, $"tool.{p.Kind}")}: {In(language, $"material.{m}")}" : In(language, $"tool.{p.Kind}")
         : In(language, $"item.{id}");
+
+    /// <summary>Whole <paramref name="degrees"/> with a true minus sign below zero: −40, 0, 15.</summary>
+    public static string Degrees(int degrees) => degrees < 0 ? "−" + (-degrees).ToString(CultureInfo.InvariantCulture) : degrees.ToString(CultureInfo.InvariantCulture);
 
     /// <summary><paramref name="n"/> with one decimal at most, half rounded up: 4, 5.3, 0.5.</summary>
     public static string Number(double n) =>

@@ -37,11 +37,11 @@ Heroes in the sim: where each is, as its client says, and how it breathes; passi
 - **Leave**, by the host for a peer gone: the hero goes, colour freed, tool stopped, inventory kept.
 - **Surfaces** (`ICarries`): `Depart` gives up the `Hero`, `Arrive` takes it at a cell or the spawn. One waking
   off the ship wakes aboard.
-- **Exertion:** `Exert(On)`, sent as the hero runs or holds a move key in a wheel: a breath costs
-  `Crew.Exerted` units, room air or suit alike, till passing out.
+- **Exertion:** `Exert(On)`, sent as the hero runs or walks a wheel: a breath costs
+  `Crew.Exerted` units, room air or suit alike.
 - **The jetpack**: `Thrust(On)`, sent as the client's thrust changes; an awake hero thrusting pays a unit every
   `Jetpack.TicksPerUnit` ticks, before the breath. It stops with the jetpack off, on a planet or out (one landing, then
-  cleared); the client flies.
+  cleared).
 - **The suit's mode** (regen-suit): `SuitMode(On)` sets `Hero.SuitOn` (a body with `Switch`); on, the regen suit gives back what a
   breath took, after the thin-air clamp, up to `Suit.RegenMost`, `Suit.RegenCost` power-ticks a unit (`Drain`, after any tool).
 - **A canister** (food-and-the-body): `Refill` takes one (none in creative), adds `RefillOf(peer)` up to capacity,
@@ -52,22 +52,22 @@ Heroes in the sim: where each is, as its client says, and how it breathes; passi
   go to `Owed`, whole units paid; hungry, a sprint costs `Diet.HungrySprint`. `Works` (Building's `Work`) adds
   `Diet.Work` and food's, hungry `Diet.HungryWork`, to `Worked`, returning whole ticks.
 - **The last breath** (the-last-breath): air run dry starts `Hero.Gasp` at `Crew.LastBreath`, counted
-  down; air back (the regen suit's too) ends it. Lava, shocks and blows past the air cut
-  `Crew.LastBreathPerUnit` a unit; cold, running, thrust nothing.
+  down; air back (the regen suit's too) ends it, a covered breath only with nothing `Felt`. Lava, shocks and blows
+  past the air cut `Crew.LastBreathPerUnit` a unit; cold, running, thrust nothing.
 - **Passing out is death**: a spent last breath passes the hero out for `Crew.PassOut` ticks (tool stopped),
   then is made at the spawn, full, dressed; `LeaveBody(peer, cell)` leaves all but gear at the reported cell. It
   clears `CanisterIn`, meals, `Owed`, `Worked`.
-- **The cold past the field**: `EdgeCost(cell)` 0 in the zone grown by `Field.Margin` or a vessel's box,
-  past it the deeper axis's depth squared up to `Field.EdgeCost`, `Field.OffGrid` off the grid (rounded up); paid each
-  breath after the regen suit, none on a planet. Bare where `AiredAt` is false, `Crew.BareCold` more on thin air's beat;
-  at night with no `BackAt`, `Chill` more on its own beat (night-chills).
+- **The cold** (temperature), after the regen suit: `TemperatureAt(cell)` is `Temperature.Space` off the grid, `Room`
+  aired, else the kind's `Temperatures[BandOf]`, band 0 `Chill` colder with no `BackAt`. Each degree `Felt` below `LowOf`
+  (the body's `Low` or `BareLow`, `Cape.Warmth` lower) costs `Bite`‰ a breath, whole by `Clock`, nothing kept. Then
+  `EdgeCost(cell)`: 0 in the zone grown by `Field.Margin` or a vessel's box, past it depth² to `Field.EdgeCost`; `OffGrid`.
 - **Lava burns**: lava at the reported cell or `Lava.Reach` rows under it (`Burns`) costs the suit alone
   `Lava.Burn` more a breath.
 - **A shock** (`Shock`) and **a blow** (`Blow`, from Creatures) take units from a
   conscious hero's air at once, the rest from its last breath; none in creative. They and lava are hurts
   (hurts-are-shown): `Hero.Hurts` counts them, `Hero.Hurt` holds the last's `Harm`.
-- **The cape** (the-cape-is-worn) spares `Cape.Guard`‰ of a blow, `Cape.Warmth`‰ of the cold (not the
-  breath or lava), rounded down, the rest in `Hero.Spared` for either; a blow lands before the breath.
+- **The cape** (the-cape-is-worn) spares `Cape.Guard`‰ of a blow, rounded down, the rest in `Hero.Spared`; a blow
+  lands before the breath.
 - **The wanted meter** (catcher-loot): `Loot(peer, yield)` adds `Market.WorthOf` to an awake, not creative hero's
   `Wanted` up to `Need` (drawn at 0); afloat, not full, it drains `Wanted.Drain` a breath in `Wanted.Belt`. Filled,
   `Coming` counts `Wanted.ComingLeast..Most` breaths down. `SignalOf`: `Calm`, `Coming`, `Hunted` (the catcher
@@ -77,7 +77,7 @@ Heroes in the sim: where each is, as its client says, and how it breathes; passi
 
 ## API
 
-- **Queries** (`ICrewQueries`): `Spawn`; `ByPod(cell)`; `EdgeCost(cell)`; `CapacityOf(peer)`; `RefillOf`, `RatesOf`, `Hungry(peer)`; `Cold`, `Warmth` (frost);
+- **Queries** (`ICrewQueries`): `Spawn`; `ByPod(cell)`; `EdgeCost(cell)`; `CapacityOf(peer)`; `RefillOf`, `RatesOf`, `Hungry(peer)`; `TemperatureAt`, `LowOf`, `Felt` (frost);
   `SuitOn`, `SuitModeProblem`; `SignalOf(peer)`, `Hunted(peer)`;
   `HeroOf(id)` or null; `Heroes`, live, in id order. On the
   module: `Burns(cell)`, `RefillProblem(peer)`, `EatProblem(peer, food)`: the client sends nothing they refuse.
@@ -99,7 +99,7 @@ Heroes in the sim: where each is, as its client says, and how it breathes; passi
 ## Deliberately not handled
 
 - A `Move` or `Drop` landing while out finds the slots emptied: it moves what is left, or is refused.
-- The sim trusts the client's cell: cold, chill and lava are paid a second late.
+- The sim trusts the client's cell: cold and lava are paid a second late.
 - Peer ids are saved: after a load a hero is whoever connects in its slot's; heroes of peers gone stay.
-- A spawn in vacuum with no pod passes a hero out over again.
-- The pod's air is endless: only for heroes, only by it, slowly, never to the room; full ones draw no room air.
+- A spawn in vacuum with no pod passes a hero out again and again.
+- The pod's air is endless: for heroes by it alone, slowly, never the room's; full ones draw no room air.

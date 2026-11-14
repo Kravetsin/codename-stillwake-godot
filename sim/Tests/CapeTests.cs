@@ -7,7 +7,7 @@ using Xunit;
 
 namespace Stillwake.Sim.Tests;
 
-/// <summary>The cape worn in its own slot, sparing a fifth of enemies' blows and of the cold (2026-10-27-the-cape-is-worn).</summary>
+/// <summary>The cape worn in its own slot, sparing a fifth of enemies' blows (2026-10-27-the-cape-is-worn) and adding degrees against the cold (2026-11-14-temperature-in-degrees).</summary>
 public class CapeTests
 {
     /// <summary>A pod in a vacuum room, never aired.</summary>
@@ -70,18 +70,20 @@ public class CapeTests
     }
 
     [Fact]
-    public void BareInVacuumTheCapeSparesAFifthOfTheColdSoFiveBreathsCostNineNotTen()
+    public void BareInVacuumTheCapeAddsFiveDegreesSoTenBreathsCostSeventeenNotEighteen()
     {
+        // Space's −40° on a bare hero's 0°: 40 felt, 8 units in ten breaths; caped, 35 felt, 7 (2026-11-14-temperature-in-degrees).
         var bare = InVacuum(caped: false);
-        int before = HeroOf(bare).Air;
-        Breaths(bare, 5);
-        Assert.Equal(before - 10, HeroOf(bare).Air);
+        HeroOf(bare).Air = Lungs;
+        Breaths(bare, 10);
+        Assert.Equal(Lungs - 10 - 8, HeroOf(bare).Air);
         var caped = InVacuum(caped: true);
-        Breaths(caped, 5);
-        Assert.Equal(before - 9, HeroOf(caped).Air);
-        // The breaths themselves are paid in full; of the cold, six fifths with the breath brought in on: one unit spared, a fifth kept.
-        Assert.Equal(200, HeroOf(caped).Spared);
-        Assert.Equal((Content.Cape.Warmth, 0), (caped.M.Crew.Warmth(0), bare.M.Crew.Warmth(0)));
+        HeroOf(caped).Air = Lungs;
+        Breaths(caped, 10);
+        Assert.Equal(Lungs - 10 - 7, HeroOf(caped).Air);
+        // The cold is no blow: nothing of it is kept for the cape's guard.
+        Assert.Equal(0, HeroOf(caped).Spared);
+        Assert.Equal((Content.Temperature.BareLow - Content.Cape.Warmth, Content.Temperature.BareLow), (caped.M.Crew.LowOf(0), bare.M.Crew.LowOf(0)));
     }
 
     [Fact]
@@ -208,11 +210,11 @@ public class CapeTests
     }
 
     [Fact]
-    public void ItsSharesAreAFifthEachWithinAWhole()
+    public void ItsGuardIsAFifthWithinAWholeAndItsWarmthSomeDegrees()
     {
-        Assert.Equal((200, 200), (Content.Cape.Guard, Content.Cape.Warmth));
+        Assert.Equal((200, 5), (Content.Cape.Guard, Content.Cape.Warmth));
         Assert.InRange(Content.Cape.Guard, 0, 1000);
-        Assert.InRange(Content.Cape.Warmth, 0, 1000);
+        Assert.True(Content.Cape.Warmth > 0);
         Assert.Equal(Content.Cape.Slot, Content.Items.Get(Cape).Equip);
         Assert.True(Content.Items.Get(Cape).Gear);
     }
@@ -225,9 +227,9 @@ public class CapeTests
         Gen.Constant(new Step("toggle")));
 
     /// <summary>
-    /// A bare hero in vacuum, its cape on and off, struck and breathing: every step charges what the cape leaves of its cost,
-    /// spared units rounded down from the share and the remainder kept, the remainder within a unit. The air is filled before
-    /// each step so none passes out.
+    /// A bare hero in vacuum, its cape on and off, struck and breathing: a blow charges what the cape leaves of it, spared units
+    /// rounded down from the share and the remainder kept within a unit; a breath charges the cold of the degrees felt and keeps
+    /// the remainder as it was. The air is filled before each step so none passes out.
     /// </summary>
     [Property(MaxTest = 60)]
     public Property ChargesWhatTheCapeLeavesOfEveryBlowAndColdItsRemainderWithinAUnit()
@@ -262,9 +264,9 @@ public class CapeTests
                 }
                 else
                 {
-                    // A breath, paid in full, and the bare cold, softened.
-                    (int cold, left) = Soften(Content.Crew.BareCold, Content.Cape.Warmth);
-                    charged = 1 + cold;
+                    // A breath, paid in full, and the cold of the degrees felt on the next breath's turn, the cape's warmth off them.
+                    int felt = Content.Temperature.BareLow - Content.Temperature.Space - (worn ? Content.Cape.Warmth : 0);
+                    charged = 1 + TemperatureTests.ColdOn(w.Crew().Clock + Content.Crew.BreathEvery, felt);
                     Breaths(w, 1);
                 }
                 if (Lungs - hero.Air != charged || hero.Spared != left)

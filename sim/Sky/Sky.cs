@@ -17,7 +17,8 @@ public sealed record SetTime(int Time) : Command;
 
 /// <summary>
 /// The sky now: <paramref name="Time"/> ticks into the day, whether it is <paramref name="Night"/>, and the
-/// <paramref name="Chill"/> a beat of it lays on a hero under the open sky: <c>Cycle.Chill</c> at night, else 0. All 0 with no day.
+/// <paramref name="Chill"/>, the degrees colder it makes the open sky (2026-11-14-temperature-in-degrees): <c>Cycle.Chill</c>
+/// at night, else 0. All 0 with no day.
 /// </summary>
 public readonly record struct SkyNow(int Time, bool Night, int Chill);
 

@@ -169,14 +169,23 @@ public class ItemCardTests
     }
 
     [Fact]
-    public void TheCapesCardShowsItsShareOffBlowsAndOffTheCold()
+    public void TheCapesCardShowsItsShareOffBlowsAndTheDegreesItAdds()
     {
-        // From content (2026-10-27-the-cape-is-worn): a fifth of each.
+        // From content: a fifth off blows (2026-10-27-the-cape-is-worn), 5° against the cold (2026-11-14-temperature-in-degrees).
         var cape = ItemCards.Of(Spec.Cape.Item);
         Assert.True(cape.Worn);
         Assert.Equal(new CardTile("20", "% OFF BLOWS"), cape.Headline);
-        Assert.Equal("20% OFF THE COLD", cape.Detail);
+        Assert.Equal("WARMTH +5°", cape.Detail);
         Assert.Null(cape.Use);
+    }
+
+    [Fact]
+    public void ABodysCardShowsTheColdestItWithstandsAHelmetsNone()
+    {
+        Assert.Equal("WITHSTANDS DOWN TO −40°", ItemCards.Of(Spec.Suit.Basic).Detail);
+        Assert.Equal("WITHSTANDS DOWN TO −40°", ItemCards.Of(Spec.Suit.Regen).Detail);
+        Assert.True(ItemCards.Of(Spec.Suit.Basic).Worn);
+        Assert.NotEqual("WITHSTANDS DOWN TO −40°", ItemCards.Of(Spec.Helmet.Basic).Detail);
     }
 
     [Fact]

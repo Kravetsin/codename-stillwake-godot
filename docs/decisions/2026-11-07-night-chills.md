@@ -1,7 +1,7 @@
 # Night chills a planet's open sky
 
 - Status: accepted; supersedes [0076](0076-a-world-is-made-of-surfaces.md) slice 4's omission "no gradient, sun, clouds or day
-  and night" for day and night
+  and night" for day and night; its chill in units superseded by [temperature-in-degrees](2026-11-14-temperature-in-degrees.md): degrees
 - Date: 2026-11-07
 
 ## Context

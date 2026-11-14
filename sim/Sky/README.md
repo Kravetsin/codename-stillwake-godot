@@ -8,7 +8,8 @@
 | `Sky.cs` | The sky: a planet's hour, its night, `SetTime`, `ISkyQueries`. |
 
 A planet's day and night ([night-chills](../../docs/decisions/2026-11-07-night-chills.md)): its hour counted a tick a tick,
-its night the end of each day. What night costs is Crew's (the chill); what it looks like is the client's (`Daylight`). The
+its night the end of each day. What night costs is Crew's (its chill in degrees,
+[temperature-in-degrees](../../docs/decisions/2026-11-14-temperature-in-degrees.md)); what it looks like is the client's (`Daylight`). The
 numbers are `Content/Sky.cs`, on the surface's kind as `Surfaces.Kind.Cycle`.
 
 - **Depends on:** nothing. Made right after `Grid`, listed `[Grid, Sky, Rooms, …]`, so Crew, made later, reads it.
@@ -18,7 +19,8 @@ numbers are `Content/Sky.cs`, on the surface's kind as `Surfaces.Kind.Cycle`.
 
 - **The hour.** A surface whose kind has a `Cycle` opens at 0, the start of daylight, and in the simulation phase sets
   `Time = (Time + 1) % Length` each tick. With no `Cycle` (the ship) nothing moves.
-- **Night** is `Time % Length ≥ Length − Night`; `Now.Chill` is then `Cycle.Chill`, else 0. Dusk and dawn are the client's.
+- **Night** is `Time % Length ≥ Length − Night`; `Now.Chill` is then `Cycle.Chill`, the degrees colder under the open sky,
+  else 0. Dusk and dawn are the client's.
 - **A planet nobody is on** keeps running (0076): its hour passes.
 - **`SetTime(Time)`**, from the dev panel: `Time` modulo `Length`, a negative one too, applied before the tick advances it.
   Refused `sky.noDay` with no `Cycle`, nothing changed.

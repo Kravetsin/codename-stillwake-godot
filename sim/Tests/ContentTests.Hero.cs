@@ -95,7 +95,24 @@ public partial class ContentTests
         foreach (var item in Content.Items.All)
             Assert.True((item.Equip == Content.Helmet.Slot) == (item.Tank > Content.Crew.Lungs) && item.Tank >= 0, item.Id);
         Assert.True(Content.Field.OffGrid >= Content.Items.All.Max(i => i.Tank));
-        // The 1 is the breath: a bare hero resting by the pod in vacuum holds.
-        Assert.True(1 + Content.Crew.BareCold <= Content.Crew.PodRefill);
+        // The 1000 is the breath: a bare hero resting by the pod in vacuum holds against space's cold (2026-11-14-temperature-in-degrees).
+        Assert.True(1000 + (Content.Temperature.BareLow - Content.Temperature.Space) * Content.Temperature.Bite <= 1000 * Content.Crew.PodRefill);
+    }
+
+    [Fact]
+    public void EveryKindHasATemperatureABandBodiesWithstandMoreThanBareAndTheCapeAddsSome()
+    {
+        foreach (var kind in Content.Surfaces.All.Append(Content.Surfaces.Ship))
+        {
+            int bands = kind is Content.PlanetType planet ? planet.Bands.Count + 1 : 1;
+            Assert.True(kind.Temperatures.Count == bands, kind.Id);
+        }
+        foreach (var item in Content.Items.All)
+            Assert.True((item.Low != null) == (item.Equip == Content.Suit.Slot) && (item.Low ?? int.MinValue) < Content.Temperature.BareLow, item.Id);
+        Assert.True(Content.Cape.Warmth > 0 && Content.Temperature.Bite > 0);
+        // A suit holds out space aboard; the night on the first planet's surface bites it (2026-11-14-temperature-in-degrees).
+        int suit = Content.Items.Get(Content.Suit.Basic).Low!.Value;
+        Assert.True(suit <= Content.Temperature.Space && suit <= Content.PlanetTypes.First.Temperatures[0]);
+        Assert.True(suit > Content.PlanetTypes.First.Temperatures[0] - Content.Sky.First.Chill);
     }
 }

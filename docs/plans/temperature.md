@@ -1,6 +1,6 @@
 # Plan: temperature in degrees
 
-Status: designed (`design-author`, cut by `design-reviewer`, reviewed by `/review-plan`); nothing built. Supersedes the
+Status: designed (`design-author`, cut by `design-reviewer`, reviewed by `/review-plan`); T-1 built, T-2 and T-3 open. Supersedes the
 unmerged depth-band design of PR 502; this plan keeps PR 502's bands, room air, night in band 0 only, unsaved payment and heat
 suit.
 
@@ -30,7 +30,7 @@ nothing per frame):
 
 The pod's reach is not warm: it gives the breath air, not heat, as today, where a bare hero by it pays the bare cold.
 
-**A hero's limit**, `LowOf(peer)`: the worn body's `Item.Low`, or `Crew.BareLow` with none; `Cape.Warmth` degrees lower while
+**A hero's limit**, `LowOf(peer)`: the worn body's `Item.Low`, or `Temperature.BareLow` with none; `Cape.Warmth` degrees lower while
 the cape is worn.
 
 **Felt degrees**, `Felt(peer, cell)` = `max(0, LowOf(peer) − TemperatureAt(cell))`. Each felt degree costs `Temperature.Bite`
@@ -65,7 +65,7 @@ breaths of five, would have its last breath reset on the fifth and never pass ou
 | `Temperature.Space` | −40° | — |
 | `Temperature.Bite` | 20 thousandths a degree a breath | — |
 | `Sky.Cycle.Chill` | 20 degrees | 1 unit every `Every` (5) breaths; `Every` goes |
-| `Crew.BareLow` | 0° | `Crew.BareCold`, 1 unit a breath, goes |
+| `Temperature.BareLow` | 0° | `Crew.BareCold`, 1 unit a breath, goes |
 | `Item.Low`: `suit`, `regenSuit` | −40° | — |
 | `Cape.Warmth` | 5 degrees, not the edge | 200‰ of all cold, the edge's too |
 
@@ -138,7 +138,7 @@ spares a fifth (12 × 0.8 + 1 = 10.6), from now none (12 + 1 = 13).
 ### T-1: the cold in degrees (sim, frost, cards)
 
 - **Content:** `Temperature` (`Room`, `Space`, `Bite`); `PlanetType.Temperatures`, required, and the first planet's row;
-  `Item.Low` on the two bodies; `Crew.BareLow`; `Cape.Warmth` in degrees; `Sky.Cycle.Chill` in degrees, `Every` gone;
+  `Item.Low` on the two bodies; `Temperature.BareLow`; `Cape.Warmth` in degrees; `Sky.Cycle.Chill` in degrees, `Every` gone;
   `Crew.BareCold` gone.
 - **Crew:** `TemperatureAt`, `LowOf`, `Felt` on `ICrewQueries` (replacing `Cold` and `Warmth`); the payment in the breath
   replacing `ColdAt`'s bare and chill parts; the last breath's end keyed on felt; `EdgeCost` kept, unsoftened. **Sky:** `Chill`
@@ -153,7 +153,7 @@ spares a fifth (12 × 0.8 + 1 = 10.6), from now none (12 + 1 = 13).
   `BareFrost` or the cape's share of cold: `FieldTests`, `SuitsTests`, `LavaTests`, `PlanetRulesTests`, `LastBreathTests`,
   `FogBandsTests`, `ContentTests.Hero`, `CapeTests`, `SkyTests`, `RegenSuitTests`, and in `game.tests` `ReportTests` and the
   item card tests. Machines' `TooCold` is another rule and stays.
-- **Docs:** ADR `YYYY-MM-DD-temperature`, superseding the cold parts of night-chills, suits-are-worn and the-cape-is-worn;
+- **Docs:** ADR [temperature-in-degrees](../decisions/2026-11-14-temperature-in-degrees.md), superseding the cold parts of night-chills, suits-are-worn and the-cape-is-worn;
   Crew's and Sky's READMEs; the concept's cape line; `docs/glossary.md` (температура, градусы).
 
 ### T-2: the thermometer
