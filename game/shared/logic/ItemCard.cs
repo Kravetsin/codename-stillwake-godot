@@ -13,11 +13,11 @@ public sealed record CardKey(string Key, string Words = "");
 /// <summary>
 /// One of a tool's numbers, a row of its card (2026-11-07-tool-card-rows): its value as written and its label, its sign and the
 /// group it is listed in. With modules fitted (0098), how it differs from the plain tool's, <see cref="Boost"/>; null where it does
-/// not. A worn item's one number is one too, with no sign.
+/// not. Food's and gear's rows are ones too (2026-11-14-food-and-gear-cards).
 /// </summary>
 public sealed record CardTile(string Value, string Label, CardBoost? Boost = null)
 {
-    /// <summary>Its icon and hue; none for a worn item's number.</summary>
+    /// <summary>Its icon and hue.</summary>
     public CardSign Sign { get; init; }
 
     /// <summary>The group it is listed under on its card.</summary>
@@ -28,13 +28,22 @@ public sealed record CardTile(string Value, string Label, CardBoost? Boost = nul
 
     /// <summary>A number the tool does not have, written as words and dimmed, its sign struck: the cutter's block damage.</summary>
     public bool Off { get; init; }
+
+    /// <summary>Its value after the power bolt: a quantity in the units machines draw in, the regen suit's charge a unit of air.</summary>
+    public bool Bolt { get; init; }
 }
 
-/// <summary>What a tool's number is, its icon and hue on the card (2026-11-07-tool-card-rows).</summary>
-public enum CardSign { None, Damage, Block, Pace, Pierce, Arc, Reach, Reel, Battery, Loot }
+/// <summary>
+/// What a number is, its icon and hue on the card: a tool's (2026-11-07-tool-card-rows), then food's and gear's
+/// (2026-11-14-food-and-gear-cards); a meal's duration is a tool's <see cref="Pace"/>.
+/// </summary>
+public enum CardSign { None, Damage, Block, Pace, Pierce, Arc, Reach, Reel, Battery, Loot, Calm, Deep, Work, Tank, Cold, Guard, Regen, Speed, Light }
 
-/// <summary>The groups a tool's numbers are listed under, in this order: its hit, its shot or its blast, its reach, what is special.</summary>
-public enum CardGroup { Hit, Shot, Blast, Reach, Special }
+/// <summary>
+/// The groups a card's numbers are listed under, in this order: a tool's hit, its shot or its blast, its reach; a food's effect; gear's
+/// air, guard, movement or light; last what is special.
+/// </summary>
+public enum CardGroup { Hit, Shot, Blast, Reach, Effect, Air, Guard, Move, Light, Special }
 
 /// <summary>
 /// How a tool's number differs with its modules fitted from the plain tool's (0098): in the colour of the technology of the first
@@ -93,9 +102,10 @@ public sealed record CardOutput(
 
 /// <summary>
 /// What the one tooltip shows over an item (<c>PointerTip</c>), by what the item is (the item card mockup): a tool its
-/// picture large and live, its tiles and how it is used; a worn item its picture beside one number; anything else a
-/// small label, its name and kind. A violet band while it is not analysed; what the open station does with it
-/// (<see cref="Here"/>); a station's block at the bottom where one adds it. Equal by what it says, as <see cref="Tip"/> is.
+/// picture large and live, its tiles and how it is used; food and a worn item their picture in a window beside the name, their
+/// <see cref="Rows"/> under it (2026-11-14-food-and-gear-cards); anything else a small label, its name and kind. A violet band
+/// while it is not analysed; what the open station does with it (<see cref="Here"/>); a station's block at the bottom where
+/// one adds it. Equal by what it says, as <see cref="Tip"/> is.
 /// </summary>
 /// <param name="Item">The item, whose picture the card shows.</param>
 /// <param name="Tiles">A tool's tiles, its key number first; null for an item that is no tool.</param>
@@ -110,11 +120,14 @@ public sealed record ItemCard(
     /// <summary>Worn in an equipment slot: its card edged and its kind written in green.</summary>
     public bool Worn { get; init; }
 
-    /// <summary>A worn item's one number, large, and what it is: the helmet lamp's reach; a battery shows its <see cref="Charge"/> instead.</summary>
-    public CardTile? Headline { get; init; }
+    /// <summary>Eaten: its card edged and its kind written in coral.</summary>
+    public bool Food { get; init; }
 
-    /// <summary>A few words under <see cref="Headline"/>: the lamp's beam.</summary>
-    public string? Detail { get; init; }
+    /// <summary>
+    /// What food or a worn item guarantees, rows under their groups as a tool's numbers are: a meal's rates and how long it lasts, a
+    /// helmet's air, a suit's guard; never what they come to, how long air would last. None for anything else.
+    /// </summary>
+    public IReadOnlyList<CardTile> Rows { get; init; } = [];
 
     /// <summary>What the station the item is shown in adds; null elsewhere.</summary>
     public StationBlock? Station { get; init; }
@@ -152,7 +165,7 @@ public sealed record ItemCard(
     public bool Equals(ItemCard? other) =>
         other is not null && Item == other.Item && Name == other.Name && Kind == other.Kind
         && (Tiles == null ? other.Tiles == null : other.Tiles != null && Tiles.SequenceEqual(other.Tiles))
-        && Use == other.Use && Worn == other.Worn && Headline == other.Headline && Detail == other.Detail
+        && Use == other.Use && Worn == other.Worn && Food == other.Food && Rows.SequenceEqual(other.Rows)
         && Price == other.Price && Equals(Station, other.Station) && Charge == other.Charge && Picture == other.Picture && Draw == other.Draw
         && Here == other.Here && Equals(Output, other.Output) && Tech == other.Tech && Fitted.SequenceEqual(other.Fitted)
         && DrawBoost == other.DrawBoost && About == other.About;
@@ -169,10 +182,11 @@ public sealed record ItemCard(
         hash.Add(Draw);
         hash.Add(Here);
         hash.Add(Output);
-        hash.Add(Headline);
+        hash.Add(Food);
         hash.Add(Tech);
         hash.Add(DrawBoost);
         foreach (var module in Fitted) hash.Add(module);
+        foreach (var row in Rows) hash.Add(row);
         foreach (var tile in Tiles ?? []) hash.Add(tile);
         return hash.ToHashCode();
     }

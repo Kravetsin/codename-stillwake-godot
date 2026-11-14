@@ -5,7 +5,7 @@ public static partial class En
     private static readonly Strings Vitals = new()
     {
         ["hud.lungs"] = "Lungs",
-        ["hud.holds"] = "{name}: {n}",
+        ["hud.holds"] = "{name}: {n} O₂",
         ["hud.store"] = "{name}: {charge} / {capacity}",
     };
 }

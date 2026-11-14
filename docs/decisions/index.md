@@ -340,3 +340,4 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [glowberry-bush](2026-11-13-glowberry-bush.md) | Spores grow a glowberry bush | accepted |  |
 | [gourd-vine](2026-11-13-gourd-vine.md) | The grow capsule grows a gourd vine | accepted |  |
 | [hud-vitals](2026-11-13-hud-vitals.md) | The vitals: air, charge and meals as frameless light at the bottom-left | accepted |  |
+| [food-and-gear-cards](2026-11-14-food-and-gear-cards.md) | Food and gear cards list what they guarantee, and food sells | accepted |  |

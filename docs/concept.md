@@ -78,7 +78,7 @@ A living document: what is decided about the game and what is still open. Techni
   hero fed with paste, and with all three empty it is hungry and running costs more air. Rations are found in supply
   pods, rations and canned meat in drifting fridges and in derelicts' vending machines; a seed may be eaten as a snack.
   The farm grows fruit and glowberries; the galley, a range needing no power, cooks them with rations, meat, fat and
-  water into five dishes, each stronger than what went in.
+  water into five dishes, each stronger than what went in. Food of every kind sells at the trade station.
   The regen suit, a body sold there with the belt's third slot, turns belt charge into air while its mode is on (V): a
   unit a breath at most, so it holds the air at rest and only slows its fall in flight ([regen-suit](decisions/2026-11-03-the-regen-suit.md)).
 - **Parts are made by machines only,** as in Subnautica and RimWorld: wire of scrap; plates, gears and

@@ -12,7 +12,7 @@ namespace Stillwake.Game.Features.Crew;
 /// The hero's three meals, the vitals' bottom row (hud-vitals, food-and-the-body): each the dish's own picture, the hotbar's,
 /// over a thin time light that drains as the meal runs out, both pulsing in its last minute. Eaten, the picture pops in;
 /// refused, red light behind and a jolt; ended, it greys and fades. Hungry, the empty time lights breathe ochre. What a meal
-/// does is on hover. Reads the sim four times a second.
+/// does is on hover, its food card with the time left (2026-11-14-food-and-gear-cards). Reads the sim four times a second.
 /// </summary>
 public partial class MealSlots : CanvasLayer
 {
