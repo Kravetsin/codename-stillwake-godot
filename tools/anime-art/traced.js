@@ -40,5 +40,41 @@ function icon(name) {
     draw: drawer(name, placed(name), u) });
 }
 
-window.Traced = { placed, drawer, icon };
+/** Where a traced piece of headgear sits on the head (hero.js's 13 × 12 box, in its pixels): its fit box head.height tall, its right edge at head.right, its top at head.top. */
+function onHead(name, head) {
+  const [x0, y0, x1, y1] = TRACED[name].fit.box, s = head.height / (y1 - y0 + 1);
+  return { s, at: [head.right - (x1 + 1) * s, head.top - y0 * s] };
+}
+
+/** Its top in the head's pixels at x, as a crest or lamp rests on it: the outline's upper hull, bridged over its dips. */
+function crown(name, head) {
+  let hull = null;
+  return (x) => {
+    hull = hull || upperHull(name, head);
+    if (x <= hull[0][0]) return hull[0][1];
+    for (let i = 1; i < hull.length; i++) if (x <= hull[i][0]) { const [a, b] = [hull[i - 1], hull[i]]; return a[1] + (b[1] - a[1]) * (x - a[0]) / (b[0] - a[0]); }
+    return hull[hull.length - 1][1];
+  };
+}
+
+/** The outline's upper hull on the head, left to right: the topmost pixel of each column, no point kept below a chord between two others. */
+function upperHull(name, head) {
+  const { s, at } = onHead(name, head), body = placed(name, s, at)[0], k = 20, M = 3;
+  const c = Anime.canvas((13 + 2 * M) * k, (12 + 2 * M) * k), g = c.getContext('2d');
+  g.setTransform(k, 0, 0, k, M * k, M * k);
+  g.fill(new Path2D(body.d));
+  const data = g.getImageData(0, 0, c.width, c.height).data, pts = [];
+  for (let i = 0; i < c.width; i++) for (let j = 0; j < c.height; j++) if (data[(j * c.width + i) * 4 + 3] > 127) { pts.push([i / k - M, j / k - M]); break; }
+  const hull = [];
+  for (const p of pts) {
+    while (hull.length >= 2) {
+      const [a, b] = [hull[hull.length - 2], hull[hull.length - 1]];
+      if ((b[0] - a[0]) * (p[1] - a[1]) - (b[1] - a[1]) * (p[0] - a[0]) <= 0) hull.pop(); else break;
+    }
+    hull.push(p);
+  }
+  return hull;
+}
+
+window.Traced = { placed, drawer, icon, onHead, crown };
 })();
