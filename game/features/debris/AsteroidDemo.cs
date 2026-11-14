@@ -34,7 +34,7 @@ public partial class AsteroidDemo : CanvasLayer
 
     /// <summary>
     /// <paramref name="world"/>, read through <paramref name="m"/>: peer 0 out at <see cref="FarDemo.StartOf"/> with the
-    /// drill (<paramref name="module"/> fitted into it with <c>--arc-drill</c>, 0098; <paramref name="held"/> in its place with <c>--held</c>, a comma list putting the rest on the slots after the axe), the axe, canisters, a jetpack and a battery, and the two asteroids beside it, put in through its save.
+    /// drill (<paramref name="module"/> fitted into it with <c>--arc-drill</c>, 0098; <paramref name="held"/> in its place with <c>--held</c>, the module fitted into it instead, a comma list putting the rest on the slots after the axe), the axe, canisters, a jetpack and a battery, and the two asteroids beside it, put in through its save.
     /// With <paramref name="fullBelt"/> (<c>--belt</c>, energy-ring) all three belt slots are open and worn: a battery near flat, a full one and an
     /// accumulator half full, with the grinder and a spare battery on the hotbar. With <paramref name="scanner"/> (<c>--scanner</c>) the scanner is on the helmet
     /// and the rocks are <see cref="Wrecks"/>.
@@ -48,7 +48,7 @@ public partial class AsteroidDemo : CanvasLayer
         string[] helds = held?.Split(',') ?? [];
         var slots = new JsonArray();
         for (int i = 0; i < Spec.Inventory.Total; i++)
-            slots.Add(i == 0 ? helds.Length > 0 ? new JsonObject { ["item"] = helds[0], ["count"] = 1 }
+            slots.Add(i == 0 ? helds.Length > 0 ? module != null ? new JsonObject { ["item"] = helds[0], ["count"] = 1, ["module"] = module } : new JsonObject { ["item"] = helds[0], ["count"] = 1 }
                 : module != null ? Game.Dev.Testbed.FittedDrill(module) : new JsonObject { ["item"] = Spec.Weapons.Drill.Item, ["count"] = 1 }
                 : i == 1 ? new JsonObject { ["item"] = Spec.Weapons.Axe.Item, ["count"] = 1 }
                 : i >= 2 && i <= helds.Length ? new JsonObject { ["item"] = helds[i - 1], ["count"] = 1 }

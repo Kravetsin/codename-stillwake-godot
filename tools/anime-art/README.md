@@ -1,11 +1,11 @@
 # Anime art
 
-Draws the game's only pictures in code into `game/art/hd/`, where `game/render/HiRes.cs` picks them up ([the pixels gone](../../docs/decisions/2026-11-03-pixel-art-removed.md)).
+Draws the game's pictures in code into `game/art/hd/`; `game/render/HiRes.cs` picks them up ([the pixels gone](../../docs/decisions/2026-11-03-pixel-art-removed.md)).
 
 ## The style
 
 Ink and watercolour ([why](../../docs/decisions/2026-11-01-ink-and-watercolour.md)), neutral to slightly grim, **never a cartoon**. The
-finish is `wash.js`, one for every subject; a drawing follows these rules.
+finish is `wash.js`, one for every subject.
 
 - **Mood before readability.** A lone scavenger's world: judge a picture by that.
 - **Colour:** clean, slightly grey paint, neither dusty nor faded. Metals are cool greys; suit, copper and wood are warm and worn. Full
@@ -33,7 +33,7 @@ finish is `wash.js`, one for every subject; a drawing follows these rules.
 | `hero` | `hero_<part>`: the suits' parts (the regen suit's lights `_lit`, `_arcs`, `_pip`); `hero_outfit_<n>_<part>`, `_skin` under bare skin; hair, faces, beards by `LookTint`; cape, jetpack, lamp, sheet, tools; `hero_tracker`, `_light`: white, tinted by Modulate. Top-lit |
 | `catchergear` | catchers' outfits: `hero_catcher<Body>_<part>`, `_upperArm_lit`; `hero_catcher<Helmet>_shell`, `_visor`, `_lit`, by `HeroKit` |
 | `machines` | `machine_<kind>`, working overlays (fire, fills, bubbles); a `fitting` on its port (`Machines.Ports`); exposes `AnimeKit` |
-| `zfittings` | `pipe_run`, `pipe_<arms>`, valves, sockets, hatches, platforms, ladder, floor, drone, lamps, held axe and drill; after `machines`, for `AnimeKit` |
+| `zfittings` | `pipe_run`, `pipe_<arms>`, valves, sockets, hatches, platforms, ladder, floor, drone, lamps, held tools; after `machines`, for `AnimeKit` |
 | `items` | `items/<id>`; an `_empty` state is the full picture's calls, only the changing part dark; `tool_screwdriver` |
 | `room` | `wall_`, `wall-edge_` and `back_` of scrap (rusted by `wreck`'s `AnimeSheetRust`), cast scrap (clean) and iron, `door_*` |
 | `wreck` | `wreck_dress`, `wreck_tears` (a mask, no finish), from `Wreck.cs`; its rust grows from `wall_scrap`'s seams |
@@ -77,16 +77,16 @@ A picked AI-made reference is traced for its **form**; the line, paint and water
   `mend`: repainted first, `holes`: left open; `pieces`: a sheet's boxes, each traced to `traced/<name>.<piece>.json`.
 - `node tools/anime-art/trace.js <name>` (ffmpeg) cuts it by its ink into beziers, committed as `traced/<name>.json`: export
   draws those (`traced.js`), never the reference.
-- `"raw": true`, held tools ([raw](../../docs/decisions/2026-11-14-raw-tool-pictures.md)): the trace writes the reference's own paint,
-  cut out, as `traced/<name>.png`; `Traced.raw` draws it with our ink round it, no water. Code draws what moves or lights.
+- `"raw": true`, held tools ([raw](../../docs/decisions/2026-11-14-raw-tool-pictures.md)): the trace cuts out the
+  reference's own paint, `traced/<name>.png`; `Traced.raw` inks round it, no water. Code draws what moves or lights. No
+  `background`: cut by alpha. `over`: a part, an edited ref's pixels unlike `refs/<over>.png` in `clip`.
 - AI-made work ships: say so in Steam's AI disclosure.
 
 ## Add a subject
 
 A file `subjects/<name>.js` setting `Subjects.<name>`, which calls `out('<picture>', canvas)` for each picture from
-`Anime.bake({ w, h, draw })`, `w` and `h` in world pixels, drawn 4 times over. Line weights
-and the light are the engine's (`engine.js`), per world pixel; use them.
-`wash.js` loads after the engine and replaces `bake`; a picture drawn straight on a canvas skips the finish.
+`Anime.bake({ w, h, draw })`, `w` and `h` in world pixels, drawn 4 times over. Line weights and the light are the
+engine's (`engine.js`), per world pixel. `wash.js` replaces `bake`; a picture drawn straight on a canvas skips the finish.
 
 - A sheet that repeats takes `tile: true`. A door's shut and open pictures differ only by the panel, or pixels stay behind.
 - A `top_*` picture has its ground line on row 16: rows above stand on the cell above, rows below lie over the block (`front`).

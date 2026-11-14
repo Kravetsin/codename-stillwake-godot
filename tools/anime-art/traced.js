@@ -148,5 +148,11 @@ function raw(name, s = 1, at = [0, 0]) {
   return (a) => a.image(RAW[name], at[0] + x * s, at[1] + y * s, w * s, h * s);
 }
 
-window.Traced = { placed, drawer, icon, into, straighten, onHead, crown, loadRaw, raw };
+/** Where subject name lies in a picture W × H: its box fitted along `along` units (the width less one), half a unit in, centred down; the scale, the offset, and the reference's pixels mapped in. */
+function fit(name, W, H, along = W - 1) {
+  const [x0, y0, x1, y1] = TRACED[name].fit.box, s = along / (x1 - x0 + 1), at = [.5 - x0 * s, (H - (y1 - y0 + 1) * s) / 2 - y0 * s];
+  return { s, at, X: (x) => x * s + at[0], Y: (y) => y * s + at[1] };
+}
+
+window.Traced = { placed, drawer, icon, into, straighten, onHead, crown, loadRaw, raw, fit };
 })();

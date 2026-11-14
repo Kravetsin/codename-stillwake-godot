@@ -554,6 +554,10 @@ public class ItemCardTests
         Assert.Equal(
             [new HeldLayer("second_grip.png", 1, 9), new HeldLayer("second_coil.png", 4, 4), new HeldLayer("res://art/module_arc_coil.png", 4, 4)],
             HeldParts.Overlaid(tool, [second, arc]).Layers);
+        // The spear has its own picture of the arc, drawn with it, laid in place of the shared coil; it crackles over the blade.
+        var spear = HeldParts.Of(HeldLook.Spear, [Spec.Modules.Arc]);
+        Assert.Equal([new HeldLayer("res://art/hero_spear_arc.png", 0, 0)], spear.Layers);
+        Assert.Equal([(38.8, 3.6, 47.4, 6.1)], spear.Crackles);
         Assert.Same(HeldLook.Drill, HeldLook.Of(Spec.Weapons.Drill.Item));
         Assert.True(HeldLook.IsDrill(Spec.Weapons.Drill.Item));
     }

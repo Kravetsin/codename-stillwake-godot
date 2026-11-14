@@ -115,10 +115,6 @@ const eye = (x, y) => (a) => { a.flat(rr(x - .5, y - .5, 3, 3, .5), '#2ca4d8'); 
 const lampOf = (c) => (a) => { a.flat(rr(6.6, 2.7, 2.8, 1.2, .3), c); };
 
 // The tools in the hand.
-const WOODH = { base: '#8a6242', shade: '#5c3e30', lite: '#ad8258', spec: '#cca678', ink: '#1c1210' };
-const RED = { base: '#c8402c', shade: '#84282c', deep: '#5c1c28', lite: '#ec7458', spec: '#ffd8c8', ink: '#280c10' };
-const BLADE = { base: '#b4bcc8', shade: '#6c7486', lite: '#d8dee6', spec: '#f0f2f4', ink: '#14162a' };
-const screw = (a, x, y, r = .42) => a.shape(ell(x, y, r), STEEL, { outer: false, edge: false, shade: band(x - r, y + .05, x + r, y + r), lines: [`M${x - r * .7} ${y + r * .3}L${x + r * .7} ${y - r * .3}`] });
 // The fire axe, the user's pick of five drawn references («Пожарный, тяжёлая головка»), shipped raw (refs/fireAxe.png).
 /** The fire axe's picture, 34 × 13 (the pickaxe's length): its picture's box fitted along it, half a pixel round it. */
 const AXE_W = 34, AXE_H = 13;
@@ -150,11 +146,10 @@ const drill = (spin) => (a) => {
 const DEG = Math.PI / 180, f2 = (n) => +n.toFixed(3);
 const RUBBER = { base: '#2e2c2a', shade: '#1d1c1b', deep: '#121212', lite: '#45423e' };
 const RED_PAINT = { base: '#a63c2e', shade: '#742a28', deep: '#541e20', lite: '#c8604a', spec: '#e8a890' };
-const BRASS_BAND = { base: '#b08c48', shade: '#7c5e30', deep: '#574126', lite: '#d4b470', spec: '#f0dca4' };
 const STUD = { base: '#b4bcc8', shade: '#6c7486', deep: '#474c68', lite: '#d8dee6', spec: '#f0f2f4' };
 const SLOT = '#14172c', CHIP = '#8e96a2';
-// Full saturation only for what works: the running lamp the game's own green, the charge lights' steady green, the arc's violet.
-const LAMP_ON = '#a0f0a0', LAMP_OFF = '#3d5a46', CHG = '#4f9a58', ON = '#9dff8a', VIOLET_ON = '#b49aff', VIOLET_OFF = '#2e2844';
+// Full saturation only for what works: the running lamp the game's own green, the charge lights' steady green, the jet's violet.
+const LAMP_ON = '#a0f0a0', LAMP_OFF = '#3d5a46', CHG = '#4f9a58', ON = '#9dff8a', VIOLET_ON = '#b49aff';
 /** Points along a circle from a0 to a1, in degrees (+y down: 0 ahead, 90 down, 270 up). */
 const arcPts = (cx, cy, r, a0, a1, n) => {
   const p = [];
@@ -188,11 +183,6 @@ const rustAt = (a, x, y, s) => {
 const rust = (a, x, y, s, clip) => {
   a.flat(poly(x, y, x + 1.3 * s, y - .25 * s, x + 1.9 * s, y + .4 * s, x + 1.3 * s, y + 1.1 * s, x + .6 * s, y + .8 * s, x - .1 * s, y + .9 * s), '#6e5646', { clip });
   a.flat(poly(x + .5 * s, y + .15 * s, x + 1.3 * s, y + .1 * s, x + 1.3 * s, y + .7 * s, x + .6 * s, y + .6 * s), '#4f3d36', { clip });
-};
-/** Wire wound round a part: turns across it, copper. */
-const wire = (a, x0, x1, y0, y1, step = .55) => {
-  a.flat(band(x0, y0, x1, y1), COPPER.shade);
-  for (let x = x0; x < x1 - .1; x += step) a.flat(poly(x, y0, x + step * .55, y0, x + step * .8, y1, x + step * .25, y1), COPPER.lite);
 };
 /** Several pictures of one size laid in order, each finished alone, as the pick page lays a tool's front over it. */
 const layered = (w, h, draws, px = 4) => {
@@ -255,78 +245,31 @@ const grinder = (s) => (a) => {
   rustAt(a, cx + Math.cos(165 * DEG) * (R + .3), cy + Math.sin(165 * DEG) * (R + .3), .45);
 };
 
-// The plasma cutter «Кольца»: a short dark body banded in brass, a copper nozzle, and the jet's cage: three coils on a rail, their inner
-// faces lit violet while it burns. Each ring's far half is drawn with the body, its near half (front) over it, as the jet will run between.
-const pommel = (a, x, y, w, h, on) => {
-  a.shape(rr(x, y, w, h, .9), DARK, { lite: band(x + .3, y + .1, x + w - .3, y + .6), shade: band(x, y + h - .7, x + w, y + h), lines: [`M${x + w - 1.4} ${y + .1}L${x + w - 1.4} ${y + h - .1}`] });
-  for (let i = 0; i < 3; i++) a.glow(rr(x + .9 + i * 1.3, y + h * .4, .9, .5, .15), on ? ON : CHG);
-};
-const RINGS = [17.6, 21.8, 26];
-const ringBand = (x, a0, a1) => ellBand(x, 4.4, .45, 2.3, 1.1, 3, a0, a1);
-const ringGlow = (x, a0, a1) => ellBand(x, 4.4, .45, 2.3, .72, 2.55, a0, a1);
-const cutter = (s) => (a) => {
-  pommel(a, 1.4, 9.6, 6, 2.2, s.on);
-  a.shape('M2.8 6.2L6.8 6.2L6.4 7.8C6.2 8.6 6.2 9.2 6.4 9.8L2.4 9.8C2.3 8.8 2.4 7.6 2.8 6.2Z', RUBBER, { shade: band(5.4, 6.2, 7, 9.8), lines: ['M2.7 7.2L6.5 7.2', 'M2.5 8.1L6.3 8.1', 'M2.4 9L6.3 9'] });
-  a.shape('M7 6.4L8.4 6.4L8.6 7.2L7.6 8.2L7.1 7.8Z', DARK, { shade: .3 });
-  a.shape(rr(10, 6.2, 1.6, 2.7, .3), GUN, { lite: band(10.1, 6.3, 10.6, 8.8) });
-  a.shape(rr(10.8, 7.7, 18.6, 1.2, .4), GUN, { lite: band(11, 7.75, 29.2, 8.1), shade: band(10.8, 8.5, 29.4, 8.9) });
-  a.shape(rr(.4, 2.2, 11.4, 4.4, 1.6), DARK, { lite: band(.8, 2.3, 11.4, 3.1), spec: band(3, 2.5, 7, 2.75), shade: band(.4, 5.6, 11.8, 6.6), lines: ['M3.4 2.3L3.4 6.5'] });
-  a.shape(rr(8.2, 2, 1.5, 4.8, .3), BRASS_BAND, { lite: band(8.3, 2.05, 9.6, 2.6), shade: band(8.2, 6, 9.7, 6.8) });
-  a.glow(ell(1.7, 4, .45), s.on ? VIOLET_ON : VIOLET_OFF, s.on ? { core: ell(1.65, 3.9, .17) } : {});
-  a.shape(poly(11.6, 3.3, 13.8, 3.8, 13.8, 5, 11.6, 5.5), COPPER, { lite: poly(11.6, 3.3, 13.8, 3.8, 13.8, 4.1, 11.6, 3.8), shade: poly(11.6, 5, 13.8, 4.7, 13.8, 5, 11.6, 5.5) });
-  for (const x of RINGS) {
-    a.shape(rr(x - .45, 6.9, .9, 1, .2), GUN, { shade: band(x - .45, 7.5, x + .45, 7.9) });
-    a.shape(ringBand(x, -90, 90), COPPER, { shade: ringBand(x, 20, 90) });
-    a.flat(ringGlow(x, -80, 80), s.on ? VIOLET_ON : COPPER.shade);
-  }
-};
-const cutterFront = (s) => (a) => {
-  for (const x of RINGS) {
-    a.shape(ringBand(x, 90, 270), COPPER, { lite: ringBand(x, 200, 270), shade: ringBand(x, 90, 140), lines: [120, 150, 180, 210, 240].map((t) => { const c = Math.cos(t * DEG), sn = Math.sin(t * DEG); return `M${f2(x + c * .5)} ${f2(4.4 + sn * 2.35)}L${f2(x + c * 1.05)} ${f2(4.4 + sn * 2.95)}`; }) });
-    if (s.on) a.flat(ringGlow(x, 100, 260), VIOLET_ON);
+// The plasma cutter, the user's pick of five drawn references («Нынешний, перерисованный»), shipped raw (refs/plasmaCutter.png): a
+// short dark body banded in brass, a copper nozzle, three copper rings on a rail before it, the jet's path through them. Running,
+// each ring's inner face burns violet, drawn here.
+/** The plasma cutter's pictures, 32 × 15; the rings' middles in the reference's pixels, their inner face's half-widths. */
+const CUTTER_W = 32, CUTTER_H = 15, CUTTER_RINGS = [1043, 1203, 1363], CUTTER_AXIS = 409;
+const cutter = (on) => (a) => {
+  const { s, at, X, Y } = Traced.fit('plasmaCutter', CUTTER_W, CUTTER_H);
+  Traced.raw('plasmaCutter', s, at)(a);
+  if (on) for (const x of CUTTER_RINGS) {
+    a.flat(ellBand(X(x), Y(CUTTER_AXIS), 20 * s, 96 * s, 32 * s, 112 * s, 0, 360), VIOLET_ON);
+    a.flat(ellBand(X(x), Y(CUTTER_AXIS), 20 * s, 96 * s, 25 * s, 103 * s, 100, 260), '#efe9da');
   }
 };
 
-// The spear «Труба и лист»: a hull plate's leaf driven into a flattened tube, bound in copper; its grip in tape, a sleeve for the coil.
-const spear = (a) => {
-  a.tube('M1.6 5L33.4 5', 2.2, PIPE);
-  a.shape(rr(0, 3.5, 2.2, 3, .5), GUN, { lite: band(.2, 3.6, 2, 4.2), shade: band(.2, 5.8, 2, 6.5) });
-  a.flat(band(4.6, 3.85, 13.4, 6.15), '#2a2b36');
-  for (let x = 4.8; x < 12.9; x += 1.15) { a.flat(poly(x, 3.85, x + .7, 3.85, x + 1, 6.15, x + .3, 6.15), '#3e4152'); a.line(`M${x + .72} 3.9L${x + 1.02} 6.1`, { w: .8 }); }
-  a.line('M12.9 6.1C13.3 6.9 13.4 7.6 13 8.3', { w: 1.2 });
-  rust(a, 17, 4.3, .8, band(14, 3.9, 22, 6.1));
-  a.shape(rr(22, 3.5, 8, 3, .4), GUN, { lite: band(22.2, 3.6, 29.8, 4.2), shade: band(22.2, 5.8, 29.8, 6.5), lines: ['M22.9 3.6L22.9 6.4', 'M29.1 3.6L29.1 6.4'] });
-  rivets(a, [23.6, 5], [28.4, 5]);
-  a.shape(poly(33, 3.7, 36.3, 3.2, 36.3, 6.8, 33, 6.3), PIPE, { lite: band(33, 3.2, 36.3, 4), shade: band(33, 6, 36.3, 6.8) });
-  for (const x of [33.5, 34.3, 35.1]) a.flat(poly(x, 3.3, x + .45, 3.3, x + .75, 6.7, x + .3, 6.7), COPPER.lite);
-  a.shape('M36 3.5C38 2.3 40.6 2.4 42.4 3.4L47.8 5L42.4 6.6C40.6 7.6 38 7.7 36 6.5Z', BLADE, {
-    lite: 'M36.4 3.6C38.4 2.6 40.6 2.7 42.2 3.6L47 4.9L36.4 4.9Z', shade: 'M36.4 5.1L47 5.1L42.2 6.4C40.6 7.3 38.4 7.4 36.4 6.4Z', lines: ['M36.8 5L46.6 5'] });
-  rust(a, 36.2, 4.2, .7, 'M36 3.5C38 2.3 40.6 2.4 42.4 3.4L47.8 5L42.4 6.6C40.6 7.6 38 7.7 36 6.5Z');
-  screw(a, 37.4, 5.9, .4);
-  a.line('M40.6 3.2L41.6 3.6', { w: .9 });
-};
+// The spear, the user's pick of five drawn references («Телескопическое»), shipped raw (refs/spear.png): a three-part aluminium pole
+// with twist locks, a foam grip, a long blade lashed on with cord and tape. Its arc module is its own picture (refs/spearArc.png, an
+// edit of the spear by the same model, cut where it differs): a coil box between the locks, a cable run to the blade.
+const SPEAR_W = 48, SPEAR_H = 10;
+const spear = (a) => { const { s, at } = Traced.fit('spear', SPEAR_W, SPEAR_H); Traced.raw('spear', s, at)(a); };
+const spearArc = (a) => { const { s, at } = Traced.fit('spear', SPEAR_W, SPEAR_H); Traced.raw('spearArc', s, at)(a); };
 
-// The sledgehammer «Пакет плит»: five cut plates bolted into a block on a plank, a tube ferrule where they meet; the striking face along the bottom.
-const FACE = '#c0c6cf';
-const sledgehammer = (a) => {
-  a.shape(rr(0, 6.7, 22.4, 2.6, .5), WOODH, { lite: band(.4, 6.8, 22, 7.4), shade: band(.4, 8.6, 22, 9.3), lines: ['M12.4 7.8L17 7.7', 'M14.6 8.5L19.6 8.4'] });
-  wire(a, .5, 2, 6.6, 9.4, .45);
-  a.flat(band(3, 6.6, 10.2, 9.4), '#23263a');
-  for (let x = 3.2; x < 9.9; x += 1.2) { a.flat(poly(x, 6.6, x + .75, 6.6, x + 1.05, 9.4, x + .3, 9.4), '#3d4258'); a.line(`M${x + .78} 6.6L${x + 1.08} 9.4`, { w: .8 }); }
-  const tops = [1.3, 1, 1.5, 1.1, 1.4], bots = [14.7, 15.1, 14.8, 15.2, 14.9];
-  for (let i = 0; i < 5; i++) {
-    const x = 21.4 + i * 2, m = i % 2 ? GUN : STEEL, d = rr(x, tops[i], 2, bots[i] - tops[i], .3);
-    a.shape(d, m, { lite: band(x, tops[i], x + 2, tops[i] + .8), shade: band(x + 1.35, tops[i], x + 2, bots[i]), deep: band(x, bots[i] - .6, x + 2, bots[i]) });
-    a.flat(band(x, bots[i] - .5, x + 2, bots[i]), FACE, { clip: d });
-  }
-  rust(a, 23.2, 9.6, .8, band(21.4, 1, 31.4, 15.2)); rust(a, 27.4, 3.4, .6, band(21.4, 1, 31.4, 15.2));
-  for (const y of [3.2, 12.8]) {
-    a.shape(rr(31.2, y - .9, .8, 1.8, .2), DARK, { lite: band(31.2, y - .9, 32, y - .4) });
-    a.shape(rr(20.6, y - .9, .9, 1.8, .2), DARK, { lite: band(20.6, y - .9, 21.5, y - .4) });
-  }
-  a.shape(rr(18, 6.1, 3.6, 3.8, .5), PIPE, { lite: band(18.2, 6.2, 21.4, 6.9), shade: band(18.2, 9.1, 21.4, 9.9) });
-  screw(a, 19.8, 8, .45);
-};
+// The sledgehammer, the user's pick of five drawn references («Нынешняя, перерисованная»), shipped raw (refs/sledgehammer.png): five
+// cut plates bolted into a block, a wooden handle through a tube ferrule, black tape round its end.
+const SLEDGE_W = 36, SLEDGE_H = 13;
+const sledgehammer = (a) => { const { s, at } = Traced.fit('sledgehammer', SLEDGE_W, SLEDGE_H); Traced.raw('sledgehammer', s, at)(a); };
 
 // The pickaxe, the user's pick of five drawn references («Нынешняя, перерисованная»), shipped raw (refs/pickaxe.png): a pipe haft taped
 // at the butt, two welded collars, a rusted plate head with its hole, the steel spike down, what meets the stone.
@@ -370,9 +313,9 @@ Subjects.zfittings = function () {
   // The salvage tools: each still, then its running states (the grinder's three turns of the disc, the cutter lit), and its icon.
   const salvage = [
     ['hero_grinder', 29, 15, [grinder({ f: null, on: false })]],
-    ['hero_plasmaCutter', 32, 12, [cutter({ on: false }), cutterFront({ on: false })]],
-    ['hero_spear', 48, 10, [spear]],
-    ['hero_sledgehammer', 32, 16, [sledgehammer]],
+    ['hero_plasmaCutter', CUTTER_W, CUTTER_H, [cutter(false)]],
+    ['hero_spear', SPEAR_W, SPEAR_H, [spear]],
+    ['hero_sledgehammer', SLEDGE_W, SLEDGE_H, [sledgehammer]],
     ['hero_pickaxe', PICK_W, PICK_H, [pickaxe]],
   ];
   for (const [name, w, h, draws] of salvage) {
@@ -380,6 +323,7 @@ Subjects.zfittings = function () {
     out(`icons/${name}`, layered(w, h, draws, Math.ceil(Anime.ICON_LONG / w)));
   }
   for (let f = 1; f <= 3; f++) out(`hero_grinder_spin${f}`, bake({ w: 29, h: 15, draw: grinder({ f, on: true }) }));
-  out('hero_plasmaCutter_on', layered(32, 12, [cutter({ on: true }), cutterFront({ on: true })]));
+  out('hero_plasmaCutter_on', layered(CUTTER_W, CUTTER_H, [cutter(true)]));
+  out('hero_spear_arc', layered(SPEAR_W, SPEAR_H, [spearArc]));
 };
 })();
