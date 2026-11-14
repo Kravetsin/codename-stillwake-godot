@@ -127,15 +127,16 @@ public sealed record HeldLook(
         Charged: "res://art/hero_railgun_charged.png", Arcs: [(14, 4, 21, 8.3), (21, 4, 28, 8.3), (28, 4, 35.5, 8.3)], Size: Drawn);
 
     /// <summary>
-    /// The angle grinder, <c>art/hero_grinder.png</c> (salvage-tools), the user's pick, «Заводская»: a long motor tube in worn ochre
-    /// enamel, a cast head, the wheel under a half guard; held as the drill is, by its pistol grip, aimed, the elbow a little bent; the
-    /// edge the wheel's radius ahead, from its hub to its rim. Running, the disc turns through three frames and the lamp on its end cap
-    /// lights. Its coil (0098) round the motor tube's vents, behind the switch. Clamped by the tube before its head.
+    /// The angle grinder, <c>art/hero_grinder.png</c> (salvage-tools; redrawn raw, 2026-11-14-grinder-redrawn), the user's pick
+    /// «Нынешняя, перерисованная»: a long motor tube in worn ochre enamel, a cast head, the wheel under a half guard; held as the
+    /// drill is, by its pistol grip, aimed, the elbow a little bent; the edge the wheel's radius ahead, from its hub to its rim.
+    /// Running, its nut smears round and streaks sweep the wheel through three frames. Its coil (0098) round the motor tube's
+    /// vents. Clamped by the tube before its head.
     /// </summary>
     public static readonly HeldLook Grinder = new(
-        "res://art/hero_grinder.png", (5.2, 9.8), 0, (22.6, 7.2), (27.2, 7.2), Aimed: true,
-        Spin: ["res://art/hero_grinder_spin1.png", "res://art/hero_grinder_spin2.png", "res://art/hero_grinder_spin3.png"], Lamp: (1.5, 4.5),
-        Mounts: [new ToolMount("coil", 2, 4, (2, 3.5, 9, 6.5))], Elbow: 0.4, Clamp: (14.5, 7), Size: Drawn);
+        "res://art/hero_grinder.png", (3.2, 8.4), 0, (24.4, 5.3), (29.2, 5.3), Aimed: true,
+        Spin: ["res://art/hero_grinder_spin1.png", "res://art/hero_grinder_spin2.png", "res://art/hero_grinder_spin3.png"], Lamp: (1, 4.6),
+        Mounts: [new ToolMount("coil", 7, 4, (7, 3.5, 14, 6.5))], Elbow: 0.4, Clamp: (16, 8), Size: Drawn);
 
     /// <summary>
     /// The plasma cutter, <c>art/hero_plasmaCutter.png</c> (salvage-tools; raw, 2026-11-14-raw-tool-pictures), the user's pick, «Самодельный»:

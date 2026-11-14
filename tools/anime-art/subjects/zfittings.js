@@ -141,15 +141,10 @@ const drill = (spin) => (a) => {
   Traced.raw('drill', s, at)(a);
 };
 
-// The salvage tools, each the user's pick drawn whole (salvage-tools): the grinder «Заводская», the plasma cutter «Самодельный», the spear
-// «Труба и лист», the sledgehammer «Пакет плит». Their pick pages' own materials and helpers, where they differ from the ones above.
-const DEG = Math.PI / 180, f2 = (n) => +n.toFixed(3);
-const RUBBER = { base: '#2e2c2a', shade: '#1d1c1b', deep: '#121212', lite: '#45423e' };
-const RED_PAINT = { base: '#a63c2e', shade: '#742a28', deep: '#541e20', lite: '#c8604a', spec: '#e8a890' };
-const STUD = { base: '#b4bcc8', shade: '#6c7486', deep: '#474c68', lite: '#d8dee6', spec: '#f0f2f4' };
-const SLOT = '#14172c', CHIP = '#8e96a2';
-// Full saturation only for what works: the running lamp the game's own green, the charge lights' steady green, the jet's violet.
-const LAMP_ON = '#a0f0a0', LAMP_OFF = '#3d5a46', CHG = '#4f9a58', ON = '#9dff8a', VIOLET_ON = '#b49aff';
+// The salvage tools, each the user's pick of drawn references, shipped raw: their helpers, where they differ from the ones above.
+const DEG = Math.PI / 180;
+// Full saturation only for what works: the jet's violet.
+const VIOLET_ON = '#b49aff';
 /** Points along a circle from a0 to a1, in degrees (+y down: 0 ahead, 90 down, 270 up). */
 const arcPts = (cx, cy, r, a0, a1, n) => {
   const p = [];
@@ -159,31 +154,6 @@ const arcPts = (cx, cy, r, a0, a1, n) => {
 const steps = (a0, a1) => Math.max(4, Math.ceil(Math.abs(a1 - a0) / 9));
 /** A band of a ring between radii r0 and r1, from a0 to a1 degrees. */
 const arcBand = (cx, cy, r0, r1, a0, a1) => { const n = steps(a0, a1); return poly(arcPts(cx, cy, r1, a0, a1, n).concat(arcPts(cx, cy, r0, a1, a0, n))); };
-/** An open arc, for a pen line. */
-const arcPath = (cx, cy, r, a0, a1) => {
-  const p = arcPts(cx, cy, r, a0, a1, steps(a0, a1));
-  let s = `M${f2(p[0])} ${f2(p[1])}`;
-  for (let i = 2; i < p.length; i += 2) s += `L${f2(p[i])} ${f2(p[i + 1])}`;
-  return s;
-};
-/** A band between two ellipses round one middle, from a0 to a1 degrees: a ring seen near edge-on. */
-const ellBand = (cx, cy, rx0, ry0, rx1, ry1, a0, a1) => {
-  const n = steps(a0, a1) * 2, p = [];
-  for (let i = 0; i <= n; i++) { const t = (a0 + (a1 - a0) * i / n) * DEG; p.push(cx + Math.cos(t) * rx1, cy + Math.sin(t) * ry1); }
-  for (let i = n; i >= 0; i--) { const t = (a0 + (a1 - a0) * i / n) * DEG; p.push(cx + Math.cos(t) * rx0, cy + Math.sin(t) * ry0); }
-  return poly(p);
-};
-const stud = (a, x, y, r = .42) => a.shape(ell(x, y, r), STUD, { outer: false, edge: false, shade: band(x - r, y + .05, x + r, y + r), lines: [`M${f2(x - r * .7)} ${f2(y + r * .3)}L${f2(x + r * .7)} ${f2(y - r * .3)}`] });
-/** Rust round a seam or stud: a torn patch, its darker heart. */
-const rustAt = (a, x, y, s) => {
-  a.flat(poly(x - s, y - .2 * s, x - .3 * s, y - .7 * s, x + .5 * s, y - .5 * s, x + s, y + .1 * s, x + .4 * s, y + .45 * s, x - .5 * s, y + .4 * s), '#6e4630');
-  a.flat(poly(x - .4 * s, y - .1 * s, x + .1 * s, y - .3 * s, x + .4 * s, y + .05 * s, x, y + .3 * s), '#3f2a24');
-};
-/** Rust where water sat: a torn patch with a darker heart, kept inside its part. */
-const rust = (a, x, y, s, clip) => {
-  a.flat(poly(x, y, x + 1.3 * s, y - .25 * s, x + 1.9 * s, y + .4 * s, x + 1.3 * s, y + 1.1 * s, x + .6 * s, y + .8 * s, x - .1 * s, y + .9 * s), '#6e5646', { clip });
-  a.flat(poly(x + .5 * s, y + .15 * s, x + 1.3 * s, y + .1 * s, x + 1.3 * s, y + .7 * s, x + .6 * s, y + .6 * s), '#4f3d36', { clip });
-};
 /** Several pictures of one size laid in order, each finished alone, as the pick page lays a tool's front over it. */
 const layered = (w, h, draws, px = 4) => {
   const c = canvas(w * px, h * px), x = c.getContext('2d');
@@ -191,58 +161,47 @@ const layered = (w, h, draws, px = 4) => {
   return c;
 };
 
-// The grinder «Заводская»: a long motor tube in worn ochre enamel, vents at its back, a paddle under it; a cast head, the wheel under a
-// half guard. A state: f null standing, 1..3 the disc's turn while it spins; on, its lamp and charge lights lit.
-const DISC = { base: '#57524e', shade: '#37332f', deep: '#24211f', lite: '#79726b', spec: '#a8a098' };
-const OCHRE = { base: '#9a7c44', shade: '#6a5432', deep: '#4a3b28', lite: '#bc9e62', spec: '#e0cc98' };
-/** A cut-off wheel seen face on: grit, its paper label, the print and the nut turning with it; spinning, the marks smear round. */
-const wheel = (a, cx, cy, r, f, o = {}) => {
-  const th = f === null ? 0 : f * 40, spin = f !== null;
-  a.shape(ell(cx, cy, r), DISC, { shade: .7, lines: [arcPath(cx, cy, r * .84, 35, 145)] });
-  for (let k = 0; k < 3; k++) {
-    const t = th + 60 + k * 120;
-    if (spin) { a.flat(arcBand(cx, cy, r * .72, r * .78, t - 30, t + 50), DISC.lite); a.flat(arcBand(cx, cy, r * .86, r * .9, t + 10, t + 80), DISC.lite); }
-    else a.line(`M${f2(cx + Math.cos(t * DEG) * r * .68)} ${f2(cy + Math.sin(t * DEG) * r * .68)}L${f2(cx + Math.cos(t * DEG) * r * .93)} ${f2(cy + Math.sin(t * DEG) * r * .93)}`, { w: .9 });
+// The grinder, the user's pick of five drawn references («Нынешняя, перерисованная»), shipped raw (refs/grinder.png): a long motor
+// tube in worn ochre enamel, vents at its back, a pistol grip, a cast head, the cut-off wheel under a half guard, a lamp on its end cap.
+// Running, f 1..3: the wheel's nut and washer smeared round, light streaks sweeping its face a third of their turn a frame. The head
+// hides the wheel's back, so the wheel itself never turns; the streaks show only where it is seen.
+/** The grinder's pictures, 30 × 12; the wheel's middle and radius, and its washer's radius, in the reference's pixels. */
+const GRINDER_W = 30, GRINDER_H = 12, WHEEL = [1247, 497, 245], WASHER = 92, STREAK = '#bab6b0';
+/** The part of an arc from a0 to a1 degrees (0 ahead, +y down) the head leaves in sight, within 115 degrees of ahead. */
+const seen = (a0, a1) => {
+  const s0 = ((a0 + 180) % 360 + 360) % 360 - 180;
+  return [Math.max(s0, -115), Math.min(s0 + a1 - a0, 115)];
+};
+/** The washer and nut cut from the picture, turned through a sixth of a turn and laid over each other: a nut spinning. */
+let smeared = null;
+const smear = () => {
+  if (smeared) return smeared;
+  const img = Traced.picture('grinder'), [ax, ay] = TRACED.grinder.raw.at, d = WASHER * 2, n = 12;
+  smeared = document.createElement('canvas');
+  smeared.width = smeared.height = d;
+  const x = smeared.getContext('2d');
+  x.beginPath(); x.arc(WASHER, WASHER, WASHER, 0, Math.PI * 2); x.clip();
+  for (let i = 0; i < n; i++) {
+    x.save(); x.globalAlpha = 1 / (i + 1);
+    x.translate(WASHER, WASHER); x.rotate(i * Math.PI / 3 / n);
+    x.drawImage(img, ax - WHEEL[0], ay - WHEEL[1]);
+    x.restore();
   }
-  a.flat(ell(cx, cy, r * .56), o.label || '#7a6c4e');
-  a.flat(arcBand(cx, cy, r * .46, r * .56, 15, 165), o.labelShade || '#5a4e3a');
-  for (let k = 0; k < 3; k++) { const t = th + k * 120; a.flat(arcBand(cx, cy, r * .33, r * .49, t, t + (spin ? 80 : 46)), o.print || '#3a2e22'); }
-  a.shape(ell(cx, cy, r * .27), STEEL, { outer: false, shade: .25 });
-  const hex = [];
-  for (let k = 0; k < 6; k++) { const t = (th + 30 + k * 60) * DEG; hex.push(cx + Math.cos(t) * r * .17, cy + Math.sin(t) * r * .17); }
-  a.shape(poly(hex), GUN, { outer: false, shade: .12 });
-  for (const t of [th + 90, th + 270]) a.flat(ell(cx + Math.cos(t * DEG) * r * .22, cy + Math.sin(t * DEG) * r * .22, .18), '#14172c');
+  return smeared;
 };
-/** A guard's lip round the wheel from a0 to a1 degrees, over its rim: lit along the top, rolled at the edge. */
-const guard = (a, cx, cy, r, a0, a1, m, o = {}) => {
-  const r0 = r - (o.inset ?? .5), r1 = r + (o.out ?? 1);
-  a.shape(arcBand(cx, cy, r0, r1, a0, a1), m, { shade: .3, lite: arcBand(cx, cy, r1 - .5, r1, Math.max(a0, 200), Math.min(a1, 340)), lines: [arcPath(cx, cy, r1 - .32, a0 + 3, a1 - 3), ...(o.lines || [])] });
-};
-const battery = (a, x, y, w, h, on) => {
-  a.shape(rr(x, y, w, h, .5), GUN, { lite: band(x + .2, y + .1, x + w - .2, y + .6), shade: band(x, y + h - .7, x + w, y + h), lines: [`M${x + w - 1.4} ${y + .1}L${x + w - 1.4} ${y + h - .1}`] });
-  for (let i = 0; i < 3; i++) a.glow(rr(x + .8 + i * 1.3, y + h * .45, .9, .55, .15), on ? ON : CHG);
-};
-const grinder = (s) => (a) => {
-  const cx = 22.6, cy = 7.2, R = 4.6;
-  battery(a, 1.4, 11.9, 7, 2.6, s.on);
-  a.shape('M3.4 7.2L8 7.2L7.4 9.6C7.2 10.6 7.2 11.4 7.4 12.2L3 12.2C2.8 11 2.8 9.6 3.4 7.2Z', RUBBER, { shade: band(6.4, 7, 8.2, 12.4), lines: ['M3.3 8.6L7.7 8.6', 'M3.1 9.6L7.4 9.6', 'M3 10.6L7.3 10.6', 'M3 11.5L7.4 11.5'] });
-  a.shape('M7.8 7.4L12.6 7.6L12.2 8.8L8.4 8.6Z', DARK, { lite: band(8, 7.5, 12.4, 7.95) });
-  a.shape('M7.4 7.3L8.4 7.4L8.3 8.3L7.5 8Z', RED_PAINT, { outer: false });
-  a.shape(rr(1.2, 2.4, 15.4, 5.4, 2.2), OCHRE, { lite: band(1.6, 2.5, 16.2, 3.4), spec: band(7.2, 2.75, 12.6, 3.05), shade: band(1.2, 6.6, 16.6, 7.8), lines: ['M6.6 2.5L6.6 7.7', 'M13.6 2.5L13.6 7.7'] });
-  for (const x of [2.7, 3.7, 4.7, 5.7]) a.flat(poly(x, 3.7, x + .5, 3.7, x + .3, 6.4, x - .2, 6.4), SLOT);
-  a.shape(rr(8.2, 4, 4.2, 1.8, .3), DARK, { outer: false, lite: band(8.3, 4.05, 12.3, 4.4) });
-  a.line('M8.8 4.95L11.6 4.95', { w: .8, c: '#8a8070' });
-  a.flat(poly(14.6, 2.5, 15.9, 2.7, 15.8, 3.6, 15, 3.3), CHIP);
-  a.flat(poly(9.4, 7.3, 10.8, 7.2, 10.6, 7.75, 9.6, 7.75), CHIP);
-  rustAt(a, 13.4, 6.9, .7);
-  a.shape(rr(.3, 3, 1.6, 4.2, .7), DARK, { lite: band(.4, 3.1, 1.8, 3.6) });
-  a.glow(ell(1.1, 4.3, .42), s.on ? LAMP_ON : LAMP_OFF, s.on ? { core: ell(1.05, 4.2, .16) } : {});
-  a.shape('M16.2 2.3L21.2 1.6C22.6 1.5 23.6 2.4 23.6 3.8L23.6 8.2L16.2 8.2Z', GUN, { lite: band(16.4, 1.7, 23.4, 2.6), shade: band(16.2, 7.2, 23.8, 8.4), lines: ['M17.6 2.2L17.6 8.1', 'M18.8 2.1L18.8 4'] });
-  stud(a, 21.6, 2.6);
-  wheel(a, cx, cy, R, s.f, { label: '#4e6478', labelShade: '#3a4a5a', print: '#d8d2c2' });
-  guard(a, cx, cy, R, 150, 350, STEEL);
-  stud(a, cx + Math.cos(205 * DEG) * (R + .3), cy + Math.sin(205 * DEG) * (R + .3), .36);
-  rustAt(a, cx + Math.cos(165 * DEG) * (R + .3), cy + Math.sin(165 * DEG) * (R + .3), .45);
+const grinder = (f) => (a) => {
+  const { s, at, X, Y } = Traced.fit('grinder', GRINDER_W, GRINDER_H);
+  Traced.raw('grinder', s, at)(a);
+  if (f === null) return;
+  const [cx, cy, r] = [X(WHEEL[0]), Y(WHEEL[1]), WHEEL[2] * s];
+  for (let k = 0; k < 3; k++) {
+    const t = f * 40 + k * 120;
+    for (const [r0, r1, from, span] of [[.5, .56, t - 20, 60], [.76, .82, t + 15, 75]]) {
+      const [a0, a1] = seen(from, from + span);
+      if (a1 - a0 > 4) a.flat(arcBand(cx, cy, r * r0, r * r1, a0, a1), STREAK);
+    }
+  }
+  a.image(smear(), X(WHEEL[0] - WASHER), Y(WHEEL[1] - WASHER), WASHER * 2 * s, WASHER * 2 * s);
 };
 
 // The plasma cutter, the user's pick of five drawn references («Самодельный»), shipped raw (refs/plasmaCutter.png): a rusted
@@ -312,7 +271,7 @@ Subjects.zfittings = function () {
   for (let f = 1; f <= 3; f++) out(`hero_drill_spin${f}`, bake({ w: DRILL_W, h: DRILL_H, draw: drill(f) }));
   // The salvage tools: each still, then its running states (the grinder's three turns of the disc, the cutter lit), and its icon.
   const salvage = [
-    ['hero_grinder', 29, 15, [grinder({ f: null, on: false })]],
+    ['hero_grinder', GRINDER_W, GRINDER_H, [grinder(null)]],
     ['hero_plasmaCutter', CUTTER_W, CUTTER_H, [cutter(false)]],
     ['hero_spear', SPEAR_W, SPEAR_H, [spear]],
     ['hero_sledgehammer', SLEDGE_W, SLEDGE_H, [sledgehammer]],
@@ -322,7 +281,7 @@ Subjects.zfittings = function () {
     out(name, layered(w, h, draws));
     out(`icons/${name}`, layered(w, h, draws, Math.ceil(Anime.ICON_LONG / w)));
   }
-  for (let f = 1; f <= 3; f++) out(`hero_grinder_spin${f}`, bake({ w: 29, h: 15, draw: grinder({ f, on: true }) }));
+  for (let f = 1; f <= 3; f++) out(`hero_grinder_spin${f}`, layered(GRINDER_W, GRINDER_H, [grinder(f)]));
   out('hero_plasmaCutter_on', layered(CUTTER_W, CUTTER_H, [cutter(true)]));
   out('hero_spear_arc', layered(SPEAR_W, SPEAR_H, [spearArc]));
 };
