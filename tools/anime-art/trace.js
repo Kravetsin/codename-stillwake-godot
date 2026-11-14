@@ -8,8 +8,8 @@
 // paint that meets bare steel with no line. A palette with "raw": true stops at the silhouette and writes the reference's own
 // pixels inside it, traced/<name>.png, for a held tool (2026-11-14-raw-tool-pictures).
 // A piece may be { keep: polygon, ...keys }: only the sheet's pixels inside the polygon, the palette with the piece's own keys over
-// it (its own `mend`, `segment`), for pieces cut out of one whole picture (a creature's legs out of its body). Its ops are in its
-// box's pixels, `origin` that box's corner in the sheet.
+// it (its own `mend`, `segment`; its `materials` added to the palette's), for pieces cut out of one whole picture (a creature's
+// legs out of its body). Its ops are in its box's pixels, `origin` that box's corner in the sheet.
 // Needs ffmpeg on the PATH to read the PNG.
 'use strict';
 const fs = require('fs'), path = require('path'), { spawnSync } = require('child_process');
@@ -23,7 +23,7 @@ if (P.pieces && !piece) {
   process.exit(0);
 }
 const spec = piece ? P.pieces[piece] : null, own = spec && !Array.isArray(spec) ? spec : null;
-if (own) Object.assign(P, own);
+if (own) Object.assign(P, own, own.materials ? { materials: { ...P.materials, ...own.materials } } : {});
 /** Whether (x, y) is inside a polygon of [x, y] points (even-odd). */
 const inPoly = (poly, x, y) => {
   let on = false;

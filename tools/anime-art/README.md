@@ -40,7 +40,7 @@ finish is `wash.js`, one for every subject.
 | `piles`, `smelter` | `machine_pile*`: the hold's heaps; `machine_smelter`, `smelter_work_*` |
 | `shipwalls`, `grounds`, `doors` | `wall_`, `back_`, `wall-edge_`, `detail_`, `top_` of glass, mica, hide, alloy, bedrock, lava, plaster; `door_*_0` and the links `room` leaves |
 | `caves` | stone, ice, copper veins and soil (`wall_`, `back_`, `wall-edge_`, `top_`, `detail_`), `caves/moss*_*`, `caves/crystalIce*` |
-| `creatures` | `creatures/<id>/<part>`, their numbers in `CreatureInk.cs`: the rigged creatures |
+| `creatures` | `creatures/<id>/<part>`, numbers in `CreatureInk.cs`: traced rigs |
 | `tick`, `warden`, `cavehostiles`, `lurkerattacks` | `creatures/ink<Kind>/*`, `<Rig>Ink.cs`: guards, lurkers, a capback's gas |
 | `tufts` | `planet/tuft_*`, `tuftReed_*`, `tuftFungus_*`: one of three plants a tuft (`FloraLooks.Drawn`) |
 | `flora` | `planet/acacia_*`, `_glow`: pods where the logical glow picture has them, as the game lights there |
@@ -67,7 +67,7 @@ finish is `wash.js`, one for every subject.
 node tools/anime-art/export.js [subject...]   # every subject, or some
 ```
 
-Needs Node 22+ and Edge or Chrome (`ANIME_BROWSER` for another); `tools/snap.ps1` imports.
+Needs Node 22+, Edge or Chrome (`ANIME_BROWSER` for another); `tools/snap.ps1` imports.
 
 ## Traced subjects
 
@@ -75,7 +75,7 @@ A picked AI-made reference is traced for its **form**; the line, paint and water
 
 - `refs/<name>.png` and `.palette.json`: its colours (`ref`) and our paint (`mat`); `single`: one part, `overlay`: patches,
   `mend`: repainted first, `holes`: left open; no `background`: cut by alpha. `pieces`: boxes or
-  `{ keep, ... }` polygons with their own keys, each to `traced/<name>.<piece>.json`.
+  `{ keep, ... }` polygons with their own keys (`materials` added), each to `traced/<name>.<piece>.json`.
 - `node tools/anime-art/trace.js <name>` (ffmpeg) cuts it by its ink into beziers, `traced/<name>.json`, drawn by `traced.js`, never
   the reference.
 - `"raw": true`, held tools ([raw](../../docs/decisions/2026-11-14-raw-tool-pictures.md)): the trace cuts out the

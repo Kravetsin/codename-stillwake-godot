@@ -29,8 +29,8 @@ public static partial class CreatureArt
 
     /// <summary>
     /// A node of the rig: <paramref name="Part"/> drawn hanging from <paramref name="Parent"/> at (<paramref name="X"/>,
-    /// <paramref name="Y"/>), moved by <paramref name="Drive"/>; a leg's place in the stride, whether it is a hind one (a hopper's),
-    /// and an ear's resting angle. The part <c>eye</c> is the eye's states, not a picture.
+    /// <paramref name="Y"/>), moved by <paramref name="Drive"/>; a leg's place in the stride, whether it is a hind one (a hopper's, a
+    /// sixleg's four behind: folding as hocks, tucked back in the air), and an ear's resting angle. The part <c>eye</c> is the eye's states, not a picture.
     /// </summary>
     public sealed record Node(string Id, string Part, string? Parent, float X, float Y, Drive Drive, float Phase = 0, bool Hind = false, float Base = 0);
 

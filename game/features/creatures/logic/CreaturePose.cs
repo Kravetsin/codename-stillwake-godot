@@ -52,10 +52,11 @@ public sealed class CreaturePose
     {
         (_design, _run) = (design, run);
         Joints = new Joint[design.Rig.Count];
-        // A leg ahead of the legs' middle is a foreleg: in a gallop the forelegs reach together, then the hind ones.
+        // A leg ahead of the legs' middle is a foreleg, unless marked hind (a sixleg's middle pair): in a gallop the forelegs reach
+        // together, then the hind ones; a foreleg's knee folds its foot back, a hind one's forward.
         var legs = design.Rig.Where(n => n.Drive == CreatureArt.Drive.Leg).ToList();
         double middle = legs.Count > 0 ? legs.Average(n => n.X) : 0;
-        _fore = design.Rig.Select(n => n.Drive == CreatureArt.Drive.Leg && n.X > middle).ToArray();
+        _fore = design.Rig.Select(n => n.Drive == CreatureArt.Drive.Leg && !n.Hind && n.X > middle).ToArray();
         _bends = design.Rig.Select(n => design.Parts.TryGetValue(n.Part, out var part) ? part.Bend : null).ToArray();
     }
 

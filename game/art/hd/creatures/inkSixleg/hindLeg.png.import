@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://cyxasgclbyvny"
-path="res://.godot/imported/legFar.png-f54ed346a5f9b0903765bc573ad3e5c5.ctex"
+uid="uid://2dwqk6dlt1qc"
+path="res://.godot/imported/hindLeg.png-a002c00351306eb74d2bce639c4935ae.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://art/hd/creatures/inkTapir/legFar.png"
-dest_files=["res://.godot/imported/legFar.png-f54ed346a5f9b0903765bc573ad3e5c5.ctex"]
+source_file="res://art/hd/creatures/inkSixleg/hindLeg.png"
+dest_files=["res://.godot/imported/hindLeg.png-a002c00351306eb74d2bce639c4935ae.ctex"]
 
 [params]
 
