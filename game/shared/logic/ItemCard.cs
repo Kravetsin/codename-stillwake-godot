@@ -33,8 +33,8 @@ public sealed record CardTile(string Value, string Label, CardBoost? Boost = nul
 /// <summary>What a tool's number is, its icon and hue on the card (2026-11-07-tool-card-rows).</summary>
 public enum CardSign { None, Damage, Block, Pace, Pierce, Arc, Reach, Reel, Battery, Loot }
 
-/// <summary>The groups a tool's numbers are listed under, in this order: its hit or its shot, its reach, what is special.</summary>
-public enum CardGroup { Hit, Shot, Reach, Special }
+/// <summary>The groups a tool's numbers are listed under, in this order: its hit, its shot or its blast, its reach, what is special.</summary>
+public enum CardGroup { Hit, Shot, Blast, Reach, Special }
 
 /// <summary>
 /// How a tool's number differs with its modules fitted from the plain tool's (0098): in the colour of the technology of the first

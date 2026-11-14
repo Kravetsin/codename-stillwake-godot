@@ -79,7 +79,7 @@ The wrist's metal, screens, keys and gauge (0074, 0081) are `game/shared/`'s (`W
 - **Stash** (2026-11-06-quick-stash): `Bind.Stash` or the key under sort sends `Stash` when `StashPlan` moves anything;
   icons fly from the chest to each crate. Alt+click marks an item kept (`Ui.Favourites`, this machine's): a star on it.
 - **The one tooltip** (0073): a stack's card follows the pointer, never covering its slot. A tool shows its `ToolStats`
-  numbers as icon rows in groups, no damage a second (2026-11-07-tool-card-rows), boosted ones in the module's colour (0098); equipment its picture and one number; a battery its
+  numbers as icon rows in groups (2026-11-07-tool-card-rows), boosts in the module colour (0098), a charge its blast; equipment its picture and one number; a battery its
   charge in power units (0053).
 - **Charge** (0053): a battery slot draws a bar (amber under a quarter), an empty one its picture. The charge row
   (hud-vitals) is energy's.

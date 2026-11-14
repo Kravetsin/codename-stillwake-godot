@@ -10,6 +10,7 @@ public static partial class En
         // A tool card's rows (2026-11-07-tool-card-rows): their groups, then each row's label, a small word after it, its value.
         ["card.group.hit"] = "Hit",
         ["card.group.shot"] = "Shot",
+        ["card.group.blast"] = "Blast",
         ["card.group.reach"] = "Reach",
         ["card.group.special"] = "Special",
         ["card.damage"] = "Damage",
@@ -24,6 +25,7 @@ public static partial class En
         ["card.arc"] = "Swing",
         ["card.degrees"] = "{n}°",
         ["card.range"] = "Range",
+        ["card.radius"] = "Radius",
         ["card.cells"] = "{n} cells",
         ["card.reload"] = "Reload time",
         ["card.reel"] = "Reel",
