@@ -11,6 +11,25 @@ public class ToolSparksTests
     private static readonly string Grinder = Content.Weapons.Grinder.Item;
     private static readonly WheelContact.Circle Wheel = new((0, 0), 14, 1);
 
+    [Fact]
+    public void ASparkLeavesFromTheFirstExitItMeetsAlongTheSpin()
+    {
+        var top = new WheelContact.Exit(Wheel.At(-Math.PI / 2), Wheel.Along(-Math.PI / 2), -Math.PI / 2, 0.5);
+        var sparks = Ground([Low, top], ms: 200);
+        int low = 0, high = 0;
+        for (int n = 0; n < sparks.Count; n++)
+        {
+            if (sparks.At(n) is not var (_, head, _)) continue;
+            double r = Math.Sqrt(head.X * head.X + head.Y * head.Y);
+            if (r <= Wheel.Radius + 1e-6) continue;
+            // Off the low exit they go back along -x, off the top one along +x; each spark from the exit it met.
+            if (head.Y > 0) low++;
+            else high++;
+            Assert.True(head.Y > 0 ? head.X < 0 : head.X > 0, $"spark {n} at {head}");
+        }
+        Assert.True(low > 0 && high > 0, $"{low} off the low exit, {high} off the top");
+    }
+
     // The rim's lowest point: it moves back, along -x, there.
     private static readonly WheelContact.Exit Low = new(Wheel.At(Math.PI / 2), Wheel.Along(Math.PI / 2), Math.PI / 2, 1);
 
@@ -27,10 +46,10 @@ public class ToolSparksTests
     }
 
     [Fact]
-    public void ASparkRidesTheRimToItsExitThenFliesOnAlongIt()
+    public void ASparkRidesTheWholeRimToItsExitThenFliesOnAlongIt()
     {
-        var sparks = Ground([Low], ms: 60);
-        int riding = 0, flying = 0;
+        var sparks = Ground([Low], ms: 200);
+        int riding = 0, flying = 0, over = 0;
         for (int n = 0; n < sparks.Count; n++)
         {
             if (sparks.At(n) is not var (_, head, _)) continue;
@@ -38,7 +57,8 @@ public class ToolSparksTests
             if (Math.Abs(r - Wheel.Radius) < 1e-6)
             {
                 riding++;
-                Assert.InRange(angle, Math.PI / 2 - Low.Run - 1e-9, Math.PI / 2 + 1e-9);
+                // The rim's top half, far from the low exit: riding sparks run round all of it.
+                if (angle < 0) over++;
                 continue;
             }
             flying++;
@@ -46,7 +66,7 @@ public class ToolSparksTests
             double off = Math.Abs(Math.IEEERemainder(Math.Atan2(dy, dx) - Math.Atan2(Low.Way.Y, Low.Way.X), 2 * Math.PI));
             Assert.True(off <= WorkLooks.GrinderSpread + 1e-6, $"spark {n} at {head} is {off} off the rim's way");
         }
-        Assert.True(riding > 0 && flying > 0, $"{riding} riding, {flying} flying");
+        Assert.True(riding > 0 && flying > 0 && over > 0, $"{riding} riding ({over} over the top), {flying} flying");
     }
 
     [Fact]

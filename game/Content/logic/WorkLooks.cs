@@ -38,10 +38,10 @@ public static class WorkLooks
     public static double? WheelRadius(double range, double hub) => range - hub is var r && r >= WheelLeast ? r : null;
 
     /// <summary>
-    /// The smallest working circle drawn, pixels; how many points its rim is walked in; how far back a spark may ride the rim to
-    /// its exit, radians; at most how many exits a wreck sparks from.
+    /// The smallest working circle drawn, pixels; how many turns a second a spark rides its rim to an exit; how many points the rim
+    /// is walked in; at most how many exits a wreck sparks from.
     /// </summary>
-    public const double WheelLeast = 2, WheelRide = Math.PI / 2;
+    public const double WheelLeast = 2, WheelTurns = 2;
     public const int RimSteps = 48, WheelExits = 3;
 
     /// <summary>

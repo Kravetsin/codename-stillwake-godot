@@ -8,7 +8,7 @@ namespace Stillwake.Game.Features.Crew;
 /// <summary>
 /// The sparks running electric tools throw off a wreck (damage-looks, "sparks"): thin streaks thrown fast where each touches, a
 /// steady <see cref="WorkLooks.SparksPerSecond"/>, white-hot cooling to orange and red; out of the face toward the tool, the
-/// grinder's in a tight fan off its wheel; and a white bead where it touches. Each spark keeps where it was thrown from and flies
+/// grinder's in a tight fan off its wheel; and, but for the grinder's, a white bead where it touches. Each spark keeps where it was thrown from and flies
 /// on alone; its way, speed and life are hashes of its number, as the page's were.
 /// </summary>
 public sealed class ToolSparks
@@ -46,8 +46,8 @@ public sealed class ToolSparks
     {
         _touching.Add(touch);
         bool rim = wheel != null && exits is { Count: > 0 };
-        if (rim) foreach (var e in exits!) _beads.Add(e.At);
-        else _beads.Add(at);
+        // The grinder's sparks come off the wheel itself, with no bead where it touches (grinder-contact).
+        if (tool != Content.Weapons.Grinder.Item) _beads.Add(at);
         double owed = _owed.TryGetValue(touch, out var o) ? o + WorkLooks.SparksPerSecond * Fx.Count * elapsedMs / 1000 : 1;
         var (bx, by, spread) = rim ? (0.0, 0.0, WorkLooks.GrinderSpread) : tool == Content.Weapons.Grinder.Item ? Wheel(toward) : (toward.X, toward.Y, Spread(tool));
         for (; owed >= 1; owed--)
@@ -63,11 +63,12 @@ public sealed class ToolSparks
                 _sparks.Add(new Spark(at.X, at.Y, bx * cos - by * sin, bx * sin + by * cos, speed, life, born));
                 continue;
             }
-            var e = exits![Math.Min(exits.Count - 1, (int)(Hash(i, 4) * exits.Count))];
             var w = wheel!.Value;
-            // Up to a quarter turn back along its stretch inside, ridden at its own speed.
-            double back = Hash(i, 5) * Math.Min(WorkLooks.WheelRide, e.Run), ride = back * w.Radius / speed * 1000;
-            _sparks.Add(new Spark(e.At.X, e.At.Y, e.Way.X * cos - e.Way.Y * sin, e.Way.X * sin + e.Way.Y * cos, speed, life, born, w, e.Angle - w.Spin * back, ride));
+            // Anywhere on the rim, ridden along the spin to the next exit, up to a whole turn.
+            double from = Hash(i, 4) * 2 * Math.PI;
+            var (e, way) = NextExit(w, from, exits!);
+            double ride = way / (2 * Math.PI * WorkLooks.WheelTurns) * 1000;
+            _sparks.Add(new Spark(e.At.X, e.At.Y, e.Way.X * cos - e.Way.Y * sin, e.Way.X * sin + e.Way.Y * cos, speed, life, born, w, from, ride));
         }
         _owed[touch] = owed;
     }
@@ -79,6 +80,19 @@ public sealed class ToolSparks
         foreach (var touch in _owed.Keys)
             if (!_touching.Contains(touch)) _left.Add(touch);
         foreach (var touch in _left) _owed.Remove(touch);
+    }
+
+    // The first of exits met riding w's rim along its spin from angle from, and how far, radians.
+    private static (WheelContact.Exit Exit, double Way) NextExit(WheelContact.Circle w, double from, IReadOnlyList<WheelContact.Exit> exits)
+    {
+        var best = (exits[0], double.MaxValue);
+        foreach (var e in exits)
+        {
+            double way = (w.Spin * (e.Angle - from)) % (2 * Math.PI);
+            if (way < 0) way += 2 * Math.PI;
+            if (way < best.Item2) best = (e, way);
+        }
+        return best;
     }
 
     private static double Spread(string tool) => tool == Content.Weapons.PlasmaCutter.Item ? WorkLooks.CutterSpread : WorkLooks.DrillSpread;
@@ -101,7 +115,7 @@ public sealed class ToolSparks
         if (age < s.Ride && s.Rim is { } w)
         {
             // On the rim: white-hot, its streak along the way the rim moves.
-            double angle = s.From + w.Spin * s.Speed * age / 1000 / w.Radius, streak = s.Speed * WorkLooks.SparkStreak;
+            double angle = s.From + w.Spin * 2 * Math.PI * WorkLooks.WheelTurns * age / 1000, streak = s.Speed * WorkLooks.SparkStreak;
             var (rx, ry) = w.At(angle);
             var (ux, uy) = w.Along(angle);
             return ((rx - ux * streak, ry - uy * streak), (rx, ry), 0);
