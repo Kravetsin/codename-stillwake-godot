@@ -34,6 +34,9 @@ public sealed class BentLimb
     /// <summary>The seam where no picture's widths are known: a pixel's fade across the joint.</summary>
     public static readonly (double From, double To) Plain = (-0.5, 0.5);
 
+    /// <summary>No seam: a lower picture drawn whole from its top, as a soft helmet's are (helmets-fit-the-suit).</summary>
+    public static readonly (double From, double To) Seamless = (double.NegativeInfinity, double.PositiveInfinity);
+
     private readonly double _joint;
     private readonly bool _lower;
     private readonly Vec[] _rest;

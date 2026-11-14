@@ -43,18 +43,18 @@ finish is `wash.js`, one for every subject; a drawing follows these rules.
 | `creatures` | `creatures/<id>/<part>`, their numbers in `CreatureInk.cs`: the rigged creatures |
 | `tick`, `warden`, `cavehostiles`, `lurkerattacks` | `creatures/ink<Kind>/*`, `<Rig>Ink.cs`: guards, lurkers, a capback's gas |
 | `tufts` | `planet/tuft_*`, `tuftReed_*`, `tuftFungus_*`: one of three plants a tuft (`FloraLooks.Drawn`) |
-| `flora` | `planet/acacia_*`, `_glow`: pods where the logical glow picture has them, as the game lights from there |
+| `flora` | `planet/acacia_*`, `_glow`: pods where the logical glow picture has them, as the game lights there |
 | `shrubs` | `planet/bush_*`, `rock_*`, `bell*_*`: dead thorn, boulders, hooded bells; light only in `_glow` |
 | `leaves` | `planet/leaf_<look>_<plant>_<n>[_back]`: falling leaves |
 | `heavens` | `planet/sky`, `clouds` (far layers, any size), `giant`, `sun` |
 | `cavelife` | `caves/` crystals, dripstone, fungi, threads, roots, cracks, geodes, fossils, opal and spire caches, lamp; dim `_glow` |
 | `homes`, `homeskeep`, `homeslights`, `homeswall`, `homesruin` | `homes/*`, `_dark`, `_fed`, `_glow`; `ruins/spireLens_*`; `homes.js` exposes `HomeKit`, the others sort after it |
-| `debris` | `debris/*`: rocks lit hard from a side, crates, plates, pods, scrap, derelicts; unlettered, they turn |
+| `debris` | `debris/*`: rocks lit from a side, crates, plates, pods, scrap, derelicts; unlettered, they turn |
 | `aboard` | `machine_salvage*`: salvage whole on the deck; numbered main engines and consoles, one per vessel |
 | `net` | `machine_net` (booms), `net_mount`, `net_front_<n>` (holding n); `NetInk.cs` |
 | `bay`, `salvage` | `machine_droneBay`, `droneBay_*`, `salvage_*`, `items/salvageDrone`; `BayInk.cs`, `SalvageInk.cs` |
 | `scanner` | `hero_scanner`, `hero_<helmet>_scanner`, `_lit_<n>`, `items/scanner`; `ScannerInk.cs` |
-| `helmets`, `quilted`, `heatSuit` | traced: `hero_<helmet>_shell`, `_visor` (basic: `hero_visor`, `hero_helmet` the lamp's card), `items/<id>`; `hero_heatSuit_<part>` |
+| `helmets`, `quilted`, `heatSuit` | traced: `hero_<helmet>_shell`, `_visor` (basic: `_collar`, `hero_visor`, `hero_helmet` the lamp card), `items/<id>`; `hero_heatSuit_<part>` |
 | `charge`, `missile` | `hero_blastCharge` (`icons/` lit), `shot_blastCharge_spark`: its fuse in flight; `shot_missile` |
 | `edgekeys` | `holo_<key>`, `_glow`: the edge keys' masks |
 | `signs`, `credit`, `capsule`, `gauge` | `sign_*`: bolts, plug, wrench, tips; `credit`, the chip; `capsule`, `capsule_flame_<n>`; `gauge_*`, the vitals' light |

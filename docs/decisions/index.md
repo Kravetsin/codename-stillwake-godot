@@ -346,6 +346,7 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [food-and-gear-cards](2026-11-14-food-and-gear-cards.md) | Food and gear cards list what they guarantee, and food sells | accepted |  |
 | [frost-film](2026-11-14-frost-film.md) | Frost: the cold drawn as uneven ice with no edge | accepted |  |
 | [heat-limits](2026-11-14-heat-limits.md) | Heat: the other side of the degrees | accepted |  |
+| [helmets-fit-the-suit](2026-11-14-helmets-fit-the-suit.md) | Helmets fit the suit, each turning its own way | accepted |  |
 | [helmets-traced](2026-11-14-helmets-traced.md) | The basic and heavy helmets, traced | accepted |  |
 | [pickaxe-and-harpoon-traced](2026-11-14-pickaxe-and-harpoon-traced.md) | The pickaxe and the harpoon traced from picked references | accepted |  |
 | [quilted-helmet-and-traced-art](2026-11-14-quilted-helmet-and-traced-art.md) | The quilted helmet and traced art | accepted |  |

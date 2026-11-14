@@ -51,6 +51,7 @@ This hero and others', client-authoritative (0002): only commands reach the sim.
 | `Figure.cs` | the rig, lit, dressed |
 | `logic/BentLimb.cs` | bent limbs |
 | `BentPicture.cs` | drawn |
+| `logic/BodyFit.cs` | helmets fit |
 | `logic/Cape.cs` | a cape's cloth |
 | `logic/Spring.cs` | arm's swing |
 | `CapeView.cs` | it drawn, lined |
@@ -72,7 +73,7 @@ This hero and others', client-authoritative (0002): only commands reach the sim.
 | `Frost.cs` | the cold |
 | `Haze.cs` | the heat |
 | `logic/ScreenEase.cs` | eased |
-| `logic/Danger.cs` | the gauge's read |
+| `logic/Danger.cs` | gauge read |
 | `logic/AirCues.cs` | air back |
 | `logic/CanistersSeen.cs` | tanks |
 | `AirSwirl.cs` | fling, breath, leak |
@@ -125,7 +126,7 @@ This hero and others', client-authoritative (0002): only commands reach the sim.
 - **The crew module:** made at `Spawn`; passed out: no orders, lies at the sim's cell, takes none (0061). `Enter` goes when the sim's room or field side
   differ, every `Crew.ReportEvery` ticks off its cell, each tick if threatened; none out (0050); a closed link's host: `Leave`.
 - **Dressed as worn**: helmet, body, hair, clothes, lamp; the colour on the shin; a switched body lit by
-  `SuitOn` and charge (`SuitGlow`), lit round (hero-lights). **Limbs bend** whole, 4 px at elbow and knee (bent-limbs).
+  `SuitOn` and charge (`SuitGlow`, hero-lights). **Limbs bend** whole (bent-limbs); **helmets** turn their own way (helmets-fit-the-suit).
 - **Tracker** blinks (`SignalOf`); **catchers**: heroes in gear, untracked, tumble killed (tracker-catchers).
 
 ## Others' heroes
@@ -149,7 +150,7 @@ This hero and others', client-authoritative (0002): only commands reach the sim.
 - **Harpoon, grapple** (0044, grapple-climbs): reel pieces, pull to walls; hung, refire; Space/RMB let go.
 - **A gun** (hold-to-fire): held fires each cooldown; a `Charge` one on release, full; flat, clicks. Kicks afloat, shoves standing (`Recoil`, body-answers).
 - **Drill, grinder, cutter** (0054, 0055): left held runs it (`Run`), a hit each `Pace` ticks, the cutter's by
-  beam (`ToolEdges`), sparking.
+  beam (`ToolEdges`).
 - **Power driver** (driver-at-work, driver-order): charged, works a 2×2 square (`WorkedSquare`); right click toggles (mode-glyph).
 - **Seated** (`Seating.Held`): no tool; E leaves. **Ladders, ledges** (0092): grab, climb, slide, leap off; a hatch open climbs, shut floors (0112); a jump a foot
   short mantles.
