@@ -127,27 +127,22 @@ const axe = (a) => {
   const at = [.5 - x0 * s, (AXE_H - (y1 - y0 + 1) * s) / 2 - y0 * s];
   Traced.drawer('fireAxe', Traced.placed('fireAxe', s, at), TRACED.fireAxe.fit.units * s)(a);
 };
+// The drill, the user's pick of five drawn references («Из трубы»), traced (refs/drill.png) without its bit: the bit is drawn here,
+// so its flutes can move a third of a groove a frame while it spins.
+/** The drill's picture, 33 × 16 (the old one's length): the trace and the bit fitted along it, half a pixel round them. */
+const DRILL_W = 33, DRILL_H = 16, DRILL_TIP = 1500;
+const BIT = { base: '#b4b8c0', shade: '#767c8c', deep: '#4e5464', lite: '#dde0e6', spec: '#f6f7f8', ink: '#14162a' };
 const drill = (spin) => (a) => {
-  // The back end with its vents and lamp, the grip with its ribs, trigger and battery; a steel housing, bolted, with a heat band; a toothed chuck; the bit, whose flutes turn when it spins.
-  a.shape(rr(0, 2.6, 9, 6.6, 1.2), GUN, { lite: band(.6, 2.7, 8.4, 3.6), shade: band(.6, 7.8, 8.4, 9.2) });
-  for (const x of [3.2, 4.5, 5.8, 7.1]) a.flat(poly(x, 4.2, x + .55, 4.2, x + .35, 7, x - .2, 7), '#14172c');
-  a.flat(ell(1.6, 4.6, .55), spin === null ? '#54ba74' : '#a0f0a0');
-  screw(a, 1.3, 7.6);
-  a.shape(poly(8, 9.2, 9.6, 9.2, 9.8, 10, 8.9, 11.2, 8.4, 11), RED, { lite: band(8.2, 9.3, 9.5, 9.8) });
-  a.shape(rr(3.4, 8.8, 4, 4.4, .6), DARK, { lite: band(3.8, 8.9, 5, 13) });
-  for (const y of [10, 10.9, 11.8]) a.line(`M3.7 ${y}L7.1 ${y}`, { w: .9 });
-  a.shape(rr(2.6, 12.4, 5.6, 2.4, .4), GUN, { lite: band(2.9, 12.5, 7.9, 13.1), shade: band(2.9, 14.1, 7.9, 14.8) });
-  a.flat(band(3.4, 13.4, 5.6, 13.9), spin === null ? '#54ba74' : '#a0f0a0');
-  a.shape(rr(8.6, 1.8, 13, 7.6, .8), STEEL, { lite: band(9, 1.9, 21.2, 2.8), spec: band(10, 2.1, 15, 2.5), shade: band(9, 7.8, 21.2, 9.4), lines: ['M18.9 1.9L18.9 9.3', 'M10.2 1.9L10.2 9.3'] });
-  for (const [x, y] of [[9.4, 2.9], [9.4, 8.2], [20.2, 2.9], [20.2, 8.2]]) screw(a, x, y);
-  for (let i = 0; i < 3; i++) a.flat(band(11.2 + i * 2.5, 4.1, 12.5 + i * 2.5, 6.9), '#c8703c');
-  a.line('M11 3.5L18 3.5', { w: .9 });
-  a.flat(poly(13.2, 7.4, 15.8, 7.4, 15.6, 8.1, 13.4, 8.1), '#3a2a22');
-  a.shape(poly(21.4, 2.8, 24.8, 3.8, 24.8, 7.4, 21.4, 8.4), GUN, { lite: band(21.4, 2.8, 24.8, 4.2), shade: band(21.4, 7, 24.8, 8.4) });
-  for (const x of [22.2, 23, 23.8]) a.line(`M${x} ${3 + (x - 21.4) * .28}L${x} ${8.2 - (x - 21.4) * .28}`, { w: .9 });
-  const y0 = 3.6, y1 = 7.6;
-  a.shape(poly(24.8, y0, 32.8, 5.6, 24.8, y1), { base: '#dfe7f2', shade: '#868fa2', lite: '#ffffff', spec: '#ffffff', ink: '#14162a' }, { shade: poly(24.8, 5.6, 32.8, 5.6, 24.8, y1) });
-  for (let i = 0; i < 3; i++) { const x = 26 + i * 2 + (spin === null ? 0 : (spin % 3) * .66); a.flat(poly(x, 3.9, x + .7, 4.1, x - .2, 7.2, x - .9, 7), '#868fa2', { clip: poly(24.8, y0, 32.8, 5.6, 24.8, y1) }); }
+  const [x0, y0, , y1] = TRACED.drill.fit.box, s = (DRILL_W - 1) / (DRILL_TIP - x0 + 1);
+  const at = [.5 - x0 * s, (DRILL_H - (y1 - y0 + 1) * s) / 2 - y0 * s], X = (x) => x * s + at[0], Y = (y) => y * s + at[1];
+  // The bit, placed by the reference's pixels: a shank out of the chuck, the fluted body, its point; under the chuck's nose.
+  const cy = Y(298.5), r = 23.5 * s, sx0 = X(1100), sx1 = X(1148), bx1 = X(1466), tip = X(DRILL_TIP);
+  a.shape(rr(sx0, cy - r * .55, sx1 - sx0 + .3, r * 1.1, .15), BIT, { lite: band(sx0, cy - r * .5, sx1, cy - r * .15), shade: band(sx0, cy + r * .2, sx1, cy + r * .55) });
+  const body = poly(sx1, cy - r, bx1, cy - r, tip, cy, bx1, cy + r, sx1, cy + r);
+  a.shape(body, BIT, { lite: band(sx1, cy - r * .75, bx1, cy - r * .3), shade: poly(sx1, cy + r * .3, bx1, cy + r * .3, tip, cy, bx1, cy + r, sx1, cy + r) });
+  const pitch = 2.1, shift = spin === null ? 0 : (spin % 3) * pitch / 3;
+  for (let x = sx1 - pitch + shift; x < tip; x += pitch) a.flat(poly(x, cy - r, x + .5, cy - r, x + 1.2, cy + r, x + .7, cy + r), BIT.deep, { clip: body });
+  Traced.drawer('drill', Traced.placed('drill', s, at), TRACED.drill.fit.units * s)(a);
 };
 
 // The salvage tools, each the user's pick drawn whole (salvage-tools): the grinder «Заводская», the plasma cutter «Кольца», the spear
@@ -384,11 +379,11 @@ Subjects.zfittings = function () {
   out('drone_lamp_work', bake({ w: 18, h: 12, draw: lampOf('#a8ecff') }));
   out('drone_lamp_low', bake({ w: 18, h: 12, draw: lampOf('#ff5040') }));
   out('hero_axe', bake({ w: AXE_W, h: AXE_H, draw: axe }));
-  out('hero_drill', bake({ w: 33, h: 15, draw: drill(null) }));
+  out('hero_drill', bake({ w: DRILL_W, h: DRILL_H, draw: drill(null) }));
   // Their icons (icons/<picture>), as hero.js draws the hand tools': the same drawing at many pixels a world pixel.
-  for (const [name, pic] of [['hero_axe', { w: AXE_W, h: AXE_H, draw: axe }], ['hero_drill', { w: 33, h: 15, draw: drill(null) }]])
+  for (const [name, pic] of [['hero_axe', { w: AXE_W, h: AXE_H, draw: axe }], ['hero_drill', { w: DRILL_W, h: DRILL_H, draw: drill(null) }]])
     out(`icons/${name}`, bake({ ...pic, px: Math.ceil(Anime.ICON_LONG / pic.w) }));
-  for (let f = 1; f <= 3; f++) out(`hero_drill_spin${f}`, bake({ w: 33, h: 15, draw: drill(f) }));
+  for (let f = 1; f <= 3; f++) out(`hero_drill_spin${f}`, bake({ w: DRILL_W, h: DRILL_H, draw: drill(f) }));
   // The salvage tools: each still, then its running states (the grinder's three turns of the disc, the cutter lit), and its icon.
   const salvage = [
     ['hero_grinder', 29, 15, [grinder({ f: null, on: false })]],
