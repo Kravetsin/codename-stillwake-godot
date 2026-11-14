@@ -348,6 +348,7 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [helmets-traced](2026-11-14-helmets-traced.md) | The basic and heavy helmets, traced | accepted |  |
 | [pickaxe-and-harpoon-traced](2026-11-14-pickaxe-and-harpoon-traced.md) | The pickaxe and the harpoon traced from picked references | accepted |  |
 | [quilted-helmet-and-traced-art](2026-11-14-quilted-helmet-and-traced-art.md) | The quilted helmet and traced art | accepted |  |
+| [railgun-traced](2026-11-14-railgun-traced.md) | The railgun traced from a picked reference | accepted |  |
 | [temperature-gradients](2026-11-14-temperature-gradients.md) | Temperature gradients: colder away from the ship, smooth down the bands | accepted |  |
 | [temperature-in-degrees](2026-11-14-temperature-in-degrees.md) | Temperature in degrees | accepted |  |
 | [the-thermometer](2026-11-14-the-thermometer.md) | The thermometer: a frost star and the degrees, a row under the charge | accepted |  |

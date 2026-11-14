@@ -116,15 +116,15 @@ public sealed record HeldLook(
         Twist: "res://art/hero_powerDriver_flat.png", Driven: "res://art/hero_powerDriver.png");
 
     /// <summary>
-    /// The railgun, <c>art/hero_railgun.png</c> (2026-10-27-the-railgun), the user's pick, «Конденсаторы»: a squat housing with a red
-    /// band, three capacitor cans standing on it in copper bands, the arc shard at its rear, short heavy rails clamped twice; held as
-    /// the drill is, in one hand by its pistol grip, the elbow a little bent; the edge the gap between
-    /// the rails, the nail leaving their ends. Charged, the cans, the gap and the shard light (<c>hero_railgun_charged.png</c>), and
-    /// the arc crackles along the whole barrel, a box each third of it.
+    /// The railgun, <c>art/hero_railgun.png</c> (2026-10-27-the-railgun), redrawn from the user's pick «Катушечный из хлама»
+    /// (2026-11-14-railgun-traced): a steel tube through five copper coils, cables looped to a green battery box at the rear; held in one
+    /// hand by the loop under the battery as by a pistol grip, the elbow a little bent; the edge the tube from the battery to the
+    /// muzzle. Charged, the coils glow and the lamp burns (<c>hero_railgun_charged.png</c>), and the arc crackles along the coils,
+    /// a box each third of them.
     /// </summary>
     public static readonly HeldLook Railgun = new(
-        "res://art/hero_railgun.png", (12, 10.5), 0, (17, 6.5), (38, 6.5), Aimed: true, Elbow: 0.4, Clamp: (21.5, 6.5),
-        Charged: "res://art/hero_railgun_charged.png", Arcs: [(17, 4, 24, 8), (24, 4, 31, 8), (31, 4, 38, 8)], Size: Drawn);
+        "res://art/hero_railgun.png", (10.3, 12), 0, (12.3, 6.1), (39.4, 6.1), Aimed: true, Elbow: 0.4, Clamp: (22.5, 6.1),
+        Charged: "res://art/hero_railgun_charged.png", Arcs: [(14, 4, 21, 8.3), (21, 4, 28, 8.3), (28, 4, 35.5, 8.3)], Size: Drawn);
 
     /// <summary>
     /// The angle grinder, <c>art/hero_grinder.png</c> (salvage-tools), the user's pick, «Заводская»: a long motor tube in worn ochre

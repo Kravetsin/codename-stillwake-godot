@@ -595,46 +595,36 @@ const nailer = (loaded) => (a) => {
   a.flat(band(23.4, 2.15, 24.9, 2.85), '#c4ccd8');
   a.flat('M24.9 2.15L25.9 2.5L24.9 2.85Z', '#efe9da');
 };
-// The railgun: a squat housing with its red band, three capacitor cans in copper straps on it, the arc shard let into its back, two short heavy rails clamped twice.
-const RAILRED = { base: '#a63c2e', shade: '#742a28', deep: '#541e20', lite: '#c8604a', spec: '#e8a890' };
-const CANS = [[5.7, .15], [8.7, 0], [11.7, -.15]];
-const SHARD = 'M2.5 3.1L3.6 3.3L3.8 4.4L3 5L2.3 4.3Z';
-const railgun = (a) => {
-  // Under it: the frame behind the grip, the grip, a foot before it.
-  a.shape('M1.2 9L5.4 9L5.4 10L3.2 10L3.2 12.2L5.4 12.2L5.4 13.2L1.2 13.2Z', GUN(), { lite: band(1.3, 9.1, 3, 13), shade: band(1.2, 12.5, 5.4, 13.2) });
-  a.shape('M5.4 12.2L10.8 12.2L10.8 13.2L5.4 13.2Z', GUN(), { shade: band(5.4, 12.8, 10.8, 13.2) });
-  a.shape('M10.4 9L14 9L14.2 13.6L10.8 13.6Z', DARK(), { lite: band(10.6, 9.1, 11.6, 13.4), lines: ['M10.8 10.4L14 10.4', 'M10.8 11.4L14.1 11.4', 'M10.8 12.4L14.2 12.4'] });
-  a.shape(rr(20.2, 8.8, 2, 4.4, .3), GUN(), { lite: band(20.4, 8.9, 21, 13), shade: band(20.2, 12.3, 22.2, 13.2) });
-  a.shape('M14.6 9L15.8 9L15.8 10.4L15 11L14.6 10.6Z', RAILRED);
-  // The rails first, the housing's end over them: the upper, the gap the nail runs in, the lower, the clamps.
-  a.shape(rr(16, 3.9, 22.8, 2.2, .3), STEEL(), { lite: band(16.2, 4, 38.6, 4.6), spec: band(33, 4.15, 38.2, 4.45), shade: band(16, 5.4, 38.8, 6.1) });
-  a.shape(rr(16, 7, 22.8, 2, .3), GUN(), { lite: band(16.2, 7.1, 38.6, 7.6), shade: band(16, 8.4, 38.8, 9) });
-  a.flat(band(16, 6.1, 38.6, 7), SLOT);
-  for (const x of [22.2, 29.4]) { a.shape(rr(x, 3.4, 1.5, 6.1, .25), DARK(), { lite: band(x + .1, 3.5, x + 1.4, 4.1), shade: band(x, 8.8, x + 1.5, 9.5) }); stud(a, x + .75, 4.5, .36); stud(a, x + .75, 8.4, .36); }
-  a.flat('M36.4 5.6L37.6 5.5L37.8 6L36.6 6.1Z', RUST);
-  a.shape(rr(1, 3.8, 16, 5.6, .6), GUN(), { lite: band(1.4, 3.9, 16.6, 4.7), spec: band(5, 4.05, 14, 4.35), shade: band(1, 8.6, 17, 9.4), rim: .22, lines: ['M16.2 3.9L16.2 9.3'] });
-  a.shape(rr(4.2, 5.9, 11.8, 2.1, .2), RAILRED, { outer: false, lite: band(4.4, 5.9, 15.8, 6.4), shade: band(4.2, 7.4, 16, 8) });
-  a.flat('M9.6 7.1L11.4 7L11.6 8L9.8 8Z', RAILRED.deep);
-  a.flat('M13.6 5.9L14.6 5.9L14.4 6.5Z', '#868fa2');
-  stud(a, 2, 8.4, .36); stud(a, 15.2, 8.7, .36);
-  // The shard in its socket at the rear.
-  a.shape(rr(1.6, 2.8, 2.8, 2.6, .3), DARK(), { lite: band(1.8, 2.9, 4.2, 3.3) });
-  a.flat(SHARD, '#8878c8');
-  a.flat('M2.7 3.3L3.2 3.4L3.1 4L2.7 4Z', '#c8c0ec');
-  // The cans, each its own: one standing crooked, one strapped twice, one dented.
-  for (const [x, t] of CANS) {
-    a.shape(poly(x + t, .3, x + 2.3 + t, .3, x + 2.4, 4, x, 4), GUN(), { lite: band(x, .4, x + 2.6, .9), shade: band(x + 1.7, 0, x + 3, 4.2) });
-    a.flat(poly(x + .2 + t * .8, 1.3, x + 2.2 + t * .8, 1.3, x + 2.2 + t * .6, 2.5, x + .2 + t * .6, 2.5), SLOT);
-    a.shape(band(x - .05, 2.7, x + 2.45, 3.5), COPPER(), { outer: false, lite: band(x, 2.7, x + 2.4, 3), shade: band(x, 3.2, x + 2.4, 3.5) });
-  }
-  a.shape(band(8.65, .85, 11.15, 1.25), COPPER(), { outer: false, lite: band(8.7, .85, 11.1, 1) });
-  a.line('M13.2 .6C13.6 1 13.6 1.4 13.3 1.7', { w: .9 });
+// The railgun, the user's pick of five drawn references («Катушечный из хлама»), traced (refs/railgun.png): a home-made coil gun, a
+// steel tube through five copper coils, cables looping to a green battery box at the rear, a rubber pad behind it, a loop handle
+// under it held as a pistol grip, an upright fore-grip under the tube. The violet lamp, too small for the trace, is drawn here.
+/** The railgun's pictures, 40 × 15: the trace's box fitted along 40. */
+const RAIL_W = 40, RAIL_H = 15;
+const railFit = () => {
+  const [x0, y0, x1, y1] = TRACED.railgun.fit.box, s = (RAIL_W - 1) / (x1 - x0 + 1);
+  const at = [.5 - x0 * s, (RAIL_H - (y1 - y0 + 1) * s) / 2 - y0 * s];
+  return { s, at, X: (x) => x * s + at[0], Y: (y) => y * s + at[1] };
 };
-// What lights as it charges, alone: each can's window, the shard and the gap between the rails, where the plain picture has them dark.
+/** The five coils along the tube, in the reference's pixels: each from x0 to x1. */
+const COILS = [[475, 555], [603, 675], [725, 801], [848, 922], [971, 1049]];
+const RAIL_LAMP = { base: '#6a3aa8', shade: '#4a2878', deep: '#321a54', lite: '#9a6ad8', spec: '#d4c0ff' };
+const railgun = (a) => {
+  const { s, at, X, Y } = railFit();
+  Traced.drawer('railgun', Traced.placed('railgun', s, at), TRACED.railgun.fit.units * s)(a);
+  a.shape(ell(X(432), Y(477), .5, .65), RAIL_LAMP, { lite: band(X(432) - .5, Y(477) - .65, X(432) + .5, Y(477) - .15) });
+};
+// What lights as it charges, alone: each coil glows cold blue, its windings still seen, a pale core down its middle; the lamp burns.
 const railgunCharged = (a) => {
-  for (const [x, t] of CANS) { a.flat(poly(x + .2 + t * .8, 1.3, x + 2.2 + t * .8, 1.3, x + 2.2 + t * .6, 2.5, x + .2 + t * .6, 2.5), '#2ca4d8'); a.flat(poly(x + .5 + t * .8, 1.5, x + 1.5 + t * .8, 1.5, x + 1.5 + t * .6, 2.3, x + .5 + t * .6, 2.3), '#a8ecff'); }
-  a.flat(SHARD, '#d8f0ff');
-  for (const [x0, x1] of [[17, 22.1], [23.8, 29.3], [31, 35.8], [36.6, 38.4]]) { a.flat(band(x0, 6.15, x1, 6.95), '#7cd4f4'); a.flat(band(x0 + .3, 6.35, x1 - .3, 6.75), '#efe9da'); }
+  const { X, Y } = railFit();
+  for (const [x0, x1] of COILS) {
+    const coil = rr(X(x0) + .1, Y(330), X(x1) - X(x0) - .2, Y(456) - Y(330), .45), w = (x1 - x0) / 5;
+    a.flat(coil, '#7cd4f4');
+    for (let i = 1; i < 5; i++) a.flat(band(X(x0 + i * w) - .07, Y(330), X(x0 + i * w) + .07, Y(456)), '#3e9ccc', { clip: coil });
+    const m = X((x0 + x1) / 2);
+    a.flat(rr(m - .3, Y(352), .6, Y(434) - Y(352), .3), '#efe9da');
+  }
+  a.flat(ell(X(432), Y(477), .55, .7), '#c8a8ff');
+  a.flat(ell(X(432), Y(474), .25, .3), '#f4ecff');
 };
 // The screwdriver: a ribbed handle and a steel shaft; the ribs roll on three steps as the wrist turns, all else stands still.
 const HANDLE = { base: '#c48e32', shade: '#855726', deep: '#5e3a20', lite: '#e0b868', spec: '#f4e0a8' };
@@ -878,9 +868,9 @@ Subjects.hero = function () {
   out('hero_nailer', plain(26, 11, nailer(false)));
   icon('hero_nailer', { w: 26, h: 11, draw: nailer(false) });
   out('hero_nailer_loaded', plain(26, 11, nailer(true)));
-  out('hero_railgun', plain(40, 14, railgun));
-  icon('hero_railgun', { w: 40, h: 14, draw: railgun });
-  out('hero_railgun_charged', plain(40, 14, railgunCharged));
+  out('hero_railgun', plain(RAIL_W, RAIL_H, railgun));
+  icon('hero_railgun', { w: RAIL_W, h: RAIL_H, draw: railgun });
+  out('hero_railgun_charged', plain(RAIL_W, RAIL_H, railgunCharged));
   // Hand tools drawn to the fist (about 4 px across): their paths shrunk by Hand, the pen's weights kept the hero's.
   const L = Anime.LINE, W = { outer: L.outer / Hand, edge: L.edge / Hand, panel: L.panel / Hand };
   const small = (w, h, draw) => bake({ w, h, draw, light: LIGHT, units: 1 / Hand, W });
