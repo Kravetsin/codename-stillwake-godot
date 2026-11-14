@@ -12,9 +12,10 @@ redraw by eye from a generated reference kept the reference's thick haft and sma
 ## Decision
 
 - **Picked from five generated references, traced.** GPT drew five fire axes (long, pick-head, bearded from hull plate,
-  rescue, heavy-headed); the user picked «Пожарный, тяжёлая головка» on a pick page. `tools/anime-art/trace` cut it into
-  its parts by colour and traced each; the parts are drawn by our engine and finish with our paint
-  (`zfittings.js`, `FIRE_AXE`). Nothing of the reference's pixels ships.
+  rescue, heavy-headed); the user picked «Пожарный, тяжёлая головка» on a pick page. It is traced as the quilted helmet
+  ([traced art](2026-11-14-quilted-helmet-and-traced-art.md)): `refs/fireAxe.png` → `traced/fireAxe.json`, drawn in
+  `zfittings.js` by `traced.js` with our pen, paint and finish. Its paint meets bare steel with no ink line, so a palette
+  may now cut parts by colour (`"segment": "colour"`): each pixel takes the nearest material, the ink still parting pieces.
 - **34 × 13 pixels**, the pickaxe's length, at three quarters (tool-size): a big red head with a squared steel poll and a
   broad bare bevel, a dark collar with two rivets, a slim wooden haft, three wraps and a cap. Its grip, edge and clamp
   are measured from the trace.
