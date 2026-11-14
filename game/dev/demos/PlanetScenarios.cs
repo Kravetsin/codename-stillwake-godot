@@ -80,16 +80,18 @@ public sealed class PlanetScenario : DevScenario
     }
 
     /// <summary>
-    /// <c>--charges</c>: the hero beamed to the shallowest deep cache, onto the nearest floor with room to stand within a few cells of it.
+    /// <c>--charges</c>: the hero beamed to the shallowest deep cache, onto the nearest floor with room to stand within a few cells of it;
+    /// with <paramref name="kinds"/>, the shallowest of those kinds (<c>--thermometer</c>'s caves).
     /// </summary>
-    private static void Cache(Client client, Action<string> log)
+    internal static void Cache(Client client, Action<string> log, params string[] kinds)
     {
+        if (kinds.Length == 0) kinds = ["frostCache", "bloomCache", "amberCache", "emberCache"];
         int planet = client.World.Surfaces.Count - 1;
         var on = Registry.On(client.World, planet);
         var grid = on.Grid;
         int w = grid.Width;
         bool Open(int x, int y) => x >= 0 && x < w && y >= 0 && y < grid.Height && !grid.Solid(y * w + x);
-        var caches = on.Building.Plants.Where(p => p.Kind is "frostCache" or "bloomCache" or "amberCache" or "emberCache").OrderBy(p => p.Cell / w).ToList();
+        var caches = on.Building.Plants.Where(p => kinds.Contains(p.Kind)).OrderBy(p => p.Cell / w).ToList();
         foreach (var cache in caches)
         {
             int cx = cache.Cell % w, cy = cache.Cell / w;

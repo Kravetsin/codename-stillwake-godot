@@ -32,6 +32,9 @@ public static class Signs
     /// <summary>The power symbol over a machine a player switched off (industrial-oxygen): steady, never the bolt's blink.</summary>
     public static Texture2D Off() => PixelArt.Picture("sign_off");
 
+    /// <summary>A frost star: the vitals' thermometer's sign (the-thermometer).</summary>
+    public static Texture2D Cold() => PixelArt.Picture("sign_cold");
+
     /// <summary>The chip credits are written with, before every amount.</summary>
     public static Texture2D Credit() => PixelArt.Picture("credit");
 }

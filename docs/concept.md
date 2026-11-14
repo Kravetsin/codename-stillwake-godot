@@ -70,15 +70,16 @@ A living document: what is decided about the game and what is still open. Techni
   ([0028](decisions/0028-the-lifepod-and-crafting-by-machine-only.md)). It also makes its room's air as a first generator, with no power, so
   the room can always get it back ([the-scoop](decisions/2026-10-31-the-scoop.md)).
 - **Suits are worn** and taken off, a helmet and a body mixed as the player likes: the helmet holds the air, the body
-  keeps the cold out; the basic ones free at the pod, more to come ([suits-are-worn](decisions/2026-10-27-suits-are-worn.md)). The heavy
-  helmet holds 100 to the basic 45, sold on the black market by the jetpack's time ([heavy-helmet](decisions/2026-11-03-the-heavy-helmet.md)).
+  withstands the cold down to its limit, −40° for the basic ([temperature-in-degrees](decisions/2026-11-14-temperature-in-degrees.md)); the basic ones free at the pod, more to come ([suits-are-worn](decisions/2026-10-27-suits-are-worn.md)). The heavy
+  helmet holds 100 to the basic 45, sold on the black market by the jetpack's time ([heavy-helmet](decisions/2026-11-03-the-heavy-helmet.md)); between
+  them the quilted helmet's 70, sewn at the workbench round the basic one of a planet's cloth ([quilted-helmet](decisions/2026-11-14-quilted-helmet-and-traced-art.md)).
   A canister breathed gives 20, then not another for 25 s; more air a canister is food's, not gear's
   ([food-and-the-body](decisions/2026-11-12-food-and-the-body.md)). A hero has three meal slots: each food lasts
   minutes and changes the body's rates (calm: a breath costs less; deep: a canister gives more); the pod prints a
   hero fed with paste, and with all three empty it is hungry and running costs more air. Rations are found in supply
   pods, rations and canned meat in drifting fridges and in derelicts' vending machines; a seed may be eaten as a snack.
   The farm grows fruit and glowberries; the galley, a range needing no power, cooks them with rations, meat, fat and
-  water into five dishes, each stronger than what went in.
+  water into five dishes, each stronger than what went in. Food of every kind sells at the trade station.
   The regen suit, a body sold there with the belt's third slot, turns belt charge into air while its mode is on (V): a
   unit a breath at most, so it holds the air at rest and only slows its fall in flight ([regen-suit](decisions/2026-11-03-the-regen-suit.md)).
 - **Parts are made by machines only,** as in Subnautica and RimWorld: wire of scrap; plates, gears and
@@ -132,12 +133,15 @@ A living document: what is decided about the game and what is still open. Techni
   the far field's derelicts, which pounce at a hero near and strike one farther with an arc of static, aimed a moment
   before, at once; at the bottom of each spire, two guards that fly fists first at a hero, stick where they land, and fall with
   the shard, so a hero kills them for circuits or takes the shard and leaves. Which others is open.
-- **Night on a planet:** a day of twenty minutes, the last six of them night. At night the open sky chills: a hero with no
-  back wall behind pays a unit of air more every five seconds, the cape sparing a fifth; caves, tunnels and back walls
+- **Temperature:** every place has one in degrees: space −20° by the ship to −40° at the field's line, an aired room +20°,
+  a planet smoothly by its depth ([temperature-gradients](decisions/2026-11-14-temperature-gradients.md)). A body withstands
+  down to its limit, the cape adds 5°; each degree past it costs air ([temperature-in-degrees](decisions/2026-11-14-temperature-in-degrees.md)).
+- **Night on a planet:** a day of twenty minutes, the last six of them night. At night the open sky is 20° colder: a hero with no
+  back wall behind feels it past a suit's limit, the cape halving what it costs; caves, tunnels and back walls
   shelter. Dusk dims the light a minute before, and the dark is lit by the helmet lamp ([night-chills](decisions/2026-11-07-night-chills.md)).
 - **Hunting:** a planet's grazers, met in small herds of one kind, drop what they are made of, by their size: biomass, now and then a seed, hide and fat;
   sentries, scrap. Fat burns twice as long as a plank, or ferments into biofuel as biomass does, so hunting
-  fuels the ship; hide goes with the ruins' cloth into the cape, which spares a fifth of blows and of the cold. Both are a
+  fuels the ship; hide goes with the ruins' cloth into the cape, which spares a fifth of blows and adds 5° against the cold. Both are a
   planet's, so nothing needed before the first landing is made of them.
 - **Fighting:** the axe and the drill up close; almost at the start, the nailer, made at the Fabricator, firing a nail of
   two scrap every 3 s, arcing under a planet's gravity, straight in space, breaking wrecks and blocks as it hits; a hit is

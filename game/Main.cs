@@ -253,6 +253,9 @@ public partial class Main : Node2D, ITogether
             // The hero's meals, the vitals' bottom row (hud-vitals).
             AddChild(new MealSlots(() => _session is Session s && _m.Crew.HeroOf(s.Client.Id) is { } fed
                 ? (fed.Meals.Select(m => (m.Food, m.Left)).ToList(), _m.Crew.Hungry(s.Client.Id)) : null, _hands.Ui));
+            // The degrees where the hero stands, right of the meals (the-thermometer); gone while it is passed out.
+            AddChild(new Thermometer(() => _session is Session s && _m.Crew.HeroOf(s.Client.Id) is { Out: 0 } && _hero is { Placed: true } h
+                ? Thermometers.Read(_m.Crew, s.Client.Id, h.Current.BodyCell(_m.Grid.Width)) : null, _hands.Ui));
             if (_hero is { } breathing) gauge.BreathesAgain += breathing.BreathesAgain;
             AddChild(new Frost(() => _session is Session s && _hero is { Placed: true } h ? Report.Cold(_m.Crew, s.Client.Id, h.Current.BodyCell(_m.Grid.Width)) : 0));
             AddChild(new HurtView(() => _session is Session s && _m.Crew.HeroOf(s.Client.Id) is { } hurt ? (hurt.Hurts, hurt.Hurt) : null, gauge));

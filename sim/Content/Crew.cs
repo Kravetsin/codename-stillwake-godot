@@ -15,8 +15,6 @@ public static class Crew
 {
     /// <summary>The air a hero holds with no helmet worn: what the pod prints a new hero with.</summary>
     public const int Lungs = 20;
-    /// <summary>What a breath costs a hero with no body worn more where the air is not aired: the cold, at once (2026-10-27-suits-are-worn).</summary>
-    public const int BareCold = 1;
     public const int BreathEvery = 20;
     public const int Refill = 3;
     public const int PassOut = 100;

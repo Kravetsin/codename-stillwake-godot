@@ -41,12 +41,12 @@ public class FruitTests
     }
 
     [Fact]
-    public void FruitAndGlowberriesAreRawFoodsOfTheirRowNeverSoldAndTheOnlyFoodsGivingAnythingBack()
+    public void FruitAndGlowberriesAreRawFoodsOfTheirRowSoldAsTheirBiomassAndTheOnlyFoodsGivingAnythingBack()
     {
         Assert.Equal(new Food(Foods.Fruit, 12_000, new(Work: 100)), Foods.Of(Foods.Fruit));
         Assert.Equal(new Food(Foods.Glowberry, 12_000, new(Calm: 120)), Foods.Of(Foods.Glowberry));
-        Assert.Null(Market.PriceOf(Foods.Fruit));
-        Assert.Null(Market.PriceOf(Foods.Glowberry));
+        Assert.Equal(20, Market.PriceOf(Foods.Fruit));
+        Assert.Equal(20, Market.PriceOf(Foods.Glowberry));
         Assert.Equal([Foods.Fruit, Foods.Glowberry], Foods.All.Where(f => Content.Items.TryGet(f.Id, out var i) && i!.Byproducts != null).Select(f => f.Id));
     }
 

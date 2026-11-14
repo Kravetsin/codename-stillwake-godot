@@ -1,6 +1,6 @@
 # Plan: temperature in degrees
 
-Status: designed (`design-author`, cut by `design-reviewer`, reviewed by `/review-plan`); nothing built. Supersedes the
+Status: designed (`design-author`, cut by `design-reviewer`, reviewed by `/review-plan`); T-1 and T-2 built, T-3 open. Supersedes the
 unmerged depth-band design of PR 502; this plan keeps PR 502's bands, room air, night in band 0 only, unsaved payment and heat
 suit.
 
@@ -26,11 +26,12 @@ nothing per frame):
 - an aired cell (`AiredAt`): `Temperature.Room`, at any depth and on any surface;
 - on a planet (`Rules` is a `PlanetType`): its `Temperatures[Terrain.BandOf(type, row)]`; in band 0 only, a cell with no back
   wall is `SkyNow.Chill` degrees colder (0 by day). Deeper bands never feel the night;
-- aboard: `Temperature.Space` everywhere on the grid.
+- aboard: `Temperature.Space` everywhere on the grid (since: `Temperature.Hull`, −20°, in the zone, to −40° at the field's line,
+  and a planet's bands smooth between their middles: [temperature-gradients](../decisions/2026-11-14-temperature-gradients.md)).
 
 The pod's reach is not warm: it gives the breath air, not heat, as today, where a bare hero by it pays the bare cold.
 
-**A hero's limit**, `LowOf(peer)`: the worn body's `Item.Low`, or `Crew.BareLow` with none; `Cape.Warmth` degrees lower while
+**A hero's limit**, `LowOf(peer)`: the worn body's `Item.Low`, or `Temperature.BareLow` with none; `Cape.Warmth` degrees lower while
 the cape is worn.
 
 **Felt degrees**, `Felt(peer, cell)` = `max(0, LowOf(peer) − TemperatureAt(cell))`. Each felt degree costs `Temperature.Bite`
@@ -65,7 +66,7 @@ breaths of five, would have its last breath reset on the fifth and never pass ou
 | `Temperature.Space` | −40° | — |
 | `Temperature.Bite` | 20 thousandths a degree a breath | — |
 | `Sky.Cycle.Chill` | 20 degrees | 1 unit every `Every` (5) breaths; `Every` goes |
-| `Crew.BareLow` | 0° | `Crew.BareCold`, 1 unit a breath, goes |
+| `Temperature.BareLow` | 0° | `Crew.BareCold`, 1 unit a breath, goes |
 | `Item.Low`: `suit`, `regenSuit` | −40° | — |
 | `Cape.Warmth` | 5 degrees, not the edge | 200‰ of all cold, the edge's too |
 
@@ -138,7 +139,7 @@ spares a fifth (12 × 0.8 + 1 = 10.6), from now none (12 + 1 = 13).
 ### T-1: the cold in degrees (sim, frost, cards)
 
 - **Content:** `Temperature` (`Room`, `Space`, `Bite`); `PlanetType.Temperatures`, required, and the first planet's row;
-  `Item.Low` on the two bodies; `Crew.BareLow`; `Cape.Warmth` in degrees; `Sky.Cycle.Chill` in degrees, `Every` gone;
+  `Item.Low` on the two bodies; `Temperature.BareLow`; `Cape.Warmth` in degrees; `Sky.Cycle.Chill` in degrees, `Every` gone;
   `Crew.BareCold` gone.
 - **Crew:** `TemperatureAt`, `LowOf`, `Felt` on `ICrewQueries` (replacing `Cold` and `Warmth`); the payment in the breath
   replacing `ColdAt`'s bare and chill parts; the last breath's end keyed on felt; `EdgeCost` kept, unsoftened. **Sky:** `Chill`
@@ -153,7 +154,7 @@ spares a fifth (12 × 0.8 + 1 = 10.6), from now none (12 + 1 = 13).
   `BareFrost` or the cape's share of cold: `FieldTests`, `SuitsTests`, `LavaTests`, `PlanetRulesTests`, `LastBreathTests`,
   `FogBandsTests`, `ContentTests.Hero`, `CapeTests`, `SkyTests`, `RegenSuitTests`, and in `game.tests` `ReportTests` and the
   item card tests. Machines' `TooCold` is another rule and stays.
-- **Docs:** ADR `YYYY-MM-DD-temperature`, superseding the cold parts of night-chills, suits-are-worn and the-cape-is-worn;
+- **Docs:** ADR [temperature-in-degrees](../decisions/2026-11-14-temperature-in-degrees.md), superseding the cold parts of night-chills, suits-are-worn and the-cape-is-worn;
   Crew's and Sky's READMEs; the concept's cape line; `docs/glossary.md` (температура, градусы).
 
 ### T-2: the thermometer
@@ -161,11 +162,9 @@ spares a fifth (12 × 0.8 + 1 = 10.6), from now none (12 + 1 = 13).
 The pick page (CLAUDE.md, art picks), then the piece in the vitals block reading `TemperatureAt`, `LowOf` and `Felt` on the
 panels' timer; a dev room the user plays (day, night, cave, flight out).
 
-### T-3: heat (its own short design first)
+### T-3: heat, designed in [heat](heat.md)
 
-Bodies gain `Item.High`; felt adds `max(0, t − High)` at the same `Bite`; the heat suit, PR 502's (Low −40°, High +40°),
-made at the workbench; the thermometer's and the frost's heat side, a haze picked on a page. Open there, from PR 502: whether
-the amber deep (+15°) already asks for gear, and how the heat suit is unlocked.
+Its own plan, [heat](heat.md), in three steps (H-1 to H-3); its numbers and unlock settled there.
 
 This plan is deleted when T-3 lands, what stays true moved into the ADRs, Crew's README and the concept.
 
@@ -176,4 +175,5 @@ This plan is deleted when T-3 lands, what stays true moved into the ADRs, Crew's
 - Wind, clothing layers, a cold suit, coolant consumables.
 - Storms: they deepen `Chill` later, under [day-night](day-night.md).
 - Spore gas in the garden: not temperature; a later Creatures slice, as PR 502 planned.
-- Caves of the cold band colder than its surface by day (PR 502's Q3): the band is one number until a player sequence needs two.
+- Caves of the cold band colder than its surface by day (PR 502's Q3): degrees run by depth alone
+  ([temperature-gradients](../decisions/2026-11-14-temperature-gradients.md)), never colder under rock.

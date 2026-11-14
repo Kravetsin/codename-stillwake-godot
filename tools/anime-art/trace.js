@@ -1,13 +1,15 @@
-// node trace.js <reference.png> <palette.json> <out.json> [debug.png]
-// Traces a GPT reference into engine shapes: the reference's own ink strokes cut its silhouette into parts, each part is named by
-// the palette material nearest its mean colour, and every part's outline is traced (marching squares, RDP, beziers) in the
-// reference's pixels. Writes two variants of draw ops ("simple": one body with its seams as pen lines; "detailed": every part its
-// own shape, plus overlays and the reference's loose strokes), the fit into the icon box, and the reference's silhouette mask.
+// node tools/anime-art/trace.js <name> [debug.png]: traces refs/<name>.png by refs/<name>.palette.json into traced/<name>.json.
+// Traces an AI-made reference for its form only (README, Traced subjects): the reference's own ink strokes cut its silhouette into
+// parts, each part is named by the palette material nearest its mean colour, and every part's outline is traced (marching squares,
+// RDP, beziers) in the reference's pixels. Writes the draw ops (the body, every part its own shape, overlays after their part, the
+// reference's loose strokes) and the fit into the icon box; traced.js draws them with the engine's own line, paint and finish.
+// Needs ffmpeg on the PATH to read the PNG.
 'use strict';
 const fs = require('fs'), path = require('path'), { spawnSync } = require('child_process');
-const [refPng, palFile, outFile, debugPng] = process.argv.slice(2);
-if (!outFile) { console.error('usage: node trace.js <reference.png> <palette.json> <out.json> [debug.png]'); process.exit(2); }
-const P = JSON.parse(fs.readFileSync(palFile, 'utf8'));
+const [name, debugPng] = process.argv.slice(2);
+if (!name) { console.error('usage: node tools/anime-art/trace.js <name> [debug.png]'); process.exit(2); }
+const refPng = path.join(__dirname, 'refs', name + '.png'), outFile = path.join(__dirname, 'traced', name + '.json');
+const P = JSON.parse(fs.readFileSync(path.join(__dirname, 'refs', name + '.palette.json'), 'utf8'));
 const hex = (h) => [1, 3, 5].map((i) => parseInt(h.substr(i, 2), 16));
 const lum = (r, g, b) => .3 * r + .59 * g + .11 * b;
 
@@ -106,25 +108,7 @@ const ink = inkAt(rel, P.ink.bridge || 2);
 // The stronger ink is not used everywhere, for it would fill a buckle's thin ring.
 const minPart = (P.minPart || 0.0015) * silArea;
 let [partLab, partsAll] = components(and(sil, not(ink)));
-if (P.segment === "colour") {
-  // Parts by colour: each pixel off the ink takes the material nearest its colour; each material's pixels, cleaned of specks and
-  // grain, are cut into pieces by the ink. For pictures whose parts meet without a line (paint worn off onto bare steel).
-  const mats = Object.entries(P.materials).filter(([, m]) => !m.overlay), refs = mats.map(([, m]) => m.ref.map(hex));
-  const which = new Int8Array(N).fill(-1);
-  for (let i = 0; i < N; i++) {
-    if (!sil[i] || ink[i]) continue;
-    let best = -1, bd = 1e9;
-    refs.forEach((rs, k) => { for (const c of rs) { const d = Math.hypot(px[i * 4] - c[0], px[i * 4 + 1] - c[1], px[i * 4 + 2] - c[2]); if (d < bd) { bd = d; best = k; } } });
-    which[i] = best;
-  }
-  const r = P.colourClean || 3, lab2 = new Int32Array(N).fill(-1), comps2 = [];
-  mats.forEach((_, k) => {
-    const m = and(open(close(which.map((v) => (v === k ? 1 : 0)), r), r), not(ink));
-    const [l, cs] = components(m);
-    for (const c of cs) { const id = comps2.length; comps2.push({ ...c, id }); for (let y = c.y0; y <= c.y1; y++) for (let x = c.x0; x <= c.x1; x++) { const i = idx(x, y); if (l[i] === c.id && lab2[i] < 0) lab2[i] = id; } }
-  });
-  partLab = lab2; partsAll = comps2;
-} else if (P.ink.coarse) {
+if (P.ink.coarse) {
   const coarse = inkAt(P.ink.coarse.relative, P.ink.coarse.bridge), [cl] = components(and(sil, not(coarse))), splitMin = (P.ink.coarse.min || 0.02) * silArea;
   const next = new Int32Array(N).fill(-1); let id = 0;
   for (const c of partsAll) {
@@ -162,6 +146,22 @@ for (const p of parts) {
   let best = null, bd = 1e9;
   for (const [name, m] of MAT) for (const r of m.ref) { const c = hex(r), d = Math.hypot(p.mean[0] - c[0], p.mean[1] - c[1], p.mean[2] - c[2]); if (d < bd) { bd = d; best = name; } }
   p.mat = best;
+}
+// A material marked single (a visor's glass) is one part: its smaller pieces, a shadow under a frame read as glass, go to their
+// neighbours with the ink.
+{
+  const drop = new Set();
+  for (const [mname, m] of Object.entries(P.materials)) {
+    if (!m.single) continue;
+    const of = parts.filter((p) => p.mat === mname).sort((a, b) => b.n - a.n);
+    for (const p of of.slice(1)) drop.add(p.k);
+  }
+  if (drop.size) {
+    const kept = parts.filter((p) => !drop.has(p.k)), next = new Map(kept.map((p, k) => [p.k, k]));
+    for (let i = 0; i < N; i++) if (lab0[i] >= 0) lab0[i] = next.has(lab0[i]) ? next.get(lab0[i]) : -1;
+    parts.length = 0;
+    kept.forEach((p, k) => parts.push({ ...p, k }));
+  }
 }
 // The partition: ink pixels go to the nearest part.
 const lab = spread(lab0, sil);
@@ -207,7 +207,6 @@ function contour(mask, box, blur) {
   }
   let best = loops[0], bl = 0;
   for (const l of loops) { let s = 0; for (let i = 1; i < l.length; i++) s += Math.hypot(l[i][0] - l[i - 1][0], l[i][1] - l[i - 1][1]); if (s > bl) { bl = s; best = l; } }
-  if (!best) return null;
   return best.map(([x, y]) => [x + x0 + .5, y + y0 + .5]);
 }
 function rdp(pts, eps) {
@@ -246,7 +245,7 @@ function bez(pts, closed, corner = 50, tension = 1) {
 }
 const maskOf = (pred, box) => { const m = new Uint8Array(N); for (let y = box[1]; y <= box[3]; y++) for (let x = box[0]; x <= box[2]; x++) { const i = idx(x, y); if (pred(i)) m[i] = 1; } return m; };
 const boxOf = (m) => { let x0 = W, y0 = H, x1 = 0, y1 = 0, n = 0; for (let i = 0; i < N; i++) if (m[i]) { n++; const x = i % W, y = (i / W) | 0; if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y; } return n ? [x0, y0, x1, y1] : null; };
-const tracePath = (m, box, eps, blur = 2) => { const c = contour(m, box, blur); return c && c.length > 4 ? bez(simplifyLoop(c, eps), true) : null; };
+const tracePath = (m, box, eps, blur = 2) => bez(simplifyLoop(contour(m, box, blur), eps), true);
 
 /** An open stroke from a thin pixel set: its two farthest ends by walking it, the walk between them. */
 function strokeOf(cells) {
@@ -261,12 +260,12 @@ function strokeOf(cells) {
 }
 
 // ---------- Build the ops ----------
-const out = { reference: path.basename(refPng), size: [W, H], parts: [], variants: {} };
+const out = { reference: path.basename(refPng), size: [W, H], parts: [] };
 const sbox = boxOf(sil), bw = sbox[2] - sbox[0] + 1, bh = sbox[3] - sbox[1] + 1, u = Math.max(bw, bh) / (P.fit || 15.4);
 out.fit = { units: +u.toFixed(4), shift: [f1((16 * u - bw) / 2 - sbox[0]), f1((16 * u - bh) / 2 - sbox[1])], box: sbox };
 const crescent = (m, box) => { const e = Math.min(box[2] - box[0], box[3] - box[1]) / u; return +Math.max(.22, Math.min(.9, e * (m.shade ?? .16))).toFixed(3); };
 
-const silD = tracePath(sil, sbox, P.epsilon || 1.6, 2);
+const silD = tracePath(sil, sbox, 1.6, 2);
 const baseName = Object.entries(P.materials).find(([, m]) => m.base)[0];
 // Each part's filled outline, its material, its nesting depth (how many other parts' filled outlines hold most of it).
 const filled = parts.map((p) => fillHoles(maskOf((i) => lab[i] === p.k, p.box)));
@@ -284,7 +283,6 @@ const order = parts.slice().sort((a, b) => a.depth - b.depth || layer(a) - layer
 for (const p of order) {
   const m = P.materials[p.mat];
   p.d = tracePath(filled[p.k], p.box, P.epsilon || 1.6, 2);
-  if (!p.d) continue;
   p.shade = m.shade === 0 ? 0 : crescent(m, p.box);
   // The material's lit sub-areas the reference paints (a streak on glass): its pixels well above the part's median light.
   if (m.lite) {
@@ -296,28 +294,6 @@ for (const p of order) {
     p.lite = lc.filter((c) => c.n > p.n * .03).map((c) => tracePath(maskOf((i) => ll[i] === c.id, [c.x0, c.y0, c.x1, c.y1]), [c.x0, c.y0, c.x1, c.y1], 1.5, 2));
   }
   out.parts.push({ k: p.k, mat: p.mat, n: p.n, depth: p.depth, mean: p.mean.map(Math.round), box: p.box });
-}
-
-// Seams: the boundary between two parts of the base material, as an open stroke.
-const pairCells = new Map();
-for (let y = 0; y < H - 1; y++) for (let x = 0; x < W - 1; x++) {
-  const i = idx(x, y), a = lab[i];
-  if (a < 0 || parts[a].mat !== baseName) continue;
-  for (const j of [i + 1, i + W]) {
-    const b = lab[j];
-    if (b < 0 || b === a || parts[b].mat !== baseName) continue;
-    const key = Math.min(a, b) + '-' + Math.max(a, b);
-    if (!pairCells.has(key)) pairCells.set(key, new Set());
-    pairCells.get(key).add(i);
-  }
-}
-const seamMin = (P.seamMin || 1.2) * u;
-const seams = [];
-for (const [key, set] of pairCells) {
-  const pts = strokeOf([...set]);
-  let len = 0; for (let i = 1; i < pts.length; i++) len += Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]);
-  if (len < seamMin) continue;
-  seams.push({ key, len: Math.round(len), d: bez(rdp(pts, 1.5), false) });
 }
 
 // Loose strokes: ink with one part on every side (a crease, a stitch), long enough to read.
@@ -344,7 +320,7 @@ const loose = [];
 
 // Overlays (rust): their pixels on the parts they grow on, as flat patches drawn after those parts.
 const overlays = [];
-for (const [name, m] of Object.entries(P.materials)) {
+for (const [mname, m] of Object.entries(P.materials)) {
   if (!m.overlay) continue;
   const refs = m.ref.map(hex), others = m.on.flatMap((n) => P.materials[n].ref.map(hex)); // rust or the plate it grows on
   let om = new Uint8Array(N);
@@ -355,45 +331,29 @@ for (const [name, m] of Object.entries(P.materials)) {
   }
   // Kept inside its host by the pen's width, so a patch never breaks the line it grows from.
   { const r = Math.round((m.inset ?? .2) * u); om = and(dilate(om, r), erode(lab.map((k) => (k >= 0 && m.on.includes(parts[k].mat) ? 1 : 0)), r)); }
-  if (process.env.TRACE_DEBUG) console.error(name, "raw", om.reduce((a, v) => a + v, 0));
   om = close(open(om, 1), 3);
-  if (process.env.TRACE_DEBUG) console.error(name, "clean", om.reduce((a, v) => a + v, 0));
   const [ol, oc] = components(om);
   for (const c of oc) {
     if (c.n < (m.minArea || 0.0004) * silArea) continue;
     let host = new Map(); for (let y = c.y0; y <= c.y1; y++) for (let x = c.x0; x <= c.x1; x++) { const i = idx(x, y); if (ol[i] === c.id) host.set(lab[i], (host.get(lab[i]) || 0) + 1); }
     const on = [...host].sort((a, b) => b[1] - a[1])[0][0];
-    overlays.push({ name, on, d: tracePath(maskOf((i) => ol[i] === c.id, [c.x0, c.y0, c.x1, c.y1]), [c.x0, c.y0, c.x1, c.y1], 1.2, 1) });
+    overlays.push({ name: mname, on, d: tracePath(maskOf((i) => ol[i] === c.id, [c.x0, c.y0, c.x1, c.y1]), [c.x0, c.y0, c.x1, c.y1], 1.2, 1) });
   }
 }
 
-for (let i = order.length - 1; i >= 0; i--) if (!order[i].d) order.splice(i, 1);
-const shapeOp = (p, deep) => ({ op: 'shape', mat: p.mat, d: p.d, shade: p.shade, deep: deep && p.shade ? +(p.shade * .4).toFixed(3) : 0, lite: p.lite || [] });
-// Simple: the base material as one body (the silhouette), seams as pen lines; every other part its own shape; no overlays.
-out.variants.simple = [
-  { op: 'shape', mat: baseName, d: silD, shade: +(.9).toFixed(2), deep: 0, lite: [], lines: seams.map((s) => s.d) },
-  ...order.filter((p) => p.mat !== baseName).map((p) => shapeOp(p, false)),
-];
-// Detailed: the body under everything, every part its own shape with a deep step, overlays after their part, loose strokes on top.
-out.variants.detailed = [{ op: 'shape', mat: baseName, d: silD, shade: 0, deep: 0, lite: [], outer: true }];
+// The body under everything, every part its own shape with a deep step, overlays after their part, loose strokes on top.
+out.ops = [{ op: 'shape', mat: baseName, d: silD, shade: 0, deep: 0, lite: [] }];
 for (const p of order) {
-  out.variants.detailed.push(shapeOp(p, true));
-  for (const o of overlays.filter((o) => o.on === p.k)) out.variants.detailed.push({ op: 'flat', mat: o.name, d: o.d });
+  out.ops.push({ op: 'shape', mat: p.mat, d: p.d, shade: p.shade, deep: p.shade ? +(p.shade * .4).toFixed(3) : 0, lite: p.lite || [] });
+  for (const o of overlays.filter((o) => o.on === p.k)) out.ops.push({ op: 'flat', mat: o.name, d: o.d });
 }
-for (const d of loose) out.variants.detailed.push({ op: 'line', d, w: 1 });
-out.seams = seams.map((s) => ({ key: s.key, len: s.len }));
-out.counts = { parts: parts.length, seams: seams.length, loose: loose.length, overlays: overlays.length, simple: out.variants.simple.length, detailed: out.variants.detailed.length };
+for (const d of loose) out.ops.push({ op: 'line', d, w: 1 });
+out.counts = { parts: parts.length, loose: loose.length, overlays: overlays.length, ops: out.ops.length };
 fs.writeFileSync(outFile, JSON.stringify(out));
 
-// The reference's silhouette, white on clear, for the fidelity measure.
-const maskRgba = Buffer.alloc(N * 4);
-for (let i = 0; i < N; i++) if (sil[i]) maskRgba.writeUInt32BE(0xffffffff, i * 4);
-const silPng = outFile.replace(/\.json$/, '') + '.sil.png';
-spawnSync('ffmpeg', ['-loglevel', 'error', '-y', '-f', 'rawvideo', '-pix_fmt', 'rgba', '-s', `${W}x${H}`, '-i', '-', silPng], { input: maskRgba });
 if (debugPng) {
-  // Each part in a colour of its own, ink black, overlays orange: to check the segmentation by eye.
+  // Each part in a colour of its own, ink black: to check the segmentation by eye.
   const dbg = Buffer.alloc(N * 4), rnd = (k, s) => (Math.imul((k + 1) * 7919 + s * 104729, 2654435761) >>> 24);
-  const ov = new Uint8Array(N);
   for (let i = 0; i < N; i++) {
     const q = i * 4; dbg[q + 3] = 255;
     if (!sil[i]) { dbg.set([20, 24, 40], q); continue; }

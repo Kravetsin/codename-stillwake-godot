@@ -13,7 +13,7 @@ const GL = { base: '#1a2028', shade: '#10141b', deep: '#0a0d12', lite: '#2c3844'
 const UNLIT = '#0e1d16', GREEN = [124, 240, 150];
 const LIGHT = [0, -1], Px = 4, MARGIN = 1, W = 7, H = 7;
 
-// The helmets' tops in their pictures' pixels: hero.js's basic shell's two curves and the bell's ellipse.
+// The helmets' tops in their pictures' pixels: hero.js's basic shell's two curves, the bell's ellipse and the quilted hood's crown (quilted.js).
 function cubic(p, n) { const out = []; for (let i = 0; i <= n; i++) { const t = i / n, u = 1 - t; out.push([u * u * u * p[0] + 3 * u * u * t * p[2] + 3 * u * t * t * p[4] + t * t * t * p[6], u * u * u * p[1] + 3 * u * u * t * p[3] + 3 * u * t * t * p[5] + t * t * t * p[7]]); } return out; }
 const BASIC_TOP = [...cubic([1.5, 6, 1.7, 3, 3.8, 1.1, 7, 1], 24), ...cubic([7, 1, 10, .9, 12.3, 2.8, 12.6, 5.8], 24).slice(1)];
 function basicTop(x) {
@@ -27,6 +27,7 @@ const heavyTop = (x) => { const d = (x - 6.4) / 6.1; return 5.4 - 6 * Math.sqrt(
 const HELMETS = {
   helmet: { name: 'hero_scanner', top: basicTop, on: [6.2, -.8] },
   heavyHelmet: { name: 'hero_heavyHelmet_scanner', top: heavyTop, on: [6.2, -2.6] },
+  quiltedHelmet: { name: 'hero_quiltedHelmet_scanner', top: (x) => QuiltedKit.top(x), on: [6.2, -3] },
 };
 
 const n2 = (v) => +v.toFixed(2);
@@ -101,6 +102,9 @@ public static class ScannerInk
 
     /// <summary>Where it sits on the heavy helmet's picture.</summary>
     public static readonly (double X, double Y) OnHeavy = (${pt(HELMETS.heavyHelmet.on[0])}, ${pt(HELMETS.heavyHelmet.on[1])});
+
+    /// <summary>Where it sits on the quilted helmet's picture.</summary>
+    public static readonly (double X, double Y) OnQuilted = (${pt(HELMETS.quiltedHelmet.on[0])}, ${pt(HELMETS.quiltedHelmet.on[1])});
 }
 `);
 };
