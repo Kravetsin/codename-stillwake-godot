@@ -33,6 +33,7 @@ effect, so a release build has none of this folder and no `*Demo.cs` anywhere.
 | `MeleeScenario.cs` | `--melee`: the hero in space by a hull, still pieces all round, the axe, pickaxe, sledgehammer and spear on 1-4, creative (swing-motions) |
 | `VitalsScenario.cs` | `--vitals`: the hero in space with three stores on the belt, the grinder, canisters, foods, the heavy helmet and a spare accumulator, not creative (hud-vitals) |
 | `ThermometerScenario.cs` | `--thermometer`: the first planet, the hero suited and creative with a cape on the hotbar; F6 the next band's cave, F7 night or day (the-thermometer) |
+| `BentLimbsScenario.cs` | `--bent-limbs`: the hall by hand, axe and drill on 1-2, creative; F7 draws limbs rigid or bent whole, `=bent` starting so (exp/bent-limbs) |
 
 ## How a run is put together
 

@@ -16,11 +16,11 @@ This hero and others', client-authoritative (0002): only commands reach the sim.
 | `logic/AxeSwing.cs` | a stroke's clock |
 | `logic/Strokes.cs` | each tool's stroke |
 | `logic/MotionPlay.cs` | its motion |
-| `ReachAir.cs` | a grinder's haze |
+| `ReachAir.cs` | grinder haze |
 | `logic/AirCuts.cs` | dust, brush |
-| `logic/BladeTrail.cs` | a blade's haze |
+| `logic/BladeTrail.cs` | blade haze |
 | `logic/SwingArc.cs` | its angle kept |
-| `logic/SwingArm.cs` | the front arm swung |
+| `logic/SwingArm.cs` | front arm swung |
 | `logic/BodyPlay.cs` | its answers |
 | `logic/HaftGrip.cs` | far hand |
 | `logic/ArmUp.cs` | when an aim is up |
@@ -34,21 +34,23 @@ This hero and others', client-authoritative (0002): only commands reach the sim.
 | `logic/Tether.cs` | the tether |
 | `logic/DrillPace.cs` | drill hits |
 | `logic/RunSounds.cs` | tools heard |
-| `logic/ToolEdge.cs` | the cutter's beam |
+| `logic/ToolEdge.cs` | cutter beam |
 | `logic/ToolRays.cs` | tool hits |
 | `WreckPixels.cs` | wrecks' pixels |
 | `ToolWork.cs` | tools at work |
 | `logic/ToolSparks.cs` | sparks |
-| `logic/CutterJet.cs` | the cutter's jet |
+| `logic/CutterJet.cs` | cutter jet |
 | `logic/Motor.cs` | `Run` till agreed |
 | `logic/Remote.cs` | heroes sent |
 | `logic/RemoteRod.cs` | another's rod |
 | `logic/RodFlourish.cs` | its lights |
-| `logic/Suits.cs` | suits, what is worn |
-| `logic/SuitGlow.cs` | a body's lights |
-| `logic/TrackerBlink.cs` | the tracker's blink |
+| `logic/Suits.cs` | suits worn |
+| `logic/SuitGlow.cs` | body lights |
+| `logic/TrackerBlink.cs` | tracker blink |
 | `SuitKeys.cs` | V on the tablet |
 | `Figure.cs` | the rig, lit, dressed |
+| `logic/BentLimb.cs` | bent limbs |
+| `BentPicture.cs` | drawn |
 | `logic/Cape.cs` | a cape's cloth |
 | `logic/Spring.cs` | a held arm's swing |
 | `CapeView.cs` | it drawn, lined |
@@ -58,12 +60,12 @@ This hero and others', client-authoritative (0002): only commands reach the sim.
 | `HeroView.Feel.cs` | air, body |
 | `logic/GunHand.cs` | a gun's cooldown |
 | `HeroView.Others.cs` | others' heroes |
-| `logic/CameraFollow.cs` | the camera's aim |
-| `JetPlume.cs` | a jetpack's plume |
+| `logic/CameraFollow.cs` | camera aim |
+| `JetPlume.cs` | jetpack plume |
 | `logic/PlumeWay.cs` | its way |
 | `RodLight.cs` | harpoon light |
-| `AimOutline.cs` | the aim's outline |
-| `ModeGlyph.cs` | the driver's mark |
+| `AimOutline.cs` | aim outline |
+| `ModeGlyph.cs` | driver's mark |
 | `logic/DriverMode.cs` | its dots |
 | `HeroAutopilot.cs` | scripted runs |
 | `logic/Report.cs` | Enter reports |
@@ -77,9 +79,9 @@ This hero and others', client-authoritative (0002): only commands reach the sim.
 | `logic/MealTips.cs` | their food cards |
 | `Thermometer.cs` | degrees |
 | `logic/Thermometers.cs` | read |
-| `logic/Tunnel.cs` | the last breath |
+| `logic/Tunnel.cs` | last breath |
 | `TunnelView.cs` | it drawn |
-| `logic/VisorFog.cs` | a low suit's fog |
+| `logic/VisorFog.cs` | visor fog |
 | `VisorFogView.cs` | it drawn |
 | `logic/HurtSeen.cs` | hurt |
 | `HurtView.cs` | shown |
