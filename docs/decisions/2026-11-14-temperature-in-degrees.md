@@ -1,8 +1,7 @@
 # Temperature in degrees
 
-- Status: accepted; the cold in degrees and the thermometer built (steps T-1, T-2 of
-  [docs/plans/temperature.md](../plans/temperature.md); the thermometer's look in [the-thermometer](2026-11-14-the-thermometer.md)), heat to come;
-  space and the bands made gradients by [temperature-gradients](2026-11-14-temperature-gradients.md)
+- Status: accepted; built, the thermometer's look in [the-thermometer](2026-11-14-the-thermometer.md); heat its other side in
+  [heat-limits](2026-11-14-heat-limits.md); space and the bands made gradients by [temperature-gradients](2026-11-14-temperature-gradients.md)
 - Date: 2026-11-14
 - Supersedes the cold of [suits-are-worn](2026-10-27-suits-are-worn.md) (`Crew.BareCold`), of
   [night-chills](2026-11-07-night-chills.md) (a unit every five breaths) and of
@@ -44,11 +43,13 @@ costs a suit what it did; a bare hero pays more on a planet (felt 30 by day) and
 - The cape makes the night half as dear and spares no edge; its frost there is heavier than before.
 - A bare hero on a planet lasts about 56 s by day, 37 s at night; the pod prints a body for nothing.
 - An aired room is +20° at any depth, the ember band too: a sealed base is a shelter.
-- The ember band reads +60° and costs nothing until heat: bodies gain a `High` then, with the heat suit.
+- Night no longer reaches below the top band, where before a cave cell without a back wall felt it at any depth.
+- `Clock` is an `int`: it wraps after 2³¹ ticks, over three years of play on one surface.
 - A unit may move to a neighbouring breath when felt changes between breaths or a hero changes surfaces.
 
 ## Deliberately not handled
 
 - Per-cell simulated temperatures; heat from lava, furnaces or machines; rooms heated or cooled.
+- Storms: they deepen `Chill` later, under the day-night plan. Spore gas in the garden is no temperature.
 - Temperature for machines, plants, creatures or liquids; wind, clothing layers, a cold suit.
 - The cold band's caves colder than its surface: the band is one number until a player sequence needs two.

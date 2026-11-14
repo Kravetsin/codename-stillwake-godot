@@ -20,7 +20,7 @@ const wreck = { rows: mapOf('Rows', 'Materials = Placed('), dress: mapOf('Dress'
 
 /** Every traced subject's shapes (trace.js) with its palette's materials: drawn from these, the reference is never read here. */
 const traced = Object.fromEntries(fs.readdirSync(path.join(here, 'traced')).filter((f) => f.endsWith('.json')).map((f) => {
-  const name = f.slice(0, -5), palette = JSON.parse(fs.readFileSync(path.join(here, 'refs', name + '.palette.json'), 'utf8'));
+  const name = f.slice(0, -5), palette = JSON.parse(fs.readFileSync(path.join(here, 'refs', name.split('.')[0] + '.palette.json'), 'utf8'));
   return [name, { ...JSON.parse(fs.readFileSync(path.join(here, 'traced', f), 'utf8')), materials: palette.materials }];
 }));
 

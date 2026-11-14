@@ -54,14 +54,31 @@ public partial class Figure : Node2D
         ["sheet"] = new(0, 5),
     };
 
-    private sealed record Limb(Node2D Upper, Node2D Lower, Node2D? Ankle = null)
+    private sealed record Limb(Node2D Upper, Node2D Lower, Node2D? Ankle, BentPicture[] Pictures, Sprite2D UpperPart, Sprite2D LowerPart, double Joint)
     {
-        /// <summary>Rotations run clockwise and the figure faces +x, so forward, and a boot's toe up (<paramref name="foot"/>), is negative.</summary>
+        private (Texture2D? Upper, Texture2D? Lower) _seamOf;
+        private double _seam = BentLimb.Plain;
+
+        /// <summary>Where its lower picture starts as worn now (<see cref="BentLimb.SeamOf"/>), found again only when either picture changes.</summary>
+        private double Seam()
+        {
+            if (_seamOf == (UpperPart.Texture, LowerPart.Texture)) return _seam;
+            _seamOf = (UpperPart.Texture, LowerPart.Texture);
+            return _seam = BentLimb.SeamOf(SuitArt.RowsOf(UpperPart.Texture), UpperPart.Offset.Y - Joint, SuitArt.RowsOf(LowerPart.Texture),
+                LowerPart.Offset.Y, 1.0 / HiRes.Scale);
+        }
+
+        /// <summary>
+        /// Rotations run clockwise and the figure faces +x, so forward, and a boot's toe up (<paramref name="foot"/>), is negative;
+        /// the pictures bent as one piece at the joint (bent-limbs).
+        /// </summary>
         public void Bend(Bend b, double foot = 0)
         {
             Upper.Rotation = (float)-b.Upper;
             Lower.Rotation = (float)-b.Lower;
             if (Ankle != null) Ankle.Rotation = (float)-foot;
+            var seam = Seam();
+            foreach (var picture in Pictures) picture.Show(b.Lower, seam);
         }
     }
 
@@ -936,8 +953,8 @@ public partial class Figure : Node2D
     }
 
     /// <summary>
-    /// A limb hanging from its joint in two pictures, the upper turned at the joint and the lower at the
-    /// elbow or knee; the upper over the lower, so the joint between them is the upper's rounded end.
+    /// A limb hanging from its joint in two pictures, the upper over the lower, its nodes turned at the joint and at the elbow or
+    /// knee, and each picture drawn bent as one piece round the elbow or knee (<see cref="BentPicture"/>, bent-limbs).
     /// </summary>
     private Limb MakeLimb(Segments size, string upper, string lower, bool far, out Node2D view)
     {
@@ -953,7 +970,9 @@ public partial class Figure : Node2D
             ankle.AddChild(boot);
             bend.AddChild(ankle);
         }
-        bend.AddChild(Part(lower, far));
+        var pictures = new List<BentPicture>();
+        var lowerPart = Bendable(Part(lower, far), 0, lower: true, pictures);
+        bend.AddChild(lowerPart);
         if (lower == "shin" && !far)
         {
             Lit.Set(_tracker);
@@ -964,8 +983,30 @@ public partial class Figure : Node2D
             Gives(_trackerLight, _trackerGlow).Position = TrackerAt + HiRes.MiddleOf("hero_tracker_light");
         }
         view.AddChild(bend);
-        view.AddChild(Part(upper, far));
-        return new Limb(view, bend, ankle);
+        var upperPart = Bendable(Part(upper, far), size.Upper, lower: false, pictures);
+        view.AddChild(upperPart);
+        return new Limb(view, bend, ankle, [.. pictures], upperPart, lowerPart, size.Upper);
+    }
+
+    /// <summary>
+    /// <paramref name="part"/> and its band of light, each drawn by a bent picture under it in its place (<see cref="BentPicture"/>), the
+    /// joint <paramref name="joint"/> down its frame, the frame the <paramref name="lower"/> bone's or the upper's. The sprites keep the
+    /// pictures as worn, cut and placed, and what a crumbling body breaks into (<see cref="Pixels"/>).
+    /// </summary>
+    private Sprite2D Bendable(Sprite2D part, double joint, bool lower, List<BentPicture> pictures)
+    {
+        foreach (var (light, of, _, _, _) in _bands)
+            if (of == part) Twin(light);
+        Twin(part);
+        return part;
+
+        void Twin(Sprite2D sprite)
+        {
+            var bent = new BentPicture(sprite, joint, lower);
+            sprite.AddChild(bent);
+            sprite.MoveChild(bent, 0);
+            pictures.Add(bent);
+        }
     }
 
     /// <summary>
@@ -1442,7 +1483,29 @@ public static class SuitArt
         var made = HiRes.Texture(fine);
         Made[key] = made;
         Bytes[made] = (small.GetWidth(), small.GetHeight(), small.GetData());
+        Rows[made] = WidthsOf(fine);
         return made;
+    }
+
+    // Each made picture's opaque width row by row: where a limb's two pictures meet bent (BentLimb.SeamOf).
+    private static readonly Dictionary<Texture2D, float[]> Rows = new();
+
+    /// <summary>A made picture's opaque width in the world's pixels, each row of its hi-res picture; none for a picture not made here.</summary>
+    public static float[]? RowsOf(Texture2D? texture) => texture != null && Rows.TryGetValue(texture, out var rows) ? rows : null;
+
+    private static float[] WidthsOf(Image fine)
+    {
+        int w = fine.GetWidth(), h = fine.GetHeight();
+        var data = fine.GetData();
+        var rows = new float[h];
+        for (int y = 0; y < h; y++)
+        {
+            int opaque = 0;
+            for (int x = 0; x < w; x++)
+                if (data[(y * w + x) * 4 + 3] > 127) opaque++;
+            rows[y] = opaque / (float)HiRes.Scale;
+        }
+        return rows;
     }
 
     private static void Tint(Image image, LookTint? tint, float shade)

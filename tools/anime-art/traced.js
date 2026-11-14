@@ -3,10 +3,14 @@
 // every traced/<name>.json with its palette's materials (export.js).
 (function () {
 'use strict';
-/** A path's every point scaled by s and moved by [x, y]: the tracer writes only absolute M, C and Z. */
-const move = (d, s, x, y) => { let k = 0; return d.replace(/-?\d*\.?\d+/g, (v) => String(+(+v * s + (k++ % 2 ? y : x)).toFixed(3))); };
+/** A path's every point scaled by s (or [sx, sy]) and moved by [x, y]: the tracer writes only absolute M, C and Z. */
+const move = (d, s, x, y) => {
+  const [sx, sy] = Array.isArray(s) ? s : [s, s];
+  let k = 0;
+  return d.replace(/-?\d*\.?\d+/g, (v) => String(+(k++ % 2 ? +v * sy + y : +v * sx + x).toFixed(3)));
+};
 
-/** The ops of TRACED[name] scaled by s and moved by at, from the reference's pixels into a picture's units. */
+/** The ops of TRACED[name] scaled by s (or [sx, sy]) and moved by at, from the reference's pixels into a picture's units. */
 function placed(name, s = 1, at = [0, 0]) {
   const t = TRACED[name], m = (d) => move(d, s, at[0], at[1]);
   return t.ops.map((o) => ({ ...o, d: m(o.d), lite: (o.lite || []).map(m) }));
@@ -38,6 +42,12 @@ function icon(name) {
   const t = TRACED[name], u = t.fit.units, L = Anime.LINE;
   return Anime.bake({ w: 16, h: 16, light: [-0.6, -0.8], units: u, shift: t.fit.shift, W: { outer: L.outer * u, edge: L.edge * u, panel: L.panel * u },
     draw: drawer(name, placed(name), u) });
+}
+
+/** A piece's fit box stretched over `box` ([x0, y0, x1, y1], in a picture's units): the scale [sx, sy] and the move, for placed(). */
+function into(name, box) {
+  const [x0, y0, x1, y1] = TRACED[name].fit.box, s = [(box[2] - box[0]) / (x1 - x0 + 1), (box[3] - box[1]) / (y1 - y0 + 1)];
+  return { s, at: [box[0] - x0 * s[0], box[1] - y0 * s[1]] };
 }
 
 /** Where a traced piece of headgear sits on the head (hero.js's 13 × 12 box, in its pixels): its fit box head.height tall, its right edge at head.right, its top at head.top. */
@@ -76,5 +86,5 @@ function upperHull(name, head) {
   return hull;
 }
 
-window.Traced = { placed, drawer, icon, onHead, crown };
+window.Traced = { placed, drawer, icon, into, onHead, crown };
 })();

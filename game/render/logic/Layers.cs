@@ -137,6 +137,9 @@ public static class ScreenLayers
     /// <summary>A magnetic flare's white flash over the world, with the frost, under all that is read (<c>Features.Hazards.AuroraView</c>).</summary>
     public const int FlareFlash = Frost;
 
+    /// <summary>The heat's haze, with the frost it never shows beside, under all that is read (<c>Features.Crew.Haze</c>, 2026-11-14-heat-limits).</summary>
+    public const int Haze = Frost;
+
     /// <summary>A low suit's fogged visor (<c>Features.Crew.VisorFogView</c>), over the world and the frost it blurs, under all that is read (2026-11-05-the-last-breath).</summary>
     public const int VisorFog = 3;
 

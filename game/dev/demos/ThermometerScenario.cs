@@ -11,11 +11,11 @@ namespace Stillwake.Game.Dev;
 
 /// <summary>
 /// The thermometer to try by hand (the-thermometer): the hero beamed down to the first planet's pod suited and helmeted, the
-/// axe, the drill and the lamp as <c>--planet</c> gives them, a cape on the hotbar to wear. F6 beams it to the next band's cave,
+/// axe, the drill and the lamp as <c>--planet</c> gives them, a cape and the heat suit on the hotbar to wear. F6 beams it to the next band's cave,
 /// garden, amber, ember, then back to the pod; F7 brings the night, again the day. Creative, so the cold reads at no cost; the
 /// suit may be taken off into the bag to feel it bare. Back aboard and out of the ship through the beam, for the flight out.
 /// </summary>
-[Dev("--thermometer", "the first planet, the hero suited with a cape on the hotbar; F6 the next band's cave, F7 night or day, to try the thermometer (the-thermometer)")]
+[Dev("--thermometer", "the first planet, the hero suited with a cape and the heat suit on the hotbar; F6 the next band's cave, F7 night or day, to try the thermometer (the-thermometer)")]
 public sealed partial class ThermometerScenario : DevScenario
 {
     /// <summary>The caves F6 beams to in turn, a band each, then the pod.</summary>
@@ -33,6 +33,7 @@ public sealed partial class ThermometerScenario : DevScenario
         slots[Worn(Spec.Suit.Slot)] = Stack(Spec.Suit.Basic);
         slots[Worn(Spec.Helmet.Slot)] = Stack(Spec.Helmet.Basic);
         slots[4] = Stack(Spec.Cape.Item);
+        slots[5] = Stack(Spec.Suit.Heat);
         return World.Load(root.ToJsonString(), seed.Modules());
     }
 

@@ -258,6 +258,7 @@ public partial class Main : Node2D, ITogether
                 ? (ThermometerReading?)Thermometers.Read(_m.Crew, s.Client.Id, h.Current.BodyCell(_m.Grid.Width)) : null, _hands.Ui));
             if (_hero is { } breathing) gauge.BreathesAgain += breathing.BreathesAgain;
             AddChild(new Frost(() => _session is Session s && _hero is { Placed: true } h ? Report.Cold(_m.Crew, s.Client.Id, h.Current.BodyCell(_m.Grid.Width)) : 0));
+            AddChild(new Haze(() => _session is Session s && _hero is { Placed: true } h ? Report.Heat(_m.Crew, s.Client.Id, h.Current.BodyCell(_m.Grid.Width)) : 0));
             AddChild(new HurtView(() => _session is Session s && _m.Crew.HeroOf(s.Client.Id) is { } hurt ? (hurt.Hurts, hurt.Hurt) : null, gauge));
             AddChild(new TunnelView(() => _session is Session s && _m.Crew.HeroOf(s.Client.Id) is { } me ? (me.Gasp, me.Out) : null, () => _hero?.Shown));
             // Home and friends off the screen, pointed at from its edge, clear of the HUD's panels.
