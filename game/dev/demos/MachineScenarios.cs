@@ -206,6 +206,12 @@ public sealed class ToolCardsScenario : DevScenario
     public override void Attach(DevContext c) => c.Add(new ToolCardsDemo());
 }
 
+[Dev("--item-cards", "every food's card, the HUD meal's with its time left, every piece of gear's, the fire axe's beside them (ItemCardsDemo)")]
+public sealed class ItemCardsScenario : DevScenario
+{
+    public override void Attach(DevContext c) => c.Add(new ItemCardsDemo());
+}
+
 [Dev("--salvage", "a bay's salvage drone flying out of an aired room for the pieces drifting in its zone, canisters in its fuel slot (SalvageDemo)")]
 public sealed class SalvageScenario : DevScenario
 {

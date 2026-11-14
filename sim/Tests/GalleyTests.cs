@@ -151,13 +151,13 @@ public class GalleyTests
     }
 
     [Fact]
-    public void TheDishesAreTheTablesEachLastingAsARationStrongerThanAnythingRawInItAndNeverSold()
+    public void TheDishesAreTheTablesEachLastingAsARationStrongerThanAnythingRawInItAndSoldAtTheirWorth()
     {
         Assert.Equal(
             [new(Calm: 50, Work: 400), new(Deep: 300, Work: 200), new(Calm: 300), new(Deep: 500), new Rates(Calm: 150, Deep: 300)],
             Dishes.Select(d => Foods.Of(d)!.Rates));
         Assert.All(Dishes, d => Assert.Equal(18_000, Foods.Of(d)!.Lasts));
-        Assert.All(Dishes, d => Assert.Null(Market.PriceOf(d)));
+        Assert.Equal([100, 113, 113, 94, 132], Dishes.Select(d => Market.PriceOf(d)!.Value));
         Assert.All(Dishes, d => Assert.Null(Content.Items.Get(d).Byproducts));
         static int Sum(Rates r) => r.Calm + r.Deep + r.Work;
         foreach (var dish in Dishes)

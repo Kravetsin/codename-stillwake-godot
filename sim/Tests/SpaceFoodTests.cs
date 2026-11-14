@@ -114,12 +114,12 @@ public class SpaceFoodTests
     }
 
     [Fact]
-    public void ASeedIsASnackOfFiveMinutesWithNoRatesAndStaysForPlantingAndSale()
+    public void ASeedIsASnackOfFiveMinutesWithNoRatesAndStaysForPlantingAndSaleAsRationsAndTinsSell()
     {
         Assert.Equal(new Food(Foods.Seed, 6_000, new()), Foods.Of(Foods.Seed));
         Assert.Equal("grow", Content.Items.Get(Foods.Seed).Process);
         Assert.NotNull(Market.PriceOf(Foods.Seed));
-        Assert.All([Foods.Ration, Foods.CannedMeat, Foods.Fruit, Foods.Glowberry], f => Assert.Null(Market.PriceOf(f)));
+        Assert.Equal((30, 40), (Market.PriceOf(Foods.Ration), Market.PriceOf(Foods.CannedMeat)));
     }
 
     /// <summary>A hungry hero eats a seed: no longer hungry for its 6 000 ticks, with no rate, then hungry again.</summary>
