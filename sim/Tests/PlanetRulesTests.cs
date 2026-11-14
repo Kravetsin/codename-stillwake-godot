@@ -96,15 +96,18 @@ public class PlanetRulesTests
     }
 
     [Fact]
-    public void OutsideOnAPlanetBareTheColdIsPaidOnTheThinAirsBeatOnly()
+    public void OutsideOnAPlanetBareTheBreathIsPaidOnTheThinAirsBeatAndTheColdEveryBreath()
     {
+        // By day the strip's −30° on a bare 0°: 30 felt, 3 units over thin air's 5 breaths (2026-11-14-temperature-in-degrees).
         int every = Strip.ThinAir!.Value, span = every * Content.Crew.BreathEvery;
         var w = Down(bare: true);
         var hero = w.On(1).Crew.HeroOf(0)!;
+        int cold = every * (Content.Temperature.BareLow - Strip.Temperatures[0]) * Content.Temperature.Bite / 1000;
+        Assert.Equal(3, cold);
         w.Run(span);
-        Assert.Equal(Content.Crew.Lungs - 1 - Content.Crew.BareCold, hero.Air);
+        Assert.Equal(Content.Crew.Lungs - 1 - cold, hero.Air);
         w.Run(2 * span);
-        Assert.Equal(Content.Crew.Lungs - 3 * (1 + Content.Crew.BareCold), hero.Air);
+        Assert.Equal(Content.Crew.Lungs - 3 * (1 + cold), hero.Air);
     }
 
     [Fact]

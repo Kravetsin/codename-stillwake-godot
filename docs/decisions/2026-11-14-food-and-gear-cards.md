@@ -22,9 +22,9 @@ jetpack costs, without trying them. Food was also unsold, though rations and tin
   «ПКМ съесть» and the price.
 - **The HUD's meal slot** shows the same card, «Осталось» with «из m:ss» in place of the duration, no key and no price.
   Pod paste, no item, is named and kinded by the crew's table.
-- **Gear** (green edge): a helmet «Запас воздуха N O₂»; a suit «Защита от вакуума ✓»; the regen suit also, under «Особое»,
+- **Gear** (green edge): a helmet «Запас воздуха N O₂»; a body «Выдерживает до −40°» (2026-11-14-temperature-in-degrees); the regen suit also, under «Особое»,
   «Вырабатывает воздух до 1 O₂/с» and «Расход заряда · за 1 O₂ · ⚡15», key V «вкл / выкл»; the cape «Урон от ударов −20%»
-  and «Сопротивление холоду 20%»; the jetpack «Скорость до 30 кл/с» and «Расход воздуха при тяге 2 O₂/с», key Shift «в
+  and «Тепло +5°»; the jetpack «Скорость до 30 кл/с» and «Расход воздуха при тяге 2 O₂/с», key Shift «в
   космосе»; the helmet lamp «Дальность 18 кл», «Луч 60°» and its battery draw, 0; the scanner its line. Every number is
   computed from `sim/Content` and the light's constants, none written on the card.
 - **Signs: set A, «Вещи»**, the user's pick on the [pick page](https://claude.ai/artifact/FnYZertfjnwM14YFssX8Ba)
@@ -38,7 +38,7 @@ jetpack costs, without trying them. Food was also unsold, though rations and tin
 ## Deliberately not handled
 
 - The cap on meals, up to three dishes and their summed rates, is undecided, so no card says it.
-- The suit's and the cape's cold rows are a stand-in: [temperature](../plans/temperature.md) replaces them with degree
-  ranges.
+- The bodies' and the cape's cold rows are in degrees, from [temperature](2026-11-14-temperature-in-degrees.md): the coldest a
+  body withstands and what the cape adds.
 - Pod paste is no item and has no price.
 - The seed keeps its kind, «Семя», though the pick page called it food: it is planted as often as eaten.

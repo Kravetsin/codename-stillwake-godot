@@ -109,7 +109,7 @@ Game words → code. One line a term: Russian / English → identifiers → modu
 - бур / drill → item `drill`, `c/Weapons.cs`, f/crew `DrillPace`, `Motor` → Crew
 - трос / tether → f/crew `Tether` → Crew; подтягивание по тросу / haul → `Hero.Haul`, `Hero.Wraps` (tether-haul)
 - скафандр / suit → helmet `helmet` or `heavyHelmet` (`Content.Helmet`, slot `head`, `Tank`) + body `suit` or `regenSuit` (`Content.Suit`, slot `suit`; its mode `SuitMode`, `Hero.SuitOn`), `Hero.Air`, `CapacityOf`; `SuitGauge`, `Suits` (colours), `Danger` (f/crew) → Crew, Items
-- голый, без скафандра / bare → no helmet: `Crew.Lungs`; no body: `Crew.BareCold` → Crew
+- голый, без скафандра / bare → no helmet: `Crew.Lungs`; no body: `Temperature.BareLow` → Crew
 - внешность, облик, редактор персонажа / look → `Look`, `ChooseLook`, `LookOf`, `HeroLooks`, `LookEditor` (f/crew) → Players, Crew
 - плащ / cape → `cape` (`Content.Cape`, slot `cape`, `Guard`, `Warmth`), `Hero.Spared`, `ICrewOps.Blow`; `Figure.WearsCape`, `Cape`, `CapeView` (f/crew) → Crew, Items
 - фонарик на шлем / helmet lamp → `helmetLamp`, slot `mount` (`Helmet.Mount`), for whatever sits on a helmet → Items
@@ -128,7 +128,8 @@ Game words → code. One line a term: Russian / English → identifiers → modu
 - планета / planet → `PlanetType` (`c/PlanetTypes.cs`), `Surface`, `Terrain` (sim/Core) → Core, Building
 - фон, задний план, параллакс / backdrop, the land behind → `PlanetSky` (r/, the sky), `BackdropView`, `BackdropPlan` (f/backdrop, the land), `BackdropLooks` (gc) → client only
 - сутки, день, ночь, время суток / day, night, hour → `Sky.Cycle` (`c/Sky.cs`), `SkyNow`, `SetTime` (sim/Sky); fades `Daylight` (gc) → Sky
-- ночной холод, мороз / the night's chill → `Cycle.Chill`, `ColdAt` (sim/Crew), frost `Report.Cold` → Crew
+- ночной холод, мороз / the night's chill → `Cycle.Chill` (degrees), frost `Report.Cold` → Crew
+- температура, градусы, предел / temperature, degrees, a hero's limit → `TemperatureAt`, `LowOf`, `Felt` (sim/Crew), `Temperature`, `Kind.Temperatures`, `ItemSpec.Low`, `Cape.Warmth` (c/) → Crew
 - копать / dig → `Dig`, `Crack` (sim/Building `Digging.cs`) → Building
 - жила, руда / vein, ore → `Vein` (`c/Veins.cs`), materials `copperVein`, `iceVein`, `ironVein`, `sulfurVein` (сера, item `sulfur`; `Material.In`), drawn in `Terrain` → Core
 - залежь, рудный карман / ore pocket → `Pockets` (`c/Veins.cs`), `Terrain.PaintPockets` → Core

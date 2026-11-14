@@ -37,10 +37,8 @@ public class LastBreathTests
     {
         var w = new Scenario(PodRoom) { Bare = bare }.GiveItems(0, ("scrap", 4));
         w.Do(new Enter(Beyond) { From = 0 }).Run();
-        var hero = HeroOf(w);
-        // Bare, the cold takes a unit a breath besides.
-        int breaths = bare ? (hero.Air + 1) / (1 + Content.Crew.BareCold) : hero.Air;
-        Breaths(w, breaths);
+        // Bare, space's cold takes most of a unit a breath besides (2026-11-14-temperature-in-degrees).
+        while (HeroOf(w).Air > 0) Breaths(w, 1);
         Assert.Equal((0, Content.Crew.LastBreath, 0), (HeroOf(w).Air, HeroOf(w).Gasp, HeroOf(w).Out));
         return w;
     }

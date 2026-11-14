@@ -240,8 +240,8 @@ public static class ItemCards
 
     /// <summary>
     /// A worn item's card and its rows (2026-11-14-food-and-gear-cards), what it guarantees in the units the HUD shows: a helmet's
-    /// air in O₂; a suit's guard from vacuum, the regen suit's air made a second and the charge each unit costs; the cape's share off
-    /// blows and off the cold, in percent; the jetpack's top speed and the air its thrust spends a second; the helmet lamp's reach,
+    /// air in O₂; a body's coldest it withstands (2026-11-14-temperature-in-degrees), the regen suit's air made a second and the charge
+    /// each unit costs; the cape's share off blows in percent and the degrees it adds; the jetpack's top speed and the air its thrust spends a second; the helmet lamp's reach,
     /// its beam across (<see cref="Light.HeadLampReach"/>) and its draw. A battery's number is its charge, set per stack.
     /// </summary>
     private static ItemCard Worn(ItemCard card)
@@ -249,7 +249,7 @@ public static class ItemCards
         var spec = Spec.Items.Get(card.Item);
         var rows = new List<CardTile>();
         if (spec.Tank > 0) rows.Add(Row(CardSign.Tank, CardGroup.Air, T("card.oxygen", ("n", spec.Tank)), "card.tank"));
-        if (spec.Equip == Spec.Suit.Slot) rows.Add(Row(CardSign.Cold, CardGroup.Guard, "✓", "card.vacuum"));
+        if (spec.Low is int low) rows.Add(Row(CardSign.Cold, CardGroup.Guard, T("card.degrees", ("n", Degrees(low))), "card.withstands"));
         if (card.Item == Spec.Suit.Regen)
         {
             double made = (double)Spec.Suit.RegenMost * World.TicksPerSecond / Spec.Crew.BreathEvery;
@@ -259,7 +259,7 @@ public static class ItemCards
         if (card.Item == Spec.Cape.Item)
         {
             rows.Add(Row(CardSign.Guard, CardGroup.Guard, T("card.less", ("n", Spec.Cape.Guard / 10)), "card.blows"));
-            rows.Add(Row(CardSign.Cold, CardGroup.Guard, T("card.percent", ("n", Spec.Cape.Warmth / 10)), "card.coldResist"));
+            rows.Add(Row(CardSign.Cold, CardGroup.Guard, "+" + T("card.degrees", ("n", Spec.Cape.Warmth)), "card.warmth"));
         }
         if (card.Item == Spec.Jetpack.Item)
         {
@@ -323,4 +323,7 @@ public static class ItemCards
     /// <summary><paramref name="n"/> with one decimal at most, half rounded up: 4, 5.3, 0.5.</summary>
     public static string Number(double n) =>
         Math.Round(n, 1, MidpointRounding.AwayFromZero).ToString("0.#", CultureInfo.InvariantCulture);
+
+    /// <summary>Degrees as the cards write them, a minus sign rather than a hyphen below zero: "−40".</summary>
+    public static string Degrees(int degrees) => degrees < 0 ? "−" + (-degrees).ToString(CultureInfo.InvariantCulture) : degrees.ToString(CultureInfo.InvariantCulture);
 }
