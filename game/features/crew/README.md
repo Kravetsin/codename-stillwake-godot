@@ -21,9 +21,10 @@ This hero and others', client-authoritative (0002): only commands reach the sim.
 | `logic/BladeTrail.cs` | blade haze |
 | `logic/SwingArc.cs` | its angle kept |
 | `logic/SwingArm.cs` | front arm swung |
+| `logic/HandOver.cs` | with it |
 | `logic/BodyPlay.cs` | its answers |
 | `logic/HaftGrip.cs` | far hand |
-| `logic/ArmUp.cs` | when an aim is up |
+| `logic/ArmUp.cs` | aim up |
 | `logic/HarpoonShot.cs` | harpoon, grapple |
 | `logic/HarpoonLine.cs` | its line |
 | `logic/Prompt.cs` | what E does |
@@ -48,7 +49,7 @@ This hero and others', client-authoritative (0002): only commands reach the sim.
 | `logic/SuitGlow.cs` | body lights |
 | `logic/TrackerBlink.cs` | tracker blink |
 | `SuitKeys.cs` | V on the tablet |
-| `Figure.cs` | the rig, lit, dressed |
+| `Figure.cs` | rig, lit, dressed |
 | `logic/BentLimb.cs` | bent limbs |
 | `BentPicture.cs` | drawn |
 | `logic/BodyFit.cs` | helmets fit |
@@ -93,7 +94,7 @@ This hero and others', client-authoritative (0002): only commands reach the sim.
 | `logic/Markers.cs` | markers |
 | `MarkerLayer.cs` | arrows |
 | `logic/Bodies.cs` | bodies |
-| `BodyView.cs` | bodies, beacons, tips |
+| `BodyView.cs` | bodies, beacons |
 | `logic/Rams.cs` | rams and arcs |
 | `HunterView.cs` | catchers |
 | `CatcherFxView.cs` | its light |
@@ -105,9 +106,9 @@ This hero and others', client-authoritative (0002): only commands reach the sim.
 
 ## Guarantees
 
-- Lengths, speeds: thousandths of a cell (`Content.Hero`); a step 1000/60 ms.
-- A step never ends in a wall, shut door or hatch, or past the grid; afloat with no jetpack the middle stays within
-  `Hero.Tether` of its anchor. A door shut on it pushes it `Hero.PushStep` to the nearest fit, no speed (0089).
+- Lengths, speeds: thousandths of a cell (`Content.Hero`); step 1000/60 ms.
+- A step never ends in a wall, shut door, hatch or past the grid; afloat, no jetpack, the middle stays within
+  `Hero.Tether` of its anchor. A shut door pushes it `Hero.PushStep` to the nearest fit, no speed (0089).
 - Doors go as this peer shows them (0014); a press sends `SetDoor`/`SetValve` (0071), `SetPlatform`.
 - **Holes, floors:** falls into holes it fits; down drops through; jump wins.
 - **Steps** (0106): a cell up or down, two stop it.

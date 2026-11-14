@@ -154,9 +154,9 @@ public sealed record HeldLook(
     /// <c>hero_spear_arc.png</c>: a coil box between the locks, a cable to the blade, the arc crackling over the blade. Clamped by the shaft.
     /// </summary>
     public static readonly HeldLook Spear = new(
-        "res://art/hero_spear.png", (6, 5), 0, (40.9, 4.7), (47.2, 4.2), Aimed: true, Elbow: 1.2,
-        Mounts: [new ToolMount("coil", 0, 0, (38.8, 3.6, 47.4, 6.1), new Dictionary<string, string> { [ModuleLooks.ArcCoil] = "res://art/hero_spear_arc.png" })],
-        Clamp: (12.4, 5), Rest: System.Math.PI / 2, Size: Drawn);
+        "res://art/hero_spear.png", (7.9, 5), 0, (54.7, 4.6), (63.1, 3.9), Aimed: true, Elbow: 1.2,
+        Mounts: [new ToolMount("coil", 0, 0, (51.8, 3.1, 63.4, 6.5), new Dictionary<string, string> { [ModuleLooks.ArcCoil] = "res://art/hero_spear_arc.png" })],
+        Clamp: (25, 5), Rest: System.Math.PI / 2, Size: Drawn);
 
     /// <summary>
     /// The sledgehammer, <c>art/hero_sledgehammer.png</c> (salvage-tools; raw, 2026-11-14-raw-tool-pictures), the user's pick, «Пакет

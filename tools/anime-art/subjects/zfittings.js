@@ -262,7 +262,7 @@ const cutter = (on) => (a) => {
 // The spear, the user's pick of five drawn references («Телескопическое»), shipped raw (refs/spear.png): a three-part aluminium pole
 // with twist locks, a foam grip, a long blade lashed on with cord and tape. Its arc module is its own picture (refs/spearArc.png, an
 // edit of the spear by the same model, cut where it differs): a coil box between the locks, a cable run to the blade.
-const SPEAR_W = 48, SPEAR_H = 10;
+const SPEAR_W = 64, SPEAR_H = 10;
 const spear = (a) => { const { s, at } = Traced.fit('spear', SPEAR_W, SPEAR_H); Traced.raw('spear', s, at)(a); };
 const spearArc = (a) => { const { s, at } = Traced.fit('spear', SPEAR_W, SPEAR_H); Traced.raw('spearArc', s, at)(a); };
 
