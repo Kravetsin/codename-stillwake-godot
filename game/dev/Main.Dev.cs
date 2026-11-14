@@ -103,6 +103,8 @@ public partial class Main
                         Input.ParseInputEvent(new InputEventKey { Keycode = Key.Escape, PhysicalKeycode = Key.Escape, Pressed = pressed });
                 };
         }
+        // F8 tries every helmet turning each way (helmets-fit-the-suit).
+        if (!_dev.None) AddChild(new Dev.HelmetTurnKey());
         if (Has("--fx-bench")) AddChild(new Dev.FxBench());
         if (Has("--frames") || Has("--frames=vsync")) AddChild(_frameLog = new Dev.FrameLog(vsync: Has("--frames=vsync")));
         if (_dev.Given("--ablate") is { } ablate) AddChild(new Dev.ProcessAblation(ablate == "" ? null : ablate));
