@@ -89,6 +89,8 @@
       glow(d, c, o) { ops.push({ k: 'glow', d, c, o: o || {} }); return a; },
       /** A hole through both plates. o: grow, a line width round it too. */
       cut(d, o) { ops.push({ k: 'cut', d, o: o || {} }); return a; },
+      /** A raw picture (traced.js raw), drawn as it is: only the wash draws it. */
+      image(img, x, y, w, h, o) { ops.push({ k: 'image', img, x, y, w, h, o: o || {} }); return a; },
     };
     draw(a);
     return ops.filter((o) => !o.o.only || o.o.only === 'cel');

@@ -1,6 +1,6 @@
 # The pickaxe and the harpoon traced from picked references
 
-- Status: accepted; redraws the harpoon of [0044](0044-the-harpoon-reels-a-piece-to-a-point.md) and the pickaxe of [the pickaxe](2026-11-07-the-pickaxe.md)
+- Status: accepted; redraws the harpoon of [0044](0044-the-harpoon-reels-a-piece-to-a-point.md) and the pickaxe of [the pickaxe](2026-11-07-the-pickaxe.md); drawn raw since [raw tool pictures](2026-11-14-raw-tool-pictures.md)
 - Date: 2026-11-14
 
 ## Context

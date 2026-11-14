@@ -469,12 +469,12 @@ const BLADE = { base: '#b4bcc8', shade: '#6c7486', deep: '#474c68', lite: '#d8de
 const RUST = '#6e4630', SLOT = '#14172c';
 // machines.js loads after this file: its kit is read when a picture is drawn.
 const STEEL = () => window.AnimeKit.STEEL, GUN = () => window.AnimeKit.GUN, DARK = () => window.AnimeKit.DARK, COPPER = () => window.AnimeKit.COPPER;
-// The harpoon, the user's pick of five drawn references («Нынешний, перерисованный»), traced (refs/harpoon.png) with its harpoon
+// The harpoon, the user's pick of five drawn references («Нынешний, перерисованный»), shipped raw (refs/harpoon.png) with its harpoon
 // mended out: a wooden grip, a steel frame with the spring seen through a long window, a canvas-wrapped bottle under it in two
 // clamps. The harpoon is drawn here, so the gun shows empty, loaded, and the same harpoon in flight.
-/** The harpoon's pictures: the gun 26 × 11, loaded 34 × 11 (the harpoon out past the muzzle); the trace's box fitted along 26. */
+/** The harpoon's pictures: the gun 26 × 11, loaded 34 × 11 (the harpoon out past the muzzle); its picture's box fitted along 26. */
 const HARPOON_W = 26, HARPOON_H = 11, HARPOON_LOADED_W = 34;
-/** Where the trace lies in the harpoon's pictures: its scale and offset, and the reference's pixels mapped into them. */
+/** Where the picture lies in the harpoon's pictures: its scale and offset, and the reference's pixels mapped into them. */
 const harpoonFit = () => {
   const [x0, y0, x1, y1] = TRACED.harpoon.fit.box, s = (HARPOON_W - 1) / (x1 - x0 + 1);
   const at = [.5 - x0 * s, (HARPOON_H - (y1 - y0 + 1) * s) / 2 - y0 * s];
@@ -491,14 +491,7 @@ const harpoonRod = (a, x0, tip, y) => {
 const harpoon = (loaded) => (a) => {
   const { s, at, X, Y } = harpoonFit();
   if (loaded) harpoonRod(a, X(1100), X(1500), Y(370));
-  Traced.drawer('harpoon', Traced.placed('harpoon', s, at), TRACED.harpoon.fit.units * s)(a);
-  // The spring's window, too dark for the trace to keep: the slot, the coils seen through it, the plunger before them.
-  const wx0 = X(398), wx1 = X(942), wy0 = Y(355), wy1 = Y(400), win = rr(wx0, wy0, wx1 - wx0, wy1 - wy0, (wy1 - wy0) / 2);
-  a.flat(win, SLOT);
-  for (let x = X(430); x < X(830); x += .95) { a.flat(poly(x, wy0, x + .5, wy0, x + .2, wy1, x - .3, wy1), '#8f97a4', { clip: win }); a.flat(poly(x, wy0, x + .22, wy0, x - .08, wy1, x - .3, wy1), '#c4cad4', { clip: win }); }
-  a.flat(band(X(830), Y(370), X(930), Y(386)), '#a7afbc', { clip: win });
-  a.flat(rr(X(888), Y(360), X(925) - X(888), Y(396) - Y(360), .15), '#c4cad4', { clip: win });
-  a.line(win, { w: 1 });
+  Traced.raw('harpoon', s, at)(a);
 };
 // The harpoon in flight (RodLook): the eye the line ties to, tied with copper; the shaft; the head the gun shows loaded.
 const rod = (a) => {
@@ -507,11 +500,11 @@ const rod = (a) => {
   a.flat(ell(2.3, 2.5, .55, .5), SLOT);
   a.line('M4.2 1.9L4.4 3.1', { w: 1 });
 };
-// The grappling gun, the user's pick of five drawn references («Моторная лебёдка»), traced (refs/grapple.png) with its grapnel cut
+// The grappling gun, the user's pick of five drawn references («Моторная лебёдка»), shipped raw (refs/grapple.png) with its grapnel cut
 // out: a black winch body with worn yellow edges, a drum of black rope seen through a round window, a crank arm on its hub, a
-// green lamp, a rubber grip. The grapnel is traced alone (refs/grapnel.png): ready, it sits at the muzzle; in flight its shank and
+// green lamp, a rubber grip. The grapnel is cut alone (refs/grapnel.png): ready, it sits at the muzzle; in flight its shank and
 // eye are drawn here.
-/** The grappling gun's pictures: the gun 26 × 15, loaded 32 × 15 (the grapnel out past the muzzle); the trace's box fitted along 26. */
+/** The grappling gun's pictures: the gun 26 × 15, loaded 32 × 15 (the grapnel out past the muzzle); its picture's box fitted along 26. */
 const GRAPPLE_W = 26, GRAPPLE_H = 15, GRAPPLE_LOADED_W = 32;
 const grappleFit = () => {
   const [x0, y0, x1, y1] = TRACED.grapple.fit.box, s = (GRAPPLE_W - 1) / (x1 - x0 + 1);
@@ -520,19 +513,13 @@ const grappleFit = () => {
 };
 /** Where refs/grapnel.png was cut from refs/grapple.png: its pixel (0, 0) is the gun's (1243, 240). */
 const GRAPNEL_AT = [1243, 240];
-const grapnelAt = (a, s, x, y) => Traced.drawer('grapnel', Traced.placed('grapnel', s, [x, y]), TRACED.grapnel.fit.units * s)(a);
+const grapnelAt = (a, s, x, y) => Traced.raw('grapnel', s, [x, y])(a);
 const grapple = (loaded) => (a) => {
   const { s, at } = grappleFit();
   if (loaded) grapnelAt(a, s, at[0] + GRAPNEL_AT[0] * s, at[1] + GRAPNEL_AT[1] * s);
-  Traced.drawer('grapple', Traced.placed('grapple', s, at), TRACED.grapple.fit.units * s)(a);
-  // The drum, mended flat out of the window (its turns were too dark to trace): a plain spool, four turns of rope, the crank arm on its hub.
-  const { X, Y } = grappleFit(), cx = X(797), cy = Y(460), win = ell(cx, cy, 146 * s, 162 * s);
-  a.flat(rr(cx - 2.3, cy - 3.6, 4.6, 7.2, .8), '#2c2e33', { clip: win });
-  for (let i = 0; i < 4; i++) { const x = cx - 1.6 + i * 1.25; a.flat(poly(x + .5, cy - 3.6, x + .9, cy - 3.6, x - .2, cy + 3.6, x - .6, cy + 3.6), '#5a5e66', { clip: win }); }
-  a.shape(rr(X(640), Y(447) - .5, cx - X(640), 1, .4), GUN(), { lite: band(X(640), Y(447) - .5, cx, Y(447) - .2) });
-  a.shape(ell(cx, Y(447), .6), STEEL(), { lite: band(cx - .6, Y(447) - .6, cx + .6, Y(447) - .2) });
+  Traced.raw('grapple', s, at)(a);
 };
-// The grapnel in flight (RodLook.Grapple): the eye the line ties to, its shank, the traced crown at the gun's own scale.
+// The grapnel in flight (RodLook.Grapple): the eye the line ties to, its shank, the raw crown at the gun's own scale.
 /** The grapnel's picture in flight, 10 × 9: the eye at the left, the crown's nose at the right. */
 const HOOK_W = 10, HOOK_H = 9, HOOK_SHANK = 4.2;
 const hookFit = () => {
@@ -546,10 +533,10 @@ const grapnel = (a) => {
   a.flat(ell(1.55, y, .45, .42), SLOT);
   grapnelAt(a, s, at[0], at[1]);
 };
-// The nailer, the user's pick of five drawn references («Клепальщик»), traced (refs/nailer.png) with its rivet mended out: a heavy
+// The nailer, the user's pick of five drawn references («Клепальщик»), shipped raw (refs/nailer.png) with its rivet mended out: a heavy
 // steel riveter, a ribbed collar and a cone nose, a lever trigger, a black rubber grip, a red air bottle clamped under the barrel.
 // Ready, the nail's point shows at the nose, drawn here.
-/** The nailer's pictures, 26 × 12: the trace's box fitted along 23, the nail out past the nose. */
+/** The nailer's pictures, 26 × 12: its picture's box fitted along 23, the nail out past the nose. */
 const NAILER_W = 26, NAILER_H = 12;
 const nailerFit = () => {
   const [x0, y0, x1, y1] = TRACED.nailer.fit.box, s = 22.5 / (x1 - x0 + 1);
@@ -562,12 +549,12 @@ const nailer = (loaded) => (a) => {
     const nose = X(1433);
     a.shape(poly(X(1380), y - .4, nose + 1.3, y - .4, nose + 2.4, y, nose + 1.3, y + .4, X(1380), y + .4), BLADE, { lite: band(X(1380), y - .4, nose + 1.6, y - .1) });
   }
-  Traced.drawer('nailer', Traced.placed('nailer', s, at), TRACED.nailer.fit.units * s)(a);
+  Traced.raw('nailer', s, at)(a);
 };
-// The railgun, the user's pick of five drawn references («Катушечный из хлама»), traced (refs/railgun.png): a home-made coil gun, a
+// The railgun, the user's pick of five drawn references («Катушечный из хлама»), shipped raw (refs/railgun.png): a home-made coil gun, a
 // steel tube through five copper coils, cables looping to a green battery box at the rear, a rubber pad behind it, a loop handle
-// under it held as a pistol grip, an upright fore-grip under the tube. The violet lamp, too small for the trace, is drawn here.
-/** The railgun's pictures, 40 × 15: the trace's box fitted along 40. */
+// under it held as a pistol grip, an upright fore-grip under the tube.
+/** The railgun's pictures, 40 × 15: its picture's box fitted along 40. */
 const RAIL_W = 40, RAIL_H = 15;
 const railFit = () => {
   const [x0, y0, x1, y1] = TRACED.railgun.fit.box, s = (RAIL_W - 1) / (x1 - x0 + 1);
@@ -576,11 +563,9 @@ const railFit = () => {
 };
 /** The five coils along the tube, in the reference's pixels: each from x0 to x1. */
 const COILS = [[475, 555], [603, 675], [725, 801], [848, 922], [971, 1049]];
-const RAIL_LAMP = { base: '#6a3aa8', shade: '#4a2878', deep: '#321a54', lite: '#9a6ad8', spec: '#d4c0ff' };
 const railgun = (a) => {
-  const { s, at, X, Y } = railFit();
-  Traced.drawer('railgun', Traced.placed('railgun', s, at), TRACED.railgun.fit.units * s)(a);
-  a.shape(ell(X(432), Y(477), .5, .65), RAIL_LAMP, { lite: band(X(432) - .5, Y(477) - .65, X(432) + .5, Y(477) - .15) });
+  const { s, at } = railFit();
+  Traced.raw('railgun', s, at)(a);
 };
 // What lights as it charges, alone: each coil glows cold blue, its windings still seen, a pale core down its middle; the lamp burns.
 const railgunCharged = (a) => {

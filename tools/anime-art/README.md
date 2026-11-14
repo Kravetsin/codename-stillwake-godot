@@ -1,30 +1,30 @@
 # Anime art
 
-Draws the game's pictures in code into `game/art/hd/`, where `game/render/HiRes.cs` picks them up: its only pictures, reduced to the world's pixels where a size is needed ([the pixels gone](../../docs/decisions/2026-11-03-pixel-art-removed.md)).
+Draws the game's only pictures in code into `game/art/hd/`, where `game/render/HiRes.cs` picks them up ([the pixels gone](../../docs/decisions/2026-11-03-pixel-art-removed.md)).
 
 ## The style
 
 Ink and watercolour ([why](../../docs/decisions/2026-11-01-ink-and-watercolour.md)), neutral to slightly grim, **never a cartoon**. The
 finish is `wash.js`, one for every subject; a drawing follows these rules.
 
-- **Mood before readability.** A lone scavenger's world: judge a picture by that first.
+- **Mood before readability.** A lone scavenger's world: judge a picture by that.
 - **Colour:** clean, slightly grey paint, neither dusty nor faded. Metals are cool greys; suit, copper and wood are warm and worn. Full
   saturation is only for what works or warns: fire, lamps, screens, hazard stripes.
-- **Light:** hard steps of tone, one shade and one deep, no gradients and no painted glow. The hero is lit from straight above, so
-  turning changes nothing; the world from the side. The game's own light does the rest.
-- **Line:** a thin pen that wanders, swells and lifts off. Heavier round an object, lighter inside, never an even border like a sticker's.
+- **Light:** hard steps of tone, one shade and one deep, no gradients or painted glow. The hero is lit from straight above, so
+  turning changes nothing; the world from the side; the game's light does the rest.
+- **Line:** a thin pen that wanders, swells and lifts off. Heavier round an object, lighter inside, never a sticker's even border.
   Paint may miss the line a little, never carelessly.
-- **Water:** a trace of tide lines, pooling and grain. It is the finish's, one strength for all: never tune it per picture. It darkens or
-  lightens paint by a factor and never mixes in paper: on a dark colour that reads as dust.
-- **Parting from the wall:** back walls stay well darker than anything before them, and every outlined shape has a thin lit edge at the
-  top, drawn by the finish.
-- **Wear:** rust grows from seams and rivets where water sat, with a torn edge and a darker heart. No long drips, no rings. Cracks are
+- **Water:** a trace of tide lines, pooling and grain. It is the finish's, one strength for all: never tune it per picture. It scales
+  paint's tone and never mixes in paper, which reads as dust on a dark colour.
+- **Parting from the wall:** back walls stay well darker than what stands before them; the finish gives every outlined shape a thin lit
+  top edge.
+- **Wear:** rust grows from seams and rivets where water sat, torn-edged and darker at heart; no long drips or rings. Cracks are
   short pen lines; dents and patches sit where something hit or was mended.
 - **Detail:** objects are composed, each part placed by hand: about 20 calls for a 16 × 16 icon. Walls are quieter than what stands
-  before them, back walls dark and quietest. Random scatter is for the edge of a placed thing, never for placing it.
-- **Ground:** one body, not paving: large masses of close tone, a hard shadow at their foot, only some cracks drawn. Grass lies over the
-  block's top as part of it, thick, a deep muted green.
-- **Do not:** lay a filter or an outline over finished art, or draw a wall as noise.
+  before them, back walls quietest. Random scatter is for the edge of a placed thing, never for placing it.
+- **Ground:** one body of large close-toned masses, a hard shadow at their foot, few cracks; grass lies thick and deep muted green over
+  the block's top.
+- **Do not:** lay a filter or an outline over finished art (a raw tool's ink aside), or draw a wall as noise.
 
 ## What it draws
 
@@ -59,7 +59,7 @@ finish is `wash.js`, one for every subject; a drawing follows these rules.
 | `edgekeys` | `holo_<key>`, `_glow`: the edge keys' masks |
 | `signs`, `credit`, `capsule`, `gauge` | `sign_*`: bolts, plug, wrench, tips; `credit`, the chip; `capsule`, `capsule_flame_<n>`; `gauge_*`, the vitals' light |
 | `upgrades` | `upgrade_bag`, `_belt`, `_tradeSlots`, `_canister`: wares, no item |
-| `zleftovers` | the arc bench's and lamp's glows, `machine_emergencyLamp`, `module_arc_coil`, the pod's lit state and porthole, `wrist_*`, `tablet_*` (9-slice) |
+| `zleftovers` | the arc bench's and lamp's glows, `machine_emergencyLamp`, `module_arc_coil`, the pod's lit state and porthole, `wrist_*`, `tablet_*` |
 
 ## Run
 
@@ -75,20 +75,22 @@ A picked AI-made reference is traced for its **form**; the line, paint and water
 
 - `refs/<name>.png` and `.palette.json`: its colours (`ref`) and our paint (`mat`); `single`: one part, `overlay`: patches,
   `mend`: repainted first, `holes`: left open; `pieces`: a sheet's boxes, each traced to `traced/<name>.<piece>.json`.
-- `node tools/anime-art/trace.js <name>` (ffmpeg) cuts it by its ink into beziers, `traced/<name>.json`, committed: export
-  draws from that, never the reference. `traced.js` places, straightens, paints them.
+- `node tools/anime-art/trace.js <name>` (ffmpeg) cuts it by its ink into beziers, committed as `traced/<name>.json`: export
+  draws those (`traced.js`), never the reference.
+- `"raw": true`, held tools ([raw](../../docs/decisions/2026-11-14-raw-tool-pictures.md)): the trace writes the reference's own paint,
+  cut out, as `traced/<name>.png`; `Traced.raw` draws it with our ink round it, no water. Code draws what moves or lights.
 - AI-made work ships: say so in Steam's AI disclosure.
 
 ## Add a subject
 
-A file `subjects/<name>.js` setting `Subjects.<name>`, which calls `out('<picture>', canvas)` for each picture, the
-canvas from `Anime.bake({ w, h, draw })`: `w` and `h` in world pixels, drawn 4 times over, as the game lays out. Line weights
+A file `subjects/<name>.js` setting `Subjects.<name>`, which calls `out('<picture>', canvas)` for each picture from
+`Anime.bake({ w, h, draw })`, `w` and `h` in world pixels, drawn 4 times over. Line weights
 and the light are the engine's (`engine.js`), per world pixel; use them.
 `wash.js` loads after the engine and replaces `bake`; a picture drawn straight on a canvas skips the finish.
 
 - A sheet that repeats takes `tile: true`. A door's shut and open pictures differ only by the panel, or pixels stay behind.
 - A `top_*` picture has its ground line on row 16: rows above stand on the cell above, rows below lie over the block (`front`).
 - A cave picture keeps the rows its logical one uses (`LOGICAL` in the page), or its plant floats. Moss is cut at its block's edges along a
-  run, px 4 and 20 of 24: every variant has the same cross-section there, its torn end past them.
-- A tool in the fist (about 4 px) is drawn to it: `hero.js` shrinks the drivers' paths by `Hand` (0.6: 10 px long), the pen
-  kept. A held tool's `icons/` copy is 384 px long, for its icon (driver-icons).
+  run, px 4 and 20 of 24: every variant's cross-section matches there, its torn end past them.
+- A tool in the fist (about 4 px) is drawn to it: `hero.js` shrinks the drivers' paths by `Hand` (0.6), the pen kept. A held
+  tool's `icons/` copy is 384 px long (driver-icons).

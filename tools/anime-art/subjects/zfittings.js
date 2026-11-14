@@ -119,17 +119,17 @@ const WOODH = { base: '#8a6242', shade: '#5c3e30', lite: '#ad8258', spec: '#cca6
 const RED = { base: '#c8402c', shade: '#84282c', deep: '#5c1c28', lite: '#ec7458', spec: '#ffd8c8', ink: '#280c10' };
 const BLADE = { base: '#b4bcc8', shade: '#6c7486', lite: '#d8dee6', spec: '#f0f2f4', ink: '#14162a' };
 const screw = (a, x, y, r = .42) => a.shape(ell(x, y, r), STEEL, { outer: false, edge: false, shade: band(x - r, y + .05, x + r, y + r), lines: [`M${x - r * .7} ${y + r * .3}L${x + r * .7} ${y - r * .3}`] });
-// The fire axe, the user's pick of five drawn references («Пожарный, тяжёлая головка»), traced (refs/fireAxe.png).
-/** The fire axe's picture, 34 × 13 (the pickaxe's length): the trace's box fitted along it, half a pixel round it. */
+// The fire axe, the user's pick of five drawn references («Пожарный, тяжёлая головка»), shipped raw (refs/fireAxe.png).
+/** The fire axe's picture, 34 × 13 (the pickaxe's length): its picture's box fitted along it, half a pixel round it. */
 const AXE_W = 34, AXE_H = 13;
 const axe = (a) => {
   const [x0, y0, x1, y1] = TRACED.fireAxe.fit.box, s = (AXE_W - 1) / (x1 - x0 + 1);
   const at = [.5 - x0 * s, (AXE_H - (y1 - y0 + 1) * s) / 2 - y0 * s];
-  Traced.drawer('fireAxe', Traced.placed('fireAxe', s, at), TRACED.fireAxe.fit.units * s)(a);
+  Traced.raw('fireAxe', s, at)(a);
 };
-// The drill, the user's pick of five drawn references («Из трубы»), traced (refs/drill.png) without its bit: the bit is drawn here,
+// The drill, the user's pick of five drawn references («Из трубы»), shipped raw (refs/drill.png) without its bit: the bit is drawn here,
 // so its flutes can move a third of a groove a frame while it spins.
-/** The drill's picture, 33 × 16 (the old one's length): the trace and the bit fitted along it, half a pixel round them. */
+/** The drill's picture, 33 × 16 (the old one's length): its picture and the bit fitted along it, half a pixel round them. */
 const DRILL_W = 33, DRILL_H = 16, DRILL_TIP = 1500;
 const BIT = { base: '#b4b8c0', shade: '#767c8c', deep: '#4e5464', lite: '#dde0e6', spec: '#f6f7f8', ink: '#14162a' };
 const drill = (spin) => (a) => {
@@ -142,7 +142,7 @@ const drill = (spin) => (a) => {
   a.shape(body, BIT, { lite: band(sx1, cy - r * .75, bx1, cy - r * .3), shade: poly(sx1, cy + r * .3, bx1, cy + r * .3, tip, cy, bx1, cy + r, sx1, cy + r) });
   const pitch = 2.1, shift = spin === null ? 0 : (spin % 3) * pitch / 3;
   for (let x = sx1 - pitch + shift; x < tip; x += pitch) a.flat(poly(x, cy - r, x + .5, cy - r, x + 1.2, cy + r, x + .7, cy + r), BIT.deep, { clip: body });
-  Traced.drawer('drill', Traced.placed('drill', s, at), TRACED.drill.fit.units * s)(a);
+  Traced.raw('drill', s, at)(a);
 };
 
 // The salvage tools, each the user's pick drawn whole (salvage-tools): the grinder «Заводская», the plasma cutter «Кольца», the spear
@@ -328,14 +328,14 @@ const sledgehammer = (a) => {
   screw(a, 19.8, 8, .45);
 };
 
-// The pickaxe, the user's pick of five drawn references («Нынешняя, перерисованная»), traced (refs/pickaxe.png): a pipe haft taped
+// The pickaxe, the user's pick of five drawn references («Нынешняя, перерисованная»), shipped raw (refs/pickaxe.png): a pipe haft taped
 // at the butt, two welded collars, a rusted plate head with its hole, the steel spike down, what meets the stone.
-/** The pickaxe's picture, 34 × 19: the trace's box fitted along it, half a pixel round it. */
+/** The pickaxe's picture, 34 × 19: its picture's box fitted along it, half a pixel round it. */
 const PICK_W = 34, PICK_H = 19;
 const pickaxe = (a) => {
   const [x0, y0, x1, y1] = TRACED.pickaxe.fit.box, s = (PICK_W - 1) / (x1 - x0 + 1);
   const at = [.5 - x0 * s, (PICK_H - (y1 - y0 + 1) * s) / 2 - y0 * s];
-  Traced.drawer('pickaxe', Traced.placed('pickaxe', s, at), TRACED.pickaxe.fit.units * s)(a);
+  Traced.raw('pickaxe', s, at)(a);
 };
 
 Subjects.zfittings = function () {
