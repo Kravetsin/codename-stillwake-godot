@@ -32,9 +32,35 @@ public class BodyFitTests
     [Fact]
     public void TheModesAreThePickedOnes()
     {
-        Assert.Equal(HelmetTurn.Ring, BodyFit.Of(Stillwake.Content.Helmet.Basic).Turn);
+        Assert.Equal(HelmetTurn.Soft, BodyFit.Of(Stillwake.Content.Helmet.Basic).Turn);
         Assert.Equal(HelmetTurn.Soft, BodyFit.Of(Stillwake.Content.Helmet.Quilted).Turn);
-        Assert.Equal(HelmetTurn.Bolted, BodyFit.Of(Stillwake.Content.Helmet.Heavy).Turn);
+        Assert.Equal(HelmetTurn.Ring, BodyFit.Of(Stillwake.Content.Helmet.Heavy).Turn);
+    }
+
+    [Fact]
+    public void TheBellsDomeNodsWholeOnItsGasketWhichAloneBends()
+    {
+        var fit = BodyFit.Of(Stillwake.Content.Helmet.Heavy);
+        // Its dome turns about the gasket's middle, its own shoulder piece the collar; the gasket is its own picture.
+        Assert.Equal((BodyFit.NeckX, BodyFit.GasketY, BodyFit.GasketBand, (double?)null, true), (fit.PivotX, fit.PivotY, fit.Band, fit.Cut, fit.Sealed));
+        double joint = fit.PivotY - BodyFit.NeckY;
+        foreach (double look in Looks)
+        {
+            var (face, shell, bend, crown) = fit.TurnsBy(look);
+            // The face, lamp and scanner go with the dome; nothing of the dome or shoulder piece is bent.
+            Assert.Equal((look, look, 0d, look), (face, shell, bend, crown));
+            double seal = fit.SealBy(look), c = Math.Cos(shell), s = Math.Sin(shell);
+            for (double x = -7; x <= 7; x += 1.75)
+            {
+                // The gasket's top turns as the dome over it does, about the same pivot; its base stays with the shoulder piece.
+                var high = new Vec(x, joint - fit.Band / 2 - 0.05);
+                double y = high.Y - joint;
+                Near(new Vec(x * c - y * s, joint + x * s + y * c), BentLimb.Warp(high, joint, seal, lower: true, fit.Band));
+                var low = new Vec(x, joint + fit.Band / 2 + 0.05);
+                Near(low, BentLimb.Warp(low, joint, seal, lower: true, fit.Band));
+            }
+        }
+        Assert.Equal(fit.Fade, BodyFit.FadeOf("heavyHelmet_collar"));
     }
 
     [Theory]
@@ -47,12 +73,11 @@ public class BodyFitTests
             Assert.Equal((look, 0d, 0d, 0d), fit.TurnsBy(look));
     }
 
-    [Theory]
-    [MemberData(nameof(Helmets))]
-    public void ARingedHelmetsBallTurnsWholeAndItsCollarNever(string helmet)
+    [Fact]
+    public void ARingedHelmetsBallTurnsWholeAndItsCollarNever()
     {
-        var fit = BodyFit.Of(helmet);
-        if (fit.Turn != HelmetTurn.Ring) return;
+        // No helmet turns so now (the basic one's ring read as broken in play), but F8 still tries it, as the bare head does.
+        var fit = BodyFit.Whole;
         foreach (double look in Looks)
         {
             var (face, shell, bend, crown) = fit.TurnsBy(look);
@@ -68,9 +93,10 @@ public class BodyFitTests
     {
         var fit = BodyFit.Of(helmet);
         if (fit.Turn != HelmetTurn.Soft) return;
-        // Its crown (lamp, scanner, goggles) turns about the same point its cloth bends at, so they move as one.
-        Assert.Equal((BodyFit.NeckX, BodyFit.SoftY), (fit.PivotX, fit.PivotY));
-        double joint = BodyFit.SoftY - BodyFit.NeckY;
+        // Its crown (lamp, scanner, goggles) turns about the same point its cloth bends at, so they move as one: the figure bends
+        // its pictures there, about the neck's line.
+        Assert.Equal(BodyFit.NeckX, fit.PivotX);
+        double joint = fit.PivotY - BodyFit.NeckY;
         foreach (double look in Looks)
         {
             var (face, shell, bend, crown) = fit.TurnsBy(look);
@@ -87,6 +113,35 @@ public class BodyFitTests
                 Near(new Vec(x * c - y * s, joint + x * s + y * c), BentLimb.Warp(high, joint, bend, lower: true));
             }
         }
+    }
+
+    [Fact]
+    public void TheBasicHelmetNodsOnItsSealBendingAsTheHoodsClothDoes()
+    {
+        var fit = BodyFit.Of(Stillwake.Content.Helmet.Basic);
+        Assert.Equal((HelmetTurn.Soft, BodyFit.NeckX, BodyFit.SealY), (fit.Turn, fit.PivotX, fit.PivotY));
+        // Its seal is its own picture over the near arm, the ball whole above it: nothing cut off the shell.
+        Assert.Null(fit.Cut);
+    }
+
+    [Fact]
+    public void ATrialTurnsEveryHelmetThatWayAndItsOwnComesBack()
+    {
+        try
+        {
+            foreach (var turn in Enum.GetValues<HelmetTurn>())
+            {
+                BodyFit.Trial = turn;
+                foreach (string helmet in BodyFit.Fitted)
+                    Assert.Equal(turn, BodyFit.Of(helmet).Turn);
+                Assert.Same(BodyFit.Whole, BodyFit.Of(null));
+            }
+        }
+        finally
+        {
+            BodyFit.Trial = null;
+        }
+        Assert.Equal(HelmetTurn.Ring, BodyFit.Of(Stillwake.Content.Helmet.Heavy).Turn);
     }
 
     [Fact]

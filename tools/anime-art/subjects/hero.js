@@ -893,7 +893,28 @@ function keep(c, d, rim = 0) {
   return c;
 }
 
+/**
+ * A part's picture c cut to a piece of its drawing (helmets-fit-the-suit): kept within the paths keep, less the paths drop, with
+ * the paths back in it again; each path filled on its own, so their windings never cut holes, and stroked rim wide to take its ink.
+ */
+function within(c, { keep = [], drop = [], back = [] }, rim = 0) {
+  const mask = canvas(c.width, c.height), m = mask.getContext('2d');
+  m.setTransform(Px, 0, 0, Px, Margin * Px, Margin * Px);
+  (m.lineWidth = rim), (m.lineJoin = 'round');
+  const paint = (ds) => ds.forEach((d) => { const p = new Path2D(d); m.fill(p); if (rim) m.stroke(p); });
+  paint(keep);
+  m.globalCompositeOperation = 'destination-out';
+  paint(drop);
+  m.globalCompositeOperation = 'source-over';
+  paint(back);
+  const x = c.getContext('2d');
+  x.globalCompositeOperation = 'destination-in';
+  x.drawImage(mask, 0, 0);
+  x.globalCompositeOperation = 'source-over';
+  return c;
+}
+
 // The kit, for a subject drawing more gear on the hero's boxes (catchergear.js).
-window.HeroKit = { limb, wedge, folds, mat, glove, boot, BACK_TORSO, GL, band, BST, BELL_BRASS, BELL_RUBBER, rustAt, hose, port, UNLIT, rivet, torsoDeep, part, lightPicture, cut, keep };
+window.HeroKit = { limb, wedge, folds, mat, glove, boot, BACK_TORSO, GL, band, BST, BELL_BRASS, BELL_RUBBER, rustAt, hose, port, UNLIT, rivet, torsoDeep, part, lightPicture, cut, keep, within };
 })();
 
