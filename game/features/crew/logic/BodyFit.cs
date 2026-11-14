@@ -1,0 +1,116 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+
+namespace Stillwake.Game.Features.Crew;
+
+/// <summary>How a helmet answers its hero looking up and down (helmets-fit-the-suit): each its own way, by its shape.</summary>
+public enum HelmetTurn
+{
+    /// <summary>Bolted to the suit: it never turns; the face inside does, and the lamp's beam.</summary>
+    Bolted,
+    /// <summary>A ball turning on a neck ring that stays with the torso, as on a bearing.</summary>
+    Ring,
+    /// <summary>Soft cloth: its top turns with the head, its base stays on the shoulders, the band between bends (<see cref="BentLimb"/>).</summary>
+    Soft,
+}
+
+/// <summary>
+/// How a helmet sits on the suit (helmets-fit-the-suit): how it <paramref name="Turn"/>s, about the pivot
+/// (<paramref name="PivotX"/>, <paramref name="PivotY"/>), and from which row its shell is the collar (<paramref name="Cut"/>),
+/// drawn over the near arm's shoulder while the rest stays under the arm. All in the helmet picture's pixels, its 13 × 12 box,
+/// the neck at <see cref="BodyFit.Neck"/>. With no cut, the collar is a picture of its own (<c>hero_&lt;helmet&gt;_collar</c>).
+/// Its shell's bottom fades out into the suit over the rows <paramref name="Fade"/>, whole at the first, none at the second, if given.
+/// </summary>
+public sealed record HelmetFit(HelmetTurn Turn, double PivotX, double PivotY, double? Cut, (double Whole, double None)? Fade = null)
+{
+    /// <summary>
+    /// The angles its parts are turned by as the head looks <paramref name="look"/> (radians, as the figure turns its nodes), each
+    /// about the pivot: the head and face inside; the shell as a whole; the shell's and collar's pictures bent in the band round the
+    /// pivot (<see cref="BentLimb.Warp"/>, lower), the head and face inside a soft one with them so none shows through the cloth; and
+    /// what rides on its crown and glass, the lamp, the scanner and goggles.
+    /// </summary>
+    public (double Face, double Shell, double Bend, double Crown) TurnsBy(double look) => Turn switch
+    {
+        HelmetTurn.Bolted => (look, 0, 0, 0),
+        HelmetTurn.Ring => (look, look, 0, look),
+        _ => (0, 0, look, look),
+    };
+}
+
+/// <summary>How the suit's parts fit together where they meet (helmets-fit-the-suit): client art, not tunables.</summary>
+public static class BodyFit
+{
+    /// <summary>Where the neck is on a helmet's picture, its 13 × 12 box's pixels: the joint it is hung from.</summary>
+    public const double NeckX = 6.5, NeckY = 12;
+
+    /// <summary>
+    /// The basic helmet's ball, the circle its outline fits (tools/anime-art helmets.js, <c>BALL</c>): it turns about its middle on its
+    /// ring, its picture kept within the circle under the ring, so it turns in place.
+    /// </summary>
+    private const double BallX = 6.7, BallY = 6;
+
+    /// <summary>The head's middle (hero_head.png): a bolted helmet's head turns about it inside, not out through the shell.</summary>
+    private const double HeadX = 5.5, HeadY = 6.5;
+
+    /// <summary>
+    /// Where a soft helmet bends, below the neck (<see cref="BentLimb.Band"/> round it): low enough that a mask or plate over the chin
+    /// turns whole, not sheared by the band.
+    /// </summary>
+    public const double SoftY = NeckY + 1;
+
+    /// <summary>Soft hoods: their top turns, their base on the shoulders from row 12.5 drawn over the near arm.</summary>
+    private static readonly HelmetFit Hood = new(HelmetTurn.Soft, NeckX, SoftY, Cut: 12.5);
+
+    /// <summary>Each helmet's fit by its item, the catchers' by their pictures (<see cref="CreatureLooks.Heroes"/>).</summary>
+    private static readonly Dictionary<string, HelmetFit> Fits = new()
+    {
+        [Stillwake.Content.Helmet.Basic] = new(HelmetTurn.Ring, BallX, BallY, Cut: null),
+        // The hood's last roll, under its plate, bends; its bottom fades into the suit rather than end in a line across it.
+        [Stillwake.Content.Helmet.Quilted] = Hood with { Fade = (13.6, 14.6) },
+        // The bell's brass collar and shoulder piece over the arm; the piece's straight edge, cut by its reference, fades out.
+        [Stillwake.Content.Helmet.Heavy] = new(HelmetTurn.Bolted, HeadX, HeadY, Cut: 11, Fade: (13.8, 15)),
+        ["catcherHood"] = Hood,
+        ["catcherCap"] = Hood,
+        ["catcherBeak"] = Hood,
+        // The welded helm on its padded jack, its neck guard over the arm.
+        ["catcherHelm"] = new(HelmetTurn.Bolted, HeadX, HeadY, Cut: 11.5),
+    };
+
+    /// <summary>Turning whole about the neck, as every helmet once did: the bare head, and a helmet with no fit of its own.</summary>
+    public static readonly HelmetFit Whole = new(HelmetTurn.Ring, NeckX, NeckY, Cut: double.PositiveInfinity);
+
+    /// <summary>The fit of <paramref name="helmet"/>, an item or a catcher's helmet; <see cref="Whole"/> for none or any other.</summary>
+    public static HelmetFit Of(string? helmet) => helmet != null && Fits.TryGetValue(helmet, out var fit) ? fit : Whole;
+
+    /// <summary>The helmets fitted, by name.</summary>
+    public static IEnumerable<string> Fitted => Fits.Keys;
+
+    /// <summary>
+    /// The rows of an upper arm's picture, from its box's top (its shoulder joint at 2.5), over which its top fades in from nothing:
+    /// no round end shows at the shoulder, over the torso or a collar, however the arm turns.
+    /// </summary>
+    public static readonly (double Whole, double None) Shoulder = (4.5, 1.5);
+
+    /// <summary>Bodies whose upper arm keeps its top: a catcher's receiver is strapped there (tracker-catchers).</summary>
+    private static readonly HashSet<string> Receivers = CreatureLooks.Heroes.Values.SelectMany(look => look.Gear).Select(gear => gear.Body).ToHashSet();
+
+    /// <summary>
+    /// The rows of the part's picture <paramref name="picture"/> (<c>hero_</c> left off, its light <c>_lit</c> too) that fade, from
+    /// whole to none, in its box's pixels: an upper arm's top, a helmet's shell's bottom; none for any other.
+    /// </summary>
+    public static (double Whole, double None)? FadeOf(string picture)
+    {
+        string name = picture.EndsWith("_lit", StringComparison.Ordinal) ? picture[..^4] : picture;
+        if (name == "upperArm" || name.EndsWith("_upperArm", StringComparison.Ordinal))
+            return Receivers.Contains(name.Length > 9 ? name[..^9] : "") ? null : Shoulder;
+        return name.EndsWith("_shell", StringComparison.Ordinal) && Fits.TryGetValue(name[..^6], out var fit) ? fit.Fade : null;
+    }
+
+    /// <summary>How much of a row <paramref name="y"/> shows, fading from whole at <paramref name="whole"/> to none at <paramref name="none"/>, smoothly.</summary>
+    public static double Alpha(double y, double whole, double none)
+    {
+        double t = Math.Clamp((none - y) / (none - whole), 0, 1);
+        return t * t * (3 - 2 * t);
+    }
+}

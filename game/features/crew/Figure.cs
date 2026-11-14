@@ -91,6 +91,17 @@ public partial class Figure : Node2D
     private readonly Limb _frontArm, _backArm, _frontLeg, _backLeg;
     private readonly Node2D _frontHip, _backHip;
     private readonly Node2D _body, _helmet;
+    /// <summary>
+    /// The helmet's parts that turn as the head looks (helmets-fit-the-suit), each its fit's way about its pivot: the head and face
+    /// inside, the shell and glass, and what rides on its crown; and the collar, over the near arm's shoulder, which never turns.
+    /// </summary>
+    private readonly Node2D _face = new(), _shellTurn = new(), _crown = new(), _collar;
+    /// <summary>The helmet worn's fit, its pivot from the neck, and the way the head looks, radians, as last drawn.</summary>
+    private HelmetFit _fit = BodyFit.Whole;
+    private Vector2 _pivot;
+    private double _gaze;
+    /// <summary>The head's and face's, the shell's, the glass's and the collar's pictures, bent as a soft helmet's cloth bends (<see cref="BentLimb"/>).</summary>
+    private readonly BentPicture[] _helmetPictures;
     private readonly Sprite2D _headLamp, _lens;
     /// <summary>The scanner in the lamp's mount (2026-11-07-the-scanner), and its glass's dot lit, drawn again unlit over it.</summary>
     private readonly Sprite2D _scanner, _scannerDot;
@@ -100,7 +111,7 @@ public partial class Figure : Node2D
     private const double ScannerDotMs = 220;
     private bool _scannerWorn;
     /// <summary>The parts shown by what is worn: the air pack with the body; the helmet's shell and glass, else the hair and beard.</summary>
-    private readonly Sprite2D _pack, _shell, _visor, _hair, _beard, _headPart, _facePart;
+    private readonly Sprite2D _pack, _shell, _visor, _collarPart, _hair, _beard, _headPart, _facePart;
     /// <summary>The head and face again, added unlit under the helmet's glass while its lamp is on: the face lit by its spill.</summary>
     private readonly Sprite2D _headLit, _faceLit;
     private readonly Node2D _faceLight;
@@ -309,27 +320,33 @@ public partial class Figure : Node2D
         torso.AddChild(pack);
         torso.AddChild(_jetpack);
         torso.AddChild(chest);
-        // The head turns at the neck: its face shows through the helmet's glass; bare, the hair over it.
+        // The head turns at the neck: its face shows through the helmet's glass; bare, the hair over it. A helmet turns its own way
+        // (helmets-fit-the-suit), its collar drawn over the near arm.
         _helmet = new Node2D { Position = new Vector2(0, (float)-Rig.Neck) };
+        _collar = new Node2D { Position = _helmet.Position };
         (_headPart, _facePart) = (Part("head", joint: "helmet"), Part("face", joint: "helmet"));
         _faceLight = new Node2D { Modulate = new Color(new Color("fff6ce") * FaceLight, 1) };
         _faceLight.AddChild(_headLit = new Sprite2D { Centered = false, Offset = _headPart.Offset, Material = Added });
         _faceLight.AddChild(_faceLit = new Sprite2D { Centered = false, Offset = _facePart.Offset, Material = Added });
         (_beard, _hair) = (Part("beard", joint: "hair"), Part("hair", joint: "hair"));
-        (_shell, _visor) = (Part("shell", joint: "helmet"), Part("visor", joint: "helmet"));
-        foreach (var n in new Node2D[] { _headPart, _facePart, _faceLight, _beard, _hair, _shell, _visor }) _helmet.AddChild(n);
-        _helmet.AddChild(_eyes);
+        (_shell, _visor, _collarPart) = (Part("shell", joint: "helmet"), Part("visor", joint: "helmet"), Part("collar", joint: "helmet"));
+        _helmetPictures = [Bent(_headPart), Bent(_facePart), Bent(_headLit), Bent(_faceLit), Bent(_shell), Bent(_visor), Bent(_collarPart)];
+        foreach (var n in new Node2D[] { _headPart, _facePart, _faceLight, _beard, _hair }) _face.AddChild(n);
+        foreach (var n in new Node2D[] { _shell, _visor }) _shellTurn.AddChild(n);
+        foreach (var n in new Node2D[] { _face, _shellTurn, _crown }) _helmet.AddChild(n);
+        _collar.AddChild(_collarPart);
+        _crown.AddChild(_eyes);
         Gives(_eyes, _eyesGlow);
         // The helmet lamp on its brow (0077), not the player's colour; its lens drawn again unlit: it is the light.
         _headLamp = new Sprite2D { Texture = HeadLampArt.Picture, Centered = false, Offset = HeadLampArt.On - Joints["helmet"], Visible = false };
         Lit.Set(_headLamp);
         _lens = new Sprite2D { Texture = _lensPicture, Position = _headLamp.Offset + HeadLampArt.Lens, Material = new CanvasItemMaterial { LightMode = CanvasItemMaterial.LightModeEnum.Unshaded } };
         _headLamp.AddChild(_lens);
-        _helmet.AddChild(_headLamp);
+        _crown.AddChild(_headLamp);
         _scanner = new Sprite2D { Centered = false, Visible = false };
         Lit.Set(_scanner);
         _scanner.AddChild(_scannerDot = new Sprite2D { Centered = false, Material = Unshaded });
-        _helmet.AddChild(_scanner);
+        _crown.AddChild(_scanner);
         _plan = Part("sheet");
         _plan.Visible = false;
         // The planner's screen glows: drawn unlit over it, so it shows in the dark.
@@ -374,7 +391,7 @@ public partial class Figure : Node2D
         // The back fist closes over what it holds; the belt hangs over the body, under the near arm.
         foreach (var n in new Node2D[] { _waistBehind, backLeg, frontLeg, _waist }) parts.AddChild(n);
         foreach (var n in new Node2D[] { _offHeld, backArm }) _waistBehind.AddChild(n);
-        foreach (var n in new Node2D[] { torso, _helmet, _belt, _plan, _tool, _held, frontArm, _air }) _waist.AddChild(n);
+        foreach (var n in new Node2D[] { torso, _helmet, _belt, _plan, _tool, _held, frontArm, _collar, _air }) _waist.AddChild(n);
         (_capeInside, _capeOutside) = (new CapeView(_cape, inside: true) { Visible = false }, new CapeView(_cape, inside: false) { Visible = false });
         Lit.Set(_capeInside);
         Lit.Set(_capeOutside);
@@ -583,7 +600,7 @@ public partial class Figure : Node2D
     public Vector2 HeadLampAt => _lens.GlobalPosition;
 
     /// <summary>The visor's middle as drawn, in pixels of the world, turning with the head: where a breath of room air puffs off (0081).</summary>
-    public Vector2 Visor => _helmet.ToGlobal(VisorOn);
+    public Vector2 Visor => _crown.ToGlobal(VisorOn);
 
     /// <summary>The feet as drawn, in pixels of the world, and the way up the body, a unit vector: what a canister's vortex rises round (0081).</summary>
     public (Vector2 Feet, Vector2 Up) Stance => (_frame.ToGlobal(Vector2.Zero), -_frame.GlobalTransform.Y.Normalized());
@@ -591,8 +608,8 @@ public partial class Figure : Node2D
     /// <summary>Where the helmet turns, at the neck, in pixels of the world: inside the hero, so never in a wall.</summary>
     public Vector2 HeadAt => _helmet.GlobalPosition;
 
-    /// <summary>The way the helmet lamp points, a unit vector in the world: where the head looks, turned the way the hero faces.</summary>
-    public Vector2 HeadLampToward => _helmet.GlobalTransform.X.Normalized();
+    /// <summary>The way the helmet lamp points, a unit vector in the world: where the head looks, turned the way the hero faces, a bolted helmet's too.</summary>
+    public Vector2 HeadLampToward => _helmet.GlobalTransform.BasisXform(Vector2.Right.Rotated((float)_gaze)).Normalized();
 
     /// <summary>The worn jetpack's nozzle as drawn, in pixels of the world; none without one.</summary>
     public Vector2? Nozzle => _jetpack.Visible ? _jetpack.ToGlobal(NozzleAt) : null;
@@ -805,6 +822,7 @@ public partial class Figure : Node2D
         Show(_pip, _pipGlow, body is { } p ? $"hero_{p}_pip" : null, _chest.Offset);
         _shell.Visible = _visor.Visible = helmet != null;
         Show(_eyes, _eyesGlow, helmet != null ? $"hero_{helmet}_lit" : null, _shell.Offset);
+        FitHelmet(helmet);
         _headLamp.Offset = HeadLampArt.OnOf(helmet) - Joints["helmet"];
         _lens.Position = _headLamp.Offset + HeadLampArt.Lens;
         _hair.Visible = helmet == null;
@@ -833,6 +851,41 @@ public partial class Figure : Node2D
         sprite.Offset = new Vector2(sprite.Offset.X, -BootOverlap);
     }
 
+    /// <summary>
+    /// <paramref name="helmet"/> (null bare) cut by its fit (helmets-fit-the-suit): its shell and glass above the cut, under the near
+    /// arm; the shell from the cut, or its own collar, over it; turning about its pivot.
+    /// </summary>
+    private void FitHelmet(string? helmet)
+    {
+        _fit = BodyFit.Of(helmet);
+        _pivot = new Vector2((float)(_fit.PivotX - BodyFit.NeckX), (float)(_fit.PivotY - BodyFit.NeckY));
+        double cut = _fit.Cut ?? double.PositiveInfinity;
+        Rows(_shell, double.NegativeInfinity, cut);
+        Rows(_visor, double.NegativeInfinity, cut);
+        if (_fit.Cut != null) Rows(_collarPart, cut, double.PositiveInfinity);
+        else _collarPart.RegionEnabled = false;
+        _collarPart.Visible = helmet != null && (_fit.Cut == null || _collarPart.RegionRect.Size.Y > 0);
+    }
+
+    /// <summary>A helmet's picture drawn only from row <paramref name="from"/> to <paramref name="to"/> of its box, each where it is.</summary>
+    private static void Rows(Sprite2D sprite, double from, double to)
+    {
+        var size = sprite.Texture.GetSize();
+        float margin = sprite.Texture is CanvasTexture ? HiRes.FigureMargin : 0;
+        float top = (float)Math.Clamp(from + margin, 0, size.Y), bottom = (float)Math.Clamp(to + margin, top, size.Y);
+        (sprite.RegionEnabled, sprite.RegionFilterClipEnabled) = (true, true);
+        sprite.RegionRect = new Rect2(0, top, size.X, bottom - top);
+        sprite.Offset = sprite.Offset with { Y = sprite.Offset.Y + top };
+    }
+
+    /// <summary>A helmet's <paramref name="sprite"/> drawn by a picture bent as a soft one's cloth bends (<see cref="BodyFit.SoftY"/>), still for any other.</summary>
+    private static BentPicture Bent(Sprite2D sprite)
+    {
+        var bent = new BentPicture(sprite, BodyFit.SoftY - BodyFit.NeckY, lower: true);
+        sprite.AddChild(bent);
+        return bent;
+    }
+
     /// <summary>The picture a part is drawn with: bare, the look's clothes in place of the suit; the look's face, hair and beard.</summary>
     private string PictureOf(string part) => part switch
     {
@@ -845,6 +898,9 @@ public partial class Figure : Node2D
         // A later helmet's own pictures (2026-11-03-the-heavy-helmet); the basic one's keep their first names.
         "shell" or "visor" when _helmetWorn is { } worn && worn != Stillwake.Content.Helmet.Basic => $"{worn}_{part}",
         "shell" => "helmet_shell",
+        // A collar of its own (helmets-fit-the-suit), else the shell's rows from its cut.
+        "collar" when BodyFit.Of(_helmetWorn).Cut == null => $"{_helmetWorn}_collar",
+        "collar" => PictureOf("shell"),
         _ => part,
     };
 
@@ -883,12 +939,13 @@ public partial class Figure : Node2D
         glow.Position = at + (light.Texture != null ? HiRes.MiddleOf(name!) : Vector2.Zero);
     }
 
-    /// <summary>A body's light picture, loaded once; none for a body without it.</summary>
+    /// <summary>A body's light picture, loaded once, faded as its part is (<see cref="SuitArt.Fade"/>); none for a body without it.</summary>
     private static Texture2D? LightOf(string name)
     {
-        if (!Lights.TryGetValue(name, out var light))
-            Lights[name] = light = HiRes.Has(name) ? HiRes.Texture(HiRes.Load(name)!) : null;
-        return light;
+        if (Lights.TryGetValue(name, out var light)) return light;
+        var image = HiRes.Has(name) ? HiRes.Load(name) : null;
+        if (image != null && BodyFit.FadeOf(name["hero_".Length..]) is var (whole, none)) SuitArt.Fade(image, whole, none);
+        return Lights[name] = image != null ? HiRes.Texture(image) : null;
     }
 
     /// <summary>The tracker's light in the player's colour as its <see cref="Signal"/> blinks it, its glow by the same level.</summary>
@@ -1320,7 +1377,13 @@ public partial class Figure : Node2D
         _head = Settle(_head, awake ? look : 0, elapsedMs, HeadSettleMs);
         // On the floor the head takes back some of the body's lean, so a run looks ahead, not at the floor.
         // In an answer it keeps the eyes up as the body leans.
-        _helmet.Rotation = (float)(_head - (pose is Pose.Stand or Pose.Walk or Pose.Run ? shown.Tilt * HeroMotion.Run.HeadSteady : 0) - BodyAnswers.HeadSteady * body.Lean);
+        _gaze = _head - (pose is Pose.Stand or Pose.Walk or Pose.Run ? shown.Tilt * HeroMotion.Run.HeadSteady : 0) - BodyAnswers.HeadSteady * body.Lean;
+        // Each part of the helmet turns its fit's way about its pivot (helmets-fit-the-suit); its pictures bend only if it is soft.
+        var (face, shell, bend, crown) = _fit.TurnsBy(_gaze);
+        _face.Transform = Turned(face);
+        _shellTurn.Transform = Turned(shell);
+        _crown.Transform = Turned(crown);
+        foreach (var picture in _helmetPictures) picture.Show(bend, BentLimb.Seamless);
         // The sheet is in the front hand, tilted to face the eyes: up toward them looking up, flatter
         // looking down at it.
         _plan.Visible = holding;
@@ -1434,6 +1497,9 @@ public partial class Figure : Node2D
         return length < 1 ? null : new(false, (at.X, at.Y), (cx / length, cy / length), length);
     }
 
+    /// <summary>A turn by <paramref name="angle"/> about the helmet's pivot, in the neck's frame.</summary>
+    private Transform2D Turned(double angle) => new((float)angle, _pivot - _pivot.Rotated((float)angle));
+
     /// <summary>A point from the front shoulder, in the arms' own frame, in the body's parts' frame.</summary>
     private static Vector2 Pixel(Vec fromShoulder) => new((float)fromShoulder.X, (float)(fromShoulder.Y - Rig.Shoulder));
 
@@ -1478,6 +1544,7 @@ public static class SuitArt
             fine = under;
         }
         Tint(fine, LookTint.Of(part, skin, hair), far ? (float)FarShade : 1);
+        if (BodyFit.FadeOf(part) is var (whole, none)) Fade(fine, whole, none);
         var small = (Image)fine.Duplicate();
         small.Resize(fine.GetWidth() / HiRes.Scale, fine.GetHeight() / HiRes.Scale, Image.Interpolation.Nearest);
         var made = HiRes.Texture(fine);
@@ -1506,6 +1573,24 @@ public static class SuitArt
             rows[y] = opaque / (float)HiRes.Scale;
         }
         return rows;
+    }
+
+    /// <summary>
+    /// A part's hi-res picture faded row by row from whole at row <paramref name="whole"/> to none at <paramref name="none"/> of its box
+    /// (<see cref="BodyFit.FadeOf"/>, helmets-fit-the-suit): an upper arm's top, a collar's straight edge.
+    /// </summary>
+    public static void Fade(Image image, double whole, double none)
+    {
+        for (int y = 0; y < image.GetHeight(); y++)
+        {
+            float alpha = (float)BodyFit.Alpha((y + 0.5) / HiRes.Scale - HiRes.FigureMargin, whole, none);
+            if (alpha >= 1) continue;
+            for (int x = 0; x < image.GetWidth(); x++)
+            {
+                var c = image.GetPixel(x, y);
+                image.SetPixel(x, y, c with { A = c.A * alpha });
+            }
+        }
     }
 
     private static void Tint(Image image, LookTint? tint, float shade)

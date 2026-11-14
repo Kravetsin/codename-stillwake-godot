@@ -895,7 +895,20 @@ function cut(draw, glassD, bars) {
   return [shell, visor];
 }
 
+/** A helmet's picture (cut's, part's) kept only within d, with its outline rim wide, in the box's pixels: how a helmet is cut into the part that turns and its collar (helmets-fit-the-suit). */
+function keep(c, d, rim = 0) {
+  const mask = canvas(c.width, c.height), m = mask.getContext('2d'), p = new Path2D(d);
+  m.setTransform(Px, 0, 0, Px, Margin * Px, Margin * Px);
+  m.fill(p);
+  if (rim) { m.lineWidth = rim; m.lineJoin = 'round'; m.stroke(p); }
+  const x = c.getContext('2d');
+  x.globalCompositeOperation = 'destination-in';
+  x.drawImage(mask, 0, 0);
+  x.globalCompositeOperation = 'source-over';
+  return c;
+}
+
 // The kit, for a subject drawing more gear on the hero's boxes (catchergear.js).
-window.HeroKit = { limb, wedge, folds, mat, glove, boot, BACK_TORSO, GL, band, BST, BELL_BRASS, BELL_RUBBER, rustAt, hose, port, UNLIT, rivet, torsoDeep, part, lightPicture, cut };
+window.HeroKit = { limb, wedge, folds, mat, glove, boot, BACK_TORSO, GL, band, BST, BELL_BRASS, BELL_RUBBER, rustAt, hose, port, UNLIT, rivet, torsoDeep, part, lightPicture, cut, keep };
 })();
 
