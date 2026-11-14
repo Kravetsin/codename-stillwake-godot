@@ -678,6 +678,9 @@ public partial class Figure : Node2D
     /// <summary>The held harpoon's muzzle, or the drill's point, as drawn this frame, in pixels of the world; none while neither is shown.</summary>
     public Vector2? Muzzle { get; private set; }
 
+    /// <summary>The running grinder's working circle's radius round its hub (<see cref="EdgeStart"/>), pixels; none while none runs.</summary>
+    public double? WheelRadius { get; private set; }
+
     /// <summary>Where the held aimed item's edge begins as drawn this frame: the harpoon's breech, the cutter's nozzle, its jet's start.</summary>
     public Vector2? EdgeStart { get; private set; }
 
@@ -1481,7 +1484,9 @@ public partial class Figure : Node2D
                 _edge.Add((p.X, p.Y));
             }
         Blade = bladeHeld ? (HeldAt(item!.EdgeFrom), HeldAt(item.EdgeTo)) : null;
-        _air.Follow(Spinning && inHand && item != null ? ZoneOf(frontArm, item) : null, elapsedMs, bladeHeld ? _edge : null);
+        var zone = Spinning && inHand && item != null ? ZoneOf(frontArm, item) : null;
+        WheelRadius = zone is { Disc: true } disc ? disc.Size : null;
+        _air.Follow(zone, elapsedMs, bladeHeld ? _edge : null);
         _beamMs = Math.Max(0, _beamMs - elapsedMs);
         ShowBeams(holding);
         // A drill crackles as it spins; a gun held to charge, as it fills.
@@ -1498,7 +1503,8 @@ public partial class Figure : Node2D
 
     /// <summary>
     /// The zone a running drill or grinder in <paramref name="arm"/> works, in the arms' frame (tool-reach): the drill's bit point
-    /// grown into a cone out to its range from the shoulder along the aim, the grinder's forward half of a disc round its hub; none for another tool.
+    /// grown into a cone out to its range from the shoulder along the aim, the grinder's working circle round its hub, as far as its
+    /// fan reaches (grinder-contact); none for another tool, or a grinder whose hub is out past its reach.
     /// </summary>
     private AirCuts.Zone? ZoneOf(Bend arm, HeldLook item)
     {
@@ -1508,7 +1514,9 @@ public partial class Figure : Node2D
         var (ax, ay) = Aim is { } target ? FromShoulder(target) : (at.X, at.Y);
         double l = Math.Sqrt(ax * ax + ay * ay);
         var (dx, dy) = l > 0 ? (ax / l, ay / l) : (1.0, 0.0);
-        if (grinder) return new(true, (at.X, at.Y), (dx, dy), WorkLooks.DiscRadius);
+        if (grinder)
+            return WorkLooks.WheelRadius(Stillwake.Content.Weapons.Grinder.Range * Rig.Cell / Hero.Unit, Math.Sqrt(at.X * at.X + at.Y * at.Y)) is { } r
+                ? new(true, (at.X, at.Y), (dx, dy), r) : null;
         double range = Stillwake.Content.Weapons.Drill.Range * Rig.Cell / Hero.Unit, cx = dx * range - at.X, cy = dy * range - at.Y;
         double length = Math.Sqrt(cx * cx + cy * cy);
         return length < 1 ? null : new(false, (at.X, at.Y), (cx / length, cy / length), length);

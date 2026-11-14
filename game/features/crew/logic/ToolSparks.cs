@@ -8,12 +8,13 @@ namespace Stillwake.Game.Features.Crew;
 /// <summary>
 /// The sparks running electric tools throw off a wreck (damage-looks, "sparks"): thin streaks thrown fast where each touches, a
 /// steady <see cref="WorkLooks.SparksPerSecond"/>, white-hot cooling to orange and red; out of the face toward the tool, the
-/// grinder's in a tight fan off its wheel; and a white bead where it touches. Each spark keeps where it was thrown from and flies
+/// grinder's in a tight fan off its wheel; and, but for the grinder's, a white bead where it touches. Each spark keeps where it was thrown from and flies
 /// on alone; its way, speed and life are hashes of its number, as the page's were.
 /// </summary>
 public sealed class ToolSparks
 {
-    private readonly record struct Spark(double X, double Y, double Dx, double Dy, double Speed, double Life, double Born);
+    // Thrown from (X, Y) along (Dx, Dy) once it has ridden Ride ms of the wheel's rim from angle From (grinder-contact).
+    private readonly record struct Spark(double X, double Y, double Dx, double Dy, double Speed, double Life, double Born, WheelContact.Circle? Rim = null, double From = 0, double Ride = 0);
 
     private readonly List<Spark> _sparks = [];
     private readonly Dictionary<(int Hero, int Piece), double> _owed = new();
@@ -29,7 +30,7 @@ public sealed class ToolSparks
     public void Begin(double elapsedMs)
     {
         _clock += elapsedMs;
-        _sparks.RemoveAll(s => _clock - s.Born >= s.Life);
+        _sparks.RemoveAll(s => _clock - s.Born >= s.Ride + s.Life);
         _beads.Clear();
         _touching.Clear();
     }
@@ -37,14 +38,18 @@ public sealed class ToolSparks
     /// <summary>
     /// A hero's <paramref name="tool"/> touches a wreck at <paramref name="at"/>, the two of them <paramref name="touch"/>, the face's way back toward the
     /// tool <paramref name="toward"/> (a unit vector), through this frame of <paramref name="elapsedMs"/>: its sparks thrown, the
-    /// first at once when it starts touching.
+    /// first at once when it starts touching. A grinder's <paramref name="wheel"/> with <paramref name="exits"/> from the wreck
+    /// throws them off its rim instead (grinder-contact): each rides the rim along the spin to an exit and flies on along it there.
     /// </summary>
-    public void Touch((int Hero, int Piece) touch, string tool, (double X, double Y) at, (double X, double Y) toward, double elapsedMs)
+    public void Touch((int Hero, int Piece) touch, string tool, (double X, double Y) at, (double X, double Y) toward, double elapsedMs,
+        WheelContact.Circle? wheel = null, IReadOnlyList<WheelContact.Exit>? exits = null)
     {
         _touching.Add(touch);
-        _beads.Add(at);
+        bool rim = wheel != null && exits is { Count: > 0 };
+        // The grinder's sparks come off the wheel itself, with no bead where it touches (grinder-contact).
+        if (tool != Content.Weapons.Grinder.Item) _beads.Add(at);
         double owed = _owed.TryGetValue(touch, out var o) ? o + WorkLooks.SparksPerSecond * Fx.Count * elapsedMs / 1000 : 1;
-        var (bx, by, spread) = tool == Content.Weapons.Grinder.Item ? Wheel(toward) : (toward.X, toward.Y, Spread(tool));
+        var (bx, by, spread) = rim ? (0.0, 0.0, WorkLooks.GrinderSpread) : tool == Content.Weapons.Grinder.Item ? Wheel(toward) : (toward.X, toward.Y, Spread(tool));
         for (; owed >= 1; owed--)
         {
             int i = _thrown++;
@@ -53,7 +58,17 @@ public sealed class ToolSparks
             double speed = WorkLooks.SparkSpeed.Least + Hash(i, 3) * (WorkLooks.SparkSpeed.Most - WorkLooks.SparkSpeed.Least);
             // Thrown through the frame, not all at its end.
             double born = _clock - (owed - 1) / WorkLooks.SparksPerSecond * 1000;
-            _sparks.Add(new Spark(at.X, at.Y, bx * cos - by * sin, bx * sin + by * cos, speed, life, born));
+            if (!rim)
+            {
+                _sparks.Add(new Spark(at.X, at.Y, bx * cos - by * sin, bx * sin + by * cos, speed, life, born));
+                continue;
+            }
+            var w = wheel!.Value;
+            // Anywhere on the rim, ridden along the spin to the next exit, up to a whole turn.
+            double from = Hash(i, 4) * 2 * Math.PI;
+            var (e, way) = NextExit(w, from, exits!);
+            double ride = way / (2 * Math.PI * WorkLooks.WheelTurns) * 1000;
+            _sparks.Add(new Spark(e.At.X, e.At.Y, e.Way.X * cos - e.Way.Y * sin, e.Way.X * sin + e.Way.Y * cos, speed, life, born, w, from, ride));
         }
         _owed[touch] = owed;
     }
@@ -65,6 +80,19 @@ public sealed class ToolSparks
         foreach (var touch in _owed.Keys)
             if (!_touching.Contains(touch)) _left.Add(touch);
         foreach (var touch in _left) _owed.Remove(touch);
+    }
+
+    // The first of exits met riding w's rim along its spin from angle from, and how far, radians.
+    private static (WheelContact.Exit Exit, double Way) NextExit(WheelContact.Circle w, double from, IReadOnlyList<WheelContact.Exit> exits)
+    {
+        var best = (exits[0], double.MaxValue);
+        foreach (var e in exits)
+        {
+            double way = (w.Spin * (e.Angle - from)) % (2 * Math.PI);
+            if (way < 0) way += 2 * Math.PI;
+            if (way < best.Item2) best = (e, way);
+        }
+        return best;
     }
 
     private static double Spread(string tool) => tool == Content.Weapons.PlasmaCutter.Item ? WorkLooks.CutterSpread : WorkLooks.DrillSpread;
@@ -82,8 +110,18 @@ public sealed class ToolSparks
     public ((double X, double Y) Tail, (double X, double Y) Head, double Age)? At(int n)
     {
         var s = _sparks[n];
-        double age = _clock - s.Born, q = age / s.Life;
-        if (q >= 1 || age < 0) return null;
+        double age = _clock - s.Born;
+        if (age < 0 || age >= s.Ride + s.Life) return null;
+        if (age < s.Ride && s.Rim is { } w)
+        {
+            // On the rim: white-hot, its streak along the way the rim moves.
+            double angle = s.From + w.Spin * 2 * Math.PI * WorkLooks.WheelTurns * age / 1000, streak = s.Speed * WorkLooks.SparkStreak;
+            var (rx, ry) = w.At(angle);
+            var (ux, uy) = w.Along(angle);
+            return ((rx - ux * streak, ry - uy * streak), (rx, ry), 0);
+        }
+        age -= s.Ride;
+        double q = age / s.Life;
         double run = s.Speed * age / 1000 * (1 - 0.3 * q), tail = s.Speed * WorkLooks.SparkStreak * (1 - 0.6 * q);
         double x = s.X + s.Dx * run, y = s.Y + s.Dy * run;
         return ((x - s.Dx * tail, y - s.Dy * tail), (x, y), q);

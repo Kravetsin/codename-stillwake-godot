@@ -28,11 +28,21 @@ public static class WorkLooks
     /// <summary>The air a tool works (tool-reach): pale cyan as the air round a hero (<c>AirSwirl</c>).</summary>
     public static readonly Ink.Tone AirInk = Ink.Tone.Of(200, 240, 255, 1);
 
+    /// <summary>A running tool's zone: eased in over <see cref="ZoneIn"/> ms and out over <see cref="ZoneOut"/>.</summary>
+    public const double ZoneIn = 120, ZoneOut = 220;
+
     /// <summary>
-    /// A running tool's zone: eased in over <see cref="ZoneIn"/> ms and out over <see cref="ZoneOut"/>; the grinder's disc
-    /// <see cref="DiscRadius"/> pixels round its hub.
+    /// The grinder's working circle round its hub (grinder-contact): as far as its fan reaches, <paramref name="range"/> pixels from
+    /// the shoulder, past the hub <paramref name="hub"/> pixels from it; none under <see cref="WheelLeast"/>.
     /// </summary>
-    public const double ZoneIn = 120, ZoneOut = 220, DiscRadius = 24;
+    public static double? WheelRadius(double range, double hub) => range - hub is var r && r >= WheelLeast ? r : null;
+
+    /// <summary>
+    /// The smallest working circle drawn, pixels; how many turns a second a spark rides its rim to an exit; how many points the rim
+    /// is walked in; at most how many exits a wreck sparks from.
+    /// </summary>
+    public const double WheelLeast = 2, WheelTurns = 2;
+    public const int RimSteps = 48, WheelExits = 3;
 
     /// <summary>
     /// Sparks a second off a wreck, each living <see cref="SparkLife"/> ms and flying <see cref="SparkSpeed"/> pixels a second at
