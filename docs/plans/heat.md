@@ -1,7 +1,7 @@
 # Plan: heat
 
 Status: designed (`design-author`, cut by `design-reviewer`, numbers and unlock picked by the user on 2026-11-14, reviewed by
-`/review-plan`); step T-3 of [temperature](temperature.md). Nothing built.
+`/review-plan`); step T-3 of [temperature](temperature.md). H-1 built ([heat](../decisions/2026-11-14-heat-limits.md)).
 
 ## Why
 
@@ -78,7 +78,7 @@ An aired room (+20°) is inside every pair, the cape's too. Hotter planets later
   colour, deeper the further past, on the frost's scale (30° felt is full). The hover shows the limit being crossed, cold's or
   heat's, in `Tone.Bad` while felt. Inside both limits it is calm, as today.
 - **Haze:** a screen layer like the frost, from the screen's edges, by `Report.Heat`.
-- **Cards:** a body gets a second row «Выдерживает до +50°» with a heat sign (`CardSign.Heat`). The cape keeps «Тепло +5°»:
+- **Cards:** a body gets a second row «Выдерживает жар до +50°» with a heat sign (`CardSign.Heat`). The cape keeps «Тепло +5°»:
   warmth, which is what costs in heat.
 - **Pick page** (CLAUDE.md, art picks), one subject per section: the heat suit (icon and worn, moving), the haze, the
   thermometer's heat colour, the card's heat sign.

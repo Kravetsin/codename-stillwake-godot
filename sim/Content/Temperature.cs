@@ -3,12 +3,16 @@ namespace Stillwake.Content;
 /// <summary>
 /// Temperature (2026-11-14-temperature-in-degrees): every cell's in whole degrees, a surface's by its kind's depth bands
 /// (<see cref="Surfaces.Kind.Temperatures"/>); a hero withstands down to its body's <c>Low</c>, or <see cref="BareLow"/>
-/// with none, the cape's <see cref="Cape.Warmth"/> lower; each degree past it costs its air <see cref="Bite"/> a breath.
+/// with none, and up to its <c>High</c>, or <see cref="BareHigh"/> (2026-11-14-heat-limits), the cape's <see cref="Cape.Warmth"/> lower
+/// both; each degree past either costs its air <see cref="Bite"/> a breath.
 /// </summary>
 public static class Temperature
 {
     /// <summary>The coldest a hero with no body worn withstands.</summary>
     public const int BareLow = 0;
+
+    /// <summary>The hottest a hero with no body worn withstands (2026-11-14-heat-limits): a body's comfort.</summary>
+    public const int BareHigh = 30;
 
     /// <summary>An aired cell's, on any surface and at any depth: a sealed room is a shelter.</summary>
     public const int Room = 20;

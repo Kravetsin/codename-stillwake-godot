@@ -148,6 +148,88 @@ public class TemperatureTests
         Assert.True(HeroOf(w).Out > 0);
     }
 
+    /// <summary>The first planet with every band at <paramref name="degrees"/>: a test's open ground reads them by day.</summary>
+    private static Content.PlanetType At(int degrees) => Content.PlanetTypes.First with
+    {
+        Temperatures = [.. Content.PlanetTypes.First.Temperatures.Select(_ => degrees)],
+    };
+
+    /// <summary>Hero 0 on open ground at <paramref name="degrees"/> by day, in a basic helmet, the given body and the cape if <paramref name="caped"/>.</summary>
+    private static Scenario InHeat(int degrees, string? body, bool caped = false)
+    {
+        var w = OpenGround(At(degrees), night: false, bare: true).Wear(0, Content.Helmet.Basic);
+        if (body != null) w.Wear(0, body);
+        if (caped) w.Wear(0, Content.Cape.Item);
+        return w;
+    }
+
+    [Theory]
+    // The heat plan's walk-through (2026-11-14-heat-limits): the amber deep's bottom, a fifth into the ember band, its middle and below.
+    [InlineData(43, "suit", false, 0)]
+    [InlineData(50, "suit", false, 0)]
+    [InlineData(60, "suit", false, 10)]
+    [InlineData(43, "suit", true, 0)]
+    [InlineData(50, "suit", true, 5)]
+    [InlineData(60, "suit", true, 15)]
+    [InlineData(60, "regenSuit", false, 10)]
+    [InlineData(43, null, false, 13)]
+    [InlineData(50, null, false, 20)]
+    [InlineData(60, null, false, 30)]
+    public void HeatIsTheDegreesPastTheBodysHighTheCapeFiveLowerAndNoColdBesides(int degrees, string? body, bool caped, int heat)
+    {
+        var w = InHeat(degrees, body, caped);
+        int cell = HeroOf(w).Cell;
+        Assert.Equal(degrees, w.M.Crew.TemperatureAt(cell));
+        Assert.Equal((body == null ? Content.Temperature.BareHigh : 50) - (caped ? Content.Cape.Warmth : 0), w.M.Crew.HighOf(0));
+        Assert.Equal((heat, 0), (w.M.Crew.Heat(0, cell), w.M.Crew.Felt(0, cell)));
+        // No hero, nothing felt.
+        Assert.Equal(0, w.M.Crew.Heat(1, cell));
+    }
+
+    [Theory]
+    // Ten breaths: 10° felt are 2 units more than none, 15° 3 (Bite 20‰ a degree a breath).
+    [InlineData(false, 2)]
+    [InlineData(true, 3)]
+    public void HeatCostsAsTheColdDoesBiteABreathADegree(bool caped, int more)
+    {
+        var (calm, hot) = (InHeat(45, Content.Suit.Basic), InHeat(60, Content.Suit.Basic, caped));
+        foreach (var w in new[] { calm, hot })
+        {
+            HeroOf(w).Air = w.M.Crew.CapacityOf(0);
+            Breaths(w, 10);
+        }
+        Assert.Equal(more, HeroOf(calm).Air - HeroOf(hot).Air);
+    }
+
+    [Fact]
+    public void ARegenSuitWithNoAirInTheEmberPassesOutForItGivesNoneOfTheHeatBack()
+    {
+        // It gives back each breath, not the heat: the last breath runs on through the breaths the heat's schedule skips.
+        var w = InHeat(60, Content.Suit.Regen);
+        w.Put(Content.Inventory.Slots + Content.Inventory.Equipment.ToList().IndexOf(Content.Charge.Belt), new Items.Stack("battery", 1, Content.Charge.Battery));
+        w.Do(new SuitMode(true) { From = 0 }).Run();
+        Assert.Equal(10, w.M.Crew.Heat(0, HeroOf(w).Cell));
+        HeroOf(w).Air = 0;
+        for (int i = 0; i < 2 * Content.Crew.LastBreath && HeroOf(w).Out == 0; i++) w.Run();
+        Assert.True(HeroOf(w).Out > 0);
+    }
+
+    /// <summary>Any body or none, caped or not, at any degrees a planet may read: the cold and the heat are never felt at once.</summary>
+    [Property(MaxTest = 40)]
+    public Property NeverFeelsTheColdAndTheHeatAtOnce()
+    {
+        var cases = from body in Gen.Elements<string?>(null, Content.Suit.Basic, Content.Suit.Regen)
+                    from caped in Gen.Elements(false, true)
+                    from degrees in Gen.Choose(-80, 100)
+                    select (body, caped, degrees);
+        return Prop.ForAll(cases.ToArbitrary(), c =>
+        {
+            var w = InHeat(c.degrees, c.body, c.caped);
+            int cell = HeroOf(w).Cell, felt = w.M.Crew.Felt(0, cell), heat = w.M.Crew.Heat(0, cell);
+            return (felt == 0 || heat == 0).Label($"{c}: felt {felt}, heat {heat}");
+        });
+    }
+
     [Fact]
     public void TheColdLeavesTheCapesRemainderForBlowsAlone()
     {

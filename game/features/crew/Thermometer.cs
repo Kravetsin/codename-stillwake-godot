@@ -23,19 +23,19 @@ public partial class Thermometer : CanvasLayer
     /// <summary>The rime's strokes: an angle round the star, a length, when in the frost it starts, whether it forks.</summary>
     private static readonly (float Angle, float Length, float At, bool Fork)[] Strokes = MakeStrokes();
 
-    private readonly Func<(int Degrees, int Low, int Felt)?> _read;
+    private readonly Func<ThermometerReading?> _read;
     private readonly Control _root = new() { MouseFilter = Control.MouseFilterEnum.Ignore };
     private readonly Face _face;
     private readonly TipSpots _tips;
     private readonly Ui _ui;
     private double _sinceRead = RefreshS;
-    private (int Degrees, int Low, int Felt) _sim;
+    private ThermometerReading _sim;
     private float _glided;
     private bool _shown;
 
-    /// <param name="read">The degrees at this player's hero's body, the coldest it withstands and the degrees it feels past that; null without a hero or passed out, which hides it.</param>
+    /// <param name="read">What this player's hero's body reads (<see cref="Thermometers.Read"/>); null without a hero or passed out, which hides it.</param>
     /// <param name="ui">The slots' size the block follows, and the one tooltip.</param>
-    public Thermometer(Func<(int Degrees, int Low, int Felt)?> read, Ui ui)
+    public Thermometer(Func<ThermometerReading?> read, Ui ui)
     {
         (_read, _ui) = (read, ui);
         _tips = new TipSpots(ui.Tip);
@@ -48,7 +48,7 @@ public partial class Thermometer : CanvasLayer
         };
         _root.AddChild(_face);
         AddChild(_root);
-        _tips.Add(_face, () => Thermometers.Tip(_sim.Degrees, _sim.Low, _sim.Felt));
+        _tips.Add(_face, () => Thermometers.Tip(_sim));
     }
 
     public override void _Process(double delta)

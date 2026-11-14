@@ -49,13 +49,15 @@ public class ThermometerTests
     }
 
     [Fact]
-    public void ItsHoverSaysTheReadingAndTheLimitRedOnlyWhileTheColdIsFelt()
+    public void ItsHoverSaysTheReadingAndBothLimitsEachRedOnlyWhileItIsCrossed()
     {
-        var past = Thermometers.Tip(-50, -40, 10);
-        Assert.Equal("−50°", past.Name);
-        Assert.Equal("Withstands down to −40°", past.Lines.Single().Text);
-        Assert.Equal(Tone.Bad, past.Lines.Single().Tone);
-        Assert.Equal(Tone.Dim, Thermometers.Tip(-30, -40, 0).Lines.Single().Tone);
+        var cold = Thermometers.Tip(new ThermometerReading(-50, -40, 50, 10, 0));
+        Assert.Equal("−50°", cold.Name);
+        Assert.Equal(["Withstands down to −40°", "Withstands heat up to +50°"], cold.Lines.Select(l => l.Text));
+        Assert.Equal([Tone.Bad, Tone.Dim], cold.Lines.Select(l => l.Tone));
+        Assert.Equal([Tone.Dim, Tone.Dim], Thermometers.Tip(new ThermometerReading(-30, -40, 50, 0, 0)).Lines.Select(l => l.Tone));
+        var hot = Thermometers.Tip(new ThermometerReading(60, -40, 50, 0, 10));
+        Assert.Equal(("+60°", Tone.Dim, Tone.Bad), (hot.Name, hot.Lines[0].Tone, hot.Lines[1].Tone));
     }
 
     [Fact]
@@ -64,10 +66,10 @@ public class ThermometerTests
         var w = new TestWorld(Layout.Parse(["S"]).InWorld());
         int spawn = w.M.Crew.Spawn, suit = Spec.Inventory.Slots + Spec.Inventory.Equipment.ToList().IndexOf(Spec.Suit.Slot);
         w.Step(new Enter(spawn) { From = 0 });
-        Assert.Equal((Spec.Temperature.Hull, Spec.Temperature.BareLow, 20), Thermometers.Read(w.M.Crew, 0, spawn));
+        Assert.Equal(new ThermometerReading(Spec.Temperature.Hull, Spec.Temperature.BareLow, Spec.Temperature.BareHigh, 20, 0), Thermometers.Read(w.M.Crew, 0, spawn));
         w.Step(new Sim.Items.SetCreative(true), new Sim.Items.Spawn(Spec.Suit.Basic, 1) { From = 0 });
         int bag = w.M.Items.Inventory(0).ToList().FindIndex(s => s?.Item == Spec.Suit.Basic);
         w.Step(new Sim.Items.Move(new Sim.Items.Place(bag), new Sim.Items.Target(suit), 1) { From = 0 });
-        Assert.Equal((-20, -40, 0), Thermometers.Read(w.M.Crew, 0, spawn));
+        Assert.Equal(new ThermometerReading(-20, -40, 50, 0, 0), Thermometers.Read(w.M.Crew, 0, spawn));
     }
 }

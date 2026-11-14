@@ -115,4 +115,20 @@ public partial class ContentTests
         Assert.True(suit <= Content.Temperature.Space && suit <= Content.PlanetTypes.First.Temperatures[0]);
         Assert.True(suit > Content.PlanetTypes.First.Temperatures[0] - Content.Sky.First.Chill);
     }
+
+    [Fact]
+    public void EveryBodyAndNoneWithstandsColdBelowItsHeatAnAiredRoomInsideBothCapedOrNot()
+    {
+        // So the cold and the heat are never felt at once, and a sealed room costs no one anything (2026-11-14-heat-limits).
+        var limits = Content.Items.All.Where(i => i.Equip == Content.Suit.Slot)
+            .Select(i => (i.Id, Low: i.Low ?? Content.Temperature.BareLow, High: i.High ?? Content.Temperature.BareHigh))
+            .Append(("none", Content.Temperature.BareLow, Content.Temperature.BareHigh));
+        foreach (var (id, low, high) in limits)
+        {
+            Assert.True(low < high, id);
+            Assert.True(low <= Content.Temperature.Room && Content.Temperature.Room <= high - Content.Cape.Warmth, id);
+        }
+        foreach (var item in Content.Items.All)
+            Assert.True(item.High == null || item.Equip == Content.Suit.Slot, item.Id);
+    }
 }
