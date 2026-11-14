@@ -554,9 +554,9 @@ public partial class Figure : Node2D
     {
         _scanner.Visible = _scannerWorn && _helmetWorn != null;
         if (!_scanner.Visible) return;
-        bool heavy = _helmetWorn == Stillwake.Content.Helmet.Heavy;
-        string name = heavy ? "hero_heavyHelmet_scanner" : "hero_scanner";
-        var (x, y) = heavy ? ScannerInk.OnHeavy : ScannerInk.On;
+        var (name, (x, y)) = _helmetWorn == Stillwake.Content.Helmet.Heavy ? ("hero_heavyHelmet_scanner", ScannerInk.OnHeavy)
+            : _helmetWorn == Stillwake.Content.Helmet.Quilted ? ("hero_quiltedHelmet_scanner", ScannerInk.OnQuilted)
+            : ("hero_scanner", ScannerInk.On);
         _scanner.Texture = PixelArt.Picture(name);
         _scanner.Offset = _scannerDot.Offset = new Vector2((float)x - ScannerInk.Margin, (float)y - ScannerInk.Margin) - Joints["helmet"];
         for (int i = 0; i < _scannerDots.Length; i++) _scannerDots[i] = PixelArt.Picture($"{name}_lit_{i}");
