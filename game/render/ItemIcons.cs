@@ -15,7 +15,7 @@ public static class ItemIcons
     /// <summary>An item picture's side, in pixels.</summary>
     public const int Pixels = 16;
 
-    private static readonly Dictionary<string, Texture2D> Icons = new(), Silhouettes = new(), HeldTextures = new();
+    private static readonly Dictionary<string, Texture2D> Icons = new(), Silhouettes = new(), HeldTextures = new(), CardPictures = new();
     private static readonly Dictionary<(string Item, int Side), Texture2D> Baked = new();
     private static readonly Dictionary<string, Image> Held = new();
     private static readonly Dictionary<string, int> ClearRows = new();
@@ -72,6 +72,17 @@ public static class ItemIcons
     {
         if (!Icons.TryGetValue(item, out var icon)) Icons[item] = icon = HiRes.Texture(Fine($"items/{item}"));
         return icon;
+    }
+
+    /// <summary>
+    /// A held tool's picture for its card (2026-11-14-tool-card-pictures): its fine icon picture, unturned, mipmapped so it fits down
+    /// smoothly; its size the fine picture's, so it is drawn at the size it is given.
+    /// </summary>
+    public static Texture2D CardPicture(string item)
+    {
+        string picture = HeldLook.Of(item)!.Picture;
+        if (!CardPictures.TryGetValue(picture, out var texture)) CardPictures[picture] = texture = ImageTexture.CreateFromImage(HiRes.Mipped(IconImage(picture)));
+        return texture;
     }
 
     private static Texture2D Bake(string item, int side)

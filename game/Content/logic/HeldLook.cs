@@ -69,21 +69,21 @@ public sealed record HeldLook(
         "res://art/hero_harpoon.png", (3.6, 5.4), 0, (8.6, 2.55), (25.5, 2.55), Loaded: "res://art/hero_harpoon_loaded.png", Aimed: true, Clamp: (13, 2.7), Size: Drawn);
 
     /// <summary>
-    /// The grappling gun, <c>art/hero_grapple.png</c> (grapple-climbs), the user's pick, «Кошка»: the harpoon's plank stock under a
-    /// fatter spring tube with two hoops and a bell mouth, a gear pair and crank driving the spool; held as the harpoon is, the edge
-    /// the grapnel's shank seated in the tube, to the bell. Loaded, the grapnel's folded crown shows out of the bell.
+    /// The grappling gun, <c>art/hero_grapple.png</c> (grapple-climbs), redrawn from the user's pick «Моторная лебёдка»
+    /// (2026-11-14-grapple-and-nailer-traced): a black winch body with worn yellow edges, a drum of rope in a round window, a green
+    /// lamp; held one-handed by its rubber pistol grip, the edge from the drum to the muzzle. Loaded, the grapnel sits at the muzzle.
     /// </summary>
     public static readonly HeldLook Grapple = new(
-        "res://art/hero_grapple.png", (4.5, 8), 0, (9, 3.5), (27.5, 3.5), Loaded: "res://art/hero_grapple_loaded.png", Aimed: true, Clamp: (10.5, 4), Size: Drawn);
+        "res://art/hero_grapple.png", (3.3, 10.4), 0, (12.3, 6.2), (25.4, 6.2), Loaded: "res://art/hero_grapple_loaded.png", Aimed: true, Clamp: (22.6, 6.2), Size: Drawn);
 
     /// <summary>
-    /// The nailer, <c>art/hero_nailer.png</c> (shots-are-the-sims), the user's pick, «Самоделка»: a pipe barrel bound with copper
-    /// wire on a wooden grip, as the harpoon's, a brass spring and a tin-can magazine under it; held as a pistol is, one-handed,
-    /// the barrel along the forearm; the edge the barrel, the nail leaving its muzzle. Its loaded picture shows the nail's point
-    /// at the muzzle while it is ready.
+    /// The nailer, <c>art/hero_nailer.png</c> (shots-are-the-sims), redrawn from the user's pick «Клепальщик»
+    /// (2026-11-14-grapple-and-nailer-traced): a heavy steel riveter with a cone nose, a lever trigger, a rubber grip, a red air
+    /// bottle under the barrel; held as a pistol is, one-handed; the edge the barrel, the nail leaving its nose. Its loaded picture
+    /// shows the nail out of the nose while it is ready.
     /// </summary>
     public static readonly HeldLook Nailer = new(
-        "res://art/hero_nailer.png", (4.5, 7), 0, (7, 2.5), (25, 2.5), Loaded: "res://art/hero_nailer_loaded.png", Aimed: true, Clamp: (14, 2.5), Size: Drawn);
+        "res://art/hero_nailer.png", (2.3, 7.6), 0, (7.8, 3.2), (23, 3.2), Loaded: "res://art/hero_nailer_loaded.png", Aimed: true, Clamp: (12.9, 3.2), Size: Drawn);
 
     /// <summary>
     /// The drill, <c>art/hero_drill.png</c> (0054; redrawn, 2026-11-14-drill-redrawn): a motor in a length of pipe, held in one hand round the
@@ -216,8 +216,8 @@ public sealed record RodLook(string Picture, (double X, double Y) Eye, (double X
     /// <summary>The harpoon's rod, <c>art/hero_harpoon_rod.png</c> (0044).</summary>
     public static readonly RodLook Harpoon = new("res://art/hero_harpoon_rod.png", (2.4, 2.5), (23.6, 2.5), HeldLook.Drawn);
 
-    /// <summary>The grappling gun's grapnel, <c>art/hero_grapple_hook.png</c> (grapple-climbs): three prongs sprung open, swept back.</summary>
-    public static readonly RodLook Grapple = new("res://art/hero_grapple_hook.png", (2.2, 5.5), (15.9, 5.5), HeldLook.Drawn);
+    /// <summary>The grappling gun's grapnel, <c>art/hero_grapple_hook.png</c> (grapple-climbs): an eye, a shank, the traced four-pronged crown.</summary>
+    public static readonly RodLook Grapple = new("res://art/hero_grapple_hook.png", (1.55, 4.4), (9.7, 4.4), HeldLook.Drawn);
 
     /// <summary>The rod of the gun <paramref name="item"/>: the grappling gun's, else the harpoon's.</summary>
     public static RodLook Of(string? item) => item == Content.Grapple.Item ? Grapple : Harpoon;

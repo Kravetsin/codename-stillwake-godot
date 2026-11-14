@@ -1,0 +1,61 @@
+{
+ "background": "#051132",
+ "backgroundTolerance": 30,
+ "fit": 15.4,
+ "ink": {
+  "maxLum": 24,
+  "relative": 0.7,
+  "around": 12,
+  "width": 7,
+  "bridge": 3,
+  "coarse": {
+   "relative": 0.76,
+   "bridge": 7,
+   "min": 0.02
+  }
+ },
+ "minPart": 0.0015,
+ "epsilon": 4,
+ "seamMin": 1.2,
+ "looseMin": 0.8,
+ "holes": 0.002,
+ "materials": {
+  "steel": {
+   "base": true,
+   "layer": 0,
+   "ref": [
+    "#646363",
+    "#959494",
+    "#4c4c4c",
+    "#5d5d5d",
+    "#b0b0b0",
+    "#7a7a7a"
+   ],
+   "shade": 0.16,
+   "mat": {
+    "base": "#8a92a0",
+    "shade": "#5c6474",
+    "deep": "#3e4454",
+    "lite": "#b8bec8",
+    "spec": "#e2e6ea",
+    "ink": "#14162a"
+   }
+  },
+  "dark": {
+   "layer": 1,
+   "ref": [
+    "#333232",
+    "#2b2a2a",
+    "#3a3939"
+   ],
+   "shade": 0.16,
+   "mat": {
+    "base": "#3a3c42",
+    "shade": "#2a2c32",
+    "deep": "#1c1e24",
+    "lite": "#50525a",
+    "spec": "#6e7078"
+   }
+  }
+ }
+}

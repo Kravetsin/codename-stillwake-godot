@@ -8,8 +8,8 @@ namespace Stillwake.Game.Shared;
 
 /// <summary>
 /// An <see cref="ItemCard"/> in Control nodes, by what the item is (the item card mockup), each a little screen of the
-/// wrist computer: dark, a faint sheen across its top, a shadow inside its edge. A tool's (layout A) edged amber, no
-/// picture, its icon in the slot showing it (2026-10-27-tool-icons): its name and kind, its numbers as rows with icons under
+/// wrist computer: dark, a faint sheen across its top, a shadow inside its edge. A tool's (layout A) edged amber, its picture
+/// enlarged in a window across its top (<see cref="ToolPicture"/>, 2026-11-14-tool-card-pictures): its name and kind, its numbers as rows with icons under
 /// their groups (2026-11-07-tool-card-rows), its key and hint. A worn item's and food's, the medium card, edged green or coral: its
 /// picture (<see cref="WornPicture"/>) beside its name and kind, its rows under both (2026-11-14-food-and-gear-cards), its key.
 /// Anything else's, the compact card: its name and kind on one line. Under any of them what the open station does with it, by
@@ -83,6 +83,13 @@ public static class ItemCardView
         kind.SizeFlagsVertical = Control.SizeFlags.ShrinkEnd;
         line.AddChild(kind);
         var column = Column(0, Padded(line, 9, 5, 9, card.About == null ? 6 : 2));
+        // A held item with no numbers, the screwdriver, shows its picture as a tool does (2026-11-14-tool-card-pictures).
+        if (HeldLook.Of(card.Item) != null)
+        {
+            var picture = Padded(new ToolPicture(card.Item), 8, 8, 8, 0);
+            column.AddChild(picture);
+            column.MoveChild(picture, 0);
+        }
         if (card.About is { } about)
         {
             var words = Text(about, DetailText, HorizontalAlignment.Left);
@@ -97,13 +104,14 @@ public static class ItemCardView
     }
 
     /// <summary>
-    /// Layout A: no picture of a tool, its icon in the slot showing it; for what is never held (the nail) its icon large on top;
+    /// Layout A: a held tool's picture enlarged in its window on top (2026-11-14-tool-card-pictures); for what is never held (the nail) its icon large there;
     /// the name and kind, the rows of its numbers and its draw, the key and its hint.
     /// </summary>
     private static Control ToolCard(ItemCard card)
     {
         var column = Column(0);
-        if (HeldLook.Of(card.Item) == null) column.AddChild(Padded(Picture(ItemIcons.Icon(card.Item), 64), 5, 8, 7, 0));
+        // A held tool's picture enlarged in its window, as a worn item's is: in a slot its fine drawing does not read (2026-11-14-tool-card-pictures).
+        column.AddChild(HeldLook.Of(card.Item) == null ? Padded(Picture(ItemIcons.Icon(card.Item), 64), 5, 8, 7, 0) : Padded(new ToolPicture(card.Item), 8, 8, 8, 0));
         column.AddChild(Padded(Title(card, ToolKindText), 8, 6, 10, 7));
         column.AddChild(Rows(card.Tiles!, card.Draw, card.DrawBoost));
         if (card.Use is { } how) column.AddChild(UseRow(how, ToolWidth));

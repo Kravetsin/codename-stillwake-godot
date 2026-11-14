@@ -2,7 +2,7 @@ namespace Stillwake.Game;
 
 /// <summary>
 /// The pictures on the item cards (the item card mockup): how large a worn item's is drawn, the helmet lamp's motes and a
-/// battery's glow. A tool's card has no picture: its icon in the slot shows it (2026-10-27-tool-icons).
+/// battery's glow. A tool's picture is fitted by its own rule (<c>ToolPictureFit</c>).
 /// </summary>
 public static class CardLook
 {

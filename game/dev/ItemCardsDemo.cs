@@ -20,6 +20,9 @@ public partial class ItemCardsDemo : CanvasLayer
         cards.AddThemeConstantOverride("h_separation", 10);
         cards.AddThemeConstantOverride("v_separation", 8);
         var reading = new Reading([], null, true, null);
+        // The tools first, their pictures enlarged (2026-11-14-tool-card-pictures): long, tall and the smallest.
+        foreach (var tool in (string[])[Content.Shots.Railgun.Item, Content.Weapons.Drill.Item, Content.Grapple.Item, "pickaxe", "screwdriver"])
+            Add(cards, reading.TipOf(new Stack(tool, 1)).Card!);
         foreach (var food in Content.Foods.All)
             if (food.Id != Content.Foods.Paste) Add(cards, reading.TipOf(new Stack(food.Id, 1)).Card!);
         Add(cards, MealTips.Of(Content.Foods.Ration, (4 * 60 + 13) * Sim.World.TicksPerSecond).Card!);

@@ -129,7 +129,7 @@ public class ItemCardTests
         var card = ItemCards.Of(Spec.Harpoon.Item);
         Assert.True(card.Tool);
         Assert.True(ItemCards.IsTool(Spec.Harpoon.Item));
-        Assert.Equal(("Harpoon", "Tool · Harpoon"), (card.Name, card.Kind));
+        Assert.Equal(("Harpoon", "Tool"), (card.Name, card.Kind));
         Assert.Equal("LMB", card.Use!.Key);
         Assert.NotEqual(card, card with { Tiles = [.. card.Tiles!.Take(2)] });
         Assert.Equal(card, card with { Tiles = [.. card.Tiles!] });
@@ -150,7 +150,7 @@ public class ItemCardTests
     {
         var card = ItemCards.Of("fireAxe");
         Assert.True(card.Tool);
-        Assert.Equal(("Fire axe", "Tool · Axe"), (card.Name, card.Kind));
+        Assert.Equal(("Fire axe", "Tool"), (card.Name, card.Kind));
         // Its key alone, no words on what it does: the player finds out.
         Assert.Equal(new CardKey("LMB"), card.Use);
     }

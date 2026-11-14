@@ -119,7 +119,7 @@ public partial class WornPicture : Control
     public override void _Draw() => DrawWindow(this, Size);
 
     /// <summary>A card's picture window (the mockup's <c>.win</c>): its dark ground, a shadow along its top and left, a faint light along its bottom and right.</summary>
-    private static void DrawWindow(CanvasItem on, Vector2 size)
+    internal static void DrawWindow(CanvasItem on, Vector2 size)
     {
         on.DrawTextureRect(Ground, new Rect2(Vector2.Zero, size), false);
         var shade = new Color(0, 0, 0, 0.5f);
