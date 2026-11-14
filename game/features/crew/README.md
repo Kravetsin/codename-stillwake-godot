@@ -104,7 +104,7 @@ This hero and others', client-authoritative (0002): only commands reach the sim.
 
 ## Guarantees
 
-- Lengths, speeds: thousandths of a cell (`Content.Hero`); a step 1000/60 ms (`Net.Clock`).
+- Lengths, speeds: thousandths of a cell (`Content.Hero`); a step 1000/60 ms.
 - A step never ends in a wall, shut door or hatch, or past the grid; afloat with no jetpack the middle stays within
   `Hero.Tether` of its anchor. A door shut on it pushes it `Hero.PushStep` to the nearest fit, no speed (0089).
 - Doors go as this peer shows them (0014); a press sends `SetDoor`/`SetValve` (0071), `SetPlatform`.
@@ -114,13 +114,13 @@ This hero and others', client-authoritative (0002): only commands reach the sim.
 - **The figure answers its motion** (0090, hero-gait).
 - **Rammed** (0103) **or arced** (`Rams.Hits`): `HitBy`/`Bolted` sent, thrown, keys masked.
 - **Surfaces** (0076): `Ship.Of` rules, gravity the kind's `Fall`; fog glides a seam (`FogMove`, fog-edges).
-- **Camera:** leads, eases, snaps. **Markers** (0061): home, last body, friends heard, deliveries (lost red), a catcher. **Hurts**
+- **Camera:** leads, eases, snaps. **Markers** (0061): home, last body, friends heard, deliveries, a catcher. **Hurts**
   (hurts-are-shown) tint edges and gauge.
 - **Water** (liquids): swum `SwimDepth` deep, left by Space or shore; wading splashes.
 - **Swim, haul, jetpack** (0047, tether-haul): afloat through floors, tied where it left the hull;
   Shift hauls in along the tether's bends (`Wraps`); a jetpack unties, Shift thrusts, `Thrust` sent if unlike the sim's.
 - **A canister** (0047, 0081): RMB or R sends `Refill`, V `SuitMode` (regen-suit) if taken. Cooling greys the O₂ sign
-  in a sweeping ring; too soon, red (canister-mark).
+  in a ring; too soon, red (canister-mark).
 - **Meals:** a food right-clicked sends `Eat`, chewed; refused, slots blink (hud-vitals). **Degrees** over them (the-thermometer).
 - **The crew module:** made at `Spawn`; passed out: no orders, lies at the sim's cell, takes none (0061). `Enter` goes when the sim's room or field side
   differ, every `Crew.ReportEvery` ticks off its cell, each tick if threatened; none out (0050); a closed link's host: `Leave`.

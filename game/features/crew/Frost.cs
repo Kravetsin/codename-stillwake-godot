@@ -5,10 +5,11 @@ using Stillwake.Game.Render;
 namespace Stillwake.Game.Features.Crew;
 
 /// <summary>
-/// The cold past the field, without a word (0050; the look the user's pick C, 2026-11-14-frost-film): a misted film creeping in
-/// from the screen's edges, as breath on cold glass, blurring and paling the world behind it, its front ragged and drifting, motes
-/// of rime sinking in it. One full-screen quad over the world, under the HUD; hidden while there is none. Reads the cold
-/// (<see cref="Report.Cold"/>) four times a second and eases toward it (<see cref="ScreenEase"/>), the film growing from nothing.
+/// The cold past the field, without a word (0050; the look 2026-11-14-frost-film): a sheet of uneven ice over the screen's edges.
+/// The world behind it is bent by frozen bumps at three sizes, more in some places than others, with a few soft crests catching
+/// the light; cooled, paled and milky where the ice is thick. It thins away toward the middle with no line where it ends, reaching
+/// further as the cold deepens. One full-screen quad over the world, under the HUD; hidden while there is none. Reads the cold
+/// (<see cref="Report.Cold"/>) four times a second and eases toward it (<see cref="ScreenEase"/>), the ice growing from nothing.
 /// </summary>
 public partial class Frost : CanvasLayer
 {
@@ -21,16 +22,11 @@ public partial class Frost : CanvasLayer
         uniform float strength = 0.0;
         uniform sampler2D screen : hint_screen_texture, filter_linear, repeat_disable;
 
-        // Dave Hoskins' hashes without sine: no blocks where sin loses precision far from the origin.
+        // Dave Hoskins' hash without sine: no blocks where sin loses precision far from the origin.
         float hash(vec2 p) {
             vec3 p3 = fract(vec3(p.xyx) * 0.1031);
             p3 += dot(p3, p3.yzx + 33.33);
             return fract((p3.x + p3.y) * p3.z);
-        }
-        vec2 hash2(vec2 p) {
-            vec3 p3 = fract(vec3(p.xyx) * vec3(0.1031, 0.1030, 0.0973));
-            p3 += dot(p3, p3.yzx + 33.33);
-            return fract((p3.xx + p3.yz) * p3.zy);
         }
         float noise(vec2 p) {
             vec2 i = floor(p), f = fract(p);
@@ -46,44 +42,44 @@ public partial class Frost : CanvasLayer
             float h = clamp(0.5 + 0.5 * (b - a) / k, 0.0, 1.0);
             return mix(b, a, h) - k * h * (1.0 - h);
         }
+        // The slope of an fbm swell at w: the bend a bump of ice gives the world behind it.
+        vec2 slope(vec2 w, float e) {
+            return vec2(fbm(w + vec2(e, 0.0)) - fbm(w - vec2(e, 0.0)), fbm(w + vec2(0.0, e)) - fbm(w - vec2(0.0, e))) / (2.0 * e);
+        }
+        // The same of plain noise: the fine ripple, cheaper.
+        vec2 ripple(vec2 w, float e) {
+            return vec2(noise(w + vec2(e, 0.0)) - noise(w - vec2(e, 0.0)), noise(w + vec2(0.0, e)) - noise(w - vec2(0.0, e))) / (2.0 * e);
+        }
 
         void fragment() {
             float s = strength;
             float aspect = SCREEN_PIXEL_SIZE.y / SCREEN_PIXEL_SIZE.x;
             vec2 q = SCREEN_UV * vec2(aspect, 1.0);
-            // How far in from the nearest edge, in screen heights, the corners rounded: the film gathers there first.
+            // How far in from the nearest edge, in screen heights, the corners rounded: the ice gathers there first.
             vec2 a = abs(SCREEN_UV - 0.5) * 2.0;
             float d = smin((1.0 - a.x) * 0.5 * aspect, (1.0 - a.y) * 0.5, 0.18);
-            float front = 0.40 * s * (0.65 + 0.7 * fbm(q * 1.6 + vec2(TIME * 0.012, 0.0)));
-            float f = d - front;
-            // Full over the outer part, soft toward the front; growing from nothing as the cold does.
-            float m = (1.0 - smoothstep(-0.6 * front - 0.001, 0.0, f)) * smoothstep(0.0, 0.15, s);
+            // How far it reaches, wavering slowly; it thins all the way there, so no line shows where it ends.
+            float reach = 0.42 * s * (0.62 + 0.76 * fbm(q * 2.2 + vec2(0.0, TIME * 0.015))) + 0.001;
+            float m = smoothstep(0.0, 1.0, 1.0 - d / reach);
+            m *= m;
             COLOR = vec4(0.0);
-            // The middle of the screen, clear of the film, costs no more.
+            // The middle of the screen, clear of the ice, costs no more.
             if (m > 0.0) {
-                // The blur: a golden-angle disc, wider where the film is thicker.
-                float r = 0.011 * m;
-                vec3 sum = texture(screen, SCREEN_UV).rgb;
-                for (int i = 0; i < 16; i++) {
-                    float fi = float(i), an = fi * 2.39996;
-                    vec2 o = vec2(cos(an), sin(an)) * sqrt((fi + 0.5) / 16.0) * r;
-                    sum += texture(screen, clamp(SCREEN_UV + vec2(o.x / aspect, o.y), 0.0, 1.0)).rgb;
-                }
-                float dens = m * (0.7 + 0.6 * fbm(q * 6.0 + vec2(TIME * 0.02, TIME * 0.008)));
-                vec3 colour = mix(sum / 17.0, vec3(0.80, 0.86, 0.92), clamp(0.30 * dens, 0.0, 1.0)) + vec3(0.03, 0.04, 0.05) * dens;
-                // Rime motes in two depths, sinking and swaying in the film; each twinkles slowly, never a grain.
-                float motes = 0.0;
-                for (int l = 0; l < 2; l++) {
-                    float fl = float(l);
-                    vec2 mc = q * (9.0 + fl * 7.0) - vec2(TIME * (0.05 + 0.03 * fl), TIME * (0.11 + 0.05 * fl));
-                    vec2 mid = floor(mc);
-                    float h = hash(mid + fl * 13.0);
-                    vec2 mp = fract(mc) - 0.5 - (hash2(mid + 5.0) - 0.5) * 0.5 + 0.12 * vec2(sin(TIME * 0.7 + h * 6.28), cos(TIME * 0.5 + h * 9.0));
-                    float rad = 0.05 + 0.04 * h;
-                    motes += (1.0 - smoothstep(rad * 0.3, rad, length(mp))) * step(h, 0.4) * (0.55 + 0.45 * sin(TIME * 1.1 + h * 40.0));
-                }
-                motes *= m;
-                COLOR = vec4(colour + vec3(0.92, 0.96, 1.0) * motes * 0.5, clamp(max(m, motes * 0.6), 0.0, 1.0));
+                // Frozen bumps at three sizes, all but still; how much each place bends the world differs, in patches.
+                vec2 drift = vec2(TIME * 0.004, -TIME * 0.003);
+                vec2 big = slope(q * 2.6 + drift, 0.05), mid = slope(q * 8.0 + 31.0 + drift, 0.03), fine = ripple(q * 26.0 + 7.0, 0.02);
+                float zone = smoothstep(0.25, 0.75, fbm(q * 1.4 + 53.0));
+                // A few soft crests where the ice ridged as it froze: faint, never a sharp line.
+                float crest = pow(1.0 - abs(fbm(q * 5.0 + big * 0.3 + 11.0) * 2.0 - 1.0), 6.0);
+                vec2 n = big * 1.0 + mid * (0.35 + 0.65 * zone) + fine * 0.12 * zone;
+                vec2 off = (big * 0.010 + mid * 0.007 * (0.3 + 0.9 * zone) + fine * 0.0016 * zone) * m * (0.5 + 0.5 * s);
+                vec3 world = texture(screen, clamp(SCREEN_UV + vec2(off.x / aspect, off.y), 0.0, 1.0)).rgb;
+                // Cold glass: the world greyed and cooled, a milky haze where the ice is thick.
+                float grey = dot(world, vec3(0.3, 0.59, 0.11));
+                vec3 ice = mix(world, vec3(grey), 0.35) * vec3(0.86, 0.94, 1.06) + vec3(0.03, 0.05, 0.08) + vec3(0.12, 0.15, 0.18) * m * s;
+                float lit = pow(clamp(dot(normalize(vec3(-n * 0.5, 1.0)), normalize(vec3(-0.45, -0.6, 0.66))), 0.0, 1.0), 20.0);
+                vec3 colour = ice + vec3(0.95) * lit * 0.3 * m * s + vec3(0.85, 0.92, 1.0) * crest * 0.12 * m;
+                COLOR = vec4(colour, clamp(m * (0.85 + 0.15 * s), 0.0, 1.0));
             }
         }
         """;
