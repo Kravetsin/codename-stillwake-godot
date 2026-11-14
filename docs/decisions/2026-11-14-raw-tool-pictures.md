@@ -2,7 +2,8 @@
 
 - Status: accepted; supersedes how the tools of [fire axe](2026-11-14-fire-axe-redrawn.md), [drill](2026-11-14-drill-redrawn.md),
   [pickaxe and harpoon](2026-11-14-pickaxe-and-harpoon-traced.md), [railgun](2026-11-14-railgun-traced.md) and
-  [grappling gun and nailer](2026-11-14-grapple-and-nailer-traced.md) are drawn; their picks stand
+  [grappling gun and nailer](2026-11-14-grapple-and-nailer-traced.md) are drawn; their picks stand; transparent references since
+  [salvage-tools-raw](2026-11-14-salvage-tools-raw.md)
 - Date: 2026-11-14
 
 ## Context
@@ -34,7 +35,7 @@ went faint in the hand: the reference's own outline is thin and vanishes when sc
 - The tools' paint is GPT's, not ours: their colour and wear follow the reference. On a tool that small the pick is the style
   check; the outline keeps the silhouette in our ink.
 - The Steam AI disclosure covers them, as it did the traced art.
-- A reference's background must stay flat: the cut needs it. Codex's image tool cannot give a transparent background.
+- A reference's background must be flat or transparent: the cut needs one ([salvage-tools-raw](2026-11-14-salvage-tools-raw.md)).
 
 ## Deliberate omissions
 

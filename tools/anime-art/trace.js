@@ -33,7 +33,7 @@ const px = dec.stdout;
 // Mends (`mend`), in order: what the pick leaves out (a lamp the game draws its own of) repainted before tracing, the background
 // or a colour, over a polygon or an ellipse ([cx, cy, rx, ry]) within an optional box ([x0, y0, x1, y1]).
 for (const m of P.mend || []) {
-  const c = hex(m.fill === 'background' ? P.background : m.fill), [bx0, by0, bx1, by1] = (m.clip || [ox, oy, ox + W - 1, oy + H - 1]).map((v, i) => v - (i % 2 ? oy : ox));
+  const c = m.fill !== 'background' ? [...hex(m.fill), 255] : P.background ? [...hex(P.background), 255] : [0, 0, 0, 0], [bx0, by0, bx1, by1] = (m.clip || [ox, oy, ox + W - 1, oy + H - 1]).map((v, i) => v - (i % 2 ? oy : ox));
   const inside = m.ellipse ? (x, y) => ((x - m.ellipse[0]) / m.ellipse[2]) ** 2 + ((y - m.ellipse[1]) / m.ellipse[3]) ** 2 <= 1 : (x, y) => {
     let on = false;
     for (let i = 0, j = m.poly.length - 1; i < m.poly.length; j = i++) {
@@ -42,7 +42,7 @@ for (const m of P.mend || []) {
     }
     return on;
   };
-  for (let y = Math.max(0, by0); y <= Math.min(H - 1, by1); y++) for (let x = Math.max(0, bx0); x <= Math.min(W - 1, bx1); x++) if (inside(x + ox + .5, y + oy + .5)) px.set([...c, 255], (y * W + x) * 4);
+  for (let y = Math.max(0, by0); y <= Math.min(H - 1, by1); y++) for (let x = Math.max(0, bx0); x <= Math.min(W - 1, bx1); x++) if (inside(x + ox + .5, y + oy + .5)) px.set(c, (y * W + x) * 4);
 }
 
 // ---------- Mask helpers (Uint8Array W*H) ----------
@@ -102,9 +102,10 @@ function spread(labels, within) {
 }
 
 // ---------- Segment ----------
-const bg = hex(P.background), bgTol = P.backgroundTolerance || 30;
+// A reference on a transparent background names no background colour: its alpha alone parts it.
+const bg = P.background ? hex(P.background) : null, bgTol = P.backgroundTolerance || 30;
 let sil = new Uint8Array(N);
-for (let i = 0; i < N; i++) sil[i] = Math.hypot(px[i * 4] - bg[0], px[i * 4 + 1] - bg[1], px[i * 4 + 2] - bg[2]) > bgTol && px[i * 4 + 3] > 127 ? 1 : 0;
+for (let i = 0; i < N; i++) sil[i] = (!bg || Math.hypot(px[i * 4] - bg[0], px[i * 4 + 1] - bg[1], px[i * 4 + 2] - bg[2]) > bgTol) && px[i * 4 + 3] > 127 ? 1 : 0;
 { const [lab, comps] = components(sil), big = comps.reduce((a, c) => (c.n > a.n ? c : a)); sil = sil.map((v, i) => (lab[i] === big.id ? 1 : 0)); }
 sil = open(close(sil, 2), 2);
 // Holes (`holes`, a share of the silhouette): the background a part wraps round, as the loop of a hose, stays out of every shape.
@@ -121,6 +122,24 @@ const silArea = sil.reduce((a, v) => a + v, 0);
 // A raw subject ("raw": true) ships the reference's own paint: its silhouette, cut out of the background and its holes, is written
 // as traced/<name>.png beside its box, and traced.js draws that instead of shapes.
 if (P.raw) {
+  // A module's own look on a tool ("over": the tool's reference, of which this one is an edit, module added): only what differs
+  // from the tool, within `clip`, the edit's slight drift of a pixel or two not counted as a difference.
+  if (P.over) {
+    const o = spawnSync('ffmpeg', ['-loglevel', 'error', '-i', path.join(__dirname, 'refs', P.over + '.png'), '-f', 'rawvideo', '-pix_fmt', 'rgba', '-'], { maxBuffer: N * 4 + 1024 }).stdout;
+    const [cx0, cy0, cx1, cy1] = P.clip || [0, 0, W - 1, H - 1], tol = P.overTolerance || 60, r = 2, keep = new Uint8Array(N);
+    for (let y = Math.max(cy0, r); y <= Math.min(cy1, H - 1 - r); y++) for (let x = Math.max(cx0, r); x <= Math.min(cx1, W - 1 - r); x++) {
+      const i = idx(x, y);
+      if (!sil[i]) continue;
+      let d = Infinity;
+      for (let dy = -r; dy <= r && d > tol; dy++) for (let dx = -r; dx <= r; dx++) {
+        const j = idx(x + dx, y + dy) * 4;
+        d = Math.min(d, Math.hypot(px[i * 4] - o[j], px[i * 4 + 1] - o[j + 1], px[i * 4 + 2] - o[j + 2]));
+      }
+      keep[i] = d > tol ? 1 : 0;
+    }
+    // A module's own grey matches the tool's in places: its outline closed and filled, so it comes out whole.
+    sil = and(open(fillHoles(close(keep, P.overClose || 10)), 3), sil);
+  }
   let [x0, y0, x1, y1] = [W, H, 0, 0];
   for (let i = 0; i < N; i++) if (sil[i]) { const x = i % W, y = (i / W) | 0; x0 = Math.min(x0, x); x1 = Math.max(x1, x); y0 = Math.min(y0, y); y1 = Math.max(y1, y); }
   const w = x1 - x0 + 1, h = y1 - y0 + 1, cut = Buffer.alloc(w * h * 4);

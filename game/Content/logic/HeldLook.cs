@@ -138,30 +138,33 @@ public sealed record HeldLook(
         Mounts: [new ToolMount("coil", 2, 4, (2, 3.5, 9, 6.5))], Elbow: 0.4, Clamp: (14.5, 7), Size: Drawn);
 
     /// <summary>
-    /// The plasma cutter, <c>art/hero_plasmaCutter.png</c> (salvage-tools), the user's pick, «Кольца»: a short dark body banded in brass,
-    /// a copper nozzle, the jet's cage of three copper coils on a rail; held as the drill is, aimed, the elbow a little bent; the edge the
-    /// jet's run through the coils, from the nozzle to the last. Running, the coils' inner faces, its lamp and charge lights are lit
-    /// (<c>hero_plasmaCutter_on.png</c>). No module fits it; its clamp the rail where it leaves the body.
+    /// The plasma cutter, <c>art/hero_plasmaCutter.png</c> (salvage-tools; raw, 2026-11-14-raw-tool-pictures), the user's pick: a short
+    /// dark body banded in brass, a copper nozzle, three copper rings on a rail before it; held as the drill is, by its pistol grip, aimed,
+    /// the elbow a little bent; the edge the jet's run through the rings, from the nozzle to the last. Running, the rings' inner faces burn
+    /// violet (<c>hero_plasmaCutter_on.png</c>). No module fits it; its clamp the rail where it leaves the nozzle.
     /// </summary>
     public static readonly HeldLook PlasmaCutter = new(
-        "res://art/hero_plasmaCutter.png", (4.6, 8), 0, (13.8, 4.4), (27.1, 4.4), Aimed: true,
-        Spin: ["res://art/hero_plasmaCutter_on.png"], Elbow: 0.4, Clamp: (14, 8.3), Size: Drawn);
+        "res://art/hero_plasmaCutter.png", (4.8, 9.8), 0, (19.9, 5), (29.5, 5), Aimed: true,
+        Spin: ["res://art/hero_plasmaCutter_on.png"], Elbow: 0.4, Clamp: (20.4, 5.2), Size: Drawn);
 
     /// <summary>
-    /// The spear, <c>art/hero_spear.png</c> (salvage-tools), the user's pick, «Труба и лист»: a hull plate's leaf driven into a flattened
-    /// tube, bound in copper, its grip in tape; hanging, across the fist, point forward, as the axe is (Rest); along the forearm, elbow bent, as it comes up to thrust; the edge the leaf's point. Its coil (0098) on the sleeve
-    /// riveted round the shaft. Clamped by the bare shaft before the sleeve.
+    /// The spear, <c>art/hero_spear.png</c> (salvage-tools; raw, 2026-11-14-raw-tool-pictures), the user's pick, «Телескопическое»: a
+    /// three-part aluminium pole with twist locks, a foam grip, a long blade lashed on; hanging, across the fist, point forward, as the axe
+    /// is (Rest); along the forearm, elbow bent, as it comes up to thrust; the edge the blade's front. Its coil (0098) is its own picture,
+    /// <c>hero_spear_arc.png</c>: a coil box between the locks, a cable to the blade, the arc crackling over the blade. Clamped by the shaft.
     /// </summary>
     public static readonly HeldLook Spear = new(
-        "res://art/hero_spear.png", (10.5, 5), 0, (42, 5), (47.8, 5), Aimed: true, Elbow: 1.2, Mounts: [new ToolMount("coil", 23, 4, (22, 3.5, 30, 6.5))], Clamp: (17.5, 5), Rest: System.Math.PI / 2, Size: Drawn);
+        "res://art/hero_spear.png", (6, 5), 0, (40.9, 4.7), (47.2, 4.2), Aimed: true, Elbow: 1.2,
+        Mounts: [new ToolMount("coil", 0, 0, (38.8, 3.6, 47.4, 6.1), new Dictionary<string, string> { [ModuleLooks.ArcCoil] = "res://art/hero_spear_arc.png" })],
+        Clamp: (12.4, 5), Rest: System.Math.PI / 2, Size: Drawn);
 
     /// <summary>
-    /// The sledgehammer, <c>art/hero_sledgehammer.png</c> (salvage-tools), the user's pick, «Пакет плит»: five cut plates bolted into a
-    /// block on a plank, a tube ferrule where they meet; gripped on the taped plank, held square to the forearm as the axe is; the edge
-    /// the block's striking face along its bottom. Clamped by the plank.
+    /// The sledgehammer, <c>art/hero_sledgehammer.png</c> (salvage-tools; raw, 2026-11-14-raw-tool-pictures), the user's pick, «Пакет
+    /// плит»: five cut plates bolted into a block, a wooden handle through a tube ferrule; gripped on the taped end, held square to the
+    /// forearm as the axe is; the edge the block's striking face along its bottom. Clamped by the handle.
     /// </summary>
     public static readonly HeldLook Sledgehammer = new(
-        "res://art/hero_sledgehammer.png", (6.6, 8), System.Math.PI / 2, (21.4, 15), (31.4, 15), Clamp: (14.5, 8), Size: Drawn);
+        "res://art/hero_sledgehammer.png", (3.8, 6.6), System.Math.PI / 2, (29.1, 12.4), (34, 12.4), Clamp: (16.4, 6.6), Size: Drawn);
 
     /// <summary>
     /// The pickaxe, <c>art/hero_pickaxe.png</c> (the-pickaxe; traced, 2026-11-14-pickaxe-and-harpoon-traced): a rusted plate with a hole,
