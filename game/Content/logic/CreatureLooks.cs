@@ -14,8 +14,18 @@ public static partial class CreatureArt
     /// <summary>What moves a rig's node: nothing, the body, the head, an ear, a leg, the tail, a seed pod, antlers, or the eye.</summary>
     public enum Drive { None, Body, Head, Ear, Leg, Tail, Pod, Antler, Eye }
 
-    /// <summary>A part's picture: <paramref name="W"/> × <paramref name="H"/>, the pixel it turns about, the ramps it is painted in, whether a glow map goes with it.</summary>
-    public sealed record Part(int W, int H, float PivotX, float PivotY, int[] Ramps, bool Glow = false);
+    /// <summary>
+    /// A part's picture: <paramref name="W"/> × <paramref name="H"/>, the pixel it turns about, the ramps it is painted in, whether a glow
+    /// map goes with it, and where it bends as one piece if it does (a leg at its knee, a neck, a tail: creatures-bend).
+    /// </summary>
+    public sealed record Part(int W, int H, float PivotX, float PivotY, int[] Ramps, bool Glow = false, Bending? Bend = null);
+
+    /// <summary>
+    /// Where a part bends (creatures-bend, <c>BentLimb</c>): <paramref name="Joint"/> pixels from its pivot along its bone, which runs
+    /// <paramref name="Axis"/> radians clockwise from straight down, in a band <paramref name="Band"/> pixels long round it. What lies
+    /// past the band turns whole; what lies before it stays with its pivot.
+    /// </summary>
+    public sealed record Bending(float Joint, float Band, float Axis);
 
     /// <summary>
     /// A node of the rig: <paramref name="Part"/> drawn hanging from <paramref name="Parent"/> at (<paramref name="X"/>,
@@ -27,8 +37,12 @@ public static partial class CreatureArt
     /// <summary>The eye: where it sits on its parent, and how far its pupil travels each way, calm and wide.</summary>
     public sealed record Eye(float X, float Y, (float X, float Y) Travel, (float X, float Y) TravelWide);
 
-    /// <summary>The page's pose numbers, radians and pixels: ears up and back, perked, a leg's swing and lift, the tail's sway and flight, grazing, a hopper's hop; for a design that stands on its feet its legs' length and half its foot.</summary>
-    public sealed record Pose(float EarUp, float EarBack, float EarPerk, float LegAmp, float Lift, float TailAmp, float TailFlee, float Graze, float Hop, float LegLen = 0, float FootW = 0);
+    /// <summary>
+    /// The page's pose numbers, radians and pixels: ears up and back, perked, a leg's swing and lift, the tail's sway and flight,
+    /// grazing, a hopper's hop; for a design that stands on its feet its legs' length and half its foot; for one whose legs bend, how
+    /// far a knee folds at the top of a step (creatures-bend).
+    /// </summary>
+    public sealed record Pose(float EarUp, float EarBack, float EarPerk, float LegAmp, float Lift, float TailAmp, float TailFlee, float Graze, float Hop, float LegLen = 0, float FootW = 0, float Knee = 0);
 
     /// <summary>A design: its gait, whether its head is its body, the ramp its glow maps take, its eye, pose, parts and rig in drawing order; whether it is drawn in ink, its parts finished pictures and not index maps.</summary>
     public sealed record Design(

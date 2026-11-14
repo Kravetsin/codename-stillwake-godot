@@ -1,4 +1,5 @@
 using Stillwake.Game.Features.Crew;
+using Stillwake.Game.Shared;
 using Xunit;
 
 namespace Stillwake.Game.Tests;

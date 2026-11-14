@@ -141,7 +141,7 @@ const drill = (spin) => (a) => {
   Traced.raw('drill', s, at)(a);
 };
 
-// The salvage tools, each the user's pick drawn whole (salvage-tools): the grinder «Заводская», the plasma cutter «Кольца», the spear
+// The salvage tools, each the user's pick drawn whole (salvage-tools): the grinder «Заводская», the plasma cutter «Самодельный», the spear
 // «Труба и лист», the sledgehammer «Пакет плит». Their pick pages' own materials and helpers, where they differ from the ones above.
 const DEG = Math.PI / 180, f2 = (n) => +n.toFixed(3);
 const RUBBER = { base: '#2e2c2a', shade: '#1d1c1b', deep: '#121212', lite: '#45423e' };
@@ -245,18 +245,18 @@ const grinder = (s) => (a) => {
   rustAt(a, cx + Math.cos(165 * DEG) * (R + .3), cy + Math.sin(165 * DEG) * (R + .3), .45);
 };
 
-// The plasma cutter, the user's pick of five drawn references («Нынешний, перерисованный»), shipped raw (refs/plasmaCutter.png): a
-// short dark body banded in brass, a copper nozzle, three copper rings on a rail before it, the jet's path through them. Running,
-// each ring's inner face burns violet, drawn here.
-/** The plasma cutter's pictures, 32 × 15; the rings' middles in the reference's pixels, their inner face's half-widths. */
-const CUTTER_W = 32, CUTTER_H = 15, CUTTER_RINGS = [1043, 1203, 1363], CUTTER_AXIS = 409;
+// The plasma cutter, the user's pick of five drawn references («Самодельный»), shipped raw (refs/plasmaCutter.png): a rusted
+// tube on a pistol grip, two copper coils over it, a blue gas bottle under, green insulators and a copper tip the jet leaves from.
+// Running, the tip glows white-hot in violet, drawn here.
+/** The plasma cutter's pictures, 32 × 15; the tip's middle in the reference's pixels. */
+const CUTTER_W = 32, CUTTER_H = 15, CUTTER_TIP = [1488, 494];
 const cutter = (on) => (a) => {
   const { s, at, X, Y } = Traced.fit('plasmaCutter', CUTTER_W, CUTTER_H);
   Traced.raw('plasmaCutter', s, at)(a);
-  if (on) for (const x of CUTTER_RINGS) {
-    a.flat(ellBand(X(x), Y(CUTTER_AXIS), 20 * s, 96 * s, 32 * s, 112 * s, 0, 360), VIOLET_ON);
-    a.flat(ellBand(X(x), Y(CUTTER_AXIS), 20 * s, 96 * s, 25 * s, 103 * s, 100, 260), '#efe9da');
-  }
+  if (!on) return;
+  const [x, y] = [X(CUTTER_TIP[0]), Y(CUTTER_TIP[1])];
+  a.flat(ell(x, y, 34 * s, 30 * s), VIOLET_ON);
+  a.flat(ell(x + 4 * s, y, 20 * s, 16 * s), '#efe9da');
 };
 
 // The spear, the user's pick of five drawn references («Телескопическое»), shipped raw (refs/spear.png): a three-part aluminium pole

@@ -51,9 +51,7 @@ This hero and others', client-authoritative (0002): only commands reach the sim.
 | `logic/SuitGlow.cs` | body lights |
 | `logic/TrackerBlink.cs` | tracker blink |
 | `SuitKeys.cs` | V on the tablet |
-| `Figure.cs` | rig, lit, dressed |
-| `logic/BentLimb.cs` | bent limbs |
-| `BentPicture.cs` | drawn |
+| `Figure.cs` | the rig, lit, dressed |
 | `logic/BodyFit.cs` | helmets fit |
 | `logic/Cape.cs` | a cape's cloth |
 | `logic/Spring.cs` | arm's swing |
@@ -129,7 +127,7 @@ This hero and others', client-authoritative (0002): only commands reach the sim.
 - **The crew module:** made at `Spawn`; passed out: lies at the sim's cell, takes no orders (0061). `Enter` goes when the sim's room or field side
   differ, every `Crew.ReportEvery` ticks off its cell, each tick threatened; none out (0050); a closed link's host: `Leave`.
 - **Dressed as worn**: helmet, body, hair, clothes, lamp; the colour on the shin; a switched body lit by
-  `SuitOn` and charge (`SuitGlow`, hero-lights). **Limbs bend** whole (bent-limbs); **helmets** turn their own way (helmets-fit-the-suit).
+  `SuitOn` and charge (`SuitGlow`, hero-lights). **Limbs bend** whole (bent-limbs, game/shared `BentLimb`); **helmets** turn their own way (helmets-fit-the-suit).
 - **Tracker** blinks (`SignalOf`); **catchers**: heroes in gear, untracked, tumble killed (tracker-catchers).
 
 ## Others' heroes

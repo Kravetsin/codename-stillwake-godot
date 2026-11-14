@@ -1,4 +1,5 @@
 using System;
+using Stillwake.Game.Shared;
 using Feel = Stillwake.Game.HeroMotion;
 using Rung = Stillwake.Game.HeroMotion.Ladder;
 

@@ -1,10 +1,8 @@
 using System;
+using Stillwake.Game.Shared;
 using Spec = Stillwake.Content.Hero;
 
 namespace Stillwake.Game.Features.Crew;
-
-/// <summary>A point in pixels of the world, or a direction: +x forward, +y down.</summary>
-public readonly record struct Vec(double X, double Y);
 
 /// <summary>
 /// Two angles for a limb, in radians: <see cref="Upper"/> from its joint, hanging straight down at 0
