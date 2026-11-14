@@ -1,7 +1,8 @@
 # Temperature in degrees
 
 - Status: accepted; the cold in degrees and the thermometer built (steps T-1, T-2 of
-  [docs/plans/temperature.md](../plans/temperature.md); the thermometer's look in [the-thermometer](2026-11-14-the-thermometer.md)), heat to come
+  [docs/plans/temperature.md](../plans/temperature.md); the thermometer's look in [the-thermometer](2026-11-14-the-thermometer.md)), heat to come;
+  space and the bands made gradients by [temperature-gradients](2026-11-14-temperature-gradients.md)
 - Date: 2026-11-14
 - Supersedes the cold of [suits-are-worn](2026-10-27-suits-are-worn.md) (`Crew.BareCold`), of
   [night-chills](2026-11-07-night-chills.md) (a unit every five breaths) and of

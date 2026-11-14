@@ -70,17 +70,17 @@ public class CapeTests
     }
 
     [Fact]
-    public void BareInVacuumTheCapeAddsFiveDegreesSoTenBreathsCostSeventeenNotEighteen()
+    public void BareInVacuumTheCapeAddsFiveDegreesSoTenBreathsCostThirteenNotFourteen()
     {
-        // Space's −40° on a bare hero's 0°: 40 felt, 8 units in ten breaths; caped, 35 felt, 7 (2026-11-14-temperature-in-degrees).
+        // The hull's −20° on a bare hero's 0°: 20 felt, 4 units in ten breaths; caped, 15 felt, 3 (2026-11-14-temperature-in-degrees).
         var bare = InVacuum(caped: false);
         HeroOf(bare).Air = Lungs;
         Breaths(bare, 10);
-        Assert.Equal(Lungs - 10 - 8, HeroOf(bare).Air);
+        Assert.Equal(Lungs - 10 - 4, HeroOf(bare).Air);
         var caped = InVacuum(caped: true);
         HeroOf(caped).Air = Lungs;
         Breaths(caped, 10);
-        Assert.Equal(Lungs - 10 - 7, HeroOf(caped).Air);
+        Assert.Equal(Lungs - 10 - 3, HeroOf(caped).Air);
         // The cold is no blow: nothing of it is kept for the cape's guard.
         Assert.Equal(0, HeroOf(caped).Spared);
         Assert.Equal((Content.Temperature.BareLow - Content.Cape.Warmth, Content.Temperature.BareLow), (caped.M.Crew.LowOf(0), bare.M.Crew.LowOf(0)));
@@ -265,7 +265,7 @@ public class CapeTests
                 else
                 {
                     // A breath, paid in full, and the cold of the degrees felt on the next breath's turn, the cape's warmth off them.
-                    int felt = Content.Temperature.BareLow - Content.Temperature.Space - (worn ? Content.Cape.Warmth : 0);
+                    int felt = Content.Temperature.BareLow - Content.Temperature.Hull - (worn ? Content.Cape.Warmth : 0);
                     charged = 1 + TemperatureTests.ColdOn(w.Crew().Clock + Content.Crew.BreathEvery, felt);
                     Breaths(w, 1);
                 }

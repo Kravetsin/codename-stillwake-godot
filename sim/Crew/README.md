@@ -10,7 +10,7 @@
 | `Signal.cs` | What a hero's tracker shows: `Signal`. |
 | `State.cs` | The saved slice and its records: `Hero`, `CrewState`. |
 
-Heroes in the sim: where each is, as its client says, and how it breathes; passing out, made again at the pod.
+Heroes in the sim: where each is, as its client says, how it breathes, passing out.
 
 - **Depends on:** `Atmosphere` (`Breathe`, `AiredAt`); `Grid` (`Width`, `Height`, `Zone`, `WallAt`, `BackAt`); `Items` (`Equipped`, `WornIn`,
   `ShortOf`, `Creative`; ops `Take`, `Drain`, `StopRunning`, `LeaveBody`, `Kit`); `Players` (`Worn`, `IPlayersOps`); `Sky` (`Now`).
@@ -38,7 +38,7 @@ Heroes in the sim: where each is, as its client says, and how it breathes; passi
 - **Surfaces** (`ICarries`): `Depart` gives up the `Hero`, `Arrive` takes it at a cell or the spawn. One waking
   off the ship wakes aboard.
 - **Exertion:** `Exert(On)`, sent as the hero runs or walks a wheel: a breath costs
-  `Crew.Exerted` units, room air or suit alike.
+  `Crew.Exerted` units.
 - **The jetpack**: `Thrust(On)`, sent as the client's thrust changes; an awake hero thrusting pays a unit every
   `Jetpack.TicksPerUnit` ticks, before the breath. It stops with the jetpack off, on a planet or out (one landing, then
   cleared).
@@ -47,7 +47,7 @@ Heroes in the sim: where each is, as its client says, and how it breathes; passi
 - **A canister** (food-and-the-body): `Refill` takes one (none in creative), adds `RefillOf(peer)` up to capacity,
   sets `CanisterIn` to `Crew.CanisterCooldown` ticks (not in creative), counted down.
 - **Meals** (food-and-the-body): `Hero.Meals`, up to `Diet.Meals`, ticks `Left` counted down. `Eat(Item)` adds one or,
-  in its last `Diet.RefreshWithin`, refreshes it; a print holds paste. A fruit eaten rolls its `Byproducts` (its seed),
+  in its last `Diet.RefreshWithin`, refreshes it; a print holds paste. A fruit eaten rolls its `Byproducts`,
   given or dropped. `RatesOf` sums meals to `Diet.Caps`: calm cuts a breath, deep adds to a canister. A breath's thousandths
   go to `Owed`, whole units paid; hungry, a sprint costs `Diet.HungrySprint`. `Works` (Building's `Work`) adds
   `Diet.Work` and food's, hungry `Diet.HungryWork`, to `Worked`, returning whole ticks.
@@ -57,8 +57,9 @@ Heroes in the sim: where each is, as its client says, and how it breathes; passi
 - **Passing out is death**: a spent last breath passes the hero out for `Crew.PassOut` ticks (tool stopped),
   then is made at the spawn, full, dressed; `LeaveBody(peer, cell)` leaves all but gear at the reported cell. It
   clears `CanisterIn`, meals, `Owed`, `Worked`.
-- **The cold** (temperature), after the regen suit: `TemperatureAt(cell)` is `Temperature.Space` off the grid, `Room`
-  aired, else the kind's `Temperatures[BandOf]`, band 0 `Chill` colder with no `BackAt`. Each degree `Felt` below `LowOf`
+- **The cold** (temperature-gradients): `TemperatureAt(cell)` is `Temperature.Space` off the grid, `Room` aired;
+  afloat `Hull` in the zone, to `Temperatures[0]` at the field's line; on a planet `Terrain.TemperatureOf`, band 0
+  `Chill` colder with no `BackAt`. After the regen suit, each degree `Felt` below `LowOf`
   (the body's `Low` or `BareLow`, `Cape.Warmth` lower) costs `Bite`‰ a breath, whole by `Clock`, nothing kept. Then
   `EdgeCost(cell)`: 0 in the zone grown by `Field.Margin` or a vessel's box, past it depth² to `Field.EdgeCost`; `OffGrid`.
 - **Lava burns**: lava at the reported cell or `Lava.Reach` rows under it (`Burns`) costs the suit alone
@@ -72,7 +73,7 @@ Heroes in the sim: where each is, as its client says, and how it breathes; passi
   `Wanted` up to `Need` (drawn at 0); afloat, not full, it drains `Wanted.Drain` a breath in `Wanted.Belt`. Filled,
   `Coming` counts `Wanted.ComingLeast..Most` breaths down. `SignalOf`: `Calm`, `Coming`, `Hunted` (the catcher
   comes). `CallOff` empties it (passing out, departing, a hunt's end); `Track` (dev).
-- **Creative mode** (`Items`): an awake hero's air fills each tick, from nothing.
+- **Creative mode** (`Items`): an awake hero's air fills each tick.
 - **Order:** breaths run after `Atmosphere`'s and `Sky`'s, in simulation.
 
 ## API

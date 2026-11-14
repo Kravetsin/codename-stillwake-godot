@@ -19,10 +19,11 @@ flight out, the user picked B, "number only", on 2026-11-14 over:
 ## Decision
 
 - **Place:** a row of its own under the charge, over the meals: the star in the signs' column, the number where the rows'
-  pieces start (`Vitals.ColdY`, 82 block units). The air and the charge rows went up 23 and 24 units for it (`AirY` 19, `ChargeY` 56),
-  so the block is that much taller. The user moved it there from beside the meals after trying it in the game.
+  pieces start (`Vitals.ColdY`, 82 block units). The air and the charge rows went up 22 and 29 units for it (`AirY` 20,
+  `ChargeY` 51), the three rows 31 apart, so the block is that much taller. The user moved it there from beside the meals
+  after trying it in the game.
 - **Sign:** a six-armed frost star of pale ice light, a small fork on each arm (`sign_cold`, `tools/anime-art/subjects/signs.js`),
-  as large as the oxygen sign, never tinted; the number at 14, larger than the pieces are tall.
+  drawn as tall as the oxygen sign and the bolt show, never tinted; the number at 14, larger than the pieces are tall.
 - **Number:** the degrees at the hero's body, a true minus, a plus above zero (`Thermometers.Reading`: −50°, 0°, +20°), in the
   mono face. A new reading is glided to, eased out, through the whole degrees between (`Thermometers.Glide`, some 1.4 s
   for 60°): the user found a jump from +20° straight to −40° on stepping into space odd. The sim stays in whole degrees; only

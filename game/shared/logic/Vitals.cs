@@ -21,7 +21,7 @@ public static class Vitals
     public const float SignX = 20, SignScale = 1.5f;
 
     /// <summary>The air row's, the charge row's and the thermometer's centre lines (the-thermometer: the two raised for it).</summary>
-    public const float AirY = 19, ChargeY = 56, ColdY = 82;
+    public const float AirY = 20, ChargeY = 51, ColdY = 82;
 
     /// <summary>Where every row's pieces start; a piece's height; the gap between two pieces.</summary>
     public const float RowLeft = 44, PieceHeight = 10, Gap = 4;

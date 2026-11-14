@@ -64,10 +64,10 @@ public class ThermometerTests
         var w = new TestWorld(Layout.Parse(["S"]).InWorld());
         int spawn = w.M.Crew.Spawn, suit = Spec.Inventory.Slots + Spec.Inventory.Equipment.ToList().IndexOf(Spec.Suit.Slot);
         w.Step(new Enter(spawn) { From = 0 });
-        Assert.Equal((Spec.Temperature.Space, Spec.Temperature.BareLow, 40), Thermometers.Read(w.M.Crew, 0, spawn));
+        Assert.Equal((Spec.Temperature.Hull, Spec.Temperature.BareLow, 20), Thermometers.Read(w.M.Crew, 0, spawn));
         w.Step(new Sim.Items.SetCreative(true), new Sim.Items.Spawn(Spec.Suit.Basic, 1) { From = 0 });
         int bag = w.M.Items.Inventory(0).ToList().FindIndex(s => s?.Item == Spec.Suit.Basic);
         w.Step(new Sim.Items.Move(new Sim.Items.Place(bag), new Sim.Items.Target(suit), 1) { From = 0 });
-        Assert.Equal((-40, -40, 0), Thermometers.Read(w.M.Crew, 0, spawn));
+        Assert.Equal((-20, -40, 0), Thermometers.Read(w.M.Crew, 0, spawn));
     }
 }

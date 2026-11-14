@@ -63,6 +63,22 @@ public class FieldTests
     }
 
     [Fact]
+    public void SpaceIsTheHullsByTheShipColderAcrossTheFieldByTheFartherAxisAndSpacesFromItsLineOn()
+    {
+        // The user's ask: the farther from the ship, the colder (2026-11-14-temperature-in-degrees).
+        var zone = Still.Value.M.Grid.Zone;
+        int Degrees(int x, int y) => Still.Value.M.Crew.TemperatureAt(At(x, y));
+        Assert.Equal((Content.Temperature.Hull, Content.Temperature.Hull), (Degrees(zone.Left, MidY), Degrees(MidX, zone.Top)));
+        // One cell out, 20° × 1/128 rounded toward the warmer; half way, 64 of 128 cells by the farther axis, half of it.
+        Assert.Equal(-20, Degrees(zone.Left - 1, MidY));
+        Assert.Equal((-30, -30), (Degrees(zone.Left - FieldSpec.Margin / 2, MidY), Degrees(zone.Left - FieldSpec.Margin / 2, zone.Top - 10)));
+        Assert.Equal((-30, -30), (Degrees(MidX, zone.Bottom + FieldSpec.Margin / 2), Degrees(zone.Right + FieldSpec.Margin / 2, MidY)));
+        Assert.Equal((-40, -40, -40), (Degrees(Left, MidY), Degrees(Right + 1, Bottom + 1), Degrees(0, 0)));
+        for (int x = zone.Left; x > 0; x--)
+            Assert.InRange(Degrees(x, MidY) - Degrees(x - 1, MidY), 0, 1);
+    }
+
+    [Fact]
     public void BreathesInsideTheFieldAsBeforeEvenOnItsEdgeAndOutsideTheZone()
     {
         foreach (int cell in new[] { At(Left, MidY), At(Right, MidY), At(MidX, Top), At(MidX, Bottom), At(Left, Top), At(Right, Bottom) })
