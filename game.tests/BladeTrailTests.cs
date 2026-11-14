@@ -19,7 +19,7 @@ public class BladeTrailTests
     }
 
     /// <summary>An edge 6 px long, its near end at (<paramref name="x"/>, 0).</summary>
-    private static ((double, double), (double, double)) Edge(double x) => ((x, 0), (x, 6));
+    private static (double X, double Y)[] Edge(double x) => [(x, 0), (x, 6)];
 
     [Fact]
     public void AStillBladeLeavesNothing()
@@ -92,5 +92,39 @@ public class BladeTrailTests
         trail.Draw(ink, p => (p.X - 100, p.Y), Tone);
         Assert.NotEmpty(ink.Points);
         Assert.All(ink.Points, p => Assert.InRange(p.X, -100, -76));
+    }
+
+    [Fact]
+    public void ARoundedBladeLeavesATrailOfItsOwnCurve()
+    {
+        // The fire axe's edge, bowed: swung straight along its ends' line, its trail's ends are its curve, not a straight cut.
+        var axe = HeldLook.FireAxe;
+        var trail = new BladeTrail();
+        for (int i = 0; i <= 3; i++)
+        {
+            var edge = new (double X, double Y)[HeldLook.EdgePoints];
+            for (int k = 0; k < edge.Length; k++)
+            {
+                var p = axe.EdgePoint((double)k / (edge.Length - 1));
+                edge[k] = (p.X, p.Y - i * 8);
+            }
+            trail.Step(Frame, edge);
+        }
+        var (points, _) = Drawn(trail);
+        double ends = Math.Max(axe.EdgeFrom.Y, axe.EdgeTo.Y), lowest = points.Max(p => p.Y);
+        Assert.True(lowest > ends + 0.5, $"the trail reaches {lowest}, the edge's ends {ends}");
+    }
+
+    [Fact]
+    public void AnEdgeBowsOutAtItsMiddleAndKeepsItsEnds()
+    {
+        var look = HeldLook.FireAxe with { EdgeFrom = (0, 0), EdgeTo = (10, 0), Bow = 2 };
+        Assert.Equal((0.0, 0.0), look.EdgePoint(0));
+        Assert.Equal((10.0, 0.0), look.EdgePoint(1));
+        // To the right of the way from its one end to the other, +y down: below an edge running +x.
+        var (x, y) = look.EdgePoint(0.5);
+        Assert.Equal(5, x, 6);
+        Assert.Equal(2, y, 6);
+        Assert.Equal((5.0, 0.0), (look with { Bow = 0 }).EdgePoint(0.5));
     }
 }

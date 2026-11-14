@@ -67,12 +67,12 @@ public partial class ReachAir : Node2D
 
     /// <summary>
     /// <paramref name="elapsedMs"/> on, the running tool's <paramref name="zone"/>, none while none runs, and the held blade's
-    /// <paramref name="edge"/> where it is in the world, none while none is held.
+    /// <paramref name="edge"/>, its points from one end to the other where they are in the world, none while none is held.
     /// </summary>
-    public void Follow(AirCuts.Zone? zone, double elapsedMs, (Vector2 From, Vector2 To)? edge = null)
+    public void Follow(AirCuts.Zone? zone, double elapsedMs, System.Collections.Generic.IReadOnlyList<(double X, double Y)>? edge = null)
     {
         _cuts.Step(elapsedMs, zone);
-        _trail.Step(elapsedMs, edge is { } e ? ((e.From.X, e.From.Y), (e.To.X, e.To.Y)) : null);
+        _trail.Step(elapsedMs, edge);
         Visible = _haze!.Visible = _trail.Live || _cuts.Working != null;
         if (!Visible) return;
         QueueRedraw();

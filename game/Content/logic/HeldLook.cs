@@ -22,15 +22,31 @@ namespace Stillwake.Game;
 /// An aimed one held by a shaft through the fist, not a pistol's grip, lies <see cref="Rest"/> radians more back from the forearm
 /// while it hangs, across the fist as the axe is, and comes along the forearm as the arm comes up to aim or thrust.
 /// It is drawn, in the hand and on a bench, at <see cref="Size"/> of its picture's pixels about its grip (tool-size); every
-/// point given here is the picture's own, so a new size moves its edge with it.
+/// point given here is the picture's own, so a new size moves its edge with it. A rounded blade's edge bows out of the line between
+/// its ends by <see cref="Bow"/> pixels at its middle, to the right of the way from <see cref="EdgeFrom"/> to <see cref="EdgeTo"/>
+/// (+y down): its trail follows that curve (<see cref="EdgePoint"/>); its reach is still its ends'.
 /// </summary>
 public sealed record HeldLook(
     string Picture, (double X, double Y) Grip, double Hold, (double X, double Y) EdgeFrom, (double X, double Y) EdgeTo, string? Loaded = null,
     bool Aimed = false, IReadOnlyList<string>? Spin = null, (double X, double Y)? Lamp = null, IReadOnlyList<ToolMount>? Mounts = null,
     double Elbow = 0, (double X, double Y)? Clamp = null, string? Charged = null,
     IReadOnlyList<(double X0, double Y0, double X1, double Y1)>? Arcs = null, string? Twist = null, string? Driven = null,
-    double Bite = 0.75, double Rest = 0, double Size = 1)
+    double Bite = 0.75, double Rest = 0, double Size = 1, double Bow = 0)
 {
+    /// <summary>How many points a held edge is sampled at, from its one end to the other, for its trail: enough for a bow to read as a curve.</summary>
+    public const int EdgePoints = 7;
+
+    /// <summary>
+    /// The point <paramref name="t"/> of the way along its edge, from <see cref="EdgeFrom"/> at 0 to <see cref="EdgeTo"/> at 1, in
+    /// pixels of its picture: on the line between them, bowed out by <see cref="Bow"/> at the middle along a parabola.
+    /// </summary>
+    public (double X, double Y) EdgePoint(double t)
+    {
+        double dx = EdgeTo.X - EdgeFrom.X, dy = EdgeTo.Y - EdgeFrom.Y, length = System.Math.Sqrt(dx * dx + dy * dy);
+        double outward = length > 0 ? Bow * 4 * t * (1 - t) / length : 0;
+        return (EdgeFrom.X + dx * t - dy * outward, EdgeFrom.Y + dy * t + dx * outward);
+    }
+
     /// <summary>
     /// What a tool or gun is drawn at (tool-size): its pictures came from the pixel art, drawn for a larger hero, and looked
     /// bulky beside the inked one; at three quarters they look right (the user's pick, in play, over real sizes made a third larger).
@@ -38,10 +54,12 @@ public sealed record HeldLook(
     public const double Drawn = 0.75;
 
     /// <summary>
-    /// The fire axe, <c>art/hero_axe.png</c>: gripped round the middle of the dark wrap at its haft's end; held square to
-    /// the forearm, as a hammer is, the blade facing along it; the bright steel's outer line the edge.
+    /// The fire axe, <c>art/hero_axe.png</c>, the user's pick of five drawn references, «Пожарный, тяжёлая головка», traced: a big
+    /// red enamelled head with a squared steel poll and a broad bare bevel, a dark collar with two rivets, a slim wooden haft with three
+    /// wraps at its end; gripped round the middle of the wraps; held square to the forearm, as a hammer is, the blade facing along it;
+    /// the edge the bevel's rounded outer line, bowed down.
     /// </summary>
-    public static readonly HeldLook FireAxe = new("res://art/hero_axe.png", (4.5, 7), System.Math.PI / 2, (18, 13), (27, 13), Clamp: (10.5, 7), Size: Drawn);
+    public static readonly HeldLook FireAxe = new("res://art/hero_axe.png", (4.1, 3.85), System.Math.PI / 2, (25.3, 11.7), (33.4, 10.9), Clamp: (14, 3.85), Size: Drawn, Bow: 1.23);
 
     /// <summary>
     /// The spring harpoon, <c>art/hero_harpoon.png</c> (0044): gripped by its plank stock, held as a pistol
