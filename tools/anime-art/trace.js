@@ -19,6 +19,20 @@ const W = png.readUInt32BE(16), H = png.readUInt32BE(20), N = W * H;
 const dec = spawnSync('ffmpeg', ['-loglevel', 'error', '-i', refPng, '-f', 'rawvideo', '-pix_fmt', 'rgba', '-'], { maxBuffer: N * 4 + 1024 });
 if (dec.status !== 0 || dec.stdout.length !== N * 4) throw new Error('ffmpeg decode failed: ' + dec.stderr);
 const px = dec.stdout;
+// Mends (`mend`), in order: what the pick leaves out (a lamp the game draws its own of) repainted before tracing, the background
+// or a colour, over a polygon or an ellipse ([cx, cy, rx, ry]) within an optional box ([x0, y0, x1, y1]).
+for (const m of P.mend || []) {
+  const c = hex(m.fill === 'background' ? P.background : m.fill), [bx0, by0, bx1, by1] = m.clip || [0, 0, W - 1, H - 1];
+  const inside = m.ellipse ? (x, y) => ((x - m.ellipse[0]) / m.ellipse[2]) ** 2 + ((y - m.ellipse[1]) / m.ellipse[3]) ** 2 <= 1 : (x, y) => {
+    let on = false;
+    for (let i = 0, j = m.poly.length - 1; i < m.poly.length; j = i++) {
+      const [xi, yi] = m.poly[i], [xj, yj] = m.poly[j];
+      if (yi > y !== yj > y && x < ((xj - xi) * (y - yi)) / (yj - yi) + xi) on = !on;
+    }
+    return on;
+  };
+  for (let y = Math.max(0, by0); y <= Math.min(H - 1, by1); y++) for (let x = Math.max(0, bx0); x <= Math.min(W - 1, bx1); x++) if (inside(x + .5, y + .5)) px.set([...c, 255], (y * W + x) * 4);
+}
 
 // ---------- Mask helpers (Uint8Array W*H) ----------
 const idx = (x, y) => y * W + x;
@@ -39,6 +53,7 @@ function slide(src, r, isMax) {
 }
 const dilate = (m, r) => (r > 0 ? slide(m, r, true) : m), erode = (m, r) => (r > 0 ? slide(m, r, false) : m);
 const open = (m, r) => dilate(erode(m, r), r), close = (m, r) => erode(dilate(m, r), r);
+const maskOf = (pred, box) => { const m = new Uint8Array(N); for (let y = box[1]; y <= box[3]; y++) for (let x = box[0]; x <= box[2]; x++) { const i = y * W + x; if (pred(i)) m[i] = 1; } return m; };
 const and = (a, b) => a.map((v, i) => v & b[i]), not = (a) => a.map((v) => 1 - v);
 /** Connected components (4-neighbour) of a mask: [labels Int32Array (-1 off), list of {id, n, x0,y0,x1,y1}]. */
 function components(m) {
@@ -80,7 +95,16 @@ const bg = hex(P.background), bgTol = P.backgroundTolerance || 30;
 let sil = new Uint8Array(N);
 for (let i = 0; i < N; i++) sil[i] = Math.hypot(px[i * 4] - bg[0], px[i * 4 + 1] - bg[1], px[i * 4 + 2] - bg[2]) > bgTol && px[i * 4 + 3] > 127 ? 1 : 0;
 { const [lab, comps] = components(sil), big = comps.reduce((a, c) => (c.n > a.n ? c : a)); sil = sil.map((v, i) => (lab[i] === big.id ? 1 : 0)); }
-sil = fillHoles(open(close(sil, 2), 2));
+sil = open(close(sil, 2), 2);
+// Holes (`holes`, a share of the silhouette): the background a part wraps round, as the loop of a hose, stays out of every shape.
+let holeMask = new Uint8Array(N), holes = [];
+if (P.holes) {
+  const filledSil = fillHoles(sil), area = filledSil.reduce((a, v) => a + v, 0), [hl, hc] = components(and(filledSil, not(sil)));
+  holes = hc.filter((c) => c.n >= P.holes * area);
+  for (const h of holes) for (let y = h.y0; y <= h.y1; y++) for (let x = h.x0; x <= h.x1; x++) if (hl[idx(x, y)] === h.id) { holeMask[idx(x, y)] = 1; h.at = h.at ?? idx(x, y); }
+  holes.forEach((h) => (h.mask = maskOf((i) => hl[i] === h.id, [h.x0, h.y0, h.x1, h.y1])));
+}
+sil = and(fillHoles(sil), not(holeMask));
 const silArea = sil.reduce((a, v) => a + v, 0);
 
 // The reference's ink: thin dark ridges, pixels black outright or well darker than the paint round them (a seam between two rolls
@@ -243,9 +267,12 @@ function bez(pts, closed, corner = 50, tension = 1) {
   }
   return closed ? d + 'Z' : d;
 }
-const maskOf = (pred, box) => { const m = new Uint8Array(N); for (let y = box[1]; y <= box[3]; y++) for (let x = box[0]; x <= box[2]; x++) { const i = idx(x, y); if (pred(i)) m[i] = 1; } return m; };
 const boxOf = (m) => { let x0 = W, y0 = H, x1 = 0, y1 = 0, n = 0; for (let i = 0; i < N; i++) if (m[i]) { n++; const x = i % W, y = (i / W) | 0; if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y; } return n ? [x0, y0, x1, y1] : null; };
 const tracePath = (m, box, eps, blur = 2) => bez(simplifyLoop(contour(m, box, blur), eps), true);
+/** A hole's loop wound the other way, so a shape with it appended (nonzero fill) leaves it open. */
+const holeD = (h) => (h.d = h.d || bez(simplifyLoop(contour(h.mask, [h.x0, h.y0, h.x1, h.y1], 2), 1.6).reverse(), true));
+/** The holes inside a filled outline, appended to its path. */
+const withHoles = (d, F) => d + holes.filter((h) => F[h.at]).map(holeD).join('');
 
 /** An open stroke from a thin pixel set: its two farthest ends by walking it, the walk between them. */
 function strokeOf(cells) {
@@ -265,10 +292,10 @@ const sbox = boxOf(sil), bw = sbox[2] - sbox[0] + 1, bh = sbox[3] - sbox[1] + 1,
 out.fit = { units: +u.toFixed(4), shift: [f1((16 * u - bw) / 2 - sbox[0]), f1((16 * u - bh) / 2 - sbox[1])], box: sbox };
 const crescent = (m, box) => { const e = Math.min(box[2] - box[0], box[3] - box[1]) / u; return +Math.max(.22, Math.min(.9, e * (m.shade ?? .16))).toFixed(3); };
 
-const silD = tracePath(sil, sbox, 1.6, 2);
+const silD = withHoles(tracePath(sil, sbox, 1.6, 2), fillHoles(sil));
 const baseName = Object.entries(P.materials).find(([, m]) => m.base)[0];
 // Each part's filled outline, its material, its nesting depth (how many other parts' filled outlines hold most of it).
-const filled = parts.map((p) => fillHoles(maskOf((i) => lab[i] === p.k, p.box)));
+const whole = parts.map((p) => fillHoles(maskOf((i) => lab[i] === p.k, p.box))), filled = whole.map((F) => and(F, not(holeMask)));
 for (const p of parts) {
   p.depth = 0;
   for (const q of parts) {
@@ -282,7 +309,7 @@ const layer = (p) => P.materials[p.mat].layer || 0;
 const order = parts.slice().sort((a, b) => a.depth - b.depth || layer(a) - layer(b) || b.n - a.n);
 for (const p of order) {
   const m = P.materials[p.mat];
-  p.d = tracePath(filled[p.k], p.box, P.epsilon || 1.6, 2);
+  p.d = withHoles(tracePath(filled[p.k], p.box, P.epsilon || 1.6, 2), whole[p.k]);
   p.shade = m.shade === 0 ? 0 : crescent(m, p.box);
   // The material's lit sub-areas the reference paints (a streak on glass): its pixels well above the part's median light.
   if (m.lite) {
