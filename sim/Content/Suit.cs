@@ -38,6 +38,9 @@ public static class Helmet
     /// <summary>The heavy helmet (2026-11-03-the-heavy-helmet): more than twice the basic's air, for the jetpack's long flights; its blueprint sold on the black market.</summary>
     public static readonly string Heavy = "heavyHelmet";
 
+    /// <summary>The quilted helmet (2026-11-14-quilted-helmet-and-traced-art): between the basic and the heavy, sewn at the workbench round the basic one.</summary>
+    public static readonly string Quilted = "quiltedHelmet";
+
     /// <summary>The kind of equipment slot a helmet is worn in: the head.</summary>
     public static readonly string Slot = "head";
 

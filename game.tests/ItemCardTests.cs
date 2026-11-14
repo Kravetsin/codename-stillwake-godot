@@ -206,13 +206,14 @@ public class ItemCardTests
     [Fact]
     public void AHelmetsCardSaysTheAirItHoldsInTheHudsUnits()
     {
-        foreach (var helmet in new[] { Spec.Helmet.Basic, Spec.Helmet.Heavy })
+        foreach (var helmet in new[] { Spec.Helmet.Basic, Spec.Helmet.Quilted, Spec.Helmet.Heavy })
         {
             var card = ItemCards.Of(helmet);
             Assert.Equal([($"{Spec.Items.Get(helmet).Tank} O₂", "Air supply")], Said(card.Rows));
             Assert.Equal((CardSign.Tank, CardGroup.Air), (card.Rows[0].Sign, card.Rows[0].Group));
         }
         Assert.Equal("45 O₂", ItemCards.Of(Spec.Helmet.Basic).Rows[0].Value);
+        Assert.Equal("70 O₂", ItemCards.Of(Spec.Helmet.Quilted).Rows[0].Value);
         Assert.Equal("100 O₂", ItemCards.Of(Spec.Helmet.Heavy).Rows[0].Value);
     }
 

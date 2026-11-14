@@ -174,7 +174,7 @@ public partial class ContentTests
     {
         string[] pod = [Content.Helmet.Basic, Content.Suit.Basic, Screwdrivers.Basic.Item];
         string[] parts = ["wire", "plate", "gear", "tube", "coil", "rotor"];
-        string[] tools = ["fireAxe", "harpoon", "nailer", "nail", "helmetLamp", "jetpack", "drill", "cape", "grinder", "spear", "sledgehammer", "pickaxe", "grapple", "blastCharge"];
+        string[] tools = ["fireAxe", "harpoon", "nailer", "nail", "helmetLamp", "jetpack", "quiltedHelmet", "cape", "drill", "grinder", "spear", "sledgehammer", "pickaxe", "grapple", "blastCharge"];
         string[] electronics = ["circuit", "solarCell", "battery", "drone", "salvageDrone", "deckDrive", "processor", "display", "transceiver", "igniter", "fuelPump"], arc = ["arcModule", "accumulator", "railgun"];
         string[] formed = ["frame", "motor", "soil", "nozzle"];
         string[] dishes = [Foods.Porridge, Foods.Hash, Foods.Broth, Foods.Roast, Foods.Stew];
@@ -451,7 +451,7 @@ public partial class ContentTests
     }
 
     /// <summary>What no one buys: wreckage whole, tools, what is worn, what stores or flies by itself, the arc's, the photosensitive panel nothing makes.</summary>
-    private static readonly string[] Unpriced = ["arcShard", "arcModule", "supplyPod", "fridge", "cargoCrate", "hullSection", "cargoContainer", "machineBlock", "cableRack", "tankCluster", "shieldSlab", "soilClod", "asteroid", "asteroidSmall", "asteroidLarge", "asteroidRich", "engineBlock", "cargoHold", "podCluster", "parcel", "deliveryCrate", "confiscated", "photoPanel", "drone", "salvageDrone", "screwdriver", "fireAxe", "harpoon", "grapple", "nailer", "railgun", "drill", "powerDriver", "grinder", "plasmaCutter", "spear", "sledgehammer", "pickaxe", "jetpack", "helmetLamp", "scanner", "battery", "accumulator", "helmet", "suit", "heavyHelmet", "regenSuit", "cape"];
+    private static readonly string[] Unpriced = ["arcShard", "arcModule", "supplyPod", "fridge", "cargoCrate", "hullSection", "cargoContainer", "machineBlock", "cableRack", "tankCluster", "shieldSlab", "soilClod", "asteroid", "asteroidSmall", "asteroidLarge", "asteroidRich", "engineBlock", "cargoHold", "podCluster", "parcel", "deliveryCrate", "confiscated", "photoPanel", "drone", "salvageDrone", "screwdriver", "fireAxe", "harpoon", "grapple", "nailer", "railgun", "drill", "powerDriver", "grinder", "plasmaCutter", "spear", "sledgehammer", "pickaxe", "jetpack", "helmetLamp", "scanner", "battery", "accumulator", "helmet", "suit", "heavyHelmet", "quiltedHelmet", "regenSuit", "cape"];
 
     /// <summary>Everything is priced or named here as what no one buys; raw salvage is, so the first credits need nothing made.</summary>
     [Fact]
@@ -587,7 +587,7 @@ public partial class ContentTests
     [Fact]
     public void EverythingButAPlanetsOwnOpensFromWhatSpaceGivesAloneTheDropPodAmongThem()
     {
-        string[] planetary = ["accumulator", "arcBench", "arcLamp", "arcModule", "backWallAlloy", "backWallHide", "backWallMica", "backWallStone", "biofuelGenerator", "blastCharge", "broth", "cape", "computer", "electrolyser", "engine", "fuelPump", "grinder", "igniter", "motor", "nozzle", "radarAntenna", "railgun", "roast", "salvageDrone", "stew", "wallAlloy", "wallHide", "wallMica", "wallStone"];
+        string[] planetary = ["accumulator", "arcBench", "arcLamp", "arcModule", "backWallAlloy", "backWallHide", "backWallMica", "backWallStone", "biofuelGenerator", "blastCharge", "broth", "cape", "computer", "electrolyser", "engine", "fuelPump", "grinder", "igniter", "motor", "nozzle", "quiltedHelmet", "radarAntenna", "railgun", "roast", "salvageDrone", "stew", "wallAlloy", "wallHide", "wallMica", "wallStone"];
         var (had, known) = Reachable(Stations.All);
         var recipes = Stillwake.Sim.Research.Blueprints.All.Select(b => (b.Id, b.Cost)).Concat(Crafts.All.Select(c => (Id: c.Item, c.Cost)));
         var locked = recipes.Where(r => !known.Contains(r.Id) || !r.Cost.All(c => had.Contains(c.Item))).Select(r => r.Id).Distinct().Order(StringComparer.Ordinal).ToArray();
