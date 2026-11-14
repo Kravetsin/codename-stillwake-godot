@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Stillwake.Game.Shared;
 using Feel = Stillwake.Game.HeroMotion;
 
 namespace Stillwake.Game.Features.Crew;

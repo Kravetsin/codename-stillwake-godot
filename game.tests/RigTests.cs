@@ -1,5 +1,6 @@
 using Stillwake.Game;
 using Stillwake.Game.Features.Crew;
+using Stillwake.Game.Shared;
 using Xunit;
 using static Stillwake.Game.Tests.PoseTests;
 
