@@ -342,3 +342,4 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [hud-vitals](2026-11-13-hud-vitals.md) | The vitals: air, charge and meals as frameless light at the bottom-left | accepted |  |
 | [food-and-gear-cards](2026-11-14-food-and-gear-cards.md) | Food and gear cards list what they guarantee, and food sells | accepted |  |
 | [temperature-in-degrees](2026-11-14-temperature-in-degrees.md) | Temperature in degrees | accepted |  |
+| [the-thermometer](2026-11-14-the-thermometer.md) | The thermometer: a frost star and the degrees, a row under the charge | accepted |  |

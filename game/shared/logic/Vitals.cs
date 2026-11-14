@@ -4,9 +4,10 @@ using System.Collections.Generic;
 namespace Stillwake.Game.Shared;
 
 /// <summary>
-/// The vitals block at the screen's bottom-left (hud-vitals): the air row, the charge row under it and the meals under that,
-/// each a sign and pieces of light. Laid out in block units, a pixel each at normal slots, scaled with the slots
-/// (<see cref="ScaleOf"/>); x from the screen's margin, y from the block's top to its foot at <see cref="Foot"/>.
+/// The vitals block at the screen's bottom-left (hud-vitals): the air row, the charge row under it, the thermometer under that
+/// (the-thermometer) and the meals at the foot, each a sign and pieces of light or a number. Laid out in block units, a pixel
+/// each at normal slots, scaled with the slots (<see cref="ScaleOf"/>); x from the screen's margin, y from the block's top to
+/// its foot at <see cref="Foot"/>.
 /// </summary>
 public static class Vitals
 {
@@ -19,8 +20,8 @@ public static class Vitals
     /// <summary>Where the signs centre across; how much larger than their old 22 px tab the signs are drawn.</summary>
     public const float SignX = 20, SignScale = 1.5f;
 
-    /// <summary>The air row's and the charge row's centre lines.</summary>
-    public const float AirY = 42, ChargeY = 80;
+    /// <summary>The air row's, the charge row's and the thermometer's centre lines (the-thermometer: the two raised for it).</summary>
+    public const float AirY = 19, ChargeY = 56, ColdY = 82;
 
     /// <summary>Where every row's pieces start; a piece's height; the gap between two pieces.</summary>
     public const float RowLeft = 44, PieceHeight = 10, Gap = 4;

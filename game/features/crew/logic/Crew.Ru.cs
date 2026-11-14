@@ -30,6 +30,7 @@ public static partial class Ru
         ["crew.hungryWhy"] = "Бег тратит больше воздуха; поешь",
         ["crew.mealFree"] = "Место для блюда",
         ["crew.mealHow"] = "Съесть еду — правой кнопкой",
+        ["crew.withstands"] = "Выдерживает до {n}°",
         ["crew.noSuitMode"] = "У твоего костюма нет режима",
         ["suit.key"] = "Режим костюма ({key:suit})",
         ["markers.home"] = "Спасательная капсула",

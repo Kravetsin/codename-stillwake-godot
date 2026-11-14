@@ -1,6 +1,6 @@
 # Plan: temperature in degrees
 
-Status: designed (`design-author`, cut by `design-reviewer`, reviewed by `/review-plan`); T-1 built, T-2 and T-3 open. Supersedes the
+Status: designed (`design-author`, cut by `design-reviewer`, reviewed by `/review-plan`); T-1 and T-2 built, T-3 open. Supersedes the
 unmerged depth-band design of PR 502; this plan keeps PR 502's bands, room air, night in band 0 only, unsaved payment and heat
 suit.
 
