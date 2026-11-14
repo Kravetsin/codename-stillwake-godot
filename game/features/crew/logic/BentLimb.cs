@@ -4,14 +4,13 @@ using System.Collections.Generic;
 namespace Stillwake.Game.Features.Crew;
 
 /// <summary>
-/// One picture of a limb bent at its elbow or knee as a whole piece (exp/bent-limbs), instead of turning rigid at the joint: a strip
-/// of rows across the picture, rigid with its bone away from the joint and, within <see cref="Band"/> of it, each row turned about the
-/// joint by a smooth share of the bend. Turning rows about the joint, not blending their places, keeps the limb's width through a
-/// sharp bend. A row turns whole, so its two ends map it exactly: two columns, rows dense only in the band.
+/// One picture of a limb bent at its elbow or knee as a whole piece (bent-limbs): a grid over the picture, rigid with its bone away
+/// from the joint and, within <see cref="Band"/> of it, each row turned about the joint by a smooth share of the bend. Turning rows
+/// about the joint, not blending their places, keeps the limb's width through a sharp bend.
 /// <para>
-/// The two pictures meet at a seam round the joint (<see cref="SeamOf"/>) instead of the upper's rounded end lying over the lower's:
-/// bent, those ends would fan out round the joint. The upper is drawn down to the seam's end, fading out across it over the lower,
-/// drawn from the seam's start.
+/// The upper picture is drawn whole, its rounded end, an elbow's cap or a knee's pad, bending round the joint's outside over the
+/// lower; the lower is drawn from its <see cref="SeamOf"/>, where it is full width, so its own rounded top never pokes out of the
+/// joint's inside.
 /// </para>
 /// </summary>
 public sealed class BentLimb
@@ -22,26 +21,30 @@ public sealed class BentLimb
     /// <summary>How many rows cross the band, its edges included: a row every quarter pixel.</summary>
     public const int BandRows = 17;
 
+    /// <summary>
+    /// Points across each row. A row turns whole, so two would place it exactly, but a quad turned into a wedge round the joint's
+    /// outside is drawn as two triangles mapped flat, which kinks the picture along their diagonal into radial streaks (the knee's
+    /// fan); narrow quads keep the picture where it belongs (<see cref="Warp"/>).
+    /// </summary>
+    public const int Columns = 9;
+
     /// <summary>How far round the joint the parts' pictures are looked at for their full width, pixels, and how much of it is full.</summary>
     private const double SeamReach = 3, Full = 0.85;
 
-    /// <summary>The seam where no picture's widths are known: a pixel's fade across the joint.</summary>
-    public static readonly (double From, double To) Plain = (-0.5, 0.5);
+    /// <summary>Where the lower picture starts when no picture's widths are known: half a pixel over the joint.</summary>
+    public const double Plain = -0.5;
 
     private readonly double _joint;
     private readonly bool _lower;
     private readonly Vec[] _rest;
 
-    /// <summary>The strip's corners as bent last, in the picture's bone frame: a row's left then its right, row by row down.</summary>
+    /// <summary>The grid's points as bent last, in the picture's bone frame, row by row down, left to right.</summary>
     public Vec[] Points { get; }
 
     /// <summary>Each point's place in the picture, in its pixels from its top-left corner.</summary>
     public Vec[] Uvs { get; }
 
-    /// <summary>How opaque the picture is at each point: the upper fading out across the seam, all else whole.</summary>
-    public double[] Alphas { get; }
-
-    /// <summary>The strip's triangles, three points each, by index.</summary>
+    /// <summary>The grid's triangles, three points each, by index.</summary>
     public int[] Triangles { get; }
 
     /// <summary>The bend last drawn; none before the first.</summary>
@@ -53,41 +56,39 @@ public sealed class BentLimb
     /// <param name="height">Its height, pixels; a shin cut at the ankle only its cut.</param>
     /// <param name="joint">Where the elbow or knee is down the frame: the upper bone's length for an upper picture, 0 for a lower one.</param>
     /// <param name="lower">Whether the picture hangs from the lower bone (forearm, shin) rather than the upper.</param>
-    /// <param name="seam">Where the pictures meet, from and to, pixels down from the joint (<see cref="SeamOf"/>).</param>
-    public BentLimb(double left, double top, double width, double height, double joint, bool lower, (double From, double To) seam)
+    /// <param name="seam">For a lower picture, how far down from the joint it starts (<see cref="SeamOf"/>); an upper one is drawn whole.</param>
+    public BentLimb(double left, double top, double width, double height, double joint, bool lower, double seam = Plain)
     {
         (_joint, _lower) = (joint, lower);
-        double from = lower ? Math.Max(top, joint + seam.From) : top, to = lower ? top + height : Math.Min(top + height, joint + seam.To);
-        if (to <= from) (from, to) = (top, top);
+        double from = lower ? Math.Clamp(joint + seam, top, top + height) : top, to = top + height;
         var rows = new List<double> { from, to };
-        foreach (double y in (double[])[joint + seam.From, joint + seam.To])
-            if (y > from && y < to && !rows.Contains(y)) rows.Add(y);
         for (int i = 0; i < BandRows; i++)
         {
             double y = joint - Band / 2 + Band * i / (BandRows - 1);
-            if (y > from && y < to && !rows.Contains(y)) rows.Add(y);
+            if (y > from && y < to) rows.Add(y);
         }
         rows.Sort();
-        _rest = new Vec[rows.Count * 2];
+        _rest = new Vec[rows.Count * Columns];
         Uvs = new Vec[_rest.Length];
-        Alphas = new double[_rest.Length];
         for (int r = 0; r < rows.Count; r++)
-        {
-            double y = rows[r];
-            (_rest[2 * r], _rest[2 * r + 1]) = (new Vec(left, y), new Vec(left + width, y));
-            (Uvs[2 * r], Uvs[2 * r + 1]) = (new Vec(0, y - top), new Vec(width, y - top));
-            double fade = lower || seam.To <= seam.From ? 1 : Math.Clamp((joint + seam.To - y) / (seam.To - seam.From), 0, 1);
-            Alphas[2 * r] = Alphas[2 * r + 1] = fade;
-        }
+            for (int c = 0; c < Columns; c++)
+            {
+                double x = width * c / (Columns - 1);
+                (_rest[r * Columns + c], Uvs[r * Columns + c]) = (new Vec(left + x, rows[r]), new Vec(x, rows[r] - top));
+            }
         Points = (Vec[])_rest.Clone();
-        Triangles = new int[(rows.Count - 1) * 6];
-        for (int r = 0, a = 0; r < rows.Count - 1; r++, a += 2)
-            (Triangles[r * 6], Triangles[r * 6 + 1], Triangles[r * 6 + 2], Triangles[r * 6 + 3], Triangles[r * 6 + 4], Triangles[r * 6 + 5]) =
-                (a, a + 1, a + 3, a, a + 3, a + 2);
+        Triangles = new int[(rows.Count - 1) * (Columns - 1) * 6];
+        int t = 0;
+        for (int r = 0; r < rows.Count - 1; r++)
+            for (int c = 0; c < Columns - 1; c++)
+            {
+                int a = r * Columns + c, b = a + Columns;
+                foreach (int i in (ReadOnlySpan<int>)[a, a + 1, b + 1, a, b + 1, b]) Triangles[t++] = i;
+            }
     }
 
     /// <summary>
-    /// Bends the strip by <paramref name="bend"/>, the limb's <see cref="Bend.Lower"/>; false when it is bent so already, nothing
+    /// Bends the grid by <paramref name="bend"/>, the limb's <see cref="Bend.Lower"/>; false when it is bent so already, nothing
     /// to draw again.
     /// </summary>
     public bool Bend(double bend)
@@ -119,18 +120,18 @@ public sealed class BentLimb
     }
 
     /// <summary>
-    /// Where the two pictures of a limb meet, pixels down from the joint: from where the lower is full width, past its rounded top, to
-    /// where the upper still is, before its rounded end; a gap between them closed at its middle. Each picture by its opaque width
-    /// row by row, <paramref name="rowHeight"/> pixels a row, its first row <paramref name="upperTop"/> or <paramref name="lowerTop"/>
-    /// pixels down from the joint; <see cref="Plain"/> without them.
+    /// How far down from the joint a limb's lower picture starts: where it is full width, past its rounded top, if the upper is still
+    /// full width there to cover what is above; else the middle of the gap between where each is full. Each picture by its opaque
+    /// width row by row, <paramref name="rowHeight"/> pixels a row, its first row <paramref name="upperTop"/> or
+    /// <paramref name="lowerTop"/> pixels down from the joint; <see cref="Plain"/> without them.
     /// </summary>
-    public static (double From, double To) SeamOf(IReadOnlyList<float>? upper, double upperTop, IReadOnlyList<float>? lower, double lowerTop, double rowHeight)
+    public static double SeamOf(IReadOnlyList<float>? upper, double upperTop, IReadOnlyList<float>? lower, double lowerTop, double rowHeight)
     {
         if (upper == null || lower == null) return Plain;
         // The upper from above the joint down, while full; the lower from below it up.
         double? to = Edge(upper, upperTop, rowHeight, down: true), from = Edge(lower, lowerTop, rowHeight, down: false);
         if (to is not double t || from is not double f) return Plain;
-        return f <= t ? (f, t) : ((f + t) / 2, (f + t) / 2);
+        return f <= t ? f : (f + t) / 2;
     }
 
     /// <summary>

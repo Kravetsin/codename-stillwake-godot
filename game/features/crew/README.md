@@ -7,14 +7,14 @@ This hero and others', client-authoritative (0002): only commands reach the sim.
 | File | Holds |
 | --- | --- |
 | `logic/Hero.cs` | `Hero`, `Step` |
-| `logic/Rig.cs` | joints, limbs, the fist |
-| `logic/Pose.cs` | poses, head, air's blend |
+| `logic/Rig.cs` | joints, limbs, fist |
+| `logic/Pose.cs` | poses, head, air |
 | `logic/Motion.cs` | lean and landing |
 | `logic/Splashes.cs` | water heard |
 | `logic/LookTint.cs` | skin, hair tints |
 | `logic/Aim.cs` | reach, aim, sends |
-| `logic/AxeSwing.cs` | a stroke's clock |
-| `logic/Strokes.cs` | each tool's stroke |
+| `logic/AxeSwing.cs` | stroke clock |
+| `logic/Strokes.cs` | tool strokes |
 | `logic/MotionPlay.cs` | its motion |
 | `ReachAir.cs` | grinder haze |
 | `logic/AirCuts.cs` | dust, brush |
@@ -29,7 +29,7 @@ This hero and others', client-authoritative (0002): only commands reach the sim.
 | `logic/Prompt.cs` | what E does |
 | `logic/Seating.cs` | seats; hands tied |
 | `logic/FogMove.cs` | across fog |
-| `SeatedHeroes.cs` | behind the porthole |
+| `SeatedHeroes.cs` | in the porthole |
 | `UsePrompt.cs` | that prompt shown |
 | `logic/Tether.cs` | the tether |
 | `logic/DrillPace.cs` | drill hits |
@@ -52,14 +52,14 @@ This hero and others', client-authoritative (0002): only commands reach the sim.
 | `logic/BentLimb.cs` | bent limbs |
 | `BentPicture.cs` | drawn |
 | `logic/Cape.cs` | a cape's cloth |
-| `logic/Spring.cs` | a held arm's swing |
+| `logic/Spring.cs` | arm's swing |
 | `CapeView.cs` | it drawn, lined |
 | `HeroView.cs` | keys, steps, camera |
 | `HeroView.Hands.cs` | its hands |
 | `HeroView.Guns.cs` | its gun |
 | `HeroView.Feel.cs` | air, body |
-| `logic/GunHand.cs` | a gun's cooldown |
-| `HeroView.Others.cs` | others' heroes |
+| `logic/GunHand.cs` | gun cooldown |
+| `HeroView.Others.cs` | others |
 | `logic/CameraFollow.cs` | camera aim |
 | `JetPlume.cs` | jetpack plume |
 | `logic/PlumeWay.cs` | its way |
@@ -77,7 +77,7 @@ This hero and others', client-authoritative (0002): only commands reach the sim.
 | `AirSwirl.cs` | fling, breath, leak |
 | `SuitGauge.cs` | air row |
 | `MealSlots.cs` | meals |
-| `logic/MealTips.cs` | their food cards |
+| `logic/MealTips.cs` | food cards |
 | `Thermometer.cs` | degrees |
 | `logic/Thermometers.cs` | read |
 | `logic/Tunnel.cs` | last breath |
@@ -125,7 +125,7 @@ This hero and others', client-authoritative (0002): only commands reach the sim.
 - **The crew module:** made at `Spawn`; passed out: no orders, lies at the sim's cell, takes none (0061). `Enter` goes when the sim's room or field side
   differ, every `Crew.ReportEvery` ticks off its cell, each tick if threatened; none out (0050); a closed link's host: `Leave`.
 - **Dressed as worn**: helmet, body, hair, clothes, lamp; the colour on the shin; a switched body lit by
-  `SuitOn` and charge (`SuitGlow`), lit round (hero-lights).
+  `SuitOn` and charge (`SuitGlow`), lit round (hero-lights). **Limbs bend** whole, 4 px at elbow and knee (bent-limbs).
 - **Tracker** blinks (`SignalOf`); **catchers**: heroes in gear, untracked, tumble killed (tracker-catchers).
 
 ## Others' heroes

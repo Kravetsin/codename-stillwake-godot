@@ -3,7 +3,7 @@ using Xunit;
 
 namespace Stillwake.Game.Tests;
 
-/// <summary>A limb's picture bent as one piece in a band at its joint (exp/bent-limbs).</summary>
+/// <summary>A limb's picture bent as one piece in a band at its joint (bent-limbs).</summary>
 public class BentLimbTests
 {
     private const double Joint = 6;
@@ -57,64 +57,82 @@ public class BentLimbTests
     public void KeepsItsWidthAtTheJointThroughTheSharpestBend()
     {
         // Blending places would pinch the joint toward nothing as the bend nears a fold; turning rows keeps every row its length.
-        var limb = new BentLimb(-2.5, -2.5, 5, Joint + 3, Joint, lower: false, (0, 3));
+        var limb = new BentLimb(-2.5, -2.5, 5, Joint + 3, Joint, lower: false);
         limb.Bend(2.8);
-        for (int r = 0; r < limb.Points.Length; r += 2) Assert.InRange(Apart(limb.Points[r], limb.Points[r + 1]), 5 - 1e-9, 5 + 1e-9);
+        int across = BentLimb.Columns;
+        for (int r = 0; r < limb.Points.Length; r += across)
+            Assert.InRange(Apart(limb.Points[r], limb.Points[r + across - 1]), 5 - 1e-9, 5 + 1e-9);
+    }
+
+    [Fact]
+    public void ASharpKneeIsDrawnWhereItBendsNotFannedIntoStreaks()
+    {
+        // A thigh's picture with its margin, the knee bent as far as a climb takes it. Each quad is drawn as two triangles mapped flat:
+        // where its diagonal's middle lands against where that point of the picture belongs is how far the picture is kinked there.
+        // Two points a row put the outside of the knee 0.7 px off, the watercolour drawn out into radial streaks.
+        const double left = -6, top = -5.5, width = 12;
+        var limb = new BentLimb(left, top, width, 18, Joint, lower: false);
+        limb.Bend(-2.6);
+        int across = BentLimb.Columns, rows = limb.Points.Length / across;
+        double worst = 0;
+        for (int r = 0; r < rows - 1; r++)
+            for (int c = 0; c < across - 1; c++)
+            {
+                int a = r * across + c, b = a + across + 1;
+                Vec Rest(int i) => new(left + limb.Uvs[i].X, top + limb.Uvs[i].Y);
+                var middle = new Vec((Rest(a).X + Rest(b).X) / 2, (Rest(a).Y + Rest(b).Y) / 2);
+                var drawn = new Vec((limb.Points[a].X + limb.Points[b].X) / 2, (limb.Points[a].Y + limb.Points[b].Y) / 2);
+                worst = Math.Max(worst, Apart(BentLimb.Warp(middle, Joint, -2.6, lower: false), drawn));
+            }
+        Assert.InRange(worst, 0, 0.25);
     }
 
     [Fact]
     public void HasRowsAtItsEdgesAndDenselyOnlyInTheBand()
     {
-        // An upper arm's picture, its bottom 3 px past the elbow, drawn down to the seam's end a pixel past it: no row past that.
-        var limb = new BentLimb(-5.5, -5.5, 11, Joint + 8.5, Joint, lower: false, (-1, 1));
-        var rows = limb.Uvs.Where((_, i) => i % 2 == 0).Select(p => p.Y - 5.5).ToList();
+        // An upper arm's picture, its bottom 3 px past the elbow: its top, its bottom and the band's rows a quarter pixel apart.
+        var limb = new BentLimb(-5.5, -5.5, 11, Joint + 8.5, Joint, lower: false);
+        var rows = limb.Uvs.Where((_, i) => i % BentLimb.Columns == 0).Select(p => p.Y - 5.5).ToList();
         Assert.Equal(-5.5, rows[0]);
-        Assert.Equal(Joint + 1, rows[^1], 9);
-        // Its top and the seam's end, and the band's rows a quarter pixel apart from 2 px over the elbow down to the seam's end.
-        Assert.Equal(1 + 13, rows.Count);
-        Assert.All(rows.Skip(1), y => Assert.InRange(y, Joint - BentLimb.Band / 2, Joint + 1));
-        Assert.Equal((rows.Count - 1) * 6, limb.Triangles.Length);
+        Assert.Equal(Joint + 3, rows[^1], 9);
+        Assert.Equal(2 + BentLimb.BandRows, rows.Count);
+        Assert.All(rows.Skip(1).SkipLast(1), y => Assert.InRange(y, Joint - BentLimb.Band / 2, Joint + BentLimb.Band / 2));
+        Assert.Equal((rows.Count - 1) * (BentLimb.Columns - 1) * 6, limb.Triangles.Length);
         Assert.All(limb.Triangles, i => Assert.InRange(i, 0, limb.Points.Length - 1));
     }
 
     [Fact]
-    public void TheUpperFadesOutAcrossTheSeamOverTheLowerDrawnFromItsStart()
+    public void TheUpperKeepsItsPadsDrawnWholeOverTheLowerDrawnFromTheSeam()
     {
-        var upper = new BentLimb(-3, -3, 6, Joint + 6, Joint, lower: false, (-1, 1));
-        var lower = new BentLimb(-3, -4, 6, 12, 0, lower: true, (-1, 1));
-        double AlphaAt(BentLimb limb, double y) => limb.Alphas[Array.FindIndex(limb.Uvs, p => Math.Abs(p.Y - y) < 1e-9)];
-        Assert.Equal(1, AlphaAt(upper, 3 + Joint - 1));
-        Assert.Equal(0.5, AlphaAt(upper, 3 + Joint), 9);
-        Assert.Equal(0, AlphaAt(upper, 3 + Joint + 1));
-        Assert.Equal(1, AlphaAt(upper, 0));
-        // The lower from the seam's start, its rounded top above it left out, whole throughout.
+        // The knee's pad and the elbow's cap are the upper picture's rounded end: drawn to its last row, bent round the joint's
+        // outside. The lower starts at the seam, its own rounded top left under the upper.
+        var upper = new BentLimb(-3, -3, 6, Joint + 6, Joint, lower: false, seam: -1);
+        var lower = new BentLimb(-3, -4, 6, 12, 0, lower: true, seam: -1);
+        Assert.Equal(Joint + 6, upper.Uvs[^1].Y, 9);
+        Assert.Equal(0, upper.Uvs[0].Y, 9);
         Assert.Equal(3, lower.Uvs[0].Y, 9);
-        Assert.All(lower.Alphas, a => Assert.Equal(1, a));
+        Assert.Equal(12, lower.Uvs[^1].Y, 9);
     }
 
     [Fact]
-    public void TheSeamRunsFromWhereTheLowerIsFullToWhereTheUpperStillIs()
+    public void TheLowerStartsWhereItIsFullUnderAnUpperStillFull()
     {
         // Rows a quarter pixel each: the upper full till a pixel past the joint, its end narrowing; the lower's top narrow till
         // a pixel and a half above the joint. Each picture's first row 4 px above the joint.
         float[] upper = [.. Enumerable.Range(0, 32).Select(r => r < 20 ? 4f : 1.5f)];
         float[] lower = [.. Enumerable.Range(0, 32).Select(r => r < 10 ? 1.5f : 4f)];
-        var (from, to) = BentLimb.SeamOf(upper, -4, lower, -4, 0.25);
-        Assert.Equal(-1.5, from, 9);
-        Assert.Equal(1, to, 9);
-        // Apart, they meet at the gap's middle; without widths, a pixel round the joint.
+        Assert.Equal(-1.5, BentLimb.SeamOf(upper, -4, lower, -4, 0.25), 9);
+        // Apart, the gap's middle; without widths, half a pixel over the joint.
         float[] early = [.. Enumerable.Range(0, 32).Select(r => r < 12 ? 4f : 1.5f)];
         float[] late = [.. Enumerable.Range(0, 32).Select(r => r < 18 ? 1.5f : 4f)];
-        var gap = BentLimb.SeamOf(early, -4, late, -4, 0.25);
-        Assert.Equal(-0.25, gap.From, 9);
-        Assert.Equal(-0.25, gap.To, 9);
+        Assert.Equal(-0.25, BentLimb.SeamOf(early, -4, late, -4, 0.25), 9);
         Assert.Equal(BentLimb.Plain, BentLimb.SeamOf(null, -4, lower, -4, 0.25));
     }
 
     [Fact]
     public void StraightItIsThePictureAsDrawnAndBendsOnlyWhenTheAngleChanges()
     {
-        var limb = new BentLimb(-3, 0, 6, 9, 0, lower: true, (-3, 0));
+        var limb = new BentLimb(-3, 0, 6, 9, 0, lower: true, seam: -3);
         Assert.True(limb.Bend(0));
         for (int i = 0; i < limb.Points.Length; i++)
             Near(new Vec(limb.Uvs[i].X - 3, limb.Uvs[i].Y), limb.Points[i]);

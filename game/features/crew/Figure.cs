@@ -57,10 +57,10 @@ public partial class Figure : Node2D
     private sealed record Limb(Node2D Upper, Node2D Lower, Node2D? Ankle, BentPicture[] Pictures, Sprite2D UpperPart, Sprite2D LowerPart, double Joint)
     {
         private (Texture2D? Upper, Texture2D? Lower) _seamOf;
-        private (double From, double To) _seam = BentLimb.Plain;
+        private double _seam = BentLimb.Plain;
 
-        /// <summary>Where its two pictures meet as worn now (<see cref="BentLimb.SeamOf"/>), found again only when either picture changes.</summary>
-        private (double From, double To) Seam()
+        /// <summary>Where its lower picture starts as worn now (<see cref="BentLimb.SeamOf"/>), found again only when either picture changes.</summary>
+        private double Seam()
         {
             if (_seamOf == (UpperPart.Texture, LowerPart.Texture)) return _seam;
             _seamOf = (UpperPart.Texture, LowerPart.Texture);
@@ -70,28 +70,17 @@ public partial class Figure : Node2D
 
         /// <summary>
         /// Rotations run clockwise and the figure faces +x, so forward, and a boot's toe up (<paramref name="foot"/>), is negative;
-        /// <paramref name="bent"/>, its pictures bent as one piece at the joint too (<see cref="BentLimbs"/>).
+        /// the pictures bent as one piece at the joint (bent-limbs).
         /// </summary>
-        public void Bend(Bend b, double foot = 0, bool bent = false)
+        public void Bend(Bend b, double foot = 0)
         {
             Upper.Rotation = (float)-b.Upper;
             Lower.Rotation = (float)-b.Lower;
             if (Ankle != null) Ankle.Rotation = (float)-foot;
-            if (!bent) return;
             var seam = Seam();
             foreach (var picture in Pictures) picture.Show(b.Lower, seam);
         }
     }
-
-    /// <summary>
-    /// Whether every figure draws its arms and legs each as one piece bent in a band at the elbow and knee (<see cref="BentLimb"/>)
-    /// rather than two rigid pictures meeting at the joint: an experiment (exp/bent-limbs), switched by a dev key.
-    /// </summary>
-    public static bool BentLimbs { get; set; }
-
-    /// <summary>Each limb picture and band of light with its bent twin, drawn in its place while <see cref="BentLimbs"/>; whether it is now.</summary>
-    private readonly List<(Sprite2D Rigid, BentPicture Bent)> _bent = [];
-    private bool _bentShown;
 
     /// <summary>
     /// How far the boot's picture reaches up under the shin's, in pixels (2026-11-04-hero-gait): the shin's picture is cut at the
@@ -964,8 +953,8 @@ public partial class Figure : Node2D
     }
 
     /// <summary>
-    /// A limb hanging from its joint in two pictures, the upper turned at the joint and the lower at the
-    /// elbow or knee; the upper over the lower, so the joint between them is the upper's rounded end.
+    /// A limb hanging from its joint in two pictures, the upper over the lower, its nodes turned at the joint and at the elbow or
+    /// knee, and each picture drawn bent as one piece round the elbow or knee (<see cref="BentPicture"/>, bent-limbs).
     /// </summary>
     private Limb MakeLimb(Segments size, string upper, string lower, bool far, out Node2D view)
     {
@@ -1000,8 +989,9 @@ public partial class Figure : Node2D
     }
 
     /// <summary>
-    /// <paramref name="part"/> and its band of light, each with its bent twin under it (<see cref="BentPicture"/>), the joint
-    /// <paramref name="joint"/> down its frame, the frame the <paramref name="lower"/> bone's or the upper's.
+    /// <paramref name="part"/> and its band of light, each drawn by a bent picture under it in its place (<see cref="BentPicture"/>), the
+    /// joint <paramref name="joint"/> down its frame, the frame the <paramref name="lower"/> bone's or the upper's. The sprites keep the
+    /// pictures as worn, cut and placed, and what a crumbling body breaks into (<see cref="Pixels"/>).
     /// </summary>
     private Sprite2D Bendable(Sprite2D part, double joint, bool lower, List<BentPicture> pictures)
     {
@@ -1010,13 +1000,12 @@ public partial class Figure : Node2D
         Twin(part);
         return part;
 
-        void Twin(Sprite2D rigid)
+        void Twin(Sprite2D sprite)
         {
-            var bent = new BentPicture(rigid, joint, lower);
-            rigid.AddChild(bent);
-            rigid.MoveChild(bent, 0);
+            var bent = new BentPicture(sprite, joint, lower);
+            sprite.AddChild(bent);
+            sprite.MoveChild(bent, 0);
             pictures.Add(bent);
-            _bent.Add((rigid, bent));
         }
     }
 
@@ -1113,11 +1102,6 @@ public partial class Figure : Node2D
     public void Show(Hero hero, Pose pose, double look, bool holdsPlan, double elapsedMs)
     {
         _timeMs += elapsedMs;
-        if (_bentShown != BentLimbs)
-        {
-            _bentShown = BentLimbs;
-            foreach (var (rigid, bent) in _bent) (rigid.SelfModulate, bent.Visible) = (_bentShown ? Colors.Transparent : Colors.White, _bentShown);
-        }
         if (_scanner.Visible)
         {
             int lit = (int)(_timeMs / ScannerDotMs) % (_scannerDots.Length + 1);
@@ -1321,12 +1305,12 @@ public partial class Figure : Node2D
         var backArm = new Bend(shown.BackArm.Upper + body.FarArm.Upper + body.Lean, shown.BackArm.Lower + body.FarArm.Lower);
         if (body.Grip > 0 && inHand && item != null) backArm = Mix(backArm, HaftGrip.ArmFor(frontArm, item, wrist).Arm, Math.Min(1, body.Grip));
         if (OffHand is { Share: > 0 } off) backArm = Mix(backArm, off.Arm, off.Share);
-        _frontArm.Bend(frontArm, bent: _bentShown);
-        _backArm.Bend(backArm, bent: _bentShown);
+        _frontArm.Bend(frontArm);
+        _backArm.Bend(backArm);
         _frontHip.Position = new Vector2((float)(Rig.HipApart + body.HipX), (float)(-Rig.Hip - Rig.HipRise(Rig.HipApart, shown.Tilt) + body.HipY));
         _backHip.Position = new Vector2((float)(-Rig.HipApart + body.HipX), (float)(-Rig.Hip - Rig.HipRise(-Rig.HipApart, shown.Tilt) + body.HipY));
-        _frontLeg.Bend(new Bend(shown.FrontLeg.Upper + body.FrontLeg.Upper, shown.FrontLeg.Lower + body.FrontLeg.Lower), shown.FrontFoot + body.FrontFoot, _bentShown);
-        _backLeg.Bend(new Bend(shown.BackLeg.Upper + body.BackLeg.Upper, shown.BackLeg.Lower + body.BackLeg.Lower), shown.BackFoot + body.BackFoot, _bentShown);
+        _frontLeg.Bend(new Bend(shown.FrontLeg.Upper + body.FrontLeg.Upper, shown.FrontLeg.Lower + body.FrontLeg.Lower), shown.FrontFoot + body.FrontFoot);
+        _backLeg.Bend(new Bend(shown.BackLeg.Upper + body.BackLeg.Upper, shown.BackLeg.Lower + body.BackLeg.Lower), shown.BackFoot + body.BackFoot);
         if (cues.Sparks > 0)
         {
             Vector2 Glove(Bend arm) => _waist.ToGlobal(Pixel(Rig.FistOf(arm)));
