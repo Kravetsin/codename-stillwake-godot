@@ -69,6 +69,7 @@ This hero and others', client-authoritative (0002): only commands reach the sim.
 | `logic/Report.cs` | Enter reports |
 | `Frost.cs` | the cold |
 | `Haze.cs` | the heat |
+| `logic/ScreenEase.cs` | eased |
 | `logic/Danger.cs` | the gauge's read |
 | `logic/AirCues.cs` | air back |
 | `logic/CanistersSeen.cs` | tanks |
@@ -105,13 +106,12 @@ This hero and others', client-authoritative (0002): only commands reach the sim.
 - A step never ends in a wall, shut door or hatch, or past the grid; afloat with no jetpack the middle stays within
   `Hero.Tether` of its anchor. A door shut on it pushes it `Hero.PushStep` to the nearest fit, no speed (0089).
 - Doors go as this peer shows them (0014); a press sends `SetDoor`/`SetValve` (0071), `SetPlatform`.
-- **Holes, floors:** falls into holes it fits; down drops through floors; jump wins.
+- **Holes, floors:** falls into holes it fits; down drops through; jump wins.
 - **Steps** (0106): a cell up or down, two stop it.
 - **Jump** (0089): coyote, buffer, short hop.
-- **The figure answers its motion** (0090, hero-gait), as sent.
+- **The figure answers its motion** (0090, hero-gait).
 - **Rammed** (0103) **or arced** (`Rams.Hits`): `HitBy`/`Bolted` sent, thrown, keys masked.
-- **Surfaces** (0076): `Ship.Of` rules, gravity the kind's `Fall`; fog glides
-  a seam (`FogMove`, fog-edges).
+- **Surfaces** (0076): `Ship.Of` rules, gravity the kind's `Fall`; fog glides a seam (`FogMove`, fog-edges).
 - **Camera:** leads, eases, snaps. **Markers** (0061): home, last body, friends heard, deliveries (lost red), a catcher. **Hurts**
   (hurts-are-shown) tint edges and gauge.
 - **Water** (liquids): swum `SwimDepth` deep, left by Space or shore; wading splashes.
@@ -119,7 +119,7 @@ This hero and others', client-authoritative (0002): only commands reach the sim.
   Shift hauls in along the tether's bends (`Wraps`); a jetpack unties, Shift thrusts, `Thrust` sent if unlike the sim's.
 - **A canister** (0047, 0081): RMB or R sends `Refill`, V `SuitMode` (regen-suit) if taken. Cooling greys the O₂ sign
   in a sweeping ring; too soon, red (canister-mark).
-- **Meals:** a food right-clicked sends `Eat`, chewing heard; refused, its slots blink (hud-vitals). **Degrees** over them (the-thermometer).
+- **Meals:** a food right-clicked sends `Eat`, chewed; refused, slots blink (hud-vitals). **Degrees** over them (the-thermometer).
 - **The crew module:** made at `Spawn`; passed out: no orders, lies at the sim's cell, takes none (0061). `Enter` goes when the sim's room or field side
   differ, every `Crew.ReportEvery` ticks off its cell, each tick if threatened; none out (0050); a closed link's host: `Leave`.
 - **Dressed as worn**: helmet, body, hair, clothes, lamp; the colour on the shin; a switched body lit by
@@ -145,7 +145,7 @@ This hero and others', client-authoritative (0002): only commands reach the sim.
 - **Hits are rays** (tool-reach, hits-pass-wrecks): a fan (`ToolRays`) to a wall, through wrecks; ground rings, sparks.
 - **Struck tools** (0038, swing-motions): by sector, hitting as the blade crosses the aim; the body leans in.
 - **Harpoon, grapple** (0044, grapple-climbs): reel pieces, pull to walls; hung, refire; Space/RMB let go.
-- **A gun** (hold-to-fire): left held fires each cooldown; a `Charge` one fires let go full; flat, clicks dry. Kicks afloat, shoves standing (`Recoil`, body-answers).
+- **A gun** (hold-to-fire): held fires each cooldown; a `Charge` one on release, full; flat, clicks. Kicks afloat, shoves standing (`Recoil`, body-answers).
 - **Drill, grinder, cutter** (0054, 0055): left held runs it (`Run`), a hit each `Pace` ticks, the cutter's by
   beam (`ToolEdges`), sparking.
 - **Power driver** (driver-at-work, driver-order): charged, works a 2×2 square (`WorkedSquare`); right click toggles (mode-glyph).

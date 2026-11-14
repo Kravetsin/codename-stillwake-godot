@@ -9,13 +9,11 @@ namespace Stillwake.Game.Features.Crew;
 /// shimmers, its rows pushed sideways by a rising wave, faintly warmed, and sparks drift up from the bottom and the sides; the
 /// shimmer reaches in and the sparks thicken as the heat deepens. A full-screen quad over the world for the shimmer and the sparks
 /// drawn over it, under the HUD; hidden while there is none. Reads the heat (<see cref="Report.Heat"/>) four times a second and
-/// eases toward it, as the frost does.
+/// eases toward it as the frost does (<see cref="ScreenEase"/>).
 /// </summary>
 public partial class Haze : CanvasLayer
 {
     private const double RefreshS = 0.25;
-    /// <summary>How long the haze takes to grow or fade by the whole of its range.</summary>
-    private const double EaseS = 1.0;
     private static readonly StringName Strength = "strength";
 
     private const string Shader = """
@@ -64,7 +62,7 @@ public partial class Haze : CanvasLayer
             _sinceRead = 0;
             _heat = _read();
         }
-        _shown = _shown < _heat ? Math.Min(_heat, _shown + delta / EaseS) : Math.Max(_heat, _shown - delta / EaseS);
+        _shown = ScreenEase.Toward(_shown, _heat, delta);
         bool on = _shown > 0;
         if (on && !_sparks.Visible) _sparks.Wake((float)_shown);
         _screen.Visible = _sparks.Visible = on;
