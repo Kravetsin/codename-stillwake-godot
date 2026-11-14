@@ -13,20 +13,10 @@ const GL = { base: '#1a2028', shade: '#10141b', deep: '#0a0d12', lite: '#2c3844'
 const UNLIT = '#0e1d16', GREEN = [124, 240, 150];
 const LIGHT = [0, -1], Px = 4, MARGIN = 1, W = 7, H = 7;
 
-// The helmets' tops in their pictures' pixels: hero.js's basic shell's two curves, the bell's ellipse and the quilted hood's crown (quilted.js).
-function cubic(p, n) { const out = []; for (let i = 0; i <= n; i++) { const t = i / n, u = 1 - t; out.push([u * u * u * p[0] + 3 * u * u * t * p[2] + 3 * u * t * t * p[4] + t * t * t * p[6], u * u * u * p[1] + 3 * u * u * t * p[3] + 3 * u * t * t * p[5] + t * t * t * p[7]]); } return out; }
-const BASIC_TOP = [...cubic([1.5, 6, 1.7, 3, 3.8, 1.1, 7, 1], 24), ...cubic([7, 1, 10, .9, 12.3, 2.8, 12.6, 5.8], 24).slice(1)];
-function basicTop(x) {
-  const p = BASIC_TOP;
-  if (x <= p[0][0]) return p[0][1];
-  for (let i = 1; i < p.length; i++) if (x <= p[i][0]) { const a = p[i - 1], b = p[i], k = (x - a[0]) / (b[0] - a[0] || 1); return a[1] + (b[1] - a[1]) * k; }
-  return p[p.length - 1][1];
-}
-const heavyTop = (x) => { const d = (x - 6.4) / 6.1; return 5.4 - 6 * Math.sqrt(Math.max(0, 1 - d * d)); };
-// Each helmet: its top, and where the crest's picture's top left sits on the helmet's picture (inside its margin).
+// Each helmet: its top (its traced outline's crown: helmets.js, quilted.js), and where the crest's picture's top left sits on the helmet's picture (inside its margin).
 const HELMETS = {
-  helmet: { name: 'hero_scanner', top: basicTop, on: [6.2, -.8] },
-  heavyHelmet: { name: 'hero_heavyHelmet_scanner', top: heavyTop, on: [6.2, -2.6] },
+  helmet: { name: 'hero_scanner', top: (x) => HelmetsKit.top.helmet(x), on: [6.2, -1.9] },
+  heavyHelmet: { name: 'hero_heavyHelmet_scanner', top: (x) => HelmetsKit.top.heavyHelmet(x), on: [6.2, -4.1] },
   quiltedHelmet: { name: 'hero_quiltedHelmet_scanner', top: (x) => QuiltedKit.top(x), on: [6.2, -3] },
 };
 
