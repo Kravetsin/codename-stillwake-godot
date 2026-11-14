@@ -58,7 +58,7 @@ Below, `f/x` = `game/features/x`, `r/` = `game/render`, `gc/` = `game/Content` (
 
 **Net and co-op** — net/Net: `Host.cs`, `Client.cs`, `Session.cs`, `Playout.cs`; net/Tests `Desync.cs`; game/net: `EnetLink.cs`, `RelayLink.cs`; game/`Main.Sessions.cs` (hosting, joining, worlds on disk, the title); sim/Core: `Sim.cs` World, `Module.cs` Command, `Rng.cs`; sim/Registry: `Registry.cs`, `Migrations.cs`; game/platform: `Saves.cs`
 
-**Dev tools** — game/dev: `DevModes.cs` (every `-- --arg`, its doc), `DevArgs.cs`, `Main.Dev.cs` (the tools that are not scenarios), `DevScenario.cs`, `DevScenarios.cs`, `Testbed.cs`, `Autopilot.cs`, `*Demo.cs`; game/dev/demos: a class per demo argument, `[Dev("--name", …)]` (its README: adding one); f/dev-panel: `DevPanel.cs`, `CueNames.cs`; sim/Analyzers (determinism rules); sim/Tests (`Scenario.cs`); `tools/` (art pipelines, node)
+**Dev tools** — game/dev: `DevModes.cs` (every `-- --arg`, its doc), `DevArgs.cs`, `Main.Dev.cs` (the tools that are not scenarios), `DevScenario.cs`, `DevScenarios.cs`, `Testbed.cs`, `Autopilot.cs`, `*Demo.cs`; game/dev/demos: a class per demo argument, `[Dev("--name", …)]` (its README: adding one); f/dev-panel: `DevPanel.cs`, `CueNames.cs`; sim/Analyzers (determinism rules); sim/Tests (`Scenario.cs`); `tools/` (art pipelines, node; `anime-art/trace.js` traces a picked AI-made reference's form into shapes our engine draws)
 
 ## Conventions
 
@@ -66,7 +66,7 @@ Below, `f/x` = `game/features/x`, `r/` = `game/render`, `gc/` = `game/Content` (
   creatures `Creatures.cs`, planet types `PlanetTypes.cs`, builds `Builds.cs`, recipes `Crafts.cs`, stations `Stations.cs`.
   ASCII map characters: `Legend.cs`. A content file is named after its module or catalogue.
 - **Art**: `game/art/hd/machine_<kind>.png`, `<kind>_work_<n>.png` (a station at work), `items/<itemId>.png` (none for a tool, 2026-10-27-tool-icons),
-  `debris/<look>_<nn>.png`, `creatures/<design>/<part>.png`, `planet/`, `caves/`, `homes/<piece>_<n>.png`;
+  `debris/<look>_<nn>.png`, `creatures/<design>/<part>.png`, `planet/`, `caves/`, `homes/<piece>_<n>.png`, `hero_<helmet>_shell`/`_visor`;
   `_glow`/`_lit` suffixes for light. Drawn at four times the world's pixels (`PixelArt.Picture(name)`), and
   reduced to them for a size or shape (`HiRes.Logical`); the only pictures (2026-11-03-pixel-art-removed).
 - **i18n** (core `game/i18n/logic/En.cs`; a feature's strings are in its `logic/<Name>.En.cs`, Russian in `.Ru.cs`): `item.<itemId>` (+ `.kind`, `.key`, `.hint`), `tool.<build>` (+ `.about`),

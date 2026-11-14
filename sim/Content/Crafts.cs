@@ -42,6 +42,8 @@ public static class Crafts
         new("battery", [("plate", 2), ("coil", 2), ("wire", 4), ("circuit", 1)], Ticks: 120),
         // A plate bent into a band, wire and a coil for its glowing bulb: the workbench's, so it comes before the first cave (0077).
         new("helmetLamp", [("plate", 1), ("wire", 2), ("coil", 1)], Ticks: 60),
+        // The basic helmet padded with the ruins' cloth, a welder's plate and two canisters' more air (2026-11-14-quilted-helmet-and-traced-art).
+        new("quiltedHelmet", [("helmet", 1), ("cloth", 3), ("plate", 2), ("canister", 2)], Ticks: 120),
         new("drill", [("frame", 1), ("rotor", 2), ("coil", 2), ("gear", 4), ("tube", 2), ("circuit", 2)], Ticks: 240),
         // The salvage tools (salvage-tools), all at the workbench: the grinder round a planet's motor, so after a landing;
         // the spear and the sledgehammer of the first parts.

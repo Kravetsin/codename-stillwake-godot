@@ -71,7 +71,8 @@ A living document: what is decided about the game and what is still open. Techni
   the room can always get it back ([the-scoop](decisions/2026-10-31-the-scoop.md)).
 - **Suits are worn** and taken off, a helmet and a body mixed as the player likes: the helmet holds the air, the body
   withstands the cold down to its limit, −40° for the basic ([temperature-in-degrees](decisions/2026-11-14-temperature-in-degrees.md)); the basic ones free at the pod, more to come ([suits-are-worn](decisions/2026-10-27-suits-are-worn.md)). The heavy
-  helmet holds 100 to the basic 45, sold on the black market by the jetpack's time ([heavy-helmet](decisions/2026-11-03-the-heavy-helmet.md)).
+  helmet holds 100 to the basic 45, sold on the black market by the jetpack's time ([heavy-helmet](decisions/2026-11-03-the-heavy-helmet.md)); between
+  them the quilted helmet's 70, sewn at the workbench round the basic one of a planet's cloth ([quilted-helmet](decisions/2026-11-14-quilted-helmet-and-traced-art.md)).
   A canister breathed gives 20, then not another for 25 s; more air a canister is food's, not gear's
   ([food-and-the-body](decisions/2026-11-12-food-and-the-body.md)). A hero has three meal slots: each food lasts
   minutes and changes the body's rates (calm: a breath costs less; deep: a canister gives more); the pod prints a
