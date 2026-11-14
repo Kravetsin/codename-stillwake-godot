@@ -34,7 +34,33 @@ public class BodyFitTests
     {
         Assert.Equal(HelmetTurn.Soft, BodyFit.Of(Stillwake.Content.Helmet.Basic).Turn);
         Assert.Equal(HelmetTurn.Soft, BodyFit.Of(Stillwake.Content.Helmet.Quilted).Turn);
-        Assert.Equal(HelmetTurn.Bolted, BodyFit.Of(Stillwake.Content.Helmet.Heavy).Turn);
+        Assert.Equal(HelmetTurn.Ring, BodyFit.Of(Stillwake.Content.Helmet.Heavy).Turn);
+    }
+
+    [Fact]
+    public void TheBellsDomeNodsWholeOnItsGasketWhichAloneBends()
+    {
+        var fit = BodyFit.Of(Stillwake.Content.Helmet.Heavy);
+        // Its dome turns about the gasket's middle, its own shoulder piece the collar; the gasket is its own picture.
+        Assert.Equal((BodyFit.NeckX, BodyFit.GasketY, BodyFit.GasketBand, (double?)null, true), (fit.PivotX, fit.PivotY, fit.Band, fit.Cut, fit.Sealed));
+        double joint = fit.PivotY - BodyFit.NeckY;
+        foreach (double look in Looks)
+        {
+            var (face, shell, bend, crown) = fit.TurnsBy(look);
+            // The face, lamp and scanner go with the dome; nothing of the dome or shoulder piece is bent.
+            Assert.Equal((look, look, 0d, look), (face, shell, bend, crown));
+            double seal = fit.SealBy(look), c = Math.Cos(shell), s = Math.Sin(shell);
+            for (double x = -7; x <= 7; x += 1.75)
+            {
+                // The gasket's top turns as the dome over it does, about the same pivot; its base stays with the shoulder piece.
+                var high = new Vec(x, joint - fit.Band / 2 - 0.05);
+                double y = high.Y - joint;
+                Near(new Vec(x * c - y * s, joint + x * s + y * c), BentLimb.Warp(high, joint, seal, lower: true, fit.Band));
+                var low = new Vec(x, joint + fit.Band / 2 + 0.05);
+                Near(low, BentLimb.Warp(low, joint, seal, lower: true, fit.Band));
+            }
+        }
+        Assert.Equal(fit.Fade, BodyFit.FadeOf("heavyHelmet_collar"));
     }
 
     [Theory]
@@ -115,7 +141,7 @@ public class BodyFitTests
         {
             BodyFit.Trial = null;
         }
-        Assert.Equal(HelmetTurn.Bolted, BodyFit.Of(Stillwake.Content.Helmet.Heavy).Turn);
+        Assert.Equal(HelmetTurn.Ring, BodyFit.Of(Stillwake.Content.Helmet.Heavy).Turn);
     }
 
     [Fact]

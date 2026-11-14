@@ -44,6 +44,36 @@ function ringed(basic) {
   return { ball, collar: HeroKit.keep(HeroKit.part({ w: 13, h: 12, draw: basic.draw }), ring.d, Anime.LINE.outer) };
 }
 
+/** How far the bell's rubber gasket shows below its brass neck ring, in the head's pixels. */
+const GASKET = 0.9;
+
+/** A path moved down by dy: the tracer writes only absolute M, C and Z, so its numbers come in pairs. */
+const lowered = (d, dy) => {
+  let k = 0;
+  return d.replace(/-?\d*\.?\d+/g, (v) => String(k++ % 2 ? +(+v + dy).toFixed(3) : v));
+};
+
+/** Above this row of the head the bell is its dome, below it its shoulder piece, but for the brass neck ring and the gasket between. */
+const DOME = 10.9;
+
+/**
+ * The bell in three parts (helmets-fit-the-suit), so its dome nods on a rubber gasket as the basic helmet's ball on its seal: the
+ * dome with its brass neck ring and hoses; the shoulder piece, the ring's and the gasket's place left open in it; and the gasket,
+ * the ring's own shape and that shape lowered by GASKET, in the hoses' rubber, under the ring and showing below it.
+ */
+function belled(bell) {
+  const brass = bell.ops.filter((o) => o.mat === 'brass'), width = (o) => ((b) => b[2] - b[0])(bounds(o.d));
+  const ring = brass.reduce((a, b) => (width(b) > width(a) ? b : a)), low = lowered(ring.d, GASKET), rim = Anime.LINE.outer;
+  const top = `M-4 -4L17 -4L17 ${DOME}L-4 ${DOME}Z`, metal = brass.filter((o) => o.op !== 'line').map((o) => o.d);
+  const [shell, visor] = HeroKit.cut(bell.draw, bell.glass, []);
+  // The ink drawn on the ring, as its clasp's edge, goes with it.
+  const [rx0, ry0, rx1, ry1] = bounds(ring.d), inked = bell.ops.filter((o) => o.op === 'line' && ((b) => b[0] >= rx0 && b[2] <= rx1 && b[1] >= ry0 && b[3] <= ry1)(bounds(o.d))).map((o) => o.d);
+  HeroKit.within(shell, { keep: [top, ring.d], back: [...metal, ...inked] }, rim);
+  const collar = HeroKit.within(HeroKit.part({ w: 13, h: 12, draw: bell.draw }), { keep: ['M-4 -4L17 -4L17 17L-4 17Z'], drop: [top, ring.d, low, ...metal, ...inked] }, rim);
+  const seal = { ...ring, mat: 'tube', lite: [], d: ring.d + low };
+  return { shell, visor, collar, seal: HeroKit.part({ w: 13, h: 12, draw: Traced.drawer('heavyHelmet', [seal], bell.k) }) };
+}
+
 Subjects.helmets = function () {
   const basic = worn('helmet'), [, visor] = HeroKit.cut(basic.draw, basic.glass, []), { ball, collar } = ringed(basic);
   out('hero_helmet_shell', ball);
@@ -51,9 +81,11 @@ Subjects.helmets = function () {
   out('hero_visor', visor);
   out('hero_helmet', Anime.bake({ w: 13, h: 12, light: [0, -1], ...CARD, draw: basic.draw }));
   out('items/helmet', Traced.icon('helmet'));
-  const bell = worn('heavyHelmet'), [bellShell, bellVisor] = HeroKit.cut(bell.draw, bell.glass, []);
-  out('hero_heavyHelmet_shell', bellShell);
-  out('hero_heavyHelmet_visor', bellVisor);
+  const bell = belled(worn('heavyHelmet'));
+  out('hero_heavyHelmet_shell', bell.shell);
+  out('hero_heavyHelmet_visor', bell.visor);
+  out('hero_heavyHelmet_collar', bell.collar);
+  out('hero_heavyHelmet_seal', bell.seal);
   out('items/heavyHelmet', Traced.icon('heavyHelmet'));
 };
 

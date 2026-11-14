@@ -26,8 +26,12 @@ public enum HelmetTurn
 /// drawn over the near arm's shoulder while the rest stays under the arm. All in the helmet picture's pixels, its 13 × 12 box,
 /// the neck at <see cref="BodyFit.Neck"/>. With no cut, the collar is a picture of its own (<c>hero_&lt;helmet&gt;_collar</c>).
 /// Its shell's bottom fades out into the suit over the rows <paramref name="Fade"/>, whole at the first, none at the second, if given.
+/// A soft one bends in a <paramref name="Band"/> that tall round its pivot: what is above it turns whole, what is below stays. A
+/// <paramref name="Sealed"/> one has a rubber seal of its own between shell and collar (<c>hero_&lt;helmet&gt;_seal</c>), bent in
+/// that band as its shell turns: the bell's gasket.
 /// </summary>
-public sealed record HelmetFit(HelmetTurn Turn, double PivotX, double PivotY, double? Cut, (double Whole, double None)? Fade = null)
+public sealed record HelmetFit(
+    HelmetTurn Turn, double PivotX, double PivotY, double? Cut, (double Whole, double None)? Fade = null, double Band = BentLimb.Band, bool Sealed = false)
 {
     /// <summary>
     /// The angles its parts are turned by as the head looks <paramref name="look"/> (radians, as the figure turns its nodes), each
@@ -42,6 +46,12 @@ public sealed record HelmetFit(HelmetTurn Turn, double PivotX, double PivotY, do
         HelmetTurn.Ring => (look, look, 0, look),
         _ => (0, 0, 0, 0),
     };
+
+    /// <summary>
+    /// How far its seal (<see cref="Sealed"/>) is bent as the head looks <paramref name="look"/>, about the pivot in its
+    /// <see cref="Band"/>: as far as its shell turns over it, or with the rest of a soft one; its base stays with the collar.
+    /// </summary>
+    public double SealBy(double look) => TurnsBy(look) is var (_, shell, bend, _) ? shell + bend : 0;
 }
 
 /// <summary>How the suit's parts fit together where they meet (helmets-fit-the-suit): client art, not tunables.</summary>
@@ -58,6 +68,12 @@ public static class BodyFit
 
     /// <summary>The middle of the basic helmet's rubber seal (rows 10 to 13.5): it bends there, the ball nodding on it.</summary>
     public const double SealY = 11.75;
+
+    /// <summary>
+    /// The middle of the heavy bell's rubber gasket where it shows under its brass neck ring (tools/anime-art helmets.js,
+    /// <c>GASKET</c>), and the band it bends in: the dome and ring nod whole above it, the shoulder piece stays below.
+    /// </summary>
+    public const double GasketY = 11.8, GasketBand = 1.4;
 
     /// <summary>The head's middle (hero_head.png): a bolted helmet's head turns about it inside (<see cref="HelmetTurn.Bolted"/>), not out through the shell.</summary>
     private const double HeadX = 5.5, HeadY = 6.5;
@@ -78,8 +94,9 @@ public static class BodyFit
         [Stillwake.Content.Helmet.Basic] = new(HelmetTurn.Soft, NeckX, SealY, Cut: null),
         // The hood's last roll, under its plate, bends; its bottom fades into the suit rather than end in a line across it.
         [Stillwake.Content.Helmet.Quilted] = Hood with { Fade = (13.6, 14.6) },
-        // The bell's brass collar and shoulder piece over the arm; the piece's straight edge, cut by its reference, fades out.
-        [Stillwake.Content.Helmet.Heavy] = new(HelmetTurn.Bolted, HeadX, HeadY, Cut: 11, Fade: (13.8, 15)),
+        // The dome nods whole with its brass ring on its rubber gasket, which bends, as the basic helmet's ball on its seal; its
+        // shoulder piece stays, over the arm, its straight edge, cut by its reference, fading out.
+        [Stillwake.Content.Helmet.Heavy] = new(HelmetTurn.Ring, NeckX, GasketY, Cut: null, Fade: (13.8, 15), Band: GasketBand, Sealed: true),
         ["catcherHood"] = Hood,
         ["catcherCap"] = Hood,
         ["catcherBeak"] = Hood,
@@ -103,7 +120,7 @@ public static class BodyFit
     /// <summary><paramref name="helmet"/>'s <paramref name="fit"/> turning <paramref name="turn"/>, about the pivot that way takes.</summary>
     private static HelmetFit As(string helmet, HelmetFit fit, HelmetTurn turn) => turn == fit.Turn ? fit : turn switch
     {
-        HelmetTurn.Soft => fit with { Turn = turn, PivotX = NeckX, PivotY = SoftY },
+        HelmetTurn.Soft => fit with { Turn = turn, PivotX = NeckX, PivotY = SoftY, Band = BentLimb.Band },
         HelmetTurn.Ring when helmet == Stillwake.Content.Helmet.Basic => fit with { Turn = turn, PivotX = BallX, PivotY = BallY },
         HelmetTurn.Ring => fit with { Turn = turn, PivotX = NeckX, PivotY = NeckY },
         _ => fit with { Turn = turn, PivotX = HeadX, PivotY = HeadY },
@@ -130,7 +147,8 @@ public static class BodyFit
         string name = picture.EndsWith("_lit", StringComparison.Ordinal) ? picture[..^4] : picture;
         if (name == "upperArm" || name.EndsWith("_upperArm", StringComparison.Ordinal))
             return Receivers.Contains(name.Length > 9 ? name[..^9] : "") ? null : Shoulder;
-        return name.EndsWith("_shell", StringComparison.Ordinal) && Fits.TryGetValue(name[..^6], out var fit) ? fit.Fade : null;
+        string? helmet = name.EndsWith("_shell", StringComparison.Ordinal) ? name[..^6] : name.EndsWith("_collar", StringComparison.Ordinal) ? name[..^7] : null;
+        return helmet != null && Fits.TryGetValue(helmet, out var fit) ? fit.Fade : null;
     }
 
     /// <summary>How much of a row <paramref name="y"/> shows, fading from whole at <paramref name="whole"/> to none at <paramref name="none"/>, smoothly.</summary>
