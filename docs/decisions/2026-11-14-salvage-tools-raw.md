@@ -1,6 +1,7 @@
 # Cutter, spear and sledgehammer drawn raw
 
-- Status: accepted; amends the looks of [salvage-tools](2026-11-04-salvage-tools.md)
+- Status: accepted; amends the looks of [salvage-tools](2026-11-04-salvage-tools.md); the cutter's pick superseded by
+  [homemade-cutter](2026-11-14-homemade-cutter.md)
 - Date: 2026-11-14
 
 ## Context

@@ -138,14 +138,14 @@ public sealed record HeldLook(
         Mounts: [new ToolMount("coil", 2, 4, (2, 3.5, 9, 6.5))], Elbow: 0.4, Clamp: (14.5, 7), Size: Drawn);
 
     /// <summary>
-    /// The plasma cutter, <c>art/hero_plasmaCutter.png</c> (salvage-tools; raw, 2026-11-14-raw-tool-pictures), the user's pick: a short
-    /// dark body banded in brass, a copper nozzle, three copper rings on a rail before it; held as the drill is, by its pistol grip, aimed,
-    /// the elbow a little bent; the edge the jet's run through the rings, from the nozzle to the last. Running, the rings' inner faces burn
-    /// violet (<c>hero_plasmaCutter_on.png</c>). No module fits it; its clamp the rail where it leaves the nozzle.
+    /// The plasma cutter, <c>art/hero_plasmaCutter.png</c> (salvage-tools; raw, 2026-11-14-raw-tool-pictures), the user's pick, «Самодельный»:
+    /// a rusted tube on a wooden pistol grip, two copper coils over it, a gas bottle under, green insulators and a copper tip; held as the
+    /// drill is, aimed, the elbow a little bent; the edge from the tip, where the jet leaves. Running, the tip glows white-hot
+    /// (<c>hero_plasmaCutter_on.png</c>). No module fits it; its clamp the tube between the coils' straps.
     /// </summary>
     public static readonly HeldLook PlasmaCutter = new(
-        "res://art/hero_plasmaCutter.png", (4.8, 9.8), 0, (19.9, 5), (29.5, 5), Aimed: true,
-        Spin: ["res://art/hero_plasmaCutter_on.png"], Elbow: 0.4, Clamp: (20.4, 5.2), Size: Drawn);
+        "res://art/hero_plasmaCutter.png", (3.5, 10.5), 0, (31.5, 7.1), (32, 7.1), Aimed: true,
+        Spin: ["res://art/hero_plasmaCutter_on.png"], Elbow: 0.4, Clamp: (13.1, 6.7), Size: Drawn);
 
     /// <summary>
     /// The spear, <c>art/hero_spear.png</c> (salvage-tools; raw, 2026-11-14-raw-tool-pictures), the user's pick, «Телескопическое»: a
