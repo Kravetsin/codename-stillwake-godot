@@ -481,36 +481,43 @@ const stock = (a) => {
   a.shape('M2.2 9.7L6.5 9.7L6.6 10.8L2.1 10.8Z', GUN(), { lite: band(2.2, 9.7, 6.5, 10.1), shade: band(2.1, 10.4, 6.6, 10.8) });
   stud(a, 6.9, 3.6);
 };
-const harpoon = (loaded) => (a) => {
-  stock(a);
-  // The tube: a frame with the spring seen through a long window, the barrel's slot before it.
-  a.shape(rr(7, 1.2, 18.4, 4.8, .4), GUN(), { lite: band(7.2, 1.3, 25.2, 2), shade: band(7, 5.2, 25.4, 6), rim: .22 });
-  a.flat(rr(8, 2.2, 9.4, 2.7, .2), SLOT);
-  for (const x of [8.6, 9.8, 11, 12.2, 13.4, 14.6, 15.8]) { a.flat(poly(x, 2.2, x + .75, 2.2, x + .35, 4.9, x - .4, 4.9), '#a7afbc'); a.flat(poly(x, 2.2, x + .3, 2.2, x - .1, 4.9, x - .4, 4.9), '#d4dae2'); }
-  a.shape(rr(17.6, 1.7, 7, 3.6, .3), STEEL(), { outer: false, lite: band(17.8, 1.8, 24.4, 2.3), spec: band(19, 1.9, 22, 2.15), shade: band(17.6, 4.6, 24.6, 5.3), lines: ['M17.7 1.8L17.7 5.2'] });
-  a.flat(band(17.8, 3.05, 25, 3.95), SLOT);
-  a.shape(rr(24.5, 1.3, 1.2, 4.4, .3), GUN(), { lite: band(24.6, 1.4, 25.6, 2), shade: band(24.5, 4.8, 25.7, 5.7) });
-  a.flat(band(24.5, 3.05, 25.7, 3.95), SLOT);
-  stud(a, 8, 5.5); stud(a, 17.1, 1.8);
-  a.flat('M16.8 5.3L18.2 5.2L18.4 5.9L17.8 6L17 5.9Z', RUST);
-  // The spool of line slung under it, on a stalk: wound by hand, the turns lying crooked.
-  a.shape(rr(19.6, 5.7, 1.6, 1.8, .2), GUN(), { shade: band(19.6, 6.8, 21.2, 7.5) });
-  a.shape(rr(17.2, 7.2, 6.4, 3, 1.1), ROPE, { lite: band(17.6, 7.3, 23.2, 8), shade: band(17.2, 9.3, 23.6, 10.2), lines: ['M18.2 7.3L18.8 10.1', 'M19.2 7.3L19.6 10.2', 'M20.2 7.2L20.8 10.2', 'M21.3 7.3L21.5 10.1', 'M22.3 7.3L22.8 10'] });
-  a.shape(rr(16.6, 7.5, 1, 2.4, .25), DARK(), { lite: band(16.7, 7.6, 17.5, 8) });
-  a.shape(rr(23.2, 7.5, 1, 2.4, .25), DARK(), { lite: band(23.3, 7.6, 24.1, 8) });
-  if (!loaded) return;
-  // Ready: the rod seated in the slot, its head out past the muzzle.
-  a.flat(band(17.8, 3.15, 26, 3.85), '#c4ccd8');
-  a.flat(band(17.8, 3.15, 26, 3.38), '#efe9da');
-  a.shape('M25.8 2.6L27.2 2.6L26.8 1.7L29.8 3.5L26.8 5.3L27.2 4.4L25.8 4.4Z', BLADE, { lite: 'M25.8 2.6L27.2 2.6L26.8 1.7L28.8 2.9L25.8 3.1Z', spec: band(26.4, 2.8, 28, 3.1), shade: 'M25.8 3.7L29.4 3.5L26.8 5.3L27.2 4.4L25.8 4.4Z' });
+// The harpoon, the user's pick of five drawn references («Нынешний, перерисованный»), traced (refs/harpoon.png) with its harpoon
+// mended out: a wooden grip, a steel frame with the spring seen through a long window, a canvas-wrapped bottle under it in two
+// clamps. The harpoon is drawn here, so the gun shows empty, loaded, and the same harpoon in flight.
+/** The harpoon's pictures: the gun 26 × 11, loaded 34 × 11 (the harpoon out past the muzzle); the trace's box fitted along 26. */
+const HARPOON_W = 26, HARPOON_H = 11, HARPOON_LOADED_W = 34;
+/** Where the trace lies in the harpoon's pictures: its scale and offset, and the reference's pixels mapped into them. */
+const harpoonFit = () => {
+  const [x0, y0, x1, y1] = TRACED.harpoon.fit.box, s = (HARPOON_W - 1) / (x1 - x0 + 1);
+  const at = [.5 - x0 * s, (HARPOON_H - (y1 - y0 + 1) * s) / 2 - y0 * s];
+  return { s, at, X: (x) => x * s + at[0], Y: (y) => y * s + at[1] };
 };
-// The rod in flight: the eye the line ties to, tied with copper; a long shaft; barbs (RodLook).
+/** The harpoon's shaft from x0 to its point at tip on the line y, and its head: two tiers of barbs swept back. */
+const harpoonRod = (a, x0, tip, y) => {
+  const h = 1.25, t = .32;
+  a.shape(rr(x0, y - t, tip - 3.6 - x0, 2 * t, .15), STEEL(), { lite: band(x0, y - t, tip - 3.6, y - .08) });
+  const half = (sy) => [[tip, y], [tip - 2.1, y + sy * h], [tip - 1.6, y + sy * t], [tip - 2.3, y + sy * t], [tip - 4.1, y + sy * h * .95], [tip - 3.6, y + sy * t], [tip - 3.8, y + sy * t]];
+  const top = half(-1), bottom = half(1).reverse(), pts = top.concat(bottom.slice(0, -1));
+  a.shape(poly(...pts.flat()), BLADE, { lite: poly(tip, y, tip - 2.1, y - h, tip - 1.6, y - t, tip - 3.8, y - t, tip - 3.8, y), shade: poly(tip, y, tip - 3.8, y, tip - 3.8, y + t, tip - 1.6, y + t, tip - 2.1, y + h) });
+};
+const harpoon = (loaded) => (a) => {
+  const { s, at, X, Y } = harpoonFit();
+  if (loaded) harpoonRod(a, X(1100), X(1500), Y(370));
+  Traced.drawer('harpoon', Traced.placed('harpoon', s, at), TRACED.harpoon.fit.units * s)(a);
+  // The spring's window, too dark for the trace to keep: the slot, the coils seen through it, the plunger before them.
+  const wx0 = X(398), wx1 = X(942), wy0 = Y(355), wy1 = Y(400), win = rr(wx0, wy0, wx1 - wx0, wy1 - wy0, (wy1 - wy0) / 2);
+  a.flat(win, SLOT);
+  for (let x = X(430); x < X(830); x += .95) { a.flat(poly(x, wy0, x + .5, wy0, x + .2, wy1, x - .3, wy1), '#8f97a4', { clip: win }); a.flat(poly(x, wy0, x + .22, wy0, x - .08, wy1, x - .3, wy1), '#c4cad4', { clip: win }); }
+  a.flat(band(X(830), Y(370), X(930), Y(386)), '#a7afbc', { clip: win });
+  a.flat(rr(X(888), Y(360), X(925) - X(888), Y(396) - Y(360), .15), '#c4cad4', { clip: win });
+  a.line(win, { w: 1 });
+};
+// The harpoon in flight (RodLook): the eye the line ties to, tied with copper; the shaft; the head the gun shows loaded.
 const rod = (a) => {
-  a.shape(rr(2.6, 2, 19, 1, .2), STEEL(), { lite: band(2.8, 2, 21.4, 2.4), shade: band(2.6, 2.65, 21.6, 3) });
-  a.shape(ell(2.4, 2.5, 1.7, 1.6), COPPER(), { lite: 'M1.2 1.5C1.8 1 3 1 3.6 1.5L3.2 2.2L1.6 2.2Z', shade: 'M.6 3L4.2 3L4.2 4.2L.6 4.2Z' });
-  a.flat(ell(2.3, 2.5, .6, .55), SLOT);
-  a.line('M4.2 1.7L4.4 3.3M4.8 1.9L5 3.1', { w: 1 });
-  a.shape('M19.8 1.6L21.4 1.6L21 .7L23.8 2.5L21 4.3L21.4 3.4L19.8 3.4Z', BLADE, { lite: 'M19.8 1.6L21.4 1.6L21 .7L23 1.9L19.8 2.1Z', spec: band(20.4, 1.8, 22, 2.1), shade: 'M19.8 2.7L23.4 2.5L21 4.3L21.4 3.4L19.8 3.4Z' });
+  harpoonRod(a, 3.2, 23.6, 2.5);
+  a.shape(ell(2.4, 2.5, 1.5, 1.4), COPPER(), { lite: 'M1.2 1.6C1.8 1.1 3 1.1 3.6 1.6L3.2 2.2L1.6 2.2Z', shade: 'M.8 2.9L4 2.9L4 3.9L.8 3.9Z' });
+  a.flat(ell(2.3, 2.5, .55, .5), SLOT);
+  a.line('M4.2 1.9L4.4 3.1', { w: 1 });
 };
 /** A spur gear face on: n square teeth round a rim of radius r, turned by `turn` of a tooth. */
 const gearPath = (cx, cy, r, n, turn = 0, depth = .5) => {
@@ -860,9 +867,9 @@ Subjects.hero = function () {
   const crop = (c, w, h) => { const o = canvas(w * Px, h * Px); o.getContext('2d').drawImage(c, 0, 0); return o; };
   // A held tool's icon (icons/<its picture>): the same drawing at many pixels a world pixel, so an icon fitted from it stays sharp.
   const icon = (name, pic) => out(`icons/${name}`, bake({ light: LIGHT, ...pic, px: Math.ceil(Anime.ICON_LONG / pic.w) }));
-  out('hero_harpoon', crop(plain(30, 11, harpoon(false)), 26, 11));
-  icon('hero_harpoon', { w: 26, h: 11, draw: harpoon(false) });
-  out('hero_harpoon_loaded', plain(30, 11, harpoon(true)));
+  out('hero_harpoon', plain(HARPOON_W, HARPOON_H, harpoon(false)));
+  icon('hero_harpoon', { w: HARPOON_W, h: HARPOON_H, draw: harpoon(false) });
+  out('hero_harpoon_loaded', plain(HARPOON_LOADED_W, HARPOON_H, harpoon(true)));
   out('hero_harpoon_rod', plain(24, 5, rod));
   out('hero_grapple', crop(plain(33, 11, grapple(false)), 28, 11));
   icon('hero_grapple', { w: 28, h: 11, draw: grapple(false) });
