@@ -1,7 +1,8 @@
 # A tool hits by a fan of rays from the shoulder and shows its reach in use
 
 - Status: accepted; supersedes the swept blade of [melee-edge](2026-11-05-melee-edge.md), the drawn edge of
-  [tool-edge](2026-11-05-tool-edge.md) for the drill and grinder, and the swing's "flicks" of [damage-looks](2026-11-05-damage-looks.md)
+  [tool-edge](2026-11-05-tool-edge.md) for the drill and grinder, and the swing's "flicks" of [damage-looks](2026-11-05-damage-looks.md);
+  its grinder haze superseded by [grinder-contact](2026-11-14-grinder-contact.md)
 - Date: 2026-11-05
 
 ## Context

@@ -1,6 +1,6 @@
 # Damage and work drawn in ink
 
-- Status: accepted
+- Status: accepted; where the grinder's sparks start, superseded by [grinder-contact](2026-11-14-grinder-contact.md)
 - Date: 2026-11-05
 
 ## Context

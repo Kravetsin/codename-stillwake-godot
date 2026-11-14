@@ -248,7 +248,7 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [build-from-crates](2026-11-05-build-from-crates.md) | Building, pipes and cables pay from every crate on the ship | accepted |  |
 | [build-hints](2026-11-05-build-hints.md) | Build hints: a screen of key caps that changes with the hand | accepted |  |
 | [craft-from-crates](2026-11-05-craft-from-crates.md) | A paid craft takes from every crate on the ship | accepted |  |
-| [damage-looks](2026-11-05-damage-looks.md) | Damage and work drawn in ink | accepted | tool-reach, cracks-to-end (in part) |
+| [damage-looks](2026-11-05-damage-looks.md) | Damage and work drawn in ink | accepted | tool-reach, cracks-to-end, grinder-contact (in part) |
 | [hologram-keys](2026-11-05-hologram-keys.md) | The edge's keys are holograms of what can be used, and the bulb bursts at the screen's top | accepted | edge-flash (in part) |
 | [melee-edge](2026-11-05-melee-edge.md) | A stroke hits with its swept blade | accepted | tool-reach (in part) |
 | [the-board](2026-11-05-the-board.md) | Things are learned by having them, on the scavenger's board | accepted | one-to-understand (in part) |
@@ -256,7 +256,7 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [tip-signs](2026-11-05-tip-signs.md) | Tips speak in signs and the bubble's numbers | accepted |  |
 | [tool-contact](2026-11-05-tool-contact.md) | A running tool is seen at work all along | accepted | damage-looks, tool-edge (in part) |
 | [tool-edge](2026-11-05-tool-edge.md) | A running tool hits with what is drawn | accepted | tool-reach (in part) |
-| [tool-reach](2026-11-05-tool-reach.md) | A tool hits by a fan of rays from the shoulder and shows its reach in use | accepted | hits-pass-wrecks, blade-trail, tool-size (in part) |
+| [tool-reach](2026-11-05-tool-reach.md) | A tool hits by a fan of rays from the shoulder and shows its reach in use | accepted | hits-pass-wrecks, blade-trail, tool-size, grinder-contact (in part) |
 | [creatures-in-herds](2026-11-06-creatures-in-herds.md) | Wild creatures come in small herds of one kind | accepted |  |
 | [energy-ring](2026-11-06-energy-ring.md) | The energy tab's ring and beating bolt | accepted | hud-vitals (in part) |
 | [gain-spots](2026-11-06-gain-spots.md) | What a hero gains, counted beside where it came from | accepted |  |
@@ -347,6 +347,7 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [food-and-gear-cards](2026-11-14-food-and-gear-cards.md) | Food and gear cards list what they guarantee, and food sells | accepted |  |
 | [frost-film](2026-11-14-frost-film.md) | Frost: the cold drawn as uneven ice with no edge | accepted |  |
 | [grapple-and-nailer-traced](2026-11-14-grapple-and-nailer-traced.md) | The grappling gun and the nailer traced from picked references | accepted | raw-tool-pictures (in part) |
+| [grinder-contact](2026-11-14-grinder-contact.md) | The grinder's sparks leave its haze's rim where it comes out of a wreck | accepted |  |
 | [grinder-redrawn](2026-11-14-grinder-redrawn.md) | The grinder drawn raw from a picked reference, its wheel spun in code | accepted |  |
 | [heat-limits](2026-11-14-heat-limits.md) | Heat: the other side of the degrees | accepted |  |
 | [helmets-fit-the-suit](2026-11-14-helmets-fit-the-suit.md) | Helmets fit the suit, each turning its own way | accepted |  |

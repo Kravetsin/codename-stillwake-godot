@@ -60,9 +60,6 @@ public partial class ReachAir : Node2D
         AddChild(_haze = new ReachAir(_trail));
     }
 
-    /// <summary>The haze round a running grinder's wheel, this far either side of its hub, in pixels.</summary>
-    private const double WheelRound = 11;
-
     private readonly System.Collections.Generic.List<(double X, double Y)> _shape = [];
 
     /// <summary>
@@ -82,7 +79,7 @@ public partial class ReachAir : Node2D
 
     private (AirCuts.Zone Zone, double On)? _working;
 
-    // A running wheel bends the air round it; a bit and a thrust show nothing of their own (model-reach).
+    // A running wheel bends the air round it, its working circle (grinder-contact); a bit and a thrust show nothing of their own.
     private void Wheel()
     {
         if (_working is not ({ Disc: true } zone, var on)) return;
@@ -90,12 +87,12 @@ public partial class ReachAir : Node2D
         _shape.Clear();
         for (int i = 0; i < 16; i++)
         {
-            double a = i * System.Math.PI / 8, along = System.Math.Cos(a) * WheelRound, across = System.Math.Sin(a) * WheelRound;
+            double a = i * System.Math.PI / 8, along = System.Math.Cos(a) * zone.Size, across = System.Math.Sin(a) * zone.Size;
             _shape.Add((zone.At.X + dx * along - dy * across, zone.At.Y + dy * along + dx * across));
         }
         // A haze has no edge: it fades over half its radius.
         float was = _ink.Feather;
-        _ink.Feather = (float)(WheelRound * 0.5);
+        _ink.Feather = (float)(zone.Size * 0.5);
         _ink.Fill(_shape, zone.At, Bend.Faded((float)on));
         _ink.Feather = was;
     }

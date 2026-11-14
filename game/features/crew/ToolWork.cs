@@ -15,10 +15,11 @@ public partial class ToolWork : Node2D
 {
     /// <summary>
     /// One hero's tool this frame: from its nozzle, where its edge begins, in the world's pixels, to where it works, the way it points, how what it touches looks hit
-    /// (none while it touches nothing), the floor its chips fall to, and where it touches each wreck it touches, by id.
+    /// (none while it touches nothing), the floor its chips fall to, and where it touches each wreck it touches, by id; a running
+    /// grinder's working circle and, for each of those wrecks in order, where its rim leaves it (grinder-contact).
     /// </summary>
     public readonly record struct Seen(int Hero, string Tool, Vector2 From, Vector2 At, Vector2 Way, HitLook? Look, double? Floor,
-        IReadOnlyList<(int Piece, Vector2 At)> Wrecks);
+        IReadOnlyList<(int Piece, Vector2 At)> Wrecks, WheelContact.Circle? Wheel = null, IReadOnlyList<IReadOnlyList<WheelContact.Exit>>? Exits = null);
 
     private readonly Dictionary<int, StrikeTrain> _trains = new();
     private readonly List<Seen> _jets = new();
@@ -52,7 +53,11 @@ public partial class ToolWork : Node2D
             if (s.Tool == Content.Weapons.PlasmaCutter.Item) _jets.Add(s);
             // Back out of the face toward the tool: the way it points, as its muzzle may be pressed right on it.
             var back = -s.Way;
-            foreach (var (piece, at) in s.Wrecks) _sparks.Touch((s.Hero, piece), s.Tool, (at.X, at.Y), (back.X, back.Y), elapsedMs);
+            for (int i = 0; i < s.Wrecks.Count; i++)
+            {
+                var (piece, at) = s.Wrecks[i];
+                _sparks.Touch((s.Hero, piece), s.Tool, (at.X, at.Y), (back.X, back.Y), elapsedMs, s.Wheel, s.Exits?[i]);
+            }
             if (s.Look is not { } look || look == wreck) continue;
             _working.Add(s.Hero);
             var train = _trains.GetValueOrDefault(s.Hero);
