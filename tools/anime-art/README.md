@@ -75,8 +75,8 @@ A picked AI-made reference is traced for its **form**; the line, paint and water
 
 - `refs/<name>.png` and `.palette.json`: its colours (`ref`) and our paint (`mat`); `single`: one part, `overlay`: patches,
   `mend`: repainted first, `holes`: left open; `pieces`: a sheet's boxes, each traced to `traced/<name>.<piece>.json`.
-- `node tools/anime-art/trace.js <name>` (ffmpeg) cuts it by its own ink into beziers, `traced/<name>.json`, committed: export
-  draws from that, never the reference. `traced.js` places and paints them.
+- `node tools/anime-art/trace.js <name>` (ffmpeg) cuts it by its ink into beziers, `traced/<name>.json`, committed: export
+  draws from that, never the reference. `traced.js` places, straightens, paints them.
 - AI-made work ships: say so in Steam's AI disclosure.
 
 ## Add a subject

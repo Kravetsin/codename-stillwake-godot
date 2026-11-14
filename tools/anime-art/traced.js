@@ -50,6 +50,52 @@ function into(name, box) {
   return { s, at: [box[0] - x0 * s[0], box[1] - y0 * s[1]] };
 }
 
+/** A path's every point [x, y] passed through f: the tracer writes only absolute M, C and Z, so its numbers come in pairs. */
+const warpPath = (d, f) => {
+  const n = (d.match(/-?\d*\.?\d+/g) || []).map(Number), out = [];
+  for (let i = 0; i + 1 < n.length; i += 2) out.push(...f(n[i], n[i + 1]));
+  let k = 0;
+  return d.replace(/-?\d*\.?\d+/g, () => String(+out[k++].toFixed(3)));
+};
+
+/**
+ * Placed ops stretched row by row so the piece's outline runs straight down box's sides ([x0, y0, x1, y1], the picture's units):
+ * each row's span, the shapes' union measured drawn and smoothed over `smooth` units so quilting's bumps stay, moved toward the
+ * box's sides by k, or toward `left` and `right` instead (null leaves that side). Only rows between `from` and `to` (shares of the box's height) move, easing in and out over `ramp`.
+ */
+function straighten(ops, box, { k = 1, from = 0, to = 1, ramp = 0.08, smooth = 2, left = box[0], right = box[2] } = {}) {
+  const [x0, y0, x1, y1] = box, R = 16, pad = 4, W = Math.ceil((x1 - x0 + 2 * pad) * R), H = Math.ceil((y1 - y0 + 2 * pad) * R);
+  const c = Anime.canvas(W, H), g = c.getContext('2d');
+  g.setTransform(R, 0, 0, R, (pad - x0) * R, (pad - y0) * R);
+  for (const o of ops) if (o.op === 'shape' || o.op === 'flat') g.fill(new Path2D(o.d));
+  const data = g.getImageData(0, 0, W, H).data, rows = [];
+  for (let j = 0; j < H; j++) {
+    let l = -1, r = -1;
+    for (let i = 0; i < W; i++) if (data[(j * W + i) * 4 + 3] > 127) { if (l < 0) l = i; r = i; }
+    rows.push(l < 0 ? null : [l / R + x0 - pad, (r + 1) / R + x0 - pad]);
+  }
+  const half = Math.round(smooth * R / 2), span = rows.map((_, j) => {
+    let l = 0, r = 0, n = 0;
+    for (let i = j - half; i <= j + half; i++) if (rows[i]) { l += rows[i][0]; r += rows[i][1]; n++; }
+    return n ? [l / n, r / n] : null;
+  });
+  const spanAt = (y) => {
+    const j = Math.max(0, Math.min(H - 1, Math.round((y - y0 + pad) * R)));
+    for (let o = 0; o < H; o++) for (const i of [j - o, j + o]) if (span[i]) return span[i];
+    return [x0, x1];
+  };
+  const ease = (t) => t * t * (3 - 2 * t), clamp = (t) => Math.max(0, Math.min(1, t));
+  const weight = (y) => {
+    const t = (y - y0) / (y1 - y0);
+    return k * ease(clamp((t - from) / ramp + 0.5)) * ease(clamp((to - t) / ramp + 0.5));
+  };
+  const f = (x, y) => {
+    const [l, r] = spanAt(y), w = weight(y), L = left == null ? l : l + w * (left - l), Rr = right == null ? r : r + w * (right - r);
+    return [L + (x - l) * (Rr - L) / Math.max(1e-6, r - l), y];
+  };
+  return ops.map((o) => ({ ...o, d: warpPath(o.d, f), lite: (o.lite || []).map((d) => warpPath(d, f)) }));
+}
+
 /** Where a traced piece of headgear sits on the head (hero.js's 13 × 12 box, in its pixels): its fit box head.height tall, its right edge at head.right, its top at head.top. */
 function onHead(name, head) {
   const [x0, y0, x1, y1] = TRACED[name].fit.box, s = head.height / (y1 - y0 + 1);
@@ -86,5 +132,5 @@ function upperHull(name, head) {
   return hull;
 }
 
-window.Traced = { placed, drawer, icon, into, onHead, crown };
+window.Traced = { placed, drawer, icon, into, straighten, onHead, crown };
 })();
