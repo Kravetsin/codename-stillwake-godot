@@ -77,8 +77,8 @@ public interface ICrewQueries
     int EdgeCost(int cell);
     /// <summary>
     /// <paramref name="cell"/>'s temperature in degrees (2026-11-14-temperature-in-degrees): <c>Temperature.Space</c> off the grid,
-    /// <c>Temperature.Room</c> aired, else the surface kind's for the cell's depth band, its top band <c>SkyNow.Chill</c> colder
-    /// where the cell has no back wall.
+    /// <c>Temperature.Room</c> aired; afloat <c>Temperature.Hull</c> by the ship to space's at the field's line; on a planet its
+    /// depth's (<c>Terrain.TemperatureOf</c>), the top band <c>SkyNow.Chill</c> colder where the cell has no back wall.
     /// </summary>
     int TemperatureAt(int cell);
     /// <summary>
@@ -529,10 +529,26 @@ public sealed partial class CrewModule : Module<CrewState>, ICrewQueries, ICrewO
         int width = _grid.Width;
         if (cell < 0 || cell >= width * _grid.Height) return Content.Temperature.Space;
         if (_air.AiredAt(cell)) return Content.Temperature.Room;
-        int band = Rules is Content.PlanetType planet ? Terrain.BandOf(planet, cell / width) : 0;
-        int degrees = Rules.Temperatures[band];
+        int row = cell / width;
+        int degrees = Rules is Content.PlanetType planet ? Terrain.TemperatureOf(planet, row) : Rules.Floats ? Afloat(cell) : Rules.Temperatures[0];
+        bool top = Rules is not Content.PlanetType deep || Terrain.BandOf(deep, row) == 0;
         // Night reaches only the top band, and only under the open sky (night-chills): a cave deeper down never feels it.
-        return band == 0 && _grid.BackAt(cell) == null ? degrees - _sky.Now.Chill : degrees;
+        return top && _grid.BackAt(cell) == null ? degrees - _sky.Now.Chill : degrees;
+    }
+
+    /// <summary>
+    /// An airless cell's degrees afloat: <c>Temperature.Hull</c> in the zone and a vessel's box, falling straight to the kind's own
+    /// (space's −40°) at the field's line, <c>Field.Margin</c> cells out by the farther axis, and holding past it; rounded toward the
+    /// warmer. Past the line the edge's cold (<see cref="EdgeCost"/>) is what bites a suited hero, not the degrees.
+    /// </summary>
+    private int Afloat(int cell)
+    {
+        int width = _grid.Width, x = cell % width, y = cell / width;
+        var zone = _grid.Zone;
+        int beyond = _grid.Reserved is { } vessel && vessel.Contains(x, y) ? 0
+            : Math.Max(Math.Max(zone.Left - x, x - zone.Right), Math.Max(zone.Top - y, y - zone.Bottom));
+        int far = Rules.Temperatures[0], near = Content.Temperature.Hull;
+        return near + (far - near) * Math.Clamp(beyond, 0, Content.Field.Margin) / Content.Field.Margin;
     }
 
     public int LowOf(int peer)

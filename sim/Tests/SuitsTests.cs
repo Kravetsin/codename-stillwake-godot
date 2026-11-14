@@ -32,8 +32,8 @@ public class SuitsTests
         """;
 
     private static readonly int Lungs = Content.Crew.Lungs, Full = Scenario.Full;
-    // Space's cold felt bare (2026-11-14-temperature-in-degrees), and what it costs over five breaths: whole units, whatever the clock.
-    private static readonly int Felt = Content.Temperature.BareLow - Content.Temperature.Space, Cold5 = 5 * Felt * Content.Temperature.Bite / 1000;
+    // The cold by the hull felt bare (2026-11-14-temperature-in-degrees), and what it costs over five breaths: whole units, whatever the clock.
+    private static readonly int Felt = Content.Temperature.BareLow - Content.Temperature.Hull, Cold5 = 5 * Felt * Content.Temperature.Bite / 1000;
     private static readonly int HeadSlot = SlotOf(Content.Helmet.Slot), BodySlot = SlotOf(Content.Suit.Slot);
     private static int SlotOf(string kind) => Content.Inventory.Slots + Content.Inventory.Equipment.ToList().IndexOf(kind);
     private static string Helmet => Content.Helmet.Basic;

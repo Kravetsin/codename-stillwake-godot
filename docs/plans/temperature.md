@@ -26,7 +26,8 @@ nothing per frame):
 - an aired cell (`AiredAt`): `Temperature.Room`, at any depth and on any surface;
 - on a planet (`Rules` is a `PlanetType`): its `Temperatures[Terrain.BandOf(type, row)]`; in band 0 only, a cell with no back
   wall is `SkyNow.Chill` degrees colder (0 by day). Deeper bands never feel the night;
-- aboard: `Temperature.Space` everywhere on the grid.
+- aboard: `Temperature.Space` everywhere on the grid (since: `Temperature.Hull`, −20°, in the zone, to −40° at the field's line,
+  and a planet's bands smooth between their middles: [temperature-gradients](../decisions/2026-11-14-temperature-gradients.md)).
 
 The pod's reach is not warm: it gives the breath air, not heat, as today, where a bare hero by it pays the bare cold.
 
