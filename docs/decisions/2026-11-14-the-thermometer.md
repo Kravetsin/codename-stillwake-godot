@@ -1,4 +1,4 @@
-# The thermometer: a frost star and the degrees, right of the meals
+# The thermometer: a frost star and the degrees, a row under the charge
 
 - Status: accepted
 - Date: 2026-11-14
@@ -18,13 +18,16 @@ flight out, the user picked B, "number only", on 2026-11-14 over:
 
 ## Decision
 
-- **Place:** right of the three meal slots, on their row: the sign centred at (124, 99) block units, the number from 134
-  (`Vitals.ColdX`, `ColdY`, `ColdText`). It scales with the block.
+- **Place:** a row of its own under the charge, over the meals: the star in the signs' column, the number where the rows'
+  pieces start (`Vitals.ColdY`, 82 block units). The air and the charge rows went up 23 and 24 units for it (`AirY` 19, `ChargeY` 56),
+  so the block is that much taller. The user moved it there from beside the meals after trying it in the game.
 - **Sign:** a six-armed frost star of pale ice light, a small fork on each arm (`sign_cold`, `tools/anime-art/subjects/signs.js`),
-  at the oxygen sign's size, never tinted.
+  as large as the oxygen sign, never tinted; the number at 14, larger than the pieces are tall.
 - **Number:** the degrees at the hero's body, a true minus, a plus above zero (`Thermometers.Reading`: −50°, 0°, +20°), in the
-  mono face. Calm pale inside the limit. Past it, frost-blue, from light to deep as the frost deepens (`Thermometers.Frost`,
-  felt over 30 eased as the screen's frost), with a faint glow behind it.
+  mono face. A new reading is glided to, eased out, through the whole degrees between (`Thermometers.Glide`, some 1.4 s
+  for 60°): the user found a jump from +20° straight to −40° on stepping into space odd. The sim stays in whole degrees; only
+  the drawing glides, and the frost-blue follows the number shown. Calm pale inside the limit. Past it, frost-blue, from
+  light to deep as the frost deepens (`Thermometers.Frost`, felt over 30 eased as the screen's frost), a faint glow behind.
 - **Past the limit, on the sign:** a cold light behind it, and rime creeping in from its edge, more and longer strokes the deeper
   the frost, laid over the sign.
 - **Hover:** the reading, and «Выдерживает до −40°», the hero's own limit; red while the cold is felt.

@@ -118,7 +118,7 @@ This hero and others', client-authoritative (0002): only commands reach the sim.
   Shift hauls in along the tether's bends (`Wraps`); a jetpack unties, Shift thrusts, `Thrust` sent if unlike the sim's.
 - **A canister** (0047, 0081): RMB or R sends `Refill`, V `SuitMode` (regen-suit) if taken. Cooling greys the O₂ sign
   in a sweeping ring; too soon, red (canister-mark).
-- **Meals:** a food right-clicked sends `Eat`, chewing heard; refused, its slots blink (hud-vitals). **Degrees** beside them (the-thermometer).
+- **Meals:** a food right-clicked sends `Eat`, chewing heard; refused, its slots blink (hud-vitals). **Degrees** over them (the-thermometer).
 - **The crew module:** made at `Spawn`; passed out: no orders, lies at the sim's cell, takes none (0061). `Enter` goes when the sim's room or field side
   differ, every `Crew.ReportEvery` ticks off its cell, each tick if threatened; none out (0050); a closed link's host: `Leave`.
 - **Dressed as worn**: helmet, body, hair, clothes, lamp; the colour on the shin; a switched body lit by

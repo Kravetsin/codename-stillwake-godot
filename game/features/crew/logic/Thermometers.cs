@@ -1,3 +1,4 @@
+using System;
 using Stillwake.Game.Shared;
 using Stillwake.Sim.Crew;
 using static Stillwake.Game.I18n.En;
@@ -14,7 +15,24 @@ public static class Thermometers
     public static (int Degrees, int Low, int Felt) Read(ICrewQueries crew, int peer, int cell) => (crew.TemperatureAt(cell), crew.LowOf(peer), crew.Felt(peer, cell));
 
     /// <summary>How deep the reading's frost is, 0 to 1: the degrees <paramref name="felt"/>, eased as the screen's frost is (<see cref="Report.Cold"/>).</summary>
-    public static float Frost(int felt) => Report.Eased((float)felt / Report.FeltFull);
+    public static float Frost(float felt) => Report.Eased(felt / Report.FeltFull);
+
+    /// <summary>The seconds in which the shown reading closes about two thirds of its way to the sim's (<see cref="Glide"/>).</summary>
+    public const double GlideS = 0.3;
+
+    /// <summary>
+    /// The reading shown <paramref name="delta"/> seconds on from <paramref name="shown"/>: it glides to the sim's whole
+    /// <paramref name="degrees"/>, eased out, so stepping from the ship's +20° into space passes the degrees between (some
+    /// 1.4 s for 60°), and settles on them once within half a degree.
+    /// </summary>
+    public static float Glide(float shown, int degrees, double delta)
+    {
+        float left = degrees - shown;
+        return Math.Abs(left) < 0.5f ? degrees : shown + left * (float)(1 - Math.Exp(-delta / GlideS));
+    }
+
+    /// <summary>A glided reading as it is drawn: the nearest whole degree.</summary>
+    public static int Shown(float shown) => (int)MathF.Round(shown, MidpointRounding.AwayFromZero);
 
     /// <summary>The reading as it is drawn: a true minus below zero, a plus above it, the degree sign: −50°, 0°, +20°.</summary>
     public static string Reading(int degrees) => (degrees > 0 ? "+" : "") + ItemCards.Degrees(degrees) + "°";

@@ -29,6 +29,26 @@ public class ThermometerTests
     }
 
     [Fact]
+    public void ItGlidesToANewReadingThroughTheDegreesBetweenAndSettlesOnIt()
+    {
+        // Out of the ship into space: +20° to −40°, a frame at a time.
+        float shown = 20;
+        var seen = new System.Collections.Generic.List<int>();
+        double seconds = 0;
+        while (shown != -40 && seconds < 5)
+        {
+            shown = Thermometers.Glide(shown, -40, 1 / 60.0);
+            seconds += 1 / 60.0;
+            seen.Add(Thermometers.Shown(shown));
+        }
+        Assert.Equal(-40f, shown);
+        Assert.InRange(seconds, 1, 2);
+        Assert.True(seen.Distinct().Count() > 30, $"it passes the degrees between: {seen.Distinct().Count()} shown");
+        Assert.Equal(seen.OrderByDescending(d => d), seen);
+        Assert.Equal(-40f, Thermometers.Glide(-40, -40, 1 / 60.0));
+    }
+
+    [Fact]
     public void ItsHoverSaysTheReadingAndTheLimitRedOnlyWhileTheColdIsFelt()
     {
         var past = Thermometers.Tip(-50, -40, 10);
