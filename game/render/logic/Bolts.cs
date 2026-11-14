@@ -27,7 +27,7 @@ public sealed record BoltTint((int R, int G, int B) Core, (int R, int G, int B) 
 /// rolled anew, alive <see cref="Life"/> of them. Its shape is kept along and across the line between its ends, a share
 /// of its length, so a held arc stays on ends that move: the drill swinging, a lamp's socket.
 /// </summary>
-public sealed class Bolt(BoltEnds ends, int life, double intensity, double width, bool branchy, bool fine = false, BoltTint? tint = null)
+public sealed class Bolt(BoltEnds ends, int life, double intensity, double width, bool branchy, bool fine = false, BoltTint? tint = null, bool steady = false)
 {
     public BoltEnds Ends { get; } = ends;
     /// <summary>Its life and age, in 60 Hz frames.</summary>
@@ -45,6 +45,13 @@ public sealed class Bolt(BoltEnds ends, int life, double intensity, double width
     public bool Fine { get; } = fine;
     /// <summary>Its colours: the cyan of every arc but the arc module's violet (0086).</summary>
     public BoltTint Tint { get; } = tint ?? BoltTint.Cyan;
+    /// <summary>
+    /// A steady arc (spear-effects): its shape rolled once and held its whole life, fading out over it; a piece of arc torn off a
+    /// moving weapon, left where it tore.
+    /// </summary>
+    public bool Steady { get; } = steady;
+    /// <summary>How bright it is now: its <see cref="Intensity"/>, a steady arc's fading with its age.</summary>
+    public double Brightness => Steady ? Intensity * (1 - (double)Age / Life) : Intensity;
     /// <summary>Its line, then each branch's, as (along, across) shares of its length; <see cref="Runs"/> says where each starts.</summary>
     internal readonly List<(double U, double V)> Shape = [];
     internal readonly List<int> Runs = [];
@@ -119,10 +126,10 @@ public sealed class Bolts(Func<double>? random = null)
     public IReadOnlyList<Bolt> Live => _live;
 
     /// <summary>A new arc along <paramref name="ends"/> for <paramref name="life"/> 60 Hz frames, its shape rolled now; null past the limit.</summary>
-    public Bolt? Add(BoltEnds ends, int life, double intensity = 1, double width = 1, bool branchy = false, bool fine = false, BoltTint? tint = null)
+    public Bolt? Add(BoltEnds ends, int life, double intensity = 1, double width = 1, bool branchy = false, bool fine = false, BoltTint? tint = null, bool steady = false)
     {
         if (_live.Count >= Limit) return null;
-        var bolt = new Bolt(ends, Math.Max(1, life), intensity, width, branchy, fine, tint);
+        var bolt = new Bolt(ends, Math.Max(1, life), intensity, width, branchy, fine, tint, steady);
         Roll(bolt);
         _live.Add(bolt);
         return bolt;
@@ -145,7 +152,7 @@ public sealed class Bolts(Func<double>? random = null)
                     _live[i] = _live[^1];
                     _live.RemoveAt(_live.Count - 1);
                 }
-                else if (b.Fine || b.Age % Hold == 0) Roll(b);
+                else if (!b.Steady && (b.Fine || b.Age % Hold == 0)) Roll(b);
             }
     }
 

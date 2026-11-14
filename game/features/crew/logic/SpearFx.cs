@@ -61,10 +61,20 @@ public static class SpearFx
     }
 
     /// <summary>How long a charge takes down the cable standing, and how much a full run cuts off; how much of the cable it lights.</summary>
-    public const double PassMs = 380, PassRun = 160, ChargeLength = 0.16;
+    public const double PassMs = 1100, PassRun = 550, ChargeLength = 0.12;
     /// <summary>How many charges roll down the cable at once, each a share of a pass behind the last; a pass's chance of none.</summary>
-    public const int ChargeLanes = 3;
+    public const int ChargeLanes = 2;
     public const double Skipped = 0.2;
+    /// <summary>How often a charge lays a piece of arc over its stretch, ms, and how many 60 Hz frames one fades over.</summary>
+    public const double ChargeEveryMs = 90;
+    public const int ChargeLife = 8;
+
+    /// <summary>
+    /// Pieces of arc torn off the blade a second as it moves fully, from the share of the cable the blade begins at on; how long
+    /// one is, pixels of the world, and how many 60 Hz frames it fades over.
+    /// </summary>
+    public const double TearsPerSecond = 40, TearFrom = 0.66;
+    public static readonly (double From, double To) TearPx = (2.5, 5), TearLife = (9, 16);
 
     /// <summary>How many passes down the cable <paramref name="elapsedMs"/> makes, the hero running by <paramref name="run"/> (0 to 1).</summary>
     public static double PassesIn(double elapsedMs, double run) => elapsedMs / (PassMs - PassRun * Math.Clamp(run, 0, 1));

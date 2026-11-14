@@ -56,7 +56,7 @@ public partial class SpearLight : Node2D
     private readonly List<(double X, double Y)> _slice = [];
     private readonly (double X, double Y)[] _points = new (double, double)[64];
     private Rect2 _box;
-    private double _rollMs, _passes;
+    private double _rollMs, _passes, _chargeMs, _tears;
     private Func<(double X, double Y), Vector2>? _held;
     private readonly Func<(double X, double Y), (double X, double Y)> _inWorld;
 
@@ -88,16 +88,19 @@ public partial class SpearLight : Node2D
         if (held == null || !arc) return;
         _passes += SpearFx.PassesIn(elapsedMs, run);
         if (jabMs is { } jab && SpearFx.JabAt(jab) is { } j) Jab(j, held, stage, roll);
-        Charges(held, stage, roll);
-        if (roll) Wake(held, stage.Bolts);
+        Charges(held, stage, elapsedMs, roll);
+        Tear(held, stage.Bolts, elapsedMs);
     }
 
     /// <summary>
-    /// The charges rolling down the cable all the while: an arc over the stretch each lights, a glow at its head, and off the
-    /// point, as it leaves, a spark of an arc into the air.
+    /// The charges rolling down the cable all the while: a glow at each one's head, and pieces of arc over the stretch it lights,
+    /// each held and fading where it was laid, so a charge leaves a few dying pieces behind it; off the point, a spark of one.
     /// </summary>
-    private void Charges(Func<(double X, double Y), Vector2> held, Stage stage, bool roll)
+    private void Charges(Func<(double X, double Y), Vector2> held, Stage stage, double elapsedMs, bool roll)
     {
+        _chargeMs += elapsedMs;
+        bool lay = _chargeMs >= SpearFx.ChargeEveryMs;
+        if (lay) _chargeMs %= SpearFx.ChargeEveryMs;
         for (int lane = 0; lane < SpearFx.ChargeLanes; lane++)
         {
             if (SpearFx.ChargeAt(lane, _passes) is not var (head, alpha)) continue;
@@ -107,39 +110,43 @@ public partial class SpearLight : Node2D
                 var at = held(SpearFx.Along(head));
                 stage.Flares.Bloom(at.X, at.Y, 5, Tint, 0.45 * a);
                 stage.Flares.Bloom(at.X, at.Y, 1.6, Core, 0.8 * a);
-                if (roll) stage.Bolts.Add(Along(held, Math.Max(0, head - SpearFx.ChargeLength), head), 2, a, 0.9, tint: BoltTint.Violet);
+                if (lay) stage.Bolts.Add(Along(held, Math.Max(0, head - SpearFx.ChargeLength), head), SpearFx.ChargeLife, a, 0.8, tint: BoltTint.Violet, steady: true);
             }
-            else if (roll) Spit(held, stage.Bolts, a, 0.6);
+            else if (roll && _random.NextDouble() < 0.3) Spit(held, stage.Bolts, a);
         }
     }
 
     /// <summary>
-    /// Lightning off the moving blade to where its points were a moment ago, branching; and now and then an arc leaping off its
-    /// edge into the air. Nothing off a blade at rest.
+    /// Pieces of arc torn off the moving blade, faster the harder it moves: each a short crooked arc left in the world where it
+    /// tore, trailing back from the way the blade goes, fading. Nothing off a blade at rest.
     /// </summary>
-    private void Wake(Func<(double X, double Y), Vector2> held, Bolts bolts)
+    private void Tear(Func<(double X, double Y), Vector2> held, Bolts bolts, double elapsedMs)
     {
         double s = _wake.Strength;
-        if (s <= 0.05) return;
-        for (int i = 0; i < SpearWake.Points.Length; i++)
-            foreach (var (lagMs, share) in Lags)
-                if (_wake.Behind(i, lagMs) is { } was)
-                {
-                    var from = SpearWake.Points[i].At;
-                    bolts.Add(() => { var a = held(from); return (a.X, a.Y, was.X, was.Y, 0.2); }, 2, s * share * SpearWake.Points[i].Weight * Fx.Glow, 0.8, branchy: true, tint: BoltTint.Violet);
-                }
-        if (_random.NextDouble() < 0.5 * s) Spit(held, bolts, s, 1);
+        if (s <= 0.05)
+        {
+            _tears = 0;
+            return;
+        }
+        var (hx, hy) = _wake.Heading;
+        for (_tears += SpearFx.TearsPerSecond * s * elapsedMs / 1000; _tears >= 1; _tears--)
+        {
+            var at = held(SpearFx.Along(SpearFx.TearFrom + (1 - SpearFx.TearFrom) * _random.NextDouble()));
+            double turn = Math.Atan2(-hy, -hx) + (_random.NextDouble() - 0.5) * 1.6, l = Between(SpearFx.TearPx);
+            double x0 = at.X + (_random.NextDouble() - 0.5) * 2, y0 = at.Y + (_random.NextDouble() - 0.5) * 2;
+            double x1 = x0 + Math.Cos(turn) * l, y1 = y0 + Math.Sin(turn) * l;
+            bolts.Add(() => (x0, y0, x1, y1, 0.25), (int)Between(SpearFx.TearLife), 0.55 + 0.45 * s, 0.7, branchy: _random.NextDouble() < 0.25, tint: BoltTint.Violet, steady: true);
+        }
     }
 
-    /// <summary>How far back the wake's lightning reaches, ms, and how bright each reach is.</summary>
-    private static readonly (double Ms, double Share)[] Lags = [(55, 1), (110, 0.6)];
+    private double Between((double From, double To) range) => range.From + (range.To - range.From) * _random.NextDouble();
 
-    /// <summary>An arc leaping off the blade's last stretch into the air, out of either edge, <paramref name="far"/> times a few pixels long.</summary>
-    private void Spit(Func<(double X, double Y), Vector2> held, Bolts bolts, double intensity, double far)
+    /// <summary>A piece of arc leaping off the point into the air, out of either edge, held and fading.</summary>
+    private void Spit(Func<(double X, double Y), Vector2> held, Bolts bolts, double intensity)
     {
-        var from = SpearFx.Along(0.8 + 0.2 * _random.NextDouble());
-        double a = (_random.NextDouble() < 0.5 ? -1 : 1) * Math.PI * (0.25 + 0.4 * _random.NextDouble()), l = far * (2 + 3 * _random.NextDouble()) / HeldLook.Spear.Size;
-        bolts.Add(Ends(held, from, (from.X + Math.Cos(a) * l, from.Y + Math.Sin(a) * l), 0.3), 2, intensity, 0.6, tint: BoltTint.Violet);
+        var from = SpearFx.Along(0.85 + 0.15 * _random.NextDouble());
+        double a = (_random.NextDouble() < 0.5 ? -1 : 1) * Math.PI * (0.25 + 0.4 * _random.NextDouble()), l = Between(SpearFx.TearPx) / HeldLook.Spear.Size;
+        bolts.Add(Ends(held, from, (from.X + Math.Cos(a) * l, from.Y + Math.Sin(a) * l), 0.3), SpearFx.ChargeLife, intensity, 0.6, tint: BoltTint.Violet, steady: true);
     }
 
     /// <summary>The thrust's lens and eddies, laid along the spear from its point; hidden while there are none.</summary>

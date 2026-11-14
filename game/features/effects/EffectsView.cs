@@ -315,7 +315,7 @@ public partial class EffectsView : Node2D
     private void Arc(Bolt bolt)
     {
         var (x0, y0, x1, y1, _) = bolt.Ends();
-        double a = Math.Clamp(bolt.Intensity, 0, 1);
+        double a = Math.Clamp(bolt.Brightness, 0, 1);
         for (int back = bolt.Ghosts; back >= 1; back--)
         {
             int n = bolt.GhostOf(back, x0, y0, x1, y1, _bolt);

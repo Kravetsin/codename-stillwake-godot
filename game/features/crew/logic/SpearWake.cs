@@ -4,22 +4,22 @@ using System.Collections.Generic;
 namespace Stillwake.Game.Features.Crew;
 
 /// <summary>
-/// The arc spear's wake (spear-effects): lightning thrown back from three points of the moving blade to where they were a moment
-/// ago (<see cref="Behind"/>), brighter the faster and the more level it moves (raising and lowering the arm sweep it fainter),
-/// and motes shed off it every <see cref="MoteEveryMs"/>, drifting up and dying. Standing, nothing; a jump of the blade (the hero
-/// turning, landing hard, set down elsewhere) lets the wake go, so it never spans the jump.
+/// How the arc spear's blade moves (spear-effects): how hard, 0 to 1 (<see cref="Strength"/>), brighter the faster and the more
+/// level it moves (raising and lowering the arm sweep it fainter), and which way (<see cref="Heading"/>): what tears pieces of
+/// arc off it. Motes shed off it every <see cref="MoteEveryMs"/>, drifting up and dying. Standing, nothing; a jump of the blade
+/// (the hero turning, landing hard, set down elsewhere) is no motion, so it never throws a burst.
 /// </summary>
 public sealed class SpearWake(Func<double>? random = null)
 {
-    /// <summary>How far back the wake reaches; how often a moving blade sheds a mote and how long one lives, in ms.</summary>
+    /// <summary>How far back the motion is read; how often a moving blade sheds a mote and how long one lives, in ms.</summary>
     public const double LifeMs = 160, MoteEveryMs = 70, MoteMs = 360;
-    /// <summary>The speeds lightning starts and is full at, and a mote's, pixels of the world a second.</summary>
-    public const double BoltFrom = 20, BoltFull = 90, MoteFrom = 7.5, MoteFull = 32.5;
-    /// <summary>How far a point may move in a frame before it counts as a jump, and the longest wake bolt, pixels of the world.</summary>
-    public const double JumpPx = 10, LongestPx = 18;
+    /// <summary>The speeds pieces start tearing off and tear off fully at, and a mote's, pixels of the world a second.</summary>
+    public const double TearFrom = 20, TearFull = 90, MoteFrom = 7.5, MoteFull = 32.5;
+    /// <summary>How far the point may move in a frame before it counts as a jump, pixels of the world.</summary>
+    public const double JumpPx = 10;
 
-    /// <summary>The points of the spear's picture the wake follows, the point first, and how bright each one's is.</summary>
-    public static readonly ((double X, double Y) At, double Weight)[] Points = [((63.1, 3.9), 1), ((56, 6.3), 0.8), ((53, 3.6), 0.6)];
+    /// <summary>The spear's point in its picture: the motion read.</summary>
+    public static readonly (double X, double Y) Point = (63.1, 3.9);
 
     /// <summary>A mote shed: where it is in the world, how fast it rises, how fast the blade moved, its age.</summary>
     public sealed class Mote
@@ -31,41 +31,22 @@ public sealed class SpearWake(Func<double>? random = null)
     }
 
     private readonly Func<double> _random = random ?? Random.Shared.NextDouble;
-    private readonly List<(double Ms, (double X, double Y)[] At)> _seen = [];
+    private readonly List<(double Ms, (double X, double Y) At)> _seen = [];
     private readonly List<Mote> _motes = [];
-    private double _clockMs, _dueMs, _strength;
+    private double _clockMs, _dueMs;
 
-    /// <summary>How hard the blade is moving now, 0 to 1: how bright its lightning is, before each point's weight.</summary>
-    public double Strength => _strength;
+    /// <summary>How hard the blade is moving now, 0 to 1.</summary>
+    public double Strength { get; private set; }
+
+    /// <summary>The way the point moves, a unit vector in the world; along +x while it is still.</summary>
+    public (double X, double Y) Heading { get; private set; } = (1, 0);
 
     /// <summary>The motes alive.</summary>
     public IReadOnlyList<Mote> Motes => _motes;
 
     /// <summary>
-    /// Where point <paramref name="i"/> of <see cref="Points"/> was <paramref name="ms"/> ago, in the world; none past what is
-    /// seen since the last jump, or no farther from where it is than a spark, or farther than <see cref="LongestPx"/>.
-    /// </summary>
-    public (double X, double Y)? Behind(int i, double ms)
-    {
-        if (_seen.Count < 2) return null;
-        double at = _clockMs - ms;
-        for (int k = 1; k < _seen.Count; k++)
-        {
-            if (_seen[k].Ms > at) continue;
-            var (newer, older) = (_seen[k - 1], _seen[k]);
-            double t = newer.Ms > older.Ms ? (at - older.Ms) / (newer.Ms - older.Ms) : 0;
-            var (a, b) = (older.At[i], newer.At[i]);
-            (double X, double Y) p = (a.X + (b.X - a.X) * t, a.Y + (b.Y - a.Y) * t);
-            var now = _seen[0].At[i];
-            double d = Math.Sqrt((p.X - now.X) * (p.X - now.X) + (p.Y - now.Y) * (p.Y - now.Y));
-            return d < 1.5 || d > LongestPx ? null : p;
-        }
-        return null;
-    }
-
-    /// <summary>
     /// <paramref name="elapsedMs"/> on, the spear drawn where <paramref name="held"/> takes its picture's points into the world;
-    /// none while it is not shown, so the wake lets go at once and the motes die out.
+    /// none while it is not shown, so it is still at once and the motes die out.
     /// </summary>
     public void Step(double elapsedMs, Func<(double X, double Y), (double X, double Y)>? held)
     {
@@ -79,17 +60,16 @@ public sealed class SpearWake(Func<double>? random = null)
         }
         if (held == null)
         {
-            (_strength, _dueMs) = (0, 0);
+            (Strength, _dueMs) = (0, 0);
             _seen.Clear();
             return;
         }
-        var now = new (double X, double Y)[Points.Length];
-        for (int i = 0; i < Points.Length; i++) now[i] = held(Points[i].At);
-        if (_seen.Count > 0 && Distance(now[0], _seen[0].At[0]) > JumpPx) _seen.Clear();
+        var now = held(Point);
+        if (_seen.Count > 0 && Distance(now, _seen[0].At) > JumpPx) _seen.Clear();
         _seen.Insert(0, (_clockMs, now));
         while (_seen.Count > 2 && _clockMs - _seen[^2].Ms > LifeMs) _seen.RemoveAt(_seen.Count - 1);
         var (speed, level) = Motion();
-        _strength = Ramp(speed, BoltFrom, BoltFull) * (0.35 + 0.65 * level);
+        Strength = Ramp(speed, TearFrom, TearFull) * (0.35 + 0.65 * level);
         // The motes shed off a moving blade only.
         double shed = Ramp(speed, MoteFrom, MoteFull);
         for (_dueMs += elapsedMs; _dueMs >= MoteEveryMs; _dueMs -= MoteEveryMs)
@@ -100,16 +80,18 @@ public sealed class SpearWake(Func<double>? random = null)
         }
     }
 
-    /// <summary>How fast the point has moved over the last 30 ms or so, pixels of the world a second, and how level, 0 to 1.</summary>
+    /// <summary>How fast the point has moved over the last 30 ms or so, pixels of the world a second, and how level, 0 to 1; its heading kept.</summary>
     private (double Speed, double Level) Motion()
     {
         for (int k = 1; k < _seen.Count; k++)
         {
             double dt = _seen[0].Ms - _seen[k].Ms;
             if (dt < 30 && k < _seen.Count - 1) continue;
-            var (a, b) = (_seen[0].At[0], _seen[k].At[0]);
+            var (a, b) = (_seen[0].At, _seen[k].At);
             double d = Distance(a, b);
-            return dt <= 0 || d <= 0 ? (0, 0) : (d / dt * 1000, (a.X - b.X) * (a.X - b.X) / (d * d));
+            if (dt <= 0 || d <= 0) return (0, 0);
+            Heading = ((a.X - b.X) / d, (a.Y - b.Y) / d);
+            return (d / dt * 1000, Heading.X * Heading.X);
         }
         return (0, 0);
     }

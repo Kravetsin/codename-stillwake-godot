@@ -62,48 +62,37 @@ public class SpearFxTests
     }
 
     [Fact]
-    public void AMovingBladeThrowsLightningBackAndShedsMotesAndAStillOneNothing()
+    public void AMovingBladeTearsArcsOffTheWayItGoesAndShedsMotesAndAStillOneNothing()
     {
         var wake = new SpearWake(() => 0.5);
         for (int i = 0; i < 30; i++) wake.Step(16, p => (p.X, p.Y));
         Assert.Equal(0, wake.Strength);
-        Assert.Null(wake.Behind(0, 55));
         Assert.Empty(wake.Motes);
         double x = 0;
         for (int i = 0; i < 30; i++)
         {
-            x += 2;
+            x -= 2;
             wake.Step(16, p => (p.X + x, p.Y));
         }
         Assert.True(wake.Strength > 0.9);
+        Assert.Equal((-1.0, 0.0), wake.Heading);
         Assert.NotEmpty(wake.Motes);
-        // 125 px a second: 55 ms back is about 7 px behind the point.
-        var was = wake.Behind(0, 55)!.Value;
-        Assert.InRange(63.1 + x - was.X, 6, 8);
         wake.Step(16, null);
-        Assert.Null(wake.Behind(0, 55));
         Assert.Equal(0, wake.Strength);
     }
 
     [Fact]
-    public void AJumpOfTheBladeLetsTheWakeGoSoItNeverSpansIt()
+    public void AJumpOfTheBladeIsNoMotion()
     {
         var wake = new SpearWake(() => 0.5);
-        double x = 0;
-        for (int i = 0; i < 30; i++)
-        {
-            x += 2;
-            wake.Step(16, p => (p.X + x, p.Y));
-        }
-        Assert.NotNull(wake.Behind(0, 55));
-        // Set down a little lower in one frame (a hard landing): near enough to draw to, yet a jump.
-        wake.Step(16, p => (p.X + x, p.Y + 12));
-        Assert.Null(wake.Behind(0, 55));
-        Assert.Null(wake.Behind(0, 110));
+        for (int i = 0; i < 30; i++) wake.Step(16, p => (p.X, p.Y));
+        // Set down a little lower in one frame (a hard landing): no burst of pieces off it.
+        wake.Step(16, p => (p.X, p.Y + 12));
+        Assert.Equal(0, wake.Strength);
     }
 
     [Fact]
-    public void ABladeRaisedOrLoweredThrowsFainterLightningThanOneThrustAlong()
+    public void ABladeRaisedOrLoweredTearsFewerPiecesThanOneThrustAlong()
     {
         double Strength(bool level)
         {
@@ -117,5 +106,24 @@ public class SpearFxTests
             return wake.Strength;
         }
         Assert.True(Strength(level: false) < Strength(level: true) / 2);
+    }
+
+    [Fact]
+    public void ASteadyArcKeepsItsShapeAndFadesOutWhereAnotherFlickers()
+    {
+        var bolts = new Render.Bolts(new System.Random(3).NextDouble);
+        var steady = bolts.Add(() => (0, 0, 20, 0, 0.2), 12, 1, steady: true)!;
+        var plain = bolts.Add(() => (0, 0, 20, 0, 0.2), 12, 1)!;
+        (double, double)[] Shape(Render.Bolt b)
+        {
+            var into = new (double X, double Y)[65];
+            return into[..b.PointsOf(0, 0, 0, 20, 0, into)];
+        }
+        var (was, plainWas) = (Shape(steady), Shape(plain));
+        bolts.Step(1000.0 / 60 * 6);
+        Assert.Equal(was, Shape(steady));
+        Assert.NotEqual(plainWas, Shape(plain));
+        Assert.Equal(0.5, steady.Brightness, 9);
+        Assert.Equal(1, plain.Brightness);
     }
 }
