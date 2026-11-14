@@ -1,4 +1,4 @@
-# Frost film: the cold drawn as misted glass
+# Frost: the cold drawn as uneven ice with no edge
 
 - Status: accepted; built
 - Date: 2026-11-14
@@ -14,20 +14,24 @@ constant rate, so every change of temperature showed as a step.
 
 ## Decision
 
-- **The look** (the user's pick C of four on a page of candidates, 2026-11-14, "the misted film" — ice glass, frost ferns and
-  thin ice plates passed over): a film creeping in from the edges as breath on cold glass. Behind it the world is blurred, more
-  where the film is thicker, and paled toward a cold grey; its front is ragged and drifts slowly; motes of rime sink and sway in
-  it. The user cut the candidate's six-armed crystals along the film's front: they read as snowflakes hanging in the screen.
+- **The look**, found in the game with the user on 2026-11-14 from a page of four candidates (ice glass, frost ferns, a misted
+  film, thin ice plates): a sheet of uneven ice over the screen's edges. Frozen bumps at three sizes bend the world behind it,
+  more in some patches than others, almost still; a few soft crests catch the light; the world under it is greyed, cooled and
+  milky where the ice is thick. It thins away toward the middle with no line where it ends and reaches further as the cold
+  deepens.
+- **What the user turned down on the way:** the misted film with motes of rime (it read as snow falling outside, not as the
+  hero being cold), its six-armed crystals along the front (snowflakes hanging in the screen), the ice glass's crisp rim and the
+  glints running round it (an edge to the effect), and frost ferns over the glass (looked bad).
 - **The easing** (`ScreenEase`), shared by the frost and the haze: what is shown closes 1 − 1/e of its gap to what was read every
-  0.6 s, the same at any frame rate, and lands on it within 0.0005, so the layer hides at nothing. The film grows from nothing:
+  0.6 s, the same at any frame rate, and lands on it within 0.0005, so the layer hides at nothing. The ice grows from nothing:
   nothing is drawn at a fixed strength the moment the cold appears.
 
 ## Consequences
 
-- No grain or static over the screen any more; the cold reads by the blur and the pale.
-- The blur takes 17 samples of the screen per pixel, only where the film lies; the middle of the screen returns at once.
+- No grain or static over the screen any more; the cold reads by the bending, the grey and the milk.
+- The ice's work is done only where it lies; the middle of the screen returns at once.
 - The heat's haze eases the same way, no longer linearly over a second.
 
 ## Not handled
 
-- The film does not differ by what made the cold (the field's edge or the degrees): one look for both, as before.
+- The ice does not differ by what made the cold (the field's edge or the degrees): one look for both, as before.

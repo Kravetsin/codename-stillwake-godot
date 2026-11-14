@@ -261,7 +261,7 @@ public class TemperatureTests
         {
             var w = new Scenario(PodRoom) { Bare = !c.bodied };
             if (c.caped) w.Wear(0, Content.Cape.Item);
-            w.Do(new Enter(Beyond) { From = 0 }).Run(c.start);
+            w.Do(new Enter(Beyond) { From = 0 }).Run(1 + c.start);
             while (w.Crew().Clock % Content.Crew.BreathEvery != 0) w.Run();
             int felt = w.M.Crew.Felt(0, Beyond);
             HeroOf(w).Air = w.M.Crew.CapacityOf(0);
