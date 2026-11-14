@@ -50,23 +50,21 @@ public static class Report
     /// </summary>
     public static int Every(bool threatened) => threatened ? Stillwake.Content.Crew.ReportThreatened : Stillwake.Content.Crew.ReportEvery;
 
-    /// <summary>The least frost on a bare hero in the cold (2026-10-27-suits-are-worn): seen at once, before the field's edge.</summary>
-    public const float BareFrost = 0.3f;
+    /// <summary>The degrees felt past a hero's limit that draw the frost full (2026-11-14-temperature-in-degrees).</summary>
+    public const int FeltFull = 30;
 
     /// <summary>
-    /// How hard the cold bites hero <paramref name="peer"/> at <paramref name="cell"/>, the body's own, from 0 inside the
-    /// field to 1 at the world's edge: the crew's <c>EdgeCost</c> over <c>Field.EdgeCost</c>, eased out (2s − s²) so the
-    /// frost shows a little past the line and is heavy well before the edge (0050), lighter by what a cape spares (<c>Warmth</c>,
-    /// 2026-10-27-the-cape-is-worn); at least <see cref="BareFrost"/> while the sim says it is cold beyond the edge's: bare, or the
-    /// night's chill under the open sky (2026-11-07-night-chills).
-    /// What the frost on the screen is drawn at.
+    /// How hard the cold bites hero <paramref name="peer"/> at <paramref name="cell"/>, the body's own, 0 to 1: the degrees it
+    /// feels (<c>Felt</c>) over <see cref="FeltFull"/>, or the field edge's <c>EdgeCost</c> over <c>Field.EdgeCost</c>, whichever
+    /// is more (2026-11-14-temperature-in-degrees), eased out (2s − s²) so a little cold shows plainly and the edge is heavy well before
+    /// it is reached (0050). What the frost on the screen is drawn at.
     /// </summary>
     public static float Cold(ICrewQueries crew, int peer, int cell)
     {
-        float felt = 1 - crew.Warmth(peer) / 1000f;
-        float share = Math.Clamp(crew.EdgeCost(cell) * felt / Stillwake.Content.Field.EdgeCost, 0f, 1f);
-        bool beyondEdge = crew.HeroOf(peer) is { } hero && crew.Cold(peer) > crew.EdgeCost(hero.Cell);
-        return Math.Max(share * (2 - share), beyondEdge ? BareFrost : 0);
+        float felt = (float)crew.Felt(peer, cell) / FeltFull;
+        float edge = (float)crew.EdgeCost(cell) / Stillwake.Content.Field.EdgeCost;
+        float share = Math.Clamp(Math.Max(felt, edge), 0f, 1f);
+        return share * (2 - share);
     }
 
     /// <summary>

@@ -90,22 +90,24 @@ public class FieldTests
     {
         var w = ToBreath(new Scenario(Layout.Parse(PodRoom).Doubled().InWorld()) { Bare = true }).Run();
         w.Do(new Enter(At(Left - 1, MidY)) { From = 0 }).Run();
-        Breaths(w, 1);
-        Assert.Equal(Content.Crew.Lungs - 2 - Content.Crew.BareCold, HeroOf(w).Air);
-        Assert.Equal(1 + Content.Crew.BareCold, w.M.Crew.Cold(0));
+        HeroOf(w).Air = Content.Crew.Lungs;
+        // Five breaths: each a unit and the edge's unit, and space's −40° on a bare 0°, 40 felt, four units (2026-11-14-temperature-in-degrees).
+        Breaths(w, 5);
+        Assert.Equal(Content.Crew.Lungs - 5 * 2 - 4, HeroOf(w).Air);
+        Assert.Equal((1, 40), (w.M.Crew.EdgeCost(HeroOf(w).Cell), w.M.Crew.Felt(0, HeroOf(w).Cell)));
     }
 
     [Fact]
-    public void ACapeSparesAFifthOfTheEdgesColdTheRestCarried()
+    public void ACapeSparesNoneOfTheEdgesColdWhichIsNoWeather()
     {
-        // Half way to the edge, 12 a breath: 2400 thousandths spared, two units and 400 kept; then two more, 800 kept (2026-10-27-the-cape-is-worn).
+        // Half way to the edge, 12 a breath, caped or not; a suit feels nothing of space's −40° (2026-11-14-temperature-in-degrees).
         var w = ToBreath(World().Wear(0, Content.Cape.Item)).Run();
         w.Do(new Enter(At(Left / 2, MidY)) { From = 0 }).Run();
         Breaths(w, 1);
-        Assert.Equal((Scenario.Full - 1 - 10, 400), (HeroOf(w).Air, HeroOf(w).Spared));
+        Assert.Equal((Scenario.Full - 1 - 12, 0), (HeroOf(w).Air, HeroOf(w).Spared));
         Breaths(w, 1);
-        Assert.Equal((Scenario.Full - 2 - 20, 800), (HeroOf(w).Air, HeroOf(w).Spared));
-        Assert.Equal(12, w.M.Crew.Cold(0));
+        Assert.Equal((Scenario.Full - 2 - 24, 0), (HeroOf(w).Air, HeroOf(w).Spared));
+        Assert.Equal((12, 0), (w.M.Crew.EdgeCost(HeroOf(w).Cell), w.M.Crew.Felt(0, HeroOf(w).Cell)));
     }
 
     [Fact]

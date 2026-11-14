@@ -140,9 +140,9 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [shots-fall-aboard](2026-10-27-shots-fall-aboard.md) | Shots fall aboard | accepted |  |
 | [shots-pierce](2026-10-27-shots-pierce.md) | Shots pierce what they break | accepted | unified-damage (in part) |
 | [space-recoil](2026-10-27-space-recoil.md) | Space recoil | accepted | body-answers (in part) |
-| [suits-are-worn](2026-10-27-suits-are-worn.md) | Suits are worn | accepted |  |
+| [suits-are-worn](2026-10-27-suits-are-worn.md) | Suits are worn | accepted | temperature-in-degrees (in part) |
 | [the-cape-floats](2026-10-27-the-cape-floats.md) | The cape floats | accepted | the-cape-flows (in part) |
-| [the-cape-is-worn](2026-10-27-the-cape-is-worn.md) | The cape is worn | accepted |  |
+| [the-cape-is-worn](2026-10-27-the-cape-is-worn.md) | The cape is worn | accepted | temperature-in-degrees (in part) |
 | [the-descent-pictures](2026-10-27-the-descent-pictures.md) | The drop pod's flight is drawn by the client from the flight's ticks | accepted |  |
 | [the-railgun](2026-10-27-the-railgun.md) | The railgun | accepted | shots-pierce, hold-to-fire (in part) |
 | [tool-icons](2026-10-27-tool-icons.md) | Tool icons from the held picture | accepted |  |
@@ -281,7 +281,7 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [hits-pass-wrecks](2026-11-07-hits-pass-wrecks.md) | A tool's rays pass through wrecks and hit all they cross | accepted |  |
 | [machine-holograms](2026-11-07-machine-holograms.md) | Machine windows are station holograms | accepted |  |
 | [machines-stand](2026-11-07-machines-stand.md) | Machines stand on a floor | accepted |  |
-| [night-chills](2026-11-07-night-chills.md) | Night chills a planet's open sky | accepted |  |
+| [night-chills](2026-11-07-night-chills.md) | Night chills a planet's open sky | accepted | temperature-in-degrees (in part) |
 | [no-charge-flash](2026-11-07-no-charge-flash.md) | A flat press blinks the energy tab red | accepted |  |
 | [ore-pockets](2026-11-07-ore-pockets.md) | Ore lies at every depth, in pockets, and glints now and then | accepted |  |
 | [pick-reach](2026-11-07-pick-reach.md) | The pickaxe cuts close by | accepted |  |
@@ -340,3 +340,4 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [glowberry-bush](2026-11-13-glowberry-bush.md) | Spores grow a glowberry bush | accepted |  |
 | [gourd-vine](2026-11-13-gourd-vine.md) | The grow capsule grows a gourd vine | accepted |  |
 | [hud-vitals](2026-11-13-hud-vitals.md) | The vitals: air, charge and meals as frameless light at the bottom-left | accepted |  |
+| [temperature-in-degrees](2026-11-14-temperature-in-degrees.md) | Temperature in degrees | accepted |  |

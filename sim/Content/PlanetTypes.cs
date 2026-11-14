@@ -163,6 +163,8 @@ public static class PlanetTypes
         Plants = Flora.All,
         Caves = Flora.Cave,
         Bands = [250, 600, 850],
+        // The cold band, the surface's too, inside a suit's limit by day; the garden; the amber deep; the ember band (2026-11-14-temperature-in-degrees).
+        Temperatures = [-30, -15, 15, 60],
         PatchWave = 24,
         PatchMost = 220,
         Hall = 700,

@@ -46,7 +46,9 @@ public static partial class En
         ["card.reach"] = "CELLS REACH",
         ["card.beam"] = "BEAM {n}°",
         ["card.guard"] = "% OFF BLOWS",
-        ["card.warmth"] = "{n}% OFF THE COLD",
+        // What a body withstands and what the cape adds to it, in degrees (2026-11-14-temperature-in-degrees).
+        ["card.low"] = "WITHSTANDS DOWN TO {n}°",
+        ["card.warmth"] = "WARMTH +{n}°",
         // What a battery holds, on its card: the share of full, and what it holds of full in power-ticks.
         ["card.charge"] = "Charge",
         ["card.percent"] = "{n}%",

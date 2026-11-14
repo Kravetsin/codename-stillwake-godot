@@ -8,11 +8,11 @@ public static class Sky
 {
     /// <summary>
     /// A day: <paramref name="Length"/> ticks, from the start of daylight at 0; its last <paramref name="Night"/> ticks are night.
-    /// At night a hero whose cell has no back wall pays <paramref name="Chill"/> units of air more once every
-    /// <paramref name="Every"/> breaths (<see cref="Crew.BreathEvery"/>), the cape sparing its share as of all cold.
+    /// At night a cell of the surface's top band with no back wall is <paramref name="Chill"/> degrees colder
+    /// (2026-11-14-temperature-in-degrees).
     /// </summary>
-    public sealed record Cycle(int Length, int Night, int Chill, int Every);
+    public sealed record Cycle(int Length, int Night, int Chill);
 
-    /// <summary>The first planet's: a day of 20 minutes, 6 of them night; at night outside a unit more every 5 s, twice thin air's cost.</summary>
-    public static readonly Cycle First = new(Length: 24_000, Night: 7_200, Chill: 1, Every: 5);
+    /// <summary>The first planet's: a day of 20 minutes, 6 of them night; at night outside 20° colder, past a suit's limit.</summary>
+    public static readonly Cycle First = new(Length: 24_000, Night: 7_200, Chill: 20);
 }

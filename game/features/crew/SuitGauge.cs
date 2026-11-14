@@ -99,8 +99,9 @@ public partial class SuitGauge : CanvasLayer
             _sinceRead = 0;
             // A helmet put on or off changes the share with nothing lost: shown at once, no white.
             if (_capacity != 0 && capacity != _capacity) _gauge.Motion.Show((double)suit / capacity);
-            // A hit is more than the dearest breath, running bare in the cold: bare lungs are small enough for a breath to look like one.
-            else _gauge.Motion.Read((double)suit / capacity, Math.Max(WristLook.BigDrop, (CrewSpec.Exerted + CrewSpec.BareCold + 0.5) / capacity));
+            // A hit is more than the dearest breath, running bare in the cold (a unit of it): bare lungs are small enough for a
+            // breath to look like one.
+            else _gauge.Motion.Read((double)suit / capacity, Math.Max(WristLook.BigDrop, (CrewSpec.Exerted + 1 + 0.5) / capacity));
             _capacity = _gauge.Units = capacity;
             _fog.Read(_danger, (double)suit / capacity);
             _cooling.Read(_canisterIn());
