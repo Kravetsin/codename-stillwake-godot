@@ -20,6 +20,7 @@ public partial class SoundView : Node
     private readonly AudioStreamPlayer _music = Cues.Player(S.Title, S.Music), _space = Cues.Player(S.Space, S.Music);
     private double _musicShare, _spaceShare;
     private readonly AudioStreamPlayer _click = Cues.Player(S.Click, S.Ui, voices: 2);
+    private readonly AudioStreamPlayer _trash = Cues.Player(S.Trash, S.Ui);
     private Callable _onPressed;
     private AudioEffectLowPassFilter _worldLowPass = null!, _suitLowPass = null!;
     private AudioEffectLowShelfFilter _suitLows = null!;
@@ -38,6 +39,7 @@ public partial class SoundView : Node
         // Heard behind the game menu as well.
         ProcessMode = ProcessModeEnum.Always;
         AddChild(_click);
+        AddChild(_trash);
         AddChild(_music);
         AddChild(_space);
     }
@@ -133,4 +135,7 @@ public partial class SoundView : Node
         _clickedOn = frame;
         _click.Play();
     }
+
+    /// <summary>A stack the trash held destroyed (<see cref="Ui.Trashed"/>, trash-sound C).</summary>
+    public void Trash() => _trash.Play();
 }

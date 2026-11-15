@@ -63,6 +63,7 @@ Game words → code. One line a term: Russian / English → identifiers → modu
 ## Items, crafting, research
 
 - верстак / arc bench **≠** → machine `arcBench`; f/crafting `BenchView` → Crafting
+- корзина / trash → `Inventory.Trash`, `Stacks.Trashed`; f/items `TrashBurst` → Items (creative only)
 - модуль / machine module **≠** → `ModuleSpec` (`c/Modules.cs`), `Fit`, `Unfit` (`sim/Items/Modules.cs`), item `arcModule` → Items. Not a sim module (`Module<T>`).
 - дробилка / crusher → machine `crusher` (process `crush`), its items `asteroidOre` (руда астероида), `ironOre`, `gravel` (щебень), `quartz` (кварц) → Crafting
 - плавильня / electric smelter → machine `smelter` (station in `c/Stations.cs`), f/crafting `SmelterHeat` → Crafting

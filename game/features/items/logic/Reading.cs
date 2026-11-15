@@ -78,7 +78,7 @@ public sealed record Reading(
     /// <summary>
     /// Whether <paramref name="item"/>, carried, lights the ghost <paramref name="ghost"/> of the open machine's empty slot:
     /// what wears that mark in the bag with it open, what the fire burns, what holds a
-    /// charge, either kind of drone, the one item a slot of the open machine holds.
+    /// charge, either kind of drone, the one item a slot of the open machine holds; anything the trash.
     /// </summary>
     public bool Lights(SlotMark ghost, string item) => ghost switch
     {
@@ -87,6 +87,7 @@ public sealed record Reading(
         SlotMark.Charges => Content.Items.Get(item).Capacity != null,
         SlotMark.Docks => item == Content.Logistics.Drone || item == Content.Logistics.SalvageDrone,
         SlotMark.Breathes => Kind != null && Content.Machines.TryGet(Kind, out var machine) && machine.SlotTakes?.Item == item,
+        SlotMark.Trash => true,
         _ => false,
     };
 

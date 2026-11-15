@@ -22,4 +22,6 @@ public enum SlotMark
     Docks,
     /// <summary>A drone bay's fuel slot's ghost, a canister (salvage-drones): no inventory slot wears it.</summary>
     Breathes,
+    /// <summary>The trash's ghost (trash-slot), a bin: lit by anything carried; no inventory slot wears it.</summary>
+    Trash,
 }

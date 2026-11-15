@@ -223,6 +223,7 @@ public partial class InventoryPanel
         _motion.Step(Shown, seconds);
         float power = (float)_motion.Power;
         _inventory.Lit(power);
+        _trash.Lit(power);
         _body.Lit(power);
         _frame?.Lit(power);
     }

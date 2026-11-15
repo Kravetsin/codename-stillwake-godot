@@ -80,6 +80,18 @@ public static class MarkLooks
         ],
         Core: 0xf0f8ff, Rim: 0x9cc8f0, Glow: 0x5a9cd8, IconMotion.Puff);
 
+    /// <summary>The trash (trash-slot): a bin, its lid and handle, three ribs on its tapered body, in the wrist's steel, still.</summary>
+    public static readonly Look Trash = new(Ring,
+        [
+            new Stroke([(.32f, .4f), (.68f, .4f), (.64f, .77f), (.36f, .77f), (.32f, .4f)], Moves: false),
+            new Stroke([(.27f, .335f), (.73f, .335f)], Moves: false),
+            new Stroke([(.43f, .335f), (.45f, .255f), (.55f, .255f), (.57f, .335f)], Moves: false, Weight: 0.8f),
+            new Stroke([(.42f, .47f), (.435f, .7f)], Moves: false, Weight: 0.6f),
+            new Stroke([(.5f, .47f), (.5f, .7f)], Moves: false, Weight: 0.6f),
+            new Stroke([(.58f, .47f), (.565f, .7f)], Moves: false, Weight: 0.6f),
+        ],
+        Core: 0xf4f7fb, Rim: 0xb4c0ce, Glow: 0x6b7a8f, IconMotion.Still);
+
     public static readonly IReadOnlyDictionary<SlotMark, Look> All = new Dictionary<SlotMark, Look>
     {
         [SlotMark.Smelts] = Smelts,
@@ -88,6 +100,7 @@ public static class MarkLooks
         [SlotMark.Charges] = Charges,
         [SlotMark.Docks] = Docks,
         [SlotMark.Breathes] = Breathes,
+        [SlotMark.Trash] = Trash,
     };
 
     /// <summary>Mark <paramref name="mark"/>'s icon; throws for <see cref="SlotMark.None"/> and for <see cref="SlotMark.Fits"/>, whose icon is its module's tech's.</summary>
