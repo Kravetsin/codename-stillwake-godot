@@ -383,17 +383,27 @@ public class ItemCardTests
     }
 
     [Fact]
-    public void SayACanistersAndABottlesLitresAndAStacksAllToldButNoneOfWhatHoldsNoLiquid()
+    public void SayACanistersAndABottlesLitresAsFoodsRowsAndAStacksAllToldButNoneOfWhatHoldsNoLiquid()
     {
-        // A canister and a bottle hold 3 litres each (liquid-volumes); biofuel is counted, not poured.
-        Assert.Equal("3 l", ItemCards.Of(Spec.Crew.Canister).Volume);
-        Assert.Equal("3 l", ItemCards.Of(Spec.Water.Item).Volume);
-        Assert.Null(ItemCards.Of("biofuel").Volume);
-        Assert.Null(ItemCards.Of("iron").Volume);
-        Assert.Equal("3 l · ×4 = 12 l", With(false).TipOf(new Stack(Spec.Crew.Canister, 4)).Card!.Volume);
-        Assert.Equal("3 l · ×5 = 15 l", With(false).TipOf(new Stack(Spec.Water.Item, 5)).Card!.Volume);
-        Assert.Equal("3 l", With(false).TipOf(new Stack(Spec.Water.Item, 1)).Card!.Volume);
-        Assert.NotEqual(ItemCards.Of(Spec.Crew.Canister), ItemCards.Of(Spec.Crew.Canister) with { Volume = null });
+        // A canister and a bottle hold 3 litres each (liquid-volumes), a row under their contents as food's; biofuel is counted, not poured.
+        foreach (var item in new[] { Spec.Crew.Canister, Spec.Water.Item })
+        {
+            var card = ItemCards.Of(item);
+            Assert.True(card.Liquid);
+            Assert.False(card.Food || card.Worn || card.Tool);
+            Assert.Equal([("3 l", "Volume")], Said(card.Rows));
+            Assert.Equal((CardSign.Tank, CardGroup.Holds), (card.Rows[0].Sign, card.Rows[0].Group));
+        }
+        Assert.False(ItemCards.Of("biofuel").Liquid);
+        Assert.Empty(ItemCards.Of("biofuel").Rows);
+        Assert.Empty(ItemCards.Of("iron").Rows);
+        var four = With(false).TipOf(new Stack(Spec.Crew.Canister, 4)).Card!;
+        Assert.Equal([("3 l", "Volume"), ("12 l", "In all")], Said(four.Rows));
+        Assert.Equal([null, "×4"], four.Rows.Select(r => r.Note));
+        Assert.Equal([("3 l", "Volume"), ("15 l", "In all")], Said(With(false).TipOf(new Stack(Spec.Water.Item, 5)).Card!.Rows));
+        Assert.Equal([("3 l", "Volume")], Said(With(false).TipOf(new Stack(Spec.Water.Item, 1)).Card!.Rows));
+        Assert.Empty(With(false).TipOf(new Stack("iron", 7)).Card!.Rows);
+        Assert.NotEqual(ItemCards.Of(Spec.Crew.Canister), ItemCards.Of(Spec.Crew.Canister) with { Liquid = false });
     }
 
     [Fact]

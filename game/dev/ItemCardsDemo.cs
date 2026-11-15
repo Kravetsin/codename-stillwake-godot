@@ -7,7 +7,7 @@ using Stillwake.Sim.Items;
 namespace Stillwake.Game.Dev;
 
 /// <summary>
-/// <c>-- --item-cards</c>: every food's card and the HUD's ration with 4:13 left, every piece of gear's, and the fire axe's beside
+/// <c>-- --item-cards</c>: a canister's and a bottle's cards, every food's card and the HUD's ration with 4:13 left, every piece of gear's, and the fire axe's beside
 /// them, as the one tooltip builds them from a stack (2026-11-14-food-and-gear-cards), scrolled with the wheel.
 /// </summary>
 public partial class ItemCardsDemo : CanvasLayer
@@ -23,6 +23,9 @@ public partial class ItemCardsDemo : CanvasLayer
         // The tools first, their pictures enlarged (2026-11-14-tool-card-pictures): long, tall and the smallest.
         foreach (var tool in (string[])[Content.Shots.Railgun.Item, Content.Weapons.Drill.Item, Content.Grapple.Item, "pickaxe", "screwdriver"])
             Add(cards, reading.TipOf(new Stack(tool, 1)).Card!);
+        // A canister and a bottle, as food's cards (liquid-volumes): one, and stacks with their litres all told.
+        foreach (var (item, count) in ((string, int)[])[(Content.Crew.Canister, 1), (Content.Crew.Canister, 4), (Content.Water.Item, 5)])
+            Add(cards, reading.TipOf(new Stack(item, count)).Card!);
         foreach (var food in Content.Foods.All)
             if (food.Id != Content.Foods.Paste) Add(cards, reading.TipOf(new Stack(food.Id, 1)).Card!);
         Add(cards, MealTips.Of(Content.Foods.Ration, (4 * 60 + 13) * Sim.World.TicksPerSecond).Card!);

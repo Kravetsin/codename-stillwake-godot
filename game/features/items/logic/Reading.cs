@@ -118,11 +118,10 @@ public sealed record Reading(
     public Tip TipOf(Stack stack)
     {
         var tip = TipOf(stack.Item);
-        var card = tip.Card! with
+        var card = ItemCards.Counted(tip.Card!, stack.Count) with
         {
             Charge = Charges.MeterOf(stack),
             Picture = Charges.Picture(stack.Item, stack.Charge),
-            Volume = ItemCards.VolumeOf(stack.Item, stack.Count),
         };
         return tip with { Card = ItemCards.Fitted(card, ToolStats.ModulesOf(stack)) };
     }
