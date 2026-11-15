@@ -13,7 +13,9 @@ public static partial class En
         ["computer.radar.planet"] = "Planet",
         ["computer.radar.vessel"] = "Derelict ship",
         ["computer.radar.km"] = "{n} km",
-        ["computer.radar.setOff"] = "Set off",
+        ["computer.radar.litres"] = "{l} l",
+        ["computer.radar.setCourse"] = "Set course",
+        ["computer.radar.route"] = "Route set, board the shuttle",
         ["use.open.computer"] = "[{key:use}] Ship computer",
     };
 }
