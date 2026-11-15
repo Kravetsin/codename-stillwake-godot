@@ -73,8 +73,8 @@ public sealed class FurnaceModule : Module<FurnaceState>
                 bool blown = fire is { Fuel: > 0, Blown: true };
                 if (spec.Makes != null) _powerOps.Blow(m.Id, blown);
                 if (fire is not { Fuel: > 0 }) continue;
-                // A fire with inputs smelts them (a furnace), not one that makes power.
-                if (spec.Inputs > 0) _craftingOps.Heat(m.Id, blown ? Content.Furnace.Blown * 1000 / Content.Furnace.BlownOf : 1000);
+                // A fire that makes no power heats its station: a furnace smelts, a galley cooks.
+                if (spec.Makes == null) _craftingOps.Heat(m.Id, blown ? Content.Furnace.Blown * 1000 / Content.Furnace.BlownOf : 1000);
                 // Atmosphere, registered first, cleared last tick's reserves in this phase. A fire burning unblown has air in
                 // its room, or it would have gone out: its own cell names the room.
                 if (!blown) _airOps.Reserve(m.Cell);
@@ -91,7 +91,8 @@ public sealed class FurnaceModule : Module<FurnaceState>
         bool burning = Burning(id);
         var machine = _grid.MachineById(id);
         if (machine == null) return new Smelting(burning);
-        bool smelter = Content.Machines.Get(machine.Kind).Inputs > 0;
+        bool generator = Content.Machines.Get(machine.Kind).Makes != null;
+        bool smelter = Content.Stations.TryGet(machine.Kind, out var station) && station.Fed;
         var input = smelter ? SlotItem(_items.Crate(id), 0) : null;
         // What a furnace does not smelt, a seed (0060), sits in its input as if it held nothing.
         int? work = input == null ? null : _crafting.WorkOf(id);
@@ -104,14 +105,15 @@ public sealed class FurnaceModule : Module<FurnaceState>
             : smelter && !_crafting.CanSmelt(id) ? "furnace.full"
             : !burning && FuelIn(machine) == null ? "furnace.noFuel"
             : !aired ? "furnace.noAir"
-            : !smelter && !burning && _power.IsOff(id) ? "furnace.off"
-            : !smelter && !burning && !_power.Needed(id) ? "furnace.unneeded"
+            : generator && !burning && _power.IsOff(id) ? "furnace.off"
+            : generator && !burning && !_power.Needed(id) ? "furnace.unneeded"
             : null;
         if (!smelter) return new Smelting(burning, Problem: problem, Blown: blown);
         return new Smelting(burning, input, _crafting.Progress(id), work!.Value, problem, blown);
     }
 
-    private bool Burning(int id) => (FireOf(id)?.Fuel ?? 0) > 0;
+    /// <summary>Whether machine <paramref name="id"/>'s fire burns: what a galley's picture and pot show.</summary>
+    public bool Burning(int id) => (FireOf(id)?.Fuel ?? 0) > 0;
 
     private static string? SlotItem(IReadOnlyList<Stack?> slots, int slot) => slot < slots.Count ? slots[slot]?.Item : null;
 
@@ -199,15 +201,15 @@ public sealed class FurnaceModule : Module<FurnaceState>
 
     /// <summary>
     /// Lights machine <paramref name="m"/>'s fire, breathing at <paramref name="cell"/> or blown by a breath in its tanks, if
-    /// it can: with fuel, a furnace only with what it can smelt (<c>ICraftingQueries.CanSmelt</c>). One fuel is used up
-    /// for it, and the ticks it burns for come back, more if blown; 0 when it does not light.
+    /// it can: with fuel, a furnace only with what it can smelt (<c>ICraftingQueries.CanSmelt</c>), a galley only with a unit
+    /// to cook (<c>HasWork</c>). One fuel is used up for it, and the ticks it burns for come back, more if blown; 0 when it does not light.
     /// </summary>
     private (int Fuel, bool Blown) Light(Machine m, int cell)
     {
         bool blown = _air.LiquidFor(m.Id) >= Content.Furnace.BlownBreath;
         if ((cell < 0 && !blown) || FuelIn(m) is not int burns) return (0, false);
         var spec = Content.Machines.Get(m.Kind);
-        if (spec.Inputs > 0 && !_crafting.CanSmelt(m.Id)) return (0, false);
+        if (spec.Makes == null && !(Content.Stations.Get(m.Kind).Fed ? _crafting.CanSmelt(m.Id) : _crafting.HasWork(m.Id))) return (0, false);
         // A generator burns only what its network would take: a fuel lit burns to its end, the next waits (0101).
         if (spec.Makes != null && (!_power.Needed(m.Id) || _power.IsOff(m.Id))) return (0, false);
         _itemsOps.Consume(m.Id, spec.FuelSlot!.Value);

@@ -383,7 +383,7 @@ public partial class Main
     private void NewWorld(string name)
     {
         string id = _index.Create(name, DateTime.Now);
-        var world = World.Create(1, Registry.Wreck, Modules(), (uint)Random.Shared.NextInt64(1, 1L << 32));
+        var world = NewWorlds.Create(Registry.Wreck, Modules(), Random.Shared);
         _index.Write(id, world.Save());
         Enter(world, id, Roster.Empty());
     }

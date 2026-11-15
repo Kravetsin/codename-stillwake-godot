@@ -1,7 +1,7 @@
 # Suits are worn
 
 - Status: accepted; built, with the person under the suit ([one-head](2026-10-28-one-head.md)) and its look
-  ([looks-are-printed](2026-10-28-looks-are-printed.md))
+  ([looks-are-printed](2026-10-28-looks-are-printed.md)); the bare cold superseded by [temperature-in-degrees](2026-11-14-temperature-in-degrees.md)
 - Date: 2026-10-27
 - Supersedes [0028](0028-the-lifepod-and-crafting-by-machine-only.md)'s "heroes are made with a full suit" and, for the
   suit, [0057](0057-stations-one-model-for-every-crafting-machine.md)'s "the pod's list stops growing"

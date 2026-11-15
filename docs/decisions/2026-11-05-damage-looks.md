@@ -1,6 +1,7 @@
 # Damage and work drawn in ink
 
-- Status: accepted
+- Status: accepted; where every tool's sparks start and how many a running tool throws, superseded by
+  [spark-rule](2026-11-15-spark-rule.md)
 - Date: 2026-11-05
 
 ## Context

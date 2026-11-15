@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using Godot;
 using Stillwake.Game.Render;
 using Stillwake.Game.Shared;
+using static Stillwake.Game.I18n.En;
 using Diet = Stillwake.Content.Diet;
 using Foods = Stillwake.Content.Foods;
 
@@ -12,7 +13,7 @@ namespace Stillwake.Game.Features.Crew;
 /// The hero's three meals, the vitals' bottom row (hud-vitals, food-and-the-body): each the dish's own picture, the hotbar's,
 /// over a thin time light that drains as the meal runs out, both pulsing in its last minute. Eaten, the picture pops in;
 /// refused, red light behind and a jolt; ended, it greys and fades. Hungry, the empty time lights breathe ochre. What a meal
-/// does is on hover. Reads the sim four times a second.
+/// does is on hover, its food card with the time left (2026-11-14-food-and-gear-cards). Reads the sim four times a second.
 /// </summary>
 public partial class MealSlots : CanvasLayer
 {
@@ -27,10 +28,16 @@ public partial class MealSlots : CanvasLayer
     private bool _hungry;
 
     /// <param name="read">This player's hero's meals with their ticks left, and whether it is hungry; null without a hero, which hides the slots.</param>
+    /// <param name="purge">Throws up every meal (food-tuning), held to the end on the purge spot: the refusal, or null once sent.</param>
     /// <param name="ui">The slots' size the block follows, the one tooltip, and a meal refused.</param>
-    public MealSlots(Func<(IReadOnlyList<(string Food, int Left)> Meals, bool Hungry)?> read, Ui ui)
+    public MealSlots(Func<(IReadOnlyList<(string Food, int Left)> Meals, bool Hungry)?> read, Func<string?> purge, Ui ui)
     {
         (_read, _ui) = (read, ui);
+        _purge = new PurgeSpot(purge)
+        {
+            Position = new Vector2(Vitals.RowLeft + Diet.Meals * Vitals.MealPitch, Vitals.MealTop),
+            Size = new Vector2(Vitals.MealSide, Vitals.MealSide),
+        };
         _tips = new TipSpots(ui.Tip);
         Layer = ScreenLayers.Hud;
         AddChild(_row);
@@ -46,8 +53,12 @@ public partial class MealSlots : CanvasLayer
             _row.AddChild(slot);
             _tips.Add(slot, () => slot.Food is { } food ? MealTips.Of(food, slot.Left) : MealTips.Empty(_hungry));
         }
+        _row.AddChild(_purge);
+        _tips.Add(_purge, () => new Tip(T("hud.purge"), []));
         ui.MealRefused += Refused;
     }
+
+    private readonly PurgeSpot _purge;
 
     /// <summary>A meal refused: full, every slot blinks red; the same dish too soon, only its slot.</summary>
     private void Refused(string food, string problem)
@@ -76,8 +87,11 @@ public partial class MealSlots : CanvasLayer
                     var (food, left) = i < meals.Count ? meals[i] : (null, 0);
                     _slots[i].Read(food, left);
                 }
+                _purge.Full = meals.Count > 0;
             }
         }
+        _purge.Step(delta);
+        _purge.QueueRedraw();
         float hunger = _hungry ? 0.45f + 0.35f * (0.5f - 0.5f * Mathf.Cos((float)(_clock * Mathf.Tau / HungerS))) : 0;
         foreach (var slot in _slots)
         {
@@ -85,6 +99,65 @@ public partial class MealSlots : CanvasLayer
             slot.QueueRedraw();
         }
         _tips.Frame(Visible && !_ui.MenuOpen.Get() ? GetViewport().GetMousePosition() : null);
+    }
+
+    /// <summary>
+    /// The purge spot right of the meals (food-tuning): held <see cref="HoldS"/>, a ring filling round it as round the oxygen sign
+    /// while a canister cools, it throws up every meal; let go early, nothing. Dim with nothing eaten; refused, it blinks red.
+    /// A first draft of its sign: a mouth spilling three drops.
+    /// </summary>
+    private sealed partial class PurgeSpot(Func<string?> purge) : Control
+    {
+        private const double HoldS = 3;
+        private const float Radius = 11.5f;
+        private static readonly Color Bile = new("c8c070"), Red = new(1, 70 / 255f, 60 / 255f);
+
+        public bool Full;
+        private readonly FlatBlink _blink = new();
+        private double _held = -1;
+
+        public override void _Ready() => MouseFilter = MouseFilterEnum.Stop;
+
+        public override void _GuiInput(InputEvent e)
+        {
+            if (e is not InputEventMouseButton { ButtonIndex: MouseButton.Left } button) return;
+            _held = button.Pressed ? 0 : -1;
+            AcceptEvent();
+        }
+
+        public override void _Notification(int what)
+        {
+            if (what == NotificationMouseExit) _held = -1;
+        }
+
+        public void Step(double delta)
+        {
+            _blink.Step(delta);
+            if (_held < 0) return;
+            _held += delta;
+            if (_held < HoldS) return;
+            _held = -1;
+            if (purge() != null) _blink.Press();
+        }
+
+        public override void _Draw()
+        {
+            var centre = Size / 2 + new Vector2(_blink.Jolt.X * 1.6f, 0);
+            float alpha = Full ? 0.9f : 0.35f;
+            DrawArc(centre, Radius, 0, Mathf.Tau, 40, Style.Slate700 with { A = 0.9f * alpha }, 2, true);
+            if (_held > 0)
+            {
+                float end = -Mathf.Pi / 2 + Mathf.Tau * (float)Math.Min(1, _held / HoldS);
+                DrawArc(centre, Radius, -Mathf.Pi / 2, end, 40, Bile with { A = 0.95f }, 2, true);
+                DrawRect(new Rect2(centre + new Vector2(Mathf.Cos(end), Mathf.Sin(end)) * Radius - Vector2.One, new Vector2(2, 2)), Colors.White);
+            }
+            if (_blink.Red > 0) DrawArc(centre, Radius, 0, Mathf.Tau, 40, Red with { A = 0.9f * (float)_blink.Red }, 2, true);
+            // The mouth, and three drops falling from it.
+            var ink = Bile with { A = alpha };
+            DrawArc(centre + new Vector2(0, -5), 4.5f, 0.2f, Mathf.Pi - 0.2f, 10, ink, 1.5f, true);
+            foreach (var (dx, dy, r) in new[] { (-2.5f, 2f, 1.3f), (1f, 4f, 1.6f), (3f, 0.5f, 1.1f) })
+                DrawCircle(centre + new Vector2(dx, dy), r, ink);
+        }
     }
 
     private sealed partial class Slot : Control

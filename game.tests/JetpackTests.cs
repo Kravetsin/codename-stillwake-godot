@@ -119,4 +119,17 @@ public class JetpackTests
         Assert.Equal(new Sim.Crew.Thrust(true), Report.ThrustOf(m.Crew, 0, true));
         Assert.Null(Report.ThrustOf(m.Crew, 0, false));
     }
+
+    [Fact]
+    public void ACruiseAtFullSpeedAlongTheThrustIsFreeAStartATurnOrABrakeIsNot()
+    {
+        var (ship, h) = Adrift();
+        Assert.False(Hero.Cruising(h.Vx, h.Vy, East));
+        var thrust = Worn with { Thrust = East };
+        for (int i = 0; i < 120; i++) h = h.Step(thrust, ship);
+        Assert.True(Hero.Cruising(h.Vx, h.Vy, East));
+        Assert.False(Hero.Cruising(h.Vx, h.Vy, new Point(0, -Unit)));
+        Assert.False(Hero.Cruising(h.Vx, h.Vy, new Point(-Unit, 0)));
+        Assert.False(Hero.Cruising(Pack.Top / 2, 0, East));
+    }
 }

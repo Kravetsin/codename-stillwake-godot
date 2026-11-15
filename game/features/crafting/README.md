@@ -67,8 +67,8 @@ assembler|lifepod|furnace>` opens a machine for a recording; `--arc` plays the a
   flywheel, gears and press head over four pictures; the smelter's coils glowing unlit and lighting the room orange
   (`Glow`); the assembler's arm dipping, its screen's trace drawn unlit and lighting the room green. The grow capsule
   (0060): its lamp lit pink and lighting the room; its plant shows what of its process the input holds (`WorkOf`), each crop its own (`{kind}_{crop}_{stage}`), at
-  the quarter grown (`Progress`), none for an empty or rock-holding capsule. The galley: its lid rattling under steam
-  over six pictures, its firebox flickering unlit in step and lighting the floor orange.
+  the quarter grown (`Progress`), none for an empty or rock-holding capsule. The galley, while its fire burns: its lid rattling under
+  steam in six pictures, its firebox flickering unlit, lighting the floor orange; heard only cooking.
 - **Heard** (0059): the Former, the smelter, the crusher and the galley, through `StationSounds` (the sound feature's README). The assembler
   and the grow capsule are silent till the user's audition.
 - **Too cold** (0057): a fed station whose input needs more heat than it has (`TooCold`) shows a pulsing cold-blue

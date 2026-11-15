@@ -203,9 +203,10 @@ public class ReportTests
     }
 
     [Fact]
-    public void DrawsTheFrostAtTheEdgeAFifthLighterOnAHeroInACapeItsBareFloorAsItWas()
+    public void DrawsTheEdgesWholeFrostOnAHeroInACapeForTheCapeSparesNoneOfIt()
     {
-        // At the grid's corner the edge's whole cold: 1 bare of a cape, 0.8 eased out to 0.96 in one (2026-10-27-the-cape-is-worn).
+        // At the grid's corner the edge's whole cold, caped or not; the cape's degrees leave a bare hero by the hull past its limit too
+        // (2026-11-14-temperature-in-degrees).
         var w = new TestWorld(Layout.Parse(["S"]).InWorld());
         int spawn = w.M.Crew.Spawn, cape = Stillwake.Content.Inventory.Slots + Stillwake.Content.Inventory.Equipment.ToList().IndexOf(Stillwake.Content.Cape.Slot);
         w.Step(new Enter(spawn) { From = 0 });
@@ -213,17 +214,20 @@ public class ReportTests
         w.Step(new Stillwake.Sim.Items.SetCreative(true), new Stillwake.Sim.Items.Spawn(Stillwake.Content.Cape.Item, 1) { From = 0 });
         int bag = w.M.Items.Inventory(0).ToList().FindIndex(s => s?.Item == Stillwake.Content.Cape.Item);
         w.Step(new Stillwake.Sim.Items.Move(new Stillwake.Sim.Items.Place(bag), new Stillwake.Sim.Items.Target(cape), 1) { From = 0 });
-        Assert.Equal(0.96f, Report.Cold(w.M.Crew, 0, 0), 4);
-        Assert.Equal(Report.BareFrost, Report.Cold(w.M.Crew, 0, spawn));
+        Assert.Equal(1f, Report.Cold(w.M.Crew, 0, 0));
+        Assert.Equal(15, w.M.Crew.Felt(0, spawn));
+        Assert.Equal(0.75f, Report.Cold(w.M.Crew, 0, spawn), 3);
     }
 
     [Fact]
-    public void DrawsThinFrostOnAHeroWithNoBodyInTheColdAtOnceAndNoneOnceItWearsOne()
+    public void DrawsFrostOnAHeroWithNoBodyInSpaceByTheDegreesItFeelsAndNoneOnceItWearsOne()
     {
         var w = new TestWorld(Layout.Parse(["S"]).InWorld());
         int spawn = w.M.Crew.Spawn, suit = Stillwake.Content.Inventory.Slots + Stillwake.Content.Inventory.Equipment.ToList().IndexOf(Stillwake.Content.Suit.Slot);
         w.Step(new Enter(spawn) { From = 0 });
-        Assert.Equal(Report.BareFrost, Report.Cold(w.M.Crew, 0, spawn));
+        // The hull's −20° on a bare 0°: 20 felt, two thirds of the 30 that draw it full, eased out.
+        Assert.Equal(20, w.M.Crew.Felt(0, spawn));
+        Assert.Equal(0.889f, Report.Cold(w.M.Crew, 0, spawn), 3);
         w.Step(new Stillwake.Sim.Items.SetCreative(true), new Stillwake.Sim.Items.Spawn(Stillwake.Content.Suit.Basic, 1) { From = 0 });
         int bag = w.M.Items.Inventory(0).ToList().FindIndex(s => s?.Item == Stillwake.Content.Suit.Basic);
         w.Step(new Stillwake.Sim.Items.Move(new Stillwake.Sim.Items.Place(bag), new Stillwake.Sim.Items.Target(suit), 1) { From = 0 });

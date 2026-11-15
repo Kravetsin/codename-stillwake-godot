@@ -75,7 +75,7 @@ public class PierceTests
     public void ANailThatKillsALoperHitsTheOneBehindItForHalf()
     {
         var w = CreaturesTesting.Planet(string.Join('\n', Enumerable.Repeat(new string('.', 80), 20).Append(new string('#', 80))), CreaturesTesting.Lifeless, cells: true)
-            .Do(new Crew.Enter(19 * 80 + 2)).GiveItems(0, (Nailer, 1), ("nail", 5)).Run();
+            .Do(new Crew.Enter(19 * 80 + 2)).GiveItems(0, (Nailer, 1), ("nail", 5)).Wields(Nailer).Run();
         var first = w.Let(Spec.Creatures.Loper, 40, 19);
         var second = w.Let(Spec.Creatures.Loper, 47, 19);
         first.Damage = Spec.Creatures.Loper.Life.Hp - 6;
@@ -106,7 +106,7 @@ public class PierceTests
         var rows = Enumerable.Repeat(new string('.', 90) + new string('#', 10), 20).Concat(Enumerable.Repeat(new string('#', 100), 3));
         var looks = Enumerable.Repeat(new string('s', 100), 23);
         var layout = Layout.Parse(string.Join('\n', rows)).WithMaterials(string.Join('\n', looks)) with { Zone = new Box(0, 0, 89, 22), Kind = Spec.PlanetTypes.First.Id };
-        var w = CreaturesTesting.Planet(layout, CreaturesTesting.Lifeless, cells: true).Do(new Crew.Enter(19 * 100 + 2)).GiveItems(0, (Nailer, 1), ("nail", 9)).Run();
+        var w = CreaturesTesting.Planet(layout, CreaturesTesting.Lifeless, cells: true).Do(new Crew.Enter(19 * 100 + 2)).GiveItems(0, (Nailer, 1), ("nail", 9)).Wields(Nailer).Run();
         int wall = 18 * 100 + 90;
         for (int i = 0; i < 8; i++)
         {
@@ -121,7 +121,7 @@ public class PierceTests
     public void AKillAndTheCreatureBehindInTheSameCellAreBothHitThatTick()
     {
         var w = CreaturesTesting.Planet(string.Join('\n', Enumerable.Repeat(new string('.', 80), 20).Append(new string('#', 80))), CreaturesTesting.Lifeless, cells: true)
-            .Do(new Crew.Enter(19 * 80 + 2)).GiveItems(0, (Nailer, 1), ("nail", 5)).Run();
+            .Do(new Crew.Enter(19 * 80 + 2)).GiveItems(0, (Nailer, 1), ("nail", 5)).Wields(Nailer).Run();
         var first = w.Let(Spec.Creatures.Loper, 40, 19);
         var second = w.Let(Spec.Creatures.Loper, 40, 19);
         first.Damage = Spec.Creatures.Loper.Life.Hp - 6;

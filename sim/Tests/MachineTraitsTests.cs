@@ -20,7 +20,7 @@ public class MachineTraitsTests
     [InlineData(MachineTrait.Electrolyses, new[] { "electrolyser" })]
     [InlineData(MachineTrait.Zone, new[] { "droneBay" })]
     [InlineData(MachineTrait.Glow, new[] { "lamp", "arcLamp", "emergencyLamp", "salvageVending", "salvageVending2" })]
-    [InlineData(MachineTrait.Fire, new[] { "furnace", "burnerGenerator", "biofuelGenerator" })]
+    [InlineData(MachineTrait.Fire, new[] { "furnace", "burnerGenerator", "biofuelGenerator", "galley" })]
     [InlineData(MachineTrait.Computer, new[] { "computer" })]
     [InlineData(MachineTrait.Seats, new[] { "treadWheel", "dropPod" })]
     [InlineData(MachineTrait.Lands, new[] { "dropPod" })]

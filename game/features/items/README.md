@@ -70,17 +70,16 @@ The wrist's metal, screens, keys and gauge (0074, 0081) are `game/shared/`'s (`W
   is carried; fit by drop, click or shift; take out by press. Slots holding a fitting module show its tech icon.
 - **Icons** (0097): glowing lines, a hexagon a tech, a ring a station's work; only seen ones move. Inventory actions click
   (0081), not the wheel; a breathed canister pulses; cooling, its slots grey, swept back (canister-mark).
-- **A tool in a slot** (2026-10-27-tool-icons): its icon fills the slot (`Slots.IconBox`); any other
-  item sits in the inset, in hand and flying too.
+- **A tool in a slot** (tool-icons): its icon fills the slot (`Slots.IconBox`); any other item sits in the inset.
 - **Station marks** (0097): an open station marks the slots it works (`Smelts`, `Burns`, `Grows`), the card what
   it makes; an empty one shows the mark's ghost, lit while a fitting stack is carried.
 - **Sorting** (0008, 0081): the bag's or a crate's key sends `Sort`, shown at once with a sweep; a picked stack is put
   back first; one whose slot changed is let go (`Clicks.StillHeld`).
 - **Stash** (2026-11-06-quick-stash): `Bind.Stash` or the key under sort sends `Stash` when `StashPlan` moves anything;
   icons fly from the chest to each crate. Alt+click marks an item kept (`Ui.Favourites`, this machine's): a star on it.
-- **The one tooltip** (0073): a stack's card follows the pointer, never covering its slot. A tool shows its `ToolStats`
-  numbers as icon rows in groups, no damage a second (2026-11-07-tool-card-rows), boosted ones in the module's colour (0098); equipment its picture and one number; a battery its
-  charge in power units (0053).
+- **The one tooltip** (0073): a stack's card follows the pointer, clear of its slot. A tool shows its picture large
+  (tool-card-pictures), its `ToolStats` as icon rows in groups (tool-card-rows), boosts in the module colour (0098), a
+  charge its blast; food and gear a picture and rows of what they guarantee (food-and-gear-cards); a battery its charge (0053).
 - **Charge** (0053): a battery slot draws a bar (amber under a quarter), an empty one its picture. The charge row
   (hud-vitals) is energy's.
 - **Floor stacks** (0075, 0106): drawn unlit with a breathing rim, resting on the sim's point (`ClearBelow`), level,

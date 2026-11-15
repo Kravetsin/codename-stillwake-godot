@@ -731,6 +731,19 @@ public class AimTests
     }
 
     [Fact]
+    public void HooksAWreckOnlyWhereItsPictureIsDrawnAndSticksThereNotInItsEmptyCorner()
+    {
+        var (section, _) = Field(("hullSection", 24_000, 15_000));
+        // Drawn only right of its middle: the rod crosses the empty left half and sticks where the picture begins, sunk in.
+        var hit = Aiming.Hooks(section.M, 0, (13_000, 15_000), (28_000, 15_000), 0, (_, x, _) => x >= 24_000);
+        Assert.Equal(1, hit?.Piece);
+        Assert.Equal(24_000.0 + Bite, hit!.Value.At.X, 0);
+        Assert.Equal(15_000.0, hit.Value.At.Y);
+        // Through its box where nothing of it is drawn, the rod flies on.
+        Assert.Null(Aiming.Hooks(section.M, 0, (13_000, 15_000), (28_000, 15_000), 0, (_, _, _) => false));
+    }
+
+    [Fact]
     public void HooksASmallPieceInABoxOfItsPictureAndAMarginStickingOnThePicture()
     {
         var (w, _) = Field(("scrapChunk", 20_000, 15_000));

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using Godot;
 using Stillwake.Game.Render;
 using Stillwake.Game.Shared;
@@ -12,7 +13,8 @@ namespace Stillwake.Game.Features.Creatures;
 /// picture in ink tinted as its individual and wearing its markings (<see cref="CreatureParts"/>), drawn in the rig's order, turned and moved about
 /// its pivot by <see cref="CreaturePose"/> at the screen's resolution as a hero's parts are, its origin the middle of its feet,
 /// facing right. Lit as the world is; its eye in four states; its glowing parts added over it unlit and lighting what is round
-/// them (<see cref="Lights"/>); a blow's white flash an unlit copy over it.
+/// them (<see cref="Lights"/>); a blow's white flash an unlit copy over it. A part that bends (a leg at its knee, a neck, a tail) is
+/// drawn as one picture bent as its pose says (<see cref="BentPicture"/>, creatures-bend), what hangs from it placed past its bend.
 /// </summary>
 public partial class CreatureBody : Node2D
 {
@@ -29,6 +31,9 @@ public partial class CreatureBody : Node2D
     /// <summary>A picture drawn of one node: its colour, its flash, its glow if it has one, and where that glow lights from.</summary>
     private sealed record Drawn(int Node, string Part, Sprite2D Colour, Sprite2D White, Sprite2D? Glow)
     {
+        /// <summary>Its pictures drawn bent, for a part that bends; none else.</summary>
+        public BentPicture[] Bent { get; init; } = [];
+
         public (Vector2 At, Color Colour)[] Spots { get; set; } = [];
 
         /// <summary>What its colours are multiplied by: an individual in ink's (<see cref="CreatureVariety.InkTint"/>), its eye's whites never.</summary>
@@ -37,7 +42,7 @@ public partial class CreatureBody : Node2D
 
     private readonly List<Drawn> _drawn = [];
     private readonly Node2D _flash = new();
-    private Transform2D[] _mats = [];
+    private Transform2D[] _mats = [], _tips = [];
     private int[] _parents = [];
     private CreatureArt.Design? _design;
     private double _white;
@@ -84,6 +89,7 @@ public partial class CreatureBody : Node2D
         _parents = new int[design.Rig.Count];
         for (int i = 0; i < design.Rig.Count; i++) _parents[i] = design.Rig[i].Parent is { } p ? index[p] : -1;
         _mats = new Transform2D[design.Rig.Count];
+        _tips = new Transform2D[design.Rig.Count];
         for (int i = 0; i < design.Rig.Count; i++)
         {
             var node = design.Rig[i];
@@ -120,7 +126,28 @@ public partial class CreatureBody : Node2D
             glow.Material = GlowMaterial;
         }
         AddChild(colour);
-        _drawn.Add(new Drawn(node, part, colour, white, glow));
+        _drawn.Add(new Drawn(node, part, colour, white, glow) { Bent = p.Bend is { } b ? [.. new[] { colour, white, glow }.OfType<Sprite2D>().Select(s => Bent(s, b))] : [] });
+    }
+
+    /// <summary>A picture of <paramref name="sprite"/> bent as its part bends, drawn in its place.</summary>
+    private static BentPicture Bent(Sprite2D sprite, CreatureArt.Bending bend)
+    {
+        var bent = new BentPicture(sprite, bend.Joint, lower: false, bend.Axis) { Band = bend.Band };
+        sprite.AddChild(bent);
+        return bent;
+    }
+
+    /// <summary>
+    /// Where what hangs from a part bent <paramref name="turn"/> sits, in the part's frame: past its band, turned about its joint
+    /// (<see cref="BentLimb.Warp"/>), as an ear and an eye ride a skull at the end of a bending neck.
+    /// </summary>
+    private static Transform2D Past(CreatureArt.Bending? bend, double turn)
+    {
+        if (bend == null || turn == 0) return Transform2D.Identity;
+        var joint = CreaturePose.JointOf(bend);
+        var at = new Vector2((float)joint.X, (float)joint.Y);
+        var rotation = new Transform2D((float)turn, Vector2.Zero);
+        return new Transform2D((float)turn, at - rotation * at);
     }
 
     /// <summary>
@@ -136,7 +163,8 @@ public partial class CreatureBody : Node2D
             var n = rig[i];
             var j = pose.Joints[i];
             var local = new Transform2D((float)j.A, new Vector2(n.X + (float)j.X, n.Y + (float)j.Y));
-            _mats[i] = _parents[i] < 0 ? local : _mats[_parents[i]] * local;
+            _mats[i] = _parents[i] < 0 ? local : _tips[_parents[i]] * local;
+            _tips[i] = _mats[i] * Past(design.Parts.GetValueOrDefault(n.Part)?.Bend, j.Bend);
         }
         var eye = pose.Eye;
         bool wide = eye == CreaturePose.EyeState.Wide;
@@ -163,6 +191,8 @@ public partial class CreatureBody : Node2D
             d.White.Visible = shown && white > 0.01;
             d.White.Transform = mat;
             if (d.Glow != null) d.Glow.Transform = mat;
+            // A bent picture's bend is BentLimb's, which turns what lies past its joint the other way.
+            foreach (var bent in d.Bent) bent.Show(-pose.Joints[d.Node].Bend, BentLimb.Seamless);
         }
         _flash.Visible = white > 0.01;
         _flash.Modulate = new Color(1, 1, 1, (float)white);
@@ -181,7 +211,8 @@ public partial class CreatureBody : Node2D
             foreach (var (at, colour) in d.Spots)
             {
                 if (n++ >= CreatureLooks.MostLights) return;
-                into.Add((toWorld * (_mats[d.Node] * at), colour with { A = colour.A * alpha }));
+                // Past its bend where it bends: a sixleg's berries ride the arch of its tail.
+                into.Add((toWorld * (_tips[d.Node] * at), colour with { A = colour.A * alpha }));
             }
         }
     }

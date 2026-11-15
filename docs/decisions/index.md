@@ -52,7 +52,7 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [0044](0044-the-harpoon-reels-a-piece-to-a-point.md) | The harpoon reels a piece to a point | accepted | 0046, 0065, 0068, grapple-climbs (in part) |
 | [0045](0045-a-burner-generator-shares-the-furnaces-fire.md) | A burner generator shares the furnace's fire | accepted | 0046, 0057 (in part) |
 | [0046](0046-recipes-show-what-a-thing-is-made-of.md) | Recipes show what a thing is made of | accepted | 0068 (in part) |
-| [0047](0047-equipment-the-jetpack-and-the-slower-swim.md) | Equipment, the jetpack and the slower swim | accepted | 0058, 0068 (in part) |
+| [0047](0047-equipment-the-jetpack-and-the-slower-swim.md) | Equipment, the jetpack and the slower swim | accepted | 0058, 0068, jet-cruise (in part) |
 | [0048](0048-a-big-world-a-build-zone-inside-it.md) | A big world, a build zone inside it | accepted |  |
 | [0049](0049-design-the-mechanic-not-its-first-use.md) | Design the mechanic, not its first use | accepted |  |
 | [0050](0050-the-edge-is-made-of-oxygen.md) | The edge is made of oxygen | accepted |  |
@@ -103,7 +103,7 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [0095](0095-a-planet-is-a-type-and-a-seed.md) | A planet is a type and a seed | accepted |  |
 | [0096](0096-the-sky-shard.md) | The sky shard: the arc relic, its spire a light well, a home's heart | accepted |  |
 | [0097](0097-station-marks-are-glowing-line-icons.md) | Station marks are glowing line icons | accepted |  |
-| [0098](0098-the-tool-bench-modules-in-tools.md) | The tool bench: modules in tools | accepted |  |
+| [0098](0098-the-tool-bench-modules-in-tools.md) | The tool bench: modules in tools | accepted | tool-in-hand (in part) |
 | [0099](0099-the-arc-bench.md) | The arc bench: a vise that fits tools, the arc branch's station | accepted |  |
 | [0100](0100-tech-branches.md) | Tech branches | accepted | crusher-takes-arc (in part) |
 | [0101](0101-a-network-stores-its-spare-power.md) | A network stores its spare power | accepted |  |
@@ -140,12 +140,12 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [shots-fall-aboard](2026-10-27-shots-fall-aboard.md) | Shots fall aboard | accepted |  |
 | [shots-pierce](2026-10-27-shots-pierce.md) | Shots pierce what they break | accepted | unified-damage (in part) |
 | [space-recoil](2026-10-27-space-recoil.md) | Space recoil | accepted | body-answers (in part) |
-| [suits-are-worn](2026-10-27-suits-are-worn.md) | Suits are worn | accepted |  |
+| [suits-are-worn](2026-10-27-suits-are-worn.md) | Suits are worn | accepted | temperature-in-degrees, air-segments (in part) |
 | [the-cape-floats](2026-10-27-the-cape-floats.md) | The cape floats | accepted | the-cape-flows (in part) |
-| [the-cape-is-worn](2026-10-27-the-cape-is-worn.md) | The cape is worn | accepted |  |
+| [the-cape-is-worn](2026-10-27-the-cape-is-worn.md) | The cape is worn | accepted | temperature-in-degrees (in part) |
 | [the-descent-pictures](2026-10-27-the-descent-pictures.md) | The drop pod's flight is drawn by the client from the flight's ticks | accepted |  |
 | [the-railgun](2026-10-27-the-railgun.md) | The railgun | accepted | shots-pierce, hold-to-fire (in part) |
-| [tool-icons](2026-10-27-tool-icons.md) | Tool icons from the held picture | accepted |  |
+| [tool-icons](2026-10-27-tool-icons.md) | Tool icons from the held picture | accepted | tool-card-pictures (in part) |
 | [hull-meteors](2026-10-28-hull-meteors.md) | Meteors from the start | accepted |  |
 | [looks-are-printed](2026-10-28-looks-are-printed.md) | Looks are chosen and printed | accepted |  |
 | [meteor-blast](2026-10-28-meteor-blast.md) | A meteor breaks an area | accepted |  |
@@ -224,7 +224,7 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [pixels-unsupported](2026-11-03-pixels-unsupported.md) | The pixel art is unsupported | accepted |  |
 | [power-driver](2026-11-03-power-driver.md) | The power driver works a square | accepted |  |
 | [salvage-drones](2026-11-03-salvage-drones.md) | Salvage drones | accepted | salvage-trips (in part) |
-| [the-heavy-helmet](2026-11-03-the-heavy-helmet.md) | The heavy helmet and richer canisters | accepted | food-and-the-body (in part) |
+| [the-heavy-helmet](2026-11-03-the-heavy-helmet.md) | The heavy helmet and richer canisters | accepted | food-and-the-body, helmets-traced (in part) |
 | [the-regen-suit](2026-11-03-the-regen-suit.md) | The regen suit and the suit's mode | accepted |  |
 | [credit-counter](2026-11-04-credit-counter.md) | The credit chip stands upright and larger, and changing numbers count with a flare | accepted |  |
 | [door-swing](2026-11-04-door-swing.md) | A door takes no other toggle while it moves | accepted |  |
@@ -248,15 +248,15 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [build-from-crates](2026-11-05-build-from-crates.md) | Building, pipes and cables pay from every crate on the ship | accepted |  |
 | [build-hints](2026-11-05-build-hints.md) | Build hints: a screen of key caps that changes with the hand | accepted |  |
 | [craft-from-crates](2026-11-05-craft-from-crates.md) | A paid craft takes from every crate on the ship | accepted |  |
-| [damage-looks](2026-11-05-damage-looks.md) | Damage and work drawn in ink | accepted | tool-reach, cracks-to-end (in part) |
+| [damage-looks](2026-11-05-damage-looks.md) | Damage and work drawn in ink | accepted | tool-reach, cracks-to-end, drill-contact, grinder-contact, blade-sparks, cutter-contact, spark-rule (in part) |
 | [hologram-keys](2026-11-05-hologram-keys.md) | The edge's keys are holograms of what can be used, and the bulb bursts at the screen's top | accepted | edge-flash (in part) |
 | [melee-edge](2026-11-05-melee-edge.md) | A stroke hits with its swept blade | accepted | tool-reach (in part) |
 | [the-board](2026-11-05-the-board.md) | Things are learned by having them, on the scavenger's board | accepted | one-to-understand (in part) |
 | [the-last-breath](2026-11-05-the-last-breath.md) | The last breath | accepted |  |
 | [tip-signs](2026-11-05-tip-signs.md) | Tips speak in signs and the bubble's numbers | accepted |  |
-| [tool-contact](2026-11-05-tool-contact.md) | A running tool is seen at work all along | accepted | damage-looks, tool-edge (in part) |
+| [tool-contact](2026-11-05-tool-contact.md) | A running tool is seen at work all along | accepted | damage-looks, tool-edge, spark-rule (in part) |
 | [tool-edge](2026-11-05-tool-edge.md) | A running tool hits with what is drawn | accepted | tool-reach (in part) |
-| [tool-reach](2026-11-05-tool-reach.md) | A tool hits by a fan of rays from the shoulder and shows its reach in use | accepted | hits-pass-wrecks, blade-trail, tool-size (in part) |
+| [tool-reach](2026-11-05-tool-reach.md) | A tool hits by a fan of rays from the shoulder and shows its reach in use | accepted | hits-pass-wrecks, blade-trail, tool-size, grinder-contact (in part) |
 | [creatures-in-herds](2026-11-06-creatures-in-herds.md) | Wild creatures come in small herds of one kind | accepted |  |
 | [energy-ring](2026-11-06-energy-ring.md) | The energy tab's ring and beating bolt | accepted | hud-vitals (in part) |
 | [gain-spots](2026-11-06-gain-spots.md) | What a hero gains, counted beside where it came from | accepted |  |
@@ -281,7 +281,7 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [hits-pass-wrecks](2026-11-07-hits-pass-wrecks.md) | A tool's rays pass through wrecks and hit all they cross | accepted |  |
 | [machine-holograms](2026-11-07-machine-holograms.md) | Machine windows are station holograms | accepted |  |
 | [machines-stand](2026-11-07-machines-stand.md) | Machines stand on a floor | accepted |  |
-| [night-chills](2026-11-07-night-chills.md) | Night chills a planet's open sky | accepted |  |
+| [night-chills](2026-11-07-night-chills.md) | Night chills a planet's open sky | accepted | temperature-in-degrees (in part) |
 | [no-charge-flash](2026-11-07-no-charge-flash.md) | A flat press blinks the energy tab red | accepted |  |
 | [ore-pockets](2026-11-07-ore-pockets.md) | Ore lies at every depth, in pockets, and glints now and then | accepted |  |
 | [pick-reach](2026-11-07-pick-reach.md) | The pickaxe cuts close by | accepted |  |
@@ -297,7 +297,7 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [the-pickaxe](2026-11-07-the-pickaxe.md) | The pickaxe | accepted |  |
 | [the-scanner](2026-11-07-the-scanner.md) | The scanner reads a wreck's hit points | accepted |  |
 | [tool-card-rows](2026-11-07-tool-card-rows.md) | A tool's card lists its numbers as rows with icons | accepted |  |
-| [blasting-charge](2026-11-08-blasting-charge.md) | The blasting charge and the deep caches | accepted | unified-damage (in part) |
+| [blasting-charge](2026-11-08-blasting-charge.md) | The blasting charge and the deep caches | accepted | unified-damage, builders-raw (in part) |
 | [board-names](2026-11-08-board-names.md) | The board names what was never had | accepted |  |
 | [composed-backdrops](2026-11-08-composed-backdrops.md) | Composed backdrops | accepted |  |
 | [computer-after-planet](2026-11-08-computer-after-planet.md) | The computer and the radar after a planet | accepted |  |
@@ -335,9 +335,41 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [plant-stirs](2026-11-10-plant-stirs.md) | Plants stirred by bodies | accepted |  |
 | [tool-size](2026-11-10-tool-size.md) | Held tools are drawn smaller, and reach no longer follows the model | accepted |  |
 | [back-focus-faint](2026-11-12-back-focus-faint.md) | The back walls' focus clears the front round the pointer | accepted |  |
-| [food-and-the-body](2026-11-12-food-and-the-body.md) | Food and the body | accepted |  |
+| [food-and-the-body](2026-11-12-food-and-the-body.md) | Food and the body | accepted | food-tuning, jet-cruise (in part) |
 | [fruit-not-biomass](2026-11-12-fruit-not-biomass.md) | Fruit, not biomass | accepted |  |
 | [one-to-understand](2026-11-12-one-to-understand.md) | One of each part is enough to understand a thing | accepted |  |
 | [glowberry-bush](2026-11-13-glowberry-bush.md) | Spores grow a glowberry bush | accepted |  |
 | [gourd-vine](2026-11-13-gourd-vine.md) | The grow capsule grows a gourd vine | accepted |  |
 | [hud-vitals](2026-11-13-hud-vitals.md) | The vitals: air, charge and meals as frameless light at the bottom-left | accepted |  |
+| [bent-limbs](2026-11-14-bent-limbs.md) | Limbs bent whole at the joint | accepted |  |
+| [creatures-bend](2026-11-14-creatures-bend.md) | Creatures bend like the hero | accepted |  |
+| [drill-contact](2026-11-14-drill-contact.md) | The drill shows its reach as a turning double helix, and its sparks ride it out of a wreck | accepted | spark-rule (in part) |
+| [drill-redrawn](2026-11-14-drill-redrawn.md) | The drill traced from a picked reference, its bit drawn to turn | accepted | raw-tool-pictures (in part) |
+| [fire-axe-redrawn](2026-11-14-fire-axe-redrawn.md) | The fire axe traced from a picked reference, its trail following the rounded edge | accepted | raw-tool-pictures (in part) |
+| [food-and-gear-cards](2026-11-14-food-and-gear-cards.md) | Food and gear cards list what they guarantee, and food sells | accepted |  |
+| [frost-film](2026-11-14-frost-film.md) | Frost: the cold drawn as uneven ice with no edge | accepted |  |
+| [grapple-and-nailer-traced](2026-11-14-grapple-and-nailer-traced.md) | The grappling gun and the nailer traced from picked references | accepted | raw-tool-pictures (in part) |
+| [grinder-contact](2026-11-14-grinder-contact.md) | The grinder's sparks leave its haze's rim where it comes out of a wreck | accepted | drill-contact, spark-rule (in part) |
+| [grinder-redrawn](2026-11-14-grinder-redrawn.md) | The grinder drawn raw from a picked reference, its wheel spun in code | accepted |  |
+| [heat-limits](2026-11-14-heat-limits.md) | Heat: the other side of the degrees | accepted |  |
+| [helmets-fit-the-suit](2026-11-14-helmets-fit-the-suit.md) | Helmets fit the suit, each turning its own way | accepted |  |
+| [helmets-traced](2026-11-14-helmets-traced.md) | The basic and heavy helmets, traced | accepted |  |
+| [homemade-cutter](2026-11-14-homemade-cutter.md) | The plasma cutter is the homemade one | accepted |  |
+| [pickaxe-and-harpoon-traced](2026-11-14-pickaxe-and-harpoon-traced.md) | The pickaxe and the harpoon traced from picked references | accepted | raw-tool-pictures (in part) |
+| [quilted-helmet-and-traced-art](2026-11-14-quilted-helmet-and-traced-art.md) | The quilted helmet and traced art | accepted |  |
+| [railgun-traced](2026-11-14-railgun-traced.md) | The railgun traced from a picked reference | accepted | raw-tool-pictures (in part) |
+| [raw-tool-pictures](2026-11-14-raw-tool-pictures.md) | Held tools ship their picked reference's own paint | accepted |  |
+| [salvage-tools-raw](2026-11-14-salvage-tools-raw.md) | Cutter, spear and sledgehammer drawn raw | accepted | homemade-cutter (in part) |
+| [spear-effects](2026-11-14-spear-effects.md) | The spear's effects | accepted |  |
+| [temperature-gradients](2026-11-14-temperature-gradients.md) | Temperature gradients: colder away from the ship, smooth down the bands | accepted |  |
+| [temperature-in-degrees](2026-11-14-temperature-in-degrees.md) | Temperature in degrees | accepted |  |
+| [the-thermometer](2026-11-14-the-thermometer.md) | The thermometer: a frost star and the degrees, a row under the charge | accepted |  |
+| [tool-card-pictures](2026-11-14-tool-card-pictures.md) | A tool's card shows its picture enlarged | accepted |  |
+| [tool-in-hand](2026-11-14-tool-in-hand.md) | The tool in hand is the one that works | accepted |  |
+| [air-segments](2026-11-15-air-segments.md) | Air segments | accepted |  |
+| [blade-sparks](2026-11-15-blade-sparks.md) | A struck wreck sparks where the blade's trail lies on it | accepted | spark-rule (in part) |
+| [builders-raw](2026-11-15-builders-raw.md) | The screwdriver, power driver and blasting charge drawn raw | accepted |  |
+| [cutter-contact](2026-11-15-cutter-contact.md) | The cutter's slag blows out the far side, and struck ground sparks off the trail | accepted | spark-rule (in part) |
+| [food-tuning](2026-11-15-food-tuning.md) | Food tuning: whole-unit canisters, longer dishes, a stimulant, a purge | accepted |  |
+| [jet-cruise](2026-11-15-jet-cruise.md) | A jetpack pays for changing speed, not for distance | accepted |  |
+| [spark-rule](2026-11-15-spark-rule.md) | A tool's haze in matter throws that matter's look, whatever was hit | accepted |  |

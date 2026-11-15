@@ -343,6 +343,28 @@ public static partial class Terrain
     }
 
     /// <summary>
+    /// Row <paramref name="row"/>'s temperature on a planet of type <paramref name="t"/>, in whole degrees (2026-11-14-temperature-in-degrees):
+    /// each band's <see cref="Surfaces.Kind.Temperatures"/> holds at its middle, and between two middles it runs straight from one
+    /// to the next, rounded toward the upper band's; above the top band's middle and below the last's it holds. No step at a
+    /// band's edge, and a reading rarely a round number.
+    /// </summary>
+    public static int TemperatureOf(PlanetType t, int row)
+    {
+        var g = t.Ground;
+        int span = Math.Max(1, g.Height - g.CoreRows - g.Surface);
+        long down = (long)(row - g.Surface) * 1000 / span;
+        var degrees = t.Temperatures;
+        long Middle(int band) => ((band == 0 ? 0 : t.Bands[band - 1]) + (long)(band == degrees.Count - 1 ? 1000 : t.Bands[band])) / 2;
+        if (down <= Middle(0)) return degrees[0];
+        for (int band = 1; band < degrees.Count; band++)
+        {
+            long to = Middle(band), from = Middle(band - 1);
+            if (down <= to) return (int)(degrees[band - 1] + (degrees[band] - degrees[band - 1]) * (down - from) / Math.Max(1, to - from));
+        }
+        return degrees[^1];
+    }
+
+    /// <summary>
     /// What grows in the caves (0080), row by row from the top, each row from the left: in every slot — an open cave cell over a
     /// whole wall (a floor), one under a whole wall (a ceiling), a stone wall beside a cave cell (rock) — one draw under 10000
     /// picks a kind of that anchor by its chance in the row's band, scaled by the patch noise there and in a great hall, set

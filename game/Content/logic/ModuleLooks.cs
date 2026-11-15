@@ -6,9 +6,10 @@ namespace Stillwake.Game;
 /// <summary>
 /// A mount on a held tool's picture (0098), where a fitted module shows: its kind (<see cref="Id"/>, the drill's coil), the
 /// pixel of the tool's picture an overlay's top-left goes on, and the box of it the overlay's live effect plays over. A
-/// mount of one kind is one shape on every tool that has it, so one overlay fits them all.
+/// mount of one kind is one shape on every tool that has it, so one overlay fits them all, unless the tool has its own
+/// picture of that module (<see cref="Own"/>, by the overlay's picture): drawn with the tool, so it does not look stuck on.
 /// </summary>
-public sealed record ToolMount(string Id, int X, int Y, (double X0, double Y0, double X1, double Y1) Box);
+public sealed record ToolMount(string Id, int X, int Y, (double X0, double Y0, double X1, double Y1) Box, IReadOnlyDictionary<string, string>? Own = null);
 
 /// <summary>What plays over a mount while its tool runs: nothing, or the arc's crackle (<c>DrillLight</c>).</summary>
 public enum MountFx
@@ -28,7 +29,10 @@ public sealed record ModuleOverlay(string Mount, string Picture, MountFx Fx = Mo
 public static class ModuleLooks
 {
     /// <summary>The arc module (0075, 0096): the drill's copper coil turned blue, <c>art/module_arc_coil.png</c>, and crackling as it runs.</summary>
-    public static readonly IReadOnlyList<ModuleOverlay> Arc = [new("coil", "res://art/module_arc_coil.png", MountFx.Crackle)];
+    public static readonly IReadOnlyList<ModuleOverlay> Arc = [new("coil", ArcCoil, MountFx.Crackle)];
+
+    /// <summary>The arc module's coil picture, which a tool with its own (<see cref="ToolMount.Own"/>) swaps for that.</summary>
+    public const string ArcCoil = "res://art/module_arc_coil.png";
 
     private static readonly Dictionary<string, IReadOnlyList<ModuleOverlay>> All = new() { [Modules.Arc.Item] = Arc };
 
@@ -56,7 +60,8 @@ public sealed record HeldParts(HeldLook Look, IReadOnlyList<HeldLayer> Layers, I
     /// <summary>
     /// <paramref name="look"/> with modules fitted whose <paramref name="overlays"/> are these, a list a module, in the modules'
     /// order: its mounts in the order the tool declares them, and on each the modules' overlays for its kind in the modules'
-    /// order, each over the one before. An overlay for a mount the tool lacks shows nowhere. The tool's own arcs crackle first.
+    /// order, each over the one before, the mount's own picture of it if it has one. An overlay for a mount the tool lacks shows
+    /// nowhere. The tool's own arcs crackle first.
     /// </summary>
     public static HeldParts Overlaid(HeldLook look, IReadOnlyList<IReadOnlyList<ModuleOverlay>> overlays)
     {
@@ -68,7 +73,7 @@ public sealed record HeldParts(HeldLook Look, IReadOnlyList<HeldLayer> Layers, I
                 foreach (var overlay in overlays[i])
                 {
                     if (overlay.Mount != mount.Id) continue;
-                    layers.Add(new HeldLayer(overlay.Picture, mount.X, mount.Y));
+                    layers.Add(new HeldLayer(mount.Own?.GetValueOrDefault(overlay.Picture) ?? overlay.Picture, mount.X, mount.Y));
                     if (overlay.Fx == MountFx.Crackle && !crackles.Contains(mount.Box)) crackles.Add(mount.Box);
                 }
         return new HeldParts(look, layers, crackles);

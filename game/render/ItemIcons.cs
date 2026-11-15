@@ -15,7 +15,7 @@ public static class ItemIcons
     /// <summary>An item picture's side, in pixels.</summary>
     public const int Pixels = 16;
 
-    private static readonly Dictionary<string, Texture2D> Icons = new(), Silhouettes = new(), HeldTextures = new();
+    private static readonly Dictionary<string, Texture2D> Icons = new(), Silhouettes = new(), HeldTextures = new(), CardPictures = new();
     private static readonly Dictionary<(string Item, int Side), Texture2D> Baked = new();
     private static readonly Dictionary<string, Image> Held = new();
     private static readonly Dictionary<string, int> ClearRows = new();
@@ -26,7 +26,10 @@ public static class ItemIcons
     /// </summary>
     public static Texture2D Icon(string item) => HeldLook.Of(item) is { } look ? HeldTexture(look.Picture) : Drawn(item);
 
-    /// <summary>The picture of <paramref name="item"/> where it is drawn <paramref name="side"/> px wide: a tool's icon baked at that side, drawn 1:1; any other item's 16 px picture.</summary>
+    /// <summary>
+    /// The picture of <paramref name="item"/> where it is drawn <paramref name="side"/> px wide: a tool's icon baked at that side, mipmapped and
+    /// sampled smoothly whatever node draws it; any other item's 16 px picture.
+    /// </summary>
     public static Texture2D Icon(string item, int side) => HeldLook.Of(item) != null ? Bake(item, side) : Drawn(item);
 
     /// <summary>
@@ -74,15 +77,26 @@ public static class ItemIcons
         return icon;
     }
 
+    /// <summary>
+    /// A held tool's picture for its card (2026-11-14-tool-card-pictures): its fine icon picture, unturned, mipmapped so it fits down
+    /// smoothly; its size the fine picture's, so it is drawn at the size it is given.
+    /// </summary>
+    public static Texture2D CardPicture(string item)
+    {
+        string picture = HeldLook.Of(item)!.Picture;
+        if (!CardPictures.TryGetValue(picture, out var texture)) CardPictures[picture] = texture = ImageTexture.CreateFromImage(HiRes.Mipped(IconImage(picture)));
+        return texture;
+    }
+
     private static Texture2D Bake(string item, int side)
     {
         if (Baked.TryGetValue((item, side), out var icon)) return icon;
         var held = IconImage(HeldLook.Of(item)!.Picture);
         var rgba = ToolIcon.Bake(held.GetData(), held.GetWidth(), held.GetHeight(), side);
         var image = Image.CreateFromData(side, side, false, Image.Format.Rgba8, rgba);
-        // Mipmapped, so a zoomed-out board fits it down smoothly too.
+        // Mipmapped and filtered by itself, so a node drawing it nearest (a board note zoomed in) or scaled still draws it smooth.
         image.GenerateMipmaps();
-        return Baked[(item, side)] = ImageTexture.CreateFromImage(image);
+        return Baked[(item, side)] = HiRes.Sampled(ImageTexture.CreateFromImage(image), new Vector2I(side, side));
     }
 
     // A tool's held picture: an icon bakes from it, by its drawn box.

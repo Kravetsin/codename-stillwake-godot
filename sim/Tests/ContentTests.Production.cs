@@ -174,7 +174,7 @@ public partial class ContentTests
     {
         string[] pod = [Content.Helmet.Basic, Content.Suit.Basic, Screwdrivers.Basic.Item];
         string[] parts = ["wire", "plate", "gear", "tube", "coil", "rotor"];
-        string[] tools = ["fireAxe", "harpoon", "nailer", "nail", "helmetLamp", "jetpack", "drill", "cape", "grinder", "spear", "sledgehammer", "pickaxe", "grapple", "blastCharge"];
+        string[] tools = ["fireAxe", "harpoon", "nailer", "nail", "helmetLamp", "jetpack", "quiltedHelmet", "cape", "drill", "grinder", "spear", "sledgehammer", "pickaxe", "grapple", "blastCharge", "heatSuit"];
         string[] electronics = ["circuit", "solarCell", "battery", "drone", "salvageDrone", "deckDrive", "processor", "display", "transceiver", "igniter", "fuelPump"], arc = ["arcModule", "accumulator", "railgun"];
         string[] formed = ["frame", "motor", "soil", "nozzle"];
         string[] dishes = [Foods.Porridge, Foods.Hash, Foods.Broth, Foods.Roast, Foods.Stew];
@@ -249,10 +249,10 @@ public partial class ContentTests
             {
                 Assert.True(station.QueueMost > 0, station.Machine);
                 int most = station.Rows.SelectMany(r => r).Max(craft => Crafts.Get(craft).Cost.Select(c => c.Item).Distinct().Count());
-                // The pod, the workbench and the galley are paid by hand, so they take nothing in.
-                if (station.Machine is "lifepod" or "workbench" or "galley") Assert.Equal(0, spec.Inputs);
-                // The arc bench is paid by hand too; its one input is its tool's (0099).
-                else if (spec.Tunes) Assert.Equal(1, spec.Inputs);
+                // The pod and the workbench are paid by hand, so they take nothing in.
+                if (station.Machine is "lifepod" or "workbench") Assert.Equal(0, spec.Inputs);
+                // The arc bench and the galley are paid by hand too; the one input is the tool's (0099), the fire's.
+                else if (spec.Tunes || spec.FuelSlot != null) Assert.Equal(1, spec.Inputs);
                 else Assert.True(spec.Inputs >= most, $"{station.Machine}: {spec.Inputs} inputs, a craft of {most} items");
                 foreach (var craft in station.Rows.SelectMany(r => r)) Assert.Equal(0, Crafts.Get(craft).Ticks * 1000 % station.Speed);
             }
@@ -451,7 +451,7 @@ public partial class ContentTests
     }
 
     /// <summary>What no one buys: wreckage whole, tools, what is worn, what stores or flies by itself, the arc's, the photosensitive panel nothing makes.</summary>
-    private static readonly string[] Unpriced = ["ration", "cannedMeat", "fruit", "glowberry", "porridge", "hash", "broth", "roast", "stew", "arcShard", "arcModule", "supplyPod", "fridge", "cargoCrate", "hullSection", "cargoContainer", "machineBlock", "cableRack", "tankCluster", "shieldSlab", "soilClod", "asteroid", "asteroidSmall", "asteroidLarge", "asteroidRich", "engineBlock", "cargoHold", "podCluster", "parcel", "deliveryCrate", "confiscated", "photoPanel", "drone", "salvageDrone", "screwdriver", "fireAxe", "harpoon", "grapple", "nailer", "railgun", "drill", "powerDriver", "grinder", "plasmaCutter", "spear", "sledgehammer", "pickaxe", "jetpack", "helmetLamp", "scanner", "battery", "accumulator", "helmet", "suit", "heavyHelmet", "regenSuit", "cape"];
+    private static readonly string[] Unpriced = ["arcShard", "arcModule", "supplyPod", "fridge", "cargoCrate", "hullSection", "cargoContainer", "machineBlock", "cableRack", "tankCluster", "shieldSlab", "soilClod", "asteroid", "asteroidSmall", "asteroidLarge", "asteroidRich", "engineBlock", "cargoHold", "podCluster", "parcel", "deliveryCrate", "confiscated", "photoPanel", "drone", "salvageDrone", "screwdriver", "fireAxe", "harpoon", "grapple", "nailer", "railgun", "drill", "powerDriver", "grinder", "plasmaCutter", "spear", "sledgehammer", "pickaxe", "jetpack", "helmetLamp", "scanner", "battery", "accumulator", "helmet", "suit", "heavyHelmet", "quiltedHelmet", "regenSuit", "heatSuit", "cape"];
 
     /// <summary>Everything is priced or named here as what no one buys; raw salvage is, so the first credits need nothing made.</summary>
     [Fact]
@@ -587,7 +587,7 @@ public partial class ContentTests
     [Fact]
     public void EverythingButAPlanetsOwnOpensFromWhatSpaceGivesAloneTheDropPodAmongThem()
     {
-        string[] planetary = ["accumulator", "arcBench", "arcLamp", "arcModule", "backWallAlloy", "backWallHide", "backWallMica", "backWallStone", "biofuelGenerator", "blastCharge", "broth", "cape", "computer", "electrolyser", "engine", "fuelPump", "grinder", "igniter", "motor", "nozzle", "radarAntenna", "railgun", "roast", "salvageDrone", "stew", "wallAlloy", "wallHide", "wallMica", "wallStone"];
+        string[] planetary = ["accumulator", "arcBench", "arcLamp", "arcModule", "backWallAlloy", "backWallHide", "backWallMica", "backWallStone", "biofuelGenerator", "blastCharge", "broth", "cape", "computer", "electrolyser", "engine", "fuelPump", "grinder", "heatSuit", "igniter", "motor", "nozzle", "quiltedHelmet", "radarAntenna", "railgun", "roast", "salvageDrone", "stew", "wallAlloy", "wallHide", "wallMica", "wallStone"];
         var (had, known) = Reachable(Stations.All);
         var recipes = Stillwake.Sim.Research.Blueprints.All.Select(b => (b.Id, b.Cost)).Concat(Crafts.All.Select(c => (Id: c.Item, c.Cost)));
         var locked = recipes.Where(r => !known.Contains(r.Id) || !r.Cost.All(c => had.Contains(c.Item))).Select(r => r.Id).Distinct().Order(StringComparer.Ordinal).ToArray();

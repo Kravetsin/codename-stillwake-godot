@@ -76,6 +76,8 @@ public interface IItemsQueries
     IReadOnlyList<string> FittedTo(int machine);
     Boost Boost(int machine);
     string? FitProblem(int peer, Place from, int machine);
+    /// <summary>The hotbar slot the peer's hero holds in its hand (tool-in-hand).</summary>
+    int Wielding(int peer);
     Stack? ToolStack(int peer, string item);
     int Damage(int peer, string tool);
     /// <summary>What a hit of weapon <paramref name="tool"/> by <paramref name="peer"/> takes off a wall, back wall or plant.</summary>
@@ -161,6 +163,7 @@ public sealed partial class ItemsModule : Module<ItemsState>, IItemsQueries, IIt
         Handles<Spawn>(SpawnProblem, ApplySpawn);
         Handles<Move>(MoveProblem, ApplyMove);
         Handles<Run>(RunProblem, ApplyRun);
+        Handles<Wield>(WieldProblem, ApplyWield);
         Handles<Sort>(SortProblem, ApplySort);
         Handles<Stash>(_ => null, ApplyStash);
         Handles<Fit>(c => FitProblem(c.From, c.Module, c.Machine), ApplyFit);
@@ -176,8 +179,8 @@ public sealed partial class ItemsModule : Module<ItemsState>, IItemsQueries, IIt
 
     /// <summary>
     /// Every run draws its item's <c>Draw</c> from its peer's belt for this tick, in peer order, boosted by the module fitted
-    /// into the stack it runs (<see cref="ToolStack"/>, 0098); one whose belt cannot pay the tick, or whose item its peer no
-    /// longer carries, stops (0055).
+    /// into the stack it runs (<see cref="ToolStack"/>, 0098); one whose belt cannot pay the tick, or whose item its hand no
+    /// longer holds (tool-in-hand), stops (0055).
     /// </summary>
     private void Runs()
     {
@@ -195,18 +198,20 @@ public sealed partial class ItemsModule : Module<ItemsState>, IItemsQueries, IIt
     /// <summary>A new surface keeps who is in creative mode on the one it was opened from: a dev setting of each peer, kept per surface.</summary>
     protected override void Inherit(Module from) => State.Creative = [.. ((ItemsModule)from).State.Creative];
 
-    /// <summary>What a peer takes from surface to surface (0076): its slots, equipment and belt with their charge, and the electric item it runs.</summary>
-    private sealed record Carried(Stack?[]? Slots, string? Running);
+    /// <summary>What a peer takes from surface to surface (0076): its slots, equipment and belt with their charge, the electric item it runs and its hand.</summary>
+    private sealed record Carried(Stack?[]? Slots, string? Running, int Hand);
 
-    /// <summary><paramref name="peer"/>'s inventory and its run, gone from this surface; null when it has neither here.</summary>
+    /// <summary><paramref name="peer"/>'s inventory, its run and its hand, gone from this surface; null when it has none of them here.</summary>
     public object? Depart(int peer)
     {
         int at = State.Inventories.FindIndex(h => h.Id == peer);
         var slots = at >= 0 ? State.Inventories[at].Slots : null;
         if (at >= 0) State.Inventories.RemoveAt(at);
         string? running = Running(peer);
+        int hand = Wielding(peer);
         StopRunning(peer);
-        return slots == null && running == null ? null : new Carried(slots, running);
+        SetHand(peer, 0);
+        return slots == null && running == null && hand == 0 ? null : new Carried(slots, running, hand);
     }
 
     /// <summary>Takes what <paramref name="peer"/> carried as it left: the tool it ran runs on here, its belt paying from this tick.</summary>
@@ -217,6 +222,7 @@ public sealed partial class ItemsModule : Module<ItemsState>, IItemsQueries, IIt
         if (State.Inventories.Exists(h => h.Id == peer) || Running(peer) != null)
             throw new InvalidOperationException($"items: peer {peer} arrives where its inventory is already");
         if (c.Slots != null) Stacks.SetInventory(State, peer, c.Slots);
+        SetHand(peer, c.Hand);
         if (c.Running is { } item)
         {
             int at = State.Running.FindIndex(r => r.Peer > peer);
@@ -683,8 +689,8 @@ public sealed partial class ItemsModule : Module<ItemsState>, IItemsQueries, IIt
     // Commands.
 
     /// <summary>
-    /// <c>items.notElectric</c> for an item with no <c>Draw</c>; turning on, <c>items.notHeld</c> when the sender
-    /// carries none, and <c>items.flat</c> when its belt cannot pay a tick of the draw, its module's boost in it (never in
+    /// <c>items.notElectric</c> for an item with no <c>Draw</c>; turning on, <c>items.notHeld</c> when the sender's
+    /// hand holds none (tool-in-hand), and <c>items.flat</c> when its belt cannot pay a tick of the draw, its module's boost in it (never in
     /// creative mode).
     /// </summary>
     private string? RunProblem(Run c)

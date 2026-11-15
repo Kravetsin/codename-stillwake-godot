@@ -1,9 +1,13 @@
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using Godot;
 using Stillwake.Game.Render;
 using Stillwake.Game.Shared;
+using Stillwake.Sim.Crew;
 using static Stillwake.Game.I18n.En;
 using CrewSpec = Stillwake.Content.Crew;
+using Foods = Stillwake.Content.Foods;
 using Look = Stillwake.Game.WristLook;
 using S = Stillwake.Game.Sound;
 
@@ -28,7 +32,9 @@ public partial class SuitGauge : CanvasLayer
     // The oxygen sign the rooms' air is read by (tip-signs); red while low.
     private readonly AirRow _gauge = new(Signs.Of(Sign.Oxygen), RedSign);
     private readonly Func<int> _canisterIn;
-    private readonly Func<string?> _helmet;
+    private readonly Func<IReadOnlyList<AirPart>> _parts;
+    private IReadOnlyList<AirPart> _shown = [];
+    private int _tipped;
     private readonly Ui _ui;
     private readonly TipSpots _tips;
     private readonly CanisterCooling _cooling = new();
@@ -45,13 +51,12 @@ public partial class SuitGauge : CanvasLayer
 
     /// <param name="read">This player's suit and its danger, as <see cref="Danger.Read"/> gives them.</param>
     /// <param name="canisterIn">This player's hero's ticks left before another canister, <c>CanisterIn</c>; none without a hero.</param>
-    /// <param name="helmet">The helmet this player's hero wears, none bare: what the piece's tip names.</param>
+    /// <param name="parts">This player's hero's air in its parts (air-segments): the piece's segments, each named on hover.</param>
     /// <param name="ui">The slots' size, which the block's size follows (0058), and the one tooltip.</param>
-    public SuitGauge(Func<(int Air, int Capacity, SuitDanger Danger, bool InAir)> read, Func<int> canisterIn, Func<string?> helmet, Ui ui)
+    public SuitGauge(Func<(int Air, int Capacity, SuitDanger Danger, bool InAir)> read, Func<int> canisterIn, Func<IReadOnlyList<AirPart>> parts, Ui ui)
     {
-        (_read, _canisterIn, _helmet, _ui) = (read, canisterIn, helmet, ui);
+        (_read, _canisterIn, _parts, _ui) = (read, canisterIn, parts, ui);
         _tips = new TipSpots(ui.Tip);
-        _tips.Add(_gauge.Spot, () => _capacity > 0 ? new Tip(T("hud.holds", ("name", _helmet() is { } worn ? T($"item.{worn}") : T("hud.lungs")), ("n", _capacity)), []) : null);
         ui.Refilled += _gauge.Surge;
         ui.PressedCooling += _refused.Press;
         _gauge.DrawMark = DrawRing;
@@ -99,9 +104,17 @@ public partial class SuitGauge : CanvasLayer
             _sinceRead = 0;
             // A helmet put on or off changes the share with nothing lost: shown at once, no white.
             if (_capacity != 0 && capacity != _capacity) _gauge.Motion.Show((double)suit / capacity);
-            // A hit is more than the dearest breath, running bare in the cold: bare lungs are small enough for a breath to look like one.
-            else _gauge.Motion.Read((double)suit / capacity, Math.Max(WristLook.BigDrop, (CrewSpec.Exerted + CrewSpec.BareCold + 0.5) / capacity));
+            // A hit is more than the dearest breath, running bare in the cold (a unit of it): bare lungs are small enough for a
+            // breath to look like one.
+            else _gauge.Motion.Read((double)suit / capacity, Math.Max(WristLook.BigDrop, (CrewSpec.Exerted + 1 + 0.5) / capacity));
             _capacity = _gauge.Units = capacity;
+            // Each part of the air its own segment of the same scale, past a gap, named on hover (air-segments).
+            _gauge.Parts = [.. (_shown = _parts()).Select(p => p.Size)];
+            for (; _tipped < _shown.Count; _tipped++)
+            {
+                int part = _tipped;
+                _tips.Add(_gauge.SpotOf(part), () => TipOf(part));
+            }
             _fog.Read(_danger, (double)suit / capacity);
             _cooling.Read(_canisterIn());
             _gauge.Short = _danger != SuitDanger.None;
@@ -119,6 +132,15 @@ public partial class SuitGauge : CanvasLayer
         var fog = _fog.Advance(delta);
         _fogView.Show(fog);
         _gauge.LastDim = (float)fog.LastDim;
+    }
+
+    /// <summary>The <paramref name="part"/>-th part's tip: what holds it, the lungs, the helmet worn or the stimulant, and its units.</summary>
+    private Tip? TipOf(int part)
+    {
+        if (part >= _shown.Count) return null;
+        var (key, size) = (_shown[part].Key, _shown[part].Size);
+        string name = key == AirPart.Lungs ? T("hud.lungs") : key == AirPart.Food ? T($"item.{Foods.Stim}") : T($"item.{key}");
+        return new Tip(T("hud.holds", ("name", name), ("n", size)), []);
     }
 
     /// <summary>The ring's radius round the oxygen sign, in block units, grown with the sign; how wide it is drawn.</summary>

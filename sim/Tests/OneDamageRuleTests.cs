@@ -111,7 +111,7 @@ public class OneDamageRuleTests
         var materials = rows.Select(r => string.Concat(r.Select(c => c == '#' ? 's' : '.')));
         var layout = Layout.Parse(string.Join('\n', rows)).WithMaterials(string.Join('\n', materials)) with { Kind = PlanetTypes.First.Id };
         return CreaturesTesting.Planet(layout, CreaturesTesting.Lifeless, cells: true).Do(new Crew.Enter(19 * 60 + 2))
-            .GiveItems(0, (gun.Item, 1), ("nail", 10)).Put(Inventory.Slots + 2, new Items.Stack("battery", 1, Charge.Battery)).Run();
+            .GiveItems(0, (gun.Item, 1), ("nail", 10)).Wields(gun.Item).Put(Inventory.Slots + 2, new Items.Stack("battery", 1, Charge.Battery)).Run();
     }
 
     private static Fire Along(Gun gun) => new(gun.Item, 25 * Unit, 17 * Unit + Unit / 2, Right);

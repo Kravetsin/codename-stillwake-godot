@@ -117,7 +117,7 @@ public class RuinsTests
     public void ThePlasmaCutterLeavesAWallAPlantAndTheCradleAloneAndShocksNobody()
     {
         string cutter = Weapons.PlasmaCutter.Item;
-        var w = WithHeroes().GiveItems(0, (cutter, 1));
+        var w = WithHeroes().GiveItems(0, (cutter, 1)).Wields(cutter);
         w.Put(Inventory.Slots + 2, new Stack("battery", 1, Charge.Battery));
         w.Do(new Run(cutter, true)).Run();
         var kinds = Kinds(w);

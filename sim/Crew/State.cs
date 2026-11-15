@@ -42,6 +42,8 @@ public sealed class Hero
     [JsonInclude] public bool SuitOn { get; internal set; }
     /// <summary>How many hurts it has taken, each a blow, a shock, poison or a burn (2026-11-08-hurts-are-shown): the client shows each new one.</summary>
     [JsonInclude, JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)] public int Hurts { get; internal set; }
+    /// <summary>How many times it has purged its meals (food-tuning): the client shows each new one.</summary>
+    [JsonInclude, JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)] public int Purges { get; internal set; }
     /// <summary>What hurt it last; <see cref="Harm.None"/> before anything has.</summary>
     [JsonInclude, JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)] public Harm Hurt { get; internal set; }
     /// <summary>Its hidden wanted meter, the worth of what it broke and killed, 0 to <see cref="Need"/>: full, a catcher is sent (catcher-loot).</summary>
@@ -69,6 +71,30 @@ public sealed class Hero
     internal List<Meal>? Saved { get => Eaten.Count > 0 ? Eaten : null; set => Eaten = value ?? []; }
     /// <summary>Its meals, in the slots they were eaten into.</summary>
     [JsonIgnore] public IReadOnlyList<Meal> Meals => Eaten;
+    /// <summary>
+    /// Its air's parts as last cut (air-segments): what a part gone since took with it is known by them. None yet, its parts
+    /// now are taken as they were.
+    /// </summary>
+    [JsonInclude, JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] internal List<AirPart>? Shape { get; set; }
+}
+
+/// <summary>
+/// A part of a hero's air (air-segments): its lungs, the helmet it wears, what food lends. Parts fill in their order, the first
+/// first, and are spent the last first; a part gone takes what it held.
+/// </summary>
+public sealed class AirPart
+{
+    /// <summary>The lungs' part, always the first.</summary>
+    public const string Lungs = "lungs";
+    /// <summary>What food lends, always the last: a stimulant's.</summary>
+    public const string Food = "food";
+
+    public AirPart(string key, int size) => (Key, Size) = (key, size);
+
+    /// <summary><see cref="Lungs"/>, <see cref="Food"/> or the worn helmet's item.</summary>
+    [JsonInclude] public string Key { get; internal set; }
+    /// <summary>The units it holds when full.</summary>
+    [JsonInclude] public int Size { get; internal set; }
 }
 
 /// <summary>A food a hero has eaten (food-and-the-body): its rates last while <see cref="Left"/> runs.</summary>

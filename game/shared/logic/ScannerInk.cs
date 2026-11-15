@@ -8,8 +8,11 @@ public static class ScannerInk
     public const int Margin = 1;
 
     /// <summary>Where the picture's box's top left sits on the basic helmet's picture, in its pixels.</summary>
-    public static readonly (double X, double Y) On = (6.2, -0.8);
+    public static readonly (double X, double Y) On = (6.2, -1.9);
 
     /// <summary>Where it sits on the heavy helmet's picture.</summary>
-    public static readonly (double X, double Y) OnHeavy = (6.2, -2.6);
+    public static readonly (double X, double Y) OnHeavy = (6.2, -4.1);
+
+    /// <summary>Where it sits on the quilted helmet's picture.</summary>
+    public static readonly (double X, double Y) OnQuilted = (6.2, -3);
 }

@@ -43,7 +43,7 @@ smelt, crush, grow (0060), ferment (power-chain).
   `Ticks × 1000` of work; crafts layer parts, components, products (0046). Rosters are content's: the pod's the suit and
   screwdriver, the workbench's tools, the Former's parts, the assembler's electronics, the galley's dishes, the arc bench's shard crafts (0099).
 - **Inputs** (0057): as many slots as the most distinct items any of its crafts needs (`ContentTests`). The pod, the
-  workbench and the galley have none, and the arc bench's one is a vise (0099): a craft from inputs there is refused `crafting.noInputs`.
+  workbench have none, the arc bench's one is a vise (0099), the galley's its fuel: a craft from inputs there is refused `crafting.noInputs`.
 - **`Craft(Machine, Recipe, Count, FromInputs, Endless)`**: paid (the default) takes all `Count` units' cost from the
   sender's stock, its own then every crate's (craft-from-crates), at once (none in creative); fed from the inputs
   takes nothing, `Endless` repeating it. Either appends an entry by the sender with the queue's next id. Refused whole: `crafting.noStation`, `crafting.unknown` (or not known),
@@ -79,7 +79,7 @@ smelt, crush, grow (0060), ferment (power-chain).
 
 ## API
 
-- **Queries** (`ICraftingQueries`): `StationOf`, `Queue` (live, read-only), `Progress`, `CanSmelt`, `TooCold`, `TooFew`,
+- **Queries** (`ICraftingQueries`): `StationOf`, `Queue` (live, read-only), `Progress`, `CanSmelt`, `HasWork`, `TooCold`, `TooFew`,
   `WorkOf` (null for nothing of its process). Module only: `Works` (a furnace reads idle between ticks), `Lacks`.
   Static: `Processes(station, item)`, of its process and no hotter, room aside.
 - **Operations** (`ICraftingOps`): `Heat(machine)`; `Scrap(machine)`, a breaking station's queue and smelt dropped, their

@@ -35,8 +35,8 @@ public static class Testbed
     /// <summary>What a planet's caves and ruins give (0080, 0085, 0091, blasting-charge), the motor made of their copper, a grazer's hide and fat, and the cape of cloth and hide, in the farm's crate too: the first is full.</summary>
     public static readonly IReadOnlyList<string> Planet = ["copperOre", "copper", "ice", Content.Water.Item, "crystal", "spore", "mica", "magnetite", "sulfur", "opal", "motor", "alloyScrap", "arcShard", "cloth", "hide", "fat", "arcLamp", Cape.Item];
 
-    /// <summary>What nothing makes, in the farm's crate too: a solar panel's photosensitive panel, had only of one taken apart.</summary>
-    public static readonly IReadOnlyList<string> Unmade = ["photoPanel"];
+    /// <summary>What nothing makes, in the farm's crate too: a solar panel's photosensitive panel, had only of one taken apart; the black market's stimulant.</summary>
+    public static readonly IReadOnlyList<string> Unmade = ["photoPanel", Foods.Stim];
 
     /// <summary>Tools the full crate has no slot left for, in the farm's crate too: the power driver (power-driver).</summary>
     public static readonly IReadOnlyList<string> Spare = [Screwdrivers.PowerDriver.Item];
@@ -56,12 +56,16 @@ public static class Testbed
 
     /// <summary>
     /// What the tools crate on the lifepod holds, the others being full: the salvage tools (salvage-tools), the pickaxe (the-pickaxe), the grappling gun (grapple-climbs), and an arc
-    /// module for each machine and tool it fits (0086, 0098, 0100), which takes a spire's relic to make; and one of each of the galley's dishes, cooked ahead.
+    /// module for each machine and tool it fits (0086, 0098, 0100), which takes a spire's relic to make; one of each of the galley's dishes, cooked ahead; and the
+    /// quilted helmet (2026-11-14-quilted-helmet-and-traced-art), to wear without sewing it.
     /// </summary>
-    public static IEnumerable<string> InTools => [Weapons.Grinder.Item, Weapons.Spear.Item, Weapons.Sledgehammer.Item, Weapons.PlasmaCutter.Item, Weapons.Pickaxe.Item, Grapple.Item, .. Modules.Arc.Hosts.Select(_ => Modules.Arc.Item), .. Stations.Get("galley").Rows.SelectMany(r => r)];
+    public static IEnumerable<string> InTools => [Weapons.Grinder.Item, Weapons.Spear.Item, Weapons.Sledgehammer.Item, Weapons.PlasmaCutter.Item, Weapons.Pickaxe.Item, Grapple.Item, .. Modules.Arc.Hosts.Select(_ => Modules.Arc.Item), .. Stations.Get("galley").Rows.SelectMany(r => r), Helmet.Quilted];
 
     /// <summary>How many rations and canned meat the supply crate holds: enough to cook at the galley a while, its fruit, glowberries, water and fat in the farm's crate.</summary>
     public const int Cooking = 10;
+
+    /// <summary>The planks in the galley's fuel slot: ten short dishes.</summary>
+    public const int GalleyFuel = 20;
 
     /// <summary>What the bay holds beside its drones, the crates being full: a salvage drone, charged, its fuel slot empty, so it never flies here (salvage-drones).</summary>
     public static readonly IReadOnlyList<string> InBay = [Logistics.SalvageDrone];
@@ -232,6 +236,8 @@ public static class Testbed
             new() { ["id"] = Id("engine"), ["slots"] = Slots("engine", [Stack("biofuel", Fuelled)]) },
             new() { ["id"] = Id("dropPod"), ["slots"] = Slots("dropPod", [Stack("biofuel", PodFuel)]) },
             new() { ["id"] = Id("burnerGenerator"), ["slots"] = Slots("burnerGenerator", [Stack("planks", Items.Get("planks").Stack)]) },
+            // A fire laid under its pot (0023): a dish queued cooks at once, more planks and fat in the farm's crate.
+            new() { ["id"] = Id("galley"), ["slots"] = Slots("galley", [Stack("planks", GalleyFuel)]) },
             new() { ["id"] = Id("biofuelGenerator"), ["slots"] = Slots("biofuelGenerator", [Stack("biofuel", Fuelled)]) },
             new() { ["id"] = Id("fermenter"), ["slots"] = Slots("fermenter", [Stack("biomass", Items.Get("biomass").Stack)]) },
             new() { ["id"] = Id("smelter"), ["slots"] = Slots("smelter", [Stack(Smelting, Items.Get(Smelting).Stack)]) },

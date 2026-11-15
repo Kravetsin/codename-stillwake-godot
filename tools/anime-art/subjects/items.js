@@ -688,6 +688,20 @@ P.canister = (a) => {
   a.shape(rr(5.6, 8, 4.8, 3, .2), { base: '#d4d4cc', shade: '#9a9c9c', deep: '#7a7c80', lite: '#ecece6' }, { outer: false, shade: band(9.6, 8, 10.4, 11) });
   a.flat(band(6.6, 9, 9.2, 9.9), '#2a5488');
 };
+P.stim = (a) => {
+  // The black market's stimulant (food-tuning), a first draft: a scuffed auto-injector, its dark plunger cap up top, an amber
+  // window showing the dose, its orange safety end down, a hand-written tape across it.
+  const SHELL = { base: '#bfc0bc', shade: '#85878a', deep: '#5e6066', lite: '#e2e2dc', spec: '#f8f8f2' };
+  const DOSE = { base: '#d49a3a', shade: '#9c6a2a', deep: '#6e4622', lite: '#f0c46c', spec: '#fbe6b0' };
+  const SAFETY = { base: '#c8642e', shade: '#8c3e24', deep: '#62281e', lite: '#e6905a' };
+  a.shape(rr(6.4, .8, 3.2, 2.4, .5), GUN, { lite: band(6.4, .8, 9.6, 1.3), shade: band(8.9, .8, 9.6, 3.2) });
+  a.shape(rr(5.4, 3, 5.2, 9.4, .9), SHELL, { lite: band(5.6, 3, 6.6, 12.4), spec: band(5.9, 3.6, 6.2, 8), shade: band(9.4, 3, 10.6, 12.4) });
+  a.shape(rr(6.6, 4.4, 2.8, 4.2, .4), DOSE, { outer: false, lite: band(6.8, 4.4, 7.4, 8.6), shade: band(8.8, 4.4, 9.4, 8.6), spec: band(7, 4.8, 7.3, 5.6) });
+  a.shape(rr(5.8, 12.2, 4.4, 2.6, .7), SAFETY, { lite: band(6, 12.2, 7, 14.8), shade: band(9.2, 12.2, 10.2, 14.8) });
+  a.shape(poly([5.2, 9.4, 10.8, 9.2, 10.8, 10.8, 5.2, 11]), { base: '#c8bc94', shade: '#968c6c', deep: '#6c6450', lite: '#e2d8b4' }, { outer: false, shade: .25 });
+  a.line('M6.2 10.2L7.6 10L8.4 10.3L9.8 10', { c: '#3c2a24', w: .9 });
+  a.flat(ell(10, 6.6, .35, .5), '#6e6a64');
+};
 const BOTTLE = { base: '#8db4c2', shade: '#56808f', deep: '#3d5f6e', lite: '#cfe6ee', spec: '#f4fbfd' };
 const WATERED = { base: '#2c8ca8', shade: '#1f6f80', deep: '#165a6a', lite: '#7fd8e6', spec: '#d6f4fa' };
 P.water = (a) => {
@@ -817,18 +831,6 @@ P.jetpack = (a) => {
   }
   for (const y of [5, 9.8]) a.shape(rr(.7, y, 14.6, 1.5, .2), GUN, { lite: band(.7, y, 15.3, y + .5), shade: band(.7, y + 1, 15.3, y + 1.5) });
   rivets(a, [8, 5.7], [8, 10.5]);
-};
-P.helmet = (a) => {
-  // The hero's helmet, as he wears it: an amber shell, a dark band over the brow, the wide grey-rimmed visor, a box at the ear, the collar under.
-  a.shape(rr(3, 13, 10, 2.1, .5), GUN, { lite: band(3, 13, 13, 13.5), shade: band(3, 14.4, 13, 15.1) });
-  a.shape('M1.2 8.4C1 4.4 4 1 8.4 1C12.6 1 15.2 4 15.2 8C15.2 11 13.8 13.2 11.6 14L5.2 14C2.8 13.4 1.4 11.2 1.2 8.4Z', SUIT, {
-    lite: 'M1.6 6.4C2.2 3.4 4.8 1.2 8.4 1.2C5.6 2.4 3.6 4 3 6.6Z', deep: 'M1.8 11C2.6 12.6 3.8 13.6 5.2 14L11.6 14C12.4 13.6 13 13.2 13.6 12.6C10 13 5 13 1.8 11Z', shade: 'M2.2 9.6L6 12.8L12 12.8L5 12.4Z' });
-  a.shape('M3.8 3.4C5.4 2 7 1.4 8.8 1.4C10.8 1.4 12.6 2.2 13.8 3.8L12.8 4.6C10.6 3.4 7 3.2 4.6 4.4Z', DARK, { outer: false, edge: true, lite: 'M6 2.2L10 2L10 2.6L6 2.8Z' });
-  a.shape('M5.6 5.2C8.4 4.4 12 4.6 14.8 5.8C15.4 7.6 15.2 9.8 14 11.6C11.4 12.2 8 12.2 6 11.4C5 9.6 4.8 7 5.6 5.2Z', { base: '#7c828c', shade: '#54586a', deep: '#3a3e4c', lite: '#a0a6ae', spec: '#d0d4d8' }, { outer: false, edge: true });
-  a.shape('M6.4 6C8.8 5.4 11.8 5.6 14.2 6.6C14.6 8 14.4 9.6 13.6 10.8C11.2 11.4 8.6 11.4 6.8 10.8C6 9.2 5.8 7.4 6.4 6Z', { base: '#171d2a', shade: '#10141f', deep: '#0b0e16', lite: '#2a3650', spec: '#a8c4dc' }, { outer: false,
-    lite: 'M6.4 6C8.8 5.4 11.8 5.6 14.2 6.6L14.3 7.2C11.6 6.4 8.6 6.4 6.3 7Z', deep: 'M6.6 10C9 10.8 11.6 10.6 13.8 10L13.6 10.8C11.2 11.4 8.6 11.4 6.8 10.8Z' });
-  a.flat('M8 6.6L10.4 6.4L9.8 7.4L7.8 7.6Z', '#6c8ca8');
-  a.shape(rr(2.2, 6.8, 2.2, 3.4, .4), DARK, { lite: band(2.2, 6.8, 4.4, 7.3) });
 };
 P.suit = (a) => {
   // The suit laid out flat: amber, the belt and straps grey, the collar's ring, red-brown toward the hem as the hero wears it.

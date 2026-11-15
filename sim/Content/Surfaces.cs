@@ -33,6 +33,12 @@ public static class Surfaces
         /// <summary>The light through every open cell with no back wall: a planet's daylight; null for the stars'.</summary>
         public Light? Sky { get; init; }
 
+        /// <summary>
+        /// Its temperature in degrees by depth band (2026-11-14-temperature-in-degrees): one for a kind without bands, one a band for a
+        /// <see cref="PlanetType"/> (<c>Terrain.BandOf</c>). An aired cell is <see cref="Temperature.Room"/> whatever this says.
+        /// </summary>
+        public IReadOnlyList<int> Temperatures { get; init; } = [Temperature.Space];
+
         /// <summary>Its day and night (2026-11-07-night-chills); null where there is none: the ship.</summary>
         public Content.Sky.Cycle? Cycle { get; init; }
 
@@ -92,6 +98,8 @@ public static class Surfaces
         ThinAir = PlanetTypes.First.ThinAir,
         Sky = PlanetTypes.First.Sky,
         Cycle = PlanetTypes.First.Cycle,
+        // Its surface's band only: it has no depth bands.
+        Temperatures = [PlanetTypes.First.Temperatures[0]],
         Debris = PlanetTypes.First.Debris,
         Builds = PlanetTypes.First.Builds,
         ToolsBreak = PlanetTypes.First.ToolsBreak,

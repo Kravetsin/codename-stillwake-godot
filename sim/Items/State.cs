@@ -107,6 +107,8 @@ public sealed class ItemsState
     /// <summary>What input slots remember, by machine and slot, in that order: the last item put in, until taken out by hand.</summary>
     [JsonInclude] internal List<Kept> Kept { get; set; } = [];
     /// <summary>The modules fitted into machines (0086), by machine, then module, ordinal.</summary>
+    /// <summary>The hands holding a hotbar slot other than the first (tool-in-hand), in peer order.</summary>
+    [JsonIgnore] internal List<Hand> Hands { get; set; } = [];
     [JsonIgnore] internal List<Fitted> Fitted { get; set; } = [];
 
     /// <summary><see cref="Fitted"/> as a save writes it: left out while none is fitted, so a save without modules is as it was.</summary>
@@ -115,5 +117,13 @@ public sealed class ItemsState
     {
         get => Fitted.Count == 0 ? null : Fitted;
         set => Fitted = value ?? [];
+    }
+
+    /// <summary><see cref="Hands"/> as a save writes it: left out while every hand holds the first slot, as a save from before the hand.</summary>
+    [JsonInclude, JsonPropertyName("wielding"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    internal List<Hand>? HandsSaved
+    {
+        get => Hands.Count == 0 ? null : Hands;
+        set => Hands = value ?? [];
     }
 }

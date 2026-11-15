@@ -30,7 +30,7 @@ out in space a hero could fly a thousand cells and the sim would still hold the 
   and `Crew.ReportEvery` (20) ticks have gone since its last `Enter`, never while passed out. No new
   command, payload or format. `Hero.Cell` is that reported cell, which whatever places things by where
   heroes are reads too.
-- **The frost:** the client draws frost creeping in from the screen's edges, with a faint static, at
+- **The frost** (its look since [frost-film](2026-11-14-frost-film.md)): the client draws frost creeping in from the screen's edges, with a faint static, at
   `EdgeCost` of the body's own cell over `Field.EdgeCost`, eased out: nothing inside the field, a thin
   rim just past the line, heavy near the edge. One full-screen quad over the world, under the HUD.
 

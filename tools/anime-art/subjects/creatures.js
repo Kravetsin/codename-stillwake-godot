@@ -48,7 +48,6 @@ function grown(a, d, m, o, sides, w) {
 }
 
 const HOOF = mat('#322824', '#221b18', '#171210', '#4a3d36');
-const INNER = mat('#6a4842', '#4c322f', '#382422', '#7f5b53');
 const DARK = mat('#3c2d27', '#2b201c', '#1e1613', '#54423a');
 const EYE = mat('#a39a7c', '#6f6853', '#4c4739', '#b5ac8e');
 const PIT = '#14100e';
@@ -77,329 +76,217 @@ function eyeParts(rx, ry, lid, o) {
   };
 }
 
-/* ---------- The loper: gaunt, wary, hungry ---------- */
+/* ---------- Traced creatures: their pictures cut from a picked reference, legs, necks and tails bent whole ---------- */
 
+/**
+ * What places a creature traced from refs/<name>.png (2026-11-14-creatures-bend): S world pixels a reference pixel; points are the
+ * reference's. part(piece, pivot, o) is a part of that piece turning about pivot, its box round the trace; o: only (which ops), flat
+ * (their colour, no line), materials, fade (clear at its first point, whole from its second, world pixels from the pivot), bend, glow
+ * and its tint.
+ */
+function tracer(name, S) {
+  const piece = (p) => name + '.' + p;
+  const at = (p, from) => [(p[0] - from[0]) * S, (p[1] - from[1]) * S];
+  /** The turn from straight down to the way from a to b, clockwise: a bent part's axis. */
+  const axis = (a, b) => Math.atan2(-(b[0] - a[0]), b[1] - a[1]);
+  /** k world pixels from a toward b. */
+  const along = (a, b, k) => { const l = Math.hypot(b[0] - a[0], b[1] - a[1]); return [(b[0] - a[0]) / l * k, (b[1] - a[1]) / l * k]; };
+  const dark = (M) => Object.fromEntries(Object.entries(M).map(([k, m]) => [k, { ...m, mat: farOf(m.mat) }]));
+  const xy = ([x, y]) => ({ x: +x.toFixed(2), y: +y.toFixed(2) });
+  function part(p, pivot, o = {}) {
+    const t = TRACED[piece(p)], [x0, y0, x1, y1] = t.fit.box, shift = at(t.origin, pivot);
+    const px = Math.ceil(-(x0 * S + shift[0]) + .5), py = Math.ceil(-(y0 * S + shift[1]) + .5);
+    const ops = Traced.placed(piece(p), S, shift).filter(o.only || (() => true));
+    const draw = o.flat ? (a) => ops.forEach((op) => a.flat(op.d, o.flat)) : Traced.drawer(piece(p), ops, t.fit.units * S, o.materials);
+    return { w: Math.ceil(px + (x1 + 1) * S + shift[0] + .5), h: Math.ceil(py + (y1 + 1) * S + shift[1] + .5), px, py, draw, fade: o.fade, bend: o.bend, glow: o.glow, glowTint: o.glowTint };
+  }
+  return { at, axis, along, dark, xy, part, materials: (p) => TRACED[piece(p)].materials };
+}
+
+/**
+ * The loper as picked (2026-11-14-creatures-bend): a round grey grazer on long legs, traced from refs/loper.png for its form only and
+ * cut there into its rig's parts (its palette's pieces). Each part is placed by points of the reference: its pivot, where it fades
+ * into what it grows from, where it bends; the feet's middle at FEET. One picture of a foreleg and one of a hind leg serve the near
+ * and far pairs, the far ones darker.
+ */
 function loper() {
-  const HIDE = mat('#8b9198', '#646b72', '#454a51', '#a4a9af');
-  const MANE = mat('#8e4630', '#663222', '#472318', '#a65a40');
-  const THROAT = mat('#bdb49c', '#8f8875', '#686254', '#cec6af');
-  const SHIN = '#3b3f46';
-  const FAR = farOf(HIDE);
-  const r = () => rng(0xb1);
-  const leg = (m) => (a) => {
-    const rr = r();
-    grown(a, hide([[-1.9, -2.8], [0, -3.6], [1.9, -2.8], [1.8, 1.6], [.95, 5], [1.25, 6.5], [.75, 8], [.6, 11.6], [.95, 12.8], [-.75, 12.8], [-.6, 11.6], [-.75, 8], [-1.35, 6.5], [-1.05, 5], [-1.7, 1.6]], rr, .1), m, {
-      shade: poly(.25, -4, 3, -4, 3, 13, .05, 13),
-      lines: [run([-1, 6], [.2, 6.9], [1.1, 6.2])],
-    }, [[[-1.8, .4], [-1.05, 5], [-1.35, 6.5], [-.75, 8], [-.6, 11.6], [-.75, 12.8]], [[1.8, .4], [.95, 5], [1.25, 6.5], [.75, 8], [.6, 11.6], [.95, 12.8]]], 2);
-    // Dark from the knee down, like a stocking worn through.
-    a.flat(limb([[0, 7.1, 1], [0, 8, .75], [0, 11.6, .6], [0, 12.8, .85]]), m === FAR ? mul(SHIN, .75) : SHIN);
-    a.line(run([-1.1, 7], [-.75, 8], [-.6, 11.6], [-.75, 12.8]), { w: 2 });
-    a.line(run([1.1, 7], [.75, 8], [.6, 11.6], [.95, 12.8]), { w: 2 });
-    a.shape('M-.9 12.3L1 12.2L2.2 13.2L2.3 14L-1.1 14L-1.2 13.1Z', HOOF, { edge: false, shade: poly(-2, 13.3, 3, 13.3, 3, 15, -2, 15) });
-  };
-  const ear = (m, inner) => (a) => {
-    grown(a, hide([[-1.1, 1.2], [-1.5, -2.4], [-1.2, -4.8], [-.4, -7.4, 'c'], [.8, -4.8], [1.3, -2.4], [1, 1.2]], rng(0xb2), .06), m, { shade: poly(.2, 2, 2, 2, 2, -6, .1, -6), deep: poly(-2, -5.4, 2, -4.9, 2, -9, -2, -9) }, [[[-1.2, .4], [-1.5, -2.4], [-1.2, -4.8], [-.4, -7.4]], [[-.4, -7.4], [.8, -4.8], [1.3, -2.4], [1, .4]]], 1.8);
-    if (inner) a.flat('M-.6 -.3Q-.7 -2.6 -.4 -4.4Q.5 -2.6 .5 -.3Z', INNER.base);
-  };
+  // Its trunk as long as the hand-drawn loper's was.
+  const S = .039, FEET = [715, 985];
+  const { at, axis, along, dark, xy, part, materials } = tracer('loper', S);
+  // Pivots: the neck's root by its throat (bent about its middle, the wide throat inside a grazing bend folds over),
+  // the ear's base, each near leg's hip, the tail's root.
+  const NECK = [1067, 473], POLL = [1258, 172], EAR = [1275, 140], EYE = [1358, 155], FORE = [900, 605], HIND = [450, 605], TAIL = [455, 462];
+  // Its knee and hock, how far below each leg's pivot; the far pair this much ahead of the near. Each leg's picture rises into
+  // its shoulder or haunch, fading in from TOP and whole by WHOLE: on the body however it swings (creatures-bend).
+  const KNEE = (745 - FORE[1]) * S, HOCK = (738 - HIND[1]) * S, FAR = 67 * S, FARF = 40 * S, TOP = 570, WHOLE = 588;
+  const M = materials('body'), FARM = dark(M);
+  const neckFade = [along(NECK, POLL, -44 * S), along(NECK, POLL, 20 * S)], earFade = [at([1276, 158], EAR), at([1272, 128], EAR)];
+  const leg = (name, pivot, joint, materials) =>
+    part(name, pivot, { materials, fade: [[0, (TOP - pivot[1]) * S], [0, (WHOLE - pivot[1]) * S]], bend: { joint, band: 75 * S, axis: 0 } });
+  const fore = at(FORE, FEET), hind = at(HIND, FEET), neck = at(NECK, FEET), ear = at(EAR, NECK);
   return {
     eye: { travel: [.25, .15], travelWide: [.3, .2] },
-    pose: { earUp: 0, earBack: -.5, earPerk: -.6, legAmp: .32, lift: 2, tailAmp: .12, tailFlee: -.5, graze: 1.2, legLen: 14, footW: 2 },
-
+    pose: { earUp: 0, earBack: -.5, earPerk: -.6, legAmp: .32, lift: +(44 * S).toFixed(2), tailAmp: .12, tailFlee: -.5, graze: 1.6, legLen: +((990 - FORE[1]) * S).toFixed(2), footW: +(33 * S).toFixed(2), knee: .55 },
     parts: {
-      body: { w: 32, h: 20, px: 16, py: 28, draw(a) {
-        const rr = r();
-        a.shape(hide([[-13.6, -18], [-13.4, -22.6], [-11.8, -24.4], [-10, -26.8, 'c'], [-7.6, -24.8], [-3, -23.2], [2, -23.2], [6.4, -25.2], [9.4, -25.6], [12.4, -22.6], [13, -18.5], [11.4, -14.6], [8.4, -12.2], [3.6, -13], [-1, -15], [-5.4, -17.6], [-8, -15.2], [-10.4, -12.4], [-12.8, -13.6]], rr, .25), HIDE, {
-          shade: poly(-14, -18.4, -9, -18.6, -6.4, -20.2, -2, -18.8, 3, -16.8, 8, -16.6, 13, -19.4, 14, -10, -14, -10),
-          deep: [poly(-6, -21, -2.8, -19.4, -.6, -17.2, -6, -15, -8.4, -18.4), poly(1, -14.6, 6, -13.8, 10, -14, 10, -10, 1, -10)],
-          lite: [poly(-11.6, -25.6, -9.4, -26, -7.4, -23.4, -9.2, -22.4), poly(4.6, -24.4, 8.6, -24.6, 10.4, -21.2, 8.8, -18.6, 6.8, -21.6)],
-          lines: [
-            run([-12.8, -21.6], [-10.6, -21.4], [-8.2, -22.6]), run([-11.4, -16], [-10.2, -19], [-8.2, -19.6]),
-            run([6.2, -19], [6.8, -22.6], [8.6, -24.8]), run([9.4, -17.8], [10.6, -20.4]),
-          ],
-        });
-        // Pale bone from the brisket along the tucked belly.
-        a.shape(hide([[12.2, -20], [12.7, -18.5], [11.2, -14.8], [8.4, -12.5], [3.6, -13.3], [-1, -15.3], [-4.8, -17.6], [-2.6, -18.2], [1, -16.6], [5, -15.8], [9, -16.8], [11, -19]], rr, .15), THROAT, { outer: false, edge: false, shade: poly(-5, -15.6, 2, -14.4, 8, -14, 13, -16.6, 13, -11, -5, -11) });
-        const rib = (x0, y0, x1, y1, x2, y2) => {
-          a.flat(limb([[x0, y0, .15], [x1, y1, .6], [x2, y2, .12]]), HIDE.deep);
-          a.line(run([x0 - .5, y0], [x1 - .6, y1], [x2 - .5, y2]), { w: 1.4 });
-        };
-        rib(-3.2, -22.6, -2.7, -20, -1.6, -17.2);
-        rib(-.4, -22.4, .2, -19.6, 1.2, -15.6);
-        rib(2.4, -22.4, 3, -19.2, 4, -14.8);
-        rib(5, -22.8, 5.4, -19, 6.2, -14.6);
-        // The mane runs along the spine, on every one of them: the marks are what differs.
-        a.flat(limb([[-10, -26, .4], [-7, -23.9, 1.15], [-2.5, -22.4, 1], [2, -22.4, 1.05], [6.5, -24.3, 1.2], [9.2, -25, .4]]), MANE.base);
-      } },
-      marks: { w: 32, h: 20, px: 16, py: 28, draw(a) {
-        // What one wears and the next does not: a dark hip, a rust scuff on the ribs, one on the shoulder, each apart from the rest.
-        a.flat(limb([[-13.2, -20, .15], [-12, -19, .7], [-10.8, -17.6, .15]]), DARK.shade);
-        a.flat(poly(-1.6, -20.2, -.2, -20.8, 1.2, -19.8, 1.8, -18.2, .6, -17.6, -.6, -18.6), MANE.shade);
-        a.flat(poly(6.8, -21.2, 8.6, -21.6, 9.8, -20, 9.4, -18.6, 8, -19, 7, -19.8), MANE.shade);
-      } },
-      // The neck and the skull as one: it swings down from the shoulder to graze.
-      head: { w: 26, h: 18, px: 4, py: 14, draw(a) {
-        const rr = r();
-        // Carried low and forward: a wedge of a skull, the bone of the brow and cheek showing, the mouth a straight hard line.
-        const top = [[-2.4, -1.2], [1.2, -4.6], [4.4, -7.6], [6.8, -9.2], [9, -9.4], [12, -7.6], [15.4, -5.6], [18.6, -3.6, 'c'], [19.2, -2]];
-        const under = [[19.2, -1.7], [18.4, -.6, 'c'], [15.4, -1], [12.4, -2], [9.8, -3.4], [7.8, -3.8], [5.8, -2.2], [4.2, 0]];
-        a.shape(hide([[-2.4, 1.8], ...top, ...under, [3.2, 2.4]], rr, .1), HIDE, {
-          outer: false, edge: false,
-          shade: [poly(3.6, 3, 2, -1.4, 4.2, -4.6, 7.2, -5.6, 10.6, -5.2, 14, -3.6, 20, -2.6, 20, 0, 4, 4)],
-          deep: [poly(5, -2.4, 7.8, -4.2, 10.4, -3.6, 7, -1, 5, 2), poly(9.2, -5.2, 12.2, -4.6, 13, -2.8, 10.2, -3.4)],
-          lite: poly(4.6, -6.8, 6.8, -8.6, 8.8, -8.8, 8.8, -8, 6.4, -6.6),
-          lines: [run([1.2, -2.6], [2.6, -4.4]), run([18.8, -1.8], [15.6, -2], [13, -2.6])],
-        });
-        // The bone of the throat under the jaw and down the neck; the mane going on up the neck.
-        a.flat(hide([[3.3, 2], [4.5, -.2], [5.9, -2.3], [7.8, -3.9], [9.8, -3.5], [12.4, -2.1], [15.4, -1.1], [18, -.9], [15, -2.4], [11, -4], [8, -5], [5.2, -4], [3, -.8]], rr, .1), THROAT.base);
-        a.flat(limb([[1.4, -4.1, .25], [3, -5.7, .55], [4.8, -7.2, .5], [6.8, -8.6, .2]]), MANE.base);
-        a.line(run(...top.slice(1)), { w: 2.4 });
-        a.line(run(...under), { w: 2.4 });
-        a.flat(poly(8, -7.8, 10.4, -7.8, 12.2, -6.2, 11.8, -5.4, 10, -6.6, 8.4, -6.4), HIDE.deep);
-        a.line(run([7.8, -7.6], [10.2, -8.2], [12.4, -6]), { w: 2.2 });
-        a.flat(ell(18, -2.8, .36, .26), PIT);
-      } },
-      ear: { w: 6, h: 14, px: 3, py: 12, draw: ear(HIDE, true) },
-      earFar: { w: 6, h: 14, px: 3, py: 12, draw: ear(FAR, false) },
-      leg: { w: 8, h: 18, px: 3, py: 3.6, draw: leg(HIDE) },
-      legFar: { w: 8, h: 18, px: 3, py: 3.6, draw: leg(FAR) },
-      tail: { w: 9, h: 14, px: 6, py: 2, draw(a) {
-        a.flat(limb([[.6, -.6, .75], [-1.2, 3, .5], [-2.2, 6.4, .35], [-2.4, 8, .3]]), HIDE.shade);
-        a.line(run([.1, -.2], [-1.6, 3], [-2.6, 6.4]), { w: 1.6 });
-        a.shape(hide([[-3.1, 6.8], [-1.7, 6.8], [-1.6, 8.6], [-2.5, 10.6, 'c'], [-3.2, 8.6]], rng(0xb3), .1), MANE, { shade: poly(-2.5, 6, 0, 6, 0, 12, -2.5, 12) });
-      } },
-      ...eyeParts(1, .55, HIDE, { wide: 1.25, tall: 1.6 }),
+      body: part('body', FEET, { only: (op) => op.mat !== 'dark' }),
+      // Its dark flank stripes, each a marking one may or may not wear.
+      marks: part('body', FEET, { only: (op) => op.op === 'shape' && op.mat === 'dark', flat: M.dark.mat.base }),
+      // The neck and the skull as one, bending along the neck so the skull nods and grazes on it and its root stays on the shoulders.
+      head: part('neck', NECK, { fade: neckFade, bend: { joint: 90 * S, band: 270 * S, axis: axis(NECK, POLL) } }),
+      ear: part('ear', EAR, { fade: earFade }),
+      earFar: part('ear', EAR, { materials: FARM, fade: earFade }),
+      foreLeg: leg('foreLeg', FORE, KNEE),
+      foreLegFar: leg('foreLeg', FORE, KNEE, FARM),
+      hindLeg: leg('hindLeg', HIND, HOCK),
+      hindLegFar: leg('hindLeg', HIND, HOCK, FARM),
+      tail: part('tail', TAIL, { bend: { joint: (TAIL[0] - 320) * S, band: 222 * S, axis: Math.PI / 2 } }),
+      ...eyeParts(1, .55, M.hide.mat, { wide: 1.25, tall: 1.6 }),
     },
     rig: [
-      { id: 'earFar', part: 'earFar', parent: 'head', x: 5.8, y: -8.4, drive: 'ear', base: -1 },
-      { id: 'legFH', part: 'legFar', parent: 'body', x: -6.5, y: -14, drive: 'leg', phase: 0 },
-      { id: 'legFF', part: 'legFar', parent: 'body', x: 9.5, y: -14, drive: 'leg', phase: .5 },
-      { id: 'tail', part: 'tail', parent: 'body', x: -13, y: -22, drive: 'tail' },
+      { id: 'earFar', part: 'earFar', parent: 'head', x: ear[0] - 27 * S, y: ear[1] + 4 * S, drive: 'ear', base: -.28 },
+      { id: 'legFH', part: 'hindLegFar', parent: 'body', x: hind[0] + FAR, y: hind[1], drive: 'leg', phase: 0 },
+      { id: 'legFF', part: 'foreLegFar', parent: 'body', x: fore[0] + FARF, y: fore[1], drive: 'leg', phase: .5 },
+      { id: 'tail', part: 'tail', parent: 'body', ...xy(at(TAIL, FEET)), drive: 'tail' },
       { id: 'body', part: 'body', parent: null, x: 0, y: 0, drive: 'body' },
       { id: 'marks', part: 'marks', parent: 'body', x: 0, y: 0 },
-      { id: 'legNH', part: 'leg', parent: 'body', x: -9.5, y: -14, drive: 'leg', phase: .5 },
-      { id: 'legNF', part: 'leg', parent: 'body', x: 7, y: -14, drive: 'leg', phase: 0 },
-      { id: 'head', part: 'head', parent: 'body', x: 8, y: -21, drive: 'head' },
-      { id: 'eye', part: 'eye', parent: 'head', x: 10.2, y: -6.1, drive: 'eye' },
-      { id: 'ear', part: 'ear', parent: 'head', x: 7, y: -8.6, drive: 'ear', base: -.72 },
+      { id: 'legNH', part: 'hindLeg', parent: 'body', x: hind[0], y: hind[1], drive: 'leg', phase: .5 },
+      { id: 'legNF', part: 'foreLeg', parent: 'body', x: fore[0], y: fore[1], drive: 'leg', phase: 0 },
+      { id: 'head', part: 'head', parent: 'body', x: neck[0], y: neck[1], drive: 'head' },
+      { id: 'eye', part: 'eye', parent: 'head', ...xy(at(EYE, NECK)), drive: 'eye' },
+      { id: 'ear', part: 'ear', parent: 'head', x: ear[0], y: ear[1], drive: 'ear', base: 0 },
     ],
   };
 }
 
-/* ---------- The tapir: thick plated hide, low and heavy ---------- */
-
+/**
+ * The tapir as picked (creatures-bend): a round grazer under a domed shell of three plates, traced from refs/tapir.png. Its short neck
+ * bends low by the throat, so the head nods and grazes on it under a still shell; its four short legs fold a little at the knee; its
+ * stubby tail turns whole. The seed pod is today's, hung from the snout.
+ */
 function tapir() {
-  const HIDE = mat('#505a60', '#3a4247', '#282e32', '#677278');
-  const PLATE = mat('#3d4128', '#2c2f1d', '#1e2014', '#555a39');
-  const UNDER = mat('#88867a', '#65645a', '#494840', '#9b998c');
-  const EDGE = '#bcaa6c', LICHEN = '#8d7e44';
-  const FAR = farOf(HIDE);
-  const LEG = mat(HIDE.shade, HIDE.deep, HIDE.deep, HIDE.base), LEGFAR = farOf(LEG);
-  const SCAR = '#c4b478';
+  // As long and as tall as the hand-drawn tapir was, shell and snout; the feet's middle at FEET.
+  const S = .03, FEET = [650, 965];
+  const { at, axis, dark, xy, part, materials } = tracer('tapir', S);
   const POD = mat('#2f8f88', '#1e6a66', '#144a48', '#6fdcc4');
-  const r = () => rng(0xc1);
-  const leg = (m) => (a) => {
-    const rr = r();
-    grown(a, hide([[-3.4, -3.2], [0, -4.4], [3.4, -3.2], [3.2, 0], [2.4, 4.4], [-2.2, 4.4], [-3.1, 0]], rr, .15), m, { shade: poly(.7, -5, 4, -5, 4, 5, 1, 5), lines: [run([-2.6, 1.4], [0, 2], [2.6, 1.2])] }, [[[-3.3, -1.4], [-3.1, 0], [-2.2, 4.4]], [[3.3, -1.4], [3.2, 0], [2.4, 4.4]]]);
-    a.shape('M-2.3 4.5L2.4 4.4L3.4 5.5L3.6 6.5L-2.5 6.5L-2.6 5.6Z', HOOF, { edge: false, shade: poly(-3, 5.9, 5, 5.9, 5, 7, -3, 7) });
-  };
-  const ear = (m) => (a) => {
-    // Short and stiff, a bite out of it.
-    grown(a, hide([[-1.2, 1.6], [-1.5, -1.2], [-1.2, -3, 'c'], [-.5, -3.2, 'c'], [-.7, -5.8, 'c'], [.5, -3.2], [1, -.8], [1, 1.6]], rng(0xc2), .04), m, { shade: poly(.1, 2, 2, 2, 2, -6, .1, -6) }, [[[-1.3, .8], [-1.5, -1.2], [-1.2, -3]], [[-1.2, -3], [-.5, -3.2], [-.7, -5.8]], [[-.7, -5.8], [.5, -3.2], [1, -.8], [1, .8]]], 1.8);
-  };
-  /** A plate of the hide: its own outer line, a hard shade along its foot, one crack. */
-  const plate = (a, rr, pts, foot, lines) => a.shape(hide(pts, rr, .18), PLATE, { shade: foot, lines });
+  // The neck's root low by the throat, its bone forward along the head: it bends JOINT ahead of it, past the shoulder and before the ear.
+  const NECK = [930, 700], SNOUT = [1300, 700], JOINT = 75, EAR = [1085, 468], EYE = [1215, 503], SEED = [1448, 634];
+  const FORE = [865, 668], HIND = [290, 668], TAIL = [168, 572];
+  // Its knee and hock below each leg's pivot, at the reference's creases; the far legs ahead of the near by the reference's. Each
+  // leg's picture rises into the body, fading in from TOP and whole by WHOLE, as the loper's.
+  const KNEE = (775 - FORE[1]) * S, HOCK = (765 - HIND[1]) * S, FARF = 112 * S, FARH = 135 * S, TOP = 612, WHOLE = 640;
+  const M = materials('body'), FARM = dark(materials('foreLeg'));
+  const leg = (name, pivot, joint, materials) =>
+    part(name, pivot, { materials, fade: [[0, (TOP - pivot[1]) * S], [0, (WHOLE - pivot[1]) * S]], bend: { joint, band: 70 * S, axis: 0 } });
+  const fore = at(FORE, FEET), hind = at(HIND, FEET), neck = at(NECK, FEET), ear = at(EAR, NECK);
+  const earFade = [at([1085, 480], EAR), at([1085, 452], EAR)];
   return {
     eye: { travel: [.2, .12], travelWide: [.25, .15] },
-    pose: { earUp: 0, earBack: -.75, earPerk: .1, legAmp: .46, lift: 1.1, tailAmp: .1, tailFlee: -.4, graze: .62, legLen: 6.5, footW: 3.2 },
+    pose: { earUp: 0, earBack: -.6, earPerk: .1, legAmp: .46, lift: 1.1, tailAmp: .1, tailFlee: -.4, graze: .62, legLen: +((965 - FORE[1]) * S).toFixed(2), footW: +(72 * S).toFixed(2), knee: .35 },
     parts: {
-      body: { w: 34, h: 30, px: 18, py: 29, draw(a) {
-        const rr = r();
-        a.shape(hide([[-16.4, -9], [-16.8, -14], [-14.6, -19], [-8, -22], [0, -25], [6, -25], [10.4, -22.6], [12.6, -17], [12.6, -11], [9, -6.4], [2, -5], [-6, -5], [-13, -5.4]], rr, .3), HIDE, {
-          shade: poly(-18, -9.6, -8, -9, 2, -9.4, 8, -11.6, 14, -13, 14, -3, -18, -3),
-          deep: poly(-14, -6.6, -4, -6.6, 4, -6.8, 10, -8, 10, -3, -14, -3),
-          lines: [run([-15, -11], [-12, -8.2]), run([3, -9], [5.6, -7]), run([-5, -8.2], [-3, -6.4]), run([11, -12.4], [9, -9.4])],
-        });
-        // The paler underside, between the legs.
-        a.shape(hide([[-15, -8.6], [-6, -7.8], [2, -8], [8, -9.8], [11, -11.6], [9, -6.9], [2, -5.4], [-6, -5.4], [-13, -5.8]], rr, .2), UNDER, { outer: false, edge: false, shade: poly(-16, -6.6, 12, -7.4, 12, -4, -16, -4) });
-        // Rear to front, each over the last: the ridge of the back steps up to the shoulder.
-        plate(a, rr, [[-17, -13.4, 'c'], [-15.6, -19.2], [-11.6, -22, 'c'], [-9.2, -17.4], [-10, -12.2, 'c'], [-14, -10.6]], poly(-18, -14, -9, -15, -9, -9, -18, -9), [run([-14.6, -17.4], [-13.2, -15.6], [-13.8, -13.8])]);
-        plate(a, rr, [[-12.4, -21], [-7.6, -24.8, 'c'], [-4, -19.8], [-4.2, -14.2], [-8.2, -11.4, 'c'], [-11, -14.4]], poly(-13, -16, -3, -17, -3, -10, -13, -10), [run([-7.8, -20.6], [-8.6, -17.4])]);
-        plate(a, rr, [[-7.2, -23.6], [-1.4, -27.8, 'c'], [2, -21.6], [1.4, -15.4], [-2.6, -12.4, 'c'], [-5.6, -15.8]], poly(-7, -17.6, 3, -18.6, 3, -11, -7, -11), [run([-3, -22.4], [-1.8, -19.6], [-2.8, -17.4])]);
-        plate(a, rr, [[-1.2, -26.6], [5, -29, 'c'], [9, -23.4], [8.8, -17], [4.6, -12.8, 'c'], [.8, -15.6]], poly(0, -18.8, 10, -19.8, 10, -12, 0, -12), [run([3.6, -23.4], [5, -20.6])]);
-        plate(a, rr, [[4.8, -27.4], [9.8, -27, 'c'], [13.2, -21.6], [13.4, -15.6], [10.4, -11.6, 'c'], [7.8, -14.8], [7.8, -21.6]], poly(7, -18, 14, -18.6, 14, -11, 7, -11), [run([10.4, -22.4], [11.2, -19.6])]);
-        // Each plate's top and fore edge worn to old bone.
-        for (const edge of [
-          [[-15.6, -19.2], [-11.6, -22]], [[-12.4, -21], [-7.6, -24.8]], [[-7.2, -23.6], [-1.4, -27.8]], [[-1.2, -26.6], [5, -29]], [[5.4, -28], [9.8, -27]],
-          [[-11.4, -21.6], [-9.2, -17.4], [-10, -12.6]], [[-7.4, -24.4], [-4, -19.8], [-4.2, -14.6]], [[-1.2, -27.2], [2, -21.6], [1.4, -15.8]], [[5.2, -28.4], [9, -23.4], [8.8, -17.2]],
-        ]) a.line(run(...edge), { c: EDGE, w: 1.7 });
-        // Scars: pale where they cut, each a mended blow.
-        a.line(run([-8, -19.6], [-6, -15.4]), { c: SCAR, w: 2.2 });
-        a.line(run([-7.2, -18.6], [-5.4, -19.2]), { c: SCAR, w: 1.2 });
-        a.line(run([1.8, -24.4], [4.2, -18.4], [3.6, -15.6]), { c: SCAR, w: 2.4 });
-        a.line(run([-14.2, -13.4], [-11.6, -15.6]), { c: SCAR, w: 1.8 });
-      } },
-      marks: { w: 34, h: 30, px: 18, py: 29, draw(a) {
-        // Lichen on three plates, in dull ochre patches.
-        a.flat(poly(-15.6, -15.2, -14.6, -16.6, -13.2, -16.2, -12.4, -14.8, -13, -14.2, -13.8, -14.6, -14.6, -13.6, -15.4, -14), LICHEN);
-        a.flat(poly(-12, -17, -11, -17.4, -10.6, -16.4, -11.6, -16.2), LICHEN);
-        a.flat(poly(-9.6, -20.4, -8.6, -21.6, -7.2, -21.2, -6.2, -19.8, -6.8, -19, -7.8, -19.6, -8.6, -18.6, -9.4, -19), LICHEN);
-        a.flat(poly(-7.4, -18, -6.4, -18.2, -6, -17.2, -7, -17), LICHEN);
-        a.flat(poly(2.8, -24.8, 4, -25.8, 5.6, -25.4, 6.8, -23.6, 6.2, -22.6, 5.2, -23.2, 4.6, -21.8, 3.6, -22, 3.2, -23.4), LICHEN);
-        a.flat(poly(5.6, -21.4, 6.6, -21.6, 6.8, -20.6, 5.8, -20.4), LICHEN);
-        // Dark where the old plates have grown over each other.
-        a.flat(poly(-9.6, -16.6, -9.2, -13.2, -10.6, -14.2), DARK.base);
-        a.flat(poly(-13.6, -19.6, -12, -20.6, -12.4, -18.4), DARK.base);
-        a.flat(poly(-4.6, -21.2, -4, -17.4, -5.6, -18.6, -6.2, -22), DARK.base);
-        a.flat(poly(1.6, -24, 2, -19.4, .7, -20.4, .2, -25), DARK.base);
-        a.flat(poly(8.4, -25.8, 8.4, -21.6, 7.4, -23), DARK.base);
-      } },
-      head: { w: 21, h: 19, px: 6, py: 9, draw(a) {
-        const rr = r();
-        const top = [[-4.6, -2.8], [-1, -5.2], [3, -5, 'c'], [6.4, -2.2], [9, .8], [11.2, 4], [12.4, 6.8, 'c']];
-        const under = [[12.4, 7], [11.6, 8.4, 'c'], [8.6, 8.2], [5.6, 6.6], [2, 6], [-2.4, 6.6]];
-        a.shape(hide([[-5, 3], ...top, ...under], rr, .12), HIDE, {
-          outer: false, edge: false,
-          shade: poly(-6, 3.6, -2, 2.6, 3, 2, 6.4, 3, 9.4, 4.8, 14, 5.4, 14, 10, -6, 10),
-          deep: poly(1.6, 3.8, 5.6, 4.2, 8.4, 6.2, 8.4, 9.6, 1.6, 9.6),
-          lines: [run([12, 6.4], [9.2, 5.8], [6.4, 4.8]), run([-3, 1], [-1, 3.6]), run([.4, -1.6], [1.6, .4])],
-        });
-        a.flat(hide([[-2, 6.2], [2, 5.6], [5.6, 6.2], [8.6, 7.7], [11.4, 8], [11.8, 7], [9, 6], [6, 4.8], [2, 4.4], [-2, 4.8]], rr, .1), UNDER.base);
-        a.line(run(...top), { w: 2.8 });
-        a.line(run(...under), { w: 2.8 });
-        // The brow plate, thick, the eye under it in shadow.
-        a.shape(hide([[-2.8, -5.6], [3.2, -6.4, 'c'], [7.4, -3.2], [9.4, -.4, 'c'], [6, -1.6], [2.2, -2.8], [-2, -2.4]], rr, .08), PLATE, { shade: poly(-3, -3.6, 10, -2.6, 10, 0, -3, 0), lines: [run([3.4, -5], [4.2, -3.4])] });
-        a.flat(poly(4.6, -1.4, 7.8, -.6, 8.2, .4, 5.6, .2), HIDE.deep);
-        a.flat(ell(11.2, 5.6, .5, .36), PIT);
-        a.line(run([3.2, 1.2], [5.6, 2.8]), { c: SCAR, w: 1.8 });
-      } },
-      // Hung under its jaw on a dry stalk: the one thing about it that works, so the one bright thing.
+      body: part('body', FEET, { only: (op) => op.mat !== 'spot' }),
+      // The ochre spots on its shell, each a marking one may or may not wear.
+      marks: part('body', FEET, { only: (op) => op.op === 'shape' && op.mat === 'spot', flat: M.spot.mat.base }),
+      // The neck and the head as one, bending low by the throat, so the head nods and grazes while the shell over it stays.
+      head: part('head', NECK, { fade: [[-28 * S, 0], [4 * S, 0]], bend: { joint: JOINT * S, band: 160 * S, axis: axis(NECK, SNOUT) } }),
+      // Hung from the snout on a dry stalk: the one thing about it that works, so the one bright thing.
       pod: { w: 8, h: 9, px: 4, py: 1, glow: [[-.2, 4.4, 1.5]], draw(a) {
         a.flat(limb([[0, -.6, .4], [.4, 1.2, .3], [-.2, 2.8, .35]]), DARK.base);
         a.line(run([-.3, -.6], [.1, 1.2], [-.5, 2.8]), { w: 1.3 });
         a.shape(hide([[-1.7, 3.8], [-.2, 2.7], [1.3, 3.7], [1.5, 5.2], [-.2, 6.4, 'c'], [-1.8, 5.2]], rng(0xc4), .08), POD, { shade: poly(.2, 2, 3, 2, 3, 7, .2, 7) });
       } },
-      ear: { w: 7, h: 9, px: 4, py: 7, draw: ear(HIDE) },
-      earFar: { w: 7, h: 9, px: 4, py: 7, draw: ear(FAR) },
-      leg: { w: 10, h: 11, px: 5, py: 4.5, draw: leg(LEG) },
-      legFar: { w: 10, h: 11, px: 5, py: 4.5, draw: leg(LEGFAR) },
-      tail: { w: 9, h: 10, px: 6, py: 2, draw(a) {
-        a.shape(hide([[1.4, -1.6], [-1.6, -1.6], [-3.6, 1.6], [-4.6, 5.6, 'c'], [-2.2, 4.6], [-.6, 2.8], [1.4, 1.8]], rng(0xc3), .2), HIDE, { shade: poly(-5, 2.4, 2, 1, 2, 7, -5, 7), lines: [run([-3.2, 2.2], [-.8, 2.6]), run([-1.8, .2], [.2, .6])] });
-      } },
-      ...eyeParts(.95, .45, HIDE, { wide: 1.15, tall: 1.5 }),
+      ear: part('ear', EAR, { fade: earFade }),
+      earFar: part('ear', EAR, { materials: dark(materials('ear')), fade: earFade }),
+      foreLeg: leg('foreLeg', FORE, KNEE),
+      foreLegFar: leg('foreLeg', FORE, KNEE, FARM),
+      hindLeg: leg('hindLeg', HIND, HOCK),
+      hindLegFar: leg('hindLeg', HIND, HOCK, FARM),
+      tail: part('tail', TAIL),
+      ...eyeParts(.95, .45, M.hide.mat, { wide: 1.15, tall: 1.5 }),
     },
     rig: [
-      { id: 'earFar', part: 'earFar', parent: 'head', x: .2, y: -4.8, drive: 'ear', base: -.75 },
-      { id: 'legFH', part: 'legFar', parent: 'body', x: -7.5, y: -6.5, drive: 'leg', phase: 0 },
-      { id: 'legFF', part: 'legFar', parent: 'body', x: 8.5, y: -6.5, drive: 'leg', phase: .5 },
-      { id: 'tail', part: 'tail', parent: 'body', x: -15.6, y: -14, drive: 'tail' },
+      { id: 'legFH', part: 'hindLegFar', parent: 'body', x: hind[0] + FARH, y: hind[1], drive: 'leg', phase: 0 },
+      { id: 'legFF', part: 'foreLegFar', parent: 'body', x: fore[0] + FARF, y: fore[1], drive: 'leg', phase: .5 },
+      { id: 'tail', part: 'tail', parent: 'body', ...xy(at(TAIL, FEET)), drive: 'tail' },
       { id: 'body', part: 'body', parent: null, x: 0, y: 0, drive: 'body' },
       { id: 'marks', part: 'marks', parent: 'body', x: 0, y: 0 },
-      { id: 'legNH', part: 'leg', parent: 'body', x: -11, y: -6.5, drive: 'leg', phase: .5 },
-      { id: 'legNF', part: 'leg', parent: 'body', x: 5, y: -6.5, drive: 'leg', phase: 0 },
-      { id: 'head', part: 'head', parent: 'body', x: 11, y: -15.6, drive: 'head' },
-      { id: 'pod', part: 'pod', parent: 'head', x: 8, y: 7.2, drive: 'pod' },
-      { id: 'eye', part: 'eye', parent: 'head', x: 6.4, y: -.1, drive: 'eye' },
-      { id: 'ear', part: 'ear', parent: 'head', x: -1.4, y: -4.6, drive: 'ear', base: -.95 },
+      // Its far ear behind its head and before the shell, a little ahead of the near one.
+      { id: 'earFar', part: 'earFar', parent: 'head', x: ear[0] + 26 * S, y: ear[1] - 6 * S, drive: 'ear', base: -.2 },
+      { id: 'legNH', part: 'hindLeg', parent: 'body', x: hind[0], y: hind[1], drive: 'leg', phase: .5 },
+      { id: 'legNF', part: 'foreLeg', parent: 'body', x: fore[0], y: fore[1], drive: 'leg', phase: 0 },
+      { id: 'head', part: 'head', parent: 'body', x: neck[0], y: neck[1], drive: 'head' },
+      { id: 'pod', part: 'pod', parent: 'head', ...xy(at(SEED, NECK)), drive: 'pod' },
+      { id: 'eye', part: 'eye', parent: 'head', ...xy(at(EYE, NECK)), drive: 'eye' },
+      { id: 'ear', part: 'ear', parent: 'head', x: ear[0], y: ear[1], drive: 'ear', base: 0 },
     ],
   };
 }
 
-/* ---------- The sixleg: alien, read through its ears and marks ---------- */
-
+/**
+ * The sixleg as picked (creatures-bend): a long indigo barrel in bold cream stripes, spines down its back, traced from refs/sixleg.png.
+ * Its neck bends by the throat; its legs are the reference's hind, middle and fore, the far three darker, each folding at its hock or
+ * knee and growing out of the body from inside it; its tail arches over its back hung with glowing berries and bends where it rises,
+ * so the whole arch lifts and sways.
+ */
 function sixleg() {
-  const HIDE = mat('#3a2d44', '#2a2033', '#1c1624', '#4e4158');
-  const SMOKE = mat('#77727f', '#57535f', '#3e3b45', '#8a8592');
-  const BLOOD = '#823029', NIGHT = '#14131e';
-  const FAR = farOf(HIDE);
-  const PALE = '#c6bb9f';
-  const r = () => rng(0xd1);
-  const leg = (m) => (a) => {
-    const rr = r();
-    grown(a, hide([[-2, -2.8], [0, -3.6], [2, -2.8], [1.7, 1.4], [.8, 4.4], [.7, 8.6], [-.7, 8.6], [-.9, 4.4], [-1.7, 1.4]], rr, .1), m, { shade: poly(.2, -4, 3, -4, 3, 9, .05, 9) }, [[[-1.9, -.4], [-1.7, 1.4], [-.9, 4.4], [-.7, 8.6]], [[1.9, -.4], [1.7, 1.4], [.8, 4.4], [.7, 8.6]]], 2);
-    // A splayed foot, two blunt toes: not a hoof, not a paw.
-    a.shape('M-.9 8.2L.8 8.2L2.8 9.2L3.2 10L1 10L.1 9.6L-.5 10L-2.4 10L-1.8 9Z', HOOF, { edge: false });
-  };
-  /** A long blade swept back, one tear in its trailing edge, banded dark and tipped pale: what the eye reads instead of a face. */
-  const ear = (m, bands) => (a) => {
-    const back = [[-1.5, .4], [-2, -4], [-2.5, -7.4], [-1.5, -8.4, 'c'], [-2.9, -9.4, 'c'], [-3.1, -13], [-3, -17.4, 'c']], front = [[-3, -17.4], [-1.2, -12.8], [.1, -8], [.9, -3.5], [.9, .4]];
-    grown(a, hide([[-1.4, 1.4], ...back, ...front.slice(1), [.9, 1.4]], rng(0xd2), .05), m, { shade: poly(-.5, 2, 3, 2, 3, -18, -2, -18) }, [back, front], 1.9);
-    if (bands) {
-      a.flat(poly(-2.4, -6.2, 1, -5.2, .8, -4, -2.2, -5), mul(PALE, .72));
-      a.flat(poly(-3.1, -11.4, -.4, -10.6, -.8, -9.4, -3, -10.2), mul(PALE, .72));
-    }
-    a.flat(poly(-3.2, -14, -1.5, -13.4, -3, -17.2), bands ? BLOOD : mul(BLOOD, .75));
-  };
+  // As long in the trunk as the hand-drawn sixleg was; the feet's middle at FEET.
+  const S = .032, FEET = [676, 965];
+  const { at, axis, along, dark, xy, part, materials } = tracer('sixleg', S);
+  const NECK = [1090, 500], MUZZLE = [1350, 400], EAR = [1290, 370], EYE = [1352, 398];
+  // Each near leg's hip inside the body above the belly, over its hock or knee (a bend far off its bone folds over), its picture
+  // fading in above it; the bend at the reference's bump. The far legs as far ahead of the near as their hoofs are, the fore pair's
+  // kept under the chest.
+  const HIND = [285, 570], MID = [632, 570], FORE = [960, 570], TOP = 512, WHOLE = 545, JOINT_Y = 695, FAR = [137, 121, 10];
+  // The tail's pivot on its stem where it turns up behind the rump; it bends JOINT above, the arch over the back past the bend.
+  const TAIL = [50, 420], JOINT = 80, BERRIES = [[215, 230], [245, 240], [310, 175], [445, 152], [487, 173], [530, 127], [632, 143], [690, 158]];
+  const M = materials('body'), FARM = dark(materials('midLeg'));
+  // Its stripes stay the body's marks: a leg's top over one is hide.
+  const leg = (name, pivot, materials) => part(name, pivot, {
+    materials, only: (op) => op.mat !== 'stripe', fade: [[0, (TOP - pivot[1]) * S], [0, (WHOLE - pivot[1]) * S]], bend: { joint: (JOINT_Y - pivot[1]) * S, band: 70 * S, axis: 0 },
+  });
+  const neck = at(NECK, FEET), ear = at(EAR, NECK), hip = (x) => at([x, HIND[1]], FEET);
+  const earFade = [at([1290, 380], EAR), at([1288, 350], EAR)];
+  // Today's tripods: the near hind and fore with the far middle, then the rest. The four behind fold as hocks, the fore pair as knees.
+  const node = ([id, p, x, phase, hind]) => ({ id, part: p, parent: 'body', ...xy(hip(x)), drive: 'leg', phase, hind });
+  const far = [['l4', 'hindLegFar', HIND[0] + FAR[0], .5, true], ['l5', 'midLegFar', MID[0] + FAR[1], 0, true], ['l6', 'foreLegFar', FORE[0] + FAR[2], .5, false]].map(node);
+  const near = [['l1', 'hindLeg', HIND[0], 0, true], ['l2', 'midLeg', MID[0], .5, true], ['l3', 'foreLeg', FORE[0], 0, false]].map(node);
   return {
     eye: { travel: [0, 0], travelWide: [0, 0] },
-    pose: { earUp: 0, earBack: -.42, earPerk: -.65, legAmp: .38, lift: 1.7, tailAmp: .16, tailFlee: .5, graze: 1.02, legLen: 10, footW: 2.6 },
+    pose: { earUp: 0, earBack: -.42, earPerk: -.65, legAmp: .38, lift: 1.7, tailAmp: .07, tailFlee: -.25, graze: 1.02, legLen: +((965 - HIND[1]) * S).toFixed(2), footW: +(35 * S).toFixed(2), knee: .5 },
     parts: {
-      body: { w: 32, h: 28, px: 16, py: 29, draw(a) {
-        const rr = r();
-        a.shape(hide([[-14.4, -13], [-14.2, -16.8], [-11, -19.8], [-6, -21.2], [-1.4, -23.4], [-.2, -25.2, 'c'], [1.4, -24.8], [2.6, -27, 'c'], [4.2, -26], [5.6, -28.2, 'c'], [7.4, -26.4], [9.8, -25.6], [13, -21.8], [13.2, -16.4], [10.6, -11.4], [6, -9.6], [0, -11], [-5, -11.4], [-8.6, -8.8], [-11.4, -7.8], [-13.6, -9.4]], rr, .2), HIDE, {
-          shade: poly(-15, -13, -9, -14.4, -3, -15, 3, -14.6, 8, -15.4, 14, -18, 14, -6, -15, -6),
-          deep: poly(-6, -13, -1, -12.8, 3, -11.6, 8, -11, 8, -6, -6, -6),
-          lines: [run([-12.6, -13.4], [-10, -11.6], [-8.8, -9.4]), run([9.4, -16.4], [10.8, -19.6]), run([.2, -22.8], [.8, -21]), run([3, -24.6], [3.6, -22.6]), run([5.8, -25.8], [6.4, -23.6])],
-        });
-        // The smoky belly, up between the forelegs.
-        a.shape(hide([[-12, -11], [-7, -11.8], [-4, -13.2], [1, -13.4], [7, -12.6], [11.6, -14.6], [10.4, -11.7], [6, -9.9], [0, -11.2], [-5, -11.6], [-8.6, -9.1], [-11.4, -8.1]], rr, .2), SMOKE, { outer: false, edge: false, shade: poly(-13, -9.6, -6, -10.2, 2, -11.4, 8, -11.6, 12, -12.6, 12, -7, -13, -7) });
-        a.flat(limb([[-13, -17.4, .3], [-7, -20.6, .55], [-1, -23.4, .7], [3, -25.4, .8], [7, -25.8, .7], [9.8, -25.2, .2]]), NIGHT);
-      } },
-      marks: { w: 32, h: 28, px: 16, py: 29, draw(a) {
-        // Pale bars torn off short at uneven lengths, each its own.
-        a.flat(poly(6.6, -24.6, 8.2, -24.2, 7.4, -19.6, 6.6, -15.6, 5.4, -15.4, 6, -20), PALE);
-        a.flat(poly(2.6, -23.8, 4, -24, 3.2, -20.4, 2.4, -17.8, 1.4, -18.2, 2, -21), PALE);
-        a.flat(poly(-1.6, -22, -.4, -22.4, -.8, -18.4, -1.6, -14.6, -2.6, -14.8, -2.2, -18.6), PALE);
-        a.flat(poly(-5.6, -20.2, -4.4, -20.6, -5, -17.4, -5.8, -16.6), PALE);
-        a.flat(poly(-9.4, -18.8, -8.4, -19.2, -9, -15, -9.8, -14.6), PALE);
-      } },
-      head: { w: 26, h: 16, px: 5, py: 7, draw(a) {
-        const rr = r();
-        const top = [[-3.2, -2.2], [-.4, -4.4], [3.6, -4.8], [7.4, -4.2], [11.6, -2.2], [15.6, .2], [18.2, 1.9], [18.8, 3]], under = [[18.8, 3.2], [18.2, 4.2, 'c'], [16.2, 4.4], [12.4, 3.8], [8, 2.6], [4.4, 2.2], [2.4, 4.6]];
-        a.shape(hide([[-3, 3], ...top, ...under, [.6, 6]], rr, .1), HIDE, {
-          outer: false, edge: false,
-          shade: poly(-4, 2.6, 2, .8, 7, .8, 12, 1.6, 20, 2.6, 20, 7, -4, 7),
-          lines: [run([18.2, 3.4], [15, 3], [12, 2.3])],
-        });
-        a.flat(hide([[2.6, 4.2], [4.4, 1.9], [8, 2.3], [12.4, 3.5], [16.2, 4.1], [18, 3.9], [15, 2.5], [11, 1.3], [7, .7], [3, 1.1]], rr, .1), SMOKE.base);
-        a.line(run(...top), { w: 2.4 });
-        a.line(run(...under), { w: 2.4 });
-        a.line(run([5, -3.4], [7.8, -3], [10.4, -1.8]), { w: 2 });
-        // A pale blaze toward the nose, where a face would be.
-        a.flat(limb([[10.6, -2.2, .2], [13.4, -.6, .5], [17, 1.5, .4], [18.2, 2.5, .15]]), PALE);
-      } },
-      ear: { w: 8, h: 21, px: 5, py: 19, draw: ear(HIDE, true) },
-      earFar: { w: 8, h: 21, px: 5, py: 19, draw: ear(FAR, false) },
-      leg: { w: 9, h: 15, px: 4, py: 4, draw: leg(HIDE) },
-      legFar: { w: 9, h: 15, px: 4, py: 4, draw: leg(FAR) },
-      tail: { w: 21, h: 12, px: 19, py: 6, draw(a) {
-        a.flat(limb([[1, .2, .9], [-3.4, 1.6, .72], [-8, 2.4, .52], [-12.6, 1, .34], [-16.2, -1.8, .1]]), HIDE.base);
-        a.line(run([1, -.7], [-3.4, .9], [-8, 1.9], [-12.6, .7], [-16.2, -1.8]), { w: 1.6 });
-        a.line(run([.4, 1.1], [-3.4, 2.3], [-8, 2.9], [-12.2, 1.4]), { w: 1.6 });
-        a.flat(poly(-6, 1.5, -4.8, 1.4, -5, 3, -6.2, 3), mul(PALE, .72));
-        a.flat(poly(-10, 1.3, -9, 1.6, -9.2, 2.9, -10.2, 2.7), mul(PALE, .72));
-        a.flat(limb([[-12.6, 1, .34], [-14.6, -.6, .24], [-16.2, -1.8, .1]]), NIGHT);
-      } },
+      body: part('body', FEET, { only: (op) => op.mat !== 'stripe' }),
+      // Its cream stripes, each a marking one may or may not wear.
+      marks: part('body', FEET, { only: (op) => op.op === 'shape' && op.mat === 'stripe', flat: M.stripe.mat.base }),
+      // The neck and the long head as one, bending by the throat.
+      head: part('head', NECK, { fade: [along(NECK, MUZZLE, -25 * S), along(NECK, MUZZLE, 15 * S)], bend: { joint: 100 * S, band: 180 * S, axis: axis(NECK, MUZZLE) } }),
+      ear: part('ear', EAR, { fade: earFade }),
+      earFar: part('ear', EAR, { materials: dark(materials('ear')), fade: earFade }),
+      hindLeg: leg('hindLeg', HIND),
+      hindLegFar: leg('hindLeg', HIND, FARM),
+      midLeg: leg('midLeg', MID),
+      midLegFar: leg('midLeg', MID, FARM),
+      foreLeg: leg('foreLeg', FORE),
+      foreLegFar: leg('foreLeg', FORE, FARM),
+      // Bent where its stem rises: the arch and its berries above turn whole about the bend.
+      tail: part('tail', TAIL, {
+        bend: { joint: JOINT * S, band: 80 * S, axis: Math.PI },
+        glow: BERRIES.map((b) => [...at(b, TAIL), 15 * S]), glowTint: ['rgba(255,170,70,.55)', '#ffe2a8'],
+      }),
       // No white and no pupil: a pit that narrows and widens.
       eye_open: { w: 8, h: 6, px: 4, py: 3, draw: (a) => { a.flat('M-1.4 .25Q-.3 -.4 1.4 0Q.2 .4 -1.4 .25Z', '#120d0b'); } },
       eye_wide: { w: 8, h: 6, px: 4, py: 3, draw: (a) => { a.flat('M-1.8 .3Q-.6 -1 1.8 -.2Q.4 1 -1.8 .3Z', '#120d0b'); } },
-      lid_half: { w: 8, h: 6, px: 4, py: 3, draw: (a) => { a.flat(poly(-2.2, -1, 2.2, -1, 2.2, .05, -2.2, .25), HIDE.base); a.line(run([-2, .3], [2, .05]), { w: 1.4 }); } },
-      lid_blink: { w: 8, h: 6, px: 4, py: 3, draw: (a) => { a.flat(poly(-2.2, -1, 2.2, -1, 2.2, 1, -2.2, 1), HIDE.base); a.line(run([-2, .3], [2, .05]), { w: 1.8 }); } },
+      lid_half: { w: 8, h: 6, px: 4, py: 3, draw: (a) => { a.flat(poly(-2.2, -1, 2.2, -1, 2.2, .05, -2.2, .25), M.hide.mat.base); a.line(run([-2, .3], [2, .05]), { w: 1.4 }); } },
+      lid_blink: { w: 8, h: 6, px: 4, py: 3, draw: (a) => { a.flat(poly(-2.2, -1, 2.2, -1, 2.2, 1, -2.2, 1), M.hide.mat.base); a.line(run([-2, .3], [2, .05]), { w: 1.8 }); } },
     },
     rig: [
-      { id: 'earFar', part: 'earFar', parent: 'head', x: 1.2, y: -4.2, drive: 'ear', base: -.55 },
-      { id: 'l4', part: 'legFar', parent: 'body', x: -6.5, y: -10, drive: 'leg', phase: .5 },
-      { id: 'l5', part: 'legFar', parent: 'body', x: 1.5, y: -10.4, drive: 'leg', phase: 0 },
-      { id: 'l6', part: 'legFar', parent: 'body', x: 9.5, y: -10, drive: 'leg', phase: .5 },
-      { id: 'tail', part: 'tail', parent: 'body', x: -13.4, y: -14.6, drive: 'tail' },
+      { id: 'tail', part: 'tail', parent: 'body', ...xy(at(TAIL, FEET)), drive: 'tail' },
+      ...far,
       { id: 'body', part: 'body', parent: null, x: 0, y: 0, drive: 'body' },
       { id: 'marks', part: 'marks', parent: 'body', x: 0, y: 0 },
-      { id: 'l1', part: 'leg', parent: 'body', x: -10, y: -10, drive: 'leg', phase: 0 },
-      { id: 'l2', part: 'leg', parent: 'body', x: -1.8, y: -10.4, drive: 'leg', phase: .5 },
-      { id: 'l3', part: 'leg', parent: 'body', x: 6.5, y: -10, drive: 'leg', phase: 0 },
-      { id: 'head', part: 'head', parent: 'body', x: 10, y: -21, drive: 'head' },
-      { id: 'eye', part: 'eye', parent: 'head', x: 7.8, y: -1.4, drive: 'eye' },
-      { id: 'ear', part: 'ear', parent: 'head', x: -.4, y: -3.6, drive: 'ear', base: -.92 },
+      { id: 'earFar', part: 'earFar', parent: 'head', x: ear[0] - 30 * S, y: ear[1] + 4 * S, drive: 'ear', base: -.25 },
+      ...near,
+      { id: 'head', part: 'head', parent: 'body', x: neck[0], y: neck[1], drive: 'head' },
+      { id: 'eye', part: 'eye', parent: 'head', ...xy(at(EYE, NECK)), drive: 'eye' },
+      { id: 'ear', part: 'ear', parent: 'head', x: ear[0], y: ear[1], drive: 'ear', base: 0 },
     ],
   };
 }
@@ -422,23 +309,39 @@ function glowOf(q) {
   const c = Anime.canvas((q.w + MARGIN * 2) * 4, (q.h + MARGIN * 2) * 4), x = c.getContext('2d');
   const at = ([gx, gy, r], k, fill) => { x.fillStyle = fill; x.beginPath(); x.arc((q.px + MARGIN + gx) * 4, (q.py + MARGIN + gy) * 4, r * 4 * k, 0, 7); x.fill(); };
   x.filter = 'blur(3px)';
-  for (const g of q.glow) at(g, 1, 'rgba(150,235,215,.55)');
+  const [halo, heart] = q.glowTint || ['rgba(150,235,215,.55)', '#d8fff2'];
+  for (const g of q.glow) at(g, 1, halo);
   x.filter = 'none';
-  for (const g of q.glow) at(g, .55, '#d8fff2');
+  for (const g of q.glow) at(g, .55, heart);
   return c;
+}
+
+/**
+ * A part that grows out of what it is drawn over, faded in along its fade: clear at its first point, whole from its second, in its own
+ * pixels from its pivot. Its cut edge there, outlined as any traced shape is, never shows on what it grows from.
+ */
+function fade(c, q) {
+  const g = c.getContext('2d'), k = c.width / (q.w + MARGIN * 2), [[ax, ay], [bx, by]] = q.fade.map(([x, y]) => [(q.px + MARGIN + x) * k, (q.py + MARGIN + y) * k]);
+  const ramp = g.createLinearGradient(ax, ay, bx, by);
+  ramp.addColorStop(0, 'rgba(0,0,0,0)');
+  ramp.addColorStop(1, 'rgba(0,0,0,1)');
+  g.globalCompositeOperation = 'destination-in';
+  g.fillStyle = ramp;
+  g.fillRect(0, 0, c.width, c.height);
+  g.globalCompositeOperation = 'source-over';
 }
 
 function record(look, d) {
   const eye = d.rig.find((n) => n.drive === 'eye'), p = d.pose, I = '            ';
-  const parts = Object.entries(d.parts).map(([name, q]) => `${I}    ["${name}"] = new(${q.w + MARGIN * 2}, ${q.h + MARGIN * 2}, ${num(q.px + MARGIN)}, ${num(q.py + MARGIN)}, []${q.glow ? ', Glow: true' : ''}),`);
+  const parts = Object.entries(d.parts).map(([name, q]) => `${I}    ["${name}"] = new(${q.w + MARGIN * 2}, ${q.h + MARGIN * 2}, ${num(q.px + MARGIN)}, ${num(q.py + MARGIN)}, []${q.glow ? ', Glow: true' : ''}${q.bend ? `, Bend: new(${num(q.bend.joint)}, ${num(q.bend.band)}, ${num(q.bend.axis)})` : ''}),`);
   const rig = d.rig.map((n) => {
-    const more = [n.phase ? `Phase: ${num(n.phase)}` : '', n.base ? `Base: ${num(n.base)}` : ''].filter(Boolean).map((s) => ', ' + s).join('');
+    const more = [n.phase ? `Phase: ${num(n.phase)}` : '', n.hind ? 'Hind: true' : '', n.base ? `Base: ${num(n.base)}` : ''].filter(Boolean).map((s) => ', ' + s).join('');
     return `${I}    new("${n.id}", "${n.part}", ${n.parent ? `"${n.parent}"` : 'null'}, ${num(n.x)}, ${num(n.y)}, Drive.${up(n.drive || 'none')}${more}),`;
   });
   return `        ["${look}"] = new("${d.id}", Gait.${d.gait}, Headless: false,
             Glow: 0,
             Eye: new(${num(eye.x)}, ${num(eye.y)}, (${num(d.eye.travel[0])}, ${num(d.eye.travel[1])}), (${num(d.eye.travelWide[0])}, ${num(d.eye.travelWide[1])})),
-            Pose: new(EarUp: ${num(p.earUp)}, EarBack: ${num(p.earBack)}, EarPerk: ${num(p.earPerk)}, LegAmp: ${num(p.legAmp)}, Lift: ${num(p.lift)}, TailAmp: ${num(p.tailAmp)}, TailFlee: ${num(p.tailFlee)}, Graze: ${num(p.graze)}, Hop: 0, LegLen: ${num(p.legLen)}, FootW: ${num(p.footW)}),
+            Pose: new(EarUp: ${num(p.earUp)}, EarBack: ${num(p.earBack)}, EarPerk: ${num(p.earPerk)}, LegAmp: ${num(p.legAmp)}, Lift: ${num(p.lift)}, TailAmp: ${num(p.tailAmp)}, TailFlee: ${num(p.tailFlee)}, Graze: ${num(p.graze)}, Hop: 0, LegLen: ${num(p.legLen)}, FootW: ${num(p.footW)}${p.knee ? `, Knee: ${num(p.knee)}` : ''}),
             Parts: new Dictionary<string, Part>
             {
 ${parts.join('\n')}
@@ -453,7 +356,9 @@ ${rig.join('\n')}
 Subjects.creatures = function () {
   for (const d of Object.values(DESIGNS))
     for (const [name, q] of Object.entries(d.parts)) {
-      out(`creatures/${d.id}/${name}`, Anime.bake({ w: q.w, h: q.h, margin: MARGIN, shift: [q.px, q.py], draw: q.draw }));
+      const c = Anime.bake({ w: q.w, h: q.h, margin: MARGIN, shift: [q.px, q.py], draw: q.draw });
+      if (q.fade) fade(c, q);
+      out(`creatures/${d.id}/${name}`, c);
       if (q.glow) out(`creatures/${d.id}/${name}_glow`, glowOf(q));
     }
   writeText('../../Content/logic/CreatureInk.cs', `// Generated by tools/anime-art/subjects/creatures.js: export again, never edit.

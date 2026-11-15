@@ -117,17 +117,15 @@ public sealed class StripParts(TipSpots tips)
 
     /// <summary>
     /// What to show of <paramref name="id"/>: a blueprint as the build menu pictures it, a craft or a material as its item; a tool's
-    /// icon baked <see cref="ToolOver"/> times larger and drawn smoothly, so the board's zoom and a large screen keep it sharp.
+    /// icon baked larger (<see cref="BoardPictures.Side"/>), its texture filtered by itself, so the board's zoom and a large screen keep it sharp.
     /// </summary>
     public TextureRect Picture(string id, int size)
     {
-        bool tool = Content.Upgrades.Of(id) == null && !_placements.ContainsKey(id) && HeldLook.Of(id) != null;
         return new()
         {
-            Texture = PictureOf(id, tool ? size * ToolOver : size),
+            Texture = PictureOf(id, BoardPictures.Side(id, _placements.GetValueOrDefault(id), size)),
             ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
             StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered,
-            TextureFilter = tool ? CanvasItem.TextureFilterEnum.LinearWithMipmaps : CanvasItem.TextureFilterEnum.Nearest,
             CustomMinimumSize = new Vector2(size, size),
             MouseFilter = Control.MouseFilterEnum.Ignore,
         };
@@ -136,9 +134,6 @@ public sealed class StripParts(TipSpots tips)
     /// <summary>The picture of <paramref name="id"/> alone, <paramref name="size"/> pixels across where it is an item's: what hatches from the bulb.</summary>
     public Texture2D PictureOf(string id, int size) =>
         Content.Upgrades.Of(id) is { } upgrade ? PixelArt.Picture($"upgrade_{upgrade.Kind}") : _placements.GetValueOrDefault(id) is { } p ? BlueprintArt.Thumbnail(p) : ItemIcons.Icon(id, size);
-
-    /// <summary>How much larger than it is laid out a tool's icon is baked: the board's most zoom, 1.5, on a screen twice the reference.</summary>
-    private const int ToolOver = 3;
 
     /// <summary>Draws <paramref name="picture"/> as a shape, <paramref name="pencil"/> of the way to being understood.</summary>
     public static void Pale(TextureRect picture, double pencil)

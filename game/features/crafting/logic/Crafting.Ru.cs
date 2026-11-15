@@ -31,6 +31,8 @@ public static partial class Ru
         ["fabricator.shared"] = "общая",
         ["fabricator.inputs"] = "Вход",
         ["fabricator.tool"] = "Инструмент",
+        ["fabricator.fuel"] = "Топливо",
+        ["fabricator.burning"] = "Горит",
         ["fabricator.output"] = "Выход",
         ["fabricator.screenReady"] = "ГОТОВО",
         ["fabricator.yours"] = "твоё",

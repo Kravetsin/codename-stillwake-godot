@@ -399,7 +399,7 @@ public class CreaturesTests
     {
         // The hero at column 4 holds its running drill level to the right, its bit reaching three cells from its middle: every
         // two ticks a strike on the loper while any of its body is within that, as the client sends one.
-        var w = CreaturesTesting.Planet(Long).HeroAt(4, 3).Do(new SetCreative(true)).Do(new Run(Drill, true)).GiveItems(0, (Drill, 1));
+        var w = CreaturesTesting.Planet(Long).HeroAt(4, 3).Do(new SetCreative(true)).Do(new Run(Drill, true)).GiveItems(0, (Drill, 1)).Wields(Drill);
         var c = w.Loper(5, 3).Still();
         int reach = w.HeroMiddle(4) + 3 * Cell, half = Loper.Body.Width * Unit / 2, hits = 0, free = -1;
         for (int t = 0; t < 80; t++)
@@ -451,7 +451,7 @@ public class CreaturesTests
     [Fact]
     public void ABlowNeverSlowsALoperRunningTheKnocksWay()
     {
-        var w = CreaturesTesting.Planet(Long).HeroAt(4, 3).Do(new SetCreative(true)).Do(new Run(Drill, true)).GiveItems(0, (Drill, 1));
+        var w = CreaturesTesting.Planet(Long).HeroAt(4, 3).Do(new SetCreative(true)).Do(new Run(Drill, true)).GiveItems(0, (Drill, 1)).Wields(Drill);
         var c = w.Loper(10, 3).Walking(+1, Posture.Flee);
         w.Run();
         // Sent flying faster than it runs, struck again: not slowed to the blow's speed.
@@ -467,7 +467,7 @@ public class CreaturesTests
     [Fact]
     public void TheDrillsQuickHitsEachHopItsPacesShareOfTheAxesAndNoHopWhileRising()
     {
-        var w = CreaturesTesting.Planet(Room).HeroAt(1, 3).Do(new SetCreative(true)).Do(new Run(Drill, true)).GiveItems(0, (Drill, 1));
+        var w = CreaturesTesting.Planet(Room).HeroAt(1, 3).Do(new SetCreative(true)).Do(new Run(Drill, true)).GiveItems(0, (Drill, 1)).Wields(Drill);
         var c = w.Loper(5, 3).Still();
         w.Do(new Strike(c.Id, Drill)).Run();
         int share = Spec.Weapons.Drill.Pace * 1000 / Tune.KnockPace;
@@ -614,7 +614,7 @@ public class CreaturesTests
     [Fact]
     public void AStrikeIsRefusedForACreatureGoneAndAnElectricToolFlatOrNotRunning()
     {
-        var w = CreaturesTesting.Planet(Room).HeroAt(1, 3).GiveItems(0, (Drill, 1));
+        var w = CreaturesTesting.Planet(Room).HeroAt(1, 3).GiveItems(0, (Drill, 1)).Wields(Drill);
         var c = w.Loper(5, 3).Still();
         Assert.Equal("creatures.gone", w.M.Creatures.StrikeProblem(0, c.Id + 1, Axe));
         Assert.Equal("items.flat", w.M.Creatures.StrikeProblem(0, c.Id, Drill));

@@ -258,6 +258,22 @@ public sealed class Glim
     /// <summary>How far through its life it is, 0 to 1.</summary>
     public double Age => AgeMs / LifeMs;
 
+    // Its ride along a haze (spark-rule): the points ahead, the next of them, how far it may still run, the way it flies off at the
+    // ride's end, and its turn off the way it runs as it lets go.
+    internal IReadOnlyList<(double X, double Y)>? Ride;
+    internal int RideNext;
+    internal double RideLeft, RideOffX, RideOffY, RideTurn;
+
+    /// <summary>Whether it still runs along a haze rather than flying free.</summary>
+    public bool Riding => Ride != null;
+
+    /// <summary>
+    /// Runs it along <paramref name="path"/> first, <paramref name="most"/> px at most, at its speed: at the path's end it flies off
+    /// (<paramref name="offX"/>, <paramref name="offY"/>), short of it the way the path runs, either turned <paramref name="turn"/> radians.
+    /// </summary>
+    public void Rides(IReadOnlyList<(double X, double Y)> path, double most, double offX, double offY, double turn) =>
+        (Ride, RideNext, RideLeft, RideOffX, RideOffY, RideTurn) = (path, 0, most, offX, offY, turn);
+
     /// <summary>The <paramref name="i"/>-th point of its path back from where it is now.</summary>
     public (double X, double Y) Behind(int i) => (Hx[(Head + i) % Kept], Hy[(Head + i) % Kept]);
 
@@ -344,7 +360,8 @@ public sealed class Glims(int limit, Func<double>? random = null)
                 _live.RemoveAt(_live.Count - 1);
                 continue;
             }
-            LuminousMath.Move(g, elapsedMs / 1000, _seconds);
+            if (g.Riding) LuminousMath.Ride(g, elapsedMs / 1000);
+            else LuminousMath.Move(g, elapsedMs / 1000, _seconds);
             g.SinceMs += elapsedMs;
             if (g.Look.Kind == Glimmer.Streak && g.SinceMs >= Glim.SampleMs) g.Sample();
         }
@@ -434,6 +451,38 @@ public static class LuminousMath
             g.Vy *= -look.Bounce;
             g.Vx *= 0.7;
         }
+    }
+
+    /// <summary>
+    /// <paramref name="g"/> run on <paramref name="dt"/> seconds along its ride at its speed, its way the path's; let go at the ride's
+    /// end the way it was given, or where it has run its most the way the path ran there, either turned by its fan.
+    /// </summary>
+    public static void Ride(Glim g, double dt)
+    {
+        var path = g.Ride!;
+        double speed = Math.Sqrt(g.Vx * g.Vx + g.Vy * g.Vy), go = Math.Min(speed * dt, g.RideLeft);
+        double tx = speed > 1e-9 ? g.Vx / speed : g.RideOffX, ty = speed > 1e-9 ? g.Vy / speed : g.RideOffY;
+        g.RideLeft -= go;
+        while (go > 0 && g.RideNext < path.Count)
+        {
+            var (nx, ny) = path[g.RideNext];
+            double sx = nx - g.X, sy = ny - g.Y, l = Math.Sqrt(sx * sx + sy * sy);
+            if (l > 1e-9) (tx, ty) = (sx / l, sy / l);
+            if (l <= go)
+            {
+                (g.X, g.Y) = (nx, ny);
+                go -= l;
+                g.RideNext++;
+                continue;
+            }
+            (g.X, g.Y) = (g.X + tx * go, g.Y + ty * go);
+            go = 0;
+        }
+        bool end = g.RideNext >= path.Count, off = end || g.RideLeft <= 0 || speed <= 1e-9;
+        if (end) (tx, ty) = (g.RideOffX, g.RideOffY);
+        double c = off ? Math.Cos(g.RideTurn) : 1, s = off ? Math.Sin(g.RideTurn) : 0;
+        (g.Vx, g.Vy) = ((tx * c - ty * s) * speed, (tx * s + ty * c) * speed);
+        if (off) g.Ride = null;
     }
 
     /// <summary>How long <paramref name="g"/>, a streak, is drawn: its speed times its stretch, between its shortest and longest.</summary>

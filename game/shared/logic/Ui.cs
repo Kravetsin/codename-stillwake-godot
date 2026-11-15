@@ -197,6 +197,12 @@ public sealed class Ui
     public Store<string?> Wielded { get; } = new(null);
 
     /// <summary>
+    /// The chosen hotbar slot, the hand free or not: set by <c>items</c> with <see cref="Wielded"/>; <c>crew</c> tells the sim it
+    /// as the hero's hand (<c>Wield</c>), so the stack there is the one that works, fitted or not (tool-in-hand).
+    /// </summary>
+    public Store<int> Chosen { get; } = new(0);
+
+    /// <summary>
     /// Whether the power driver works its square or one cell (power-driver): this player's, not saved, the square at the start;
     /// <c>crew</c> switches it on a right click with the driver in hand.
     /// </summary>
@@ -322,6 +328,12 @@ public sealed class Ui
     /// frame; <c>debris</c> strikes a wreck a bit is on where the bit is, a share of an axe's hit at a time (0094).
     /// </summary>
     public IReadOnlyList<(float X, float Y, string Tool)> Bits { get; set; } = [];
+
+    /// <summary>
+    /// The wrecks a tool's haze lay in within a blade trail's life, by id (spark-rule): what flies off them is the haze's, so
+    /// <c>debris</c> throws none of its own when they are hit. Set by <c>crew</c> every frame.
+    /// </summary>
+    public IReadOnlyCollection<int> HazeTouched { get; set; } = [];
 
     /// <summary>
     /// Where every power driver's motor is heard at work, and a moment after, in the world's pixels (power-driver). Set by <c>crew</c>

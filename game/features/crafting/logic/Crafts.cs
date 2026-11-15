@@ -114,7 +114,7 @@ public static class Crafts
     }
 
     /// <summary>Whether <paramref name="station"/> takes items in, so a craft may be fed from its inputs: the Former and the assembler, not the pod.</summary>
-    public static bool HasInputs(Content.Station station) => Content.Machines.Get(station.Machine) is var spec && (spec.Inputs ?? 0) > 0 && !spec.Tunes;
+    public static bool HasInputs(Content.Station station) => Content.Machines.Get(station.Machine) is var spec && (spec.Inputs ?? 0) > 0 && !spec.Tunes && spec.FuelSlot == null;
 
     /// <summary>
     /// How many paid units a click queues: one, or with shift as many as the stock pays for, <see cref="Many"/> at most,

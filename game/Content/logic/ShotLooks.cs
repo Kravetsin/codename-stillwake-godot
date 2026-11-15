@@ -56,10 +56,10 @@ public sealed record ShotPicture(
 public static class ShotLooks
 {
     /// <summary>
-    /// The nail, the user's pick «Стальной гвоздь»: the nail itself, a cell long, its bright head behind, its grey shank, its
-    /// light point in front.
+    /// The nail, the user's pick «Стальной гвоздь»: the nail itself, three quarters of a cell long and a pixel thin
+    /// (2026-11-14-grapple-and-nailer-traced), its bright head behind, its grey shank, its light point in front.
     /// </summary>
-    public static readonly ShotLook Nail = new(8, 2, Tail: "f4f7fa", Body: "8a94a2", Point: "c9ced6");
+    public static readonly ShotLook Nail = new(6, 1, Tail: "f4f7fa", Body: "8a94a2", Point: "c9ced6");
 
     /// <summary>
     /// A nail from the railgun (2026-10-27-the-railgun), the user's pick «Голубой след»: a long cyan tail, fading out behind, its

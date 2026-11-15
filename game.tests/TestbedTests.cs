@@ -148,6 +148,10 @@ public class TestbedTests
         Assert.True(m.Crafting.Works(capsule));
         Assert.Equal(2 * Spec.Stations.Get("growCapsule").Speed, m.Crafting.Progress(capsule));
         Assert.Equal(new Stack("seed", Testbed.Planted), m.Items.Crate(capsule)[0]);
+        // The galley cold, nothing queued, but fuelled and aired: a dish queued lights it at once.
+        int galley = IdOf(m, "galley");
+        Assert.Equal(new Stillwake.Sim.Furnace.Smelting(false), m.Furnace.At(galley));
+        Assert.Equal(new Stack("planks", Testbed.GalleyFuel), m.Items.Crate(galley)[Spec.Machines.Get("galley").FuelSlot!.Value]);
     }
 
     [Fact]

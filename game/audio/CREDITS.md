@@ -53,6 +53,9 @@ knock the whole 1.0 s, its last 40% faded, −22 LUFS max momentary; the chewing
 last 30% faded, raised 18.5 dB to −20 LUFS max momentary, then gated here (−40 dBFS, 24 dB down, 40 ms release) so the
 microphone's hiss under its tail is gone.
 
+The retch (food-tuning) is its pick page's pick, cut there from the Freesound HQ preview: mono 48 kHz, high-passed at 40 Hz,
+2.2 s from 1.45 s, faded in over 4 ms and its last 35% out, turned down 3.9 dB to −20 LUFS max momentary as the chewing.
+
 | File | Source | Author | Licence |
 | ---- | ------ | ------ | ------- |
 | `atmosphere/hiss-1.ogg` | generated for Stillwake | Stillwake team | CC0 |
@@ -164,6 +167,7 @@ microphone's hiss under its tail is gone.
 | `crew/lava-burn-1.wav` | Freesound, "Pressure Hiss" (0.8 s), https://freesound.org/people/unfa/sounds/211096/ | unfa | CC0 |
 | `crew/catcher-beep-1.wav` | Freesound, "motion tracker beep.wav" (the first ping: 1.1 s from 0.04 s, its last 0.25 s faded; the warning page's pick, tracker-catchers), https://freesound.org/people/Balcoran/sounds/478186/ | Balcoran | CC0 |
 | `crew/eat-1.wav` | Freesound, "Eat_sound" (0.85 s from its start), https://freesound.org/people/dinoworld112/sounds/867040/ | dinoworld112 | CC0 |
+| `crew/retch-1.wav` | Freesound, "20 Throwing Up.flac" (2.2 s from 1.45 s), https://freesound.org/people/D.jones/sounds/528790/ | D.jones | CC0 |
 | `crew/hurt-1.wav` | Freesound, "Oof (original)" (all of it from its attack, band 130 Hz–2 kHz, echoes at 7 and 15 ms), https://freesound.org/people/unfa/sounds/719053/ | unfa | CC0 |
 | `crew/hurt-2.wav` | the same, raised 6% in pitch at its length | unfa | CC0 |
 | `crew/hurt-3.wav` | the same, lowered 7% in pitch at its length | unfa | CC0 |

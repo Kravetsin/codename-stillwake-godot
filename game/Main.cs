@@ -248,13 +248,25 @@ public partial class Main : Node2D, ITogether
             _items.Panel.CanisterIn = CanisterIn;
             // Its own layer, above the world: read from whatever registry the session runs now.
             var gauge = new SuitGauge(() => _session is Session s ? Danger.Read(_m.Crew, _m.Atmosphere, s.Client.Id) : (1, 1, SuitDanger.None, true),
-                CanisterIn, () => _session is Session s ? _m.Items.WornIn(s.Client.Id, Content.Helmet.Slot) : null, _hands.Ui);
+                CanisterIn, () => _session is Session s ? _m.Crew.PartsOf(s.Client.Id) : [], _hands.Ui);
             AddChild(gauge);
             // The hero's meals, the vitals' bottom row (hud-vitals).
             AddChild(new MealSlots(() => _session is Session s && _m.Crew.HeroOf(s.Client.Id) is { } fed
-                ? (fed.Meals.Select(m => (m.Food, m.Left)).ToList(), _m.Crew.Hungry(s.Client.Id)) : null, _hands.Ui));
+                ? (fed.Meals.Select(m => (m.Food, m.Left)).ToList(), _m.Crew.Hungry(s.Client.Id)) : null, Purge, _hands.Ui));
+            // Held three seconds on the purge spot (food-tuning): refused as the sim would, else sent.
+            string? Purge()
+            {
+                if (_session is not Session s) return "crew.noHero";
+                if (_m.Crew.PurgeProblem(s.Client.Id) is { } no) return no;
+                s.Client.Send(new Stillwake.Sim.Crew.Purge());
+                return null;
+            }
+            // The degrees where the hero stands, under the charge (the-thermometer); gone while it is passed out.
+            AddChild(new Thermometer(() => _session is Session s && _m.Crew.HeroOf(s.Client.Id) is { Out: 0 } && _hero is { Placed: true } h
+                ? (ThermometerReading?)Thermometers.Read(_m.Crew, s.Client.Id, h.Current.BodyCell(_m.Grid.Width)) : null, _hands.Ui));
             if (_hero is { } breathing) gauge.BreathesAgain += breathing.BreathesAgain;
             AddChild(new Frost(() => _session is Session s && _hero is { Placed: true } h ? Report.Cold(_m.Crew, s.Client.Id, h.Current.BodyCell(_m.Grid.Width)) : 0));
+            AddChild(new Haze(() => _session is Session s && _hero is { Placed: true } h ? Report.Heat(_m.Crew, s.Client.Id, h.Current.BodyCell(_m.Grid.Width)) : 0));
             AddChild(new HurtView(() => _session is Session s && _m.Crew.HeroOf(s.Client.Id) is { } hurt ? (hurt.Hurts, hurt.Hurt) : null, gauge));
             AddChild(new TunnelView(() => _session is Session s && _m.Crew.HeroOf(s.Client.Id) is { } me ? (me.Gasp, me.Out) : null, () => _hero?.Shown));
             // Home and friends off the screen, pointed at from its edge, clear of the HUD's panels.
@@ -594,7 +606,7 @@ public partial class Main : Node2D, ITogether
         if (_items != null) _items.Panel.Draw = _m.Power.Draw;
         if (_items != null) _items.Panel.Crafting = _m.Crafting;
         if (_items != null) _items.Frame(client, _m.Grid, _m.Rooms, _m.Items, _m.Debris, NetHolds, SpotOf(_hero), session.Progress, session.Drift, delta * 1000);
-        if (_fabricator != null) _fabricator.Draw = _m.Power.Draw;
+        if (_fabricator != null) (_fabricator.Draw, _fabricator.Fire) = (_m.Power.Draw, _m.Furnace.At);
         _fabricator?.Frame(client, _m.Crafting, _m.Research, _m.Items, _m.Grid, delta * 1000);
         _frameLog?.Mark("items");
         _debris.Frame(client, _m.Debris, _camera.View(), session.Drift, delta * 1000);

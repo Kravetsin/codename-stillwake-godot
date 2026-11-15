@@ -63,6 +63,22 @@ public class FieldTests
     }
 
     [Fact]
+    public void SpaceIsTheHullsByTheShipColderAcrossTheFieldByTheFartherAxisAndSpacesFromItsLineOn()
+    {
+        // The user's ask: the farther from the ship, the colder (2026-11-14-temperature-in-degrees).
+        var zone = Still.Value.M.Grid.Zone;
+        int Degrees(int x, int y) => Still.Value.M.Crew.TemperatureAt(At(x, y));
+        Assert.Equal((Content.Temperature.Hull, Content.Temperature.Hull), (Degrees(zone.Left, MidY), Degrees(MidX, zone.Top)));
+        // One cell out, 20° × 1/128 rounded toward the warmer; half way, 64 of 128 cells by the farther axis, half of it.
+        Assert.Equal(-20, Degrees(zone.Left - 1, MidY));
+        Assert.Equal((-30, -30), (Degrees(zone.Left - FieldSpec.Margin / 2, MidY), Degrees(zone.Left - FieldSpec.Margin / 2, zone.Top - 10)));
+        Assert.Equal((-30, -30), (Degrees(MidX, zone.Bottom + FieldSpec.Margin / 2), Degrees(zone.Right + FieldSpec.Margin / 2, MidY)));
+        Assert.Equal((-40, -40, -40), (Degrees(Left, MidY), Degrees(Right + 1, Bottom + 1), Degrees(0, 0)));
+        for (int x = zone.Left; x > 0; x--)
+            Assert.InRange(Degrees(x, MidY) - Degrees(x - 1, MidY), 0, 1);
+    }
+
+    [Fact]
     public void BreathesInsideTheFieldAsBeforeEvenOnItsEdgeAndOutsideTheZone()
     {
         foreach (int cell in new[] { At(Left, MidY), At(Right, MidY), At(MidX, Top), At(MidX, Bottom), At(Left, Top), At(Right, Bottom) })
@@ -90,22 +106,24 @@ public class FieldTests
     {
         var w = ToBreath(new Scenario(Layout.Parse(PodRoom).Doubled().InWorld()) { Bare = true }).Run();
         w.Do(new Enter(At(Left - 1, MidY)) { From = 0 }).Run();
-        Breaths(w, 1);
-        Assert.Equal(Content.Crew.Lungs - 2 - Content.Crew.BareCold, HeroOf(w).Air);
-        Assert.Equal(1 + Content.Crew.BareCold, w.M.Crew.Cold(0));
+        HeroOf(w).Air = Content.Crew.Lungs;
+        // Five breaths: each a unit and the edge's unit, and space's −40° on a bare 0°, 40 felt, four units (2026-11-14-temperature-in-degrees).
+        Breaths(w, 5);
+        Assert.Equal(Content.Crew.Lungs - 5 * 2 - 4, HeroOf(w).Air);
+        Assert.Equal((1, 40), (w.M.Crew.EdgeCost(HeroOf(w).Cell), w.M.Crew.Felt(0, HeroOf(w).Cell)));
     }
 
     [Fact]
-    public void ACapeSparesAFifthOfTheEdgesColdTheRestCarried()
+    public void ACapeSparesNoneOfTheEdgesColdWhichIsNoWeather()
     {
-        // Half way to the edge, 12 a breath: 2400 thousandths spared, two units and 400 kept; then two more, 800 kept (2026-10-27-the-cape-is-worn).
+        // Half way to the edge, 12 a breath, caped or not; a suit feels nothing of space's −40° (2026-11-14-temperature-in-degrees).
         var w = ToBreath(World().Wear(0, Content.Cape.Item)).Run();
         w.Do(new Enter(At(Left / 2, MidY)) { From = 0 }).Run();
         Breaths(w, 1);
-        Assert.Equal((Scenario.Full - 1 - 10, 400), (HeroOf(w).Air, HeroOf(w).Spared));
+        Assert.Equal((Scenario.Full - 1 - 12, 0), (HeroOf(w).Air, HeroOf(w).Spared));
         Breaths(w, 1);
-        Assert.Equal((Scenario.Full - 2 - 20, 800), (HeroOf(w).Air, HeroOf(w).Spared));
-        Assert.Equal(12, w.M.Crew.Cold(0));
+        Assert.Equal((Scenario.Full - 2 - 24, 0), (HeroOf(w).Air, HeroOf(w).Spared));
+        Assert.Equal((12, 0), (w.M.Crew.EdgeCost(HeroOf(w).Cell), w.M.Crew.Felt(0, HeroOf(w).Cell)));
     }
 
     [Fact]
