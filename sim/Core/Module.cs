@@ -60,6 +60,26 @@ public interface ISurfaces
     /// surface has run, before the sends. Returns its id, to <see cref="Send"/> to.
     /// </summary>
     int OpenPlanet();
+
+    /// <summary>
+    /// Opens a surface of kind <paramref name="kind"/> from <paramref name="seed"/>, keeping what this surface keeps for a new one —
+    /// a change to the world, so called only by a system on its tick: opened once every surface has run, in the order asked, before
+    /// the sends. Returns the id it will take, to <see cref="Send"/> to.
+    /// </summary>
+    int Open(string kind, uint seed);
+}
+
+/// <summary>
+/// A module holding what outlives its surface, a transient one closing (shuttle-flight): the shuttle standing on a vessel world,
+/// or flying home from it. Its twin on the ship takes it.
+/// </summary>
+public interface IOutlives
+{
+    /// <summary>What outlives this surface, which is closing; null for nothing.</summary>
+    object? Closing();
+
+    /// <summary>Takes <paramref name="left"/>, what the twin on a closing surface gave up, on the ship.</summary>
+    void Outlived(object left);
 }
 
 /// <summary>

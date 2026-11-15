@@ -148,7 +148,7 @@ public static partial class En
         ["tool.radarAntenna.about"] = "A radar dish for the roof. Cabled to the computer's network, it brings the radar.",
         ["tool.engine.about"] = "The ship's engine; its 20 l tank holds biofuel for a jump, piped in on the right. Built against the stern's hull, its nozzle out through the wall, and cabled to power.",
         ["tool.dropPod.about"] = "A bell of a capsule for one, standing on a launch platform. Board it with {key:use}; its slot takes biofuel.",
-        ["tool.crewShuttle.about"] = "A heavy craft for four to fly to the wrecks, standing on a launch platform as wide as it is. Its 200 l tank takes cans or a fuel pipe at its stern; it does not fly yet.",
+        ["tool.crewShuttle.about"] = "A heavy craft for four to fly to the wrecks, standing on a launch platform as wide as it is. Its 200 l tank takes cans or a fuel pipe at its stern; a trip burns the litres the radar names.",
         ["material.scrap"] = "scrap",
         ["material.castScrap"] = "cast scrap",
         ["material.iron"] = "iron",

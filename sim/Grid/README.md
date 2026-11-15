@@ -61,8 +61,8 @@ once. A machine needs every footprint cell free of structure and machines; a bac
   unless already as asked ([door-swing](../../docs/decisions/2026-11-04-door-swing.md)). `DoorProblem` asks.
 - **Refusals:** `grid.outOfBounds`, `grid.outsideZone`, `grid.occupied`, `grid.machineInTheWay`, `grid.blocked`,
   `grid.noSuchMaterial`, `grid.noSuchMachine`, `grid.noExhaust`, `grid.notOnHull`, `grid.noPlatform` (a machine that `Lands` with the row
-  under it not all launch platform), `grid.noGround` (off the ship, the row under it not all
-  solid), `grid.underPlatform` (in a launch platform's shaft, under it to the grid's edge),
+  under it not all launch platform), `grid.noGround` (on a planet, the row under it not all
+  solid; none where `Floats`), `grid.underPlatform` (in a launch platform's shaft, under it to the grid's edge),
   `grid.shaftBlocked` (a platform over a shaft not empty). `Taken(cell)`, `ClearBelow(cell)`: the shaft's test; `OnRun`.
 
 ## Maps

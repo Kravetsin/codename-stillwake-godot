@@ -70,6 +70,10 @@ namespace Stillwake.Content;
 /// What it is to the systems that ask (0113), a flag a trait; never <see cref="MachineTrait.Fire"/>, which its
 /// <paramref name="FuelSlot"/> implies.
 /// </param>
+/// <param name="Riders">
+/// How many heroes sit in it at once, a place each, for a machine that <see cref="MachineTrait.Seats"/>: one for the drop pod and
+/// the treadmill wheel, four for the crew shuttle. Above one only on a machine that seats and lands, which the pod's launch never flies.
+/// </param>
 /// <param name="Hp">
 /// Its hit points: broken by tools anywhere, each hit taking the weapon's damage as a wreck's do, giving its cost; never marked
 /// (the-scoop, 2026-11-07-pile-hit-points): a pile. Null for one only a mark takes apart, which bursts break at
@@ -102,6 +106,7 @@ public sealed record MachineSpec(
     int? Exhaust = null,
     int? FuelHolds = null,
     MachineTrait Has = MachineTrait.None,
+    int Riders = 1,
     int? Hp = null,
     MenuSlot? Menu = null,
     char? Char = null,
@@ -295,9 +300,9 @@ public static class Machines
         // The drop pod, the bell (the capsule concepts' 2C): a dome with a round porthole on a wide skirt, standing on a launch platform
         // two pieces wide. A hero sits in it; its one slot holds the biofuel it will burn going down. Guided by a processor and a display.
         new("dropPod", 4, 6, [new(0, 4, Way.In, Fluids.Fuel)], [("frame", 6), ("plate", 16), ("glass", 8), ("tube", 6), ("processor", 1), ("display", 1)], BuildTicks: 240, Slots: 1, SlotTakes: (0, Fuel.Item), FuelHolds: 20, Has: MachineTrait.Seats | MachineTrait.Lands, Menu: new(MenuTabs.Ship, 105), Char: 'Z', Means: "drop pod: draw its whole footprint, on a launch platform"),
-        // The crew's shuttle to the wrecks, the «Ледокол» pick: a heavy prow, frosted slits nobody shows through. Only built for now,
-        // on a launch platform as the drop pod is, the whole run under its 24 cells.
-        new("crewShuttle", 24, 10, [new(0, 8, Way.In, Fluids.Fuel)], [("frame", 16), ("plate", 48), ("glass", 4), ("tube", 12), ("nozzle", 3), ("processor", 2), ("display", 1)], BuildTicks: 600, Slots: 1, SlotTakes: (0, Fuel.Item), FuelHolds: 200, Has: MachineTrait.Lands, Menu: new(MenuTabs.Ship, 108), Char: '^', Means: "crew shuttle: draw its whole footprint, on a launch platform"),
+        // The crew's shuttle to the wrecks, the «Ледокол» pick: a heavy prow, four frosted slits nobody shows through, a seat behind
+        // each. On a launch platform as the drop pod is, the whole run under its 24 cells; its 200 l store piped at its stern.
+        new("crewShuttle", 24, 10, [new(0, 8, Way.In, Fluids.Fuel)], [("frame", 16), ("plate", 48), ("glass", 4), ("tube", 12), ("nozzle", 3), ("processor", 2), ("display", 1), ("copper", 12), ("magnetite", 6)], BuildTicks: 600, Slots: 1, SlotTakes: (0, Fuel.Item), FuelHolds: 200, Has: MachineTrait.Seats | MachineTrait.Lands, Riders: 4, Menu: new(MenuTabs.Ship, 108), Char: '^', Means: "crew shuttle: draw its whole footprint, on a launch platform"),
         // A vessel's salvage aboard (plan V-1b): piles copied from the debris that drifts by, worked out in Vessels.
         .. Vessels.SalvageRows,
     ];

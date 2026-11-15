@@ -16,5 +16,9 @@ public static partial class En
         ["landing.shaftBlocked"] = "Something is built under the platform",
         ["landing.descend"] = "Descend",
         ["landing.return"] = "Return",
+        ["landing.setOff"] = "Set off",
+        ["landing.noRoute"] = "No route",
+        ["landing.course"] = "{n} km · {l} l",
+        ["landing.home"] = "Home",
     };
 }

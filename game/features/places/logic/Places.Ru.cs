@@ -10,5 +10,6 @@ public static partial class Ru
         ["places.noContact"] = "Такой цели на радаре нет",
         ["places.noHero"] = "Сначала поднимитесь на борт",
         ["places.seated"] = "Сначала выйдите из посадочной капсулы",
+        ["places.noCourse"] = "Маршрут не выбран",
     };
 }

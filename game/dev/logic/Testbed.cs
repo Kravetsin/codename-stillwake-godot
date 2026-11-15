@@ -79,8 +79,8 @@ public static class Testbed
     /// <summary>The litres the engine's and the biofuel generator's stores hold at the start: biofuel, so the engine draws its power.</summary>
     public const int Fuelled = 10;
 
-    /// <summary>The litres the crew shuttle's 200 l tank holds at the start: some, so its gauge shows it (fuel-liquid).</summary>
-    public const int ShuttleFuel = 120;
+    /// <summary>The litres the crew shuttle's 200 l tank holds at the start: full, the round trip to any contact the radar holds (shuttle-flight).</summary>
+    public const int ShuttleFuel = 200;
 
     /// <summary>The litres the drop pod's store holds at the start: biofuel for two descents (<c>Fuel.Descent</c> each).</summary>
     public const int PodFuel = 2 * Fuel.Descent / Fuel.Can;
@@ -113,7 +113,7 @@ public static class Testbed
     /// wheel, cabled to the generator, its top through room one's floor, so the bay is high enough for it; room one's top corners
     /// walled, for its one vaporizer's air to reach every cell; a debris net hung outside on the bay's right wall. Through the airlock's outer
     /// door, the shuttle's hangar, a row higher than the ship's roof: the crew shuttle on a launch platform its whole length in its floor,
-    /// its shaft clear below, a walk either side, a lamp fed by a panel of its own on the hangar's roof, the door out to space, and no
+    /// its shaft clear below, a walk either side, its run and a lamp fed by a panel of its own on the hangar's roof, the door out to space, and no
     /// air, as the airlock. Sixty cells of space past it, room for a jetpack to fly. Drawn a character a 16 px cell and doubled (0104):
     /// a drawn pipe meets only even cells, so each vaporizer's air leaves its odd output through a pipe under its top-right block,
     /// and each tank's liquid its odd output on its right through a pipe under the block past it.
@@ -145,7 +145,7 @@ public static class Testbed
         ],
         [
             ((7, 2), (9, 4)), ((7, 2), (11, 6)), ((7, 2), (19, 2)), ((59, 1), (66, 3)),
-            ((19, 2), (22, 4)), ((42, 6), (40, 4)), ((40, 4), (49, 4)), ((42, 6), (24, 6)), ((47, 2), (41, 6)),
+            ((19, 2), (22, 4)), ((42, 6), (40, 4)), ((40, 4), (49, 4)), ((42, 6), (24, 6)), ((47, 2), (41, 6)), ((59, 1), (53, 8)),
             ((29, 2), (27, 6)), ((33, 2), (30, 6)), ((33, 2), (33, 6)), ((12, 2), (15, 5)), ((37, 2), (34, 6)), ((41, 2), (34, 4)),
             ((37, 2), (32, 4)), ((47, 2), (51, 1)), ((51, 1), (55, 1)), ((7, 2), (7, 5)), ((15, 2), (4, 2)), ((15, 2), (12, 4)),
             ((7, 5), (3, 9)), ((3, 9), (6, 9)), ((47, 2), (47, 8)), ((22, 2), (24, 4)), ((25, 2), (37, 4)), ((6, 9), (8, 9)), ((10, 9), (8, 9)), ((13, 8), (10, 9)),

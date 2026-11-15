@@ -40,8 +40,8 @@ public partial class ComputerPanel : CanvasLayer
         MouseFilter = Control.MouseFilterEnum.Ignore,
     };
     private readonly RadarScreen _radar = new() { Visible = false };
-    /// <summary>Under the radar while a contact is selected: the jump to it (<c>places</c>' <c>Jump</c>).</summary>
-    private readonly Button _setOff = SetOffButton();
+    /// <summary>Under the radar while a contact is selected: the course set to it (<c>places</c>' <c>SetCourse</c>).</summary>
+    private readonly Button _setCourse = SetCourseButton();
     private readonly List<(Panel Box, TextureRect Icon, ProgramSpec Program)> _buttons = [];
     private readonly TipSpots _tips;
     private Reading _reading = new(false, []);
@@ -49,7 +49,7 @@ public partial class ComputerPanel : CanvasLayer
 
     /// <param name="ui">Which computer is open, set by the crew's E, and cleared here when it is put away.</param>
     /// <param name="world">The world the computer stands in; null with none played.</param>
-    /// <param name="send">Sends a command as this player: the set-off button's jump.</param>
+    /// <param name="send">Sends a command as this player: the course button's.</param>
     public ComputerPanel(Ui ui, Func<Registry?> world, Action<Command> send)
     {
         (_ui, _world, _send) = (ui, world, send);
@@ -67,11 +67,11 @@ public partial class ComputerPanel : CanvasLayer
         _radar.SetAnchorsPreset(Control.LayoutPreset.FullRect);
         _screen.AddChild(_radar);
         _screen.AddChild(_text);
-        _radar.AddChild(_setOff);
-        // The jump beside the selected contact (generated-vessels): the vessel comes right of the ship, the contact gone.
-        _setOff.Pressed += () =>
+        _radar.AddChild(_setCourse);
+        // The course to the selected contact (shuttle-flight): every shuttle aboard flies there once set off.
+        _setCourse.Pressed += () =>
         {
-            if (_ui.RadarContact.Get() is { } contact) _send(new Jump(contact));
+            if (_ui.RadarContact.Get() is { } contact) _send(new SetCourse(contact));
         };
         // A click on the radar selects the contact under it; on empty screen, none.
         _screen.GuiInput += e =>
@@ -142,9 +142,10 @@ public partial class ComputerPanel : CanvasLayer
         _reading = Readout.Of(_world()!.Grid, _world()!.Power, _ui.OpenComputer.Get()!.Value);
         // A program that stops being ready is put away: the screen says why instead.
         if (!Readout.Ready(_reading, _ui.ComputerProgram.Get())) _ui.ComputerProgram.Set(null);
-        // The contacts the radar holds, aboard (places'; none on another surface); a selected one gone is let go.
+        // The contacts the radar holds, aboard (places'; none on another surface), and the course; a selected one gone is let go.
         var contacts = _world()!.Places.Contacts;
         _radar.Contacts = [.. contacts];
+        _radar.Course = _world()!.Places.Course?.Id;
         ShowStretch(_world()!);
         if (_ui.RadarContact.Get() is { } id && !contacts.Any(c => c.Id == id)) _ui.RadarContact.Set(null);
         ShowSelected();
@@ -175,7 +176,7 @@ public partial class ComputerPanel : CanvasLayer
             return;
         }
         var mouse = _frame.GetViewport().GetMousePosition();
-        if (_setOff.IsVisibleInTree() && _setOff.GetGlobalRect().HasPoint(mouse)) _tips.Show(null);
+        if (_setCourse.IsVisibleInTree() && _setCourse.GetGlobalRect().HasPoint(mouse)) _tips.Show(null);
         else if (_radar.IsVisibleInTree() && _radar.KeyAt(mouse) is { } key) _tips.Show(new Tip(T(key)));
         else _tips.Frame(mouse);
     }
@@ -227,23 +228,23 @@ public partial class ComputerPanel : CanvasLayer
         GetViewport().SetInputAsHandled();
     }
 
-    /// <summary>The radar's selection as this player has it: framed on the screen, the set-off button under it while there is one.</summary>
+    /// <summary>The radar's selection as this player has it: framed on the screen, the course button under it while there is one.</summary>
     private void ShowSelected()
     {
         _radar.Selected = _ui.RadarContact.Get();
-        _setOff.Visible = _radar.Selected != null;
+        _setCourse.Visible = _radar.Selected != null;
         // Read each time, so a language changed in the menu shows.
-        _setOff.Text = T("computer.radar.setOff");
+        _setCourse.Text = T("computer.radar.setCourse");
     }
 
-    /// <summary>The set-off button, in the radar's green, at the bottom of its screen in the middle; hidden till a contact is selected.</summary>
-    private static Button SetOffButton()
+    /// <summary>The course button, in the radar's green, at the bottom of its screen in the middle; hidden till a contact is selected.</summary>
+    private static Button SetCourseButton()
     {
         var button = new Button
         {
             Visible = false,
             FocusMode = Control.FocusModeEnum.None,
-            CustomMinimumSize = new Vector2(220, 44),
+            CustomMinimumSize = new Vector2(260, 44),
             AnchorLeft = 0.5f,
             AnchorRight = 0.5f,
             AnchorTop = 1,

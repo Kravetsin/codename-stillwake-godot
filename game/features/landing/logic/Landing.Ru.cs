@@ -16,5 +16,9 @@ public static partial class Ru
         ["landing.shaftBlocked"] = "Под платформой что-то построено",
         ["landing.descend"] = "Спуск",
         ["landing.return"] = "Возврат",
+        ["landing.setOff"] = "Отправиться",
+        ["landing.noRoute"] = "Нет маршрута",
+        ["landing.course"] = "{n} км · {l} л",
+        ["landing.home"] = "Домой",
     };
 }

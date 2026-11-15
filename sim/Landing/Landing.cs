@@ -8,8 +8,11 @@ using Stillwake.Sim.Power;
 
 namespace Stillwake.Sim.Landing;
 
-/// <summary>Hero <c>Peer</c> sitting in drop pod <c>Pod</c>, a machine id.</summary>
-public sealed record Seat(int Pod, int Peer);
+/// <summary>
+/// Hero <c>Peer</c> sitting in drop pod <c>Pod</c>, a machine id, at <c>Place</c>, its seat's index there, <c>0..Riders−1</c>: always
+/// 0 in a machine for one; a save from before places reads 0.
+/// </summary>
+public sealed record Seat(int Pod, int Peer, int Place = 0);
 
 /// <summary>
 /// Peer <c>Peer</c>'s drop pod in the air, no machine while it flies: down to a planet, or <c>Up</c> back aboard, landing in
@@ -22,12 +25,26 @@ public sealed record Flight(int Peer, bool Up, int TicksLeft, int Home, int Floo
 public sealed record Owner(int Pod, int Peer, int Home);
 
 /// <summary>
+/// A shuttle in the air with its riders (shuttle-flight): <c>From</c> the cell it stood at on this surface, <c>Riders</c> in seat
+/// order, arriving in <c>TicksLeft</c> ticks; <c>Home</c> the ship cell it docks at. <c>Out</c> the kind of vessel world it flies to,
+/// grown from <c>Seed</c>; null for a flight home. <c>Load</c> what its hopper held, <c>Fuel</c> what its store held, in millilitres,
+/// the trip's burnt fuel taken (fuel-liquid).
+/// </summary>
+public sealed record Voyage(int From, IReadOnlyList<int> Riders, int TicksLeft, int Home, string? Out = null, uint Seed = 0, Stack? Load = null, int Fuel = 0);
+
+/// <summary>Shuttle <c>Shuttle</c>, a machine id, standing on a vessel world, its home aboard <c>Home</c>: where it docks.</summary>
+public sealed record Parked(int Shuttle, int Home);
+
+/// <summary>
 /// Who sits in which drop pod, which pods fly and whose pods stand off the ship; a platform's state is its structure codes, the
 /// grid's. Public so modules can be typed by it, its members internal.
 /// </summary>
 public sealed class LandingState
 {
-    /// <summary>Every seat taken, by pod id ascending: a pod holds one hero, a hero sits in one pod.</summary>
+    /// <summary>
+    /// Every seat taken, by pod id then place ascending: a machine holds its <c>Riders</c>, one a place, and a hero sits in one
+    /// place. A save from before places, every place 0, is in pod order already.
+    /// </summary>
     [JsonInclude] internal List<Seat> Seats { get; set; } = [];
 
     /// <summary>Every pod in the air from this surface, by peer ascending: a hero rides one at most.</summary>
@@ -35,6 +52,18 @@ public sealed class LandingState
 
     /// <summary>Every pod standing on this surface off the ship, by pod id ascending.</summary>
     [JsonInclude] internal List<Owner> Owners { get; set; } = [];
+
+    /// <summary>Every shuttle in the air from this surface, in the order they set off.</summary>
+    [JsonIgnore] internal List<Voyage> Voyages { get; set; } = [];
+    /// <summary>Voyages as saved: none written while none flies, so a world without one saves as before.</summary>
+    [JsonInclude, JsonPropertyName("voyages"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    internal List<Voyage>? SavedVoyages { get => Voyages.Count > 0 ? Voyages : null; set => Voyages = value ?? []; }
+
+    /// <summary>Every shuttle standing on this surface off the ship, in the order they arrived.</summary>
+    [JsonIgnore] internal List<Parked> Parked { get; set; } = [];
+    /// <summary>Shuttles standing as saved: none written while none stands off the ship.</summary>
+    [JsonInclude, JsonPropertyName("parked"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    internal List<Parked>? SavedParked { get => Parked.Count > 0 ? Parked : null; set => Parked = value ?? []; }
 }
 
 /// <summary>The sender's hero boards drop pod <c>Pod</c>, a machine id, and sits in it: E on a pod sends it.</summary>
@@ -58,8 +87,27 @@ public sealed record Launch : Command;
 /// <summary>What other modules read of Landing: whether a hero rides a drop pod, sitting or flying (vessel-worlds).</summary>
 public interface ILandingQueries
 {
-    /// <summary>Whether <paramref name="peer"/>'s hero sits in a drop pod or flies in one from this surface.</summary>
+    /// <summary>Whether <paramref name="peer"/>'s hero sits in a drop pod or a shuttle, or flies in one, from this surface.</summary>
     bool Rides(int peer);
+
+    /// <summary>
+    /// Why <paramref name="peer"/>'s hero cannot set off in the shuttle it sits in, its course aside, the trip burning
+    /// <paramref name="fuel"/> millilitres from its store; null when it can.
+    /// </summary>
+    string? SetOffProblem(int peer, int fuel);
+}
+
+/// <summary>How places sends a shuttle off (shuttle-flight): its course is places', the flight Landing's.</summary>
+public interface ILandingOps
+{
+    /// <summary>
+    /// The shuttle <paramref name="peer"/>'s hero sits in sets off from the ship to a vessel world of <paramref name="kind"/> grown from
+    /// <paramref name="seed"/>, burning <paramref name="fuel"/> millilitres from its store: the round trip.
+    /// </summary>
+    void SetOff(int peer, string kind, uint seed, int fuel);
+
+    /// <summary>The shuttle <paramref name="peer"/>'s hero sits in, off the ship, sets off home.</summary>
+    void SetOffHome(int peer);
 }
 
 /// <summary>
@@ -68,7 +116,7 @@ public interface ILandingQueries
 /// boards a pod standing on one and sits in it, one hero a pod; a launch flies the pod down to the planet through its run and
 /// back again, its pod going wherever its hero goes.
 /// </summary>
-public sealed class LandingModule : Module<LandingState>, ICarries, ILandingQueries
+public sealed class LandingModule : Module<LandingState>, ICarries, IOutlives, ILandingQueries, ILandingOps
 {
     private readonly IGridQueries _grid;
     private readonly IGridOps _gridOps;
@@ -81,9 +129,14 @@ public sealed class LandingModule : Module<LandingState>, ICarries, ILandingQuer
     private readonly IFuelOps _fuelOps;
 
     private static readonly Placement Pod = new("machine", "dropPod");
+    /// <summary>The craft a voyage flies: the one machine with several seats.</summary>
+    private static readonly Placement Craft = new("machine", "crewShuttle");
 
     /// <summary>The drop pod's spec: what the client's pictures of a flight size and place it by, the pod being off the grid then.</summary>
     public static MachineSpec PodSpec => Content.Machines.Get(Pod.Kind);
+    /// <summary>The craft's spec: what the client holds a voyage's riders at the places of, the craft being off the grid then.</summary>
+    public static MachineSpec CraftSpec => Content.Machines.Get(Craft.Kind);
+
     public override string Id => "landing";
 
     public LandingModule(IGridQueries grid, IGridOps gridOps, IPowerQueries power, IPowerOps powerOps, ICrewQueries crew, IItemsQueries items, IItemsOps itemsOps,
@@ -111,22 +164,22 @@ public sealed class LandingModule : Module<LandingState>, ICarries, ILandingQuer
     }
 
     /// <summary>
-    /// Why <paramref name="peer"/>'s hero cannot board machine <paramref name="pod"/>: no drop pod (<c>landing.noPod</c>), sitting in a
-    /// pod already (<c>landing.seated</c>), another hero in it (<c>landing.taken</c>), or off the ship another's (<c>landing.notYours</c>);
-    /// null when it can.
+    /// Why <paramref name="peer"/>'s hero cannot board machine <paramref name="pod"/>: no machine with seats (<c>landing.noPod</c>),
+    /// sitting in one already (<c>landing.seated</c>), every place of it taken (<c>landing.taken</c>: the pod's one, the shuttle's
+    /// four), or off the ship another's (<c>landing.notYours</c>); null when it can.
     /// </summary>
     public string? BoardProblem(int peer, int pod)
     {
         if (_grid.MachineById(pod) is not { } m || !Content.Machines.Is(m.Kind, MachineTrait.Seats)) return "landing.noPod";
         // A hero flying in a pod sits in it still, with no seat to show it.
         if (Rides(peer)) return "landing.seated";
-        if (RiderOf(pod) != null) return "landing.taken";
+        if (FreePlace(pod, Content.Machines.Get(m.Kind).Riders) == null) return "landing.taken";
         return OwnerOf(pod) is int owner && owner != peer ? "landing.notYours" : null;
     }
 
     /// <summary>
-    /// Why <paramref name="peer"/>'s hero cannot launch: in no pod, or in a seat that does not fly (a wheel: no
-    /// <see cref="MachineTrait.Lands"/>) (<c>landing.notSeated</c>); aboard, its pod no longer on a run
+    /// Why <paramref name="peer"/>'s hero cannot launch: in no pod, in a seat that does not fly (a wheel: no
+    /// <see cref="MachineTrait.Lands"/>), or in one for several (the shuttle, which sets off its own way) (<c>landing.notSeated</c>); aboard, its pod no longer on a run
     /// (<c>landing.noPlatform</c>), anything solid under its run to the grid's edge (<c>landing.shaftBlocked</c>), the run without
     /// power enough (<c>landing.unpowered</c>), its store short of <see cref="Content.Fuel.Descent"/>
     /// (<c>landing.noFuel</c>), or a world that cannot open a planet
@@ -136,8 +189,8 @@ public sealed class LandingModule : Module<LandingState>, ICarries, ILandingQuer
     {
         // A seat outlives its hero gone or passed out until the derivation phase: it launches nothing, its fuel unburnt.
         if (SeatOf(peer) is not int pod || _grid.MachineById(pod) is not { } m || _crew.HeroOf(peer) is not { Out: 0 }) return "landing.notSeated";
-        // A wheel seats a hero too, and stands on planets as aboard: only a pod flies.
-        if (!Content.Machines.Is(m.Kind, MachineTrait.Lands)) return "landing.notSeated";
+        // A wheel seats a hero too, and stands on planets as aboard; a shuttle seats four and lands: only a pod, a seat for one, flies.
+        if (!Content.Machines.Is(m.Kind, MachineTrait.Lands) || Content.Machines.Get(m.Kind).Riders > 1) return "landing.notSeated";
         if (Surfaces.Here != 0) return OwnerOf(pod) == peer ? null : "landing.notYours";
         // Built over a run, it may have been taken apart since.
         if (!_grid.OnRun(m.Kind, m.Cell)) return "landing.noPlatform";
@@ -149,16 +202,54 @@ public sealed class LandingModule : Module<LandingState>, ICarries, ILandingQuer
         return Surfaces.CanOpen ? null : "landing.cannotLeave";
     }
 
+    /// <summary>
+    /// Why <paramref name="peer"/>'s hero cannot set off in its shuttle, its course aside (places'): in no seat of a machine for several,
+    /// or passed out (<c>landing.notSeated</c>); aboard, its shuttle no longer on a run (<c>landing.noPlatform</c>), anything solid under
+    /// its run (<c>landing.shaftBlocked</c>), the run without power enough (<c>landing.unpowered</c>), its store short of
+    /// <paramref name="fuel"/> millilitres (<c>landing.noFuel</c>), or a world that cannot open a vessel world (<c>landing.cannotLeave</c>);
+    /// off the ship, where the return is free, a shuttle that came from no home (<c>landing.notYours</c>: a dev's). Null when it can.
+    /// </summary>
+    public string? SetOffProblem(int peer, int fuel)
+    {
+        if (SeatOf(peer) is not int shuttle || _grid.MachineById(shuttle) is not { } m || Content.Machines.Get(m.Kind).Riders == 1
+            || _crew.HeroOf(peer) is not { Out: 0 }) return "landing.notSeated";
+        if (Surfaces.Here != 0) return ParkedOf(shuttle) == null ? "landing.notYours" : null;
+        if (!_grid.OnRun(m.Kind, m.Cell)) return "landing.noPlatform";
+        for (int dx = 0; dx < Content.Machines.Get(m.Kind).Width; dx++)
+            if (!_grid.ClearBelow(Under(m) + dx)) return "landing.shaftBlocked";
+        if (!Powered(Under(m))) return "landing.unpowered";
+        if (_fuel.FuelIn(shuttle) < fuel) return "landing.noFuel";
+        return Surfaces.CanOpen ? null : "landing.cannotLeave";
+    }
+
     /// <summary>The drop pod <paramref name="peer"/>'s hero sits in, by machine id; null for one standing.</summary>
     public int? SeatOf(int peer) => State.Seats.Find(s => s.Peer == peer)?.Pod;
 
-    /// <summary>The peer whose hero sits in drop pod <paramref name="pod"/>; null for an empty one.</summary>
+    /// <summary>The peer whose hero sits in drop pod <paramref name="pod"/>, a machine for one; null for an empty one.</summary>
     public int? RiderOf(int pod) => State.Seats.Find(s => s.Pod == pod)?.Peer;
 
-    /// <summary>Every seat taken, by pod id ascending.</summary>
+    /// <summary>The place <paramref name="peer"/>'s hero sits at in its machine; null for one standing.</summary>
+    public int? PlaceOf(int peer) => State.Seats.Find(s => s.Peer == peer)?.Place;
+
+    /// <summary>Every seat taken in machine <paramref name="machine"/>, by place ascending.</summary>
+    public IReadOnlyList<Seat> RidersOf(int machine) => State.Seats.FindAll(s => s.Pod == machine);
+
+    /// <summary>Every seat taken, by pod id then place ascending.</summary>
     public IReadOnlyList<Seat> Seats => State.Seats;
 
-    public bool Rides(int peer) => SeatOf(peer) != null || FlightOf(peer) != null;
+    public bool Rides(int peer) => SeatOf(peer) != null || FlightOf(peer) != null || VoyageOf(peer) != null;
+
+    /// <summary>The shuttle <paramref name="peer"/>'s hero rides in the air from this surface; null for none.</summary>
+    public Voyage? VoyageOf(int peer) => State.Voyages.Find(v => v.Riders.Contains(peer));
+
+    /// <summary>Every shuttle in the air from this surface, in the order they set off.</summary>
+    public IReadOnlyList<Voyage> Voyages => State.Voyages;
+
+    /// <summary>Every shuttle standing on this surface off the ship, in the order they arrived.</summary>
+    public IReadOnlyList<Parked> Parked => State.Parked;
+
+    /// <summary>The home aboard of shuttle <paramref name="shuttle"/> standing off the ship; null aboard, or for one from no home.</summary>
+    private Parked? ParkedOf(int shuttle) => State.Parked.Find(p => p.Shuttle == shuttle);
 
     /// <summary>The pod <paramref name="peer"/>'s hero rides in the air from this surface; null for none.</summary>
     public Flight? FlightOf(int peer) => State.Flights.Find(f => f.Peer == peer);
@@ -175,11 +266,15 @@ public sealed class LandingModule : Module<LandingState>, ICarries, ILandingQuer
     /// <summary>Where a hero sits in a drop pod standing from <paramref name="cell"/>, its top-left: the middle of its bottom row.</summary>
     public static int FloorOf(int cell, int width) => FloorOf(Pod.Kind, cell, width);
 
-    /// <summary>Where a hero sits in a machine of <paramref name="kind"/> with seats standing from <paramref name="cell"/>: the middle of its bottom row.</summary>
-    public static int FloorOf(string kind, int cell, int width)
+    /// <summary>
+    /// Where a hero sits at <paramref name="place"/> in a machine of <paramref name="kind"/> with seats standing from
+    /// <paramref name="cell"/>: its bottom row, in the middle of the place's share of its width,
+    /// <c>(2·place + 1) × Width / (2 × Riders) − 1</c> from its left, rounded down; for a machine for one, the middle.
+    /// </summary>
+    public static int FloorOf(string kind, int cell, int width, int place = 0)
     {
         var spec = Content.Machines.Get(kind);
-        return (cell / width + spec.Height - 1) * width + cell % width + spec.Width / 2 - 1;
+        return (cell / width + spec.Height - 1) * width + cell % width + (2 * place + 1) * spec.Width / (2 * spec.Riders) - 1;
     }
 
     /// <summary>
@@ -198,21 +293,31 @@ public sealed class LandingModule : Module<LandingState>, ICarries, ILandingQuer
             if (Content.Machines.Get(m.Kind).Makes != null) _powerOps.Rest(m.Id, !Turning(m.Id));
     }
 
+    /// <summary>The hero sits at the lowest free place of <paramref name="pod"/>, kept in (pod, place) order.</summary>
     private void Sit(int pod, int peer)
     {
-        int at = State.Seats.FindIndex(s => s.Pod > pod);
-        State.Seats.Insert(at < 0 ? State.Seats.Count : at, new Seat(pod, peer));
+        int place = FreePlace(pod, Content.Machines.Get(_grid.MachineById(pod)!.Kind).Riders)!.Value;
+        int at = State.Seats.FindIndex(s => s.Pod > pod || (s.Pod == pod && s.Place > place));
+        State.Seats.Insert(at < 0 ? State.Seats.Count : at, new Seat(pod, peer, place));
+    }
+
+    /// <summary>The lowest place of machine <paramref name="pod"/>'s <paramref name="riders"/> nobody sits at; null for none.</summary>
+    private int? FreePlace(int pod, int riders)
+    {
+        for (int place = 0; place < riders; place++)
+            if (!State.Seats.Exists(s => s.Pod == pod && s.Place == place)) return place;
+        return null;
     }
 
     /// <summary>Whether <paramref name="seat"/> still holds: its pod stands, its hero is here and awake.</summary>
     private bool Holds(Seat seat) =>
         _grid.MachineById(seat.Pod) is { } m && Content.Machines.Is(m.Kind, MachineTrait.Seats) && _crew.HeroOf(seat.Peer) is { Out: 0 };
 
-    /// <summary>The first cell of the row under pod <paramref name="m"/>: its run's, aboard.</summary>
-    private int Under(Machine m) => Under(m.Cell);
+    /// <summary>The first cell of the row under machine <paramref name="m"/>: its run's, aboard.</summary>
+    private int Under(Machine m) => Under(m.Kind, m.Cell);
 
-    /// <summary>The first cell of the row under a pod standing from <paramref name="cell"/>.</summary>
-    private int Under(int cell) => cell + Content.Machines.Get(Pod.Kind).Height * _grid.Width;
+    /// <summary>The first cell of the row under a machine of <paramref name="kind"/> standing from <paramref name="cell"/>.</summary>
+    private int Under(string kind, int cell) => cell + Content.Machines.Get(kind).Height * _grid.Width;
 
     /// <summary>
     /// <paramref name="peer"/>'s pod takes off: aboard its fuel burnt and its run opened under it, off the ship back to its home.
@@ -255,22 +360,161 @@ public sealed class LandingModule : Module<LandingState>, ICarries, ILandingQuer
             var f = State.Flights[i];
             if (!f.Up && _crew.HeroOf(f.Peer) is not { Out: 0 })
             {
-                if (f.TicksLeft > shut) Shut(f.Home);
+                if (f.TicksLeft > shut) Shut(Pod.Kind, f.Home);
                 State.Flights.RemoveAt(i--);
                 Dock(f.Peer, f.Home, f.Load, f.Fuel);
                 continue;
             }
             State.Flights[i] = f = f with { TicksLeft = f.TicksLeft - 1 };
-            if (!f.Up && f.TicksLeft == shut) Shut(f.Home);
+            if (!f.Up && f.TicksLeft == shut) Shut(Pod.Kind, f.Home);
             if (f.TicksLeft == 0) Surfaces.Send(f.Peer, f.Up ? 0 : Surfaces.OpenPlanet());
+        }
+        Sail();
+    }
+
+    /// <summary>
+    /// A tick of every voyage, after the flights (shuttle-flight): riders gone from this surface are dropped, the out ones fly on. Outbound
+    /// it shuts its run once the shuttle is through, and left with no rider docks home empty at once, its load and fuel with it, its
+    /// contact used and its trip's fuel burnt. At zero it sends its riders in seat order, outbound to a vessel world opened for it, else
+    /// home; it stays until they depart, and one homeward with no rider waits there until its world closes (<see cref="Closing"/>).
+    /// </summary>
+    private void Sail()
+    {
+        int shut = Content.Shuttle.FlightTicks - Content.Shuttle.FallTicks;
+        for (int i = 0; i < State.Voyages.Count; i++)
+        {
+            var v = State.Voyages[i];
+            if (v.TicksLeft == 0) continue;
+            if (v.Riders.Any(r => _crew.HeroOf(r) == null)) v = v with { Riders = [.. v.Riders.Where(r => _crew.HeroOf(r) != null)] };
+            if (v.Out != null && v.Riders.Count == 0)
+            {
+                if (v.TicksLeft > shut) Shut(Craft.Kind, v.Home);
+                State.Voyages.RemoveAt(i--);
+                Moor(null, v.Home, v.Load, v.Fuel);
+                continue;
+            }
+            State.Voyages[i] = v = v with { TicksLeft = v.TicksLeft - 1 };
+            if (v.Out != null && v.TicksLeft == shut) Shut(Craft.Kind, v.Home);
+            if (v.TicksLeft > 0) continue;
+            int to = v.Out != null ? Surfaces.Open(v.Out, v.Seed) : 0;
+            foreach (int rider in v.Riders) Surfaces.Send(rider, to);
         }
     }
 
-    /// <summary>Shuts the run pod home <paramref name="home"/> stood over, if it stands still.</summary>
-    private void Shut(int home)
+    /// <summary>Shuts the run a machine of <paramref name="kind"/> at home <paramref name="home"/> stood over, if it stands still.</summary>
+    private void Shut(string kind, int home)
     {
-        int under = Under(home);
+        int under = Under(kind, home);
         if (Doorways.IsPlatform(_grid.StructureAt(under))) _gridOps.SetDoorway(under, false);
+    }
+
+    /// <summary>
+    /// The shuttle <paramref name="peer"/>'s hero sits in sets off with its riders, the seats held, in place order: aboard its run opened
+    /// under it and <paramref name="burn"/> millilitres taken from its store, flying to a vessel world of <paramref name="out"/> from
+    /// <paramref name="seed"/>; off the ship home, burning nothing. Its machine and seats go; its hopper's stack and its store's fuel fly
+    /// with it, taken out before the machine goes.
+    /// </summary>
+    private void Away(int peer, string? @out, uint seed, int burn)
+    {
+        int shuttle = SeatOf(peer)!.Value;
+        var m = _grid.MachineById(shuttle)!;
+        var riders = State.Seats.FindAll(s => s.Pod == shuttle && Holds(s)).ConvertAll(s => s.Peer);
+        int home = m.Cell;
+        if (Surfaces.Here != 0)
+        {
+            home = ParkedOf(shuttle)!.Home;
+            State.Parked.RemoveAll(p => p.Shuttle == shuttle);
+        }
+        else _gridOps.SetDoorway(Under(m), true);
+        _fuelOps.Take(shuttle, burn);
+        var (load, fuel) = Empty(shuttle);
+        _gridOps.Clear(m.Cell, "machine");
+        State.Seats.RemoveAll(s => s.Pod == shuttle);
+        State.Voyages.Add(new Voyage(m.Cell, riders, Content.Shuttle.FlightTicks, home, @out, seed, load, fuel));
+    }
+
+    public void SetOff(int peer, string kind, uint seed, int fuel) => Away(peer, kind, seed, fuel);
+
+    public void SetOffHome(int peer) => Away(peer, null, 0, 0);
+
+    /// <summary>What shuttle <paramref name="shuttle"/>'s hopper and store hold, taken out of them: what flies or outlives with it.</summary>
+    private (Stack? Load, int Fuel) Empty(int shuttle) => (_itemsOps.TakeFrom(shuttle, 0, int.MaxValue), _fuelOps.TakeAll(shuttle));
+
+    /// <summary>
+    /// A shuttle stood again at <paramref name="home"/> aboard, <paramref name="load"/> and <paramref name="fuel"/> put back in it; that
+    /// spot built over or its run gone, laid there as its cost, load and fuel instead: counted to <paramref name="rider"/>, its first
+    /// rider, as a pod's (<see cref="IItemsOps.DropAt"/>); for none, as obtained by nobody. Returns its machine id, or null for one laid.
+    /// </summary>
+    private int? Moor(int? rider, int home, Stack? load, int fuel)
+    {
+        if (_grid.PlacementProblem(home, Craft) == null) return Refit(rider, home, load, fuel);
+        Lay(rider, Content.Machines.Get(Craft.Kind).Cost, home);
+        Lay(rider, Cans(fuel), home);
+        if (load != null) _itemsOps.LayDown(load, home);
+        return null;
+    }
+
+    /// <summary>
+    /// The shuttle placed at <paramref name="at"/>, <paramref name="load"/> and <paramref name="fuel"/> put back in it, what its store has
+    /// no room for laid by it as cans. Returns its machine id.
+    /// </summary>
+    private int Refit(int? rider, int at, Stack? load, int fuel)
+    {
+        _gridOps.Place(at, Craft);
+        int shuttle = _grid.MachineAt(at)!.Id;
+        if (load != null) _itemsOps.PutIn(shuttle, load);
+        Lay(rider, Cans(fuel - _fuelOps.Fill(shuttle, fuel)), at);
+        return shuttle;
+    }
+
+    /// <summary><paramref name="fuel"/> as the whole cans it fills: none for less than a can, the part one lost, as a pod's.</summary>
+    private static IReadOnlyList<(string Item, int Count)> Cans(int fuel) =>
+        fuel / Content.Fuel.Can is int cans and > 0 ? [(Content.Fuel.Item, cans)] : [];
+
+    /// <summary><paramref name="what"/> laid at <paramref name="cell"/>: as <paramref name="rider"/> dropped it; for none, by nobody, counting nothing obtained.</summary>
+    private void Lay(int? rider, IReadOnlyList<(string Item, int Count)> what, int cell)
+    {
+        if (rider is int peer) _itemsOps.DropAt(peer, what, cell);
+        else foreach (var (item, count) in what) _itemsOps.LayDown(new Stack(item, count), cell);
+    }
+
+    /// <summary>
+    /// The shuttle arrived off the ship, its home aboard <paramref name="home"/>, <paramref name="load"/> and <paramref name="fuel"/> in
+    /// it: stopped in open space, its right edge <c>Shuttle.Gap</c> cells left of the vessel's frame, its bottom row on the spawn's row.
+    /// The open space round the frame always holds it (a content test), so placing it never fails.
+    /// </summary>
+    private int Stop(int rider, int home, Stack? load, int fuel)
+    {
+        var spec = Content.Machines.Get(Craft.Kind);
+        int width = _grid.Width;
+        int at = (_crew.Spawn / width - spec.Height + 1) * width + Content.Vessels.Margin - Content.Shuttle.Gap - spec.Width;
+        int shuttle = Refit(rider, at, load, fuel);
+        State.Parked.Add(new Parked(shuttle, home));
+        return shuttle;
+    }
+
+    /// <summary>What a closing vessel world's shuttle leaves the ship: its home, its hopper's stack and its fuel.</summary>
+    private sealed record Outliving(int Home, Stack? Load, int Fuel);
+
+    /// <summary>
+    /// What closing this vessel world leaves (rule 7): every shuttle standing here, emptied, then every one flying home, each with
+    /// its home, load and fuel.
+    /// </summary>
+    public object? Closing()
+    {
+        var left = State.Parked.ConvertAll(p =>
+        {
+            var (load, fuel) = _grid.MachineById(p.Shuttle) != null ? Empty(p.Shuttle) : (null, 0);
+            return new Outliving(p.Home, load, fuel);
+        });
+        left.AddRange(State.Voyages.Select(v => new Outliving(v.Home, v.Load, v.Fuel)));
+        return left.Count > 0 ? left : null;
+    }
+
+    /// <summary>Each shuttle a closing vessel world left docks at its home aboard, empty of riders, its load and fuel in it.</summary>
+    public void Outlived(object left)
+    {
+        foreach (var o in (List<Outliving>)left) Moor(null, o.Home, o.Load, o.Fuel);
     }
 
     /// <summary>
@@ -346,16 +590,33 @@ public sealed class LandingModule : Module<LandingState>, ICarries, ILandingQuer
     /// <summary>What crosses with a peer: its pod's home aboard, load and fuel, and whether it rides in it (a flight) or it follows (arriving empty).</summary>
     private sealed record Carried(int Home, Stack? Load, bool Rides, int Fuel);
 
-    /// <summary>The peer's flight; else, off the ship, the pod it came down in, lifted out of the grid; null for neither.</summary>
+    /// <summary>
+    /// What crosses with a voyage's rider at its end: its shuttle's home aboard, and whether it brings the shuttle, its load and fuel (its first rider in seat
+    /// order) or finds it there (the others).
+    /// </summary>
+    private sealed record Rode(int Home, bool Brings, Stack? Load = null, int Fuel = 0);
+
+    /// <summary>
+    /// The peer's voyage at its end: its first rider in seat order brings the shuttle, the others a seat, the last ends it; before its end
+    /// nothing (its next tick drops the rider as gone). Else the peer's flight; else, off the ship, the pod it came down in, lifted out of
+    /// the grid; null for none.
+    /// </summary>
     public object? Depart(int peer)
     {
+        int v = State.Voyages.FindIndex(x => x.TicksLeft == 0 && x.Riders.Contains(peer));
+        if (v >= 0)
+        {
+            var voyage = State.Voyages[v];
+            if (voyage.Riders[^1] == peer) State.Voyages.RemoveAt(v);
+            return voyage.Riders[0] == peer ? new Rode(voyage.Home, true, voyage.Load, voyage.Fuel) : new Rode(voyage.Home, false);
+        }
         int i = State.Flights.FindIndex(f => f.Peer == peer);
         if (i >= 0)
         {
             var flight = State.Flights[i];
             State.Flights.RemoveAt(i);
             // Beamed off mid-fall by the dev panel, it shuts the run it opened.
-            if (!flight.Up && flight.TicksLeft > Content.Landing.DescentTicks - Content.Landing.FallTicks) Shut(flight.Home);
+            if (!flight.Up && flight.TicksLeft > Content.Landing.DescentTicks - Content.Landing.FallTicks) Shut(Pod.Kind, flight.Home);
             return new Carried(flight.Home, flight.Load, true, flight.Fuel);
         }
         if (State.Owners.Find(o => o.Peer == peer) is not { } owner) return null;
@@ -372,9 +633,31 @@ public sealed class LandingModule : Module<LandingState>, ICarries, ILandingQuer
     /// <summary>A pod carried here docked aboard or landed off the ship; its hero seated in it when it rode and is here and awake.</summary>
     public void Arrive(int peer, object? carried, int? cell)
     {
+        if (carried is Rode r)
+        {
+            Ride(peer, r);
+            return;
+        }
         if (carried is not Carried c) return;
         int? pod = Surfaces.Here == 0 ? Dock(peer, c.Home, c.Load, c.Fuel) : Land(peer, c.Home, c.Load, c.Fuel);
         if (c.Rides && pod is int p && _crew.HeroOf(peer) is { Out: 0 }) Sit(p, peer);
+    }
+
+    /// <summary>
+    /// A voyage's rider arrived: the one bringing the shuttle docks it at its home aboard (laid there as its cost when it cannot) or stops it
+    /// by the vessel; the others find it there. Seated at its lowest free place when it is awake.
+    /// </summary>
+    private void Ride(int peer, Rode r)
+    {
+        int? shuttle = (r.Brings, Surfaces.Here == 0) switch
+        {
+            (true, true) => Moor(peer, r.Home, r.Load, r.Fuel),
+            (true, false) => Stop(peer, r.Home, r.Load, r.Fuel),
+            // Its home built over by another shuttle meanwhile, the rider sits in that one.
+            (false, true) => _grid.MachineAt(r.Home) is { } m && m.Cell == r.Home && Content.Machines.Get(m.Kind).Riders > 1 ? m.Id : null,
+            (false, false) => State.Parked.Find(p => p.Home == r.Home)?.Shuttle,
+        };
+        if (shuttle is int s && _crew.HeroOf(peer) is { Out: 0 } && FreePlace(s, Content.Machines.Get(_grid.MachineById(s)!.Kind).Riders) != null) Sit(s, peer);
     }
 
     protected override LandingState Init(Layout layout) => new();

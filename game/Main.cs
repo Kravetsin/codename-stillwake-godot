@@ -127,7 +127,7 @@ public partial class Main : Node2D, ITogether
         bool flies = _m.Landing.FlightOf(client.Id) != null;
         int? landed = _flewLast && !flies ? _m.Landing.SeatOf(client.Id) : null;
         _flewLast = flies;
-        var pods = _m.Grid.MachinesWith(Content.MachineTrait.Lands).Select(p => (p.Id, _m.Landing.RiderOf(p.Id) != null)).ToList();
+        var pods = _m.Grid.MachinesWith(Content.MachineTrait.Lands).Where(p => Content.Machines.Get(p.Kind).Riders == 1).Select(p => (p.Id, _m.Landing.RiderOf(p.Id) != null)).ToList();
         _arrivals.Frame(surface, surface == 0, pods, landed, newWorld, delta);
     }
 
@@ -234,11 +234,18 @@ public partial class Main : Node2D, ITogether
             _items.Panel.Supplied = (id, item) => _m.Logistics.Supplied(id, item);
             _fabricator.Served = BadgeOf;
             // A drop pod's Descend or Return key is the landing feature's, under its slot; the white of its flight over the screen.
+            // A shuttle's panel is its seats and its Set off key.
+            (Sim.Landing.LandingModule, int)? Rider() => _session is Session s ? (_m.Landing, s.Client.Id) : null;
+            (Sim.Landing.LandingModule, Sim.Places.PlacesModule, int)? ShuttleRider() => _session is Session s ? (_m.Landing, _m.Places, s.Client.Id) : null;
             Control? LaunchOf(int machine) => _m.Grid.MachineById(machine) is { } pod && Content.Machines.Is(pod.Kind, Content.MachineTrait.Lands)
-                ? new Features.Landing.LaunchKey(() => _session is Session s ? (_m.Landing, s.Client.Id) : null, SendNow, _hands.Ui.Tip)
+                ? Content.Machines.Get(pod.Kind).Riders is var riders and > 1
+                    ? Features.Landing.ShuttleKey.Panel(machine, riders, ShuttleRider, SendNow, _hands.Ui.Tip)
+                    : new Features.Landing.LaunchKey(Rider, SendNow, _hands.Ui.Tip)
                 : null;
             _items.Panel.Launch = LaunchOf;
-            AddChild(new Features.Landing.FlightOverlay(() => _session is Session s ? (s.Client.World.SurfaceOf(s.Client.Id), _m.Landing.FlightOf(s.Client.Id)) : null,
+            // A shuttle's voyage shows as a pod's descent of its length (shuttle-flight, plain pictures).
+            Features.Landing.Ride? OwnRide(int peer) => _m.Landing.FlightOf(peer) is { } f ? Features.Landing.Ride.Of(f) : _m.Landing.VoyageOf(peer) is { } v ? Features.Landing.Ride.Of(v) : null;
+            AddChild(new Features.Landing.FlightOverlay(() => _session is Session s ? (s.Client.World.SurfaceOf(s.Client.Id), OwnRide(s.Client.Id)) : null,
                 () => (_session as Session)?.Progress ?? 0, () => _camera.CurrentZoom));
             // The vitals at the bottom-left (hud-vitals): the belt's charge under the suit's air, whatever is held. Before the
             // suit's gauge, so the red edges cover it as they cover the rest of the HUD.

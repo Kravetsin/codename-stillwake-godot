@@ -382,3 +382,4 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [stretches-of-space](2026-11-15-stretches-of-space.md) | Stretches of space | accepted |  |
 | [trash-slot](2026-11-15-trash-slot.md) | A trash slot in creative mode | accepted |  |
 | [fuel-liquid](2026-11-16-fuel-liquid.md) | Fuel is a liquid | accepted |  |
+| [shuttle-flight](2026-11-16-shuttle-flight.md) | The crew flies to a vessel in the shuttle and back | accepted |  |

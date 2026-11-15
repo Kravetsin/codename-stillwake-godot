@@ -675,7 +675,8 @@ public sealed partial class GridModule : Module<GridState>, IGridQueries, IGridO
                     return "grid.noExhaust";
                 if (Content.Machines.Is(p.Kind, MachineTrait.Catches) && !HangsOnHull(cell, Content.Machines.Get(p.Kind))) return "grid.notOnHull";
                 if (!Content.Machines.Is(p.Kind, MachineTrait.Lands)) return null;
-                // Off the ship a pod is only ever landed by its module, on the ground.
+                // Off the ship a pod is only ever landed by its module, on the ground; where nothing falls (a vessel world), a shuttle stops in open space.
+                if (Surfaces is { Here: not 0 } && Rules.Floats) return null;
                 if (Surfaces is { Here: not 0 }) return RowUnder(p.Kind, cell, Solid) ? null : "grid.noGround";
                 return OnRun(p.Kind, cell) ? null : "grid.noPlatform";
             default:

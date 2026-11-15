@@ -10,7 +10,8 @@ namespace Stillwake.Game.Features.Computer;
 /// The radar program, over the computer's whole screen: the ship a dot held in the middle, rings of range round it out past
 /// the edges, a beam sweeping round, a planet's curve below, still, and the sim's contacts on the ship's orbit
 /// (2026-11-08-radar-contacts), each flaring as the beam passes it and blinking in its last minutes. A contact selected is
-/// framed and named. The beam turns by real time: only a look.
+/// framed and named, its distance and the fuel a trip there and back costs under it. The course (shuttle-flight) is a line from the
+/// ship to its contact, the route's words over the screen while it is set. The beam turns by real time: only a look.
 /// </summary>
 public partial class RadarScreen : Control
 {
@@ -31,6 +32,8 @@ public partial class RadarScreen : Control
     /// <summary>The contact this player selected, by id; null for none.</summary>
     public int? Selected { get; set; }
 
+    /// <summary>The course's contact, by id, as the panel last read it: every player's; null for none.</summary>
+    public int? Course { get; set; }
     /// <summary>
     /// A stretch of space coming or running (<see cref="RadarBand"/>): its band's colour, how far its warning has run, and how much of
     /// it shows, eased out after it has gone; none for none.
@@ -135,6 +138,11 @@ public partial class RadarScreen : Control
         }
         DrawLine(middle, middle + Polar(beam, reach), Beam, 2);
 
+        // The course: a thin line from the ship to its contact (a placeholder look), and the route's words at the top.
+        foreach (var c in Contacts)
+            if (c.Id == Course) DrawLine(middle, Spot(c), Rim with { A = 0.7f }, 1.5f, true);
+        if (Course != null) DrawRoute(size);
+
         foreach (var c in Contacts) DrawContact(c, middle, beam);
 
         // The ship, and how high it rides over the ground.
@@ -166,19 +174,33 @@ public partial class RadarScreen : Control
             var corner = spot + new Vector2(sx * box, sy * box);
             DrawPolyline([corner - new Vector2(0, sy * arm), corner, corner - new Vector2(sx * arm, 0)], Beam, 2);
         }
-        // Its name, and under it how far it lies from the ship, dimmer.
+        // Its name, and under it how far it lies from the ship and the fuel a trip there and back costs, dimmer.
         var font = GetThemeDefaultFont();
-        string name = T("computer.radar.vessel"), far = T("computer.radar.km", ("n", RadarOrbit.Km(c.Offset)));
+        string name = T("computer.radar.vessel"), far = T("computer.radar.km", ("n", RadarOrbit.Km(c.Offset))),
+            fuel = T("computer.radar.litres", ("l", PlacesModule.CostOf(c)));
         float line = font.GetHeight(LabelSize);
         float width = Mathf.Max(font.GetStringSize(name, HorizontalAlignment.Left, -1, LabelSize).X,
-            font.GetStringSize(far, HorizontalAlignment.Left, -1, LabelSize).X);
+            Mathf.Max(font.GetStringSize(far, HorizontalAlignment.Left, -1, LabelSize).X, font.GetStringSize(fuel, HorizontalAlignment.Left, -1, LabelSize).X));
         float left = Mathf.Clamp(spot.X - width / 2, 6, Size.X - width - 6);
-        var back = new Rect2(left - 5, spot.Y - box - 10 - 2 * line, width + 10, 2 * line + 4);
+        var back = new Rect2(left - 5, spot.Y - box - 10 - 3 * line, width + 10, 3 * line + 4);
         DrawRect(back, Back with { A = 0.85f });
         DrawRect(back, Grid, false, 1);
         float top = back.Position.Y + 2 + font.GetAscent(LabelSize);
         DrawString(font, new Vector2(left, top), name, HorizontalAlignment.Left, -1, LabelSize, Beam);
         DrawString(font, new Vector2(left, top + line), far, HorizontalAlignment.Left, -1, LabelSize, Rim with { A = 0.8f });
+        DrawString(font, new Vector2(left, top + 2 * line), fuel, HorizontalAlignment.Left, -1, LabelSize, Rim with { A = 0.8f });
+    }
+
+    /// <summary>The route's words, at the top of the screen in the middle, while a course is set.</summary>
+    private void DrawRoute(Vector2 size)
+    {
+        var font = GetThemeDefaultFont();
+        string route = T("computer.radar.route");
+        float width = font.GetStringSize(route, HorizontalAlignment.Left, -1, LabelSize).X;
+        var back = new Rect2(((size.X - width) / 2 - 8), 10, width + 16, font.GetHeight(LabelSize) + 6);
+        DrawRect(back, Back with { A = 0.85f });
+        DrawRect(back, Rim, false, 1);
+        DrawString(font, new Vector2(back.Position.X + 8, back.Position.Y + 3 + font.GetAscent(LabelSize)), route, HorizontalAlignment.Left, -1, LabelSize, Beam);
     }
 
     /// <summary>
