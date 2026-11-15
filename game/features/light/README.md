@@ -4,18 +4,20 @@
 
 | File | Purpose |
 | --- | --- |
+| `BeaconLights.cs` | A derelict's beacons blinking. |
+| `logic/Beacons.cs` | A derelict's beacons and their blink. |
 | `Crackle.cs` | The arc makers' arcs crackling (0091, `Emits.Arc`). |
-| `logic/LampPower.cs` | How much of its light a lamp's power gives it; full for one drawing none. |
-| `logic/Flicker.cs` | How brightly a lamp short of power shines, flickering. |
-| `LampSparks.cs` | A lamp short of power, in light (0075): glints, sparks, arcs. |
-| `LightView.cs` | Gathers every light each frame for the lightmap (0019, 0029, 0070). |
-| `Lightmap.cs` | All light composed on the GPU each frame into two maps over the view (0029). |
-| `logic/Sources.cs` | What the shader reads: walls and doors light stops at, and each light. |
+| `logic/LampPower.cs` | A lamp's share of its light by its power; whole drawing none. |
+| `logic/Flicker.cs` | A lamp short of power flickering. |
+| `LampSparks.cs` | Its glints, sparks, arcs (0075). |
+| `LightView.cs` | Gathers every light each frame (0019, 0029, 0070). |
+| `Lightmap.cs` | All light composed on the GPU each frame into two maps (0029). |
+| `logic/Sources.cs` | What the shader reads: what stops light, and each light. |
 | `logic/StarField.cs` | Starlight cell by cell (0019, 0070). |
-| `Starlight.cs` | The starlight, tiles of a texel a cell, for `render/Lit.cs`. |
+| `Starlight.cs` | Starlight in tiles of a texel a cell, for `render/Lit.cs`. |
 | `logic/StarTiles.cs` | Starlight and occupancy tiles: those a change wrote. |
 
-A dim ship lit by its lamps, fires, whatever glows, and the stars, whole in open space and falling off
+A dim ship lit by lamps, fires, glows and the stars, whole in open space, falling off
 within a few cells of a hole (0019, 0029, 0070). Drawn only: nothing reaches the sim. Tuned at the 8 px
 cell (0104); the shader walks up to 160 cells a line. Numbers: `game/Content/logic/Light.cs`; `LightView` holds
 the reaches of fire, particles, screens.
