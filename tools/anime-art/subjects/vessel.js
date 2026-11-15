@@ -78,7 +78,154 @@ function nozzle(a) {
   a.line(`M${E - 1.6} ${cy - H1 + 2.4}Q${E - 2.6} ${cy - 12} ${E - 2.4} ${cy + 2}`, { c: '#7d838c', w: .8 });
 }
 
+// The mockup's part metals, light to dark, and the paint of what is not bare metal.
+const LIGHT = { base: '#69717c', shade: '#4e555f', deep: '#3a4048', lite: '#868d97', spec: '#b0b6be', ink: INK };
+const MID = { base: '#4e5560', shade: '#3a4048', deep: '#2a2e35', lite: '#666d78', spec: '#9aa1aa', ink: INK };
+const DARK = { base: '#3c424b', shade: '#2c3138', deep: '#1f2328', lite: '#525963', spec: '#8a9099', ink: INK };
+const BLOCK = { base: '#7f868f', shade: '#5d636b', deep: '#43484f', lite: '#9aa1a9', spec: '#c0c5cb', ink: INK };
+const PANEL = { base: '#a9ada9', shade: '#868b87', deep: '#656a66', lite: '#c4c7c3', spec: '#eceeea', ink: INK };
+const CELLS = { base: '#26335a', shade: '#1b2542', deep: '#121a30', lite: '#34447a', spec: '#7f93c8', ink: INK };
+const TANK = { base: '#a4977a', shade: '#7a6f58', deep: '#574f3f', lite: '#bcb092', spec: '#d8cdb0', ink: INK };
+const COLLAR = { base: '#6f757d', shade: '#52575e', deep: '#3b3f45', lite: '#878d95', spec: '#a8adb4', ink: INK };
+const CONE = { base: '#3a3e45', shade: '#2a2d33', deep: '#1c1e22', lite: '#4c5058', spec: '#80858d', ink: INK };
+/** The red beacon's glass and the strobe's, dark: the game's light is what shines through them. */
+const RED = { base: '#5a201c', shade: '#3e1512', deep: '#2a0e0c', lite: '#7a3029', spec: '#c27a6e', ink: INK };
+const CLEAR = { base: '#8e9498', shade: '#6a7074', deep: '#4c5155', lite: '#b4babd', spec: '#e6eaec', ink: INK };
+const OCHRE = '#b8843a';
+/** A solid lit from the upper left: its top a lit strip, its foot in shade. */
+const lit = (a, x0, y0, x1, y1, m, o) => a.shape(band(x0, y0, x1, y1), m, { lite: band(x0, y0, x1, y0 + Math.min(1.6, (y1 - y0) * .3)), shade: band(x0, y1 - Math.min(2.4, (y1 - y0) * .35), x1, y1), ...o });
+/** A thruster's bell, its throat at (x, y), opening toward (dx, dy) over its length. */
+function cone(a, x, y, dx, dy, half) {
+  const nx = -dy, ny = dx;
+  a.shape(poly(x + nx * half * .4, y + ny * half * .4, x + dx + nx * half, y + dy + ny * half, x + dx - nx * half, y + dy - ny * half, x - nx * half * .4, y - ny * half * .4), CONE, { shade: .8 });
+}
+
+/** machine_vesselRcs: a quad of manoeuvring thrusters, 3 × 2 cells, a bell each way: it stands so at every corner of the hull. */
+function rcs(a) {
+  cone(a, 8.4, 4, 0, -3.4, 1.8); cone(a, 15.6, 4, 0, -3.4, 1.8);
+  cone(a, 8.4, 12, 0, 3.4, 1.8); cone(a, 15.6, 12, 0, 3.4, 1.8);
+  cone(a, 4, 8, -3.6, 0, 2.2); cone(a, 20, 8, 3.6, 0, 2.2);
+  lit(a, 4, 4, 20, 12, BLOCK);
+  a.flat(band(4.6, 7.2, 19.4, 8.6), OCHRE);
+  rivets(a, [6, 10.4], [18, 10.4]);
+  patch(a, 17, 5.6, 1.6, .8, RUST, band(4, 4, 20, 12), 13);
+}
+
+/** machine_vesselMast, machine_vesselMastTall: an aerial on a foot plate, three cross-bars, a guy wire, the red beacon's glass on top. */
+function mast(H) {
+  return (a) => {
+    const ax = 8, top = 9, foot = H - 4.8;
+    a.line(`M9.6 ${top + 10}L15.2 ${top + 2}`, { c: '#7d848d', w: .8 });
+    lit(a, 6.4, top, 9.6, foot, LIGHT, { lite: band(6.4, top, 7.4, foot), shade: band(8.6, top, 9.6, foot) });
+    for (let k = 1; k <= 3; k++) {
+      const y = H - (H - top) * k / 4, half = 6.2 - k * .8;
+      a.tube(`M${ax - half} ${y}L${ax + half} ${y}`, 1.1, MID);
+    }
+    lit(a, 1, foot, 15, H, MID);
+    rivets(a, [3.4, H - 2.2], [12.6, H - 2.2]);
+    lit(a, 4, top - 3.6, 12, top + 1, DARK);
+    a.shape(ell(ax, top - 4.6, 2.6, 2.2), RED, { lite: ell(ax - .9, top - 5.5, .9, .6), shade: .8 });
+    patch(a, 7.8, foot - 6, .8, 1.6, RUST, band(6.4, top, 9.6, foot), 17);
+  };
+}
+
+/** machine_vesselDish: the comms dish on its post, a shell like a raised umbrella, its feed under it. */
+function dish(a) {
+  const dx = 17, base = 40, cx = dx + 3.2, cy = 25;
+  lit(a, dx - 1.6, cy, dx + 1.6, base - 3, MID);
+  lit(a, dx - 6, base - 3, dx + 6, base, MID);
+  a.tube(`M${dx} ${cy}L${cx} ${cy - 11.6}`, 1, MID);
+  a.shape(ell(cx, cy - 6, 1.8, 1.5), DARK, { shade: .6 });
+  const shell = [];
+  for (let i = 0; i <= 16; i++) { const t = -Math.PI * .95 + i / 16 * Math.PI * .9; shell.push(cx + Math.cos(t) * 18.4, cy + Math.sin(t) * 16.6); }
+  for (let i = 16; i >= 0; i--) { const t = -Math.PI * .95 + i / 16 * Math.PI * .9; shell.push(cx + Math.cos(t) * 15.4, cy + 1.2 + Math.sin(t) * 13.4); }
+  const d = poly(shell);
+  a.shape(d, PANEL, { shade: 1.1, deep: .4 });
+  for (const t of [-.72, -.5, -.28]) { const u = Math.PI * t; a.line(`M${cx + Math.cos(u) * 15.6} ${cy + 1.2 + Math.sin(u) * 13.6}L${cx + Math.cos(u) * 18.2} ${cy + Math.sin(u) * 16.4}`, { w: .6 }); }
+  patch(a, cx - 9, cy - 11, 2.4, 1, RUST, d, 19);
+}
+
+/** machine_vesselSolar: a panel of cells on two legs and a brace, a glint across its glass. */
+function solar(a) {
+  const py = 6, ph = 22, base = 48;
+  for (const x of [19, 66]) { lit(a, x, py + ph, x + 3.6, base - 2.4, MID); lit(a, x - 2.4, base - 2.4, x + 6, base, DARK); }
+  a.tube(`M21 ${base - 3}L67 ${py + ph + 2}`, 1, MID);
+  const d = band(.6, py, 87.4, py + ph);
+  a.shape(d, CELLS, { lite: band(.6, py, 87.4, py + 1.4), shade: band(.6, py + ph - 2.4, 87.4, py + ph) });
+  for (let x = 8; x < 88; x += 8) a.line(`M${x} ${py + .6}L${x} ${py + ph - .6}`, { c: '#3d4c7c', w: .6 });
+  a.line(`M1 ${py + ph / 2}L87 ${py + ph / 2}`, { c: '#3d4c7c', w: .6 });
+  a.flat(poly(48, py + 1.4, 58, py + 1.4, 54, py + ph - 1, 44, py + ph - 1), 'rgba(160,190,240,.16)', { clip: d });
+  patch(a, 6, py + ph - 3, 3, 1.4, SCORCH, d, 23);
+}
+
+/** machine_vesselTank: a tank slung under the belly on two straps, the livery's band round it. */
+function tank(a) {
+  const y0 = 4, h = 20;
+  for (const x of [24, 99]) lit(a, x, 0, x + 4.8, y0 + 2, MID);
+  const d = Anime.rr(.6, y0, 126.8, h - .6, (h - .6) / 2);
+  a.shape(d, TANK, { lite: band(0, y0, 128, y0 + 3), shade: 1.6, deep: .5 });
+  for (const x of [23.2, 98.2]) a.flat(band(x, y0, x + 6.4, y0 + h), '#5c6068', { clip: d });
+  a.flat(band(51.2, y0, 56, y0 + h), OCHRE, { clip: d });
+  rivets(a, [26.4, y0 + 10], [101.4, y0 + 10]);
+  patch(a, 82, y0 + 15, 4, 1.6, RUST, d, 29);
+  patch(a, 12, y0 + 5, 2.6, 1.2, RUST, d, 31);
+}
+
+/** machine_vesselRadiator: a radiator wing on three legs, fins down its face, a bar across. */
+function radiator(a) {
+  const py = 3, ph = 26, base = 48;
+  for (const x of [12, 62.4, 112]) { lit(a, x, py + ph, x + 3.6, base - 2.4, MID); lit(a, x - 2, base - 2.4, x + 5.6, base, DARK); }
+  a.tube(`M13.6 ${base - 3}L64 ${py + ph + 1}`, .9, MID);
+  a.tube(`M113.6 ${base - 3}L64 ${py + ph + 1}`, .9, MID);
+  const d = band(.6, py, 127.4, py + ph);
+  a.shape(d, PANEL, { lite: band(.6, py, 127.4, py + 1.6), shade: band(.6, py + ph - 3, 127.4, py + ph), deep: band(.6, py + ph - 1.2, 127.4, py + ph) });
+  for (let x = 5.6; x < 127; x += 6) a.line(`M${x} ${py + 2.8}L${x} ${py + ph - 2.8}`, { c: 'rgba(80,86,90,.55)', w: .6 });
+  a.flat(band(.6, py + ph * .48, 127.4, py + ph * .48 + 1.4), '#9da3a3');
+  patch(a, 30, py + ph - 4, 3.4, 1.4, SCORCH, d, 37);
+  patch(a, 96, py + 6, 2.4, 1.2, RUST, d, 41);
+}
+
+/** machine_vesselCollar: a docking collar, its ring on a body of hull, hazard chevrons round its lip. */
+function collar(a) {
+  lit(a, 6.4, 9.2, 41.6, 24, COLLAR);
+  rivets(a, [10, 18], [38, 18]);
+  const d = band(.6, 2, 47.4, 10);
+  a.shape(d, LIGHT, { lite: band(.6, 2, 47.4, 3.4) });
+  DebrisKit.hazard(a, .6, 6, 46.8, 3.2, { step: 4.4, clip: d });
+  patch(a, 40, 21, 1.6, 1, RUST, band(6.4, 9.2, 41.6, 24), 43);
+}
+
+/** machine_vesselTruss: a segment of the keel truss hung on two posts, two chords laced between them, the container clamps under it. */
+function truss(a) {
+  for (const x of [14, 70]) lit(a, x, 0, x + 4.4, 9, MID);
+  for (let x = 0; x < 88; x += 7.2) a.tube(`M${x} ${16}L${x + 7.2} ${10}`, .9, DARK, { spec: false });
+  lit(a, 0, 8, 88, 10.6, LIGHT);
+  lit(a, 0, 15, 88, 17.6, MID);
+  for (const x of [15.2, 74]) lit(a, x, 17.6, x + 4.8, 24, DARK);
+  rivets(a, [16.2, 9.3], [72.2, 9.3]);
+  patch(a, 44, 16.3, 2.4, .8, RUST, band(0, 15, 88, 17.6), 47);
+}
+
+/** machine_vesselBoom: the sensor boom off the bow's tip, its mount, a rod, the strobe's head at its end. */
+function boom(a) {
+  lit(a, 0, 6.2, 52, 9.4, LIGHT);
+  lit(a, 6, 3.2, 13, 12.4, DARK);
+  lit(a, 49, 2, 61, 12, MID);
+  a.shape(ell(61.4, 7, 2, 3), CLEAR, { lite: ell(60.8, 5.6, .8, .9), shade: .6 });
+  rivets(a, [9.5, 5.8]);
+}
+
 Subjects.vessel = function () {
   out('machine_vesselNozzle', Anime.bake({ w: 64, h: 56, draw: nozzle }));
+  out('machine_vesselRcs', Anime.bake({ w: 24, h: 16, draw: rcs }));
+  out('machine_vesselMast', Anime.bake({ w: 16, h: 64, draw: mast(64) }));
+  out('machine_vesselMastTall', Anime.bake({ w: 16, h: 80, draw: mast(80) }));
+  out('machine_vesselDish', Anime.bake({ w: 40, h: 40, draw: dish }));
+  out('machine_vesselSolar', Anime.bake({ w: 88, h: 48, draw: solar }));
+  out('machine_vesselTank', Anime.bake({ w: 128, h: 24, draw: tank }));
+  out('machine_vesselRadiator', Anime.bake({ w: 128, h: 48, draw: radiator }));
+  out('machine_vesselCollar', Anime.bake({ w: 48, h: 24, draw: collar }));
+  out('machine_vesselTruss', Anime.bake({ w: 88, h: 24, draw: truss }));
+  out('machine_vesselBoom', Anime.bake({ w: 64, h: 16, draw: boom }));
 };
 })();
