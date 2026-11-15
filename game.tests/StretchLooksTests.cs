@@ -83,15 +83,22 @@ public class StretchLooksTests
     }
 
     [Fact]
-    public void AFarRowSailsInSlowingAndOutGatheringSpeed()
+    public void AFarRowPassesSteadilyAndItsPicturesKeepTheirDetail()
     {
-        Assert.Equal((0f, 0f), StretchLooks.Sailed(0, 0));
-        Assert.Equal((1f, 1f), StretchLooks.Sailed(1, 1));
-        Assert.Equal((1f, 0f), StretchLooks.Sailed(2, -1));
-        // Half the warning brings it more than half way in; half the easing back takes it less than half way out.
-        Assert.True(StretchLooks.Sailed(0.5f, 0).In > 0.5f);
-        Assert.True(StretchLooks.Sailed(1, 0.5f).Out < 0.5f);
-        foreach (var look in StretchLooks.All) Assert.InRange(look.Far.Rest, -1f, 0.5f);
+        string hd = Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "game", "art", "hd");
+        foreach (var look in StretchLooks.All)
+        {
+            Assert.True(look.Far.Speed > 0, look.Id);
+            // Drawn at the farthest zoom, a pixel of its plane a pixel of a 1536-wide drawing: a picture no smaller than its width.
+            foreach (var picture in look.Far.Pictures)
+            {
+                using var file = File.OpenRead(Path.Combine(hd, picture + ".png"));
+                var header = new byte[24];
+                file.ReadExactly(header);
+                int width = (header[16] << 24) | (header[17] << 16) | (header[18] << 8) | header[19];
+                Assert.True(width >= look.Far.Width, $"{picture} is {width} wide, drawn {look.Far.Width}");
+            }
+        }
     }
 
     [Fact]
