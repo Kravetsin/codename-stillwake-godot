@@ -682,7 +682,7 @@ public partial class Figure : Node2D
     public double? WheelRadius { get; private set; }
 
     /// <summary>The running drill's haze helix in the world (drill-contact), from its chuck to its reach; none while none runs.</summary>
-    public ToolContact.Helix? Helix { get; private set; }
+    public ToolHaze.Helix? Helix { get; private set; }
 
     /// <summary>Where the held aimed item's edge begins as drawn this frame: the harpoon's breech, the cutter's nozzle, its jet's start.</summary>
     public Vector2? EdgeStart { get; private set; }
@@ -690,11 +690,15 @@ public partial class Figure : Node2D
     /// <summary>A held swung tool's edge as last drawn, from its one end to its tip, in pixels of the world; none for any other hand.</summary>
     public (Vector2 From, Vector2 To)? Blade { get; private set; }
 
-    /// <summary>The held blade's stretch swept last, in the world, while it leaves a trail: where a struck wreck sparks (blade-sparks).</summary>
-    public (IReadOnlyList<(double X, double Y)> Was, IReadOnlyList<(double X, double Y)> Now)? Sweep => _air.Sweep;
+    /// <summary>
+    /// The held struck tool's edge as it was the frame before and as it is, in the world, while it is held both frames and sweeps in a stroke: where
+    /// what it strikes sparks (spark-rule), the spear's thrust too.
+    /// </summary>
+    public (IReadOnlyList<(double X, double Y)> Was, IReadOnlyList<(double X, double Y)> Now)? Sweep => _edgeSweeps && _edge.Count >= 2 && _edgeWas.Count == _edge.Count ? (_edgeWas, _edge) : null;
 
     // The held swung edge's points this frame, kept to be filled again.
-    private readonly List<(double X, double Y)> _edge = [];
+    private List<(double X, double Y)> _edge = [], _edgeWas = [];
+    private bool _edgeSweeps;
 
     /// <summary>The way the held harpoon's barrel points as drawn, a unit vector in the world.</summary>
     public Vector2 Barrel { get; private set; } = Vector2.Right;
@@ -1483,15 +1487,23 @@ public partial class Figure : Node2D
                 }
             }
         }
-        // A swung tool's edge as it is held this frame, in the world, along its shape: what its trail is drawn from. Its reach is not shown (tool-size).
-        bool bladeHeld = inHand && item != null && stroke != null && !item.Aimed && !Spinning;
+        // A struck tool's edge as it is held this frame, in the world, along its shape, and as it was the frame before: where it
+        // bites (blade-sparks). A swung one's is what its trail is drawn from; an aimed one, the spear, leaves none. Its reach is not shown (tool-size).
+        bool struckHeld = inHand && item != null && stroke != null && !Spinning, bladeHeld = struckHeld && !item!.Aimed;
+        (_edgeWas, _edge) = (_edge, _edgeWas);
         _edge.Clear();
-        if (bladeHeld)
+        if (struckHeld)
             for (int i = 0; i < HeldLook.EdgePoints; i++)
             {
                 var p = HeldAt(item!.EdgePoint((double)i / (HeldLook.EdgePoints - 1)));
                 _edge.Add((p.X, p.Y));
             }
+        // Only a blade swung, and moving as fast as one that leaves a trail, bites: one carried as the hero walks or runs throws nothing.
+        double swept = 0;
+        if (_edgeWas.Count == _edge.Count)
+            for (int i = 0; i < _edge.Count; i++)
+                swept = Math.Max(swept, Math.Sqrt((_edge[i].X - _edgeWas[i].X) * (_edge[i].X - _edgeWas[i].X) + (_edge[i].Y - _edgeWas[i].Y) * (_edge[i].Y - _edgeWas[i].Y)));
+        _edgeSweeps = chopping && elapsedMs > 0 && swept * 1000 / elapsedMs >= BladeTrail.Slow;
         Blade = bladeHeld ? (HeldAt(item!.EdgeFrom), HeldAt(item.EdgeTo)) : null;
         var zone = Spinning && inHand && item != null ? ZoneOf(frontArm, item) : null;
         WheelRadius = zone is { Disc: true } disc ? disc.Size : null;
@@ -1533,7 +1545,7 @@ public partial class Figure : Node2D
     }
 
     /// <summary>The drill's <paramref name="bit"/> zone as its haze helix in the world, from its chuck to its reach.</summary>
-    private ToolContact.Helix HelixOf(AirCuts.Zone bit)
+    private ToolHaze.Helix HelixOf(AirCuts.Zone bit)
     {
         Vector2 World((double X, double Y) p) => _air.ToGlobal(new Vector2((float)p.X, (float)p.Y));
         var (dx, dy) = bit.Toward;

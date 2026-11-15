@@ -2,7 +2,7 @@
 
 - Status: accepted; extends [drill-contact](2026-11-14-drill-contact.md) to the plasma cutter and
   [blade-sparks](2026-11-15-blade-sparks.md) to the ground and the hull; supersedes where the cutter's sparks start in
-  [damage-looks](2026-11-05-damage-looks.md)
+  [damage-looks](2026-11-05-damage-looks.md); where its sparks start, superseded by [spark-rule](2026-11-15-spark-rule.md)
 - Date: 2026-11-15
 
 ## Context

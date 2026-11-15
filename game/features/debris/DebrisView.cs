@@ -331,17 +331,8 @@ public partial class DebrisView(Ui ui) : Node2D
         var point = HeldLook.IsDrill(tool) && bit is { } on ? on : side;
         double share = Features.Effects.Impacts.ShareOf(tool);
         var hits = Stages.Of(Layers.Effects).Hits;
-        if (!HeldLook.IsDrill(tool) && ui.Bites.TryGetValue(id, out var bite) && bite.Points.Count > 0)
-        {
-            // Off the blade's trail where it lies on the wreck, along the swing (blade-sparks), a share at each of a few of its points.
-            int n = Math.Min(BiteThrows, bite.Points.Count);
-            for (int k = 0; k < n; k++)
-            {
-                var (x, y) = bite.Points[n == 1 ? bite.Points.Count / 2 : k * (bite.Points.Count - 1) / (n - 1)];
-                hits.Throw(HitLooks.Of[Impact.Wreck], x, y, bite.Dx, bite.Dy, share / n);
-            }
-        }
-        else hits.Throw(HitLooks.Of[Impact.Wreck], point.X, point.Y, -away.X, -away.Y, share);
+        // A tool's haze in it throws its own (spark-rule); anything else that hits it, from the face.
+        if (!ui.HazeTouched.Contains(id)) hits.Throw(HitLooks.Of[Impact.Wreck], point.X, point.Y, -away.X, -away.Y, share);
         one.Flash = Math.Max(one.Flash, share);
         if (!own) return;
         HitBy(tool).PlayAt(side);
@@ -367,9 +358,6 @@ public partial class DebrisView(Ui ui) : Node2D
         }
         return nearest;
     }
-
-    /// <summary>At most how many points of a blade's bite a struck wreck throws from (blade-sparks).</summary>
-    private const int BiteThrows = 3;
 
     /// <summary>How far off a wreck's picture's box a drill's bit, as drawn, still bites it, in pixels: the aim box's margin and a frame's drift.</summary>
     private const float BitMargin = 4;

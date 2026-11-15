@@ -17,18 +17,30 @@ public sealed class HitBurst(Glims glims, Flares flares)
     /// <paramref name="look"/>, <paramref name="share"/> of it (0 to 1), at (<paramref name="x"/>, <paramref name="y"/>) in pixels of the
     /// world, out of a face turned (<paramref name="nx"/>, <paramref name="ny"/>), chips falling to <paramref name="floor"/> if given.
     /// </summary>
-    public void Throw(HitLook look, double x, double y, double nx, double ny, double share, double? floor = null)
+    public void Throw(HitLook look, double x, double y, double nx, double ny, double share, double? floor = null) =>
+        Throw(look, x, y, nx, ny, share, floor, along: false, null);
+
+    /// <summary>
+    /// <paramref name="look"/>, <paramref name="share"/> of it, off a tool's haze at <paramref name="p"/> (spark-rule): along the haze's
+    /// way there, unturned, each throw fanned by its kind (<see cref="WorkLooks.HazeSpread"/>), not by what it is made of; each running
+    /// <paramref name="p"/>'s ride first, as far as its kind runs (<see cref="WorkLooks.RideOf"/>).
+    /// </summary>
+    public void ThrowAlong(HitLook look, HazePoint p, double share, double? floor = null) => Throw(look, p.X, p.Y, p.Dx, p.Dy, share, floor, along: true, p.Ride);
+
+    private void Throw(HitLook look, double x, double y, double nx, double ny, double share, double? floor, bool along,
+        System.Collections.Generic.IReadOnlyList<(double X, double Y)>? ride)
     {
         foreach (var t in look.Throws)
         {
             int count = ByChance(t.Count * Fx.Count * share);
             if (count == 0) continue;
-            double heading = Math.Atan2(ny - t.Up, nx);
+            double heading = along ? Math.Atan2(ny, nx) : Math.Atan2(ny - t.Up, nx), spread = along ? WorkLooks.HazeSpread(t.Look.Kind) : t.Spread;
             for (int i = 0; i < count; i++)
             {
-                double a = heading + glims.Between(-t.Spread, t.Spread), s = glims.Between(t.Speed.From, t.Speed.To);
+                double a = heading + glims.Between(-spread, spread), s = glims.Between(t.Speed.From, t.Speed.To);
                 double? size = t.Size is { } z ? glims.Between(z.From, z.To) : null;
-                glims.Add(t.Look, x, y, Math.Cos(a) * s, Math.Sin(a) * s, floor, size: size);
+                var g = glims.Add(t.Look, x, y, Math.Cos(a) * s, Math.Sin(a) * s, floor, size: size);
+                if (ride is { Count: > 0 }) g?.Rides(ride, WorkLooks.RideOf(t.Look.Kind), nx, ny, a - heading);
             }
         }
         if (look.Glint > 0 && glims.Between(0, 1) < share) flares.Glint(x, y, look.Glint, look.GlintColour, glims.Between(-0.2, 0.2));

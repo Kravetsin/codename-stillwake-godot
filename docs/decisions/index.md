@@ -248,13 +248,13 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [build-from-crates](2026-11-05-build-from-crates.md) | Building, pipes and cables pay from every crate on the ship | accepted |  |
 | [build-hints](2026-11-05-build-hints.md) | Build hints: a screen of key caps that changes with the hand | accepted |  |
 | [craft-from-crates](2026-11-05-craft-from-crates.md) | A paid craft takes from every crate on the ship | accepted |  |
-| [damage-looks](2026-11-05-damage-looks.md) | Damage and work drawn in ink | accepted | tool-reach, cracks-to-end, drill-contact, grinder-contact, blade-sparks, cutter-contact (in part) |
+| [damage-looks](2026-11-05-damage-looks.md) | Damage and work drawn in ink | accepted | tool-reach, cracks-to-end, drill-contact, grinder-contact, blade-sparks, cutter-contact, spark-rule (in part) |
 | [hologram-keys](2026-11-05-hologram-keys.md) | The edge's keys are holograms of what can be used, and the bulb bursts at the screen's top | accepted | edge-flash (in part) |
 | [melee-edge](2026-11-05-melee-edge.md) | A stroke hits with its swept blade | accepted | tool-reach (in part) |
 | [the-board](2026-11-05-the-board.md) | Things are learned by having them, on the scavenger's board | accepted | one-to-understand (in part) |
 | [the-last-breath](2026-11-05-the-last-breath.md) | The last breath | accepted |  |
 | [tip-signs](2026-11-05-tip-signs.md) | Tips speak in signs and the bubble's numbers | accepted |  |
-| [tool-contact](2026-11-05-tool-contact.md) | A running tool is seen at work all along | accepted | damage-looks, tool-edge (in part) |
+| [tool-contact](2026-11-05-tool-contact.md) | A running tool is seen at work all along | accepted | damage-looks, tool-edge, spark-rule (in part) |
 | [tool-edge](2026-11-05-tool-edge.md) | A running tool hits with what is drawn | accepted | tool-reach (in part) |
 | [tool-reach](2026-11-05-tool-reach.md) | A tool hits by a fan of rays from the shoulder and shows its reach in use | accepted | hits-pass-wrecks, blade-trail, tool-size, grinder-contact (in part) |
 | [creatures-in-herds](2026-11-06-creatures-in-herds.md) | Wild creatures come in small herds of one kind | accepted |  |
@@ -342,13 +342,13 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [hud-vitals](2026-11-13-hud-vitals.md) | The vitals: air, charge and meals as frameless light at the bottom-left | accepted |  |
 | [bent-limbs](2026-11-14-bent-limbs.md) | Limbs bent whole at the joint | accepted |  |
 | [creatures-bend](2026-11-14-creatures-bend.md) | Creatures bend like the hero | accepted |  |
-| [drill-contact](2026-11-14-drill-contact.md) | The drill shows its reach as a turning double helix, and its sparks ride it out of a wreck | accepted |  |
+| [drill-contact](2026-11-14-drill-contact.md) | The drill shows its reach as a turning double helix, and its sparks ride it out of a wreck | accepted | spark-rule (in part) |
 | [drill-redrawn](2026-11-14-drill-redrawn.md) | The drill traced from a picked reference, its bit drawn to turn | accepted | raw-tool-pictures (in part) |
 | [fire-axe-redrawn](2026-11-14-fire-axe-redrawn.md) | The fire axe traced from a picked reference, its trail following the rounded edge | accepted | raw-tool-pictures (in part) |
 | [food-and-gear-cards](2026-11-14-food-and-gear-cards.md) | Food and gear cards list what they guarantee, and food sells | accepted |  |
 | [frost-film](2026-11-14-frost-film.md) | Frost: the cold drawn as uneven ice with no edge | accepted |  |
 | [grapple-and-nailer-traced](2026-11-14-grapple-and-nailer-traced.md) | The grappling gun and the nailer traced from picked references | accepted | raw-tool-pictures (in part) |
-| [grinder-contact](2026-11-14-grinder-contact.md) | The grinder's sparks leave its haze's rim where it comes out of a wreck | accepted | drill-contact (in part) |
+| [grinder-contact](2026-11-14-grinder-contact.md) | The grinder's sparks leave its haze's rim where it comes out of a wreck | accepted | drill-contact, spark-rule (in part) |
 | [grinder-redrawn](2026-11-14-grinder-redrawn.md) | The grinder drawn raw from a picked reference, its wheel spun in code | accepted |  |
 | [heat-limits](2026-11-14-heat-limits.md) | Heat: the other side of the degrees | accepted |  |
 | [helmets-fit-the-suit](2026-11-14-helmets-fit-the-suit.md) | Helmets fit the suit, each turning its own way | accepted |  |
@@ -365,5 +365,6 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [the-thermometer](2026-11-14-the-thermometer.md) | The thermometer: a frost star and the degrees, a row under the charge | accepted |  |
 | [tool-card-pictures](2026-11-14-tool-card-pictures.md) | A tool's card shows its picture enlarged | accepted |  |
 | [tool-in-hand](2026-11-14-tool-in-hand.md) | The tool in hand is the one that works | accepted |  |
-| [blade-sparks](2026-11-15-blade-sparks.md) | A struck wreck sparks where the blade's trail lies on it | accepted |  |
-| [cutter-contact](2026-11-15-cutter-contact.md) | The cutter's slag blows out the far side, and struck ground sparks off the trail | accepted |  |
+| [blade-sparks](2026-11-15-blade-sparks.md) | A struck wreck sparks where the blade's trail lies on it | accepted | spark-rule (in part) |
+| [cutter-contact](2026-11-15-cutter-contact.md) | The cutter's slag blows out the far side, and struck ground sparks off the trail | accepted | spark-rule (in part) |
+| [spark-rule](2026-11-15-spark-rule.md) | A tool's haze in matter throws that matter's look, whatever was hit | accepted |  |

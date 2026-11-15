@@ -1,7 +1,7 @@
 # The drill shows its reach as a turning double helix, and its sparks ride it out of a wreck
 
 - Status: accepted; extends [grinder-contact](2026-11-14-grinder-contact.md) to the drill; supersedes where the drill's sparks
-  start in [damage-looks](2026-11-05-damage-looks.md)
+  start in [damage-looks](2026-11-05-damage-looks.md); where its sparks start, superseded by [spark-rule](2026-11-15-spark-rule.md)
 - Date: 2026-11-14
 
 ## Context
