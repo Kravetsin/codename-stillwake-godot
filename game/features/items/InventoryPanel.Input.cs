@@ -127,7 +127,15 @@ public partial class InventoryPanel
         if (_body.Visible) yield return _body.Outer;
         if (!_shown.Visible) yield break;
         foreach (var panel in _shown.GetChildren().OfType<Control>())
-            if (panel.IsVisibleInTree()) yield return panel is WristScreen screen ? screen.Outer : panel.GetGlobalRect();
+        {
+            if (!panel.IsVisibleInTree()) continue;
+            if (panel == _bagColumn)
+            {
+                yield return _inventory.Outer;
+                yield return _trash.Outer;
+            }
+            else yield return panel is WristScreen screen ? screen.Outer : panel.GetGlobalRect();
+        }
     }
 
     /// <summary>Throws a stack from the hero the way it faces.</summary>

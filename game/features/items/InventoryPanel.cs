@@ -72,8 +72,9 @@ public partial class InventoryPanel : CanvasLayer
     private Rect2 _holoBox;
     /// <summary>The bag's grid and the open crate's, which a sort's light crosses (<see cref="SortSweep"/>, 0081).</summary>
     private GridContainer _bag = null!;
-    /// <summary>The empty cells before the trash in the bag's last row, as many shown as put it in the last column.</summary>
-    private readonly List<Control> _trashGaps = [];
+    /// <summary>The trash's own frame (trash-slot), and the column holding the bag with it under the bag's right edge.</summary>
+    private WristScreen _trash = null!;
+    private VBoxContainer _bagColumn = null!;
     private GridContainer? _crateGrid;
     private SortButton _bagKey = null!;
     private StashButton _stashKey = null!;
@@ -254,18 +255,15 @@ public partial class InventoryPanel : CanvasLayer
         grid.AddChild(_bag = Grid(Enumerable.Range(Hotbar.Row, Content.Inventory.Slots - Hotbar.Row).Select(i => new Place(i))));
         grid.Mount(_bagKey = Sorter(null), screen => new Vector2(screen.X + WristLook.SideKeyOut, WristLook.SideKeyDown));
         grid.Mount(_stashKey = Stasher(), screen => new Vector2(screen.X + WristLook.SideKeyOut, WristLook.SideKeyDown + WristLook.SideKeyHeight + 4));
-        // The trash (trash-slot) in the bag's last column, under its last slot: gaps fill the row up to it (Refresh).
-        _trashGaps.Clear();
-        for (int i = 0; i < Hotbar.Row - 1; i++)
-        {
-            var gap = new Control { CustomMinimumSize = new Vector2(size, size), MouseFilter = Control.MouseFilterEnum.Ignore, Visible = false };
-            _trashGaps.Add(gap);
-            _bag.AddChild(gap);
-        }
+        // The trash (trash-slot) in a frame of its own under the bag, at its right edge.
         var trash = Box(new Place(Content.Inventory.Trash));
         trash.GhostMark = SlotMark.Trash;
-        _bag.AddChild(trash);
-        shown.AddChild(_inventory = grid);
+        _trash = new WristScreen(WristPieces.Cuff, WristArt.Screen, 4) { SizeFlagsHorizontal = Control.SizeFlags.ShrinkEnd };
+        _trash.AddChild(trash);
+        _bagColumn = Style.Gap(new VBoxContainer { SizeFlagsHorizontal = Control.SizeFlags.ShrinkBegin }, 14);
+        _bagColumn.AddChild(_inventory = grid);
+        _bagColumn.AddChild(_trash);
+        shown.AddChild(_bagColumn);
         _root.AddChild(_shown = shown);
         _shown.Visible = false;
         _root.AddChild(_body = Body(size));
@@ -554,7 +552,7 @@ public partial class InventoryPanel : CanvasLayer
         // The equipment keeps its margin from the right edge, whatever the window's width and its own.
         _body.Position = new Vector2(_root.GetViewportRect().Size.X - Slots.Margin - _body.Size.X, Slots.InventoryTop(_ui.Slot));
         var grid = _inventory.GetGlobalRect();
-        _ui.InventoryFoot.Set(_shown.Visible ? (grid.Position.X, grid.End.Y) : null);
+        _ui.InventoryFoot.Set(_shown.Visible ? (grid.Position.X, _trash.GetGlobalRect().End.Y) : null);
         // A hidden slot says nothing; under the open menu none is pointed at.
         _tipSpots.Frame(_ui.MenuOpen.Get() ? null : _mouse);
     }
@@ -596,9 +594,6 @@ public partial class InventoryPanel : CanvasLayer
                 Equipment.Is(p) ? Equipment.GlowOf(p, carried) : null,
                 stack == null && carried != null && reading.Lights(box.GhostMark, carried));
         }
-        int open = _slots.Count(b => b.Visible && b.Place.Crate == null && b.Place.Slot >= Hotbar.Row && b.Place.Slot < Content.Inventory.Slots);
-        int gaps = TrashSlot.Gaps(open);
-        for (int i = 0; i < _trashGaps.Count; i++) _trashGaps[i].Visible = i < gaps;
         // A socket glows while a module carried would go in; one being taken out is carried as a stack is (0086).
         foreach (var socket in _sockets)
             socket.Show(FittedTo(socket.Machine).Contains(socket.Module), carried == socket.Module && GoesIn(carried, socket.Machine), _socketHovered == socket);

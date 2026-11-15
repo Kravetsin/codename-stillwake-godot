@@ -69,14 +69,6 @@ public class ClickTests
         Assert.Equal(new Clicked(null), Clicks.On(new Picked(Trash, 9), Click(Trash, Scrap(9))));
     }
 
-    [Theory]
-    [InlineData(18, 8)]
-    [InlineData(19, 7)]
-    [InlineData(26, 0)]
-    [InlineData(27, 8)]
-    [InlineData(29, 6)]
-    public void TheTrashEndsTheBagsLastRowOrARowOfItsOwn(int open, int gaps) => Assert.Equal(gaps, TrashSlot.Gaps(open));
-
     [Fact]
     public void TheTrashIsNoEquipmentSlot()
     {
