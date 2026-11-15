@@ -682,7 +682,7 @@ public partial class Figure : Node2D
     public double? WheelRadius { get; private set; }
 
     /// <summary>The running drill's haze helix in the world (drill-contact), from its chuck to its reach; none while none runs.</summary>
-    public ToolContact.Helix? Helix { get; private set; }
+    public ToolHaze.Helix? Helix { get; private set; }
 
     /// <summary>Where the held aimed item's edge begins as drawn this frame: the harpoon's breech, the cutter's nozzle, its jet's start.</summary>
     public Vector2? EdgeStart { get; private set; }
@@ -1542,7 +1542,7 @@ public partial class Figure : Node2D
     }
 
     /// <summary>The drill's <paramref name="bit"/> zone as its haze helix in the world, from its chuck to its reach.</summary>
-    private ToolContact.Helix HelixOf(AirCuts.Zone bit)
+    private ToolHaze.Helix HelixOf(AirCuts.Zone bit)
     {
         Vector2 World((double X, double Y) p) => _air.ToGlobal(new Vector2((float)p.X, (float)p.Y));
         var (dx, dy) = bit.Toward;

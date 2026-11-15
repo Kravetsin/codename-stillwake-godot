@@ -330,12 +330,12 @@ public sealed class Ui
     public IReadOnlyList<(float X, float Y, string Tool)> Bits { get; set; } = [];
 
     /// <summary>
-    /// Where a swung blade's trail last lay on each wreck, within the trail's life, by the wreck's id: its points in the world's
-    /// pixels and the unit way the blade went. Set by <c>crew</c> every frame; <c>debris</c> throws a struck wreck's sparks from
-    /// there, along the swing (blade-sparks).
+    /// Where a struck blade's haze last lay in each wreck, within the trail's life, by the wreck's id, and every struck blade's haze
+    /// within it (spark-rule). Set by <c>crew</c> every frame; <c>debris</c> throws a struck wreck's look from there, else from the
+    /// haze's point nearest the wreck.
     /// </summary>
-    public IReadOnlyDictionary<int, (IReadOnlyList<(double X, double Y)> Points, double Dx, double Dy)> Bites { get; set; } =
-        new Dictionary<int, (IReadOnlyList<(double X, double Y)> Points, double Dx, double Dy)>();
+    public IReadOnlyDictionary<int, IReadOnlyList<Render.HazePoint>> Bites { get; set; } = new Dictionary<int, IReadOnlyList<Render.HazePoint>>();
+    public IReadOnlyList<Render.HazePoint> Hazes { get; set; } = [];
 
     /// <summary>
     /// Where every power driver's motor is heard at work, and a moment after, in the world's pixels (power-driver). Set by <c>crew</c>

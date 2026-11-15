@@ -331,16 +331,8 @@ public partial class DebrisView(Ui ui) : Node2D
         var point = HeldLook.IsDrill(tool) && bit is { } on ? on : side;
         double share = Features.Effects.Impacts.ShareOf(tool);
         var hits = Stages.Of(Layers.Effects).Hits;
-        if (!HeldLook.IsDrill(tool) && ui.Bites.TryGetValue(id, out var bite) && bite.Points.Count > 0)
-        {
-            // Off the blade's trail where it lies on the wreck, along the swing (blade-sparks), a share at each of a few of its points.
-            int n = Math.Min(BiteThrows, bite.Points.Count);
-            for (int k = 0; k < n; k++)
-            {
-                var (x, y) = bite.Points[n == 1 ? bite.Points.Count / 2 : k * (bite.Points.Count - 1) / (n - 1)];
-                hits.Throw(HitLooks.Of[Impact.Wreck], x, y, bite.Dx, bite.Dy, share / n);
-            }
-        }
+        if (!HeldLook.IsDrill(tool) && (ui.Bites.TryGetValue(id, out var contacts) ? contacts : NearestHaze(at)) is { Count: > 0 } haze)
+            hits.ThrowFrom(HitLooks.Of[Impact.Wreck], haze, share, WorkLooks.ContactPoints);
         else hits.Throw(HitLooks.Of[Impact.Wreck], point.X, point.Y, -away.X, -away.Y, share);
         one.Flash = Math.Max(one.Flash, share);
         if (!own) return;
@@ -368,8 +360,21 @@ public partial class DebrisView(Ui ui) : Node2D
         return nearest;
     }
 
-    /// <summary>At most how many points of a blade's bite a struck wreck throws from (blade-sparks).</summary>
-    private const int BiteThrows = 3;
+    /// <summary>
+    /// The struck blades' haze point nearest a wreck drawn at <paramref name="at"/>, within <see cref="WorkLooks.HazeFar"/>: where a
+    /// hit whose blade did not reach the wreck throws from (spark-rule); none if no blade swept near.
+    /// </summary>
+    private IReadOnlyList<Render.HazePoint>? NearestHaze(Vector2 at)
+    {
+        Render.HazePoint? nearest = null;
+        double best = WorkLooks.HazeFar * WorkLooks.HazeFar;
+        foreach (var p in ui.Hazes)
+        {
+            double d = (p.X - at.X) * (p.X - at.X) + (p.Y - at.Y) * (p.Y - at.Y);
+            if (d <= best) (best, nearest) = (d, p);
+        }
+        return nearest is { } one ? [one] : null;
+    }
 
     /// <summary>How far off a wreck's picture's box a drill's bit, as drawn, still bites it, in pixels: the aim box's margin and a frame's drift.</summary>
     private const float BitMargin = 4;

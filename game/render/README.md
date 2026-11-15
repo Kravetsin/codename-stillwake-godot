@@ -27,6 +27,7 @@
 | `logic/GroundShadow.cs` | The soft shadow walls cast on a natural back wall (0088). |
 | `HeldArt.cs` | A held tool's pictures with its modules' overlays (`HeldParts`, 0098). |
 | `logic/HitBurst.cs` | A hit's look thrown where it lands (0094). |
+| `logic/HazePoint.cs` | A point of a tool's haze and its way (spark-rule). |
 | `logic/IconCanvas.cs` | A glowing line icon's pixels (`IconLooks`). |
 | `logic/WreckDress.cs` | Which wreck plates show rust, stripes or a tear; a torn cell's pixels. |
 | `logic/ToolIcon.cs` | A tool's icon: its held picture turned up-right and fitted. |

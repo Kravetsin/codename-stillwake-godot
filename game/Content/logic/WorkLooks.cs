@@ -38,20 +38,27 @@ public static class WorkLooks
     public static double? WheelRadius(double range, double hub) => range - hub is var r && r >= WheelLeast ? r : null;
 
     /// <summary>
-    /// The smallest working circle drawn, pixels; how many turns a second a spark rides its rim to an exit; how many points the rim
-    /// is walked in; at most how many exits a wreck sparks from.
+    /// The smallest working circle drawn, pixels; how many points its rim is taken in as a haze (spark-rule).
     /// </summary>
-    public const double WheelLeast = 2, WheelTurns = 2;
-    public const int RimSteps = 48, WheelExits = 3;
+    public const double WheelLeast = 2;
+    public const int RimSteps = 48;
+
+    /// <summary>
+    /// The one rule every tool's sparks and chips follow (spark-rule): what is hit throws from at most <see cref="ContactPoints"/>
+    /// of the points where the tool's haze lies in it, a cell counted only within <see cref="ContactReach"/> px of where it was hit;
+    /// a wreck a struck blade did not reach throws from the haze's point nearest it within <see cref="HazeFar"/> px; the cutter's jet
+    /// is taken as a haze every <see cref="JetStep"/> px.
+    /// </summary>
+    public const int ContactPoints = 3;
+    public const double ContactReach = 16, HazeFar = 48, JetStep = 1;
 
     /// <summary>
     /// The drill's haze (drill-contact), as the user picked it («Двойная спираль»): two strands from its chuck to
     /// its reach, at most this far either side of the axis, grown over the first <see cref="HelixGrow"/> of its length, a turn every
-    /// <see cref="HelixPitch"/> pixels along it, turning <see cref="HelixTurns"/> times a second; sparks ride it at
-    /// <see cref="HelixRide"/> pixels a second along the axis and leave spread <see cref="HelixSpread"/> either way; its loop walked
-    /// in <see cref="HelixSteps"/> for its exits.
+    /// <see cref="HelixPitch"/> pixels along it, turning <see cref="HelixTurns"/> times a second; its loop taken in
+    /// <see cref="HelixSteps"/> points as a haze (spark-rule).
     /// </summary>
-    public const double HelixRadius = 2.6, HelixGrow = 0.1, HelixPitch = 5.6, HelixTurns = 3, HelixRide = 60, HelixSpread = 0.3;
+    public const double HelixRadius = 2.6, HelixGrow = 0.1, HelixPitch = 5.6, HelixTurns = 3;
     public const int HelixSteps = 96;
 
     /// <summary>
@@ -60,29 +67,6 @@ public static class WorkLooks
     /// </summary>
     public static readonly (double Width, double Offset, double Alpha)[] HelixStrokes = [(0.75, 0, 0.2), (0.32, 0.38, 0.16), (0.28, -0.42, 0.11)];
     public const double HelixDab = 0.32, HelixDry = 0.18, HelixBehind = 0.45;
-
-    /// <summary>
-    /// Sparks a second off a wreck, each living <see cref="SparkLife"/> ms and flying <see cref="SparkSpeed"/> pixels a second at
-    /// first, slowing by a third; its streak as long as <see cref="SparkStreak"/> seconds of its speed, <see cref="SparkWidth"/> wide.
-    /// </summary>
-    public const double SparksPerSecond = 150, SparkStreak = 0.016, SparkWidth = 0.32;
-    public static readonly (double Least, double Most) SparkLife = (160, 420), SparkSpeed = (60, 150);
-
-    /// <summary>
-    /// The plasma cutter's slag (cutter-contact): blown on along the jet out of the far side of what it cuts, walked every
-    /// <see cref="SlagStep"/> px for at most <see cref="SlagDepth"/>, spread <see cref="SlagSpread"/> either way.
-    /// </summary>
-    public const double SlagStep = 0.5, SlagDepth = 64, SlagSpread = 0.45;
-
-    /// <summary>How widely each tool's sparks fan, radians either way: the grinder's tight, off its wheel.</summary>
-    public const double DrillSpread = 1.1, GrinderSpread = 0.3, CutterSpread = 1.3;
-
-    /// <summary>The grinder's wheel throws back toward the tool by this much and down past it by this much.</summary>
-    public const double WheelBack = 0.42, WheelDown = 0.91;
-
-    /// <summary>White-hot for the first quarter of a spark's life, orange to six tenths, red after; the white bead where it touches.</summary>
-    public static readonly Ink.Tone SparkHot = Ink.Tone.Of(255, 246, 220, 1), SparkWarm = Ink.Tone.Of(255, 181, 74, 1), SparkCool = Ink.Tone.Of(210, 74, 30, 1);
-    public const double BeadRadius = 0.7, BeadMs = 40;
 
     /// <summary>
     /// The jet: its violet sheath and white heart, widths in pixels; its width flickering by <see cref="JetFlicker"/> either way

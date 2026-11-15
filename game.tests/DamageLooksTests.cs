@@ -114,54 +114,6 @@ public class DamageLooksTests
     }
 
     [Fact]
-    public void Sparks_fly_out_of_where_a_tool_touches_and_burn_out()
-    {
-        var sparks = new ToolSparks();
-        for (int frame = 0; frame < 10; frame++)
-        {
-            sparks.Begin(1000.0 / 60);
-            sparks.Touch((1, 1), Content.Weapons.Drill.Item, (100, 50), (-1, 0), 1000.0 / 60);
-            sparks.End();
-        }
-        Assert.InRange(sparks.Count, 20, 30);
-        var ink = new Ink();
-        sparks.Draw(ink);
-        Assert.True(ink.Points.Min(p => p.X) < 95, "they fly back out of the face, toward the tool");
-        for (int frame = 0; frame < 40; frame++)
-        {
-            sparks.Begin(1000.0 / 60);
-            sparks.End();
-        }
-        Assert.Equal(0, sparks.Count);
-    }
-
-    [Fact]
-    public void A_tool_touching_two_wrecks_throws_a_whole_stream_off_each()
-    {
-        var one = new ToolSparks();
-        var two = new ToolSparks();
-        for (int frame = 0; frame < 10; frame++)
-        {
-            one.Begin(1000.0 / 60);
-            two.Begin(1000.0 / 60);
-            one.Touch((1, 1), Content.Weapons.Drill.Item, (100, 50), (-1, 0), 1000.0 / 60);
-            two.Touch((1, 1), Content.Weapons.Drill.Item, (100, 50), (-1, 0), 1000.0 / 60);
-            two.Touch((1, 2), Content.Weapons.Drill.Item, (140, 50), (-1, 0), 1000.0 / 60);
-            one.End();
-            two.End();
-        }
-        Assert.Equal(2 * one.Count, two.Count);
-    }
-
-    [Fact]
-    public void The_grinders_wheel_throws_down_past_it_whichever_way_it_is_held()
-    {
-        Assert.True(ToolSparks.Wheel((-1, 0)).Y > 0.8);
-        Assert.True(ToolSparks.Wheel((1, 0)).Y > 0.8);
-        Assert.True(ToolSparks.Wheel((-1, 0)).X < 0);
-    }
-
-    [Fact]
     public void The_jet_runs_from_the_nozzle_to_what_it_cuts()
     {
         var ink = new Ink();

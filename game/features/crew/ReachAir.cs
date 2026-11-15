@@ -83,7 +83,7 @@ public partial class ReachAir : Node2D
     private double _clock;
 
     /// <summary>The drill's haze helix's turn now, radians (drill-contact): what its sparks ride.</summary>
-    public double HelixPhase => ToolContact.HelixSpin * _clock / 1000 % (2 * System.Math.PI);
+    public double HelixPhase => ToolHaze.HelixSpin * _clock / 1000 % (2 * System.Math.PI);
 
     // A running wheel bends the air round it, its working circle (grinder-contact); a thrust shows nothing of its own.
     private void Wheel()
@@ -112,7 +112,7 @@ public partial class ReachAir : Node2D
         if (_working is not ({ Disc: false } zone, var on)) return;
         var (dx, dy) = zone.Toward;
         double phase = HelixPhase;
-        var helix = new ToolContact.Helix(zone.At, zone.Toward, (-dy, dx), zone.Size, phase);
+        var helix = new ToolHaze.Helix(zone.At, zone.Toward, (-dy, dx), zone.Size, phase);
         int dabs = System.Math.Max(24, (int)System.Math.Ceiling(2 * zone.Size / WorkLooks.HelixDab));
         _dabs.Clear();
         for (int j = 0; j < dabs; j++) _dabs.Add(helix.At((double)j / dabs, phase));
@@ -124,7 +124,7 @@ public partial class ReachAir : Node2D
                 double dry = Ink.Draw.Hash(k + 1, j >> 1);
                 if (dry < WorkLooks.HelixDry) continue;
                 double u = (double)j / dabs, v = u < 0.5 ? 2 * u : 2 - 2 * u;
-                double turned = (u < 0.5 ? 1 : -1) * System.Math.Cos(phase + ToolContact.HelixK * v * zone.Size);
+                double turned = (u < 0.5 ? 1 : -1) * System.Math.Cos(phase + ToolHaze.HelixK * v * zone.Size);
                 double strength = alpha * on * (turned >= 0 ? 1 : WorkLooks.HelixBehind) * (0.45 + 0.55 * dry);
                 if (strength < 0.005) continue;
                 var (p, q) = (_dabs[j], _dabs[(j + 1) % dabs]);

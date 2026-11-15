@@ -19,7 +19,6 @@ This hero and others', client-authoritative (0002): only commands reach the sim.
 | `ReachAir.cs` | grinder haze |
 | `logic/AirCuts.cs` | dust, brush |
 | `logic/BladeTrail.cs` | blade haze |
-| `logic/BladeBites.cs` | bites |
 | `SpearLight.cs` | spear's |
 | `logic/SpearFx.cs` | when |
 | `logic/SwingArc.cs` | its angle kept |
@@ -43,8 +42,7 @@ This hero and others', client-authoritative (0002): only commands reach the sim.
 | `logic/ToolRays.cs` | tool hits |
 | `WreckPixels.cs` | wrecks' pixels |
 | `ToolWork.cs` | tools at work |
-| `logic/ToolSparks.cs` | sparks |
-| `logic/ToolContact.cs` | haze exits |
+| `logic/ToolHaze.cs` | tool hazes |
 | `logic/CutterJet.cs` | cutter jet |
 | `logic/Motor.cs` | `Run` till agreed |
 | `logic/Remote.cs` | heroes sent |
