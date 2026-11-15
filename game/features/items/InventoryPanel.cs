@@ -72,6 +72,9 @@ public partial class InventoryPanel : CanvasLayer
     private Rect2 _holoBox;
     /// <summary>The bag's grid and the open crate's, which a sort's light crosses (<see cref="SortSweep"/>, 0081).</summary>
     private GridContainer _bag = null!;
+    /// <summary>The trash's own frame (trash-slot), and the column holding the bag with it under the bag's right edge.</summary>
+    private WristScreen _trash = null!;
+    private VBoxContainer _bagColumn = null!;
     private GridContainer? _crateGrid;
     private SortButton _bagKey = null!;
     private StashButton _stashKey = null!;
@@ -90,6 +93,9 @@ public partial class InventoryPanel : CanvasLayer
     /// <summary>How long an open fuel store's fuel lasts at its outflow (fuel-liquid).</summary>
     private Label? _lasts;
     private SortSweep _sweep = null!;
+    /// <summary>The trash's slot and its burst as a stack it held is destroyed (trash-effect A).</summary>
+    private SlotBox _trashBox = null!;
+    private TrashBurst _burst = null!;
     private TextureRect _heldIcon = null!;
     private Label _heldCount = null!, _creative = null!;
     private ProgressBar? _progress;
@@ -257,13 +263,22 @@ public partial class InventoryPanel : CanvasLayer
         grid.AddChild(_bag = Grid(Enumerable.Range(Hotbar.Row, Content.Inventory.Slots - Hotbar.Row).Select(i => new Place(i))));
         grid.Mount(_bagKey = Sorter(null), screen => new Vector2(screen.X + WristLook.SideKeyOut, WristLook.SideKeyDown));
         grid.Mount(_stashKey = Stasher(), screen => new Vector2(screen.X + WristLook.SideKeyOut, WristLook.SideKeyDown + WristLook.SideKeyHeight + 4));
-        shown.AddChild(_inventory = grid);
+        // The trash (trash-slot) in a frame of its own under the bag, at its right edge.
+        _trashBox = Box(new Place(Content.Inventory.Trash));
+        _trashBox.GhostMark = SlotMark.Trash;
+        _trash = new WristScreen(WristPieces.Cuff, WristArt.Screen, 4) { SizeFlagsHorizontal = Control.SizeFlags.ShrinkEnd };
+        _trash.AddChild(_trashBox);
+        _bagColumn = Style.Gap(new VBoxContainer { SizeFlagsHorizontal = Control.SizeFlags.ShrinkBegin }, 14);
+        _bagColumn.AddChild(_inventory = grid);
+        _bagColumn.AddChild(_trash);
+        shown.AddChild(_bagColumn);
         _root.AddChild(_shown = shown);
         _shown.Visible = false;
         _root.AddChild(_body = Body(size));
         _body.Visible = false;
         // Last: a sort's light crosses over the slots.
         _root.AddChild(_sweep = new SortSweep());
+        _root.AddChild(_burst = new TrashBurst());
 
         _held = new Control { MouseFilter = Control.MouseFilterEnum.Ignore, Size = new Vector2(size, size), Visible = false };
         _held.AddChild(_heldIcon = new TextureRect
@@ -502,6 +517,7 @@ public partial class InventoryPanel : CanvasLayer
         {
             SlotMark.Docks => new Tip(T("item.drone"), new TipLine(T("logistics.drone"), Tone.Dim)),
             SlotMark.Breathes => new Tip(T("item.canister"), new TipLine(T("logistics.fuel"), Tone.Dim)),
+            SlotMark.Trash => new Tip(T("items.trash"), new TipLine(T("items.trashHow"), Tone.Dim)),
             _ => null,
         };
     }
@@ -545,7 +561,7 @@ public partial class InventoryPanel : CanvasLayer
         // The equipment keeps its margin from the right edge, whatever the window's width and its own.
         _body.Position = new Vector2(_root.GetViewportRect().Size.X - Slots.Margin - _body.Size.X, Slots.InventoryTop(_ui.Slot));
         var grid = _inventory.GetGlobalRect();
-        _ui.InventoryFoot.Set(_shown.Visible ? (grid.Position.X, grid.End.Y) : null);
+        _ui.InventoryFoot.Set(_shown.Visible ? (grid.Position.X, (_trash.Visible ? _trash.GetGlobalRect() : grid).End.Y) : null);
         // A hidden slot says nothing; under the open menu none is pointed at.
         _tipSpots.Frame(_ui.MenuOpen.Get() ? null : _mouse);
     }
@@ -587,6 +603,8 @@ public partial class InventoryPanel : CanvasLayer
                 Equipment.Is(p) ? Equipment.GlowOf(p, carried) : null,
                 stack == null && carried != null && reading.Lights(box.GhostMark, carried));
         }
+        // The trash's frame shows with its slot: in creative mode only (trash-slot).
+        _trash.Visible = _trashBox.Visible;
         // A socket glows while a module carried would go in; one being taken out is carried as a stack is (0086).
         foreach (var socket in _sockets)
             socket.Show(FittedTo(socket.Machine).Contains(socket.Module), carried == socket.Module && GoesIn(carried, socket.Machine), _socketHovered == socket);

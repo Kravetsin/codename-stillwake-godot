@@ -346,7 +346,15 @@ public static class Migrations
                 }
             return root;
         },
-        // 65 → 66 (fuel-liquid): biofuel is a liquid in stores, saved last. The cans in a pod's, a biofuel generator's or an engine's
+        // 65 → 66 (trash-slot): every inventory gets the trash, an empty slot after its equipment; a closed surface has none.
+        root =>
+        {
+            foreach (var slices in new[] { root["slices"]! }.Concat((root["surfaces"]?.AsArray() ?? []).Select(s => s!["slices"]).OfType<JsonNode>()))
+                foreach (var held in slices["items"]!["inventories"]!.AsArray())
+                    held!["slots"]!.AsArray().Add(null);
+            return root;
+        },
+        // 66 → 67 (fuel-liquid): biofuel is a liquid in stores, saved last. The cans in a pod's, a biofuel generator's or an engine's
         // slot, and in a fermenter's output, all go into its store, over its capacity if they were; a pod in the air carries them.
         root =>
         {

@@ -154,6 +154,28 @@ public class MigrationsTests
     }
 
     [Fact]
+    public void GivesEveryInventoryAnEmptyTrashAfterItsEquipment()
+    {
+        // A format-65 inventory ended with its equipment; on every open surface it gains the trash, empty, its slots where they
+        // were; a closed surface, a vessel not yet boarded, has no slices and is passed over.
+        static JsonObject Slices() => JsonNode.Parse(
+            """{"items":{"inventories":[{"id":0,"slots":[{"item":"scrap","count":2},null,{"item":"cape","count":1}]}]}}""")!.AsObject();
+        var old = new JsonObject
+        {
+            ["slices"] = Slices(),
+            ["surfaces"] = new JsonArray(new JsonObject { ["slices"] = Slices() }, new JsonObject { ["closed"] = true }),
+        };
+        var upgraded = Migrations.Steps[65 - Migrations.Oldest](old);
+        foreach (var slices in new[] { upgraded["slices"]!, upgraded["surfaces"]![0]!["slices"]! })
+        {
+            var slots = slices["items"]!["inventories"]![0]!["slots"]!.AsArray();
+            Assert.Equal(4, slots.Count);
+            Assert.Equal("cape", slots[2]!["item"]!.GetValue<string>());
+            Assert.Null(slots[3]);
+        }
+    }
+
+    [Fact]
     public void PutsWhatASalvageDroneCaughtInItsNet()
     {
         // One carrying a piece's loot, one a stack it lifted, one still on its way out.

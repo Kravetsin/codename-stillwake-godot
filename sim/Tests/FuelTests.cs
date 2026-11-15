@@ -212,7 +212,7 @@ public class FuelTests
     }
 
     /// <summary>
-    /// Old saves (format 65): the cans in a fermenter's output, a pod's and a generator's slot go into their stores, over capacity if
+    /// Old saves (format 66): the cans in a fermenter's output, a pod's and a generator's slot go into their stores, over capacity if
     /// they were; the fermenter keeps its input alone; a crate keeps its cans; a flight carries its cans as fuel.
     /// </summary>
     [Fact]
@@ -228,7 +228,7 @@ public class FuelTests
                 {"id": 6, "slots": [{"item": "biofuel", "count": 7}]}]},
               "landing": {"flights": [{"peer": 0, "load": {"item": "biofuel", "count": 15}}]}}}
             """)!.AsObject();
-        var slices = Migrations.Steps[65 - Migrations.Oldest](root)["slices"]!;
+        var slices = Migrations.Steps[66 - Migrations.Oldest](root)["slices"]!;
         Assert.Equal("""[{"machine":3,"amount":64000},{"machine":4,"amount":20000},{"machine":6,"amount":7000}]""", slices["fuel"]!["stores"]!.ToJsonString());
         Assert.Equal("""[{"id":3,"slots":[{"item":"biomass","count":2}]},{"id":5,"slots":[{"item":"biofuel","count":100},null]}]""", slices["items"]!["crates"]!.ToJsonString());
         Assert.Equal("""[{"peer":0,"load":null,"fuel":15000}]""", slices["landing"]!["flights"]!.ToJsonString());

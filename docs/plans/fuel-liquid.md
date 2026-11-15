@@ -6,7 +6,7 @@ in. Built in the two stages of CLAUDE.md's Workflow: **Try** (built, played by t
 **Try built (2026-11-15, `feat/fuel-liquid`).** What changed from the steps below while building:
 - **No slice reorder.** The saved run order is the `surface` list, not the constructor order: `Fuel` is constructed after
   `Pipes` and before `Crafting` (which moved `Pipes`'s construction up), and runs and saves **last**. So the migration only
-  adds the `fuel` slice; no slice moves. Format 65 → 66 (main had moved on to 65).
+  adds the `fuel` slice; no slice moves. Format 66 → 67 (main had moved on to 66: the trash slot).
 - **The engine rests while its store is empty**, through `IPowerOps.Rest` from `Fuel` (Power cannot read Fuel): a hopper
   would otherwise make it draw always.
 - **`IPipesQueries.NetworkOf(machine, way, fluid)` and `MachinesOn(...)`**: Water's private helpers moved to Pipes, keyed by

@@ -87,7 +87,7 @@ public sealed class Registry
         Power = new PowerModule(Grid, Rooms, Items, Items);
         Research = new ResearchModule(Grid, Items, Knowledge, Knowledge);
         Pipes = new PipesModule(Grid, Items, Items);
-        // Fuel (fuel-liquid): made before the crafting, the fires and the pods that fill and burn its stores; new to format 64,
+        // Fuel (fuel-liquid): made before the crafting, the fires and the pods that fill and burn its stores; new to format 67,
         // run and saved last.
         Fuel = new FuelModule(Grid, Items, Items, Pipes, Power);
         Crafting = new CraftingModule(Grid, Items, Items, Research, Power, Power, Fuel, Fuel);

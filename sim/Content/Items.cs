@@ -309,8 +309,14 @@ public static class Inventory
     /// <summary>The kinds of the equipment slots, in slot order after <see cref="Slots"/>.</summary>
     public static readonly IReadOnlyList<string> Equipment = [Helmet.Slot, "back", "belt", "belt", "belt", Suit.Slot, Helmet.Mount, Cape.Slot];
 
-    /// <summary>Every slot of an inventory: its own, then its equipment.</summary>
-    public static readonly int Total = Slots + Equipment.Count;
+    /// <summary>
+    /// The trash (trash-slot), after the equipment: a stack moved in replaces what it held, which is gone. Nothing but a move
+    /// naming it reaches it, so it is neither paid from, given into, sorted, stashed nor left in a body.
+    /// </summary>
+    public static readonly int Trash = Slots + Equipment.Count;
+
+    /// <summary>Every slot of an inventory: its own, then its equipment, then the trash.</summary>
+    public static readonly int Total = Trash + 1;
 }
 
 /// <summary>Stacks on the floor.</summary>
