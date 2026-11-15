@@ -69,6 +69,20 @@ public class ClickTests
         Assert.Equal(new Clicked(null), Clicks.On(new Picked(Trash, 9), Click(Trash, Scrap(9))));
     }
 
+    /// <summary>The trash bursts and sounds only as a stack it held is destroyed by the next (trash-effect), not when filled empty.</summary>
+    [Fact]
+    public void OnlyAMoveIntoTheTrashWhileItHoldsAStackDestroysOne()
+    {
+        Stack? Full(Place p) => p == Trash ? Scrap(3) : null;
+        Stack? Empty(Place p) => null;
+        Assert.True(Clicks.Destroys(MoveOf(Inv(4), Trash, 9), Full));
+        Assert.True(Clicks.Destroys(MoveOf(Box(1), Trash, 1), Full));
+        Assert.False(Clicks.Destroys(MoveOf(Inv(4), Trash, 9), Empty));
+        Assert.False(Clicks.Destroys(MoveOf(Trash, Inv(4), 3), Full));
+        Assert.False(Clicks.Destroys(MoveOf(Inv(4), new Target(Spec.Inventory.Trash, 7), 9), Full));
+        Assert.False(Clicks.Destroys(null, Full));
+    }
+
     [Fact]
     public void TheTrashIsNoEquipmentSlot()
     {

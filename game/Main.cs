@@ -185,6 +185,7 @@ public partial class Main : Node2D, ITogether
         _hands = new Hands();
         // What the hands do in the inventory clicks as the buttons do (0081).
         _hands.Ui.Clicked += sound.Click;
+        _hands.Ui.Trashed += sound.Trash;
         // The slots' size kept on this machine (0058); --slots=large shows the other for a recording, keeping nothing then.
         var slots = _dev.Value("--slots");
         _hands.Ui.SlotScale.Set(slots != null ? Slots.ScaleNamed(slots) : Settings.SlotScale());

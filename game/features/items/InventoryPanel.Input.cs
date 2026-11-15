@@ -197,6 +197,12 @@ public partial class InventoryPanel
         if (result.Eats is { } food) _ui.Eat(food);
         // Every action clicks as it is made, a shift's on launch; a canister's when the crew breathes it.
         if (!result.Breathes && result.Eats == null && (result.Command != null || result.Picked != held)) _ui.Click();
+        // Only a stack the trash held, destroyed by the next, bursts and sounds (trash-effect); one put into it empty clicks.
+        if (Clicks.Destroys(result.Command, before.At))
+        {
+            _burst.Play(_trashBox);
+            _ui.Trash();
+        }
         if (result.Command != null) Act(before, result);
         else
         {

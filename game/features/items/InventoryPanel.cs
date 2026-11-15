@@ -91,6 +91,9 @@ public partial class InventoryPanel : CanvasLayer
     /// <summary>The open vaporizer's liquid, behind it and its own (industrial-oxygen).</summary>
     private Label? _liquid;
     private SortSweep _sweep = null!;
+    /// <summary>The trash's slot and its burst as a stack it held is destroyed (trash-effect A).</summary>
+    private SlotBox _trashBox = null!;
+    private TrashBurst _burst = null!;
     private TextureRect _heldIcon = null!;
     private Label _heldCount = null!, _creative = null!;
     private ProgressBar? _progress;
@@ -256,10 +259,10 @@ public partial class InventoryPanel : CanvasLayer
         grid.Mount(_bagKey = Sorter(null), screen => new Vector2(screen.X + WristLook.SideKeyOut, WristLook.SideKeyDown));
         grid.Mount(_stashKey = Stasher(), screen => new Vector2(screen.X + WristLook.SideKeyOut, WristLook.SideKeyDown + WristLook.SideKeyHeight + 4));
         // The trash (trash-slot) in a frame of its own under the bag, at its right edge.
-        var trash = Box(new Place(Content.Inventory.Trash));
-        trash.GhostMark = SlotMark.Trash;
+        _trashBox = Box(new Place(Content.Inventory.Trash));
+        _trashBox.GhostMark = SlotMark.Trash;
         _trash = new WristScreen(WristPieces.Cuff, WristArt.Screen, 4) { SizeFlagsHorizontal = Control.SizeFlags.ShrinkEnd };
-        _trash.AddChild(trash);
+        _trash.AddChild(_trashBox);
         _bagColumn = Style.Gap(new VBoxContainer { SizeFlagsHorizontal = Control.SizeFlags.ShrinkBegin }, 14);
         _bagColumn.AddChild(_inventory = grid);
         _bagColumn.AddChild(_trash);
@@ -270,6 +273,7 @@ public partial class InventoryPanel : CanvasLayer
         _body.Visible = false;
         // Last: a sort's light crosses over the slots.
         _root.AddChild(_sweep = new SortSweep());
+        _root.AddChild(_burst = new TrashBurst());
 
         _held = new Control { MouseFilter = Control.MouseFilterEnum.Ignore, Size = new Vector2(size, size), Visible = false };
         _held.AddChild(_heldIcon = new TextureRect

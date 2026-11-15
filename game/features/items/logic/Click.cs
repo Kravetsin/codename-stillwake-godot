@@ -170,6 +170,13 @@ public static class Clicks
     }
 
     /// <summary>
+    /// Whether <paramref name="command"/> destroys a stack: a move into the hero's trash while it holds one, as the slots show
+    /// it (<paramref name="at"/>). Only then does the trash burst and sound (trash-effect); into it empty, nothing is lost.
+    /// </summary>
+    public static bool Destroys(Command? command, Func<Place, Stack?> at) =>
+        command is Move { Dst: { Crate: null, Slot: int slot } } && slot == InventorySpec.Trash && at(new Place(slot)) != null;
+
+    /// <summary>
     /// <paramref name="picked"/> while its slot, holding <paramref name="now"/>, still holds the <paramref name="item"/> it was
     /// picked as; emptied by a friend at a crate, or holding another item after a sort or a swap, it is let go.
     /// </summary>
