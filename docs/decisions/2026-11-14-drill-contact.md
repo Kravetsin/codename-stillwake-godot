@@ -1,4 +1,4 @@
-# The drill shows its reach as a turning spiral, and its sparks ride it out of the bore
+# The drill shows its reach as a turning double helix, and its sparks ride it out of a wreck
 
 - Status: accepted; extends [grinder-contact](2026-11-14-grinder-contact.md) to the drill; supersedes where the drill's sparks
   start in [damage-looks](2026-11-05-damage-looks.md)
@@ -7,35 +7,34 @@
 ## Context
 
 Once the grinder's sparks rode its haze, the user asked for the same on the other tools. The drill threw its sparks from one
-point, where its ray first met a wreck, fanned back toward the tool, with a white bead there. Its zone, a cone from the bit's
-point to its reach, was never drawn. A pick page showed four looks; the user picked «Витки марева»: the reach drawn as a
-pale spiral, sparks riding it back out of the wreck.
+point, where its ray first met a wreck, fanned back toward the tool, with a white bead there. Its zone, a cone to its reach,
+was never drawn.
+
+A first pick page gave «Витки марева»: an open spiral from the bit's point, sparks riding it back out of the bore. Built, it
+failed on two counts. Pushed close, the bore had no mouth past the bit, and the sparks went back to a point; walked from the
+shoulder instead, they rode the spiral up the arm. The user: «искры по спирали до самого локтя идут… у болгарки прям идеально
+сделано, что искры летят только по мареву». A second page asked for a haze that reads as a drill; the user picked
+«Двойная спираль».
 
 ## Decision
 
-- **The haze:** a spiral of pale air (`AirInk`) from the bit's point out to the fan's reach, in three dry-brush strokes
-  (`ScrewStrokes`), `ScrewRadius` either side of the axis, a turn every `ScrewPitch` px, turning `ScrewTurns` times a
-  second so its waves run back toward the hand; the half behind the axis paler. It eases in and out with the zone, and
-  shows whenever the drill runs, touching or not.
-- **The bore** (`ToolContact.BoreOf`): the drill's axis, from the shoulder through the bit to its reach, walked every `ScrewStep` px
-  against each touched wreck's drawn pixels. The first stretch inside is the bore: its mouth and its deepest point.
-- **Sparks:** a wreck throws at the same rate as before. Each spark is born in the bore past the bit's point (or along the
-  bit, while only the bit is in), rides the spiral back to the mouth at its own speed, and flies on along the spiral's way
-  there, spread `ScrewSpread`. The spiral's phase is the drawn haze's, so the sparks ride what is seen.
+- **The haze** (`ToolContact.Helix`): two strands of pale air (`AirInk`) round the drill's axis from its chuck out to the fan's
+  reach, opposite each other, `HelixRadius` at most, grown over the first `HelixGrow` of the length and narrowing toward the
+  reach as a bit does, a turn every `HelixPitch` px, turning `HelixTurns` times a second. Drawn in three dry-brush strokes
+  (`HelixStrokes`), the strand behind the axis paler. It eases in and out with the zone and shows whenever the drill runs.
+- **One loop:** the strands meet at the chuck and at the reach, so the helix is a closed loop, out along one strand and back
+  along the other, a place on it a share from 0 to 1. The drill's sparks then follow the grinder's rule: the loop walked in
+  `HelixSteps` against each touched wreck's drawn pixels, each stretch inside ends at an exit (at most `WheelExits`, the longest
+  first); each spark is born anywhere on the loop, rides it at `HelixRide` px a second along the axis to the next exit, and
+  flies on along the loop there, spread `HelixSpread`. The loop's turn is the drawn haze's, so the sparks ride what is seen.
+- **Always off the haze**, for the grinder too: a loop with no exit (all in a wreck, or missing what an outer ray touched)
+  throws from its point nearest the touch (`ToolContact.Nearest`), its sparks riding the loop to it. This supersedes the no-exit
+  fallback of grinder-contact. The haze runs from the chuck, never the arm, so no spark rides the arm.
 - **No bead** for the drill, as for the grinder. The plasma cutter keeps its own.
-- **Always off the haze**, for the grinder too. The user, after the first build, with the drill pushed in: «Предлагаю, чтобы
-  искры всегда все равно шли из спирали. И надо перепроверить болгарку». So the bore is walked from the shoulder, and a
-  drill pushed in past its bit has its mouth where the axis enters the wreck, or at the shoulder if all of it is in. A wreck
-  the axis misses (an outer ray touched it) is bored at no depth where the axis passes nearest the touch
-  (`ToolContact.Under`). A grinder with no exit (its rim all in a wreck, or a pebble inside its circle) throws off the rim's
-  point nearest the touch (`ToolContact.Nearest`), its sparks riding the whole rim to it. This supersedes the no-exit
-  fallback of grinder-contact.
-- The grinder's `WheelContact` and the drill's contact are one module, `ToolContact`: where a running tool's sparks come out
-  of what it cuts.
+- The grinder's wheel and the drill's helix are one module, `ToolContact`: where a running tool's sparks come out of what it cuts.
 
 ## Deliberately not handled
 
-- Only the bore's first stretch throws: a second plate behind the first on the same axis cracks without its own sparks.
-- A spark riding the spiral follows the spiral it was thrown on; a drill moved mid-ride leaves it on the old one for the few
+- A spark riding the helix follows the helix it was thrown on; a drill moved mid-ride leaves it on the old one for the few
   pixels left.
-- The ground's chips are unchanged. The spiral passes through walls: it shows reach, not what is hit.
+- The ground's chips are unchanged. The helix passes through walls: it shows reach, not what is hit.

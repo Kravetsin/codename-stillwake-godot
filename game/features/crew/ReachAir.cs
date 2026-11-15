@@ -82,8 +82,8 @@ public partial class ReachAir : Node2D
     private (AirCuts.Zone Zone, double On)? _working;
     private double _clock;
 
-    /// <summary>The drill's haze spiral's phase at the bit's point now, radians (drill-contact): what its sparks ride.</summary>
-    public double ScrewPhase => ToolContact.ScrewSpin * _clock / 1000 % (2 * System.Math.PI);
+    /// <summary>The drill's haze helix's turn now, radians (drill-contact): what its sparks ride.</summary>
+    public double HelixPhase => ToolContact.HelixSpin * _clock / 1000 % (2 * System.Math.PI);
 
     // A running wheel bends the air round it, its working circle (grinder-contact); a thrust shows nothing of its own.
     private void Wheel()
@@ -103,31 +103,35 @@ public partial class ReachAir : Node2D
         _ink.Feather = was;
     }
 
-    // A running drill's reach as pale dry-brush strokes of a spiral from its point (drill-contact), its waves running back to the hand.
-    private void Screw()
+    // The helix's points this frame, kept to be filled again.
+    private readonly System.Collections.Generic.List<(double X, double Y)> _dabs = [];
+
+    // A running drill's reach as pale dry-brush strokes of its double helix (drill-contact), a strand behind the axis paler.
+    private void Helix()
     {
         if (_working is not ({ Disc: false } zone, var on)) return;
         var (dx, dy) = zone.Toward;
-        double phase = ScrewPhase, length = zone.Size;
-        int dabs = (int)System.Math.Ceiling(length / WorkLooks.ScrewDab);
-        for (int k = 0; k < WorkLooks.ScrewStrokes.Length; k++)
+        double phase = HelixPhase;
+        var helix = new ToolContact.Helix(zone.At, zone.Toward, (-dy, dx), zone.Size, phase);
+        int dabs = System.Math.Max(24, (int)System.Math.Ceiling(2 * zone.Size / WorkLooks.HelixDab));
+        _dabs.Clear();
+        for (int j = 0; j < dabs; j++) _dabs.Add(helix.At((double)j / dabs, phase));
+        for (int k = 0; k < WorkLooks.HelixStrokes.Length; k++)
         {
-            var (width, offset, alpha) = WorkLooks.ScrewStrokes[k];
-            (double X, double Y) At(double s, double p)
+            var (width, offset, alpha) = WorkLooks.HelixStrokes[k];
+            for (int j = 0; j < dabs; j++)
             {
-                double across = (WorkLooks.ScrewRadius + offset) * System.Math.Sin(p);
-                return (zone.At.X + dx * s - dy * across, zone.At.Y + dy * s + dx * across);
-            }
-            for (int i = 0; i < dabs; i++)
-            {
-                double dry = Ink.Draw.Hash(k + 1, i >> 1);
-                if (dry < WorkLooks.ScrewDry) continue;
-                double a = i * WorkLooks.ScrewDab, b = System.Math.Min(length, a + WorkLooks.ScrewDab);
-                double pa = phase + ToolContact.ScrewK * a, pb = phase + ToolContact.ScrewK * b;
-                double edge = Ink.Draw.Clamp(a / 2) * Ink.Draw.Clamp((length - a) / 3);
-                double strength = alpha * on * edge * (System.Math.Cos(pa) < 0 ? WorkLooks.ScrewBehind : 1) * (0.45 + 0.55 * dry);
+                double dry = Ink.Draw.Hash(k + 1, j >> 1);
+                if (dry < WorkLooks.HelixDry) continue;
+                double u = (double)j / dabs, v = u < 0.5 ? 2 * u : 2 - 2 * u;
+                double turned = (u < 0.5 ? 1 : -1) * System.Math.Cos(phase + ToolContact.HelixK * v * zone.Size);
+                double strength = alpha * on * (turned >= 0 ? 1 : WorkLooks.HelixBehind) * (0.45 + 0.55 * dry);
                 if (strength < 0.005) continue;
-                _ink.Segment(At(a, pa), At(b, pb), width, WorkLooks.AirInk.Faded((float)strength));
+                var (p, q) = (_dabs[j], _dabs[(j + 1) % dabs]);
+                double sx = q.X - p.X, sy = q.Y - p.Y, l = System.Math.Sqrt(sx * sx + sy * sy);
+                if (l <= 0) continue;
+                double nx = -sy / l * offset, ny = sx / l * offset;
+                _ink.Segment((p.X + nx, p.Y + ny), (q.X + nx, q.Y + ny), width, WorkLooks.AirInk.Faded((float)strength));
             }
         }
     }
@@ -136,9 +140,9 @@ public partial class ReachAir : Node2D
     {
         _ink.Clear();
         _ink.Feather = InkCanvas.PixelOf(this);
-        // The wheel only bends the world behind it; the spiral is seen, over it.
+        // The wheel only bends the world behind it; the helix is seen, over it.
         if (_haze == null) Wheel();
-        else Screw();
+        else Helix();
         // The trail stays where it was swept in the world, whatever the figure does since.
         _here = GetGlobalTransform().AffineInverse();
         _trail.Draw(_ink, _local, _haze != null ? Breath : Bend);

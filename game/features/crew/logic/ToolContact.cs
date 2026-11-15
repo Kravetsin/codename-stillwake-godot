@@ -4,10 +4,10 @@ using System.Collections.Generic;
 namespace Stillwake.Game.Features.Crew;
 
 /// <summary>
-/// Where a running tool's sparks come out of what it cuts, along the haze it shows: the tool throws them itself, with no bead at
-/// a touch. The grinder's working circle walked along its spin (grinder-contact): each stretch of its rim inside matter ends at
-/// an exit, and sparks ride the rim to one. The drill's spiral along its axis (drill-contact): the bore is the axis's first
-/// stretch inside, and sparks ride the spiral back from inside it to its mouth. Each flies on along the haze where it leaves.
+/// Where a running tool's sparks come out of what it cuts, along the haze it shows, a closed loop: the tool throws them itself,
+/// with no bead at a touch. The grinder's working circle walked along its spin (grinder-contact), the drill's double helix out
+/// along one strand and back along the other (drill-contact): each stretch of the loop inside matter ends at an exit, sparks
+/// ride the loop to one and fly on along it there. A loop with no exit throws from its point nearest the touch.
 /// </summary>
 public static class ToolContact
 {
@@ -25,8 +25,8 @@ public static class ToolContact
     }
 
     /// <summary>
-    /// An exit: its point, the unit way the rim moves there, its angle, and how far back along the spin its stretch inside runs
-    /// from its first point inside, radians, none for a stretch of one point.
+    /// An exit: its point, the unit way the loop runs there, its place on the loop (the circle's angle, the helix's share), and how
+    /// far back along the loop its stretch inside runs from its first point inside, in the same measure, none for a stretch of one.
     /// </summary>
     public readonly record struct Exit((double X, double Y) At, (double X, double Y) Way, double Angle, double Run);
 
@@ -41,29 +41,17 @@ public static class ToolContact
         if (wheel.Radius <= 0 || steps < 2 || most <= 0) return exits;
         double step = 2 * Math.PI / steps;
         var hit = new bool[steps];
-        int outside = -1;
         for (int k = 0; k < steps; k++)
         {
             var (x, y) = wheel.At(wheel.Spin * k * step);
             hit[k] = inside(x, y);
-            if (!hit[k] && outside < 0) outside = k;
         }
-        if (outside < 0) return exits;
-        // From a point outside, so a stretch across the walk's start is one stretch, not two.
-        int run = 0;
-        for (int j = 1; j <= steps; j++)
+        foreach (var (last, run) in Stretches(hit))
         {
-            int k = (outside + j) % steps, next = (k + 1) % steps;
-            if (!hit[k]) continue;
-            run++;
-            if (hit[next]) continue;
-            double angle = wheel.Spin * k * step;
+            double angle = wheel.Spin * last * step;
             exits.Add(new(wheel.At(angle), wheel.Along(angle), angle, (run - 1) * step));
-            run = 0;
         }
-        exits.Sort((a, b) => b.Run.CompareTo(a.Run));
-        if (exits.Count > most) exits.RemoveRange(most, exits.Count - most);
-        return exits;
+        return Longest(exits, most);
     }
 
     /// <summary>
@@ -79,77 +67,109 @@ public static class ToolContact
     }
 
     /// <summary>
-    /// The drill's haze spiral in pixels of the world: the bit's point, the unit way to the reach and the unit way across it, how
-    /// far back the tool reaches from its point to the shoulder and how far the reach goes past it; and its phase at the point as it is told.
-    /// At <c>s</c> along the axis the spiral stands <see cref="WorkLooks.ScrewRadius"/> times the sine of the phase plus
-    /// <see cref="ScrewK"/>·s across it, the phase turning <see cref="WorkLooks.ScrewTurns"/> turns a second, so its waves run back
-    /// to the hand.
+    /// The drill's haze in pixels of the world, as the user picked it («Двойная спираль»): two strands round its axis from the chuck
+    /// to its reach, met at both ends into one loop. <see cref="From"/> is the chuck, <see cref="Way"/> the unit way along the axis
+    /// and <see cref="Across"/> across it, <see cref="Length"/> the axis's length, <see cref="Phase"/> its turn as it is told. A place
+    /// on the loop is a share u: out along the first strand to one half, back along the other to one. Each strand stands
+    /// <see cref="RadiusAt"/> times the sine of the phase plus <see cref="HelixK"/>·a across the axis, a along it, so the strands
+    /// cross and turn <see cref="WorkLooks.HelixTurns"/> times a second.
     /// </summary>
-    public readonly record struct Screw((double X, double Y) Tip, (double X, double Y) Way, (double X, double Y) Across, double Back, double Length,
-        double Phase)
+    public readonly record struct Helix((double X, double Y) From, (double X, double Y) Way, (double X, double Y) Across, double Length, double Phase)
     {
-        /// <summary>The spiral's point <paramref name="s"/> pixels along the axis from the point, its phase at the point <paramref name="phase"/>.</summary>
-        public (double X, double Y) At(double s, double phase)
+        /// <summary>The loop's point at share <paramref name="u"/>, the helix turned to <paramref name="phase"/>.</summary>
+        public (double X, double Y) At(double u, double phase)
         {
-            double off = WorkLooks.ScrewRadius * Math.Sin(phase + ScrewK * s);
-            return (Tip.X + Way.X * s + Across.X * off, Tip.Y + Way.Y * s + Across.Y * off);
+            u -= Math.Floor(u);
+            double v = u < 0.5 ? 2 * u : 2 - 2 * u, a = v * Length, off = (u < 0.5 ? 1 : -1) * RadiusAt(v) * Math.Sin(phase + HelixK * a);
+            return (From.X + Way.X * a + Across.X * off, From.Y + Way.Y * a + Across.Y * off);
         }
 
-        /// <summary>The axis's point <paramref name="s"/> pixels along from the bit's point.</summary>
-        public (double X, double Y) Axis(double s) => (Tip.X + Way.X * s, Tip.Y + Way.Y * s);
+        /// <summary>The unit way the loop runs at share <paramref name="u"/>, the helix turned to <paramref name="phase"/>.</summary>
+        public (double X, double Y) Along(double u, double phase)
+        {
+            var (ax, ay) = At(u - 1e-3, phase);
+            var (bx, by) = At(u + 1e-3, phase);
+            double x = bx - ax, y = by - ay, l = Math.Sqrt(x * x + y * y);
+            return l > 0 ? (x / l, y / l) : Way;
+        }
+
+        /// <summary>How much of the loop a spark rides a second: <see cref="WorkLooks.HelixRide"/> pixels along the axis.</summary>
+        public double Rate => Length > 0 ? WorkLooks.HelixRide / (2 * Length) : 0;
 
         /// <summary>
-        /// The unit way a spark riding back to the hand at <paramref name="speed"/> pixels a second moves at <paramref name="s"/>, the
-        /// phase at the point <paramref name="phase"/>: back along the axis, and across as the spiral turns under it.
+        /// A strand's distance from the axis at share <paramref name="v"/> of its length: none at the chuck and the reach, where the
+        /// strands meet, grown over the first <see cref="WorkLooks.HelixGrow"/> and narrowing toward the reach as a bit does.
         /// </summary>
-        public (double X, double Y) Rides(double s, double phase, double speed)
-        {
-            double across = WorkLooks.ScrewRadius * Math.Cos(phase + ScrewK * s) * (ScrewSpin - ScrewK * speed);
-            double x = -Way.X * speed + Across.X * across, y = -Way.Y * speed + Across.Y * across, l = Math.Sqrt(x * x + y * y);
-            return l > 0 ? (x / l, y / l) : (-Way.X, -Way.Y);
-        }
+        public static double RadiusAt(double v) =>
+            WorkLooks.HelixRadius * Math.Sin(Math.PI / 2 * Math.Min(1, v / WorkLooks.HelixGrow)) * Math.Pow(Math.Max(0, 1 - v), 0.75);
     }
 
-    /// <summary>The drill's spiral's phase per pixel along its axis, and per second.</summary>
-    public const double ScrewK = 2 * Math.PI / WorkLooks.ScrewPitch, ScrewSpin = 2 * Math.PI * WorkLooks.ScrewTurns;
+    /// <summary>The helix's phase per pixel along its axis, and per second.</summary>
+    public const double HelixK = 2 * Math.PI / WorkLooks.HelixPitch, HelixSpin = 2 * Math.PI * WorkLooks.HelixTurns;
 
     /// <summary>
-    /// A bore: how far along the axis from the bit's point its mouth is, the first point inside, and its deepest, the last
-    /// point inside before the axis comes out again; behind the point where the bit itself is in.
+    /// The exits of <paramref name="helix"/>'s loop, turned as it is told, from what <paramref name="inside"/> says is matter (world
+    /// pixels), walked in <paramref name="steps"/> along it, at most <paramref name="most"/>, the longest stretches first; none while
+    /// it is all in or all out.
     /// </summary>
-    public readonly record struct Bore(double Mouth, double Deepest);
-
-    /// <summary>
-    /// The bore of <paramref name="screw"/>'s axis into what <paramref name="inside"/> says is matter (world pixels), walked every
-    /// <paramref name="step"/> pixels from the shoulder to the reach; its mouth at the shoulder while the shoulder is in. None while
-    /// it misses.
-    /// </summary>
-    public static Bore? BoreOf(Screw screw, double step, Func<double, double, bool> inside)
+    public static List<Exit> Exits(Helix helix, int steps, Func<double, double, bool> inside, int most)
     {
-        if (step <= 0) return null;
-        double? mouth = null;
-        double deepest = 0;
-        for (double s = -screw.Back; s <= screw.Length + 1e-9; s += step)
+        var exits = new List<Exit>();
+        if (helix.Length <= 0 || steps < 2 || most <= 0) return exits;
+        var hit = new bool[steps];
+        for (int k = 0; k < steps; k++)
         {
-            var (x, y) = screw.Axis(s);
-            if (!inside(x, y))
-            {
-                if (mouth != null) break;
-                continue;
-            }
-            mouth ??= s;
-            deepest = s;
+            var (x, y) = helix.At((double)k / steps, helix.Phase);
+            hit[k] = inside(x, y);
         }
-        return mouth is { } m ? new Bore(m, deepest) : null;
+        foreach (var (last, run) in Stretches(hit))
+        {
+            double u = (double)last / steps;
+            exits.Add(new(helix.At(u, helix.Phase), helix.Along(u, helix.Phase), u, (double)(run - 1) / steps));
+        }
+        return Longest(exits, most);
     }
 
     /// <summary>
-    /// A bore of no depth at the axis's point nearest a touch <paramref name="at"/>: where a wreck the axis misses throws, one an
-    /// outer ray of the fan touched.
+    /// The point of <paramref name="helix"/>'s loop, walked in <paramref name="steps"/>, nearest a touch <paramref name="at"/>, as an
+    /// exit of no stretch: where a wreck the loop has no exit from throws, the loop wholly in it or missing it.
     /// </summary>
-    public static Bore Under(Screw screw, (double X, double Y) at)
+    public static Exit Nearest(Helix helix, (double X, double Y) at, int steps)
     {
-        double s = Math.Clamp((at.X - screw.Tip.X) * screw.Way.X + (at.Y - screw.Tip.Y) * screw.Way.Y, -screw.Back, screw.Length);
-        return new(s, s);
+        double best = double.MaxValue, u = 0;
+        for (int k = 0; k < steps; k++)
+        {
+            var (x, y) = helix.At((double)k / steps, helix.Phase);
+            double d = (x - at.X) * (x - at.X) + (y - at.Y) * (y - at.Y);
+            if (d < best) (best, u) = (d, (double)k / steps);
+        }
+        return new(helix.At(u, helix.Phase), helix.Along(u, helix.Phase), u, 0);
+    }
+
+    // The stretches of a closed walk inside: each one's last point inside and how many points it runs; none while all in or all out.
+    // Walked from a point outside, so a stretch across the walk's start is one stretch, not two.
+    private static List<(int Last, int Run)> Stretches(bool[] hit)
+    {
+        var stretches = new List<(int, int)>();
+        int steps = hit.Length, outside = Array.IndexOf(hit, false);
+        if (outside < 0) return stretches;
+        int run = 0;
+        for (int j = 1; j <= steps; j++)
+        {
+            int k = (outside + j) % steps;
+            if (!hit[k]) continue;
+            run++;
+            if (hit[(k + 1) % steps]) continue;
+            stretches.Add((k, run));
+            run = 0;
+        }
+        return stretches;
+    }
+
+    private static List<Exit> Longest(List<Exit> exits, int most)
+    {
+        exits.Sort((a, b) => b.Run.CompareTo(a.Run));
+        if (exits.Count > most) exits.RemoveRange(most, exits.Count - most);
+        return exits;
     }
 }

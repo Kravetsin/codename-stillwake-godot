@@ -45,18 +45,21 @@ public static class WorkLooks
     public const int RimSteps = 48, WheelExits = 3;
 
     /// <summary>
-    /// The drill's haze (drill-contact), as the user picked it («Витки марева»): a spiral from the bit's point to its reach, this
-    /// far either side of the axis, a turn every <see cref="ScrewPitch"/> pixels along it, turning <see cref="ScrewTurns"/> times a
-    /// second; its axis walked every <see cref="ScrewStep"/> pixels for the bore; a spark off its mouth spread this much either way.
+    /// The drill's haze (drill-contact), as the user picked it («Двойная спираль»): two strands from its chuck to
+    /// its reach, at most this far either side of the axis, grown over the first <see cref="HelixGrow"/> of its length, a turn every
+    /// <see cref="HelixPitch"/> pixels along it, turning <see cref="HelixTurns"/> times a second; sparks ride it at
+    /// <see cref="HelixRide"/> pixels a second along the axis and leave spread <see cref="HelixSpread"/> either way; its loop walked
+    /// in <see cref="HelixSteps"/> for its exits.
     /// </summary>
-    public const double ScrewRadius = 2.3, ScrewPitch = 5.6, ScrewTurns = 3, ScrewStep = 0.5, ScrewSpread = 0.15;
+    public const double HelixRadius = 2.6, HelixGrow = 0.1, HelixPitch = 5.6, HelixTurns = 3, HelixRide = 60, HelixSpread = 0.3;
+    public const int HelixSteps = 96;
 
     /// <summary>
-    /// The spiral drawn in dry-brush strokes, each its width, its offset from the spiral and its strength; drawn every
-    /// <see cref="ScrewDab"/> pixels, a dab in <see cref="ScrewDry"/> skipped, the half behind the axis at <see cref="ScrewBehind"/>.
+    /// The helix drawn in dry-brush strokes, each its width, its offset from the strand and its strength; drawn in dabs every
+    /// <see cref="HelixDab"/> pixels, a dab in <see cref="HelixDry"/> skipped, a strand behind the axis at <see cref="HelixBehind"/>.
     /// </summary>
-    public static readonly (double Width, double Offset, double Alpha)[] ScrewStrokes = [(0.75, 0, 0.2), (0.32, 0.38, 0.16), (0.28, -0.42, 0.11)];
-    public const double ScrewDab = 0.3, ScrewDry = 0.18, ScrewBehind = 0.45;
+    public static readonly (double Width, double Offset, double Alpha)[] HelixStrokes = [(0.75, 0, 0.2), (0.32, 0.38, 0.16), (0.28, -0.42, 0.11)];
+    public const double HelixDab = 0.32, HelixDry = 0.18, HelixBehind = 0.45;
 
     /// <summary>
     /// Sparks a second off a wreck, each living <see cref="SparkLife"/> ms and flying <see cref="SparkSpeed"/> pixels a second at

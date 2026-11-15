@@ -43,7 +43,7 @@ This hero and others', client-authoritative (0002): only commands reach the sim.
 | `WreckPixels.cs` | wrecks' pixels |
 | `ToolWork.cs` | tools at work |
 | `logic/ToolSparks.cs` | sparks |
-| `logic/ToolContact.cs` | exits, bores |
+| `logic/ToolContact.cs` | haze exits |
 | `logic/CutterJet.cs` | cutter jet |
 | `logic/Motor.cs` | `Run` till agreed |
 | `logic/Remote.cs` | heroes sent |

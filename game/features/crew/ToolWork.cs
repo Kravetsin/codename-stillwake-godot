@@ -20,7 +20,7 @@ public partial class ToolWork : Node2D
     /// </summary>
     public readonly record struct Seen(int Hero, string Tool, Vector2 From, Vector2 At, Vector2 Way, HitLook? Look, double? Floor,
         IReadOnlyList<(int Piece, Vector2 At)> Wrecks, ToolContact.Circle? Wheel = null, IReadOnlyList<IReadOnlyList<ToolContact.Exit>>? Exits = null,
-        ToolContact.Screw? Screw = null, IReadOnlyList<ToolContact.Bore?>? Bores = null);
+        ToolContact.Helix? Helix = null);
 
     private readonly Dictionary<int, StrikeTrain> _trains = new();
     private readonly List<Seen> _jets = new();
@@ -57,7 +57,7 @@ public partial class ToolWork : Node2D
             for (int i = 0; i < s.Wrecks.Count; i++)
             {
                 var (piece, at) = s.Wrecks[i];
-                _sparks.Touch((s.Hero, piece), s.Tool, (at.X, at.Y), (back.X, back.Y), elapsedMs, s.Wheel, s.Exits?[i], s.Screw, s.Bores?[i]);
+                _sparks.Touch((s.Hero, piece), s.Tool, (at.X, at.Y), (back.X, back.Y), elapsedMs, s.Wheel, s.Exits?[i], s.Helix);
             }
             if (s.Look is not { } look || look == wreck) continue;
             _working.Add(s.Hero);
