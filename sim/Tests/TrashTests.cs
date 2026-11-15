@@ -20,8 +20,10 @@ public class TrashTests
     private static Scenario Move(Scenario w, Items.Place src, Target dst, int count = 999, int from = 0) =>
         w.Do(new Move(src, dst, count) { From = from }).Run();
 
-    /// <summary>A crate, machine 1, and peer 0 carrying a jetpack in its first slot and scrap in its second.</summary>
-    private static Scenario Carrying() => new Scenario("#KK....#").GiveItems(0, ("jetpack", 1), ("scrap", 30));
+    private static Scenario Creative(Scenario w, bool on = true, int peer = 0) => w.Do(new SetCreative(on) { From = peer }).Run();
+
+    /// <summary>A crate, machine 1, and peer 0 in creative mode carrying a jetpack in its first slot and scrap in its second.</summary>
+    private static Scenario Carrying() => Creative(new Scenario("#KK....#").GiveItems(0, ("jetpack", 1), ("scrap", 30)));
 
     [Fact]
     public void IsTheLastSlotOfEveryInventoryAfterItsEquipment()
@@ -29,7 +31,27 @@ public class TrashTests
         Assert.Equal(Inventory.Slots + Inventory.Equipment.Count, Inventory.Trash);
         Assert.Equal(Inventory.Trash + 1, Inventory.Total);
         Assert.Equal(Inventory.Total, Slots(new Scenario(Layout.Empty), 3).Count);
-        Assert.True(new Scenario(Layout.Empty).M.Items.SlotOpen(0, Trash));
+    }
+
+    [Fact]
+    public void OnlyACreativePeerHasATrashAndWhatItHeldWaitsForItsReturn()
+    {
+        var w = new Scenario("#KK....#").GiveItems(0, ("scrap", 30));
+        Assert.False(w.M.Items.SlotOpen(0, Trash));
+        Move(w, Own(0), Trash);
+        Assert.Equal(["items.noSlot"], w.Refusals.Select(r => r.Reason));
+        Assert.Equal(30, Count(w, "scrap"));
+
+        Creative(w);
+        Assert.True(w.M.Items.SlotOpen(0, Trash));
+        Assert.False(w.M.Items.SlotOpen(1, Trash));
+        Move(w, Own(0), Trash, 10);
+        Creative(w, on: false);
+        Assert.False(w.M.Items.SlotOpen(0, Trash));
+        Assert.Equal(new Stack("scrap", 10), Slots(w)[Inventory.Trash]);
+        Assert.Equal(20, Count(w, "scrap"));
+        Creative(w);
+        Assert.Equal(new Stack("scrap", 10), Slots(w)[Inventory.Trash]);
     }
 
     [Fact]
@@ -40,7 +62,6 @@ public class TrashTests
         Assert.Null(Slots(w)[1]);
         Assert.Equal(new Stack("scrap", 30), Slots(w)[Inventory.Trash]);
         Assert.Equal(0, Count(w, "scrap"));
-        Assert.Equal("items.notEnough", w.M.Items.ShortOf(0, [("scrap", 1)]));
     }
 
     [Fact]
@@ -81,7 +102,7 @@ public class TrashTests
     [Fact]
     public void AStackGoesFromAnOpenCrateStraightIntoTheTrash()
     {
-        var w = new Scenario("#KK....#").FillCrate(1, ("iron", 12));
+        var w = Creative(new Scenario("#KK....#").FillCrate(1, ("iron", 12)));
         Move(w, In(1, 0), Trash);
         Assert.Empty(w.Refusals);
         Assert.Equal(new Stack("iron", 12), Slots(w)[Inventory.Trash]);
@@ -115,8 +136,10 @@ public class TrashTests
     [Fact]
     public void ADeadHeroLeavesTheTrashInItsSlot()
     {
-        var w = DeathTests.Room().GiveItems(0, ("scrap", 30), ("iron", 4));
+        // In creative mode nobody dies: the stack trashed there, then a hero out of it.
+        var w = Creative(DeathTests.Room().GiveItems(0, ("scrap", 30), ("iron", 4)));
         Move(w, Own(0), Trash);
+        Creative(w, on: false);
         DeathTests.DieAt(w, DeathTests.Inside);
         Assert.Equal(new Stack("scrap", 30), Slots(w)[Inventory.Trash]);
         Assert.DoesNotContain(w.M.Items.Floor, f => f.Item == "scrap");
@@ -154,8 +177,9 @@ public class TrashTests
         var steps = from n in Gen.Choose(0, 60) from s in step.ArrayOf(n) select s;
         return Prop.ForAll(steps.ToArbitrary(), moves =>
         {
-            var w = new Scenario("#KK.KK#").FillCrate(1, ("scrap", 30), ("iron", 20), ("canister", 3))
-                .GiveItems(1, ("canister", 9), ("iron", 600)).GiveItems(2, ("jetpack", 1));
+            // Peers 0 and 1 in creative mode, so their trash opens; peer 2's stays shut.
+            var w = Creative(Creative(new Scenario("#KK.KK#").FillCrate(1, ("scrap", 30), ("iron", 20), ("canister", 3))
+                .GiveItems(1, ("canister", 9), ("iron", 600)).GiveItems(2, ("jetpack", 1))), peer: 1);
             foreach (var m in moves)
             {
                 var before = Everything(w);

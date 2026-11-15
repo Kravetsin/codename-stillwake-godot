@@ -132,7 +132,7 @@ public partial class InventoryPanel
             if (panel == _bagColumn)
             {
                 yield return _inventory.Outer;
-                yield return _trash.Outer;
+                if (_trash.Visible) yield return _trash.Outer;
             }
             else yield return panel is WristScreen screen ? screen.Outer : panel.GetGlobalRect();
         }

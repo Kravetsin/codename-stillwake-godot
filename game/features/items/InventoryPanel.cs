@@ -556,7 +556,7 @@ public partial class InventoryPanel : CanvasLayer
         // The equipment keeps its margin from the right edge, whatever the window's width and its own.
         _body.Position = new Vector2(_root.GetViewportRect().Size.X - Slots.Margin - _body.Size.X, Slots.InventoryTop(_ui.Slot));
         var grid = _inventory.GetGlobalRect();
-        _ui.InventoryFoot.Set(_shown.Visible ? (grid.Position.X, _trash.GetGlobalRect().End.Y) : null);
+        _ui.InventoryFoot.Set(_shown.Visible ? (grid.Position.X, (_trash.Visible ? _trash.GetGlobalRect() : grid).End.Y) : null);
         // A hidden slot says nothing; under the open menu none is pointed at.
         _tipSpots.Frame(_ui.MenuOpen.Get() ? null : _mouse);
     }
@@ -598,6 +598,8 @@ public partial class InventoryPanel : CanvasLayer
                 Equipment.Is(p) ? Equipment.GlowOf(p, carried) : null,
                 stack == null && carried != null && reading.Lights(box.GhostMark, carried));
         }
+        // The trash's frame shows with its slot: in creative mode only (trash-slot).
+        _trash.Visible = _trashBox.Visible;
         // A socket glows while a module carried would go in; one being taken out is carried as a stack is (0086).
         foreach (var socket in _sockets)
             socket.Show(FittedTo(socket.Machine).Contains(socket.Module), carried == socket.Module && GoesIn(carried, socket.Machine), _socketHovered == socket);

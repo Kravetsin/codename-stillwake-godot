@@ -140,11 +140,16 @@ public sealed partial class ItemsModule : Module<ItemsState>, IItemsQueries, IIt
     private int InputsOf(MachineSpec spec) =>
         spec.Is(MachineTrait.Sells) ? OpenOf(Content.Upgrades.TradeSlots, Content.Upgrades.TradeStart, spec.Slots ?? 0, all: false) : spec.Inputs ?? spec.Slots ?? 0;
 
-    /// <summary>Whether <paramref name="place"/>, of a machine or of <paramref name="peer"/>'s inventory, is open: not one waiting on an upgrade, which holds nothing and is not shown.</summary>
+    /// <summary>
+    /// Whether <paramref name="place"/>, of a machine or of <paramref name="peer"/>'s inventory, is open: not one waiting on an
+    /// upgrade, which holds nothing and is not shown. The trash is open only in creative mode (trash-slot): what it holds
+    /// as a peer leaves it waits there, unseen, till it is back.
+    /// </summary>
     public bool SlotOpen(int peer, Place place)
     {
         if (place.Crate is int id) return HolderOf(id) is not { } spec || !spec.Is(MachineTrait.Sells) || place.Slot < InputsOf(spec);
         if (place.Slot < Content.Inventory.Slots) return place.Slot < Own(peer);
+        if (place.Slot == Content.Inventory.Trash) return Creative(peer);
         int belt = Array.IndexOf(Belt, place.Slot);
         return belt < 0 || belt < OpenOf(Content.Upgrades.Belt, Content.Inventory.BeltStart, Belt.Length, Creative(peer));
     }
