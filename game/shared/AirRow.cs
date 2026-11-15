@@ -95,6 +95,9 @@ public partial class AirRow : Control
         }
     }
 
+    /// <summary>How many of <see cref="Units"/> a stimulant lends (food-tuning): drawn as their own stretch at the piece's end.</summary>
+    public int Extra { get; set; }
+
     /// <summary>The row's place, the block's origin on the screen, and its size.</summary>
     public void Place(Vector2 origin, float scale)
     {
@@ -166,6 +169,13 @@ public partial class AirRow : Control
         if (Low) lastAlpha *= 0.3f + 0.7f * (0.5f + 0.5f * Mathf.Cos(t * Mathf.Pi * 3));
         Span(this, tone, 0, last, pulse * Bright);
         Span(this, tone, last, lit, lastAlpha);
+        // A stimulant's units (food-tuning), the piece's top end, spent first and filled last: amber, a notch where they start.
+        if (Extra > 0 && Extra < _units)
+        {
+            float from = At((double)(_units - Extra) / _units);
+            if (lit > from) Span(this, "amber", from, lit, pulse * Bright);
+            DrawRect(new Rect2(Vitals.RowLeft + from - 0.5f, Top, 1, Height), Colors.White with { A = 0.55f * Bright });
+        }
         // A slow refill's light running along the lit part; a canister's wash has its own.
         if (m.Gain > 0 && _wash.Since is null)
         {

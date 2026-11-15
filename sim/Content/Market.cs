@@ -38,6 +38,8 @@ public static class Market
         // Found, never made: a supply pod's ration, a fridge's tin (2026-11-14-food-and-gear-cards).
         ["ration"] = 30,
         ["cannedMeat"] = 40,
+        // Never made, only bought (food-tuning): a tin's worth twice over.
+        ["stim"] = 80,
         // Grown, priced as the biomass each is crushed into; a dish is worth its fruit.
         ["fruit"] = 20,
         ["glowberry"] = 20,

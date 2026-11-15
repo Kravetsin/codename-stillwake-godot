@@ -200,8 +200,8 @@ public static class ItemCards
     }
 
     /// <summary>
-    /// A meal's rows, under its effect (2026-11-14-food-and-gear-cards): its calm, work and deep rates as whole percent, rounded down
-    /// (50 thousandths is 5%), then how long it lasts; a food with no rates a dimmed row saying it only stills hunger. With
+    /// A meal's rows, under its effect (2026-11-14-food-and-gear-cards): its calm and work rates as whole percent, rounded down
+    /// (50 thousandths is 5%), its deep and lungs as O₂ units (food-tuning), then how long it lasts; a food with no rates a dimmed row saying it only stills hunger. With
     /// <paramref name="left"/>, the HUD's meal: the ticks it has left in place of how long, out of how long. Only what it gives,
     /// never what that comes to in air or time.
     /// </summary>
@@ -211,7 +211,8 @@ public static class ItemCards
         var rows = new List<CardTile>();
         if (rates.Calm > 0) rows.Add(Effect(CardSign.Calm, T("card.less", ("n", rates.Calm / 10)), "card.calm"));
         if (rates.Work > 0) rows.Add(Effect(CardSign.Work, T("card.more", ("n", rates.Work / 10)), "card.work"));
-        if (rates.Deep > 0) rows.Add(Effect(CardSign.Deep, T("card.more", ("n", rates.Deep / 10)), "card.deep"));
+        if (rates.Deep > 0) rows.Add(Effect(CardSign.Deep, T("card.plusOxygen", ("n", rates.Deep)), "card.deep"));
+        if (rates.Lungs > 0) rows.Add(Effect(CardSign.Tank, T("card.plusOxygen", ("n", rates.Lungs)), "card.lungs"));
         if (rows.Count == 0) rows.Add(Effect(CardSign.Calm, T("card.onlyFeeds"), "card.effect") with { Off = true });
         rows.Add(left is int ticks
             ? Effect(CardSign.Pace, Clock(ticks), "card.left") with { Note = T("card.outOf", ("t", Clock(food.Lasts))) }

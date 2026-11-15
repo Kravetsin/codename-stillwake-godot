@@ -48,8 +48,8 @@ public static class Research
     /// <summary>What the confiscated container costs: parts of about that worth come out of it (its <c>Loot</c>).</summary>
     public const int ConfiscatedPrice = 1500;
 
-    /// <summary>What the mafia sells as items, delivered, never as blueprints, and so never bought for good (2026-11-08-mafia-deliveries).</summary>
-    public static readonly IReadOnlyList<string> GearSold = ["scanner", "powerDriver", "heavyHelmet", "plasmaCutter", "regenSuit"];
+    /// <summary>What the mafia sells as items, delivered, never as blueprints, and so never bought for good (2026-11-08-mafia-deliveries); the stimulant too (food-tuning).</summary>
+    public static readonly IReadOnlyList<string> GearSold = ["scanner", "powerDriver", "heavyHelmet", "plasmaCutter", "regenSuit", Foods.Stim];
 
     /// <summary>An upgrade: its price its own.</summary>
     private static (string Id, int Times) Up(string id) => (id, 1);
@@ -71,7 +71,8 @@ public static class Research
                 Up("bag3"),
                 Up("bag4"),
                 Up("tradeSlots2"),
-                ("scanner", 3)),
+                ("scanner", 3),
+                (Foods.Stim, 2)),
             new("order2", [("plate", 30), ("gear", 20), ("wire", 30)],
                 Up("bag5"),
                 Up("bag6"),

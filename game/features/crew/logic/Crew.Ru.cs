@@ -24,6 +24,8 @@ public static partial class Ru
         ["crew.notFood"] = "Это не едят",
         ["crew.sameFood"] = "Уже съедено; снова — в последнюю минуту",
         ["crew.mealsFull"] = "Уже три блюда",
+        ["crew.noMeals"] = "Нечего выблевать",
+        ["hud.purge"] = "Выблевать всю еду: удерживать",
         ["crew.podPaste"] = "Паста из капсулы",
         ["crew.podPasteKind"] = "Еда",
         ["crew.hungry"] = "Голод",

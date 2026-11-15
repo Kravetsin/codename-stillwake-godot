@@ -473,6 +473,31 @@ public partial class Figure : Node2D
     /// <summary>Rammed (0103) by something on the side <paramref name="from"/> says, +1 right in the world: the figure flinches from it.</summary>
     public void Flinch(int from) => (_flinchMs, _flinchFrom) = (0, from >= 0 ? 1 : -1);
 
+    private double _retchMs = double.PositiveInfinity;
+    private static readonly Color Sick = new(0.78f, 0.8f, 0.36f);
+
+    /// <summary>
+    /// Its meals thrown up (food-tuning): the body lurches forward as from a blow behind and a helmet's visor clouds a sick
+    /// olive, clearing over <see cref="RetchClearMs"/>. A first draft; the look is picked on a page.
+    /// </summary>
+    public void Retch(int facing)
+    {
+        _retchMs = 0;
+        Flinch(-facing);
+    }
+
+    private const double RetchClearMs = 4000;
+
+    /// <summary>Whether it wears a helmet: what it throws up stays inside, on the visor.</summary>
+    public bool Helmeted => _helmetWorn != null;
+
+    private void ShowRetch(double elapsedMs)
+    {
+        _retchMs += elapsedMs;
+        float sick = _retchMs >= RetchClearMs ? 0 : 1 - Mathf.SmoothStep(0.15f, 1, (float)(_retchMs / RetchClearMs));
+        _visor.SelfModulate = Colors.White.Lerp(Sick, sick);
+    }
+
     /// <summary>The item the front hand holds, by id, the fire axe or the harpoon: its hotbar slot chosen, the hand free; none for an empty hand.</summary>
     public string? Wields { get; set; }
 
@@ -1180,6 +1205,7 @@ public partial class Figure : Node2D
     public void Show(Hero hero, Pose pose, double look, bool holdsPlan, double elapsedMs)
     {
         _timeMs += elapsedMs;
+        ShowRetch(elapsedMs);
         if (_scanner.Visible)
         {
             int lit = (int)(_timeMs / ScannerDotMs) % (_scannerDots.Length + 1);

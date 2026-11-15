@@ -50,6 +50,9 @@ public sealed record Refill : Command;
 /// </summary>
 public sealed record Eat(string Item) : Command;
 
+/// <summary>The sender's hero throws up every meal at once (food-tuning): the slots empty, hungry until it eats again.</summary>
+public sealed record Purge : Command;
+
 /// <summary>
 /// The sender's hero switches its suit's mode on (<c>On</c>) or off: V, or its key on the tablet's edge; on only in a body
 /// with <c>Switch</c> (2026-11-03-the-regen-suit).
@@ -245,6 +248,12 @@ public sealed partial class CrewModule : Module<CrewState>, ICrewQueries, ICrewO
             // A fruit eaten raw draws the rolls its crushing would: its seed back now and then (fruit-not-biomass).
             if (Content.Items.Get(c.Item).Byproducts is { } kept && Loots.Roll(kept, Random) is { Count: > 0 } back)
                 _itemsOps.GiveOrDrop(c.From, back, hero.Cell);
+        });
+        Handles<Purge>(c => PurgeProblem(c.From), c =>
+        {
+            var hero = HeroOf(c.From)!;
+            hero.Eaten.Clear();
+            hero.Purges += 1;
         });
         Handles<SuitMode>(c => c.On ? SuitModeProblem(c.From) : HeroOf(c.From) == null ? "crew.noHero" : null, c => HeroOf(c.From)!.SuitOn = c.On);
         Handles<Track>(c => HeroOf(c.From) == null ? "crew.noHero" : null, c => Track(HeroOf(c.From)!, c.Short));
@@ -462,6 +471,13 @@ public sealed partial class CrewModule : Module<CrewState>, ICrewQueries, ICrewO
         if (_items.ShortOf(peer, [(item, 1)]) is { } none) return none;
         if (hero.Eaten.Find(m => m.Food == item) is { } meal) return meal.Left > Diet.RefreshWithin ? "crew.sameFood" : null;
         return hero.Eaten.Count >= Diet.Meals ? "crew.mealsFull" : null;
+    }
+
+    /// <summary>Why hero <paramref name="peer"/> could not purge: none, or out (<c>crew.noHero</c>), or nothing eaten (<c>crew.noMeals</c>). Null when it could.</summary>
+    public string? PurgeProblem(int peer)
+    {
+        if (HeroOf(peer) is not { Out: 0 } hero) return "crew.noHero";
+        return hero.Eaten.Count == 0 ? "crew.noMeals" : null;
     }
 
     public bool SuitOn(int peer) => HeroOf(peer) is { SuitOn: true } && Switched(peer);
@@ -683,9 +699,9 @@ public sealed partial class CrewModule : Module<CrewState>, ICrewQueries, ICrewO
     public IReadOnlyList<Hero> Heroes => State.Heroes;
 
     public int CapacityOf(int peer) =>
-        _items.WornIn(peer, Content.Helmet.Slot) is { } helmet ? Content.Items.Get(helmet).Tank : Content.Crew.Lungs;
+        (_items.WornIn(peer, Content.Helmet.Slot) is { } helmet ? Content.Items.Get(helmet).Tank : Content.Crew.Lungs) + RatesOf(peer).Lungs;
 
-    public int RefillOf(int peer) => Content.Crew.CanisterRefill * (1000 + RatesOf(peer).Deep) / 1000;
+    public int RefillOf(int peer) => Content.Crew.CanisterRefill + RatesOf(peer).Deep;
 
     public Rates RatesOf(int peer) => HeroOf(peer) is { } hero ? RatesOf(hero) : default;
 
@@ -693,12 +709,12 @@ public sealed partial class CrewModule : Module<CrewState>, ICrewQueries, ICrewO
 
     private static Rates RatesOf(Hero hero)
     {
-        int calm = 0, deep = 0, work = 0;
+        int calm = 0, deep = 0, work = 0, lungs = 0;
         foreach (var meal in hero.Eaten)
             if (Foods.Of(meal.Food) is { Rates: var r })
-                (calm, deep, work) = (calm + r.Calm, deep + r.Deep, work + r.Work);
+                (calm, deep, work, lungs) = (calm + r.Calm, deep + r.Deep, work + r.Work, lungs + r.Lungs);
         var cap = Diet.Caps;
-        return new(Math.Min(calm, cap.Calm), Math.Min(deep, cap.Deep), Math.Min(work, cap.Work));
+        return new(Math.Min(calm, cap.Calm), Math.Min(deep, cap.Deep), Math.Min(work, cap.Work), Math.Min(lungs, cap.Lungs));
     }
 
     /// <summary>Thousandths of a unit a breath costs <paramref name="hero"/>: at rest or running, dearer running hungry, less by its calm.</summary>

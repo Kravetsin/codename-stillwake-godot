@@ -42,6 +42,8 @@ public sealed class Hero
     [JsonInclude] public bool SuitOn { get; internal set; }
     /// <summary>How many hurts it has taken, each a blow, a shock, poison or a burn (2026-11-08-hurts-are-shown): the client shows each new one.</summary>
     [JsonInclude, JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)] public int Hurts { get; internal set; }
+    /// <summary>How many times it has purged its meals (food-tuning): the client shows each new one.</summary>
+    [JsonInclude, JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)] public int Purges { get; internal set; }
     /// <summary>What hurt it last; <see cref="Harm.None"/> before anything has.</summary>
     [JsonInclude, JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)] public Harm Hurt { get; internal set; }
     /// <summary>Its hidden wanted meter, the worth of what it broke and killed, 0 to <see cref="Need"/>: full, a catcher is sent (catcher-loot).</summary>

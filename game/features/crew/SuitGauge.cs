@@ -27,7 +27,7 @@ public partial class SuitGauge : CanvasLayer
     private static readonly Texture2D RedSign = Signs.Of(Sign.Oxygen, bad: true);
     // The oxygen sign the rooms' air is read by (tip-signs); red while low.
     private readonly AirRow _gauge = new(Signs.Of(Sign.Oxygen), RedSign);
-    private readonly Func<int> _canisterIn;
+    private readonly Func<int> _canisterIn, _lent;
     private readonly Func<string?> _helmet;
     private readonly Ui _ui;
     private readonly TipSpots _tips;
@@ -46,10 +46,11 @@ public partial class SuitGauge : CanvasLayer
     /// <param name="read">This player's suit and its danger, as <see cref="Danger.Read"/> gives them.</param>
     /// <param name="canisterIn">This player's hero's ticks left before another canister, <c>CanisterIn</c>; none without a hero.</param>
     /// <param name="helmet">The helmet this player's hero wears, none bare: what the piece's tip names.</param>
+    /// <param name="lent">The units of its capacity a stimulant lends this player's hero (food-tuning), shown apart; 0 without one.</param>
     /// <param name="ui">The slots' size, which the block's size follows (0058), and the one tooltip.</param>
-    public SuitGauge(Func<(int Air, int Capacity, SuitDanger Danger, bool InAir)> read, Func<int> canisterIn, Func<string?> helmet, Ui ui)
+    public SuitGauge(Func<(int Air, int Capacity, SuitDanger Danger, bool InAir)> read, Func<int> canisterIn, Func<string?> helmet, Func<int> lent, Ui ui)
     {
-        (_read, _canisterIn, _helmet, _ui) = (read, canisterIn, helmet, ui);
+        (_read, _canisterIn, _helmet, _lent, _ui) = (read, canisterIn, helmet, lent, ui);
         _tips = new TipSpots(ui.Tip);
         _tips.Add(_gauge.Spot, () => _capacity > 0 ? new Tip(T("hud.holds", ("name", _helmet() is { } worn ? T($"item.{worn}") : T("hud.lungs")), ("n", _capacity)), []) : null);
         ui.Refilled += _gauge.Surge;
@@ -103,6 +104,7 @@ public partial class SuitGauge : CanvasLayer
             // breath to look like one.
             else _gauge.Motion.Read((double)suit / capacity, Math.Max(WristLook.BigDrop, (CrewSpec.Exerted + 1 + 0.5) / capacity));
             _capacity = _gauge.Units = capacity;
+            _gauge.Extra = _lent();
             _fog.Read(_danger, (double)suit / capacity);
             _cooling.Read(_canisterIn());
             _gauge.Short = _danger != SuitDanger.None;
