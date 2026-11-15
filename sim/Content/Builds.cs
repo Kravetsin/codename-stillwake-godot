@@ -27,6 +27,12 @@ public static class Builds
     public const int DeconstructSpeedup = 2;
 
     /// <summary>
+    /// The most liquid, in millilitres, a machine may hold and still be taken apart (the user's word): a litre. A tank, a cistern
+    /// or a fuel store holding more is emptied first, so taking it apart never pours away what it held.
+    /// </summary>
+    public const int TakenApartHolding = 1000;
+
+    /// <summary>
     /// Ticks a crack lasts with no hit (0077): a minute, then it heals whole, as Terraria's. A dig left half done is begun again;
     /// long enough that a second charge or meteor finds the first one's cracks (unified-damage), and there is no repairing them.
     /// </summary>

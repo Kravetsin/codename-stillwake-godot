@@ -7,25 +7,15 @@ using Spec = Stillwake.Content;
 namespace Stillwake.Game.Features.Water;
 
 /// <summary>
-/// How water shows without a word, and what the pointer says of it (water): a cistern's water up its sight glass by quarters
-/// (<c>art/cistern_fill_*.png</c>), an electrolyser's bubbles rising while it works (<c>art/electrolyser_work_*.png</c>) and its
+/// How water shows without a word, and what the pointer says of it (water): a cistern's water up its sight glass by any level
+/// (<c>art/cistern_level.png</c>, <c>GlassLevel</c>), an electrolyser's bubbles rising while it works (<c>art/electrolyser_work_*.png</c>) and its
 /// lamp green (<c>art/electrolyser_working.png</c>) or red while it stands (<c>art/electrolyser_stalled.png</c>). No rule of its own: the sim says what each holds and does.
 /// </summary>
 public static class WaterShows
 {
-    /// <summary>The frame of a full cistern's glass; there are this many and one more, empty.</summary>
-    public const int Full = 4;
-
     /// <summary>The bubbles' frames, and how long each shows.</summary>
     public const int Frames = 4;
     public const double FrameMs = 150;
-
-    /// <summary>
-    /// The glass frame for <paramref name="water"/>, rounded up: any water shows at least frame 1, none at all empty. A save from
-    /// before the cistern held 150 litres may hold more (liquid-volumes): full until it drains.
-    /// </summary>
-    public static int CisternFrame(int water) =>
-        water == 0 ? 0 : (int)Math.Min(Full, ((long)water * Full + Spec.Water.CisternCapacity - 1) / Spec.Water.CisternCapacity);
 
     /// <summary>The bubbles' frame <paramref name="ms"/> into the game.</summary>
     public static int WorkFrame(double ms) => (int)(ms / FrameMs) % Frames;

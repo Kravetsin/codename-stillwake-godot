@@ -1,11 +1,8 @@
 namespace Stillwake.Content;
 
-/// <summary>The drop pod's flights (the descent design): what a descent burns, how long each part lasts in ticks (20 a second), where it lands.</summary>
+/// <summary>The drop pod's flights (the descent design): how long each part lasts in ticks (20 a second), where it lands.</summary>
 public static class Landing
 {
-    /// <summary>The biofuel a descent burns from the pod's slot; a return burns none.</summary>
-    public const int DescentFuel = 5;
-
     /// <summary>Ticks from a launch until the run it fell through shuts: the pod is through by then.</summary>
     public const int FallTicks = 20;
 

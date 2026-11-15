@@ -62,6 +62,7 @@ public static class SurfaceViews
         new(c => new Features.Landing.PodFlights(c.M.Grid, c.M.Landing, c.M.Crew, c.Progress, c.Arrivals), Fades: true),
         new(c => new Features.Atmosphere.TankLooks(c.M.Grid, c.M.Atmosphere), Fades: true),
         new(c => new Features.Water.WaterLooks(c.M.Grid, c.M.Water), Fades: true),
+        new(c => new Features.Fuel.FuelLooks(c.M.Grid, c.M.Fuel), Fades: true),
         // What each debris net holds, over its booms and behind its net (2026-11-03-debris-net).
         new(c => new Features.Debris.NetView(c.M.Grid, c.M.Debris), Fades: true),
         new(c => new PodView(c.M.Grid, c.M.Crafting, c.M.Items, c.M.Crew), Fades: true),
