@@ -1,7 +1,7 @@
 # Computer
 
 The ship's computer's window: a monitor opened by E at the computer, a button a program on its side, the chosen program on
-its screen. Only the radar so far: the ship, its planet and the vessels places' contacts show, and the jump to one.
+its screen. Only the radar so far: the ship, its planet and the vessels places' contacts show, and the course to one.
 
 ## Files
 
@@ -37,9 +37,12 @@ computer's row in `c/Machines.cs`. Files in `logic/` are Godot-free and tested i
   (`RadarOrbit`): a diamond each, flaring as the beam passes and fading over the turn, blinking in its last 2 minutes.
 - **A click on a contact** selects it (`Ui.RadarContact`, the player's own): corner brackets round it and its kind's name
   over it (`computer.radar.<kind>`), its distance under that in kilometres (`RadarOrbit.Km`: an offset's units times
-  `KmPerUnit`, 10). A click on empty screen lets go; a selected contact gone is let go on the next read;
-  closing the computer keeps it. While one is selected a `Set off` button stands at the bottom of the screen: it
-  sends places' `Jump` to it (its world opens with the presser just inside its door, the contact goes, vessel-worlds); the pointer over it shows no tooltip.
+  `KmPerUnit`, 10), and the litres a trip there and back costs (`PlacesModule.CostOf`, shown only). A click on empty
+  screen lets go; a selected contact gone is let go on the next read; closing the computer keeps it. While one is selected
+  a `Set course` button stands at the bottom of the screen: it sends places' `SetCourse` to it (shuttle-flight); the
+  pointer over it shows no tooltip.
+- **The course** (`Places.Course`, every player's): a thin line from the ship to its contact and `Route set, board the
+  shuttle` at the top of the screen while it is set; both placeholders till slice 3's pick. It goes when its contact does.
 - **In the world** (`ComputerScreens`): a computer with no power is dark; a powered one runs lines of text and blinks its
   rack's lights; once its radar is ready, the sweep. Drawn unlit, its glow lighting the room in the screen's colour.
 - **While the window is open** the hero aims at nothing: no outline, prompt or world tip under the pointer. The one
@@ -56,8 +59,8 @@ when the hero changes surface.
 ## Deliberately not handled
 
 - **The rules live in the client** (`Readout`): nothing in the sim asks which programs a computer has, and no command
-  depends on it. The jump is places' own rule, so contacts come and Set off jumps whether or not a radar
-  is built or powered elsewhere.
+  depends on it. The course is places' own rule, so contacts come and a course is set whether or not a radar
+  is built or powered elsewhere. The jump stays on the dev panel.
 - **Each peer's window is its own**: two players at one computer see their own choice; nothing is shared.
 - **No planet behind the radar's**: it is drawn whatever the ship orbits, of one look, at no real height.
-- **No text on the radar** but its tooltips and a selected contact's name and distance: no ranges on the rings, no heights.
+- **No text on the radar** but its tooltips, a selected contact's name, distance and fuel, and the route's words: no ranges on the rings, no heights.

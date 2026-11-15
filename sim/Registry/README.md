@@ -21,7 +21,10 @@ the ship lists, first. `Registry.On(world, surface)` is the registry a surface r
 the registry of its sender's surface (`World.SurfaceOf`), refusing one stamped on a surface its sender has left
 `world.elsewhere`; it runs every surface each tick in id order. `world.open` opens a surface of a kind in
 `Content.Surfaces` and `world.transfer` moves the sender there, carrying what `ICarries` modules hold of it (crew's
-hero, items' inventory and run). A save's `slices` are the ship's; `surfaces` and `where` are written only when
+hero, items' inventory and run). A system asks for a surface by `ISurfaces.OpenPlanet()` or `Open(kind, seed)`: opened once
+every surface ran, in the order asked, before the sends, so `Send` may name the id it returned; a planet's seed is drawn from
+the world's Rng as it opens. A transient surface closes once no peer stands on it, after the sends; before, each of its
+`IOutlives` modules hands what outlives it to its twin on the ship (Landing's shuttles, [shuttle-flight](../../docs/decisions/2026-11-16-shuttle-flight.md)). A save's `slices` are the ship's; `surfaces` and `where` are written only when
 another surface exists.
 
 ## The wreck

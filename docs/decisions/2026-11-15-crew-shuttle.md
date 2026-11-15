@@ -30,5 +30,6 @@ picked in two rounds on pick pages: where it stands, then how it looks.
 ## Deliberately not handled
 
 - **Boarding, the fuel slot, the launch and the flight to a vessel** are the next slices: no seat (`landing.noPod`), no slot.
+  (Boarding and the flight: [shuttle-flight](2026-11-16-shuttle-flight.md); fuel waits for fuel-liquid.)
 - **A run longer than the shuttle** takes it anywhere along it; nothing centres it.
 - **Its lit states** (lamps, slits, flame) are drawn on the pick page, not exported yet: nothing shows them.
