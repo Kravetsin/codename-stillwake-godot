@@ -10,7 +10,7 @@ public abstract record EffectLook(double LifeMs);
 
 /// <summary>
 /// «Пламя»: low tongues lick up off the blade's lip and embers rise; a swing leaves a ribbon of fire that rises as it ages,
-/// torn away in pieces, its youngest part hotter, and drops cinders that fall and die.
+/// thinning away in places, its youngest part hotter, and drops cinders that fall and die.
 /// </summary>
 public sealed record FireLook() : EffectLook(210)
 {
@@ -31,10 +31,14 @@ public sealed record FireLook() : EffectLook(210)
     public (double From, double To) EmberMs { get; init; } = (500, 1100);
     public (double From, double To) EmberRise { get; init; } = (5, 11);
 
-    /// <summary>The swing's ribbon: its opacity, how far it rises over its life, the share of it torn away by its end.</summary>
+    /// <summary>The swing's ribbon: its opacity, how far it rises over its life, how much of it has thinned away by its end.</summary>
     public double RibbonAlpha { get; init; } = 0.55;
     public double RibbonRisePx { get; init; } = 2.2;
     public double Tear { get; init; } = 0.7;
+
+    /// <summary>How far apart, in frames of the swing, the ribbon's thin places are (one each 1 / this), and how soft its sides are, px.</summary>
+    public double TearScale { get; init; } = 0.3;
+    public double RibbonSoftPx { get; init; } = 0.6;
 
     /// <summary>Cinders off the swing: per px swept, their life (ms), the share of the edge's speed they keep, their fall (px/s²) and drag a 60 Hz frame.</summary>
     public double CindersPerPx { get; init; } = 0.35;

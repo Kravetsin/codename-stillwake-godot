@@ -14,29 +14,30 @@ public sealed class RiftFx(RiftLook look) : BladeFx(look)
     /// <summary>The world's cells a speck may sit in, px.</summary>
     private const double SpeckCell = 3;
 
-    private readonly List<(double X, double Y)[]> _run = [];
-    private readonly List<(double X, double Y)> _outline = [], _was = [], _now = [], _side = [], _other = [], _lens = [];
+    private readonly List<(double X, double Y)[]> _run = [], _squeezed = [];
+    private readonly SheetOf _void = new();
+    private readonly List<(double X, double Y)> _outline = [], _rim = [], _side = [], _other = [], _lens = [];
 
     public override void Draw(Ink under, Ink dark, Ink over, Func<(double X, double Y), (double X, double Y)> local)
     {
-        var samples = Trail.Samples;
+        var samples = Trail.Smoothed();
         // Runs of stretches that leave something, each from the sample before its first.
         for (int i = 1; i < samples.Count; i++)
         {
             if (samples[i].Shown <= 0) continue;
             int from = i - 1;
             while (i + 1 < samples.Count && samples[i + 1].Shown > 0) i++;
-            Tear(under, dark, over, local, from, i);
+            Tear(under, dark, over, local, samples, from, i);
         }
         if (Now != null) Seam(under, dark, local, Now.Edge);
     }
 
-    // A run of the tear from sample `from` to `to`: its void as bands between its squeezed edges, its rim round them, specks inside.
-    private void Tear(Ink under, Ink dark, Ink over, Func<(double X, double Y), (double X, double Y)> local, int from, int to)
+    // A run of the tear from sample `from` to `to`: its void one sheet across its squeezed edges, its rim one line round them, specks inside.
+    private void Tear(Ink under, Ink dark, Ink over, Func<(double X, double Y), (double X, double Y)> local, IReadOnlyList<BladeTrail.Sample> samples,
+        int from, int to)
     {
-        var samples = Trail.Samples;
         _run.Clear();
-        for (int i = from; i <= to; i++) _run.Add(Squeezed(samples[i], i == from ? samples[from + 1].Shown : samples[i].Shown));
+        for (int i = from; i <= to; i++) _run.Add(Squeezed(samples[i], i == from ? samples[from + 1].Shown : samples[i].Shown, i - from));
         _outline.Clear();
         foreach (var e in _run) _outline.Add(e[0]);
         var (oldest, newest) = (_run[0], _run[^1]);
@@ -44,29 +45,24 @@ public sealed class RiftFx(RiftLook look) : BladeFx(look)
         for (int i = _run.Count - 2; i >= 0; i--) _outline.Add(_run[i][^1]);
         for (int j = oldest.Length - 2; j >= 1; j--) _outline.Add(oldest[j]);
         double pixel = under.Feather;
-        for (int k = 0; k < _outline.Count; k++)
-        {
-            var (a, b) = (_outline[k], _outline[(k + 1) % _outline.Count]);
-            (a, b) = (local(a), local(b));
-            under.Segment(a, b, look.RimPx * 2.6, Tone(look.Rim, look.RimAlpha * 0.35));
-            under.Segment(a, b, Math.Max(look.RimPx, 0.6 * pixel), Tone(look.Rim, look.RimAlpha));
-        }
-        for (int i = 1; i < _run.Count; i++)
-        {
-            Local(_run[i - 1], local, _was);
-            Local(_run[i], local, _now);
-            dark.Band(_was, _now, Tone(look.Void, look.VoidAlpha));
-        }
+        Local(_outline, local, _rim);
+        under.Stroke(_rim, look.RimPx * 2.6, Tone(look.Rim, look.RimAlpha * 0.35), closed: true);
+        under.Stroke(_rim, Math.Max(look.RimPx, 0.6 * pixel), Tone(look.Rim, look.RimAlpha), closed: true);
+        _void.Clear();
+        foreach (var edge in _run) Local(edge, local, _void.Next(Tone(look.Void, look.VoidAlpha)));
+        _void.Into(dark);
         Specks(over, local);
     }
 
     // A sample's edge drawn toward its middle as it ages: open for the first OpenShare of its life, then shut; a slow sweep opens less.
-    private (double X, double Y)[] Squeezed(BladeTrail.Sample sample, double shown)
+    private (double X, double Y)[] Squeezed(BladeTrail.Sample sample, double shown, int nth)
     {
         double age = 1 - Trail.Left(sample);
         double open = (age < look.OpenShare ? 1 : 1 - Smooth((age - look.OpenShare) / (1 - look.OpenShare))) * Math.Min(1, shown * look.ShownToOpen + 0.35);
         var mid = sample.Edge[sample.Edge.Length / 2];
-        var edge = new (double X, double Y)[sample.Edge.Length];
+        if (nth == _squeezed.Count) _squeezed.Add(new (double X, double Y)[sample.Edge.Length]);
+        if (_squeezed[nth].Length != sample.Edge.Length) _squeezed[nth] = new (double X, double Y)[sample.Edge.Length];
+        var edge = _squeezed[nth];
         for (int j = 0; j < edge.Length; j++) edge[j] = Lerp(mid, sample.Edge[j], open);
         return edge;
     }
@@ -116,7 +112,7 @@ public sealed class RiftFx(RiftLook look) : BladeFx(look)
         for (int j = _other.Count - 1; j >= 0; j--) _lens.Add(local(_other[j]));
     }
 
-    private static void Local((double X, double Y)[] world, Func<(double X, double Y), (double X, double Y)> local, List<(double X, double Y)> into)
+    private static void Local(IReadOnlyList<(double X, double Y)> world, Func<(double X, double Y), (double X, double Y)> local, List<(double X, double Y)> into)
     {
         into.Clear();
         foreach (var p in world) into.Add(local(p));

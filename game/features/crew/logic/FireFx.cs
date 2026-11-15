@@ -9,7 +9,8 @@ namespace Stillwake.Game.Features.Crew;
 public sealed class FireFx(FireLook look) : BladeFx(look)
 {
     private const int Ember = 0, Cinder = 1;
-    private readonly List<(double X, double Y)> _was = [], _now = [], _shape = [];
+    private readonly List<(double X, double Y)> _shape = [];
+    private readonly SheetOf _body = new(), _core = new();
 
     protected override void Throw(double elapsedMs)
     {
@@ -63,30 +64,39 @@ public sealed class FireFx(FireLook look) : BladeFx(look)
         }
     }
 
-    // The ribbon: each stretch lifted as it ages, ragged point by point, torn away in pieces, its youngest part a hotter core.
+    // The ribbon: one soft sheet a run of the swing, each line lifted as it ages, unevenly but smoothly, thinning away in places,
+    // its youngest part a hotter core.
     private void Ribbon(Ink ink, Func<(double X, double Y), (double X, double Y)> local)
     {
-        var samples = Trail.Samples;
+        var samples = Trail.Smoothed();
         for (int i = 1; i < samples.Count; i++)
         {
-            var (was, now) = (samples[i - 1], samples[i]);
-            if (now.Shown <= 0) continue;
-            double left = Trail.Left(now), age = 1 - left;
-            if (Pens.Hash(now.Id, 99) < look.Tear * age) continue;
-            double a = look.RibbonAlpha * now.Shown * left;
-            Lifted(was, local, _was);
-            Lifted(now, local, _now);
-            ink.Band(_was, _now, Tone(Mix(look.Flame, look.Deep, Math.Clamp(age * 1.4, 0, 1)), a));
-            if (left > 0.45) ink.Band(_was.GetRange(1, 5), _now.GetRange(1, 5), Tone(look.Heart, a * 0.7 * (left - 0.45) / 0.55));
+            if (samples[i].Shown <= 0) continue;
+            int from = i - 1;
+            while (i + 1 < samples.Count && samples[i + 1].Shown > 0) i++;
+            _body.Clear();
+            _core.Clear();
+            for (int k = from; k <= i; k++)
+            {
+                var sample = samples[k];
+                double left = Trail.Left(sample), age = 1 - left;
+                double thin = Pens.Clamp((Noise(sample.Place * look.TearScale, 5.5) - look.Tear * age) / 0.3 + 1);
+                double a = look.RibbonAlpha * samples[Math.Max(k, from + 1)].Shown * left * thin;
+                var line = _body.Next(Tone(Mix(look.Flame, look.Deep, Math.Clamp(age * 1.4, 0, 1)), a));
+                Lifted(sample, local, line);
+                var core = _core.Next(Tone(look.Heart, a * 0.7 * Pens.Clamp((left - 0.45) / 0.55)));
+                for (int j = 1; j < line.Count - 1; j++) core.Add(line[j]);
+            }
+            _body.Into(ink, look.RibbonSoftPx);
+            _core.Into(ink, look.RibbonSoftPx);
         }
     }
 
     private void Lifted(BladeTrail.Sample sample, Func<(double X, double Y), (double X, double Y)> local, List<(double X, double Y)> into)
     {
         double age = 1 - Trail.Left(sample);
-        into.Clear();
         for (int j = 0; j < sample.Edge.Length; j++)
-            into.Add(local((sample.Edge[j].X, sample.Edge[j].Y - look.RibbonRisePx * age * (0.4 + 1.2 * Pens.Hash(sample.Id, j)))));
+            into.Add(local((sample.Edge[j].X, sample.Edge[j].Y - look.RibbonRisePx * age * (0.4 + 1.2 * Noise(sample.Place * 0.35, j * 0.8)))));
     }
 
     // The tongues at rest, always: a few fixed places along the lip, each licking up at its own beat.

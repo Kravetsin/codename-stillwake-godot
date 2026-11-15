@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using Stillwake.Game.Render;
+using Pens = Stillwake.Game.Render.Ink.Draw;
 
 namespace Stillwake.Game.Features.Crew;
 
@@ -167,4 +168,44 @@ public abstract class BladeFx
     }
 
     protected static double Smooth(double t) => t * t * (3 - 2 * t);
+
+    /// <summary>Noise over the plane, 0 to 1: the same at the same place, eased between whole ones, so what it shapes has no steps.</summary>
+    protected static double Noise(double x, double y)
+    {
+        int x0 = (int)Math.Floor(x), y0 = (int)Math.Floor(y);
+        double fx = Smooth(x - x0), fy = Smooth(y - y0);
+        double a = Pens.Hash(x0, y0), b = Pens.Hash(x0 + 1, y0), c = Pens.Hash(x0, y0 + 1), d = Pens.Hash(x0 + 1, y0 + 1);
+        return a + (b - a) * fx + (c - a) * fy + (a - b - c + d) * fx * fy;
+    }
+
+    /// <summary>A sheet's lines and their tones, built line by line and laid down at once (<see cref="Ink.Sheet"/>); its lines are kept to be filled again.</summary>
+    protected sealed class SheetOf
+    {
+        private readonly List<List<(double X, double Y)>> _kept = [];
+        private readonly List<IReadOnlyList<(double X, double Y)>> _lines = [];
+        private readonly List<Ink.Tone> _tones = [];
+
+        public void Clear() => _lines.Clear();
+
+        /// <summary>A new line in <paramref name="tone"/>, empty, to be filled.</summary>
+        public List<(double X, double Y)> Next(Ink.Tone tone)
+        {
+            if (_lines.Count == 0) _tones.Clear();
+            if (_kept.Count == _lines.Count) _kept.Add([]);
+            var line = _kept[_lines.Count];
+            line.Clear();
+            _lines.Add(line);
+            _tones.Add(tone);
+            return line;
+        }
+
+        /// <summary>The sheet into <paramref name="ink"/>, its sides feathered <paramref name="soft"/> or the ink's own if that is more.</summary>
+        public void Into(Ink ink, double soft = 0)
+        {
+            float was = ink.Feather;
+            ink.Feather = Math.Max(was, (float)soft);
+            ink.Sheet(_lines, _tones);
+            ink.Feather = was;
+        }
+    }
 }
