@@ -34,13 +34,6 @@ public class SkinCatalogueTests
     }
 
     [Fact]
-    public void EveryEffectSkinHasItsCharge()
-    {
-        foreach (var skin in Skins.All.Where(s => s.Kind == Skins.Effect))
-            Assert.True(SkinEffects.On.ContainsKey(skin.Id), $"{skin.Id} has no charge");
-    }
-
-    [Fact]
     public void EverySkinIdIsOneOnceAndOfAKnownKind()
     {
         Assert.Equal(Skins.All.Count, Skins.All.Select(s => s.Id).Distinct().Count());

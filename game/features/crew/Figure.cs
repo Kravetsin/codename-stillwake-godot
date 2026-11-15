@@ -252,6 +252,13 @@ public partial class Figure : Node2D
     private readonly Spring _armSpring = new(HeroMotion.Carry.SpringHz, HeroMotion.Carry.SpringDamping);
     /// <summary>The swipe of light the axe leaves on its downstroke (0075).</summary>
     private readonly ReachAir _air = new();
+    /// <summary>The effect skin on a struck blade (skins), drawn where the haze is; the parts its lip was read from, and the lip.</summary>
+    private readonly BladeFxView _fx = new();
+    private HeldParts? _fxParts;
+    private IReadOnlyList<EdgeLip.Point> _fxLip = [];
+
+    /// <summary>The hero's weapon effect skin (skins): on any struck blade held without an arc module it replaces the haze; none for none.</summary>
+    public EffectLook? EffectSkin { get; set; }
     /// <summary>Whether the swing playing bit something, and is drawn held at the strike (<see cref="AxeSwing.Shown"/>); the phase last drawn.</summary>
     private bool _bit;
     private double _lastPhase;
@@ -396,7 +403,7 @@ public partial class Figure : Node2D
         foreach (var n in new Node2D[] { _waistBehind, backLeg, frontLeg, _waist }) parts.AddChild(n);
         foreach (var n in new Node2D[] { _offHeld, backArm }) _waistBehind.AddChild(n);
         foreach (var n in new Node2D[] { torso, _helmet, _belt }) _waist.AddChild(n);
-        _hands = [_plan, _tool, _held, frontArm, _collar, _air];
+        _hands = [_plan, _tool, _held, frontArm, _collar, _air, _fx];
         foreach (var n in _hands) _waist.AddChild(n);
         (_capeInside, _capeOutside) = (new CapeView(_cape, inside: true) { Visible = false }, new CapeView(_cape, inside: false) { Visible = false });
         Lit.Set(_capeInside);
@@ -406,7 +413,7 @@ public partial class Figure : Node2D
         // The inside lies in the cape's shadow: darker, so it reads as depth behind the hero.
         _capeInside.SelfModulate = new Color(0.72f, 0.72f, 0.78f);
         _waist.AddChild(_capeOutside);
-        _air.Position = new Vector2(0, (float)-Rig.Shoulder);
+        _air.Position = _fx.Position = new Vector2(0, (float)-Rig.Shoulder);
         AddChild(_body);
         // A retch's bile (food-tuning): on the glass, clipped to it; out of the mouth, free of the figure, puddles behind it.
         _helmetPictures[VisorPicture].AddChild(_bile);
@@ -737,14 +744,10 @@ public partial class Figure : Node2D
     /// <summary>The drill's light and arcs on the held stage, made with it the first time a drill runs in the hand.</summary>
     private DrillLight? _drillLight;
     private SpearLight? _spearLight;
-    /// <summary>The held blade's charge (<see cref="BladeCharge"/>), made anew whenever its look changes; the parts its area was read from, its look, and the area.</summary>
+    /// <summary>The held blade's charge (<see cref="BladeCharge"/>), made the first time one is held; the parts its area was read from, and the area.</summary>
     private BladeCharge? _charge;
     private HeldParts? _chargeParts;
-    private ChargeLook? _chargeLook;
     private EffectArea? _chargeArea;
-
-    /// <summary>How the hero's effect skin's charge looks (skins), on any struck blade held without an arc module; none for no skin.</summary>
-    public ChargeLook? EffectSkin { get; set; }
     private Func<(double X, double Y), Vector2>? _heldAt;
 
     private readonly bool _own;
@@ -1633,7 +1636,11 @@ public partial class Figure : Node2D
         WheelRadius = zone is { Disc: true } disc ? disc.Size : null;
         // The plain spear trails as a swung blade does, but not in its thrust (the lens is the thrust's, spear-trail); the arc spear's bolts are its own.
         bool spearTrails = struckHeld && item!.Aimed && jabMs == null && Wields == Stillwake.Content.Weapons.Spear.Item && PartsOf(item) is not { Crackles.Count: > 0 };
-        _air.Follow(zone, elapsedMs, bladeHeld || spearTrails ? _edge : null);
+        // An effect skin replaces the haze on a struck blade with no arc module (skins): its trail, and its rest state on the blade's lip.
+        var skinned = struckHeld && EffectSkin != null && PartsOf(item!) is { Crackles.Count: 0 } bare ? bare : null;
+        bool trails = bladeHeld || spearTrails;
+        _air.Follow(zone, elapsedMs, trails && skinned == null ? _edge : null);
+        _fx.Follow(skinned != null ? EffectSkin : null, elapsedMs, skinned != null ? FxHeld(skinned) : null, trails && skinned != null ? _edge : null);
         Helix = zone is { Disc: false } bit ? HelixOf(bit) : null;
         _beamMs = Math.Max(0, _beamMs - elapsedMs);
         ShowBeams(holding);
@@ -1643,21 +1650,17 @@ public partial class Figure : Node2D
         // Its stage made only once a drill runs or a gun charges in this hand: a body, a seated hero or the title's figures never need one.
         if (crackling != null && _drillLight == null && IsInsideTree()) _drillLight = new DrillLight(Held.Glims, Held.Flares, Held.Bolts);
         _drillLight?.Step(crackling, drill ? _spin : Charge, _heldAt ??= HeldAt, elapsedMs);
-        // A struck blade with a charge fizzes and tears bolts off as it moves: a fitted arc module's, else the effect skin's (ChargeOn).
-        var blade = struckHeld ? PartsOf(item!) : null;
-        var on = blade != null ? ChargeOn.Of(blade, EffectSkin) : null;
-        if (on == null) blade = null;
-        if (blade != _chargeParts || !ReferenceEquals(on?.Look, _chargeLook))
-        {
-            (_chargeParts, _chargeLook) = (blade, on?.Look);
-            _chargeArea = on is { } at ? HeldArt.AreaOf(blade!.Look.Picture, blade.Layers, at.Box) : null;
-        }
-        if (on is { } now && !ReferenceEquals(_charge?.Look, now.Look) && IsInsideTree()) _charge = new BladeCharge(now.Look);
+        // A struck blade with a charge fizzes and tears bolts off as it moves: today the arc spear's, its module's crackle box.
+        var charged = struckHeld ? PartsOf(item!) : null;
+        if (charged is not { Crackles.Count: > 0 }) charged = null;
+        if (charged != _chargeParts)
+            (_chargeParts, _chargeArea) = (charged, charged is { } on ? HeldArt.AreaOf(on.Look.Picture, on.Layers, on.Crackles[0]) : null);
+        if (_chargeArea != null && _charge == null && IsInsideTree()) _charge = new BladeCharge(SpearLight.Tint, SpearLight.Core, BoltTint.Violet);
         _charge?.Step(elapsedMs, _chargeArea != null ? _heldAt ??= HeldAt : null, _chargeArea, Held);
         // The spear's own (spear-effects): plain, its thrust bends the air; with the arc, the arc runs down its cable.
         bool spear = inHand && Wields == Stillwake.Content.Weapons.Spear.Item;
         if (spear && _spearLight == null && IsInsideTree()) AddChild(_spearLight = new SpearLight());
-        _spearLight?.Step(elapsedMs, spear ? _heldAt ??= HeldAt : null, jabMs, spear && ReferenceEquals(_chargeLook, ChargeLook.Arc), Held);
+        _spearLight?.Step(elapsedMs, spear ? _heldAt ??= HeldAt : null, jabMs, spear && _chargeArea != null, Held);
     }
 
     /// <summary>
@@ -1701,6 +1704,16 @@ public partial class Figure : Node2D
 
     /// <summary>A point of the held item's picture in the world, as it is drawn now.</summary>
     private Vector2 HeldAt((double X, double Y) p) => _held.ToGlobal(new Vector2((float)p.X, (float)p.Y) + _held.Offset);
+
+    /// <summary>The blade <paramref name="parts"/> as held this frame, for its effect skin: its lip read once a picture and set of layers.</summary>
+    private BladeFx.Held FxHeld(HeldParts parts)
+    {
+        if (parts != _fxParts)
+            (_fxParts, _fxLip) = (parts, EdgeLip.Of(HeldArt.AreaOf(parts.Look.Picture, parts.Layers, parts.Look.EdgeBox()), parts.Look));
+        return new(_fxAt ??= p => { var v = HeldAt(p); return (v.X, v.Y); }, _fxLip, _edge);
+    }
+
+    private Func<(double X, double Y), (double X, double Y)>? _fxAt;
 }
 
 /// <summary>

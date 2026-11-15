@@ -46,7 +46,7 @@ public partial class SpearLight : Node2D
     };
 
     /// <summary>The arc's violet and its white core (the pick pages'): its run here, its charge on the blade too.</summary>
-    public static readonly (int, int, int) Tint = ChargeLook.Arc.Tint, Core = ChargeLook.Arc.Core;
+    public static readonly (int, int, int) Tint = (180, 154, 255), Core = (239, 233, 218);
     /// <summary>How often a thrust's arc is rolled anew, ms: each lives as long.</summary>
     private const double RollMs = 33;
 

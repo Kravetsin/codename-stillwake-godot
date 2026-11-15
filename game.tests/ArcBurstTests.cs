@@ -32,7 +32,7 @@ public class ArcBurstTests
         var (sparks, torn) = Run(burst, 120, _ => 0);
         Assert.Empty(torn);
         Assert.InRange(sparks.Count, 20, 60);
-        Assert.All(sparks, s => Assert.True(s.At.Y > 1.5 && s.At.Y < 6.5 && s.Px <= ChargeLook.Arc.Numbers.SparkPx.To));
+        Assert.All(sparks, s => Assert.True(s.At.Y > 1.5 && s.At.Y < 6.5 && s.Px <= ArcBurst.SparkPx.To));
         Assert.Equal(0, burst.Charged);
     }
 
@@ -43,7 +43,7 @@ public class ArcBurstTests
         var (_, torn) = Run(burst, 120, i => 4.0 * i);
         Assert.True(torn.Count > 20, $"{torn.Count}");
         Assert.All(torn, t => Assert.True(t.Way.X < 0, $"{t.Way}"));
-        Assert.All(torn, t => Assert.Equal(t.Px >= ChargeLook.Arc.Numbers.ForkPx, t.Forked));
+        Assert.All(torn, t => Assert.Equal(t.Px >= ArcBurst.ForkPx, t.Forked));
     }
 
     [Fact]
@@ -71,9 +71,9 @@ public class ArcBurstTests
     [Fact]
     public void MostTornBoltsAreShortAndAFewLong()
     {
-        var lengths = Enumerable.Range(0, 1000).Select(i => ChargeLook.Arc.Numbers.LengthOf((i + 0.5) / 1000)).ToList();
-        Assert.Equal(ChargeLook.Arc.Numbers.BoltPx.From, ChargeLook.Arc.Numbers.LengthOf(0), 9);
-        Assert.Equal(ChargeLook.Arc.Numbers.BoltPx.To, ChargeLook.Arc.Numbers.LengthOf(1), 9);
+        var lengths = Enumerable.Range(0, 1000).Select(i => ArcBurst.LengthOf((i + 0.5) / 1000)).ToList();
+        Assert.Equal(ArcBurst.BoltPx.From, ArcBurst.LengthOf(0), 9);
+        Assert.Equal(ArcBurst.BoltPx.To, ArcBurst.LengthOf(1), 9);
         Assert.InRange(lengths.Count(l => l < 2) / 1000.0, 0.5, 0.8);
         Assert.InRange(lengths.Count(l => l >= 6) / 1000.0, 0.03, 0.15);
     }

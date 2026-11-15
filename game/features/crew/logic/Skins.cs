@@ -23,7 +23,11 @@ public static class Skins
     public static readonly IReadOnlyList<string> Kinds = [Head, Suit, Cape, Effect];
 
     /// <summary>Every skin, rows added with their art.</summary>
-    public static readonly IReadOnlyList<Skin> All = [];
+    public static readonly IReadOnlyList<Skin> All =
+    [
+        new(SkinEffects.Fire, Effect, DlcAppId: 0),
+        new(SkinEffects.Rift, Effect, DlcAppId: 0),
+    ];
 
     /// <summary>The skin <paramref name="id"/> in <paramref name="catalogue"/>; none for an id this build does not know.</summary>
     public static Skin? Of(string id, IReadOnlyList<Skin>? catalogue = null)

@@ -22,13 +22,25 @@ public sealed class BladeTrail
     /// <summary>A step longer than this, in pixels, is a jump, not a sweep: the trail breaks.</summary>
     public const double Jump = 30;
 
-    private readonly record struct Sample(double At, (double X, double Y)[] Edge, double Shown);
+    /// <summary>The edge as it was at <c>At</c> (ms of the trail's clock), how much of the stretch up to it shows, and its number, one more each sample.</summary>
+    public readonly record struct Sample(double At, (double X, double Y)[] Edge, double Shown, int Id);
 
     private readonly List<Sample> _samples = [];
     // The edges of samples gone, kept to be filled again: a swing would otherwise make one each frame.
     private readonly Stack<(double X, double Y)[]> _spare = [];
     private readonly List<(double X, double Y)> _was = [], _now = [];
+    private readonly double _lifeMs;
     private double _clock;
+    private int _made;
+
+    /// <summary>A trail whose stretches are seen <paramref name="lifeMs"/>: the haze's <see cref="LifeMs"/>, an effect skin's its own.</summary>
+    public BladeTrail(double lifeMs = LifeMs) => _lifeMs = lifeMs;
+
+    /// <summary>Its samples, oldest first, as long as they are seen: what an effect skin draws its swing from.</summary>
+    public IReadOnlyList<Sample> Samples => _samples;
+
+    /// <summary>How much of <paramref name="sample"/>'s life is left, 1 new to 0 gone.</summary>
+    public double Left(Sample sample) => Pens.Clamp(1 - (_clock - sample.At) / _lifeMs);
 
     /// <summary>Whether anything is drawn now.</summary>
     public bool Live
@@ -49,7 +61,7 @@ public sealed class BladeTrail
     {
         _clock += elapsedMs;
         int gone = 0;
-        while (gone < _samples.Count && _clock - _samples[gone].At > LifeMs) gone++;
+        while (gone < _samples.Count && _clock - _samples[gone].At > _lifeMs) gone++;
         for (int i = 0; i < gone; i++) _spare.Push(_samples[i].Edge);
         if (gone > 0) _samples.RemoveRange(0, gone);
         if (edge is not { Count: >= 2 }) return;
@@ -64,7 +76,7 @@ public sealed class BladeTrail
             // How much of a trail this stretch leaves, by how fast the edge went; a jump leaves none.
             shown = step > Jump ? 0 : Pens.Clamp((step * 1000 / elapsedMs - Slow) / (Fast - Slow));
         }
-        _samples.Add(new(_clock, points, shown));
+        _samples.Add(new(_clock, points, shown, _made++));
     }
 
     /// <summary>
@@ -77,7 +89,7 @@ public sealed class BladeTrail
         {
             var (was, now) = (_samples[i - 1], _samples[i]);
             if (now.Shown <= 0) continue;
-            double left = 1 - (_clock - now.At) / LifeMs;
+            double left = Left(now);
             // The stretch swept between two frames: the band from the edge as it was to the edge as it is, its ends the blade's shape.
             _was.Clear();
             _now.Clear();
