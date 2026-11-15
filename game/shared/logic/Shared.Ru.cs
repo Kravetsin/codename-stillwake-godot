@@ -65,7 +65,7 @@ public static partial class Ru
         ["card.warmth"] = "Тепло",
         ["card.topSpeed"] = "Скорость до",
         ["card.cellsPerSecond"] = "{n} кл/с",
-        ["card.thrustAir"] = "Расход воздуха при тяге",
+        ["card.thrustAir"] = "Воздух на разгон, поворот, торможение",
         ["card.oxygenPerSecond"] = "{n} O₂/с",
         ["card.beamWidth"] = "Луч",
         ["card.charge"] = "Заряд",

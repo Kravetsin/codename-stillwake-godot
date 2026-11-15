@@ -70,7 +70,7 @@ public static partial class En
         ["card.warmth"] = "Warmth",
         ["card.topSpeed"] = "Speed up to",
         ["card.cellsPerSecond"] = "{n} cells/s",
-        ["card.thrustAir"] = "Air used thrusting",
+        ["card.thrustAir"] = "Air used speeding up, turning or braking",
         ["card.oxygenPerSecond"] = "{n} O₂/s",
         ["card.beamWidth"] = "Beam",
         // What a battery holds, on its card: the share of full, and what it holds of full in power-ticks.

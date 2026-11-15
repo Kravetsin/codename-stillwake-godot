@@ -649,6 +649,19 @@ public readonly record struct Hero(
     }
 
     /// <summary>
+    /// Whether a jetpack thrusting along <paramref name="dir"/> only holds a flight at (<paramref name="vx"/>, <paramref name="vy"/>):
+    /// at <c>Jetpack.Top</c>, within a few degrees of the thrust. Such a cruise costs no air; a start, turn, brake or dodge does.
+    /// </summary>
+    public static bool Cruising(int vx, int vy, Point dir)
+    {
+        double speed = Distance(vx, vy);
+        return speed >= Pack.Top - Pack.Accel && (vx * (double)dir.X + vy * (double)dir.Y) / (speed * Unit) >= CruiseCos;
+    }
+
+    /// <summary>How close a flight lies to its thrust to cruise: within about six degrees.</summary>
+    private const double CruiseCos = 0.995;
+
+    /// <summary>
     /// Which way a jetpack thrusts, a unit vector in thousandths (0047): where the movement keys
     /// (<paramref name="x"/>, <paramref name="y"/>) point, or with none held toward <paramref name="pointer"/>,
     /// in cells, from the body's <paramref name="middle"/>; none with no key held and no pointer, or the pointer

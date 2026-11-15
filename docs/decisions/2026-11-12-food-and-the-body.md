@@ -1,6 +1,6 @@
 # Food and the body
 
-- Status: accepted
+- Status: accepted; its canister cooldown of 25 s superseded by [jet-cruise](2026-11-15-jet-cruise.md), now 20 s
 - Date: 2026-11-12
 
 ## Context

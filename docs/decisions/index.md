@@ -52,7 +52,7 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [0044](0044-the-harpoon-reels-a-piece-to-a-point.md) | The harpoon reels a piece to a point | accepted | 0046, 0065, 0068, grapple-climbs (in part) |
 | [0045](0045-a-burner-generator-shares-the-furnaces-fire.md) | A burner generator shares the furnace's fire | accepted | 0046, 0057 (in part) |
 | [0046](0046-recipes-show-what-a-thing-is-made-of.md) | Recipes show what a thing is made of | accepted | 0068 (in part) |
-| [0047](0047-equipment-the-jetpack-and-the-slower-swim.md) | Equipment, the jetpack and the slower swim | accepted | 0058, 0068 (in part) |
+| [0047](0047-equipment-the-jetpack-and-the-slower-swim.md) | Equipment, the jetpack and the slower swim | accepted | 0058, 0068, jet-cruise (in part) |
 | [0048](0048-a-big-world-a-build-zone-inside-it.md) | A big world, a build zone inside it | accepted |  |
 | [0049](0049-design-the-mechanic-not-its-first-use.md) | Design the mechanic, not its first use | accepted |  |
 | [0050](0050-the-edge-is-made-of-oxygen.md) | The edge is made of oxygen | accepted |  |
@@ -334,7 +334,7 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [plant-stirs](2026-11-10-plant-stirs.md) | Plants stirred by bodies | accepted |  |
 | [tool-size](2026-11-10-tool-size.md) | Held tools are drawn smaller, and reach no longer follows the model | accepted |  |
 | [back-focus-faint](2026-11-12-back-focus-faint.md) | The back walls' focus clears the front round the pointer | accepted |  |
-| [food-and-the-body](2026-11-12-food-and-the-body.md) | Food and the body | accepted |  |
+| [food-and-the-body](2026-11-12-food-and-the-body.md) | Food and the body | accepted | jet-cruise (in part) |
 | [fruit-not-biomass](2026-11-12-fruit-not-biomass.md) | Fruit, not biomass | accepted |  |
 | [one-to-understand](2026-11-12-one-to-understand.md) | One of each part is enough to understand a thing | accepted |  |
 | [glowberry-bush](2026-11-13-glowberry-bush.md) | Spores grow a glowberry bush | accepted |  |
@@ -367,4 +367,5 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [tool-in-hand](2026-11-14-tool-in-hand.md) | The tool in hand is the one that works | accepted |  |
 | [blade-sparks](2026-11-15-blade-sparks.md) | A struck wreck sparks where the blade's trail lies on it | accepted | spark-rule (in part) |
 | [cutter-contact](2026-11-15-cutter-contact.md) | The cutter's slag blows out the far side, and struck ground sparks off the trail | accepted | spark-rule (in part) |
+| [jet-cruise](2026-11-15-jet-cruise.md) | A jetpack pays for changing speed, not for distance | accepted |  |
 | [spark-rule](2026-11-15-spark-rule.md) | A tool's haze in matter throws that matter's look, whatever was hit | accepted |  |
