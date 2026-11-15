@@ -19,6 +19,7 @@ public static class CreaturesTesting
         public bool CanOpen => false;
         public bool Landed => false;
         public int OpenPlanet() => throw new NotSupportedException("creatures opens no planet");
+        public int Open(string kind, uint seed) => throw new NotSupportedException("creatures opens no surface");
         public uint Seed => 0;
         public int Visit(int peer, string kind, uint seed) => throw new NotSupportedException();
     }
