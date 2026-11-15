@@ -691,8 +691,8 @@ public partial class Figure : Node2D
     public (Vector2 From, Vector2 To)? Blade { get; private set; }
 
     /// <summary>
-    /// The held struck tool's edge as it was the frame before and as it is, in the world, while it is held both frames and sweeps: where what
-    /// it strikes sparks (blade-sparks), the spear's thrust too.
+    /// The held struck tool's edge as it was the frame before and as it is, in the world, while it is held both frames and sweeps in a stroke: where
+    /// what it strikes sparks (spark-rule), the spear's thrust too.
     /// </summary>
     public (IReadOnlyList<(double X, double Y)> Was, IReadOnlyList<(double X, double Y)> Now)? Sweep => _edgeSweeps && _edge.Count >= 2 && _edgeWas.Count == _edge.Count ? (_edgeWas, _edge) : null;
 
@@ -1495,12 +1495,12 @@ public partial class Figure : Node2D
                 var p = HeldAt(item!.EdgePoint((double)i / (HeldLook.EdgePoints - 1)));
                 _edge.Add((p.X, p.Y));
             }
-        // Only a blade moving as fast as one that leaves a trail bites: a hand held still or walked with walks no wrecks.
+        // Only a blade swung, and moving as fast as one that leaves a trail, bites: one carried as the hero walks or runs throws nothing.
         double swept = 0;
         if (_edgeWas.Count == _edge.Count)
             for (int i = 0; i < _edge.Count; i++)
                 swept = Math.Max(swept, Math.Sqrt((_edge[i].X - _edgeWas[i].X) * (_edge[i].X - _edgeWas[i].X) + (_edge[i].Y - _edgeWas[i].Y) * (_edge[i].Y - _edgeWas[i].Y)));
-        _edgeSweeps = elapsedMs > 0 && swept * 1000 / elapsedMs >= BladeTrail.Slow;
+        _edgeSweeps = chopping && elapsedMs > 0 && swept * 1000 / elapsedMs >= BladeTrail.Slow;
         Blade = bladeHeld ? (HeldAt(item!.EdgeFrom), HeldAt(item.EdgeTo)) : null;
         var zone = Spinning && inHand && item != null ? ZoneOf(frontArm, item) : null;
         WheelRadius = zone is { Disc: true } disc ? disc.Size : null;
