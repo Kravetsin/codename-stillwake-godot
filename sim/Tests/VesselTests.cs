@@ -182,14 +182,11 @@ public class VesselTests
     }
 
     [Fact]
-    public void EveryClassFurnishesEveryCompartmentAndFitsBesideAFullZone()
+    public void EveryClassFurnishesEveryCompartment()
     {
-        int beside = (Content.World.Width - Content.World.ZoneWidth) / 2;
         foreach (var cls in Content.Vessels.Classes)
         {
             Assert.True(cls.ArmourDepth >= 2, $"{cls.Id}: a door is two cells wide");
-            Assert.True(cls.Frame.Width + Content.Vessels.Gap + Content.Vessels.EdgeClear <= beside, cls.Id);
-            Assert.True(cls.Frame.Height + 2 * Content.Vessels.EdgeClear <= Content.World.Height, cls.Id);
             for (uint seed = 1; seed <= 40; seed++)
             {
                 var vessel = Shipyard.Describe(cls, seed);
@@ -198,9 +195,6 @@ public class VesselTests
             }
         }
     }
-
-    [Fact]
-    public void NoDroneBayOfTheShipReachesAVessel() => Assert.True(Content.Vessels.Gap > Content.Logistics.Reach);
 
     [Fact]
     public void SalvageGivesTimesItsPiecesMeanLootAndKeepsTheCircuitRare()

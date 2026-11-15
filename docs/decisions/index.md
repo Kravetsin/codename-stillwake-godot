@@ -81,7 +81,7 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [0073](0073-the-build-menu-is-a-docked-catalogue.md) | The build menu is a docked catalogue | accepted |  |
 | [0074](0074-the-inventory-is-a-wrist-computer.md) | The inventory is a wrist computer | accepted | machine-holograms (in part) |
 | [0075](0075-effects-are-light-not-shapes.md) | Effects are light, not shapes | accepted | arcs-are-hairlines, effects-on-their-layer, head-tally (in part) |
-| [0076](0076-a-world-is-made-of-surfaces.md) | A world is made of surfaces | accepted | night-chills (in part) |
+| [0076](0076-a-world-is-made-of-surfaces.md) | A world is made of surfaces | accepted | night-chills, vessel-worlds (in part) |
 | [0077](0077-a-planets-ground-grows-from-its-seed-and-is-dug-by-hits.md) | A planet's ground grows from its seed and is dug by hits | accepted | fan-of-rays, veins-and-stairs, tool-edge (in part) |
 | [0078](0078-two-handed-items-are-held-as-a-rifle.md) | Two-handed items are held as a rifle | superseded | one-arm-holds |
 | [0079](0079-a-planets-surface-has-its-look-and-grows-plants.md) | A planet's surface has its look, and grows plants from its seed | accepted | 0082, composed-backdrops (in part) |
@@ -166,7 +166,7 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [wall-roles](2026-10-29-wall-roles.md) | Walls either armour or seal | accepted |  |
 | [weak-meteors-till-landing](2026-10-29-weak-meteors-till-landing.md) | Weak meteors till landing | accepted |  |
 | [free-repair](2026-10-30-free-repair.md) | A repair takes only work | accepted |  |
-| [generated-vessels](2026-10-30-generated-vessels.md) | Generated vessels, written beside the ship by a jump | accepted |  |
+| [generated-vessels](2026-10-30-generated-vessels.md) | Generated vessels, written beside the ship by a jump | accepted | vessel-worlds (in part) |
 | [liquid-oxygen](2026-10-30-liquid-oxygen.md) | Air comes from liquid oxygen | accepted |  |
 | [magnetic-flare](2026-10-30-magnetic-flare.md) | A magnetic flare breaks machines until they are repaired | accepted | free-repair (in part) |
 | [room-upgrades](2026-10-30-room-upgrades.md) | Room is bought on the tree | accepted |  |
@@ -324,6 +324,7 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [round-blasts](2026-11-09-round-blasts.md) | Blasts are round | accepted | unified-damage (in part) |
 | [tracker-catchers](2026-11-09-tracker-catchers.md) | Catchers | accepted | catcher-combat, catcher-paths, catcher-loot (in part) |
 | [unified-damage](2026-11-09-unified-damage.md) | One rule for damage | accepted | damage-scale (in part) |
+| [vessel-worlds](2026-11-09-vessel-worlds.md) | A vessel is a world of its own, closed once everyone is home | accepted |  |
 | [air-gusts](2026-11-10-air-gusts.md) | An action stirs its surroundings | accepted |  |
 | [blade-trail](2026-11-10-blade-trail.md) | A blade leaves its own trail, a haze | accepted |  |
 | [body-answers](2026-11-10-body-answers.md) | The body answers the weapon | accepted |  |

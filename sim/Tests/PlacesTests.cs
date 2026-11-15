@@ -1,211 +1,119 @@
 using System.Diagnostics;
 using System.Text.Json.Nodes;
+using FsCheck;
+using FsCheck.Xunit;
 using Stillwake.Content;
 using Stillwake.Sim.Building;
 using Stillwake.Sim.Crew;
 using Stillwake.Sim.Grid;
-using Stillwake.Sim.Pipes;
 using Stillwake.Sim.Places;
 using Xunit;
 
 namespace Stillwake.Sim.Tests;
 
-/// <summary>Jumping beside a generated vessel (generated-vessels): written into its box right of the ship, the last one cleared.</summary>
+/// <summary>Going to a generated vessel (vessel-worlds): a surface of its own opened by the jump, closed once nobody is on it.</summary>
 public class PlacesTests
 {
     private static readonly string Axe = Weapons.Axe.Item;
 
-    /// <summary>A contact of <paramref name="cls"/> found and jumped to on <paramref name="w"/>, or on the new game's world.</summary>
-    private static (Scenario W, Box Box) Jumped(string cls = "freighter", bool wrecked = false, Scenario? w = null)
+    /// <summary>
+    /// The last contact of <paramref name="cls"/> held, else one found, jumped to by peer <paramref name="peer"/>'s hero on <paramref name="w"/>, or on
+    /// the new game's world, the hero let in first: the vessel world's id.
+    /// </summary>
+    private static (Scenario W, int Vessel) Visited(string cls = "freighter", Scenario? w = null, int peer = 0)
     {
         w ??= new Scenario(Registry.Wreck);
-        w.Do(new Find(cls)).Run();
-        w.Do(new Jump(w.M.Places.Contacts[^1].Id, wrecked)).Run();
+        if (w.M.Crew.HeroOf(peer) == null) w.Do(new Enter(w.M.Crew.Spawn) { From = peer }).Run();
+        if (!w.M.Places.Contacts.Any(k => k.Class == cls)) w.Do(new Find(cls)).Run();
+        w.Do(new Jump(w.M.Places.Contacts.Last(k => k.Class == cls).Id) { From = peer }).Run();
         Assert.Empty(w.Refusals);
-        return (w, w.M.Grid.Reserved!.Value);
+        int vessel = w.World.SurfaceOf(peer);
+        Assert.NotEqual(0, vessel);
+        return (w, vessel);
     }
 
-    /// <summary>What every cell holds, in every layer: what a jump must leave alone outside its box.</summary>
-    private static (int[] Structure, int[] Back, int[] Machine) Cells(Scenario w)
+    /// <summary>What every cell holds, in every layer.</summary>
+    private static (int[] Structure, int[] Back, int[] Machine) Cells(Registry m)
     {
-        var grid = w.M.Grid;
+        var grid = m.Grid;
         int size = grid.Width * grid.Height;
         return (grid.StructureLayer.ToArray(), grid.BackLayer.ToArray(), Enumerable.Range(0, size).Select(c => grid.MachineAt(c)?.Id ?? 0).ToArray());
     }
 
-    private static void SameOutside(Scenario w, (int[] Structure, int[] Back, int[] Machine) before, params Box[] boxes)
-    {
-        var now = Cells(w);
-        int width = w.M.Grid.Width;
-        for (int c = 0; c < before.Structure.Length; c++)
-        {
-            if (boxes.Any(b => b.Contains(c % width, c / width))) continue;
-            Assert.True(before.Structure[c] == now.Structure[c] && before.Back[c] == now.Back[c] && before.Machine[c] == now.Machine[c], $"cell {c} changed");
-        }
-    }
-
-    private static bool Empty(Scenario w, int cell) =>
-        w.M.Grid.StructureAt(cell) == Structure.Empty && w.M.Grid.BackAt(cell) == null && w.M.Grid.MachineAt(cell) == null;
+    /// <summary>The cell of (<paramref name="x"/>, <paramref name="y"/>) in a vessel's frame on its world's grid.</summary>
+    private static int InFrame(Registry v, int x, int y) => (Vessels.Margin + y) * v.Grid.Width + Vessels.Margin + x;
 
     [Fact]
-    public void AJumpWritesTheVesselOnlyInItsBoxRightOfTheShipAndFillsItsCrates()
+    public void AJumpOpensAVesselWorldOfTheContactsSeedAndMovesItsSenderJustInsideTheDoorTheShipUntouched()
     {
         var w = new Scenario(Registry.Wreck);
-        var built = w.M.Grid.Built;
-        var before = Cells(w);
-        var (_, box) = Jumped(w: w);
-        Assert.Equal(built.Right + Vessels.Gap + 1, box.Left);
-        Assert.Equal(built.Top + built.Height / 2 - box.Height / 2, box.Top);
-        SameOutside(w, before, box);
-        var crates = w.M.Grid.MachinesOf("crate").Where(m => box.Contains(m.Cell % w.M.Grid.Width, m.Cell / w.M.Grid.Width)).ToList();
+        w.Do(new Enter(w.M.Crew.Spawn)).Run();
+        var before = Cells(w.M);
+        w.Do(new Find("freighter")).Run();
+        var contact = w.M.Places.Contacts[^1];
+        var (_, id) = Visited(w: w);
+        var surface = w.World.Surfaces[id];
+        Assert.Equal(("vessel.freighter", contact.Seed, false), (surface.Kind, surface.Seed, surface.Closed));
+        Assert.DoesNotContain(w.M.Places.Contacts, k => k.Id == contact.Id);
+        var after = Cells(w.M);
+        Assert.Equal(before.Structure, after.Structure);
+        Assert.Equal(before.Back, after.Back);
+        Assert.Equal(before.Machine, after.Machine);
+        var v = w.On(id);
+        var vessel = Shipyard.Describe(Vessels.Class("freighter")!, contact.Seed);
+        var (dx, dy) = Shipyard.Door(vessel);
+        Assert.Equal(InFrame(v, dx, dy), v.Crew.Spawn);
+        Assert.Equal(v.Crew.Spawn, v.Crew.HeroOf(0)!.Cell);
+        Assert.Null(w.M.Crew.HeroOf(0));
+    }
+
+    [Theory]
+    [InlineData("shuttle")]
+    [InlineData("freighter")]
+    public void TheHeroStandsOnTheDeckJustInsideTheDoorWithRoomForItsBody(string cls)
+    {
+        var (w, id) = Visited(cls);
+        var grid = w.On(id).Grid;
+        int cell = w.On(id).Crew.HeroOf(0)!.Cell, width = grid.Width;
+        // Two columns and a deck's six rows open over a floor that holds it.
+        for (int up = 0; up < Vessels.Open; up++)
+            for (int across = 0; across < 2; across++)
+                Assert.False(grid.Blocks(cell - up * width + across), $"blocked {up} up, {across} across");
+        Assert.True(grid.Solid(cell + width));
+        Assert.True(Doorways.IsDoor(grid.StructureAt(cell - 1)));
+    }
+
+    [Fact]
+    public void TheVesselIsWrittenAsTheShipyardStampsItItsFrameAtTheMarginAndItsCratesFilled()
+    {
+        var w = new Scenario(Registry.Wreck);
+        w.Do(new Enter(w.M.Crew.Spawn)).Run();
+        w.Do(new Find("shuttle")).Run();
+        uint seed = w.M.Places.Contacts[^1].Seed;
+        var (_, id) = Visited("shuttle", w);
+        var v = w.On(id);
+        var vessel = Shipyard.Describe(Vessels.Class("shuttle")!, seed);
+        Assert.Equal((vessel.Width + 2 * Vessels.Margin, vessel.Height + 2 * Vessels.Margin), (v.Grid.Width, v.Grid.Height));
+        foreach (var part in Shipyard.Stamp(vessel))
+        {
+            int cell = InFrame(v, part.X, part.Y);
+            switch (part.Layer)
+            {
+                case "machine": Assert.Equal(part.Kind, v.Grid.MachineAt(cell)?.Kind); break;
+                case "back": Assert.NotNull(v.Grid.BackAt(cell)); break;
+                default: Assert.NotEqual(Structure.Empty, v.Grid.StructureAt(cell)); break;
+            }
+        }
+        var crates = v.Grid.MachinesOf("crate").ToList();
         Assert.NotEmpty(crates);
-        Assert.Contains(crates, c => w.M.Items.Crate(c.Id).Any(s => s != null));
-        Assert.Empty(w.M.Places.Contacts);
-    }
-
-    [Fact]
-    public void ASecondJumpOntoAnOverlappingBoxLeavesNothingOfTheFirstAndTheShipUntouched()
-    {
-        var w = new Scenario(Registry.Wreck);
-        var before = Cells(w);
-        var (_, first) = Jumped(w: w);
-        int width = w.M.Grid.Width;
-        int wall = Enumerable.Range(0, width * w.M.Grid.Height).First(c => first.Contains(c % width, c / width) && w.M.Grid.WallAt(c) != null);
-        w.Do(new Deconstruct(wall, "structure")).Run();
-        w.GiveItems(0, (Axe, 1)).Do(new Enter(wall - 3 * width)).Run();
-        int other = Enumerable.Range(0, width * w.M.Grid.Height).Last(c => first.Contains(c % width, c / width) && w.M.Grid.WallAt(c) != null);
-        w.Do(HewTesting.Dig(w, other, Axe)).Run();
-        Assert.Empty(w.Refusals);
-        Assert.NotEmpty(w.M.Building.Plans);
-        var (_, second) = Jumped("shuttle", w: w);
-        Assert.True(first.Left == second.Left && first.Contains(second.Left, second.Top), "the boxes overlap");
-        Assert.DoesNotContain(w.M.Building.Plans, p => first.Contains(p.Cell % width, p.Cell / width));
-        Assert.DoesNotContain(w.M.Building.Cracks, k => first.Contains(k.Cell % width, k.Cell / width));
-        for (int y = first.Top; y <= first.Bottom; y++)
-            for (int x = first.Left; x <= first.Right; x++)
-                if (!second.Contains(x, y)) Assert.True(Empty(w, y * width + x), $"({x}, {y}) of the first vessel left");
-        SameOutside(w, before, first, second);
-    }
-
-    [Fact]
-    public void ABreachOpensItsHullWhereAnIntactVesselIsWhole()
-    {
-        int Backs(Scenario w, Box box) => Enumerable.Range(box.Top, box.Height).Sum(y =>
-            Enumerable.Range(box.Left, box.Width).Count(x => w.M.Grid.BackAt(y * w.M.Grid.Width + x) != null));
-        // The same contact's seed, one world jumping to it as a jump does, intact, and one wrecked by the dev's flag.
-        var (intact, box) = Jumped();
-        var (wrecked, same) = Jumped(wrecked: true);
-        Assert.Equal(box, same);
-        Assert.True(Backs(wrecked, same) < Backs(intact, box));
-    }
-
-    [Fact]
-    public void TheStreamAndTheMeteorsPassAVesselByAsIfItWereNotThere()
-    {
-        var (w, box) = Jumped();
-        var still = new Scenario(Registry.Wreck);
-        Assert.Equal(still.M.Debris.Hull(), w.M.Debris.Hull());
-        // A meteor drawn again and again: never at the vessel ahead in its rows.
-        int width = w.M.Grid.Width;
-        for (int i = 0; i < 12; i++)
+        Assert.Contains(crates, c => v.Items.Crate(c.Id).Any(s => s != null));
+        // Nothing outside the frame: space all round.
+        int width = v.Grid.Width;
+        for (int c = 0; c < width * v.Grid.Height; c++)
         {
-            var root = JsonNode.Parse(w.World.Save())!;
-            root["slices"]!["hazards"]!["nextIn"] = 1;
-            w.Reload(root.ToJsonString()).Run();
-            var meteor = w.M.Hazards.Incoming!;
-            Assert.False(box.Contains(meteor.Cell % width, meteor.Cell / width), $"a meteor at {meteor.Cell}, in the vessel");
-            w.Run(meteor.Left + 1);
-        }
-    }
-
-    /// <summary>The new game's world with a wall laid at the zone's right edge on the ship's middle row: a ship built to its edge.</summary>
-    private static Scenario ToTheEdge()
-    {
-        // Every blueprint known, so a plan in the box is refused by the grid, not by the board.
-        var w = new Scenario(Registry.Wreck with { Known = null });
-        var (zone, built) = (w.M.Grid.Zone, w.M.Grid.Built);
-        w.Do(new Place((built.Top + built.Height / 2) * w.M.Grid.Width + zone.Right, Placement.Wall())).Run();
-        Assert.Equal(zone.Right, w.M.Grid.Built.Right);
-        return w;
-    }
-
-    [Fact]
-    public void AShipBuiltToTheZonesEdgeStillGetsItsVesselPastItAndItsBoxIsWarm()
-    {
-        var w = ToTheEdge();
-        var (_, box) = Jumped(w: w);
-        int width = w.M.Grid.Width, row = box.Top + box.Height / 2;
-        Assert.Equal(w.M.Grid.Zone.Right + Vessels.Gap + 1, box.Left);
-        Assert.True(box.Right > w.M.Grid.Zone.Right + Field.Margin, "it reaches past the field");
-        Assert.Equal(0, w.M.Crew.EdgeCost(row * width + box.Right));
-        Assert.True(w.M.Crew.EdgeCost(row * width + box.Right + 1) > 0);
-        // The next vessel, a shuttle, leaves the cold back where the freighter was.
-        Jumped("shuttle", w: w);
-        Assert.True(w.M.Crew.EdgeCost(row * width + box.Right) > 0);
-    }
-
-    [Fact]
-    public void NoOneBuildsInTheBoxInsideTheZoneOrPastIt()
-    {
-        var w = ToTheEdge();
-        var (_, box) = Jumped(w: w);
-        int width = w.M.Grid.Width, zoneRight = w.M.Grid.Zone.Right;
-        // The box's corner, outside the hull: space in the box.
-        int corner = box.Top * width + box.Left;
-        Assert.True(Empty(w, corner));
-        Assert.Equal("grid.reserved", w.M.Grid.PlacementProblem(corner, Placement.Wall()));
-        w.Do(new PlacePlan(corner, Placement.Wall())).Run();
-        Assert.Equal("grid.reserved", Assert.Single(w.Refusals).Reason);
-        // A pipe or a cable to the vessel's wall from the ship's.
-        int ship = (box.Top + box.Height / 2) * width + zoneRight;
-        int wall = Enumerable.Range(box.Left, box.Width).Select(x => (box.Top + box.Height / 2) * width + x).First(c => w.M.Grid.WallAt(c) != null);
-        Assert.Equal("grid.reserved", w.M.Pipes.LayProblem(0, ship - 4, wall));
-        Assert.Equal("grid.reserved", w.M.Power.LayProblem(0, ship, wall));
-        w.Refusals.Clear();
-        w.Do(new LayPipe(ship - 4, wall)).Do(new Power.Lay(ship, wall)).Run();
-        Assert.All(w.Refusals, r => Assert.Equal("grid.reserved", r.Reason));
-        Assert.Equal(2, w.Refusals.Count);
-    }
-
-    [Fact]
-    public void TheAxeTakesAVesselsWallInFullAndTheShipsAtATenth()
-    {
-        var (w, box) = Jumped();
-        int width = w.M.Grid.Width, row = box.Top + box.Height / 2;
-        w.GiveItems(0, (Axe, 1)).Do(new Enter(row * width + box.Left - 4)).Run();
-        int wall = Enumerable.Range(box.Left, box.Width).Select(x => row * width + x).First(c => w.M.Grid.WallAt(c) != null);
-        var hew = HewTesting.Dig(w, wall, Axe);
-        w.Do(hew).Run();
-        Assert.Empty(w.Refusals);
-        Assert.True(w.M.Grid.WallAt(wall) == null || w.M.Building.Cracks.Any(k => k.Cell == wall));
-        // Elsewhere aboard the axe takes a tenth: the hero's own ship.
-        int shipWall = Enumerable.Range(0, width * w.M.Grid.Height).First(c => !box.Contains(c % width, c / width) && w.M.Grid.WallAt(c) is { Strength: > 100 });
-        Assert.Null(HewTesting.DigProblem(w, 0, shipWall, Axe));
-        w.Do(HewTesting.Dig(w, shipWall, Axe)).Run();
-        Assert.Empty(w.Refusals);
-        Assert.NotNull(w.M.Grid.WallAt(shipWall));
-        Assert.Equal(Weapons.Axe.BlockDamage * Damage.OwnShipTakes / 1000, w.M.Building.Cracks.Single(k => k.Cell == shipWall).Damage);
-    }
-
-    [Fact]
-    public void TheSledgehammerBreaksAVesselsSalvageForItsCostCountedObtained()
-    {
-        var (w, box) = Jumped();
-        int width = w.M.Grid.Width;
-        string hammer = Weapons.Sledgehammer.Item;
-        var salvage = w.M.Grid.Machines.First(m => box.Contains(m.Cell % width, m.Cell / width)
-            && Vessels.SalvageOf(m.Kind) != null && Machines.Get(m.Kind).Hp <= Weapons.Sledgehammer.Damage);
-        var cost = Machines.Get(salvage.Kind).Cost;
-        var before = cost.Select(c => w.M.Knowledge.ObtainedOf(c.Item)).ToList();
-        w.GiveItems(0, (hammer, 1)).Do(new Enter(salvage.Cell)).Run();
-        // A blow from inside its top-left cell, straight up: the first thing every ray meets is the pile.
-        w.Do(new Hew(hammer, salvage.Cell % width * 1000 + 500, salvage.Cell / width * 1000 + 500, HewTesting.Up)).Run();
-        Assert.Empty(w.Refusals);
-        Assert.Null(w.M.Grid.MachineById(salvage.Id));
-        for (int i = 0; i < cost.Count; i++)
-        {
-            Assert.Equal(cost[i].Count, w.M.Items.Inventory(0).Sum(s => s?.Item == cost[i].Item ? s.Count : 0));
-            Assert.Equal(before[i] + cost[i].Count, w.M.Knowledge.ObtainedOf(cost[i].Item));
+            int x = c % width - Vessels.Margin, y = c / width - Vessels.Margin;
+            if (x >= 0 && y >= 0 && x < vessel.Width && y < vessel.Height) continue;
+            Assert.True(v.Grid.StructureAt(c) == Structure.Empty && v.Grid.BackAt(c) == null && v.Grid.MachineAt(c) == null, $"cell {c}");
         }
     }
 
@@ -213,62 +121,74 @@ public class PlacesTests
     public void AVesselsRoomsAreRoomsOfTheirOwnBehindItsDoorsAndHatches()
     {
         var w = new Scenario(Registry.Wreck);
+        w.Do(new Enter(w.M.Crew.Spawn)).Run();
         w.Do(new Find("freighter")).Run();
-        var contact = w.M.Places.Contacts[^1];
-        w.Do(new Jump(contact.Id)).Run();
-        var box = w.M.Grid.Reserved!.Value;
-        int width = w.M.Grid.Width;
-        var vessel = Shipyard.Describe(Vessels.Class("freighter")!, contact.Seed);
-        var rooms = vessel.Compartments.Select(c => w.M.Rooms.RoomAt((box.Top + c.Top + Vessels.Open - 1) * width + box.Left + c.Left)).ToList();
+        uint seed = w.M.Places.Contacts[^1].Seed;
+        var (_, id) = Visited(w: w);
+        var v = w.On(id);
+        var vessel = Shipyard.Describe(Vessels.Class("freighter")!, seed);
+        var rooms = vessel.Compartments.Select(c => v.Rooms.RoomAt(InFrame(v, c.Left, c.Top + Vessels.Open - 1))).ToList();
         Assert.All(rooms, r => Assert.NotNull(r));
         Assert.Equal(rooms.Count, rooms.Distinct().Count());
     }
 
     [Fact]
-    public void TheSledgehammerBreaksAVesselsMainEngineForItsCostCountedObtained()
+    public void OnAVesselTheAxeBreaksItsWallsNothingIsMarkedAndOnlyWhatAPlanetAllowsIsBuilt()
     {
-        var (w, box) = Jumped("shuttle");
-        int width = w.M.Grid.Width;
-        string hammer = Weapons.Sledgehammer.Item;
-        var engine = Assert.Single(w.M.Grid.Machines, m => Vessels.SalvageOf(m.Kind)?.Kind == "salvageMainEngine");
-        var cost = Machines.Get(engine.Kind).Cost;
-        var before = cost.Select(c => w.M.Knowledge.ObtainedOf(c.Item)).ToList();
-        w.GiveItems(0, (hammer, 1)).Do(new Enter(engine.Cell)).Run();
-        for (int blow = 0; blow < 200 && w.M.Grid.MachineById(engine.Id) != null; blow++)
-            w.Do(new Hew(hammer, engine.Cell % width * 1000 + 500, engine.Cell / width * 1000 + 500, HewTesting.Up)).Run(Weapons.Sledgehammer.Pace);
+        var w = new Scenario(Registry.Wreck with { Known = null });
+        w.Do(new Enter(w.M.Crew.Spawn)).Run();
+        w.GiveItems(0, (Axe, 1));
+        var (_, id) = Visited(w: w);
+        var v = w.On(id);
+        int width = v.Grid.Width, row = Vessels.Margin + (v.Grid.Height - 2 * Vessels.Margin) / 2;
+        // The hero out in space left of the vessel, level with its middle; the first wall of that row.
+        w.Do(new Enter(row * width + Vessels.Margin - 4)).Run();
+        int wall = Enumerable.Range(Vessels.Margin, width - 2 * Vessels.Margin).Select(x => row * width + x).First(c => v.Grid.WallAt(c) != null);
+        w.Do(HewTesting.Dig(w, wall, Axe, surface: id)).Run();
         Assert.Empty(w.Refusals);
-        Assert.Null(w.M.Grid.MachineById(engine.Id));
-        for (int i = 0; i < cost.Count; i++)
-            Assert.Equal(before[i] + cost[i].Count, w.M.Knowledge.ObtainedOf(cost[i].Item));
+        Assert.True(v.Grid.WallAt(wall) == null || v.Building.Cracks.Any(k => k.Cell == wall));
+        Assert.Equal("building.notHere", v.Building.Problem(wall, "structure"));
+        // Out in the space round it: a wall, as on a planet; a machine, never.
+        int space = 10 * width + 10;
+        Assert.Null(v.Building.Problem(space, Placement.Wall(), 0));
+        Assert.Equal("building.notHere", v.Building.Problem(space, new Placement("machine", "crate"), 0));
     }
 
     [Fact]
-    public void AMapWithNoRoomRightOfTheShipRefusesTheJumpAndChangesNothing()
+    public void TheSledgehammerBreaksAVesselsSalvageForItsCostCountedObtained()
     {
-        var w = new Scenario("""
-            #####
-            #...#
-            #####
-            """);
-        w.Do(new Find("shuttle")).Run();
-        string before = w.World.Save();
-        w.Do(new Jump(w.M.Places.Contacts[0].Id)).Run();
-        Assert.Equal("places.noRoom", Assert.Single(w.Refusals).Reason);
-        Assert.Null(w.M.Grid.Reserved);
-        Assert.Single(w.M.Places.Contacts);
-        Assert.Equal(JsonNode.Parse(before)!["slices"]!["grid"]!.ToJsonString(), JsonNode.Parse(w.World.Save())!["slices"]!["grid"]!.ToJsonString());
+        string hammer = Weapons.Sledgehammer.Item;
+        var w = new Scenario(Registry.Wreck);
+        w.Do(new Enter(w.M.Crew.Spawn)).Run();
+        w.GiveItems(0, (hammer, 1));
+        var (_, id) = Visited(w: w);
+        var v = w.On(id);
+        int width = v.Grid.Width;
+        var salvage = v.Grid.Machines.First(m => Vessels.SalvageOf(m.Kind) != null && Machines.Get(m.Kind).Hp <= Weapons.Sledgehammer.Damage);
+        var cost = Machines.Get(salvage.Kind).Cost;
+        var before = cost.Select(c => w.M.Knowledge.ObtainedOf(c.Item)).ToList();
+        w.Do(new Enter(salvage.Cell)).Run();
+        // A blow from inside its top-left cell, straight up: the first thing every ray meets is the pile.
+        w.Do(new Hew(hammer, salvage.Cell % width * 1000 + 500, salvage.Cell / width * 1000 + 500, HewTesting.Up)).Run();
+        Assert.Empty(w.Refusals);
+        Assert.Null(v.Grid.MachineById(salvage.Id));
+        for (int i = 0; i < cost.Count; i++)
+        {
+            Assert.Equal(cost[i].Count, v.Items.Inventory(0).Sum(s => s?.Item == cost[i].Item ? s.Count : 0));
+            Assert.Equal(before[i] + cost[i].Count, w.M.Knowledge.ObtainedOf(cost[i].Item));
+        }
     }
 
     [Fact]
-    public void OffTheShipNothingIsFoundJumpedToNorDismissed()
+    public void OffTheShipNothingIsFoundNorJumpedTo()
     {
         var w = new Scenario(Layout.Parse("..#..").OnPlanet());
-        w.Do(new Find("shuttle")).Do(new Jump(1)).Do(new Dismiss()).Run();
-        Assert.Equal(["places.notAboard", "places.notAboard", "places.notAboard"], w.Refusals.Select(r => r.Reason));
+        w.Do(new Find("shuttle")).Do(new Jump(1)).Run();
+        Assert.Equal(["places.notAboard", "places.notAboard"], w.Refusals.Select(r => r.Reason));
     }
 
     [Fact]
-    public void FindRefusesAClassThereIsNotAndAFullRadarAndJumpAContactNotHeld()
+    public void FindRefusesAClassThereIsNotAndAFullRadarAndJumpAContactNotHeldOrASenderWithNoHero()
     {
         var w = new Scenario(Registry.Wreck);
         w.Do(new Find("nothing")).Run();
@@ -278,48 +198,156 @@ public class PlacesTests
         Assert.Equal("places.full", w.Refusals[^1].Reason);
         w.Do(new Jump(999)).Run();
         Assert.Equal("places.noContact", w.Refusals[^1].Reason);
+        // A peer not in yet: its seat would hold the vessel open with no farewell to close it.
+        w.Do(new Jump(w.M.Places.Contacts[0].Id) { From = 3 }).Run();
+        Assert.Equal("places.noHero", w.Refusals[^1].Reason);
+        Assert.Equal(Vessels.MaxContacts, w.M.Places.Contacts.Count);
+        Assert.Single(w.World.Surfaces);
     }
 
     [Fact]
-    public void ADismissedVesselLeavesNothingAndItsBoxIsBuiltInAgain()
+    public void GoingHomeClosesTheVesselWorldForGoodAndTheNextJumpOpensANewId()
+    {
+        var (w, id) = Visited("shuttle");
+        w.Do(new Transfer(0)).Run();
+        Assert.Empty(w.Refusals);
+        Assert.Equal(0, w.World.SurfaceOf(0));
+        Assert.True(w.World.Surfaces[id].Closed);
+        Assert.Empty(w.World.ModulesOn(id));
+        w.Do(new Transfer(id)).Run();
+        Assert.Equal(World.NoSurface, Assert.Single(w.Refusals).Reason);
+        w.Refusals.Clear();
+        var (_, next) = Visited("shuttle", w);
+        Assert.Equal(id + 1, next);
+    }
+
+    [Fact]
+    public void AFriendComingAfterArrivesAtTheDoorAndTheLastToGoHomeClosesIt()
+    {
+        var (w, id) = Visited("shuttle");
+        w.Do(new Enter(w.M.Crew.Spawn) { From = 1 }).Run();
+        w.Do(new Transfer(id) { From = 1 }).Run();
+        Assert.Empty(w.Refusals);
+        var v = w.On(id);
+        Assert.Equal(v.Crew.Spawn, v.Crew.HeroOf(1)!.Cell);
+        w.Do(new Transfer(0)).Run();
+        Assert.False(w.World.Surfaces[id].Closed);
+        w.Do(new Transfer(0) { From = 1 }).Run();
+        Assert.True(w.World.Surfaces[id].Closed);
+    }
+
+    [Fact]
+    public void AFarewellOnAVesselClosesIt()
+    {
+        var (w, id) = Visited("shuttle");
+        w.Do(new Leave()).Run();
+        Assert.Empty(w.Refusals);
+        Assert.Equal(0, w.World.SurfaceOf(0));
+        Assert.True(w.World.Surfaces[id].Closed);
+    }
+
+    [Fact]
+    public void AHeroDyingOnAVesselWakesAboardAndTheVesselClosesItsBodyWithIt()
     {
         var w = new Scenario(Registry.Wreck);
-        var before = Cells(w);
-        var (_, box) = Jumped(w: w);
-        int width = w.M.Grid.Width;
-        int wall = Enumerable.Range(0, width * w.M.Grid.Height).First(c => box.Contains(c % width, c / width) && w.M.Grid.WallAt(c) != null);
-        w.Do(new Deconstruct(wall, "structure")).Run();
-        w.Do(new Dismiss()).Run();
-        Assert.Empty(w.Refusals);
-        Assert.Null(w.M.Grid.Reserved);
-        Assert.Empty(w.M.Building.Plans);
-        SameOutside(w, before);
-        int corner = box.Top * width + box.Left;
-        Assert.Null(w.M.Grid.PlacementProblem(corner, Placement.Wall()));
-        w.Do(new Dismiss()).Run();
-        Assert.Equal("places.noVessel", Assert.Single(w.Refusals).Reason);
+        w.Do(new Enter(w.M.Crew.Spawn)).Run();
+        w.GiveItems(0, ("scrap", 9));
+        var (_, id) = Visited("shuttle", w);
+        var v = w.On(id);
+        // In a vessel's airless room, its suit all but empty: the next breath starts its last, which passes it out.
+        v.Crew.HeroOf(0)!.Air = 1;
+        w.Run(Content.Crew.BreathEvery);
+        w.Run(Content.Crew.LastBreath);
+        Assert.True(v.Crew.HeroOf(0)!.Out > 0);
+        Assert.False(w.World.Surfaces[id].Closed);
+        w.Run(Content.Crew.PassOut);
+        Assert.Equal(0, w.World.SurfaceOf(0));
+        Assert.NotNull(w.M.Crew.HeroOf(0));
+        Assert.True(w.World.Surfaces[id].Closed);
+        Assert.DoesNotContain(w.M.Items.Inventory(0), s => s?.Item == "scrap");
     }
 
     [Fact]
-    public void AVesselAndTheRadarsContactsSurviveASave()
+    public void AWorldSavedOnAVesselLoadsBackOnItAndOneSavedAfterLoadsItClosed()
     {
-        var (w, box) = Jumped();
+        var (w, id) = Visited();
         w.Do(new Find("shuttle")).Run();
         var contacts = w.M.Places.Contacts.ToList();
-        string before = w.World.Save();
+        string save = w.World.Save();
         w.Reload();
-        Assert.Equal(box, w.M.Grid.Reserved);
+        Assert.Equal(save, w.World.Save());
+        Assert.Equal(id, w.World.SurfaceOf(0));
         Assert.Equal(contacts, w.M.Places.Contacts);
-        Assert.Equal(before, w.World.Save());
+        var v = w.On(id);
+        Assert.NotEmpty(v.Grid.MachinesOf("crate"));
+        Assert.NotNull(v.Crew.HeroOf(0));
+
+        w.Do(new Transfer(0)).Run();
+        save = w.World.Save();
+        var surfaces = JsonNode.Parse(save)!["surfaces"]!.AsArray();
+        Assert.Equal($$"""{"id":{{id}},"kind":"vessel.freighter","seed":{{w.World.Surfaces[id].Seed}},"closed":true}""", surfaces[id - 1]!.ToJsonString());
+        w.Reload();
+        Assert.Equal(save, w.World.Save());
+        Assert.True(w.World.Surfaces[id].Closed);
     }
 
-    /// <summary>The freighter's jump tick on the new game's world, cleared and written, Rooms and the rest after it (generated-vessels).</summary>
+    [Fact]
+    public void TwoWorldsKeptAlikeAcrossAVisitAndItsCloseHashTheSame()
+    {
+        var w = new Scenario(Registry.Wreck);
+        w.Do(new Enter(w.M.Crew.Spawn)).Do(new Find("shuttle")).Run();
+        var copy = new Scenario(Registry.Wreck).Reload(w.World.Save());
+        int contact = w.M.Places.Contacts[^1].Id;
+        Command[][] ticks = [[new Jump(contact)], [], [new Enter(5) { From = 0 }], [new Transfer(0)], []];
+        foreach (var commands in ticks)
+        {
+            w.World.Step(commands);
+            copy.World.Step(commands);
+            Assert.Equal(w.World.Hash(), copy.World.Hash());
+        }
+        Assert.True(copy.World.Surfaces[^1].Closed);
+    }
+
+    /// <summary>
+    /// Whatever heroes do — come in, find, jump, transfer anywhere, leave — no vessel world stays open with nobody on it after a
+    /// tick, and every closed one stays closed (vessel-worlds).
+    /// </summary>
+    [Property(MaxTest = 20)]
+    public void NoVesselWorldIsLeftOpenWithNobodyOnIt(PositiveInt seed)
+    {
+        var w = new Scenario(Registry.Wreck);
+        var rng = new Rng(new RngState { S = (uint)seed.Get });
+        var closed = new HashSet<int>();
+        for (int tick = 0; tick < 60; tick++)
+        {
+            int peer = (int)rng.Below(3);
+            Command c = rng.Below(6) switch
+            {
+                0 => new Enter((int)rng.Below(400)) { From = peer },
+                1 => new Find(rng.Below(2) == 0 ? "shuttle" : "freighter") { From = peer },
+                2 or 3 => new Jump(w.M.Places.Contacts.Count > 0 ? w.M.Places.Contacts[^1].Id : 1) { From = peer },
+                4 => new Transfer((int)rng.Below((uint)w.World.Surfaces.Count + 1)) { From = peer },
+                _ => new Leave { From = peer },
+            };
+            w.World.Step([c]);
+            foreach (var s in w.World.Surfaces.Skip(1))
+            {
+                bool someone = Enumerable.Range(0, 3).Any(p => w.World.SurfaceOf(p) == s.Id);
+                Assert.True(s.Closed || someone, $"surface {s.Id} open with nobody on it at tick {tick}");
+                if (closed.Contains(s.Id)) Assert.True(s.Closed, $"surface {s.Id} opened again");
+                if (s.Closed) closed.Add(s.Id);
+            }
+        }
+    }
+
+    /// <summary>The freighter's jump tick on the new game's world: its world opened, its vessel written, Rooms and the rest after it.</summary>
     [Fact]
     public void AFreightersJumpTickStaysUnderItsCeiling()
     {
-        // Measured 33–70 ms on a desk (the first with the JIT warming): a hitch of a few frames once per jump.
+        // A hitch of a few frames once per visit, as a load is.
         const int CeilingMs = 200;
-        var (w, _) = Jumped();
+        var (w, _) = Visited();
+        w.Do(new Transfer(0)).Run();
         w.Do(new Find("freighter")).Run();
         w.Do(new Jump(w.M.Places.Contacts[^1].Id));
         var clock = Stopwatch.StartNew();

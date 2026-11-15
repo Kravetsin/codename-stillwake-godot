@@ -170,6 +170,8 @@ public class DescentTests
         public bool CanOpen => canOpen;
         public bool Landed => false;
         public int OpenPlanet() => throw new NotSupportedException();
+        public uint Seed => 0;
+        public int Visit(int peer, string kind, uint seed) => throw new NotSupportedException();
     }
 
     [Fact]
@@ -491,7 +493,7 @@ public class DescentTests
     {
         int pods = 0, fuel = 0;
         var (flying, seated) = (new List<int>(), new List<int>());
-        foreach (var s in w.World.Surfaces)
+        foreach (var s in w.World.Surfaces.Where(x => !x.Closed))
         {
             var m = w.On(s.Id);
             flying.AddRange(m.Landing.Flights.Select(f => f.Peer));

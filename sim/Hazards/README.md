@@ -31,8 +31,7 @@ here unchanged. Magnetic flares break machines ([magnetic-flare](../../docs/deci
   interval is drawn again.
 - **Open to the drift** (debris drifts right to left): in each row of what is built, inside the zone, the first thing
   met walking left from the right, when it is a wall that breaks (`HitProblem` none). A door, window, ladder or machine
-  met first shields its row; a debris net (`Catches`) does not: the aim passes it to the wall it hangs on. A vessel's
-  box is passed over: no vessel shields the ship (generated-vessels).
+  met first shields its row; a debris net (`Catches`) does not: the aim passes it to the wall it hangs on.
 - **`Warning` ticks later it strikes** (3 s), if a breakable wall still stands there: Building's `Burst` from it of
   `Charge(power)` (`PerPower` 170 a point: 340 to 1190), within the shower's `Reach` (4), `Spoils.Lost`. The one burst rule
   (sim/Building README): a cell costs `Damage.Step` and its strength left, in full (no player's

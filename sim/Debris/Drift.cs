@@ -14,8 +14,6 @@ public sealed partial class DebrisModule
     private (int Left, int Right, int Top, int Bottom)? _hull;
     /// <summary>The grid's <c>Version</c> <see cref="_hull"/> was found at: found again only when it moves.</summary>
     private int _hullAt = int.MinValue;
-    /// <summary>The vessel's box <see cref="_hull"/> was found without: a new one finds it again whole.</summary>
-    private Box? _hullWithout;
     /// <summary>Where each hero on the grid is this tick, by its reported cell, in id order; refilled every tick.</summary>
     private readonly List<(int X, int Y)> _heroes = [];
 
@@ -43,19 +41,14 @@ public sealed partial class DebrisModule
     {
         if (_grid.Version == _hullAt) return _hull;
         // Followed by the grid's log (0051): only a structure cell emptied on the box's edge makes it look again, and then at that edge's lines.
-        var changes = _hullAt == int.MinValue || _grid.Reserved != _hullWithout ? null : _grid.ChangedSince(_hullAt);
+        var changes = _hullAt == int.MinValue ? null : _grid.ChangedSince(_hullAt);
         _hull = changes == null ? HullOf() : Follow(_hull, changes);
-        (_hullAt, _hullWithout) = (_grid.Version, _grid.Reserved);
+        _hullAt = _grid.Version;
         return _hull;
     }
 
-    /// <summary>Whether <paramref name="cell"/> holds a structure of the ship's: any but a vessel's (generated-vessels), which the stream passes by.</summary>
-    private bool IsHull(int cell)
-    {
-        if (_grid.StructureLayer[cell] == Structure.Empty) return false;
-        int width = _grid.Width;
-        return _grid.Reserved is not { } box || !box.Contains(cell % width, cell / width);
-    }
+    /// <summary>Whether <paramref name="cell"/> holds a structure: the ship's hull, which the stream passes by.</summary>
+    private bool IsHull(int cell) => _grid.StructureLayer[cell] != Structure.Empty;
 
     /// <summary><paramref name="hull"/> after <paramref name="changes"/>: grown over every structure come, its edges moved in past lines left empty.</summary>
     private (int Left, int Right, int Top, int Bottom)? Follow((int Left, int Right, int Top, int Bottom)? hull, IReadOnlyList<CellChange> changes)

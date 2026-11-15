@@ -8,7 +8,7 @@ public static partial class En
         ["places.noClass"] = "No such ship",
         ["places.full"] = "The radar holds no more contacts",
         ["places.noContact"] = "No such contact on the radar",
-        ["places.noRoom"] = "No room beside the ship",
-        ["places.noVessel"] = "No ship lies beside ours",
+        ["places.noHero"] = "Come aboard first",
+        ["places.seated"] = "Get out of the drop pod first",
     };
 }

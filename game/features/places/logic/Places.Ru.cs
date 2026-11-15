@@ -8,7 +8,7 @@ public static partial class Ru
         ["places.noClass"] = "Нет такого корабля",
         ["places.full"] = "Радар больше не вмещает целей",
         ["places.noContact"] = "Такой цели на радаре нет",
-        ["places.noRoom"] = "Рядом с кораблём нет места",
-        ["places.noVessel"] = "Рядом с нашим нет другого корабля",
+        ["places.noHero"] = "Сначала поднимитесь на борт",
+        ["places.seated"] = "Сначала выйдите из посадочной капсулы",
     };
 }

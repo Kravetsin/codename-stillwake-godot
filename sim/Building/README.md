@@ -16,7 +16,7 @@
 | `State.cs` | The saved slice: `Plan`, `Crack`, `Repairing`, `BuildingState`. |
 
 - **Depends on:** `Grid`, `Items` (queries, ops); `Crew` (`Heroes`; `Shock`, `Loot`, `Works`); `Power`
-  (`Unplug`, `Plug`; `IsBroken`, `Mend`); `Research` (`Knows`); `Crafting` (`Queue`, `Scrap`); `Pipes` (`SeatProblem`). Creatures uses `ShotTakes`, `Surplus`, `Hit`, `Burst`, Hazards `Burst`; Places, `Wipe`.
+  (`Unplug`, `Plug`; `IsBroken`, `Mend`); `Research` (`Knows`); `Crafting` (`Queue`, `Scrap`); `Pipes` (`SeatProblem`). Creatures uses `ShotTakes`, `Surplus`, `Hit`, `Burst`, Hazards `Burst`.
 - **State** (`BuildingState`, all saved): `Plans` in order made, each with `Progress` ticks and, for a blueprint,
   `Delivered` stacks in first-given order; `NextPlanId`; `Cracks`, sorted by cell (`Crack(Cell, Damage, At, Back)`);
   `Felled` growths' cells, ascending; `Clock`; `Instant`; `Repairs` paid, by machine. Derived (`Flora.cs`): growths grown and
@@ -90,7 +90,7 @@
 - A crack lies only on what breaks, damage above 0 and below its strength, one a cell and layer, by cell.
   A wall broken yields at most once.
 - After derivation every standing growth's hold is there; `Plants` and `Felled` are disjoint and together what grew.
-- Items are conserved, but what drifts off the grid or a `Wipe` takes.
+- Items are conserved, but what drifts off the grid or a closed vessel world erases.
 
 ## Deliberately not handled
 

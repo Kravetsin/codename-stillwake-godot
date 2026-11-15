@@ -274,21 +274,6 @@ public class BlastChargeTests
     }
 
     [Fact]
-    public void InAVesselItBurstsOnItsHullInFull()
-    {
-        var w = new Scenario(Registry.Wreck);
-        w.Do(new Places.Find("shuttle")).Run();
-        w.Do(new Places.Jump(w.M.Places.Contacts[^1].Id)).Run();
-        var box = w.M.Grid.Reserved!.Value;
-        int width = w.M.Grid.Width;
-        int hull = Enumerable.Range(box.Top, box.Bottom - box.Top + 1).Select(y => y * width + box.Left).First(c => w.M.Grid.WallAt(c) != null);
-        w.Do(new Crew.Enter(hull + 5)).GiveItems(0, (Charge, 1)).Wields(Charge).Run();
-        var end = Thrown(w, new Fire(Charge, (hull % width + 3) * Unit + Unit / 2, hull / width * Unit + Unit / 2, Spec.Headings.Turn / 2));
-        Assert.True(end.Burst >= 0);
-        Assert.True(w.M.Grid.WallAt(hull) == null || CrackAt(w, hull) > 0);
-    }
-
-    [Fact]
     public void ThrownAtTheLifepodItBurstsShortOfIt()
     {
         // The pod with a wall flush behind it: a charge that flew into the pod ended in it, bursting nowhere.
