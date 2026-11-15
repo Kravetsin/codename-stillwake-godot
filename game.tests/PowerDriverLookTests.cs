@@ -39,11 +39,11 @@ public class PowerDriverLookTests
     }
 
     [Fact]
-    public void ItIsDrawnToTheSameFistAsTheScrewdriverAsThePickWasBesideIt()
+    public void TheBuildersAreDrawnAtTheirPickedSizes()
     {
-        // The pick's 16 by 13 beside the screwdriver's 17 by 5, both shrunk alike to the fist (hero.js's Hand).
+        // Drawn raw (builders-raw); the driver 1.4 times the drawn one, which the fist hid (the user, 2026-11-15).
         Assert.Equal((10, 3), Png.SizeOf(HeldLook.Screwdriver.Picture));
-        Assert.Equal((10, 8), Png.SizeOf(HeldLook.PowerDriver.Picture));
+        Assert.Equal((14, 11), Png.SizeOf(HeldLook.PowerDriver.Picture));
     }
 
     /// <summary>What a <see cref="BiteLoop"/> says over <paramref name="frames"/> frames of 1/60 s, at work or not.</summary>

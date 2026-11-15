@@ -92,5 +92,5 @@ engine's (`engine.js`), per world pixel. `wash.js` replaces `bake`; a picture dr
 - A `top_*` picture has its ground line on row 16: rows above stand on the cell above, rows below lie over the block (`front`).
 - A cave picture keeps the rows its logical one uses (`LOGICAL` in the page), or its plant floats. Moss is cut at its block's edges along a
   run, px 4 and 20 of 24: every variant's cross-section matches there, its torn end past them.
-- A tool in the fist (about 4 px) is drawn to it: `hero.js` shrinks the drivers' paths by `Hand` (0.6), the pen kept. A held
-  tool's `icons/` copy is 384 px long (driver-icons).
+- Every held tool is raw ([builders](../../docs/decisions/2026-11-15-builders-raw.md)); its `icons/` copy is 384 px long
+  (driver-icons).
