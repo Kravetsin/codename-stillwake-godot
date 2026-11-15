@@ -219,13 +219,14 @@ public partial class Figure : Node2D
     private const int BeamsMost = 8;
     /// <summary>
     /// Working a plan, the screwdriver in the front hand (0030), the arm reaching out a share
-    /// <see cref="WorkReach"/> of its length, the tool held at one angle as a hand holds it. Each
+    /// <see cref="WorkReach"/> of its length toward it, at most <see cref="WorkTilt"/> radians above or below
+    /// level, the tool held level, pointing ahead (builders-raw: a tool pointed up the arm read as askew). Each
     /// <see cref="TwistMs"/> the wrist turns for <see cref="TurnShare"/> of it — the handle's ribs rolling
     /// on three steps, the knuckles coming over so the hand, seen from the side, rises
     /// <see cref="TwistLift"/> pixels and presses <see cref="TwistPush"/> on — then lets go and turns back
     /// to grip again, the hand sinking.
     /// </summary>
-    private const double TwistMs = 900, TurnShare = 0.6, TwistLift = 1.5, TwistPush = 0.6, WorkReach = 0.85;
+    private const double TwistMs = 900, TurnShare = 0.6, TwistLift = 1.5, TwistPush = 0.6, WorkReach = 0.85, WorkTilt = 0.5;
     /// <summary>The builder at work (<see cref="HeldLook.Twist"/>, <see cref="HeldLook.Driven"/>): a frame of its strip, by its grip.</summary>
     private readonly Sprite2D _tool;
     /// <summary>What the front fist holds, the fire axe, the harpoon, the drill or the screwdriver, in the picture of its look (<see cref="HeldLook"/>).</summary>
@@ -1319,9 +1320,9 @@ public partial class Figure : Node2D
         bool driven = working && Spinning && builder.Driven != null;
         if (working && _workAt is { } plan)
         {
-            // Toward the plan, from the shoulder.
+            // Toward the plan, from the shoulder, the arm lowered or raised no more than WorkTilt; the tool stays level.
             var (dx, dy) = FromShoulder(plan);
-            work = Math.Atan2(dy, dx);
+            work = Math.Clamp(Math.Atan2(dy, dx), -WorkTilt, WorkTilt);
             double cycle = _workMs % TwistMs / TwistMs;
             twist = Math.Min(1, cycle / TurnShare);
             // Rising as the wrist turns over, sinking as it turns back to grip again; held still while the motor turns it.
@@ -1431,7 +1432,7 @@ public partial class Figure : Node2D
         {
             var hand = Rig.EndOf(frontArm, Rig.Arm);
             _tool.Position = new Vector2((float)hand.X, (float)(-Rig.Shoulder + hand.Y));
-            _tool.Rotation = (float)work;
+            _tool.Rotation = 0;
             (_tool.Texture, _tool.Offset) = (HeldArt.Of(driven ? builder.Driven! : builder.Twist!, []), -new Vector2((float)builder.Grip.X, (float)builder.Grip.Y));
             // Turned by its motor, its frames in turn as a drill's spin; by the wrist, three steps of the ribs a turn, held on the way back:
             // they roll on one way only.
