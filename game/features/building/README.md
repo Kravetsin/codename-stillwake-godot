@@ -13,7 +13,7 @@ The plan, its menu and the hand at work (0022, 0030). Game rules stay in `sim/Bu
 | `HintChip.cs` | The pointer's hint. |
 | `logic/PlanHand.cs` | Card in hand and plan out, in step with `Ui.Hand`, `Ui.OverlayOn`; the focused layer. |
 | `logic/Drag.cs` | A drag's cells, laid a stamp at a time, and what the card or removal would do in each. |
-| `BuildingView.cs` | Plans and marks drawn, the tips, the buttons, the pipette, plan work. |
+| `BuildingView.cs` | Plans and marks drawn, tips, buttons, pipette, plan work. |
 | `logic/SquareTip.cs` | The power driver's square's cost. |
 | `logic/Sliver.cs` | Glow too thin to draw. |
 | `BuildGlow.cs` | Work's light (0075): sparks, glints, molten spot, cut, sweep. |
@@ -30,7 +30,7 @@ The plan, its menu and the hand at work (0022, 0030). Game rules stay in `sim/Bu
 
 Shared: `game/shared/` (`Ui`, `Hands`, `PointerTip`, `Tablet`, `TabletMotion`, `ScreenGlow`), `game/i18n/logic/En.cs`,
 `game/render/` (`Buttons`, `WorldButtons`, `BlueprintArt`, `PlanTiles`, `PlanCut`, `BuiltParts`, `Blueprint`,
-`PlanOutline`, `PlanShapes`, `MarchingDashes`, `Sketch`). Files in `logic/` are Godot-free and tested in `game.tests/`.
+`PlanOutline`, `PlanShapes`, `MarchingDashes`, `Sketch`). `logic/` is Godot-free, tested in `game.tests/`.
 
 ## Rules
 
@@ -38,8 +38,8 @@ Shared: `game/shared/` (`Ui`, `Hands`, `PointerTip`, `Tablet`, `TabletMotion`, `
   elsewhere puts the plan away. A drag ends with the card that began it.
 - **The menu is content** (0114): a card is a row with a `MenuSlot` (machine, build, a material's wall and back wall),
   on its tab by `Order`; `MenuTabs.All` orders the tabs (`Tools.TabsOf`). Every built material has both (0077, 0084,
-  0108; no bedrock). A card not known is not shown, nor a tab with none but the ship's (`ShownEmpty`), in the front only. Walls have no shape to
-  turn (0106); pipes are laid by piping (0109).
+  0108; no bedrock). A card not known is not shown, nor a tab with none but the ship's (`ShownEmpty`) where its cards
+  can be built: front, ship. Walls have no shape to turn (0106); piping lays pipes (0109).
 - **Left plans, right removes in the focused layer** (0108, 0110, `Tools.ActOf`): the plan has a focus, the front
   (walls, machines, doors, hatches, ladders, floors) or the back walls. A card picked sets its own
   (`FocusOf`); the middle button or a layer's `PlanKey` turns it, each layer keeping its card in hand. Menu and search show the
@@ -85,8 +85,7 @@ Shared: `game/shared/` (`Ui`, `Hands`, `PointerTip`, `Tablet`, `TabletMotion`, `
   rest the ghost. No bars. No node, material or shader parameter a plan (`PlanCut`, `BuiltParts`).
 - **A mark** (0064) keeps its own picture in red dashes and turns into its red ghost from the top as worked.
 - **A repair** (magnetic-flare): drawn as its machine's blueprint being built, by `RepairProgress`.
-- **Work's light** (0075, 0094, `BuildGlow`, `Tools.SparksOf`): sparks face the nearest hero, alike on all
-  peers; a molten spot, smoke, shimmer; the cut glows; swept when done. The
+- **Work's light** (0075, 0094, `BuildGlow`, `Tools.SparksOf`): sparks alike on all peers; a molten spot, smoke, shimmer; the cut glows; swept when done. The
   ratchet there; by a power driver, its motor (`Ui.Driven`).
 - **Digging** (0077, 0079, damage-looks): a fault's stage is its share of strength; a hit's look is the crew's (0094);
   a breakable machine cracks as a wreck (pile-crack-net); a piece's crack and dust span its cells (one-damage-rule).

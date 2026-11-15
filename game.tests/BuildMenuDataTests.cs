@@ -28,15 +28,17 @@ public class BuildMenuDataTests
     [Fact]
     public void ShowsTheShipsTabWithNoCardButNoOtherTabWithNone()
     {
-        Assert.True(Tools.Shown(new Tab(MenuTabs.Ship, []), Focus.Front));
-        Assert.False(Tools.Shown(new Tab(MenuTabs.Storage, []), Focus.Front));
-        Assert.True(Tools.Shown(Tools.Tabs.Single(t => t.Id == MenuTabs.Storage), Focus.Front));
+        Assert.True(Tools.Shown(new Tab(MenuTabs.Ship, []), Focus.Front, Surfaces.Ship));
+        Assert.False(Tools.Shown(new Tab(MenuTabs.Storage, []), Focus.Front, Surfaces.Ship));
+        Assert.True(Tools.Shown(Tools.Tabs.Single(t => t.Id == MenuTabs.Storage), Focus.Front, Surfaces.Ship));
     }
 
     [Fact]
-    public void TheBackWallsMenuHasNoEmptyShipsTab()
+    public void NoEmptyShipsTabWhereNoneOfItsCardsCouldBeBuilt()
     {
-        Assert.False(Tools.Shown(new Tab(MenuTabs.Ship, []), Focus.Back));
+        // The back walls' menu, and a planet's.
+        Assert.False(Tools.Shown(new Tab(MenuTabs.Ship, []), Focus.Back, Surfaces.Ship));
+        Assert.False(Tools.Shown(new Tab(MenuTabs.Ship, []), Focus.Front, PlanetTypes.First));
     }
 
     [Fact]
