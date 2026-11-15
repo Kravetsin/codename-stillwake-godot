@@ -179,7 +179,7 @@ public sealed class TreeScenario : DevScenario
     public override void Attach(DevContext c) => c.Add(new TreeDemo(c.M));
 }
 
-[Dev("--board", "the board on the tablet, blank or with =first, =near, =burst, =circuit, =late, =bought or =search seeded (BoardDemo); with --manual, played by hand", Shape = DevShape.Either)]
+[Dev("--board", "the board on the tablet, blank or with =first, =near, =burst, =circuit, =late, =bought, =search or =tools seeded (BoardDemo); with --manual, played by hand", Shape = DevShape.Either)]
 public sealed class BoardScenario : DevScenario
 {
     public override Layout? Map => Registry.Wreck;

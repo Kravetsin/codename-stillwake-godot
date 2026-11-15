@@ -486,7 +486,6 @@ public sealed class BoardPage : ITabletPage
         float icon = words ? Icon * zoom : HalfWide * 2 * zoom * 0.75f;
         view.Picture.Position = new Vector2(-icon / 2, -icon / 2 - (words ? PictureUp * zoom : 0));
         view.Picture.Size = new Vector2(icon, icon);
-        view.Picture.TextureFilter = view.Show != BoardShow.Note || zoom < 1 ? CanvasItem.TextureFilterEnum.Linear : CanvasItem.TextureFilterEnum.Nearest;
         view.Name.LabelSettings.FontSize = Math.Max(8, Mathf.RoundToInt(NameSize * zoom));
         view.Name.Position = new Vector2(-NameWide / 2, NameTop) * zoom;
         view.Name.Size = new Vector2(NameWide, NameTall) * zoom;
@@ -598,7 +597,6 @@ public sealed class BoardPage : ITabletPage
         view.LackPicture = null;
         if (what == null) return;
         view.LackPicture = _strip.Picture(what, Mathf.RoundToInt(LackPicture));
-        view.LackPicture.TextureFilter = CanvasItem.TextureFilterEnum.Linear;
         view.LackPicture.SizeFlagsVertical = Control.SizeFlags.ShrinkCenter;
         view.Lack.AddChild(view.LackPicture);
         _sizedAt = null;
