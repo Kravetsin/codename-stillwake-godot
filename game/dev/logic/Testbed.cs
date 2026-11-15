@@ -108,7 +108,8 @@ public static class Testbed
     /// biofuel in its tank, cabled to the bank, and a lamp cabled to it; past the lamp, cabled on from it and unserved by drones, the fermenter,
     /// biomass in it, and the biofuel generator, biofuel in its slot, lit while the bank takes in (power-chain); past them the treadmill
     /// wheel, cabled to the generator, its top through room one's floor, so the bay is high enough for it; room one's top corners
-    /// walled, for its one vaporizer's air to reach every cell; a debris net hung outside on the bay's right wall. Sixty cells of space past the airlock, room for a jetpack to fly. Drawn a character a 16 px cell and doubled (0104):
+    /// walled, for its one vaporizer's air to reach every cell; a debris net hung outside on the bay's right wall. Under room two past the net, a hangar open to space: the crew shuttle on a
+    /// launch platform its whole length, its shaft open below, its right side open to space, so it is no room. Sixty cells of space past the airlock, room for a jetpack to fly. Drawn a character a 16 px cell and doubled (0104):
     /// a drawn pipe meets only even cells, so each vaporizer's air leaves its odd output through a pipe under its top-right block,
     /// and each tank's liquid its odd output on its right through a pipe under the block past it.
     /// </summary>
@@ -123,9 +124,13 @@ public static class Testbed
             "  #.OOOQQTTGGIIRRDWW.FF.MM.EE.YYggGG.yyAACBB&&DZZ.D",
             "  #.OOOKKTTGGVKK.DWW.FF.MM.EE.YYggGGKKVAACBB&&DZZ.D",
             "  #o#########www###############################__##",
-            "  #XXXL.uuqqqwww#n",
-            "  #XXX..uuqqqwww#n",
-            "  ###############n",
+            "  #XXXL.uuqqqwww#n #^^^^^^^^^^^^",
+            "  #XXX..uuqqqwww#n #^^^^^^^^^^^^",
+            "  ###############n #^^^^^^^^^^^^",
+            "                   #^^^^^^^^^^^^",
+            "                   #^^^^^^^^^^^^",
+            "                   #____________#",
+            "",
         ],
         [
             "",
