@@ -50,7 +50,7 @@ public partial class HeroView
             var hero = seen.Hero;
             bool out_ = (crew.HeroOf(id)?.Out ?? 0) > 0;
             shown.Figure.Visible = m.Landing.SeatOf(id) == null && m.Landing.FlightOf(id) == null;
-            var (helmet, body, cape, _) = Suits.DressedAs(m.Items, m.Players, id);
+            var (helmet, body, cape, effect) = Suits.DressedAs(m.Items, m.Players, id);
             shown.Figure.Wear(Suits.Of(m.Players, id), helmet, body, m.Players.LookOf(id));
             shown.Figure.Suit = SuitGlow.Of(crew, m.Items, id, _client.World.Tick);
             shown.Figure.Signal = crew.SignalOf(id);
@@ -91,6 +91,7 @@ public partial class HeroView
             shown.Figure.HeadLamp = m.Items.Equipped(id, Content.HelmetLamp.Item);
             shown.Figure.Scanner = m.Items.Equipped(id, Content.Helmet.Scanner);
             shown.Figure.CapeWorn = cape;
+            shown.Figure.EffectSkin = SkinEffects.Of(effect);
             shown.Figure.FloorRoom = FloorRoom(m.Grid, hero);
             shown.Figure.Room = RoomOf(ship, hero);
             shown.Figure.Footing = FootingOf(m, hero, shown.Figure.Footing);

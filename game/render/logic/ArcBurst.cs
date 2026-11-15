@@ -9,19 +9,8 @@ namespace Stillwake.Game.Render;
 /// in a burst of bolts torn off its trailing edge over a few frames, mostly short, now and then a long forked one, left in the
 /// world where they tore. It lives in one <see cref="EffectArea"/>, never at points, stepped at 60 Hz as the page was.
 /// </summary>
-public sealed class ArcBurst(EffectArea area, Func<double>? random = null)
+public sealed class ArcBurst(EffectArea area, Func<double>? random = null, ArcNumbers? numbers = null)
 {
-    /// <summary>Fizz sparks a second at rest and what a full charge adds; their length, world px, and life, ms.</summary>
-    public const double FizzPerSecond = 20, FizzCharged = 40;
-    public static readonly (double From, double To) SparkPx = (0.35, 1.25), SparkMs = (35, 90), SparkAlpha = (0.4, 0.7);
-    /// <summary>World px the blade travels for a whole unit of charge; below <see cref="StillPx"/> a second it leaks <see cref="Leak"/> a frame.</summary>
-    public const double PxPerCharge = 24, StillPx = 4, Leak = 0.985;
-    /// <summary>The thresholds a charge lets go at, drawn anew each time; the first.</summary>
-    public static readonly (double From, double To) Threshold = (0.45, 1.55);
-    public const double FirstThreshold = 0.8;
-    /// <summary>A torn bolt's length in world px, a power law cut to this range with this tail; forked from <see cref="ForkPx"/>; its life, ms.</summary>
-    public static readonly (double From, double To) BoltPx = (1, 12), BoltMs = (260, 640);
-    public const double Tail = 1.2, ForkPx = 5.5;
     /// <summary>How far the blade's middle may move in a frame before it counts as a jump, not a motion, world px.</summary>
     public const double JumpPx = 10;
 
@@ -34,9 +23,11 @@ public sealed class ArcBurst(EffectArea area, Func<double>? random = null)
     public readonly record struct Torn((double X, double Y) Root, (double X, double Y) Way, double Px, double Ms, bool Forked);
 
     private readonly Func<double> _random = random ?? Random.Shared.NextDouble;
+    private readonly ArcNumbers _n = numbers ?? ChargeLook.Arc.Numbers;
     private readonly (double X, double Y) _middle = MiddleOf(area);
     private (double X, double Y)? _was;
-    private double _owedMs, _charge, _threshold = FirstThreshold, _speed;
+    private double _owedMs, _charge, _speed;
+    private double _threshold = (numbers ?? ChargeLook.Arc.Numbers).FirstThreshold;
     private (double X, double Y) _way = (1, 0);
     private int _queued;
 
@@ -71,22 +62,22 @@ public sealed class ArcBurst(EffectArea area, Func<double>? random = null)
     /// <summary>One 60 Hz frame: the charge built or leaking, a burst queued and let go unevenly, the fizz.</summary>
     private void Frame(Func<(double X, double Y), (double X, double Y)> held, List<Spark> sparks, List<Torn> torn)
     {
-        _charge += FrameMs / 1000 * _speed / PxPerCharge;
-        if (_speed < StillPx) _charge *= Leak;
+        _charge += FrameMs / 1000 * _speed / _n.PxPerCharge;
+        if (_speed < _n.StillPx) _charge *= _n.Leak;
         if (_charge >= _threshold)
         {
             _queued += 1 + (int)Math.Floor(_random() * 2.2 + _charge * 1.6);
             _charge -= _threshold;
-            _threshold = Between(Threshold);
+            _threshold = Between(_n.Threshold);
         }
         while (_queued > 0 && _random() < 0.55)
         {
             _queued--;
             if (area.Edge.Count > 0) torn.Add(Tear(held));
         }
-        double rate = FizzPerSecond + FizzCharged * Charged;
+        double rate = _n.FizzPerSecond + _n.FizzCharged * Charged;
         for (int n = (int)Math.Floor(rate * FrameMs / 1000 + _random()); n > 0; n--)
-            sparks.Add(new Spark(area.AnyInside(_random), _random() * Math.Tau, Between(SparkPx), Between(SparkMs), Between(SparkAlpha)));
+            sparks.Add(new Spark(area.AnyInside(_random), _random() * Math.Tau, Between(_n.SparkPx), Between(_n.SparkMs), Between(_n.SparkAlpha)));
     }
 
     /// <summary>A bolt off the trailing edge: the best of three outline places by how far it faces back, flung back and out.</summary>
@@ -104,15 +95,8 @@ public sealed class ArcBurst(EffectArea area, Func<double>? random = null)
             if (score > best) (best, root, outward) = (score, at, n);
         }
         var way = Unit(-_way.X * 0.7 + outward.X * 0.5, -_way.Y * 0.7 + outward.Y * 0.5);
-        double turn = (_random() - 0.5) * 1.2, c = Math.Cos(turn), s = Math.Sin(turn), px = LengthOf(_random());
-        return new Torn(root, (way.X * c - way.Y * s, way.X * s + way.Y * c), px, Between(BoltMs), px >= ForkPx);
-    }
-
-    /// <summary>A torn bolt's length for a draw <paramref name="u"/> (0 to 1): a power law cut to <see cref="BoltPx"/>, most short, a few long.</summary>
-    public static double LengthOf(double u)
-    {
-        double k = 1 - Math.Pow(BoltPx.From / BoltPx.To, Tail);
-        return BoltPx.From / Math.Pow(1 - u * k, 1 / Tail);
+        double turn = (_random() - 0.5) * 1.2, c = Math.Cos(turn), s = Math.Sin(turn), px = _n.LengthOf(_random());
+        return new Torn(root, (way.X * c - way.Y * s, way.X * s + way.Y * c), px, Between(_n.BoltMs), px >= _n.ForkPx);
     }
 
     private double Between((double From, double To) range) => range.From + (range.To - range.From) * _random();

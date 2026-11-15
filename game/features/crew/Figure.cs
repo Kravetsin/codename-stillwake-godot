@@ -737,10 +737,14 @@ public partial class Figure : Node2D
     /// <summary>The drill's light and arcs on the held stage, made with it the first time a drill runs in the hand.</summary>
     private DrillLight? _drillLight;
     private SpearLight? _spearLight;
-    /// <summary>The held blade's charge (<see cref="BladeCharge"/>), made the first time one is held; the parts its area was read from, and the area.</summary>
+    /// <summary>The held blade's charge (<see cref="BladeCharge"/>), made anew whenever its look changes; the parts its area was read from, its look, and the area.</summary>
     private BladeCharge? _charge;
     private HeldParts? _chargeParts;
+    private ChargeLook? _chargeLook;
     private EffectArea? _chargeArea;
+
+    /// <summary>How the hero's effect skin's charge looks (skins), on any struck blade held without an arc module; none for no skin.</summary>
+    public ChargeLook? EffectSkin { get; set; }
     private Func<(double X, double Y), Vector2>? _heldAt;
 
     private readonly bool _own;
@@ -1639,17 +1643,21 @@ public partial class Figure : Node2D
         // Its stage made only once a drill runs or a gun charges in this hand: a body, a seated hero or the title's figures never need one.
         if (crackling != null && _drillLight == null && IsInsideTree()) _drillLight = new DrillLight(Held.Glims, Held.Flares, Held.Bolts);
         _drillLight?.Step(crackling, drill ? _spin : Charge, _heldAt ??= HeldAt, elapsedMs);
-        // A struck blade with a charge fizzes and tears bolts off as it moves: today the arc spear's, its module's crackle box.
-        var charged = struckHeld ? PartsOf(item!) : null;
-        if (charged is not { Crackles.Count: > 0 }) charged = null;
-        if (charged != _chargeParts)
-            (_chargeParts, _chargeArea) = (charged, charged is { } on ? HeldArt.AreaOf(on.Look.Picture, on.Layers, on.Crackles[0]) : null);
-        if (_chargeArea != null && _charge == null && IsInsideTree()) _charge = new BladeCharge(SpearLight.Tint, SpearLight.Core, BoltTint.Violet);
+        // A struck blade with a charge fizzes and tears bolts off as it moves: a fitted arc module's, else the effect skin's (ChargeOn).
+        var blade = struckHeld ? PartsOf(item!) : null;
+        var on = blade != null ? ChargeOn.Of(blade, EffectSkin) : null;
+        if (on == null) blade = null;
+        if (blade != _chargeParts || !ReferenceEquals(on?.Look, _chargeLook))
+        {
+            (_chargeParts, _chargeLook) = (blade, on?.Look);
+            _chargeArea = on is { } at ? HeldArt.AreaOf(blade!.Look.Picture, blade.Layers, at.Box) : null;
+        }
+        if (on is { } now && !ReferenceEquals(_charge?.Look, now.Look) && IsInsideTree()) _charge = new BladeCharge(now.Look);
         _charge?.Step(elapsedMs, _chargeArea != null ? _heldAt ??= HeldAt : null, _chargeArea, Held);
         // The spear's own (spear-effects): plain, its thrust bends the air; with the arc, the arc runs down its cable.
         bool spear = inHand && Wields == Stillwake.Content.Weapons.Spear.Item;
         if (spear && _spearLight == null && IsInsideTree()) AddChild(_spearLight = new SpearLight());
-        _spearLight?.Step(elapsedMs, spear ? _heldAt ??= HeldAt : null, jabMs, spear && _chargeArea != null, Held);
+        _spearLight?.Step(elapsedMs, spear ? _heldAt ??= HeldAt : null, jabMs, spear && ReferenceEquals(_chargeLook, ChargeLook.Arc), Held);
     }
 
     /// <summary>

@@ -561,7 +561,7 @@ public partial class HeroView : Node2D
         _ui.Driven = [.. _shownOthers.Values.Select(o => o.Driver).Append(_driverHeard).Where(d => d.Hum.Quiets).Select(d => (d.At.X, d.At.Y))];
         drawn = drawn with { Facing = _current.Facing };
         double look = passedOut ? 0 : Poses.LookOf(_current, pointer);
-        var (helmet, body, cape, _) = Suits.DressedAs(m.Items, m.Players, client.Id);
+        var (helmet, body, cape, effect) = Suits.DressedAs(m.Items, m.Players, client.Id);
         _figure.Wear(Suits.Of(m.Players, client.Id), helmet, body, m.Players.LookOf(client.Id));
         _figure.Suit = SuitGlow.Of(m.Crew, m.Items, client.Id, client.World.Tick);
         _figure.Signal = m.Crew.SignalOf(client.Id);
@@ -569,6 +569,7 @@ public partial class HeroView : Node2D
         _figure.HeadLamp = m.Items.Equipped(client.Id, Content.HelmetLamp.Item);
         _figure.Scanner = m.Items.Equipped(client.Id, Content.Helmet.Scanner);
         _figure.CapeWorn = cape;
+        _figure.EffectSkin = SkinEffects.Of(effect);
         _figure.FloorRoom = FloorRoom(m.Grid, drawn);
         _figure.Room = RoomOf(ship, drawn);
         _figure.Footing = FootingOf(m, drawn, _figure.Footing);
