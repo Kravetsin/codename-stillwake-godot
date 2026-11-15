@@ -1,18 +1,20 @@
 using Stillwake.Game.Shared;
 using static Stillwake.Game.I18n.En;
 using Diet = Stillwake.Content.Diet;
-using Foods = Stillwake.Content.Foods;
 
 namespace Stillwake.Game.Features.Crew;
 
-/// <summary>What the HUD's meal slots say and how they move: a meal's food card with its time left, an empty slot's words.</summary>
+/// <summary>What the HUD's meal slots and hunger sign say and how they move: a meal's food card with its time left, hunger's costs.</summary>
 public static class MealTips
 {
     /// <summary>A meal pulses in its last minute, when the same food may be eaten again to refresh it.</summary>
     public static bool Pulsing(int left) => left <= Diet.RefreshWithin;
 
-    /// <summary>What a food is called: pod paste is never an item, so it has a name of its own.</summary>
-    public static string NameOf(string food) => food == Foods.Paste ? T("crew.podPaste") : T($"item.{food}");
+    /// <summary>How much more air a hungry hero's running breath costs than a fed one's, in percent.</summary>
+    public static int SprintPercent => (Diet.HungrySprint - Diet.Sprint) * 100 / Diet.Sprint;
+
+    /// <summary>How much slower a hungry hero works than a fed one before food's rates, in percent.</summary>
+    public static int WorkPercent => (Diet.Work - Diet.HungryWork) * 100 / Diet.Work;
 
     /// <summary>
     /// A meal's tip: its food card (2026-11-14-food-and-gear-cards) with the time it has left in place of how long it lasts, no key
@@ -20,11 +22,16 @@ public static class MealTips
     /// </summary>
     public static Tip Of(string food, int left)
     {
-        var card = ItemCards.Meal(food, left, NameOf(food), food == Foods.Paste ? T("crew.podPasteKind") : T($"item.{food}.kind"));
+        var card = ItemCards.Meal(food, left, T($"item.{food}"), T($"item.{food}.kind"));
         return new Tip(card.Name) { Card = card };
     }
 
-    /// <summary>An empty slot's tip: hungry with all three empty, otherwise room for another meal.</summary>
-    public static Tip Empty(bool hungry) =>
-        hungry ? new Tip(T("crew.hungry"), new TipLine(T("crew.hungryWhy"), Tone.Bad)) : new Tip(T("crew.mealFree"), new TipLine(T("crew.mealHow"), Tone.Dim));
+    /// <summary>The hunger sign's tip, and an empty slot's while hungry: what hunger costs, then what ends it.</summary>
+    public static Tip Hunger() => new(T("crew.hungry"),
+        new TipLine(T("crew.hungerSprint", ("n", SprintPercent)), Tone.Bad),
+        new TipLine(T("crew.hungerWork", ("n", WorkPercent)), Tone.Bad),
+        new TipLine(T("crew.hungryWhy"), Tone.Dim));
+
+    /// <summary>An empty slot's tip: hunger's with all three empty, otherwise room for another meal.</summary>
+    public static Tip Empty(bool hungry) => hungry ? Hunger() : new Tip(T("crew.mealFree"), new TipLine(T("crew.mealHow"), Tone.Dim));
 }

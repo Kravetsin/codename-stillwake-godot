@@ -51,7 +51,7 @@ public class RegenSuitTests
     {
         var w = new Scenario(Layout.Parse(PodRoom) with { Known = [] }, doubled: true) { Bare = true }.Wear(0, Helmet.Heavy).Wear(0, Suit.Regen);
         for (int i = 0; i < batteries.Length; i++) w.Put(Belt + i, new Stack("battery", 1, batteries[i]));
-        w.Do(new Enter(cell) { From = 0 }).Run();
+        w.Do(new Enter(cell) { From = 0 }).Run().Fed();
         if (on) w.Do(new SuitMode(true) { From = 0 }).Run();
         return Breaths(w, 1);
     }

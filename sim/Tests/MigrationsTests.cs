@@ -357,4 +357,26 @@ public class MigrationsTests
         w.Reload(Migrations.Upgrade(save.ToJsonString()));
         Assert.Equal(grid, JsonNode.Parse(w.World.Save())!["slices"]!["grid"]!.ToJsonString());
     }
+
+    [Fact]
+    public void DropsThePodPasteOfAFormatSixtyFourSaveItsOtherMealsKept()
+    {
+        // A format-64 hero printed with pod paste and a ration since: after the upgrade the ration alone, and one with paste alone hungry.
+        var w = new Scenario("S.......").GiveItems(0, (Content.Foods.Ration, 1)).Do(new Crew.Enter(1)).Do(new Crew.Enter(1) { From = 1 }).Do(new Crew.Eat(Content.Foods.Ration)).Run();
+        var save = JsonNode.Parse(w.World.Save())!.AsObject();
+        save["format"] = 64;
+        var heroes = save["slices"]!["crew"]!["heroes"]!.AsArray();
+        heroes[0]!["meals"] = JsonNode.Parse("""[{"food":"podPaste","left":900},{"food":"ration","left":800}]""");
+        heroes[1]!["meals"] = JsonNode.Parse("""[{"food":"podPaste","left":900}]""");
+        // A vessel not yet boarded: a closed surface, no slices of its own.
+        const string Closed = """[{"id":1,"kind":"vessel.shuttle","seed":7,"closed":true}]""";
+        save["surfaces"] = JsonNode.Parse(Closed);
+
+        var upgraded = JsonNode.Parse(Migrations.Upgrade(save.ToJsonString()))!.AsObject();
+        Assert.Equal(Closed, upgraded["surfaces"]!.ToJsonString());
+        upgraded.Remove("surfaces");
+        w.Reload(upgraded.ToJsonString());
+        Assert.Equal([(Content.Foods.Ration, 800)], w.M.Crew.HeroOf(0)!.Meals.Select(m => (m.Food, m.Left)));
+        Assert.True(w.M.Crew.Hungry(1));
+    }
 }

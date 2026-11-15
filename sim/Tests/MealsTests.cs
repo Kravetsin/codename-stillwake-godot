@@ -33,12 +33,12 @@ public class MealsTests
     private static Scenario Eat(Scenario w, string food, int peer = 0) => w.Do(new Eat(food) { From = peer }).Run();
 
     [Fact]
-    public void APrintedHeroHoldsPodPasteAloneAndItGivesNoRates()
+    public void APrintedHeroComesHungryWithNoMealAndNoRates()
     {
         var w = new Scenario(Vacuum).Do(new Enter(1)).Run();
-        Assert.Equal([(Foods.Paste, Lasts(Foods.Paste) - 1)], HeroOf(w).Meals.Select(m => (m.Food, m.Left)));
+        Assert.Empty(HeroOf(w).Meals);
         Assert.Equal(default, w.M.Crew.RatesOf(0));
-        Assert.False(w.M.Crew.Hungry(0));
+        Assert.True(w.M.Crew.Hungry(0));
     }
 
     [Fact]
@@ -56,7 +56,10 @@ public class MealsTests
     [Fact]
     public void RunningCostsTwoABreathFedAndFiveOverTwoHungry()
     {
-        var w = In().Do(new Exert(true)).Run();
+        var w = In();
+        // A seed: fed, with no rates of its own.
+        HeroOf(w).Eaten.Add(new Meal { Food = Foods.Seed, Left = 10 * Breath });
+        w.Do(new Exert(true)).Run();
         int air = HeroOf(w).Air;
         w.Run(2 * Breath);
         Assert.Equal(air - 2 * CrewSpec.Exerted, HeroOf(w).Air);
@@ -78,9 +81,9 @@ public class MealsTests
     }
 
     [Fact]
-    public void ThePasteRunsOutAfterItsTicksAndTheHeroGoesHungry()
+    public void AMealRunsOutAfterItsTicksAndTheHeroGoesHungry()
     {
-        var w = In();
+        var w = Eat(In((Foods.Seed, 1)), Foods.Seed);
         for (int left = HeroOf(w).Meals[0].Left; left > 1; left -= 1000)
         {
             HeroOf(w).Air = Scenario.Full;
@@ -111,7 +114,6 @@ public class MealsTests
         var w = In((Foods.CannedMeat, 1), (Foods.Roast, 1), (Foods.Hash, 1));
         Eat(w, Foods.CannedMeat);
         Assert.Equal(CrewSpec.CanisterRefill + 10, w.M.Crew.RefillOf(0));
-        HeroOf(w).Eaten.RemoveAt(0);
         Eat(w, Foods.Roast);
         Eat(w, Foods.Hash);
         Assert.Equal(CrewSpec.CanisterRefill + Diet.Caps.Deep, w.M.Crew.RefillOf(0));
@@ -234,27 +236,26 @@ public class MealsTests
     {
         var w = Eat(In((Foods.Ration, 2)), Foods.Ration);
         Assert.Empty(w.Refusals);
-        Assert.Equal([Foods.Paste, Foods.Ration], HeroOf(w).Meals.Select(m => m.Food));
+        Assert.Equal([Foods.Ration], HeroOf(w).Meals.Select(m => m.Food));
         Assert.Equal(new Content.Rates(Calm: 50, Work: 300), w.M.Crew.RatesOf(0));
         Assert.Equal(1, w.M.Items.Inventory(0).Sum(s => s?.Item == Foods.Ration ? s.Count : 0));
     }
 
     [Fact]
-    public void RefusesEatingWithNoHeroANonFoodPasteNoneCarriedTheSameFoodAndFullSlots()
+    public void RefusesEatingWithNoHeroANonFoodNoneCarriedTheSameFoodAndFullSlots()
     {
         var w = new Scenario(Vacuum).GiveItems(0, (Foods.Ration, 3), (CrewSpec.Canister, 1));
         Eat(w, Foods.Ration);
         w.Do(new Enter(1)).Run();
         Eat(w, CrewSpec.Canister);
-        Eat(w, Foods.Paste);
         Eat(w, Foods.CannedMeat);
         Eat(w, Foods.Ration);
         Eat(w, Foods.Ration);
         // Three other meals, as dishes will fill them.
-        HeroOf(w).Eaten.RemoveAt(1);
-        HeroOf(w).Eaten.AddRange([new Meal { Food = "dish", Left = 100 }, new Meal { Food = "stew", Left = 100 }]);
+        HeroOf(w).Eaten.Clear();
+        HeroOf(w).Eaten.AddRange([new Meal { Food = "dish", Left = 100 }, new Meal { Food = "stew", Left = 100 }, new Meal { Food = "roast", Left = 100 }]);
         Eat(w, Foods.Ration);
-        Assert.Equal(["crew.noHero", "crew.notFood", "crew.notFood", "items.notEnough", "crew.sameFood", "crew.mealsFull"], Reasons(w));
+        Assert.Equal(["crew.noHero", "crew.notFood", "items.notEnough", "crew.sameFood", "crew.mealsFull"], Reasons(w));
     }
 
     [Fact]
@@ -270,15 +271,15 @@ public class MealsTests
     public void TheSameFoodInItsLastMinuteIsEatenAgainInItsOwnSlot()
     {
         var w = Eat(Eat(In((Foods.Ration, 2), (Foods.CannedMeat, 1)), Foods.Ration), Foods.CannedMeat);
-        var ration = HeroOf(w).Meals[1];
+        var ration = HeroOf(w).Meals[0];
         ration.Left = Diet.RefreshWithin + 1;
         Eat(w, Foods.Ration);
         Assert.Equal(["crew.sameFood"], Reasons(w));
         ration.Left = Diet.RefreshWithin;
         Eat(w, Foods.Ration);
         Assert.Single(w.Refusals);
-        Assert.Equal([Foods.Paste, Foods.Ration, Foods.CannedMeat], HeroOf(w).Meals.Select(m => m.Food));
-        Assert.Equal(Lasts(Foods.Ration) - 1, HeroOf(w).Meals[1].Left);
+        Assert.Equal([Foods.Ration, Foods.CannedMeat], HeroOf(w).Meals.Select(m => m.Food));
+        Assert.Equal(Lasts(Foods.Ration) - 1, HeroOf(w).Meals[0].Left);
     }
 
     [Fact]
@@ -293,7 +294,7 @@ public class MealsTests
     }
 
     [Fact]
-    public void PassingOutClearsTheMealsAndWakingPrintsPasteAlone()
+    public void PassingOutClearsTheMealsAndTheHeroWakesHungry()
     {
         var w = Eat(In((Foods.Ration, 1)), Foods.Ration);
         w.Run(Breath / 2);
@@ -305,7 +306,9 @@ public class MealsTests
         Assert.Equal(0, HeroOf(w).Owed);
         Assert.False(w.M.Crew.Hungry(0));
         w.Run(CrewSpec.PassOut);
-        Assert.Equal([Foods.Paste], HeroOf(w).Meals.Select(m => m.Food));
+        Assert.Equal(0, HeroOf(w).Out);
+        Assert.Empty(HeroOf(w).Meals);
+        Assert.True(w.M.Crew.Hungry(0));
     }
 
     [Fact]
@@ -316,7 +319,7 @@ public class MealsTests
         var carried = w.M.Crew.Depart(0);
         var there = new Scenario(Vacuum).Run(7);
         there.M.Crew.Arrive(0, carried, null);
-        Assert.Equal(Lasts(Foods.Ration) - 101, HeroOf(there).Meals[1].Left);
+        Assert.Equal(Lasts(Foods.Ration) - 101, HeroOf(there).Meals[0].Left);
     }
 
     [Fact]
@@ -333,7 +336,7 @@ public class MealsTests
     /// <summary>A step: a hero eats one of these (<c>Eat</c>), or waits ticks, its last meal sometimes moved to its last minute or ticks.</summary>
     private sealed record Step(int Hero, string? Food, int Ticks, int? Late);
 
-    private static readonly string[] Edible = [Foods.Ration, Foods.CannedMeat, Foods.Paste, CrewSpec.Canister];
+    private static readonly string[] Edible = [Foods.Ration, Foods.CannedMeat, Foods.Seed, CrewSpec.Canister];
 
     private static readonly Gen<Step> Steps =
         from hero in Gen.Choose(0, 1)

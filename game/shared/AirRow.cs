@@ -21,7 +21,7 @@ public partial class AirRow : Control
     /// <summary>The last units that blink while low and dim with the fog; how long a helmet put on or off takes to change the piece.</summary>
     private const double LastUnits = 5, ResizeS = 0.45;
     private const float Top = Vitals.AirY - Vitals.PieceHeight / 2, Height = Vitals.PieceHeight;
-    private static readonly Rect2 SignAt = new(Vitals.SignX - 11 * Vitals.SignScale, Vitals.AirY - 11 * Vitals.SignScale, 22 * Vitals.SignScale, 22 * Vitals.SignScale);
+    private static readonly Rect2 SignAt = new(Vitals.SignX - Vitals.Icon / 2, Vitals.AirY - Vitals.Icon / 2, Vitals.Icon, Vitals.Icon);
 
     private readonly Texture2D _icon;
     private readonly Texture2D? _shortIcon;

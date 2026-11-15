@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://dpa5u5us3jayg"
-path="res://.godot/imported/podPaste.png-25da6f16bcfe9d1fd85a2509190f8158.ctex"
+uid="uid://drriqp17hk5jp"
+path="res://.godot/imported/sign_hunger.png-ca0d0e51ed51e3e57da2a4e5044f6e86.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://art/hd/items/podPaste.png"
-dest_files=["res://.godot/imported/podPaste.png-25da6f16bcfe9d1fd85a2509190f8158.ctex"]
+source_file="res://art/hd/sign_hunger.png"
+dest_files=["res://.godot/imported/sign_hunger.png-ca0d0e51ed51e3e57da2a4e5044f6e86.ctex"]
 
 [params]
 
