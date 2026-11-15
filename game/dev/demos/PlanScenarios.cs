@@ -70,19 +70,17 @@ public sealed class ShimmerScenario : DevScenario
     public override void Frame(Client client, Registry m, Action<string> log) => _demo?.Frame(client, m.Grid, log);
 }
 
-[Dev("--driver-demo", "square|cell|flat|short|hover|nothing|station|hand: the power driver held on a run of wall plans in a lit room; hand: played by hand, the screwdriver and a charge too (DriverDemo, power-driver)", Shape = DevShape.Equals)]
+[Dev("--driver-demo", "square|cell|flat|short|hover|nothing|station: the power driver held on a run of wall plans in a lit room (DriverDemo, power-driver)", Shape = DevShape.Equals)]
 public sealed class DriverScenario : DevScenario
 {
     private DriverDemo? _demo;
 
     public override Layout? Map => DriverDemo.Map;
 
-    public override World Seed(World world, DevSeed seed) => DriverDemo.Seed(world, seed.Modules, Args.Value("--driver-demo") != "flat",
-        Args.Value("--driver-demo") == "short" ? 2 : DriverDemo.Plates, byHand: Args.Value("--driver-demo") == "hand");
+    public override World Seed(World world, DevSeed seed) => DriverDemo.Seed(world, seed.Modules, Args.Value("--driver-demo") != "flat", Args.Value("--driver-demo") == "short" ? 2 : DriverDemo.Plates);
 
     public override void Attach(DevContext c)
     {
-        if (Args.Value("--driver-demo") == "hand") return;
         _demo = new DriverDemo(c.Hands, Args.Value("--driver-demo")!);
         _demo.Start();
     }
