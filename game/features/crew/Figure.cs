@@ -1589,7 +1589,9 @@ public partial class Figure : Node2D
         Blade = bladeHeld ? (HeldAt(item!.EdgeFrom), HeldAt(item.EdgeTo)) : null;
         var zone = Spinning && inHand && item != null ? ZoneOf(frontArm, item) : null;
         WheelRadius = zone is { Disc: true } disc ? disc.Size : null;
-        _air.Follow(zone, elapsedMs, bladeHeld ? _edge : null);
+        // The plain spear trails as a swung blade does, but not in its thrust (the lens is the thrust's, spear-trail); the arc spear's bolts are its own.
+        bool spearTrails = struckHeld && item!.Aimed && jabMs == null && Wields == Stillwake.Content.Weapons.Spear.Item && PartsOf(item) is not { Crackles.Count: > 0 };
+        _air.Follow(zone, elapsedMs, bladeHeld || spearTrails ? _edge : null);
         Helix = zone is { Disc: false } bit ? HelixOf(bit) : null;
         _beamMs = Math.Max(0, _beamMs - elapsedMs);
         ShowBeams(holding);
