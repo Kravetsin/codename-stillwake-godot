@@ -4,6 +4,7 @@ using Stillwake.Game.Render;
 using Stillwake.Game.Shared;
 using static Stillwake.Game.I18n.En;
 using CrewSpec = Stillwake.Content.Crew;
+using Foods = Stillwake.Content.Foods;
 using Look = Stillwake.Game.WristLook;
 using S = Stillwake.Game.Sound;
 
@@ -52,7 +53,8 @@ public partial class SuitGauge : CanvasLayer
     {
         (_read, _canisterIn, _helmet, _lent, _ui) = (read, canisterIn, helmet, lent, ui);
         _tips = new TipSpots(ui.Tip);
-        _tips.Add(_gauge.Spot, () => _capacity > 0 ? new Tip(T("hud.holds", ("name", _helmet() is { } worn ? T($"item.{worn}") : T("hud.lungs")), ("n", _capacity)), []) : null);
+        _tips.Add(_gauge.Spot, () => _capacity > 0 ? new Tip(T("hud.holds", ("name", _helmet() is { } worn ? T($"item.{worn}") : T("hud.lungs")), ("n", _capacity - _gauge.Extra)), []) : null);
+        _tips.Add(_gauge.ExtraSpot, () => _gauge.Extra > 0 ? new Tip(T("hud.holds", ("name", T($"item.{Foods.Stim}")), ("n", _gauge.Extra)), []) : null);
         ui.Refilled += _gauge.Surge;
         ui.PressedCooling += _refused.Press;
         _gauge.DrawMark = DrawRing;

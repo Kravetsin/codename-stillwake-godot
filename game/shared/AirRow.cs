@@ -43,6 +43,7 @@ public partial class AirRow : Control
         (_icon, _shortIcon) = (icon, shortIcon);
         MouseFilter = MouseFilterEnum.Ignore;
         AddChild(Spot = new Control { MouseFilter = MouseFilterEnum.Ignore, Position = new Vector2(Vitals.RowLeft, Top) });
+        AddChild(ExtraSpot = new Control { MouseFilter = MouseFilterEnum.Ignore, Visible = false });
         // Over the row: the chips falling off it, and the light added over all.
         AddChild(_over = new Over(this, add: false));
         AddChild(_light = new Over(this, add: true));
@@ -53,6 +54,9 @@ public partial class AirRow : Control
 
     /// <summary>The piece's own rectangle, for its tip.</summary>
     public Control Spot { get; }
+
+    /// <summary>Where the pointer names the stimulant's segment (food-tuning): over it, hidden without one.</summary>
+    public Control ExtraSpot { get; }
 
     /// <summary>Whether it runs low: red, pulsing.</summary>
     public bool Low { get; set; }
@@ -132,7 +136,10 @@ public partial class AirRow : Control
             _resize = Math.Min(1, _resize + delta / ResizeS);
             _length = Mathf.Lerp(_lengthFrom, _lengthTo, Mathf.SmoothStep(0, 1, (float)_resize));
         }
-        Spot.Size = new Vector2(Math.Max(8, _length + (Split < _length ? Vitals.Gap : 0)), Height);
+        float split = Split;
+        Spot.Size = new Vector2(Math.Max(8, split), Height);
+        ExtraSpot.Visible = split < _length;
+        (ExtraSpot.Position, ExtraSpot.Size) = (new Vector2(Vitals.RowLeft + split + Vitals.Gap, Top), new Vector2(_length - split, Height));
         Motion.Step(delta);
         // The leading edge shows while the fill moves, either way, and fades once it rests.
         _moving = Math.Abs(Motion.Fill - _shownFill) > 1e-6 ? 1 : Math.Max(0, _moving - delta / Look.EdgeFadeS);
