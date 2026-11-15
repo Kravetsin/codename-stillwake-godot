@@ -169,20 +169,17 @@ When it goes wrong: the player chose a DLC skin on a PC that owns it, then joins
 Each task leaves `main` green and the game playable. S-0 is a refactor nobody plays: it goes straight to ship as its own
 PR. S-1…S-5 are one try on `feat/skins`, played by the user, then shipped together in S-6.
 
-### S-0 — One blade charge (refactor, own PR)
+### S-0 — One blade charge (refactor, own PR) ✅ PR 611
 - Move `SpearLight.Burst` and its fields (`_burst`, `_sparks`, `_torn`, `_roots`, the glow constants) into
   `game/render/BladeCharge.cs`: `Step(elapsedMs, held, area, tint, stage)`, where `held` maps a point of the held picture into the world (`Figure.HeldAt`, as `SpearLight` gets it now) and the tint (`BoltTint`, flare colours) is a
   parameter. `SpearLight` keeps the lens, the eddies and the cable's run, and calls nothing of the charge.
 - `Figure` (`Figure.cs:1631-1633`) runs `BladeCharge` for any struck item in hand with a charge area; today only the arc spear has one
   (`PartsOf(item)` with crackles), so nothing on screen changes.
-- Add `HeldArt.EdgeArea(HeldLook)`: the picture's drawn pixels inside a box round `EdgeFrom`–`EdgeTo` bowed by `Bow`,
-  margin a tunable in `gc/`. Not used yet by a look; used by S-4.
-- Tests (`game.tests`): `EdgeArea` of every struck item's `HeldLook` is non-empty and inside its picture; existing
-  `ArcBurstTests` stay green.
+- Built as above; `HeldArt.EdgeArea` moved to S-4, its first user, so main carries no dead code.
 - Frame: the arc spear thrust and at rest, against `main`'s — identical by eye.
 - Done: filtered tests green, frame compared, PR merged on green.
 
-### S-1 — Skins in Players (sim)
+### S-1 — Skins in Players (sim) ✅ on feat/skins
 - `sim/Players/Players.cs`: `PeerSkins(int Peer, IReadOnlyList<string> Ids)`; `PlayersState.Skins` (`[JsonInclude]`,
   `= []`); `IPlayersQueries.SkinsOf(peer)` (empty for a peer with none); `IPlayersOps.Skin(peer, ids)` replacing the set,
   inserted in peer order. Hashed with the slice as `Looks` is.
@@ -216,6 +213,7 @@ PR. S-1…S-5 are one try on `feat/skins`, played by the user, then shipped toge
   (`DressSheet` frame) and a catalogue test, run on a test-only helmet and cape row, that every such row has its table rows.
 
 ### S-4 — The effect skin
+- First add `HeldArt.EdgeArea(HeldLook)`: the picture's drawn pixels in a box round `EdgeFrom`–`EdgeTo` bowed by `Bow`, its margin in `gc/`; test that every struck item's box holds its edge points.
 - `Dressed.Effect` set → `Figure` runs `BladeCharge` with the skin's look (`gc/SkinEffects.cs`: tint, fizz and bolt
   numbers as data) on `HeldArt.EdgeArea(item)` for the fire axe, sledgehammer, pickaxe and spear, always while in hand.
 - Off while the item has a fitted charge of its own (the arc spear): the module wins.
