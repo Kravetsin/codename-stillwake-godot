@@ -36,7 +36,7 @@ and changes it only by sending `Move`, `Drop`, `PickUp`, `Sort`, `Stash`, `Fit` 
 | `GainSpotsView.cs` | the counts beside their places |
 | `ItemsView.cs` | the feature: pick-ups, the layers and the panel |
 | `ItemsDemo.cs` | `-- --items`: a room with a crate and a furnace |
-| `logic/Items.En.cs` | Its player text (`En`) |
+| `logic/Items.En.cs` | player text |
 | `logic/Items.Ru.cs` | Russian |
 
 The wrist's metal, screens, keys and gauge (0074, 0081) are `game/shared/`'s (`Wrist*`); charge on screen is
@@ -57,7 +57,8 @@ The wrist's metal, screens, keys and gauge (0074, 0081) are `game/shared/`'s (`W
 - **One hand** (0022): 1–9 and the wheel choose a hotbar slot and free the hand; Tab opens the inventory; Q throws the
   chosen stack (not while a card is in hand). `Ui.Wielded` is the chosen item while the hand is free (0034).
   Esc or passing out closes the inventory and crate, before the menu. `Ui.OpenCrate` is set by crew's E within reach.
-- **Layout and size** (0058): hotbar top-left, gauges under it, then the grid, the open machine under the grid,
+- **Layout and size** (0058): hotbar top-left, gauges under it, then the grid, in creative the trash under it
+  (trash-slot), the open machine under them,
   equipment at the right edge; every slot `Ui.Slot` wide, rebuilt when the setting changes. Tints by
   `Slots.TintOf`: tools amber, worn items green.
 - **Equipment** (0047, 0058): head, back, belt rows; while a stack is carried, slots that would wear it glow, others
@@ -96,8 +97,8 @@ The wrist's metal, screens, keys and gauge (0074, 0081) are `game/shared/`'s (`W
 
 ## Main's hook
 
-`Main` makes an `ItemsView` with the hands' `Ui` and calls `Frame(...)` every frame after the hero's, so own grabs are
-seen in flight, with `NetHolds` (`NetShows.Lying`); `HeroSpot` carries the hero's feet, facing, cell and passed-out state.
+`Main` makes an `ItemsView` with the hands' `Ui`; `Frame(...)` runs every frame after the hero's (own grabs seen in
+flight), with `NetHolds` (`NetShows.Lying`) and `HeroSpot`: feet, facing, cell, passed out.
 
 ## Deliberately not handled
 

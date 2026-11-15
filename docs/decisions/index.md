@@ -377,3 +377,4 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [liquid-cards](2026-11-15-liquid-cards.md) | A canister's and a bottle's litres are food's rows | accepted |  |
 | [spark-rule](2026-11-15-spark-rule.md) | A tool's haze in matter throws that matter's look, whatever was hit | accepted |  |
 | [spear-trail](2026-11-15-spear-trail.md) | The plain spear trails haze outside its thrust | accepted |  |
+| [trash-slot](2026-11-15-trash-slot.md) | A trash slot in creative mode | accepted |  |
