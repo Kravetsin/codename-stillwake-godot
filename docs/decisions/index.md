@@ -290,7 +290,7 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [pile-hits-felt](2026-11-07-pile-hits-felt.md) | A hit on a pile is seen and heard | accepted |  |
 | [radar-mast](2026-11-07-radar-mast.md) | The radar antenna is a guyed mast | accepted |  |
 | [right-lets-go](2026-11-07-right-lets-go.md) | The right button lets the card go | accepted |  |
-| [scarce-oxygen](2026-11-07-scarce-oxygen.md) | Scarce oxygen | accepted | leaks-a-minute (in part) |
+| [scarce-oxygen](2026-11-07-scarce-oxygen.md) | Scarce oxygen | accepted | leaks-a-minute, liquid-volumes (in part) |
 | [steady-scanner](2026-11-07-steady-scanner.md) | A steady scanner readout | accepted |  |
 | [swing-motions](2026-11-07-swing-motions.md) | Swing motions | accepted |  |
 | [tether-haul](2026-11-07-tether-haul.md) | Hauling in along the tether | accepted |  |
@@ -307,7 +307,7 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [flowing-liquids](2026-11-08-flowing-liquids.md) | Flowing liquids: lakes in a planet's cells | accepted |  |
 | [hurts-are-shown](2026-11-08-hurts-are-shown.md) | Hurts are shown | accepted |  |
 | [leaks-a-minute](2026-11-08-leaks-a-minute.md) | Leaks a minute | accepted |  |
-| [liquids-in-tanks](2026-11-08-liquids-in-tanks.md) | Liquids in tanks | accepted |  |
+| [liquids-in-tanks](2026-11-08-liquids-in-tanks.md) | Liquids in tanks | accepted | liquid-volumes (in part) |
 | [lobbed-glob](2026-11-08-lobbed-glob.md) | Lobbed glob | accepted |  |
 | [lurker-attacks](2026-11-08-lurker-attacks.md) | Lurker attacks | accepted | lobbed-glob (in part) |
 | [mafia-deliveries](2026-11-08-mafia-deliveries.md) | The mafia delivers what it sells | accepted |  |
@@ -320,6 +320,7 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [catcher-combat](2026-11-09-catcher-combat.md) | Catcher combat | accepted |  |
 | [catcher-paths](2026-11-09-catcher-paths.md) | Catcher paths | accepted | catcher-combat, damage-scale (in part) |
 | [damage-scale](2026-11-09-damage-scale.md) | One damage scale; the own ship takes a tenth | accepted | one-damage-rule (in part) |
+| [liquid-volumes](2026-11-09-liquid-volumes.md) | Liquid volumes | accepted |  |
 | [round-blasts](2026-11-09-round-blasts.md) | Blasts are round | accepted | unified-damage (in part) |
 | [tracker-catchers](2026-11-09-tracker-catchers.md) | Catchers | accepted | catcher-combat, catcher-paths, catcher-loot (in part) |
 | [unified-damage](2026-11-09-unified-damage.md) | One rule for damage | accepted | damage-scale (in part) |
