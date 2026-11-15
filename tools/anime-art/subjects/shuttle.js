@@ -15,8 +15,8 @@ const FROST = { base: '#76868f', shade: '#56646e', deep: '#3c4852', lite: '#a2b2
 const RUST = ['#70482f', '#3f2a24'];
 const OFF = { green: '#2a4a36', red: '#5a2a28', white: '#5e5c52' };
 const PIPE = { base: '#7f8796', shade: '#555b70', deep: '#3a3e50', lite: '#a9b1be', spec: '#dfe7f2' };
-/** Biofuel's amber, a placeholder till its look is picked (fuel-liquid), as the fuel tank's. */
-const FUEL = { base: '#b8801e', lite: '#f2c66a', glint: '#d8a040' };
+/** Biofuel: «Ржавый оранжевый», the user's pick (fuel-liquid), as the fuel tank's. */
+const FUEL = { base: '#b0501c', lite: '#f0965c', glint: '#d46a30' };
 
 const band = (x0, y0, x1, y1) => poly(x0, y0, x1, y0, x1, y1, x0, y1);
 function box(a, x, y, w, h, m, o) {

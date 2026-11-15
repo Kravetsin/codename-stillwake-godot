@@ -21,6 +21,11 @@ in. Built in the two stages of CLAUDE.md's Workflow: **Try** (built, played by t
   a machine holding over a litre of liquid is not taken apart (`building.holdsLiquid`, `Builds.TakenApartHolding`).
 - **The crew shuttle** holds 200 l: a hopper, a fuel input at its stern (0, 8), its panel the stores' (E opens it), its fuel
   up the sight glass its picture already had. It still does not fly or seat anyone.
+- **Picked (2026-11-16)** on the pick page (https://claude.ai/artifact/3RXrpHnVpZTCJxrKDH7bW1, its `picks` docs): the fuel tank
+  is B «Бочка на ложементе» (a mustard barrel lying on two saddles, a striped hopper on top, a narrow window on its side,
+  glass [11, 11, 3, 12]); biofuel is 4 «Ржавый оранжевый» (#b0501c / #f0965c / #d46a30, the last its pipe sockets'). Turned
+  down: A «Клёпаная бочка», C «Клетка с канистрой», D «Напорный бак с поплавком»; amber, olive oil, dark honey. Both go
+  into the ADR at ship.
 - **A demo**, `--fuel`: a fermenter piped to a 60 l tank piped to a pod; a generator to pipe by hand. The testbed has a fuel
   tank on the arc bench.
 
