@@ -68,7 +68,6 @@ public static partial class En
         ["use.open.tank"] = "[{key:use}] Open oxygen tank",
         ["use.open.cistern"] = "[{key:use}] Open cistern",
         ["use.open.fuelTank"] = "[{key:use}] Open fuel tank",
-        ["use.open.crewShuttle"] = "[{key:use}] Open shuttle",
         ["use.open.generator"] = "[{key:use}] Open vaporizer",
         ["use.open.electrolyser"] = "[{key:use}] Open electrolyser",
         ["use.open.lifepod"] = "[{key:use}] Fabricator",
