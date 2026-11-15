@@ -129,14 +129,16 @@ public sealed class PlacesModule : Module<PlacesState>
 
     /// <summary>
     /// On a vessel world as it opens: the vessel described from its class and the surface's seed, its parts laid in reading order
-    /// with its frame's top-left at (<c>Vessels.Margin</c>, <c>Margin</c>), so its machines' ids follow it; its crates filled.
+    /// with its frame's top-left at (<c>Vessels.Margin</c>, <c>Margin</c>), so its machines' ids follow it; its crates filled, the doors
+    /// it left open opened.
     /// </summary>
     protected override void Opened()
     {
         if (Rules is not VesselKind kind) return;
         var vessel = Shipyard.Describe(Vessels.Class(kind.Class)!, Surfaces.Seed);
         int width = _grid.Width, m = Vessels.Margin;
-        foreach (var part in Shipyard.Stamp(vessel))
+        var parts = Shipyard.Stamp(vessel);
+        foreach (var part in parts)
         {
             int cell = (m + part.Y) * width + m + part.X;
             // The map's spawn (its S) comes with a back wall of the hull, the vessel's own inside its door.
@@ -149,6 +151,9 @@ public sealed class PlacesModule : Module<PlacesState>
                 _itemsOps.Caught(holds);
             }
         }
+        // A door left open is laid shut, then opened whole once all its pieces stand (derelict-looks).
+        foreach (var part in parts)
+            if (part.Open) _gridOps.SetDoorway((m + part.Y) * width + m + part.X, true);
     }
 
     /// <summary>Now and then, as a jump opens a whole surface: a contact found, of a class or none; a jump to one, held or not.</summary>

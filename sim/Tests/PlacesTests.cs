@@ -118,7 +118,7 @@ public class PlacesTests
     }
 
     [Fact]
-    public void AVesselsRoomsAreRoomsOfTheirOwnBehindItsDoorsAndHatches()
+    public void AVesselsDoorsLeftOpenAreLaidOpenAndItsRoomsAreRoomsOfTheirOwnBehindItsShutDoorsAndHatches()
     {
         var w = new Scenario(Registry.Wreck);
         w.Do(new Enter(w.M.Crew.Spawn)).Run();
@@ -127,9 +127,58 @@ public class PlacesTests
         var (_, id) = Visited(w: w);
         var v = w.On(id);
         var vessel = Shipyard.Describe(Vessels.Class("freighter")!, seed);
+        // Every cell of a door as it was left: open or shut, the way in shut.
+        Assert.Contains(vessel.Doors, d => d.Open);
+        foreach (var door in vessel.Doors)
+            for (int y = door.Y; y < door.Y + Vessels.Open; y++)
+                for (int x = door.X; x < door.X + 2; x++)
+                {
+                    int code = v.Grid.StructureAt(InFrame(v, x, y));
+                    Assert.True(Doorways.IsDoor(code));
+                    Assert.Equal(door.Open, Doorways.IsOpen(code));
+                }
+        // Rooms an open door joins are one; the rest each a room of its own.
+        var group = Enumerable.Range(0, vessel.Compartments.Count).ToArray();
+        int Root(int i) => group[i] == i ? i : Root(group[i]);
+        foreach (var door in vessel.Doors.Where(d => d.Open))
+        {
+            int left = vessel.Compartments.ToList().FindIndex(c => c.Top == door.Y && c.Left + c.Width == door.X);
+            int right = vessel.Compartments.ToList().FindIndex(c => c.Top == door.Y && c.Left == door.X + 2);
+            group[Root(left)] = Root(right);
+        }
         var rooms = vessel.Compartments.Select(c => v.Rooms.RoomAt(InFrame(v, c.Left, c.Top + Vessels.Open - 1))).ToList();
         Assert.All(rooms, r => Assert.NotNull(r));
-        Assert.Equal(rooms.Count, rooms.Distinct().Count());
+        for (int i = 0; i < rooms.Count; i++)
+            for (int j = i + 1; j < rooms.Count; j++) Assert.Equal(Root(i) == Root(j), rooms[i] == rooms[j]);
+    }
+
+    [Theory]
+    [InlineData("shuttle")]
+    [InlineData("freighter")]
+    public void AVesselsNozzleBrokenByTheSledgehammerGivesWhatItGivesCountedObtained(string cls)
+    {
+        string hammer = Weapons.Sledgehammer.Item;
+        var w = new Scenario(Registry.Wreck);
+        w.Do(new Enter(w.M.Crew.Spawn)).Run();
+        w.GiveItems(0, (hammer, 1));
+        var (_, id) = Visited(cls, w);
+        var v = w.On(id);
+        int width = v.Grid.Width;
+        var nozzle = v.Grid.MachinesOf(Vessels.Nozzle).First();
+        var gives = Machines.Get(Vessels.Nozzle).Cost;
+        Assert.Equal([("plate", 4), ("copper", 2)], gives);
+        var before = gives.Select(c => w.M.Knowledge.ObtainedOf(c.Item)).ToList();
+        w.Do(new Enter(nozzle.Cell)).Run();
+        // Blows from inside its top-left cell, straight up, out in space: the first thing every ray meets is the nozzle.
+        for (int blow = 0; blow < 8 && v.Grid.MachineById(nozzle.Id) != null; blow++)
+            w.Do(new Hew(hammer, nozzle.Cell % width * 1000 + 500, nozzle.Cell / width * 1000 + 500, HewTesting.Up)).Run(Weapons.Sledgehammer.Pace);
+        Assert.Empty(w.Refusals);
+        Assert.Null(v.Grid.MachineById(nozzle.Id));
+        for (int i = 0; i < gives.Count; i++)
+        {
+            Assert.Equal(gives[i].Count, v.Items.Inventory(0).Sum(s => s?.Item == gives[i].Item ? s.Count : 0));
+            Assert.Equal(before[i] + gives[i].Count, w.M.Knowledge.ObtainedOf(gives[i].Item));
+        }
     }
 
     [Fact]

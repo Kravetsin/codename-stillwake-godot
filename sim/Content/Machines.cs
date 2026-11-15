@@ -281,6 +281,8 @@ public static class Machines
         new("crewShuttle", 24, 10, [], [("frame", 16), ("plate", 48), ("glass", 4), ("tube", 12), ("nozzle", 3), ("processor", 2), ("display", 1)], BuildTicks: 600, Has: MachineTrait.Lands, Menu: new(MenuTabs.Ship, 108), Char: '^', Means: "crew shuttle: draw its whole footprint, on a launch platform"),
         // A vessel's salvage aboard (plan V-1b): piles copied from the debris that drifts by, worked out in Vessels.
         .. Vessels.SalvageRows,
+        // What stands outside a vessel's hull (derelict-looks), taken apart for what it gives.
+        .. Vessels.Outside,
     ];
 
     private static readonly Dictionary<string, MachineSpec> ByKind = All.ToDictionary(m => m.Kind, StringComparer.Ordinal);

@@ -20,13 +20,14 @@ public sealed record VesselRoomRule(VesselRole Role, VesselDeck Deck, int Order)
 
 /// <summary>
 /// A class of generated vessel (generated-vessels): its size as ranges the seed picks from, and how it is built. A vessel is
-/// laid along its width, stern on the left: the engine bells, a body of rooms deck over deck, at most <c>Length</c> columns, a
-/// bow tapering over <c>Bow</c> columns, and its bridge (<c>BridgeKind</c>).
+/// laid along its width, stern on the left: a nozzle out of the stern a deck but the first, a body of rooms deck over deck, at most
+/// <c>Length</c> columns, in modules that bulge, a bow sloping to its tip, and its bridge (<c>BridgeKind</c>).
 /// </summary>
-/// <param name="Bells">Columns of engine bells left of the hull, one a deck but the first, which has the way in.</param>
 /// <param name="Length">The body's most columns inside its stern armour: an extra room that would run a deck past it is not built.</param>
 /// <param name="Decks">How many decks, least and most, each six open rows over a floor; two at least: the engine room is below.</param>
-/// <param name="Bow">Columns of the bow, its top and bottom tapering toward the tip.</param>
+/// <param name="BowFlat">Columns of the bow at the body's height before it slopes.</param>
+/// <param name="BowRun">Columns a step of the bow's slope runs, least and most, drawn: its top falls a row and its bottom rises one each.</param>
+/// <param name="BowTip">Rows of the bow's tip, where the slope ends.</param>
 /// <param name="ArmourDepth">Cells of armour inward from the hull's edge.</param>
 /// <param name="BridgeKind">A cockpit in the bow, or a bridge raised on top.</param>
 /// <param name="Extras">How many rooms past the ones every vessel has, least and most.</param>
@@ -35,10 +36,11 @@ public sealed record VesselRoomRule(VesselRole Role, VesselDeck Deck, int Order)
 /// <param name="Yield">Whole items, every kind counted alike, a vessel of this class gives taken apart whole, least and most (a content test).</param>
 public sealed record VesselClass(
     string Id,
-    int Bells,
     int Length,
     (int Min, int Max) Decks,
-    int Bow,
+    int BowFlat,
+    (int Min, int Max) BowRun,
+    int BowTip,
     int ArmourDepth,
     VesselBridge BridgeKind,
     (int Min, int Max) Extras,
@@ -52,8 +54,22 @@ public sealed record VesselClass(
     /// <summary>Rows above the body: a raised bridge's armour and its six open rows; none for a cockpit.</summary>
     public int BridgeHeight => BridgeKind == VesselBridge.Raised ? ArmourDepth + Vessels.Open : 0;
 
-    /// <summary>The largest vessel of the class, columns by rows: its frame.</summary>
-    public (int Width, int Height) Frame => (Bells + ArmourDepth + Length + Bow, BridgeHeight + BodyHeight(Decks.Max));
+    /// <summary>Rows the bow's top falls and its bottom rises over a body <paramref name="body"/> rows tall: the bottom the odd row more, as a keel.</summary>
+    public (int Fall, int Rise) BowSteps(int body) => ((body - BowTip) / 2, body - BowTip - (body - BowTip) / 2);
+
+    /// <summary>
+    /// The largest vessel of the class, columns by rows: its frame. The nozzles left of the stern; a rib over the highest bulge above
+    /// and below the body, a raised bridge above instead where it stands higher; the bow at its longest run.
+    /// </summary>
+    public (int Width, int Height) Frame
+    {
+        get
+        {
+            int body = BodyHeight(Decks.Max), rib = Math.Max(Vessels.Bulge.Max, Vessels.SternBulge.Max) + 1;
+            return (Vessels.NozzleSize.W + ArmourDepth + Length + BowFlat + BowRun.Max * BowSteps(body).Rise,
+                Math.Max(BridgeHeight, rib) + body + rib);
+        }
+    }
 }
 
 /// <summary>
@@ -61,7 +77,7 @@ public sealed record VesselClass(
 /// <c>=</c> a floor (a shelf, a bunk), a machine by its whole footprint. Six rows, its first two columns open for a ladder or a
 /// hatch over them, but the main engine's, flush with the stern.
 /// </summary>
-/// <param name="Main">Whether it holds the main engine, at its first column: the bottom engine room's, against the stern.</param>
+/// <param name="Main">Whether it holds the main engine, at its first column: a lower deck's engine room's, against the stern by its nozzle.</param>
 public sealed record VesselInterior(string Id, VesselRole Role, IReadOnlyList<string> Rows, bool Main = false)
 {
     public int Width => Rows[0].Length;
@@ -149,7 +165,7 @@ public static class Vessels
         // Spares in a hold; and what tore the hull, left by a breach on the deck by its crater.
         new("salvageSection", "hullSection", '1', [VesselRole.Hold], Torn: true),
         new("salvageSlab", "shieldSlab", '2', [VesselRole.Hold], Torn: true),
-        // The main engine (a vessel of rooms): one a vessel, against the stern by its bell, its dearest thing.
+        // The main engine (a vessel of rooms): one a deck below the first, against the stern by its nozzle, its dearest thing.
         new("salvageMainEngine", "engineBlock", '4', [VesselRole.Engine], Times: 3, Size: (12, 6), Looks: 3),
         // A bridge's console, its screens and switches a cable rack's insides.
         new("salvageConsole", "cableRack", '5', [VesselRole.Bridge], Size: (4, 3), Looks: 4),
@@ -196,15 +212,48 @@ public static class Vessels
             Char: look == 0 ? s.Char : null, Means: look == 0 ? $"salvage, a {s.From} {s.Times} times over: draw its whole footprint" : null));
     }).ToList();
 
+    /// <summary>The main engine's nozzle out through the stern (derelict-looks), a lower deck's: never the <c>nozzle</c> item, which the Former keeps.</summary>
+    public const string Nozzle = "vesselNozzle";
+
+    /// <summary>A nozzle's footprint, columns by rows: its deck's open rows and floor.</summary>
+    public static readonly (int W, int H) NozzleSize = (8, 7);
+
+    /// <summary>
+    /// The parts outside a vessel's hull (derelict-looks), each a machine row with no menu card, taken apart for what it gives; each
+    /// stands in space against the hull, nothing behind it.
+    /// </summary>
+    public static readonly IReadOnlyList<MachineSpec> Outside =
+    [
+        new(Nozzle, NozzleSize.W, NozzleSize.H, [], [("plate", 4), ("copper", 2)], BuildTicks: 160, Hp: 24),
+    ];
+
     /// <summary>The machines a vessel may hold: fair loot that keeps no state in another module by its id.</summary>
-    public static readonly IReadOnlyList<string> Machines = ["crate", "lamp", .. SalvageRows.Select(r => r.Kind)];
+    public static readonly IReadOnlyList<string> Machines = ["crate", "lamp", .. SalvageRows.Select(r => r.Kind), .. Outside.Select(r => r.Kind)];
+
+    /// <summary>Columns from a module's start to the next's past the aft rooms, least and most (derelict-looks).</summary>
+    public static readonly (int Min, int Max) ModuleEvery = (22, 38);
+
+    /// <summary>Columns short of the bow no module boundary comes nearer than.</summary>
+    public const int ModuleStop = 14;
+
+    /// <summary>Rows a module bulges above the body and below it, each drawn; the stern module's, which holds the engines.</summary>
+    public static readonly (int Min, int Max) Bulge = (0, 2), SternBulge = (1, 2);
+
+    /// <summary>Columns of a rib at a module boundary.</summary>
+    public const int RibWidth = 2;
+
+    /// <summary>Columns of the housing behind a raised bridge, and rows below the bridge's top it starts.</summary>
+    public const int HousingWidth = 6, HousingDrop = 4;
+
+    /// <summary>An inner door stands open one time in this many; the way in is always shut.</summary>
+    public const int DoorOpenOneIn = 5;
 
     public static readonly IReadOnlyList<VesselClass> Classes =
     [
-        new("shuttle", Bells: 6, Length: 72, Decks: (2, 2), Bow: 12, ArmourDepth: 2, BridgeKind: VesselBridge.Cockpit,
-            Extras: (0, 1), ExtraRoles: [VesselRole.Hold, VesselRole.Quarters, VesselRole.Life], Crater: 6, Yield: (1300, 2800)),
-        new("freighter", Bells: 10, Length: 200, Decks: (2, 3), Bow: 20, ArmourDepth: 2, BridgeKind: VesselBridge.Raised,
-            Extras: (5, 10), ExtraRoles: [VesselRole.Hold, VesselRole.Quarters, VesselRole.Life], Crater: 14, Yield: (2400, 8000)),
+        new("shuttle", Length: 72, Decks: (2, 2), BowFlat: 3, BowRun: (1, 2), BowTip: 5, ArmourDepth: 2, BridgeKind: VesselBridge.Cockpit,
+            Extras: (0, 1), ExtraRoles: [VesselRole.Hold, VesselRole.Quarters, VesselRole.Life], Crater: 6, Yield: (1600, 2700)),
+        new("freighter", Length: 200, Decks: (2, 3), BowFlat: 8, BowRun: (1, 2), BowTip: 8, ArmourDepth: 2, BridgeKind: VesselBridge.Raised,
+            Extras: (5, 10), ExtraRoles: [VesselRole.Hold, VesselRole.Quarters, VesselRole.Life], Crater: 14, Yield: (3400, 6100)),
     ];
 
     /// <summary>The surface kind each class's vessel lies on (vessel-worlds), in the order of <see cref="Classes"/>.</summary>
@@ -226,7 +275,7 @@ public static class Vessels
     /// <summary>The rule of <paramref name="role"/>'s rooms.</summary>
     public static VesselRoomRule RuleOf(VesselRole role) => RoomRules.First(r => r.Role == role);
 
-    /// <summary>Columns of a cockpit's glass, from where the bow starts: the top armour over them, down its taper.</summary>
+    /// <summary>Columns of a cockpit's glass, from where the bow starts: the top armour over them, down its slope.</summary>
     public const int CockpitGlass = 8;
 
     /// <summary>The class <paramref name="id"/>; null for none.</summary>
