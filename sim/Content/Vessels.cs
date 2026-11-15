@@ -250,6 +250,12 @@ public static class Vessels
     /// <summary>Columns between two parts side by side outside the hull.</summary>
     public const int PartGap = 3;
 
+    /// <summary>
+    /// Columns a part outside may move from its place to lie closer along the hull, off a rib; and the rows of gap a column past the
+    /// hull's end counts as, so a part never hangs off it.
+    /// </summary>
+    public const int PartSlide = 4, PartFar = 8;
+
     /// <summary>Columns short of the bow a freighter's keel truss ends.</summary>
     public const int TrussShort = 6;
 

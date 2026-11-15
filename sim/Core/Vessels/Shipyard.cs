@@ -221,27 +221,50 @@ public static class Shipyard
         foreach (var f in outside) Mark(f.Kind, f.X, f.Y);
 
         bool Hull(int x, int y) => sections.Any(s => x >= s.Left && x < s.Left + s.Width && y >= s.RowsAt(x).Top && y <= s.RowsAt(x).Bottom);
-        // The hull's highest row over columns x to x + w, and its lowest.
-        int Over(int x, int w) => Enumerable.Range(x, w).Min(c => sections.Where(s => c >= s.Left && c < s.Left + s.Width).Select(s => s.RowsAt(c).Top).DefaultIfEmpty(int.MaxValue).Min());
-        int Under(int x, int w) => Enumerable.Range(x, w).Max(c => sections.Where(s => c >= s.Left && c < s.Left + s.Width).Select(s => s.RowsAt(c).Bottom).DefaultIfEmpty(int.MinValue).Max());
+        // The hull's highest row in column c and its lowest, null past it; over columns x to x + w.
+        int? TopAt(int c) => sections.Where(s => c >= s.Left && c < s.Left + s.Width).Select(s => (int?)s.RowsAt(c).Top).Min();
+        int? BottomAt(int c) => sections.Where(s => c >= s.Left && c < s.Left + s.Width).Select(s => (int?)s.RowsAt(c).Bottom).Max();
+        int Over(int x, int w) => Enumerable.Range(x, w).Min(c => TopAt(c) ?? int.MaxValue);
+        int Under(int x, int w) => Enumerable.Range(x, w).Max(c => BottomAt(c) ?? int.MinValue);
         void Mark(string kind, int x, int y)
         {
             var spec = Machines.Get(kind);
             for (int dy = 0; dy < spec.Height; dy++)
                 for (int dx = 0; dx < spec.Width; dx++) taken.Add((x + dx, y + dy));
         }
-        bool Put(string kind, int x, int y)
+        bool Free(string kind, int x, int y)
         {
             var spec = Machines.Get(kind);
             for (int dy = 0; dy < spec.Height; dy++)
                 for (int dx = 0; dx < spec.Width; dx++)
                     if (Hull(x + dx, y + dy) || taken.Contains((x + dx, y + dy))) return false;
+            return true;
+        }
+        bool Put(string kind, int x, int y)
+        {
+            if (!Free(kind, x, y)) return false;
             outside.Add(new(kind, x, y, []));
             Mark(kind, x, y);
             return true;
         }
-        bool OnTop(string kind, int x) => Put(kind, x, Over(x, Machines.Get(kind).Width) - Machines.Get(kind).Height);
-        bool Beneath(string kind, int x) => Put(kind, x, Under(x, Machines.Get(kind).Width) + 1);
+        // A part on top (or under) near column x: within slide of it where its cells are free, the one lying closest along the hull, a
+        // rib under one end leaving the rest far off; the nearest x of those.
+        bool Against(string kind, int x, bool up, int slide)
+        {
+            var spec = Machines.Get(kind);
+            (int X, int Y, int Gap)? best = null;
+            for (int k = 0; k <= 2 * slide; k++)
+            {
+                int at = x + (k % 2 == 0 ? k / 2 : -(k + 1) / 2);
+                int edge = up ? Over(at, spec.Width) : Under(at, spec.Width), y = up ? edge - spec.Height : edge + 1, gap = 0;
+                for (int c = at; c < at + spec.Width; c++)
+                    gap += up ? (TopAt(c) ?? edge + Vessels.PartFar) - edge : edge - (BottomAt(c) ?? edge - Vessels.PartFar);
+                if ((best == null || gap < best.Value.Gap) && Free(kind, at, y)) best = (at, y, gap);
+            }
+            return best is { } b && Put(kind, b.X, b.Y);
+        }
+        bool OnTop(string kind, int x, int slide = Vessels.PartSlide) => Against(kind, x, up: true, slide);
+        bool Beneath(string kind, int x, int slide = Vessels.PartSlide) => Against(kind, x, up: false, slide);
         int W(string kind) => Machines.Get(kind).Width;
 
         int rcs = W(Vessels.Rcs), fore = bow - rcs;
@@ -257,7 +280,7 @@ public static class Shipyard
             OnTop(Vessels.Mast, stern + (body.Width - W(Vessels.Mast)) / 2);
             OnTop(Vessels.Dish, fore - gap - W(Vessels.Dish));
             OnTop(Vessels.Solar, stern + 1 + rcs + 1);
-            Beneath(Vessels.Tank, stern + (body.Width - W(Vessels.Tank)) / 2);
+            Beneath(Vessels.Tank, stern + (body.Width - W(Vessels.Tank)) / 2, slide: body.Width / 2);
             return;
         }
         int inside = bridge.Left + armour, end = bridge.Left + bridge.Width - armour;
