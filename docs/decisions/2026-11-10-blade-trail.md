@@ -33,4 +33,4 @@ Twenty seconds of chopping, vsync off: 2.08 ms a frame without the trail, 2.37 w
 
 - Another player's hero leaves a trail too, from its figure as drawn here; nothing is sent.
 - The haze is drawn at the shimmers' layer: what is drawn over the world there is not bent.
-- An aimed tool, the spear among them, leaves no trail: its edge moves along itself, and a line of haze reads as nothing. The spear has its own ([spear-effects](2026-11-14-spear-effects.md)).
+- An aimed tool leaves no trail in its thrust: its edge moves along itself, and a line of haze reads as nothing. The plain spear trails outside it ([spear-trail](2026-11-15-spear-trail.md)).

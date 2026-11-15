@@ -373,3 +373,4 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [food-tuning](2026-11-15-food-tuning.md) | Food tuning: whole-unit canisters, longer dishes, a stimulant, a purge | accepted |  |
 | [jet-cruise](2026-11-15-jet-cruise.md) | A jetpack pays for changing speed, not for distance | accepted |  |
 | [spark-rule](2026-11-15-spark-rule.md) | A tool's haze in matter throws that matter's look, whatever was hit | accepted |  |
+| [spear-trail](2026-11-15-spear-trail.md) | The plain spear trails haze outside its thrust | accepted |  |
