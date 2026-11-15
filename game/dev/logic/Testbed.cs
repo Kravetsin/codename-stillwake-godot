@@ -79,6 +79,9 @@ public static class Testbed
     /// <summary>The litres the engine's and the biofuel generator's stores hold at the start: biofuel, so the engine draws its power.</summary>
     public const int Fuelled = 10;
 
+    /// <summary>The litres the crew shuttle's 200 l tank holds at the start: some, so its gauge shows it (fuel-liquid).</summary>
+    public const int ShuttleFuel = 120;
+
     /// <summary>The litres the drop pod's store holds at the start: biofuel for two descents (<c>Fuel.Descent</c> each).</summary>
     public const int PodFuel = 2 * Fuel.Descent / Fuel.Can;
 
@@ -259,8 +262,8 @@ public static class Testbed
         // Both cisterns full of water, for the electrolyser to split from the start.
         save["slices"]!["water"]!["cisterns"] = new JsonArray([.. machines.Where(m => (string?)m!["kind"] == "cistern").Select(m => (int)m!["id"]!).Order()
             .Select(id => (JsonNode)new JsonObject { ["machine"] = id, ["amount"] = Content.Water.CisternCapacity })]);
-        // The engine, the pod and the biofuel generator with their fuel in their stores (fuel-liquid).
-        save["slices"]!["fuel"]!["stores"] = new JsonArray([.. new[] { ("engine", Fuelled), ("dropPod", PodFuel), ("biofuelGenerator", Fuelled) }
+        // The engine, the pod, the biofuel generator and the shuttle with their fuel in their stores (fuel-liquid).
+        save["slices"]!["fuel"]!["stores"] = new JsonArray([.. new[] { ("engine", Fuelled), ("dropPod", PodFuel), ("biofuelGenerator", Fuelled), ("crewShuttle", ShuttleFuel) }
             .Select(f => (Machine: Id(f.Item1), Litres: f.Item2)).OrderBy(f => f.Machine)
             .Select(f => (JsonNode)new JsonObject { ["machine"] = f.Machine, ["amount"] = f.Litres * Fuel.Can })]);
         var world = World.Load(save.ToJsonString(), modules);

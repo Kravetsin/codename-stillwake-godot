@@ -14,6 +14,13 @@ in. Built in the two stages of CLAUDE.md's Workflow: **Try** (built, played by t
 - **`IItemsOps.SmeltOut`**: the fermenter's smelt taken from its input, its yields counted obtained, put in its store.
 - **The fuel tank's picture is the cistern's, a placeholder** until the art pick; its map character is `!` (every letter is
   taken). The pipe's amber is a placeholder too. The four machines that gained a fuel port got its fitting drawn.
+- **After the first play (the user's list):** tanks, cisterns and the fuel tank on the storage tab; every sight glass shows
+  any level to a hi-res pixel (`SightGlass`, `GlassLevel`: one `{kind}_level` picture and its surface, the glass found in it),
+  no more fifths or quarters; the biofuel generator pays a tick's share of a litre each tick (`Fire.Owed`), so its store
+  drains as it burns; a fuel store says how long it lasts at what it gave out over the last 5 s (`Lasts`, derived outflow);
+  a machine holding over a litre of liquid is not taken apart (`building.holdsLiquid`, `Builds.TakenApartHolding`).
+- **The crew shuttle** holds 200 l: a hopper, a fuel input at its stern (0, 8), its panel the stores' (E opens it), its fuel
+  up the sight glass its picture already had. It still does not fly or seat anyone.
 - **A demo**, `--fuel`: a fermenter piped to a 60 l tank piped to a pod; a generator to pipe by hand. The testbed has a fuel
   tank on the arc bench.
 

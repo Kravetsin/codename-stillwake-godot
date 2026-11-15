@@ -1,6 +1,7 @@
 // The crew's shuttle, as picked: «Ледокол» (H of the shuttle pick page), a heavy prow-shaped hull of worn red plates over a grey
 // ice belt, a row of four frosted slits nobody shows through, a stack of three stubby thrusters at the stern, standing on two keel
-// blocks on its launch platform. `machine_crewShuttle`, 192 × 80, its footprint of 24 × 10 cells; built only, unlit and empty.
+// blocks on its launch platform. `machine_crewShuttle`, 192 × 80, its footprint of 24 × 10 cells, unlit; its fuel input at the
+// stern and the fuel up its sight glass (`crewShuttle_level`, fuel-liquid).
 (function () {
 'use strict';
 const { ell, rr, poly } = Anime;
@@ -13,6 +14,9 @@ const OXRED = { base: '#7e5040', shade: '#583630', deep: '#3e2624', lite: '#a06e
 const FROST = { base: '#76868f', shade: '#56646e', deep: '#3c4852', lite: '#a2b2ba', spec: '#e6eef0' };
 const RUST = ['#70482f', '#3f2a24'];
 const OFF = { green: '#2a4a36', red: '#5a2a28', white: '#5e5c52' };
+const PIPE = { base: '#7f8796', shade: '#555b70', deep: '#3a3e50', lite: '#a9b1be', spec: '#dfe7f2' };
+/** Biofuel's amber, a placeholder till its look is picked (fuel-liquid), as the fuel tank's. */
+const FUEL = { base: '#b8801e', lite: '#f2c66a', glint: '#d8a040' };
 
 const band = (x0, y0, x1, y1) => poly(x0, y0, x1, y0, x1, y1, x0, y1);
 function box(a, x, y, w, h, m, o) {
@@ -51,7 +55,25 @@ function frostSlit(a, x) {
   a.flat(ell(x + 2.6, 25.4, .45), '#e6eef0');
 }
 
+/**
+ * Its fuel input (fuel-liquid), its port at 0, 8: a bolted plate on the port's middle (4, 68), under the thrusters, its pipe
+ * running in under the stern, drawn first so the hull overlaps it.
+ */
+function fuelFitting(a) {
+  a.shape(band(0, 65.5, 18, 70.5), PIPE, { lite: band(0, 65.5, 18, 66.5), shade: band(0, 68.9, 18, 70.5) });
+  a.shape(rr(.9, 64.9, 6.2, 6.2, .4), GUN, { lite: band(.9, 64.9, 7.1, 65.6), shade: band(.9, 70.3, 7.1, 71.1) });
+  a.flat(ell(4, 68, 2), '#14151c');
+  a.flat(ell(4, 68, 1.3), PIPE.shade);
+  a.flat(ell(3.8, 67.75, .65), PIPE.base);
+  rivets(a, [1.6, 65.6], [6.4, 65.6], [1.6, 70.4], [6.4, 70.4]);
+}
+
+/** The stern's sight glass full of biofuel, under its surface (sight-glass): the client shows as much of it as the tank holds. */
+const level = (a) => { a.flat(rr(37.5, 35, 2.8, 10.6, .8), FUEL.base); a.flat(band(37.9, 35, 38.6, 45.6), FUEL.glint); };
+const levelTop = (a) => a.flat(band(37.5, 35, 40.3, 35.6), FUEL.lite);
+
 function shuttle(a) {
+  fuelFitting(a);
   // The keel blocks it stands on, their feet on the platform.
   for (const x of [36, 122]) {
     a.shape(poly(x, 66, x + 24, 66, x + 21, 80, x + 3, 80), GUN, { lite: band(x, 66, x + 24, 67.4), shade: band(x + 18, 66, x + 25, 80), deep: band(x, 78.6, x + 25, 80) });
@@ -82,7 +104,7 @@ function shuttle(a) {
     a.shape(poly(10, y - 4.4, 10, y + 4.4, 2.6, y + 6, 2.6, y - 6), STEEL, { lite: poly(10, y - 4.4, 2.6, y - 6, 2.6, y - 4.2, 10, y - 2.8), shade: band(2, y + 3, 11, y + 7) });
     a.shape(ell(2.8, y, 1, 5.6), DARK, { outer: false });
   }
-  // The feed slot on the stern quarter, its lamp and the sight glass, empty.
+  // The feed slot on the stern quarter, its lamp and the sight glass, empty: its fuel is drawn over it (crewShuttle_level).
   box(a, 20, 35, 14, 10, GUN, { outer: false });
   a.shape(rr(22, 37.2, 10, 2.4, .5), DARK, { outer: false, deep: band(22, 37.2, 32, 38) });
   lampOff(a, 27, 42.2, OFF.green, .9);
@@ -97,5 +119,7 @@ function shuttle(a) {
 
 Subjects.shuttle = function () {
   out('machine_crewShuttle', Anime.bake({ w: 192, h: 80, draw: shuttle }));
+  out('crewShuttle_level', Anime.bake({ w: 192, h: 80, draw: level }));
+  out('crewShuttle_level_top', Anime.bake({ w: 192, h: 80, draw: levelTop }));
 };
 })();
