@@ -18,10 +18,10 @@ public sealed class FuelScenario : DevScenario
     public override Layout? Map => Layout.Parse(
         [
             "                              ",
-            "  PPP    PPP                  ",
+            "  PPP    PPP       PPP        ",
             "                              ",
             "############################# ",
-            "#..L.........L..............# ",
+            "#..L....L....L......L.......# ",
             "#.........ZZ................# ",
             "#.uu..!!..ZZ..S.qqq.........# ",
             "#.uu..!!..ZZ....qqq.........# ",
@@ -29,7 +29,7 @@ public sealed class FuelScenario : DevScenario
             "                              ",
         ],
         [],
-        [((2, 1), (2, 6)), ((2, 1), (3, 4)), ((9, 1), (10, 8)), ((16, 6), (13, 4))]).Doubled();
+        [((2, 1), (2, 6)), ((2, 1), (3, 4)), ((9, 1), (10, 8)), ((9, 1), (8, 4)), ((16, 6), (13, 4)), ((19, 1), (20, 4))]).Doubled();
 
     /// <summary>Cells, doubled: the fermenter's output, the tank's input and output, the pod's input.</summary>
     private static readonly int[] Ports = [14 * 60 + 7, 14 * 60 + 12, 14 * 60 + 15, 14 * 60 + 20];
