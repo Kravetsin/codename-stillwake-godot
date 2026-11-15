@@ -108,23 +108,23 @@ public static class Testbed
     /// biofuel in its tank, cabled to the bank, and a lamp cabled to it; past the lamp, cabled on from it and unserved by drones, the fermenter,
     /// biomass in it, and the biofuel generator, biofuel in its slot, lit while the bank takes in (power-chain); past them the treadmill
     /// wheel, cabled to the generator, its top through room one's floor, so the bay is high enough for it; room one's top corners
-    /// walled, for its one vaporizer's air to reach every cell; a debris net hung outside on the bay's right wall. Thirty-six cells of space past the airlock, room for a jetpack to fly, then
-    /// the crew shuttle under the open sky on a launch platform its whole length, laid alone in space with its shaft clear below: under
-    /// the hull it would stand in the dark. Drawn a character a 16 px cell and doubled (0104):
+    /// walled, for its one vaporizer's air to reach every cell; a debris net hung outside on the bay's right wall. Fourteen cells of space past the airlock, room for a jetpack to fly, then
+    /// the shuttle's hangar: the crew shuttle on a launch platform its whole length, its shaft clear below, a lamp over it fed by a
+    /// panel of its own on the roof, a door out to space, and no air, as the airlock: outside a lamp the shuttle stood in the dark. Drawn a character a 16 px cell and doubled (0104):
     /// a drawn pipe meets only even cells, so each vaporizer's air leaves its odd output through a pipe under its top-right block,
     /// and each tank's liquid its odd output on its right through a pipe under the block past it.
     /// </summary>
     public static readonly Layout Map = Layout.Parse(
         [
-            "   NN".PadRight(98),
-            "   NN",
-            "   NN  PPP  PPPPPP PPPPPPPPP PPP PPP PPP PPP   PPP PPP PPP",
-            "  #################################################".PadRight(70) + "^^^^^^^^^^^^",
-            "  ##KK...LUUUII###..TTL.kk.cc.ccJ.GG.yy.L.$$..#..L#".PadRight(70) + "^^^^^^^^^^^^",
-            "  #.OOOQQ.UUUIIRRD..TT..kk.cc.ccggGG.yy...$$&&DZZ.D".PadRight(70) + "^^^^^^^^^^^^",
-            "  #.OOOQQTTGGIIRRDWW.FF.MM.EE.YYggGG.yyAACBB&&DZZ.D".PadRight(70) + "^^^^^^^^^^^^",
-            "  #.OOOKKTTGGVKK.DWW.FF.MM.EE.YYggGGKKVAACBB&&DZZ.D".PadRight(70) + "^^^^^^^^^^^^",
-            "  #o#########www###############################__##".PadRight(69) + "#____________#",
+            ("   NN".PadRight(64) + "PPP").PadRight(98),
+            "   NN".PadRight(58) + "##############",
+            "   NN  PPP  PPPPPP PPPPPPPPP PPP PPP PPP PPP   PPP PPP PPP" + "#.....L......#",
+            "  #################################################".PadRight(58) + "#^^^^^^^^^^^^#",
+            "  ##KK...LUUUII###..TTL.kk.cc.ccJ.GG.yy.L.$$..#..L#".PadRight(58) + "#^^^^^^^^^^^^#",
+            "  #.OOOQQ.UUUIIRRD..TT..kk.cc.ccggGG.yy...$$&&DZZ.D".PadRight(58) + "#^^^^^^^^^^^^D",
+            "  #.OOOQQTTGGIIRRDWW.FF.MM.EE.YYggGG.yyAACBB&&DZZ.D".PadRight(58) + "#^^^^^^^^^^^^D",
+            "  #.OOOKKTTGGVKK.DWW.FF.MM.EE.YYggGGKKVAACBB&&DZZ.D".PadRight(58) + "#^^^^^^^^^^^^D",
+            "  #o#########www###############################__##".PadRight(58) + "#____________#",
             "  #XXXL.uuqqqwww#n",
             "  #XXX..uuqqqwww#n",
             "  ###############n",
@@ -140,7 +140,7 @@ public static class Testbed
             "          -- -        ------------- ---",
         ],
         [
-            ((7, 2), (9, 4)), ((7, 2), (11, 6)), ((7, 2), (19, 2)),
+            ((7, 2), (9, 4)), ((7, 2), (11, 6)), ((7, 2), (19, 2)), ((64, 0), (64, 2)),
             ((19, 2), (22, 4)), ((42, 6), (40, 4)), ((40, 4), (49, 4)), ((42, 6), (24, 6)), ((47, 2), (41, 6)),
             ((29, 2), (27, 6)), ((33, 2), (30, 6)), ((33, 2), (33, 6)), ((12, 2), (15, 5)), ((37, 2), (34, 6)), ((41, 2), (34, 4)),
             ((37, 2), (32, 4)), ((47, 2), (51, 2)), ((51, 2), (55, 2)), ((7, 2), (7, 5)), ((15, 2), (4, 2)), ((15, 2), (12, 4)),
