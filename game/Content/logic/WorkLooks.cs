@@ -68,6 +68,12 @@ public static class WorkLooks
     public const double SparksPerSecond = 150, SparkStreak = 0.016, SparkWidth = 0.32;
     public static readonly (double Least, double Most) SparkLife = (160, 420), SparkSpeed = (60, 150);
 
+    /// <summary>
+    /// The plasma cutter's slag (cutter-contact): blown on along the jet out of the far side of what it cuts, walked every
+    /// <see cref="SlagStep"/> px for at most <see cref="SlagDepth"/>, spread <see cref="SlagSpread"/> either way.
+    /// </summary>
+    public const double SlagStep = 0.5, SlagDepth = 64, SlagSpread = 0.45;
+
     /// <summary>How widely each tool's sparks fan, radians either way: the grinder's tight, off its wheel.</summary>
     public const double DrillSpread = 1.1, GrinderSpread = 0.3, CutterSpread = 1.3;
 

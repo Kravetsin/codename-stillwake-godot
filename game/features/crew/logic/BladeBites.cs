@@ -10,6 +10,9 @@ namespace Stillwake.Game.Features.Crew;
 /// </summary>
 public static class BladeBites
 {
+    /// <summary>At most how many of a bite's points, spread along it, a struck hit throws from, a share of it each.</summary>
+    public const int Throws = 3;
+
     /// <summary>
     /// The points of the stretch from <paramref name="was"/> to <paramref name="now"/> (the edge's points, one to one, in pixels of
     /// the world) that <paramref name="inside"/> says are in a wreck, each edge point and the middle of its sweep, and the unit way
