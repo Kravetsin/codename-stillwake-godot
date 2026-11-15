@@ -648,17 +648,27 @@ public partial class Figure : Node2D
         set => _jetpack.Visible = value;
     }
 
-    /// <summary>Whether the hero wears a cape (2026-10-27-the-cape-is-worn): a sheet of cloth from the shoulders to the floor.</summary>
-    public bool WearsCape
+    /// <summary>
+    /// The cape the hero wears (2026-10-27-the-cape-is-worn), a sheet of cloth from the shoulders to the floor: its picture id,
+    /// the item's own or a skin's (skins); none for no cape.
+    /// </summary>
+    public string? CapeWorn
     {
-        get => _capeOutside.Visible;
+        get => _capeOutside.Visible ? _capePicture : null;
         set
         {
-            if (value == _capeOutside.Visible) return;
-            _capeInside.Visible = _capeOutside.Visible = value;
+            if (value != null && value != _capePicture)
+            {
+                _capePicture = value;
+                _capeInside.Wear(value);
+                _capeOutside.Wear(value);
+            }
+            if ((value != null) == _capeOutside.Visible) return;
+            _capeInside.Visible = _capeOutside.Visible = value != null;
             _cape.Reset();
         }
     }
+    private string _capePicture = Stillwake.Content.Cape.Item;
 
     /// <summary>Whether the hero wears the helmet lamp (0077): it shows on the helmet's brow and shines, only on a helmet.</summary>
     public bool HeadLamp
@@ -688,9 +698,7 @@ public partial class Figure : Node2D
     {
         _scanner.Visible = _scannerWorn && _helmetWorn != null;
         if (!_scanner.Visible) return;
-        var (name, (x, y)) = _helmetWorn == Stillwake.Content.Helmet.Heavy ? ("hero_heavyHelmet_scanner", ScannerInk.OnHeavy)
-            : _helmetWorn == Stillwake.Content.Helmet.Quilted ? ("hero_quiltedHelmet_scanner", ScannerInk.OnQuilted)
-            : ("hero_scanner", ScannerInk.On);
+        var (name, x, y) = ScannerInk.Of(_helmetWorn!);
         _scanner.Texture = PixelArt.Picture(name);
         _scanner.Offset = _scannerDot.Offset = new Vector2((float)x - ScannerInk.Margin, (float)y - ScannerInk.Margin) - Joints["helmet"];
         for (int i = 0; i < _scannerDots.Length; i++) _scannerDots[i] = PixelArt.Picture($"{name}_lit_{i}");
