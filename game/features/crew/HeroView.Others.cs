@@ -65,7 +65,7 @@ public partial class HeroView
             bool hits = shown.Swing.Follow(elapsedMs, stroke != null ? chop : null, heard.From, stroke, angle).Hits;
             // Swinging, it faces the side its stroke is aimed at, however its delayed body was turned.
             if (shown.Swing.Phase != null) hero = hero with { Facing = AxeSwing.FaceOf(shown.Swing.Aim, hero) };
-            if (hits) StruckBy(m, id, hero, shown.Swing.Toward(hero), strikes!, StruckHaze(shown.Figure));
+            if (hits) StruckBy(m, id, hero, shown.Swing.Toward(hero), strikes!, StruckHaze(shown.Figure, landing: true));
             // Its drill's hits likewise, at its pace where the sim says it runs and it sends its bit: what its edge touches, as drawn here.
             string? running = m.Items.Running(id);
             bool drills = HeldLook.IsDrill(running) && seen.Busy is { Work: Handwork.Drill };

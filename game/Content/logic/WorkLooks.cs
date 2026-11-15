@@ -14,15 +14,18 @@ public static class WorkLooks
     /// <summary>How many throws a second a tool touching anything but a wreck makes, every one a share of a whole hit (<see cref="ShareOf"/>).</summary>
     public const double ThrowsPerSecond = 30;
 
+    /// <summary>How many times what its hits would throw one by one a running tool throws as a stream: a steady stream reads as work.</summary>
+    public const double Stream = 4;
+
     /// <summary>
     /// The share of the axe's whole hit each of <paramref name="tool"/>'s throws is: its hits' each (their pace over the axe's) times
-    /// its hits a second, spread over <see cref="ThrowsPerSecond"/>; none for no weapon.
+    /// its hits a second, <see cref="Stream"/> times, spread over <see cref="ThrowsPerSecond"/>; none for no weapon.
     /// </summary>
     public static double ShareOf(string tool)
     {
         if (Content.Weapons.Of(tool) is not { } weapon) return 0;
         double each = Math.Min(1, (double)weapon.Pace / Content.Weapons.Axe.Pace), perSecond = (double)Sim.World.TicksPerSecond / weapon.Pace;
-        return each * perSecond / ThrowsPerSecond;
+        return each * perSecond * Stream / ThrowsPerSecond;
     }
 
     /// <summary>The air a tool works (tool-reach): pale cyan as the air round a hero (<c>AirSwirl</c>).</summary>

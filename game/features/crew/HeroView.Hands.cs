@@ -124,7 +124,7 @@ public partial class HeroView
             if (sent.Pieces is { } pieces) client.Send(pieces);
             foreach (var strike in sent.Strikes) client.Send(strike);
             // The ground it bites first heard and seen there, the ship's hull too, which takes no harm: a clang and sparks.
-            if (hit.Ground?.Cell is int bitten) Struck(_groundHits, m, bitten, struck!, _current, client.Id, StruckHaze(_figure));
+            if (hit.Ground?.Cell is int bitten) Struck(_groundHits, m, bitten, struck!, _current, client.Id, StruckHaze(_figure, landing: true));
             // Landed or not, the air it drives on stirs what lies near the blade (air-gusts).
             StrokeGust(m, struck!, hit);
             // A blade that bites is drawn stopped on contact a moment (0075).
@@ -343,11 +343,12 @@ public partial class HeroView
 
     /// <summary>
     /// A struck blade's haze as <paramref name="figure"/> drew it this frame (spark-rule), the spear's thrust too; none while it does
-    /// not sweep.
+    /// not sweep. For a hit landing (<paramref name="landing"/>), its last sweep within the trail's life: a blade often stands still
+    /// the frame it lands.
     /// </summary>
-    private static List<HazePoint>? StruckHaze(Figure figure)
+    private static List<HazePoint>? StruckHaze(Figure figure, bool landing = false)
     {
-        if (!figure.Visible || figure.Sweep is not var (was, now)) return null;
+        if (!figure.Visible || (landing ? figure.Swept : figure.Sweep) is not var (was, now)) return null;
         var haze = new List<HazePoint>();
         ToolHaze.OfEdge(was, now, haze);
         return haze.Count > 0 ? haze : null;

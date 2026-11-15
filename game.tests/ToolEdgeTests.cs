@@ -227,12 +227,12 @@ public class ToolEdgeTests
     }
 
     [Fact]
-    public void AStreamThrowsAsMuchASecondAsTheHitsDidOneByOne()
+    public void AStreamThrowsItsStreamTimesAsMuchASecondAsTheHitsDidOneByOne()
     {
         foreach (var weapon in new[] { Spec.Weapons.Drill, Spec.Weapons.Grinder, Spec.Weapons.PlasmaCutter })
         {
             double hits = (double)Sim.World.TicksPerSecond / weapon.Pace * Features.Effects.Impacts.ShareOf(weapon.Item);
-            Assert.Equal(hits, WorkLooks.ShareOf(weapon.Item) * WorkLooks.ThrowsPerSecond, 9);
+            Assert.Equal(hits * WorkLooks.Stream, WorkLooks.ShareOf(weapon.Item) * WorkLooks.ThrowsPerSecond, 9);
         }
     }
 
