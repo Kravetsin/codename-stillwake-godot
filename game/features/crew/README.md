@@ -120,8 +120,7 @@ This hero and others', client-authoritative (0002): only commands reach the sim.
   (hurts-are-shown) tint edges and gauge.
 - **Water** (liquids): swum `SwimDepth` deep, left by Space or shore; wading splashes.
 - **Swim, haul, jetpack** (0047, tether-haul, jet-cruise): afloat through floors, tied where it left the hull;
-  Shift hauls in along its bends (`Wraps`); a jetpack unties, Shift thrusts, `Thrust` sent on only while it vents (not
-  `Hero.Cruising` at top speed along it) and if unlike the sim's; its plume and roar follow the venting.
+  Shift hauls in along its bends (`Wraps`); a jetpack unties; Shift vents unless `Hero.Cruising`.
 - **A canister** (0047, 0081): RMB or R sends `Refill`, V `SuitMode` (regen-suit) if taken. Cooling greys the O₂ sign
   in a ring; too soon, red (canister-mark).
 - **Meals:** a food RMB sends `Eat`, chewed; refused, slots blink (hud-vitals). **Degrees** over them (the-thermometer).
