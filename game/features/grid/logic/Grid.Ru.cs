@@ -26,5 +26,9 @@ public static partial class Ru
         ["hazards.flareComing"] = "Вспышка уже на подходе",
         ["hazards.badTicks"] = "Вспышка бьёт не раньше чем через тик",
         ["sky.noDay"] = "Здесь не бывает дня",
+        ["sky.noStretch"] = "Здесь нет такой полосы космоса",
+        ["sky.stretchRunning"] = "Корабль уже идёт через полосу",
+        ["stretch.iceBelt"] = "Ледяной пояс",
+        ["stretch.contrabandDrift"] = "Дрейф контрабанды",
     };
 }

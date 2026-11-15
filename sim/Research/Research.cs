@@ -137,6 +137,8 @@ public sealed class ResearchModule : Module<ResearchState>, IResearchQueries
         if (Next() is not { } next || Points(next) < Target(next)) return;
         var after = GateOf(next.Ring + 1);
         var start = after == null ? [] : after.Order.Select(d => new Tally(d.Item, _knowledge.SoldOf(d.Item))).ToList();
+        // Contraband is wanted at every level (docs/plans/stretches.md): counted from here too.
+        if (after != null) start.Add(new Tally(Stretches.Contraband, _knowledge.SoldOf(Stretches.Contraband)));
         _knowledgeOps.Open(next.Ring, start, _knowledge.SoldWorth);
     }
 
@@ -154,7 +156,8 @@ public sealed class ResearchModule : Module<ResearchState>, IResearchQueries
 
     /// <summary>
     /// How far toward <paramref name="gate"/>'s level, in sevenths: a wanted good up to its count at full worth, past it at a seventh, and everything
-    /// else sold since the level opened at a seventh, never below none, as a later build may lower a worth.
+    /// else sold since the level opened at a seventh, never below none, as a later build may lower a worth. Contraband, wanted at every level
+    /// with no count (docs/plans/stretches.md), all at full worth.
     /// </summary>
     private long Points(TechNode gate)
     {
@@ -165,6 +168,9 @@ public sealed class ResearchModule : Module<ResearchState>, IResearchQueries
             points += Math.Min(sold, count) * worth * Content.Research.OffWanted + Math.Max(sold - count, 0) * worth;
             wanted += sold * worth;
         }
+        long smuggled = (_knowledge.SoldOf(Stretches.Contraband) - _knowledge.BaseOf(Stretches.Contraband)) * (long)Market.WorthOf(Stretches.Contraband);
+        points += smuggled * Content.Research.OffWanted;
+        wanted += smuggled;
         return points + Math.Max(0, _knowledge.SoldWorth - _knowledge.BaseWorth - wanted);
     }
 

@@ -27,5 +27,10 @@ public static partial class En
         ["hazards.flareComing"] = "A flare is coming already",
         ["hazards.badTicks"] = "A flare strikes a tick on at the soonest",
         ["sky.noDay"] = "There is no day out here",
+        ["sky.noStretch"] = "There is no such stretch of space here",
+        ["sky.stretchRunning"] = "A stretch of space is passing already",
+        // The stretches of space (docs/plans/stretches.md), by id.
+        ["stretch.iceBelt"] = "Ice belt",
+        ["stretch.contrabandDrift"] = "Contraband drift",
     };
 }

@@ -42,6 +42,9 @@ public static class Surfaces
         /// <summary>Its day and night (2026-11-07-night-chills); null where there is none: the ship.</summary>
         public Content.Sky.Cycle? Cycle { get; init; }
 
+        /// <summary>The stretches of space it drifts through (docs/plans/stretches.md): the ship's; none anywhere else.</summary>
+        public IReadOnlyList<Content.Stretches.Stretch> Stretches { get; init; } = [];
+
         /// <summary>Whether debris drifts by in the zones of <see cref="Debris.Zones"/>: none on a planet.</summary>
         public bool Debris { get; init; } = true;
 
@@ -89,6 +92,7 @@ public static class Surfaces
         Meteors = Content.Meteors.StartingSpace,
         MeteorsBeforeLanding = Content.Meteors.BeforeLanding,
         Flares = MagneticFlares.StartingSpace,
+        Stretches = Content.Stretches.All,
     };
 
     /// <summary>

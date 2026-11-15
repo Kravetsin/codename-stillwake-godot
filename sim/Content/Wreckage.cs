@@ -32,6 +32,9 @@ public static class Wreckage
         ("engineBlock", 180),
         ("cargoHold", 140),
         ("podCluster", 110),
+        // The stretches' (docs/plans/stretches.md): as hard as the small asteroid and the mafia crate whose looks they wear for now.
+        ("iceBlock", 50),
+        ("contrabandCrate", 15),
     ];
 
     /// <summary>The hit points of <paramref name="item"/>, or null when it is no wreckage but caught by hand.</summary>
@@ -65,6 +68,8 @@ public static class Wreckage
         ("engineBlock", 10, 6),
         ("cargoHold", 12, 6),
         ("podCluster", 8, 8),
+        ("iceBlock", 3, 3),
+        ("contrabandCrate", 3, 3),
     ];
 
     /// <summary>The size in cells of wreckage <paramref name="item"/> (<see cref="Sizes"/>), or null when it is no wreckage.</summary>

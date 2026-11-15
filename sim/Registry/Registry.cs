@@ -39,7 +39,7 @@ public sealed class Registry
     /// <summary>The world's, one for all its surfaces: what is granted and analysed.</summary>
     public KnowledgeModule Knowledge { get; }
     public GridModule Grid { get; }
-    /// <summary>The planet's day and night (2026-11-07-night-chills): right after the grid, before the crew that feels its chill.</summary>
+    /// <summary>The planet's day and night (2026-11-07-night-chills), the ship's stretches: after the grid, before the crew that feels its chill and the debris.</summary>
     public SkyModule Sky { get; }
     public RoomsModule Rooms { get; }
     public ItemsModule Items { get; }
@@ -79,7 +79,7 @@ public sealed class Registry
         Players = ship?.Players ?? new PlayersModule();
         Knowledge = ship?.Knowledge ?? new KnowledgeModule(ResearchModule.Ids);
         Grid = new GridModule();
-        Sky = new SkyModule();
+        Sky = new SkyModule(Knowledge);
         Rooms = new RoomsModule(Grid);
         Items = new ItemsModule(Grid, Rooms, Knowledge, Knowledge);
         Power = new PowerModule(Grid, Rooms, Items, Items);
@@ -94,7 +94,7 @@ public sealed class Registry
         // the run order and the saves', before pipes and crew (0077: a wall does not finish on a hero; 2026-10-29-typed-ports).
         Building = new BuildingModule(Grid, Grid, Items, Items, Power, Power, Research, Crafting, Crafting, Crew, Crew, Pipes);
         Hazards = new HazardsModule(Grid, Power, Power, Research, Building);
-        Debris = new DebrisModule(Grid, Crew, Crew, Rooms, Items, Items, Knowledge, Knowledge);
+        Debris = new DebrisModule(Grid, Crew, Crew, Rooms, Items, Items, Knowledge, Knowledge, Sky);
         Furnace = new FurnaceModule(Grid, Items, Items, Atmosphere, Atmosphere, Power, Power, Crafting, Crafting);
         Logistics = new LogisticsModule(Grid, Atmosphere, Items, Items, Crafting, Debris, Debris, Rooms);
         // Last, after crew, as its system reads where heroes are; saved last, so its slice is the newest.

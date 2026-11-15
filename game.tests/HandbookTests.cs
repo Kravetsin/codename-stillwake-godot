@@ -117,11 +117,11 @@ public class HandbookTests
     public void CountsTheLooksFoundOfAllThereAreAndSaysBothCountsInItsTip()
     {
         int all = Spawned.Sum(Content.Looks.CountOf);
-        Assert.Equal(83, all);
+        Assert.Equal(90, all);
         Assert.Equal((0, all), Finds.LookTally(new Dictionary<string, int[]>()));
         var looks = new Dictionary<string, int[]> { ["cargoCrate"] = [2, 0, 5], ["hullSection"] = [0], ["planks"] = [0] };
         Assert.Equal((4, all), Finds.LookTally(looks));
-        Assert.Equal(new Tip("Found in this world", new TipLine("Kinds 2/19"), new TipLine($"Looks 4/{all}")),
+        Assert.Equal(new Tip("Found in this world", new TipLine("Kinds 2/21"), new TipLine($"Looks 4/{all}")),
             Finds.TallyTip(Finds.Tally(looks.Keys), Finds.LookTally(looks)));
         Assert.Contains(new TipLine("Looks 3/8"), Finds.KindTip("cargoCrate", ["planks"], [2, 0, 5]).Lines);
         Assert.DoesNotContain(Finds.KindTip("hullSection", ["hullPlate"], [0]).Lines, l => l.Text.StartsWith("Looks"));
@@ -141,8 +141,8 @@ public class HandbookTests
     [Fact]
     public void LaysItsTabletScreenOutFromTheSlotSizeAndFitsItWithItsBezelOnTheSmallestScreen()
     {
-        Assert.Equal((838, 376), (Normal.Width, Normal.Height));
-        Assert.Equal((950, 440), (Large.Width, Large.Height));
+        Assert.Equal((838, 436), (Normal.Width, Normal.Height));
+        Assert.Equal((950, 516), (Large.Width, Large.Height));
         foreach (var at in (HandbookScreen[])[Normal, Large])
         {
             Assert.Equal(TabletLayout.Pad + TabletLayout.TabHeight + TabletLayout.Pad, HandbookScreen.BodyTop);

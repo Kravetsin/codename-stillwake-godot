@@ -3,6 +3,7 @@ using Stillwake.Sim.Grid;
 using Stillwake.Sim.Items;
 using Stillwake.Sim.Knowledge;
 using Stillwake.Sim.Rooms;
+using Stillwake.Sim.Sky;
 
 namespace Stillwake.Sim.Debris;
 
@@ -100,13 +101,16 @@ public sealed partial class DebrisModule : Module<DebrisState>, IDebrisQueries, 
     private readonly IItemsOps _items;
     private readonly IKnowledgeQueries _knowledge;
     private readonly IKnowledgeOps _knowledgeOps;
+    private readonly ISkyQueries _sky;
 
     public override string Id => "debris";
 
-    public DebrisModule(IGridQueries grid, ICrewQueries crew, ICrewOps crewOps, IRoomsQueries rooms, IItemsQueries held, IItemsOps items, IKnowledgeQueries knowledge, IKnowledgeOps knowledgeOps)
+    public DebrisModule(IGridQueries grid, ICrewQueries crew, ICrewOps crewOps, IRoomsQueries rooms, IItemsQueries held, IItemsOps items, IKnowledgeQueries knowledge, IKnowledgeOps knowledgeOps,
+        ISkyQueries sky)
     {
         _knowledge = knowledge;
         _knowledgeOps = knowledgeOps;
+        _sky = sky;
         _grid = grid;
         _crew = crew;
         _crewOps = crewOps;

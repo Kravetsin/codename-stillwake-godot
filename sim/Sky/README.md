@@ -6,6 +6,7 @@
 | --- | --- |
 | `Fuzz.cs` | The module's `Fuzz` override: the commands the desync suite draws. |
 | `Sky.cs` | The sky: a planet's hour, its night, `SetTime`, `ISkyQueries`. |
+| `Stretches.cs` | The ship's stretches of space: their schedule and `StretchNow`. |
 
 A planet's day and night ([night-chills](../../docs/decisions/2026-11-07-night-chills.md)): its hour counted a tick a tick,
 its night the end of each day. What night costs is Crew's (its chill in degrees,

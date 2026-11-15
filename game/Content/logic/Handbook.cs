@@ -19,6 +19,8 @@ public static class Handbook
         new("wrecks", ["hullSection", "cargoContainer", "machineBlock", "cableRack", "tankCluster", "shieldSlab", "soilClod"]),
         new("asteroids", ["asteroidSmall", "asteroid", "asteroidLarge", "asteroidRich"]),
         new("derelicts", ["engineBlock", "cargoHold", "podCluster"]),
+        // Found only while a stretch of space runs (docs/plans/stretches.md).
+        new("stretches", ["iceBlock", "contrabandCrate"]),
     ];
 
     /// <summary>

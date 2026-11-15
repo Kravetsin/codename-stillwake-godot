@@ -61,6 +61,8 @@ public static class Market
         ["heavyHelmet"] = 1239,
         ["plasmaCutter"] = 1032,
         ["regenSuit"] = 1457,
+        // Out of the contraband drift's crates (docs/plans/stretches.md): one number for the wanted meter, the credits and the reputation.
+        [Stretches.Contraband] = 1200,
     };
 
     /// <summary>What has a worth but no one buys: tools and what is worn, what stores or flies by itself, the arc's. Food sells (2026-11-14-food-and-gear-cards).</summary>

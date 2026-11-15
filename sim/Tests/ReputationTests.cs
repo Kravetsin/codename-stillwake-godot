@@ -76,6 +76,30 @@ public class ReputationTests
         Assert.True(w.M.Research.Done(Tree.Node("bag3")!));
     }
 
+    /// <summary>Contraband (docs/plans/stretches.md): wanted at every level, with no count, all at full worth; only what was sold since the level opened.</summary>
+    [Fact]
+    public void ContrabandCountsAtFullWorthTowardEveryLevelFromWhenItOpened()
+    {
+        var w = World();
+        long full = Market.WorthOf(Stretches.Contraband) * (long)Tree.OffWanted;
+        Assert.Equal(1200, Market.WorthOf(Stretches.Contraband));
+        // Wanted by no gate's order, else it would count twice.
+        Assert.DoesNotContain(Tree.Nodes, n => n.Order.Any(o => o.Item == Stretches.Contraband));
+        Mafia.Sell(w, Stretches.Contraband, 2);
+        Assert.Equal(2 * full, w.M.Research.Standing().Points);
+        // Unlike a wanted good, never shown as one of the level's wants.
+        Assert.DoesNotContain(w.M.Research.Standing().Wanted, d => d.Item == Stretches.Contraband);
+        for (int level = 1; level <= 2; level++)
+        {
+            Mafia.Reach(w, level);
+            var next = w.M.Research.Standing();
+            Assert.NotNull(next.Next);
+            Assert.Equal(0, next.Points);
+            Mafia.Sell(w, Stretches.Contraband, 3);
+            Assert.Equal(3 * full, w.M.Research.Standing().Points);
+        }
+    }
+
     [Fact]
     public void WhatWasSoldBeforeALevelOpenedCountsNothingTowardTheNext()
     {

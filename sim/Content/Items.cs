@@ -174,6 +174,11 @@ public static class Items
         new("parcel", 1, Group: ItemGroup.Other),
         new("deliveryCrate", 1, Group: ItemGroup.Other),
         new("confiscated", 1, Group: ItemGroup.Other),
+        // The stretches' wreckage (docs/plans/stretches.md): an ice block broken into ice, a contraband crate into its contraband.
+        new("iceBlock", 1, Group: ItemGroup.Other),
+        new("contrabandCrate", 1, Group: ItemGroup.Other),
+        // The mafia's goods out of a contraband crate: sold at a trade station, wanted by the mafia at every level.
+        new(Stretches.Contraband, 50),
         // Parts, made at the Fabricator (Crafts) of materials; then assemblies, of parts.
         new("wire", 250),
         new("plate", 250),

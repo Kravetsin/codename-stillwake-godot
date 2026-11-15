@@ -20,6 +20,8 @@ public static class DebrisLooks
         ("asteroid", "asteroid"), ("asteroidSmall", "smallrock"), ("asteroidLarge", "bigrock"), ("asteroidRich", "orerock"),
         ("engineBlock", "engine"), ("cargoHold", "hold"), ("podCluster", "pods"),
         ("parcel", "parcel"), ("deliveryCrate", "deliverycrate"), ("confiscated", "seized"),
+        // Stand-ins till their pictures are picked (docs/plans/stretches.md): the small asteroid's and the mafia crate's.
+        ("iceBlock", "smallrock"), ("contrabandCrate", "deliverycrate"),
     ];
 
     /// <summary>The pictures of each kind of salvage that drifts: their name, and how many there are.</summary>
