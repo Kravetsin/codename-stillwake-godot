@@ -197,6 +197,12 @@ public sealed class Ui
     public Store<string?> Wielded { get; } = new(null);
 
     /// <summary>
+    /// The chosen hotbar slot, the hand free or not: set by <c>items</c> with <see cref="Wielded"/>; <c>crew</c> tells the sim it
+    /// as the hero's hand (<c>Wield</c>), so the stack there is the one that works, fitted or not (tool-in-hand).
+    /// </summary>
+    public Store<int> Chosen { get; } = new(0);
+
+    /// <summary>
     /// Whether the power driver works its square or one cell (power-driver): this player's, not saved, the square at the start;
     /// <c>crew</c> switches it on a right click with the driver in hand.
     /// </summary>
@@ -306,6 +312,12 @@ public sealed class Ui
     public float? MenuTop { get; set; }
 
     /// <summary>
+    /// Where the tablet edge's keys top on the screen while they show; null when not. Set by <c>TabletEdge</c> every frame;
+    /// <c>crew</c> lifts the prompt for E above them too, as they ride an open tablet over its top.
+    /// </summary>
+    public float? EdgeTop { get; set; }
+
+    /// <summary>
     /// Every hero's chest as drawn this frame, in the world's pixels, this machine's own first. Set by
     /// <c>crew</c> every frame; <c>building</c> throws a plan's sparks from its side facing the nearest.
     /// </summary>
@@ -316,6 +328,12 @@ public sealed class Ui
     /// frame; <c>debris</c> strikes a wreck a bit is on where the bit is, a share of an axe's hit at a time (0094).
     /// </summary>
     public IReadOnlyList<(float X, float Y, string Tool)> Bits { get; set; } = [];
+
+    /// <summary>
+    /// The wrecks a tool's haze lay in within a blade trail's life, by id (spark-rule): what flies off them is the haze's, so
+    /// <c>debris</c> throws none of its own when they are hit. Set by <c>crew</c> every frame.
+    /// </summary>
+    public IReadOnlyCollection<int> HazeTouched { get; set; } = [];
 
     /// <summary>
     /// Where every power driver's motor is heard at work, and a moment after, in the world's pixels (power-driver). Set by <c>crew</c>
@@ -361,6 +379,22 @@ public sealed class Ui
     public void Breathe() => Breathed?.Invoke();
 
     /// <summary>
+    /// This player asked to eat a food (food-and-the-body): <c>items</c> says so on a right click on one in the inventory;
+    /// <c>crew</c> sends <c>Eat</c> when the sim would take it, as it does for one in hand.
+    /// </summary>
+    public event Action<string>? Ate;
+
+    public void Eat(string food) => Ate?.Invoke(food);
+
+    /// <summary>
+    /// This player asked to eat <c>food</c> and the sim would refuse it for <c>problem</c> (hud-vitals): <c>crew</c> says so, once a
+    /// press; the meal slots blink red.
+    /// </summary>
+    public event Action<string, string>? MealRefused;
+
+    public void RefuseMeal(string food, string problem) => MealRefused?.Invoke(food, problem);
+
+    /// <summary>
     /// This player asked to switch its suit's mode (2026-11-03-the-regen-suit): the suit's key on the tablet's edge says so;
     /// <c>crew</c> sends it, as it does for V.
     /// </summary>
@@ -383,6 +417,14 @@ public sealed class Ui
     public event Action? PressedFlat;
 
     public void PressFlat() => PressedFlat?.Invoke();
+
+    /// <summary>
+    /// This player asked for a canister while one cools (canister-mark): <c>crew</c> says so, once a press; the suit gauge's
+    /// oxygen sign and the canister's slots blink red.
+    /// </summary>
+    public event Action? PressedCooling;
+
+    public void PressCooling() => PressedCooling?.Invoke();
 
     /// <summary>
     /// The UI's click asked for (0081): an inventory action (a stack picked, put, swapped, split, sent across, dropped, a

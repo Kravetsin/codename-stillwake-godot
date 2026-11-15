@@ -134,6 +134,7 @@ public class NetTests
     [InlineData("hullPlate")]
     [InlineData("cargoCrate")]
     [InlineData("supplyPod")]
+    [InlineData("fridge")]
     public void CatchesEveryKindItTakesIntoAnEntryOfWhatItGives(string kind)
     {
         var w = Quiet();

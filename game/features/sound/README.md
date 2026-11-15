@@ -34,7 +34,7 @@ Effects → World, Suit, Helmet); `game/shared/` `Cues.cs`, `ActSound.cs`, `Hear
   loud as the next. `Heard2D` turns Godot's fall-off off and sets the volume each frame; Godot still pans.
 - **Starts**: Godot starts a placed sound on the next physics tick, a second play before it replacing the first. So
   physics ticks 60 a second (the client has none; at 20 a drill lost half its hits), and `Heard2D` gives a second
-  play in one tick a spare voice (`VoiceStarts`), up to its `voices`.
+  play in one tick, or one while another rings, a free voice (`VoiceStarts`): a voice is one place.
 - **Tool idle** (0068): a tool working nothing (`DrillWhir`, `Swing`) plays at the one `Sound.ToolIdleDb`.
 - **Music** (0035, 0042) on Music, loops stopped once silent: the title's track while the title shows; the bed of
   space (`Sound.Space`) while the hero floats, the vents' hum taking over aboard.
@@ -64,9 +64,9 @@ Each feature owns its players as children, never in a static.
 - `power/ChargerLights.cs` (0059): `ChargerHum` while charging; `ChargeFull` as a battery comes full (`CameFull`).
 - `logistics/LogisticsView.cs` (0062): each drone's rotors (`DroneWhir`, `DroneMotor`), tuned by id (`Whir.cs`), never in
   unison; `DroneDock` at lift-off and touch-down; `DroneGrab` as its clamp takes or puts. A low drone: its amber lamp.
-- `crafting/StationSounds.cs` (0059): told each frame by `StationView` whether it works (`CraftingModule.Works`) and
-  its picture step. The Former: a stroke on the picture its head comes down on (`FrameBeat`), over its motor loop
-  (`FormerSpin`), never pounding. The smelter: its hum (`LoopEnvelope`) and pops at random moments (`RandomTrain`).
+- `crafting/StationSounds.cs` (0059): told each frame by `StationView` whether it works and its picture step. The
+  Former: a stroke on the picture its head comes down on (`FrameBeat`), over its motor loop (`FormerSpin`). The smelter:
+  its hum (`LoopEnvelope`) and pops at random moments (`RandomTrain`). The galley: its boil, a knock as a dish is made.
 - `grid/GridView.cs` (0014): a door opening or closing, a valve turned, as the drawing catches up: anyone's, own at once.
 - `furnace/FurnaceView.cs` (0059): each fire's crackle loop.
 - `crew/SuitGauge.cs` (0033): on Helmet, the alarm while the suit runs low.

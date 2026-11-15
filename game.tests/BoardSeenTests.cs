@@ -18,7 +18,7 @@ public sealed class BoardSeenTests : IDisposable
     /// <summary>The notes of a world that has obtained <paramref name="found"/> and knows <paramref name="granted"/>, as the board works them out.</summary>
     private static System.Collections.Generic.HashSet<string> Notes(string[] found, params string[] granted)
     {
-        var read = new BoardRead(found, granted, _ => 1, _ => false);
+        var read = new BoardRead(found, granted, _ => true, _ => false);
         return BoardView.NotesOf(BoardSlots.Of(found, BoardThings.All, granted), read);
     }
 

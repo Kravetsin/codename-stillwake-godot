@@ -179,7 +179,7 @@ public sealed class TreeScenario : DevScenario
     public override void Attach(DevContext c) => c.Add(new TreeDemo(c.M));
 }
 
-[Dev("--board", "the board on the tablet, blank or with =first, =near, =burst, =circuit, =late, =bought or =search seeded (BoardDemo); with --manual, played by hand", Shape = DevShape.Either)]
+[Dev("--board", "the board on the tablet, blank or with =first, =near, =burst, =circuit, =late, =bought, =search or =tools seeded (BoardDemo); with --manual, played by hand", Shape = DevShape.Either)]
 public sealed class BoardScenario : DevScenario
 {
     public override Layout? Map => Registry.Wreck;
@@ -204,6 +204,12 @@ public sealed class FlashScenario : DevScenario
 public sealed class ToolCardsScenario : DevScenario
 {
     public override void Attach(DevContext c) => c.Add(new ToolCardsDemo());
+}
+
+[Dev("--item-cards", "five tools' cards, their pictures enlarged, a canister's and a bottle's, every food's card, the HUD meal's with its time left, every piece of gear's, the fire axe's beside them (ItemCardsDemo)")]
+public sealed class ItemCardsScenario : DevScenario
+{
+    public override void Attach(DevContext c) => c.Add(new ItemCardsDemo());
 }
 
 [Dev("--salvage", "a bay's salvage drone flying out of an aired room for the pieces drifting in its zone, canisters in its fuel slot (SalvageDemo)")]

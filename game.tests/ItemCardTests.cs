@@ -101,6 +101,17 @@ public class ItemCardTests
     }
 
     [Fact]
+    public void TileAThrownChargesBlastNotWhatItWouldAddToAGun()
+    {
+        var charge = ItemCards.Of(Spec.Shots.BlastCharge.Id);
+        // As content stands: 120 off each wreck within 8 cells, power 500 on rock in tenths, a throw a second.
+        Assert.Equal([("120", "Damage"), ("50", "Block"), ("8 cells", "Radius"), ("1s", "Reload time")], Said(charge.Tiles));
+        Assert.Equal([CardSign.Damage, CardSign.Block, CardSign.Reach, CardSign.Pace], charge.Tiles!.Select(t => t.Sign));
+        Assert.All(charge.Tiles!, t => Assert.Equal(CardGroup.Blast, t.Group));
+        Assert.True(charge.Tool);
+    }
+
+    [Fact]
     public void TileTheHarpoonsRangeReloadAndReelSpeedFromContentInsteadOfDamage()
     {
         var tiles = ItemCards.Of(Spec.Harpoon.Item).Tiles!;
@@ -118,7 +129,7 @@ public class ItemCardTests
         var card = ItemCards.Of(Spec.Harpoon.Item);
         Assert.True(card.Tool);
         Assert.True(ItemCards.IsTool(Spec.Harpoon.Item));
-        Assert.Equal(("Harpoon", "Tool · Harpoon"), (card.Name, card.Kind));
+        Assert.Equal(("Harpoon", "Tool"), (card.Name, card.Kind));
         Assert.Equal("LMB", card.Use!.Key);
         Assert.NotEqual(card, card with { Tiles = [.. card.Tiles!.Take(2)] });
         Assert.Equal(card, card with { Tiles = [.. card.Tiles!] });
@@ -139,7 +150,7 @@ public class ItemCardTests
     {
         var card = ItemCards.Of("fireAxe");
         Assert.True(card.Tool);
-        Assert.Equal(("Fire axe", "Tool · Axe"), (card.Name, card.Kind));
+        Assert.Equal(("Fire axe", "Tool"), (card.Name, card.Kind));
         // Its key alone, no words on what it does: the player finds out.
         Assert.Equal(new CardKey("LMB"), card.Use);
     }
@@ -158,13 +169,15 @@ public class ItemCardTests
     }
 
     [Fact]
-    public void TheCapesCardShowsItsShareOffBlowsAndOffTheCold()
+    public void TheCapesCardShowsItsShareOffBlowsAndTheDegreesItAdds()
     {
-        // From content (2026-10-27-the-cape-is-worn): a fifth of each.
+        // From content: a fifth off blows (2026-10-27-the-cape-is-worn), 5° against the cold (2026-11-14-temperature-in-degrees).
         var cape = ItemCards.Of(Spec.Cape.Item);
         Assert.True(cape.Worn);
-        Assert.Equal(new CardTile("20", "% OFF BLOWS"), cape.Headline);
-        Assert.Equal("20% OFF THE COLD", cape.Detail);
+        Assert.Equal([($"−{Spec.Cape.Guard / 10}%", "Damage from blows"), ($"+{Spec.Cape.Warmth}°", "Warmth")], Said(cape.Rows));
+        Assert.Equal([("−20%", "Damage from blows"), ("+5°", "Warmth")], Said(cape.Rows));
+        Assert.Equal([CardSign.Guard, CardSign.Cold], cape.Rows.Select(r => r.Sign));
+        Assert.All(cape.Rows, r => Assert.Equal(CardGroup.Guard, r.Group));
         Assert.Null(cape.Use);
     }
 
@@ -174,21 +187,141 @@ public class ItemCardTests
         var lamp = ItemCards.Of(Spec.HelmetLamp.Item);
         Assert.True(lamp.Worn);
         Assert.False(lamp.Tool);
-        Assert.Equal(new CardTile(Light.HeadLampReach.ToString(), "CELLS REACH"), lamp.Headline);
-        // As content stands: 18 of the 8 px cells (0104), 30 degrees either side.
-        Assert.Equal(new CardTile("18", "CELLS REACH"), lamp.Headline);
-        Assert.Equal("BEAM 60°", lamp.Detail);
-        // It draws nothing: the card shows a bolt and 0 rather than saying so.
+        // As content stands: 18 of the 8 px cells (0104), 30 degrees either side; it draws nothing, a bolt and 0.
+        Assert.Equal([($"{Light.HeadLampReach} cells", "Range"), ("60°", "Beam"), ("0", "Battery draw")], Said(lamp.Rows));
+        Assert.Equal([CardSign.Light, CardSign.Arc, CardSign.Battery], lamp.Rows.Select(r => r.Sign));
+        Assert.Equal([CardGroup.Light, CardGroup.Light, CardGroup.Special], lamp.Rows.Select(r => r.Group));
+        Assert.True(lamp.Rows[2].Bolt);
         Assert.Null(lamp.Draw);
         // Worn, it takes no key.
         Assert.Null(lamp.Use);
-        // A battery's number is its charge, set per stack; the jetpack has none.
+        // A battery's number is its charge, set per stack: no rows.
         Assert.True(ItemCards.Of("battery").Worn);
-        Assert.Null(ItemCards.Of("battery").Headline);
-        Assert.True(ItemCards.Of("jetpack").Worn);
-        Assert.Null(ItemCards.Of("jetpack").Headline);
+        Assert.Empty(ItemCards.Of("battery").Rows);
         Assert.False(ItemCards.Of("drill").Worn);
         Assert.False(ItemCards.Of("scrap").Worn);
+        Assert.Empty(ItemCards.Of("scrap").Rows);
+    }
+
+    [Fact]
+    public void AHelmetsCardSaysTheAirItAddsPastTheLungsInTheHudsUnits()
+    {
+        foreach (var helmet in new[] { Spec.Helmet.Basic, Spec.Helmet.Quilted, Spec.Helmet.Heavy })
+        {
+            var card = ItemCards.Of(helmet);
+            Assert.Equal([($"+{Spec.Items.Get(helmet).Tank} O₂", "Air supply")], Said(card.Rows));
+            Assert.Equal((CardSign.Tank, CardGroup.Air), (card.Rows[0].Sign, card.Rows[0].Group));
+        }
+        Assert.Equal("+25 O₂", ItemCards.Of(Spec.Helmet.Basic).Rows[0].Value);
+        Assert.Equal("+50 O₂", ItemCards.Of(Spec.Helmet.Quilted).Rows[0].Value);
+        Assert.Equal("+80 O₂", ItemCards.Of(Spec.Helmet.Heavy).Rows[0].Value);
+    }
+
+    [Fact]
+    public void ASuitSaysTheColdestAndTheHottestItWithstandsAndTheRegenSuitWhatAirItMakesAndWhatEachUnitCosts()
+    {
+        var suit = ItemCards.Of(Spec.Suit.Basic);
+        Assert.Equal([("−40°", "Withstands down to"), ("+50°", "Withstands heat up to")], Said(suit.Rows));
+        Assert.Equal([(CardSign.Cold, CardGroup.Guard), (CardSign.Heat, CardGroup.Guard)], suit.Rows.Select(r => (r.Sign, r.Group)));
+        Assert.Null(suit.Use);
+        Assert.Equal([("−40°", "Withstands down to"), ("+60°", "Withstands heat up to")], Said(ItemCards.Of(Spec.Suit.Heat).Rows));
+        var regen = ItemCards.Of(Spec.Suit.Regen);
+        // A unit a breath, a breath a second; 15 power-ticks a unit.
+        Assert.Equal([("−40°", "Withstands down to"), ("+50°", "Withstands heat up to"), ("up to 1 O₂/s", "Makes air"), ($"{Spec.Suit.RegenCost}", "Charge use")], Said(regen.Rows));
+        Assert.Equal([CardSign.Cold, CardSign.Heat, CardSign.Regen, CardSign.Battery], regen.Rows.Select(r => r.Sign));
+        Assert.Equal([CardGroup.Guard, CardGroup.Guard, CardGroup.Special, CardGroup.Special], regen.Rows.Select(r => r.Group));
+        Assert.Equal(("per 1 O₂", true), (regen.Rows[3].Note, regen.Rows[3].Bolt));
+        Assert.Equal(new CardKey("V", "on / off"), regen.Use);
+    }
+
+    [Fact]
+    public void TheJetpacksCardSaysItsTopSpeedAndTheAirItsThrustSpendsASecond()
+    {
+        var jetpack = ItemCards.Of(Spec.Jetpack.Item);
+        // 500 thousandths of a cell a step, 60 steps a second; a unit every 10 ticks of 20 a second.
+        Assert.Equal([("30 cells/s", "Speed up to"), ("2 O₂/s", "Air used speeding up, turning or braking")], Said(jetpack.Rows));
+        Assert.Equal([CardSign.Speed, CardSign.Tank], jetpack.Rows.Select(r => r.Sign));
+        Assert.All(jetpack.Rows, r => Assert.Equal(CardGroup.Move, r.Group));
+        Assert.Equal(new CardKey("Shift", "in space"), jetpack.Use);
+    }
+
+    [Fact]
+    public void TheScannersCardIsItsLineAndNoRows()
+    {
+        var scanner = ItemCards.Of(Spec.Helmet.Scanner);
+        Assert.True(scanner.Worn);
+        Assert.Empty(scanner.Rows);
+        Assert.NotNull(scanner.About);
+    }
+
+    [Fact]
+    public void AFoodsCardListsItsRatesFromTheDietThenItsDurationItsKeyToEatAndItsPrice()
+    {
+        var ration = ItemCards.Of(Spec.Foods.Ration);
+        Assert.True(ration.Food);
+        Assert.False(ration.Worn);
+        Assert.Equal([("−5%", "Air used breathing"), ("+30%", "Work speed"), ("15:00", "Lasts")], Said(ration.Rows));
+        Assert.Equal([CardSign.Calm, CardSign.Work, CardSign.Pace], ration.Rows.Select(r => r.Sign));
+        Assert.All(ration.Rows, r => Assert.Equal(CardGroup.Effect, r.Group));
+        Assert.Equal(new CardKey("RMB", "eat"), ration.Use);
+        Assert.Equal(30, ration.Price);
+        Assert.Equal([("+10 O₂", "A canister gives more"), ("15:00", "Lasts")], Said(ItemCards.Of(Spec.Foods.CannedMeat).Rows));
+        Assert.Equal([("+20 O₂", "Air the lungs hold"), ("20:00", "Lasts")], Said(ItemCards.Of(Spec.Foods.Stim).Rows));
+        // Every food's rows from its rates, rounded down to whole percent, and its price the market's.
+        foreach (var food in Spec.Foods.All.Where(f => f.Id != Spec.Foods.Paste))
+        {
+            var card = ItemCards.Of(food.Id);
+            Assert.True(card.Food, food.Id);
+            Assert.Equal(Spec.Market.PriceOf(food.Id), card.Price);
+            Assert.NotNull(card.Price);
+            Assert.Equal(new CardKey(T($"item.{food.Id}.key"), "eat"), card.Use);
+            var r = food.Rates;
+            (string, string)[] rates =
+            [
+                .. r.Calm > 0 ? [($"−{r.Calm / 10}%", "Air used breathing")] : System.Array.Empty<(string, string)>(),
+                .. r.Work > 0 ? [($"+{r.Work / 10}%", "Work speed")] : System.Array.Empty<(string, string)>(),
+                .. r.Deep > 0 ? [($"+{r.Deep} O₂", "A canister gives more")] : System.Array.Empty<(string, string)>(),
+                .. r.Lungs > 0 ? [($"+{r.Lungs} O₂", "Air the lungs hold")] : System.Array.Empty<(string, string)>(),
+            ];
+            if (rates.Length > 0) Assert.Equal([.. rates, (ItemCards.Clock(food.Lasts), "Lasts")], Said(card.Rows));
+        }
+    }
+
+    [Fact]
+    public void ASeedOnlyStillsHungerInADimRowWithItsSignStruck()
+    {
+        var seed = ItemCards.Of(Spec.Foods.Seed);
+        Assert.True(seed.Food);
+        Assert.Equal([("only stills hunger", "Effect"), ("5:00", "Lasts")], Said(seed.Rows));
+        Assert.True(seed.Rows[0].Off);
+        Assert.False(seed.Rows[1].Off);
+        Assert.Equal(CardSign.Calm, seed.Rows[0].Sign);
+    }
+
+    [Fact]
+    public void NoFoodOrGearCardProjectsWhatItsNumbersComeTo()
+    {
+        // Only what an item guarantees: no "air for 45 s", no battery that "lasts 2:00", no breath, which the player never sees.
+        var cards = Spec.Items.All.Where(i => i.Equip != null || Spec.Foods.Of(i.Id) != null).Select(i => ItemCards.Of(i.Id)).ToList();
+        Assert.NotEmpty(cards);
+        foreach (var card in cards)
+            foreach (var row in card.Rows)
+            {
+                Assert.DoesNotMatch(@"(?i)\bbreaths?\b", row.Value + row.Label + row.Note);
+                // A time is a meal's duration and nothing else.
+                if (System.Text.RegularExpressions.Regex.IsMatch(row.Value, @"^\d+:\d\d$")) Assert.Equal((true, "Lasts"), (card.Food, row.Label));
+            }
+    }
+
+    [Fact]
+    public void ACardsRowsTellItApart()
+    {
+        var ration = ItemCards.Of(Spec.Foods.Ration);
+        Assert.Equal(ration, ItemCards.Of(Spec.Foods.Ration));
+        Assert.Equal(ration.GetHashCode(), ItemCards.Of(Spec.Foods.Ration).GetHashCode());
+        Assert.NotEqual(ration, ration with { Rows = ration.Rows.Take(1).ToList() });
+        Assert.NotEqual(ration, ration with { Food = false });
+        Assert.NotEqual(ration.Rows[0], ration.Rows[0] with { Bolt = true });
     }
 
     [Fact]
@@ -235,16 +368,42 @@ public class ItemCardTests
     }
 
     [Fact]
-    public void ShowTheKeyACanisterAndAJetpackAreUsedByThoughNeitherIsATool()
+    public void ShowTheKeyAJetpackIsUsedByThoughItIsNoToolButNoneOnACanistersCard()
     {
+        // A canister's card says what a bottle's does, its name, kind and litres (liquid-volumes): the user's pick.
         var canister = ItemCards.Of("canister");
         Assert.False(canister.Tool);
-        Assert.Equal(new CardKey("RMB"), canister.Use);
+        Assert.Null(canister.Use);
         Assert.False(canister.Worn);
+        Assert.Equal(ItemCards.Of(Spec.Water.Item).Use, canister.Use);
         var jetpack = ItemCards.Of("jetpack");
         Assert.False(jetpack.Tool);
         Assert.Equal("Shift", jetpack.Use?.Key);
         Assert.Null(ItemCards.Of("scrap").Use);
+    }
+
+    [Fact]
+    public void SayACanistersAndABottlesLitresAsFoodsRowsAndAStacksAllToldButNoneOfWhatHoldsNoLiquid()
+    {
+        // A canister and a bottle hold 3 litres each (liquid-volumes), a row under their contents as food's; biofuel is counted, not poured.
+        foreach (var item in new[] { Spec.Crew.Canister, Spec.Water.Item })
+        {
+            var card = ItemCards.Of(item);
+            Assert.True(card.Liquid);
+            Assert.False(card.Food || card.Worn || card.Tool);
+            Assert.Equal([("3 l", "Volume")], Said(card.Rows));
+            Assert.Equal((CardSign.Tank, CardGroup.Holds), (card.Rows[0].Sign, card.Rows[0].Group));
+        }
+        Assert.False(ItemCards.Of("biofuel").Liquid);
+        Assert.Empty(ItemCards.Of("biofuel").Rows);
+        Assert.Empty(ItemCards.Of("iron").Rows);
+        var four = With(false).TipOf(new Stack(Spec.Crew.Canister, 4)).Card!;
+        Assert.Equal([("3 l", "Volume"), ("12 l", "In all")], Said(four.Rows));
+        Assert.Equal([null, "×4"], four.Rows.Select(r => r.Note));
+        Assert.Equal([("3 l", "Volume"), ("15 l", "In all")], Said(With(false).TipOf(new Stack(Spec.Water.Item, 5)).Card!.Rows));
+        Assert.Equal([("3 l", "Volume")], Said(With(false).TipOf(new Stack(Spec.Water.Item, 1)).Card!.Rows));
+        Assert.Empty(With(false).TipOf(new Stack("iron", 7)).Card!.Rows);
+        Assert.NotEqual(ItemCards.Of(Spec.Crew.Canister), ItemCards.Of(Spec.Crew.Canister) with { Liquid = false });
     }
 
     [Fact]
@@ -341,12 +500,12 @@ public class ItemCardTests
         Assert.Equal(stats.Damage.ToString(), fitted.Tiles![0].Value);
         Assert.Equal(stats.Draw, fitted.Draw);
         var up = new CardBoost("arc", true, "×2");
-        Assert.Equal([("2", "Damage"), ("8", "Block"), ("0.1s", "Hits every"), ("45°", "Swing"), ("8 cells", "Range")], Said(fitted.Tiles));
+        Assert.Equal([("2", "Damage"), ("8", "Block"), ("0.1s", "Hits every"), ("45°", "Swing"), ("5.5 cells", "Range")], Said(fitted.Tiles));
         Assert.Equal([up, up, null, null, null], fitted.Tiles.Select(t => t.Boost));
         Assert.Equal((2, up), (fitted.Draw, fitted.DrawBoost));
         Assert.Equal([arc], fitted.Fitted);
         // The plain drill's, unmarked: no stale draw of 1 on the fitted one, nor a mark on the plain.
-        Assert.Equal([("1", "Damage"), ("4", "Block"), ("0.1s", "Hits every"), ("45°", "Swing"), ("8 cells", "Range")], Said(plain.Tiles));
+        Assert.Equal([("1", "Damage"), ("4", "Block"), ("0.1s", "Hits every"), ("45°", "Swing"), ("5.5 cells", "Range")], Said(plain.Tiles));
         Assert.All(plain.Tiles!, t => Assert.Null(t.Boost));
         Assert.Equal((1, (CardBoost?)null), (plain.Draw, plain.DrawBoost));
         Assert.Empty(plain.Fitted);
@@ -401,8 +560,8 @@ public class ItemCardTests
         var arc = ModuleLooks.Arc;
         // The arc's coil over the drill's coil mount, crackling there; a plain drill has nothing over it.
         var fitted = HeldParts.Of(HeldLook.Drill, [Spec.Modules.Arc]);
-        Assert.Equal([new HeldLayer("res://art/module_arc_coil.png", 4, 4)], fitted.Layers);
-        Assert.Equal([(3.0, 3.5, 11.0, 6.5)], fitted.Crackles);
+        Assert.Equal([new HeldLayer("res://art/module_arc_coil.png", 3, 2)], fitted.Layers);
+        Assert.Equal([(2.0, 1.5, 10.0, 4.5)], fitted.Crackles);
         Assert.Empty(HeldParts.Of(HeldLook.Drill, []).Layers);
         Assert.Empty(HeldParts.Of(HeldLook.FireAxe, [Spec.Modules.Arc]).Layers);
         // The railgun crackles along its own barrel with no module, and nothing is laid over it.
@@ -423,6 +582,10 @@ public class ItemCardTests
         Assert.Equal(
             [new HeldLayer("second_grip.png", 1, 9), new HeldLayer("second_coil.png", 4, 4), new HeldLayer("res://art/module_arc_coil.png", 4, 4)],
             HeldParts.Overlaid(tool, [second, arc]).Layers);
+        // The spear has its own picture of the arc, drawn with it, laid in place of the shared coil; it crackles over the blade.
+        var spear = HeldParts.Of(HeldLook.Spear, [Spec.Modules.Arc]);
+        Assert.Equal([new HeldLayer("res://art/hero_spear_arc.png", 0, 0)], spear.Layers);
+        Assert.Equal([(51.8, 3.1, 63.4, 7)], spear.Crackles);
         Assert.Same(HeldLook.Drill, HeldLook.Of(Spec.Weapons.Drill.Item));
         Assert.True(HeldLook.IsDrill(Spec.Weapons.Drill.Item));
     }

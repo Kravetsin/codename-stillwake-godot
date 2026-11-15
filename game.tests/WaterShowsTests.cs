@@ -15,6 +15,8 @@ public class WaterShowsTests
         Assert.Equal(1, WaterShows.CisternFrame(Spec.Water.CisternCapacity / 4));
         Assert.Equal(2, WaterShows.CisternFrame(Spec.Water.CisternCapacity / 4 + 1));
         Assert.Equal(WaterShows.Full, WaterShows.CisternFrame(Spec.Water.CisternCapacity));
+        // A cistern saved holding 225 litres, before it held 150 (liquid-volumes), shows full.
+        Assert.Equal(WaterShows.Full, WaterShows.CisternFrame(225_000));
     }
 
     [Fact]
@@ -28,8 +30,8 @@ public class WaterShowsTests
     {
         var cistern = Spec.Machines.Get("cistern");
         var electrolyser = Spec.Machines.Get("electrolyser");
-        Assert.Equal(["Water · 15.750/225.000 l"], WaterShows.Says(cistern, Spec.Water.Bottle * 7 / 2, null)!);
-        Assert.Equal(["Water · 0.000/225.000 l"], WaterShows.Says(cistern, 0, null)!);
+        Assert.Equal(["Water · 10.50/150.00 l · 3 bottles"], WaterShows.Says(cistern, Spec.Water.Bottle * 7 / 2, null)!);
+        Assert.Equal(["Water · 0.00/150.00 l · 0 bottles"], WaterShows.Says(cistern, 0, null)!);
         Assert.Equal(["Splitting 3.600 l/min of water into oxygen"], WaterShows.Says(electrolyser, 0, null)!);
         Assert.Equal(["Splitting 1.800 l/min of water into oxygen"], WaterShows.Says(electrolyser, 0, null, 500)!);
         Assert.Equal(["The tanks on its output are full"], WaterShows.Says(electrolyser, 0, "water.tanksFull")!);

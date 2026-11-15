@@ -30,14 +30,18 @@ public partial class ShotsView : Node2D
     private readonly Voices _ownEnds = new(S.Suit, voices: 3);
     // Arcs strike in space, where the World bus is silent: heard on the Suit bus, as the sentry is.
     private readonly Voices _arcs = new(S.Suit, voices: 4);
+    // A catcher's fight afloat is heard there too: its launches, its bursts and its missiles' hiss on the Suit bus.
+    private readonly Voices _firedAfloat = new(S.Suit, voices: 2);
+    /// <summary>Each rocket's hiss, by its shot's id, following it where it flies; let go once it is gone.</summary>
+    private readonly Dictionary<int, Heard2D> _hisses = [];
 
     /// <summary>Each shot drawn, by id: where it was a tick ago and is now.</summary>
     private readonly Dictionary<int, (ShotMotion Was, ShotMotion Now)> _seen = [];
     /// <summary>
-    /// Each charge in flight, by id: who threw it and the walls round it as the last tick left them, with what they were; those gone
+    /// Each charge in flight, by id: the walls round it as the last tick left them, with what they were; those gone
     /// at its burst are what it broke.
     /// </summary>
-    private readonly Dictionary<int, (Ref By, List<(int Cell, Spec.Material Wall)> Round)> _charges = [];
+    private readonly Dictionary<int, List<(int Cell, Spec.Material Wall)>> _charges = [];
     /// <summary>The arcs shown, by id, forgotten once they are gone.</summary>
     private readonly HashSet<int> _arcsShown = [];
     private int _shownTick = -1;
@@ -61,6 +65,7 @@ public partial class ShotsView : Node2D
         AddChild(_ends);
         AddChild(_ownEnds);
         AddChild(_arcs);
+        AddChild(_firedAfloat);
     }
 
     public override void _Process(double delta)
@@ -79,10 +84,41 @@ public partial class ShotsView : Node2D
             if (_seen.TryGetValue(shot.Id, out var flight))
             {
                 var (at, way) = ShotStreaks.Between(flight.Was, flight.Now, progress);
-                streaks.Add((at, way, ShotLooks.Of(shot.Projectile, shot.Gun)));
+                var look = ShotLooks.Of(shot.Projectile, shot.Gun);
+                streaks.Add((at, way, look));
+                if (look.Rocket != null) Hiss(shot.Id, at);
             }
+        Hushed(creatures);
         _streaks.Show(streaks);
     }
+
+    /// <summary>Rocket <paramref name="id"/>'s hiss moved to <paramref name="at"/>, begun somewhere along its loop the first time.</summary>
+    private void Hiss(int id, Vector2 at)
+    {
+        if (!_hisses.TryGetValue(id, out var hiss))
+        {
+            _hisses[id] = hiss = Cues.Player2D(S.MissileFlight, S.Suit);
+            AddChild(hiss);
+            hiss.GlobalPosition = at;
+            hiss.Play((float)(Random.Shared.NextDouble() * 1.4));
+        }
+        hiss.GlobalPosition = at;
+    }
+
+    /// <summary>Each rocket's hiss whose shot is gone let go: cut off by its burst.</summary>
+    private void Hushed(CreaturesModule creatures)
+    {
+        if (_hisses.Count == 0) return;
+        foreach (var id in new List<int>(_hisses.Keys))
+            if (!_seen.ContainsKey(id) || !Flying(creatures, id))
+            {
+                _hisses[id].QueueFree();
+                _hisses.Remove(id);
+            }
+    }
+
+    /// <summary>The cell under (<paramref name="x"/>, <paramref name="y"/>), in thousandths of a cell.</summary>
+    private int CellOf(int x, int y) => y / CreaturesModule.Unit * _m.Grid.Width + x / CreaturesModule.Unit;
 
     /// <summary>
     /// A tick of the world seen: every hit of a shot drawn here shown, the own hero's on its suit; one born and ended this tick
@@ -119,7 +155,8 @@ public partial class ShotsView : Node2D
                 _seen[shot.Id] = (motion with { X = motion.X - motion.VX, Y = motion.Y - motion.VY }, motion);
                 // A salvo's shells all leave at once: its mortar heard once.
                 var cue = S.FiredOf(shot.Projectile, shot.Gun);
-                if (shot.By != Ref.Hero(own) && (cue != S.CatcherLaunch || launched++ == 0)) _fired.Play(cue, new Vector2(motion.X, motion.Y) * (float)(Camera.Cell / 1000.0));
+                if (shot.By != Ref.Hero(own) && (cue != S.CatcherLaunch || launched++ == 0))
+                    (cue == S.CatcherLaunch && _m.Rooms.Afloat(CellOf(motion.X, motion.Y)) ? _firedAfloat : _fired).Play(cue, new Vector2(motion.X, motion.Y) * (float)(Camera.Cell / 1000.0));
             }
         }
         foreach (var id in new List<int>(_seen.Keys))
@@ -138,12 +175,12 @@ public partial class ShotsView : Node2D
         foreach (var shot in creatures.Shots)
         {
             if (Spec.Shots.Get(shot.Projectile).Bursts == null) continue;
-            if (!_charges.TryGetValue(shot.Id, out var kept)) _charges[shot.Id] = kept = (shot.By, []);
-            kept.Round.Clear();
+            if (!_charges.TryGetValue(shot.Id, out var round)) _charges[shot.Id] = round = [];
+            round.Clear();
             int cx = shot.X / CreaturesModule.Unit, cy = shot.Y / CreaturesModule.Unit;
             for (int y = Math.Max(0, cy - RoundReach); y <= Math.Min(grid.Height - 1, cy + RoundReach); y++)
                 for (int x = Math.Max(0, cx - RoundReach); x <= Math.Min(grid.Width - 1, cx + RoundReach); x++)
-                    if (grid.WallAt(y * grid.Width + x) is { } wall) kept.Round.Add((y * grid.Width + x, wall));
+                    if (grid.WallAt(y * grid.Width + x) is { } wall) round.Add((y * grid.Width + x, wall));
         }
     }
 
@@ -177,11 +214,9 @@ public partial class ShotsView : Node2D
         var stage = Stages.Of(Layers.Effects);
         var glims = stage.Glims;
         double farthest = 2 * cell;
-        Ref? by = null;
         if (_charges.Remove(end.Id, out var kept))
         {
-            by = kept.By;
-            foreach (var (at, wall) in kept.Round)
+            foreach (var (at, wall) in kept)
             {
                 if (grid.WallAt(at) != null) continue;
                 double wx = (at % grid.Width + 0.5) * cell, wy = (at / grid.Width + 0.5) * cell, dx = wx - x, dy = wy - y;
@@ -220,7 +255,9 @@ public partial class ShotsView : Node2D
         stage.Flares.Flash(x, y, White, 1.4 * Fx.Glow, 20, 0.6f, 0.8);
         // The sulfur burning on: a warm light lingering in the dark after the white is gone.
         stage.Flares.Flash(x, y, Afterglow, 0.7 * Fx.Glow, 16, 0.5f, 0.96);
-        (by == Ref.Hero(own) ? _ownEnds : _ends).Play(S.ChargeBurst, new Vector2((float)x, (float)y));
+        // Whose it is, from the end itself: a charge thrown point-blank ends the tick it is born, never seen in flight.
+        // A creature's afloat heard through the suit, as its launch is.
+        (end.By == Ref.Hero(own) || afloat && end.By == Ref.None ? _ownEnds : _ends).Play(S.ChargeBurst, new Vector2((float)x, (float)y));
     }
 
     /// <summary>The sparks, streaks and embers of a burst at (<paramref name="x"/>, <paramref name="y"/>), thrown about as far as <paramref name="ring"/>; weightless afloat, else bouncing on <paramref name="floor"/>.</summary>

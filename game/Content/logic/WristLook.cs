@@ -7,26 +7,8 @@ namespace Stillwake.Game;
 /// </summary>
 public static class WristLook
 {
-    /// <summary>Between two gauge tabs' screens, and from the column's right edge to the bag's sort key: one seam.</summary>
-    public const int TabGap = 6;
-
-    /// <summary>A gauge tab's screen height.</summary>
-    public const int TabHeight = 30;
-
-    /// <summary>The energy tab at the column's right end: the ring round the bolt and the belt's charge, wide enough for "16 200" (energy-ring).</summary>
-    public const int EnergyWidth = 78;
-
-    /// <summary>The energy number's right margin in its tab, and its baseline.</summary>
-    public const int EnergyRight = 8, EnergyBaseline = 20;
-
-    /// <summary>The oxygen gauge's cells: three suit units a cell.</summary>
+    /// <summary>The equal stretches of the air row the chips of lost air and a canister's wash count in: three suit units each at a basic helmet.</summary>
     public const int SuitCells = 15;
-
-    /// <summary>A cell's height, its top in its tab and the gap between cells.</summary>
-    public const int CellHeight = 10, CellTop = 10, CellGap = 2;
-
-    /// <summary>Where the meter starts in the oxygen tab (after the canister), and its margin on the right.</summary>
-    public const int SuitMeterLeft = 30, MeterRight = 12;
 
     /// <summary>
     /// A drop between two reads this big, of full, is a hit: its lost part flashes too. Just over a running breath (2 of
@@ -67,10 +49,7 @@ public static class WristLook
     /// </summary>
     public const double WaveS = 0.85, WaveBand = 2.5, WaveBright = 0.4, AgainGapS = 4;
 
-    /// <summary>Oxygen's sky, a surge's wash (its lamps are pictures: the gauge subject); energy's green, amber while the belt runs low (the slot bar's own).</summary>
-    public const uint Suit = 0x38bdf8, Energy = 0x7ee36b, EnergyLow = 0xf2b84b;
-
-    /// <summary>How bright the energy tab is with no battery on the belt.</summary>
+    /// <summary>How bright the charge row is with no battery on the belt.</summary>
     public const float NoBattery = 0.35f;
 
     /// <summary>The bag's sort key on the display's right edge: its size, how far right of the screen and down from its top.</summary>

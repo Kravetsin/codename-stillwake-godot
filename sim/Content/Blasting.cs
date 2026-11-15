@@ -20,4 +20,7 @@ public static class Blasting
 
     /// <summary>The catcher's shell (catcher-combat): 150 to spend, so a stone cell opens and its neighbours crack, soil some three cells round; 30 off each wreck within 3.</summary>
     public static readonly Blast Shell = new(Power: 150, Reach: 3, WreckDamage: 30);
+
+    /// <summary>The catcher's missile (catcher-missile): 450 to spend, so a scrap hull's cell struck breaks (the room vents) and iron cracks; 60 off each wreck within 4.</summary>
+    public static readonly Blast Missile = new(Power: 450, Reach: 4, WreckDamage: 60);
 }

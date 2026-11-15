@@ -115,13 +115,13 @@ public class ModulesTests
         var live = new Registry();
         var world = World.Create(seed, layout, [.. live.All, new Builder(live)]);
         int around = 0, grown = 0, shrunk = 0, behind = 0;
-        if (walks) live.Knowledge.Obtain("scrapChunk", Research.Understanding.Enough("scrapChunk"));
+        if (walks) live.Knowledge.Obtain("scrapChunk", 1);
         for (int i = 0; i < 400; i++)
         {
             if (walks && i == 200)
             {
                 Assert.False(live.Knowledge.Granted("furnace"));
-                live.Knowledge.Obtain("hullPlate", Research.Understanding.Enough("hullPlate"));
+                live.Knowledge.Obtain("hullPlate", 1);
             }
             if (readAir && live.Rooms.All.Count > 0)
             {

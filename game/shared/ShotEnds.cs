@@ -3,6 +3,7 @@ using Stillwake.Game.Features.Effects;
 using Stillwake.Game.Render;
 using Stillwake.Sim;
 using Stillwake.Sim.Creatures;
+using Stillwake.Sim.Items;
 using S = Stillwake.Game.Sound;
 
 namespace Stillwake.Game.Shared;
@@ -14,7 +15,7 @@ namespace Stillwake.Game.Shared;
 public static class ShotEnds
 {
     /// <summary>
-    /// <paramref name="hit"/>, heard on <paramref name="voices"/>: on a wall or a built piece thrown off the face turned toward
+    /// <paramref name="hit"/>, heard on <paramref name="voices"/>: on a wall, a built piece or a machine thrown off the face turned toward
     /// where the shot came from, its share by what the hit took, chips only while something stands there; on a wreck, off its
     /// side, unless it broke, its breaking showing itself. Drawn by what the sim met, not the grid now, where what broke is gone;
     /// a planet's fog, solid to a shot but standing empty, is not heard.
@@ -26,14 +27,15 @@ public static class ShotEnds
         (double X, double Y) from = (hit.From.X / 1000.0, hit.From.Y / 1000.0);
         switch (hit.What)
         {
-            case ShotTarget.Solid:
-                if (!hit.Broke && !grid.Solid(cell)) return;
+            case ShotTarget.Solid or ShotTarget.Machine:
+                if (!hit.Broke && !grid.Solid(cell) && grid.MachineAt(cell) == null) return;
                 var at = Impacts.On(grid, cell, from.X, from.Y);
                 var point = new Vector2((float)(at.X * Camera.Cell), (float)(at.Y * Camera.Cell));
                 voices.Play(S.NailHit, point);
                 if (Impacts.At(grid, m.Building, cell) is { } impact)
                     Stages.Of(Layers.Effects).Hits.Throw(HitLooks.Of[impact], point.X, point.Y, at.Nx, at.Ny,
-                        Impacts.ShareAt(grid, m.Building, cell, hit.Projectile, hit.Damage), Impacts.FloorUnder(grid, at) * Camera.Cell);
+                        Impacts.ShareAt(m.Building, cell, hit.Projectile, hit.Damage, hit.By is { Kind: RefKind.Hero, Id: var peer } ? peer : FloorStack.Nobody),
+                        Impacts.FloorUnder(grid, at) * Camera.Cell);
                 return;
             case ShotTarget.Wreck:
                 var middle = new Vector2((float)((cell % grid.Width + 0.5) * Camera.Cell), (float)((cell / grid.Width + 0.5) * Camera.Cell));

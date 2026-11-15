@@ -1,0 +1,115 @@
+{
+ "background": "#101b39",
+ "backgroundTolerance": 12,
+ "fit": 15.4,
+ "ink": {
+  "maxLum": 22,
+  "relative": 0.6,
+  "around": 12,
+  "width": 7,
+  "bridge": 3
+ },
+ "minPart": 0.0012,
+ "epsilon": 1.6,
+ "looseMin": 0.8,
+ "materials": {
+  "shell": {
+   "base": true,
+   "layer": 0,
+   "ref": [
+    "#a58852",
+    "#a48851",
+    "#76623f",
+    "#7c6740"
+   ],
+   "shade": 0.16,
+   "mat": {
+    "base": "#a0854a",
+    "shade": "#735b38",
+    "deep": "#4f3e2c",
+    "lite": "#bba068",
+    "spec": "#d8c28e"
+   }
+  },
+  "rubber": {
+   "layer": 1,
+   "ref": [
+    "#1b1b1d",
+    "#29292b",
+    "#28282b"
+   ],
+   "shade": 0.16,
+   "mat": {
+    "base": "#2e2c2a",
+    "shade": "#1d1c1b",
+    "deep": "#121212",
+    "lite": "#45423e"
+   }
+  },
+  "frame": {
+   "layer": 2,
+   "ref": [
+    "#484748",
+    "#343436",
+    "#393839"
+   ],
+   "shade": 0.16,
+   "mat": {
+    "base": "#4c4e54",
+    "shade": "#36383d",
+    "deep": "#25262a",
+    "lite": "#6a6d74",
+    "spec": "#9a9ea6"
+   }
+  },
+  "steel": {
+   "layer": 3,
+   "ref": [
+    "#7b7e7f",
+    "#8a8c8c"
+   ],
+   "shade": 0.16,
+   "mat": {
+    "base": "#7f848c",
+    "shade": "#5c6169",
+    "deep": "#41454d",
+    "lite": "#a0a6ae",
+    "spec": "#d0d5db"
+   }
+  },
+  "glass": {
+   "layer": 4,
+   "ref": [
+    "#97a1a4",
+    "#98a3a5",
+    "#dee1e2"
+   ],
+   "shade": 0,
+   "lite": 40,
+   "mat": {
+    "base": "#3c4a56",
+    "shade": "#2c3742",
+    "deep": "#1e262e",
+    "lite": "#8a9aa6"
+   },
+   "loose": false,
+   "single": true
+  },
+  "scuff": {
+   "overlay": true,
+   "on": [
+    "shell"
+   ],
+   "ref": [
+    "#595249",
+    "#5a5248"
+   ],
+   "tolerance": 20,
+   "minArea": 0.0003,
+   "mat": {
+    "base": "#5e5446"
+   },
+   "inset": 0.05
+  }
+ }
+}

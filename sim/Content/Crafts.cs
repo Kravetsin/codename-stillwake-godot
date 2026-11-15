@@ -42,6 +42,10 @@ public static class Crafts
         new("battery", [("plate", 2), ("coil", 2), ("wire", 4), ("circuit", 1)], Ticks: 120),
         // A plate bent into a band, wire and a coil for its glowing bulb: the workbench's, so it comes before the first cave (0077).
         new("helmetLamp", [("plate", 1), ("wire", 2), ("coil", 1)], Ticks: 60),
+        // The basic helmet padded with the ruins' cloth, a welder's plate and two canisters' more air (2026-11-14-quilted-helmet-and-traced-art).
+        new("quiltedHelmet", [("helmet", 1), ("cloth", 3), ("plate", 2), ("canister", 2)], Ticks: 120),
+        // Mica for its weave and the planet's alloy for its seams (2026-11-14-heat-limits): so after a landing.
+        new("heatSuit", [("mica", 4), ("alloyScrap", 4), ("plate", 2), ("tube", 2)], Ticks: 240),
         new("drill", [("frame", 1), ("rotor", 2), ("coil", 2), ("gear", 4), ("tube", 2), ("circuit", 2)], Ticks: 240),
         // The salvage tools (salvage-tools), all at the workbench: the grinder round a planet's motor, so after a landing;
         // the spear and the sledgehammer of the first parts.
@@ -71,6 +75,12 @@ public static class Crafts
         new("nozzle", [("alloyScrap", 12), ("copper", 6)], Ticks: 300),
         new("fuelPump", [("motor", 2), ("tube", 4), ("plate", 2)], Ticks: 240),
         new("igniter", [("crystal", 2), ("circuit", 2), ("wire", 4)], Ticks: 180),
+        // The galley's dishes (food-and-the-body): a dish's recipe is its cost, its rates its own (Foods).
+        new(Foods.Porridge, [(Foods.Fruit, 2), (Foods.Ration, 1)], Ticks: 200),
+        new(Foods.Hash, [(Foods.CannedMeat, 1), (Foods.Fruit, 2)], Ticks: 200),
+        new(Foods.Broth, [(Foods.Glowberry, 2), (Water.Item, 1)], Ticks: 200),
+        new(Foods.Roast, [("fat", 2)], Ticks: 300),
+        new(Foods.Stew, [("fat", 1), (Foods.Glowberry, 1), (Water.Item, 1)], Ticks: 300),
         // At the arc bench (0099): a sky shard wound into a module an electric station or the drill takes (0086, 0096), in ten seconds.
         new("arcModule", [("arcShard", 1), ("crystal", 2), ("mica", 2), ("coil", 4), ("circuit", 4), ("frame", 1)], Ticks: 200),
         // At the arc bench (0099): a battery wound round a sky shard with a planet's copper, three batteries' charge, in ten seconds.

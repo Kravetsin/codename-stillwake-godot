@@ -1,49 +1,49 @@
-// The suit gauge's lamps, as picked (the ink-signs ADR): hand-cut lamps with an ink hairline and light in hard steps, five shapes in five
-// tones (unlit, the air's sky, danger's red, pale for the light running over them, white for what was just lost), 17 by 10 for normal
-// slots and 26 by 10 for large, a pixel of margin for the line. Laid one a cell by WristGauge, which cuts the lit one at the fill.
+// The vitals' light, as picked (hud-vitals, look D "light and water"): a wash per tone whose rim is a slightly darker, wandering
+// tide line, no frame. A strip 304 by 10 that the game cuts to a piece's length (its start, then its own 8 px end), and the meal's
+// thin time light 24 by 3, stretched; two variants each so neighbours differ. The glow under a lit part is the game's, not baked.
 (function () {
 'use strict';
-const { poly, rng } = Anime;
-const TOP = [0, -1], SHAPES = 5;
+const { poly, rr } = Anime;
+const TOP = [0, -1];
 
 const rgb = (h) => [parseInt(h.substr(1, 2), 16), parseInt(h.substr(3, 2), 16), parseInt(h.substr(5, 2), 16)];
 const hex = (c) => '#' + c.map((v) => Math.max(0, Math.min(255, Math.round(v))).toString(16).padStart(2, '0')).join('');
+const mix = (a, b, k) => hex(rgb(a).map((v, i) => v + (rgb(b)[i] - v) * k));
 /** The finish greys paint; a screen's light gets its saturation back first, so the air and the danger stay full. */
 const paint = (h) => { const c = rgb(h).map((v) => v / 0.97), l = 0.3 * c[0] + 0.59 * c[1] + 0.11 * c[2]; return hex(c.map((v) => l + (v - l) / 0.8)); };
-const tone = (base, lite, shade, deep) => ({ base: paint(base), lite: paint(lite), shade: paint(shade), deep: paint(deep), spec: '#ffffff' });
+/** A light: its body, its top light, and its rim a little darker than the body. */
+const light = (c, lite, shade) => ({ base: paint(c), lite: paint(lite), shade: paint(mix(c, shade, 0.6)), deep: paint(shade) });
+/** A light's dark wash, where it is empty: kept as painted. */
+const dark = (c, lite, shade) => ({ base: c, lite, shade, deep: shade });
 const TONES = {
-  dark: { base: '#18223c', lite: '#2a3856', shade: '#111a2f', deep: '#0c1325', spec: '#2c3b5a' },
-  sky: tone('#38bdf8', '#c4f0ff', '#1d8cc2', '#146893'),
-  red: tone('#ef4444', '#ffb8b0', '#b42828', '#841b20'),
-  pale: tone('#dcf5ff', '#ffffff', '#b2e2f6', '#8ccbe6'),
-  white: { base: '#f3f6f9', lite: '#ffffff', shade: '#cfd8e0', deep: '#aeb9c4', spec: '#ffffff' },
+  sky: light('#38bdf8', '#c4f0ff', '#1d8cc2'),
+  red: light('#ff463c', '#ffb3ab', '#c22a22'),
+  pale: light('#dcf5ff', '#ffffff', '#b2e2f6'),
+  white: light('#f3f6f9', '#ffffff', '#cfd8e0'),
+  green: light('#7ee36b', '#d4f8c8', '#4aa83c'),
+  paleGreen: light('#dcfbd2', '#ffffff', '#b8eea8'),
+  amber: light('#f2b84b', '#fbe2a8', '#b8862a'),
+  time: light('#a4aec2', '#dce2ec', '#6e7890'),
+  hunger: light('#d2a866', '#f0d4a0', '#a07a40'),
+  darkSky: dark('#10283b', '#1a3a55', '#0b1c2b'),
+  darkRed: dark('#3a1512', '#55201b', '#260c0a'),
+  darkGreen: dark('#13301b', '#1d4628', '#0c2011'),
+  darkMeal: dark('#1c2030', '#283048', '#121624'),
+};
+/** The rim: the band between the piece's edge and i pixels in, a slightly darker tide line the wash wanders over. */
+const rim = (w, h, i) => `M-2 -2L${w + 2} -2L${w + 2} ${h + 2}L-2 ${h + 2}Z M${i} ${i}L${i} ${h - i}L${w - i} ${h - i}L${w - i} ${i}Z`;
+const water = (w, h, inset, M) => (a) => {
+  const r = Math.min(2.6, h / 2 - 0.1, w / 2 - 0.1);
+  a.shape(rr(0, 0, w, h, r), M, { outer: false, edge: false, shade: rim(w, h, inset), lite: poly(-2, -2, w + 2, -2, w + 2, Math.min(2.6, h * 0.3), -2, Math.min(3, h * 0.35)) });
 };
 
-/** Lamp v's outline, w wide: a slightly leaning, slightly crooked box with one corner cut. */
-function lampPath(v, w) {
-  const r = rng(4100 + v * 37), j = (s) => (r() - 0.5) * s, lean = j(1.6), e = w - 0.6;
-  const pts = [[0.6 + lean / 2 + j(0.5), 0.7 + j(0.6)], [e + lean / 2 + j(0.5), 0.7 + j(0.6)], [e - lean / 2 + j(0.5), 9.3 + j(0.5)], [0.6 - lean / 2 + j(0.5), 9.3 + j(0.5)]];
-  const cut = Math.floor(r() * 4), k = 0.9 + r() * 0.9, made = [];
-  pts.forEach((p, i) => {
-    if (i !== cut) { made.push(p); return; }
-    const a = pts[(i + 3) % 4], b = pts[(i + 1) % 4], la = Math.hypot(a[0] - p[0], a[1] - p[1]), lb = Math.hypot(b[0] - p[0], b[1] - p[1]);
-    made.push([p[0] + (a[0] - p[0]) * k / la, p[1] + (a[1] - p[1]) * k / la], [p[0] + (b[0] - p[0]) * k / lb, p[1] + (b[1] - p[1]) * k / lb]);
-  });
-  return poly(made.flat());
-}
-const lamp = (v, w, M, lit) => (a) => {
-  const d = lampPath(v, w), r = rng(900 + v * 11), s = (r() - 0.5) * 0.8, k = w / 17, R = w + 1;
-  if (!lit) { a.shape(d, M, { lite: poly(-1, -1, R, -1, R, 1.7 + s, -1, 1.9 - s), shade: poly(-1, 7.6 - s, R, 7.4 + s, R, 11, -1, 11) }); return; }
-  a.shape(d, M, {
-    lite: poly(-1, -1, R, -1, R, 2.6 + s, -1, 3 - s), shade: poly(-1, 7 + s, R, 6.6 - s, R, 11, -1, 11),
-    deep: poly(-1, 8.7, R, 8.5, R, 11, -1, 11), spec: poly(2.4 * k, 1.5, (7 + s * 2) * k, 1.3, (6.8 + s * 2) * k, 2.1, 2.5 * k, 2.3),
-  });
-};
+/** The meals' time lights, drawn thin; every other tone is a row's strip. */
+const THIN = ['time', 'hunger', 'darkMeal'];
 
 Subjects.gauge = function () {
-  for (const [name, w] of [['gauge_lamp', 17], ['gauge_lampWide', 26]])
-    for (let v = 0; v < SHAPES; v++)
-      for (const [t, M] of Object.entries(TONES))
-        out(`${name}_${v}_${t}`, Anime.bake({ w, h: 10, margin: 1, light: TOP, draw: lamp(v, w, M, t !== 'dark') }));
+  for (const [t, M] of Object.entries(TONES))
+    for (let v = 0; v < 2; v++)
+      if (THIN.includes(t)) out(`gauge_thin_${t}_${v}`, Anime.bake({ w: 24 + v, h: 3, margin: 2, light: TOP, draw: water(24 + v, 3, 0.7, M) }));
+      else out(`gauge_strip_${t}_${v}`, Anime.bake({ w: 304 + v, h: 10, margin: 2, light: TOP, draw: water(304 + v, 10, 1.2, M) }));
 };
 })();

@@ -13,7 +13,7 @@ using WaterContent = Stillwake.Content.Water;
 namespace Stillwake.Sim.Tests;
 
 /// <summary>
-/// Machines break to bursts (unified-damage, damage-scale): against their <see cref="MachineSpec.HitPoints"/>, a pile its own, as a
+/// Machines break to bursts (unified-damage, damage-scale): against their <see cref="MachineSpec.Strength"/>, a pile its own, as a
 /// wall; a player's own burst on their ship at its <see cref="Damage.OwnShipTakes"/> share. Broken, all it holds, its queue's refund and its
 /// cost fall at its cell for anyone, its cables stay on a peg, and no module keeps anything of it. The lifepod never breaks.
 /// </summary>
@@ -83,7 +83,7 @@ public class MachineBreakTests
         Assert.Empty(w.Refusals);
         Assert.True(Burst(w, Beside(w, crusher), Charge));
         // A scrap wall's hit points, so it cracks as one: a tenth of what was left after a step.
-        Assert.Equal(Damage.MachineHp, Machines.Get("crusher").HitPoints);
+        Assert.Equal(Damage.MachineHp, Machines.Get("crusher").Strength);
         Assert.NotNull(w.M.Grid.MachineById(crusher.Id));
         Assert.Equal(Tenth(Charge - Damage.Step), CrackAt(w, crusher.Cell));
         Full(w, Beside(w, crusher), Charge);
@@ -145,7 +145,7 @@ public class MachineBreakTests
     {
         var w = Room(["lifepod"]);
         var pod = Of(w, "lifepod");
-        Assert.Null(Machines.Get("lifepod").HitPoints);
+        Assert.Null(Machines.Get("lifepod").Strength);
         Assert.True(Burst(w, Beside(w, pod), 100_000));
         Assert.NotNull(w.M.Grid.MachineById(pod.Id));
         Assert.Equal(0, CrackAt(w, pod.Cell));
@@ -161,11 +161,11 @@ public class MachineBreakTests
         Assert.Null(w.M.Grid.MachineById(pile.Id));
         Assert.All(Machines.Get("pileScrap").Cost, c => Assert.Equal(c.Count, Lying(w, c.Item)));
         Assert.All(w.M.Items.Floor, s => Assert.Equal(FloorStack.Nobody, s.By));
-        // A faint one only cracks it, by a tenth of what was left: a pile aboard is of the ship too.
+        // A faint one only cracks it, by all that was left: a pile is a wreck, never the ship (hit-targets).
         var faint = Room(["pileScrap"]);
         var other = Of(faint, "pileScrap");
-        Burst(faint, Beside(faint, other), Damage.Step + 30);
-        Assert.Equal(3, CrackAt(faint, other.Cell));
+        Burst(faint, Beside(faint, other), Damage.Step + 4);
+        Assert.Equal(4, CrackAt(faint, other.Cell));
     }
 
     [Fact]

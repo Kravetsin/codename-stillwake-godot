@@ -1,5 +1,5 @@
 // The ship's room: scrap walls as riveted plates, rusted as the wreck's (its rust is wreck.js's), and cast clean; their back walls, their
-// edges, and a door, shut and open.
+// edges, and a longer door's three pieces, shut and open (doors.js's DoorKit).
 (function () {
 'use strict';
 const { ell, rr, poly, rng, bake, canvas } = Anime;
@@ -207,83 +207,6 @@ function edge(open, look) {
   return c;
 }
 
-/** The world pixels of a door's picture: its jambs at either side of the panel's run, the panel between. */
-const DOOR = { left: 3, panel: 4, panelEnd: 12, right: 13, top: 3, foot: 15 };
-const ORANGE = { base: '#d97f3a', shade: '#a9542a', lite: '#f6b06a', spec: '#ffe4b8', ink: '#2a140c' };
-const JAMB = { base: '#5a3a26', shade: '#3d2519', lite: '#7a5236', spec: '#7a5236', ink: '#160c08' };
-const inPx = (v) => Math.round(v * 4);
-
-/** The panel of one piece of a door: flat rectangles and paths inside its rectangle, drawn at the final size, so its edge is hard and the picture's difference from the open one is exactly it. */
-function panelOf(piece) {
-  const c = canvas(64, 64), x = c.getContext('2d');
-  const from = piece === 'top' ? DOOR.top : 0, to = piece === 'foot' ? DOOR.foot : 16;
-  x.setTransform(4, 0, 0, 4, 0, 0);
-  const rect = (a, b, y0, y1, col) => { x.fillStyle = col; x.fillRect(a, y0, b - a, y1 - y0); };
-  rect(DOOR.panel, DOOR.panelEnd, from, to, ORANGE.base);
-  rect(DOOR.panel, DOOR.panel + 1.25, from, to, ORANGE.lite);
-  rect(DOOR.panel + .25, DOOR.panel + .75, from, to, ORANGE.spec);
-  rect(DOOR.panelEnd - 1.75, DOOR.panelEnd, from, to, ORANGE.shade);
-  x.fillStyle = ORANGE.ink;
-  x.fillRect(DOOR.panel + 1.25, from, .25, to - from);
-  x.fillRect(DOOR.panelEnd - 1.75, from, .25, to - from);
-  // A seam across, the same on every piece: where the panel's plates meet.
-  rect(DOOR.panel, DOOR.panelEnd, 9, 9.5, ORANGE.ink);
-  rect(DOOR.panel, DOOR.panelEnd, 9.5, 10, ORANGE.lite);
-  rect(DOOR.panel, DOOR.panelEnd, 8.25, 9, ORANGE.shade);
-  if (piece === 'top') {
-    // The window.
-    rect(5.75, 10.25, 3.75, 7.75, '#1a1c28');
-    rect(6.25, 9.75, 4.25, 7.25, '#2c4a70');
-    x.fillStyle = '#9ad2f0';
-    x.beginPath(); x.moveTo(6.25, 7.25); x.lineTo(6.25, 5.75); x.lineTo(7.75, 4.25); x.lineTo(9, 4.25); x.closePath(); x.fill();
-    x.fillStyle = '#e4f6ff';
-    x.beginPath(); x.moveTo(6.5, 5.75); x.lineTo(7.75, 4.5); x.lineTo(8.25, 4.5); x.lineTo(6.5, 6.25); x.closePath(); x.fill();
-  }
-  if (piece === 'foot') {
-    // Hazard stripes at its foot.
-    x.save();
-    x.beginPath(); x.rect(DOOR.panel, 11.75, DOOR.panelEnd - DOOR.panel, 3.25); x.clip();
-    rect(DOOR.panel, DOOR.panelEnd, 11.75, 15, '#f0c43c');
-    x.fillStyle = '#1a1820';
-    for (let k = -2; k < 12; k += 2.5) { x.beginPath(); x.moveTo(DOOR.panel + k, 15); x.lineTo(DOOR.panel + k + 1.25, 15); x.lineTo(DOOR.panel + k + 4.5, 11.75); x.lineTo(DOOR.panel + k + 3.25, 11.75); x.closePath(); x.fill(); }
-    x.restore();
-    rect(DOOR.panel, DOOR.panelEnd, 11.5, 11.75, ORANGE.ink);
-  }
-  return c;
-}
-
-/** The frame of one piece, the same shut and open: jambs, the header with its lamps on the top piece, the sill on the foot. */
-function frameOf(piece) {
-  const c = canvas(64, 64), x = c.getContext('2d');
-  x.setTransform(4, 0, 0, 4, 0, 0);
-  const rect = (a, b, y0, y1, col) => { x.fillStyle = col; x.fillRect(a, y0, b - a, y1 - y0); };
-  const top = piece === 'top' ? DOOR.top : 0, foot = 16;
-  for (const [a, b] of [[DOOR.left - .75, DOOR.panel], [DOOR.panelEnd, DOOR.right + .75]]) {
-    rect(a, b, 0, foot, JAMB.ink);
-    rect(a + .5, b - .25, 0, foot, JAMB.base);
-  }
-  rect(DOOR.left - .25, DOOR.left + .25, 0, foot, JAMB.lite);
-  rect(DOOR.panelEnd + .25, DOOR.panelEnd + .75, 0, foot, JAMB.lite);
-  if (piece === 'top') {
-    rect(DOOR.left - .75, DOOR.right + .75, 0, top, JAMB.ink);
-    rect(DOOR.left - .25, DOOR.right + .25, .5, top - .25, JAMB.base);
-    rect(DOOR.left - .25, DOOR.right + .25, .5, 1, JAMB.lite);
-    for (const lx of [5.5, 9]) { rect(lx, lx + 1.5, 1.25, 2.25, '#f0c43c'); rect(lx + .25, lx + .75, 1.25, 1.5, '#fff0b0'); }
-  }
-  if (piece === 'foot') {
-    rect(DOOR.left - .75, DOOR.right + .75, DOOR.foot, 16, JAMB.ink);
-    rect(DOOR.left - .25, DOOR.right + .25, DOOR.foot + .25, 15.75, JAMB.shade);
-  }
-  return c;
-}
-
-function doorPicture(piece, shut) {
-  const c = canvas(64, 64), x = c.getContext('2d');
-  if (shut) x.drawImage(panelOf(piece), 0, 0);
-  x.drawImage(frameOf(piece), 0, 0);
-  return c;
-}
-
 Subjects.room = function () {
   out('wall_scrap', bake(wallScrap(true)));
   out('wall_castScrap', bake(wallScrap(false)));
@@ -298,8 +221,9 @@ Subjects.room = function () {
   for (let open = 1; open < 16; open++) out(`wall-edge_iron_${open}`, edge(open, ironLook));
   // Links: up 1, down 4; a door's pieces from its top down: joined down 4, both 5, joined up 1.
   for (const [links, piece] of [[4, 'top'], [5, 'mid'], [1, 'foot']]) {
-    out(`door_closed_${links}`, doorPicture(piece, true));
-    out(`door_open_${links}`, doorPicture(piece, false));
+    const { shut, open } = DoorKit.pictures(piece === 'top', piece === 'foot');
+    out(`door_closed_${links}`, shut);
+    out(`door_open_${links}`, open);
   }
 };
 window.AnimeEdge = edge;

@@ -77,6 +77,7 @@ public partial class BenchView : Node2D, ILightSource
                 var (x, y) = BenchLook.ToolAt(look);
                 s.Tool.Texture = HeldArt.Of(look.Picture, parts.Layers);
                 s.Tool.Position = corner + new Vector2(x, y);
+                s.Tool.Scale = Vector2.One * (float)look.Size;
             }
             s.Tool.Visible = tool != null && look != null;
             foreach (var sprite in (Sprite2D[])[s.Front, s.Alight]) sprite.Position = corner;
@@ -155,7 +156,7 @@ public partial class BenchView : Node2D, ILightSource
         if (look?.Mounts is not { Count: > 0 } mounts || tool == null) return BenchLook.Strikes;
         var (x, y) = BenchLook.ToolAt(look);
         var box = mounts[0].Box;
-        return ((float)(x + (box.X0 + box.X1) / 2), (float)(y + (box.Y0 + box.Y1) / 2));
+        return ((float)(x + (box.X0 + box.X1) / 2 * look.Size), (float)(y + (box.Y0 + box.Y1) / 2 * look.Size));
     }
 
     /// <summary>One strike of the burst: an arc from each of the shard's points into the target, crisp and violet-white.</summary>

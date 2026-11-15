@@ -124,7 +124,7 @@ public class GunHandTests
         int? simEnd = null;
         for (int t = 0; t < 40 && simEnd == null; t++)
         {
-            hand.Tick(w.M.Creatures.StepOf, w.M.Grid.Width, w.M.Grid.Height);
+            hand.Tick((f, p, g, passed, carry) => w.M.Creatures.StepOf(f, p, g, passed, carry), w.M.Grid.Width, w.M.Grid.Height);
             if (w.M.Creatures.Ended.Count > 0) simEnd = w.M.Creatures.Ended.Single().Cell;
             else
             {
@@ -162,7 +162,7 @@ public class GunHandTests
         // As a guest's frame runs, its copy a round trip ahead: flown on the world before its Fire even applies.
         for (int t = 0; t < 40 && hand.Shots.Count > 0; t++)
         {
-            hand.Tick(w.M.Creatures.StepOf, w.M.Grid.Width, w.M.Grid.Height);
+            hand.Tick((f, p, g, passed, carry) => w.M.Creatures.StepOf(f, p, g, passed, carry), w.M.Grid.Width, w.M.Grid.Height);
             drawn.AddRange(hand.TakeHits().Select(h => (h.What, h.Broke)));
             if (hand.Shots.Count > 0 && hand.Shots[0].EndCell == null) Assert.True(hand.Shots[0].Passed.Count <= 1);
             hand.TakeEnded();
@@ -193,7 +193,7 @@ public class GunHandTests
         // As the host's frame runs: the world's tick, then this hand's shots flown to it.
         w.Step(fire);
         Assert.Empty(w.M.Creatures.Creatures);
-        hand.Tick(w.M.Creatures.StepOf, w.M.Grid.Width, w.M.Grid.Height);
+        hand.Tick((f, p, g, passed, carry) => w.M.Creatures.StepOf(f, p, g, passed, carry), w.M.Grid.Width, w.M.Grid.Height);
         // No copy flown on the host: one stepped now would meet a world its own hit already changed, flying on past the loper unhit.
         Assert.Empty(hand.Shots);
         Assert.Empty(hand.TakeHits());

@@ -1,6 +1,6 @@
 # The cape is worn
 
-- Status: accepted; built
+- Status: accepted; built; its warmth, a fifth of the cold, superseded by [temperature-in-degrees](2026-11-14-temperature-in-degrees.md): degrees
 - Date: 2026-10-27
 - Builds on [2026-10-27-suits-are-worn](2026-10-27-suits-are-worn.md); for the cape, an exception to
   [0057](0057-stations-one-model-for-every-crafting-machine.md)'s pod list only in that it is made at the Former instead

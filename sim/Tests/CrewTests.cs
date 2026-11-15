@@ -168,10 +168,10 @@ public class CrewTests
         int oxygen = HandPiped.Held(w);
         int clock = AirClock(w), part = w.Owed(room);
         Breaths(w, 2);
-        Assert.Equal(suit + 2 * Content.Crew.Refill, HeroOf(w)?.Air);
+        Assert.Equal(suit + 2 * CrewModule.FillOf(w.M.Crew.CapacityOf(0)), HeroOf(w)?.Air);
         // The breaths and the leak are drawn from the chain, never a cell (2026-11-05-air-bubbles): a unit either way of the leak.
         int leaked = AirTesting.Leaked(Leak, clock, AirClock(w), part);
-        Assert.InRange(oxygen - 2 * (1 + Content.Crew.Refill) - HandPiped.Held(w), leaked - 1, leaked);
+        Assert.InRange(oxygen - 2 * (1 + CrewModule.FillOf(w.M.Crew.CapacityOf(0))) - HandPiped.Held(w), leaked - 1, leaked);
         Assert.Equal(84, Aired(w).Count);
         // Full, it takes only its breath.
         Breaths(w, 10);

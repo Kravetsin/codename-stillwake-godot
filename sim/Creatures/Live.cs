@@ -55,6 +55,27 @@ public sealed partial class CreaturesModule
                 (best, Searcher) = (due, c.Id);
     }
 
+    /// <summary>
+    /// <paramref name="c"/> held still for a move: at once, but a flyer where things float sheds a quarter of its speed a tick, toward
+    /// none, so it eases to rest rather than stopping dead (catcher-motion).
+    /// </summary>
+    internal void Slow(Creature c, Spec.Species spec)
+    {
+        if (!Drifts(spec))
+        {
+            (c.VX, c.VY) = (0, 0);
+            return;
+        }
+        (c.VX, c.VY) = (Shed(c.VX), Shed(c.VY));
+        static int Shed(int v) => Math.Abs(v) < SlowLeast ? 0 : v - v / 4;
+    }
+
+    /// <summary>Whether a body of <paramref name="spec"/>'s drifts on where it is not driven: a flyer where things float.</summary>
+    internal bool Drifts(Spec.Species spec) => Rules.Floats && spec.Body is Spec.Flyer;
+
+    /// <summary>The speed, thousandths of a cell a tick, under which a slowing flyer is at rest.</summary>
+    private const int SlowLeast = 8;
+
     /// <summary>Whether a body of <paramref name="s"/> standing on cell (<paramref name="x"/>, <paramref name="y"/>) has something solid under its feet.</summary>
     internal bool Grounded(Spec.Shape s, int x, int y)
     {
@@ -325,6 +346,25 @@ public sealed partial class CreaturesModule
                 if (Solid(column, row)) return true;
         return false;
     }
+
+    /// <summary>
+    /// Whether a body of <paramref name="s"/> with its bottom middle at (<paramref name="x"/>, <paramref name="y"/>) lies wholly in open
+    /// space, in no room and nothing solid (catchers-space): where a catcher may come, or blink to, where things float.
+    /// </summary>
+    internal bool InSpace(Spec.Shape s, int x, int y)
+    {
+        int half = s.Width * Unit / 2, width = _grid.Width;
+        int left = Down(x - half, Unit), right = Down(x + half - 1, Unit);
+        int top = Down(y - s.Height * Unit, Unit), bottom = Down(y - 1, Unit);
+        if (left < 0 || top < 0 || right >= width || bottom >= _grid.Height) return false;
+        for (int row = top; row <= bottom; row++)
+            for (int column = left; column <= right; column++)
+                if (_rooms.RoomAt(row * width + column) != Stillwake.Sim.Rooms.RoomsModule.Space) return false;
+        return true;
+    }
+
+    /// <summary>Whether <paramref name="cell"/> lies in a room, shut in from open space: a hero aboard, out of a catcher's reach.</summary>
+    internal bool InRoom(int cell) => _rooms.RoomAt(cell) is >= 0;
 
     /// <summary>
     /// What stops a creature: anything solid (a wall, a floor, a shut doorway), as for a stack, or

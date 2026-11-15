@@ -1,6 +1,6 @@
 # The back walls' focus hides the front
 
-- Status: accepted; supersedes in part [0110](0110-the-plan-has-a-focused-layer.md) (the front drawn at 35% with the back focused)
+- Status: accepted, superseded in part by [back-focus-faint](2026-11-12-back-focus-faint.md); supersedes in part [0110](0110-the-plan-has-a-focused-layer.md) (the front drawn at 35% with the back focused)
 - Date: 2026-11-07
 
 ## Context

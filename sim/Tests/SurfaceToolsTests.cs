@@ -30,13 +30,13 @@ public class SurfaceToolsTests
     private static int At(int x, int y) => y * 8 + x;
 
     [Fact]
-    public void OnTheShipToolsBreakNothingOfItsGridAndAreRefusedAsNotHere()
+    public void OnTheShipToolsTakeATenthOfItsGrid()
     {
         var w = new Scenario(Ground);
-        Assert.True(w.M.Building.Struck(Axe, 3500, 1500, 64).IsEmpty);
-        w.Do(HewTesting.Dig(w, At(3, 2), Axe)).Do(HewTesting.Dig(w, At(0, 2), Axe)).Run();
-        Assert.Equal(["building.notHere", "building.notHere"], Reasons(w));
-        Assert.Empty(w.M.Building.Cracks);
+        Assert.False(w.M.Building.Struck(Axe, 3500, 1500, 64).IsEmpty);
+        w.Do(HewTesting.Dig(w, At(3, 2), Axe)).Run();
+        Assert.Empty(Reasons(w));
+        Assert.Equal(Weapons.Axe.BlockDamage * Damage.OwnShipTakes / 1000, w.M.Building.Cracks.Single(c => c.Cell == At(3, 2)).Damage);
         Assert.Equal("stone", w.M.Grid.WallAt(At(3, 2))?.Id);
     }
 

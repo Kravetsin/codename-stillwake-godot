@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Stillwake.Game.Shared;
 using Run = Stillwake.Game.CreatureLooks.Run;
 
 namespace Stillwake.Game.Features.Creatures;
@@ -13,8 +14,11 @@ namespace Stillwake.Game.Features.Creatures;
 /// </summary>
 public sealed class CreaturePose
 {
-    /// <summary>One node's turn and shift this frame.</summary>
-    public readonly record struct Joint(double A, double X, double Y);
+    /// <summary>
+    /// One node's turn and shift this frame, and the bend of its picture if its part bends (creatures-bend): radians clockwise of what
+    /// lies past its band. A bent neck or tail takes its turn as its bend, its root staying on the body.
+    /// </summary>
+    public readonly record struct Joint(double A, double X, double Y, double Bend = 0);
 
     /// <summary>The eye drawn: open, half shut grazing, shut blinking, or wide startled.</summary>
     public enum EyeState { Open, Half, Blink, Wide }
@@ -31,6 +35,7 @@ public sealed class CreaturePose
     private readonly CreatureArt.Design _design;
     private readonly Run _run;
     private readonly bool[] _fore;
+    private readonly CreatureArt.Bending?[] _bends;
 
     /// <summary>Each node's this frame, in the rig's order.</summary>
     public Joint[] Joints { get; }
@@ -47,10 +52,12 @@ public sealed class CreaturePose
     {
         (_design, _run) = (design, run);
         Joints = new Joint[design.Rig.Count];
-        // A leg ahead of the legs' middle is a foreleg: in a gallop the forelegs reach together, then the hind ones.
+        // A leg ahead of the legs' middle is a foreleg, unless marked hind (a sixleg's middle pair): in a gallop the forelegs reach
+        // together, then the hind ones; a foreleg's knee folds its foot back, a hind one's forward.
         var legs = design.Rig.Where(n => n.Drive == CreatureArt.Drive.Leg).ToList();
         double middle = legs.Count > 0 ? legs.Average(n => n.X) : 0;
-        _fore = design.Rig.Select(n => n.Drive == CreatureArt.Drive.Leg && n.X > middle).ToArray();
+        _fore = design.Rig.Select(n => n.Drive == CreatureArt.Drive.Leg && !n.Hind && n.X > middle).ToArray();
+        _bends = design.Rig.Select(n => design.Parts.TryGetValue(n.Part, out var part) ? part.Bend : null).ToArray();
     }
 
     /// <summary>Poses every node for <paramref name="s"/>.</summary>
@@ -86,7 +93,7 @@ public sealed class CreaturePose
         for (int i = 0; i < rig.Count; i++)
         {
             var n = rig[i];
-            double a = 0, x = 0, y = 0;
+            double a = 0, x = 0, y = 0, bend = 0;
             switch (n.Drive)
             {
                 case CreatureArt.Drive.Body:
@@ -110,16 +117,21 @@ public sealed class CreaturePose
                     a = Math.Sin(clk / 900) * 0.03;
                     break;
                 case CreatureArt.Drive.Leg:
-                    (a, x, y) = Leg(n, _fore[i], ph, walk, g);
-                    // Tucked in the air: hind legs back, forelegs forward.
-                    double tuckA = n.Hind ? -0.6 : n.X > 0 ? 0.55 : -0.45;
-                    (a, y) = (a + (tuckA - a) * s.Air, y + (-1 - y) * s.Air);
+                    double fold;
+                    (a, x, y, fold) = Leg(n, _fore[i], ph, walk, g);
+                    // Tucked in the air: hind legs back, forelegs forward, the forelegs' knees folded under.
+                    double tuckA = n.Hind ? -0.6 : n.X > 0 ? 0.55 : -0.45, tuckFold = p.Knee * (_fore[i] ? 1.5 : 1);
+                    (a, y, fold) = (a + (tuckA - a) * s.Air, y + (-1 - y) * s.Air, fold + (tuckFold - fold) * s.Air);
                     a -= bodyA;
+                    // A knee folds its foot back, a hock forward (creatures-bend).
+                    if (_bends[i] != null) bend = _fore[i] ? fold : -fold;
                     break;
             }
-            Joints[i] = new Joint(a, x, y);
-            // A rigid leg swinging out would lift its foot: what the body must drop so the lowest foot stays on the ground.
-            if (n.Drive == CreatureArt.Drive.Leg) low = Math.Max(low, y + p.LegLen * (Math.Cos(a) - 1) + p.FootW * Math.Abs(Math.Sin(a)));
+            // A bent neck or tail turns along itself, its root kept on the body.
+            if (_bends[i] != null && n.Drive is CreatureArt.Drive.Head or CreatureArt.Drive.Tail) (a, bend) = (0, a);
+            Joints[i] = new Joint(a, x, y, bend);
+            // A leg swinging out would lift its foot: what the body must drop so the lowest foot stays on the ground.
+            if (n.Drive == CreatureArt.Drive.Leg) low = Math.Max(low, Drop(p, _bends[i]?.Joint ?? 0, Joints[i]));
         }
         if (p.LegLen > 0 && low > double.NegativeInfinity)
         {
@@ -132,8 +144,21 @@ public sealed class CreaturePose
         Look = s.Look ?? (graze > 0.5 ? (0.55, 0.83) : (0.98, 0.18));
     }
 
-    /// <summary>A leg's turn and shift on the ground: the page's walk, its swing and lift growing into a gallop's.</summary>
-    private (double A, double X, double Y) Leg(CreatureArt.Node n, bool fore, double ph, double walk, double g)
+    /// <summary>
+    /// How far below its resting place a leg's foot is drawn, posed <paramref name="leg"/>: turned at its hip, bent at its knee
+    /// <paramref name="knee"/> pixels down it (none if it does not bend), shifted; its foot's half width tipped down.
+    /// </summary>
+    public static double Drop(CreatureArt.Pose pose, double knee, Joint leg)
+    {
+        double below = pose.LegLen - knee, turn = leg.A + leg.Bend;
+        return leg.Y + knee * (Math.Cos(leg.A) - 1) + below * (Math.Cos(turn) - 1) + pose.FootW * Math.Abs(Math.Sin(turn));
+    }
+
+    /// <summary>
+    /// A leg's turn and shift on the ground, and how far its knee folds, a share of <see cref="CreatureArt.Pose.Knee"/>: the page's
+    /// walk, its swing and lift growing into a gallop's, the knee folding as the foot lifts, straight on the ground.
+    /// </summary>
+    private (double A, double X, double Y, double Fold) Leg(CreatureArt.Node n, bool fore, double ph, double walk, double g)
     {
         var p = _design.Pose;
         double tau = Math.Tau;
@@ -142,7 +167,7 @@ public sealed class CreaturePose
             case CreatureArt.Gait.Hop:
                 {
                     double k = Math.Sin(ph * Math.PI) * walk;
-                    return n.Hind ? (-0.75 * k, 0, 0) : (0.5 * k, 0, -k * 1.5);
+                    return n.Hind ? (-0.75 * k, 0, 0, 0) : (0.5 * k, 0, -k * 1.5, 0);
                 }
             default:
                 {
@@ -151,11 +176,14 @@ public sealed class CreaturePose
                     double far = n.Part.EndsWith("Far", StringComparison.Ordinal) ? 0.06 : 0;
                     double gallop = _design.Gait == CreatureArt.Gait.Walk ? (fore ? 0 : 0.5) + far : n.Phase;
                     double w = (ph + n.Phase + (gallop - n.Phase) * g) * tau;
-                    double amp = p.LegAmp + _run.Reach * g;
-                    return (Math.Sin(w) * amp * walk, 0, -Math.Max(0, -Math.Cos(w)) * p.Lift * (1 + 0.6 * g) * walk);
+                    double amp = p.LegAmp + _run.Reach * g, lift = Math.Max(0, -Math.Cos(w)) * (1 + 0.6 * g) * walk;
+                    return (Math.Sin(w) * amp * walk, 0, -lift * p.Lift, lift * p.Knee);
                 }
         }
     }
+
+    /// <summary>Where a bent part's joint is in its own frame, pixels from its pivot: what lies past its band turns about it (<see cref="BentLimb.Warp"/>).</summary>
+    public static Vec JointOf(CreatureArt.Bending bend) => BentLimb.Turned(new Vec(0, bend.Joint), bend.Axis);
 
     /// <summary>The rig's nodes by id, each's index: for its parent.</summary>
     public static IReadOnlyDictionary<string, int> Indexed(CreatureArt.Design design)

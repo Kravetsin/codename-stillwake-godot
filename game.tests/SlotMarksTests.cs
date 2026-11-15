@@ -81,9 +81,10 @@ public class SlotMarksTests
         Assert.Equal(SlotMark.Charges, Reading.GhostOf("charger", 0));
         var bay = Spec.Machines.Get(Spec.Logistics.Bay);
         for (int slot = 0; slot < bay.Slots; slot++) Assert.Equal(slot == bay.SlotTakes!.Value.Slot ? SlotMark.Breathes : SlotMark.Docks, Reading.GhostOf(Spec.Logistics.Bay, slot));
-        // A crate takes anything, and a queued station's inputs any cost: no ghost.
+        // A crate takes anything, and a queued station's inputs any cost: no ghost. The galley's one input is its fire's fuel.
         Assert.Equal(SlotMark.None, Reading.GhostOf("crate", 0));
-        Assert.All(Spec.Stations.All.Where(s => !s.Fed), s => Assert.Equal(SlotMark.None, Reading.GhostOf(s.Machine, 0)));
+        Assert.All(Spec.Stations.All.Where(s => !s.Fed && Spec.Machines.Get(s.Machine).FuelSlot == null), s => Assert.Equal(SlotMark.None, Reading.GhostOf(s.Machine, 0)));
+        Assert.Equal(SlotMark.Burns, Reading.GhostOf("galley", 0));
     }
 
     [Fact]

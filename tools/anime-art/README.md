@@ -1,86 +1,96 @@
 # Anime art
 
-Draws the anime art's pictures in code and writes them into `game/art/hd/`, where `game/render/HiRes.cs` picks
-them up: the game's only pictures, reduced to the world's pixels where a size or shape is needed ([the pixels gone](../../docs/decisions/2026-11-03-pixel-art-removed.md)).
+Draws the game's pictures in code into `game/art/hd/`; `game/render/HiRes.cs` picks them up ([the pixels gone](../../docs/decisions/2026-11-03-pixel-art-removed.md)).
 
 ## The style
 
 Ink and watercolour ([why](../../docs/decisions/2026-11-01-ink-and-watercolour.md)), neutral to slightly grim, **never a cartoon**. The
-finish is `wash.js`, one for every subject; these are the rules a drawing must follow for it to work.
+finish is `wash.js`, one for every subject.
 
-- **Mood before readability.** A lone scavenger's world: judge a picture by that first, and beside what it replaces.
+- **Mood before readability.** A lone scavenger's world: judge a picture by that.
 - **Colour:** clean, slightly grey paint, neither dusty nor faded. Metals are cool greys; suit, copper and wood are warm and worn. Full
   saturation is only for what works or warns: fire, lamps, screens, hazard stripes.
-- **Light:** hard steps of tone, one shade and one deep, no gradients and no painted glow. The hero is lit from straight above, so
-  turning changes nothing; the world from the side. The game's own light does the rest.
-- **Line:** a thin pen that wanders, swells and lifts off. Heavier round an object, lighter inside, never an even border like a sticker's.
-  Paint may miss the line a little, not so much that it looks careless.
-- **Water:** a trace of tide lines, pooling and grain. It is the finish's, one strength for all: never tune it per picture. It darkens or
-  lightens paint by a factor and never mixes in paper: on a dark colour that reads as dust.
-- **Parting from the wall:** back walls stay well darker than anything before them, and every outlined shape has a thin lit edge at the
-  top, drawn by the finish.
-- **Wear:** rust grows from seams and rivets where water sat, with a torn edge and a darker heart. No long drips, no rings. Cracks are
+- **Light:** hard steps of tone, one shade and one deep, no gradients or painted glow. The hero is lit from straight above, so
+  turning changes nothing; the world from the side; the game's light does the rest.
+- **Line:** a thin pen that wanders, swells and lifts off. Heavier round an object, lighter inside, never a sticker's even border.
+  Paint may miss the line a little, never carelessly.
+- **Water:** a trace of tide lines, pooling and grain. It is the finish's, one strength for all: never tune it per picture. It scales
+  paint's tone and never mixes in paper, which reads as dust on a dark colour.
+- **Parting from the wall:** back walls stay well darker than what stands before them; the finish gives every outlined shape a thin lit
+  top edge.
+- **Wear:** rust grows from seams and rivets where water sat, torn-edged and darker at heart; no long drips or rings. Cracks are
   short pen lines; dents and patches sit where something hit or was mended.
 - **Detail:** objects are composed, each part placed by hand: about 20 calls for a 16 × 16 icon. Walls are quieter than what stands
-  before them, back walls dark and quietest. Random scatter is for the edge of a placed thing, never for placing it.
-- **Ground:** one body, not paving: large masses of close tone, a hard shadow at their foot, only some cracks drawn. Grass lies over the
-  block's top as part of it, thick, a deep muted green.
-- **Do not:** lay a filter or an outline over finished art, or draw a wall as a texture of noise.
+  before them, back walls quietest. Random scatter is for the edge of a placed thing, never for placing it.
+- **Ground:** one body of large close-toned masses, a hard shadow at their foot, few cracks; grass lies thick and deep muted green over
+  the block's top.
+- **Do not:** lay a filter or an outline over finished art (a raw tool's ink aside), or draw a wall as noise.
 
 ## What it draws
 
 | Subject | Pictures |
 | --- | --- |
-| `hero` | `hero_<part>`: the suit's parts, helmet shell and visor apart, the heavy helmet's, the regen suit's (lights `_lit`, `_arcs`, `_pip`); `hero_outfit_<n>_<part>`, clothes, `_skin` under bare skin; hair, faces, beards tinted by `LookTint`; cape, jetpack, lamp, sheet, held tools; `hero_tracker`, `_light`: the player's colour, white, by Modulate. Top-lit |
-| `catchergear` | the catchers' four outfits: `hero_catcher<Body>_<part>`, `_upperArm_lit`; `hero_catcher<Helmet>_shell`, `_visor`, `_lit`, on `hero.js`'s `HeroKit` |
-| `machines` | `machine_<kind>` and their working overlays, fire, tank and cistern fill, the electrolyser's bubbles; a machine's `fitting` stands on its port in `Machines.Ports`; exposes `AnimeKit` |
-| `zfittings` | `pipe_run` (repeated along a span), `pipe_<arms>`, valves, sockets, hatches, platforms, ladder, floor, drone, lamps, held axe and drill; sorts after `machines` to read `AnimeKit` |
-| `items` | `items/<id>`: every item; `_empty` states are the full picture's calls with only the changing part dark; `tool_screwdriver` |
+| `hero` | `hero_<part>`: the suits' parts (the regen suit's lights `_lit`, `_arcs`, `_pip`); `hero_outfit_<n>_<part>`, `_skin` under bare skin; hair, faces, beards by `LookTint`; cape, jetpack, lamp, sheet, tools; `hero_tracker`, `_light`: white, tinted by Modulate. Top-lit |
+| `catchergear` | catchers' outfits: `hero_catcher<Body>_<part>`, `_upperArm_lit`; `hero_catcher<Helmet>_shell`, `_visor`, `_lit`, by `HeroKit` |
+| `machines` | `machine_<kind>`, working overlays (fire, fills, bubbles); a `fitting` on its port (`Machines.Ports`); exposes `AnimeKit` |
+| `zfittings` | `pipe_run`, `pipe_<arms>`, valves, sockets, hatches, platforms, ladder, floor, drone, lamps, held tools; after `machines`, for `AnimeKit` |
+| `items` | `items/<id>`; an `_empty` state is the full picture's calls, only the changing part dark; `tool_screwdriver` |
 | `room` | `wall_`, `wall-edge_` and `back_` of scrap (rusted by `wreck`'s `AnimeSheetRust`), cast scrap (clean) and iron, `door_*` |
-| `wreck` | `wreck_dress`, `wreck_tears` (a mask, no finish), from `sim/Content/Wreck.cs`; its rust grows from `wall_scrap`'s seams |
-| `piles` | `machine_pile*`: the hold's heaps |
-| `smelter` | `machine_smelter`, `smelter_work_*` |
-| `shipwalls`, `grounds`, `doors` | `wall_`, `back_`, `wall-edge_`: glass, mica, hide, alloy, bedrock, lava, plaster, with `detail_` and `top_` under the atlas's names; `door_*_0` and the links `room` leaves |
-| `caves` | stone, ice and copper veins and soil (`wall_`, `back_`, `wall-edge_`, `top_`, `detail_`), `caves/moss_*`, `caves/mossGreen_*`, `caves/crystalIce*` |
-| `creatures` | `creatures/<id>/<part>`, and `Content/logic/CreatureInk.cs`, their numbers: the picked designs of the rigged creatures |
-| `tick`, `warden`, `cavehostiles`, `lurkerattacks` | `creatures/ink<Kind>/*`, `Content/logic/<Rig>Ink.cs`: the picked guards, lurkers, a capback's gas |
-| `tufts` | `planet/tuft_*`, `tuftReed_*`, `tuftFungus_*`: one plant of three to a tuft, by `FloraLooks.Drawn` |
-| `flora` | `planet/acacia_*` and their `_glow`: the pods stand where the logical glow picture has them, for the game lights from there |
-| `shrubs` | `planet/bush_*`, `rock_*`, `bell*_*` and their `_glow`: dead thorn, boulders, hooded bells; light only in `_glow` |
+| `wreck` | `wreck_dress`, `wreck_tears` (a mask, no finish), from `Wreck.cs`; its rust grows from `wall_scrap`'s seams |
+| `piles`, `smelter` | `machine_pile*`: the hold's heaps; `machine_smelter`, `smelter_work_*` |
+| `shipwalls`, `grounds`, `doors` | `wall_`, `back_`, `wall-edge_`, `detail_`, `top_` of glass, mica, hide, alloy, bedrock, lava, plaster; `door_*_0` and the links `room` leaves |
+| `caves` | stone, ice, copper veins and soil (`wall_`, `back_`, `wall-edge_`, `top_`, `detail_`), `caves/moss*_*`, `caves/crystalIce*` |
+| `creatures` | `creatures/<id>/<part>`, numbers in `CreatureInk.cs`: traced rigs |
+| `tick`, `warden`, `cavehostiles`, `lurkerattacks` | `creatures/ink<Kind>/*`, `<Rig>Ink.cs`: guards, lurkers, a capback's gas |
+| `tufts` | `planet/tuft_*`, `tuftReed_*`, `tuftFungus_*`: one of three plants a tuft (`FloraLooks.Drawn`) |
+| `flora` | `planet/acacia_*`, `_glow`: pods where the logical glow picture has them, as the game lights there |
+| `shrubs` | `planet/bush_*`, `rock_*`, `bell*_*`: dead thorn, boulders, hooded bells; light only in `_glow` |
+| `leaves` | `planet/leaf_<look>_<plant>_<n>[_back]`: falling leaves |
 | `heavens` | `planet/sky`, `clouds` (far layers, any size), `giant`, `sun` |
-| `cavelife` | `caves/` crystals, dripstone, fungi, threads, roots, cracks, geodes, fossils, opal caches, the spire's cache, lamp, `_glow`: dim |
-| `homes`, `homeskeep`, `homeslights`, `homeswall`, `homesruin` | `homes/*` and their `_dark`, `_fed`, `_glow`; `ruins/spireLens_*`. `homes.js` exposes `HomeKit`; the others sort after it |
-| `debris` | `debris/*`: rocks lit hard from one side, crates, plates, pods, scrap, derelicts; no lettering: they turn |
-| `aboard` | `machine_salvage*`: salvage, its pieces whole on the deck; main engines and consoles, numbered, one drawn per vessel |
-| `net` | `machine_net` (booms), `net_mount`, `net_front_<n>` (holding n), `features/debris/logic/NetInk.cs` |
-| `bay`, `salvage` | `machine_droneBay`, `droneBay_*`, `salvage_*`, `items/salvageDrone`; `logistics/logic/BayInk.cs`, `SalvageInk.cs` |
-| `scanner` | `hero_scanner`, `hero_heavyHelmet_scanner`, `_lit_<n>`, `items/scanner`; `ScannerInk.cs` |
-| `charge` | `hero_blastCharge` (`icons/` lit), `shot_blastCharge_spark`: the fuse in flight |
-| `edgekeys` | `holo_<key>`, `holo_<key>_glow`: the edge keys' white masks and glows |
-| `signs`, `credit`, `capsule`, `gauge` | `sign_*`: bolts, plug, wrench, tips; `credit`: the chip; `capsule`, `capsule_flame_<n>`: the trade capsule; `gauge_lamp[Wide]_<shape>_<tone>`: air lamps |
-| `upgrades` | `upgrade_bag`, `upgrade_belt`, `upgrade_tradeSlots`, `upgrade_canister`: what the market sells that is no item |
-| `zleftovers` | the arc bench's and lamp's glows, `machine_emergencyLamp`, `module_arc_coil`, the pod's lit state and porthole, `wrist_*`, `tablet_*`: frames repeat, so a 9-slice has no seam |
+| `cavelife` | `caves/` crystals, dripstone, fungi, threads, roots, cracks, geodes, fossils, opal and spire caches, lamp; dim `_glow` |
+| `homes`, `homeskeep`, `homeslights`, `homeswall`, `homesruin` | `homes/*`, `_dark`, `_fed`, `_glow`; `ruins/spireLens_*`; `homes.js` exposes `HomeKit`, the others sort after it |
+| `debris` | `debris/*`: rocks lit from a side, crates, plates, pods, scrap, derelicts; unlettered, they turn |
+| `aboard` | `machine_salvage*`: salvage whole on the deck; numbered main engines and consoles, one per vessel |
+| `net` | `machine_net` (booms), `net_mount`, `net_front_<n>` (holding n); `NetInk.cs` |
+| `bay`, `salvage` | `machine_droneBay`, `droneBay_*`, `salvage_*`, `items/salvageDrone`; `BayInk.cs`, `SalvageInk.cs` |
+| `scanner` | `hero_scanner`, `hero_<helmet>_scanner`, `_lit_<n>`, `items/scanner`; `ScannerInk.cs` |
+| `helmets`, `quilted`, `heatSuit` | traced: `hero_<helmet>_shell`, `_visor` (`_collar`; bell `_seal`; `hero_visor`, card `hero_helmet`), `items/<id>`; `hero_heatSuit_<part>` |
+| `charge`, `missile` | `hero_blastCharge` (`icons/` lit), `shot_blastCharge_spark`: its fuse in flight; `shot_missile` |
+| `edgekeys` | `holo_<key>`, `_glow`: the edge keys' masks |
+| `signs`, `credit`, `capsule`, `gauge` | `sign_*`: bolts, plug, wrench, tips; `credit`, the chip; `capsule`, `capsule_flame_<n>`; `gauge_*`, the vitals' light |
+| `upgrades` | `upgrade_bag`, `_belt`, `_tradeSlots`, `_canister`: wares, no item |
+| `zleftovers` | the arc bench's and lamp's glows, `machine_emergencyLamp`, `module_arc_coil`, the pod's lit state and porthole, `wrist_*`, `tablet_*` |
 
 ## Run
 
 ```
-node tools/anime-art/export.js              # every subject
-node tools/anime-art/export.js room caves   # some
+node tools/anime-art/export.js [subject...]   # every subject, or some
 ```
 
-Needs Node 22+ and Edge or Chrome (`ANIME_BROWSER` for another). Then `tools/snap.ps1` imports the pictures.
+Needs Node 22+, Edge or Chrome (`ANIME_BROWSER` for another); `tools/snap.ps1` imports.
+
+## Traced subjects
+
+A picked AI-made reference is traced for its **form**; the line, paint and water stay ours.
+
+- `refs/<name>.png` and `.palette.json`: its colours (`ref`) and our paint (`mat`); `single`: one part, `overlay`: patches,
+  `mend`: repainted first, `holes`: left open; no `background`: cut by alpha. `pieces`: boxes or
+  `{ keep, ... }` polygons with their own keys (`materials` added), each to `traced/<name>.<piece>.json`.
+- `node tools/anime-art/trace.js <name>` (ffmpeg) cuts it by its ink into beziers, `traced/<name>.json`, drawn by `traced.js`, never
+  the reference.
+- `"raw": true`, held tools ([raw](../../docs/decisions/2026-11-14-raw-tool-pictures.md)): the trace cuts out the
+  reference's own paint, `traced/<name>.png`; `Traced.raw` inks round it, no water. Code draws what moves or lights. `over`: a part, an edited ref's pixels unlike `refs/<over>.png` in `clip`.
+- AI-made work ships: say so in Steam's AI disclosure.
 
 ## Add a subject
 
-A file `subjects/<name>.js` setting `Subjects.<name>`, which calls `out('<picture>', canvas)` for each picture, the
-canvas from `Anime.bake({ w, h, draw })`: `w` and `h` the logical picture's pixels, drawn at 4 times. Line weights
-and the light are the engine's (`engine.js`), per world pixel; use them, not numbers of your own.
-`wash.js` loads after the engine and replaces `bake`; a picture drawn straight on a canvas skips the finish.
+A file `subjects/<name>.js` setting `Subjects.<name>`, which calls `out('<picture>', canvas)` for each picture from
+`Anime.bake({ w, h, draw })`, `w` and `h` in world pixels, drawn 4 times over. Line weights and the light are the
+engine's (`engine.js`), per world pixel. `wash.js` replaces `bake`; a picture drawn straight on a canvas skips the finish.
 
-- A picture is exactly 4 times the logical one; the game lays out by that.
-- A sheet that repeats takes `tile: true`. A door's shut and open pictures differ only by the panel, or pixels stay behind.
+- A sheet that repeats takes `tile: true`. A door's frame and panel are washed apart (`DoorKit`): shut and open differ only by the panel.
 - A `top_*` picture has its ground line on row 16: rows above stand on the cell above, rows below lie over the block (`front`).
 - A cave picture keeps the rows its logical one uses (`LOGICAL` in the page), or its plant floats. Moss is cut at its block's edges along a
-  run, px 4 and 20 of 24: every variant has the same cross-section there, its torn end past them.
-- A tool in the fist (about 4 px) is drawn to it: `hero.js` shrinks the two drivers' paths by `Hand` (0.6: 10 px long), the pen
-  kept. Each held tool's `icons/` copy is 384 px long, for its icon (driver-icons).
+  run, px 4 and 20 of 24: every variant's cross-section matches there, its torn end past them.
+- Every held tool is raw ([builders](../../docs/decisions/2026-11-15-builders-raw.md)); its `icons/` copy is 384 px long
+  (driver-icons).

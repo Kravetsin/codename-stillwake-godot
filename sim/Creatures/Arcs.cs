@@ -27,27 +27,27 @@ public sealed partial class CreaturesModule
     internal bool StrikeArc(Creature c, Spec.Species spec, Spec.Shoot shoot, int cell)
     {
         int x = c.X, y = c.Y - spec.Body.Height * Unit / 2;
-        long run = Middle(cell % _grid.Width) - x, rise = Middle(cell / _grid.Width) - y, far = Math.Max(Math.Abs(run), Math.Abs(rise));
+        return Strike(c, shoot, x, y, Middle(cell % _grid.Width) - x, Middle(cell / _grid.Width) - y);
+    }
+
+    /// <summary>
+    /// <paramref name="c"/>'s <paramref name="shoot"/> struck from its middle along fine heading <paramref name="heading"/>, where its
+    /// gun points (catcher-motion): as <see cref="StrikeArc"/> struck at a cell that far along it.
+    /// </summary>
+    internal void StrikeAlong(Creature c, Spec.Species spec, Spec.Shoot shoot, int heading)
+    {
+        var (dx, dy) = Rays.FineDirection(heading);
+        Strike(c, shoot, c.X, c.Y - spec.Body.Height * Unit / 2, dx, dy);
+    }
+
+    private bool Strike(Creature c, Spec.Shoot shoot, int x, int y, long run, long rise)
+    {
+        long far = Math.Max(Math.Abs(run), Math.Abs(rise));
         if (far == 0) return false;
         // A beam runs on past the cell aimed at, Through cells off in all; an arc stops there, or at its Reach.
         long reach = (long)(shoot.Through > 0 ? shoot.Through : shoot.Reach) * Unit;
         if (far > reach || shoot.Through > 0) (run, rise) = (run * reach / far, rise * reach / far);
-        // Where it enters the first solid cell, as a share num / den of the way; the whole way with none.
-        long num = 1, den = 1;
-        Rays.Walk(_grid.Width, _grid.Height, x, y, run, rise, at =>
-        {
-            if (!Solid(at)) return false;
-            (num, den) = (0, 1);
-            int left = at % _grid.Width * Unit, top = at / _grid.Width * Unit;
-            if (run != 0) Later(run > 0 ? left - x : x - (left + Unit), Math.Abs(run));
-            if (rise != 0) Later(rise > 0 ? top - y : y - (top + Unit), Math.Abs(rise));
-            return true;
-        });
-        void Later(long n, long d)
-        {
-            if (n * den > num * d) (num, den) = (n, d);
-        }
-        int x1 = (int)(x + run * num / den), y1 = (int)(y + rise * num / den);
+        var (x1, y1) = BeamStop(x, y, run, rise);
         if (shoot.Leaves != null) (x1, y1) = Landing(x, y, x1, y1);
         State.Fired += 1;
         State.Arcs.Add(new Arc
@@ -65,6 +65,30 @@ public sealed partial class CreaturesModule
             Burns = shoot.Through > 0,
         });
         return true;
+    }
+
+    /// <summary>
+    /// Where a line from (<paramref name="x"/>, <paramref name="y"/>) running (<paramref name="run"/>, <paramref name="rise"/>) on stops:
+    /// where it enters the first solid cell, else its end. Where an arc ends, and where a catcher's aim line is drawn to (catcher-motion).
+    /// </summary>
+    public (int X, int Y) BeamStop(int x, int y, long run, long rise)
+    {
+        // As a share num / den of the way; the whole way with none.
+        long num = 1, den = 1;
+        Rays.Walk(_grid.Width, _grid.Height, x, y, run, rise, at =>
+        {
+            if (!Solid(at)) return false;
+            (num, den) = (0, 1);
+            int left = at % _grid.Width * Unit, top = at / _grid.Width * Unit;
+            if (run != 0) Later(run > 0 ? left - x : x - (left + Unit), Math.Abs(run));
+            if (rise != 0) Later(rise > 0 ? top - y : y - (top + Unit), Math.Abs(rise));
+            return true;
+        });
+        void Later(long n, long d)
+        {
+            if (n * den > num * d) (num, den) = (n, d);
+        }
+        return ((int)(x + run * num / den), (int)(y + rise * num / den));
     }
 
     /// <summary>

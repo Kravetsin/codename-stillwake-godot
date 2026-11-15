@@ -44,6 +44,11 @@ public interface ICraftingQueries
     /// </summary>
     bool CanSmelt(int machine);
     /// <summary>
+    /// Whether queued station <paramref name="machine"/> has a unit to work on, energy aside: a first entry not done, and, fed
+    /// from its inputs, begun or with its cost there. What lights a galley's fire.
+    /// </summary>
+    bool HasWork(int machine);
+    /// <summary>
     /// Whether fed station <paramref name="machine"/>'s input holds what it works, hot enough, but fewer than one smelt
     /// takes (<c>ItemSpec.SmeltTakes</c>): it waits for more. What its panel says.
     /// </summary>
@@ -130,6 +135,8 @@ public sealed partial class CraftingModule : Module<CraftingState>, ICraftingQue
     public bool CanSmelt(int machine) =>
         _grid.MachineById(machine) is { } m && StationOf(m) is { Fed: true } station && InputOf(machine) is { } input && CanSmelt(m, station, input);
 
+    public bool HasWork(int machine) => QueueOf(machine) is { } queue && HasWork(machine, queue);
+
     public bool TooCold(int machine) =>
         _grid.MachineById(machine) is { } m && StationOf(m) is { Fed: true } station && InputOf(machine) is { } input
         && Worked(station, input) is { } spec && spec.Heat > station.Heat;
@@ -178,9 +185,9 @@ public sealed partial class CraftingModule : Module<CraftingState>, ICraftingQue
         if (c.Endless && !c.FromInputs) return "crafting.paid";
         if (!c.FromInputs) return _items.ShortOfStock(c.From, Times(craft.Cost, c.Count));
         // The pod is paid by hand by design (0057): with no inputs, an entry fed from them would wait for ever; the arc bench's
-        // one input is its tool's (0099).
+        // one input is its tool's (0099), the galley's its fire's.
         var spec = Content.Machines.Get(station.Machine);
-        return (spec.Inputs ?? 0) == 0 || spec.Tunes ? "crafting.noInputs" : null;
+        return (spec.Inputs ?? 0) == 0 || spec.Tunes || spec.FuelSlot != null ? "crafting.noInputs" : null;
     }
 
     private void ApplyCraft(Craft c)
@@ -336,31 +343,11 @@ public sealed partial class CraftingModule : Module<CraftingState>, ICraftingQue
 
     /// <summary>
     /// What one smelt of <paramref name="spec"/> makes besides its yields as its work completes, drawn from the world's
-    /// Rng, stations in machine id order: the seeds its <c>Returns</c> give back (<see cref="Returned"/>), then its
-    /// <c>Byproducts</c> entry by entry, as loot is (<see cref="Loots.Roll"/>). No draw for an item without either.
+    /// Rng, stations in machine id order: its <c>Byproducts</c> entry by entry, as loot is (<see cref="Loots.Roll"/>). No
+    /// draw for an item without them.
     /// </summary>
-    private IReadOnlyList<(string Item, int Count)> Drawn(ItemSpec spec)
-    {
-        int back = Returned(spec);
-        var by = spec.Byproducts is { } entries ? Loots.Roll(entries, Random) : [];
-        return back > 0 ? [(spec.Id, back), .. by] : by;
-    }
-
-    /// <summary>
-    /// How many of <paramref name="spec"/> one gives back as its work completes: drawn from the world's Rng by its
-    /// <c>Returns</c> weights; none, and no draw, for an item without them.
-    /// </summary>
-    private int Returned(ItemSpec spec)
-    {
-        if (spec.Returns is not { } weights) return 0;
-        int roll = (int)Random.Below((ulong)weights.Sum());
-        for (int n = 0; n < weights.Count; n++)
-        {
-            if (roll < weights[n]) return n;
-            roll -= weights[n];
-        }
-        throw new InvalidOperationException($"crafting: a roll past {spec.Id}'s returns");
-    }
+    private IReadOnlyList<(string Item, int Count)> Drawn(ItemSpec spec) =>
+        spec.Byproducts is { } entries ? Loots.Roll(entries, Random) : [];
 
     // Helpers.
 

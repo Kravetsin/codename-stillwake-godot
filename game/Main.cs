@@ -239,15 +239,34 @@ public partial class Main : Node2D, ITogether
             _items.Panel.Launch = LaunchOf;
             AddChild(new Features.Landing.FlightOverlay(() => _session is Session s ? (s.Client.World.SurfaceOf(s.Client.Id), _m.Landing.FlightOf(s.Client.Id)) : null,
                 () => (_session as Session)?.Progress ?? 0, () => _camera.CurrentZoom));
-            // The belt's energy beside the suit's, whatever is held, so the gauge row never changes width (0081). Before the
+            // The vitals at the bottom-left (hud-vitals): the belt's charge under the suit's air, whatever is held. Before the
             // suit's gauge, so the red edges cover it as they cover the rest of the HUD.
             var energy = new EnergyBar(() => _session is Session s ? EnergyRead.Of(_m.Items.Inventory(s.Client.Id), _m.Items.BeltCharge(s.Client.Id), p => _m.Items.SlotOpen(s.Client.Id, p), _m.Items.Running(s.Client.Id)) : null, _hands.Ui);
             AddChild(energy);
+            // A canister's cooldown, on the suit gauge's ring and the canister's slots (canister-mark).
+            int CanisterIn() => _session is Session s ? _m.Crew.HeroOf(s.Client.Id)?.CanisterIn ?? 0 : 0;
+            _items.Panel.CanisterIn = CanisterIn;
             // Its own layer, above the world: read from whatever registry the session runs now.
-            var gauge = new SuitGauge(() => _session is Session s ? Danger.Read(_m.Crew, _m.Atmosphere, s.Client.Id) : (1, 1, SuitDanger.None, true), _hands.Ui);
+            var gauge = new SuitGauge(() => _session is Session s ? Danger.Read(_m.Crew, _m.Atmosphere, s.Client.Id) : (1, 1, SuitDanger.None, true),
+                CanisterIn, () => _session is Session s ? _m.Crew.PartsOf(s.Client.Id) : [], _hands.Ui);
             AddChild(gauge);
+            // The hero's meals, the vitals' bottom row (hud-vitals).
+            AddChild(new MealSlots(() => _session is Session s && _m.Crew.HeroOf(s.Client.Id) is { } fed
+                ? (fed.Meals.Select(m => (m.Food, m.Left)).ToList(), _m.Crew.Hungry(s.Client.Id)) : null, Purge, _hands.Ui));
+            // Held three seconds on the purge spot (food-tuning): refused as the sim would, else sent.
+            string? Purge()
+            {
+                if (_session is not Session s) return "crew.noHero";
+                if (_m.Crew.PurgeProblem(s.Client.Id) is { } no) return no;
+                s.Client.Send(new Stillwake.Sim.Crew.Purge());
+                return null;
+            }
+            // The degrees where the hero stands, under the charge (the-thermometer); gone while it is passed out.
+            AddChild(new Thermometer(() => _session is Session s && _m.Crew.HeroOf(s.Client.Id) is { Out: 0 } && _hero is { Placed: true } h
+                ? (ThermometerReading?)Thermometers.Read(_m.Crew, s.Client.Id, h.Current.BodyCell(_m.Grid.Width)) : null, _hands.Ui));
             if (_hero is { } breathing) gauge.BreathesAgain += breathing.BreathesAgain;
             AddChild(new Frost(() => _session is Session s && _hero is { Placed: true } h ? Report.Cold(_m.Crew, s.Client.Id, h.Current.BodyCell(_m.Grid.Width)) : 0));
+            AddChild(new Haze(() => _session is Session s && _hero is { Placed: true } h ? Report.Heat(_m.Crew, s.Client.Id, h.Current.BodyCell(_m.Grid.Width)) : 0));
             AddChild(new HurtView(() => _session is Session s && _m.Crew.HeroOf(s.Client.Id) is { } hurt ? (hurt.Hurts, hurt.Hurt) : null, gauge));
             AddChild(new TunnelView(() => _session is Session s && _m.Crew.HeroOf(s.Client.Id) is { } me ? (me.Gasp, me.Out) : null, () => _hero?.Shown));
             // Home and friends off the screen, pointed at from its edge, clear of the HUD's panels.
@@ -256,7 +275,6 @@ public partial class Main : Node2D, ITogether
             {
                 foreach (var covered in panel.Covers()) yield return covered;
                 yield return gauge.Covers;
-                yield return energy.Covers;
                 if (building.Covers is { } plan) yield return plan;
                 if (fabricator.Covers is { } crafts) yield return crafts;
                 if (_edge != null) yield return _edge.Covers;
@@ -466,7 +484,7 @@ public partial class Main : Node2D, ITogether
         var context = new SurfaceContext(_m, _hands, () => (_session as Session)?.Progress ?? 0, () => _hero?.HeadLamps() ?? [], HeroBodies,
             Homes: !Has("--no-homes"), HomesMood: Arg("--homes") switch { "lit" => true, "dark" => false, _ => null },
             Peer: () => (_session as Session)?.Client.Id ?? 0, Tick: () => (_session as Session)?.Client.World.Tick ?? 0,
-            Hosts: () => (_session as Session)?.Host != null, Arrivals: _arrivals, Seed: _seed);
+            Hosts: () => (_session as Session)?.Host != null, Arrivals: _arrivals, Seed: _seed, Heroes: HeroFeet);
         foreach (var each in SurfaceViews.All)
         {
             if (each.Make(context) is not { } view) continue;
@@ -588,7 +606,7 @@ public partial class Main : Node2D, ITogether
         if (_items != null) _items.Panel.Draw = _m.Power.Draw;
         if (_items != null) _items.Panel.Crafting = _m.Crafting;
         if (_items != null) _items.Frame(client, _m.Grid, _m.Rooms, _m.Items, _m.Debris, NetHolds, SpotOf(_hero), session.Progress, session.Drift, delta * 1000);
-        if (_fabricator != null) _fabricator.Draw = _m.Power.Draw;
+        if (_fabricator != null) (_fabricator.Draw, _fabricator.Fire) = (_m.Power.Draw, _m.Furnace.At);
         _fabricator?.Frame(client, _m.Crafting, _m.Research, _m.Items, _m.Grid, delta * 1000);
         _frameLog?.Mark("items");
         _debris.Frame(client, _m.Debris, _camera.View(), session.Drift, delta * 1000);
@@ -628,9 +646,9 @@ public partial class Main : Node2D, ITogether
         }
         foreach (var scenario in _scenarios) scenario.Frame(client, _m, Log);
         _hands.Frame(client, _m, _bodies, elapsedMs);
-        // The open plan draws its focused layer whole and the other faded, the front hidden for the back's, aboard only (0110, back-focus-clear).
+        // The open plan draws its focused layer whole and the other faded, the front faint for the back's, aboard only (0110).
         var fade = Features.Building.Tools.AlphasOf(_hands.Plan.Shown);
-        _grid?.Fade(fade, Features.Building.Tools.BackUnlit(_hands.Plan.Shown));
+        _grid?.Fade(fade);
         foreach (var view in _faded) view.Modulate = new Color(1, 1, 1, fade.Front);
     }
 
@@ -672,6 +690,22 @@ public partial class Main : Node2D, ITogether
     }
 
     private readonly List<Godot.Vector2> _heroBodies = [];
+
+    /// <summary>Every hero on this surface: its feet, in pixels of the world, and how fast it goes across, in pixels a second (plant-stirs).</summary>
+    private IReadOnlyList<(Godot.Vector2 Feet, float Vx)> HeroFeet()
+    {
+        _heroFeet.Clear();
+        if (_hero == null) return _heroFeet;
+        foreach (var other in _hero.Others) _heroFeet.Add(FeetOf(other.Hero));
+        _heroFeet.Add(FeetOf(_hero.Current));
+        return _heroFeet;
+    }
+
+    private readonly List<(Godot.Vector2 Feet, float Vx)> _heroFeet = [];
+
+    // Its speed in thousandths of a cell a controller step, 60 steps a second (Content.Hero).
+    private static (Godot.Vector2, float) FeetOf(Hero h) =>
+        (new((float)(h.X / (double)Hero.Unit * ShipCamera.Cell), (float)(h.Y / (double)Hero.Unit * ShipCamera.Cell)), (float)(h.Vx * 60.0 / Hero.Unit * ShipCamera.Cell));
 
     private static Godot.Vector2 MiddleOf(Hero h) =>
         new((float)(h.X / (double)Hero.Unit * ShipCamera.Cell), (float)((h.Y - Content.Hero.Height / 2.0) / Hero.Unit * ShipCamera.Cell));

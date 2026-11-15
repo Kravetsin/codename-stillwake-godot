@@ -134,6 +134,7 @@ public partial class InventoryPanel : CanvasLayer
         // The chosen slot is outlined only while the hand holds what is in it.
         ui.Hand.Subscribe(Refresh);
         // A canister breathed pulses its slot as a shifted stack's landing does: the one clicked, else the hand's (0081).
+        ui.PressedCooling += _refused.Press;
         ui.Refilled += () =>
         {
             var from = _breathedFrom is var (place, frame) && Engine.GetProcessFrames() - frame <= 2 ? place : new Place(_chosen);
@@ -166,7 +167,6 @@ public partial class InventoryPanel : CanvasLayer
 
     /// <summary>The water, for an open cistern: what it holds and whether bottles can be drawn out (industrial-oxygen).</summary>
     public Stillwake.Sim.Water.WaterModule? Water { get; set; }
-
     /// <summary>The power, for an open machine that switches: whether it is off (industrial-oxygen).</summary>
     public Stillwake.Sim.Power.PowerModule? Switching { get; set; }
 
@@ -193,6 +193,13 @@ public partial class InventoryPanel : CanvasLayer
 
     /// <summary>Whether something in a bay's reach holds that item for that machine: a kept slot's tooltip (0062). Set by <c>Main</c>.</summary>
     public Func<int, string, bool>? Supplied { get; set; }
+
+    /// <summary>This player's hero's ticks left before another canister (canister-mark): its slots sweep round while it cools. Set by <c>Main</c>.</summary>
+    public Func<int>? CanisterIn { get; set; }
+
+    private readonly CanisterCooling _cooling = new();
+    private readonly FlatBlink _refused = new();
+    private bool _coolShown;
 
     /// <summary>The hotbar slot chosen, with 1–9 or the wheel.</summary>
     public int Chosen => _chosen;
@@ -319,6 +326,7 @@ public partial class InventoryPanel : CanvasLayer
         _sinceRead = 0;
         if (_client == null || _items == null || _grid == null) return;
         _reading = Reading.Of(_client.Id, _client.InFlight, _items, _grid, Crate);
+        _cooling.Read(CanisterIn?.Invoke() ?? 0);
         Refresh();
     }
 
@@ -528,6 +536,7 @@ public partial class InventoryPanel : CanvasLayer
         _ui.OnPointer.Set(carrying ? _held.Size.X : 0);
         Power(delta);
         Hologram(delta);
+        Cooling(delta);
         // The equipment keeps its margin from the right edge, whatever the window's width and its own.
         _body.Position = new Vector2(_root.GetViewportRect().Size.X - Slots.Margin - _body.Size.X, Slots.InventoryTop(_ui.Slot));
         var grid = _inventory.GetGlobalRect();
@@ -536,12 +545,26 @@ public partial class InventoryPanel : CanvasLayer
         _tipSpots.Frame(_ui.MenuOpen.Get() ? null : _mouse);
     }
 
+    /// <summary>The canister's own slots while it cools, is refused or turns ready: each frame only then, and once more to clear.</summary>
+    private void Cooling(double delta)
+    {
+        _cooling.Step(delta);
+        _refused.Step(delta);
+        bool showing = _cooling.Cooling || _cooling.Ready > 0 || _refused.Red > 0;
+        if (!showing && !_coolShown) return;
+        _coolShown = showing;
+        SlotCooling? look = showing ? new(_cooling.Cooling ? _cooling.Passed : null, _refused.Red, _cooling.Ready) : null;
+        foreach (var box in _slots)
+            box.Cooling(look != null && box.Place.Crate == null && _reading?.At(box.Place)?.Item == Content.Crew.Canister ? look : null);
+    }
+
     private void Refresh()
     {
         if (_reading is not { } reading) return;
         BuildCrate();
         _shown.Visible = _body.Visible = Shown;
         _creative.Visible = reading.Creative;
+        _ui.Chosen.Set(_chosen);
         _ui.Wielded.Set(HandFree ? reading.Inventory[_chosen]?.Item : null);
         var held = Held;
         // Carried, a stack lights the equipment slots that would wear it and dims the rest (0047).

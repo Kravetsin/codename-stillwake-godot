@@ -1,6 +1,6 @@
 # Tool icons from the held picture
 
-- Status: accepted; built. Supersedes the card's live picture in [0098](0098-the-tool-bench-modules-in-tools.md) (`ToolPicture`)
+- Status: accepted; built. Supersedes the card's live picture in [0098](0098-the-tool-bench-modules-in-tools.md) (`ToolPicture`); its card without a picture superseded by [tool card pictures](2026-11-14-tool-card-pictures.md)
 - Date: 2026-10-27
 
 ## Context

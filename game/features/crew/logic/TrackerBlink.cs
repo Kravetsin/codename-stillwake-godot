@@ -5,7 +5,7 @@ using Stillwake.Sim.Crew;
 namespace Stillwake.Game.Features.Crew;
 
 /// <summary>
-/// The tracker's light by its <see cref="Signal"/> (tracker-catchers): a level over time, 1 the steady light it has when calm,
+/// The tracker's light by its <see cref="Signal"/> (tracker-catchers): a level over time, 1 the steady light it has when calm (as the meter fills, so it leaks nothing),
 /// 0 dark, above 1 brighter toward white; a pattern of steps, each held or ramped, repeating. The patterns are the warning page's pick «Маяк» (bc-beacon).
 ///
 /// </summary>
@@ -14,17 +14,13 @@ public static class TrackerBlink
     /// <summary>One step of a pattern: <paramref name="Ms"/> long, its level going from <paramref name="From"/> to <paramref name="To"/>.</summary>
     public readonly record struct Step(double Ms, double From, double To);
 
-    /// <summary>From two thirds of the meter: now and then.</summary>
-    public static readonly Step[] Blinking = [new(4910, 1, 1), new(90, 1.7, 1.7)];
-
-    /// <summary>While a catcher hunts its hero: urgent.</summary>
+    /// <summary>From the alarm on, while a catcher comes and hunts its hero: urgent.</summary>
     public static readonly Step[] Hunted = [new(610, 1, 1), new(90, 1.7, 1.7)];
 
     /// <summary>The level of a tracker showing <paramref name="signal"/>, <paramref name="ms"/> into its figure's life.</summary>
     public static double Of(Signal signal, double ms) => signal switch
     {
-        Signal.Blinking => LevelOf(Blinking, ms),
-        Signal.Hunted => LevelOf(Hunted, ms),
+        Signal.Coming or Signal.Hunted => LevelOf(Hunted, ms),
         _ => 1,
     };
 

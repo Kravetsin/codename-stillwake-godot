@@ -17,7 +17,7 @@ public class RailgunTests
     private const int Right = 0;
 
     /// <summary><see cref="ShotsTests.Space"/> with the railgun in hand and a full battery on the belt.</summary>
-    private static Scenario Space() => ShotsTests.Space().GiveItems(0, (Gun.Item, 1)).Put(Belt, new Stack("battery", 1, Spec.Charge.Battery));
+    private static Scenario Space() => ShotsTests.Space().GiveItems(0, (Gun.Item, 1)).Wields(Gun.Item).Put(Belt, new Stack("battery", 1, Spec.Charge.Battery));
 
     private static Fire Along(int row, int column = 10) => new(Gun.Item, column * Unit + Unit / 2, row * Unit + Unit / 2, Right);
 
@@ -36,7 +36,7 @@ public class RailgunTests
             with
         { Kind = Spec.PlanetTypes.First.Id };
         return CreaturesTesting.Planet(layout, CreaturesTesting.Lifeless, cells: true).Do(new Crew.Enter(19 * 60 + 2))
-            .GiveItems(0, (Gun.Item, 1), ("nail", 10)).Put(Belt, new Stack("battery", 1, Spec.Charge.Battery)).Run();
+            .GiveItems(0, (Gun.Item, 1), ("nail", 10)).Wields(Gun.Item).Put(Belt, new Stack("battery", 1, Spec.Charge.Battery)).Run();
     }
 
     private static int Charge(Scenario w) => w.M.Items.Inventory(0)[Belt]!.Charge / Spec.Charge.Scale;
@@ -108,13 +108,13 @@ public class RailgunTests
         var looks = Enumerable.Repeat(new string('.', 30) + "b" + new string('.', 29), 20).Concat(Enumerable.Repeat(new string('s', 60), 3));
         var layout = Layout.Parse(string.Join('\n', rows)).WithMaterials(string.Join('\n', looks)) with { Kind = Spec.PlanetTypes.First.Id };
         var w = CreaturesTesting.Planet(layout, CreaturesTesting.Lifeless, cells: true).Do(new Crew.Enter(19 * 60 + 2))
-            .GiveItems(0, (Gun.Item, 1), ("nail", 10)).Put(Belt, new Stack("battery", 1, Spec.Charge.Battery)).Run();
+            .GiveItems(0, (Gun.Item, 1), ("nail", 10)).Wields(Gun.Item).Put(Belt, new Stack("battery", 1, Spec.Charge.Battery)).Run();
         var (hits, end) = PierceTests.Flown(w, new Fire(Gun.Item, 25 * Unit, 17 * Unit + Unit / 2, Right));
         Assert.Equal((17 * 60 + 30, true), (end.Cell, end.Met));
         Assert.Equal((ShotTarget.Solid, 0, false), (hits.Single().What, hits.Single().Damage, hits.Single().Broke));
         Assert.Equal("bedrock", w.M.Grid.WallAt(17 * 60 + 30)?.Id);
 
-        var aboard = new Scenario(".....#....\n..........", cells: true).Do(new Crew.Enter(2)).GiveItems(0, (Gun.Item, 1), ("nail", 1))
+        var aboard = new Scenario(".....#....\n..........", cells: true).Do(new Crew.Enter(2)).GiveItems(0, (Gun.Item, 1), ("nail", 1)).Wields(Gun.Item)
             .Put(Belt, new Stack("battery", 1, Spec.Charge.Battery)).Run();
         var (_, at) = PierceTests.Flown(aboard, new Fire(Gun.Item, Unit + Unit / 2, Unit / 2, Right));
         Assert.Equal((5, true), (at.Cell, at.Met));
@@ -124,16 +124,16 @@ public class RailgunTests
     [Fact]
     public void ABatteryOfExactlyAShotsChargePaysItEmptyAndNoNailsIsRefusedFirstForThem()
     {
-        var w = ShotsTests.Space().GiveItems(0, (Gun.Item, 1)).Put(Belt, new Stack("battery", 1, Gun.Energy * Spec.Charge.Scale));
+        var w = ShotsTests.Space().GiveItems(0, (Gun.Item, 1)).Wields(Gun.Item).Put(Belt, new Stack("battery", 1, Gun.Energy * Spec.Charge.Scale));
         w.Do(Along(10)).Run();
         Assert.Empty(w.Refusals);
         Assert.Equal(0, Charge(w));
         // Neither nails nor a battery: refused for the nails first.
-        var bare = new Scenario(".....\n.....", cells: true).Do(new Crew.Enter(2)).GiveItems(0, (Gun.Item, 1)).Run();
+        var bare = new Scenario(".....\n.....", cells: true).Do(new Crew.Enter(2)).GiveItems(0, (Gun.Item, 1)).Wields(Gun.Item).Run();
         bare.Do(new Fire(Gun.Item, Unit / 2, Unit / 2, Right)).Run();
         Assert.Equal("items.notEnough", bare.Refusals.Single().Reason);
         // In creative it fires with neither.
-        var creative = new Scenario(".....\n.....", cells: true).Do(new Crew.Enter(2)).GiveItems(0, (Gun.Item, 1)).Do(new SetCreative(true)).Run();
+        var creative = new Scenario(".....\n.....", cells: true).Do(new Crew.Enter(2)).GiveItems(0, (Gun.Item, 1)).Wields(Gun.Item).Do(new SetCreative(true)).Run();
         creative.Do(new Fire(Gun.Item, Unit / 2, Unit / 2, Right)).Run();
         Assert.Empty(creative.Refusals);
     }
@@ -141,7 +141,7 @@ public class RailgunTests
     [Fact]
     public void AShotCostsItsChargeRefusedAsFlatBelowItSpendingNothingAndFreeInCreative()
     {
-        var w = ShotsTests.Space().GiveItems(0, (Gun.Item, 1)).Put(Belt, new Stack("battery", 1, (Gun.Energy - 1) * Spec.Charge.Scale));
+        var w = ShotsTests.Space().GiveItems(0, (Gun.Item, 1)).Wields(Gun.Item).Put(Belt, new Stack("battery", 1, (Gun.Energy - 1) * Spec.Charge.Scale));
         int nails = w.M.Items.Totals(0).Where(t => t.Item == "nail").Sum(t => t.Count);
         w.Do(Along(10)).Run();
         Assert.Equal("items.flat", w.Refusals.Single().Reason);
@@ -237,7 +237,7 @@ public class RailgunTests
         var layout = Layout.Parse(string.Join('\n', rows)).WithMaterials(string.Join('\n', Enumerable.Repeat(new string('s', 60), 23)))
             with
         { Kind = Spec.Surfaces.TestStrip.Id };
-        return new Scenario(layout, doubled: false).Do(new Crew.Enter(19 * 60 + 2)).GiveItems(0, (Gun.Item, 1), ("nail", 10)).Run();
+        return new Scenario(layout, doubled: false).Do(new Crew.Enter(19 * 60 + 2)).GiveItems(0, (Gun.Item, 1), ("nail", 10)).Wields(Gun.Item).Run();
     }
 
     /// <summary>The first planet as <see cref="Ground"/>'s, with <paramref name="column"/> holding what <paramref name="at"/> draws instead of soil, rows 14 to 19.</summary>
@@ -250,7 +250,7 @@ public class RailgunTests
         var layout = Layout.Parse(string.Join('\n', rows)).WithMaterials(string.Join('\n', looks)) with { Kind = Spec.PlanetTypes.First.Id };
         if (zone is { } z) layout = layout with { Zone = z };
         return CreaturesTesting.Planet(layout, CreaturesTesting.Lifeless, cells: true).Do(new Crew.Enter(19 * 60 + 2))
-            .GiveItems(0, (Gun.Item, 1), ("nail", 10)).Put(Belt, new Stack("battery", 1, Spec.Charge.Battery)).Run();
+            .GiveItems(0, (Gun.Item, 1), ("nail", 10)).Wields(Gun.Item).Put(Belt, new Stack("battery", 1, Spec.Charge.Battery)).Run();
     }
 
     [Fact]
@@ -296,7 +296,7 @@ public class RailgunTests
     {
         Scenario Armed()
         {
-            var w = space ? ShotsTests.Space().GiveItems(0, (Gun.Item, 1)) : Strip();
+            var w = space ? ShotsTests.Space().GiveItems(0, (Gun.Item, 1)).Wields(Gun.Item) : Strip();
             if (space) foreach (int column in (int[])[30, 50, 70, 90]) PierceTests.Wreck(w, column, 180);
             else
             {

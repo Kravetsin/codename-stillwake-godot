@@ -43,7 +43,7 @@ public partial class HeroView
             {
                 var drum = Cues.Player2D(S.Drum, S.World);
                 AddChild(drum);
-                shown = _shownOthers[id] = new Other(new Figure(Suits.Of(m.Players, id), own: false), NewRod(), drum);
+                shown = _shownOthers[id] = new Other(new Figure(Suits.Of(m.Players, id), own: false) { HandsLayer = Layers.HeldFront }, NewRod(), drum);
                 foreach (var player in shown.Driver.Players) AddChild(player);
                 _others.AddChild(shown.Figure);
             }
@@ -76,7 +76,7 @@ public partial class HeroView
                 Struck(_othersGroundHits, m, lead, running!, hero, id);
             // Its stroke shown only while the body drawn, 150 ms behind, holds the tool it was heard swinging.
             var drawnSwing = ReferenceEquals(Strokes.Of(seen.Wields), shown.Swing.Stroke) ? shown.Swing : default;
-            ShowHands(shown.Figure, seen.Wields, FittedOf(m, id, seen.Wields), seen.Busy, drawnSwing);
+            ShowHands(shown.Figure, seen.Wields, Fittings.Of(m.Items, id, seen.Wields), seen.Busy, drawnSwing);
             // A friend's drill running points where it drills, its harpoon where its rod flies or sticks, else
             // either hangs; the drill spins while the sim says it runs.
             var rodAim = shown.Rod.AimAt(seen.Rod, PieceDrawnAt);
@@ -92,6 +92,7 @@ public partial class HeroView
             shown.Figure.Scanner = m.Items.Equipped(id, Content.Helmet.Scanner);
             shown.Figure.WearsCape = m.Items.Equipped(id, Content.Cape.Item);
             shown.Figure.FloorRoom = FloorRoom(m.Grid, hero);
+            shown.Figure.Room = RoomOf(ship, hero);
             shown.Figure.Footing = FootingOf(m, hero, shown.Figure.Footing);
             shown.Figure.InWater = ship.Wading(hero.FeetCell(ship.Width));
             shown.Figure.Ledge = LedgeOf(ship, hero);
@@ -108,8 +109,13 @@ public partial class HeroView
                 seen.HoldsPlan, elapsedMs);
             for (int burnt = shown.Burns.Due(elapsedMs, Burns(m, crew.HeroOf(id)), 1 / S.LavaBurnEveryS); burnt > 0; burnt--)
                 _othersBurn.PlayAt(shown.Figure.GlobalPosition);
+            if (crew.HeroOf(id) is { } sick && Purged(id, sick.Purges))
+            {
+                shown.Figure.Retch(afloat);
+                _othersRetch.PlayAt(shown.Figure.Visor, _othersRetch.PitchScale, shown.Figure.Helmeted ? S.RetchHelmetedDb : 0);
+            }
             // A friend's canister: its air rises round it, heard where it is (0081).
-            if (crew.HeroOf(id) is { } breathing && _canisters.Breathed(id, breathing.Air, breathing.Out))
+            if (crew.HeroOf(id) is { } breathing && _canisters.Breathed(id, breathing.Air, crew.CapacityOf(id), breathing.Out))
             {
                 var figure = shown.Figure;
                 _air.Fling(() => figure.Stance);
@@ -141,11 +147,13 @@ public partial class HeroView
 
     /// <summary>
     /// Breathes a canister into the suit (0047): sent, the hiss heard, when the sim would take it now and
-    /// none is in flight; a full suit or no canister does nothing.
+    /// none is in flight; a full suit or no canister does nothing; one cooling blinks the ring (canister-mark).
     /// </summary>
     private void Breathe(Client client, Registry m)
     {
-        if (Report.RefillOf(m.Crew.RefillProblem(client.Id), client.InFlight) is not { } refill) return;
+        string? problem = m.Crew.RefillProblem(client.Id);
+        if (problem == "crew.canisterCooling") _ui.PressCooling();
+        if (Report.RefillOf(problem, client.InFlight) is not { } refill) return;
         client.Send(refill);
         _breathes.Play();
         _ui.Click();
@@ -153,8 +161,31 @@ public partial class HeroView
         _ui.Refill();
     }
 
+    /// <summary>
+    /// Eats <paramref name="food"/> (food-and-the-body): sent, its chewing heard in the helmet, when the sim would take it now and
+    /// no meal is in flight; refused, the meal slots blink.
+    /// </summary>
+    private void Eat(Client client, Registry m, string food)
+    {
+        string? problem = m.Crew.EatProblem(client.Id, food);
+        if (problem != null) _ui.RefuseMeal(food, problem);
+        if (Report.EatOf(food, problem, client.InFlight) is not { } eat) return;
+        client.Send(eat);
+        _eats.Play();
+    }
+
     /// <summary>This player's hero breathes room air again: a few pale motes off its visor (0081).</summary>
     public void BreathesAgain() => _air.Puff(_figure.Visor);
+
+    /// <summary>Each hero's purges as last seen: one more is a retch to show; the first sight only notes them.</summary>
+    private readonly Dictionary<int, int> _purges = [];
+
+    private bool Purged(int id, int purges)
+    {
+        bool more = _purges.TryGetValue(id, out int was) && purges > was;
+        _purges[id] = purges;
+        return more;
+    }
 
     /// <summary>
     /// Another hero's harpoon as it sends it (<see cref="RemoteRod"/>, 0065), from its gun's muzzle as just drawn:
@@ -224,7 +255,7 @@ public partial class HeroView
         // Stuck in the structure it keeps the way it flew in; riding a piece or winding back, it points along the line.
         if (rod is Rod.Reeling or Rod.Returning && far > 1) pointing = ((tip.X - gun.X) / far, (tip.Y - gun.Y) / far);
         // The rod's eye this far behind its point, in thousandths of a cell, as its picture is drawn.
-        double length = (look.Tip.X - look.Eye.X) / Rig.Cell * Hero.Unit;
+        double length = (look.Tip.X - look.Eye.X) * look.Size / Rig.Cell * Hero.Unit;
         var eye = (tip.X - pointing.X * length, tip.Y - pointing.Y * length);
         var end = HarpoonLine.EndOf(gun, tip, pointing, length);
         line ??= new HarpoonLine(gun, end, seed);
@@ -233,6 +264,7 @@ public partial class HeroView
         picture.Visible = end != gun || rod is not (Rod.Flying or Rod.Returning);
         picture.Position = Pixels(eye);
         picture.Rotation = (float)Math.Atan2(pointing.Y, pointing.X);
+        picture.Scale = Vector2.One * (float)look.Size;
         light.Step(rod, Pixels(tip), Unit(pointing), Pixels(eye), at, elapsedMs);
     }
 

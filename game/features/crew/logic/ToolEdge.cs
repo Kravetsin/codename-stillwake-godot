@@ -93,7 +93,7 @@ public static class ToolEdges
                     int cell = cy * width + cx;
                     if (!cells.Contains(cell)) cells.Add(cell);
                     bool solidCell = grid.WallAt(cell) != null || grid.Blocks(cell);
-                    if (!grounded && (solidCell || m.Building.PlantAt(cell) != null || Piles.At(grid, cell) != null))
+                    if (!grounded && (solidCell || m.Building.PlantAt(cell) != null || m.Building.TargetAt(cell) is { Kind: TargetKind.Machine }))
                     {
                         touches.Add(new((px, py), cell, null));
                         grounded = true;
@@ -161,7 +161,7 @@ public static class ToolEdges
         double dx = end.X - start.X, dy = end.Y - start.Y, length = Math.Sqrt(dx * dx + dy * dy);
         var (ux, uy) = length > 0 ? (dx / length, dy / length) : (hero.Facing, 0.0);
         var hand = Aiming.HandOf(hero);
-        // The jet's end at its reach from the hand, along the barrel: past the nozzle, never short of the last coil.
+        // The jet's end at its reach from the hand, along the barrel: past the nozzle, never short of the drawn edge.
         double along = (hand.X - start.X) * ux + (hand.Y - start.Y) * uy + Spec.Weapons.PlasmaCutter.Range;
         along = Math.Max(along, length);
         return new Edge(start, (start.X + ux * along, start.Y + uy * along), half, true);

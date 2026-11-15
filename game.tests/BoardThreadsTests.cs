@@ -7,10 +7,10 @@ namespace Stillwake.Game.Tests;
 /// <summary>What a note's threads run to, and what the board shows (docs/decisions/2026-11-05-the-board.md).</summary>
 public class BoardThreadsTests
 {
-    private static BoardThing Use(string id, bool market = false) => new(id, [("part", 10)], null, market);
+    private static BoardThing Use(string id, bool market = false) => new(id, ["part"], null, market);
 
-    private static BoardRead Read(IReadOnlyList<string> found, IReadOnlyCollection<string>? granted = null, Dictionary<string, int>? counts = null, params string[] standing) =>
-        new(found, granted ?? Spec.Research.StartKnown, item => counts?.GetValueOrDefault(item) ?? (found.Contains(item) ? 1 : 0), standing.Contains);
+    private static BoardRead Read(IReadOnlyList<string> found, IReadOnlyCollection<string>? granted = null, params string[] standing) =>
+        new(found, granted ?? Spec.Research.StartKnown, found.Contains, standing.Contains);
 
     private static BoardPicture Picture(BoardRead read, string? picked = null) =>
         BoardView.Of(BoardSlots.Of(read.Found, BoardThings.All, read.Granted), BoardThings.All, read, picked);
@@ -31,14 +31,14 @@ public class BoardThreadsTests
     [Fact]
     public void ThreadsNeverRunToWhatTheMarketOpensOrWhatIsNoShapeOrUsesSomethingElse()
     {
-        BoardThing[] things = [Use("sold", market: true), Use("inked"), new BoardThing("other", [("else", 1)], null, false), Use("shape")];
+        BoardThing[] things = [Use("sold", market: true), Use("inked"), new BoardThing("other", ["else"], null, false), Use("shape")];
         Assert.Equal(["shape"], BoardThreads.Of("part", things, id => id != "inked", _ => 0));
     }
 
     [Fact]
     public void APlatesManyUsesShowThreeThreads()
     {
-        int uses = BoardThings.All.Count(t => t.Parts.Any(p => p.Item == "plate"));
+        int uses = BoardThings.All.Count(t => t.Parts.Contains("plate"));
         Assert.True(uses > 2 * BoardThreads.Most, $"a plate has {uses} uses");
         var picture = Picture(Read(["plate"]));
         Assert.Equal(BoardThreads.Most, picture.Threads.Count(t => t.Note == "plate"));
@@ -53,7 +53,7 @@ public class BoardThreadsTests
             "scrapChunk", "hullPlate", "planks", "scrap", "iron", "nail", "wire", "plate", "gear", "tube", "rotor", "coil", "frame", "canister",
             "cargoCrate", "rock", "quartz", "ice", "gravel", "ironOre", "asteroidOre", "silicon", "glass", "solarCell", "photoPanel", "circuit",
         ];
-        var picture = Picture(Read(found, counts: found.ToDictionary(f => f, _ => 3)));
+        var picture = Picture(Read(found));
         Assert.Equal(BoardShow.Silhouette, picture.Shows["battery"]);
         Assert.Contains(("circuit", "battery"), picture.Threads);
     }
@@ -61,11 +61,12 @@ public class BoardThreadsTests
     [Fact]
     public void AShapeCrowdedOffEveryPartHangsOneThreadFromThePartFoundLast()
     {
-        BoardThing Part(string id, string item) => new(id, [(item, 1)], null, false);
+        BoardThing Part(string id, string item) => new(id, [item], null, false);
         BoardThing[] things =
         [
-            new("whole", [("p", 100), ("q", 100)], null, false),
-            new("short", [("p", 100), ("never", 100)], null, false),
+            // Every part had but its bench standing nowhere: further from done than the parts' other uses.
+            new("whole", ["p", "q"], ["bench"], false),
+            new("short", ["p", "never"], null, false),
             Part("p1", "p"), Part("p2", "p"), Part("p3", "p"), Part("q1", "q"), Part("q2", "q"), Part("q3", "q"),
         ];
         var read = Read(["p", "q"]);
@@ -77,7 +78,7 @@ public class BoardThreadsTests
     [Fact]
     public void AShapeWithItsPartsKnownWhichAThreadReachesGetsNoOtherThread()
     {
-        BoardThing[] things = [new("whole", [("p", 1), ("q", 1)], null, false)];
+        BoardThing[] things = [new("whole", ["p", "q"], null, false)];
         var read = Read(["p", "q"]);
         var picture = BoardView.Of(BoardSlots.Of(read.Found, things, read.Granted), things, read, null);
         Assert.Equal([("p", "whole"), ("q", "whole")], picture.Threads);
@@ -86,7 +87,7 @@ public class BoardThreadsTests
     [Fact]
     public void WhatTheMarketOpensShowsNoShapeThoughItsPartsAreKnown()
     {
-        BoardThing[] things = [new("sold", [("p", 1)], null, true)];
+        BoardThing[] things = [new("sold", ["p"], null, true)];
         var read = Read(["p"]);
         var picture = BoardView.Of(BoardSlots.Of(read.Found, things, read.Granted), things, read, null);
         Assert.Equal(BoardShow.Unseen, picture.Shows["sold"]);
@@ -96,7 +97,7 @@ public class BoardThreadsTests
     [Fact]
     public void AClickOnAPlateAddsNoShapeToTheBoard()
     {
-        var read = Read(["plate"], counts: new() { ["plate"] = 3 });
+        var read = Read(["plate"]);
         Assert.Equal(BoardShow.Unseen, Picture(read).Shows["engine"]);
         Assert.Equal(BoardShow.Unseen, Picture(read, picked: "plate").Shows["engine"]);
         Assert.Equal(Shapes(Picture(read)), Shapes(Picture(read, picked: "plate")));
@@ -105,11 +106,11 @@ public class BoardThreadsTests
     [Fact]
     public void APickedShapeStaysShownThoughThreadsMoveOnAndShowsNoOther()
     {
-        BoardThing Part(string id) => new(id, [("p", 1)], null, false);
+        BoardThing Part(string id) => new(id, ["p"], null, false);
         BoardThing[] things =
         [
-            new("top", [("p", 100), ("mid", 100)], null, false),
-            new("mid", [("p", 100), ("never", 100)], null, false),
+            new("top", ["p", "mid"], null, false),
+            new("mid", ["p", "never"], null, false),
             Part("close1"), Part("close2"), Part("close3"),
         ];
         var read = Read(["p"]);
@@ -139,7 +140,7 @@ public class BoardThreadsTests
     [Fact]
     public void AFirstFindStandsAloneWithThreadsToTheScrapWallsFirst()
     {
-        var picture = Picture(Read(["scrapChunk"], counts: new() { ["scrapChunk"] = 3 }));
+        var picture = Picture(Read(["scrapChunk"]));
         Assert.Equal(["scrapChunk"], Notes(picture));
         Assert.Equal(BoardThreads.Most, picture.Threads.Count);
         Assert.Contains("wallScrap", Shapes(picture));
@@ -149,14 +150,14 @@ public class BoardThreadsTests
     [Fact]
     public void ASecondPartNotesItselfReachesTheMachinesAndTheFirstShapesDarken()
     {
-        var first = new Dictionary<string, int> { ["scrapChunk"] = 3 };
-        var near = new Dictionary<string, int> { ["scrapChunk"] = 9, ["hullPlate"] = 4 };
-        var picture = Picture(Read(["scrapChunk", "hullPlate"], counts: near));
+        string[] first = ["scrapChunk"];
+        string[] near = ["scrapChunk", "hullPlate"];
+        var picture = Picture(Read(near));
         Assert.Equal(["hullPlate", "scrapChunk"], Notes(picture));
         Assert.Equal(["backWallScrap", "furnace", "wallScrap", "workbench"], Shapes(picture));
-        Assert.Subset(Shapes(picture).ToHashSet(), Shapes(Picture(Read(["scrapChunk"], counts: first))).ToHashSet());
+        Assert.Subset(Shapes(picture).ToHashSet(), Shapes(Picture(Read(first))).ToHashSet());
         var furnace = BoardThings.All.Single(t => t.Id == "furnace");
-        Assert.True(BoardPencil.Of(furnace, i => near.GetValueOrDefault(i), _ => false) > BoardPencil.Of(furnace, i => first.GetValueOrDefault(i), _ => false));
+        Assert.True(BoardPencil.Of(furnace, near.Contains, _ => false) > BoardPencil.Of(furnace, first.Contains, _ => false));
     }
 
     [Fact]

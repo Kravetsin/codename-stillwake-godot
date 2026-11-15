@@ -1,10 +1,8 @@
 using System;
+using Stillwake.Game.Shared;
 using Spec = Stillwake.Content.Hero;
 
 namespace Stillwake.Game.Features.Crew;
-
-/// <summary>A point in pixels of the world, or a direction: +x forward, +y down.</summary>
-public readonly record struct Vec(double X, double Y);
 
 /// <summary>
 /// Two angles for a limb, in radians: <see cref="Upper"/> from its joint, hanging straight down at 0
@@ -64,10 +62,10 @@ public static class Rig
     }
 
     /// <summary>
-    /// How far the fist's middle is back from the forearm's end, in pixels: the glove of
+    /// How far the fist's middle is back from the forearm's end, in pixels, past it if negative: the knuckles of the glove of
     /// <c>hero_forearm.png</c>, where a held item's grip sits (0040).
     /// </summary>
-    public const double FistBack = 1;
+    public const double FistBack = -0.5;
 
     /// <summary>The middle of the fist of an arm bent as <paramref name="arm"/>, from its shoulder.</summary>
     public static Vec FistOf(Bend arm)
@@ -110,7 +108,7 @@ public static class Rig
     {
         var fist = FistOf(arm);
         double turn = HeldTurn(arm, look, wrist), cos = Math.Cos(turn), sin = Math.Sin(turn);
-        double x = pixel.X - look.Grip.X, y = pixel.Y - look.Grip.Y;
+        double x = (pixel.X - look.Grip.X) * look.Size, y = (pixel.Y - look.Grip.Y) * look.Size;
         return new Vec(fist.X + x * cos - y * sin, fist.Y + x * sin + y * cos);
     }
 

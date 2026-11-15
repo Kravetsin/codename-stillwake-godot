@@ -57,7 +57,8 @@ public class FloraTests
         // At 8 px cells the ground steps twice as finely, so the level ground a tree, a bush or a rock needs is rarer (0104):
         // they grow about half as often as at 16 px, the flowers, needing none, as often; more since every step of a hill is
         // whole soil, no slope (0106); more again on the plains' level ground (veins-and-stairs).
-        Assert.InRange(Of("acacia"), 18, 4 * 18);
+        // Trees more than twice as thick again, closer and on narrower level ground, so a walk passes woods (plant-stirs).
+        Assert.InRange(Of("acacia"), 6 * 18, 12 * 18);
         Assert.InRange(Of("bush"), 21, 4 * 21);
         Assert.InRange(Of("rock"), 14, 4 * 14);
         Assert.InRange(Of("bellTeal", "bellViolet", "bellAmber"), 2 * 139, 7 * 139 / 2);

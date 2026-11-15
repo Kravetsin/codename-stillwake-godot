@@ -1,0 +1,207 @@
+using System;
+using System.Collections.Generic;
+using Stillwake.Game.Render;
+
+namespace Stillwake.Game.Features.Crew;
+
+/// <summary>
+/// A tool's haze as points with the way it moves at each (spark-rule), the one thing each tool gives: a struck blade's edge
+/// swept from one frame to the next (the spear's thrust among them), the grinder's working circle along its spin, the drill's
+/// double helix along its loop, the cutter's jet along itself. What it hits throws its own look, by its material, from where
+/// the haze lies in it, along the haze; one rule for every tool and every target.
+/// </summary>
+public static class ToolHaze
+{
+    /// <summary>
+    /// The wheel's working circle in pixels of the world: its hub, its radius, and its spin, +1 turning clockwise on screen (the angle
+    /// growing, +y down), -1 the other way.
+    /// </summary>
+    public readonly record struct Circle((double X, double Y) Centre, double Radius, int Spin)
+    {
+        /// <summary>The rim's point at <paramref name="angle"/> radians.</summary>
+        public (double X, double Y) At(double angle) => (Centre.X + Math.Cos(angle) * Radius, Centre.Y + Math.Sin(angle) * Radius);
+
+        /// <summary>The unit way the rim moves at <paramref name="angle"/>, along the spin.</summary>
+        public (double X, double Y) Along(double angle) => (-Math.Sin(angle) * Spin, Math.Cos(angle) * Spin);
+    }
+
+    /// <summary>
+    /// The drill's haze in pixels of the world, as the user picked it («Двойная спираль»): two strands round its axis from the chuck
+    /// to its reach, met at both ends into one loop. <see cref="From"/> is the chuck, <see cref="Way"/> the unit way along the axis
+    /// and <see cref="Across"/> across it, <see cref="Length"/> the axis's length, <see cref="Phase"/> its turn as it is told. A place
+    /// on the loop is a share u: out along the first strand to one half, back along the other to one. Each strand stands
+    /// <see cref="RadiusAt"/> times the sine of the phase plus <see cref="HelixK"/>·a across the axis, a along it, so the strands
+    /// cross and turn <see cref="WorkLooks.HelixTurns"/> times a second.
+    /// </summary>
+    public readonly record struct Helix((double X, double Y) From, (double X, double Y) Way, (double X, double Y) Across, double Length, double Phase)
+    {
+        /// <summary>The loop's point at share <paramref name="u"/>, the helix turned to <paramref name="phase"/>.</summary>
+        public (double X, double Y) At(double u, double phase)
+        {
+            u -= Math.Floor(u);
+            double v = u < 0.5 ? 2 * u : 2 - 2 * u, a = v * Length, off = (u < 0.5 ? 1 : -1) * RadiusAt(v) * Math.Sin(phase + HelixK * a);
+            return (From.X + Way.X * a + Across.X * off, From.Y + Way.Y * a + Across.Y * off);
+        }
+
+        /// <summary>The unit way the loop runs at share <paramref name="u"/>, the helix turned to <paramref name="phase"/>.</summary>
+        public (double X, double Y) Along(double u, double phase)
+        {
+            var (ax, ay) = At(u - 1e-3, phase);
+            var (bx, by) = At(u + 1e-3, phase);
+            double x = bx - ax, y = by - ay, l = Math.Sqrt(x * x + y * y);
+            return l > 0 ? (x / l, y / l) : Way;
+        }
+
+        /// <summary>
+        /// A strand's distance from the axis at share <paramref name="v"/> of its length: none at the chuck and the reach, where the
+        /// strands meet, grown over the first <see cref="WorkLooks.HelixGrow"/> and narrowing toward the reach as a bit does.
+        /// </summary>
+        public static double RadiusAt(double v) =>
+            WorkLooks.HelixRadius * Math.Sin(Math.PI / 2 * Math.Min(1, v / WorkLooks.HelixGrow)) * Math.Pow(Math.Max(0, 1 - v), 0.75);
+    }
+
+    /// <summary>The helix's phase per pixel along its axis, and per second.</summary>
+    public const double HelixK = 2 * Math.PI / WorkLooks.HelixPitch, HelixSpin = 2 * Math.PI * WorkLooks.HelixTurns;
+
+    /// <summary>
+    /// A struck blade's haze: its edge's points as they are (<paramref name="now"/>) and the middle of each one's sweep from where it
+    /// was (<paramref name="was"/>, one to one), each moving the way it went; a point that did not move is left out.
+    /// </summary>
+    public static void OfEdge(IReadOnlyList<(double X, double Y)> was, IReadOnlyList<(double X, double Y)> now, List<HazePoint> into)
+    {
+        if (was.Count != now.Count) return;
+        for (int i = 0; i < now.Count; i++)
+        {
+            var (a, b) = (was[i], now[i]);
+            double dx = b.X - a.X, dy = b.Y - a.Y, l = Math.Sqrt(dx * dx + dy * dy);
+            if (l <= 0) continue;
+            into.Add(new((a.X + b.X) / 2, (a.Y + b.Y) / 2, dx / l, dy / l, into.Count + 1));
+            into.Add(new(b.X, b.Y, dx / l, dy / l));
+        }
+    }
+
+    /// <summary>The grinder's haze: <paramref name="wheel"/>'s rim in <paramref name="steps"/> points, each moving along the spin, a loop.</summary>
+    public static void OfCircle(Circle wheel, int steps, List<HazePoint> into)
+    {
+        int first = into.Count;
+        for (int k = 0; k < steps; k++)
+        {
+            double angle = 2 * Math.PI * k / steps;
+            var (x, y) = wheel.At(angle);
+            var (dx, dy) = wheel.Along(angle);
+            into.Add(new(x, y, dx, dy, first + (k + (wheel.Spin > 0 ? 1 : steps - 1)) % steps));
+        }
+    }
+
+    /// <summary>
+    /// The drill's haze: <paramref name="helix"/>'s loop as it is told, in <paramref name="steps"/> points, each strand running back
+    /// to the chuck, as its waves run and as a bit carries out what it cuts.
+    /// </summary>
+    public static void OfHelix(Helix helix, int steps, List<HazePoint> into)
+    {
+        int first = into.Count;
+        var points = new (double X, double Y)[steps];
+        for (int k = 0; k < steps; k++) points[k] = helix.At((double)k / steps, helix.Phase);
+        for (int k = 0; k < steps; k++)
+        {
+            // Out along the first strand to the reach, back along the second: either way, on toward the chuck at 0.
+            int next = k == 0 ? -1 : k < steps / 2 ? k - 1 : (k + 1) % steps;
+            var (x, y) = points[k];
+            double dx = -helix.Way.X, dy = -helix.Way.Y;
+            if (next >= 0)
+            {
+                double sx = points[next].X - x, sy = points[next].Y - y, l = Math.Sqrt(sx * sx + sy * sy);
+                if (l > 1e-9) (dx, dy) = (sx / l, sy / l);
+            }
+            into.Add(new(x, y, dx, dy, next < 0 ? -1 : first + next));
+        }
+    }
+
+    /// <summary>The cutter's haze: its jet from <paramref name="from"/> to <paramref name="to"/>, a point every <paramref name="step"/> px, each moving along it.</summary>
+    public static void OfLine((double X, double Y) from, (double X, double Y) to, double step, List<HazePoint> into)
+    {
+        double dx = to.X - from.X, dy = to.Y - from.Y, l = Math.Sqrt(dx * dx + dy * dy);
+        if (l <= 0) return;
+        for (double s = 0; s <= l; s += step) into.Add(new(from.X + dx * s / l, from.Y + dy * s / l, dx / l, dy / l, into.Count + 1));
+        into.Add(new(to.X, to.Y, dx / l, dy / l));
+    }
+
+    /// <summary>
+    /// What matter lies at the world's pixel (x, y), for a haze in it to throw (spark-rule): how it looks hit and the wreck it is,
+    /// -1 for the ground, a wall or a plant; none in the open.
+    /// </summary>
+    public delegate (HitLook Look, int Piece)? MatterAt(double x, double y);
+
+    /// <summary>What a haze lies in: its look, whether it is a wreck, and the haze's points in it, by index.</summary>
+    public sealed record Touch(HitLook Look, bool Wreck, List<int> Points);
+
+    /// <summary>
+    /// Where <paramref name="haze"/> lies in <paramref name="matter"/> (spark-rule): its points in it grouped by how what each lies in
+    /// looks hit, in the order first met; the wrecks among them added to <paramref name="pieces"/>. Whatever was hit, whoever hit it.
+    /// </summary>
+    public static List<Touch> Touches(IReadOnlyList<HazePoint> haze, MatterAt matter, ICollection<int>? pieces = null)
+    {
+        var touches = new List<Touch>();
+        for (int i = 0; i < haze.Count; i++)
+        {
+            if (matter(haze[i].X, haze[i].Y) is not var (look, piece)) continue;
+            if (piece >= 0 && pieces != null && !pieces.Contains(piece)) pieces.Add(piece);
+            var touch = touches.Find(x => ReferenceEquals(x.Look, look));
+            if (touch == null) touches.Add(touch = new(look, piece >= 0, []));
+            touch.Points.Add(i);
+        }
+        return touches;
+    }
+
+    /// <summary>
+    /// <paramref name="haze"/>'s point <paramref name="i"/> as a contact: riding the haze's path on through <paramref name="matter"/> to
+    /// its first point out of it, its end or <see cref="WorkLooks.RideMost"/> px, and flying off the way the path ran there, glanced
+    /// off <paramref name="matter"/> (<see cref="Glance"/>).
+    /// </summary>
+    public static HazePoint Ridden(IReadOnlyList<HazePoint> haze, int i, Func<double, double, bool> matter)
+    {
+        var p = haze[i];
+        List<(double X, double Y)>? ride = null;
+        double x = p.X, y = p.Y, dx = p.Dx, dy = p.Dy, gone = 0;
+        for (int j = p.Next, n = 0; j >= 0 && n < haze.Count && gone < WorkLooks.RideMost; j = haze[j].Next, n++)
+        {
+            var q = haze[j];
+            double sx = q.X - x, sy = q.Y - y, l = Math.Sqrt(sx * sx + sy * sy);
+            if (l > 1e-9)
+            {
+                (dx, dy, x, y, gone) = (sx / l, sy / l, q.X, q.Y, gone + l);
+                (ride ??= []).Add((x, y));
+            }
+            if (!matter(x, y)) break;
+        }
+        var off = Glance(new HazePoint(x, y, dx, dy), matter);
+        return new HazePoint(p.X, p.Y, off.Dx, off.Dy) { Ride = ride };
+    }
+
+    /// <summary>
+    /// <paramref name="p"/> moving its way unless that leads into <paramref name="matter"/> (<see cref="WorkLooks.GlanceProbe"/> px on):
+    /// then glanced off its surface, the way mirrored by the surface's outward normal, the mean of the ways round the point that
+    /// lead out of it at the nearest of <see cref="WorkLooks.GlanceRadii"/>; straight back where all round is matter.
+    /// </summary>
+    public static HazePoint Glance(HazePoint p, Func<double, double, bool> matter)
+    {
+        if (!matter(p.X + p.Dx * WorkLooks.GlanceProbe, p.Y + p.Dy * WorkLooks.GlanceProbe)) return p;
+        foreach (double r in WorkLooks.GlanceRadii)
+        {
+            double nx = 0, ny = 0;
+            for (int k = 0; k < WorkLooks.GlanceRays; k++)
+            {
+                double a = 2 * Math.PI * k / WorkLooks.GlanceRays, ox = Math.Cos(a), oy = Math.Sin(a);
+                if (!matter(p.X + ox * r, p.Y + oy * r)) (nx, ny) = (nx + ox, ny + oy);
+            }
+            double l = Math.Sqrt(nx * nx + ny * ny);
+            if (l < 1e-9) continue;
+            (nx, ny) = (nx / l, ny / l);
+            double into = p.Dx * nx + p.Dy * ny;
+            if (into >= 0) return p;
+            double dx = p.Dx - 2 * into * nx, dy = p.Dy - 2 * into * ny, m = Math.Sqrt(dx * dx + dy * dy);
+            return p with { Dx = dx / m, Dy = dy / m };
+        }
+        return p with { Dx = -p.Dx, Dy = -p.Dy };
+    }
+}

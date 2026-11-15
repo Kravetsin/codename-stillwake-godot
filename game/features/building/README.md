@@ -17,7 +17,7 @@ The plan, its menu and the hand at work (0022, 0030). Game rules stay in `sim/Bu
 | `logic/SquareTip.cs` | The power driver's square's cost. |
 | `logic/Sliver.cs` | Glow too thin to draw. |
 | `BuildGlow.cs` | Work's light (0075): sparks, glints, molten spot, cut, sweep. |
-| `Shafts.cs` | Platform shafts kept clear: red hatch while building, a ghost's green or red. |
+| `Shafts.cs` | Platform shafts kept clear, drawn red or green. |
 | `logic/Catalogue.cs` | The menu's frame (0073): slot size, scrolled rows, hover, scrollbar. |
 | `BuildMenu.cs` | The tablet menu: modes, tabs with counts, search, cards, card in hand, tooltip. |
 | `logic/WallStats.cs` | A wall's card numbers: its leak. |
@@ -41,11 +41,11 @@ Shared: `game/shared/` (`Ui`, `Hands`, `PointerTip`, `Tablet`, `TabletMotion`, `
   0108; no bedrock). A card not known is not shown, nor a tab with none but the ship's (`ShownEmpty`). Walls have no shape to
   turn (0106); pipes are laid by piping (0109).
 - **Left plans, right removes in the focused layer** (0108, 0110, `Tools.ActOf`): the plan has a focus, the front
-  (everything solid: walls, machines, doors, hatches, ladders, floors) or the back walls. A card picked sets its own
+  (walls, machines, doors, hatches, ladders, floors) or the back walls. A card picked sets its own
   (`FocusOf`); the middle button or a layer's `PlanKey` turns it, each layer keeping its card in hand. Menu and search show the
   focused layer's cards. A card in hand, the right (or Esc) lets it go (right-lets-go); with none it marks or
   cancels in the focused layer (`RemovalIn`): begun on a plan of that layer it cancels its plans in the rectangle, else
-  marks all of that layer built there, each piece once. Back at 35%; focused, front hidden, back unlit (back-focus-clear). Off the ship
+  marks all of that layer built there, each piece once. The other at 35%; round the pointer the back's clears the front, unlit (back-focus-faint). Off the ship
   (`PlanHand.Aboard`) nothing fades, no see-through (`SeesThrough`). No removal card; no grid drawn.
 - **The plan's modes** (plan-modes, `PlanHand.Mode`): building, wiring, piping, by Z X C or the left wing's keys; kept
   while the plan is away. Wiring and piping show their cards alone, no search, layers or pipette (`CardsOf`); the card picked
@@ -89,7 +89,7 @@ Shared: `game/shared/` (`Ui`, `Hands`, `PointerTip`, `Tablet`, `TabletMotion`, `
   peers; a molten spot, smoke, shimmer; the cut glows; swept when done. The
   ratchet there; by a power driver, its motor (`Ui.Driven`).
 - **Digging** (0077, 0079, damage-looks): a fault's stage is its share of strength; a hit's look is the crew's (0094);
-  a breakable machine cracks as a wreck (pile-crack-net).
+  a breakable machine cracks as a wreck (pile-crack-net); a piece's crack and dust span its cells (one-damage-rule).
 
 ## Deliberately not handled
 

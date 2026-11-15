@@ -3,15 +3,27 @@ using Xunit;
 
 namespace Stillwake.Game.Tests;
 
-/// <summary>Oxygen and water read in litres, a unit a millilitre (industrial-oxygen).</summary>
+/// <summary>Oxygen and water read in litres, a unit a millilitre (industrial-oxygen), to the hundredth (liquid-volumes).</summary>
 public class LitresTests
 {
     [Fact]
-    public void AnAmountIsLitresToTheMillilitre()
+    public void AnAmountIsLitresToTheHundredthRoundedDown()
     {
-        Assert.Equal("1.523", Litres.Of(1523));
-        Assert.Equal("0.000", Litres.Of(0));
-        Assert.Equal("150.000", Litres.Of(Content.Air.TankCapacity));
+        Assert.Equal("1.52", Litres.Of(1523));
+        Assert.Equal("1.52", Litres.Of(1529));
+        Assert.Equal("0.00", Litres.Of(0));
+        Assert.Equal("0.00", Litres.Of(9));
+        Assert.Equal("149.99", Litres.Of(Content.Air.TankCapacity - 1));
+        Assert.Equal("150.00", Litres.Of(Content.Air.TankCapacity));
+    }
+
+    [Fact]
+    public void ACanisterAndABottleEachHoldThreeLitresAndNothingElseHoldsAny()
+    {
+        Assert.Equal(3000, Litres.In(Content.Crew.Canister));
+        Assert.Equal(3000, Litres.In(Content.Water.Item));
+        Assert.Null(Litres.In("biofuel"));
+        Assert.Null(Litres.In("iron"));
     }
 
     [Fact]

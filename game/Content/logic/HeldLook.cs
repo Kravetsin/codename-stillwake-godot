@@ -21,132 +21,162 @@ namespace Stillwake.Game;
 /// either side of it (tool-edge); every other tool by its fan of rays from the shoulder (tool-reach).
 /// An aimed one held by a shaft through the fist, not a pistol's grip, lies <see cref="Rest"/> radians more back from the forearm
 /// while it hangs, across the fist as the axe is, and comes along the forearm as the arm comes up to aim or thrust.
+/// It is drawn, in the hand and on a bench, at <see cref="Size"/> of its picture's pixels about its grip (tool-size); every
+/// point given here is the picture's own, so a new size moves its edge with it. A rounded blade's edge bows out of the line between
+/// its ends by <see cref="Bow"/> pixels at its middle, to the right of the way from <see cref="EdgeFrom"/> to <see cref="EdgeTo"/>
+/// (+y down): its trail follows that curve (<see cref="EdgePoint"/>); its reach is still its ends'.
 /// </summary>
 public sealed record HeldLook(
     string Picture, (double X, double Y) Grip, double Hold, (double X, double Y) EdgeFrom, (double X, double Y) EdgeTo, string? Loaded = null,
     bool Aimed = false, IReadOnlyList<string>? Spin = null, (double X, double Y)? Lamp = null, IReadOnlyList<ToolMount>? Mounts = null,
     double Elbow = 0, (double X, double Y)? Clamp = null, string? Charged = null,
     IReadOnlyList<(double X0, double Y0, double X1, double Y1)>? Arcs = null, string? Twist = null, string? Driven = null,
-    double Bite = 0.75, double Rest = 0)
+    double Bite = 0.75, double Rest = 0, double Size = 1, double Bow = 0)
 {
-    /// <summary>
-    /// The fire axe, <c>art/hero_axe.png</c>: gripped on the dark wrap a third up its haft; held square to
-    /// the forearm, as a hammer is, the blade facing along it; the bright steel's outer line the edge.
-    /// </summary>
-    public static readonly HeldLook FireAxe = new("res://art/hero_axe.png", (7.5, 7), System.Math.PI / 2, (18, 13), (27, 13), Clamp: (10.5, 7));
+    /// <summary>How many points a held edge is sampled at, from its one end to the other, for its trail: enough for a bow to read as a curve.</summary>
+    public const int EdgePoints = 7;
 
     /// <summary>
-    /// The spring harpoon, <c>art/hero_harpoon.png</c> (0044): gripped by its plank stock, held as a pistol
-    /// is, the barrel along the forearm; the edge the rod seated in the tube, from its eye to the muzzle.
+    /// The point <paramref name="t"/> of the way along its edge, from <see cref="EdgeFrom"/> at 0 to <see cref="EdgeTo"/> at 1, in
+    /// pixels of its picture: on the line between them, bowed out by <see cref="Bow"/> at the middle along a parabola.
+    /// </summary>
+    public (double X, double Y) EdgePoint(double t)
+    {
+        double dx = EdgeTo.X - EdgeFrom.X, dy = EdgeTo.Y - EdgeFrom.Y, length = System.Math.Sqrt(dx * dx + dy * dy);
+        double outward = length > 0 ? Bow * 4 * t * (1 - t) / length : 0;
+        return (EdgeFrom.X + dx * t - dy * outward, EdgeFrom.Y + dy * t + dx * outward);
+    }
+
+    /// <summary>
+    /// What a tool or gun is drawn at (tool-size): its pictures came from the pixel art, drawn for a larger hero, and looked
+    /// bulky beside the inked one; at three quarters they look right (the user's pick, in play, over real sizes made a third larger).
+    /// </summary>
+    public const double Drawn = 0.75;
+
+    /// <summary>
+    /// The fire axe, <c>art/hero_axe.png</c>, the user's pick of five drawn references, «Пожарный, тяжёлая головка», traced: a big
+    /// red enamelled head with a squared steel poll and a broad bare bevel, a dark collar with two rivets, a slim wooden haft with three
+    /// wraps at its end; gripped round the middle of the wraps; held square to the forearm, as a hammer is, the blade facing along it;
+    /// the edge the bevel's rounded outer line, bowed down.
+    /// </summary>
+    public static readonly HeldLook FireAxe = new("res://art/hero_axe.png", (4.1, 3.85), System.Math.PI / 2, (25.3, 11.7), (33.4, 10.9), Clamp: (14, 3.85), Size: Drawn, Bow: 1.23);
+
+    /// <summary>
+    /// The spring harpoon, <c>art/hero_harpoon.png</c> (0044; traced, 2026-11-14-pickaxe-and-harpoon-traced): gripped by its wooden
+    /// grip, held as a pistol is, the barrel along the forearm; the edge the rod seated in the tube, from the spring's window to the muzzle.
     /// </summary>
     public static readonly HeldLook Harpoon = new(
-        "res://art/hero_harpoon.png", (4.5, 8), 0, (9, 3.5), (25, 3.5), Loaded: "res://art/hero_harpoon_loaded.png", Aimed: true, Clamp: (10.5, 4));
+        "res://art/hero_harpoon.png", (3.6, 5.4), 0, (8.6, 2.55), (25.5, 2.55), Loaded: "res://art/hero_harpoon_loaded.png", Aimed: true, Clamp: (13, 2.7), Size: Drawn);
 
     /// <summary>
-    /// The grappling gun, <c>art/hero_grapple.png</c> (grapple-climbs), the user's pick, «Кошка»: the harpoon's plank stock under a
-    /// fatter spring tube with two hoops and a bell mouth, a gear pair and crank driving the spool; held as the harpoon is, the edge
-    /// the grapnel's shank seated in the tube, to the bell. Loaded, the grapnel's folded crown shows out of the bell.
+    /// The grappling gun, <c>art/hero_grapple.png</c> (grapple-climbs), redrawn from the user's pick «Моторная лебёдка»
+    /// (2026-11-14-grapple-and-nailer-traced): a black winch body with worn yellow edges, a drum of rope in a round window, a green
+    /// lamp; held one-handed by its rubber pistol grip, the edge from the drum to the muzzle. Loaded, the grapnel sits at the muzzle.
     /// </summary>
     public static readonly HeldLook Grapple = new(
-        "res://art/hero_grapple.png", (4.5, 8), 0, (9, 3.5), (27.5, 3.5), Loaded: "res://art/hero_grapple_loaded.png", Aimed: true, Clamp: (10.5, 4));
+        "res://art/hero_grapple.png", (3.3, 10.4), 0, (12.3, 6.2), (25.4, 6.2), Loaded: "res://art/hero_grapple_loaded.png", Aimed: true, Clamp: (22.6, 6.2), Size: Drawn);
 
     /// <summary>
-    /// The nailer, <c>art/hero_nailer.png</c> (shots-are-the-sims), the user's pick, «Самоделка»: a pipe barrel bound with copper
-    /// wire on a wooden grip, as the harpoon's, a brass spring and a tin-can magazine under it; held as a pistol is, one-handed,
-    /// the barrel along the forearm; the edge the barrel, the nail leaving its muzzle. Its loaded picture shows the nail's point
-    /// at the muzzle while it is ready.
+    /// The nailer, <c>art/hero_nailer.png</c> (shots-are-the-sims), redrawn from the user's pick «Клепальщик»
+    /// (2026-11-14-grapple-and-nailer-traced): a heavy steel riveter with a cone nose, a lever trigger, a rubber grip, a red air
+    /// bottle under the barrel; held as a pistol is, one-handed; the edge the barrel, the nail leaving its nose. Its loaded picture
+    /// shows the nail out of the nose while it is ready.
     /// </summary>
     public static readonly HeldLook Nailer = new(
-        "res://art/hero_nailer.png", (4.5, 7), 0, (7, 2.5), (25, 2.5), Loaded: "res://art/hero_nailer_loaded.png", Aimed: true, Clamp: (14, 2.5));
+        "res://art/hero_nailer.png", (2.3, 7.6), 0, (7.8, 3.2), (23, 3.2), Loaded: "res://art/hero_nailer_loaded.png", Aimed: true, Clamp: (12.9, 3.2), Size: Drawn);
 
     /// <summary>
-    /// The drill, <c>art/hero_drill.png</c> (0054): the tube hammer, a motor in a length of tube, held in one hand by the
-    /// frame bent into a loop under its rear, the elbow a little bent, aimed at the pointer (2026-10-27-one-arm-holds); the edge its long bit, from the chuck to the point, which is what
+    /// The drill, <c>art/hero_drill.png</c> (0054; redrawn, 2026-11-14-drill-redrawn): a motor in a length of pipe, held in one hand round the
+    /// tape of the pistol grip under its pipe, the elbow a little bent, aimed at the pointer (2026-10-27-one-arm-holds); the edge its long bit, from the chuck to the point, which is what
     /// drills. Running, the bit turns through three frames and the lamp on its rear cap lights. Its one mount (0098), the
-    /// coil wound round its stock: its turns from (4, 4), the box of the stock it is wound round. Clamped on the bench by the
-    /// belly of its motor, the bit out past the jaws.
+    /// coil wound round its pipe: its turns from (3, 2), the box of the pipe it is wound round. Clamped on the bench by the
+    /// underside of its motor, the battery hanging over the table's edge, the bit out past the jaws.
     /// </summary>
     public static readonly HeldLook Drill = new(
-        "res://art/hero_drill.png", (3, 10.5), 0, (25, 5.5), (32, 5.5), Aimed: true,
-        Spin: ["res://art/hero_drill_spin1.png", "res://art/hero_drill_spin2.png", "res://art/hero_drill_spin3.png"], Lamp: (1.5, 4.5),
-        Mounts: [new ToolMount("coil", 4, 4, (3, 3.5, 11, 6.5))], Elbow: 0.4, Clamp: (17.5, 7));
+        "res://art/hero_drill.png", (7, 7.5), 0, (25, 3.05), (32.4, 3.05), Aimed: true,
+        Spin: ["res://art/hero_drill_spin1.png", "res://art/hero_drill_spin2.png", "res://art/hero_drill_spin3.png"], Lamp: (1.6, 3),
+        Mounts: [new ToolMount("coil", 3, 2, (2, 1.5, 10, 4.5))], Elbow: 0.4, Clamp: (14.5, 5.4), Size: Drawn);
 
     /// <summary>
     /// The screwdriver, <c>art/hero_screwdriver_held.png</c>, the first frame of the twist the hand works plans with
-    /// (<c>hero_screwdriver.png</c>, drawn by the figure while it works): the fist round its ribbed handle, held square to
-    /// the forearm as the axe is, the shaft's point the edge. No module fits it, so it never lies on a bench; its clamp the handle.
+    /// (<c>hero_screwdriver.png</c>, drawn by the figure while it works), shipped raw from the user's pick (builders-raw): the fist
+    /// round its ribbed amber handle, held square to the forearm as the axe is, the shaft's point the edge. No module fits it, so it never lies on a bench; its clamp the handle.
     /// </summary>
-    public static readonly HeldLook Screwdriver = new("res://art/hero_screwdriver_held.png", (1.8, 1.2), System.Math.PI / 2, (7.8, 1.2), (9.6, 1.2), Clamp: (2.4, 1.2),
+    public static readonly HeldLook Screwdriver = new("res://art/hero_screwdriver_held.png", (1.8, 2.2), System.Math.PI / 2, (7.8, 1.5), (9.5, 1.5), Clamp: (2.4, 1.5),
         Twist: "res://art/hero_screwdriver.png");
 
     /// <summary>
-    /// The power driver, <c>art/hero_powerDriver_held.png</c> (power-driver), the user's pick, «Пистолет»: a short pistol-grip driver in
-    /// worn green enamel, a battery slab under the grip with three charge lights, steady green; held as a pistol is, the barrel along the
+    /// The power driver, <c>art/hero_powerDriver_held.png</c> (power-driver), the user's pick, «Пистолет», shipped raw (builders-raw): a
+    /// short pistol-grip driver in worn grey-green enamel, a battery slab under the grip with three charge lights, steady green; held as a pistol is, the barrel along the
     /// forearm, the hex bit the edge, to the screwdriver's fist. At work its motor turns the chuck and the bit, the lights bright
     /// (<c>hero_powerDriver.png</c>); flat, the wrist twists it as the screwdriver, the first light red (<c>hero_powerDriver_flat.png</c>).
     /// No module fits it; its clamp the barrel.
     /// </summary>
-    public static readonly HeldLook PowerDriver = new("res://art/hero_powerDriver_held.png", (3.6, 4.56), 0, (8.16, 1.86), (9.6, 1.86), Clamp: (3.6, 1.8),
+    public static readonly HeldLook PowerDriver = new("res://art/hero_powerDriver_held.png", (2.92, 6.31), 0, (11.7, 2.6), (13.47, 2.6), Clamp: (6, 3.2),
         Twist: "res://art/hero_powerDriver_flat.png", Driven: "res://art/hero_powerDriver.png");
 
     /// <summary>
-    /// The railgun, <c>art/hero_railgun.png</c> (2026-10-27-the-railgun), the user's pick, «Конденсаторы»: a squat housing with a red
-    /// band, three capacitor cans standing on it in copper bands, the arc shard at its rear, short heavy rails clamped twice; held as
-    /// the drill is, in one hand by its pistol grip, the elbow a little bent; the edge the gap between
-    /// the rails, the nail leaving their ends. Charged, the cans, the gap and the shard light (<c>hero_railgun_charged.png</c>), and
-    /// the arc crackles along the whole barrel, a box each third of it.
+    /// The railgun, <c>art/hero_railgun.png</c> (2026-10-27-the-railgun), redrawn from the user's pick «Катушечный из хлама»
+    /// (2026-11-14-railgun-traced): a steel tube through five copper coils, cables looped to a green battery box at the rear; held in one
+    /// hand by the loop under the battery as by a pistol grip, the elbow a little bent; the edge the tube from the battery to the
+    /// muzzle. Charged, the coils glow and the lamp burns (<c>hero_railgun_charged.png</c>), and the arc crackles along the coils,
+    /// a box each third of them.
     /// </summary>
     public static readonly HeldLook Railgun = new(
-        "res://art/hero_railgun.png", (12, 10.5), 0, (17, 6.5), (38, 6.5), Aimed: true, Elbow: 0.4, Clamp: (21.5, 6.5),
-        Charged: "res://art/hero_railgun_charged.png", Arcs: [(17, 4, 24, 8), (24, 4, 31, 8), (31, 4, 38, 8)]);
+        "res://art/hero_railgun.png", (10.3, 12), 0, (12.3, 6.1), (39.4, 6.1), Aimed: true, Elbow: 0.4, Clamp: (22.5, 6.1),
+        Charged: "res://art/hero_railgun_charged.png", Arcs: [(14, 4, 21, 8.3), (21, 4, 28, 8.3), (28, 4, 35.5, 8.3)], Size: Drawn);
 
     /// <summary>
-    /// The angle grinder, <c>art/hero_grinder.png</c> (salvage-tools), the user's pick, «Заводская»: a long motor tube in worn ochre
-    /// enamel, a cast head, the wheel under a half guard; held as the drill is, by its pistol grip, aimed, the elbow a little bent; the
-    /// edge the wheel's radius ahead, from its hub to its rim. Running, the disc turns through three frames and the lamp on its end cap
-    /// lights. Its coil (0098) round the motor tube's vents, behind the switch. Clamped by the tube before its head.
+    /// The angle grinder, <c>art/hero_grinder.png</c> (salvage-tools; redrawn raw, 2026-11-14-grinder-redrawn), the user's pick
+    /// «Нынешняя, перерисованная»: a long motor tube in worn ochre enamel, a cast head, the wheel under a half guard; held as the
+    /// drill is, by its pistol grip, aimed, the elbow a little bent; the edge the wheel's radius ahead, from its hub to its rim.
+    /// Running, its nut smears round and streaks sweep the wheel through three frames. Its coil (0098) round the motor tube's
+    /// vents. Clamped by the tube before its head.
     /// </summary>
     public static readonly HeldLook Grinder = new(
-        "res://art/hero_grinder.png", (5.2, 9.8), 0, (22.6, 7.2), (27.2, 7.2), Aimed: true,
-        Spin: ["res://art/hero_grinder_spin1.png", "res://art/hero_grinder_spin2.png", "res://art/hero_grinder_spin3.png"], Lamp: (1.5, 4.5),
-        Mounts: [new ToolMount("coil", 2, 4, (2, 3.5, 9, 6.5))], Elbow: 0.4, Clamp: (14.5, 7));
+        "res://art/hero_grinder.png", (3.2, 8.4), 0, (24.4, 5.3), (29.2, 5.3), Aimed: true,
+        Spin: ["res://art/hero_grinder_spin1.png", "res://art/hero_grinder_spin2.png", "res://art/hero_grinder_spin3.png"], Lamp: (1, 4.6),
+        Mounts: [new ToolMount("coil", 7, 4, (7, 3.5, 14, 6.5))], Elbow: 0.4, Clamp: (16, 8), Size: Drawn);
 
     /// <summary>
-    /// The plasma cutter, <c>art/hero_plasmaCutter.png</c> (salvage-tools), the user's pick, «Кольца»: a short dark body banded in brass,
-    /// a copper nozzle, the jet's cage of three copper coils on a rail; held as the drill is, aimed, the elbow a little bent; the edge the
-    /// jet's run through the coils, from the nozzle to the last. Running, the coils' inner faces, its lamp and charge lights are lit
-    /// (<c>hero_plasmaCutter_on.png</c>). No module fits it; its clamp the rail where it leaves the body.
+    /// The plasma cutter, <c>art/hero_plasmaCutter.png</c> (salvage-tools; raw, 2026-11-14-raw-tool-pictures), the user's pick, «Самодельный»:
+    /// a rusted tube on a wooden pistol grip, two copper coils over it, a gas bottle under, green insulators and a copper tip; held as the
+    /// drill is, aimed, the elbow a little bent; the edge from the tip, where the jet leaves. Running, the tip glows white-hot
+    /// (<c>hero_plasmaCutter_on.png</c>). No module fits it; its clamp the tube between the coils' straps.
     /// </summary>
     public static readonly HeldLook PlasmaCutter = new(
-        "res://art/hero_plasmaCutter.png", (4.6, 8), 0, (13.8, 4.4), (27.1, 4.4), Aimed: true,
-        Spin: ["res://art/hero_plasmaCutter_on.png"], Elbow: 0.4, Clamp: (14, 8.3));
+        "res://art/hero_plasmaCutter.png", (3.5, 10.5), 0, (31.5, 7.1), (32, 7.1), Aimed: true,
+        Spin: ["res://art/hero_plasmaCutter_on.png"], Elbow: 0.4, Clamp: (13.1, 6.7), Size: Drawn);
 
     /// <summary>
-    /// The spear, <c>art/hero_spear.png</c> (salvage-tools), the user's pick, «Труба и лист»: a hull plate's leaf driven into a flattened
-    /// tube, bound in copper, its grip in tape; hanging, across the fist, point forward, as the axe is (Rest); along the forearm, elbow bent, as it comes up to thrust; the edge the leaf's point. Its coil (0098) on the sleeve
-    /// riveted round the shaft. Clamped by the bare shaft before the sleeve.
+    /// The spear, <c>art/hero_spear.png</c> (salvage-tools; raw, 2026-11-14-raw-tool-pictures), the user's pick, «Телескопическое»: a
+    /// three-part aluminium pole with twist locks, a foam grip, a long blade lashed on; hanging, across the fist, point forward, as the axe
+    /// is (Rest); along the forearm, elbow bent, as it comes up to thrust; the edge the blade's front. Its coil (0098) is its own picture,
+    /// <c>hero_spear_arc.png</c>: a coil box between the locks, a cable to the blade, the arc crackling over the blade. Clamped by the shaft.
     /// </summary>
     public static readonly HeldLook Spear = new(
-        "res://art/hero_spear.png", (10.5, 5), 0, (42, 5), (47.8, 5), Aimed: true, Elbow: 1.2, Mounts: [new ToolMount("coil", 23, 4, (22, 3.5, 30, 6.5))], Clamp: (17.5, 5), Rest: System.Math.PI / 2);
+        "res://art/hero_spear.png", (7.9, 5), 0, (54.7, 4.6), (63.1, 3.9), Aimed: true, Elbow: 1.2,
+        Mounts: [new ToolMount("coil", 0, 0, (51.8, 3.1, 63.4, 7), new Dictionary<string, string> { [ModuleLooks.ArcCoil] = "res://art/hero_spear_arc.png" })],
+        Clamp: (25, 5), Rest: System.Math.PI / 2, Size: Drawn);
 
     /// <summary>
-    /// The sledgehammer, <c>art/hero_sledgehammer.png</c> (salvage-tools), the user's pick, «Пакет плит»: five cut plates bolted into a
-    /// block on a plank, a tube ferrule where they meet; gripped on the taped plank, held square to the forearm as the axe is; the edge
-    /// the block's striking face along its bottom. Clamped by the plank.
+    /// The sledgehammer, <c>art/hero_sledgehammer.png</c> (salvage-tools; raw, 2026-11-14-raw-tool-pictures), the user's pick, «Пакет
+    /// плит»: five cut plates bolted into a block, a wooden handle through a tube ferrule; gripped on the taped end, held square to the
+    /// forearm as the axe is; the edge the block's striking face along its bottom. Clamped by the handle.
     /// </summary>
     public static readonly HeldLook Sledgehammer = new(
-        "res://art/hero_sledgehammer.png", (6.6, 8), System.Math.PI / 2, (21.4, 15), (31.4, 15), Clamp: (14.5, 8));
+        "res://art/hero_sledgehammer.png", (3.8, 6.6), System.Math.PI / 2, (29.1, 12.4), (34, 12.4), Clamp: (16.4, 6.6), Size: Drawn);
 
     /// <summary>
-    /// The pickaxe, <c>art/hero_pickaxe.png</c> (the-pickaxe), the user's pick, «Шип из шпангоута»: a ship's rib in old primer, its lightening
-    /// hole kept, torch-cut into a spike and welded to a pipe haft gripped in rubber; held square to the forearm as the axe is; the edge
-    /// the spike's point. Clamped by the pipe, its spike hanging past the table.
+    /// The pickaxe, <c>art/hero_pickaxe.png</c> (the-pickaxe; traced, 2026-11-14-pickaxe-and-harpoon-traced): a rusted plate with a hole,
+    /// a steel spike welded under it, on a pipe haft taped at the butt; held square to the forearm as the axe is; the edge the spike's
+    /// point. Clamped by its head, the haft lying over the table.
     /// </summary>
-    public static readonly HeldLook Pickaxe = new("res://art/hero_pickaxe.png", (5.5, 9), System.Math.PI / 2, (28.1, 17.3), (29.1, 17.3), Clamp: (14, 10));
+    public static readonly HeldLook Pickaxe = new("res://art/hero_pickaxe.png", (5.5, 6.05), System.Math.PI / 2, (31.5, 18.3), (32.5, 18.3), Clamp: (31.5, 10.5), Size: Drawn);
 
     /// <summary>
-    /// The blasting charge, <c>art/hero_blastCharge.png</c> (blasting-charge), the user's pick, «Труба с серой»: an iron pipe packed
-    /// with sulfur between two screw caps, a short fuse out of the front plug; the fist round its back cap; hanging, across the fist,
+    /// The blasting charge, <c>art/hero_blastCharge.png</c> (blasting-charge), the user's pick, «Труба с серой», shipped raw
+    /// (builders-raw): a threaded iron pipe banded yellow between two hex caps, a short fuse out of the front plug; the fist round its back cap; hanging, across the fist,
     /// as the axe is (Rest), along the forearm as it comes up to throw; the edge the pipe from cap to plug, the charge thrown from the plug. Its icon has the
     /// fuse lit; in flight it turns, sparking (<see cref="ShotLooks.Charge"/>). Clamped by its middle.
     /// </summary>
@@ -183,15 +213,15 @@ public sealed record HeldLook(
 
 /// <summary>
 /// A gun's rod as it flies, its point along +x: its picture, where the line ties on (<see cref="Eye"/>) and its point
-/// (<see cref="Tip"/>), in pixels of its picture.
+/// (<see cref="Tip"/>), in pixels of its picture, drawn at <see cref="Size"/> as its gun is.
 /// </summary>
-public sealed record RodLook(string Picture, (double X, double Y) Eye, (double X, double Y) Tip)
+public sealed record RodLook(string Picture, (double X, double Y) Eye, (double X, double Y) Tip, double Size = 1)
 {
     /// <summary>The harpoon's rod, <c>art/hero_harpoon_rod.png</c> (0044).</summary>
-    public static readonly RodLook Harpoon = new("res://art/hero_harpoon_rod.png", (3, 2.5), (23, 2.5));
+    public static readonly RodLook Harpoon = new("res://art/hero_harpoon_rod.png", (2.4, 2.5), (23.6, 2.5), HeldLook.Drawn);
 
-    /// <summary>The grappling gun's grapnel, <c>art/hero_grapple_hook.png</c> (grapple-climbs): three prongs sprung open, swept back.</summary>
-    public static readonly RodLook Grapple = new("res://art/hero_grapple_hook.png", (2.2, 5.5), (15.9, 5.5));
+    /// <summary>The grappling gun's grapnel, <c>art/hero_grapple_hook.png</c> (grapple-climbs): an eye, a shank, the traced four-pronged crown.</summary>
+    public static readonly RodLook Grapple = new("res://art/hero_grapple_hook.png", (1.55, 4.4), (9.7, 4.4), HeldLook.Drawn);
 
     /// <summary>The rod of the gun <paramref name="item"/>: the grappling gun's, else the harpoon's.</summary>
     public static RodLook Of(string? item) => item == Content.Grapple.Item ? Grapple : Harpoon;

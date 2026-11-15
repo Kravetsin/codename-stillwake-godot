@@ -13,6 +13,7 @@ disk, the logs, updates.
 | `Updater.cs` | a newer release asked of GitHub at the start, fetched and restarted into | yes |
 | `logic/Screens.cs` | how the window takes the screen, as the settings file names it | no |
 | `logic/WorldIndex.cs` | the worlds on disk: their folders, names, when played, whether this build can play them | no |
+| `logic/NewWorlds.cs` | a world started from the title, its seed and id drawn | no |
 | `logic/Saves.cs` | save files in a folder, one a slot | no |
 | `logic/Roster.cs` | who is who in a world: each player's key and seat | no |
 | `logic/Updates.cs` | which build this is, and whether a newer one is out | no |
@@ -29,12 +30,14 @@ disk, the logs, updates.
     screen, a frameless window over the whole screen); an unknown word is a window.
   - **Keys**: `[binds]`, an action's id and Godot's name of its physical key, only those changed from the defaults
     (2026-11-04-key-binds, `shared/logic/Binds`); read by putting each on the defaults in turn, so none is shared.
+- **A new world** (`NewWorlds`) draws its Rng's seed and its id, each on its own, so no two start alike; dev runs keep
+  seed 1, so a frame or a script is the same every time.
 - **Logs** are Godot's own (`Logs`): `user://logs/godot.log` a run, the last five kept, a release's too, its first line
   naming the build and the system. A C# exception escaping a callback, a signal or an `async` continuation goes there
   with its stack, the game playing on. Every print is flushed (`application/run/flush_stdout_on_print`): a run that
   dies keeps what it printed.
 
-Tested by `ScreensTests`, `BindsTests` (reading the keys back), `WorldIndexTests`, `SavesTests`, `RosterTests`, `UpdatesTests`, `GcPaceTests`.
+Tested by `ScreensTests`, `BindsTests` (reading the keys back), `WorldIndexTests`, `NewWorldsTests`, `SavesTests`, `RosterTests`, `UpdatesTests`, `GcPaceTests`.
 
 ## Deliberately not handled
 

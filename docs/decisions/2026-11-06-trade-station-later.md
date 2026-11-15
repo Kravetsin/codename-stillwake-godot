@@ -1,7 +1,7 @@
 # The trade station comes with circuits
 
 - Status: accepted; supersedes [trade-and-tech](2026-10-30-trade-and-tech.md) and [tech-graph](2026-10-30-tech-graph.md) on the
-  trade station being of raw salvage
+  trade station being of raw salvage; two circuits to understand it superseded by [one-to-understand](2026-11-12-one-to-understand.md)
 - Date: 2026-11-06
 
 ## Context

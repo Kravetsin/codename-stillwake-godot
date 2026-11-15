@@ -113,7 +113,7 @@ public static class FixedMotions
     /// <summary>The heave aimed down: back less far, heaved higher over the shoulder.</summary>
     public static readonly SwingMotion HeaveDown = Of(
     [
-        new(0, 0, 0), new(0.12, 0.62, 0.1, 0.7, Ease.Sine), new(0.18, 0.65, 0.1, 0.75), new(0.32, -2.6, 0.9, -0.4, Ease.Sine),
+        new(0, 0, 0), new(0.12, 0.52, 0.1, 0.7, Ease.Sine), new(0.18, 0.55, 0.1, 0.75), new(0.32, -2.6, 0.9, -0.4, Ease.Sine),
         new(0.38, -2.7, 0.95, -0.45), new(Hit, 0, 0, 0, Ease.In), new(0.52, 0.3, 0, 0.25), new(1, 0, 0, 0, Ease.Sine),
     ]);
 
@@ -193,6 +193,7 @@ public sealed record MotionPlay(Sector Sector, SwingMotion Motion, IReadOnlyList
     {
         Ease.Sine => (1 - Math.Cos(t * Math.PI)) / 2,
         Ease.In => t * t,
+        Ease.Out => 1 - (1 - t) * (1 - t),
         _ => t,
     };
 

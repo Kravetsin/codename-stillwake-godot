@@ -191,7 +191,11 @@ public sealed partial class BuildingModule
         if (Kinds[plant.Kind].On != Flora.Anchor.Rock && CrackIndex(plant.Cell) is >= 0 and var crack) State.Cracks.RemoveAt(crack);
         if (Kinds[plant.Kind].Yields is { Count: > 0 } yields)
         {
-            if (peer is int sender) _itemsOps.GiveOrDrop(sender, yields, plant.Cell);
+            if (peer is int sender)
+            {
+                _itemsOps.GiveOrDrop(sender, yields, plant.Cell);
+                _crewOps.Loot(sender, yields);
+            }
             else _itemsOps.DropAt(FloorStack.Nobody, yields, plant.Cell);
         }
         if (layer != _plantIn) return;

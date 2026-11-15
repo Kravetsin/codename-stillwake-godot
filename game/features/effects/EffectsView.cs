@@ -240,6 +240,7 @@ public partial class EffectsView : Node2D
     }
 
     private readonly (double X, double Y)[] _bolt = new (double, double)[65];
+    private readonly (double X, double Y)[] _cut = new (double, double)[65];
 
     /// <summary>Every stroke of light this frame into the one multimesh: streaks, trails, arcs, shock rings, glints' spikes.</summary>
     private void Stroke()
@@ -315,7 +316,7 @@ public partial class EffectsView : Node2D
     private void Arc(Bolt bolt)
     {
         var (x0, y0, x1, y1, _) = bolt.Ends();
-        double a = Math.Clamp(bolt.Intensity, 0, 1);
+        double a = Math.Clamp(bolt.Brightness, 0, 1);
         for (int back = bolt.Ghosts; back >= 1; back--)
         {
             int n = bolt.GhostOf(back, x0, y0, x1, y1, _bolt);
@@ -325,7 +326,14 @@ public partial class EffectsView : Node2D
         for (int line = 0; line < bolt.Lines; line++)
         {
             int n = bolt.PointsOf(line, x0, y0, x1, y1, _bolt);
-            for (int i = 0; i < n; i++) _arc[i] = Screen(_bolt[i].X, _bolt[i].Y);
+            var points = _bolt.AsSpan(0, n);
+            // A steady arc dies from its ends (Bolt.Shown).
+            if (bolt.Shown(line) is var (from, to) && (from > 0 || to < 1))
+            {
+                n = Bolts.Cut(points, from, to, _cut);
+                points = _cut;
+            }
+            for (int i = 0; i < n; i++) _arc[i] = Screen(points[i].X, points[i].Y);
             float thin = line == 0 ? 1 : 0.7f;
             if (bolt.Fine)
             {

@@ -184,24 +184,6 @@ function wristCuff() {
   });
 }
 
-function wristGauge() {
-  const W = 32, H = 8;
-  const top = sheetX(24, 3, runX(24, [[1, 3, INK], [1.5, 1.9, DEEP]], null, .05));
-  const foot = sheetX(24, 4, runX(24, [[0, 3, INK], [0, 1, LIP], [.95, 2.3, SHADE]], null));
-  const left = sheetY(4, 1, runY(1, [[1, 4, INK], [1.55, 2.95, LIT]]));
-  const right = sheetY(4, 1, runY(1, [[0, 3, INK], [0, 1, LIP], [.95, 2.3, SHADE]]));
-  return lay(W, H, { l: 4, t: 3, r: 4, b: 4 }, [
-    { run: left, at: 0, from: 2, to: 6 }, { run: right, at: 28, from: 2, to: 6 },
-    { run: top, at: 0, from: 1, to: 31 }, { run: foot, at: 4, from: 3, to: 29 },
-  ], (a) => {
-    a.flat(band(2, 2, 3, 4), LIT);
-    a.flat(band(28, 2, 29, 3), LIP);
-    a.flat(band(29, 2, 30, 3), LIT);
-    a.flat(poly(1.2, 5, 3, 5, 3, 7, 2, 7), INK);
-    a.flat(poly(29, 5, 30.9, 5, 30.8, 6, 30, 7, 29, 7), INK);
-  });
-}
-
 // ---------- the tablet: a long bar over and under its screen, a dark armoured corner at each end ----------
 const armour = (a, pts, lite, shade, ridges, wear) => {
   a.shape(poly(pts), RUBBER, { lite, shade, lines: ridges });
@@ -365,7 +347,6 @@ Subjects.zleftovers = function () {
   out('wrist_display', wristDisplay());
   out('wrist_body', wristBody());
   out('wrist_cuff', wristCuff());
-  out('wrist_gauge', wristGauge());
   out('tablet_frame', tabletFrame());
   out('tablet_plate', bake({ w: 34, h: 6, draw: tabletPlate }));
   out('tablet_stylus', bake({ w: 9, h: 78, draw: tabletStylus }));

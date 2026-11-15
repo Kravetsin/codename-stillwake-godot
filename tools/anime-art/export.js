@@ -18,15 +18,27 @@ const wreckSource = fs.readFileSync(path.join(here, '..', '..', 'sim', 'Content'
 const mapOf = (name, next) => wreckSource.slice(wreckSource.indexOf(`${name} = Placed(`), wreckSource.indexOf(next)).split('\n').map((l) => /^\s*"(.*)",\s*$/.exec(l)).filter(Boolean).map((m) => m[1]);
 const wreck = { rows: mapOf('Rows', 'Materials = Placed('), dress: mapOf('Dress', 'The pipe inside the pod') };
 
+/** Every traced subject's shapes (trace.js) with its palette's materials: drawn from these, the reference is never read here. */
+const traced = Object.fromEntries(fs.readdirSync(path.join(here, 'traced')).filter((f) => f.endsWith('.json')).map((f) => {
+  const name = f.slice(0, -5), palette = JSON.parse(fs.readFileSync(path.join(here, 'refs', name.split('.')[0] + '.palette.json'), 'utf8'));
+  // A piece's own materials are added to its palette's (trace.js).
+  const own = (palette.pieces || {})[name.split('.')[1]], materials = { ...palette.materials, ...(own && own.materials) };
+  const t = JSON.parse(fs.readFileSync(path.join(here, 'traced', f), 'utf8'));
+  // A raw subject's picture rides along as a data URL: a file:// picture would taint the canvas it is drawn on.
+  if (t.raw) t.raw.png = 'data:image/png;base64,' + fs.readFileSync(path.join(here, 'traced', name + '.png')).toString('base64');
+  return [name, { ...t, materials }];
+}));
+
 const url = (f) => 'file:///' + path.join(here, f).replace(/\\/g, '/');
 const page = `<!doctype html><meta charset="utf-8"><pre id="out"></pre>
-<script>window.LOGICAL=${JSON.stringify(logical)};window.WRECK=${JSON.stringify(wreck)};window.Made=[];window.out=(name,c)=>Made.push([name,c]);window.Texts=[];window.writeText=(p,t)=>Texts.push([p,t]);</script>
+<script>window.LOGICAL=${JSON.stringify(logical)};window.WRECK=${JSON.stringify(wreck)};window.TRACED=${JSON.stringify(traced)};window.Made=[];window.out=(name,c)=>Made.push([name,c]);window.Texts=[];window.writeText=(p,t)=>Texts.push([p,t]);</script>
 <script src="${url('engine.js')}"></script>
 <script src="${url('wash.js')}"></script>
+<script src="${url('traced.js')}"></script>
 ${SUBJECTS.map((s) => `<script src="${url('subjects/' + s + '.js')}"></script>`).join('\n')}
 <script>
-try { for (const s of ${JSON.stringify(asked.length ? asked : SUBJECTS)}) Subjects[s](); document.getElementById('out').textContent = String(Made.length); }
-catch (e) { document.getElementById('out').textContent = 'ERROR ' + e.stack; }
+Traced.loadRaw().then(() => { for (const s of ${JSON.stringify(asked.length ? asked : SUBJECTS)}) Subjects[s](); document.getElementById('out').textContent = String(Made.length); })
+  .catch((e) => { document.getElementById('out').textContent = 'ERROR ' + e.stack; });
 </script>`;
 const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'anime-art-'));
 fs.writeFileSync(path.join(dir, 'page.html'), page);

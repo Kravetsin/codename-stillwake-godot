@@ -37,9 +37,9 @@ public static class Stations
         // The lifepod's Fabricator: what a castaway is given, the suit and the screwdriver, at a fifth of full speed (0046).
         new("lifepod", Speed: 200, QueueMost: 4, Rows: [["helmet", "suit", "screwdriver"]]),
         // The workbench, of raw salvage: the basic parts by hand, and everything assembled rather than stamped: the tools, the
-        // jetpack, the drill, the power driver, the cape and the heavy helmet; and the battery, so the drill's power comes with
-        // it (battery-workbench). At the pod's speed and with no power.
-        new("workbench", Speed: 200, QueueMost: 4, Rows: [["wire", "plate", "gear", "tube"], ["coil", "rotor", "battery"], ["fireAxe", "harpoon", "nailer", "nail"], ["helmetLamp", "jetpack", "drill", "cape"], ["grinder", "spear", "sledgehammer"], ["pickaxe", "grapple", "blastCharge"]]),
+        // jetpack, the drill, the cape and the quilted helmet; and the battery, so the drill's power comes with it
+        // (battery-workbench). At the pod's speed and with no power.
+        new("workbench", Speed: 200, QueueMost: 4, Rows: [["wire", "plate", "gear", "tube"], ["coil", "rotor", "battery"], ["fireAxe", "harpoon", "nailer", "nail"], ["helmetLamp", "jetpack", "quiltedHelmet", "cape"], ["drill", "grinder", "spear", "sledgehammer"], ["pickaxe", "grapple", "blastCharge", "heatSuit"]]),
         new("furnace", Speed: 1000, QueueMost: 0, Rows: [], Heat: 1),
         // Crushes rock and asteroid ore on power (economy rework): gravel, iron ore and quartz, the only way to silicon and glass.
         new("crusher", Speed: 1000, QueueMost: 0, Rows: [], Heat: 1, Process: "crush"),
@@ -55,6 +55,8 @@ public static class Stations
         new("growCapsule", Speed: 1000, QueueMost: 0, Rows: [], Heat: 1, Process: "grow"),
         // Ferments biomass and fat into biofuel on power, the only way to biofuel (power-chain): one in 160 ticks at a full share.
         new("fermenter", Speed: 1000, QueueMost: 0, Rows: [], Heat: 1, Process: "ferment"),
+        // The galley (food-and-the-body): the dishes, paid by hand, at full speed with no power, a queue of four.
+        new("galley", Speed: 1000, QueueMost: 4, Rows: [[Foods.Porridge, Foods.Hash, Foods.Broth], [Foods.Roast, Foods.Stew]]),
         // The arc branch's station (0099): every craft of a sky shard, the arc module, the accumulator and the railgun, paid by
         // hand, at full speed with no power, a queue of four.
         new("arcBench", Speed: 1000, QueueMost: 4, Rows: [["arcModule", "accumulator"], ["railgun"]]),

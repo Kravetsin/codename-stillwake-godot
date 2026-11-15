@@ -83,7 +83,7 @@ public partial class ContentTests
     public void CrewBreathesInWholeUnitsAndTicksWithASuitThatLastsSomeBreaths()
     {
         AllPositive(typeof(Content.Crew));
-        Assert.True(Content.Crew.Refill < Scenario.Full);
+        Assert.True(Stillwake.Sim.Crew.CrewModule.FillOf(Scenario.Full) < Scenario.Full);
         // By the pod a calm breath gains, even in vacuum; running there holds the suit at worst.
         Assert.True(Content.Crew.PodRefill > 1);
         Assert.True(Content.Crew.PodRefill >= Content.Crew.Exerted);
@@ -95,7 +95,40 @@ public partial class ContentTests
         foreach (var item in Content.Items.All)
             Assert.True((item.Equip == Content.Helmet.Slot) == (item.Tank > Content.Crew.Lungs) && item.Tank >= 0, item.Id);
         Assert.True(Content.Field.OffGrid >= Content.Items.All.Max(i => i.Tank));
-        // The 1 is the breath: a bare hero resting by the pod in vacuum holds.
-        Assert.True(1 + Content.Crew.BareCold <= Content.Crew.PodRefill);
+        // The 1000 is the breath: a bare hero resting by the pod in vacuum holds against space's cold (2026-11-14-temperature-in-degrees).
+        Assert.True(1000 + (Content.Temperature.BareLow - Content.Temperature.Space) * Content.Temperature.Bite <= 1000 * Content.Crew.PodRefill);
+    }
+
+    [Fact]
+    public void EveryKindHasATemperatureABandBodiesWithstandMoreThanBareAndTheCapeAddsSome()
+    {
+        foreach (var kind in Content.Surfaces.All.Append(Content.Surfaces.Ship))
+        {
+            int bands = kind is Content.PlanetType planet ? planet.Bands.Count + 1 : 1;
+            Assert.True(kind.Temperatures.Count == bands, kind.Id);
+        }
+        foreach (var item in Content.Items.All)
+            Assert.True((item.Low != null) == (item.Equip == Content.Suit.Slot) && (item.Low ?? int.MinValue) < Content.Temperature.BareLow, item.Id);
+        Assert.True(Content.Cape.Warmth > 0 && Content.Temperature.Bite > 0);
+        // A suit holds out space aboard; the night on the first planet's surface bites it (2026-11-14-temperature-in-degrees).
+        int suit = Content.Items.Get(Content.Suit.Basic).Low!.Value;
+        Assert.True(suit <= Content.Temperature.Space && suit <= Content.PlanetTypes.First.Temperatures[0]);
+        Assert.True(suit > Content.PlanetTypes.First.Temperatures[0] - Content.Sky.First.Chill);
+    }
+
+    [Fact]
+    public void EveryBodyAndNoneWithstandsColdBelowItsHeatAnAiredRoomInsideBothCapedOrNot()
+    {
+        // So the cold and the heat are never felt at once, and a sealed room costs no one anything (2026-11-14-heat-limits).
+        var limits = Content.Items.All.Where(i => i.Equip == Content.Suit.Slot)
+            .Select(i => (i.Id, Low: i.Low ?? Content.Temperature.BareLow, High: i.High ?? Content.Temperature.BareHigh))
+            .Append(("none", Content.Temperature.BareLow, Content.Temperature.BareHigh));
+        foreach (var (id, low, high) in limits)
+        {
+            Assert.True(low < high, id);
+            Assert.True(low <= Content.Temperature.Room && Content.Temperature.Room <= high - Content.Cape.Warmth, id);
+        }
+        foreach (var item in Content.Items.All)
+            Assert.True(item.High == null || item.Equip == Content.Suit.Slot, item.Id);
     }
 }

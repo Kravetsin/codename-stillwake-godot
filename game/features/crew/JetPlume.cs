@@ -16,6 +16,11 @@ public partial class JetPlume : Node2D
     public const double StreaksPerSecond = 90, MotesPerSecond = 24;
     /// <summary>The core's length, in pixels, round which it flickers, and how far either way.</summary>
     private const double CoreLength = 8, CoreFlicker = 3;
+    /// <summary>How hard it thrusts, 0 to 1, a hero's always whole: the core <see cref="ThrustLeast"/> as long at none (catcher-motion).</summary>
+    public double Thrust { get; set; } = 1;
+
+    public const double ThrustLeast = 0.3;
+
     /// <summary>The core's width at its widest, in pixels.</summary>
     private const float CoreWidth = 1.5f;
     private static readonly (int, int, int) Blue = (110, 170, 255), Ring = (150, 200, 255), Bloomed = (120, 180, 255);
@@ -56,11 +61,12 @@ public partial class JetPlume : Node2D
         if (on)
         {
             var (tx, ty) = toward!.Value;
-            _way = tx == 0 && ty == 0 ? Vector2.Down : new Vector2((float)-tx, (float)-ty).Normalized();
+            var (wx, wy) = PlumeWay.Of(tx, ty);
+            _way = new Vector2(wx, wy);
             _nozzle = nozzle!.Value;
             if (!_on) Stages.Of(Layers.Tethers).Flares.Shock(_nozzle.X + _way.X * 3, _nozzle.Y + _way.Y * 3, 1.5, 10.5, 12 * Glim.SampleMs, Ring, 0.35 * Fx.Glow, 0.3);
             Emit(elapsedMs);
-            double want = (CoreLength + CoreFlicker * (LuminousMath.Noise(_clock / 1000 * 21, 3.1) * 2 - 1)) * Fx.Length;
+            double want = (CoreLength + CoreFlicker * (LuminousMath.Noise(_clock / 1000 * 21, 3.1) * 2 - 1)) * Fx.Length * (ThrustLeast + (1 - ThrustLeast) * Thrust);
             _length += (want - _length) * (1 - Math.Pow(0.5, frames));
             var light = _nozzle + _way * 4;
             Stages.Of(Layers.Tethers).Flares.Hold(this, light.X, light.Y, Blue, 0.3 * (1 + 0.2 * Math.Sin(_clock / 1000 * 54)) * Fx.Glow, 3, 0.5f, 0.6);

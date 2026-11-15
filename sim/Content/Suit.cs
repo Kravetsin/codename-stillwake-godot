@@ -2,8 +2,8 @@ namespace Stillwake.Content;
 
 /// <summary>
 /// Suits (2026-10-27-suits-are-worn): a helmet and a body, each an item worn in its own equipment slot, mixed as the
-/// player likes. The helmet holds the air: its <c>Tank</c> is the hero's whole pool while worn, <see cref="Crew.Lungs"/>
-/// without one. The body keeps the cold out: without one, each breath where the air is not aired costs
+/// player likes. The helmet holds air past the lungs: its <c>Tank</c> is added to <see cref="Crew.Lungs"/> while worn (air-segments),
+/// the lungs alone without one. The body keeps the cold out: without one, each breath where the air is not aired costs
 /// <see cref="Crew.BareCold"/> more. The basic helmet and body are free at the pod; later ones are rows of <see cref="Items"/>.
 /// </summary>
 public static class Suit
@@ -21,6 +21,9 @@ public static class Suit
     /// </summary>
     public static readonly string Regen = "regenSuit";
 
+    /// <summary>The heat suit (2026-11-14-heat-limits): made at the workbench, it withstands heat ten degrees past the basic.</summary>
+    public static readonly string Heat = "heatSuit";
+
     /// <summary>The most air the regen suit gives back a breath, in units.</summary>
     public const int RegenMost = 1;
 
@@ -37,6 +40,9 @@ public static class Helmet
 
     /// <summary>The heavy helmet (2026-11-03-the-heavy-helmet): more than twice the basic's air, for the jetpack's long flights; its blueprint sold on the black market.</summary>
     public static readonly string Heavy = "heavyHelmet";
+
+    /// <summary>The quilted helmet (2026-11-14-quilted-helmet-and-traced-art): between the basic and the heavy, sewn at the workbench round the basic one.</summary>
+    public static readonly string Quilted = "quiltedHelmet";
 
     /// <summary>The kind of equipment slot a helmet is worn in: the head.</summary>
     public static readonly string Slot = "head";

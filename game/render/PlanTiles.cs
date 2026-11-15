@@ -71,7 +71,7 @@ public partial class PlanTiles : Node2D
         }
     }
 
-    /// <summary>Every layer but the back walls' drawn <paramref name="alpha"/> opaque: hidden with the back walls focused (back-focus-clear).</summary>
+    /// <summary>Every layer but the back walls' drawn <paramref name="alpha"/> opaque: faint with the back walls focused (back-focus-faint).</summary>
     public void FadeFront(float alpha)
     {
         for (int i = 0; i < _layers.Length; i++)

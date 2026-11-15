@@ -15,13 +15,10 @@ namespace Stillwake.Content;
 /// electric smelter), "crush" (the crusher), "grow" (a grow capsule) or "ferment" (the fermenter). At a station of another
 /// process it sits in the input, never worked.
 /// </param>
-/// <param name="Returns">
-/// Weights of how many of itself one gives back besides its yields when worked, entry n the weight of n: a crop's
-/// seeds. Drawn from the world's Rng as the work completes; its outputs must take the most. None for anything else.
-/// </param>
 /// <param name="Byproducts">
 /// What one gives besides its yields only by chance, each entry a loot roll (<see cref="LootEntry"/>, its <c>OneIn</c> the
-/// chance): ore's quartz. Drawn after <paramref name="Returns"/> as the work completes; its outputs must take every entry's most.
+/// chance): ore's quartz, a fruit's seed. Drawn from the world's Rng as the work completes, and as a raw food is eaten; its
+/// outputs must take every entry's most.
 /// </param>
 /// <param name="SmeltTakes">How many of it one smelt works, all taken as it completes: a fed station waits for them in its input.</param>
 /// <param name="BurnTicks">Ticks a fire, a furnace's or a burner generator's, burns on one: a fuel.</param>
@@ -40,9 +37,11 @@ namespace Stillwake.Content;
 /// </param>
 /// <param name="Group">Where a sort puts it (0008): its group first, in <see cref="ItemGroup"/>'s order, then its id.</param>
 /// <param name="Tank">
-/// A helmet: the air it holds, in units, the hero's whole pool while worn (2026-10-27-suits-are-worn); 0 for anything else.
+/// A helmet: the air it holds past the lungs, in units, its own part of the hero's air while worn (air-segments); 0 for anything else.
 /// </param>
 /// <param name="Switch">A body with a mode its wearer switches on and off, by V or its key on the tablet's edge (2026-11-03-the-regen-suit).</param>
+/// <param name="Low">A body: the coldest it withstands, in degrees (2026-11-14-temperature-in-degrees); null for anything else.</param>
+/// <param name="High">A body: the hottest it withstands, in degrees (2026-11-14-heat-limits); null for anything else.</param>
 public sealed record ItemSpec(
     string Id,
     int Stack,
@@ -50,7 +49,6 @@ public sealed record ItemSpec(
     int? SmeltTicks = null,
     int Heat = 1,
     string Process = "smelt",
-    IReadOnlyList<int>? Returns = null,
     IReadOnlyList<LootEntry>? Byproducts = null,
     int SmeltTakes = 1,
     int? BurnTicks = null,
@@ -60,7 +58,9 @@ public sealed record ItemSpec(
     bool Gear = false,
     ItemGroup Group = ItemGroup.Material,
     int Tank = 0,
-    bool Switch = false);
+    bool Switch = false,
+    int? Low = null,
+    int? High = null);
 
 /// <summary>The groups a sort orders a bag or a crate by (0008), in this order: tools first, the rest last.</summary>
 public enum ItemGroup
@@ -91,6 +91,17 @@ public static class Items
         new("iron", 999),
         // Liquids are kept in tanks and cisterns, not crates (industrial-oxygen): a few a slot.
         new("canister", 5),
+        // Eaten (food-and-the-body): a meal each, from supply pods and fridges.
+        new("ration", 20),
+        new("cannedMeat", 20),
+        // The black market's stimulant (food-tuning): eaten like a meal, the lungs hold more.
+        new("stim", 10),
+        // Cooked at the galley: a meal each.
+        new("porridge", 20),
+        new("hash", 20),
+        new("broth", 20),
+        new("roast", 20),
+        new("stew", 20),
         new("planks", 200, BurnTicks: 400),
         new("scrapChunk", 250, Yields: [("scrap", 4)], SmeltTicks: 60, Group: ItemGroup.Salvage),
         new("hullPlate", 250, Yields: [("iron", 2), ("scrap", 1)], SmeltTicks: 100, Group: ItemGroup.Salvage),
@@ -113,9 +124,9 @@ public static class Items
         new(Water.Item, 5),
         // Broken off the deep's crystals and out of geodes: for sensors and machine modules to come.
         new("crystal", 100),
-        // Off the violet glowcaps: the farm's second crop, grown as a seed is into less biomass but giving back 1.1 spores on
-        // average, so a farm of them keeps itself where seeds slowly run out (0060). Had only on a planet.
-        new("spore", 250, Yields: [("biomass", 3)], SmeltTicks: 9600, Process: "grow", Returns: [20, 50, 30]),
+        // Off the violet glowcaps: the farm's second crop, grown as a seed is into three glowberries, whose crushing gives back
+        // 1.1 spores on average, so a farm of them keeps itself where seeds slowly run out (fruit-not-biomass). Had only on a planet.
+        new("spore", 250, Yields: [("glowberry", 3)], SmeltTicks: 9600, Process: "grow"),
         // Flakes out of the glinting mica in cave walls: for sensors and the radar to come.
         new("mica", 250),
         // Lodestone, a natural magnet, out of the heat's cracks over the bedrock: a motor's magnet.
@@ -140,6 +151,7 @@ public static class Items
         new("arcModule", 1, Gear: true, Group: ItemGroup.Tool),
         // Containers: caught, they open into their loot (Loot), and are never carried.
         new("supplyPod", 1, Group: ItemGroup.Other),
+        new("fridge", 1, Group: ItemGroup.Other),
         new("cargoCrate", 1, Group: ItemGroup.Other),
         // Wreckage: broken by a weapon into its loot (Wreckage), and never carried either.
         new("hullSection", 1, Group: ItemGroup.Other),
@@ -198,9 +210,12 @@ public static class Items
         new("drone", 1, Capacity: Charge.Drone, Group: ItemGroup.Other),
         // Its kin for space (salvage-drones): a battery as a drone's, and a canister's air from its bay to fly out on.
         new("salvageDrone", 1, Capacity: Charge.Drone, Group: ItemGroup.Other),
-        // The farm (0060): a seed grows in a grow capsule into biomass, giving back none, one or two seeds, 0.8 on
-        // average, so the farm slowly eats seeds and supply pods refill it. Biomass ferments into biofuel, at the fermenter only (power-chain).
-        new("seed", 100, Yields: [("biomass", 4)], SmeltTicks: 9600, Process: "grow", Returns: [35, 50, 15]),
+        // The farm (fruit-not-biomass): a seed grows in a grow capsule into four fruit, each eaten, or crushed into biomass and,
+        // one time in five, its seed: 0.8 a crop, so the farm slowly eats seeds and supply pods refill it. A glowberry gives a
+        // spore one time in 3 and another one time in 30: 1.1 a crop of three. Biomass ferments into biofuel, at the fermenter only (power-chain).
+        new("seed", 100, Yields: [("fruit", 4)], SmeltTicks: 9600, Process: "grow"),
+        new("fruit", 100, Yields: [("biomass", 1)], SmeltTicks: 40, Process: "crush", Byproducts: [new("seed", 1, 1, OneIn: 5)]),
+        new("glowberry", 100, Yields: [("biomass", 1)], SmeltTicks: 40, Process: "crush", Byproducts: [new("spore", 1, 1, OneIn: 3), new("spore", 1, 1, OneIn: 30)]),
         // Pressed at the Former of rock and planks: what a grow capsule is built on.
         new("soil", 999),
         new("biomass", 250, Yields: [("biofuel", 1)], SmeltTicks: 160, Process: "ferment"),
@@ -243,13 +258,16 @@ public static class Items
         new("battery", 1, Equip: "belt", Capacity: Charge.Battery, Gear: true, Group: ItemGroup.Wearable),
         // A battery wound round a sky shard at the arc bench (0099): three batteries' charge, worn and filled as one is.
         new("accumulator", 1, Equip: "belt", Capacity: Charge.Accumulator, Gear: true, Group: ItemGroup.Wearable),
-        // The basic suit (2026-10-27-suits-are-worn): the helmet's tank the hero's air while worn, the body keeping the cold
-        // out; both free at the pod.
-        new(Helmet.Basic, 1, Equip: Helmet.Slot, Gear: true, Group: ItemGroup.Wearable, Tank: 45),
-        new(Suit.Basic, 1, Equip: Suit.Slot, Gear: true, Group: ItemGroup.Wearable),
-        new(Suit.Regen, 1, Equip: Suit.Slot, Gear: true, Group: ItemGroup.Wearable, Switch: true),
+        // The basic suit (2026-10-27-suits-are-worn): the helmet's tank the hero's air while worn, the body withstanding the
+        // cold down to its Low (2026-11-14-temperature-in-degrees) and the heat up to its High (2026-11-14-heat-limits); both free at the pod.
+        new(Helmet.Basic, 1, Equip: Helmet.Slot, Gear: true, Group: ItemGroup.Wearable, Tank: 25),
+        new(Suit.Basic, 1, Equip: Suit.Slot, Gear: true, Group: ItemGroup.Wearable, Low: -40, High: 50),
+        new(Suit.Regen, 1, Equip: Suit.Slot, Gear: true, Group: ItemGroup.Wearable, Switch: true, Low: -40, High: 50),
+        new(Suit.Heat, 1, Equip: Suit.Slot, Gear: true, Group: ItemGroup.Wearable, Low: -40, High: 60),
         // For the jetpack's long flights (2026-11-03-the-heavy-helmet): 100, not twice 45, so it reads as more than a doubling.
-        new(Helmet.Heavy, 1, Equip: Helmet.Slot, Gear: true, Group: ItemGroup.Wearable, Tank: 100),
+        new(Helmet.Heavy, 1, Equip: Helmet.Slot, Gear: true, Group: ItemGroup.Wearable, Tank: 80),
+        // The middle step, made rather than bought (2026-11-14-quilted-helmet-and-traced-art).
+        new(Helmet.Quilted, 1, Equip: Helmet.Slot, Gear: true, Group: ItemGroup.Wearable, Tank: 50),
         // Softens enemies' blows and the cold a fifth (2026-10-27-the-cape-is-worn).
         new(Cape.Item, 1, Equip: Cape.Slot, Gear: true, Group: ItemGroup.Wearable),
     ];

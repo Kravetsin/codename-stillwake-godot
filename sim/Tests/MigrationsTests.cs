@@ -139,6 +139,21 @@ public class MigrationsTests
     }
 
     [Fact]
+    public void GivesAGalleyItsFuelSlotFirstWhatItMadeOneSlotOn()
+    {
+        // A format-62 galley held three outputs; after the upgrade its first slot is its fuel, its dishes in the outputs after it.
+        static JsonObject Slices(string kind) => JsonNode.Parse(
+            """{"grid":{"machines":[{"id":3,"kind":"KIND"}]},"items":{"crates":[{"id":3,"slots":[{"item":"roast","count":2},null,null]}]}}""".Replace("KIND", kind))!.AsObject();
+        var old = new JsonObject { ["slices"] = Slices("crate"), ["surfaces"] = new JsonArray(new JsonObject { ["slices"] = Slices("galley") }) };
+        var upgraded = Migrations.Steps[62 - Migrations.Oldest](old);
+        Assert.Equal(3, upgraded["slices"]!["items"]!["crates"]![0]!["slots"]!.AsArray().Count);
+        var galley = upgraded["surfaces"]![0]!["slices"]!["items"]!["crates"]![0]!["slots"]!.AsArray();
+        Assert.Equal(4, galley.Count);
+        Assert.Null(galley[0]);
+        Assert.Equal("roast", galley[1]!["item"]!.GetValue<string>());
+    }
+
+    [Fact]
     public void PutsWhatASalvageDroneCaughtInItsNet()
     {
         // One carrying a piece's loot, one a stack it lifted, one still on its way out.
@@ -280,12 +295,14 @@ public class MigrationsTests
         queue["entries"]!.AsArray().Insert(0, new JsonObject { ["id"] = 9, ["recipe"] = "powerDriver", ["count"] = 1, ["by"] = 0 });
         queue["entries"]!.AsArray().Add(new JsonObject { ["id"] = 10, ["recipe"] = "scanner", ["count"] = 2, ["by"] = 0 });
         queue["progress"] = 5000;
-        foreach (var gear in Content.Research.GearSold) save["slices"]!["knowledge"]!["granted"]!.AsArray().Add(gear);
+        // The gear sold at format 59: what the step drops is frozen there, whatever is sold since.
+        string[] sold = ["scanner", "powerDriver", "heavyHelmet", "plasmaCutter", "regenSuit"];
+        foreach (var gear in sold) save["slices"]!["knowledge"]!["granted"]!.AsArray().Add(gear);
 
         w.Reload(Migrations.Upgrade(save.ToJsonString()));
         Assert.Equal(["plate"], w.M.Crafting.Queue(former).Select(e => e.Recipe));
         Assert.Equal(0, w.M.Crafting.Progress(former));
-        Assert.All(Content.Research.GearSold, gear => Assert.DoesNotContain(gear, w.M.Knowledge.GrantedIds));
+        Assert.All(sold, gear => Assert.DoesNotContain(gear, w.M.Knowledge.GrantedIds));
         w.Run(Content.Crafts.Get("plate").Ticks * 2 + 5);
         Assert.Equal(2, w.M.Items.Crate(former).Sum(s => s?.Item == "plate" ? s.Count : 0));
     }
@@ -313,13 +330,28 @@ public class MigrationsTests
     }
 
     [Fact]
-    public void DropsTheGridsReservedBoxOfAFormatSixtyOneSaveItsCellsLeftAsTheyAre()
+    public void EmptiesAFormatSixtyOneWantedMeterCountedInBreathsAndDropsItsStirring()
     {
-        // A format-61 world with a vessel's box beside the ship: after the upgrade its cells stay, and nothing reserves them.
+        var w = new Scenario(Layout.Parse("................\n................").OnPlanet());
+        w.Do(new Crew.Enter(2)).Run();
+        var hero = w.M.Crew.HeroOf(0)!;
+        (hero.Need, hero.Wanted) = (1500, 900);
+        var save = JsonNode.Parse(w.World.Save())!.AsObject();
+        save["format"] = 61;
+        save["slices"]!["crew"]!["heroes"]![0]!["stirring"] = 40;
+
+        w.Reload(Migrations.Upgrade(save.ToJsonString()));
+        Assert.Equal((0, 0, 0), (w.M.Crew.HeroOf(0)!.Wanted, w.M.Crew.HeroOf(0)!.Need, w.M.Crew.HeroOf(0)!.Coming));
+    }
+
+    [Fact]
+    public void DropsTheGridsReservedBoxOfAFormatSixtyThreeSaveItsCellsLeftAsTheyAre()
+    {
+        // A format-63 world with a vessel's box beside the ship: after the upgrade its cells stay, and nothing reserves them.
         var w = new Scenario(Registry.Wreck);
         var save = JsonNode.Parse(w.World.Save())!.AsObject();
         string grid = save["slices"]!["grid"]!.ToJsonString();
-        save["format"] = 61;
+        save["format"] = 63;
         save["slices"]!["grid"]!["reserved"] = System.Text.Json.JsonSerializer.SerializeToNode(new Box(1, 2, 3, 4), w.World.Json);
 
         w.Reload(Migrations.Upgrade(save.ToJsonString()));

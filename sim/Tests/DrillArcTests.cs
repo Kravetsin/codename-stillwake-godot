@@ -47,16 +47,57 @@ public class DrillArcTests
     }
 
     [Fact]
-    public void WithTwoDrillsTheFittedOneIsTheOneThatWorksWhereverItLies()
+    public void WithTwoDrillsTheOneInHandWorksFittedOrNot()
     {
-        var w = Ground().GiveItems(0, (Drill, 1)).Put(5, Fitted);
-        Assert.Equal(Fitted, w.M.Items.ToolStack(0, Drill));
-        Assert.Equal(new Stack(Drill, 1), w.M.Items.ToolStack(1, Drill) ?? new Stack(Drill, 1));
-        Assert.Null(w.M.Items.ToolStack(2, Drill));
-        Assert.Equal(2, w.M.Items.Damage(0, Drill));
-        w.Put(5, null!);
+        // A plain drill in hand, the hotbar's first slot, with a fitted one beside it: the plain one hits.
+        var w = Ground().Put(0, new Stack(Drill, 1)).Put(1, Fitted);
+        Assert.Equal(0, w.M.Items.Wielding(0));
         Assert.Equal(new Stack(Drill, 1), w.M.Items.ToolStack(0, Drill));
         Assert.Equal(1, w.M.Items.Damage(0, Drill));
+        w.Do(new Wield(1)).Run();
+        Assert.Equal((1, Fitted, 2), (w.M.Items.Wielding(0), w.M.Items.ToolStack(0, Drill), w.M.Items.Damage(0, Drill)));
+        // An empty hand works no drill: a hit is the weapon's own, as with none carried (0034).
+        w.Do(new Wield(2)).Run();
+        Assert.Null(w.M.Items.ToolStack(0, Drill));
+        Assert.Equal(1, w.M.Items.Damage(0, Drill));
+        Assert.Empty(w.Refusals);
+    }
+
+    [Fact]
+    public void TheHandIsAHotbarSlotAndEachPeersOwn()
+    {
+        var w = Ground().Put(1, Fitted).Put(1, Fitted, peer: 1);
+        w.Do(new Wield(1) { From = 1 }).Do(new Wield(Spec.Inventory.Hotbar)).Do(new Wield(-1)).Run();
+        Assert.Equal(new[] { "items.notHotbar", "items.notHotbar" }, Reasons(w));
+        Assert.Equal((0, 1), (w.M.Items.Wielding(0), w.M.Items.Wielding(1)));
+        Assert.Null(w.M.Items.ToolStack(0, Drill));
+        Assert.Equal(Fitted, w.M.Items.ToolStack(1, Drill));
+    }
+
+    [Fact]
+    public void ADrillRunsOnlyFromTheHandAndStopsAsTheHandLeavesIt()
+    {
+        var w = Ground().Put(1, Fitted).Do(new SetCreative(true)).Do(new Run(Drill, true)).Run();
+        Assert.Equal(new[] { "items.notHeld" }, Reasons(w));
+        w.Do(new Wield(1)).Do(new Run(Drill, true)).Run();
+        Assert.Equal(Drill, w.M.Items.Running(0));
+        // A plain drill moved into the hand's slot runs on, as plain; the hand turned to an empty slot stops it.
+        w.Put(1, new Stack(Drill, 1)).Run();
+        Assert.Equal((Drill, 1), (w.M.Items.Running(0), w.M.Items.Damage(0, Drill)));
+        w.Do(new Wield(2)).Run();
+        Assert.Null(w.M.Items.Running(0));
+    }
+
+    [Fact]
+    public void TheHandIsSavedAndPlaysOnAfterALoad()
+    {
+        var w = Ground().Put(3, Fitted).Do(new Wield(3)).Run();
+        Assert.Contains("\"wielding\"", w.World.Save());
+        w.Reload();
+        Assert.Equal((3, Fitted), (w.M.Items.Wielding(0), w.M.Items.ToolStack(0, Drill)));
+        // Every hand back on the first slot writes none, as a save from before the hand.
+        w.Do(new Wield(0)).Run();
+        Assert.DoesNotContain("wielding", w.World.Save());
     }
 
     [Fact]

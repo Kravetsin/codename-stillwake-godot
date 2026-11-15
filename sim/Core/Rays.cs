@@ -16,6 +16,55 @@ public static class Rays
     /// <summary>The direction of <paramref name="heading"/> (<see cref="Headings"/>) in thousandths: 0 along +x, 64 along +y (down).</summary>
     public static (int X, int Y) Direction(int heading) => (Sine(heading + Headings.Turn / 4), Sine(heading));
 
+    /// <summary>Fine headings to the full turn (<see cref="Headings.Fine"/> to a step): what a slowly turning aim is kept in.</summary>
+    public const int FineTurn = Headings.Turn * Headings.Fine;
+
+    /// <summary>
+    /// The direction of fine heading <paramref name="fine"/> in thousandths: its step's and the next's, mixed by how far it is
+    /// between them, rounded toward zero.
+    /// </summary>
+    public static (int X, int Y) FineDirection(int fine)
+    {
+        int f = fine & (FineTurn - 1), step = f / Headings.Fine, part = f % Headings.Fine;
+        var (ax, ay) = Direction(step);
+        var (bx, by) = Direction(step + 1);
+        return (ax + (bx - ax) * part / Headings.Fine, ay + (by - ay) * part / Headings.Fine);
+    }
+
+    /// <summary>
+    /// The fine heading nearest the way (<paramref name="dx"/>, <paramref name="dy"/>): the step its direction leans most along, then
+    /// the fine heading within two steps of it whose direction it crosses least, the lowest at a tie; 0 for no way.
+    /// </summary>
+    public static int FineHeadingTo(long dx, long dy)
+    {
+        if (dx == 0 && dy == 0) return 0;
+        int step = 0;
+        long most = long.MinValue;
+        for (int h = 0; h < Headings.Turn; h++)
+        {
+            var (x, y) = Direction(h);
+            long dot = x * dx + y * dy;
+            if (dot > most) (most, step) = (dot, h);
+        }
+        int pick = step * Headings.Fine;
+        long least = long.MaxValue;
+        // The table rounded to thousandths may lean the step one off: the fine ones two steps either side are weighed.
+        for (int f = (step - 2) * Headings.Fine; f <= (step + 2) * Headings.Fine; f++)
+        {
+            var (x, y) = FineDirection(f);
+            long cross = Math.Abs(x * dy - y * dx);
+            if (x * dx + y * dy > 0 && cross < least) (least, pick) = (cross, f);
+        }
+        return pick & (FineTurn - 1);
+    }
+
+    /// <summary>How far fine heading <paramref name="to"/> lies from <paramref name="from"/> the short way round: clockwise positive, half a turn positive.</summary>
+    public static int FineApart(int from, int to)
+    {
+        int d = (to - from) & (FineTurn - 1);
+        return d > FineTurn / 2 ? d - FineTurn : d;
+    }
+
     /// <summary>The sine of <paramref name="heading"/> in thousandths, the quarter table mirrored to the whole turn.</summary>
     private static int Sine(int heading)
     {

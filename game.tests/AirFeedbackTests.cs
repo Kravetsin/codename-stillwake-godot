@@ -45,24 +45,24 @@ public class AirFeedbackTests
     }
 
     [Fact]
-    public void ACanisterFloodsTheTabShakesItAMomentAndCoolsItsLampsFromTheLeft()
+    public void ACanisterShakesTheRowAMomentAndCoolsItsStretchesFromTheLeft()
     {
         var wash = new GaugeWash();
         Assert.Null(wash.Since);
-        Assert.Equal((0.0, 0.0, 0.0), (wash.Flood, wash.Rim, wash.White(0)));
+        Assert.Equal(0.0, wash.White(0));
         wash.Breathe(3);
-        Assert.True(wash.Flash > 0 && wash.Flood > 0.6 && wash.Rim == 1);
+        Assert.Equal(1.0, wash.White(0));
         wash.Step(0.05);
         Assert.NotEqual((0, 0), wash.Shake);
         wash.Step(GaugeWash.ShakeS);
         Assert.Equal((0, 0), wash.Shake);
-        // The left lamps have begun to cool, the right ones still burn white.
+        // The left stretches have begun to cool, the right ones still burn white.
         Assert.True(wash.White(0) < 1 && wash.White(14) == 1);
-        // Only the lamps it filled glow on.
+        // Only the stretches it filled glow on.
         Assert.Equal(0, wash.Glow(2));
         Assert.True(wash.Glow(3) > 0);
         for (int i = 0; i < 300; i++) wash.Step(0.01);
         Assert.Null(wash.Since);
-        Assert.Equal((0.0, 0.0, 0.0, 0.0), (wash.Flood, wash.Rim, wash.White(14), wash.Glow(3)));
+        Assert.Equal((0.0, 0.0), (wash.White(14), wash.Glow(3)));
     }
 }

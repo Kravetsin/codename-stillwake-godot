@@ -9,10 +9,10 @@ public static class Water
     /// <summary>The item: a glass bottle of it, one an ice melted.</summary>
     public const string Item = "water";
 
-    /// <summary>What a bottle pours: one and a half canisters, so ice outweighs what is salvaged (scarce-oxygen).</summary>
-    public const int Bottle = 4500;
+    /// <summary>What a bottle pours: a canister's 3 litres, so a bottle and a canister read alike (liquid-volumes).</summary>
+    public const int Bottle = Air.Canister;
 
-    /// <summary>How many bottles a cistern holds.</summary>
+    /// <summary>How many bottles a cistern holds: 150 litres, a tank's.</summary>
     public const int CisternBottles = 50;
 
     public const int CisternCapacity = CisternBottles * Bottle;

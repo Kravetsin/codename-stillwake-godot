@@ -94,10 +94,11 @@ public static class Aiming
     /// in thousandths of a cell, that peer <paramref name="peer"/> could reel (0044), each piece where it is drawn
     /// <paramref name="progress"/> of the way to its next tick; where the rod sticks, where it enters the
     /// piece's box kept <see cref="Bite"/> inside its picture; and how far along the way, from 0 to 1. None while
-    /// it meets nothing; of two met, the nearer, the first in spawn order at a tie.
+    /// it meets nothing; of two met, the nearer, the first in spawn order at a tie. A wreck is met where <paramref name="solid"/>
+    /// says its picture is drawn (tool-edge), the rod sunk <see cref="Bite"/> past it, and flown past where its box is empty.
     /// </summary>
     public static (int Piece, (double X, double Y) At, double T)? Hooks(
-        Registry m, int peer, (double X, double Y) from, (double X, double Y) to, double progress)
+        Registry m, int peer, (double X, double Y) from, (double X, double Y) to, double progress, Func<Piece, double, double, bool>? solid = null)
     {
         (int, (double, double), double)? first = null;
         foreach (var p in m.Debris.Pieces)
@@ -107,11 +108,49 @@ public static class Aiming
             if (Entered((from.X, from.Y, to.X, to.Y), x - halfW, y - halfH, x + halfW, y + halfH) is not double t) continue;
             if (first is var (_, _, nearest) && nearest <= t) continue;
             if (m.Debris.ReelProblem(peer, p.Id) != null) continue;
+            if (solid != null && HalfOf(p.Item) != null)
+            {
+                if (Drawn(p, from, to, t, solid) is not var (hit, at)) continue;
+                if (first is var (_, _, near) && near <= hit) continue;
+                first = (p.Id, at, hit);
+                continue;
+            }
             double ax = from.X + (to.X - from.X) * t, ay = from.Y + (to.Y - from.Y) * t;
             int inW = pictureW - Bite, inH = pictureH - Bite;
             first = (p.Id, (Math.Clamp(ax, x - inW, x + inW), Math.Clamp(ay, y - inH, y + inH)), t);
         }
         return first;
+    }
+
+    /// <summary>How finely the rod's way through a wreck's box is walked for its picture, in thousandths of a cell.</summary>
+    private const double Step = 100;
+
+    /// <summary>
+    /// Where along the way from <paramref name="from"/> to <paramref name="to"/>, past <paramref name="enter"/>, the rod first
+    /// meets <paramref name="piece"/>'s picture as <paramref name="solid"/> says, and where it sticks, <see cref="Bite"/> on
+    /// into it; none while it crosses only the empty part of its box.
+    /// </summary>
+    private static (double T, (double X, double Y) At)? Drawn(
+        Piece piece, (double X, double Y) from, (double X, double Y) to, double enter, Func<Piece, double, double, bool> solid)
+    {
+        double dx = to.X - from.X, dy = to.Y - from.Y, length = Math.Sqrt(dx * dx + dy * dy);
+        if (length == 0) return solid(piece, from.X, from.Y) ? (0, from) : null;
+        (double X, double Y) At(double t) => (from.X + dx * t, from.Y + dy * t);
+        double was = enter, step = Step / length;
+        for (double t = enter; ; t = Math.Min(1, t + step))
+        {
+            var p = At(t);
+            if (solid(piece, p.X, p.Y))
+            {
+                // Narrowed between the last empty sample and this one, to where the picture begins.
+                double lo = was, hi = t;
+                for (int i = 0; i < 8 && t > enter; i++) { double mid = (lo + hi) / 2; var q = At(mid); if (solid(piece, q.X, q.Y)) hi = mid; else lo = mid; }
+                var edge = At(hi);
+                return (hi, (edge.X + dx / length * Bite, edge.Y + dy / length * Bite));
+            }
+            if (t >= 1) return null;
+            was = t;
+        }
     }
 
     /// <summary>
@@ -162,9 +201,10 @@ public static class Aiming
     /// What the harpoon's rod meets first on its way (0044): a piece peer <paramref name="peer"/> could reel
     /// (<see cref="Hooks"/>) or the ship's structure (<see cref="Grapples"/>), whichever is nearer along it.
     /// </summary>
-    public static RodHit? RodMeets(Registry m, Ship ship, int peer, (double X, double Y) from, (double X, double Y) to, double progress)
+    public static RodHit? RodMeets(Registry m, Ship ship, int peer, (double X, double Y) from, (double X, double Y) to, double progress,
+        Func<Piece, double, double, bool>? solid = null)
     {
-        var piece = Hooks(m, peer, from, to, progress);
+        var piece = Hooks(m, peer, from, to, progress, solid);
         var wall = Grapples(ship, from, to);
         if (wall is var (at, t) && (piece is not var (_, _, near) || t < near)) return new RodHit(null, at);
         return piece is var (id, stuck, _) ? new RodHit(id, stuck) : null;

@@ -9,8 +9,13 @@ namespace Stillwake.Game.Tests;
 public class AirSaysTests
 {
     [Fact]
-    public void ATankTellsItsLiquidOfItsCapacityByTheCanister() =>
-        Assert.Equal([new TipLine("3.000/150.000 l", Icon: "canister")], AirSays.Says(Spec.Machines.Get("tank"), Spec.Air.Canister, 0)!);
+    public void ATankTellsItsLiquidOfItsCapacityAndTheWholeCanistersItIsByTheCanister()
+    {
+        var tank = Spec.Machines.Get("tank");
+        Assert.Equal([new TipLine("3.00/150.00 l · 1 canisters", Icon: "canister")], AirSays.Says(tank, Spec.Air.Canister, 0)!);
+        // What is short of a canister is no canister yet, nor short of a litre's hundredth a hundredth.
+        Assert.Equal([new TipLine("87.99/150.00 l · 29 canisters", Icon: "canister")], AirSays.Says(tank, 87_999, 0)!);
+    }
 
     [Fact]
     public void AVaporizerAndThePodTellTheAirTheyMakeAMinuteToATenthRoundedDownByTheOxygenSign()

@@ -72,13 +72,17 @@ Game words → code. One line a term: Russian / English → identifiers → modu
 - доска / the board **≠** → `BoardPage` in `ResearchTablet` on the tablet (T); `BoardSlots`, `BoardView`, `BoardPile` (client) → Research. The tech tree is gone (the-board): the board learns, the black market sells
 - заметка, силуэт, нить / note, silhouette (shape), thread → `BoardView`, `BoardThreads`, `BoardPencil` (how far a shape has come) (client)
 - найдено, счёт / obtained, count → `Knowledge.Obtained` (`Tally`), `ObtainedOf`, counted in `Items` → Knowledge, Items
-- достаточно / enough → `Understanding.Enough`, `Content.Research.EnoughWorth`, `EnoughMost`; понять / understood (the rule) → `ResearchModule`'s walk, `Knowledge.Granted` → Research
+- понять / understood (the rule: one of each part, a machine for a craft) → `ResearchModule`'s walk, `Knowledge.Granted` → Research
 - продано / sold → `Knowledge.Sold`, `SoldOf`, counted at a capsule's launch → Knowledge, Trade
 - строка рынка, блок, заказ / market ring, block, order → `Content.Research.Tabs` (the one `blackMarket`), `TechRing`, `TechNode` (`Gate`, `Order`: what a level wants sold) → Research
 - репутация, уровень мафии / reputation, level → `Knowledge.Level`, `Research.Standing()` (2026-11-08-mafia-reputation) → Knowledge, Research
 - связи ноды / a node's ties → `TechLinks` (client)
 - ценность, наценка / worth, markup → `Content.Market.WorthOf`, `Markup`; цена блока → `Research.Prices` → Research
-- улучшения, слоты инвентаря, пояса, терминала, баллонов / upgrades → `Content.Upgrades`, `Items.SlotOpen`, `Crew.CanisterRefill` → Items, Crew, Research
+- улучшения, слоты инвентаря, пояса, терминала / upgrades → `Content.Upgrades`, `Items.SlotOpen` → Items, Research
+- откат баллона / canister cooldown → `Crew.CanisterCooldown`, `Hero.CanisterIn`, `crew.canisterCooling` → Crew
+- еда, блюдо, голод / food, meal, hunger → `Content.Foods`, `Content.Diet`, `Hero.Meals`, `Eat`, `Hungry`; паёк `ration`, тушёнка `cannedMeat`, паста из капсулы `podPaste` (never an item), фрукт `fruit`, светоягода `glowberry` (crops, crushed or eaten for their seed back), семечко `seed` (a snack); блюда (dishes, the galley's): каша `porridge`, рагу `hash`, бульон `broth`, жаркое `roast`, похлёбка `stew` → Crew
+- холодильник, торговый автомат / fridge, vending machine → debris `fridge` (`Content.Loot`), salvage `salvageVending` (`Vessels.Salvage`) → Debris
+- спокойствие, глубокий вдох, работа / calm, deep, work (a food's rates) → `Content.Rates`, `RatesOf` → Crew
 - торговая станция / trade station → machine `tradeStation`, `TradeModule` → Trade; авто / auto trade station → `autoTradeStation`
 - капсула с товаром / trade capsule → `SendCapsule`, `Flight`, `Market.CapsuleFlight` → Trade; `CapsuleFlights` drawn in f/research
 - кредиты, цены / credits, prices → `Knowledge.Credits`; `Content.Market` → Trade
@@ -90,6 +94,7 @@ Game words → code. One line a term: Russian / English → identifiers → modu
 - стойка электроники / electronics rack **≠** → item `cableRack` → Debris
 - кислородные баки / oxygen tanks (wreckage) **≠** → item `tankCluster` → Debris
 - верстак / workbench → machine `workbench` (paid by hand, no power) → Crafting
+- камбуз / galley → machine `galley` (the dishes, paid by hand, no power) → Crafting
 - формовщик / former → machine `former` → Crafting; circuit assembler **≠** → `assembler`
 
 ## Crew and tools
@@ -103,14 +108,14 @@ Game words → code. One line a term: Russian / English → identifiers → modu
 - сектор удара / aim sector **≠** → `Sector`, `Sectors` (up, straight, down, under) in gc/`SwingMotions.cs` → Crew
 - бур / drill → item `drill`, `c/Weapons.cs`, f/crew `DrillPace`, `Motor` → Crew
 - трос / tether → f/crew `Tether` → Crew; подтягивание по тросу / haul → `Hero.Haul`, `Hero.Wraps` (tether-haul)
-- скафандр / suit → helmet `helmet` or `heavyHelmet` (`Content.Helmet`, slot `head`, `Tank`) + body `suit` or `regenSuit` (`Content.Suit`, slot `suit`; its mode `SuitMode`, `Hero.SuitOn`), `Hero.Air`, `CapacityOf`; `SuitGauge`, `Suits` (colours), `Danger` (f/crew) → Crew, Items
-- голый, без скафандра / bare → no helmet: `Crew.Lungs`; no body: `Crew.BareCold` → Crew
+- скафандр / suit → helmet `helmet`, `quiltedHelmet` (стёганый шлем) or `heavyHelmet` (`Content.Helmet`, slot `head`, `Tank`) + body `suit` or `regenSuit` (`Content.Suit`, slot `suit`; its mode `SuitMode`, `Hero.SuitOn`), `Hero.Air`, `CapacityOf`; `SuitGauge`, `Suits` (colours), `Danger` (f/crew) → Crew, Items
+- голый, без скафандра / bare → no helmet: `Crew.Lungs`; no body: `Temperature.BareLow` → Crew
 - внешность, облик, редактор персонажа / look → `Look`, `ChooseLook`, `LookOf`, `HeroLooks`, `LookEditor` (f/crew) → Players, Crew
 - плащ / cape → `cape` (`Content.Cape`, slot `cape`, `Guard`, `Warmth`), `Hero.Spared`, `ICrewOps.Blow`; `Figure.WearsCape`, `Cape`, `CapeView` (f/crew) → Crew, Items
 - фонарик на шлем / helmet lamp → `helmetLamp`, slot `mount` (`Helmet.Mount`), for whatever sits on a helmet → Items
 - смерть, тело / death, body → `Bodies`, `BodyView` (0061) → Crew, Items
-- трекер, браслет, розыск / tracker, wanted → `Hero.Wanted`, `Need`, `Signal`, `SignalOf`, c/`Wanted.cs`; f/crew `TrackerBlink` → Crew
-- ловец / catcher → species `catcher` (`Lifetime.Hunter`, `Hunt`, `Flyer`, `Purse`), `Bounty`, `HunterOf`; drawn as a hero, f/crew `HunterView` → Creatures; телепорт / blink → `Blink`, залп / salvo → `Salvo` (`shell`), стрельба на бегу → `Gunfire`, лазер / laser → `laser`, `Shoot.Through`, `Arc.Burns`, `FightOf`, `MarksOf` → Creatures
+- трекер, браслет, розыск / tracker, wanted → `Hero.Wanted`, `Need`, `Coming`, `Signal`, `SignalOf`, `ICrewOps.Loot`, c/`Wanted.cs`; начальный пояс / starting belt → `Wanted.Belt`, `Wanted.Drain`; f/crew `TrackerBlink` → Crew
+- ловец / catcher → species `catcher` (`Lifetime.Hunter`, `Hunt`, `Flyer`, `Purse`), `Bounty`, `HunterOf`; drawn as a hero, f/crew `HunterView` → Creatures; телепорт / blink → `Blink`, залп / salvo → `Salvo` (`shell`), стрельба на бегу → `Gunfire`, лазер / laser → `laser`, `Shoot.Through`, `Arc.Burns`, `FightOf`, `MarksOf` → Creatures; ракета, захват / missile, lock → `Hunt.Missile` (`missile`, `Homing`, `Shot.Heading`, `Launch`, `LaunchLeft`), c/`ShotLooks.Missile`, f/crew `CatcherFx.LockOf` → Creatures
 
 ## World
 
@@ -123,7 +128,8 @@ Game words → code. One line a term: Russian / English → identifiers → modu
 - планета / planet → `PlanetType` (`c/PlanetTypes.cs`), `Surface`, `Terrain` (sim/Core) → Core, Building
 - фон, задний план, параллакс / backdrop, the land behind → `PlanetSky` (r/, the sky), `BackdropView`, `BackdropPlan` (f/backdrop, the land), `BackdropLooks` (gc) → client only
 - сутки, день, ночь, время суток / day, night, hour → `Sky.Cycle` (`c/Sky.cs`), `SkyNow`, `SetTime` (sim/Sky); fades `Daylight` (gc) → Sky
-- ночной холод, мороз / the night's chill → `Cycle.Chill`, `ColdAt` (sim/Crew), frost `Report.Cold` → Crew
+- ночной холод, мороз / the night's chill → `Cycle.Chill` (degrees), frost `Report.Cold` → Crew
+- температура, градусы, предел / temperature, degrees, a hero's limit → `TemperatureAt`, `LowOf`, `Felt` (sim/Crew), `Temperature`, `Kind.Temperatures`, `ItemSpec.Low`, `Cape.Warmth` (c/) → Crew
 - копать / dig → `Dig`, `Crack` (sim/Building `Digging.cs`) → Building
 - жила, руда / vein, ore → `Vein` (`c/Veins.cs`), materials `copperVein`, `iceVein`, `ironVein`, `sulfurVein` (сера, item `sulfur`; `Material.In`), drawn in `Terrain` → Core
 - залежь, рудный карман / ore pocket → `Pockets` (`c/Veins.cs`), `Terrain.PaintPockets` → Core

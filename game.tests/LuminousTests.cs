@@ -311,4 +311,33 @@ public class LuminousTests
         flares.Shock(0, 0, 2, 10, 100, (255, 255, 255), 0.3, squash: 0.16);
         Assert.Equal([1, 0.16], flares.Shocks.Select(s => s.Squash));
     }
+
+    private static readonly Luminous Still = new(Glimmer.Mote, [(255, 255, 255)], (10000, 10000));
+
+    [Fact]
+    public void AParticleRunsItsRideAndFliesOffTheWayGivenAtItsEnd()
+    {
+        var glims = Middle();
+        var g = glims.Add(Still, 0, 0, 10, 0)!;
+        g.Rides([(1, 0), (1, 1)], 48, -1, 0, 0);
+        glims.Step(100);
+        Assert.Equal((1.0, 0.0), (Math.Round(g.X, 9), Math.Round(g.Y, 9)));
+        Assert.True(g.Riding);
+        glims.Step(100);
+        Assert.Equal((1.0, 1.0), (Math.Round(g.X, 9), Math.Round(g.Y, 9)));
+        Assert.False(g.Riding);
+        Assert.Equal((-10.0, 0.0), (Math.Round(g.Vx, 9), Math.Round(g.Vy, 9)));
+    }
+
+    [Fact]
+    public void AParticleThatHasRunItsMostLetsGoTheWayTheRideRanTurnedByItsFan()
+    {
+        var glims = Middle();
+        var g = glims.Add(Still, 0, 0, 10, 0)!;
+        g.Rides([(0, 4)], 2, -1, 0, Math.PI / 2);
+        glims.Step(1000);
+        Assert.Equal((0.0, 2.0), (Math.Round(g.X, 9), Math.Round(g.Y, 9)));
+        Assert.False(g.Riding);
+        Assert.Equal((-10.0, 0.0), (Math.Round(g.Vx, 9), Math.Round(g.Vy, 9)));
+    }
 }

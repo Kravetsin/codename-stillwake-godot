@@ -27,7 +27,7 @@ public sealed record BoltTint((int R, int G, int B) Core, (int R, int G, int B) 
 /// rolled anew, alive <see cref="Life"/> of them. Its shape is kept along and across the line between its ends, a share
 /// of its length, so a held arc stays on ends that move: the drill swinging, a lamp's socket.
 /// </summary>
-public sealed class Bolt(BoltEnds ends, int life, double intensity, double width, bool branchy, bool fine = false, BoltTint? tint = null)
+public sealed class Bolt(BoltEnds ends, int life, double intensity, double width, bool branchy, bool fine = false, BoltTint? tint = null, bool steady = false)
 {
     public BoltEnds Ends { get; } = ends;
     /// <summary>Its life and age, in 60 Hz frames.</summary>
@@ -45,6 +45,28 @@ public sealed class Bolt(BoltEnds ends, int life, double intensity, double width
     public bool Fine { get; } = fine;
     /// <summary>Its colours: the cyan of every arc but the arc module's violet (0086).</summary>
     public BoltTint Tint { get; } = tint ?? BoltTint.Cyan;
+    /// <summary>
+    /// A steady arc (spear-effects, «Срыв разряда»): its shape rolled once and held its whole life, its line eaten from both
+    /// ends as it ages and its forks from their tips, bright till its last <see cref="Bolts.SteadyFade"/> of it; a piece of arc
+    /// torn off a moving weapon, left where it tore.
+    /// </summary>
+    public bool Steady { get; } = steady;
+    /// <summary>How far through its life it is, 0 to 1.</summary>
+    public double Aged => (double)Age / Life;
+    /// <summary>How bright it is now: its <see cref="Intensity"/>, a steady arc's dying over the end of its life.</summary>
+    public double Brightness => Steady ? Intensity * Math.Clamp((1 - Aged) / Bolts.SteadyFade, 0, 1) : Intensity;
+
+    /// <summary>
+    /// What of line <paramref name="line"/> still shows, shares of its length: all of an arc's own; a steady one's line eaten
+    /// from both ends to half of <see cref="Aged"/> (a little faster at first), its forks shrunk from their tips.
+    /// </summary>
+    public (double From, double To) Shown(int line)
+    {
+        if (!Steady) return (0, 1);
+        if (line > 0) return (0, Math.Max(0, 1 - 1.4 * Aged));
+        double eaten = 0.5 * Math.Pow(Aged, 1.1);
+        return (eaten, 1 - eaten);
+    }
     /// <summary>Its line, then each branch's, as (along, across) shares of its length; <see cref="Runs"/> says where each starts.</summary>
     internal readonly List<(double U, double V)> Shape = [];
     internal readonly List<int> Runs = [];
@@ -107,6 +129,8 @@ public sealed class Bolts(Func<double>? random = null)
     public const double Haze = 4, Core = 1.2, Stray = 0.35;
     /// <summary>How many of its last shapes an arc shows behind it, each fainter: two 60 Hz frames each, a tenth of a second.</summary>
     public const int Ghosts = 4;
+    /// <summary>The share of a steady arc's life it dies over at the end (<see cref="Bolt.Steady"/>).</summary>
+    public const double SteadyFade = 0.3;
     /// <summary>The chance a fork grows at a point of a branchy arc, before the share each point gets.</summary>
     private const double Branching = 0.35;
     /// <summary>A fine arc's core and the haze either side of it (<see cref="Bolt.Fine"/>).</summary>
@@ -119,10 +143,10 @@ public sealed class Bolts(Func<double>? random = null)
     public IReadOnlyList<Bolt> Live => _live;
 
     /// <summary>A new arc along <paramref name="ends"/> for <paramref name="life"/> 60 Hz frames, its shape rolled now; null past the limit.</summary>
-    public Bolt? Add(BoltEnds ends, int life, double intensity = 1, double width = 1, bool branchy = false, bool fine = false, BoltTint? tint = null)
+    public Bolt? Add(BoltEnds ends, int life, double intensity = 1, double width = 1, bool branchy = false, bool fine = false, BoltTint? tint = null, bool steady = false)
     {
         if (_live.Count >= Limit) return null;
-        var bolt = new Bolt(ends, Math.Max(1, life), intensity, width, branchy, fine, tint);
+        var bolt = new Bolt(ends, Math.Max(1, life), intensity, width, branchy, fine, tint, steady);
         Roll(bolt);
         _live.Add(bolt);
         return bolt;
@@ -145,11 +169,41 @@ public sealed class Bolts(Func<double>? random = null)
                     _live[i] = _live[^1];
                     _live.RemoveAt(_live.Count - 1);
                 }
-                else if (b.Fine || b.Age % Hold == 0) Roll(b);
+                else if (!b.Steady && (b.Fine || b.Age % Hold == 0)) Roll(b);
             }
     }
 
     public void Clear() => _live.Clear();
+
+    /// <summary>
+    /// The part of the line through <paramref name="points"/> from share <paramref name="from"/> to <paramref name="to"/> of its
+    /// length, into <paramref name="into"/>: its count, none when nothing is left (<see cref="Bolt.Shown"/>).
+    /// </summary>
+    public static int Cut(ReadOnlySpan<(double X, double Y)> points, double from, double to, Span<(double X, double Y)> into)
+    {
+        if (points.Length < 2 || to <= from || into.Length < 2) return 0;
+        double total = 0;
+        for (int i = 1; i < points.Length; i++) total += Distance(points[i - 1], points[i]);
+        double d0 = from * total, d1 = to * total, run = 0;
+        int n = 0;
+        for (int i = 1; i < points.Length && n < into.Length; i++)
+        {
+            double l = Distance(points[i - 1], points[i]), next = run + l;
+            if (n == 0 && next >= d0) into[n++] = At(points[i - 1], points[i], l > 0 ? (d0 - run) / l : 0);
+            if (n > 0 && next >= d1)
+            {
+                into[n++] = At(points[i - 1], points[i], l > 0 ? (d1 - run) / l : 0);
+                return n;
+            }
+            if (n > 0 && n < into.Length) into[n++] = points[i];
+            run = next;
+        }
+        return n;
+    }
+
+    private static double Distance((double X, double Y) a, (double X, double Y) b) => Math.Sqrt((b.X - a.X) * (b.X - a.X) + (b.Y - a.Y) * (b.Y - a.Y));
+
+    private static (double X, double Y) At((double X, double Y) a, (double X, double Y) b, double t) => (a.X + (b.X - a.X) * t, a.Y + (b.Y - a.Y) * t);
 
     private double Between(double from, double to) => from + (to - from) * _random();
 

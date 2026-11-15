@@ -1,3 +1,4 @@
+using System.Text.Json.Nodes;
 using Stillwake.Sim.Crafting;
 using Stillwake.Sim.Debris;
 using Stillwake.Sim.Items;
@@ -9,8 +10,8 @@ using Slot = Stillwake.Sim.Items.Place;
 namespace Stillwake.Sim.Tests;
 
 /// <summary>
-/// The farm (0060): a grow capsule is a fed station of the "grow" process, on power, turning a seed in its input into
-/// 4 biomass and none, one or two seeds (biomass ferments into biofuel: FermenterTests); soil is pressed at the Former; seeds come from
+/// The farm (0060, fruit-not-biomass): a grow capsule is a fed station of the "grow" process, on power, turning a seed in its input into
+/// 4 fruit and a spore into 3 glowberries (crushed or eaten: FruitTests); soil is pressed at the Former; seeds come from
 /// supply pods.
 /// </summary>
 public class FarmTests
@@ -72,7 +73,7 @@ public class FarmTests
     }
 
     [Fact]
-    public void GrowsASeedIntoFourBiomassInNinetySixHundredTicksAtFullPowerDrawingWhileItWorks()
+    public void GrowsASeedIntoFourFruitInNinetySixHundredTicksAtFullPowerDrawingWhileItWorks()
     {
         var w = World().Run(2);
         int capsule = Capsule(w);
@@ -87,12 +88,12 @@ public class FarmTests
         w.Run();
         Assert.Equal(Draws, Demand(w));
         w.Run(Crop / 1000 - 3);
-        Assert.Equal((0, 2), (Output(w, capsule, "biomass"), Held(w, capsule, "seed")));
+        Assert.Equal((0, 2), (Output(w, capsule, "fruit"), Held(w, capsule, "seed")));
         w.Run();
-        // Planting used the seed: one left in the input, and what it gave back in the outputs.
-        Assert.Equal(4, Output(w, capsule, "biomass"));
+        // Planting used the seed: one left in the input, the fruit in the outputs and no seed back, which crushing or eating gives.
+        Assert.Equal(4, Output(w, capsule, "fruit"));
         Assert.Equal(new Stack("seed", 1), w.M.Items.Crate(capsule)[0]);
-        Assert.InRange(Output(w, capsule, "seed"), 0, 2);
+        Assert.Equal(0, Output(w, capsule, "seed"));
         // The next seed grows from nothing.
         Assert.Equal(0, w.M.Crafting.Progress(capsule));
         w.Run();
@@ -116,9 +117,9 @@ public class FarmTests
         int ticks = (Crop - 1000 + gain - 1) / gain;
         Assert.True(ticks > Crop / 1000);
         w.Run(ticks - 2);
-        Assert.Equal(0, Output(w, capsule, "biomass"));
+        Assert.Equal(0, Output(w, capsule, "fruit"));
         w.Run();
-        Assert.Equal(4, Output(w, capsule, "biomass"));
+        Assert.Equal(4, Output(w, capsule, "fruit"));
     }
 
     [Fact]
@@ -137,14 +138,13 @@ public class FarmTests
         w.Do(new Sim.Power.Lay(w.At(0, 0), w.At(1, 3))).Run();
         Assert.Equal(1001 * 1000, w.M.Crafting.Progress(capsule));
         w.Run(Crop / 1000 - 1002);
-        Assert.Equal(0, Output(w, capsule, "biomass"));
+        Assert.Equal(0, Output(w, capsule, "fruit"));
         w.Run();
-        Assert.Equal(4, Output(w, capsule, "biomass"));
+        Assert.Equal(4, Output(w, capsule, "fruit"));
     }
 
     /// <summary>
-    /// Full outputs pause it, resting, its growth kept; and it waits for room for the most a crop may give, biomass and two
-    /// seeds, whatever the draw will be.
+    /// Full outputs pause it, resting, its growth kept; and it waits for room for its whole crop, four fruit.
     /// </summary>
     [Fact]
     public void PausesRestingWhileItsOutputsCannotTakeAWholeCropKeepingItsGrowth()
@@ -153,14 +153,14 @@ public class FarmTests
         int capsule = Capsule(w);
         Put(w, capsule, "seed").Run(99);
         Assert.Equal(100 * 1000, w.M.Crafting.Progress(capsule));
-        // Room for the biomass but not for two seeds more: it pauses as if there were none.
-        Stock(w, capsule, new Stack("seed", 1), new Stack("biomass", StackOf("biomass") - 4), new Stack("seed", StackOf("seed") - 1)).Run(3);
+        // Room for three fruit but not the fourth: it pauses as if there were none.
+        Stock(w, capsule, new Stack("seed", 1), new Stack("fruit", StackOf("fruit") - 3), new Stack("canister", StackOf("canister"))).Run(3);
         Assert.False(w.M.Crafting.CanSmelt(capsule));
         Assert.False(w.M.Crafting.Works(capsule));
         Assert.Equal(0, Demand(w));
         Assert.Equal(100 * 1000, w.M.Crafting.Progress(capsule));
-        // One seed taken out: two more fit, and it grows on from where it stood.
-        w.Do(new Move(new Slot(2, capsule), new Target(), 1)).Run(2);
+        // One fruit taken out: four fit, and it grows on from where it stood.
+        w.Do(new Move(new Slot(1, capsule), new Target(), 1)).Run(2);
         Assert.Equal(Draws, Demand(w));
         Assert.Equal(102 * 1000, w.M.Crafting.Progress(capsule));
         // Its outputs full of what is never grown: it waits again.
@@ -170,51 +170,24 @@ public class FarmTests
     }
 
     /// <summary>
-    /// Every crop uses its seed and gives back none, one or two, drawn from the world's Rng by the seed's weights (35, 50,
-    /// 15 in a hundred): over two thousand crops each share within a few points, and the farm eats about one seed in five.
+    /// Every crop uses its seed or spore and gives its fruit, 4 a seed and 3 glowberries a spore, and nothing back: the seed
+    /// comes back from its fruit, crushed or eaten (FruitTests). A crop draws nothing from the world's Rng.
     /// </summary>
     [Fact]
-    public void EveryCropUsesItsSeedAndGivesBackNoneOneOrTwoByTheSeedsOdds()
+    public void EveryCropUsesItsSeedAndGivesItsFruitAndNothingBack()
     {
-        var w = World();
+        var w = World().Run();
         int capsule = Capsule(w);
-        Assert.Equal([35, 50, 15], Content.Items.Get("seed").Returns);
-        const int crops = 2000;
-        var back = new int[3];
-        for (int i = 0; i < crops; i++)
-        {
-            Stock(w, capsule, new Stack("seed", 5), null, null);
-            Ripen(w, capsule, Crop - 1000).Run();
-            Assert.Equal(new Stack("seed", 4), w.M.Items.Crate(capsule)[0]);
-            Assert.Equal(4, Output(w, capsule, "biomass"));
-            back[Output(w, capsule, "seed")]++;
-        }
-        Assert.Equal(crops, back.Sum());
-        Assert.InRange(back[0], crops * 31 / 100, crops * 39 / 100);
-        Assert.InRange(back[1], crops * 46 / 100, crops * 54 / 100);
-        Assert.InRange(back[2], crops * 12 / 100, crops * 18 / 100);
-        Assert.InRange(back[1] + 2 * back[2], crops * 76 / 100, crops * 84 / 100);
-    }
-
-    /// <summary>The draw is the world's: a crop completed after a reload gives what it gives without one, and the seeds' sequence follows the world's seed.</summary>
-    [Fact]
-    public void ACropsSeedsAreDrawnFromTheWorldsRngAliveAcrossASaveAndLoad()
-    {
-        IEnumerable<int> Crops(uint seed, bool reload)
-        {
-            var w = new Scenario(World().Layout, seed).GiveItems(0, ("seed", 1));
-            int capsule = Capsule(w);
-            for (int i = 0; i < 40; i++)
+        string rng = JsonNode.Parse(w.World.Save())!["rng"]!.ToJsonString();
+        foreach (var (crop, fruit, count) in new[] { ("seed", "fruit", 4), ("spore", "glowberry", 3) })
+            for (int i = 0; i < 20; i++)
             {
-                Stock(w, capsule, new Stack("seed", 1), null, null);
-                Ripen(w, capsule, Crop - 2000).Run();
-                if (reload) w.Reload();
-                w.Run();
-                yield return Output(w, capsule, "seed");
+                Stock(w, capsule, new Stack(crop, 5), null, null);
+                Ripen(w, capsule, Crop - 1000).Run();
+                Assert.Equal(new Stack(crop, 4), w.M.Items.Crate(capsule)[0]);
+                Assert.Equal([new Stack(fruit, count), null], w.M.Items.Crate(capsule).Skip(1));
             }
-        }
-        Assert.Equal(Crops(3, reload: false), Crops(3, reload: true));
-        Assert.NotEqual(Crops(3, reload: false), Crops(4, reload: false));
+        Assert.Equal(rng, JsonNode.Parse(w.World.Save())!["rng"]!.ToJsonString());
     }
 
     /// <summary>A furnace takes a seed into its input and does nothing with it: no fire lit, no smelt, no complaint. Rock in a capsule likewise.</summary>

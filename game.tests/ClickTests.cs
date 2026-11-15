@@ -47,6 +47,15 @@ public class ClickTests
         Assert.Equal(1, Clicks.On(null, Click(Inv(0), Scrap(1), right: true)).Picked?.Count);
     }
 
+    /// <summary>A food of the hero's own is eaten by the right button, nothing picked (food-and-the-body); in a crate it is any stack.</summary>
+    [Fact]
+    public void EatAFoodOfTheHerosOwnWithTheRightButtonNothingPicked()
+    {
+        var rations = new Stack("ration", 3);
+        Assert.Equal(new Clicked(null, Eats: "ration"), Clicks.On(null, Click(Inv(4), rations, right: true)));
+        Assert.Equal(new Clicked(new Picked(Box(1), 2)), Clicks.On(null, Click(Box(1), rations, right: true)));
+    }
+
     [Fact]
     public void BreatheACanisterOfTheHerosOwnWithTheRightButtonNothingPicked()
     {

@@ -4,7 +4,7 @@
 
 | File | Purpose |
 | --- | --- |
-| `Furnace.cs` | Fire (ADR 0023): a furnace or a generator (burner, biofuel) burns fuel and breathes its room's air; a furnace's fire heats it … |
+| `Furnace.cs` | Fire (ADR 0023): a furnace, a galley or a generator (burner, biofuel) burns fuel and breathes its room's air; a furnace's fire heats it … |
 
 Fire ([0023](../../docs/decisions/0023-a-furnace-burns-fuel.md)): a furnace or a generator burns
 fuel and breathes its room's air. A furnace's fire heats it, so `Crafting` smelts the salvage in its input
@@ -31,13 +31,14 @@ once, and smelting has moved to `Crafting`.
 
 ## Rules
 
-- A machine's slots live in `Items`: the furnace's input, its fuel, then its outputs; the generator's
+- A machine's slots live in `Items`: the furnace's input, its fuel, then its outputs; the galley's fuel, then its outputs; the generator's
   one fuel slot, the biofuel generator's of biofuel only. Which slot burns is the machine's `FuelSlot` in `Content.Machines`. Both are opened
   with E as a crate is.
 - Each tick, in the simulation phase, furnaces and generators together in machine id order:
   - **lit** only when it has none, with fuel in its fuel slot (an item with `BurnTicks`) and air in a
     cell of it or a breath in its tanks (blown); a furnace also only with what it can smelt (`ICraftingQueries.CanSmelt`: salvage in its
-    input, hot enough, room for its yields; never for what is too hot for it, which stays in its input).
+    input, hot enough, room for its yields; never for what is too hot for it, which stays in its input); a galley only with a
+    dish to cook (`HasWork`), so one idle burns nothing.
     One fuel is used up (`IItemsOps.Consume`), worth its
     `BurnTicks`. An item that is both (fat) burns in the fuel slot and smelts in the input, by where it was put;
   - **burning**, it breathes `Content.Furnace.Breath` from its first aired cell every
@@ -53,7 +54,7 @@ once, and smelting has moved to `Crafting`.
   air as above. Turning, its fuel left is scaled by `Blown` / `BlownOf`, rounded down, at least 1, so a fuel lasts
   that much longer only while blown. Blown, a furnace's `Heat` share is `Blown` / `BlownOf` × 1000 and a generator is
   told to `IPowerOps.Blow`, making that much more; it reserves nothing.
-- **A furnace's fire heats it:** in the construction phase, before crafting's simulation, each furnace
+- **A furnace's or a galley's fire heats it:** in the construction phase, before crafting's simulation, each
   whose fire burns is told to `Crafting` (`ICraftingOps.Heat`), which smelts in it that tick at its
   station's speed. The fire is read as the last tick left it, so a furnace starts smelting the tick after
   it lights, and a fire going out for want of air still smelts on its last tick.
@@ -77,8 +78,8 @@ once, and smelting has moved to `Crafting`.
   only, nothing it can smelt fits), `furnace.noFuel`, `furnace.noAir` or `furnace.unneeded` (a generator only, cold with
   fuel its network does not want); for a furnace with salvage in
   its input, also what it smelts, how far, out of how much work, in thousandths of a tick (crafting's
-  measure). A furnace with nothing to smelt says only `Burning` (TypeScript's `{ burning }`). No query
-  interface: no module reads it, only the client.
+  measure). A furnace with nothing to smelt says only `Burning` (TypeScript's `{ burning }`). `Burning(id)`: whether its
+  fire burns, what the galley's picture follows. No query interface: no module reads it, only the client.
 - No commands, so no fuzz generator: a hero works a fire by moving items in and out (`Items.Move`).
 
 ## Invariants

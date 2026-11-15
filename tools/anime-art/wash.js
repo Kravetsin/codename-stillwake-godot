@@ -83,12 +83,21 @@ function record(draw) {
     tube(d, w, m, o) { ops.push({ k: 'tube', d, w, m, o: o || {} }); return a; },
     glow(d, c, o) { ops.push({ k: 'glow', d, c, o: o || {} }); return a; },
     cut(d, o) { ops.push({ k: 'cut', d, o: o || {} }); return a; },
+    image(img, x, y, w, h, o) { ops.push({ k: 'image', img, x, y, w, h, o: o || {} }); return a; },
   };
   draw(a);
   return ops.filter((o) => !o.o.only || o.o.only === 'cel');
 }
 const list = (v) => (v === undefined || v === null ? [] : Array.isArray(v) ? v : [v]);
 const INK = '#17120f';
+
+/** A raw picture's silhouette in ink, made once a picture. */
+const inkCache = new Map();
+function inked(img) {
+  let c = inkCache.get(img);
+  if (!c) { c = canvas(img.width, img.height); const x = c.getContext('2d'); x.drawImage(img, 0, 0); x.globalCompositeOperation = 'source-in'; x.fillStyle = INK; x.fillRect(0, 0, c.width, c.height); inkCache.set(img, c); }
+  return c;
+}
 
 function wash(pic) {
   const Z = window.WZ || 1, px = (pic.px || 4) * Z, K = Z > 1 ? 1 : 3, m = pic.margin || 0, u = pic.units || 1;
@@ -100,6 +109,9 @@ function wash(pic) {
   const set = (c) => { c.setTransform(sc, 0, 0, sc, ox, oy); c.lineJoin = 'round'; c.lineCap = 'round'; };
   set(C); set(N); N.fillStyle = INK;
   const ops = record(pic.draw), seed = pic.w * 3 + pic.h;
+  // Where a raw picture shows (traced.js raw): its own paint, which the water passes over; what is drawn over it clears it.
+  const R = ops.some((op) => op.k === 'image') ? canvas(W, H) : null, Rx = R && R.getContext('2d');
+  const unraw = (fn) => { if (!Rx) return; Rx.save(); Rx.globalCompositeOperation = 'destination-out'; fn(Rx); Rx.restore(); };
   const T = canvas(W, H), Tx = T.getContext('2d');
   const crescent = (d, col, by) => {
     Tx.setTransform(1, 0, 0, 1, 0, 0); Tx.globalCompositeOperation = 'source-over'; Tx.clearRect(0, 0, W, H); set(Tx);
@@ -111,15 +123,28 @@ function wash(pic) {
   const offsets = pic.tile ? [-1, 0, 1].flatMap((dy) => [-1, 0, 1].map((dx) => [dx, dy])) : [[0, 0]];
   for (const [dx, dy] of offsets) {
   ox = ox0 + dx * pic.w * u * sc; oy = oy0 + dy * pic.h * u * sc;
-  set(C); set(N);
+  set(C); set(N); if (Rx) set(Rx);
   // The heavy outer line is thinner here: the pen, not a sticker's border.
   for (const op of ops) {
     if (op.k === 'shape' && op.o.outer !== false) pen(N, op.d, L0.outer * .4, uw, .16, seed);
     else if (op.k === 'tube' && !op.o.bare) { N.save(); N.strokeStyle = INK; N.lineWidth = op.w + L0.outer * .28; N.stroke(P(op.d)); N.restore(); }
+    // A raw picture's outer line: its silhouette in ink, laid round it as wide as a shape's pen.
+    else if (op.k === 'image') {
+      const ink = inked(op.img), r = L0.outer * .4;
+      for (const [k, n] of [[1, 16], [.5, 8]]) for (let j = 0; j < n; j++) N.drawImage(ink, op.x + Math.cos(j * Math.PI * 2 / n) * r * k, op.y + Math.sin(j * Math.PI * 2 / n) * r * k, op.w, op.h);
+    }
   }
   let i = 0;
   for (const op of ops) {
     i++;
+    if (op.k === 'image') {
+      erase(() => N.drawImage(op.img, op.x, op.y, op.w, op.h));
+      C.drawImage(op.img, op.x, op.y, op.w, op.h);
+      Rx.drawImage(op.img, op.x, op.y, op.w, op.h);
+      continue;
+    }
+    if (op.k === 'tube') unraw((x) => { x.lineWidth = op.w; x.stroke(P(op.d)); });
+    else if (op.d && op.k !== 'line' && op.k !== 'cut') unraw((x) => x.fill(P(op.d)));
     if (op.k === 'shape') {
       const { d, m: mt, o } = op, p = P(d);
       erase(() => { N.fillStyle = '#000'; N.fill(p); });
@@ -169,11 +194,13 @@ function wash(pic) {
   };
   const wanderX = seamless((X, Y) => fbm(X * .35 + sx, Y * .35, 3)), wanderY = seamless((X, Y) => fbm(X * .35, Y * .35 + 11 + sx, 3));
   const grain = seamless((X, Y) => (vn(X * 5.2 + sx, Y * 5.2) - .5) * .05 + (vn(X * 11, Y * 11 + sx) - .5) * .02), blooms = seamless((X, Y) => fbm(X * .22 + sx, Y * .22, 3)), tides = seamless((X, Y) => fbm(X * .42 + sx + 3, Y * .42 + 7, 3));
+  const raw = Rx ? Rx.getImageData(0, 0, W, H).data : null;
   const at = (v, n) => (pic.tile ? ((v | 0) % n + n) % n : Math.min(n - 1, Math.max(0, v | 0)));
   for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
     const X = x / wpx, Y = y / wpx, dx = (wanderX(X, Y) - .44) * 2 * reach, dy = (wanderY(X, Y) - .44) * 2 * reach;
-    const u0 = at(x + dx, W), v0 = at(y + dy, H), q = (v0 * W + u0) * 4, k = (y * W + x) * 4, al = s[q + 3];
-    if (!al) continue;
+    const u0 = at(x + dx, W), v0 = at(y + dy, H), q = (v0 * W + u0) * 4, k = (y * W + x) * 4, al = s[q + 3], rw = raw ? raw[k + 3] / 255 : 0;
+    if (rw >= 1) { for (let c = 0; c < 4; c++) o[k + c] = s[k + c]; continue; }
+    if (!al) { if (rw > 0) for (let c = 0; c < 4; c++) o[k + c] = s[k + c]; continue; }
     const l = .3 * s[q] + .59 * s[q + 1] + .11 * s[q + 2], lb = .3 * b[q] + .59 * b[q + 1] + .11 * b[q + 2];
     const pool = Math.max(0, (lb - l)) / 255 * 1.1, gran = grain(X, Y), bloom = blooms(X, Y);
     // Thinned paint keeps its hue: mixing toward paper greys a dark colour far more than a light one, and reads as dust.
@@ -181,8 +208,8 @@ function wash(pic) {
     // Layers of wash that dried one over another: a few hard-edged steps of tone, a darker tide line along each step.
     const tide = tides(X, Y) * 7.5, step = Math.floor(tide), line = tide - step < .09 ? .04 : 0;
     const dark = 1.05 - (step % 4) * .035 - line - pool * .6 + gran;
-    for (let c = 0; c < 3; c++) o[k + c] = Math.max(0, Math.min(255, s[q + c] * dark * (1 + thin)));
-    o[k + 3] = al;
+    for (let c = 0; c < 3; c++) o[k + c] = Math.max(0, Math.min(255, s[q + c] * dark * (1 + thin))) * (1 - rw) + s[k + c] * rw;
+    o[k + 3] = al * (1 - rw) + s[k + 3] * rw;
   }
   C.putImageData(out, 0, 0);
   C.drawImage(I, 0, 0);

@@ -15,7 +15,7 @@ public static class BoardThreads
     /// <param name="shape">Whether a thing is a shape yet: it has a slot and no ink.</param>
     /// <param name="pencil">How far a thing has come.</param>
     public static IReadOnlyList<string> Of(string note, IReadOnlyList<BoardThing> things, Func<string, bool> shape, Func<BoardThing, double> pencil) =>
-        things.Where(t => !t.Market && t.Parts.Any(p => p.Item == note) && shape(t.Id))
+        things.Where(t => !t.Market && t.Parts.Contains(note) && shape(t.Id))
             .OrderByDescending(pencil)
             .Take(Most)
             .Select(t => t.Id)

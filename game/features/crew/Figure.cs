@@ -54,14 +54,31 @@ public partial class Figure : Node2D
         ["sheet"] = new(0, 5),
     };
 
-    private sealed record Limb(Node2D Upper, Node2D Lower, Node2D? Ankle = null)
+    private sealed record Limb(Node2D Upper, Node2D Lower, Node2D? Ankle, BentPicture[] Pictures, Sprite2D UpperPart, Sprite2D LowerPart, double Joint)
     {
-        /// <summary>Rotations run clockwise and the figure faces +x, so forward, and a boot's toe up (<paramref name="foot"/>), is negative.</summary>
+        private (Texture2D? Upper, Texture2D? Lower) _seamOf;
+        private (double From, double To) _seam = BentLimb.Plain;
+
+        /// <summary>Where its two pictures meet as worn now (<see cref="BentLimb.SeamOf"/>), found again only when either picture changes.</summary>
+        private (double From, double To) Seam()
+        {
+            if (_seamOf == (UpperPart.Texture, LowerPart.Texture)) return _seam;
+            _seamOf = (UpperPart.Texture, LowerPart.Texture);
+            return _seam = BentLimb.SeamOf(SuitArt.RowsOf(UpperPart.Texture), UpperPart.Offset.Y - Joint, SuitArt.RowsOf(LowerPart.Texture),
+                LowerPart.Offset.Y, 1.0 / HiRes.Scale);
+        }
+
+        /// <summary>
+        /// Rotations run clockwise and the figure faces +x, so forward, and a boot's toe up (<paramref name="foot"/>), is negative;
+        /// the pictures bent as one piece at the joint (bent-limbs).
+        /// </summary>
         public void Bend(Bend b, double foot = 0)
         {
             Upper.Rotation = (float)-b.Upper;
             Lower.Rotation = (float)-b.Lower;
             if (Ankle != null) Ankle.Rotation = (float)-foot;
+            var seam = Seam();
+            foreach (var picture in Pictures) picture.Show(b.Lower, seam);
         }
     }
 
@@ -74,6 +91,19 @@ public partial class Figure : Node2D
     private readonly Limb _frontArm, _backArm, _frontLeg, _backLeg;
     private readonly Node2D _frontHip, _backHip;
     private readonly Node2D _body, _helmet;
+    /// <summary>
+    /// The helmet's parts that turn as the head looks (helmets-fit-the-suit), each its fit's way about its pivot: the head and face
+    /// inside, the shell and glass, and what rides on its crown; and the collar, over the near arm's shoulder, which never turns.
+    /// </summary>
+    private readonly Node2D _face = new(), _shellTurn = new(), _crown = new(), _collar;
+    /// <summary>The helmet worn's fit, its pivot from the neck, and the way the head looks, radians, as last drawn.</summary>
+    private HelmetFit _fit = BodyFit.Whole;
+    /// <summary>The way every helmet was tried as it was last fitted (<see cref="BodyFit.Trial"/>): fitted again when it changes.</summary>
+    private HelmetTurn? _trial;
+    private Vector2 _pivot;
+    private double _gaze;
+    /// <summary>The head's and face's, the shell's, the glass's and the collar's pictures, bent as a soft helmet's cloth bends (<see cref="BentLimb"/>).</summary>
+    private readonly BentPicture[] _helmetPictures;
     private readonly Sprite2D _headLamp, _lens;
     /// <summary>The scanner in the lamp's mount (2026-11-07-the-scanner), and its glass's dot lit, drawn again unlit over it.</summary>
     private readonly Sprite2D _scanner, _scannerDot;
@@ -83,7 +113,9 @@ public partial class Figure : Node2D
     private const double ScannerDotMs = 220;
     private bool _scannerWorn;
     /// <summary>The parts shown by what is worn: the air pack with the body; the helmet's shell and glass, else the hair and beard.</summary>
-    private readonly Sprite2D _pack, _shell, _visor, _hair, _beard, _headPart, _facePart;
+    private readonly Sprite2D _pack, _shell, _visor, _collarPart, _seal, _hair, _beard, _headPart, _facePart;
+    /// <summary>A sealed helmet's rubber seal, under its shell, bent as the shell turns (<see cref="HelmetFit.Sealed"/>).</summary>
+    private readonly BentPicture _sealBent;
     /// <summary>The head and face again, added unlit under the helmet's glass while its lamp is on: the face lit by its spill.</summary>
     private readonly Sprite2D _headLit, _faceLit;
     private readonly Node2D _faceLight;
@@ -187,13 +219,14 @@ public partial class Figure : Node2D
     private const int BeamsMost = 8;
     /// <summary>
     /// Working a plan, the screwdriver in the front hand (0030), the arm reaching out a share
-    /// <see cref="WorkReach"/> of its length, the tool held at one angle as a hand holds it. Each
+    /// <see cref="WorkReach"/> of its length toward it, nearly straight, at most <see cref="WorkTilt"/> radians above or
+    /// below level, the tool along the forearm (builders-raw: one turned apart from the forearm read as askew). Each
     /// <see cref="TwistMs"/> the wrist turns for <see cref="TurnShare"/> of it — the handle's ribs rolling
     /// on three steps, the knuckles coming over so the hand, seen from the side, rises
     /// <see cref="TwistLift"/> pixels and presses <see cref="TwistPush"/> on — then lets go and turns back
     /// to grip again, the hand sinking.
     /// </summary>
-    private const double TwistMs = 900, TurnShare = 0.6, TwistLift = 1.5, TwistPush = 0.6, WorkReach = 0.85;
+    private const double TwistMs = 900, TurnShare = 0.6, TwistLift = 1.5, TwistPush = 0.6, WorkReach = 0.97, WorkTilt = 0.5;
     /// <summary>The builder at work (<see cref="HeldLook.Twist"/>, <see cref="HeldLook.Driven"/>): a frame of its strip, by its grip.</summary>
     private readonly Sprite2D _tool;
     /// <summary>What the front fist holds, the fire axe, the harpoon, the drill or the screwdriver, in the picture of its look (<see cref="HeldLook"/>).</summary>
@@ -214,22 +247,25 @@ public partial class Figure : Node2D
     private SwingArm _swingArm;
     /// <summary>How far into carrying its item trailing on a run the figure is, 0 to 1; and the spring its arm swings on (<see cref="HeroMotion.Carry"/>).</summary>
     private double _carry, _sinceCarryMs = double.PositiveInfinity;
-    /// <summary>How long an aimed item takes to turn to its rest once the arm hangs.</summary>
-    private const double RestMs = 200;
-
-    /// <summary>How far an aimed item hanging has turned to its rest (<see cref="HeldLook.Rest"/>), 0 to 1: up at once as the arm comes up.</summary>
-    private double _rest;
+    /// <summary>How far an aimed item hanging has turned to its rest (<see cref="HeldLook.Rest"/>), 0 to 1: with the arm as it drops or comes up.</summary>
+    private HandOver _rest;
     private readonly Spring _armSpring = new(HeroMotion.Carry.SpringHz, HeroMotion.Carry.SpringDamping);
     /// <summary>The swipe of light the axe leaves on its downstroke (0075).</summary>
     private readonly ReachAir _air = new();
-
-    /// <summary>The phase the swing was at last frame: a cut of the air begins as the blade crosses the fan's near edge.</summary>
-    private double _cutPhase;
     /// <summary>Whether the swing playing bit something, and is drawn held at the strike (<see cref="AxeSwing.Shown"/>); the phase last drawn.</summary>
     private bool _bit;
     private double _lastPhase;
-    /// <summary>The node the body's parts hang from: where a shoulder is, the arms' own frame.</summary>
+    /// <summary>The node the body's parts hang from: the hip's place at rest, the legs' frame and the feet's.</summary>
     private readonly Node2D _frame;
+    /// <summary>
+    /// The upper body (body-answers): turned by an answer's lean about the hip and moved with it, the identity otherwise; where a
+    /// shoulder is, the arms' own frame. What lies behind the legs, the far arm and the cape's inside, hangs from a twin of it.
+    /// </summary>
+    private readonly Node2D _waist, _waistBehind;
+    /// <summary>The body an answer puts into a stroke or a shot, eased in and out (<see cref="BodyPlay"/>).</summary>
+    private BodyBlend _bodyBlend;
+    /// <summary>How long ago the last shot was fired, in ms, and how hard its recoil is answered (<see cref="Recoiled"/>).</summary>
+    private double _recoilMs = double.PositiveInfinity, _recoil;
     /// <summary>The near arm's node among the parts: the held stage's view goes just under it.</summary>
     private readonly Node2D _frontArmNode;
     private Vector2? _workAt;
@@ -286,27 +322,35 @@ public partial class Figure : Node2D
         torso.AddChild(pack);
         torso.AddChild(_jetpack);
         torso.AddChild(chest);
-        // The head turns at the neck: its face shows through the helmet's glass; bare, the hair over it.
+        // The head turns at the neck: its face shows through the helmet's glass; bare, the hair over it. A helmet turns its own way
+        // (helmets-fit-the-suit), its collar drawn over the near arm.
         _helmet = new Node2D { Position = new Vector2(0, (float)-Rig.Neck) };
+        _collar = new Node2D { Position = _helmet.Position };
         (_headPart, _facePart) = (Part("head", joint: "helmet"), Part("face", joint: "helmet"));
         _faceLight = new Node2D { Modulate = new Color(new Color("fff6ce") * FaceLight, 1) };
         _faceLight.AddChild(_headLit = new Sprite2D { Centered = false, Offset = _headPart.Offset, Material = Added });
         _faceLight.AddChild(_faceLit = new Sprite2D { Centered = false, Offset = _facePart.Offset, Material = Added });
         (_beard, _hair) = (Part("beard", joint: "hair"), Part("hair", joint: "hair"));
-        (_shell, _visor) = (Part("shell", joint: "helmet"), Part("visor", joint: "helmet"));
-        foreach (var n in new Node2D[] { _headPart, _facePart, _faceLight, _beard, _hair, _shell, _visor }) _helmet.AddChild(n);
-        _helmet.AddChild(_eyes);
+        (_shell, _visor, _collarPart) = (Part("shell", joint: "helmet"), Part("visor", joint: "helmet"), Part("collar", joint: "helmet"));
+        _helmetPictures = [Bent(_headPart), Bent(_facePart), Bent(_headLit), Bent(_faceLit), Bent(_shell), Bent(_visor), Bent(_collarPart)];
+        _seal = Part("seal", joint: "helmet");
+        _sealBent = Bent(_seal);
+        foreach (var n in new Node2D[] { _headPart, _facePart, _faceLight, _beard, _hair }) _face.AddChild(n);
+        foreach (var n in new Node2D[] { _shell, _visor }) _shellTurn.AddChild(n);
+        foreach (var n in new Node2D[] { _face, _seal, _shellTurn, _crown }) _helmet.AddChild(n);
+        _collar.AddChild(_collarPart);
+        _crown.AddChild(_eyes);
         Gives(_eyes, _eyesGlow);
         // The helmet lamp on its brow (0077), not the player's colour; its lens drawn again unlit: it is the light.
         _headLamp = new Sprite2D { Texture = HeadLampArt.Picture, Centered = false, Offset = HeadLampArt.On - Joints["helmet"], Visible = false };
         Lit.Set(_headLamp);
         _lens = new Sprite2D { Texture = _lensPicture, Position = _headLamp.Offset + HeadLampArt.Lens, Material = new CanvasItemMaterial { LightMode = CanvasItemMaterial.LightModeEnum.Unshaded } };
         _headLamp.AddChild(_lens);
-        _helmet.AddChild(_headLamp);
+        _crown.AddChild(_headLamp);
         _scanner = new Sprite2D { Centered = false, Visible = false };
         Lit.Set(_scanner);
         _scanner.AddChild(_scannerDot = new Sprite2D { Centered = false, Material = Unshaded });
-        _helmet.AddChild(_scanner);
+        _crown.AddChild(_scanner);
         _plan = Part("sheet");
         _plan.Visible = false;
         // The planner's screen glows: drawn unlit over it, so it shows in the dark.
@@ -338,19 +382,36 @@ public partial class Figure : Node2D
         _body = new Node2D();
         var parts = _frame = new Node2D { Position = new Vector2(0, (float)(Rig.H / 2)) };
         _body.AddChild(parts);
+        (_waist, _waistBehind) = (new Node2D(), new Node2D());
         // Both legs come out from under the body, which hides their joints; the near arm hangs in front,
         // its hand over the sheet it holds and closed round the axe's haft or the harpoon's stock.
-        foreach (var n in new Node2D[] { backArm, backLeg, frontLeg, torso, _helmet, _plan, _tool, _held, frontArm, _air }) parts.AddChild(n);
+        Lit.Set(_offHeld);
+        Lit.Set(_belt);
+        Lit.Set(_strap);
+        _offHeld.AddChild(_fuse);
+        var (sx, sy, sw, sh) = CatcherMotion.Strap;
+        _strap.Polygon = [new((float)sx, (float)sy), new((float)(sx + sw), (float)sy), new((float)(sx + sw), (float)(sy + sh)), new((float)sx, (float)(sy + sh))];
+        _belt.AddChild(_strap);
+        // The back fist closes over what it holds; the belt hangs over the body, under the near arm.
+        foreach (var n in new Node2D[] { _waistBehind, backLeg, frontLeg, _waist }) parts.AddChild(n);
+        foreach (var n in new Node2D[] { _offHeld, backArm }) _waistBehind.AddChild(n);
+        foreach (var n in new Node2D[] { torso, _helmet, _belt }) _waist.AddChild(n);
+        _hands = [_plan, _tool, _held, frontArm, _collar, _air];
+        foreach (var n in _hands) _waist.AddChild(n);
         (_capeInside, _capeOutside) = (new CapeView(_cape, inside: true) { Visible = false }, new CapeView(_cape, inside: false) { Visible = false });
         Lit.Set(_capeInside);
         Lit.Set(_capeOutside);
-        parts.AddChild(_capeInside);
-        parts.MoveChild(_capeInside, 0);
+        _waistBehind.AddChild(_capeInside);
+        _waistBehind.MoveChild(_capeInside, 0);
         // The inside lies in the cape's shadow: darker, so it reads as depth behind the hero.
         _capeInside.SelfModulate = new Color(0.72f, 0.72f, 0.78f);
-        parts.AddChild(_capeOutside);
+        _waist.AddChild(_capeOutside);
         _air.Position = new Vector2(0, (float)-Rig.Shoulder);
         AddChild(_body);
+        // A retch's bile (food-tuning): on the glass, clipped to it; out of the mouth, free of the figure, puddles behind it.
+        _helmetPictures[VisorPicture].AddChild(_bile);
+        AddChild(_puddles);
+        AddChild(_drops);
         Wear(colour);
     }
 
@@ -368,7 +429,7 @@ public partial class Figure : Node2D
     /// <summary>A point of the world from the front shoulder, in the arms' own frame: the body as it is placed, turned, lifted and faced.</summary>
     private (double X, double Y) FromShoulder(Vector2 at)
     {
-        var local = _frame.ToLocal(at);
+        var local = _waist.ToLocal(at);
         return (local.X, local.Y + Rig.Shoulder);
     }
 
@@ -384,7 +445,7 @@ public partial class Figure : Node2D
         if (aim == Vector2.Zero) return (1, 0);
         // Never shown, the body has no place yet: the offset as it is, faced.
         if (_shown == null) return (aim.X * facing, aim.Y);
-        var local = _frame.Transform.AffineInverse() * (_body.Transform.AffineInverse() * new Vector2(aim.X * facing, aim.Y - (float)_stepLift));
+        var local = _waist.Transform.AffineInverse() * (_frame.Transform.AffineInverse() * (_body.Transform.AffineInverse() * new Vector2(aim.X * facing, aim.Y - (float)_stepLift)));
         return (local.X, local.Y + Rig.Shoulder);
     }
 
@@ -407,11 +468,84 @@ public partial class Figure : Node2D
     /// <summary>The swing playing bit something: its arm is drawn stopped on contact for a moment (0075), the sim untouched.</summary>
     public void Bit() => _bit = true;
 
+    /// <summary>How far, in pixels, the floor before and behind the feet is free for an answer to carry the body (<see cref="Hero.Room"/>).</summary>
+    public (double Ahead, double Behind) Room { get; set; } = (double.PositiveInfinity, double.PositiveInfinity);
+
+    /// <summary>A shot fired: the body answers its recoil (body-answers), <paramref name="share"/> of a railgun's.</summary>
+    public void Recoiled(double share) => (_recoilMs, _recoil) = (0, share);
+
     private double _flinchMs = double.PositiveInfinity;
     private int _flinchFrom = 1;
 
     /// <summary>Rammed (0103) by something on the side <paramref name="from"/> says, +1 right in the world: the figure flinches from it.</summary>
     public void Flinch(int from) => (_flinchMs, _flinchFrom) = (0, from >= 0 ? 1 : -1);
+
+    private double _retchMs = double.PositiveInfinity;
+    private bool _retchAfloat;
+    private readonly RetchSpray _spray = new();
+    private readonly InkLayer _puddles = new(Layers.FloorItems), _drops = new(Layers.Effects), _bile = new();
+
+    /// <summary>
+    /// Its meals thrown up (food-tuning, bile-slide as picked): a gag, then the body hunches over three gushes; bare, bile sprays
+    /// from the mouth (<see cref="RetchSpray"/>), <paramref name="afloat"/> drifting, on a deck falling into puddles; in a helmet
+    /// it splashes over the glass and slides down it (<see cref="Retching.Film"/>).
+    /// </summary>
+    public void Retch(bool afloat) => (_retchMs, _retchAfloat) = (0, afloat);
+
+    /// <summary>Whether it wears a helmet: its retch is heard through it.</summary>
+    public bool Helmeted => _helmetWorn != null;
+
+    /// <summary>The visor's place among <see cref="_helmetPictures"/>.</summary>
+    private const int VisorPicture = 5;
+
+    /// <summary>Where the mouth is in the head's frame, as <see cref="VisorOn"/> is; which way it throws up, below the face's level on a deck.</summary>
+    private static readonly Vector2 MouthOn = new(4.8f, -3.2f);
+
+    private static readonly Dictionary<string, Rect2> Glasses = new();
+
+    /// <summary>Where a visor picture's glass is, in its hi-res pixels: read once a picture, the first time it is thrown up on.</summary>
+    private static Rect2 GlassOf(string picture)
+    {
+        if (Glasses.TryGetValue(picture, out var known)) return known;
+        var image = HiRes.Load(picture);
+        var used = image?.GetUsedRect() ?? new Rect2I(50, 23, 14, 27);
+        return Glasses[picture] = new Rect2(used.Position, used.Size);
+    }
+
+    /// <summary>The retch played on <paramref name="elapsedMs"/>, once the figure is placed: the bile on the glass or out of the mouth onto a deck at <paramref name="floor"/>.</summary>
+    private void ShowRetch(double elapsedMs, double floor)
+    {
+        bool retching = _retchMs < Retching.Ms;
+        _retchMs += elapsedMs;
+        var visor = _helmetPictures[VisorPicture];
+        bool film = retching && _helmetWorn != null && _visor.Texture != null;
+        visor.ClipChildren = film ? ClipChildrenMode.AndDraw : ClipChildrenMode.Disabled;
+        _bile.Ink.Clear();
+        if (film)
+        {
+            var glass = GlassOf($"hero_{PictureOf("visor")}");
+            var corner = _visor.Offset;
+            double sx = glass.Size.X / 14, sy = glass.Size.Y / 27;
+            (double, double) Placed((double X, double Y) p) =>
+                (corner.X + (glass.Position.X + (p.X - 50) * sx) / HiRes.Scale, corner.Y + (glass.Position.Y + (p.Y - 23) * sy) / HiRes.Scale);
+            _bile.Ink.Feather = InkCanvas.PixelOf(visor);
+            Retching.Film(_bile.Ink, (_retchMs - Retching.GushMs) / 1000 - 0.04, Placed, Math.Sqrt(sx * sy) / HiRes.Scale);
+        }
+        _bile.QueueRedraw();
+        if (_spray.Empty && !retching) return;
+        var mouth = _crown.ToGlobal(MouthOn);
+        float down = _retchAfloat ? -0.2f : 0.2f;
+        var toward = (_crown.ToGlobal(MouthOn + new Vector2(Mathf.Cos(down), Mathf.Sin(down))) - mouth).Normalized();
+        double gush = retching && _helmetWorn == null ? Retching.Gush(_retchMs) : 0;
+        _spray.Step(elapsedMs / 1000, gush, (mouth.X, mouth.Y), (toward.X, toward.Y), _retchAfloat, floor);
+        _puddles.Ink.Clear();
+        _drops.Ink.Clear();
+        _puddles.Ink.Feather = _drops.Ink.Feather = InkCanvas.PixelOf(_drops);
+        _spray.DrawFloor(_puddles.Ink);
+        _spray.DrawAir(_drops.Ink);
+        _puddles.QueueRedraw();
+        _drops.QueueRedraw();
+    }
 
     /// <summary>The item the front hand holds, by id, the fire axe or the harpoon: its hotbar slot chosen, the hand free; none for an empty hand.</summary>
     public string? Wields { get; set; }
@@ -433,6 +567,26 @@ public partial class Figure : Node2D
     /// <summary>Where the harpoon or the drill held aims, in pixels of the world: the arm straight, the barrel's or the bit's line through it; none to let it hang.</summary>
     public Vector2? Aim { get; set; }
 
+    /// <summary>
+    /// The back hand at work over its pose (catcher-motion): its arm bent to <c>Arm</c> by <c>Share</c> of the way, gripping <c>Item</c>
+    /// turned <c>Hold</c> back from the forearm (none for empty), its fuse sparking as <c>Fuse</c> draws it (none unlit); null as the pose has it.
+    /// </summary>
+    public (Bend Arm, double Share, double Hold, HeldLook? Item, ShotPicture? Fuse)? OffHand { get; set; }
+
+    /// <summary>Where the back fist's item is drawn this frame, the middle of its grip, pixels of the world; none for an empty hand.</summary>
+    public Vector2? OffHeldAt { get; private set; }
+
+    /// <summary>What hangs at its belt, strapped over its hip (catcher-motion); none for nothing.</summary>
+    public HeldLook? Belt { get; set; }
+
+    /// <summary>How far more it leans than its pose, radians, forward positive, settled as the pose's lean is.</summary>
+    public double Lean { get; set; }
+
+    /// <summary>The back fist's item, the fuse sparking over it, and the item hung at the belt with its strap.</summary>
+    private readonly Sprite2D _offHeld = new() { Centered = false, Visible = false }, _fuse = new() { Centered = false, Visible = false, Material = Unshaded },
+        _belt = new() { Centered = false, Visible = false };
+    private readonly Polygon2D _strap = new() { Color = new Color(0x1b1d20ff) };
+
     /// <summary>Whether the item held was drawn aimed at <see cref="Aim"/> last frame, its arm up and settled: its muzzle and edge are the aim's (aim-on-use).</summary>
     public bool Aimed { get; private set; }
 
@@ -441,11 +595,34 @@ public partial class Figure : Node2D
     /// <summary>The suit's mode, its belt's charge and the breath's phase (<see cref="SuitGlow.Of"/>): what a switched body's lights show; all off by default.</summary>
     public (bool On, bool Charged, double Phase) Suit { get; set; }
 
-    /// <summary>What its tracker shows (tracker-catchers): steady, blinking now and then, or hunted (<see cref="TrackerBlink"/>).</summary>
+    /// <summary>What its tracker shows (tracker-catchers): steady, or blinking urgently from the alarm on (<see cref="TrackerBlink"/>).</summary>
     public Sim.Crew.Signal Signal { get; set; }
 
     /// <summary>Whether it wears the tracker on its shin: every hero does; a catcher drawn as one does not (tracker-catchers).</summary>
     public bool Tracked { get; set; } = true;
+
+    /// <summary>
+    /// The world's layer its near arm and what it holds are drawn on, over the tufts its feet stand in (held-over-grass); none for a
+    /// figure drawn whole on its own layer: a body, a seated hero, the title's.
+    /// </summary>
+    public int? HandsLayer
+    {
+        get => _handsLayer;
+        set
+        {
+            _handsLayer = value;
+            foreach (var n in _hands) OnHandsLayer(n);
+            OnHandsLayer(_capeOutside);
+            if (_heldView != null) OnHandsLayer(_heldView);
+        }
+    }
+
+    // The near arm, what it holds, and the collar and air over its shoulder, in the order drawn; the held stage's view and the
+    // cape's outside, drawn over the arm, join them.
+    private readonly Node2D[] _hands;
+    private int? _handsLayer;
+
+    private void OnHandsLayer(Node2D n) => (n.ZAsRelative, n.ZIndex) = _handsLayer is { } z ? (false, z) : (true, 0);
 
     /// <summary>
     /// A catcher's gear lit (tracker-catchers): its receiver at <c>Receiver</c> in the figure's colour, as a tracker is (<see cref="TrackerBlink.Lit"/>),
@@ -511,9 +688,9 @@ public partial class Figure : Node2D
     {
         _scanner.Visible = _scannerWorn && _helmetWorn != null;
         if (!_scanner.Visible) return;
-        bool heavy = _helmetWorn == Stillwake.Content.Helmet.Heavy;
-        string name = heavy ? "hero_heavyHelmet_scanner" : "hero_scanner";
-        var (x, y) = heavy ? ScannerInk.OnHeavy : ScannerInk.On;
+        var (name, (x, y)) = _helmetWorn == Stillwake.Content.Helmet.Heavy ? ("hero_heavyHelmet_scanner", ScannerInk.OnHeavy)
+            : _helmetWorn == Stillwake.Content.Helmet.Quilted ? ("hero_quiltedHelmet_scanner", ScannerInk.OnQuilted)
+            : ("hero_scanner", ScannerInk.On);
         _scanner.Texture = PixelArt.Picture(name);
         _scanner.Offset = _scannerDot.Offset = new Vector2((float)x - ScannerInk.Margin, (float)y - ScannerInk.Margin) - Joints["helmet"];
         for (int i = 0; i < _scannerDots.Length; i++) _scannerDots[i] = PixelArt.Picture($"{name}_lit_{i}");
@@ -523,7 +700,7 @@ public partial class Figure : Node2D
     public Vector2 HeadLampAt => _lens.GlobalPosition;
 
     /// <summary>The visor's middle as drawn, in pixels of the world, turning with the head: where a breath of room air puffs off (0081).</summary>
-    public Vector2 Visor => _helmet.ToGlobal(VisorOn);
+    public Vector2 Visor => _crown.ToGlobal(VisorOn);
 
     /// <summary>The feet as drawn, in pixels of the world, and the way up the body, a unit vector: what a canister's vortex rises round (0081).</summary>
     public (Vector2 Feet, Vector2 Up) Stance => (_frame.ToGlobal(Vector2.Zero), -_frame.GlobalTransform.Y.Normalized());
@@ -531,8 +708,8 @@ public partial class Figure : Node2D
     /// <summary>Where the helmet turns, at the neck, in pixels of the world: inside the hero, so never in a wall.</summary>
     public Vector2 HeadAt => _helmet.GlobalPosition;
 
-    /// <summary>The way the helmet lamp points, a unit vector in the world: where the head looks, turned the way the hero faces.</summary>
-    public Vector2 HeadLampToward => _helmet.GlobalTransform.X.Normalized();
+    /// <summary>The way the helmet lamp points, a unit vector in the world: where the head looks, turned the way the hero faces, a bolted helmet's too.</summary>
+    public Vector2 HeadLampToward => _helmet.GlobalTransform.BasisXform(Vector2.Right.Rotated((float)_gaze)).Normalized();
 
     /// <summary>The worn jetpack's nozzle as drawn, in pixels of the world; none without one.</summary>
     public Vector2? Nozzle => _jetpack.Visible ? _jetpack.ToGlobal(NozzleAt) : null;
@@ -551,6 +728,7 @@ public partial class Figure : Node2D
 
     /// <summary>The drill's light and arcs on the held stage, made with it the first time a drill runs in the hand.</summary>
     private DrillLight? _drillLight;
+    private SpearLight? _spearLight;
     private Func<(double X, double Y), Vector2>? _heldAt;
 
     private readonly bool _own;
@@ -572,8 +750,9 @@ public partial class Figure : Node2D
             if (_heldStage != null) return _heldStage;
             _heldStage = Stages.Held();
             _heldView = new EffectsView(_heldStage) { InWorld = true };
-            _frame.AddChild(_heldView);
-            _frame.MoveChild(_heldView, _frontArmNode.GetIndex());
+            OnHandsLayer(_heldView);
+            _waist.AddChild(_heldView);
+            _waist.MoveChild(_heldView, _frontArmNode.GetIndex());
             return _heldStage;
         }
     }
@@ -597,8 +776,27 @@ public partial class Figure : Node2D
     /// <summary>The held harpoon's muzzle, or the drill's point, as drawn this frame, in pixels of the world; none while neither is shown.</summary>
     public Vector2? Muzzle { get; private set; }
 
+    /// <summary>The running grinder's working circle's radius round its hub (<see cref="EdgeStart"/>), pixels; none while none runs.</summary>
+    public double? WheelRadius { get; private set; }
+
+    /// <summary>The running drill's haze helix in the world (drill-contact), from its chuck to its reach; none while none runs.</summary>
+    public ToolHaze.Helix? Helix { get; private set; }
+
     /// <summary>Where the held aimed item's edge begins as drawn this frame: the harpoon's breech, the cutter's nozzle, its jet's start.</summary>
     public Vector2? EdgeStart { get; private set; }
+
+    /// <summary>A held swung tool's edge as last drawn, from its one end to its tip, in pixels of the world; none for any other hand.</summary>
+    public (Vector2 From, Vector2 To)? Blade { get; private set; }
+
+    /// <summary>
+    /// The held struck tool's edge as it was the frame before and as it is, in the world, while it is held both frames and sweeps in a stroke: where
+    /// what it strikes sparks (spark-rule), the spear's thrust too.
+    /// </summary>
+    public (IReadOnlyList<(double X, double Y)> Was, IReadOnlyList<(double X, double Y)> Now)? Sweep => _edgeSweeps && _edge.Count >= 2 && _edgeWas.Count == _edge.Count ? (_edgeWas, _edge) : null;
+
+    // The held swung edge's points this frame, kept to be filled again.
+    private List<(double X, double Y)> _edge = [], _edgeWas = [];
+    private bool _edgeSweeps;
 
     /// <summary>The way the held harpoon's barrel points as drawn, a unit vector in the world.</summary>
     public Vector2 Barrel { get; private set; } = Vector2.Right;
@@ -635,9 +833,8 @@ public partial class Figure : Node2D
     /// <summary>
     /// A landing's dust at the feet, (<paramref name="x"/>, <paramref name="y"/>) the floor (0075): to either side
     /// <paramref name="grains"/> grains skittering out along the floor, slowing into motes, as many motes, two veils rolling
-    /// out and curling; and a faint flat ring racing out along the floor, the only light in it, as wide as the
-    /// <paramref name="fall"/> was fast (0090). A heavy landing's ring goes wider, brighter and longer, and two streaks of light
-    /// race along the floor either side ahead of it.
+    /// out and curling (0090); a heavy one, from a <paramref name="fall"/> that fast, two streaks of light racing along the floor
+    /// either side. No ring: the user took it out (body-answers).
     /// </summary>
     private void Land(double x, double y, int grains, int fall)
     {
@@ -658,9 +855,6 @@ public partial class Figure : Node2D
             for (int i = 0; i < HeroMotion.Landing.HeavyStreaks && Motion.Heavy(fall); i++)
                 glims.Add(Luminous.LandStreak, x + side * 3, y - 0.6, side * glims.Between(90, 140), -glims.Between(0, 8));
         }
-        var (to, ms, alpha) = Motion.RingOf(fall);
-        double ring = Math.Min(Motion.RingFrom + (to - Motion.RingFrom) * Fx.Length, Math.Min(FloorRoom.Left, FloorRoom.Right));
-        if (ring >= 6) Worn.Flares.Shock(x, y - 0.4, Motion.RingFrom, ring, ms, (236, 240, 248), alpha * Fx.Glow, 0.28, 0.16);
     }
 
     /// <summary>How far, in pixels, a landing's dust needs the floor open to spread its whole way.</summary>
@@ -743,6 +937,7 @@ public partial class Figure : Node2D
         Show(_pip, _pipGlow, body is { } p ? $"hero_{p}_pip" : null, _chest.Offset);
         _shell.Visible = _visor.Visible = helmet != null;
         Show(_eyes, _eyesGlow, helmet != null ? $"hero_{helmet}_lit" : null, _shell.Offset);
+        FitHelmet(helmet);
         _headLamp.Offset = HeadLampArt.OnOf(helmet) - Joints["helmet"];
         _lens.Position = _headLamp.Offset + HeadLampArt.Lens;
         _hair.Visible = helmet == null;
@@ -771,6 +966,43 @@ public partial class Figure : Node2D
         sprite.Offset = new Vector2(sprite.Offset.X, -BootOverlap);
     }
 
+    /// <summary>
+    /// <paramref name="helmet"/> (null bare) cut by its fit (helmets-fit-the-suit): its shell and glass above the cut, under the near
+    /// arm; the shell from the cut, or its own collar, over it; turning about its pivot.
+    /// </summary>
+    private void FitHelmet(string? helmet)
+    {
+        (_fit, _trial) = (BodyFit.Of(helmet), BodyFit.Trial);
+        _pivot = new Vector2((float)(_fit.PivotX - BodyFit.NeckX), (float)(_fit.PivotY - BodyFit.NeckY));
+        // A soft one bends about its pivot; any other is never bent, so where its band would be does not matter.
+        foreach (var picture in (BentPicture[])[.. _helmetPictures, _sealBent]) (picture.Joint, picture.Band) = (_pivot.Y, _fit.Band);
+        _seal.Visible = helmet != null && _fit.Sealed;
+        double cut = _fit.Cut ?? double.PositiveInfinity;
+        Rows(_shell, double.NegativeInfinity, cut);
+        Rows(_visor, double.NegativeInfinity, cut);
+        Rows(_collarPart, _fit.Cut ?? double.NegativeInfinity, double.PositiveInfinity);
+        _collarPart.Visible = helmet != null && (_fit.Cut == null || _collarPart.RegionRect.Size.Y > 0);
+    }
+
+    /// <summary>A helmet's picture drawn only from row <paramref name="from"/> to <paramref name="to"/> of its box, each where it is.</summary>
+    private void Rows(Sprite2D sprite, double from, double to)
+    {
+        var size = sprite.Texture.GetSize();
+        float margin = sprite.Texture is CanvasTexture ? HiRes.FigureMargin : 0;
+        float top = (float)Math.Clamp(from + margin, 0, size.Y), bottom = (float)Math.Clamp(to + margin, top, size.Y);
+        (sprite.RegionEnabled, sprite.RegionFilterClipEnabled) = (true, true);
+        sprite.RegionRect = new Rect2(0, top, size.X, bottom - top);
+        sprite.Offset = _joints[sprite] + new Vector2(-margin, top - margin);
+    }
+
+    /// <summary>A helmet's <paramref name="sprite"/> drawn by a picture bent as a soft one's cloth bends about its fit's pivot (<see cref="FitHelmet"/>), still for any other.</summary>
+    private static BentPicture Bent(Sprite2D sprite)
+    {
+        var bent = new BentPicture(sprite, 0, lower: true);
+        sprite.AddChild(bent);
+        return bent;
+    }
+
     /// <summary>The picture a part is drawn with: bare, the look's clothes in place of the suit; the look's face, hair and beard.</summary>
     private string PictureOf(string part) => part switch
     {
@@ -783,6 +1015,11 @@ public partial class Figure : Node2D
         // A later helmet's own pictures (2026-11-03-the-heavy-helmet); the basic one's keep their first names.
         "shell" or "visor" when _helmetWorn is { } worn && worn != Stillwake.Content.Helmet.Basic => $"{worn}_{part}",
         "shell" => "helmet_shell",
+        // A collar of its own (helmets-fit-the-suit), else the shell's rows from its cut.
+        "collar" when BodyFit.Of(_helmetWorn).Cut == null => $"{_helmetWorn}_collar",
+        "collar" => PictureOf("shell"),
+        "seal" when BodyFit.Of(_helmetWorn).Sealed => $"{_helmetWorn}_seal",
+        "seal" => PictureOf("shell"),
         _ => part,
     };
 
@@ -821,12 +1058,13 @@ public partial class Figure : Node2D
         glow.Position = at + (light.Texture != null ? HiRes.MiddleOf(name!) : Vector2.Zero);
     }
 
-    /// <summary>A body's light picture, loaded once; none for a body without it.</summary>
+    /// <summary>A body's light picture, loaded once, faded as its part is (<see cref="SuitArt.Fade"/>); none for a body without it.</summary>
     private static Texture2D? LightOf(string name)
     {
-        if (!Lights.TryGetValue(name, out var light))
-            Lights[name] = light = HiRes.Has(name) ? HiRes.Texture(HiRes.Load(name)!) : null;
-        return light;
+        if (Lights.TryGetValue(name, out var light)) return light;
+        var image = HiRes.Has(name) ? HiRes.Load(name) : null;
+        if (image != null && BodyFit.FadeOf(name["hero_".Length..]) is var (whole, none)) SuitArt.Fade(image, whole, none);
+        return Lights[name] = image != null ? HiRes.Texture(image) : null;
     }
 
     /// <summary>The tracker's light in the player's colour as its <see cref="Signal"/> blinks it, its glow by the same level.</summary>
@@ -891,8 +1129,8 @@ public partial class Figure : Node2D
     }
 
     /// <summary>
-    /// A limb hanging from its joint in two pictures, the upper turned at the joint and the lower at the
-    /// elbow or knee; the upper over the lower, so the joint between them is the upper's rounded end.
+    /// A limb hanging from its joint in two pictures, the upper over the lower, its nodes turned at the joint and at the elbow or
+    /// knee, and each picture drawn bent as one piece round the elbow or knee (<see cref="BentPicture"/>, bent-limbs).
     /// </summary>
     private Limb MakeLimb(Segments size, string upper, string lower, bool far, out Node2D view)
     {
@@ -908,7 +1146,9 @@ public partial class Figure : Node2D
             ankle.AddChild(boot);
             bend.AddChild(ankle);
         }
-        bend.AddChild(Part(lower, far));
+        var pictures = new List<BentPicture>();
+        var lowerPart = Bendable(Part(lower, far), 0, lower: true, pictures);
+        bend.AddChild(lowerPart);
         if (lower == "shin" && !far)
         {
             Lit.Set(_tracker);
@@ -919,8 +1159,30 @@ public partial class Figure : Node2D
             Gives(_trackerLight, _trackerGlow).Position = TrackerAt + HiRes.MiddleOf("hero_tracker_light");
         }
         view.AddChild(bend);
-        view.AddChild(Part(upper, far));
-        return new Limb(view, bend, ankle);
+        var upperPart = Bendable(Part(upper, far), size.Upper, lower: false, pictures);
+        view.AddChild(upperPart);
+        return new Limb(view, bend, ankle, [.. pictures], upperPart, lowerPart, size.Upper);
+    }
+
+    /// <summary>
+    /// <paramref name="part"/> and its band of light, each drawn by a bent picture under it in its place (<see cref="BentPicture"/>), the
+    /// joint <paramref name="joint"/> down its frame, the frame the <paramref name="lower"/> bone's or the upper's. The sprites keep the
+    /// pictures as worn, cut and placed, and what a crumbling body breaks into (<see cref="Pixels"/>).
+    /// </summary>
+    private Sprite2D Bendable(Sprite2D part, double joint, bool lower, List<BentPicture> pictures)
+    {
+        foreach (var (light, of, _, _, _) in _bands)
+            if (of == part) Twin(light);
+        Twin(part);
+        return part;
+
+        void Twin(Sprite2D sprite)
+        {
+            var bent = new BentPicture(sprite, joint, lower);
+            sprite.AddChild(bent);
+            sprite.MoveChild(bent, 0);
+            pictures.Add(bent);
+        }
     }
 
     /// <summary>
@@ -959,6 +1221,47 @@ public partial class Figure : Node2D
     private static Bend Mix(Bend from, Bend to, double share) =>
         new(from.Upper + Poses.Apart(from.Upper, to.Upper) * share, from.Lower + Poses.Apart(from.Lower, to.Lower) * share);
 
+    /// <summary>
+    /// The back fist's item by its grip, turned its hold back from the forearm of <paramref name="arm"/>, its fuse's frames over it; the
+    /// belt's item at the hip, its strap across it.
+    /// </summary>
+    private void ShowOffHand(Bend arm)
+    {
+        _offHeld.Visible = OffHand is { Item: not null };
+        OffHeldAt = null;
+        if (OffHand is { Item: { } item, Hold: var hold, Fuse: var fuse })
+        {
+            var fist = Rig.FistOf(arm);
+            double turn = arm.Upper + arm.Lower;
+            (_offHeld.Texture, _offHeld.Offset) = (HeldArt.Of(item.Picture, []), -new Vector2((float)item.Grip.X, (float)item.Grip.Y));
+            _offHeld.Position = new Vector2((float)fist.X, (float)(-Rig.Shoulder + fist.Y));
+            _offHeld.Rotation = (float)(Math.Atan2(Math.Cos(turn), Math.Sin(turn)) - hold);
+            OffHeldAt = _offHeld.GlobalPosition;
+            _fuse.Visible = fuse != null;
+            if (fuse != null)
+            {
+                _fuse.Texture = FuseOf(fuse.Spark);
+                _fuse.Hframes = fuse.Frames;
+                _fuse.Frame = (int)(_timeMs / 1000 * fuse.Fps) % fuse.Frames;
+                _fuse.Offset = -new Vector2((float)item.Grip.X + fuse.Margin, (float)item.Grip.Y + fuse.Margin);
+            }
+        }
+        _belt.Visible = Belt != null;
+        if (Belt is not { } belt) return;
+        (_belt.Texture, _belt.Offset) = (HeldArt.Of(belt.Picture, []), -new Vector2((float)belt.Grip.X, (float)belt.Grip.Y));
+        (_belt.Position, _belt.Rotation) = (new Vector2((float)CatcherMotion.BeltAt.X, (float)CatcherMotion.BeltAt.Y), (float)CatcherMotion.BeltTurn);
+    }
+
+    private static readonly Dictionary<string, Texture2D> Fuses = new();
+
+    /// <summary>A fuse's strip of frames, <paramref name="name"/> in <c>art/</c>, loaded once.</summary>
+    private static Texture2D FuseOf(string name)
+    {
+        if (!Fuses.TryGetValue(name, out var texture))
+            Fuses[name] = texture = HiRes.Texture(HiRes.Load(name) ?? throw new InvalidOperationException($"No picture {name}"));
+        return texture;
+    }
+
     /// <summary>An angle settled toward <paramref name="to"/> the short way round, so a body stops tumbling without unwinding.</summary>
     private static double SettleAngle(double from, double to, double elapsedMs, double within = SettleMs)
     {
@@ -975,6 +1278,7 @@ public partial class Figure : Node2D
     public void Show(Hero hero, Pose pose, double look, bool holdsPlan, double elapsedMs)
     {
         _timeMs += elapsedMs;
+
         if (_scanner.Visible)
         {
             int lit = (int)(_timeMs / ScannerDotMs) % (_scannerDots.Length + 1);
@@ -1041,8 +1345,10 @@ public partial class Figure : Node2D
         var to = Poses.LimbsOf(pose, hero, new Moment(_travelled - _strideFrom, _timeMs, _motion.Landing, holding ? _head : null,
             _outMs, _slump, _outTilt, _swim, _fast, item != null, _motion.Now, pose is Pose.Climb or Pose.Air ? Ledge : null,
             walking ? _cycle : null, walking ? _gait : null, walking ? _moving : null));
+        if (Lean != 0) to = to with { Tilt = to.Tilt + Lean };
         _flinchMs += elapsedMs;
         to = Poses.Flinched(to, Poses.FlinchOf(_flinchMs), _flinchFrom * hero.Facing, pose);
+        to = Poses.Retched(to, Retching.Hunch(_retchMs), pose);
         var from = _shown ?? to;
         double within = pose switch { Pose.Float => FloatSettleMs, Pose.Tumble => SlackMs, _ => SettleMs };
         var shown = new Limbs(
@@ -1065,11 +1371,33 @@ public partial class Figure : Node2D
         _body.Position = new Vector2(0, (float)((shown.Lying ? -(Rig.H / 2) * c - Back * s : -Rig.H / 2) - shown.Lift));
         Position = (OnPixels ?? new Vector2((float)feetX, (float)feetY)) + new Vector2(0, (float)lift);
         Scale = new Vector2(hero.Facing, 1);
+        // The body answers the weapon (body-answers): a stroke leaned into on its own clock, held with the arm at a bite; a shot's recoil.
+        _recoilMs += elapsedMs;
+        BodyState? answer = null;
+        if (chopping && _chop is { Phase: var bodyPhase } && BodyAnswers.StrokeOf(Wields) is var (strokeAnswer, heft))
+        {
+            double at = (_bit && bodyPhase >= _lastPhase ? AxeSwing.Shown(bodyPhase, stroke!) : bodyPhase) - stroke!.HitShare;
+            answer = BodyPlay.At(strokeAnswer, at, heft);
+        }
+        if (_retchMs < Retching.Ms)
+        {
+            var retch = BodyState.Rest with { Lean = Retching.Lean(_retchMs) };
+            answer = answer is { } before ? before.Plus(retch) : retch;
+        }
+        if (_recoilMs < BodyAnswers.RecoilMs)
+        {
+            var recoil = BodyPlay.At(BodyAnswers.Recoil, _recoilMs, _recoil);
+            answer = answer is { } struck ? struck.Plus(recoil) : recoil;
+        }
+        BodyLayer? wanted = answer is { } state ? BodyPlay.Over(shown, state, pose, walking ? _moving : 1, Room.Ahead, Room.Behind) : null;
+        var body = _bodyBlend.Next(wanted, hero.Facing, pose is Pose.Lie or Pose.Tumble, elapsedMs);
+        var (waistAt, waistTurn) = BodyPlay.WaistOf(body);
+        _waist.Transform = _waistBehind.Transform = new Transform2D((float)waistTurn, new Vector2((float)waistAt.X, (float)waistAt.Y));
         if (_capeOutside.Visible)
         {
             _cape.Step(
                 elapsedMs,
-                p => { var g = _frame.ToGlobal(new Vector2((float)p.X, (float)p.Y)); return (g.X, g.Y); },
+                p => { var g = _waist.ToGlobal(new Vector2((float)p.X, (float)p.Y)); return (g.X, g.Y); },
                 pose is Pose.Float or Pose.Tumble);
             _capeInside.Refresh();
             _capeOutside.Refresh();
@@ -1096,9 +1424,9 @@ public partial class Figure : Node2D
         bool driven = working && Spinning && builder.Driven != null;
         if (working && _workAt is { } plan)
         {
-            // Toward the plan, from the shoulder.
+            // Toward the plan, from the shoulder, the arm lowered or raised no more than WorkTilt.
             var (dx, dy) = FromShoulder(plan);
-            work = Math.Atan2(dy, dx);
+            work = Math.Clamp(Math.Atan2(dy, dx), -WorkTilt, WorkTilt);
             double cycle = _workMs % TwistMs / TwistMs;
             twist = Math.Min(1, cycle / TurnShare);
             // Rising as the wrist turns over, sinking as it turns back to grip again; held still while the motor turns it.
@@ -1109,6 +1437,7 @@ public partial class Figure : Node2D
             frontArm = Rig.Reach(new Vec(Math.Cos(work) * reach + ux * TwistLift * rise, Math.Sin(work) * reach + uy * TwistLift * rise), Rig.Arm, 1);
         }
         (double Angle, double Phase)? swung = null;
+        double? jabMs = null;
         double elbow = item?.Elbow ?? 0, wrist = 0;
         if (chopping && _chop is { Aim: var aimed, Phase: var phase, Play: var play })
         {
@@ -1123,6 +1452,7 @@ public partial class Figure : Node2D
             {
                 var (dx, dy) = FromShoulder(aimed, hero.Facing);
                 swung = (HarpoonShot.ArmFor(item! with { Elbow = elbow }, dx, dy), drawn);
+                jabMs = drawn * stroke!.Ms;
             }
             else swung = (play.AngleAt(AimAngleOf(aimed, hero.Facing), drawn), drawn);
         }
@@ -1133,7 +1463,8 @@ public partial class Figure : Node2D
             swung = (HarpoonShot.ArmFor(item, dx, dy), 0);
         }
         // An aimed item comes up and goes down quicker than a swing winds up (aim-on-use).
-        frontArm = _swingArm.Next(frontArm, swung, elapsedMs, elbow, aiming || _wasAiming ? ArmUp.RaiseMs : null);
+        double? handOverMs = aiming || _wasAiming ? ArmUp.RaiseMs : null;
+        frontArm = _swingArm.Next(frontArm, swung, elapsedMs, elbow, handOverMs);
         Aimed = aiming && _swingArm.Settled;
         _wasAiming = aiming;
         // Running with an item in one hand it trails behind (HeroMotion.Carry), and the arm swings on a spring: it lags a
@@ -1143,7 +1474,7 @@ public partial class Figure : Node2D
         double carry = _carry * _carry * (3 - 2 * _carry);
         // An aimed item hanging lies across the fist as a stick does (HeldLook.Rest); along the forearm again as the arm comes up.
         bool resting = inHand && item is { Rest: > 0 } && swung == null && !aiming;
-        _rest = resting ? Math.Min(1, _rest + elapsedMs / RestMs) : Math.Max(0, _rest - elapsedMs / ArmUp.RaiseMs);
+        _rest.Next(resting ? 1 : 0, elapsedMs, handOverMs ?? SwingArm.BlendMs);
         _sinceCarryMs = _carry > 0 ? 0 : _sinceCarryMs + elapsedMs;
         if (carried && item != null)
         {
@@ -1154,22 +1485,42 @@ public partial class Figure : Node2D
         if (carried && _sinceCarryMs < HeroMotion.Carry.SpringAfterMs) frontArm = frontArm with { Upper = _armSpring.Follow(frontArm.Upper, elapsedMs) };
         else _armSpring.Hold(frontArm.Upper);
         _swingArm.Drew(frontArm);
-        var backArm = shown.BackArm;
+        // A shot's recoil throws the aimed arm up, past where it aims (body-answers); it was aimed before the kick, and fires so.
+        frontArm = frontArm with { Upper = frontArm.Upper + body.Kick };
+        // The far arm keeps its turn in the body's frame as the upper body leans; gripping, it closes on the haft.
+        var backArm = new Bend(shown.BackArm.Upper + body.FarArm.Upper + body.Lean, shown.BackArm.Lower + body.FarArm.Lower);
+        if (body.Grip > 0 && inHand && item != null) backArm = Mix(backArm, HaftGrip.ArmFor(frontArm, item, wrist).Arm, Math.Min(1, body.Grip));
+        if (OffHand is { Share: > 0 } off) backArm = Mix(backArm, off.Arm, off.Share);
         _frontArm.Bend(frontArm);
         _backArm.Bend(backArm);
-        _frontHip.Position = new Vector2((float)Rig.HipApart, (float)(-Rig.Hip - Rig.HipRise(Rig.HipApart, shown.Tilt)));
-        _backHip.Position = new Vector2((float)-Rig.HipApart, (float)(-Rig.Hip - Rig.HipRise(-Rig.HipApart, shown.Tilt)));
-        _frontLeg.Bend(shown.FrontLeg, shown.FrontFoot);
-        _backLeg.Bend(shown.BackLeg, shown.BackFoot);
+        // The collar over the near arm's shoulder while it hangs; raised, the arm crosses over it (BodyFit.CollarOverArm).
+        bool over = _collar.GetIndex() > _frontArmNode.GetIndex();
+        if (BodyFit.CollarOverArm(frontArm) != over) _waist.MoveChild(_collar, over ? _helmet.GetIndex() + 1 : _frontArmNode.GetIndex());
+        _frontHip.Position = new Vector2((float)(Rig.HipApart + body.HipX), (float)(-Rig.Hip - Rig.HipRise(Rig.HipApart, shown.Tilt) + body.HipY));
+        _backHip.Position = new Vector2((float)(-Rig.HipApart + body.HipX), (float)(-Rig.Hip - Rig.HipRise(-Rig.HipApart, shown.Tilt) + body.HipY));
+        _frontLeg.Bend(new Bend(shown.FrontLeg.Upper + body.FrontLeg.Upper, shown.FrontLeg.Lower + body.FrontLeg.Lower), shown.FrontFoot + body.FrontFoot);
+        _backLeg.Bend(new Bend(shown.BackLeg.Upper + body.BackLeg.Upper, shown.BackLeg.Lower + body.BackLeg.Lower), shown.BackFoot + body.BackFoot);
         if (cues.Sparks > 0)
         {
-            Vector2 Glove(Bend arm) => _frame.ToGlobal(Pixel(Rig.FistOf(arm)));
+            Vector2 Glove(Bend arm) => _waist.ToGlobal(Pixel(Rig.FistOf(arm)));
             Sparks(Glove(frontArm), Glove(backArm), cues.Sparks);
         }
         bool awake = pose is not (Pose.Lie or Pose.Tumble);
         _head = Settle(_head, awake ? look : 0, elapsedMs, HeadSettleMs);
         // On the floor the head takes back some of the body's lean, so a run looks ahead, not at the floor.
-        _helmet.Rotation = (float)(_head - (pose is Pose.Stand or Pose.Walk or Pose.Run ? shown.Tilt * HeroMotion.Run.HeadSteady : 0));
+        // In an answer it keeps the eyes up as the body leans.
+        _gaze = _head - (pose is Pose.Stand or Pose.Walk or Pose.Run ? shown.Tilt * HeroMotion.Run.HeadSteady : 0) - BodyAnswers.HeadSteady * body.Lean;
+        // Retching the head goes down with the torso and further, over what comes up.
+        if (_retchMs < Retching.Ms) _gaze += Retching.Nod(_retchMs) + (pose is Pose.Stand or Pose.Walk or Pose.Run ? BodyAnswers.HeadSteady * Retching.Lean(_retchMs) : 0);
+        // Each part of the helmet turns its fit's way about its pivot (helmets-fit-the-suit); its pictures bend only if it is soft.
+        if (_trial != BodyFit.Trial) FitHelmet(_helmetWorn);
+        var (face, shell, bend, crown) = _fit.TurnsBy(_gaze);
+        _face.Transform = Turned(face);
+        _shellTurn.Transform = Turned(shell);
+        _crown.Transform = Turned(crown);
+        foreach (var picture in _helmetPictures) picture.Show(bend, BentLimb.Seamless);
+        _sealBent.Show(_fit.SealBy(_gaze), BentLimb.Seamless);
+        ShowRetch(elapsedMs, feetY);
         // The sheet is in the front hand, tilted to face the eyes: up toward them looking up, flatter
         // looking down at it.
         _plan.Visible = holding;
@@ -1188,7 +1539,7 @@ public partial class Figure : Node2D
         {
             var hand = Rig.EndOf(frontArm, Rig.Arm);
             _tool.Position = new Vector2((float)hand.X, (float)(-Rig.Shoulder + hand.Y));
-            _tool.Rotation = (float)work;
+            _tool.Rotation = (float)(Rig.HeldTurn(frontArm, builder) + builder.Hold);
             (_tool.Texture, _tool.Offset) = (HeldArt.Of(driven ? builder.Driven! : builder.Twist!, []), -new Vector2((float)builder.Grip.X, (float)builder.Grip.Y));
             // Turned by its motor, its frames in turn as a drill's spin; by the wrist, three steps of the ribs a turn, held on the way back:
             // they roll on one way only.
@@ -1197,6 +1548,7 @@ public partial class Figure : Node2D
         }
         // The item in the front fist, held by its grip at its angle to the forearm (0040): swung, aimed or
         // hanging, the hand closed round its haft or stock.
+        ShowOffHand(backArm);
         _held.Visible = inHand;
         Muzzle = EdgeStart = null;
         if (inHand && item != null)
@@ -1226,8 +1578,9 @@ public partial class Figure : Node2D
                 _charged.Modulate = new Color(1, 1, 1, (float)Charge);
             }
             _held.Position = new Vector2((float)fist.X, (float)(-Rig.Shoulder + fist.Y));
+            _held.Scale = Vector2.One * (float)item.Size;
             // Carried trailing on a run, the hand turns the item along itself (Rig.Carried).
-            _held.Rotation = (float)(Rig.HeldTurn(frontArm, item, wrist) + item.Hold * carry - item.Rest * _rest * (1 - carry));
+            _held.Rotation = (float)(Rig.HeldTurn(frontArm, item, wrist) + item.Hold * carry - item.Rest * _rest.Share * (1 - carry));
             if (item.Aimed)
             {
                 Vector2 At((double X, double Y) p) => _held.ToGlobal(new Vector2((float)p.X, (float)p.Y) + _held.Offset);
@@ -1242,24 +1595,30 @@ public partial class Figure : Node2D
                 }
             }
         }
-        // The air the tool works shows its reach while it is used (tool-reach): a stroke's cut, a running drill's or grinder's zone.
-        if (chopping && _chop is { Aim: var cutAim, Phase: var cutPhase, Play: var cutPlay } && Stillwake.Content.Weapons.Of(Wields) is { } weapon)
-        {
-            bool jab = cutPlay.Motion.Kind == MotionKind.Thrust;
-            double half = Strokes.HalfOf(weapon);
-            double start = jab ? stroke!.HitShare : cutPlay.ShareAt(-half);
-            if (_cutPhase < start && cutPhase >= start)
+        // A struck tool's edge as it is held this frame, in the world, along its shape, and as it was the frame before: where it
+        // bites (blade-sparks). A swung one's is what its trail is drawn from; an aimed one, the spear, leaves none. Its reach is not shown (tool-size).
+        bool struckHeld = inHand && item != null && stroke != null && !Spinning, bladeHeld = struckHeld && !item!.Aimed;
+        (_edgeWas, _edge) = (_edge, _edgeWas);
+        _edge.Clear();
+        if (struckHeld)
+            for (int i = 0; i < HeldLook.EdgePoints; i++)
             {
-                var edge = Rig.HeldAt(frontArm, item!, item!.EdgeTo, wrist);
-                double reach = Math.Sqrt(edge.X * edge.X + edge.Y * edge.Y);
-                double sweep = jab ? WorkLooks.ThrustSweepMs : (cutPlay.ShareAt(half) - start) * stroke!.Ms;
-                _air.Strike(jab, AimAngleOf(cutAim, hero.Facing), half, weapon.Range * Rig.Cell / Hero.Unit, jab ? reach : reach - 4, sweep,
-                    WorkLooks.CutFadeOf(Wields));
+                var p = HeldAt(item!.EdgePoint((double)i / (HeldLook.EdgePoints - 1)));
+                _edge.Add((p.X, p.Y));
             }
-            _cutPhase = cutPhase;
-        }
-        else _cutPhase = 0;
-        _air.Follow(Spinning && inHand && item != null ? ZoneOf(frontArm, item) : null, elapsedMs);
+        // Only a blade swung, and moving as fast as one that leaves a trail, bites: one carried as the hero walks or runs throws nothing.
+        double swept = 0;
+        if (_edgeWas.Count == _edge.Count)
+            for (int i = 0; i < _edge.Count; i++)
+                swept = Math.Max(swept, Math.Sqrt((_edge[i].X - _edgeWas[i].X) * (_edge[i].X - _edgeWas[i].X) + (_edge[i].Y - _edgeWas[i].Y) * (_edge[i].Y - _edgeWas[i].Y)));
+        _edgeSweeps = chopping && elapsedMs > 0 && swept * 1000 / elapsedMs >= BladeTrail.Slow;
+        Blade = bladeHeld ? (HeldAt(item!.EdgeFrom), HeldAt(item.EdgeTo)) : null;
+        var zone = Spinning && inHand && item != null ? ZoneOf(frontArm, item) : null;
+        WheelRadius = zone is { Disc: true } disc ? disc.Size : null;
+        // The plain spear trails as a swung blade does, but not in its thrust (the lens is the thrust's, spear-trail); the arc spear's bolts are its own.
+        bool spearTrails = struckHeld && item!.Aimed && jabMs == null && Wields == Stillwake.Content.Weapons.Spear.Item && PartsOf(item) is not { Crackles.Count: > 0 };
+        _air.Follow(zone, elapsedMs, bladeHeld || spearTrails ? _edge : null);
+        Helix = zone is { Disc: false } bit ? HelixOf(bit) : null;
         _beamMs = Math.Max(0, _beamMs - elapsedMs);
         ShowBeams(holding);
         // A drill crackles as it spins; a gun held to charge, as it fills.
@@ -1268,25 +1627,47 @@ public partial class Figure : Node2D
         // Its stage made only once a drill runs or a gun charges in this hand: a body, a seated hero or the title's figures never need one.
         if (crackling != null && _drillLight == null && IsInsideTree()) _drillLight = new DrillLight(Held.Glims, Held.Flares, Held.Bolts);
         _drillLight?.Step(crackling, drill ? _spin : Charge, _heldAt ??= HeldAt, elapsedMs);
+        // The spear's own (spear-effects): plain, its thrust bends the air; with the arc, the blade fizzes and tears bolts off.
+        bool spear = inHand && Wields == Stillwake.Content.Weapons.Spear.Item;
+        if (spear && _spearLight == null && IsInsideTree()) AddChild(_spearLight = new SpearLight());
+        _spearLight?.Step(elapsedMs, spear ? _heldAt ??= HeldAt : null, jabMs, spear && PartsOf(item!) is { Crackles.Count: > 0 } arc ? arc : null, Held);
     }
 
     /// <summary>
-    /// The zone a running drill or grinder in <paramref name="arm"/> works, in the arms' frame (tool-reach): the drill's bit point
-    /// grown into a cone out to its range from the shoulder along the aim, the grinder's forward half of a disc round its hub; none for another tool.
+    /// The zone a running drill or grinder in <paramref name="arm"/> works, in the arms' frame (tool-reach): the drill's reach from
+    /// its chuck out to its range from the shoulder along the aim (drill-contact), the grinder's working circle round its hub, as far as its
+    /// fan reaches (grinder-contact); none for another tool, or a grinder whose hub is out past its reach.
     /// </summary>
     private AirCuts.Zone? ZoneOf(Bend arm, HeldLook item)
     {
         bool grinder = Wields == Stillwake.Content.Weapons.Grinder.Item;
         if (!grinder && Wields != Stillwake.Content.Weapons.Drill.Item) return null;
-        var at = Rig.HeldAt(arm, item, grinder ? item.EdgeFrom : item.EdgeTo);
+        var at = Rig.HeldAt(arm, item, item.EdgeFrom);
         var (ax, ay) = Aim is { } target ? FromShoulder(target) : (at.X, at.Y);
         double l = Math.Sqrt(ax * ax + ay * ay);
         var (dx, dy) = l > 0 ? (ax / l, ay / l) : (1.0, 0.0);
-        if (grinder) return new(true, (at.X, at.Y), (dx, dy), WorkLooks.DiscRadius);
+        if (grinder)
+            return WorkLooks.WheelRadius(Stillwake.Content.Weapons.Grinder.Range * Rig.Cell / Hero.Unit, Math.Sqrt(at.X * at.X + at.Y * at.Y)) is { } r
+                ? new(true, (at.X, at.Y), (dx, dy), r) : null;
         double range = Stillwake.Content.Weapons.Drill.Range * Rig.Cell / Hero.Unit, cx = dx * range - at.X, cy = dy * range - at.Y;
         double length = Math.Sqrt(cx * cx + cy * cy);
         return length < 1 ? null : new(false, (at.X, at.Y), (cx / length, cy / length), length);
     }
+
+    /// <summary>The drill's <paramref name="bit"/> zone as its haze helix in the world, from its chuck to its reach.</summary>
+    private ToolHaze.Helix HelixOf(AirCuts.Zone bit)
+    {
+        Vector2 World((double X, double Y) p) => _air.ToGlobal(new Vector2((float)p.X, (float)p.Y));
+        var (dx, dy) = bit.Toward;
+        var chuck = World(bit.At);
+        var far = World((bit.At.X + dx * bit.Size, bit.At.Y + dy * bit.Size)) - chuck;
+        var across = (World((bit.At.X - dy, bit.At.Y + dx)) - chuck).Normalized();
+        var way = far.Normalized();
+        return new((chuck.X, chuck.Y), (way.X, way.Y), (across.X, across.Y), far.Length(), _air.HelixPhase);
+    }
+
+    /// <summary>A turn by <paramref name="angle"/> about the helmet's pivot, in the neck's frame.</summary>
+    private Transform2D Turned(double angle) => new((float)angle, _pivot - _pivot.Rotated((float)angle));
 
     /// <summary>A point from the front shoulder, in the arms' own frame, in the body's parts' frame.</summary>
     private static Vector2 Pixel(Vec fromShoulder) => new((float)fromShoulder.X, (float)(fromShoulder.Y - Rig.Shoulder));
@@ -1332,12 +1713,53 @@ public static class SuitArt
             fine = under;
         }
         Tint(fine, LookTint.Of(part, skin, hair), far ? (float)FarShade : 1);
+        if (BodyFit.FadeOf(part) is var (whole, none)) Fade(fine, whole, none);
         var small = (Image)fine.Duplicate();
         small.Resize(fine.GetWidth() / HiRes.Scale, fine.GetHeight() / HiRes.Scale, Image.Interpolation.Nearest);
         var made = HiRes.Texture(fine);
         Made[key] = made;
         Bytes[made] = (small.GetWidth(), small.GetHeight(), small.GetData());
+        Rows[made] = WidthsOf(fine);
         return made;
+    }
+
+    // Each made picture's opaque width row by row: where a limb's two pictures meet bent (BentLimb.SeamOf).
+    private static readonly Dictionary<Texture2D, float[]> Rows = new();
+
+    /// <summary>A made picture's opaque width in the world's pixels, each row of its hi-res picture; none for a picture not made here.</summary>
+    public static float[]? RowsOf(Texture2D? texture) => texture != null && Rows.TryGetValue(texture, out var rows) ? rows : null;
+
+    private static float[] WidthsOf(Image fine)
+    {
+        int w = fine.GetWidth(), h = fine.GetHeight();
+        var data = fine.GetData();
+        var rows = new float[h];
+        for (int y = 0; y < h; y++)
+        {
+            int opaque = 0;
+            for (int x = 0; x < w; x++)
+                if (data[(y * w + x) * 4 + 3] > 127) opaque++;
+            rows[y] = opaque / (float)HiRes.Scale;
+        }
+        return rows;
+    }
+
+    /// <summary>
+    /// A part's hi-res picture faded row by row from whole at row <paramref name="whole"/> to none at <paramref name="none"/> of its box
+    /// (<see cref="BodyFit.FadeOf"/>, helmets-fit-the-suit): an upper arm's top, a collar's straight edge.
+    /// </summary>
+    public static void Fade(Image image, double whole, double none)
+    {
+        for (int y = 0; y < image.GetHeight(); y++)
+        {
+            float alpha = (float)BodyFit.Alpha((y + 0.5) / HiRes.Scale - HiRes.FigureMargin, whole, none);
+            if (alpha >= 1) continue;
+            for (int x = 0; x < image.GetWidth(); x++)
+            {
+                var c = image.GetPixel(x, y);
+                image.SetPixel(x, y, c with { A = c.A * alpha });
+            }
+        }
     }
 
     private static void Tint(Image image, LookTint? tint, float shade)

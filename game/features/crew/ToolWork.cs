@@ -1,37 +1,39 @@
+using System;
 using System.Collections.Generic;
 using Godot;
-using Stillwake.Game.Features.Sound;
 using Stillwake.Game.Render;
 
 namespace Stillwake.Game.Features.Crew;
 
 /// <summary>
-/// Every running electric tool seen at work (tool-contact, damage-looks), this hero's and its friends': a steady stream where it
-/// touches, whether a hit lands this frame or not — hot sparks off every wreck it touches (<see cref="ToolSparks"/>), what it touches looks hit
-/// off anything else — and the plasma cutter's jet out to there (<see cref="CutterJet"/>). Its hits still crack what they hit and
-/// are heard as they land.
+/// Every tool's haze at work (spark-rule), this hero's and its friends': a struck blade's sweep, a running tool's wheel, helix or
+/// jet. Where a haze lies in matter it throws that matter's look, from there along the haze, <see cref="WorkLooks.HazeRate"/> hits
+/// a second, whatever was hit and whoever hit it; the plasma cutter's jet is drawn out to where it stops (<see cref="CutterJet"/>).
 /// </summary>
 public partial class ToolWork : Node2D
 {
     /// <summary>
-    /// One hero's tool this frame: from its nozzle, where its edge begins, in the world's pixels, to where it works, the way it points, how what it touches looks hit
-    /// (none while it touches nothing), the floor its chips fall to, and where it touches each wreck it touches, by id.
+    /// One hero's running tool this frame: from its nozzle, where its edge begins, in the world's pixels, to where it works, the way it
+    /// points, whether it touches anything, where it touches each wreck it touches, by id, and its haze (<see cref="ToolHaze"/>).
     /// </summary>
-    public readonly record struct Seen(int Hero, string Tool, Vector2 From, Vector2 At, Vector2 Way, HitLook? Look, double? Floor,
-        IReadOnlyList<(int Piece, Vector2 At)> Wrecks);
+    public readonly record struct Seen(int Hero, string Tool, Vector2 From, Vector2 At, Vector2 Way, bool Touching,
+        IReadOnlyList<(int Piece, Vector2 At)> Wrecks, IReadOnlyList<HazePoint> Haze);
 
-    private readonly Dictionary<int, StrikeTrain> _trains = new();
     private readonly List<Seen> _jets = new();
-    private readonly HashSet<int> _working = new();
-    private readonly List<int> _idle = new();
-    private readonly ToolSparks _sparks = new();
+    private readonly Dictionary<int, double> _touched = new();
+    private readonly List<int> _gone = new();
+    private readonly List<int> _touchedNow = new();
     private readonly Ink _ink = new();
     private readonly InkCanvas _canvas = new();
     private double _clockMs;
+    private uint _thrown;
+
+    /// <summary>The wrecks a haze has lain in within a trail's life (<see cref="BladeTrail.LifeMs"/>), by id: what they throw is the haze's.</summary>
+    public IReadOnlyCollection<int> Touched => _touched.Keys;
 
     public ToolWork()
     {
-        ZIndex = Layers.Hero;
+        ZIndex = Layers.HeldFront;
         Material = new CanvasItemMaterial
         {
             BlendMode = CanvasItemMaterial.BlendModeEnum.Add,
@@ -39,34 +41,44 @@ public partial class ToolWork : Node2D
         };
     }
 
-    /// <summary>One frame of <paramref name="elapsedMs"/>: every tool now running, <paramref name="seen"/>.</summary>
-    public void Frame(IReadOnlyList<Seen> seen, double elapsedMs)
+    /// <summary>
+    /// One frame of <paramref name="elapsedMs"/>: every running tool, <paramref name="seen"/>, and every haze at work,
+    /// <paramref name="hazes"/>, thrown off what each lies in by <paramref name="matter"/>, chips falling to the floor
+    /// <paramref name="floor"/> finds under where they leave it.
+    /// </summary>
+    public void Frame(IReadOnlyList<Seen> seen, IReadOnlyList<IReadOnlyList<HazePoint>> hazes, ToolHaze.MatterAt matter,
+        Func<double, double, double?> floor, double elapsedMs)
     {
         _clockMs += elapsedMs;
         _jets.Clear();
-        _working.Clear();
-        _sparks.Begin(elapsedMs);
-        var wreck = HitLooks.Of[Impact.Wreck];
         foreach (var s in seen)
-        {
             if (s.Tool == Content.Weapons.PlasmaCutter.Item) _jets.Add(s);
-            // Back out of the face toward the tool: the way it points, as its muzzle may be pressed right on it.
-            var back = -s.Way;
-            foreach (var (piece, at) in s.Wrecks) _sparks.Touch((s.Hero, piece), s.Tool, (at.X, at.Y), (back.X, back.Y), elapsedMs);
-            if (s.Look is not { } look || look == wreck) continue;
-            _working.Add(s.Hero);
-            var train = _trains.GetValueOrDefault(s.Hero);
-            int due = train.Due(elapsedMs, true, WorkLooks.ThrowsPerSecond);
-            _trains[s.Hero] = train;
-            for (int i = 0; i < due; i++)
-                Stages.Of(Layers.Effects).Hits.Throw(look, s.At.X, s.At.Y, back.X, back.Y, WorkLooks.ShareOf(s.Tool), s.Floor);
+        bool Solid(double x, double y) => matter(x, y) != null;
+        double share = WorkLooks.HazeRate * elapsedMs / 1000;
+        var hits = Stages.Of(Layers.Effects).Hits;
+        foreach (var haze in hazes)
+        {
+            _touchedNow.Clear();
+            var touches = ToolHaze.Touches(haze, matter, _touchedNow);
+            foreach (int piece in _touchedNow) _touched[piece] = _clockMs;
+            int all = 0;
+            foreach (var t in touches) all += t.Points.Count;
+            foreach (var t in touches)
+            {
+                // Each thing it lies in its part of the haze's throws, from a few of its points, picked afresh each frame.
+                int n = Math.Min(WorkLooks.ContactPoints, t.Points.Count);
+                for (int k = 0; k < n; k++)
+                {
+                    var p = ToolHaze.Ridden(haze, t.Points[(int)(unchecked(_thrown++ * 2654435761u) % (uint)t.Points.Count)], Solid);
+                    var (ox, oy) = p.Ride is { Count: > 0 } ride ? ride[^1] : (p.X, p.Y);
+                    hits.ThrowAlong(t.Look, p, share * t.Points.Count / all / n, t.Wreck ? null : floor(ox, oy));
+                }
+            }
         }
-        _sparks.End();
-        // One that stopped touching begins afresh, its first throw at once, when it touches again.
-        _idle.Clear();
-        foreach (int hero in _trains.Keys)
-            if (!_working.Contains(hero)) _idle.Add(hero);
-        foreach (int hero in _idle) _trains.Remove(hero);
+        _gone.Clear();
+        foreach (var (piece, at) in _touched)
+            if (_clockMs - at > BladeTrail.LifeMs) _gone.Add(piece);
+        foreach (int piece in _gone) _touched.Remove(piece);
         QueueRedraw();
     }
 
@@ -74,8 +86,7 @@ public partial class ToolWork : Node2D
     {
         _ink.Clear();
         _ink.Feather = InkCanvas.PixelOf(this);
-        foreach (var jet in _jets) CutterJet.Draw(_ink, (jet.From.X, jet.From.Y), (jet.At.X, jet.At.Y), jet.Look != null, _clockMs);
-        _sparks.Draw(_ink);
+        foreach (var jet in _jets) CutterJet.Draw(_ink, (jet.From.X, jet.From.Y), (jet.At.X, jet.At.Y), jet.Touching, _clockMs);
         _canvas.Draw(this, _ink);
     }
 }

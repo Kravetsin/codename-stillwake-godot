@@ -67,7 +67,7 @@ public class GaugeMotionTests
     {
         // Out of room air a running hero breathes 2 of the suit's 45 units a breath (Content.Crew.Exerted).
         var motion = At(1);
-        motion.Read(1 - 2.0 / Content.Items.Get(Content.Helmet.Basic).Tank);
+        motion.Read(1 - 2.0 / (Content.Crew.Lungs + Content.Items.Get(Content.Helmet.Basic).Tank));
         Assert.Equal(0, motion.Flash);
     }
 
@@ -76,7 +76,7 @@ public class GaugeMotionTests
     {
         // A breath a second out of air: the read falls by a unit every fourth read.
         var motion = At(1);
-        double unit = 1.0 / Content.Items.Get(Content.Helmet.Basic).Tank, read = 1;
+        double unit = 1.0 / (Content.Crew.Lungs + Content.Items.Get(Content.Helmet.Basic).Tank), read = 1;
         for (int r = 1; r <= 40; r++)
         {
             bool breath = r % 4 == 0;

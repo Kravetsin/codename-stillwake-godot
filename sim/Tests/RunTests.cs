@@ -32,7 +32,7 @@ public class RunTests
     /// <summary>Hero 0 aboard with the drill in its bag and <paramref name="batteries"/> on its belt, left to right.</summary>
     private static Scenario Holding(params int[] batteries)
     {
-        var w = new Scenario(Vacuum).GiveItems(0, (Drill, 1));
+        var w = new Scenario(Vacuum).GiveItems(0, (Drill, 1)).Wields(Drill);
         for (int i = 0; i < batteries.Length; i++) w.Put(Belt + i, Battery(batteries[i]));
         return w.Do(new Enter(1)).Run();
     }
@@ -76,7 +76,7 @@ public class RunTests
     [Fact]
     public void RunsOneThingAHeroAndTwoHeroesEachFromItsOwnBelt()
     {
-        var w = Holding(Full).GiveItems(1, (Drill, 1)).Put(Belt, Battery(Full), peer: 1).Do(new Enter(1) { From = 1 });
+        var w = Holding(Full).GiveItems(1, (Drill, 1)).Wields(Drill, 1).Put(Belt, Battery(Full), peer: 1).Do(new Enter(1) { From = 1 });
         w.Do(new Run(Drill, true)).Do(new Run(Drill, true)).Do(new Run(Drill, true) { From = 1 }).Run(4);
         Assert.Equal((Drill, Drill), (w.M.Items.Running(0), w.M.Items.Running(1)));
         Assert.Equal(Full - 4 * Tick, BeltOf(w, 0)[0]);
@@ -111,12 +111,12 @@ public class RunTests
     }
 
     [Fact]
-    public void StopsOnceItsToolIsNoLongerCarriedAndRunsFromAnySlot()
+    public void StopsOnceItsToolLeavesTheHandAndRunsFromAnyHotbarSlotWielded()
     {
-        var w = new Scenario(Vacuum).Put(20, new Stack(Drill, 1)).Put(Belt, Battery(Full)).Do(new Enter(1)).Run();
-        w.Do(new Run(Drill, true)).Run(3);
+        var w = new Scenario(Vacuum).Put(6, new Stack(Drill, 1)).Put(Belt, Battery(Full)).Do(new Enter(1)).Run();
+        w.Do(new Wield(6)).Do(new Run(Drill, true)).Run(3);
         Assert.Equal(Drill, w.M.Items.Running(0));
-        w.Do(new Drop(new Slot(20), 1, 4, 1)).Run();
+        w.Do(new Drop(new Slot(6), 1, 4, 1)).Run();
         Assert.Null(w.M.Items.Running(0));
         Assert.Equal(Full - 3 * Tick, BeltOf(w)[0]);
     }

@@ -96,15 +96,18 @@ public class PlanetRulesTests
     }
 
     [Fact]
-    public void OutsideOnAPlanetBareTheColdIsPaidOnTheThinAirsBeatOnly()
+    public void OutsideOnAPlanetBareTheBreathIsPaidOnTheThinAirsBeatAndTheColdEveryBreath()
     {
+        // By day the strip's −30° on a bare 0°: 30 felt, 3 units over thin air's 5 breaths (2026-11-14-temperature-in-degrees).
         int every = Strip.ThinAir!.Value, span = every * Content.Crew.BreathEvery;
         var w = Down(bare: true);
         var hero = w.On(1).Crew.HeroOf(0)!;
+        int cold = every * (Content.Temperature.BareLow - Strip.Temperatures[0]) * Content.Temperature.Bite / 1000;
+        Assert.Equal(3, cold);
         w.Run(span);
-        Assert.Equal(Content.Crew.Lungs - 1 - Content.Crew.BareCold, hero.Air);
+        Assert.Equal(Content.Crew.Lungs - 1 - cold, hero.Air);
         w.Run(2 * span);
-        Assert.Equal(Content.Crew.Lungs - 3 * (1 + Content.Crew.BareCold), hero.Air);
+        Assert.Equal(Content.Crew.Lungs - 3 * (1 + cold), hero.Air);
     }
 
     [Fact]
@@ -122,6 +125,27 @@ public class PlanetRulesTests
         var ship = new Scenario(Ship);
         ship.Do(new Enter(0)).Run(span);
         Assert.Equal(Scenario.Full - every, ship.M.Crew.HeroOf(0)!.Air);
+    }
+
+    /// <summary>A calm hero pays its share on thin air's beat only: in vacuum the shares move only on a paying breath (food-and-the-body).</summary>
+    [Fact]
+    public void ACalmHeroOutsideOnAPlanetPaysItsShareOnThePayingBreathsOnly()
+    {
+        // Twenty paying breaths: a ration's calm 50 saves one of them, whatever else the planet takes of both.
+        Assert.Equal(Paid(fed: false) - 1, Paid(fed: true));
+
+        static int Paid(bool fed)
+        {
+            var w = new Scenario(Ship);
+            w.Do(new Enter(w.M.Crew.Spawn)).Do(new OpenSurface(Strip.Id)).Run();
+            w.GiveItems(0, (Content.Foods.Ration, 1));
+            if (fed) w.Do(new Eat(Content.Foods.Ration));
+            w.Run().Do(new Transfer(1)).Run();
+            var hero = w.On(1).Crew.HeroOf(0)!;
+            int air = hero.Air;
+            w.Run(20 * Strip.ThinAir!.Value * Content.Crew.BreathEvery);
+            return air - hero.Air;
+        }
     }
 
     [Fact]

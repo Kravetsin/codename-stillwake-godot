@@ -17,7 +17,8 @@ namespace Stillwake.Game.Shared;
 /// the drill's) damage, block damage and seconds between hits, read from the sim's own fold (<see cref="ToolStats"/>),
 /// and with modules fitted (<see cref="Fitted"/>, 0098) each that differs marked by how; the harpoon's range, reload and reel speed; a
 /// gun's damage and block damage with its first ammo, its reload and what it keeps through what it pierces, and its ammo's share
-/// of those (2026-10-27-shots-pierce); a worn item's one number, the helmet lamp's reach. Its words from the i18n table.
+/// of those (2026-10-27-shots-pierce); food's, worn gear's and a liquid's rows, what each guarantees (2026-11-14-food-and-gear-cards). Its words
+/// from the i18n table.
 /// </summary>
 public static class ItemCards
 {
@@ -35,13 +36,20 @@ public static class ItemCards
         int? price = Spec.Market.PriceOf(item);
         string name = T($"item.{item}"), kind = T($"item.{item}.kind");
         // Anything used by a key of its own shows the key, and no words on what it does: the player finds out (0047).
-        var key = Table.ContainsKey($"item.{item}.key") ? new CardKey(T($"item.{item}.key")) : null;
+        // Food says it is eaten; worn gear what its key does where that is not plain, the jetpack's "in space".
+        string words = Spec.Foods.Of(item) != null ? T("card.eat") : Table.ContainsKey($"item.{item}.use") ? T($"item.{item}.use") : "";
+        var key = Table.ContainsKey($"item.{item}.key") ? new CardKey(T($"item.{item}.key"), words) : null;
+        // A thrown charge is its own gun and ammo: its card is its blast, not what it adds to a gun.
+        if (Spec.Shots.GunOf(item) is { } thrown && Spec.Shots.Get(thrown.Ammo[0]).Bursts is { } blast)
+            return new ItemCard(item, name, kind, BlastTiles(thrown, blast), key, price);
         if (IsAmmo(item)) return new ItemCard(item, name, kind, AmmoTiles(item), key, price);
         if (!IsTool(item))
         {
             var card = new ItemCard(item, name, kind, null, key, price);
             if (Table.ContainsKey($"item.{item}.about")) card = card with { About = T($"item.{item}.about") };
             if (Spec.Modules.TryGet(item, out var module)) card = card with { Tech = TechOf(module) };
+            if (Spec.Foods.Of(item) is { } food) return card with { Food = true, Rows = FoodRows(food, null) };
+            if (Litres.In(item) != null) return card with { Liquid = true, Rows = LiquidRows(item, 1) };
             return Spec.Items.Get(item).Equip == null ? card : Worn(card);
         }
         if (item == Spec.Harpoon.Item) return new ItemCard(item, name, kind, HarpoonTiles(), key, price);
@@ -123,6 +131,18 @@ public static class ItemCards
         return tiles;
     }
 
+    /// <summary>
+    /// A thrown charge's rows, under its blast: what it takes off each wreck within its reach, its power on rock and walls in the
+    /// tenths a tool's block damage is shown in, its reach in cells, and the seconds between throws (<see cref="Spec.Blast"/>).
+    /// </summary>
+    private static List<CardTile> BlastTiles(Spec.Gun gun, Spec.Blast blast) =>
+    [
+        Hits(Number(blast.WreckDamage), null, CardGroup.Blast),
+        Rock(blast.Power, null, CardGroup.Blast),
+        new CardTile(T("card.cells", ("n", Number(blast.Reach))), T("card.radius")) { Sign = CardSign.Reach, Group = CardGroup.Blast },
+        new CardTile(T("card.seconds", ("n", Number((double)gun.Pace / World.TicksPerSecond))), T("card.reload")) { Sign = CardSign.Pace, Group = CardGroup.Blast },
+    ];
+
     /// <summary>Ammo's rows: what it adds to its gun's damage off a body and off a block, "+2".</summary>
     private static List<CardTile> AmmoTiles(string item)
     {
@@ -181,28 +201,87 @@ public static class ItemCards
     }
 
     /// <summary>
-    /// A worn item's card: the helmet lamp's reach in cells and its beam across, in degrees, from the light it gives
-    /// (<see cref="Light.HeadLampReach"/>); the cape's share off enemies' blows and off the cold, in percent; a battery's number
-    /// is its charge, set per stack; the jetpack has none.
+    /// A meal's rows, under its effect (2026-11-14-food-and-gear-cards): its calm and work rates as whole percent, rounded down
+    /// (50 thousandths is 5%), its deep and lungs as O₂ units (food-tuning), then how long it lasts; a food with no rates a dimmed row saying it only stills hunger. With
+    /// <paramref name="left"/>, the HUD's meal: the ticks it has left in place of how long, out of how long. Only what it gives,
+    /// never what that comes to in air or time.
+    /// </summary>
+    public static List<CardTile> FoodRows(Spec.Food food, int? left)
+    {
+        var rates = food.Rates;
+        var rows = new List<CardTile>();
+        if (rates.Calm > 0) rows.Add(Effect(CardSign.Calm, T("card.less", ("n", rates.Calm / 10)), "card.calm"));
+        if (rates.Work > 0) rows.Add(Effect(CardSign.Work, T("card.more", ("n", rates.Work / 10)), "card.work"));
+        if (rates.Deep > 0) rows.Add(Effect(CardSign.Deep, T("card.plusOxygen", ("n", rates.Deep)), "card.deep"));
+        if (rates.Lungs > 0) rows.Add(Effect(CardSign.Tank, T("card.plusOxygen", ("n", rates.Lungs)), "card.lungs"));
+        if (rows.Count == 0) rows.Add(Effect(CardSign.Calm, T("card.onlyFeeds"), "card.effect") with { Off = true });
+        rows.Add(left is int ticks
+            ? Effect(CardSign.Pace, Clock(ticks), "card.left") with { Note = T("card.outOf", ("t", Clock(food.Lasts))) }
+            : Effect(CardSign.Pace, Clock(food.Lasts), "card.lasts"));
+        return rows;
+    }
+
+    private static CardTile Effect(CardSign sign, string value, string label) => Row(sign, CardGroup.Effect, value, label);
+
+    /// <summary>
+    /// The HUD's meal of <paramref name="food"/> with <paramref name="left"/> ticks to go: its food card, the time left in place of
+    /// how long it lasts, no key and no price. Its name and kind given, pod paste being no item.
+    /// </summary>
+    public static ItemCard Meal(string food, int left, string name, string kind) =>
+        new(food, name, kind, null, null, null) { Food = true, Rows = FoodRows(Spec.Foods.Of(food)!, left) };
+
+    /// <summary>Ticks as minutes and seconds, "15:00", a part second counted whole: a meal's last tick still shows 0:01.</summary>
+    public static string Clock(int ticks)
+    {
+        int seconds = (ticks + World.TicksPerSecond - 1) / World.TicksPerSecond;
+        return $"{seconds / 60}:{seconds % 60:00}";
+    }
+
+    /// <summary>The steps a second the hero controller takes, which the jetpack's speeds are counted in (<see cref="Spec.Hero"/>).</summary>
+    private const int HeroSteps = 60;
+
+    /// <summary>
+    /// A worn item's card and its rows (2026-11-14-food-and-gear-cards), what it guarantees in the units the HUD shows: a helmet's
+    /// air in O₂; a body's coldest it withstands (2026-11-14-temperature-in-degrees), the regen suit's air made a second and the charge
+    /// each unit costs; the cape's share off blows in percent and the degrees it adds; the jetpack's top speed and the air its thrust spends a second; the helmet lamp's reach,
+    /// its beam across (<see cref="Light.HeadLampReach"/>) and its draw. A battery's number is its charge, set per stack.
     /// </summary>
     private static ItemCard Worn(ItemCard card)
     {
-        if (card.Item == Spec.Cape.Item)
-            return card with
-            {
-                Worn = true,
-                Headline = new CardTile((Spec.Cape.Guard / 10).ToString(CultureInfo.InvariantCulture), T("card.guard")),
-                Detail = T("card.warmth", ("n", Spec.Cape.Warmth / 10)),
-            };
-        if (card.Item != Spec.HelmetLamp.Item) return card with { Worn = true };
-        int beam = (int)Math.Round(Light.HeadLampHalfAngle * 2 * 180 / Math.PI);
-        return card with
+        var spec = Spec.Items.Get(card.Item);
+        var rows = new List<CardTile>();
+        if (spec.Tank > 0) rows.Add(Row(CardSign.Tank, CardGroup.Air, T("card.plusOxygen", ("n", spec.Tank)), "card.tank"));
+        if (spec.Low is int low) rows.Add(Row(CardSign.Cold, CardGroup.Guard, T("card.degrees", ("n", Degrees(low))), "card.withstands"));
+        if (spec.High is int high) rows.Add(Row(CardSign.Heat, CardGroup.Guard, T("card.degrees", ("n", Signed(high))), "card.withstandsHeat"));
+        if (card.Item == Spec.Suit.Regen)
         {
-            Worn = true,
-            Headline = new CardTile(Light.HeadLampReach.ToString(CultureInfo.InvariantCulture), T("card.reach")),
-            Detail = T("card.beam", ("n", beam)),
-        };
+            double made = (double)Spec.Suit.RegenMost * World.TicksPerSecond / Spec.Crew.BreathEvery;
+            rows.Add(Row(CardSign.Regen, CardGroup.Special, T("card.oxygenUpTo", ("n", Number(made))), "card.regen"));
+            rows.Add(Row(CardSign.Battery, CardGroup.Special, Number(Spec.Suit.RegenCost), "card.regenCost") with { Note = T("card.perOxygen"), Bolt = true });
+        }
+        if (card.Item == Spec.Cape.Item)
+        {
+            rows.Add(Row(CardSign.Guard, CardGroup.Guard, T("card.less", ("n", Spec.Cape.Guard / 10)), "card.blows"));
+            rows.Add(Row(CardSign.Cold, CardGroup.Guard, "+" + T("card.degrees", ("n", Spec.Cape.Warmth)), "card.warmth"));
+        }
+        if (card.Item == Spec.Jetpack.Item)
+        {
+            rows.Add(Row(CardSign.Speed, CardGroup.Move, T("card.cellsPerSecond", ("n", Number(Spec.Jetpack.Top * HeroSteps / 1000.0))), "card.topSpeed"));
+            double spent = (double)World.TicksPerSecond / Spec.Jetpack.TicksPerUnit;
+            rows.Add(Row(CardSign.Tank, CardGroup.Move, T("card.oxygenPerSecond", ("n", Number(spent))), "card.thrustAir"));
+        }
+        if (card.Item == Spec.HelmetLamp.Item)
+        {
+            int beam = (int)Math.Round(Light.HeadLampHalfAngle * 2 * 180 / Math.PI);
+            rows.Add(Row(CardSign.Light, CardGroup.Light, T("card.cells", ("n", Light.HeadLampReach)), "card.range"));
+            rows.Add(Row(CardSign.Arc, CardGroup.Light, T("card.degrees", ("n", beam)), "card.beamWidth"));
+            // What it draws, nothing: a bolt and 0 says it is free.
+            rows.Add(Row(CardSign.Battery, CardGroup.Special, (spec.Draw ?? 0).ToString(CultureInfo.InvariantCulture), "card.draw") with { Bolt = true });
+        }
+        return card with { Worn = true, Rows = rows };
     }
+
+    private static CardTile Row(CardSign sign, CardGroup group, string value, string label) => new(value, T(label)) { Sign = sign, Group = group };
 
     /// <summary>
     /// What fed <paramref name="station"/> makes of one smelt of <paramref name="item"/>: what it takes, its yields and
@@ -244,7 +323,31 @@ public static class ItemCards
         ? p.Material is { } m ? $"{In(language, $"tool.{p.Kind}")}: {In(language, $"material.{m}")}" : In(language, $"tool.{p.Kind}")
         : In(language, $"item.{id}");
 
+    /// <summary>
+    /// What a canister or a bottle holds (liquid-volumes), as food's rows (2026-11-14-food-and-gear-cards), under its contents: its
+    /// litres, and for a stack of <paramref name="count"/> more than one, them all told with the count beside, "In all ×4 · 12 l".
+    /// </summary>
+    public static List<CardTile> LiquidRows(string item, int count)
+    {
+        int one = Litres.In(item) ?? throw new ArgumentException($"{item} holds no liquid", nameof(item));
+        var rows = new List<CardTile> { Holds(one, "card.holds") };
+        if (count > 1) rows.Add(Holds((long)one * count, "card.holdsAll") with { Note = T("card.many", ("n", count)) });
+        return rows;
+    }
+
+    private static CardTile Holds(long millilitres, string label) =>
+        Row(CardSign.Tank, CardGroup.Holds, T("card.volume", ("n", Number(millilitres / 1000.0))), label);
+
+    /// <summary><paramref name="card"/> for a stack of <paramref name="count"/>: a liquid's rows with them all told; any other card as it is.</summary>
+    public static ItemCard Counted(ItemCard card, int count) => card.Liquid ? card with { Rows = LiquidRows(card.Item, count) } : card;
+
     /// <summary><paramref name="n"/> with one decimal at most, half rounded up: 4, 5.3, 0.5.</summary>
     public static string Number(double n) =>
         Math.Round(n, 1, MidpointRounding.AwayFromZero).ToString("0.#", CultureInfo.InvariantCulture);
+
+    /// <summary>Degrees as the cards write them, a minus sign rather than a hyphen below zero: "−40".</summary>
+    public static string Degrees(int degrees) => degrees < 0 ? "−" + (-degrees).ToString(CultureInfo.InvariantCulture) : degrees.ToString(CultureInfo.InvariantCulture);
+
+    /// <summary>Whole degrees with a plus above zero, as heat is written: +50, 0, −40.</summary>
+    public static string Signed(int degrees) => (degrees > 0 ? "+" : "") + Degrees(degrees);
 }

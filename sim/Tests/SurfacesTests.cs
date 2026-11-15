@@ -50,7 +50,7 @@ public class SurfacesTests
     private static List<int> Holding(World world, Func<int, Registry> on, int peer)
     {
         var held = new List<int>();
-        foreach (var s in world.Surfaces)
+        foreach (var s in world.Surfaces.Where(x => !x.Closed))
         {
             var m = on(s.Id);
             if (m.Crew.HeroOf(peer) != null || m.Items.Inventory(peer).Any(x => x != null) || m.Items.Running(peer) != null) held.Add(s.Id);
@@ -212,7 +212,7 @@ public class SurfacesTests
     public void CarriesTheHerosSuitAndThrustTheInventoryAndARunningDrillAcross()
     {
         var w = Opened();
-        w.GiveItems(0, (Drill, 1), ("scrap", 30)).Put(Belt, new Stack("battery", 1, 500_000)).Wear(0, Content.Jetpack.Item);
+        w.GiveItems(0, (Drill, 1), ("scrap", 30)).Wields(Drill).Put(Belt, new Stack("battery", 1, 500_000)).Wear(0, Content.Jetpack.Item);
         w.Do(new Exert(true)).Do(new Run(Drill, true)).Run(Content.Crew.BreathEvery);
         var hero = w.M.Crew.HeroOf(0)!;
         var before = (hero.Air, hero.Exerting, hero.ThrustTicks);
@@ -392,7 +392,7 @@ public class SurfacesTests
         {
             if (s != null) counts[s.Item] = counts.GetValueOrDefault(s.Item) + s.Count;
         }
-        foreach (var surface in world.Surfaces)
+        foreach (var surface in world.Surfaces.Where(s => !s.Closed))
         {
             var m = Registry.On(world, surface.Id);
             var state = (ItemsState)m.Items.Slice;

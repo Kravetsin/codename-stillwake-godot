@@ -1,6 +1,6 @@
 # One damage scale; the own ship takes a tenth
 
-- Status: accepted; built; supersedes in part [unified-damage](2026-11-09-unified-damage.md) (the built share, scrap 20 and
+- Status: accepted; built; item 2 superseded by [one-damage-rule](2026-11-10-one-damage-rule.md) (every player hit, not only a charge); supersedes in part [unified-damage](2026-11-09-unified-damage.md) (the built share, scrap 20 and
   iron 50, meteors' `PerPower` 220, `ToBreak`) and [catcher-paths](2026-11-09-catcher-paths.md) (a catcher's strike at the
   built share)
 - Date: 2026-11-09

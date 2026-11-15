@@ -337,6 +337,28 @@ public class MagneticFlareTests
         Assert.Equal(1000 * 5 / 6, w.M.Power.Satisfaction(lamp));
     }
 
+    /// <summary>A repair is worth what a Work is (food-and-the-body): the lamp's 15 ticks, three in four hungry, 1.3 a Repair on a ration.</summary>
+    [Theory]
+    [InlineData(false, 20)]
+    [InlineData(true, 12)]
+    public void ARepairGoesAtTheHerosWorkRate(bool ration, int repairs)
+    {
+        var w = World().GiveItems(0, (Foods.Ration, 1));
+        w.Do(new Crew.Enter(Lamp)).Run();
+        if (ration) w.Do(new Crew.Eat(Foods.Ration)).Run();
+        else w.M.Crew.HeroOf(0)!.Eaten.Clear();
+        int lamp = Id(w, Lamp);
+        Break(w, Lamp);
+        int done = 0;
+        while (w.M.Power.IsBroken(lamp))
+        {
+            w.Do(new Repair(lamp)).Run();
+            done++;
+        }
+        Assert.Equal(repairs, done);
+        Assert.Empty(Reasons(w));
+    }
+
     [Fact]
     public void WhatAHeroCarriesIsLeftAlone()
     {

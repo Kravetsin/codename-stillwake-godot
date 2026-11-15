@@ -86,12 +86,12 @@ public static class Flora
     /// <summary>
     /// The surface's growths, the catalog every planet type takes its plants from (0095), with the first planet's chances: an
     /// acacia with hanging fronds and glowing seed pods, a bush of glowing berries, a rock, bell flowers glowing in three
-    /// colours, a tuft of grass. Strengths (in tenths) are seconds of the axe's 80 a second on blocks (the fan of rays): a tree 3, a rock 2,
+    /// colours, a tuft of grass; the chances add to under 1000, or the last kinds never grow. Trees stand thick (plant-stirs). Strengths (in tenths) are seconds of the axe's 80 a second on blocks (the fan of rays): a tree 3, a rock 2,
     /// a bush 1. A tree's 10 planks are more than any cargo crate's 3 to 6.
     /// </summary>
     public static readonly IReadOnlyList<Kind> All =
     [
-        new("acacia", Tall: 18, Level: 2, Room: 6, Clear: 24, Chance: 260, Apart: 24) { Yields = [("planks", 10)], Strength = 240 },
+        new("acacia", Tall: 18, Level: 1, Room: 6, Clear: 24, Chance: 370, Apart: 10) { Yields = [("planks", 10)], Strength = 240 },
         new("bush", Tall: 2, Level: 2, Room: 4, Clear: 4, Chance: 160, Apart: 10) { Yields = [("seed", 1)], Strength = 80 },
         new("rock", Tall: 2, Level: 2, Room: 2, Clear: 4, Chance: 65, Apart: 12) { Yields = [("rock", 2)], Strength = 160 },
         new("bellTeal", Tall: 2, Level: 0, Room: 0, Clear: 2, Chance: 100, Apart: 6),

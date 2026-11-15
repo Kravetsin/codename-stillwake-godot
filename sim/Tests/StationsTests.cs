@@ -44,8 +44,7 @@ public class StationsTests
 
     /// <summary>
     /// What <paramref name="item"/> is worth, down to what is neither crafted nor smelts: its craft's cost, or what it
-    /// smelts into, recursively; so a craft of silicon and a smelt of it count alike. A seed counts as itself: a crop
-    /// makes more than it was (0060), which <see cref="Grown"/> accounts for.
+    /// smelts into, recursively; so a craft of silicon and a smelt of it count alike, and a seed its fruit (fruit-not-biomass).
     /// </summary>
     private static void Raw(string item, int count, Dictionary<string, int> into) => Parts(item, count * Scale, into);
 
@@ -62,44 +61,9 @@ public class StationsTests
         var spec = Content.Items.Get(item);
         if (Crafts.TryGet(item, out var craft))
             foreach (var (part, n) in craft.Cost) Parts(part, n * parts, into);
-        else if (spec is { Yields: { } yields, Returns: null })
+        else if (spec.Yields is { } yields)
             foreach (var (y, n) in yields) Parts(y, n * parts / spec.SmeltTakes, into);
         else into[item] = into.GetValueOrDefault(item) + parts;
-    }
-
-    /// <summary>What one crop adds to the worth, beyond its seed: its yields, as <see cref="Raw"/> counts them.</summary>
-    private static readonly Dictionary<string, int> Crop = CropWorth();
-
-    private static Dictionary<string, int> CropWorth()
-    {
-        var crop = new Dictionary<string, int>(StringComparer.Ordinal);
-        foreach (var (y, n) in Content.Items.Get("seed").Yields!) Raw(y, n, crop);
-        return crop;
-    }
-
-    /// <summary>
-    /// Whether the worth went from <paramref name="was"/> to <paramref name="now"/> by crops alone, at most
-    /// <paramref name="most"/> of them: each adds its yields' worth, and its seed comes back as none, one or two, so the
-    /// seeds change by at most one a crop either way; nothing else changes.
-    /// </summary>
-    private static bool Grown(Dictionary<string, int> was, Dictionary<string, int> now, int most)
-    {
-        var (from, to) = (new Dictionary<string, int>(was), new Dictionary<string, int>(now));
-        int seeds = (to.GetValueOrDefault("seed") - from.GetValueOrDefault("seed")) / Scale;
-        from.Remove("seed");
-        to.Remove("seed");
-        for (int crops = 0; crops <= most; crops++)
-        {
-            if (Math.Abs(seeds) <= crops && Same(Added(from, crops), to)) return true;
-        }
-        return false;
-    }
-
-    private static Dictionary<string, int> Added(Dictionary<string, int> worth, int crops)
-    {
-        var sum = new Dictionary<string, int>(worth, StringComparer.Ordinal);
-        foreach (var (item, n) in Crop) sum[item] = sum.GetValueOrDefault(item) + n * crops;
-        return sum;
     }
 
     private static bool Same(Dictionary<string, int> a, Dictionary<string, int> b) =>
@@ -141,8 +105,8 @@ public class StationsTests
     /// <summary>
     /// The invariants of both feeds and both processes: items are conserved — what a queued craft took, paid when queued
     /// or a unit at a time from the inputs, endless or not, comes back as its units or a cancel's refund, a smelt turns an item into its yields and nothing else, planks only burning, one
-    /// a fire a tick at most, and a crop turns a seed into its yields and none, one or two seeds, one a capsule a tick
-    /// at most (0060); and no station's queue ever holds more than its <c>QueueMost</c>. A step now and then ripens
+    /// a fire a tick at most, and a crop turns a seed into its fruit and nothing else (fruit-not-biomass); and no station's
+    /// queue ever holds more than its <c>QueueMost</c>. A step now and then ripens
     /// the capsule's crop to its last tick, as hours at work would, so crops complete within a run.
     /// </summary>
     [Property(MaxTest = 50)]
@@ -166,7 +130,6 @@ public class StationsTests
                 w.GiveItems(peer, ("scrap", 200), ("iron", 100), ("gear", 2), ("wire", 4), ("scrapChunk", 6), ("hullPlate", 3), ("planks", 3), ("quartz", 2), ("silicon", 6), ("glass", 4), ("seed", 10), ("biomass", 4));
             var stations = StationsIn(w);
             var fed = stations.Where(s => (Machines.Get(s.Station.Machine).Inputs ?? 0) > 0 && !s.Station.Fed).ToList();
-            int capsules = stations.Count(s => s.Station.Process == "grow");
             // Each capsule planted from the start, so ripening brings crops in often.
             foreach (var (id, _) in stations.Where(s => s.Station.Process == "grow")) w.FillCrate(id, ("seed", 10));
             var (worth, planks) = Worth(w, peers);
@@ -197,7 +160,7 @@ public class StationsTests
                     foreach (var (machine, st) in stations)
                         if (w.M.Crafting.Queue(machine).Count > st.QueueMost) return false;
                     var (now, left) = Worth(w, peers);
-                    if (!Grown(worth, now, capsules) || left > planks || left < planks - 1) return false;
+                    if (!Same(worth, now) || left > planks || left < planks - 1) return false;
                     (worth, planks) = (now, left);
                 }
             }

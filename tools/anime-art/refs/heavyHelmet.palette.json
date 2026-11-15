@@ -1,0 +1,163 @@
+{
+ "background": "#0e1c38",
+ "backgroundTolerance": 12,
+ "fit": 15.4,
+ "holes": 0.004,
+ "mend": [
+  {
+   "fill": "background",
+   "poly": [
+    [
+     470,
+     0
+    ],
+    [
+     740,
+     0
+    ],
+    [
+     740,
+     184
+    ],
+    [
+     470,
+     184
+    ]
+   ]
+  },
+  {
+   "fill": "#525153",
+   "ellipse": [
+    522,
+    186,
+    133,
+    52
+   ],
+   "clip": [
+    470,
+    0,
+    740,
+    186
+   ]
+  },
+  {
+   "fill": "#000000",
+   "poly": [
+    [
+     530,
+     184
+    ],
+    [
+     612,
+     184
+    ],
+    [
+     612,
+     194
+    ],
+    [
+     530,
+     194
+    ]
+   ]
+  }
+ ],
+ "ink": {
+  "maxLum": 18,
+  "relative": 0.6,
+  "around": 12,
+  "width": 7,
+  "bridge": 3
+ },
+ "minPart": 0.0012,
+ "epsilon": 1.6,
+ "looseMin": 0.8,
+ "materials": {
+  "metal": {
+   "base": true,
+   "layer": 0,
+   "ref": [
+    "#575558",
+    "#4f4d50",
+    "#333237",
+    "#323236",
+    "#555356"
+   ],
+   "shade": 0.16,
+   "mat": {
+    "base": "#5a5c63",
+    "shade": "#404248",
+    "deep": "#2b2c31",
+    "lite": "#7a7c84",
+    "spec": "#a6a9b0"
+   }
+  },
+  "tube": {
+   "layer": 1,
+   "ref": [
+    "#2e333e",
+    "#2b303b",
+    "#262b35"
+   ],
+   "shade": 0.16,
+   "mat": {
+    "base": "#2e2c2a",
+    "shade": "#1d1c1b",
+    "deep": "#121212",
+    "lite": "#45423e"
+   }
+  },
+  "brass": {
+   "layer": 2,
+   "ref": [
+    "#836a42",
+    "#826943",
+    "#876a41",
+    "#a08050"
+   ],
+   "shade": 0.16,
+   "mat": {
+    "base": "#a5874c",
+    "shade": "#6e5636",
+    "deep": "#4c3b2a",
+    "lite": "#cdb57c",
+    "spec": "#efe0b0"
+   }
+  },
+  "glass": {
+   "layer": 3,
+   "ref": [
+    "#717a82",
+    "#838d96",
+    "#9aa4ac"
+   ],
+   "shade": 0,
+   "lite": 30,
+   "mat": {
+    "base": "#3c4a56",
+    "shade": "#2c3742",
+    "deep": "#1e262e",
+    "lite": "#8a9aa6"
+   },
+   "loose": false
+  },
+  "trim": {
+   "overlay": true,
+   "on": [
+    "metal"
+   ],
+   "ref": [
+    "#836a42",
+    "#826943",
+    "#876a41",
+    "#a08050"
+   ],
+   "tolerance": 40,
+   "minArea": 0.002,
+   "mat": {
+    "base": "#a5874c"
+   },
+   "inset": 0.05
+  }
+ }
+}

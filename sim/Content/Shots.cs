@@ -4,10 +4,17 @@ namespace Stillwake.Content;
 /// What flies as a shot (shots-are-the-sims): what a hit adds to its gun's, <paramref name="Damage"/> off a creature or a wreck and
 /// <paramref name="BlockDamage"/> (in tenths) off a wall or a built piece; <paramref name="Weight"/>, how many times <see cref="Creatures.Gravity"/>
 /// pulls it on a planet, 0 for none; <paramref name="HitsBodies"/>, whether creatures and wrecks stop it, or solid cells alone;
-/// <paramref name="Bursts"/>, the burst where its shot ends, wherever that is, or null (blasting-charge). How fast and far it flies is
-/// its gun's.
+/// <paramref name="Bursts"/>, the burst where its shot ends, wherever that is, or null (blasting-charge); <paramref name="Homes"/>, how it
+/// turns after the nearest hero, or null for a shot that flies as it was sent (catcher-missile). How fast and far it flies is its gun's,
+/// or its thrower's.
 /// </summary>
-public sealed record Projectile(string Id, int Damage, int BlockDamage, int Weight, bool HitsBodies, Blast? Bursts = null);
+public sealed record Projectile(string Id, int Damage, int BlockDamage, int Weight, bool HitsBodies, Blast? Bursts = null, Homing? Homes = null);
+
+/// <summary>
+/// How a homing shot flies (catcher-missile): at <paramref name="Speed"/> thousandths of a cell a tick, turning at most
+/// <paramref name="Turn"/> fine headings a tick toward the nearest awake hero; within its burst's reach of that hero it bursts.
+/// </summary>
+public sealed record Homing(int Speed, int Turn);
 
 /// <summary>
 /// A hero's gun: the item <paramref name="Item"/>, firing one of <paramref name="Ammo"/> a shot, the first of them the hero carries; a
@@ -80,12 +87,20 @@ public static class Shots
     public static readonly Projectile Shell = new("shell", Damage: 3, BlockDamage: 0, Weight: 1, HitsBodies: false, Bursts: Blasting.Shell);
 
     /// <summary>
+    /// The catcher's homing missile (catcher-missile): 6 off each hero in its burst's reach and sight, and off a creature it strikes;
+    /// stopped by cells, creatures and wrecks; 20 cells a second (the jetpack's top is 30), turning some 42° a second, a circle some 27
+    /// cells across. Placeholders for a play pass.
+    /// </summary>
+    public static readonly Projectile Missile = new("missile", Damage: 6, BlockDamage: 0, Weight: 0, HitsBodies: true, Bursts: Blasting.Missile,
+        Homes: new(Speed: 1000, Turn: 24));
+
+    /// <summary>
     /// The charge thrown from the hand: its own 10 and nothing more, a full knock; 30 cells a second, gone at 40 cells' worth, bursting
     /// in the air there (in space, where nothing pulls it down); a throw a second.
     /// </summary>
     public static readonly Gun Thrown = new("blastCharge", ["blastCharge"], Damage: 0, BlockDamage: 0, Knock: 10, Speed: 1500, Reach: 40, Pace: 20, PierceKeep: 0);
 
-    public static readonly IReadOnlyList<Projectile> Projectiles = [Nail, Bolt, Laser, Glob, BlastCharge, Shell];
+    public static readonly IReadOnlyList<Projectile> Projectiles = [Nail, Bolt, Laser, Glob, BlastCharge, Shell, Missile];
 
     public static readonly IReadOnlyList<Gun> Guns = [Nailer, Railgun, Thrown];
 

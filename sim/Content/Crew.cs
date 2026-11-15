@@ -2,9 +2,9 @@ namespace Stillwake.Content;
 
 /// <summary>
 /// A hero's breathing, in oxygen units and ticks (20 a second). Every <see cref="BreathEvery"/> ticks a
-/// hero takes a breath of one unit, from an aired room's air or else from its own air, which holds the worn
-/// helmet's <c>Tank</c>, or <see cref="Lungs"/> without one (2026-10-27-suits-are-worn); in an aired room that air also
-/// refills by up to <see cref="Refill"/> units a breath. No air left starts the hero's <see cref="LastBreath"/>; run down,
+/// hero takes a breath of one unit, from an aired room's air or else from its own air, which holds its
+/// lungs and the worn helmet's <c>Tank</c> past them (air-segments); in an aired room that air also
+/// fills from empty in <see cref="FillBreaths"/> breaths, whatever it holds. No air left starts the hero's <see cref="LastBreath"/>; run down,
 /// it passes the hero out for <see cref="PassOut"/> ticks (2026-11-05-the-last-breath). Heroes wear one of
 /// <see cref="Colours"/> suit colours, each taken by one hero at most while there are colours to go round.
 /// Running, a hero is out of breath and breathes <see cref="Exerted"/> units a breath:
@@ -13,12 +13,11 @@ namespace Stillwake.Content;
 /// </summary>
 public static class Crew
 {
-    /// <summary>The air a hero holds with no helmet worn: what the pod prints a new hero with.</summary>
+    /// <summary>The air a hero's lungs hold, the first part of its air, helmet or not (air-segments).</summary>
     public const int Lungs = 20;
-    /// <summary>What a breath costs a hero with no body worn more where the air is not aired: the cold, at once (2026-10-27-suits-are-worn).</summary>
-    public const int BareCold = 1;
     public const int BreathEvery = 20;
-    public const int Refill = 3;
+    /// <summary>The breaths an aired room fills a hero's air in from empty, whatever it holds: a breath gives its share, rounded up (air-segments).</summary>
+    public const int FillBreaths = 15;
     public const int PassOut = 100;
     /// <summary>The ticks a hero lives on once its air runs dry, ten seconds: any air back in time spares it.</summary>
     public const int LastBreath = 200;
@@ -40,8 +39,8 @@ public static class Crew
     /// </summary>
     public const int CanisterRefill = 20;
 
-    /// <summary>What each canister upgrade bought (<c>Upgrades.Canister</c>) adds to <see cref="CanisterRefill"/>: one makes a canister 40 (2026-11-03-the-heavy-helmet).</summary>
-    public const int CanisterUp = 20;
+    /// <summary>Ticks after a canister breathed before a hero may breathe another, 20 s (food-and-the-body).</summary>
+    public const int CanisterCooldown = 400;
 
     /// <summary>
     /// The fewest ticks between two of a client's reports of its hero's cell while the sim's is not the

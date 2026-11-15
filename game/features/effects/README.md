@@ -8,6 +8,7 @@
 | `StagesView.cs` | The world's stages drawn: a view a stage at its layer's z, kept last among the world's views. |
 | `logic/Impacts.cs` | What a hit at a cell strikes and where on it (0094): the face toward the hero, its floor, a tool's share. |
 | `logic/ChipShape.cs` | A chip's triangle turned and sized where it flies: a frame's chips drawn as one list of triangles. |
+| `logic/Gusts.cs` | What a push of air stirs (air-gusts): the floor's dust in its colour, a strong push's grit. |
 
 Particles without a word, in the luminous style (0075): what glows is light added over the world — streaks white-hot
 at the head, stretched along their curling path, fading as they cool, lighting the room a little; a one-frame glint
@@ -31,13 +32,13 @@ or a share of it); `Content/logic/Fx.cs` (the knobs, the lights' cap) and `Conte
   the face off its corners; a growth's cell's middle a quarter cell toward the hero; a wreck at a running drill's bit,
   else its side facing the nearest hero. Chips fall to the floor under the face, within `HitLooks.FloorRows`. A hit's look is never drawn behind the walls.
 - **Looks by object** (0094): one table by the natural wall's material, one by the growth's kind (`HitLooks.Ground`,
-  `HitLooks.Growths`), beside the sound's; what lies in the rock is struck as its stone; a pile in the hold as a wreck, its ring the wreck's (2026-11-07-pile-hits-felt); the hull, never broken, as alloy, so a
-  shot is seen to land. Metal throws sparks, glint and warm flash; stone fine sparks and dust; soil and plaster dust,
+  `HitLooks.Growths`), beside the sound's; what lies in the rock is struck as its stone; a pile in the hold as a wreck, its ring the wreck's (2026-11-07-pile-hits-felt); what is built, a wall, door, hatch, station or
+  the lifepod, as alloy (one-damage-rule). Metal throws sparks, glint and warm flash; stone fine sparks and dust; soil and plaster dust,
   no chips: they lay in a sheet at the hit's floor, over any step (planet-frame-rate); wood splinters; plants leaves; crystal and glass cold glitter and shards; caps spores; cloth fibres; crockery
   glazed chips.
 - **A whole hit is the axe's** (0094): a faster tool throws its pace over the axe's (`Impacts.ShareOf`), so a second of
   drilling throws what a second of chopping does: each count by chance, rounded so it adds up, the glint and ring by
-  the same chance, the light to the share's root. The hit that breaks or fells an object throws the whole, once.
+  the same chance, the light to the share's root. The hit that breaks or fells an object throws the whole, once, as the sim judges it (`BuildingModule.Breaks`: a tenth on the hero's own ship).
 - **Motion** (0075): each look's gravity (none in space, chosen by the emitter), drag, a turn by smooth value noise
   (`Spin`) and a push along its curl (`Turbulence`), a floor it may bounce off; a streak samples its path every 60th
   of a second whatever the frame rate, its last 24 points, drawn back along them by speed times `Stretch`.
@@ -75,6 +76,7 @@ Tested in `LuminousTests`: the luminous arithmetic, trails, blooms, floor rings 
 ## Deliberately not handled
 
 - Particles fly through walls: only a floor an emitter names stops them.
+- A gust (air-gusts) is only this hero's; plants and loose items do not answer it yet.
 - A peer is not told which tool hit a wreck: a hit under a running drill's bit is taken for that drill's (0094).
 - A hit on a tree's crown lands in the struck cell, maybe air between branches: nothing finds the wood in the picture (0094).
 - A chip keeps the floor it was thrown over; one flying past a step's edge rests on air at its height (0094).

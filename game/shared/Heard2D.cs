@@ -17,12 +17,17 @@ public partial class Heard2D : AudioStreamPlayer2D
 {
     private readonly S.Reach _reach;
     private readonly float _volumeDb;
-    /// <summary>Who takes a sound played again before Godot starts the last (<see cref="VoiceStarts"/>): else it would replace it.</summary>
-    private VoiceStarts _starts;
+    /// <summary>Which voice takes a sound (<see cref="VoiceStarts"/>): one free, so a sound still ringing is never moved off to another's place.</summary>
+    private readonly VoiceStarts _starts = new();
+    /// <summary>Whether each voice still sounds, this one first, filled at each play.</summary>
+    private bool[] _sounding = [];
     /// <summary>The voices past this one, made the first time a physics tick asks for them, each placed on its own.</summary>
     private readonly List<Heard2D> _spares = [];
     /// <summary>What is added to the cue's volume, in decibels: a strike's own spread, a loop's envelope.</summary>
     public float OffsetDb { get; set; }
+
+    /// <summary>How many sounds of its cue it plays at once, each at its own place: this one and its spares.</summary>
+    public int Voices { get; init; } = 1;
 
     public Heard2D(S.Reach reach, float volumeDb)
     {
@@ -37,11 +42,13 @@ public partial class Heard2D : AudioStreamPlayer2D
 
     /// <summary>
     /// Plays it at <paramref name="at"/> at <paramref name="pitch"/>, <paramref name="offsetDb"/> louder or quieter than its cue:
-    /// played again within the same physics tick, on a spare voice, up to its <c>MaxPolyphony</c>.
+    /// on a voice of its <see cref="Voices"/> free, else the one started longest ago (<see cref="VoiceStarts"/>).
     /// </summary>
     public void PlayAt(Vector2 at, float pitch, float offsetDb)
     {
-        int voice = _starts.Take(Engine.GetPhysicsFrames(), MaxPolyphony);
+        if (_sounding.Length != Voices) _sounding = new bool[Voices];
+        for (int i = 0; i < Voices; i++) _sounding[i] = i == 0 ? Playing : i - 1 < _spares.Count && _spares[i - 1].Playing;
+        int voice = _starts.Take(Engine.GetPhysicsFrames(), _sounding);
         (voice == 0 ? this : Spare(voice - 1)).Start(at, pitch, offsetDb);
     }
 

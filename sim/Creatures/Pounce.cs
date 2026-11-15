@@ -16,12 +16,13 @@ internal sealed class PounceMove : MoveRule
     internal override void Begin(CreaturesModule m, Creature c, Spec.Species spec, int at)
     {
         c.Act = new Act { Move = at, Phase = ActPhase.WindUp, Left = ((Spec.Pounce)spec.Moves[at]).WindUp };
-        (c.VX, c.VY) = (0, 0);
+        m.Slow(c, spec);
     }
 
     internal override void Count(CreaturesModule m, Creature c, Spec.Species spec, Spec.Move mv, bool grounded)
     {
         var act = c.Act!;
+        if (act.Phase == ActPhase.WindUp && m.Drifts(spec)) m.Slow(c, spec);
         if (act.Left > 0) act.Left -= 1;
         if (act.Left > 0) return;
         if (act.Phase == ActPhase.Active)

@@ -160,9 +160,10 @@ public class SwingMotionsTests
         var arm = AxeSwing.ArmAt(angle, elbow);
         double drawn = Rig.HeldTurn(arm, look, wrist);
         Assert.Equal(wrist, Math.IEEERemainder(drawn - Rig.HeldTurn(arm, look), 2 * Math.PI), 12);
-        // The fire axe's edge lies level in its picture: the edge hit with runs as the drawn item is turned, from where it is drawn.
+        // The edge hit with runs as the drawn item is turned, at its own slope in the picture, from where it is drawn.
         var (from, to) = AxeSwing.EdgeAt(look, angle, elbow, wrist);
-        Assert.Equal(0, Math.IEEERemainder(Math.Atan2(to.Y - from.Y, to.X - from.X) - drawn, 2 * Math.PI), 9);
+        double slope = Math.Atan2(look.EdgeTo.Y - look.EdgeFrom.Y, look.EdgeTo.X - look.EdgeFrom.X);
+        Assert.Equal(0, Math.IEEERemainder(Math.Atan2(to.Y - from.Y, to.X - from.X) - drawn - slope, 2 * Math.PI), 9);
         Assert.Equal(Rig.HeldAt(arm, look, look.EdgeFrom, wrist), from);
         // And the edge sampled through the swing for the fan's sides is that one.
         double middle = Math.Atan2((from.Y + to.Y) / 2, (from.X + to.X) / 2);

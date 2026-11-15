@@ -132,7 +132,7 @@ catchers in the save. Heroes' cells and hits stay client-authoritative (0002, 01
 
 ## Slices
 1. The planet, the Brawler: the meter, the bracelet, the flyer, the hunt, `Wear`, the answer, the look and sounds picked.
-2. The Marksman and Gasser kits with range-holding; space (the meter away from the ship, the intercept of [catcher-paths](../decisions/2026-11-09-catcher-paths.md) at a space speed).
+2. Space: [catchers-space](catchers-space.md). Then the kits (the Marksman and Gasser with range-holding).
 3. Later: nail kits (creature shots hitting heroes), `Stir` from other modules.
 
 ## Open (the body follows each recommendation until the user says otherwise)

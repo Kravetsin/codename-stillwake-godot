@@ -300,7 +300,32 @@ public static class Migrations
                 if (slices["building"]?["cracks"] is JsonArray cracks) cracks.Clear();
             return root;
         },
-        // 61 → 62 (vessel-worlds): a vessel lies on a surface of its own, so the grid keeps no reserved box; one an old save had
+        // 61 → 62 (catcher-loot): the wanted meter fills by the worth of loot, not by breaths of activity, so a saved one changes
+        // meaning; it empties, its need drawn again. A hunt on goes on: its catcher calls it off as it ends.
+        root =>
+        {
+            foreach (var slices in new[] { root["slices"]! }.Concat((root["surfaces"]?.AsArray() ?? []).Select(s => s!["slices"]!)))
+                if (slices["crew"]?["heroes"] is JsonArray heroes)
+                    foreach (var hero in heroes.OfType<JsonObject>())
+                    {
+                        hero.Remove("stirring");
+                        hero.Remove("wanted");
+                        hero.Remove("need");
+                    }
+            return root;
+        },
+        // 62 → 63 (food-and-the-body): the galley burns fuel, its first slot; what it made moves one slot on, into its outputs.
+        root =>
+        {
+            foreach (var slices in new[] { root["slices"]! }.Concat((root["surfaces"]?.AsArray() ?? []).Select(s => s!["slices"]!)))
+            {
+                var galleys = slices["grid"]!["machines"]!.AsArray().Where(m => m!["kind"]!.GetValue<string>() == "galley").Select(m => m!["id"]!.GetValue<int>()).ToHashSet();
+                foreach (var held in slices["items"]!["crates"]!.AsArray())
+                    if (galleys.Contains(held!["id"]!.GetValue<int>())) held["slots"]!.AsArray().Insert(0, null);
+            }
+            return root;
+        },
+        // 63 → 64 (vessel-worlds): a vessel lies on a surface of its own, so the grid keeps no reserved box; one an old save had
         // beside the ship stays there as plain cells, built on and taken apart like any.
         root =>
         {

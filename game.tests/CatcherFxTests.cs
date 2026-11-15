@@ -126,6 +126,25 @@ public class CatcherFxTests
     }
 
     [Fact]
+    public void TheLockClosesInUntwistingFadesInBlinksAtItsEndAndSnapsShutAtTheLaunch()
+    {
+        var (r0, t0, a0) = CatcherFx.LockOf(0, 0);
+        var (r1, t1, _) = CatcherFx.LockOf(1, 0);
+        Assert.Equal(40, r0, 9);
+        Assert.Equal(22, r1, 9);
+        Assert.Equal(0.8, t0, 9);
+        Assert.Equal(0, t1, 9);
+        Assert.Equal(0, a0, 9);
+        Assert.Equal(1, CatcherFx.LockOf(0.5, 0).Alpha, 9);
+        // Over its last quarter it blinks: lit, then dim 55 ms on.
+        Assert.Equal(1, CatcherFx.LockOf(0.9, 0).Alpha, 9);
+        Assert.Equal(0.25, CatcherFx.LockOf(0.9, 60).Alpha, 9);
+        Assert.Equal(1, CatcherFx.LockOf(0.5, 60).Alpha, 9);
+        Assert.Equal(1, CatcherFx.SnapOf(0), 9);
+        Assert.Equal(0, CatcherFx.SnapOf(CatcherFx.SnapMs), 9);
+    }
+
+    [Fact]
     public void TheLaserSwellsHoldsAndThinsToAThreadAsItBurnsAndIsGoneAfter()
     {
         Assert.Equal(0, CatcherFx.Swell(0));

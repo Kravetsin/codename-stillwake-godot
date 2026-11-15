@@ -15,9 +15,9 @@ public enum BoardShow
 /// <summary>What the board reads of the world.</summary>
 /// <param name="Found">What was obtained, in the order first obtained.</param>
 /// <param name="Granted">What is known.</param>
-/// <param name="Count">How many of an item were obtained.</param>
+/// <param name="Has">Whether an item was ever obtained.</param>
 /// <param name="Stands">Whether a machine of a kind stands.</param>
-public sealed record BoardRead(IReadOnlyList<string> Found, IReadOnlyCollection<string> Granted, Func<string, int> Count, Func<string, bool> Stands);
+public sealed record BoardRead(IReadOnlyList<string> Found, IReadOnlyCollection<string> Granted, Func<string, bool> Has, Func<string, bool> Stands);
 
 /// <summary>What the board shows now: how each thing with a slot shows, and its threads.</summary>
 public sealed record BoardPicture(IReadOnlyDictionary<string, BoardShow> Shows, IReadOnlyList<(string Note, string Shape)> Threads);
@@ -41,7 +41,7 @@ public static class BoardView
     {
         var byId = things.ToDictionary(t => t.Id, StringComparer.Ordinal);
         var slotted = slots.Select(s => s.Id).ToHashSet(StringComparer.Ordinal);
-        double Pencil(BoardThing thing) => BoardPencil.Of(thing, read.Count, read.Stands);
+        double Pencil(BoardThing thing) => BoardPencil.Of(thing, read.Has, read.Stands);
         var notes = NotesOf(slots, read);
         bool Shape(string id) => slotted.Contains(id) && !notes.Contains(id);
         var threads = new List<(string Note, string Shape)>();
@@ -58,8 +58,8 @@ public static class BoardView
         foreach (var slot in slots)
         {
             if (notes.Contains(slot.Id) || ends.Contains(slot.Id) || byId.GetValueOrDefault(slot.Id) is not { Parts.Count: > 0, Market: false } thing) continue;
-            if (!thing.Parts.All(p => notes.Contains(p.Item))) continue;
-            threads.Add((slots.Last(s => thing.Parts.Any(p => p.Item == s.Id)).Id, slot.Id));
+            if (!thing.Parts.All(notes.Contains)) continue;
+            threads.Add((slots.Last(s => thing.Parts.Contains(s.Id)).Id, slot.Id));
             ends.Add(slot.Id);
         }
         var shows = new Dictionary<string, BoardShow>(StringComparer.Ordinal);

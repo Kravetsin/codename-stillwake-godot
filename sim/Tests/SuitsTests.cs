@@ -31,7 +31,9 @@ public class SuitsTests
         ###########
         """;
 
-    private static readonly int Lungs = Content.Crew.Lungs, Cold = Content.Crew.BareCold, Full = Scenario.Full;
+    private static readonly int Lungs = Content.Crew.Lungs, Full = Scenario.Full;
+    // The cold by the hull felt bare (2026-11-14-temperature-in-degrees), and what it costs over five breaths: whole units, whatever the clock.
+    private static readonly int Felt = Content.Temperature.BareLow - Content.Temperature.Hull, Cold5 = 5 * Felt * Content.Temperature.Bite / 1000;
     private static readonly int HeadSlot = SlotOf(Content.Helmet.Slot), BodySlot = SlotOf(Content.Suit.Slot);
     private static int SlotOf(string kind) => Content.Inventory.Slots + Content.Inventory.Equipment.ToList().IndexOf(kind);
     private static string Helmet => Content.Helmet.Basic;
@@ -100,12 +102,12 @@ public class SuitsTests
     [Fact]
     public void BareInVacuumABreathCostsTheColdBesidesSuitedItDoesNot()
     {
-        var bare = Breaths(InVacuum(Beyond), 3);
-        Assert.Equal(Lungs - 3 * (1 + Cold), HeroOf(bare).Air);
-        Assert.Equal(Cold, bare.M.Crew.Cold(0));
-        var suited = Breaths(InVacuum(Beyond, suited: true), 3);
-        Assert.Equal(Full - 3, HeroOf(suited).Air);
-        Assert.Equal(0, suited.M.Crew.Cold(0));
+        var bare = Breaths(InVacuum(Beyond), 5);
+        Assert.Equal(Lungs - 5 - Cold5, HeroOf(bare).Air);
+        Assert.Equal(Felt, bare.M.Crew.Felt(0, HeroOf(bare).Cell));
+        var suited = Breaths(InVacuum(Beyond, suited: true), 5);
+        Assert.Equal(Full - 5, HeroOf(suited).Air);
+        Assert.Equal(0, suited.M.Crew.Felt(0, HeroOf(suited).Cell));
     }
 
     [Fact]
@@ -120,7 +122,7 @@ public class SuitsTests
         var bag = w.M.Items.Inventory(0).Take(Content.Inventory.Slots).ToList();
         Assert.Equal((1, 1), (bag.Count(s => s?.Item == Helmet), bag.Count(s => s?.Item == Body)));
         Breaths(w, 5);
-        Assert.Equal((Lungs, 0), (HeroOf(w).Air, w.M.Crew.Cold(0)));
+        Assert.Equal((Lungs, 0), (HeroOf(w).Air, w.M.Crew.Felt(0, HeroOf(w).Cell)));
     }
 
     [Fact]
@@ -131,9 +133,31 @@ public class SuitsTests
         PutOn(w, Helmet, HeadSlot);
         Assert.Equal((Lungs, Full), (HeroOf(w).Air, w.M.Crew.CapacityOf(0)));
         Breaths(w, 1);
-        Assert.Equal(Lungs + Content.Crew.Refill, HeroOf(w).Air);
+        Assert.Equal(Lungs + CrewModule.FillOf(Full), HeroOf(w).Air);
         Breaths(w, 10);
         Assert.Equal(Full, HeroOf(w).Air);
+    }
+
+    [Fact]
+    public void AnAiredRoomFillsEveryHelmetFromEmptyInTheSameBreaths()
+    {
+        foreach (string helmet in new[] { Helmet, Content.Helmet.Heavy })
+        {
+            var w = Aired(suited: true);
+            if (helmet != Helmet)
+            {
+                w.GiveItems(0, (helmet, 1));
+                TakeOff(w, HeadSlot);
+                PutOn(w, helmet, HeadSlot);
+            }
+            int full = w.M.Crew.CapacityOf(0);
+            Assert.Equal(Lungs + Content.Items.Get(helmet).Tank, full);
+            HeroOf(w).Air = 1;
+            Breaths(w, Content.Crew.FillBreaths - 1);
+            Assert.True(HeroOf(w).Air < full, helmet);
+            Breaths(w, 1);
+            Assert.Equal(full, HeroOf(w).Air);
+        }
     }
 
     [Fact]
@@ -142,14 +166,14 @@ public class SuitsTests
         var helmeted = InVacuum(Beyond, suited: true);
         TakeOff(Breaths(helmeted, 1), BodySlot);
         int air = HeroOf(helmeted).Air;
-        Breaths(helmeted, 3);
-        Assert.Equal((Full, air - 3 * (1 + Cold), Cold), (helmeted.M.Crew.CapacityOf(0), HeroOf(helmeted).Air, helmeted.M.Crew.Cold(0)));
+        Breaths(helmeted, 5);
+        Assert.Equal((Full, air - 5 - Cold5, Felt), (helmeted.M.Crew.CapacityOf(0), HeroOf(helmeted).Air, helmeted.M.Crew.Felt(0, HeroOf(helmeted).Cell)));
 
         var bodied = InVacuum(Beyond, suited: true);
         TakeOff(Breaths(bodied, 1), HeadSlot);
         Assert.Equal(Lungs, HeroOf(bodied).Air);
         Breaths(bodied, 3);
-        Assert.Equal((Lungs, Lungs - 3, 0), (bodied.M.Crew.CapacityOf(0), HeroOf(bodied).Air, bodied.M.Crew.Cold(0)));
+        Assert.Equal((Lungs, Lungs - 3, 0), (bodied.M.Crew.CapacityOf(0), HeroOf(bodied).Air, bodied.M.Crew.Felt(0, HeroOf(bodied).Cell)));
     }
 
     [Fact]
@@ -184,12 +208,13 @@ public class SuitsTests
     }
 
     [Fact]
-    public void BareByThePodInVacuumAtRestTheAirHoldsAUnitShort()
+    public void BareByThePodInVacuumAtRestTheAirHoldsWithinAUnit()
     {
+        // The pod gives back the breath and what the cold took; space's cold takes a unit on four breaths of five.
         var w = Breaths(InVacuum(Hatch), 10);
-        Assert.Equal(Lungs - Cold, HeroOf(w).Air);
+        Assert.InRange(HeroOf(w).Air, Lungs - 1, Lungs);
         Breaths(w, 10);
-        Assert.Equal(Lungs - Cold, HeroOf(w).Air);
+        Assert.InRange(HeroOf(w).Air, Lungs - 1, Lungs);
     }
 
     [Fact]
@@ -221,15 +246,14 @@ public class SuitsTests
     }
 
     [Fact]
-    public void ACanisterGivesTwentyAndFortyOnceItsUpgradeIsBoughtNeverPastTheHelmet()
+    public void ACanisterGivesTwentyNeverPastTheHelmet()
     {
-        var w = Heavy(Beyond).GiveItems(0, (Content.Crew.Canister, 3));
+        var w = Heavy(Beyond).GiveItems(0, (Content.Crew.Canister, 2));
         HeroOf(w).Air = 10;
         w.Do(new Refill { From = 0 }).Run();
-        Assert.Equal((20, 30), (w.M.Crew.CanisterRefill, HeroOf(w).Air));
-        w.M.Knowledge.Grant("canister1");
-        w.Do(new Refill { From = 0 }).Run();
-        Assert.Equal((40, 70), (w.M.Crew.CanisterRefill, HeroOf(w).Air));
+        Assert.Equal((20, 30), (w.M.Crew.RefillOf(0), HeroOf(w).Air));
+        HeroOf(w).Air = 95;
+        HeroOf(w).CanisterIn = 0;
         w.Do(new Refill { From = 0 }).Run();
         Assert.Equal(100, HeroOf(w).Air);
     }
@@ -250,9 +274,10 @@ public class SuitsTests
         var w = new Scenario(PodRoom) { Bare = true }.Wear(0, Content.Jetpack.Item);
         w.Do(EnterAt(Beyond)).Run();
         Breaths(w, 1);
+        int clock = w.Crew().Clock, cold = TemperatureTests.ColdOn(clock, Felt) + TemperatureTests.ColdOn(clock + Content.Crew.BreathEvery, Felt);
         w.Do(new Thrust(true) { From = 0 }).Run();
         Breaths(w, 1);
-        Assert.Equal(Lungs - 2 * (1 + Cold) - Content.Crew.BreathEvery / Content.Jetpack.TicksPerUnit, HeroOf(w).Air);
+        Assert.Equal(Lungs - 2 - cold - Content.Crew.BreathEvery / Content.Jetpack.TicksPerUnit, HeroOf(w).Air);
     }
 
     [Fact]
@@ -284,11 +309,10 @@ public class SuitsTests
         select new Step("thrust", hero, Ticks: thrusting),
         from hero in Gen.Choose(0, 2) select new Step("refill", hero),
         from hero in Gen.Choose(0, 2) from units in Gen.Choose(1, 60) select new Step("shock", hero, Ticks: units),
-        Gen.Constant(new Step("upgrade")),
         Gen.Frequency((2, Gen.Choose(1, 20)), (1, Gen.Choose(1, 600))).Select(t => new Step("wait", Ticks: t)));
 
     [Property(MaxTest = 40)]
-    public Property KeepsEveryHerosAirBetweenNothingAndItsCapacityAndItsLastBreathOnlyWithNoneThroughSwapsRefillsUpgradesColdThrustAndShocks()
+    public Property KeepsEveryHerosAirBetweenNothingAndItsCapacityAndItsLastBreathOnlyWithNoneThroughSwapsRefillsColdThrustAndShocks()
     {
         var steps = from n in Gen.Choose(0, 25) from s in Steps.ArrayOf(n) select s;
         return Prop.ForAll(steps.ToArbitrary(), all =>
@@ -301,7 +325,6 @@ public class SuitsTests
                 else if (s.Type == "thrust") w.Do(new Thrust(s.Ticks == 1) { From = s.Hero });
                 else if (s.Type == "refill") w.Do(new Refill { From = s.Hero });
                 else if (s.Type == "shock") w.M.Crew.Shock(s.Hero, s.Ticks, Harm.Shock);
-                else if (s.Type == "upgrade") w.M.Knowledge.Grant("canister1");
                 else if (s.Type == "swap")
                 {
                     var (item, slot) = s.Cell switch { 0 => (Helmet, HeadSlot), 1 => (Body, BodySlot), _ => (Content.Helmet.Heavy, HeadSlot) };

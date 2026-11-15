@@ -46,7 +46,9 @@ public static class Debris
         ("hullPlate", 92),
         ("cargoCrate", 36),
         ("supplyPod", 15),
-        // Wreckage (Wreckage): 25 of 300, a wreck about every 50 s; the cable rack a third as common as the rest, circuits found
+        // A galley's fridge torn loose (food-and-the-body): rations and canned meat.
+        ("fridge", 10),
+        // Wreckage (Wreckage): 25 of 310, a wreck about every 50 s; the cable rack a third as common as the rest, circuits found
         // being rare (economy rework).
         ("hullSection", 9),
         ("cargoContainer", 6),
@@ -54,7 +56,7 @@ public static class Debris
         ("cableRack", 1),
         ("tankCluster", 3),
         ("shieldSlab", 3),
-        // Seeds' second source beside supply pods (0060): 2 of 300 of some 900 spawns an hour, one every 10 minutes or so.
+        // Seeds' second source beside supply pods (0060): 2 of 310 of some 900 spawns an hour, one every 10 minutes or so.
         ("soilClod", 2),
     ];
 
@@ -77,7 +79,7 @@ public static class Debris
     public const int NetHolds = 10;
 
     /// <summary>The kinds a debris net catches: small salvage and the containers; wrecks, clods and asteroids pass through it.</summary>
-    public static readonly IReadOnlyList<string> NetCatches = ["scrapChunk", "hullPlate", "cargoCrate", "supplyPod"];
+    public static readonly IReadOnlyList<string> NetCatches = ["scrapChunk", "hullPlate", "cargoCrate", "supplyPod", "fridge"];
 
     /// <summary>The stream past the ship, as it always was: by the hull, in one tier.</summary>
     public static readonly DebrisZone Ship = new("ship", new ByHull(Margin, Lead), Every, Jitter, Max, DriftMin, DriftMax, [new(0, Kinds)]);
@@ -101,18 +103,18 @@ public static class Debris
         [
             new(0,
             [
-                ("scrapChunk", 48), ("hullPlate", 32), ("cargoCrate", 24), ("supplyPod", 16), ("hullSection", 16),
+                ("scrapChunk", 48), ("hullPlate", 32), ("cargoCrate", 24), ("supplyPod", 16), ("fridge", 12), ("hullSection", 16),
                 ("cargoContainer", 12), ("machineBlock", 8), ("cableRack", 1), ("tankCluster", 8), ("shieldSlab", 4),
             ]),
             new(256,
             [
-                ("scrapChunk", 24), ("hullPlate", 24), ("cargoCrate", 20), ("supplyPod", 20), ("hullSection", 16),
+                ("scrapChunk", 24), ("hullPlate", 24), ("cargoCrate", 20), ("supplyPod", 20), ("fridge", 12), ("hullSection", 16),
                 ("cargoContainer", 16), ("machineBlock", 12), ("cableRack", 1), ("tankCluster", 12), ("shieldSlab", 8),
                 ("engineBlock", 1), ("cargoHold", 1),
             ]),
             new(512,
             [
-                ("scrapChunk", 8), ("hullPlate", 12), ("cargoCrate", 12), ("supplyPod", 20), ("hullSection", 12),
+                ("scrapChunk", 8), ("hullPlate", 12), ("cargoCrate", 12), ("supplyPod", 20), ("fridge", 12), ("hullSection", 12),
                 ("cargoContainer", 16), ("machineBlock", 16), ("cableRack", 1), ("tankCluster", 16), ("shieldSlab", 12),
                 ("engineBlock", 2), ("cargoHold", 1), ("podCluster", 2), ("asteroidLarge", 2), ("asteroidRich", 2),
             ]),
@@ -191,7 +193,7 @@ public static class Looks
 {
     public static readonly IReadOnlyList<(string Kind, int Count)> All =
     [
-        ("scrapChunk", 12), ("hullPlate", 12), ("cargoCrate", 8), ("supplyPod", 4),
+        ("scrapChunk", 12), ("hullPlate", 12), ("cargoCrate", 8), ("supplyPod", 4), ("fridge", 2),
         ("hullSection", 1), ("cargoContainer", 1), ("machineBlock", 1), ("cableRack", 1), ("tankCluster", 1), ("shieldSlab", 1),
         ("soilClod", 3),
         ("asteroid", 6), ("asteroidSmall", 6), ("asteroidLarge", 6), ("asteroidRich", 6),
@@ -227,12 +229,19 @@ public static class Loot
             new("planks", 3, 6),
         ]),
         // The farm's seeds come from supply pods (0060): one or two in every other pod; and from soil clods. A canister in
-        // every other pod too (scarce-oxygen).
+        // every other pod too (scarce-oxygen), and a ration (food-and-the-body).
         ("supplyPod",
         [
             new("canister", 1, 1, OneIn: 2),
+            new("ration", 1, 1, OneIn: 2),
             new("scrap", 6, 6),
             new("seed", 1, 2, OneIn: 2),
+        ]),
+        // A galley's fridge (food-and-the-body): space's food, and its only canned meat.
+        ("fridge",
+        [
+            new("ration", 1, 3),
+            new("cannedMeat", 0, 2),
         ]),
         // A clod of some ship's farm, its sprout still in it: seeds always, and a little soil.
         ("soilClod",

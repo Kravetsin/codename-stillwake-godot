@@ -5,7 +5,7 @@ using Stillwake.Game.Render;
 namespace Stillwake.Game.Shared;
 
 /// <summary>
-/// A worn item's picture on its card (the item card mockup's medium card), in a small dark window
+/// A worn item's or food's picture on its card (the item card mockup's medium card), in a small dark window
 /// (<see cref="DrawWindow"/>): its icon <see cref="CardLook.WornScale"/> times; the helmet lamp fixed on a helmet
 /// (<see cref="HeadLampArt"/>), its warm beam reaching out across the window with motes drifting through it, as wide as the game's
 /// (<see cref="Light.HeadLampHalfAngle"/>); a battery glowing green as much as it holds, slowly pulsing.
@@ -119,7 +119,7 @@ public partial class WornPicture : Control
     public override void _Draw() => DrawWindow(this, Size);
 
     /// <summary>A card's picture window (the mockup's <c>.win</c>): its dark ground, a shadow along its top and left, a faint light along its bottom and right.</summary>
-    private static void DrawWindow(CanvasItem on, Vector2 size)
+    internal static void DrawWindow(CanvasItem on, Vector2 size)
     {
         on.DrawTextureRect(Ground, new Rect2(Vector2.Zero, size), false);
         var shade = new Color(0, 0, 0, 0.5f);

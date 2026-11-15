@@ -81,9 +81,9 @@ public static class DevModes
         new("--host-pick", DevShape.Flag, "with --title=title.together, Host pressed: its worlds, or the password asked when none is kept"),
         new("--key-card", DevShape.Either, "the card a host's code shows on, made up, no relay reached; =menu the Esc menu's instead (KeyCard)"),
         // Debris, wrecks and the ground.
-        new("--arc-drill", DevShape.Flag, "with --asteroid, --planet or --ground, the drill in hand has the arc module fitted (0098)"),
+        new("--arc-drill", DevShape.Flag, "with --asteroid, --planet or --ground, the drill in hand has the arc module fitted (0098); with --held, its first item"),
         new("--axe", DevShape.Flag, "with --ground=hit-…, the axe instead of the drill (0094)"),
-        new("--held", DevShape.Equals, "with --asteroid, that item on the first slot instead of the drill (salvage-tools)"),
+        new("--held", DevShape.Equals, "with --asteroid, that item on the first slot instead of the drill (salvage-tools); a comma list puts the rest after the axe"),
         new("--belt", DevShape.Flag, "with --asteroid, all three belt slots open and worn, the grinder and a spare battery on the hotbar (energy-ring)"),
         new("--scanner", DevShape.Flag, "with --asteroid, the scanner on the helmet and a big asteroid and an engine block beside the hero (the-scanner)"),
         new("--take-at", DevShape.Next, "with --ground at a spire, the second its nearest relic is struck from (0096)"),

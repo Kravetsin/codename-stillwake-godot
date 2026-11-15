@@ -8,6 +8,7 @@
 | `Floor.cs` | Stacks on the floor: laid down, moved a tick, merged. |
 | `Fuzz.cs` | Commands for the desync suite. |
 | `Gains.cs` | `Gain` and the journal of gains. |
+| `Hand.cs` | `Wield`: the slot in hand. |
 | `Items.cs` | The module. |
 | `Modules.cs` | Fits a module into a machine (0086). |
 | `Stacks.cs` | Slot rules: give, take, move. |
@@ -22,20 +23,22 @@ Every stack of items (0008).
 - **Depends on:** `Grid` (machines, what holds a stack up), `Rooms` (space, open room cells), `Knowledge` (`Obtain`).
 - **State** (all saved, as sorted lists; derived only `Gains`): `Inventories`, those changed at least once, by peer;
   `Crates`, machines holding something, by id; `Creative`, peers; `Floor` (`FloorStack`, id order) and `NextFloorId`; `Ticks`;
-  `Kept` (0062); `Running`, one `Runner` a peer (0055); `Fitted`, by machine then module (0086), saved only when set.
+  `Kept` (0062); `Running`, one `Runner` a peer (0055); `Fitted`, by machine then module (0086), `Hands` (tool-in-hand), saved only
+  when set.
 - **Start:** all empty; `Kit` gives `Inventory.Kit` (0107) to a peer's first hero.
 
 ## Rules
 
 - **Slots:** an inventory is `Inventory.Slots`, then one equipment slot per `Inventory.Equipment` kind (0047); `SlotOpen`
-  says which are open (upgrades). A `Stack` is `Item`, `Count`, `Charge`, `Module`. The first row is the hotbar.
+  says which are open (upgrades). A `Stack`: `Item`, `Count`, `Charge`, `Module`. The first row is the hotbar.
 - **Per-item values** (0053, 0098): `Charge` (thousandths of a power-tick) and `Module` (a module on a
   tool among its `Hosts`) live on a stack of one and go with it, the floor included. Stacks merge only
-  when `Alike` (item, charge, module); a whole stack onto one not alike swaps. Stacks made from a cost hold none
-  (`ContentTests`). Saved only when set.
-- **A tool works with its stack** (0098): `ToolStack(peer, item)` is the first carried, a fitted one first.
+  when `Alike` (item, charge, module); a whole stack onto one not alike swaps. Stacks made from a cost hold none.
+  Saved only when set.
+- **A tool works with the stack in hand** (tool-in-hand): `ToolStack(peer, item)`: the hand's
+  (`Wielding`) stack if that item, else none.
   `ToolStats.Of(stack)` folds the modules' trades (`Boost.Plus`, 0100): damage a gain rounded
-  down, draw a cost rounded up, pace the weapon's. `Damage(peer, tool)` is that stack's, the weapon's own if none.
+  down, draw a cost rounded up, pace the weapon's. `Damage(peer, tool)`: that stack's, else the weapon's.
 - **Equipment** holds only an item whose `Equip` is its kind: `items.notEquipment` (0047). Worn items
   are never taken nor counted (`Totals`). `WornIn(peer, kind)`: what is worn (2026-10-27-suits-are-worn).
 - **Obtained** (the-board): `Output`, `Smelt`, `GiveOrDrop`, `Spray`, `Caught`, `DropAt` for `Nobody` count, `GiveWhatFits`
@@ -59,17 +62,17 @@ Every stack of items (0008).
   first belt battery holding it; creative, nothing.
 - **Creative**, a peer's (creative-per-player): `Take*` take nothing, return it whole; `ShortOf*` pass; its slots open.
 - **Running an electric tool** (0055): `Run(Item, On)`; a hero runs one thing. Each tick, each
-  run in peer order draws its stack's boosted `Draw` through `Drain`; one its belt cannot pay or its peer no longer
-  carries stops. `Crew` stops a run as its hero passes out or leaves (`StopRunning`).
+  run in peer order draws its stack's boosted `Draw` through `Drain`; one its belt cannot pay or its hand no longer
+  holds stops. `Crew` stops a run as its hero passes out or leaves (`StopRunning`).
 - **Modules** (0086): `Fit` takes a module out of every slot into one of its `Hosts`, one of each kind a machine;
   `Unfit` returns it. `Boost(machine)` sums their trades in thousandths over 1000 (`Gain` rounds down, `Cost` up).
   At an arc bench (0099) `Fit`/`Unfit` act on the vise's tool stack; its `Fitted` stays empty.
-- **`Spill(machine, cell)`** (unified-damage): a breaking machine's slots, stacks whole, then its modules, laid at the cell for
+- **`Spill(machine, cell)`** (unified-damage): a breaking machine's slots, then its modules, laid at the cell for
   anyone; its `Kept` forgotten.
 - **Inputs remember** their last item (`KeptAt`) till a hand empties one (0062).
 - **Deliveries** (0062) go where `Receiving` says, a fuel to a `FuelSlot`. Outputs are the slots past the inputs (0057).
-- **Surfaces** (0076): `Depart`/`Arrive` (`ICarries`) carry a peer's inventory, charge and run to the next surface;
-  the rest stays; `Inherit` keeps `Creative`.
+- **Surfaces** (0076): `Depart`/`Arrive` (`ICarries`) carry a peer's inventory, run and hand on;
+  `Inherit` keeps `Creative`.
 - **The floor**: a drop is thrown the way its hero faces. Each tick, by id: a stack
   inside anything built is pushed out breadth-first through built cells to `PushReach`, a room's open cell
   first, ties by index, else rises a cell. Afloat it flies on, drifting only outside with no back wall; else falls (`Fall`) and slides to rest. Gone past the grid's edge or `Lasts`
@@ -86,7 +89,7 @@ Every stack of items (0008).
 `Move` (`items.noCrate`, `noSlot`, `takeOnly`, `notEquipment`, `notBattery`, `notTool`, `notTaken`, `empty`, `full`); `Drop`
 (`noCrate`, `noSlot`, `empty`, `noCell`); `PickUp` (`gone`, `tooSoon`, `full`); `Sort` (`noCrate`, `notCrate`); `Run`
 (`notElectric`; on: `notHeld`, `flat`); `Fit` (`noMachine`, `noCrate`, `noSlot`, `empty`, `notModule`, `fitted`,
-`noTool`); `Unfit` (`notFitted`, `noTool`, `noSlot`, `full`); `SetCreative` (sender's); `Stash`, never refused; `Spawn` (`notCreative`, `full`). A negative
+`noTool`); `Unfit` (`notFitted`, `noTool`, `noSlot`, `full`); `Wield` (`notHotbar`); `SetCreative` (sender's); `Stash`, never refused; `Spawn` (`notCreative`, `full`). A negative
 cost throws.
 
 ## Invariants
@@ -102,5 +105,4 @@ cost throws.
 - Reach is the client's, a stash's `Cell` too. A stale pick, or a drone after a sort, takes what is there.
 - A stack pushed out of a wall in space with no room in reach drifts away.
 - A module in a machine gone not by `Building` stays in `Fitted`: none goes so.
-- A fit shows once its tick runs (0014). Of two drills the fitted works (0098).
-- Charge never leaks; short of a tick's draw, it waits (0053).
+- A fit shows once its tick runs (0014). Charge never leaks; short of a tick's draw, it waits (0053).

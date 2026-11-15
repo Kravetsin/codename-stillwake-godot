@@ -32,18 +32,12 @@ public static class Research
 {
     /// <summary>
     /// What the wreck knows from its start: nothing (docs/decisions/2026-11-05-the-board.md). A castaway writes down what they find, the first walls at
-    /// ten chunks, and what the pod makes for nothing is understood on the first tick, having no part to wait for.
+    /// the first chunk, and what the pod makes for nothing is understood on the first tick, having no part to wait for.
     /// </summary>
     public static readonly IReadOnlyList<string> StartKnown = [];
 
     /// <summary>The tab of what only credits open: what is on it stays outside the rule that grants the rest (docs/decisions/2026-11-05-the-board.md).</summary>
     public const string Market = "blackMarket";
-
-    /// <summary>What a part understood must have been obtained to, in credits of its worth: a rare part takes few, a common one many.</summary>
-    public const int EnoughWorth = 200;
-
-    /// <summary>However cheap a part, no more than this many are needed to understand it.</summary>
-    public const int EnoughMost = 10;
 
     /// <summary>What a good sold beyond what a level wants is divided by, as reputation: a seventh of its worth (2026-11-08-mafia-reputation).</summary>
     public const int OffWanted = 7;
@@ -54,8 +48,8 @@ public static class Research
     /// <summary>What the confiscated container costs: parts of about that worth come out of it (its <c>Loot</c>).</summary>
     public const int ConfiscatedPrice = 1500;
 
-    /// <summary>What the mafia sells as items, delivered, never as blueprints, and so never bought for good (2026-11-08-mafia-deliveries).</summary>
-    public static readonly IReadOnlyList<string> GearSold = ["scanner", "powerDriver", "heavyHelmet", "plasmaCutter", "regenSuit"];
+    /// <summary>What the mafia sells as items, delivered, never as blueprints, and so never bought for good (2026-11-08-mafia-deliveries); the stimulant too (food-tuning).</summary>
+    public static readonly IReadOnlyList<string> GearSold = ["scanner", "powerDriver", "heavyHelmet", "plasmaCutter", "regenSuit", Foods.Stim];
 
     /// <summary>An upgrade: its price its own.</summary>
     private static (string Id, int Times) Up(string id) => (id, 1);
@@ -77,7 +71,8 @@ public static class Research
                 Up("bag3"),
                 Up("bag4"),
                 Up("tradeSlots2"),
-                ("scanner", 3)),
+                ("scanner", 3),
+                (Foods.Stim, 2)),
             new("order2", [("plate", 30), ("gear", 20), ("wire", 30)],
                 Up("bag5"),
                 Up("bag6"),
@@ -95,7 +90,6 @@ public static class Research
                 ("solarPanel", 5),
                 Up("bag9"),
                 Up("tradeSlots6"),
-                Up("canister1"),
                 ("salvageDrone", 3),
                 ("plasmaCutter", 4)),
             new("order5", [("copper", 40), ("mica", 20), ("hide", 15)],

@@ -1,0 +1,11 @@
+{
+  "raw": true,
+  "background": "#020c30",
+  "backgroundTolerance": 30,
+  "mend": [
+    {
+      "fill": "background",
+      "poly": [[1117, 250], [1520, 250], [1520, 350], [1117, 350]]
+    }
+  ]
+}

@@ -6,7 +6,7 @@ const { ell, rr, poly, bake } = Anime;
 
 Subjects.aboard = function () {
   const { HULL, PLATE, OLD, GUN, SOOT, PLANK, PAINT, COPPER, ARMY, BLUE, CREAM, STAINED, STRIPE, WIRES,
-    band, plate, well, rv, rusted, slats, hazard, wire, port, boards, grain, bell, neck, block, vent, strut, boxCrate, planksStack, bottle, wall, door, shelf, tag } = window.DebrisKit;
+    BONE, INSIDE, OX, band, plate, well, rv, rusted, slats, hazard, wire, port, boards, grain, bell, neck, block, vent, strut, boxCrate, planksStack, bottle, wall, door, shelf, tag } = window.DebrisKit;
   const BOARD = { base: '#3a6a48', shade: '#284e38', deep: '#1a3628', lite: '#588a60', spec: '#a0c8a0', ink: '#0c120e' };
   /** A box lit along its top, shaded along its foot and far side, its line round it. */
   function box(a, x, y, w, h, m, o) {
@@ -479,11 +479,100 @@ Subjects.aboard = function () {
     rv(a, [2.6, 1.8], [29.4, 1.8]);
   }
 
+  // ---------- the vending machine (food-and-the-body): its two looks, each its lit parts apart ----------
+  /** A: fridge_A's cabinet: the bone enamel and round shoulders, a window of coils nearly emptied, keys and a coin slot, the bar handle, the grille. */
+  function vendingA(a, lit) {
+    for (const x of [2.2, 18.6]) a.shape(rr(x, 38.2, 3.2, 1.6, .3), OLD, { lite: band(x, 38.2, x + 3.2, 38.7) });
+    const d = 'M.8 4.8Q.8 .6 5 .6L19 .6Q23.2 .6 23.2 4.8L23.2 38.4L.8 38.4Z';
+    a.shape(d, BONE, { lite: 'M.8 4.8Q.8 .6 5 .6L19 .6Q21.6 .6 22.6 2L4.6 2.2Q2.2 2.6 2.2 5L2.2 38.4L.8 38.4Z', shade: band(21.6, 1.6, 23.2, 38.4) });
+    // The header's light box under its milky cover: a tube that still catches now and then.
+    a.shape(rr(3.2, 2.4, 17.6, 3.4, .6), OLD, { outer: false, lite: band(3.2, 2.4, 20.8, 2.9) });
+    if (lit) a.glow(rr(3.8, 3, 16.4, 2.2, .4), '#b8dcc4', { core: rr(4.6, 3.7, 14.8, .7, .3), coreC: '#f0fff4' });
+    else a.flat(rr(3.8, 3, 16.4, 2.2, .4), '#4a5048');
+    // The window: shelves of coils, a pack left here and there.
+    a.shape(band(2.4, 6.8, 15.8, 29.6), PLATE, { outer: false, lite: band(2.4, 6.8, 15.8, 7.3), shade: band(15.2, 6.8, 15.8, 29.6) });
+    a.shape(band(3.2, 7.6, 15, 28.8), INSIDE, { outer: false, deep: band(3.2, 7.6, 15, 8.4) });
+    if (lit) a.glow(band(3.4, 7.8, 14.8, 8.3), '#b8dcc4');
+    for (const [x, y, w, h, c] of [[5.1, 12.8, 2.6, 3.4, '#5c5e3a'], [12.9, 18, 2.4, 2.6, '#6a3a2e'], [9, 23.2, 2.6, 3.4, '#5c5e3a'], [5.1, 28.4, 2.6, 2.2, '#7c7466']]) {
+      a.flat(rr(x - w / 2, y - h, w, h, .3), c); a.flat(band(x - w / 2, y - h, x + w / 2, y - h + .35), '#a09c86');
+    }
+    for (const y of [12.8, 18, 23.2, 28.4]) {
+      a.flat(band(3.2, y, 15, y + .5), OLD.base); a.flat(band(3.2, y, 15, y + .18), OLD.lite);
+      for (const x of [5.1, 9, 12.9]) a.line(`M${x - 1.6} ${y - .3}L${x - 1.1} ${y - 1.4}L${x - .5} ${y - .3}L${x + .1} ${y - 1.4}L${x + .7} ${y - .3}L${x + 1.3} ${y - 1.4}L${x + 1.6} ${y - .6}`, { w: .7, c: '#7c828c' });
+    }
+    a.flat(poly(3.6, 28.8, 4.2, 28.8, 9, 7.6, 8.4, 7.6), '#2c3a44');
+    // Keys, the coin slot and its return cup; the cabinet's bar handle, as on the fridge.
+    inner(a, 16.6, 7.6, 4.6, 12, GUN, { l: .5, b: .6, e: .5 });
+    for (let j = 0; j < 3; j++) for (let i = 0; i < 3; i++) a.flat(rr(17.2 + i * 1.25, 8.6 + j * 1.35, .85, .85, .15), j === 2 && i === 2 ? OX.base : '#83858a');
+    a.shape(rr(17.4, 13.4, 3, 2.6, .4), PLATE, { outer: false, lite: band(17.4, 13.4, 20.4, 13.9) }); a.flat(band(18.7, 13.9, 19.1, 15.5), SOOT.deep);
+    well(a, 17.4, 16.8, 3, 1.8);
+    a.shape(rr(18.2, 21.4, 1.5, 7.6, .6), PLATE, { lite: band(18.2, 21.4, 18.8, 29), shade: band(19.2, 21.4, 19.7, 29), spec: band(18.4, 22.2, 18.6, 25) });
+    // The delivery flap hanging open a crack; the grille of its cold box.
+    well(a, 3.2, 30.8, 11.8, 4);
+    a.shape(band(3.6, 31.2, 14.6, 33.2), OLD, { outer: false, lite: band(3.6, 31.2, 14.6, 31.7), shade: band(3.6, 32.6, 14.6, 33.2) });
+    well(a, 2.4, 35.4, 19.4, 2.4); slats(a, 2.6, 35.6, 19, 2, 3);
+    // Wear: enamel knocked off its corners, rust from the foot and the seams, a boot's dent beside the flap.
+    a.flat(poly(1.2, 30, 2.4, 29.4, 2.4, 31.2, 1.2, 31.6), SOOT.base, { clip: d });
+    a.flat(poly(20.6, 1.2, 22, 1.6, 21.4, 2.4), SOOT.base, { clip: d });
+    rusted(a, 21.8, 36.6, 1.4, 1, d); rusted(a, 1.6, 22, .8, 1.2, d); rusted(a, 16.2, 31, .9, .7, d);
+    a.flat(poly(15.6, 32.4, 17.6, 32, 17.8, 33.8, 15.8, 34.2), BONE.shade, { clip: d });
+    a.flat(poly(15.8, 34.2, 17.8, 33.8, 17.9, 34.3, 15.9, 34.7), BONE.lite, { clip: d });
+  }
+
+  /** D: fridge_D's wall of cold: dark iron, an oxblood header, a glass door of bottles with its lower pane smashed in, a pay screen beside it. */
+  function vendingD(a, lit) {
+    for (const x of [2, 22.6]) a.shape(rr(x, 38.4, 3.4, 1.4, .3), OLD, { lite: band(x, 38.4, x + 3.4, 38.8) });
+    const d = plate(a, [[.6, .6], [27.4, .6], [27.4, 38.6], [.6, 38.6]], GUN, { seed: 81, l: .6, b: .8, e: 1 });
+    a.shape(band(.6, .6, 27.4, 5.2), OX, { outer: false, lite: band(.6, .6, 27.4, 1.1), shade: band(.6, 4.6, 27.4, 5.2) });
+    if (lit) a.glow(rr(2.4, 1.8, 23.2, 2.2, .4), '#d88872', { core: rr(3.2, 2.5, 21.6, .7, .3), coreC: '#ffe2d6' });
+    else a.flat(rr(2.4, 1.8, 23.2, 2.2, .4), OX.deep);
+    // The door and its shelves.
+    a.shape(band(1.6, 6.2, 19.6, 34.6), OLD, { outer: false, lite: band(1.6, 6.2, 19.6, 6.7), shade: band(19, 6.2, 19.6, 34.6) });
+    a.shape(band(2.8, 7.2, 18.6, 33.6), INSIDE, { outer: false, deep: band(2.8, 7.2, 18.6, 7.8) });
+    if (lit) a.glow(band(17.8, 7.6, 18.4, 33.2), '#d0e8ee');
+    const BROWN = '#5c4230', GREEN = '#3c5640', TIN = '#7c7466';
+    const bottle = (x, y, c) => { a.flat(rr(x, y - 3, 1.4, 3, .45), c); a.flat(band(x + .45, y - 3.9, x + .95, y - 2.8), c); };
+    const tin = (x, y) => { a.flat(rr(x, y - 2, 1.8, 2, .2), TIN); a.flat(band(x, y - 1.4, x + 1.8, y - 1), OX.base); };
+    bottle(3.6, 13.6, BROWN); bottle(5.4, 13.6, BROWN); tin(9.6, 13.6); bottle(14.8, 13.6, GREEN);
+    tin(3.6, 20); tin(5.6, 20); bottle(15, 20, GREEN); bottle(16.6, 20, GREEN);
+    bottle(11, 26.4, BROWN); tin(13, 26.4);
+    for (const y of [13.6, 20, 26.4]) { a.flat(band(2.8, y, 18.6, y + .5), OLD.base); a.flat(band(2.8, y, 18.6, y + .18), OLD.lite); }
+    a.flat(poly(4.2, 26.4, 4.9, 26.4, 10.4, 7.2, 9.7, 7.2), '#34444e');
+    // The lower pane smashed in: the glass gone, its shards left in the frame, a bottle broken on the floor.
+    const hole = poly(2.8, 27.6, 5.6, 27.2, 7.4, 28.8, 10.2, 27.8, 12.6, 29.6, 11.2, 31.2, 14, 33.6, 2.8, 33.6);
+    a.flat(hole, SOOT.deep);
+    a.flat(poly(14, 33.6, 16.4, 33.6, 14.8, 31.6), '#3e525c'); a.flat(poly(2.8, 27.6, 4.2, 27.4, 2.8, 29.4), '#3e525c');
+    a.flat(poly(6, 33.6, 8.6, 32.4, 9, 33.2, 7.4, 33.6), BROWN);
+    a.line(hole, { w: .8, c: '#8eaab4' });
+    a.shape(rr(1.9, 14, 1, 9, .4), PLATE, { lite: band(1.9, 14, 2.3, 23) });
+    // The pay column: a cracked screen, a card slot, keys, a cup.
+    inner(a, 20.6, 6.4, 5.8, 27.6, GUN, { l: .5, b: .6, e: .6 });
+    a.shape(rr(21.2, 8, 4.6, 3.6, .4), OLD, { outer: false, lite: band(21.2, 8, 25.8, 8.4) });
+    if (lit) a.glow(rr(21.7, 8.5, 3.6, 2.6, .3), '#4e8a66', { core: band(22.1, 9.6, 24.9, 9.9), coreC: '#a8e0b8' });
+    else a.flat(rr(21.7, 8.5, 3.6, 2.6, .3), '#141c2a');
+    a.line('M22 8.8L23.4 10.2L23 11', { w: .6, c: '#6a7c88' });
+    a.shape(rr(21.4, 13.6, 4.2, 1.6, .3), PLATE, { outer: false, lite: band(21.4, 13.6, 25.6, 14) }); a.flat(band(21.9, 14.3, 25.1, 14.7), SOOT.deep);
+    for (let j = 0; j < 3; j++) for (let i = 0; i < 3; i++) a.flat(rr(21.6 + i * 1.4, 17 + j * 1.4, .9, .9, .15), '#83858a');
+    well(a, 21.4, 29, 4.2, 2.6);
+    well(a, 2, 35.4, 24, 2.6); slats(a, 2.2, 35.6, 23.6, 2.2, 3);
+    rusted(a, 26.2, 36.8, 1.3, 1, d); rusted(a, 1.6, 20, .8, 1, d);
+  }
+
+
+  /** Only what glows of a drawing: its sign and screen alight, laid unlit over the dark picture while it shines. */
+  const glowing = (draw) => (a) => { const only = new Proxy(a, { get: (t, k) => (k === 'glow' ? t.glow : () => only) }); draw(only); };
+
   const pics = { Crate: [24, 16, crate], Pod: [16, 16, pod], Tanks: [32, 32, tanks, [0, .6]], Rack: [32, 32, rack], Section: [48, 32, section], Machine: [48, 32, machine, [0, .6]],
     Container: [64, 32, container], Slab: [64, 32, slab, [0, 1.6]], Engine: [80, 48, engine, [0, 1]], Hold: [96, 48, hold] };
   for (const [n, [w, h, draw, shift]] of Object.entries(pics)) out(`machine_salvage${n}`, bake({ w, h, draw, shift }));
   // A vessel draws one of each set at random: the first keeps the bare name.
   [mainEngineA, mainEngineB, mainEngineC].forEach((draw, i) => out(`machine_salvageMainEngine${i ? i + 1 : ''}`, bake({ w: 96, h: 48, draw })));
   [consoleA, consoleB, consoleC, consoleD].forEach((draw, i) => out(`machine_salvageConsole${i ? i + 1 : ''}`, bake({ w: 32, h: 24, draw })));
+  // Both on the footprint's 4 × 5 cells, centred: the enamel cabinet 24 px wide, the glass case 28.
+  [[vendingA, 4], [vendingD, 2]].forEach(([draw, x], i) => {
+    const name = `machine_salvageVending${i ? i + 1 : ''}`;
+    out(name, bake({ w: 32, h: 40, draw: (a) => draw(a, false), shift: [x, 0] }));
+    out(`${name}_lit`, bake({ w: 32, h: 40, draw: glowing((a) => draw(a, true)), shift: [x, 0] }));
+  });
 };
 })();

@@ -186,8 +186,9 @@ public partial class InventoryPanel
             _breathedFrom = (place, Engine.GetProcessFrames());
             _ui.Breathe();
         }
+        if (result.Eats is { } food) _ui.Eat(food);
         // Every action clicks as it is made, a shift's on launch; a canister's when the crew breathes it.
-        if (!result.Breathes && (result.Command != null || result.Picked != held)) _ui.Click();
+        if (!result.Breathes && result.Eats == null && (result.Command != null || result.Picked != held)) _ui.Click();
         if (result.Command != null) Act(before, result);
         else
         {

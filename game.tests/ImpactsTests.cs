@@ -48,14 +48,38 @@ public class ImpactsTests
     }
 
     [Fact]
-    public void AHitOnTheShipsHullSparksAsMetalThoughItNeverBreaks()
+    public void AHitOnTheShipsHullSparksAsMetalItsBreakingBlowAHerosTenTimesItsStrength()
     {
         var m = new TestWorld(Layout.Parse("""
             ...
             ###
             """)).M;
+        int strength = m.Grid.WallAt(4)!.Strength, own = strength * 1000 / Spec.Damage.OwnShipTakes;
         Assert.Equal(Impact.Alloy, Impacts.At(m.Grid, m.Building, 4));
-        Assert.Equal(Impacts.ShareOf(Axe), Impacts.ShareAt(m.Grid, m.Building, 4, Axe, 99));
+        Assert.Equal(Impacts.ShareOf(Axe), Impacts.ShareAt(m.Building, 4, Axe, own - 1, 0));
+        Assert.Equal(1, Impacts.ShareAt(m.Building, 4, Axe, own, 0));
+        Assert.Equal(1, Impacts.ShareAt(m.Building, 4, Axe, strength, Sim.Items.FloorStack.Nobody));
+    }
+
+    [Fact]
+    public void AStationADoorAndTheLifepodSparkAsMetalTheStationsBreakingBlowThrowingItsWholeLook()
+    {
+        var m = new TestWorld(Layout.Parse("""
+            .................
+            .FFFF.DD.OOOOOO..
+            .FFFF.DD.OOOOOO..
+            .FFFF....OOOOOO..
+            .FFFF....OOOOOO..
+            .........OOOOOO..
+            .........OOOOOO..
+            #################
+            """)).M;
+        const int width = 17;
+        int station = 2 * width + 2, door = 2 * width + 7, pod = 3 * width + 10, own = Spec.Damage.MachineHp * 1000 / Spec.Damage.OwnShipTakes;
+        Assert.All(new[] { station, door, pod }, c => Assert.Equal(Impact.Alloy, Impacts.At(m.Grid, m.Building, c)));
+        Assert.Equal(Impacts.ShareOf(Axe), Impacts.ShareAt(m.Building, station, Axe, own - 1, 0));
+        Assert.Equal(1, Impacts.ShareAt(m.Building, station, Axe, own, 0));
+        Assert.Equal(Impacts.ShareOf(Axe), Impacts.ShareAt(m.Building, pod, Axe, int.MaxValue / 2, 0));
     }
 
     [Fact]
@@ -64,8 +88,8 @@ public class ImpactsTests
         // Built walls take several blows now (damage-scale): their last one flashes as rock's does.
         var m = new TestWorld(Layout.Parse("...\n###").WithMaterials("...\nwww") with { Kind = Stillwake.Content.Surfaces.TestStrip.Id }).M;
         int scrap = Spec.Materials.Get("scrap").Strength;
-        Assert.Equal(Impacts.ShareOf(Drill), Impacts.ShareAt(m.Grid, m.Building, 4, Drill, scrap - 1));
-        Assert.Equal(1, Impacts.ShareAt(m.Grid, m.Building, 4, Drill, scrap));
+        Assert.Equal(Impacts.ShareOf(Drill), Impacts.ShareAt(m.Building, 4, Drill, scrap - 1, 0));
+        Assert.Equal(1, Impacts.ShareAt(m.Building, 4, Drill, scrap, 0));
     }
 
     [Fact]
@@ -163,16 +187,16 @@ public class ImpactsTests
             """) with { Flora = [(2, "bush"), (3, "tuft")], Kind = Stillwake.Content.Surfaces.TestStrip.Id };
         var world = new TestWorld(layout);
         var m = world.M;
-        Assert.Equal(0.2, Impacts.ShareAt(m.Grid, m.Building, 8 + 1, Drill, Bite), 9);
+        Assert.Equal(0.2, Impacts.ShareAt(m.Building, 8 + 1, Drill, Bite, 0), 9);
         // A tuft falls to any hit: that hit is its only one.
-        Assert.Equal(1, Impacts.ShareAt(m.Grid, m.Building, 3, Drill, Bite));
+        Assert.Equal(1, Impacts.ShareAt(m.Building, 3, Drill, Bite, 0));
         // The axe's fans from inside the stone cell and the bush's, up: each that one alone.
         world.Step(new Sim.Building.Hew(Axe, 1_500, 1_500, 192) { From = 0 }, new Sim.Building.Hew(Axe, 2_500, 500, 192) { From = 0 });
         // Stone of 12 cracked 4: the drill's 4 leaves it standing, its 8 with the arc fitted breaks it out.
-        Assert.Equal(0.2, Impacts.ShareAt(m.Grid, m.Building, 8 + 1, Drill, Bite), 9);
-        Assert.Equal(1, Impacts.ShareAt(m.Grid, m.Building, 8 + 1, Drill, ArcBite));
+        Assert.Equal(0.2, Impacts.ShareAt(m.Building, 8 + 1, Drill, Bite, 0), 9);
+        Assert.Equal(1, Impacts.ShareAt(m.Building, 8 + 1, Drill, ArcBite, 0));
         // A bush of 8 cracked 4: the drill's next hit fells it.
-        Assert.Equal(1, Impacts.ShareAt(m.Grid, m.Building, 2, Drill, Bite));
+        Assert.Equal(1, Impacts.ShareAt(m.Building, 2, Drill, Bite, 0));
     }
 
     [Fact]
