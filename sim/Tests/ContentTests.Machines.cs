@@ -194,6 +194,12 @@ public partial class ContentTests
         Assert.All(Machines.All.Where(m => m.Is(MachineTrait.Seats) && m.Makes != null), m =>
             Assert.True(m is { Draws: null, FuelSlot: null, Anywhere: true, Store: null }, m.Kind));
 
+    /// <summary>Every machine seats one at least; several only one that seats and lands, the shuttle, which the pod's launch never flies.</summary>
+    [Fact]
+    public void MachinesSeatOneAtLeastAndSeveralOnlyWhereTheySeatAndLand() =>
+        Assert.All(Machines.All, m =>
+            Assert.True(m.Riders == 1 || m.Riders > 1 && m.Is(MachineTrait.Seats) && m.Is(MachineTrait.Lands), m.Kind));
+
     /// <summary>The wheel is paid for in a hero's time, so in iron and scrap it costs at most a quarter of the burner generator.</summary>
     [Fact]
     public void TheTreadmillWheelCostsAtMostAQuarterOfTheBurnersIronAndScrap()

@@ -7,8 +7,11 @@ using Stillwake.Sim.Power;
 
 namespace Stillwake.Sim.Landing;
 
-/// <summary>Hero <c>Peer</c> sitting in drop pod <c>Pod</c>, a machine id.</summary>
-public sealed record Seat(int Pod, int Peer);
+/// <summary>
+/// Hero <c>Peer</c> sitting in drop pod <c>Pod</c>, a machine id, at <c>Place</c>, its seat's index there, <c>0..Riders−1</c>: always
+/// 0 in a machine for one; a save from before places reads 0.
+/// </summary>
+public sealed record Seat(int Pod, int Peer, int Place = 0);
 
 /// <summary>
 /// Peer <c>Peer</c>'s drop pod in the air, no machine while it flies: down to a planet, or <c>Up</c> back aboard, landing in
@@ -26,7 +29,10 @@ public sealed record Owner(int Pod, int Peer, int Home);
 /// </summary>
 public sealed class LandingState
 {
-    /// <summary>Every seat taken, by pod id ascending: a pod holds one hero, a hero sits in one pod.</summary>
+    /// <summary>
+    /// Every seat taken, by pod id then place ascending: a machine holds its <c>Riders</c>, one a place, and a hero sits in one
+    /// place. A save from before places, every place 0, is in pod order already.
+    /// </summary>
     [JsonInclude] internal List<Seat> Seats { get; set; } = [];
 
     /// <summary>Every pod in the air from this surface, by peer ascending: a hero rides one at most.</summary>
@@ -108,22 +114,22 @@ public sealed class LandingModule : Module<LandingState>, ICarries, ILandingQuer
     }
 
     /// <summary>
-    /// Why <paramref name="peer"/>'s hero cannot board machine <paramref name="pod"/>: no drop pod (<c>landing.noPod</c>), sitting in a
-    /// pod already (<c>landing.seated</c>), another hero in it (<c>landing.taken</c>), or off the ship another's (<c>landing.notYours</c>);
-    /// null when it can.
+    /// Why <paramref name="peer"/>'s hero cannot board machine <paramref name="pod"/>: no machine with seats (<c>landing.noPod</c>),
+    /// sitting in one already (<c>landing.seated</c>), every place of it taken (<c>landing.taken</c>: the pod's one, the shuttle's
+    /// four), or off the ship another's (<c>landing.notYours</c>); null when it can.
     /// </summary>
     public string? BoardProblem(int peer, int pod)
     {
         if (_grid.MachineById(pod) is not { } m || !Content.Machines.Is(m.Kind, MachineTrait.Seats)) return "landing.noPod";
         // A hero flying in a pod sits in it still, with no seat to show it.
         if (Rides(peer)) return "landing.seated";
-        if (RiderOf(pod) != null) return "landing.taken";
+        if (FreePlace(pod, Content.Machines.Get(m.Kind).Riders) == null) return "landing.taken";
         return OwnerOf(pod) is int owner && owner != peer ? "landing.notYours" : null;
     }
 
     /// <summary>
-    /// Why <paramref name="peer"/>'s hero cannot launch: in no pod, or in a seat that does not fly (a wheel: no
-    /// <see cref="MachineTrait.Lands"/>) (<c>landing.notSeated</c>); aboard, its pod no longer on a run
+    /// Why <paramref name="peer"/>'s hero cannot launch: in no pod, in a seat that does not fly (a wheel: no
+    /// <see cref="MachineTrait.Lands"/>), or in one for several (the shuttle, which sets off its own way) (<c>landing.notSeated</c>); aboard, its pod no longer on a run
     /// (<c>landing.noPlatform</c>), anything solid under its run to the grid's edge (<c>landing.shaftBlocked</c>), the run without
     /// power enough (<c>landing.unpowered</c>), its slot short of <see cref="Content.Landing.DescentFuel"/> biofuel
     /// (<c>landing.noFuel</c>), or a world that cannot open a planet
@@ -133,8 +139,8 @@ public sealed class LandingModule : Module<LandingState>, ICarries, ILandingQuer
     {
         // A seat outlives its hero gone or passed out until the derivation phase: it launches nothing, its fuel unburnt.
         if (SeatOf(peer) is not int pod || _grid.MachineById(pod) is not { } m || _crew.HeroOf(peer) is not { Out: 0 }) return "landing.notSeated";
-        // A wheel seats a hero too, and stands on planets as aboard: only a pod flies.
-        if (!Content.Machines.Is(m.Kind, MachineTrait.Lands)) return "landing.notSeated";
+        // A wheel seats a hero too, and stands on planets as aboard; a shuttle seats four and lands: only a pod, a seat for one, flies.
+        if (!Content.Machines.Is(m.Kind, MachineTrait.Lands) || Content.Machines.Get(m.Kind).Riders > 1) return "landing.notSeated";
         if (Surfaces.Here != 0) return OwnerOf(pod) == peer ? null : "landing.notYours";
         // Built over a run, it may have been taken apart since.
         if (!_grid.OnRun(m.Kind, m.Cell)) return "landing.noPlatform";
@@ -149,10 +155,16 @@ public sealed class LandingModule : Module<LandingState>, ICarries, ILandingQuer
     /// <summary>The drop pod <paramref name="peer"/>'s hero sits in, by machine id; null for one standing.</summary>
     public int? SeatOf(int peer) => State.Seats.Find(s => s.Peer == peer)?.Pod;
 
-    /// <summary>The peer whose hero sits in drop pod <paramref name="pod"/>; null for an empty one.</summary>
+    /// <summary>The peer whose hero sits in drop pod <paramref name="pod"/>, a machine for one; null for an empty one.</summary>
     public int? RiderOf(int pod) => State.Seats.Find(s => s.Pod == pod)?.Peer;
 
-    /// <summary>Every seat taken, by pod id ascending.</summary>
+    /// <summary>The place <paramref name="peer"/>'s hero sits at in its machine; null for one standing.</summary>
+    public int? PlaceOf(int peer) => State.Seats.Find(s => s.Peer == peer)?.Place;
+
+    /// <summary>Every seat taken in machine <paramref name="machine"/>, by place ascending.</summary>
+    public IReadOnlyList<Seat> RidersOf(int machine) => State.Seats.FindAll(s => s.Pod == machine);
+
+    /// <summary>Every seat taken, by pod id then place ascending.</summary>
     public IReadOnlyList<Seat> Seats => State.Seats;
 
     public bool Rides(int peer) => SeatOf(peer) != null || FlightOf(peer) != null;
@@ -172,11 +184,15 @@ public sealed class LandingModule : Module<LandingState>, ICarries, ILandingQuer
     /// <summary>Where a hero sits in a drop pod standing from <paramref name="cell"/>, its top-left: the middle of its bottom row.</summary>
     public static int FloorOf(int cell, int width) => FloorOf(Pod.Kind, cell, width);
 
-    /// <summary>Where a hero sits in a machine of <paramref name="kind"/> with seats standing from <paramref name="cell"/>: the middle of its bottom row.</summary>
-    public static int FloorOf(string kind, int cell, int width)
+    /// <summary>
+    /// Where a hero sits at <paramref name="place"/> in a machine of <paramref name="kind"/> with seats standing from
+    /// <paramref name="cell"/>: its bottom row, in the middle of the place's share of its width,
+    /// <c>(2·place + 1) × Width / (2 × Riders) − 1</c> from its left, rounded down; for a machine for one, the middle.
+    /// </summary>
+    public static int FloorOf(string kind, int cell, int width, int place = 0)
     {
         var spec = Content.Machines.Get(kind);
-        return (cell / width + spec.Height - 1) * width + cell % width + spec.Width / 2 - 1;
+        return (cell / width + spec.Height - 1) * width + cell % width + (2 * place + 1) * spec.Width / (2 * spec.Riders) - 1;
     }
 
     /// <summary>
@@ -195,10 +211,20 @@ public sealed class LandingModule : Module<LandingState>, ICarries, ILandingQuer
             if (Content.Machines.Get(m.Kind).Makes != null) _powerOps.Rest(m.Id, !Turning(m.Id));
     }
 
+    /// <summary>The hero sits at the lowest free place of <paramref name="pod"/>, kept in (pod, place) order.</summary>
     private void Sit(int pod, int peer)
     {
-        int at = State.Seats.FindIndex(s => s.Pod > pod);
-        State.Seats.Insert(at < 0 ? State.Seats.Count : at, new Seat(pod, peer));
+        int place = FreePlace(pod, Content.Machines.Get(_grid.MachineById(pod)!.Kind).Riders)!.Value;
+        int at = State.Seats.FindIndex(s => s.Pod > pod || (s.Pod == pod && s.Place > place));
+        State.Seats.Insert(at < 0 ? State.Seats.Count : at, new Seat(pod, peer, place));
+    }
+
+    /// <summary>The lowest place of machine <paramref name="pod"/>'s <paramref name="riders"/> nobody sits at; null for none.</summary>
+    private int? FreePlace(int pod, int riders)
+    {
+        for (int place = 0; place < riders; place++)
+            if (!State.Seats.Exists(s => s.Pod == pod && s.Place == place)) return place;
+        return null;
     }
 
     /// <summary>Whether <paramref name="seat"/> still holds: its pod stands, its hero is here and awake.</summary>
