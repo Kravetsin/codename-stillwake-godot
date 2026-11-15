@@ -223,7 +223,8 @@ public static class Vessels
 
     /// <summary>The parts outside a vessel's hull but the nozzle (derelict-looks), by the names <see cref="Outside"/> gives them.</summary>
     public const string Rcs = "vesselRcs", Mast = "vesselMast", MastTall = "vesselMastTall", Dish = "vesselDish", Solar = "vesselSolar",
-        Tank = "vesselTank", Radiator = "vesselRadiator", Collar = "vesselCollar", Truss = "vesselTruss", Boom = "vesselBoom";
+        Tank = "vesselTank", Radiator = "vesselRadiator", Collar = "vesselCollar", Truss = "vesselTruss", Pylon = "vesselPylon",
+        Boom = "vesselBoom";
 
     /// <summary>
     /// The parts outside a vessel's hull (derelict-looks), each a machine row with no menu card, taken apart for what it gives; each
@@ -241,6 +242,7 @@ public static class Vessels
         new(Radiator, 16, 6, [], [("copper", 4), ("plate", 3), ("tube", 2)], BuildTicks: 160, Hp: 16),
         new(Collar, 6, 3, [], [("plate", 4), ("gear", 2)], BuildTicks: 160, Hp: 16),
         new(Truss, 11, 3, [], [("frame", 2), ("scrap", 2)], BuildTicks: 160, Hp: 12),
+        new(Pylon, 1, 1, [], [("scrap", 1)], BuildTicks: 80, Hp: 4),
         new(Boom, 8, 2, [], [("wire", 2), ("circuit", 1)], BuildTicks: 160, Hp: 8),
     ];
 
@@ -258,6 +260,12 @@ public static class Vessels
 
     /// <summary>Columns short of the bow a freighter's keel truss ends.</summary>
     public const int TrussShort = 6;
+
+    /// <summary>
+    /// The columns of a truss segment its two posts stand in, from its left: where the hull above it is shallower than the deepest along
+    /// the truss, a <see cref="Pylon"/> a row reaches up from each to the hull.
+    /// </summary>
+    public static readonly IReadOnlyList<int> TrussPosts = [2, 8];
 
     /// <summary>A truss segment holds no container under it one time in this many.</summary>
     public const int TrussEmptyOneIn = 5;

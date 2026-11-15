@@ -196,15 +196,25 @@ public class VesselTests
         Assert.NotEmpty(vessel.Outside);
         var trusses = vessel.Outside.Where(f => f.Kind == Content.Vessels.Truss).ToList();
         var truss = Machines.Get(Content.Vessels.Truss);
+        // The truss in one line; a pylon hangs from the hull or the pylon over it, down to a truss segment's post.
+        Assert.True(trusses.Select(t => t.Y).Distinct().Count() <= 1, "a stepped truss");
+        var held = new HashSet<(int X, int Y)>(walls);
+        foreach (var p in vessel.Outside.Where(f => f.Kind == Content.Vessels.Pylon).OrderBy(f => f.Y))
+        {
+            Assert.Contains((p.X, p.Y - 1), held);
+            held.Add((p.X, p.Y));
+            Assert.True(vessel.Outside.Any(f => f.Kind == Content.Vessels.Pylon && (f.X, f.Y) == (p.X, p.Y + 1))
+                || trusses.Any(t => t.Y == p.Y + 1 && Content.Vessels.TrussPosts.Contains(p.X - t.X)), $"a pylon at ({p.X}, {p.Y}) holds nothing");
+        }
         foreach (var f in vessel.Outside)
         {
             var cells = Shipyard.Covers(new VesselPart(f.X, f.Y, "machine", f.Kind)).ToList();
             Assert.All(cells, c => Assert.False(structures.Contains(c) || backs.Contains(c), $"{f.Kind} at ({f.X}, {f.Y}) over the hull at {c}"));
-            // A container hangs under its truss segment, wholly under it; every other part against the hull.
+            // A container hangs under its truss segment, wholly under it; every other part against the hull or on its pylons.
             if (f.Kind == Content.Vessels.TrussContainer)
                 Assert.Contains(trusses, t => t.Y + truss.Height == f.Y && t.X <= f.X && f.X + Machines.Get(f.Kind).Width <= t.X + truss.Width);
             else
-                Assert.Contains(cells, c => walls.Contains((c.X + 1, c.Y)) || walls.Contains((c.X - 1, c.Y)) || walls.Contains((c.X, c.Y + 1)) || walls.Contains((c.X, c.Y - 1)));
+                Assert.Contains(cells, c => held.Contains((c.X + 1, c.Y)) || held.Contains((c.X - 1, c.Y)) || held.Contains((c.X, c.Y + 1)) || held.Contains((c.X, c.Y - 1)));
         }
     });
 
@@ -218,7 +228,7 @@ public class VesselTests
         if (v.Class.Id == "shuttle")
         {
             Assert.Equal((1, 0, 1, 1), (Count(Content.Vessels.Mast), Count(Content.Vessels.MastTall), Count(Content.Vessels.Solar), Count(Content.Vessels.Tank)));
-            Assert.Equal(0, Count(Content.Vessels.Radiator) + Count(Content.Vessels.Collar) + Count(Content.Vessels.Truss) + Count(Content.Vessels.Boom));
+            Assert.Equal(0, Count(Content.Vessels.Radiator) + Count(Content.Vessels.Collar) + Count(Content.Vessels.Truss) + Count(Content.Vessels.Pylon) + Count(Content.Vessels.Boom));
             return;
         }
         Assert.Equal((0, 1, 0, 0), (Count(Content.Vessels.Mast), Count(Content.Vessels.MastTall), Count(Content.Vessels.Solar), Count(Content.Vessels.Tank)));

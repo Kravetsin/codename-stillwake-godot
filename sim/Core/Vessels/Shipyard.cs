@@ -205,8 +205,8 @@ public static class Shipyard
     /// fore end (past a raised bridge standing there). A vessel with a cockpit is outfitted as a shuttle: a mast mid-body, a dish
     /// near the bow, a solar panel by the stern, a tank under the middle of its belly. One with a raised bridge as a freighter: its
     /// mast and dish on the bridge; radiators then a docking collar on top from the stern's RCS, past the bridge and its housing
-    /// where they would reach them, the collar on the housing where it fits nowhere else; a keel truss in segments under it from
-    /// the aft rooms, a container under most; a sensor boom at the bow's tip.
+    /// where they would reach them, the collar on the housing where it fits nowhere else; a keel truss in segments in one line under it from
+    /// the aft rooms, on pylons where the hull is shallower, a container under most; a sensor boom at the bow's tip.
     /// </summary>
     /// <param name="aftEnd">The column past the aft rooms.</param>
     /// <param name="forward">A raised bridge's first column inside its armour.</param>
@@ -311,12 +311,18 @@ public static class Shipyard
         // Where the collar fits nowhere along, it stands on the housing's roof.
         if (along.Count == n && housing != null) OnTop(Vessels.Collar, housing.Left);
 
+        // The truss in one line under the deepest hull along it, each segment's posts on pylons up to the hull where it is shallower.
         var (truss, container) = (Machines.Get(Vessels.Truss), Machines.Get(Vessels.TrussContainer));
-        for (int t = aftEnd + gap; t + truss.Width <= bow - Vessels.TrussShort; t += truss.Width)
+        var segments = new List<int>();
+        for (int t = aftEnd + gap; t + truss.Width <= bow - Vessels.TrussShort; t += truss.Width) segments.Add(t);
+        int level = segments.Count == 0 ? 0 : segments.Max(t => Under(t, truss.Width)) + 1;
+        foreach (int t in segments)
         {
-            int y = Under(t, truss.Width) + 1;
             bool hangs = shape.Below(Vessels.TrussEmptyOneIn) != 0;
-            if (Put(Vessels.Truss, t, y) && hangs) Put(Vessels.TrussContainer, t + (truss.Width - container.Width) / 2, y + truss.Height);
+            if (!Put(Vessels.Truss, t, level)) continue;
+            foreach (int post in Vessels.TrussPosts)
+                for (int y = Under(t + post, 1) + 1; y < level; y++) Put(Vessels.Pylon, t + post, y);
+            if (hangs) Put(Vessels.TrussContainer, t + (truss.Width - container.Width) / 2, level + truss.Height);
         }
         var (tipTop, tipBottom) = bowSection.RowsAt(tip - 1);
         Put(Vessels.Boom, tip, tipTop + (tipBottom - tipTop + 1 - Machines.Get(Vessels.Boom).Height) / 2);

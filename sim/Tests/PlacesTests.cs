@@ -157,7 +157,7 @@ public class PlacesTests
     {
         { "shuttle", Vessels.Nozzle }, { "freighter", Vessels.Nozzle }, { "shuttle", Vessels.Rcs }, { "shuttle", Vessels.Mast },
         { "freighter", Vessels.MastTall }, { "shuttle", Vessels.Dish }, { "shuttle", Vessels.Solar }, { "shuttle", Vessels.Tank },
-        { "freighter", Vessels.Radiator }, { "freighter", Vessels.Collar }, { "freighter", Vessels.Truss }, { "freighter", Vessels.Boom },
+        { "freighter", Vessels.Radiator }, { "freighter", Vessels.Collar }, { "freighter", Vessels.Truss }, { "freighter", Vessels.Pylon }, { "freighter", Vessels.Boom },
     };
 
     [Fact]

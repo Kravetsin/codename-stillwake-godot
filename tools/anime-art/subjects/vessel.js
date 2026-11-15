@@ -197,13 +197,20 @@ function collar(a) {
 
 /** machine_vesselTruss: a segment of the keel truss hung on two posts, two chords laced between them, the container clamps under it. */
 function truss(a) {
-  for (const x of [14, 70]) lit(a, x, 0, x + 4.4, 9, MID);
+  // Its posts in columns 2 and 8 (Vessels.TrussPosts), where pylons carry them on up to a shallower hull.
+  for (const x of [17.8, 65.8]) lit(a, x, 0, x + 4.4, 9, MID);
   for (let x = 0; x < 88; x += 7.2) a.tube(`M${x} ${16}L${x + 7.2} ${10}`, .9, DARK, { spec: false });
   lit(a, 0, 8, 88, 10.6, LIGHT);
   lit(a, 0, 15, 88, 17.6, MID);
   for (const x of [15.2, 74]) lit(a, x, 17.6, x + 4.8, 24, DARK);
-  rivets(a, [16.2, 9.3], [72.2, 9.3]);
+  rivets(a, [20, 9.3], [68, 9.3]);
   patch(a, 44, 16.3, 2.4, .8, RUST, band(0, 15, 88, 17.6), 47);
+}
+
+/** machine_vesselPylon: a row of a truss post carried up to the hull, a cell high, its column the post's. */
+function pylon(a) {
+  lit(a, 1.8, -.4, 6.2, 8.4, MID, { lite: band(1.8, -.4, 3, 8.4), shade: band(5, -.4, 6.2, 8.4) });
+  a.line('M2.4 4L5.6 4', { w: .5 });
 }
 
 /** machine_vesselBoom: the sensor boom off the bow's tip, its mount, a rod, the strobe's head at its end. */
@@ -226,6 +233,7 @@ Subjects.vessel = function () {
   out('machine_vesselRadiator', Anime.bake({ w: 128, h: 48, draw: radiator }));
   out('machine_vesselCollar', Anime.bake({ w: 48, h: 24, draw: collar }));
   out('machine_vesselTruss', Anime.bake({ w: 88, h: 24, draw: truss }));
+  out('machine_vesselPylon', Anime.bake({ w: 8, h: 8, draw: pylon }));
   out('machine_vesselBoom', Anime.bake({ w: 64, h: 16, draw: boom }));
 };
 })();
