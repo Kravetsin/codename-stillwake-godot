@@ -690,6 +690,9 @@ public partial class Figure : Node2D
     /// <summary>A held swung tool's edge as last drawn, from its one end to its tip, in pixels of the world; none for any other hand.</summary>
     public (Vector2 From, Vector2 To)? Blade { get; private set; }
 
+    /// <summary>The held blade's stretch swept last, in the world, while it leaves a trail: where a struck wreck sparks (blade-sparks).</summary>
+    public (IReadOnlyList<(double X, double Y)> Was, IReadOnlyList<(double X, double Y)> Now)? Sweep => _air.Sweep;
+
     // The held swung edge's points this frame, kept to be filled again.
     private readonly List<(double X, double Y)> _edge = [];
 

@@ -179,7 +179,7 @@ public partial class DebrisView(Ui ui) : Node2D
             (one.X, one.Speed, one.End, one.Tick) = (piece.X, piece.Speed, piece.End, client.World.Tick);
             var (x, y) = PieceDrawn.At(piece, progress);
             var at = new Vector2((float)(x / Unit * Cell), (float)(y / Unit * Cell));
-            if (_own.SentOn(piece.Id) is { } sent && !HeldLook.IsDrill(sent)) Felt(one, at, sent, null, own: true);
+            if (_own.SentOn(piece.Id) is { } sent && !HeldLook.IsDrill(sent)) Felt(one, piece.Id, at, sent, null, own: true);
             if (piece.Damage > one.Damage) Struck(one, piece, at);
             one.Cracks?.Zoomed();
             one.JoltMs = Math.Max(0, one.JoltMs - elapsedMs);
@@ -310,7 +310,7 @@ public partial class DebrisView(Ui ui) : Node2D
         string tool = _own.ToolOn(piece.Id) ?? bit?.Tool ?? Content.Weapons.Axe.Item;
         // A running tool is seen at work all along where it touches (tool-contact): its hits only crack the wreck.
         if (HeldLook.IsDrill(tool)) return;
-        Felt(one, at, tool, bit?.At, own: false);
+        Felt(one, piece.Id, at, tool, bit?.At, own: false);
     }
 
     /// <summary>
@@ -319,7 +319,7 @@ public partial class DebrisView(Ui ui) : Node2D
     /// the hero; this player's <paramref name="own"/> hit, sent this frame, is heard and nudges the view a pixel (0042). An own
     /// drill's chops are heard as each is sent (HeroView).
     /// </summary>
-    private void Felt(Shown one, Vector2 at, string tool, Vector2? bit, bool own)
+    private void Felt(Shown one, int id, Vector2 at, string tool, Vector2? bit, bool own)
     {
         var from = NearestHero(at);
         var away = (at - from).Normalized();
@@ -330,7 +330,18 @@ public partial class DebrisView(Ui ui) : Node2D
         var side = at - away * Math.Min(size.X, size.Y) * 0.4f;
         var point = HeldLook.IsDrill(tool) && bit is { } on ? on : side;
         double share = Features.Effects.Impacts.ShareOf(tool);
-        Stages.Of(Layers.Effects).Hits.Throw(HitLooks.Of[Impact.Wreck], point.X, point.Y, -away.X, -away.Y, share);
+        var hits = Stages.Of(Layers.Effects).Hits;
+        if (!HeldLook.IsDrill(tool) && ui.Bites.TryGetValue(id, out var bite) && bite.Points.Count > 0)
+        {
+            // Off the blade's trail where it lies on the wreck, along the swing (blade-sparks), a share at each of a few of its points.
+            int n = Math.Min(BiteThrows, bite.Points.Count);
+            for (int k = 0; k < n; k++)
+            {
+                var (x, y) = bite.Points[n == 1 ? bite.Points.Count / 2 : k * (bite.Points.Count - 1) / (n - 1)];
+                hits.Throw(HitLooks.Of[Impact.Wreck], x, y, bite.Dx, bite.Dy, share / n);
+            }
+        }
+        else hits.Throw(HitLooks.Of[Impact.Wreck], point.X, point.Y, -away.X, -away.Y, share);
         one.Flash = Math.Max(one.Flash, share);
         if (!own) return;
         HitBy(tool).PlayAt(side);
@@ -356,6 +367,9 @@ public partial class DebrisView(Ui ui) : Node2D
         }
         return nearest;
     }
+
+    /// <summary>At most how many points of a blade's bite a struck wreck throws from (blade-sparks).</summary>
+    private const int BiteThrows = 3;
 
     /// <summary>How far off a wreck's picture's box a drill's bit, as drawn, still bites it, in pixels: the aim box's margin and a frame's drift.</summary>
     private const float BitMargin = 4;

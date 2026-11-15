@@ -332,6 +332,48 @@ public partial class HeroView
         return bits;
     }
 
+    // Each wreck's last bite with when it was taken: kept the trail's life, so a hit felt a frame or a tick after the blade went in finds it.
+    private readonly Dictionary<int, (IReadOnlyList<(double X, double Y)> Points, double Dx, double Dy, double At)> _bites = new();
+    private readonly Dictionary<int, (IReadOnlyList<(double X, double Y)> Points, double Dx, double Dy)> _bitesShown = new();
+    private readonly List<int> _bitesGone = [];
+    private double _bitesClock;
+
+    /// <summary>
+    /// Where every swung blade's trail on this surface, this hero's and its friends', lay on a wreck within the trail's life (blade-sparks).
+    /// Wrecks are walked only while a blade sweeps, and only those whose box the stretch reaches.
+    /// </summary>
+    private IReadOnlyDictionary<int, (IReadOnlyList<(double X, double Y)> Points, double Dx, double Dy)> Bites(Registry m, double elapsedMs)
+    {
+        _bitesClock += elapsedMs;
+        _bitesGone.Clear();
+        foreach (var (id, bite) in _bites)
+            if (_bitesClock - bite.At > BladeTrail.LifeMs) _bitesGone.Add(id);
+        foreach (int id in _bitesGone) _bites.Remove(id);
+        System.Func<Piece, double, double, bool>? solid = null;
+        foreach (var figure in _shownOthers.Values.Select(o => o.Figure).Prepend(_figure))
+        {
+            if (!figure.Visible || figure.Sweep is not var (was, now)) continue;
+            solid ??= _wreckPixels.Solid(_progress, _ui.DebrisTurns);
+            double left = double.MaxValue, right = double.MinValue, top = double.MaxValue, bottom = double.MinValue;
+            foreach (var (x, y) in was.Concat(now))
+                (left, right, top, bottom) = (System.Math.Min(left, x), System.Math.Max(right, x), System.Math.Min(top, y), System.Math.Max(bottom, y));
+            double perPixel = Hero.Unit / Rig.Cell;
+            foreach (var piece in m.Debris.Pieces)
+            {
+                var (cx, cy) = PieceDrawn.At(piece, _progress);
+                var (halfW, halfH) = Aiming.PictureOf(piece.Item);
+                // Its box turned any way: as far as its corner reaches.
+                double reach = System.Math.Sqrt((double)halfW * halfW + (double)halfH * halfH);
+                if (cx + reach < left * perPixel || cx - reach > right * perPixel || cy + reach < top * perPixel || cy - reach > bottom * perPixel) continue;
+                if (BladeBites.Of(was, now, (x, y) => solid(piece, x * perPixel, y * perPixel)) is var (points, dx, dy))
+                    _bites[piece.Id] = (points, dx, dy, _bitesClock);
+            }
+        }
+        _bitesShown.Clear();
+        foreach (var (id, bite) in _bites) _bitesShown[id] = (bite.Points, bite.Dx, bite.Dy);
+        return _bitesShown;
+    }
+
     /// <summary>Every running tool on this surface as last seen at work: this hero's and its friends' (tool-contact).</summary>
     private IEnumerable<ToolWork.Seen> Works()
     {

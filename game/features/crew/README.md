@@ -19,6 +19,7 @@ This hero and others', client-authoritative (0002): only commands reach the sim.
 | `ReachAir.cs` | grinder haze |
 | `logic/AirCuts.cs` | dust, brush |
 | `logic/BladeTrail.cs` | blade haze |
+| `logic/BladeBites.cs` | bites |
 | `SpearLight.cs` | spear's |
 | `logic/SpearFx.cs` | when |
 | `logic/SwingArc.cs` | its angle kept |
@@ -124,11 +125,11 @@ This hero and others', client-authoritative (0002): only commands reach the sim.
   Shift hauls in along its bends (`Wraps`); a jetpack unties, Shift thrusts, `Thrust` sent if unlike the sim's.
 - **A canister** (0047, 0081): RMB or R sends `Refill`, V `SuitMode` (regen-suit) if taken. Cooling greys the O₂ sign
   in a ring; too soon, red (canister-mark).
-- **Meals:** a food right-clicked sends `Eat`, chewed; refused, slots blink (hud-vitals). **Degrees** over them (the-thermometer).
+- **Meals:** a food RMB sends `Eat`, chewed; refused, slots blink (hud-vitals). **Degrees** over them (the-thermometer).
 - **The crew module:** made at `Spawn`; passed out: lies at the sim's cell, takes no orders (0061). `Enter` goes when the sim's room or field side
   differ, every `Crew.ReportEvery` ticks off its cell, each tick threatened; none out (0050); a closed link's host: `Leave`.
 - **Dressed as worn**: helmet, body, hair, clothes, lamp; colour on the shin; a switched body lit by
-  `SuitOn` and charge (`SuitGlow`, hero-lights). **Limbs bend** whole (bent-limbs, game/shared `BentLimb`); **helmets** turn (helmets-fit-the-suit).
+  `SuitOn` and charge (`SuitGlow`, hero-lights). **Limbs bend** whole (bent-limbs, `BentLimb`); **helmets** turn (helmets-fit-the-suit).
 - **Tracker** blinks (`SignalOf`); **catchers**: heroes in gear, untracked, tumble killed (tracker-catchers).
 
 ## Others' heroes
@@ -152,8 +153,8 @@ This hero and others', client-authoritative (0002): only commands reach the sim.
 - **Harpoon, grapple** (0044, grapple-climbs): reel pieces, pull to walls; hung, refire; Space/RMB let go.
 - **A gun** (hold-to-fire): held fires each cooldown; a `Charge` one on release, full; flat, clicks. Kicks afloat, shoves standing (`Recoil`, body-answers).
 - **Drill, grinder, cutter** (0054, 0055): held runs it (`Run`), hits a `Pace`, the cutter's by beam (`ToolEdges`).
-- **Power driver** (driver-at-work, driver-order): charged, works a 2×2 square (`WorkedSquare`); right click toggles (mode-glyph).
-- **Seated** (`Seating.Held`): no tool; E leaves. **Ladders, ledges** (0092): grab, climb, slide, leap off; a hatch open climbs, shut floors (0112); a jump a foot
+- **Power driver** (driver-at-work, driver-order): charged, works a 2×2 square (`WorkedSquare`); RMB toggles (mode-glyph).
+- **Seated** (`Seating`): no tool; E leaves. **Ladders, ledges** (0092): grab, climb, slide, leap off; a hatch open climbs, shut floors (0112); a jump a foot
   short mantles.
 
 ## Deliberately not handled

@@ -1,7 +1,7 @@
 # Damage and work drawn in ink
 
-- Status: accepted; where the grinder's and the drill's sparks start, superseded by [grinder-contact](2026-11-14-grinder-contact.md)
-  and [drill-contact](2026-11-14-drill-contact.md)
+- Status: accepted; where the grinder's, the drill's and a struck wreck's sparks start, superseded by
+  [grinder-contact](2026-11-14-grinder-contact.md), [drill-contact](2026-11-14-drill-contact.md) and [blade-sparks](2026-11-15-blade-sparks.md)
 - Date: 2026-11-05
 
 ## Context
