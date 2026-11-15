@@ -98,13 +98,18 @@ public partial class SuitGauge : CanvasLayer
             (int suit, int capacity, _danger, bool inAir) = _read();
             bool again = _cues.Read(suit, capacity, _danger, inAir, _sinceRead);
             _sinceRead = 0;
+            // A stimulant's units are their own piece past a gap (food-tuning): spent first, so the shell's piece holds the rest.
+            int lent = Math.Clamp(_lent(), 0, capacity - 1), shell = capacity - lent;
+            _gauge.Extra = lent;
+            _gauge.ExtraFill = lent > 0 ? Math.Clamp((double)(suit - shell) / lent, 0, 1) : 0;
+            int held = Math.Min(suit, shell);
             // A helmet put on or off changes the share with nothing lost: shown at once, no white.
-            if (_capacity != 0 && capacity != _capacity) _gauge.Motion.Show((double)suit / capacity);
+            if (_capacity != 0 && shell != _gauge.Units) _gauge.Motion.Show((double)held / shell);
             // A hit is more than the dearest breath, running bare in the cold (a unit of it): bare lungs are small enough for a
             // breath to look like one.
-            else _gauge.Motion.Read((double)suit / capacity, Math.Max(WristLook.BigDrop, (CrewSpec.Exerted + 1 + 0.5) / capacity));
-            _capacity = _gauge.Units = capacity;
-            _gauge.Extra = _lent();
+            else _gauge.Motion.Read((double)held / shell, Math.Max(WristLook.BigDrop, (CrewSpec.Exerted + 1 + 0.5) / shell));
+            _capacity = capacity;
+            _gauge.Units = shell;
             _fog.Read(_danger, (double)suit / capacity);
             _cooling.Read(_canisterIn());
             _gauge.Short = _danger != SuitDanger.None;

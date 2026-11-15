@@ -95,8 +95,13 @@ public partial class AirRow : Control
         }
     }
 
-    /// <summary>How many of <see cref="Units"/> a stimulant lends (food-tuning): drawn as their own stretch at the piece's end.</summary>
+    /// <summary>The units a stimulant lends (food-tuning), past <see cref="Units"/>: drawn as their own piece after a gap.</summary>
     public int Extra { get; set; }
+
+    /// <summary>How full the stimulant's piece is, 0 to 1: spent first, so full until the rest begins to go.</summary>
+    public double ExtraFill { get; set; }
+
+    private float _extraUnits, _extraFill;
 
     /// <summary>The row's place, the block's origin on the screen, and its size.</summary>
     public void Place(Vector2 origin, float scale)
@@ -129,6 +134,9 @@ public partial class AirRow : Control
             _resize = Math.Min(1, _resize + delta / ResizeS);
             _length = Mathf.Lerp(_lengthFrom, _lengthTo, Mathf.SmoothStep(0, 1, (float)_resize));
         }
+        // The stimulant's piece grows in and shrinks away, its air easing as the main piece's does.
+        _extraUnits = Mathf.MoveToward(_extraUnits, Extra, (float)(delta * Math.Max(Extra, _extraUnits) / ResizeS));
+        _extraFill = Mathf.MoveToward(_extraFill, (float)ExtraFill, (float)(delta * 2));
         Spot.Size = new Vector2(Math.Max(8, _length), Height);
         Motion.Step(delta);
         // The leading edge shows while the fill moves, either way, and fades once it rests.
@@ -169,12 +177,13 @@ public partial class AirRow : Control
         if (Low) lastAlpha *= 0.3f + 0.7f * (0.5f + 0.5f * Mathf.Cos(t * Mathf.Pi * 3));
         Span(this, tone, 0, last, pulse * Bright);
         Span(this, tone, last, lit, lastAlpha);
-        // A stimulant's units (food-tuning), the piece's top end, spent first and filled last: amber, a notch where they start.
-        if (Extra > 0 && Extra < _units)
+        // A stimulant's units (food-tuning): their own piece past a gap, at the same length a unit, amber as it holds air.
+        float extra = _extraUnits * _length / _units;
+        if (extra > 0.5f)
         {
-            float from = At((double)(_units - Extra) / _units);
-            if (lit > from) Span(this, "amber", from, lit, pulse * Bright);
-            DrawRect(new Rect2(Vitals.RowLeft + from - 0.5f, Top, 1, Height), Colors.White with { A = 0.55f * Bright });
+            float x = Vitals.RowLeft + _length + Vitals.Gap;
+            LightStrip.Span(this, LightStrip.Of("darkSky", 1), x, Top, extra, Height, 0, extra, Colors.White with { A = 0.9f * Bright });
+            LightStrip.Span(this, LightStrip.Of("amber", 1), x, Top, extra, Height, 0, extra * _extraFill, Colors.White with { A = Bright });
         }
         // A slow refill's light running along the lit part; a canister's wash has its own.
         if (m.Gain > 0 && _wash.Since is null)

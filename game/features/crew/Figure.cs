@@ -488,6 +488,9 @@ public partial class Figure : Node2D
 
     private const double RetchClearMs = 4000;
 
+    /// <summary>The visor's place among <see cref="_helmetPictures"/>.</summary>
+    private const int VisorPicture = 5;
+
     /// <summary>Whether it wears a helmet: what it throws up stays inside, on the visor.</summary>
     public bool Helmeted => _helmetWorn != null;
 
@@ -495,7 +498,8 @@ public partial class Figure : Node2D
     {
         _retchMs += elapsedMs;
         float sick = _retchMs >= RetchClearMs ? 0 : 1 - Mathf.SmoothStep(0.15f, 1, (float)(_retchMs / RetchClearMs));
-        _visor.SelfModulate = Colors.White.Lerp(Sick, sick);
+        // The bent copy draws the visor; the sprite itself stays clear (BentPicture).
+        _helmetPictures[VisorPicture].SelfModulate = Colors.White.Lerp(Sick, sick);
     }
 
     /// <summary>The item the front hand holds, by id, the fire axe or the harpoon: its hotbar slot chosen, the hand free; none for an empty hand.</summary>
