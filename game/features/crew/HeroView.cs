@@ -193,7 +193,7 @@ public partial class HeroView : Node2D
     private readonly Heard2D _bite = Cues.Player2D(S.Chop, S.Suit, voices: 2);
     // Others' guns are heard on World, where they are, as their steps are: through the air, gone while this hero floats (0065).
     private readonly Heard2D _othersShot = Cues.Player2D(S.Shot, S.World, voices: 3), _othersBite = Cues.Player2D(S.Chop, S.World, voices: 3),
-        _othersThump = Cues.Player2D(S.ActInSpace, S.World, voices: 2);
+        _othersThump = Cues.Player2D(S.ActInSpace, S.World, voices: 2), _othersRetch = Cues.Player2D(S.Retch, S.World, voices: 2);
     /// <summary>
     /// An axe's hit on a planet's ground or what grows there, as its blade strikes (0093): this hero's through the suit, as its
     /// swing is; others' on World where they hit, their swings played as sent.
@@ -228,7 +228,7 @@ public partial class HeroView : Node2D
     /// <summary>Whether the player asked to switch its suit's mode, by V or its edge key, since the last frame.</summary>
     private bool _switchSuit;
     // A canister breathed is heard in the helmet, never muffled; a friend's on World, where it is.
-    private readonly AudioStreamPlayer _breathes = Cues.Player(S.AirFill, S.Helmet), _eats = Cues.Player(S.Eat, S.Helmet);
+    private readonly AudioStreamPlayer _breathes = Cues.Player(S.AirFill, S.Helmet), _eats = Cues.Player(S.Eat, S.Helmet), _retches = Cues.Player(S.Retch, S.Helmet);
     private readonly Heard2D _othersBreathe = Cues.Player2D(S.AirFill, S.World, voices: 2);
     /// <summary>Air coming back round the heroes: a canister's vortex, a breath of room air at the visor (0081).</summary>
     private readonly AirSwirl _air = new();
@@ -278,7 +278,7 @@ public partial class HeroView : Node2D
         AddChild(_lines);
         AddChild(_work);
         _rod = NewRod();
-        foreach (var player in new Node[] { _shot, _drum, _ready, _swingSound, _hammerSwing, _spearThrust, _bite, _breathes, _eats, _drillChop, _whir, _thrustLoop, _othersShot, _othersBite,
+        foreach (var player in new Node[] { _shot, _drum, _ready, _swingSound, _hammerSwing, _spearThrust, _bite, _breathes, _eats, _retches, _othersRetch, _drillChop, _whir, _thrustLoop, _othersShot, _othersBite,
                      _othersThump, _othersBreathe, _air, _groundHits, _othersGroundHits, _burn, _othersBurn, _thud, _othersThud, _ownShots, _nailShot, _dryClick, _nailReady, _railShot, _railCharge, _railReady, _chargeThrow,
                      _ownShotEnds, _grinderRun, _grinderBite, _cutterStrike, _cutterRun, _cutterOff })
             AddChild(player);
@@ -540,7 +540,10 @@ public partial class HeroView : Node2D
         if (_eat is { } food && !passedOut) Eat(client, m, food);
         _eat = null;
         if (m.Crew.HeroOf(client.Id) is { } sick && Purged(client.Id, sick.Purges))
+        {
             _figure.Retch(ship.Space(_current.BodyCell(grid.Width)));
+            _retches.Play();
+        }
         if (_switchSuit && Report.SuitModeOf(m.Crew.HeroOf(client.Id)?.SuitOn ?? false, m.Crew.SuitModeProblem(client.Id), client.InFlight) is { } mode)
         {
             client.Send(mode);

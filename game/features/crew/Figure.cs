@@ -489,6 +489,9 @@ public partial class Figure : Node2D
     /// </summary>
     public void Retch(bool afloat) => (_retchMs, _retchAfloat) = (0, afloat);
 
+    /// <summary>Whether it wears a helmet: its retch is heard through it.</summary>
+    public bool Helmeted => _helmetWorn != null;
+
     /// <summary>The visor's place among <see cref="_helmetPictures"/>.</summary>
     private const int VisorPicture = 5;
 

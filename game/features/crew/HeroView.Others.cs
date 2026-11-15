@@ -109,7 +109,11 @@ public partial class HeroView
                 seen.HoldsPlan, elapsedMs);
             for (int burnt = shown.Burns.Due(elapsedMs, Burns(m, crew.HeroOf(id)), 1 / S.LavaBurnEveryS); burnt > 0; burnt--)
                 _othersBurn.PlayAt(shown.Figure.GlobalPosition);
-            if (crew.HeroOf(id) is { } sick && Purged(id, sick.Purges)) shown.Figure.Retch(afloat);
+            if (crew.HeroOf(id) is { } sick && Purged(id, sick.Purges))
+            {
+                shown.Figure.Retch(afloat);
+                _othersRetch.PlayAt(shown.Figure.Visor, _othersRetch.PitchScale, shown.Figure.Helmeted ? S.RetchHelmetedDb : 0);
+            }
             // A friend's canister: its air rises round it, heard where it is (0081).
             if (crew.HeroOf(id) is { } breathing && _canisters.Breathed(id, breathing.Air, breathing.Out))
             {
