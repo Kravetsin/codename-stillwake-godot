@@ -587,6 +587,7 @@ public partial class Main : Node2D, ITogether
         DevTick(client, before);
         ShowWorld();
         ShowDaylight();
+        ShowStretch(client.World.Tick + session.Progress);
         SeeArrivals(client, delta);
         _frameLog?.Mark("sim");
         if (client.World.Tick != before) SyncLight();
@@ -667,6 +668,22 @@ public partial class Main : Node2D, ITogether
         Lit.Sky(sky);
         _stars.Tint = tint;
         if (View<Features.Fog.FogView>() is { } fog) fog.Tint = tint;
+    }
+
+    /// <summary>The stretch of space seen in the backdrop: read again for each surface shown, none carried from the last.</summary>
+    private StretchShown _stretch = new();
+    private Registry? _stretchOf;
+
+    /// <summary>
+    /// A stretch of space coming, running or just gone (docs/plans/stretches.md), washed over space behind the stars in its colour:
+    /// from the sky's <c>Now</c>, at <paramref name="clock"/>, the world's ticks.
+    /// </summary>
+    private void ShowStretch(double clock)
+    {
+        if (_stretchOf != _m) (_stretch, _stretchOf) = (new StretchShown(), _m);
+        var now = _m.Sky.Now;
+        _stretch.See(now.Stretch, now.Coming, now.ComingIn, clock);
+        _stars.Stretch(_stretch.Look?.Wash ?? default, _stretch.Look != null ? _stretch.Shown : 0);
     }
 
     /// <summary>The surface's view of type <typeparamref name="T"/>; none where this surface has none (lava aboard).</summary>

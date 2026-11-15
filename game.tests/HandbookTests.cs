@@ -117,7 +117,7 @@ public class HandbookTests
     public void CountsTheLooksFoundOfAllThereAreAndSaysBothCountsInItsTip()
     {
         int all = Spawned.Sum(Content.Looks.CountOf);
-        Assert.Equal(90, all);
+        Assert.Equal(92, all);
         Assert.Equal((0, all), Finds.LookTally(new Dictionary<string, int[]>()));
         var looks = new Dictionary<string, int[]> { ["cargoCrate"] = [2, 0, 5], ["hullSection"] = [0], ["planks"] = [0] };
         Assert.Equal((4, all), Finds.LookTally(looks));

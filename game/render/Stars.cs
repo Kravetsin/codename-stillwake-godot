@@ -22,6 +22,8 @@ public partial class Stars : CanvasLayer
     private static readonly Color Star = new(223 / 255f, 232 / 255f, 245 / 255f);
 
     private readonly Sprite2D _sky;
+    /// <summary>A stretch of space's colour washed over the black behind the stars (<see cref="StretchLooks"/>): none till one comes.</summary>
+    private readonly ColorRect _wash = new() { Visible = false, MouseFilter = Control.MouseFilterEnum.Ignore };
     /// <summary>A planet's sky behind its ground, drawn over the screen in place of space (0076, 0079); its set's pictures.</summary>
     private PlanetSky? _day;
     private string? _set;
@@ -34,6 +36,8 @@ public partial class Stars : CanvasLayer
         Layer = ScreenLayers.Stars;
         // After every node at the default priority, the camera among them: its centre is this frame's.
         ProcessPriority = 1;
+        _wash.SetAnchorsPreset(Control.LayoutPreset.FullRect);
+        AddChild(_wash);
         _sky = Sky();
         AddChild(_sky);
         AddChild(_wrecks);
@@ -102,6 +106,20 @@ public partial class Stars : CanvasLayer
         if (_day != null) _day.Visible = _tops != null;
         if (_land != null) _land.Visible = _tops != null;
         _sky.Visible = _wrecks.Visible = _dust.Visible = _tops == null;
+        _wash.Visible = _tops == null && _wash.Color.A > 0;
+    }
+
+    /// <summary>
+    /// A stretch of space seen coming or running (<see cref="StretchShown"/>): its <paramref name="wash"/> laid over space, behind the
+    /// stars, <paramref name="share"/> of <see cref="StretchLooks.WashMost"/>; none at 0. Space only: a planet's sky is its own.
+    /// </summary>
+    public void Stretch((float R, float G, float B) wash, float share)
+    {
+        var colour = new Color(wash.R, wash.G, wash.B, StretchLooks.WashMost * share);
+        // Set each frame, it changes only as the warning runs: the same colour set again redraws the rect.
+        if (colour == _wash.Color) return;
+        _wash.Color = colour;
+        _wash.Visible = _tops == null && colour.A > 0;
     }
 
     private BackdropView? _land;

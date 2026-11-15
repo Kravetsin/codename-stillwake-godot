@@ -9,6 +9,8 @@ public enum Impact
 {
     /// <summary>A wreck out in space: the axe's bite of 0075, nothing falling.</summary>
     Wreck,
+    /// <summary>The ice belt's druse (docs/plans/stretches.md): glitter and clear shards, floating off as a wreck's bite does; a cold glint.</summary>
+    Ice,
     /// <summary>The ruins' alloy and their metal pieces, on a planet: the wreck's sparks and glint, falling.</summary>
     Alloy,
     Stone,
@@ -123,6 +125,10 @@ public static class HitLooks
             new(Luminous.HitDust, 14, (5, 26), 1.8, Size: (0.4, 0.7)),
             new(Luminous.Chip, 3, (22, 40), 1.1),
         ], Glint: 10, GlintColour: Warm, Shock: 0.35, Flash: 0.25, FlashColour: WarmLight),
+        [Impact.Ice] = new([
+            new(Glitter with { Gravity = 0 }, 8, (40, 120), 1),
+            new(Shard with { Gravity = 0, Bounce = 0 }, 4, (22, 50), 0.9),
+        ], Glint: 7, GlintColour: Cold, Shock: 0.3, Flash: 0.12, FlashColour: Cold),
         [Impact.Alloy] = new([
             new(FallingSpark, 12, (60, 160), 0.8, Up: 0.3),
             new(DustOf("alloy"), 6, (4, 20), 1.6, Up: 0.4, Size: (0.4, 0.65)),
@@ -182,6 +188,9 @@ public static class HitLooks
             new(Puff, 4, (4, 18), 1.8, Up: 0.4, Size: (0.5, 0.85)),
         ], Glint: 7, GlintColour: (255, 255, 255), Shock: 0.55, Flash: 0.08, FlashColour: (236, 232, 255)),
     };
+
+    /// <summary>A piece of debris struck, by its item: the ice belt's druse its own, every other a wreck's metal.</summary>
+    public static Impact PieceOf(string item) => item == StretchLooks.IceBlock ? Impact.Ice : Impact.Wreck;
 
     /// <summary>A creature struck, by its species (0102), as <see cref="Sound.Creatures"/> hears it: its tufts its coat's colour.</summary>
     public static readonly IReadOnlyDictionary<string, Impact> Creatures = new Dictionary<string, Impact>

@@ -206,8 +206,8 @@ public static class Looks
         ("asteroid", 6), ("asteroidSmall", 6), ("asteroidLarge", 6), ("asteroidRich", 6),
         ("engineBlock", 4), ("cargoHold", 4), ("podCluster", 4),
         ("parcel", 1), ("deliveryCrate", 1), ("confiscated", 1),
-        // The stretches' (docs/plans/stretches.md): as many looks as the stand-ins they wear till their pictures are picked.
-        ("iceBlock", 6), ("contrabandCrate", 1),
+        // The stretches' (docs/plans/stretches.md): five druses; the case, the drum, the double bottom and the bundle.
+        ("iceBlock", 5), ("contrabandCrate", 4),
     ];
 
     /// <summary>How many looks <paramref name="kind"/> has: one for a kind with no pictures of its own.</summary>

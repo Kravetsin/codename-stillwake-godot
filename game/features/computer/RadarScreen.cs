@@ -31,6 +31,12 @@ public partial class RadarScreen : Control
     /// <summary>The contact this player selected, by id; null for none.</summary>
     public int? Selected { get; set; }
 
+    /// <summary>
+    /// A stretch of space coming or running (<see cref="RadarBand"/>): its band's colour, how far its warning has run, and how much of
+    /// it shows, eased out after it has gone; none for none.
+    /// </summary>
+    public (Color Colour, float Grow, float Shown)? Stretch { get; set; }
+
     public RadarScreen()
     {
         MouseFilter = MouseFilterEnum.Ignore;
@@ -115,6 +121,7 @@ public partial class RadarScreen : Control
 
         // The ship's orbit, faint: where contacts lie.
         float orbit = core.Y - middle.Y, half = size.X / orbit;
+        if (Stretch is { } stretch) DrawStretch(stretch, middle, core, orbit, side);
         DrawArc(core, orbit, -Mathf.Pi / 2 - half, -Mathf.Pi / 2 + half, 256, Rim with { A = 0.18f }, 1.5f);
 
         // The beam turning anticlockwise, a fading trail behind it.
@@ -172,6 +179,42 @@ public partial class RadarScreen : Control
         float top = back.Position.Y + 2 + font.GetAscent(LabelSize);
         DrawString(font, new Vector2(left, top), name, HorizontalAlignment.Left, -1, LabelSize, Beam);
         DrawString(font, new Vector2(left, top + line), far, HorizontalAlignment.Left, -1, LabelSize, Rim with { A = 0.8f });
+    }
+
+    /// <summary>
+    /// A stretch's band along the ship's orbit, its edges soft, its leading edge a brighter line: ahead of the ship as its warning
+    /// starts, sliding toward it, over it as it comes (<see cref="RadarBand"/>).
+    /// </summary>
+    private void DrawStretch((Color Colour, float Grow, float Shown) stretch, Vector2 middle, Vector2 core, float orbit, float side)
+    {
+        if (stretch.Shown <= 0) return;
+        var (near, far) = RadarBand.Across(stretch.Grow, Size.X, middle.X);
+        float from = AngleAt(near, middle.X, orbit), to = AngleAt(far, middle.X, orbit), thick = side * 0.11f;
+        // Softer toward its outer rims: three bands, each narrower and denser.
+        for (int k = 0; k < 3; k++)
+        {
+            float reach = thick * (1 - k * 0.28f);
+            DrawColoredPolygon(Sector(core, orbit - reach, orbit + reach, from, to), stretch.Colour with { A = 0.13f * stretch.Shown });
+        }
+        DrawPolyline([core + Polar(from, orbit - thick), core + Polar(from, orbit + thick)], stretch.Colour with { A = 0.7f * stretch.Shown }, 2);
+    }
+
+    /// <summary>The angle round the planet's core of the point on the ship's orbit at <paramref name="x"/> across the screen.</summary>
+    private static float AngleAt(float x, float shipX, float orbit) =>
+        -Mathf.Pi / 2 + Mathf.Asin(Mathf.Clamp((x - shipX) / orbit, -1, 1));
+
+    /// <summary>The ring between radii <paramref name="inner"/> and <paramref name="outer"/> round <paramref name="core"/>, from one angle to the other.</summary>
+    private static Vector2[] Sector(Vector2 core, float inner, float outer, float from, float to)
+    {
+        const int steps = 24;
+        var points = new Vector2[2 * (steps + 1)];
+        for (int i = 0; i <= steps; i++)
+        {
+            float a = from + (to - from) * i / steps;
+            points[i] = core + Polar(a, outer);
+            points[2 * steps + 1 - i] = core + Polar(a, inner);
+        }
+        return points;
     }
 
     private static Vector2[] Diamond(Vector2 at, float r) => [at + new Vector2(0, -r), at + new Vector2(r, 0), at + new Vector2(0, r), at + new Vector2(-r, 0)];
