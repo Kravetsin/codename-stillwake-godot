@@ -14,7 +14,7 @@ namespace Stillwake.Game.Dev;
 /// Bare it is blank; <c>=first</c>, <c>=near</c>, <c>=burst</c>, <c>=circuit</c> and <c>=late</c> are stills along the way. Script: finds
 /// that light the key (with something seeded; 6 with <c>=burst</c>, 15 with <c>=late</c>), T, three entries clicked down, the rest taken at once, a click on the first note, a
 /// click on a shape, the wheel out, a click off everything, the first note dragged away, the board itself dragged, T again, a press on the key; each step is printed with its time.
-/// <c>=bought</c> has everything found and the solar panel bought: T, a click on it, the wheel all the way out, the first note carried to the edge. <c>=search</c>, the same world: the board's search typed in, a pick by the arrows and Enter, a name not there, Esc.
+/// <c>=bought</c> has everything found and the solar panel bought: T, a click on it, the wheel all the way out, the first note carried to the edge. <c>=search</c>, the same world: the board's search typed in, a pick by the arrows and Enter, a name not there, Esc. <c>=tools</c>, the same world wheeled all the way in over the screwdriver and it clicked: tool icons at the board's most zoom.
 /// </summary>
 public partial class BoardDemo(Func<Registry> m, string? value) : Node
 {
@@ -37,7 +37,7 @@ public partial class BoardDemo(Func<Registry> m, string? value) : Node
         "burst" => [("scrap", Plenty), ("iron", Plenty)],
         "circuit" => [("frame", 2), ("solarCell", 6), ("wire", 4), ("circuit", 1), ("photoPanel", 1)],
         "late" => [.. InSpace.SkipLast(Finds(value)).Select(i => (i, Plenty))],
-        "bought" or "search" => [.. InSpace.Select(i => (i, Plenty))],
+        "bought" or "search" or "tools" => [.. InSpace.Select(i => (i, Plenty))],
         _ => [],
     };
 
@@ -156,6 +156,15 @@ public partial class BoardDemo(Func<Registry> m, string? value) : Node
                 (5.1, "carry it", () => Drag(new Vector2(400, 200))),
                 (5.2, "on, past the edge", () => Drag(new Vector2(400, 200))),
                 (5.3, "let go: it stands at the edge", LetGo),
+            ];
+        if (value == "tools")
+            script =
+            [
+                (0.5, "T opens it on the board", () => TabletHands.Press(Key.T)),
+                (1.0, "take all", () => PressWhileReading(_tablet.TakeAllAt)),
+                (4.0, "wheel all the way in over the screwdriver: the tools drawn large", () => _hands.Wheel(_tablet.ScreenOf("screwdriver"), MouseButton.WheelUp, 10)),
+                (5.0, "click the screwdriver: its card's picture too", () => Click("screwdriver")),
+                (5.05, "let go", LetGo),
             ];
         if (value == "search")
             script =
