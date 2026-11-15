@@ -250,7 +250,6 @@ public static partial class Ru
         ["item.cape.kind"] = "Снаряжение · Плащ",
         ["item.battery.kind"] = "Снаряжение · Пояс",
         ["item.accumulator.kind"] = "Снаряжение · Пояс",
-        ["item.canister.key"] = "ПКМ",
         ["item.seed.key"] = "ПКМ",
         ["item.ration.key"] = "ПКМ",
         ["item.cannedMeat.key"] = "ПКМ",
