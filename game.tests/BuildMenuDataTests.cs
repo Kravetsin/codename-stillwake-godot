@@ -28,9 +28,15 @@ public class BuildMenuDataTests
     [Fact]
     public void ShowsTheShipsTabWithNoCardButNoOtherTabWithNone()
     {
-        Assert.True(Tools.Shown(new Tab(MenuTabs.Ship, [])));
-        Assert.False(Tools.Shown(new Tab(MenuTabs.Storage, [])));
-        Assert.True(Tools.Shown(Tools.Tabs.Single(t => t.Id == MenuTabs.Storage)));
+        Assert.True(Tools.Shown(new Tab(MenuTabs.Ship, []), Focus.Front));
+        Assert.False(Tools.Shown(new Tab(MenuTabs.Storage, []), Focus.Front));
+        Assert.True(Tools.Shown(Tools.Tabs.Single(t => t.Id == MenuTabs.Storage), Focus.Front));
+    }
+
+    [Fact]
+    public void TheBackWallsMenuHasNoEmptyShipsTab()
+    {
+        Assert.False(Tools.Shown(new Tab(MenuTabs.Ship, []), Focus.Back));
     }
 
     [Fact]
