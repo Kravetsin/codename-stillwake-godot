@@ -675,7 +675,7 @@ public partial class Main : Node2D, ITogether
     private Registry? _stretchOf;
 
     /// <summary>
-    /// A stretch of space coming, running or just gone (docs/plans/stretches.md), washed over space behind the stars in its colour:
+    /// A stretch of space coming, running or just gone (docs/plans/stretches.md), its far picture drifting in behind the far wrecks:
     /// from the sky's <c>Now</c>, at <paramref name="clock"/>, the world's ticks.
     /// </summary>
     private void ShowStretch(double clock)
@@ -683,7 +683,7 @@ public partial class Main : Node2D, ITogether
         if (_stretchOf != _m) (_stretch, _stretchOf) = (new StretchShown(), _m);
         var now = _m.Sky.Now;
         _stretch.See(now.Stretch, now.Coming, now.ComingIn, clock);
-        _stars.Stretch(_stretch.Look?.Wash ?? default, _stretch.Look != null ? _stretch.Shown : 0);
+        _stars.Stretch(_stretch.Look, _stretch.Shown);
     }
 
     /// <summary>The surface's view of type <typeparamref name="T"/>; none where this surface has none (lava aboard).</summary>

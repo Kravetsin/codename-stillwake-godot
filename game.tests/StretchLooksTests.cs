@@ -68,6 +68,21 @@ public class StretchLooksTests
     }
 
     [Fact]
+    public void EveryFarPictureIsDrawnAndAFarRowMixesThemAll()
+    {
+        string hd = Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "game", "art", "hd");
+        foreach (var look in StretchLooks.All)
+        {
+            foreach (var picture in look.Far.Pictures) Assert.True(File.Exists(Path.Combine(hd, picture + ".png")), picture);
+            int count = look.Far.Pictures.Count;
+            var taken = Enumerable.Range(-10, 30).Select(place => StretchLooks.PictureAt(place, 1234, count)).ToList();
+            Assert.Equal(count, taken.Distinct().Count());
+            Assert.All(taken, i => Assert.InRange(i, 0, count - 1));
+            Assert.Equal(taken, Enumerable.Range(-10, 30).Select(place => StretchLooks.PictureAt(place, 1234, count)));
+        }
+    }
+
+    [Fact]
     public void TheRadarsBandSlidesFromTheRightEdgeOntoTheShip()
     {
         const float width = 200, ship = 70;

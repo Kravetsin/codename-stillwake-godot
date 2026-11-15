@@ -4,8 +4,8 @@ using System.Collections.Generic;
 namespace Stillwake.Game;
 
 /// <summary>
-/// How a stretch of space (docs/plans/stretches.md) is seen coming, drawn only, without a word: the space behind the ship washed in
-/// its colour, the radar's band in its own, frost on the hull before the ice belt. All of it from the sky's <c>SkyNow</c>, so a
+/// How a stretch of space (docs/plans/stretches.md) is seen coming, drawn only, without a word: its far picture drifting in behind
+/// the ship, the radar's band in its colour, frost on the hull before the ice belt. All of it from the sky's <c>SkyNow</c>, so a
 /// peer joining mid-warning sees what the others do.
 /// </summary>
 public static class StretchLooks
@@ -14,26 +14,50 @@ public static class StretchLooks
     public const string IceBlock = "iceBlock", ContrabandCrate = "contrabandCrate";
 
     /// <summary>
-    /// A stretch's look: <paramref name="Wash"/> laid over the black of space, at most <see cref="WashMost"/> of it; the radar's band in
-    /// <paramref name="Band"/>; whether frost creeps over the hull before it (<paramref name="Frost"/>).
+    /// A stretch's look: its far picture (<paramref name="Far"/>); the radar's band in <paramref name="Band"/>; whether frost creeps
+    /// over the hull before it (<paramref name="Frost"/>).
     /// </summary>
-    public sealed record Look(string Id, (float R, float G, float B) Wash, (float R, float G, float B) Band, bool Frost);
+    public sealed record Look(string Id, Backdrop Far, (float R, float G, float B) Band, bool Frost);
 
-    /// <summary>The ice belt blue-grey and frosting the hull; the contraband drift amber-red.</summary>
+    /// <summary>
+    /// A stretch's far picture: a row of <paramref name="Pictures"/> (under <c>art/hd</c>), each place in it taking one at random,
+    /// <paramref name="Width"/> pixels of its plane wide with <paramref name="Gap"/> of that between, drifting left <paramref name="Drift"/> a second.
+    /// </summary>
+    public sealed record Backdrop(IReadOnlyList<string> Pictures, float Width, float Gap, float Drift);
+
+    /// <summary>
+    /// The ice belt: a field of ice, its two pictures mixed, frosting the hull. The contraband drift: one derelict of three, so slow
+    /// it stays in sight while the drift lasts, its cases spilling toward the ship.
+    /// </summary>
     public static readonly IReadOnlyList<Look> All =
     [
-        new(Content.Stretches.IceBelt.Id, (0.46f, 0.6f, 0.74f), (0.64f, 0.8f, 0.92f), Frost: true),
-        new(Content.Stretches.ContrabandDrift.Id, (0.82f, 0.36f, 0.16f), (0.98f, 0.58f, 0.26f), Frost: false),
+        new(Content.Stretches.IceBelt.Id, new(["stretches/ice_1", "stretches/ice_2"], Width: 1500, Gap: -0.04f, Drift: 4),
+            (0.64f, 0.8f, 0.92f), Frost: true),
+        new(Content.Stretches.ContrabandDrift.Id, new(["stretches/hulk_1", "stretches/hulk_2", "stretches/hulk_3"], Width: 1100, Gap: 3, Drift: 1),
+            (0.98f, 0.58f, 0.26f), Frost: false),
     ];
 
-    /// <summary>How much of space the wash covers at its full, over the stars' black.</summary>
-    public const float WashMost = 0.3f;
+    /// <summary>How much of the camera's movement a far picture follows: farther than the far wrecks (<c>Backdrop.WreckParallax</c>).</summary>
+    public const float Parallax = 0.15f;
 
-    /// <summary>Ticks a stretch's look takes to ease back once it has gone: the frost melts, the wash and the band fade (a minute).</summary>
+    /// <summary>Where a far picture's middle first shows, in shares of the screen: this far above its middle, and right of it.</summary>
+    public const float Above = 0.16f, Right = 0.2f;
+
+    /// <summary>The colour a far picture is drawn in: its paint is pale already, so only a little darker and cooler, its detail kept.</summary>
+    public static readonly (float R, float G, float B) Veil = (0.56f, 0.6f, 0.68f);
+
+    /// <summary>Ticks a stretch's look takes to ease back once it has gone: the frost melts, the far picture and the band fade (a minute).</summary>
     public const int Thaw = 60 * 20;
 
     /// <summary>How long the hull stays wet after the frost, in <see cref="Thaw"/>s from its end: the pick's 3.2 s to its 2.2.</summary>
     public const double Dry = 1.45;
+
+    /// <summary>Which of <paramref name="count"/> pictures place <paramref name="place"/> of a far row seeded <paramref name="seed"/> takes: mixed, not in turn.</summary>
+    public static int PictureAt(long place, uint seed, int count)
+    {
+        ulong hash = ((ulong)place + seed) * 0x9E3779B97F4A7C15UL;
+        return (int)((hash >> 33) % (ulong)count);
+    }
 
     /// <summary>The look of stretch <paramref name="id"/>; none for none or one unknown.</summary>
     public static Look? Of(string? id)
