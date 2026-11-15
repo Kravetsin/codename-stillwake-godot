@@ -55,7 +55,7 @@ return (ADR `2026-10-26-the-descent`); later the landers that drop with it.
 
 - **Queries:** `Problem(cell, open)`, `Powered(cell)`, `RunOf(grid, cell)` (static); `BoardProblem(peer, pod)`,
   `LaunchProblem(peer)` — what the pod's panel greys its button with; `SeatOf(peer)`, `RiderOf(pod)`, `Seats`;
-  `FlightOf(peer)`; `Returns` — the key's Return; `FloorOf(kind, cell, width)` (static) — where a seat's rider sits; `Turning(machine)`.
+  `FlightOf(peer)`; `Rides(peer)` (`ILandingQueries`, Places': seated or flying); `Returns` — the key's Return; `FloorOf(kind, cell, width)` (static) — where a seat's rider sits; `Turning(machine)`.
 - **Commands:** `SetPlatform(cell, open)` — `landing.noPlatform`, `landing.unpowered`. `Board(pod)` — `landing.noPod`,
   `landing.seated` (in a pod or flying), `landing.taken`, `landing.notYours`. `Alight` — `landing.notSeated`. `Launch` — `landing.notSeated` (in no pod);
   aboard `landing.noPlatform`, `landing.shaftBlocked` (anything solid under its run to the edge, from an older save),

@@ -343,4 +343,18 @@ public class MigrationsTests
         w.Reload(Migrations.Upgrade(save.ToJsonString()));
         Assert.Equal((0, 0, 0), (w.M.Crew.HeroOf(0)!.Wanted, w.M.Crew.HeroOf(0)!.Need, w.M.Crew.HeroOf(0)!.Coming));
     }
+
+    [Fact]
+    public void DropsTheGridsReservedBoxOfAFormatSixtyThreeSaveItsCellsLeftAsTheyAre()
+    {
+        // A format-63 world with a vessel's box beside the ship: after the upgrade its cells stay, and nothing reserves them.
+        var w = new Scenario(Registry.Wreck);
+        var save = JsonNode.Parse(w.World.Save())!.AsObject();
+        string grid = save["slices"]!["grid"]!.ToJsonString();
+        save["format"] = 63;
+        save["slices"]!["grid"]!["reserved"] = System.Text.Json.JsonSerializer.SerializeToNode(new Box(1, 2, 3, 4), w.World.Json);
+
+        w.Reload(Migrations.Upgrade(save.ToJsonString()));
+        Assert.Equal(grid, JsonNode.Parse(w.World.Save())!["slices"]!["grid"]!.ToJsonString());
+    }
 }

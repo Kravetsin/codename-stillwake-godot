@@ -60,7 +60,7 @@ Heroes: where each is (as its client says), how it breathes, passing out.
   afloat `Hull` in the zone, to `Temperatures[0]` at the field's line; on a planet `Terrain.TemperatureOf`, band 0
   `Chill` colder with no `BackAt`. After the regen suit, each degree `Felt` under `LowOf` or `Heat` over `HighOf`
   (the body's or `Bare*`, `Cape.Warmth` lower) costs `Bite`‰ a breath, whole by `Clock`. Then
-  `EdgeCost(cell)`: 0 in the zone grown by `Field.Margin` or a vessel's box, past it depth² to `Field.EdgeCost`; `OffGrid`.
+  `EdgeCost(cell)`: 0 in the zone grown by `Field.Margin`, past it depth² to `Field.EdgeCost`; `OffGrid`.
 - **Lava burns**: lava at the reported cell or `Lava.Reach` rows under it (`Burns`) costs the suit alone
   `Lava.Burn` more a breath.
 - **A shock** (`Shock`) and **a blow** (`Blow`, from Creatures) take units from a
@@ -91,7 +91,7 @@ Heroes: where each is (as its client says), how it breathes, passing out.
 ## Invariants
 
 - Air holds between nothing and capacity, a last breath runs only with none, awake (`SuitsTests`, `FieldTests`).
-- `EdgeCost` is 0 inside the field or a vessel's box, never less farther out, never over `Field.EdgeCost` (`FieldTests`).
+- `EdgeCost` is 0 inside the field, never less farther out, never over `Field.EdgeCost` (`FieldTests`).
 - No two heroes wear a colour while there are enough, on any surface.
 - A seat's hero is on its surface (`World.SurfaceOf`) and no other (`SurfacesTests`).
 - A hero holds at most `Diet.Meals` meals, all different, none spent; rates within `Diet.Caps` (`MealsTests`).

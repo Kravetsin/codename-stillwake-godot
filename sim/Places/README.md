@@ -4,22 +4,24 @@
 
 | File | Purpose |
 | --- | --- |
-| `Places.cs` | The radar's contacts, found by a timer or by hand, and the jump that writes a generated vessel beside the ship. |
+| `Places.cs` | The radar's contacts, found by a timer or by hand; the jump that opens a contact's vessel world; the vessel written there. |
 
-Where the ship is and what lies beside it ([generated-vessels](../../docs/decisions/2026-10-30-generated-vessels.md)): the
-contacts the radar found, and the jump that writes a vessel into the grid beside the ship, the last one cleared. The vessel
-itself is described, stamped and wrecked by `Shipyard` (sim/Core `Vessels/`), from `Content.Vessels`.
+The places the radar finds and the way to them ([generated-vessels](../../docs/decisions/2026-10-30-generated-vessels.md),
+[vessel-worlds](../../docs/decisions/2026-11-09-vessel-worlds.md)): the contacts, aboard, and the jump that opens a surface of
+its own for a contact's vessel and moves its sender there. The vessel itself is described and stamped by `Shipyard` (sim/Core
+`Vessels/`), from `Content.Vessels`; the surface's kind is the class's `VesselKind`.
 
-- **Depends on:** `Grid` (`IGridQueries`: `Built`, `Reserved`, the layers; `IGridOps.Reserve`, `Lay`), `Items`
-  (`IItemsOps.PutIn`: a crate's loot), `Building` (`IBuildingOps.Wipe`: the old vessel taken apart to nothing).
+- **Depends on:** `Grid` (`IGridQueries`: the size, `MachineAt`, `BackAt`; `IGridOps.Lay`), `Items` (`IItemsOps.PutIn`,
+  `Caught`: a crate's loot), `Crew` (`ICrewQueries.HeroOf`), `Landing` (`ILandingQueries.Rides`); the world's `ISurfaces`
+  (`Visit`, `Seed`).
 - **State** (`PlacesState`): `Contacts` (`Contact(Id, Class, Seed, Offset, Left)`, in the order found, at most
-  `Vessels.MaxContacts`), `NextContactId`, `NextIn` (ticks till the radar's own next; 0 before the first). Saved.
-  The vessel's cells are the grid's, its box the grid's `Reserved`. New to save format 57; `Offset`, `Left` and `NextIn`
-  to 59 (a held contact got the nearest place, right, and 15 min).
+  `Vessels.MaxContacts`), `NextContactId`, `NextIn` (ticks till the radar's own next; 0 before the first). Saved. A vessel
+  world's cells are its grid's, saved whole with its surface while it is open. New to save format 57; `Offset`, `Left` and
+  `NextIn` to 59 (a held contact got the nearest place, right, and 15 min).
 
 ## Rules
 
-- Aboard only: off the ship's surface `Find` and `Jump` are refused `places.notAboard`.
+- Aboard only: off the ship's surface `Find` and `Jump` are refused `places.notAboard`; go home first.
 - **The radar's own contacts** ([radar-contacts](../../docs/decisions/2026-11-08-radar-contacts.md)), aboard, each tick in
   simulation: every contact's `Left` goes down by one and one at 0 is gone; then the countdown, started at `Contacts.First`
   (15 min, fixed, so a short run never draws); at 0 a contact of a class drawn evenly is added (while fewer than
@@ -27,47 +29,48 @@ itself is described, stamped and wrecked by `Shipyard` (sim/Core `Vessels/`), fr
 - **A contact added** (by the radar or `Find(Class)`, the dev flag `--vessel` and the dev panel's): its seed drawn from the
   world's Rng, then its side and its distance in `Contacts.Nearest..Reach`, each evenly; `Offset` the distance signed (minus
   left of the ship); `Left` = `Contacts.Lasts`. The client draws it on the radar, where Set off sends `Jump`.
-- **`Jump(Contact, Wrecked)`**, in order: the box is found first (below); none fits, `places.noRoom`, and nothing changes.
-  Else the old vessel's box is wiped (`Building.Wipe`: machines emptied and unplugged, every thing cleared, its plans and
-  cracks dropped, nothing given), the new box reserved (`Grid.Reserve`), the vessel's parts laid (`Grid.Lay`) in reading
-  order of their top-left cells, so machine ids follow it, its crates filled (`PutIn`) and their loot counted obtained
-  (`Caught`, the-board), and the contact dropped. Compartments hold salvage, piles copied from drifting debris (`Content.Vessels.Salvage`, five
-  times a piece's mean loot, broken by tools as any pile). A vessel is
-  as built, wrecks to come (the user's word); `Wrecked`, sent only by dev tools, breaks it by a breach meanwhile.
-- **The box:** `Vessels.Gap` columns right of the ship, the tight box of everything built but the vessel (`Grid.Built` with
-  none out); its rows centred on the ship's, rounded down, moved inside the grid by `Vessels.EdgeClear`. On the game's world
-  it always fits: nothing is built outside the zone, and a frame is at most 448 wide.
-- Elsewhere the vessel is not the ship: Debris' stream and Hazards' meteors pass it by, Crew keeps its box warm, Building's
-  axe and drill break it, and Grid, Pipes and Power refuse building in it (`grid.reserved`). Each module's README says so.
+- **`Jump(Contact)`**, as its command applies: refused `places.noContact` for a contact not held, `places.noHero` for a sender
+  with no hero (its seat would hold the world open with no farewell to close it), `places.seated` for one in a drop pod or
+  flying (its pod would follow). Else the contact is used up and `ISurfaces.Visit` opens a surface of the class's kind
+  (`vessel.<class>`) from the contact's seed, and moves the sender there at once, to its spawn just inside the door. Every
+  jump opens a new world: two players jumping get two; a friend joins by `Transfer` and arrives at the same door.
+- **The vessel world** (Core's `World.Open`): space, the frame (`Vessel.Width` × `Height`) and `Vessels.Margin` round it, the
+  frame's top-left at (`Margin`, `Margin`), the spawn at `Shipyard.Door`. Once every module stands, Places' `Opened` writes
+  the vessel there: its parts laid (`Grid.Lay`) in reading order of their top-left cells, so machine ids follow it, the
+  spawn's own back wall kept; its crates filled (`PutIn`) and their loot counted obtained (`Caught`, the-board). Compartments
+  hold salvage, piles copied from drifting debris (`Content.Vessels.Salvage`, five times a piece's mean loot, broken by tools
+  as any pile). A vessel is as built, wrecks to come (the user's word).
+- **Its kind's rules** (`VesselKind`): the ship's space (no gravity in the open, vacuum, starlight), no debris, no meteors;
+  built as a planet allows, no machines; tools break what stands, nothing is marked (`ToolsBreak`), as on a planet.
+- **It closes** at the end of the tick no peer stands on it (`Kind.Transient`, Core): gone home, died and woke aboard, or left
+  the game. Everything there is erased; its id is never reused. A load in the game seats everyone aboard, so it closes then.
 
 ## API
 
 - **Queries:** `Contacts`, `NextIn`.
-- **Commands:** `Find(Class)` — `places.notAboard`, `places.noClass`, `places.full`. `Jump(Contact, Wrecked)` —
-  `places.notAboard`, `places.noContact`, `places.noRoom`. `Dismiss` (the dev panel's): the vessel out wiped and its box
-  freed — `places.notAboard`, `places.noVessel`.
-- **Fuzz:** now and then, a jump writing thousands of cells: `Dismiss`, `Find` of a class or none, `Jump` to a contact held or not.
+- **Commands:** `Find(Class)` — `places.notAboard`, `places.noClass`, `places.full`. `Jump(Contact)` — `places.notAboard`,
+  `places.noContact`, `places.noHero`, `places.seated`.
+- **Fuzz:** now and then, a jump opening a whole surface: `Find` of a class or none, `Jump` to a contact held or not.
 
 ## Invariants
 
 - A contact keeps `1 ≤ Left ≤ Lasts`, `Nearest ≤ |Offset| ≤ Reach`; the radar's own come one at a time (`RadarContactsTests`).
-- At most one vessel is out: `Grid.Reserved` is its box, and nothing outside the box changes with a jump (`PlacesTests`).
+- A jump changes nothing of the ship's grid; the vessel there is what `Shipyard` stamps for the contact's class and seed
+  (`PlacesTests`).
+- No vessel world is open with nobody on it after a tick, and a closed one never opens again (`PlacesTests`, a property).
 - The same class and seed make the same vessel on every peer, intact and wrecked (`VesselTests`).
 
 ## Deliberately not handled
 
-- Where a contact lies changes nothing yet: every vessel comes `Vessels.Gap` right of the ship; the offset is the radar's.
+- Where a contact lies changes nothing yet: the offset is the radar's.
 - No radar needed: contacts come whether a radar is built or not (the computer's rules live in the client).
-- A hero on the vessel when someone jumps: the cells vanish round them; they fly back. A hero, a floor stack or a body where a
-  new wall is written: Items pushes stacks and bodies out; the hero's controller decides for heroes.
-- A blueprint laid right of the ship before a jump may fall in the new box: it waits, refused `grid.reserved`, until the next
-  jump or a cancel. Placing the box round plans would need Building's queries for a rare case.
-- Content changed between `Find` and `Jump` makes a pending contact come out differently; written cells are saved, never
+- What is left on a vessel world is erased with it: a body and the inventory it held, crates not emptied, plans. Coming back
+  for it needs the world kept, which the user ruled out; only what a hero carries home comes home.
+- No revisit: the contact is used up by the jump. Quitting on a vessel loses it.
+- A crate's loot counts as obtained when the vessel opens, taken home or not: counting what a hand takes out would need Items
+  to know a vessel's crates.
+- The jump's tick is long: a registry made and a freighter written, once per visit, like a load (`PlacesTests` pins 200 ms).
+- Content changed between `Find` and `Jump` makes a pending contact come out differently; a written vessel is saved, never
   regenerated.
-- The jump's tick is long: clearing and writing a freighter passes the grid's change log, so readers look at everything once.
-  It happens once per jump, like a load: 33–70 ms for a freighter on a desk (`PlacesTests` pins 200).
 - Air and power in a vessel: its rooms start empty, its lamps dead.
 - The soil clod aboard wears its drifting picture, a little above the deck: the user did not choose it to be drawn whole.
-- A crate's loot counts as obtained at the jump, taken or not: counting what a hand takes out would need Items to know
-  a vessel's crates.
-- Liquids pay a vessel no mind: water leaving the hull meets its cells as any (flowing-liquids reads the grid's changes).

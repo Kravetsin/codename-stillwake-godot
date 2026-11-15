@@ -50,7 +50,7 @@ public class SurfacesTests
     private static List<int> Holding(World world, Func<int, Registry> on, int peer)
     {
         var held = new List<int>();
-        foreach (var s in world.Surfaces)
+        foreach (var s in world.Surfaces.Where(x => !x.Closed))
         {
             var m = on(s.Id);
             if (m.Crew.HeroOf(peer) != null || m.Items.Inventory(peer).Any(x => x != null) || m.Items.Running(peer) != null) held.Add(s.Id);
@@ -392,7 +392,7 @@ public class SurfacesTests
         {
             if (s != null) counts[s.Item] = counts.GetValueOrDefault(s.Item) + s.Count;
         }
-        foreach (var surface in world.Surfaces)
+        foreach (var surface in world.Surfaces.Where(s => !s.Closed))
         {
             var m = Registry.On(world, surface.Id);
             var state = (ItemsState)m.Items.Slice;

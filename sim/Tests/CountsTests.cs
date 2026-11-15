@@ -457,7 +457,7 @@ public class CountsTests
     /// <summary>Every item in a slot or on the floor, on every surface.</summary>
     private static IEnumerable<string> Held(World world)
     {
-        foreach (var surface in world.Surfaces)
+        foreach (var surface in world.Surfaces.Where(s => !s.Closed))
         {
             var m = Registry.On(world, surface.Id);
             foreach (var floor in m.Items.Floor) yield return floor.Item;

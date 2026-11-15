@@ -535,8 +535,6 @@ public sealed partial class CrewModule : Module<CrewState>, ICrewQueries, ICrewO
         int margin = Content.Field.Margin;
         int left = zone.Left - margin, right = zone.Right + margin, top = zone.Top - margin, bottom = zone.Bottom + margin;
         int x = cell % width, y = cell / width;
-        // A vessel's box is as warm as the field (generated-vessels): one reaching past it is still worked in.
-        if (_grid.Reserved is { } vessel && vessel.Contains(x, y)) return 0;
         int depth = Math.Min(1000, Math.Max(
             Math.Max(Depth(left - x, left), Depth(x - right, width - 1 - right)),
             Math.Max(Depth(top - y, top), Depth(y - bottom, height - 1 - bottom))));
@@ -583,8 +581,7 @@ public sealed partial class CrewModule : Module<CrewState>, ICrewQueries, ICrewO
     {
         int width = _grid.Width, x = cell % width, y = cell / width;
         var zone = _grid.Zone;
-        int beyond = _grid.Reserved is { } vessel && vessel.Contains(x, y) ? 0
-            : Math.Max(Math.Max(zone.Left - x, x - zone.Right), Math.Max(zone.Top - y, y - zone.Bottom));
+        int beyond = Math.Max(Math.Max(zone.Left - x, x - zone.Right), Math.Max(zone.Top - y, y - zone.Bottom));
         int far = Rules.Temperatures[0], near = Content.Temperature.Hull;
         return near + (far - near) * Math.Clamp(beyond, 0, Content.Field.Margin) / Content.Field.Margin;
     }
