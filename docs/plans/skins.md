@@ -188,7 +188,7 @@ PR. S-1…S-5 are one try on `feat/skins`, played by the user, then shipped toge
 - Tests (`sim/Tests`, beside `LooksTests`): a second `ChooseSkins` replaces the first; an older save with no `Skins` loads
   with none; two peers' sets kept apart. Generic suites cover save/load and desync.
 
-### S-2 — The client's catalogue, lookup and ownership
+### S-2 — The client's catalogue, lookup and ownership ✅ on feat/skins (`Figure.Wear` keeps its strings: they are picture ids already)
 - `game/features/crew/logic/Skins.cs`: rows `(Id, Kind, DlcAppId?)`, kinds `head`, `suit`, `cape`, `effect`; En/Ru names in
   `logic/Skins.En.cs`, `.Ru.cs`.
 - `game/platform/Owned.cs`: `Has(skinId)`: a row with no app id, or a debug build (`OS.IsDebugBuild()`) → owned; a
@@ -204,7 +204,7 @@ PR. S-1…S-5 are one try on `feat/skins`, played by the user, then shipped toge
 - Tests (`game.tests`): helmet off → no helmet with a helmet skin chosen; unknown or wrong-kind id → the item; two clients with the same `Skins` dress a hero alike; `Owned` debug, `--own-none`, release;
   what is sent is kept ∩ owned, the empty set too, on every join.
 
-### S-3 — Helmets and capes drawn by picture id
+### S-3 — Helmets and capes drawn by picture id ✅ on feat/skins (lamp mounts in `shared/logic/LampMounts.cs`; `Figure.CapeWorn` replaces `WearsCape`)
 - `game/shared/HeadLampArt.cs` `OnOf`: an if-chain → a table keyed by picture id.
 - `game/shared/logic/ScannerInk.cs` and `Figure.ShowScanner` (`Figure.cs:691`): the fixed `On`/`OnHeavy`/`OnQuilted` → one
   table keyed by picture id (picture, mount point), written by `tools/anime-art/subjects/scanner.js`.
