@@ -1,6 +1,6 @@
 # Liquid volumes
 
-- Status: accepted; supersedes the bottle of [scarce-oxygen](2026-11-07-scarce-oxygen.md) and the cistern of [liquids-in-tanks](2026-11-08-liquids-in-tanks.md)
+- Status: accepted; supersedes the bottle of [scarce-oxygen](2026-11-07-scarce-oxygen.md) and the cistern of [liquids-in-tanks](2026-11-08-liquids-in-tanks.md); its card line superseded by [liquid-cards](2026-11-15-liquid-cards.md)
 - Date: 2026-11-09
 
 ## Context
