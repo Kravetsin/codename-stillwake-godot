@@ -22,7 +22,7 @@ This hero and others', client-authoritative (0002): only commands reach the sim.
 | `SpearLight.cs` | spear's |
 | `logic/SpearFx.cs` | when |
 | `logic/SwingArc.cs` | its angle kept |
-| `logic/SwingArm.cs` | front arm swung |
+| `logic/SwingArm.cs` | arm swung |
 | `logic/HandOver.cs` | with it |
 | `logic/BodyPlay.cs` | its answers |
 | `logic/HaftGrip.cs` | far hand |
@@ -33,9 +33,9 @@ This hero and others', client-authoritative (0002): only commands reach the sim.
 | `logic/Seating.cs` | seats; hands tied |
 | `logic/FogMove.cs` | across fog |
 | `logic/Fittings.cs` | modules in hand |
-| `SeatedHeroes.cs` | in the porthole |
-| `UsePrompt.cs` | that prompt shown |
-| `logic/Tether.cs` | the tether |
+| `SeatedHeroes.cs` | porthole |
+| `UsePrompt.cs` | it shown |
+| `logic/Tether.cs` | tether |
 | `logic/DrillPace.cs` | drill hits |
 | `logic/RunSounds.cs` | tools heard |
 | `logic/ToolEdge.cs` | cutter beam |
@@ -80,7 +80,10 @@ This hero and others', client-authoritative (0002): only commands reach the sim.
 | `logic/CanistersSeen.cs` | tanks |
 | `AirSwirl.cs` | fling, breath, leak |
 | `SuitGauge.cs` | air row |
-| `MealSlots.cs` | meals |
+| `MealSlots.cs` | meals, purge |
+| `logic/Retching.cs` | a retch |
+| `logic/RetchSpray.cs` | its bile |
+| `InkLayer.cs` | bile drawn |
 | `logic/MealTips.cs` | food cards |
 | `Thermometer.cs` | degrees |
 | `logic/Thermometers.cs` | read |
@@ -91,7 +94,7 @@ This hero and others', client-authoritative (0002): only commands reach the sim.
 | `logic/HurtSeen.cs` | hurt |
 | `HurtView.cs` | shown |
 | `SuitColours.cs` | colours |
-| `LookEditor.cs` | the look editor |
+| `LookEditor.cs` | look editor |
 | `logic/Markers.cs` | markers |
 | `MarkerLayer.cs` | arrows |
 | `logic/Bodies.cs` | bodies |
@@ -108,7 +111,7 @@ This hero and others', client-authoritative (0002): only commands reach the sim.
 ## Guarantees
 
 - Lengths, speeds: thousandths of a cell (`Content.Hero`); step 1000/60 ms.
-- A step never ends in a wall, shut door, hatch or past the grid; afloat, no jetpack, the middle stays within
+- A step never ends in a wall, shut door, hatch, off the grid; afloat, no jetpack, the middle stays within
   `Hero.Tether` of its anchor. A shut door pushes it `Hero.PushStep` to a fit (0089).
 - Doors go as this peer shows them (0014); a press sends `SetDoor`/`SetValve` (0071), `SetPlatform`.
 - **Holes, floors, steps** (0106): falls in holes it fits; down drops through; jump wins; a cell up or down, two stop it.
@@ -121,13 +124,14 @@ This hero and others', client-authoritative (0002): only commands reach the sim.
 - **Water** (liquids): swum `SwimDepth` deep, left by Space or shore; wading splashes.
 - **Swim, haul, jetpack** (0047, tether-haul, jet-cruise): afloat through floors, tied where it left the hull;
   Shift hauls in along its bends (`Wraps`); a jetpack unties; Shift vents unless `Hero.Cruising`.
-- **A canister** (0047, 0081): RMB or R sends `Refill`, V `SuitMode` (regen-suit) if taken. Cooling greys the O₂ sign
+- **A canister** (0047, 0081): RMB, R send `Refill`, V `SuitMode` (regen-suit) if taken. Cooling greys the O₂ sign
   in a ring; too soon, red (canister-mark).
-- **Meals:** a food RMB sends `Eat`, chewed; refused, slots blink (hud-vitals). **Degrees** over them (the-thermometer).
-- **The crew module:** made at `Spawn`; passed out: lies at the sim's cell, takes no orders (0061). `Enter` goes when the sim's room or field side
-  differ, every `Crew.ReportEvery` ticks off its cell, each tick threatened; none out (0050); a closed link's host: `Leave`.
-- **Dressed as worn**: helmet, body, hair, clothes, lamp; colour on the shin; a switched body lit by
-  `SuitOn`, charge (hero-lights). **Limbs bend** whole (bent-limbs); **helmets** turn (helmets-fit-the-suit), collar under a raised arm.
+- **Meals:** RMB sends `Eat`, chewed; refused, slots blink (hud-vitals); the 4th held 3 s, `Purge` (food-tuning).
+  **Degrees** over them (the-thermometer).
+- **Crew:** made at `Spawn`; passed out, lies at its cell, takes no orders (0061). `Enter` goes when the sim's room or side
+  differ, each `Crew.ReportEvery` ticks off its cell, each tick threatened; none out (0050); host gone: `Leave`.
+- **Dressed as worn**, colour on the shin; a switched body lit by `SuitOn`, charge (hero-lights).
+  **Limbs bend** whole (bent-limbs); **helmets** turn (helmets-fit-the-suit), collar under a raised arm.
 - **Tracker** blinks (`SignalOf`); **catchers**: heroes in gear, untracked, tumble killed (tracker-catchers).
 
 ## Others' heroes
@@ -140,21 +144,20 @@ This hero and others', client-authoritative (0002): only commands reach the sim.
 
 ## The hands
 
-- **What the hand holds shows** (`HeldLook`); a builder twists a plan or a motor (`Twist`, `Driven`).
-- **Aimed only in use** (aim-on-use): up in use and `LingerMs` after, at the pointer; shots and hits wait for it.
-- **Left is the front, right the back** (0107, 0108): a screwdriver works plans, repairs on the left;
-  the plan, wiring, lays cables; a tool on the right, nothing.
+- **What the hand holds shows** (`HeldLook`); a builder twists a plan, a motor (`Twist`, `Driven`).
+- **Aimed only in use** (aim-on-use): up in use, `LingerMs` after, at the pointer; shots and hits wait for it.
+- **Left is the front, right the back** (0107, 0108): left, a screwdriver works plans, repairs;
+  the plan, wiring, lays cables; right, a tool, nothing.
 - **One aim** (`Aiming.AimAt`): a plan (back walls first), machine (0099), tank, door, valve, a wreck
   pointed at, else the nearest small piece. Outlined green/red, `UsePrompt` why; plan in hand, E idle. Armed: small ones.
 - **Hits are rays** (tool-reach, hits-pass-wrecks): a fan (`ToolRays`) to a wall, through wrecks; ground rings.
-- **Sparks are the haze's** (spark-rule): a haze in use throws the look of what it lies in.
+- **Sparks are the haze's** (spark-rule): a haze throws its ground's look.
 - **Struck tools** (0038, swing-motions): by sector, hit as the blade crosses the aim, leaned into.
 - **Harpoon, grapple** (0044, grapple-climbs): reel pieces, pull to walls; hung, refire; Space/RMB let go.
 - **A gun** (hold-to-fire): held fires each cooldown; a `Charge` one on release, full; flat, clicks. Kicks afloat, shoves standing (`Recoil`, body-answers).
 - **Drill, grinder, cutter** (0054, 0055): held runs it (`Run`), hits a `Pace`, the cutter's by beam (`ToolEdges`).
 - **Power driver** (driver-at-work, driver-order): charged, works a 2×2 square (`WorkedSquare`); RMB toggles (mode-glyph).
-- **Seated** (`Seating`): no tool; E leaves. **Ladders, ledges** (0092): grab, climb, slide, leap off; a hatch open climbs, shut floors (0112); a jump a foot
-  short mantles.
+- **Seated** (`Seating`): no tool; E leaves. **Ladders, ledges** (0092): grab, climb, slide, leap off; a hatch open climbs, shut floors (0112); a jump a foot short mantles.
 
 ## Deliberately not handled
 

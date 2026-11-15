@@ -4,13 +4,13 @@
 
 | File | Purpose |
 | --- | --- |
-| `Crew.cs` | The module, its commands, `ICrewQueries`, `ICrewOps`. |
-| `Fuzz.cs` | The commands the desync suite draws. |
-| `Harm.cs` | What hurt a hero: `Harm`. |
-| `Signal.cs` | What a hero's tracker shows: `Signal`. |
-| `State.cs` | The saved slice and its records: `Hero`, `CrewState`. |
+| `Crew.cs` | The module, commands, queries. |
+| `Fuzz.cs` | Commands drawn. |
+| `Harm.cs` | `Harm`, what hurt. |
+| `Signal.cs` | `Signal`, a tracker's. |
+| `State.cs` | `Hero`, `CrewState`. |
 
-Heroes in the sim: where each is, as its client says, how it breathes, passing out.
+Heroes: where each is (as its client says), how it breathes, passing out.
 
 - **Depends on:** `Atmosphere` (`Breathe`, `AiredAt`); `Grid` (`Width`, `Height`, `Zone`, `WallAt`, `BackAt`); `Items` (`Equipped`, `WornIn`,
   `ShortOf`, `Creative`; ops `Take`, `Drain`, `StopRunning`, `LeaveBody`, `Kit`); `Players` (`Worn`, `IPlayersOps`); `Sky` (`Now`).
@@ -22,23 +22,22 @@ Heroes in the sim: where each is, as its client says, how it breathes, passing o
 
 - A hero is named by its peer, the `From` the host stamps.
 - **Air** (suits-are-worn): `Hero.Air`, below "the suit"; capacity `CapacityOf`: the worn helmet's `Tank`,
-  or `Crew.Lungs`. Each tick, first, a conscious hero's air is cut to it.
+  or `Crew.Lungs`, plus food's lungs (food-tuning). Each tick, first, an awake hero's air is cut to it.
 - **Enter and report**: `Enter(Cell)` puts the sender's hero at `Cell`, making it full (bare, empty on a peer's
   first) if none. Sent on a new room or air side, every `Crew.ReportEvery` ticks while the cells differ,
   `Crew.ReportThreatened` while threatened. Passed out, a client sends none.
 - **The breath**: every `Crew.BreathEvery` ticks, in id order, each conscious hero breathes: by the
   pod (`ByPod`) up to `Crew.PodRefill` of its endless air, then `Breathe` the rest of a unit and up to `Crew.Refill` for
-  the suit; the suit pays any shortfall.
+  the suit, which pays any shortfall.
 - **Thin air** (0076): with `ThinAir` n the suit pays the shortfall every n-th breath, in full, exertion too; off the
   beat `Owed` moves only where air covers the breath.
 - **Colours and looks** (looks-are-printed), kept by `Players`: a hero coming in wears the first unworn of
   `Crew.Colours`, else the first least worn; a peer's first gets the kit (`IItemsOps.Kit`). `PickColour` takes a free
   colour; `ChooseLook` sets the look the next print wears.
-- **Leave**, by the host for a peer gone: the hero goes, colour freed, tool stopped, inventory kept.
+- **Leave** (host, a peer gone): the hero goes, colour freed, tool stopped, inventory kept.
 - **Surfaces** (`ICarries`): `Depart` gives up the `Hero`, `Arrive` takes it at a cell or the spawn. One waking
   off the ship wakes aboard.
-- **Exertion:** `Exert(On)`, sent as the hero runs or walks a wheel: a breath costs
-  `Crew.Exerted`.
+- **Exertion:** `Exert(On)`, sent as the hero runs or walks a wheel: a breath costs `Crew.Exerted`.
 - **The jetpack**: `Thrust(On)`, sent as the client's thrust changes; an awake hero thrusting pays a unit every
   `Jetpack.TicksPerUnit` ticks, before the breath. It stops with the jetpack off, on a planet or out (one landing, then
   cleared).
@@ -48,7 +47,7 @@ Heroes in the sim: where each is, as its client says, how it breathes, passing o
   sets `CanisterIn` to `Crew.CanisterCooldown` ticks (not in creative), counted down.
 - **Meals** (food-and-the-body): `Hero.Meals`, up to `Diet.Meals`, ticks `Left` counted down. `Eat(Item)` adds one or,
   in its last `Diet.RefreshWithin`, refreshes it; a print holds paste. A fruit eaten rolls its `Byproducts`,
-  given or dropped. `RatesOf` sums meals to `Diet.Caps`: calm cuts a breath, deep adds to a canister. A breath's thousandths
+  given or dropped. `RatesOf` sums meals to `Diet.Caps`: calm cuts a breath, deep units to a canister. `Purge` empties them, counting `Purges`. Thousandths
   go to `Owed`, whole units paid; hungry, a sprint costs `Diet.HungrySprint`. `Works` (Building's `Work`) adds
   `Diet.Work` and food's, hungry `Diet.HungryWork`, to `Worked`, returning whole ticks.
 - **The last breath** (the-last-breath): air run dry starts `Hero.Gasp` at `Crew.LastBreath`, counted
@@ -81,11 +80,11 @@ Heroes in the sim: where each is, as its client says, how it breathes, passing o
 - **Queries** (`ICrewQueries`): `Spawn`; `ByPod(cell)`; `EdgeCost(cell)`; `CapacityOf(peer)`; `RefillOf`, `RatesOf`, `Hungry(peer)`; `TemperatureAt`, `LowOf`, `Felt` (frost), `HighOf`, `Heat`;
   `SuitOn`, `SuitModeProblem`; `SignalOf(peer)`, `Hunted(peer)`;
   `HeroOf(id)` or null; `Heroes`, live, in id order. On the
-  module: `Burns(cell)`, `RefillProblem(peer)`, `EatProblem(peer, food)`: the client sends nothing they refuse.
+  module: `Burns(cell)`, `RefillProblem(peer)`, `EatProblem(peer, food)`, `PurgeProblem`: the client sends none they refuse.
 - **Commands:** `Enter(Cell)`, `ChooseLook(Look)`, never refused; `PickColour(Colour)` —
   `crew.noHero`, `crew.noSuchColour`, `crew.colourTaken`; `Leave`, `Exert(On)` — `crew.noHero`; `Thrust(On)` —
   `crew.noHero`, `crew.noJetpack`; `Refill` — `crew.noHero` (or out), `crew.suitFull`, `crew.canisterCooling`, `items.notEnough`; `Eat(Item)` — `crew.noHero` (or out), `crew.notFood`,
-  `items.notEnough`, `crew.sameFood`, `crew.mealsFull`; `SuitMode(On)` —
+  `items.notEnough`, `crew.sameFood`, `crew.mealsFull`; `Purge` — `crew.noHero` (or out), `crew.noMeals`; `SuitMode(On)` —
   `crew.noHero`, on `crew.noSuitMode`; `Track` — `crew.noHero`. **Ops** (`ICrewOps`) add `Loot(peer, yield)`, `CallOff(peer)`, `Works(peer)`.
 - **Fuzz:** every command and refusal; `Enter` anywhere, off the grid too.
 

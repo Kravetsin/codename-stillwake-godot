@@ -295,12 +295,14 @@ public class MigrationsTests
         queue["entries"]!.AsArray().Insert(0, new JsonObject { ["id"] = 9, ["recipe"] = "powerDriver", ["count"] = 1, ["by"] = 0 });
         queue["entries"]!.AsArray().Add(new JsonObject { ["id"] = 10, ["recipe"] = "scanner", ["count"] = 2, ["by"] = 0 });
         queue["progress"] = 5000;
-        foreach (var gear in Content.Research.GearSold) save["slices"]!["knowledge"]!["granted"]!.AsArray().Add(gear);
+        // The gear sold at format 59: what the step drops is frozen there, whatever is sold since.
+        string[] sold = ["scanner", "powerDriver", "heavyHelmet", "plasmaCutter", "regenSuit"];
+        foreach (var gear in sold) save["slices"]!["knowledge"]!["granted"]!.AsArray().Add(gear);
 
         w.Reload(Migrations.Upgrade(save.ToJsonString()));
         Assert.Equal(["plate"], w.M.Crafting.Queue(former).Select(e => e.Recipe));
         Assert.Equal(0, w.M.Crafting.Progress(former));
-        Assert.All(Content.Research.GearSold, gear => Assert.DoesNotContain(gear, w.M.Knowledge.GrantedIds));
+        Assert.All(sold, gear => Assert.DoesNotContain(gear, w.M.Knowledge.GrantedIds));
         w.Run(Content.Crafts.Get("plate").Ticks * 2 + 5);
         Assert.Equal(2, w.M.Items.Crate(former).Sum(s => s?.Item == "plate" ? s.Count : 0));
     }

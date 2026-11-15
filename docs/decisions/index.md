@@ -334,7 +334,7 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [plant-stirs](2026-11-10-plant-stirs.md) | Plants stirred by bodies | accepted |  |
 | [tool-size](2026-11-10-tool-size.md) | Held tools are drawn smaller, and reach no longer follows the model | accepted |  |
 | [back-focus-faint](2026-11-12-back-focus-faint.md) | The back walls' focus clears the front round the pointer | accepted |  |
-| [food-and-the-body](2026-11-12-food-and-the-body.md) | Food and the body | accepted | jet-cruise (in part) |
+| [food-and-the-body](2026-11-12-food-and-the-body.md) | Food and the body | accepted | food-tuning, jet-cruise (in part) |
 | [fruit-not-biomass](2026-11-12-fruit-not-biomass.md) | Fruit, not biomass | accepted |  |
 | [one-to-understand](2026-11-12-one-to-understand.md) | One of each part is enough to understand a thing | accepted |  |
 | [glowberry-bush](2026-11-13-glowberry-bush.md) | Spores grow a glowberry bush | accepted |  |
@@ -368,5 +368,6 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [blade-sparks](2026-11-15-blade-sparks.md) | A struck wreck sparks where the blade's trail lies on it | accepted | spark-rule (in part) |
 | [builders-raw](2026-11-15-builders-raw.md) | The screwdriver, power driver and blasting charge drawn raw | accepted |  |
 | [cutter-contact](2026-11-15-cutter-contact.md) | The cutter's slag blows out the far side, and struck ground sparks off the trail | accepted | spark-rule (in part) |
+| [food-tuning](2026-11-15-food-tuning.md) | Food tuning: whole-unit canisters, longer dishes, a stimulant, a purge | accepted |  |
 | [jet-cruise](2026-11-15-jet-cruise.md) | A jetpack pays for changing speed, not for distance | accepted |  |
 | [spark-rule](2026-11-15-spark-rule.md) | A tool's haze in matter throws that matter's look, whatever was hit | accepted |  |

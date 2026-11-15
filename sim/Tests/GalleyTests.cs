@@ -151,12 +151,13 @@ public class GalleyTests
     }
 
     [Fact]
-    public void TheDishesAreTheTablesEachLastingAsARationStrongerThanAnythingRawInItAndSoldAtTheirWorth()
+    public void TheDishesAreTheTablesOutlastingARationStrongerThanAnythingRawInItAndSoldAtTheirWorth()
     {
         Assert.Equal(
-            [new(Calm: 50, Work: 400), new(Deep: 300, Work: 200), new(Calm: 300), new(Deep: 500), new Rates(Calm: 150, Deep: 300)],
+            [new(Calm: 50, Work: 400), new(Calm: 50, Deep: 10, Work: 200), new(Calm: 300), new(Deep: 20), new Rates(Calm: 150, Deep: 10)],
             Dishes.Select(d => Foods.Of(d)!.Rates));
-        Assert.All(Dishes, d => Assert.Equal(18_000, Foods.Of(d)!.Lasts));
+        // The longer the recipe, the longer it lasts (food-tuning): every dish outlasts a ration, the three-part stew most.
+        Assert.Equal([30_000, 30_000, 30_000, 30_000, 48_000], Dishes.Select(d => Foods.Of(d)!.Lasts));
         Assert.Equal([100, 113, 113, 94, 132], Dishes.Select(d => Market.PriceOf(d)!.Value));
         Assert.All(Dishes, d => Assert.Null(Content.Items.Get(d).Byproducts));
         static int Sum(Rates r) => r.Calm + r.Deep + r.Work;
@@ -179,7 +180,7 @@ public class GalleyTests
         w.Do(new Eat(Foods.Porridge)).Do(new Eat(Foods.Stew)).Run();
         Assert.Empty(w.Refusals);
         Assert.Equal([Foods.Paste, Foods.Porridge, Foods.Stew], w.M.Crew.HeroOf(0)!.Meals.Select(m => m.Food));
-        Assert.Equal(new Rates(Calm: 200, Deep: 300, Work: 400), w.M.Crew.RatesOf(0));
+        Assert.Equal(new Rates(Calm: 200, Deep: 10, Work: 400), w.M.Crew.RatesOf(0));
     }
 
     /// <summary>A fruit cooked gives no seed back, cooking or eaten (fruit-not-biomass): only a raw one draws.</summary>

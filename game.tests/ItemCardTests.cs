@@ -265,7 +265,8 @@ public class ItemCardTests
         Assert.All(ration.Rows, r => Assert.Equal(CardGroup.Effect, r.Group));
         Assert.Equal(new CardKey("RMB", "eat"), ration.Use);
         Assert.Equal(30, ration.Price);
-        Assert.Equal([("+30%", "A canister gives more"), ("15:00", "Lasts")], Said(ItemCards.Of(Spec.Foods.CannedMeat).Rows));
+        Assert.Equal([("+10 O₂", "A canister gives more"), ("15:00", "Lasts")], Said(ItemCards.Of(Spec.Foods.CannedMeat).Rows));
+        Assert.Equal([("+20 O₂", "Air the lungs hold"), ("20:00", "Lasts")], Said(ItemCards.Of(Spec.Foods.Stim).Rows));
         // Every food's rows from its rates, rounded down to whole percent, and its price the market's.
         foreach (var food in Spec.Foods.All.Where(f => f.Id != Spec.Foods.Paste))
         {
@@ -279,7 +280,8 @@ public class ItemCardTests
             [
                 .. r.Calm > 0 ? [($"−{r.Calm / 10}%", "Air used breathing")] : System.Array.Empty<(string, string)>(),
                 .. r.Work > 0 ? [($"+{r.Work / 10}%", "Work speed")] : System.Array.Empty<(string, string)>(),
-                .. r.Deep > 0 ? [($"+{r.Deep / 10}%", "A canister gives more")] : System.Array.Empty<(string, string)>(),
+                .. r.Deep > 0 ? [($"+{r.Deep} O₂", "A canister gives more")] : System.Array.Empty<(string, string)>(),
+                .. r.Lungs > 0 ? [($"+{r.Lungs} O₂", "Air the lungs hold")] : System.Array.Empty<(string, string)>(),
             ];
             if (rates.Length > 0) Assert.Equal([.. rates, (ItemCards.Clock(food.Lasts), "Lasts")], Said(card.Rows));
         }

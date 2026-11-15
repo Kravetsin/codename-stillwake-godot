@@ -109,6 +109,11 @@ public partial class HeroView
                 seen.HoldsPlan, elapsedMs);
             for (int burnt = shown.Burns.Due(elapsedMs, Burns(m, crew.HeroOf(id)), 1 / S.LavaBurnEveryS); burnt > 0; burnt--)
                 _othersBurn.PlayAt(shown.Figure.GlobalPosition);
+            if (crew.HeroOf(id) is { } sick && Purged(id, sick.Purges))
+            {
+                shown.Figure.Retch(afloat);
+                _othersRetch.PlayAt(shown.Figure.Visor, _othersRetch.PitchScale, shown.Figure.Helmeted ? S.RetchHelmetedDb : 0);
+            }
             // A friend's canister: its air rises round it, heard where it is (0081).
             if (crew.HeroOf(id) is { } breathing && _canisters.Breathed(id, breathing.Air, breathing.Out))
             {
@@ -171,6 +176,16 @@ public partial class HeroView
 
     /// <summary>This player's hero breathes room air again: a few pale motes off its visor (0081).</summary>
     public void BreathesAgain() => _air.Puff(_figure.Visor);
+
+    /// <summary>Each hero's purges as last seen: one more is a retch to show; the first sight only notes them.</summary>
+    private readonly Dictionary<int, int> _purges = [];
+
+    private bool Purged(int id, int purges)
+    {
+        bool more = _purges.TryGetValue(id, out int was) && purges > was;
+        _purges[id] = purges;
+        return more;
+    }
 
     /// <summary>
     /// Another hero's harpoon as it sends it (<see cref="RemoteRod"/>, 0065), from its gun's muzzle as just drawn:

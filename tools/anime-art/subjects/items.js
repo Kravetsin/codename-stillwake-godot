@@ -688,6 +688,20 @@ P.canister = (a) => {
   a.shape(rr(5.6, 8, 4.8, 3, .2), { base: '#d4d4cc', shade: '#9a9c9c', deep: '#7a7c80', lite: '#ecece6' }, { outer: false, shade: band(9.6, 8, 10.4, 11) });
   a.flat(band(6.6, 9, 9.2, 9.9), '#2a5488');
 };
+P.stim = (a) => {
+  // The black market's stimulant (food-tuning), a first draft: a scuffed auto-injector, its dark plunger cap up top, an amber
+  // window showing the dose, its orange safety end down, a hand-written tape across it.
+  const SHELL = { base: '#bfc0bc', shade: '#85878a', deep: '#5e6066', lite: '#e2e2dc', spec: '#f8f8f2' };
+  const DOSE = { base: '#d49a3a', shade: '#9c6a2a', deep: '#6e4622', lite: '#f0c46c', spec: '#fbe6b0' };
+  const SAFETY = { base: '#c8642e', shade: '#8c3e24', deep: '#62281e', lite: '#e6905a' };
+  a.shape(rr(6.4, .8, 3.2, 2.4, .5), GUN, { lite: band(6.4, .8, 9.6, 1.3), shade: band(8.9, .8, 9.6, 3.2) });
+  a.shape(rr(5.4, 3, 5.2, 9.4, .9), SHELL, { lite: band(5.6, 3, 6.6, 12.4), spec: band(5.9, 3.6, 6.2, 8), shade: band(9.4, 3, 10.6, 12.4) });
+  a.shape(rr(6.6, 4.4, 2.8, 4.2, .4), DOSE, { outer: false, lite: band(6.8, 4.4, 7.4, 8.6), shade: band(8.8, 4.4, 9.4, 8.6), spec: band(7, 4.8, 7.3, 5.6) });
+  a.shape(rr(5.8, 12.2, 4.4, 2.6, .7), SAFETY, { lite: band(6, 12.2, 7, 14.8), shade: band(9.2, 12.2, 10.2, 14.8) });
+  a.shape(poly([5.2, 9.4, 10.8, 9.2, 10.8, 10.8, 5.2, 11]), { base: '#c8bc94', shade: '#968c6c', deep: '#6c6450', lite: '#e2d8b4' }, { outer: false, shade: .25 });
+  a.line('M6.2 10.2L7.6 10L8.4 10.3L9.8 10', { c: '#3c2a24', w: .9 });
+  a.flat(ell(10, 6.6, .35, .5), '#6e6a64');
+};
 const BOTTLE = { base: '#8db4c2', shade: '#56808f', deep: '#3d5f6e', lite: '#cfe6ee', spec: '#f4fbfd' };
 const WATERED = { base: '#2c8ca8', shade: '#1f6f80', deep: '#165a6a', lite: '#7fd8e6', spec: '#d6f4fa' };
 P.water = (a) => {

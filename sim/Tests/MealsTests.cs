@@ -94,15 +94,81 @@ public class MealsTests
     }
 
     [Fact]
-    public void CannedMeatsDeepBreathGivesACanisterTwentySix()
+    public void CannedMeatsDeepBreathGivesACanisterTenMoreThirty()
     {
         var w = Eat(In((Foods.CannedMeat, 1), (CrewSpec.Canister, 1)), Foods.CannedMeat);
-        Assert.Equal(CrewSpec.CanisterRefill * 13 / 10, w.M.Crew.RefillOf(0));
+        Assert.Equal(CrewSpec.CanisterRefill + 10, w.M.Crew.RefillOf(0));
         // Past the breath, so the canister alone counts.
         w.Run();
         HeroOf(w).Air = 1;
         w.Do(new Refill()).Run();
-        Assert.Equal(1 + 26, HeroOf(w).Air);
+        Assert.Equal(1 + 30, HeroOf(w).Air);
+    }
+
+    [Fact]
+    public void DeepBreathsAddInUnitsCappedAtTwentyFiveMore()
+    {
+        var w = In((Foods.CannedMeat, 1), (Foods.Roast, 1), (Foods.Hash, 1));
+        Eat(w, Foods.CannedMeat);
+        Assert.Equal(CrewSpec.CanisterRefill + 10, w.M.Crew.RefillOf(0));
+        HeroOf(w).Eaten.RemoveAt(0);
+        Eat(w, Foods.Roast);
+        Eat(w, Foods.Hash);
+        Assert.Equal(CrewSpec.CanisterRefill + Diet.Caps.Deep, w.M.Crew.RefillOf(0));
+    }
+
+    [Fact]
+    public void AStimWidensTheLungsTwentyItsAirFilledLastAndCutAwayWhenItEnds()
+    {
+        var w = In((Foods.Stim, 1), (CrewSpec.Canister, 2));
+        int shell = w.M.Crew.CapacityOf(0);
+        HeroOf(w).Eaten.Clear();
+        Eat(w, Foods.Stim);
+        Assert.Equal(shell + 20, w.M.Crew.CapacityOf(0));
+        // Past the breath, so the canister alone counts.
+        w.Run();
+        HeroOf(w).Air = shell;
+        w.Do(new Refill()).Run();
+        Assert.Equal(shell + 20, HeroOf(w).Air);
+        // The meal ends: the widened lungs go, and with them the air above the old capacity, none below.
+        HeroOf(w).Eaten[0].Left = 1;
+        w.Run(2);
+        Assert.Equal((shell, shell), (w.M.Crew.CapacityOf(0), HeroOf(w).Air));
+    }
+
+    [Fact]
+    public void AStimEndingWithItsAirSpentTakesNothing()
+    {
+        var w = In((Foods.Stim, 1));
+        HeroOf(w).Eaten.Clear();
+        Eat(w, Foods.Stim);
+        HeroOf(w).Air = 12;
+        HeroOf(w).Eaten[0].Left = 1;
+        w.Run(2);
+        // One breath taken on the way, nothing else.
+        Assert.Equal(12 - 1, HeroOf(w).Air);
+    }
+
+    [Fact]
+    public void APurgeEmptiesEveryMealCountsItAndLeavesTheHeroHungry()
+    {
+        var w = Eat(In((Foods.Ration, 1)), Foods.Ration);
+        w.Do(new Purge()).Run();
+        Assert.Empty(w.Refusals);
+        Assert.Empty(HeroOf(w).Meals);
+        Assert.Equal(1, HeroOf(w).Purges);
+        Assert.True(w.M.Crew.Hungry(0));
+    }
+
+    [Fact]
+    public void RefusesPurgingWithNoHeroOrNothingEaten()
+    {
+        var w = new Scenario(Vacuum).Do(new Purge()).Run();
+        w.Do(new Enter(1)).Run();
+        HeroOf(w).Eaten.Clear();
+        w.Do(new Purge()).Run();
+        Assert.Equal(["crew.noHero", "crew.noMeals"], Reasons(w));
+        Assert.Equal(0, HeroOf(w).Purges);
     }
 
     [Fact]

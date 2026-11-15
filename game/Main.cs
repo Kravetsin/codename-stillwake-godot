@@ -248,11 +248,20 @@ public partial class Main : Node2D, ITogether
             _items.Panel.CanisterIn = CanisterIn;
             // Its own layer, above the world: read from whatever registry the session runs now.
             var gauge = new SuitGauge(() => _session is Session s ? Danger.Read(_m.Crew, _m.Atmosphere, s.Client.Id) : (1, 1, SuitDanger.None, true),
-                CanisterIn, () => _session is Session s ? _m.Items.WornIn(s.Client.Id, Content.Helmet.Slot) : null, _hands.Ui);
+                CanisterIn, () => _session is Session s ? _m.Items.WornIn(s.Client.Id, Content.Helmet.Slot) : null,
+                () => _session is Session s ? _m.Crew.RatesOf(s.Client.Id).Lungs : 0, _hands.Ui);
             AddChild(gauge);
             // The hero's meals, the vitals' bottom row (hud-vitals).
             AddChild(new MealSlots(() => _session is Session s && _m.Crew.HeroOf(s.Client.Id) is { } fed
-                ? (fed.Meals.Select(m => (m.Food, m.Left)).ToList(), _m.Crew.Hungry(s.Client.Id)) : null, _hands.Ui));
+                ? (fed.Meals.Select(m => (m.Food, m.Left)).ToList(), _m.Crew.Hungry(s.Client.Id)) : null, Purge, _hands.Ui));
+            // Held three seconds on the purge spot (food-tuning): refused as the sim would, else sent.
+            string? Purge()
+            {
+                if (_session is not Session s) return "crew.noHero";
+                if (_m.Crew.PurgeProblem(s.Client.Id) is { } no) return no;
+                s.Client.Send(new Stillwake.Sim.Crew.Purge());
+                return null;
+            }
             // The degrees where the hero stands, under the charge (the-thermometer); gone while it is passed out.
             AddChild(new Thermometer(() => _session is Session s && _m.Crew.HeroOf(s.Client.Id) is { Out: 0 } && _hero is { Placed: true } h
                 ? (ThermometerReading?)Thermometers.Read(_m.Crew, s.Client.Id, h.Current.BodyCell(_m.Grid.Width)) : null, _hands.Ui));

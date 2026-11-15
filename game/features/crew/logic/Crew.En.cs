@@ -24,6 +24,8 @@ public static partial class En
         ["crew.notFood"] = "Not something to eat",
         ["crew.sameFood"] = "Already eaten; again in its last minute",
         ["crew.mealsFull"] = "Three meals already",
+        ["crew.noMeals"] = "Nothing eaten to throw up",
+        ["hud.purge"] = "Throw up every meal: hold",
         ["crew.podPaste"] = "Pod paste",
         ["crew.podPasteKind"] = "Food",
         ["crew.hungry"] = "Hungry",

@@ -43,6 +43,7 @@ public partial class AirRow : Control
         (_icon, _shortIcon) = (icon, shortIcon);
         MouseFilter = MouseFilterEnum.Ignore;
         AddChild(Spot = new Control { MouseFilter = MouseFilterEnum.Ignore, Position = new Vector2(Vitals.RowLeft, Top) });
+        AddChild(ExtraSpot = new Control { MouseFilter = MouseFilterEnum.Ignore, Visible = false });
         // Over the row: the chips falling off it, and the light added over all.
         AddChild(_over = new Over(this, add: false));
         AddChild(_light = new Over(this, add: true));
@@ -53,6 +54,9 @@ public partial class AirRow : Control
 
     /// <summary>The piece's own rectangle, for its tip.</summary>
     public Control Spot { get; }
+
+    /// <summary>Where the pointer names the stimulant's segment (food-tuning): over it, hidden without one.</summary>
+    public Control ExtraSpot { get; }
 
     /// <summary>Whether it runs low: red, pulsing.</summary>
     public bool Low { get; set; }
@@ -95,6 +99,12 @@ public partial class AirRow : Control
         }
     }
 
+    /// <summary>
+    /// The last of <see cref="Units"/> a stimulant lends (food-tuning): the same piece, drawn past a gap as its own segment, every
+    /// effect running across both.
+    /// </summary>
+    public int Extra { get; set; }
+
     /// <summary>The row's place, the block's origin on the screen, and its size.</summary>
     public void Place(Vector2 origin, float scale)
     {
@@ -126,7 +136,10 @@ public partial class AirRow : Control
             _resize = Math.Min(1, _resize + delta / ResizeS);
             _length = Mathf.Lerp(_lengthFrom, _lengthTo, Mathf.SmoothStep(0, 1, (float)_resize));
         }
-        Spot.Size = new Vector2(Math.Max(8, _length), Height);
+        float split = Split;
+        Spot.Size = new Vector2(Math.Max(8, split), Height);
+        ExtraSpot.Visible = split < _length;
+        (ExtraSpot.Position, ExtraSpot.Size) = (new Vector2(Vitals.RowLeft + split + Vitals.Gap, Top), new Vector2(_length - split, Height));
         Motion.Step(delta);
         // The leading edge shows while the fill moves, either way, and fades once it rests.
         _moving = Math.Abs(Motion.Fill - _shownFill) > 1e-6 ? 1 : Math.Max(0, _moving - delta / Look.EdgeFadeS);
@@ -134,7 +147,7 @@ public partial class AirRow : Control
         _wash.Step(delta);
         var (sx, sy) = _wash.Shake;
         Position = _at + new Vector2(sx, sy);
-        _flakes.Step(delta, Motion.Fill, LastLit, [.. Enumerable.Range(0, Cells).Select(i => (Vitals.RowLeft + i * _length / Cells, _length / Cells))], Top, Height);
+        _flakes.Step(delta, Motion.Fill, LastLit, [.. Enumerable.Range(0, Cells).Select(i => (X(i * _length / Cells), _length / Cells))], Top, Height);
         QueueRedraw();
         _over.QueueRedraw();
         _light.QueueRedraw();
@@ -145,8 +158,25 @@ public partial class AirRow : Control
     /// <summary>Where a share of the piece lies along it, from its start.</summary>
     private float At(double share) => _length * (float)Math.Clamp(share, 0, 1);
 
+    /// <summary>Where the stimulant's units begin along the piece (food-tuning); its whole length without one.</summary>
+    private float Split => Extra > 0 && Extra < _units ? _length * (_units - Extra) / _units : _length;
+
+    /// <summary>Where a point along the piece is drawn: past <see cref="Split"/>, a <see cref="Vitals.Gap"/> further, the stimulant's own segment.</summary>
+    private float X(float along) => Vitals.RowLeft + along + (along > Split ? Vitals.Gap : 0);
+
+    /// <summary>
+    /// Draws the stretch <paramref name="from"/>..<paramref name="to"/> as one strip per segment it crosses: <paramref name="draw"/>
+    /// takes a segment's left edge, its length and the stretch within it.
+    /// </summary>
+    private void Pieces(float from, float to, Action<float, float, float, float> draw)
+    {
+        float split = Split;
+        if (from < split) draw(Vitals.RowLeft, split, from, Math.Min(to, split));
+        if (to > split && split < _length) draw(Vitals.RowLeft + split + Vitals.Gap, _length - split, Math.Max(from, split) - split, to - split);
+    }
+
     private void Span(CanvasItem on, string tone, float from, float to, Color modulate) =>
-        LightStrip.Span(on, LightStrip.Of(tone, 0), Vitals.RowLeft, Top, _length, Height, from, to, modulate);
+        Pieces(from, to, (x, length, a, b) => LightStrip.Span(on, LightStrip.Of(tone, 0), x, Top, length, Height, a, b, modulate));
 
     private void Span(CanvasItem on, string tone, float from, float to, float alpha) => Span(on, tone, from, to, Colors.White with { A = alpha });
 
@@ -197,7 +227,7 @@ public partial class AirRow : Control
         }
         // The leading edge while the fill moves: a bright line at the fill.
         if (_moving > 0 && m.Fill is > 0 and < 1)
-            DrawRect(new Rect2(Vitals.RowLeft + lit - 0.7f, Top + 0.5f, 1.4f, Height - 1), Colors.White with { A = 0.85f * (float)_moving * Bright });
+            DrawRect(new Rect2(X(lit) - 0.7f, Top + 0.5f, 1.4f, Height - 1), Colors.White with { A = 0.85f * (float)_moving * Bright });
         float surge = (float)(_surge / Look.SurgeS);
         if (surge > 0) Motes(t, 1, Look.SurgeMotes, Look.SurgeRise, Math.Min(1, surge * 2));
         else if (m.Gain > 0) Motes(t, (float)m.Fill, Look.Motes, Look.MoteRise, 0.85f);
@@ -212,7 +242,7 @@ public partial class AirRow : Control
         {
             float seed = k * 0.27f;
             float phase = (t * 1.2f + seed) % 1, cycle = Mathf.Floor(t * 1.2f + seed);
-            float x = Vitals.RowLeft + (k * 0.37f + cycle * 0.618f) % 1 * (width - 2);
+            float x = X((k * 0.37f + cycle * 0.618f) % 1 * (width - 2));
             DrawRect(new Rect2(x - 0.5f, Top - 1 - phase * rise, 1, 1.3f), Mote with { A = alpha * (1 - phase) });
         }
     }
@@ -242,7 +272,7 @@ public partial class AirRow : Control
         if (_units <= 0) return;
         var m = Motion;
         float lit = At(m.Fill), pulse = Low ? Vitals.Pulse(_clock) : 1;
-        LightStrip.Glow(on, LightStrip.Of(Low ? "red" : "sky", 0), Vitals.RowLeft, Top, _length, Height, 0, lit, pulse * Bright);
+        Pieces(0, lit, (x, length, from, to) => LightStrip.Glow(on, LightStrip.Of(Low ? "red" : "sky", 0), x, Top, length, Height, from, to, pulse * Bright));
         if (m.Flash > 0) Span(on, "white", 0, lit, 0.3f * (float)m.Flash * Bright);
         for (int i = 0; i < Cells; i++)
         {
@@ -256,7 +286,7 @@ public partial class AirRow : Control
         foreach (var (cell, age) in _flakes.Pops)
         {
             if (cell >= Cells) continue;
-            var mid = new Vector2(Vitals.RowLeft + (cell + 0.5f) * _length / Cells, Vitals.AirY);
+            var mid = new Vector2(X((cell + 0.5f) * _length / Cells), Vitals.AirY);
             Glow(on, mid, 9, Mote with { A = 0.55f * (float)(1 - age / LampFlakes.GlowS) * Bright });
         }
         foreach (var s in _flakes.SparksFlying)

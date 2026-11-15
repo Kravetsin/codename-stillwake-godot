@@ -94,6 +94,8 @@ public static class Items
         // Eaten (food-and-the-body): a meal each, from supply pods and fridges.
         new("ration", 20),
         new("cannedMeat", 20),
+        // The black market's stimulant (food-tuning): eaten like a meal, the lungs hold more.
+        new("stim", 10),
         // Cooked at the galley: a meal each.
         new("porridge", 20),
         new("hash", 20),

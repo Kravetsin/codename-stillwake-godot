@@ -707,6 +707,15 @@ public static class Sound
     public static readonly Cue Eat = new(Shots("crew/eat", 1), -12);
 
     /// <summary>
+    /// A hero throwing up (food-tuning): a groan building to two heaves and a long wet tail, its first heave on the first gush.
+    /// This player's own in the helmet, as the chewing; another's on World, where it stands, quieter in a helmet (<see cref="RetchHelmetedDb"/>).
+    /// </summary>
+    public static readonly Cue Retch = new(Shots("crew/retch", 1), -12, Heard: new(8, 36));
+
+    /// <summary>How much quieter another hero's retch is heard through its helmet.</summary>
+    public const float RetchHelmetedDb = -8;
+
+    /// <summary>
     /// A ram (0103), placeholders from what is here till the audition: its hit a heavy landing's thud, lower, this player's own
     /// on Suit, a friend's on World; a creature winding up snorts, a canister's hiss low and short, where it stands.
     /// </summary>
@@ -761,7 +770,7 @@ public static class Sound
     /// <summary>The descent's cues, made from others declared above.</summary>
     public static readonly IReadOnlyList<Cue> Pod = [PodThrust, PodRelease, PodTouchdown, PodRumble, PodFlash, PodBlast];
 
-    public static readonly IReadOnlyList<Cue> All = [Title, Space, Step, Land, Jump, Alarm, CatcherBeep, Screwdriver, PowerDriverBite, PowerDriverLoop, PowerDriverOff, Hiss, Click, Clink, VentHum, DoorOpen, DoorClose, Valve, Act, ActInSpace, Fire, Swing, Chop, Break, Shot, Drum, Ready, NailShot, DryClick, NailHit, NailReady, RailCharge, RailReady, RailShot, ChargeThrow, ChargeBurst, ArcStruck, ArcHit, CatcherAim, CatcherGather, CatcherBlink, CatcherLaunch, CatcherLaser, CatcherLock, MissileFlight, CapbackHiss, CapbackSplat, ShellClink, Hurt, AirFill, Inhale, Thrust, ChargerHum, ChargeFull, DrillWhir, FormerStroke, FormerMotor, SmelterHum, SmelterCrackle, CrusherRun, GalleyBoil, GalleyDone, Eat, DroneWhir, DroneDock, DroneGrab, SalvageThrust, MusicBox, Zap,
+    public static readonly IReadOnlyList<Cue> All = [Title, Space, Step, Land, Jump, Alarm, CatcherBeep, Screwdriver, PowerDriverBite, PowerDriverLoop, PowerDriverOff, Hiss, Click, Clink, VentHum, DoorOpen, DoorClose, Valve, Act, ActInSpace, Fire, Swing, Chop, Break, Shot, Drum, Ready, NailShot, DryClick, NailHit, NailReady, RailCharge, RailReady, RailShot, ChargeThrow, ChargeBurst, ArcStruck, ArcHit, CatcherAim, CatcherGather, CatcherBlink, CatcherLaunch, CatcherLaser, CatcherLock, MissileFlight, CapbackHiss, CapbackSplat, ShellClink, Hurt, AirFill, Inhale, Thrust, ChargerHum, ChargeFull, DrillWhir, FormerStroke, FormerMotor, SmelterHum, SmelterCrackle, CrusherRun, GalleyBoil, GalleyDone, Eat, Retch, DroneWhir, DroneDock, DroneGrab, SalvageThrust, MusicBox, Zap,
         StepGrass, StepSoil, StepStone, StepAlloy, LandSoft, LandHard, LandAlloy, HitSoil, HitStone, BreakSoil, BreakStone,
         ChopWood, TreeFall, Bush, Grass, Crystal, Glowcap, WoodBreak, ClothTear, GlassBreak, MetalBreak, CeramicBreak, LavaBed,
         LavaBubble, LavaBurn, CaveDrip, SplashIn, SplashOut, SwimStroke, WaterPour, CreatureDeath, .. Ticks.Values.SelectMany(t => new[] { t.Alert, t.WindUp, t.Unclamp, t.Clamp, t.Snap, t.Death }), .. Istukans.Values.SelectMany(g => new[] { g.Wake, g.Alert, g.WindUp, g.Pounce, g.Killed, g.ShutDown }), .. RamHits.Values, .. Pod];
