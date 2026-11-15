@@ -11,7 +11,7 @@ public sealed class HullCells(int width, int height, Func<int, bool> wall, Func<
 {
     private readonly Dictionary<int, int> _sides = new();
 
-    /// <summary>Each wall cell facing space, by its sides facing it.</summary>
+    /// <summary>Each wall cell facing space or turning an inner corner, by its sides facing it and its inner corners above them (<see cref="Frost.HollowShift"/>).</summary>
     public IReadOnlyDictionary<int, int> Sides => _sides;
 
     /// <summary>Bumped whenever a cell joins, leaves or changes its sides.</summary>
@@ -24,20 +24,19 @@ public sealed class HullCells(int width, int height, Func<int, bool> wall, Func<
             for (int x = Math.Max(0, left); x <= Math.Min(width - 1, right); x++) Look(x, y);
     }
 
-    /// <summary>A cell that changed: it and its four neighbours, whose sides it may open or close.</summary>
+    /// <summary>A cell that changed: it and its eight neighbours, whose sides or inner corners it may open or close.</summary>
     public void Changed(int cell)
     {
         int x = cell % width, y = cell / width;
-        Look(x, y);
-        if (y > 0) Look(x, y - 1);
-        if (x < width - 1) Look(x + 1, y);
-        if (y < height - 1) Look(x, y + 1);
-        if (x > 0) Look(x - 1, y);
+        for (int dy = -1; dy <= 1; dy++)
+            for (int dx = -1; dx <= 1; dx++)
+                if (x + dx >= 0 && x + dx < width && y + dy >= 0 && y + dy < height) Look(x + dx, y + dy);
     }
 
     private void Look(int x, int y)
     {
-        int cell = y * width + x, sides = Frost.SidesOf(x, y, width, height, wall, space);
+        int cell = y * width + x;
+        int sides = Frost.SidesOf(x, y, width, height, wall, space) | Frost.HollowsOf(x, y, width, height, wall, space) << Frost.HollowShift;
         _sides.TryGetValue(cell, out int was);
         if (sides == was) return;
         if (sides == 0) _sides.Remove(cell);

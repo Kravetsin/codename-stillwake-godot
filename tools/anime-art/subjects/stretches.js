@@ -184,12 +184,11 @@ function cassette(a) {
 }
 
 // ---------- frost on the hull: a tile a wall cell, by the sides of it facing space ----------
-// The sheet: FROST_SLOTS tiles of 8 px in slots FROST_SLOT wide, 4 px clear round each for the corners drawn past it; slot 2 × (open − 1) + parity, the parity (x + y) % 2
-// of the cell, so the scallops along any edge alternate. The game reads it as FrostView does: keep both in step.
-const FROST_SLOT = 16, FROST_CLEAR = 4, FROST_SLOTS = 30;
+// The sheet: FROST_SLOTS tiles of 8 px in slots FROST_SLOT wide, 4 px clear round each; slot 2 × (open − 1) + parity, the parity (x + y) % 2
+// of the cell, so the needles along any edge alternate. Only the rime's paint, deeper than it ever reaches and with no line: FrostView
+// cuts its scalloped inner edge and inks it along the whole hull, so no cell shows a seam. The game reads it as FrostView does: keep both in step.
+const FROST_SLOT = 16, FROST_CLEAR = 4, FROST_SLOTS = 30, FROST_PAINTED = 4;
 const UP = 1, RIGHT = 2, DOWN = 4, LEFT = 8;
-// The band's inner edge, how deep at every 2 px along a side: its ends alike so tiles meet, its middle each parity's own.
-const SCALLOPS = [[2.6, 3.2, 2.1, 2.9, 2.6], [2.6, 2.2, 3.4, 2.4, 2.6]];
 /** A point at s along side `side` of the cell, d in from its edge. */
 const sideAt = (side, s, d) => (side === UP ? [s, d] : side === RIGHT ? [8 - d, s] : side === DOWN ? [s, 8 - d] : [d, s]);
 
@@ -198,17 +197,10 @@ function frostTile(a, ox, oy, open, parity) {
   const { band } = window.DebrisKit;
   for (const side of [UP, RIGHT, DOWN, LEFT]) {
     if (!(open & side)) continue;
-    const out = [], inn = [];
-    for (let k = 0; k <= 4; k++) {
-      const s = Math.min(8.01, Math.max(-0.01, k * 2));
-      out.push(...at(side, s, -0.6));
-      inn.unshift(...at(side, s, SCALLOPS[parity][k]));
-    }
-    a.shape(P(out.concat(inn)), RIME, { outer: false, shade: 0.7, lite: side === UP ? band(ox - 1, oy - 1, ox + 9, oy + 0.6) : undefined });
+    const ends = [-0.6, 8.6].map((s) => [at(side, s, -0.6), at(side, s, FROST_PAINTED)]);
+    a.shape(P([...ends[0][0], ...ends[1][0], ...ends[1][1], ...ends[0][1]]), RIME,
+      { outer: false, edge: false, shade: 0.7, lite: side === UP ? band(ox - 1, oy - 1, ox + 9, oy + 0.6) : undefined });
   }
-  // The outer corners frost first and thickest.
-  for (const [s1, s2, cx, cy] of [[UP, RIGHT, 8, 0], [RIGHT, DOWN, 8, 8], [DOWN, LEFT, 0, 8], [LEFT, UP, 0, 0]])
-    if ((open & s1) && (open & s2)) a.shape(ell(ox + cx, oy + cy, 3.4, 3.4), RIME, { outer: false, shade: 0.6 });
   // Needles of rime from the edge in.
   for (const side of [UP, RIGHT, DOWN, LEFT]) {
     if (!(open & side)) continue;

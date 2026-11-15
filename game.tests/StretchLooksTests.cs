@@ -161,6 +161,27 @@ public class StretchLooksTests
     }
 
     [Fact]
+    public void AWallUnderAPillarsFootTurnsTheFrostRoundItsInnerCorners()
+    {
+        // A 5 by 4 grid: a roof on row 2, a pillar on (2, 1), space above the roof and round the pillar, a room under the roof.
+        const int width = 5, height = 4;
+        var wall = new bool[width * height];
+        for (int x = 0; x < width; x++) wall[2 * width + x] = true;
+        wall[width + 2] = true;
+        bool Space(int c) => !wall[c] && c < 2 * width;
+        int Hollows(int x, int y) => Frost.HollowsOf(x, y, width, height, c => wall[c], Space);
+        // Under the pillar: space up-left (bit 3, left and up) and up-right (bit 0, up and right).
+        Assert.Equal(1 << 3 | 1 << 0, Hollows(2, 2));
+        Assert.Equal(0, Hollows(1, 2));
+        Assert.Equal(0, Hollows(2, 1));
+        Assert.Equal(0, Frost.SidesOf(2, 2, width, height, c => wall[c], Space));
+        // Kept with the hull's cells, above its sides.
+        var hull = new HullCells(width, height, c => wall[c], Space);
+        hull.Scan(0, 0, width - 1, height - 1);
+        Assert.Equal((1 << 3 | 1 << 0) << Frost.HollowShift, hull.Sides[2 * width + 2]);
+    }
+
+    [Fact]
     public void FrostReachesTheOuterCornersFirstAndEveryCellByTheLatest()
     {
         // A long flat roof, its two ends turning down: corners at both ends.

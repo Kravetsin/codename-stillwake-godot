@@ -20,8 +20,17 @@ public static class Frost
     /// <summary>How much later a cell's turn comes for each cell along the hull from a corner or cold spot.</summary>
     public const float PerCell = 0.05f;
 
-    /// <summary>How deep the band reaches into its cell at its full, in pixels of the world: past the deepest scallop drawn.</summary>
-    public const float Deepest = 3.8f;
+    /// <summary>
+    /// How deep the band reaches into its cell at its full, in pixels of the world: its inner edge scalloped between these, a point
+    /// each <see cref="Scallop"/> pixels along the hull, as the pick's; an outer corner's disc this wide.
+    /// </summary>
+    public const float Shallowest = 2.0f, Deepest = 3.4f, Scallop = 4, Corner = 3.4f;
+
+    /// <summary>How far the rime stands proud of the wall's edge, out into space, scalloped between these as its inner edge is: a crust, not a stain.</summary>
+    public const float ProudLeast = 0.5f, ProudMost = 1.4f;
+
+    /// <summary>Where a hull cell's inner corners (<see cref="HollowsOf"/>) sit above its sides in what <see cref="HullCells"/> keeps.</summary>
+    public const int HollowShift = 4;
 
     /// <summary>One cell in about this many is a cold spot frost takes early, its turn <see cref="ColdFrom"/> and a little more.</summary>
     public const int ColdEvery = 29;
@@ -42,6 +51,26 @@ public static class Frost
         if (y == height - 1 || space(cell + width)) sides |= Down;
         if (x == 0 || space(cell - 1)) sides |= Left;
         return sides;
+    }
+
+    /// <summary>
+    /// The inner corners of the wall cell (<paramref name="x"/>, <paramref name="y"/>): each where its two sides are walled but the cell
+    /// between them, diagonal, is space, so the bands along both walls turn there. A bit each, from 0 at the top right clockwise, as a
+    /// pair of sides counts them in the shader: up and right, right and down, down and left, left and up.
+    /// </summary>
+    public static int HollowsOf(int x, int y, int width, int height, Func<int, bool> wall, Func<int, bool> space)
+    {
+        int cell = y * width + x;
+        if (!wall(cell) || x == 0 || y == 0 || x == width - 1 || y == height - 1) return 0;
+        bool Walled(int at) => !space(at);
+        int hollows = 0;
+        (int Dx, int Dy)[] corners = [(1, -1), (1, 1), (-1, 1), (-1, -1)];
+        for (int i = 0; i < 4; i++)
+        {
+            var (dx, dy) = corners[i];
+            if (Walled(cell + dx) && Walled(cell + dy * width) && space(cell + dy * width + dx)) hollows |= 1 << i;
+        }
+        return hollows;
     }
 
     /// <summary>Whether <paramref name="sides"/> meet at an outer corner: two that turn round it.</summary>
