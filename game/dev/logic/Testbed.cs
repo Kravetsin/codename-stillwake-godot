@@ -76,11 +76,14 @@ public static class Testbed
     /// <summary>The engine's parts, one each in the supply crate too.</summary>
     public static readonly IReadOnlyList<string> EngineParts = ["nozzle", "fuelPump", "igniter"];
 
-    /// <summary>What the engine's tank holds at the start: biofuel, so it draws its power.</summary>
+    /// <summary>The litres the engine's and the biofuel generator's stores hold at the start: biofuel, so the engine draws its power.</summary>
     public const int Fuelled = 10;
 
-    /// <summary>What the drop pod's slot holds at the start: biofuel for two descents (the descent's <c>DescentFuel</c> each).</summary>
-    public const int PodFuel = 2 * Landing.DescentFuel;
+    /// <summary>The litres the crew shuttle's 200 l tank holds at the start: some, so its gauge shows it (fuel-liquid).</summary>
+    public const int ShuttleFuel = 120;
+
+    /// <summary>The litres the drop pod's store holds at the start: biofuel for two descents (<c>Fuel.Descent</c> each).</summary>
+    public const int PodFuel = 2 * Fuel.Descent / Fuel.Can;
 
     /// <summary>A drill with <paramref name="module"/> fitted, as a save writes its stack (0098): a dev world's, the bench to come.</summary>
     public static JsonObject FittedDrill(string module) => new() { ["item"] = Weapons.Drill.Item, ["count"] = 1, ["module"] = module };
@@ -88,7 +91,7 @@ public static class Testbed
     /// <summary>
     /// Room one holds the lifepod with the tools crate on it, the crates, the drone bay, the workbench on a vent and a crate, the air's chain (liquid-oxygen): a tank
     /// piped along the floor to an oxygen vaporizer, the vaporizer's air to the vent; and a capacitor bank on the supply crate by the pod; room two
-    /// a tank by its door, the arc bench, the
+    /// a tank by its door, the arc bench with a fuel tank on it (fuel-liquid), the
     /// furnace, the Former with the crusher on it, the electric smelter, the circuit assembler, the grow capsule and the farm's crate, the trade station on the drone bay, the charging station
     /// and the burner generator, the galley by the airlock's door, two cisterns over the smelter and the assembler, the first piped to the second, and two vaporizers
     /// one over the other right of the grow capsule, the tank's liquid along the floor to both, their air to the vent past the farm's crate;
@@ -121,8 +124,8 @@ public static class Testbed
             "   NN".PadRight(51) + "PPP PPP PPP",
             "   NN  PPP  PPPPPP PPPPPPPPP PPP PPP PPP PPP   PPP" + "##################",
             "  #################################################" + "..^^^^^^^^^^^^.L#",
-            "  ##KK...LUUUII###..TTL.kk.cc.ccJ.GG.yy.L.$$..#..L#" + "..^^^^^^^^^^^^..#",
-            "  #.OOOQQ.UUUIIRRD..TT..kk.cc.ccggGG.yy...$$&&DZZ.D" + "..^^^^^^^^^^^^..D",
+            "  ##KK...LUUUII###!!TTL.kk.cc.ccJ.GG.yy.L.$$..#..L#" + "..^^^^^^^^^^^^..#",
+            "  #.OOOQQ.UUUIIRRD!!TT..kk.cc.ccggGG.yy...$$&&DZZ.D" + "..^^^^^^^^^^^^..D",
             "  #.OOOQQTTGGIIRRDWW.FF.MM.EE.YYggGG.yyAACBB&&DZZ.D" + "..^^^^^^^^^^^^..D",
             "  #.OOOKKTTGGVKK.DWW.FF.MM.EE.YYggGGKKVAACBB&&DZZ.D" + "..^^^^^^^^^^^^..D",
             "  #o#########www###############################__##" + "##____________###",
@@ -236,12 +239,9 @@ public static class Testbed
             },
             new() { ["id"] = Id(BenchHolds.Kind), ["slots"] = Slots(BenchHolds.Kind, [Stack(BenchHolds.Tool, 1)]) },
             new() { ["id"] = Id("charger"), ["slots"] = Slots("charger", [Battery(Charging), Battery(1000)]) },
-            new() { ["id"] = Id("engine"), ["slots"] = Slots("engine", [Stack("biofuel", Fuelled)]) },
-            new() { ["id"] = Id("dropPod"), ["slots"] = Slots("dropPod", [Stack("biofuel", PodFuel)]) },
             new() { ["id"] = Id("burnerGenerator"), ["slots"] = Slots("burnerGenerator", [Stack("planks", Items.Get("planks").Stack)]) },
             // A fire laid under its pot (0023): a dish queued cooks at once, more planks and fat in the farm's crate.
             new() { ["id"] = Id("galley"), ["slots"] = Slots("galley", [Stack("planks", GalleyFuel)]) },
-            new() { ["id"] = Id("biofuelGenerator"), ["slots"] = Slots("biofuelGenerator", [Stack("biofuel", Fuelled)]) },
             new() { ["id"] = Id("fermenter"), ["slots"] = Slots("fermenter", [Stack("biomass", Items.Get("biomass").Stack)]) },
             new() { ["id"] = Id("smelter"), ["slots"] = Slots("smelter", [Stack(Smelting, Items.Get(Smelting).Stack)]) },
             new() { ["id"] = Id("former"), ["slots"] = Slots("former", [Stack(Pressing, Pressed)]) },
@@ -262,6 +262,10 @@ public static class Testbed
         // Both cisterns full of water, for the electrolyser to split from the start.
         save["slices"]!["water"]!["cisterns"] = new JsonArray([.. machines.Where(m => (string?)m!["kind"] == "cistern").Select(m => (int)m!["id"]!).Order()
             .Select(id => (JsonNode)new JsonObject { ["machine"] = id, ["amount"] = Content.Water.CisternCapacity })]);
+        // The engine, the pod, the biofuel generator and the shuttle with their fuel in their stores (fuel-liquid).
+        save["slices"]!["fuel"]!["stores"] = new JsonArray([.. new[] { ("engine", Fuelled), ("dropPod", PodFuel), ("biofuelGenerator", Fuelled), ("crewShuttle", ShuttleFuel) }
+            .Select(f => (Machine: Id(f.Item1), Litres: f.Item2)).OrderBy(f => f.Machine)
+            .Select(f => (JsonNode)new JsonObject { ["machine"] = f.Machine, ["amount"] = f.Litres * Fuel.Can })]);
         var world = World.Load(save.ToJsonString(), modules);
         // A drawn pipe meets only even cells and a cistern's output is on an odd one, so that span is laid, not drawn.
         var ports = Machines.Get("cistern").Ports;

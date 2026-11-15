@@ -12,7 +12,7 @@
 | `logic/RoomsBox.cs` | The smallest box holding every room cell: all the overlay keeps, not all that is built, which on a planet is nearly every cell |
 | `logic/Streams.cs` | Where air streams out of a room: the middle of an opening, in cells, and the heading toward the space beside it, in … |
 | `logic/Decompression.cs` | Rooms the sim turned to space at once, air and all (a launch platform opened, a floor torn open), drawn venting as through a door … |
-| `TankLooks.cs` | What each oxygen tank holds, without a word: pale oxygen up its sight glass by fifths (`TankFill`), the glass dark … |
+| `TankLooks.cs` | What each oxygen tank holds, without a word: pale oxygen up its sight glass by any level (`GlassLevel`), the glass dark … |
 | `VentLight.cs` | Air escaping into space (0075), luminous: out of each opening a room vents through, a jet of fast pale streaks and … |
 | `logic/Atmosphere.En.cs` | Its player text (`En`) |
 | `logic/AirSays.cs` | What the pointer's tip says of the air's machines: a tank its liquid, a vaporizer or the pod the air it makes. |
@@ -61,11 +61,10 @@ Ported from `apps/game/src/features/atmosphere/` (G-08). Reads `sim/Atmosphere` 
   on the 900 ms beat, a light held at its middle (`Flares.Hold`), its cells only faintly painted over.
 - Air filling a room (0075): the motes are fine soft specks (`SoftDots.Dot`), and each filling vent on the screen
   breathes a faint veil of fresh air now and then, drifting up and settling (`Luminous.FreshAir`, 1.6 a second).
-- Each tank shows its oxygen up a sight glass in its picture, without a word: `art/tank_fill_{0..5}.png`
-  drawn unlit over `machine_tank.png`, frame 1 to 5 by fifths of `Air.TankCapacity` rounded up
-  (`shared/logic/TankFill.cs`), so any oxygen shows the lowest step and only none shows the glass dark with
-  a red lamp lit. Each frame lights the room a little (a `Glow`): pale blue from the glass, brighter the
-  fuller, red from the lamp when empty. Read every 250 ms. Not animated: a tank changes slowly.
+- Each tank shows its oxygen up a sight glass in its picture, without a word: `art/tank_level.png` (the glass full) shown
+  unlit over `machine_tank.png` from the glass's bottom up to its level, its surface `tank_level_top` on it (`shared/GlassLevel.cs`):
+  any level to a hi-res pixel, full only when full; none shows the glass dark with a red lamp lit (`tank_empty`). It lights the room a little (a `Glow`): pale blue from the glass, brighter
+  the fuller, red from the lamp when empty. Read every 250 ms. Not animated: a tank changes slowly.
 - The room tip shows the sim's numbers only: heroes breathing in the room shorten its liquid's span unseen (tip-signs).
 - `explain.test.ts`, `draining.test.ts` and `streams.test.ts` are ported.
 - A room the sim turns to space at once, air and all (a launch platform opened, a floor torn open), vents as through a

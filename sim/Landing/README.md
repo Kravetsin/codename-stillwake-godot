@@ -10,9 +10,9 @@ The launch platform (ADR `2026-10-24-the-launch-platform`), the drop pod (`2026-
 (`2026-10-26-the-descent`), the crew shuttle (`2026-11-15-crew-shuttle`) and its flight (`2026-11-16-shuttle-flight`).
 
 - **Depends on:** `Grid` (platform cells, machines; opening a run, placing), `Power` (`Feeds`: a run's power; `Rest`: a wheel
-  no one runs), `Crew` (a hero here, awake, exerting; the spawn), `Items` (the pod's slot; a cost laid).
+  no one runs), `Crew` (a hero here, awake, exerting; the spawn), `Items` (a hopper's load; a cost laid), `Fuel` (a store).
 - **State** (`LandingState`, saved): `Seats` — `Seat(Pod, Peer, Place)` by (machine, place); `Flights` — `Flight(Peer, Up,
-  TicksLeft, Home, Floor, Load)` by peer; `Owners` — `Owner(Pod, Peer, Home)`, pods standing off the ship; `Voyages` —
+  TicksLeft, Home, Floor, Load, Fuel)` by peer; `Owners` — `Owner(Pod, Peer, Home)`, pods standing off the ship; `Voyages` —
   `Voyage(From, Riders, TicksLeft, Home, Out, Seed)` in launch order; `Parked` — `Parked(Shuttle, Home)`, shuttles standing
   off the ship. Voyages and parked are written only when any.
 
@@ -25,12 +25,12 @@ The launch platform (ADR `2026-10-24-the-launch-platform`), the drop pod (`2026-
   `Board` takes the lowest free place, `Alight` leaves. A seat holds while its machine stands and its hero is here and
   awake. `FloorOf(kind, cell, width, place)`: place i's column is `(2i+1) × Width / (2 × Riders) − 1` from the left.
 - **The drop pod** (`dropPod`, one seat): aboard only on a platform, off the ship only on ground only this module places it
-  on. Its one slot takes biofuel by hand. **The treadmill wheel** (`treadWheel`, no `Lands`): Landing rests it each
+  on. Its fuel is a 20 l store (`sim/Fuel`, fuel-liquid), its slot the store's hopper. **The treadmill wheel** (`treadWheel`, no `Lands`): Landing rests it each
   construction but while its rider is here, awake and exerting (`Turning`).
-- **`Launch`** flies a pod (`Riders == 1`): from the ship down, burning `DescentFuel` biofuel, its run opened; from anywhere
+- **`Launch`** flies a pod (`Riders == 1`): from the ship down, burning `Content.Fuel.Descent` (5 l) from its store, its run opened; from anywhere
   else back home, free. Flights count down in construction; a descent shuts its run `FallTicks` in, and one whose hero is
   gone or out ends at once, docked home empty. At zero it sends its hero to `OpenPlanet()`, a return aboard.
-- **A pod goes where its hero goes** (`ICarries`): aboard it docks at home (home built over or run gone: its cost and load
+- **A pod goes where its hero goes** (`ICarries`): aboard it docks at home (home built over or run gone: its cost, load and fuel
   laid there); off the ship it lands by the spawn, outward from its column, left first, on level ground, its rider's
   (`Owners`). Seated again when it rode and its hero is awake. Off the ship only its owner boards or flies it.
 - **The crew shuttle** (`crewShuttle`, 24 × 10, four seats, a whole run under it). Its course is Places'; `SetOff` (Places)

@@ -1,6 +1,7 @@
 using System.Text.Json.Serialization;
 using Stillwake.Content;
 using Stillwake.Sim.Crew;
+using Stillwake.Sim.Fuel;
 using Stillwake.Sim.Grid;
 using Stillwake.Sim.Items;
 using Stillwake.Sim.Power;
@@ -16,9 +17,9 @@ public sealed record Seat(int Pod, int Peer, int Place = 0);
 /// <summary>
 /// Peer <c>Peer</c>'s drop pod in the air, no machine while it flies: down to a planet, or <c>Up</c> back aboard, landing in
 /// <c>TicksLeft</c> ticks. <c>Home</c> is the ship cell it stood at and docks at; <c>Floor</c> where its rider is held meanwhile, on
-/// the surface it left; <c>Load</c> what its slot held, the burnt fuel taken.
+/// the surface it left; <c>Load</c> what its hopper held; <c>Fuel</c> what its store held, in millilitres, the burnt fuel taken (fuel-liquid).
 /// </summary>
-public sealed record Flight(int Peer, bool Up, int TicksLeft, int Home, int Floor, Stack? Load);
+public sealed record Flight(int Peer, bool Up, int TicksLeft, int Home, int Floor, Stack? Load, int Fuel = 0);
 
 /// <summary>Drop pod <c>Pod</c> standing off the ship, which only <c>Peer</c>, who came down in it, flies back to <c>Home</c> aboard.</summary>
 public sealed record Owner(int Pod, int Peer, int Home);
@@ -117,6 +118,8 @@ public sealed class LandingModule : Module<LandingState>, ICarries, IOutlives, I
     private readonly ICrewQueries _crew;
     private readonly IItemsQueries _items;
     private readonly IItemsOps _itemsOps;
+    private readonly IFuelQueries _fuel;
+    private readonly IFuelOps _fuelOps;
 
     private static readonly Placement Pod = new("machine", "dropPod");
     /// <summary>The craft a voyage flies: the one machine with several seats.</summary>
@@ -126,13 +129,14 @@ public sealed class LandingModule : Module<LandingState>, ICarries, IOutlives, I
     public static MachineSpec PodSpec => Content.Machines.Get(Pod.Kind);
     /// <summary>The craft's spec: what the client holds a voyage's riders at the places of, the craft being off the grid then.</summary>
     public static MachineSpec CraftSpec => Content.Machines.Get(Craft.Kind);
-    /// <summary>What its one slot takes and a descent burns.</summary>
-    private static readonly string Fuel = Content.Machines.Get(Pod.Kind).Takes!;
 
     public override string Id => "landing";
 
-    public LandingModule(IGridQueries grid, IGridOps gridOps, IPowerQueries power, IPowerOps powerOps, ICrewQueries crew, IItemsQueries items, IItemsOps itemsOps)
+    public LandingModule(IGridQueries grid, IGridOps gridOps, IPowerQueries power, IPowerOps powerOps, ICrewQueries crew, IItemsQueries items, IItemsOps itemsOps,
+        IFuelQueries fuel, IFuelOps fuelOps)
     {
+        _fuel = fuel;
+        _fuelOps = fuelOps;
         _grid = grid;
         _gridOps = gridOps;
         _power = power;
@@ -170,7 +174,7 @@ public sealed class LandingModule : Module<LandingState>, ICarries, IOutlives, I
     /// Why <paramref name="peer"/>'s hero cannot launch: in no pod, in a seat that does not fly (a wheel: no
     /// <see cref="MachineTrait.Lands"/>), or in one for several (the shuttle, which sets off its own way) (<c>landing.notSeated</c>); aboard, its pod no longer on a run
     /// (<c>landing.noPlatform</c>), anything solid under its run to the grid's edge (<c>landing.shaftBlocked</c>), the run without
-    /// power enough (<c>landing.unpowered</c>), its slot short of <see cref="Content.Landing.DescentFuel"/> biofuel
+    /// power enough (<c>landing.unpowered</c>), its store short of <see cref="Content.Fuel.Descent"/>
     /// (<c>landing.noFuel</c>), or a world that cannot open a planet
     /// (<c>landing.cannotLeave</c>); off the ship, a pod it did not come down in (<c>landing.notYours</c>). Null when it can.
     /// </summary>
@@ -187,7 +191,7 @@ public sealed class LandingModule : Module<LandingState>, ICarries, IOutlives, I
         for (int dx = 0; dx < Content.Machines.Get(m.Kind).Width; dx++)
             if (!_grid.ClearBelow(Under(m) + dx)) return "landing.shaftBlocked";
         if (!Powered(Under(m))) return "landing.unpowered";
-        if (_items.HeldFor(pod, Fuel) < Content.Landing.DescentFuel) return "landing.noFuel";
+        if (_fuel.FuelIn(pod) < Content.Fuel.Descent) return "landing.noFuel";
         return Surfaces.CanOpen ? null : "landing.cannotLeave";
     }
 
@@ -323,11 +327,12 @@ public sealed class LandingModule : Module<LandingState>, ICarries, IOutlives, I
         }
         else
         {
-            _itemsOps.TakeFrom(pod, 0, Content.Landing.DescentFuel);
+            _fuelOps.Take(pod, Content.Fuel.Descent);
             _gridOps.SetDoorway(Under(m), true);
         }
+        // Its fuel and hopper taken out before its machine goes, which would lose them.
         var flight = new Flight(peer, up, up ? Content.Landing.AscentTicks : Content.Landing.DescentTicks, home,
-            FloorOf(m.Cell, _grid.Width), _itemsOps.TakeFrom(pod, 0, int.MaxValue));
+            FloorOf(m.Cell, _grid.Width), _itemsOps.TakeFrom(pod, 0, int.MaxValue), _fuelOps.TakeAll(pod));
         _gridOps.Clear(m.Cell, "machine");
         State.Seats.RemoveAll(s => s.Pod == pod);
         int at = State.Flights.FindIndex(f => f.Peer > peer);
@@ -348,7 +353,7 @@ public sealed class LandingModule : Module<LandingState>, ICarries, IOutlives, I
             {
                 if (f.TicksLeft > shut) Shut(Pod.Kind, f.Home);
                 State.Flights.RemoveAt(i--);
-                Dock(f.Peer, f.Home, f.Load);
+                Dock(f.Peer, f.Home, f.Load, f.Fuel);
                 continue;
             }
             State.Flights[i] = f = f with { TicksLeft = f.TicksLeft - 1 };
@@ -469,17 +474,18 @@ public sealed class LandingModule : Module<LandingState>, ICarries, IOutlives, I
     }
 
     /// <summary>
-    /// A pod stood again at <paramref name="home"/> aboard, <paramref name="load"/> put back in it; that spot built over or its run gone,
-    /// laid there as its cost and its load instead. Returns its machine id, or null for one laid.
+    /// A pod stood again at <paramref name="home"/> aboard, <paramref name="load"/> and <paramref name="fuel"/> put back in it; that spot
+    /// built over or its run gone, laid there as its cost, its load and its fuel instead. Returns its machine id, or null for one laid.
     /// </summary>
-    private int? Dock(int peer, int home, Stack? load) => Stand(peer, load, _grid.PlacementProblem(home, Pod) == null ? home : null, home);
+    private int? Dock(int peer, int home, Stack? load, int fuel) =>
+        Stand(peer, load, fuel, _grid.PlacementProblem(home, Pod) == null ? home : null, home);
 
     /// <summary>
     /// A pod landed off the ship by the spawn, <paramref name="load"/> put back in it, its home aboard <paramref name="home"/>: the first spot outward from the spawn's column,
     /// left first, where its four columns' tops are level and it fits over them. None (a ground dug to nothing, a strip too narrow),
     /// it is laid at the spawn as its cost and load. Returns its machine id, or null for one laid.
     /// </summary>
-    private int? Land(int peer, int home, Stack? load)
+    private int? Land(int peer, int home, Stack? load, int fuel)
     {
         var spec = Content.Machines.Get(Pod.Kind);
         int width = _grid.Width, spawn = _crew.Spawn, from = spawn % width - spec.Width / 2 + 1;
@@ -494,13 +500,13 @@ public sealed class LandingModule : Module<LandingState>, ICarries, IOutlives, I
                 int at = (top - spec.Height) * width + x;
                 if (level && _grid.PlacementProblem(at, Pod) == null)
                 {
-                    int? pod = Stand(peer, load, at, spawn);
+                    int? pod = Stand(peer, load, fuel, at, spawn);
                     State.Owners.Add(new Owner(pod!.Value, peer, home));
                     return pod;
                 }
             }
         }
-        return Stand(peer, load, null, spawn);
+        return Stand(peer, load, fuel, null, spawn);
     }
 
     /// <summary>The row of the first solid cell of column <paramref name="x"/> from the top: where a pod would stand on it; null for none.</summary>
@@ -511,25 +517,35 @@ public sealed class LandingModule : Module<LandingState>, ICarries, IOutlives, I
         return null;
     }
 
-    /// <summary>A pod placed at <paramref name="at"/> with <paramref name="load"/>; null, laid at <paramref name="lay"/> as its cost and load.</summary>
-    private int? Stand(int peer, Stack? load, int? at, int lay)
+    /// <summary>
+    /// A pod placed at <paramref name="at"/> with <paramref name="load"/> and <paramref name="fuel"/>, what its store has no room for
+    /// laid by it as cans; null, laid at <paramref name="lay"/> as its cost, load and fuel. Cans are whole litres, the part one lost.
+    /// </summary>
+    private int? Stand(int peer, Stack? load, int fuel, int? at, int lay)
     {
         if (at is int cell)
         {
             _gridOps.Place(cell, Pod);
             int pod = _grid.MachineAt(cell)!.Id;
             if (load != null) _itemsOps.PutIn(pod, load);
+            LayCans(peer, fuel - _fuelOps.Fill(pod, fuel), FloorOf(cell, _grid.Width));
             return pod;
         }
         _itemsOps.DropAt(peer, Content.Machines.Get(Pod.Kind).Cost, lay);
+        LayCans(peer, fuel, lay);
         if (load != null) _itemsOps.LayDown(load, lay);
         return null;
     }
 
-    /// <summary>What crosses with a peer: its pod's home aboard and load, and whether it rides in it (a flight) or it follows (arriving empty).</summary>
-    private sealed record Carried(int Home, Stack? Load, bool Rides);
+    /// <summary>Lays <paramref name="fuel"/> at <paramref name="cell"/> as the whole cans it fills, as peer <paramref name="peer"/> dropped them.</summary>
+    private void LayCans(int peer, int fuel, int cell)
+    {
+        if (fuel / Content.Fuel.Can is int cans and > 0) _itemsOps.DropAt(peer, [(Content.Fuel.Item, cans)], cell);
+    }
 
-    /// <summary>The peer's flight; else, off the ship, the pod it came down in, lifted out of the grid; null for neither.</summary>
+    /// <summary>What crosses with a peer: its pod's home aboard, load and fuel, and whether it rides in it (a flight) or it follows (arriving empty).</summary>
+    private sealed record Carried(int Home, Stack? Load, bool Rides, int Fuel);
+
     /// <summary>
     /// What crosses with a voyage's rider at its end: its shuttle's home aboard, and whether it brings the shuttle (its first rider in seat
     /// order) or finds it there (the others).
@@ -557,16 +573,17 @@ public sealed class LandingModule : Module<LandingState>, ICarries, IOutlives, I
             State.Flights.RemoveAt(i);
             // Beamed off mid-fall by the dev panel, it shuts the run it opened.
             if (!flight.Up && flight.TicksLeft > Content.Landing.DescentTicks - Content.Landing.FallTicks) Shut(Pod.Kind, flight.Home);
-            return new Carried(flight.Home, flight.Load, true);
+            return new Carried(flight.Home, flight.Load, true, flight.Fuel);
         }
         if (State.Owners.Find(o => o.Peer == peer) is not { } owner) return null;
         State.Owners.Remove(owner);
         // Nothing takes a pod apart off the ship: its machine stands.
         var m = _grid.MachineById(owner.Pod)!;
         var load = _itemsOps.TakeFrom(m.Id, 0, int.MaxValue);
+        int fuel = _fuelOps.TakeAll(m.Id);
         _gridOps.Clear(m.Cell, "machine");
         State.Seats.RemoveAll(s => s.Pod == m.Id);
-        return new Carried(owner.Home, load, false);
+        return new Carried(owner.Home, load, false, fuel);
     }
 
     /// <summary>A pod carried here docked aboard or landed off the ship; its hero seated in it when it rode and is here and awake.</summary>
@@ -578,7 +595,7 @@ public sealed class LandingModule : Module<LandingState>, ICarries, IOutlives, I
             return;
         }
         if (carried is not Carried c) return;
-        int? pod = Surfaces.Here == 0 ? Dock(peer, c.Home, c.Load) : Land(peer, c.Home, c.Load);
+        int? pod = Surfaces.Here == 0 ? Dock(peer, c.Home, c.Load, c.Fuel) : Land(peer, c.Home, c.Load, c.Fuel);
         if (c.Rides && pod is int p && _crew.HeroOf(peer) is { Out: 0 }) Sit(p, peer);
     }
 

@@ -3,5 +3,7 @@
     <ProjectReference Include="../Crafting/Crafting.csproj" />
     <ProjectReference Include="../Crew/Crew.csproj" />
     <ProjectReference Include="../Pipes/Pipes.csproj" />
+    <ProjectReference Include="../Water/Water.csproj" />
+    <ProjectReference Include="../Fuel/Fuel.csproj" />
   </ItemGroup>
 </Project>

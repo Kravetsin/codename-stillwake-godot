@@ -124,7 +124,7 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [plan-modes](2026-10-24-plan-modes.md) | The plan has modes: building, wiring, piping | accepted |  |
 | [the-launch-platform](2026-10-24-the-launch-platform.md) | The launch platform is a deck of joined pieces that opens with power | accepted |  |
 | [fan-of-rays](2026-10-25-fan-of-rays.md) | A tool's hit is a fan of rays | accepted | melee-edge (in part) |
-| [the-drop-pod](2026-10-25-the-drop-pod.md) | The drop pod is a bell a hero boards on a launch platform | accepted |  |
+| [the-drop-pod](2026-10-25-the-drop-pod.md) | The drop pod is a bell a hero boards on a launch platform | accepted | fuel-liquid (in part) |
 | [the-engine-through-the-hull](2026-10-25-the-engine-through-the-hull.md) | The engine stands at the stern, its nozzle out through the hull | accepted |  |
 | [title-scene](2026-10-25-title-scene.md) | The title is a drawn scene of despair | accepted |  |
 | [veins-and-stairs](2026-10-25-veins-and-stairs.md) | A planet's ground is a stair, with veins of ore in its lodes | accepted | ore-pockets (in part) |
@@ -132,7 +132,7 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [creatures-are-composed](2026-10-26-creatures-are-composed.md) | Creatures are composed | accepted |  |
 | [fog-edges](2026-10-26-fog-edges.md) | Fog at a planet's edges | accepted |  |
 | [shots-are-the-sims](2026-10-26-shots-are-the-sims.md) | Shots are the sim's | accepted | sentry-arc, shots-pierce (in part) |
-| [the-descent](2026-10-26-the-descent.md) | The drop pod flies its rider down to the planet and back | accepted |  |
+| [the-descent](2026-10-26-the-descent.md) | The drop pod flies its rider down to the planet and back | accepted | fuel-liquid (in part) |
 | [arcs-are-hairlines](2026-10-27-arcs-are-hairlines.md) | Arcs are hairlines | accepted |  |
 | [effects-on-their-layer](2026-10-27-effects-on-their-layer.md) | Effects on their layer | accepted |  |
 | [one-arm-holds](2026-10-27-one-arm-holds.md) | Every item is held in one hand | accepted |  |
@@ -266,7 +266,7 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [no-ice-canister](2026-11-06-no-ice-canister.md) | Canisters are salvaged, not frozen of ice | accepted |  |
 | [quick-stash](2026-11-06-quick-stash.md) | The bag stashed into nearby crates with one key | accepted |  |
 | [settings-menu](2026-11-06-settings-menu.md) | The Esc menu on the tablet, Settings in categories | accepted |  |
-| [the-power-chain](2026-11-06-the-power-chain.md) | The power chain | accepted |  |
+| [the-power-chain](2026-11-06-the-power-chain.md) | The power chain | accepted | fuel-liquid (in part) |
 | [trade-station-later](2026-11-06-trade-station-later.md) | The trade station comes with circuits | accepted | one-to-understand (in part) |
 | [air-feedback](2026-11-07-air-feedback.md) | Air and power answer the player loudly | accepted |  |
 | [back-focus-clear](2026-11-07-back-focus-clear.md) | The back walls' focus hides the front | accepted | back-focus-faint (in part) |
@@ -320,7 +320,7 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [catcher-combat](2026-11-09-catcher-combat.md) | Catcher combat | accepted |  |
 | [catcher-paths](2026-11-09-catcher-paths.md) | Catcher paths | accepted | catcher-combat, damage-scale (in part) |
 | [damage-scale](2026-11-09-damage-scale.md) | One damage scale; the own ship takes a tenth | accepted | one-damage-rule (in part) |
-| [liquid-volumes](2026-11-09-liquid-volumes.md) | Liquid volumes | accepted | liquid-cards (in part) |
+| [liquid-volumes](2026-11-09-liquid-volumes.md) | Liquid volumes | accepted | liquid-cards, fuel-liquid (in part) |
 | [round-blasts](2026-11-09-round-blasts.md) | Blasts are round | accepted | unified-damage (in part) |
 | [tracker-catchers](2026-11-09-tracker-catchers.md) | Catchers | accepted | catcher-combat, catcher-paths, catcher-loot (in part) |
 | [unified-damage](2026-11-09-unified-damage.md) | One rule for damage | accepted | damage-scale (in part) |
@@ -381,3 +381,4 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [spear-trail](2026-11-15-spear-trail.md) | The plain spear trails haze outside its thrust | accepted |  |
 | [trash-slot](2026-11-15-trash-slot.md) | A trash slot in creative mode | accepted |  |
 | [shuttle-flight](2026-11-16-shuttle-flight.md) | The crew flies to a vessel in the shuttle and back | accepted |  |
+| [fuel-liquid](2026-11-16-fuel-liquid.md) | Fuel is a liquid | accepted |  |

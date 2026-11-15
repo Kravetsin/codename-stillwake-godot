@@ -108,10 +108,10 @@ public partial class PipesOverlay : Node2D
         for (int i = 0; i < pipes.Networks.Count; i++)
         {
             var network = pipes.Networks[i];
-            // Water carries nothing yet: its lines are teal and still, never dry (typed-ports).
-            if (pipes.FluidAt(network.Cells[0]) == Stillwake.Content.Fluids.Water)
+            // Water and fuel lines are drawn still in their colour, never dry (typed-ports, fuel-liquid).
+            if (pipes.FluidAt(network.Cells[0]) is Stillwake.Content.Fluids.Water or Stillwake.Content.Fluids.Fuel)
             {
-                colourOf[network.Id] = AsciiArt.Colour(Sockets.ColourOf(Stillwake.Content.Fluids.Water));
+                colourOf[network.Id] = AsciiArt.Colour(Sockets.ColourOf(pipes.FluidAt(network.Cells[0])!));
                 continue;
             }
             var own = network.Cells.ToHashSet();

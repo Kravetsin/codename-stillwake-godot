@@ -1,10 +1,13 @@
+using Stillwake.Sim.Atmosphere;
 using Stillwake.Sim.Crafting;
 using Stillwake.Sim.Crew;
+using Stillwake.Sim.Fuel;
 using Stillwake.Sim.Grid;
 using Stillwake.Sim.Items;
 using Stillwake.Sim.Pipes;
 using Stillwake.Sim.Power;
 using Stillwake.Sim.Research;
+using Stillwake.Sim.Water;
 using Cost = System.Collections.Generic.IReadOnlyList<(string Item, int Count)>;
 
 namespace Stillwake.Sim.Building;
@@ -113,14 +116,20 @@ public sealed partial class BuildingModule : Module<BuildingState>, IBuildingQue
     private readonly ICrewQueries _crew;
     private readonly ICrewOps _crewOps;
     private readonly IPipesQueries _pipes;
+    private readonly IAtmosphereQueries _air;
+    private readonly IWaterQueries _water;
+    private readonly IFuelQueries _fuel;
 
     public override string Id => "building";
 
     public BuildingModule(
         IGridQueries grid, IGridOps gridOps, IItemsQueries items, IItemsOps itemsOps,
         IPowerQueries power, IPowerOps powerOps, IResearchQueries research, ICraftingQueries crafting, ICraftingOps craftingOps,
-        ICrewQueries crew, ICrewOps crewOps, IPipesQueries pipes)
+        ICrewQueries crew, ICrewOps crewOps, IPipesQueries pipes, IAtmosphereQueries air, IWaterQueries water, IFuelQueries fuel)
     {
+        _air = air;
+        _water = water;
+        _fuel = fuel;
         _grid = grid;
         _gridOps = gridOps;
         _items = items;
