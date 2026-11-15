@@ -569,6 +569,7 @@ public partial class HeroView : Node2D
         var drawn = _current with { X = (int)Math.Round(x), Y = (int)Math.Round(y) };
         _ui.Heroes = [Chest(drawn), .. Others.Select(o => Chest(o.Hero))];
         _ui.Bits = Bits();
+        _ui.Bites = Bites(m, elapsedMs);
         bool inSpace = Floats = ship.Space(drawn.BodyCell(ship.Width));
         // Gliding in a planet's fog it floats as in space (fog-edges), though nothing there is space; in water it swims so.
         var pose = Poses.PoseOf(drawn, inSpace || drawn.Gliding || ship.Wet(drawn.BodyCell(ship.Width)), passedOut);

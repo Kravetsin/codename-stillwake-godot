@@ -62,6 +62,9 @@ public partial class ReachAir : Node2D
 
     private readonly System.Collections.Generic.List<(double X, double Y)> _shape = [];
 
+    /// <summary>The held blade's stretch swept last, in the world, while it leaves a trail (blade-sparks).</summary>
+    public (System.Collections.Generic.IReadOnlyList<(double X, double Y)> Was, System.Collections.Generic.IReadOnlyList<(double X, double Y)> Now)? Sweep => _trail.Newest;
+
     /// <summary>
     /// <paramref name="elapsedMs"/> on, the running tool's <paramref name="zone"/>, none while none runs, and the held blade's
     /// <paramref name="edge"/>, its points from one end to the other where they are in the world, none while none is held.
