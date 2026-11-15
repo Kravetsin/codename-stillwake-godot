@@ -384,7 +384,7 @@ public partial class HeroView
                 double reach = System.Math.Sqrt((double)halfW * halfW + (double)halfH * halfH);
                 if (cx + reach < left * perPixel || cx - reach > right * perPixel || cy + reach < top * perPixel || cy - reach > bottom * perPixel) continue;
                 bool In(double x, double y) => solid(piece, x * perPixel, y * perPixel);
-                var inside = ToolHaze.Flow(haze.Where(p => In(p.X, p.Y)).ToList(), In);
+                var inside = ToolHaze.Within(haze, In, In);
                 if (inside.Count > 0) _bites[piece.Id] = (inside, _bitesClock);
             }
         }

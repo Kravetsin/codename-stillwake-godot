@@ -59,8 +59,6 @@ public static class WorkLooks
     /// </summary>
     public const double GlanceProbe = 2;
 
-    /// <summary>How much of a whole the contacts' ways must add up to for them to fly as one stream (spark-rule).</summary>
-    public const double FlowLeast = 0.3;
     public const int GlanceRays = 16;
     public static readonly double[] GlanceRadii = [3, 6, 12];
 
@@ -73,6 +71,19 @@ public static class WorkLooks
         Glimmer.Streak => 0.21,
         Glimmer.Chip => 0.44,
         _ => 0.7,
+    };
+
+    /// <summary>
+    /// How far what is thrown off a haze runs along it before it flies off, pixels, by its kind (spark-rule): a contact's ride is
+    /// <see cref="RideMost"/> at most; streaks run it all, chips a little, motes and wisps hardly.
+    /// </summary>
+    public const double RideMost = 48;
+
+    public static double RideOf(Glimmer kind) => kind switch
+    {
+        Glimmer.Streak => RideMost,
+        Glimmer.Chip => 8,
+        _ => 3,
     };
 
     /// <summary>

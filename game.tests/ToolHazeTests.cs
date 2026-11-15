@@ -23,7 +23,8 @@ public class ToolHazeTests
         (double X, double Y)[] was = [(0, 0), (0, 4), (0, 8)], now = [(4, 0), (4, 4), (4, 8)];
         var haze = Of(h => ToolHaze.OfEdge(was, now, h));
         Assert.Equal(6, haze.Count);
-        Assert.Contains(new HazePoint(2, 4, 1, 0), haze);
+        var middle = Assert.Single(haze, p => (p.X, p.Y, p.Dx, p.Dy) == (2, 4, 1, 0));
+        Assert.Equal((4.0, 4.0), (haze[middle.Next].X, haze[middle.Next].Y));
         Assert.Contains(new HazePoint(4, 8, 1, 0), haze);
         Assert.Empty(Of(h => ToolHaze.OfEdge(now, now, h)));
     }
@@ -104,20 +105,34 @@ public class ToolHazeTests
     }
 
     [Fact]
-    public void AWheelsArcInAWallThrowsOneStream()
+    public void AWheelInAWallThrowsRoundItsRimToWhereItComesOut()
     {
+        // Spun clockwise, the rim's arc in the wall runs down and out at about 60 degrees, moving down and to the left there.
         var haze = Of(h => ToolHaze.OfCircle(new((0, 0), 6, 1), 48, h));
-        var contacts = ToolHaze.Contacts(haze, (x, _) => x > 3, (5, 0), (_, _) => false);
+        var contacts = ToolHaze.Contacts(haze, (x, _) => x > 3, (5, 0));
         Assert.True(contacts.Count > 5);
-        Assert.Single(contacts.Select(p => (Math.Round(p.Dx, 9), Math.Round(p.Dy, 9))).Distinct());
+        Assert.All(contacts, p =>
+        {
+            var (x, y) = Assert.IsAssignableFrom<IReadOnlyList<(double X, double Y)>>(p.Ride)[^1];
+            Assert.True(x <= 3 && y > 4, $"out at ({x}, {y})");
+            Assert.True(p.Dx < 0 && p.Dy > 0);
+        });
     }
 
     [Fact]
-    public void ADrillsHelixInAWallThrowsBackOutToTheChuck()
+    public void ADrillsHelixInAWallThrowsAlongItsStrandsBackOutToTheChuck()
     {
         var haze = Of(h => ToolHaze.OfHelix(new((0, 0), (1, 0), (0, 1), 20, 0.7), 96, h));
         var contacts = ToolHaze.Contacts(haze, (x, _) => x > 10, (12, 0));
-        Assert.All(contacts, p => Assert.Equal((-1.0, 0.0), (Math.Round(p.Dx, 9), Math.Round(p.Dy, 9))));
+        Assert.NotEmpty(contacts);
+        Assert.All(contacts, p =>
+        {
+            var ride = Assert.IsAssignableFrom<IReadOnlyList<(double X, double Y)>>(p.Ride);
+            Assert.True(ride[^1].X <= 10 && p.Dx < 0);
+        });
+        // Round the axis, not along it: from the reach, the strand turns across it on the way out.
+        var longest = contacts.Select(p => p.Ride!).MaxBy(r => r.Count)!;
+        Assert.True(longest.Max(q => q.Y) - longest.Min(q => q.Y) > 1);
     }
 
     [Fact]

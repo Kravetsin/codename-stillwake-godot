@@ -75,34 +75,45 @@ public static class ToolHaze
             var (a, b) = (was[i], now[i]);
             double dx = b.X - a.X, dy = b.Y - a.Y, l = Math.Sqrt(dx * dx + dy * dy);
             if (l <= 0) continue;
-            into.Add(new((a.X + b.X) / 2, (a.Y + b.Y) / 2, dx / l, dy / l));
+            into.Add(new((a.X + b.X) / 2, (a.Y + b.Y) / 2, dx / l, dy / l, into.Count + 1));
             into.Add(new(b.X, b.Y, dx / l, dy / l));
         }
     }
 
-    /// <summary>The grinder's haze: <paramref name="wheel"/>'s rim in <paramref name="steps"/> points, each moving along the spin.</summary>
+    /// <summary>The grinder's haze: <paramref name="wheel"/>'s rim in <paramref name="steps"/> points, each moving along the spin, a loop.</summary>
     public static void OfCircle(Circle wheel, int steps, List<HazePoint> into)
     {
+        int first = into.Count;
         for (int k = 0; k < steps; k++)
         {
             double angle = 2 * Math.PI * k / steps;
             var (x, y) = wheel.At(angle);
             var (dx, dy) = wheel.Along(angle);
-            into.Add(new(x, y, dx, dy));
+            into.Add(new(x, y, dx, dy, first + (k + (wheel.Spin > 0 ? 1 : steps - 1)) % steps));
         }
     }
 
     /// <summary>
-    /// The drill's haze: <paramref name="helix"/>'s loop as it is told, in <paramref name="steps"/> points, each moving back along the
-    /// axis to the chuck, as its waves run and as a bit carries out what it cuts.
+    /// The drill's haze: <paramref name="helix"/>'s loop as it is told, in <paramref name="steps"/> points, each strand running back
+    /// to the chuck, as its waves run and as a bit carries out what it cuts.
     /// </summary>
     public static void OfHelix(Helix helix, int steps, List<HazePoint> into)
     {
+        int first = into.Count;
+        var points = new (double X, double Y)[steps];
+        for (int k = 0; k < steps; k++) points[k] = helix.At((double)k / steps, helix.Phase);
         for (int k = 0; k < steps; k++)
         {
-            double u = (double)k / steps;
-            var (x, y) = helix.At(u, helix.Phase);
-            into.Add(new(x, y, -helix.Way.X, -helix.Way.Y));
+            // Out along the first strand to the reach, back along the second: either way, on toward the chuck at 0.
+            int next = k == 0 ? -1 : k < steps / 2 ? k - 1 : (k + 1) % steps;
+            var (x, y) = points[k];
+            double dx = -helix.Way.X, dy = -helix.Way.Y;
+            if (next >= 0)
+            {
+                double sx = points[next].X - x, sy = points[next].Y - y, l = Math.Sqrt(sx * sx + sy * sy);
+                if (l > 1e-9) (dx, dy) = (sx / l, sy / l);
+            }
+            into.Add(new(x, y, dx, dy, next < 0 ? -1 : first + next));
         }
     }
 
@@ -111,48 +122,65 @@ public static class ToolHaze
     {
         double dx = to.X - from.X, dy = to.Y - from.Y, l = Math.Sqrt(dx * dx + dy * dy);
         if (l <= 0) return;
-        for (double s = 0; s <= l; s += step) into.Add(new(from.X + dx * s / l, from.Y + dy * s / l, dx / l, dy / l));
+        for (double s = 0; s <= l; s += step) into.Add(new(from.X + dx * s / l, from.Y + dy * s / l, dx / l, dy / l, into.Count + 1));
         into.Add(new(to.X, to.Y, dx / l, dy / l));
     }
 
     /// <summary>
-    /// Where <paramref name="haze"/> lies in what was hit at <paramref name="at"/>: its points <paramref name="inside"/> it; else its
-    /// point nearest <paramref name="at"/>, so what is hit always throws off the haze; none without a haze. All move one way, the
-    /// haze's flow through it, glanced off <paramref name="matter"/> (what <paramref name="inside"/> tests, if none is given) (<see cref="Flow"/>).
+    /// Where <paramref name="haze"/> lies in what was hit at <paramref name="at"/>: its points <paramref name="inside"/> it
+    /// (<see cref="Within"/>); else its point nearest <paramref name="at"/>, so what is hit always throws off the haze; none without
+    /// a haze. Each rides the haze through <paramref name="matter"/>, what <paramref name="inside"/> tests if none is given (<see cref="Ridden"/>).
     /// </summary>
     public static List<HazePoint> Contacts(IReadOnlyList<HazePoint> haze, Func<double, double, bool> inside, (double X, double Y) at,
         Func<double, double, bool>? matter = null)
     {
         matter ??= inside;
-        var contacts = new List<HazePoint>();
-        foreach (var p in haze)
-            if (inside(p.X, p.Y)) contacts.Add(p);
-        if (contacts.Count > 0 || haze.Count == 0) return Flow(contacts, matter);
-        var nearest = haze[0];
+        var contacts = Within(haze, inside, matter);
+        if (contacts.Count > 0 || haze.Count == 0) return contacts;
+        int nearest = 0;
         double best = double.MaxValue;
-        foreach (var p in haze)
+        for (int i = 0; i < haze.Count; i++)
         {
+            var p = haze[i];
             double d = (p.X - at.X) * (p.X - at.X) + (p.Y - at.Y) * (p.Y - at.Y);
-            if (d < best) (best, nearest) = (d, p);
+            if (d < best) (best, nearest) = (d, i);
         }
-        contacts.Add(nearest);
-        return Flow(contacts, matter);
+        contacts.Add(Ridden(haze, nearest, matter));
+        return contacts;
+    }
+
+    /// <summary><paramref name="haze"/>'s points <paramref name="inside"/> what was hit, each ridden through <paramref name="matter"/> (<see cref="Ridden"/>).</summary>
+    public static List<HazePoint> Within(IReadOnlyList<HazePoint> haze, Func<double, double, bool> inside, Func<double, double, bool> matter)
+    {
+        var contacts = new List<HazePoint>();
+        for (int i = 0; i < haze.Count; i++)
+            if (inside(haze[i].X, haze[i].Y)) contacts.Add(Ridden(haze, i, matter));
+        return contacts;
     }
 
     /// <summary>
-    /// <paramref name="contacts"/> all moving one way, the haze's net flow through what was hit, so what it throws flies as one stream
-    /// whatever the haze's shape there (a wheel's arc, a helix's turns); each kept its own where the flow cancels out, under
-    /// <see cref="WorkLooks.FlowLeast"/> of a whole; then each glanced off <paramref name="matter"/> (<see cref="Glance"/>).
+    /// <paramref name="haze"/>'s point <paramref name="i"/> as a contact: riding the haze's path on through <paramref name="matter"/> to
+    /// its first point out of it, its end or <see cref="WorkLooks.RideMost"/> px, and flying off the way the path ran there, glanced
+    /// off <paramref name="matter"/> (<see cref="Glance"/>).
     /// </summary>
-    public static List<HazePoint> Flow(List<HazePoint> contacts, Func<double, double, bool> matter)
+    public static HazePoint Ridden(IReadOnlyList<HazePoint> haze, int i, Func<double, double, bool> matter)
     {
-        double dx = 0, dy = 0;
-        foreach (var p in contacts) (dx, dy) = (dx + p.Dx, dy + p.Dy);
-        double l = Math.Sqrt(dx * dx + dy * dy);
-        bool one = l > WorkLooks.FlowLeast * contacts.Count;
-        for (int i = 0; i < contacts.Count; i++)
-            contacts[i] = Glance(one ? contacts[i] with { Dx = dx / l, Dy = dy / l } : contacts[i], matter);
-        return contacts;
+        var p = haze[i];
+        List<(double X, double Y)>? ride = null;
+        double x = p.X, y = p.Y, dx = p.Dx, dy = p.Dy, gone = 0;
+        for (int j = p.Next, n = 0; j >= 0 && n < haze.Count && gone < WorkLooks.RideMost; j = haze[j].Next, n++)
+        {
+            var q = haze[j];
+            double sx = q.X - x, sy = q.Y - y, l = Math.Sqrt(sx * sx + sy * sy);
+            if (l > 1e-9)
+            {
+                (dx, dy, x, y, gone) = (sx / l, sy / l, q.X, q.Y, gone + l);
+                (ride ??= []).Add((x, y));
+            }
+            if (!matter(x, y)) break;
+        }
+        var off = Glance(new HazePoint(x, y, dx, dy), matter);
+        return new HazePoint(p.X, p.Y, off.Dx, off.Dy) { Ride = ride };
     }
 
     /// <summary>
