@@ -189,13 +189,16 @@ Measure with `-- --planet --dig --speed=4 --frames`.
 - Every task in its own worktree beside the clone (`git worktree add -b <branch> ../stillwake-<task> origin/main`),
   never a branch switched in the main folder: several agents work at once, and a checkout there moves the others'
   files under them. Remove the worktree (`git worktree remove`) once its PR is merged.
-- While working, test one project or filter (`dotnet test sim/Tests --filter Logistics`). Once, before the
-  commit: the full `dotnet test Stillwake.sln`. The pre-commit hook (`git config core.hooksPath tools/hooks`, once
+- Two stages. **Try**: build, test one project or filter (`dotnet test sim/Tests --filter Logistics`), commit on the
+  branch, launch the room for the user to play; no full suite, push, PR, ADR or README yet. **Ship**, only once the
+  user has played it and said yes: the full `dotnet test Stillwake.sln`, the docs (written once, for what ships), push,
+  PR, merge on green. A try thrown away or redone costs no docs. Work the user does not play (tooling, docs,
+  refactors, a bug fix with its test) goes straight to ship. The pre-commit hook (`git config core.hooksPath tools/hooks`, once
   per clone) formats the staged `.cs` files; CI fails on whitespace. Budget tests are strict on a desk: a miss is real.
   CI tests in Release: `-c Release` reproduces a failure only it sees. A PR runs only what its paths can break
   (`tools/ci-scope.sh`), `main` everything.
-- Match the ritual to the size: a new mechanic gets its ADR, a test proven to bite and screenshots; a number
-  change or a bug fix gets its test and a README line.
+- Match the ship's ritual to the size: a new mechanic gets its ADR and a test proven to bite; a number change or a
+  bug fix gets its test and a README line.
 - Releases only on request, only from a green `main`: `release.cmd` (docs/releasing.md).
 - A non-trivial feature: `design-author` → `design-reviewer` → a plan in `docs/plans/` → `/review-plan`
   → implementation → `/review-implementation` → human review.
