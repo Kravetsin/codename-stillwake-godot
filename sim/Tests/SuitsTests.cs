@@ -133,9 +133,31 @@ public class SuitsTests
         PutOn(w, Helmet, HeadSlot);
         Assert.Equal((Lungs, Full), (HeroOf(w).Air, w.M.Crew.CapacityOf(0)));
         Breaths(w, 1);
-        Assert.Equal(Lungs + Content.Crew.Refill, HeroOf(w).Air);
+        Assert.Equal(Lungs + CrewModule.FillOf(Full), HeroOf(w).Air);
         Breaths(w, 10);
         Assert.Equal(Full, HeroOf(w).Air);
+    }
+
+    [Fact]
+    public void AnAiredRoomFillsEveryHelmetFromEmptyInTheSameBreaths()
+    {
+        foreach (string helmet in new[] { Helmet, Content.Helmet.Heavy })
+        {
+            var w = Aired(suited: true);
+            if (helmet != Helmet)
+            {
+                w.GiveItems(0, (helmet, 1));
+                TakeOff(w, HeadSlot);
+                PutOn(w, helmet, HeadSlot);
+            }
+            int full = w.M.Crew.CapacityOf(0);
+            Assert.Equal(Lungs + Content.Items.Get(helmet).Tank, full);
+            HeroOf(w).Air = 1;
+            Breaths(w, Content.Crew.FillBreaths - 1);
+            Assert.True(HeroOf(w).Air < full, helmet);
+            Breaths(w, 1);
+            Assert.Equal(full, HeroOf(w).Air);
+        }
     }
 
     [Fact]

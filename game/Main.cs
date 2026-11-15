@@ -248,8 +248,7 @@ public partial class Main : Node2D, ITogether
             _items.Panel.CanisterIn = CanisterIn;
             // Its own layer, above the world: read from whatever registry the session runs now.
             var gauge = new SuitGauge(() => _session is Session s ? Danger.Read(_m.Crew, _m.Atmosphere, s.Client.Id) : (1, 1, SuitDanger.None, true),
-                CanisterIn, () => _session is Session s ? _m.Items.WornIn(s.Client.Id, Content.Helmet.Slot) : null,
-                () => _session is Session s ? _m.Crew.RatesOf(s.Client.Id).Lungs : 0, _hands.Ui);
+                CanisterIn, () => _session is Session s ? _m.Crew.PartsOf(s.Client.Id) : [], _hands.Ui);
             AddChild(gauge);
             // The hero's meals, the vitals' bottom row (hud-vitals).
             AddChild(new MealSlots(() => _session is Session s && _m.Crew.HeroOf(s.Client.Id) is { } fed

@@ -24,7 +24,7 @@ public sealed class PilesScenario : DevScenario
     public override World Seed(World world, DevSeed seed)
     {
         var root = JsonNode.Parse(DieDemo.Seed(world, seed.Modules).Save())!;
-        root["slices"]!["crew"]!["heroes"]![0]!["air"] = Spec.Items.Get(Spec.Helmet.Basic).Tank;
+        root["slices"]!["crew"]!["heroes"]![0]!["air"] = Spec.Crew.Lungs + Spec.Items.Get(Spec.Helmet.Basic).Tank;
         // The sledgehammer and the scanner beside the axe, to try a pile's hit points on (2026-11-07-pile-hit-points).
         var slots = root["slices"]!["items"]!["inventories"]![0]!["slots"]!.AsArray();
         slots[7] = new JsonObject { ["item"] = Spec.Weapons.Sledgehammer.Item, ["count"] = 1 };

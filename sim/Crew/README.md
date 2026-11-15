@@ -21,13 +21,13 @@ Heroes: where each is (as its client says), how it breathes, passing out.
 ## Rules
 
 - A hero is named by its peer, the `From` the host stamps.
-- **Air** (suits-are-worn): `Hero.Air`, below "the suit"; capacity `CapacityOf`: the worn helmet's `Tank`,
-  or `Crew.Lungs`, plus food's lungs (food-tuning). Each tick, first, an awake hero's air is cut to it.
+- **Air** (air-segments): `Hero.Air`, "the suit", in parts (`PartsOf`): lungs, the helmet's `Tank`, food's lungs;
+  spent last first, a part gone taking its fill (`Shape`). Recut first each tick, awake.
 - **Enter and report**: `Enter(Cell)` puts the sender's hero at `Cell`, making it full (bare, empty on a peer's
   first) if none. Sent on a new room or air side, every `Crew.ReportEvery` ticks while the cells differ,
   `Crew.ReportThreatened` while threatened. Passed out, a client sends none.
 - **The breath**: every `Crew.BreathEvery` ticks, in id order, each conscious hero breathes: by the
-  pod (`ByPod`) up to `Crew.PodRefill` of its endless air, then `Breathe` the rest of a unit and up to `Crew.Refill` for
+  pod (`ByPod`) up to `Crew.PodRefill` of its endless air, then `Breathe` the rest of a unit and `FillOf(capacity)` for
   the suit, which pays any shortfall.
 - **Thin air** (0076): with `ThinAir` n the suit pays the shortfall every n-th breath, in full, exertion too; off the
   beat `Owed` moves only where air covers the breath.
@@ -77,7 +77,7 @@ Heroes: where each is (as its client says), how it breathes, passing out.
 
 ## API
 
-- **Queries** (`ICrewQueries`): `Spawn`; `ByPod(cell)`; `EdgeCost(cell)`; `CapacityOf(peer)`; `RefillOf`, `RatesOf`, `Hungry(peer)`; `TemperatureAt`, `LowOf`, `Felt` (frost), `HighOf`, `Heat`;
+- **Queries** (`ICrewQueries`): `Spawn`; `ByPod(cell)`; `EdgeCost(cell)`; `CapacityOf`, `PartsOf(peer)`; `RefillOf`, `RatesOf`, `Hungry(peer)`; `TemperatureAt`, `LowOf`, `Felt` (frost), `HighOf`, `Heat`;
   `SuitOn`, `SuitModeProblem`; `SignalOf(peer)`, `Hunted(peer)`;
   `HeroOf(id)` or null; `Heroes`, live, in id order. On the
   module: `Burns(cell)`, `RefillProblem(peer)`, `EatProblem(peer, food)`, `PurgeProblem`: the client sends none they refuse.

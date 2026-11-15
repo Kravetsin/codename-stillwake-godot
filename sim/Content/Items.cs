@@ -37,7 +37,7 @@ namespace Stillwake.Content;
 /// </param>
 /// <param name="Group">Where a sort puts it (0008): its group first, in <see cref="ItemGroup"/>'s order, then its id.</param>
 /// <param name="Tank">
-/// A helmet: the air it holds, in units, the hero's whole pool while worn (2026-10-27-suits-are-worn); 0 for anything else.
+/// A helmet: the air it holds past the lungs, in units, its own part of the hero's air while worn (air-segments); 0 for anything else.
 /// </param>
 /// <param name="Switch">A body with a mode its wearer switches on and off, by V or its key on the tablet's edge (2026-11-03-the-regen-suit).</param>
 /// <param name="Low">A body: the coldest it withstands, in degrees (2026-11-14-temperature-in-degrees); null for anything else.</param>
@@ -260,14 +260,14 @@ public static class Items
         new("accumulator", 1, Equip: "belt", Capacity: Charge.Accumulator, Gear: true, Group: ItemGroup.Wearable),
         // The basic suit (2026-10-27-suits-are-worn): the helmet's tank the hero's air while worn, the body withstanding the
         // cold down to its Low (2026-11-14-temperature-in-degrees) and the heat up to its High (2026-11-14-heat-limits); both free at the pod.
-        new(Helmet.Basic, 1, Equip: Helmet.Slot, Gear: true, Group: ItemGroup.Wearable, Tank: 45),
+        new(Helmet.Basic, 1, Equip: Helmet.Slot, Gear: true, Group: ItemGroup.Wearable, Tank: 25),
         new(Suit.Basic, 1, Equip: Suit.Slot, Gear: true, Group: ItemGroup.Wearable, Low: -40, High: 50),
         new(Suit.Regen, 1, Equip: Suit.Slot, Gear: true, Group: ItemGroup.Wearable, Switch: true, Low: -40, High: 50),
         new(Suit.Heat, 1, Equip: Suit.Slot, Gear: true, Group: ItemGroup.Wearable, Low: -40, High: 60),
         // For the jetpack's long flights (2026-11-03-the-heavy-helmet): 100, not twice 45, so it reads as more than a doubling.
-        new(Helmet.Heavy, 1, Equip: Helmet.Slot, Gear: true, Group: ItemGroup.Wearable, Tank: 100),
+        new(Helmet.Heavy, 1, Equip: Helmet.Slot, Gear: true, Group: ItemGroup.Wearable, Tank: 80),
         // The middle step, made rather than bought (2026-11-14-quilted-helmet-and-traced-art).
-        new(Helmet.Quilted, 1, Equip: Helmet.Slot, Gear: true, Group: ItemGroup.Wearable, Tank: 70),
+        new(Helmet.Quilted, 1, Equip: Helmet.Slot, Gear: true, Group: ItemGroup.Wearable, Tank: 50),
         // Softens enemies' blows and the cold a fifth (2026-10-27-the-cape-is-worn).
         new(Cape.Item, 1, Equip: Cape.Slot, Gear: true, Group: ItemGroup.Wearable),
     ];

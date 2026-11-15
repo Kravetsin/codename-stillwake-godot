@@ -56,7 +56,6 @@ public static partial class Ru
         ["card.eat"] = "съесть",
         ["card.less"] = "−{n}%",
         ["card.tank"] = "Запас воздуха",
-        ["card.oxygen"] = "{n} O₂",
         ["card.withstands"] = "Выдерживает до",
         ["card.withstandsHeat"] = "Выдерживает жар до",
         ["card.regen"] = "Вырабатывает воздух",

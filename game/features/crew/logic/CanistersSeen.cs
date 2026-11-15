@@ -11,22 +11,22 @@ namespace Stillwake.Game.Features.Crew;
 /// </summary>
 public sealed class CanistersSeen
 {
-    /// <summary>The most a suit rises in a frame without a canister: one breath's room refill and the pod's.</summary>
-    public const int MostByAir = CrewSpec.Refill + CrewSpec.PodRefill;
+    /// <summary>The most air holding <paramref name="capacity"/> rises in a frame without a canister: one breath's room fill and the pod's.</summary>
+    public static int MostByAir(int capacity) => Sim.Crew.CrewModule.FillOf(capacity) + CrewSpec.PodRefill;
 
     private readonly Dictionary<int, (int Suit, int Out)> _last = [];
     private readonly HashSet<int> _seen = [];
 
     /// <summary>
-    /// Whether hero <paramref name="id"/>, now with <paramref name="suit"/> units and <paramref name="out"/> ticks passed out,
+    /// Whether hero <paramref name="id"/>, now with <paramref name="suit"/> units of <paramref name="capacity"/> and <paramref name="out"/> ticks passed out,
     /// breathed a canister since it was last read. A hero read the first time breathed none.
     /// </summary>
-    public bool Breathed(int id, int suit, int @out)
+    public bool Breathed(int id, int suit, int capacity, int @out)
     {
         _seen.Add(id);
         bool had = _last.TryGetValue(id, out var last);
         _last[id] = (suit, @out);
-        return had && last.Out == 0 && @out == 0 && suit - last.Suit > MostByAir;
+        return had && last.Out == 0 && @out == 0 && suit - last.Suit > MostByAir(capacity);
     }
 
     /// <summary>Forgets every hero not read since the last call: one gone or left, read again later, starts afresh.</summary>

@@ -120,8 +120,8 @@ public sealed class Scenario
         return this;
     }
 
-    /// <summary>The basic helmet's tank: a suited hero's full air.</summary>
-    public static int Full => Content.Items.Get(Content.Helmet.Basic).Tank;
+    /// <summary>The lungs and the basic helmet's tank: a suited hero's full air.</summary>
+    public static int Full => Content.Crew.Lungs + Content.Items.Get(Content.Helmet.Basic).Tank;
 
     /// <summary>
     /// Peer <paramref name="peer"/> wears the basic helmet and body, put straight into their slots (<see cref="ItemsTesting.Wear"/>), its kit

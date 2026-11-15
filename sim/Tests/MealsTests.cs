@@ -136,6 +136,64 @@ public class MealsTests
         Assert.Equal((shell, shell), (w.M.Crew.CapacityOf(0), HeroOf(w).Air));
     }
 
+    private static readonly int HeadSlot = Content.Inventory.Slots + Content.Inventory.Equipment.ToList().IndexOf(Content.Helmet.Slot);
+
+    /// <summary>Hero 0 helmeted and stimmed, past the breath, its air <paramref name="air"/>: the lungs, the helmet, the stim's part.</summary>
+    private static Scenario Stimmed(int air)
+    {
+        var w = In((Foods.Stim, 1));
+        HeroOf(w).Eaten.Clear();
+        Eat(w, Foods.Stim).Run();
+        HeroOf(w).Air = air;
+        return w;
+    }
+
+    private static Scenario HelmetOff(Scenario w)
+    {
+        int free = w.M.Items.Inventory(0).ToList().IndexOf(null);
+        return w.Do(new Move(new Items.Place(HeadSlot), new Target(free), 1)).Run();
+    }
+
+    [Fact]
+    public void TheAirsPartsAreTheLungsThenTheHelmetThenTheStim()
+    {
+        var w = In((Foods.Stim, 1));
+        HeroOf(w).Eaten.Clear();
+        int tank = Content.Items.Get(Content.Helmet.Basic).Tank;
+        Assert.Equal([(AirPart.Lungs, CrewSpec.Lungs), (Content.Helmet.Basic, tank)], w.M.Crew.PartsOf(0).Select(p => (p.Key, p.Size)));
+        Eat(w, Foods.Stim);
+        Assert.Equal(
+            [(AirPart.Lungs, CrewSpec.Lungs), (Content.Helmet.Basic, tank), (AirPart.Food, 20)],
+            w.M.Crew.PartsOf(0).Select(p => (p.Key, p.Size)));
+        Assert.Equal(CrewSpec.Lungs + tank + 20, w.M.Crew.CapacityOf(0));
+        HelmetOff(w);
+        Assert.Equal([(AirPart.Lungs, CrewSpec.Lungs), (AirPart.Food, 20)], w.M.Crew.PartsOf(0).Select(p => (p.Key, p.Size)));
+    }
+
+    [Fact]
+    public void AHelmetTakenOffUnderAStimTakesItsOwnAirAndLeavesTheStimsPart()
+    {
+        // Lungs 20, the helmet's 25, the stim's 5 of its 20: the helmet goes with its 25, a plain cut to 40 would keep 15 of them.
+        var w = HelmetOff(Stimmed(50));
+        Assert.Empty(w.Refusals);
+        Assert.Equal(CrewSpec.Lungs + 5, HeroOf(w).Air);
+    }
+
+    [Fact]
+    public void AHelmetTakenOffUnderAStimHalfEmptyKeepsTheLungsPartOnly()
+    {
+        var w = HelmetOff(Stimmed(30));
+        Assert.Equal(CrewSpec.Lungs, HeroOf(w).Air);
+    }
+
+    [Fact]
+    public void TheAirsPartsAreSavedSoAReloadedWorldCutsTheSame()
+    {
+        var w = Stimmed(50).Run().Reload();
+        HelmetOff(w);
+        Assert.Equal(CrewSpec.Lungs + 5, HeroOf(w).Air);
+    }
+
     [Fact]
     public void AStimEndingWithItsAirSpentTakesNothing()
     {

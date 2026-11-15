@@ -83,7 +83,7 @@ public partial class ContentTests
     public void CrewBreathesInWholeUnitsAndTicksWithASuitThatLastsSomeBreaths()
     {
         AllPositive(typeof(Content.Crew));
-        Assert.True(Content.Crew.Refill < Scenario.Full);
+        Assert.True(Stillwake.Sim.Crew.CrewModule.FillOf(Scenario.Full) < Scenario.Full);
         // By the pod a calm breath gains, even in vacuum; running there holds the suit at worst.
         Assert.True(Content.Crew.PodRefill > 1);
         Assert.True(Content.Crew.PodRefill >= Content.Crew.Exerted);

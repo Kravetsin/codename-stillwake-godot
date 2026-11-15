@@ -140,7 +140,7 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [shots-fall-aboard](2026-10-27-shots-fall-aboard.md) | Shots fall aboard | accepted |  |
 | [shots-pierce](2026-10-27-shots-pierce.md) | Shots pierce what they break | accepted | unified-damage (in part) |
 | [space-recoil](2026-10-27-space-recoil.md) | Space recoil | accepted | body-answers (in part) |
-| [suits-are-worn](2026-10-27-suits-are-worn.md) | Suits are worn | accepted | temperature-in-degrees (in part) |
+| [suits-are-worn](2026-10-27-suits-are-worn.md) | Suits are worn | accepted | temperature-in-degrees, air-segments (in part) |
 | [the-cape-floats](2026-10-27-the-cape-floats.md) | The cape floats | accepted | the-cape-flows (in part) |
 | [the-cape-is-worn](2026-10-27-the-cape-is-worn.md) | The cape is worn | accepted | temperature-in-degrees (in part) |
 | [the-descent-pictures](2026-10-27-the-descent-pictures.md) | The drop pod's flight is drawn by the client from the flight's ticks | accepted |  |
@@ -365,6 +365,7 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [the-thermometer](2026-11-14-the-thermometer.md) | The thermometer: a frost star and the degrees, a row under the charge | accepted |  |
 | [tool-card-pictures](2026-11-14-tool-card-pictures.md) | A tool's card shows its picture enlarged | accepted |  |
 | [tool-in-hand](2026-11-14-tool-in-hand.md) | The tool in hand is the one that works | accepted |  |
+| [air-segments](2026-11-15-air-segments.md) | Air segments | accepted |  |
 | [blade-sparks](2026-11-15-blade-sparks.md) | A struck wreck sparks where the blade's trail lies on it | accepted | spark-rule (in part) |
 | [builders-raw](2026-11-15-builders-raw.md) | The screwdriver, power driver and blasting charge drawn raw | accepted |  |
 | [cutter-contact](2026-11-15-cutter-contact.md) | The cutter's slag blows out the far side, and struck ground sparks off the trail | accepted | spark-rule (in part) |
