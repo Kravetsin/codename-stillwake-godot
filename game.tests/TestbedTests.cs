@@ -118,7 +118,7 @@ public class TestbedTests
         Assert.True(m.Furnace.At(IdOf(m, "furnace")).Burning);
         Assert.True(m.Furnace.At(IdOf(m, "burnerGenerator")).Burning);
         var airlock = m.Rooms.RoomAt(Testbed.Map.Width * 12 + 96);
-        var hangar = m.Rooms.RoomAt(Testbed.Map.Width * 4 + 118);
+        var hangar = m.Rooms.RoomAt(Testbed.Map.Width * 8 + 102);
         Assert.NotNull(airlock);
         Assert.NotNull(hangar);
         Assert.All(m.Rooms.All, room => Assert.Equal(room.Id == airlock || room.Id == hangar ? RoomStatus.Vacuum : RoomStatus.Aired, Held(m, room.Id)));
@@ -202,7 +202,7 @@ public class TestbedTests
         Assert.True(Testbed.Supplies.Where(s => s.Item == "scrapChunk").Sum(s => s.Count) - left >= 120, $"{left} chunks left");
         // The air held: every room but the airlock and the shuttle's hangar aired.
         var airlock = m.Rooms.RoomAt(Testbed.Map.Width * 12 + 96);
-        var hangar = m.Rooms.RoomAt(Testbed.Map.Width * 4 + 118);
+        var hangar = m.Rooms.RoomAt(Testbed.Map.Width * 8 + 102);
         Assert.All(m.Rooms.All.Where(r => r.Id != airlock && r.Id != hangar), r => Assert.Equal(RoomStatus.Aired, Held(m, r.Id)));
         // Two drones, many jobs, few launches: a drone takes its next job from where it is.
         Assert.True(launched.Count < 60, $"{launched.Count} launches");
