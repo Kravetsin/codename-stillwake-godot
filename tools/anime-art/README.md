@@ -50,7 +50,7 @@ finish is `wash.js`, one for every subject.
 | `cavelife` | `caves/` crystals, dripstone, fungi, threads, roots, cracks, geodes, fossils, opal and spire caches, lamp; dim `_glow` |
 | `homes`, `homeskeep`, `homeslights`, `homeswall`, `homesruin` | `homes/*`, `_dark`, `_fed`, `_glow`; `ruins/spireLens_*`; `homes.js` exposes `HomeKit`, the others sort after it |
 | `debris` | `debris/*`: rocks lit from a side, crates, plates, pods, scrap, derelicts; unlettered, they turn |
-| `aboard` | `machine_salvage*`: salvage whole on the deck; numbered main engines and consoles, one per vessel |
+| `aboard`, `shuttle` | `machine_salvage*`: salvage on the deck, numbered engines and consoles, one per vessel; `machine_crewShuttle` |
 | `net` | `machine_net` (booms), `net_mount`, `net_front_<n>` (holding n); `NetInk.cs` |
 | `bay`, `salvage` | `machine_droneBay`, `droneBay_*`, `salvage_*`, `items/salvageDrone`; `BayInk.cs`, `SalvageInk.cs` |
 | `scanner` | `hero_scanner`, `hero_<helmet>_scanner`, `_lit_<n>`, `items/scanner`; `ScannerInk.cs` |

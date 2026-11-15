@@ -225,7 +225,7 @@ public static class ItemCards
 
     /// <summary>
     /// The HUD's meal of <paramref name="food"/> with <paramref name="left"/> ticks to go: its food card, the time left in place of
-    /// how long it lasts, no key and no price. Its name and kind given, pod paste being no item.
+    /// how long it lasts, no key and no price, under the name and kind given.
     /// </summary>
     public static ItemCard Meal(string food, int left, string name, string kind) =>
         new(food, name, kind, null, null, null) { Food = true, Rows = FoodRows(Spec.Foods.Of(food)!, left) };

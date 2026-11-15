@@ -1182,24 +1182,6 @@ P.stew = (a) => {
   a.shape(rr(.6, 8.2, 1.6, 1.3, .3), SOOT, { shade: .3 });
   a.shape(rr(13.8, 8.2, 1.6, 1.3, .3), SOOT, { shade: .3 });
 };
-// Never an item: the pod paste a hero is printed with, drawn for its meal slot.
-P.podPaste = (a) => {
-  // A squeeze tube from the pod, crimped and dented where it was pressed, the pod's teal band; a ribbon of grey paste from its nozzle.
-  const TUBE = { base: '#c2c6c4', shade: '#868c92', deep: '#5e646c', lite: '#e4e6e2', spec: '#f6f6f2' };
-  const TEAL = { base: '#4b8f96', shade: '#2d606e', deep: '#20465a', lite: '#7cc0c0' };
-  const PASTE = { base: '#8e908a', shade: '#62645e', deep: '#474844', lite: '#b4b6ae', spec: '#dcdcd4' };
-  const at = (s, t) => [2.2 + s * .707 + t * .707, 13.8 - s * .707 + t * .707];
-  const q = (...st) => poly(st.flatMap(([s, t]) => at(s, t)));
-  const l = (...st) => 'M' + st.map(([s, t]) => at(s, t).map((v) => v.toFixed(2)).join(' ')).join('L');
-  a.shape(q([1.8, -3], [9.6, -2.2], [10.8, -1.2], [11.4, -.8], [11.4, .8], [10.8, 1.2], [9.6, 2.2], [1.8, 3]), TUBE, {
-    lite: q([1.8, -3], [9.6, -2.2], [10.8, -1.2], [10.4, -.8], [9.4, -1.5], [1.8, -2.1]), shade: q([1.8, 2], [9.4, 1.4], [10.8, 1.2], [9.6, 2.2], [1.8, 3]),
-    lines: [l([3.8, -1.2], [5, .2], [4.2, 1.8]), l([7.4, -1.6], [8.2, -.2])] });
-  a.shape(q([6, -2.47], [7.4, -2.33], [7.4, 2.33], [6, 2.47]), TEAL, { outer: false, lite: q([6, -2.47], [7.4, -2.33], [7.4, -1.8], [6, -1.9]) });
-  a.shape(q([-.2, -3.3], [1.9, -3.3], [1.9, 3.3], [-.2, 3.3]), TUBE, { lite: q([-.2, -3.3], [1.9, -3.3], [1.9, -2.6], [-.2, -2.6]), shade: q([-.2, 2.5], [1.9, 2.5], [1.9, 3.3], [-.2, 3.3]),
-    lines: [-2.2, -1.1, 0, 1.1, 2.2].map((t) => l([.2, t], [1.5, t])) });
-  a.shape(q([11.3, -.8], [12.8, -.8], [12.8, .8], [11.3, .8]), STEEL, { shade: q([11.3, .3], [12.8, .3], [12.8, .8], [11.3, .8]), lines: [l([12, -.8], [12, .8])] });
-  a.tube('M11.3 4.7C12.3 3.5 13.9 3.2 14.4 4.3C14.8 5.3 13.6 6 12.9 5.3', 1.3, PASTE);
-};
 // A loose picture in the art folder, no longer called by the game: the screwdriver across the square.
 P['tool_screwdriver'] = (a) => {
   a.tube('M9.4 6.6L14.6 1.4', .9, STEEL);

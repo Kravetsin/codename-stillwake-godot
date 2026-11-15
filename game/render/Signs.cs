@@ -38,6 +38,9 @@ public static class Signs
     /// <summary>The thermometer's heat sign: a flame in ember, the star's place once past the body's high (2026-11-14-heat-limits).</summary>
     public static Texture2D Heat() => PixelArt.Picture("sign_heat");
 
+    /// <summary>Hunger's sign: the vitals' meals row's, lit while every meal slot is empty.</summary>
+    public static Texture2D Hunger() => PixelArt.Picture("sign_hunger");
+
     /// <summary>The chip credits are written with, before every amount.</summary>
     public static Texture2D Credit() => PixelArt.Picture("credit");
 }

@@ -17,6 +17,7 @@ Game words → code. One line a term: Russian / English → identifiers → modu
 - открывающаяся (посадочная) платформа / launch platform **≠** → `Structure.PlatformClosed`, `Structure.PlatformOpen`, build `Builds.Platform` = `"launchPlatform"`, a run doorway (`StructureGroup.Platform`, `Join.Run`), command `SetPlatform`; f/power `PlatformLamps`; item `deckDrive` → Landing, Grid
 - капсула / посадочная капсула / колокол / drop pod **≠** → machine `"dropPod"` (`MachineTrait.Seats`, `Lands`), commands `Board`, `Alight`, `Launch` (descend / return), `LandingModule.Seats`, `Flights`, `Owners`; art `machine_dropPod.png`, `dropPod_porthole.png`, `dropPod_lit.png`; f/landing `PodSeats`, f/crew `SeatedHeroes` → Landing
 - беговое колесо / колесо / treadmill wheel → machine `"treadWheel"` (`Seats` without `Lands`, `MachineSpec.Anywhere`): makes 4 while its rider runs (`Exert`), rested by `LandingModule.Turning`; f/crew `SeatedHeroes` → Landing, Power
+- шатл / шаттл / челнок / «Ледокол» / crew shuttle **≠** → machine `"crewShuttle"` (`MachineTrait.Lands`, no seat yet): the crew's craft to the vessels, on a launch platform its whole length; art `machine_crewShuttle.png` (anime-art `shuttle`). Not the vessel class `shuttle` (a derelict) → Landing
 - шахта под платформой / platform shaft → the column under a launch platform to the grid's edge, kept empty: `grid.underPlatform`, `grid.shaftBlocked`, `IGridQueries.ClearBelow`, `Taken`, `landing.shaftBlocked`; f/building `Shafts` → Grid, Building
 - стена / wall → `Structure.Wall` + a material (`c/Materials.cs`), `tool.wall`, `tool.wallScrap` … → Grid
 - задняя стена / back wall → `Back.Wall`, layer `"back"`, `tool.backWall` → Grid
@@ -80,7 +81,7 @@ Game words → code. One line a term: Russian / English → identifiers → modu
 - ценность, наценка / worth, markup → `Content.Market.WorthOf`, `Markup`; цена блока → `Research.Prices` → Research
 - улучшения, слоты инвентаря, пояса, терминала / upgrades → `Content.Upgrades`, `Items.SlotOpen` → Items, Research
 - откат баллона / canister cooldown → `Crew.CanisterCooldown`, `Hero.CanisterIn`, `crew.canisterCooling` → Crew
-- еда, блюдо, голод / food, meal, hunger → `Content.Foods`, `Content.Diet`, `Hero.Meals`, `Eat`, `Hungry`; паёк `ration`, тушёнка `cannedMeat`, паста из капсулы `podPaste` (never an item), фрукт `fruit`, светоягода `glowberry` (crops, crushed or eaten for their seed back), семечко `seed` (a snack); блюда (dishes, the galley's): каша `porridge`, рагу `hash`, бульон `broth`, жаркое `roast`, похлёбка `stew` → Crew
+- еда, блюдо, голод / food, meal, hunger → `Content.Foods`, `Content.Diet`, `Hero.Meals`, `Eat`, `Hungry`; паёк `ration`, тушёнка `cannedMeat`, фрукт `fruit`, светоягода `glowberry` (crops, crushed or eaten for their seed back), семечко `seed` (a snack); блюда (dishes, the galley's): каша `porridge`, рагу `hash`, бульон `broth`, жаркое `roast`, похлёбка `stew` → Crew
 - холодильник, торговый автомат / fridge, vending machine → debris `fridge` (`Content.Loot`), salvage `salvageVending` (`Vessels.Salvage`) → Debris
 - спокойствие, глубокий вдох, работа / calm, deep, work (a food's rates) → `Content.Rates`, `RatesOf` → Crew
 - торговая станция / trade station → machine `tradeStation`, `TradeModule` → Trade; авто / auto trade station → `autoTradeStation`
