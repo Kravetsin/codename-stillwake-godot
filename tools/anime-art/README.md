@@ -88,7 +88,7 @@ A file `subjects/<name>.js` setting `Subjects.<name>`, which calls `out('<pictur
 `Anime.bake({ w, h, draw })`, `w` and `h` in world pixels, drawn 4 times over. Line weights and the light are the
 engine's (`engine.js`), per world pixel. `wash.js` replaces `bake`; a picture drawn straight on a canvas skips the finish.
 
-- A sheet that repeats takes `tile: true`. A door's shut and open pictures differ only by the panel, or pixels stay behind.
+- A sheet that repeats takes `tile: true`. A door's frame and panel are washed apart (`DoorKit`): shut and open differ only by the panel.
 - A `top_*` picture has its ground line on row 16: rows above stand on the cell above, rows below lie over the block (`front`).
 - A cave picture keeps the rows its logical one uses (`LOGICAL` in the page), or its plant floats. Moss is cut at its block's edges along a
   run, px 4 and 20 of 24: every variant's cross-section matches there, its torn end past them.
