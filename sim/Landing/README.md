@@ -13,7 +13,7 @@ The launch platform (ADR `2026-10-24-the-launch-platform`), the drop pod (`2026-
   no one runs), `Crew` (a hero here, awake, exerting; the spawn), `Items` (a hopper's load; a cost laid), `Fuel` (a store).
 - **State** (`LandingState`, saved): `Seats` — `Seat(Pod, Peer, Place)` by (machine, place); `Flights` — `Flight(Peer, Up,
   TicksLeft, Home, Floor, Load, Fuel)` by peer; `Owners` — `Owner(Pod, Peer, Home)`, pods standing off the ship; `Voyages` —
-  `Voyage(From, Riders, TicksLeft, Home, Out, Seed)` in launch order; `Parked` — `Parked(Shuttle, Home)`, shuttles standing
+  `Voyage(From, Riders, TicksLeft, Home, Out, Seed, Load, Fuel)` in launch order; `Parked` — `Parked(Shuttle, Home)`, shuttles standing
   off the ship. Voyages and parked are written only when any.
 
 ## Rules
@@ -34,8 +34,10 @@ The launch platform (ADR `2026-10-24-the-launch-platform`), the drop pod (`2026-
   laid there); off the ship it lands by the spawn, outward from its column, left first, on level ground, its rider's
   (`Owners`). Seated again when it rode and its hero is awake. Off the ship only its owner boards or flies it.
 - **The crew shuttle** (`crewShuttle`, 24 × 10, four seats, a whole run under it). Its course is Places'; `SetOff` (Places)
-  calls `ILandingOps.SetOff(peer, kind, seed)` aboard, `SetOffHome(peer)` off the ship. Its riders are the seats held, in
-  place order; aboard its run opens; its machine, seats and `Parked` go; a `Voyage` of `Shuttle.FlightTicks` starts.
+  calls `ILandingOps.SetOff(peer, kind, seed, fuel)` aboard, `SetOffHome(peer)` off the ship. Its riders are the seats held, in
+  place order; aboard its run opens and the round trip (Places' `CostOf`, in mL) is taken from its 200 l store, short of it
+  `landing.noFuel`; its hopper and the rest of its fuel fly with it (`Load`, `Fuel`), put back wherever it stands again;
+  its machine, seats and `Parked` go; a `Voyage` of `Shuttle.FlightTicks` starts.
 - Voyages count after flights: riders gone from this surface are dropped, out ones fly on. Outbound the run shuts
   `Shuttle.FallTicks` in; left riderless it docks home empty at once, the contact still used. At zero outbound
   `Surfaces.Open(Out, Seed)` opens one vessel world and every rider is sent there in seat order; homeward aboard. A
@@ -45,7 +47,7 @@ The launch platform (ADR `2026-10-24-the-launch-platform`), the drop pod (`2026-
   spawn's (`Parked`); aboard it docks at home if it fits, else its cost is laid there (to its first rider, or to nobody).
   Each awake rider sits at the lowest free place.
 - **Rule 7** (`IOutlives`): a vessel world closing hands the ship the homes of its parked shuttles, then of its voyages;
-  each docks home empty. Flying home while a friend is on the vessel is allowed.
+  each docks home empty, its load and fuel in it. Flying home while a friend is on the vessel is allowed.
 - Riders and seated heroes stay where they were sent; the client holds them at their place's floor.
 
 ## API
@@ -56,8 +58,8 @@ The launch platform (ADR `2026-10-24-the-launch-platform`), the drop pod (`2026-
 - **Refusals:** `SetPlatform` — `landing.noPlatform`, `landing.unpowered`. `Board` — `landing.noPod`, `landing.seated`,
   `landing.taken` (every place taken), `landing.notYours`. `Alight` — `landing.notSeated`. `Launch` — `landing.notSeated`
   (no pod, or a shuttle's seat); aboard `landing.noPlatform`, `landing.shaftBlocked`, `landing.unpowered`,
-  `landing.noFuel`, `landing.cannotLeave`; off the ship `landing.notYours`. `SetOffProblem` — `landing.notSeated` (no
-  shuttle seat, or out); aboard `landing.noPlatform`, `landing.shaftBlocked`, `landing.unpowered`, `landing.cannotLeave`;
+  `landing.noFuel`, `landing.cannotLeave`; off the ship `landing.notYours`. `SetOffProblem(peer, fuel)` — `landing.notSeated` (no
+  shuttle seat, or out); aboard `landing.noPlatform`, `landing.shaftBlocked`, `landing.unpowered`, `landing.noFuel`, `landing.cannotLeave`;
   off the ship `landing.notYours` (a shuttle with no home, a dev's).
 - **Fuzz:** one turn in 8: a launch, else a board, a leave or a platform set. `SetOff` is Places'.
 
@@ -66,14 +68,15 @@ The launch platform (ADR `2026-10-24-the-launch-platform`), the drop pod (`2026-
 - A run is all shut or all open; a shut run never opens without power. Its shaft stays empty (Grid, Building).
 - No machine seats more than its `Riders`; a hero sits in one place at most; every seat's machine stands, its hero awake.
 - Every pod stands on one surface or flies in one flight. Every shuttle stands on one open surface or flies in one voyage,
-  and a voyage's rider sits nowhere (`ShuttleTripTests`' property, with a twin saved and loaded mid-voyage).
+  a voyage's rider sits nowhere, and its fuel is what it had less each round trip set off on (`ShuttleTripTests`' property,
+  with a twin saved and loaded mid-voyage).
 
 ## Deliberately not handled
 
 - A run open when its power fails stays open; a piece added to a run's left moves its plug. Boarding asks no reach (0002).
 - No picture here: the client draws the deck, the fall, the flight and the touchdown from the ticks.
 - A launch shuts a run opened by hand; a hero on a run that opens falls out of the ship.
-- Fuel for the shuttle is a stub: its cost is shown (Places' `CostOf`), never checked or burnt. The return is free.
+- The shuttle's return burns nothing; laid as its cost, its fuel's part of a litre is lost, as a pod's.
 - Distance changes the cost only, not the flight. A contact is used even when nobody arrives.
 - No air or hold in the shuttle; loot comes home in hands. Nothing takes a shuttle or pod apart off the ship.
 - The gap is measured from the frame's left edge, whatever side the door is on; nothing checks the spot at runtime.

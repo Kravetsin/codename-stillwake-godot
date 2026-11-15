@@ -32,7 +32,7 @@ its own for a contact's vessel and moves its sender there. The vessel itself is 
 - **The course** ([shuttle-flight](../../docs/decisions/2026-11-16-shuttle-flight.md)): one per world, `SetCourse(Contact)`
   by anyone aboard, the last of a tick winning; cleared when its contact runs out or is jumped to, and on set off.
   `CostOf(contact)`: litres for the round trip, each leg `|Offset| × KmPerUnit` km over `Shuttle.KmPerLitre`, rounded up;
-  shown only, a stub till fuel-liquid.
+  aboard, `SetOff` burns it from the shuttle's store (`landing.noFuel` short of it); the return burns nothing.
 - **`SetOff`**, from a shuttle's rider: aboard `places.noCourse` (none, or its contact gone) first, then Landing's
   `SetOffProblem`. Aboard the contact is used up, the course cleared and Landing flies the shuttle to a world of the class's
   kind from the contact's seed; off the ship it flies home.

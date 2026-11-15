@@ -63,7 +63,8 @@ socket are the power feature's (`PlatformLamps`).
 - **The crew shuttle** (2026-11-15-crew-shuttle, 2026-11-16-shuttle-flight): its riders are never drawn (`SeatedHeroes`);
   `ShuttleLights` lights slit i while place i is taken and the course lamp aboard while `Places.Course` is set, compared every
   frame, drawn again on a change. Its panel is `ShuttleKey` (`InventoryPanel.Launch` for a `Lands` machine with
-  `Riders > 1`), read on a timer: a press sends places' `SetOff` only while `Places.SetOffProblem` is null.
+  `Riders > 1`), read on a timer: a press sends places' `SetOff` only while `Places.SetOffProblem` is null; a store short of
+  the round trip says `landing.noFuel` with its litres, as the pod's key does.
 - During a voyage its riders are hidden and held at their places' floors where it stood (`Seating`, in riders' order), their
   hands tied. Plain pictures for now: the shuttle vanishes from the grid and appears; the rider sees the pod's flight screen,
   star lines both ways, its white and dip, timed by `Ride` from the voyage's ticks.

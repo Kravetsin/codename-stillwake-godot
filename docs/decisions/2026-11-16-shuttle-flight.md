@@ -31,8 +31,11 @@ arrive together beside the vessel, explore, fly home and dock.
   gap; a player without one flies home for it.
 - **Home is free** and docks the shuttle on its home platform, riders seated; home built over or its run gone, it is laid
   there as its cost. Its home is saved with it off the ship (`Parked`).
-- **Fuel is a stub** until [fuel-liquid](../plans/fuel-liquid.md): the cost, `2 × ceil(km / KmPerLitre)` with 10 km a litre,
-  is shown on the radar and the shuttle's panel, never checked or burnt. `SetOffProblem`/`SetOff` are where it will go.
+- **Fuel is burnt from the shuttle's own store** ([fuel-liquid](2026-11-16-fuel-liquid.md), its 200 l tank): the round trip,
+  `2 × ceil(km / KmPerLitre)` litres with 10 km a litre, is shown on the radar and the shuttle's panel; setting off aboard
+  needs it in the store (`landing.noFuel`, one millilitre short is short) and takes it all at once. The rest flies with the
+  shuttle (`Voyage.Fuel`), stands in its store by the vessel, comes home, and outlives a closing world or is laid as cans with
+  its cost, as a pod's fuel does.
 - **Leaving a friend is allowed**: flying home while a friend is on the vessel takes the shuttle; the friend gets home only by
   dying or quitting, and that world then closes as usual.
 - **The shuttle never dies with its world** (`IOutlives`, in `World.Close`): a vessel world closing hands the ship the homes of
@@ -41,7 +44,8 @@ arrive together beside the vessel, explore, fly home and dock.
 
 ## Deliberately not handled
 
-- Fuel is never checked or burnt. Distance changes the cost only, not the flight time.
+- The return burns nothing, so a shuttle out is never stranded. Distance changes the cost only, not the flight time. Laid as
+  its cost, its fuel's part of a litre is lost, as a pod's.
 - No air or hold in the shuttle: suits cover the crossing, loot comes home in hands.
 - No other way to the vessel: a friend who missed the launch cannot follow. No jetpack: fly home for one.
 - The gap is measured from the frame's left edge, whichever side the door is on; nothing checks the spot at runtime, a

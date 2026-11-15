@@ -1,6 +1,7 @@
 # Plan: The crew shuttle's flight — pictures and sounds
 
-Status: slices 1 (seats) and 2 (the trip) are built and shipped, 2026-11-16; what stays true of them is in the
+Status: slices 1 (seats) and 2 (the trip) are built and shipped, 2026-11-16, the trip's fuel checked and burnt from the
+shuttle's store since fuel-liquid; what stays true of them is in the
 [shuttle-flight ADR](../decisions/2026-11-16-shuttle-flight.md), sim/Landing, sim/Places and game/features/landing. Slice 3
 is left, after the user's pick. Delete this plan once it ships.
 

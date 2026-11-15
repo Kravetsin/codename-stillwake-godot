@@ -37,7 +37,7 @@ computer's row in `c/Machines.cs`. Files in `logic/` are Godot-free and tested i
   (`RadarOrbit`): a diamond each, flaring as the beam passes and fading over the turn, blinking in its last 2 minutes.
 - **A click on a contact** selects it (`Ui.RadarContact`, the player's own): corner brackets round it and its kind's name
   over it (`computer.radar.<kind>`), its distance under that in kilometres (`RadarOrbit.Km`: an offset's units times
-  `KmPerUnit`, 10), and the litres a trip there and back costs (`PlacesModule.CostOf`, shown only). A click on empty
+  `KmPerUnit`, 10), and the litres a trip there and back burns (`PlacesModule.CostOf`). A click on empty
   screen lets go; a selected contact gone is let go on the next read; closing the computer keeps it. While one is selected
   a `Set course` button stands at the bottom of the screen: it sends places' `SetCourse` to it (shuttle-flight); the
   pointer over it shows no tooltip.

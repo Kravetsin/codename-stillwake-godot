@@ -227,7 +227,7 @@ A living document: what is decided about the game and what is still open. Techni
 
 - Which dangers besides meteors and flares, how often, how they are telegraphed; a peaceful mode as in Raft?
   Directions so far: enemies living in other wrecks, pirate raids.
-- What the shuttle's trip costs in fuel (shown, not yet burnt), and what the engine is for.
+- What the engine is for.
 - How resources move between machines: belts, drones, or hired crew carrying them. In side view
   this shapes the ship's layout; carrying by hand comes first, so automation is felt as relief.
 - Co-op start: one shared wreck, or separate wrecks that dock later?
