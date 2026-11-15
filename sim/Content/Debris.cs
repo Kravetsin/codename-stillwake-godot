@@ -350,9 +350,16 @@ public static class Loot
         [
             new("ice", 6, 10),
         ]),
+        // A smuggler's hold: its contraband, and now and then the black market's own goods, free (stretches; unique finds to come).
         ("contrabandCrate",
         [
             new(Stretches.Contraband, 1, 1),
+            new(Foods.Stim, 1, 2, OneIn: 3),
+            new("scanner", 1, 1, OneIn: 16),
+            new("powerDriver", 1, 1, OneIn: 16),
+            new(Helmet.Heavy, 1, 1, OneIn: 20),
+            new("plasmaCutter", 1, 1, OneIn: 20),
+            new("regenSuit", 1, 1, OneIn: 24),
         ]),
         // The farthest prize: air for the way home, and now and then a circuit.
         ("podCluster",

@@ -51,6 +51,14 @@ public class StretchesTests
     private static void InSpan(Spec.Span span, int ticks) => Assert.InRange(ticks, span.Least, span.Most);
 
     [Fact]
+    public void AContrabandCrateAlwaysHoldsItsContrabandAndNowAndThenEveryGoodTheBlackMarketSells()
+    {
+        var loot = Content.Loot.Of("contrabandCrate")!;
+        Assert.Contains(loot, e => e.Item == Spec.Contraband && e.OneIn == null && e.Min >= 1);
+        foreach (var good in Content.Research.GearSold) Assert.Contains(loot, e => e.Item == good && e.OneIn > 1);
+    }
+
+    [Fact]
     public void NothingObtainedOpensNothingAndDrawsNothing()
     {
         var w = Ship().Run(2000);
