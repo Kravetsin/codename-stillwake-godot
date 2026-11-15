@@ -29,6 +29,8 @@ public sealed class SkyState
     [JsonInclude, JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)] internal string? Active { get; set; }
     /// <summary>Ticks of <see cref="Active"/> left; 0 with none running.</summary>
     [JsonInclude, JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)] internal int Left { get; set; }
+    /// <summary>Ticks <see cref="Active"/> has run; 0 with none running, and in a save made before they were counted.</summary>
+    [JsonInclude, JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)] internal int Ran { get; set; }
 }
 
 /// <summary>
@@ -47,9 +49,10 @@ public sealed record StretchNow(string Id) : Command;
 /// The sky now: <paramref name="Time"/> ticks into the day, whether it is <paramref name="Night"/>, and the <paramref name="Chill"/>,
 /// the degrees colder it makes the open sky (2026-11-14-temperature-in-degrees): <c>Cycle.Chill</c> at night and the running
 /// stretch's. <paramref name="Stretch"/> is the stretch running, <paramref name="Coming"/> the one in its warning, with
-/// <paramref name="ComingIn"/> ticks of it left; null and 0 for none. Time and night are 0 and off with no day.
+/// <paramref name="ComingIn"/> ticks of it left, and the running one <paramref name="Ran"/> ticks on: when each began, so its far
+/// picture is the same for every peer and after a load. Null and 0 for none. Time and night are 0 and off with no day.
 /// </summary>
-public readonly record struct SkyNow(int Time, bool Night, int Chill, string? Stretch, string? Coming, int ComingIn);
+public readonly record struct SkyNow(int Time, bool Night, int Chill, string? Stretch, string? Coming, int ComingIn, int Ran = 0);
 
 /// <summary>What any module may read of the sky.</summary>
 public interface ISkyQueries
@@ -88,11 +91,11 @@ public sealed partial class SkyModule : Module<SkyState>, ISkyQueries
             int chill = s.Active is { } active ? StretchOf(active).Chill : 0;
             string? coming = Coming ? s.Next : null;
             int comingIn = coming != null ? s.NextIn : 0;
-            if (Rules.Cycle is not { } cycle) return new SkyNow(0, false, chill, s.Active, coming, comingIn);
+            if (Rules.Cycle is not { } cycle) return new SkyNow(0, false, chill, s.Active, coming, comingIn, s.Ran);
             // Modulo: a save's hour past a shorter day's end is read as the hour it wraps to.
             int time = s.Time % cycle.Length;
             bool night = time >= cycle.Length - cycle.Night;
-            return new SkyNow(time, night, chill + (night ? cycle.Chill : 0), s.Active, coming, comingIn);
+            return new SkyNow(time, night, chill + (night ? cycle.Chill : 0), s.Active, coming, comingIn, s.Ran);
         }
     }
 

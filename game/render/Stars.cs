@@ -109,11 +109,12 @@ public partial class Stars : CanvasLayer
 
     /// <summary>
     /// A stretch of space seen coming, running or easing back (<see cref="StretchShown"/>): its far picture behind the far wrecks,
-    /// <paramref name="grow"/> of its warning run, gone once <paramref name="melt"/> is past 0. Space only: a planet's sky is its own.
+    /// <paramref name="grow"/> of its warning run and <paramref name="since"/> ticks since it began, gone once <paramref name="melt"/> is
+    /// past 0. Space only: a planet's sky is its own.
     /// </summary>
-    public void Stretch(StretchLooks.Look? look, float grow, float melt)
+    public void Stretch(StretchLooks.Look? look, float grow, float melt, int since)
     {
-        if (_tops == null) _far.Show(look, grow, melt);
+        if (_tops == null) _far.Show(look, grow, melt, since);
         else _far.Clear();
     }
 

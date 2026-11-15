@@ -14,14 +14,13 @@ namespace Stillwake.Game.Render;
 /// </summary>
 public partial class StretchBackdrop : Node2D
 {
-    private static readonly double WarningSeconds = (double)Content.Stretches.Warning / Stillwake.Sim.World.TicksPerSecond;
 
     // The look drawn: kept past the sky's own while its row passes out.
     private StretchLooks.Look? _look;
     private Texture2D[] _pictures = [];
     private Texture2D? _atlas;
     private bool _ending;
-    private float _grow;
+    private int _since;
     // Set when it first shows: where the row's leading edge lies on its plane and its middle's height; its seed.
     private double? _lead;
     private double _middle;
@@ -39,17 +38,18 @@ public partial class StretchBackdrop : Node2D
     }
 
     /// <summary>
-    /// The stretch shown (<see cref="StretchShown"/>): <paramref name="look"/>, <paramref name="grow"/> of its warning run, gone once
-    /// <paramref name="melt"/> is past 0. Its row starts with its warning and passes out after it has gone.
+    /// The stretch shown (<see cref="StretchShown"/>): <paramref name="look"/>, <paramref name="grow"/> of its warning run and
+    /// <paramref name="since"/> ticks since it began, gone once <paramref name="melt"/> is past 0. Its row starts with its warning, the
+    /// same picked and in the same place for every peer and after a load, and passes out after it has gone.
     /// </summary>
-    public void Show(StretchLooks.Look? look, float grow, float melt)
+    public void Show(StretchLooks.Look? look, float grow, float melt, int since)
     {
         if (look != null && melt <= 0)
         {
             if (look != _look || _ending) Start(look);
         }
         else if (_look != null) _ending = true;
-        _grow = grow;
+        if (!_ending) _since = since;
         Visible = _look != null && (_ending || grow > 0);
     }
 
@@ -74,8 +74,9 @@ public partial class StretchBackdrop : Node2D
         if (_lead == null)
         {
             // Where it was as the warning started, its leading edge at the right edge: a peer joining later sees it where the others do.
-            double since = Math.Clamp(_grow, 0, 1) * WarningSeconds;
-            (_lead, _middle, _seed) = (centre.X + half - far.Speed * since, centre.Y - far.Above * screen.Y / zoom, (uint)(seconds - since));
+            double since = (double)_since / Stillwake.Sim.World.TicksPerSecond;
+            (_lead, _middle, _seed) = (centre.X + half - far.Speed * since, centre.Y - far.Above * screen.Y / zoom,
+                (uint)(Math.Floor(seconds * Stillwake.Sim.World.TicksPerSecond + 1e-6) - _since));
         }
         long right = (long)Math.Floor((centre.X + half - _lead.Value) / period);
         if (_ending) _last ??= right;

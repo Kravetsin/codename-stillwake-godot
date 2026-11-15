@@ -84,12 +84,12 @@ public class StretchesTests
         w.Run(Spec.Warning - 1);
         Assert.Equal((null, Belt.Id, 1), (Now(w).Stretch, Now(w).Coming, Now(w).ComingIn));
         w.Run();
-        Assert.Equal((Belt.Id, null, 0, Belt.Chill), (Now(w).Stretch, Now(w).Coming, Now(w).ComingIn, Now(w).Chill));
+        Assert.Equal((Belt.Id, null, 0, Belt.Chill, 0), (Now(w).Stretch, Now(w).Coming, Now(w).ComingIn, Now(w).Chill, Now(w).Ran));
         Assert.Equal([Belt.Id], S(w).Came);
         int left = S(w).Left;
         InSpan(Belt.Duration, left);
         w.Run(left - 1);
-        Assert.Equal(Belt.Id, Now(w).Stretch);
+        Assert.Equal((Belt.Id, left - 1), (Now(w).Stretch, Now(w).Ran));
         w.Run();
         Assert.Equal(default, Now(w));
         // Its gap measured from the end, drawn on the tick it ended; the drift never opened.
@@ -195,6 +195,9 @@ public class StretchesTests
         Assert.Equal(Belt.Id, Now(w).Stretch);
         var loaded = Ship().Reload(w.World.Save());
         Assert.Equal(w.World.Hash(), loaded.World.Hash());
+        // How long it has run, too: its far picture is the same after a load.
+        Assert.True(Now(w).Ran > 0);
+        Assert.Equal(Now(w), Now(loaded));
         w.Run(Belt.Duration.Most + 100);
         loaded.Run(Belt.Duration.Most + 100);
         Assert.Equal(w.World.Hash(), loaded.World.Hash());

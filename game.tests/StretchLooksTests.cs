@@ -53,7 +53,12 @@ public class StretchLooksTests
         for (int left = Warning; left >= Warning / 3; left -= 60) all.See(null, Belt, left, Warning - left);
         var joiner = new StretchShown();
         joiner.See(null, Belt, Warning / 3, Warning - Warning / 3);
-        Assert.Equal(all.Grow, joiner.Grow);
+        Assert.Equal((all.Grow, all.Since), (joiner.Grow, joiner.Since));
+        Assert.Equal(Warning - Warning / 3, joiner.Since);
+        // One loading a world mid-stretch knows when it began: its far picture is the one shown before, where it was.
+        var running = new StretchShown();
+        running.See(Belt, null, 0, 0, ran: 500);
+        Assert.Equal(Warning + 500, running.Since);
         var late = new StretchShown();
         late.See(null, null, 0, 5 * Warning);
         Assert.Null(late.Look);

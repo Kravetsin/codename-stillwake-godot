@@ -22,7 +22,8 @@ public sealed partial class SkyModule
                 if (!s.Opened.Contains(stretch.Id) && Unlocked(stretch)) Add(s.Opened, stretch.Id);
         if (s.Active != null)
         {
-            if (--s.Left <= 0) (s.Active, s.Left) = (null, 0);
+            s.Ran++;
+            if (--s.Left <= 0) (s.Active, s.Left, s.Ran) = (null, 0, 0);
         }
         else if (s.Next != null && --s.NextIn <= 0) Start(StretchOf(s.Next));
         if (s.Active == null && s.Next == null && s.Opened.Count > 0) Choose();
@@ -62,7 +63,7 @@ public sealed partial class SkyModule
     {
         var s = State;
         s.Active = stretch.Id;
-        s.Left = Draw(stretch.Duration);
+        (s.Left, s.Ran) = (Draw(stretch.Duration), 0);
         if (!s.Came.Contains(stretch.Id)) Add(s.Came, stretch.Id);
         (s.Next, s.NextIn) = (null, 0);
     }

@@ -144,19 +144,23 @@ public sealed class StretchShown
     /// <summary>How far it has eased back, 0 to 1 over <see cref="StretchLooks.Thaw"/>.</summary>
     public float Melt => (float)Math.Min(1, After);
 
-    /// <summary>The share of its wash and band shown: its warning's run, eased back after.</summary>
+    /// <summary>The share of its band shown: its warning's run, eased back after.</summary>
     public float Shown => Grow * (1 - Melt);
 
+    /// <summary>Ticks since its warning began, while it is coming or running: when it began, the same for every peer and after a load.</summary>
+    public int Since { get; private set; }
+
     /// <summary>
-    /// The sky now: <paramref name="running"/>, the stretch running, else <paramref name="coming"/> with <paramref name="comingIn"/> ticks
-    /// of its warning left (<c>SkyNow</c>); <paramref name="clock"/> the world's ticks, between them too.
+    /// The sky now: <paramref name="running"/>, the stretch running <paramref name="ran"/> ticks, else <paramref name="coming"/> with
+    /// <paramref name="comingIn"/> ticks of its warning left (<c>SkyNow</c>); <paramref name="clock"/> the world's ticks, between them too.
     /// </summary>
-    public void See(string? running, string? coming, int comingIn, double clock)
+    public void See(string? running, string? coming, int comingIn, double clock, int ran = 0)
     {
         if ((running ?? coming) is { } id)
         {
             Look = StretchLooks.Of(id);
             Grow = running != null ? 1 : Math.Clamp(1 - comingIn / (float)Content.Stretches.Warning, 0, 1);
+            Since = running != null ? Content.Stretches.Warning + ran : Math.Max(0, Content.Stretches.Warning - comingIn);
             (After, _ended) = (0, null);
             return;
         }
