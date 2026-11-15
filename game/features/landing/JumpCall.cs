@@ -30,6 +30,7 @@ public partial class JumpCall : CanvasLayer
     /// <summary>Someone pressed Fire with the crew away: come home.</summary>
     public void Call()
     {
+        _blast.Stop();
         Show(CallColour, CallS);
         _beep.Play();
     }
@@ -52,6 +53,8 @@ public partial class JumpCall : CanvasLayer
         if (_left <= 0) return;
         _left -= delta;
         // Two pulses for a call, fading out; the burn one swell.
+        // The stand-in blast is a loop: it ends with its light.
+        if (_left <= 0) _blast.Stop();
         double along = 1 - _left / _lasts;
         _edge.Strength = _left <= 0 ? 0 : (float)((1 - along) * (0.55 + 0.45 * Mathf.Cos(along * Mathf.Tau * 2)));
         _edge.QueueRedraw();
