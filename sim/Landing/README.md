@@ -28,6 +28,8 @@ return (ADR `2026-10-26-the-descent`); later the landers that drop with it.
   solid ground, where only this module places one (`grid.noGround`). `Board(pod)` seats the sender's hero; `Alight` takes it
   out. Its one slot takes biofuel only, by hand.
 - A seat holds while its machine stands and its hero is here and awake.
+- **The crew shuttle** (`crewShuttle`, `Lands` without `Seats`, crew-shuttle ADR): 24 cells by 10, stood on a platform as a pod is,
+  the whole run under its bottom row. Only built for now: boarding it is `landing.noPod`.
 - **The treadmill wheel** (`treadWheel`, `Seats` without `Lands`, power chain ADR): boarded and left as a pod is, anywhere,
   by anyone. Each construction, after Building, Landing rests (`IPowerOps.Rest`) every seated maker but while its rider is
   here, awake and exerting (`Turning`): it makes from that tick. `Launch` from it is `landing.notSeated`.

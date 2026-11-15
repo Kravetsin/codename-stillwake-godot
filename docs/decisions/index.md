@@ -370,6 +370,7 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [air-segments](2026-11-15-air-segments.md) | Air segments | accepted |  |
 | [blade-sparks](2026-11-15-blade-sparks.md) | A struck wreck sparks where the blade's trail lies on it | accepted | spark-rule (in part) |
 | [builders-raw](2026-11-15-builders-raw.md) | The screwdriver, power driver and blasting charge drawn raw | accepted |  |
+| [crew-shuttle](2026-11-15-crew-shuttle.md) | The crew shuttle stands on a launch platform | accepted |  |
 | [cutter-contact](2026-11-15-cutter-contact.md) | The cutter's slag blows out the far side, and struck ground sparks off the trail | accepted | spark-rule (in part) |
 | [food-tuning](2026-11-15-food-tuning.md) | Food tuning: whole-unit canisters, longer dishes, a stimulant, a purge | accepted |  |
 | [held-over-grass](2026-11-15-held-over-grass.md) | A hero's near arm and what it holds over the grass | accepted |  |

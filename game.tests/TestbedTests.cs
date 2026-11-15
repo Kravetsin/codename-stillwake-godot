@@ -118,8 +118,10 @@ public class TestbedTests
         Assert.True(m.Furnace.At(IdOf(m, "furnace")).Burning);
         Assert.True(m.Furnace.At(IdOf(m, "burnerGenerator")).Burning);
         var airlock = m.Rooms.RoomAt(Testbed.Map.Width * 12 + 96);
+        var hangar = m.Rooms.RoomAt(Testbed.Map.Width * 8 + 102);
         Assert.NotNull(airlock);
-        Assert.All(m.Rooms.All, room => Assert.Equal(room.Id == airlock ? RoomStatus.Vacuum : RoomStatus.Aired, Held(m, room.Id)));
+        Assert.NotNull(hangar);
+        Assert.All(m.Rooms.All, room => Assert.Equal(room.Id == airlock || room.Id == hangar ? RoomStatus.Vacuum : RoomStatus.Aired, Held(m, room.Id)));
         Assert.All(m.Grid.Machines.Where(x => Spec.Machines.Get(x.Kind).Draws != null), x => Assert.Equal(1000, m.Power.Satisfaction(x.Id)));
         int charger = IdOf(m, "charger");
         Assert.True(m.Power.Charges(charger));
@@ -198,9 +200,10 @@ public class TestbedTests
         Assert.True(longest < 30 * World.TicksPerSecond, $"the furnace stood empty {longest} ticks");
         int left = m.Items.Crate(crates[0]).Sum(s => s?.Item == "scrapChunk" ? s.Count : 0);
         Assert.True(Testbed.Supplies.Where(s => s.Item == "scrapChunk").Sum(s => s.Count) - left >= 120, $"{left} chunks left");
-        // The air held: every room but the airlock aired.
+        // The air held: every room but the airlock and the shuttle's hangar aired.
         var airlock = m.Rooms.RoomAt(Testbed.Map.Width * 12 + 96);
-        Assert.All(m.Rooms.All.Where(r => r.Id != airlock), r => Assert.Equal(RoomStatus.Aired, Held(m, r.Id)));
+        var hangar = m.Rooms.RoomAt(Testbed.Map.Width * 8 + 102);
+        Assert.All(m.Rooms.All.Where(r => r.Id != airlock && r.Id != hangar), r => Assert.Equal(RoomStatus.Aired, Held(m, r.Id)));
         // Two drones, many jobs, few launches: a drone takes its next job from where it is.
         Assert.True(launched.Count < 60, $"{launched.Count} launches");
         Assert.True(m.Items.Floor.Count == 0, string.Join(", ", m.Items.Floor.Select(f => $"{f.Item} {f.Count} at ({f.Cell % Testbed.Map.Width},{f.Cell / Testbed.Map.Width})")));
