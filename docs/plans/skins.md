@@ -161,7 +161,7 @@ When it goes wrong: the player chose a DLC skin on a PC that owns it, then joins
 - Four slots: helmet, body, cape, weapon effect. The DLC seam goes in now. A skin applies at once.
 - Unowned skins show in the strip locked: the tab advertises the DLC. They cannot be picked.
 - First art: one body skin and one weapon effect. Helmet and cape skins come later, through the same slots.
-- The effect draws on top of the haze; the arc module wins over it.
+- The effect replaces the haze with an effect of its own (not the arc recoloured); the arc module wins over it.
 - The effect is always on while held, like the arc's charge; and step 0 unifies the blade charge before the effect is built.
 
 ## Tasks
@@ -213,13 +213,19 @@ PR. S-1…S-5 are one try on `feat/skins`, played by the user, then shipped toge
   (`DressSheet` frame) and a catalogue test, run on a test-only helmet and cape row, that every such row has its table rows.
 
 ### S-4 — The effect skin
-- First add `HeldArt.EdgeArea(HeldLook)`: the picture's drawn pixels in a box round `EdgeFrom`–`EdgeTo` bowed by `Bow`, its margin in `gc/`; test that every struck item's box holds its edge points.
-- `Dressed.Effect` set → `Figure` runs `BladeCharge` with the skin's look (`gc/SkinEffects.cs`: tint, fizz and bolt
-  numbers as data) on `HeldArt.EdgeArea(item)` for the fire axe, sledgehammer, pickaxe and spear, always while in hand.
-- Off while the item has a fitted charge of its own (the arc spear): the module wins.
-- The look itself is picked by the user on an Artifact page (CLAUDE.md, Art picks): several really different charges
-  drawn on a canvas at game scale on the axe and the spear, at rest and swinging; the pick → the `gc/` record.
-- Test: with the arc fitted the skin draws nothing; with no effect skin nothing new draws.
+The user, after the first pick page (recoloured arcs): an effect skin is not the arc in another colour but a new effect
+of its own that **replaces the haze**. So:
+- The swing's haze is already split: `BladeTrail` is where the edge has been, `ReachAir` draws it as haze ("what it is
+  drawn as is the drawer's"). An effect skin is another drawer of the same `BladeTrail`, and also has a look at rest on
+  the blade's area round its edge (`HeldLook.EdgeBox`, `HeldArt.AreaOf`): always visible while held, as the arc's charge is.
+- `Dressed.Effect` set → `Figure` hands the blade's trail to the skin's drawer instead of the haze, for the fire axe,
+  sledgehammer, pickaxe and spear; the drill's and grinder's air stay as they are.
+- Off while the item has a fitted arc module: the module wins, its charge and the haze as on `main`.
+- The effect is picked by the user on an Artifact page: several really different effects (not colours of one) drawn on a
+  canvas at game scale on the axe and the spear, at rest, walking and swinging, beside today's haze.
+- After the pick: the recoloured-charge record (`ChargeLook`'s numbers for skins) goes if the picked effect does not use
+  it; `ChargeOn` becomes the choice between the module's charge, the skin's effect and the haze.
+- Test: with the arc fitted the skin draws nothing; with no effect skin the haze draws as on `main`.
 
 ### S-5 — The Appearance tab and the body skin
 - `game/features/items`: a wrist key beside the equipment block switches it to Appearance: `SlotBox` per kind in rows
