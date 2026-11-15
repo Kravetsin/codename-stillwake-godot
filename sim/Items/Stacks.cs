@@ -242,6 +242,25 @@ internal static class Stacks
     }
 
     /// <summary>
+    /// Moves the lesser of <paramref name="count"/> and what <paramref name="src"/> holds into the trash of
+    /// <paramref name="toSlots"/>, an inventory (trash-slot): what the trash held is gone, never merged nor swapped back.
+    /// Both sides are one array when <paramref name="same"/>; the caller checks slots and crates.
+    /// </summary>
+    public static string? Trashed(
+        IReadOnlyList<Stack?> fromSlots, IReadOnlyList<Stack?> toSlots, bool same, Place src, int count,
+        out Stack?[] from, out Stack?[] to)
+    {
+        from = Copy(fromSlots);
+        to = same ? from : Copy(toSlots);
+        var s = from[src.Slot];
+        if (s == null || count < 1) return "items.empty";
+        int n = Math.Min(count, s.Count);
+        from[src.Slot] = n == s.Count ? null : s with { Count = s.Count - n };
+        to[Inventory.Trash] = s with { Count = n };
+        return null;
+    }
+
+    /// <summary>
     /// <paramref name="slots"/> with those from <paramref name="start"/> up to <paramref name="end"/> sorted (0008):
     /// stacks alike (<see cref="Alike"/>) merged up to their limit, the full ones first, then laid from
     /// <paramref name="start"/> in order of <see cref="ItemGroup"/>, item id (ordinal), module (ordinal, none first), charge,

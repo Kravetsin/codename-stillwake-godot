@@ -397,7 +397,7 @@ public sealed partial class ItemsModule : Module<ItemsState>, IItemsQueries, IIt
     public bool Equipped(int peer, string item)
     {
         var slots = Inventory(peer);
-        for (int i = Content.Inventory.Slots; i < slots.Count; i++)
+        for (int i = Content.Inventory.Slots; i < Content.Inventory.Trash; i++)
             if (slots[i]?.Item == item) return true;
         return false;
     }
@@ -954,7 +954,10 @@ public sealed partial class ItemsModule : Module<ItemsState>, IItemsQueries, IIt
     {
         (after, into) = ([], []);
         if (dst.Slot is int slot && !SlotOpen(peer, new Place(slot, dst.Crate))) return "items.noSlot";
-        return Stacks.Moved(from, to, same, src, dst, count, out after, out into, dst.Crate is int c ? InputsOf(c) : Own(peer))
+        var moved = dst is { Crate: null, Slot: int trash } && trash == Content.Inventory.Trash
+            ? Stacks.Trashed(from, to, same, src, count, out after, out into)
+            : Stacks.Moved(from, to, same, src, dst, count, out after, out into, dst.Crate is int c ? InputsOf(c) : Own(peer));
+        return moved
             ?? (src.Crate is int a ? Stacks.Unfit(HolderOf(a)!, after) : Stacks.Misfit(after))
             ?? (dst.Crate is int b ? Stacks.Unfit(HolderOf(b)!, into) : Stacks.Misfit(into));
     }

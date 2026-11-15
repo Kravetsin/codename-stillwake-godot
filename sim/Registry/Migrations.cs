@@ -325,6 +325,14 @@ public static class Migrations
             }
             return root;
         },
+        // 63 → 64 (trash-slot): every inventory gets the trash, an empty slot after its equipment.
+        root =>
+        {
+            foreach (var slices in new[] { root["slices"]! }.Concat((root["surfaces"]?.AsArray() ?? []).Select(s => s!["slices"]!)))
+                foreach (var held in slices["items"]!["inventories"]!.AsArray())
+                    held!["slots"]!.AsArray().Add(null);
+            return root;
+        },
     ];
 
     /// <summary>The slices with liquids' empty one after building's, where its module runs: a save holds them in that order.</summary>

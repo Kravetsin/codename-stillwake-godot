@@ -400,8 +400,9 @@ public class ItemsTests
     [Property(MaxTest = 200)]
     public Property CratesNeverMakeOrLoseAnItemNorKeepAnEntryForAnEmptyCrate()
     {
+        // A move into the trash loses what it held: TrashTests counts that.
         var step = from src in Places
-                   from dst in Targets
+                   from dst in Targets.Where(t => t.Crate != null || t.Slot != Inventory.Trash)
                    from count in Counts
                    from peer in Gen.Choose(0, 2)
                    select new Move(src, dst, count) { From = peer };

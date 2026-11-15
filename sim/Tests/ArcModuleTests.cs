@@ -309,9 +309,11 @@ public class ArcModuleTests
         + w.M.Grid.Machines.Sum(m => Held(w, m.Id, Arc) + w.M.Items.FittedTo(m.Id).Count(f => f == Arc))
         + w.M.Items.Floor.Where(s => s.Item == Arc).Sum(s => s.Count);
 
+    private static bool IntoTrash(Command c) => c is Move { Dst: { Crate: null, Slot: int slot } } && slot == Spec.Inventory.Trash;
+
     /// <summary>
-    /// Items are conserved across fits and takes: whatever the items fuzz draws but spawns, fits, takes, moves, drops and pick-ups
-    /// by three peers carrying modules, no arc module is made or lost.
+    /// Items are conserved across fits and takes: whatever the items fuzz draws but spawns and moves into the trash (which lose
+    /// what it held, TrashTests), fits, takes, moves, drops and pick-ups by three peers carrying modules, no arc module is made or lost.
     /// </summary>
     [Property(MaxTest = 30)]
     public Property FitsAndTakesNeitherMakeNorLoseAModule(PositiveInt seed)
@@ -320,7 +322,7 @@ public class ArcModuleTests
         int before = Arcs(w);
         var rng = new Rng(new RngState { S = (uint)seed.Get });
         for (int i = 0; i < 16000; i++)
-            if (w.M.Items.Fuzz(rng, i % 3) is { } c and not Spawn) w.Do(c).Run();
+            if (w.M.Items.Fuzz(rng, i % 3) is { } c and not Spawn && !IntoTrash(c)) w.Do(c).Run();
         return (Arcs(w) == before).Label($"{Arcs(w)} arc modules of {before}");
     }
 
