@@ -38,7 +38,7 @@ Shared: `game/shared/` (`Ui`, `Hands`, `PointerTip`, `Tablet`, `TabletMotion`, `
   elsewhere puts the plan away. A drag ends with the card that began it.
 - **The menu is content** (0114): a card is a row with a `MenuSlot` (machine, build, a material's wall and back wall),
   on its tab by `Order`; `MenuTabs.All` orders the tabs (`Tools.TabsOf`). Every built material has both (0077, 0084,
-  0108; no bedrock). A card not known is not shown, nor a tab with none but the ship's (`ShownEmpty`). Walls have no shape to
+  0108; no bedrock). A card not known is not shown, nor a tab with none but the ship's (`ShownEmpty`), in the front only. Walls have no shape to
   turn (0106); pipes are laid by piping (0109).
 - **Left plans, right removes in the focused layer** (0108, 0110, `Tools.ActOf`): the plan has a focus, the front
   (walls, machines, doors, hatches, ladders, floors) or the back walls. A card picked sets its own
