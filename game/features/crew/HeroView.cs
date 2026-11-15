@@ -217,6 +217,8 @@ public partial class HeroView : Node2D
     private bool _runs;
     /// <summary>Which way the jetpack thrust in this frame's last step, a unit vector in thousandths; none while it does not (0047).</summary>
     private Point? _thrust;
+    /// <summary>Whether this hero's jetpack vents now: thrusting, not cruising (jet-cruise); its plume and its sound follow it.</summary>
+    private bool _venting;
     /// <summary>Each hero's jetpack plume, by peer, made the first time it shows (0075).</summary>
     private readonly Dictionary<int, JetPlume> _plumes = new();
     /// <summary>Whether the player asked to breathe a canister, from the inventory, R or its edge key, since the last frame.</summary>
@@ -529,8 +531,8 @@ public partial class HeroView : Node2D
         if (!passedOut && Report.ExertOf(m.Crew, client.Id, exerting) is { } exert) client.Send(exert);
         // Off as Shift is let go, aboard, the jetpack taken off or the suit empty: the sim stops venting it.
         // A cruise at full speed along the thrust is free (jet-cruise): only a start, turn, brake or dodge vents the suit.
-        bool venting = _thrust is { } dir && !Hero.Cruising(_current.Vx, _current.Vy, dir);
-        if (Report.ThrustOf(m.Crew, client.Id, venting) is { } thrusts) client.Send(thrusts);
+        _venting = _thrust is { } dir && !Hero.Cruising(_current.Vx, _current.Vy, dir);
+        if (Report.ThrustOf(m.Crew, client.Id, _venting) is { } thrusts) client.Send(thrusts);
         HearThrust(elapsedMs);
         for (int burnt = _burns.Due(elapsedMs, Burns(m, known), 1 / S.LavaBurnEveryS); burnt > 0; burnt--) _burn.Play();
         if (_breathe && !passedOut) Breathe(client, m);
@@ -595,7 +597,7 @@ public partial class HeroView : Node2D
         _figure.Show(drawn, pose, look, holdsPlan, elapsedMs);
         _figure.Visible = seat == null;
         // Its own thrust shows at once (0014); others' as the sim says.
-        Plume(client.Id, _figure, _thrust is { } own ? (own.X, own.Y) : null, elapsedMs);
+        Plume(client.Id, _figure, _venting && _thrust is { } own ? (own.X, own.Y) : null, elapsedMs);
         var shownHero = drawn;
         Hero? HeroOf(int peer)
         {
