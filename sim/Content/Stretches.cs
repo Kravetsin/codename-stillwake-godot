@@ -26,7 +26,7 @@ public static class Stretches
 
     /// <summary>The ice belt: opened by a warm helmet; ice blocks drift by, and outside is 20° colder.</summary>
     public static readonly Stretch IceBelt = new("iceBelt", [Helmet.Quilted, Helmet.Heavy],
-        First: new(5 * Minute, 10 * Minute), Gap: new(20 * Minute, 40 * Minute), Duration: new(4 * Minute, 6 * Minute), Chill: 20,
+        First: new(5 * Minute, 10 * Minute), Gap: new(20 * Minute, 40 * Minute), Duration: new(4 * Minute, 6 * Minute), Chill: 40,
         Zone: new DebrisZone("iceBelt", new ByHull(Debris.Margin, Debris.Lead), Every: 200, Jitter: 100, Max: 12, Debris.DriftMin, Debris.DriftMax,
             [new(0, [("iceBlock", 1)])])
         { Stretch = "iceBelt" });

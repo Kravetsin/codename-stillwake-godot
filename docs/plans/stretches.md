@@ -72,7 +72,7 @@ no format bump.
 | Unlock | `quiltedHelmet` or `heavyHelmet` | `railgun` |
 | First / Gap | 5–10 min / 20–40 min | 5–10 min / 25–45 min |
 | Duration | 4–6 min | 5–8 min |
-| Chill | 20° | 0 |
+| Chill | 40° | 0 |
 | Its zone | `iceBlock` pieces, 6–10 `ice` each (ice melts to water) | `contrabandCrate` pieces, `contraband` worth 1200 |
 | Tint | blue-grey | amber-red |
 
