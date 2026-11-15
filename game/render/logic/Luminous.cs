@@ -206,11 +206,6 @@ public sealed record Luminous(Glimmer Kind, (int R, int G, int B)[] Ramp, (doubl
     /// <summary>A breath of room air at the visor: a pale mote drifting off and fading.</summary>
     public static readonly Luminous VisorMote = new(Glimmer.Mote, [(220, 246, 255), (150, 214, 245)], (900, 1400))
     { Bright = 0.85, Fade = 1.1, Rise = 0.12, Drag = 1.2, Turbulence = 10, Size = 0.55 };
-    /// <summary>Meals thrown up bare-headed (food-tuning): olive matter out of the mouth, arcing down and splashing; a first draft.</summary>
-    public static readonly Luminous Retch = new(Glimmer.Mote, [(206, 196, 104), (160, 148, 64), (112, 102, 48)], (700, 1300))
-    { Matter = true, Bright = 0.9, Fade = 0.8, Gravity = 220, Drag = 0.9, Size = 0.75, Bounce = 0.1 };
-    /// <summary>The same afloat: nothing pulls it down, it drifts off slowing.</summary>
-    public static readonly Luminous RetchAfloat = Retch with { Gravity = 0, Drag = 1.6 };
     // The tick (the sentry page's candidate 3): its amber burner, its fine sparks, its snip.
 
     /// <summary>A tick's burner: short amber streaks, white at the nozzle, curling and flickering as they slow.</summary>

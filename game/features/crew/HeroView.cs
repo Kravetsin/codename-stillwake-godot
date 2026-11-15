@@ -540,7 +540,7 @@ public partial class HeroView : Node2D
         if (_eat is { } food && !passedOut) Eat(client, m, food);
         _eat = null;
         if (m.Crew.HeroOf(client.Id) is { } sick && Purged(client.Id, sick.Purges))
-            Retch(_figure, _current.Facing, ship.Space(_current.BodyCell(grid.Width)));
+            _figure.Retch(ship.Space(_current.BodyCell(grid.Width)));
         if (_switchSuit && Report.SuitModeOf(m.Crew.HeroOf(client.Id)?.SuitOn ?? false, m.Crew.SuitModeProblem(client.Id), client.InFlight) is { } mode)
         {
             client.Send(mode);

@@ -405,6 +405,10 @@ public partial class Figure : Node2D
         _waist.AddChild(_capeOutside);
         _air.Position = new Vector2(0, (float)-Rig.Shoulder);
         AddChild(_body);
+        // A retch's bile (food-tuning): on the glass, clipped to it; out of the mouth, free of the figure, puddles behind it.
+        _helmetPictures[VisorPicture].AddChild(_bile);
+        AddChild(_puddles);
+        AddChild(_drops);
         Wear(colour);
     }
 
@@ -474,32 +478,67 @@ public partial class Figure : Node2D
     public void Flinch(int from) => (_flinchMs, _flinchFrom) = (0, from >= 0 ? 1 : -1);
 
     private double _retchMs = double.PositiveInfinity;
-    private static readonly Color Sick = new(0.78f, 0.8f, 0.36f);
+    private bool _retchAfloat;
+    private readonly RetchSpray _spray = new();
+    private readonly InkLayer _puddles = new(Layers.FloorItems), _drops = new(Layers.Effects), _bile = new();
 
     /// <summary>
-    /// Its meals thrown up (food-tuning): the body lurches forward as from a blow behind and a helmet's visor clouds a sick
-    /// olive, clearing over <see cref="RetchClearMs"/>. A first draft; the look is picked on a page.
+    /// Its meals thrown up (food-tuning, bile-slide as picked): a gag, then the body hunches over three gushes; bare, bile sprays
+    /// from the mouth (<see cref="RetchSpray"/>), <paramref name="afloat"/> drifting, on a deck falling into puddles; in a helmet
+    /// it splashes over the glass and slides down it (<see cref="Retching.Film"/>).
     /// </summary>
-    public void Retch(int facing)
-    {
-        _retchMs = 0;
-        Flinch(-facing);
-    }
-
-    private const double RetchClearMs = 4000;
+    public void Retch(bool afloat) => (_retchMs, _retchAfloat) = (0, afloat);
 
     /// <summary>The visor's place among <see cref="_helmetPictures"/>.</summary>
     private const int VisorPicture = 5;
 
-    /// <summary>Whether it wears a helmet: what it throws up stays inside, on the visor.</summary>
-    public bool Helmeted => _helmetWorn != null;
+    /// <summary>Where the mouth is in the head's frame, as <see cref="VisorOn"/> is; which way it throws up, below the face's level on a deck.</summary>
+    private static readonly Vector2 MouthOn = new(4.8f, -3.2f);
 
-    private void ShowRetch(double elapsedMs)
+    private static readonly Dictionary<string, Rect2> Glasses = new();
+
+    /// <summary>Where a visor picture's glass is, in its hi-res pixels: read once a picture, the first time it is thrown up on.</summary>
+    private static Rect2 GlassOf(string picture)
     {
+        if (Glasses.TryGetValue(picture, out var known)) return known;
+        var image = HiRes.Load(picture);
+        var used = image?.GetUsedRect() ?? new Rect2I(50, 23, 14, 27);
+        return Glasses[picture] = new Rect2(used.Position, used.Size);
+    }
+
+    /// <summary>The retch played on <paramref name="elapsedMs"/>, once the figure is placed: the bile on the glass or out of the mouth onto a deck at <paramref name="floor"/>.</summary>
+    private void ShowRetch(double elapsedMs, double floor)
+    {
+        bool retching = _retchMs < Retching.Ms;
         _retchMs += elapsedMs;
-        float sick = _retchMs >= RetchClearMs ? 0 : 1 - Mathf.SmoothStep(0.15f, 1, (float)(_retchMs / RetchClearMs));
-        // The bent copy draws the visor; the sprite itself stays clear (BentPicture).
-        _helmetPictures[VisorPicture].SelfModulate = Colors.White.Lerp(Sick, sick);
+        var visor = _helmetPictures[VisorPicture];
+        bool film = retching && _helmetWorn != null && _visor.Texture != null;
+        visor.ClipChildren = film ? ClipChildrenMode.AndDraw : ClipChildrenMode.Disabled;
+        _bile.Ink.Clear();
+        if (film)
+        {
+            var glass = GlassOf($"hero_{PictureOf("visor")}");
+            var corner = _visor.Offset;
+            double sx = glass.Size.X / 14, sy = glass.Size.Y / 27;
+            (double, double) Placed((double X, double Y) p) =>
+                (corner.X + (glass.Position.X + (p.X - 50) * sx) / HiRes.Scale, corner.Y + (glass.Position.Y + (p.Y - 23) * sy) / HiRes.Scale);
+            _bile.Ink.Feather = InkCanvas.PixelOf(visor);
+            Retching.Film(_bile.Ink, (_retchMs - Retching.GushMs) / 1000 - 0.04, Placed, Math.Sqrt(sx * sy) / HiRes.Scale);
+        }
+        _bile.QueueRedraw();
+        if (_spray.Empty && !retching) return;
+        var mouth = _crown.ToGlobal(MouthOn);
+        float down = _retchAfloat ? -0.2f : 0.2f;
+        var toward = (_crown.ToGlobal(MouthOn + new Vector2(Mathf.Cos(down), Mathf.Sin(down))) - mouth).Normalized();
+        double gush = retching && _helmetWorn == null ? Retching.Gush(_retchMs) : 0;
+        _spray.Step(elapsedMs / 1000, gush, (mouth.X, mouth.Y), (toward.X, toward.Y), _retchAfloat, floor);
+        _puddles.Ink.Clear();
+        _drops.Ink.Clear();
+        _puddles.Ink.Feather = _drops.Ink.Feather = InkCanvas.PixelOf(_drops);
+        _spray.DrawFloor(_puddles.Ink);
+        _spray.DrawAir(_drops.Ink);
+        _puddles.QueueRedraw();
+        _drops.QueueRedraw();
     }
 
     /// <summary>The item the front hand holds, by id, the fire axe or the harpoon: its hotbar slot chosen, the hand free; none for an empty hand.</summary>
@@ -1209,7 +1248,7 @@ public partial class Figure : Node2D
     public void Show(Hero hero, Pose pose, double look, bool holdsPlan, double elapsedMs)
     {
         _timeMs += elapsedMs;
-        ShowRetch(elapsedMs);
+
         if (_scanner.Visible)
         {
             int lit = (int)(_timeMs / ScannerDotMs) % (_scannerDots.Length + 1);
@@ -1279,6 +1318,7 @@ public partial class Figure : Node2D
         if (Lean != 0) to = to with { Tilt = to.Tilt + Lean };
         _flinchMs += elapsedMs;
         to = Poses.Flinched(to, Poses.FlinchOf(_flinchMs), _flinchFrom * hero.Facing, pose);
+        to = Poses.Retched(to, Retching.Hunch(_retchMs), pose);
         var from = _shown ?? to;
         double within = pose switch { Pose.Float => FloatSettleMs, Pose.Tumble => SlackMs, _ => SettleMs };
         var shown = new Limbs(
@@ -1308,6 +1348,11 @@ public partial class Figure : Node2D
         {
             double at = (_bit && bodyPhase >= _lastPhase ? AxeSwing.Shown(bodyPhase, stroke!) : bodyPhase) - stroke!.HitShare;
             answer = BodyPlay.At(strokeAnswer, at, heft);
+        }
+        if (_retchMs < Retching.Ms)
+        {
+            var retch = BodyState.Rest with { Lean = Retching.Lean(_retchMs) };
+            answer = answer is { } before ? before.Plus(retch) : retch;
         }
         if (_recoilMs < BodyAnswers.RecoilMs)
         {
@@ -1435,6 +1480,8 @@ public partial class Figure : Node2D
         // On the floor the head takes back some of the body's lean, so a run looks ahead, not at the floor.
         // In an answer it keeps the eyes up as the body leans.
         _gaze = _head - (pose is Pose.Stand or Pose.Walk or Pose.Run ? shown.Tilt * HeroMotion.Run.HeadSteady : 0) - BodyAnswers.HeadSteady * body.Lean;
+        // Retching the head goes down with the torso and further, over what comes up.
+        if (_retchMs < Retching.Ms) _gaze += Retching.Nod(_retchMs) + (pose is Pose.Stand or Pose.Walk or Pose.Run ? BodyAnswers.HeadSteady * Retching.Lean(_retchMs) : 0);
         // Each part of the helmet turns its fit's way about its pivot (helmets-fit-the-suit); its pictures bend only if it is soft.
         if (_trial != BodyFit.Trial) FitHelmet(_helmetWorn);
         var (face, shell, bend, crown) = _fit.TurnsBy(_gaze);
@@ -1443,6 +1490,7 @@ public partial class Figure : Node2D
         _crown.Transform = Turned(crown);
         foreach (var picture in _helmetPictures) picture.Show(bend, BentLimb.Seamless);
         _sealBent.Show(_fit.SealBy(_gaze), BentLimb.Seamless);
+        ShowRetch(elapsedMs, feetY);
         // The sheet is in the front hand, tilted to face the eyes: up toward them looking up, flatter
         // looking down at it.
         _plan.Visible = holding;

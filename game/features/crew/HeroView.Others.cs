@@ -109,7 +109,7 @@ public partial class HeroView
                 seen.HoldsPlan, elapsedMs);
             for (int burnt = shown.Burns.Due(elapsedMs, Burns(m, crew.HeroOf(id)), 1 / S.LavaBurnEveryS); burnt > 0; burnt--)
                 _othersBurn.PlayAt(shown.Figure.GlobalPosition);
-            if (crew.HeroOf(id) is { } sick && Purged(id, sick.Purges)) Retch(shown.Figure, hero.Facing, afloat);
+            if (crew.HeroOf(id) is { } sick && Purged(id, sick.Purges)) shown.Figure.Retch(afloat);
             // A friend's canister: its air rises round it, heard where it is (0081).
             if (crew.HeroOf(id) is { } breathing && _canisters.Breathed(id, breathing.Air, breathing.Out))
             {
@@ -181,18 +181,6 @@ public partial class HeroView
         bool more = _purges.TryGetValue(id, out int was) && purges > was;
         _purges[id] = purges;
         return more;
-    }
-
-    /// <summary>A hero throws up its meals (food-tuning): the body lurches; bare-headed, olive matter out of its mouth, ahead and down.</summary>
-    private static void Retch(Figure figure, int facing, bool afloat)
-    {
-        figure.Retch(facing);
-        if (figure.Helmeted) return;
-        var glims = Stages.Of(Layers.Effects).Glims;
-        var mouth = figure.Visor;
-        for (int i = 0; i < 26; i++)
-            glims.Add(afloat ? Luminous.RetchAfloat : Luminous.Retch, mouth.X + facing * glims.Between(0, 1.5), mouth.Y + glims.Between(0, 1.5),
-                facing * glims.Between(20, 55), glims.Between(-12, 20));
     }
 
     /// <summary>

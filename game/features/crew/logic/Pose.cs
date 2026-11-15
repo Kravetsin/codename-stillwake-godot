@@ -943,6 +943,30 @@ public static class Poses
     }
 
     /// <summary>
+    /// <paramref name="limbs"/> hunched over a retch <paramref name="by"/> (0 to 1, <see cref="Retching.Hunch"/>; food-tuning, as
+    /// picked): both forearms drawn up to the belly; on the floor the knees bent, its lower foot kept on it; afloat the legs tucked
+    /// and the body curled forward.
+    /// </summary>
+    public static Limbs Retched(Limbs limbs, double by, Pose pose)
+    {
+        if (by <= 0 || !HoldsIn(pose)) return limbs;
+        bool afloat = pose == Pose.Float;
+        var hunched = limbs with
+        {
+            FrontArm = afloat ? B(-0.05, 1.85) : B(-0.06, 1.82),
+            BackArm = afloat ? B(0, 1.1) : B(0.07, 1.08),
+            FrontLeg = afloat ? B(0.85, -1.35) : B(0.3, -0.55),
+            BackLeg = afloat ? B(0.65, -1.2) : B(0.12, -0.3),
+            Tilt = limbs.Tilt + (afloat ? RetchCurl : 0),
+        };
+        var mixed = Mix(limbs, hunched, by) with { Lift = limbs.Lift, Lying = limbs.Lying };
+        return pose is Pose.Stand or Pose.Walk or Pose.Run ? Grounded(mixed) : mixed;
+    }
+
+    /// <summary>How far a hero afloat curls forward over a retch, in radians: on the floor the torso leans instead (<see cref="Retching.Lean"/>).</summary>
+    private const double RetchCurl = 0.34;
+
+    /// <summary>
     /// <paramref name="a"/> turned toward <paramref name="b"/> by <paramref name="by"/>, angles the short
     /// way round, so limbs blend in without unwinding.
     /// </summary>
