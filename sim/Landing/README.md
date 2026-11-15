@@ -13,7 +13,7 @@ return (ADR `2026-10-26-the-descent`); later the landers that drop with it.
   `Power` (`IPowerQueries.Feeds`: whether a run has power enough; `IPowerOps.Rest`: a wheel no one runs), `Crew` (`ICrewQueries`: whether a hero is here, awake and exerting,
   the spawn), `Items` (the pod's slot: fuel burnt, its load lifted, put back or laid).
 - **State** (`LandingState`, saved): `Seats` — `Seat(Pod, Peer)` by pod id; `Flights` — `Flight(Peer, Up, TicksLeft, Home,
-  Floor, Load)` by peer, in the slice of the surface the pod left; `Owners` — `Owner(Pod, Peer, Home)` by pod id, the pods
+  Floor, Load, Fuel)` by peer, in the slice of the surface the pod left; `Owners` — `Owner(Pod, Peer, Home)` by pod id, the pods
   standing off the ship. Seats new to format 32; flights and owners added later with initializers, none.
 
 ## Rules
@@ -26,15 +26,18 @@ return (ADR `2026-10-26-the-descent`); later the landers that drop with it.
   gone. Heroes pass it both ways. A stack on the deck stays.
 - **The drop pod** (`dropPod`, `Seats` and `Lands`): aboard only on a platform (`grid.noPlatform`), off the ship only on
   solid ground, where only this module places one (`grid.noGround`). `Board(pod)` seats the sender's hero; `Alight` takes it
-  out. Its one slot takes biofuel only, by hand.
+  out. Its fuel is a 20 l store (`sim/Fuel`, [fuel-liquid](../../docs/decisions/2026-11-16-fuel-liquid.md)), its slot that store's hopper.
 - A seat holds while its machine stands and its hero is here and awake.
 - **The crew shuttle** (`crewShuttle`, `Lands` without `Seats`, crew-shuttle ADR): 24 cells by 10, stood on a platform as a pod is,
-  the whole run under its bottom row. Only built for now: boarding it is `landing.noPod`.
+  the whole run under its bottom row. It holds 200 l of fuel, piped in at its stern or poured by the can; boarding it is `landing.noPod`.
 - **The treadmill wheel** (`treadWheel`, `Seats` without `Lands`, power chain ADR): boarded and left as a pod is, anywhere,
   by anyone. Each construction, after Building, Landing rests (`IPowerOps.Rest`) every seated maker but while its rider is
   here, awake and exerting (`Turning`): it makes from that tick. `Launch` from it is `landing.notSeated`.
-- **`Launch`** flies the sender's pod: from the ship down, burning `Content.Landing.DescentFuel` biofuel and opening its run
-  under it; from anywhere else back to its home aboard, free. Its machine and seat go; its slot's stack flies as its load.
+- **`Launch`** flies the sender's pod: from the ship down, with `Content.Fuel.Descent` (5 l) in its store (`landing.noFuel`), burning
+  it and opening its run under it; from anywhere else back to its home aboard, free. Its machine and seat go; its slot's stack flies as
+  its load and its store's fuel as its `Fuel`, taken out before the machine goes, on every path a pod crosses by (`Fly`, `Depart`'s
+  `Carried`, `Dock`, `Land`): `Stand` fills the new pod's store, what has no room laid by it as whole cans, a pod laid as its cost
+  laying all of it so.
   A hero gone or out on the tick it launches launches nothing (its seat lasts till derivation); a flying hero boards none.
 - Flights count down in the construction phase (the grid changes only in commands or construction). A descent shuts its
   run `FallTicks` after its launch, whether or not it was open before; one whose hero is gone or out ends at once, docked
@@ -72,7 +75,7 @@ return (ADR `2026-10-26-the-descent`); later the landers that drop with it.
 - A platform's shaft, under it to the grid's edge, is kept empty of anything solid, built or planned (Grid, Building).
 - A pod has at most one rider and a hero at most one pod; every seat's pod stands and its hero is awake after a tick.
 - Every pod is in one place: standing on one surface or in one flight; a hero flies one at most, seated in none meanwhile.
-  Every owned pod stands by its owner, or its owner flies. Biofuel goes only by a descent's five; a twin fed the same, saved
+  Every owned pod stands by its owner, or its owner flies. Biofuel goes only by a descent's five litres; a twin fed the same, saved
   and loaded, hashes alike (`DescentTests`).
 
 ## Deliberately not handled
