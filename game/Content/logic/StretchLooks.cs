@@ -22,26 +22,40 @@ public static class StretchLooks
     /// <summary>
     /// A stretch's far picture: a row of <paramref name="Pictures"/> (under <c>art/hd</c>), each place in it taking one at random,
     /// <paramref name="Width"/> pixels of its plane wide with <paramref name="Gap"/> of that between, drifting left <paramref name="Drift"/> a second.
+    /// It sails in from the right edge as the warning runs, its leading edge coming to rest <paramref name="Rest"/> screen widths from
+    /// the middle (less is left), and out past the left edge as it eases back: the ship is passing into it and out of it.
     /// </summary>
-    public sealed record Backdrop(IReadOnlyList<string> Pictures, float Width, float Gap, float Drift);
+    public sealed record Backdrop(IReadOnlyList<string> Pictures, float Width, float Gap, float Drift, float Rest);
 
     /// <summary>
-    /// The ice belt: a field of ice, its two pictures mixed, frosting the hull. The contraband drift: one derelict of three, so slow
-    /// it stays in sight while the drift lasts, its cases spilling toward the ship.
+    /// The ice belt: a field of ice, its two pictures mixed, filling the screen by the time it comes, frosting the hull. The
+    /// contraband drift: one derelict of three, coming to rest right of the ship and so slow it stays in sight while the drift
+    /// lasts, its cases spilling toward the ship.
     /// </summary>
     public static readonly IReadOnlyList<Look> All =
     [
-        new(Content.Stretches.IceBelt.Id, new(["stretches/ice_1", "stretches/ice_2"], Width: 1500, Gap: -0.04f, Drift: 4),
+        new(Content.Stretches.IceBelt.Id, new(["stretches/ice_1", "stretches/ice_2"], Width: 1500, Gap: -0.04f, Drift: 4, Rest: -0.6f),
             (0.64f, 0.8f, 0.92f), Frost: true),
-        new(Content.Stretches.ContrabandDrift.Id, new(["stretches/hulk_1", "stretches/hulk_2", "stretches/hulk_3"], Width: 1100, Gap: 3, Drift: 1),
+        new(Content.Stretches.ContrabandDrift.Id,
+            new(["stretches/hulk_1", "stretches/hulk_2", "stretches/hulk_3"], Width: 1100, Gap: 3, Drift: 1, Rest: -0.15f),
             (0.98f, 0.58f, 0.26f), Frost: false),
     ];
 
     /// <summary>How much of the camera's movement a far picture follows: farther than the far wrecks (<c>Backdrop.WreckParallax</c>).</summary>
     public const float Parallax = 0.15f;
 
-    /// <summary>Where a far picture's middle first shows, in shares of the screen: this far above its middle, and right of it.</summary>
-    public const float Above = 0.16f, Right = 0.2f;
+    /// <summary>How far above the screen's middle a far row's middle lies when it first shows, in shares of the screen.</summary>
+    public const float Above = 0.16f;
+
+    /// <summary>
+    /// How far along its way in a far row is at <paramref name="grow"/> of the warning, and out at <paramref name="melt"/> of its easing
+    /// back, each 0 to 1: it slows as it comes to rest and gathers speed as it leaves, like the ship passing it.
+    /// </summary>
+    public static (float In, float Out) Sailed(float grow, float melt)
+    {
+        float g = Math.Clamp(grow, 0, 1), m = Math.Clamp(melt, 0, 1);
+        return (1 - (1 - g) * (1 - g), m * m);
+    }
 
     /// <summary>The colour a far picture is drawn in: its paint is pale already, so only a little darker and cooler, its detail kept.</summary>
     public static readonly (float R, float G, float B) Veil = (0.56f, 0.6f, 0.68f);

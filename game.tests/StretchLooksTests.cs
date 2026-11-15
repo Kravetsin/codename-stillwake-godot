@@ -83,6 +83,18 @@ public class StretchLooksTests
     }
 
     [Fact]
+    public void AFarRowSailsInSlowingAndOutGatheringSpeed()
+    {
+        Assert.Equal((0f, 0f), StretchLooks.Sailed(0, 0));
+        Assert.Equal((1f, 1f), StretchLooks.Sailed(1, 1));
+        Assert.Equal((1f, 0f), StretchLooks.Sailed(2, -1));
+        // Half the warning brings it more than half way in; half the easing back takes it less than half way out.
+        Assert.True(StretchLooks.Sailed(0.5f, 0).In > 0.5f);
+        Assert.True(StretchLooks.Sailed(1, 0.5f).Out < 0.5f);
+        foreach (var look in StretchLooks.All) Assert.InRange(look.Far.Rest, -1f, 0.5f);
+    }
+
+    [Fact]
     public void TheRadarsBandSlidesFromTheRightEdgeOntoTheShip()
     {
         const float width = 200, ship = 70;

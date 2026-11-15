@@ -108,10 +108,10 @@ public partial class Stars : CanvasLayer
     }
 
     /// <summary>
-    /// A stretch of space seen coming or running (<see cref="StretchShown"/>): its far picture behind the far wrecks, at
-    /// <paramref name="share"/> of its full; none at 0. Space only: a planet's sky is its own.
+    /// A stretch of space seen coming, running or easing back (<see cref="StretchShown"/>): its far picture behind the far wrecks,
+    /// <paramref name="grow"/> of its warning sailed in and <paramref name="melt"/> sailed out. Space only: a planet's sky is its own.
     /// </summary>
-    public void Stretch(StretchLooks.Look? look, float share) => _far.Show(_tops == null ? look : null, share);
+    public void Stretch(StretchLooks.Look? look, float grow, float melt) => _far.Show(_tops == null ? look : null, grow, melt);
 
     private BackdropView? _land;
     private int[]? _tops;
