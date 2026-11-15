@@ -44,7 +44,7 @@ public class MealTipsTests
         var tip = MealTips.Hunger();
         Assert.Equal("Hungry", tip.Name);
         Assert.Equal(
-            [("Running costs 25% more air", Tone.Bad), ("Work is 25% slower", Tone.Bad), ("Eat something", Tone.Dim)],
+            [("Air use when running +25%", Tone.Bad), ("Work speed −25%", Tone.Bad), ("Eat something", Tone.Dim)],
             tip.Lines.Select(l => (l.Text, l.Tone)));
     }
 
