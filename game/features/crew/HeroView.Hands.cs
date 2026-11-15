@@ -124,7 +124,7 @@ public partial class HeroView
             if (sent.Pieces is { } pieces) client.Send(pieces);
             foreach (var strike in sent.Strikes) client.Send(strike);
             // The ground it bites first heard and seen there, the ship's hull too, which takes no harm: a clang and sparks.
-            if (hit.Ground?.Cell is int bitten) Struck(_groundHits, m, bitten, struck!, _current, client.Id, StruckHaze(_figure, landing: true));
+            if (hit.Ground?.Cell is int bitten) Struck(_groundHits, m, bitten, struck!, _current, client.Id);
             // Landed or not, the air it drives on stirs what lies near the blade (air-gusts).
             StrokeGust(m, struck!, hit);
             // A blade that bites is drawn stopped on contact a moment (0075).
@@ -226,7 +226,7 @@ public partial class HeroView
         var sent = ToolEdges.CommandsOf(m, client.Id, drill!, hit!);
         if (sent.Cells is { } cells)
         {
-            if (ToolEdges.LeadOf(m, hit!) is int lead) Struck(_groundHits, m, lead, drill!, _current, client.Id, _ownWork?.Haze);
+            if (ToolEdges.LeadOf(m, hit!) is int lead) Struck(_groundHits, m, lead, drill!, _current, client.Id);
             client.Send(cells);
         }
         if (sent.Pieces is { } pieces)
@@ -332,70 +332,64 @@ public partial class HeroView
         return bits;
     }
 
-    // Each wreck's last contacts with a struck blade, and every struck blade's haze, with when they were taken: kept the trail's life,
-    // so a hit felt a frame or a tick after the blade went in still finds them.
-    private readonly Dictionary<int, (List<HazePoint> Points, double At)> _bites = new();
-    private readonly Dictionary<int, IReadOnlyList<HazePoint>> _bitesShown = new();
-    private readonly List<int> _bitesGone = [];
-    private readonly List<(double At, List<HazePoint> Points)> _hazes = [];
-    private readonly List<HazePoint> _hazesShown = [];
-    private double _bitesClock;
-
-    /// <summary>
-    /// A struck blade's haze as <paramref name="figure"/> drew it this frame (spark-rule), the spear's thrust too; none while it does
-    /// not sweep. For a hit landing (<paramref name="landing"/>), its last sweep within the trail's life: a blade often stands still
-    /// the frame it lands.
-    /// </summary>
-    private static List<HazePoint>? StruckHaze(Figure figure, bool landing = false)
+    /// <summary>A struck blade's haze as <paramref name="figure"/> drew it this frame (spark-rule), the spear's thrust too; none while it does not sweep.</summary>
+    private static List<HazePoint>? StruckHaze(Figure figure)
     {
-        if (!figure.Visible || (landing ? figure.Swept : figure.Sweep) is not var (was, now)) return null;
+        if (!figure.Visible || figure.Sweep is not var (was, now)) return null;
         var haze = new List<HazePoint>();
         ToolHaze.OfEdge(was, now, haze);
         return haze.Count > 0 ? haze : null;
     }
 
-    /// <summary>
-    /// Every struck blade's haze on this surface, this hero's and its friends', within the trail's life, and where it lay in each
-    /// wreck (spark-rule): what <c>debris</c> throws a struck wreck's look from. Wrecks are walked only while a blade sweeps, and
-    /// only those whose box its haze reaches.
-    /// </summary>
-    private void StruckContacts(Registry m, double elapsedMs)
+    /// <summary>Every tool's haze at work on this surface this frame (spark-rule): every struck blade's sweep and running tool's, this hero's and its friends'.</summary>
+    private List<IReadOnlyList<HazePoint>> Hazes()
     {
-        _bitesClock += elapsedMs;
-        _bitesGone.Clear();
-        foreach (var (id, bite) in _bites)
-            if (_bitesClock - bite.At > BladeTrail.LifeMs) _bitesGone.Add(id);
-        foreach (int id in _bitesGone) _bites.Remove(id);
-        _hazes.RemoveAll(h => _bitesClock - h.At > BladeTrail.LifeMs);
-        System.Func<Piece, double, double, bool>? solid = null;
+        var hazes = new List<IReadOnlyList<HazePoint>>();
         foreach (var figure in _shownOthers.Values.Select(o => o.Figure).Prepend(_figure))
+            if (StruckHaze(figure) is { } haze) hazes.Add(haze);
+        foreach (var work in Works()) hazes.Add(work.Haze);
+        return hazes;
+    }
+
+    /// <summary>
+    /// What matter lies where <paramref name="hazes"/> reach (spark-rule): a wreck's picture as drawn, else a cell a tool would hit, how
+    /// each looks hit. Only the wrecks whose box a haze reaches are tested.
+    /// </summary>
+    private ToolHaze.MatterAt MatterOf(Registry m, List<IReadOnlyList<HazePoint>> hazes)
+    {
+        var near = new List<Piece>();
+        double perPixel = Hero.Unit / Rig.Cell;
+        var solid = _wreckPixels.Solid(_progress, _ui.DebrisTurns);
+        if (hazes.Count > 0)
         {
-            if (StruckHaze(figure) is not { } haze) continue;
-            _hazes.Add((_bitesClock, haze));
-            solid ??= _wreckPixels.Solid(_progress, _ui.DebrisTurns);
             double left = double.MaxValue, right = double.MinValue, top = double.MaxValue, bottom = double.MinValue;
-            foreach (var p in haze)
-                (left, right, top, bottom) = (System.Math.Min(left, p.X), System.Math.Max(right, p.X), System.Math.Min(top, p.Y), System.Math.Max(bottom, p.Y));
-            double perPixel = Hero.Unit / Rig.Cell;
+            foreach (var haze in hazes)
+                foreach (var p in haze)
+                    (left, right, top, bottom) = (System.Math.Min(left, p.X), System.Math.Max(right, p.X), System.Math.Min(top, p.Y), System.Math.Max(bottom, p.Y));
             foreach (var piece in m.Debris.Pieces)
             {
                 var (cx, cy) = PieceDrawn.At(piece, _progress);
                 var (halfW, halfH) = Aiming.PictureOf(piece.Item);
                 // Its box turned any way: as far as its corner reaches.
                 double reach = System.Math.Sqrt((double)halfW * halfW + (double)halfH * halfH);
-                if (cx + reach < left * perPixel || cx - reach > right * perPixel || cy + reach < top * perPixel || cy - reach > bottom * perPixel) continue;
-                bool In(double x, double y) => solid(piece, x * perPixel, y * perPixel);
-                var inside = ToolHaze.Within(haze, In, In);
-                if (inside.Count > 0) _bites[piece.Id] = (inside, _bitesClock);
+                if (cx + reach >= left * perPixel && cx - reach <= right * perPixel && cy + reach >= top * perPixel && cy - reach <= bottom * perPixel)
+                    near.Add(piece);
             }
         }
-        _bitesShown.Clear();
-        foreach (var (id, bite) in _bites) _bitesShown[id] = bite.Points;
-        _hazesShown.Clear();
-        foreach (var (_, points) in _hazes) _hazesShown.AddRange(points);
-        _ui.Bites = _bitesShown;
-        _ui.Hazes = _hazesShown;
+        var wreck = HitLooks.Of[Impact.Wreck];
+        return (x, y) =>
+        {
+            foreach (var piece in near)
+                if (solid(piece, x * perPixel, y * perPixel)) return (wreck, piece.Id);
+            int cx = (int)System.Math.Floor(x / Rig.Cell), cy = (int)System.Math.Floor(y / Rig.Cell);
+            if (cx < 0 || cy < 0 || cx >= m.Grid.Width || cy >= m.Grid.Height) return null;
+            return Impacts.At(m.Grid, m.Building, cy * m.Grid.Width + cx) is { } impact ? (HitLooks.Of[impact], -1) : null;
+        };
     }
+
+    /// <summary>The floor, a row of the world's pixels, chips thrown at (<paramref name="x"/>, <paramref name="y"/>) fall to; none to fall on.</summary>
+    private static double? FloorAt(Registry m, double x, double y) =>
+        Impacts.FloorUnder(m.Grid, new HitPoint(x / Rig.Cell, y / Rig.Cell, 0, 0)) * Rig.Cell;
 
     /// <summary>Every running tool on this surface as last seen at work: this hero's and its friends' (tool-contact).</summary>
     private IEnumerable<ToolWork.Seen> Works()
@@ -436,7 +430,7 @@ public partial class HeroView
     /// Peer <paramref name="id"/>'s running <paramref name="tool"/> by <paramref name="hero"/>, what its edge touches this frame
     /// (<paramref name="hit"/>), as seen at work (tool-contact, spark-rule): its haze as <paramref name="figure"/> drew it, the
     /// grinder's circle, the drill's helix or the cutter's jet from its nozzle to where it first touches, else to its end; and
-    /// each wreck it touches and the cell it works, each with where the haze lies in it; none unseen.
+    /// where it touches each wreck it touches; none unseen.
     /// </summary>
     private ToolWork.Seen? WorkOf(Registry m, int id, Hero hero, EdgeHit? hit, string tool, Figure figure)
     {
@@ -447,37 +441,20 @@ public partial class HeroView
         else if (figure.Helix is { } helix) ToolHaze.OfHelix(helix, WorkLooks.HelixSteps, haze);
         else ToolHaze.OfLine((start.X, start.Y), (end.X, end.Y), WorkLooks.JetStep, haze);
         var wrecks = new List<(int Piece, Vector2 At)>();
-        var targets = new List<ToolWork.Target>();
-        var solid = _wreckPixels.Solid(_progress, _ui.DebrisTurns);
-        double perPixel = Hero.Unit / Rig.Cell;
         foreach (var touch in hit.Touches)
-            if (touch.Wreck is { } wreck)
-            {
-                var at = Pixels(touch.At);
-                wrecks.Add((wreck.Id, at));
-                targets.Add(new(HitLooks.Of[Impact.Wreck], null, ToolHaze.Contacts(haze, (x, y) => solid(wreck, x * perPixel, y * perPixel), (at.X, at.Y))));
-            }
-        if (hit.Contact is { Wreck: null, Cell: int cell } && Impacts.At(m.Grid, m.Building, cell) is { } impact)
-        {
-            var middle = hero.Middle;
-            var face = Impacts.On(m.Grid, cell, (double)middle.X / Hero.Unit, (double)middle.Y / Hero.Unit);
-            targets.Add(new(HitLooks.Of[impact], Impacts.FloorUnder(m.Grid, face) * Rig.Cell, ToolHaze.Contacts(haze, (x, y) => SolidNear(m, x, y, end), (end.X, end.Y), (x, y) => SolidAt(m, x, y))));
-        }
-        return new(id, tool, start, end, figure.Barrel, hit.Contact != null, wrecks, targets, haze);
+            if (touch.Wreck is { } wreck) wrecks.Add((wreck.Id, Pixels(touch.At)));
+        return new(id, tool, start, end, figure.Barrel, hit.Contact != null, wrecks, haze);
     }
 
     /// <summary>The wrecks' pictures, read once each, that a running tool's edge is tested against (tool-edge).</summary>
     private readonly WreckPixels _wreckPixels = new();
 
     /// <summary>
-    /// A hit of <paramref name="tool"/> on <paramref name="cell"/> by <paramref name="hero"/>
-    /// heard and seen where it strikes, as the wall or growth it lands
-    /// on sounds and looks hit, whatever the tool (0093, 0094): on the face of it turned toward the hero (<see cref="Impacts.On"/>),
-    /// heard on <paramref name="voices"/>. Every hit, a drill's as often as it hits, each throwing its share of the axe's look,
-    /// the one that breaks or fells it the whole (<see cref="Impacts.ShareAt"/>), by the damage the sim gives peer
-    /// <paramref name="peer"/>'s hit, its module's boost in it (0098).
+    /// A hit of <paramref name="tool"/> on <paramref name="cell"/> by <paramref name="hero"/> heard where it strikes, as the wall or growth
+    /// it lands on sounds hit, whatever the tool (0093), on <paramref name="voices"/>, by the damage the sim gives peer
+    /// <paramref name="peer"/>'s hit, its module's boost in it (0098). What flies off it is the tool's haze's (spark-rule, <see cref="ToolWork"/>).
     /// </summary>
-    private static void Struck(Voices voices, Registry m, int cell, string tool, Hero hero, int peer, IReadOnlyList<HazePoint>? haze)
+    private static void Struck(Voices voices, Registry m, int cell, string tool, Hero hero, int peer)
     {
         var middle = hero.Middle;
         var at = Impacts.On(m.Grid, cell, (double)middle.X / Hero.Unit, (double)middle.Y / Hero.Unit);
@@ -488,30 +465,6 @@ public partial class HeroView
         int damage = pile ? m.Items.Damage(peer, tool) : m.Items.BlockDamage(peer, tool);
         if (GroundSounds.HitAt(m.Grid, m.Building, cell, damage, tool) is { } hit)
             voices.Play(hit, point, offsetDb: GroundSounds.HitDbOf(tool));
-        if (Impacts.At(m.Grid, m.Building, cell) is not { } impact) return;
-        double? floor = Impacts.FloorUnder(m.Grid, at) * Rig.Cell;
-        double share = Impacts.ShareAt(m.Building, cell, tool, damage, peer);
-        // A running tool is seen at work all along (ToolWork): only the hit that breaks the wall or fells the growth throws.
-        if (HeldLook.IsDrill(tool) && share < 1) return;
-        // Off the tool's haze where it lies in what it hit, along the haze (spark-rule); a hit with no haze, from the face.
-        var hits = Stages.Of(Layers.Effects).Hits;
-        if (haze is { Count: > 0 })
-            hits.ThrowFrom(HitLooks.Of[impact], ToolHaze.Contacts(haze, (x, y) => SolidNear(m, x, y, point), (point.X, point.Y), (x, y) => SolidAt(m, x, y)), share, WorkLooks.ContactPoints, floor);
-        else hits.Throw(HitLooks.Of[impact], point.X, point.Y, at.Nx, at.Ny, share, floor);
-    }
-
-    /// <summary>
-    /// Whether the world's pixel (<paramref name="x"/>, <paramref name="y"/>) is in a cell a tool would hit within
-    /// <see cref="WorkLooks.ContactReach"/> of where it hit, <paramref name="at"/>: what was hit, not a wall the blade passed on its way.
-    /// </summary>
-    private static bool SolidNear(Registry m, double x, double y, Vector2 at) =>
-        (x - at.X) * (x - at.X) + (y - at.Y) * (y - at.Y) <= WorkLooks.ContactReach * WorkLooks.ContactReach && SolidAt(m, x, y);
-
-    /// <summary>Whether the world's pixel (<paramref name="x"/>, <paramref name="y"/>) is in a cell a tool struck there would hit.</summary>
-    private static bool SolidAt(Registry m, double x, double y)
-    {
-        int cx = (int)System.Math.Floor(x / Rig.Cell), cy = (int)System.Math.Floor(y / Rig.Cell);
-        return cx >= 0 && cy >= 0 && cx < m.Grid.Width && cy < m.Grid.Height && Impacts.At(m.Grid, m.Building, cy * m.Grid.Width + cx) != null;
     }
 
     /// <summary>Whether <paramref name="hero"/>, awake, touches lava where the sim has it, its suit burning (0087).</summary>

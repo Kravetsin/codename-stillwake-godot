@@ -11,22 +11,12 @@ namespace Stillwake.Game;
 /// </summary>
 public static class WorkLooks
 {
-    /// <summary>How many throws a second a tool touching anything but a wreck makes, every one a share of a whole hit (<see cref="ShareOf"/>).</summary>
-    public const double ThrowsPerSecond = 30;
-
-    /// <summary>How many times what its hits would throw one by one a running tool throws as a stream: a steady stream reads as work.</summary>
-    public const double Stream = 4;
-
     /// <summary>
-    /// The share of the axe's whole hit each of <paramref name="tool"/>'s throws is: its hits' each (their pace over the axe's) times
-    /// its hits a second, <see cref="Stream"/> times, spread over <see cref="ThrowsPerSecond"/>; none for no weapon.
+    /// How much a tool's haze throws while it lies in matter (spark-rule): this many of the axe's whole hits a second, shared among what
+    /// it lies in by how much of it lies in each, whatever the tool; a blade's sweep throws while it sweeps through, a running tool's
+    /// all the while.
     /// </summary>
-    public static double ShareOf(string tool)
-    {
-        if (Content.Weapons.Of(tool) is not { } weapon) return 0;
-        double each = Math.Min(1, (double)weapon.Pace / Content.Weapons.Axe.Pace), perSecond = (double)Sim.World.TicksPerSecond / weapon.Pace;
-        return each * perSecond * Stream / ThrowsPerSecond;
-    }
+    public const double HazeRate = 10;
 
     /// <summary>The air a tool works (tool-reach): pale cyan as the air round a hero (<c>AirSwirl</c>).</summary>
     public static readonly Ink.Tone AirInk = Ink.Tone.Of(200, 240, 255, 1);
@@ -47,13 +37,11 @@ public static class WorkLooks
     public const int RimSteps = 48;
 
     /// <summary>
-    /// The one rule every tool's sparks and chips follow (spark-rule): what is hit throws from at most <see cref="ContactPoints"/>
-    /// of the points where the tool's haze lies in it, a cell counted only within <see cref="ContactReach"/> px of where it was hit;
-    /// a wreck a struck blade did not reach throws from the haze's point nearest it within <see cref="HazeFar"/> px; the cutter's jet
-    /// is taken as a haze every <see cref="JetStep"/> px.
+    /// What a haze lies in throws each frame from <see cref="ContactPoints"/> of the haze's points in it, picked afresh (spark-rule);
+    /// the cutter's jet is taken as a haze every <see cref="JetStep"/> px.
     /// </summary>
     public const int ContactPoints = 3;
-    public const double ContactReach = 16, HazeFar = 48, JetStep = 1;
+    public const double JetStep = 1;
 
     /// <summary>
     /// How what is hit throws off a haze (spark-rule): along the haze, never into what was hit. A way that leads into it

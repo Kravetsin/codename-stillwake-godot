@@ -127,35 +127,30 @@ public static class ToolHaze
     }
 
     /// <summary>
-    /// Where <paramref name="haze"/> lies in what was hit at <paramref name="at"/>: its points <paramref name="inside"/> it
-    /// (<see cref="Within"/>); else its point nearest <paramref name="at"/>, so what is hit always throws off the haze; none without
-    /// a haze. Each rides the haze through <paramref name="matter"/>, what <paramref name="inside"/> tests if none is given (<see cref="Ridden"/>).
+    /// What matter lies at the world's pixel (x, y), for a haze in it to throw (spark-rule): how it looks hit and the wreck it is,
+    /// -1 for the ground, a wall or a plant; none in the open.
     /// </summary>
-    public static List<HazePoint> Contacts(IReadOnlyList<HazePoint> haze, Func<double, double, bool> inside, (double X, double Y) at,
-        Func<double, double, bool>? matter = null)
+    public delegate (HitLook Look, int Piece)? MatterAt(double x, double y);
+
+    /// <summary>What a haze lies in: its look, whether it is a wreck, and the haze's points in it, by index.</summary>
+    public sealed record Touch(HitLook Look, bool Wreck, List<int> Points);
+
+    /// <summary>
+    /// Where <paramref name="haze"/> lies in <paramref name="matter"/> (spark-rule): its points in it grouped by how what each lies in
+    /// looks hit, in the order first met; the wrecks among them added to <paramref name="pieces"/>. Whatever was hit, whoever hit it.
+    /// </summary>
+    public static List<Touch> Touches(IReadOnlyList<HazePoint> haze, MatterAt matter, ICollection<int>? pieces = null)
     {
-        matter ??= inside;
-        var contacts = Within(haze, inside, matter);
-        if (contacts.Count > 0 || haze.Count == 0) return contacts;
-        int nearest = 0;
-        double best = double.MaxValue;
+        var touches = new List<Touch>();
         for (int i = 0; i < haze.Count; i++)
         {
-            var p = haze[i];
-            double d = (p.X - at.X) * (p.X - at.X) + (p.Y - at.Y) * (p.Y - at.Y);
-            if (d < best) (best, nearest) = (d, i);
+            if (matter(haze[i].X, haze[i].Y) is not var (look, piece)) continue;
+            if (piece >= 0 && pieces != null && !pieces.Contains(piece)) pieces.Add(piece);
+            var touch = touches.Find(x => ReferenceEquals(x.Look, look));
+            if (touch == null) touches.Add(touch = new(look, piece >= 0, []));
+            touch.Points.Add(i);
         }
-        contacts.Add(Ridden(haze, nearest, matter));
-        return contacts;
-    }
-
-    /// <summary><paramref name="haze"/>'s points <paramref name="inside"/> what was hit, each ridden through <paramref name="matter"/> (<see cref="Ridden"/>).</summary>
-    public static List<HazePoint> Within(IReadOnlyList<HazePoint> haze, Func<double, double, bool> inside, Func<double, double, bool> matter)
-    {
-        var contacts = new List<HazePoint>();
-        for (int i = 0; i < haze.Count; i++)
-            if (inside(haze[i].X, haze[i].Y)) contacts.Add(Ridden(haze, i, matter));
-        return contacts;
+        return touches;
     }
 
     /// <summary>

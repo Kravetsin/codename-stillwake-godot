@@ -65,7 +65,7 @@ public partial class HeroView
             bool hits = shown.Swing.Follow(elapsedMs, stroke != null ? chop : null, heard.From, stroke, angle).Hits;
             // Swinging, it faces the side its stroke is aimed at, however its delayed body was turned.
             if (shown.Swing.Phase != null) hero = hero with { Facing = AxeSwing.FaceOf(shown.Swing.Aim, hero) };
-            if (hits) StruckBy(m, id, hero, shown.Swing.Toward(hero), strikes!, StruckHaze(shown.Figure, landing: true));
+            if (hits) StruckBy(m, id, hero, shown.Swing.Toward(hero), strikes!);
             // Its drill's hits likewise, at its pace where the sim says it runs and it sends its bit: what its edge touches, as drawn here.
             string? running = m.Items.Running(id);
             bool drills = HeldLook.IsDrill(running) && seen.Busy is { Work: Handwork.Drill };
@@ -73,7 +73,7 @@ public partial class HeroView
             shown.Work = drills ? WorkOf(m, id, hero, edged, running!, shown.Figure) : null;
             if (shown.Drill.Due(_client.World.Tick, drills, Content.Weapons.Of(running)?.Pace ?? 1) && edged != null
                 && m.Items.BlockDamage(id, running!) != 0 && ToolEdges.LeadOf(m, edged) is int lead)
-                Struck(_othersGroundHits, m, lead, running!, hero, id, shown.Work?.Haze);
+                Struck(_othersGroundHits, m, lead, running!, hero, id);
             // Its stroke shown only while the body drawn, 150 ms behind, holds the tool it was heard swinging.
             var drawnSwing = ReferenceEquals(Strokes.Of(seen.Wields), shown.Swing.Stroke) ? shown.Swing : default;
             ShowHands(shown.Figure, seen.Wields, Fittings.Of(m.Items, id, seen.Wields), seen.Busy, drawnSwing);
@@ -273,9 +273,9 @@ public partial class HeroView
     /// Peer <paramref name="id"/>'s stroke of <paramref name="tool"/> by <paramref name="hero"/> toward <paramref name="at"/>, heard
     /// and seen at the ground its rays meet first, as that peer's own stroke is (tool-reach), the ship's hull too.
     /// </summary>
-    private void StruckBy(Registry m, int id, Hero hero, Point at, string tool, IReadOnlyList<HazePoint>? haze)
+    private void StruckBy(Registry m, int id, Hero hero, Point at, string tool)
     {
-        if (StrokeOf(m, hero, at, tool).Ground?.Cell is int cell) Struck(_othersGroundHits, m, cell, tool, hero, id, haze);
+        if (StrokeOf(m, hero, at, tool).Ground?.Cell is int cell) Struck(_othersGroundHits, m, cell, tool, hero, id);
     }
 
     private static bool Thumps(Piece piece) => Content.Loot.Of(piece.Item) != null && Content.Wreckage.HpOf(piece.Item) == null;

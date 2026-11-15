@@ -50,19 +50,4 @@ public sealed class HitBurst(Glims glims, Flares flares)
 
     /// <summary><paramref name="expected"/> rounded down or up by chance, so as many come on average.</summary>
     private int ByChance(double expected) => (int)Math.Floor(expected + glims.Between(0, 1));
-
-    /// <summary>
-    /// <paramref name="look"/>, <paramref name="share"/> of it, out of a tool's haze where it lies in what it hit (spark-rule): from
-    /// up to <paramref name="most"/> of <paramref name="points"/>, spread along them, each along the haze's way there and a
-    /// like share; chips falling to <paramref name="floor"/> if given.
-    /// </summary>
-    public void ThrowFrom(HitLook look, System.Collections.Generic.IReadOnlyList<HazePoint> points, double share, int most, double? floor = null)
-    {
-        int n = Math.Min(most, points.Count);
-        for (int k = 0; k < n; k++)
-        {
-            var p = points[n == 1 ? points.Count / 2 : k * (points.Count - 1) / (n - 1)];
-            ThrowAlong(look, p, share / n, floor);
-        }
-    }
 }

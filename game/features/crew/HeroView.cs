@@ -569,7 +569,6 @@ public partial class HeroView : Node2D
         var drawn = _current with { X = (int)Math.Round(x), Y = (int)Math.Round(y) };
         _ui.Heroes = [Chest(drawn), .. Others.Select(o => Chest(o.Hero))];
         _ui.Bits = Bits();
-        StruckContacts(m, elapsedMs);
         bool inSpace = Floats = ship.Space(drawn.BodyCell(ship.Width));
         // Gliding in a planet's fog it floats as in space (fog-edges), though nothing there is space; in water it swims so.
         var pose = Poses.PoseOf(drawn, inSpace || drawn.Gliding || ship.Wet(drawn.BodyCell(ship.Width)), passedOut);
@@ -611,7 +610,9 @@ public partial class HeroView : Node2D
         _sender.Step(elapsedMs, new Seen(_current, ownLook, holdsPlan, _wields, _busy, _harpoon.Seen), _steps * Hero.StepMs);
         _tethers.QueueRedraw();
         _lines.QueueRedraw();
-        _work.Frame([.. Works()], elapsedMs);
+        var hazes = Hazes();
+        _work.Frame([.. Works()], hazes, MatterOf(m, hazes), (x, y) => FloorAt(m, x, y), elapsedMs);
+        _ui.HazeTouched = _work.Touched;
     }
 
     /// <summary>

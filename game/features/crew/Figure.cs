@@ -696,17 +696,8 @@ public partial class Figure : Node2D
     /// </summary>
     public (IReadOnlyList<(double X, double Y)> Was, IReadOnlyList<(double X, double Y)> Now)? Sweep => _edgeSweeps && _edge.Count >= 2 && _edgeWas.Count == _edge.Count ? (_edgeWas, _edge) : null;
 
-    /// <summary>
-    /// The held struck tool's last <see cref="Sweep"/> within a trail's life (<see cref="BladeTrail.LifeMs"/>): what a hit sparks off,
-    /// though the blade stands still the frame it lands; none once it is older or the hand changes.
-    /// </summary>
-    public (IReadOnlyList<(double X, double Y)> Was, IReadOnlyList<(double X, double Y)> Now)? Swept =>
-        _sweptMs <= BladeTrail.LifeMs && _sweptNow.Count >= 2 ? (_sweptWas, _sweptNow) : null;
-
-    // The held swung edge's points this frame, kept to be filled again; its last sweep and how long ago.
+    // The held swung edge's points this frame, kept to be filled again.
     private List<(double X, double Y)> _edge = [], _edgeWas = [];
-    private readonly List<(double X, double Y)> _sweptWas = [], _sweptNow = [];
-    private double _sweptMs = double.MaxValue;
     private bool _edgeSweeps;
 
     /// <summary>The way the held harpoon's barrel points as drawn, a unit vector in the world.</summary>
@@ -1510,16 +1501,6 @@ public partial class Figure : Node2D
             for (int i = 0; i < _edge.Count; i++)
                 swept = Math.Max(swept, Math.Sqrt((_edge[i].X - _edgeWas[i].X) * (_edge[i].X - _edgeWas[i].X) + (_edge[i].Y - _edgeWas[i].Y) * (_edge[i].Y - _edgeWas[i].Y)));
         _edgeSweeps = elapsedMs > 0 && swept * 1000 / elapsedMs >= BladeTrail.Slow;
-        if (Sweep is var (sweptWas, sweptNow))
-        {
-            _sweptMs = 0;
-            _sweptWas.Clear();
-            _sweptWas.AddRange(sweptWas);
-            _sweptNow.Clear();
-            _sweptNow.AddRange(sweptNow);
-        }
-        else if (!struckHeld) _sweptNow.Clear();
-        else _sweptMs += elapsedMs;
         Blade = bladeHeld ? (HeldAt(item!.EdgeFrom), HeldAt(item.EdgeTo)) : null;
         var zone = Spinning && inHand && item != null ? ZoneOf(frontArm, item) : null;
         WheelRadius = zone is { Disc: true } disc ? disc.Size : null;

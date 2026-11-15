@@ -227,16 +227,6 @@ public class ToolEdgeTests
     }
 
     [Fact]
-    public void AStreamThrowsItsStreamTimesAsMuchASecondAsTheHitsDidOneByOne()
-    {
-        foreach (var weapon in new[] { Spec.Weapons.Drill, Spec.Weapons.Grinder, Spec.Weapons.PlasmaCutter })
-        {
-            double hits = (double)Sim.World.TicksPerSecond / weapon.Pace * Features.Effects.Impacts.ShareOf(weapon.Item);
-            Assert.Equal(hits * WorkLooks.Stream, WorkLooks.ShareOf(weapon.Item) * WorkLooks.ThrowsPerSecond, 9);
-        }
-    }
-
-    [Fact]
     public void ARayThroughAPileTouchesItSoItSparksAndRingsAsAWreck()
     {
         // A pile of odds and ends aboard, a hero beside it striking its middle (2026-11-07-pile-hits-felt): the rays touch it.

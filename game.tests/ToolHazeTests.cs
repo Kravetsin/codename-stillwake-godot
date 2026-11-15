@@ -59,13 +59,27 @@ public class ToolHazeTests
         Assert.All(haze, p => Assert.Equal((1.0, 0.0), (p.Dx, p.Dy)));
     }
 
+    private static readonly HitLook Stone = HitLooks.Of[Impact.Stone], Wreck = HitLooks.Of[Impact.Wreck];
+
     [Fact]
-    public void WhatIsHitThrowsFromWhereTheHazeLiesInIt()
+    public void AHazeThrowsFromWhateverMatterItLiesInByHowEachLooksHit()
     {
         var haze = Of(h => ToolHaze.OfLine((0, 0), (20, 0), 1, h));
-        var contacts = ToolHaze.Contacts(haze, (x, _) => x is > 12 and < 15, (13, 0));
-        Assert.Equal([13.0, 14.0], contacts.Select(p => p.X));
+        var pieces = new List<int>();
+        var touches = ToolHaze.Touches(haze, (x, _) => x is > 4 and < 8 ? (Stone, -1) : x is > 12 and < 15 ? (Wreck, 7) : null, pieces);
+        Assert.Equal([Stone, Wreck], touches.Select(t => t.Look));
+        Assert.Equal([5.0, 6.0, 7.0], touches[0].Points.Select(i => haze[i].X));
+        Assert.Equal((false, true), (touches[0].Wreck, touches[1].Wreck));
+        Assert.Equal([7], pieces);
     }
+
+    [Fact]
+    public void AHazeInTheOpenThrowsNothing() =>
+        Assert.Empty(ToolHaze.Touches(Of(h => ToolHaze.OfLine((0, 0), (20, 0), 1, h)), (_, _) => null));
+
+    // The points of a haze in matter, ridden through it (spark-rule).
+    private static List<HazePoint> Ridden(List<HazePoint> haze, Func<double, double, bool> matter) =>
+        ToolHaze.Touches(haze, (x, y) => matter(x, y) ? (Stone, -1) : null).SelectMany(t => t.Points).Select(i => ToolHaze.Ridden(haze, i, matter)).ToList();
 
     // Ground below y = 0.
     private static bool Ground(double _, double y) => y > 0;
@@ -100,7 +114,7 @@ public class ToolHazeTests
     public void ContactsGlanceOffTheMatterTheyAreIn()
     {
         var haze = new List<HazePoint> { new(0, -2, 0, 1), new(0, 2, 0, 1) };
-        var contact = Assert.Single(ToolHaze.Contacts(haze, Ground, (0, 2)));
+        var contact = Assert.Single(Ridden(haze, Ground));
         Assert.Equal(-1, contact.Dy, 6);
     }
 
@@ -109,7 +123,7 @@ public class ToolHazeTests
     {
         // Spun clockwise, the rim's arc in the wall runs down and out at about 60 degrees, moving down and to the left there.
         var haze = Of(h => ToolHaze.OfCircle(new((0, 0), 6, 1), 48, h));
-        var contacts = ToolHaze.Contacts(haze, (x, _) => x > 3, (5, 0));
+        var contacts = Ridden(haze, (x, _) => x > 3);
         Assert.True(contacts.Count > 5);
         Assert.All(contacts, p =>
         {
@@ -123,7 +137,7 @@ public class ToolHazeTests
     public void ADrillsHelixInAWallThrowsAlongItsStrandsBackOutToTheChuck()
     {
         var haze = Of(h => ToolHaze.OfHelix(new((0, 0), (1, 0), (0, 1), 20, 0.7), 96, h));
-        var contacts = ToolHaze.Contacts(haze, (x, _) => x > 10, (12, 0));
+        var contacts = Ridden(haze, (x, _) => x > 10);
         Assert.NotEmpty(contacts);
         Assert.All(contacts, p =>
         {
@@ -133,14 +147,5 @@ public class ToolHazeTests
         // Round the axis, not along it: from the reach, the strand turns across it on the way out.
         var longest = contacts.Select(p => p.Ride!).MaxBy(r => r.Count)!;
         Assert.True(longest.Max(q => q.Y) - longest.Min(q => q.Y) > 1);
-    }
-
-    [Fact]
-    public void AHazeThatDoesNotReachWhatIsHitThrowsFromItsPointNearest()
-    {
-        var haze = Of(h => ToolHaze.OfLine((0, 0), (10, 0), 1, h));
-        var nearest = Assert.Single(ToolHaze.Contacts(haze, (_, _) => false, (30, 5)));
-        Assert.Equal(10, nearest.X, 9);
-        Assert.Empty(ToolHaze.Contacts([], (_, _) => true, (0, 0)));
     }
 }
