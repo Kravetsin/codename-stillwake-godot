@@ -28,6 +28,9 @@ public sealed class ToolSparks
 
     public int Count => _sparks.Count;
 
+    /// <summary>How many white beads are drawn this frame where a tool touches.</summary>
+    public int Beads => _beads.Count;
+
     /// <summary>A frame of <paramref name="elapsedMs"/> begins: sparks burnt out go, and every tool's touch is to be told again.</summary>
     public void Begin(double elapsedMs)
     {
@@ -43,7 +46,8 @@ public sealed class ToolSparks
     /// first at once when it starts touching. A grinder's <paramref name="wheel"/> with <paramref name="exits"/> from the wreck
     /// throws them off its rim instead (grinder-contact): each rides the rim along the spin to an exit and flies on along it there.
     /// A drill's <paramref name="helix"/> with its <paramref name="exits"/> throws them off its loop as well (drill-contact). Without
-    /// an exit they still come off the haze, from its point nearest the touch.
+    /// an exit they still come off the haze, from its point nearest the touch. The plasma cutter with an exit blows them on along its
+    /// jet out of the far side (cutter-contact); without one, back out of the face with a bead, as before.
     /// </summary>
     public void Touch((int Hero, int Piece) touch, string tool, (double X, double Y) at, (double X, double Y) toward, double elapsedMs,
         ToolContact.Circle? wheel = null, IReadOnlyList<ToolContact.Exit>? exits = null, ToolContact.Helix? helix = null)
@@ -52,10 +56,11 @@ public sealed class ToolSparks
         if (wheel is { } round && exits is not { Count: > 0 }) exits = [ToolContact.Nearest(round, at, toward)];
         if (helix is { } loop && exits is not { Count: > 0 }) exits = [ToolContact.Nearest(loop, at, WorkLooks.HelixSteps)];
         bool rim = wheel != null, coil = !rim && helix != null;
+        var slag = !rim && !coil && tool == Content.Weapons.PlasmaCutter.Item && exits is { Count: > 0 } ? exits[0] : (ToolContact.Exit?)null;
         // The grinder's and the drill's sparks come off the tool itself, with no bead where it touches (grinder-contact, drill-contact).
-        if (tool != Content.Weapons.Grinder.Item && tool != Content.Weapons.Drill.Item) _beads.Add(at);
+        if (tool != Content.Weapons.Grinder.Item && tool != Content.Weapons.Drill.Item && slag == null) _beads.Add(at);
         double owed = _owed.TryGetValue(touch, out var o) ? o + WorkLooks.SparksPerSecond * Fx.Count * elapsedMs / 1000 : 1;
-        var (bx, by, spread) = rim ? (0.0, 0.0, WorkLooks.GrinderSpread) : coil ? (0.0, 0.0, WorkLooks.HelixSpread) : tool == Content.Weapons.Grinder.Item ? Wheel(toward) : (toward.X, toward.Y, Spread(tool));
+        var (bx, by, spread) = rim ? (0.0, 0.0, WorkLooks.GrinderSpread) : coil ? (0.0, 0.0, WorkLooks.HelixSpread) : slag is { } through ? (through.Way.X, through.Way.Y, WorkLooks.SlagSpread) : tool == Content.Weapons.Grinder.Item ? Wheel(toward) : (toward.X, toward.Y, Spread(tool));
         for (; owed >= 1; owed--)
         {
             int i = _thrown++;
@@ -71,7 +76,8 @@ public sealed class ToolSparks
             }
             if (!rim)
             {
-                _sparks.Add(new Spark(at.X, at.Y, bx * cos - by * sin, bx * sin + by * cos, speed, life, born));
+                var (sx, sy) = slag?.At ?? at;
+                _sparks.Add(new Spark(sx, sy, bx * cos - by * sin, bx * sin + by * cos, speed, life, born));
                 continue;
             }
             var w = wheel!.Value;

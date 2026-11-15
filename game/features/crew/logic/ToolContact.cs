@@ -146,6 +146,24 @@ public static class ToolContact
         return new(helix.At(u, helix.Phase), helix.Along(u, helix.Phase), u, 0);
     }
 
+    /// <summary>
+    /// Where the plasma cutter's jet, run on from <paramref name="at"/> along <paramref name="way"/> (a unit vector, pixels of the
+    /// world), comes out of the matter <paramref name="inside"/> says it cuts (cutter-contact): walked every <paramref name="step"/>
+    /// px, into it first if it starts short of it, then to the first point past it, as an exit along the jet; none if it does not
+    /// come out within <paramref name="most"/> px.
+    /// </summary>
+    public static Exit? Through((double X, double Y) at, (double X, double Y) way, Func<double, double, bool> inside, double step, double most)
+    {
+        bool entered = false;
+        for (double s = 0; s <= most; s += step)
+        {
+            double x = at.X + way.X * s, y = at.Y + way.Y * s;
+            if (inside(x, y)) entered = true;
+            else if (entered) return new((x, y), way, 0, s);
+        }
+        return null;
+    }
+
     // The stretches of a closed walk inside: each one's last point inside and how many points it runs; none while all in or all out.
     // Walked from a point outside, so a stretch across the walk's start is one stretch, not two.
     private static List<(int Last, int Run)> Stretches(bool[] hit)

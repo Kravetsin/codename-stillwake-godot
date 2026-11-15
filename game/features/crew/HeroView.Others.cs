@@ -65,7 +65,7 @@ public partial class HeroView
             bool hits = shown.Swing.Follow(elapsedMs, stroke != null ? chop : null, heard.From, stroke, angle).Hits;
             // Swinging, it faces the side its stroke is aimed at, however its delayed body was turned.
             if (shown.Swing.Phase != null) hero = hero with { Facing = AxeSwing.FaceOf(shown.Swing.Aim, hero) };
-            if (hits) StruckBy(m, id, hero, shown.Swing.Toward(hero), strikes!);
+            if (hits) StruckBy(m, id, hero, shown.Swing.Toward(hero), strikes!, shown.Figure.Sweep);
             // Its drill's hits likewise, at its pace where the sim says it runs and it sends its bit: what its edge touches, as drawn here.
             string? running = m.Items.Running(id);
             bool drills = HeldLook.IsDrill(running) && seen.Busy is { Work: Handwork.Drill };
@@ -273,9 +273,9 @@ public partial class HeroView
     /// Peer <paramref name="id"/>'s stroke of <paramref name="tool"/> by <paramref name="hero"/> toward <paramref name="at"/>, heard
     /// and seen at the ground its rays meet first, as that peer's own stroke is (tool-reach), the ship's hull too.
     /// </summary>
-    private void StruckBy(Registry m, int id, Hero hero, Point at, string tool)
+    private void StruckBy(Registry m, int id, Hero hero, Point at, string tool, (IReadOnlyList<(double X, double Y)> Was, IReadOnlyList<(double X, double Y)> Now)? sweep)
     {
-        if (StrokeOf(m, hero, at, tool).Ground?.Cell is int cell) Struck(_othersGroundHits, m, cell, tool, hero, id);
+        if (StrokeOf(m, hero, at, tool).Ground?.Cell is int cell) Struck(_othersGroundHits, m, cell, tool, hero, id, sweep);
     }
 
     private static bool Thumps(Piece piece) => Content.Loot.Of(piece.Item) != null && Content.Wreckage.HpOf(piece.Item) == null;

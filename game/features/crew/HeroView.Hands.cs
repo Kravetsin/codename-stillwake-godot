@@ -124,7 +124,7 @@ public partial class HeroView
             if (sent.Pieces is { } pieces) client.Send(pieces);
             foreach (var strike in sent.Strikes) client.Send(strike);
             // The ground it bites first heard and seen there, the ship's hull too, which takes no harm: a clang and sparks.
-            if (hit.Ground?.Cell is int bitten) Struck(_groundHits, m, bitten, struck!, _current, client.Id);
+            if (hit.Ground?.Cell is int bitten) Struck(_groundHits, m, bitten, struck!, _current, client.Id, _figure.Sweep);
             // Landed or not, the air it drives on stirs what lies near the blade (air-gusts).
             StrokeGust(m, struck!, hit);
             // A blade that bites is drawn stopped on contact a moment (0075).
@@ -421,7 +421,8 @@ public partial class HeroView
         var wrecks = new List<(int Piece, Vector2 At)>();
         ToolContact.Circle? wheel = figure.WheelRadius is { } radius ? new((start.X, start.Y), radius, hero.Facing >= 0 ? 1 : -1) : null;
         var helix = wheel == null ? figure.Helix : null;
-        var exits = wheel != null || helix != null ? new List<IReadOnlyList<ToolContact.Exit>>() : null;
+        bool jet = tool == Content.Weapons.PlasmaCutter.Item;
+        var exits = wheel != null || helix != null || jet ? new List<IReadOnlyList<ToolContact.Exit>>() : null;
         var solid = exits != null ? _wreckPixels.Solid(_progress, _ui.DebrisTurns) : null;
         foreach (var touch in hit.Touches)
             if (touch.Wreck is { } wreck)
@@ -431,6 +432,10 @@ public partial class HeroView
                 System.Func<double, double, bool>? inside = solid != null ? (x, y) => solid(wreck, x * Hero.Unit / Rig.Cell, y * Hero.Unit / Rig.Cell) : null;
                 if (wheel is { } round) exits!.Add(ToolContact.Exits(round, WorkLooks.RimSteps, inside!, WorkLooks.WheelExits));
                 else if (helix is { } loop) exits!.Add(ToolContact.Exits(loop, WorkLooks.HelixSteps, inside!, WorkLooks.WheelExits));
+                else if (jet && figure.Barrel.Normalized() is var way
+                    && Pixels(touch.At) is var from && ToolContact.Through((from.X, from.Y), (way.X, way.Y), inside!, WorkLooks.SlagStep, WorkLooks.SlagDepth) is { } through)
+                    exits!.Add([through]);
+                else exits?.Add([]);
             }
         if (hit.Contact is not { } contact) return new(id, tool, start, Pixels(hit.End), figure.Barrel, null, null, wrecks, wheel, exits, helix);
         var at = Pixels(contact.At);
@@ -452,7 +457,7 @@ public partial class HeroView
     /// the one that breaks or fells it the whole (<see cref="Impacts.ShareAt"/>), by the damage the sim gives peer
     /// <paramref name="peer"/>'s hit, its module's boost in it (0098).
     /// </summary>
-    private static void Struck(Voices voices, Registry m, int cell, string tool, Hero hero, int peer)
+    private static void Struck(Voices voices, Registry m, int cell, string tool, Hero hero, int peer, (IReadOnlyList<(double X, double Y)> Was, IReadOnlyList<(double X, double Y)> Now)? sweep = null)
     {
         var middle = hero.Middle;
         var at = Impacts.On(m.Grid, cell, (double)middle.X / Hero.Unit, (double)middle.Y / Hero.Unit);
@@ -468,7 +473,28 @@ public partial class HeroView
         double share = Impacts.ShareAt(m.Building, cell, tool, damage, peer);
         // A running tool is seen at work all along (ToolWork): only the hit that breaks the wall or fells the growth throws.
         if (HeldLook.IsDrill(tool) && share < 1) return;
-        Stages.Of(Layers.Effects).Hits.Throw(HitLooks.Of[impact], point.X, point.Y, at.Nx, at.Ny, share, floor);
+        var hits = Stages.Of(Layers.Effects).Hits;
+        if (sweep is var (was, now) && BladeBites.Of(was, now, (x, y) => SolidAt(m, x, y)) is var (points, dx, dy))
+        {
+            // Off the blade's trail where it lies in the ground or the hull (blade-sparks), along the swing, glanced off the face.
+            double into = dx * at.Nx + dy * at.Ny;
+            if (into < 0) (dx, dy) = (dx - 2 * into * at.Nx, dy - 2 * into * at.Ny);
+            int n = System.Math.Min(BladeBites.Throws, points.Count);
+            for (int k = 0; k < n; k++)
+            {
+                var (x, y) = points[n == 1 ? points.Count / 2 : k * (points.Count - 1) / (n - 1)];
+                hits.Throw(HitLooks.Of[impact], x, y, dx, dy, share / n, floor);
+            }
+            return;
+        }
+        hits.Throw(HitLooks.Of[impact], point.X, point.Y, at.Nx, at.Ny, share, floor);
+    }
+
+    /// <summary>Whether the world's pixel (<paramref name="x"/>, <paramref name="y"/>) is in a cell a tool struck there would hit.</summary>
+    private static bool SolidAt(Registry m, double x, double y)
+    {
+        int cx = (int)System.Math.Floor(x / Rig.Cell), cy = (int)System.Math.Floor(y / Rig.Cell);
+        return cx >= 0 && cy >= 0 && cx < m.Grid.Width && cy < m.Grid.Height && Impacts.At(m.Grid, m.Building, cy * m.Grid.Width + cx) != null;
     }
 
     /// <summary>Whether <paramref name="hero"/>, awake, touches lava where the sim has it, its suit burning (0087).</summary>
