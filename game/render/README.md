@@ -69,6 +69,7 @@
 | `logic/Stages.cs` | Each draw layer's effects, a stage a z, and the figures' held stages. |
 | `logic/Stirs.cs` | Grass pushed by bodies' feet, springing back (plant-stirs). |
 | `Stars.cs` | Space behind the ship and the title: a tile of stars. |
+| `StretchBackdrop.cs` | A stretch's far picture, behind the far wrecks. |
 | `WorldShot.cs` | The world as the camera sees it, without the HUD: the title's cards. |
 | `Strokes.cs` | Soft-edged strokes of light in one draw call (0075). |
 | `Style.cs` | The panels' colours and boxes as Godot style boxes and label settings. |
@@ -83,17 +84,17 @@ and constants; the rest in `///` summaries.
   giant, drifting cloud and sun (`art/hd/planet`, the set its kind's `PlanetLooks.Backdrop` names, 0095); sun, giant and
   clouds at fixed shares of the screen. In front, the land composed by `features/backdrop` (composed-backdrops), both on
   its ground line round the camera.
-- **Three planes in space, far to near** (no ADR), on `ScreenLayers.Stars`, under the world and every panel; the ship's
+- **Three planes in space, far to near** (no ADR), on `ScreenLayers.Stars`, under the world and panels; the ship's
   back walls hide them. None is lit by `Lit`.
   - *Stars*: a filtered tile repeated over the screen, a screen pixel a star at any zoom, streaming on local time.
   - *Far wrecks*: each a core of one of the wrecks' pictures (`art/debris`) with up to five pieces gathered round it.
     One grey mipmapped atlas made at start, lightness lifted to `WreckLift`, tinted between space's clear colour and
-    `WreckTint` by size; opaque and soft, never outlined, overlaps not darkening.
+    `WreckTint` by size; soft, never outlined.
   - *Dust*: specks one or two screen pixels wide at every zoom, drawn filtered so they glide by fractions of a pixel;
     faster than the wrecks, slower than the debris.
 - **A plane** (`DriftLayer`, no ADR): a point `(x, y)` is on screen at `screen/2 + ((x, y) − centre) × zoom`, the centre
   the camera's times its parallax plus its drift (`Scatter.Centre`): it moves its parallax at every zoom and zooms about
-  the screen's middle without reshuffling. Past `ShipCamera.FarthestZoom` (a dev view's) it is drawn as at that zoom.
+  the screen's middle without reshuffling. Past `ShipCamera.FarthestZoom` it is drawn as at that zoom.
 - **Placed by a hash** (`Scatter`, no ADR): each tile holds `Mean` things, rounded down or up by a hash of the plane's
   seed and the tile; each thing's place and looks come from its own hash, so panning away and back shows the same
   (`ScatterTests`). Wrecks and dust drift by the world's time (`Stars.Seconds`), alike for every peer; stars by local time.
@@ -106,4 +107,4 @@ and constants; the rest in `///` summaries.
 ## Deliberately not handled
 
 - Wrecks do not turn, so a plane never redraws for them; they all lie at one depth, size and colour suggesting more.
-- No larger wreck art of its own; the title screen's space is its own (`menu/TitleScreen.cs`).
+- No larger wreck art; the title's space is its own (`menu/TitleScreen.cs`).

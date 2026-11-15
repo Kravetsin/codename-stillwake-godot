@@ -14,6 +14,7 @@ public static partial class Ru
         ["handbook.row.wrecks"] = "Плывёт у корабля, ломается оружием",
         ["handbook.row.asteroids"] = "В поясе астероидов, над кораблём и под ним",
         ["handbook.row.derelicts"] = "Далеко от корабля",
+        ["handbook.row.stretches"] = "В полосе космоса, пока корабль её проходит",
         ["handbook.hp"] = "Прочность {hp}",
         ["handbook.anyWeapon"] = "Ломается любым оружием",
         ["handbook.byHand"] = "Ловится руками",

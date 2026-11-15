@@ -135,8 +135,11 @@ public static class Debris
             new(2 * 72, [("asteroidSmall", 1), ("asteroid", 3), ("asteroidLarge", 3), ("asteroidRich", 2)]),
         ]);
 
-    /// <summary>Every zone, in the order they spawn on a tick: the stream first, so a world with no hero out draws as it always did.</summary>
-    public static readonly IReadOnlyList<DebrisZone> Zones = [Ship, Far, Asteroids];
+    /// <summary>
+    /// Every zone, in the order they spawn on a tick: the stream first, so a world with no hero out draws as it always did; the
+    /// stretches' last, each beating only while its stretch runs (<c>Stretches</c>).
+    /// </summary>
+    public static readonly IReadOnlyList<DebrisZone> Zones = [Ship, Far, Asteroids, Stretches.IceBelt.Zone, Stretches.ContrabandDrift.Zone];
 }
 
 /// <summary>
@@ -145,7 +148,11 @@ public static class Debris
 /// of its own are out, drifting left by <paramref name="DriftMin"/> to <paramref name="DriftMax"/> a tick;
 /// its kinds drawn from the <paramref name="Tiers"/>, in order of the distance from the hull each starts at.
 /// </summary>
-public sealed record DebrisZone(string Id, ZoneAnchor Anchor, int Every, int Jitter, int Max, int DriftMin, int DriftMax, IReadOnlyList<DebrisTier> Tiers);
+public sealed record DebrisZone(string Id, ZoneAnchor Anchor, int Every, int Jitter, int Max, int DriftMin, int DriftMax, IReadOnlyList<DebrisTier> Tiers)
+{
+    /// <summary>The stretch it belongs to (<c>Stretches</c>): it spawns only while that one runs. Null for a zone always there.</summary>
+    public string? Stretch { get; init; }
+}
 
 /// <summary>
 /// The kinds by weight a zone draws at <paramref name="From"/> cells or more from the hull's box, measured
@@ -199,6 +206,8 @@ public static class Looks
         ("asteroid", 6), ("asteroidSmall", 6), ("asteroidLarge", 6), ("asteroidRich", 6),
         ("engineBlock", 4), ("cargoHold", 4), ("podCluster", 4),
         ("parcel", 1), ("deliveryCrate", 1), ("confiscated", 1),
+        // The stretches' (docs/decisions/2026-11-15-stretches-of-space.md): five druses; the case, the drum, the double bottom and the bundle.
+        ("iceBlock", 5), ("contrabandCrate", 4),
     ];
 
     /// <summary>How many looks <paramref name="kind"/> has: one for a kind with no pictures of its own.</summary>
@@ -335,6 +344,22 @@ public static class Loot
             new("scanner", 1, 1, OneIn: 24),
             new("powerDriver", 1, 1, OneIn: 24),
             new("plasmaCutter", 1, 1, OneIn: 30),
+        ]),
+        // The stretches' (docs/decisions/2026-11-15-stretches-of-space.md): the ice belt's blocks, melted into water; the drift's crates, each a hold of contraband.
+        ("iceBlock",
+        [
+            new("ice", 6, 10),
+        ]),
+        // A smuggler's hold: its contraband, and now and then the black market's own goods, free (stretches; unique finds to come).
+        ("contrabandCrate",
+        [
+            new(Stretches.Contraband, 1, 1),
+            new(Foods.Stim, 1, 2, OneIn: 3),
+            new("scanner", 1, 1, OneIn: 16),
+            new("powerDriver", 1, 1, OneIn: 16),
+            new(Helmet.Heavy, 1, 1, OneIn: 20),
+            new("plasmaCutter", 1, 1, OneIn: 20),
+            new("regenSuit", 1, 1, OneIn: 24),
         ]),
         // The farthest prize: air for the way home, and now and then a circuit.
         ("podCluster",

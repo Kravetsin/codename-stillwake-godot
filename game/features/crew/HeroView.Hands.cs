@@ -376,11 +376,10 @@ public partial class HeroView
                     near.Add(piece);
             }
         }
-        var wreck = HitLooks.Of[Impact.Wreck];
         return (x, y) =>
         {
             foreach (var piece in near)
-                if (solid(piece, x * perPixel, y * perPixel)) return (wreck, piece.Id);
+                if (solid(piece, x * perPixel, y * perPixel)) return (HitLooks.Of[HitLooks.PieceOf(piece.Item)], piece.Id);
             int cx = (int)System.Math.Floor(x / Rig.Cell), cy = (int)System.Math.Floor(y / Rig.Cell);
             if (cx < 0 || cy < 0 || cx >= m.Grid.Width || cy >= m.Grid.Height) return null;
             return Impacts.At(m.Grid, m.Building, cy * m.Grid.Width + cx) is { } impact ? (HitLooks.Of[impact], -1) : null;

@@ -146,9 +146,25 @@ public partial class ComputerPanel : CanvasLayer
         var contacts = _world()!.Places.Contacts;
         _radar.Contacts = [.. contacts];
         _radar.Course = _world()!.Places.Course?.Id;
+        ShowStretch(_world()!);
         if (_ui.RadarContact.Get() is { } id && !contacts.Any(c => c.Id == id)) _ui.RadarContact.Set(null);
         ShowSelected();
         Paint();
+    }
+
+    private StretchShown _stretch = new();
+    private Registry? _stretchOf;
+    /// <summary>The panel's own clock while it reads, in ticks: what a stretch's band fades out by once it has gone.</summary>
+    private double _clock;
+
+    /// <summary>The stretch of space the sky says is coming or running, as the radar's band (docs/decisions/2026-11-15-stretches-of-space.md); read anew in another world.</summary>
+    private void ShowStretch(Registry world)
+    {
+        if (_stretchOf != world) (_stretch, _stretchOf) = (new StretchShown(), world);
+        _clock += ReadEvery * Sim.World.TicksPerSecond;
+        var now = world.Sky.Now;
+        _stretch.See(now.Stretch, now.Coming, now.ComingIn, _clock);
+        _radar.Stretch = _stretch.Look is { Band: var (r, g, b) } ? (new Color(r, g, b), _stretch.Grow, _stretch.Shown) : null;
     }
 
     /// <summary>The one tooltip: what the radar shows under the pointer, a contact, my ship or the planet; else a button's program; none behind the menu.</summary>

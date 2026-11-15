@@ -24,7 +24,10 @@ A living document: what is decided about the game and what is still open. Techni
   further places.
 - **Places and their dangers:** the starting space is mild — debris, light meteors every few minutes
   that break a weak hull now and then, and now and then a random event such as a great cluster of
-  debris or another wreck. Harder places bring their own dangers (see meteors below).
+  debris or another wreck. Harder places bring their own dangers (see meteors below). As the crew gets further, the ship
+  drifts through stretches of space, seen coming for three minutes: the ice belt, once a warm helmet is found, bitter cold
+  and ice to mine; the contraband drift, once the railgun is, the mafia's crates that bring the catchers
+  ([stretches-of-space](decisions/2026-11-15-stretches-of-space.md)).
 - **No hand-holding:** no tutorial text and no highlighted "click here". The player learns by trying,
   picks their own path and pace; the world hints by colour, light and motion only.
 - **Who:** a scavenger who was a slave aboard a ship, thin, in what was issued, a tracker still on the leg.

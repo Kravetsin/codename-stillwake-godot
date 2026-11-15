@@ -20,6 +20,8 @@ public static class DebrisLooks
         ("asteroid", "asteroid"), ("asteroidSmall", "smallrock"), ("asteroidLarge", "bigrock"), ("asteroidRich", "orerock"),
         ("engineBlock", "engine"), ("cargoHold", "hold"), ("podCluster", "pods"),
         ("parcel", "parcel"), ("deliveryCrate", "deliverycrate"), ("confiscated", "seized"),
+        // The stretches of space (docs/decisions/2026-11-15-stretches-of-space.md): the ice belt's druses, the contraband drift's hard-cases.
+        ("iceBlock", "iceblock"), ("contrabandCrate", "contrabandcrate"),
     ];
 
     /// <summary>The pictures of each kind of salvage that drifts: their name, and how many there are.</summary>

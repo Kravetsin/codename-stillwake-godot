@@ -40,6 +40,8 @@ Below, `f/x` = `game/features/x`, `r/` = `game/render`, `gc/` = `game/Content` (
 
 **Day and night** — sim/Sky: `Sky.cs` SkyModule, `SetTime`, `ISkyQueries.Now`; the chill in sim/Crew `TemperatureAt`; gc/`Daylight.cs`, `PlanetLooks.cs` (dusk and night colours); r/`Lit.cs` (`sky` uniform), `Stars.cs` (`Tint`, also the land's veil in f/backdrop); c/`Sky.cs`
 
+**Stretches of space** (ice belt, contraband drift) — sim/Sky `Stretches.cs` (the schedule, `StretchNow`); c/`Stretches.cs`; their zones in sim/Debris `Drift.cs`; contraband's reputation in sim/Research · gc/`StretchLooks.cs` (`StretchShown`); r/`StretchBackdrop.cs` (the far picture); f/computer `logic/RadarBand.cs`; f/sky: `FrostView.cs`, `logic/Frost.cs`, `logic/HullCells.cs`
+
 **Ruins** — sim/Building `Flora.cs` (`Relic`, ruin pieces as plants) · f/ruins: `HomesView.cs`, `SpiresView.cs`, `RelicSparks.cs`; c/`Ruins.cs`; gc/`HomesLooks.cs`, `RelicLooks.cs`
 
 **Debris and wrecks**

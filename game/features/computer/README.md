@@ -11,6 +11,7 @@ its screen. Only the radar so far: the ship, its planet and the vessels places' 
 | `logic/Computer.En.cs` | Its player text (`En`) |
 | `logic/Computer.Ru.cs` | Russian |
 | `logic/RadarOrbit.cs` | Where the radar draws a contact: on the ship's orbit, the farthest 45 % of the screen from the ship; its distance in km |
+| `logic/RadarBand.cs` | Where the radar draws a stretch of space coming or running: a band on the orbit sliding toward the ship |
 | `ComputerPanel.cs` | The window: the monitor, the side panel's buttons, the screen's line or program |
 | `RadarScreen.cs` | The radar program: the ship in the middle, rings, the sweep, a planet's curve below, the contacts on the orbit |
 | `ComputerScreens.cs` | Each computer's screen in the world: dark, running text, or the radar's sweep; its rack's lights; its glow |
@@ -35,6 +36,9 @@ computer's row in `c/Machines.cs`. Files in `logic/` are Godot-free and tested i
 - **The radar** draws the ship held in the middle, the beam turning every 4 s, a planet's curve still below, the ship
   drifting round it too slowly to see, and places' contacts (`Places.Contacts`, 2026-11-08-radar-contacts) on the ship's orbit
   (`RadarOrbit`): a diamond each, flaring as the beam passes and fading over the turn, blinking in its last 2 minutes.
+- **A stretch of space** ([stretches-of-space](../../../docs/decisions/2026-11-15-stretches-of-space.md)) is a band on the
+  orbit in its colour (`RadarBand`, `StretchLooks.Band`): ahead of the ship as its warning starts, sliding over it as it comes,
+  held while it runs, fading after.
 - **A click on a contact** selects it (`Ui.RadarContact`, the player's own): corner brackets round it and its kind's name
   over it (`computer.radar.<kind>`), its distance under that in kilometres (`RadarOrbit.Km`: an offset's units times
   `KmPerUnit`, 10), and the litres a trip there and back burns (`PlacesModule.CostOf`). A click on empty
