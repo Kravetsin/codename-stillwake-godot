@@ -334,9 +334,10 @@ public static class Migrations
             return root;
         },
         // 64 → 65 (hungry-respawn): the pod prints no paste, no food any more; a hero holding some loses it, hungry with nothing else.
+        // A closed surface, a vessel not yet boarded, has no slices to look in.
         root =>
         {
-            foreach (var slices in new[] { root["slices"]! }.Concat((root["surfaces"]?.AsArray() ?? []).Select(s => s!["slices"]!)))
+            foreach (var slices in new[] { root["slices"]! }.Concat((root["surfaces"]?.AsArray() ?? []).Select(s => s!["slices"]).OfType<JsonNode>()))
                 foreach (var hero in slices["crew"]!["heroes"]!.AsArray().Select(h => h!.AsObject()))
                 {
                     if (hero["meals"] is not JsonArray meals) continue;

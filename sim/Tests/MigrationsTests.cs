@@ -368,8 +368,14 @@ public class MigrationsTests
         var heroes = save["slices"]!["crew"]!["heroes"]!.AsArray();
         heroes[0]!["meals"] = JsonNode.Parse("""[{"food":"podPaste","left":900},{"food":"ration","left":800}]""");
         heroes[1]!["meals"] = JsonNode.Parse("""[{"food":"podPaste","left":900}]""");
+        // A vessel not yet boarded: a closed surface, no slices of its own.
+        const string Closed = """[{"id":1,"kind":"vessel.shuttle","seed":7,"closed":true}]""";
+        save["surfaces"] = JsonNode.Parse(Closed);
 
-        w.Reload(Migrations.Upgrade(save.ToJsonString()));
+        var upgraded = JsonNode.Parse(Migrations.Upgrade(save.ToJsonString()))!.AsObject();
+        Assert.Equal(Closed, upgraded["surfaces"]!.ToJsonString());
+        upgraded.Remove("surfaces");
+        w.Reload(upgraded.ToJsonString());
         Assert.Equal([(Content.Foods.Ration, 800)], w.M.Crew.HeroOf(0)!.Meals.Select(m => (m.Food, m.Left)));
         Assert.True(w.M.Crew.Hungry(1));
     }
