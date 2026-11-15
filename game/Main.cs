@@ -170,7 +170,7 @@ public partial class Main : Node2D, ITogether
         _cheat = Has("--cheat");
         _look = Settings.Look() ?? (_dev.None ? null : Sim.Players.Look.Zero);
         // A dev run picks none, as it keeps no look; a debug build owns every skin unless told it owns none.
-        _skins = _dev.None ? Settings.Skins() : [];
+        _skins = _dev.None ? Settings.Skins() : _dev.Value("--wear")?.Split(',') ?? [];
         _owned = new Owned(OS.IsDebugBuild() && !Has("--own-none"), _ => false);
         // Before anything is made that says anything.
         var language = _dev.Value("--lang");
