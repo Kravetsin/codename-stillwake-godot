@@ -90,6 +90,9 @@ public partial class Main : Node2D, ITogether
     private HeroView? _hero;
     /// <summary>The look this player chose (2026-10-28-looks-are-printed): null on a first run till the look editor closes; look 0 in a dev run.</summary>
     private Sim.Players.Look? _look;
+    /// <summary>The skins this player picked (skins), kept from an earlier run; what of them it owns goes out (<see cref="Owned"/>).</summary>
+    private IReadOnlyList<string> _skins = [];
+    private Owned _owned = new(false, _ => false);
     private Features.Crew.LookEditor? _lookEditor;
     private ItemsView? _items;
     private FabricatorPanel? _fabricator;
@@ -166,6 +169,9 @@ public partial class Main : Node2D, ITogether
         _playerKey = Profile.Key(_dev.All);
         _cheat = Has("--cheat");
         _look = Settings.Look() ?? (_dev.None ? null : Sim.Players.Look.Zero);
+        // A dev run picks none, as it keeps no look; a debug build owns every skin unless told it owns none.
+        _skins = _dev.None ? Settings.Skins() : [];
+        _owned = new Owned(OS.IsDebugBuild() && !Has("--own-none"), _ => false);
         // Before anything is made that says anything.
         var language = _dev.Value("--lang");
         Speaking = language != null ? Languages.Named(language) ?? Language.English : Settings.Language();
@@ -220,7 +226,7 @@ public partial class Main : Node2D, ITogether
         if (!Has("--perf") && !Has("--gallery"))
         {
             var script = DevScript();
-            AddChild(_hero = new HeroView(_hands.Ui, _hands.Mouse, script) { Look = () => _look });
+            AddChild(_hero = new HeroView(_hands.Ui, _hands.Mouse, script) { Look = () => _look, Skins = () => _owned.Sendable(_skins) });
             PlaceHero(_hero);
             AddChild(_items = new ItemsView(_hands.Ui));
             // A queued station's inputs are the items feature's slots, laid out in the crafting feature's panel.

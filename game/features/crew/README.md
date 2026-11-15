@@ -49,6 +49,7 @@ This hero and others', client-authoritative (0002): only commands reach the sim.
 | `logic/RemoteRod.cs` | another's rod |
 | `logic/RodFlourish.cs` | its lights |
 | `logic/Suits.cs` | suits worn |
+| `logic/Skins.cs` | skins |
 | `logic/SuitGlow.cs` | body lights |
 | `logic/TrackerBlink.cs` | tracker blink |
 | `SuitKeys.cs` | V on the tablet |
@@ -124,8 +125,8 @@ This hero and others', client-authoritative (0002): only commands reach the sim.
 - **Water** (liquids): swum `SwimDepth` deep, left by Space or shore; wading splashes.
 - **Swim, haul, jetpack** (0047, tether-haul, jet-cruise): afloat through floors, tied where it left the hull;
   Shift hauls in along its bends (`Wraps`); a jetpack unties; Shift vents unless `Hero.Cruising`.
-- **A canister** (0047, 0081): RMB, R send `Refill`, V `SuitMode` (regen-suit) if taken. Cooling greys the O₂ sign
-  in a ring; too soon, red (canister-mark).
+- **A canister** (0047, 0081): RMB, R send `Refill`; V `SuitMode` (regen-suit). Cooling greys the O₂ sign;
+  too soon, red (canister-mark).
 - **Meals:** RMB sends `Eat`, chewed; refused, slots blink (hud-vitals); the 4th held 3 s, `Purge` (food-tuning).
   **Degrees** over them (the-thermometer).
 - **Crew:** made at `Spawn`; passed out, lies at its cell, takes no orders (0061). `Enter` goes when the sim's room or side
@@ -139,7 +140,7 @@ This hero and others', client-authoritative (0002): only commands reach the sim.
 - Sent (`SentHero`) every 50 ms while it changes, each second still, at once on a rod's change (0002, 0065); hands by
   item and `Busy` (0037).
 - Drawn 150 ms behind (0013), walking 100 ms past the last, hidden 3 silent s on; only those
-  here (0076). A friend's tool strikes per number heard (0038), from the hero sent with it; its rod plays out by `RemoteRod`
+  here (0076). A friend's tool strikes per number heard (0038), from its sent hero; its rod plays out by `RemoteRod`
   (0065); its drill, driver run as the sim says (0055).
 
 ## The hands
@@ -157,7 +158,7 @@ This hero and others', client-authoritative (0002): only commands reach the sim.
 - **A gun** (hold-to-fire): held fires each cooldown; a `Charge` one on release, full; flat, clicks. Kicks afloat, shoves standing (`Recoil`, body-answers).
 - **Drill, grinder, cutter** (0054, 0055): held runs it (`Run`), hits a `Pace`, the cutter's by beam (`ToolEdges`).
 - **Power driver** (driver-at-work, driver-order): charged, works a 2×2 square (`WorkedSquare`); RMB toggles (mode-glyph).
-- **Seated** (`Seating`): no tool; E leaves. **Ladders, ledges** (0092): grab, climb, slide, leap off; a hatch open climbs, shut floors (0112); a jump a foot short mantles.
+- **Seated** (`Seating`): no tool; E leaves. **Ladders, ledges** (0092): grab, climb, slide, leap off; a hatch open climbs, shut floors (0112); a short jump mantles.
 
 ## Deliberately not handled
 

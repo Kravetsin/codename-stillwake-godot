@@ -120,6 +120,10 @@ public partial class HeroView : Node2D
 
     /// <summary>The look this player chose, sent before the pod prints its hero; null holds the hero out till it chooses. Look 0 unless set.</summary>
     public Func<Look?> Look { get; set; } = () => Sim.Players.Look.Zero;
+    /// <summary>The skins this player owns of its picks (skins), sent once a join, the empty set too, so a world never keeps stale ones.</summary>
+    public Func<IReadOnlyList<string>> Skins { get; set; } = () => [];
+    /// <summary>The session this player's skins were sent to.</summary>
+    private Client? _skinsSentTo;
     private double _clockMs;
     private int _workedOnTick = -1;
     /// <summary>
@@ -482,6 +486,11 @@ public partial class HeroView : Node2D
         // Passed out it reports no cell: one landing after it wakes at the pod would put it back out there.
         int tick = client.World.Tick;
         if (passedOut) _reportedAt = tick;
+        if (_skinsSentTo != client)
+        {
+            client.Send(new Sim.Crew.ChooseSkins(Skins()));
+            _skinsSentTo = client;
+        }
         var (choose, hold) = Report.LookFirst(m.Crew, client.Id, Look(), _lookSentTo == client);
         if (choose != null)
         {
@@ -552,7 +561,7 @@ public partial class HeroView : Node2D
         _ui.Driven = [.. _shownOthers.Values.Select(o => o.Driver).Append(_driverHeard).Where(d => d.Hum.Quiets).Select(d => (d.At.X, d.At.Y))];
         drawn = drawn with { Facing = _current.Facing };
         double look = passedOut ? 0 : Poses.LookOf(_current, pointer);
-        var (helmet, body) = Suits.WornBy(m.Items, client.Id);
+        var (helmet, body, _, _) = Suits.DressedAs(m.Items, m.Players, client.Id);
         _figure.Wear(Suits.Of(m.Players, client.Id), helmet, body, m.Players.LookOf(client.Id));
         _figure.Suit = SuitGlow.Of(m.Crew, m.Items, client.Id, client.World.Tick);
         _figure.Signal = m.Crew.SignalOf(client.Id);

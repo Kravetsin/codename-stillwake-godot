@@ -50,7 +50,7 @@ public partial class HeroView
             var hero = seen.Hero;
             bool out_ = (crew.HeroOf(id)?.Out ?? 0) > 0;
             shown.Figure.Visible = m.Landing.SeatOf(id) == null && m.Landing.FlightOf(id) == null;
-            var (helmet, body) = Suits.WornBy(m.Items, id);
+            var (helmet, body, _, _) = Suits.DressedAs(m.Items, m.Players, id);
             shown.Figure.Wear(Suits.Of(m.Players, id), helmet, body, m.Players.LookOf(id));
             shown.Figure.Suit = SuitGlow.Of(crew, m.Items, id, _client.World.Tick);
             shown.Figure.Signal = crew.SignalOf(id);
