@@ -155,7 +155,7 @@ public partial class Stars : CanvasLayer
             _day!.Follow(centre, zoom, screen, ground, Seconds);
             _land?.Follow(centre, zoom, screen, ground);
         }
-        _far.Follow(centre, screen, Seconds);
+        _far.Follow(centre, zoom, screen, Seconds);
         _wrecks.Follow(centre, zoom, screen, Seconds);
         _dust.Follow(centre, zoom, screen, Seconds);
     }

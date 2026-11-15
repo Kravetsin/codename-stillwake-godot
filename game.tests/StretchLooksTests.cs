@@ -73,8 +73,11 @@ public class StretchLooksTests
         string hd = Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "game", "art", "hd");
         foreach (var look in StretchLooks.All)
         {
+            Assert.True(look.Far.Speed > 0, look.Id);
+            Assert.True(look.Far.Pictures.Count > 0 != (look.Far.Scattered != null), $"{look.Id}: pictures or a field, one of them");
             foreach (var picture in look.Far.Pictures) Assert.True(File.Exists(Path.Combine(hd, picture + ".png")), picture);
             int count = look.Far.Pictures.Count;
+            if (count == 0) continue;
             var taken = Enumerable.Range(-10, 30).Select(place => StretchLooks.PictureAt(place, 1234, count)).ToList();
             Assert.Equal(count, taken.Distinct().Count());
             Assert.All(taken, i => Assert.InRange(i, 0, count - 1));
@@ -83,21 +86,38 @@ public class StretchLooksTests
     }
 
     [Fact]
-    public void AFarRowPassesSteadilyAndItsPicturesKeepTheirDetail()
+    public void AFieldScattersItsPiecesSmallWithinItsPlaceAndTheSameEachTime()
     {
         string hd = Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "game", "art", "hd");
         foreach (var look in StretchLooks.All)
         {
-            Assert.True(look.Far.Speed > 0, look.Id);
-            // Drawn at the farthest zoom, a pixel of its plane a pixel of a 1536-wide drawing: a picture no smaller than its width.
-            foreach (var picture in look.Far.Pictures)
+            if (look.Far.Scattered is not { } field) continue;
+            using (var file = File.OpenRead(Path.Combine(hd, field.Atlas + ".png")))
             {
-                using var file = File.OpenRead(Path.Combine(hd, picture + ".png"));
                 var header = new byte[24];
                 file.ReadExactly(header);
                 int width = (header[16] << 24) | (header[17] << 16) | (header[18] << 8) | header[19];
-                Assert.True(width >= look.Far.Width, $"{picture} is {width} wide, drawn {look.Far.Width}");
+                int height = (header[20] << 24) | (header[21] << 16) | (header[22] << 8) | header[23];
+                Assert.All(field.Pieces, p => Assert.True(p.X >= 0 && p.Y >= 0 && p.X + p.W <= width && p.Y + p.H <= height, $"{p}"));
             }
+            // At the player's nearest, three times the farthest, a piece's pixel stays within a screen's.
+            Assert.InRange(field.Large * 3 * 1.25f, field.Small, 1f);
+            List<StretchLooks.Spot> spots = [], again = [];
+            for (long place = 0; place < 20; place++)
+            {
+                StretchLooks.PiecesAt(field, place, 77, look.Far.Width, spots);
+                StretchLooks.PiecesAt(field, place, 77, look.Far.Width, again);
+            }
+            Assert.Equal(spots, again);
+            Assert.Equal(20 * field.Each, spots.Count);
+            Assert.All(spots, s =>
+            {
+                Assert.InRange(s.Piece, 0, field.Pieces.Count - 1);
+                Assert.InRange(s.X, 0, look.Far.Width);
+                Assert.InRange(s.Y, -field.Tall / 2, field.Tall / 2);
+                Assert.InRange(s.Scale, field.Small, field.Large);
+            });
+            Assert.True(spots.Select(s => s.Piece).Distinct().Count() > field.Pieces.Count / 2, "most pieces are used");
         }
     }
 
