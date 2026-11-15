@@ -64,7 +64,7 @@ public partial class MealSlots : CanvasLayer
     private readonly PurgeSpot _purge;
     private readonly HungerSign _sign = new()
     {
-        Position = new Vector2(Vitals.SignX - HungerSign.Side / 2, (Vitals.MealTop + Vitals.TimeTop + Vitals.TimeHeight - HungerSign.Side) / 2),
+        Position = new Vector2(Vitals.SignX - HungerSign.Side / 2, Vitals.MealY - HungerSign.Side / 2),
         Size = new Vector2(HungerSign.Side, HungerSign.Side),
         MouseFilter = Control.MouseFilterEnum.Ignore,
     };
@@ -119,7 +119,8 @@ public partial class MealSlots : CanvasLayer
     private sealed partial class PurgeSpot(Func<string?> purge) : Control
     {
         private const double HoldS = 3;
-        private const float Radius = 11.5f;
+        // The ring's outer edge on the icon's: as large as every other vitals icon.
+        private const float Radius = Vitals.Icon / 2 - 1;
         private static readonly Color Bile = new("c8c070"), Red = new(1, 70 / 255f, 60 / 255f);
 
         public bool Full;
@@ -176,8 +177,8 @@ public partial class MealSlots : CanvasLayer
     /// </summary>
     private sealed partial class HungerSign : Control
     {
-        /// <summary>Its side in block units, centred on the slots and their time lights: smaller than the thermometer's, clear of it.</summary>
-        public const float Side = 12 * Vitals.SignScale;
+        /// <summary>Its side in block units: an icon, as every vitals sign.</summary>
+        public const float Side = Vitals.Icon;
 
         private const double FadeS = 0.4;
         private double _lit;

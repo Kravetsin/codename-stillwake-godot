@@ -144,7 +144,7 @@ public partial class SuitGauge : CanvasLayer
     }
 
     /// <summary>The ring's radius round the oxygen sign, in block units, grown with the sign; how wide it is drawn.</summary>
-    private const float RingRadius = 12.5f * Vitals.SignScale, RingWidth = 2;
+    private const float RingRadius = Vitals.RingRadius, RingWidth = 2;
     private static readonly Color Refused = new(1, 70 / 255f, 60 / 255f);
 
     /// <summary>
