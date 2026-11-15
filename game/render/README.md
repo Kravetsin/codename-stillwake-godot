@@ -99,7 +99,7 @@ and the files' constants; the rest in its `///` summaries.
 - **Drawn once** (no ADR): a plane is drawn into its canvas item, moved by its node, and redrawn only when the screen
   passes the tiles drawn (a tile of margin) or the zoom changes.
 - **A tool's icon** (2026-10-27-tool-icons): a held look has no 16 px picture. `ItemIcons.Icon(item, side)` bakes its icon
-  picture (`icons/`, driver-icons) for the side it is drawn at (`ToolIcon`), drawn 1:1. `Icon(item)` is the world's, at its real size:
+  picture (`icons/`, driver-icons) for the side it is drawn at (`ToolIcon`), filtered by itself. `Icon(item)` is the world's, at its real size:
   a tool's plain held picture, any other's 16 px one.
 
 ## Deliberately not handled
