@@ -146,7 +146,8 @@ This hero and others', client-authoritative (0002): only commands reach the sim.
   the plan, wiring, lays cables; a tool on the right, nothing.
 - **One aim** (`Aiming.AimAt`): a plan (back walls first), machine (0099), tank, door, valve, a wreck
   pointed at, else the nearest small piece. Outlined green/red, `UsePrompt` why; plan in hand, E idle. Armed: small ones.
-- **Hits are rays** (tool-reach, hits-pass-wrecks): a fan (`ToolRays`) to a wall, through wrecks; ground rings; sparks off the haze.
+- **Hits are rays** (tool-reach, hits-pass-wrecks): a fan (`ToolRays`) to a wall, through wrecks; ground rings.
+- **Sparks are the haze's** (spark-rule): a haze in use throws the look of what it lies in.
 - **Struck tools** (0038, swing-motions): by sector, hit as the blade crosses the aim, leaned into.
 - **Harpoon, grapple** (0044, grapple-climbs): reel pieces, pull to walls; hung, refire; Space/RMB let go.
 - **A gun** (hold-to-fire): held fires each cooldown; a `Charge` one on release, full; flat, clicks. Kicks afloat, shoves standing (`Recoil`, body-answers).

@@ -10,11 +10,11 @@
 | `logic/Blueprint.cs` | How plans join the plans beside them when drawn. |
 | `BlueprintArt.cs` | A placement as built: for plans, ghosts and build menu thumbnails. |
 | `logic/Bolts.cs` | The electric arcs in the world (0075). |
-| `logic/Breath.cs` | How what is aimed at breathes: its outline and a tool's glowing faces on one clock. |
+| `logic/Breath.cs` | How what is aimed at breathes: outline and glowing faces on one clock. |
 | `BuiltParts.cs` | What of the plans being built is already real (0063). |
 | `logic/Buttons.cs` | The mouse buttons as the world reads them, since the last take. |
-| `logic/CableShape.cs` | A cable as drawn: its ends at nodes, its hang, its way through the hull. |
-| `logic/DoorShape.cs` | One door, every shape (0067): a doorway's pictures by the joins of its cells. |
+| `logic/CableShape.cs` | A cable as drawn: ends at nodes, hang, way through the hull. |
+| `logic/DoorShape.cs` | A doorway's pictures by the joins of its cells (0067). |
 | `DriftLayer.cs` | A plane of the backdrop, things scattered over its tiles by `Scatter`. |
 | `DrillLight.cs` | A drill's own light while it runs (0054, 0075, 0094). |
 | `Dust.cs` | Faint dust between the far wrecks and the ship. |
@@ -23,13 +23,13 @@
 | `logic/Flares.cs` | Glints, shock lines and flashes of the world's key moments (0075). |
 | `Glow.cs` | A point that lights what is round it a little while it is shown. |
 | `GroundArt.cs` | A planet's ground pictures made, not drawn (0077, 0079). |
-| `logic/GroundDetails.cs` | Pictures laid over a planet's ground, a rule of drawing (0082). |
+| `logic/GroundDetails.cs` | Pictures laid over a planet's ground (0082). |
 | `logic/GroundShadow.cs` | The soft shadow walls cast on a natural back wall (0088). |
 | `HeldArt.cs` | A held tool's pictures with its modules' overlays (`HeldParts`, 0098). |
 | `logic/HitBurst.cs` | A hit's look thrown where it lands (0094). |
 | `logic/HazePoint.cs` | A point of a tool's haze and its way (spark-rule). |
 | `logic/IconCanvas.cs` | A glowing line icon's pixels (`IconLooks`). |
-| `logic/WreckDress.cs` | Which wreck plates show rust, stripes or a tear; a torn cell's pixels. |
+| `logic/WreckDress.cs` | Rust, stripes and tears on wreck plates; a torn cell's pixels. |
 | `logic/ToolIcon.cs` | A tool's icon: its held picture turned up-right and fitted. |
 | `logic/IconShow.cs` | Where and how a glowing line icon is drawn (0086, 0097). |
 | `logic/Ink.cs` | The picked looks' pen, blob and band as triangles (damage-looks). |
@@ -62,7 +62,7 @@
 | `Shimmer.cs` | Heat shimmer (0075). |
 | `ShipCamera.cs` | The camera over the ship: centring and zoom steps with `-` and `=`. |
 | `ShipTiles.cs` | Every cell picture in one atlas with its normal and ore maps (`Shared`). |
-| `Signs.cs` | The picked signs: the power bolt, its warnings and the credit chip (ink-signs). |
+| `Signs.cs` | The power bolt, its warnings, the credit chip (ink-signs). |
 | `Sketch.cs` | A node drawn by a callback: lines, boxes and dots a view works out itself. |
 | `SoftDots.cs` | Soft round pictures luminous things are drawn with (0075). |
 | `logic/Stages.cs` | Each draw layer's effects, a stage a z, and the figures' held stages. |

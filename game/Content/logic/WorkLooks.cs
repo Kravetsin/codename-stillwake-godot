@@ -4,10 +4,9 @@ using Stillwake.Game.Render;
 namespace Stillwake.Game;
 
 /// <summary>
-/// How a tool is seen at work (tool-contact, damage-looks), as the user picked it: a swung tool's downstroke trailing three pale
-/// ink flicks ("flicks"); a running electric tool throwing a steady stream where it touches, hot sparks off a wreck ("sparks"),
-/// what it touches looks hit off anything else, <see cref="ThrowsPerSecond"/> throws a second of as much in all as its hits
-/// threw one by one; and the plasma cutter's jet, a flat violet sheath round a white heart ("beam"). Sizes in the world's pixels.
+/// How a tool is seen at work (tool-contact, damage-looks, spark-rule), as the user picked it: a swung tool's downstroke trailing
+/// three pale ink flicks ("flicks"); every tool's haze in use throwing the look of the matter it lies in, along the haze
+/// (<see cref="HazeRate"/>); and the plasma cutter's jet, a flat violet sheath round a white heart ("beam"). Sizes in the world's pixels.
 /// </summary>
 public static class WorkLooks
 {
