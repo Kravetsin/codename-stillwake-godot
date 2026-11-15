@@ -1,6 +1,7 @@
 using System.Text.Json.Serialization;
 using Stillwake.Sim.Atmosphere;
 using Stillwake.Sim.Crafting;
+using Stillwake.Sim.Fuel;
 using Stillwake.Sim.Grid;
 using Stillwake.Sim.Items;
 using Stillwake.Sim.Power;
@@ -44,13 +45,17 @@ public sealed class FurnaceModule : Module<FurnaceState>
     private readonly IPowerOps _powerOps;
     private readonly ICraftingQueries _crafting;
     private readonly ICraftingOps _craftingOps;
+    private readonly IFuelQueries _fuel;
+    private readonly IFuelOps _fuelOps;
 
     public override string Id => "furnace";
 
     public FurnaceModule(
         IGridQueries grid, IItemsQueries items, IItemsOps itemsOps, IAtmosphereQueries air, IAtmosphereOps airOps,
-        IPowerQueries power, IPowerOps powerOps, ICraftingQueries crafting, ICraftingOps craftingOps)
+        IPowerQueries power, IPowerOps powerOps, ICraftingQueries crafting, ICraftingOps craftingOps, IFuelQueries fuel, IFuelOps fuelOps)
     {
+        _fuel = fuel;
+        _fuelOps = fuelOps;
         _power = power;
         _grid = grid;
         _items = items;
@@ -117,9 +122,16 @@ public sealed class FurnaceModule : Module<FurnaceState>
 
     private static string? SlotItem(IReadOnlyList<Stack?> slots, int slot) => slot < slots.Count ? slots[slot]?.Item : null;
 
-    /// <summary>The ticks one of the fuel in machine <paramref name="m"/>'s fuel slot burns for, or null for none there.</summary>
-    private int? FuelIn(Machine m) =>
-        SlotItem(_items.Crate(m.Id), Content.Machines.Get(m.Kind).FuelSlot!.Value) is { } f ? Content.Items.Get(f).BurnTicks : null;
+    /// <summary>
+    /// The ticks one of the fuel in machine <paramref name="m"/>'s fuel slot burns for, or null for none there; for one holding
+    /// fuel (the biofuel generator, fuel-liquid), a litre of its store, its slot only its hopper.
+    /// </summary>
+    private int? FuelIn(Machine m)
+    {
+        if (Content.Machines.Is(m.Kind, Content.MachineTrait.HoldsFuel))
+            return _fuel.FuelIn(m.Id) >= Content.Fuel.Litre ? Content.Items.Get(Content.Fuel.Item).BurnTicks : null;
+        return SlotItem(_items.Crate(m.Id), Content.Machines.Get(m.Kind).FuelSlot!.Value) is { } f ? Content.Items.Get(f).BurnTicks : null;
+    }
 
     /// <summary>Machine <paramref name="id"/>'s fire, or null.</summary>
     private Fire? FireOf(int id)
@@ -212,7 +224,8 @@ public sealed class FurnaceModule : Module<FurnaceState>
         if (spec.Makes == null && !(Content.Stations.Get(m.Kind).Fed ? _crafting.CanSmelt(m.Id) : _crafting.HasWork(m.Id))) return (0, false);
         // A generator burns only what its network would take: a fuel lit burns to its end, the next waits (0101).
         if (spec.Makes != null && (!_power.Needed(m.Id) || _power.IsOff(m.Id))) return (0, false);
-        _itemsOps.Consume(m.Id, spec.FuelSlot!.Value);
+        if (spec.Is(Content.MachineTrait.HoldsFuel)) _fuelOps.Take(m.Id, Content.Fuel.Litre);
+        else _itemsOps.Consume(m.Id, spec.FuelSlot!.Value);
         return (blown ? Blown(burns) : burns, blown);
     }
 }

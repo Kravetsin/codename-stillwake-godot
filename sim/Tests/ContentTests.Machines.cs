@@ -27,7 +27,8 @@ public partial class ContentTests
     {
         foreach (var m in Machines.All)
             foreach (var p in m.Ports)
-                Assert.True(p.X == (p.Way == Way.In ? 0 : m.Width - 1), $"{m.Kind} {p.Way} at {p.X}");
+                // The engine's fuel input alone takes on its right: its left stands against the stern's wall (fuel-liquid).
+                Assert.True(p.X == (p.Way == Way.In && !(m.Kind == "engine" && p.Fluid == Fluids.Fuel) ? 0 : m.Width - 1), $"{m.Kind} {p.Way} at {p.X}");
     }
 
     [Fact]
@@ -119,8 +120,28 @@ public partial class ContentTests
         // The hoppers of a tank, a cistern and a vaporizer (industrial-oxygen); no other machine has such a slot.
         Assert.Equal((0, Content.Crew.Canister), Machines.Get("tank").SlotTakes);
         Assert.Equal((0, Content.Water.Item), Machines.Get("cistern").SlotTakes);
-        string[] hoppers = [Content.Logistics.Bay, "tank", "cistern", "generator"];
+        // Every fuel store's but the fermenter's, whose fuel only it makes (fuel-liquid).
+        string[] fuel = ["fuelTank", "biofuelGenerator", "engine", "dropPod"];
+        Assert.All(fuel, k => Assert.Equal((0, Content.Fuel.Item), Machines.Get(k).SlotTakes));
+        string[] hoppers = [Content.Logistics.Bay, "tank", "cistern", "generator", .. fuel];
         Assert.All(Machines.All.Where(m => !hoppers.Contains(m.Kind)), m => Assert.Null(m.SlotTakes));
+    }
+
+    /// <summary>
+    /// Fuel stores (fuel-liquid): the fuel tank 100 litres, the pod, the biofuel generator, the engine and the fermenter 20; every
+    /// one but the fermenter takes cans by its hopper and fuel by a pipe, the fermenter and the tank give it on.
+    /// </summary>
+    [Fact]
+    public void FuelStoresHoldWholeLitresAndPipeFuelInAndOut()
+    {
+        var stores = Machines.All.Where(m => m.FuelHolds != null).ToDictionary(m => m.Kind, m => m.FuelHolds!.Value);
+        Assert.Equal(new Dictionary<string, int> { ["fuelTank"] = 100, ["dropPod"] = 20, ["biofuelGenerator"] = 20, ["engine"] = 20, ["fermenter"] = 20 }, stores);
+        Assert.All(Machines.All.Where(m => m.FuelHolds != null), m => Assert.True(m.Is(MachineTrait.HoldsFuel) && m.FuelCapacity > 0, m.Kind));
+        Assert.All(Machines.All.Where(m => m.FuelHolds == null), m => Assert.False(m.Is(MachineTrait.HoldsFuel), m.Kind));
+        string[] Fuelled(Way way) => Machines.All.Where(m => m.Ports.Any(p => p.Way == way && p.Fluid == Fluids.Fuel)).Select(m => m.Kind).Order(StringComparer.Ordinal).ToArray();
+        Assert.Equal(["biofuelGenerator", "dropPod", "engine", "fuelTank"], Fuelled(Way.In));
+        Assert.Equal(["fermenter", "fuelTank"], Fuelled(Way.Out));
+        Assert.Equal((20, Content.Fuel.Litre), (Content.Items.Get(Content.Fuel.Item).Stack, Content.Fuel.Can));
     }
 
     // Air

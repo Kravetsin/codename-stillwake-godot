@@ -8,7 +8,8 @@ namespace Stillwake.Sim.Tests;
 
 /// <summary>
 /// The biofuel generator (the power-chain ADR): a fuel burner of biofuel alone, making 16 a tick while it burns,
-/// breathing its room's air and lighting only while its network wants a fire, as the burner generator does.
+/// breathing its room's air and lighting only while its network wants a fire, as the burner generator does. It burns a litre
+/// of its store for each fire, its slot a hopper pouring a can a tick into that store (fuel-liquid).
 /// </summary>
 public class BiofuelGeneratorTests
 {
@@ -39,14 +40,18 @@ public class BiofuelGeneratorTests
 
     private static int Id(Scenario w) => w.M.Grid.MachineAt(Generator)!.Id;
 
-    /// <summary>Moves <paramref name="count"/> of <paramref name="item"/> from peer 0 into the generator's fuel slot, and runs the tick.</summary>
+    /// <summary>
+    /// Moves <paramref name="count"/> of <paramref name="item"/> from peer 0 into the generator's hopper and runs two ticks: the
+    /// move's, which pours a can into its store after the fires burnt, and the next, which lights it.
+    /// </summary>
     private static Scenario Feed(Scenario w, string item, int count = 1)
     {
         int from = w.M.Items.Inventory(0).ToList().FindIndex(s => s?.Item == item);
-        return w.Do(new Move(new Items.Place(from), new Target(Fuel, Id(w)), count)).Run();
+        return w.Do(new Move(new Items.Place(from), new Target(Fuel, Id(w)), count)).Run(2);
     }
 
-    private static int FuelIn(Scenario w) => w.M.Items.Crate(Id(w))[Fuel]?.Count ?? 0;
+    /// <summary>The litres the generator holds: its store's and the cans in its hopper.</summary>
+    private static int FuelIn(Scenario w) => (w.M.Items.Crate(Id(w))[Fuel]?.Count ?? 0) + w.M.Fuel.FuelIn(Id(w)) / Content.Fuel.Can;
     private static int Supply(Scenario w) => w.M.Power.NetworkOf(Generator)!.Supply;
 
     [Fact]
@@ -60,7 +65,7 @@ public class BiofuelGeneratorTests
         w.Run();
         Assert.Equal(Makes, Supply(w));
         Assert.Equal(1000, w.M.Power.Satisfaction(w.M.Grid.MachineAt(Lamp)!.Id));
-        // The move's tick was the first of its fire.
+        // The tick it lit was the first of its fire.
         w.Run(BiofuelTicks - 2);
         Assert.Equal(Makes, Supply(w));
         w.Run();
@@ -76,7 +81,7 @@ public class BiofuelGeneratorTests
     [InlineData("fat")]
     public void TakesBiofuelAloneRefusingOtherFuels(string item)
     {
-        Assert.Equal("biofuel", Machines.Get("biofuelGenerator").Takes);
+        Assert.Equal((Fuel, "biofuel"), Machines.Get("biofuelGenerator").SlotTakes);
         var w = SetUp();
         Feed(w, item);
         Assert.Equal(["items.notTaken"], w.Refusals.Select(r => r.Reason));
@@ -103,7 +108,7 @@ public class BiofuelGeneratorTests
         foreach (var x in new[] { w, cold }) x.Glassed(Generator).Run(200);
         Assert.Equal(ChainOxygen(cold), ChainOxygen(w));
         Feed(w, "biofuel");
-        cold.Run();
+        cold.Run(2);
         w.Run(4 * FurnaceContent.BreathEvery - 1);
         cold.Run(4 * FurnaceContent.BreathEvery - 1);
         Assert.Equal(4 * FurnaceContent.Breath, ChainOxygen(cold) - ChainOxygen(w));

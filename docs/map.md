@@ -18,6 +18,7 @@ Below, `f/x` = `game/features/x`, `r/` = `game/render`, `gc/` = `game/Content` (
 
 **Pipes** — Pipes — sim/Pipes · f/pipes: `Pipes.cs` PipesModule, `Valve`, `SetValve`; `PipeNetworks.cs`; `PipesView.cs`, `PipeHands.cs`; c/`Piping.cs`, `Fluids.cs`
 **Water** — Water — sim/Water · f/water: `Water.cs` WaterModule, `PourWater`, the cisterns' water and the electrolysers; `Water.En.cs`, `WaterLooks.cs`, `WaterTip.cs`; c/`Water.cs`
+**Fuel** — Fuel — sim/Fuel · f/fuel: `Fuel.cs` FuelModule, `DrawFuel`, every machine's biofuel store (a fuel tank, the drop pod, the biofuel generator, the engine, the fermenter), hoppers and lines; sim/Core `Stores.cs` (stores and their lines, Water's too); `logic/FuelShows.cs`; c/`Fuel.cs`
 
 **Items and crafting**
 - Items — sim/Items · f/items: `Items.cs` ItemsModule; `Stacks.cs`; `Floor.cs`; `Modules.cs` (machine modules, `Fit`); `ToolStats.cs`; `InventoryPanel.cs`, `Hotbar.cs`, `Click.cs`, `Equipment.cs`; f/energy: `EnergyBar.cs` (the vitals' charge row); c/`Items.cs`

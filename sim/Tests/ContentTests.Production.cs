@@ -20,7 +20,9 @@ public partial class ContentTests
             var spec = Machines.Get(station.Machine);
             int outputs = spec.Slots!.Value - spec.Inputs!.Value;
             foreach (var item in Content.Items.All.Where(i => i.Yields != null && i.Process == station.Process))
-                Assert.True(SlotsFor(Sim.Items.ItemsModule.MostMade(item)) <= outputs, $"{station.Machine}: {item.Id}");
+                // One making into its fuel store makes nothing else (fuel-liquid).
+                if (spec.FuelHolds != null) Assert.True(item.Yields!.All(y => y.Item == Content.Fuel.Item) && item.Byproducts == null, $"{station.Machine}: {item.Id}");
+                else Assert.True(SlotsFor(Sim.Items.ItemsModule.MostMade(item)) <= outputs, $"{station.Machine}: {item.Id}");
         }
     }
 

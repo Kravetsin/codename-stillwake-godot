@@ -93,6 +93,11 @@ public interface IItemsOps
     void GiveStock(int peer, IReadOnlyList<(string Item, int Count)> cost);
     void Smelt(int id, IReadOnlyList<(string Item, int Count)> besides);
     void Consume(int id, int slot);
+    /// <summary>
+    /// Uses up one smelt of machine <paramref name="id"/>'s first slot and counts its yields obtained, made into a store rather
+    /// than its slots (the fermenter's fuel, fuel-liquid); returns them. The caller checks the input holds a smelt.
+    /// </summary>
+    IReadOnlyList<(string Item, int Count)> SmeltOut(int id);
     void Output(int id, IReadOnlyList<(string Item, int Count)> cost);
     void TakeInputs(int id, IReadOnlyList<(string Item, int Count)> cost);
     /// <summary>Gives what fits, the rest falling at <paramref name="cell"/>; <paramref name="noted"/> false for a gain its caller shows itself (<see cref="ItemsModule.Gains"/>).</summary>
@@ -475,6 +480,17 @@ public sealed partial class ItemsModule : Module<ItemsState>, IItemsQueries, IIt
         Obtained(Content.Items.Get(slots[0]!.Item).Yields!);
         Obtained(besides);
         SetMachine(id, [.. left.Take(inputs), .. outputs]);
+    }
+
+    public IReadOnlyList<(string Item, int Count)> SmeltOut(int id)
+    {
+        var slots = Crate(id);
+        if (slots.Count == 0 || slots[0] is not { } input || Content.Items.Get(input.Item) is not { Yields: { } yields } spec
+            || Stacks.TakenFrom(slots, 0, spec.SmeltTakes, out var left, out _) != null)
+            throw new InvalidOperationException("items.smeltOut: nothing to smelt");
+        Obtained(yields);
+        SetMachine(id, left);
+        return yields;
     }
 
     /// <summary>Uses up one of what slot <paramref name="slot"/> of machine <paramref name="id"/> holds: fuel burnt. The caller checks it holds one.</summary>

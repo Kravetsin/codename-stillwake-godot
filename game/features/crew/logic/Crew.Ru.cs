@@ -66,6 +66,7 @@ public static partial class Ru
         ["use.open.charger"] = "[{key:use}] Открыть зарядную станцию",
         ["use.open.tank"] = "[{key:use}] Открыть кислородный бак",
         ["use.open.cistern"] = "[{key:use}] Открыть цистерну",
+        ["use.open.fuelTank"] = "[{key:use}] Открыть топливный бак",
         ["use.open.generator"] = "[{key:use}] Открыть испаритель",
         ["use.open.electrolyser"] = "[{key:use}] Открыть электролизёр",
         ["use.open.lifepod"] = "[{key:use}] Фабрикатор",

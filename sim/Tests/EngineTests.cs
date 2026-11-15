@@ -89,6 +89,9 @@ public class EngineTests
 
     private static string[] Reasons(Scenario w) => w.Refusals.Select(r => r.Reason).ToArray();
 
+    /// <summary>The litres the engine holds: its store's and the cans in its hopper (fuel-liquid).</summary>
+    private static int Litres(Scenario w) => w.M.Items.HeldFor(Id(w), "biofuel") + w.M.Fuel.FuelIn(Id(w)) / Content.Fuel.Can;
+
     [Fact]
     public void ItsSlotTakesBiofuelAlonePutInSwappedInOrDelivered()
     {
@@ -98,14 +101,15 @@ public class EngineTests
         Move(w, new Slot(1), new Target(Crate: engine), 5);
         Assert.Equal(["items.notTaken", "items.notTaken"], Reasons(w));
         Move(w, new Slot(0), new Target(0, engine), 5);
-        Assert.Equal(new Stack("biofuel", 5), w.M.Items.Crate(engine)[0]);
+        // Its hopper pours a can a tick into its store.
+        Assert.Equal((new Stack("biofuel", 4), 5), (w.M.Items.Crate(engine)[0], Litres(w)));
         // Planks onto the biofuel there would swap them in.
         Move(w, new Slot(1), new Target(0, engine), 5);
         Assert.Equal(["items.notTaken", "items.notTaken", "items.notTaken"], Reasons(w));
-        Assert.Equal(new Stack("biofuel", 5), w.M.Items.Crate(engine)[0]);
+        Assert.Equal((new Stack("biofuel", 3), 5), (w.M.Items.Crate(engine)[0], Litres(w)));
         // A drone brings it biofuel to a full stack, and nothing else.
         int stack = Content.Items.Get("biofuel").Stack;
-        Assert.Equal(stack - 5, w.M.Items.RoomFor(engine, new Stack("biofuel", stack)));
+        Assert.Equal(stack - 3, w.M.Items.RoomFor(engine, new Stack("biofuel", stack)));
         Assert.Equal(0, w.M.Items.RoomFor(engine, new Stack("planks", 5)));
         Assert.Equal(0, w.M.Items.HeldFor(engine, "planks"));
     }
@@ -130,7 +134,7 @@ public class EngineTests
         var w = World().GiveItems(0, ("biofuel", 5));
         Move(w, new Slot(0), new Target(0, Id(w)), 5);
         w.Run(4 * Content.Items.Get("biofuel").BurnTicks!.Value);
-        Assert.Equal(new Stack("biofuel", 5), w.M.Items.Crate(Id(w))[0]);
+        Assert.Equal((null, 5 * Content.Fuel.Can), (w.M.Items.Crate(Id(w))[0], w.M.Fuel.FuelIn(Id(w))));
         Assert.False(Machines.Get("engine").Is(MachineTrait.Fire));
     }
 }

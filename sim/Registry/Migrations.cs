@@ -346,6 +346,42 @@ public static class Migrations
                 }
             return root;
         },
+        // 65 → 66 (fuel-liquid): biofuel is a liquid in stores, saved last. The cans in a pod's, a biofuel generator's or an engine's
+        // slot, and in a fermenter's output, all go into its store, over its capacity if they were; a pod in the air carries them.
+        root =>
+        {
+            foreach (var slices in new[] { root["slices"]! }.Concat((root["surfaces"]?.AsArray() ?? []).Select(s => s!["slices"]).OfType<JsonNode>()))
+            {
+                var stores = new JsonArray();
+                var slots = new Dictionary<int, int>();
+                // A store that is a station (the fermenter) made its fuel into its output, slot 1; the others took it into slot 0.
+                foreach (var m in slices["grid"]!["machines"]!.AsArray())
+                    if (Content.Machines.TryGet(m!["kind"]!.GetValue<string>(), out var spec) && spec.Is(Content.MachineTrait.HoldsFuel))
+                        slots[m["id"]!.GetValue<int>()] = Content.Stations.TryGet(spec.Kind, out _) ? 1 : 0;
+                var crates = slices["items"]!["crates"]!.AsArray();
+                foreach (var held in crates.OfType<JsonObject>().ToList())
+                {
+                    int id = held["id"]!.GetValue<int>();
+                    if (!slots.TryGetValue(id, out int slot)) continue;
+                    var all = held["slots"]!.AsArray();
+                    int cans = slot < all.Count && all[slot] is JsonObject s && s["item"]!.GetValue<string>() == Content.Fuel.Item ? s["count"]!.GetValue<int>() : 0;
+                    if (cans > 0) all[slot] = null;
+                    // The fermenter's output slot goes: it holds one slot now, its input.
+                    if (slot == 1)
+                        while (all.Count > 1) all.RemoveAt(all.Count - 1);
+                    if (all.All(x => x == null)) crates.Remove(held);
+                    if (cans > 0) stores.Add(new JsonObject { ["machine"] = id, ["amount"] = cans * Content.Fuel.Can });
+                }
+                foreach (var flight in slices["landing"]!["flights"]!.AsArray().OfType<JsonObject>())
+                    if (flight["load"] is JsonObject load && load["item"]!.GetValue<string>() == Content.Fuel.Item)
+                    {
+                        flight["fuel"] = load["count"]!.GetValue<int>() * Content.Fuel.Can;
+                        flight["load"] = null;
+                    }
+                slices.AsObject()["fuel"] = new JsonObject { ["stores"] = stores };
+            }
+            return root;
+        },
     ];
 
     /// <summary>The slices with liquids' empty one after building's, where its module runs: a save holds them in that order.</summary>
