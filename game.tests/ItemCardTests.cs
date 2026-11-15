@@ -239,7 +239,7 @@ public class ItemCardTests
     {
         var jetpack = ItemCards.Of(Spec.Jetpack.Item);
         // 500 thousandths of a cell a step, 60 steps a second; a unit every 10 ticks of 20 a second.
-        Assert.Equal([("30 cells/s", "Speed up to"), ("2 O₂/s", "Air used thrusting")], Said(jetpack.Rows));
+        Assert.Equal([("30 cells/s", "Speed up to"), ("2 O₂/s", "Air used speeding up, turning or braking")], Said(jetpack.Rows));
         Assert.Equal([CardSign.Speed, CardSign.Tank], jetpack.Rows.Select(r => r.Sign));
         Assert.All(jetpack.Rows, r => Assert.Equal(CardGroup.Move, r.Group));
         Assert.Equal(new CardKey("Shift", "in space"), jetpack.Use);

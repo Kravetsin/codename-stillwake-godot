@@ -477,7 +477,7 @@ public partial class HeroView
     /// <summary>The jetpack's hiss while this hero thrusts, risen and fallen by its envelope; stopped once fallen.</summary>
     private void HearThrust(double elapsedMs)
     {
-        _thrustSound.Step(_thrust != null, elapsedMs / 1000, S.ThrustAttackS, S.ThrustReleaseS);
+        _thrustSound.Step(_venting, elapsedMs / 1000, S.ThrustAttackS, S.ThrustReleaseS);
         if (_thrustSound.Playing && !_thrustLoop.Playing) _thrustLoop.Play();
         else if (!_thrustSound.Playing && _thrustLoop.Playing) _thrustLoop.Stop();
         _thrustLoop.VolumeDb = S.Thrust.VolumeDb + _thrustSound.GainDb;
