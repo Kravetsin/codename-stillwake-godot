@@ -45,6 +45,23 @@ public static class WorkLooks
     public const int RimSteps = 48, WheelExits = 3;
 
     /// <summary>
+    /// The drill's haze (drill-contact), as the user picked it («Двойная спираль»): two strands from its chuck to
+    /// its reach, at most this far either side of the axis, grown over the first <see cref="HelixGrow"/> of its length, a turn every
+    /// <see cref="HelixPitch"/> pixels along it, turning <see cref="HelixTurns"/> times a second; sparks ride it at
+    /// <see cref="HelixRide"/> pixels a second along the axis and leave spread <see cref="HelixSpread"/> either way; its loop walked
+    /// in <see cref="HelixSteps"/> for its exits.
+    /// </summary>
+    public const double HelixRadius = 2.6, HelixGrow = 0.1, HelixPitch = 5.6, HelixTurns = 3, HelixRide = 60, HelixSpread = 0.3;
+    public const int HelixSteps = 96;
+
+    /// <summary>
+    /// The helix drawn in dry-brush strokes, each its width, its offset from the strand and its strength; drawn in dabs every
+    /// <see cref="HelixDab"/> pixels, a dab in <see cref="HelixDry"/> skipped, a strand behind the axis at <see cref="HelixBehind"/>.
+    /// </summary>
+    public static readonly (double Width, double Offset, double Alpha)[] HelixStrokes = [(0.75, 0, 0.2), (0.32, 0.38, 0.16), (0.28, -0.42, 0.11)];
+    public const double HelixDab = 0.32, HelixDry = 0.18, HelixBehind = 0.45;
+
+    /// <summary>
     /// Sparks a second off a wreck, each living <see cref="SparkLife"/> ms and flying <see cref="SparkSpeed"/> pixels a second at
     /// first, slowing by a third; its streak as long as <see cref="SparkStreak"/> seconds of its speed, <see cref="SparkWidth"/> wide.
     /// </summary>

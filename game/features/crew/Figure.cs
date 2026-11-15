@@ -681,6 +681,9 @@ public partial class Figure : Node2D
     /// <summary>The running grinder's working circle's radius round its hub (<see cref="EdgeStart"/>), pixels; none while none runs.</summary>
     public double? WheelRadius { get; private set; }
 
+    /// <summary>The running drill's haze helix in the world (drill-contact), from its chuck to its reach; none while none runs.</summary>
+    public ToolContact.Helix? Helix { get; private set; }
+
     /// <summary>Where the held aimed item's edge begins as drawn this frame: the harpoon's breech, the cutter's nozzle, its jet's start.</summary>
     public Vector2? EdgeStart { get; private set; }
 
@@ -1487,6 +1490,7 @@ public partial class Figure : Node2D
         var zone = Spinning && inHand && item != null ? ZoneOf(frontArm, item) : null;
         WheelRadius = zone is { Disc: true } disc ? disc.Size : null;
         _air.Follow(zone, elapsedMs, bladeHeld ? _edge : null);
+        Helix = zone is { Disc: false } bit ? HelixOf(bit) : null;
         _beamMs = Math.Max(0, _beamMs - elapsedMs);
         ShowBeams(holding);
         // A drill crackles as it spins; a gun held to charge, as it fills.
@@ -1502,15 +1506,15 @@ public partial class Figure : Node2D
     }
 
     /// <summary>
-    /// The zone a running drill or grinder in <paramref name="arm"/> works, in the arms' frame (tool-reach): the drill's bit point
-    /// grown into a cone out to its range from the shoulder along the aim, the grinder's working circle round its hub, as far as its
+    /// The zone a running drill or grinder in <paramref name="arm"/> works, in the arms' frame (tool-reach): the drill's reach from
+    /// its chuck out to its range from the shoulder along the aim (drill-contact), the grinder's working circle round its hub, as far as its
     /// fan reaches (grinder-contact); none for another tool, or a grinder whose hub is out past its reach.
     /// </summary>
     private AirCuts.Zone? ZoneOf(Bend arm, HeldLook item)
     {
         bool grinder = Wields == Stillwake.Content.Weapons.Grinder.Item;
         if (!grinder && Wields != Stillwake.Content.Weapons.Drill.Item) return null;
-        var at = Rig.HeldAt(arm, item, grinder ? item.EdgeFrom : item.EdgeTo);
+        var at = Rig.HeldAt(arm, item, item.EdgeFrom);
         var (ax, ay) = Aim is { } target ? FromShoulder(target) : (at.X, at.Y);
         double l = Math.Sqrt(ax * ax + ay * ay);
         var (dx, dy) = l > 0 ? (ax / l, ay / l) : (1.0, 0.0);
@@ -1520,6 +1524,18 @@ public partial class Figure : Node2D
         double range = Stillwake.Content.Weapons.Drill.Range * Rig.Cell / Hero.Unit, cx = dx * range - at.X, cy = dy * range - at.Y;
         double length = Math.Sqrt(cx * cx + cy * cy);
         return length < 1 ? null : new(false, (at.X, at.Y), (cx / length, cy / length), length);
+    }
+
+    /// <summary>The drill's <paramref name="bit"/> zone as its haze helix in the world, from its chuck to its reach.</summary>
+    private ToolContact.Helix HelixOf(AirCuts.Zone bit)
+    {
+        Vector2 World((double X, double Y) p) => _air.ToGlobal(new Vector2((float)p.X, (float)p.Y));
+        var (dx, dy) = bit.Toward;
+        var chuck = World(bit.At);
+        var far = World((bit.At.X + dx * bit.Size, bit.At.Y + dy * bit.Size)) - chuck;
+        var across = (World((bit.At.X - dy, bit.At.Y + dx)) - chuck).Normalized();
+        var way = far.Normalized();
+        return new((chuck.X, chuck.Y), (way.X, way.Y), (across.X, across.Y), far.Length(), _air.HelixPhase);
     }
 
     /// <summary>A turn by <paramref name="angle"/> about the helmet's pivot, in the neck's frame.</summary>

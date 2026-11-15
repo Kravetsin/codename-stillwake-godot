@@ -377,23 +377,26 @@ public partial class HeroView
     {
         if (!HeldLook.IsDrill(tool) || hit == null || figure.EdgeStart is not { } start) return null;
         var wrecks = new List<(int Piece, Vector2 At)>();
-        WheelContact.Circle? wheel = figure.WheelRadius is { } radius ? new((start.X, start.Y), radius, hero.Facing >= 0 ? 1 : -1) : null;
-        var exits = wheel != null ? new List<IReadOnlyList<WheelContact.Exit>>() : null;
-        var solid = wheel != null ? _wreckPixels.Solid(_progress, _ui.DebrisTurns) : null;
+        ToolContact.Circle? wheel = figure.WheelRadius is { } radius ? new((start.X, start.Y), radius, hero.Facing >= 0 ? 1 : -1) : null;
+        var helix = wheel == null ? figure.Helix : null;
+        var exits = wheel != null || helix != null ? new List<IReadOnlyList<ToolContact.Exit>>() : null;
+        var solid = exits != null ? _wreckPixels.Solid(_progress, _ui.DebrisTurns) : null;
         foreach (var touch in hit.Touches)
             if (touch.Wreck is { } wreck)
             {
                 wrecks.Add((wreck.Id, Pixels(touch.At)));
                 // The rim walked in the world's pixels, tested in thousandths as the fan tests a wreck.
-                exits?.Add(WheelContact.Of(wheel!.Value, WorkLooks.RimSteps, (x, y) => solid!(wreck, x * Hero.Unit / Rig.Cell, y * Hero.Unit / Rig.Cell), WorkLooks.WheelExits));
+                System.Func<double, double, bool>? inside = solid != null ? (x, y) => solid(wreck, x * Hero.Unit / Rig.Cell, y * Hero.Unit / Rig.Cell) : null;
+                if (wheel is { } round) exits!.Add(ToolContact.Exits(round, WorkLooks.RimSteps, inside!, WorkLooks.WheelExits));
+                else if (helix is { } loop) exits!.Add(ToolContact.Exits(loop, WorkLooks.HelixSteps, inside!, WorkLooks.WheelExits));
             }
-        if (hit.Contact is not { } contact) return new(id, tool, start, Pixels(hit.End), figure.Barrel, null, null, wrecks, wheel, exits);
+        if (hit.Contact is not { } contact) return new(id, tool, start, Pixels(hit.End), figure.Barrel, null, null, wrecks, wheel, exits, helix);
         var at = Pixels(contact.At);
-        if (contact.Wreck != null) return new(id, tool, start, at, figure.Barrel, HitLooks.Of[Impact.Wreck], null, wrecks, wheel, exits);
-        if (contact.Cell is not int cell || Impacts.At(m.Grid, m.Building, cell) is not { } impact) return new(id, tool, start, at, figure.Barrel, null, null, wrecks, wheel, exits);
+        if (contact.Wreck != null) return new(id, tool, start, at, figure.Barrel, HitLooks.Of[Impact.Wreck], null, wrecks, wheel, exits, helix);
+        if (contact.Cell is not int cell || Impacts.At(m.Grid, m.Building, cell) is not { } impact) return new(id, tool, start, at, figure.Barrel, null, null, wrecks, wheel, exits, helix);
         var middle = hero.Middle;
         var face = Impacts.On(m.Grid, cell, (double)middle.X / Hero.Unit, (double)middle.Y / Hero.Unit);
-        return new(id, tool, start, at, figure.Barrel, HitLooks.Of[impact], Impacts.FloorUnder(m.Grid, face) * Rig.Cell, wrecks, wheel, exits);
+        return new(id, tool, start, at, figure.Barrel, HitLooks.Of[impact], Impacts.FloorUnder(m.Grid, face) * Rig.Cell, wrecks, wheel, exits, helix);
     }
 
     /// <summary>The wrecks' pictures, read once each, that a running tool's edge is tested against (tool-edge).</summary>
