@@ -9,7 +9,7 @@ public enum Impact
 {
     /// <summary>A wreck out in space: the axe's bite of 0075, nothing falling.</summary>
     Wreck,
-    /// <summary>The ice belt's druse (docs/plans/stretches.md): glitter and clear shards, floating off as a wreck's bite does; a cold glint.</summary>
+    /// <summary>The ice belt's druse (docs/decisions/2026-11-15-stretches-of-space.md): glitter and clear shards, floating off as a wreck's bite does; a cold glint.</summary>
     Ice,
     /// <summary>The ruins' alloy and their metal pieces, on a planet: the wreck's sparks and glint, falling.</summary>
     Alloy,

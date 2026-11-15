@@ -32,7 +32,7 @@ public static class Wreckage
         ("engineBlock", 180),
         ("cargoHold", 140),
         ("podCluster", 110),
-        // The stretches' (docs/plans/stretches.md): as hard as the small asteroid and the mafia crate whose looks they wear for now.
+        // The stretches' (docs/decisions/2026-11-15-stretches-of-space.md): as hard as the small asteroid and the mafia crate whose looks they wear for now.
         ("iceBlock", 50),
         ("contrabandCrate", 15),
     ];

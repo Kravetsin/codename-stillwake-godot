@@ -2,7 +2,7 @@ using Stretch = Stillwake.Content.Stretches.Stretch;
 
 namespace Stillwake.Sim.Sky;
 
-/// <summary>The stretches of space (docs/plans/stretches.md): their schedule, a tick at a time in the construction phase.</summary>
+/// <summary>The stretches of space (docs/decisions/2026-11-15-stretches-of-space.md): their schedule, a tick at a time in the construction phase.</summary>
 public sealed partial class SkyModule
 {
     /// <summary>Whether the stretch chosen is in its warning: its last <c>Stretches.Warning</c> ticks before it starts.</summary>

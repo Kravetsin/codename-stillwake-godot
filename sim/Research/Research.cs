@@ -137,7 +137,7 @@ public sealed class ResearchModule : Module<ResearchState>, IResearchQueries
         if (Next() is not { } next || Points(next) < Target(next)) return;
         var after = GateOf(next.Ring + 1);
         var start = after == null ? [] : after.Order.Select(d => new Tally(d.Item, _knowledge.SoldOf(d.Item))).ToList();
-        // Contraband is wanted at every level (docs/plans/stretches.md): counted from here too.
+        // Contraband is wanted at every level (docs/decisions/2026-11-15-stretches-of-space.md): counted from here too.
         if (after != null) start.Add(new Tally(Stretches.Contraband, _knowledge.SoldOf(Stretches.Contraband)));
         _knowledgeOps.Open(next.Ring, start, _knowledge.SoldWorth);
     }
@@ -157,7 +157,7 @@ public sealed class ResearchModule : Module<ResearchState>, IResearchQueries
     /// <summary>
     /// How far toward <paramref name="gate"/>'s level, in sevenths: a wanted good up to its count at full worth, past it at a seventh, and everything
     /// else sold since the level opened at a seventh, never below none, as a later build may lower a worth. Contraband, wanted at every level
-    /// with no count (docs/plans/stretches.md), all at full worth.
+    /// with no count (docs/decisions/2026-11-15-stretches-of-space.md), all at full worth.
     /// </summary>
     private long Points(TechNode gate)
     {

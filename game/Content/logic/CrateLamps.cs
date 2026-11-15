@@ -4,7 +4,7 @@ using System.Collections.Generic;
 namespace Stillwake.Game;
 
 /// <summary>
-/// The contraband drift's crates' amber lamps (docs/plans/stretches.md, the pick's four crates), by the look a crate wears: where each
+/// The contraband drift's crates' amber lamps (docs/decisions/2026-11-15-stretches-of-space.md, the pick's four crates), by the look a crate wears: where each
 /// lamp sits from the picture's middle and how big it is, in the world's pixels, and when it is lit, as the pick blinked it.
 /// </summary>
 public static class CrateLamps

@@ -5,7 +5,7 @@ namespace Stillwake.Game;
 
 /// <summary>
 /// How a wreck breaks apart (0075), by what it is: its picture cut into wedges that fly from its middle, their torn edges; what it
-/// throws besides. Every wreck's metal glows and sparks; the ice belt's druse (docs/plans/stretches.md, the pick «Друза») shatters cold.
+/// throws besides. Every wreck's metal glows and sparks; the ice belt's druse (docs/decisions/2026-11-15-stretches-of-space.md, the pick «Друза») shatters cold.
 /// </summary>
 /// <param name="Cuts">The angles its picture is cut at, from its middle, in radians: a wedge between each and the next.</param>
 /// <param name="Speed">How fast a wedge flies out, pixels a second; <paramref name="Spin"/> the most it turns, radians a second either way.</param>

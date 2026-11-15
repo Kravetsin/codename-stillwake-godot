@@ -29,7 +29,7 @@ public static partial class En
         ["sky.noDay"] = "There is no day out here",
         ["sky.noStretch"] = "There is no such stretch of space here",
         ["sky.stretchRunning"] = "A stretch of space is passing already",
-        // The stretches of space (docs/plans/stretches.md), by id.
+        // The stretches of space (docs/decisions/2026-11-15-stretches-of-space.md), by id.
         ["stretch.iceBelt"] = "Ice belt",
         ["stretch.contrabandDrift"] = "Contraband drift",
     };

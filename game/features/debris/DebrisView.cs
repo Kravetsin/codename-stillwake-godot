@@ -249,7 +249,7 @@ public partial class DebrisView(Ui ui) : Node2D
         _beacons.Add(at, on, picture.Modulate.A);
     }
 
-    /// <summary>The contraband drift's crates (docs/plans/stretches.md), their amber lamps blinking each its look's way (<see cref="CrateLamps"/>).</summary>
+    /// <summary>The contraband drift's crates (docs/decisions/2026-11-15-stretches-of-space.md), their amber lamps blinking each its look's way (<see cref="CrateLamps"/>).</summary>
     private const string ContrabandCrate = StretchLooks.ContrabandCrate;
     private const float LampLight = 0.7f;
     private static readonly Color LampAmber = new(1, 170 / 255f, 60 / 255f);

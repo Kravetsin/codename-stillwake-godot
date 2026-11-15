@@ -76,7 +76,7 @@ public class ReputationTests
         Assert.True(w.M.Research.Done(Tree.Node("bag3")!));
     }
 
-    /// <summary>Contraband (docs/plans/stretches.md): wanted at every level, with no count, all at full worth; only what was sold since the level opened.</summary>
+    /// <summary>Contraband (docs/decisions/2026-11-15-stretches-of-space.md): wanted at every level, with no count, all at full worth; only what was sold since the level opened.</summary>
     [Fact]
     public void ContrabandCountsAtFullWorthTowardEveryLevelFromWhenItOpened()
     {

@@ -156,7 +156,7 @@ public partial class ComputerPanel : CanvasLayer
     /// <summary>The panel's own clock while it reads, in ticks: what a stretch's band fades out by once it has gone.</summary>
     private double _clock;
 
-    /// <summary>The stretch of space the sky says is coming or running, as the radar's band (docs/plans/stretches.md); read anew in another world.</summary>
+    /// <summary>The stretch of space the sky says is coming or running, as the radar's band (docs/decisions/2026-11-15-stretches-of-space.md); read anew in another world.</summary>
     private void ShowStretch(Registry world)
     {
         if (_stretchOf != world) (_stretch, _stretchOf) = (new StretchShown(), world);

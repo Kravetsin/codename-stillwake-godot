@@ -61,7 +61,7 @@ public static class Market
         ["heavyHelmet"] = 1239,
         ["plasmaCutter"] = 1032,
         ["regenSuit"] = 1457,
-        // Out of the contraband drift's crates (docs/plans/stretches.md): one number for the wanted meter, the credits and the reputation.
+        // Out of the contraband drift's crates (docs/decisions/2026-11-15-stretches-of-space.md): one number for the wanted meter, the credits and the reputation.
         [Stretches.Contraband] = 1200,
     };
 

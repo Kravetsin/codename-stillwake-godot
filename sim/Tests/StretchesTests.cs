@@ -14,7 +14,7 @@ using Spec = Stillwake.Content.Stretches;
 
 namespace Stillwake.Sim.Tests;
 
-/// <summary>Stretches of space (docs/plans/stretches.md): opened by what was obtained, chosen, seen coming, run, ended; their cold and debris.</summary>
+/// <summary>Stretches of space (docs/decisions/2026-11-15-stretches-of-space.md): opened by what was obtained, chosen, seen coming, run, ended; their cold and debris.</summary>
 public class StretchesTests
 {
     /// <summary>A pod in a vacuum room, never aired, its hull the debris stream's; open space right of it.</summary>

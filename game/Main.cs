@@ -676,7 +676,7 @@ public partial class Main : Node2D, ITogether
     private Registry? _stretchOf;
 
     /// <summary>
-    /// A stretch of space coming, running or just gone (docs/plans/stretches.md), its far picture sailing in behind the far wrecks:
+    /// A stretch of space coming, running or just gone (docs/decisions/2026-11-15-stretches-of-space.md), its far picture sailing in behind the far wrecks:
     /// from the sky's <c>Now</c>, at <paramref name="clock"/>, the world's ticks.
     /// </summary>
     private void ShowStretch(double clock)

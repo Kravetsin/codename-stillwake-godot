@@ -1,7 +1,7 @@
 namespace Stillwake.Content;
 
 /// <summary>
-/// Stretches of space (docs/plans/stretches.md): spells the ship drifts through, each opened by what the crew has obtained, then
+/// Stretches of space (docs/decisions/2026-11-15-stretches-of-space.md): spells the ship drifts through, each opened by what the crew has obtained, then
 /// coming again and again. One at a time is chosen, seen coming for <see cref="Warning"/> ticks, and runs: colder outside by its
 /// <see cref="Stretch.Chill"/>, its own debris zone thickening the stream. Only the ship has them (<c>Surfaces.Kind.Stretches</c>).
 /// All numbers are placeholders for a play pass.

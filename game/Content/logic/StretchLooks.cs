@@ -4,7 +4,7 @@ using System.Collections.Generic;
 namespace Stillwake.Game;
 
 /// <summary>
-/// How a stretch of space (docs/plans/stretches.md) is seen coming, drawn only, without a word: its far picture drifting in behind
+/// How a stretch of space (docs/decisions/2026-11-15-stretches-of-space.md) is seen coming, drawn only, without a word: its far picture drifting in behind
 /// the ship, the radar's band in its colour, frost on the hull before the ice belt. All of it from the sky's <c>SkyNow</c>, so a
 /// peer joining mid-warning sees what the others do.
 /// </summary>

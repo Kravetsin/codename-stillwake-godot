@@ -514,7 +514,7 @@ public partial class ContentTests
     /// <summary>
     /// What the planet's caves give (0080) is had there alone: copper ore from its veins, smelted into copper at the furnace,
     /// magnetite from the heat's cracks over the bedrock, and the motor of both at the Former; crystal, spores and mica. Ice too, but for the
-    /// ice belt's blocks aboard (docs/plans/stretches.md).
+    /// ice belt's blocks aboard (docs/decisions/2026-11-15-stretches-of-space.md).
     /// Aboard, none of them; and no motor without the deepest band's magnetite.
     /// </summary>
     [Fact]

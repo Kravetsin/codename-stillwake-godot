@@ -206,7 +206,7 @@ public static class Looks
         ("asteroid", 6), ("asteroidSmall", 6), ("asteroidLarge", 6), ("asteroidRich", 6),
         ("engineBlock", 4), ("cargoHold", 4), ("podCluster", 4),
         ("parcel", 1), ("deliveryCrate", 1), ("confiscated", 1),
-        // The stretches' (docs/plans/stretches.md): five druses; the case, the drum, the double bottom and the bundle.
+        // The stretches' (docs/decisions/2026-11-15-stretches-of-space.md): five druses; the case, the drum, the double bottom and the bundle.
         ("iceBlock", 5), ("contrabandCrate", 4),
     ];
 
@@ -345,7 +345,7 @@ public static class Loot
             new("powerDriver", 1, 1, OneIn: 24),
             new("plasmaCutter", 1, 1, OneIn: 30),
         ]),
-        // The stretches' (docs/plans/stretches.md): the ice belt's blocks, melted into water; the drift's crates, each a hold of contraband.
+        // The stretches' (docs/decisions/2026-11-15-stretches-of-space.md): the ice belt's blocks, melted into water; the drift's crates, each a hold of contraband.
         ("iceBlock",
         [
             new("ice", 6, 10),

@@ -9,7 +9,7 @@ using L = Stillwake.Game.Light;
 namespace Stillwake.Game.Features.Sky;
 
 /// <summary>
-/// The frost on the hull before the ice belt (docs/plans/stretches.md, the pick «Кромка инея»): over every wall cell facing space a tile
+/// The frost on the hull before the ice belt (docs/decisions/2026-11-15-stretches-of-space.md, the pick «Кромка инея»): over every wall cell facing space a tile
 /// of rime by its open sides, one mesh of them all, lit as the walls are. Its shader grows each tile's band from the edge by the
 /// warning's run and the cell's turn (<see cref="Frost"/>), holds it while the belt runs, then darkens and melts it back to the edge,
 /// leaving the hull wet a while. The cells are found as the surface loads and kept by the grid's changes; a frame sets four numbers.

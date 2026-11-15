@@ -7,7 +7,7 @@ using Xunit;
 
 namespace Stillwake.Game.Tests;
 
-/// <summary>A stretch of space seen coming and running without a word (docs/plans/stretches.md): the wash, the radar's band, the frost, the pieces.</summary>
+/// <summary>A stretch of space seen coming and running without a word (docs/decisions/2026-11-15-stretches-of-space.md): the wash, the radar's band, the frost, the pieces.</summary>
 public class StretchLooksTests
 {
     private const string Belt = "iceBelt";

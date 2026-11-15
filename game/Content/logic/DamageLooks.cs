@@ -38,7 +38,7 @@ public static class DamageLooks
     public static readonly CrackInk Wreck = new(NetWander, DentLit, 0.55, DentLitDrop, DentInk, 1, Dent);
 
     /// <summary>
-    /// The ice belt's druse (docs/plans/stretches.md, the pick «Друза»): cracks along straight planes, a dark line under a bright one,
+    /// The ice belt's druse (docs/decisions/2026-11-15-stretches-of-space.md, the pick «Друза»): cracks along straight planes, a dark line under a bright one,
     /// white where it was struck.
     /// </summary>
     public static readonly CrackInk Ice = new(0, Ink.Tone.Of(46, 74, 96, 0.85f), 1.5, 0, Ink.Tone.Of(242, 248, 251, 0.9f), 0.6, Ink.Tone.Of(232, 244, 250, 0.5f));

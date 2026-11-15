@@ -63,7 +63,7 @@ public interface ISkyQueries
 
 /// <summary>
 /// A planet's day and night (2026-11-07-night-chills): its hour counted a tick a tick, its night the end of each day. And the
-/// ship's stretches of space (docs/plans/stretches.md): opened by what the crew obtained, chosen, seen coming, run.
+/// ship's stretches of space (docs/decisions/2026-11-15-stretches-of-space.md): opened by what the crew obtained, chosen, seen coming, run.
 /// </summary>
 public sealed partial class SkyModule : Module<SkyState>, ISkyQueries
 {

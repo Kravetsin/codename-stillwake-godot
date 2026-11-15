@@ -3,7 +3,7 @@ using System;
 namespace Stillwake.Game.Features.Computer;
 
 /// <summary>
-/// Where the radar draws a stretch of space coming (docs/plans/stretches.md): a band along the ship's orbit, <see cref="Width"/> of the
+/// Where the radar draws a stretch of space coming (docs/decisions/2026-11-15-stretches-of-space.md): a band along the ship's orbit, <see cref="Width"/> of the
 /// screen wide, ahead of the ship (to its right, the way it flies) as the warning starts, sliding toward it as the warning runs, over
 /// it as the stretch comes and while it runs.
 /// </summary>

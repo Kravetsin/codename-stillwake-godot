@@ -1,4 +1,4 @@
-// The stretches of space (docs/plans/stretches.md), as the user picked them: the ice belt's blocks, five druses (clear hexagonal
+// The stretches of space (docs/decisions/2026-11-15-stretches-of-space.md), as the user picked them: the ice belt's blocks, five druses (clear hexagonal
 // crystals grown together, the pick «Друза»), the contraband drift's four crates (the case, the drum, the double bottom, the bundle;
 // their amber lamps drawn dark: the game lights them), their goods «Опечатанная кассета», and the frost on the hull «Кромка инея» as a
 // sheet of cell tiles the game grows and melts.
