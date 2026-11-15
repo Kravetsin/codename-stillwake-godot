@@ -58,6 +58,9 @@ public static class WorkLooks
     /// nearest of <see cref="GlanceRadii"/> that reaches out of it.
     /// </summary>
     public const double GlanceProbe = 2;
+
+    /// <summary>How much of a whole the contacts' ways must add up to for them to fly as one stream (spark-rule).</summary>
+    public const double FlowLeast = 0.3;
     public const int GlanceRays = 16;
     public static readonly double[] GlanceRadii = [3, 6, 12];
 

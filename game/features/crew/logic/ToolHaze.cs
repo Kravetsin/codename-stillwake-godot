@@ -92,15 +92,17 @@ public static class ToolHaze
         }
     }
 
-    /// <summary>The drill's haze: <paramref name="helix"/>'s loop as it is told, in <paramref name="steps"/> points, each moving along the loop.</summary>
+    /// <summary>
+    /// The drill's haze: <paramref name="helix"/>'s loop as it is told, in <paramref name="steps"/> points, each moving back along the
+    /// axis to the chuck, as its waves run and as a bit carries out what it cuts.
+    /// </summary>
     public static void OfHelix(Helix helix, int steps, List<HazePoint> into)
     {
         for (int k = 0; k < steps; k++)
         {
             double u = (double)k / steps;
             var (x, y) = helix.At(u, helix.Phase);
-            var (dx, dy) = helix.Along(u, helix.Phase);
-            into.Add(new(x, y, dx, dy));
+            into.Add(new(x, y, -helix.Way.X, -helix.Way.Y));
         }
     }
 
@@ -115,9 +117,8 @@ public static class ToolHaze
 
     /// <summary>
     /// Where <paramref name="haze"/> lies in what was hit at <paramref name="at"/>: its points <paramref name="inside"/> it; else its
-    /// point nearest <paramref name="at"/>, so what is hit always throws off the haze; none without a haze. Each moves the haze's way
-    /// there, glanced off the surface of <paramref name="matter"/> (what <paramref name="inside"/> tests, if none is given) where
-    /// that way leads into it (<see cref="Glance"/>).
+    /// point nearest <paramref name="at"/>, so what is hit always throws off the haze; none without a haze. All move one way, the
+    /// haze's flow through it, glanced off <paramref name="matter"/> (what <paramref name="inside"/> tests, if none is given) (<see cref="Flow"/>).
     /// </summary>
     public static List<HazePoint> Contacts(IReadOnlyList<HazePoint> haze, Func<double, double, bool> inside, (double X, double Y) at,
         Func<double, double, bool>? matter = null)
@@ -125,8 +126,8 @@ public static class ToolHaze
         matter ??= inside;
         var contacts = new List<HazePoint>();
         foreach (var p in haze)
-            if (inside(p.X, p.Y)) contacts.Add(Glance(p, matter));
-        if (contacts.Count > 0 || haze.Count == 0) return contacts;
+            if (inside(p.X, p.Y)) contacts.Add(p);
+        if (contacts.Count > 0 || haze.Count == 0) return Flow(contacts, matter);
         var nearest = haze[0];
         double best = double.MaxValue;
         foreach (var p in haze)
@@ -134,7 +135,23 @@ public static class ToolHaze
             double d = (p.X - at.X) * (p.X - at.X) + (p.Y - at.Y) * (p.Y - at.Y);
             if (d < best) (best, nearest) = (d, p);
         }
-        contacts.Add(Glance(nearest, matter));
+        contacts.Add(nearest);
+        return Flow(contacts, matter);
+    }
+
+    /// <summary>
+    /// <paramref name="contacts"/> all moving one way, the haze's net flow through what was hit, so what it throws flies as one stream
+    /// whatever the haze's shape there (a wheel's arc, a helix's turns); each kept its own where the flow cancels out, under
+    /// <see cref="WorkLooks.FlowLeast"/> of a whole; then each glanced off <paramref name="matter"/> (<see cref="Glance"/>).
+    /// </summary>
+    public static List<HazePoint> Flow(List<HazePoint> contacts, Func<double, double, bool> matter)
+    {
+        double dx = 0, dy = 0;
+        foreach (var p in contacts) (dx, dy) = (dx + p.Dx, dy + p.Dy);
+        double l = Math.Sqrt(dx * dx + dy * dy);
+        bool one = l > WorkLooks.FlowLeast * contacts.Count;
+        for (int i = 0; i < contacts.Count; i++)
+            contacts[i] = Glance(one ? contacts[i] with { Dx = dx / l, Dy = dy / l } : contacts[i], matter);
         return contacts;
     }
 

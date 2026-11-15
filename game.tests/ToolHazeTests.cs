@@ -104,6 +104,23 @@ public class ToolHazeTests
     }
 
     [Fact]
+    public void AWheelsArcInAWallThrowsOneStream()
+    {
+        var haze = Of(h => ToolHaze.OfCircle(new((0, 0), 6, 1), 48, h));
+        var contacts = ToolHaze.Contacts(haze, (x, _) => x > 3, (5, 0), (_, _) => false);
+        Assert.True(contacts.Count > 5);
+        Assert.Single(contacts.Select(p => (Math.Round(p.Dx, 9), Math.Round(p.Dy, 9))).Distinct());
+    }
+
+    [Fact]
+    public void ADrillsHelixInAWallThrowsBackOutToTheChuck()
+    {
+        var haze = Of(h => ToolHaze.OfHelix(new((0, 0), (1, 0), (0, 1), 20, 0.7), 96, h));
+        var contacts = ToolHaze.Contacts(haze, (x, _) => x > 10, (12, 0));
+        Assert.All(contacts, p => Assert.Equal((-1.0, 0.0), (Math.Round(p.Dx, 9), Math.Round(p.Dy, 9))));
+    }
+
+    [Fact]
     public void AHazeThatDoesNotReachWhatIsHitThrowsFromItsPointNearest()
     {
         var haze = Of(h => ToolHaze.OfLine((0, 0), (10, 0), 1, h));
