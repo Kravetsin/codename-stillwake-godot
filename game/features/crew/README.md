@@ -80,7 +80,7 @@ This hero and others', client-authoritative (0002): only commands reach the sim.
 | `logic/CanistersSeen.cs` | tanks |
 | `AirSwirl.cs` | fling, breath, leak |
 | `SuitGauge.cs` | air row |
-| `MealSlots.cs` | meals, purge |
+| `MealSlots.cs` | meals, purge, hunger sign |
 | `logic/Retching.cs` | a retch |
 | `logic/RetchSpray.cs` | its bile |
 | `InkLayer.cs` | bile drawn |

@@ -75,8 +75,8 @@ A living document: what is decided about the game and what is still open. Techni
   them the quilted helmet's +50, sewn at the workbench round the basic one of a planet's cloth ([quilted-helmet](decisions/2026-11-14-quilted-helmet-and-traced-art.md)).
   A canister breathed gives 20, then not another for 25 s; more air a canister is food's, not gear's
   ([food-and-the-body](decisions/2026-11-12-food-and-the-body.md)). A hero has three meal slots: each food lasts
-  minutes and changes the body's rates (calm: a breath costs less; deep: a canister gives more); the pod prints a
-  hero fed with paste, and with all three empty it is hungry and running costs more air. Rations are found in supply
+  minutes and changes the body's rates (calm: a breath costs less; deep: a canister gives more); with all three
+  empty a hero is hungry, as the pod prints it: running costs more air and work goes slower, shown by a sign. Rations are found in supply
   pods, rations and canned meat in drifting fridges and in derelicts' vending machines; a seed may be eaten as a snack.
   The farm grows fruit and glowberries; the galley, a range needing no power, cooks them with rations, meat, fat and
   water into five dishes, each stronger than what went in. Food of every kind sells at the trade station.
