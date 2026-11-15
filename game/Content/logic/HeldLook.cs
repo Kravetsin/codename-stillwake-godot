@@ -102,7 +102,7 @@ public sealed record HeldLook(
     /// (<c>hero_screwdriver.png</c>, drawn by the figure while it works), shipped raw from the user's pick (builders-raw): the fist
     /// round its ribbed amber handle, held square to the forearm as the axe is, the shaft's point the edge. No module fits it, so it never lies on a bench; its clamp the handle.
     /// </summary>
-    public static readonly HeldLook Screwdriver = new("res://art/hero_screwdriver_held.png", (1.8, 1.2), System.Math.PI / 2, (7.8, 1.2), (9.6, 1.2), Clamp: (2.4, 1.2),
+    public static readonly HeldLook Screwdriver = new("res://art/hero_screwdriver_held.png", (1.8, 2.2), System.Math.PI / 2, (7.8, 1.5), (9.5, 1.5), Clamp: (2.4, 1.5),
         Twist: "res://art/hero_screwdriver.png");
 
     /// <summary>
