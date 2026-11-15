@@ -206,7 +206,7 @@ public sealed class ToolCardsScenario : DevScenario
     public override void Attach(DevContext c) => c.Add(new ToolCardsDemo());
 }
 
-[Dev("--item-cards", "five tools' cards, their pictures enlarged, every food's card, the HUD meal's with its time left, every piece of gear's, the fire axe's beside them (ItemCardsDemo)")]
+[Dev("--item-cards", "five tools' cards, their pictures enlarged, a canister's and a bottle's, every food's card, the HUD meal's with its time left, every piece of gear's, the fire axe's beside them (ItemCardsDemo)")]
 public sealed class ItemCardsScenario : DevScenario
 {
     public override void Attach(DevContext c) => c.Add(new ItemCardsDemo());

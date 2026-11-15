@@ -320,7 +320,7 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [catcher-combat](2026-11-09-catcher-combat.md) | Catcher combat | accepted |  |
 | [catcher-paths](2026-11-09-catcher-paths.md) | Catcher paths | accepted | catcher-combat, damage-scale (in part) |
 | [damage-scale](2026-11-09-damage-scale.md) | One damage scale; the own ship takes a tenth | accepted | one-damage-rule (in part) |
-| [liquid-volumes](2026-11-09-liquid-volumes.md) | Liquid volumes | accepted |  |
+| [liquid-volumes](2026-11-09-liquid-volumes.md) | Liquid volumes | accepted | liquid-cards (in part) |
 | [round-blasts](2026-11-09-round-blasts.md) | Blasts are round | accepted | unified-damage (in part) |
 | [tracker-catchers](2026-11-09-tracker-catchers.md) | Catchers | accepted | catcher-combat, catcher-paths, catcher-loot (in part) |
 | [unified-damage](2026-11-09-unified-damage.md) | One rule for damage | accepted | damage-scale (in part) |
@@ -373,5 +373,6 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [food-tuning](2026-11-15-food-tuning.md) | Food tuning: whole-unit canisters, longer dishes, a stimulant, a purge | accepted |  |
 | [held-over-grass](2026-11-15-held-over-grass.md) | A hero's near arm and what it holds over the grass | accepted |  |
 | [jet-cruise](2026-11-15-jet-cruise.md) | A jetpack pays for changing speed, not for distance | accepted |  |
+| [liquid-cards](2026-11-15-liquid-cards.md) | A canister's and a bottle's litres are food's rows | accepted |  |
 | [spark-rule](2026-11-15-spark-rule.md) | A tool's haze in matter throws that matter's look, whatever was hit | accepted |  |
 | [spear-trail](2026-11-15-spear-trail.md) | The plain spear trails haze outside its thrust | accepted |  |
