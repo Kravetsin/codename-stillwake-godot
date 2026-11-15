@@ -169,6 +169,9 @@ public class DescentTests
         public void Send(int peer, int surface) => throw new NotSupportedException();
         public bool CanOpen => canOpen;
         public bool Landed => false;
+        public bool Away => false;
+        public bool PlanetOpen => false;
+        public void LeavePlanet() => throw new NotSupportedException();
         public int OpenPlanet() => throw new NotSupportedException();
         public uint Seed => 0;
         public int Visit(int peer, string kind, uint seed) => throw new NotSupportedException();

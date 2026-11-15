@@ -54,6 +54,12 @@ public sealed record SetPlatform(int Cell, bool Open) : Command;
 /// </summary>
 public sealed record Launch : Command;
 
+/// <summary>
+/// Fires engine <c>Engine</c>, a machine's id (planet-jump): the ship leaves the planet below for good, and the next descent
+/// opens another. Refused while any hero is off the ship or in a pod in the air (<c>landing.crewAway</c>): the call to come home.
+/// </summary>
+public sealed record FireEngine(int Engine) : Command;
+
 /// <summary>What other modules read of Landing: whether a hero rides a drop pod, sitting or flying (vessel-worlds).</summary>
 public interface ILandingQueries
 {
@@ -99,6 +105,11 @@ public sealed class LandingModule : Module<LandingState>, ICarries, ILandingQuer
         Handles<Board>(c => BoardProblem(c.From, c.Pod), c => Sit(c.Pod, c.From));
         Handles<Alight>(c => SeatOf(c.From) == null ? "landing.notSeated" : null, c => State.Seats.RemoveAll(s => s.Peer == c.From));
         Handles<Launch>(c => LaunchProblem(c.From), c => Fly(c.From));
+        Handles<FireEngine>(c => FireProblem(c.Engine), c =>
+        {
+            _itemsOps.TakeFrom(c.Engine, 0, Content.Landing.JumpFuel);
+            Surfaces.LeavePlanet();
+        });
         // The grid changes only in commands or construction: flights count down, shut their runs and end here.
         System(Phase.Construction, Count);
         // After Building, before power's derivation: a seated maker works only under a rider running (power-chain).
@@ -144,6 +155,23 @@ public sealed class LandingModule : Module<LandingState>, ICarries, ILandingQuer
         if (!Powered(Under(m))) return "landing.unpowered";
         if (_items.HeldFor(pod, Fuel) < Content.Landing.DescentFuel) return "landing.noFuel";
         return Surfaces.CanOpen ? null : "landing.cannotLeave";
+    }
+
+    /// <summary>
+    /// Why engine <paramref name="engine"/> cannot fire (planet-jump): no engine (<c>landing.noEngine</c>), its power short
+    /// (<c>landing.engineUnpowered</c>), its slot under <see cref="Content.Landing.JumpFuel"/> biofuel (<c>landing.noFuel</c>), its
+    /// nozzle walled in since (<c>landing.noExhaust</c>), no planet below to leave (<c>landing.nothingBelow</c>); last, so it says
+    /// the engine is ready but for them, a hero off the ship or in a pod in the air (<c>landing.crewAway</c>). Null when it can.
+    /// </summary>
+    public string? FireProblem(int engine)
+    {
+        if (Surfaces.Here != 0 || _grid.MachineById(engine) is not { } m || Content.Machines.Get(m.Kind).Exhaust == null) return "landing.noEngine";
+        if (_power.Satisfaction(engine) < 1000) return "landing.engineUnpowered";
+        if (_items.HeldFor(engine, Content.Machines.Get(m.Kind).Takes!) < Content.Landing.JumpFuel) return "landing.noFuel";
+        if (!_grid.Exhausts(engine)) return "landing.noExhaust";
+        if (!Surfaces.PlanetOpen) return "landing.nothingBelow";
+        // A descent is this surface's flight; a return's rider stands off the ship till it docks.
+        return Surfaces.Away || State.Flights.Count > 0 ? "landing.crewAway" : null;
     }
 
     /// <summary>The drop pod <paramref name="peer"/>'s hero sits in, by machine id; null for one standing.</summary>
@@ -392,6 +420,13 @@ public sealed class LandingModule : Module<LandingState>, ICarries, ILandingQuer
         if (rng.Below(8) != 0) return null;
         // A launch mostly from a hero in a pod, so the fuzz flies some; from anyone else it is refused.
         if (rng.Below(SeatOf(from) != null ? 2u : 8u) == 0) return new Launch { From = from };
+        // An engine fired now and then, mostly one that stands: refused nearly always, the fuzz keeping heroes off the ship.
+        if (rng.Below(12) == 0)
+        {
+            var machines = _grid.Machines;
+            int engine = machines.Count > 0 && rng.Below(4) != 0 ? machines[(int)rng.Below((uint)machines.Count)].Id : (int)rng.Below(64) - 1;
+            return new FireEngine(engine) { From = from };
+        }
         if (rng.Below(3) == 0)
         {
             if (rng.Below(3) == 0) return new Alight { From = from };

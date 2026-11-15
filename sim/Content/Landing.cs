@@ -15,6 +15,9 @@ public static class Landing
     /// <summary>Ticks from a launch off the ship until the pod docks aboard.</summary>
     public const int AscentTicks = 100;
 
+    /// <summary>The biofuel the engine's jump burns from its slot (planet-jump).</summary>
+    public const int JumpFuel = 25;
+
     /// <summary>The kind of planet a descent opens when none is open.</summary>
     public static readonly string Planet = PlanetTypes.First.Id;
 }

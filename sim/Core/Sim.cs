@@ -213,6 +213,9 @@ public sealed class World
 
     private void Open(OpenSurface c) => Open(c.Kind, SurfaceOf(c.From), null);
 
+    /// <summary>Whether surface <paramref name="i"/> is a planet still open: not one left (planet-jump).</summary>
+    private bool OpenPlanetAt(int i) => !_surfaces[i].Surface.Closed && Content.Surfaces.Get(_surfaces[i].Surface.Kind) is Content.PlanetType;
+
     /// <summary>
     /// A surface of kind <paramref name="kindId"/>, made from its map, grown or described from <paramref name="seed"/> (drawn from
     /// the world's random numbers when none is given), keeping what surface <paramref name="opener"/> keeps for a new one (its
@@ -425,10 +428,34 @@ public sealed class World
             }
         }
 
+        public bool Away => world._where.Count > 0;
+
+        public bool PlanetOpen
+        {
+            get
+            {
+                for (int i = 1; i < world._surfaces.Count; i++)
+                    if (world.OpenPlanetAt(i)) return true;
+                return false;
+            }
+        }
+
+        public void LeavePlanet()
+        {
+            if (!world._applying) throw new InvalidOperationException("A planet is left only as a command applies.");
+            for (int i = 1; i < world._surfaces.Count; i++)
+            {
+                if (!world.OpenPlanetAt(i)) continue;
+                if (world._where.ContainsValue(i) || world._sends.Exists(s => s.Surface == i))
+                    throw new InvalidOperationException($"Planet {i} is left with a hero on it or on its way there.");
+                world._surfaces[i] = new Running(world._surfaces[i].Surface with { Closed = true }, []);
+            }
+        }
+
         public int OpenPlanet()
         {
             for (int i = 1; i < world._surfaces.Count; i++)
-                if (Content.Surfaces.Get(world._surfaces[i].Surface.Kind) is Content.PlanetType) return i;
+                if (world.OpenPlanetAt(i)) return i;
             if (!world.CanOpen) throw new InvalidOperationException("This world cannot open a planet.");
             world._opening = Content.Landing.Planet;
             return world._surfaces.Count;
