@@ -45,9 +45,11 @@ public static class Stores
     /// A tick of the lines (tanks-in-a-line): each of <paramref name="givers"/>, in the order given (id order), holding any, pours up to
     /// <paramref name="flow"/> of its own into <paramref name="takersOf"/> it, in their order, as much as each has room below
     /// <paramref name="capacityOf"/>, never into itself. A later giver pours on what it was given this tick, so a line fills from its
-    /// last store. Nothing is made or lost.
+    /// last store. Nothing is made or lost. <paramref name="pouredOut"/> hears each giver's pour, for its outflow.
     /// </summary>
-    public static void Pour(List<Stored> stores, IEnumerable<int> givers, Func<int, IEnumerable<int>> takersOf, Func<int, int> capacityOf, int flow)
+    public static void Pour(
+        List<Stored> stores, IEnumerable<int> givers, Func<int, IEnumerable<int>> takersOf, Func<int, int> capacityOf, int flow,
+        Action<int, int>? pouredOut = null)
     {
         foreach (int giver in givers)
         {
@@ -63,6 +65,7 @@ public static class Stores
                 Add(stores, taker, poured);
                 Take(stores, giver, poured);
                 left -= poured;
+                pouredOut?.Invoke(giver, poured);
             }
         }
     }

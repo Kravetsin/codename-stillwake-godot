@@ -54,7 +54,7 @@ public partial class Hands : Node2D
         _machines = new MachineTips(Ui,
             (m, x, spec) => Plain(Features.Water.WaterShows.Says(spec, m.Water.WaterIn(x.Id), m.Water.Stalled(x.Id), m.Power.Satisfaction(x.Id))),
             (m, x, spec) => Features.Atmosphere.AirSays.Says(spec, m.Atmosphere.OxygenIn(x.Id), m.Atmosphere.MakesAt(x.Id)),
-            (m, x, spec) => Plain(Features.Fuel.FuelShows.Says(spec, m.Fuel.FuelIn(x.Id))),
+            (m, x, spec) => Plain(Features.Fuel.FuelShows.Says(spec, m.Fuel.FuelIn(x.Id), m.Fuel.Lasts(x.Id))),
             (m, x, spec) => spec.Is(Stillwake.Content.MachineTrait.Catches) ? Plain(Features.Debris.NetShows.Says(spec, m.Debris.HeldIn(x.Id).Count)) : null);
         Air = new AirKey(Ui);
         foreach (var node in (Node[])[Mouse, _air, _power, _pipesBuilt, _pipes, _building, Menu, Air, _tip]) AddChild(node);

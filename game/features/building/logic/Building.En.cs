@@ -6,6 +6,7 @@ public static partial class En
     {
         ["building.planned"] = "Already planned",
         ["building.notEmpty"] = "Empty it first",
+        ["building.holdsLiquid"] = "Drain it first: it holds over a litre",
         ["building.noFloor"] = "Needs a floor under it",
         ["building.holdsMachine"] = "A machine stands on it",
         ["building.nothingThere"] = "Nothing to take apart",

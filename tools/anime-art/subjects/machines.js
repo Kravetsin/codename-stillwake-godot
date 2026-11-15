@@ -189,7 +189,7 @@ const cistern = (a) => {
     lite: 'M7 5.4L25 5.4C26.5 5.4 28 6.5 28.6 8L3.4 8C4 6.5 5.5 5.4 7 5.4Z', spec: band(6.6, 6.2, 17, 6.8), shade: 'M3 19L29 19L29 19.2C29 21.8 27 23.8 24.4 23.8L7.6 23.8C5 23.8 3 21.8 3 19.2Z',
     lines: ['M7.8 5.6L7.8 23.6', 'M24.2 5.6L24.2 23.6'] });
   a.flat(band(4, 11, 7.6, 11.6), '#d4dae2'); a.flat(band(24.6, 11, 28, 11.6), '#6a708c');
-  // The window: its frame, dark glass; its water is drawn over it (cistern_fill_*), as the sim says.
+  // The window: its frame, dark glass; its water is drawn over it (cistern_level), as the sim says.
   a.shape(rr(11.6, 9.4, 8.8, 12.4, .5), DARK, { outer: false, lite: band(11.8, 9.5, 20.2, 10) });
   a.flat(band(13, 11, 19, 21), '#0e1c30');
   for (const [x, y] of [[12.1, 10], [19.9, 10], [12.1, 21.2], [19.9, 21.2]]) a.flat(ell(x, y, .35), '#a8693c');
@@ -460,13 +460,18 @@ function fire(f) {
   };
 }
 const burnerWheel = (f) => (a) => wheel(a, 6.5, 6.5, 6, GUN, .4 + (f * Math.PI) / 6);
-const fill = (n) => (a) => {
-  if (n === 0) { a.flat(band(21.2, 9, 23, 10.2), '#ff5040'); return; }
-  const top = 21 - 2 * n;
-  a.flat(band(13, top, 19, 21), '#2ca4d8');
-  a.flat(band(13, top, 19, top + Math.min(.8, n)), '#a8ecff');
-  a.flat(band(13.6, top + .8, 14.6, 21), '#6cc8f0');
-};
+/** An empty oxygen tank's red lamp, over its glass. */
+const tankEmpty = (a) => a.flat(band(21.2, 9, 23, 10.2), '#ff5040');
+/**
+ * A sight glass's liquid, full, under its surface (sight-glass): the glass of a tank, a cistern and a fuel tank alike, 13..19
+ * across, 11..21 down. The client shows as much of it from the bottom as the machine holds, its surface (levelTop) moved down
+ * onto it: any level, not steps.
+ */
+const level = (c) => (a) => { a.flat(band(13, 11, 19, 21), c.base); a.flat(band(13.6, 11, 14.5, 21), c.glint); };
+const levelTop = (c) => (a) => a.flat(band(13, 11, 19, 11.6), c.lite);
+const OXYGEN = { base: '#2ca4d8', lite: '#a8ecff', glint: '#6cc8f0' };
+/** Biofuel's amber, a placeholder till its look is picked (fuel-liquid). */
+const FUELLED = { base: '#b8801e', lite: '#f2c66a', glint: '#d8a040' };
 // ---------- the radar antenna, 4 x 6 cells (radar-mast): a guyed lattice mast, a dish four cells across at its head, a red light on top ----------
 const WIRE = { base: '#8a92a2', shade: '#8a92a2' };
 const CONCRETE = { base: '#7a7a80', shade: '#55555e', deep: '#3e3e46', lite: '#9c9ca2', spec: '#c8c8cc', rim: '#9c9ca2' };
@@ -728,14 +733,6 @@ const bubbles = (f) => (a) => {
 const working = (a) => { a.flat(ell(16, 42.5, 1), '#7fe08a'); a.flat(ell(15.7, 42.2, .4), '#d8ffd8'); };
 /** The electrolyser standing: its lamp red. */
 const stalled = (a) => { a.flat(ell(16, 42.5, 1), '#e05555'); a.flat(ell(15.7, 42.2, .4), '#ffd0c8'); };
-/** A cistern's water up its window by quarters, <n> of 4; none at 0. */
-const cisternFill = (n) => (a) => {
-  if (n === 0) return;
-  const top = 21 - 2.5 * n;
-  a.flat(band(13, top, 19, 21), WATERED.base);
-  a.flat(band(13, top, 19, top + .6), WATERED.lite);
-  a.flat(band(13.6, top + .6, 14.4, 21), WATERED.glint);
-};
 
 // ---------- The power chain (power-chain ADR): the fermenter's drip column, the biofuel generator's hot-bulb engine, the
 // treadmill wheel's hoop on rollers, as the user picked them. Their materials and helpers came with them from the pick page.
@@ -1054,8 +1051,11 @@ Subjects.machines = function () {
   }
   for (let f = 0; f < 2; f++) out(`computer_lights_${f}`, flat(48, 32, computerLights(f)));
   for (let f = 0; f < 3; f++) out(`fire_${f}`, flat(10, 11, fire(f)));
-  for (let n = 0; n < 6; n++) out(`tank_fill_${n}`, flat(32, 32, fill(n)));
-  for (let n = 0; n < 5; n++) out(`cistern_fill_${n}`, flat(32, 32, cisternFill(n)));
+  out('tank_empty', flat(32, 32, tankEmpty));
+  for (const [kind, c] of [['tank', OXYGEN], ['cistern', WATERED], ['fuelTank', FUELLED]]) {
+    out(`${kind}_level`, flat(32, 32, level(c)));
+    out(`${kind}_level_top`, flat(32, 32, levelTop(c)));
+  }
   for (let f = 0; f < 4; f++) out(`electrolyser_work_${f}`, flat(32, 48, bubbles(f)));
   out('electrolyser_working', flat(32, 48, working));
   out('electrolyser_stalled', flat(32, 48, stalled));

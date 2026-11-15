@@ -8,5 +8,8 @@ public static partial class En
         ["fuel.low"] = "Less fuel in it",
         ["fuel.draw"] = "Take {n} ({held}/{all} l · {whole} cans)",
         ["fuel.held"] = "Biofuel · {held}/{of} l · {whole} cans",
+        ["fuel.lasts"] = "Lasts {time} at this draw",
+        ["fuel.idle"] = "Nothing drawn from it",
+        ["fuel.hours"] = "{h} h {m} min",
     };
 }

@@ -104,6 +104,27 @@ public class FuelTests
         Assert.Equal([0, 0, 10 * L], Held(w));
     }
 
+    /// <summary>
+    /// How long a store lasts, at what it gave out over the last window (Fuel.RateWindow): a tank pouring its flow lasts its fuel over
+    /// that flow; one giving nothing, and every store after a load, says none.
+    /// </summary>
+    [Fact]
+    public void SaysHowLongAStoreLastsAtWhatItGaveOutLastWindow()
+    {
+        var w = Piped();
+        w.M.Fuel.Fill(A(w), 10 * L);
+        Assert.Null(w.M.Fuel.Lasts(A(w)));
+        // Two windows, so the last is whole: the world was a tick into its first as it was filled.
+        w.Run(2 * FuelContent.RateWindow);
+        Assert.Equal(w.M.Fuel.FuelIn(A(w)) / FuelContent.Flow, w.M.Fuel.Lasts(A(w)));
+        // B passes on what it is given: it gives too, so it says how long its own fuel would last at that.
+        Assert.Equal(0, w.M.Fuel.Lasts(B(w)));
+        Assert.Null(w.M.Fuel.Lasts(Generator(w)));
+        var m = new Registry();
+        Sim.World.Load(w.World.Save(), [.. m.All, new Builder(m)]);
+        Assert.Null(m.Fuel.Lasts(m.Grid.MachineAt(w.At(0, 0))!.Id));
+    }
+
     /// <summary>The generator full at 20 litres, the tank before it fills; nothing is made or lost.</summary>
     [Fact]
     public void FillsTheLastStoreAndThenTheOneBeforeIt()
@@ -123,6 +144,25 @@ public class FuelTests
         w.Do(new ClearAt(w.At(0, 0), "machine")).Run();
         Assert.Null(w.M.Grid.MachineById(tank));
         Assert.Equal(0, w.M.Fuel.FuelIn(tank));
+    }
+
+    /// <summary>
+    /// A machine holding over a litre of liquid is not taken apart (the user's word): its mark refused, <c>building.holdsLiquid</c>;
+    /// drained to a litre, it is marked. A tank's oxygen and a cistern's water count alike, through the same rule.
+    /// </summary>
+    [Fact]
+    public void RefusesTakingApartAStoreHoldingOverALitre()
+    {
+        var w = World();
+        int tank = A(w);
+        w.M.Fuel.Fill(tank, 2 * L);
+        w.Do(new Building.Deconstruct(w.At(0, 0), "machine")).Run();
+        Assert.Equal(["building.holdsLiquid"], Reasons(w));
+        w.Do(new DrawFuel(tank)).Run();
+        Assert.Equal(L, w.M.Fuel.FuelIn(tank));
+        w.Do(new Building.Deconstruct(w.At(0, 0), "machine")).Run();
+        Assert.Equal(["building.holdsLiquid"], Reasons(w));
+        Assert.Single(w.M.Building.Plans);
     }
 
     /// <summary>The shared line (Stores): a store never pours into itself, one loaded fuller than it holds takes nothing, a loop evens nothing.</summary>

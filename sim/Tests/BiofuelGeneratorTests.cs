@@ -61,7 +61,8 @@ public class BiofuelGeneratorTests
         var w = SetUp();
         Feed(w, "biofuel");
         Assert.True(w.M.Furnace.At(Id(w)).Burning);
-        Assert.Equal(0, FuelIn(w));
+        // Its litre is in its store, paid a tick's share at a time (fuel-liquid).
+        Assert.Equal(Content.Fuel.Litre, w.M.Fuel.FuelIn(Id(w)));
         w.Run();
         Assert.Equal(Makes, Supply(w));
         Assert.Equal(1000, w.M.Power.Satisfaction(w.M.Grid.MachineAt(Lamp)!.Id));
@@ -70,9 +71,30 @@ public class BiofuelGeneratorTests
         Assert.Equal(Makes, Supply(w));
         w.Run();
         Assert.False(w.M.Furnace.At(Id(w)).Burning);
+        Assert.Equal(0, w.M.Fuel.FuelIn(Id(w)));
         w.Run();
         Assert.Equal(0, Supply(w));
         Assert.Empty(w.Refusals);
+    }
+
+    /// <summary>
+    /// Its store drains as it burns (fuel-liquid), not a litre at a time: a tick's share each tick, so half a litre's ticks take half
+    /// a litre, and a fire whose store runs dry goes out at once.
+    /// </summary>
+    [Fact]
+    public void DrainsItsStoreATickAtATimeAndGoesOutWhenItRunsDry()
+    {
+        var w = SetUp();
+        w.M.Fuel.Fill(Id(w), Content.Fuel.Litre / 4);
+        w.Run();
+        Assert.True(w.M.Furnace.At(Id(w)).Burning);
+        int lit = w.M.Fuel.FuelIn(Id(w));
+        w.Run(BiofuelTicks / 8);
+        Assert.InRange(lit - w.M.Fuel.FuelIn(Id(w)), Content.Fuel.Litre / 8 - 1, Content.Fuel.Litre / 8 + 1);
+        // A quarter litre lasts a quarter of a litre's ticks, then it is out with its fire.
+        w.Run(BiofuelTicks / 8 + 2);
+        Assert.Equal(0, w.M.Fuel.FuelIn(Id(w)));
+        Assert.False(w.M.Furnace.At(Id(w)).Burning);
     }
 
     /// <summary>Its slot takes biofuel alone: a plank or fat, both fuels elsewhere, is refused and stays with the hero.</summary>

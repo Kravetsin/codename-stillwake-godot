@@ -205,12 +205,12 @@ public static class Machines
 {
     public static readonly IReadOnlyList<MachineSpec> All =
     [
-        new("tank", 4, 4, [new(0, 2, Way.In, Fluids.LiquidOxygen), new(3, 2, Way.Out, Fluids.LiquidOxygen)], [("plate", 8), ("tube", 2), ("gear", 2)], BuildTicks: 160, Slots: 1, SlotTakes: (0, Crew.Canister), Has: MachineTrait.Gas, Menu: new(MenuTabs.Air, 20), Char: 'T', Means: "oxygen tank: draw its whole footprint"),
+        new("tank", 4, 4, [new(0, 2, Way.In, Fluids.LiquidOxygen), new(3, 2, Way.Out, Fluids.LiquidOxygen)], [("plate", 8), ("tube", 2), ("gear", 2)], BuildTicks: 160, Slots: 1, SlotTakes: (0, Crew.Canister), Has: MachineTrait.Gas, Menu: new(MenuTabs.Storage, 25), Char: 'T', Means: "oxygen tank: draw its whole footprint"),
         // Holds water poured in by the bottle and gives it on to an electrolyser (water); it needs no power and air ignores it.
-        new("cistern", 4, 4, [new(0, 2, Way.In, Fluids.Water), new(3, 2, Way.Out, Fluids.Water)], [("plate", 4), ("tube", 2)], BuildTicks: 160, Slots: 1, SlotTakes: (0, Water.Item), Has: MachineTrait.HoldsWater, Menu: new(MenuTabs.Air, 25), Char: 'c', Means: "cistern: draw its whole footprint"),
-        // Holds 100 litres of biofuel poured in by the can or piped in, given on through its output (fuel-liquid). Its size, cost
-        // and place in the menu wait for its picture.
-        new("fuelTank", 4, 4, [new(0, 2, Way.In, Fluids.Fuel), new(3, 2, Way.Out, Fluids.Fuel)], [("plate", 6), ("tube", 2)], BuildTicks: 160, Slots: 1, SlotTakes: (0, Fuel.Item), FuelHolds: 100, Menu: new(MenuTabs.Power, 27), Char: '!', Means: "fuel tank: draw its whole footprint"),
+        new("cistern", 4, 4, [new(0, 2, Way.In, Fluids.Water), new(3, 2, Way.Out, Fluids.Water)], [("plate", 4), ("tube", 2)], BuildTicks: 160, Slots: 1, SlotTakes: (0, Water.Item), Has: MachineTrait.HoldsWater, Menu: new(MenuTabs.Storage, 30), Char: 'c', Means: "cistern: draw its whole footprint"),
+        // Holds 100 litres of biofuel poured in by the can or piped in, given on through its output (fuel-liquid). Its size and cost
+        // wait for its picture. Tanks and cisterns are storage (the user's word).
+        new("fuelTank", 4, 4, [new(0, 2, Way.In, Fluids.Fuel), new(3, 2, Way.Out, Fluids.Fuel)], [("plate", 6), ("tube", 2)], BuildTicks: 160, Slots: 1, SlotTakes: (0, Fuel.Item), FuelHolds: 100, Menu: new(MenuTabs.Storage, 35), Char: '!', Means: "fuel tank: draw its whole footprint"),
         new("generator", 4, 4, [new(0, 2, Way.In, Fluids.LiquidOxygen), new(3, 0, Way.Out, Fluids.Air)], [("frame", 2), ("rotor", 2), ("tube", 2), ("wire", 4)], BuildTicks: 200, Draws: 4, Plug: (16, 5), Slots: 1, SlotTakes: (0, Crew.Canister), Has: MachineTrait.AirSource | MachineTrait.Switches, Menu: new(MenuTabs.Air, 30), Char: 'G', Means: "oxygen generator: draw its whole footprint"),
         // Splits a cistern's water into liquid oxygen for a tank, the hydrogen let go (water): water in on its left, oxygen out on its right.
         // Its electrodes are a planet's copper, so it is understood and built there first (industrial-oxygen).

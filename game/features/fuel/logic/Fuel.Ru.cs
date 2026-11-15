@@ -8,5 +8,8 @@ public static partial class Ru
         ["fuel.low"] = "Здесь меньше топлива",
         ["fuel.draw"] = "Достать {n} ({held}/{all} л · {whole} {whole|канистра|канистры|канистр})",
         ["fuel.held"] = "Биотопливо · {held}/{of} л · {whole} {whole|канистра|канистры|канистр}",
+        ["fuel.lasts"] = "Хватит на {time} при таком расходе",
+        ["fuel.idle"] = "Расхода нет",
+        ["fuel.hours"] = "{h} ч {m} мин",
     };
 }

@@ -22,4 +22,10 @@ public static class Fuel
     /// <see cref="Air.TankFlow"/>: a litre in 2.5 seconds, a pod's 20 in 50.
     /// </summary>
     public const int Flow = Air.TankFlow;
+
+    /// <summary>
+    /// The ticks over which a store's outflow is counted, to say how long its fuel lasts at that rate: five seconds, so a
+    /// generator's tick-by-tick burn and a line's pour read steady.
+    /// </summary>
+    public const int RateWindow = 100;
 }

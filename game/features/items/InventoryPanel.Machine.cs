@@ -28,7 +28,7 @@ public partial class InventoryPanel
             _slots.RemoveAll(s => s.Place.Crate != null && !_lent.Contains(s));
             _shown.RemoveChild(_frame);
             _frame.QueueFree();
-            (_frame, _progress, _problem, _tooCold, _crateGrid, _crateKey, _send, _draw, _drawCount, _switch, _liquid) = (null, null, null, null, null, null, null, null, null, null, null);
+            (_frame, _progress, _problem, _tooCold, _crateGrid, _crateKey, _send, _draw, _drawCount, _switch, _liquid, _lasts) = (null, null, null, null, null, null, null, null, null, null, null, null);
             _chargerLines.Clear();
         }
         if (want is not var (crate, kind)) return;
@@ -69,6 +69,8 @@ public partial class InventoryPanel
             _ => _crateGrid = Grid(Enumerable.Range(0, spec.Slots ?? 0).Select(i => new Place(i, crate))),
         });
         if (spec.Is(Content.MachineTrait.HoldsFuel) && (spec.Is(Content.MachineTrait.Fire) || station != null)) _frame.Add(DrawRow(DrawFuel(crate)));
+        if (spec.Is(Content.MachineTrait.HoldsFuel))
+            _frame.Add(_lasts = new Label { LabelSettings = Style.Text(Style.Mono, 11, Style.Slate400), MouseFilter = Control.MouseFilterEnum.Ignore });
         // Its module sockets under its body, for a machine that takes any (0086).
         if (Sockets(crate, kind) is { } sockets) _frame.Add(sockets);
         // A drop pod's key under its slot: Descend, or Return off the ship.
@@ -344,6 +346,8 @@ public partial class InventoryPanel
         int held = Fuel.FuelIn(store), peer = _client.Id;
         ShowDraw(held / Content.Fuel.Can, n => Fuel.DrawProblem(store, peer, n),
             n => T("fuel.draw", ("n", n), ("held", Litres.Of(held)), ("all", Litres.Of(spec.FuelCapacity)), ("whole", held / Content.Fuel.Can)));
+        string lasts = Features.Fuel.FuelShows.Lasting(Fuel.Lasts(store));
+        if (_lasts != null && _lasts.Text != lasts) _lasts.Text = lasts;
     }
 
     /// <summary>The tank's draw key: canisters out of what it holds, of its capacity.</summary>

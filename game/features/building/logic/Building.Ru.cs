@@ -6,6 +6,7 @@ public static partial class Ru
     {
         ["building.planned"] = "Уже в плане",
         ["building.notEmpty"] = "Сначала опустоши",
+        ["building.holdsLiquid"] = "Сначала слей: внутри больше литра",
         ["building.noFloor"] = "Нужен пол или платформа снизу",
         ["building.holdsMachine"] = "На этом стоит станция",
         ["building.nothingThere"] = "Нечего разбирать",

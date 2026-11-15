@@ -87,6 +87,8 @@ public partial class InventoryPanel : CanvasLayer
     private Button? _switch;
     /// <summary>The open vaporizer's liquid, behind it and its own (industrial-oxygen).</summary>
     private Label? _liquid;
+    /// <summary>How long an open fuel store's fuel lasts at its outflow (fuel-liquid).</summary>
+    private Label? _lasts;
     private SortSweep _sweep = null!;
     private TextureRect _heldIcon = null!;
     private Label _heldCount = null!, _creative = null!;

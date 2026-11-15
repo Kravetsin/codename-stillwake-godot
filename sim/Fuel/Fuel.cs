@@ -10,11 +10,25 @@ namespace Stillwake.Sim.Fuel;
 /// <summary>Takes <c>Count</c> litres out of machine <c>Machine</c>'s fuel store as cans into the sender's inventory, one at least.</summary>
 public sealed record DrawFuel(int Machine, int Count = 1) : Command;
 
+/// <summary>What a store gave out, poured on or burnt, this window so far and over the last whole one, in millilitres.</summary>
+internal sealed class Outflow
+{
+    public int Machine { get; set; }
+    public int Given { get; set; }
+    public int Rate { get; set; }
+}
+
 /// <summary>The fuel's slice. Public so modules can be typed by it, its members internal.</summary>
 public sealed class FuelState
 {
     /// <summary>The biofuel in each store holding any, in millilitres, by machine id, in id order.</summary>
     [JsonInclude] internal List<Stored> Stores { get; set; } = [];
+
+    /// <summary>Each store's outflow (derived, for how long its fuel lasts): by machine id, in id order; none after a load.</summary>
+    [JsonIgnore] internal List<Outflow> Outflows { get; set; } = [];
+
+    /// <summary>Ticks into the outflow's window, derived: counted from a load, never saved.</summary>
+    [JsonIgnore] internal int Window { get; set; }
 }
 
 /// <summary>What any module may read of the fuel.</summary>
@@ -26,6 +40,11 @@ public interface IFuelQueries
     int RoomIn(int machine);
     /// <summary>Why peer <paramref name="peer"/> could not draw <paramref name="count"/> cans out of machine <paramref name="machine"/>: no store, less fuel in it, or no room.</summary>
     string? DrawProblem(int machine, int peer, int count = 1);
+    /// <summary>
+    /// The ticks machine <paramref name="machine"/>'s fuel lasts at what it gave out, poured on or burnt, over the last
+    /// <c>Fuel.RateWindow</c> ticks, rounded down; null while it gives none. Draws by hand do not count.
+    /// </summary>
+    int? Lasts(int machine);
 }
 
 /// <summary>What the modules that make, move and burn fuel may do to the stores.</summary>
@@ -77,10 +96,40 @@ public sealed partial class FuelModule : Module<FuelState>, IFuelQueries, IFuelO
         {
             Pour();
             PourHoppers();
+            CloseWindow();
         });
     }
 
     protected override FuelState Init(Layout layout) => new();
+
+    /// <summary>Outflow is counted afresh after a load: how long a store lasts reads again a window later.</summary>
+    public override void Rebuild()
+    {
+        State.Outflows = [];
+        State.Window = 0;
+    }
+
+    public int? Lasts(int machine) =>
+        State.Outflows.Find(o => o.Machine == machine) is { Rate: > 0 } o ? (int)((long)FuelIn(machine) * Content.Fuel.RateWindow / o.Rate) : null;
+
+    /// <summary>Counts <paramref name="amount"/> given out of store <paramref name="machine"/> toward its outflow.</summary>
+    private void Gave(int machine, int amount)
+    {
+        if (amount <= 0) return;
+        int at = State.Outflows.FindIndex(o => o.Machine >= machine);
+        if (at < 0) State.Outflows.Add(new Outflow { Machine = machine });
+        else if (State.Outflows[at].Machine != machine) State.Outflows.Insert(at, new Outflow { Machine = machine });
+        State.Outflows[at < 0 ? State.Outflows.Count - 1 : at].Given += amount;
+    }
+
+    /// <summary>Each <c>Fuel.RateWindow</c> ticks, what each store gave becomes its rate; one that gave none is forgotten.</summary>
+    private void CloseWindow()
+    {
+        if (++State.Window < Content.Fuel.RateWindow) return;
+        State.Window = 0;
+        foreach (var o in State.Outflows) (o.Rate, o.Given) = (o.Given, 0);
+        State.Outflows.RemoveAll(o => o.Rate == 0);
+    }
 
     public int FuelIn(int machine) => Stores.AmountIn(State.Stores, machine);
 
@@ -102,7 +151,12 @@ public sealed partial class FuelModule : Module<FuelState>, IFuelQueries, IFuelO
         return Math.Max(0, put);
     }
 
-    public int Take(int machine, int amount) => Stores.Take(State.Stores, machine, amount);
+    public int Take(int machine, int amount)
+    {
+        int taken = Stores.Take(State.Stores, machine, amount);
+        Gave(machine, taken);
+        return taken;
+    }
 
     public int TakeAll(int machine) => Stores.Take(State.Stores, machine, int.MaxValue);
 
@@ -126,7 +180,7 @@ public sealed partial class FuelModule : Module<FuelState>, IFuelQueries, IFuelO
     private void Pour() =>
         Stores.Pour(State.Stores, _grid.MachinesWith(MachineTrait.HoldsFuel).Select(m => m.Id),
             id => _pipes.MachinesOn(MachineTrait.HoldsFuel, Way.In, Fluids.Fuel, _pipes.NetworkOf(_grid.MachineById(id)!, Way.Out, Fluids.Fuel)),
-            CapacityOf, Content.Fuel.Flow);
+            CapacityOf, Content.Fuel.Flow, Gave);
 
     /// <summary>Each store in id order absorbs one can from its hopper (<c>SlotTakes</c>) when a litre fits, after the lines pour.</summary>
     private void PourHoppers()
