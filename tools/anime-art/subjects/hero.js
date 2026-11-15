@@ -608,7 +608,7 @@ const driver = (f) => (a) => {
 // lights, a knurled chuck and a hex bit. A state is { f: 0..2, the third of a turn the chuck and bit show; mode: 'idle' | 'run' | 'flat' }:
 // idle, the lamp dark and the lights steady; running, all bright and a streak on the chuck and bit; flat, turned by the wrist, the first
 // light red. In the reference's pixels: the lamp, the lights' middles, the chuck's and the bit's boxes.
-const DRIVER_W = 10, DRIVER_H = 8, DRIVER_LAMP = [210, 222, 17], DRIVER_LIGHTS = [[535, 908], [585, 908], [630, 908]];
+const DRIVER_W = 14, DRIVER_H = 11, DRIVER_LAMP = [210, 222, 17], DRIVER_LIGHTS = [[535, 908], [585, 908], [630, 908]];
 const DRIVER_CHUCK = [1064, 122, 1208, 338], DRIVER_BIT = [1268, 194, 1420, 258], STEEL_LIT = '#e4e6ea';
 // Full saturation only for what works or warns: the running lamp is the game's own (HeldLook.LampColour), the flat one red.
 const ON = '#9dff8a', OFF = '#1f2a23', CHARGED = '#4f9a58', WARN = '#ff4a36', WARN_DIM = '#7a2620';
@@ -617,9 +617,9 @@ const powerDriver = (st) => (a) => {
   Traced.raw('powerDriver', s, at)(a);
   if (st.mode !== 'idle') for (const [x0, y0, x1, y1] of [DRIVER_CHUCK, DRIVER_BIT]) streak(a, [X(x0), Y(y0), X(x1), Y(y1)], st.f, STEEL_LIT, .05);
   const [lx, ly, lr] = DRIVER_LAMP, lamp = st.mode === 'run' ? ON : st.mode === 'flat' ? WARN_DIM : OFF;
-  a.glow(ell(X(lx), Y(ly), Math.max(lr * s, .26)), lamp, st.mode === 'run' ? { core: ell(X(lx), Y(ly), .1) } : {});
+  a.glow(ell(X(lx), Y(ly), Math.max(lr * s, .34)), lamp, st.mode === 'run' ? { core: ell(X(lx), Y(ly), .14) } : {});
   // Charged: three steady lights; running: bright; flat: dark, the first warning red.
-  DRIVER_LIGHTS.forEach(([x, y], i) => a.glow(rr(X(x) - .16, Y(y) - .14, .32, .28, .05), st.mode === 'flat' ? (i === 0 ? WARN : OFF) : st.mode === 'run' ? ON : CHARGED));
+  DRIVER_LIGHTS.forEach(([x, y], i) => a.glow(rr(X(x) - .2, Y(y) - .17, .4, .34, .06), st.mode === 'flat' ? (i === 0 ? WARN : OFF) : st.mode === 'run' ? ON : CHARGED));
 };
 
 // The hero's pictures: lit from above, drawn Px pixels a world pixel; a rig's part has Margin round it.

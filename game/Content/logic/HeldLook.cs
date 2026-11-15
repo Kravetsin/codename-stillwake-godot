@@ -112,7 +112,7 @@ public sealed record HeldLook(
     /// (<c>hero_powerDriver.png</c>); flat, the wrist twists it as the screwdriver, the first light red (<c>hero_powerDriver_flat.png</c>).
     /// No module fits it; its clamp the barrel.
     /// </summary>
-    public static readonly HeldLook PowerDriver = new("res://art/hero_powerDriver_held.png", (2.2, 4.56), 0, (8.23, 1.99), (9.48, 1.99), Clamp: (4.3, 1.8),
+    public static readonly HeldLook PowerDriver = new("res://art/hero_powerDriver_held.png", (2.92, 6.31), 0, (11.7, 2.6), (13.47, 2.6), Clamp: (6, 3.2),
         Twist: "res://art/hero_powerDriver_flat.png", Driven: "res://art/hero_powerDriver.png");
 
     /// <summary>

@@ -19,7 +19,8 @@ namespace Stillwake.Game.Dev;
 /// switched to one cell by a right click first; <c>flat</c> with no battery: one cell, as the screwdriver; <c>short</c> the square
 /// with two plates for its four walls: two wait, and its tip says what all four still need; <c>hover</c> the pointer on the run,
 /// never pressed: the square shows before the press; <c>nothing</c> the left button held on the bare floor beside the run: no
-/// square, and the belt's charge, logged, stays as it was; <c>station</c> a tank's blueprint under the pointer: aimed at whole, no square; another behind the hero, who stands before it.
+/// square, and the belt's charge, logged, stays as it was; <c>station</c> a tank's blueprint under the pointer: aimed at whole, no square; another behind the hero, who stands before it;
+/// <c>hand</c> no script, played by hand: the screwdriver and a blasting charge on the slots after the plates, a battery on the belt.
 /// </summary>
 public sealed class DriverDemo(Hands hands, string mode)
 {
@@ -43,8 +44,11 @@ public sealed class DriverDemo(Hands hands, string mode)
     /// <summary>Plates enough for the whole run, an iron wall a plate.</summary>
     public const int Plates = Side * Side;
 
-    /// <summary>The world with the driver first in peer 0's hotbar, <paramref name="plates"/> and, with a <paramref name="battery"/>, a full one on the belt.</summary>
-    public static World Seed(World world, Func<IReadOnlyList<Module>> modules, bool battery, int plates)
+    /// <summary>
+    /// The world with the driver first in peer 0's hotbar, <paramref name="plates"/> and, with a <paramref name="battery"/>, a full one on
+    /// the belt; <paramref name="byHand"/>, the screwdriver and a blasting charge after the plates.
+    /// </summary>
+    public static World Seed(World world, Func<IReadOnlyList<Module>> modules, bool battery, int plates, bool byHand = false)
     {
         var root = JsonNode.Parse(world.Save())!;
         var slots = new JsonArray();
@@ -52,6 +56,8 @@ public sealed class DriverDemo(Hands hands, string mode)
         for (int i = 0; i < Spec.Inventory.Total; i++)
             slots.Add(i == 0 ? new JsonObject { ["item"] = Spec.Screwdrivers.PowerDriver.Item, ["count"] = 1 }
                 : i == 1 ? new JsonObject { ["item"] = "plate", ["count"] = plates }
+                : i == 2 && byHand ? new JsonObject { ["item"] = Spec.Screwdrivers.Basic.Item, ["count"] = 1 }
+                : i == 3 && byHand ? new JsonObject { ["item"] = "blastCharge", ["count"] = 3 }
                 : i == belt && battery ? new JsonObject { ["item"] = "battery", ["count"] = 1, ["charge"] = Spec.Charge.Battery }
                 : null);
         root["slices"]!["items"]!["inventories"] = new JsonArray(new JsonObject { ["id"] = 0, ["slots"] = slots });
