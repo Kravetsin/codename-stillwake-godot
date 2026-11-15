@@ -170,6 +170,16 @@ public partial class ItemsDemo : Control
         At(18.8, () => GoTo(_view.Panel.SortKeyAt(crate: false)));
         At(19.2, () => Button(MouseButton.Left, true));
         At(19.35, () => Button(MouseButton.Left, false));
+        // The trash (trash-slot): a stack into it empty, quietly; the next destroys it, the trash bursting (trash-effect).
+        var trash = new Place(Spec.Inventory.Trash);
+        At(19.7, () => Go(Inv(9)));
+        At(19.9, () => Click(MouseButton.Left));
+        At(20.0, () => Go(trash));
+        At(20.3, () => Click(MouseButton.Left));
+        At(20.5, () => Go(Inv(10)));
+        At(20.7, () => Click(MouseButton.Left));
+        At(20.8, () => Go(trash));
+        At(21.1, () => Click(MouseButton.Left));
     }
 
     private void GoTo(Vector2? at)

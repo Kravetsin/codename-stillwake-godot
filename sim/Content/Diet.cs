@@ -33,11 +33,9 @@ public static class Diet
     public const int RefreshWithin = 1200;
 }
 
-/// <summary>Everything eaten (food-and-the-body): the raw foods, each an item but pod paste, which the pod prints into a hero.</summary>
+/// <summary>Everything eaten (food-and-the-body): the raw foods, each an item.</summary>
 public static class Foods
 {
-    /// <summary>What the pod prints into every hero it makes: no rates, it only keeps hunger off for 20 minutes.</summary>
-    public const string Paste = "podPaste";
     public const string Seed = "seed", Ration = "ration", CannedMeat = "cannedMeat", Fruit = "fruit", Glowberry = "glowberry";
 
     /// <summary>The black market's stimulant (food-tuning): the lungs hold 20 more for 20 minutes; it fills a meal's slot.</summary>
@@ -49,7 +47,6 @@ public static class Foods
     /// <summary>Every food, a first guess for the playtest (food-and-the-body, food-tuning).</summary>
     public static readonly IReadOnlyList<Food> All =
     [
-        new(Paste, 24_000, new()),
         // A snack: eat it or plant it, the player's choice. No rates; it only keeps hunger off for five minutes.
         new(Seed, 6_000, new()),
         // Supply pods and a derelict's fridge: a spacer's ration, for work and a steadier breath.

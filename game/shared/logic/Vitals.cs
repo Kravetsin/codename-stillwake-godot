@@ -14,14 +14,26 @@ public static class Vitals
     /// <summary>The block's foot above the screen's bottom, in screen pixels at every size: clear of the tablet's rim.</summary>
     public const int Below = 24;
 
-    /// <summary>The block's foot, in block units: under the meals' time lights.</summary>
-    public const float Foot = 116;
+    /// <summary>
+    /// Every icon's side, in block units: the signs (oxygen, the bolt by its height, the thermometer's, hunger's), each meal's
+    /// picture and the purge spot's ring, all one size.
+    /// </summary>
+    public const float Icon = 22;
 
-    /// <summary>Where the signs centre across; how much larger than their old 22 px tab the signs are drawn.</summary>
-    public const float SignX = 20, SignScale = 1.5f;
+    /// <summary>One row's centre line to the next's: the air, the charge, the thermometer and the meals, evenly spaced.</summary>
+    public const float Pitch = 30;
 
-    /// <summary>The air row's, the charge row's and the thermometer's centre lines (the-thermometer: the two raised for it).</summary>
-    public const float AirY = 20, ChargeY = 51, ColdY = 82;
+    /// <summary>Where the signs centre across.</summary>
+    public const float SignX = 20;
+
+    /// <summary>The air row's, the charge row's, the thermometer's and the meals' centre lines, a <see cref="Pitch"/> apart.</summary>
+    public const float AirY = 20, ChargeY = AirY + Pitch, ColdY = ChargeY + Pitch, MealY = ColdY + Pitch;
+
+    /// <summary>The ring round the oxygen sign while a canister cools: just outside the icon.</summary>
+    public const float RingRadius = Icon / 2 + 3;
+
+    /// <summary>A sign's box: <see cref="Icon"/> square, centred in the signs' column on the row at <paramref name="y"/>.</summary>
+    public static (float X, float Y, float Side) SignBox(float y) => (SignX - Icon / 2, y - Icon / 2, Icon);
 
     /// <summary>Where every row's pieces start; a piece's height; the gap between two pieces.</summary>
     public const float RowLeft = 44, PieceHeight = 10, Gap = 4;
@@ -32,11 +44,17 @@ public static class Vitals
     /// <summary>A unit of air's length; a full battery's, a store's length following its capacity.</summary>
     public const float AirPerUnit = 2.3f, BatteryWidth = 40;
 
-    /// <summary>The meals: the dish's picture's side and top, one slot to the next, the time light's top and height.</summary>
-    public const float MealSide = 20, MealTop = 89, MealPitch = 24, TimeTop = 111.5f, TimeHeight = 3;
+    /// <summary>
+    /// The meals: the dish's picture's side and top, one slot to the next (the gap a <see cref="Gap"/> as between pieces), the
+    /// time light's top and height.
+    /// </summary>
+    public const float MealSide = Icon, MealTop = MealY - Icon / 2, MealPitch = Icon + Gap, TimeTop = MealTop + Icon + 1.5f, TimeHeight = 3;
+
+    /// <summary>The block's foot, in block units: under the meals' time lights.</summary>
+    public const float Foot = TimeTop + TimeHeight + 0.5f;
 
     /// <summary>The highest anything is drawn, in block units: the canister's ring round the oxygen sign.</summary>
-    public const float Top = AirY - 12.5f * SignScale - 1;
+    public const float Top = AirY - RingRadius - 1;
 
     /// <summary>animate-pulse: down to half and back every two seconds, what a low row and a short sign breathe by.</summary>
     public static float Pulse(double clock) => 0.75f + 0.25f * (float)Math.Cos(clock * Math.PI);

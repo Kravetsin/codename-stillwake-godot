@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://dpa5u5us3jayg"
-path="res://.godot/imported/podPaste.png-25da6f16bcfe9d1fd85a2509190f8158.ctex"
+uid="uid://cs626562r3i32"
+path="res://.godot/imported/machine_crewShuttle.png-60a82919c85956250d6627ddc00d0a97.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://art/hd/items/podPaste.png"
-dest_files=["res://.godot/imported/podPaste.png-25da6f16bcfe9d1fd85a2509190f8158.ctex"]
+source_file="res://art/hd/machine_crewShuttle.png"
+dest_files=["res://.godot/imported/machine_crewShuttle.png-60a82919c85956250d6627ddc00d0a97.ctex"]
 
 [params]
 

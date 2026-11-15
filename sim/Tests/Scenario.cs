@@ -136,6 +136,16 @@ public sealed class Scenario
         return M.Items.WornIn(peer, Content.Suit.Slot) == null ? this.Wear(peer, Content.Suit.Basic) : this;
     }
 
+    /// <summary>
+    /// Peer <paramref name="peer"/>'s hero, printed hungry, given a meal of no rates for an hour: a test of running or working
+    /// at the fed pace, with nothing food adds.
+    /// </summary>
+    public Scenario Fed(int peer = 0, int surface = 0)
+    {
+        On(surface).Crew.HeroOf(peer)!.Eaten.Add(new Meal { Food = Content.Foods.Seed, Left = 3600 * World.TicksPerSecond });
+        return this;
+    }
+
     public Scenario Run(int ticks = 1)
     {
         for (int i = 0; i < ticks; i++)

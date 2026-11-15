@@ -130,6 +130,7 @@ public static class Clicks
     private static Clicked Click(Picked? picked, SlotClick click)
     {
         var (place, stack) = (click.Place, click.Stack);
+        if (place is { Crate: null } && place.Slot == InventorySpec.Trash) return Trashing(picked, click);
         if (click.Shift && !click.Right)
         {
             if (stack == null) return new Clicked(picked);
@@ -151,6 +152,29 @@ public static class Clicks
         if (held.Place == place) return new Clicked(null);
         return new Clicked(null, new Move(held.Place, place, held.Count));
     }
+
+    /// <summary>
+    /// A click on the trash (trash-slot), by mouse only: a stack carried and put there with the left button goes in, whatever
+    /// the trash held gone; the right one puts nothing in. With nothing carried its stack is picked as any slot's, to take it
+    /// back, never breathed nor eaten. Shift does nothing there, either way.
+    /// </summary>
+    private static Clicked Trashing(Picked? picked, SlotClick click)
+    {
+        if (click.Shift && !click.Right) return new Clicked(picked);
+        if (picked is { } held)
+        {
+            if (click.Right) return new Clicked(picked);
+            return held.Place == click.Place ? new Clicked(null) : new Clicked(null, new Move(held.Place, click.Place, held.Count));
+        }
+        return new Clicked(click.Stack is { } s ? new Picked(click.Place, click.Right ? (s.Count + 1) / 2 : s.Count) : null);
+    }
+
+    /// <summary>
+    /// Whether <paramref name="command"/> destroys a stack: a move into the hero's trash while it holds one, as the slots show
+    /// it (<paramref name="at"/>). Only then does the trash burst and sound (trash-effect); into it empty, nothing is lost.
+    /// </summary>
+    public static bool Destroys(Command? command, Func<Place, Stack?> at) =>
+        command is Move { Dst: { Crate: null, Slot: int slot } } && slot == InventorySpec.Trash && at(new Place(slot)) != null;
 
     /// <summary>
     /// <paramref name="picked"/> while its slot, holding <paramref name="now"/>, still holds the <paramref name="item"/> it was

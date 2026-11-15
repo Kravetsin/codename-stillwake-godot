@@ -293,6 +293,8 @@ public static partial class Ru
         ["items.sort"] = "Сортировать",
         ["items.stash"] = "В ящики рядом ({key:stash})",
         ["items.stashHow"] = "Только в ящики, где такое уже лежит · Alt+клик: оставлять в сумке",
+        ["items.trash"] = "Корзина",
+        ["items.trashHow"] = "Положи сюда стопку, чтобы выбросить · следующая уничтожит её",
         ["items.noSlot"] = "Такой ячейки нет",
         ["items.notEquipment"] = "Это сюда не надеть",
         ["items.notBattery"] = "Заряжается только батарея",

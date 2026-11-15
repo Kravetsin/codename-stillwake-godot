@@ -7,7 +7,7 @@ const { canvas } = Anime;
 
 /** The logical sizes the game lays them out by: the pixel signs' own. */
 const SIZES = { sign_bolt: [7, 9], sign_boltNone: [7, 9], sign_unplugged: [7, 7], sign_broken: [13, 13], sign_oxygen: [11, 11], sign_oxygenShort: [11, 11], sign_leak: [9, 9], sign_leakShort: [9, 9],
-  sign_mouseLeft: [13, 10], sign_mouseRight: [13, 10], sign_mouseMiddle: [13, 10], sign_mouseMiddleKey: [13, 10], sign_drag: [8, 7], sign_holdTrack: [9, 9], sign_cap: [16, 16], sign_off: [9, 9], sign_cold: [11, 11], sign_heat: [11, 11] };
+  sign_mouseLeft: [13, 10], sign_mouseRight: [13, 10], sign_mouseMiddle: [13, 10], sign_mouseMiddleKey: [13, 10], sign_drag: [8, 7], sign_holdTrack: [9, 9], sign_cap: [16, 16], sign_off: [9, 9], sign_cold: [11, 11], sign_heat: [11, 11], sign_hunger: [11, 11] };
 for (let step = 1; step <= 12; step++) SIZES[`sign_hold_${step}`] = [9, 9];
 /** The bolt in the 7 by 9 picture: a heavy zigzag, top right to a point at the bottom left. */
 const BOLT = [3.6, .5, 6.5, .5, 4.7, 3.5, 6.4, 3.5, 1.0, 8.6, 2.5, 5.3, .6, 5.3];
@@ -170,6 +170,28 @@ const cold = () => {
 const EMBER = { body: '#ffa24a', core: '#fff0c8', rim: '#1c0904', halo: '#8a3a10' };
 const heat = () => glyph('sign_heat', [{ sd: sdPoly([5.7, .6, 7.3, 2.9, 8.7, 4.6, 9.2, 6.7, 8.7, 8.7, 7.2, 10.1, 5.5, 10.5, 3.8, 10.1, 2.3, 8.7, 1.8, 6.7, 2.4, 4.8, 3.6, 3.6, 4, 5.3, 4.9, 3.3]), ...EMBER, haloA: .42, coreAt: 3.4 }]);
 
+/** An ellipse's distance, close enough for rings (Inigo Quilez's cheap one). */
+const sdEllipse = (cx, cy, rx, ry) => (x, y) => {
+  const px = (x - cx) / rx, py = (y - cy) / ry, k0 = Math.hypot(px, py), k1 = Math.hypot(px / rx, py / ry);
+  return k0 * (k0 - 1) / (k1 || 1e-9);
+};
+/** A shape turned by a (radians, clockwise on screen) round (cx, cy). */
+const turned = (sd, cx, cy, a) => (x, y) => {
+  const c = Math.cos(a), s = Math.sin(a), dx = x - cx, dy = y - cy;
+  return sd(cx + dx * c + dy * s, cy - dx * s + dy * c);
+};
+
+/** Hunger's sign (the user's pick B): a fork and a spoon crossed, the spoon over the fork, in the meal slots' muted ochre. */
+const HUNGER = { body: '#d8b060', core: '#f8e8c0', rim: '#1a1206', halo: '#7a5a24' };
+const hunger = () => {
+  const fork = union(sdCapsule(5.5, 5.4, 5.5, 9.9, .44), sdBox(5.5, 4.55, 1.6, .62, .45), sdCapsule(4.1, 1.3, 4.1, 4.3, .3), sdCapsule(5.5, 1.3, 5.5, 4.3, .3), sdCapsule(6.9, 1.3, 6.9, 4.3, .3));
+  const spoon = union(sdEllipse(5.5, 3.1, 1.55, 2.05), sdCapsule(5.5, 4.9, 5.5, 9.9, .44));
+  return glyph('sign_hunger', [
+    { sd: turned(fork, 5.5, 5.5, -Math.PI / 4), ...HUNGER, haloA: .42, coreAt: 1.2, rimW: 1.4 },
+    { sd: turned(spoon, 5.5, 5.5, Math.PI / 4), ...HUNGER, haloA: .42, coreAt: 1.6, rimW: 1.4 },
+  ]);
+};
+
 Subjects.signs = function () {
   out('sign_bolt', bolt('sign_bolt', '#f5a623', '#fff0c0', '#1c1004', '#8a5410'));
   out('sign_boltNone', bolt('sign_boltNone', '#ec3f36', '#ffd0c4', '#1c0606', '#7c1a18'));
@@ -188,5 +210,6 @@ Subjects.signs = function () {
   out('sign_cap', cap());
   out('sign_cold', cold());
   out('sign_heat', heat());
+  out('sign_hunger', hunger());
 };
 })();

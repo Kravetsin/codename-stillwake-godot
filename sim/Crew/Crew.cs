@@ -215,9 +215,8 @@ public sealed partial class CrewModule : Module<CrewState>, ICrewQueries, ICrewO
             _playersOps.Dress(c.From);
             _playersOps.Print(c.From);
             _itemsOps.Kit(c.From);
-            // Printed full in what it wears: bare as a peer's first hero, in its kept helmet coming back after Leave.
+            // Printed full in what it wears and hungry: bare as a peer's first hero, in its kept helmet coming back after Leave.
             hero.Air = CapacityOf(c.From);
-            Feed(hero);
         });
         Handles<Leave>(
             c => HeroOf(c.From) == null ? "crew.noHero" : null,
@@ -281,9 +280,8 @@ public sealed partial class CrewModule : Module<CrewState>, ICrewQueries, ICrewO
                     {
                         hero.Cell = State.Spawn;
                         _playersOps.Print(hero.Id);
-                        // Printed again in what it died in: the suit is gear (2026-10-27-suits-are-worn).
+                        // Printed again in what it died in, hungry: the suit is gear (2026-10-27-suits-are-worn).
                         (hero.Air, hero.Shape) = (CapacityOf(hero.Id), null);
-                        Feed(hero);
                         // Off the ship a hero wakes aboard, at the pod; its body stays where it fell (0076).
                         if (Surfaces.Here != 0) Surfaces.Send(hero.Id, 0);
                     }
@@ -478,7 +476,7 @@ public sealed partial class CrewModule : Module<CrewState>, ICrewQueries, ICrewO
     public string? EatProblem(int peer, string item)
     {
         if (HeroOf(peer) is not { Out: 0 } hero) return "crew.noHero";
-        if (item == Foods.Paste || Foods.Of(item) is null) return "crew.notFood";
+        if (Foods.Of(item) is null) return "crew.notFood";
         if (_items.ShortOf(peer, [(item, 1)]) is { } none) return none;
         if (hero.Eaten.Find(m => m.Food == item) is { } meal) return meal.Left > Diet.RefreshWithin ? "crew.sameFood" : null;
         return hero.Eaten.Count >= Diet.Meals ? "crew.mealsFull" : null;
@@ -782,10 +780,6 @@ public sealed partial class CrewModule : Module<CrewState>, ICrewQueries, ICrewO
         int cost = !hero.Exerting ? Diet.Rest : hero.Eaten.Count == 0 ? Diet.HungrySprint : Diet.Sprint;
         return cost * (1000 - RatesOf(hero).Calm) / 1000;
     }
-
-    /// <summary>A hero printed by the pod (on <see cref="Enter"/> and on waking) holds pod paste and nothing else.</summary>
-    private static void Feed(Hero hero) => hero.Eaten = [new Meal { Food = Foods.Paste, Left = Foods.Of(Foods.Paste)!.Lasts }];
-
 
     // Carried between surfaces (0076).
 

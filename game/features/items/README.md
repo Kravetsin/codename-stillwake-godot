@@ -18,11 +18,13 @@ and changes it only by sending `Move`, `Drop`, `PickUp`, `Sort`, `Stash`, `Fit` 
 | `logic/OwnGains.cs` | own new gains in each surface's `Gains`, once each |
 | `logic/GainSpots.cs` | gains by their place |
 | `logic/GainLines.cs` | one place's lines |
+| `logic/TrashSparks.cs` | the trash's burst |
 | `PickUpFlights.cs` | icons and sparks flying home (0075) |
 | `SortButton.cs` | the sort key, a wrist hardware key (0008, 0081) |
 | `StashButton.cs` | the stash key under it, the fan glyph |
 | `FavouriteStar.cs` | the kept mark, in a slot and by the pointer |
 | `SortSweep.cs` | a sort's light across the sorted grid (0081) |
+| `TrashBurst.cs` | it, drawn |
 | `SlotBox.cs` | one slot: icon, count, tint, digit, mark, badge, ghost, cooling |
 | `ModuleSocket.cs` | a machine's socket for one module (0086) |
 | `InventoryPanel.cs` | hotbar, inventory, equipment, the open machine's frame; the stack in hand |
@@ -34,7 +36,7 @@ and changes it only by sending `Move`, `Drop`, `PickUp`, `Sort`, `Stash`, `Fit` 
 | `GainSpotsView.cs` | the counts beside their places |
 | `ItemsView.cs` | the feature: pick-ups, the layers and the panel |
 | `ItemsDemo.cs` | `-- --items`: a room with a crate and a furnace |
-| `logic/Items.En.cs` | Its player text (`En`) |
+| `logic/Items.En.cs` | player text |
 | `logic/Items.Ru.cs` | Russian |
 
 The wrist's metal, screens, keys and gauge (0074, 0081) are `game/shared/`'s (`Wrist*`); charge on screen is
@@ -42,7 +44,7 @@ The wrist's metal, screens, keys and gauge (0074, 0081) are `game/shared/`'s (`W
 
 ## Guarantees
 
-- **What the slots show** is the world with this peer's own moves, drops, sorts and fits in flight made (`Reading`,
+- **What the slots show** is the world with this peer's own commands in flight made (`Reading`,
   0014), read every 100 ms and after each send.
 - **Clicks** (no ADR): left picks a stack and puts it; right picks half, rounded up, or puts one, or breathes an own
   canister (0047). A drag let go over a slot puts, over the world throws, over a panel or bezel nothing; along
@@ -55,8 +57,9 @@ The wrist's metal, screens, keys and gauge (0074, 0081) are `game/shared/`'s (`W
 - **One hand** (0022): 1–9 and the wheel choose a hotbar slot and free the hand; Tab opens the inventory; Q throws the
   chosen stack (not while a card is in hand). `Ui.Wielded` is the chosen item while the hand is free (0034).
   Esc or passing out closes the inventory and crate, before the menu. `Ui.OpenCrate` is set by crew's E within reach.
-- **Layout and size** (0058): hotbar top-left, gauges under it, then the grid, the open machine under the grid,
-  equipment at the right edge; every slot `Ui.Slot` wide, rebuilt at once when the setting changes. Tints by
+- **Layout and size** (0058): hotbar top-left, gauges under it, then the grid, in creative the trash under it
+  (trash-slot), the open machine under them,
+  equipment at the right edge; every slot `Ui.Slot` wide, rebuilt when the setting changes. Tints by
   `Slots.TintOf`: tools amber, worn items green.
 - **Equipment** (0047, 0058): head, back, belt rows; while a stack is carried, slots that would wear it glow, others
   dim. The screwdriver is a hotbar item (0107): no hands row.
@@ -80,8 +83,7 @@ The wrist's metal, screens, keys and gauge (0074, 0081) are `game/shared/`'s (`W
 - **The one tooltip** (0073): a stack's card follows the pointer. A tool shows its picture large
   (tool-card-pictures), its `ToolStats` as icon rows in groups (tool-card-rows), boosts in the module colour (0098), a
   charge its blast; food, gear, a canister and a bottle a picture and rows (food-and-gear-cards, liquid-cards); a battery its charge (0053).
-- **Charge** (0053): a battery slot draws a bar (amber under a quarter), an empty one its picture. The charge row
-  (hud-vitals) is energy's.
+- **Charge** (0053): a battery slot draws a bar (amber under a quarter), an empty one its picture.
 - **Floor stacks** (0075, 0106): drawn unlit with a breathing rim, resting on the sim's point (`ClearBelow`), level,
   between the last two ticks, side by side when still; over machines, under heroes. Flying they spin; landing they
   squash, hop and clink (`FloorFeel`); a seed glints (2026-10-29-kill-feel). Loot still in its creature
@@ -95,8 +97,8 @@ The wrist's metal, screens, keys and gauge (0074, 0081) are `game/shared/`'s (`W
 
 ## Main's hook
 
-`Main` makes an `ItemsView` with the hands' `Ui` and calls `Frame(...)` every frame after the hero's, so own grabs are
-seen in flight, with `NetHolds` (`NetShows.Lying`); `HeroSpot` carries the hero's feet, facing, cell and passed-out state.
+`Main` makes an `ItemsView` with the hands' `Ui`; `Frame(...)` runs every frame after the hero's (own grabs seen in
+flight), with `NetHolds` (`NetShows.Lying`) and `HeroSpot`: feet, facing, cell, passed out.
 
 ## Deliberately not handled
 

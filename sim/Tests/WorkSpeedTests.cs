@@ -31,15 +31,15 @@ public class WorkSpeedTests
     private static Hero HeroOf(Scenario w) => w.M.Crew.HeroOf(0)!;
     private static Plan PlanOf(Scenario w, int id) => w.M.Building.Plans.Single(p => p.Id == id);
 
-    public enum Fed { Hungry, Paste, Ration }
+    public enum Fed { Hungry, Seed, Ration }
 
-    /// <summary>Hero 0 at (1, 1), carrying <paramref name="items"/>: hungry, on the pod's paste, or on a ration too.</summary>
+    /// <summary>Hero 0 at (1, 1), carrying <paramref name="items"/>: hungry as printed, on a seed (food with no rates), or on a ration.</summary>
     private static Scenario Fresh(Fed fed, params (string Item, int Count)[] items)
     {
-        var w = new Scenario(Open).GiveItems(0, [.. items, (Foods.Ration, 1)]);
+        var w = new Scenario(Open).GiveItems(0, [.. items, (Foods.Ration, 1), (Foods.Seed, 1)]);
         w.Do(new Enter(At(1, 1))).Run();
         if (fed == Fed.Ration) w.Do(new Eat(Foods.Ration)).Run();
-        if (fed == Fed.Hungry) HeroOf(w).Eaten.Clear();
+        if (fed == Fed.Seed) w.Do(new Eat(Foods.Seed)).Run();
         Assert.Empty(w.Refusals);
         return w;
     }
@@ -58,9 +58,9 @@ public class WorkSpeedTests
     }
 
     [Theory]
-    // An iron wall is 14 ticks of one part. Hungry, three ticks every four Works; on paste one a Work; on a ration 1.3.
+    // An iron wall is 14 ticks of one part. Hungry, three ticks every four Works; on a seed one a Work; on a ration 1.3.
     [InlineData(Fed.Hungry, 19)]
-    [InlineData(Fed.Paste, 14)]
+    [InlineData(Fed.Seed, 14)]
     [InlineData(Fed.Ration, 11)]
     public void AWallTakesTheWorksItsHerosRateMakesOfItsTicks(Fed fed, int works)
     {
@@ -72,7 +72,7 @@ public class WorkSpeedTests
     [Theory]
     // Its 160 build ticks are 80 to take apart.
     [InlineData(Fed.Hungry, 107)]
-    [InlineData(Fed.Paste, 80)]
+    [InlineData(Fed.Seed, 80)]
     [InlineData(Fed.Ration, 62)]
     public void TakingATankApartScalesAlike(Fed fed, int works)
     {

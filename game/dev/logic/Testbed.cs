@@ -98,7 +98,7 @@ public static class Testbed
     /// lamps and the vaporizer, their spare filling the bank (0101), the second the drone bay, the one beside it the
     /// computer and the antenna, the one past the third the crusher under it, the fourth nothing,
     /// the fifth the smelter, the sixth the assembler and the grow capsule, the seventh and eighth the two vaporizers in
-    /// room two, and the last three, over the airlock and past the stern, the charging station: 15, what it draws with the arc
+    /// room two, and the last three, over the airlock and on the hangar's roof, the charging station: 15, what it draws with the arc
     /// fitted (0100); the burner generator feeds the Former and room
     /// two's right lamp, and through it the airlock's. The grow capsule stands a cell left of the assembler, inside the
     /// bay's zone. A vaporizer makes a unit a tick: behind glass (leaks-tripled) room one leaks some 0.8 a tick, room two and its
@@ -108,21 +108,24 @@ public static class Testbed
     /// biofuel in its tank, cabled to the bank, and a lamp cabled to it; past the lamp, cabled on from it and unserved by drones, the fermenter,
     /// biomass in it, and the biofuel generator, biofuel in its slot, lit while the bank takes in (power-chain); past them the treadmill
     /// wheel, cabled to the generator, its top through room one's floor, so the bay is high enough for it; room one's top corners
-    /// walled, for its one vaporizer's air to reach every cell; a debris net hung outside on the bay's right wall. Sixty cells of space past the airlock, room for a jetpack to fly. Drawn a character a 16 px cell and doubled (0104):
+    /// walled, for its one vaporizer's air to reach every cell; a debris net hung outside on the bay's right wall. Through the airlock's outer
+    /// door, the shuttle's hangar, a row higher than the ship's roof: the crew shuttle on a launch platform its whole length in its floor,
+    /// its shaft clear below, a walk either side, a lamp fed by a panel of its own on the hangar's roof, the door out to space, and no
+    /// air, as the airlock. Sixty cells of space past it, room for a jetpack to fly. Drawn a character a 16 px cell and doubled (0104):
     /// a drawn pipe meets only even cells, so each vaporizer's air leaves its odd output through a pipe under its top-right block,
     /// and each tank's liquid its odd output on its right through a pipe under the block past it.
     /// </summary>
     public static readonly Layout Map = Layout.Parse(
         [
             "   NN".PadRight(98),
-            "   NN",
-            "   NN  PPP  PPPPPP PPPPPPPPP PPP PPP PPP PPP   PPP PPP PPP",
-            "  #################################################",
-            "  ##KK...LUUUII###..TTL.kk.cc.ccJ.GG.yy.L.$$..#..L#",
-            "  #.OOOQQ.UUUIIRRD..TT..kk.cc.ccggGG.yy...$$&&DZZ.D",
-            "  #.OOOQQTTGGIIRRDWW.FF.MM.EE.YYggGG.yyAACBB&&DZZ.D",
-            "  #.OOOKKTTGGVKK.DWW.FF.MM.EE.YYggGGKKVAACBB&&DZZ.D",
-            "  #o#########www###############################__##",
+            "   NN".PadRight(51) + "PPP PPP PPP",
+            "   NN  PPP  PPPPPP PPPPPPPPP PPP PPP PPP PPP   PPP" + "##################",
+            "  #################################################" + "..^^^^^^^^^^^^.L#",
+            "  ##KK...LUUUII###..TTL.kk.cc.ccJ.GG.yy.L.$$..#..L#" + "..^^^^^^^^^^^^..#",
+            "  #.OOOQQ.UUUIIRRD..TT..kk.cc.ccggGG.yy...$$&&DZZ.D" + "..^^^^^^^^^^^^..D",
+            "  #.OOOQQTTGGIIRRDWW.FF.MM.EE.YYggGG.yyAACBB&&DZZ.D" + "..^^^^^^^^^^^^..D",
+            "  #.OOOKKTTGGVKK.DWW.FF.MM.EE.YYggGGKKVAACBB&&DZZ.D" + "..^^^^^^^^^^^^..D",
+            "  #o#########www###############################__##" + "##____________###",
             "  #XXXL.uuqqqwww#n",
             "  #XXX..uuqqqwww#n",
             "  ###############n",
@@ -138,10 +141,10 @@ public static class Testbed
             "          -- -        ------------- ---",
         ],
         [
-            ((7, 2), (9, 4)), ((7, 2), (11, 6)), ((7, 2), (19, 2)),
+            ((7, 2), (9, 4)), ((7, 2), (11, 6)), ((7, 2), (19, 2)), ((59, 1), (66, 3)),
             ((19, 2), (22, 4)), ((42, 6), (40, 4)), ((40, 4), (49, 4)), ((42, 6), (24, 6)), ((47, 2), (41, 6)),
             ((29, 2), (27, 6)), ((33, 2), (30, 6)), ((33, 2), (33, 6)), ((12, 2), (15, 5)), ((37, 2), (34, 6)), ((41, 2), (34, 4)),
-            ((37, 2), (32, 4)), ((47, 2), (51, 2)), ((51, 2), (55, 2)), ((7, 2), (7, 5)), ((15, 2), (4, 2)), ((15, 2), (12, 4)),
+            ((37, 2), (32, 4)), ((47, 2), (51, 1)), ((51, 1), (55, 1)), ((7, 2), (7, 5)), ((15, 2), (4, 2)), ((15, 2), (12, 4)),
             ((7, 5), (3, 9)), ((3, 9), (6, 9)), ((47, 2), (47, 8)), ((22, 2), (24, 4)), ((25, 2), (37, 4)), ((6, 9), (8, 9)), ((10, 9), (8, 9)), ((13, 8), (10, 9)),
         ]).Doubled();
 

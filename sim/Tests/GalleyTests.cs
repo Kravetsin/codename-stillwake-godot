@@ -179,7 +179,7 @@ public class GalleyTests
         var w = new Scenario("S.......").GiveItems(0, (Foods.Porridge, 1), (Foods.Stew, 1)).Do(new Enter(1)).Run();
         w.Do(new Eat(Foods.Porridge)).Do(new Eat(Foods.Stew)).Run();
         Assert.Empty(w.Refusals);
-        Assert.Equal([Foods.Paste, Foods.Porridge, Foods.Stew], w.M.Crew.HeroOf(0)!.Meals.Select(m => m.Food));
+        Assert.Equal([Foods.Porridge, Foods.Stew], w.M.Crew.HeroOf(0)!.Meals.Select(m => m.Food));
         Assert.Equal(new Rates(Calm: 200, Deep: 10, Work: 400), w.M.Crew.RatesOf(0));
     }
 

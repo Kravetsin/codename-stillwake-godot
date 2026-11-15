@@ -27,7 +27,7 @@ public class ScrewdriverTests
         w.Do(new Enter(cell)).Run();
         Assert.Equal(new Stack(Screwdrivers.Basic.Item, 1), w.M.Items.Inventory(0)[0]);
         Assert.Null(w.M.Items.Inventory(0)[1]);
-        w.Do(new Leave()).Run().Do(new Enter(cell)).Run();
+        w.Do(new Leave()).Run().Do(new Enter(cell)).Run().Fed();
         Assert.Equal(1, Count(w, Screwdrivers.Basic.Item));
 
         // Beside the hero, clear of its body (building.heroInside).

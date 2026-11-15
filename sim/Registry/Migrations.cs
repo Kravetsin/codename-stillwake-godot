@@ -333,6 +333,27 @@ public static class Migrations
                 (slices["grid"] as JsonObject)?.Remove("reserved");
             return root;
         },
+        // 64 → 65 (hungry-respawn): the pod prints no paste, no food any more; a hero holding some loses it, hungry with nothing else.
+        // A closed surface, a vessel not yet boarded, has no slices to look in.
+        root =>
+        {
+            foreach (var slices in new[] { root["slices"]! }.Concat((root["surfaces"]?.AsArray() ?? []).Select(s => s!["slices"]).OfType<JsonNode>()))
+                foreach (var hero in slices["crew"]!["heroes"]!.AsArray().Select(h => h!.AsObject()))
+                {
+                    if (hero["meals"] is not JsonArray meals) continue;
+                    foreach (var paste in meals.Where(m => m!["food"]!.GetValue<string>() == "podPaste").ToList()) meals.Remove(paste);
+                    if (meals.Count == 0) hero.Remove("meals");
+                }
+            return root;
+        },
+        // 65 → 66 (trash-slot): every inventory gets the trash, an empty slot after its equipment; a closed surface has none.
+        root =>
+        {
+            foreach (var slices in new[] { root["slices"]! }.Concat((root["surfaces"]?.AsArray() ?? []).Select(s => s!["slices"]).OfType<JsonNode>()))
+                foreach (var held in slices["items"]!["inventories"]!.AsArray())
+                    held!["slots"]!.AsArray().Add(null);
+            return root;
+        },
     ];
 
     /// <summary>The slices with liquids' empty one after building's, where its module runs: a save holds them in that order.</summary>

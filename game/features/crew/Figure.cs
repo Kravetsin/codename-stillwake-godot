@@ -729,6 +729,10 @@ public partial class Figure : Node2D
     /// <summary>The drill's light and arcs on the held stage, made with it the first time a drill runs in the hand.</summary>
     private DrillLight? _drillLight;
     private SpearLight? _spearLight;
+    /// <summary>The held blade's charge (<see cref="BladeCharge"/>), made the first time one is held; the parts its area was read from, and the area.</summary>
+    private BladeCharge? _charge;
+    private HeldParts? _chargeParts;
+    private EffectArea? _chargeArea;
     private Func<(double X, double Y), Vector2>? _heldAt;
 
     private readonly bool _own;
@@ -1627,10 +1631,17 @@ public partial class Figure : Node2D
         // Its stage made only once a drill runs or a gun charges in this hand: a body, a seated hero or the title's figures never need one.
         if (crackling != null && _drillLight == null && IsInsideTree()) _drillLight = new DrillLight(Held.Glims, Held.Flares, Held.Bolts);
         _drillLight?.Step(crackling, drill ? _spin : Charge, _heldAt ??= HeldAt, elapsedMs);
-        // The spear's own (spear-effects): plain, its thrust bends the air; with the arc, the blade fizzes and tears bolts off.
+        // A struck blade with a charge fizzes and tears bolts off as it moves: today the arc spear's, its module's crackle box.
+        var charged = struckHeld ? PartsOf(item!) : null;
+        if (charged is not { Crackles.Count: > 0 }) charged = null;
+        if (charged != _chargeParts)
+            (_chargeParts, _chargeArea) = (charged, charged is { } on ? HeldArt.AreaOf(on.Look.Picture, on.Layers, on.Crackles[0]) : null);
+        if (_chargeArea != null && _charge == null && IsInsideTree()) _charge = new BladeCharge(SpearLight.Tint, SpearLight.Core, BoltTint.Violet);
+        _charge?.Step(elapsedMs, _chargeArea != null ? _heldAt ??= HeldAt : null, _chargeArea, Held);
+        // The spear's own (spear-effects): plain, its thrust bends the air; with the arc, the arc runs down its cable.
         bool spear = inHand && Wields == Stillwake.Content.Weapons.Spear.Item;
         if (spear && _spearLight == null && IsInsideTree()) AddChild(_spearLight = new SpearLight());
-        _spearLight?.Step(elapsedMs, spear ? _heldAt ??= HeldAt : null, jabMs, spear && PartsOf(item!) is { Crackles.Count: > 0 } arc ? arc : null, Held);
+        _spearLight?.Step(elapsedMs, spear ? _heldAt ??= HeldAt : null, jabMs, spear && _chargeArea != null, Held);
     }
 
     /// <summary>

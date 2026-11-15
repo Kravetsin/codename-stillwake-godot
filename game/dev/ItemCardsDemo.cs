@@ -27,9 +27,8 @@ public partial class ItemCardsDemo : CanvasLayer
         foreach (var (item, count) in ((string, int)[])[(Content.Crew.Canister, 1), (Content.Crew.Canister, 4), (Content.Water.Item, 5)])
             Add(cards, reading.TipOf(new Stack(item, count)).Card!);
         foreach (var food in Content.Foods.All)
-            if (food.Id != Content.Foods.Paste) Add(cards, reading.TipOf(new Stack(food.Id, 1)).Card!);
+            Add(cards, reading.TipOf(new Stack(food.Id, 1)).Card!);
         Add(cards, MealTips.Of(Content.Foods.Ration, (4 * 60 + 13) * Sim.World.TicksPerSecond).Card!);
-        Add(cards, MealTips.Of(Content.Foods.Paste, 600).Card!);
         string[] gear =
         [
             Content.Helmet.Basic, Content.Helmet.Quilted, Content.Helmet.Heavy, Content.Suit.Basic, Content.Suit.Regen, Content.Suit.Heat, Content.Cape.Item,

@@ -21,16 +21,24 @@ public class BuildMenuDataTests
             "power: solarPanel treadWheel burnerGenerator biofuelGenerator lamp arcLamp charger capacitorBank",
             "production: furnace workbench tradeStation autoTradeStation former crusher smelter assembler growCapsule galley fermenter arcBench",
             "storage: crate net droneBay",
-            "ship: launchPlatform dropPod computer radarAntenna engine",
+            "ship: launchPlatform dropPod computer radarAntenna crewShuttle engine",
         ], Tools.Tabs.Select(Ids));
     }
 
     [Fact]
     public void ShowsTheShipsTabWithNoCardButNoOtherTabWithNone()
     {
-        Assert.True(Tools.Shown(new Tab(MenuTabs.Ship, [])));
-        Assert.False(Tools.Shown(new Tab(MenuTabs.Storage, [])));
-        Assert.True(Tools.Shown(Tools.Tabs.Single(t => t.Id == MenuTabs.Storage)));
+        Assert.True(Tools.Shown(new Tab(MenuTabs.Ship, []), Focus.Front, Surfaces.Ship));
+        Assert.False(Tools.Shown(new Tab(MenuTabs.Storage, []), Focus.Front, Surfaces.Ship));
+        Assert.True(Tools.Shown(Tools.Tabs.Single(t => t.Id == MenuTabs.Storage), Focus.Front, Surfaces.Ship));
+    }
+
+    [Fact]
+    public void NoEmptyShipsTabWhereNoneOfItsCardsCouldBeBuilt()
+    {
+        // The back walls' menu, and a planet's.
+        Assert.False(Tools.Shown(new Tab(MenuTabs.Ship, []), Focus.Back, Surfaces.Ship));
+        Assert.False(Tools.Shown(new Tab(MenuTabs.Ship, []), Focus.Front, PlanetTypes.First));
     }
 
     [Fact]

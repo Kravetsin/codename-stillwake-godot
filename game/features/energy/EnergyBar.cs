@@ -73,6 +73,8 @@ public partial class EnergyBar : CanvasLayer
         private static readonly Rect2 BoltAt = new(9, 6, 14, 18);
         private const float BoltHeight = 30;
         private static readonly Vector2 Centre = BoltAt.GetCenter(), BoltCentre = new(Vitals.SignX, Vitals.ChargeY);
+        // Scaled so the bolt stands an icon tall, as every vitals sign is one icon.
+        private static readonly float BoltScale = Vitals.Icon / BoltAt.Size.Y;
         private const float Top = Vitals.ChargeY - Vitals.PieceHeight / 2, Height = Vitals.PieceHeight;
         /// <summary>The red a press of a flat belt blinks the bolt, and the hot heart of its light.</summary>
         private static readonly Color Flat = new(1, 70 / 255f, 60 / 255f);
@@ -176,7 +178,7 @@ public partial class EnergyBar : CanvasLayer
 
         /// <summary>The bolt in its own pixels, scaled to the block's sign and centred on the charge row, thrown by the beat and a flat press.</summary>
         private void BoltTransform(CanvasItem on) =>
-            on.DrawSetTransform(BoltCentre - Centre * Vitals.SignScale + new Vector2(Pulse.Jolt.X + Blink.Jolt.X, Pulse.Jolt.Y + Blink.Jolt.Y) * Vitals.SignScale, 0, new Vector2(Vitals.SignScale, Vitals.SignScale));
+            on.DrawSetTransform(BoltCentre - Centre * BoltScale + new Vector2(Pulse.Jolt.X + Blink.Jolt.X, Pulse.Jolt.Y + Blink.Jolt.Y) * BoltScale, 0, new Vector2(BoltScale, BoltScale));
 
         private void DrawBolt(CanvasItem layer)
         {
