@@ -5,8 +5,9 @@
 | File | Purpose |
 | --- | --- |
 | `AsciiArt.cs` | Small pictures drawn as ASCII in code, kept under a key. |
-| `logic/ArcBurst.cs` | An arc's fizz and bolts torn off a moving blade (spear-effects). |
+| `logic/ArcBurst.cs` | A charge's fizz and bolts on a moving blade (spear-effects). |
 | `Bend.cs` | Grass bent by `Stirs` (plant-stirs). |
+| `BladeCharge.cs` | `ArcBurst` drawn on a held blade. |
 | `logic/Blueprint.cs` | How plans join the plans beside them when drawn. |
 | `BlueprintArt.cs` | A placement as built: for plans, ghosts and build menu thumbnails. |
 | `logic/Bolts.cs` | The electric arcs in the world (0075). |
@@ -18,7 +19,7 @@
 | `DriftLayer.cs` | A plane of the backdrop, things scattered over its tiles by `Scatter`. |
 | `DrillLight.cs` | A drill's own light while it runs (0054, 0075, 0094). |
 | `Dust.cs` | Faint dust between the far wrecks and the ship. |
-| `logic/EffectArea.cs` | Where a held tool's effect lives: its drawn pixels in a box. |
+| `logic/EffectArea.cs` | Where a held tool's effect lives: drawn pixels in a box. |
 | `FarWrecks.cs` | Wreckage far behind the ship, from the wrecks' own pictures. |
 | `logic/Flares.cs` | Glints, shock lines and flashes of the world's key moments (0075). |
 | `Glow.cs` | A point that lights what is round it a little while it is shown. |
@@ -73,8 +74,8 @@
 | `Style.cs` | The panels' colours and boxes as Godot style boxes and label settings. |
 | `WorldButtons.cs` | The mouse over the world for `Buttons`, unless a panel took it. |
 
-The backdrop behind the ship, drawn by the client only: nothing of it reaches the sim. Numbers: `Content/logic/Backdrop.cs`
-and the files' constants; the rest in its `///` summaries.
+The backdrop behind the ship, client only, never in the sim. Numbers: `Content/logic/Backdrop.cs`
+and constants; the rest in `///` summaries.
 
 ## Rules
 
