@@ -1,6 +1,6 @@
 # Food and the body
 
-- Status: accepted; its canister cooldown of 25 s superseded by [jet-cruise](2026-11-15-jet-cruise.md), now 20 s
+- Status: accepted; its canister cooldown of 25 s superseded by [jet-cruise](2026-11-15-jet-cruise.md), now 20 s; its deep breath in shares and dish durations by [food-tuning](2026-11-15-food-tuning.md)
 - Date: 2026-11-12
 
 ## Context
