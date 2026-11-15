@@ -127,7 +127,7 @@ This hero and others', client-authoritative (0002): only commands reach the sim.
 - **The crew module:** made at `Spawn`; passed out: lies at the sim's cell, takes no orders (0061). `Enter` goes when the sim's room or field side
   differ, every `Crew.ReportEvery` ticks off its cell, each tick threatened; none out (0050); a closed link's host: `Leave`.
 - **Dressed as worn**: helmet, body, hair, clothes, lamp; colour on the shin; a switched body lit by
-  `SuitOn` and charge (`SuitGlow`, hero-lights). **Limbs bend** whole (bent-limbs, `BentLimb`); **helmets** turn (helmets-fit-the-suit).
+  `SuitOn`, charge (hero-lights). **Limbs bend** whole (bent-limbs); **helmets** turn (helmets-fit-the-suit), collar under a raised arm.
 - **Tracker** blinks (`SignalOf`); **catchers**: heroes in gear, untracked, tumble killed (tracker-catchers).
 
 ## Others' heroes
