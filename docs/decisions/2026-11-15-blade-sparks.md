@@ -1,7 +1,8 @@
 # A struck wreck sparks where the blade's trail lies on it
 
 - Status: accepted; extends [blade-trail](2026-11-10-blade-trail.md) and [drill-contact](2026-11-14-drill-contact.md) to
-  struck tools; supersedes where a struck wreck's sparks start in [damage-looks](2026-11-05-damage-looks.md)
+  struck tools; supersedes where a struck wreck's sparks start in [damage-looks](2026-11-05-damage-looks.md); its ground
+  left as it was, extended by [cutter-contact](2026-11-15-cutter-contact.md)
 - Date: 2026-11-15
 
 ## Context
