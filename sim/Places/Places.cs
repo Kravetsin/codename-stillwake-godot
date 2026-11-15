@@ -23,6 +23,15 @@ public sealed record Find(string Class) : Command;
 /// </summary>
 public sealed record Jump(int Contact) : Command;
 
+/// <summary>Sets the course to contact <c>Contact</c> (shuttle-flight): where every shuttle aboard flies once set off. The radar's «Set course» sends it.</summary>
+public sealed record SetCourse(int Contact) : Command;
+
+/// <summary>
+/// The shuttle the sender sits in sets off with its riders (shuttle-flight): aboard to the course's vessel, the contact used up; off the
+/// ship home. The shuttle's panel sends it, its «Set off» key.
+/// </summary>
+public sealed record SetOff : Command;
+
 /// <summary>The places slice. Public so modules can be typed by it, its members internal.</summary>
 public sealed class PlacesState
 {
@@ -31,6 +40,8 @@ public sealed class PlacesState
     [JsonInclude] internal int NextContactId { get; set; } = 1;
     /// <summary>Ticks till the radar finds the next contact by itself; 0 before the first is counted down.</summary>
     [JsonInclude, JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)] internal int NextIn { get; set; }
+    /// <summary>The contact every shuttle aboard flies to once set off, by id; null for none.</summary>
+    [JsonInclude, JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] internal int? Course { get; set; }
 }
 
 /// <summary>
@@ -44,19 +55,61 @@ public sealed class PlacesModule : Module<PlacesState>
     private readonly IItemsOps _itemsOps;
     private readonly ICrewQueries _crew;
     private readonly ILandingQueries _landing;
+    private readonly ILandingOps _landingOps;
 
     public override string Id => "places";
 
-    public PlacesModule(IGridQueries grid, IGridOps gridOps, IItemsOps itemsOps, ICrewQueries crew, ILandingQueries landing)
+    public PlacesModule(IGridQueries grid, IGridOps gridOps, IItemsOps itemsOps, ICrewQueries crew, ILandingQueries landing, ILandingOps landingOps)
     {
         _grid = grid;
         _gridOps = gridOps;
         _itemsOps = itemsOps;
         _crew = crew;
         _landing = landing;
+        _landingOps = landingOps;
         Handles<Find>(FindProblem, ApplyFind);
         Handles<Jump>(JumpProblem, ApplyJump);
+        Handles<SetCourse>(CourseProblem, c => State.Course = c.Contact);
+        Handles<SetOff>(c => SetOffProblem(c.From), ApplySetOff);
         System(Phase.Simulation, Watch);
+    }
+
+    /// <summary>The contact every shuttle aboard flies to once set off; null for none, or for one gone this tick.</summary>
+    public Contact? Course => State.Course is int id ? State.Contacts.Find(k => k.Id == id) : null;
+
+    /// <summary>
+    /// The litres of fuel a trip to <paramref name="contact"/> and back costs: each leg its distance, <c>|Offset|</c> radar units of
+    /// <c>Contacts.KmPerUnit</c> km, over <c>Shuttle.KmPerLitre</c>, rounded up. Shown only: no fuel is checked or burnt yet.
+    /// </summary>
+    public static int CostOf(Contact contact)
+    {
+        int km = (contact.Offset < 0 ? -contact.Offset : contact.Offset) * Content.Contacts.KmPerUnit;
+        return 2 * ((km + Content.Shuttle.KmPerLitre - 1) / Content.Shuttle.KmPerLitre);
+    }
+
+    /// <summary>Why a course cannot be set to <paramref name="c"/>'s contact: off the ship (<c>places.notAboard</c>), or one the radar does not hold (<c>places.noContact</c>).</summary>
+    private string? CourseProblem(SetCourse c) =>
+        Rules != Content.Surfaces.Ship ? "places.notAboard"
+        : State.Contacts.Exists(k => k.Id == c.Contact) ? null : "places.noContact";
+
+    /// <summary>
+    /// Why <paramref name="peer"/>'s hero cannot set off in its shuttle: aboard, no course set, or its contact gone (<c>places.noCourse</c>);
+    /// then what Landing says (<see cref="ILandingQueries.SetOffProblem"/>). Null when it can.
+    /// </summary>
+    public string? SetOffProblem(int peer) => Surfaces.Here == 0 && Course == null ? "places.noCourse" : _landing.SetOffProblem(peer);
+
+    /// <summary>Aboard, the course's contact used up and the course cleared, the shuttle off to its vessel; elsewhere, off home.</summary>
+    private void ApplySetOff(SetOff c)
+    {
+        if (Surfaces.Here != 0)
+        {
+            _landingOps.SetOffHome(c.From);
+            return;
+        }
+        var contact = Course!;
+        State.Contacts.Remove(contact);
+        State.Course = null;
+        _landingOps.SetOff(c.From, Vessels.Kinds[Vessels.IndexOf(contact.Class)].Id, contact.Seed);
     }
 
     protected override PlacesState Init(Layout layout) => new();
@@ -101,6 +154,8 @@ public sealed class PlacesModule : Module<PlacesState>
             if (s.Contacts[i].Left > 1) s.Contacts[i] = s.Contacts[i] with { Left = s.Contacts[i].Left - 1 };
             else s.Contacts.RemoveAt(i);
         }
+        // Its contact run out, or jumped to from the dev panel: the course goes with it.
+        if (s.Course != null && Course == null) s.Course = null;
         if (s.NextIn == 0) s.NextIn = Content.Contacts.First;
         if (--s.NextIn > 0) return;
         if (s.Contacts.Count < Vessels.MaxContacts) Add(Vessels.Classes[(int)Random.Below((uint)Vessels.Classes.Count)].Id);
@@ -151,18 +206,23 @@ public sealed class PlacesModule : Module<PlacesState>
         }
     }
 
-    /// <summary>Now and then, as a jump opens a whole surface: a contact found, of a class or none; a jump to one, held or not.</summary>
+    /// <summary>
+    /// Now and then, as a jump opens a whole surface: a contact found, of a class or none; a jump to one, or a course set to one, held or
+    /// not; a set off, mostly refused but from a shuttle's rider.
+    /// </summary>
     public override Command? Fuzz(Rng rng, int from)
     {
         if (rng.Below(16) != 0) return null;
-        if (rng.Below(2) == 0)
+        uint what = rng.Below(4);
+        if (what == 0)
         {
             string cls = rng.Below(5) == 0 ? "nothing" : Vessels.Classes[(int)rng.Below((uint)Vessels.Classes.Count)].Id;
             return new Find(cls) { From = from };
         }
+        if (what == 3) return new SetOff { From = from };
         int contact = State.Contacts.Count > 0 && rng.Below(4) != 0
             ? State.Contacts[(int)rng.Below((uint)State.Contacts.Count)].Id
             : (int)rng.Below(4);
-        return new Jump(contact) { From = from };
+        return what == 1 ? new Jump(contact) { From = from } : new SetCourse(contact) { From = from };
     }
 }
