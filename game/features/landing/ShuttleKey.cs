@@ -1,16 +1,20 @@
 using System;
 using System.Linq;
 using Godot;
+using Stillwake.Content;
 using Stillwake.Game.Shared;
+using Stillwake.Sim;
 using Stillwake.Sim.Landing;
+using Stillwake.Sim.Places;
 using static Stillwake.Game.I18n.En;
 
 namespace Stillwake.Game.Features.Landing;
 
 /// <summary>
 /// The crew shuttle's key, the body of its panel (<see cref="Panel"/>): over it a mark for each of its seats, warm where a rider
-/// sits and ringed where this player does, and where it would fly. With no course yet it is always dim, <c>places.noCourse</c> in
-/// its tooltip; nothing is sent. Read on a timer.
+/// sits and ringed where this player does, and where it would fly: the course's distance and fuel aboard, home off the ship. Lit
+/// while this rider may set off, dim with the sim's refusal in its tooltip while not (<see cref="PlacesModule.SetOffProblem"/>); a
+/// press sends <see cref="SetOff"/>. Read on a timer.
 /// </summary>
 public partial class ShuttleKey : WristKey
 {
@@ -20,20 +24,28 @@ public partial class ShuttleKey : WristKey
     private static readonly Color Warm = new("ffbd61"), Sky = new("38bdf8"), Empty = new("3a404d");
 
     private readonly int _shuttle, _riders;
-    private readonly Func<(LandingModule Landing, int Peer)?> _world;
+    private readonly Func<(LandingModule Landing, PlacesModule Places, int Peer)?> _world;
+    private readonly Action<Command> _send;
     private readonly TipSpots _tips;
     private readonly Control _marks = new();
+    private readonly Label _where = new()
+    {
+        HorizontalAlignment = HorizontalAlignment.Center,
+        LabelSettings = Render.Style.Text(Render.Style.Mono, FontSize, Colors.White with { A = 0.6f }),
+        MouseFilter = MouseFilterEnum.Ignore,
+    };
     private (bool[] Taken, int? Own) _seen = ([], null);
+    private string? _problem = "places.noCourse";
     private double _sinceRead = RefreshMs;
     private Vector2 _mouse;
 
-    private ShuttleKey(int shuttle, int riders, Func<(LandingModule Landing, int Peer)?> world, Store<Tip?> tip)
+    private ShuttleKey(int shuttle, int riders, Func<(LandingModule Landing, PlacesModule Places, int Peer)?> world, Action<Command> send, Store<Tip?> tip)
         : base(new Vector2(96, WristLook.KeycapSide))
     {
-        (_shuttle, _riders, _world) = (shuttle, riders, world);
+        (_shuttle, _riders, _world, _send) = (shuttle, riders, world, send);
         SizeFlagsHorizontal = SizeFlags.ShrinkCenter;
         _tips = new TipSpots(tip);
-        _tips.Add(this, () => new Tip(T("landing.setOff"), new TipLine(T("places.noCourse"), Tone.Bad)));
+        _tips.Add(this, () => _problem == null ? null : new Tip(T("landing.setOff"), new TipLine(T(_problem), Tone.Bad)));
         _marks.CustomMinimumSize = new Vector2(riders * Mark + (riders - 1) * MarkGap, Mark);
         _marks.SizeFlagsHorizontal = SizeFlags.ShrinkCenter;
         _marks.MouseFilter = MouseFilterEnum.Ignore;
@@ -43,27 +55,24 @@ public partial class ShuttleKey : WristKey
 
     /// <summary>
     /// The panel of shuttle <paramref name="shuttle"/>: its <paramref name="riders"/> seats' marks, the line of where it would fly
-    /// (<c>landing.noRoute</c> with no course), and its Set off key.
+    /// (<c>landing.noRoute</c> with no course), and its Set off key, which sends through <paramref name="send"/>.
     /// </summary>
-    public static Control Panel(int shuttle, int riders, Func<(LandingModule Landing, int Peer)?> world, Store<Tip?> tip)
+    public static Control Panel(int shuttle, int riders, Func<(LandingModule Landing, PlacesModule Places, int Peer)?> world, Action<Command> send, Store<Tip?> tip)
     {
-        var key = new ShuttleKey(shuttle, riders, world, tip);
+        var key = new ShuttleKey(shuttle, riders, world, send, tip);
         var column = new VBoxContainer { SizeFlagsHorizontal = SizeFlags.ShrinkCenter, MouseFilter = MouseFilterEnum.Ignore };
         column.AddThemeConstantOverride("separation", 6);
         column.AddChild(key._marks);
-        column.AddChild(new Label
-        {
-            Text = T("landing.noRoute"),
-            HorizontalAlignment = HorizontalAlignment.Center,
-            LabelSettings = Render.Style.Text(Render.Style.Mono, FontSize, Colors.White with { A = 0.6f }),
-            MouseFilter = MouseFilterEnum.Ignore,
-        });
+        column.AddChild(key._where);
         column.AddChild(key);
         return column;
     }
 
-    /// <summary>No course can be set yet (slice 2 of the shuttle's flight): a press does nothing.</summary>
-    protected override void Pressed() { }
+    protected override void Pressed()
+    {
+        if (_problem == null) _send(new SetOff());
+        Read();
+    }
 
     public override void _Input(InputEvent e)
     {
@@ -83,7 +92,17 @@ public partial class ShuttleKey : WristKey
     private void Read()
     {
         _sinceRead = 0;
-        if (_world() is not var (landing, peer)) return;
+        if (_world() is not var (landing, places, peer)) return;
+        // Off the ship it flies home; aboard to the course, if one is set. Read each time, so a language changed in the menu shows.
+        _where.Text = !landing.Returns
+            ? places.Course is { } course ? T("landing.course", ("n", Math.Abs(course.Offset) * Contacts.KmPerUnit), ("l", PlacesModule.CostOf(course))) : T("landing.noRoute")
+            : T("landing.home");
+        var problem = places.SetOffProblem(peer);
+        if (problem != _problem)
+        {
+            _problem = problem;
+            QueueRedraw();
+        }
         var seats = landing.RidersOf(_shuttle);
         bool[] taken = [.. Enumerable.Range(0, _riders).Select(p => seats.Any(s => s.Place == p))];
         int? own = seats.FirstOrDefault(s => s.Peer == peer)?.Place;
@@ -105,12 +124,14 @@ public partial class ShuttleKey : WristKey
 
     protected override void DrawCap(Rect2 face)
     {
-        Face(face, false);
+        bool ready = _problem == null;
+        Face(face, ready);
         var font = Render.Style.Mono;
         string text = T("landing.setOff");
         var size = font.GetStringSize(text, HorizontalAlignment.Left, -1, FontSize);
         var at = new Vector2(face.Position.X + (face.Size.X - size.X) / 2,
             face.Position.Y + (face.Size.Y + font.GetAscent(FontSize) - font.GetDescent(FontSize)) / 2 + (State == KeyState.Down ? 1 : 0));
-        DrawString(font, at, text, HorizontalAlignment.Left, -1, FontSize, Colors.White with { A = 0.35f });
+        var colour = ready ? (State == KeyState.Hover ? Colors.White : Sky) : Colors.White with { A = 0.35f };
+        DrawString(font, at, text, HorizontalAlignment.Left, -1, FontSize, colour);
     }
 }

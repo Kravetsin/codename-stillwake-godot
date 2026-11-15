@@ -124,6 +124,8 @@ public sealed class LandingModule : Module<LandingState>, ICarries, IOutlives, I
 
     /// <summary>The drop pod's spec: what the client's pictures of a flight size and place it by, the pod being off the grid then.</summary>
     public static MachineSpec PodSpec => Content.Machines.Get(Pod.Kind);
+    /// <summary>The craft's spec: what the client holds a voyage's riders at the places of, the craft being off the grid then.</summary>
+    public static MachineSpec CraftSpec => Content.Machines.Get(Craft.Kind);
     /// <summary>What its one slot takes and a descent burns.</summary>
     private static readonly string Fuel = Content.Machines.Get(Pod.Kind).Takes!;
 

@@ -28,7 +28,7 @@ public partial class HeroView
         double elapsedMs, bool handFree)
     {
         // Flying in a drop pod, the hands do nothing, as passed out: E is no one's until it lands.
-        passedOut |= m.Landing.FlightOf(client.Id) != null;
+        passedOut |= m.Landing.FlightOf(client.Id) != null || m.Landing.VoyageOf(client.Id) != null;
         // The hand first, before any run or hit of this frame: the stack in it is the one that works (tool-in-hand).
         if (m.Items.Wielding(client.Id) != _ui.Chosen.Get()) client.Send(new Sim.Items.Wield(_ui.Chosen.Get()));
         // A tool struck with by hand, the axe, the sledgehammer or the spear: its strokes (Strokes).

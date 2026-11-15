@@ -18,5 +18,7 @@ public static partial class En
         ["landing.return"] = "Return",
         ["landing.setOff"] = "Set off",
         ["landing.noRoute"] = "No route",
+        ["landing.course"] = "{n} km · {l} l",
+        ["landing.home"] = "Home",
     };
 }

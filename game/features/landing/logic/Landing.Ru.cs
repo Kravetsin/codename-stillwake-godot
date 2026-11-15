@@ -18,5 +18,7 @@ public static partial class Ru
         ["landing.return"] = "Возврат",
         ["landing.setOff"] = "Отправиться",
         ["landing.noRoute"] = "Нет маршрута",
+        ["landing.course"] = "{n} км · {l} л",
+        ["landing.home"] = "Домой",
     };
 }
