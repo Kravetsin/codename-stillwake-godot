@@ -258,3 +258,4 @@ The retch (food-tuning) is its pick page's pick, cut there from the Freesound HQ
 | `ruins/wood-break-1.wav` | Freesound, "Crate Break 4.wav" (1 s from 0.005 s), https://freesound.org/people/kevinkace/sounds/66780/ | kevinkace | CC0 |
 | `ui/click-1.wav` | Interface Sounds, `click_002.ogg`, https://kenney.nl/assets/interface-sounds | Kenney | CC0 |
 | `ui/click-2.wav` | Interface Sounds, `click_003.ogg`, https://kenney.nl/assets/interface-sounds | Kenney | CC0 |
+| `ui/trash-1.wav` | Freesound, "Fwump" (0.6 s from 0.1 s, from 5 ms before its attack, its last share faded; the loudest 50 ms at −20 dBFS RMS, peaks under −3 dBFS; the trash page's pick, trash-sound), https://freesound.org/people/floomatic/sounds/853424/ | floomatic | CC0 |

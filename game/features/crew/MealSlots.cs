@@ -12,7 +12,8 @@ namespace Stillwake.Game.Features.Crew;
 /// <summary>
 /// The hero's three meals, the vitals' bottom row (hud-vitals, food-and-the-body): each the dish's own picture, the hotbar's,
 /// over a thin time light that drains as the meal runs out, both pulsing in its last minute. Eaten, the picture pops in;
-/// refused, red light behind and a jolt; ended, it greys and fades. Hungry, the empty time lights breathe ochre. What a meal
+/// refused, red light behind and a jolt; ended, it greys and fades. Hungry, the empty time lights breathe ochre and hunger's
+/// sign lights left of them, its costs on hover. What a meal
 /// does is on hover, its food card with the time left (2026-11-14-food-and-gear-cards). Reads the sim four times a second.
 /// </summary>
 public partial class MealSlots : CanvasLayer
@@ -55,10 +56,18 @@ public partial class MealSlots : CanvasLayer
         }
         _row.AddChild(_purge);
         _tips.Add(_purge, () => new Tip(T("hud.purge"), []));
+        _row.AddChild(_sign);
+        _tips.Add(_sign, () => _hungry ? MealTips.Hunger() : null);
         ui.MealRefused += Refused;
     }
 
     private readonly PurgeSpot _purge;
+    private readonly HungerSign _sign = new()
+    {
+        Position = new Vector2(Vitals.SignX - HungerSign.Side / 2, Vitals.MealY - HungerSign.Side / 2),
+        Size = new Vector2(HungerSign.Side, HungerSign.Side),
+        MouseFilter = Control.MouseFilterEnum.Ignore,
+    };
 
     /// <summary>A meal refused: full, every slot blinks red; the same dish too soon, only its slot.</summary>
     private void Refused(string food, string problem)
@@ -93,6 +102,7 @@ public partial class MealSlots : CanvasLayer
         _purge.Step(delta);
         _purge.QueueRedraw();
         float hunger = _hungry ? 0.45f + 0.35f * (0.5f - 0.5f * Mathf.Cos((float)(_clock * Mathf.Tau / HungerS))) : 0;
+        _sign.Step(delta, _hungry, hunger);
         foreach (var slot in _slots)
         {
             slot.Step(delta, _clock, hunger);
@@ -109,7 +119,8 @@ public partial class MealSlots : CanvasLayer
     private sealed partial class PurgeSpot(Func<string?> purge) : Control
     {
         private const double HoldS = 3;
-        private const float Radius = 11.5f;
+        // The ring's outer edge on the icon's: as large as every other vitals icon.
+        private const float Radius = Vitals.Icon / 2 - 1;
         private static readonly Color Bile = new("c8c070"), Red = new(1, 70 / 255f, 60 / 255f);
 
         public bool Full;
@@ -158,6 +169,31 @@ public partial class MealSlots : CanvasLayer
             foreach (var (dx, dy, r) in new[] { (-2.5f, 2f, 1.3f), (1f, 4f, 1.6f), (3f, 0.5f, 1.1f) })
                 DrawCircle(centre + new Vector2(dx, dy), r, ink);
         }
+    }
+
+    /// <summary>
+    /// Hunger's sign, the meals row's own in the signs' column: lit while hungry, breathing with the empty slots' ochre, faded out
+    /// once something is eaten; what hunger costs is on hover (<see cref="MealTips.Hunger"/>).
+    /// </summary>
+    private sealed partial class HungerSign : Control
+    {
+        /// <summary>Its side in block units: an icon, as every vitals sign.</summary>
+        public const float Side = Vitals.Icon;
+
+        private const double FadeS = 0.4;
+        private double _lit;
+        private float _breath;
+
+        public void Step(double delta, bool hungry, float breath)
+        {
+            _lit = Math.Clamp(_lit + (hungry ? delta : -delta) / FadeS, 0, 1);
+            _breath = breath;
+            Visible = _lit > 0;
+            if (Visible) QueueRedraw();
+        }
+
+        public override void _Draw() =>
+            DrawTextureRect(Signs.Hunger(), new Rect2(Vector2.Zero, Size), false, Colors.White with { A = (float)_lit * (0.35f + 0.8f * _breath) });
     }
 
     private sealed partial class Slot : Control

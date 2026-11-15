@@ -39,13 +39,13 @@ public class MealTipsTests
     }
 
     [Fact]
-    public void PodPasteIsNamedThoughNoItemAndOnlyStillsHunger()
+    public void HungersTipSaysWhatItCostsByTheDietsNumbersThenWhatEndsIt()
     {
-        var card = MealTips.Of(Foods.Paste, Diet.RefreshWithin).Card!;
-        Assert.Equal(("Pod paste", "Food"), (card.Name, card.Kind));
-        Assert.Equal([("only stills hunger", "Effect"), ("1:00", "Left")], card.Rows.Select(r => (r.Value, r.Label)));
-        Assert.True(card.Rows[0].Off);
-        Assert.Equal("of 20:00", card.Rows[^1].Note);
+        var tip = MealTips.Hunger();
+        Assert.Equal("Hungry", tip.Name);
+        Assert.Equal(
+            [("Air use when running +25%", Tone.Bad), ("Work speed −25%", Tone.Bad), ("Eat something", Tone.Dim)],
+            tip.Lines.Select(l => (l.Text, l.Tone)));
     }
 
     [Fact]
@@ -57,7 +57,7 @@ public class MealTipsTests
     [Fact]
     public void AnEmptySlotSaysHungerOnlyWhenAllAreEmpty()
     {
-        Assert.Equal("Hungry", MealTips.Empty(hungry: true).Name);
+        Assert.Equal(MealTips.Hunger(), MealTips.Empty(hungry: true));
         Assert.Equal("Room for a meal", MealTips.Empty(hungry: false).Name);
     }
 }

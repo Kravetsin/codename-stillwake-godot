@@ -23,7 +23,7 @@ public enum SlotGlow
 public static class Equipment
 {
     /// <summary>Whether <paramref name="place"/> is one of this hero's equipment slots.</summary>
-    public static bool Is(Place place) => place.Crate == null && place.Slot >= Spec.Inventory.Slots && place.Slot < Spec.Inventory.Total;
+    public static bool Is(Place place) => place.Crate == null && place.Slot >= Spec.Inventory.Slots && place.Slot < Spec.Inventory.Trash;
 
     /// <summary>The kind of equipment slot <paramref name="place"/> is (head, back, belt); none for any other slot.</summary>
     public static string? KindOf(Place place) => Is(place) ? Spec.Inventory.Equipment[place.Slot - Spec.Inventory.Slots] : null;

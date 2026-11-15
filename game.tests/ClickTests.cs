@@ -40,6 +40,56 @@ public class ClickTests
         Assert.Equal(new Clicked(null, MoveOf(Box(2), Inv(4), 9)), Clicks.On(picked.Picked, Click(Inv(4), Scrap(3))));
     }
 
+    private static readonly Place Trash = new(Spec.Inventory.Trash);
+
+    /// <summary>The trash (trash-slot) takes a stack carried by the left button, whole or the part picked, whatever it held.</summary>
+    [Fact]
+    public void PutAStackCarriedIntoTheTrashWithTheLeftButton()
+    {
+        Assert.Equal(new Clicked(null, MoveOf(Inv(4), Trash, 9)), Clicks.On(new Picked(Inv(4), 9), Click(Trash, Scrap(3))));
+        Assert.Equal(new Clicked(null, MoveOf(Box(1), Trash, 2)), Clicks.On(new Picked(Box(1), 2), Click(Trash, null)));
+    }
+
+    [Fact]
+    public void TheRightButtonPutsNothingIntoTheTrashAndShiftDoesNothingThere()
+    {
+        var held = new Picked(Inv(4), 9);
+        Assert.Equal(new Clicked(held), Clicks.On(held, Click(Trash, null, right: true)));
+        Assert.Equal(new Clicked(held), Clicks.On(held, Click(Trash, Scrap(3), shift: true)));
+        Assert.Equal(new Clicked(null), Clicks.On(null, Click(Trash, Scrap(3), shift: true, crate: null)));
+        Assert.Equal(new Clicked(null), Clicks.On(null, Click(Trash, Scrap(3), shift: true)));
+    }
+
+    [Fact]
+    public void TheTrashsStackIsPickedBackAsAnySlotsButNeverBreathedNorEaten()
+    {
+        Assert.Equal(new Clicked(new Picked(Trash, 9)), Clicks.On(null, Click(Trash, Scrap(9))));
+        Assert.Equal(new Clicked(new Picked(Trash, 2)), Clicks.On(null, Click(Trash, new Stack(Spec.Crew.Canister, 3), right: true)));
+        Assert.Equal(new Clicked(new Picked(Trash, 1)), Clicks.On(null, Click(Trash, new Stack("ration", 1), right: true)));
+        Assert.Equal(new Clicked(null), Clicks.On(new Picked(Trash, 9), Click(Trash, Scrap(9))));
+    }
+
+    /// <summary>The trash bursts and sounds only as a stack it held is destroyed by the next (trash-effect), not when filled empty.</summary>
+    [Fact]
+    public void OnlyAMoveIntoTheTrashWhileItHoldsAStackDestroysOne()
+    {
+        Stack? Full(Place p) => p == Trash ? Scrap(3) : null;
+        Stack? Empty(Place p) => null;
+        Assert.True(Clicks.Destroys(MoveOf(Inv(4), Trash, 9), Full));
+        Assert.True(Clicks.Destroys(MoveOf(Box(1), Trash, 1), Full));
+        Assert.False(Clicks.Destroys(MoveOf(Inv(4), Trash, 9), Empty));
+        Assert.False(Clicks.Destroys(MoveOf(Trash, Inv(4), 3), Full));
+        Assert.False(Clicks.Destroys(MoveOf(Inv(4), new Target(Spec.Inventory.Trash, 7), 9), Full));
+        Assert.False(Clicks.Destroys(null, Full));
+    }
+
+    [Fact]
+    public void TheTrashIsNoEquipmentSlot()
+    {
+        Assert.False(Equipment.Is(Trash));
+        Assert.True(Equipment.Is(new Place(Spec.Inventory.Trash - 1)));
+    }
+
     [Fact]
     public void PickHalfAStackRoundedUpWithTheRightButton()
     {

@@ -46,7 +46,7 @@ Heroes: where each is (as its client says), how it breathes, passing out.
 - **A canister** (food-and-the-body): `Refill` takes one (none in creative), adds `RefillOf(peer)` up to capacity,
   sets `CanisterIn` to `Crew.CanisterCooldown` ticks (not in creative), counted down.
 - **Meals** (food-and-the-body): `Hero.Meals`, up to `Diet.Meals`, ticks `Left` counted down. `Eat(Item)` adds one or,
-  in its last `Diet.RefreshWithin`, refreshes it; a print holds paste. A fruit eaten rolls its `Byproducts`,
+  in its last `Diet.RefreshWithin`, refreshes it; a print holds none, hungry (hungry-respawn). A fruit eaten rolls its `Byproducts`,
   given or dropped. `RatesOf` sums meals to `Diet.Caps`: calm cuts a breath, deep units to a canister. `Purge` empties them, counting `Purges`. Thousandths
   go to `Owed`, whole units paid; hungry, a sprint costs `Diet.HungrySprint`. `Works` (Building's `Work`) adds
   `Diet.Work` and food's, hungry `Diet.HungryWork`, to `Worked`, returning whole ticks.
@@ -54,7 +54,7 @@ Heroes: where each is (as its client says), how it breathes, passing out.
   down; air back (the regen suit's too) ends it, a covered breath only with nothing `Felt`. Lava, shocks and blows
   past the air cut `Crew.LastBreathPerUnit` a unit; cold, running, thrust nothing.
 - **Passing out is death**: a spent last breath passes the hero out for `Crew.PassOut` ticks (tool stopped),
-  then is made at the spawn, full, dressed; `LeaveBody(peer, cell)` leaves all but gear at the reported cell. It
+  then is made at the spawn, full, dressed, hungry; `LeaveBody(peer, cell)` leaves all but gear at the reported cell. It
   clears `CanisterIn`, meals, `Owed`, `Worked`.
 - **Cold and heat** (temperature-gradients, heat-limits): `TemperatureAt`: `Temperature.Space` off the grid, `Room` aired;
   afloat `Hull` in the zone, to `Temperatures[0]` at the field's line; on a planet `Terrain.TemperatureOf`, band 0

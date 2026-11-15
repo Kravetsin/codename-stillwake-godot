@@ -123,6 +123,8 @@ public static class Sound
     public static readonly Cue Screwdriver = new(Shots("building/screwdriver", 5), -16, Heard: new(8, 28));
     public static readonly Cue Hiss = Looped("atmosphere/hiss", -8, new(6, 24));
     public static readonly Cue Click = new(Shots("ui/click", 2), -12);
+    /// <summary>A stack the trash held destroyed by the next put in (trash-sound C): a soft fwump, as of an incinerator's door.</summary>
+    public static readonly Cue Trash = new(Shots("ui/trash", 1), -10);
     /// <summary>A stack landing on the floor (2026-10-29-kill-feel), higher the fewer it holds: a placeholder, the click pitched up.</summary>
     public static readonly Cue Clink = new(Shots("ui/click", 2), -18, Pitch: 0.1f, Heard: new(8, 28), Tune: 1.7f);
     public static readonly Cue VentHum = Looped("atmosphere/vent-hum", -12, new(3, 10));

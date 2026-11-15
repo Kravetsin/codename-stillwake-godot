@@ -433,4 +433,9 @@ public sealed class Ui
     public event Action? Clicked;
 
     public void Click() => Clicked?.Invoke();
+
+    /// <summary>A stack the trash held destroyed by the next put in (trash-sound C): the sound feature plays it.</summary>
+    public event Action? Trashed;
+
+    public void Trash() => Trashed?.Invoke();
 }

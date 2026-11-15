@@ -112,7 +112,7 @@ public class CrewTests
     public void BreathesTwiceAsMuchFromTheSuitRunningAndOnceAgainOnceItStops()
     {
         var (w, _, _) = SetUp();
-        w.Do(EnterAt(At(4, 1))).Do(new Exert(true) { From = 0 }).Run();
+        w.Do(EnterAt(At(4, 1))).Do(new Exert(true) { From = 0 }).Run().Fed();
         Breaths(w, 5);
         Assert.Equal(Scenario.Full - 5 * Content.Crew.Exerted, HeroOf(w)?.Air);
         w.Do(new Exert(false) { From = 0 }).Run();
@@ -125,7 +125,7 @@ public class CrewTests
     public void PassesOutRunningOnALastUnitAndWakesBreathingCalmly()
     {
         var (w, _, _) = SetUp();
-        w.Do(EnterAt(At(4, 1))).Do(new Exert(true) { From = 0 }).Run();
+        w.Do(EnterAt(At(4, 1))).Do(new Exert(true) { From = 0 }).Run().Fed();
         Breaths(w, (Scenario.Full + 1) / Content.Crew.Exerted);
         // Running, its last breath costs no more: it runs it down in time alone.
         Assert.Equal((0, Content.Crew.LastBreath, true), (HeroOf(w)!.Air, HeroOf(w)!.Gasp, HeroOf(w)!.Exerting));
@@ -286,7 +286,7 @@ public class CrewTests
     {
         var w = PodWorld(Beyond);
         Breaths(w, 10);
-        w.Do(EnterAt(Hatch)).Do(new Exert(true) { From = 0 }).Run();
+        w.Do(EnterAt(Hatch)).Do(new Exert(true) { From = 0 }).Run().Fed();
         int suit = HeroOf(w)!.Air;
         Breaths(w, 5);
         Assert.Equal(suit + 5 * (Content.Crew.PodRefill - Content.Crew.Exerted), HeroOf(w)?.Air);

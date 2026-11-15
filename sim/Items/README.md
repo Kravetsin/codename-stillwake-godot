@@ -4,39 +4,37 @@
 
 | File | Purpose |
 | --- | --- |
-| `Deliveries.cs` | Where deliveries go in a machine (`Receiving`). |
-| `Floor.cs` | Stacks on the floor: laid down, moved a tick, merged. |
-| `Fuzz.cs` | Commands for the desync suite. |
-| `Gains.cs` | `Gain` and the journal of gains. |
-| `Hand.cs` | `Wield`: the slot in hand. |
-| `Items.cs` | The module. |
-| `Modules.cs` | Fits a module into a machine (0086). |
-| `Stacks.cs` | Slot rules: give, take, move. |
-| `Stash.cs` | The bag into crates in reach holding its items. |
-| `State.cs` | The saved slice and its records. |
-| `Spray.cs` | A kill's loot dealt into pieces. |
-| `Stock.cs` | A peer's stock: its own slots, then every crate. |
-| `ToolStats.cs` | What a tool works with (0098): damage, pace, draw. |
+| `Deliveries.cs` | Where deliveries go in a machine (`Receiving`) |
+| `Floor.cs` | Stacks on the floor: laid down, moved a tick, merged |
+| `Fuzz.cs` | Commands for the desync suite |
+| `Gains.cs` | `Gain` and the journal of gains |
+| `Hand.cs` | `Wield`: the slot in hand |
+| `Items.cs` | The module |
+| `Modules.cs` | Fits a module into a machine (0086) |
+| `Stacks.cs` | Slot rules: give, take, move |
+| `Stash.cs` | The bag into crates in reach holding its items |
+| `State.cs` | The saved slice and its records |
+| `Spray.cs` | A kill's loot dealt into pieces |
+| `Stock.cs` | A peer's stock: its own slots, then every crate |
+| `ToolStats.cs` | What a tool works with (0098): damage, pace, draw |
 
 Every stack of items (0008).
 
 - **Depends on:** `Grid` (machines, what holds a stack up), `Rooms` (space, open room cells), `Knowledge` (`Obtain`).
-- **State** (all saved, as sorted lists; derived only `Gains`): `Inventories`, those changed at least once, by peer;
-  `Crates`, machines holding something, by id; `Creative`, peers; `Floor` (`FloorStack`, id order) and `NextFloorId`; `Ticks`;
-  `Kept` (0062); `Running`, one `Runner` a peer (0055); `Fitted`, by machine then module (0086), `Hands` (tool-in-hand), saved only
-  when set.
+- **State** (saved, sorted lists; derived only `Gains`): `Inventories` by peer, once changed; `Crates` holding something,
+  by id; `Creative` peers; `Floor` (`FloorStack`, id order), `NextFloorId`; `Ticks`; `Kept` (0062); `Running`, a `Runner` a
+  peer (0055); `Fitted` by machine, module (0086) and `Hands` (tool-in-hand), saved only when set.
 - **Start:** all empty; `Kit` gives `Inventory.Kit` (0107) to a peer's first hero.
 
 ## Rules
 
-- **Slots:** an inventory is `Inventory.Slots`, then one equipment slot per `Inventory.Equipment` kind (0047); `SlotOpen`
-  says which are open (upgrades). A `Stack`: `Item`, `Count`, `Charge`, `Module`. The first row is the hotbar.
+- **Slots:** an inventory is `Inventory.Slots`, then one equipment slot per `Inventory.Equipment` kind (0047), then the
+  trash (trash-slot); `SlotOpen` says which are open (upgrades). A `Stack`: `Item`, `Count`, `Charge`, `Module`. The first row is the hotbar.
 - **Per-item values** (0053, 0098): `Charge` (thousandths of a power-tick) and `Module` (a module on a
   tool among its `Hosts`) live on a stack of one and go with it, the floor included. Stacks merge only
   when `Alike` (item, charge, module); a whole stack onto one not alike swaps. Stacks made from a cost hold none.
   Saved only when set.
-- **A tool works with the stack in hand** (tool-in-hand): `ToolStack(peer, item)`: the hand's
-  (`Wielding`) stack if that item, else none.
+- **Tools work in hand** (tool-in-hand): `ToolStack(peer, item)` is the hand's (`Wielding`) stack of that item, else none.
   `ToolStats.Of(stack)` folds the modules' trades (`Boost.Plus`, 0100): damage a gain rounded
   down, draw a cost rounded up, pace the weapon's. `Damage(peer, tool)`: that stack's, else the weapon's.
 - **Equipment** holds only an item whose `Equip` is its kind: `items.notEquipment` (0047). Worn items
@@ -53,17 +51,16 @@ Every stack of items (0008).
   only into its first `Inputs` slots (`items.takeOnly`, 0057); one with none takes nothing. A charger holds only
   items with a `Capacity` (`items.notBattery`, 0053); an arc bench's vise only a tool a module fits (`items.notTool`,
   0099); one that `Takes` an item only it; a `SlotTakes` slot (a bay's fuel) only with its item, checked first, deliveries
-  too (`items.notTaken`).
+  too (`items.notTaken`). Onto the trash it replaces what it held, lost.
 - **Sort** (0008): the bag past the hotbar, or every slot of a `crate`. Alike
   stacks merge, then lay by `ItemGroup`, id, module, charge (fullest first), count; hotbar and equipment stay.
 - **Stash** (2026-11-06-quick-stash): bag stacks not in `Keep` move into each `Container` within `StashReach` of
   `Cell`, through walls, that holds the item, nearest then by id.
 - **Charge** (0053): `Power` fills it through `Charge`, never past full; `Drain(peer, amount)` takes it whole from the
   first belt battery holding it; creative, nothing.
-- **Creative**, a peer's (creative-per-player): `Take*` take nothing, return it whole; `ShortOf*` pass; its slots open.
-- **Running an electric tool** (0055): `Run(Item, On)`; a hero runs one thing. Each tick, each
-  run in peer order draws its stack's boosted `Draw` through `Drain`; one its belt cannot pay or its hand no longer
-  holds stops. `Crew` stops a run as its hero passes out or leaves (`StopRunning`).
+- **Creative**, a peer's (creative-per-player): `Take*` take nothing, return it whole; `ShortOf*` pass; its slots and trash open.
+- **Running** (0055): `Run(Item, On)`, one thing a hero. Each tick, in peer order, a run draws its stack's boosted `Draw`
+  through `Drain`; it stops when its belt cannot pay or its hand lets go, or as its hero passes out or leaves (`StopRunning`).
 - **Modules** (0086): `Fit` takes a module out of every slot into one of its `Hosts`, one of each kind a machine;
   `Unfit` returns it. `Boost(machine)` sums their trades in thousandths over 1000 (`Gain` rounds down, `Cost` up).
   At an arc bench (0099) `Fit`/`Unfit` act on the vise's tool stack; its `Fitted` stays empty.
@@ -95,7 +92,8 @@ cost throws.
 ## Invariants
 
 - Stacks hold 1 to their limit; equipment only its kind (`EquipmentTests`). A machine has an entry only while it holds.
-- Take and give change totals by exactly the cost or not at all; move, drop, pick-up, sort and stash change none (`StashTests`); a sort is
+- Take and give change totals by exactly the cost or not at all; move, drop, pick-up, sort and stash change none (`StashTests`), the
+  trash's aside (`TrashTests`); a sort is
   idempotent (`SortTests`). Charge stays within capacity on stacks of one (`ChargeTests`); a run draws exactly its
   `Draw` or stops (`RunTests`). Fits, spills, deaths make and lose nothing (`ArcModuleTests`, `DeathTests`, `MachineBreakTests`).
 
