@@ -1,6 +1,6 @@
 # The spear's effects
 
-- Status: accepted; amends [blade-trail](2026-11-10-blade-trail.md) for the spear
+- Status: accepted; amends [blade-trail](2026-11-10-blade-trail.md) for the spear; its trail outside the thrust: [spear-trail](2026-11-15-spear-trail.md)
 - Date: 2026-11-14
 
 ## Context
