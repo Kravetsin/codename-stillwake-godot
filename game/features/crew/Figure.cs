@@ -607,14 +607,22 @@ public partial class Figure : Node2D
     /// </summary>
     public int? HandsLayer
     {
+        get => _handsLayer;
         set
         {
-            foreach (var n in _hands) (n.ZAsRelative, n.ZIndex) = value is { } z ? (false, z) : (true, 0);
+            _handsLayer = value;
+            foreach (var n in _hands) OnHandsLayer(n);
+            OnHandsLayer(_capeOutside);
+            if (_heldView != null) OnHandsLayer(_heldView);
         }
     }
 
-    // The near arm, what it holds, and the collar and air over its shoulder, in the order drawn.
+    // The near arm, what it holds, and the collar and air over its shoulder, in the order drawn; the held stage's view and the
+    // cape's outside, drawn over the arm, join them.
     private readonly Node2D[] _hands;
+    private int? _handsLayer;
+
+    private void OnHandsLayer(Node2D n) => (n.ZAsRelative, n.ZIndex) = _handsLayer is { } z ? (false, z) : (true, 0);
 
     /// <summary>
     /// A catcher's gear lit (tracker-catchers): its receiver at <c>Receiver</c> in the figure's colour, as a tracker is (<see cref="TrackerBlink.Lit"/>),
@@ -742,6 +750,7 @@ public partial class Figure : Node2D
             if (_heldStage != null) return _heldStage;
             _heldStage = Stages.Held();
             _heldView = new EffectsView(_heldStage) { InWorld = true };
+            OnHandsLayer(_heldView);
             _waist.AddChild(_heldView);
             _waist.MoveChild(_heldView, _frontArmNode.GetIndex());
             return _heldStage;
