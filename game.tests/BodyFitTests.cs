@@ -164,4 +164,19 @@ public class BodyFitTests
         foreach (var gear in CreatureLooks.Heroes.Values.SelectMany(look => look.Gear))
             Assert.Null(BodyFit.FadeOf($"{gear.Body}_upperArm"));
     }
+
+    [Fact]
+    public void ACollarCoversTheNearArmOnlyWhileItHangs()
+    {
+        // Hanging, swung back or held out level: the shoulder piece over its shoulder.
+        Assert.True(BodyFit.CollarOverArm(new Bend(0, 0)));
+        Assert.True(BodyFit.CollarOverArm(new Bend(-0.5, 0.3)));
+        Assert.True(BodyFit.CollarOverArm(new Bend(Math.PI / 2 - 0.05, 0)));
+        // Raised past the face, forward, straight up or back over the head: the arm over the helmet's lower part.
+        Assert.False(BodyFit.CollarOverArm(Rig.Reach(new Vec(20, -70), Rig.Arm, 1)));
+        Assert.False(BodyFit.CollarOverArm(new Bend(Math.PI, 0)));
+        Assert.False(BodyFit.CollarOverArm(new Bend(-2.5, 0)));
+        // The elbow low but the fist folded up past the shoulder: its forearm crosses the collar too.
+        Assert.False(BodyFit.CollarOverArm(new Bend(0.2, 2.9)));
+    }
 }

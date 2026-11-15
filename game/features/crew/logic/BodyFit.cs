@@ -136,6 +136,12 @@ public static class BodyFit
     /// </summary>
     public static readonly (double Whole, double None) Shoulder = (4.5, 1.5);
 
+    /// <summary>
+    /// Whether a helmet's collar is drawn over the near arm bent <paramref name="arm"/>: while its elbow and fist are no higher than
+    /// its shoulder, the shoulder piece over the shoulder; raised past it, the arm over the helmet's lower part as it crosses it.
+    /// </summary>
+    public static bool CollarOverArm(Bend arm) => Math.Cos(arm.Upper) >= 0 && Rig.EndOf(arm, Rig.Arm).Y >= 0;
+
     /// <summary>Bodies whose upper arm keeps its top: a catcher's receiver is strapped there (tracker-catchers).</summary>
     private static readonly HashSet<string> Receivers = CreatureLooks.Heroes.Values.SelectMany(look => look.Gear).Select(gear => gear.Body).ToHashSet();
 
