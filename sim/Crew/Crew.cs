@@ -32,6 +32,12 @@ public sealed record PickColour(int Colour) : Command;
 /// </summary>
 public sealed record ChooseLook(Look Look) : Command;
 
+/// <summary>
+/// The sender's hero wears skins <c>Ids</c> from now on, in place of every one before (skins): with a hero or none yet,
+/// never refused, never checked. Its client sends the ones its player owns on every join and whenever a pick changes.
+/// </summary>
+public sealed record ChooseSkins(IReadOnlyList<string> Ids) : Command;
+
 /// <summary>The sender's hero starts running (<c>On</c>), or stops: sent when it changes.</summary>
 public sealed record Exert(bool On) : Command;
 
@@ -232,6 +238,7 @@ public sealed partial class CrewModule : Module<CrewState>, ICrewQueries, ICrewO
             });
         Handles<PickColour>(c => ColourProblem(c.From, c.Colour), c => _playersOps.Wear(c.From, c.Colour));
         Handles<ChooseLook>(_ => null, c => _playersOps.Choose(c.From, c.Look));
+        Handles<ChooseSkins>(_ => null, c => _playersOps.Skin(c.From, c.Ids));
         Handles<Exert>(c => HeroOf(c.From) == null ? "crew.noHero" : null, c => HeroOf(c.From)!.Exerting = c.On);
         Handles<Thrust>(ThrustProblem, c => HeroOf(c.From)!.Thrusting = c.On);
         Handles<Refill>(c => RefillProblem(c.From), c =>

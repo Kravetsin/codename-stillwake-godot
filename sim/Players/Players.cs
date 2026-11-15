@@ -18,6 +18,12 @@ public sealed record Look(int Skin, int Hair, int HairColour, int Face, int Bear
 /// <summary>Peer <c>Peer</c>'s look: <c>Worn</c> by its hero, <c>Next</c> chosen for its next print.</summary>
 public sealed record PeerLook(int Peer, Look Worn, Look Next);
 
+/// <summary>
+/// Peer <c>Peer</c>'s skins (skins): ids the client draws its hero's gear in, a set never checked; the client knows each
+/// id's kind and draws an unknown one as the item's own.
+/// </summary>
+public sealed record PeerSkins(int Peer, IReadOnlyList<string> Ids);
+
 /// <summary>The players' slice. Public so modules can be typed by it, its members internal.</summary>
 public sealed class PlayersState
 {
@@ -25,6 +31,8 @@ public sealed class PlayersState
     [JsonInclude] internal List<Worn> Colours { get; set; } = [];
     /// <summary>The look of each peer that chose one, with a hero or not, in peer order.</summary>
     [JsonInclude] internal List<PeerLook> Looks { get; set; } = [];
+    /// <summary>The skins of each peer that chose any, with a hero or not, in peer order.</summary>
+    [JsonInclude] internal List<PeerSkins> Skins { get; set; } = [];
 }
 
 /// <summary>What any module or the client may read of the players.</summary>
@@ -36,6 +44,8 @@ public interface IPlayersQueries
     IReadOnlyList<Worn> Worn { get; }
     /// <summary>The look <paramref name="peer"/>'s hero wears: look 0 for a peer that never chose, or one gone.</summary>
     Look LookOf(int peer);
+    /// <summary>The skins <paramref name="peer"/> chose last, worn at once: none for a peer that never chose, or chose none.</summary>
+    IReadOnlyList<string> SkinsOf(int peer);
 }
 
 /// <summary>How crew dresses its heroes.</summary>
@@ -54,6 +64,8 @@ public interface IPlayersOps
     void Choose(int peer, Look look);
     /// <summary>The pod prints <paramref name="peer"/>'s hero: it wears the look chosen last.</summary>
     void Print(int peer);
+    /// <summary><paramref name="peer"/> wears <paramref name="ids"/> from now on, in place of every skin before, with a hero or not.</summary>
+    void Skin(int peer, IReadOnlyList<string> ids);
 }
 
 /// <summary>
@@ -100,5 +112,16 @@ public sealed class PlayersModule : Module<PlayersState>, IPlayersQueries, IPlay
     {
         int at = State.Looks.FindIndex(l => l.Peer == peer);
         if (at >= 0) State.Looks[at] = State.Looks[at] with { Worn = State.Looks[at].Next };
+    }
+
+    public IReadOnlyList<string> SkinsOf(int peer) => State.Skins.Find(s => s.Peer == peer)?.Ids ?? [];
+
+    public void Skin(int peer, IReadOnlyList<string> ids)
+    {
+        // A copy: the slice never holds the command's own list.
+        var skins = new PeerSkins(peer, [.. ids]);
+        int at = State.Skins.FindIndex(s => s.Peer >= peer);
+        if (at >= 0 && State.Skins[at].Peer == peer) State.Skins[at] = skins;
+        else State.Skins.Insert(at < 0 ? State.Skins.Count : at, skins);
     }
 }
