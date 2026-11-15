@@ -528,7 +528,9 @@ public partial class HeroView : Node2D
         bool exerting = !passedOut && Report.Exerting(_current, ship.Space(_current.BodyCell(grid.Width)), seat != null ? _runs : null);
         if (!passedOut && Report.ExertOf(m.Crew, client.Id, exerting) is { } exert) client.Send(exert);
         // Off as Shift is let go, aboard, the jetpack taken off or the suit empty: the sim stops venting it.
-        if (Report.ThrustOf(m.Crew, client.Id, _thrust != null) is { } thrusts) client.Send(thrusts);
+        // A cruise at full speed along the thrust is free (jet-cruise): only a start, turn, brake or dodge vents the suit.
+        bool venting = _thrust is { } dir && !Hero.Cruising(_current.Vx, _current.Vy, dir);
+        if (Report.ThrustOf(m.Crew, client.Id, venting) is { } thrusts) client.Send(thrusts);
         HearThrust(elapsedMs);
         for (int burnt = _burns.Due(elapsedMs, Burns(m, known), 1 / S.LavaBurnEveryS); burnt > 0; burnt--) _burn.Play();
         if (_breathe && !passedOut) Breathe(client, m);
