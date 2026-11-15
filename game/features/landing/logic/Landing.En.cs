@@ -16,5 +16,11 @@ public static partial class En
         ["landing.shaftBlocked"] = "Something is built under the platform",
         ["landing.descend"] = "Descend",
         ["landing.return"] = "Return",
+        ["landing.noEngine"] = "There is no engine here",
+        ["landing.engineUnpowered"] = "No power: the engine stays cold",
+        ["landing.noExhaust"] = "Its nozzle is walled in",
+        ["landing.nothingBelow"] = "There is no planet below to leave",
+        ["landing.crewAway"] = "Not everyone is aboard: a press calls them home",
+        ["landing.fire"] = "Fire",
     };
 }

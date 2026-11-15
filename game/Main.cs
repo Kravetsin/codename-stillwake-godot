@@ -98,6 +98,18 @@ public partial class Main : Node2D, ITogether
     private readonly Features.Scanner.ScannerView _scanner = new();
     private Hands _hands = null!;
     private FrameLog? _frameLog;
+    private Features.Landing.JumpCall? _jumpCall;
+    private (World? World, int Left) _planetsLeft;
+
+    /// <summary>The burn played as a planet is left between two ticks of one world (planet-jump): never on a load, a join or a resync.</summary>
+    private void HearJump(World world)
+    {
+        int left = 0;
+        foreach (var s in world.Surfaces)
+            if (s.Closed && Content.Surfaces.Get(s.Kind) is Content.PlanetType) left++;
+        if (ReferenceEquals(_planetsLeft.World, world) && left > _planetsLeft.Left) _jumpCall?.Burn();
+        _planetsLeft = (world, left);
+    }
     private AllocationSampler? _allocs;
     private readonly Platform.GcPace _gcPace = new();
     /// <summary>Where this machine stands on the network, for the dev panel; none alone.</summary>
@@ -236,8 +248,12 @@ public partial class Main : Node2D, ITogether
             // A drop pod's Descend or Return key is the landing feature's, under its slot; the white of its flight over the screen.
             Control? LaunchOf(int machine) => _m.Grid.MachineById(machine) is { } pod && Content.Machines.Is(pod.Kind, Content.MachineTrait.Lands)
                 ? new Features.Landing.LaunchKey(() => _session is Session s ? (_m.Landing, s.Client.Id) : null, SendNow, _hands.Ui.Tip)
-                : null;
+                : _m.Grid.MachineById(machine) is { } engine && Content.Machines.Get(engine.Kind).Exhaust != null
+                    // The engine's Fire key (planet-jump), under its slot as a pod's is.
+                    ? new Features.Landing.EngineKey(machine, () => _session is Session ? _m.Landing : null, SendNow, _hands.Ui.Tip)
+                    : null;
             _items.Panel.Launch = LaunchOf;
+            AddChild(_jumpCall = new Features.Landing.JumpCall());
             AddChild(new Features.Landing.FlightOverlay(() => _session is Session s ? (s.Client.World.SurfaceOf(s.Client.Id), _m.Landing.FlightOf(s.Client.Id)) : null,
                 () => (_session as Session)?.Progress ?? 0, () => _camera.CurrentZoom));
             // The vitals at the bottom-left (hud-vitals): the belt's charge under the suit's air, whatever is held. Before the
@@ -570,7 +586,12 @@ public partial class Main : Node2D, ITogether
         int desyncs = session.Desyncs.Count;
         foreach (var report in session.Frame(delta * 1000))
             foreach (var refused in report.Refused)
+            {
+                // A press on the engine with the crew away is the call to everyone (planet-jump): every peer runs every command.
+                if (refused.Reason == "landing.crewAway") _jumpCall?.Call();
                 Log($"tick {report.Tick}: {refused.Command.GetType().Name} from {refused.Command.From} refused, {refused.Reason}");
+            }
+        if (client.World.Tick != before) HearJump(client.World);
         foreach (var report in session.Desyncs.Skip(desyncs))
         {
             Log($"desync, resynced from the host: {report}");

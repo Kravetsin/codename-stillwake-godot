@@ -16,5 +16,11 @@ public static partial class Ru
         ["landing.shaftBlocked"] = "Под платформой что-то построено",
         ["landing.descend"] = "Спуск",
         ["landing.return"] = "Возврат",
+        ["landing.noEngine"] = "Здесь нет двигателя",
+        ["landing.engineUnpowered"] = "Нет энергии: двигатель холодный",
+        ["landing.noExhaust"] = "Сопло замуровано",
+        ["landing.nothingBelow"] = "Внизу нет планеты, улетать не от чего",
+        ["landing.crewAway"] = "Не все на борту: нажатие зовёт их домой",
+        ["landing.fire"] = "Запуск",
     };
 }
