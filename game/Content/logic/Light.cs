@@ -119,6 +119,26 @@ public static class Light
         ["salvageVending"] = new((0.72f, 0.86f, 0.77f), 0.45f, VendingReach, LampKeep, 0xb8dcc4ff, Alight: "machine_salvageVending_lit", At: (16, 4)),
         ["salvageVending2"] = new((0.85f, 0.53f, 0.45f), 0.45f, VendingReach, LampKeep, 0xd88872ff, Alight: "machine_salvageVending2_lit", At: (16, 3)),
     };
+    /// <summary>
+    /// A derelict's beacon outside its hull (derelict-looks): its light's colour, strength, reach and keep; its halo's colour, as
+    /// <c>0xRRGGBBAA</c>, and how far across it is in cells; and its blink, lit <c>Duty</c> of every <c>PeriodMs</c>.
+    /// </summary>
+    public sealed record BeaconLight((float R, float G, float B) Colour, float Strength, int Reach, float Keep, uint Halo, float HaloCells,
+        int PeriodMs, float Duty);
+
+    /// <summary>The red beacon on a mast's top, a slow blink; the white strobe on a boom's tip or a shuttle's bow, a short sharp flash.</summary>
+    public static readonly BeaconLight RedBeacon = new((1f, 0.24f, 0.18f), 0.9f, 10, LampKeep, 0xff3c2dff, 3f, 1600, 0.14f),
+        Strobe = new((1f, 1f, 0.96f), 1.4f, 14, LampKeep, 0xfffff5ff, 4f, 1150, 0.06f);
+
+    /// <summary>The parts outside a derelict that carry a beacon, by kind: which, and where its glass is in their picture, in pixels from its top-left.</summary>
+    public static readonly IReadOnlyDictionary<string, (BeaconLight Look, (float X, float Y) At)> Beacons =
+        new Dictionary<string, (BeaconLight, (float, float))>(System.StringComparer.Ordinal)
+        {
+            [Stillwake.Content.Vessels.Mast] = (RedBeacon, (8, 4.4f)),
+            [Stillwake.Content.Vessels.MastTall] = (RedBeacon, (8, 4.4f)),
+            [Stillwake.Content.Vessels.Boom] = (Strobe, (61.4f, 7)),
+        };
+
     public static readonly (float R, float G, float B) Fire = (1f, 0.48f, 0.14f);
     public const float FireKeep = 0.849f;
     // An ember's light is a bright point, not a wash: the furnace's fire lights the room round it anyway.
