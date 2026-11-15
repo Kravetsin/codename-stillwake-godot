@@ -41,11 +41,6 @@ public sealed class BladeTrail
         }
     }
 
-    /// <summary>The stretch swept last, from the edge as it was to the edge as it is, while it leaves a trail; none else.</summary>
-    public (IReadOnlyList<(double X, double Y)> Was, IReadOnlyList<(double X, double Y)> Now)? Newest =>
-        _samples.Count >= 2 && _samples[^1].Shown > 0 && _samples[^2].Edge.Length == _samples[^1].Edge.Length
-            ? (_samples[^2].Edge, _samples[^1].Edge) : null;
-
     /// <summary>
     /// <paramref name="elapsedMs"/> on, the edge's points from its one end to the other in the world now, as many each frame;
     /// none while no blade is held.

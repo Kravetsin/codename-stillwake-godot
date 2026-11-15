@@ -443,7 +443,22 @@ public partial class HeroView
         if (contact.Cell is not int cell || Impacts.At(m.Grid, m.Building, cell) is not { } impact) return new(id, tool, start, at, figure.Barrel, null, null, wrecks, wheel, exits, helix);
         var middle = hero.Middle;
         var face = Impacts.On(m.Grid, cell, (double)middle.X / Hero.Unit, (double)middle.Y / Hero.Unit);
-        return new(id, tool, start, at, figure.Barrel, HitLooks.Of[impact], Impacts.FloorUnder(m.Grid, face) * Rig.Cell, wrecks, wheel, exits, helix);
+        return new(id, tool, start, at, figure.Barrel, HitLooks.Of[impact], Impacts.FloorUnder(m.Grid, face) * Rig.Cell, wrecks, wheel, exits, helix,
+            GroundExits(m, wheel, helix, at, -figure.Barrel));
+    }
+
+    /// <summary>
+    /// Where a running grinder's <paramref name="wheel"/> or drill's <paramref name="helix"/> comes out of the ground or the hull it
+    /// works (drill-contact), its point nearest the touch <paramref name="at"/> while it has no exit; none for another tool.
+    /// </summary>
+    private static IReadOnlyList<ToolContact.Exit>? GroundExits(Registry m, ToolContact.Circle? wheel, ToolContact.Helix? helix, Vector2 at, Vector2 toward)
+    {
+        bool Solid(double x, double y) => SolidAt(m, x, y);
+        if (wheel is { } round)
+            return ToolContact.Exits(round, WorkLooks.RimSteps, Solid, WorkLooks.WheelExits) is { Count: > 0 } rim ? rim : [ToolContact.Nearest(round, (at.X, at.Y), (toward.X, toward.Y))];
+        if (helix is { } loop)
+            return ToolContact.Exits(loop, WorkLooks.HelixSteps, Solid, WorkLooks.WheelExits) is { Count: > 0 } coil ? coil : [ToolContact.Nearest(loop, (at.X, at.Y), WorkLooks.HelixSteps)];
+        return null;
     }
 
     /// <summary>The wrecks' pictures, read once each, that a running tool's edge is tested against (tool-edge).</summary>

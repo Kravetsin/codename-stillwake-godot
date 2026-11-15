@@ -20,9 +20,10 @@ public partial class ToolWork : Node2D
     /// </summary>
     public readonly record struct Seen(int Hero, string Tool, Vector2 From, Vector2 At, Vector2 Way, HitLook? Look, double? Floor,
         IReadOnlyList<(int Piece, Vector2 At)> Wrecks, ToolContact.Circle? Wheel = null, IReadOnlyList<IReadOnlyList<ToolContact.Exit>>? Exits = null,
-        ToolContact.Helix? Helix = null);
+        ToolContact.Helix? Helix = null, IReadOnlyList<ToolContact.Exit>? Ground = null);
 
     private readonly Dictionary<int, StrikeTrain> _trains = new();
+    private int _groundThrows;
     private readonly List<Seen> _jets = new();
     private readonly HashSet<int> _working = new();
     private readonly List<int> _idle = new();
@@ -65,7 +66,12 @@ public partial class ToolWork : Node2D
             int due = train.Due(elapsedMs, true, WorkLooks.ThrowsPerSecond);
             _trains[s.Hero] = train;
             for (int i = 0; i < due; i++)
-                Stages.Of(Layers.Effects).Hits.Throw(look, s.At.X, s.At.Y, back.X, back.Y, WorkLooks.ShareOf(s.Tool), s.Floor);
+            {
+                // Off the grinder's or the drill's haze where it comes out of the ground, an exit at a time (drill-contact).
+                if (s.Ground is { Count: > 0 } outs && outs[_groundThrows++ % outs.Count] is var e)
+                    Stages.Of(Layers.Effects).Hits.Throw(look, e.At.X, e.At.Y, e.Way.X, e.Way.Y, WorkLooks.ShareOf(s.Tool), s.Floor);
+                else Stages.Of(Layers.Effects).Hits.Throw(look, s.At.X, s.At.Y, back.X, back.Y, WorkLooks.ShareOf(s.Tool), s.Floor);
+            }
         }
         _sparks.End();
         // One that stopped touching begins afresh, its first throw at once, when it touches again.
