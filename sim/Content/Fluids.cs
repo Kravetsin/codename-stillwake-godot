@@ -10,8 +10,10 @@ public static class Fluids
     public const string Water = "water";
     /// <summary>Oxygen as a liquid (liquid-oxygen): what a tank holds and a vaporizer turns into <see cref="Air"/>.</summary>
     public const string LiquidOxygen = "liquidOxygen";
+    /// <summary>Biofuel (fuel-liquid): what a fuel store holds and a fuel line carries.</summary>
+    public const string Fuel = "fuel";
 
-    public static readonly IReadOnlyList<string> All = [Air, Water, LiquidOxygen];
+    public static readonly IReadOnlyList<string> All = [Air, Water, LiquidOxygen, Fuel];
 }
 
 /// <summary>Which way a port works: it takes its fluid in, or gives it out.</summary>

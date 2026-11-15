@@ -10,8 +10,9 @@
 Water ([water](../../docs/decisions/2026-11-02-water-to-oxygen.md)): ice melted into a bottle, poured into a cistern, piped to an
 electrolyser, which splits it into the liquid oxygen of the tanks on its output. The numbers are `Content/Water.cs`.
 
-- **Depends on:** `Grid` (`MachinesWith`, `MachineById`, `PortsOf`), `Items` (`ShortOf`, `Take`), `Pipes` (`NetworkAt`), `Power`
-  (`Satisfaction`), `Atmosphere` (`OxygenIn`, `Fill`). Run and saved after Atmosphere, last.
+- **Depends on:** `Grid` (`MachinesWith`, `MachineById`), `Items` (`ShortOf`, `Take`), `Pipes` (`NetworkOf`, `MachinesOn`), `Power`
+  (`Satisfaction`), `Atmosphere` (`OxygenIn`, `Fill`). Run and saved after Atmosphere; made before Building, which reads `WaterIn`.
+- Its cisterns' water is a list of Core's `Stored`, poured on by `Stores.Pour`, shared with Fuel ([fuel-liquid](../../docs/decisions/2026-11-16-fuel-liquid.md)).
 - **State** (`WaterState`, all saved): `Cisterns` — the water in each cistern holding any, by machine id; `Making` — each
   electrolyser's work toward its next unit, by machine id.
 

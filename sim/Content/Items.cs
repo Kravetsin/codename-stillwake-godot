@@ -224,9 +224,9 @@ public static class Items
         // Pressed at the Former of rock and planks: what a grow capsule is built on.
         new("soil", 999),
         new("biomass", 250, Yields: [("biofuel", 1)], SmeltTicks: 160, Process: "ferment"),
-        // The engine's fuel, the one item its tank takes, and the biofuel generator's; the furnace and the burner generator burn it
-        // four times as long as a plank.
-        new("biofuel", 100, BurnTicks: 1600),
+        // A litre can of the engine's, the drop pod's and the biofuel generator's fuel, poured into their stores (fuel-liquid): 20
+        // a stack, 20 litres. The furnace and the burner generator burn it four times as long as a plank.
+        new("biofuel", 20, BurnTicks: 1600),
         // What a planet's grazers give besides biomass (Creatures): hide for the cape; fat, a fuel burning twice a plank, or
         // fermented into biofuel as biomass is, so hunting fuels the ship. In a fuel slot it burns, in the fermenter it ferments.
         new("hide", 100),

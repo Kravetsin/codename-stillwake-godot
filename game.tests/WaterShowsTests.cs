@@ -8,18 +8,6 @@ namespace Stillwake.Game.Tests;
 public class WaterShowsTests
 {
     [Fact]
-    public void ACisternShowsItsWaterUpItsGlassByQuartersAnyWaterAtLeastOne()
-    {
-        Assert.Equal(0, WaterShows.CisternFrame(0));
-        Assert.Equal(1, WaterShows.CisternFrame(1));
-        Assert.Equal(1, WaterShows.CisternFrame(Spec.Water.CisternCapacity / 4));
-        Assert.Equal(2, WaterShows.CisternFrame(Spec.Water.CisternCapacity / 4 + 1));
-        Assert.Equal(WaterShows.Full, WaterShows.CisternFrame(Spec.Water.CisternCapacity));
-        // A cistern saved holding 225 litres, before it held 150 (liquid-volumes), shows full.
-        Assert.Equal(WaterShows.Full, WaterShows.CisternFrame(225_000));
-    }
-
-    [Fact]
     public void BubblesCycleThroughTheirFrames()
     {
         Assert.Equal([0, 1, 2, 3, 0], new[] { 0, 1, 2, 3, 4 }.Select(i => WaterShows.WorkFrame(i * WaterShows.FrameMs + 1)));
@@ -41,7 +29,7 @@ public class WaterShowsTests
     [Fact]
     public void EveryFrameItShowsHasAPicture()
     {
-        var names = Enumerable.Range(0, WaterShows.Full + 1).Select(i => $"cistern_fill_{i}")
+        var names = new[] { "cistern_level", "cistern_level_top" }
             .Concat(Enumerable.Range(0, WaterShows.Frames).Select(i => $"electrolyser_work_{i}")).Append("electrolyser_stalled");
         Assert.All(names, name => Assert.True(Png.Has(name), name));
     }

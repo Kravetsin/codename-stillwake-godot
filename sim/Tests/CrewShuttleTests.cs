@@ -36,7 +36,9 @@ public class CrewShuttleTests
     {
         var spec = Machines.Get("crewShuttle");
         Assert.Equal((24, 10), (spec.Width, spec.Height));
-        Assert.Equal(MachineTrait.Lands, spec.Traits);
+        Assert.Equal(MachineTrait.Lands | MachineTrait.HoldsFuel, spec.Traits);
+        // Its 200 l tank, filled by cans in its hopper or by a pipe into its stern (fuel-liquid).
+        Assert.Equal((200, (0, Content.Fuel.Item)), (spec.FuelHolds, spec.SlotTakes));
         Assert.Equal(MenuTabs.Ship, spec.Menu!.Tab);
     }
 
