@@ -131,7 +131,10 @@ public class JoinTests
             "                ",
         ];
         var layout = Sim.Layout.Parse(rows, null, [((0, 0), (2, 9))]).Doubled();
-        var (host, own) = LocalSession.Create(game.Create(1, layout), "b1");
+        var world = game.Create(1, layout);
+        // Its store full, as the testbed's: any course is in reach, there and back (fuel-liquid).
+        game.Module<Sim.Fuel.FuelModule>(world).Fill(game.Module<Sim.Grid.GridModule>(world).MachinesOf("crewShuttle")[0].Id, 200 * Content.Fuel.Litre);
+        var (host, own) = LocalSession.Create(world, "b1");
         own.Send(new Sim.Crew.Enter(17 * 32 + 2));
         own.Send(new Sim.Places.Find("shuttle"));
         host.Advance();

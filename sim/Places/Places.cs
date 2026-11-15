@@ -79,7 +79,7 @@ public sealed class PlacesModule : Module<PlacesState>
 
     /// <summary>
     /// The litres of fuel a trip to <paramref name="contact"/> and back costs: each leg its distance, <c>|Offset|</c> radar units of
-    /// <c>Contacts.KmPerUnit</c> km, over <c>Shuttle.KmPerLitre</c>, rounded up. Shown only: no fuel is checked or burnt yet.
+    /// <c>Contacts.KmPerUnit</c> km, over <c>Shuttle.KmPerLitre</c>, rounded up: what setting off burns from the shuttle's store, in litres (fuel-liquid).
     /// </summary>
     public static int CostOf(Contact contact)
     {
@@ -94,9 +94,15 @@ public sealed class PlacesModule : Module<PlacesState>
 
     /// <summary>
     /// Why <paramref name="peer"/>'s hero cannot set off in its shuttle: aboard, no course set, or its contact gone (<c>places.noCourse</c>);
-    /// then what Landing says (<see cref="ILandingQueries.SetOffProblem"/>). Null when it can.
+    /// then what Landing says (<see cref="ILandingQueries.SetOffProblem"/>): aboard its store short of the round trip, <see cref="CostOf"/>
+    /// in millilitres, is <c>landing.noFuel</c>; the return is free. Null when it can.
     /// </summary>
-    public string? SetOffProblem(int peer) => Surfaces.Here == 0 && Course == null ? "places.noCourse" : _landing.SetOffProblem(peer);
+    public string? SetOffProblem(int peer) =>
+        Surfaces.Here != 0 ? _landing.SetOffProblem(peer, 0)
+        : Course is { } course ? _landing.SetOffProblem(peer, Burnt(course)) : "places.noCourse";
+
+    /// <summary>The fuel a trip to <paramref name="contact"/> and back burns from the shuttle's store, in millilitres, all at setting off.</summary>
+    private static int Burnt(Contact contact) => CostOf(contact) * Content.Fuel.Litre;
 
     /// <summary>Aboard, the course's contact used up and the course cleared, the shuttle off to its vessel; elsewhere, off home.</summary>
     private void ApplySetOff(SetOff c)
@@ -109,7 +115,7 @@ public sealed class PlacesModule : Module<PlacesState>
         var contact = Course!;
         State.Contacts.Remove(contact);
         State.Course = null;
-        _landingOps.SetOff(c.From, Vessels.Kinds[Vessels.IndexOf(contact.Class)].Id, contact.Seed);
+        _landingOps.SetOff(c.From, Vessels.Kinds[Vessels.IndexOf(contact.Class)].Id, contact.Seed, Burnt(contact));
     }
 
     protected override PlacesState Init(Layout layout) => new();

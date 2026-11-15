@@ -36,6 +36,8 @@ public partial class ShuttleKey : WristKey
     };
     private (bool[] Taken, int? Own) _seen = ([], null);
     private string? _problem = "places.noCourse";
+    /// <summary>The litres the course's round trip burns, as last read; 0 with none or off the ship.</summary>
+    private int _litres;
     private double _sinceRead = RefreshMs;
     private Vector2 _mouse;
 
@@ -45,7 +47,8 @@ public partial class ShuttleKey : WristKey
         (_shuttle, _riders, _world, _send) = (shuttle, riders, world, send);
         SizeFlagsHorizontal = SizeFlags.ShrinkCenter;
         _tips = new TipSpots(tip);
-        _tips.Add(this, () => _problem == null ? null : new Tip(T("landing.setOff"), new TipLine(T(_problem), Tone.Bad)));
+        // A store short names the round trip's litres, as the pod's key names its descent's.
+        _tips.Add(this, () => _problem == null ? null : new Tip(T("landing.setOff"), new TipLine(T(_problem, ("fuel", _litres)), Tone.Bad)));
         _marks.CustomMinimumSize = new Vector2(riders * Mark + (riders - 1) * MarkGap, Mark);
         _marks.SizeFlagsHorizontal = SizeFlags.ShrinkCenter;
         _marks.MouseFilter = MouseFilterEnum.Ignore;
@@ -97,6 +100,7 @@ public partial class ShuttleKey : WristKey
         _where.Text = !landing.Returns
             ? places.Course is { } course ? T("landing.course", ("n", Math.Abs(course.Offset) * Contacts.KmPerUnit), ("l", PlacesModule.CostOf(course))) : T("landing.noRoute")
             : T("landing.home");
+        _litres = !landing.Returns && places.Course is { } trip ? PlacesModule.CostOf(trip) : 0;
         var problem = places.SetOffProblem(peer);
         if (problem != _problem)
         {

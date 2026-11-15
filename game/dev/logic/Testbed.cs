@@ -79,8 +79,8 @@ public static class Testbed
     /// <summary>The litres the engine's and the biofuel generator's stores hold at the start: biofuel, so the engine draws its power.</summary>
     public const int Fuelled = 10;
 
-    /// <summary>The litres the crew shuttle's 200 l tank holds at the start: some, so its gauge shows it (fuel-liquid).</summary>
-    public const int ShuttleFuel = 120;
+    /// <summary>The litres the crew shuttle's 200 l tank holds at the start: full, the round trip to any contact the radar holds (shuttle-flight).</summary>
+    public const int ShuttleFuel = 200;
 
     /// <summary>The litres the drop pod's store holds at the start: biofuel for two descents (<c>Fuel.Descent</c> each).</summary>
     public const int PodFuel = 2 * Fuel.Descent / Fuel.Can;

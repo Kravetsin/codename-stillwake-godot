@@ -27,9 +27,10 @@ public sealed record Owner(int Pod, int Peer, int Home);
 /// <summary>
 /// A shuttle in the air with its riders (shuttle-flight): <c>From</c> the cell it stood at on this surface, <c>Riders</c> in seat
 /// order, arriving in <c>TicksLeft</c> ticks; <c>Home</c> the ship cell it docks at. <c>Out</c> the kind of vessel world it flies to,
-/// grown from <c>Seed</c>; null for a flight home.
+/// grown from <c>Seed</c>; null for a flight home. <c>Load</c> what its hopper held, <c>Fuel</c> what its store held, in millilitres,
+/// the trip's burnt fuel taken (fuel-liquid).
 /// </summary>
-public sealed record Voyage(int From, IReadOnlyList<int> Riders, int TicksLeft, int Home, string? Out = null, uint Seed = 0);
+public sealed record Voyage(int From, IReadOnlyList<int> Riders, int TicksLeft, int Home, string? Out = null, uint Seed = 0, Stack? Load = null, int Fuel = 0);
 
 /// <summary>Shuttle <c>Shuttle</c>, a machine id, standing on a vessel world, its home aboard <c>Home</c>: where it docks.</summary>
 public sealed record Parked(int Shuttle, int Home);
@@ -89,15 +90,21 @@ public interface ILandingQueries
     /// <summary>Whether <paramref name="peer"/>'s hero sits in a drop pod or a shuttle, or flies in one, from this surface.</summary>
     bool Rides(int peer);
 
-    /// <summary>Why <paramref name="peer"/>'s hero cannot set off in the shuttle it sits in, its course aside; null when it can.</summary>
-    string? SetOffProblem(int peer);
+    /// <summary>
+    /// Why <paramref name="peer"/>'s hero cannot set off in the shuttle it sits in, its course aside, the trip burning
+    /// <paramref name="fuel"/> millilitres from its store; null when it can.
+    /// </summary>
+    string? SetOffProblem(int peer, int fuel);
 }
 
 /// <summary>How places sends a shuttle off (shuttle-flight): its course is places', the flight Landing's.</summary>
 public interface ILandingOps
 {
-    /// <summary>The shuttle <paramref name="peer"/>'s hero sits in sets off from the ship to a vessel world of <paramref name="kind"/> grown from <paramref name="seed"/>.</summary>
-    void SetOff(int peer, string kind, uint seed);
+    /// <summary>
+    /// The shuttle <paramref name="peer"/>'s hero sits in sets off from the ship to a vessel world of <paramref name="kind"/> grown from
+    /// <paramref name="seed"/>, burning <paramref name="fuel"/> millilitres from its store: the round trip.
+    /// </summary>
+    void SetOff(int peer, string kind, uint seed, int fuel);
 
     /// <summary>The shuttle <paramref name="peer"/>'s hero sits in, off the ship, sets off home.</summary>
     void SetOffHome(int peer);
@@ -198,10 +205,11 @@ public sealed class LandingModule : Module<LandingState>, ICarries, IOutlives, I
     /// <summary>
     /// Why <paramref name="peer"/>'s hero cannot set off in its shuttle, its course aside (places'): in no seat of a machine for several,
     /// or passed out (<c>landing.notSeated</c>); aboard, its shuttle no longer on a run (<c>landing.noPlatform</c>), anything solid under
-    /// its run (<c>landing.shaftBlocked</c>), the run without power enough (<c>landing.unpowered</c>), or a world that cannot open a vessel
-    /// world (<c>landing.cannotLeave</c>); off the ship, a shuttle that came from no home (<c>landing.notYours</c>: a dev's). Null when it can.
+    /// its run (<c>landing.shaftBlocked</c>), the run without power enough (<c>landing.unpowered</c>), its store short of
+    /// <paramref name="fuel"/> millilitres (<c>landing.noFuel</c>), or a world that cannot open a vessel world (<c>landing.cannotLeave</c>);
+    /// off the ship, where the return is free, a shuttle that came from no home (<c>landing.notYours</c>: a dev's). Null when it can.
     /// </summary>
-    public string? SetOffProblem(int peer)
+    public string? SetOffProblem(int peer, int fuel)
     {
         if (SeatOf(peer) is not int shuttle || _grid.MachineById(shuttle) is not { } m || Content.Machines.Get(m.Kind).Riders == 1
             || _crew.HeroOf(peer) is not { Out: 0 }) return "landing.notSeated";
@@ -210,6 +218,7 @@ public sealed class LandingModule : Module<LandingState>, ICarries, IOutlives, I
         for (int dx = 0; dx < Content.Machines.Get(m.Kind).Width; dx++)
             if (!_grid.ClearBelow(Under(m) + dx)) return "landing.shaftBlocked";
         if (!Powered(Under(m))) return "landing.unpowered";
+        if (_fuel.FuelIn(shuttle) < fuel) return "landing.noFuel";
         return Surfaces.CanOpen ? null : "landing.cannotLeave";
     }
 
@@ -365,9 +374,9 @@ public sealed class LandingModule : Module<LandingState>, ICarries, IOutlives, I
 
     /// <summary>
     /// A tick of every voyage, after the flights (shuttle-flight): riders gone from this surface are dropped, the out ones fly on. Outbound
-    /// it shuts its run once the shuttle is through, and left with no rider docks home empty at once, its contact still used. At zero
-    /// it sends its riders in seat order, outbound to a vessel world opened for it, else home; it stays until they depart, and one
-    /// homeward with no rider waits there until its world closes (<see cref="Closing"/>).
+    /// it shuts its run once the shuttle is through, and left with no rider docks home empty at once, its load and fuel with it, its
+    /// contact used and its trip's fuel burnt. At zero it sends its riders in seat order, outbound to a vessel world opened for it, else
+    /// home; it stays until they depart, and one homeward with no rider waits there until its world closes (<see cref="Closing"/>).
     /// </summary>
     private void Sail()
     {
@@ -381,7 +390,7 @@ public sealed class LandingModule : Module<LandingState>, ICarries, IOutlives, I
             {
                 if (v.TicksLeft > shut) Shut(Craft.Kind, v.Home);
                 State.Voyages.RemoveAt(i--);
-                Moor(null, v.Home);
+                Moor(null, v.Home, v.Load, v.Fuel);
                 continue;
             }
             State.Voyages[i] = v = v with { TicksLeft = v.TicksLeft - 1 };
@@ -401,10 +410,11 @@ public sealed class LandingModule : Module<LandingState>, ICarries, IOutlives, I
 
     /// <summary>
     /// The shuttle <paramref name="peer"/>'s hero sits in sets off with its riders, the seats held, in place order: aboard its run opened
-    /// under it, flying to a vessel world of <paramref name="out"/> from <paramref name="seed"/>; off the ship home. Its machine and
-    /// seats go.
+    /// under it and <paramref name="burn"/> millilitres taken from its store, flying to a vessel world of <paramref name="out"/> from
+    /// <paramref name="seed"/>; off the ship home, burning nothing. Its machine and seats go; its hopper's stack and its store's fuel fly
+    /// with it, taken out before the machine goes.
     /// </summary>
-    private void Away(int peer, string? @out, uint seed)
+    private void Away(int peer, string? @out, uint seed, int burn)
     {
         int shuttle = SeatOf(peer)!.Value;
         var m = _grid.MachineById(shuttle)!;
@@ -416,61 +426,95 @@ public sealed class LandingModule : Module<LandingState>, ICarries, IOutlives, I
             State.Parked.RemoveAll(p => p.Shuttle == shuttle);
         }
         else _gridOps.SetDoorway(Under(m), true);
+        _fuelOps.Take(shuttle, burn);
+        var (load, fuel) = Empty(shuttle);
         _gridOps.Clear(m.Cell, "machine");
         State.Seats.RemoveAll(s => s.Pod == shuttle);
-        State.Voyages.Add(new Voyage(m.Cell, riders, Content.Shuttle.FlightTicks, home, @out, seed));
+        State.Voyages.Add(new Voyage(m.Cell, riders, Content.Shuttle.FlightTicks, home, @out, seed, load, fuel));
     }
 
-    public void SetOff(int peer, string kind, uint seed) => Away(peer, kind, seed);
+    public void SetOff(int peer, string kind, uint seed, int fuel) => Away(peer, kind, seed, fuel);
 
-    public void SetOffHome(int peer) => Away(peer, null, 0);
+    public void SetOffHome(int peer) => Away(peer, null, 0, 0);
+
+    /// <summary>What shuttle <paramref name="shuttle"/>'s hopper and store hold, taken out of them: what flies or outlives with it.</summary>
+    private (Stack? Load, int Fuel) Empty(int shuttle) => (_itemsOps.TakeFrom(shuttle, 0, int.MaxValue), _fuelOps.TakeAll(shuttle));
 
     /// <summary>
-    /// A shuttle stood again at <paramref name="home"/> aboard; that spot built over or its run gone, laid there as its cost instead:
-    /// counted to <paramref name="rider"/>, its first rider, as a pod's (<see cref="IItemsOps.DropAt"/>); for none, as obtained by nobody.
-    /// Returns its machine id, or null for one laid.
+    /// A shuttle stood again at <paramref name="home"/> aboard, <paramref name="load"/> and <paramref name="fuel"/> put back in it; that
+    /// spot built over or its run gone, laid there as its cost, load and fuel instead: counted to <paramref name="rider"/>, its first
+    /// rider, as a pod's (<see cref="IItemsOps.DropAt"/>); for none, as obtained by nobody. Returns its machine id, or null for one laid.
     /// </summary>
-    private int? Moor(int? rider, int home)
+    private int? Moor(int? rider, int home, Stack? load, int fuel)
     {
-        if (_grid.PlacementProblem(home, Craft) == null)
-        {
-            _gridOps.Place(home, Craft);
-            return _grid.MachineAt(home)!.Id;
-        }
-        var cost = Content.Machines.Get(Craft.Kind).Cost;
-        if (rider is int peer) _itemsOps.DropAt(peer, cost, home);
-        else foreach (var (item, count) in cost) _itemsOps.LayDown(new Stack(item, count), home);
+        if (_grid.PlacementProblem(home, Craft) == null) return Refit(rider, home, load, fuel);
+        Lay(rider, Content.Machines.Get(Craft.Kind).Cost, home);
+        Lay(rider, Cans(fuel), home);
+        if (load != null) _itemsOps.LayDown(load, home);
         return null;
     }
 
     /// <summary>
-    /// The shuttle arrived off the ship, its home aboard <paramref name="home"/>: stopped in open space, its right edge
-    /// <c>Shuttle.Gap</c> cells left of the vessel's frame, its bottom row on the spawn's row. The open space round the frame always
-    /// holds it (a content test), so placing it never fails.
+    /// The shuttle placed at <paramref name="at"/>, <paramref name="load"/> and <paramref name="fuel"/> put back in it, what its store has
+    /// no room for laid by it as cans. Returns its machine id.
     /// </summary>
-    private int Stop(int home)
+    private int Refit(int? rider, int at, Stack? load, int fuel)
+    {
+        _gridOps.Place(at, Craft);
+        int shuttle = _grid.MachineAt(at)!.Id;
+        if (load != null) _itemsOps.PutIn(shuttle, load);
+        Lay(rider, Cans(fuel - _fuelOps.Fill(shuttle, fuel)), at);
+        return shuttle;
+    }
+
+    /// <summary><paramref name="fuel"/> as the whole cans it fills: none for less than a can, the part one lost, as a pod's.</summary>
+    private static IReadOnlyList<(string Item, int Count)> Cans(int fuel) =>
+        fuel / Content.Fuel.Can is int cans and > 0 ? [(Content.Fuel.Item, cans)] : [];
+
+    /// <summary><paramref name="what"/> laid at <paramref name="cell"/>: as <paramref name="rider"/> dropped it; for none, by nobody, counting nothing obtained.</summary>
+    private void Lay(int? rider, IReadOnlyList<(string Item, int Count)> what, int cell)
+    {
+        if (rider is int peer) _itemsOps.DropAt(peer, what, cell);
+        else foreach (var (item, count) in what) _itemsOps.LayDown(new Stack(item, count), cell);
+    }
+
+    /// <summary>
+    /// The shuttle arrived off the ship, its home aboard <paramref name="home"/>, <paramref name="load"/> and <paramref name="fuel"/> in
+    /// it: stopped in open space, its right edge <c>Shuttle.Gap</c> cells left of the vessel's frame, its bottom row on the spawn's row.
+    /// The open space round the frame always holds it (a content test), so placing it never fails.
+    /// </summary>
+    private int Stop(int rider, int home, Stack? load, int fuel)
     {
         var spec = Content.Machines.Get(Craft.Kind);
         int width = _grid.Width;
         int at = (_crew.Spawn / width - spec.Height + 1) * width + Content.Vessels.Margin - Content.Shuttle.Gap - spec.Width;
-        _gridOps.Place(at, Craft);
-        int shuttle = _grid.MachineAt(at)!.Id;
+        int shuttle = Refit(rider, at, load, fuel);
         State.Parked.Add(new Parked(shuttle, home));
         return shuttle;
     }
 
-    /// <summary>What closing this vessel world leaves (rule 7): the home of every shuttle standing here, then of every one flying home.</summary>
+    /// <summary>What a closing vessel world's shuttle leaves the ship: its home, its hopper's stack and its fuel.</summary>
+    private sealed record Outliving(int Home, Stack? Load, int Fuel);
+
+    /// <summary>
+    /// What closing this vessel world leaves (rule 7): every shuttle standing here, emptied, then every one flying home, each with
+    /// its home, load and fuel.
+    /// </summary>
     public object? Closing()
     {
-        var homes = State.Parked.ConvertAll(p => p.Home);
-        homes.AddRange(State.Voyages.Select(v => v.Home));
-        return homes.Count > 0 ? homes : null;
+        var left = State.Parked.ConvertAll(p =>
+        {
+            var (load, fuel) = _grid.MachineById(p.Shuttle) != null ? Empty(p.Shuttle) : (null, 0);
+            return new Outliving(p.Home, load, fuel);
+        });
+        left.AddRange(State.Voyages.Select(v => new Outliving(v.Home, v.Load, v.Fuel)));
+        return left.Count > 0 ? left : null;
     }
 
-    /// <summary>Each shuttle a closing vessel world left docks at its home aboard, empty.</summary>
+    /// <summary>Each shuttle a closing vessel world left docks at its home aboard, empty of riders, its load and fuel in it.</summary>
     public void Outlived(object left)
     {
-        foreach (int home in (List<int>)left) Moor(null, home);
+        foreach (var o in (List<Outliving>)left) Moor(null, o.Home, o.Load, o.Fuel);
     }
 
     /// <summary>
@@ -547,10 +591,10 @@ public sealed class LandingModule : Module<LandingState>, ICarries, IOutlives, I
     private sealed record Carried(int Home, Stack? Load, bool Rides, int Fuel);
 
     /// <summary>
-    /// What crosses with a voyage's rider at its end: its shuttle's home aboard, and whether it brings the shuttle (its first rider in seat
+    /// What crosses with a voyage's rider at its end: its shuttle's home aboard, and whether it brings the shuttle, its load and fuel (its first rider in seat
     /// order) or finds it there (the others).
     /// </summary>
-    private sealed record Rode(int Home, bool Brings);
+    private sealed record Rode(int Home, bool Brings, Stack? Load = null, int Fuel = 0);
 
     /// <summary>
     /// The peer's voyage at its end: its first rider in seat order brings the shuttle, the others a seat, the last ends it; before its end
@@ -564,7 +608,7 @@ public sealed class LandingModule : Module<LandingState>, ICarries, IOutlives, I
         {
             var voyage = State.Voyages[v];
             if (voyage.Riders[^1] == peer) State.Voyages.RemoveAt(v);
-            return new Rode(voyage.Home, voyage.Riders[0] == peer);
+            return voyage.Riders[0] == peer ? new Rode(voyage.Home, true, voyage.Load, voyage.Fuel) : new Rode(voyage.Home, false);
         }
         int i = State.Flights.FindIndex(f => f.Peer == peer);
         if (i >= 0)
@@ -607,8 +651,8 @@ public sealed class LandingModule : Module<LandingState>, ICarries, IOutlives, I
     {
         int? shuttle = (r.Brings, Surfaces.Here == 0) switch
         {
-            (true, true) => Moor(peer, r.Home),
-            (true, false) => Stop(r.Home),
+            (true, true) => Moor(peer, r.Home, r.Load, r.Fuel),
+            (true, false) => Stop(peer, r.Home, r.Load, r.Fuel),
             // Its home built over by another shuttle meanwhile, the rider sits in that one.
             (false, true) => _grid.MachineAt(r.Home) is { } m && m.Cell == r.Home && Content.Machines.Get(m.Kind).Riders > 1 ? m.Id : null,
             (false, false) => State.Parked.Find(p => p.Home == r.Home)?.Shuttle,

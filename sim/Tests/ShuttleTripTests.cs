@@ -51,18 +51,29 @@ public class ShuttleTripTests
 
     private const int Flight = Content.Shuttle.FlightTicks, Fall = Content.Shuttle.FallTicks;
     private const string Kind = "vessel.shuttle";
+    /// <summary>Where the found contact lies, in radar units: 500 km, 50 l a leg, so a round trip of <see cref="Trip"/> millilitres.</summary>
+    private const int Offset = -50;
+    private const int Trip = 100 * Content.Fuel.Litre;
+    /// <summary>What the shuttle's store holds in a scenario: the trip and fifty litres to spare.</summary>
+    private const int Tank = Trip + 50 * Content.Fuel.Litre;
     private static string[] Reasons(Scenario w) => w.Refusals.Select(r => r.Reason).ToArray();
 
     /// <summary>
     /// The hangar, the shuttle on its run, <paramref name="heroes"/> heroes in it, peers 0 up, a small vessel found on the radar; the first
-    /// <paramref name="seated"/> of them boarded, and the course set to it unless <paramref name="course"/> is false.
+    /// <paramref name="seated"/> of them boarded, and the course set to it unless <paramref name="course"/> is false. The contact lies
+    /// <see cref="Offset"/> units off, a round trip of <see cref="Trip"/>; the shuttle's store holds <paramref name="fuel"/> mL.
     /// </summary>
-    private static Scenario Ready(int heroes = 1, int? seated = null, bool course = true, string[]? rows = null, ((int, int), (int, int))[]? cables = null)
+    private static Scenario Ready(int heroes = 1, int? seated = null, bool course = true, string[]? rows = null, ((int, int), (int, int))[]? cables = null,
+        int fuel = Tank)
     {
         var w = new Scenario(Layout.Parse(rows ?? Rows, null, cables ?? Cables), doubled: true);
         w.M.Grid.Place(Home, Craft);
+        // Filled as a pipe would: the test reaches past the hopper's can a tick.
+        w.M.Fuel.Fill(Shuttle(w.M), fuel);
         for (int peer = 0; peer < heroes; peer++) w.Do(new Enter(Spots[peer]) { From = peer });
         w.Do(new Find("shuttle")).Run();
+        var slice = (PlacesState)w.M.Places.Slice;
+        slice.Contacts[^1] = slice.Contacts[^1] with { Offset = Offset };
         for (int peer = 0; peer < (seated ?? heroes); peer++) w.Do(new Board(Shuttle(w.M)) { From = peer });
         if (course) w.Do(new SetCourse(w.M.Places.Contacts[^1].Id));
         w.Run();
@@ -82,6 +93,89 @@ public class ShuttleTripTests
     /// <summary>Every shuttle there is: standing on an open surface, or flying in a voyage from one.</summary>
     private static int Shuttles(Scenario w) =>
         w.World.Surfaces.Where(s => !s.Closed).Sum(s => w.On(s.Id) is var m ? m.Grid.MachinesOf(Craft.Kind).Count + m.Landing.Voyages.Count : 0);
+
+    /// <summary>The fuel every shuttle holds, in millilitres: in the store of one standing, or flying with a voyage.</summary>
+    private static int Fuel(Scenario w) =>
+        w.World.Surfaces.Where(s => !s.Closed).Sum(s => w.On(s.Id) is var m
+            ? m.Grid.MachinesOf(Craft.Kind).Sum(x => m.Fuel.FuelIn(x.Id)) + m.Landing.Voyages.Sum(v => v.Fuel) : 0);
+
+    // Fuel.
+
+    [Fact]
+    public void ASetOffAStoreOneMillilitreShortOfTheRoundTripIsRefused()
+    {
+        var w = Ready(fuel: Trip - 1);
+        Assert.Equal(Trip / Content.Fuel.Litre, PlacesModule.CostOf(w.M.Places.Course!));
+        w.Do(new SetOff()).Run();
+        Assert.Equal(["landing.noFuel"], Reasons(w));
+        Assert.Equal(Trip - 1, w.M.Fuel.FuelIn(Shuttle(w.M)));
+        Assert.Equal(Shuttle(w.M), w.M.Landing.SeatOf(0));
+        Assert.NotNull(w.M.Places.Course);
+        Assert.Empty(w.M.Landing.Voyages);
+    }
+
+    [Fact]
+    public void SettingOffBurnsTheWholeRoundTripAndTheRestFliesWithIt()
+    {
+        var w = Ready(fuel: Trip).Do(new SetOff()).Run();
+        Assert.Empty(w.Refusals);
+        Assert.Equal(0, Assert.Single(w.M.Landing.Voyages).Fuel);
+        var spare = Ready().Do(new SetOff()).Run();
+        Assert.Equal(Tank - Trip, Assert.Single(spare.M.Landing.Voyages).Fuel);
+    }
+
+    [Fact]
+    public void WhatIsLeftStandsWithItByTheVesselAndComesHomeTheReturnBurningNothing()
+    {
+        var w = Arrived();
+        Assert.Equal(Tank - Trip, w.On(1).Fuel.FuelIn(Shuttle(w.On(1))));
+        w.Do(new SetOff { Surface = 1 }).Run();
+        Assert.Empty(w.Refusals);
+        Assert.Equal(Tank - Trip, Assert.Single(w.On(1).Landing.Voyages).Fuel);
+        w.Run(Flight);
+        Assert.Equal(Tank - Trip, w.M.Fuel.FuelIn(Shuttle(w.M)));
+        // Flying home with too little for another trip is no refusal: the return is free.
+        var dry = Ready(fuel: Trip).Do(new SetOff()).Run(Flight).Do(new SetOff { Surface = 1 }).Run(Flight);
+        Assert.Empty(dry.Refusals);
+        Assert.Equal(0, dry.M.Fuel.FuelIn(Shuttle(dry.M)));
+    }
+
+    [Fact]
+    public void ItsFuelDocksHomeWithItWhenItsWorldClosesOrItsRidersAllLeaveOutbound()
+    {
+        var closed = Arrived().Do(new Leave { Surface = 1 }).Run();
+        Assert.True(closed.World.Surfaces[1].Closed);
+        Assert.Equal(Tank - Trip, closed.M.Fuel.FuelIn(Shuttle(closed.M)));
+
+        var homeward = Arrived(2).Do(new SetOff { Surface = 1 }).Run(10).Do(new Leave { Surface = 1 }).Do(new Leave { From = 1, Surface = 1 }).Run();
+        Assert.Equal(Tank - Trip, homeward.M.Fuel.FuelIn(Shuttle(homeward.M)));
+
+        var left = Ready().Do(new SetOff()).Run(5).Do(new Leave()).Run();
+        Assert.Equal(Tank - Trip, left.M.Fuel.FuelIn(Shuttle(left.M)));
+    }
+
+    [Fact]
+    public void LaidAsItsCostItsFuelIsLaidAsWholeCans()
+    {
+        var w = Ready(fuel: Tank + 400).Do(new SetOff()).Run(Flight);
+        w.M.Grid.Place(Home, new Placement("machine", "crate"));
+        w.Do(new SetOff { Surface = 1 }).Run(Flight);
+        Assert.Empty(w.M.Grid.MachinesOf(Craft.Kind));
+        var laid = w.M.Items.Floor.Where(s => s.Item == Content.Fuel.Item).Sum(s => s.Count);
+        // Fifty litres and a part of one: the part is lost, as a pod's.
+        Assert.Equal((Tank + 400 - Trip) / Content.Fuel.Can, laid);
+    }
+
+    [Fact]
+    public void ASaveMidVoyageKeepsItsFuel()
+    {
+        var w = Ready().Do(new SetOff()).Run(Flight / 2).Reload();
+        Assert.Equal(Tank - Trip, Assert.Single(w.M.Landing.Voyages).Fuel);
+        w.Run(Flight / 2).Do(new SetOff { Surface = 1 }).Run(Flight / 2).Reload();
+        Assert.Equal(Tank - Trip, Assert.Single(w.On(1).Landing.Voyages).Fuel);
+        w.Run(Flight / 2 + 1);
+        Assert.Equal(Tank - Trip, w.M.Fuel.FuelIn(Shuttle(w.M)));
+    }
 
     // The course.
 
@@ -365,7 +459,8 @@ public class ShuttleTripTests
         for (int x = 4; x < 28; x++) gone.M.Grid.Clear(At(x, 20), "structure");
         gone.Do(new SetOff { Surface = 1 }).Run(Flight);
         Assert.Empty(gone.M.Grid.MachinesOf(Craft.Kind));
-        Assert.Equal(Machines.Get(Craft.Kind).Cost.Sum(c => c.Count), gone.M.Items.Floor.Sum(s => s.Count));
+        // Its cost and its fuel's cans.
+        Assert.Equal(Machines.Get(Craft.Kind).Cost.Sum(c => c.Count) + (Tank - Trip) / Content.Fuel.Can, gone.M.Items.Floor.Sum(s => s.Count));
     }
 
     // Rule 7: the shuttle never dies with the vessel.
@@ -459,14 +554,17 @@ public class ShuttleTripTests
 
     /// <summary>
     /// Whatever up to five heroes do — come in, board, alight, set courses, set off, leave, pass out, wait — the one shuttle built stands
-    /// on one open surface or flies in one voyage, no machine seats more than its riders, and a voyage's rider sits nowhere. A twin fed
+    /// on one open surface or flies in one voyage, no machine seats more than its riders, a voyage's rider sits nowhere, and its fuel is
+    /// what it started with less every round trip set off on, carried in its store or its voyage, never lost or doubled. A twin fed
     /// the same commands, one of them saved and loaded on the way, hashes alike throughout.
     /// </summary>
     [Property(MaxTest = 25)]
     public void TheOneShuttleIsAlwaysSomewhereAndItsRidersNowhereElse(PositiveInt seed, PositiveInt heroes)
     {
         int peers = 1 + heroes.Get % 5;
-        var (w, twin) = (Ready(peers, seated: 0, course: false), Ready(peers, seated: 0, course: false));
+        const int Full = 200 * Content.Fuel.Litre;
+        var (w, twin) = (Ready(peers, seated: 0, course: false, fuel: Full), Ready(peers, seated: 0, course: false, fuel: Full));
+        int fuel = Full;
         var rng = new Rng(new RngState { S = (uint)seed.Get });
         int reload = (int)rng.Below(40);
         for (int step = 0; step < 40; step++)
@@ -494,11 +592,14 @@ public class ShuttleTripTests
             if (rng.Below(12) == 0 && 1 + (int)rng.Below(40) is int faint)
                 foreach (var s in (Scenario[])[w, twin])
                     if (s.On(s.World.SurfaceOf(peer)).Crew.HeroOf(peer) is { } hero) hero.Out = faint;
+            // A set off the sim takes aboard burns its round trip, all at once.
+            if (c is SetOff && at == 0 && w.M.Places.SetOffProblem(peer) == null) fuel -= PlacesModule.CostOf(w.M.Places.Course!) * Content.Fuel.Litre;
             for (int t = 0; t < ticks; t++)
             {
                 w.Run();
                 twin.Run();
                 Holds(w, peers);
+                Assert.Equal(fuel, Fuel(w));
             }
             if (step == reload) w.Reload();
             Assert.Equal(twin.World.Hash(), w.World.Hash());
