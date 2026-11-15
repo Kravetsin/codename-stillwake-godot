@@ -1,6 +1,6 @@
 # The vitals: air, charge and meals as frameless light at the bottom-left
 
-- Status: accepted
+- Status: accepted; its sign sizes and row spacing superseded by [hungry-respawn](2026-11-15-hungry-respawn.md)
 - Date: 2026-11-13
 - Supersedes: [0081](0081-the-wrist-is-one-column-of-gauges-and-keys.md)'s gauge row under the hotbar, and
   [energy-ring](2026-11-06-energy-ring.md)'s ring and number

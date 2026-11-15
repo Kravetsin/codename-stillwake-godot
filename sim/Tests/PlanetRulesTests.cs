@@ -230,7 +230,7 @@ public class PlanetRulesTests
     [Fact]
     public void ThePlanetsBuildListRefusesMachinesAndPlansALadderWhichIsBuilt()
     {
-        var w = Down(("scrap", 5));
+        var w = Down(("scrap", 5)).Fed(surface: 1);
         var m = w.On(1);
         int cell = Feet(16, Ground - 1);
         w.Do(new PlacePlan(cell, new Placement("machine", "furnace")))

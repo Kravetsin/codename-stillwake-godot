@@ -11,7 +11,7 @@ next replaces it. Played, it was kept to creative mode, where items are made fro
 ## Decision
 
 - **One more inventory slot, after the equipment** (`Inventory.Trash`, `Total` one more): saved and carried with the
-  inventory, no new state or command. Save format 65, its step giving every inventory an empty trash.
+  inventory, no new state or command. Save format 66, its step giving every inventory an empty trash.
 - **A `Move` onto it replaces what it held** (`Stacks.Trashed`): the count moved goes in, the old stack is gone, never merged
   nor swapped. Out of it, a move as from any slot.
 - **Open in creative mode only** (`SlotOpen`): elsewhere a move into it is refused `items.noSlot` and it is not shown. What it

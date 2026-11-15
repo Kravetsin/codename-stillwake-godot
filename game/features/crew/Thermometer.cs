@@ -18,7 +18,7 @@ public partial class Thermometer : CanvasLayer
     private const double RefreshS = 0.25;
     // The star drawn as tall as the oxygen sign and the bolt show (some 17 units: their pictures have more margin), its number
     // larger than the pieces are tall.
-    private const float Sign = 15 * Vitals.SignScale, TextSize = 14, Grow = Sign / (11 * Vitals.SignScale);
+    private const float Sign = Vitals.Icon, TextSize = 14, Grow = Sign / 16.5f;
     private static readonly Color Calm = new("d3dee9"), FrostLight = new("9ed8ff"), FrostDeep = new("3a86e0"), Rime = new("e6f7ff");
     private static readonly Color HeatLight = new("ffc46e"), HeatDeep = new("ff5a26");
 

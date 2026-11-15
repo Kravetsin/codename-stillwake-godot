@@ -156,11 +156,16 @@ public class MigrationsTests
     [Fact]
     public void GivesEveryInventoryAnEmptyTrashAfterItsEquipment()
     {
-        // A format-64 inventory ended with its equipment; on every surface it gains the trash, empty, its slots where they were.
+        // A format-65 inventory ended with its equipment; on every open surface it gains the trash, empty, its slots where they
+        // were; a closed surface, a vessel not yet boarded, has no slices and is passed over.
         static JsonObject Slices() => JsonNode.Parse(
             """{"items":{"inventories":[{"id":0,"slots":[{"item":"scrap","count":2},null,{"item":"cape","count":1}]}]}}""")!.AsObject();
-        var old = new JsonObject { ["slices"] = Slices(), ["surfaces"] = new JsonArray(new JsonObject { ["slices"] = Slices() }) };
-        var upgraded = Migrations.Steps[64 - Migrations.Oldest](old);
+        var old = new JsonObject
+        {
+            ["slices"] = Slices(),
+            ["surfaces"] = new JsonArray(new JsonObject { ["slices"] = Slices() }, new JsonObject { ["closed"] = true }),
+        };
+        var upgraded = Migrations.Steps[65 - Migrations.Oldest](old);
         foreach (var slices in new[] { upgraded["slices"]!, upgraded["surfaces"]![0]!["slices"]! })
         {
             var slots = slices["items"]!["inventories"]![0]!["slots"]!.AsArray();
@@ -373,5 +378,27 @@ public class MigrationsTests
 
         w.Reload(Migrations.Upgrade(save.ToJsonString()));
         Assert.Equal(grid, JsonNode.Parse(w.World.Save())!["slices"]!["grid"]!.ToJsonString());
+    }
+
+    [Fact]
+    public void DropsThePodPasteOfAFormatSixtyFourSaveItsOtherMealsKept()
+    {
+        // A format-64 hero printed with pod paste and a ration since: after the upgrade the ration alone, and one with paste alone hungry.
+        var w = new Scenario("S.......").GiveItems(0, (Content.Foods.Ration, 1)).Do(new Crew.Enter(1)).Do(new Crew.Enter(1) { From = 1 }).Do(new Crew.Eat(Content.Foods.Ration)).Run();
+        var save = JsonNode.Parse(w.World.Save())!.AsObject();
+        save["format"] = 64;
+        var heroes = save["slices"]!["crew"]!["heroes"]!.AsArray();
+        heroes[0]!["meals"] = JsonNode.Parse("""[{"food":"podPaste","left":900},{"food":"ration","left":800}]""");
+        heroes[1]!["meals"] = JsonNode.Parse("""[{"food":"podPaste","left":900}]""");
+        // A vessel not yet boarded: a closed surface, no slices of its own.
+        const string Closed = """[{"id":1,"kind":"vessel.shuttle","seed":7,"closed":true}]""";
+        save["surfaces"] = JsonNode.Parse(Closed);
+
+        var upgraded = JsonNode.Parse(Migrations.Upgrade(save.ToJsonString()))!.AsObject();
+        Assert.Equal(Closed, upgraded["surfaces"]!.ToJsonString());
+        upgraded.Remove("surfaces");
+        w.Reload(upgraded.ToJsonString());
+        Assert.Equal([(Content.Foods.Ration, 800)], w.M.Crew.HeroOf(0)!.Meals.Select(m => (m.Food, m.Left)));
+        Assert.True(w.M.Crew.Hungry(1));
     }
 }

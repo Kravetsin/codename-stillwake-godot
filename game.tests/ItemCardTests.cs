@@ -268,7 +268,7 @@ public class ItemCardTests
         Assert.Equal([("+10 O₂", "A canister gives more"), ("15:00", "Lasts")], Said(ItemCards.Of(Spec.Foods.CannedMeat).Rows));
         Assert.Equal([("+20 O₂", "Air the lungs hold"), ("20:00", "Lasts")], Said(ItemCards.Of(Spec.Foods.Stim).Rows));
         // Every food's rows from its rates, rounded down to whole percent, and its price the market's.
-        foreach (var food in Spec.Foods.All.Where(f => f.Id != Spec.Foods.Paste))
+        foreach (var food in Spec.Foods.All)
         {
             var card = ItemCards.Of(food.Id);
             Assert.True(card.Food, food.Id);
