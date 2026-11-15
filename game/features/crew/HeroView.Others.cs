@@ -115,7 +115,7 @@ public partial class HeroView
                 _othersRetch.PlayAt(shown.Figure.Visor, _othersRetch.PitchScale, shown.Figure.Helmeted ? S.RetchHelmetedDb : 0);
             }
             // A friend's canister: its air rises round it, heard where it is (0081).
-            if (crew.HeroOf(id) is { } breathing && _canisters.Breathed(id, breathing.Air, breathing.Out))
+            if (crew.HeroOf(id) is { } breathing && _canisters.Breathed(id, breathing.Air, crew.CapacityOf(id), breathing.Out))
             {
                 var figure = shown.Figure;
                 _air.Fling(() => figure.Stance);

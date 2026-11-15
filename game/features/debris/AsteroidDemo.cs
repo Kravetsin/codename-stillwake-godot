@@ -76,7 +76,7 @@ public partial class AsteroidDemo : CanvasLayer
             ["id"] = 0,
             ["cell"] = start,
             // The helmet holds the air (2026-10-27-suits-are-worn); the suit has no tank.
-            ["air"] = Spec.Items.Get(Spec.Helmet.Basic).Tank,
+            ["air"] = Spec.Crew.Lungs + Spec.Items.Get(Spec.Helmet.Basic).Tank,
             ["out"] = 0,
             ["exerting"] = false,
             ["thrusting"] = false,

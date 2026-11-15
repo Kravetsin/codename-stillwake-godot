@@ -2,8 +2,8 @@ namespace Stillwake.Content;
 
 /// <summary>
 /// Suits (2026-10-27-suits-are-worn): a helmet and a body, each an item worn in its own equipment slot, mixed as the
-/// player likes. The helmet holds the air: its <c>Tank</c> is the hero's whole pool while worn, <see cref="Crew.Lungs"/>
-/// without one. The body keeps the cold out: without one, each breath where the air is not aired costs
+/// player likes. The helmet holds air past the lungs: its <c>Tank</c> is added to <see cref="Crew.Lungs"/> while worn (air-segments),
+/// the lungs alone without one. The body keeps the cold out: without one, each breath where the air is not aired costs
 /// <see cref="Crew.BareCold"/> more. The basic helmet and body are free at the pod; later ones are rows of <see cref="Items"/>.
 /// </summary>
 public static class Suit

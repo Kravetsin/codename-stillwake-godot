@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using Godot;
 using Stillwake.Game.Render;
@@ -6,9 +7,8 @@ using Look = Stillwake.Game.WristLook;
 
 namespace Stillwake.Game.Shared;
 
-/// <summary>
 /// The air row of the vitals (hud-vitals): the oxygen sign and one piece of light as long as the suit holds, in units
-/// (<see cref="Units"/>), lit as far as <see cref="Motion"/> shows, a bright line leading it while it moves. Low, it turns red
+/// (<see cref="Units"/>), parted as its air is (<see cref="Parts"/>), lit as far as <see cref="Motion"/> shows, a bright line leading it while it moves. Low, it turns red
 /// and pulses, its last units blinking faster; what is lost stays lit white a moment, then drains, chips falling off; refilling,
 /// light runs along it and pale motes rise; a canister breathed surges (<see cref="Surge"/>), air breathed again sends a wave
 /// across (<see cref="Wave"/>). The crew's suit gauge reads the sim on its own timer and hands the share here.
@@ -33,6 +33,8 @@ public partial class AirRow : Control
     private Color _hurtTint = Colors.White;
     private double _hurt = -1;
     private int _units;
+    private int[] _parts = [];
+    private readonly List<Control> _spots = [];
     private float _length, _lengthFrom, _lengthTo;
     private double _resize = 1;
 
@@ -42,8 +44,6 @@ public partial class AirRow : Control
     {
         (_icon, _shortIcon) = (icon, shortIcon);
         MouseFilter = MouseFilterEnum.Ignore;
-        AddChild(Spot = new Control { MouseFilter = MouseFilterEnum.Ignore, Position = new Vector2(Vitals.RowLeft, Top) });
-        AddChild(ExtraSpot = new Control { MouseFilter = MouseFilterEnum.Ignore, Visible = false });
         // Over the row: the chips falling off it, and the light added over all.
         AddChild(_over = new Over(this, add: false));
         AddChild(_light = new Over(this, add: true));
@@ -52,11 +52,21 @@ public partial class AirRow : Control
     /// <summary>What the piece shows lit, moving on each frame.</summary>
     public GaugeMotion Motion { get; } = new();
 
-    /// <summary>The piece's own rectangle, for its tip.</summary>
-    public Control Spot { get; }
-
-    /// <summary>Where the pointer names the stimulant's segment (food-tuning): over it, hidden without one.</summary>
-    public Control ExtraSpot { get; }
+    /// <summary>
+    /// The rectangle of the <paramref name="part"/>-th of <see cref="Parts"/>, for its tip: made on first asking, hidden while
+    /// the air has fewer parts.
+    /// </summary>
+    public Control SpotOf(int part)
+    {
+        while (_spots.Count <= part)
+        {
+            var spot = new Control { MouseFilter = MouseFilterEnum.Ignore, Visible = false };
+            _spots.Add(spot);
+            AddChild(spot);
+            MoveChild(spot, 0);
+        }
+        return _spots[part];
+    }
 
     /// <summary>Whether it runs low: red, pulsing.</summary>
     public bool Low { get; set; }
@@ -83,7 +93,7 @@ public partial class AirRow : Control
     public Action<CanvasItem>? LightMark { get; set; }
 
     /// <summary>
-    /// How many units the suit holds, lungs and helmet together: the piece's length, fitted to the row. A change after the first
+    /// How many units the hero's air holds, every part together: the piece's length, fitted to the row. A change after the first
     /// grows or shrinks the piece over <see cref="ResizeS"/>.
     /// </summary>
     public int Units
@@ -100,10 +110,14 @@ public partial class AirRow : Control
     }
 
     /// <summary>
-    /// The last of <see cref="Units"/> a stimulant lends (food-tuning): the same piece, drawn past a gap as its own segment, every
-    /// effect running across both.
+    /// The units of each part of the air in order, the lungs first (air-segments): the same piece on one scale, each part past a
+    /// gap, every effect running across them all. Ignored unless they add up to <see cref="Units"/>.
     /// </summary>
-    public int Extra { get; set; }
+    public IReadOnlyList<int> Parts
+    {
+        get => _parts;
+        set => _parts = [.. value];
+    }
 
     /// <summary>The row's place, the block's origin on the screen, and its size.</summary>
     public void Place(Vector2 origin, float scale)
@@ -136,10 +150,14 @@ public partial class AirRow : Control
             _resize = Math.Min(1, _resize + delta / ResizeS);
             _length = Mathf.Lerp(_lengthFrom, _lengthTo, Mathf.SmoothStep(0, 1, (float)_resize));
         }
-        float split = Split;
-        Spot.Size = new Vector2(Math.Max(8, split), Height);
-        ExtraSpot.Visible = split < _length;
-        (ExtraSpot.Position, ExtraSpot.Size) = (new Vector2(Vitals.RowLeft + split + Vitals.Gap, Top), new Vector2(_length - split, Height));
+        int count = Count;
+        for (int k = 0; k < _spots.Count; k++)
+        {
+            _spots[k].Visible = k < count && _units > 0;
+            if (k >= count) continue;
+            float a = Edge(k), b = Edge(k + 1);
+            (_spots[k].Position, _spots[k].Size) = (new Vector2(Vitals.RowLeft + a + k * Vitals.Gap, Top), new Vector2(Math.Max(4, b - a), Height));
+        }
         Motion.Step(delta);
         // The leading edge shows while the fill moves, either way, and fades once it rests.
         _moving = Math.Abs(Motion.Fill - _shownFill) > 1e-6 ? 1 : Math.Max(0, _moving - delta / Look.EdgeFadeS);
@@ -158,21 +176,48 @@ public partial class AirRow : Control
     /// <summary>Where a share of the piece lies along it, from its start.</summary>
     private float At(double share) => _length * (float)Math.Clamp(share, 0, 1);
 
-    /// <summary>Where the stimulant's units begin along the piece (food-tuning); its whole length without one.</summary>
-    private float Split => Extra > 0 && Extra < _units ? _length * (_units - Extra) / _units : _length;
+    /// <summary>How many parts the piece is drawn in: one unless <see cref="Parts"/> adds up to the units.</summary>
+    private int Count
+    {
+        get
+        {
+            int sum = 0;
+            foreach (int part in _parts) sum += part;
+            return sum == _units && _parts.Length > 0 ? _parts.Length : 1;
+        }
+    }
 
-    /// <summary>Where a point along the piece is drawn: past <see cref="Split"/>, a <see cref="Vitals.Gap"/> further, the stimulant's own segment.</summary>
-    private float X(float along) => Vitals.RowLeft + along + (along > Split ? Vitals.Gap : 0);
+    /// <summary>Where the <paramref name="part"/>-th part begins along the piece, gaps not counted; the whole length past the last.</summary>
+    private float Edge(int part)
+    {
+        if (Count == 1 || part >= _parts.Length) return part <= 0 ? 0 : _length;
+        int before = 0;
+        for (int k = 0; k < part; k++) before += _parts[k];
+        return _length * before / _units;
+    }
+
+    /// <summary>Where a point along the piece is drawn: a <see cref="Vitals.Gap"/> further for each part begun before it.</summary>
+    private float X(float along)
+    {
+        int count = Count, gaps = 0;
+        for (int k = 1; k < count; k++)
+            if (along > Edge(k)) gaps++;
+        return Vitals.RowLeft + along + gaps * Vitals.Gap;
+    }
 
     /// <summary>
-    /// Draws the stretch <paramref name="from"/>..<paramref name="to"/> as one strip per segment it crosses: <paramref name="draw"/>
-    /// takes a segment's left edge, its length and the stretch within it.
+    /// Draws the stretch <paramref name="from"/>..<paramref name="to"/> as one strip per part it crosses: <paramref name="draw"/>
+    /// takes a part's left edge, its length and the stretch within it.
     /// </summary>
     private void Pieces(float from, float to, Action<float, float, float, float> draw)
     {
-        float split = Split;
-        if (from < split) draw(Vitals.RowLeft, split, from, Math.Min(to, split));
-        if (to > split && split < _length) draw(Vitals.RowLeft + split + Vitals.Gap, _length - split, Math.Max(from, split) - split, to - split);
+        int count = Count;
+        for (int k = 0; k < count; k++)
+        {
+            float a = Edge(k), b = Edge(k + 1);
+            if (k > 0 && to <= a || k < count - 1 && from >= b) continue;
+            draw(Vitals.RowLeft + a + k * Vitals.Gap, b - a, Math.Max(from, a) - a, Math.Min(to, b) - a);
+        }
     }
 
     private void Span(CanvasItem on, string tone, float from, float to, Color modulate) =>

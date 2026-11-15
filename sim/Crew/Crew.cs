@@ -109,10 +109,14 @@ public interface ICrewQueries
     /// <summary>Every hero, in id order: live and read-only, for counting who breathes where.</summary>
     IReadOnlyList<Hero> Heroes { get; }
     /// <summary>
-    /// The most air hero <paramref name="peer"/> holds: the <c>Tank</c> of the helmet it wears, or <c>Crew.Lungs</c> without one
-    /// (2026-10-27-suits-are-worn). Its air is cut to it each tick.
+    /// The most air hero <paramref name="peer"/> holds: the sum of its <see cref="PartsOf"/>. Its air is cut to it each tick.
     /// </summary>
     int CapacityOf(int peer);
+    /// <summary>
+    /// The parts of hero <paramref name="peer"/>'s air in order (air-segments): <c>Crew.Lungs</c>, the worn helmet's <c>Tank</c>,
+    /// what food lends; filled the first first, spent the last first.
+    /// </summary>
+    IReadOnlyList<AirPart> PartsOf(int peer);
     /// <summary>What a canister breathed gives hero <paramref name="peer"/>'s air, up to full: <c>Crew.CanisterRefill</c>, more by its deep rate.</summary>
     int RefillOf(int peer);
     /// <summary>The rates hero <paramref name="peer"/>'s meals give, summed and capped by <c>Diet.Caps</c>; none with no hero or no meal.</summary>
@@ -278,14 +282,21 @@ public sealed partial class CrewModule : Module<CrewState>, ICrewQueries, ICrewO
                         hero.Cell = State.Spawn;
                         _playersOps.Print(hero.Id);
                         // Printed again in what it died in: the suit is gear (2026-10-27-suits-are-worn).
-                        hero.Air = CapacityOf(hero.Id);
+                        (hero.Air, hero.Shape) = (CapacityOf(hero.Id), null);
                         Feed(hero);
                         // Off the ship a hero wakes aboard, at the pod; its body stays where it fell (0076).
                         if (Surfaces.Here != 0) Surfaces.Send(hero.Id, 0);
                     }
                     continue;
                 }
-                // A helmet taken off loses what the lungs cannot hold; one put on keeps the air, which then fills.
+                // Each part keeps what it held: one gone, a helmet off or a stimulant ended, takes its air with it; one new comes
+                // empty (air-segments).
+                var layout = LayoutOf(hero);
+                if (hero.Shape is not { } was || !Same(was, layout))
+                {
+                    if (hero.Shape != null) hero.Air = Kept(hero.Air, hero.Shape, layout);
+                    hero.Shape = Parts(layout);
+                }
                 int capacity = CapacityOf(hero.Id);
                 hero.Air = Math.Min(hero.Air, capacity);
                 Thrusts(hero);
@@ -315,7 +326,7 @@ public sealed partial class CrewModule : Module<CrewState>, ICrewQueries, ICrewO
                 int breathes = owed / 1000;
                 int lack = capacity - hero.Air;
                 int pod = ByPod(hero.Cell) ? Math.Min(Content.Crew.PodRefill, breathes + lack) : 0;
-                int want = Math.Min(breathes + Math.Min(Content.Crew.Refill, lack), breathes + lack - pod);
+                int want = Math.Min(breathes + Math.Min(FillOf(capacity), lack), breathes + lack - pod);
                 int taken = want > 0 ? atmosphere.Breathe(hero.Cell, want) : 0;
                 int net = pod + taken - breathes;
                 // Whether air made the breath, so a hero with none of its own breathes on: room air, the pod's, the regen suit.
@@ -698,8 +709,59 @@ public sealed partial class CrewModule : Module<CrewState>, ICrewQueries, ICrewO
     public Hero? HeroOf(int id) => State.Heroes.Find(h => h.Id == id);
     public IReadOnlyList<Hero> Heroes => State.Heroes;
 
-    public int CapacityOf(int peer) =>
-        (_items.WornIn(peer, Content.Helmet.Slot) is { } helmet ? Content.Items.Get(helmet).Tank : Content.Crew.Lungs) + RatesOf(peer).Lungs;
+    public int CapacityOf(int peer)
+    {
+        var (_, tank, lent) = LayoutOf(peer, RatesOf(peer));
+        return Content.Crew.Lungs + tank + lent;
+    }
+
+    public IReadOnlyList<AirPart> PartsOf(int peer) => Parts(LayoutOf(peer, RatesOf(peer)));
+
+    /// <summary>What an aired room gives a hero's air of <paramref name="capacity"/> units a breath: full from empty in <c>Crew.FillBreaths</c>, rounded up.</summary>
+    public static int FillOf(int capacity) => (capacity + Content.Crew.FillBreaths - 1) / Content.Crew.FillBreaths;
+
+    /// <summary>A hero's air past its lungs: the helmet it wears and its tank, none bare; what its food lends.</summary>
+    private (string? Helmet, int Tank, int Lent) LayoutOf(int peer, Rates rates) =>
+        _items.WornIn(peer, Content.Helmet.Slot) is { } helmet && Content.Items.Get(helmet).Tank is > 0 and var tank
+            ? (helmet, tank, rates.Lungs)
+            : (null, 0, rates.Lungs);
+
+    private (string? Helmet, int Tank, int Lent) LayoutOf(Hero hero) => LayoutOf(hero.Id, RatesOf(hero));
+
+    private static List<AirPart> Parts((string? Helmet, int Tank, int Lent) layout)
+    {
+        var parts = new List<AirPart> { new(AirPart.Lungs, Content.Crew.Lungs) };
+        if (layout.Helmet != null) parts.Add(new(layout.Helmet, layout.Tank));
+        if (layout.Lent > 0) parts.Add(new(AirPart.Food, layout.Lent));
+        return parts;
+    }
+
+    private static bool Same(List<AirPart> was, (string? Helmet, int Tank, int Lent) now)
+    {
+        int i = 0;
+        bool Next(string key, int size) => i < was.Count && was[i].Key == key && was[i++].Size == size;
+        return Next(AirPart.Lungs, Content.Crew.Lungs)
+            && (now.Helmet == null || Next(now.Helmet, now.Tank))
+            && (now.Lent == 0 || Next(AirPart.Food, now.Lent))
+            && i == was.Count;
+    }
+
+    /// <summary>
+    /// <paramref name="air"/> laid in the parts it <paramref name="was"/> in, the first filled first, each part's kept as far as
+    /// the part is still there <paramref name="now"/>, at its size now: a part gone takes what it held.
+    /// </summary>
+    private static int Kept(int air, List<AirPart> was, (string? Helmet, int Tank, int Lent) now)
+    {
+        int left = air, kept = 0;
+        foreach (var part in was)
+        {
+            int held = Math.Min(left, part.Size);
+            left -= held;
+            int size = part.Key == AirPart.Lungs ? Content.Crew.Lungs : part.Key == AirPart.Food ? now.Lent : part.Key == now.Helmet ? now.Tank : 0;
+            kept += Math.Min(held, size);
+        }
+        return kept;
+    }
 
     public int RefillOf(int peer) => Content.Crew.CanisterRefill + RatesOf(peer).Deep;
 

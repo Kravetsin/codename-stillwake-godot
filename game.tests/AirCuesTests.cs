@@ -11,7 +11,7 @@ public class AirCuesTests
 {
     private const double Read = 0.25;
     /// <summary>The basic suit's tank: a suited hero's capacity.</summary>
-    private static readonly int Full = Stillwake.Content.Items.Get(Stillwake.Content.Helmet.Basic).Tank;
+    private static readonly int Full = Stillwake.Content.Crew.Lungs + Stillwake.Content.Items.Get(Stillwake.Content.Helmet.Basic).Tank;
 
     [Fact]
     public void BreathesACanisterOnceUntilTheFirstHasLanded()
@@ -111,23 +111,23 @@ public class AirCuesTests
     public void SeesAFriendsCanisterOnceByItsSuitJumping()
     {
         var seen = new CanistersSeen();
-        Assert.False(seen.Breathed(1, 10, 0));
-        Assert.True(seen.Breathed(1, 10 + CrewSpec.CanisterRefill, 0));
-        Assert.False(seen.Breathed(1, 10 + CrewSpec.CanisterRefill, 0));
+        Assert.False(seen.Breathed(1, 10, Full, 0));
+        Assert.True(seen.Breathed(1, 10 + CrewSpec.CanisterRefill, Full, 0));
+        Assert.False(seen.Breathed(1, 10 + CrewSpec.CanisterRefill, Full, 0));
         // Room air and the pod's together in one breath are no canister.
-        Assert.False(seen.Breathed(1, 30 + CanistersSeen.MostByAir, 0));
+        Assert.False(seen.Breathed(1, 30 + CanistersSeen.MostByAir(Full), Full, 0));
     }
 
     [Fact]
     public void SeesNoCanisterInWakingNorInAHeroReadAfresh()
     {
         var seen = new CanistersSeen();
-        seen.Breathed(2, 0, 3);
-        Assert.False(seen.Breathed(2, Full, 0));
-        seen.Breathed(3, 5, 0);
+        seen.Breathed(2, 0, Full, 3);
+        Assert.False(seen.Breathed(2, Full, Full, 0));
+        seen.Breathed(3, 5, Full, 0);
         seen.Sweep();
         // Hero 3 was not read in the frame swept: gone a while, it comes back with more air and no canister is seen.
         seen.Sweep();
-        Assert.False(seen.Breathed(3, 40, 0));
+        Assert.False(seen.Breathed(3, 40, Full, 0));
     }
 }

@@ -61,7 +61,6 @@ public static partial class En
         ["card.eat"] = "eat",
         ["card.less"] = "−{n}%",
         ["card.tank"] = "Air supply",
-        ["card.oxygen"] = "{n} O₂",
         ["card.withstands"] = "Withstands down to",
         ["card.withstandsHeat"] = "Withstands heat up to",
         ["card.regen"] = "Makes air",

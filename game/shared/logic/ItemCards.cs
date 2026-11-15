@@ -249,7 +249,7 @@ public static class ItemCards
     {
         var spec = Spec.Items.Get(card.Item);
         var rows = new List<CardTile>();
-        if (spec.Tank > 0) rows.Add(Row(CardSign.Tank, CardGroup.Air, T("card.oxygen", ("n", spec.Tank)), "card.tank"));
+        if (spec.Tank > 0) rows.Add(Row(CardSign.Tank, CardGroup.Air, T("card.plusOxygen", ("n", spec.Tank)), "card.tank"));
         if (spec.Low is int low) rows.Add(Row(CardSign.Cold, CardGroup.Guard, T("card.degrees", ("n", Degrees(low))), "card.withstands"));
         if (spec.High is int high) rows.Add(Row(CardSign.Heat, CardGroup.Guard, T("card.degrees", ("n", Signed(high))), "card.withstandsHeat"));
         if (card.Item == Spec.Suit.Regen)
