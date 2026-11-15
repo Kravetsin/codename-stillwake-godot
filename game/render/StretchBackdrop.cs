@@ -33,8 +33,6 @@ public partial class StretchBackdrop : Node2D
     public StretchBackdrop()
     {
         TextureFilter = TextureFilterEnum.LinearWithMipmaps;
-        var veil = StretchLooks.Veil;
-        Modulate = new Color(veil.R, veil.G, veil.B);
     }
 
     /// <summary>
@@ -61,6 +59,8 @@ public partial class StretchBackdrop : Node2D
         (_look, _lead, _last, _ending, _places) = (look, null, null, false, (0, -1));
         _pictures = look.Far.Pictures.Select(PixelArt.Far).ToArray();
         _atlas = look.Far.Scattered is { } field ? ImageTexture.CreateFromImage(HiRes.Mipped(HiRes.Load(field.Atlas)!)) : null;
+        var veil = look.Far.Scattered?.Veil ?? StretchLooks.Veil;
+        Modulate = new Color(veil.R, veil.G, veil.B);
     }
 
     /// <summary>Lays the row under a camera centred on <paramref name="camera"/> at <paramref name="zoom"/>, over a <paramref name="screen"/>, <paramref name="seconds"/> of the world on.</summary>

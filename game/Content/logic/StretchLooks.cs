@@ -32,9 +32,11 @@ public static class StretchLooks
     /// A field of pieces cut from one picture, <paramref name="Atlas"/> (under <c>art/hd</c>), each of <paramref name="Pieces"/> its
     /// rectangle there: <paramref name="Each"/> of them a place, anywhere across it and thickest along the row's middle, within
     /// <paramref name="Tall"/> pixels of the plane; a piece drawn <paramref name="Small"/> to <paramref name="Large"/> pixels of the plane
-    /// a pixel of its own, under one so the camera at its nearest never shows its pixels.
+    /// a pixel of its own, under one so the camera at its nearest never shows its pixels; drawn in <paramref name="Veil"/>, dimmer than
+    /// any wreck drifting by, so a field far off never reads as debris near.
     /// </summary>
-    public sealed record Field(string Atlas, IReadOnlyList<(int X, int Y, int W, int H)> Pieces, int Each, float Tall, float Small, float Large);
+    public sealed record Field(string Atlas, IReadOnlyList<(int X, int Y, int W, int H)> Pieces, int Each, float Tall, float Small, float Large,
+        (float R, float G, float B) Veil);
 
     /// <summary>
     /// The ice belt: a field of ice cut from the picked pictures, small and middling pieces over the whole sky, frosting the hull.
@@ -43,7 +45,7 @@ public static class StretchLooks
     public static readonly IReadOnlyList<Look> All =
     [
         new(Content.Stretches.IceBelt.Id, new([], Width: 500, Gap: 0, Speed: 8, Above: 0,
-            new("stretches/ice_pieces", IcePieces, Each: 40, Tall: 1400, Small: 0.12f, Large: 0.26f)), (0.64f, 0.8f, 0.92f), Frost: true),
+            new("stretches/ice_pieces", IcePieces, Each: 18, Tall: 1400, Small: 0.07f, Large: 0.15f, Veil: (0.24f, 0.29f, 0.38f))), (0.64f, 0.8f, 0.92f), Frost: true),
         new(Content.Stretches.ContrabandDrift.Id,
             new(["stretches/hulk_1", "stretches/hulk_2", "stretches/hulk_3"], Width: 1100, Gap: 3, Speed: 4, Above: 0.16f),
             (0.98f, 0.58f, 0.26f), Frost: false),

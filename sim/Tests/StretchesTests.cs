@@ -271,6 +271,23 @@ public class StretchesTests
     }
 
     [Fact]
+    public void TheBeltThinsTheStreamByTheHullWhileItRunsAndTheStreamFillsAgainAfter()
+    {
+        var w = Ship();
+        Assert.True(Belt.Thins > 1);
+        w.Do(new StretchNow(Belt.Id)).Run(Spec.Warning);
+        Assert.Equal(Belt.Id, Now(w).Stretch);
+        // Over a span the belt surely runs through, and as long again after it.
+        int span = Belt.Duration.Least - 1;
+        int during = Spawns(w, span).Count(s => s.Piece.Zone == Content.Debris.Ship.Id);
+        RunUntil(w, () => Now(w).Stretch == null);
+        int after = Spawns(w, span).Count(s => s.Piece.Zone == Content.Debris.Ship.Id);
+        int beat = Content.Debris.Every + Content.Debris.Jitter;
+        Assert.InRange(during, 1, span / (Belt.Thins * Content.Debris.Every) + 1);
+        Assert.True(after >= span / beat - 1, $"{after} after, {during} during");
+    }
+
+    [Fact]
     public void AStretchsZoneBeatsAgainABeatAfterEachStart()
     {
         var w = Ship();

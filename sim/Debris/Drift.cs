@@ -235,8 +235,10 @@ public sealed partial class DebrisModule
             if (b.Zone == zone.Id) beat = b;
         if (beat == null) s.Beats.Add(beat = new Beat { Zone = zone.Id, Next = s.Clock + zone.Every });
         if (s.Clock < beat.Next) return;
+        // A stretch running thins the stream always by the hull (Stretch.Thins).
+        int thins = zone.Stretch == null && zone.Anchor is ByHull && _running != null ? Content.Stretches.Get(_running)!.Thins : 1;
         // No jitter, no draw: a beat that spawns nothing takes nothing from the world's Rng.
-        beat.Next = s.Clock + zone.Every + (zone.Jitter > 0 ? (int)Random.Below((uint)zone.Jitter + 1) : 0);
+        beat.Next = s.Clock + thins * (zone.Every + (zone.Jitter > 0 ? (int)Random.Below((uint)zone.Jitter + 1) : 0));
         switch (zone.Anchor)
         {
             case ByHull byHull:

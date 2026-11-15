@@ -14,9 +14,10 @@ public static class Stretches
     /// <summary>
     /// A stretch: opened once any of <paramref name="Unlock"/> has been obtained; its first coming <paramref name="First"/> after it is
     /// chosen, every later one <paramref name="Gap"/> after the last ended; lasting <paramref name="Duration"/>; <paramref name="Chill"/>
-    /// degrees colder under the open sky while it runs; its pieces drifting by in <paramref name="Zone"/>, whose <c>Stretch</c> is its id.
+    /// degrees colder under the open sky while it runs; its pieces drifting by in <paramref name="Zone"/>, whose <c>Stretch</c> is its id;
+    /// the stream always by the hull beating <paramref name="Thins"/> times slower meanwhile, so its own pieces are not lost among the junk.
     /// </summary>
-    public sealed record Stretch(string Id, IReadOnlyList<string> Unlock, Span First, Span Gap, Span Duration, int Chill, DebrisZone Zone);
+    public sealed record Stretch(string Id, IReadOnlyList<string> Unlock, Span First, Span Gap, Span Duration, int Chill, DebrisZone Zone, int Thins = 1);
 
     /// <summary>Ticks in a minute.</summary>
     private const int Minute = 60 * 20;
@@ -24,12 +25,12 @@ public static class Stretches
     /// <summary>How long every stretch is seen coming, in ticks: three minutes.</summary>
     public const int Warning = 3 * Minute;
 
-    /// <summary>The ice belt: opened by a warm helmet; ice blocks drift by, and outside is 20° colder.</summary>
+    /// <summary>The ice belt: opened by a warm helmet; ice blocks drift by in place of most of the junk, and outside is 40° colder.</summary>
     public static readonly Stretch IceBelt = new("iceBelt", [Helmet.Quilted, Helmet.Heavy],
         First: new(5 * Minute, 10 * Minute), Gap: new(20 * Minute, 40 * Minute), Duration: new(4 * Minute, 6 * Minute), Chill: 40,
-        Zone: new DebrisZone("iceBelt", new ByHull(Debris.Margin, Debris.Lead), Every: 200, Jitter: 100, Max: 12, Debris.DriftMin, Debris.DriftMax,
+        Zone: new DebrisZone("iceBelt", new ByHull(Debris.Margin, Debris.Lead), Every: 120, Jitter: 60, Max: 16, Debris.DriftMin, Debris.DriftMax,
             [new(0, [("iceBlock", 1)])])
-        { Stretch = "iceBelt" });
+        { Stretch = "iceBelt" }, Thins: 4);
 
     /// <summary>The contraband drift: opened by the railgun; the mafia's crates drift by, each a hold of contraband the trackers notice.</summary>
     public static readonly Stretch ContrabandDrift = new("contrabandDrift", [Shots.Railgun.Item],
