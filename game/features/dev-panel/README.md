@@ -17,15 +17,12 @@ the top-right corner, hidden at the start, shown and hidden again with the backq
   the aurora comes before the strike); `calm` (`hazards`' `SetCalm`, read at the click, amber while on): no meteors fall
   and no flares come on the surface this hero is on till it is clicked again, so calm the ship from aboard. `radar place`
   puts a vessel of a random class on the radar at once (`places`' `Find`), where places draws it on the orbit. Surfaces (0076): `open planet` opens a planet grown from its seed
-  (0077), `open strip` the test strip (`world.open`), `to ship` and `down` beam this hero aboard or down to the surface
-  opened last (`world.transfer`), or say none is open. Vessels (generated-vessels): a button a class (`Vessels.Classes`)
-  jumps to one beside the ship, `places`' `Jump` to a contact of it the radar holds, else `Find` first and the jump sent
-  once the contact comes (three seconds at most: a full radar brings none), as built or, with `wrecked` amber, breached;
-  aboard only. `to vessel` moves this hero into the vessel beside the ship
-  feet on the deck past its door (`VesselDoor`), or over it when a breach took the door, and
-  `back` returns it where it stood, on the same surface; `remove` takes the vessel away (`places`' `Dismiss`), its box
-  free to build in again; each says so when it cannot. The client moves its own hero
-  (0002): it is reported at once.
+  (0077), `open strip` the test strip (`world.open`), `to ship` and `down` beam this hero aboard or to the open surface
+  opened last, a closed vessel world passed over (`world.transfer`), or say none is open. Vessels (vessel-worlds): `to shuttle`
+  and `to freighter`, a button a class (`Vessels.Classes`), send `places`' `Jump` to a contact of it the radar holds, else
+  `Find` first and the jump sent once the contact comes (three seconds at most: a full radar brings none): the vessel's world
+  opens and this hero arrives just inside its door. Aboard only; `to ship` brings it home, and the world closes once nobody is
+  left on it.
 - **Items** (creative mode): a picker, shut at the start, with a row for every item in `Content.Items.All` by group then
   name (`ItemPicker`), so a new item appears on it unasked. The search keeps the rows whose name or id holds what is
   typed, case ignored; `1`, `10` or `stack` is how many a pick gives. A row clicked, or Enter for the first shown, sends
@@ -48,7 +45,6 @@ the top-right corner, hidden at the start, shown and hidden again with the backq
 | `DevPanel.cs` | the panel, its readouts, buttons, item picker and sound board | yes   |
 | `logic/CueNames.cs` | what the sound board calls a cue               | no    |
 | `logic/ItemPicker.cs` | what the item picker lists for a search  | no    |
-| `logic/VesselDoor.cs` | where `to vessel` puts the hero          | no    |
 
 ## Accepted limitations
 

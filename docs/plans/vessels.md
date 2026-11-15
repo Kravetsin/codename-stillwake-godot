@@ -23,13 +23,10 @@ in ticks (20 a second).
 
 ## Rules (confirmed with the user)
 
-- A vessel lives in the ship's own world (surface 0), never on a surface of its own.
+- A vessel lives on a surface of its own, opened by the jump and closed once nobody is on it
+  ([vessel-worlds](../decisions/2026-11-09-vessel-worlds.md), 2026-11-09; it was once written beside the ship, in the ship's grid).
 - It is reached by a jump chosen on the radar. Its cells are generated when the jump applies; the seed is drawn from
   the world's Rng when the radar finds the contact, so its class and size are known before the jump.
-- It is placed beside the ship, `Vessels.Gap` cells right of the ship's `Built`, and may reach past the build zone. On
-  the world the game makes it always fits: the crew builds only inside the zone, so the 512 columns right of the zone
-  are free and the widest frame is 448. A map whose cells stand outside the zone may leave no room (`places.noRoom`).
-- While it is there, its box refuses building. The next jump clears it.
 - Everything on it, the hull too, is taken apart for resources with the tools that exist (screwdriver marks, axe, drill).
 - Generation is layered, general to particular, and its result is a record, not cells:
   class → hull sections → decks, shafts and compartments filled with interiors → fittings.
@@ -119,6 +116,11 @@ come through the same jump.
   `Building.Wipe(old box)`; `Reserve(box)`; the parts written with `Lay` in reading order, so machine ids follow it;
   crates filled with `PutIn`.
 - **`Gap`** is 40, more than `Logistics.Reach` (32, a content test), so no drone bay of the ship reaches a vessel.
+
+### Built, then replaced: the box beside the ship
+
+The sections below to "Saving and determinism" describe V-1's box beside the ship, gone with
+[vessel-worlds](../decisions/2026-11-09-vessel-worlds.md): a vessel now has a surface of its own, so none of them holds.
 
 ### Grid: the reserved box
 
@@ -328,7 +330,8 @@ a **bridge with glass and consoles**, a **cargo hold** and **quarters**; other r
 
 ### V-4 — The radar and the jump for real
 
-- `Find` from the radar antenna in range and on its beat, the jump paid in biofuel by the engine, the radar's screen
+- `Find` from the radar antenna in range and on its beat, the radar's screen; the ship itself never jumps (vessel-worlds):
+  the crew reaches a vessel's world by a craft of its own, another plan's
   (main has the radar mast, 2026-11-07-radar-mast, and the ship computer's radar program to build on).
   Needs the user's rules first: the concept leaves the jump's cost and the radar's screen open.
 

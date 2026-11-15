@@ -54,13 +54,13 @@ public sealed partial class BuildingModule
         return new Hewn(cells, plants);
     }
 
-    /// <summary>What a <see cref="HewCells"/> strikes in <paramref name="listed"/>: each cell on the grid, in its known zone or a vessel's box, as a ray would strike it, deduped, ascending.</summary>
+    /// <summary>What a <see cref="HewCells"/> strikes in <paramref name="listed"/>: each cell on the grid, in its known zone, as a ray would strike it, deduped, ascending.</summary>
     public Hewn Listed(IReadOnlyList<int> listed)
     {
         var cells = new List<int>();
         var plants = new List<Plant>();
         foreach (int cell in listed)
-            if (cell >= 0 && cell < _grid.Width * _grid.Height && (_grid.Zone.Contains(cell % _grid.Width, cell / _grid.Width) || InVessel(cell)))
+            if (cell >= 0 && cell < _grid.Width * _grid.Height && _grid.Zone.Contains(cell % _grid.Width, cell / _grid.Width))
                 Stops(cell, cells, plants);
         cells.Sort();
         for (int i = cells.Count - 1; i > 0; i--)
@@ -100,11 +100,8 @@ public sealed partial class BuildingModule
     /// <summary>The machine tools break at <paramref name="cell"/>, a pile (the-scoop); none for any other.</summary>
     private Machine? PileAt(int cell) => TargetAt(cell) is { Wreck: true } ? _grid.MachineAt(cell) : null;
 
-    /// <summary>Whether <paramref name="cell"/> is in the box a vessel was written into (generated-vessels).</summary>
-    private bool InVessel(int cell) => _grid.Reserved is { } box && box.Contains(cell % _grid.Width, cell / _grid.Width);
-
-    /// <summary>Whether <paramref name="cell"/> is of the player's own ship: where the surface's tools break nothing, out of a vessel's box.</summary>
-    private bool Aboard(int cell) => !Rules.ToolsBreak && !InVessel(cell);
+    /// <summary>Whether this surface is the player's own ship: where tools break nothing of a planet's or a vessel world's (vessel-worlds).</summary>
+    private bool Aboard => !Rules.ToolsBreak;
 
     /// <summary>
     /// Why peer <paramref name="peer"/>'s hit of <paramref name="tool"/> (<see cref="Hew"/>) would be refused: what the client
@@ -197,10 +194,10 @@ public sealed partial class BuildingModule
 
     /// <summary>
     /// What a hit lands on at <paramref name="cell"/> to crack or break: a wall, built piece or machine with a strength, not a pile,
-    /// in the grid's known zone or a vessel's box; none in a planet's fog.
+    /// in the grid's known zone; none in a planet's fog.
     /// </summary>
     private HitTarget? Struckable(int cell) =>
-        (_grid.Zone.Contains(cell % _grid.Width, cell / _grid.Width) || InVessel(cell))
+        _grid.Zone.Contains(cell % _grid.Width, cell / _grid.Width)
         && TargetAt(cell) is { Kind: TargetKind.Wall or TargetKind.Piece or TargetKind.Machine, Strength: not null, Wreck: false } t ? t : null;
 
     /// <summary>

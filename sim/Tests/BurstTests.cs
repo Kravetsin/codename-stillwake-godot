@@ -115,23 +115,17 @@ public class BurstTests
     }
 
     [Fact]
-    public void InAVesselsBoxAPlayersBurstIsInFullTheShipBesideItATenth()
+    public void OnAVesselWorldAPlayersBurstIsInFull()
     {
         var w = new Scenario(Registry.Wreck);
-        w.Do(new Find("shuttle")).Run();
+        w.Do(new Enter(w.M.Crew.Spawn)).Do(new Find("shuttle")).Run();
         w.Do(new Jump(w.M.Places.Contacts[^1].Id)).Run();
-        var box = w.M.Grid.Reserved!.Value;
-        int width = w.M.Grid.Width;
-        // The vessel's hull on its box's left edge, iron put just outside it, of the ship.
-        int hull = Enumerable.Range(box.Top, box.Bottom - box.Top + 1).Select(y => y * width + box.Left).First(c => w.M.Grid.WallAt(c) != null);
-        w.Do(new Place(hull - 1, Placement.Wall("iron"))).Run();
-        Assert.Empty(w.Refusals);
-        Assert.True(w.M.Building.Burst(0, hull, w.M.Grid.WallAt(hull)!.Strength, 0, Spoils.Drop));
-        Assert.Null(w.M.Grid.WallAt(hull));
-        int iron = Materials.Get("iron").Strength;
-        Assert.True(w.M.Building.Burst(0, hull - 1, iron, 0, Spoils.Drop));
-        Assert.NotNull(w.M.Grid.WallAt(hull - 1));
-        Assert.Equal([(hull - 1, Tenth(iron))], Cracks(w));
+        var v = w.On(w.World.SurfaceOf(0));
+        // The first wall of the vessel's middle row.
+        int width = v.Grid.Width, row = v.Grid.Height / 2;
+        int hull = Enumerable.Range(0, width).Select(x => row * width + x).First(c => v.Grid.WallAt(c) != null);
+        Assert.True(v.Building.Burst(0, hull, v.Grid.WallAt(hull)!.Strength, 0, Spoils.Drop));
+        Assert.Null(v.Grid.WallAt(hull));
     }
 
     [Fact]

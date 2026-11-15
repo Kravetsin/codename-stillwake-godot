@@ -10,7 +10,7 @@ namespace Stillwake.Game.Shared;
 /// An <see cref="ItemCard"/> in Control nodes, by what the item is (the item card mockup), each a little screen of the
 /// wrist computer: dark, a faint sheen across its top, a shadow inside its edge. A tool's (layout A) edged amber, its picture
 /// enlarged in a window across its top (<see cref="ToolPicture"/>, 2026-11-14-tool-card-pictures): its name and kind, its numbers as rows with icons under
-/// their groups (2026-11-07-tool-card-rows), its key and hint. A worn item's and food's, the medium card, edged green or coral: its
+/// their groups (2026-11-07-tool-card-rows), its key and hint. A worn item's, food's and a liquid's, the medium card, edged green, coral or cyan: its
 /// picture (<see cref="WornPicture"/>) beside its name and kind, its rows under both (2026-11-14-food-and-gear-cards), its key.
 /// Anything else's, the compact card: its name and kind on one line. Under any of them what the open station does with it, by
 /// its slot's mark, with what it makes there; a violet band while unknown; a station's block at the bottom.
@@ -29,6 +29,8 @@ public static class ItemCardView
     private static readonly Color ToolEdge = new("a58b58"), WornEdge = new("65a36a");
     /// <summary>Food's coral, set A's pick (2026-11-14-food-and-gear-cards): its card's edge and its kind.</summary>
     private static readonly Color FoodEdge = new("a8705f"), FoodKind = new("f0997a");
+    /// <summary>A canister's or a bottle's cyan, its rows' sign's: its card's edge and its kind.</summary>
+    private static readonly Color LiquidEdge = new("4f8aa3"), LiquidKind = new("68c3e6");
 
     // The screen's sheen, the mockup's linear-gradient(162deg, rgba(200,225,255,.055), transparent 38%).
     private static readonly GradientTexture2D Sheen = new()
@@ -48,6 +50,7 @@ public static class ItemCardView
     private static readonly LabelSettings ToolKindText = Style.Text(Style.Mono, 11, Amber);
     private static readonly LabelSettings WornKindText = Style.Text(Style.Mono, 11, Green);
     private static readonly LabelSettings FoodKindText = Style.Text(Style.Mono, 11, FoodKind);
+    private static readonly LabelSettings LiquidKindText = Style.Text(Style.Mono, 11, LiquidKind);
     private static readonly LabelSettings HintText = Style.Text(Style.Mono, 11, Hint);
     private static readonly LabelSettings DotText = Style.Text(Style.Mono, 11, Style.Slate500);
     private static readonly LabelSettings KeyText = Style.Text(BoldMono, 10, Style.Slate300);
@@ -68,12 +71,11 @@ public static class ItemCardView
     private static readonly LabelSettings FromText = Style.Text(Style.Mono, 10, Style.Slate500);
     private static readonly LabelSettings ChargeText = Style.Text(BoldMono, 10, Green);
     private static readonly LabelSettings StoredText = Style.Text(Style.Mono, 10, Style.Slate300);
-    private static readonly LabelSettings VolumeText = Style.Text(Style.Mono, 13, Style.Slate300);
     private static readonly LabelSettings UnitText = Style.Text(Spaced, 9, Style.Slate500);
     private static readonly LabelSettings DetailText = Style.Text(Style.Mono, 10, Hint);
 
     /// <summary>The card of <paramref name="card"/>, sized to its content.</summary>
-    public static Control Build(ItemCard card) => card.Tool ? ToolCard(card) : card.Worn || card.Food ? WornCard(card) : Compact(card);
+    public static Control Build(ItemCard card) => card.Tool ? ToolCard(card) : card.Worn || card.Food || card.Liquid ? WornCard(card) : Compact(card);
 
     /// <summary>Name and kind on one line, under them its line where it has one; a key where it has one, a drone's charge; then the bands and a station's block.</summary>
     private static Control Compact(ItemCard card)
@@ -83,9 +85,7 @@ public static class ItemCardView
         var kind = Text(card.Kind, KindText, HorizontalAlignment.Left);
         kind.SizeFlagsVertical = Control.SizeFlags.ShrinkEnd;
         line.AddChild(kind);
-        var column = Column(0, Padded(line, 9, 5, 9, card.About == null && card.Volume == null ? 6 : 2));
-        // A canister's or a bottle's litres, a stack's all told (liquid-volumes).
-        if (card.Volume is { } volume) column.AddChild(Padded(Text(volume, VolumeText, HorizontalAlignment.Left), 9, 0, 9, card.About == null ? 6 : 2));
+        var column = Column(0, Padded(line, 9, 5, 9, card.About == null ? 6 : 2));
         // A held item with no numbers, the screwdriver, shows its picture as a tool does (2026-11-14-tool-card-pictures).
         if (HeldLook.Of(card.Item) != null)
         {
@@ -128,7 +128,9 @@ public static class ItemCardView
     /// </summary>
     private static Control WornCard(ItemCard card)
     {
-        var side = Column(5, Title(card, card.Food ? FoodKindText : WornKindText));
+        // Food and a liquid are kept, not worn: their price is under their rows, as on a meal's card.
+        bool kept = card.Food || card.Liquid;
+        var side = Column(5, Title(card, card.Food ? FoodKindText : card.Liquid ? LiquidKindText : WornKindText));
         if (card.Charge is { } charge)
         {
             var held = Powered(T("card.stored", ("n", charge.Stored), ("all", charge.Capacity)), DetailText);
@@ -149,16 +151,16 @@ public static class ItemCardView
         }
         if (card.Rows.Count > 0) column.AddChild(Rows(card.Rows, null, null));
         if (card.Use is { } how) column.AddChild(Ruled(UseRow(how, WornWidth)));
-        else if (card.Rows.Count > 0) column.AddChild(Spacer(card.Food ? 6 : 2));
+        else if (card.Rows.Count > 0) column.AddChild(Spacer(kept ? 6 : 2));
         // Food's price under its key, as every price is written: the coin and the number.
-        if (card.Food && card.Price is int price)
+        if (kept && card.Price is int price)
         {
             var sells = new CreditLine(PriceSize) { SizeFlagsHorizontal = Control.SizeFlags.ShrinkBegin };
             sells.Set(price);
             column.AddChild(Padded(sells, 12, 0, 12, 8));
         }
-        Bottom(card.Food ? card with { Price = null } : card, column);
-        return Screen(column, card.Food ? FoodEdge : WornEdge, 2, WornWidth);
+        Bottom(kept ? card with { Price = null } : card, column);
+        return Screen(column, card.Food ? FoodEdge : card.Liquid ? LiquidEdge : WornEdge, 2, WornWidth);
     }
 
     /// <summary>Under any card: what the open station does with it, the band while unknown, a station's block.</summary>

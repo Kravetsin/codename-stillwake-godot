@@ -55,6 +55,8 @@ public class TemperatureTests
         public bool CanOpen => false;
         public bool Landed => false;
         public int OpenPlanet() => throw new NotSupportedException("no planet is opened");
+        public uint Seed => 0;
+        public int Visit(int peer, string kind, uint seed) => throw new NotSupportedException();
     }
 
     /// <summary>The <see cref="Open"/> map as a surface of <paramref name="kind"/>, hero 0 in it, at night when <paramref name="night"/>.</summary>

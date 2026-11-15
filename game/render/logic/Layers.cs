@@ -79,19 +79,19 @@ public static class Layers
     public const int Aim = 14, Tethers = 15, OtherHeroes = 16, Hero = 17;
 
     /// <summary>Drones flying with what they carry, over the heroes they pass (logistics, 0062).</summary>
-    public const int Drones = 18;
+    public const int Drones = 20;
 
     /// <summary>A capback's gas and its glob flying (lurker-attacks), over the creatures and the heroes in it.</summary>
     public const int Gas = Drones;
 
     /// <summary>Water in a planet's cells (liquids): over the heroes, so one in it is seen through it.</summary>
-    public const int Water = 18;
+    public const int Water = 20;
 
     /// <summary>
     /// The ground a hero digs at (0077): its cracks and the aim's outline round it, over every hero and the tool in its hands,
     /// so a drill held close never hides what it bites.
     /// </summary>
-    public const int Dug = 18;
+    public const int Dug = 20;
 
     /// <summary>
     /// The tufts and chips of a planet's living edge laid before the heroes' feet (0082), thin enough that boots stand on the ground,
@@ -99,23 +99,29 @@ public static class Layers
     /// </summary>
     public const int GroundFront = 18;
 
+    /// <summary>
+    /// A standing hero's near arm and what it holds, the tool's work with them: over the tufts its feet stand in (held-over-grass),
+    /// its body under them.
+    /// </summary>
+    public const int HeldFront = 19;
+
     /// <summary>A lit lamp's glow, over what it lights (light).</summary>
-    public const int Glows = 19;
+    public const int Glows = 21;
 
     /// <summary>A venting room's pulse (atmosphere).</summary>
-    public const int Pulse = 20;
+    public const int Pulse = 22;
 
     // The plan (building): the ghost of a drag and the hands at work, over the heroes.
-    public const int PlanGhost = 21, PlanHands = 22;
+    public const int PlanGhost = 23, PlanHands = 24;
 
     /// <summary>The power driver's square, over the pale ghosts of the plans it works, else lost under them (driver-square).</summary>
     public const int SquareAim = PlanMarks;
 
     /// <summary>Dust, sparks, embers and air over everything in the world, plans included (effects).</summary>
-    public const int Effects = 23;
+    public const int Effects = 25;
 
     // An overlay over the whole world (air, pipes, power), what it marks, and the cable dragged in it.
-    public const int Overlay = 24, OverlayMarks = 25, OverlayHands = 26;
+    public const int Overlay = 26, OverlayMarks = 27, OverlayHands = 28;
 }
 
 /// <summary>

@@ -396,8 +396,9 @@ public partial class Main
         var (host, client) = LocalSession.Create(world, SessionBuild, seat);
         _session = new Session(host, client);
         // Saved with friends aboard, the world still holds their heroes, on whichever surface: they come back when their
-        // players do, aboard (0076). This player comes back aboard too, at the pod.
-        foreach (var surface in world.Surfaces)
+        // players do, aboard (0076). This player comes back aboard too, at the pod. A vessel's world, left with nobody, closes on
+        // the first tick (vessel-worlds); one closed already holds no heroes.
+        foreach (var surface in world.Surfaces.Where(s => !s.Closed))
             foreach (var hero in Registry.On(world, surface.Id).Crew.Heroes.Where(h => h.Id != seat).ToList())
                 host.Release(hero.Id, client.World.Encode(new Sim.Crew.Leave()));
         // Sent as this player's own, so the client holds it in flight when it comes back; released by the host for it, the

@@ -54,13 +54,20 @@ public sealed record SetPlatform(int Cell, bool Open) : Command;
 /// </summary>
 public sealed record Launch : Command;
 
+/// <summary>What other modules read of Landing: whether a hero rides a drop pod, sitting or flying (vessel-worlds).</summary>
+public interface ILandingQueries
+{
+    /// <summary>Whether <paramref name="peer"/>'s hero sits in a drop pod or flies in one from this surface.</summary>
+    bool Rides(int peer);
+}
+
 /// <summary>
 /// The launch platform and the drop pod, and to come its landers (the 2026-10-24 launch platform ADR, the drop pod's, the
 /// descent's): a run of platform pieces opens whole, only while its network has power enough, and shuts with or without; a hero
 /// boards a pod standing on one and sits in it, one hero a pod; a launch flies the pod down to the planet through its run and
 /// back again, its pod going wherever its hero goes.
 /// </summary>
-public sealed class LandingModule : Module<LandingState>, ICarries
+public sealed class LandingModule : Module<LandingState>, ICarries, ILandingQueries
 {
     private readonly IGridQueries _grid;
     private readonly IGridOps _gridOps;
@@ -109,7 +116,7 @@ public sealed class LandingModule : Module<LandingState>, ICarries
     {
         if (_grid.MachineById(pod) is not { } m || !Content.Machines.Is(m.Kind, MachineTrait.Seats)) return "landing.noPod";
         // A hero flying in a pod sits in it still, with no seat to show it.
-        if (SeatOf(peer) != null || FlightOf(peer) != null) return "landing.seated";
+        if (Rides(peer)) return "landing.seated";
         if (RiderOf(pod) != null) return "landing.taken";
         return OwnerOf(pod) is int owner && owner != peer ? "landing.notYours" : null;
     }
@@ -147,6 +154,8 @@ public sealed class LandingModule : Module<LandingState>, ICarries
 
     /// <summary>Every seat taken, by pod id ascending.</summary>
     public IReadOnlyList<Seat> Seats => State.Seats;
+
+    public bool Rides(int peer) => SeatOf(peer) != null || FlightOf(peer) != null;
 
     /// <summary>The pod <paramref name="peer"/>'s hero rides in the air from this surface; null for none.</summary>
     public Flight? FlightOf(int peer) => State.Flights.Find(f => f.Peer == peer);

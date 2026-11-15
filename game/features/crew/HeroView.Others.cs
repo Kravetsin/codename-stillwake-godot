@@ -43,7 +43,7 @@ public partial class HeroView
             {
                 var drum = Cues.Player2D(S.Drum, S.World);
                 AddChild(drum);
-                shown = _shownOthers[id] = new Other(new Figure(Suits.Of(m.Players, id), own: false), NewRod(), drum);
+                shown = _shownOthers[id] = new Other(new Figure(Suits.Of(m.Players, id), own: false) { HandsLayer = Layers.HeldFront }, NewRod(), drum);
                 foreach (var player in shown.Driver.Players) AddChild(player);
                 _others.AddChild(shown.Figure);
             }

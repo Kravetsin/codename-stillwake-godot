@@ -31,11 +31,22 @@ public interface ISurfaces
     /// <summary>The rules of the kind of surface this module runs on: gravity, air, sky, debris, what may be built.</summary>
     Content.Surfaces.Kind Kind { get; }
 
+    /// <summary>The seed the surface this module runs on grew from: a vessel world's vessel is described by it (vessel-worlds).</summary>
+    uint Seed { get; }
+
     /// <summary>
     /// Moves peer <paramref name="peer"/>'s hero and what it carries to <paramref name="surface"/>, at its spawn, once
-    /// every surface has run this tick, in the order asked: no module sees another surface change under it.
+    /// every surface has run this tick, in the order asked: no module sees another surface change under it. Never to a
+    /// closed surface: that is our bug.
     /// </summary>
     void Send(int peer, int surface);
+
+    /// <summary>
+    /// Opens a surface of kind <paramref name="kind"/> from <paramref name="seed"/> and moves peer <paramref name="peer"/>'s
+    /// hero there at once, at its spawn (vessel-worlds). Only from a command as it applies, the moment a <c>Transfer</c> is
+    /// made, so no module sees a surface appear under it; called while the surfaces run, it throws. Returns the new id.
+    /// </summary>
+    int Visit(int peer, string kind, uint seed);
 
     /// <summary>Whether this world can open surfaces: one whose modules cannot make another set is the ship alone.</summary>
     bool CanOpen { get; }
@@ -115,6 +126,12 @@ public abstract class Module
     /// twin there: after the create, before the rebuild. Creative mode is the one thing so far.
     /// </summary>
     protected internal virtual void Inherit(Module from) { }
+
+    /// <summary>
+    /// Fills a surface just opened, once every module of it stands rebuilt (vessel-worlds): Places writes a vessel world's
+    /// vessel. Never on the ship, nor on a surface loaded.
+    /// </summary>
+    protected internal virtual void Opened() { }
 
     protected void System(Phase phase, Action run) => Systems.Add((phase, run));
 

@@ -81,7 +81,7 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [0073](0073-the-build-menu-is-a-docked-catalogue.md) | The build menu is a docked catalogue | accepted |  |
 | [0074](0074-the-inventory-is-a-wrist-computer.md) | The inventory is a wrist computer | accepted | machine-holograms (in part) |
 | [0075](0075-effects-are-light-not-shapes.md) | Effects are light, not shapes | accepted | arcs-are-hairlines, effects-on-their-layer, head-tally (in part) |
-| [0076](0076-a-world-is-made-of-surfaces.md) | A world is made of surfaces | accepted | night-chills (in part) |
+| [0076](0076-a-world-is-made-of-surfaces.md) | A world is made of surfaces | accepted | night-chills, vessel-worlds (in part) |
 | [0077](0077-a-planets-ground-grows-from-its-seed-and-is-dug-by-hits.md) | A planet's ground grows from its seed and is dug by hits | accepted | fan-of-rays, veins-and-stairs, tool-edge (in part) |
 | [0078](0078-two-handed-items-are-held-as-a-rifle.md) | Two-handed items are held as a rifle | superseded | one-arm-holds |
 | [0079](0079-a-planets-surface-has-its-look-and-grows-plants.md) | A planet's surface has its look, and grows plants from its seed | accepted | 0082, composed-backdrops (in part) |
@@ -166,7 +166,7 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [wall-roles](2026-10-29-wall-roles.md) | Walls either armour or seal | accepted |  |
 | [weak-meteors-till-landing](2026-10-29-weak-meteors-till-landing.md) | Weak meteors till landing | accepted |  |
 | [free-repair](2026-10-30-free-repair.md) | A repair takes only work | accepted |  |
-| [generated-vessels](2026-10-30-generated-vessels.md) | Generated vessels, written beside the ship by a jump | accepted |  |
+| [generated-vessels](2026-10-30-generated-vessels.md) | Generated vessels, written beside the ship by a jump | accepted | vessel-worlds (in part) |
 | [liquid-oxygen](2026-10-30-liquid-oxygen.md) | Air comes from liquid oxygen | accepted |  |
 | [magnetic-flare](2026-10-30-magnetic-flare.md) | A magnetic flare breaks machines until they are repaired | accepted | free-repair (in part) |
 | [room-upgrades](2026-10-30-room-upgrades.md) | Room is bought on the tree | accepted |  |
@@ -320,10 +320,11 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [catcher-combat](2026-11-09-catcher-combat.md) | Catcher combat | accepted |  |
 | [catcher-paths](2026-11-09-catcher-paths.md) | Catcher paths | accepted | catcher-combat, damage-scale (in part) |
 | [damage-scale](2026-11-09-damage-scale.md) | One damage scale; the own ship takes a tenth | accepted | one-damage-rule (in part) |
-| [liquid-volumes](2026-11-09-liquid-volumes.md) | Liquid volumes | accepted |  |
+| [liquid-volumes](2026-11-09-liquid-volumes.md) | Liquid volumes | accepted | liquid-cards (in part) |
 | [round-blasts](2026-11-09-round-blasts.md) | Blasts are round | accepted | unified-damage (in part) |
 | [tracker-catchers](2026-11-09-tracker-catchers.md) | Catchers | accepted | catcher-combat, catcher-paths, catcher-loot (in part) |
 | [unified-damage](2026-11-09-unified-damage.md) | One rule for damage | accepted | damage-scale (in part) |
+| [vessel-worlds](2026-11-09-vessel-worlds.md) | A vessel is a world of its own, closed once everyone is home | accepted |  |
 | [air-gusts](2026-11-10-air-gusts.md) | An action stirs its surroundings | accepted |  |
 | [blade-trail](2026-11-10-blade-trail.md) | A blade leaves its own trail, a haze | accepted |  |
 | [body-answers](2026-11-10-body-answers.md) | The body answers the weapon | accepted |  |
@@ -371,6 +372,8 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [builders-raw](2026-11-15-builders-raw.md) | The screwdriver, power driver and blasting charge drawn raw | accepted |  |
 | [cutter-contact](2026-11-15-cutter-contact.md) | The cutter's slag blows out the far side, and struck ground sparks off the trail | accepted | spark-rule (in part) |
 | [food-tuning](2026-11-15-food-tuning.md) | Food tuning: whole-unit canisters, longer dishes, a stimulant, a purge | accepted |  |
+| [held-over-grass](2026-11-15-held-over-grass.md) | A hero's near arm and what it holds over the grass | accepted |  |
 | [jet-cruise](2026-11-15-jet-cruise.md) | A jetpack pays for changing speed, not for distance | accepted |  |
+| [liquid-cards](2026-11-15-liquid-cards.md) | A canister's and a bottle's litres are food's rows | accepted |  |
 | [spark-rule](2026-11-15-spark-rule.md) | A tool's haze in matter throws that matter's look, whatever was hit | accepted |  |
 | [spear-trail](2026-11-15-spear-trail.md) | The plain spear trails haze outside its thrust | accepted |  |

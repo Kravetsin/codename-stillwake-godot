@@ -325,7 +325,15 @@ public static class Migrations
             }
             return root;
         },
-        // 63 → 64 (trash-slot): every inventory gets the trash, an empty slot after its equipment.
+        // 63 → 64 (vessel-worlds): a vessel lies on a surface of its own, so the grid keeps no reserved box; one an old save had
+        // beside the ship stays there as plain cells, built on and taken apart like any.
+        root =>
+        {
+            foreach (var slices in new[] { root["slices"]! }.Concat((root["surfaces"]?.AsArray() ?? []).Select(s => s!["slices"]!)))
+                (slices["grid"] as JsonObject)?.Remove("reserved");
+            return root;
+        },
+        // 64 → 65 (trash-slot): every inventory gets the trash, an empty slot after its equipment.
         root =>
         {
             foreach (var slices in new[] { root["slices"]! }.Concat((root["surfaces"]?.AsArray() ?? []).Select(s => s!["slices"]!)))

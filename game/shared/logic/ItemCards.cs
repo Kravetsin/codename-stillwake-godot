@@ -17,7 +17,7 @@ namespace Stillwake.Game.Shared;
 /// the drill's) damage, block damage and seconds between hits, read from the sim's own fold (<see cref="ToolStats"/>),
 /// and with modules fitted (<see cref="Fitted"/>, 0098) each that differs marked by how; the harpoon's range, reload and reel speed; a
 /// gun's damage and block damage with its first ammo, its reload and what it keeps through what it pierces, and its ammo's share
-/// of those (2026-10-27-shots-pierce); food's and worn gear's rows, what each guarantees (2026-11-14-food-and-gear-cards). Its words
+/// of those (2026-10-27-shots-pierce); food's, worn gear's and a liquid's rows, what each guarantees (2026-11-14-food-and-gear-cards). Its words
 /// from the i18n table.
 /// </summary>
 public static class ItemCards
@@ -47,9 +47,9 @@ public static class ItemCards
         {
             var card = new ItemCard(item, name, kind, null, key, price);
             if (Table.ContainsKey($"item.{item}.about")) card = card with { About = T($"item.{item}.about") };
-            card = card with { Volume = VolumeOf(item) };
             if (Spec.Modules.TryGet(item, out var module)) card = card with { Tech = TechOf(module) };
             if (Spec.Foods.Of(item) is { } food) return card with { Food = true, Rows = FoodRows(food, null) };
+            if (Litres.In(item) != null) return card with { Liquid = true, Rows = LiquidRows(item, 1) };
             return Spec.Items.Get(item).Equip == null ? card : Worn(card);
         }
         if (item == Spec.Harpoon.Item) return new ItemCard(item, name, kind, HarpoonTiles(), key, price);
@@ -324,15 +324,22 @@ public static class ItemCards
         : In(language, $"item.{id}");
 
     /// <summary>
-    /// The litres one of <paramref name="item"/> holds, and <paramref name="count"/> of them all told where more than one
-    /// (liquid-volumes): "3 l", "3 l · ×4 = 12 l"; null for an item that holds no liquid.
+    /// What a canister or a bottle holds (liquid-volumes), as food's rows (2026-11-14-food-and-gear-cards), under its contents: its
+    /// litres, and for a stack of <paramref name="count"/> more than one, them all told with the count beside, "In all ×4 · 12 l".
     /// </summary>
-    public static string? VolumeOf(string item, int count = 1)
+    public static List<CardTile> LiquidRows(string item, int count)
     {
-        if (Litres.In(item) is not int one) return null;
-        string each = Number(one / 1000.0);
-        return count > 1 ? T("card.volumes", ("n", each), ("count", count), ("all", Number((long)one * count / 1000.0))) : T("card.volume", ("n", each));
+        int one = Litres.In(item) ?? throw new ArgumentException($"{item} holds no liquid", nameof(item));
+        var rows = new List<CardTile> { Holds(one, "card.holds") };
+        if (count > 1) rows.Add(Holds((long)one * count, "card.holdsAll") with { Note = T("card.many", ("n", count)) });
+        return rows;
     }
+
+    private static CardTile Holds(long millilitres, string label) =>
+        Row(CardSign.Tank, CardGroup.Holds, T("card.volume", ("n", Number(millilitres / 1000.0))), label);
+
+    /// <summary><paramref name="card"/> for a stack of <paramref name="count"/>: a liquid's rows with them all told; any other card as it is.</summary>
+    public static ItemCard Counted(ItemCard card, int count) => card.Liquid ? card with { Rows = LiquidRows(card.Item, count) } : card;
 
     /// <summary><paramref name="n"/> with one decimal at most, half rounded up: 4, 5.3, 0.5.</summary>
     public static string Number(double n) =>

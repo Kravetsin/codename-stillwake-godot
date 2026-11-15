@@ -395,7 +395,9 @@ public partial class Figure : Node2D
         // The back fist closes over what it holds; the belt hangs over the body, under the near arm.
         foreach (var n in new Node2D[] { _waistBehind, backLeg, frontLeg, _waist }) parts.AddChild(n);
         foreach (var n in new Node2D[] { _offHeld, backArm }) _waistBehind.AddChild(n);
-        foreach (var n in new Node2D[] { torso, _helmet, _belt, _plan, _tool, _held, frontArm, _collar, _air }) _waist.AddChild(n);
+        foreach (var n in new Node2D[] { torso, _helmet, _belt }) _waist.AddChild(n);
+        _hands = [_plan, _tool, _held, frontArm, _collar, _air];
+        foreach (var n in _hands) _waist.AddChild(n);
         (_capeInside, _capeOutside) = (new CapeView(_cape, inside: true) { Visible = false }, new CapeView(_cape, inside: false) { Visible = false });
         Lit.Set(_capeInside);
         Lit.Set(_capeOutside);
@@ -600,6 +602,29 @@ public partial class Figure : Node2D
     public bool Tracked { get; set; } = true;
 
     /// <summary>
+    /// The world's layer its near arm and what it holds are drawn on, over the tufts its feet stand in (held-over-grass); none for a
+    /// figure drawn whole on its own layer: a body, a seated hero, the title's.
+    /// </summary>
+    public int? HandsLayer
+    {
+        get => _handsLayer;
+        set
+        {
+            _handsLayer = value;
+            foreach (var n in _hands) OnHandsLayer(n);
+            OnHandsLayer(_capeOutside);
+            if (_heldView != null) OnHandsLayer(_heldView);
+        }
+    }
+
+    // The near arm, what it holds, and the collar and air over its shoulder, in the order drawn; the held stage's view and the
+    // cape's outside, drawn over the arm, join them.
+    private readonly Node2D[] _hands;
+    private int? _handsLayer;
+
+    private void OnHandsLayer(Node2D n) => (n.ZAsRelative, n.ZIndex) = _handsLayer is { } z ? (false, z) : (true, 0);
+
+    /// <summary>
     /// A catcher's gear lit (tracker-catchers): its receiver at <c>Receiver</c> in the figure's colour, as a tracker is (<see cref="TrackerBlink.Lit"/>),
     /// and its goggles at <c>Eyes</c> in <c>EyesColour</c> (0xRRGGBB); none for a hero, whose body lights are its suit's.
     /// </summary>
@@ -725,6 +750,7 @@ public partial class Figure : Node2D
             if (_heldStage != null) return _heldStage;
             _heldStage = Stages.Held();
             _heldView = new EffectsView(_heldStage) { InWorld = true };
+            OnHandsLayer(_heldView);
             _waist.AddChild(_heldView);
             _waist.MoveChild(_heldView, _frontArmNode.GetIndex());
             return _heldStage;

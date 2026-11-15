@@ -156,11 +156,11 @@ public class MigrationsTests
     [Fact]
     public void GivesEveryInventoryAnEmptyTrashAfterItsEquipment()
     {
-        // A format-63 inventory ended with its equipment; on every surface it gains the trash, empty, its slots where they were.
+        // A format-64 inventory ended with its equipment; on every surface it gains the trash, empty, its slots where they were.
         static JsonObject Slices() => JsonNode.Parse(
             """{"items":{"inventories":[{"id":0,"slots":[{"item":"scrap","count":2},null,{"item":"cape","count":1}]}]}}""")!.AsObject();
         var old = new JsonObject { ["slices"] = Slices(), ["surfaces"] = new JsonArray(new JsonObject { ["slices"] = Slices() }) };
-        var upgraded = Migrations.Steps[63 - Migrations.Oldest](old);
+        var upgraded = Migrations.Steps[64 - Migrations.Oldest](old);
         foreach (var slices in new[] { upgraded["slices"]!, upgraded["surfaces"]![0]!["slices"]! })
         {
             var slots = slices["items"]!["inventories"]![0]!["slots"]!.AsArray();
@@ -359,5 +359,19 @@ public class MigrationsTests
 
         w.Reload(Migrations.Upgrade(save.ToJsonString()));
         Assert.Equal((0, 0, 0), (w.M.Crew.HeroOf(0)!.Wanted, w.M.Crew.HeroOf(0)!.Need, w.M.Crew.HeroOf(0)!.Coming));
+    }
+
+    [Fact]
+    public void DropsTheGridsReservedBoxOfAFormatSixtyThreeSaveItsCellsLeftAsTheyAre()
+    {
+        // A format-63 world with a vessel's box beside the ship: after the upgrade its cells stay, and nothing reserves them.
+        var w = new Scenario(Registry.Wreck);
+        var save = JsonNode.Parse(w.World.Save())!.AsObject();
+        string grid = save["slices"]!["grid"]!.ToJsonString();
+        save["format"] = 63;
+        save["slices"]!["grid"]!["reserved"] = System.Text.Json.JsonSerializer.SerializeToNode(new Box(1, 2, 3, 4), w.World.Json);
+
+        w.Reload(Migrations.Upgrade(save.ToJsonString()));
+        Assert.Equal(grid, JsonNode.Parse(w.World.Save())!["slices"]!["grid"]!.ToJsonString());
     }
 }

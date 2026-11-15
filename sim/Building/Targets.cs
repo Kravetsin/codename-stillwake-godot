@@ -57,7 +57,7 @@ public sealed partial class BuildingModule
     /// Whether peer <paramref name="peer"/>'s hit at <paramref name="cell"/> is on their own ship (one-damage-rule): a
     /// player's, <see cref="Aboard"/>, on anything but a pile, which is cargo. Every hitter's one rule: tools, shots, charges.
     /// </summary>
-    private bool OwnShip(int peer, int cell) => peer != FloorStack.Nobody && Aboard(cell) && TargetAt(cell) is not { Wreck: true };
+    private bool OwnShip(int peer, int cell) => peer != FloorStack.Nobody && Aboard && TargetAt(cell) is not { Wreck: true };
 
     /// <summary>
     /// What peer <paramref name="peer"/>'s hit pays to break what is <paramref name="left"/> of the target at <paramref name="cell"/>:
