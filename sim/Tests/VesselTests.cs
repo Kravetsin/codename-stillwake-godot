@@ -194,13 +194,73 @@ public class VesselTests
         var backs = CellsOf(parts, "back");
         var walls = parts.Where(p => p.Kind == "wall").Select(p => (p.X, p.Y)).ToHashSet();
         Assert.NotEmpty(vessel.Outside);
+        var trusses = vessel.Outside.Where(f => f.Kind == Content.Vessels.Truss).ToList();
+        var truss = Machines.Get(Content.Vessels.Truss);
         foreach (var f in vessel.Outside)
         {
             var cells = Shipyard.Covers(new VesselPart(f.X, f.Y, "machine", f.Kind)).ToList();
             Assert.All(cells, c => Assert.False(structures.Contains(c) || backs.Contains(c), $"{f.Kind} at ({f.X}, {f.Y}) over the hull at {c}"));
-            Assert.Contains(cells, c => walls.Contains((c.X + 1, c.Y)) || walls.Contains((c.X - 1, c.Y)) || walls.Contains((c.X, c.Y + 1)) || walls.Contains((c.X, c.Y - 1)));
+            // A container hangs under its truss segment, wholly under it; every other part against the hull.
+            if (f.Kind == Content.Vessels.TrussContainer)
+                Assert.Contains(trusses, t => t.Y + truss.Height == f.Y && t.X <= f.X && f.X + Machines.Get(f.Kind).Width <= t.X + truss.Width);
+            else
+                Assert.Contains(cells, c => walls.Contains((c.X + 1, c.Y)) || walls.Contains((c.X - 1, c.Y)) || walls.Contains((c.X, c.Y + 1)) || walls.Contains((c.X, c.Y - 1)));
         }
     });
+
+    [Property]
+    public Property EachClassCarriesItsOutsideParts() => Prop.ForAll(Vessels(), v =>
+    {
+        var vessel = Shipyard.Describe(v.Class, v.Seed);
+        int Count(string kind) => vessel.Outside.Count(f => f.Kind == kind);
+        Assert.Equal(4, Count(Content.Vessels.Rcs));
+        Assert.Equal(1, Count(Content.Vessels.Dish));
+        if (v.Class.Id == "shuttle")
+        {
+            Assert.Equal((1, 0, 1, 1), (Count(Content.Vessels.Mast), Count(Content.Vessels.MastTall), Count(Content.Vessels.Solar), Count(Content.Vessels.Tank)));
+            Assert.Equal(0, Count(Content.Vessels.Radiator) + Count(Content.Vessels.Collar) + Count(Content.Vessels.Truss) + Count(Content.Vessels.Boom));
+            return;
+        }
+        Assert.Equal((0, 1, 0, 0), (Count(Content.Vessels.Mast), Count(Content.Vessels.MastTall), Count(Content.Vessels.Solar), Count(Content.Vessels.Tank)));
+        Assert.InRange(Count(Content.Vessels.Radiator), Content.Vessels.Radiators.Min, Content.Vessels.Radiators.Max);
+        Assert.Equal((1, 1), (Count(Content.Vessels.Collar), Count(Content.Vessels.Boom)));
+        Assert.True(Count(Content.Vessels.Truss) > 0);
+        Assert.InRange(Count(Content.Vessels.TrussContainer), 0, Count(Content.Vessels.Truss));
+        // The mast and the dish on the bridge's roof; the boom from the bow's tip, its middle rows.
+        var bridge = Section(vessel, Vessel.SectionKind.Bridge);
+        Assert.All(vessel.Outside.Where(f => f.Kind is Content.Vessels.MastTall or Content.Vessels.Dish), f =>
+        {
+            Assert.Equal(bridge.Top, f.Y + Machines.Get(f.Kind).Height);
+            Assert.InRange(f.X, bridge.Left, bridge.Left + bridge.Width - Machines.Get(f.Kind).Width);
+        });
+        var bow = Section(vessel, Vessel.SectionKind.Bow);
+        var boom = vessel.Outside.Single(f => f.Kind == Content.Vessels.Boom);
+        var (top, bottom) = bow.RowsAt(bow.Left + bow.Width - 1);
+        Assert.Equal((bow.Left + bow.Width, top + bottom + 1), (boom.X, 2 * boom.Y + Machines.Get(Content.Vessels.Boom).Height));
+    });
+
+    [Fact]
+    public void SomeTrussSegmentsHoldNoContainerAndMostDo()
+    {
+        var freighter = Content.Vessels.Class("freighter")!;
+        int segments = 0, held = 0;
+        for (uint seed = 1; seed <= 40; seed++)
+        {
+            var vessel = Shipyard.Describe(freighter, seed);
+            segments += vessel.Outside.Count(f => f.Kind == Content.Vessels.Truss);
+            held += vessel.Outside.Count(f => f.Kind == Content.Vessels.TrussContainer);
+        }
+        // Four in five, roughly.
+        Assert.InRange(held * Content.Vessels.TrussEmptyOneIn, segments * 3, segments * Content.Vessels.TrussEmptyOneIn - 1);
+    }
+
+    [Fact]
+    public void ARadiatorCountFromOneToThree()
+    {
+        var freighter = Content.Vessels.Class("freighter")!;
+        var counts = Enumerable.Range(1, 40).Select(s => Shipyard.Describe(freighter, (uint)s).Outside.Count(f => f.Kind == Content.Vessels.Radiator)).ToHashSet();
+        Assert.Equal([1, 2, 3], counts.Order());
+    }
 
     [Property]
     public Property ModulesBulgeUpToTwoRowsTheSternsAtLeastOneNoneUpUnderTheBridgeAndARibAtEachBoundary() => Prop.ForAll(Vessels(), v =>
@@ -303,7 +363,9 @@ public class VesselTests
         var backs = CellsOf(parts, "back");
         backs.UnionWith(parts.Where(p => p.Kind == "wall").Select(p => (p.X, p.Y)));
         Assert.InRange(bow.Run, v.Class.BowRun.Min, v.Class.BowRun.Max);
-        Assert.Equal(vessel.Width, bow.Left + bow.Width);
+        // The bow ends the hull: past it only a boom.
+        int tip = bow.Left + bow.Width;
+        Assert.Equal(vessel.Width, tip + vessel.Outside.Where(f => f.Kind == Content.Vessels.Boom).Sum(f => Machines.Get(f.Kind).Width));
         for (int x = bow.Left; x < bow.Left + bow.Width; x++)
         {
             int j = x - bow.Left, steps = j < v.Class.BowFlat ? 0 : (j - v.Class.BowFlat) / bow.Run + 1;
@@ -314,9 +376,9 @@ public class VesselTests
             bool Bridge((int X, int Y) c) => bridge != null && c.X < bridge.Left + bridge.Width && c.Y <= bridge.Bottom;
             Assert.Equal(Enumerable.Range(top, bottom - top + 1), backs.Where(c => c.X == x && !Bridge(c)).Select(c => c.Y).Order());
         }
-        Assert.Equal(v.Class.BowTip, bow.RowsAt(vessel.Width - 1).Bottom - bow.RowsAt(vessel.Width - 1).Top + 1);
+        Assert.Equal(v.Class.BowTip, bow.RowsAt(tip - 1).Bottom - bow.RowsAt(tip - 1).Top + 1);
         // The last step is a whole run: the tip's rows reached only in the last Run columns.
-        Assert.NotEqual(v.Class.BowTip, bow.RowsAt(vessel.Width - 1 - bow.Run).Bottom - bow.RowsAt(vessel.Width - 1 - bow.Run).Top + 1);
+        Assert.NotEqual(v.Class.BowTip, bow.RowsAt(tip - 1 - bow.Run).Bottom - bow.RowsAt(tip - 1 - bow.Run).Top + 1);
     });
 
     [Fact]

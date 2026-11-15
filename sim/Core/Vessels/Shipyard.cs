@@ -56,8 +56,8 @@ public static class Shipyard
     /// aft to fore; an extra that would run its deck past <c>Length</c> is not built. The body is as long as the longest deck, a
     /// shorter deck's last room taking the slack; a door between each two rooms, the well's hatches just past the aft rooms, a raised
     /// bridge over the first deck's forward room, its hatch over that room's first columns. Then its shape (derelict-looks), from a
-    /// stream of its own so the rooms stay as they were: its modules, its bow's slope, which inner doors stand open; and a nozzle
-    /// out of the stern a deck below the first.
+    /// stream of its own so the rooms stay as they were: its modules, its bow's slope, which inner doors stand open; a nozzle
+    /// out of the stern a deck below the first, and the other parts outside (<see cref="Outfit"/>), the frame grown to hold them.
     /// </summary>
     public static Vessel Describe(VesselClass cls, uint seed)
     {
@@ -190,8 +190,128 @@ public static class Shipyard
         // A nozzle a deck below the first, against the stern armour by its main engine, on the deck's open rows and floor.
         var outside = new List<Vessel.Fitting>();
         for (int d = 1; d < decks; d++) outside.Add(new(Vessels.Nozzle, hull - Vessels.NozzleSize.W, deckList[d].Top, []));
-        return new Vessel(cls.Id, seed, bow + bowWidth, bottom + 1 + under, sections, deckList, shafts, doors, hatches, compartments, fittings, outside);
+        Outfit(shape, sections, outside, start + aftWidth, forward, cls.ArmourDepth);
+        int width = Math.Max(bow + bowWidth, outside.Max(f => f.X + Machines.Get(f.Kind).Width));
+        int height = Math.Max(bottom + 1 + under, outside.Max(f => f.Y + Machines.Get(f.Kind).Height));
+        var vessel = new Vessel(cls.Id, seed, width, height, sections, deckList, shafts, doors, hatches, compartments, fittings, outside);
+        // What stands on top may rise past the hull's frame: everything lowered under it.
+        int lift = -Math.Min(0, outside.Min(f => f.Y));
+        return lift == 0 ? vessel : Lowered(vessel, lift);
     }
+
+    /// <summary>
+    /// The parts outside the hull (derelict-looks), added to <paramref name="outside"/> in the plan's order, each where its cells are
+    /// clear of the hull and of every part before it, against the hull: RCS blocks on top and under, at the stern and at the body's
+    /// fore end (past a raised bridge standing there). A vessel with a cockpit is outfitted as a shuttle: a mast mid-body, a dish
+    /// near the bow, a solar panel by the stern, a tank under the middle of its belly. One with a raised bridge as a freighter: its
+    /// mast and dish on the bridge; radiators then a docking collar on top from the stern's RCS, past the bridge and its housing
+    /// where they would reach them, the collar on the housing where it fits nowhere else; a keel truss in segments under it from
+    /// the aft rooms, a container under most; a sensor boom at the bow's tip.
+    /// </summary>
+    /// <param name="aftEnd">The column past the aft rooms.</param>
+    /// <param name="forward">A raised bridge's first column inside its armour.</param>
+    private static void Outfit(Rng shape, IReadOnlyList<Vessel.Section> sections, List<Vessel.Fitting> outside, int aftEnd, int forward, int armour)
+    {
+        var body = sections.First(s => s.Kind == Vessel.SectionKind.Body);
+        var bowSection = sections.First(s => s.Kind == Vessel.SectionKind.Bow);
+        var bridge = sections.FirstOrDefault(s => s.Kind == Vessel.SectionKind.Bridge);
+        var housing = sections.FirstOrDefault(s => s.Kind == Vessel.SectionKind.Housing);
+        int stern = body.Left, bow = bowSection.Left, tip = bow + bowSection.Width, gap = Vessels.PartGap;
+        var taken = new HashSet<(int, int)>();
+        foreach (var f in outside) Mark(f.Kind, f.X, f.Y);
+
+        bool Hull(int x, int y) => sections.Any(s => x >= s.Left && x < s.Left + s.Width && y >= s.RowsAt(x).Top && y <= s.RowsAt(x).Bottom);
+        // The hull's highest row over columns x to x + w, and its lowest.
+        int Over(int x, int w) => Enumerable.Range(x, w).Min(c => sections.Where(s => c >= s.Left && c < s.Left + s.Width).Select(s => s.RowsAt(c).Top).DefaultIfEmpty(int.MaxValue).Min());
+        int Under(int x, int w) => Enumerable.Range(x, w).Max(c => sections.Where(s => c >= s.Left && c < s.Left + s.Width).Select(s => s.RowsAt(c).Bottom).DefaultIfEmpty(int.MinValue).Max());
+        void Mark(string kind, int x, int y)
+        {
+            var spec = Machines.Get(kind);
+            for (int dy = 0; dy < spec.Height; dy++)
+                for (int dx = 0; dx < spec.Width; dx++) taken.Add((x + dx, y + dy));
+        }
+        bool Put(string kind, int x, int y)
+        {
+            var spec = Machines.Get(kind);
+            for (int dy = 0; dy < spec.Height; dy++)
+                for (int dx = 0; dx < spec.Width; dx++)
+                    if (Hull(x + dx, y + dy) || taken.Contains((x + dx, y + dy))) return false;
+            outside.Add(new(kind, x, y, []));
+            Mark(kind, x, y);
+            return true;
+        }
+        bool OnTop(string kind, int x) => Put(kind, x, Over(x, Machines.Get(kind).Width) - Machines.Get(kind).Height);
+        bool Beneath(string kind, int x) => Put(kind, x, Under(x, Machines.Get(kind).Width) + 1);
+        int W(string kind) => Machines.Get(kind).Width;
+
+        int rcs = W(Vessels.Rcs), fore = bow - rcs;
+        int foreTop = bridge != null && fore < bridge.Left + bridge.Width && fore + rcs > bridge.Left ? bridge.Left + bridge.Width + 1 : fore;
+        OnTop(Vessels.Rcs, stern + 1);
+        Beneath(Vessels.Rcs, stern + 1);
+        OnTop(Vessels.Rcs, foreTop);
+        Beneath(Vessels.Rcs, fore);
+
+        if (bridge == null)
+        {
+            // A shuttle has some twenty columns past its aft rooms: its mast mid-body, its tank under the middle of its belly.
+            OnTop(Vessels.Mast, stern + (body.Width - W(Vessels.Mast)) / 2);
+            OnTop(Vessels.Dish, fore - gap - W(Vessels.Dish));
+            OnTop(Vessels.Solar, stern + 1 + rcs + 1);
+            Beneath(Vessels.Tank, stern + (body.Width - W(Vessels.Tank)) / 2);
+            return;
+        }
+        int inside = bridge.Left + armour, end = bridge.Left + bridge.Width - armour;
+        OnTop(Vessels.MastTall, inside + 1);
+        OnTop(Vessels.Dish, end - W(Vessels.Dish));
+        // Along the top from the stern's RCS, jumping the housing and the bridge, short of the fore RCS: as many radiators as were
+        // drawn and fit with the collar after them, at least one where one fits alone.
+        int calmLeft = housing?.Left ?? bridge.Left, calmRight = bridge.Left + bridge.Width;
+        List<int>? Along(int radiators, bool collar)
+        {
+            var at = new List<int>();
+            int x = stern + 1 + rcs + gap;
+            foreach (int w in Enumerable.Repeat(W(Vessels.Radiator), radiators).Concat(collar ? [W(Vessels.Collar)] : []))
+            {
+                if (x < calmRight + gap && x + w + gap > calmLeft) x = calmRight + gap;
+                if (x + w + gap > foreTop) return null;
+                at.Add(x);
+                x += w + gap;
+            }
+            return at;
+        }
+        int n = Between(shape, Vessels.Radiators);
+        while (n > 0 && Along(n, collar: true) == null) n--;
+        bool collared = true;
+        if (n == 0 && Along(1, collar: false) != null) (n, collared) = (1, false);
+        var along = Along(n, collared) ?? [];
+        for (int i = 0; i < along.Count; i++) OnTop(i < n ? Vessels.Radiator : Vessels.Collar, along[i]);
+        // Where the collar fits nowhere along, it stands on the housing's roof.
+        if (along.Count == n && housing != null) OnTop(Vessels.Collar, housing.Left);
+
+        var (truss, container) = (Machines.Get(Vessels.Truss), Machines.Get(Vessels.TrussContainer));
+        for (int t = aftEnd + gap; t + truss.Width <= bow - Vessels.TrussShort; t += truss.Width)
+        {
+            int y = Under(t, truss.Width) + 1;
+            bool hangs = shape.Below(Vessels.TrussEmptyOneIn) != 0;
+            if (Put(Vessels.Truss, t, y) && hangs) Put(Vessels.TrussContainer, t + (truss.Width - container.Width) / 2, y + truss.Height);
+        }
+        var (tipTop, tipBottom) = bowSection.RowsAt(tip - 1);
+        Put(Vessels.Boom, tip, tipTop + (tipBottom - tipTop + 1 - Machines.Get(Vessels.Boom).Height) / 2);
+    }
+
+    /// <summary><paramref name="v"/> with everything in it <paramref name="rows"/> rows lower and its frame as much taller.</summary>
+    private static Vessel Lowered(Vessel v, int rows) => v with
+    {
+        Height = v.Height + rows,
+        Sections = [.. v.Sections.Select(s => s with { Top = s.Top + rows, Bottom = s.Bottom + rows })],
+        Decks = [.. v.Decks.Select(d => new Vessel.Deck(d.Floor + rows))],
+        Shafts = [.. v.Shafts.Select(s => s with { Top = s.Top + rows, Bottom = s.Bottom + rows })],
+        Doors = [.. v.Doors.Select(d => d with { Y = d.Y + rows })],
+        Hatches = [.. v.Hatches.Select(h => h with { Y = h.Y + rows })],
+        Compartments = [.. v.Compartments.Select(c => c with { Top = c.Top + rows })],
+        Fittings = [.. v.Fittings.Select(f => f with { Y = f.Y + rows })],
+        Outside = [.. v.Outside.Select(f => f with { Y = f.Y + rows })],
+    };
 
     /// <summary>A room drawn before it is placed: its role, its interior and that interior's columns.</summary>
     private sealed record Room(VesselRole Role, string Interior, int Width);

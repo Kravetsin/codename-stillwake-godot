@@ -152,10 +152,30 @@ public class PlacesTests
             for (int j = i + 1; j < rooms.Count; j++) Assert.Equal(Root(i) == Root(j), rooms[i] == rooms[j]);
     }
 
+    /// <summary>Every part outside a vessel's hull, with a class that carries it.</summary>
+    public static TheoryData<string, string> OutsideParts() => new()
+    {
+        { "shuttle", Vessels.Nozzle }, { "freighter", Vessels.Nozzle }, { "shuttle", Vessels.Rcs }, { "shuttle", Vessels.Mast },
+        { "freighter", Vessels.MastTall }, { "shuttle", Vessels.Dish }, { "shuttle", Vessels.Solar }, { "shuttle", Vessels.Tank },
+        { "freighter", Vessels.Radiator }, { "freighter", Vessels.Collar }, { "freighter", Vessels.Truss }, { "freighter", Vessels.Boom },
+    };
+
+    [Fact]
+    public void EveryOutsidePartIsTakenApartForWhatThePlanSays()
+    {
+        Assert.Equal(Vessels.Outside.Select(r => r.Kind).Order(), OutsideParts().Select(d => (string)d[1]).Distinct().Order());
+        Assert.Equal([("plate", 4), ("copper", 2)], Machines.Get(Vessels.Nozzle).Cost);
+        Assert.Equal([("tube", 2), ("scrap", 3)], Machines.Get(Vessels.Rcs).Cost);
+        Assert.Equal(Machines.Get(Vessels.Mast).Cost, Machines.Get(Vessels.MastTall).Cost);
+        Assert.Equal([("wire", 2), ("circuit", 1)], Machines.Get(Vessels.Boom).Cost);
+        Assert.All(Vessels.Outside, r => Assert.DoesNotContain(r.Cost, c => c.Item == "nozzle"));
+        Assert.All(Vessels.Outside, r => Assert.Contains(r.Kind, Vessels.Machines));
+        Assert.All(Vessels.Outside, r => Assert.Null(r.Menu));
+    }
+
     [Theory]
-    [InlineData("shuttle")]
-    [InlineData("freighter")]
-    public void AVesselsNozzleBrokenByTheSledgehammerGivesWhatItGivesCountedObtained(string cls)
+    [MemberData(nameof(OutsideParts))]
+    public void AnOutsidePartBrokenByTheSledgehammerGivesWhatItGivesCountedObtained(string cls, string kind)
     {
         string hammer = Weapons.Sledgehammer.Item;
         var w = new Scenario(Registry.Wreck);
@@ -164,16 +184,15 @@ public class PlacesTests
         var (_, id) = Visited(cls, w);
         var v = w.On(id);
         int width = v.Grid.Width;
-        var nozzle = v.Grid.MachinesOf(Vessels.Nozzle).First();
-        var gives = Machines.Get(Vessels.Nozzle).Cost;
-        Assert.Equal([("plate", 4), ("copper", 2)], gives);
+        var part = v.Grid.MachinesOf(kind).First();
+        var gives = Machines.Get(kind).Cost;
         var before = gives.Select(c => w.M.Knowledge.ObtainedOf(c.Item)).ToList();
-        w.Do(new Enter(nozzle.Cell)).Run();
-        // Blows from inside its top-left cell, straight up, out in space: the first thing every ray meets is the nozzle.
-        for (int blow = 0; blow < 8 && v.Grid.MachineById(nozzle.Id) != null; blow++)
-            w.Do(new Hew(hammer, nozzle.Cell % width * 1000 + 500, nozzle.Cell / width * 1000 + 500, HewTesting.Up)).Run(Weapons.Sledgehammer.Pace);
+        w.Do(new Enter(part.Cell)).Run();
+        // Blows from inside its top-left cell, straight up: the first thing every ray meets is the part.
+        for (int blow = 0; blow < 12 && v.Grid.MachineById(part.Id) != null; blow++)
+            w.Do(new Hew(hammer, part.Cell % width * 1000 + 500, part.Cell / width * 1000 + 500, HewTesting.Up)).Run(Weapons.Sledgehammer.Pace);
         Assert.Empty(w.Refusals);
-        Assert.Null(v.Grid.MachineById(nozzle.Id));
+        Assert.Null(v.Grid.MachineById(part.Id));
         for (int i = 0; i < gives.Count; i++)
         {
             Assert.Equal(gives[i].Count, v.Items.Inventory(0).Sum(s => s?.Item == gives[i].Item ? s.Count : 0));

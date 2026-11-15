@@ -58,16 +58,19 @@ public sealed record VesselClass(
     public (int Fall, int Rise) BowSteps(int body) => ((body - BowTip) / 2, body - BowTip - (body - BowTip) / 2);
 
     /// <summary>
-    /// The largest vessel of the class, columns by rows: its frame. The nozzles left of the stern; a rib over the highest bulge above
-    /// and below the body, a raised bridge above instead where it stands higher; the bow at its longest run.
+    /// A box every vessel of the class fits, columns by rows: its frame. The nozzles left of the stern; a rib over the highest bulge
+    /// above and below the body, a raised bridge above instead where it stands higher, the tallest mast over either; a truss and its
+    /// container under the rib; the bow at its longest run and a boom past its tip.
     /// </summary>
     public (int Width, int Height) Frame
     {
         get
         {
             int body = BodyHeight(Decks.Max), rib = Math.Max(Vessels.Bulge.Max, Vessels.SternBulge.Max) + 1;
-            return (Vessels.NozzleSize.W + ArmourDepth + Length + BowFlat + BowRun.Max * BowSteps(body).Rise,
-                Math.Max(BridgeHeight, rib) + body + rib);
+            var (boom, mast, truss, container) = (Machines.Get(Vessels.Boom), Machines.Get(Vessels.MastTall), Machines.Get(Vessels.Truss),
+                Machines.Get(Vessels.TrussContainer));
+            return (Vessels.NozzleSize.W + ArmourDepth + Length + BowFlat + BowRun.Max * BowSteps(body).Rise + boom.Width,
+                Math.Max(BridgeHeight, rib) + mast.Height + body + rib + truss.Height + container.Height);
         }
     }
 }
@@ -218,14 +221,43 @@ public static class Vessels
     /// <summary>A nozzle's footprint, columns by rows: its deck's open rows and floor.</summary>
     public static readonly (int W, int H) NozzleSize = (8, 7);
 
+    /// <summary>The parts outside a vessel's hull but the nozzle (derelict-looks), by the names <see cref="Outside"/> gives them.</summary>
+    public const string Rcs = "vesselRcs", Mast = "vesselMast", MastTall = "vesselMastTall", Dish = "vesselDish", Solar = "vesselSolar",
+        Tank = "vesselTank", Radiator = "vesselRadiator", Collar = "vesselCollar", Truss = "vesselTruss", Boom = "vesselBoom";
+
     /// <summary>
     /// The parts outside a vessel's hull (derelict-looks), each a machine row with no menu card, taken apart for what it gives; each
-    /// stands in space against the hull, nothing behind it.
+    /// stands in space against the hull, nothing behind it. A shuttle's mast is <c>Mast</c>, a freighter's on its bridge <c>MastTall</c>.
     /// </summary>
     public static readonly IReadOnlyList<MachineSpec> Outside =
     [
         new(Nozzle, NozzleSize.W, NozzleSize.H, [], [("plate", 4), ("copper", 2)], BuildTicks: 160, Hp: 24),
+        new(Rcs, 3, 2, [], [("tube", 2), ("scrap", 3)], BuildTicks: 160, Hp: 8),
+        new(Mast, 2, 8, [], [("wire", 3), ("coil", 1)], BuildTicks: 160, Hp: 8),
+        new(MastTall, 2, 10, [], [("wire", 3), ("coil", 1)], BuildTicks: 160, Hp: 8),
+        new(Dish, 5, 5, [], [("circuit", 1), ("plate", 2), ("wire", 2)], BuildTicks: 160, Hp: 10),
+        new(Solar, 11, 6, [], [("crystal", 1), ("wire", 2), ("frame", 1)], BuildTicks: 160, Hp: 10),
+        new(Tank, 16, 3, [], [("plate", 2), ("tube", 2)], BuildTicks: 160, Hp: 12),
+        new(Radiator, 16, 6, [], [("copper", 4), ("plate", 3), ("tube", 2)], BuildTicks: 160, Hp: 16),
+        new(Collar, 6, 3, [], [("plate", 4), ("gear", 2)], BuildTicks: 160, Hp: 16),
+        new(Truss, 11, 3, [], [("frame", 2), ("scrap", 2)], BuildTicks: 160, Hp: 12),
+        new(Boom, 8, 2, [], [("wire", 2), ("circuit", 1)], BuildTicks: 160, Hp: 8),
     ];
+
+    /// <summary>How many radiators a freighter carries on top, least and most: as many of them as fit.</summary>
+    public static readonly (int Min, int Max) Radiators = (1, 3);
+
+    /// <summary>Columns between two parts side by side outside the hull.</summary>
+    public const int PartGap = 3;
+
+    /// <summary>Columns short of the bow a freighter's keel truss ends.</summary>
+    public const int TrussShort = 6;
+
+    /// <summary>A truss segment holds no container under it one time in this many.</summary>
+    public const int TrussEmptyOneIn = 5;
+
+    /// <summary>What hangs under a truss segment: the hold's container, as it is aboard.</summary>
+    public const string TrussContainer = "salvageContainer";
 
     /// <summary>The machines a vessel may hold: fair loot that keeps no state in another module by its id.</summary>
     public static readonly IReadOnlyList<string> Machines = ["crate", "lamp", .. SalvageRows.Select(r => r.Kind), .. Outside.Select(r => r.Kind)];
@@ -251,9 +283,9 @@ public static class Vessels
     public static readonly IReadOnlyList<VesselClass> Classes =
     [
         new("shuttle", Length: 72, Decks: (2, 2), BowFlat: 3, BowRun: (1, 2), BowTip: 5, ArmourDepth: 2, BridgeKind: VesselBridge.Cockpit,
-            Extras: (0, 1), ExtraRoles: [VesselRole.Hold, VesselRole.Quarters, VesselRole.Life], Crater: 6, Yield: (1600, 2700)),
+            Extras: (0, 1), ExtraRoles: [VesselRole.Hold, VesselRole.Quarters, VesselRole.Life], Crater: 6, Yield: (1700, 2800)),
         new("freighter", Length: 200, Decks: (2, 3), BowFlat: 8, BowRun: (1, 2), BowTip: 8, ArmourDepth: 2, BridgeKind: VesselBridge.Raised,
-            Extras: (5, 10), ExtraRoles: [VesselRole.Hold, VesselRole.Quarters, VesselRole.Life], Crater: 14, Yield: (3400, 6100)),
+            Extras: (5, 10), ExtraRoles: [VesselRole.Hold, VesselRole.Quarters, VesselRole.Life], Crater: 14, Yield: (3600, 6600)),
     ];
 
     /// <summary>The surface kind each class's vessel lies on (vessel-worlds), in the order of <see cref="Classes"/>.</summary>
