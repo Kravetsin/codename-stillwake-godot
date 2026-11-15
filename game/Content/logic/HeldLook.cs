@@ -99,20 +99,20 @@ public sealed record HeldLook(
 
     /// <summary>
     /// The screwdriver, <c>art/hero_screwdriver_held.png</c>, the first frame of the twist the hand works plans with
-    /// (<c>hero_screwdriver.png</c>, drawn by the figure while it works): the fist round its ribbed handle, held square to
-    /// the forearm as the axe is, the shaft's point the edge. No module fits it, so it never lies on a bench; its clamp the handle.
+    /// (<c>hero_screwdriver.png</c>, drawn by the figure while it works), shipped raw from the user's pick (builders-raw): the fist
+    /// round its ribbed amber handle, held square to the forearm as the axe is, the shaft's point the edge. No module fits it, so it never lies on a bench; its clamp the handle.
     /// </summary>
     public static readonly HeldLook Screwdriver = new("res://art/hero_screwdriver_held.png", (1.8, 1.2), System.Math.PI / 2, (7.8, 1.2), (9.6, 1.2), Clamp: (2.4, 1.2),
         Twist: "res://art/hero_screwdriver.png");
 
     /// <summary>
-    /// The power driver, <c>art/hero_powerDriver_held.png</c> (power-driver), the user's pick, «Пистолет»: a short pistol-grip driver in
-    /// worn green enamel, a battery slab under the grip with three charge lights, steady green; held as a pistol is, the barrel along the
+    /// The power driver, <c>art/hero_powerDriver_held.png</c> (power-driver), the user's pick, «Пистолет», shipped raw (builders-raw): a
+    /// short pistol-grip driver in worn grey-green enamel, a battery slab under the grip with three charge lights, steady green; held as a pistol is, the barrel along the
     /// forearm, the hex bit the edge, to the screwdriver's fist. At work its motor turns the chuck and the bit, the lights bright
     /// (<c>hero_powerDriver.png</c>); flat, the wrist twists it as the screwdriver, the first light red (<c>hero_powerDriver_flat.png</c>).
     /// No module fits it; its clamp the barrel.
     /// </summary>
-    public static readonly HeldLook PowerDriver = new("res://art/hero_powerDriver_held.png", (3.6, 4.56), 0, (8.16, 1.86), (9.6, 1.86), Clamp: (3.6, 1.8),
+    public static readonly HeldLook PowerDriver = new("res://art/hero_powerDriver_held.png", (2.2, 4.56), 0, (8.23, 1.99), (9.48, 1.99), Clamp: (4.3, 1.8),
         Twist: "res://art/hero_powerDriver_flat.png", Driven: "res://art/hero_powerDriver.png");
 
     /// <summary>
@@ -175,8 +175,8 @@ public sealed record HeldLook(
     public static readonly HeldLook Pickaxe = new("res://art/hero_pickaxe.png", (5.5, 6.05), System.Math.PI / 2, (31.5, 18.3), (32.5, 18.3), Clamp: (31.5, 10.5), Size: Drawn);
 
     /// <summary>
-    /// The blasting charge, <c>art/hero_blastCharge.png</c> (blasting-charge), the user's pick, «Труба с серой»: an iron pipe packed
-    /// with sulfur between two screw caps, a short fuse out of the front plug; the fist round its back cap; hanging, across the fist,
+    /// The blasting charge, <c>art/hero_blastCharge.png</c> (blasting-charge), the user's pick, «Труба с серой», shipped raw
+    /// (builders-raw): a threaded iron pipe banded yellow between two hex caps, a short fuse out of the front plug; the fist round its back cap; hanging, across the fist,
     /// as the axe is (Rest), along the forearm as it comes up to throw; the edge the pipe from cap to plug, the charge thrown from the plug. Its icon has the
     /// fuse lit; in flight it turns, sparking (<see cref="ShotLooks.Charge"/>). Clamped by its middle.
     /// </summary>
