@@ -66,6 +66,43 @@ public class ToolHazeTests
         Assert.Equal([13.0, 14.0], contacts.Select(p => p.X));
     }
 
+    // Ground below y = 0.
+    private static bool Ground(double _, double y) => y > 0;
+
+    [Fact]
+    public void AWayIntoWhatWasHitGlancesOffItsSurface()
+    {
+        // A blade struck down and to the right into the ground: thrown up and to the right off it.
+        double d = Math.Sqrt(0.5);
+        var p = ToolHaze.Glance(new HazePoint(5, 1, d, d), Ground);
+        Assert.Equal(d, p.Dx, 6);
+        Assert.Equal(-d, p.Dy, 6);
+    }
+
+    [Fact]
+    public void AWayOutOfItIsKept()
+    {
+        var up = new HazePoint(5, 1, 0.6, -0.8);
+        Assert.Equal(up, ToolHaze.Glance(up, Ground));
+    }
+
+    [Fact]
+    public void DeepInsideItGlancesOffTheNearestSurfaceAndAllRoundMatterTurnsItBack()
+    {
+        // Eight pixels down, the surface found at the widest probe: still thrown up.
+        Assert.True(ToolHaze.Glance(new HazePoint(5, 8, 0, 1), Ground).Dy < 0);
+        var back = ToolHaze.Glance(new HazePoint(5, 1, 1, 0), (_, _) => true);
+        Assert.Equal((-1.0, 0.0), (back.Dx, back.Dy));
+    }
+
+    [Fact]
+    public void ContactsGlanceOffTheMatterTheyAreIn()
+    {
+        var haze = new List<HazePoint> { new(0, -2, 0, 1), new(0, 2, 0, 1) };
+        var contact = Assert.Single(ToolHaze.Contacts(haze, Ground, (0, 2)));
+        Assert.Equal(-1, contact.Dy, 6);
+    }
+
     [Fact]
     public void AHazeThatDoesNotReachWhatIsHitThrowsFromItsPointNearest()
     {

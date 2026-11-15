@@ -383,7 +383,8 @@ public partial class HeroView
                 // Its box turned any way: as far as its corner reaches.
                 double reach = System.Math.Sqrt((double)halfW * halfW + (double)halfH * halfH);
                 if (cx + reach < left * perPixel || cx - reach > right * perPixel || cy + reach < top * perPixel || cy - reach > bottom * perPixel) continue;
-                var inside = haze.Where(p => solid(piece, p.X * perPixel, p.Y * perPixel)).ToList();
+                bool In(double x, double y) => solid(piece, x * perPixel, y * perPixel);
+                var inside = haze.Where(p => In(p.X, p.Y)).Select(p => ToolHaze.Glance(p, In)).ToList();
                 if (inside.Count > 0) _bites[piece.Id] = (inside, _bitesClock);
             }
         }
@@ -459,7 +460,7 @@ public partial class HeroView
         {
             var middle = hero.Middle;
             var face = Impacts.On(m.Grid, cell, (double)middle.X / Hero.Unit, (double)middle.Y / Hero.Unit);
-            targets.Add(new(HitLooks.Of[impact], Impacts.FloorUnder(m.Grid, face) * Rig.Cell, ToolHaze.Contacts(haze, (x, y) => SolidNear(m, x, y, end), (end.X, end.Y))));
+            targets.Add(new(HitLooks.Of[impact], Impacts.FloorUnder(m.Grid, face) * Rig.Cell, ToolHaze.Contacts(haze, (x, y) => SolidNear(m, x, y, end), (end.X, end.Y), (x, y) => SolidAt(m, x, y))));
         }
         return new(id, tool, start, end, figure.Barrel, hit.Contact != null, wrecks, targets, haze);
     }
@@ -494,7 +495,7 @@ public partial class HeroView
         // Off the tool's haze where it lies in what it hit, along the haze (spark-rule); a hit with no haze, from the face.
         var hits = Stages.Of(Layers.Effects).Hits;
         if (haze is { Count: > 0 })
-            hits.ThrowFrom(HitLooks.Of[impact], ToolHaze.Contacts(haze, (x, y) => SolidNear(m, x, y, point), (point.X, point.Y)), share, WorkLooks.ContactPoints, floor);
+            hits.ThrowFrom(HitLooks.Of[impact], ToolHaze.Contacts(haze, (x, y) => SolidNear(m, x, y, point), (point.X, point.Y), (x, y) => SolidAt(m, x, y)), share, WorkLooks.ContactPoints, floor);
         else hits.Throw(HitLooks.Of[impact], point.X, point.Y, at.Nx, at.Ny, share, floor);
     }
 

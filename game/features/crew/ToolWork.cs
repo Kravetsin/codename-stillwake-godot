@@ -65,7 +65,7 @@ public partial class ToolWork : Node2D
                 int n = _thrown++;
                 var target = s.Targets[n % s.Targets.Count];
                 var p = target.Contacts[(int)((uint)(n * 2654435761u) % (uint)target.Contacts.Count)];
-                Stages.Of(Layers.Effects).Hits.Throw(target.Look, p.X, p.Y, p.Dx, p.Dy, WorkLooks.ShareOf(s.Tool), target.Floor);
+                Stages.Of(Layers.Effects).Hits.ThrowAlong(target.Look, p, WorkLooks.ShareOf(s.Tool), target.Floor);
             }
         }
         // One that stopped touching begins afresh, its first throw at once, when it touches again.

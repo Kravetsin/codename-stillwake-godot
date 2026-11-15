@@ -53,6 +53,26 @@ public static class WorkLooks
     public const double ContactReach = 16, HazeFar = 48, JetStep = 1;
 
     /// <summary>
+    /// How what is hit throws off a haze (spark-rule): along the haze, never into what was hit. A way that leads into it
+    /// <see cref="GlanceProbe"/> px on glances off its surface, found by <see cref="GlanceRays"/> ways round the point at the
+    /// nearest of <see cref="GlanceRadii"/> that reaches out of it.
+    /// </summary>
+    public const double GlanceProbe = 2;
+    public const int GlanceRays = 16;
+    public static readonly double[] GlanceRadii = [3, 6, 12];
+
+    /// <summary>
+    /// How widely what is thrown off a haze fans either way of it, radians, by its kind, whatever it is made of (spark-rule):
+    /// streaks (sparks, splinters) a thin jet, chips wider, motes and wisps (dust) wider still.
+    /// </summary>
+    public static double HazeSpread(Glimmer kind) => kind switch
+    {
+        Glimmer.Streak => 0.21,
+        Glimmer.Chip => 0.44,
+        _ => 0.7,
+    };
+
+    /// <summary>
     /// The drill's haze (drill-contact), as the user picked it («Двойная спираль»): two strands from its chuck to
     /// its reach, at most this far either side of the axis, grown over the first <see cref="HelixGrow"/> of its length, a turn every
     /// <see cref="HelixPitch"/> pixels along it, turning <see cref="HelixTurns"/> times a second; its loop taken in

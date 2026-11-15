@@ -115,13 +115,17 @@ public static class ToolHaze
 
     /// <summary>
     /// Where <paramref name="haze"/> lies in what was hit at <paramref name="at"/>: its points <paramref name="inside"/> it; else its
-    /// point nearest <paramref name="at"/>, so what is hit always throws off the haze; none without a haze.
+    /// point nearest <paramref name="at"/>, so what is hit always throws off the haze; none without a haze. Each moves the haze's way
+    /// there, glanced off the surface of <paramref name="matter"/> (what <paramref name="inside"/> tests, if none is given) where
+    /// that way leads into it (<see cref="Glance"/>).
     /// </summary>
-    public static List<HazePoint> Contacts(IReadOnlyList<HazePoint> haze, Func<double, double, bool> inside, (double X, double Y) at)
+    public static List<HazePoint> Contacts(IReadOnlyList<HazePoint> haze, Func<double, double, bool> inside, (double X, double Y) at,
+        Func<double, double, bool>? matter = null)
     {
+        matter ??= inside;
         var contacts = new List<HazePoint>();
         foreach (var p in haze)
-            if (inside(p.X, p.Y)) contacts.Add(p);
+            if (inside(p.X, p.Y)) contacts.Add(Glance(p, matter));
         if (contacts.Count > 0 || haze.Count == 0) return contacts;
         var nearest = haze[0];
         double best = double.MaxValue;
@@ -130,7 +134,34 @@ public static class ToolHaze
             double d = (p.X - at.X) * (p.X - at.X) + (p.Y - at.Y) * (p.Y - at.Y);
             if (d < best) (best, nearest) = (d, p);
         }
-        contacts.Add(nearest);
+        contacts.Add(Glance(nearest, matter));
         return contacts;
+    }
+
+    /// <summary>
+    /// <paramref name="p"/> moving its way unless that leads into <paramref name="matter"/> (<see cref="WorkLooks.GlanceProbe"/> px on):
+    /// then glanced off its surface, the way mirrored by the surface's outward normal, the mean of the ways round the point that
+    /// lead out of it at the nearest of <see cref="WorkLooks.GlanceRadii"/>; straight back where all round is matter.
+    /// </summary>
+    public static HazePoint Glance(HazePoint p, Func<double, double, bool> matter)
+    {
+        if (!matter(p.X + p.Dx * WorkLooks.GlanceProbe, p.Y + p.Dy * WorkLooks.GlanceProbe)) return p;
+        foreach (double r in WorkLooks.GlanceRadii)
+        {
+            double nx = 0, ny = 0;
+            for (int k = 0; k < WorkLooks.GlanceRays; k++)
+            {
+                double a = 2 * Math.PI * k / WorkLooks.GlanceRays, ox = Math.Cos(a), oy = Math.Sin(a);
+                if (!matter(p.X + ox * r, p.Y + oy * r)) (nx, ny) = (nx + ox, ny + oy);
+            }
+            double l = Math.Sqrt(nx * nx + ny * ny);
+            if (l < 1e-9) continue;
+            (nx, ny) = (nx / l, ny / l);
+            double into = p.Dx * nx + p.Dy * ny;
+            if (into >= 0) return p;
+            double dx = p.Dx - 2 * into * nx, dy = p.Dy - 2 * into * ny, m = Math.Sqrt(dx * dx + dy * dy);
+            return p with { Dx = dx / m, Dy = dy / m };
+        }
+        return p with { Dx = -p.Dx, Dy = -p.Dy };
     }
 }
