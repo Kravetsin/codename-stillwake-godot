@@ -58,6 +58,7 @@ public static partial class Ru
         ["use.open.crusher"] = "[{key:use}] Дробилка",
         ["use.open.engine"] = "[{key:use}] Открыть двигатель",
         ["use.open.dropPod"] = "[{key:use}] Открыть посадочную капсулу",
+        ["use.open.crewShuttle"] = "[{key:use}] Открыть шаттл",
         ["use.open.furnace"] = "[{key:use}] Открыть печь",
         ["use.open.burnerGenerator"] = "[{key:use}] Открыть генератор",
         ["use.open.biofuelGenerator"] = "[{key:use}] Открыть генератор",
@@ -88,6 +89,8 @@ public static partial class Ru
         ["use.alight"] = "[{key:use}] Покинуть капсулу",
         ["use.board.treadWheel"] = "[{key:use}] Встать в колесо",
         ["use.alight.treadWheel"] = "[{key:walkLeft}/{key:walkRight}] Бежать · [{key:use}] Выйти",
+        ["use.board.crewShuttle"] = "[{key:use}] Сесть в шаттл",
+        ["use.alight.crewShuttle"] = "[{key:use}] Выйти из шаттла",
         ["use.openValve"] = "[{key:use}] Открыть клапан",
         ["use.closeValve"] = "[{key:use}] Закрыть клапан",
     };
