@@ -33,7 +33,7 @@ public partial class ToolWork : Node2D
 
     public ToolWork()
     {
-        ZIndex = Layers.Hero;
+        ZIndex = Layers.HeldFront;
         Material = new CanvasItemMaterial
         {
             BlendMode = CanvasItemMaterial.BlendModeEnum.Add,

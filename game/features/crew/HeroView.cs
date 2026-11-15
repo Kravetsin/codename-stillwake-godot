@@ -40,7 +40,7 @@ public partial class HeroView : Node2D
 
     private readonly Ui _ui;
     private readonly WorldButtons _mouse;
-    private readonly Figure _figure = new(Suits.All[0], own: true) { ZIndex = Layers.Hero };
+    private readonly Figure _figure = new(Suits.All[0], own: true) { ZIndex = Layers.Hero, HandsLayer = Layers.HeldFront };
     // Over the machines, as the TypeScript drew the crew's layer, so a crate's whole outline shows.
     private readonly Outline _outline = new(Layers.Aim);
     private readonly ModeGlyph _glyph;

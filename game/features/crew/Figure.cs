@@ -395,7 +395,9 @@ public partial class Figure : Node2D
         // The back fist closes over what it holds; the belt hangs over the body, under the near arm.
         foreach (var n in new Node2D[] { _waistBehind, backLeg, frontLeg, _waist }) parts.AddChild(n);
         foreach (var n in new Node2D[] { _offHeld, backArm }) _waistBehind.AddChild(n);
-        foreach (var n in new Node2D[] { torso, _helmet, _belt, _plan, _tool, _held, frontArm, _collar, _air }) _waist.AddChild(n);
+        foreach (var n in new Node2D[] { torso, _helmet, _belt }) _waist.AddChild(n);
+        _hands = [_plan, _tool, _held, frontArm, _collar, _air];
+        foreach (var n in _hands) _waist.AddChild(n);
         (_capeInside, _capeOutside) = (new CapeView(_cape, inside: true) { Visible = false }, new CapeView(_cape, inside: false) { Visible = false });
         Lit.Set(_capeInside);
         Lit.Set(_capeOutside);
@@ -598,6 +600,21 @@ public partial class Figure : Node2D
 
     /// <summary>Whether it wears the tracker on its shin: every hero does; a catcher drawn as one does not (tracker-catchers).</summary>
     public bool Tracked { get; set; } = true;
+
+    /// <summary>
+    /// The world's layer its near arm and what it holds are drawn on, over the tufts its feet stand in (held-over-grass); none for a
+    /// figure drawn whole on its own layer: a body, a seated hero, the title's.
+    /// </summary>
+    public int? HandsLayer
+    {
+        set
+        {
+            foreach (var n in _hands) (n.ZAsRelative, n.ZIndex) = value is { } z ? (false, z) : (true, 0);
+        }
+    }
+
+    // The near arm, what it holds, and the collar and air over its shoulder, in the order drawn.
+    private readonly Node2D[] _hands;
 
     /// <summary>
     /// A catcher's gear lit (tracker-catchers): its receiver at <c>Receiver</c> in the figure's colour, as a tracker is (<see cref="TrackerBlink.Lit"/>),
