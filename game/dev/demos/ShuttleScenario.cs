@@ -15,7 +15,7 @@ namespace Stillwake.Game.Dev;
 [Dev("--trip", "the testbed's hero by the crew shuttle, a freighter found and the course set to it; =auto boards, sets off, gets out 3 s after arriving, boards again and flies home (ShuttleScenario)", Shape = DevShape.Either, Order = 1)]
 public sealed class ShuttleScenario : TestbedScenario
 {
-    /// <summary>The tick the hero boards on with <c>=auto</c>; it sets off <see cref="Wait"/> ticks later.</summary>
+    /// <summary>Ticks from the first frame till the hero boards with <c>=auto</c>, the course set; it sets off <see cref="Wait"/> ticks later.</summary>
     private const int BoardAt = 40;
     private const int Wait = 10;
     /// <summary>Ticks seated by the vessel before it gets out, and seated again before it flies home.</summary>
@@ -23,7 +23,8 @@ public sealed class ShuttleScenario : TestbedScenario
     private const string Shuttle = "crewShuttle";
 
     private bool _found, _coursed;
-    private int? _arrivedAt;
+    private int? _arrivedAt, _startedAt;
+    private int _boardedAt;
     private int _readAt = -1;
     /// <summary>How many of <c>=auto</c>'s steps are sent: board, set off, out, in, home.</summary>
     private int _step;
@@ -73,8 +74,14 @@ public sealed class ShuttleScenario : TestbedScenario
         // Each step once, at or after its tick: a frame may run several ticks.
         if (surface == 0 && _arrivedAt == null)
         {
-            if (_step == 0 && tick >= BoardAt && m.Grid.MachinesOf(Shuttle).FirstOrDefault() is { } shuttle && Next()) client.Send(new Board(shuttle.Id));
-            if (_step == 1 && tick >= BoardAt + Wait && Next())
+            // A testbed's world starts some ticks in: counted from the first frame, once the course is set.
+            _startedAt ??= tick;
+            if (_step == 0 && tick >= _startedAt + BoardAt && m.Places.Course != null && m.Grid.MachinesOf(Shuttle).FirstOrDefault() is { } shuttle && Next())
+            {
+                _boardedAt = tick;
+                client.Send(new Board(shuttle.Id));
+            }
+            if (_step == 1 && tick >= _boardedAt + Wait && m.Landing.SeatOf(client.Id) != null && Next())
             {
                 log($"setting off: {m.Places.SetOffProblem(client.Id) ?? "ready"}");
                 client.Send(new SetOff());
