@@ -16,14 +16,15 @@ public partial class WreckInk : Node2D
     private CrackNet? _net;
     private double _share;
     private int _seed;
+    private DamageLooks.CrackInk? _look;
     private float _pixel;
 
     public WreckInk() => UseParentMaterial = true;
 
-    /// <summary>Shows <paramref name="blows"/> and <paramref name="net"/> with <paramref name="share"/> of its hit points lost, laid out by <paramref name="seed"/>.</summary>
-    public void Show(IReadOnlyList<Blow> blows, CrackNet? net, double share, int seed)
+    /// <summary>Shows <paramref name="blows"/> and <paramref name="net"/> with <paramref name="share"/> of its hit points lost, laid out by <paramref name="seed"/>, inked as <paramref name="look"/> has it (every wreck's by default).</summary>
+    public void Show(IReadOnlyList<Blow> blows, CrackNet? net, double share, int seed, DamageLooks.CrackInk? look = null)
     {
-        (_blows, _net, _share, _seed) = (blows, net, share, seed);
+        (_blows, _net, _share, _seed, _look) = (blows, net, share, seed, look);
         // A picture that only clips, drawn elsewhere (a pile's, in the ship's tiles), keeps its mode.
         if (GetParent() is CanvasItem picture && picture.ClipChildren != ClipChildrenMode.Only)
             picture.ClipChildren = blows.Count > 0 ? ClipChildrenMode.AndDraw : ClipChildrenMode.Disabled;
@@ -42,7 +43,7 @@ public partial class WreckInk : Node2D
         _pixel = InkCanvas.PixelOf(this);
         _ink.Clear();
         _ink.Feather = _pixel;
-        WreckCracks.Draw(_ink, _blows, _net, _share, _seed);
+        WreckCracks.Draw(_ink, _blows, _net, _share, _seed, _look);
         _canvas.Draw(this, _ink);
     }
 }

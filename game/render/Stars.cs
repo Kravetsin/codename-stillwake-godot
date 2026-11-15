@@ -22,6 +22,8 @@ public partial class Stars : CanvasLayer
     private static readonly Color Star = new(223 / 255f, 232 / 255f, 245 / 255f);
 
     private readonly Sprite2D _sky;
+    /// <summary>A stretch of space's far picture, behind the far wrecks (<see cref="StretchLooks"/>): none till one comes.</summary>
+    private readonly StretchBackdrop _far = new() { Visible = false };
     /// <summary>A planet's sky behind its ground, drawn over the screen in place of space (0076, 0079); its set's pictures.</summary>
     private PlanetSky? _day;
     private string? _set;
@@ -36,6 +38,7 @@ public partial class Stars : CanvasLayer
         ProcessPriority = 1;
         _sky = Sky();
         AddChild(_sky);
+        AddChild(_far);
         AddChild(_wrecks);
         AddChild(_dust);
     }
@@ -104,6 +107,17 @@ public partial class Stars : CanvasLayer
         _sky.Visible = _wrecks.Visible = _dust.Visible = _tops == null;
     }
 
+    /// <summary>
+    /// A stretch of space seen coming, running or easing back (<see cref="StretchShown"/>): its far picture behind the far wrecks,
+    /// <paramref name="grow"/> of its warning run and <paramref name="since"/> ticks since it began, gone once <paramref name="melt"/> is
+    /// past 0. Space only: a planet's sky is its own.
+    /// </summary>
+    public void Stretch(StretchLooks.Look? look, float grow, float melt, int since)
+    {
+        if (_tops == null) _far.Show(look, grow, melt, since);
+        else _far.Clear();
+    }
+
     private BackdropView? _land;
     private int[]? _tops;
     private (float R, float G, float B) _tint = (1, 1, 1);
@@ -142,6 +156,7 @@ public partial class Stars : CanvasLayer
             _day!.Follow(centre, zoom, screen, ground, Seconds);
             _land?.Follow(centre, zoom, screen, ground);
         }
+        _far.Follow(centre, zoom, screen, Seconds);
         _wrecks.Follow(centre, zoom, screen, Seconds);
         _dust.Follow(centre, zoom, screen, Seconds);
     }

@@ -89,13 +89,13 @@ public class SkyTests
         var sky = w.On(1).Sky;
         // A command applies before the hour advances on its tick.
         w.Do(new SetTime(NightAt - 2)).Run();
-        Assert.Equal(new SkyNow(NightAt - 1, false, 0), sky.Now);
+        Assert.Equal(new SkyNow(NightAt - 1, false, 0, null, null, 0), sky.Now);
         w.Run();
-        Assert.Equal(new SkyNow(NightAt, true, Day.Chill), sky.Now);
+        Assert.Equal(new SkyNow(NightAt, true, Day.Chill, null, null, 0), sky.Now);
         w.Do(new SetTime(Day.Length - 2)).Run();
-        Assert.Equal(new SkyNow(Day.Length - 1, true, Day.Chill), sky.Now);
+        Assert.Equal(new SkyNow(Day.Length - 1, true, Day.Chill, null, null, 0), sky.Now);
         w.Run();
-        Assert.Equal(new SkyNow(0, false, 0), sky.Now);
+        Assert.Equal(new SkyNow(0, false, 0, null, null, 0), sky.Now);
     }
 
     [Theory]
