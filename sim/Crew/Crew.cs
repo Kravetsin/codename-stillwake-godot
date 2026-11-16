@@ -91,6 +91,11 @@ public interface ICrewQueries
     /// </summary>
     int TemperatureAt(int cell);
     /// <summary>
+    /// The thousandths of its speed a hero walks and runs at in <paramref name="cell"/>: <c>SkyNow.Pace</c> where the sky's chill
+    /// reaches (<see cref="TemperatureAt"/>'s open sky), so a storm slows it out in the open and not under a back wall; whole elsewhere.
+    /// </summary>
+    int PaceAt(int cell);
+    /// <summary>
     /// The coldest hero <paramref name="peer"/> withstands, in degrees: its body's <c>Low</c>, or <c>Temperature.BareLow</c> with none,
     /// <c>Cape.Warmth</c> lower with the cape on.
     /// </summary>
@@ -572,10 +577,18 @@ public sealed partial class CrewModule : Module<CrewState>, ICrewQueries, ICrewO
         if (_air.AiredAt(cell)) return Content.Temperature.Room;
         int row = cell / width;
         int degrees = Rules is Content.PlanetType planet ? Terrain.TemperatureOf(planet, row) : Rules.Floats ? Afloat(cell) : Rules.Temperatures[0];
-        bool top = Rules is not Content.PlanetType deep || Terrain.BandOf(deep, row) == 0;
-        // Night reaches only the top band, and only under the open sky (night-chills): a cave deeper down never feels it.
-        return top && _grid.BackAt(cell) == null ? degrees - _sky.Now.Chill : degrees;
+        return OpenSky(cell) ? degrees - _sky.Now.Chill : degrees;
     }
+
+    public int PaceAt(int cell) =>
+        cell < 0 || cell >= _grid.Width * _grid.Height || _air.AiredAt(cell) || !OpenSky(cell) ? 1000 : _sky.Now.Pace;
+
+    /// <summary>
+    /// Whether the sky reaches <paramref name="cell"/>, on the grid and not aired: the top band, with no back wall. Night and the
+    /// stretches reach only there (night-chills): a cave deeper down never feels them.
+    /// </summary>
+    private bool OpenSky(int cell) =>
+        (Rules is not Content.PlanetType deep || Terrain.BandOf(deep, cell / _grid.Width) == 0) && _grid.BackAt(cell) == null;
 
     /// <summary>
     /// An airless cell's degrees afloat: <c>Temperature.Hull</c> in the zone and a vessel's box, falling straight to the kind's own

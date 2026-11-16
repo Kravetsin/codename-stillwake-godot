@@ -4,7 +4,7 @@ using System.Collections.Generic;
 namespace Stillwake.Game;
 
 /// <summary>
-/// How a stretch of space (docs/decisions/2026-11-15-stretches-of-space.md) is seen coming, drawn only, without a word: its far picture drifting in behind
+/// How a stretch (docs/decisions/2026-11-15-stretches-of-space.md) is seen coming, drawn only, without a word: its far picture drifting in behind
 /// the ship, the radar's band in its colour, frost on the hull before the ice belt. All of it from the sky's <c>SkyNow</c>, so a
 /// peer joining mid-warning sees what the others do.
 /// </summary>
@@ -14,10 +14,48 @@ public static class StretchLooks
     public const string IceBlock = "iceBlock", ContrabandCrate = "contrabandCrate";
 
     /// <summary>
-    /// A stretch's look: its far picture (<paramref name="Far"/>); the radar's band in <paramref name="Band"/>; whether frost creeps
-    /// over the hull before it (<paramref name="Frost"/>).
+    /// A stretch's look: its far picture (<paramref name="Far"/>), none for a planet's weather; the radar's band in <paramref name="Band"/>,
+    /// none unbanded; whether frost creeps over the hull before it (<paramref name="Frost"/>).
     /// </summary>
-    public sealed record Look(string Id, Backdrop Far, (float R, float G, float B) Band, bool Frost);
+    public sealed record Look(string Id, Backdrop? Far, (float R, float G, float B)? Band, bool Frost, Weather? Weather = null);
+
+    /// <summary>
+    /// A planet's weather as it is seen and heard (docs/plans/surface-storms.md), the pick page's numbers: <paramref name="Streaks"/>
+    /// over the open sky, <paramref name="Count"/> of them over the pick's view (<see cref="Weather.View"/>) at the storm's height;
+    /// the sky and the land behind turned toward <paramref name="Haze"/>, at most <paramref name="HazeMost"/> of the way; daylight
+    /// multiplied toward <paramref name="Dim"/>; its <paramref name="Wind"/>'s loop, none unheard. <paramref name="Visibility"/>: how the
+    /// world in view washes out, none where it stays clear.
+    /// </summary>
+    public sealed record Weather(Streak Streaks, int Count, (float R, float G, float B) Haze, float HazeMost,
+        (float R, float G, float B) Dim, Sound.Cue? Wind, Wash? Visibility = null)
+    {
+        /// <summary>The pick's view, in pixels of the world, and the box past it its streaks wrapped round: what <see cref="Count"/> filled.</summary>
+        public const float View = 192, ViewTall = 112, BoxWide = View + 24, BoxTall = ViewTall + 18;
+
+        /// <summary>How far the plants lean at the storm's height, in a gust's strengths: the pick's full storm over its strongest gust.</summary>
+        public const float SwayGain = 2.5f;
+    }
+
+    /// <summary>
+    /// The streaks a weather blows: falling at <paramref name="Angle"/> radians below the horizontal, leftward, at
+    /// <paramref name="Speed"/> pixels a second, <paramref name="Length"/> long, tapering to their tail from <paramref name="Width"/> wide
+    /// (each 0.7 to 1.3 of it), in turn of <paramref name="Colours"/>; <paramref name="Low"/>: thicker near the ground, jittering, a
+    /// speck of grit beside some.
+    /// </summary>
+    public sealed record Streak(float Angle, (float Least, float Most) Speed, (float Least, float Most) Length, float Width, bool Low,
+        IReadOnlyList<(float R, float G, float B, float A)> Colours);
+
+    /// <summary>
+    /// A weather washing out the world in view («Блёклый мир», the pick of 2026-11-16): blurred to a pixel of the world, turned
+    /// <paramref name="Grey"/> of the way to grey and <paramref name="Flat"/> of the way to its haze, the hero too.
+    /// </summary>
+    public sealed record Wash(float Grey, float Flat);
+
+    /// <summary>The picked wash, both storms': the pick page's numbers.</summary>
+    public static readonly Wash Washed = new(Grey: 0.8f, Flat: 0.42f);
+
+    private static (float, float, float, float) Rgba(int r, int g, int b, float a) => (r / 255f, g / 255f, b / 255f, a);
+    private static (float, float, float) Rgb(int r, int g, int b) => (r / 255f, g / 255f, b / 255f);
 
     /// <summary>
     /// A stretch's far picture: a row of places, each <paramref name="Width"/> pixels of its plane wide with <paramref name="Gap"/> of
@@ -49,6 +87,14 @@ public static class StretchLooks
         new(Content.Stretches.ContrabandDrift.Id,
             new(["stretches/hulk_1", "stretches/hulk_2", "stretches/hulk_3"], Width: 1100, Gap: 3, Speed: 4, Above: 0.16f),
             (0.98f, 0.58f, 0.26f), Frost: false),
+        // The first planet's storms (docs/plans/surface-storms.md), no far picture and no band: the dust storm «Пыльная буря» (A),
+        // grit blown almost along the ground in an ochre haze; the rain storm «Косой дождь» (B), slanting rain in a cold grey-blue one.
+        new(Content.Stretches.DustStorm.Id, Far: null, Band: null, Frost: false, new Weather(
+            new Streak(0.2f, (120, 190), (1.4f, 4.2f), 0.45f, Low: true, [Rgba(132, 98, 56, 0.82f), Rgba(74, 56, 36, 0.78f), Rgba(176, 144, 98, 0.72f)]),
+            Count: 240, Haze: Rgb(176, 138, 88), HazeMost: 0.62f, Dim: (0.62f, 0.53f, 0.42f), Wind: Sound.StormWind, Visibility: Washed)),
+        new(Content.Stretches.RainStorm.Id, Far: null, Band: null, Frost: false, new Weather(
+            new Streak(1.12f, (170, 230), (6, 11), 0.34f, Low: false, [Rgba(206, 218, 228, 0.52f), Rgba(150, 166, 182, 0.5f), Rgba(92, 106, 122, 0.42f)]),
+            Count: 210, Haze: Rgb(118, 132, 146), HazeMost: 0.5f, Dim: (0.7f, 0.74f, 0.8f), Wind: Sound.StormRain, Visibility: Washed)),
     ];
 
     /// <summary>Where each piece of ice lies in <c>stretches/ice_pieces</c>, the largest first: cut from the picked sheets by alpha.</summary>
@@ -152,17 +198,29 @@ public sealed class StretchShown
     /// <summary>Ticks since its warning began, while it is coming or running: when it began, the same for every peer and after a load.</summary>
     public int Since { get; private set; }
 
+    /// <summary>The whole warning of the stretch shown, in ticks: what <see cref="Since"/> counts past to its start.</summary>
+    public int Warning { get; private set; }
+
+    /// <summary>
+    /// The sky now on a surface of <paramref name="rules"/>: as <see cref="See(string?, string?, int, int, double, int)"/>, the warning
+    /// that of its own stretch.
+    /// </summary>
+    public void See(Content.Surfaces.Kind rules, string? running, string? coming, int comingIn, double clock, int ran = 0) =>
+        See(running, coming, comingIn, (running ?? coming) is { } id ? rules.StretchOf(id)?.Warning ?? 0 : 0, clock, ran);
+
     /// <summary>
     /// The sky now: <paramref name="running"/>, the stretch running <paramref name="ran"/> ticks, else <paramref name="coming"/> with
-    /// <paramref name="comingIn"/> ticks of its warning left (<c>SkyNow</c>); <paramref name="clock"/> the world's ticks, between them too.
+    /// <paramref name="comingIn"/> ticks of its warning left (<c>SkyNow</c>), the whole of which is <paramref name="warning"/>;
+    /// <paramref name="clock"/> the world's ticks, between them too.
     /// </summary>
-    public void See(string? running, string? coming, int comingIn, double clock, int ran = 0)
+    public void See(string? running, string? coming, int comingIn, int warning, double clock, int ran = 0)
     {
         if ((running ?? coming) is { } id)
         {
             Look = StretchLooks.Of(id);
-            Grow = running != null ? 1 : Math.Clamp(1 - comingIn / (float)Content.Stretches.Warning, 0, 1);
-            Since = running != null ? Content.Stretches.Warning + ran : Math.Max(0, Content.Stretches.Warning - comingIn);
+            Grow = running != null ? 1 : Math.Clamp(1 - comingIn / (float)Math.Max(1, warning), 0, 1);
+            Since = running != null ? warning + ran : Math.Max(0, warning - comingIn);
+            Warning = warning;
             (After, _ended) = (0, null);
             return;
         }

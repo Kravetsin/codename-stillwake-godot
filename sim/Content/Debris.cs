@@ -139,7 +139,7 @@ public static class Debris
     /// Every zone, in the order they spawn on a tick: the stream first, so a world with no hero out draws as it always did; the
     /// stretches' last, each beating only while its stretch runs (<c>Stretches</c>).
     /// </summary>
-    public static readonly IReadOnlyList<DebrisZone> Zones = [Ship, Far, Asteroids, Stretches.IceBelt.Zone, Stretches.ContrabandDrift.Zone];
+    public static readonly IReadOnlyList<DebrisZone> Zones = [Ship, Far, Asteroids, Stretches.IceBelt.Zone!, Stretches.ContrabandDrift.Zone!];
 }
 
 /// <summary>

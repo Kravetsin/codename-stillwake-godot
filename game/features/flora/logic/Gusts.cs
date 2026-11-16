@@ -11,7 +11,7 @@ public sealed class Gusts
     private readonly FloraLooks.Wind _wind;
     private readonly Func<double> _random;
     private double _seconds, _start, _length;
-    private int _way = 1;
+    private int _way = 1, _blowing = 1;
 
     /// <summary>The wind of <paramref name="wind"/>, its waits and gusts drawn from <paramref name="random"/> (0 to 1).</summary>
     public Gusts(FloraLooks.Wind wind, Func<double> random)
@@ -25,13 +25,13 @@ public sealed class Gusts
     /// <summary>Seconds blown so far: what the gust's roll along the ground follows.</summary>
     public double Seconds => _seconds;
 
-    /// <summary>1 blowing to the right, -1 to the left.</summary>
-    public int Way => _way;
+    /// <summary>1 blowing to the right, -1 to the left: the storm's way while it blows harder than the gust.</summary>
+    public int Way => _blowing;
 
-    /// <summary>How hard it blows now, 0 calm to 1 a full gust, signed by its way.</summary>
+    /// <summary>How hard it blows now, 0 calm to 1 a full gust and past it in a storm, signed by its way.</summary>
     public float Strength { get; private set; }
 
-    /// <summary>Whether a gust blows now.</summary>
+    /// <summary>Whether a gust or a storm blows now.</summary>
     public bool Blowing { get; private set; }
 
     /// <summary>Blows on for <paramref name="seconds"/>.</summary>
@@ -43,20 +43,32 @@ public sealed class Gusts
         {
             _start = _seconds + Between(_wind.Calm);
             _length = Between(_wind.Gust);
-            _way = _random() < 0.5 ? -1 : 1;
+            // In a storm the gusts blow its way, on top of it.
+            _way = Storm > 0 ? StormWay : _random() < 0.5 ? -1 : 1;
             t = _seconds - _start;
         }
-        Blowing = t >= 0;
-        if (!Blowing)
+        double calm = 0;
+        if (t >= 0)
         {
-            Strength = 0;
-            return;
+            // Rising over its first second and a half, dying over its last two, fluttering between.
+            double rise = Math.Clamp(t / 1.5, 0, 1), fall = Math.Clamp((_length - t) / 2, 0, 1);
+            double flutter = 0.8 + 0.2 * Math.Sin(t * 5.3) * Math.Sin(t * 2.1 + 1);
+            calm = _way * Smooth(rise) * Smooth(fall) * flutter;
         }
-        // Rising over its first second and a half, dying over its last two, fluttering between.
-        double rise = Math.Clamp(t / 1.5, 0, 1), fall = Math.Clamp((_length - t) / 2, 0, 1);
-        double flutter = 0.8 + 0.2 * Math.Sin(t * 5.3) * Math.Sin(t * 2.1 + 1);
-        Strength = (float)(_way * Smooth(rise) * Smooth(fall) * flutter);
+        double storm = Storm * (0.85 + 0.15 * Math.Sin(_seconds * 5.1) * Math.Sin(_seconds * 1.7 + 2));
+        Blowing = t >= 0 || storm > 0;
+        Strength = (float)(calm + StormWay * storm);
+        _blowing = storm > Math.Abs(calm) ? StormWay : _way;
     }
+
+    /// <summary>
+    /// The storm's own wind over the calm, in a full gust's strengths (<c>Storm.Wind</c> times the weather's <c>SwayGain</c>): set
+    /// each frame, 0 with none. It blows <see cref="StormWay"/>, the way its streaks fly.
+    /// </summary>
+    public double Storm { get; set; }
+
+    /// <summary>The way a storm blows: to the left, as its streaks fly.</summary>
+    public const int StormWay = -1;
 
     /// <summary>Set by the dev room's F9: a gust wanted now, taken by the surface's wind (<see cref="Now"/>).</summary>
     public static bool Asked { get; set; }

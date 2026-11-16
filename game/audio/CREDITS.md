@@ -56,6 +56,14 @@ microphone's hiss under its tail is gone.
 The retch (food-tuning) is its pick page's pick, cut there from the Freesound HQ preview: mono 48 kHz, high-passed at 40 Hz,
 2.2 s from 1.45 s, faded in over 4 ms and its last 35% out, turned down 3.9 dB to −20 LUFS max momentary as the chewing.
 
+The dust storm's wind (surface-storms) is its pick page's pick, cut there from the Freesound HQ preview: mono 48 kHz, high-passed
+at 40 Hz twice, 24 s from 2 s closed on itself by a 2 s equal-power crossfade of its head with the 2 s after its end, levelled to
+−23 LUFS integrated (peaks −6.5 dBFS), encoded here as OGG; the cue sets the mix and the storm's share its volume.
+
+The rain storm's rain (surface-storms) is its pick page's pick, cut the same way from the Freesound HQ preview (mono, the M of its
+M/S): 24 s from 29.5 s closed on itself by a 2 s equal-power crossfade, raised 14.2 dB to −23 LUFS integrated (peaks −5.6 dBFS),
+its recording's noise floor raised with it, encoded here as OGG; the cue sets the mix and the storm's share its volume.
+
 | File | Source | Author | Licence |
 | ---- | ------ | ------ | ------- |
 | `atmosphere/hiss-1.ogg` | generated for Stillwake | Stillwake team | CC0 |
@@ -256,6 +264,8 @@ The retch (food-tuning) is its pick page's pick, cut there from the Freesound HQ
 | `ruins/metal-break-1.wav` | Freesound, "Dropped Metal pot" (1 s from 0.01 s), https://freesound.org/people/gamer500/sounds/687246/ | gamer500 | CC0 |
 | `ruins/metal-break-2.wav` | Freesound, "Dropped Metal pot" (1 s from 0.805 s), https://freesound.org/people/gamer500/sounds/687246/ | gamer500 | CC0 |
 | `ruins/wood-break-1.wav` | Freesound, "Crate Break 4.wav" (1 s from 0.005 s), https://freesound.org/people/kevinkace/sounds/66780/ | kevinkace | CC0 |
+| `sky/rain-1.ogg` | Freesound, "Rain and wind." (a 24 s loop from 29.5 s, its first 2 s crossfaded with the 2 s after it, equal power; the rain storm's rain, surface-storms), https://freesound.org/people/felix.blume/sounds/414113/ | felix.blume | CC0 |
+| `sky/wind-1.ogg` | Freesound, "Polar Wind" (a 24 s loop from 2 s, its first 2 s crossfaded with the 2 s after it, equal power; the dust storm's wind, surface-storms), https://freesound.org/people/Fission9/sounds/521820/ | Fission9 | CC0 |
 | `ui/click-1.wav` | Interface Sounds, `click_002.ogg`, https://kenney.nl/assets/interface-sounds | Kenney | CC0 |
 | `ui/click-2.wav` | Interface Sounds, `click_003.ogg`, https://kenney.nl/assets/interface-sounds | Kenney | CC0 |
 | `ui/trash-1.wav` | Freesound, "Fwump" (0.6 s from 0.1 s, from 5 ms before its attack, its last share faded; the loudest 50 ms at −20 dBFS RMS, peaks under −3 dBFS; the trash page's pick, trash-sound), https://freesound.org/people/floomatic/sounds/853424/ | floomatic | CC0 |

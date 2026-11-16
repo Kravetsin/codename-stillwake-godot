@@ -42,8 +42,19 @@ public static class Surfaces
         /// <summary>Its day and night (2026-11-07-night-chills); null where there is none: the ship.</summary>
         public Content.Sky.Cycle? Cycle { get; init; }
 
-        /// <summary>The stretches of space it drifts through (docs/decisions/2026-11-15-stretches-of-space.md): the ship's; none anywhere else.</summary>
+        /// <summary>
+        /// Its stretches (docs/decisions/2026-11-15-stretches-of-space.md), in the order they open on a tick and are kept in: the ship's
+        /// stretches of space, a planet's weather; none for a kind without.
+        /// </summary>
         public IReadOnlyList<Content.Stretches.Stretch> Stretches { get; init; } = [];
+
+        /// <summary>Its stretch of that id, or null for none here.</summary>
+        public Content.Stretches.Stretch? StretchOf(string id)
+        {
+            for (int i = 0; i < Stretches.Count; i++)
+                if (Stretches[i].Id == id) return Stretches[i];
+            return null;
+        }
 
         /// <summary>Whether debris drifts by in the zones of <see cref="Debris.Zones"/>: none on a planet.</summary>
         public bool Debris { get; init; } = true;
@@ -92,7 +103,7 @@ public static class Surfaces
         Meteors = Content.Meteors.StartingSpace,
         MeteorsBeforeLanding = Content.Meteors.BeforeLanding,
         Flares = MagneticFlares.StartingSpace,
-        Stretches = Content.Stretches.All,
+        Stretches = Content.Stretches.Ship,
     };
 
     /// <summary>
@@ -110,6 +121,7 @@ public static class Surfaces
         Debris = PlanetTypes.First.Debris,
         Builds = PlanetTypes.First.Builds,
         ToolsBreak = PlanetTypes.First.ToolsBreak,
+        Stretches = PlanetTypes.First.Stretches,
     };
 
     /// <summary>The kinds a world may open: every one but the ship.</summary>

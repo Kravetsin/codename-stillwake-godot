@@ -53,6 +53,15 @@ public partial class BackdropView : Node2D
     }
 
     /// <summary>
+    /// A planet's weather veiling the land toward <paramref name="colour"/>, <paramref name="share"/> of the way for its farthest layer
+    /// and less for the nearer (<see cref="Sky.Storm.Veil"/>).
+    /// </summary>
+    public void Storm((float R, float G, float B) colour, float share)
+    {
+        for (int i = 0; i < _layers.Count; i++) _layers[i].Storm(colour, share * Sky.Storm.Veil(i, _layers.Count));
+    }
+
+    /// <summary>
     /// Lays the layers for a camera looking at <paramref name="centre"/> at <paramref name="zoom"/> on a <paramref name="screen"/>,
     /// the land's ground line at row <paramref name="ground"/> of the world, in pixels: a layer's ground row lies on the screen
     /// where the line does, moved by its share of the camera's height from it.
