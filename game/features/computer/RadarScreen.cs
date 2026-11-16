@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using Godot;
 using Stillwake.Content;
 using Stillwake.Game.Features.Research;
@@ -72,6 +73,22 @@ public partial class RadarScreen : Control
 
     /// <summary>Why no course can be set to each system planet, as the panel last read it: null where one can.</summary>
     public IReadOnlyList<string?> Problems { get => _problems; set => Changed(ref _problems, value); }
+
+    /// <summary>
+    /// Each system planet's ores, item ids (planet-variety), as the panel last read them: empty till dealt. Set only when they
+    /// change, so the screen redraws for nothing else.
+    /// </summary>
+    public IReadOnlyList<IReadOnlyList<string>> Ores
+    {
+        get => _ores;
+        set
+        {
+            if (value.Count == _ores.Count && value.Zip(_ores).All(z => z.First.SequenceEqual(z.Second))) return;
+            (_ores, _dirty, _tipKey) = (value, true, null);
+        }
+    }
+
+    private IReadOnlyList<IReadOnlyList<string>> _ores = [];
 
     /// <summary>The shuttle's route, its contact by id, as the panel last read it: every player's; null for none.</summary>
     public int? Route { get => _route; set => Changed(ref _route, value); }
@@ -458,7 +475,8 @@ public partial class RadarScreen : Control
         var (anchor, radius) = card.Anchor;
         float open = Mathf.Clamp((_time - _opened) / 0.2f, 0, 1), wide = 270;
         bool reason = card.Button is { Lit: false, Reason: not null };
-        float tall = 76 + card.Rows.Length * 20 + (card.Button != null ? 50 : 6) + (reason ? 16 : 0);
+        var lines = Wrapped(card.Rows, wide - 32);
+        float tall = 76 + lines.Count * 20 + (card.Button != null ? 50 : 6) + (reason ? 16 : 0);
         var (x, y) = NavMap.Callout(anchor.X, anchor.Y, radius, wide, tall, Size.X, Size.Y);
         (x, y) = (Mathf.Round(x), Mathf.Round(y + (1 - open) * 8));
         var box = new Rect2(x, y, wide, tall);
@@ -475,10 +493,32 @@ public partial class RadarScreen : Control
         card.Picture(frame.GetCenter());
         Words(card.Title, new Vector2(x + 86, y + 32), Title, Text with { A = open });
         Words(card.Sub, new Vector2(x + 86, y + 52), Tiny, Mute with { A = open });
-        for (int i = 0; i < card.Rows.Length; i++)
-            Words(card.Rows[i].Text, new Vector2(x + 16, y + 88 + i * 20), Small, (card.Rows[i].Colour ?? Text) with { A = open });
+        for (int i = 0; i < lines.Count; i++)
+            Words(lines[i].Text, new Vector2(x + 16, y + 88 + i * 20), Small, (lines[i].Colour ?? Text) with { A = open });
         Close(new Vector2(x + wide - 26, y + 6));
-        if (card.Button is { } button) Button(new Rect2(x + 14, y + 78 + card.Rows.Length * 20, wide - 28, 34), button, open);
+        if (card.Button is { } button) Button(new Rect2(x + 14, y + 78 + lines.Count * 20, wide - 28, 34), button, open);
+    }
+
+    /// <summary>The callout's rows broken at spaces into lines no wider than <paramref name="room"/>, a row's colour kept on each of its lines.</summary>
+    private List<Row> Wrapped(Row[] rows, float room)
+    {
+        var lines = new List<Row>();
+        foreach (var row in rows)
+        {
+            string line = "";
+            foreach (var word in row.Text.Split(' '))
+            {
+                string longer = line.Length == 0 ? word : $"{line} {word}";
+                if (line.Length > 0 && Width(longer, Small) > room)
+                {
+                    lines.Add(row with { Text = line });
+                    line = word;
+                }
+                else line = longer;
+            }
+            lines.Add(row with { Text = line });
+        }
+        return lines;
     }
 
     /// <summary>The callout's line of ink to its thing, written again only when either end moves.</summary>
@@ -534,6 +574,7 @@ public partial class RadarScreen : Control
             var spec = LandingData.Planets[p];
             bool here = p == At && Course == null;
             var rows = new List<Row> { new($"{T("computer.radar.ruins")}: {T($"computer.radar.tech.{spec.Technology}")}") };
+            if (p < Ores.Count && Ores[p].Count > 0) rows.Add(new Row($"{T("computer.radar.ores")}: {string.Join(", ", Ores[p].Select(o => T($"item.{o}")))}"));
             if (here) rows.Add(new Row(T("computer.radar.here"), ShipColour));
             else
             {
@@ -611,6 +652,8 @@ public partial class RadarScreen : Control
     /// <summary>A planet's colours by its type: light, middle, dark, and its spots'.</summary>
     private static (Color, Color, Color, Color) Looks(string type) => type switch
     {
+        "scorched" => (new Color("d69a6a"), new Color("a5603b"), new Color("47241a"), new Color("e0b66a")),
+        "icy" => (new Color("dbe8f2"), new Color("9cb4c8"), new Color("3c4e60"), new Color("f4f8fc")),
         _ => (new Color("8eaa72"), new Color("5d7a4c"), new Color("25331f"), new Color("7b6c47")),
     };
 

@@ -1,6 +1,6 @@
 # The computer and the radar after a planet
 
-- Status: accepted
+- Status: accepted; the magnetite in the computer and the antenna superseded by [planet-variety](2026-11-16-planet-variety.md)
 - Date: 2026-11-08
 
 ## Context

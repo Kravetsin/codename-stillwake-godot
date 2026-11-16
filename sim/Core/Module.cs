@@ -65,10 +65,11 @@ public interface ISurfaces
 
     /// <summary>
     /// The planet a descent lands on, opened if need be — a change to the world, so called only by a system on its tick: the lowest-id
-    /// open surface of a planet's kind, never one left (solar-system), else one opening this tick, else one of <c>Content.Landing.Planet</c> opened once every
-    /// surface has run, before the sends. Returns its id, to <see cref="Send"/> to.
+    /// open surface of a planet's kind, never one left (solar-system), else one opening this tick, else one of type <paramref name="kind"/>
+    /// holding the ores <paramref name="ores"/> (planet-variety, null for all) opened once every surface has run, before the sends.
+    /// Returns its id, to <see cref="Send"/> to.
     /// </summary>
-    int OpenPlanet();
+    int OpenPlanet(string kind, IReadOnlyList<string>? ores);
 
     /// <summary>
     /// Opens a surface of kind <paramref name="kind"/> from <paramref name="seed"/>, keeping what this surface keeps for a new one —

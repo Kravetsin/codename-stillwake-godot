@@ -56,7 +56,7 @@ public class TemperatureTests
         public bool Landed => false;
         public bool Away => false;
         public void LeavePlanet() => throw new NotSupportedException();
-        public int OpenPlanet() => throw new NotSupportedException("no planet is opened");
+        public int OpenPlanet(string kind, IReadOnlyList<string>? ores) => throw new NotSupportedException("no planet is opened");
         public int Open(string kind, uint seed) => throw new NotSupportedException("no surface is opened");
         public uint Seed => 0;
         public int Visit(int peer, string kind, uint seed) => throw new NotSupportedException();

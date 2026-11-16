@@ -61,6 +61,12 @@ public sealed class LandingState
 
     /// <summary>The ship's flight to another system planet; null while it stays. Aboard only.</summary>
     [JsonInclude, JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] internal Course? Course { get; set; }
+
+    /// <summary>
+    /// Each system planet's ores (planet-variety), in <c>Content.Landing.Planets</c>' order, each item ids in <c>Content.Landing.Ores</c>'
+    /// order, mica included; null till dealt, on the ship's first tick. Aboard only.
+    /// </summary>
+    [JsonInclude, JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] internal List<List<string>>? Ores { get; set; }
     /// <summary>Every shuttle in the air from this surface, in the order they set off.</summary>
     [JsonIgnore] internal List<Voyage> Voyages { get; set; } = [];
     /// <summary>Voyages as saved: none written while none flies, so a world without one saves as before.</summary>
@@ -143,6 +149,9 @@ public sealed class LandingModule : Module<LandingState>, ICarries, IOutlives, I
     private readonly IFuelQueries _fuel;
     private readonly IFuelOps _fuelOps;
 
+    /// <summary>The system's ores' fork of the world's random numbers.</summary>
+    private const uint OresSalt = 0x0e5;
+
     private static readonly Placement Pod = new("machine", "dropPod");
     /// <summary>The craft a voyage flies: the one machine with several seats.</summary>
     private static readonly Placement Craft = new("machine", "crewShuttle");
@@ -171,6 +180,8 @@ public sealed class LandingModule : Module<LandingState>, ICarries, IOutlives, I
         Handles<Alight>(c => SeatOf(c.From) == null ? "landing.notSeated" : null, c => State.Seats.RemoveAll(s => s.Peer == c.From));
         Handles<Launch>(c => LaunchProblem(c.From), c => Fly(c.From));
         Handles<PlotCourse>(c => CourseProblem(c.Planet), c => StartCourse(c.Planet));
+        // Aboard, the system's ores are dealt before any descent can land (planet-variety).
+        System(Phase.Construction, Deal);
         // The grid changes only in commands or construction: flights count down, shut their runs and end here.
         System(Phase.Construction, Count);
         // Aboard, the ship's flight counts down and arrives (solar-system).
@@ -277,6 +288,66 @@ public sealed class LandingModule : Module<LandingState>, ICarries, IOutlives, I
 
     /// <summary>The ship's flight to another system planet; null while it stays.</summary>
     public Course? Course => State.Course;
+
+    /// <summary>
+    /// System planet <paramref name="planet"/>'s ores (planet-variety): item ids in <c>Content.Landing.Ores</c>' order, mica included;
+    /// empty off the ship or till they are dealt, on the first tick.
+    /// </summary>
+    public IReadOnlyList<string> OresOf(int planet) => State.Ores is { } all && planet >= 0 && planet < all.Count ? all[planet] : [];
+
+    /// <summary>
+    /// Deals the system's ores (planet-variety), aboard, once: the first planet the starting ores; each varying ore to one of the
+    /// others drawn by its weight there; each of those a count drawn from <c>OresLeast</c> to <c>OresMost</c> filled up by weight
+    /// from the six ores it lacks; mica to every one.
+    /// </summary>
+    private void Deal()
+    {
+        if (Surfaces.Here != 0 || State.Ores != null) return;
+        // A fork of the world's numbers: the deal moves none of the draws after it.
+        State.Ores = Dealt(Random.Fork(OresSalt));
+    }
+
+    /// <summary>The system's ores dealt from <paramref name="rng"/>, as <see cref="Deal"/> says: integers only, nothing divided.</summary>
+    internal static List<List<string>> Dealt(Rng rng)
+    {
+        var planets = Content.Landing.Planets;
+        var types = planets.Select(p => (Content.PlanetType)Content.Surfaces.Get(p.Type)).ToArray();
+        var held = planets.Select(_ => new List<string>()).ToArray();
+        held[0].AddRange(Content.Landing.Starting);
+        foreach (var ore in Content.Landing.Varying)
+        {
+            int to = 1 + Draw(rng, planets.Count - 1, i => types[1 + i].WeightOf(ore));
+            if (to > 0) held[to].Add(ore);
+        }
+        var dealt = Content.Landing.Starting.Concat(Content.Landing.Varying).ToList();
+        for (int p = 1; p < planets.Count; p++)
+        {
+            int count = Math.Max(held[p].Count, Content.Landing.OresLeast + (int)rng.Below((ulong)(Content.Landing.OresMost - Content.Landing.OresLeast + 1)));
+            var left = dealt.Where(o => !held[p].Contains(o)).ToList();
+            while (held[p].Count < count)
+            {
+                var type = types[p];
+                int i = Draw(rng, left.Count, k => type.WeightOf(left[k]));
+                if (i < 0) break;
+                held[p].Add(left[i]);
+                left.RemoveAt(i);
+            }
+        }
+        foreach (var h in held) h.Add(Content.Landing.Everywhere);
+        return [.. held.Select(h => Content.Landing.Ores.Where(h.Contains).ToList())];
+    }
+
+    /// <summary>One of <paramref name="count"/> choices drawn by its weight, in their order by the running sum; -1 when none weighs.</summary>
+    private static int Draw(Rng rng, int count, Func<int, int> weight)
+    {
+        int sum = 0;
+        for (int i = 0; i < count; i++) sum += weight(i);
+        if (sum <= 0) return -1;
+        int roll = (int)rng.Below((ulong)sum);
+        for (int i = 0; i < count; i++)
+            if ((roll -= weight(i)) < 0) return i;
+        return -1;
+    }
 
     /// <summary>The engine fires: its fuel burnt, the planet below left for good, the ship off to <paramref name="planet"/>.</summary>
     private void StartCourse(int planet)
@@ -439,7 +510,7 @@ public sealed class LandingModule : Module<LandingState>, ICarries, IOutlives, I
             }
             State.Flights[i] = f = f with { TicksLeft = f.TicksLeft - 1 };
             if (!f.Up && f.TicksLeft == shut) Shut(Pod.Kind, f.Home);
-            if (f.TicksLeft == 0) Surfaces.Send(f.Peer, f.Up ? 0 : Surfaces.OpenPlanet());
+            if (f.TicksLeft == 0) Surfaces.Send(f.Peer, f.Up ? 0 : Surfaces.OpenPlanet(Content.Landing.Planets[State.At].Type, State.Ores?[State.At]));
         }
         Sail();
     }

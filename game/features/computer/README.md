@@ -39,8 +39,8 @@ computer's row in `c/Machines.cs`. Files in `logic/` are Godot-free and tested i
   middle, each planet on its orbit, the ship's mark over `Landing.At` or along its course; the wheel, `+`/`−` or the
   breadcrumb zoom it 12 times down to the ship's planet, where the ship's orbit and places' contacts on it show (an offset
   a quarter turn each way at the radar's reach), a drag pans it. A contact leaving within 2 minutes blinks amber.
-- **A click** on a planet or a contact opens its callout (`Ui.RadarContact` for a contact, the player's own), on the side
-  away from the middle, tied by ink: a planet's number, type, ruins, flight, fuel and `Plot course` (landing's `PlotCourse`,
+- **A click** on a planet or a contact opens its callout, rows wrapped to its width (`Ui.RadarContact` for a contact, the player's own), on the side
+  away from the middle, tied by ink: a planet's number, type, ruins, ores (`OresOf`), flight, fuel and `Plot course` (landing's `PlotCourse`,
   dim with the sim's reason but `crewAway`, which sends: the call); a contact's class, size, decks, distance
   (`RadarOrbit.Km`), the shuttle's litres there and back (`PlacesModule.CostOf`), when it leaves, and `Set course` (places'
   `SetCourse`). Esc, its ✕ or empty map puts it away; a contact gone is let go on the next read.
