@@ -3,7 +3,7 @@
 // one low at the stern, two long skids on swinging links. The craft is 9 cells tall in its footprint of 24 × 10 (192 × 80): drawn in
 // its own 72-tall frame and shifted 8 px down, so its skids stand on the platform at row 80 and the top 8 px stay empty.
 // `machine_crewShuttle`, unlit; its fuel input at the stern and the fuel up its sight glass (`crewShuttle_level`, fuel-liquid);
-// `crewShuttle_seat_0` … `_3`, a canopy pane lit warm per seat taken, stern to nose; `crewShuttle_course`, its course lamp lit.
+// `crewShuttle_course`, its course lamp lit. Its canopy never changes, whoever sits behind it (the user's rule).
 (function () {
 'use strict';
 const { ell, rr, poly, star } = Anime;
@@ -15,9 +15,8 @@ const LGREY = { base: '#b4b8bc', shade: '#868b94', deep: '#5e636e', lite: '#d4d8
 const MGREY = { base: '#7e848e', shade: '#5a606c', deep: '#40454f', lite: '#9ea4ae', spec: '#e0e4ea' };
 const INSET = { base: '#8d929b', shade: '#6d727c', deep: '#50555e', lite: '#a9adb4', spec: '#dfe3e8' };
 const PIPE = { base: '#7f8796', shade: '#555b70', deep: '#3a3e50', lite: '#a9b1be', spec: '#dfe7f2' };
-/** Tinted glass: dark enough that nothing behind it shows; lit, a warm light through the tint. */
+/** Tinted glass: dark enough that nothing behind it shows. */
 const TINT = { base: '#262f3b', shade: '#1a212b', deep: '#10151c', lite: '#46566a', spec: '#d0dcea' };
-const TINTLIT = { base: '#c08a44', shade: '#8e6234', deep: '#5e4026', lite: '#e2b466', spec: '#fff0c8', ink: '#3a2414' };
 const RUST = ['#70482f', '#3f2a24'];
 const ON = { course: '#6cd8f4' };
 const OFF = { green: '#2a4a36', amber: '#5e4a2c', red: '#5a2a28', course: '#23414e' };
@@ -135,18 +134,6 @@ function desant(a) {
 }
 
 // ---------- from here on, the craft's own 72-tall frame ----------
-/** The canopy as the craft has it, and its four seats' panes from stern to nose: seat i lights pane i. */
-const CANOPY = scaleD(topCanopy, K9);
-const PANES = [146, 156, 166, 176, 187.6];
-const PANE_TOP = f3(15.6 * K9), PANE_BOTTOM = f3(38.6 * K9);
-/** One seat's pane lit warm through the tint. */
-function pane(a, i) {
-  const xa = PANES[i], xb = PANES[i + 1], y0 = PANE_TOP, y1 = PANE_BOTTOM;
-  a.flat(band(xa, y0 - 2, xb, y1 + 2), TINTLIT.base, { clip: CANOPY });
-  a.flat(band(xa, y0 - 2, xb, y0 + (y1 - y0) * .3), TINTLIT.shade, { clip: CANOPY });
-  a.flat(band(xa, y1 - (y1 - y0) * .22, xb, y1 + 2), TINTLIT.lite, { clip: CANOPY });
-  streak(a, CANOPY, xa + (xb - xa) * .4, y0 - 2, y1 + 2, Math.max(.6, (xb - xa) * .12), 2, '#f6dca0');
-}
 /** The course lamp on the mast over the canopy's back: x, y, radius (shuttle-flight). */
 const COURSE = [140, 7.6, 1.6];
 /** Its running lamps, unlit: red aft, green at the nose, amber on the belly. */
@@ -218,7 +205,6 @@ Subjects.shuttle = function () {
   out('machine_crewShuttle', picture(shuttle));
   out('crewShuttle_level', picture(level));
   out('crewShuttle_level_top', picture(levelTop));
-  for (let i = 0; i < 4; i++) out(`crewShuttle_seat_${i}`, picture((a) => pane(a, i)));
   out('crewShuttle_course', picture((a) => lampOn(a, COURSE[0], COURSE[1], ON.course, COURSE[2])));
 };
 })();

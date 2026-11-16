@@ -7,8 +7,8 @@ is left, after the user's pick. Delete this plan once it ships.
 
 ## Words
 
-- *pane*: one of the four panes of the shuttle's canopy; pane i is place i. *course lamp*: the shuttle's lamp, lit while a course
-  is set. *course line*: the radar's line from the ship to the course's contact.
+- *course lamp*: the shuttle's lamp, lit while a course is set. *course line*: the radar's line from the ship to the
+  course's contact.
 - *placeholder*: the plain look drawn in code now: a thin line in the radar's green (`RadarScreen`). The shuttle vanishes
   and appears; its riders see the pod's flight screen (`Ride`).
 - *deck*: the ship's floor; *run*: the launch platform pieces under the shuttle, opened and shut whole.

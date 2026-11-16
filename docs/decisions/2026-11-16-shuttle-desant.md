@@ -17,9 +17,9 @@ reference picture of a sleek plated shuttle, nine thick ones, then nine sets of 
   swinging links. Drawn by `tools/anime-art/subjects/shuttle.js`.
 - **The footprint stays 24 × 10**, so every save loads as it was (the user's condition: as long, as tall or lower). The craft is
   72 px tall, 9 cells, standing on its skids on the platform row; the footprint's top row is empty of paint.
-- **Its four seats are the canopy's four panes**, stern to nose place 0 to 3, each lit warm from its own picture
-  (`crewShuttle_seat_{i}`) while the place is taken; the course lamp on its mast likewise (`crewShuttle_course`). Nobody shows
-  through the tint. `ShuttleLights` draws them; the placeholder bars are gone.
+- **Its canopy never changes, whoever sits behind it** (the user's word, 2026-11-17, after playing it lit): no seat shows on
+  the craft, which overrides crew-shuttle's "slits will light warm". Only the course lamp on its mast lights while a course is
+  set (`crewShuttle_course`, drawn by `ShuttleLights`).
 - **The fuel port's fitting alone meets the picture's edge** at the port (`PipeArtTests`): the near pod's bell stands back from it.
 
 ## Deliberately not handled

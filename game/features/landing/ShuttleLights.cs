@@ -2,38 +2,32 @@ using System.Linq;
 using Godot;
 using Stillwake.Game.Render;
 using Stillwake.Sim.Grid;
-using Stillwake.Sim.Landing;
 using Stillwake.Sim.Places;
 
 namespace Stillwake.Game.Features.Landing;
 
 /// <summary>
-/// Each shuttle's canopy, without a word: pane i lit warm while place i is taken, its rider never seen behind the tint; and its
-/// course lamp, lit while a course is set (shuttle-flight). Each is a picture of the shuttle's whole frame with only that light
-/// painted (<c>crewShuttle_seat_{i}</c>, <c>crewShuttle_course</c>). The seats, the course and the shuttles are compared every
-/// frame, a handful at most, and drawn again only on a change.
+/// Each shuttle's course lamp, without a word: lit while a course is set (shuttle-flight), a picture of the shuttle's whole frame
+/// with only the lamp painted (<c>crewShuttle_course</c>). Its canopy never changes, whoever sits behind it (shuttle-desant). The
+/// course and the shuttles are compared every frame, a handful at most, and drawn again only on a change.
 /// </summary>
 public partial class ShuttleLights : Node2D
 {
-    /// <summary>The kind of machine with these lights: the crew shuttle.</summary>
+    /// <summary>The kind of machine with a course lamp: the crew shuttle.</summary>
     private const string Shuttle = "crewShuttle";
-    private static readonly Texture2D[] Seats = [.. Enumerable.Range(0, 4).Select(i => PixelArt.Picture($"{Shuttle}_seat_{i}"))];
     private static readonly Texture2D Course = PixelArt.Picture($"{Shuttle}_course");
 
     private readonly IGridQueries _grid;
-    private readonly LandingModule _landing;
     private readonly PlacesModule _places;
-    private Seat[] _seen = [];
     private int[] _shuttles = [];
     private bool _course;
 
-    public ShuttleLights(IGridQueries grid, LandingModule landing, PlacesModule places)
+    public ShuttleLights(IGridQueries grid, PlacesModule places)
     {
         _grid = grid;
-        _landing = landing;
         _places = places;
         ZIndex = Layers.Screens;
-        // Lit from inside: the panes glow in the dark as in the lamp's light.
+        // Lit from inside: the lamp glows in the dark as in the lamp's light.
         Material = new CanvasItemMaterial { LightMode = CanvasItemMaterial.LightModeEnum.Unshaded };
     }
 
@@ -41,8 +35,8 @@ public partial class ShuttleLights : Node2D
     {
         bool course = _places.Course != null;
         var shuttles = _grid.MachinesOf(Shuttle);
-        if (_landing.Seats.SequenceEqual(_seen) && course == _course && shuttles.Select(m => m.Cell).SequenceEqual(_shuttles)) return;
-        (_seen, _course, _shuttles) = ([.. _landing.Seats], course, [.. shuttles.Select(m => m.Cell)]);
+        if (course == _course && shuttles.Select(m => m.Cell).SequenceEqual(_shuttles)) return;
+        (_course, _shuttles) = (course, [.. shuttles.Select(m => m.Cell)]);
         QueueRedraw();
     }
 
@@ -53,10 +47,5 @@ public partial class ShuttleLights : Node2D
     {
         if (_course)
             foreach (int cell in _shuttles) DrawTexture(Course, Corner(Shuttle, cell));
-        foreach (var seat in _seen)
-        {
-            if (_grid.MachineById(seat.Pod) is not { Kind: Shuttle } shuttle || seat.Place >= Seats.Length) continue;
-            DrawTexture(Seats[seat.Place], Corner(shuttle.Kind, shuttle.Cell));
-        }
     }
 }
