@@ -22,7 +22,8 @@ picked in two rounds on pick pages: where it stands, then how it looks.
 - **Its look is «Ледокол»** (H of the second round; the first round's four were all turned down): a heavy prow of worn red
   plates over a grey ice belt, a stack of three stubby thrusters at the stern, two keel blocks on the platform. Its glass is
   four frosted slits nobody shows through, the user's rule: the crew is never seen through it; when it is boarded the slits
-  will light warm one by one. Drawn by `tools/anime-art/subjects/shuttle.js`, its body only for now.
+  will light warm one by one. Drawn by `tools/anime-art/subjects/shuttle.js`, its body only for now. (Superseded by
+  [shuttle-desant](2026-11-16-shuttle-desant.md): it looks as «Десант — Салазки».)
 - **The testbed** shows it in a hangar off the airlock's outer door, a row above the ship's roof (the shuttle is 10 cells
   tall), with a lamp of its own, a door to space and no air, as the airlock: machines outside the hull have no light but a
   lamp's, so in the open it stood in the dark.

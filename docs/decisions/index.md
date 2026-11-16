@@ -388,6 +388,7 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [hero-skins](2026-11-16-hero-skins.md) | Skins: how a hero looks, apart from what it wears | accepted |  |
 | [loot-pieces](2026-11-16-loot-pieces.md) | Loot lies as a few small objects that bounce and tip onto a side | accepted |  |
 | [planet-variety](2026-11-16-planet-variety.md) | Planets differ: types and ore sets | accepted |  |
+| [shuttle-desant](2026-11-16-shuttle-desant.md) | The crew shuttle looks as «Десант — Салазки» | accepted |  |
 | [shuttle-flight](2026-11-16-shuttle-flight.md) | The crew flies to a vessel in the shuttle and back | accepted |  |
 | [solar-system](2026-11-16-solar-system.md) | The ship flies between the planets of its solar system | accepted |  |
 | [whole-limbs](2026-11-16-whole-limbs.md) | One picture an arm or leg | accepted |  |

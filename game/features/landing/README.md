@@ -14,7 +14,7 @@ sends `Board` and `Alight`, the pod's key `Launch`. The platform's lamps are pow
 | `PodFlights.cs` | a pod moving in the world: the deck sliding and the fall aboard; on a planet the touchdown and the lift-off | yes |
 | `PodSounds.cs` | a moving pod heard by everyone on its surface: its engine, its clamps letting go, its touchdown's thump | yes |
 | `ShuttleKey.cs` | the crew shuttle's panel: a mark a seat, where it flies (the course's km and litres, or home), Set off dim with the sim's refusal | yes |
-| `ShuttleLights.cs` | each shuttle's slits lit warm, place i slit i, and its course lamp lit while a course is set: placeholders | yes |
+| `ShuttleLights.cs` | each shuttle's canopy pane i lit warm while place i is taken, and its course lamp while a course is set, from baked pictures | yes |
 | `EngineFlame.cs` | the engine's flame and glow at its nozzle while the ship's course runs | yes |
 | `JumpCall.cs` | the course's cues: the call (amber edges, a beep) on `crewAway`, the burn, the arrival; one-shots | yes |
 | `logic/Warp.cs` | how deep the ship's flight is, 0 to 1, eased over 4 s at each end, from the course's ticks | no |
@@ -62,8 +62,8 @@ sends `Board` and `Alight`, the pod's key `Launch`. The platform's lamps are pow
   not. A sound due at a moment plays only if it passes while seen (`FlightTimeline.Crossed`): none late after a load.
 
 - **The crew shuttle** (2026-11-15-crew-shuttle, 2026-11-16-shuttle-flight): its riders are never drawn (`SeatedHeroes`);
-  `ShuttleLights` lights slit i while place i is taken and the course lamp aboard while `Places.Course` is set, compared every
-  frame, drawn again on a change. Its panel is `ShuttleKey` (`InventoryPanel.Launch` for a `Lands` machine with
+  `ShuttleLights` lights pane i (`crewShuttle_seat_{i}`) while place i is taken and the course lamp aboard while
+  `Places.Course` is set, compared every frame, drawn again on a change. Its panel is `ShuttleKey` (`InventoryPanel.Launch` for a `Lands` machine with
   `Riders > 1`), read on a timer: a press sends places' `SetOff` only while `Places.SetOffProblem` is null; a store short of
   the round trip says `landing.noFuel` with its litres, as the pod's key does.
 - During a voyage its riders are hidden and held at their places' floors where it stood (`Seating`, in riders' order), their
@@ -76,8 +76,8 @@ sends `Board` and `Alight`, the pod's key `Launch`. The platform's lamps are pow
 
 ## Deliberately not handled
 
-- The shuttle's own pictures and sounds: the lit slits, the lamp and the course line are placeholders; no deck slide, drift-in
-  or lift-off yet (slice 3 of docs/plans/shuttle-flight.md).
+- The shuttle's own pictures and sounds: the course line is a placeholder; no deck slide, drift-in or
+  lift-off yet (slice 3 of docs/plans/shuttle-flight.md).
 
 - What the seated hero wears or holds: the figure behind the glass is its suit alone.
 - The docking aboard: the white falls over the pod already standing at home. The hero behind the porthole while its pod moves.

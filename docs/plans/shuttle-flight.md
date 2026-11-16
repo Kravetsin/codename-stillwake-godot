@@ -7,21 +7,15 @@ is left, after the user's pick. Delete this plan once it ships.
 
 ## Words
 
-- *slit*: one of the shuttle's four frosted windows; slit i is place i. *course lamp*: the shuttle's lamp, lit while a course
+- *pane*: one of the four panes of the shuttle's canopy; pane i is place i. *course lamp*: the shuttle's lamp, lit while a course
   is set. *course line*: the radar's line from the ship to the course's contact.
-- *placeholder*: the plain look drawn in code now: a warm rectangle over slit i (`ShuttleLights`), a small round lamp lit or
-  dark, a thin line in the radar's green (`RadarScreen`). The shuttle vanishes and appears; its riders see the pod's flight
-  screen (`Ride`).
+- *placeholder*: the plain look drawn in code now: a thin line in the radar's green (`RadarScreen`). The shuttle vanishes
+  and appears; its riders see the pod's flight screen (`Ride`).
 - *deck*: the ship's floor; *run*: the launch platform pieces under the shuttle, opened and shut whole.
-
-## Open for the user
-
-- **The lit slits and lamp:** the «Ледокол» pick page already draws them (crew-shuttle ADR, "not exported yet"). Export them as
-  they are, or pick them again on slice 3's page? Placeholders stand till then.
 
 ## Slice 3 — pictures and sounds (`feat/shuttle-pictures`), after the user's pick
 
-Outline only. A pick page (CLAUDE.md "Art and sound picks"): the lit states (lamp, slits, flame), the drift-in, the
-lift-off, the course line's colour, at the game's scale through every state. Once picked, exported through
+Outline only. A pick page (CLAUDE.md "Art and sound picks"): the flame, the drift-in, the lift-off, the course line's
+colour, at the game's scale through every state. Once picked, exported through
 `tools/anime-art`: the deck slides and the shuttle drops through; it drifts in from the left on the vessel and lifts off to
 the left; docking heard as the pod's, sounds borrowed from `PodSounds`. Ship: the pick in its ADR, README, plan deleted.
