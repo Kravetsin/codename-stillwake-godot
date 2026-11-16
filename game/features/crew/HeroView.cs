@@ -526,7 +526,7 @@ public partial class HeroView : Node2D
             client.Send(choose);
             _lookSentTo = client;
         }
-        if (!hold && Report.Of(m.Crew, m.Rooms, m.Atmosphere, grid.Width, client.Id, _current, tick, _reportedAt, Report.Every(m.Creatures.Threatens(client.Id))) is { } report)
+        if (!hold && Report.Of(m.Crew, m.Rooms, m.Atmosphere, grid.Width, client.Id, _current, tick, _reportedAt, Report.Every(m.Creatures.Threatens(client.Id) || m.Hazards.Strike != null)) is { } report)
         {
             client.Send(report);
             _reportedAt = tick;

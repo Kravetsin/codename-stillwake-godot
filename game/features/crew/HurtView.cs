@@ -79,7 +79,7 @@ public partial class HurtView : CanvasLayer
             _material.SetShaderParameter(Tint, tint);
             _gauge.Hurt(tint);
             _oof.Play();
-            _since = 0;
+            _since = HurtLook.Washes(harm) ? 0 : HurtLook.FadeS;
         }
         else _since += delta;
         float strength = (float)HurtLook.Edge(_since);

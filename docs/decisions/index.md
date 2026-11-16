@@ -392,6 +392,7 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [planet-variety](2026-11-16-planet-variety.md) | Planets differ: types and ore sets | accepted |  |
 | [shuttle-flight](2026-11-16-shuttle-flight.md) | The crew flies to a vessel in the shuttle and back | accepted |  |
 | [solar-system](2026-11-16-solar-system.md) | The ship flies between the planets of its solar system | accepted |  |
+| [storm-lightning](2026-11-16-storm-lightning.md) | Storm lightning | accepted |  |
 | [surface-storms](2026-11-16-surface-storms.md) | Surface storms | accepted |  |
 | [whole-limbs](2026-11-16-whole-limbs.md) | One picture an arm or leg | accepted |  |
 | [derelict-looks](2026-11-17-derelict-looks.md) | A derelict looks like a ship someone owned and left | accepted |  |

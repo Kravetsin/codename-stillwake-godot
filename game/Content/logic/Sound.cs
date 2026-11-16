@@ -433,6 +433,12 @@ public static class Sound
     public static readonly Cue StormRain = new(["res://audio/sky/rain-1.ogg"], -6, Pitch: 0, Loops: true);
 
     /// <summary>
+    /// A storm's lightning striking (surface-storms): a close crack and its short roll, once, on World where it struck. Heard over
+    /// the whole stretch a bolt is drawn in (24 columns from a hero), at full volume within its zone.
+    /// </summary>
+    public static readonly Cue Thunder = new(["res://audio/sky/thunder-1.ogg"], 0, Pitch: 0.05f, Heard: new(24, 120));
+
+    /// <summary>
     /// A hero touching lava (0087): a hiss of pressure, its suit burning, at each breath while it burns
     /// (<see cref="LavaBurnEveryS"/>), the first as it touches; about as loud as a chop. This player's own on Suit, a friend's on World.
     /// </summary>

@@ -16,6 +16,7 @@ namespace Stillwake.Game.Dev;
 [Dev("--strip", "the test strip (0076); with --autopilot played by a script (HeroAutopilot.PlanetRun)", Order = 5)]
 [Dev("--dusk", "with --planet or --strip, the planet's dusk starting two seconds in, its night a minute on (2026-11-07-night-chills)", Order = 5)]
 [Dev("--storm", "with --planet or --strip, that storm (dustStorm, rainStorm) called two seconds in, its warning whole, the hero in creative mode so the cold spares it; --frames counts from ten seconds into it (surface-storms)", Order = 5, Shape = DevShape.Equals)]
+[Dev("--bolt", "with --planet, a bolt of lightning called by the hero three seconds in and every five seconds on, the hero in creative mode (surface-storms)", Order = 5)]
 [Dev("--valley", "with --planet, the hero beamed down into the planet's deepest valley rather than at the pod, to see the land behind follow (composed-backdrops)", Order = 5)]
 [Dev("--beam-twice", "with --planet, back aboard two seconds in and down again two seconds later: the second descent (heard-every-other)", Order = 5)]
 [Dev("--charges", "with --planet, fifty blasting charges in the third slot, the spear in the fourth, and the hero beamed into the cave by the shallowest deep cache (blasting-charge)", Order = 5)]
@@ -25,6 +26,7 @@ namespace Stillwake.Game.Dev;
 public sealed class PlanetScenario : DevScenario
 {
     private bool _beamedBack, _beamedAgain, _dusk, _valley, _tracked, _storm, _stormCounted;
+    private int _bolts;
     private int _dug;
     private bool _stopped;
 
@@ -135,6 +137,11 @@ public sealed class PlanetScenario : DevScenario
             _storm = true;
             client.Send(new Sim.Sky.StretchNow(storm));
             client.Send(new Sim.Items.SetCreative(true));
+        }
+        if (Args.Has("--bolt") && client.World.Tick >= (3 + 5 * _bolts) * World.TicksPerSecond)
+        {
+            if (_bolts++ == 0) client.Send(new Sim.Items.SetCreative(true));
+            client.Send(new Sim.Hazards.BoltNow());
         }
         // --frames counts afresh once the storm has risen whole, Storm.RiseTo seconds in: what the storm itself costs a frame.
         if (_storm && !_stormCounted && m.Sky.Now.Stretch != null && m.Sky.Now.Ran >= 10 * World.TicksPerSecond)

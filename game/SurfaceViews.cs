@@ -103,6 +103,8 @@ public static class SurfaceViews
         // A planet's weather blowing over its open sky, and its wind heard, where a stretch of it brings one (docs/plans/surface-storms.md).
         new(c => c.M.Rules.Stretches.Any(s => StretchLooks.Of(s.Id) is { Weather: not null })
             ? new Features.Sky.StormView(c.M.Grid, c.M.Sky, c.M.Rules, () => c.Tick() + c.Progress()) : null),
+        // A storm's lightning: its glow over the zone, the bolt, sparks, soot and thunder, where a stretch brings one (surface-storms).
+        new(c => c.M.Rules.Stretches.Any(s => s.Bolt != null) ? new Features.Hazards.BoltView(c.M.Grid, c.M.Hazards, c.M.Crew, c.Peer, c.Heroes, c.Progress, c.Tick) : null),
         // A planet's fog at its sides (fog-edges): a screen layer over all of these and the heroes, under what is read.
         new(c => FogEdges.Of(c.M.Grid, c.M.Rules) is { } fog ? new Features.Fog.FogView(fog, PlanetLooks.Of[c.M.Rules.Id].Fog) : null),
     ];

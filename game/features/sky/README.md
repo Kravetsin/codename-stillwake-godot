@@ -44,7 +44,8 @@ joining mid-warning sees what the others do. The sim knows nothing of the frost 
   names a wall or back wall. Nothing is laid out on the CPU a frame (that cost 2–3.5 ms zoomed out).
 - **Under the land** the weather fades with depth to none at `Storm.Deep` (12 cells): the wash, the wind and the streaks.
 - **The wash** («Блёклый мир») greys and flattens what is drawn by `Washed` times the share, under the streaks, which are
-  unlit.
+  unlit. It blurs the screen through its mipmaps by one softness (`blur`) scaled by the screen's height, alike at every
+  zoom.
 
 ## Deliberately not handled
 
