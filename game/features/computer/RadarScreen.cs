@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using Godot;
 using Stillwake.Content;
 using Stillwake.Game.Features.Research;
@@ -72,6 +73,22 @@ public partial class RadarScreen : Control
 
     /// <summary>Why no course can be set to each system planet, as the panel last read it: null where one can.</summary>
     public IReadOnlyList<string?> Problems { get => _problems; set => Changed(ref _problems, value); }
+
+    /// <summary>
+    /// Each system planet's ores, item ids (planet-variety), as the panel last read them: empty till dealt. Set only when they
+    /// change, so the screen redraws for nothing else.
+    /// </summary>
+    public IReadOnlyList<IReadOnlyList<string>> Ores
+    {
+        get => _ores;
+        set
+        {
+            if (value.Count == _ores.Count && value.Zip(_ores).All(z => z.First.SequenceEqual(z.Second))) return;
+            (_ores, _dirty, _tipKey) = (value, true, null);
+        }
+    }
+
+    private IReadOnlyList<IReadOnlyList<string>> _ores = [];
 
     /// <summary>The shuttle's route, its contact by id, as the panel last read it: every player's; null for none.</summary>
     public int? Route { get => _route; set => Changed(ref _route, value); }
@@ -534,6 +551,7 @@ public partial class RadarScreen : Control
             var spec = LandingData.Planets[p];
             bool here = p == At && Course == null;
             var rows = new List<Row> { new($"{T("computer.radar.ruins")}: {T($"computer.radar.tech.{spec.Technology}")}") };
+            if (p < Ores.Count && Ores[p].Count > 0) rows.Add(new Row($"{T("computer.radar.ores")}: {string.Join(", ", Ores[p].Select(o => T($"item.{o}")))}"));
             if (here) rows.Add(new Row(T("computer.radar.here"), ShipColour));
             else
             {
@@ -611,6 +629,8 @@ public partial class RadarScreen : Control
     /// <summary>A planet's colours by its type: light, middle, dark, and its spots'.</summary>
     private static (Color, Color, Color, Color) Looks(string type) => type switch
     {
+        "scorched" => (new Color("d69a6a"), new Color("a5603b"), new Color("47241a"), new Color("e0b66a")),
+        "icy" => (new Color("dbe8f2"), new Color("9cb4c8"), new Color("3c4e60"), new Color("f4f8fc")),
         _ => (new Color("8eaa72"), new Color("5d7a4c"), new Color("25331f"), new Color("7b6c47")),
     };
 

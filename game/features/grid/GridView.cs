@@ -97,8 +97,9 @@ public partial class GridView : Node2D
     /// <summary>The front and the back walls drawn as opaque as the open plan's focus has them (0110); all whole with the plan away.</summary>
     public void Fade((float Front, float Back) alpha)
     {
-        foreach (var layer in (CanvasItem[])[_back, _shade]) layer.Modulate = new Color(1, 1, 1, alpha.Back);
-        foreach (var layer in (CanvasItem[])[_walls, _details, _edges, _dress, _tops, _topsFront]) layer.Modulate = new Color(1, 1, 1, alpha.Front);
+        foreach (var layer in (CanvasItem[])[_back, _shade]) layer.Modulate = _tint with { A = alpha.Back };
+        foreach (var layer in (CanvasItem[])[_walls, _details, _edges, _dress]) layer.Modulate = _tint with { A = alpha.Front };
+        foreach (var layer in (CanvasItem[])[_tops, _topsFront]) layer.Modulate = new Color(1, 1, 1, alpha.Front);
         foreach (var layer in (CanvasItem[])[_fixtures, _doors, _machines, _sockets]) layer.Modulate = new Color(1, 1, 1, alpha.Front);
     }
 
@@ -149,6 +150,22 @@ public partial class GridView : Node2D
     /// </summary>
     /// <summary>A machine held out of the drawing while another view draws it moving (a pod coming down, the landing feature's).</summary>
     public Func<int, bool> HeldBack { get; init; } = _ => false;
+
+    /// <summary>
+    /// What the ground's layers — walls, back walls and their edges — are multiplied by: a planet type's tint of its soil and stone
+    /// (planet-variety, <c>PlanetLooks.Look.Ground</c>); white for none. Plants, machines and fixtures keep their own colours.
+    /// </summary>
+    public Color Tint
+    {
+        get => _tint;
+        init
+        {
+            _tint = value;
+            Fade((1, 1));
+        }
+    }
+
+    private Color _tint = Colors.White;
 
     /// <summary>Changes whenever <see cref="HeldBack"/>'s answers do: the machines are drawn again then.</summary>
     public Func<int> HeldBackVersion { get; init; } = () => 0;

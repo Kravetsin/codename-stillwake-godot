@@ -118,6 +118,73 @@ public class CourseTests
         Assert.NotEqual(w.World.Surfaces[1].Seed, w.World.Surfaces[3].Seed);
     }
 
+    /// <summary>Surface <paramref name="surface"/>'s walls, cell by cell: its ground as grown and changed.</summary>
+    private static Content.Material?[] Walls(Scenario w, int surface)
+    {
+        var grid = w.On(surface).Grid;
+        return [.. Enumerable.Range(0, grid.Width * grid.Height).Select(grid.WallAt)];
+    }
+
+    /// <summary>To system planet 1, a scorched one, and down: the planet opened as surface 2.</summary>
+    private static Scenario DownOnTheSecond() => Course(Ready(), 1).Run(Flight).Do(new Launch()).Run(Down + 1);
+
+    [Fact]
+    public void ADescentLandsOnItsPlanetsTypeHoldingItsOresAndARevisitOnNewGroundAlike()
+    {
+        var w = DownOnTheSecond();
+        Assert.Empty(w.Refusals);
+        var ores = w.M.Landing.OresOf(1);
+        Assert.InRange(ores.Count, Content.Landing.OresLeast + 1, Content.Landing.OresMost + 1);
+        Assert.Equal(PlanetTypes.Scorched.Id, w.World.Surfaces[2].Kind);
+        Assert.Equal(ores, w.World.Surfaces[2].Ores!);
+        // Away to the next planet and back without landing there: the second planet's ground grown anew, its ores the same.
+        w.Do(new Launch { Surface = 2 }).Run(Up + 1);
+        Course(w, 2).Run(Flight).M.Fuel.Fill(Engine(w), Jump);
+        Course(w, 1).Run(Flight).Do(new Board(Pod(w))).Run().Do(new Launch()).Run(Down + 1);
+        Assert.Empty(w.Refusals);
+        Assert.Equal(3, w.World.SurfaceOf(0));
+        Assert.Equal(PlanetTypes.Scorched.Id, w.World.Surfaces[3].Kind);
+        Assert.Equal(ores, w.World.Surfaces[3].Ores!);
+        Assert.NotEqual(w.World.Surfaces[2].Seed, w.World.Surfaces[3].Seed);
+    }
+
+    /// <summary>A planet lacking some ores, saved and loaded, grows the same ground again: the ores travel in the save.</summary>
+    [Fact]
+    public void SavedAndLoadedOnAPlanetItsGroundGrowsWithItsOres()
+    {
+        var w = DownOnTheSecond();
+        var (walls, ores) = (Walls(w, 2), w.World.Surfaces[2].Ores);
+        w.Reload();
+        Assert.Equal(ores, w.World.Surfaces[2].Ores);
+        Assert.Equal(walls, Walls(w, 2));
+    }
+
+    /// <summary>A guest joining mid-descent gets the dealt ores in the save and grows the same planet as the host.</summary>
+    [Fact]
+    public void AGuestJoiningMidDescentGrowsTheSamePlanet()
+    {
+        var (w, twin) = (Course(Ready(), 1).Run(Flight), Course(Ready(), 1).Run(Flight));
+        foreach (var s in new[] { w, twin }) s.Do(new Launch()).Run(Down - 5);
+        twin.Reload();
+        foreach (var s in new[] { w, twin }) s.Run(6);
+        Assert.Equal((2, 2), (w.World.SurfaceOf(0), twin.World.SurfaceOf(0)));
+        Assert.Equal(w.World.Hash(), twin.World.Hash());
+        Assert.Equal(Walls(w, 2), Walls(twin, 2));
+    }
+
+    /// <summary>A save from before ores were dealt, its pod a tick from landing: the ores are dealt first, and it lands on them.</summary>
+    [Fact]
+    public void AnOldSaveMidDescentDealsBeforeItLands()
+    {
+        var w = Course(Ready(), 1).Run(Flight).Do(new Launch()).Run(Down - 1);
+        var save = System.Text.Json.Nodes.JsonNode.Parse(w.World.Save())!;
+        Assert.True(save["slices"]!["landing"]!.AsObject().Remove("ores"));
+        w.Reload(save.ToJsonString()).Run(2);
+        Assert.Equal(2, w.World.SurfaceOf(0));
+        Assert.NotEmpty(w.M.Landing.OresOf(1));
+        Assert.Equal(w.M.Landing.OresOf(1), w.World.Surfaces[2].Ores!);
+    }
+
     [Fact]
     public void IsRefusedWhileAHeroIsBelowTheCallToComeHome()
     {

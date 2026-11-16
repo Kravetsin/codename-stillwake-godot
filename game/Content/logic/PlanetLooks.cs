@@ -18,6 +18,9 @@ public static class PlanetLooks
     /// </summary>
     public sealed record Look(string Backdrop, int StrataFrom, (float R, float G, float B) Fog)
     {
+        /// <summary>What its soil and stone are multiplied by (planet-variety): white for the first planet's own.</summary>
+        public (float R, float G, float B) Ground { get; init; } = (1, 1, 1);
+
         /// <summary>
         /// Its dusk and night (2026-11-07-night-chills), as <see cref="Daylight"/> fades through them: what the light through the
         /// open sky is multiplied by, and what the backdrop and the fog at its sides are. By default the user's pick for the
@@ -38,12 +41,20 @@ public static class PlanetLooks
     /// </summary>
     public static readonly Look First = new("planet", StrataFrom: 100, Fog: (0.74f, 0.79f, 0.72f));
 
+    /// <summary>The scorched planet's (planet-variety): the first's sky, its ground rust-red, its haze a dry ochre.</summary>
+    public static readonly Look Scorched = First with { Fog = (0.8f, 0.68f, 0.52f), Ground = (1f, 0.78f, 0.62f), DuskSky = (0.95f, 0.58f, 0.34f) };
+
+    /// <summary>The icy planet's (planet-variety): the first's sky, its ground frosted blue-grey, its haze a cold white.</summary>
+    public static readonly Look Icy = First with { Fog = (0.8f, 0.86f, 0.92f), Ground = (0.8f, 0.88f, 1f), NightSky = (0.07f, 0.1f, 0.16f) };
+
     /// <summary>By surface kind: every planet type, and the test strip, drawn under the first planet's rules and sky.</summary>
     public static readonly IReadOnlyDictionary<string, Look> Of = new Dictionary<string, Look>
     {
         [Stillwake.Content.PlanetTypes.First.Id] = First,
         [Stillwake.Content.PlanetTypes.Small.Id] = First,
         [Stillwake.Content.PlanetTypes.SmallSpire.Id] = First,
+        [Stillwake.Content.PlanetTypes.Scorched.Id] = Scorched,
+        [Stillwake.Content.PlanetTypes.Icy.Id] = Icy,
         [Stillwake.Content.Surfaces.TestStrip.Id] = First,
     };
 }

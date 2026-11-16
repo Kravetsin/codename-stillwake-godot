@@ -73,11 +73,11 @@ all named: `World.Write` writes `ores` in each surface's entry (left out when nu
 (`TryGetProperty`) and passes it to `Terrain.Generate`; the `_opening` tuple and `World.Open` carry it to the new
 `Surface` and its `Generate`. `Surface with { Closed = true }` keeps it. `Terrain.Generate(type, seed, ores)`:
 - an absent ore's **vein** still claims its cells in `PaintVeins` and leaves them plain stone, so no other vein takes them;
-- its **pockets** are not painted;
-- an absent ore's **cave kind** keeps its chance in `CaveFlora.Try`'s sum; when the roll picks it the cell stays bare —
-  no room check, no cells taken, `last`/`lastOn` untouched — so the others' rolls never move.
-Entries stay in their lists, so salts (`Veins + 2·i`, `PocketSalt + i`) never shift. "Unmoved" in the tests means the
-veins and growths of present ores stand on the same cells; another ore's pockets may fill a bare growth's cells.
+- its **pockets** claim their cells and leave them plain stone too;
+- an absent ore's **cave kind** grows as it would, holds its cells and moves `last`/`lastOn`, but is not set: its cells
+  stay bare, so every other growth stands where it would.
+Entries stay in their lists, so salts (`Veins + 2·i`, `PocketSalt + i`) never shift. The tests hold it exactly: every cell,
+growth, lake and ruin as with every ore, but the absent ore's cells plain stone. Ruins' pieces (the Arc device's crystal) stay.
 Mica is in the set on every dealt planet, so its growths are never skipped but for a hand-picked set in a test.
 
 **Landing.** `LandingState.Ores`: one set per system planet, in `Planets` order, each a list of item ids in pool order,
@@ -144,8 +144,8 @@ Icons picked first on a pick page (one each, the searchlight's look on the helme
 
 ## Consequences
 
-- The deal draws from the world's Rng on the first tick, so seeded tests pinned to later draws shift once; they are fixed,
-  not given a separate seed path.
+- The deal draws from a fork of the world's Rng (`Rng.Fork`, its state xored with a salt, nothing drawn from the world's),
+  so no seeded test pinned to later draws moves.
 
 ## Supersedes in part
 
