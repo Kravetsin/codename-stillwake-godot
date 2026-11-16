@@ -34,7 +34,6 @@ public partial class MarkerLayer : CanvasLayer
     private readonly Dictionary<(MarkerIcon, int?), Badge> _badges = new();
     private readonly HashSet<(MarkerIcon, int?)> _seen = [];
     private readonly List<Box> _boxes = [];
-    private readonly Texture2D _pod = PodSilhouette();
     private Vector2? _mouse;
     /// <summary>The deliveries lost as last read: one more, and a delivery marker gone this frame was lost.</summary>
     private int _lost;
@@ -57,16 +56,6 @@ public partial class MarkerLayer : CanvasLayer
         _tips = new TipSpots(ui.Tip);
         Layer = ScreenLayers.Hud;
         AddChild(_beep);
-    }
-
-    /// <summary>The pod's picture, every pixel white and its clear ones clear, mipmapped so it shrinks to a badge cleanly.</summary>
-    private static Texture2D PodSilhouette()
-    {
-        var image = HiRes.Load("machine_lifepod")!;
-        for (int y = 0; y < image.GetHeight(); y++)
-            for (int x = 0; x < image.GetWidth(); x++)
-                image.SetPixel(x, y, new Color(1, 1, 1, image.GetPixel(x, y).A));
-        return HiRes.Texture(image);
     }
 
     public override void _Input(InputEvent e)
@@ -149,7 +138,7 @@ public partial class MarkerLayer : CanvasLayer
             _seen.Add(key);
             if (!_badges.TryGetValue(key, out var badge))
             {
-                AddChild(badge = _badges[key] = new Badge(_pod));
+                AddChild(badge = _badges[key] = new Badge());
                 var made = badge;
                 _tips.Add(badge, () => TipOf(made));
             }
@@ -175,7 +164,7 @@ public partial class MarkerLayer : CanvasLayer
         : null;
 
     /// <summary>One marker: a dark badge ringed in its colour holding its icon, and a chevron outside the ring toward the target.</summary>
-    private sealed partial class Badge(Texture2D pod) : Control
+    private sealed partial class Badge : Control
     {
         /// <summary>The side a tool's icon in a delivery's badge is baked at: the badge at its largest.</summary>
         private const int IconBake = 48;
@@ -212,8 +201,11 @@ public partial class MarkerLayer : CanvasLayer
             DrawArc(middle, r - 0.75f * s, 0, Mathf.Tau, 32, colour, 1.5f * s, antialiased: true);
             if (marker.Icon == MarkerIcon.Home)
             {
-                float icon = 1.15f * r;
-                DrawTextureRect(pod, new Rect2(middle - Vector2.One * icon / 2, Vector2.One * icon), false, colour);
+                // A house: a roof over its eaves, walls under it, a dark door in them. Home at a glance.
+                Vector2 At(float x, float y) => middle + new Vector2(x, y) * r;
+                DrawColoredPolygon([At(0, -0.62f), At(0.62f, -0.06f), At(-0.62f, -0.06f)], colour);
+                DrawRect(new Rect2(At(-0.44f, -0.1f), new Vector2(0.88f, 0.6f) * r), colour);
+                DrawRect(new Rect2(At(-0.12f, 0.16f), new Vector2(0.24f, 0.34f) * r), Back);
             }
             else if (marker.Icon == MarkerIcon.Delivery && marker.Good is { } good)
             {

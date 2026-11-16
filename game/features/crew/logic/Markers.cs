@@ -4,7 +4,7 @@ using System.Linq;
 
 namespace Stillwake.Game.Features.Crew;
 
-/// <summary>What a marker's badge holds: the pod's silhouette for home, a figure lying for this player's body, a dot in the suit's colour for a friend, the good's picture for a delivery, a reticle for the catcher hunting this player, a dot in a ring for a spot pinged.</summary>
+/// <summary>What a marker's badge holds: a house for home, a figure lying for this player's body, a dot in the suit's colour for a friend, the good's picture for a delivery, a reticle for the catcher hunting this player, a dot in a ring for a spot pinged.</summary>
 public enum MarkerIcon { Home, Body, Friend, Delivery, Hunter, Ping }
 
 /// <summary>
