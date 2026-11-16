@@ -60,18 +60,18 @@ public class RadarContactsTests
     public void TheRadarFindsEachClassAsOftenAsItsWeightSays()
     {
         // The first contact of each of many worlds, each a draw of its own: a class's share of them its weight's, give or take.
-        const int Worlds = 180;
+        // Twenty worlds for each unit of weight: a class of weight 1 still comes up about twenty times.
+        int sum = Vessels.Weights(Vessels.Classes), worlds = 20 * sum;
         var found = new Dictionary<string, int>(StringComparer.Ordinal);
-        for (uint seed = 1; seed <= Worlds; seed++)
+        for (uint seed = 1; seed <= worlds; seed++)
         {
             var w = Ship(seed).Run(Rules.First);
             string cls = Assert.Single(w.M.Places.Contacts).Class;
             found[cls] = found.GetValueOrDefault(cls) + 1;
         }
-        int sum = Vessels.Weights(Vessels.Classes);
         foreach (var c in Vessels.Classes)
         {
-            int expected = Worlds * c.Weight / sum, seen = found.GetValueOrDefault(c.Id);
+            int expected = worlds * c.Weight / sum, seen = found.GetValueOrDefault(c.Id);
             Assert.InRange(seen, expected * 6 / 10, expected * 14 / 10 + 1);
         }
     }
@@ -128,6 +128,65 @@ public class RadarContactsTests
         Assert.Empty(strip.Places.Contacts);
         Assert.Equal(0, strip.Places.NextIn);
         Assert.Single(w.M.Places.Contacts);
+    }
+
+    // Forget and the course cleared (the radar's «Forget» and «Clear route»).
+
+    [Fact]
+    public void AForgottenContactLeavesTheRadarTheOthersAndTheCourseKept()
+    {
+        var w = Ship().Do(new Find("liner")).Do(new Find("tanker")).Run();
+        var (first, second) = (w.M.Places.Contacts[0], w.M.Places.Contacts[1]);
+        w.Do(new SetCourse(second.Id)).Run();
+        w.Do(new Forget(first.Id) { From = 1 }).Run();
+        Assert.Empty(w.Refusals);
+        Assert.Equal([second.Id], w.M.Places.Contacts.Select(c => c.Id));
+        Assert.Equal(second.Id, w.M.Places.Course!.Id);
+    }
+
+    [Fact]
+    public void ForgettingTheCoursesContactClearsTheCourse()
+    {
+        var w = Ship().Do(new Find("freighter")).Run();
+        int id = w.M.Places.Contacts[0].Id;
+        w.Do(new SetCourse(id)).Run();
+        w.Do(new Forget(id)).Run();
+        Assert.Empty(w.Refusals);
+        Assert.Empty(w.M.Places.Contacts);
+        Assert.Null(w.M.Places.Course);
+        Assert.Null(((PlacesState)w.M.Places.Slice).Course);
+    }
+
+    [Fact]
+    public void ClearCourseLeavesNoCourseAndTheContactUp()
+    {
+        var w = Ship().Do(new Find("shuttle")).Run();
+        int id = w.M.Places.Contacts[0].Id;
+        w.Do(new SetCourse(id)).Run();
+        w.Do(new ClearCourse { From = 2 }).Run();
+        Assert.Empty(w.Refusals);
+        Assert.Null(w.M.Places.Course);
+        Assert.Equal([id], w.M.Places.Contacts.Select(c => c.Id));
+        // With none set it is pressed for nothing: two players pressing it at once.
+        w.Do(new ClearCourse()).Run();
+        Assert.Empty(w.Refusals);
+    }
+
+    [Fact]
+    public void ForgetRefusesAContactTheRadarDoesNotHold()
+    {
+        var w = Ship().Do(new Find("shuttle")).Run();
+        w.Do(new Forget(999)).Run();
+        Assert.Equal(["places.noContact"], w.Refusals.Select(r => r.Reason));
+        Assert.Single(w.M.Places.Contacts);
+    }
+
+    [Fact]
+    public void OffTheShipNothingIsForgottenNorTheCourseCleared()
+    {
+        var w = new Scenario(Layout.Parse("..#..").OnPlanet());
+        w.Do(new Forget(1)).Do(new ClearCourse()).Run();
+        Assert.Equal(["places.notAboard", "places.notAboard"], w.Refusals.Select(r => r.Reason));
     }
 
     [Fact]
