@@ -29,6 +29,9 @@ public static class Skins
         new("platedSuit", Suit, DlcAppId: 0),
         new("rescueSuit", Suit, DlcAppId: 0),
         new("mummySuit", Suit, DlcAppId: 0),
+        new("tarpCape", Cape, DlcAppId: 0),
+        new("blanketCape", Cape, DlcAppId: 0),
+        new("woolCape", Cape, DlcAppId: 0),
         new(SkinEffects.Fire, Effect, DlcAppId: 0),
         new(SkinEffects.Rift, Effect, DlcAppId: 0),
     ];
