@@ -50,7 +50,7 @@ public static partial class Shipyard
     private static int Between(Rng rng, (int Min, int Max) range) => range.Min + (int)rng.Below((uint)(range.Max - range.Min + 1));
 
     /// <summary>
-    /// A vessel of <paramref name="cls"/> from <paramref name="seed"/>: a liner's by its own layout (<see cref="Liner"/>). A vessel of rooms: its decks drawn, then its rooms, each
+    /// A vessel of <paramref name="cls"/> from <paramref name="seed"/>: a liner's or a tanker's by its own layout (<see cref="Liner"/>, <see cref="Tanker"/>). A vessel of rooms: its decks drawn, then its rooms, each
     /// furnished by its role. An aft room a deck: the way in on the first, below it engine rooms, each holding a main engine against
     /// the stern. Then a hold and a cockpit, each on the shortest deck its rule allows, and the extras on the shortest of all, sorted
     /// aft to fore; an extra that would run its deck past <c>Length</c> is not built. The body is as long as the longest deck, a
@@ -62,6 +62,7 @@ public static partial class Shipyard
     public static Vessel Describe(VesselClass cls, uint seed)
     {
         if (cls.Layout == VesselLayout.Liner) return Liner(cls, seed);
+        if (cls.Layout == VesselLayout.Tanker) return Tanker(cls, seed);
         var rng = Draws(cls, seed, 0);
         int decks = Between(rng, cls.Decks);
         int a = cls.ArmourDepth, body = cls.BodyHeight(decks);
@@ -212,7 +213,7 @@ public static partial class Shipyard
     /// </summary>
     /// <param name="aftEnd">The column past the aft rooms.</param>
     /// <param name="forward">A raised bridge's first column inside its armour.</param>
-    /// <param name="keel">Whether the radiators, the collar, the keel truss and the boom follow the mast and the dish: a freighter's.</param>
+    /// <param name="keel">Whether the radiators, the collar, the keel truss and the boom follow the mast and the dish: a freighter's, not a big class's.</param>
     private static void Outfit(Rng shape, IReadOnlyList<Vessel.Section> sections, List<Vessel.Fitting> outside, int aftEnd, int forward, int armour, bool keel = true)
     {
         var body = sections.First(s => s.Kind == Vessel.SectionKind.Body);
@@ -272,7 +273,7 @@ public static partial class Shipyard
 
         int rcs = W(Vessels.Rcs), fore = bow - rcs;
         int foreTop = bridge != null && fore < bridge.Left + bridge.Width && fore + rcs > bridge.Left ? bridge.Left + bridge.Width + 1 : fore;
-        // A liner's a gap clear of its bridge's windows, which face space.
+        // A big class's a gap clear of its bridge's windows, which face space.
         if (!keel && bridge != null) foreTop = Math.Max(foreTop, bridge.Left + bridge.Width + gap);
         OnTop(Vessels.Rcs, stern + 1);
         Beneath(Vessels.Rcs, stern + 1);
@@ -291,7 +292,7 @@ public static partial class Shipyard
         int inside = bridge.Left + armour, end = bridge.Left + bridge.Width - armour;
         OnTop(Vessels.MastTall, inside + 1);
         OnTop(Vessels.Dish, end - W(Vessels.Dish));
-        // A liner carries no radiators, collar, truss or boom yet (big-vessels, its outside a stage of its own).
+        // A liner and a tanker carry no radiators, collar, truss or boom yet (big-vessels, their outsides a stage of their own).
         if (!keel) return;
         // Along the top from the stern's RCS, jumping the housing and the bridge, short of the fore RCS: as many radiators as were
         // drawn and fit with the collar after them, at least one where one fits alone.
@@ -498,7 +499,7 @@ public static partial class Shipyard
     private static bool Added(Vessel.SectionKind kind) => kind is Vessel.SectionKind.Module or Vessel.SectionKind.Rib or Vessel.SectionKind.Housing;
 
     /// <summary>
-    /// The bridge's windows, walls of the hull turned glass, with nothing behind them: a raised bridge's forward armour across the
+    /// The bridge's windows, walls of the hull turned glass, with nothing behind them: a raised bridge's forward armour (a tanker's aft too) across the
     /// middle of its open rows; a cockpit's the bow's top armour over its first <c>Vessels.CockpitGlass</c> columns, down its slope.
     /// </summary>
     private static HashSet<(int X, int Y)> Glass(Vessel v, VesselClass cls, byte[] solid)
@@ -513,6 +514,11 @@ public static partial class Shipyard
             foreach (var raised in tiers.Append(bridge))
                 for (int x = raised.Left + raised.Width - a; x < raised.Left + raised.Width; x++)
                     for (int y = raised.Top + a + 1; y < raised.Top + a + Vessels.Open - 1; y++)
+                        if (Wall(x, y)) glass.Add((x, y));
+            // A tanker's bridge over its stern looks aft too, over its deck.
+            if (cls.Layout == VesselLayout.Tanker)
+                for (int x = bridge.Left; x < bridge.Left + a; x++)
+                    for (int y = bridge.Top + a + 1; y < bridge.Top + a + Vessels.Open - 1; y++)
                         if (Wall(x, y)) glass.Add((x, y));
             if (tiers.Count == 2)
             {

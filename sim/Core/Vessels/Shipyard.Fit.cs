@@ -10,7 +10,8 @@ public static partial class Shipyard
     /// stands on its floor from its left, a column between each two, none in <paramref name="kept"/>, none past its right. A lounge's
     /// loungers and tables, a promenade's and a dome's with chairs; a galley's stove, counters and fridges; an infirmary's beds and
     /// cabinet; the pool's basin, diving board and a lounger; the restaurant's bar, tables between chairs and the piano by its right; a
-    /// hold's stacks of containers and of crates; the fuel tank; the hangar's shuttle by its right, a fuel cart and stacks by its left.
+    /// hold's stacks of containers and of crates; the fuel tank, a tanker's fuel column as tall as its bay; a tanker's bay's two tall tanks or
+    /// capsule, its pump room's pump and valves, its pipeway's valves and rack; the hangar's shuttle by its right, a fuel cart and stacks by its left.
     /// </summary>
     private static void Fit(Rng rng, Vessel.Compartment c, HashSet<int> kept, List<Vessel.Fitting> into)
     {
@@ -119,7 +120,22 @@ public static partial class Shipyard
                 }
                 break;
             case VesselRole.FuelBay:
-                Put(Vessels.Capsule);
+                Put(c.Decks > 2 ? Vessels.FuelColumn(c.Decks) : Vessels.Capsule);
+                break;
+            case VesselRole.TankBay:
+                // Two tall tanks alike, or one capsule; never fuel, the capsule's first look.
+                if (rng.Below(100) < F.TallTanksPercent)
+                {
+                    string tall = Look(Vessels.TankTall);
+                    if (Put(tall) != null) Put(tall);
+                }
+                else Put(Vessels.LookKind(Vessels.Capsule, 1 + (int)rng.Below(Vessels.CapsuleContents - 1)));
+                break;
+            case VesselRole.PumpRoom:
+                _ = Put(Vessels.Pump) != null && Put(Vessels.Valves) != null;
+                break;
+            case VesselRole.Pipeway:
+                _ = Put(Vessels.Valves) != null && Put(Vessels.Rack) != null;
                 break;
             case VesselRole.Hangar:
                 {

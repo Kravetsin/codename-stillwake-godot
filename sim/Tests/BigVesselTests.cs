@@ -4,7 +4,7 @@ using Xunit.Abstractions;
 
 namespace Stillwake.Sim.Tests;
 
-/// <summary>The liner (big-vessels): rooms several decks tall, doors where floors meet, hatches with ladders, raised rooms, its interiors.</summary>
+/// <summary>The liner and the tanker (big-vessels): rooms several decks tall, doors where floors meet, hatches with ladders, raised rooms, their interiors.</summary>
 public class BigVesselTests(ITestOutputHelper output)
 {
     /// <summary>FNV-1a over the text, 64 bits.</summary>
@@ -62,7 +62,7 @@ public class BigVesselTests(ITestOutputHelper output)
 
     private static readonly VesselClass Liner = Content.Vessels.Class("liner")!;
 
-    private static Vessel Of(uint seed) => Shipyard.Describe(Liner, seed);
+    private static Vessel Of(uint seed, string cls = "liner") => Shipyard.Describe(Content.Vessels.Class(cls)!, seed);
 
     /// <summary>The room holding cell (<paramref name="x"/>, <paramref name="y"/>); null for none.</summary>
     private static Vessel.Compartment? At(Vessel v, int x, int y) => v.Compartments.FirstOrDefault(c => c.Holds(x, y));
@@ -78,13 +78,15 @@ public class BigVesselTests(ITestOutputHelper output)
         }
     }
 
-    [Fact]
-    public void ADoorStandsOnlyWhereBothFloorsMeetAndTheGapsOtherDecksAreHull()
+    [Theory]
+    [InlineData("liner")]
+    [InlineData("tanker")]
+    public void ADoorStandsOnlyWhereBothFloorsMeetAndTheGapsOtherDecksAreHull(string cls)
     {
         int faced = 0;
         for (uint seed = 1; seed <= 24; seed++)
         {
-            var v = Of(seed);
+            var v = Of(seed, cls);
             var parts = Shipyard.Stamp(v);
             var walls = parts.Where(p => p.Kind == "wall").Select(p => (p.X, p.Y)).ToHashSet();
             var doors = v.Doors.Skip(1).Select(d => (d.X, d.Y)).ToHashSet();
@@ -205,6 +207,168 @@ public class BigVesselTests(ITestOutputHelper output)
         Assert.Null(VesselTests.Unreached(v, Shipyard.Stamp(v)));
         int last = v.Hatches.Count - 1;
         var cut = v with { Hatches = [.. v.Hatches.Take(last)], Shafts = [.. v.Shafts.Take(last)] };
+        Assert.NotNull(VesselTests.Unreached(cut, Shipyard.Stamp(cut)));
+    }
+
+    // The tanker.
+
+    private static readonly VesselClass TankerClass = Content.Vessels.Class("tanker")!;
+
+    private static Vessel Tanker(uint seed) => Of(seed, "tanker");
+
+    [Fact]
+    public void FiveHundredAndTwelveTankersAreDescribedAndStampedWhole()
+    {
+        var decks = new HashSet<int>();
+        for (uint seed = 1; seed <= 512; seed++)
+        {
+            var v = Tanker(seed);
+            Assert.NotEmpty(Shipyard.Stamp(v));
+            Assert.InRange(v.Decks.Count, TankerClass.Decks.Min, TankerClass.Decks.Max);
+            decks.Add(v.Decks.Count);
+        }
+        Assert.Equal([4, 5], decks.Order());
+    }
+
+    [Fact]
+    public void ATankersBridgeStandsOverItsSternGlazedForeAndAft()
+    {
+        for (uint seed = 1; seed <= 24; seed++)
+        {
+            var v = Tanker(seed);
+            var bridge = v.Sections.Single(s => s.Kind == Vessel.SectionKind.Bridge);
+            var airlock = v.Compartments.Single(c => c.Deck == 0 && c.Left == v.Doors[0].X + 2);
+            var room = v.Compartments.Single(c => c.Role == VesselRole.Bridge);
+            // Its hatch over the airlock, past its walkway.
+            Assert.InRange(room.Left, airlock.Left + Content.Vessels.Tanker.BridgeFrom, airlock.Left + airlock.Width - 2);
+            Assert.Contains(new Vessel.Hatch(room.Left, airlock.Top - TankerClass.ArmourDepth), v.Hatches);
+            var glass = Shipyard.Stamp(v).Where(p => p.Material == Content.Vessels.Glass).Select(p => p.X).ToHashSet();
+            Assert.Contains(bridge.Left, glass);
+            Assert.Contains(bridge.Left + bridge.Width - 1, glass);
+        }
+    }
+
+    [Fact]
+    public void TheFuelBaySpansTheSecondDeckToTheLastPastTheEngineRoomsItsColumnAsTallAndAPipewayOverIt()
+    {
+        for (uint seed = 1; seed <= 40; seed++)
+        {
+            var v = Tanker(seed);
+            var aft = v.Compartments.Single(c => c.Deck == 0 && c.Left == v.Doors[0].X + 2);
+            var fuel = Assert.Single(v.Compartments, c => c.Role == VesselRole.FuelBay);
+            Assert.Equal((1, v.Decks.Count - 1, aft.Left + aft.Width + 2), (fuel.Deck, fuel.Decks, fuel.Left));
+            Assert.Contains(v.Compartments, c => c.Deck == 0 && c.Left == fuel.Left && c.Role == VesselRole.Pipeway);
+            var column = Assert.Single(v.Fittings, f => fuel.Holds(f.X, f.Y) && f.Kind != Content.Vessels.Lamp);
+            Assert.Equal(Content.Vessels.FuelColumn(fuel.Decks), column.Kind);
+            Assert.Equal(fuel.Floor, column.Y + Machines.Get(column.Kind).Height);
+        }
+    }
+
+    [Fact]
+    public void TheWellRunsDownTheServiceBlockPastTheFuelBayAndPumpRoomsBetweenTankBaysHaveRepairHatches()
+    {
+        int repaired = 0;
+        for (uint seed = 1; seed <= 24; seed++)
+        {
+            var v = Tanker(seed);
+            var fuel = v.Compartments.Single(c => c.Role == VesselRole.FuelBay);
+            int well = fuel.Left + fuel.Width + 2;
+            for (int d = 0; d + 1 < v.Decks.Count; d++)
+                Assert.Contains(new Vessel.Hatch(well, v.Decks[d].Floor), v.Hatches);
+            // A pump room between two tank bays has no door: a hatch in its ceiling from the room over it, two columns in from its right.
+            foreach (var pump in v.Compartments.Where(c => c.Role == VesselRole.PumpRoom))
+            {
+                bool shut = At(v, pump.Left - 3, pump.Top) is { Role: VesselRole.TankBay } left && left.Floor > pump.Floor
+                    && At(v, pump.Left + pump.Width + 2, pump.Top) is { Role: VesselRole.TankBay } right && right.Floor > pump.Floor;
+                if (!shut) continue;
+                Assert.Contains(new Vessel.Hatch(pump.Left + pump.Width - 2, pump.Top - 1), v.Hatches);
+                repaired++;
+            }
+        }
+        Assert.True(repaired > 0, "no pump room between tank bays");
+    }
+
+    [Fact]
+    public void ALadderRunsUpEveryTallTankRoomInWholePiecesClearOfItsTanks()
+    {
+        for (uint seed = 1; seed <= 24; seed++)
+        {
+            var v = Tanker(seed);
+            var parts = Shipyard.Stamp(v);
+            var machines = parts.Where(p => p.Layer == "machine").SelectMany(Shipyard.Covers).ToHashSet();
+            foreach (var room in v.Compartments.Where(c => c.Role is VesselRole.FuelBay or VesselRole.TankBay))
+            {
+                var shaft = Assert.Single(v.Shafts, s => room.Holds(s.Column, s.Top));
+                Assert.Equal((room.Top, room.Top + room.Height - room.Height % 2 - 1), (shaft.Top, shaft.Bottom));
+                Assert.Equal(room.Height / 2, parts.Count(p => p.Kind == "ladder" && p.X == shaft.Column && room.Holds(p.X, p.Y)));
+                for (int y = shaft.Top; y <= shaft.Bottom; y++)
+                    Assert.False(machines.Contains((shaft.Column, y)) || machines.Contains((shaft.Column + 1, y)), $"a tank on the ladder at ({shaft.Column}, {y})");
+            }
+        }
+    }
+
+    [Fact]
+    public void ATankBayHoldsTwoTallTanksOrOneCapsuleNeverOfFuelAndEveryHangarAShuttleAndAFuelCart()
+    {
+        var models = new HashSet<string>();
+        var contents = new HashSet<string>();
+        int hangars = 0, without = 0;
+        for (uint seed = 1; seed <= 60; seed++)
+        {
+            var v = Tanker(seed);
+            foreach (var role in (VesselRole[])[VesselRole.TankBay, VesselRole.PumpRoom, VesselRole.Pipeway, VesselRole.FuelBay])
+                Assert.Contains(v.Compartments, c => c.Role == role);
+            Assert.All(v.Compartments.Where(c => c.Role == VesselRole.TankBay), c => Assert.Equal(2, c.Decks));
+            int count = v.Compartments.Count(c => c.Role == VesselRole.Hangar);
+            Assert.InRange(count, 0, 1);
+            if (count == 0) without++;
+            foreach (var c in v.Compartments)
+            {
+                var inside = v.Fittings.Where(f => c.Holds(f.X, f.Y)).ToList();
+                int Count(string kind) => inside.Count(f => Content.Vessels.FirstLook(f.Kind) == kind);
+                switch (c.Role)
+                {
+                    case VesselRole.TankBay:
+                        var tanks = inside.Where(f => Content.Vessels.FirstLook(f.Kind) is Content.Vessels.Capsule or Content.Vessels.TankTall).ToList();
+                        Assert.True(tanks.Count is 1 or 2, $"{tanks.Count} tanks in a bay");
+                        Assert.DoesNotContain(tanks, f => f.Kind == Content.Vessels.Capsule);
+                        Assert.Single(tanks.Select(f => f.Kind).Distinct());
+                        contents.UnionWith(tanks.Select(f => f.Kind));
+                        break;
+                    case VesselRole.PumpRoom:
+                        Assert.Equal(1, Count(Content.Vessels.Pump));
+                        break;
+                    case VesselRole.Pipeway:
+                        Assert.Equal(1, Count(Content.Vessels.Valves));
+                        break;
+                    case VesselRole.Hangar:
+                        hangars++;
+                        Assert.Equal((2, v.Decks.Count - 2), (c.Decks, c.Deck));
+                        var shuttle = Assert.Single(inside, f => Content.Vessels.Shuttles.Contains(f.Kind));
+                        models.Add(shuttle.Kind);
+                        Assert.Equal(c.Floor, shuttle.Y + Machines.Get(shuttle.Kind).Height);
+                        Assert.Equal(1, Count(Content.Vessels.FuelCart));
+                        break;
+                }
+            }
+            Assert.False(v.Doors[0].Open, "the way in stands open");
+        }
+        Assert.True(hangars > 0 && without > 0, $"{hangars} hangars, {without} tankers without");
+        Assert.Equal(Content.Vessels.Shuttles.Order(), models.Order());
+        // Every content but fuel, in both kinds of tank.
+        var all = Enumerable.Range(1, Content.Vessels.CapsuleContents - 1).Select(k => Content.Vessels.LookKind(Content.Vessels.Capsule, k))
+            .Concat(Enumerable.Range(0, Content.Vessels.TankTallContents).Select(k => Content.Vessels.LookKind(Content.Vessels.TankTall, k)));
+        Assert.Equal(all.Order(), contents.Order());
+    }
+
+    [Fact]
+    public void ATankerWithARepairHatchGoneIsUnreached()
+    {
+        var v = Tanker(3);
+        Assert.Null(VesselTests.Unreached(v, Shipyard.Stamp(v)));
+        // The last hatch, a repair one, and its ladder: the tanks' ladders come after every hatch's.
+        int last = v.Hatches.Count - 1;
+        var cut = v with { Hatches = [.. v.Hatches.Take(last)], Shafts = [.. v.Shafts.Where(s => s != v.Shafts[last])] };
         Assert.NotNull(VesselTests.Unreached(cut, Shipyard.Stamp(cut)));
     }
 }

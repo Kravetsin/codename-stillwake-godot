@@ -241,10 +241,10 @@ public class VesselTests
             return;
         }
         Assert.Equal((0, 1, 0, 0), (Count(Content.Vessels.Mast), Count(Content.Vessels.MastTall), Count(Content.Vessels.Solar), Count(Content.Vessels.Tank)));
-        // A liner's mast and dish on its bridge, its other parts outside a stage of their own (big-vessels).
-        if (v.Class.Layout == VesselLayout.Liner)
+        // A big class's mast and dish on its bridge, its other parts outside a stage of their own (big-vessels).
+        if (v.Class.Layout != VesselLayout.Rooms)
         {
-            int nozzles = vessel.Decks.Count - Content.Vessels.Liner.LowDecks - 1;
+            int nozzles = vessel.Decks.Count - (v.Class.Layout == VesselLayout.Liner ? Content.Vessels.Liner.LowDecks : 0) - 1;
             Assert.Equal(4 + 1 + 1 + nozzles, vessel.Outside.Count);
             return;
         }
@@ -344,7 +344,7 @@ public class VesselTests
             [Content.Vessels.Table] = [VesselRole.Quarters],
             [Content.Vessels.LifeTank] = [VesselRole.Life],
             [Content.Vessels.Machine] = [VesselRole.Engine],
-            [Content.Vessels.Rack] = [VesselRole.Engine],
+            [Content.Vessels.Rack] = [VesselRole.Engine, VesselRole.Pipeway],
             [Content.Vessels.Console] = [VesselRole.Bridge],
             [Content.Vessels.Seat] = [VesselRole.Bridge],
             [Content.Vessels.Cargo] = [VesselRole.Hold, VesselRole.Hangar],
@@ -362,7 +362,13 @@ public class VesselTests
             [Content.Vessels.Bed] = [VesselRole.Infirmary],
             [Content.Vessels.MedCab] = [VesselRole.Infirmary],
             [Content.Vessels.FuelCart] = [VesselRole.Hangar],
-            [Content.Vessels.Capsule] = [VesselRole.FuelBay],
+            [Content.Vessels.Capsule] = [VesselRole.FuelBay, VesselRole.TankBay],
+            // A tanker's.
+            [Content.Vessels.Pump] = [VesselRole.PumpRoom],
+            [Content.Vessels.Valves] = [VesselRole.PumpRoom, VesselRole.Pipeway],
+            [Content.Vessels.TankTall] = [VesselRole.TankBay],
+            [Content.Vessels.FuelColumn3] = [VesselRole.FuelBay],
+            [Content.Vessels.FuelColumn4] = [VesselRole.FuelBay],
             [Content.Vessels.ShuttleGull] = [VesselRole.Hangar],
             [Content.Vessels.ShuttleMule] = [VesselRole.Hangar],
             [Content.Vessels.ShuttleBeetle] = [VesselRole.Hangar],
@@ -549,7 +555,9 @@ public class VesselTests
                 var stern = All(v, Vessel.SectionKind.Module)[0];
                 var body = Section(v, Vessel.SectionKind.Body);
                 int down = cls.Layout == VesselLayout.Liner ? Content.Vessels.Liner.BulgeDown : Content.Vessels.SternBulge.Max;
-                return body.Top - stern.Top == Content.Vessels.SternBulge.Max && stern.Bottom - body.Bottom == down;
+                // A tanker's bridge stands over its stern module, which bulges up under nothing.
+                int up = cls.Layout == VesselLayout.Tanker ? 0 : Content.Vessels.SternBulge.Max;
+                return body.Top - stern.Top == up && stern.Bottom - body.Bottom == down;
             });
             var parts = Shipyard.Stamp(vessel);
             var blocks = CellsOf(parts);

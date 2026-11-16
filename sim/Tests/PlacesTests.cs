@@ -71,6 +71,7 @@ public class PlacesTests(Xunit.Abstractions.ITestOutputHelper output)
     [InlineData("shuttle")]
     [InlineData("freighter")]
     [InlineData("liner")]
+    [InlineData("tanker")]
     public void TheHeroStandsOnTheDeckJustInsideTheDoorWithRoomForItsBody(string cls)
     {
         var (w, id) = Visited(cls);
@@ -221,6 +222,12 @@ public class PlacesTests(Xunit.Abstractions.ITestOutputHelper output)
         Assert.Equal([("plate", 12), ("gear", 4), ("rotor", 1)], Machines.Get(Vessels.ShuttleBeetle).Cost);
         Assert.Equal([("plate", 16), ("glass", 6), ("cloth", 4)], Machines.Get(Vessels.ShuttleWhale).Cost);
         Assert.Equal([("plate", 12), ("frame", 3), ("copper", 1)], Machines.Get(Vessels.ShuttleHeron).Cost);
+        // A tanker's (big-vessels): the design's yields.
+        Assert.Equal([("gear", 2), ("tube", 3), ("rotor", 1)], Machines.Get(Vessels.Pump).Cost);
+        Assert.Equal([("tube", 3), ("gear", 1)], Machines.Get(Vessels.Valves).Cost);
+        Assert.Equal([("plate", 6), ("tube", 2)], Machines.Get(Vessels.TankTall).Cost);
+        Assert.Equal([("plate", 14), ("tube", 4)], Machines.Get(Vessels.FuelColumn(3)).Cost);
+        Assert.Equal([("plate", 18), ("tube", 4)], Machines.Get(Vessels.FuelColumn(4)).Cost);
         Assert.All(Vessels.Furniture, r => Assert.Contains(r.Kind, Vessels.Machines));
         Assert.All(Vessels.Furniture, r => Assert.Null(r.Menu));
         Assert.All(Vessels.Furniture, r => Assert.All(r.Cost, c => Assert.True(Content.Items.TryGet(c.Item, out _), c.Item)));
@@ -471,10 +478,11 @@ public class PlacesTests(Xunit.Abstractions.ITestOutputHelper output)
         }
     }
 
-    /// <summary>A jump tick on the new game's world: its world opened, its vessel written, Rooms and the rest after it; a liner's too.</summary>
+    /// <summary>A jump tick on the new game's world: its world opened, its vessel written, Rooms and the rest after it; a liner's and a tanker's too.</summary>
     [Theory]
     [InlineData("freighter")]
     [InlineData("liner")]
+    [InlineData("tanker")]
     public void AJumpTickStaysUnderItsCeiling(string cls)
     {
         // A hitch of a few frames once per visit, as a load is.
