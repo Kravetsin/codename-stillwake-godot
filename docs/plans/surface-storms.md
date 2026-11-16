@@ -66,67 +66,12 @@ Built as planned, then tuned in play: two storms, dust and rain, one at a time; 
 no wisps, no clear patch round the hero; streaks drawn by a shader. Its rules are
 [surface-storms](../decisions/2026-11-16-surface-storms.md) and the `sim/Sky`, `sim/Crew` and `f/sky` READMEs.
 
-## Slice 2 — lightning (after slice 1 is played)
+## Slice 2 — lightning: shipped
 
-**Picked (2026-11-16):** the glow «Зарница» (C: arcs crackling on the cells' edges), spread over the whole zone; the
-cell broken with inked cracks, its grass gone; the bolt «Ступенчатый лидер» (round 2, D: a faint leader stepping down,
-the return stroke climbing it, two more strokes); the throw «Искры» (round 2, 4: sparks and dark grains, orange to dark
-red to out in about 1 s); the mark: soot streaked downwind (C); thunder A (Freesound 840628, loganzsound, a short close
-crack), a one-shot with no Loops flag. No shake, no freeze, no rings.
-
-**Sim**
-- `sim/Content/Stretches.cs`: `Stretch` gains `BoltRule? Bolt = null` (a blizzard or an ash storm leaves it null):
-  `record BoltRule(Span At, int Glow, int Columns, int Power, int Reach, int Spread, int Shock)`. The storms': `At`
-  200–1000 ticks into the storm; `Glow` 60 (3 s: a run out of a 20-column zone at half pace, and a reaction); `Columns`
-  24; `Power` enough to break the struck soil cell and crack its neighbours, `Reach` 2 cells (the crater only); `Spread`
-  20 for the rain storm, 10 for the dust storm; `Shock` 100 (the user's, 2026-11-16: it may knock a hero out). A content test keeps `At.Most + Glow < Duration.Least`.
-- `sim/Hazards/Bolts.cs` (new); the constructor gains `ISkyQueries`, `ICrewQueries`, `ICrewOps`. `Registry.cs:103`
-  changes its arguments only: Sky and Crew are made, and run, before Hazards already.
-- The slice gains `BoltIn` (ticks till the glow, 0 for none), `Strike` and `Drawn`. `Strike(int Cell, int Left)` is a bolt
-  glowing over `Cell`, `Left` ticks from striking, saved `[JsonInclude, JsonIgnore(Condition = WhenWritingNull)]`, the
-  others `WhenWritingDefault`: no format bump. **Hazards' fork:** `Random.Fork(BoltSalt ^ Here·k₁ ^ Drawn·k₂)` per draw,
-  `Drawn` up by one each, `BoltSalt` its own, distinct from Sky's.
-- **The bolt, in construction after the shower and the flare**, on a surface not `Calm`:
-  1. On a storm's start tick (`Now.Stretch` has a `Bolt` and `Now.Ran == 0`), draw `BoltIn` in `At` from Hazards' fork.
-  2. When `BoltIn` reaches 0, draw one hero from Hazards' fork among `Heroes` on this surface, alive and not `Out`, in id
-     order. None: no bolt this storm, and nothing more is drawn.
-  3. The target: of the columns within `Columns` of that hero's, inside the grid's zone (never the fog), each column's
-     topmost wall cell, built or natural, whose cells above are all open sky; the highest, ties to the column nearest the
-     hero, then the lower index. None: no bolt. Else `Strike = (cell, Glow)`.
-  4. When `Left` reaches 0: `Burst(FloorStack.Nobody, cell, Power, Reach, Spoils.Lost)`, full; then `Shock(peer, Shock,
-     Harm.Shock)` in id order to every hero on this surface whose `Hero.Cell` is in a column within `Spread` of the
-     strike's (`|dx|`, no wrap: a planet ends in fog) and under the open sky (`ICrewQueries.OpenSky`, Crew's own test made
-     public); `Shock` itself skips a hero `Out` or creative. `Strike = null`.
-  5. A storm that ends with `BoltIn` pending drops it; a `Strike` glowing always strikes (60 ticks at most). `SetCalm`
-     drops both. A plant in the crater's reach is felled by nobody, its yields dropped at its cell as every burst's are
-     (0085): nothing only lightning gives.
-- **`BoltNow` (dev and fuzz):** the sender's hero's columns get a `Strike` now, by the kind's first `BoltRule`, storm or
-  not. Refused `hazards.noBolt` where no stretch of the kind has one, `hazards.boltGlowing` while one glows,
-  `hazards.noHero` with no hero of the sender here. `Fuzz` sends it one turn in 64, so ModulesTests' 100–400-step suites
-  meet a glow and its strike in save, load and two worlds kept alike. The dev panel gets a button.
-- Hazards' queries gain `Strike` (the glow's cell, ticks left and its `Spread`) for the client.
-- **A hero reports every tick while a strike glows** (`Report.Every`, as when a creature threatens it), so the sim knows
-  who stepped out of the zone or under a back wall in the glow's last second.
-
-**Client.** `game/features/hazards/BoltView.cs` (new) reads `Strike` and draws the glow over the zone: on the struck
-cell and on each column's top wall cell under open sky within `Spread`, thickest at the middle; when it has gone after a
-glow the view saw, the strike there: the bolt, its light, thunder, the sparks, and discharges running out over the zone's
-cells for a moment. It keeps a ground mark per cell struck
-while this surface is shown, not saved. The shock is shown as every `Harm.Shock` is.
-
-**Tests** (`sim/Tests/LightningTests.cs`, strip maps with hills, `Meteors: true` so the strip is not calm)
-- One storm with a hero, exactly one strike, seen glowing `Glow` ticks before; its cell holds when the hero walks away.
-- The target: a hilltop within 24 columns beats lower ground nearer the hero; a built roof higher than the ground is the
-  target and its wall breaks, at full damage; a column with a back wall above its top wall is skipped; ties go to the
-  nearest column, then the left; nothing in the zone, no bolt.
-- The shock: a hero in the open 20 columns from a rain storm's strike loses 100 air (past a basic suit's 45, the last breath pays), its last hurt `Shock`; 21 columns
-  away, or 20 under a back wall, loses nothing; a dust storm's reaches 10; a creative hero,
-  and one `Out`, lose nothing; a hero on another surface is never counted.
-- No hero on the surface when `BoltIn` reaches 0: `BoltIn` was drawn, no hero is drawn, no strike. A `Calm` world: no bolt.
-- Co-op: two heroes, the bolt near the drawn one, both shocked in the zone. Save and load in the glow: the same cell and tick.
-  A plant in reach drops its yields. `BoltNow`'s three refusals by reason. Nothing is drawn from the world's Rng.
-- Invariant (FsCheck over seeds on `Small`, storms brought by `StretchNow`): at most one natural strike per storm. Prove it
-  bites by not clearing `BoltIn` at a strike.
+Built as planned, then tuned in play: a shock of 100 as `Harm.Lightning`; St Elmo's fires over the zone and its helmets
+in place of the glow's arcs; the channel's light and shade; the burn on a hero's view in the zone; the bolt starting above
+the farthest view. Its rules are [storm-lightning](../decisions/2026-11-16-storm-lightning.md) and the `sim/Hazards` and
+`f/hazards` READMEs.
 
 ## Slice 3 — surface plants (after slice 2 is played)
 

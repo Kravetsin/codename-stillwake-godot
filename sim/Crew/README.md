@@ -76,7 +76,7 @@ Heroes: where each is (as its client says), how it breathes, passing out.
 
 ## API
 
-- **Queries** (`ICrewQueries`): `Spawn`; `ByPod(cell)`; `EdgeCost(cell)`; `CapacityOf`, `PartsOf(peer)`; `RefillOf`, `RatesOf`, `Hungry(peer)`; `TemperatureAt`, `PaceAt`, `LowOf`, `Felt` (frost), `HighOf`, `Heat`;
+- **Queries** (`ICrewQueries`): `Spawn`; `ByPod(cell)`; `EdgeCost(cell)`; `CapacityOf`, `PartsOf(peer)`; `RefillOf`, `RatesOf`, `Hungry(peer)`; `TemperatureAt`, `PaceAt`, `LowOf`, `Felt` (frost), `HighOf`, `Heat`, `OpenSky`;
   `SuitOn`, `SuitModeProblem`; `SignalOf(peer)`, `Hunted(peer)`;
   `HeroOf(id)` or null; `Heroes`, live, in id order. On the
   module: `Burns(cell)`, `RefillProblem(peer)`, `EatProblem(peer, food)`, `PurgeProblem`: the client sends none they refuse.
@@ -85,7 +85,7 @@ Heroes: where each is (as its client says), how it breathes, passing out.
   `crew.noHero`, `crew.noJetpack`; `Refill` — `crew.noHero` (or out), `crew.suitFull`, `crew.canisterCooling`, `items.notEnough`; `Eat(Item)` — `crew.noHero` (or out), `crew.notFood`,
   `items.notEnough`, `crew.sameFood`, `crew.mealsFull`; `Purge` — `crew.noHero` (or out), `crew.noMeals`; `SuitMode(On)` —
   `crew.noHero`, on `crew.noSuitMode`; `Track` — `crew.noHero`. **Ops** (`ICrewOps`) add `Loot(peer, yield)`, `CallOff(peer)`, `Works(peer)`.
-- **Fuzz:** every command and refusal; `Enter` anywhere, off the grid too.
+- **Fuzz:** every command and refusal; `Enter` off the grid too.
 
 ## Invariants
 
