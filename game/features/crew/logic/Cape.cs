@@ -143,6 +143,19 @@ public sealed class Cape
     /// <summary>Where point <paramref name="i"/> lies on the cape's picture, 0 to 1 across (front edge to back) and down.</summary>
     public static (double U, double V) Uv(int i) => ((double)(i % Cols) / (Cols - 1), (double)(i / Cols) / (Rows - 1));
 
+    /// <summary>
+    /// The box its outside's picture covers, in the figure's frame: the whole cape painted as it hangs as cut, hood and gathered
+    /// neck and all, so standing it shows as painted and moving the sheet bends it.
+    /// </summary>
+    public static readonly (double X, double Y, double W, double H) Painted = (-22, -31, 26.5, 30);
+
+    /// <summary>Where point <paramref name="i"/> lies on the outside's picture, 0 to 1 across and down <see cref="Painted"/>: where it hangs as cut.</summary>
+    public static (double U, double V) PaintedUv(int i)
+    {
+        var (x, y) = Rest(i);
+        return ((x - Painted.X) / Painted.W, (y - Painted.Y) / Painted.H);
+    }
+
     /// <summary>Whether triangle <paramref name="t"/> (of <see cref="Triangles"/>) is turned over, its other side toward the eye.</summary>
     public bool Flipped(int t)
     {
