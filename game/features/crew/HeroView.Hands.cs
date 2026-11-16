@@ -510,7 +510,7 @@ public partial class HeroView
         figure.Fitted = fitted;
         figure.Chop(swing is { Phase: double phase, Play: { } play } ? (Pixels(swing.Aim), phase, play) : null);
         figure.Work(busy is { Work: Handwork.Work, At: var plan } ? Pixels(plan) : null);
-        figure.Gesture = gesture.Kind is { } kind ? (kind, gesture.Ms, Pixels(gesture.At)) : null;
+        figure.Gesture = gesture.Kind is { } kind ? (GestureMotions.Of(kind), gesture.Ms, Pixels(gesture.At)) : null;
     }
 
     /// <summary>

@@ -166,8 +166,12 @@ public partial class Figure : Node2D
     private readonly Dictionary<Sprite2D, Vector2> _joints = new();
     /// <summary>The boots: the shin's picture below the ankle, turning there (2026-11-04-hero-gait).</summary>
     private readonly HashSet<Sprite2D> _soles = [];
-    /// <summary>The near hand, its frame shaped by a gesture (emotes).</summary>
+    /// <summary>The near hand and the wrist it turns at, shaped by a gesture (emotes); its pictures from the back and from the palm.</summary>
     private Sprite2D? _frontHand;
+    private Node2D? _frontWrist;
+    private Texture2D? _handBack, _handPalm;
+    /// <summary>How far a gesture nods the head this frame, radians down.</summary>
+    private double _signNod;
     private int? _colour;
 
     /// <summary>The player's mark, a tracker strapped to the near shin (2026-11-02-hero-clothes): the strap lit as the hero is, its light unlit, so it reads in a dark room, tinted by the player's colour.</summary>
@@ -576,7 +580,7 @@ public partial class Figure : Node2D
     /// The sign the near hand makes (emotes): which, how many milliseconds in, and where a point points, in pixels of the world;
     /// none between. Played over the arm the pose gives while the hands are at nothing else.
     /// </summary>
-    public (Gesture Kind, double Ms, Vector2 At)? Gesture { get; set; }
+    public (GestureMotion Motion, double Ms, Vector2 At)? Gesture { get; set; }
 
     /// <summary>
     /// The back hand at work over its pose (catcher-motion): its arm bent to <c>Arm</c> by <c>Share</c> of the way, gripping <c>Item</c>
@@ -974,6 +978,7 @@ public partial class Figure : Node2D
             sprite.Offset = _joints[sprite] - (sprite.Texture is CanvasTexture ? new Vector2(HiRes.FigureMargin, HiRes.FigureMargin) : Vector2.Zero);
             if (part == "leg") CutAtTheAnkle(sprite, _soles.Contains(sprite));
             if (part == "arm") CutAtTheWrist(sprite);
+            if (sprite == _frontHand) (_handBack, _handPalm) = (sprite.Texture, SuitArt.Of(PictureOf(part, far: true), colour, skin, hair, false));
         }
         (_headLit.Offset, _faceLit.Offset) = (_headPart.Offset, _facePart.Offset);
         _pack.Visible = body != null;
@@ -1212,7 +1217,7 @@ public partial class Figure : Node2D
             var wrist = new Node2D { Position = new Vector2(0, (float)Rig.Wrist) };
             var hand = Part("hand", far, banded: false);
             hand.Hframes = HandFrames;
-            if (!far) _frontHand = hand;
+            if (!far) (_frontHand, _frontWrist) = (hand, wrist);
             wrist.AddChild(hand);
             bend.AddChild(wrist);
         }
@@ -1556,17 +1561,25 @@ public partial class Figure : Node2D
         if (carried && _sinceCarryMs < HeroMotion.Carry.SpringAfterMs) frontArm = frontArm with { Upper = _armSpring.Follow(frontArm.Upper, elapsedMs) };
         else _armSpring.Hold(frontArm.Upper);
         // A gesture over whatever the pose gives the arm, eased in and out; the hand opens or points once it is mostly in (emotes).
-        double signed = 0;
+        double signed = 0, signWrist = 0;
+        _signNod = 0;
+        GestureMotion? motion = null;
         if (signing && Gesture is { } sign)
         {
-            signed = Gestures.WeightAt(sign.Kind, sign.Ms);
-            frontArm = Mix(frontArm, Gestures.ArmAt(sign.Kind, sign.Ms, FromShoulder(sign.At)), signed);
+            motion = sign.Motion;
+            signed = Gestures.WeightAt(motion, sign.Ms);
+            var (arm, wristTurn, nod) = Gestures.ArmAt(motion, sign.Ms, FromShoulder(sign.At));
+            frontArm = Mix(frontArm, arm, signed);
+            (signWrist, _signNod) = (wristTurn * signed, nod * signed);
         }
-        if (_frontHand != null)
+        if (_frontHand != null && _frontWrist != null)
         {
-            bool shaped = signed > 0.5;
-            _frontHand.Frame = shaped ? Gestures.FrameOf(Gesture!.Value.Kind) : Gestures.GripFrame;
-            _frontHand.Scale = new Vector2(shaped && Gestures.Mirrored(Gesture!.Value.Kind) ? -1 : 1, 1);
+            bool shaped = signed > 0.5 && motion != null;
+            _frontHand.Frame = shaped ? motion!.Frame : GestureMotions.GripFrame;
+            _frontHand.Scale = new Vector2(shaped && motion!.Mirrored ? -1 : 1, 1);
+            var picture = shaped && motion!.Side == HandSide.Palm ? _handPalm : _handBack;
+            if (picture != null && _frontHand.Texture != picture) _frontHand.Texture = picture;
+            _frontWrist.Rotation = (float)-signWrist;
         }
         _swingArm.Drew(frontArm);
         // A shot's recoil throws the aimed arm up, past where it aims (body-answers); it was aimed before the kick, and fires so.
@@ -1593,7 +1606,7 @@ public partial class Figure : Node2D
         _head = Settle(_head, awake ? look : 0, elapsedMs, HeadSettleMs);
         // On the floor the head takes back some of the body's lean, so a run looks ahead, not at the floor.
         // In an answer it keeps the eyes up as the body leans.
-        _gaze = _head - (pose is Pose.Stand or Pose.Walk or Pose.Run ? shown.Tilt * HeroMotion.Run.HeadSteady : 0) - BodyAnswers.HeadSteady * body.Lean;
+        _gaze = _head - (pose is Pose.Stand or Pose.Walk or Pose.Run ? shown.Tilt * HeroMotion.Run.HeadSteady : 0) - BodyAnswers.HeadSteady * body.Lean + _signNod;
         // Retching the head goes down with the torso and further, over what comes up.
         if (_retchMs < Retching.Ms) _gaze += Retching.Nod(_retchMs) + (pose is Pose.Stand or Pose.Walk or Pose.Run ? BodyAnswers.HeadSteady * Retching.Lean(_retchMs) : 0);
         // Each part of the helmet turns its fit's way about its pivot (helmets-fit-the-suit); its pictures bend only if it is soft.

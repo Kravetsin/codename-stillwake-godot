@@ -68,11 +68,11 @@ public partial class GestureWheelView : CanvasLayer
     /// </summary>
     private static (int Frame, float Turn, bool Mirrored) PictureOf(Gesture gesture) => gesture switch
     {
-        Gesture.Yes => (Gestures.ThumbFrame, -Mathf.Pi / 2, false),
-        Gesture.No => (Gestures.ThumbFrame, -Mathf.Pi / 2, true),
-        Gesture.Wave => (Gestures.OpenFrame, Mathf.Pi, false),
+        Gesture.Yes => (GestureMotions.ThumbFrame, -Mathf.Pi / 2, false),
+        Gesture.No => (GestureMotions.ThumbFrame, -Mathf.Pi / 2, true),
+        Gesture.Wave => (GestureMotions.OpenFrame, Mathf.Pi, false),
         // Come: the finger pointing in at the middle, "here".
-        Gesture.Come => (Gestures.PointFrame, Mathf.Pi / 2, false),
-        _ => (Gestures.PointFrame, 0, false),
+        Gesture.Come => (GestureMotions.PointFrame, Mathf.Pi / 2, false),
+        _ => (GestureMotions.PointFrame, 0, false),
     };
 }

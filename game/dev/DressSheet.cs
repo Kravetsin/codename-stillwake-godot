@@ -120,7 +120,7 @@ public partial class DressSheet(string path) : Node
         _world.AddChild(_figure);
         if (c.Aimed) (_figure.Wields, _figure.Aim) = (Stillwake.Content.Harpoon.Item, new Vector2(20, -70));
         if (c.Wields != null) _figure.Wields = c.Wields;
-        _figure.Gesture = c.Sign;
+        _figure.Gesture = c.Sign is { } sign ? (GestureMotions.Of(sign.Kind), sign.Ms, sign.At) : null;
         var pose = c.Lying ? Pose.Lie : c.Pose;
         int speed = pose switch { Pose.Walk => Spec.Walk, Pose.Run => Spec.Run, _ => 0 };
         bool climbing = pose == Pose.Climb;

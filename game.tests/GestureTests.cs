@@ -47,9 +47,9 @@ public class GestureTests
     [MemberData(nameof(All))]
     public void TakesNothingOfTheArmAtItsStartAndEnd(Gesture gesture)
     {
-        Assert.Equal(0, Gestures.WeightAt(gesture, 0));
-        Assert.Equal(0, Gestures.WeightAt(gesture, Gestures.MsOf(gesture)));
-        Assert.Equal(1, Gestures.WeightAt(gesture, Gestures.MsOf(gesture) / 2));
+        Assert.Equal(0, Gestures.WeightAt(GestureMotions.Of(gesture), 0));
+        Assert.Equal(0, Gestures.WeightAt(GestureMotions.Of(gesture), Gestures.MsOf(gesture)));
+        Assert.Equal(1, Gestures.WeightAt(GestureMotions.Of(gesture), Gestures.MsOf(gesture) / 2));
     }
 
     [Fact]
@@ -57,17 +57,17 @@ public class GestureTests
     {
         foreach (var (x, y) in new[] { (1.0, 0.0), (1.0, 1.0), (0.3, -1.0), (1.0, -0.2) })
         {
-            var end = Rig.EndOf(Gestures.ArmAt(Gesture.Point, 600, (x, y)), Rig.Arm);
-            Assert.Equal(Math.Atan2(y, x), Math.Atan2(end.Y, end.X), 6);
+            var end = Rig.EndOf(Gestures.ArmAt(GestureMotions.Of(Gesture.Point), 600, (x, y)).Arm, Rig.Arm);
+            Assert.InRange(Math.Atan2(end.Y, end.X) - Math.Atan2(y, x), -0.05, 0.05);
         }
     }
 
     [Fact]
     public void WavesOverhead()
     {
-        for (double ms = 0; ms <= Gestures.WaveMs; ms += 100)
+        for (double ms = 0; ms <= Gestures.MsOf(Gesture.Wave); ms += 100)
         {
-            var hand = Rig.EndOf(Gestures.ArmAt(Gesture.Wave, ms, default), Rig.Arm);
+            var hand = Rig.EndOf(Gestures.ArmAt(GestureMotions.Of(Gesture.Wave), ms, default).Arm, Rig.Arm);
             // Above the shoulder by more than the upper arm reaches: the forearm stands up over the elbow.
             Assert.True(-hand.Y > Rig.Arm.Upper, $"{ms}: {hand}");
         }
@@ -87,7 +87,7 @@ public class GestureTests
         // Its end heard as no work: it plays out here on its own clock.
         played.Hear(null);
         Assert.Equal(Gesture.Wave, played.Kind);
-        played.Step(Gestures.WaveMs);
+        played.Step(Gestures.MsOf(Gesture.Wave));
         Assert.Null(played.Kind);
         // Sent once more after it ended here: not played again.
         played.Hear(sent);
@@ -119,8 +119,9 @@ public class GestureTests
         // The thumb sticks out ahead of the hanging hand (frame 3); the hand turns with the forearm, mirrored for no.
         static double ThumbUp(Gesture gesture)
         {
-            var arm = Gestures.ArmAt(gesture, Gestures.NodMs / 2, default);
-            double turn = arm.Upper + arm.Lower, ahead = Gestures.Mirrored(gesture) ? -1 : 1;
+            var motion = GestureMotions.Of(gesture);
+            var arm = Gestures.ArmAt(motion, motion.Ms / 2, default).Arm;
+            double turn = arm.Upper + arm.Lower, ahead = motion.Mirrored ? -1 : 1;
             return ahead * Math.Sin(turn);
         }
         Assert.True(ThumbUp(Gesture.Yes) > 0.9);

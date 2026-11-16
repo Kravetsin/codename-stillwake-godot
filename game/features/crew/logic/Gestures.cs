@@ -1,29 +1,16 @@
 using System;
-using Stillwake.Game.Shared;
 
 namespace Stillwake.Game.Features.Crew;
 
-/// <summary>A sign a hero makes with its near hand in place of words (emotes).</summary>
-public enum Gesture { Point, Wave, Come, Yes, No }
-
 /// <summary>
-/// How each <see cref="Gesture"/> moves the near arm and shapes the hand (emotes): played over the arm the pose gives, blended in
-/// and out, the hand's frame from its strip (hand), whatever it held stowed meanwhile. Client only: a gesture changes nothing the
-/// world holds.
+/// How a gesture plays on the near arm (emotes): its motion (<see cref="GestureMotions"/>) over the arm the pose gives, blended in and
+/// out, whatever the hand held stowed meanwhile; who may start one, and how one goes over the wire. Client only: a gesture changes
+/// nothing the world holds.
 /// </summary>
 public static class Gestures
 {
-    /// <summary>How long each gesture plays, in milliseconds.</summary>
-    public const double PointMs = 1200, WaveMs = 1600, ComeMs = 1400, NodMs = 1000;
-
     /// <summary>How long a gesture takes to come in and to go out again, in milliseconds.</summary>
     public const double BlendMs = 180;
-
-    /// <summary>The hand's frames in its strip (hand): 0 the grip it hangs and holds in, 1 open, 2 pointing, 3 the thumb out ahead.</summary>
-    public const int GripFrame = 0, OpenFrame = 1, PointFrame = 2, ThumbFrame = 3;
-
-    /// <summary>How far of its whole length the arm reaches out pointing: straight, but not locked.</summary>
-    public const double PointReach = 0.97;
 
     /// <summary>
     /// Pointing behind its back, the arm stops this far past straight up or down, in radians from ahead: the hero faces the pointer,
@@ -31,71 +18,25 @@ public static class Gestures
     /// </summary>
     public const double PointMost = Math.PI / 2 + 0.35;
 
-    /// <summary>Waving: the upper arm raised up and ahead, radians from hanging; the forearm upright, rocked this far to each side, this many times.</summary>
-    public const double WaveUpper = 2.5, WaveSway = 0.45;
-    public const int Waves = 3;
+    public static double MsOf(Gesture gesture) => GestureMotions.Of(gesture).Ms;
 
-    /// <summary>Beckoning: the upper arm out ahead at the chest, the forearm folding up from nearly straight to this far, this many times.</summary>
-    public const double ComeUpper = 1.25, ComeOpen = 0.25, ComeFold = 1.35;
-    public const int Comes = 2;
-
-    /// <summary>
-    /// A thumb up or down: the upper arm a little ahead, the forearm out ahead of the chest, the shoulder pumping it once up or down this far. The thumb
-    /// stands out ahead of the hanging hand, so out ahead it points up; mirrored, down.
-    /// </summary>
-    public const double ThumbUpper = 0.45, YesLower = 1.25, NoLower = 0.95, Pump = 0.3;
-
-    public static double MsOf(Gesture gesture) => gesture switch
+    /// <summary>How much of the arm <paramref name="motion"/> <paramref name="ms"/> in takes from the pose: none at its start and end, eased.</summary>
+    public static double WeightAt(GestureMotion motion, double ms)
     {
-        Gesture.Point => PointMs,
-        Gesture.Wave => WaveMs,
-        Gesture.Come => ComeMs,
-        _ => NodMs,
-    };
-
-    public static int FrameOf(Gesture gesture) => gesture switch
-    {
-        Gesture.Point => PointFrame,
-        Gesture.Wave or Gesture.Come => OpenFrame,
-        _ => ThumbFrame,
-    };
-
-    /// <summary>Whether the hand's frame is drawn mirrored about the wrist: the thumb down.</summary>
-    public static bool Mirrored(Gesture gesture) => gesture == Gesture.No;
-
-    /// <summary>How much of the arm the gesture <paramref name="ms"/> in takes from the pose: none at its start and end, eased.</summary>
-    public static double WeightAt(Gesture gesture, double ms)
-    {
-        double t = Math.Clamp(Math.Min(ms, MsOf(gesture) - ms) / BlendMs, 0, 1);
+        double t = Math.Clamp(Math.Min(ms, motion.Ms - ms) / BlendMs, 0, 1);
         return t * t * (3 - 2 * t);
     }
 
     /// <summary>
-    /// The near arm of a gesture <paramref name="ms"/> in, pointing at <paramref name="toward"/> from the shoulder in the arm's frame
-    /// (ahead and down positive); the others need none.
+    /// The near arm, the hand's turn against the forearm and the head's nod of <paramref name="motion"/> <paramref name="ms"/> in, an
+    /// aimed one laid along the line to <paramref name="toward"/> from the shoulder in the arm's frame (ahead and down positive).
     /// </summary>
-    public static Bend ArmAt(Gesture gesture, double ms, (double X, double Y) toward)
+    public static (Bend Arm, double Wrist, double Head) ArmAt(GestureMotion motion, double ms, (double X, double Y) toward)
     {
-        double share = Math.Clamp(ms / MsOf(gesture), 0, 1);
-        switch (gesture)
-        {
-            case Gesture.Point:
-                double angle = Math.Clamp(Math.Atan2(toward.Y, toward.X), -PointMost, PointMost);
-                double reach = PointReach * (Rig.Arm.Upper + Rig.Arm.Lower);
-                return Rig.Reach(new Vec(Math.Cos(angle) * reach, Math.Sin(angle) * reach), Rig.Arm, 1);
-            case Gesture.Wave:
-                // The forearm upright over the raised elbow, rocking side to side from the middle.
-                return new Bend(WaveUpper, Math.PI - WaveUpper + WaveSway * Math.Sin(2 * Math.PI * Waves * share));
-            case Gesture.Come:
-                return new Bend(ComeUpper, ComeOpen + ComeFold * (0.5 - 0.5 * Math.Cos(2 * Math.PI * Comes * share)));
-            case Gesture.Yes:
-                // The shoulder pumps, the forearm keeps its turn: the thumb stays upright as the hand rises.
-                double up = Pump * Math.Sin(Math.PI * share);
-                return new Bend(ThumbUpper + up, YesLower - up);
-            default:
-                double down = Pump * Math.Sin(Math.PI * share);
-                return new Bend(ThumbUpper - down, NoLower + down);
-        }
+        var key = motion.At(Math.Clamp(ms / motion.Ms, 0, 1));
+        // The line to the target as the upper arm's turn from hanging: straight ahead a quarter turn.
+        double line = motion.Aimed ? Math.PI / 2 - Math.Clamp(Math.Atan2(toward.Y, toward.X), -PointMost, PointMost) : 0;
+        return (new Bend(line + key.Upper, key.Elbow), key.Wrist, key.Head);
     }
 
     /// <summary>
