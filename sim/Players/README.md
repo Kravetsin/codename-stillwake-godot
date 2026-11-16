@@ -16,7 +16,7 @@ registry and shared by every surface's, saved first in the ship's `slices`. Reco
 - **State** (`PlayersState`, members internal): `Colours` — `Worn(Peer, Colour)` for every peer with a hero on any
   surface, in peer order. `Looks` — `PeerLook(Peer, Worn, Next)` for every peer that chose a look, with a hero or not,
   in peer order; added empty, so an older save loads with none. `Skins` — `PeerSkins(Peer, Ids)` for every peer that
-  chose skins, with a hero or not, in peer order; added empty the same way. Saved.
+  chose skins, with a hero or not, in peer order; saved only while any, so an older save loads with none.
 - **Files:** `Players.cs` — the module, its state, query and operation interfaces.
 
 ## Rules

@@ -32,7 +32,15 @@ public sealed class PlayersState
     /// <summary>The look of each peer that chose one, with a hero or not, in peer order.</summary>
     [JsonInclude] internal List<PeerLook> Looks { get; set; } = [];
     /// <summary>The skins of each peer that chose any, with a hero or not, in peer order.</summary>
-    [JsonInclude] internal List<PeerSkins> Skins { get; set; } = [];
+    [JsonIgnore] internal List<PeerSkins> Skins { get; set; } = [];
+
+    /// <summary><see cref="Skins"/> as a save writes it: left out while nobody chose one, as a save from before skins.</summary>
+    [JsonInclude, JsonPropertyName("skins"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    internal List<PeerSkins>? SkinsSaved
+    {
+        get => Skins.Count == 0 ? null : Skins;
+        set => Skins = value ?? [];
+    }
 }
 
 /// <summary>What any module or the client may read of the players.</summary>
