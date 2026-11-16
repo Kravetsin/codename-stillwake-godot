@@ -21,9 +21,11 @@ Three slices, each played by the user before the next, each opening with its pic
   suit withstands −40° (`Items.cs:269`), night's chill is 20 (`Content.Sky.First.Chill`), the storm's 20
   (`Stretches.Storm.Chill`). In the open: −50° in a storm by day, −50° at night, −70° in a storm at night (they stack, no
   extra rule). Daylight dims, grit and rain streaks blow: client look only, rain is **not** sim water.
-- **Lightning: one bolt per storm**, a hazard and a spectacle, leaving no loot. A glow crawls over the target first, so it
-  is seen coming; then the bolt strikes: a small crater (Building's `Burst`) and a shock (`ICrewOps.Shock`; `Burst` hurts
-  no hero, sim/Building/Bursts.cs:73) to heroes in reach. The target is the highest open-sky cell, built or not, within 24
+- **Lightning: one bolt per storm**, a hazard and a spectacle, leaving no loot. A glow crawls over the ground it will
+  strike first, so it is seen coming: the struck cell and the open ground `Spread` columns either side, 20 in rain (wet
+  ground), 10 in dust (the user's, 2026-11-16). Then the bolt strikes: a small crater (Building's `Burst`) and a shock of
+  40 (`ICrewOps.Shock`; `Burst` hurts no hero, sim/Building/Bursts.cs:73) to every hero under the open sky in those
+  columns: a back wall or a cave shelters. The target is the highest open-sky cell, built or not, within 24
   columns of one hero drawn per storm: in co-op, one strike per storm is an accepted limitation.
 - **The one damage rule** applies to the crater: a player's hit on their own ship takes a tenth, everything else full. The
   bolt is no player's, so it is full. A struck roof cell cracks or breaks as the crater's `Burst` pays for it, leaving a
@@ -42,12 +44,13 @@ Three slices, each played by the user before the next, each opening with its pic
    25); 30° past at night, 0.6 a second, **36–54 units**: a whole storm in the open at night empties a basic helmet.
 2. **Sheltering.** Under a back wall (a built shelter, a ruin's room) or in a cave the storm's chill stops at once, as the
    existing chill path rules; the band's own −30° stays.
-3. **Caught on a hill.** The glow crawls over the hilltop under the hero; they step out of reach in the 2 s glow and the
-   bolt craters the top. If they stay, they lose a third of a basic helmet's air.
+3. **Caught on a hill.** The glow crawls over the hilltop and the ground round it; in its 3 s the hero runs out of the
+   zone (at half pace a run is about 13 cells a second: 20 cells in 1.5 s) or under a back wall, and the bolt craters the
+   top. If they stay in the open in the zone, they lose 40: nearly all of a basic helmet's 45.
 4. **A roof struck.** The shelter is the highest thing near: the glow crawls over its roof, the bolt cracks or breaks that
    cell, a hole the player rebuilds; the back walls below still shelter from the chill.
 5. **Co-op.** Everyone on the planet sees one storm (one Sky slice); one hero is drawn per storm, the bolt falls near them,
-   every hero in reach is shocked, in id order. A friend far away gets no bolt that storm.
+   every hero in the zone under the open sky is shocked, in id order. A friend far away gets no bolt that storm.
 6. **Save and load mid-storm or mid-glow:** the storm's `Active`, `Left`, `Ran` and the bolt's `BoltIn` or `Strike` are
    saved; the bolt strikes the same cell on the same tick. Earlier ground marks are lost.
 7. **A guest joining mid-storm** gets both slices in the world sent, draws the storm from `SkyNow` with its warning share as
@@ -65,15 +68,18 @@ no wisps, no clear patch round the hero; streaks drawn by a shader. Its rules ar
 
 ## Slice 2 — lightning (after slice 1 is played)
 
-**Pick pages first.** Look: the glow, the bolt, the crater's dust and its ground mark. Sound: thunder, a one-shot with no
-Loops flag.
+**Picked (2026-11-16):** the glow «Зарница» (C: arcs crackling on the cells' edges), spread over the whole zone; the
+cell broken with inked cracks, its grass gone; the bolt «Ступенчатый лидер» (round 2, D: a faint leader stepping down,
+the return stroke climbing it, two more strokes); the throw «Искры» (round 2, 4: sparks and dark grains, orange to dark
+red to out in about 1 s); the mark: soot streaked downwind (C); thunder A (Freesound 840628, loganzsound, a short close
+crack), a one-shot with no Loops flag. No shake, no freeze, no rings.
 
 **Sim**
 - `sim/Content/Stretches.cs`: `Stretch` gains `BoltRule? Bolt = null` (a blizzard or an ash storm leaves it null):
-  `record BoltRule(Span At, int Glow, int Columns, int Power, int Reach, int Shock)`. The storm's: `At` 200–1000 ticks into
-  the storm; `Glow` 40 (2 s, past the 20 ticks a hero's cell may be reported late, `Crew.ReportEvery`); `Columns` 24;
-  `Power` enough to break the struck soil cell and crack its neighbours; `Reach` 2 cells; `Shock` 15 units, a third of a
-  basic helmet's 45. A content test keeps `At.Most + Glow < Duration.Least`.
+  `record BoltRule(Span At, int Glow, int Columns, int Power, int Reach, int Spread, int Shock)`. The storms': `At`
+  200–1000 ticks into the storm; `Glow` 60 (3 s: a run out of a 20-column zone at half pace, and a reaction); `Columns`
+  24; `Power` enough to break the struck soil cell and crack its neighbours, `Reach` 2 cells (the crater only); `Spread`
+  20 for the rain storm, 10 for the dust storm; `Shock` 40. A content test keeps `At.Most + Glow < Duration.Least`.
 - `sim/Hazards/Bolts.cs` (new); the constructor gains `ISkyQueries`, `ICrewQueries`, `ICrewOps`. `Registry.cs:103`
   changes its arguments only: Sky and Crew are made, and run, before Hazards already.
 - The slice gains `BoltIn` (ticks till the glow, 0 for none), `Strike` and `Drawn`. `Strike(int Cell, int Left)` is a bolt
@@ -88,19 +94,24 @@ Loops flag.
      topmost wall cell, built or natural, whose cells above are all open sky; the highest, ties to the column nearest the
      hero, then the lower index. None: no bolt. Else `Strike = (cell, Glow)`.
   4. When `Left` reaches 0: `Burst(FloorStack.Nobody, cell, Power, Reach, Spoils.Lost)`, full; then `Shock(peer, Shock,
-     Harm.Shock)` in id order to every hero on this surface whose `Hero.Cell` lies within `Reach` of it by
-     `Math.Max(|dx|, |dy|)`, as `Crew.PodReach` is measured; `Shock` itself skips a hero `Out` or creative. `Strike = null`.
-  5. A storm that ends with `BoltIn` pending drops it; a `Strike` glowing always strikes (40 ticks at most). `SetCalm`
+     Harm.Shock)` in id order to every hero on this surface whose `Hero.Cell` is in a column within `Spread` of the
+     strike's (`|dx|`, no wrap: a planet ends in fog) and under the open sky (`ICrewQueries.OpenSky`, Crew's own test made
+     public); `Shock` itself skips a hero `Out` or creative. `Strike = null`.
+  5. A storm that ends with `BoltIn` pending drops it; a `Strike` glowing always strikes (60 ticks at most). `SetCalm`
      drops both. A plant in the crater's reach is felled by nobody, its yields dropped at its cell as every burst's are
      (0085): nothing only lightning gives.
 - **`BoltNow` (dev and fuzz):** the sender's hero's columns get a `Strike` now, by the kind's first `BoltRule`, storm or
   not. Refused `hazards.noBolt` where no stretch of the kind has one, `hazards.boltGlowing` while one glows,
   `hazards.noHero` with no hero of the sender here. `Fuzz` sends it one turn in 64, so ModulesTests' 100–400-step suites
   meet a glow and its strike in save, load and two worlds kept alike. The dev panel gets a button.
-- Hazards' queries gain `Strike` (the glow's cell and ticks left) for the client.
+- Hazards' queries gain `Strike` (the glow's cell, ticks left and its `Spread`) for the client.
+- **A hero reports every tick while a strike glows** (`Report.Every`, as when a creature threatens it), so the sim knows
+  who stepped out of the zone or under a back wall in the glow's last second.
 
-**Client.** `game/features/hazards/BoltView.cs` (new) reads `Strike` and draws the glow over the target; when it has gone
-after a glow the view saw, the strike there: a flash, thunder, the crater's dust. It keeps a ground mark per cell struck
+**Client.** `game/features/hazards/BoltView.cs` (new) reads `Strike` and draws the glow over the zone: on the struck
+cell and on each column's top wall cell under open sky within `Spread`, thickest at the middle; when it has gone after a
+glow the view saw, the strike there: the bolt, its light, thunder, the sparks, and discharges running out over the zone's
+cells for a moment. It keeps a ground mark per cell struck
 while this surface is shown, not saved. The shock is shown as every `Harm.Shock` is.
 
 **Tests** (`sim/Tests/LightningTests.cs`, strip maps with hills, `Meteors: true` so the strip is not calm)
@@ -108,10 +119,11 @@ while this surface is shown, not saved. The shock is shown as every `Harm.Shock`
 - The target: a hilltop within 24 columns beats lower ground nearer the hero; a built roof higher than the ground is the
   target and its wall breaks, at full damage; a column with a back wall above its top wall is skipped; ties go to the
   nearest column, then the left; nothing in the zone, no bolt.
-- The shock: a hero within 2 cells loses 15 air, its last hurt `Shock`; one 3 cells away loses nothing; a creative hero,
+- The shock: a hero in the open 20 columns from a rain storm's strike loses 40 air, its last hurt `Shock`; 21 columns
+  away, or 20 under a back wall, loses nothing; a dust storm's reaches 10; a creative hero,
   and one `Out`, lose nothing; a hero on another surface is never counted.
 - No hero on the surface when `BoltIn` reaches 0: `BoltIn` was drawn, no hero is drawn, no strike. A `Calm` world: no bolt.
-- Co-op: two heroes, the bolt near the drawn one, both shocked in reach. Save and load in the glow: the same cell and tick.
+- Co-op: two heroes, the bolt near the drawn one, both shocked in the zone. Save and load in the glow: the same cell and tick.
   A plant in reach drops its yields. `BoltNow`'s three refusals by reason. Nothing is drawn from the world's Rng.
 - Invariant (FsCheck over seeds on `Small`, storms brought by `StretchNow`): at most one natural strike per storm. Prove it
   bites by not clearing `BoltIn` at a strike.
@@ -151,9 +163,10 @@ the fibre icon; i18n keys in `En` and `Ru`.
   counterplay is an idea for later, not designed; nothing draws the bolt, and a tree's crown is never the target.
 - **Rain as water** (a look only; day-night.md's rain waits for its plan). **Wind** pushes, breaks and fells nothing.
 - **More than one bolt per storm, or one per hero:** a friend far from the drawn hero gets none, accepted for co-op.
-- **A hero's cell is up to 20 ticks late** (`Crew.ReportEvery`): one who left the reach in the glow's last second may still
-  be shocked. The 40-tick glow leaves 20 ticks to step out as the sim sees it.
-- **A hero in reach is shocked wherever they stand,** indoors under a struck roof too. **Ground marks** are lost on load.
+- **A hero's cell reaches the host a round trip late**, even reported every tick: one who leaves the zone in the glow's
+  last moment may still be shocked.
+- **The zone is columns, not current through the ground:** a hero under the open sky on a ledge far above or below the
+  struck ground is shocked too. **Ground marks** are lost on load.
 - **Felled plants do not grow back** (0079): reeds and food plants are finite on a planet 4096 columns wide.
 - **No text forecast:** wind, sway and horizon warn; the radar shows no storm band.
 - **The blizzard and the ash storm** are named next users, not built: each a `Stretch` with its look, a `BoltRule` only if
