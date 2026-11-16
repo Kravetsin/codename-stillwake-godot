@@ -135,7 +135,7 @@ public sealed class VesselSigns
             var (sw, sh, row) = Size(kind);
             if (kind == SignKind.Soot)
             {
-                foreach (var m in parts.Where(p => p.Layer == "machine" && Vessels.SalvageOf(p.Kind) is { } s && Looks.SootOver.Contains(s.Kind)))
+                foreach (var m in parts.Where(p => p.Layer == "machine" && Looks.SootOver.Contains(Vessels.FirstLook(p.Kind))))
                 {
                     // Over its middle, its foot two rows down the machine: the burn rose from its top, at least two rows of wall over it.
                     var spec = Machines.Get(m.Kind);

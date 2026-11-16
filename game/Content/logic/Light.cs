@@ -114,6 +114,8 @@ public static class Light
         ["emergencyLamp"] = new((1f, 0.22f, 0.16f), 0.75f, LampReach, LampKeep, 0xff3a2cff),
         // An arc makers' lamp (0091): their cold light, brighter and further.
         ["arcLamp"] = new(ArcLamp, ArcLampStrength, ArcLampReach, ArcLampKeep, 0xb4dcffff, Glass: true),
+        // A derelict's flat ceiling lamp (derelict-looks): a little whiter and brighter than the starter lamp, from its lens strip.
+        [Stillwake.Content.Vessels.Lamp] = new((0.86f, 0.74f, 0.55f), 1.2f, LampReach + 2, LampKeep, 0xffe4b8ff, At: (8, 4.5f)),
         // A derelict's vending machine (food-and-the-body): only its sign and screen still lit, faint, from the header: the enamel
         // cabinet's pale green tube, the glass case's oxblood one.
         ["salvageVending"] = new((0.72f, 0.86f, 0.77f), 0.45f, VendingReach, LampKeep, 0xb8dcc4ff, Alight: "machine_salvageVending_lit", At: (16, 4)),
@@ -186,6 +188,7 @@ public static class Light
             ["salvageConsole2"] = [(8, 2.5f, 16, 7.5f, false)],
             ["salvageConsole3"] = [(3.5f, 3.5f, 9, 8, true)],
             ["salvageConsole4"] = [(2, 2.5f, 11, 4.5f, false), (17, 2.5f, 11, 4.5f, false)],
+            [Stillwake.Content.Vessels.Console] = [(7, 1.6f, 20, 6, false)],
         };
 
     public static readonly (float R, float G, float B) Fire = (1f, 0.48f, 0.14f);

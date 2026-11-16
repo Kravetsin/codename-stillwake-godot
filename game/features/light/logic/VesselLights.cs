@@ -37,11 +37,11 @@ public sealed class VesselLights
     /// <summary>The lamp the vessel's one dying lamp is, by its place in <see cref="Lamps"/>; null with none.</summary>
     public int? Dying { get; }
 
-    /// <summary>The lamp that stands in for the light every vessel lamp is, its kind in the interiors.</summary>
-    public const string LampKind = "lamp";
+    /// <summary>The derelict's own ceiling lamp, the only lamp its rooms are stamped with.</summary>
+    public const string LampKind = Vessels.Lamp;
 
-    /// <summary>The salvage whose looks are a bridge's console.</summary>
-    public const string ConsoleKind = "salvageConsole";
+    /// <summary>What a bridge's consoles are, by their first look: the salvage's and the mockup's.</summary>
+    public static readonly IReadOnlyList<string> ConsoleKinds = ["salvageConsole", Vessels.Console];
 
     public VesselLights(Vessel vessel)
     {
@@ -61,7 +61,7 @@ public sealed class VesselLights
             Phase(p))).ToList();
         Dying = dying == null ? null : lamps.IndexOf(dying);
 
-        Consoles = parts.Where(p => p.Layer == "machine" && Vessels.SalvageOf(p.Kind)?.Kind == ConsoleKind).Select(p =>
+        Consoles = parts.Where(p => p.Layer == "machine" && ConsoleKinds.Contains(Vessels.FirstLook(p.Kind))).Select(p =>
         {
             bool lit = Looks.Below(Seed, Looks.Salt.Console, Cell(p), Looks.ConsoleDarkOneIn) != 0;
             return new VesselConsole(p.X, p.Y, p.Kind, lit, lit && Looks.Below(Seed, Looks.Salt.Glitch, Cell(p), Looks.GlitchOneIn) == 0, Phase(p));
@@ -87,6 +87,15 @@ public sealed class VesselLights
 
     /// <summary>The grid cell of the frame's (<paramref name="x"/>, <paramref name="y"/>), the frame's top-left at <c>Vessels.Margin</c> every way.</summary>
     public static int CellOf(int x, int y, int gridWidth) => (y + Vessels.Margin) * gridWidth + x + Vessels.Margin;
+
+    /// <summary>The grid cells of its lamps' top-lefts on a grid <paramref name="gridWidth"/> wide.</summary>
+    public HashSet<int> LampCells(int gridWidth) => Lamps.Select(l => CellOf(l.X, l.Y, gridWidth)).ToHashSet();
+
+    /// <summary>
+    /// Whether <paramref name="machine"/> is one of the vessel's own lamps, at one of <paramref name="lampCells"/>: lit by its own view on
+    /// its battery, never by the light's power share, and carrying no power bolt. One a hero builds there is not.
+    /// </summary>
+    public static bool Claims(Machine machine, IReadOnlySet<int> lampCells) => machine.Kind == LampKind && lampCells.Contains(machine.Cell);
 
     /// <summary>Whether a machine of <paramref name="kind"/> still stands with its top-left at grid cell <paramref name="cell"/>.</summary>
     public static bool Stands(IGridQueries grid, string kind, int cell) => grid.MachineAt(cell) is { } m && m.Kind == kind && m.Cell == cell;

@@ -23,8 +23,28 @@ public class VesselLightsTests(ITestOutputHelper output)
         output.WriteLine(string.Concat(lights.Consoles.Select(c => c.Lit ? c.Glitching ? 'G' : 'L' : '-')));
         var dying = lights.Lamps[lights.Dying!.Value];
         Assert.Equal((LampState.Dying, 88, 27), (dying.State, dying.X, dying.Y));
-        Assert.Equal("rrr...r.rr.r.yrr", string.Concat(lights.Lamps.Select(l => l.State switch { LampState.Red => 'r', LampState.Dying => 'y', _ => '.' })));
-        Assert.Equal("--", string.Concat(lights.Consoles.Select(c => c.Lit ? c.Glitching ? 'G' : 'L' : '-')));
+        Assert.Equal("rrr...r.rr.r.yr.", string.Concat(lights.Lamps.Select(l => l.State switch { LampState.Red => 'r', LampState.Dying => 'y', _ => '.' })));
+        Assert.All(lights.Lamps, l => Assert.Equal(V.Lamp, l.Kind));
+        Assert.Equal("-L", string.Concat(lights.Consoles.Select(c => c.Lit ? c.Glitching ? 'G' : 'L' : '-')));
+        Assert.Equal(["salvageConsole2", V.Console], lights.Consoles.Select(c => c.Kind));
+    }
+
+    [Fact]
+    public void TheVesselsOwnLampsAreItsCeilingLampsClaimedFromThePowersLightAndBoltsAndNoOtherMachineIs()
+    {
+        var v = Of("freighter", 4);
+        var m = VesselDressTests.Laid(v);
+        var lights = new VesselLights(v);
+        var cells = lights.LampCells(m.Grid.Width);
+        foreach (var l in lights.Lamps) m.Grid.Place(VesselLights.CellOf(l.X, l.Y, m.Grid.Width), new Placement("machine", l.Kind));
+        Assert.Equal(lights.Lamps.Count, m.Grid.Machines.Count(machine => VesselLights.Claims(machine, cells)));
+        Assert.All(m.Grid.Machines, machine => Assert.Equal(machine.Kind == V.Lamp, VesselLights.Claims(machine, cells)));
+        // One the ship's lamp, hung by a hero where a vessel lamp was, carries its bolt and its share of power.
+        int first = VesselLights.CellOf(lights.Lamps[0].X, lights.Lamps[0].Y, m.Grid.Width);
+        m.Grid.Clear(first, "machine");
+        m.Grid.Place(first, new Placement("machine", "lamp"));
+        Assert.False(VesselLights.Claims(m.Grid.MachineAt(first)!, cells));
+        Assert.True(Light.Lamps.ContainsKey(V.Lamp));
     }
 
     [Fact]

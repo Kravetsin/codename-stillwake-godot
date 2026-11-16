@@ -22,9 +22,9 @@ public class VesselSignsTests
     public void OneSeedIsSignedAsPinned()
     {
         var signs = new VesselSigns(Of("freighter", 1)).Signs;
-        Assert.Equal("Crate@125,23 Panel@130,27< Soot@73,27 Gas@33,27<", Say(signs));
+        Assert.Equal("Crate@127,23< Panel@130,27< Soot@49,20 Gas@34,27", Say(signs));
         var soot = signs.Single(s => s.Kind == SignKind.Soot);
-        Assert.Equal(("salvageTanks", 74, 29), (soot.Machine, soot.MachineX, soot.MachineY));
+        Assert.Equal(("vesselLifeTank", 50, 22), (soot.Machine, soot.MachineX, soot.MachineY));
         Assert.Equal(15, signs.Single(s => s.Kind == SignKind.Crate).Cells.Count);
     }
 

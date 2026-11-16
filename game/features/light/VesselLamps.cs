@@ -25,7 +25,7 @@ public partial class VesselLamps : Node2D, ILightSource
     private readonly (int Cell, Vector2 Corner)[] _consoles;
     private readonly (Vector2 Dot, Vector2 Left, Vector2 Right)[] _doors;
     private readonly bool[] _lampStands, _consoleStands, _doorShut;
-    private readonly HashSet<int> _lampCells = [];
+    private readonly HashSet<int> _lampCells;
     private readonly List<LightSource> _lights = [];
     private int _version = -1;
     private double _timeMs;
@@ -45,8 +45,8 @@ public partial class VesselLamps : Node2D, ILightSource
             var corner = offset + new Vector2(lamp.X, lamp.Y) * Cell;
             var at = L.Lamps[lamp.Kind].At is { } from ? corner + new Vector2(from.X, from.Y) : corner + new Vector2(spec.Width, spec.Height) * Cell / 2f;
             _lamps[i] = (VesselLights.CellOf(lamp.X, lamp.Y, w), at);
-            _lampCells.Add(_lamps[i].Cell);
         }
+        _lampCells = vessel.LampCells(w);
         _consoles = new (int, Vector2)[vessel.Consoles.Count];
         for (int i = 0; i < _consoles.Length; i++)
         {
@@ -65,7 +65,7 @@ public partial class VesselLamps : Node2D, ILightSource
     }
 
     /// <summary>Whether <paramref name="lamp"/> is one of the vessel's own, lit here, not by <see cref="LightView"/>.</summary>
-    public bool Claims(Machine lamp) => lamp.Kind == VesselLights.LampKind && _lampCells.Contains(lamp.Cell);
+    public bool Claims(Machine lamp) => VesselLights.Claims(lamp, _lampCells);
 
     public IReadOnlyList<LightSource> Lights => _lights;
 

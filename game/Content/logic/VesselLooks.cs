@@ -77,8 +77,9 @@ public static class VesselLooks
     public static readonly IReadOnlyDictionary<string, (int Least, int Most)> Signs =
         new Dictionary<string, (int, int)>(System.StringComparer.Ordinal) { ["shuttle"] = (2, 3), ["freighter"] = (3, 5) };
 
-    /// <summary>The salvage soot may lie over, by its kind: a burnt console or machine, never a crate or a pod.</summary>
-    public static readonly IReadOnlyList<string> SootOver = ["salvageConsole", "salvageMachine", "salvageEngine", "salvageRack", "salvageTanks", "salvageVending"];
+    /// <summary>What soot may lie over, by its first look: a burnt console or machine, never a crate or a pod.</summary>
+    public static readonly IReadOnlyList<string> SootOver = ["salvageConsole", "salvageMachine", "salvageEngine", "salvageRack", "salvageTanks", "salvageVending",
+        Stillwake.Content.Vessels.Console, Stillwake.Content.Vessels.Machine, Stillwake.Content.Vessels.Rack, Stillwake.Content.Vessels.LifeTank];
 
     /// <summary>
     /// The sparking cable throws a burst every <see cref="SparkEveryMs"/>, <see cref="SparkCount"/> sparks up to <see cref="SparkAcross"/>
