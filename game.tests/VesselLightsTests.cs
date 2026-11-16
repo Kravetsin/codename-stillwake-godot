@@ -56,7 +56,9 @@ public class VesselLightsTests(ITestOutputHelper output)
         var v = Of("tanker", 1);
         var lights = new VesselLights(v);
         string states = string.Concat(lights.Lamps.Select(l => l.State switch { LampState.Red => 'r', LampState.Dying => 'y', _ => '.' }));
-        Assert.Equal(".r...rrr...r.rrrr..r..........rrr.rr.yrr..r.r.r....rrr", states);
+        output.WriteLine(states);
+        // Re-recorded once its boom widened its frame (big-vessels stage 3): a lamp's draw is by its cell in the frame.
+        Assert.Equal("rrrr.rrrrrrrr...rr...r..rr..rr.r.rr.ry...r.rrr.r......", states);
         Assert.All(lights.Lamps, l => Assert.Equal(V.Lamp, l.Kind));
         var (sx, sy) = Shipyard.Door(v);
         var airlock = v.Compartments.Single(c => c.Holds(sx, sy));
