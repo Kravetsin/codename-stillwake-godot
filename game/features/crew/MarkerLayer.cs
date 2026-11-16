@@ -87,7 +87,8 @@ public partial class MarkerLayer : CanvasLayer
             if (Markers.HunterCame(_hunter, hunter?.Id) || signal == Sim.Crew.Signal.Coming && _signal != signal) _beep.Play();
             _signal = signal;
             _hunter = hunter?.Id;
-            Show(Markers.Of(m.Crew.Spawn, m.Grid.Width, friends, body, DeliveriesOf(m), hunter), hero.Current.Middle, hero.PromptCovers, delta);
+            var pings = hero.Pings.Select(p => (p.Peer, p.At, Suits.Of(m.Players, p.Peer))).ToList();
+            Show(Markers.Of(m.Crew.Spawn, m.Grid.Width, friends, body, DeliveriesOf(m), hunter, pings), hero.Current.Middle, hero.PromptCovers, delta);
             lost = m.Knowledge.Lost > _lost;
             _lost = m.Knowledge.Lost;
         }
@@ -170,7 +171,7 @@ public partial class MarkerLayer : CanvasLayer
 
     /// <summary>What the pointer says over a marker: what it points at and how many cells away.</summary>
     private static Tip? TipOf(Badge badge) => badge.Marker is { } marker
-        ? new Tip(T(marker.Icon switch { MarkerIcon.Home => "markers.home", MarkerIcon.Body => "markers.body", MarkerIcon.Delivery => badge.Lost > 0 ? "markers.lost" : "markers.delivery", MarkerIcon.Hunter => "markers.hunter", _ => "markers.friend" }), new TipLine(T("markers.cells", ("cells", badge.Cells)), Tone.Dim))
+        ? new Tip(T(marker.Icon switch { MarkerIcon.Home => "markers.home", MarkerIcon.Body => "markers.body", MarkerIcon.Delivery => badge.Lost > 0 ? "markers.lost" : "markers.delivery", MarkerIcon.Hunter => "markers.hunter", MarkerIcon.Ping => "markers.ping", _ => "markers.friend" }), new TipLine(T("markers.cells", ("cells", badge.Cells)), Tone.Dim))
         : null;
 
     /// <summary>One marker: a dark badge ringed in its colour holding its icon, and a chevron outside the ring toward the target.</summary>
@@ -232,6 +233,12 @@ public partial class MarkerLayer : CanvasLayer
                 DrawArc(middle, 0.42f * r, 0, Mathf.Tau, 24, colour, 0.14f * r, antialiased: true);
                 foreach (var way in (Vector2[])[Vector2.Up, Vector2.Down, Vector2.Left, Vector2.Right])
                     DrawLine(middle + way * 0.18f * r, middle + way * 0.7f * r, colour, 0.14f * r, antialiased: true);
+            }
+            else if (marker.Icon == MarkerIcon.Ping)
+            {
+                // A dot in a ring: a spot marked, not the one who marked it.
+                DrawArc(middle, 0.5f * r, 0, Mathf.Tau, 24, colour, 0.13f * r, antialiased: true);
+                DrawCircle(middle, 0.22f * r, colour);
             }
             else DrawCircle(middle, 0.45f * r, colour);
         }

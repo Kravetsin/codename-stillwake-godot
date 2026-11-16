@@ -4,8 +4,8 @@ using System.Linq;
 
 namespace Stillwake.Game.Features.Crew;
 
-/// <summary>What a marker's badge holds: the pod's silhouette for home, a figure lying for this player's body, a dot in the suit's colour for a friend, the good's picture for a delivery, a reticle for the catcher hunting this player.</summary>
-public enum MarkerIcon { Home, Body, Friend, Delivery, Hunter }
+/// <summary>What a marker's badge holds: the pod's silhouette for home, a figure lying for this player's body, a dot in the suit's colour for a friend, the good's picture for a delivery, a reticle for the catcher hunting this player, a dot in a ring for a spot pinged.</summary>
+public enum MarkerIcon { Home, Body, Friend, Delivery, Hunter, Ping }
 
 /// <summary>
 /// A place this player may want to find again, pointed at from the screen's edge while it is off the screen:
@@ -52,10 +52,12 @@ public static class Markers
     /// body it left last (<see cref="Bodies.Latest"/>), a cell above where its stacks lie, in its suit's
     /// colour, while there is one; then each friend at its body's middle in its suit's colour, in the order given; then each
     /// of <paramref name="deliveries"/> at its piece's middle in amber, for every player alike; last <paramref name="hunter"/>, the middle of the one
-    /// hunting this player, in red, for it alone.
+    /// hunting this player, in red, for it alone; then each of <paramref name="pings"/>, this player's and friends', in its placer's
+    /// colour (gesture-pings).
     /// </summary>
     public static List<Marker> Of(int spawn, int width, IReadOnlyList<(int Id, Hero Hero, int Colour)> friends, (Pile Pile, int Colour)? body = null,
-        IReadOnlyList<(int Id, string Good, double X, double Y)>? deliveries = null, (int Id, double X, double Y)? hunter = null)
+        IReadOnlyList<(int Id, string Good, double X, double Y)>? deliveries = null, (int Id, double X, double Y)? hunter = null,
+        IReadOnlyList<(int Peer, Point At, int Colour)>? pings = null)
     {
         var list = new List<Marker>(friends.Count + 2 + (deliveries?.Count ?? 0)) { new(MarkerIcon.Home, spawn % width + 0.5, spawn / width + 0.5, HomeColour) };
         if (body is var (pile, suit)) list.Add(new Marker(MarkerIcon.Body, pile.X / Hero.Unit, pile.Y / Hero.Unit - 1.0, suit));
@@ -66,6 +68,7 @@ public static class Markers
         }
         foreach (var (id, good, x, y) in deliveries ?? []) list.Add(new Marker(MarkerIcon.Delivery, x, y, DeliveryColour, id, good));
         if (hunter is var (who, cx, cy)) list.Add(new Marker(MarkerIcon.Hunter, cx, cy, HunterColour, who));
+        foreach (var (peer, at, colour) in pings ?? []) list.Add(new Marker(MarkerIcon.Ping, (double)at.X / Hero.Unit, (double)at.Y / Hero.Unit, colour, peer));
         return list;
     }
 
