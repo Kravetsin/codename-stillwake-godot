@@ -241,7 +241,8 @@ public sealed class World
         uint seed = given ?? _rngOver.Below(1UL << 32);
         var layout = kind switch
         {
-            Content.PlanetType type => Terrain.Generate(type, seed, ores),
+            // Not calm: a planet's storms bring their lightning (docs/plans/surface-storms.md); it has no meteors or flares to start.
+            Content.PlanetType type => Terrain.Generate(type, seed, ores) with { Meteors = true },
             Content.VesselKind vessel => Shipyard.Space(Shipyard.Describe(Content.Vessels.Class(vessel.Class)!, seed)),
             _ => Layout.Parse(kind.Rows).Doubled(),
         };

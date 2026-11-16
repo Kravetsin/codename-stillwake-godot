@@ -96,6 +96,11 @@ public interface ICrewQueries
     /// </summary>
     int PaceAt(int cell);
     /// <summary>
+    /// Whether the sky reaches <paramref name="cell"/>: on the grid, in the top band, with no back wall. Night, the stretches and
+    /// lightning reach only there (night-chills): a back wall or a cave deeper down shelters.
+    /// </summary>
+    bool OpenSky(int cell);
+    /// <summary>
     /// The coldest hero <paramref name="peer"/> withstands, in degrees: its body's <c>Low</c>, or <c>Temperature.BareLow</c> with none,
     /// <c>Cape.Warmth</c> lower with the cape on.
     /// </summary>
@@ -583,12 +588,9 @@ public sealed partial class CrewModule : Module<CrewState>, ICrewQueries, ICrewO
     public int PaceAt(int cell) =>
         cell < 0 || cell >= _grid.Width * _grid.Height || _air.AiredAt(cell) || !OpenSky(cell) ? 1000 : _sky.Now.Pace;
 
-    /// <summary>
-    /// Whether the sky reaches <paramref name="cell"/>, on the grid and not aired: the top band, with no back wall. Night and the
-    /// stretches reach only there (night-chills): a cave deeper down never feels them.
-    /// </summary>
-    private bool OpenSky(int cell) =>
-        (Rules is not Content.PlanetType deep || Terrain.BandOf(deep, cell / _grid.Width) == 0) && _grid.BackAt(cell) == null;
+    public bool OpenSky(int cell) =>
+        cell >= 0 && cell < _grid.Width * _grid.Height
+        && (Rules is not Content.PlanetType deep || Terrain.BandOf(deep, cell / _grid.Width) == 0) && _grid.BackAt(cell) == null;
 
     /// <summary>
     /// An airless cell's degrees afloat: <c>Temperature.Hull</c> in the zone and a vessel's box, falling straight to the kind's own
