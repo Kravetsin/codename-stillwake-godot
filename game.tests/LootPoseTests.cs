@@ -59,4 +59,13 @@ public class LootPoseTests
     [InlineData(10, 3)]
     [InlineData(999, 3)]
     public void AStackShowsOneTwoOrThreeObjects(int count, int objects) => Assert.Equal(objects, LootPose.Objects(count));
+
+    [Fact]
+    public void TurningAboutItsMiddleItNeverReachesPastItsRadius()
+    {
+        var hull = LootPose.Hull(Bar);
+        float radius = LootPose.Radius(hull);
+        Assert.Equal(MathF.Sqrt(29), radius, 3);
+        for (float angle = 0; angle < 7; angle += 0.1f) Assert.True(LootPose.Lowest(hull, angle) <= radius + 0.001f);
+    }
 }

@@ -150,8 +150,8 @@ public partial class FloorLayer : Node2D
 
     /// <summary>
     /// <paramref name="one"/>'s objects turned and placed: tumbling the way it flies while it flies (2026-10-29-kill-feel), turning
-    /// slowly afloat in space as debris does, else tipping from how it landed onto the side it lies on; each standing on the line
-    /// the stack lies on by its lowest point.
+    /// slowly afloat in space as debris does, both about its middle, else tipping from how it landed onto the side it lies on and
+    /// coming down onto it, to stand on the line the stack lies on by its lowest point.
     /// </summary>
     private void Pose(Shown one, FloorStack s, bool inSpace)
     {
@@ -165,8 +165,12 @@ public partial class FloorLayer : Node2D
             float angle = inSpace ? (float)((_clockMs + s.Id * 1000 + k * 700) / TurnMs * 2 * Math.PI)
                 : one.Flying ? (float)((_clockMs + s.Id * 170 + k * 230) / 1000 * KillLooks.Spin * 2 * Math.PI * Math.Sign(s.Vx == 0 ? 1 : s.Vx))
                 : piece.Landed + (piece.Rest - piece.Landed) * eased;
+            // Turning in the air about its middle, held clear of the line it lies on by its farthest point: stood on its lowest
+            // point as it turned, it bobbed as if it caught on something. Landing, it comes down onto its side as it tips.
+            float radius = LootPose.Radius(hull);
+            float under = inSpace || one.Flying ? radius : radius + (LootPose.Lowest(hull, angle) - radius) * eased;
             piece.Picture.Rotation = angle;
-            piece.Picture.Position = new Vector2(piece.Apart, -LootPose.Lowest(hull, angle) * LootLooks.Size - piece.Lift);
+            piece.Picture.Position = new Vector2(piece.Apart, -under * LootLooks.Size - piece.Lift);
         }
     }
 

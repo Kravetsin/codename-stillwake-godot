@@ -69,6 +69,14 @@ public static class LootPose
         return lowest;
     }
 
+    /// <summary>How far <paramref name="hull"/>'s farthest point lies from its middle: below the middle by that, it clears the line it turns over at any angle.</summary>
+    public static float Radius(IReadOnlyList<(float X, float Y)> hull)
+    {
+        float most = 0;
+        for (int i = 0; i < hull.Count; i++) most = MathF.Max(most, hull[i].X * hull[i].X + hull[i].Y * hull[i].Y);
+        return MathF.Sqrt(most);
+    }
+
     /// <summary>How many objects a stack of <paramref name="count"/> shows: one, two or three.</summary>
     public static int Objects(int count) => count >= LootLooks.Three ? 3 : count >= LootLooks.Two ? 2 : 1;
 
