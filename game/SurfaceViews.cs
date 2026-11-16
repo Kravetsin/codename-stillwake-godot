@@ -61,6 +61,7 @@ public static class SurfaceViews
         // A pod in the air from this surface: the deck sliding, the pod falling through (the descent's pictures).
         new(c => new Features.Landing.PodFlights(c.M.Grid, c.M.Landing, c.M.Crew, c.Progress, c.Arrivals), Fades: true),
         new(c => new Features.Atmosphere.TankLooks(c.M.Grid, c.M.Atmosphere), Fades: true),
+        new(c => c.M.Rules is Content.PlanetType ? null : new Features.Landing.EngineFlame(c.M.Grid, c.M.Landing, c.Progress)),
         new(c => new Features.Water.WaterLooks(c.M.Grid, c.M.Water), Fades: true),
         // What each debris net holds, over its booms and behind its net (2026-11-03-debris-net).
         new(c => new Features.Debris.NetView(c.M.Grid, c.M.Debris), Fades: true),

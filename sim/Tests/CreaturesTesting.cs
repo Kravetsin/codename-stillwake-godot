@@ -19,7 +19,6 @@ public static class CreaturesTesting
         public bool CanOpen => false;
         public bool Landed => false;
         public bool Away => false;
-        public bool PlanetOpen => false;
         public void LeavePlanet() => throw new NotSupportedException();
         public int OpenPlanet() => throw new NotSupportedException("creatures opens no planet");
         public uint Seed => 0;

@@ -10,7 +10,9 @@ namespace Stillwake.Game.Features.Computer;
 /// The radar program, over the computer's whole screen: the ship a dot held in the middle, rings of range round it out past
 /// the edges, a beam sweeping round, a planet's curve below, still, and the sim's contacts on the ship's orbit
 /// (2026-11-08-radar-contacts), each flaring as the beam passes it and blinking in its last minutes. A contact selected is
-/// framed and named. The beam turns by real time: only a look.
+/// framed and named. The beam turns by real time: only a look. Along its top the solar system (solar-system): the sun on the left,
+/// its planets in a row, the ship's mark over the one it is at or between two on a course; a planet selected is framed, its card
+/// under it.
 /// </summary>
 public partial class RadarScreen : Control
 {
@@ -23,7 +25,20 @@ public partial class RadarScreen : Control
     private const int Going = 2 * 60 * World.TicksPerSecond;
     private const int LabelSize = 16;
 
+    /// <summary>The system strip's height, and how far apart its sun and first planet stand from the left.</summary>
+    private const float Strip = 64, SunX = 30, FirstX = 92;
+    private static readonly Color Sun = new("ffd36a"), Sky = new("08160f");
+
     private float _time;
+
+    /// <summary>The system planet the ship is at, by index (<c>LandingModule.At</c>).</summary>
+    public int At { get; set; }
+
+    /// <summary>The planet the ship flies to on its course and how far along it is, 0 to 1; null standing.</summary>
+    public (int To, double Along)? Flight { get; set; }
+
+    /// <summary>The system planet this player selected, by index; null for none.</summary>
+    public int? Planet { get; set; }
 
     /// <summary>The contacts up, as the panel last read them.</summary>
     public IReadOnlyList<Contact> Contacts { get; set; } = [];
@@ -44,11 +59,16 @@ public partial class RadarScreen : Control
         QueueRedraw();
     }
 
-    /// <summary>What lies under <paramref name="global"/>, a point on the screen: a contact's, the ship's or the planet's i18n key; none elsewhere.</summary>
+    /// <summary>What lies under <paramref name="global"/>, a point on the screen: a contact's, the ship's, the sun's or the planet's i18n key; none elsewhere.</summary>
     public string? KeyAt(Vector2 global)
     {
         var at = Local(global);
         if (at == null) return null;
+        if (at.Value.Y < Strip)
+        {
+            if (at.Value.DistanceTo(new Vector2(SunX, Strip / 2)) < 18) return "computer.radar.sun";
+            return Mathf.Abs(at.Value.X - ShipX()) < 8 && at.Value.Y < Strip / 2 - 6 ? "computer.radar.ship" : null;
+        }
         // A selected contact is named over it already.
         if (ContactAt(global) is { } id) return id == Selected ? null : "computer.radar.vessel";
         var (middle, core, radius) = Shape();
@@ -57,10 +77,29 @@ public partial class RadarScreen : Control
         return at.Value.DistanceTo(core) <= radius ? "computer.radar.planet" : null;
     }
 
+    /// <summary>The system planet under <paramref name="global"/>, a point on the screen, by index; none elsewhere.</summary>
+    public int? PlanetAt(Vector2 global)
+    {
+        if (Local(global) is not { } at || at.Y >= Strip) return null;
+        for (int i = 0; i < Stillwake.Content.Landing.Planets.Count; i++)
+            if (Mathf.Abs(at.X - PlanetX(i)) <= 14) return i;
+        return null;
+    }
+
+    /// <summary>Where system planet <paramref name="i"/> stands across the strip: in a row from the sun to the screen's right.</summary>
+    private float PlanetX(int i)
+    {
+        int n = Stillwake.Content.Landing.Planets.Count;
+        return FirstX + (Size.X - FirstX - 40) * i / Mathf.Max(1, n - 1);
+    }
+
+    /// <summary>Where the ship's mark stands across the strip: over its planet, or between two along its course.</summary>
+    private float ShipX() => Flight is { } f ? Mathf.Lerp(PlanetX(At), PlanetX(f.To), (float)f.Along) : PlanetX(At);
+
     /// <summary>The contact under <paramref name="global"/>, a point on the screen, by id: the nearest, a little wider than its dot; none elsewhere.</summary>
     public int? ContactAt(Vector2 global)
     {
-        if (Local(global) is not { } at) return null;
+        if (Local(global) is not { } at || at.Y < Strip) return null;
         int? found = null;
         float best = float.MaxValue;
         foreach (var c in Contacts)
@@ -135,6 +174,62 @@ public partial class RadarScreen : Control
         var ship = ShipBox(middle);
         DrawRect(ship, Line);
         DrawRect(ship.Grow(-2), Ship);
+
+        DrawSystem();
+    }
+
+    /// <summary>The solar system along the top: the sun, its planets on a line, the ship's mark, a selected planet framed and its card.</summary>
+    private void DrawSystem()
+    {
+        float mid = Strip / 2;
+        DrawRect(new Rect2(0, 0, Size.X, Strip), Sky);
+        DrawLine(new Vector2(0, Strip), new Vector2(Size.X, Strip), Grid, 1.5f);
+        DrawLine(new Vector2(SunX, mid), new Vector2(PlanetX(Stillwake.Content.Landing.Planets.Count - 1), mid), Grid, 1.5f);
+        float pulse = 0.85f + 0.15f * Mathf.Sin(_time * 1.3f);
+        DrawCircle(new Vector2(SunX, mid), 22 * pulse, Sun with { A = 0.12f });
+        DrawCircle(new Vector2(SunX, mid), 14, Sun);
+        for (int i = 0; i < Stillwake.Content.Landing.Planets.Count; i++)
+        {
+            var at = new Vector2(PlanetX(i), mid);
+            bool target = Flight is { } f && f.To == i;
+            DrawCircle(at, 9, Line);
+            DrawCircle(at, 7, i == At && Flight == null ? Rim : Ground);
+            DrawArc(at, 7, 0, Mathf.Tau, 32, Rim, 1.5f);
+            if (target) DrawArc(at, 12, 0, Mathf.Tau, 32, Ship with { A = 0.4f + 0.4f * Mathf.Abs(Mathf.Sin(_time * 3)) }, 1.5f);
+            if (i == Planet) Brackets(at, 14, 5, Beam);
+        }
+        // The ship's mark, a little wedge pointing down at where it is.
+        float x = ShipX();
+        DrawColoredPolygon([new Vector2(x - 7, 6), new Vector2(x + 7, 6), new Vector2(x, 16)], Line);
+        DrawColoredPolygon([new Vector2(x - 5, 7), new Vector2(x + 5, 7), new Vector2(x, 14)], Ship);
+        if (Planet is int p) DrawCard(p);
+    }
+
+    /// <summary>A selected planet's card under the strip: its name, its type, the technology whose ruins prevail on it.</summary>
+    private void DrawCard(int p)
+    {
+        var planet = Stillwake.Content.Landing.Planets[p];
+        string[] lines = [T("computer.radar.planetN", ("n", p + 1)), T($"computer.radar.type.{planet.Type}"), T($"computer.radar.tech.{planet.Technology}")];
+        var font = GetThemeDefaultFont();
+        float line = font.GetHeight(LabelSize), width = 0;
+        foreach (var l in lines) width = Mathf.Max(width, font.GetStringSize(l, HorizontalAlignment.Left, -1, LabelSize).X);
+        float left = Mathf.Clamp(PlanetX(p) - width / 2, 6, Size.X - width - 6);
+        var back = new Rect2(left - 6, Strip + 8, width + 12, lines.Length * line + 6);
+        DrawRect(back, Back with { A = 0.9f });
+        DrawRect(back, Grid, false, 1);
+        float top = back.Position.Y + 3 + font.GetAscent(LabelSize);
+        for (int i = 0; i < lines.Length; i++)
+            DrawString(font, new Vector2(left, top + i * line), lines[i], HorizontalAlignment.Left, -1, LabelSize, i == 0 ? Beam : Rim with { A = 0.8f });
+    }
+
+    /// <summary>Corner brackets round <paramref name="at"/>, <paramref name="box"/> out, their arms <paramref name="arm"/> long.</summary>
+    private void Brackets(Vector2 at, float box, float arm, Color colour)
+    {
+        foreach (var (sx, sy) in new[] { (-1, -1), (1, -1), (1, 1), (-1, 1) })
+        {
+            var corner = at + new Vector2(sx * box, sy * box);
+            DrawPolyline([corner - new Vector2(0, sy * arm), corner, corner - new Vector2(sx * arm, 0)], colour, 2);
+        }
     }
 
     /// <summary>
@@ -153,12 +248,8 @@ public partial class RadarScreen : Control
         if (c.Id != Selected) return;
 
         // Corner brackets round it, and its name over them.
-        const float box = 13, arm = 6;
-        foreach (var (sx, sy) in new[] { (-1, -1), (1, -1), (1, 1), (-1, 1) })
-        {
-            var corner = spot + new Vector2(sx * box, sy * box);
-            DrawPolyline([corner - new Vector2(0, sy * arm), corner, corner - new Vector2(sx * arm, 0)], Beam, 2);
-        }
+        const float box = 13;
+        Brackets(spot, box, 6, Beam);
         // Its name, and under it how far it lies from the ship, dimmer.
         var font = GetThemeDefaultFont();
         string name = T("computer.radar.vessel"), far = T("computer.radar.km", ("n", RadarOrbit.Km(c.Offset)));

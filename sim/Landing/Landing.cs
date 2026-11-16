@@ -20,6 +20,9 @@ public sealed record Flight(int Peer, bool Up, int TicksLeft, int Home, int Floo
 /// <summary>Drop pod <c>Pod</c> standing off the ship, which only <c>Peer</c>, who came down in it, flies back to <c>Home</c> aboard.</summary>
 public sealed record Owner(int Pod, int Peer, int Home);
 
+/// <summary>The ship's flight to system planet <c>To</c> (<see cref="Content.Landing.Planets"/>, solar-system), arriving in <c>TicksLeft</c> ticks.</summary>
+public sealed record Course(int To, int TicksLeft);
+
 /// <summary>
 /// Who sits in which drop pod, which pods fly and whose pods stand off the ship; a platform's state is its structure codes, the
 /// grid's. Public so modules can be typed by it, its members internal.
@@ -34,6 +37,12 @@ public sealed class LandingState
 
     /// <summary>Every pod standing on this surface off the ship, by pod id ascending.</summary>
     [JsonInclude] internal List<Owner> Owners { get; set; } = [];
+
+    /// <summary>The system planet the ship is at, by index (solar-system): 0, the first, from the start. Aboard only.</summary>
+    [JsonInclude, JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)] internal int At { get; set; }
+
+    /// <summary>The ship's flight to another system planet; null while it stays. Aboard only.</summary>
+    [JsonInclude, JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] internal Course? Course { get; set; }
 }
 
 /// <summary>The sender's hero boards drop pod <c>Pod</c>, a machine id, and sits in it: E on a pod sends it.</summary>
@@ -55,10 +64,11 @@ public sealed record SetPlatform(int Cell, bool Open) : Command;
 public sealed record Launch : Command;
 
 /// <summary>
-/// Fires engine <c>Engine</c>, a machine's id (planet-jump): the ship leaves the planet below for good, and the next descent
-/// opens another. Refused while any hero is off the ship or in a pod in the air (<c>landing.crewAway</c>): the call to come home.
+/// Sets the ship's course to system planet <c>Planet</c> (solar-system), sent from the radar: its engine fires, the planet below
+/// is left for good, and the ship flies there. Refused while any hero is off the ship or in a pod in the air
+/// (<c>landing.crewAway</c>): the call to come home.
 /// </summary>
-public sealed record FireEngine(int Engine) : Command;
+public sealed record SetCourse(int Planet) : Command;
 
 /// <summary>What other modules read of Landing: whether a hero rides a drop pod, sitting or flying (vessel-worlds).</summary>
 public interface ILandingQueries
@@ -105,13 +115,11 @@ public sealed class LandingModule : Module<LandingState>, ICarries, ILandingQuer
         Handles<Board>(c => BoardProblem(c.From, c.Pod), c => Sit(c.Pod, c.From));
         Handles<Alight>(c => SeatOf(c.From) == null ? "landing.notSeated" : null, c => State.Seats.RemoveAll(s => s.Peer == c.From));
         Handles<Launch>(c => LaunchProblem(c.From), c => Fly(c.From));
-        Handles<FireEngine>(c => FireProblem(c.Engine), c =>
-        {
-            _itemsOps.TakeFrom(c.Engine, 0, Content.Landing.JumpFuel);
-            Surfaces.LeavePlanet();
-        });
+        Handles<SetCourse>(c => CourseProblem(c.Planet), c => StartCourse(c.Planet));
         // The grid changes only in commands or construction: flights count down, shut their runs and end here.
         System(Phase.Construction, Count);
+        // Aboard, the ship's flight counts down and arrives (solar-system).
+        System(Phase.Construction, Voyage);
         // After Building, before power's derivation: a seated maker works only under a rider running (power-chain).
         System(Phase.Construction, Turn);
         // A pod taken apart, or its hero gone from the surface or passed out, frees its seat.
@@ -147,6 +155,8 @@ public sealed class LandingModule : Module<LandingState>, ICarries, ILandingQuer
         // A wheel seats a hero too, and stands on planets as aboard: only a pod flies.
         if (!Content.Machines.Is(m.Kind, MachineTrait.Lands)) return "landing.notSeated";
         if (Surfaces.Here != 0) return OwnerOf(pod) == peer ? null : "landing.notYours";
+        // Between planets there is nowhere to go down to (solar-system).
+        if (State.Course != null) return "landing.inFlight";
         // Built over a run, it may have been taken apart since.
         if (!_grid.OnRun(m.Kind, m.Cell)) return "landing.noPlatform";
         // Something built under its run before shafts were kept clear, in an older save: the pod would fall through it.
@@ -158,20 +168,55 @@ public sealed class LandingModule : Module<LandingState>, ICarries, ILandingQuer
     }
 
     /// <summary>
-    /// Why engine <paramref name="engine"/> cannot fire (planet-jump): no engine (<c>landing.noEngine</c>), its power short
-    /// (<c>landing.engineUnpowered</c>), its slot under <see cref="Content.Landing.JumpFuel"/> biofuel (<c>landing.noFuel</c>), its
-    /// nozzle walled in since (<c>landing.noExhaust</c>), no planet below to leave (<c>landing.nothingBelow</c>); last, so it says
-    /// the engine is ready but for them, a hero off the ship or in a pod in the air (<c>landing.crewAway</c>). Null when it can.
+    /// Why the ship cannot set its course to system planet <paramref name="planet"/> (solar-system): off the ship or no engine aboard
+    /// (<c>landing.noEngine</c>), there already or no such planet (<c>landing.hereAlready</c>), flying already (<c>landing.inFlight</c>),
+    /// its engine's power short (<c>landing.engineUnpowered</c>), its slot under <see cref="Content.Landing.JumpFuel"/> biofuel
+    /// (<c>landing.noFuel</c>), its nozzle walled in since (<c>landing.noExhaust</c>); last, so it says the ship is ready but for
+    /// them, a hero off the ship or in a pod in the air (<c>landing.crewAway</c>). Null when it can.
     /// </summary>
-    public string? FireProblem(int engine)
+    public string? CourseProblem(int planet)
     {
-        if (Surfaces.Here != 0 || _grid.MachineById(engine) is not { } m || Content.Machines.Get(m.Kind).Exhaust == null) return "landing.noEngine";
-        if (_power.Satisfaction(engine) < 1000) return "landing.engineUnpowered";
-        if (_items.HeldFor(engine, Content.Machines.Get(m.Kind).Takes!) < Content.Landing.JumpFuel) return "landing.noFuel";
-        if (!_grid.Exhausts(engine)) return "landing.noExhaust";
-        if (!Surfaces.PlanetOpen) return "landing.nothingBelow";
+        if (Surfaces.Here != 0 || Engine is not { } m) return "landing.noEngine";
+        if (planet == State.At || planet < 0 || planet >= Content.Landing.Planets.Count) return "landing.hereAlready";
+        if (State.Course != null) return "landing.inFlight";
+        if (_power.Satisfaction(m.Id) < 1000) return "landing.engineUnpowered";
+        if (_items.HeldFor(m.Id, Content.Machines.Get(m.Kind).Takes!) < Content.Landing.JumpFuel) return "landing.noFuel";
+        if (!_grid.Exhausts(m.Id)) return "landing.noExhaust";
         // A descent is this surface's flight; a return's rider stands off the ship till it docks.
         return Surfaces.Away || State.Flights.Count > 0 ? "landing.crewAway" : null;
+    }
+
+    /// <summary>The ship's engine: the lowest-id machine aboard with a nozzle out through the hull; null for none.</summary>
+    public Machine? Engine
+    {
+        get
+        {
+            foreach (var m in _grid.Machines)
+                if (Content.Machines.Get(m.Kind).Exhaust != null) return m;
+            return null;
+        }
+    }
+
+    /// <summary>The system planet the ship is at, by index (solar-system); aboard, 0 elsewhere.</summary>
+    public int At => State.At;
+
+    /// <summary>The ship's flight to another system planet; null while it stays.</summary>
+    public Course? Course => State.Course;
+
+    /// <summary>The engine fires: its fuel burnt, the planet below left for good, the ship off to <paramref name="planet"/>.</summary>
+    private void StartCourse(int planet)
+    {
+        _itemsOps.TakeFrom(Engine!.Id, 0, Content.Landing.JumpFuel);
+        Surfaces.LeavePlanet();
+        State.Course = new Course(planet, Content.Landing.FlightTicks);
+    }
+
+    /// <summary>A tick of the ship's flight: at zero it is at its planet.</summary>
+    private void Voyage()
+    {
+        if (State.Course is not { } c) return;
+        State.Course = c.TicksLeft > 1 ? c with { TicksLeft = c.TicksLeft - 1 } : null;
+        if (State.Course == null) State.At = c.To;
     }
 
     /// <summary>The drop pod <paramref name="peer"/>'s hero sits in, by machine id; null for one standing.</summary>
@@ -420,13 +465,8 @@ public sealed class LandingModule : Module<LandingState>, ICarries, ILandingQuer
         if (rng.Below(8) != 0) return null;
         // A launch mostly from a hero in a pod, so the fuzz flies some; from anyone else it is refused.
         if (rng.Below(SeatOf(from) != null ? 2u : 8u) == 0) return new Launch { From = from };
-        // An engine fired now and then, mostly one that stands: refused nearly always, the fuzz keeping heroes off the ship.
-        if (rng.Below(12) == 0)
-        {
-            var machines = _grid.Machines;
-            int engine = machines.Count > 0 && rng.Below(4) != 0 ? machines[(int)rng.Below((uint)machines.Count)].Id : (int)rng.Below(64) - 1;
-            return new FireEngine(engine) { From = from };
-        }
+        // A course now and then, to any planet or none: refused nearly always, the fuzz keeping heroes off the ship.
+        if (rng.Below(12) == 0) return new SetCourse((int)rng.Below((uint)Content.Landing.Planets.Count + 2) - 1) { From = from };
         if (rng.Below(3) == 0)
         {
             if (rng.Below(3) == 0) return new Alight { From = from };

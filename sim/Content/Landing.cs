@@ -15,8 +15,20 @@ public static class Landing
     /// <summary>Ticks from a launch off the ship until the pod docks aboard.</summary>
     public const int AscentTicks = 100;
 
-    /// <summary>The biofuel the engine's jump burns from its slot (planet-jump).</summary>
+    /// <summary>The biofuel the engine burns from its slot on each flight between planets (solar-system).</summary>
     public const int JumpFuel = 25;
+
+    /// <summary>Ticks the ship's flight to another planet of its system lasts: 30 s.</summary>
+    public const int FlightTicks = 30 * 20;
+
+    /// <summary>A planet of the solar system: its type (<see cref="PlanetTypes"/>) and the technology whose ruins prevail there.</summary>
+    public sealed record SystemPlanet(string Type, string Technology);
+
+    /// <summary>
+    /// The solar system's planets, the ship at the first from the start (solar-system): every one the first type and Arc's until
+    /// planets differ.
+    /// </summary>
+    public static readonly IReadOnlyList<SystemPlanet> Planets = [.. Enumerable.Repeat(new SystemPlanet(PlanetTypes.First.Id, "arc"), 6)];
 
     /// <summary>The kind of planet a descent opens when none is open.</summary>
     public static readonly string Planet = PlanetTypes.First.Id;

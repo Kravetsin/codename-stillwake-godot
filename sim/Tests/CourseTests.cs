@@ -14,10 +14,11 @@ using Slot = Stillwake.Sim.Items.Place;
 namespace Stillwake.Sim.Tests;
 
 /// <summary>
-/// The engine's jump (planet-jump): fired with power, fuel and everyone aboard, it closes the planet below for good and the next
-/// descent opens another; with a hero off the ship or a pod in the air it is refused, the call to come home.
+/// The ship's flight between the planets of its system (solar-system): a course set with power, fuel and everyone aboard leaves
+/// the planet below for good, refuses descents for its flight, and the ship arrives at its planet, where the next descent lands
+/// somewhere new; with a hero off the ship or a pod in the air it is refused, the call to come home.
 /// </summary>
-public class JumpTests
+public class CourseTests
 {
     /// <summary>A room with the engine at its stern's wall and a pod on a run in its floor, both cabled to the panel in space over it.</summary>
     private static readonly string[] Rows =
@@ -36,6 +37,7 @@ public class JumpTests
 
     private static readonly Pairs Cables = [((0, 0), (2, 5)), ((0, 0), (7, 7))];
     private const int Jump = Content.Landing.JumpFuel, Down = Content.Landing.DescentTicks, Up = Content.Landing.AscentTicks;
+    private const int Flight = Content.Landing.FlightTicks;
 
     private static int Engine(Scenario w) => w.M.Grid.MachineAt(w.At(2, 5))!.Id;
     private static int Pod(Scenario w) => w.M.Grid.MachineAt(w.At(7, 4))!.Id;
@@ -47,109 +49,145 @@ public class JumpTests
     /// The room, heroes 0 and 1 in it, <paramref name="fuel"/> biofuel in the engine and 12 in the pod, the small planet open
     /// below as surface 1, hero 0 seated in the pod.
     /// </summary>
-    private static Scenario Ready(int fuel = 2 * Jump + 5, bool cabled = true)
+    private static Scenario Ready(int fuel = 2 * Jump + 5, bool cabled = true, string[]? rows = null)
     {
-        var w = new Scenario(Layout.Parse(Rows, null, cabled ? Cables : [Cables[1]]), doubled: true);
+        var w = new Scenario(Layout.Parse(rows ?? Rows, null, cabled ? Cables : [Cables[1]]), doubled: true);
         int floor = w.At(10, 6) + w.M.Grid.Width;
         w.Do(new Enter(floor)).Do(new Enter(floor + 1) { From = 1 }).Do(new OpenSurface(PlanetTypes.Small.Id)).Run();
         w.GiveItems(0, ("biofuel", fuel + 12));
         int slot = w.M.Items.Inventory(0).ToList().FindIndex(s => s?.Item == "biofuel");
-        w.Do(new Move(new Slot(slot), new Target(0, Engine(w)), fuel)).Run();
+        if (w.M.Landing.Engine != null) w.Do(new Move(new Slot(slot), new Target(0, Engine(w)), fuel)).Run();
         w.Do(new Move(new Slot(slot), new Target(0, Pod(w)), 12)).Run();
         return w.Do(new Board(Pod(w))).Run(2);
     }
 
-    private static Scenario Fire(Scenario w, int from = 0) => w.Do(new FireEngine(Engine(w)) { From = from }).Run();
+    private static Scenario Course(Scenario w, int planet, int from = 0) => w.Do(new SetCourse(planet) { From = from }).Run();
 
     [Fact]
-    public void ClosesThePlanetBelowAndBurnsItsFuel()
+    public void SetsOffBurningItsFuelAndLeavingThePlanetBelowForGood()
     {
         var w = Ready();
-        Assert.Null(w.M.Landing.FireProblem(Engine(w)));
-        Fire(w);
+        Assert.Null(w.M.Landing.CourseProblem(3));
+        Course(w, 3);
         Assert.Empty(w.Refusals);
         Assert.False(Open(w, 1));
         Assert.Equal(Jump + 5, Fuel(w));
-        // What it was is all that is kept of it.
+        Assert.Equal((0, 3), (w.M.Landing.At, w.M.Landing.Course!.To));
+        // What the planet was is all that is kept of it.
         Assert.Equal((1, PlanetTypes.Small.Id), (w.World.Surfaces[1].Id, w.World.Surfaces[1].Kind));
     }
 
     [Fact]
-    public void IsRefusedTwiceWithNoDescentBetween()
+    public void ArrivesAfterItsFlightAndTheNextDescentLandsOnANewPlanet()
     {
-        var w = Fire(Ready());
-        Fire(w);
-        Assert.Equal(["landing.nothingBelow"], Reasons(w));
-        Assert.Equal(Jump + 5, Fuel(w));
-    }
-
-    [Fact]
-    public void TheNextDescentOpensAnotherPlanetOfTheFirstKind()
-    {
-        var w = Fire(Ready());
+        var w = Course(Ready(), 3).Run(Flight - 2);
+        Assert.Equal(1, w.M.Landing.Course!.TicksLeft);
+        w.Run();
+        Assert.Null(w.M.Landing.Course);
+        Assert.Equal(3, w.M.Landing.At);
         w.Do(new Launch()).Run(Down + 1);
         Assert.Empty(w.Refusals);
         Assert.Equal(2, w.World.SurfaceOf(0));
         Assert.Equal(Content.Landing.Planet, w.World.Surfaces[2].Kind);
-        Assert.False(Open(w, 1));
-        Assert.True(Open(w, 2));
         Assert.Single(w.On(2).Grid.MachinesWith(MachineTrait.Seats));
+    }
+
+    [Fact]
+    public void RefusesADescentInFlightTheArrivalTicksToo()
+    {
+        var w = Course(Ready(), 3).Run(10);
+        Assert.Equal("landing.inFlight", w.M.Landing.LaunchProblem(0));
+        w.Do(new Launch()).Run(Flight - 12);
+        // The arrival comes after the tick's commands: a launch on its tick is still refused, and goes on the next.
+        w.Do(new Launch()).Run();
+        Assert.Equal(["landing.inFlight", "landing.inFlight"], Reasons(w));
+        Assert.Equal(3, w.M.Landing.At);
+        w.Do(new Launch()).Run(Down + 1);
+        Assert.Equal(2, w.World.SurfaceOf(0));
+    }
+
+    [Fact]
+    public void FlyingBackToAPlanetVisitedLandsSomewhereNew()
+    {
+        var w = Course(Ready(), 3).Run(Flight).Do(new Launch()).Run(Down + 1);
+        w.Do(new Launch { Surface = 2 }).Run(Up + 1);
+        Assert.Equal(0, w.World.SurfaceOf(0));
+        Course(w, 0).Run(Flight).Do(new Board(Pod(w))).Run().Do(new Launch()).Run(Down + 1);
+        Assert.Empty(w.Refusals);
+        Assert.Equal(0, w.M.Landing.At);
+        Assert.Equal(3, w.World.SurfaceOf(0));
+        Assert.False(Open(w, 2));
+        Assert.NotEqual(w.World.Surfaces[1].Seed, w.World.Surfaces[3].Seed);
     }
 
     [Fact]
     public void IsRefusedWhileAHeroIsBelowTheCallToComeHome()
     {
         var w = Ready().Do(new Transfer(1) { From = 1 }).Run();
-        Fire(w);
+        Course(w, 3);
         Assert.Equal(["landing.crewAway"], Reasons(w));
         Assert.True(Open(w, 1));
         Assert.Equal(2 * Jump + 5, Fuel(w));
-        // Home again, it fires.
+        Assert.Null(w.M.Landing.Course);
+        // Home again, it sets off.
         w.Do(new Transfer(0) { From = 1, Surface = 1 }).Run();
-        Fire(w);
+        Course(w, 3);
         Assert.Equal(["landing.crewAway"], Reasons(w));
         Assert.False(Open(w, 1));
     }
 
     [Fact]
-    public void IsRefusedWhileAPodIsInTheAirDownOrUp()
+    public void IsRefusedWhileAPodIsInTheAirDownOrUpOrLandingThisTick()
     {
         var down = Ready().Do(new Launch()).Run(5);
-        Fire(down, from: 1);
-        Assert.Equal(["landing.crewAway"], Reasons(down));
-        down.Run(Down);
+        Course(down, 3, from: 1);
+        // Its last tick: the pod lands after the commands, so it is in the air still.
+        down.Run(Down - 7);
+        Assert.Equal(0, down.World.SurfaceOf(0));
+        Course(down, 3, from: 1);
         Assert.Equal(1, down.World.SurfaceOf(0));
         down.Do(new Launch { Surface = 1 }).Run(5);
-        Fire(down, from: 1);
-        Assert.Equal(["landing.crewAway", "landing.crewAway"], Reasons(down));
+        Course(down, 3, from: 1);
+        Assert.Equal(["landing.crewAway", "landing.crewAway", "landing.crewAway"], Reasons(down));
         Assert.True(Open(down, 1));
-        // Docked, its rider aboard: it fires.
+        // Docked, its rider aboard: it sets off.
         down.Run(Up);
-        Fire(down, from: 1);
+        Course(down, 3, from: 1);
         Assert.False(Open(down, 1));
     }
 
     [Fact]
-    public void ALaunchAppliedBeforeItRefusesItAndOneAfterItDescendsToTheNewPlanet()
+    public void ALaunchBeforeItInOneTickRefusesItAndOneAfterItIsRefused()
     {
         var before = Ready();
-        before.Do(new Launch()).Do(new FireEngine(Engine(before)) { From = 1 }).Run();
+        before.Do(new Launch()).Do(new SetCourse(3) { From = 1 }).Run();
         Assert.Equal(["landing.crewAway"], Reasons(before));
         var after = Ready();
-        after.Do(new FireEngine(Engine(after)) { From = 1 }).Do(new Launch()).Run(Down + 1);
-        Assert.Empty(after.Refusals);
-        Assert.Equal(2, after.World.SurfaceOf(0));
+        after.Do(new SetCourse(3) { From = 1 }).Do(new Launch()).Run();
+        Assert.Equal(["landing.inFlight"], Reasons(after));
+    }
+
+    [Fact]
+    public void IsRefusedThereAlreadyOrInFlightOrForNoSuchPlanet()
+    {
+        var w = Ready();
+        Course(w, 0);
+        Course(w, -1);
+        Course(w, Content.Landing.Planets.Count);
+        Course(w, 3);
+        Course(w, 4);
+        Assert.Equal(["landing.hereAlready", "landing.hereAlready", "landing.hereAlready", "landing.inFlight"], Reasons(w));
+        Assert.Equal(Jump + 5, Fuel(w));
     }
 
     [Fact]
     public void IsRefusedWithNoEngineNoPowerOrTooLittleFuel()
     {
-        var w = Ready();
-        w.Do(new FireEngine(Pod(w))).Do(new FireEngine(9999)).Run();
-        Assert.Equal(["landing.noEngine", "landing.noEngine"], Reasons(w));
-        Assert.Equal("landing.engineUnpowered", Ready(cabled: false).M.Landing.FireProblem(Engine(w)));
+        string[] bare = [.. Rows.Select(r => r.Replace('X', '.'))];
+        Assert.Equal("landing.noEngine", Ready(rows: bare).M.Landing.CourseProblem(3));
+        Assert.Equal("landing.engineUnpowered", Ready(cabled: false).M.Landing.CourseProblem(3));
         var dry = Ready(fuel: Jump - 1);
-        Fire(dry);
+        Course(dry, 3);
         Assert.Equal(["landing.noFuel"], Reasons(dry));
         Assert.Equal(Jump - 1, Fuel(dry));
         Assert.True(Open(dry, 1));
@@ -165,28 +203,28 @@ public class JumpTests
                 w.Do(new Place(w.At(0, 5) + dy * w.M.Grid.Width + dx, Placement.Wall("iron")));
         w.Run();
         Assert.False(w.M.Grid.Exhausts(Engine(w)));
-        Fire(w);
+        Course(w, 3);
         Assert.Equal(["landing.noExhaust"], Reasons(w));
         Assert.True(Open(w, 1));
     }
 
     [Fact]
-    public void OffTheShipThereIsNoEngineToFire()
+    public void OffTheShipThereIsNoEngine()
     {
         var w = Ready().Do(new Launch()).Run(Down + 1);
-        w.Do(new FireEngine(Engine(w)) { Surface = 1 }).Run();
+        w.Do(new SetCourse(3) { Surface = 1 }).Run();
         Assert.Equal(["landing.noEngine"], Reasons(w));
     }
 
     [Fact]
-    public void AfterADeathBelowTheHeroWakesAboardItsPodHomeAndTheJumpTakesThePlanet()
+    public void AfterADeathBelowTheHeroWakesAboardItsPodHomeAndTheCourseTakesThePlanet()
     {
         var w = Ready().Do(new Launch()).Run(Down + 1).Do(new Alight { Surface = 1 }).Run();
         w.On(1).Crew.HeroOf(0)!.Out = 1;
         w.Run(2);
         Assert.Equal(0, w.World.SurfaceOf(0));
         Assert.Single(w.M.Grid.MachinesWith(MachineTrait.Seats));
-        Fire(w);
+        Course(w, 3);
         Assert.Empty(w.Refusals);
         Assert.False(Open(w, 1));
         var hash = w.World.Hash();
@@ -195,32 +233,35 @@ public class JumpTests
     }
 
     [Fact]
-    public void TheHullsLandedShowerHoldsAfterTheJump()
+    public void TheHullsLandedShowerHoldsAfterLeaving()
     {
         var w = Ready();
         var landed = w.M.Hazards.Shower;
-        Assert.Equal(landed, Fire(w).M.Hazards.Shower);
+        Assert.Equal(landed, Course(w, 3).M.Hazards.Shower);
         Assert.Equal(landed, w.Reload().M.Hazards.Shower);
     }
 
     [Fact]
-    public void SavedAndLoadedAfterAJumpTheNextDescentIsTheSameOnBoth()
+    public void SavedAndLoadedInFlightItArrivesOnTheSameTickAndDescendsAlike()
     {
-        var (w, twin) = (Fire(Ready()), Fire(Ready()));
+        var (w, twin) = (Course(Ready(), 2).Run(100), Course(Ready(), 2).Run(100));
         twin.Reload();
         Assert.Equal(w.World.Hash(), twin.World.Hash());
-        foreach (var s in new[] { w, twin }) s.Do(new OpenSurface(PlanetTypes.Small.Id)).Do(new Launch()).Run(Down + 1);
+        Assert.Equal(w.M.Landing.Course, twin.M.Landing.Course);
+        foreach (var s in new[] { w, twin }) s.Run(Flight - 101);
+        Assert.Equal((2, 2), (w.M.Landing.At, twin.M.Landing.At));
+        foreach (var s in new[] { w, twin }) s.Do(new Launch()).Run(Down + 1);
         Assert.Equal((2, 2), (w.World.SurfaceOf(0), twin.World.SurfaceOf(0)));
         Assert.Equal(w.World.Surfaces[2].Seed, twin.World.Surfaces[2].Seed);
         Assert.Equal(w.World.Hash(), twin.World.Hash());
     }
 
     /// <summary>
-    /// Through random boarding, launching, quitting, beaming and firing of two heroes: whenever the engine fires, every hero and
+    /// Through random boarding, launching, quitting, beaming and courses of two heroes: whenever a course sets off, every hero and
     /// every pod is aboard and no planet is left open; a twin fed the same, saved and loaded now and then, hashes alike.
     /// </summary>
     [Property(MaxTest = 20)]
-    public Property FiresOnlyWithEveryHeroAndPodAboard()
+    public Property SetsOffOnlyWithEveryHeroAndPodAboard()
     {
         var gen = from seed in Gen.Choose(1, 100_000)
                   from ticks in Gen.Choose(200, 700)
@@ -241,21 +282,20 @@ public class JumpTests
                 if (Fuel(w) == fuel) continue;
                 fired++;
                 if (w.World.Surfaces.Any(s => s.Id != 0 && !s.Closed)) return false.Label($"seed {t.seed}, tick {i}: a planet left open");
-                if (new[] { 0, 1 }.Any(p => w.World.SurfaceOf(p) != 0)) return false.Label($"seed {t.seed}, tick {i}: fired with a hero away");
-                // A launch applied after the fire in one tick has the pod in the air already, off to the new planet.
-                if (w.M.Grid.MachinesWith(MachineTrait.Seats).Count + w.M.Landing.Flights.Count != 1) return false.Label($"seed {t.seed}, tick {i}: fired with the pod not aboard");
-                // Fuelled again, the pod too, so the run fires and descends more than its first stacks allow.
+                if (new[] { 0, 1 }.Any(p => w.World.SurfaceOf(p) != 0)) return false.Label($"seed {t.seed}, tick {i}: set off with a hero away");
+                if (w.M.Grid.MachinesWith(MachineTrait.Seats).Count != 1) return false.Label($"seed {t.seed}, tick {i}: set off with the pod not aboard");
+                // Fuelled again, the pod too, so the run sets off and descends more than its first stacks allow.
                 foreach (var s in new[] { w, twin })
                 {
                     s.M.Items.PutIn(Engine(s), new Stack("biofuel", Jump));
                     if (s.M.Grid.MachineAt(s.At(7, 4)) is { } home) s.M.Items.PutIn(home.Id, new Stack("biofuel", Content.Landing.DescentFuel));
                 }
             }
-            return true.ToProperty().Classify(fired > 0, "fired");
+            return true.ToProperty().Classify(fired > 0, "set off");
         });
     }
 
-    /// <summary>Now and then, for each hero: a board, a launch, a quit or a return to the game, a beam across, the planet opened again, the engine fired.</summary>
+    /// <summary>Now and then, for each hero: a board, a launch, a quit or a return to the game, a beam across, the planet opened again, a course.</summary>
     private static List<Command> Random(Scenario w, Rng rng)
     {
         var sent = new List<Command>();
@@ -273,7 +313,7 @@ public class JumpTests
                 4 => m.Crew.HeroOf(peer) == null ? new Enter(w.At(10, 6) + w.M.Grid.Width) : new Leave(),
                 5 => new Transfer(here == 0 ? planet : 0),
                 6 when planet == 0 => new OpenSurface(PlanetTypes.Small.Id),
-                _ => new FireEngine(Engine(w)),
+                _ => new SetCourse((int)rng.Below((uint)Content.Landing.Planets.Count)),
             };
             sent.Add(c with { From = peer, Surface = here });
         }

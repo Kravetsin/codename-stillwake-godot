@@ -213,7 +213,7 @@ public sealed class World
 
     private void Open(OpenSurface c) => Open(c.Kind, SurfaceOf(c.From), null);
 
-    /// <summary>Whether surface <paramref name="i"/> is a planet still open: not one left (planet-jump).</summary>
+    /// <summary>Whether surface <paramref name="i"/> is a planet still open: not one left (solar-system).</summary>
     private bool OpenPlanetAt(int i) => !_surfaces[i].Surface.Closed && Content.Surfaces.Get(_surfaces[i].Surface.Kind) is Content.PlanetType;
 
     /// <summary>
@@ -429,16 +429,6 @@ public sealed class World
         }
 
         public bool Away => world._where.Count > 0;
-
-        public bool PlanetOpen
-        {
-            get
-            {
-                for (int i = 1; i < world._surfaces.Count; i++)
-                    if (world.OpenPlanetAt(i)) return true;
-                return false;
-            }
-        }
 
         public void LeavePlanet()
         {

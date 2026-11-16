@@ -19,8 +19,8 @@ public static partial class En
         ["landing.noEngine"] = "There is no engine here",
         ["landing.engineUnpowered"] = "No power: the engine stays cold",
         ["landing.noExhaust"] = "Its nozzle is walled in",
-        ["landing.nothingBelow"] = "There is no planet below to leave",
         ["landing.crewAway"] = "Not everyone is aboard: a press calls them home",
-        ["landing.fire"] = "Fire",
+        ["landing.hereAlready"] = "The ship is there already",
+        ["landing.inFlight"] = "The ship is in flight",
     };
 }

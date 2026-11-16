@@ -14,6 +14,12 @@ public static partial class Ru
         ["computer.radar.vessel"] = "Заброшенный корабль",
         ["computer.radar.km"] = "{n} км",
         ["computer.radar.setOff"] = "Отправиться",
+        ["computer.radar.sun"] = "Солнце",
+        ["computer.radar.planetN"] = "Планета {n}",
+        ["computer.radar.type.planet"] = "Зелёный мир",
+        ["computer.radar.tech.arc"] = "Руины: дуговые",
+        ["computer.radar.setCourse"] = "Проложить курс",
+        ["computer.radar.flying"] = "В полёте: {s} с",
         ["use.open.computer"] = "[{key:use}] Бортовой компьютер",
     };
 }

@@ -19,8 +19,8 @@ public static partial class Ru
         ["landing.noEngine"] = "Здесь нет двигателя",
         ["landing.engineUnpowered"] = "Нет энергии: двигатель холодный",
         ["landing.noExhaust"] = "Сопло замуровано",
-        ["landing.nothingBelow"] = "Внизу нет планеты, улетать не от чего",
         ["landing.crewAway"] = "Не все на борту: нажатие зовёт их домой",
-        ["landing.fire"] = "Запуск",
+        ["landing.hereAlready"] = "Корабль уже там",
+        ["landing.inFlight"] = "Корабль в полёте",
     };
 }

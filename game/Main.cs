@@ -99,16 +99,21 @@ public partial class Main : Node2D, ITogether
     private Hands _hands = null!;
     private FrameLog? _frameLog;
     private Features.Landing.JumpCall? _jumpCall;
-    private (World? World, int Left) _planetsLeft;
+    private (World? World, bool Flying) _flight;
 
-    /// <summary>The burn played as a planet is left between two ticks of one world (planet-jump): never on a load, a join or a resync.</summary>
+    /// <summary>
+    /// The burn as a course sets off and the thud as it arrives, between two ticks of one world (solar-system): never on a load, a
+    /// join or a resync. A course runs only with everyone aboard, so the surface seen is the ship's.
+    /// </summary>
     private void HearJump(World world)
     {
-        int left = 0;
-        foreach (var s in world.Surfaces)
-            if (s.Closed && Content.Surfaces.Get(s.Kind) is Content.PlanetType) left++;
-        if (ReferenceEquals(_planetsLeft.World, world) && left > _planetsLeft.Left) _jumpCall?.Burn();
-        _planetsLeft = (world, left);
+        bool flying = _m.Landing.Course != null;
+        if (ReferenceEquals(_flight.World, world) && flying != _flight.Flying)
+        {
+            if (flying) _jumpCall?.Burn();
+            else _jumpCall?.Arrive();
+        }
+        _flight = (world, flying);
     }
     private AllocationSampler? _allocs;
     private readonly Platform.GcPace _gcPace = new();
@@ -248,10 +253,7 @@ public partial class Main : Node2D, ITogether
             // A drop pod's Descend or Return key is the landing feature's, under its slot; the white of its flight over the screen.
             Control? LaunchOf(int machine) => _m.Grid.MachineById(machine) is { } pod && Content.Machines.Is(pod.Kind, Content.MachineTrait.Lands)
                 ? new Features.Landing.LaunchKey(() => _session is Session s ? (_m.Landing, s.Client.Id) : null, SendNow, _hands.Ui.Tip)
-                : _m.Grid.MachineById(machine) is { } engine && Content.Machines.Get(engine.Kind).Exhaust != null
-                    // The engine's Fire key (planet-jump), under its slot as a pod's is.
-                    ? new Features.Landing.EngineKey(machine, () => _session is Session ? _m.Landing : null, SendNow, _hands.Ui.Tip)
-                    : null;
+                : null;
             _items.Panel.Launch = LaunchOf;
             AddChild(_jumpCall = new Features.Landing.JumpCall());
             AddChild(new Features.Landing.FlightOverlay(() => _session is Session s ? (s.Client.World.SurfaceOf(s.Client.Id), _m.Landing.FlightOf(s.Client.Id)) : null,
@@ -587,7 +589,7 @@ public partial class Main : Node2D, ITogether
         foreach (var report in session.Frame(delta * 1000))
             foreach (var refused in report.Refused)
             {
-                // A press on the engine with the crew away is the call to everyone (planet-jump): every peer runs every command.
+                // A course set with the crew away is the call to everyone (solar-system): every peer runs every command.
                 if (refused.Reason == "landing.crewAway") _jumpCall?.Call();
                 Log($"tick {report.Tick}: {refused.Command.GetType().Name} from {refused.Command.From} refused, {refused.Reason}");
             }
@@ -601,6 +603,7 @@ public partial class Main : Node2D, ITogether
         Follow(client);
         Snap(client);
         _stars.Seconds = (client.World.Tick + session.Progress) / World.TicksPerSecond;
+        _stars.Warp = Features.Landing.Warp.Depth(_m.Landing.Course?.TicksLeft, Content.Landing.FlightTicks, session.Progress);
         if (_allocs != null) _allocs.Counting = client.World.Tick > 5 * World.TicksPerSecond;
         if (_role != "alone" && client.World.Tick / 100 != before / 100) Log($"tick {client.World.Tick} hash {client.World.Hash():x16}");
         if (_worldId != null && _role != "guest" && client.World.Tick - _lastSaveTick >= AutosaveTicks) SaveNow();
