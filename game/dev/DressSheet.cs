@@ -25,13 +25,14 @@ public partial class DressSheet(string path) : Node
     private static readonly double[] Looks = [-0.6, 0, 0.5];
 
     private readonly record struct Case(int Colour, string? Helmet, string? Body, bool Lamp = false, bool InDark = false, bool Lying = false,
-        bool Jetpack = false, Pose Pose = Pose.Stand, double Look = 0.15, bool Scanner = false, bool Aimed = false, bool Tracked = true);
+        bool Jetpack = false, Pose Pose = Pose.Stand, double Look = 0.15, bool Scanner = false, bool Aimed = false, bool Tracked = true, bool Clear = false);
 
     private readonly List<(Case Case, int Column, int Row)> _cases = [];
     private SubViewport _view = null!;
     private Node2D _world = null!;
     private Figure? _figure;
     private Line2D _beam = null!;
+    private Ground _ground = null!;
     private int _case = -1, _frames;
     private Image _sheet = null!;
 
@@ -51,8 +52,11 @@ public partial class DressSheet(string path) : Node
             foreach (string h in helmets)
                 rows.Add(Turns(Suits.All[0], h, body, aimed: true, tracked: true));
         // Every suit skin over the basic helmet, as a body of its own is drawn (skins).
-        foreach (var skin in Skins.All.Where(s => s.Kind == Skins.Suit))
-            rows.Add(Turns(Suits.All[0], helmet, skin.Id, aimed: true, tracked: true));
+        var skins = Skins.All.Where(s => s.Kind == Skins.Suit).Select(s => s.Id).ToList();
+        foreach (var skin in skins)
+            rows.Add(Turns(Suits.All[0], helmet, skin, aimed: true, tracked: true));
+        // Every body standing bare-headed on nothing, one after another: what a suit's card is cut from.
+        rows.Add([.. new[] { suit, "regenSuit", "heatSuit" }.Concat(skins).Select(body => new Case(Suits.All[0], null, body, Look: 0, Tracked: false, Clear: true))]);
         foreach (var gear in CreatureLooks.Heroes.Values.SelectMany(look => look.Gear))
             rows.Add(Turns(Suits.All[2], gear.Helmet, gear.Body, aimed: false, tracked: false));
         for (int r = 0; r < rows.Count; r++)
@@ -62,7 +66,7 @@ public partial class DressSheet(string path) : Node
         AddChild(_view);
         _world = new Node2D();
         _view.AddChild(_world);
-        _world.AddChild(new Ground());
+        _world.AddChild(_ground = new Ground());
         _world.AddChild(_beam = new Line2D { Width = 0.5f, DefaultColor = new Color(1, 0.85f, 0.4f, 0.8f), ZIndex = 2, Visible = false });
         _view.AddChild(new Camera2D { Zoom = new Vector2(Zoom, Zoom), Position = new Vector2(0, (float)(-Rig.H / 2)), Enabled = true });
         Next();
@@ -94,6 +98,7 @@ public partial class DressSheet(string path) : Node
             return;
         }
         var c = _cases[_case].Case;
+        (_ground.Visible, _view.TransparentBg) = (!c.Clear, c.Clear);
         Lit.Ambient(c.InDark ? Dark : (1, 1, 1));
         _figure = new Figure(c.Colour, own: false) { Tracked = c.Tracked };
         _figure.Wear(c.Colour, c.Helmet, c.Body);
