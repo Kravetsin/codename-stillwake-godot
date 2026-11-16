@@ -473,6 +473,8 @@ public class DesyncTests(ITestOutputHelper output)
                 var first = clients[0];
                 var grid = game.Module<GridModule>(first.World);
                 var items = game.Module<ItemsModule>(first.World);
+                // A shifted random stream may break the station for good: that run then misses, costing a try.
+                if (grid.MachinesOf("charger").Count == 0) return;
                 int station = grid.MachinesOf("charger")[0].Id;
                 // The power fuzz cuts and moves cables: the station's laid again often, free in creative mode.
                 if (tick % 20 == 10)

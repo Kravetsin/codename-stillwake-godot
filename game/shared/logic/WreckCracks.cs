@@ -50,8 +50,9 @@ public static class WreckCracks
     /// The network out of <paramref name="root"/>, the first blow, over a picture <paramref name="solid"/> says is opaque at a point
     /// from its middle: trunks fanned toward the middle, each forking as it runs and ending a little past the picture's edge.
     /// </summary>
-    public static CrackNet Network(Blow root, Func<double, double, bool> solid, int seed)
+    public static CrackNet Network(Blow root, Func<double, double, bool> solid, int seed, DamageLooks.CrackInk? look = null)
     {
+        double wander = (look ?? DamageLooks.Wreck).Wander;
         var r = new Rng(seed * 31 + 5);
         var lines = new List<CrackLine>();
         void Grow(double x, double y, double a, double length, double from, int depth)
@@ -60,7 +61,7 @@ public static class WreckCracks
             int outside = 0;
             for (double s = 0; s < length; s += Step)
             {
-                a += (r.Next() - 0.5) * (depth > 0 ? DamageLooks.NetWander * 1.6 : DamageLooks.NetWander);
+                a += (r.Next() - 0.5) * (depth > 0 ? wander * 1.6 : wander);
                 x += Math.Cos(a) * Step;
                 y += Math.Sin(a) * Step;
                 pts.Add((x, y));
@@ -90,13 +91,14 @@ public static class WreckCracks
         net.Far / Math.Pow(DamageLooks.NetFull, DamageLooks.NetPower) * Math.Pow(Clamp(share), DamageLooks.NetPower);
 
     /// <summary>The dents of <paramref name="blows"/> and <paramref name="net"/> run as far as <paramref name="share"/> lost says, laid out by <paramref name="seed"/>, into <paramref name="ink"/>.</summary>
-    public static void Draw(Ink ink, IReadOnlyList<Blow> blows, CrackNet? net, double share, int seed)
+    public static void Draw(Ink ink, IReadOnlyList<Blow> blows, CrackNet? net, double share, int seed, DamageLooks.CrackInk? look = null)
     {
+        look ??= DamageLooks.Wreck;
         for (int n = 0; n < blows.Count; n++)
         {
             var h = blows[n];
             double radius = DamageLooks.DentLeast + DamageLooks.DentPerHits * Math.Log2(1 + h.Hits) + DamageLooks.DentRadius * share;
-            ink.Fill(Blob(new Rng(seed * 97 + n), h.X, h.Y, radius, 8, 0.5), (h.X, h.Y), DamageLooks.Dent);
+            ink.Fill(Blob(new Rng(seed * 97 + n), h.X, h.Y, radius, 8, 0.5), (h.X, h.Y), look.Dented);
         }
         if (net == null) return;
         double reach = Reach(net, share);
@@ -108,8 +110,8 @@ public static class WreckCracks
             var pts = Part([.. line.Points], Math.Min(1, f / (line.Points.Count - 1)));
             if (pts.Count < 2) continue;
             double width = DamageLooks.NetWidths[Math.Min(line.Depth, DamageLooks.NetWidths.Length - 1)] * (1 + 0.5 * Clamp((reach - line.From) / 30));
-            ink.Pen(pts.ConvertAll(p => (p.X, p.Y + DamageLooks.DentLitDrop)), width * 0.55, DamageLooks.DentLit, seed + k, 0.05, 0.5);
-            ink.Pen(pts, width, DamageLooks.DentInk, seed + k, 0.05, 0.5);
+            ink.Pen(pts.ConvertAll(p => (p.X, p.Y + look.Drop)), width * look.UnderWidth, look.Under, seed + k, 0.05, 0.5);
+            ink.Pen(pts, width * look.OverWidth, look.Over, seed + k, 0.05, 0.5);
         }
     }
 

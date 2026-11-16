@@ -415,7 +415,8 @@ public class DebrisZonesTests
         Debris(w).Beats.RemoveAll(b => b.Zone == DebrisSpec.Far.Id);
         w.Run();
         Assert.Equal(6 + DebrisSpec.Far.Every, Debris(w).Beats.Single(b => b.Zone == DebrisSpec.Far.Id).Next);
-        Assert.Equal(DebrisSpec.Zones.Select(z => z.Id).Order(), Debris(w).Beats.Select(b => b.Zone).Order());
+        // A stretch's zone has none while its stretch is not running.
+        Assert.Equal(DebrisSpec.Zones.Where(z => z.Stretch == null).Select(z => z.Id).Order(), Debris(w).Beats.Select(b => b.Zone).Order());
     }
 
     // The invariants of the zones, whatever happens: heroes entering anywhere, on the grid and off it, a

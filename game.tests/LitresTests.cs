@@ -18,11 +18,11 @@ public class LitresTests
     }
 
     [Fact]
-    public void ACanisterAndABottleEachHoldThreeLitresAndNothingElseHoldsAny()
+    public void ACanisterAndABottleEachHoldThreeLitresACanOneAndNothingElseHoldsAny()
     {
         Assert.Equal(3000, Litres.In(Content.Crew.Canister));
         Assert.Equal(3000, Litres.In(Content.Water.Item));
-        Assert.Null(Litres.In("biofuel"));
+        Assert.Equal(1000, Litres.In("biofuel"));
         Assert.Null(Litres.In("iron"));
     }
 

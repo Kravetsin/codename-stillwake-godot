@@ -60,7 +60,8 @@ public partial class SeatedHeroes : Node2D
         var seated = new HashSet<int>();
         foreach (var seat in _landing.Seats)
         {
-            if (_grid.MachineById(seat.Pod) is not { } pod || _held(seat.Pod)) continue;
+            // A seat among several, the shuttle's, is behind frosted glass: its rider is never seen.
+            if (_grid.MachineById(seat.Pod) is not { } pod || _held(seat.Pod) || Content.Machines.Get(pod.Kind).Riders > 1) continue;
             bool flies = Content.Machines.Is(pod.Kind, Content.MachineTrait.Lands);
             seated.Add(seat.Pod);
             if (_shown.TryGetValue(seat.Pod, out var was) && was.Peer != seat.Peer) Free(seat.Pod);

@@ -1,4 +1,5 @@
 using Stillwake.Content;
+using Stillwake.Sim.Fuel;
 using Stillwake.Sim.Grid;
 using Stillwake.Sim.Items;
 using Stillwake.Sim.Power;
@@ -98,13 +99,17 @@ public sealed partial class CraftingModule : Module<CraftingState>, ICraftingQue
     private readonly IResearchQueries _research;
     private readonly IPowerQueries _power;
     private readonly IPowerOps _powerOps;
+    private readonly IFuelQueries _fuel;
+    private readonly IFuelOps _fuelOps;
 
     public override string Id => "crafting";
 
     public CraftingModule(
         IGridQueries grid, IItemsQueries items, IItemsOps itemsOps, IResearchQueries research,
-        IPowerQueries power, IPowerOps powerOps)
+        IPowerQueries power, IPowerOps powerOps, IFuelQueries fuel, IFuelOps fuelOps)
     {
+        _fuel = fuel;
+        _fuelOps = fuelOps;
         _grid = grid;
         _items = items;
         _itemsOps = itemsOps;
@@ -335,7 +340,9 @@ public sealed partial class CraftingModule : Module<CraftingState>, ICraftingQue
         int progress = (kept?.Progress ?? 0) + gain;
         var spec = Content.Items.Get(input!);
         if (progress < spec.SmeltTicks!.Value * 1000) return new Smelt(m.Id, input!, progress);
-        _itemsOps.Smelt(m.Id, Drawn(spec));
+        // A station holding fuel (the fermenter) makes it into its store, which it began only with room for.
+        if (Content.Machines.Is(m.Kind, MachineTrait.HoldsFuel)) _fuelOps.Fill(m.Id, FuelOf(_itemsOps.SmeltOut(m.Id)));
+        else _itemsOps.Smelt(m.Id, Drawn(spec));
         // Rested at once when that was its last: it draws nothing from the next tick, as it did by its empty input.
         Rest(m, !(InputOf(m.Id) is { } next && CanSmelt(m, station, next)));
         return null;
@@ -396,7 +403,19 @@ public sealed partial class CraftingModule : Module<CraftingState>, ICraftingQue
 
     /// <summary>Whether fed <paramref name="station"/> <paramref name="m"/> can work <paramref name="input"/>: it processes such things, its yields fitting.</summary>
     private bool CanSmelt(Machine m, Station station, string input) =>
-        Processes(station, input) && _items.CanSmelt(m.Id);
+        Processes(station, input) && (Content.Machines.Is(m.Kind, MachineTrait.HoldsFuel)
+            ? _items.Crate(m.Id)[0] is { } held && held.Count >= Content.Items.Get(input).SmeltTakes
+                && _fuel.RoomIn(m.Id) >= FuelOf(Content.Items.Get(input).Yields!)
+            : _items.CanSmelt(m.Id));
+
+    /// <summary>The biofuel <paramref name="made"/> pours, in millilitres: a litre a can (fuel-liquid).</summary>
+    private static int FuelOf(IReadOnlyList<(string Item, int Count)> made)
+    {
+        int fuel = 0;
+        foreach (var (item, count) in made)
+            if (item == Content.Fuel.Item) fuel += count * Content.Fuel.Can;
+        return fuel;
+    }
 
     /// <summary>
     /// Whether fed <paramref name="station"/> processes <paramref name="item"/> at all, room aside: it has yields, of

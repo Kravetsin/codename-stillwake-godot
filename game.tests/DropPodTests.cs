@@ -98,6 +98,8 @@ public class DropPodTests
         int slot = w.M.Items.Inventory(0).ToList().FindIndex(s => s?.Item == "biofuel");
         w.Step(new Stillwake.Sim.Items.Move(new Stillwake.Sim.Items.Place(slot), new Stillwake.Sim.Items.Target(null, pod), 5), new Board(pod));
         int seat = Seating.SeatOf(w.M, 0)!.Value;
+        // Its hopper pours a can a tick into its store (fuel-liquid).
+        for (int i = 0; i < 4; i++) w.Step();
         w.Step(new Launch());
         Assert.Null(w.M.Landing.SeatOf(0));
         Assert.NotNull(w.M.Landing.FlightOf(0));

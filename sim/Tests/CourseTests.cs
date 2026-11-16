@@ -37,31 +37,29 @@ public class CourseTests
 
     private static readonly Pairs Cables = [((0, 0), (2, 5)), ((0, 0), (7, 7))];
     private const int Jump = Content.Landing.JumpFuel, Down = Content.Landing.DescentTicks, Up = Content.Landing.AscentTicks;
-    private const int Flight = Content.Landing.FlightTicks;
+    private const int Flight = Content.Landing.FlightTicks, Litre = Content.Fuel.Litre;
 
     private static int Engine(Scenario w) => w.M.Grid.MachineAt(w.At(2, 5))!.Id;
     private static int Pod(Scenario w) => w.M.Grid.MachineAt(w.At(7, 4))!.Id;
-    private static int Fuel(Scenario w) => w.M.Items.HeldFor(Engine(w), "biofuel");
+    private static int Fuel(Scenario w) => w.M.Fuel.FuelIn(Engine(w));
     private static string[] Reasons(Scenario w) => w.Refusals.Select(r => r.Reason).ToArray();
     private static bool Open(Scenario w, int surface) => !w.World.Surfaces[surface].Closed;
 
     /// <summary>
-    /// The room, heroes 0 and 1 in it, <paramref name="fuel"/> biofuel in the engine and 12 in the pod, the small planet open
+    /// The room, heroes 0 and 1 in it, <paramref name="fuel"/> millilitres in the engine's store and two descents' in the pod's, the small planet open
     /// below as surface 1, hero 0 seated in the pod.
     /// </summary>
-    private static Scenario Ready(int fuel = 2 * Jump + 5, bool cabled = true, string[]? rows = null)
+    private static Scenario Ready(int fuel = 2 * Jump + Litre, bool cabled = true, string[]? rows = null)
     {
         var w = new Scenario(Layout.Parse(rows ?? Rows, null, cabled ? Cables : [Cables[1]]), doubled: true);
         int floor = w.At(10, 6) + w.M.Grid.Width;
         w.Do(new Enter(floor)).Do(new Enter(floor + 1) { From = 1 }).Do(new OpenSurface(PlanetTypes.Small.Id)).Run();
-        w.GiveItems(0, ("biofuel", fuel + 12));
-        int slot = w.M.Items.Inventory(0).ToList().FindIndex(s => s?.Item == "biofuel");
-        if (w.M.Landing.Engine != null) w.Do(new Move(new Slot(slot), new Target(0, Engine(w)), fuel)).Run();
-        w.Do(new Move(new Slot(slot), new Target(0, Pod(w)), 12)).Run();
+        if (w.M.Landing.Engine != null) w.M.Fuel.Fill(Engine(w), fuel);
+        w.M.Fuel.Fill(Pod(w), 2 * Content.Fuel.Descent);
         return w.Do(new Board(Pod(w))).Run(2);
     }
 
-    private static Scenario Course(Scenario w, int planet, int from = 0) => w.Do(new SetCourse(planet) { From = from }).Run();
+    private static Scenario Course(Scenario w, int planet, int from = 0) => w.Do(new PlotCourse(planet) { From = from }).Run();
 
     [Fact]
     public void SetsOffBurningItsFuelAndLeavingThePlanetBelowForGood()
@@ -71,7 +69,7 @@ public class CourseTests
         Course(w, 3);
         Assert.Empty(w.Refusals);
         Assert.False(Open(w, 1));
-        Assert.Equal(Jump + 5, Fuel(w));
+        Assert.Equal(Jump + Litre, Fuel(w));
         Assert.Equal((0, 3), (w.M.Landing.At, w.M.Landing.Course!.To));
         // What the planet was is all that is kept of it.
         Assert.Equal((1, PlanetTypes.Small.Id), (w.World.Surfaces[1].Id, w.World.Surfaces[1].Kind));
@@ -127,7 +125,7 @@ public class CourseTests
         Course(w, 3);
         Assert.Equal(["landing.crewAway"], Reasons(w));
         Assert.True(Open(w, 1));
-        Assert.Equal(2 * Jump + 5, Fuel(w));
+        Assert.Equal(2 * Jump + Litre, Fuel(w));
         Assert.Null(w.M.Landing.Course);
         // Home again, it sets off.
         w.Do(new Transfer(0) { From = 1, Surface = 1 }).Run();
@@ -160,10 +158,10 @@ public class CourseTests
     public void ALaunchBeforeItInOneTickRefusesItAndOneAfterItIsRefused()
     {
         var before = Ready();
-        before.Do(new Launch()).Do(new SetCourse(3) { From = 1 }).Run();
+        before.Do(new Launch()).Do(new PlotCourse(3) { From = 1 }).Run();
         Assert.Equal(["landing.crewAway"], Reasons(before));
         var after = Ready();
-        after.Do(new SetCourse(3) { From = 1 }).Do(new Launch()).Run();
+        after.Do(new PlotCourse(3) { From = 1 }).Do(new Launch()).Run();
         Assert.Equal(["landing.inFlight"], Reasons(after));
     }
 
@@ -177,7 +175,7 @@ public class CourseTests
         Course(w, 3);
         Course(w, 4);
         Assert.Equal(["landing.hereAlready", "landing.hereAlready", "landing.hereAlready", "landing.inFlight"], Reasons(w));
-        Assert.Equal(Jump + 5, Fuel(w));
+        Assert.Equal(Jump + Litre, Fuel(w));
     }
 
     [Fact]
@@ -212,7 +210,7 @@ public class CourseTests
     public void OffTheShipThereIsNoEngine()
     {
         var w = Ready().Do(new Launch()).Run(Down + 1);
-        w.Do(new SetCourse(3) { Surface = 1 }).Run();
+        w.Do(new PlotCourse(3) { Surface = 1 }).Run();
         Assert.Equal(["landing.noEngine"], Reasons(w));
     }
 
@@ -268,7 +266,7 @@ public class CourseTests
                   select (seed, ticks);
         return Prop.ForAll(gen.ToArbitrary(), t =>
         {
-            var (w, twin) = (Ready(fuel: 99), Ready(fuel: 99));
+            var (w, twin) = (Ready(fuel: 2 * Jump), Ready(fuel: 2 * Jump));
             var rng = new Rng(new RngState { S = (uint)t.seed });
             int fired = 0;
             for (int i = 0; i < t.ticks; i++)
@@ -287,8 +285,8 @@ public class CourseTests
                 // Fuelled again, the pod too, so the run sets off and descends more than its first stacks allow.
                 foreach (var s in new[] { w, twin })
                 {
-                    s.M.Items.PutIn(Engine(s), new Stack("biofuel", Jump));
-                    if (s.M.Grid.MachineAt(s.At(7, 4)) is { } home) s.M.Items.PutIn(home.Id, new Stack("biofuel", Content.Landing.DescentFuel));
+                    s.M.Fuel.Fill(Engine(s), Jump);
+                    if (s.M.Grid.MachineAt(s.At(7, 4)) is { } home) s.M.Fuel.Fill(home.Id, Content.Fuel.Descent);
                 }
             }
             return true.ToProperty().Classify(fired > 0, "set off");
@@ -313,7 +311,7 @@ public class CourseTests
                 4 => m.Crew.HeroOf(peer) == null ? new Enter(w.At(10, 6) + w.M.Grid.Width) : new Leave(),
                 5 => new Transfer(here == 0 ? planet : 0),
                 6 when planet == 0 => new OpenSurface(PlanetTypes.Small.Id),
-                _ => new SetCourse((int)rng.Below((uint)Content.Landing.Planets.Count)),
+                _ => new PlotCourse((int)rng.Below((uint)Content.Landing.Planets.Count)),
             };
             sent.Add(c with { From = peer, Surface = here });
         }

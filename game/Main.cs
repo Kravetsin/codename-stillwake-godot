@@ -144,7 +144,7 @@ public partial class Main : Node2D, ITogether
         bool flies = _m.Landing.FlightOf(client.Id) != null;
         int? landed = _flewLast && !flies ? _m.Landing.SeatOf(client.Id) : null;
         _flewLast = flies;
-        var pods = _m.Grid.MachinesWith(Content.MachineTrait.Lands).Select(p => (p.Id, _m.Landing.RiderOf(p.Id) != null)).ToList();
+        var pods = _m.Grid.MachinesWith(Content.MachineTrait.Lands).Where(p => Content.Machines.Get(p.Kind).Riders == 1).Select(p => (p.Id, _m.Landing.RiderOf(p.Id) != null)).ToList();
         _arrivals.Frame(surface, surface == 0, pods, landed, newWorld, delta);
     }
 
@@ -251,12 +251,19 @@ public partial class Main : Node2D, ITogether
             _items.Panel.Supplied = (id, item) => _m.Logistics.Supplied(id, item);
             _fabricator.Served = BadgeOf;
             // A drop pod's Descend or Return key is the landing feature's, under its slot; the white of its flight over the screen.
+            // A shuttle's panel is its seats and its Set off key.
+            (Sim.Landing.LandingModule, int)? Rider() => _session is Session s ? (_m.Landing, s.Client.Id) : null;
+            (Sim.Landing.LandingModule, Sim.Places.PlacesModule, int)? ShuttleRider() => _session is Session s ? (_m.Landing, _m.Places, s.Client.Id) : null;
             Control? LaunchOf(int machine) => _m.Grid.MachineById(machine) is { } pod && Content.Machines.Is(pod.Kind, Content.MachineTrait.Lands)
-                ? new Features.Landing.LaunchKey(() => _session is Session s ? (_m.Landing, s.Client.Id) : null, SendNow, _hands.Ui.Tip)
+                ? Content.Machines.Get(pod.Kind).Riders is var riders and > 1
+                    ? Features.Landing.ShuttleKey.Panel(machine, riders, ShuttleRider, SendNow, _hands.Ui.Tip)
+                    : new Features.Landing.LaunchKey(Rider, SendNow, _hands.Ui.Tip)
                 : null;
             _items.Panel.Launch = LaunchOf;
             AddChild(_jumpCall = new Features.Landing.JumpCall());
-            AddChild(new Features.Landing.FlightOverlay(() => _session is Session s ? (s.Client.World.SurfaceOf(s.Client.Id), _m.Landing.FlightOf(s.Client.Id)) : null,
+            // A shuttle's voyage shows as a pod's descent of its length (shuttle-flight, plain pictures).
+            Features.Landing.Ride? OwnRide(int peer) => _m.Landing.FlightOf(peer) is { } f ? Features.Landing.Ride.Of(f) : _m.Landing.VoyageOf(peer) is { } v ? Features.Landing.Ride.Of(v) : null;
+            AddChild(new Features.Landing.FlightOverlay(() => _session is Session s ? (s.Client.World.SurfaceOf(s.Client.Id), OwnRide(s.Client.Id)) : null,
                 () => (_session as Session)?.Progress ?? 0, () => _camera.CurrentZoom));
             // The vitals at the bottom-left (hud-vitals): the belt's charge under the suit's air, whatever is held. Before the
             // suit's gauge, so the red edges cover it as they cover the rest of the HUD.
@@ -612,6 +619,7 @@ public partial class Main : Node2D, ITogether
         DevTick(client, before);
         ShowWorld();
         ShowDaylight();
+        ShowStretch(client.World.Tick + session.Progress);
         SeeArrivals(client, delta);
         _frameLog?.Mark("sim");
         if (client.World.Tick != before) SyncLight();
@@ -626,6 +634,7 @@ public partial class Main : Node2D, ITogether
         if (_items != null) _items.Panel.Trade = _m.Trade;
         if (_items != null) _items.Panel.Air = _m.Atmosphere;
         if (_items != null) _items.Panel.Water = _m.Water;
+        if (_items != null) _items.Panel.Fuel = _m.Fuel;
         if (_items != null) _items.Panel.Switching = _m.Power;
         if (_items != null) (_items.Panel.Charger, _items.Panel.ChargeRate) = (_m.Power.Charges, _m.Power.ChargeRate);
         if (_items != null) _items.Panel.Draw = _m.Power.Draw;
@@ -692,6 +701,22 @@ public partial class Main : Node2D, ITogether
         Lit.Sky(sky);
         _stars.Tint = tint;
         if (View<Features.Fog.FogView>() is { } fog) fog.Tint = tint;
+    }
+
+    /// <summary>The stretch of space seen in the backdrop: read again for each surface shown, none carried from the last.</summary>
+    private StretchShown _stretch = new();
+    private Registry? _stretchOf;
+
+    /// <summary>
+    /// A stretch of space coming, running or just gone (docs/decisions/2026-11-15-stretches-of-space.md), its far picture sailing in behind the far wrecks:
+    /// from the sky's <c>Now</c>, at <paramref name="clock"/>, the world's ticks.
+    /// </summary>
+    private void ShowStretch(double clock)
+    {
+        if (_stretchOf != _m) (_stretch, _stretchOf) = (new StretchShown(), _m);
+        var now = _m.Sky.Now;
+        _stretch.See(now.Stretch, now.Coming, now.ComingIn, clock, now.Ran);
+        _stars.Stretch(_stretch.Look, _stretch.Grow, _stretch.Melt, _stretch.Since);
     }
 
     /// <summary>The surface's view of type <typeparamref name="T"/>; none where this surface has none (lava aboard).</summary>

@@ -10,5 +10,6 @@ public static partial class En
         ["places.noContact"] = "No such contact on the radar",
         ["places.noHero"] = "Come aboard first",
         ["places.seated"] = "Get out of the drop pod first",
+        ["places.noCourse"] = "No route set",
     };
 }

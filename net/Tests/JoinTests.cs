@@ -111,6 +111,59 @@ public class JoinTests
         host.Advance();
     }
 
+    /// <summary>A guest joining while the shuttle flies keeps step with the host through the arrival (shuttle-flight).</summary>
+    [Fact]
+    public void JoinsMidVoyageAndKeepsStepThroughTheArrival()
+    {
+        var game = Definition.Game();
+        string[] rows =
+        [
+            "PPP             ",
+            "                ",
+            "################",
+            "#..............#",
+            "#.^^^^^^^^^^^^.#",
+            "#.^^^^^^^^^^^^.#",
+            "#.^^^^^^^^^^^^.#",
+            "#.^^^^^^^^^^^^.#",
+            "#.^^^^^^^^^^^^.#",
+            "##____________##",
+            "                ",
+        ];
+        var layout = Sim.Layout.Parse(rows, null, [((0, 0), (2, 9))]).Doubled();
+        var world = game.Create(1, layout);
+        // Its store full, as the testbed's: any course is in reach, there and back (fuel-liquid).
+        game.Module<Sim.Fuel.FuelModule>(world).Fill(game.Module<Sim.Grid.GridModule>(world).MachinesOf("crewShuttle")[0].Id, 200 * Content.Fuel.Litre);
+        var (host, own) = LocalSession.Create(world, "b1");
+        own.Send(new Sim.Crew.Enter(17 * 32 + 2));
+        own.Send(new Sim.Places.Find("shuttle"));
+        host.Advance();
+        own.Update();
+        var places = game.Module<Sim.Places.PlacesModule>(own.World);
+        int shuttle = game.Module<Sim.Grid.GridModule>(own.World).MachinesOf("crewShuttle")[0].Id;
+        own.Send(new Sim.Landing.Board(shuttle));
+        own.Send(new Sim.Places.SetCourse(places.Contacts[^1].Id));
+        host.Advance();
+        own.Send(new Sim.Places.SetOff());
+        for (int i = 0; i < 50; i++) host.Advance();
+        own.Update();
+        Assert.NotEmpty(game.Module<Sim.Landing.LandingModule>(own.World).Voyages);
+
+        var (toPeer, fromHost) = Loopback.Create<ToClient, ToHost>();
+        host.Admit(toPeer);
+        Client? joined = null;
+        Client.Join(game.Load, fromHost, "b1", c => joined = c, why => throw why);
+        Assert.Equal(own.World.Hash(), joined!.World.Hash());
+        for (int i = 0; i < Content.Shuttle.FlightTicks; i++)
+        {
+            host.Advance();
+            own.Update();
+            joined.Update();
+            Assert.Equal(own.World.Hash(), joined.World.Hash());
+        }
+        Assert.Equal(1, joined.World.SurfaceOf(own.Id));
+    }
+
     [Fact]
     public void IsOurBugOnAHostWithNoWorldToWelcomeWith()
     {

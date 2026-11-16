@@ -10,7 +10,7 @@ public static partial class En
         ["landing.taken"] = "Someone is already in it",
         ["landing.seated"] = "Already in a drop pod",
         ["landing.notSeated"] = "Not in a drop pod",
-        ["landing.noFuel"] = "Needs {fuel} biofuel",
+        ["landing.noFuel"] = "Needs {fuel} l of biofuel in its tank",
         ["landing.notYours"] = "Not your pod",
         ["landing.cannotLeave"] = "There is nowhere to land",
         ["landing.shaftBlocked"] = "Something is built under the platform",
@@ -22,5 +22,9 @@ public static partial class En
         ["landing.crewAway"] = "Not everyone is aboard: a press calls them home",
         ["landing.hereAlready"] = "The ship is there already",
         ["landing.inFlight"] = "The ship is in flight",
+        ["landing.setOff"] = "Set off",
+        ["landing.noRoute"] = "No route",
+        ["landing.course"] = "{n} km · {l} l",
+        ["landing.home"] = "Home",
     };
 }

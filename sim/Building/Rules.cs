@@ -65,7 +65,8 @@ public sealed partial class BuildingModule
     /// <summary>
     /// Why taking <paramref name="layer"/> out of <paramref name="cell"/> would leave something behind:
     /// <c>building.notEmpty</c> for a machine holding items (a crate, a furnace), a module fitted (0086) or a station with
-    /// crafts queued. A machine cables end on comes apart, its cables kept (0110).
+    /// crafts queued; <c>building.holdsLiquid</c> for one holding over <see cref="Builds.TakenApartHolding"/> of liquid, a tank's
+    /// oxygen, a cistern's water or a store's fuel. A machine cables end on comes apart, its cables kept (0110).
     /// </summary>
     private string? InUse(int cell, string layer)
     {
@@ -73,8 +74,13 @@ public sealed partial class BuildingModule
         if (machine == null) return null;
         bool holds = _items.Crate(machine.Id).Any(s => s != null) || _items.FittedTo(machine.Id).Count > 0
             || _crafting.Queue(machine.Id).Count > 0;
-        return holds ? "building.notEmpty" : null;
+        if (holds) return "building.notEmpty";
+        return LiquidIn(machine) > Builds.TakenApartHolding ? "building.holdsLiquid" : null;
     }
+
+    /// <summary>The liquid machine <paramref name="m"/> holds: a tank's liquid oxygen, a cistern's water, a store's biofuel.</summary>
+    private long LiquidIn(Machine m) =>
+        (Machines.Is(m.Kind, MachineTrait.Gas) ? _air.OxygenIn(m.Id) : 0L) + _water.WaterIn(m.Id) + _fuel.FuelIn(m.Id);
 
     /// <summary>Whether <paramref name="kind"/> is a machine built into the ship from its start (the lifepod): never planned, never taken apart.</summary>
     private static bool IsFixed(string kind) => Machines.TryGet(kind, out var spec) && spec.Fixed;

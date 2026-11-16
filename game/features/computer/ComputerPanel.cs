@@ -49,11 +49,11 @@ public partial class ComputerPanel : CanvasLayer
 
     /// <param name="ui">Which computer is open, set by the crew's E, and cleared here when it is put away.</param>
     /// <param name="world">The world the computer stands in; null with none played.</param>
-    /// <param name="send">Sends a command as this player: the radar's course and jump.</param>
+    /// <param name="send">Sends a command as this player: the radar's course for the ship and route for the shuttle.</param>
     public ComputerPanel(Ui ui, Func<Registry?> world, Action<Command> send)
     {
         (_ui, _world, _send) = (ui, world, send);
-        _radar = new RadarScreen(ui) { Visible = false, SetCourse = planet => _send(new SetCourse(planet)), Jump = contact => _send(new Jump(contact)) };
+        _radar = new RadarScreen(ui) { Visible = false, PlotCourse = planet => _send(new PlotCourse(planet)), SetRoute = contact => _send(new SetCourse(contact)) };
         _tips = new TipSpots(ui.Tip);
         Layer = ScreenLayers.Handbook;
         var root = new Control { MouseFilter = Control.MouseFilterEnum.Ignore, Theme = new Theme { DefaultFont = Style.Mono, DefaultFontSize = 20 } };
@@ -170,7 +170,25 @@ public partial class ComputerPanel : CanvasLayer
         _radar.At = landing.At;
         _radar.Course = landing.Course is { } course ? (course.To, course.TicksLeft) : null;
         _radar.Problems = [.. Enumerable.Range(0, Content.Landing.Planets.Count).Select(landing.CourseProblem)];
+        // The shuttle's route (shuttle-flight), and a stretch of space coming (stretches-of-space).
+        _radar.Route = _world()!.Places.Course?.Id;
+        ShowStretch(_world()!);
         Paint();
+    }
+
+    private StretchShown _stretch = new();
+    private Registry? _stretchOf;
+    /// <summary>The panel's own clock while it reads, in ticks: what a stretch's band fades out by once it has gone.</summary>
+    private double _clock;
+
+    /// <summary>The stretch of space the sky says is coming or running, as the radar's band (docs/decisions/2026-11-15-stretches-of-space.md); read anew in another world.</summary>
+    private void ShowStretch(Registry world)
+    {
+        if (_stretchOf != world) (_stretch, _stretchOf) = (new StretchShown(), world);
+        _clock += ReadEvery * Sim.World.TicksPerSecond;
+        var now = world.Sky.Now;
+        _stretch.See(now.Stretch, now.Coming, now.ComingIn, _clock);
+        _radar.Stretch = _stretch.Look is { Band: var (r, g, b) } ? (new Color(r, g, b), _stretch.Grow, _stretch.Shown) : null;
     }
 
     /// <summary>The one tooltip: what the radar shows under the pointer; else a button's program; none behind the menu.</summary>

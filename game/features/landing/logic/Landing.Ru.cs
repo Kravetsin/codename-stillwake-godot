@@ -10,7 +10,7 @@ public static partial class Ru
         ["landing.taken"] = "В ней уже кто-то есть",
         ["landing.seated"] = "Ты уже в капсуле",
         ["landing.notSeated"] = "Ты не в капсуле",
-        ["landing.noFuel"] = "Нужно биотоплива: {fuel}",
+        ["landing.noFuel"] = "Нужно {fuel} л биотоплива в баке",
         ["landing.notYours"] = "Не твоя капсула",
         ["landing.cannotLeave"] = "Садиться некуда",
         ["landing.shaftBlocked"] = "Под платформой что-то построено",
@@ -22,5 +22,9 @@ public static partial class Ru
         ["landing.crewAway"] = "Не все на борту: нажатие зовёт их домой",
         ["landing.hereAlready"] = "Корабль уже там",
         ["landing.inFlight"] = "Корабль в полёте",
+        ["landing.setOff"] = "Отправиться",
+        ["landing.noRoute"] = "Нет маршрута",
+        ["landing.course"] = "{n} км · {l} л",
+        ["landing.home"] = "Домой",
     };
 }

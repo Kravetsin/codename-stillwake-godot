@@ -1,4 +1,4 @@
-# landing (client): the drop pod's seats and flights
+# landing (client): the drop pod's and the crew shuttle's seats and flights
 
 What the launch platform and the drop pod show beyond the grid's own drawing (ADRs `2026-10-25-the-drop-pod`,
 `2026-10-26-the-descent`, `2026-10-27-the-descent-pictures`). The sim's `sim/Landing` decides: the client reads `Seats`, `SeatOf`, `FlightOf` and
@@ -15,6 +15,9 @@ socket are the power feature's (`PlatformLamps`).
 | `FlightScreen.cs` | the rider's flight at the world's scale, no planet: star lines rushing past; up, out of a blue sky first | yes |
 | `PodFlights.cs` | a pod moving in the world: the deck sliding and the fall aboard; on a planet the touchdown and the lift-off | yes |
 | `PodSounds.cs` | a moving pod heard by everyone on its surface: its engine, its clamps letting go, its touchdown's thump | yes |
+| `ShuttleKey.cs` | the crew shuttle's panel: a mark a seat, where it flies (the course's km and litres, or home), Set off dim with the sim's refusal | yes |
+| `ShuttleLights.cs` | each shuttle's slits lit warm, place i slit i, and its course lamp lit while a course is set: placeholders | yes |
+| `logic/Ride.cs` | the rider's own flight as its screen shows it: a pod's flight, or a shuttle's voyage as a descent of its length | no |
 | `logic/FlightTimeline.cs` | when each picture of a flight plays and how far along: seconds from the flight's ticks, the curves | no |
 | `logic/Arrivals.cs` | the pods just come down on the surface seen and for how long, held back from the grid till they stand | no |
 | `logic/Whiteout.cs` | how white the screen is, from the own flight's ticks left and a surface switch made while white | no |
@@ -57,7 +60,19 @@ socket are the power feature's (`PlatformLamps`).
   (`PodFlash`) on the flight's last tick, under the white. In a pod a hero hears as in air (`HeroView.InPod`), vacuum outside or
   not. A sound due at a moment plays only if it passes while seen (`FlightTimeline.Crossed`): none late after a load.
 
+- **The crew shuttle** (2026-11-15-crew-shuttle, 2026-11-16-shuttle-flight): its riders are never drawn (`SeatedHeroes`);
+  `ShuttleLights` lights slit i while place i is taken and the course lamp aboard while `Places.Course` is set, compared every
+  frame, drawn again on a change. Its panel is `ShuttleKey` (`InventoryPanel.Launch` for a `Lands` machine with
+  `Riders > 1`), read on a timer: a press sends places' `SetOff` only while `Places.SetOffProblem` is null; a store short of
+  the round trip says `landing.noFuel` with its litres, as the pod's key does.
+- During a voyage its riders are hidden and held at their places' floors where it stood (`Seating`, in riders' order), their
+  hands tied. Plain pictures for now: the shuttle vanishes from the grid and appears; the rider sees the pod's flight screen,
+  star lines both ways, its white and dip, timed by `Ride` from the voyage's ticks.
+
 ## Deliberately not handled
+
+- The shuttle's own pictures and sounds: the lit slits, the lamp and the course line are placeholders; no deck slide, drift-in
+  or lift-off yet (slice 3 of docs/plans/shuttle-flight.md).
 
 - What the seated hero wears or holds: the figure behind the glass is its suit alone.
 - The docking aboard: the white falls over the pod already standing at home. The hero behind the porthole while its pod moves.

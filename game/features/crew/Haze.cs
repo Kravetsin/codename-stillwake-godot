@@ -14,11 +14,13 @@ namespace Stillwake.Game.Features.Crew;
 public partial class Haze : CanvasLayer
 {
     private const double RefreshS = 0.25;
-    private static readonly StringName Strength = "strength";
+    private static readonly StringName Strength = "strength", Fading = "fade";
 
     private const string Shader = """
         shader_type canvas_item;
         uniform float strength = 0.0;
+        // How much of it shows (ScreenEase.Fade): it fades out whole as the heat runs out.
+        uniform float fade = 0.0;
         uniform sampler2D screen : hint_screen_texture, filter_linear, repeat_disable;
 
         void fragment() {
@@ -28,7 +30,7 @@ public partial class Haze : CanvasLayer
             float off = 4.0 * e * (sin(y * 0.045 + TIME * 5.2) + 0.55 * sin(y * 0.13 - TIME * 3.3)) * size.y / 600.0;
             float r = length((SCREEN_UV - 0.5) * 2.0), inner = mix(1.05, 0.5, e);
             vec3 hot = mix(texture(screen, SCREEN_UV + vec2(off * SCREEN_PIXEL_SIZE.x, 0.0)).rgb, vec3(1.0, 0.6, 0.29), 0.04 * e);
-            COLOR = vec4(hot, smoothstep(inner, inner + 0.35, r));
+            COLOR = vec4(hot, smoothstep(inner, inner + 0.35, r) * fade);
         }
         """;
 
@@ -68,6 +70,7 @@ public partial class Haze : CanvasLayer
         _screen.Visible = _sparks.Visible = on;
         if (!on) return;
         _material.SetShaderParameter(Strength, (float)_shown);
+        _material.SetShaderParameter(Fading, ScreenEase.Fade(_shown));
         _sparks.Step(delta, (float)_shown);
     }
 
@@ -128,7 +131,7 @@ public partial class Haze : CanvasLayer
                     ? new Vector2((s.At < 0.5f ? s.At * 0.5f : 1 - (1 - s.At) * 0.5f) * size.X, size.Y + 6 * k - up)
                     : new Vector2(s.Side == 1 ? s.At * size.X * 0.08f : size.X - s.At * size.X * 0.08f, size.Y * (0.55f + 0.45f * s.Seed) - up * 0.8f);
                 at.X += sway * 10 * ph * k;
-                float alpha = (1 - ph) * Math.Min(1, ph * 8) * (0.45f + 0.55f * _heat) * (0.7f + 0.3f * MathF.Sin(t * 20 + s.Seed * 40));
+                float alpha = (1 - ph) * Math.Min(1, ph * 8) * (0.45f + 0.55f * _heat) * ScreenEase.Fade(_heat) * (0.7f + 0.3f * MathF.Sin(t * 20 + s.Seed * 40));
                 if (alpha <= 0.01f) continue;
                 var colour = Pale.Lerp(Ember, s.Hue);
                 float width = s.Size * k, glow = width * 4;

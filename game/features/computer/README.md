@@ -1,7 +1,7 @@
 # Computer
 
 The ship's computer's window: a monitor opened by E at the computer, a button a program on its side, the chosen program on
-its screen. Only the radar so far: the ship, its planet and the vessels places' contacts show, and the jump to one.
+its screen. Only the radar so far: the ship, its planet and the vessels places' contacts show, and the course to one.
 
 ## Files
 
@@ -11,6 +11,7 @@ its screen. Only the radar so far: the ship, its planet and the vessels places' 
 | `logic/Computer.En.cs` | Its player text (`En`) |
 | `logic/Computer.Ru.cs` | Russian |
 | `logic/RadarOrbit.cs` | Where the radar draws a contact: on the ship's orbit, the farthest 45 % of the screen from the ship; its distance in km |
+| `logic/RadarBand.cs` | Where the radar draws a stretch of space coming or running: a band on the orbit sliding toward the ship |
 | `ComputerPanel.cs` | The window: the monitor, the side panel's buttons, the screen's line or program |
 | `RadarScreen.cs` | The radar program: the ship in the middle, rings, the sweep, a planet's curve below, the contacts on the orbit |
 | `ComputerScreens.cs` | Each computer's screen in the world: dark, running text, or the radar's sweep; its rack's lights; its glow |
@@ -35,11 +36,17 @@ computer's row in `c/Machines.cs`. Files in `logic/` are Godot-free and tested i
 - **The radar** draws the ship held in the middle, the beam turning every 4 s, a planet's curve still below, the ship
   drifting round it too slowly to see, and places' contacts (`Places.Contacts`, 2026-11-08-radar-contacts) on the ship's orbit
   (`RadarOrbit`): a diamond each, flaring as the beam passes and fading over the turn, blinking in its last 2 minutes.
+- **A stretch of space** ([stretches-of-space](../../../docs/decisions/2026-11-15-stretches-of-space.md)) is a band on the
+  orbit in its colour (`RadarBand`, `StretchLooks.Band`): ahead of the ship as its warning starts, sliding over it as it comes,
+  held while it runs, fading after.
 - **A click on a contact** selects it (`Ui.RadarContact`, the player's own): corner brackets round it and its kind's name
   over it (`computer.radar.<kind>`), its distance under that in kilometres (`RadarOrbit.Km`: an offset's units times
-  `KmPerUnit`, 10). A click on empty screen lets go; a selected contact gone is let go on the next read;
-  closing the computer keeps it. While one is selected a `Set off` button stands at the bottom of the screen: it
-  sends places' `Jump` to it (its world opens with the presser just inside its door, the contact goes, vessel-worlds); the pointer over it shows no tooltip.
+  `KmPerUnit`, 10), and the litres a trip there and back burns (`PlacesModule.CostOf`). A click on empty
+  screen lets go; a selected contact gone is let go on the next read; closing the computer keeps it. While one is selected
+  a `Set course` button stands at the bottom of the screen: it sends places' `SetCourse` to it (shuttle-flight); the
+  pointer over it shows no tooltip.
+- **The course** (`Places.Course`, every player's): a thin line from the ship to its contact and `Route set, board the
+  shuttle` at the top of the screen while it is set; both placeholders till slice 3's pick. It goes when its contact does.
 - **In the world** (`ComputerScreens`): a computer with no power is dark; a powered one runs lines of text and blinks its
   rack's lights; once its radar is ready, the sweep. Drawn unlit, its glow lighting the room in the screen's colour.
 - **While the window is open** the hero aims at nothing: no outline, prompt or world tip under the pointer. The one
@@ -56,8 +63,8 @@ when the hero changes surface.
 ## Deliberately not handled
 
 - **The rules live in the client** (`Readout`): nothing in the sim asks which programs a computer has, and no command
-  depends on it. The jump is places' own rule, so contacts come and Set off jumps whether or not a radar
-  is built or powered elsewhere.
+  depends on it. The course is places' own rule, so contacts come and a course is set whether or not a radar
+  is built or powered elsewhere. The jump stays on the dev panel.
 - **Each peer's window is its own**: two players at one computer see their own choice; nothing is shared.
 - **No planet behind the radar's**: it is drawn whatever the ship orbits, of one look, at no real height.
-- **No text on the radar** but its tooltips and a selected contact's name and distance: no ranges on the rings, no heights.
+- **No text on the radar** but its tooltips, a selected contact's name, distance and fuel, and the route's words: no ranges on the rings, no heights.

@@ -28,7 +28,7 @@ public partial class HeroView
         double elapsedMs, bool handFree)
     {
         // Flying in a drop pod, the hands do nothing, as passed out: E is no one's until it lands.
-        passedOut |= m.Landing.FlightOf(client.Id) != null;
+        passedOut |= m.Landing.FlightOf(client.Id) != null || m.Landing.VoyageOf(client.Id) != null;
         // The hand first, before any run or hit of this frame: the stack in it is the one that works (tool-in-hand).
         if (m.Items.Wielding(client.Id) != _ui.Chosen.Get()) client.Send(new Sim.Items.Wield(_ui.Chosen.Get()));
         // A tool struck with by hand, the axe, the sledgehammer or the spear: its strokes (Strokes).
@@ -376,11 +376,10 @@ public partial class HeroView
                     near.Add(piece);
             }
         }
-        var wreck = HitLooks.Of[Impact.Wreck];
         return (x, y) =>
         {
             foreach (var piece in near)
-                if (solid(piece, x * perPixel, y * perPixel)) return (wreck, piece.Id);
+                if (solid(piece, x * perPixel, y * perPixel)) return (HitLooks.Of[HitLooks.PieceOf(piece.Item)], piece.Id);
             int cx = (int)System.Math.Floor(x / Rig.Cell), cy = (int)System.Math.Floor(y / Rig.Cell);
             if (cx < 0 || cy < 0 || cx >= m.Grid.Width || cy >= m.Grid.Height) return null;
             return Impacts.At(m.Grid, m.Building, cy * m.Grid.Width + cx) is { } impact ? (HitLooks.Of[impact], -1) : null;

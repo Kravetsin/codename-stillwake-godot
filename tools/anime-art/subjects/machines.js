@@ -189,7 +189,7 @@ const cistern = (a) => {
     lite: 'M7 5.4L25 5.4C26.5 5.4 28 6.5 28.6 8L3.4 8C4 6.5 5.5 5.4 7 5.4Z', spec: band(6.6, 6.2, 17, 6.8), shade: 'M3 19L29 19L29 19.2C29 21.8 27 23.8 24.4 23.8L7.6 23.8C5 23.8 3 21.8 3 19.2Z',
     lines: ['M7.8 5.6L7.8 23.6', 'M24.2 5.6L24.2 23.6'] });
   a.flat(band(4, 11, 7.6, 11.6), '#d4dae2'); a.flat(band(24.6, 11, 28, 11.6), '#6a708c');
-  // The window: its frame, dark glass; its water is drawn over it (cistern_fill_*), as the sim says.
+  // The window: its frame, dark glass; its water is drawn over it (cistern_level), as the sim says.
   a.shape(rr(11.6, 9.4, 8.8, 12.4, .5), DARK, { outer: false, lite: band(11.8, 9.5, 20.2, 10) });
   a.flat(band(13, 11, 19, 21), '#0e1c30');
   for (const [x, y] of [[12.1, 10], [19.9, 10], [12.1, 21.2], [19.9, 21.2]]) a.flat(ell(x, y, .35), '#a8693c');
@@ -460,13 +460,20 @@ function fire(f) {
   };
 }
 const burnerWheel = (f) => (a) => wheel(a, 6.5, 6.5, 6, GUN, .4 + (f * Math.PI) / 6);
-const fill = (n) => (a) => {
-  if (n === 0) { a.flat(band(21.2, 9, 23, 10.2), '#ff5040'); return; }
-  const top = 21 - 2 * n;
-  a.flat(band(13, top, 19, 21), '#2ca4d8');
-  a.flat(band(13, top, 19, top + Math.min(.8, n)), '#a8ecff');
-  a.flat(band(13.6, top + .8, 14.6, 21), '#6cc8f0');
-};
+/** An empty oxygen tank's red lamp, over its glass. */
+const tankEmpty = (a) => a.flat(band(21.2, 9, 23, 10.2), '#ff5040');
+/**
+ * A sight glass's liquid, full, under its surface (sight-glass): the glass of a tank, a cistern and a fuel tank alike, 13..19
+ * across, 11..21 down. The client shows as much of it from the bottom as the machine holds, its surface (levelTop) moved down
+ * onto it: any level, not steps.
+ */
+/** The sight glass of a tank and a cistern, [x, y, w, h]: the fuel tank's is its own (FUEL_GLASS). */
+const SIGHT = [13, 11, 6, 10];
+const level = (c, [x, y, w, h] = SIGHT) => (a) => { a.flat(band(x, y, x + w, y + h), c.base); a.flat(band(x + w * .1, y, x + w * .25, y + h), c.glint); };
+const levelTop = (c, [x, y, w] = SIGHT) => (a) => a.flat(band(x, y, x + w, y + .6), c.lite);
+const OXYGEN = { base: '#2ca4d8', lite: '#a8ecff', glint: '#6cc8f0' };
+/** Biofuel: «Ржавый оранжевый», the user's pick (fuel-liquid), red-orange as dyed diesel, apart from water, oxygen and fire. */
+const FUELLED = { base: '#b0501c', lite: '#f0965c', glint: '#d46a30' };
 // ---------- the radar antenna, 4 x 6 cells (radar-mast): a guyed lattice mast, a dish four cells across at its head, a red light on top ----------
 const WIRE = { base: '#8a92a2', shade: '#8a92a2' };
 const CONCRETE = { base: '#7a7a80', shade: '#55555e', deep: '#3e3e46', lite: '#9c9ca2', spec: '#c8c8cc', rim: '#9c9ca2' };
@@ -728,14 +735,6 @@ const bubbles = (f) => (a) => {
 const working = (a) => { a.flat(ell(16, 42.5, 1), '#7fe08a'); a.flat(ell(15.7, 42.2, .4), '#d8ffd8'); };
 /** The electrolyser standing: its lamp red. */
 const stalled = (a) => { a.flat(ell(16, 42.5, 1), '#e05555'); a.flat(ell(15.7, 42.2, .4), '#ffd0c8'); };
-/** A cistern's water up its window by quarters, <n> of 4; none at 0. */
-const cisternFill = (n) => (a) => {
-  if (n === 0) return;
-  const top = 21 - 2.5 * n;
-  a.flat(band(13, top, 19, 21), WATERED.base);
-  a.flat(band(13, top, 19, top + .6), WATERED.lite);
-  a.flat(band(13.6, top + .6, 14.4, 21), WATERED.glint);
-};
 
 // ---------- The power chain (power-chain ADR): the fermenter's drip column, the biofuel generator's hot-bulb engine, the
 // treadmill wheel's hoop on rollers, as the user picked them. Their materials and helpers came with them from the pick page.
@@ -1024,14 +1023,68 @@ const galleyA_screen = (f) => (a) => {
 };
 
 
+// ---------- The fuel tank (fuel-liquid), «Бочка на ложементе», B of the fuel pick page: a squat barrel lying on two saddles and a
+// skid, faded mustard, hooped and riveted, a striped hopper on top with its flap stood open where cans are poured, a flammable placard,
+// its fuel up a narrow window on its side (fuelTank_level over FUEL_GLASS). Ports in at (0, 2), out at (3, 2).
+const MUSTARD = { base: '#9a8446', shade: '#6a5a34', deep: '#4a3e28', lite: '#bba864', spec: '#e0d092' };
+const FUEL_GLASS = [11, 11, 3, 12];
+/** Rust grown from a seam or rivet: a torn edge, darker at heart. */
+const rustPatch = (a, x, y, s) => {
+  a.flat(poly(x - s, y - .2 * s, x - .3 * s, y - .7 * s, x + .5 * s, y - .5 * s, x + s, y + .1 * s, x + .4 * s, y + .4 * s, x + .1 * s, y + .75 * s, x - .5 * s, y + .45 * s), '#70482f');
+  a.flat(poly(x - .4 * s, y - .1 * s, x + .1 * s, y - .3 * s, x + .45 * s, y + .05 * s, x, y + .3 * s), '#3f2a24');
+};
+/** A flammable placard: a dark-edged red diamond, a pale flame on it, its middle at (x, y). */
+const placard = (a, x, y, r) => {
+  const dia = (q) => poly(x, y - q, x + q, y, x, y + q, x - q, y), n = (v) => +v.toFixed(3), s = r * .5;
+  a.flat(dia(r), '#1a1820');
+  a.flat(dia(r * .8), '#a8402e');
+  a.flat(poly(x - r * .8, y, x, y - r * .8, x + r * .1, y - r * .7, x - r * .7, y + r * .1), '#c45a42');
+  a.flat(`M${n(x)} ${n(y + s * .8)}Q${n(x - s * .8)} ${n(y + s * .6)} ${n(x - s * .35)} ${n(y - s * .2)}Q${n(x - s * .1)} ${n(y + s * .15)} ${n(x)} ${n(y - s * .9)}Q${n(x + s * .7)} ${n(y)} ${n(x + s * .45)} ${n(y + s * .55)}Q${n(x + s * .3)} ${n(y + s * .8)} ${n(x)} ${n(y + s * .8)}Z`, '#e6d8b8');
+};
+/** Level marks beside a glass: short pale ticks from y0 to y1, n of them, the ends longer. */
+const glassTicks = (a, x, y0, y1, n) => { for (let i = 0; i < n; i++) { const y = y0 + (y1 - y0) * i / (n - 1), l = i === 0 || i === n - 1 ? 1.3 : .8; a.flat(band(x, y - .16, x + l, y + .16), '#cfc3a0'); } };
+const fuelTank = (a) => {
+  a.shape(rr(2.6, 8.8, 26.8, 16.6, 5), MUSTARD, {
+    lite: band(2.6, 8.8, 29.4, 10.3), spec: band(7, 9.3, 17, 9.8), shade: band(2.6, 21.8, 29.4, 25.4), deep: band(2.6, 24, 29.4, 25.4),
+    lines: ['M6.2 9.4Q4.6 17.1 6.2 24.8', 'M25.8 9.4Q27.4 17.1 25.8 24.8'] });
+  for (const x of [6.8, 24.2]) {
+    a.shape(rr(x, 8.5, 1.4, 17.2, .5), GUN, { lite: band(x, 8.5, x + .5, 25.7), shade: band(x + .9, 8.5, x + 1.4, 25.7) });
+    rivets(a, [x + .7, 11.6], [x + .7, 22.6]);
+  }
+  rustStreak(a, 7.3, 23.2, 2.2);
+  rustPatch(a, 18.4, 23.4, 1);
+  rustPatch(a, 27.6, 12.4, .8);
+  for (const x of [16.2, 18.2]) a.flat(rr(x, 21.2, 1.4, .7, .2), '#3e3420');
+  placard(a, 20.4, 16.2, 2.7);
+  // The hopper on top, its slot dark, a hazard strip on its front, the flap stood open behind it.
+  a.shape(poly(19.6, .3, 20.6, -.4, 24.4, 1.6, 23.4, 2.2), DARK, { outer: false, lite: band(19.6, -.4, 24.4, .2) });
+  a.shape(poly(15.4, 1.8, 24.6, 1.8, 22.4, 9.4, 17.6, 9.4), GUN, { lite: band(15.4, 1.8, 24.6, 2.5), shade: poly(23, 1.8, 24.6, 1.8, 22.4, 9.4, 21.4, 9.4) });
+  a.flat(ell(20, 2.1, 4.2, .42), '#12131e');
+  hazard(a, 17.4, 5, 5.2, 1.1);
+  // The sight glass in its frame, bolted, its marks beside it; its fuel is drawn over it (fuelTank_level), as the sim says.
+  a.shape(rr(10, 10, 5, 14, .5), DARK, { outer: false, lite: band(10.2, 10.1, 14.8, 10.6), shade: band(14.2, 10, 15, 24) });
+  a.flat(band(11, 11, 14, 23), '#10141c');
+  for (const [x, y] of [[10.5, 10.5], [14.5, 10.5], [10.5, 23.5], [14.5, 23.5]]) a.flat(ell(x, y, .3), COPPER.base);
+  glassTicks(a, 15.3, 11.2, 22.8, 4);
+  // The cradle: two saddles under the barrel on a skid.
+  for (const x0 of [3, 21.6]) a.shape(`M${x0} 22.6Q${x0 + 3.5} 26.4 ${x0 + 7} 22.6L${x0 + 7.6} 29.4L${x0 - .6} 29.4Z`, GUN, { lite: band(x0 - .6, 22, x0 + 1.2, 29.4), shade: band(x0 + 5.6, 22, x0 + 7.6, 29.4) });
+  box(a, 1.6, 29.2, 28.8, 1.6, GUN, { l: .4, b: .4 });
+  feet(a, 30.8, 1.2, [3, 4], [25, 4]);
+  fitting(a, 4, 20, 0);
+  fitting(a, 28, 20, 32);
+};
+
 Subjects.machines = function () {
   // A fire's liquid-oxygen input, its port at 0, 2 (industrial-oxygen).
   const blowable = (draw) => (a) => { draw(a); fitting(a, 4, 20, 0); };
+  // A fuel port (fuel-liquid): the engine's input at 5, 2 on its right, past its nozzle's 24 px; the generator's at 0, 1; the pod's at
+  // 0, 4; the fermenter's output at 3, 2.
+  const fuelled = (draw, x, y, edge) => (a) => { draw(a); fitting(a, x, y, edge); };
   const whole = { furnace: [32, 32, blowable(furnace)], former: [32, 32, former], crusher: [32, 32, crusher], assembler: [32, 32, assembler], workbench: [32, 40, workbench], arcBench: [32, 32, arcBench],
     vent: [16, 16, vent], crate: [32, 16, crate], cistern: [32, 32, cistern], growCapsule: [32, 48, growCapsule], charger: [16, 32, charger], burnerGenerator: [32, 32, blowable(burnerGenerator)],
     autoTradeStation: [32, 32, terminal(true)], tradeStation: [32, 32, terminal(false)], lifepod: [48, 48, lifepod], generator: [32, 32, generator], tank: [32, 32, tank],
-    computer: [48, 32, computer], capacitorBank: [32, 32, capacitorBank], engine: [72, 32, engine], solarPanel: [48, 16, solarPanel], lamp: [16, 16, lamp], arcLamp: [16, 16, arcLampBody(false)], dropPod: [32, 56, dropPod], electrolyser: [32, 48, electrolyser],
-    fermenter: [32, 32, fermenter], galley: [32, 40, blowable(galleyA)], biofuelGenerator: [48, 32, blowable(biofuelGenerator)], treadWheel: [48, 48, treadWheel] };
+    computer: [48, 32, computer], capacitorBank: [32, 32, capacitorBank], engine: [72, 32, fuelled(engine, 68, 20, 72)], solarPanel: [48, 16, solarPanel], lamp: [16, 16, lamp], arcLamp: [16, 16, arcLampBody(false)], dropPod: [32, 56, fuelled(dropPod, 4, 36, 0)], electrolyser: [32, 48, electrolyser],
+    fuelTank: [32, 32, fuelTank], fermenter: [32, 32, fuelled(fermenter, 28, 20, 32)], galley: [32, 40, blowable(galleyA)], biofuelGenerator: [48, 32, fuelled(blowable(biofuelGenerator), 4, 12, 0)], treadWheel: [48, 48, treadWheel] };
   for (const [kind, [w, h, draw]] of Object.entries(whole)) out(`machine_${kind}`, bake({ w, h, draw }));
   out('machine_arcLamp_lit', flat(16, 16, arcLampBody(true)));
   out('machine_radarAntenna', flat(32, 48, (a) => { radarMast(a); radarDish(2)(a); }));
@@ -1051,8 +1104,11 @@ Subjects.machines = function () {
   }
   for (let f = 0; f < 2; f++) out(`computer_lights_${f}`, flat(48, 32, computerLights(f)));
   for (let f = 0; f < 3; f++) out(`fire_${f}`, flat(10, 11, fire(f)));
-  for (let n = 0; n < 6; n++) out(`tank_fill_${n}`, flat(32, 32, fill(n)));
-  for (let n = 0; n < 5; n++) out(`cistern_fill_${n}`, flat(32, 32, cisternFill(n)));
+  out('tank_empty', flat(32, 32, tankEmpty));
+  for (const [kind, c, glass] of [['tank', OXYGEN, SIGHT], ['cistern', WATERED, SIGHT], ['fuelTank', FUELLED, FUEL_GLASS]]) {
+    out(`${kind}_level`, flat(32, 32, level(c, glass)));
+    out(`${kind}_level_top`, flat(32, 32, levelTop(c, glass)));
+  }
   for (let f = 0; f < 4; f++) out(`electrolyser_work_${f}`, flat(32, 48, bubbles(f)));
   out('electrolyser_working', flat(32, 48, working));
   out('electrolyser_stalled', flat(32, 48, stalled));

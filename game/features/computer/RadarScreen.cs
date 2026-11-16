@@ -14,7 +14,8 @@ namespace Stillwake.Game.Features.Computer;
 /// The radar program, over the computer's whole screen (solar-system, its picked look): the system from above in the tablet's ink,
 /// the sun in the middle and its planets on their orbits, zoomed by the wheel down to the ship's planet, where the ship's orbit
 /// and the contacts on it show (<see cref="NavMap"/>). The pointer names what it is over; a click opens a callout beside the thing,
-/// held to it by a line of ink, with its facts and its action: a course to a planet, a jump to a contact. Esc or a click on empty
+/// held to it by a line of ink, with its facts and its action: the ship's course to a planet, the shuttle's route to a contact
+/// (shuttle-flight), a line to it and its words on top while it is set; a stretch of space coming is a band on the ship's orbit. Esc or a click on empty
 /// map puts it away. It redraws only while something on it moves or changes, and its ink is written once and kept: strokes
 /// rebuilt every frame cost the board milliseconds and the collector its pauses.
 /// </summary>
@@ -55,6 +56,10 @@ public partial class RadarScreen : Control
     private (int To, int TicksLeft)? _courseNow;
     private IReadOnlyList<Contact> _contacts = [];
     private IReadOnlyList<string?> _problems = [];
+    private int? _route;
+    private (Color Colour, float Grow, float Shown)? _stretch;
+    private const int BandSteps = 24;
+    private readonly Vector2[] _band = new Vector2[2 * (BandSteps + 1)];
 
     /// <summary>The system planet the ship is at (<c>LandingModule.At</c>).</summary>
     public int At { get => _at; set => Changed(ref _at, value); }
@@ -68,11 +73,20 @@ public partial class RadarScreen : Control
     /// <summary>Why no course can be set to each system planet, as the panel last read it: null where one can.</summary>
     public IReadOnlyList<string?> Problems { get => _problems; set => Changed(ref _problems, value); }
 
-    /// <summary>Sets a course to a system planet: <c>landing</c>'s <c>SetCourse</c>.</summary>
-    public Action<int>? SetCourse { get; set; }
+    /// <summary>The shuttle's route, its contact by id, as the panel last read it: every player's; null for none.</summary>
+    public int? Route { get => _route; set => Changed(ref _route, value); }
 
-    /// <summary>Jumps to a contact by id: <c>places</c>' <c>Jump</c>.</summary>
-    public Action<int>? Jump { get; set; }
+    /// <summary>
+    /// A stretch of space coming or running (<see cref="RadarBand"/>): its band's colour, how far its warning has run, and how much of
+    /// it shows, eased out after it has gone; none for none.
+    /// </summary>
+    public (Color Colour, float Grow, float Shown)? Stretch { get => _stretch; set => Changed(ref _stretch, value); }
+
+    /// <summary>Sets the ship's course to a system planet: <c>landing</c>'s <c>PlotCourse</c>.</summary>
+    public Action<int>? PlotCourse { get; set; }
+
+    /// <summary>Sets the shuttle's route to a contact by id: <c>places</c>' <c>SetCourse</c>.</summary>
+    public Action<int>? SetRoute { get; set; }
 
     public RadarScreen(Ui ui)
     {
@@ -225,11 +239,13 @@ public partial class RadarScreen : Control
         var sun = Screen((0, 0));
         for (int i = 0; i < LandingData.Planets.Count; i++) Dotted(sun, Px(NavMap.Orbit(i)), Faint);
         DrawSun(sun);
+        DrawStretch();
         DrawCourse(sun);
         DrawPlanets();
         DrawNear();
         DrawShip(sun);
         DrawChrome();
+        DrawRoute();
         DrawCallout();
         _drawn.Clear();
         _drawn.AddRange(_hits);
@@ -322,6 +338,7 @@ public partial class RadarScreen : Control
             var hit = Hit.Round($"contact{c.Id}", at, 20, () => Select(null, contact.Id), _ui.RadarContact.Get() == c.Id ? null
                 : () => new Tip(ClassName(contact.Class), [new TipLine(T("computer.radar.km", ("n", RadarOrbit.Km(contact.Offset)))),
                     new TipLine(Leaves(contact.Left), contact.Left < Going ? Tone.Bad : Tone.Plain)]));
+            if (Route == c.Id) DrawDashedLine(Screen(NavMap.Ship(At)), at, Loop with { A = 0.8f * shown }, 1.4f, 6, true, true);
             Silhouette(at, wide, c.Class, going && _blink, shown);
             Words(T("computer.radar.km", ("n", RadarOrbit.Km(c.Offset))), at + new Vector2(0, 22), Tiny, (Hovered(hit) ? Colors.White : Text) with { A = shown }, true);
             if (going) Words(Clock(c.Left), at + new Vector2(0, 36), Tiny, Amber with { A = shown }, true);
@@ -364,6 +381,42 @@ public partial class RadarScreen : Control
         SketchBox(box, 6.2f, (Hovered(tag) ? Ink : Faint with { A = 0.5f }) with { A = far }, 1.2f);
         Words(words, box.GetCenter() + new Vector2(0, 4), Tiny, (Hovered(tag) ? Text : Mute) with { A = far }, true);
         _hits.Add(tag);
+    }
+
+    /// <summary>
+    /// A stretch of space coming: a band on the ship's orbit round its planet, ahead of the ship as its warning starts and over it
+    /// as it comes (<see cref="RadarBand"/> across the old strip, mapped round the orbit as contacts are).
+    /// </summary>
+    private void DrawStretch()
+    {
+        if (Stretch is not { Shown: > 0 } stretch || Course != null) return;
+        var (near, far) = RadarBand.Across(stretch.Grow, 1, 0.5f);
+        float from = Angle(near), to = Angle(far);
+        if (to - from < 0.01f) return;
+        var planet = Screen(NavMap.Planet(At));
+        float orbit = Px(NavMap.PlanetRadius + NavMap.OrbitGap), thick = Mathf.Max(3, orbit * 0.1f);
+        for (int i = 0; i <= BandSteps; i++)
+        {
+            var way = Vector2.FromAngle(from + (to - from) * i / BandSteps);
+            (_band[i], _band[2 * BandSteps + 1 - i]) = (planet + way * (orbit + thick), planet + way * (orbit - thick));
+        }
+        DrawColoredPolygon(_band, stretch.Colour with { A = 0.22f * stretch.Shown });
+        var edge = Vector2.FromAngle(from);
+        DrawLine(planet + edge * (orbit - thick), planet + edge * (orbit + thick), stretch.Colour with { A = 0.8f * stretch.Shown }, 2);
+
+        static float Angle(float x) => -Mathf.Pi / 2 + Mathf.Clamp((x - 0.5f) / 0.5f, -1, 1) * 1.5f;
+    }
+
+    /// <summary>The shuttle's route set: its words at the top in the middle, at any zoom.</summary>
+    private void DrawRoute()
+    {
+        if (Route == null) return;
+        string words = T("computer.radar.route");
+        float wide = Mathf.Ceil(Width(words, Small) + 28);
+        var box = new Rect2(Mathf.Round((Size.X - wide) / 2), 14, wide, 26);
+        DrawRect(box, Card with { A = 0.85f });
+        SketchBox(box, 7.4f, Loop with { A = 0.8f }, 1.2f);
+        Words(words, box.GetCenter() + new Vector2(0, 5), Small, Text, true);
     }
 
     /// <summary>Where the map is and how to move it: the breadcrumb, the zoom's buttons and gauge, a hint.</summary>
@@ -485,7 +538,7 @@ public partial class RadarScreen : Control
             else
             {
                 rows.Add(new Row(T("computer.radar.flight", ("s", LandingData.FlightTicks / Sim.World.TicksPerSecond))));
-                rows.Add(new Row(T("computer.radar.fuel", ("n", LandingData.JumpFuel))));
+                rows.Add(new Row(T("computer.radar.fuel", ("n", LandingData.JumpFuel / Stillwake.Content.Fuel.Litre))));
             }
             var anchor = Screen(NavMap.Planet(p));
             return new CardView((anchor, Px(NavMap.PlanetRadius) + 6), PlanetName(p), T($"computer.radar.type.{spec.Type}"), [.. rows],
@@ -503,26 +556,28 @@ public partial class RadarScreen : Control
             new($"{T("computer.radar.length")}: {T("computer.radar.cells", ("n", cls?.Length ?? 0))}"),
             new($"{T("computer.radar.decks")}: {Decks(cls)}"),
             new($"{T("computer.radar.distance")}: {T("computer.radar.km", ("n", RadarOrbit.Km(c.Offset)))}"),
+            new($"{T("computer.radar.shuttleFuel")}: {T("computer.radar.litres", ("l", PlacesModule.CostOf(c)))}"),
             new(Leaves(c.Left), going ? (_blink ? Amber : Amber with { A = 0.5f }) : null),
         ];
         string kind = c.Class;
         return new CardView((Screen(NavMap.Contact(At, c.Offset)), 18), ClassName(c.Class), T("computer.radar.vessel"), facts,
             at => Silhouette(at, 40 * (cls?.Length ?? 100) / 200f + 6, kind, false, 1),
-            new ButtonSpec(T("computer.radar.setOff"), true, null, () => Jump?.Invoke(id), null));
+            Route == id ? new ButtonSpec(T("computer.radar.route"), false, null, null, 1)
+                : new ButtonSpec(T("computer.radar.setCourse"), true, null, () => SetRoute?.Invoke(id), null));
     }
 
     private ButtonSpec? PlanetButton(int p, bool here)
     {
         if (Course is { } c)
         {
-            if (p != c.To) return new ButtonSpec(T("computer.radar.setCourse"), false, T("landing.inFlight"), null, null);
+            if (p != c.To) return new ButtonSpec(T("computer.radar.plotCourse"), false, T("landing.inFlight"), null, null);
             return new ButtonSpec(T("computer.radar.flying", ("s", (c.TicksLeft + Sim.World.TicksPerSecond - 1) / Sim.World.TicksPerSecond)), false, null, null, _along);
         }
         if (here) return _zoomTo >= 1 && _focus == At ? null : new ButtonSpec(T("computer.radar.whatsNear"), true, null, () => ZoomTo(At), null);
         string? problem = p < Problems.Count ? Problems[p] : null;
         // The crew away is the call home: the press goes, and the sim refuses it to every peer's screen.
         bool lit = problem is null or "landing.crewAway";
-        return new ButtonSpec(T("computer.radar.setCourse"), lit, lit ? null : T(problem!, ("fuel", LandingData.JumpFuel)), () => SetCourse?.Invoke(p), null);
+        return new ButtonSpec(T("computer.radar.plotCourse"), lit, lit ? null : T(problem!, ("fuel", LandingData.JumpFuel / Stillwake.Content.Fuel.Litre)), () => PlotCourse?.Invoke(p), null);
     }
 
     private static string PlanetName(int i) => T("computer.radar.planetN", ("n", i + 1));
