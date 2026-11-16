@@ -20,13 +20,13 @@ public class BoltLookTests
     }
 
     [Fact]
-    public void Branches_fork_off_the_upper_channel_and_go_down()
+    public void Branches_fork_off_the_channel_low_enough_to_be_seen_and_go_down()
     {
         var random = new Random(3);
         var channel = BoltLook.Channel(random, (0, -400), (0, 0));
-        var branches = BoltLook.Branches(random, channel).ToList();
+        var branches = BoltLook.Branches(random, channel, 320).ToList();
         Assert.InRange(branches.Count, 3, 5);
-        Assert.All(branches, b => Assert.True(b[^1].Y > b[0].Y && b[0].Y < -100));
+        Assert.All(branches, b => Assert.True(b[^1].Y > b[0].Y && b[0].Y >= -320 && b[0].Y <= -50));
     }
 
     [Fact]

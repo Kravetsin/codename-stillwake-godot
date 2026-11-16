@@ -160,11 +160,12 @@ public partial class BoltView : Node2D
             if (Ground(x) is int cell) _zone.Add((cell, Math.Abs(x - column) / (float)Math.Max(1, strike.Spread)));
         var (tx, ty) = Top(strike.Cell);
         var view = GetCanvasTransform().AffineInverse() * GetViewportRect();
-        double from = Math.Min(view.Position.Y - 2 * Cell, ty - 40 * Cell);
+        // From above the farthest zoom's view, so zooming out mid-glow never shows where it starts.
+        double from = Math.Min(view.Position.Y - 2 * Cell, ty - (ShipCamera.Farthest.Y + 40) * Cell);
         var channel = BoltLook.Channel(_random, (tx, from), (tx, ty));
         _channel = Vectors(channel);
         _branches.Clear();
-        foreach (var branch in BoltLook.Branches(_random, channel)) _branches.Add(Vectors(branch));
+        foreach (var branch in BoltLook.Branches(_random, channel, 40 * Cell)) _branches.Add(Vectors(branch));
     }
 
     private static Vector2[] Vectors(List<(double X, double Y)> points)

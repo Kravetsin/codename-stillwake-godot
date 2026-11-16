@@ -32,8 +32,9 @@ public static class BoltLook
     public static List<(double X, double Y)> Channel(Random random, (double X, double Y) from, (double X, double Y) to)
     {
         var points = new List<(double X, double Y)> { from, to };
-        double wander = (to.Y - from.Y) * 0.22;
-        for (int depth = 0; depth < 6; depth++, wander *= 0.52)
+        double length = to.Y - from.Y, wander = length * 0.22, settle = Math.Min(length * 0.06, 20);
+        int depths = Math.Max(6, (int)Math.Ceiling(Math.Log2(Math.Max(1, length) / 8)));
+        for (int depth = 0; depth < depths; depth++, wander *= 0.52)
         {
             var next = new List<(double X, double Y)>(points.Count * 2) { points[0] };
             for (int i = 1; i < points.Count; i++)
@@ -41,8 +42,8 @@ public static class BoltLook
                 var a = points[i - 1];
                 var b = points[i];
                 (double X, double Y) mid = ((a.X + b.X) / 2 + (random.NextDouble() - 0.5) * wander, (a.Y + b.Y) / 2 + (random.NextDouble() - 0.5) * wander * 0.25);
-                // Near the ground it settles onto the cell: no kink in the last tenth.
-                if (mid.Y > to.Y - (to.Y - from.Y) * 0.06) mid.X = to.X;
+                // Near the ground it settles onto the cell: no kink in its last few pixels.
+                if (mid.Y > to.Y - settle) mid.X = to.X;
                 next.Add(mid);
                 next.Add(b);
             }
@@ -51,14 +52,19 @@ public static class BoltLook
         return points;
     }
 
-    /// <summary>Forks off the channel's upper two thirds, down and aside, each shorter and kinked, ending in air.</summary>
-    public static IEnumerable<List<(double X, double Y)>> Branches(Random random, List<(double X, double Y)> channel)
+    /// <summary>
+    /// Forks off the channel between <paramref name="reach"/> and a sixth of it above the ground, where a view sees them however
+    /// high the channel starts: down and aside, each shorter and kinked, ending in air.
+    /// </summary>
+    public static IEnumerable<List<(double X, double Y)>> Branches(Random random, List<(double X, double Y)> channel, double reach)
     {
         int count = 3 + random.Next(3);
-        double length = (channel[^1].Y - channel[0].Y) * 0.18;
+        double length = reach * 0.18, ground = channel[^1].Y;
+        int first = channel.FindIndex(p => p.Y >= ground - reach), last = channel.FindLastIndex(p => p.Y <= ground - reach / 6);
+        if (first < 0 || last <= first) yield break;
         for (int k = 0; k < count; k++)
         {
-            int at = (int)(channel.Count * (0.12 + 0.55 * random.NextDouble()));
+            int at = first + random.Next(last - first);
             double side = random.Next(2) == 0 ? -1 : 1;
             var start = channel[at];
             var end = (start.X + side * length * (0.5 + random.NextDouble() * 0.6), start.Y + length * (0.6 + random.NextDouble() * 0.7));
