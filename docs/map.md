@@ -39,7 +39,7 @@ Below, `f/x` = `game/features/x`, `r/` = `game/render`, `gc/` = `game/Content` (
 
 **Liquids** — sim/Liquids: `Liquids.cs` LiquidsModule (water in a surface's cells); `Flow.cs` (the flow, awake chunks); `Pressure.cs` (bodies levelled); `Puddles.cs` (runs levelled, thin ones dried); `Saved.cs`; c/`Liquids.cs`; drawn in a map by `Layout.WithLiquids`, `Legend.LiquidOf`; lakes grown by sim/Core `Lakes.cs` · f/liquids: `LiquidsView.cs` (drawn over the heroes, a stream heard), `WaterLook.cs` (its shader)
 
-**Day and night** — sim/Sky: `Sky.cs` SkyModule, `SetTime`, `ISkyQueries.Now`; the chill in sim/Crew `TemperatureAt`; gc/`Daylight.cs`, `PlanetLooks.cs` (dusk and night colours); r/`Lit.cs` (`sky` uniform), `Stars.cs` (`Tint`, also the land's veil in f/backdrop); c/`Sky.cs`
+**Day and night** — sim/Sky: `Sky.cs` SkyModule, `SetTime`, `ISkyQueries.Now`; the chill in sim/Crew `TemperatureAt`; storms (a planet's stretches, c/`Stretches.cs` `FirstPlanet`): the pace in sim/Crew `PaceAt`, f/sky `StormView.cs`, `logic/Storm.cs`, `logic/Streaks.cs`; gc/`Daylight.cs`, `PlanetLooks.cs` (dusk and night colours); r/`Lit.cs` (`sky` uniform), `Stars.cs` (`Tint`, also the land's veil in f/backdrop); c/`Sky.cs`
 
 **Stretches of space** (ice belt, contraband drift) — sim/Sky `Stretches.cs` (the schedule, `StretchNow`); c/`Stretches.cs`; their zones in sim/Debris `Drift.cs`; contraband's reputation in sim/Research · gc/`StretchLooks.cs` (`StretchShown`); r/`StretchBackdrop.cs` (the far picture); f/computer `logic/RadarBand.cs`; f/sky: `FrostView.cs`, `logic/Frost.cs`, `logic/HullCells.cs`
 

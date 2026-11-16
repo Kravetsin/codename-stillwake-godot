@@ -57,70 +57,11 @@ Three slices, each played by the user before the next, each opening with its pic
    `First with { … }`, so each sets `Stretches = []` until its own weather comes. A planet nobody is on keeps its storms
    running (0076); no bolt falls there, as no hero is there to draw.
 
-## Slice 1 — storms (`feat/surface-storms`)
+## Slice 1 — storms: shipped
 
-**Pick pages first.** Look: the storm (grit against rain streaks, how far daylight dims, the dull horizon in the
-backdrop's and fog's tint), each candidate moving through warning, storm and easing back beside the hero. Sound: the wind,
-a loop, CC0 from Kenney or Freesound as `CREDITS.md` asks; it fades out with the storm and never stays on.
-
-**Sim.** Every touched call site, each verified:
-
-| Where | Change |
-| --- | --- |
-| `sim/Content/Stretches.cs:20` `Stretch` | gains `int Warning`; `Zone` becomes `DebrisZone? Zone = null`. |
-| `sim/Content/Stretches.cs:26` `const Warning`, `:43` `All`, `:49` `Get` | the const goes (`IceBelt`, `ContrabandDrift` take `Warning: 3 * Minute`); `All` becomes `Ship`, beside `FirstPlanet = [Storm]`; `Get` goes for `Kind.StretchOf`. |
-| `sim/Content/Surfaces.cs:46` `Kind`, `:95` Ship | `Kind` gains `Stretch? StretchOf(string id)` over its own list; the ship takes `Stretches = Content.Stretches.Ship`. |
-| `sim/Content/Surfaces.cs:~107` TestStrip | `Stretches = PlanetTypes.First.Stretches`: it copies planet 1's fields one by one. |
-| `sim/Content/PlanetTypes.cs:172` First | `Stretches = Content.Stretches.FirstPlanet`. |
-| `sim/Content/PlanetTypes.cs:227`, `:247` Icy, Scorched | `Stretches = []`: `First with` would carry the storm. Small and SmallSpire keep it, so the fuzz meets storms. |
-| `sim/Content/Debris.cs:142` `Zones` | `IceBelt.Zone!`, `ContrabandDrift.Zone!`. |
-| `sim/Sky/Stretches.cs:9` `Coming`, `:76` `Bring` | the stretch's own `Warning`. |
-| `sim/Sky/Stretches.cs:35` `Unlocked` | an empty `Unlock` returns true: open from the start. |
-| `sim/Sky/Stretches.cs:57` the choice, `:87` `Draw` | from Sky's fork (below). |
-| `sim/Sky/Stretches.cs:90` `StretchOf`, `:102` `IndexOf`; `Sky.cs:78` `StretchNow`, `:86` `Now`; `Fuzz.cs:14` | read `Rules.Stretches` and `Rules.StretchOf`. |
-| `sim/Debris/Drift.cs:239` | reads `Rules.StretchOf(_running)!.Thins`. |
-
-- `Stretches.Storm`, first numbers: `new("storm", [], First: new(6000, 9600), Gap: new(5700, 7300), Duration: new(1200,
-  1800), Chill: 20, Warning: 800)`. `Stretch.Gap` runs from a storm's end to the next start, warning included; gap plus
-  duration averages 8000 ticks, 3 storms a day. The schedule ignores the hour.
-- **Sky's fork.** Each draw (`Draw`, the choice) is one fork, `Random.Fork(SkySalt ^ Here·k₁ ^ Drawn·k₂)`, and `Drawn`
-  goes up by one per fork. `Drawn` is saved in `SkyState` ("none yet" initializer); `Here` is the surface's index, so two
-  planets drawing on one tick differ; `SkySalt`, `k₁`, `k₂` are odd constants chosen at implementation. Nothing is drawn
-  from the world's Rng, so no planet or strip test pinned to later draws moves. The ship's stretches use the fork too (one
-  rule): run `StretchesTests`, `DebrisZonesTests`, `ReputationTests`; re-pin what moves, never loosen.
-- No format bump: `Drawn` is new with a "none yet" initializer. An old planet save opens its storm on its next tick.
-
-**Client**
-
-| Where | Change |
-| --- | --- |
-| `game/Content/logic/StretchLooks.cs` | `Look.Far` and `Look.Band` become optional; a new `Weather` record holds the picked streaks, the dim, the haze colour and the sway gain; the `storm` look has no far picture and no radar band. `StretchShown.See` (:164–165) takes the stretch's `Warning` instead of the global const. |
-| `game/Main.cs:718` `ShowStretch`, `game/features/computer/ComputerPanel.cs:191`, `game/features/sky/FrostView.cs:142` | pass the warning; the radar band shows only a look with a `Band`. |
-| `game/Main.cs:~692` `ShowDaylight` | dims the sky light and turns the backdrop and fog tint toward the haze, by the storm's share. |
-| `game/render/Stars.cs:126`, `game/render/StretchBackdrop.cs:43` | a look with no `Far` draws nothing. |
-| `game/SurfaceViews.cs:50` | FrostView gated on a stretch whose look has `Frost`; a new line adds `StormView`, gated on one whose look has `Weather`. |
-| `game/features/sky/StormView.cs`, `logic/Streaks.cs` (new) | streaks over the open sky above the surface line, read once at load from `GroundLine`, never walked per frame; the logic unit-tested in `game.tests`. |
-| `game/features/flora/logic/Gusts.cs` | the sway's strength grows with the storm's share. |
-| `gc/Sound.cs`, `f/sound/SoundView.cs` | the wind cue, its volume following the share. |
-| `game/features/dev-panel/DevPanel.cs:101` | lists the current surface's `Rules.Stretches`, not the ship's. |
-
-**Tests** (`sim/Tests/StormsTests.cs`, scenarios on the strip unless noted)
-- The storm opens on the first tick; the first comes within `Stretch.First`, later ones within `Stretch.Gap` of the last end.
-- It is `Coming` for its own 800 ticks, not the ship's 3 minutes; `StretchesTests` reads `Belt.Warning`.
-- Temperature at an open-sky cell: −50° in a storm by day, −50° at night, −70° in both; under a back wall and below the
-  top band, unchanged.
-- A basic-suited hero, no cape, standing in the open through a storm loses 12–18 units to the cold by day and 36–54 at
-  night (counted from `Chills`, breathing's own cost excluded).
-- `StretchNow("storm")` runs a storm on the strip; refused `sky.noStretch` for `"storm"` aboard and `"iceBelt"` on a
-  planet, `sky.stretchRunning` while one runs. Icy and Scorched see no stretch over a long run; the ship's list is exactly
-  `[IceBelt, ContrabandDrift]`. Save and load mid-storm: the same `Now` and end.
-- The world's `RngState` is untouched across a tick that chooses or starts a storm (a calm strip, nothing else drawing).
-- Invariant: `StretchesTests`' FsCheck property runs on planet kinds too — at most one chosen, coming or running; `Left`
-  within `Duration`; `NextIn` within the bigger of `Stretch.First` and `Stretch.Gap`. Prove it bites by giving `Coming` the
-  global 3 minutes back.
-- Suites that may now meet a storm: the files naming `TestStrip` (`grep -l TestStrip sim/Tests net/Tests`, 25 today) and
-  those growing planet 1 (`PlanetTesting`). Run them once here; any that runs past 6000 ticks reading temperature or air
-  states the storm in the test, never hides it.
+Built as planned, then tuned in play: two storms, dust and rain, one at a time; a storm halves a hero's pace in the open;
+no wisps, no clear patch round the hero; streaks drawn by a shader. Its rules are
+[surface-storms](../decisions/2026-11-16-surface-storms.md) and the `sim/Sky`, `sim/Crew` and `f/sky` READMEs.
 
 ## Slice 2 — lightning (after slice 1 is played)
 

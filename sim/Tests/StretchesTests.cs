@@ -31,6 +31,9 @@ public class StretchesTests
     private static SkyState S(Scenario w) => (SkyState)w.M.Sky.Slice;
     private static SkyNow Now(Scenario w) => w.M.Sky.Now;
 
+    /// <summary>The sky with no stretch chosen, coming or running, at the start of a day.</summary>
+    private static readonly SkyNow Calm = new(0, false, 0, null, null, 0);
+
     /// <summary><paramref name="item"/> obtained by the crew, as a catch counts it.</summary>
     private static Scenario Obtain(Scenario w, string item)
     {
@@ -63,7 +66,7 @@ public class StretchesTests
     public void NothingObtainedOpensNothingAndDrawsNothing()
     {
         var w = Ship().Run(2000);
-        Assert.Equal(default, Now(w));
+        Assert.Equal(Calm, Now(w));
         Assert.Contains("\"sky\":{\"time\":0}", w.World.Save());
     }
 
@@ -92,7 +95,7 @@ public class StretchesTests
         w.Run(left - 1);
         Assert.Equal((Belt.Id, left - 1), (Now(w).Stretch, Now(w).Ran));
         w.Run();
-        Assert.Equal(default, Now(w));
+        Assert.Equal(Calm, Now(w));
         // Its gap measured from the end, drawn on the tick it ended; the drift never opened.
         Assert.Equal(Belt.Id, S(w).Next);
         InSpan(Belt.Gap, S(w).NextIn);

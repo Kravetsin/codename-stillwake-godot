@@ -144,6 +144,7 @@ Game words → code. One line a term: Russian / English → identifiers → modu
 - набор руд / a planet's ores → `Content.Landing.Ores`, `Starting`, `Varying`, `LandingModule.OresOf`, `Surface.Ores` → Landing, Core
 - фон, задний план, параллакс / backdrop, the land behind → `PlanetSky` (r/, the sky), `BackdropView`, `BackdropPlan` (f/backdrop, the land), `BackdropLooks` (gc) → client only
 - сутки, день, ночь, время суток / day, night, hour → `Sky.Cycle` (`c/Sky.cs`), `SkyNow`, `SetTime` (sim/Sky); fades `Daylight` (gc) → Sky
+- буря, пыльная буря, ливень, непогода / storm, dust storm, rain storm, weather **≠** → a planet's stretch: `Stretches.DustStorm`, `RainStorm` (`"dustStorm"`, `"rainStorm"`), `SkyNow.Pace`, `ICrewQueries.PaceAt`; looks `StretchLooks.Weather`, f/sky `StormView` → Sky, Crew
 - ночной холод, мороз / the night's chill → `Cycle.Chill` (degrees), frost `Report.Cold` → Crew
 - температура, градусы, предел / temperature, degrees, a hero's limit → `TemperatureAt`, `LowOf`, `Felt` (sim/Crew), `Temperature`, `Kind.Temperatures`, `ItemSpec.Low`, `Cape.Warmth` (c/) → Crew
 - копать / dig → `Dig`, `Crack` (sim/Building `Digging.cs`) → Building
