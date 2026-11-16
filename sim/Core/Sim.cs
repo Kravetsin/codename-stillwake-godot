@@ -40,7 +40,7 @@ public sealed class World
     private readonly List<(int Peer, int Surface)> _sends = [];
     // Surfaces asked for this tick (ISurfaces.Open, OpenPlanet), opened after the phases in the order asked, before the sends: a
     // null seed drawn from the world's Rng as it opens. Never saved, empty between steps.
-    private readonly List<(string Kind, uint? Seed, int Opener)> _opening = [];
+    private readonly List<(string Kind, uint? Seed, int Opener, IReadOnlyList<string>? Ores)> _opening = [];
     // Whether the tick's commands are applying: the one moment a module may open a surface and move a hero at once (Visit).
     private bool _applying;
     private readonly RngState _rng;
@@ -119,7 +119,10 @@ public sealed class World
             var ship = modules as IModules ?? throw new InvalidDataException("The save holds surfaces, and these modules cannot make any.");
             foreach (var saved in surfaces.EnumerateArray())
             {
-                var surface = new Surface(saved.GetProperty("id").GetInt32(), saved.GetProperty("kind").GetString()!, saved.GetProperty("seed").GetUInt32());
+                var surface = new Surface(saved.GetProperty("id").GetInt32(), saved.GetProperty("kind").GetString()!, saved.GetProperty("seed").GetUInt32())
+                {
+                    Ores = saved.TryGetProperty("ores", out var ores) ? [.. ores.EnumerateArray().Select(o => o.GetString()!)] : null,
+                };
                 if (surface.Id != world._surfaces.Count) throw new InvalidDataException($"Surface {surface.Id} saved out of order.");
                 // A closed one keeps its id and nothing else (vessel-worlds).
                 if (saved.TryGetProperty("closed", out var closed) && closed.GetBoolean())
@@ -130,7 +133,7 @@ public sealed class World
                 var more = ship.Another();
                 world._surfaces.Add(world.Attach(surface, more));
                 // A grown surface saves what changed since its ground grew: grown again here, from its seed (0077).
-                var ground = Content.Surfaces.Get(surface.Kind) is Content.PlanetType type ? Terrain.Generate(type, surface.Seed) : null;
+                var ground = Content.Surfaces.Get(surface.Kind) is Content.PlanetType type ? Terrain.Generate(type, surface.Seed, surface.Ores) : null;
                 Restore(saved.GetProperty("slices"), more, json, ground);
             }
             foreach (var at in root.GetProperty("where").EnumerateArray())
@@ -189,7 +192,7 @@ public sealed class World
                     foreach (var (p, run) in m.Systems)
                         if (p == phase) run();
         // After every surface ran this tick, in the order asked: each runs from the next.
-        foreach (var (kind, seed, opener) in _opening) Open(kind, opener, seed);
+        foreach (var (kind, seed, opener, ores) in _opening) Open(kind, opener, seed, ores);
         _opening.Clear();
         foreach (var (peer, surface) in _sends) Move(peer, surface, null);
         _sends.Clear();
@@ -230,19 +233,20 @@ public sealed class World
     /// the world's random numbers when none is given), keeping what surface <paramref name="opener"/> keeps for a new one (its
     /// creative flag), then filled (<see cref="Module.Opened"/>). Returns its id.
     /// </summary>
-    private int Open(string kindId, int opener, uint? given)
+    /// <param name="ores">A planet's ores (<see cref="Surface.Ores"/>), null for all.</param>
+    private int Open(string kindId, int opener, uint? given, IReadOnlyList<string>? ores = null)
     {
         var kind = Content.Surfaces.Get(kindId);
         var ship = _surfaces[0].Modules as IModules ?? throw new InvalidOperationException("This world cannot open surfaces.");
         uint seed = given ?? _rngOver.Below(1UL << 32);
         var layout = kind switch
         {
-            Content.PlanetType type => Terrain.Generate(type, seed),
+            Content.PlanetType type => Terrain.Generate(type, seed, ores),
             Content.VesselKind vessel => Shipyard.Space(Shipyard.Describe(Content.Vessels.Class(vessel.Class)!, seed)),
             _ => Layout.Parse(kind.Rows).Doubled(),
         };
         var modules = ship.Another();
-        var surface = Attach(new Surface(_surfaces.Count, kind.Id, seed), modules);
+        var surface = Attach(new Surface(_surfaces.Count, kind.Id, seed) { Ores = kind is Content.PlanetType ? ores : null }, modules);
         foreach (var m in modules) m.Create(layout);
         // What the opener's surface keeps for the new one: its twin of each module.
         var from = _surfaces[opener].Modules;
@@ -354,6 +358,12 @@ public sealed class World
                 w.WriteNumber("id", s.Surface.Id);
                 w.WriteString("kind", s.Surface.Kind);
                 w.WriteNumber("seed", s.Surface.Seed);
+                if (s.Surface.Ores is { } ores)
+                {
+                    w.WriteStartArray("ores");
+                    foreach (var ore in ores) w.WriteStringValue(ore);
+                    w.WriteEndArray();
+                }
                 if (s.Surface.Closed) w.WriteBoolean("closed", true);
                 else WriteSlices(w, s.Modules);
                 w.WriteEndObject();
@@ -451,23 +461,23 @@ public sealed class World
             }
         }
 
-        public int OpenPlanet()
+        public int OpenPlanet(string kind, IReadOnlyList<string>? ores)
         {
             for (int i = 1; i < world._surfaces.Count; i++)
                 if (world.OpenPlanetAt(i)) return i;
             int asked = world._opening.FindIndex(o => Content.Surfaces.Get(o.Kind) is Content.PlanetType);
             if (asked >= 0) return world._surfaces.Count + asked;
             // Opened by the ship, as before any other surface could be asked for.
-            return Ask(Content.Landing.Planet, null, 0);
+            return Ask(kind, null, 0, ores);
         }
 
         public int Open(string kind, uint seed) => Ask(kind, seed, here);
 
         /// <summary>A surface of <paramref name="kind"/> asked for, opened after the phases by <paramref name="opener"/>; returns the id it will take.</summary>
-        private int Ask(string kind, uint? seed, int opener)
+        private int Ask(string kind, uint? seed, int opener, IReadOnlyList<string>? ores = null)
         {
             if (!world.CanOpen) throw new InvalidOperationException("This world cannot open a surface.");
-            world._opening.Add((kind, seed, opener));
+            world._opening.Add((kind, seed, opener, ores));
             return world._surfaces.Count + world._opening.Count - 1;
         }
     }

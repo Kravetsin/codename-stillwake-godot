@@ -38,7 +38,12 @@ public static class SurfaceViews
 {
     public static readonly IReadOnlyList<SurfaceView> All =
     [
-        new(c => new GridView(c.M.Grid, c.M.Rules is Content.PlanetType p ? new Features.Grid.Strata(p, PlanetLooks.Of[p.Id].StrataFrom) : null) { HeldBack = c.Arrivals.Holds, HeldBackVersion = () => c.Arrivals.Version }),
+        new(c => new GridView(c.M.Grid, c.M.Rules is Content.PlanetType p ? new Features.Grid.Strata(p, PlanetLooks.Of[p.Id].StrataFrom) : null)
+        {
+            HeldBack = c.Arrivals.Holds,
+            HeldBackVersion = () => c.Arrivals.Version,
+            Tint = PlanetLooks.Of.TryGetValue(c.M.Rules.Id, out var look) ? new Color(look.Ground.R, look.Ground.G, look.Ground.B) : Colors.White,
+        }),
         // What still moves on the wreck: nothing on a surface with no tear of it (2026-10-31-the-scoop).
         new(c => new WreckMotionView(c.M.Grid), Fades: true),
         // Frost creeping over the hull's outer walls before the ice belt, where stretches come (docs/decisions/2026-11-15-stretches-of-space.md).

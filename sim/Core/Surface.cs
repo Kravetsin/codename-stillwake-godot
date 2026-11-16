@@ -12,6 +12,12 @@ public sealed record Surface(int Id, string Kind, uint Seed)
 
     /// <summary>Closed once nobody stood on it (a transient kind's, vessel-worlds): no modules, no phase run, no transfer to it.</summary>
     public bool Closed { get; init; }
+
+    /// <summary>
+    /// A planet's ores of <c>Content.Landing.Ores</c> (planet-variety), item ids in that order, its ground grown with these only;
+    /// null for all: the ship, a vessel, a dev or test planet, an old save's.
+    /// </summary>
+    public IReadOnlyList<string>? Ores { get; init; }
 }
 
 /// <summary>

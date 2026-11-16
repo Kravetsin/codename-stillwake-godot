@@ -170,6 +170,7 @@ public partial class ComputerPanel : CanvasLayer
         _radar.At = landing.At;
         _radar.Course = landing.Course is { } course ? (course.To, course.TicksLeft) : null;
         _radar.Problems = [.. Enumerable.Range(0, Content.Landing.Planets.Count).Select(landing.CourseProblem)];
+        _radar.Ores = [.. Enumerable.Range(0, Content.Landing.Planets.Count).Select(landing.OresOf)];
         // The shuttle's route (shuttle-flight), and a stretch of space coming (stretches-of-space).
         _radar.Route = _world()!.Places.Course?.Id;
         ShowStretch(_world()!);

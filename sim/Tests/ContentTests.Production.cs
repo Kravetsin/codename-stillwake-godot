@@ -515,12 +515,11 @@ public partial class ContentTests
 
     /// <summary>
     /// What the planet's caves give (0080) is had there alone: copper ore from its veins, smelted into copper at the furnace,
-    /// magnetite from the heat's cracks over the bedrock, and the motor of both at the Former; crystal, spores and mica. Ice too, but for the
-    /// ice belt's blocks aboard (docs/decisions/2026-11-15-stretches-of-space.md).
-    /// Aboard, none of them; and no motor without the deepest band's magnetite.
+    /// and the motor of it at the Former; magnetite from the heat's cracks over the bedrock, crystal, spores and mica. Ice too, but
+    /// for the ice belt's blocks aboard (docs/decisions/2026-11-15-stretches-of-space.md). Aboard, none of them.
     /// </summary>
     [Fact]
-    public void WhatTheCavesGiveComesFromAPlanetAloneAndTheMotorNeedsItsCopperAndItsDeepestMagnetite()
+    public void WhatTheCavesGiveComesFromAPlanetAloneAndTheMotorNeedsItsCopper()
     {
         string[] planetary = ["copperOre", "copper", "magnetite", "motor", "crystal", "spore", "mica", "sulfur"];
         var aboard = Reachable(Stations.All).Items;
@@ -532,8 +531,8 @@ public partial class ContentTests
         Assert.DoesNotContain("motor", Reachable([.. Stations.All.Where(s => s.Machine != "former")], planet: true).Items);
         Assert.Equal([("copper", 1)], Content.Items.Get("copperOre").Yields);
         Assert.Equal(1, Content.Items.Get("copperOre").Heat);
-        Assert.Contains("magnetite", Crafts.Get("motor").Cost.Select(c => c.Item));
-        // Magnetite lies only in the heat's cracks, and they only in the band over the bedrock.
+        Assert.Contains("copper", Crafts.Get("motor").Cost.Select(c => c.Item));
+        // Magnetite lies only in the heat's cracks, and on the first planet they only in the band over the bedrock.
         var magnetic = Flora.Cave.Where(k => k.Yields.Any(y => y.Item == "magnetite")).ToList();
         Assert.Equal(["heatCrack"], magnetic.Select(k => k.Id));
         Assert.All(magnetic, k => Assert.Equal([0, 0, 0], k.Chances.Take(PlanetTypes.First.Bands.Count)));
@@ -563,15 +562,19 @@ public partial class ContentTests
 
     /// <summary>
     /// The engine is the last thing opened (2026-10-25-the-engine-through-the-hull): never aboard, only of a planet's
-    /// parts, and with any one of the ruins' alloy, the deepest band's magnetite or the deep's crystal missing, neither it nor
-    /// the part made of it. Its card is the ship tab's last.
+    /// parts, and with the ruins' alloy missing, neither it nor its nozzle. No ore only some
+    /// planets hold goes into it, the computer or the radar's antenna, nor into the heat suit (planet-variety): the first planet
+    /// alone is the way off it. Its card is the ship tab's last.
     /// </summary>
     [Fact]
-    public void TheEngineOpensLastOfAPlanetsAlloyMagnetiteAndCrystal()
+    public void TheEngineOpensLastOfAPlanetsAlloyAndOfTheFirstPlanetsOresAlone()
     {
         Assert.DoesNotContain("engine", Reachable(Stations.All).Known);
         Assert.Contains("engine", Reachable(Stations.All, planet: true).Known);
-        foreach (var (missing, part) in new[] { ("alloyScrap", "nozzle"), ("magnetite", "fuelPump"), ("crystal", "igniter") })
+        var (firstHas, firstKnows) = Reachable(Stations.All, planet: true, [.. Content.Landing.Varying]);
+        foreach (var kind in new[] { "engine", "computer", "radarAntenna" }) Assert.Contains(kind, firstKnows);
+        Assert.Contains(Suit.Heat, firstHas);
+        foreach (var (missing, part) in new[] { ("alloyScrap", "nozzle") })
         {
             var (had, known) = Reachable(Stations.All, planet: true, missing);
             Assert.DoesNotContain(part, had);

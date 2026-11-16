@@ -97,7 +97,7 @@ public class DropPodTests
         public bool Landed => false;
         public bool Away => false;
         public void LeavePlanet() => throw new NotSupportedException();
-        public int OpenPlanet() => throw new NotSupportedException();
+        public int OpenPlanet(string kind, IReadOnlyList<string>? ores) => throw new NotSupportedException();
         public int Open(string kind, uint seed) => throw new NotSupportedException();
         public uint Seed => 0;
         public int Visit(int peer, string kind, uint seed) => throw new NotSupportedException();

@@ -31,4 +31,10 @@ public sealed class Rng(RngState state)
         while (v >= limit) v = Next();
         return (uint)(v % n);
     }
+
+    /// <summary>
+    /// Another stream, begun from this one's state and <paramref name="salt"/>, drawing nothing from this one: for draws made once
+    /// a world that must not move every draw after them (planet-variety).
+    /// </summary>
+    public Rng Fork(uint salt) => new(new RngState { S = state.S ^ salt });
 }

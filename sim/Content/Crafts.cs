@@ -62,19 +62,19 @@ public static class Crafts
         new("transceiver", [("coil", 4), ("circuit", 3), ("tube", 2), ("glass", 2)], Ticks: 300),
         // Pressed at the Former only: a grow capsule's bed (0060), of the crusher's gravel.
         new("soil", [("gravel", 2), ("planks", 1)], Ticks: 60),
-        // At the Former only: a rotor wound with the planet's copper round magnetite from its deepest band. Canisters are
+        // At the Former only: a rotor in copper windings, of the first planet's ores alone (planet-variety). Canisters are
         // salvaged, not made: an electrolyser will fill them (2026-11-06-no-ice-canister).
-        new("motor", [("rotor", 1), ("copper", 4), ("magnetite", 2)], Ticks: 180),
+        new("motor", [("rotor", 1), ("copper", 6), ("coil", 2)], Ticks: 180),
         // At the circuit assembler: a drone, of a rotor, plates, a circuit and the battery it will run on (0062).
         new("drone", [("rotor", 2), ("plate", 3), ("circuit", 2), ("battery", 1)], Ticks: 240),
         // A salvage drone (salvage-drones, salvage-trips): the drone's craft with nozzles for a canister's air where it has rotors.
         new("salvageDrone", [("nozzle", 2), ("plate", 3), ("circuit", 2), ("battery", 1)], Ticks: 240),
         new("deckDrive", [("circuit", 3), ("rotor", 2), ("coil", 2)], Ticks: 300),
         // The engine's parts, the last made: a nozzle pressed of the ruins' heat-proof alloy lined with copper, and a fuel pump
-        // of a motor at the Former; an igniter of a crystal's spark at the circuit assembler.
+        // of a motor at the Former; an igniter, a coil's spark, at the circuit assembler.
         new("nozzle", [("alloyScrap", 12), ("copper", 6)], Ticks: 300),
         new("fuelPump", [("motor", 2), ("tube", 4), ("plate", 2)], Ticks: 240),
-        new("igniter", [("crystal", 2), ("circuit", 2), ("wire", 4)], Ticks: 180),
+        new("igniter", [("copper", 2), ("coil", 1), ("circuit", 2), ("wire", 4)], Ticks: 180),
         // The galley's dishes (food-and-the-body): a dish's recipe is its cost, its rates its own (Foods).
         new(Foods.Porridge, [(Foods.Fruit, 2), (Foods.Ration, 1)], Ticks: 200),
         new(Foods.Hash, [(Foods.CannedMeat, 1), (Foods.Fruit, 2)], Ticks: 200),
@@ -82,7 +82,7 @@ public static class Crafts
         new(Foods.Roast, [("fat", 2)], Ticks: 300),
         new(Foods.Stew, [("fat", 1), (Foods.Glowberry, 1), (Water.Item, 1)], Ticks: 300),
         // At the arc bench (0099): a sky shard wound into a module an electric station or the drill takes (0086, 0096), in ten seconds.
-        new("arcModule", [("arcShard", 1), ("crystal", 2), ("mica", 2), ("coil", 4), ("circuit", 4), ("frame", 1)], Ticks: 200),
+        new("arcModule", [("arcShard", 1), ("mica", 4), ("coil", 4), ("circuit", 4), ("frame", 1)], Ticks: 200),
         // At the arc bench (0099): a battery wound round a sky shard with a planet's copper, three batteries' charge, in ten seconds.
         new("accumulator", [("arcShard", 1), ("battery", 2), ("copper", 4), ("mica", 4), ("circuit", 2)], Ticks: 200),
         // At the arc bench (2026-10-27-the-railgun): two rails of copper wound with coils round a sky shard, in ten seconds.
