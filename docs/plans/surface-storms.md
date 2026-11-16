@@ -24,7 +24,7 @@ Three slices, each played by the user before the next, each opening with its pic
 - **Lightning: one bolt per storm**, a hazard and a spectacle, leaving no loot. A glow crawls over the ground it will
   strike first, so it is seen coming: the struck cell and the open ground `Spread` columns either side, 20 in rain (wet
   ground), 10 in dust (the user's, 2026-11-16). Then the bolt strikes: a small crater (Building's `Burst`) and a shock of
-  40 (`ICrewOps.Shock`; `Burst` hurts no hero, sim/Building/Bursts.cs:73) to every hero under the open sky in those
+  100 (`ICrewOps.Shock`; `Burst` hurts no hero, sim/Building/Bursts.cs:73) to every hero under the open sky in those
   columns: a back wall or a cave shelters. The target is the highest open-sky cell, built or not, within 24
   columns of one hero drawn per storm: in co-op, one strike per storm is an accepted limitation.
 - **The one damage rule** applies to the crater: a player's hit on their own ship takes a tenth, everything else full. The
@@ -46,7 +46,7 @@ Three slices, each played by the user before the next, each opening with its pic
    existing chill path rules; the band's own −30° stays.
 3. **Caught on a hill.** The glow crawls over the hilltop and the ground round it; in its 3 s the hero runs out of the
    zone (at half pace a run is about 13 cells a second: 20 cells in 1.5 s) or under a back wall, and the bolt craters the
-   top. If they stay in the open in the zone, they lose 40: nearly all of a basic helmet's 45.
+   top. If they stay in the open in the zone, they lose 100: a basic or quilted suit's whole air and their last breath.
 4. **A roof struck.** The shelter is the highest thing near: the glow crawls over its roof, the bolt cracks or breaks that
    cell, a hole the player rebuilds; the back walls below still shelter from the chill.
 5. **Co-op.** Everyone on the planet sees one storm (one Sky slice); one hero is drawn per storm, the bolt falls near them,
@@ -79,7 +79,7 @@ crack), a one-shot with no Loops flag. No shake, no freeze, no rings.
   `record BoltRule(Span At, int Glow, int Columns, int Power, int Reach, int Spread, int Shock)`. The storms': `At`
   200–1000 ticks into the storm; `Glow` 60 (3 s: a run out of a 20-column zone at half pace, and a reaction); `Columns`
   24; `Power` enough to break the struck soil cell and crack its neighbours, `Reach` 2 cells (the crater only); `Spread`
-  20 for the rain storm, 10 for the dust storm; `Shock` 40. A content test keeps `At.Most + Glow < Duration.Least`.
+  20 for the rain storm, 10 for the dust storm; `Shock` 100 (the user's, 2026-11-16: it may knock a hero out). A content test keeps `At.Most + Glow < Duration.Least`.
 - `sim/Hazards/Bolts.cs` (new); the constructor gains `ISkyQueries`, `ICrewQueries`, `ICrewOps`. `Registry.cs:103`
   changes its arguments only: Sky and Crew are made, and run, before Hazards already.
 - The slice gains `BoltIn` (ticks till the glow, 0 for none), `Strike` and `Drawn`. `Strike(int Cell, int Left)` is a bolt
@@ -119,7 +119,7 @@ while this surface is shown, not saved. The shock is shown as every `Harm.Shock`
 - The target: a hilltop within 24 columns beats lower ground nearer the hero; a built roof higher than the ground is the
   target and its wall breaks, at full damage; a column with a back wall above its top wall is skipped; ties go to the
   nearest column, then the left; nothing in the zone, no bolt.
-- The shock: a hero in the open 20 columns from a rain storm's strike loses 40 air, its last hurt `Shock`; 21 columns
+- The shock: a hero in the open 20 columns from a rain storm's strike loses 100 air (past a basic suit's 45, the last breath pays), its last hurt `Shock`; 21 columns
   away, or 20 under a back wall, loses nothing; a dust storm's reaches 10; a creative hero,
   and one `Out`, lose nothing; a hero on another surface is never counted.
 - No hero on the surface when `BoltIn` reaches 0: `BoltIn` was drawn, no hero is drawn, no strike. A `Calm` world: no bolt.

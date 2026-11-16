@@ -100,7 +100,7 @@ public class LightningTests
         {
             var b = storm.Bolt!;
             Assert.True(b.At.Most + b.Glow < storm.Duration.Least, storm.Id);
-            Assert.Equal((200, 1000, 60, 24, 2, 40), (b.At.Least, b.At.Most, b.Glow, b.Columns, b.Reach, b.Shock));
+            Assert.Equal((200, 1000, 60, 24, 2, 100), (b.At.Least, b.At.Most, b.Glow, b.Columns, b.Reach, b.Shock));
         }
         Assert.Equal((10, 20), (Dust.Bolt!.Spread, Rain.Bolt!.Spread));
         Assert.All(Spec.Ship, s => Assert.Null(s.Bolt));
@@ -213,8 +213,10 @@ public class LightningTests
         Hero near = HeroOf(w, 0), far = HeroOf(w, 1), sheltered = HeroOf(w, 2);
         Assert.Equal((1, Harm.Shock), (near.Hurts, near.Hurt));
         Assert.Equal((0, 0), (far.Hurts, sheltered.Hurts));
-        // Both out in the storm's cold alike: the shock is the difference.
-        Assert.Equal(far.Air - Bolt.Shock, near.Air);
+        // A basic suit's air cannot pay the shock: it empties and the last breath pays the rest, past its end.
+        Assert.True(Bolt.Shock > far.Air);
+        Assert.Equal((0, true), (near.Air, near.Out > 0));
+        Assert.Equal(0, far.Out);
     }
 
     [Fact]
@@ -225,7 +227,7 @@ public class LightningTests
         Assert.Equal(new Strike(Top, Bolt.Glow - 1, 10), Glowing(w));
         Strikes(w);
         Assert.Equal((1, 0), (HeroOf(w, 0).Hurts, HeroOf(w, 1).Hurts));
-        Assert.Equal(HeroOf(w, 1).Air - Bolt.Shock, HeroOf(w, 0).Air);
+        Assert.Equal((0, true, 0), (HeroOf(w, 0).Air, HeroOf(w, 0).Out > 0, HeroOf(w, 1).Out));
     }
 
     [Fact]

@@ -74,7 +74,7 @@ public static class Stretches
     /// Power 60, reach 2: a burst's first cell costs its strength, each step past it <c>Damage.Step</c> and the next cell's, so struck soil
     /// (40) breaks and the soil round it (42 more) only cracks, by up to 18; a built soil roof breaks, a scrap one (400) only cracks.
     /// </remarks>
-    private static BoltRule Bolt(int spread) => new(At: new(200, 1000), Glow: 60, Columns: 24, Power: 60, Reach: 2, Spread: spread, Shock: 40);
+    private static BoltRule Bolt(int spread) => new(At: new(200, 1000), Glow: 60, Columns: 24, Power: 60, Reach: 2, Spread: spread, Shock: 100);
 
     /// <summary>The ship's stretches, in the order they open on a tick and are kept in.</summary>
     public static readonly IReadOnlyList<Stretch> Ship = [IceBelt, ContrabandDrift];

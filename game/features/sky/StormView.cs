@@ -249,7 +249,7 @@ public partial class StormView : Node2D
 
     /// <summary>
     /// The weather's wash (<see cref="StretchLooks.Wash"/>, «Блёклый мир») over the world in view, under the overlays and what is read:
-    /// the screen as drawn so far, blurred to a pixel of the world through its mipmaps, greyed and flattened toward the haze, the hero
+    /// the screen as drawn so far, blurred to a pixel of the world (two of the screen at most) through its mipmaps, greyed and flattened toward the haze, the hero
     /// too. Hidden at 0, so no screen is copied without a storm.
     /// </summary>
     private sealed partial class Washout : Node2D
@@ -269,8 +269,8 @@ public partial class StormView : Node2D
                     world = VERTEX;
                 }
                 void fragment() {
-                    // A pixel of the world's worth of screen pixels: the pick's scene downscaled to the world's pixels and back.
-                    float lod = log2(max(1.0 / max(length(dFdx(world)), 1e-4), 1.0));
+                    // A pixel of the world's worth of screen pixels, as the pick, but two at most: closer in it would only smear.
+                    float lod = clamp(log2(1.0 / max(length(dFdx(world)), 1e-4)), 0.0, 1.0);
                     vec3 sharp = textureLod(screen, SCREEN_UV, 0.0).rgb;
                     vec3 c = textureLod(screen, SCREEN_UV, lod).rgb;
                     c = mix(c, vec3(dot(c, vec3(0.3, 0.59, 0.11))), grey);
