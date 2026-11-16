@@ -199,6 +199,8 @@ public partial class PodFlights : Node2D
     private static void Burn(CanvasItem g, Vector2 mouth, float way, float k, double strength, double t)
     {
         float flicker = 0.9f + 0.2f * Hash(Math.Floor(t * 30)), wide = 12 * k, along = (float)(38 * strength * k) * flicker * way;
+        // A flame just lit or dying is a sliver Godot cannot triangulate: under half a pixel it is not drawn.
+        if (Math.Abs(along) < 0.5f) return;
         foreach (var (colour, w, l) in Tongue)
         {
             float half = wide * w / 2, reach = along * l;

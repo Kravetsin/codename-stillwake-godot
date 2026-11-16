@@ -20,7 +20,8 @@ sends `Board` and `Alight`, the pod's key `Launch`. The platform's lamps are pow
 | `logic/Warp.cs` | how deep the ship's flight is, 0 to 1, eased over 4 s at each end, from the course's ticks | no |
 | `logic/Ride.cs` | the rider's own flight as its screen shows it: a pod's flight, or a shuttle's voyage as a descent of its length | no |
 | `logic/FlightTimeline.cs` | when each picture of a flight plays and how far along: seconds from the flight's ticks, the curves | no |
-| `logic/Arrivals.cs` | the pods just come down on the surface seen and for how long, held back from the grid till they stand | no |
+| `logic/Arrivals.cs` | pods just come down and shuttles arriving, seen and for how long, held back from the grid till they stand | no |
+| `logic/ShuttleTimeline.cs` | the shuttle's trip from seconds: its place, skids, flames, run and the rider's camera blend | no |
 | `logic/Whiteout.cs` | how white the screen is, from the own flight's ticks left and a surface switch made while white | no |
 | `logic/Landing.En.cs` | Its player text (`En`): the landing refusals and the key's two words | no |
 | `logic/Landing.Ru.cs` | Russian | no |
@@ -67,8 +68,8 @@ sends `Board` and `Alight`, the pod's key `Launch`. The platform's lamps are pow
   (`InventoryPanel.Launch` for a `Lands` machine with `Riders > 1`), read on a timer: a press sends places' `SetOff` only while
   `Places.SetOffProblem` is null; a store short of the round trip says `landing.noFuel` with its litres, as the pod's key does.
 - During a voyage its riders are hidden and held at their places' floors where it stood (`Seating`, in riders' order), their
-  hands tied. Plain pictures for now: the shuttle vanishes from the grid and appears; the rider sees the pod's flight screen,
-  star lines both ways, its white and dip, timed by `Ride` from the voyage's ticks.
+  hands tied. Its trip is drawn (2026-11-17-shuttle-trip-look) by `PodFlights` from `ShuttleTimeline`: the voyage's
+  ticks leaving, `Arrivals`' frame time arriving; the rider's camera pulls out and back.
 
 - **The ship's flight** (2026-11-16-solar-system): while `Landing.Course` runs, `Stars.Warp` follows `Warp.Depth` and the
   engine burns (`EngineFlame`); `Main` plays `JumpCall`'s burn and arrival as a course starts and ends in one world, never on
@@ -76,9 +77,7 @@ sends `Board` and `Alight`, the pod's key `Launch`. The platform's lamps are pow
 
 ## Deliberately not handled
 
-- The shuttle's own pictures and sounds: the course line is a placeholder; no deck slide, drift-in or
-  lift-off yet (slice 3 of docs/plans/shuttle-flight.md).
-
+- The shuttle's own sounds (riders keep the pod's) and the course line, a placeholder.
 - What the seated hero wears or holds: the figure behind the glass is its suit alone.
 - The docking aboard: the white falls over the pod already standing at home. The hero behind the porthole while its pod moves.
 - Sounds of their own: the pod borrows the jetpack's thrust, a drone's clunk, a hard landing and lava's bed, retuned.

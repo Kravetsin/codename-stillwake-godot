@@ -393,3 +393,4 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [solar-system](2026-11-16-solar-system.md) | The ship flies between the planets of its solar system | accepted |  |
 | [whole-limbs](2026-11-16-whole-limbs.md) | One picture an arm or leg | accepted |  |
 | [derelict-looks](2026-11-17-derelict-looks.md) | A derelict looks like a ship someone owned and left | accepted |  |
+| [shuttle-trip-look](2026-11-17-shuttle-trip-look.md) | The shuttle's trip is seen: «A — Под днищем» | accepted |  |

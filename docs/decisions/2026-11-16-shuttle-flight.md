@@ -1,6 +1,6 @@
 # The crew flies to a vessel in the shuttle and back
 
-- Status: accepted; built (pictures and sounds plain until slice 3 of [shuttle-flight](../plans/shuttle-flight.md))
+- Status: accepted; built (its pictures since [shuttle-trip-look](2026-11-17-shuttle-trip-look.md))
 - Date: 2026-11-16
 - Supersedes: the "next slices" line of [crew-shuttle](2026-11-15-crew-shuttle.md); the radar's Set off sending `Jump` in
   [vessel-worlds](2026-11-09-vessel-worlds.md)
@@ -57,5 +57,4 @@ arrive together beside the vessel, explore, fly home and dock.
 - A course cleared by its contact running out shows only by the lamp going out and the route text going.
 - Riders who all quit mid-return while a friend stays on the vessel: the shuttle docks home only once that world closes.
 - Returning to a home built over by another shuttle, later riders sit in that one.
-- Plain pictures: the shuttle vanishes and appears, the riders see the pod's flight screen; the course line is a placeholder
-  until slice 3's pick (the course lamp is drawn since [shuttle-desant](2026-11-16-shuttle-desant.md)).
+- Plain pictures: superseded by [shuttle-trip-look](2026-11-17-shuttle-trip-look.md); the course line is still a placeholder.

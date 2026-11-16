@@ -25,5 +25,5 @@ reference picture of a sleek plated shuttle, nine thick ones, then nine sets of 
 ## Deliberately not handled
 
 - **Folded skids**: their three frames (down, half, up) are in `shuttle.js` but not exported; the shuttle has no lift-off in the
-  world yet (slice 3 of [shuttle-flight](../plans/shuttle-flight.md)).
+  world yet ([shuttle-trip-look](2026-11-17-shuttle-trip-look.md) exports them).
 - **A 24 × 9 footprint**: it would move every saved shuttle's top row and needs a save step; the empty row costs nothing a player does.
