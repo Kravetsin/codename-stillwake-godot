@@ -2,11 +2,17 @@ using Stretch = Stillwake.Content.Stretches.Stretch;
 
 namespace Stillwake.Sim.Sky;
 
-/// <summary>The stretches of space (docs/decisions/2026-11-15-stretches-of-space.md): their schedule, a tick at a time in the construction phase.</summary>
+/// <summary>
+/// The stretches (docs/decisions/2026-11-15-stretches-of-space.md) of this surface's kind, the ship's or a planet's weather: their
+/// schedule, a tick at a time in the construction phase.
+/// </summary>
 public sealed partial class SkyModule
 {
-    /// <summary>Whether the stretch chosen is in its warning: its last <c>Stretches.Warning</c> ticks before it starts.</summary>
-    private bool Coming => State.Next != null && State.NextIn <= Content.Stretches.Warning;
+    /// <summary>Salts of the sky's forks of the world's Rng: one, then one per surface and one per fork drawn; odd, so each spreads.</summary>
+    private const uint SkySalt = 0x5c1e_a7b5, HereSalt = 0x85eb_ca6b, DrawnSalt = 0xc2b2_ae35;
+
+    /// <summary>Whether the stretch chosen is in its warning: its own last <c>Stretch.Warning</c> ticks before it starts.</summary>
+    private bool Coming => State.Next is { } next && State.NextIn <= StretchOf(next).Warning;
 
     /// <summary>
     /// A tick of the stretches, on a surface that has them: those newly unlocked opened; the one running counted down and ended, or
@@ -29,9 +35,10 @@ public sealed partial class SkyModule
         if (s.Active == null && s.Next == null && s.Opened.Count > 0) Choose();
     }
 
-    /// <summary>Whether any item that opens <paramref name="stretch"/> has been obtained, however it came.</summary>
+    /// <summary>Whether any item that opens <paramref name="stretch"/> has been obtained, however it came; one opened by none is open from the start.</summary>
     private bool Unlocked(Stretch stretch)
     {
+        if (stretch.Unlock.Count == 0) return true;
         foreach (var item in stretch.Unlock)
             if (_knowledge.ObtainedOf(item) > 0) return true;
         return false;
@@ -52,7 +59,7 @@ public sealed partial class SkyModule
                 break;
             }
         bool first = next != null;
-        next ??= s.Opened[(int)Random.Below((uint)s.Opened.Count)];
+        next ??= s.Opened[(int)Fork().Below((uint)s.Opened.Count)];
         var stretch = StretchOf(next);
         s.Next = next;
         s.NextIn = Draw(first ? stretch.First : stretch.Gap);
@@ -73,33 +80,47 @@ public sealed partial class SkyModule
     {
         var s = State;
         if (!s.Opened.Contains(stretch.Id)) Add(s.Opened, stretch.Id);
-        (s.Next, s.NextIn) = (stretch.Id, Content.Stretches.Warning);
+        (s.Next, s.NextIn) = (stretch.Id, stretch.Warning);
     }
 
     private string? StretchNowProblem(StretchNow c)
     {
-        if (!Rules.Stretches.Any(s => s.Id == c.Id)) return "sky.noStretch";
+        if (Rules.StretchOf(c.Id) == null) return "sky.noStretch";
         return State.Active != null ? "sky.stretchRunning" : null;
     }
 
-    /// <summary>A number of ticks in <paramref name="span"/>, both ends included, drawn by the world's Rng.</summary>
-    private int Draw(Content.Stretches.Span span) => span.Least + (int)Random.Below((uint)(span.Most - span.Least + 1));
+    /// <summary>A number of ticks in <paramref name="span"/>, both ends included, drawn by a fork.</summary>
+    private int Draw(Content.Stretches.Span span) => span.Least + (int)Fork().Below((uint)(span.Most - span.Least + 1));
 
-    /// <summary>The stretch of that id; one a save holds and the content does not is our bug.</summary>
-    private static Stretch StretchOf(string id) =>
-        Content.Stretches.Get(id) ?? throw new InvalidOperationException($"sky: a stretch '{id}', which is not in Stretches");
+    /// <summary>
+    /// A fork of the world's Rng for one draw, salted by this surface and the forks drawn before: the world's own stream never moves, so
+    /// no draw after a stretch's does; two surfaces drawing on one tick draw apart.
+    /// </summary>
+    private Rng Fork()
+    {
+        unchecked
+        {
+            uint salt = SkySalt ^ (uint)Surfaces.Here * HereSalt ^ (uint)State.Drawn * DrawnSalt;
+            State.Drawn++;
+            return Random.Fork(salt);
+        }
+    }
 
-    /// <summary>Puts <paramref name="id"/> into <paramref name="ids"/>, kept in the content's order.</summary>
-    private static void Add(List<string> ids, string id)
+    /// <summary>This surface's stretch of that id; one a save holds and the kind does not is our bug.</summary>
+    private Stretch StretchOf(string id) =>
+        Rules.StretchOf(id) ?? throw new InvalidOperationException($"sky: a stretch '{id}', which '{Rules.Id}' does not have");
+
+    /// <summary>Puts <paramref name="id"/> into <paramref name="ids"/>, kept in the kind's order.</summary>
+    private void Add(List<string> ids, string id)
     {
         int order = IndexOf(id), at = 0;
         while (at < ids.Count && IndexOf(ids[at]) < order) at++;
         ids.Insert(at, id);
     }
 
-    private static int IndexOf(string id)
+    private int IndexOf(string id)
     {
-        var all = Content.Stretches.All;
+        var all = Rules.Stretches;
         for (int i = 0; i < all.Count; i++)
             if (all[i].Id == id) return i;
         return all.Count;

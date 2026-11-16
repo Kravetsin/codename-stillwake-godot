@@ -715,7 +715,7 @@ public partial class Main : Node2D, ITogether
     {
         if (_stretchOf != _m) (_stretch, _stretchOf) = (new StretchShown(), _m);
         var now = _m.Sky.Now;
-        _stretch.See(now.Stretch, now.Coming, now.ComingIn, clock, now.Ran);
+        _stretch.See(_m.Rules, now.Stretch, now.Coming, now.ComingIn, clock, now.Ran);
         _stars.Stretch(_stretch.Look, _stretch.Grow, _stretch.Melt, _stretch.Since);
     }
 

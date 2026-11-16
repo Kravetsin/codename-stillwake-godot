@@ -4,7 +4,7 @@ using System.Collections.Generic;
 namespace Stillwake.Game;
 
 /// <summary>
-/// How a stretch of space (docs/decisions/2026-11-15-stretches-of-space.md) is seen coming, drawn only, without a word: its far picture drifting in behind
+/// How a stretch (docs/decisions/2026-11-15-stretches-of-space.md) is seen coming, drawn only, without a word: its far picture drifting in behind
 /// the ship, the radar's band in its colour, frost on the hull before the ice belt. All of it from the sky's <c>SkyNow</c>, so a
 /// peer joining mid-warning sees what the others do.
 /// </summary>
@@ -14,10 +14,10 @@ public static class StretchLooks
     public const string IceBlock = "iceBlock", ContrabandCrate = "contrabandCrate";
 
     /// <summary>
-    /// A stretch's look: its far picture (<paramref name="Far"/>); the radar's band in <paramref name="Band"/>; whether frost creeps
-    /// over the hull before it (<paramref name="Frost"/>).
+    /// A stretch's look: its far picture (<paramref name="Far"/>), none for a planet's weather; the radar's band in <paramref name="Band"/>,
+    /// none unbanded; whether frost creeps over the hull before it (<paramref name="Frost"/>).
     /// </summary>
-    public sealed record Look(string Id, Backdrop Far, (float R, float G, float B) Band, bool Frost);
+    public sealed record Look(string Id, Backdrop? Far, (float R, float G, float B)? Band, bool Frost);
 
     /// <summary>
     /// A stretch's far picture: a row of places, each <paramref name="Width"/> pixels of its plane wide with <paramref name="Gap"/> of
@@ -49,6 +49,8 @@ public static class StretchLooks
         new(Content.Stretches.ContrabandDrift.Id,
             new(["stretches/hulk_1", "stretches/hulk_2", "stretches/hulk_3"], Width: 1100, Gap: 3, Speed: 4, Above: 0.16f),
             (0.98f, 0.58f, 0.26f), Frost: false),
+        // The first planet's storm: no far picture and no band; its own look waits for the pick (docs/plans/surface-storms.md).
+        new(Content.Stretches.Storm.Id, Far: null, Band: null, Frost: false),
     ];
 
     /// <summary>Where each piece of ice lies in <c>stretches/ice_pieces</c>, the largest first: cut from the picked sheets by alpha.</summary>
@@ -153,16 +155,24 @@ public sealed class StretchShown
     public int Since { get; private set; }
 
     /// <summary>
-    /// The sky now: <paramref name="running"/>, the stretch running <paramref name="ran"/> ticks, else <paramref name="coming"/> with
-    /// <paramref name="comingIn"/> ticks of its warning left (<c>SkyNow</c>); <paramref name="clock"/> the world's ticks, between them too.
+    /// The sky now on a surface of <paramref name="rules"/>: as <see cref="See(string?, string?, int, int, double, int)"/>, the warning
+    /// that of its own stretch.
     /// </summary>
-    public void See(string? running, string? coming, int comingIn, double clock, int ran = 0)
+    public void See(Content.Surfaces.Kind rules, string? running, string? coming, int comingIn, double clock, int ran = 0) =>
+        See(running, coming, comingIn, (running ?? coming) is { } id ? rules.StretchOf(id)?.Warning ?? 0 : 0, clock, ran);
+
+    /// <summary>
+    /// The sky now: <paramref name="running"/>, the stretch running <paramref name="ran"/> ticks, else <paramref name="coming"/> with
+    /// <paramref name="comingIn"/> ticks of its warning left (<c>SkyNow</c>), the whole of which is <paramref name="warning"/>;
+    /// <paramref name="clock"/> the world's ticks, between them too.
+    /// </summary>
+    public void See(string? running, string? coming, int comingIn, int warning, double clock, int ran = 0)
     {
         if ((running ?? coming) is { } id)
         {
             Look = StretchLooks.Of(id);
-            Grow = running != null ? 1 : Math.Clamp(1 - comingIn / (float)Content.Stretches.Warning, 0, 1);
-            Since = running != null ? Content.Stretches.Warning + ran : Math.Max(0, Content.Stretches.Warning - comingIn);
+            Grow = running != null ? 1 : Math.Clamp(1 - comingIn / (float)Math.Max(1, warning), 0, 1);
+            Since = running != null ? warning + ran : Math.Max(0, warning - comingIn);
             (After, _ended) = (0, null);
             return;
         }

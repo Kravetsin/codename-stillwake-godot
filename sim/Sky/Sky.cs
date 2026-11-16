@@ -23,7 +23,7 @@ public sealed class SkyState
 
     /// <summary>The stretch chosen to come next, or null for none.</summary>
     [JsonInclude, JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)] internal string? Next { get; set; }
-    /// <summary>Ticks till <see cref="Next"/> starts, its last <c>Stretches.Warning</c> its warning; 0 with none chosen.</summary>
+    /// <summary>Ticks till <see cref="Next"/> starts, its last <c>Stretch.Warning</c> its warning; 0 with none chosen.</summary>
     [JsonInclude, JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)] internal int NextIn { get; set; }
     /// <summary>The stretch running, or null for none.</summary>
     [JsonInclude, JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)] internal string? Active { get; set; }
@@ -31,6 +31,9 @@ public sealed class SkyState
     [JsonInclude, JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)] internal int Left { get; set; }
     /// <summary>Ticks <see cref="Active"/> has run; 0 with none running, and in a save made before they were counted.</summary>
     [JsonInclude, JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)] internal int Ran { get; set; }
+
+    /// <summary>The forks of the world's Rng the stretches have drawn here, each salted by the count before it; 0 in a save made before.</summary>
+    [JsonInclude, JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)] internal int Drawn { get; set; }
 }
 
 /// <summary>
@@ -41,7 +44,7 @@ public sealed record SetTime(int Time) : Command;
 
 /// <summary>
 /// Stretch <paramref name="Id"/> comes now, from the dev panel: opened, chosen next in place of any chosen, its warning starting.
-/// Refused <c>sky.noStretch</c> for one unknown or where the surface has none, <c>sky.stretchRunning</c> while one runs.
+/// Refused <c>sky.noStretch</c> for one this surface's kind does not have, <c>sky.stretchRunning</c> while one runs.
 /// </summary>
 public sealed record StretchNow(string Id) : Command;
 
@@ -63,7 +66,7 @@ public interface ISkyQueries
 
 /// <summary>
 /// A planet's day and night (2026-11-07-night-chills): its hour counted a tick a tick, its night the end of each day. And the
-/// ship's stretches of space (docs/decisions/2026-11-15-stretches-of-space.md): opened by what the crew obtained, chosen, seen coming, run.
+/// stretches of its kind (docs/decisions/2026-11-15-stretches-of-space.md), the ship's or a planet's weather: opened, chosen, seen coming, run.
 /// </summary>
 public sealed partial class SkyModule : Module<SkyState>, ISkyQueries
 {
@@ -75,7 +78,7 @@ public sealed partial class SkyModule : Module<SkyState>, ISkyQueries
     {
         _knowledge = knowledge;
         Handles<SetTime>(_ => Rules.Cycle == null ? "sky.noDay" : null, c => State.Time = Wrap(c.Time, Rules.Cycle!.Length));
-        Handles<StretchNow>(StretchNowProblem, c => Bring(Content.Stretches.Get(c.Id)!));
+        Handles<StretchNow>(StretchNowProblem, c => Bring(StretchOf(c.Id)));
         System(Phase.Construction, Schedule);
         System(Phase.Simulation, () =>
         {

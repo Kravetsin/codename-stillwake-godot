@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using Godot;
 using Stillwake.Game.Features.Building;
 using Stillwake.Game.Features.Crafting;
@@ -46,8 +47,9 @@ public static class SurfaceViews
         }),
         // What still moves on the wreck: nothing on a surface with no tear of it (2026-10-31-the-scoop).
         new(c => new WreckMotionView(c.M.Grid), Fades: true),
-        // Frost creeping over the hull's outer walls before the ice belt, where stretches come (docs/decisions/2026-11-15-stretches-of-space.md).
-        new(c => c.M.Rules.Stretches.Count > 0 ? new Features.Sky.FrostView(c.M.Grid, c.M.Sky, () => c.Tick() + c.Progress()) : null, Fades: true),
+        // Frost creeping over the hull's outer walls before the ice belt, where a stretch frosts it (docs/decisions/2026-11-15-stretches-of-space.md).
+        new(c => c.M.Rules.Stretches.Any(s => StretchLooks.Of(s.Id) is { Frost: true })
+            ? new Features.Sky.FrostView(c.M.Grid, c.M.Sky, c.M.Rules, () => c.Tick() + c.Progress()) : null, Fades: true),
         new(c => new DigView(c.M.Grid, c.M.Building)),
         new(c => new Features.Flora.FloraView(c.M.Grid, c.M.Building, c.Heroes)),
         new(c => c.M.Rules is Content.PlanetType p ? new Features.Flora.CaveView(c.M.Grid, c.M.Building, p, c.HeadLamps, c.Seed) : null),
