@@ -4,7 +4,7 @@
 
 | File | Purpose |
 | --- | --- |
-| `Landing.cs` | The launch platform opened and shut with power; the drop pod boarded, left, flown down to the planet and back; the crew shuttle seated four and flown to a vessel and home; the treadmill wheel rested. |
+| `Landing.cs` | The launch platform opened and shut with power; the drop pod boarded, left, flown down to the planet and back; the crew shuttle seated four and flown to a vessel and home; the ship's course between its system's planets; the treadmill wheel rested. |
 
 The launch platform (ADR `2026-10-24-the-launch-platform`), the drop pod (`2026-10-25-the-drop-pod`), its descent and return
 (`2026-10-26-the-descent`), the crew shuttle (`2026-11-15-crew-shuttle`) and its flight (`2026-11-16-shuttle-flight`).
@@ -48,24 +48,30 @@ The launch platform (ADR `2026-10-24-the-launch-platform`), the drop pod (`2026-
   Each awake rider sits at the lowest free place.
 - **Rule 7** (`IOutlives`): a vessel world closing hands the ship the homes of its parked shuttles, then of its voyages;
   each docks home empty, its load and fuel in it. Flying home while a friend is on the vessel is allowed.
+- **The ship's course** (2026-11-16-solar-system), aboard: `At` (from 0) and `Course(To, TicksLeft)`. `PlotCourse(planet)` burns
+  `JumpFuel` (8 l) from the `Engine`'s store (the lowest-id machine with an `Exhaust`), closes the planet below for good
+  (`LeavePlanet`) and counts `FlightTicks` down in construction; at zero `At = To`, and the next descent opens a new seed.
 - Riders and seated heroes stay where they were sent; the client holds them at their place's floor.
 
 ## API
 
 - **Queries:** `Problem(cell, open)`, `Powered(cell)`, `RunOf` (static); `BoardProblem`, `LaunchProblem`, `SetOffProblem`
   (`ILandingQueries`); `SeatOf`, `PlaceOf`, `RiderOf`, `RidersOf(machine)`, `Seats`; `FlightOf`, `VoyageOf`, `Voyages`,
-  `Parked`; `Rides` (seated, flying or voyaging); `Returns`; `FloorOf` (static); `PodSpec`, `CraftSpec`; `Turning`.
+  `Parked`; `At`, `Course`, `CourseProblem`, `Engine`; `Rides` (seated, flying or voyaging); `Returns`; `FloorOf` (static); `PodSpec`, `CraftSpec`; `Turning`.
 - **Refusals:** `SetPlatform` — `landing.noPlatform`, `landing.unpowered`. `Board` — `landing.noPod`, `landing.seated`,
   `landing.taken` (every place taken), `landing.notYours`. `Alight` — `landing.notSeated`. `Launch` — `landing.notSeated`
   (no pod, or a shuttle's seat); aboard `landing.noPlatform`, `landing.shaftBlocked`, `landing.unpowered`,
-  `landing.noFuel`, `landing.cannotLeave`; off the ship `landing.notYours`. `SetOffProblem(peer, fuel)` — `landing.notSeated` (no
+  `landing.noFuel`, `landing.cannotLeave`, `landing.inFlight`; off the ship `landing.notYours`. `PlotCourse` — `landing.hereAlready`,
+  `landing.inFlight`, `landing.noEngine`, `landing.engineUnpowered`, `landing.noFuel`, `landing.noExhaust`, last `landing.crewAway`
+  (a hero off the ship or a pod flying from it). `SetOffProblem(peer, fuel)` — `landing.notSeated` (no
   shuttle seat, or out); aboard `landing.noPlatform`, `landing.shaftBlocked`, `landing.unpowered`, `landing.noFuel`, `landing.cannotLeave`;
   off the ship `landing.notYours` (a shuttle with no home, a dev's).
-- **Fuzz:** one turn in 8: a launch, else a board, a leave or a platform set. `SetOff` is Places'.
+- **Fuzz:** one turn in 8: a launch, else a board, a leave or a platform set; one in 12 a course. `SetOff` is Places'.
 
 ## Invariants
 
 - A run is all shut or all open; a shut run never opens without power. Its shaft stays empty (Grid, Building).
+- A course starts only with every hero and pod aboard and no planet open (`CourseTests`' property).
 - No machine seats more than its `Riders`; a hero sits in one place at most; every seat's machine stands, its hero awake.
 - Every pod stands on one surface or flies in one flight. Every shuttle stands on one open surface or flies in one voyage,
   a voyage's rider sits nowhere, and its fuel is what it had less each round trip set off on (`ShuttleTripTests`' property,

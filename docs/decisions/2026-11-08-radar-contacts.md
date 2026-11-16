@@ -1,6 +1,6 @@
 # Radar contacts
 
-- Status: accepted
+- Status: accepted; its look superseded by [solar-system](2026-11-16-solar-system.md)
 - Date: 2026-11-08
 
 ## Context

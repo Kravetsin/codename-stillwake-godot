@@ -54,6 +54,8 @@ public class TemperatureTests
         public void Send(int peer, int surface) => throw new NotSupportedException("no one is sent anywhere");
         public bool CanOpen => false;
         public bool Landed => false;
+        public bool Away => false;
+        public void LeavePlanet() => throw new NotSupportedException();
         public int OpenPlanet() => throw new NotSupportedException("no planet is opened");
         public int Open(string kind, uint seed) => throw new NotSupportedException("no surface is opened");
         public uint Seed => 0;
