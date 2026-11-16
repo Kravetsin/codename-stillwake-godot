@@ -36,6 +36,7 @@ public partial class HeroView
                 (shown.Tether, shown.Busy, shown.Work) = (null, null, null);
                 shown.Swing.Stop();
                 shown.Gesture.Stop();
+                shown.Ping.Clear();
                 ShowRod(id, shown, null, null, false, elapsedMs);
             }
         foreach (var (id, seen) in others)
@@ -79,6 +80,8 @@ public partial class HeroView
             var drawnSwing = ReferenceEquals(Strokes.Of(seen.Wields), shown.Swing.Stroke) ? shown.Swing : default;
             shown.Gesture.Hear(seen.Busy);
             shown.Gesture.Step(elapsedMs);
+            shown.Ping.Hear(seen.Ping);
+            shown.Ping.Step(elapsedMs);
             ShowHands(shown.Figure, seen.Wields, Fittings.Of(m.Items, id, seen.Wields), seen.Busy, drawnSwing, shown.Gesture);
             // A friend's drill running points where it drills, its harpoon where its rod flies or sticks, else
             // either hangs; the drill spins while the sim says it runs.
@@ -222,6 +225,23 @@ public partial class HeroView
             else shown.Drum.Stop();
         }
         DrawRod(rod.Rod, rod.Tip, rod.Heading, figure.Muzzle, ref shown.Line, shown.RodPicture, RodLook.Of(wields), shown.Light, peer, elapsedMs);
+    }
+
+    /// <summary>Every ping shown, this player's and its friends' here, drawn in their colours and listed for the markers (gesture-pings).</summary>
+    private void ShowPings(Registry m)
+    {
+        var pings = new List<(int, Point)>();
+        var dots = new List<PingView.Dot>();
+        void Add(int peer, Ping ping)
+        {
+            if (ping.At is not { } at) return;
+            pings.Add((peer, at));
+            dots.Add(new PingView.Dot(Pixels(at), Suits.Of(m.Players, peer), (float)ping.Shown, (float)(ping.Ms / 1000)));
+        }
+        Add(_client!.Id, _ping);
+        foreach (var (id, shown) in _shownOthers) Add(id, shown.Ping);
+        Pings = pings;
+        _pingView.Show(dots);
     }
 
     /// <summary>A point in thousandths of a cell, in the world's pixels.</summary>

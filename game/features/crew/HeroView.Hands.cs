@@ -75,6 +75,9 @@ public partial class HeroView
         var mouse = GetViewport().GetMousePosition();
         var asked = _wheel.Step(wheelKey, elapsedMs, (mouse.X, mouse.Y), GestureWheel.Middle * wheelScale);
         _wheelView.Show(_wheel, wheelScale);
+        // A tap pings the spot for the crew, whatever the hands are doing; the point is played only if they are free.
+        if (asked == Gesture.Point && pointer is { } pinged && !passedOut) _ping.Place(Aiming.PointOf(pinged));
+        _ping.Step(elapsedMs);
         bool pressed = (_autopilot?.TakePress() ?? false) | TakeUse();
         bool clicked = _mouse.Buttons.TakeClick();
         // With the harpoon's rod out of the gun, a click is the gun's: hooked, it reels, even on a piece in reach.
