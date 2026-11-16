@@ -31,6 +31,9 @@ public static class SuitGlow
         "thigh" => 0.18,
         "forearm" => 0.22,
         "upperArm" => 0.32,
+        // A whole limb (whole-limbs, a try) between its two halves' heights: its bands light as one.
+        "leg" => 0.11,
+        "arm" => 0.27,
         "pack" => 0.58,
         "torso" => 0.7,
         _ => null,

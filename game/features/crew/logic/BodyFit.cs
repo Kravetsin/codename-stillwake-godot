@@ -154,6 +154,9 @@ public static class BodyFit
         string name = picture.EndsWith("_lit", StringComparison.Ordinal) ? picture[..^4] : picture;
         if (name == "upperArm" || name.EndsWith("_upperArm", StringComparison.Ordinal))
             return Receivers.Contains(name.Length > 9 ? name[..^9] : "") ? null : Shoulder;
+        // A whole arm's top is its upper arm's (whole-limbs, a try).
+        if (name == "arm" || name.EndsWith("_arm", StringComparison.Ordinal))
+            return Receivers.Contains(name.Length > 4 ? name[..^4] : "") ? null : Shoulder;
         string? helmet = name.EndsWith("_shell", StringComparison.Ordinal) ? name[..^6] : name.EndsWith("_collar", StringComparison.Ordinal) ? name[..^7] : null;
         return helmet != null && Fits.TryGetValue(helmet, out var fit) ? fit.Fade : null;
     }

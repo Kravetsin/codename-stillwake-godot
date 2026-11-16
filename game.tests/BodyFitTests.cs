@@ -148,7 +148,7 @@ public class BodyFitTests
     [Fact]
     public void AnUpperArmsTopFadesInSoNoRoundEndShowsAtTheShoulder()
     {
-        foreach (string picture in (string[])["upperArm", "upperArm_lit", "regenSuit_upperArm", "heatSuit_upperArm_lit"])
+        foreach (string picture in (string[])["upperArm", "upperArm_lit", "regenSuit_upperArm", "heatSuit_upperArm_lit", "arm", "regenSuit_arm_lit", "outfit_1_arm"])
             Assert.Equal(BodyFit.Shoulder, BodyFit.FadeOf(picture));
         var (whole, none) = BodyFit.Shoulder;
         Assert.Equal(0, BodyFit.Alpha(none, whole, none));
@@ -162,7 +162,10 @@ public class BodyFitTests
     public void ACatchersUpperArmKeepsItsTopForTheReceiverStrappedThere()
     {
         foreach (var gear in CreatureLooks.Heroes.Values.SelectMany(look => look.Gear))
+        {
             Assert.Null(BodyFit.FadeOf($"{gear.Body}_upperArm"));
+            Assert.Null(BodyFit.FadeOf($"{gear.Body}_arm"));
+        }
     }
 
     [Fact]
