@@ -4,18 +4,19 @@ using Godot;
 namespace Stillwake.Game.Features.Crew;
 
 /// <summary>
-/// The pings in the world (<see cref="Ping"/>): a small dot in its player's colour, rimmed dark so it reads on hull and ground alike,
-/// blinking gently. Unlit: the scene's light and shadow never dim it. No ring and no words.
+/// The pings in the world (<see cref="Ping"/>), picked by the user 2026-11-16 ("ripple"): a small dot in its player's colour, rimmed
+/// dark so it reads on hull and ground alike, and once a second a thin ring of its colour spreading from it and fading. Unlit: the
+/// scene's light and shadow never dim it. No words.
 /// </summary>
 public partial class PingView : Node2D
 {
-    /// <summary>The dot's radius and its dark rim's width in the world's pixels (a cell 8), and its blinks a second.</summary>
-    private const float Radius = 3.5f, Rim = 1, Blinks = 1.5f;
+    /// <summary>The dot's radius, its rim's radius and width, in the world's pixels (a cell 8).</summary>
+    private const float Radius = 2, RimAt = 2.35f, RimWidth = 0.7f;
 
-    /// <summary>How faint the dot gets at the bottom of a blink, 0 to 1.</summary>
-    private const float Faintest = 0.45f;
+    /// <summary>The ring: from this radius to that one over <see cref="RingMs"/>, once every <see cref="EveryMs"/>; its line widths.</summary>
+    private const float RingFrom = 2.6f, RingTo = 8, RingMs = 700, EveryMs = 1000, RingLine = 0.8f, RingBacking = 1.6f;
 
-    private static readonly Color RimColour = new(0.02f, 0.03f, 0.06f, 0.85f);
+    private static readonly Color Dark = new(5 / 255f, 8 / 255f, 15 / 255f);
 
     /// <summary>One ping drawn: where, in the world's pixels; its colour, 0xRRGGBB; how much of it shows, 0 to 1; how long it has shown.</summary>
     public readonly record struct Dot(Vector2 At, int Colour, float Shown, float Seconds);
@@ -37,10 +38,16 @@ public partial class PingView : Node2D
     {
         foreach (var dot in _dots)
         {
-            float blink = 1 - (1 - Faintest) * (0.5f - 0.5f * Mathf.Cos(Mathf.Tau * Blinks * dot.Seconds));
-            float a = dot.Shown * blink;
-            DrawCircle(dot.At, Radius + Rim, RimColour with { A = RimColour.A * a }, antialiased: true);
-            DrawCircle(dot.At, Radius, new Color((uint)dot.Colour << 8 | 0xff) with { A = a }, antialiased: true);
+            var colour = new Color((uint)dot.Colour << 8 | 0xff);
+            float a = dot.Shown, ms = dot.Seconds * 1000 % EveryMs;
+            if (ms < RingMs)
+            {
+                float u = ms / RingMs, eased = 1 - (1 - u) * (1 - u) * (1 - u), r = RingFrom + (RingTo - RingFrom) * eased, fade = a * (1 - u);
+                DrawArc(dot.At, r, 0, Mathf.Tau, 40, Dark with { A = 0.55f * fade }, RingBacking, antialiased: true);
+                DrawArc(dot.At, r, 0, Mathf.Tau, 40, colour with { A = fade }, RingLine, antialiased: true);
+            }
+            DrawCircle(dot.At, Radius, colour with { A = a }, antialiased: true);
+            DrawArc(dot.At, RimAt, 0, Mathf.Tau, 24, Dark with { A = 0.85f * a }, RimWidth, antialiased: true);
         }
     }
 }
