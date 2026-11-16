@@ -7,7 +7,7 @@ using Xunit;
 
 namespace Stillwake.Game.Tests;
 
-/// <summary>A planet's weather seen and heard (docs/plans/surface-storms.md): how far it has come, its streaks and wisps, its wind.</summary>
+/// <summary>A planet's weather seen and heard (docs/plans/surface-storms.md): how far it has come, its streaks, its wind.</summary>
 public class StormTests
 {
     private static readonly StretchLooks.Weather Dust = StretchLooks.Of(Content.Stretches.DustStorm.Id)!.Weather!;
@@ -20,12 +20,10 @@ public class StormTests
     {
         Assert.Equal(240, Dust.Count);
         Assert.True(Dust.Streaks.Low);
-        Assert.NotNull(Dust.Wisps);
         Assert.Same(Sound.StormWind, Dust.Wind);
         Assert.True(Sound.StormWind.Loops);
         Assert.Equal(210, Rain.Count);
         Assert.False(Rain.Streaks.Low);
-        Assert.Null(Rain.Wisps);
         Assert.Same(Sound.StormRain, Rain.Wind);
         Assert.True(Sound.StormRain.Loops);
         Assert.Same(StretchLooks.Washed, Dust.Visibility);
@@ -147,19 +145,6 @@ public class StormTests
     }
 
     [Fact]
-    public void OnlyDustBlowsWispsAlongTheGroundAsHighAsTheStorm()
-    {
-        const float ground = 100;
-        var view = (0f, 0f, 4 * Streaks.Wide, 200f);
-        Assert.Empty(Puffs(Rain, Full, view, ground));
-        var puffs = Puffs(Dust, Full, view, ground);
-        Assert.InRange(puffs.Count, 1, 6 * Dust.Wisps!.Count);
-        Assert.All(puffs, p => Assert.InRange(p.Y, ground - 35.5f, ground - 2.5f));
-        Assert.All(puffs, p => Assert.InRange(p.Alpha, 0.6f * Dust.Wisps.Alpha - 1e-4f, Dust.Wisps.Alpha + 1e-4f));
-        Assert.Empty(Puffs(Dust, Storm.None, view, ground));
-    }
-
-    [Fact]
     public void AStormBlowsThePlantsItsWayInTheCalmAndDropsThemWhenItEases()
     {
         var gusts = new Gusts(FloraLooks.Breeze, () => 0.5) { Storm = 0.9 * StretchLooks.Weather.SwayGain };
@@ -209,21 +194,6 @@ public class StormTests
         Assert.Equal(line[0], Streaks.GroundAt(line, 200 * cell + cell / 2f, cell), 3);
     }
 
-    [Fact]
-    public void AWispFadesByTheShareOfItsWidthDriftingIntoGroundAndIsGoneOnceAllIn()
-    {
-        const float ground = 100;
-        var view = (0f, 0f, 4 * Streaks.Wide, 200f);
-        var open = Puffs(Dust, Full, view, ground);
-        var crossing = open[0];
-        float wall = crossing.X + 5;
-        var walled = new List<Streaks.Puff>();
-        Streaks.Puffs(Dust, Full, view, 7.5, (x, y) => y < ground && x < wall, _ => ground, walled);
-        Assert.All(walled, p => Assert.True(p.X < wall + 14));
-        Assert.Equal(crossing.Alpha * 5 / 7, walled.Single(p => p.X == crossing.X).Alpha, 4);
-        Assert.All(walled.Where(p => p.X < wall - 14), p => Assert.Equal(open.First(o => o.X == p.X).Alpha, p.Alpha));
-    }
-
     private static List<Streaks.Line> InFirstBox(List<Streaks.Line> lines) =>
         [.. lines.Where(l => l.HeadX >= 0 && l.HeadX < Streaks.Wide && l.HeadY >= 0 && l.HeadY < Streaks.Tall)];
 
@@ -232,13 +202,6 @@ public class StormTests
     {
         var into = new List<Streaks.Line>();
         Streaks.Fill(weather, storm, view ?? (0, 0, Streaks.Wide, Streaks.Tall), seconds, open ?? ((_, _) => true), ground ?? (_ => 10_000), into);
-        return into;
-    }
-
-    private static List<Streaks.Puff> Puffs(StretchLooks.Weather weather, Storm storm, (float, float, float, float) view, float ground)
-    {
-        var into = new List<Streaks.Puff>();
-        Streaks.Puffs(weather, storm, view, 7.5, (_, y) => y < ground, _ => ground, into);
         return into;
     }
 }

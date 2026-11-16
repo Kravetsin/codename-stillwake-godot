@@ -14,9 +14,6 @@ public static class Streaks
     /// <summary>A streak: tapering from its head, <see cref="Width"/> wide, to its tail; in its weather's colour <see cref="Colour"/>; a speck of grit by its head, or none.</summary>
     public readonly record struct Line(float HeadX, float HeadY, float TailX, float TailY, float Width, int Colour, (float X, float Y)? Speck);
 
-    /// <summary>A wisp: picture <see cref="Picture"/> of its weather's, its middle at <see cref="X"/>, <see cref="Y"/>, drawn at <see cref="Alpha"/>.</summary>
-    public readonly record struct Puff(float X, float Y, int Picture, float Alpha);
-
     /// <summary>The box streaks wrap round, in pixels of the world: the pick's view and its margin.</summary>
     public const float Wide = StretchLooks.Weather.BoxWide, Tall = StretchLooks.Weather.BoxTall;
 
@@ -54,45 +51,13 @@ public static class Streaks
                 }
     }
 
-    /// <summary>
-    /// The wisps of <paramref name="weather"/> at <paramref name="storm"/>'s height in <paramref name="view"/>, <paramref name="seconds"/>
-    /// on, into <paramref name="into"/>: a row of them drifting level, across the boxes in view, each 4 to 34 pixels over
-    /// <paramref name="ground"/>, a smoothed line (<see cref="Smoothed"/>), so a ledge never drops them: past a cliff's edge one hangs
-    /// in the air. One fades as it drifts into what is not <paramref name="open"/>, by the share of its width still in the air. None
-    /// for a weather without.
-    /// </summary>
-    public static void Puffs(StretchLooks.Weather weather, Storm storm, (float Left, float Top, float Right, float Bottom) view, double seconds,
-        Func<float, float, bool> open, Func<float, float> ground, List<Puff> into)
-    {
-        if (weather.Wisps is not { } wisps) return;
-        int count = (int)MathF.Round(wisps.Count * storm.Share);
-        float reach = 30;
-        int left = (int)MathF.Floor((view.Left - reach) / Wide), right = (int)MathF.Floor((view.Right + reach) / Wide);
-        for (int tx = left; tx <= right; tx++)
-            for (int i = 0; i < count; i++)
-            {
-                float q0 = Hash(tx, 0, i, 10), q1 = Hash(tx, 0, i, 11), q2 = Hash(tx, 0, i, 12), q3 = Hash(tx, 0, i, 13), q4 = Hash(tx, 0, i, 14);
-                float x = tx * Wide + Wrap(Wide * q0 - seconds * Lerp(wisps.Speed.Least, wisps.Speed.Most, q2), Wide);
-                float y = ground(x) - (4 + 30 * q1) + MathF.Sin(Turn(seconds * 2) + q4 * 6) * 1.5f;
-                if (x < view.Left - reach || x > view.Right + reach || y < view.Top - reach || y > view.Bottom + reach) continue;
-                int aloft = 0;
-                for (int k = 0; k < Samples; k++)
-                    if (open(x + (k / (Samples - 1f) - 0.5f) * WispWide, y)) aloft++;
-                if (aloft == 0) continue;
-                into.Add(new(x, y, i % wisps.Pictures.Count, wisps.Alpha * storm.Share * (0.6f + 0.4f * q3) * aloft / Samples));
-            }
-    }
-
-    /// <summary>How wide a wisp is felt, in pixels of the world, and at how many points across it its share in the air is read.</summary>
-    private const float WispWide = 28;
-    private const int Samples = 7;
-
     /// <summary>Columns either side a smoothed ground line (<see cref="Smoothed"/>) is averaged over: wide, so it never steps with a ledge.</summary>
     public const int GroundReach = 24;
 
     /// <summary>
     /// <paramref name="tops"/>, each column's top row, averaged over <paramref name="reach"/> columns either side, wrapping, in pixels
-    /// of the world, a column <paramref name="cell"/> pixels: the line the wisps and the grit's thinning follow. Once, as a surface loads.
+    /// of the world, a column <paramref name="cell"/> pixels: the line the grit thins from and a hero's depth under the weather is
+    /// read from. Once, as a surface loads.
     /// </summary>
     public static float[] Smoothed(int[] tops, int reach, int cell)
     {

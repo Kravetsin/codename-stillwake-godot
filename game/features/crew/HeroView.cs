@@ -466,7 +466,16 @@ public partial class HeroView : Node2D
             if (thrust != null) _thrust = thrust;
             var input = passedOut || seat != null
                 ? new HeroInput(0, 0, false, Jetpack: jetpack)
-                : taken with { Face = faces, Swings = swinging || _armUp, Pull = pull, PullBy = _harpoon.PullBy, Jetpack = jetpack, Thrust = thrust };
+                : taken with
+                {
+                    Face = faces,
+                    Swings = swinging || _armUp,
+                    Pull = pull,
+                    PullBy = _harpoon.PullBy,
+                    Jetpack = jetpack,
+                    Thrust = thrust,
+                    Slowed = 1000 - m.Crew.PaceAt(_current.BodyCell(ship.Width)),
+                };
             // Rammed, the hero is thrown, not walked: no keys, no ladder, a held Up or Space taken by nothing (0103).
             if (_reel > 0)
             {

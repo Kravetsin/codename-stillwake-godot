@@ -25,10 +25,11 @@ public readonly record struct Point(int X, int Y);
 /// by <c>Jetpack.Drag</c> a step toward what the keys swim. <see cref="JumpHeld"/>, Space held down: let go while a
 /// jump rises, it rises less (<c>Hero.JumpCut</c>); the step <see cref="Jump"/> is set counts as held too. <see cref="Reeling"/>,
 /// knocked by a ram (0103): the keys aside, no ladder taken, the knock's speed kept in the air and braked on the floor.
+/// <see cref="Slowed"/>, thousandths taken off the walk's and the run's top speed: a storm's under the open sky (<c>ICrewQueries.PaceAt</c>).
 /// </summary>
 public readonly record struct HeroInput(
     int X, int Y, bool Jump, int? Face = null, bool Sprint = false, bool Swings = false, Point? Pull = null,
-    bool Jetpack = false, Point? Thrust = null, bool JumpHeld = false, bool Reeling = false, int PullBy = 0);
+    bool Jetpack = false, Point? Thrust = null, bool JumpHeld = false, bool Reeling = false, int PullBy = 0, int Slowed = 0);
 
 /// <summary>
 /// The cells the hero moves against; which of them are space, where the
@@ -441,11 +442,11 @@ public readonly record struct Hero(
     /// <summary>
     /// The walk's speed after a step from <paramref name="vx"/>: gaining <c>Hero.WalkAccel</c> or <c>Hero.RunAccel</c>
     /// toward what the keys walk or run, else losing <c>Hero.Stop</c> toward it, landing on it; in the air by
-    /// <c>Hero.AirControl</c> of either (0089).
+    /// <c>Hero.AirControl</c> of either (0089). Either top <see cref="HeroInput.Slowed"/> thousandths lower, rounded down.
     /// </summary>
     private static int Paced(int vx, HeroInput input, bool grounded)
     {
-        int top = input.Sprint ? Spec.Run : Spec.Walk, target = input.X * top;
+        int top = (input.Sprint ? Spec.Run : Spec.Walk) * (1000 - input.Slowed) / 1000, target = input.X * top;
         bool gains = input.X != 0 && (vx == 0 || Math.Sign(vx) == input.X) && Math.Abs(vx) <= top;
         int rate = gains ? (input.Sprint ? Spec.RunAccel : Spec.WalkAccel) : Spec.Stop;
         if (!grounded) rate = rate * Spec.AirControl / 1000;

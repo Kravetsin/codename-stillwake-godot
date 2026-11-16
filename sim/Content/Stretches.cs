@@ -18,10 +18,10 @@ public static class Stretches
     /// <paramref name="Warning"/> ticks of either its warning; lasting <paramref name="Duration"/>; <paramref name="Chill"/> degrees
     /// colder under the open sky while it runs; its pieces drifting by in <paramref name="Zone"/>, whose <c>Stretch</c> is its id, none
     /// on a planet; the stream always by the hull beating <paramref name="Thins"/> times slower meanwhile, so its own pieces are not lost
-    /// among the junk.
+    /// among the junk; a hero under the open sky walking and running at <paramref name="Pace"/> thousandths of its speed while it runs.
     /// </summary>
     public sealed record Stretch(string Id, IReadOnlyList<string> Unlock, Span First, Span Gap, Span Duration, int Chill, int Warning,
-        DebrisZone? Zone = null, int Thins = 1);
+        DebrisZone? Zone = null, int Thins = 1, int Pace = 1000);
 
     /// <summary>Ticks in a minute.</summary>
     private const int Minute = 60 * 20;
@@ -45,10 +45,10 @@ public static class Stretches
     /// <summary>
     /// The first planet's dust storm (docs/plans/surface-storms.md): open from the start, one of its two storms, about three storms in
     /// a 20-minute day between them (gap and duration average 8000 ticks), each a minute to a minute and a half, warned 40 s ahead,
-    /// the open sky 20° colder. The hour is not read.
+    /// the open sky 20° colder and a hero out in it at half its pace, leaning into the wind. The hour is not read.
     /// </summary>
     public static readonly Stretch DustStorm = new("dustStorm", [],
-        First: new(6000, 9600), Gap: new(5700, 7300), Duration: new(1200, 1800), Chill: 20, Warning: 800);
+        First: new(6000, 9600), Gap: new(5700, 7300), Duration: new(1200, 1800), Chill: 20, Warning: 800, Pace: 500);
 
     /// <summary>The first planet's rain storm: the dust storm's numbers, another weather to see (rain is a look, not water).</summary>
     public static readonly Stretch RainStorm = DustStorm with { Id = "rainStorm" };

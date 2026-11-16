@@ -10,7 +10,7 @@ using S = Stillwake.Game.Sound;
 namespace Stillwake.Game.Features.Sky;
 
 /// <summary>
-/// A planet's weather (docs/plans/surface-storms.md) blowing over its open sky: its streaks and wisps (<see cref="Streaks"/>), laid in
+/// A planet's weather (docs/plans/surface-storms.md) blowing over its open sky: its streaks (<see cref="Streaks"/>), laid in
 /// view each frame from the time alone and drawn in one triangle array, only over air with no back wall above the surface's top
 /// row, read once as the surface loads; and its wind's loop, as loud as the storm is high, stopped once silent. Main reads
 /// <see cref="Now"/> and <see cref="Weather"/> to dim the daylight, haze the sky and land and blow the plants.
@@ -29,7 +29,6 @@ public partial class StormView : Node2D
     private readonly Func<float, float, bool> _open;
     private readonly Func<float, float> _ground;
     private readonly List<Streaks.Line> _lines = [];
-    private readonly List<Streaks.Puff> _puffs = [];
     private AudioStreamPlayer? _wind;
     private S.Cue? _windCue;
     private bool _drawn;
@@ -51,8 +50,6 @@ public partial class StormView : Node2D
         ZIndex = Layers.Weather;
         // Lit by the daylight they are drawn in (Light), not again by the world's lamps and its dark ambient, as the wash is.
         Material = Unlit;
-        _wisps = new Wisps(this) { ShowBehindParent = true, Material = Unlit };
-        AddChild(_wisps);
         AddChild(_wash);
     }
 
@@ -62,7 +59,7 @@ public partial class StormView : Node2D
     /// <summary>How far it has come (<see cref="Storm"/>): none with no weather.</summary>
     public Storm Now { get; private set; } = Storm.None;
 
-    /// <summary>The daylight on the land behind now (<c>Daylight.Backdrop</c>, dimmed by the storm): what the streaks, the wisps and the wash's haze are drawn in, as dim as what they cross.</summary>
+    /// <summary>The daylight on the land behind now (<c>Daylight.Backdrop</c>, dimmed by the storm): what the streaks and the wash's haze are drawn in, as dim as what they cross.</summary>
     public (float R, float G, float B) Light { get; set; } = (1, 1, 1);
 
     public override void _Process(double delta)
@@ -74,17 +71,15 @@ public partial class StormView : Node2D
         Hear();
         Lay();
         if (_lines.Count > 0 || _drawn) QueueRedraw();
-        if (_puffs.Count > 0 || _wisps.Drawn) _wisps.QueueRedraw();
         _reach = Eye is { } eye ? Storm.Reach(eye.Y - _ground(eye.X)) : 1;
         float washed = Weather?.Visibility != null ? Now.Washed * _reach : 0;
-        _wash.Show(Weather?.Visibility, washed, Light, Weather?.Haze ?? (1, 1, 1), Eye, GetViewport());
+        _wash.Show(Weather?.Visibility, washed, Light, Weather?.Haze ?? (1, 1, 1), GetViewport());
     }
 
-    /// <summary>The middle of this player's hero's body, in pixels of the world: the clear patch round it in the wash. None with no hero.</summary>
+    /// <summary>The middle of this player's hero's body, in pixels of the world: how deep under the land the weather is felt (<see cref="Storm.Reach"/>). None with no hero.</summary>
     public Vector2? Eye { get; set; }
 
     private readonly Washout _wash = new();
-    private readonly Wisps _wisps;
     private float _reach = 1;
 
     /// <summary>A pixel of the screen in pixels of the world, as last laid: the thinnest a streak is drawn.</summary>
@@ -92,8 +87,8 @@ public partial class StormView : Node2D
 
     /// <summary>
     /// The weather's wash (<see cref="StretchLooks.Wash"/>, «Блёклый мир») over the world in view, under the overlays and what is read:
-    /// the screen as drawn so far, blurred to a pixel of the world through its mipmaps, greyed and flattened toward the haze, clear in a
-    /// soft patch round the hero. Hidden at 0, so no screen is copied without a storm.
+    /// the screen as drawn so far, blurred to a pixel of the world through its mipmaps, greyed and flattened toward the haze, the hero
+    /// too. Hidden at 0, so no screen is copied without a storm.
     /// </summary>
     private sealed partial class Washout : Node2D
     {
@@ -107,11 +102,6 @@ public partial class StormView : Node2D
                 uniform vec3 haze = vec3(1.0);
                 uniform float grey = 0.0;
                 uniform float flat_share = 0.0;
-                uniform vec2 eye;
-                uniform float eyed = 0.0;
-                uniform float inner = 16.0;
-                uniform float outer = 34.0;
-                uniform float tall = 1.0;
                 varying vec2 world;
                 void vertex() {
                     world = VERTEX;
@@ -123,10 +113,7 @@ public partial class StormView : Node2D
                     vec3 c = textureLod(screen, SCREEN_UV, lod).rgb;
                     c = mix(c, vec3(dot(c, vec3(0.3, 0.59, 0.11))), grey);
                     c = mix(c, haze, flat_share);
-                    vec2 d = world - eye;
-                    d.y /= tall;
-                    float clear = eyed * clamp((outer - length(d)) / (outer - inner), 0.0, 1.0);
-                    COLOR = vec4(mix(sharp, c, amount * (1.0 - clear)), 1.0);
+                    COLOR = vec4(mix(sharp, c, amount), 1.0);
                 }
                 """,
         };
@@ -139,16 +126,16 @@ public partial class StormView : Node2D
             Material = _material;
             ZAsRelative = false;
             ZIndex = Layers.Weather;
-            // Before its parent on the same layer: the streaks and wisps blow close, over the washed-out distance, not lost in it.
+            // Before its parent on the same layer: the streaks blow close, over the washed-out distance, not lost in it.
             ShowBehindParent = true;
             Visible = false;
         }
 
         /// <summary>
         /// <paramref name="wash"/> at <paramref name="amount"/> of the way, toward <paramref name="haze"/> in <paramref name="light"/>, as
-        /// dim as the daylight it lies under; clear round <paramref name="eye"/>. Hidden with none.
+        /// dim as the daylight it lies under. Hidden with none.
         /// </summary>
-        public void Show(StretchLooks.Wash? wash, float amount, (float R, float G, float B) light, (float R, float G, float B) haze, Vector2? eye, Viewport viewport)
+        public void Show(StretchLooks.Wash? wash, float amount, (float R, float G, float B) light, (float R, float G, float B) haze, Viewport viewport)
         {
             Visible = wash != null && amount > 0;
             if (wash == null || !Visible) return;
@@ -156,11 +143,6 @@ public partial class StormView : Node2D
             _material.SetShaderParameter("haze", new Vector3(haze.R * light.R, haze.G * light.G, haze.B * light.B));
             _material.SetShaderParameter("grey", wash.Grey);
             _material.SetShaderParameter("flat_share", wash.Flat);
-            _material.SetShaderParameter("inner", wash.Clear.Inner);
-            _material.SetShaderParameter("outer", wash.Clear.Outer);
-            _material.SetShaderParameter("tall", wash.Tall);
-            _material.SetShaderParameter("eyed", eye != null ? 1f : 0f);
-            if (eye is { } at) _material.SetShaderParameter("eye", at);
             var view = viewport.GetCanvasTransform().AffineInverse() * viewport.GetVisibleRect();
             if (view == _view) return;
             _view = view;
@@ -192,18 +174,16 @@ public partial class StormView : Node2D
         if (!_wind.Playing) _wind.Play();
     }
 
-    /// <summary>The streaks and wisps in view now, laid from the time alone; none with no storm.</summary>
+    /// <summary>The streaks in view now, laid from the time alone; none with no storm.</summary>
     private void Lay()
     {
         _lines.Clear();
-        _puffs.Clear();
         if (Weather is not { } weather || Now.Share <= 0) return;
         var canvas = GetViewport().GetCanvasTransform();
         var view = canvas.AffineInverse() * GetViewport().GetVisibleRect();
         var box = (view.Position.X, view.Position.Y, view.End.X, view.End.Y);
         double seconds = _clock() / Sim.World.TicksPerSecond;
         Streaks.Fill(weather, Now, box, seconds, _open, _ground, _lines);
-        Streaks.Puffs(weather, Now, box, seconds, _open, _ground, _puffs);
         _pixel = 1 / Math.Max(canvas.Scale.X, 1e-3f);
     }
 
@@ -213,31 +193,6 @@ public partial class StormView : Node2D
         if (Weather is not { } weather || _lines.Count == 0) return;
         DrawLines(weather, new Color(Light.R, Light.G, Light.B));
         _drawn = true;
-    }
-
-    /// <summary>
-    /// The storm's wisps, under its wash as on the pick page: soft dust that fades with the distance, where over the wash they would
-    /// read as dark bars. Drawn before the wash on the same layer.
-    /// </summary>
-    private sealed partial class Wisps(StormView storm) : Node2D
-    {
-        public bool Drawn { get; private set; }
-
-        public override void _Draw()
-        {
-            Drawn = false;
-            if (storm.Weather?.Wisps is not { } wisps || storm._puffs.Count == 0) return;
-            var light = new Color(storm.Light.R, storm.Light.G, storm.Light.B);
-            foreach (var puff in storm._puffs)
-            {
-                string name = wisps.Pictures[puff.Picture];
-                if (!HiRes.Has(name)) continue;
-                var picture = PixelArt.Picture(name);
-                var size = picture.GetSize();
-                DrawTextureRect(picture, new Rect2(new Vector2(puff.X, puff.Y) - size / 2, size), false, light with { A = puff.Alpha });
-            }
-            Drawn = true;
-        }
     }
 
     /// <summary>Every streak a sliver from its head to its tail, and its speck, in one triangle array.</summary>

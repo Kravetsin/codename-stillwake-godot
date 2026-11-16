@@ -236,6 +236,25 @@ public class StormsTests
     }
 
     [Fact]
+    public void AStormHalvesAHerosPaceUnderTheOpenSkyOnlyWhileItRunsNeitherInItsWarningNorUnderABackWall()
+    {
+        Assert.Equal((500, 500), (Storm.Pace, Rain.Pace));
+        var w = Down();
+        var crew = w.On(1).Crew;
+        int shelter = crew.Spawn;
+        Assert.Equal((1000, 1000), (crew.PaceAt(Open), crew.PaceAt(shelter)));
+        w.Do(new StretchNow(Storm.Id)).Run();
+        Assert.Equal(Storm.Id, Now(w).Coming);
+        Assert.Equal(1000, crew.PaceAt(Open));
+        w.Run(Storm.Warning);
+        Assert.Equal(Storm.Id, Now(w).Stretch);
+        Assert.Equal((500, 1000), (crew.PaceAt(Open), crew.PaceAt(shelter)));
+        w.Run(S(w).Left);
+        Assert.Null(Now(w).Stretch);
+        Assert.Equal(1000, crew.PaceAt(Open));
+    }
+
+    [Fact]
     public void BelowThePlanetsTopBandAStormChangesNothing()
     {
         var garden = TemperatureTests.OpenGround(TemperatureTests.InBand(1), night: true);
@@ -244,6 +263,7 @@ public class StormsTests
         garden.Do(new StretchNow(Storm.Id)).Run(Storm.Warning);
         Assert.Equal((Storm.Id, Storm.Chill + Day.Chill), (garden.M.Sky.Now.Stretch, garden.M.Sky.Now.Chill));
         Assert.Equal(Content.PlanetTypes.First.Temperatures[1], garden.M.Crew.TemperatureAt(cell));
+        Assert.Equal(1000, garden.M.Crew.PaceAt(cell));
     }
 
     /// <summary>
