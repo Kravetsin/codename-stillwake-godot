@@ -78,13 +78,15 @@ public static class NavMap
 
     /// <summary>
     /// Where a callout <paramref name="wide"/> by <paramref name="tall"/> stands beside a thing at (<paramref name="x"/>,
-    /// <paramref name="y"/>) of radius <paramref name="r"/>: to its right, else its left, kept <paramref name="margin"/> inside the screen.
+    /// <paramref name="y"/>) of radius <paramref name="r"/>: on its side away from the middle, where it covers least of what the
+    /// thing stands round, else the other, kept <paramref name="margin"/> inside the screen.
     /// </summary>
     public static (float X, float Y) Callout(float x, float y, float r, float wide, float tall, float width, float height, float margin = 16)
     {
         const float Gap = 34;
-        float left = x + r + Gap;
-        if (left + wide > width - margin) left = x - r - Gap - wide;
+        float right = x + r + Gap, left = x - r - Gap - wide;
+        bool fitsRight = right + wide <= width - margin, fitsLeft = left >= margin;
+        left = x < width / 2 ? (fitsLeft ? left : right) : (fitsRight ? right : left);
         return (Math.Clamp(left, margin, MathF.Max(margin, width - margin - wide)), Math.Clamp(y - 44, margin, MathF.Max(margin, height - margin - tall)));
     }
 

@@ -15,7 +15,8 @@ namespace Stillwake.Game.Features.Computer;
 /// the sun in the middle and its planets on their orbits, zoomed by the wheel down to the ship's planet, where the ship's orbit
 /// and the contacts on it show (<see cref="NavMap"/>). The pointer names what it is over; a click opens a callout beside the thing,
 /// held to it by a line of ink, with its facts and its action: a course to a planet, a jump to a contact. Esc or a click on empty
-/// map puts it away. The map moves by real time and the player's hand only: a look, never the sim's.
+/// map puts it away. It redraws only while something on it moves or changes, and its ink is written once and kept: strokes
+/// rebuilt every frame cost the board milliseconds and the collector its pauses.
 /// </summary>
 public partial class RadarScreen : Control
 {
@@ -27,28 +28,45 @@ public partial class RadarScreen : Control
     private const int Going = 2 * 60 * Sim.World.TicksPerSecond;
     /// <summary>Above this scale the ship's orbit and its contacts show.</summary>
     private const float NearFrom = 4;
+    /// <summary>Seconds the selection's loop takes to be drawn round.</summary>
+    private const float LoopS = 0.28f;
     private const int Small = 13, Tiny = 11, Title = 15;
+
+    /// <summary>Dotted circles of a unit radius, by their dots, scaled to an orbit as they are drawn: built once.</summary>
+    private static readonly Dictionary<int, Vector2[]> Dots = [];
+    /// <summary>Sketched boxes by size and seed, at the origin, moved where they are drawn: written once.</summary>
+    private static readonly Dictionary<(int, int, float), Vector2[][]> Boxes = [];
+    private static readonly string[] Numbers = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10"];
 
     private readonly Ui _ui;
     private readonly List<Hit> _hits = [], _drawn = [];
+    private readonly Vector2[] _course = new Vector2[41], _dashes = new Vector2[40], _flown = new Vector2[21];
     private float _zoom, _zoomTo, _along, _time, _opened;
     private int _focus;
-    private Vector2 _pan;
+    private Vector2 _pan, _mouse;
     private Vector2? _press;
-    private bool _dragged;
+    private bool _dragged, _dirty = true, _blink;
     private int? _planet;
+    private string? _tipKey;
+    private Tip? _tip;
+    private (Vector2, Vector2) _leaderAt;
+    private Vector2[] _leader = [];
+    private int _at;
+    private (int To, int TicksLeft)? _courseNow;
+    private IReadOnlyList<Contact> _contacts = [];
+    private IReadOnlyList<string?> _problems = [];
 
     /// <summary>The system planet the ship is at (<c>LandingModule.At</c>).</summary>
-    public int At { get; set; }
+    public int At { get => _at; set => Changed(ref _at, value); }
 
     /// <summary>The ship's course, where to and its ticks left; null standing.</summary>
-    public (int To, int TicksLeft)? Course { get; set; }
+    public (int To, int TicksLeft)? Course { get => _courseNow; set => Changed(ref _courseNow, value); }
 
     /// <summary>The contacts up, as the panel last read them.</summary>
-    public IReadOnlyList<Contact> Contacts { get; set; } = [];
+    public IReadOnlyList<Contact> Contacts { get => _contacts; set => Changed(ref _contacts, value); }
 
     /// <summary>Why no course can be set to each system planet, as the panel last read it: null where one can.</summary>
-    public IReadOnlyList<string?> Problems { get; set; } = [];
+    public IReadOnlyList<string?> Problems { get => _problems; set => Changed(ref _problems, value); }
 
     /// <summary>Sets a course to a system planet: <c>landing</c>'s <c>SetCourse</c>.</summary>
     public Action<int>? SetCourse { get; set; }
@@ -61,12 +79,20 @@ public partial class RadarScreen : Control
         _ui = ui;
         MouseFilter = MouseFilterEnum.Stop;
         ClipContents = true;
+        Resized += () => _dirty = true;
+    }
+
+    private void Changed<T>(ref T field, T value)
+    {
+        if (EqualityComparer<T>.Default.Equals(field, value)) return;
+        field = value;
+        (_dirty, _tipKey) = (true, null);
     }
 
     /// <summary>Opens on the whole system, nothing selected.</summary>
     public void Reset()
     {
-        (_zoom, _zoomTo, _pan, _planet, _focus) = (0, 0, Vector2.Zero, null, At);
+        (_zoom, _zoomTo, _pan, _planet, _focus, _dirty) = (0, 0, Vector2.Zero, null, At, true);
         _ui.RadarContact.Set(null);
     }
 
@@ -78,23 +104,49 @@ public partial class RadarScreen : Control
         return true;
     }
 
-    /// <summary>The tooltip for what lies under <paramref name="global"/>, a point on the screen; none elsewhere.</summary>
-    public Tip? TipAt(Vector2 global) => HitAt(GetGlobalTransform().AffineInverse() * global)?.Tip;
+    /// <summary>The tooltip for what lies under <paramref name="global"/>, a point on the screen; none elsewhere. The same one while it stays.</summary>
+    public Tip? TipAt(Vector2 global)
+    {
+        var hit = HitAt(GetGlobalTransform().AffineInverse() * global);
+        if (hit?.Key != _tipKey) (_tipKey, _tip) = (hit?.Key, hit?.Tip?.Invoke());
+        return _tip;
+    }
 
     public override void _Process(double delta)
     {
         if (!IsVisibleInTree()) return;
         float dt = Mathf.Min((float)delta, 0.05f), k = Mathf.Min(1, dt * 7);
         _time += dt;
-        _zoom = Mathf.Abs(_zoomTo - _zoom) < 0.001f ? _zoomTo : _zoom + (_zoomTo - _zoom) * k;
-        if (_zoom == 0 && Course == null) _focus = At;
+        if (_zoom != _zoomTo)
+        {
+            _zoom = Mathf.Abs(_zoomTo - _zoom) < 0.001f ? _zoomTo : _zoom + (_zoomTo - _zoom) * k;
+            _dirty = true;
+        }
+        if (_zoom == 0 && Course == null && _focus != At) (_focus, _dirty) = (At, true);
         float along = Course is { } c ? 1 - c.TicksLeft / (float)LandingData.FlightTicks : 0;
         // The mark glides between reads rather than stepping each quarter second.
-        _along = Course == null ? 0 : _along + (along - _along) * Mathf.Min(1, dt * 4);
+        float glide = Course == null ? 0 : _along + (along - _along) * Mathf.Min(1, dt * 4);
+        if (Mathf.Abs(glide - _along) > 0.0001f || (Course == null && _along != 0)) (_along, _dirty) = (glide, true);
         // A contact selected elsewhere (a demo) brings the map down to it.
-        if (_ui.RadarContact.Get() != null && _zoomTo < 1 && Course == null) (_zoomTo, _focus) = (1, At);
-        if (_planet != null && Course != null && _planet != Course.Value.To && _planet == At) _planet = null;
+        if (_ui.RadarContact.Get() != null && _zoomTo < 1 && Course == null) (_zoomTo, _focus, _dirty) = (1, At, true);
+        if (_time - _opened < LoopS + 0.25f) _dirty = true;
+        // A contact going blinks: a redraw at each turn of its blink, not every frame.
+        bool blink = Mathf.Sin(_time * 4.4f) > 0;
+        if (blink != _blink && NearShown > 0 && AnyGoing()) _dirty = true;
+        _blink = blink;
+        var mouse = GetLocalMousePosition();
+        if (mouse != _mouse && new Rect2(Vector2.Zero, Size).Grow(4).HasPoint(mouse)) _dirty = true;
+        _mouse = mouse;
+        if (!_dirty) return;
+        _dirty = false;
         QueueRedraw();
+    }
+
+    private bool AnyGoing()
+    {
+        foreach (var c in Contacts)
+            if (c.Left < Going) return true;
+        return false;
     }
 
     public override void _GuiInput(InputEvent e)
@@ -116,7 +168,7 @@ public partial class RadarScreen : Control
                 break;
             case InputEventMouseMotion motion when _press is { } from && (motion.ButtonMask & MouseButtonMask.Left) != 0:
                 if (!_dragged && from.DistanceTo(motion.Position) > 5) _dragged = true;
-                if (_dragged) _pan = (_pan + motion.Relative).Clamp(-Size, Size);
+                if (_dragged) (_pan, _dirty) = ((_pan + motion.Relative).Clamp(-Size, Size), true);
                 break;
             default:
                 return;
@@ -128,6 +180,7 @@ public partial class RadarScreen : Control
     {
         if (HitAt(at) is { } hit) hit.Click?.Invoke();
         else Select(null, null);
+        _dirty = true;
     }
 
     private void Zoom(float by)
@@ -137,13 +190,14 @@ public partial class RadarScreen : Control
         _zoomTo = Mathf.Clamp(_zoomTo + by, 0, 1);
     }
 
-    private void ZoomTo(int planet) => (_focus, _zoomTo, _pan) = (planet, 1, Vector2.Zero);
+    private void ZoomTo(int planet) => (_focus, _zoomTo, _pan, _dirty) = (planet, 1, Vector2.Zero, true);
 
     private void Select(int? planet, int? contact)
     {
         if (planet != _planet || contact != _ui.RadarContact.Get()) _opened = _time;
         _planet = planet;
         _ui.RadarContact.Set(contact);
+        (_dirty, _tipKey) = (true, null);
     }
 
     private Hit? HitAt(Vector2 at)
@@ -169,7 +223,7 @@ public partial class RadarScreen : Control
         _hits.Clear();
         Glass();
         var sun = Screen((0, 0));
-        DrawOrbits(sun);
+        for (int i = 0; i < LandingData.Planets.Count; i++) Dotted(sun, Px(NavMap.Orbit(i)), Faint);
         DrawSun(sun);
         DrawCourse(sun);
         DrawPlanets();
@@ -190,20 +244,15 @@ public partial class RadarScreen : Control
         DrawColoredPolygon([new(282, 0), new(300, 0), new(0, 402), new(0, 378)], glare with { A = 0.025f });
     }
 
-    private void DrawOrbits(Vector2 sun)
-    {
-        for (int i = 0; i < LandingData.Planets.Count; i++) Dotted(sun, Px(NavMap.Orbit(i)), Faint);
-    }
-
     private void DrawSun(Vector2 at)
     {
         if (!new Rect2(Vector2.Zero, Size).Grow(200).HasPoint(at)) return;
-        float r = 15 * Mathf.Min(ScaleNow, 3), pulse = 1 + 0.04f * Mathf.Sin(_time * 1.4f);
-        for (int i = 6; i >= 1; i--) DrawCircle(at, r * (1 + 0.37f * i) * pulse, new Color(0.89f, 0.69f, 0.38f, 0.05f));
+        float r = 15 * Mathf.Min(ScaleNow, 3);
+        for (int i = 6; i >= 1; i--) DrawCircle(at, r * (1 + 0.37f * i), new Color(0.89f, 0.69f, 0.38f, 0.05f));
         DrawCircle(at, r, new Color("c79a56"));
         DrawCircle(at - new Vector2(r, r) * 0.25f, r * 0.6f, new Color("f1dfae") with { A = 0.6f });
         DrawArc(at, r, 0, Mathf.Tau, 48, new Color(1, 0.94f, 0.82f, 0.55f), 1);
-        _hits.Add(Hit.Round(at, 18, null, new Tip(T("computer.radar.sun"), [])));
+        _hits.Add(Hit.Round("sun", at, 18, null, () => new Tip(T("computer.radar.sun"), [])));
     }
 
     private void DrawCourse(Vector2 sun)
@@ -212,26 +261,28 @@ public partial class RadarScreen : Control
         if (Course is { } c) (from, to) = (At, c.To);
         else if (_planet is int p && p != At) (from, to) = (At, p);
         else return;
-        var points = CoursePoints(sun, from, to, 1);
-        Dashed(points, Course == null ? Ink with { A = 0.86f } : Drawn with { A = 0.6f });
-        if (Course != null && _along > 0) DrawPolyline(CoursePoints(sun, from, to, _along), ShipColour with { A = 0.65f }, 1.6f, true);
-        else if (ScaleNow < 3)
+        CoursePoints(sun, from, to, 1, _course);
+        // Every other piece of the path: a dashed line in one call.
+        for (int i = 0; i < _dashes.Length / 2; i++) (_dashes[2 * i], _dashes[2 * i + 1]) = (_course[2 * i], _course[2 * i + 1]);
+        DrawMultiline(_dashes, Course == null ? Ink with { A = 0.86f } : Drawn with { A = 0.6f }, 1.2f);
+        if (Course != null && _along > 0)
         {
-            var mid = points[points.Length / 2];
-            Words(T("computer.radar.seconds", ("s", LandingData.FlightTicks / Sim.World.TicksPerSecond)), mid + new Vector2(6, -6), Tiny, Text);
+            CoursePoints(sun, from, to, _along, _flown);
+            DrawPolyline(_flown, ShipColour with { A = 0.65f }, 1.6f, true);
         }
+        else if (ScaleNow < 3)
+            Words(T("computer.radar.seconds", ("s", LandingData.FlightTicks / Sim.World.TicksPerSecond)), _course[20] + new Vector2(6, -6), Tiny, Text);
     }
 
-    private Vector2[] CoursePoints(Vector2 sun, int from, int to, float upTo)
+    private void CoursePoints(Vector2 sun, int from, int to, float upTo, Vector2[] points)
     {
         var (a, b) = (Screen(NavMap.Planet(from)), Screen(NavMap.Planet(to)));
-        var points = new Vector2[31];
-        for (int i = 0; i <= 30; i++)
+        int last = points.Length - 1;
+        for (int i = 0; i <= last; i++)
         {
-            var (x, y) = NavMap.Course((a.X, a.Y), (b.X, b.Y), (sun.X, sun.Y), upTo * i / 30);
+            var (x, y) = NavMap.Course((a.X, a.Y), (b.X, b.Y), (sun.X, sun.Y), upTo * i / last);
             points[i] = new Vector2(x, y);
         }
-        return points;
     }
 
     private void DrawPlanets()
@@ -242,16 +293,17 @@ public partial class RadarScreen : Control
             float r = Px(NavMap.PlanetRadius);
             if (!new Rect2(Vector2.Zero, Size).Grow(r + 60).HasPoint(at)) continue;
             int planet = i;
-            var tip = _planet == i ? null : new Tip(PlanetName(i), [new TipLine(T($"computer.radar.type.{LandingData.Planets[i].Type}")),
-                new TipLine(i == At && Course == null ? T("computer.radar.here") : T("computer.radar.flight", ("s", LandingData.FlightTicks / Sim.World.TicksPerSecond)))]);
-            var hit = Hit.Round(at, Mathf.Max(14, r + 4), () => Select(planet, null), tip);
+            var hit = Hit.Round($"planet{i}", at, Mathf.Max(14, r + 4), () => Select(planet, null), _planet == i ? null : () => PlanetTip(planet));
             if (ScaleNow < 3 && Hovered(hit)) DrawArc(at, r + 6, 0, Mathf.Tau, 48, Faint with { A = 0.38f }, 1);
             DrawPlanet(at, r, LandingData.Planets[i].Type);
-            if (ScaleNow < 3) Words((i + 1).ToString(), at + new Vector2(r + 3, -r - 1), 10, Mute);
+            if (ScaleNow < 3) Words(Numbers[i % Numbers.Length], at + new Vector2(r + 3, -r - 1), 10, Mute);
             _hits.Add(hit);
             if (_planet == i) HandLoop(at, r + 10, r + 9, i + 3);
         }
     }
+
+    private Tip PlanetTip(int i) => new(PlanetName(i), [new TipLine(T($"computer.radar.type.{LandingData.Planets[i].Type}")),
+        new TipLine(i == At && Course == null ? T("computer.radar.here") : T("computer.radar.flight", ("s", LandingData.FlightTicks / Sim.World.TicksPerSecond)))]);
 
     private void DrawNear()
     {
@@ -264,12 +316,13 @@ public partial class RadarScreen : Control
         foreach (var c in Contacts)
         {
             var at = Screen(NavMap.Contact(At, c.Offset));
-            bool going = c.Left < Going, blink = going && Mathf.Sin(_time * 4.4f) > 0;
-            var cls = Vessels.Class(c.Class);
-            float wide = cls?.Length >= 150 ? 34 : 20;
-            var hit = Hit.Round(at, 20, () => Select(null, c.Id), _ui.RadarContact.Get() == c.Id ? null
-                : new Tip(ClassName(c.Class), [new TipLine(T("computer.radar.km", ("n", RadarOrbit.Km(c.Offset)))), new TipLine(Leaves(c.Left), going ? Tone.Bad : Tone.Plain)]));
-            Silhouette(at, wide, c.Class, blink, shown);
+            bool going = c.Left < Going;
+            var contact = c;
+            float wide = Vessels.Class(c.Class)?.Length >= 150 ? 34 : 20;
+            var hit = Hit.Round($"contact{c.Id}", at, 20, () => Select(null, contact.Id), _ui.RadarContact.Get() == c.Id ? null
+                : () => new Tip(ClassName(contact.Class), [new TipLine(T("computer.radar.km", ("n", RadarOrbit.Km(contact.Offset)))),
+                    new TipLine(Leaves(contact.Left), contact.Left < Going ? Tone.Bad : Tone.Plain)]));
+            Silhouette(at, wide, c.Class, going && _blink, shown);
             Words(T("computer.radar.km", ("n", RadarOrbit.Km(c.Offset))), at + new Vector2(0, 22), Tiny, (Hovered(hit) ? Colors.White : Text) with { A = shown }, true);
             if (going) Words(Clock(c.Left), at + new Vector2(0, 36), Tiny, Amber with { A = shown }, true);
             if (shown > 0.5f) _hits.Add(hit);
@@ -283,27 +336,32 @@ public partial class RadarScreen : Control
         float angle = 0;
         if (Course is { } c)
         {
-            var points = CoursePoints(sun, At, c.To, Mathf.Max(_along, 0.001f));
-            at = points[^1];
-            angle = (points[^1] - points[^2]).Angle();
+            float t = Mathf.Max(_along, 0.001f);
+            var (a, b) = (Screen(NavMap.Planet(At)), Screen(NavMap.Planet(c.To)));
+            var (x0, y0) = NavMap.Course((a.X, a.Y), (b.X, b.Y), (sun.X, sun.Y), Mathf.Max(0, t - 0.01f));
+            var (x1, y1) = NavMap.Course((a.X, a.Y), (b.X, b.Y), (sun.X, sun.Y), t);
+            (at, angle) = (new Vector2(x1, y1), new Vector2(x1 - x0, y1 - y0).Angle());
         }
         else at = Screen(NavMap.Ship(At));
-        var shape = new[] { new Vector2(8, 0), new Vector2(-6, -5), new Vector2(-3, 0), new Vector2(-6, 5) };
-        for (int i = 0; i < shape.Length; i++) shape[i] = at + shape[i].Rotated(angle);
-        DrawColoredPolygon(shape, ShipColour);
-        DrawPolyline([.. shape, shape[0]], new Color(0.03f, 0.05f, 0.09f, 0.9f), 1, true);
-        _hits.Add(Hit.Round(at, 8, null, new Tip(T("computer.radar.ship"), [new TipLine(Course != null ? T("computer.radar.inFlight") : T("computer.radar.atPlanet", ("n", At + 1)))])));
+        Span<Vector2> shape = [new(8, 0), new(-6, -5), new(-3, 0), new(-6, 5)];
+        var polygon = new Vector2[5];
+        for (int i = 0; i < 4; i++) polygon[i] = at + shape[i].Rotated(angle);
+        polygon[4] = polygon[0];
+        DrawColoredPolygon(polygon[..4], ShipColour);
+        DrawPolyline(polygon, new Color(0.03f, 0.05f, 0.09f, 0.9f), 1, true);
+        _hits.Add(Hit.Round("ship", at, 8, null, () => new Tip(T("computer.radar.ship"),
+            [new TipLine(Course != null ? T("computer.radar.inFlight") : T("computer.radar.atPlanet", ("n", At + 1)))])));
         // While the whole system shows, a tag under the ship's planet says what is near and zooms down to it.
         float far = 1 - Mathf.Clamp((ScaleNow - 1.5f) / 1.5f, 0, 1);
         if (Course != null || far < 0.05f) return;
         var planet = Screen(NavMap.Planet(At));
         float r = Px(NavMap.PlanetRadius);
         string words = T("computer.radar.near", ("n", Contacts.Count));
-        float wide = Width(words, Tiny) + 20;
+        float wide = Mathf.Ceil(Width(words, Tiny) + 20);
         var box = new Rect2(planet.X < sun.X ? planet.X - r - 16 - wide : planet.X + r + 16, planet.Y + r + 4, wide, 20);
-        var tag = Hit.Box(box, () => ZoomTo(At), new Tip(T("computer.radar.nearTitle"), [new TipLine(T("computer.radar.nearHow"))]));
+        var tag = Hit.Box("near", box, () => ZoomTo(At), () => new Tip(T("computer.radar.nearTitle"), [new TipLine(T("computer.radar.nearHow"))]));
         DrawRect(box, Card with { A = 0.8f * far });
-        SketchBox(box, 62, (Hovered(tag) ? Ink : Faint with { A = 0.5f }) with { A = far }, 1.2f);
+        SketchBox(box, 6.2f, (Hovered(tag) ? Ink : Faint with { A = 0.5f }) with { A = far }, 1.2f);
         Words(words, box.GetCenter() + new Vector2(0, 4), Tiny, (Hovered(tag) ? Text : Mute) with { A = far }, true);
         _hits.Add(tag);
     }
@@ -312,30 +370,30 @@ public partial class RadarScreen : Control
     private void DrawChrome()
     {
         bool deep = _zoom >= 0.5f;
-        var system = Hit.Box(new Rect2(18, 14, 76, 26), () => (_zoomTo, _pan) = (0, Vector2.Zero), null);
+        var system = Hit.Box("system", new Rect2(18, 14, 76, 26), () => (_zoomTo, _pan, _dirty) = (0, Vector2.Zero, true), null);
         Words(T("computer.radar.system"), new Vector2(24, 32), Small, deep ? (Hovered(system) ? Colors.White : Mute) : Text);
         _hits.Add(system);
         float alpha = 0.35f + 0.65f * _zoom;
         Words("›", new Vector2(98, 32), Small, DimText with { A = alpha });
-        var planet = Hit.Box(new Rect2(112, 14, 110, 26), () => { if (Course == null) ZoomTo(_focus); }, null);
+        var planet = Hit.Box("crumb", new Rect2(112, 14, 110, 26), () => { if (Course == null) ZoomTo(_focus); }, null);
         Words(PlanetName(_focus), new Vector2(116, 32), Small, (deep ? Text : Hovered(planet) ? Colors.White : Mute) with { A = alpha });
         _hits.Add(planet);
-        ZoomButton("zin", 50, "+", () => Zoom(0.34f));
-        ZoomButton("zout", 154, "−", () => Zoom(-0.34f));
+        ZoomButton("zin", 50, "+", 1.7f, () => Zoom(0.34f));
+        ZoomButton("zout", 154, "−", 2.9f, () => Zoom(-0.34f));
         DrawLine(new Vector2(32, 82), new Vector2(32, 148), Faint with { A = 0.38f }, 1);
         DrawRect(new Rect2(27, 144 - _zoom * 62, 10, 4), ShipColour);
         Words(T("computer.radar.orbitLevel"), new Vector2(54, 90), 10, _zoom > 0.5f ? Text : DimText);
         Words(T("computer.radar.systemLevel"), new Vector2(54, 148), 10, _zoom <= 0.5f ? Text : DimText);
         string hint = T("computer.radar.hint");
-        Words(hint, new Vector2(Size.X - 16 - Width(hint, 10), 30), 10, DimText);
+        Words(hint, new Vector2(Size.X - 18 - Width(hint, 10), Size.Y - 16), 10, DimText);
     }
 
-    private void ZoomButton(string id, float y, string label, Action press)
+    private void ZoomButton(string id, float y, string label, float seed, Action press)
     {
         var box = new Rect2(18, y, 28, 26);
-        var hit = Hit.Box(box, press, null);
+        var hit = Hit.Box(id, box, press, null);
         DrawRect(box, Card with { A = 0.8f });
-        SketchBox(box, BoardInk.Seed(id), Hovered(hit) ? Ink : Faint with { A = 0.5f }, 1.2f);
+        SketchBox(box, seed, Hovered(hit) ? Ink : Faint with { A = 0.5f }, 1.2f);
         Words(label, box.GetCenter() + new Vector2(0, 6), 15, Hovered(hit) ? Colors.White : Text, true);
         _hits.Add(hit);
     }
@@ -349,16 +407,16 @@ public partial class RadarScreen : Control
         bool reason = card.Button is { Lit: false, Reason: not null };
         float tall = 76 + card.Rows.Length * 20 + (card.Button != null ? 50 : 6) + (reason ? 16 : 0);
         var (x, y) = NavMap.Callout(anchor.X, anchor.Y, radius, wide, tall, Size.X, Size.Y);
-        y += (1 - open) * 8;
+        (x, y) = (Mathf.Round(x), Mathf.Round(y + (1 - open) * 8));
         var box = new Rect2(x, y, wide, tall);
         bool right = x > anchor.X;
-        var end = new Vector2(anchor.X + (right ? radius : -radius), anchor.Y);
-        var start = new Vector2(right ? x : x + wide, Mathf.Clamp(anchor.Y, y + 16, y + tall - 16));
-        InkDraw.Stroke(this, BoardInk.Stroke(end.X, end.Y, start.X, start.Y, 8.1f), Ink with { A = open * 0.86f }, 1.2f);
+        var end = new Vector2(anchor.X + (right ? radius : -radius), anchor.Y).Round();
+        var start = new Vector2(right ? x : x + wide, Mathf.Clamp(anchor.Y, y + 16, y + tall - 16)).Round();
+        Leader(end, start, Ink with { A = open * 0.86f });
         DrawCircle(end, 2, Ink with { A = open });
         DrawRect(box, Card with { A = 0.95f * open });
         SketchBox(box, 8.3f, Ink with { A = open * 0.86f }, 1.4f);
-        _hits.Add(Hit.Box(box, null, null));
+        _hits.Add(Hit.Box("callout", box, null, null));
         var frame = new Rect2(x + 14, y + 14, 60, 48);
         SketchBox(frame, 8.5f, Faint with { A = open * 0.4f }, 1);
         card.Picture(frame.GetCenter());
@@ -370,9 +428,21 @@ public partial class RadarScreen : Control
         if (card.Button is { } button) Button(new Rect2(x + 14, y + 78 + card.Rows.Length * 20, wide - 28, 34), button, open);
     }
 
+    /// <summary>The callout's line of ink to its thing, written again only when either end moves.</summary>
+    private void Leader(Vector2 end, Vector2 start, Color colour)
+    {
+        if (_leaderAt != (end, start))
+        {
+            _leader = Points(BoardInk.Stroke(end.X, end.Y, start.X, start.Y, 8.1f));
+            _leaderAt = (end, start);
+        }
+        if (_leader.Length > 1) DrawPolyline(_leader, colour, 1.2f, true);
+    }
+
     private void Close(Vector2 at)
     {
-        var hit = Hit.Box(new Rect2(at, new Vector2(20, 20)), () => Select(null, null), new Tip(T("computer.radar.close"), [new TipLine(T("computer.radar.closeHow"))]));
+        var hit = Hit.Box("close", new Rect2(at, new Vector2(20, 20)), () => Select(null, null),
+            () => new Tip(T("computer.radar.close"), [new TipLine(T("computer.radar.closeHow"))]));
         var colour = Hovered(hit) ? Colors.White : Mute;
         DrawLine(at + new Vector2(5, 5), at + new Vector2(15, 15), colour, 1.3f, true);
         DrawLine(at + new Vector2(15, 5), at + new Vector2(5, 15), colour, 1.3f, true);
@@ -384,21 +454,21 @@ public partial class RadarScreen : Control
         if (button.Busy is float busy)
         {
             DrawRect(new Rect2(box.Position, new Vector2(box.Size.X * busy, box.Size.Y)), ShipColour with { A = 0.12f * open });
-            SketchBox(box, 90.1f, Drawn with { A = 0.6f * open }, 1.2f);
+            SketchBox(box, 9.1f, Drawn with { A = 0.6f * open }, 1.2f);
             Words(button.Label, box.GetCenter() + new Vector2(0, 5), Small, ShipColour with { A = open }, true);
             return;
         }
         if (!button.Lit)
         {
-            SketchBox(box, 90.1f, new Color(0.55f, 0.59f, 0.67f, 0.3f * open), 1.2f);
+            SketchBox(box, 9.1f, new Color(0.55f, 0.59f, 0.67f, 0.3f * open), 1.2f);
             Words(button.Label, box.GetCenter() + new Vector2(0, 5), Small, new Color("566074") with { A = open }, true);
             if (button.Reason is { } reason) Words(reason, new Vector2(box.GetCenter().X, box.End.Y + 16), Tiny, Warn with { A = open }, true);
             return;
         }
-        var hit = Hit.Box(box, button.Press, null);
+        var hit = Hit.Box("action", box, button.Press, null);
         bool over = Hovered(hit);
         DrawRect(box, Loop with { A = (over ? 0.22f : 0.1f) * open });
-        SketchBox(box, 90.1f, (over ? Colors.White : Ink) with { A = open }, 1.4f);
+        SketchBox(box, 9.1f, (over ? Colors.White : Ink) with { A = open }, 1.4f);
         Words(button.Label, box.GetCenter() + new Vector2(0, 5), Small, new Color("f4f6fa") with { A = open }, true);
         _hits.Add(hit);
     }
@@ -422,7 +492,9 @@ public partial class RadarScreen : Control
                 at => DrawPlanet(at, 20, spec.Type), PlanetButton(p, here));
         }
         if (_ui.RadarContact.Get() is not int id || NearShown < 0.4f) return null;
-        var c = ((List<Contact>)[.. Contacts]).Find(k => k.Id == id);
+        Contact? c = null;
+        foreach (var k in Contacts)
+            if (k.Id == id) c = k;
         if (c == null) return null;
         var cls = Vessels.Class(c.Class);
         bool going = c.Left < Going;
@@ -431,10 +503,11 @@ public partial class RadarScreen : Control
             new($"{T("computer.radar.length")}: {T("computer.radar.cells", ("n", cls?.Length ?? 0))}"),
             new($"{T("computer.radar.decks")}: {Decks(cls)}"),
             new($"{T("computer.radar.distance")}: {T("computer.radar.km", ("n", RadarOrbit.Km(c.Offset)))}"),
-            new(Leaves(c.Left), going ? (Mathf.Sin(_time * 4.4f) > 0 ? Amber : Amber with { A = 0.5f }) : null),
+            new(Leaves(c.Left), going ? (_blink ? Amber : Amber with { A = 0.5f }) : null),
         ];
+        string kind = c.Class;
         return new CardView((Screen(NavMap.Contact(At, c.Offset)), 18), ClassName(c.Class), T("computer.radar.vessel"), facts,
-            at => Silhouette(at, 40 * (cls?.Length ?? 100) / 200f + 6, c.Class, false, 1),
+            at => Silhouette(at, 40 * (cls?.Length ?? 100) / 200f + 6, kind, false, 1),
             new ButtonSpec(T("computer.radar.setOff"), true, null, () => Jump?.Invoke(id), null));
     }
 
@@ -463,7 +536,7 @@ public partial class RadarScreen : Control
         return $"{s / 60}:{s % 60:00}";
     }
 
-    private bool Hovered(Hit hit) => GetLocalMousePosition() is var at && new Rect2(Vector2.Zero, Size).HasPoint(at) && hit.Holds(at) && HitAt(at) is { } top && top.Same(hit);
+    private bool Hovered(Hit hit) => new Rect2(Vector2.Zero, Size).HasPoint(_mouse) && hit.Holds(_mouse) && HitAt(_mouse) is { } top && top.Key == hit.Key;
 
     private void DrawPlanet(Vector2 at, float r, string type)
     {
@@ -477,7 +550,7 @@ public partial class RadarScreen : Control
             DrawCircle(at + new Vector2(Mathf.Cos(angle), Mathf.Sin(angle)) * d, r * (0.12f + 0.03f * (i % 3)), spot with { A = 0.32f });
         }
         DrawArc(at + new Vector2(r, r) * 0.12f, r * 0.95f, -0.4f, 2.0f, 24, new Color(0.02f, 0.03f, 0.05f, 0.35f), r * 0.18f);
-        DrawArc(at, r, 0, Mathf.Tau, Mathf.Clamp((int)r, 32, 256), new Color(0.88f, 0.91f, 0.95f, 0.5f), 1, true);
+        DrawArc(at, r, 0, Mathf.Tau, Mathf.Clamp((int)r, 32, 128), new Color(0.88f, 0.91f, 0.95f, 0.5f), 1, true);
     }
 
     /// <summary>A planet's colours by its type: light, middle, dark, and its spots'.</summary>
@@ -511,41 +584,47 @@ public partial class RadarScreen : Control
     private void HandLoop(Vector2 at, float wide, float tall, float seed)
     {
         var loop = BoardInk.Loop(seed, wide, tall);
-        int shown = Mathf.Clamp((int)(loop.Length * Mathf.Clamp((_time - _opened) / 0.28f, 0, 1)), 2, loop.Length);
+        int shown = Mathf.Clamp((int)(loop.Length * Mathf.Clamp((_time - _opened) / LoopS, 0, 1)), 2, loop.Length);
         var points = new Vector2[shown];
         for (int i = 0; i < shown; i++) points[i] = at + new Vector2(loop[i].X, loop[i].Y);
         DrawPolyline(points, Loop, 1.8f, true);
     }
 
-    private void SketchBox(Rect2 box, float seed, Color colour, float width) =>
-        InkDraw.Strokes(this, BoardInk.Box(box.Position.X, box.Position.Y, box.Size.X, box.Size.Y, seed, 3, 12), colour, width);
-
-    private void Dotted(Vector2 centre, float radius, Color colour)
+    /// <summary>A box sketched as the board's are, written once for its size and moved where it is drawn.</summary>
+    private void SketchBox(Rect2 box, float seed, Color colour, float width)
     {
-        if (radius < 2) return;
-        int dots = Mathf.Clamp((int)(Mathf.Tau * radius / 7), 12, 720);
-        var points = new Vector2[dots * 2];
-        for (int i = 0; i < dots; i++)
+        var key = ((int)box.Size.X, (int)box.Size.Y, seed);
+        if (!Boxes.TryGetValue(key, out var strokes))
         {
-            float a = Mathf.Tau * i / dots, b = a + Mathf.Tau / dots * 0.3f;
-            (points[2 * i], points[2 * i + 1]) = (centre + Vector2.FromAngle(a) * radius, centre + Vector2.FromAngle(b) * radius);
+            strokes = Array.ConvertAll(BoardInk.Box(0, 0, key.Item1, key.Item2, seed, 3, 12), Points);
+            Boxes[key] = strokes;
         }
-        DrawMultiline(points, colour, 1);
+        DrawSetTransform(box.Position.Round());
+        foreach (var line in strokes)
+            if (line.Length > 1) DrawPolyline(line, colour, width, true);
+        DrawSetTransform(Vector2.Zero);
     }
 
-    private void Dashed(Vector2[] path, Color colour)
+    private static Vector2[] Points(InkPoint[] stroke) => Array.ConvertAll(stroke, p => new Vector2(p.X, p.Y));
+
+    /// <summary>A dotted circle: a unit one of as many dots as fit, scaled to <paramref name="radius"/> and drawn as hairlines in one call.</summary>
+    private void Dotted(Vector2 centre, float radius, Color colour)
     {
-        var dashes = new List<Vector2>();
-        float run = -_time * 20 % 11;
-        for (int i = 1; i < path.Length; i++)
+        if (radius < 2 || centre.X + radius < 0 || centre.X - radius > Size.X || centre.Y + radius < 0 || centre.Y - radius > Size.Y) return;
+        int dots = Mathf.Clamp(Mathf.NearestPo2((int)(Mathf.Tau * radius / 7)), 16, 1024);
+        if (!Dots.TryGetValue(dots, out var unit))
         {
-            var (a, b) = (path[i - 1], path[i]);
-            float length = a.DistanceTo(b);
-            for (float t = 0; t < length; t += 1)
-                if (Mathf.PosMod(run + t, 11) < 5 && t + 1 <= length) dashes.AddRange([a.Lerp(b, t / length), a.Lerp(b, (t + 1) / length)]);
-            run += length;
+            unit = new Vector2[dots * 2];
+            for (int i = 0; i < dots; i++)
+            {
+                float a = Mathf.Tau * i / dots;
+                (unit[2 * i], unit[2 * i + 1]) = (Vector2.FromAngle(a), Vector2.FromAngle(a + Mathf.Tau / dots * 0.3f));
+            }
+            Dots[dots] = unit;
         }
-        if (dashes.Count > 1) DrawMultiline([.. dashes], colour, 1.2f);
+        DrawSetTransform(centre, 0, new Vector2(radius, radius));
+        DrawMultiline(unit, colour, -1);
+        DrawSetTransform(Vector2.Zero);
     }
 
     private void Words(string text, Vector2 at, int size, Color colour, bool centred = false)
@@ -560,16 +639,15 @@ public partial class RadarScreen : Control
     private sealed record Row(string Text, Color? Colour = null);
 
     /// <summary>A callout's button: its words, whether it can be pressed, why not, what a press does, how far a flight it counts is.</summary>
-    private sealed record ButtonSpec(string Label, bool Lit, string? Reason, System.Action? Press, float? Busy);
+    private sealed record ButtonSpec(string Label, bool Lit, string? Reason, Action? Press, float? Busy);
 
     private sealed record CardView((Vector2 At, float Radius) Anchor, string Title, string Sub, Row[] Rows, Action<Vector2> Picture, ButtonSpec? Button);
 
-    /// <summary>Something the pointer finds on the map: a circle or a box, what a click on it does, its tooltip.</summary>
-    private sealed record Hit(Vector2 Centre, float Radius, Rect2? Area, System.Action? Click, Tip? Tip)
+    /// <summary>Something the pointer finds on the map: a circle or a box, what a click on it does, its tooltip made when first shown.</summary>
+    private sealed record Hit(string Key, Vector2 Centre, float Radius, Rect2? Area, Action? Click, Func<Tip>? Tip)
     {
-        public static Hit Round(Vector2 centre, float radius, System.Action? click, Tip? tip) => new(centre, radius, null, click, tip);
-        public static Hit Box(Rect2 area, System.Action? click, Tip? tip) => new(area.GetCenter(), 0, area, click, tip);
+        public static Hit Round(string key, Vector2 centre, float radius, Action? click, Func<Tip>? tip) => new(key, centre, radius, null, click, tip);
+        public static Hit Box(string key, Rect2 area, Action? click, Func<Tip>? tip) => new(key, area.GetCenter(), 0, area, click, tip);
         public bool Holds(Vector2 at) => Area is { } area ? area.HasPoint(at) : at.DistanceTo(Centre) <= Radius;
-        public bool Same(Hit other) => Centre == other.Centre && Radius == other.Radius && Area == other.Area;
     }
 }

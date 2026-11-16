@@ -71,6 +71,8 @@ public class NavMapTests
         Assert.True(right.X > 220);
         var left = NavMap.Callout(800, 200, 20, 270, 200, W, H);
         Assert.True(left.X + 270 < 780);
+        var outward = NavMap.Callout(380, 200, 20, 270, 200, W, H);
+        Assert.True(outward.X + 270 < 340);
         var low = NavMap.Callout(400, 470, 20, 270, 200, W, H);
         Assert.True(low.Y + 200 <= H - 16);
     }

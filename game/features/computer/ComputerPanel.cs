@@ -25,7 +25,7 @@ public partial class ComputerPanel : CanvasLayer
 
     /// <summary>Seconds between reads of the world: a panel reads on a timer, never every frame.</summary>
     private const double ReadEvery = 0.25;
-    private const int Button = 52, Pad = 10;
+    private const int Button = 52, Pad = 10, CloseSize = 30;
 
     private readonly Ui _ui;
     private readonly Func<Registry?> _world;
@@ -33,6 +33,7 @@ public partial class ComputerPanel : CanvasLayer
     private readonly Panel _frame = Boxed(Steel, 3, 4);
     private readonly VBoxContainer _rail = new() { MouseFilter = Control.MouseFilterEnum.Ignore };
     private readonly Panel _screen = Boxed(Glass, 2, 2);
+    private readonly Panel _close = Boxed(Socket, 2, 2);
     private readonly Label _text = new()
     {
         HorizontalAlignment = HorizontalAlignment.Center,
@@ -67,6 +68,7 @@ public partial class ComputerPanel : CanvasLayer
         _radar.SetAnchorsPreset(Control.LayoutPreset.FullRect);
         _screen.AddChild(_radar);
         _screen.AddChild(_text);
+        BuildClose();
         foreach (var program in Programs.All) AddButton(program);
         _frame.Visible = false;
         ui.OpenComputer.Subscribe(() =>
@@ -86,6 +88,33 @@ public partial class ComputerPanel : CanvasLayer
 
     /// <summary>Puts away the radar's open callout, Esc's first step before the window: whether there was one.</summary>
     public bool LetGo() => Shown && _radar.IsVisibleInTree() && _radar.LetGo();
+
+    /// <summary>The window's close in its top-right corner, over the screen: the same as E.</summary>
+    private void BuildClose()
+    {
+        _close.Size = new Vector2(CloseSize, CloseSize);
+        var cross = new Label
+        {
+            Text = "✕",
+            HorizontalAlignment = HorizontalAlignment.Center,
+            VerticalAlignment = VerticalAlignment.Center,
+            MouseFilter = Control.MouseFilterEnum.Ignore,
+        };
+        cross.AddThemeFontSizeOverride("font_size", 16);
+        cross.AddThemeColorOverride("font_color", Words);
+        cross.SetAnchorsPreset(Control.LayoutPreset.FullRect);
+        _close.AddChild(cross);
+        _tips.Add(_close, () => new Tip(T("computer.close"), [new TipLine(T("computer.closeHow"))]));
+        _close.MouseEntered += () => Restyle(_close, Dim, Lit);
+        _close.MouseExited += () => Restyle(_close, Socket, Line);
+        _close.GuiInput += e =>
+        {
+            if (e is not InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.Left }) return;
+            _close.AcceptEvent();
+            Close();
+        };
+        _frame.AddChild(_close);
+    }
 
     private void AddButton(ProgramSpec program)
     {
@@ -153,15 +182,16 @@ public partial class ComputerPanel : CanvasLayer
             return;
         }
         var mouse = _frame.GetViewport().GetMousePosition();
-        if (_radar.IsVisibleInTree() && _radar.GetGlobalRect().HasPoint(mouse)) _tips.Show(_radar.TipAt(mouse));
+        if (_radar.IsVisibleInTree() && _radar.GetGlobalRect().HasPoint(mouse) && !_close.GetGlobalRect().HasPoint(mouse)) _tips.Show(_radar.TipAt(mouse));
         else _tips.Frame(mouse);
     }
 
-    /// <summary>A monitor half the screen's width, in its middle; the side panel only while it has buttons.</summary>
+    /// <summary>A monitor over the screen as the tablet is, a margin round it; the side panel only while it has buttons; the close in its corner.</summary>
     private void LayOut()
     {
         var view = _frame.GetViewportRect().Size;
-        float width = Mathf.Clamp(view.X * 0.55f, 480, 1100), height = Mathf.Round(width * 0.56f);
+        float around = TabletLayout.ArtAround * TabletLayout.ArtScale + 2 * TabletPeek.Margin;
+        float width = Mathf.Floor(Mathf.Max(480, view.X - around)), height = Mathf.Floor(Mathf.Max(300, view.Y - around));
         _frame.Size = new Vector2(width, height);
         _frame.Position = ((view - _frame.Size) / 2).Round();
         bool rail = _reading.Buttons.Count > 0;
@@ -171,6 +201,7 @@ public partial class ComputerPanel : CanvasLayer
         float left = rail ? Pad * 2 + Button : Pad;
         _screen.Position = new Vector2(left, Pad);
         _screen.Size = new Vector2(width - left - Pad, height - 2 * Pad);
+        _close.Position = new Vector2(width - Pad - CloseSize - 8, Pad + 8);
     }
 
     /// <summary>The buttons and the screen as the last read and the choice have them.</summary>
