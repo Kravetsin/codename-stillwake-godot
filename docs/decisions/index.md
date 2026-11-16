@@ -80,7 +80,7 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [0072](0072-air-shows-under-every-build-tab.md) | Air shows under every build tab | accepted |  |
 | [0073](0073-the-build-menu-is-a-docked-catalogue.md) | The build menu is a docked catalogue | accepted |  |
 | [0074](0074-the-inventory-is-a-wrist-computer.md) | The inventory is a wrist computer | accepted | machine-holograms (in part) |
-| [0075](0075-effects-are-light-not-shapes.md) | Effects are light, not shapes | accepted | arcs-are-hairlines, effects-on-their-layer, head-tally (in part) |
+| [0075](0075-effects-are-light-not-shapes.md) | Effects are light, not shapes | accepted | arcs-are-hairlines, effects-on-their-layer, head-tally, loot-pieces (in part) |
 | [0076](0076-a-world-is-made-of-surfaces.md) | A world is made of surfaces | accepted | night-chills, vessel-worlds (in part) |
 | [0077](0077-a-planets-ground-grows-from-its-seed-and-is-dug-by-hits.md) | A planet's ground grows from its seed and is dug by hits | accepted | fan-of-rays, veins-and-stairs, tool-edge (in part) |
 | [0078](0078-two-handed-items-are-held-as-a-rifle.md) | Two-handed items are held as a rifle | superseded | one-arm-holds |
@@ -157,7 +157,7 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [body-bag](2026-10-29-body-bag.md) | A body holds its things | accepted |  |
 | [clear-glass](2026-10-29-clear-glass.md) | Clear glass | accepted |  |
 | [holes-not-planned](2026-10-29-holes-not-planned.md) | A meteor's hole is not planned | accepted |  |
-| [kill-feel](2026-10-29-kill-feel.md) | Kills burst into pixels | accepted | kills-crumble (in part) |
+| [kill-feel](2026-10-29-kill-feel.md) | Kills burst into pixels | accepted | kills-crumble, loot-pieces (in part) |
 | [kills-crumble](2026-10-29-kills-crumble.md) | Kills crumble into pixels | accepted |  |
 | [meteor-wave](2026-10-29-meteor-wave.md) | A meteor's blast is a wave walls soak up | accepted | round-blasts, unified-damage (in part) |
 | [photo-panel](2026-10-29-photo-panel.md) | The photosensitive panel | accepted |  |
@@ -386,6 +386,7 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [gestures-for-words](2026-11-16-gestures-for-words.md) | Gestures, in place of words | accepted |  |
 | [hand-at-wrist](2026-11-16-hand-at-wrist.md) | The hand is its own picture, hung at the wrist | accepted |  |
 | [hero-skins](2026-11-16-hero-skins.md) | Skins: how a hero looks, apart from what it wears | accepted |  |
+| [loot-pieces](2026-11-16-loot-pieces.md) | Loot lies as a few small objects that bounce and tip onto a side | accepted |  |
 | [planet-variety](2026-11-16-planet-variety.md) | Planets differ: types and ore sets | accepted |  |
 | [shuttle-flight](2026-11-16-shuttle-flight.md) | The crew flies to a vessel in the shuttle and back | accepted |  |
 | [solar-system](2026-11-16-solar-system.md) | The ship flies between the planets of its solar system | accepted |  |

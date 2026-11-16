@@ -14,6 +14,7 @@ and changes it only by sending `Move`, `Drop`, `PickUp`, `Sort`, `Stash`, `Fit` 
 | `logic/Reading.cs` | slots with own moves in flight (0014); marks, ghosts, tips; the module host |
 | `logic/Reach.cs` | `HeroSpot`; pick-ups and the magnet |
 | `logic/FloorFeel.cs` | a stack's landing |
+| `logic/LootPose.cs` | the side it lies on |
 | `logic/OwnCatches.cs` | what own grabs and net collects gave, and where each piece was |
 | `logic/OwnGains.cs` | own new gains in each surface's `Gains`, once each |
 | `logic/GainSpots.cs` | gains by their place |
@@ -84,10 +85,9 @@ The wrist's metal, screens, keys and gauge (0074, 0081) are `game/shared/`'s (`W
   (tool-card-pictures), its `ToolStats` as icon rows in groups (tool-card-rows), boosts in the module colour (0098), a
   charge its blast; food, gear, a canister and a bottle a picture and rows (food-and-gear-cards, liquid-cards); a battery its charge (0053).
 - **Charge** (0053): a battery slot draws a bar (amber under a quarter), an empty one its picture.
-- **Floor stacks** (0075, 0106): drawn unlit with a breathing rim, resting on the sim's point (`ClearBelow`), level,
-  between the last two ticks, side by side when still; over machines, under heroes. Flying they spin; landing they
-  squash, hop and clink (`FloorFeel`); a seed glints (2026-10-29-kill-feel). Loot still in its creature
-  (`Reach.Hidden`) is not drawn, nor a body's, inside it (2026-10-29-body-bag).
+- **Floor stacks** (loot-pieces): 1–3 small objects (`LootLooks`), unlit, side by side when still; over
+  machines, under heroes. In the air they turn about their middle; landing squashes (`FloorFeel`) and tips each onto its
+  nearest side (`LootPose`); a bounce clinks. A warm outline near the hero; seeds, crystals glint. None in a creature or body.
 - **Pick-up**: a stack the hero's body overlaps is picked up unless refused, flying home; loot nobody dropped within
   `Floor.PickUpReach` too, pulled in; a body's all within `Floor.BodyReach`, one line; never while passed out (0061).
 - **Own catches** (0075): a grab or net `Collect` seen in flight then gone has run; `CaughtFrom` counts each item
