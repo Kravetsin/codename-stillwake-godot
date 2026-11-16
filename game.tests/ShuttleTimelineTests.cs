@@ -62,15 +62,40 @@ public class ShuttleTimelineTests
     }
 
     [Fact]
-    public void OffTheShipItStandsWhileItsRidersCameraPullsOut()
+    public void OffTheShipItLiftsOffFoldingItsSkidsAndFliesOffRightAsItDoesAboard()
     {
         foreach (double s in new[] { 0, T.SinkFrom, T.SinkTo, T.PassTo })
         {
             var m = T.Leaving(s, false);
-            Assert.Equal((0.0, 0.0, 0), (m.X, m.Y, m.Fold));
             Assert.Null(m.Open);
             Assert.Equal(T.Leaving(s, true).Blend, m.Blend);
+            Assert.Equal(T.Leaving(s, true).X, m.X);
         }
+        var standing = T.Leaving(T.SinkFrom, false);
+        Assert.Equal((0.0, 0.0, 0), (standing.X, standing.Y, standing.Fold));
+        var lifted = T.Leaving(T.SinkTo - Eps, false);
+        Assert.Equal(-T.LiftPx, lifted.Y, 6);
+        Assert.Equal(2, lifted.Fold);
+        Assert.True(lifted.Stern1 > 0 && lifted.Stern2 > 0);
+        Assert.Equal(1, T.Leaving(T.SinkFrom + (T.SinkTo - T.SinkFrom) * 0.35, false).Fold);
+        var gone = T.Leaving(T.PassTo, false);
+        Assert.Equal(T.PassPx, gone.X, 6);
+        Assert.True(gone.Stern0 > 0.8 && gone.Stern2 > 0.9);
+    }
+
+    [Fact]
+    public void ItsOwnLightFadesInAsItSetsOffAndOutAsItSettles()
+    {
+        foreach (bool aboard in new[] { true, false })
+        {
+            Assert.Equal(0, T.Leaving(0, aboard).Glow);
+            Assert.Equal(1, T.Leaving(T.SinkFrom, aboard).Glow);
+            Assert.Equal(1, T.Arriving(0, aboard).Glow);
+            Assert.Equal(0, T.Arriving(T.Hold(aboard), aboard).Glow);
+        }
+        // Home it keeps its light up the run, through a dark hangar, and lets it go as the run shuts under it.
+        Assert.Equal(1, T.Arriving(T.RiseTo, true).Glow);
+        Assert.Equal(0, T.Arriving(T.HomeShutTo, true).Glow);
     }
 
     [Fact]
@@ -105,7 +130,8 @@ public class ShuttleTimelineTests
         Assert.Equal(-T.DriftPx, first.X);
         Assert.Null(first.Open);
         var below = T.Arriving(T.HomeOpenFrom, true);
-        Assert.Equal(T.SinkPx, below.Y, 0);
+        // Wholly below the run as its halves begin to part: its 72 px craft under the run's 8.
+        Assert.InRange(below.Y, 80, T.SinkPx);
         Assert.Equal(2, below.Fold);
         var rising = T.Arriving(T.RiseFrom, true);
         Assert.Equal((0.0, T.SinkPx, 2), (rising.X, rising.Y, rising.Fold));
@@ -118,7 +144,9 @@ public class ShuttleTimelineTests
         Assert.Equal((0.0, 0.0, 0), (home.X, home.Y, home.Fold));
         Assert.Null(home.Open);
         Assert.Equal(0, home.Blend);
-        Assert.Equal(T.HomeShutTo, T.Hold(true));
+        Assert.Equal(T.HomeSettleTo, T.Hold(true));
+        Assert.Null(T.Arriving(T.HomeShutTo, true).Open);
+        Assert.True(T.Arriving(T.HomeShutTo, true).Blend > 0);
     }
 
     [Fact]

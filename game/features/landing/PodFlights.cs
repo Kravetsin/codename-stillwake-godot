@@ -18,8 +18,9 @@ namespace Stillwake.Game.Features.Landing;
 /// one lifting off, rising on its flame out of a cloud of dust. The grid draws the run open and no flying pod, and holds an
 /// arriving one back (<see cref="Arrivals"/>): this draws over it. Lit as the ship is; the flames and dust unlit.
 /// The crew shuttle's trip as «A — Под днищем» (<see cref="ShuttleTimeline"/>): aboard, its run sliding open, the craft sinking
-/// through it, skids folding, and flying off right under the belly; arriving, in from the far left on its retros, skids out, and
-/// stopped by the vessel, or home rising through its run drawn open over the grid's shut one. Its riders' panes lit over it.
+/// through it, skids folding, and flying off right under the belly, or off the ship lifting off and flying off right past the vessel;
+/// arriving, in from the far left on its retros, skids out, and stopped by the vessel, or home rising through its run drawn open
+/// over the grid's shut one. Its canopy never changes; moving, it is drawn by a light of its own too, so it reads in a dark hangar.
 /// </summary>
 public partial class PodFlights : Node2D
 {
@@ -31,7 +32,8 @@ public partial class PodFlights : Node2D
     /// <summary>The shuttle's kind, and its picture with its skids down, half up and up.</summary>
     private const string Shuttle = "crewShuttle";
     private static readonly Texture2D[] Craft = [PixelArt.Lit($"machine_{Shuttle}"), PixelArt.Lit($"{Shuttle}_fold_1"), PixelArt.Lit($"{Shuttle}_fold_2")];
-    private static readonly Texture2D[] Panes = [.. Enumerable.Range(0, 4).Select(i => PixelArt.Picture($"{Shuttle}_seat_{i}"))];
+    /// <summary>The shuttle by its own light, unshaded: as it shows in the ship's light, never darker.</summary>
+    private static readonly Color Own = new(0.8f, 0.8f, 0.85f);
     /// <summary>The shuttle's stern nozzles' mouths and its nose retros', in its picture's pixels, and each flame's size (the pick's NOZ, RETRO; the retros longer, to read at the far frame).</summary>
     private static readonly (Vector2 At, float K)[] Nozzles = [(new(2, 19.25f), 0.8f), (new(11, 42.2f), 0.75f), (new(0.6f, 62), 1)];
     private static readonly (Vector2 At, float K)[] Retros = [(new(183.4f, 67.4f), 0.7f), (new(133, 20.6f), 0.5f)];
@@ -50,8 +52,8 @@ public partial class PodFlights : Node2D
     private readonly List<(Flight Flight, double S)> _falling = [];
     private readonly List<(int Cell, double A)> _coming = [];
     private readonly List<(int Cell, double S)> _lifting = [];
-    /// <summary>This frame's shuttles in motion: the cell each stands from, the run under it, its moment and seconds, its panes lit, its run drawn open.</summary>
-    private readonly List<(int Cell, int Under, ShuttleTimeline.Moment M, double T, int[] Panes, bool Opened)> _shuttles = [];
+    /// <summary>This frame's shuttles in motion: the cell each stands from, the run under it, its moment and seconds, its run drawn open.</summary>
+    private readonly List<(int Cell, int Under, ShuttleTimeline.Moment M, double T, bool Opened)> _shuttles = [];
     private readonly PodSounds _sounds = new();
 
     public PodFlights(IGridQueries grid, LandingModule landing, CrewModule crew, Func<double> progress, Arrivals? arrivals = null)
@@ -96,8 +98,8 @@ public partial class PodFlights : Node2D
     }
 
     /// <summary>
-    /// The shuttles moving on this surface: each leaving it, till it is gone under the belly (off the ship, standing till its riders'
-    /// screens cut away); each just come, held by <see cref="Arrivals"/>.
+    /// The shuttles moving on this surface: each leaving it, till it is gone off to the right; each just come, held by
+    /// <see cref="Arrivals"/>.
     /// </summary>
     private void SeeShuttles(double progress)
     {
@@ -106,12 +108,12 @@ public partial class PodFlights : Node2D
         {
             double s = FlightTimeline.Seconds(Ride.Of(v), progress);
             if (v.TicksLeft == 0 || s >= ShuttleTimeline.PassTo) continue;
-            _shuttles.Add((v.From, v.From + tall, ShuttleTimeline.Leaving(s, v.Out != null), s, [.. Enumerable.Range(0, Math.Min(v.Riders.Count, Panes.Length))], false));
+            _shuttles.Add((v.From, v.From + tall, ShuttleTimeline.Leaving(s, v.Out != null), s, false));
         }
         if (_arrivals == null) return;
         foreach (var m in _grid.MachinesOf(Shuttle))
             if (_arrivals.ShuttleSince(m.Id) is var (a, aboard))
-                _shuttles.Add((m.Cell, m.Cell + tall, ShuttleTimeline.Arriving(a, aboard), a, [.. _landing.RidersOf(m.Id).Select(r => r.Place)], aboard));
+                _shuttles.Add((m.Cell, m.Cell + tall, ShuttleTimeline.Arriving(a, aboard), a, aboard));
     }
 
     /// <summary>Each moving pod's engine and knocks, placed at its bottom, where its flame comes out.</summary>
@@ -148,7 +150,7 @@ public partial class PodFlights : Node2D
         }
         foreach (var (cell, a) in _coming) g.DrawTexture(Pod, PodAt(cell) - new Vector2(0, (float)Touchdown(a)));
         foreach (var (cell, s) in _lifting) g.DrawTexture(Pod, PodAt(cell) - new Vector2(0, (float)Lift(s)));
-        foreach (var (cell, under, m, _, _, opened) in _shuttles)
+        foreach (var (cell, under, m, _, opened) in _shuttles)
         {
             if (opened && m.Open != null) Opened(g, under);
             g.DrawTexture(Craft[m.Fold], ShuttleAt(cell, m));
@@ -175,7 +177,7 @@ public partial class PodFlights : Node2D
     /// <summary>The shuttles' flames, drawn under their hulls: the stern's pushing it on, the nose retros' braking it.</summary>
     private void PaintJets(Sketch g)
     {
-        foreach (var (cell, _, m, t, _, _) in _shuttles)
+        foreach (var (cell, _, m, t, _) in _shuttles)
         {
             var at = ShuttleAt(cell, m);
             Stern(g, at, t, m.Stern0, m.Stern1, m.Stern2);
@@ -233,10 +235,9 @@ public partial class PodFlights : Node2D
 
     private void PaintFlames(Sketch g)
     {
-        // The shuttles' riders' panes, lit from inside over the craft.
-        foreach (var (cell, _, m, _, panes, _) in _shuttles)
-            foreach (int pane in panes)
-                if (pane < Panes.Length) g.DrawTexture(Panes[pane], ShuttleAt(cell, m));
+        // The shuttles by their own light over the ship's, faded in as one sets off and out as it settles.
+        foreach (var (cell, _, m, _, _) in _shuttles)
+            if (m.Glow > 0) g.DrawTexture(Craft[m.Fold], ShuttleAt(cell, m), Own with { A = (float)m.Glow });
         foreach (var (f, s) in _falling)
             if (s >= DropFrom) Thrust(g, PodAt(f.Home) + new Vector2(0, (float)Drop(s)), s, 0);
         foreach (var (cell, a) in _coming)

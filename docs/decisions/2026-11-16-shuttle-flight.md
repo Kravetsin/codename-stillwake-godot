@@ -19,7 +19,7 @@ arrive together beside the vessel, explore, fly home and dock.
   anyone aboard, the last of a tick winning; cleared when its contact runs out, is jumped to, or is used. Every peer's radar
   shows a line to it and «Маршрут выбран, садитесь в шатл»; every shuttle aboard lights its course lamp.
 - **Seats with places**: a machine holds `MachineSpec.Riders` heroes (the shuttle four), each at a place, the lowest free;
-  place i lights pane i of the canopy ([shuttle-desant](2026-11-16-shuttle-desant.md)); a rider is never seen. `Launch`
+  no seat shows on the craft ([shuttle-desant](2026-11-16-shuttle-desant.md)); a rider is never seen. `Launch`
   stays the pod's (`Riders == 1`).
 - **Set off** («Отправиться», places' `SetOff`): aboard it needs a course, a powered run and a clear shaft; the contact is
   used, the course cleared, and Landing starts a `Voyage` of the seats held, the run opened under the shuttle. Off the ship
@@ -58,4 +58,4 @@ arrive together beside the vessel, explore, fly home and dock.
 - Riders who all quit mid-return while a friend stays on the vessel: the shuttle docks home only once that world closes.
 - Returning to a home built over by another shuttle, later riders sit in that one.
 - Plain pictures: the shuttle vanishes and appears, the riders see the pod's flight screen; the course line is a placeholder
-  until slice 3's pick (the panes and lamp are drawn since [shuttle-desant](2026-11-16-shuttle-desant.md)).
+  until slice 3's pick (the course lamp is drawn since [shuttle-desant](2026-11-16-shuttle-desant.md)).

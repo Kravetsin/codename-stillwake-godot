@@ -7,8 +7,8 @@ is left, after the user's pick. Delete this plan once it ships.
 
 ## Words
 
-- *pane*: one of the four panes of the shuttle's canopy; pane i is place i. *course lamp*: the shuttle's lamp, lit while a course
-  is set. *course line*: the radar's line from the ship to the course's contact.
+- *course lamp*: the shuttle's lamp, lit while a course is set. *course line*: the radar's line from the ship to the
+  course's contact.
 - *placeholder*: the plain look drawn in code now: a thin line in the radar's green (`RadarScreen`). The shuttle vanishes
   and appears; its riders see the pod's flight screen (`Ride`).
 - *deck*: the ship's floor; *run*: the launch platform pieces under the shuttle, opened and shut whole.
@@ -32,18 +32,21 @@ All on the client in `game/features/landing`, plus one number:
   ticks and progress; arriving on `Arrivals`' frame time, as a pod's does (a world opening freezes the ticks).
 - **`PodFlights`** draws a leaving shuttle as it draws a pod: the run slid open by its `Deck`, the craft sinking through and
   flying off right under the belly; and an arriving shuttle held by `Arrivals`, at the vessel (in from the left, retros, skids
-  out, stop at the gap) and home (in from the left under the belly, braking, rising through the run drawn slid open by `Deck`
-  as an overlay, skids out; the sim's run is already shut). Lit panes over it; `ShuttleLights` skips a shuttle in flight or held.
-- **`Arrivals`** holds a shuttle too — new state, not the pod's: aboard (home) and off the ship (at the vessel), each its length
-  (about 5 s / 6 s), let go at once when a rider gets out.
-- **Rider's screen:** `Ride` knows its craft; `FlightScreen` draws the shuttle (skids up) among sideways lines; `Whiteout` as is.
+  out, stop at the gap) and home (the far frame, in from the left under the belly, braking, rising through the run drawn sliding
+  open by `Deck` as an overlay, skids out, the run sliding shut under it, the camera closing in; the sim's run is already shut).
+  Leaving the vessel it lifts off its spot, skids folding, and flies off right past the vessel, as it leaves the ship. Moving, it
+  is drawn by its own light too, faded in as it sets off and out as it settles, so it reads in an unlit hangar. Its canopy never
+  changes, no lit panes; `ShuttleLights` skips a held shuttle's course lamp.
+- **`Arrivals`** holds a shuttle too — new state, not the pod's: aboard (home) and off the ship (at the vessel), each till its
+  camera stands (5.6 s / 5.1 s), let go at once when a rider gets out.
+- **Rider's screen:** `Ride` knows its craft; `FlightScreen` draws the shuttle (skids up) among sideways lines, over the whole
+  window whatever the zoom; `Whiteout` as is.
 - **Camera:** one far frame, `0.8 · FarthestZoom`, absolute as `Fit` is; `ShipCamera` blends from the follow to it and back by
   the timeline's blend, centred between the follow and the shuttle, so every move ends where the follow stands. Riders only.
-- **Home's departure** is the camera pulling out and the flight screen; nobody at the vessel sees it lift off (accepted).
 - **Tests (`game.tests`):** `ShuttleTimeline` at every beat's edges (offset, skid frame, flames, blend); `Arrivals` holds a
   shuttle aboard and off the ship and lets it go when a rider gets out; the blend ends at 0. `ShuttleTripTests` read `FallTicks`.
 - **Dev:** `--trip=auto` waits out the hold before getting out, so one run shows the whole trip both ways.
 
 Deliberately not handled: new sounds (riders keep `FlightOverlay`'s, retimed) and onlookers hearing it; turning or mirroring
 (it always faces right); shake, tilt; an arrival in a world loaded or joined mid-way (it stands, as a pod does); a shuttle laid
-as its cost (no arrival); the lift-off seen at the vessel. Ship: the pick in an ADR, the landing README, this plan deleted.
+as its cost (no arrival). Ship: the pick in an ADR, the landing README, this plan deleted.

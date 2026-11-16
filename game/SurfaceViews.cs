@@ -66,8 +66,8 @@ public static class SurfaceViews
         // A seated hero behind its pod's porthole, then the pod's lamps and the glint on its glass over it.
         new(c => new Features.Crew.SeatedHeroes(c.M.Grid, c.M.Landing, c.M.Players, c.M.Items, c.Arrivals.Holds), Fades: true),
         new(c => new Features.Landing.PodSeats(c.M.Grid, c.M.Landing, c.Arrivals), Fades: true),
-        // A shuttle's canopy panes lit warm, one a rider; the riders never seen.
-        new(c => new Features.Landing.ShuttleLights(c.M.Grid, c.M.Landing, c.M.Places, c.Arrivals), Fades: true),
+        // A shuttle's course lamp; its riders never seen, its canopy unchanged.
+        new(c => new Features.Landing.ShuttleLights(c.M.Grid, c.M.Places, c.Arrivals), Fades: true),
         // A pod in the air from this surface: the deck sliding, the pod falling through (the descent's pictures).
         new(c => new Features.Landing.PodFlights(c.M.Grid, c.M.Landing, c.M.Crew, c.Progress, c.Arrivals), Fades: true),
         new(c => new Features.Atmosphere.TankLooks(c.M.Grid, c.M.Atmosphere), Fades: true),

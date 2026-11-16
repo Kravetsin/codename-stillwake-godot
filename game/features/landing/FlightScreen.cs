@@ -108,8 +108,9 @@ public partial class FlightScreen : Control
     private void Sideways(float z, float w, float h)
     {
         double t = _s - ShuttleTimeline.DipPeak, ramp = Smooth(t / 1.4);
-        var top = new Color(0.012f, 0.016f, 0.03f);
-        Quad(0, 0, w, h, top, top, top, top);
+        // The whole window black, whatever the zoom: the field is the screen's, not the world's.
+        DrawSetTransform(Vector2.Zero, 0, Vector2.One);
+        DrawRect(new Rect2(Vector2.Zero, Size), new Color(0.012f, 0.016f, 0.03f));
         var jolt = new Vector2((float)(Hash(Math.Floor(_s * 60)) - 0.5) * 0.6f, (float)(Hash(Math.Floor(_s * 60) + 7) - 0.5) * 0.6f);
         DrawSetTransform(jolt * z, 0, new Vector2(z, z));
         int count = Math.Min(Lines, (int)(160 * w * h / (320 * 180)));
