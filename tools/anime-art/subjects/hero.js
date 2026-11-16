@@ -142,17 +142,9 @@ const beardFull = hairOf((a) => {
   a.shape('M9.1 9.1C10 8.7 10.9 8.7 11.5 8.9L11.4 9.5C10.6 9.3 9.9 9.35 9.2 9.65Z', HAIR, { outer: false });
 });
 
-// ---------- hands and feet ----------
-/** The hanging hand from outside: the back of it, four fingers curled under and shaded, the thumb a dark sliver at the front edge, behind the fingers. */
-const hand = (a, S) => {
-  a.shape('M3.5 7.9C4.1 7.8 4.7 8.2 4.8 8.9C4.9 9.5 4.6 10.1 4.1 10.1C3.7 10 3.4 9.5 3.3 8.9Z', { ...S, base: S.shade, lite: S.shade, shade: S.deep }, { outer: false, shade: 'M3 9.3L5.2 9.3L5.2 10.6L3 10.6Z' });
-  a.shape('M1.2 7.3L3.9 7.3C4.1 7.9 4.1 8.6 4 9.3C4.2 9.8 4.1 10.4 3.8 10.8C3.2 11.2 2.4 11.2 1.8 10.9C1.3 10.6 1 10 .9 9.4C.8 8.6 .9 7.9 1.2 7.3Z', S, { shade: 'M0 9.5L5 9.3L5 12L0 12Z', lines: ['M1 9.4L4 9.3', 'M1.7 9.5L1.8 10.9', 'M2.5 9.45L2.6 11.1', 'M3.3 9.4L3.35 11', 'M1.8 7.6L1.9 8.8', 'M2.8 7.6L2.9 8.8'] });
-};
-/** The same hand, five digits, in a work glove: a little larger, a seam across the knuckles, the thumb again at the front and behind. */
-const glove = (a, S) => {
-  a.shape('M3.7 7.7C4.4 7.6 5.1 8 5.2 8.8C5.3 9.5 4.9 10.1 4.4 10.1C3.9 10 3.6 9.5 3.5 8.9Z', { ...S, base: S.shade, lite: S.shade, shade: S.deep }, { outer: false, shade: 'M3 9.2L5.6 9.2L5.6 10.6L3 10.6Z' });
-  a.shape('M.9 7L4.1 7C4.4 7.8 4.4 8.6 4.3 9.3C4.5 9.8 4.4 10.5 4 10.9C3.3 11.4 2.2 11.4 1.6 11C1 10.7 .7 10 .6 9.4C.5 8.4 .6 7.6 .9 7Z', S, { shade: 'M0 9.6L5.4 9.4L5.4 12L0 12Z', lines: ['M.7 9.5L4.3 9.3', 'M1.5 9.6L1.6 11', 'M2.45 9.55L2.55 11.25', 'M3.4 9.45L3.45 11.1'] });
-};
+// ---------- feet ----------
+// The hand is its own picture (hero_hand_glove, hero_hand_skin; suits.js): no forearm draws one, each runs down past the
+// wrist line, where the game cuts the arm (Rig.Wrist).
 const SOLE = '#191716';
 /** A boot flat on the floor, the sole at 11, as every shin stands. `top`: where the leg goes in. */
 const boot = (a, M, top, lines, toe = 8.6) => {
@@ -178,7 +170,6 @@ const suitParts = (c) => {
     },
     s_fore(a) {
       a.shape(limb(3.6, 3.2, 2.5, 2.9, 7), M, folds([1, 4.4, 3.8, 5.2, .7]));
-      glove(a, c.G || P);
       a.shape('M.6 5.9L4.4 5.9L4.5 7.3C3.4 7.7 1.6 7.7 .5 7.3Z', P, { outer: false, shade: .35 });
       if (mend.fore) mend.fore(a);
     },
@@ -216,8 +207,7 @@ const katorzhnik = {
     },
     b_upper(a) { a.shape(limb(3.6, 3.2, 2.5, 2.5, 8.6), ROBE, folds([.9, 3.2, 3.8, 3.8, .6], [1, 6.8, 4, 7.4, .8])); },
     b_fore(a) {
-      a.shape(limb(2.5, 2.2, 2.5, 5.5, 7.4), SK, { shade: .4 });
-      hand(a, SK);
+      a.shape(limb(2.5, 2.2, 2.5, 5.5, 8.6), SK, { shade: .4 });
       a.shape(limb(3.2, 2.9, 2.5, 2.9, 6.2), ROBE, folds([1, 3.8, 3.8, 4.5, .7]));
       a.shape('M.9 5.8L4.1 5.8L4.2 7L.8 7Z', ROBE2, { outer: false, shade: .3 });
     },
@@ -261,10 +251,9 @@ const spisanny = {
       a.line('M1.6 3.6L1.5 5M3.5 4.3L3.6 5.2', { w: 1.2, c: RAG.shade });
     },
     b_fore(a) {
-      a.shape(limb(2.7, 2.4, 2.5, 2.9, 7.2), SK, { shade: .4 });
+      a.shape(limb(2.7, 2.4, 2.5, 2.9, 8.6), SK, { shade: .4 });
       rags(a, 4.4, 7.6);
-      hand(a, SK);
-      // The wrap carried over the back of the hand, the fingers out of it.
+      // The wrap round the wrist, cut at the wrist line with the arm: the hand is its own picture (hero_hand_skin).
       a.shape('M.9 7.2L4.1 7.2L4.1 9L.9 9.3Z', RAG, { outer: false, shade: 'M0 8.5L5 8.4L5 10L0 10Z', lines: ['M.9 8.2L4 7.5', 'M.9 9L4 8.3'] });
       a.line('M1 4.6L-.2 5.6M-.2 5.6L.2 6.4', { w: 1.6, c: RAG.shade });
     },
@@ -305,8 +294,7 @@ const tryumny = {
     },
     b_upper(a) { a.shape(limb(3.9, 3.5, 2.5, 2.5, 8.6), COVER, folds([.9, 3.4, 3.9, 4, .7], [.9, 6.8, 4.1, 7.4, .8])); },
     b_fore(a) {
-      // A rubber gauntlet to the elbow, its cuff standing off the arm.
-      glove(a, RUBBER);
+      // A rubber gauntlet to the elbow, its cuff standing off the arm; the glove is the hand's own picture (hero_hand_glove).
       a.shape('M.8 4.4L4.2 4.4L4 7.4L1 7.4Z', RUBBER, { shade: 'M3 4L5 4L5 8L3.4 8Z', lines: ['M1.4 6L3.8 6'] });
       a.shape('M.1 2.4L4.9 2.4L4.5 4.8C3.4 5.2 1.6 5.2 .5 4.8Z', RUBBER, { deep: 'M0 4.2L5 4.2L5 5.4L0 5.4Z', lines: ['M.4 3.2L4.6 3.2'] });
     },
@@ -354,8 +342,7 @@ const faded = ((M, M2, Sk, Pad) => ({
   },
   b_upper(a) { a.shape(limb(3.8, 3.4, 2.5, 2.5, 8.6), M, folds([.9, 3.2, 3.9, 3.8, .6], [.9, 6.8, 4.1, 7.4, .8])); },
   b_fore(a) {
-    a.shape(limb(2.7, 2.4, 2.5, 3.8, 7.4), Sk, { shade: .35 });
-    hand(a, Sk);
+    a.shape(limb(2.7, 2.4, 2.5, 3.8, 8.6), Sk, { shade: .35 });
     a.shape(limb(3.5, 3.2, 2.5, 2.9, 4), M, folds([1, 3.4, 3.8, 3.9, .5]));
     a.shape('M.8 4L4.2 4L4.3 5.4C3.4 5.8 1.6 5.8 .7 5.4Z', M2, { outer: false, shade: .4, lines: ['M1 4.5L4 4.5'] });
   },
@@ -807,6 +794,6 @@ function within(c, { keep = [], drop = [], back = [] }, rim = 0) {
 }
 
 // The kit, for a subject drawing more gear on the hero's boxes (catchergear.js).
-window.HeroKit = { limb, wedge, folds, mat, glove, boot, BACK_TORSO, GL, band, BST, BELL_BRASS, BELL_RUBBER, rustAt, hose, port, UNLIT, rivet, torsoDeep, part, lightPicture, cut, keep, within };
+window.HeroKit = { limb, wedge, folds, mat, boot, BACK_TORSO, GL, band, BST, BELL_BRASS, BELL_RUBBER, rustAt, hose, port, UNLIT, rivet, torsoDeep, part, lightPicture, cut, keep, within };
 })();
 

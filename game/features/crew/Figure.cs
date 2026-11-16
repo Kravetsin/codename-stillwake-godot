@@ -51,7 +51,12 @@ public partial class Figure : Node2D
         ["arm"] = new(2.5f, (float)(2.5 + Rig.Arm.Upper)),
         ["leg"] = new(3, (float)(2.5 + Rig.Leg.Upper)),
         ["sheet"] = new(0, 5),
+        // The hand hangs from the wrist (hand), a frame of its strip 6 by 7 px, the wrist 3 in and 2 down: the cuff hides those 2 px.
+        ["hand"] = new(3, 2),
     };
+
+    /// <summary>The frames of a hand's strip (<c>hero_hand_glove</c>, <c>hero_hand_skin</c>): as it hangs and grips, open, pointing, the thumb up.</summary>
+    private const int HandFrames = 4;
 
     /// <summary>A limb hanging from its shoulder or hip, its lower bone's node at the elbow or knee, its boot's at the ankle; its picture and light.</summary>
     private sealed record Limb(Node2D Upper, Node2D Lower, Node2D? Ankle, BentPicture[] Pictures)
@@ -918,6 +923,14 @@ public partial class Figure : Node2D
                 int from = Math.Clamp((int)Math.Round(sprite.RegionRect.Position.Y), 0, h), to = Math.Clamp((int)Math.Round(sprite.RegionRect.End.Y), from, h);
                 (data, h) = (data[(from * w * 4)..(to * w * 4)], to - from);
             }
+            if (sprite.Hframes > 1)
+            {
+                // A hand: only its frame's columns of the strip.
+                int fw = w / sprite.Hframes, x0 = sprite.Frame * fw;
+                var frame = new byte[fw * h * 4];
+                for (int y = 0; y < h; y++) Array.Copy(data, (y * w + x0) * 4, frame, y * fw * 4, fw * 4);
+                (data, w) = (frame, fw);
+            }
             if (_uppers.TryGetValue(sprite, out var upper))
             {
                 // A limb breaks along its two bones: the rows above the joint with the upper bone, the rest with the lower.
@@ -949,6 +962,7 @@ public partial class Figure : Node2D
             sprite.Texture = SuitArt.Of(PictureOf(part), colour, skin, hair, isFar);
             sprite.Offset = _joints[sprite] - (sprite.Texture is CanvasTexture ? new Vector2(HiRes.FigureMargin, HiRes.FigureMargin) : Vector2.Zero);
             if (part == "leg") CutAtTheAnkle(sprite, _soles.Contains(sprite));
+            if (part == "arm") CutAtTheWrist(sprite);
         }
         (_headLit.Offset, _faceLit.Offset) = (_headPart.Offset, _facePart.Offset);
         _pack.Visible = body != null;
@@ -985,6 +999,14 @@ public partial class Figure : Node2D
         float top = ankle - BootOverlap;
         sprite.RegionRect = new Rect2(0, top, size.X, size.Y - top);
         sprite.Offset = new Vector2(sprite.Offset.X, -BootOverlap);
+    }
+
+    /// <summary>An arm's picture cut at the wrist (hand): above it the arm, below it its old glove never drawn; the hand is its own.</summary>
+    private static void CutAtTheWrist(Sprite2D sprite)
+    {
+        float wrist = -sprite.Offset.Y + (float)Rig.Wrist;
+        (sprite.RegionEnabled, sprite.RegionFilterClipEnabled) = (true, true);
+        sprite.RegionRect = new Rect2(0, 0, sprite.Texture.GetSize().X, wrist);
     }
 
     /// <summary>
@@ -1030,6 +1052,9 @@ public partial class Figure : Node2D
         "torso" or "arm" or "leg" when _bodyWorn == null => $"outfit_{HeroLooks.Wrap(_look.Outfit, HeroLooks.Outfits)}_{part}",
         // A later body's own pictures, as a later helmet's (2026-11-03-the-regen-suit).
         "torso" or "pack" or "arm" or "leg" when _bodyWorn is { } body && body != Stillwake.Content.Suit.Basic => $"{body}_{part}",
+        // Two hands for every body (hand): the glove, or bare in the look's skin.
+        "hand" when _bodyWorn == null && !HeroLooks.OutfitGloved[HeroLooks.Wrap(_look.Outfit, HeroLooks.Outfits)] => "hand_skin",
+        "hand" => "hand_glove",
         "face" => $"face_{HeroLooks.Wrap(_look.Face, HeroLooks.Faces)}",
         "hair" => $"hair_{HeroLooks.Wrap(_look.Hair, HeroLooks.HairStyles)}",
         "beard" => $"beard_{Math.Max(HeroLooks.Wrap(_look.Beard, HeroLooks.Beards + 1) - 1, 0)}",
@@ -1166,6 +1191,15 @@ public partial class Figure : Node2D
             _soles.Add(boot);
             ankle.AddChild(boot);
             bend.AddChild(ankle);
+        }
+        if (name == "arm")
+        {
+            // The hand under the arm on its own node at the wrist, as the boot at the ankle (hand): never bent, the elbow far above.
+            var wrist = new Node2D { Position = new Vector2(0, (float)Rig.Wrist) };
+            var hand = Part("hand", far, banded: false);
+            hand.Hframes = HandFrames;
+            wrist.AddChild(hand);
+            bend.AddChild(wrist);
         }
         var pictures = new List<BentPicture>();
         var part = Bendable(Part(name, far), 0, lower: true, pictures);

@@ -62,6 +62,12 @@ public static class Rig
     }
 
     /// <summary>
+    /// How far down the forearm from the elbow the wrist is (hand): every arm's picture is cut there, 11 px down the straight arm
+    /// from the shoulder (row 66 of its hd picture), and the hand's own picture hangs from it, its piece of wrist under the cuff.
+    /// </summary>
+    public static readonly double Wrist = 11 - Arm.Upper;
+
+    /// <summary>
     /// How far the fist's middle is back from the forearm's end, in pixels, past it if negative: the knuckles of the glove of
     /// <c>hero_arm.png</c>, where a held item's grip sits (0040).
     /// </summary>
