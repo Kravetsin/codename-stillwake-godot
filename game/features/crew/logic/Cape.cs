@@ -40,6 +40,12 @@ public sealed class Cape
     /// none standing: aboard no air stirs it. Afloat a slow one runs once every <see cref="WaveSteps"/> steps.
     /// </summary>
     private const double RippleRun = 1.6, WaveSteps = 100, WaveLag = 0.75;
+    /// <summary>
+    /// The stride's flap: running, each stride swings it up and back by up to <see cref="Flap"/> radians at the hem, a wave
+    /// running down it <see cref="FlapLag"/> of a stride behind at the hem, its strength drifting by <see cref="Gust"/> over
+    /// <see cref="GustStrides"/> strides, so a sprint never holds it still in one pose.
+    /// </summary>
+    private const double Flap = 0.22, FlapLag = 0.4, Gust = 0.3, GustStrides = 3.7;
     /// <summary>Afloat it opens out to <see cref="Spread"/> and a sprint's sweep at most, on a slow wave of <see cref="Wave"/> pixels.</summary>
     private const double Spread = 0.7, Wave = 1.2;
     /// <summary>
@@ -190,7 +196,8 @@ public sealed class Cape
         {
             int r = i / Cols;
             double v = Uv(i).V;
-            var (x, y) = r == 0 ? Pins[i] : Flow(i, _swing[r]);
+            double flap = afloat ? 0 : Flap * run * (1 - Gust + Gust * Math.Sin(_phase / 2 / GustStrides * 2 * Math.PI)) * Math.Sin((_phase / 2 - FlapLag * v) * 2 * Math.PI);
+            var (x, y) = r == 0 ? Pins[i] : Flow(i, Math.Clamp(_swing[r] + flap, 0, Most));
             var (dx, dy) = Breeze(v, _swing[r] * Math.Pow(v, Curl), wave);
             _points[i] = (Math.Min(x + dx, Rest(i).X + Give), Math.Min(y + dy, floor));
         }

@@ -116,7 +116,22 @@ public class CapeTests
         Move(cape, f, 300);
         Assert.True(Stir(120, 0) < 0.01, "standing, it stirs by itself");
         Move(cape, f, 120, Walk);
-        Assert.InRange(Stir((int)(Poses.Stride.Walk * Rig.Cell / Walk), Walk), 0.3, 3);
+        Assert.InRange(Stir((int)(Poses.Stride.Walk * Rig.Cell / Walk), Walk), 0.3, 6);
+    }
+
+    [Fact]
+    public void AtASprintItsHemFlapsWithTheStrideRatherThanHoldingOnePose()
+    {
+        var (f, cape) = (new Frame(), new Cape());
+        Move(cape, f, 300, Sprint);
+        double least = double.MaxValue, most = double.MinValue;
+        for (int step = 0; step < Poses.Stride.Run * Rig.Cell / Sprint; step++)
+        {
+            Move(cape, f, 1, Sprint);
+            (least, most) = (Math.Min(least, cape.Points[^1].Y), Math.Max(most, cape.Points[^1].Y));
+        }
+        Assert.True(most - least > 6, $"over a stride its hem rises and falls only {most - least:F1}");
+        Assert.DoesNotContain(true, Enumerable.Range(0, Cape.Triangles.Length / 3).Select(cape.Flipped));
     }
 
     [Fact]
