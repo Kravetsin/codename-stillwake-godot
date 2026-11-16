@@ -88,11 +88,30 @@ public static class BodyFit
     /// <summary>Soft hoods: their top turns, their base on the shoulders from row 12.5 drawn over the near arm.</summary>
     private static readonly HelmetFit Hood = new(HelmetTurn.Soft, NeckX, SoftY, Cut: 12.5);
 
+    /// <summary>The basic helmet's ball, nodding whole on its rubber seal.</summary>
+    private static readonly HelmetFit Ball = new(HelmetTurn.Soft, NeckX, SealY, Cut: null);
+
+    /// <summary>
+    /// A helmet skin turning whole on the basic helmet's seal: a beak, a jaw or a neck guard below the seal would bend with it
+    /// as the ball's rubber does, so none bends; a rubber seal of its own, the basic collar's ring, bends between it and the collar.
+    /// </summary>
+    private static readonly HelmetFit Shell = new(HelmetTurn.Ring, NeckX, SealY, Cut: null, Sealed: true);
+
     /// <summary>Each helmet's fit by its item, the catchers' by their pictures (<see cref="CreatureLooks.Heroes"/>).</summary>
     private static readonly Dictionary<string, HelmetFit> Fits = new()
     {
         // The ball nods whole as the hood's top does, its rubber seal bending: the ring read as broken in play.
-        [Stillwake.Content.Helmet.Basic] = new(HelmetTurn.Soft, NeckX, SealY, Cut: null),
+        [Stillwake.Content.Helmet.Basic] = Ball,
+        // The helmet skins (hero-skins) are painted over the basic helmet's opening and turn whole on its seal.
+        ["brassHelmet"] = Shell,
+        ["beakHelmet"] = Shell,
+        ["roninHelmet"] = Shell,
+        ["knightHelmet"] = Shell,
+        ["reliquaryHelmet"] = Shell,
+        ["skullHelmet"] = Shell,
+        ["ramHelmet"] = Shell,
+        ["bathysphereHelmet"] = Shell,
+        ["paradeHelmet"] = Shell,
         // The hood's last roll, under its plate, bends; its bottom fades into the suit rather than end in a line across it.
         [Stillwake.Content.Helmet.Quilted] = Hood with { Fade = (13.6, 14.6) },
         // The dome nods whole with its brass ring on its rubber gasket, which bends, as the basic helmet's ball on its seal; its

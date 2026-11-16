@@ -97,4 +97,4 @@ network can give (0017); cables move by hand (0021); stores keep what is spare (
 - No priorities, switches or overload; a store holds nothing back, never leaks, and loses its charge taken apart.
 - A broken drone bay still sends drones (logistics reads no power), the engine's draw is read by none; a broken
   burner's lit fire burns on for nothing.
-- Networks are found anew each tick (tens of cables), uncached.
+- Networks are found anew each tick; whether a panel sees the stars, only when walls or rooms move.

@@ -545,4 +545,26 @@ public class ItemsTests
         Assert.Equal(new Stack("canister", Canisters), Crate(w, 1)[2]);
         Assert.Equal(2, w.M.Items.Floor.Count);
     }
+
+    [Property(MaxTest = 500)]
+    public Property AStationsFitAnswersAsPlacingWouldWithoutPlacing()
+    {
+        // Small counts and counts near the limit, so stacks fill up; some holding a charge of their own, so only alike stacks merge.
+        string[] items = ["canister", "scrap", "iron"];
+        Gen<int> CountOf(string item) => Gen.OneOf(Gen.Choose(1, 3), Gen.Choose(Math.Max(1, StackOf(item) - 3), StackOf(item)));
+        var stack = from item in Gen.Elements(items)
+                    from count in CountOf(item)
+                    from charge in Gen.Elements(0, 0, 7)
+                    select (Stack?)new Stack(item, count, charge);
+        var slot = Gen.OneOf(Gen.Constant<Stack?>(null), stack);
+        var entry = from item in Gen.Elements(items) from count in Gen.OneOf(Gen.Choose(0, 3), Gen.Choose(0, 2 * StackOf(item))) select (item, count);
+        var cases = from n in Gen.Choose(0, 6)
+                    from slots in slot.ArrayOf(n)
+                    from start in Gen.Choose(0, 3)
+                    from k in Gen.Choose(0, 4)
+                    from cost in entry.ArrayOf(k)
+                    select (slots, start, cost);
+        return Prop.ForAll(cases.ToArbitrary(), c =>
+            Assert.Equal(Stacks.Placed(c.slots.Skip(c.start).ToList(), c.cost) != null, Stacks.Fits(c.slots, c.start, c.cost)));
+    }
 }
