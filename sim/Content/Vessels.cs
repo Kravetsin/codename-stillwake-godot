@@ -454,15 +454,15 @@ public static class Vessels
     public static readonly IReadOnlyList<VesselClass> Classes =
     [
         new("shuttle", Length: 72, Decks: (2, 2), BowFlat: 3, BowRun: (1, 2), BowTip: 5, ArmourDepth: 2, BridgeKind: VesselBridge.Cockpit,
-            Extras: (0, 1), ExtraRoles: [VesselRole.Hold, VesselRole.Quarters, VesselRole.Life], Crater: 6, Yield: (1600, 2600), Weight: 4),
+            Extras: (0, 1), ExtraRoles: [VesselRole.Hold, VesselRole.Quarters, VesselRole.Life], Crater: 6, Yield: (1600, 2600), Weight: 1),
         new("freighter", Length: 200, Decks: (2, 3), BowFlat: 8, BowRun: (1, 2), BowTip: 8, ArmourDepth: 2, BridgeKind: VesselBridge.Raised,
             Extras: (5, 10), ExtraRoles: [VesselRole.Hold, VesselRole.Quarters, VesselRole.Life], Crater: 14, Yield: (3300, 6000), Weight: 3),
         // A liner (big-vessels): its length is its blocks' (Liner.Run), no extras; seeds 1–200 gave 17 486 to 25 161.
         new("liner", Length: 320, Decks: (5, 6), BowFlat: 6, BowRun: (1, 1), BowTip: 9, ArmourDepth: 2, BridgeKind: VesselBridge.Raised,
-            Extras: (0, 0), ExtraRoles: [], Crater: 18, Yield: (16500, 26500), Weight: 1, Layout: VesselLayout.Liner),
+            Extras: (0, 0), ExtraRoles: [], Crater: 18, Yield: (16500, 26500), Weight: 5, Layout: VesselLayout.Liner),
         // A tanker (big-vessels): one band over every deck, its length its blocks' (Tanker.Run), no extras; a blunt bow; seeds 1–200 gave 14 133 to 22 053.
         new("tanker", Length: 340, Decks: (4, 5), BowFlat: 5, BowRun: (1, 2), BowTip: 20, ArmourDepth: 2, BridgeKind: VesselBridge.Raised,
-            Extras: (0, 0), ExtraRoles: [], Crater: 18, Yield: (13000, 23500), Weight: 1, Layout: VesselLayout.Tanker),
+            Extras: (0, 0), ExtraRoles: [], Crater: 18, Yield: (13000, 23500), Weight: 4, Layout: VesselLayout.Tanker),
     ];
 
     /// <summary>The classes' weights summed: what the radar draws below.</summary>

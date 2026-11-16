@@ -451,7 +451,7 @@ public class BigVesselTests(ITestOutputHelper output)
     [Fact]
     public void TheRadarsWeightsAreEachClassesAndSumAboveNothing()
     {
-        Assert.Equal([("shuttle", 4), ("freighter", 3), ("liner", 1), ("tanker", 1)], Content.Vessels.Classes.Select(c => (c.Id, c.Weight)));
+        Assert.Equal([("shuttle", 1), ("freighter", 3), ("liner", 5), ("tanker", 4)], Content.Vessels.Classes.Select(c => (c.Id, c.Weight)));
         Assert.All(Content.Vessels.Classes, c => Assert.True(c.Weight >= 0, c.Id));
         Assert.True(Content.Vessels.Weights(Content.Vessels.Classes) > 0);
     }

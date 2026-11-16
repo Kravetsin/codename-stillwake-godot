@@ -26,7 +26,7 @@ after its fuel bay). A *raised room* stands above the hull (deck −1; the dome 
 - Every room is reachable from the airlock: a door between two rooms where both floors meet, otherwise a hatch with a ladder.
 - A hangar holds one of five shuttles (GULL, MULE, BEETLE, WHALE, HERON) and a fuel cart; shuttles only come apart.
 - Tanks and cisterns only come apart: no liquid. The pool's water is part of its picture.
-- **The radar draws classes by weight**: shuttle 4, freighter 3, tanker 1, liner 1 (the user's pick), tunable content.
+- **The radar draws classes by weight**: shuttle 1, freighter 3, tanker 4, liner 5 (the user's pick, 2026-11-17), tunable content.
 - **The mockup is the art pick** for every new picture, as for the derelict looks; fixed in game where the user asks.
 - As the derelict-looks ADR rules: intact abandoned, damage inside only, everything a hero takes apart, looks from class and
   seed, names and codes in Latin.
@@ -62,7 +62,7 @@ after its fuel bay). A *raised room* stands above the hull (deck −1; the dome 
   in reading order (holds' stacks, tank looks from the non-fuel looks only, the hangar's shuttle model). Stream 2: modules,
   the bow, then outside parts in a fixed order written in `Shipyard`'s summary. Odds are integers (one in N, or whole
   percent rounded down) in `Vessels.Fits`. New classes at the end of `Vessels.Classes`.
-- **Weights:** `VesselClass.Weight` (shuttle 4, freighter 3, tanker 1, liner 1). The radar's own timer draws one
+- **Weights:** `VesselClass.Weight` (shuttle 1, freighter 3, tanker 4, liner 5). The radar's own timer draws one
   `Below(sum of weights)` from the world Rng where it now draws `Below(Classes.Count)`, then walks `Vessels.Classes` in
   order; weight 0 is never drawn; a content test keeps the sum above 0. `Find(Class)` is unchanged. Contacts are saved with
   their class, so old contacts keep theirs.
