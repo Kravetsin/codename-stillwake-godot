@@ -64,7 +64,7 @@ public static class DevModes
         new("--pose-item", DevShape.Equals, "with --pose-sheet, the item held; the drill by default"),
         new("--suit-cards", DevShape.Equals, "every suit's and suit skin's card, cut from the hero wearing it, written into that art folder, nothing else made (SuitCards)"),
         new("--dress-sheet", DevShape.Equals, "the hero bare, in a helmet, a body and suited, in every colour, saved to that PNG, nothing else made (DressSheet)"),
-        new("--gesture-sheet", DevShape.Equals, "every gesture candidate played through, a strip of frames each, written into that folder with a list, nothing else made (GestureSheet)"),
+        new("--gesture-sheet", DevShape.Equals, "every gesture played through, a strip of frames each, written into that folder with a list, nothing else made (GestureSheet)"),
         // Ship and doors.
         new("--doors", DevShape.Flag, "opens and shuts doors for recordings (Autopilot.At)"),
         new("--toggle", DevShape.Flag, "the first doorway opened and shut on alternate ticks, one always in flight"),

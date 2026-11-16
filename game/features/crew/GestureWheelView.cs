@@ -18,7 +18,7 @@ public partial class GestureWheelView : CanvasLayer
     private const int FrameW = 48, FrameH = 52;
 
     private readonly Control _plate = new() { MouseFilter = Control.MouseFilterEnum.Ignore, Visible = false };
-    private Texture2D? _hand;
+    private Texture2D? _hand, _palm;
     private Vector2 _from;
     private Gesture? _toward;
     private float _scale = 1;
@@ -43,6 +43,7 @@ public partial class GestureWheelView : CanvasLayer
     private void Paint()
     {
         _hand ??= GD.Load<Texture2D>("res://art/hd/hero_hand_glove.png");
+        _palm ??= GD.Load<Texture2D>("res://art/hd/hero_hand_far_glove.png");
         _plate.DrawArc(_from, (float)GestureWheel.Middle * _scale, 0, Mathf.Tau, 32, Ring, 1.5f, true);
         for (int i = 0; i < GestureWheel.Sides.Length; i++)
         {
@@ -57,7 +58,7 @@ public partial class GestureWheelView : CanvasLayer
             var (frame, turn, mirrored) = PictureOf(gesture);
             float h = HandHeight * _scale * grow, w = h * FrameW / FrameH;
             _plate.DrawSetTransform(at, turn, new Vector2(mirrored ? -1 : 1, 1));
-            _plate.DrawTextureRectRegion(_hand, new Rect2(-w / 2, -h / 2, w, h), new Rect2(frame * FrameW, 0, FrameW, FrameH));
+            _plate.DrawTextureRectRegion(GestureMotions.Of(gesture).Side == HandSide.Palm ? _palm : _hand, new Rect2(-w / 2, -h / 2, w, h), new Rect2(frame * FrameW, 0, FrameW, FrameH));
             _plate.DrawSetTransform(Vector2.Zero, 0, Vector2.One);
         }
     }

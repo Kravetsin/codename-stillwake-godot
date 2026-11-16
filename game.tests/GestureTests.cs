@@ -57,7 +57,9 @@ public class GestureTests
     {
         foreach (var (x, y) in new[] { (1.0, 0.0), (1.0, 1.0), (0.3, -1.0), (1.0, -0.2) })
         {
-            var end = Rig.EndOf(Gestures.ArmAt(GestureMotions.Of(Gesture.Point), 600, (x, y)).Arm, Rig.Arm);
+            // Held still after its jabs, the arm straight along the line.
+            var point = GestureMotions.Of(Gesture.Point);
+            var end = Rig.EndOf(Gestures.ArmAt(point, point.Ms * 0.75, (x, y)).Arm, Rig.Arm);
             Assert.InRange(Math.Atan2(end.Y, end.X) - Math.Atan2(y, x), -0.05, 0.05);
         }
     }

@@ -54,14 +54,31 @@ public static class GestureMotions
     /// <summary>The hand's frames in its strip (hand): 0 the grip it hangs and holds in, 1 open, 2 pointing, 3 the thumb out ahead.</summary>
     public const int GripFrame = 0, OpenFrame = 1, PointFrame = 2, ThumbFrame = 3;
 
+    /// <summary>A straight arm along the line to the target: the elbow all but locked.</summary>
+    private const double Straight = 0.06, AlongLine = -0.03;
+
+    /// <summary>
+    /// Picked by the user 2026-11-16 from candidates drawn on the hero: two jabs at the target, the forearm rocked ahead of the helmet,
+    /// the arm scooping in toward the chest, the thumb up with two nods, the thumb down shown from the palm (emotes).
+    /// </summary>
     private static readonly Dictionary<Gesture, GestureMotion> Table = new()
     {
-        [Gesture.Point] = new(1200, PointFrame, [new(0, -0.245, 0.495)], Aimed: true),
-        [Gesture.Wave] = new(1600, OpenFrame, Sampled(s => new(s, 2.5, Math.PI - 2.5 + 0.45 * Math.Sin(2 * Math.PI * 3 * s)))),
-        [Gesture.Come] = new(1400, OpenFrame, Sampled(s => new(s, 1.25, 0.25 + 1.35 * (0.5 - 0.5 * Math.Cos(2 * Math.PI * 2 * s))))),
-        [Gesture.Yes] = new(1000, ThumbFrame, Sampled(s => new(s, 0.45 + 0.3 * Math.Sin(Math.PI * s), 1.25 - 0.3 * Math.Sin(Math.PI * s)))),
-        [Gesture.No] = new(1000, ThumbFrame, Sampled(s => new(s, 0.45 - 0.3 * Math.Sin(Math.PI * s), 0.95 + 0.3 * Math.Sin(Math.PI * s))), Mirrored: true),
+        [Gesture.Point] = new(1300, PointFrame,
+            [new(0, AlongLine, Straight), new(0.12, -0.3, 0.75), new(0.24, AlongLine, Straight, Ease: Ease.Out), new(0.38, -0.3, 0.75),
+             new(0.5, AlongLine, Straight, Ease: Ease.Out), new(1, AlongLine, Straight)], Aimed: true),
+        [Gesture.Wave] = new(1600, OpenFrame, Sampled(s => new(s, 2.25, 0.55 + 0.4 * Rock(3, s)))),
+        [Gesture.Come] = new(1400, OpenFrame, Sampled(s => new(s, 1.6 - 0.6 * Beat(2, s), 0.2 + 1.7 * Beat(2, s)))),
+        [Gesture.Yes] = new(1200, ThumbFrame,
+            Sampled(s => new(s, 0.5 + 0.1 * Math.Sin(Math.PI * s), 1.25 - 0.1 * Math.Sin(Math.PI * s), Head: 0.45 * Beat(2, s)))),
+        [Gesture.No] = new(1100, ThumbFrame, Sampled(s => new(s, 0.45 - 0.25 * Bump(s), 1.0 + 0.25 * Bump(s))), HandSide.Palm, Mirrored: true),
     };
+
+    /// <summary>To one side and the other <paramref name="times"/> times.</summary>
+    private static double Rock(double times, double s) => Math.Sin(2 * Math.PI * times * s);
+    /// <summary>From 0 out to 1 and back <paramref name="times"/> times, eased.</summary>
+    private static double Beat(double times, double s) => 0.5 - 0.5 * Math.Cos(2 * Math.PI * times * s);
+    /// <summary>Once out and back over the whole gesture, eased.</summary>
+    private static double Bump(double s) => Math.Pow(Math.Sin(Math.PI * s), 2);
 
     public static GestureMotion Of(Gesture gesture) => Table[gesture];
 

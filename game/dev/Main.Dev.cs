@@ -44,7 +44,7 @@ public partial class Main
         return true;
     }
 
-    /// <summary><c>--gesture-sheet=&lt;folder&gt;</c>: every gesture candidate played through and written, nothing else made; whether it was given.</summary>
+    /// <summary><c>--gesture-sheet=&lt;folder&gt;</c>: every gesture played through and written, nothing else made; whether it was given.</summary>
     private bool GestureSheetOnly()
     {
         if (_dev.Value("--gesture-sheet") is not { } folder) return false;

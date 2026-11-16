@@ -9,18 +9,22 @@ using Stillwake.Game.Render;
 namespace Stillwake.Game.Dev;
 
 /// <summary>
-/// <c>-- --gesture-sheet=&lt;folder&gt;</c>: every gesture candidate (<see cref="GestureCandidates"/>) played through by the hero standing,
+/// <c>-- --gesture-sheet=&lt;folder&gt;</c>: every gesture (<see cref="GestureMotions"/>) played through by the hero standing,
 /// suited above and bare below, <see cref="Frames"/> frames evenly over its length, written as <c>&lt;id&gt;.png</c>, with
 /// <c>gestures.json</c> listing them; then the game quits. A pointing gesture points up ahead.
 /// </summary>
 public partial class GestureSheet(string folder) : Node
 {
+    /// <summary>Every gesture the game plays, by its name.</summary>
+    private static readonly IReadOnlyList<(string Id, Gesture Gesture, GestureMotion Motion)> All =
+        [.. System.Enum.GetValues<Gesture>().Select(g => (g.ToString().ToLowerInvariant(), g, GestureMotions.Of(g)))];
+
     public const int Frames = 24;
     private const int TileCells = 7, Zoom = 3;
     private const int Tile = TileCells * (int)Rig.Cell * Zoom;
     private static readonly Vector2 PointAt = new(40, -32);
 
-    private readonly List<(GestureCandidates.Candidate Candidate, int Body, int Frame)> _shots = [];
+    private readonly List<((string Id, Gesture Gesture, GestureMotion Motion) Candidate, int Body, int Frame)> _shots = [];
     private SubViewport _view = null!;
     private Node2D _world = null!;
     private Figure? _figure;
@@ -30,14 +34,13 @@ public partial class GestureSheet(string folder) : Node
     public override void _Ready()
     {
         Directory.CreateDirectory(folder);
-        foreach (var candidate in GestureCandidates.All)
+        foreach (var candidate in All)
             for (int body = 0; body < 2; body++)
                 for (int frame = 0; frame < Frames; frame++) _shots.Add((candidate, body, frame));
-        File.WriteAllText(Path.Combine(folder, "gestures.json"), JsonSerializer.Serialize(GestureCandidates.All.Select(c => new
+        File.WriteAllText(Path.Combine(folder, "gestures.json"), JsonSerializer.Serialize(All.Select(c => new
         {
             id = c.Id,
             gesture = c.Gesture.ToString().ToLowerInvariant(),
-            name = c.Name,
             ms = c.Motion.Ms,
             frames = Frames,
             tile = Tile,
@@ -58,7 +61,7 @@ public partial class GestureSheet(string folder) : Node
         _frames = 0;
         if (_shot >= _shots.Count)
         {
-            GD.Print($"gesture sheet: {GestureCandidates.All.Count} candidates written to {folder}");
+            GD.Print($"gesture sheet: {All.Count} gestures written to {folder}");
             GetTree().Quit();
             return;
         }
