@@ -30,6 +30,27 @@ public class VesselLightsTests(ITestOutputHelper output)
     }
 
     [Fact]
+    public void OneLinerIsLitAsPinnedItsChandeliersLampsAndItsAirlockFoundByItsRoom()
+    {
+        var v = Of("liner", 1);
+        var lights = new VesselLights(v);
+        string states = string.Concat(lights.Lamps.Select(l => l.State switch { LampState.Red => 'r', LampState.Dying => 'y', _ => '.' }));
+        Assert.Equal("rrrrrrr...r.r...r....rr.rrrrrr....y...rrrrr.r....rr.r.rr..r..rr..r.r.r..rrr...r...", states);
+        Assert.Equal(2, lights.Lamps.Count(l => l.Kind == V.Chandelier));
+        Assert.True(Light.Lamps.ContainsKey(V.Chandelier));
+        // The airlock is the room just inside the way in, its lamps red.
+        var (sx, sy) = Shipyard.Door(v);
+        var airlock = v.Compartments.Single(c => c.Holds(sx, sy));
+        Assert.Contains(lights.Lamps, l => airlock.Holds(l.X, l.Y));
+        Assert.All(lights.Lamps.Where(l => airlock.Holds(l.X, l.Y)), l => Assert.Equal(LampState.Red, l.State));
+        var m = VesselDressTests.Laid(v);
+        var chandelier = lights.Lamps.First(l => l.Kind == V.Chandelier);
+        int cell = VesselLights.CellOf(chandelier.X, chandelier.Y, m.Grid.Width);
+        m.Grid.Place(cell, new Placement("machine", V.Chandelier));
+        Assert.True(VesselLights.Claims(m.Grid.MachineAt(cell)!, lights.LampCells(m.Grid.Width)));
+    }
+
+    [Fact]
     public void TheVesselsOwnLampsAreItsCeilingLampsClaimedFromThePowersLightAndBoltsAndNoOtherMachineIs()
     {
         var v = Of("freighter", 4);
