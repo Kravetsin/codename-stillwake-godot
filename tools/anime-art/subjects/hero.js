@@ -739,19 +739,6 @@ const regenSuit = {
     boot(a, BELL_RUBBER, 6.2, ['M4 6.8L4.5 9', 'M5.2 6.9L5.6 9']);
   },
 };
-/** The laid-out suit of the item card, as items/suit lies. */
-const LAID = 'M4.6 2.2L11.4 2.2L14.6 4L15.4 11.6L13 12.4L12.2 7.2L12 14.4L9 15.2L8 11.6L7 15.2L4 14.4L3.8 7.2L3 12.4L.6 11.6L1.4 4Z';
-function regenSuitCard(a) {
-  a.shape(LAID, QUILT, { lite: 'M4.6 2.2L8 2.2L7 5L4 6L3.6 7L3 12.4L2 12L2.4 4.2Z', shade: 'M11.4 2.2L14.6 4L15.4 11.6L14 12L13.4 5.4L12.2 7.2L12 14.4L10.6 14.8L10.8 3.6Z',
-    deep: 'M4 13.4L7.4 13.4L7 15.2L4 14.4ZM8.6 13.4L12 13.4L12 14.4L9 15.2Z', lines: ['M8 9.4L8 11.6', 'M3.8 7.2L3.2 4.4', 'M12.2 7.2L12.8 4.4', ...quilt(1, 2.4, 15, 14.8, 3)] });
-  cable(a, [4.4, 11.4, 6.6, 7, 11.4, 3.4], 3); cable(a, [11.6, 11.4, 9.4, 7, 4.6, 3.4], 3);
-  a.shape(rr(9.6, 10.6, 2.6, 2, .4), GUNM, { lite: band(9.7, 10.6, 12.1, 11) });
-  a.shape('M4.2 2C6 1.4 10 1.4 11.8 2L12.2 4.2L11.2 5.6L4.8 5.6L3.8 4.2Z', BELL_BRASS, { lite: band(4.2, 1.4, 11.8, 2.3), shade: band(3.8, 4.8, 12.2, 5.6) });
-  a.shape(ell(8, 2.6, 2, .9), DARKM, { outer: false });
-  for (const x of [5.6, 6.6, 8.8, 9.8]) a.flat(rr(x, 3.8, .45, 1.4, .12), UNLIT);
-  a.glow(rr(6.6, 3.8, .45, 1.4, .12), '#5c4898');
-  rustAt(a, 4.4, 4.6, .4);
-}
 /** A light drawn straight on a part's canvas, at its margin: a soft halo, then its core. */
 function lightPicture(w, h, draw) {
   const c = canvas((w + 2 * Margin) * Px, (h + 2 * Margin) * Px), x = c.getContext('2d');
@@ -842,7 +829,6 @@ Subjects.hero = function () {
     }
   }));
   out('hero_regenSuit_pip', lightPicture(12, 15, (paint) => paint(ell(10.2, 11.5, .4), PIP, PIP)));
-  out('items/regenSuit', bake({ w: 16, h: 16, light: [-0.6, -0.8], draw: regenSuitCard }));
 };
 
 /** A helmet's two pictures: the shell with its glass taken out (what crosses the glass, <paramref name="bars"/>, kept), and the glass alone at GLASS_SEEN over the face. */

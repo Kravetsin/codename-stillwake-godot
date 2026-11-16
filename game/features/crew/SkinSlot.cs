@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using Godot;
 using Stillwake.Game.Render;
 using Stillwake.Game.Shared;
@@ -6,17 +7,21 @@ using Stillwake.Game.Shared;
 namespace Stillwake.Game.Features.Crew;
 
 /// <summary>
-/// One slot of the Appearance tab (skins), as an equipment slot looks: a skin's picture, a weapon effect's own swing caught
-/// still (<see cref="BladeFx"/>), or for none a slashed ring; a skin this player may not pick dimmed under a padlock.
+/// One slot of the Appearance tab (skins), as an equipment slot looks: a skin's card (a suit's cut from the hero wearing it,
+/// <c>skins/&lt;id&gt;</c>), a weapon effect's own swing caught still (<see cref="BladeFx"/>), or for none a slashed ring; a skin this player may not pick dimmed under a padlock.
 /// </summary>
 public partial class SkinSlot : Control
 {
     private static readonly Color Mark = Style.Slate500, Lock = new("e2e8f0"), LockShade = new("0b1220");
+    private static readonly Dictionary<string, Texture2D?> Cards = new();
+    /// <summary>The room round a card inside the slot, px.</summary>
+    private const float Inset = 3;
 
     private readonly int _size;
     private string? _id;
     private bool _owned = true, _chosen, _hovered;
     private EffectPreview? _preview;
+    private Texture2D? _card;
 
     /// <summary>A left click on it.</summary>
     public event Action? Pressed;
@@ -45,6 +50,7 @@ public partial class SkinSlot : Control
             _preview?.QueueFree();
             _preview = id != null && SkinEffects.Of(id) is { } look ? new EffectPreview(look, _size) : null;
             if (_preview != null) AddChild(_preview);
+            _card = id == null || _preview != null ? null : CardOf(id);
         }
         (_id, _owned, _chosen) = (id, owned, chosen);
         if (_preview != null) _preview.Modulate = new Color(1, 1, 1, owned ? 1 : 0.4f);
@@ -60,6 +66,7 @@ public partial class SkinSlot : Control
     public override void _Draw()
     {
         DrawStyleBox(SlotLooks.Of(_chosen ? SlotTint.Worn : SlotTint.Plain, _hovered, false), new Rect2(Vector2.Zero, Size));
+        if (_card != null) DrawTextureRect(_card, new Rect2(new Vector2(Inset, Inset), Size - new Vector2(2 * Inset, 2 * Inset)), false, new Color(1, 1, 1, _owned ? 1 : 0.4f));
         var middle = Size / 2;
         if (_id == null)
         {
@@ -68,6 +75,12 @@ public partial class SkinSlot : Control
             DrawLine(middle + new Vector2(-r, r) * 0.7f, middle + new Vector2(r, -r) * 0.7f, Mark, 1.5f, true);
         }
         if (!_owned) Padlock(new Vector2(Size.X - 9, Size.Y - 9));
+    }
+
+    private static Texture2D? CardOf(string id)
+    {
+        if (!Cards.TryGetValue(id, out var card)) Cards[id] = card = HiRes.Load($"skins/{id}") is { } image ? HiRes.Texture(image) : null;
+        return card;
     }
 
     // A padlock 8 px wide round its middle at the slot's foot corner: a shackle over a body, on a dark halo.
