@@ -55,7 +55,10 @@ public partial class Figure : Node2D
         ["hand"] = new(3, 2),
     };
 
-    /// <summary>The frames of a hand's strip (<c>hero_hand_glove</c>, <c>hero_hand_skin</c>): as it hangs and grips, open, pointing, the thumb up.</summary>
+    /// <summary>
+    /// The frames of a hand's strip (<c>hero_hand_glove</c>, <c>hero_hand_skin</c>, the far hand's <c>hero_hand_far_*</c>): as it hangs
+    /// and grips, open, pointing, the thumb up.
+    /// </summary>
     private const int HandFrames = 4;
 
     /// <summary>A limb hanging from its shoulder or hip, its lower bone's node at the elbow or knee, its boot's at the ankle; its picture and light.</summary>
@@ -959,7 +962,7 @@ public partial class Figure : Node2D
         int skin = HeroLooks.Wrap(look.Skin, HeroLooks.Skins.Length), hair = HeroLooks.Wrap(look.HairColour, HeroLooks.Hairs.Length);
         foreach (var (sprite, part, isFar) in _parts)
         {
-            sprite.Texture = SuitArt.Of(PictureOf(part), colour, skin, hair, isFar);
+            sprite.Texture = SuitArt.Of(PictureOf(part, isFar), colour, skin, hair, isFar);
             sprite.Offset = _joints[sprite] - (sprite.Texture is CanvasTexture ? new Vector2(HiRes.FigureMargin, HiRes.FigureMargin) : Vector2.Zero);
             if (part == "leg") CutAtTheAnkle(sprite, _soles.Contains(sprite));
             if (part == "arm") CutAtTheWrist(sprite);
@@ -1046,15 +1049,18 @@ public partial class Figure : Node2D
         return bent;
     }
 
-    /// <summary>The picture a part is drawn with: bare, the look's clothes in place of the suit; the look's face, hair and beard.</summary>
-    private string PictureOf(string part) => part switch
+    /// <summary>
+    /// The picture a part is drawn with: bare, the look's clothes in place of the suit; the look's face, hair and beard; the
+    /// <paramref name="far"/> hand seen from its palm.
+    /// </summary>
+    private string PictureOf(string part, bool far = false) => part switch
     {
         "torso" or "arm" or "leg" when _bodyWorn == null => $"outfit_{HeroLooks.Wrap(_look.Outfit, HeroLooks.Outfits)}_{part}",
         // A later body's own pictures, as a later helmet's (2026-11-03-the-regen-suit).
         "torso" or "pack" or "arm" or "leg" when _bodyWorn is { } body && body != Stillwake.Content.Suit.Basic => $"{body}_{part}",
-        // Two hands for every body (hand): the glove, or bare in the look's skin.
-        "hand" when _bodyWorn == null && !HeroLooks.OutfitGloved[HeroLooks.Wrap(_look.Outfit, HeroLooks.Outfits)] => "hand_skin",
-        "hand" => "hand_glove",
+        // Two hands for every body (hand): the glove, or bare in the look's skin; the near seen from outside, the far from its palm.
+        "hand" when _bodyWorn == null && !HeroLooks.OutfitGloved[HeroLooks.Wrap(_look.Outfit, HeroLooks.Outfits)] => far ? "hand_far_skin" : "hand_skin",
+        "hand" => far ? "hand_far_glove" : "hand_glove",
         "face" => $"face_{HeroLooks.Wrap(_look.Face, HeroLooks.Faces)}",
         "hair" => $"hair_{HeroLooks.Wrap(_look.Hair, HeroLooks.HairStyles)}",
         "beard" => $"beard_{Math.Max(HeroLooks.Wrap(_look.Beard, HeroLooks.Beards + 1) - 1, 0)}",

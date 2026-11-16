@@ -4,7 +4,7 @@ using Xunit;
 namespace Stillwake.Game.Tests;
 
 /// <summary>
-/// The hand is its own picture hung at the wrist (hand): two strips of frames, the glove and the bare hand, and every arm cut on
+/// The hand is its own picture hung at the wrist (hand): strips of frames, the glove and the bare hand, each near and far, and every arm cut on
 /// one whole row of its picture.
 /// </summary>
 public class HandTests
@@ -12,6 +12,8 @@ public class HandTests
     [Theory]
     [InlineData("hero_hand_glove")]
     [InlineData("hero_hand_skin")]
+    [InlineData("hero_hand_far_glove")]
+    [InlineData("hero_hand_far_skin")]
     public void EachHandIsAStripOfItsFrames(string hand)
     {
         Assert.True(Png.Has(hand), hand);
