@@ -10,6 +10,7 @@ using Stillwake.Game.Overlays;
 using Stillwake.Game.Render;
 using Stillwake.Net;
 using Stillwake.Sim;
+using Stillwake.Sim.Grid;
 
 namespace Stillwake.Game.Shared;
 
@@ -39,6 +40,9 @@ public partial class Hands : Node2D
     /// <summary>What this player can pay with is read this often into <see cref="Ui.Carried"/>: a panel reads on a timer.</summary>
     private const double CarriedEveryMs = 250;
     private double _sinceCarried = CarriedEveryMs;
+
+    /// <summary>Machines the power's bolts pass over on this surface (<see cref="PowerView.Unmarked"/>).</summary>
+    public Func<Machine, bool> Unmarked { set => _power.Unmarked = value; }
 
     public Hands()
     {

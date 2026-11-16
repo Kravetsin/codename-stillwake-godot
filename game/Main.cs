@@ -496,6 +496,9 @@ public partial class Main : Node2D, ITogether
         _grid = View<GridView>();
         var fires = View<FurnaceView>()!;
         var (power, hazards) = (_m.Power, _m.Hazards);
+        // A derelict's own lamps burn on their battery, lit by their own view and with no bolt over them; one a hero builds there has both.
+        Func<Sim.Grid.Machine, bool> own = View<Features.Light.VesselLamps>() is { } inside ? inside.Claims : _ => false;
+        _hands.Unmarked = own;
         AddChild(_light = new LightView(_m.Grid, Game.Light.SkyOf(_m.Rules), ground: _m.Rules is Content.PlanetType)
         {
             // --lit: every lamp at full power, to measure the light on the reference world; --dark: every lamp out, to see what glows.
@@ -503,7 +506,7 @@ public partial class Main : Node2D, ITogether
             LampShare = Has("--lit") ? _ => 1f : Has("--dark") ? _ => 0f : lamp => Features.Light.LampPower.ShareOf(Stillwake.Content.Machines.Get(lamp.Kind).Draws, power.Satisfaction(lamp.Id))
                 * Features.Hazards.FlareLook.LampShare(Features.Hazards.FlareLook.Near(hazards.FlareLeft, (_session as Session)?.Progress ?? 0, hazards.FlareRules.Warning)),
             Fire = m => fires.BlazeOf(m.Id),
-            Skips = View<Features.Light.VesselLamps>() is { } inside ? inside.Claims : _ => false,
+            Skips = own,
             FireAt = FurnaceView.LightAt,
             HeadLamps = () => _hero?.HeadLamps() ?? [],
             // The creatures live across surfaces: their view is made once, not with these.
