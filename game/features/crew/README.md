@@ -162,7 +162,7 @@ This hero and others', client-authoritative (0002): only commands reach the sim.
 - **A gun** (hold-to-fire): held fires each cooldown, a `Charge` one full on release, flat, clicks; kicks (`Recoil`, body-answers).
 - **Drill, grinder, cutter** (0054, 0055): held runs it (`Run`), hits a `Pace`, the cutter's by beam (`ToolEdges`).
 - **Power driver** (driver-at-work, driver-order): charged, a 2×2 `WorkedSquare`; RMB toggles (mode-glyph).
-- **Gestures** (gestures-for-words): F tap points, hold: a wheel (wave, come, yes, no); item stowed; sent as `Busy`.
+- **Gestures** (gestures-for-words): F tap points, hold: a wheel (yes, no, wave); item stowed; sent as `Busy`.
 - **Seated** (`Seating`): no tool; E leaves. **Ladders, ledges** (0092, 0112): grab, climb, slide, leap off; a hatch open
   climbs, shut floors; a short jump mantles.
 

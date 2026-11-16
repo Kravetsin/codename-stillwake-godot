@@ -51,7 +51,6 @@ public static class Gestures
     {
         Handwork.Point => Gesture.Point,
         Handwork.Wave => Gesture.Wave,
-        Handwork.Come => Gesture.Come,
         Handwork.Yes => Gesture.Yes,
         Handwork.No => Gesture.No,
         _ => null,
@@ -61,7 +60,6 @@ public static class Gestures
     {
         Gesture.Point => Handwork.Point,
         Gesture.Wave => Handwork.Wave,
-        Gesture.Come => Handwork.Come,
         Gesture.Yes => Handwork.Yes,
         _ => Handwork.No,
     };
@@ -132,8 +130,8 @@ public sealed class GestureWheel
     /// <summary>The middle's radius, where letting go picks nothing, and how far out each hand sits, in pixels at the normal slot size.</summary>
     public const double Middle = 18, Radius = 54;
 
-    /// <summary>Each side's gesture, from the top clockwise: yes above, come on the right, no below, wave on the left.</summary>
-    public static readonly Gesture[] Sides = [Gesture.Yes, Gesture.Come, Gesture.No, Gesture.Wave];
+    /// <summary>Each side's gesture, from the top clockwise, the wheel shared out evenly: yes above, no below right, wave below left.</summary>
+    public static readonly Gesture[] Sides = [Gesture.Yes, Gesture.No, Gesture.Wave];
 
     private bool _held;
     private double _heldMs, _middle = Middle;
@@ -166,10 +164,15 @@ public sealed class GestureWheel
         return Toward ?? (_heldMs < TapMs ? Gesture.Point : null);
     }
 
-    /// <summary>The side an offset <paramref name="dx"/>, <paramref name="dy"/> from the middle points to, screen down positive; none within it.</summary>
+    /// <summary>
+    /// The side an offset <paramref name="dx"/>, <paramref name="dy"/> from the middle points to, screen down positive: the one whose
+    /// even share of the turn, centred on it, holds the offset's angle; none within the middle.
+    /// </summary>
     public static Gesture? SideOf(double dx, double dy, double middle)
     {
         if (dx * dx + dy * dy < middle * middle) return null;
-        return Math.Abs(dx) > Math.Abs(dy) ? (dx > 0 ? Sides[1] : Sides[3]) : (dy < 0 ? Sides[0] : Sides[2]);
+        double share = Math.Tau / Sides.Length;
+        int side = (int)Math.Floor((Math.Atan2(dx, -dy) + share / 2) / share);
+        return Sides[(side % Sides.Length + Sides.Length) % Sides.Length];
     }
 }

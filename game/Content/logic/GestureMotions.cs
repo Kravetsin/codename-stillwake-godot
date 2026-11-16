@@ -46,7 +46,7 @@ public sealed record GestureMotion(double Ms, int Frame, IReadOnlyList<GestureKe
 }
 
 /// <summary>A sign a hero makes with its near hand in place of words (gestures-for-words).</summary>
-public enum Gesture { Point, Wave, Come, Yes, No }
+public enum Gesture { Point, Wave, Yes, No }
 
 /// <summary>Each gesture's motion (gestures-for-words): the table the figure plays.</summary>
 public static class GestureMotions
@@ -59,7 +59,7 @@ public static class GestureMotions
 
     /// <summary>
     /// Picked by the user 2026-11-16 from candidates drawn on the hero: two jabs at the target, the forearm rocked ahead of the helmet,
-    /// the arm scooping in toward the chest, the thumb up with two nods, the thumb down shown from the palm (gestures-for-words).
+    /// the thumb up with two nods, the thumb down shown from the palm (gestures-for-words).
     /// </summary>
     private static readonly Dictionary<Gesture, GestureMotion> Table = new()
     {
@@ -67,7 +67,6 @@ public static class GestureMotions
             [new(0, AlongLine, Straight), new(0.12, -0.3, 0.75), new(0.24, AlongLine, Straight, Ease: Ease.Out), new(0.38, -0.3, 0.75),
              new(0.5, AlongLine, Straight, Ease: Ease.Out), new(1, AlongLine, Straight)], Aimed: true),
         [Gesture.Wave] = new(1600, OpenFrame, Sampled(s => new(s, 2.25, 0.55 + 0.4 * Rock(3, s)))),
-        [Gesture.Come] = new(1400, OpenFrame, Sampled(s => new(s, 1.6 - 0.6 * Beat(2, s), 0.2 + 1.7 * Beat(2, s)))),
         [Gesture.Yes] = new(1200, ThumbFrame,
             Sampled(s => new(s, 0.5 + 0.1 * Math.Sin(Math.PI * s), 1.25 - 0.1 * Math.Sin(Math.PI * s), Head: 0.45 * Beat(2, s)))),
         [Gesture.No] = new(1100, ThumbFrame, Sampled(s => new(s, 0.45 - 0.25 * Bump(s), 1.0 + 0.25 * Bump(s))), HandSide.Palm, Mirrored: true),
