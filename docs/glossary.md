@@ -116,12 +116,15 @@ Game words → code. One line a term: Russian / English → identifiers → modu
 - топор / fire axe → item `fireAxe`, f/crew `AxeSwing`, `HeldLook.FireAxe` → Crew
 - движение удара / swing motion **≠** → `SwingMotion` (keys `MotionKey`), a weapon's `Stroke.Motions`, played as `MotionPlay` with `Overhand`, `Jab` (f/crew `MotionPlay.cs`), its `MotionKind` in gc/`SwingMotions.cs`; the offset the hero carries `AxeSwing.Aim` → Crew
 - сектор удара / aim sector **≠** → `Sector`, `Sectors` (up, straight, down, under) in gc/`SwingMotions.cs` → Crew
+- жест, эмоция, круговое меню / gesture, emote, wheel **≠** → `Gesture` (`Point`, `Wave`, `Come`, `Yes`, `No`), `GestureMotions` (gc), `Gestures`, `GesturePlay`, `GestureWheel`, `GestureWheelView` (f/crew), bind `Gesture` (F), sent as `Handwork` (gestures-for-words) → Crew
+- кисть руки, перчатка / hand, glove → `Rig.Wrist`, `hero_hand_glove`, `hero_hand_skin`, `HeroLooks.OutfitGloved`, frames in `GestureMotions` (hand-at-wrist) → Crew
 - бур / drill → item `drill`, `c/Weapons.cs`, f/crew `DrillPace`, `Motor` → Crew
 - трос / tether → f/crew `Tether` → Crew; подтягивание по тросу / haul → `Hero.Haul`, `Hero.Wraps` (tether-haul)
 - скафандр / suit → helmet `helmet`, `quiltedHelmet` (стёганый шлем) or `heavyHelmet` (`Content.Helmet`, slot `head`, `Tank`) + body `suit` or `regenSuit` (`Content.Suit`, slot `suit`; its mode `SuitMode`, `Hero.SuitOn`), `Hero.Air`, `CapacityOf`; `SuitGauge`, `Suits` (colours), `Danger` (f/crew) → Crew, Items
 - голый, без скафандра / bare → no helmet: `Crew.Lungs`; no body: `Temperature.BareLow` → Crew
 - внешность, облик, редактор персонажа / look → `Look`, `ChooseLook`, `LookOf`, `HeroLooks`, `LookEditor` (f/crew) → Players, Crew
-- плащ / cape → `cape` (`Content.Cape`, slot `cape`, `Guard`, `Warmth`), `Hero.Spared`, `ICrewOps.Blow`; `Figure.WearsCape`, `Cape`, `CapeView` (f/crew) → Crew, Items
+- скин, внешний вид (вкладка) / skin, Appearance (tab) → `Skin`, `Skins` (kinds `head`, `suit`, `cape`, `effect`), `Dressed`, `Suits.DressedAs`, `AppearanceView`, `SkinSlot` (f/crew), `LooksButton` (f/items); `ChooseSkins`, `SkinsOf`, `PeerSkins`; `Owned` (game/platform) → Players, Crew; эффект оружия, «Пламя», «Разлом» / weapon effect, Fire, Rift → `BladeFx`, `FireFx`, `RiftFx` (f/crew), `SkinEffects` (gc)
+- плащ / cape → `cape` (`Content.Cape`, slot `cape`, `Guard`, `Warmth`), `Hero.Spared`, `ICrewOps.Blow`; `Figure.CapeWorn`, `Cape`, `CapeView` (f/crew) → Crew, Items
 - фонарик на шлем / helmet lamp → `helmetLamp`, slot `mount` (`Helmet.Mount`), for whatever sits on a helmet → Items
 - смерть, тело / death, body → `Bodies`, `BodyView` (0061) → Crew, Items
 - трекер, браслет, розыск / tracker, wanted → `Hero.Wanted`, `Need`, `Coming`, `Signal`, `SignalOf`, `ICrewOps.Loot`, c/`Wanted.cs`; начальный пояс / starting belt → `Wanted.Belt`, `Wanted.Drain`; f/crew `TrackerBlink` → Crew

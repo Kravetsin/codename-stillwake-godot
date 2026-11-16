@@ -31,8 +31,8 @@ public class BindsTests
     [Fact]
     public void AFreeKeyIsTakenWithNothingSwapped()
     {
-        var binds = Binds.Default.Rebind(Bind.Use, "F", out var swapped, out var refused);
-        Assert.Equal("F", binds!.KeyOf(Bind.Use));
+        var binds = Binds.Default.Rebind(Bind.Use, "K", out var swapped, out var refused);
+        Assert.Equal("K", binds!.KeyOf(Bind.Use));
         Assert.Null(swapped);
         Assert.Null(refused);
         Assert.Equal("E", Binds.Default.KeyOf(Bind.Use));
@@ -73,9 +73,9 @@ public class BindsTests
     [Fact]
     public void OnlyTheChangedKeysAreKeptAndReadBackAlike()
     {
-        var binds = Rebound(Rebound(Binds.Default, Bind.Use, "F"), Bind.Jump, "Q");
+        var binds = Rebound(Rebound(Binds.Default, Bind.Use, "K"), Bind.Jump, "Q");
         var kept = binds.Changed();
-        Assert.Equal([("jump", "Q"), ("use", "F"), ("air", "Space")], kept.OrderBy(k => k.Key == "Space").ThenBy(k => k.Id).ToList());
+        Assert.Equal([("jump", "Q"), ("use", "K"), ("air", "Space")], kept.OrderBy(k => k.Key == "Space").ThenBy(k => k.Id).ToList());
         var read = Binds.Read(kept);
         Assert.All(Enum.GetValues<Bind>(), b => Assert.Equal(binds.KeyOf(b), read.KeyOf(b)));
     }
@@ -122,9 +122,9 @@ public class BindsTests
         try
         {
             Assert.Equal("[E] Open door", En.In(Language.English, "use.openDoor"));
-            Binds.Current = Rebound(Binds.Default, Bind.Use, "F");
-            Assert.Equal("[F] Open door", En.In(Language.English, "use.openDoor"));
-            Assert.Equal("[F] Открыть дверь", En.In(Language.Russian, "use.openDoor"));
+            Binds.Current = Rebound(Binds.Default, Bind.Use, "K");
+            Assert.Equal("[K] Open door", En.In(Language.English, "use.openDoor"));
+            Assert.Equal("[K] Открыть дверь", En.In(Language.Russian, "use.openDoor"));
         }
         finally
         {
@@ -140,9 +140,9 @@ public class BindsTests
         {
             string label = En.In(Language.Russian, "use.openDoor");
             var told = Languages.Told(Language.Russian);
-            Binds.Current = Rebound(Binds.Default, Bind.Use, "F");
-            Assert.Equal("[F] Открыть дверь", Languages.Retold(label, told, Language.Russian));
-            Assert.Equal("[F] Open door", Languages.Retold(label, told, Language.English));
+            Binds.Current = Rebound(Binds.Default, Bind.Use, "K");
+            Assert.Equal("[K] Открыть дверь", Languages.Retold(label, told, Language.Russian));
+            Assert.Equal("[K] Open door", Languages.Retold(label, told, Language.English));
         }
         finally
         {

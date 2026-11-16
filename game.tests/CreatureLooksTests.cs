@@ -24,7 +24,7 @@ public class CreatureLooksTests
         foreach (var look in CreatureLooks.Heroes.Values)
             foreach (var gear in look.Gear)
             {
-                foreach (var part in new[] { "torso", "pack", "upperArm", "forearm", "thigh", "shin", "upperArm_lit" })
+                foreach (var part in new[] { "torso", "pack", "arm", "leg", "arm_lit" })
                     Assert.True(File.Exists(Path.Combine(hd, $"hero_{gear.Body}_{part}.png")), $"hero_{gear.Body}_{part}");
                 foreach (var part in new[] { "shell", "visor", "lit" })
                     Assert.True(File.Exists(Path.Combine(hd, $"hero_{gear.Helmet}_{part}.png")), $"hero_{gear.Helmet}_{part}");

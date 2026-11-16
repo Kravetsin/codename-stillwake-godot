@@ -31,9 +31,9 @@ Heroes: where each is (as its client says), how it breathes, passing out.
   the suit, which pays any shortfall.
 - **Thin air** (0076): with `ThinAir` n the suit pays the shortfall every n-th breath, in full, exertion too; off the
   beat `Owed` moves only where air covers the breath.
-- **Colours and looks** (looks-are-printed), kept by `Players`: a hero coming in wears the first unworn of
+- **Colours, looks, skins** (looks-are-printed, hero-skins), kept by `Players`: a hero coming in wears the first unworn of
   `Crew.Colours`, else the first least worn; a peer's first gets the kit (`IItemsOps.Kit`). `PickColour` takes a free
-  colour; `ChooseLook` sets the look the next print wears.
+  colour; `ChooseLook` sets the look the next print wears; `ChooseSkins` the skins, worn at once.
 - **Leave** (host, a peer gone): the hero goes, colour freed, tool stopped, inventory kept.
 - **Surfaces** (`ICarries`): `Depart` gives up the `Hero`, `Arrive` takes it at a cell or the spawn. One waking
   off the ship wakes aboard.
@@ -81,7 +81,7 @@ Heroes: where each is (as its client says), how it breathes, passing out.
   `SuitOn`, `SuitModeProblem`; `SignalOf(peer)`, `Hunted(peer)`;
   `HeroOf(id)` or null; `Heroes`, live, in id order. On the
   module: `Burns(cell)`, `RefillProblem(peer)`, `EatProblem(peer, food)`, `PurgeProblem`: the client sends none they refuse.
-- **Commands:** `Enter(Cell)`, `ChooseLook(Look)`, never refused; `PickColour(Colour)` —
+- **Commands:** `Enter(Cell)`, `ChooseLook(Look)`, `ChooseSkins(Ids)`, never refused; `PickColour(Colour)` —
   `crew.noHero`, `crew.noSuchColour`, `crew.colourTaken`; `Leave`, `Exert(On)` — `crew.noHero`; `Thrust(On)` —
   `crew.noHero`, `crew.noJetpack`; `Refill` — `crew.noHero` (or out), `crew.suitFull`, `crew.canisterCooling`, `items.notEnough`; `Eat(Item)` — `crew.noHero` (or out), `crew.notFood`,
   `items.notEnough`, `crew.sameFood`, `crew.mealsFull`; `Purge` — `crew.noHero` (or out), `crew.noMeals`; `SuitMode(On)` —
@@ -92,7 +92,6 @@ Heroes: where each is (as its client says), how it breathes, passing out.
 
 - Air holds between nothing and capacity, a last breath runs only with none, awake (`SuitsTests`, `FieldTests`).
 - `EdgeCost` is 0 inside the field, never less farther out, never over `Field.EdgeCost` (`FieldTests`).
-- No two heroes wear a colour while there are enough, on any surface.
 - A seat's hero is on its surface (`World.SurfaceOf`) and no other (`SurfacesTests`).
 - A hero holds at most `Diet.Meals` meals, all different, none spent; rates within `Diet.Caps` (`MealsTests`).
 

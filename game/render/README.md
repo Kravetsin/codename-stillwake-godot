@@ -9,20 +9,21 @@
 | `Bend.cs` | Grass bent by `Stirs` (plant-stirs). |
 | `BladeCharge.cs` | `ArcBurst` drawn on a held blade. |
 | `logic/Blueprint.cs` | How plans join the plans beside them when drawn. |
-| `BlueprintArt.cs` | A placement as built: for plans, ghosts and build menu thumbnails. |
+| `BlueprintArt.cs` | A placement as built: plans, ghosts, build menu thumbnails. |
 | `logic/Bolts.cs` | The electric arcs in the world (0075). |
-| `logic/Breath.cs` | How what is aimed at breathes: outline and glowing faces on one clock. |
+| `logic/Breath.cs` | How what is aimed at breathes: outline, glowing faces on one clock. |
 | `BuiltParts.cs` | What of the plans being built is already real (0063). |
-| `logic/Buttons.cs` | The mouse buttons as the world reads them, since the last take. |
+| `logic/Buttons.cs` | The mouse buttons as the world reads them. |
 | `logic/CableShape.cs` | A cable as drawn: ends at nodes, hang, way through the hull. |
 | `logic/DoorShape.cs` | A doorway's pictures by the joins of its cells (0067). |
-| `DriftLayer.cs` | A plane of the backdrop, things scattered over its tiles by `Scatter`. |
+| `DriftLayer.cs` | A backdrop plane, things scattered over its tiles by `Scatter`. |
 | `DrillLight.cs` | A drill's own light while it runs (0054, 0075, 0094). |
 | `Dust.cs` | Faint dust between the far wrecks and the ship. |
 | `logic/EffectArea.cs` | Where a held tool's effect lives: drawn pixels in a box. |
-| `FarWrecks.cs` | Wreckage far behind the ship, from the wrecks' own pictures. |
-| `logic/Flares.cs` | Glints, shock lines and flashes of the world's key moments (0075). |
-| `Glow.cs` | A point that lights what is round it a little while it is shown. |
+| `logic/EdgeLip.cs` | A blade's lip, its edge's rim out: where an effect skin rests. |
+| `FarWrecks.cs` | Wreckage far behind the ship, from the wrecks' pictures. |
+| `logic/Flares.cs` | Glints, shock lines, flashes of the world's key moments (0075). |
+| `Glow.cs` | A point lighting what is round it a little while shown. |
 | `GroundArt.cs` | A planet's ground pictures made, not drawn (0077, 0079). |
 | `logic/GroundDetails.cs` | Pictures laid over a planet's ground (0082). |
 | `logic/GroundShadow.cs` | The soft shadow walls cast on a natural back wall (0088). |
@@ -67,7 +68,7 @@
 | `Signs.cs` | The power bolt, its warnings, the credit chip (ink-signs). |
 | `Sketch.cs` | A node drawn by a callback: lines, boxes, dots. |
 | `SoftDots.cs` | Soft round pictures luminous things are drawn with (0075). |
-| `logic/Stages.cs` | Each draw layer's effects, a stage a z, and the figures' held stages. |
+| `logic/Stages.cs` | Each draw layer's effects by z; figures' held stages. |
 | `logic/Stirs.cs` | Grass pushed by bodies' feet, springing back (plant-stirs). |
 | `Stars.cs` | Space behind the ship and the title: a tile of stars. |
 | `StretchBackdrop.cs` | A stretch's far picture, behind the far wrecks. |

@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Linq;
 using Godot;
 using Stillwake.Game.I18n;
@@ -146,6 +147,23 @@ public static class Settings
         int[] i = [look.Skin, look.Hair, look.HairColour, look.Face, look.Beard, look.Outfit];
         for (int k = 0; k < LookKeys.Length; k++) kept.SetValue("look", LookKeys[k], i[k]);
         if (kept.Save(File) != Error.Ok) GD.PrintErr($"[settings] cannot keep the look in {File}: it holds for this run alone");
+    }
+
+    /// <summary>The skins this player picked (hero-skins), one a kind in <see cref="Features.Crew.Skins.Kinds"/>' order, kept from an earlier run; none before.</summary>
+    public static IReadOnlyList<string> Skins()
+    {
+        var kept = new ConfigFile();
+        kept.Load(File);
+        return [.. Features.Crew.Skins.Kinds.Select(k => kept.GetValue("skins", k, "").AsString()).Where(id => id != "")];
+    }
+
+    /// <summary>Keeps <paramref name="ids"/> for the next run: the first known one of each kind, none for the rest.</summary>
+    public static void KeepSkins(IReadOnlyList<string> ids)
+    {
+        var kept = new ConfigFile();
+        kept.Load(File);
+        foreach (var kind in Features.Crew.Skins.Kinds) kept.SetValue("skins", kind, Features.Crew.Skins.Chosen(ids, kind) ?? "");
+        if (kept.Save(File) != Error.Ok) GD.PrintErr($"[settings] cannot keep the skins in {File}: they hold for this run alone");
     }
 
     /// <summary>The step <paramref name="bus"/>'s slider was left at (settings-menu), the top one, today's mix, on a first run.</summary>

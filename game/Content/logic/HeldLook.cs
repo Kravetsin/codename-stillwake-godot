@@ -47,6 +47,21 @@ public sealed record HeldLook(
         return (EdgeFrom.X + dx * t - dy * outward, EdgeFrom.Y + dy * t + dx * outward);
     }
 
+    /// <summary>How far round its edge, in pixels of its picture, an effect skin lives on it at rest (hero-skins).</summary>
+    public const double EdgeMargin = 2;
+
+    /// <summary>
+    /// The box an effect skin lives in at rest (hero-skins): round its edge's ends and its bowed middle, <see cref="EdgeMargin"/>
+    /// out on every side, in pixels of its picture; the effect takes the picture's drawn pixels in it.
+    /// </summary>
+    public (double X0, double Y0, double X1, double Y1) EdgeBox()
+    {
+        var middle = EdgePoint(0.5);
+        double x0 = System.Math.Min(System.Math.Min(EdgeFrom.X, EdgeTo.X), middle.X), x1 = System.Math.Max(System.Math.Max(EdgeFrom.X, EdgeTo.X), middle.X);
+        double y0 = System.Math.Min(System.Math.Min(EdgeFrom.Y, EdgeTo.Y), middle.Y), y1 = System.Math.Max(System.Math.Max(EdgeFrom.Y, EdgeTo.Y), middle.Y);
+        return (x0 - EdgeMargin, y0 - EdgeMargin, x1 + EdgeMargin, y1 + EdgeMargin);
+    }
+
     /// <summary>
     /// What a tool or gun is drawn at (tool-size): its pictures came from the pixel art, drawn for a larger hero, and looked
     /// bulky beside the inked one; at three quarters they look right (the user's pick, in play, over real sizes made a third larger).

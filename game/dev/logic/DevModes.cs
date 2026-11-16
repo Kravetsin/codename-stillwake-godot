@@ -63,7 +63,9 @@ public static class DevModes
         new("--bow", DevShape.Next, "with --fly, the start N columns ahead of the bow, in the stream (FarDemo.Bow)"),
         new("--pose-sheet", DevShape.Equals, "the hero's holds drawn alone and saved to that folder, nothing else made (PoseSheet)"),
         new("--pose-item", DevShape.Equals, "with --pose-sheet, the item held; the drill by default"),
+        new("--suit-cards", DevShape.Equals, "every suit's and suit skin's card, cut from the hero wearing it, written into that art folder, nothing else made (SuitCards)"),
         new("--dress-sheet", DevShape.Equals, "the hero bare, in a helmet, a body and suited, in every colour, saved to that PNG, nothing else made (DressSheet)"),
+        new("--gesture-sheet", DevShape.Equals, "every gesture played through, a strip of frames each, written into that folder with a list, nothing else made (GestureSheet)"),
         // Ship and doors.
         new("--doors", DevShape.Flag, "opens and shuts doors for recordings (Autopilot.At)"),
         new("--toggle", DevShape.Flag, "the first doorway opened and shut on alternate ticks, one always in flight"),
@@ -108,6 +110,8 @@ public static class DevModes
         new("--frames", DevShape.Either, "logs every frame and prints the worst with their causes on quitting, =vsync with it (FrameLog)"),
         new("--ablate", DevShape.Either, "each node's processing switched off in turn, the frame time it saves printed, then quits; =Name for that node's children (ProcessAblation)"),
         new("--allocs", DevShape.Flag, "with --frames, what was allocated, by type (AllocationSampler)"),
+        new("--own-none", DevShape.Flag, "a debug build owns no DLC skin: the appearance tab shows them locked (hero-skins)"),
+        new("--wear", DevShape.Equals, "the skins worn, a comma list of ids, for a recording, keeping nothing (hero-skins)"),
         new("--fx-bench", DevShape.Flag, "a busy scene of luminous effects round the view's middle to measure (FxBench)"),
     ];
 
