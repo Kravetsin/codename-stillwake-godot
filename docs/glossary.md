@@ -136,6 +136,8 @@ Game words → code. One line a term: Russian / English → identifiers → modu
 - сломан, поломка / broken → `IPowerQueries.IsBroken`, `IPowerOps.Break` → Power
 - ремонт, починить / repair → `Repair`, `RepairProgress`, `RepairRules` (sim/Building `Repairs.cs`) → Building
 - планета / planet → `PlanetType` (`c/PlanetTypes.cs`), `Surface`, `Terrain` (sim/Core) → Core, Building
+- тип планеты: выжженная, ледяная / planet type: scorched, icy → `PlanetTypes.Scorched`, `Icy`, `PlanetType.OreWeights`; its look → `PlanetLooks` (gc) → Core
+- набор руд / a planet's ores → `Content.Landing.Ores`, `Starting`, `Varying`, `LandingModule.OresOf`, `Surface.Ores` → Landing, Core
 - фон, задний план, параллакс / backdrop, the land behind → `PlanetSky` (r/, the sky), `BackdropView`, `BackdropPlan` (f/backdrop, the land), `BackdropLooks` (gc) → client only
 - сутки, день, ночь, время суток / day, night, hour → `Sky.Cycle` (`c/Sky.cs`), `SkyNow`, `SetTime` (sim/Sky); fades `Daylight` (gc) → Sky
 - ночной холод, мороз / the night's chill → `Cycle.Chill` (degrees), frost `Report.Cold` → Crew

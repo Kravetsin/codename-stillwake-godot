@@ -29,7 +29,7 @@ The launch platform (ADR `2026-10-24-the-launch-platform`), the drop pod (`2026-
   construction but while its rider is here, awake and exerting (`Turning`).
 - **`Launch`** flies a pod (`Riders == 1`): from the ship down, burning `Content.Fuel.Descent` (5 l) from its store, its run opened; from anywhere
   else back home, free. Flights count down in construction; a descent shuts its run `FallTicks` in, and one whose hero is
-  gone or out ends at once, docked home empty. At zero it sends its hero to `OpenPlanet()`, a return aboard.
+  gone or out ends at once, docked home empty. At zero it sends its hero to `OpenPlanet` of planet `At`'s type and ores, a return aboard.
 - **A pod goes where its hero goes** (`ICarries`): aboard it docks at home (home built over or run gone: its cost, load and fuel
   laid there); off the ship it lands by the spawn, outward from its column, left first, on level ground, its rider's
   (`Owners`). Seated again when it rode and its hero is awake. Off the ship only its owner boards or flies it.
@@ -48,16 +48,18 @@ The launch platform (ADR `2026-10-24-the-launch-platform`), the drop pod (`2026-
   Each awake rider sits at the lowest free place.
 - **Rule 7** (`IOutlives`): a vessel world closing hands the ship the homes of its parked shuttles, then of its voyages;
   each docks home empty, its load and fuel in it. Flying home while a friend is on the vessel is allowed.
-- **The ship's course** (2026-11-16-solar-system), aboard: `At` (from 0) and `Course(To, TicksLeft)`. `PlotCourse(planet)` burns
-  `JumpFuel` (8 l) from the `Engine`'s store (the lowest-id machine with an `Exhaust`), closes the planet below for good
-  (`LeavePlanet`) and counts `FlightTicks` down in construction; at zero `At = To`, and the next descent opens a new seed.
+- **The ship's course** (solar-system), aboard: `At` and `Course(To, TicksLeft)`. `PlotCourse(planet)` burns `JumpFuel` from the
+  `Engine`'s store, closes the planet below for good and counts `FlightTicks` down; at zero
+  `At = To`, and the next descent opens a new seed.
+- **Ores** (planet-variety), aboard: each system planet's set, dealt on the first tick before the flights count from a fork
+  of the Rng (`Dealt`), saved: `OresOf(planet)`.
 - Riders and seated heroes stay where they were sent; the client holds them at their place's floor.
 
 ## API
 
 - **Queries:** `Problem(cell, open)`, `Powered(cell)`, `RunOf` (static); `BoardProblem`, `LaunchProblem`, `SetOffProblem`
   (`ILandingQueries`); `SeatOf`, `PlaceOf`, `RiderOf`, `RidersOf(machine)`, `Seats`; `FlightOf`, `VoyageOf`, `Voyages`,
-  `Parked`; `At`, `Course`, `CourseProblem`, `Engine`; `Rides` (seated, flying or voyaging); `Returns`; `FloorOf` (static); `PodSpec`, `CraftSpec`; `Turning`.
+  `Parked`; `At`, `Course`, `CourseProblem`, `Engine`, `OresOf`; `Rides` (seated, flying or voyaging); `Returns`; `FloorOf` (static); `PodSpec`, `CraftSpec`; `Turning`.
 - **Refusals:** `SetPlatform` — `landing.noPlatform`, `landing.unpowered`. `Board` — `landing.noPod`, `landing.seated`,
   `landing.taken` (every place taken), `landing.notYours`. `Alight` — `landing.notSeated`. `Launch` — `landing.notSeated`
   (no pod, or a shuttle's seat); aboard `landing.noPlatform`, `landing.shaftBlocked`, `landing.unpowered`,
@@ -72,7 +74,7 @@ The launch platform (ADR `2026-10-24-the-launch-platform`), the drop pod (`2026-
 
 - A run is all shut or all open; a shut run never opens without power. Its shaft stays empty (Grid, Building).
 - A course starts only with every hero and pod aboard and no planet open (`CourseTests`' property).
-- No machine seats more than its `Riders`; a hero sits in one place at most; every seat's machine stands, its hero awake.
+- No machine seats more than its `Riders`; a hero sits in one place at most.
 - Every pod stands on one surface or flies in one flight. Every shuttle stands on one open surface or flies in one voyage,
   a voyage's rider sits nowhere, and its fuel is what it had less each round trip set off on (`ShuttleTripTests`' property,
   with a twin saved and loaded mid-voyage).
@@ -80,11 +82,11 @@ The launch platform (ADR `2026-10-24-the-launch-platform`), the drop pod (`2026-
 ## Deliberately not handled
 
 - A run open when its power fails stays open; a piece added to a run's left moves its plug. Boarding asks no reach (0002).
-- No picture here: the client draws the deck, the fall, the flight and the touchdown from the ticks.
+- No picture here: the client draws the flights from the ticks.
 - A launch shuts a run opened by hand; a hero on a run that opens falls out of the ship.
 - The shuttle's return burns nothing; laid as its cost, its fuel's part of a litre is lost, as a pod's.
 - Distance changes the cost only, not the flight. A contact is used even when nobody arrives.
 - No air or hold in the shuttle; loot comes home in hands. Nothing takes a shuttle or pod apart off the ship.
-- The gap is measured from the frame's left edge, whatever side the door is on; nothing checks the spot at runtime.
+- The gap is measured from the frame's left edge, whatever the door's side; nothing checks the spot.
 - Riders who all quit mid-return while a friend stays: the shuttle docks only when that world closes. A home built over
   by another shuttle: later riders sit in that one.
