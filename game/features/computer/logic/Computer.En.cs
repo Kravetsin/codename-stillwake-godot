@@ -19,6 +19,8 @@ public static partial class En
         ["computer.radar.litres"] = "{l} l",
         ["computer.radar.shuttleFuel"] = "Shuttle, there and back",
         ["computer.radar.setCourse"] = "Set course",
+        ["computer.radar.clearRoute"] = "Clear route",
+        ["computer.radar.forget"] = "Forget",
         ["computer.radar.route"] = "Route set, board the shuttle",
         ["computer.radar.sun"] = "The sun",
         ["computer.radar.system"] = "System",

@@ -21,16 +21,17 @@ its own for a contact's vessel and moves its sender there. The vessel itself is 
 
 ## Rules
 
-- Aboard only: off the ship's surface `Find`, `Jump` and `SetCourse` are refused `places.notAboard`; go home first.
+- Aboard only: off the ship's surface `Find`, `Jump`, `SetCourse`, `ClearCourse` and `Forget` are refused `places.notAboard`.
 - **The radar's own contacts** ([radar-contacts](../../docs/decisions/2026-11-08-radar-contacts.md)), aboard, each tick in
   simulation: every contact's `Left` goes down by one and one at 0 is gone; then the countdown, started at `Contacts.First`
-  (15 min, fixed, so a short run never draws); at 0 a contact of a class drawn evenly is added (while fewer than
+  (15 min, fixed, so a short run never draws); at 0 a contact of a class drawn by its `Weight` is added (while fewer than
   `MaxContacts`) and the next drawn evenly in `EveryMin..EveryMax`. `Lasts` ≤ `EveryMin`: never two of its own at once.
 - **A contact added** (by the radar or `Find(Class)`, the dev flag `--vessel` and the dev panel's): its seed drawn from the
   world's Rng, then its side and its distance in `Contacts.Nearest..Reach`, each evenly; `Offset` the distance signed (minus
   left of the ship); `Left` = `Contacts.Lasts`. The client draws it on the radar, where Set course sends `SetCourse`; `Jump` is the dev panel's.
 - **The course** ([shuttle-flight](../../docs/decisions/2026-11-16-shuttle-flight.md)): one per world, `SetCourse(Contact)`
-  by anyone aboard, the last of a tick winning; cleared when its contact runs out or is jumped to, and on set off.
+  by anyone aboard, the last of a tick winning; cleared by `ClearCourse`, when its contact runs out, is jumped to or forgotten
+  (`Forget(Contact)`: off the radar for everyone), and on set off.
   `CostOf(contact)`: litres for the round trip, each leg `|Offset| × KmPerUnit` km over `Shuttle.KmPerLitre`, rounded up;
   aboard, `SetOff` burns it from the shuttle's store (`landing.noFuel` short of it); the return burns nothing.
 - **`SetOff`**, from a shuttle's rider: aboard `places.noCourse` (none, or its contact gone) first, then Landing's
@@ -59,9 +60,9 @@ its own for a contact's vessel and moves its sender there. The vessel itself is 
 - **Queries:** `Contacts`, `NextIn`, `Course`, `CostOf` (static), `SetOffProblem(peer)`.
 - **Commands:** `Find(Class)` — `places.notAboard`, `places.noClass`, `places.full`. `Jump(Contact)` — `places.notAboard`,
   `places.noContact`, `places.noHero`, `places.seated`. `SetCourse(Contact)` — `places.notAboard`, `places.noContact`.
-  `SetOff` — `places.noCourse`, then Landing's.
-- **Fuzz:** now and then, a jump opening a whole surface: `Find` of a class or none, `Jump` or `SetCourse` to a contact held
-  or not, `SetOff`.
+  `ClearCourse` — `places.notAboard`. `Forget(Contact)` — `places.notAboard`, `places.noContact`. `SetOff` — `places.noCourse`, then Landing's.
+- **Fuzz:** now and then, a jump opening a whole surface: `Find` of a class or none, `Jump`, `SetCourse` or `Forget` of a contact held
+  or not, `ClearCourse`, `SetOff`.
 
 ## Invariants
 

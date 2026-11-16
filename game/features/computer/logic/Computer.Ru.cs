@@ -19,6 +19,8 @@ public static partial class Ru
         ["computer.radar.litres"] = "{l} л",
         ["computer.radar.shuttleFuel"] = "Шатл туда и обратно",
         ["computer.radar.setCourse"] = "Проложить маршрут",
+        ["computer.radar.clearRoute"] = "Убрать маршрут",
+        ["computer.radar.forget"] = "Забыть",
         ["computer.radar.route"] = "Маршрут выбран, садитесь в шатл",
         ["computer.radar.sun"] = "Солнце",
         ["computer.radar.system"] = "Система",
