@@ -61,8 +61,10 @@ public partial class DressSheet(string path) : Node
         // Gestures (emotes): pointing up and down, waving through its sway, suited and bare; then walking, running, afloat, with an axe.
         (Gesture, double, Vector2) Up = (Gesture.Point, 600, new Vector2(40, -60)), Down = (Gesture.Point, 600, new Vector2(40, 0));
         (Gesture, double, Vector2) Wave(double ms) => (Gesture.Wave, ms, Vector2.Zero);
-        rows.Add([.. new[] { Up, Down, Wave(500), Wave(600), Wave(700) }.Select(s => new Case(Suits.All[0], helmet, suit, Sign: s)),
-            new(Suits.All[1], null, null, Sign: Up), new(Suits.All[1], null, null, Sign: Wave(600))]);
+        (Gesture, double, Vector2) Sign(Gesture g, double ms) => (g, ms, Vector2.Zero);
+        rows.Add([.. new[] { Up, Down, Wave(600), Sign(Gesture.Come, 350), Sign(Gesture.Come, 700), Sign(Gesture.Yes, 500), Sign(Gesture.No, 500) }
+            .Select(s => new Case(Suits.All[0], helmet, suit, Sign: s))]);
+        rows.Add([.. new[] { Up, Wave(500), Sign(Gesture.Come, 700), Sign(Gesture.Yes, 500), Sign(Gesture.No, 500) }.Select(s => new Case(Suits.All[1], null, null, Sign: s))]);
         rows.Add([new(Suits.All[0], helmet, suit, Pose: Pose.Walk, Sign: Up), new(Suits.All[0], helmet, suit, Pose: Pose.Run, Sign: Wave(600)),
             new(Suits.All[0], helmet, suit, Pose: Pose.Float, Sign: Up), new(Suits.All[0], helmet, suit, Pose: Pose.Float, Sign: Wave(500)),
             new(Suits.All[0], helmet, suit, Sign: Up, Wields: "fireAxe"), new(Suits.All[0], helmet, suit, Sign: Wave(600), Wields: "fireAxe"),

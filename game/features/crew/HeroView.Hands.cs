@@ -69,12 +69,18 @@ public partial class HeroView
 
         // The press is taken every frame, so one made out of reach is spent rather than kept. The left
         // button grabs debris too: out in space, with the keys held and the mouse aiming, E is a stretch.
+        // The gesture key: a tap points, held its wheel opens by the arrow (emotes); clicks meanwhile use nothing.
+        float wheelScale = Slots.SizeOf(_ui.SlotScale.Get()) / 40f;
+        bool wheelKey = pointer != null && BindKeys.Held(Bind.Gesture) && GetViewport().GuiGetFocusOwner() is not LineEdit;
+        var mouse = GetViewport().GetMousePosition();
+        var asked = _wheel.Step(wheelKey, elapsedMs, (mouse.X, mouse.Y), GestureWheel.Middle * wheelScale);
+        _wheelView.Show(_wheel, wheelScale);
         bool pressed = (_autopilot?.TakePress() ?? false) | TakeUse();
         bool clicked = _mouse.Buttons.TakeClick();
         // With the harpoon's rod out of the gun, a click is the gun's: hooked, it reels, even on a piece in reach.
         bool grab = clicked && aim?.Piece != null && !(gun && _harpoon.Rod != Rod.Seated);
         // Seated or flying, what is in hand works nothing: no swing, run, shot or canister's breath (Seating.Held).
-        bool acts = !passedOut && !Seating.Held(m, client.Id) && handFree;
+        bool acts = !passedOut && !Seating.Held(m, client.Id) && handFree && !_wheel.Open;
         bool builds = acts && driver != null && _mouse.Buttons.HoldsLeft;
         if (seated && pressed && !passedOut)
         {
@@ -204,9 +210,7 @@ public partial class HeroView
             : (Busy?)null;
         // A gesture plays while nothing else takes the hands: any work, an aimed arm, the plan or the pose cuts it off (emotes).
         if (!Gestures.CanStart(pose, work != null || _armUp || passedOut || seated, holdsPlan: !handFree)) _gesture.Stop();
-        else if (_gestureAsked == Gesture.Wave) _gesture.Start(Gesture.Wave, default);
-        else if (_gestureAsked == Gesture.Point && pointer is { } pointed) _gesture.Start(Gesture.Point, Aiming.PointOf(pointed));
-        _gestureAsked = null;
+        else if (asked is { } sign && pointer is { } pointed) _gesture.Start(sign, Aiming.PointOf(pointed));
         _gesture.Step(elapsedMs);
         _busy = work ?? _gesture.Sent;
         _driverHeard.Step(drives && working, _busy is { Work: Handwork.Work, At: var worked } ? Pixels(worked) : null, elapsedMs / 1000);

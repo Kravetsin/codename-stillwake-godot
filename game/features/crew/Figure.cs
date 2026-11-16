@@ -1400,7 +1400,9 @@ public partial class Figure : Node2D
         _workMs = working ? _workMs + elapsedMs : 0;
         bool holding = holdsPlan && Poses.HoldsIn(pose) && !working;
         var item = HeldLook.Of(Wields);
-        bool inHand = item != null && Poses.HoldsIn(pose) && !working && !holding;
+        // Signing, what the near hand held is stowed till the gesture ends (emotes).
+        bool signing = Gesture != null && !working && !holding && pose is Pose.Stand or Pose.Walk or Pose.Run or Pose.Air or Pose.Float;
+        bool inHand = item != null && Poses.HoldsIn(pose) && !working && !holding && !signing;
         // Struck with by hand: the axe, the sledgehammer swung, the spear thrust (Strokes).
         var stroke = Strokes.Of(Wields);
         bool chopping = _chop != null && stroke != null && item != null && inHand;
@@ -1555,12 +1557,17 @@ public partial class Figure : Node2D
         else _armSpring.Hold(frontArm.Upper);
         // A gesture over whatever the pose gives the arm, eased in and out; the hand opens or points once it is mostly in (emotes).
         double signed = 0;
-        if (Gesture is { } sign && !working && !holding && !chopping && !aiming && pose is Pose.Stand or Pose.Walk or Pose.Run or Pose.Air or Pose.Float)
+        if (signing && Gesture is { } sign)
         {
             signed = Gestures.WeightAt(sign.Kind, sign.Ms);
             frontArm = Mix(frontArm, Gestures.ArmAt(sign.Kind, sign.Ms, FromShoulder(sign.At)), signed);
         }
-        if (_frontHand != null) _frontHand.Frame = signed > 0.5 && !inHand ? Gestures.FrameOf(Gesture!.Value.Kind) : Gestures.GripFrame;
+        if (_frontHand != null)
+        {
+            bool shaped = signed > 0.5;
+            _frontHand.Frame = shaped ? Gestures.FrameOf(Gesture!.Value.Kind) : Gestures.GripFrame;
+            _frontHand.Scale = new Vector2(shaped && Gestures.Mirrored(Gesture!.Value.Kind) ? -1 : 1, 1);
+        }
         _swingArm.Drew(frontArm);
         // A shot's recoil throws the aimed arm up, past where it aims (body-answers); it was aimed before the kick, and fires so.
         frontArm = frontArm with { Upper = frontArm.Upper + body.Kick };
