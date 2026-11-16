@@ -44,6 +44,9 @@ public partial class Hands : Node2D
     /// <summary>Machines the power's bolts pass over on this surface (<see cref="PowerView.Unmarked"/>).</summary>
     public Func<Machine, bool> Unmarked { set => _power.Unmarked = value; }
 
+    /// <summary>Cells of this surface not yet seen, whose machines the pointer names nothing of (<see cref="MachineTips.Hidden"/>).</summary>
+    public Func<int, bool> Unseen { set => _machines.Hidden = value; }
+
     public Hands()
     {
         Plan = new PlanHand(Ui);
