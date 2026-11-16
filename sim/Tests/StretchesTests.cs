@@ -176,7 +176,7 @@ public class StretchesTests
         w.Do(new StretchNow(Belt.Id)).Run();
         Assert.Equal("sky.noStretch", Assert.Single(w.Refusals).Reason);
         // A planet has its own: the belt is not among them.
-        Assert.Equal([Content.Stretches.Storm.Id], ((SkyState)w.On(1).Sky.Slice).Opened);
+        Assert.Equal([Content.Stretches.DustStorm.Id, Content.Stretches.RainStorm.Id], ((SkyState)w.On(1).Sky.Slice).Opened);
 
         var ship = Ship();
         ship.Do(new StretchNow(Belt.Id)).Run(Belt.Warning);

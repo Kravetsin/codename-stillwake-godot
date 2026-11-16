@@ -8,7 +8,7 @@ using Spec = Stillwake.Content.Stretches;
 namespace Stillwake.Sim.Tests;
 
 /// <summary>
-/// Storms on the first planet (docs/plans/surface-storms.md): a stretch of its kind, open from the start, about three a day, warned
+/// Storms on the first planet (docs/plans/surface-storms.md): two stretches of its kind, dust and rain, open from the start, about three a day, warned
 /// over its own 800 ticks, the open sky 20° colder while it runs; drawn from a fork, so the world's own Rng never moves for it.
 /// </summary>
 public class StormsTests
@@ -22,7 +22,8 @@ public class StormsTests
         """;
 
     private static readonly Content.Surfaces.Kind Strip = Content.Surfaces.TestStrip;
-    private static readonly Spec.Stretch Storm = Spec.Storm;
+    /// <summary>The dust storm, whose numbers the rain storm shares: what a rule of either is checked on.</summary>
+    private static readonly Spec.Stretch Storm = Spec.DustStorm, Rain = Spec.RainStorm;
     private static readonly Content.Sky.Cycle Day = Strip.Cycle!;
     private static readonly int Width = 2 * Strip.Rows[0].Length;
 
@@ -60,27 +61,48 @@ public class StormsTests
     }
 
     [Fact]
-    public void TheStormIsOpenFromTheFirstTickItsFirstWithinFirstAndEachNextWithinGapOfTheLastEnd()
+    public void BothStormsAreOpenFromTheFirstTickEachFirstWithinItsFirstAndEveryLaterOneWithinGapOfTheLastEnd()
     {
+        Assert.Equal((Storm.First, Storm.Gap, Storm.Duration, Storm.Chill, Storm.Warning), (Rain.First, Rain.Gap, Rain.Duration, Rain.Chill, Rain.Warning));
         var w = new Scenario(Ship);
         w.Do(new Enter(w.M.Crew.Spawn)).Do(new OpenSurface(Strip.Id)).Run();
-        // Opened on the strip's first tick: chosen, its wait drawn and counted down from it.
-        Assert.Equal([Storm.Id], S(w).Opened);
+        // Opened on the strip's first tick: the dust storm chosen, its wait drawn and counted down from it.
+        Assert.Equal([Storm.Id, Rain.Id], S(w).Opened);
         Assert.Equal(Storm.Id, S(w).Next);
         int first = S(w).NextIn;
         Assert.InRange(first, Storm.First.Least - 1, Storm.First.Most);
         Assert.Equal(first, RunUntil(w, () => Now(w).Stretch != null));
-        for (int storm = 0; storm < 3; storm++)
+        for (int storm = 0; storm < 4; storm++)
         {
             int left = S(w).Left;
             Assert.InRange(left, Storm.Duration.Least, Storm.Duration.Most);
             Assert.Equal(left, RunUntil(w, () => Now(w).Stretch == null));
-            // Its gap drawn on the tick it ended, warning included.
-            int gap = S(w).NextIn;
-            Assert.InRange(gap, Storm.Gap.Least, Storm.Gap.Most);
-            Assert.Equal(gap, RunUntil(w, () => Now(w).Stretch != null));
+            // Its wait drawn on the tick it ended, warning included: the rain's first, as it never came; a gap after.
+            int wait = S(w).NextIn;
+            if (storm == 0) Assert.Equal((Rain.Id, true), (S(w).Next, wait >= Rain.First.Least && wait <= Rain.First.Most));
+            else Assert.InRange(wait, Storm.Gap.Least, Storm.Gap.Most);
+            Assert.Equal(wait, RunUntil(w, () => Now(w).Stretch != null));
         }
-        Assert.Equal([Storm.Id], S(w).Came);
+        Assert.Equal([Storm.Id, Rain.Id], S(w).Came);
+    }
+
+    /// <summary>Once both have come, each next storm is either, drawn: over a few days both keep coming.</summary>
+    [Fact]
+    public void OverDaysBothKindsKeepComing()
+    {
+        var w = Down();
+        var seen = new List<string>();
+        for (int storm = 0; storm < 10; storm++)
+        {
+            RunUntil(w, () => Now(w).Stretch != null);
+            seen.Add(Now(w).Stretch!);
+            RunUntil(w, () => Now(w).Stretch == null);
+        }
+        Assert.Equal([Storm.Id, Rain.Id], seen.Take(2));
+        Assert.Contains(Storm.Id, seen.Skip(2));
+        Assert.Contains(Rain.Id, seen.Skip(2));
+        // About three a 20-minute day: ten storms past ten of the shortest waits and runs, within ten of the longest.
+        Assert.InRange(w.World.Tick, 10 * (Storm.Gap.Least + Storm.Duration.Least), 10 * (Storm.First.Most + Storm.Duration.Most));
     }
 
     [Fact]
@@ -118,13 +140,13 @@ public class StormsTests
         var w = Down();
         w.Do(new StretchNow(Spec.IceBelt.Id)).Run();
         Assert.Equal("sky.noStretch", Assert.Single(w.Refusals).Reason);
-        Assert.Equal([Storm.Id], S(w).Opened);
+        Assert.Equal([Storm.Id, Rain.Id], S(w).Opened);
 
         w.Refusals.Clear();
         w.Do(new StretchNow(Storm.Id)).Run(Storm.Warning);
         Assert.Equal(Storm.Id, Now(w).Stretch);
         int left = S(w).Left;
-        w.Do(new StretchNow(Storm.Id)).Run();
+        w.Do(new StretchNow(Rain.Id)).Run();
         Assert.Equal("sky.stretchRunning", Assert.Single(w.Refusals).Reason);
         Assert.Equal((Storm.Id, left - 1), (Now(w).Stretch, S(w).Left));
     }
@@ -133,8 +155,8 @@ public class StormsTests
     public void TheShipHasOnlyItsStretchesAndTheIcyAndScorchedPlanetsNone()
     {
         Assert.Equal([Spec.IceBelt, Spec.ContrabandDrift], Content.Surfaces.Ship.Stretches);
-        Assert.Equal([Storm], Content.PlanetTypes.First.Stretches);
-        Assert.Equal([Storm], Strip.Stretches);
+        Assert.Equal([Storm, Rain], Content.PlanetTypes.First.Stretches);
+        Assert.Equal([Storm, Rain], Strip.Stretches);
         Assert.Empty(Content.PlanetTypes.Icy.Stretches);
         Assert.Empty(Content.PlanetTypes.Scorched.Stretches);
         // Over a long run, nothing is opened, chosen or run on either.
@@ -173,12 +195,12 @@ public class StormsTests
     public void ChoosingOrStartingAStormLeavesTheWorldsRngAsItWas()
     {
         var w = Down();
-        w.Do(new StretchNow(Storm.Id)).Run(Storm.Warning - 1);
-        Assert.Equal((Storm.Id, 1), (Now(w).Coming, Now(w).ComingIn));
+        w.Do(new StretchNow(Rain.Id)).Run(Storm.Warning - 1);
+        Assert.Equal((Rain.Id, 1), (Now(w).Coming, Now(w).ComingIn));
         uint before = WorldRng(w), drawn = (uint)S(w).Drawn;
         // It starts, its duration drawn.
         w.Run();
-        Assert.Equal(Storm.Id, Now(w).Stretch);
+        Assert.Equal(Rain.Id, Now(w).Stretch);
         Assert.Equal((before, drawn + 1), (WorldRng(w), (uint)S(w).Drawn));
         // It ends, the next chosen and its gap drawn.
         w.Run(S(w).Left - 1);
@@ -202,8 +224,8 @@ public class StormsTests
         Assert.Equal((-30, -30), (crew.TemperatureAt(Open), crew.TemperatureAt(shelter)));
         w.Do(new SetTime(NightAt)).Run();
         Assert.Equal((-50, -30), (crew.TemperatureAt(Open), crew.TemperatureAt(shelter)));
-        w.Do(new StretchNow(Storm.Id)).Run(Storm.Warning);
-        Assert.Equal(Storm.Id, Now(w).Stretch);
+        w.Do(new StretchNow(Rain.Id)).Run(Storm.Warning);
+        Assert.Equal(Rain.Id, Now(w).Stretch);
         Assert.Equal((-70, -30), (crew.TemperatureAt(Open), crew.TemperatureAt(shelter)));
         w.Do(new SetTime(0)).Run();
         Assert.Equal((-50, -30), (crew.TemperatureAt(Open), crew.TemperatureAt(shelter)));

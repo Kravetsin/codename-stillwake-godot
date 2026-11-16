@@ -28,11 +28,11 @@ public class StretchLooksTests
         Assert.Equal(1, shown.Shown);
     }
 
-    /// <summary>Each stretch grows over its own warning: the planet's storm over its 40 s, not the ship's 3 minutes; it draws no far picture and no band.</summary>
+    /// <summary>Each stretch grows over its own warning: the planet's storms over their 40 s, not the ship's 3 minutes; they draw no far picture and no band.</summary>
     [Fact]
     public void AStormGrowsOverItsOwnWarningWithNoFarPictureOrBand()
     {
-        var storm = Content.Stretches.Storm;
+        var storm = Content.Stretches.DustStorm;
         var planet = Content.PlanetTypes.First;
         Assert.True(storm.Warning < Warning);
         var shown = new StretchShown();

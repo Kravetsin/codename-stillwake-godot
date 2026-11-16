@@ -93,6 +93,9 @@ public static class SurfaceViews
         new(c => new Features.Hazards.AuroraView(c.M.Grid, c.M.Power, c.M.Hazards, c.Progress, c.Tick)),
         // The fires last, before the light Main makes after these: each frame a fire picks its picture, then its light follows it.
         new(c => new FurnaceView(c.M.Grid, c.M.Furnace), Fades: true),
+        // A planet's weather blowing over its open sky, and its wind heard, where a stretch of it brings one (docs/plans/surface-storms.md).
+        new(c => c.M.Rules.Stretches.Any(s => StretchLooks.Of(s.Id) is { Weather: not null })
+            ? new Features.Sky.StormView(c.M.Grid, c.M.Sky, c.M.Rules, () => c.Tick() + c.Progress()) : null),
         // A planet's fog at its sides (fog-edges): a screen layer over all of these and the heroes, under what is read.
         new(c => FogEdges.Of(c.M.Grid, c.M.Rules) is { } fog ? new Features.Fog.FogView(fog, PlanetLooks.Of[c.M.Rules.Id].Fog) : null),
     ];

@@ -43,17 +43,21 @@ public static class Stretches
         { Stretch = "contrabandDrift" });
 
     /// <summary>
-    /// The first planet's storm (docs/plans/surface-storms.md): open from the start, about three in a 20-minute day (gap and duration
-    /// average 8000 ticks), each a minute to a minute and a half, warned 40 s ahead, the open sky 20° colder. The hour is not read.
+    /// The first planet's dust storm (docs/plans/surface-storms.md): open from the start, one of its two storms, about three storms in
+    /// a 20-minute day between them (gap and duration average 8000 ticks), each a minute to a minute and a half, warned 40 s ahead,
+    /// the open sky 20° colder. The hour is not read.
     /// </summary>
-    public static readonly Stretch Storm = new("storm", [],
+    public static readonly Stretch DustStorm = new("dustStorm", [],
         First: new(6000, 9600), Gap: new(5700, 7300), Duration: new(1200, 1800), Chill: 20, Warning: 800);
+
+    /// <summary>The first planet's rain storm: the dust storm's numbers, another weather to see (rain is a look, not water).</summary>
+    public static readonly Stretch RainStorm = DustStorm with { Id = "rainStorm" };
 
     /// <summary>The ship's stretches, in the order they open on a tick and are kept in.</summary>
     public static readonly IReadOnlyList<Stretch> Ship = [IceBelt, ContrabandDrift];
 
-    /// <summary>The first planet's stretches: its weather.</summary>
-    public static readonly IReadOnlyList<Stretch> FirstPlanet = [Storm];
+    /// <summary>The first planet's stretches: its weathers, one at a time.</summary>
+    public static readonly IReadOnlyList<Stretch> FirstPlanet = [DustStorm, RainStorm];
 
     /// <summary>The item a contraband crate holds: one, worth what a few crates take to fill a wanted meter.</summary>
     public const string Contraband = "contraband";
