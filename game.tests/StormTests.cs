@@ -46,6 +46,16 @@ public class StormTests
     }
 
     [Fact]
+    public void TheWeatherReachesAHeroWholeOnTheSurfaceAndNotAtAllAShaftDown()
+    {
+        Assert.Equal(1, Storm.Reach(-40));
+        Assert.Equal(1, Storm.Reach(0));
+        Assert.Equal(0.5f, Storm.Reach(Storm.Deep / 2));
+        Assert.Equal(0, Storm.Reach(Storm.Deep));
+        Assert.Equal(0, Storm.Reach(Storm.Deep * 4));
+    }
+
+    [Fact]
     public void TheWarningRisesFirstThenTheStormWholeSomeSecondsInThenBothEaseToNothing()
     {
         var before = Storm.At(0, 0, Warning, 0);

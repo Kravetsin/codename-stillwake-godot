@@ -15,7 +15,7 @@ namespace Stillwake.Game.Dev;
 [Dev("--planet", "a planet grown from its seed, the hero beamed down with the axe, the drill and the helmet lamp (0077); F9 blows a gust (plant-stirs)", Order = 5)]
 [Dev("--strip", "the test strip (0076); with --autopilot played by a script (HeroAutopilot.PlanetRun)", Order = 5)]
 [Dev("--dusk", "with --planet or --strip, the planet's dusk starting two seconds in, its night a minute on (2026-11-07-night-chills)", Order = 5)]
-[Dev("--storm", "with --planet or --strip, that storm (dustStorm, rainStorm) called two seconds in, its warning whole (surface-storms)", Order = 5, Shape = DevShape.Equals)]
+[Dev("--storm", "with --planet or --strip, that storm (dustStorm, rainStorm) called two seconds in, its warning whole, the hero in creative mode so the cold spares it (surface-storms)", Order = 5, Shape = DevShape.Equals)]
 [Dev("--valley", "with --planet, the hero beamed down into the planet's deepest valley rather than at the pod, to see the land behind follow (composed-backdrops)", Order = 5)]
 [Dev("--beam-twice", "with --planet, back aboard two seconds in and down again two seconds later: the second descent (heard-every-other)", Order = 5)]
 [Dev("--charges", "with --planet, fifty blasting charges in the third slot, the spear in the fourth, and the hero beamed into the cave by the shallowest deep cache (blasting-charge)", Order = 5)]
@@ -134,6 +134,7 @@ public sealed class PlanetScenario : DevScenario
         {
             _storm = true;
             client.Send(new Sim.Sky.StretchNow(storm));
+            client.Send(new Sim.Items.SetCreative(true));
         }
         if (!_dusk && Args.Has("--dusk") && m.Rules.Cycle is { } day)
         {

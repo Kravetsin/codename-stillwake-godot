@@ -40,6 +40,15 @@ public readonly record struct Storm(float Warn, float Share)
     /// <summary>The wind's share of its height, 0 to 1: how loud its loop plays, silent with no storm.</summary>
     public float Loudness => Math.Clamp(Wind / 0.9f, 0, 1);
 
+    /// <summary>Pixels under the land's line at which a hero no longer sees or hears the weather: twelve cells, a shaft's worth down.</summary>
+    public const float Deep = 96;
+
+    /// <summary>
+    /// How much of the weather reaches a hero <paramref name="depth"/> pixels under the land's line (negative above it), 0 to 1: all of
+    /// it at the surface, fading to none at <see cref="Deep"/>, so a cave under a storm is neither washed out nor loud with its wind.
+    /// </summary>
+    public static float Reach(float depth) => Math.Clamp(1 - depth / Deep, 0, 1);
+
     /// <summary>How loud <paramref name="weather"/>'s wind plays now, 0 to 1 of its cue: silent with no storm, and for a weather with no wind.</summary>
     public float Heard(StretchLooks.Weather? weather) => weather?.Wind == null ? 0 : Loudness;
 
