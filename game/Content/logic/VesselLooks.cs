@@ -73,8 +73,40 @@ public static class VesselLooks
     /// <summary>How far open a jammed door is drawn, a share of its doorway: its panel stuck a little past half-way down (the mockup's).</summary>
     public const double JammedOpen = 0.45;
 
+    /// <summary>How many signs of abandonment a vessel of each class shows inside, fewest and most; fewer where no room fits one.</summary>
+    public static readonly IReadOnlyDictionary<string, (int Least, int Most)> Signs =
+        new Dictionary<string, (int, int)>(System.StringComparer.Ordinal) { ["shuttle"] = (2, 3), ["freighter"] = (3, 5) };
+
+    /// <summary>The salvage soot may lie over, by its kind: a burnt console or machine, never a crate or a pod.</summary>
+    public static readonly IReadOnlyList<string> SootOver = ["salvageConsole", "salvageMachine", "salvageEngine", "salvageRack", "salvageTanks", "salvageVending"];
+
+    /// <summary>
+    /// The sparking cable throws a burst every <see cref="SparkEveryMs"/>, <see cref="SparkCount"/> sparks up to <see cref="SparkAcross"/>
+    /// pixels a second either way, <see cref="SparkUp"/> up and <see cref="SparkDown"/> down, falling at <see cref="SparkFall"/>, their
+    /// light flashing for <see cref="SparkFlashMs"/> (<c>Light.SparkFlash</c>); the mockup's.
+    /// </summary>
+    public static readonly (double From, double To) SparkEveryMs = (700, 3200);
+    public const double SparkAcross = 56, SparkUp = 48, SparkDown = 16, SparkFall = 208;
+    public static readonly (int From, int To) SparkCount = (10, 18);
+    public const double SparkFlashMs = 160;
+
+    /// <summary>
+    /// The burst pipe puffs gas every <see cref="PuffEveryMs"/>: each drifts its way at <see cref="PuffSpeed"/> and sinks at
+    /// <see cref="PuffSink"/> pixels a second, keeping <see cref="PuffDrag"/> of its speed a second, swelling from <see cref="PuffSize"/> by
+    /// <see cref="PuffGrow"/> pixels a second, fading from <see cref="PuffAlpha"/> over its life, clipped to its room; unlit, a pale mist
+    /// seen in the dark as the mockup's.
+    /// </summary>
+    public const double PuffEveryMs = 70, PuffDrag = 0.16, PuffSize = 2, PuffGrow = 8, PuffAlpha = 0.22;
+    public static readonly (double From, double To) PuffSpeed = (18, 34), PuffSink = (3, 13), PuffLifeMs = (1200, 1900);
+
+    /// <summary>The gas's colour, 0xRRGGBB: a pale cold grey.</summary>
+    public const uint PuffColour = 0xd6e2e8;
+
+    /// <summary>Where in the hanging cable's picture its frayed end throws its sparks, and in the burst pipe's where its gas comes out, in pixels.</summary>
+    public static readonly (float X, float Y) CableTip = (15, 21.5f), BurstAt = (32, 7.5f);
+
     /// <summary>Why a look is drawn, mixed into its draw so two looks of one cell differ.</summary>
-    public enum Salt : uint { Livery = 1, Name, Prefix, Number, Panel, Stripe, Lamp, Dying, Console, Glitch, Jam, Phase, Flicker }
+    public enum Salt : uint { Livery = 1, Name, Prefix, Number, Panel, Stripe, Lamp, Dying, Console, Glitch, Jam, Phase, Flicker, SignCount, SignKinds, Sign, SignDir }
 
     /// <summary>
     /// A look's draw (SplitMix64, fixed here): the same <paramref name="seed"/>, <paramref name="salt"/> and <paramref name="cell"/>

@@ -4,16 +4,18 @@
 
 | File | Purpose |
 | --- | --- |
-| `logic/ChunkReveal.cs` | Which of the grid's cells `GridView` has drawn, by chunks `Chunk` cells square drawn a row at a time, and which to … |
+| `logic/ChunkReveal.cs` | Which of the grid's cells `GridView` has drawn, by chunks `Chunk` cells square … |
 | `DoorLight.cs` | A doorway's slide in light (0075), one doorway at a time, from its leading cell: while the panel moves, a thin line … |
-| `logic/DoorSlides.cs` | The door cells sliding open or shut, each taking `Seconds` from one end to the other; the cells of a doorway move … |
-| `logic/DrawnLayers.cs` | The grid's six layers as `GridView` last drew them, this peer's toggles in flight made (0014), and the cells that … |
+| `logic/DoorSlides.cs` | The door cells sliding open or shut, each taking `Seconds` from one end to the other … |
+| `logic/DrawnLayers.cs` | The grid's six layers as `GridView` last drew them, toggles in flight made (0014) … |
 | `logic/Grass.cs` | Where a planet's ground shows its living edge (0079, 0082), a rule of drawing, never the sim's: moss on a wall of … |
 | `GridView.cs` | The ship in pixel art, a `TileMapLayer` per kind of picture: back walls behind … |
 | `LavaView.cs` | The planet's lava (its core, `Content.Lava`), drawn as the cave concepts drew it (0087): over its own tiles, unlit … |
 | `logic/Grid.En.cs` | Its player text (`En`) |
 | `logic/Grid.Ru.cs` | Russian |
 | `VesselPaint.cs` | A derelict's name and code painted as it loads, a tile a cell (derelict-looks). |
+| `logic/VesselSigns.cs` | A derelict's signs inside, by its seed. |
+| `VesselSignsView.cs` | Draws them, the cable's sparks, the pipe's gas. |
 | `logic/Strata.cs` | Which depth band's stone a planet's cell is drawn in: its row's band, the boundary wobbling a few cells, plain … |
 | `logic/WreckMotion.cs` | What still moves on the wreck: wires, arcs and a thread of vapour, each while its tear shows (2026-10-31-the-scoop). |
 | `WreckMotionView.cs` | Steps `WreckMotion` and paints its wires, unlit, over the hull. |

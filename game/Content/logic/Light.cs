@@ -170,6 +170,12 @@ public static class Light
     public const float DoorDotSize = 2.5f, DoorDotDown = 3f;
 
     /// <summary>
+    /// The brief flash as a derelict's hanging cable throws its sparks (derelict-looks, <c>VesselLooks.SparkFlashMs</c>): warm, a few
+    /// cells round, fading out over the flash.
+    /// </summary>
+    public static readonly LampLight SparkFlash = new((1f, 0.75f, 0.43f), 0.75f, 5, 0.75f, 0xffbe6eff);
+
+    /// <summary>
     /// Where a derelict's console's screens are in its picture, by kind, in pixels from its top-left: a rectangle each, or a disc
     /// in it (<c>Round</c>).
     /// </summary>

@@ -359,8 +359,102 @@ function skin() {
   out('vessel_letters_small', letters(6, 10, 6.4));
 }
 
+// ---- Signs of abandonment inside (derelict-looks, the mockup's damage in drawStatic): pictures, never things, on a room's cells.
+// Each picture's box is its sign's cells (VesselSigns.Size); the room's ceiling is just above row 0, its floor just under the last row.
+const ICE = { base: '#cfe6f0', shade: '#a9c8d6', deep: '#86a8b8', lite: '#eef8fc', spec: '#ffffff', ink: '#1a2a36' };
+const CRATE = { base: '#5e5a44', shade: '#46432f', deep: '#312f21', lite: '#78735a', spec: '#a39d80', ink: INK };
+const PIPE = { base: '#6b7179', shade: '#4f545b', deep: '#383c42', lite: '#878d95', spec: '#b0b5bc', ink: INK };
+const FALLEN = { base: '#4a5059', shade: '#363b42', deep: '#262a30', lite: '#626973', spec: '#959ba4', ink: INK };
+const HOLE = '#0b0c0f';
+/** A soft blob with a torn edge, `n` points round, by chance from `seed`. */
+function blobOf(x, y, rx, ry, seed, n = 11) {
+  const r = rng(seed), p = [];
+  for (let i = 0; i < n; i++) { const t = (i / n) * Math.PI * 2, q = .62 + r() * .5; p.push(x + Math.cos(t) * rx * q, y + Math.sin(t) * ry * q); }
+  return poly(p);
+}
+/** A band `len` long and `thick` deep round (cx, cy), turned by `turn` radians. */
+function turned(cx, cy, len, thick, turn) {
+  const c = Math.cos(turn), s = Math.sin(turn), at = (u, v) => [cx + u * c - v * s, cy + u * s + v * c];
+  return poly(...at(-len / 2, -thick / 2), ...at(len / 2, -thick / 2), ...at(len / 2, thick / 2), ...at(-len / 2, thick / 2));
+}
+/** A torn hole along the ceiling from x0 to x1, `deep` down at most. */
+function torn(a, x0, x1, deep, seed) {
+  const r = rng(seed), p = [x0, -1];
+  for (let x = x0; x <= x1; x += 2.2) p.push(x, deep * (.45 + r() * .55));
+  p.push(x1, -1);
+  a.flat(poly(p), HOLE);
+}
+
+/** vessel_frost: frost on the back wall by a cold wall at its right, icicles off the ceiling, a rim of ice along the floor. 5 × 6 cells. */
+function frost(a) {
+  const r = rng(61);
+  for (let i = 0; i < 9; i++) a.flat(blobOf(40 - 3 - r() * 24, 5 + r() * 38, 3 + r() * 5, 3 + r() * 5, 70 + i), 'rgba(196,224,238,.42)');
+  for (let i = 0; i < 5; i++) a.flat(blobOf(40 - 2 - r() * 11, 8 + r() * 32, 1.6 + r() * 2.4, 1.6 + r() * 2.4, 90 + i), 'rgba(232,246,252,.6)');
+  for (const [x, len] of [[37, 8.4], [33.6, 5.2], [29, 7.4], [22.4, 4], [14, 3.2]]) a.shape(poly(x - 1, 0, x + 1, 0, x + .2, len), ICE, { shade: .5 });
+  const rim = [8, 48];
+  for (let x = 8; x <= 40; x += 3.2) rim.push(x, 46.6 - r() * 1.2 - (x - 8) / 32 * 1.4);
+  rim.push(40, 48);
+  a.shape(poly(rim), ICE, { lite: band(8, 44, 40, 46.4) });
+}
+
+/** vessel_cable: a torn hole in the ceiling, a cable hanging out of it to a frayed end (VesselLooks.CableTip), a red wire beside it. 3 × 4 cells. */
+function cable(a) {
+  torn(a, 3, 20, 4.2, 101);
+  a.shape(poly(15, 0, 20.4, 0, 19.6, 5.6, 17.4, 4.2), FALLEN, { shade: .5 });
+  a.tube('M13.6 2C12.8 8 9.8 10.4 10.4 14.2', .8, { base: '#a3402c', shade: '#7a2c1e', deep: '#521c12', lite: '#c0604a', ink: INK });
+  a.tube('M11 2C12.6 11 16.4 14 15 21', 1.4, { base: '#2a2d32', shade: '#1c1e22', deep: '#121417', lite: '#40444b', ink: INK });
+  for (const [dx, dy] of [[-1.4, 1.8], [.2, 2.2], [1.6, 1.4]]) a.line(`M15 21L${15 + dx} ${21 + dy}`, { c: '#c49e76', w: .7 });
+}
+
+/** vessel_soot: soot over a burnt machine, climbing the back wall from the top of it, its machine's top two rows of cells from the foot. 6 × 5 cells. */
+function soot(a) {
+  a.flat(blobOf(24, 30, 22, 12, 111, 13), 'rgba(20,18,15,.55)');
+  for (const [x, y, rx, ry, s] of [[17, 16, 7, 9, 113], [29, 12, 6, 10, 117], [23, 7, 4, 7, 119]]) a.flat(blobOf(x, y, rx, ry, s), 'rgba(20,18,15,.4)');
+  a.flat(blobOf(24, 31, 13, 7, 121), 'rgba(10,9,8,.72)');
+}
+
+/** vessel_pipe: a pipe along the ceiling, down out of it and back up, burst in the middle (VesselLooks.BurstAt), its lip bent the way it sprays. 8 × 2 cells. */
+function pipe(a) {
+  for (const x of [13, 50]) lit(a, x, 0, x + 3, 5, DARK);
+  a.tube('M3 -1L3 4.5Q3 7.5 6 7.5L28.6 7.5', 3, PIPE);
+  a.tube('M35.4 7.5L58 7.5Q61 7.5 61 4.5L61 -1', 3, PIPE);
+  a.shape(poly(27.6, 5.6, 29.8, 5, 30, 6.6, 29.2, 7.4, 29.8, 8.6, 28.6, 9.6, 27.6, 9.4), PIPE, { shade: .5 });
+  a.shape(poly(35.4, 5.6, 34.2, 6.4, 34.8, 7.6, 34.4, 9.2, 35.6, 10.8, 37.4, 11.6, 37.6, 9.4), PIPE, { shade: .5 });
+  a.flat(ell(29, 7.5, .7, 1.1), HOLE);
+  a.flat(ell(35, 7.8, .7, 1.1), HOLE);
+  patch(a, 44, 8.4, 2.2, .8, RUST, band(36, 6, 58, 9), 131);
+}
+
+/** vessel_fallen: a ceiling panel torn out, a hole where it hung, and the panel down on the floor, leaning. 4 × 6 cells. */
+function fallen(a) {
+  torn(a, 2, 26, 3.8, 141);
+  a.line('M8.4 2.4L9.4 6.8L10.8 11', { c: '#3a3d43', w: .8 });
+  const d = turned(14.4, 43.2, 25.6, 2.9, -.32);
+  a.shape(d, FALLEN, { shade: .6 });
+  a.line(`M${14.4 - 4} ${43.2 + 1.3}L${14.4 - 3.4} ${43.2 - 1.6}`, { w: .6 });
+  rivets(a, [6.6, 45.6], [22, 40.8]);
+  for (const [x, w] of [[24.6, 2.4], [28, 1.6]]) a.shape(band(x, 46.4, x + w, 48), FALLEN, {});
+}
+
+/** vessel_toppled: a storage crate tipped on its corner, what it held spilled along the floor beside it. 5 × 3 cells. */
+function toppled(a) {
+  const d = turned(14, 13.1, 22, 14, .42), c = Math.cos(.42), s = Math.sin(.42), at = (u, v) => `${14 + u * c - v * s} ${13.1 + u * s + v * c}`;
+  a.shape(d, CRATE, { shade: .9, lines: [`M${at(-11, -7)}L${at(11, 7)}`, `M${at(11, -7)}L${at(-11, 7)}`] });
+  const r = rng(151);
+  for (let i = 0; i < 6; i++) {
+    const x = 26 + r() * 12, w = 2 + r() * 2;
+    a.shape(band(x, 21.8, x + w, 24), { base: ['#8b5a36', '#7d848d', '#c9a03a', '#5c7b4e'][i % 4], shade: '#2c2a26', ink: INK }, {});
+  }
+}
+
 Subjects.vessel = function () {
   skin();
+  out('vessel_frost', Anime.bake({ w: 40, h: 48, draw: frost }));
+  out('vessel_cable', Anime.bake({ w: 24, h: 32, draw: cable }));
+  out('vessel_soot', Anime.bake({ w: 48, h: 40, draw: soot }));
+  out('vessel_pipe', Anime.bake({ w: 64, h: 16, draw: pipe }));
+  out('vessel_fallen', Anime.bake({ w: 32, h: 48, draw: fallen }));
+  out('vessel_toppled', Anime.bake({ w: 40, h: 24, draw: toppled }));
   out('machine_vesselNozzle', Anime.bake({ w: 64, h: 56, draw: nozzle }));
   out('machine_vesselRcs', Anime.bake({ w: 24, h: 16, draw: rcs }));
   out('machine_vesselMast', Anime.bake({ w: 16, h: 64, draw: mast(64) }));
