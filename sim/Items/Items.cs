@@ -104,7 +104,7 @@ public interface IItemsOps
     IReadOnlyList<(string Item, int Count)> GiveOrDrop(int peer, IReadOnlyList<(string Item, int Count)> cost, int cell, bool noted = true);
     IReadOnlyList<(string Item, int Count)> GiveWhatFits(int peer, IReadOnlyList<(string Item, int Count)> cost);
     void DropAt(int peer, IReadOnlyList<(string Item, int Count)> cost, int cell);
-    void Spray(IReadOnlyList<(string Item, int Count)> loot, int cell, int away);
+    void Spray(IReadOnlyList<(string Item, int Count)> loot, int cell, int away, int most = Content.Floor.SprayMost);
     void Caught(IReadOnlyList<(string Item, int Count)> loot);
     void Charge(int id, int slot, int amount);
     bool Drain(int peer, int amount);
@@ -589,13 +589,14 @@ public sealed partial class ItemsModule : Module<ItemsState>, IItemsQueries, IIt
     /// <summary>
     /// Throws <paramref name="loot"/> out of cell <paramref name="cell"/> for anyone to take (2026-10-29-kill-feel): in pieces
     /// (<see cref="SprayRules.Pieces"/>), each flying to the side <paramref name="away"/> points, or a drawn side for 0, at a drawn
-    /// speed and lift; afloat a share of them, up or down. Drawn from the world's Rng, so every peer throws the same.
+    /// speed and lift; afloat a share of them, up or down. Drawn from the world's Rng, so every peer throws the same. At most
+    /// <paramref name="most"/> pieces, every item at least one.
     /// </summary>
-    public void Spray(IReadOnlyList<(string Item, int Count)> loot, int cell, int away)
+    public void Spray(IReadOnlyList<(string Item, int Count)> loot, int cell, int away, int most = Content.Floor.SprayMost)
     {
         Obtained(loot);
         bool afloat = _rooms.Afloat(cell);
-        foreach (var (item, count) in SprayRules.Pieces(Stacks.Entries(loot), Content.Floor.SprayMost))
+        foreach (var (item, count) in SprayRules.Pieces(Stacks.Entries(loot), most))
         {
             int side = away != 0 ? Math.Sign(away) : Random.Below(2) == 0 ? -1 : 1;
             int vx = side * (Content.Floor.SprayLeast + (int)Random.Below(Content.Floor.SprayFastest - Content.Floor.SprayLeast + 1));

@@ -105,7 +105,7 @@ internal static class FloorRules
     /// A tick of one stack. Inside something built it is pushed out, still, into the cell
     /// <see cref="PushedTo"/> finds, or rises a cell with nothing open in reach. Afloat in space it flies on as
     /// it was thrown, and out past the hull (no back wall behind it) drifts back past the moving ship. Elsewhere it falls by
-    /// <paramref name="gravity"/> a tick, its surface's (0076), stops against what is built, and slides to a stop on what it lands on. Whether it is
+    /// <paramref name="gravity"/> a tick, its surface's (0076), bounces off what is built by what it is made of, and slides to a stop on what it lands on. Whether it is
     /// still on the grid: past the edge it is gone.
     /// </summary>
     private static bool Move(FloorStack s, IGridQueries grid, IRoomsQueries rooms, int gravity)
@@ -131,7 +131,7 @@ internal static class FloorRules
             s.Vy = Math.Min(s.Vy + gravity, Tune.MaxFall);
             int nx = s.X + s.Vx;
             if (!InSolid(grid, nx, s.Y - 1)) s.X = nx;
-            else s.Vx = 0;
+            else s.Vx = Bounced(-s.Vx, s.Item);
             int x = Down(s.X, Unit);
             if (s.Vy > 0)
             {
@@ -141,7 +141,7 @@ internal static class FloorRules
                 {
                     if (!Blocks(grid, x, r)) continue;
                     s.Y = r * Unit;
-                    s.Vy = 0;
+                    s.Vy = Bounced(-s.Vy, s.Item);
                     landed = true;
                     break;
                 }
@@ -160,6 +160,16 @@ internal static class FloorRules
         if (s.X < 0 || s.Y <= 0 || s.X >= width * Unit || s.Y > height * Unit) return false;
         s.Cell = CellOf(s.X, s.Y, width);
         return true;
+    }
+
+    /// <summary>
+    /// <paramref name="speed"/>, turned back off what a stack of <paramref name="item"/> hit, cut to the share its make keeps
+    /// (<see cref="Tune.BounceOf"/>), rounded toward none; none once below <see cref="Tune.BounceLeast"/>.
+    /// </summary>
+    private static int Bounced(int speed, string item)
+    {
+        int kept = speed * Tune.BounceOf(item) / 1000;
+        return Math.Abs(kept) < Tune.BounceLeast ? 0 : kept;
     }
 
     /// <summary>

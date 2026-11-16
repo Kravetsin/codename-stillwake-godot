@@ -8,7 +8,10 @@ namespace Stillwake.Sim.Building;
 /// <summary>What becomes of what a burst breaks (unified-damage).</summary>
 public enum Spoils
 {
-    /// <summary>Falls at its cell for anyone, crushed where its material says (the blasting charge); back walls stand.</summary>
+    /// <summary>
+    /// Thrown out of the burst's cell for anyone, gathered into a few pieces, crushed where its material says (the blasting charge,
+    /// 2026-11-16-loot-pieces); back walls stand.
+    /// </summary>
     Drop,
     /// <summary>
     /// Lost (a meteor): nothing of a wall, piece or machine's cost is left, though what a machine held still spills; and the back
@@ -27,6 +30,7 @@ public sealed partial class BuildingModule
     private readonly Wave _wave = new();
     private readonly List<int> _burstBroken = [], _burstPaid = [], _burstBacks = [];
     private readonly List<(int Key, int Left)> _burstCracked = [];
+    private readonly List<(string Item, int Count)> _burstSpoils = [];
     private int _burstPeer;
 
     /// <inheritdoc/>
@@ -38,6 +42,7 @@ public sealed partial class BuildingModule
         _burstPaid.Clear();
         _burstBacks.Clear();
         _burstCracked.Clear();
+        _burstSpoils.Clear();
         _burstPeer = peer;
         if (BurstEnter(cell) is not int first) return false;
         _wave.Spread(_grid.Width, _grid.Height, cell, first, power, reach, BurstEnter, (at, cost) =>
@@ -71,6 +76,8 @@ public sealed partial class BuildingModule
                 if (peer != FloorStack.Nobody && Kinds[plant.Kind].Yields is { Count: > 0 } yields) _crewOps.Loot(peer, yields);
             }
         if (shocked && peer != FloorStack.Nobody) _crewOps.Shock(peer, Ruins.CradleShock, Harm.Shock);
+        // All it broke thrown at once from where it burst, a few pieces rather than a stack a cell carpeting the crater.
+        if (_burstSpoils.Count > 0) _itemsOps.Spray([.. _burstSpoils], cell, 0, Content.Floor.BurstPieces);
         _burstBacks.Sort();
         foreach (int at in _burstBacks)
         {
@@ -125,13 +132,18 @@ public sealed partial class BuildingModule
         strength - (CrackIndex(key, back) is >= 0 and var at ? State.Cracks[at].Damage : 0);
 
     /// <summary>
-    /// <paramref name="cost"/> fallen at <paramref name="cell"/> for anyone, as <paramref name="spoils"/> says: none when lost. Its worth
-    /// fills the thrower's wanted meter (catcher-loot).
+    /// <paramref name="cost"/> broken, kept to be thrown when the burst is done, as <paramref name="spoils"/>
+    /// says: none when lost. Its worth fills the thrower's wanted meter (catcher-loot).
     /// </summary>
-    private void Leave(Spoils spoils, IReadOnlyList<(string Item, int Count)> cost, int cell)
+    private void Leave(Spoils spoils, IReadOnlyList<(string Item, int Count)> cost)
     {
         if (spoils != Spoils.Drop) return;
-        _itemsOps.DropAt(FloorStack.Nobody, cost, cell);
+        foreach (var (item, count) in cost)
+        {
+            int at = _burstSpoils.FindIndex(e => e.Item == item);
+            if (at < 0) _burstSpoils.Add((item, count));
+            else _burstSpoils[at] = (item, _burstSpoils[at].Count + count);
+        }
         if (_burstPeer != FloorStack.Nobody) _crewOps.Loot(_burstPeer, cost);
     }
 
@@ -146,7 +158,7 @@ public sealed partial class BuildingModule
         if (CrackIndex(cell) is >= 0 and var at) State.Cracks.RemoveAt(at);
         var held = HeldBy(cell);
         _gridOps.Clear(cell, "structure");
-        Leave(spoils, wall.Crushed is { } crushed ? [(crushed, 1)] : wall.Cost, cell);
+        Leave(spoils, wall.Crushed is { } crushed ? [(crushed, 1)] : wall.Cost);
         int next = cell + 1;
         if (next % _grid.Width != 0 && _grid.MachineAt(next) is { } net && Machines.Is(net.Kind, MachineTrait.Catches)) FreeNet(net);
         return held;
@@ -164,7 +176,7 @@ public sealed partial class BuildingModule
             FreeNet(machine);
             return [];
         }
-        Leave(spoils, Unbuild(head), head);
+        Leave(spoils, Unbuild(head));
         return [];
     }
 
@@ -205,7 +217,7 @@ public sealed partial class BuildingModule
             foreach (var plant in HeldBy(cell))
                 if (!held.Contains(plant)) held.Add(plant);
         foreach (int cell in _grid.PieceOf(head)) _gridOps.Clear(cell, "structure");
-        Leave(spoils, cost, head);
+        Leave(spoils, cost);
         held.Sort(ByCell);
         return held;
     }
