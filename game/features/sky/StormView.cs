@@ -249,7 +249,7 @@ public partial class StormView : Node2D
 
     /// <summary>
     /// The weather's wash (<see cref="StretchLooks.Wash"/>, «Блёклый мир») over the world in view, under the overlays and what is read:
-    /// the screen as drawn so far, blurred to a pixel of the world at the farthest zoom, whatever the zoom, through its mipmaps, greyed and flattened toward the haze, the hero
+    /// the screen as drawn so far, blurred through its mipmaps alike at every zoom, greyed and flattened toward the haze, the hero
     /// too. Hidden at 0, so no screen is copied without a storm.
     /// </summary>
     private sealed partial class Washout : Node2D
@@ -264,11 +264,11 @@ public partial class StormView : Node2D
                 uniform vec3 haze = vec3(1.0);
                 uniform float grey = 0.0;
                 uniform float flat_share = 0.0;
+                uniform float blur = 0.7;
                 void fragment() {
-                    // A pixel of the world's worth of screen pixels at the farthest zoom (ShipCamera.Farthest, 192 by 108 cells), as
-                    // the pick; the same at every zoom, or closer in it would smear (the user's, 2026-11-16).
-                    vec2 screen_size = 1.0 / SCREEN_PIXEL_SIZE;
-                    float lod = clamp(log2(max(screen_size.x / 1536.0, screen_size.y / 864.0)), 0.0, 1.0);
+                    // As soft at every zoom, or closer in it would smear, and at every screen size (the user's, 2026-11-16).
+                    // blur: mip levels at 1080 rows, between the far zoom's too sharp and the near one's smear.
+                    float lod = clamp(log2(1.0 / SCREEN_PIXEL_SIZE.y / 1080.0) + blur, 0.0, 2.0);
                     vec3 sharp = textureLod(screen, SCREEN_UV, 0.0).rgb;
                     vec3 c = textureLod(screen, SCREEN_UV, lod).rgb;
                     c = mix(c, vec3(dot(c, vec3(0.3, 0.59, 0.11))), grey);
