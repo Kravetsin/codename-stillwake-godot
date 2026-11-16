@@ -166,7 +166,7 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [wall-roles](2026-10-29-wall-roles.md) | Walls either armour or seal | accepted |  |
 | [weak-meteors-till-landing](2026-10-29-weak-meteors-till-landing.md) | Weak meteors till landing | accepted |  |
 | [free-repair](2026-10-30-free-repair.md) | A repair takes only work | accepted |  |
-| [generated-vessels](2026-10-30-generated-vessels.md) | Generated vessels, written beside the ship by a jump | accepted | vessel-worlds (in part) |
+| [generated-vessels](2026-10-30-generated-vessels.md) | Generated vessels, written beside the ship by a jump | accepted | vessel-worlds, derelict-looks (in part) |
 | [liquid-oxygen](2026-10-30-liquid-oxygen.md) | Air comes from liquid oxygen | accepted |  |
 | [magnetic-flare](2026-10-30-magnetic-flare.md) | A magnetic flare breaks machines until they are repaired | accepted | free-repair (in part) |
 | [room-upgrades](2026-10-30-room-upgrades.md) | Room is bought on the tree | accepted |  |
@@ -385,3 +385,4 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [planet-variety](2026-11-16-planet-variety.md) | Planets differ: types and ore sets | accepted |  |
 | [shuttle-flight](2026-11-16-shuttle-flight.md) | The crew flies to a vessel in the shuttle and back | accepted |  |
 | [solar-system](2026-11-16-solar-system.md) | The ship flies between the planets of its solar system | accepted |  |
+| [derelict-looks](2026-11-17-derelict-looks.md) | A derelict looks like a ship someone owned and left | accepted |  |

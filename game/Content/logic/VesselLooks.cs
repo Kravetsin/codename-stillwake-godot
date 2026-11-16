@@ -13,7 +13,7 @@ public static class VesselLooks
     /// <summary>An owner's paint: the hull's tone, its stripe along the bottom armour, the paint its name and code are in.</summary>
     public sealed record Livery(uint Hull, uint Stripe, uint Paint);
 
-    /// <summary>The mockup's four (derelict-looks-mockup.html, LIVERIES).</summary>
+    /// <summary>The picked mockup's four (derelict-looks).</summary>
     public static readonly IReadOnlyList<Livery> Liveries =
     [
         new(0x7b828b, 0xc58a33, 0xe6dfcf),

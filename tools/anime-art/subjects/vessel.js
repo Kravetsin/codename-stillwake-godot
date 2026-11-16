@@ -1,4 +1,4 @@
-// The outside parts of abandoned vessels, as picked on the derelict-looks mockup (docs/plans/derelict-looks-mockup.html, drawPart).
+// The outside parts, skin, furniture and signs of abandoned vessels, as picked on the derelict-looks mockup (docs/decisions/2026-11-17-derelict-looks.md).
 // Each stands outside a hull, against space: lit from the upper left by the star, worn and scorched, never repaired.
 (function () {
 'use strict';
