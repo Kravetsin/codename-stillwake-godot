@@ -25,6 +25,7 @@ public partial class StormView : Node2D
     private readonly Func<double> _clock;
     private readonly StretchShown _stretch = new();
     private readonly int[] _tops;
+    private readonly float[] _line;
     private readonly Func<float, float, bool> _open;
     private readonly Func<float, float> _ground;
     private readonly List<Streaks.Line> _lines = [];
@@ -44,8 +45,10 @@ public partial class StormView : Node2D
         // Once, as the surface loads: digging and building do not move where the sky ends.
         _tops = Backdrop.GroundLine.Tops(grid.StructureLayer, grid.BackLayer, grid.Width, grid.Height);
         _open = Open;
-        _ground = x => _tops[Column(x)] * (float)Cell;
+        _line = Streaks.Smoothed(_tops, Streaks.GroundReach, Cell);
+        _ground = x => Streaks.GroundAt(_line, x, Cell);
         ZIndex = Layers.Effects;
+        AddChild(_wash);
     }
 
     /// <summary>The weather shown, coming, running or easing back; none.</summary>
@@ -54,7 +57,7 @@ public partial class StormView : Node2D
     /// <summary>How far it has come (<see cref="Storm"/>): none with no weather.</summary>
     public Storm Now { get; private set; } = Storm.None;
 
-    /// <summary>The daylight on the open sky now (<c>Daylight.Sky</c>, dimmed by the storm): what the streaks are drawn in.</summary>
+    /// <summary>The daylight on the land behind now (<c>Daylight.Backdrop</c>, dimmed by the storm): what the streaks, the wisps and the wash's haze are drawn in, as dim as what they cross.</summary>
     public (float R, float G, float B) Light { get; set; } = (1, 1, 1);
 
     public override void _Process(double delta)
@@ -66,6 +69,91 @@ public partial class StormView : Node2D
         Hear();
         if (Weather != null && Now.Share > 0) QueueRedraw();
         else if (_drawn) QueueRedraw();
+        float washed = Weather?.Visibility != null ? Now.Washed : 0;
+        _wash.Show(Weather?.Visibility, washed, Light, Weather?.Haze ?? (1, 1, 1), Eye, GetViewport());
+    }
+
+    /// <summary>The middle of this player's hero's body, in pixels of the world: the clear patch round it in the wash. None with no hero.</summary>
+    public Vector2? Eye { get; set; }
+
+    private readonly Washout _wash = new();
+
+    /// <summary>
+    /// The weather's wash (<see cref="StretchLooks.Wash"/>, «Блёклый мир») over the world in view, under the overlays and what is read:
+    /// the screen as drawn so far, blurred to a pixel of the world through its mipmaps, greyed and flattened toward the haze, clear in a
+    /// soft patch round the hero. Hidden at 0, so no screen is copied without a storm.
+    /// </summary>
+    private sealed partial class Washout : Node2D
+    {
+        private static readonly Shader Shader = new()
+        {
+            Code = """
+                shader_type canvas_item;
+                render_mode unshaded;
+                uniform sampler2D screen : hint_screen_texture, filter_linear_mipmap, repeat_disable;
+                uniform float amount = 0.0;
+                uniform vec3 haze = vec3(1.0);
+                uniform float grey = 0.0;
+                uniform float flat_share = 0.0;
+                uniform vec2 eye;
+                uniform float eyed = 0.0;
+                uniform float inner = 16.0;
+                uniform float outer = 34.0;
+                uniform float tall = 1.0;
+                varying vec2 world;
+                void vertex() {
+                    world = VERTEX;
+                }
+                void fragment() {
+                    // A pixel of the world's worth of screen pixels: the pick's scene downscaled to the world's pixels and back.
+                    float lod = log2(max(1.0 / max(length(dFdx(world)), 1e-4), 1.0));
+                    vec3 sharp = textureLod(screen, SCREEN_UV, 0.0).rgb;
+                    vec3 c = textureLod(screen, SCREEN_UV, lod).rgb;
+                    c = mix(c, vec3(dot(c, vec3(0.3, 0.59, 0.11))), grey);
+                    c = mix(c, haze, flat_share);
+                    vec2 d = world - eye;
+                    d.y /= tall;
+                    float clear = eyed * clamp((outer - length(d)) / (outer - inner), 0.0, 1.0);
+                    COLOR = vec4(mix(sharp, c, amount * (1.0 - clear)), 1.0);
+                }
+                """,
+        };
+
+        private readonly ShaderMaterial _material = new() { Shader = Shader };
+        private Rect2 _view;
+
+        public Washout()
+        {
+            Material = _material;
+            ZAsRelative = false;
+            ZIndex = Layers.Weather;
+            Visible = false;
+        }
+
+        /// <summary>
+        /// <paramref name="wash"/> at <paramref name="amount"/> of the way, toward <paramref name="haze"/> in <paramref name="light"/>, as
+        /// dim as the daylight it lies under; clear round <paramref name="eye"/>. Hidden with none.
+        /// </summary>
+        public void Show(StretchLooks.Wash? wash, float amount, (float R, float G, float B) light, (float R, float G, float B) haze, Vector2? eye, Viewport viewport)
+        {
+            Visible = wash != null && amount > 0;
+            if (wash == null || !Visible) return;
+            _material.SetShaderParameter("amount", amount);
+            _material.SetShaderParameter("haze", new Vector3(haze.R * light.R, haze.G * light.G, haze.B * light.B));
+            _material.SetShaderParameter("grey", wash.Grey);
+            _material.SetShaderParameter("flat_share", wash.Flat);
+            _material.SetShaderParameter("inner", wash.Clear.Inner);
+            _material.SetShaderParameter("outer", wash.Clear.Outer);
+            _material.SetShaderParameter("tall", wash.Tall);
+            _material.SetShaderParameter("eyed", eye != null ? 1f : 0f);
+            if (eye is { } at) _material.SetShaderParameter("eye", at);
+            var view = viewport.GetCanvasTransform().AffineInverse() * viewport.GetVisibleRect();
+            if (view == _view) return;
+            _view = view;
+            QueueRedraw();
+        }
+
+        public override void _Draw() => DrawRect(_view.Grow(2), Colors.White);
     }
 
     public override void _ExitTree() => _wind?.Stop();

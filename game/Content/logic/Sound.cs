@@ -429,6 +429,9 @@ public static class Sound
     /// </summary>
     public static readonly Cue StormWind = new(["res://audio/sky/wind-1.ogg"], -6, Pitch: 0, Loops: true);
 
+    /// <summary>The rain storm's rain on the wind (surface-storms), a loop played as <see cref="StormWind"/> is: by the storm's share, stopped at silence.</summary>
+    public static readonly Cue StormRain = new(["res://audio/sky/rain-1.ogg"], -6, Pitch: 0, Loops: true);
+
     /// <summary>
     /// A hero touching lava (0087): a hiss of pressure, its suit burning, at each breath while it burns
     /// (<see cref="LavaBurnEveryS"/>), the first as it touches; about as loud as a chop. This player's own on Suit, a friend's on World.
@@ -782,7 +785,7 @@ public static class Sound
     public static readonly IReadOnlyList<Cue> All = [Title, Space, Step, Land, Jump, Alarm, CatcherBeep, Screwdriver, PowerDriverBite, PowerDriverLoop, PowerDriverOff, Hiss, Click, Clink, VentHum, DoorOpen, DoorClose, Valve, Act, ActInSpace, Fire, Swing, Chop, Break, Shot, Drum, Ready, NailShot, DryClick, NailHit, NailReady, RailCharge, RailReady, RailShot, ChargeThrow, ChargeBurst, ArcStruck, ArcHit, CatcherAim, CatcherGather, CatcherBlink, CatcherLaunch, CatcherLaser, CatcherLock, MissileFlight, CapbackHiss, CapbackSplat, ShellClink, Hurt, AirFill, Inhale, Thrust, ChargerHum, ChargeFull, DrillWhir, FormerStroke, FormerMotor, SmelterHum, SmelterCrackle, CrusherRun, GalleyBoil, GalleyDone, Eat, Retch, DroneWhir, DroneDock, DroneGrab, SalvageThrust, MusicBox, Zap,
         StepGrass, StepSoil, StepStone, StepAlloy, LandSoft, LandHard, LandAlloy, HitSoil, HitStone, BreakSoil, BreakStone,
         ChopWood, TreeFall, Bush, Grass, Crystal, Glowcap, WoodBreak, ClothTear, GlassBreak, MetalBreak, CeramicBreak, LavaBed,
-        LavaBubble, LavaBurn, StormWind, CaveDrip, SplashIn, SplashOut, SwimStroke, WaterPour, CreatureDeath, .. Ticks.Values.SelectMany(t => new[] { t.Alert, t.WindUp, t.Unclamp, t.Clamp, t.Snap, t.Death }), .. Istukans.Values.SelectMany(g => new[] { g.Wake, g.Alert, g.WindUp, g.Pounce, g.Killed, g.ShutDown }), .. RamHits.Values, .. Pod];
+        LavaBubble, LavaBurn, StormWind, StormRain, CaveDrip, SplashIn, SplashOut, SwimStroke, WaterPour, CreatureDeath, .. Ticks.Values.SelectMany(t => new[] { t.Alert, t.WindUp, t.Unclamp, t.Clamp, t.Snap, t.Death }), .. Istukans.Values.SelectMany(g => new[] { g.Wake, g.Alert, g.WindUp, g.Pounce, g.Killed, g.ShutDown }), .. RamHits.Values, .. Pod];
     // StepMoss and BushSoft play StepGrass's and Bush's files quieter: the sound board has those.
 
     /// <summary>The suit's alarm beeps this often, in seconds, while it runs low out of air.</summary>

@@ -709,7 +709,7 @@ public partial class Main : Node2D, ITogether
             _stars.Weather(weather.Haze, weather.HazeMost * now.Hazed, Features.Sky.Storm.SkyTop, Features.Sky.Storm.CloudBlow * now.Wind);
         }
         else _stars.Weather((1, 1, 1), 0, 0, 0);
-        if (storm != null) storm.Light = sky;
+        if (storm != null) (storm.Light, storm.Eye) = (tint, _hero is { } eye ? MiddleOf(eye.Current) : null);
         if (View<Features.Flora.FloraView>() is { } flora) flora.Storm = now.Wind * StretchLooks.Weather.SwayGain;
         Lit.Sky(sky);
         _stars.Tint = tint;

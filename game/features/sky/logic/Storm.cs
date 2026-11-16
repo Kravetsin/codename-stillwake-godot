@@ -49,6 +49,9 @@ public readonly record struct Storm(float Warn, float Share)
     /// <summary>How far daylight has dimmed toward the weather's <c>Dim</c>: a little in the warning, all of it in the storm.</summary>
     public float Dimmed => Math.Clamp(0.12f * Warn + 0.88f * Share, 0, 1);
 
+    /// <summary>How far the world in view has washed out (the weather's <c>Visibility</c>), 0 to 1: a quarter in the warning, all of it in the storm.</summary>
+    public float Washed => Math.Clamp(0.25f * Warn * (1 - Share) + Share, 0, 1);
+
     /// <summary>What daylight is multiplied by now under <paramref name="weather"/>: white with no storm.</summary>
     public (float R, float G, float B) Dim(StretchLooks.Weather weather)
     {

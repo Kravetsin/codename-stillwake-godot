@@ -24,10 +24,10 @@ public static class StretchLooks
     /// over the open sky, <paramref name="Count"/> of them over the pick's view (<see cref="Weather.View"/>) at the storm's height;
     /// <paramref name="Wisps"/> drifting with them, if any; the sky and the land behind turned toward <paramref name="Haze"/>, at most
     /// <paramref name="HazeMost"/> of the way; daylight multiplied toward <paramref name="Dim"/>; its <paramref name="Wind"/>'s loop,
-    /// none unheard. <paramref name="Visibility"/>: how far the screen's sight is cut, kept for its own pick, read by nothing yet.
+    /// none unheard. <paramref name="Visibility"/>: how the world in view washes out round the hero, none where it stays clear.
     /// </summary>
     public sealed record Weather(Streak Streaks, int Count, Wisps? Wisps, (float R, float G, float B) Haze, float HazeMost,
-        (float R, float G, float B) Dim, Sound.Cue? Wind, float? Visibility = null)
+        (float R, float G, float B) Dim, Sound.Cue? Wind, Wash? Visibility = null)
     {
         /// <summary>The pick's view, in pixels of the world, and the box past it its streaks wrapped round: what <see cref="Count"/> filled.</summary>
         public const float View = 192, ViewTall = 112, BoxWide = View + 24, BoxTall = ViewTall + 18;
@@ -50,6 +50,16 @@ public static class StretchLooks
     /// view at the storm's height, drawn at <paramref name="Alpha"/> (each 0.6 to 1 of it), drifting left at <paramref name="Speed"/>.
     /// </summary>
     public sealed record Wisps(IReadOnlyList<string> Pictures, int Count, float Alpha, (float Least, float Most) Speed);
+
+    /// <summary>
+    /// A weather washing out the world in view («Блёклый мир», the pick of 2026-11-16): blurred to a pixel of the world, turned
+    /// <paramref name="Grey"/> of the way to grey and <paramref name="Flat"/> of the way to its haze; clear round the hero's chest out to
+    /// <paramref name="Clear"/>'s inner pixels, fading to washed at its outer, the patch <paramref name="Tall"/> times as tall as wide.
+    /// </summary>
+    public sealed record Wash(float Grey, float Flat, (float Inner, float Outer) Clear, float Tall);
+
+    /// <summary>The picked wash, both storms': the pick page's numbers.</summary>
+    public static readonly Wash Washed = new(Grey: 0.8f, Flat: 0.42f, Clear: (16, 34), Tall: 1.35f);
 
     private static (float, float, float, float) Rgba(int r, int g, int b, float a) => (r / 255f, g / 255f, b / 255f, a);
     private static (float, float, float) Rgb(int r, int g, int b) => (r / 255f, g / 255f, b / 255f);
@@ -89,10 +99,10 @@ public static class StretchLooks
         new(Content.Stretches.DustStorm.Id, Far: null, Band: null, Frost: false, new Weather(
             new Streak(0.2f, (120, 190), (1.4f, 4.2f), 0.45f, Low: true, [Rgba(132, 98, 56, 0.82f), Rgba(74, 56, 36, 0.78f), Rgba(176, 144, 98, 0.72f)]),
             Count: 240, new Wisps(["planet/dust_wisp_0", "planet/dust_wisp_1", "planet/dust_wisp_2"], Count: 8, Alpha: 0.42f, Speed: (50, 85)),
-            Haze: Rgb(176, 138, 88), HazeMost: 0.62f, Dim: (0.62f, 0.53f, 0.42f), Wind: Sound.StormWind)),
+            Haze: Rgb(176, 138, 88), HazeMost: 0.62f, Dim: (0.62f, 0.53f, 0.42f), Wind: Sound.StormWind, Visibility: Washed)),
         new(Content.Stretches.RainStorm.Id, Far: null, Band: null, Frost: false, new Weather(
             new Streak(1.12f, (170, 230), (6, 11), 0.34f, Low: false, [Rgba(206, 218, 228, 0.52f), Rgba(150, 166, 182, 0.5f), Rgba(92, 106, 122, 0.42f)]),
-            Count: 210, Wisps: null, Haze: Rgb(118, 132, 146), HazeMost: 0.5f, Dim: (0.7f, 0.74f, 0.8f), Wind: null)),
+            Count: 210, Wisps: null, Haze: Rgb(118, 132, 146), HazeMost: 0.5f, Dim: (0.7f, 0.74f, 0.8f), Wind: Sound.StormRain, Visibility: Washed)),
     ];
 
     /// <summary>Where each piece of ice lies in <c>stretches/ice_pieces</c>, the largest first: cut from the picked sheets by alpha.</summary>

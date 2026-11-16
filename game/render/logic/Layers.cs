@@ -120,8 +120,11 @@ public static class Layers
     /// <summary>Dust, sparks, embers and air over everything in the world, plans included (effects).</summary>
     public const int Effects = 25;
 
+    /// <summary>A planet's weather washing out the world in view, the effects included, under what an overlay shows (docs/plans/surface-storms.md).</summary>
+    public const int Weather = 26;
+
     // An overlay over the whole world (air, pipes, power), what it marks, and the cable dragged in it.
-    public const int Overlay = 26, OverlayMarks = 27, OverlayHands = 28;
+    public const int Overlay = 27, OverlayMarks = 28, OverlayHands = 29;
 }
 
 /// <summary>

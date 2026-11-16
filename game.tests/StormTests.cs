@@ -16,7 +16,7 @@ public class StormTests
     private static readonly Storm Full = new(1, 1);
 
     [Fact]
-    public void BothStormsHaveTheirPickedLooksTheDustItsWindTheRainNoSoundAndNeitherAScreenEffectYet()
+    public void BothStormsHaveTheirPickedLooksTheDustItsWindTheRainItsRainAndBothTheWash()
     {
         Assert.Equal(240, Dust.Count);
         Assert.True(Dust.Streaks.Low);
@@ -26,9 +26,10 @@ public class StormTests
         Assert.Equal(210, Rain.Count);
         Assert.False(Rain.Streaks.Low);
         Assert.Null(Rain.Wisps);
-        Assert.Null(Rain.Wind);
-        Assert.Null(Dust.Visibility);
-        Assert.Null(Rain.Visibility);
+        Assert.Same(Sound.StormRain, Rain.Wind);
+        Assert.True(Sound.StormRain.Loops);
+        Assert.Same(StretchLooks.Washed, Dust.Visibility);
+        Assert.Same(StretchLooks.Washed, Rain.Visibility);
     }
 
     [Fact]
@@ -68,6 +69,8 @@ public class StormTests
         var gone = Storm.At(1, Warning + 60 * Second, Warning, Storm.Ease * Second);
         Assert.Equal(Storm.None, gone);
         Assert.Equal(0, gone.Heard(Dust));
+        Assert.Equal(0, gone.Heard(Rain));
+        Assert.Equal(0, gone.Washed);
     }
 
     [Fact]
@@ -141,7 +144,7 @@ public class StormTests
         Assert.Empty(Puffs(Rain, Full, view, ground));
         var puffs = Puffs(Dust, Full, view, ground);
         Assert.InRange(puffs.Count, 1, 6 * Dust.Wisps!.Count);
-        Assert.All(puffs, p => Assert.InRange(p.Y, ground - 44, ground));
+        Assert.All(puffs, p => Assert.InRange(p.Y, ground - 35.5f, ground - 2.5f));
         Assert.All(puffs, p => Assert.InRange(p.Alpha, 0.6f * Dust.Wisps.Alpha - 1e-4f, Dust.Wisps.Alpha + 1e-4f));
         Assert.Empty(Puffs(Dust, Storm.None, view, ground));
     }
@@ -158,6 +161,57 @@ public class StormTests
         gusts.Advance(1 / 60.0);
         Assert.False(gusts.Blowing);
         Assert.Equal(0, gusts.Strength);
+    }
+
+    [Fact]
+    public void TheRainsLoopRisesWithTheStormAndReachesSilenceAsTheDustsWindDoes()
+    {
+        Assert.Equal(0, Storm.None.Heard(Rain));
+        Assert.True(Storm.At(0.5f, Warning / 2, Warning, 0).Heard(Rain) > 0);
+        Assert.Equal(1, Full.Heard(Rain), 3);
+        Assert.Equal(0, Storm.At(1, Warning + 60 * Second, Warning, Storm.Ease * Second).Heard(Rain));
+    }
+
+    [Fact]
+    public void TheWashIsAQuarterInTheWarningWholeInTheStormAndGoneAsItEases()
+    {
+        Assert.Equal(0, Storm.None.Washed);
+        Assert.Equal(0.125f, Storm.At(0.5f, Warning / 2, Warning, 0).Washed, 3);
+        Assert.Equal(0.25f, Storm.At(1, Warning - 2 * Second, Warning, 0).Washed, 3);
+        Assert.Equal(1, Full.Washed, 3);
+        Assert.Equal(0.5625f, Storm.At(1, Warning + 60 * Second, Warning, 11 * Second).Washed, 3);
+    }
+
+    [Fact]
+    public void TheSmoothedGroundNeverStepsWithALedgeAndChangesSlowlyAcrossIt()
+    {
+        const int cell = 8, reach = Streaks.GroundReach;
+        int[] tops = [.. Enumerable.Range(0, 200).Select(x => x < 100 ? 40 : 60)];
+        var line = Streaks.Smoothed(tops, reach, cell);
+        Assert.Equal(40 * cell, line[50], 3);
+        Assert.Equal(60 * cell, line[150], 3);
+        float step = 20f * cell / (2 * reach + 1);
+        for (int x = 0; x < tops.Length; x++)
+            Assert.True(MathF.Abs(line[(x + 1) % tops.Length] - line[x]) <= step + 1e-3f, $"column {x}");
+        // Between columns it slides, never holding a column's height and jumping at its edge.
+        float a = Streaks.GroundAt(line, 100 * cell, cell), b = Streaks.GroundAt(line, 100 * cell + 1, cell);
+        Assert.InRange(b - a, 1e-4f, step / cell + 1e-3f);
+        Assert.Equal(line[0], Streaks.GroundAt(line, 200 * cell + cell / 2f, cell), 3);
+    }
+
+    [Fact]
+    public void AWispFadesByTheShareOfItsWidthDriftingIntoGroundAndIsGoneOnceAllIn()
+    {
+        const float ground = 100;
+        var view = (0f, 0f, 4 * Streaks.Wide, 200f);
+        var open = Puffs(Dust, Full, view, ground);
+        var crossing = open[0];
+        float wall = crossing.X + 5;
+        var walled = new List<Streaks.Puff>();
+        Streaks.Puffs(Dust, Full, view, 7.5, (x, y) => y < ground && x < wall, _ => ground, walled);
+        Assert.All(walled, p => Assert.True(p.X < wall + 14));
+        Assert.Equal(crossing.Alpha * 5 / 7, walled.Single(p => p.X == crossing.X).Alpha, 4);
+        Assert.All(walled.Where(p => p.X < wall - 14), p => Assert.Equal(open.First(o => o.X == p.X).Alpha, p.Alpha));
     }
 
     private static List<Streaks.Line> InFirstBox(List<Streaks.Line> lines) =>

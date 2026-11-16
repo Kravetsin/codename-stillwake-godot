@@ -26,7 +26,7 @@ public static class Streaks
     /// <summary>
     /// The streaks of <paramref name="weather"/> at <paramref name="storm"/>'s height in <paramref name="view"/> (pixels of the world),
     /// <paramref name="seconds"/> on, into <paramref name="into"/>: each whose head and tail are both <paramref name="open"/>; a low
-    /// weather's thinning with the height over <paramref name="ground"/>, the ground's top at a pixel across.
+    /// weather's thinning with the height over <paramref name="ground"/> at a pixel across, a smoothed line (<see cref="Smoothed"/>).
     /// </summary>
     public static void Fill(StretchLooks.Weather weather, Storm storm, (float Left, float Top, float Right, float Bottom) view, double seconds,
         Func<float, float, bool> open, Func<float, float> ground, List<Line> into)
@@ -56,8 +56,10 @@ public static class Streaks
 
     /// <summary>
     /// The wisps of <paramref name="weather"/> at <paramref name="storm"/>'s height in <paramref name="view"/>, <paramref name="seconds"/>
-    /// on, into <paramref name="into"/>: a row of them along the ground, across the boxes in view, each up to 42 pixels over
-    /// <paramref name="ground"/>, its middle <paramref name="open"/>. None for a weather without.
+    /// on, into <paramref name="into"/>: a row of them drifting level, across the boxes in view, each 4 to 34 pixels over
+    /// <paramref name="ground"/>, a smoothed line (<see cref="Smoothed"/>), so a ledge never drops them: past a cliff's edge one hangs
+    /// in the air. One fades as it drifts into what is not <paramref name="open"/>, by the share of its width still in the air. None
+    /// for a weather without.
     /// </summary>
     public static void Puffs(StretchLooks.Weather weather, Storm storm, (float Left, float Top, float Right, float Bottom) view, double seconds,
         Func<float, float, bool> open, Func<float, float> ground, List<Puff> into)
@@ -71,10 +73,50 @@ public static class Streaks
             {
                 float q0 = Hash(tx, 0, i, 10), q1 = Hash(tx, 0, i, 11), q2 = Hash(tx, 0, i, 12), q3 = Hash(tx, 0, i, 13), q4 = Hash(tx, 0, i, 14);
                 float x = tx * Wide + Wrap(Wide * q0 - seconds * Lerp(wisps.Speed.Least, wisps.Speed.Most, q2), Wide);
-                float y = ground(x) - (42 - 56 * q1) + MathF.Sin(Turn(seconds * 2) + q4 * 6) * 1.5f;
-                if (x < view.Left - reach || x > view.Right + reach || y < view.Top - reach || y > view.Bottom + reach || !open(x, y)) continue;
-                into.Add(new(x, y, i % wisps.Pictures.Count, wisps.Alpha * storm.Share * (0.6f + 0.4f * q3)));
+                float y = ground(x) - (4 + 30 * q1) + MathF.Sin(Turn(seconds * 2) + q4 * 6) * 1.5f;
+                if (x < view.Left - reach || x > view.Right + reach || y < view.Top - reach || y > view.Bottom + reach) continue;
+                int aloft = 0;
+                for (int k = 0; k < Samples; k++)
+                    if (open(x + (k / (Samples - 1f) - 0.5f) * WispWide, y)) aloft++;
+                if (aloft == 0) continue;
+                into.Add(new(x, y, i % wisps.Pictures.Count, wisps.Alpha * storm.Share * (0.6f + 0.4f * q3) * aloft / Samples));
             }
+    }
+
+    /// <summary>How wide a wisp is felt, in pixels of the world, and at how many points across it its share in the air is read.</summary>
+    private const float WispWide = 28;
+    private const int Samples = 7;
+
+    /// <summary>Columns either side a smoothed ground line (<see cref="Smoothed"/>) is averaged over: wide, so it never steps with a ledge.</summary>
+    public const int GroundReach = 24;
+
+    /// <summary>
+    /// <paramref name="tops"/>, each column's top row, averaged over <paramref name="reach"/> columns either side, wrapping, in pixels
+    /// of the world, a column <paramref name="cell"/> pixels: the line the wisps and the grit's thinning follow. Once, as a surface loads.
+    /// </summary>
+    public static float[] Smoothed(int[] tops, int reach, int cell)
+    {
+        int n = tops.Length;
+        var line = new float[n];
+        long sum = 0;
+        for (int k = -reach; k <= reach; k++) sum += tops[((k % n) + n) % n];
+        for (int x = 0; x < n; x++)
+        {
+            line[x] = (float)sum / (2 * reach + 1) * cell;
+            sum += tops[((x + reach + 1) % n + n) % n] - tops[((x - reach) % n + n) % n];
+        }
+        return line;
+    }
+
+    /// <summary>The smoothed <paramref name="line"/> at <paramref name="x"/> pixels across, between its columns' middles, wrapping.</summary>
+    public static float GroundAt(float[] line, float x, int cell)
+    {
+        int n = line.Length;
+        float at = x / cell - 0.5f;
+        int left = (int)MathF.Floor(at);
+        float k = at - left;
+        float a = line[((left % n) + n) % n], b = line[((left + 1) % n + n) % n];
+        return a + (b - a) * k;
     }
 
     /// <summary>Of a low weather's streaks, the share kept <paramref name="height"/> pixels over the ground: all at it and below, none at <see cref="LowReach"/>.</summary>
