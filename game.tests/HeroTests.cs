@@ -122,6 +122,18 @@ public class HeroTests
     }
 
     [Fact]
+    public void SlowedByAStormItWalksAndRunsAtHalfItsSpeedAndSlowsToItFromAFullRun()
+    {
+        var (ship, hero) = Start(Room);
+        var half = Right with { Slowed = 500 };
+        Assert.Equal(Spec.Walk / 2, Run(ship, hero, half, 7).Vx);
+        Assert.Equal(Spec.Run / 2, Run(ship, hero, half with { Sprint = true }, 7).Vx);
+        var running = Run(ship, hero, Right with { Sprint = true }, 7);
+        int braking = (Spec.Run - Spec.Run / 2 + Spec.Stop - 1) / Spec.Stop;
+        Assert.Equal(Spec.Run / 2, Run(ship, running, half with { Sprint = true }, braking).Vx);
+    }
+
+    [Fact]
     public void RunsWithShiftHeldFasterThanItWalksButSwimsNoFasterForItInSpace()
     {
         var (ship, hero) = Start(Room);

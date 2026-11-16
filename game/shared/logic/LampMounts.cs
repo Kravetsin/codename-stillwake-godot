@@ -13,6 +13,16 @@ public static class LampMounts
         [Stillwake.Content.Helmet.Basic] = (8, -2),
         [Stillwake.Content.Helmet.Heavy] = (6, -4.8),
         [Stillwake.Content.Helmet.Quilted] = (7.2, -3.4),
+        // The helmet skins: on the brow of each painted dome, over its face opening as on the basic one.
+        ["brassHelmet"] = (8, -2.4),
+        ["beakHelmet"] = (8, -2.8),
+        ["roninHelmet"] = (8, -2),
+        ["knightHelmet"] = (8, -2.2),
+        ["reliquaryHelmet"] = (8, -2.4),
+        ["skullHelmet"] = (8, -2.4),
+        ["ramHelmet"] = (8, -2.2),
+        ["bathysphereHelmet"] = (8, -2.9),
+        ["paradeHelmet"] = (8, -2.2),
     };
 
     /// <summary>Where it sits on <paramref name="helmet"/>'s picture; the basic helmet's for none or one without a row.</summary>

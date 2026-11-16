@@ -25,6 +25,9 @@ public partial class FuelLooks : Node2D
     private readonly List<int> _gone = new();
     private double _sinceRead = RefreshMs;
 
+    /// <summary>Whether a machine is held out of the grid's drawing, a shuttle just come and drawn arriving: its glass not shown yet.</summary>
+    public System.Func<int, bool> HeldBack { get; init; } = _ => false;
+
     public FuelLooks(IGridQueries grid, IFuelQueries fuel)
     {
         _grid = grid;
@@ -40,7 +43,7 @@ public partial class FuelLooks : Node2D
         foreach (var m in _grid.MachinesWith(Stillwake.Content.MachineTrait.HoldsFuel))
         {
             if (!_glassed.TryGetValue(m.Kind, out bool glassed)) _glassed[m.Kind] = glassed = GlassLevel.Has(m.Kind);
-            if (!glassed) continue;
+            if (!glassed || HeldBack(m.Id)) continue;
             _seen.Add(m.Id);
             if (!_glasses.TryGetValue(m.Id, out var glass)) AddChild(_glasses[m.Id] = glass = new GlassLevel(m.Kind));
             glass.Position = new Vector2(m.Cell % _grid.Width, m.Cell / _grid.Width) * ShipCamera.Cell;

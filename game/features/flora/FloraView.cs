@@ -69,6 +69,12 @@ public partial class FloraView : Node2D, ILightSource
     private readonly Dictionary<int, float> _trails = new();
     private readonly Func<float, float> _blow;
 
+    /// <summary>A planet's storm blowing over the calm, in a full gust's strengths (<see cref="Gusts.Storm"/>): set each frame, 0 with none.</summary>
+    public double Storm
+    {
+        set => _wind.Storm = value;
+    }
+
     public FloraView(IGridQueries grid, BuildingModule building, Func<IReadOnlyList<(Vector2 Feet, float Vx)>> heroes)
     {
         _grid = grid;

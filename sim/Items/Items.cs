@@ -104,7 +104,7 @@ public interface IItemsOps
     IReadOnlyList<(string Item, int Count)> GiveOrDrop(int peer, IReadOnlyList<(string Item, int Count)> cost, int cell, bool noted = true);
     IReadOnlyList<(string Item, int Count)> GiveWhatFits(int peer, IReadOnlyList<(string Item, int Count)> cost);
     void DropAt(int peer, IReadOnlyList<(string Item, int Count)> cost, int cell);
-    void Spray(IReadOnlyList<(string Item, int Count)> loot, int cell, int away);
+    void Spray(IReadOnlyList<(string Item, int Count)> loot, int cell, int away, int most = Content.Floor.SprayMost);
     void Caught(IReadOnlyList<(string Item, int Count)> loot);
     void Charge(int id, int slot, int amount);
     bool Drain(int peer, int amount);
@@ -258,7 +258,13 @@ public sealed partial class ItemsModule : Module<ItemsState>, IItemsQueries, IIt
     /// Whether fed station <paramref name="id"/> has in its input what smelts or grows, as many as one smelt takes
     /// (<c>ItemSpec.SmeltTakes</c>), the most one may make fitting its outputs (<see cref="MostMade"/>).
     /// </summary>
-    public bool CanSmelt(int id) => HolderOf(id)?.Inputs is int inputs && Smelted(Crate(id), inputs) != null;
+    public bool CanSmelt(int id)
+    {
+        if (HolderOf(id) is not { Inputs: int inputs } holder) return false;
+        var slots = Stacks.CrateOf(State, id, holder.Slots!.Value);
+        // Fewer of anything fit wherever more do, so room for the most is room for any draw.
+        return Smeltable(slots) is { } spec && Stacks.Fits(slots, inputs, MostOf(spec));
+    }
 
     public bool Creative(int peer) => State.Creative.BinarySearch(peer) >= 0;
 
@@ -589,13 +595,14 @@ public sealed partial class ItemsModule : Module<ItemsState>, IItemsQueries, IIt
     /// <summary>
     /// Throws <paramref name="loot"/> out of cell <paramref name="cell"/> for anyone to take (2026-10-29-kill-feel): in pieces
     /// (<see cref="SprayRules.Pieces"/>), each flying to the side <paramref name="away"/> points, or a drawn side for 0, at a drawn
-    /// speed and lift; afloat a share of them, up or down. Drawn from the world's Rng, so every peer throws the same.
+    /// speed and lift; afloat a share of them, up or down. Drawn from the world's Rng, so every peer throws the same. At most
+    /// <paramref name="most"/> pieces, every item at least one.
     /// </summary>
-    public void Spray(IReadOnlyList<(string Item, int Count)> loot, int cell, int away)
+    public void Spray(IReadOnlyList<(string Item, int Count)> loot, int cell, int away, int most = Content.Floor.SprayMost)
     {
         Obtained(loot);
         bool afloat = _rooms.Afloat(cell);
-        foreach (var (item, count) in SprayRules.Pieces(Stacks.Entries(loot), Content.Floor.SprayMost))
+        foreach (var (item, count) in SprayRules.Pieces(Stacks.Entries(loot), most))
         {
             int side = away != 0 ? Math.Sign(away) : Random.Below(2) == 0 ? -1 : 1;
             int vx = side * (Content.Floor.SprayLeast + (int)Random.Below(Content.Floor.SprayFastest - Content.Floor.SprayLeast + 1));
@@ -984,18 +991,25 @@ public sealed partial class ItemsModule : Module<ItemsState>, IItemsQueries, IIt
     }
 
     /// <summary>
-    /// A fed station's outputs after one smelt of its input: its yields and <paramref name="besides"/> placed, by default
-    /// the most it may make (<see cref="MostMade"/>); null when its input holds nothing worked, fewer than one smelt
-    /// takes, or they do not fit.
+    /// A fed station's outputs after one smelt of its input: its yields and <paramref name="besides"/> placed; null when
+    /// its input holds nothing worked, fewer than one smelt takes, or they do not fit.
     /// </summary>
-    private static Stack?[]? Smelted(IReadOnlyList<Stack?> slots, int inputs, IReadOnlyList<(string Item, int Count)>? besides = null)
+    private static Stack?[]? Smelted(IReadOnlyList<Stack?> slots, int inputs, IReadOnlyList<(string Item, int Count)> besides) =>
+        Smeltable(slots) is { } spec ? Stacks.Placed(slots.Skip(inputs).ToList(), [.. spec.Yields!, .. besides]) : null;
+
+    /// <summary>The spec of what a fed station's input holds, when it is worked and as many as one smelt takes; null otherwise.</summary>
+    private static ItemSpec? Smeltable(IReadOnlyList<Stack?> slots) =>
+        slots.Count > 0 && slots[0] is { } input && Content.Items.Get(input.Item) is { Yields: not null } spec && input.Count >= spec.SmeltTakes
+            ? spec
+            : null;
+
+    /// <summary>Derived: <see cref="MostMade"/> of each item a station was asked about, by its id: made once, so the check allocates nothing.</summary>
+    private readonly Dictionary<string, IReadOnlyList<(string Item, int Count)>> _most = new(StringComparer.Ordinal);
+
+    private IReadOnlyList<(string Item, int Count)> MostOf(ItemSpec spec)
     {
-        if (slots.Count == 0 || slots[0] is not { } input) return null;
-        var spec = Content.Items.Get(input.Item);
-        if (spec.Yields == null || input.Count < spec.SmeltTakes) return null;
-        // Fewer of anything fit wherever more do, so room for the most is room for any draw.
-        IReadOnlyList<(string Item, int Count)> made = besides == null ? MostMade(spec) : [.. spec.Yields, .. besides];
-        return Stacks.Placed(slots.Skip(inputs).ToList(), made);
+        if (!_most.TryGetValue(spec.Id, out var made)) _most[spec.Id] = made = MostMade(spec);
+        return made;
     }
 
     /// <summary>

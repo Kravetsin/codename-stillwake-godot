@@ -144,19 +144,46 @@ public partial class Main : Node2D, ITogether
     private World? _arrivalsWorld;
 
     /// <summary>
-    /// Tells the arrivals this frame's pods: a world loaded or resynced (a new <c>World</c>) shows nothing coming down; this
-    /// player's own pod comes down the frame its flight is gone and it sits in one.
+    /// Tells the arrivals this frame's pods and shuttles: a world loaded or resynced (a new <c>World</c>) shows nothing coming down;
+    /// this player's own pod or shuttle comes the frame its flight or voyage is gone and it sits in one.
     /// </summary>
     private void SeeArrivals(Client client, double delta)
     {
         int surface = client.World.SurfaceOf(client.Id);
         bool newWorld = !ReferenceEquals(client.World, _arrivalsWorld);
         _arrivalsWorld = client.World;
-        bool flies = _m.Landing.FlightOf(client.Id) != null;
+        bool flies = _m.Landing.FlightOf(client.Id) != null || _m.Landing.VoyageOf(client.Id) != null;
         int? landed = _flewLast && !flies ? _m.Landing.SeatOf(client.Id) : null;
         _flewLast = flies;
-        var pods = _m.Grid.MachinesWith(Content.MachineTrait.Lands).Where(p => Content.Machines.Get(p.Kind).Riders == 1).Select(p => (p.Id, _m.Landing.RiderOf(p.Id) != null)).ToList();
-        _arrivals.Frame(surface, surface == 0, pods, landed, newWorld, delta);
+        var landers = _m.Grid.MachinesWith(Content.MachineTrait.Lands);
+        var pods = landers.Where(p => Content.Machines.Get(p.Kind).Riders == 1).Select(p => (p.Id, _m.Landing.RiderOf(p.Id) != null)).ToList();
+        var shuttles = landers.Where(p => Content.Machines.Get(p.Kind).Riders > 1).Select(p => (p.Id, _m.Landing.RidersOf(p.Id).Count)).ToList();
+        _arrivals.Frame(surface, surface == 0, pods, landed, newWorld, delta, shuttles);
+    }
+
+    /// <summary>
+    /// The rider's camera on its shuttle's trip (shuttle-flight): pulled out from the follow to the far frame as the shuttle leaves,
+    /// and closed back in as it comes; every other player's left to the follow.
+    /// </summary>
+    private void BlendCamera(Client client, double progress)
+    {
+        int width = _m.Grid.Width;
+        Features.Landing.ShuttleTimeline.Moment? moment = null;
+        int cell = 0;
+        if (_m.Landing.VoyageOf(client.Id) is { } voyage)
+        {
+            double s = Features.Landing.FlightTimeline.Seconds(Features.Landing.Ride.Of(voyage), progress);
+            (moment, cell) = (Features.Landing.ShuttleTimeline.Leaving(s, voyage.Out != null), voyage.From);
+        }
+        else if (_m.Landing.SeatOf(client.Id) is int seat && _arrivals.ShuttleSince(seat) is var (a, aboard) && _m.Grid.MachineById(seat) is { } shuttle)
+            (moment, cell) = (Features.Landing.ShuttleTimeline.Arriving(a, aboard), shuttle.Cell);
+        if (moment == null)
+        {
+            _camera.Blend(Vector2.Zero, 0);
+            return;
+        }
+        var (x, y) = Features.Landing.ShuttleTimeline.Middle(cell, width, moment);
+        _camera.Blend(new Vector2((float)x, (float)y), (float)moment.Blend);
     }
 
     /// <summary>
@@ -200,7 +227,7 @@ public partial class Main : Node2D, ITogether
         // Before anything is made that says anything.
         var language = _dev.Value("--lang");
         Speaking = language != null ? Languages.Named(language) ?? Language.English : Settings.Language();
-        if (PoseSheetOnly() || DressSheetOnly() || GestureSheetOnly() || SuitCardsOnly()) return;
+        if (PoseSheetOnly() || DressSheetOnly() || CapeFilmOnly() || GestureSheetOnly() || SuitCardsOnly()) return;
         QuitAfterAWhile();
         // First of all at its layer, before every shimmer (0075).
         AddChild(Shimmer.NewScreenCopy());
@@ -277,10 +304,10 @@ public partial class Main : Node2D, ITogether
                 : null;
             _items.Panel.Launch = LaunchOf;
             AddChild(_jumpCall = new Features.Landing.JumpCall());
-            // A shuttle's voyage shows as a pod's descent of its length (shuttle-flight, plain pictures).
+            // The rider's own flight: a pod's, or a shuttle's voyage, cut to as it is gone under the belly (shuttle-flight).
             Features.Landing.Ride? OwnRide(int peer) => _m.Landing.FlightOf(peer) is { } f ? Features.Landing.Ride.Of(f) : _m.Landing.VoyageOf(peer) is { } v ? Features.Landing.Ride.Of(v) : null;
             AddChild(new Features.Landing.FlightOverlay(() => _session is Session s ? (s.Client.World.SurfaceOf(s.Client.Id), OwnRide(s.Client.Id)) : null,
-                () => (_session as Session)?.Progress ?? 0, () => _camera.CurrentZoom));
+                () => (_session as Session)?.Progress ?? 0, () => _camera.OwnZoom));
             // The vitals at the bottom-left (hud-vitals): the belt's charge under the suit's air, whatever is held. Before the
             // suit's gauge, so the red edges cover it as they cover the rest of the HUD.
             var energy = new EnergyBar(() => _session is Session s ? EnergyRead.Of(_m.Items.Inventory(s.Client.Id), _m.Items.BeltCharge(s.Client.Id), p => _m.Items.SlotOpen(s.Client.Id, p), _m.Items.Running(s.Client.Id)) : null, _hands.Ui);
@@ -540,6 +567,7 @@ public partial class Main : Node2D, ITogether
         // A derelict's own lamps burn on their battery, lit by their own view and with no bolt over them; one a hero builds there has both.
         Func<Sim.Grid.Machine, bool> own = View<Features.Light.VesselLamps>() is { } inside ? inside.Claims : _ => false;
         _hands.Unmarked = own;
+        _hands.Unseen = View<Features.Unseen.UnseenView>() is { } unseen ? unseen.Hides : _ => false;
         AddChild(_light = new LightView(_m.Grid, Game.Light.SkyOf(_m.Rules), ground: _m.Rules is Content.PlanetType)
         {
             // --lit: every lamp at full power, to measure the light on the reference world; --dark: every lamp out, to see what glows.
@@ -646,6 +674,7 @@ public partial class Main : Node2D, ITogether
         if (client.World.Tick != before) ShakeFalling(client);
         _frameLog?.Mark("light");
         _hero?.Frame(client, _m, _camera, heard, session.Progress, session.Drift, session.Host != null, delta * 1000);
+        BlendCamera(client, session.Progress);
         _frameLog?.Mark("hero");
         // After the hero, so a door it toggles shows on the frame E is pressed (0014).
         SyncGrid(client);
@@ -708,7 +737,8 @@ public partial class Main : Node2D, ITogether
 
     /// <summary>
     /// The planet's hour as light (2026-11-07-night-chills): the light through its open sky, its backdrop and the fog at its sides
-    /// at <see cref="Daylight"/>'s colours of the moment; whole aboard.
+    /// at <see cref="Daylight"/>'s colours of the moment; whole aboard. A weather (docs/plans/surface-storms.md) dims them all, turns the
+    /// sky and land toward its haze and blows the plants, as far as it has come.
     /// </summary>
     private void ShowDaylight()
     {
@@ -718,6 +748,18 @@ public partial class Main : Node2D, ITogether
             int time = _m.Sky.Now.Time;
             (sky, tint) = (Daylight.Sky(look, time, cycle), Daylight.Backdrop(look, time, cycle));
         }
+        var storm = View<Features.Sky.StormView>();
+        var now = storm?.Now ?? Features.Sky.Storm.None;
+        if (storm?.Weather is { } weather)
+        {
+            var dim = now.Dim(weather);
+            sky = (sky.R * dim.R, sky.G * dim.G, sky.B * dim.B);
+            tint = (tint.R * dim.R, tint.G * dim.G, tint.B * dim.B);
+            _stars.Weather(weather.Haze, weather.HazeMost * now.Hazed, Features.Sky.Storm.SkyTop, Features.Sky.Storm.CloudBlow * now.Wind);
+        }
+        else _stars.Weather((1, 1, 1), 0, 0, 0);
+        if (storm != null) (storm.Light, storm.Eye) = (tint, _hero is { } eye ? MiddleOf(eye.Current) : null);
+        if (View<Features.Flora.FloraView>() is { } flora) flora.Storm = now.Wind * StretchLooks.Weather.SwayGain;
         Lit.Sky(sky);
         _stars.Tint = tint;
         if (View<Features.Fog.FogView>() is { } fog) fog.Tint = tint;
@@ -735,7 +777,7 @@ public partial class Main : Node2D, ITogether
     {
         if (_stretchOf != _m) (_stretch, _stretchOf) = (new StretchShown(), _m);
         var now = _m.Sky.Now;
-        _stretch.See(now.Stretch, now.Coming, now.ComingIn, clock, now.Ran);
+        _stretch.See(_m.Rules, now.Stretch, now.Coming, now.ComingIn, clock, now.Ran);
         _stars.Stretch(_stretch.Look, _stretch.Grow, _stretch.Melt, _stretch.Since);
     }
 

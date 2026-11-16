@@ -80,7 +80,7 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [0072](0072-air-shows-under-every-build-tab.md) | Air shows under every build tab | accepted |  |
 | [0073](0073-the-build-menu-is-a-docked-catalogue.md) | The build menu is a docked catalogue | accepted |  |
 | [0074](0074-the-inventory-is-a-wrist-computer.md) | The inventory is a wrist computer | accepted | machine-holograms (in part) |
-| [0075](0075-effects-are-light-not-shapes.md) | Effects are light, not shapes | accepted | arcs-are-hairlines, effects-on-their-layer, head-tally (in part) |
+| [0075](0075-effects-are-light-not-shapes.md) | Effects are light, not shapes | accepted | arcs-are-hairlines, effects-on-their-layer, head-tally, loot-pieces (in part) |
 | [0076](0076-a-world-is-made-of-surfaces.md) | A world is made of surfaces | accepted | night-chills, vessel-worlds (in part) |
 | [0077](0077-a-planets-ground-grows-from-its-seed-and-is-dug-by-hits.md) | A planet's ground grows from its seed and is dug by hits | accepted | fan-of-rays, veins-and-stairs, tool-edge (in part) |
 | [0078](0078-two-handed-items-are-held-as-a-rifle.md) | Two-handed items are held as a rifle | superseded | one-arm-holds |
@@ -151,13 +151,13 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [meteor-blast](2026-10-28-meteor-blast.md) | A meteor breaks an area | accepted |  |
 | [one-head](2026-10-28-one-head.md) | One head for every hero | accepted |  |
 | [smelt-chances](2026-10-28-smelt-chances.md) | Byproducts by chance and smelts of several | accepted |  |
-| [the-cape-flows](2026-10-28-the-cape-flows.md) | The cape flows | accepted |  |
+| [the-cape-flows](2026-10-28-the-cape-flows.md) | The cape flows | accepted | cape-billows (in part) |
 | [the-crusher](2026-10-28-the-crusher.md) | The crusher and the first cost pass | accepted |  |
 | [the-workbench](2026-10-28-the-workbench.md) | The workbench | accepted |  |
 | [body-bag](2026-10-29-body-bag.md) | A body holds its things | accepted |  |
 | [clear-glass](2026-10-29-clear-glass.md) | Clear glass | accepted |  |
 | [holes-not-planned](2026-10-29-holes-not-planned.md) | A meteor's hole is not planned | accepted |  |
-| [kill-feel](2026-10-29-kill-feel.md) | Kills burst into pixels | accepted | kills-crumble (in part) |
+| [kill-feel](2026-10-29-kill-feel.md) | Kills burst into pixels | accepted | kills-crumble, loot-pieces (in part) |
 | [kills-crumble](2026-10-29-kills-crumble.md) | Kills crumble into pixels | accepted |  |
 | [meteor-wave](2026-10-29-meteor-wave.md) | A meteor's blast is a wave walls soak up | accepted | round-blasts, unified-damage (in part) |
 | [photo-panel](2026-10-29-photo-panel.md) | The photosensitive panel | accepted |  |
@@ -379,14 +379,23 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [liquid-cards](2026-11-15-liquid-cards.md) | A canister's and a bottle's litres are food's rows | accepted |  |
 | [spark-rule](2026-11-15-spark-rule.md) | A tool's haze in matter throws that matter's look, whatever was hit | accepted |  |
 | [spear-trail](2026-11-15-spear-trail.md) | The plain spear trails haze outside its thrust | accepted |  |
-| [stretches-of-space](2026-11-15-stretches-of-space.md) | Stretches of space | accepted |  |
+| [stretches-of-space](2026-11-15-stretches-of-space.md) | Stretches of space | accepted | surface-storms (in part) |
 | [trash-slot](2026-11-15-trash-slot.md) | A trash slot in creative mode | accepted |  |
+| [cape-billows](2026-11-16-cape-billows.md) | The cape is painted raw and billows slowly at a run | accepted |  |
+| [crew-pings](2026-11-16-crew-pings.md) | Pings: a tap of F marks the spot | accepted |  |
+| [fancy-skins](2026-11-16-fancy-skins.md) | Fancy skins: nine helmets and their suits | accepted |  |
 | [fuel-liquid](2026-11-16-fuel-liquid.md) | Fuel is a liquid | accepted |  |
 | [gestures-for-words](2026-11-16-gestures-for-words.md) | Gestures, in place of words | accepted |  |
 | [hand-at-wrist](2026-11-16-hand-at-wrist.md) | The hand is its own picture, hung at the wrist | accepted |  |
 | [hero-skins](2026-11-16-hero-skins.md) | Skins: how a hero looks, apart from what it wears | accepted |  |
+| [loot-pieces](2026-11-16-loot-pieces.md) | Loot lies as a few small objects that bounce and tip onto a side | accepted |  |
 | [planet-variety](2026-11-16-planet-variety.md) | Planets differ: types and ore sets | accepted |  |
+| [shuttle-desant](2026-11-16-shuttle-desant.md) | The crew shuttle looks as «Десант — Салазки» | accepted |  |
 | [shuttle-flight](2026-11-16-shuttle-flight.md) | The crew flies to a vessel in the shuttle and back | accepted |  |
 | [solar-system](2026-11-16-solar-system.md) | The ship flies between the planets of its solar system | accepted |  |
+| [storm-lightning](2026-11-16-storm-lightning.md) | Storm lightning | accepted |  |
+| [surface-storms](2026-11-16-surface-storms.md) | Surface storms | accepted |  |
 | [whole-limbs](2026-11-16-whole-limbs.md) | One picture an arm or leg | accepted |  |
 | [derelict-looks](2026-11-17-derelict-looks.md) | A derelict looks like a ship someone owned and left | accepted |  |
+| [hidden-rooms](2026-11-17-hidden-rooms.md) | A derelict's rooms are dark till a hero has seen them | accepted |  |
+| [shuttle-trip-look](2026-11-17-shuttle-trip-look.md) | The shuttle's trip is seen: «A — Под днищем» | accepted |  |

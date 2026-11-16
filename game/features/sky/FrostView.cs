@@ -137,6 +137,7 @@ public partial class FrostView : Node2D
 
     private readonly IGridQueries _grid;
     private readonly ISkyQueries _sky;
+    private readonly Content.Surfaces.Kind _rules;
     private readonly System.Func<double> _clock;
     private readonly HullCells _hull;
     private readonly StretchShown _stretch = new();
@@ -144,10 +145,11 @@ public partial class FrostView : Node2D
     private int _seen, _built = -1;
     private (float, float, float, float) _set = (-1, -1, -1, -1);
 
+    /// <param name="rules">The surface's kind: whose stretches' warnings the frost grows over.</param>
     /// <param name="clock">The world's ticks now, between ticks too: what the frost melts by once the belt has gone.</param>
-    public FrostView(IGridQueries grid, ISkyQueries sky, System.Func<double> clock)
+    public FrostView(IGridQueries grid, ISkyQueries sky, Content.Surfaces.Kind rules, System.Func<double> clock)
     {
-        (_grid, _sky, _clock) = (grid, sky, clock);
+        (_grid, _sky, _rules, _clock) = (grid, sky, rules, clock);
         ZIndex = Layers.Edges;
         _hull = new HullCells(grid.Width, grid.Height, IsWall, IsSpace);
         var built = grid.Built;
@@ -168,7 +170,7 @@ public partial class FrostView : Node2D
     {
         Follow();
         var now = _sky.Now;
-        _stretch.See(now.Stretch, now.Coming, now.ComingIn, _clock());
+        _stretch.See(_rules, now.Stretch, now.Coming, now.ComingIn, _clock());
         bool shows = _stretch.Look is { Frost: true } && Frost.Shows(_stretch.Grow, _stretch.After);
         _mesh.Visible = shows;
         if (!shows) return;

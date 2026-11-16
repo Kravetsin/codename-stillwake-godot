@@ -10,6 +10,8 @@ namespace Stillwake.Game.Features.Landing;
 /// back and drawn coming down; aboard, docked back from a planet, it is only heard (<see cref="DockedSince"/>).
 /// The sim has the pod standing at once; the client holds it back from the grid for <see cref="FlightTimeline.Release"/> seconds
 /// and draws it coming down. Time here is frame time: the planet's opening freezes the ticks the touchdown would play in.
+/// A crew shuttle just come with its riders is held the same way, aboard and off the ship alike, for its own
+/// <see cref="ShuttleTimeline.Hold"/>, and let go at once when a rider gets out (shuttle-flight).
 /// </summary>
 public sealed class Arrivals
 {
@@ -17,6 +19,7 @@ public sealed class Arrivals
     public const double MostDelta = 0.05;
 
     private readonly Dictionary<int, double> _since = [], _docked = [];
+    private readonly Dictionary<int, (double S, int Riders, bool Aboard)> _shuttles = [];
     private HashSet<int> _last = [];
     private int? _surface;
 
@@ -24,7 +27,7 @@ public sealed class Arrivals
     public int Version { get; private set; }
 
     /// <summary>Whether pod <paramref name="pod"/> is still coming down: kept out of the grid's drawing.</summary>
-    public bool Holds(int pod) => _since.ContainsKey(pod);
+    public bool Holds(int pod) => _since.ContainsKey(pod) || _shuttles.ContainsKey(pod);
 
     /// <summary>Seconds since pod <paramref name="pod"/> was seen arriving; null for one standing.</summary>
     public double? SecondsSince(int pod) => _since.TryGetValue(pod, out double s) ? s : null;
@@ -35,14 +38,20 @@ public sealed class Arrivals
     /// </summary>
     public double? DockedSince(int pod) => _docked.TryGetValue(pod, out double s) ? s : null;
 
+    /// <summary>Seconds since shuttle <paramref name="shuttle"/> was seen arriving and whether aboard, home; null for one standing.</summary>
+    public (double S, bool Aboard)? ShuttleSince(int shuttle) => _shuttles.TryGetValue(shuttle, out var held) ? (held.S, held.Aboard) : null;
+
     /// <summary>
     /// A frame <paramref name="delta"/> seconds on, on <paramref name="surface"/> (<paramref name="aboard"/> the ship), its pods and
-    /// whether each is seated. <paramref name="ownLanded"/> is the pod this player sits in the frame its own flight ended;
-    /// <paramref name="newWorld"/> a load or a resync: nothing arrives in a world just made.
+    /// whether each is seated, and its <paramref name="shuttles"/> with how many ride each. <paramref name="ownLanded"/> is the pod or
+    /// shuttle this player sits in the frame its own flight or voyage ended; <paramref name="newWorld"/> a load or a resync: nothing
+    /// arrives in a world just made.
     /// </summary>
-    public void Frame(int surface, bool aboard, IReadOnlyList<(int Pod, bool Seated)> pods, int? ownLanded, bool newWorld, double delta)
+    public void Frame(int surface, bool aboard, IReadOnlyList<(int Pod, bool Seated)> pods, int? ownLanded, bool newWorld, double delta,
+        IReadOnlyList<(int Shuttle, int Riders)>? shuttles = null)
     {
-        int before = _since.Count;
+        shuttles ??= [];
+        int before = _since.Count + _shuttles.Count;
         bool switched = surface != _surface;
         _surface = surface;
         var here = pods.ToDictionary(p => p.Pod, p => p.Seated);
@@ -50,6 +59,7 @@ public sealed class Arrivals
         {
             _since.Clear();
             _docked.Clear();
+            _shuttles.Clear();
         }
         else
         {
@@ -68,6 +78,7 @@ public sealed class Arrivals
                 if ((switched && pod != ownLanded) || !here.ContainsKey(pod) || s >= FlightTimeline.DockS) _docked.Remove(pod);
                 else _docked[pod] = s;
             }
+            Shuttles(aboard, shuttles, ownLanded, switched, delta);
             foreach (var (pod, seated) in pods)
             {
                 bool came = seated && (switched ? pod == ownLanded : !_last.Contains(pod) || pod == ownLanded);
@@ -76,7 +87,29 @@ public sealed class Arrivals
                 else if (aboard && !_docked.ContainsKey(pod)) _docked[pod] = 0;
             }
         }
-        _last = [.. here.Keys];
-        if (_since.Count != before || newWorld) Version++;
+        _last = [.. here.Keys, .. shuttles.Select(s => s.Shuttle)];
+        if (_since.Count + _shuttles.Count != before || newWorld) Version++;
+    }
+
+    /// <summary>
+    /// The shuttles held a frame <paramref name="delta"/> on: one gone, left by a rider, or held its length is let go; one come with
+    /// riders, new here or this player's own the frame its voyage ended, is held from now.
+    /// </summary>
+    private void Shuttles(bool aboard, IReadOnlyList<(int Shuttle, int Riders)> shuttles, int? ownLanded, bool switched, double delta)
+    {
+        var riders = shuttles.ToDictionary(s => s.Shuttle, s => s.Riders);
+        foreach (int shuttle in _shuttles.Keys.ToList())
+        {
+            var held = _shuttles[shuttle];
+            int now = riders.GetValueOrDefault(shuttle);
+            double s = held.S + delta;
+            if ((switched && shuttle != ownLanded) || now == 0 || now < held.Riders || s >= ShuttleTimeline.Hold(held.Aboard)) _shuttles.Remove(shuttle);
+            else _shuttles[shuttle] = (s, now, held.Aboard);
+        }
+        foreach (var (shuttle, now) in shuttles)
+        {
+            bool came = now > 0 && (switched ? shuttle == ownLanded : !_last.Contains(shuttle) || shuttle == ownLanded);
+            if (came && !_shuttles.ContainsKey(shuttle)) _shuttles[shuttle] = (0, now, aboard);
+        }
     }
 }

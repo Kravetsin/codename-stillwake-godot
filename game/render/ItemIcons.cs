@@ -19,6 +19,7 @@ public static class ItemIcons
     private static readonly Dictionary<(string Item, int Side), Texture2D> Baked = new();
     private static readonly Dictionary<string, Image> Held = new();
     private static readonly Dictionary<string, int> ClearRows = new();
+    private static readonly Dictionary<string, IReadOnlyList<(float X, float Y)>> Edges = new();
 
     /// <summary>
     /// The picture of <paramref name="item"/> as the world draws it, a pixel of it a pixel of the world, loaded once: a tool's
@@ -53,15 +54,40 @@ public static class ItemIcons
         if (Silhouettes.TryGetValue(item, out var kept)) return kept;
         var image = HeldLook.Of(item) is { } look ? (Image)HeldImage(look.Picture).Duplicate() : Fine($"items/{item}");
         int lowest = -1;
+        // Each row's outermost solid pixels, their corners: the outline a stack on the floor lies on.
+        var edge = new List<(float X, float Y)>();
+        float side = HiRes.Scale, halfW = image.GetWidth() / 2f, halfH = image.GetHeight() / 2f;
         for (int y = 0; y < image.GetHeight(); y++)
+        {
+            int left = -1, right = -1;
             for (int x = 0; x < image.GetWidth(); x++)
             {
                 float a = image.GetPixel(x, y).A;
                 if (a > 0) lowest = y;
+                if (a > 0.5f)
+                {
+                    if (left < 0) left = x;
+                    right = x;
+                }
                 image.SetPixel(x, y, new Color(1, 1, 1, a));
             }
+            if (left < 0) continue;
+            foreach (int x in new[] { left, right + 1 })
+                foreach (int dy in new[] { 0, 1 }) edge.Add(((x - halfW) / side, (y + dy - halfH) / side));
+        }
+        Edges[item] = edge;
         ClearRows[item] = (image.GetHeight() - 1 - lowest) / HiRes.Scale;
         return Silhouettes[item] = HiRes.Texture(image);
+    }
+
+    /// <summary>
+    /// The corners of each row's outermost solid pixels of <paramref name="item"/>'s picture as the world draws it, in pixels about its
+    /// middle, y down: what a stack on the floor lies on, its hull taken round them.
+    /// </summary>
+    public static IReadOnlyList<(float X, float Y)> Edge(string item)
+    {
+        if (!Edges.ContainsKey(item)) Silhouette(item);
+        return Edges[item];
     }
 
     /// <summary>The clear rows under <paramref name="item"/>'s picture as the world draws it, in that picture's pixels: what a stack on the floor is lowered by to stand on it.</summary>

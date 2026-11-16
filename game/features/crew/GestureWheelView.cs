@@ -49,8 +49,8 @@ public partial class GestureWheelView : CanvasLayer
         {
             var gesture = GestureWheel.Sides[i];
             bool lit = gesture == _toward;
-            // From the top, clockwise: up, right, down, left.
-            float angle = i * Mathf.Pi / 2;
+            // From the top, clockwise, shared out evenly as GestureWheel.SideOf reads them.
+            float angle = i * Mathf.Tau / GestureWheel.Sides.Length;
             var at = _from + new Vector2(Mathf.Sin(angle), -Mathf.Cos(angle)) * (float)GestureWheel.Radius * _scale;
             float grow = lit ? Grow : 1;
             _plate.DrawCircle(at, DiscRadius * _scale * grow, lit ? Lit : Disc);
@@ -72,8 +72,6 @@ public partial class GestureWheelView : CanvasLayer
         Gesture.Yes => (GestureMotions.ThumbFrame, -Mathf.Pi / 2, false),
         Gesture.No => (GestureMotions.ThumbFrame, -Mathf.Pi / 2, true),
         Gesture.Wave => (GestureMotions.OpenFrame, Mathf.Pi, false),
-        // Come: the finger pointing in at the middle, "here".
-        Gesture.Come => (GestureMotions.PointFrame, Mathf.Pi / 2, false),
         _ => (GestureMotions.PointFrame, 0, false),
     };
 }

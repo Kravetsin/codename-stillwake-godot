@@ -170,6 +170,7 @@ public static class PlanetTypes
         ThinAir = 5,
         Sky = new Surfaces.Light(1000, 970, 900),
         Cycle = Content.Sky.First,
+        Stretches = Content.Stretches.FirstPlanet,
         Debris = false,
         Builds = ["wall", "floor", "ladder", "door", "hatch"],
         ToolsBreak = true,
@@ -227,6 +228,8 @@ public static class PlanetTypes
     public static readonly PlanetType Icy = First with
     {
         Id = "icy",
+        // No weather of its own yet: the first's storm would come with it.
+        Stretches = [],
         Temperatures = [-35, -30, -10, 40],
         Plants = [Plant("bush", 120), Plant("rock", 180), Plant("tuft", 320)],
         Veins = [First.Veins[0] with { Widths = [1800, 1800, 1200, 0] }, .. First.Veins.Skip(1)],
@@ -247,6 +250,8 @@ public static class PlanetTypes
     public static readonly PlanetType Scorched = First with
     {
         Id = "scorched",
+        // No weather of its own yet: the first's storm would come with it.
+        Stretches = [],
         Temperatures = [45, 30, 50, 70],
         Plants = [Plant("acacia", 120), Plant("bush", 100), Plant("rock", 160), Plant("bellAmber", 200), Plant("tuft", 150)],
         Creatures =

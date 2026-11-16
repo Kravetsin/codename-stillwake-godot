@@ -116,15 +116,16 @@ Game words → code. One line a term: Russian / English → identifiers → modu
 - топор / fire axe → item `fireAxe`, f/crew `AxeSwing`, `HeldLook.FireAxe` → Crew
 - движение удара / swing motion **≠** → `SwingMotion` (keys `MotionKey`), a weapon's `Stroke.Motions`, played as `MotionPlay` with `Overhand`, `Jab` (f/crew `MotionPlay.cs`), its `MotionKind` in gc/`SwingMotions.cs`; the offset the hero carries `AxeSwing.Aim` → Crew
 - сектор удара / aim sector **≠** → `Sector`, `Sectors` (up, straight, down, under) in gc/`SwingMotions.cs` → Crew
-- жест, эмоция, круговое меню / gesture, emote, wheel **≠** → `Gesture` (`Point`, `Wave`, `Come`, `Yes`, `No`), `GestureMotions` (gc), `Gestures`, `GesturePlay`, `GestureWheel`, `GestureWheelView` (f/crew), bind `Gesture` (F), sent as `Handwork` (gestures-for-words) → Crew
+- метка, пинг / ping → `Ping`, `PingSeen`, `PingView`, `MarkerIcon.Ping` (f/crew), a tap of F (crew-pings) → Crew
+- жест, эмоция, круговое меню / gesture, emote, wheel **≠** → `Gesture` (`Point`, `Wave`, `Yes`, `No`), `GestureMotions` (gc), `Gestures`, `GesturePlay`, `GestureWheel`, `GestureWheelView` (f/crew), bind `Gesture` (F), sent as `Handwork` (gestures-for-words) → Crew
 - кисть руки, перчатка / hand, glove → `Rig.Wrist`, `hero_hand_glove`, `hero_hand_skin`, `HeroLooks.OutfitGloved`, frames in `GestureMotions` (hand-at-wrist) → Crew
 - бур / drill → item `drill`, `c/Weapons.cs`, f/crew `DrillPace`, `Motor` → Crew
 - трос / tether → f/crew `Tether` → Crew; подтягивание по тросу / haul → `Hero.Haul`, `Hero.Wraps` (tether-haul)
 - скафандр / suit → helmet `helmet`, `quiltedHelmet` (стёганый шлем) or `heavyHelmet` (`Content.Helmet`, slot `head`, `Tank`) + body `suit` or `regenSuit` (`Content.Suit`, slot `suit`; its mode `SuitMode`, `Hero.SuitOn`), `Hero.Air`, `CapacityOf`; `SuitGauge`, `Suits` (colours), `Danger` (f/crew) → Crew, Items
 - голый, без скафандра / bare → no helmet: `Crew.Lungs`; no body: `Temperature.BareLow` → Crew
 - внешность, облик, редактор персонажа / look → `Look`, `ChooseLook`, `LookOf`, `HeroLooks`, `LookEditor` (f/crew) → Players, Crew
-- скин, внешний вид (вкладка) / skin, Appearance (tab) → `Skin`, `Skins` (kinds `head`, `suit`, `cape`, `effect`), `Dressed`, `Suits.DressedAs`, `AppearanceView`, `SkinSlot` (f/crew), `LooksButton` (f/items); `ChooseSkins`, `SkinsOf`, `PeerSkins`; `Owned` (game/platform) → Players, Crew; эффект оружия, «Пламя», «Разлом» / weapon effect, Fire, Rift → `BladeFx`, `FireFx`, `RiftFx` (f/crew), `SkinEffects` (gc)
-- плащ / cape → `cape` (`Content.Cape`, slot `cape`, `Guard`, `Warmth`), `Hero.Spared`, `ICrewOps.Blow`; `Figure.CapeWorn`, `Cape`, `CapeView` (f/crew) → Crew, Items
+- скин, внешний вид (вкладка) / skin, Appearance (tab) → `Skin`, `Skins` (kinds `head`, `suit`, `cape`, `effect`; sets such as `brassHelmet` + `brassSuit`), `Dressed`, `Suits.DressedAs`, `AppearanceView`, `SkinSlot` (f/crew), `LooksButton` (f/items); `ChooseSkins`, `SkinsOf`, `PeerSkins`; `Owned` (game/platform) → Players, Crew; эффект оружия, «Пламя», «Разлом» / weapon effect, Fire, Rift → `BladeFx`, `FireFx`, `RiftFx` (f/crew), `SkinEffects` (gc)
+- плащ / cape → `cape` (`Content.Cape`, slot `cape`, `Guard`, `Warmth`), `Hero.Spared`, `ICrewOps.Blow`; `Figure.CapeWorn`, `Cape`, `CapeView` (f/crew); skins `tarpCape`, `blanketCape`, `woolCape` → Crew, Items
 - фонарик на шлем / helmet lamp → `helmetLamp`, slot `mount` (`Helmet.Mount`), for whatever sits on a helmet → Items
 - смерть, тело / death, body → `Bodies`, `BodyView` (0061) → Crew, Items
 - трекер, браслет, розыск / tracker, wanted → `Hero.Wanted`, `Need`, `Coming`, `Signal`, `SignalOf`, `ICrewOps.Loot`, c/`Wanted.cs`; начальный пояс / starting belt → `Wanted.Belt`, `Wanted.Drain`; f/crew `TrackerBlink` → Crew
@@ -143,6 +144,8 @@ Game words → code. One line a term: Russian / English → identifiers → modu
 - набор руд / a planet's ores → `Content.Landing.Ores`, `Starting`, `Varying`, `LandingModule.OresOf`, `Surface.Ores` → Landing, Core
 - фон, задний план, параллакс / backdrop, the land behind → `PlanetSky` (r/, the sky), `BackdropView`, `BackdropPlan` (f/backdrop, the land), `BackdropLooks` (gc) → client only
 - сутки, день, ночь, время суток / day, night, hour → `Sky.Cycle` (`c/Sky.cs`), `SkyNow`, `SetTime` (sim/Sky); fades `Daylight` (gc) → Sky
+- буря, пыльная буря, ливень, непогода / storm, dust storm, rain storm, weather **≠** → a planet's stretch: `Stretches.DustStorm`, `RainStorm` (`"dustStorm"`, `"rainStorm"`), `SkyNow.Pace`, `ICrewQueries.PaceAt`; looks `StretchLooks.Weather`, f/sky `StormView` → Sky, Crew
+- молния, удар молнии, гроза / lightning, bolt, strike → `Stretch.Bolt` (`BoltRule`, c/`Stretches.cs`), `Strike`, `BoltNow` (sim/Hazards `Bolts.cs`), `Harm.Lightning`; f/hazards `BoltView` → Hazards, Crew
 - ночной холод, мороз / the night's chill → `Cycle.Chill` (degrees), frost `Report.Cold` → Crew
 - температура, градусы, предел / temperature, degrees, a hero's limit → `TemperatureAt`, `LowOf`, `Felt` (sim/Crew), `Temperature`, `Kind.Temperatures`, `ItemSpec.Low`, `Cape.Warmth` (c/) → Crew
 - копать / dig → `Dig`, `Crack` (sim/Building `Digging.cs`) → Building
@@ -181,6 +184,7 @@ Game words → code. One line a term: Russian / English → identifiers → modu
 - вылазка / sortie → `OpenSurface`, `Transfer` (sim/Core `Surface.cs`) → Core
 - корабль, корабль-находка / vessel **≠** → `Vessel`, `Shipyard` (sim/Core `Vessels/`), `Content.Vessels`; a world of its own (vessel-worlds) → Places
 - заброшенный корабль, его вид / derelict, its looks → the client's from class and seed: `VesselDress` (обшивка / skin, ливрея / livery, имя и код / name and code), `VesselLights` (аварийные лампы / emergency lamps, умирающая лампа / the dying lamp, точки над дверями / door dots, заклиненная дверь / jammed door), `VesselSigns` (следы заброшенности / signs: иней, искрящий кабель, копоть, упавшая панель, перевёрнутый ящик, газ) → Places, Light, Grid
+- скрытые отсеки, тьма внутри, комната открылась / hidden rooms, unseen, seen → the client's f/unseen `Sight` (seen, dark), `UnseenView` (hidden-rooms) → Unseen
 - детали снаружи корабля / outside parts → `Vessels.Outside`: `vesselNozzle` (сопло), `vesselRcs` (маневровый блок), `vesselMast` (антенна, маячок / beacon), `vesselDish` (тарелка), `vesselSolar`, `vesselTank`, `vesselRadiator`, `vesselCollar` (стыковочный узел), `vesselTruss` and `vesselPylon` (килевая ферма), `vesselContainer` (контейнер под килем), `vesselBoom` (сенсорная штанга) → Places
 - мебель корабля / a vessel's furniture → `Vessels.Furniture` (койки, шкафчик, стол, баки, пульт, кресло, блок механизмов, кабельная стойка, `vesselCargo`); лампа корабля / vessel lamp → `vesselLamp` → Places
 - находка на корабле / salvage aboard → `Vessels.Salvage`, `VesselSalvage`, a pile (`salvageTanks`, …) copied from a debris piece, five times its loot → Places, Building

@@ -111,14 +111,14 @@ public class SkyTests
     }
 
     [Fact]
-    public void TheShipHasNoDaySetTimeIsRefusedThereAndItsSkyIsAllZeros()
+    public void TheShipHasNoDaySetTimeIsRefusedThereAndItsSkyIsCalm()
     {
         var w = new Scenario(Ship);
         w.Do(new Enter(w.M.Crew.Spawn)).Run();
         string before = w.World.Save();
         w.Do(new SetTime(NightAt)).Run();
         Assert.Equal("sky.noDay", Assert.Single(w.Refusals).Reason);
-        Assert.Equal(default, w.M.Sky.Now);
+        Assert.Equal(new SkyNow(0, false, 0, null, null, 0), w.M.Sky.Now);
         Assert.Equal(0, ((SkyState)w.M.Sky.Slice).Time);
         Assert.Contains("\"sky\":{\"time\":0}", before);
     }

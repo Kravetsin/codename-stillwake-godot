@@ -1,6 +1,7 @@
 # Stretches of space
 
-- Status: accepted
+- Status: accepted; its one warning for all, stretches only aboard and draws from the world's Rng superseded by
+  [surface-storms](2026-11-16-surface-storms.md)
 - Date: 2026-11-15
 
 ## Context

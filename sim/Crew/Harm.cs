@@ -13,4 +13,6 @@ public enum Harm
     Poison,
     /// <summary>Lava under the hero.</summary>
     Burn,
+    /// <summary>A storm's lightning (surface-storms): its own look on the screen, a burnt-in channel, not a wash.</summary>
+    Lightning,
 }

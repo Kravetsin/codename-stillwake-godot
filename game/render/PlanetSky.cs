@@ -41,6 +41,7 @@ public partial class PlanetSky : Node2D
         _sun = Layer(PixelArt.Picture($"{set}/sun"), repeat: false);
         _sun.Material = new CanvasItemMaterial { BlendMode = CanvasItemMaterial.BlendModeEnum.Add };
         AddChild(_sun);
+        AddChild(_haze);
     }
 
     private static Sprite2D Layer(Texture2D texture, bool repeat) => new()
@@ -66,7 +67,50 @@ public partial class PlanetSky : Node2D
         _giant.Scale = Vector2.One * zoom;
         _sun.Position = screen * Sun - _sun.Texture.GetSize() * zoom / 2;
         _sun.Scale = Vector2.One * zoom;
-        Spread(_clouds, centre.X * CloudFollows + (float)(seconds * CloudDrift), zoom, screen, screen.Y * CloudsAt);
+        Spread(_clouds, centre.X * CloudFollows + (float)(seconds * CloudDrift + _blown), zoom, screen, screen.Y * CloudsAt);
+        if (_haze.Share > 0 && (_haze.Horizon != sky || _haze.Screen != screen))
+        {
+            (_haze.Horizon, _haze.Screen) = (sky, screen);
+            _haze.QueueRedraw();
+        }
+    }
+
+    /// <summary>
+    /// A planet's weather over its sky (docs/plans/surface-storms.md): the sky dulled toward <paramref name="colour"/>, from
+    /// <paramref name="top"/> of <paramref name="share"/> at the screen's top to all of it at the horizon and below; the high cloud
+    /// drifting <paramref name="blow"/> pixels of art a second faster. None at a share of 0.
+    /// </summary>
+    public void Weather((float R, float G, float B) colour, float share, float top, float blow)
+    {
+        _blow = blow;
+        if (_haze.Colour == colour && _haze.Share == share && _haze.Top == top) return;
+        (_haze.Colour, _haze.Share, _haze.Top) = (colour, share, top);
+        _haze.QueueRedraw();
+    }
+
+    public override void _Process(double delta) => _blown += delta * _blow;
+
+    private double _blown;
+    private float _blow;
+    private readonly Haze _haze = new();
+
+    /// <summary>The weather's haze over the sky, in screen space: a gradient down to the horizon, whole below it.</summary>
+    private sealed partial class Haze : Node2D
+    {
+        public (float R, float G, float B) Colour;
+        public float Share, Top, Horizon;
+        public Vector2 Screen;
+
+        public override void _Draw()
+        {
+            if (Share <= 0) return;
+            var low = new Color(Colour.R, Colour.G, Colour.B, Share);
+            var high = low with { A = Share * Top };
+            float horizon = Mathf.Clamp(Horizon, 0, Screen.Y);
+            if (horizon > 0)
+                DrawPolygon([new(0, 0), new(Screen.X, 0), new(Screen.X, horizon), new(0, horizon)], [high, high, low, low]);
+            if (horizon < Screen.Y) DrawRect(new Rect2(0, horizon, Screen.X, Screen.Y - horizon), low);
+        }
     }
 
     /// <summary>A repeating layer over the whole screen's width, its top at <paramref name="y"/>, looking at <paramref name="x"/> pixels of art across.</summary>

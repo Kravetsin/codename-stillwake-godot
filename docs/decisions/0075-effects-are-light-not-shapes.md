@@ -1,6 +1,6 @@
 # 0075 — Effects are light, not shapes
 
-- Status: accepted; the arcs' look superseded by [arcs-are-hairlines](2026-10-27-arcs-are-hairlines.md), drawing over everything by [effects-on-their-layer](2026-10-27-effects-on-their-layer.md)
+- Status: accepted; the arcs' look superseded by [arcs-are-hairlines](2026-10-27-arcs-are-hairlines.md), drawing over everything by [effects-on-their-layer](2026-10-27-effects-on-their-layer.md); a floor stack's rim by [loot-pieces](2026-11-16-loot-pieces.md)
 - Date: 2026-10-19
 
 ## Context

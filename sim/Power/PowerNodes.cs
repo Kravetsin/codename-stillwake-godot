@@ -88,7 +88,7 @@ internal static class PowerNodes
     public static int ByEnds(Cable p, Cable q) => p.A != q.A ? p.A.CompareTo(q.A) : p.B.CompareTo(q.B);
 
     /// <summary>Whether a machine making power sees the stars: every cell of it in space with no back wall behind it.</summary>
-    private static bool UnderStars(IGridQueries grid, IRoomsQueries rooms, Machine m)
+    public static bool UnderStars(IGridQueries grid, IRoomsQueries rooms, Machine m)
     {
         var s = Spec(m);
         int x = m.Cell % grid.Width, y = m.Cell / grid.Width;
@@ -112,13 +112,18 @@ internal static class PowerNodes
     /// <paramref name="broken"/> one stays a node and makes, draws and stores nothing, its satisfaction left out.
     /// </summary>
     public static (List<PowerNetwork> Networks, Dictionary<int, int> Satisfaction, List<(int Machine, int Flow)> Flows) Find(
-        IGridQueries grid, IRoomsQueries rooms, IReadOnlyList<Cable> cables, Func<Machine, int> draw, Func<Machine, int> making,
-        Func<int, int> stored, Func<int, bool> broken)
+        IGridQueries grid, IReadOnlyList<Cable> cables, Func<Machine, bool> seesStars, Func<Machine, int> draw,
+        Func<Machine, int> making, Func<int, int> stored, Func<int, bool> broken)
     {
         var ends = new List<int>(cables.Count * 2);
         foreach (var c in cables) { ends.Add(c.A); ends.Add(c.B); }
         ends.Sort();
-        var nodes = ends.Distinct().ToArray();
+        // Sorted, so each end once is each that differs from the one before: no set made every tick.
+        int distinct = 0;
+        for (int i = 0; i < ends.Count; i++)
+            if (i == 0 || ends[i] != ends[i - 1]) ends[distinct++] = ends[i];
+        var nodes = new int[distinct];
+        ends.CopyTo(0, nodes, 0, distinct);
 
         // Union-find over the nodes' indices, ascending by cell: the lowest stays the root, so a
         // network's id is its lowest node. Tens of nodes, so no path halving.
@@ -160,7 +165,7 @@ internal static class PowerNodes
             if (!IsPowered(s) || broken(m.Id)) continue;
             int network = networkOf[at];
             // A fire needs no stars, its module resting it while it is out; nor does a maker made to work anywhere (the wheel).
-            if (s.Makes is int rate && making(m) is int share and > 0 && (!s.NeedsStars || UnderStars(grid, rooms, m)))
+            if (s.Makes is int rate && making(m) is int share and > 0 && (!s.NeedsStars || seesStars(m)))
             {
                 // Both are never negative, so integer division is the floor.
                 int makes = rate * share / 1000;

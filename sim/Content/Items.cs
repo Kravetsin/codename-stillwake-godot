@@ -345,6 +345,12 @@ public static class Floor
     /// </summary>
     public const int SprayMost = 6;
 
+    /// <summary>
+    /// What a burst breaks is thrown out of where it burst in at most this many pieces, every item at least one
+    /// (2026-11-16-loot-pieces): a dozen objects in the crater rather than a stack a cell carpeting it.
+    /// </summary>
+    public const int BurstPieces = 14;
+
     /// <summary>A sprayed piece's speed across, away from the striker, and up, in thousandths of a cell a tick: a draw between the two.</summary>
     public const int SprayLeast = 60, SprayFastest = 200, SprayLiftLeast = 200, SprayLiftMost = 320;
 
@@ -374,6 +380,57 @@ public static class Floor
 
     /// <summary>Inside the ship: what landing takes off a stack's speed.</summary>
     public const int Friction = 80;
+
+    /// <summary>
+    /// Inside the ship: the share of its speed, in thousandths, a stack keeps bouncing off what it hits, by what it is made of
+    /// (2026-11-16-loot-pieces): soil and what grows thud, stone knocks once, metal rings twice, crystal bounces highest. Any
+    /// item not named here bounces as stone.
+    /// </summary>
+    public static int BounceOf(string item) => Bounces.TryGetValue(item, out int share) ? share : StoneBounce;
+
+    /// <summary>Below this speed, in thousandths of a cell a tick, a stack bouncing stops: no endless trembling on the floor.</summary>
+    public const int BounceLeast = 150;
+
+    private const int DullBounce = 0, StoneBounce = 250, MetalBounce = 400, CrystalBounce = 550;
+
+    private static readonly Dictionary<string, int> Bounces = new(StringComparer.Ordinal)
+    {
+        ["soil"] = DullBounce,
+        ["soilClod"] = DullBounce,
+        ["biomass"] = DullBounce,
+        ["spore"] = DullBounce,
+        ["seed"] = DullBounce,
+        ["fruit"] = DullBounce,
+        ["glowberry"] = DullBounce,
+        ["hide"] = DullBounce,
+        ["fat"] = DullBounce,
+        ["cloth"] = DullBounce,
+        ["ration"] = DullBounce,
+        ["porridge"] = DullBounce,
+        ["hash"] = DullBounce,
+        ["broth"] = DullBounce,
+        ["roast"] = DullBounce,
+        ["stew"] = DullBounce,
+        ["iron"] = MetalBounce,
+        ["copper"] = MetalBounce,
+        ["ironOre"] = MetalBounce,
+        ["copperOre"] = MetalBounce,
+        ["magnetite"] = MetalBounce,
+        ["nail"] = MetalBounce,
+        ["plate"] = MetalBounce,
+        ["gear"] = MetalBounce,
+        ["wire"] = MetalBounce,
+        ["tube"] = MetalBounce,
+        ["hullPlate"] = MetalBounce,
+        ["canister"] = MetalBounce,
+        ["cannedMeat"] = MetalBounce,
+        ["quartz"] = CrystalBounce,
+        ["crystal"] = CrystalBounce,
+        ["opal"] = CrystalBounce,
+        ["arcShard"] = CrystalBounce,
+        ["glass"] = CrystalBounce,
+        ["silicon"] = CrystalBounce,
+    };
 
     /// <summary>
     /// Out in space, where nothing falls or slows it, how fast a stack drifts back past the moving ship
