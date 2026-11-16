@@ -37,9 +37,10 @@ const page = `<!doctype html><meta charset="utf-8"><pre id="out"></pre>
 <script src="${url('engine.js')}"></script>
 <script src="${url('wash.js')}"></script>
 <script src="${url('traced.js')}"></script>
+<script src="${url('limbs.js')}"></script>
 ${SUBJECTS.map((s) => `<script src="${url('subjects/' + s + '.js')}"></script>`).join('\n')}
 <script>
-Traced.loadRaw().then(() => { for (const s of ${JSON.stringify(asked.length ? asked : SUBJECTS)}) Subjects[s](); document.getElementById('out').textContent = String(Made.length); })
+Traced.loadRaw().then(() => { for (const s of ${JSON.stringify(asked.length ? asked : SUBJECTS)}) Subjects[s](); Limbs.join(Made); document.getElementById('out').textContent = String(Made.length); })
   .catch((e) => { document.getElementById('out').textContent = 'ERROR ' + e.stack; });
 </script>`;
 const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'anime-art-'));

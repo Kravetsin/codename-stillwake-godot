@@ -63,7 +63,7 @@ public static class Rig
 
     /// <summary>
     /// How far the fist's middle is back from the forearm's end, in pixels, past it if negative: the knuckles of the glove of
-    /// <c>hero_forearm.png</c>, where a held item's grip sits (0040).
+    /// <c>hero_arm.png</c>, where a held item's grip sits (0040).
     /// </summary>
     public const double FistBack = -0.5;
 

@@ -21,8 +21,8 @@ public class CreatureBendTests
     }
 
     /// <summary>The part's picture as <see cref="CreatureBody"/> draws it: its own frame from its pivot, one picture with no seam.</summary>
-    private static BentLimb Drawn(CreatureArt.Part part, (double From, double To) seam) =>
-        new(-part.PivotX, -part.PivotY, part.W, part.H, part.Bend!.Joint, lower: false, seam, part.Bend.Band, part.Bend.Axis);
+    private static BentLimb Drawn(CreatureArt.Part part) =>
+        new(-part.PivotX, -part.PivotY, part.W, part.H, part.Bend!.Joint, lower: false, part.Bend.Band, part.Bend.Axis);
 
     /// <summary>The most part <paramref name="name"/> bends either way, as its node is driven: a knee folded as in a leap, a neck grazing or reared, a tail tucked or raised.</summary>
     private static double[] Bends(CreatureArt.Design design, string name) => design.Rig.First(n => n.Part == name).Drive switch
@@ -52,8 +52,8 @@ public class CreatureBendTests
     public void NoEndOfAPictureShowsAtABendItIsOnePictureDrawnWholeAndNeverFoldedOverItself(string look, string name)
     {
         // The hero's upper picture once ended at the knee in its rounded cap; the user wants a bend that does not show where it is.
-        // A creature's part is one picture through its bend: drawn whole, opaque everywhere, its every row in order, and where it is
-        // painted, no triangle of it turned over onto another however far it bends.
+        // A creature's part is one picture through its bend: drawn whole, its every row in order, and where it is painted, no
+        // triangle of it turned over onto another however far it bends.
         var design = CreatureArt.InkDesigns[look];
         var part = design.Parts[name];
         var (w, h, pixels) = Png.Pixels(Path.Combine(Png.Hd, "creatures", design.Id, name + ".png"));
@@ -65,10 +65,9 @@ public class CreatureBendTests
         }
         foreach (double bend in Bends(design, name))
         {
-            var limb = Drawn(part, BentLimb.Seamless);
-            var rest = Drawn(part, BentLimb.Seamless);
+            var limb = Drawn(part);
+            var rest = Drawn(part);
             limb.Bend(-bend);
-            Assert.All(limb.Alphas, a => Assert.Equal(1, a));
             for (int t = 0; t < limb.Triangles.Length; t += 3)
             {
                 int a = limb.Triangles[t], b = limb.Triangles[t + 1], c = limb.Triangles[t + 2];
@@ -79,18 +78,10 @@ public class CreatureBendTests
             }
         }
         // Its rows run once from the picture's start to its end, wherever its bone runs.
-        var whole = Drawn(part, BentLimb.Seamless);
+        var whole = Drawn(part);
         var corners = whole.Uvs;
         Assert.True(corners.Min(p => p.X) <= 0.01 && corners.Min(p => p.Y) <= 0.01, $"{name} starts inside its picture");
         Assert.True(corners.Max(p => p.X) >= part.W - 0.01 && corners.Max(p => p.Y) >= part.H - 0.01, $"{name} ends inside its picture");
-    }
-
-    [Fact]
-    public void AHerosSeamAtAKneeWouldFadeTheLegOutWhereItBends()
-    {
-        // Proves the test above bites: drawn as the hero's upper picture is, with a seam round the joint, the leg would end there.
-        var leg = CreatureArt.InkDesigns["classic"].Parts["foreLeg"];
-        Assert.Contains(Drawn(leg, BentLimb.Plain).Alphas, a => a < 1);
     }
 
     [Theory]
@@ -272,8 +263,8 @@ public class CreatureBendTests
     {
         // A tail lying back along its axis is the same limb as one hanging down, turned: its grid, its picture and its bend alike.
         const double axis = Math.PI / 2, joint = 4, band = 6;
-        var down = new BentLimb(-2, 0, 4, 10, joint, lower: false, BentLimb.Seamless, band);
-        var back = new BentLimb(-10, -2, 10, 4, joint, lower: false, BentLimb.Seamless, band, axis);
+        var down = new BentLimb(-2, 0, 4, 10, joint, lower: false, band);
+        var back = new BentLimb(-10, -2, 10, 4, joint, lower: false, band, axis);
         down.Bend(0.8);
         back.Bend(0.8);
         Assert.Equal(down.Points.Length, back.Points.Length);

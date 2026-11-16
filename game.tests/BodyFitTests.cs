@@ -146,23 +146,25 @@ public class BodyFitTests
     }
 
     [Fact]
-    public void AnUpperArmsTopFadesInSoNoRoundEndShowsAtTheShoulder()
+    public void AnArmsTopFadesInSoNoRoundEndShowsAtTheShoulder()
     {
-        foreach (string picture in (string[])["upperArm", "upperArm_lit", "regenSuit_upperArm", "heatSuit_upperArm_lit"])
+        foreach (string picture in (string[])["arm", "arm_lit", "regenSuit_arm", "heatSuit_arm_lit", "outfit_1_arm"])
             Assert.Equal(BodyFit.Shoulder, BodyFit.FadeOf(picture));
         var (whole, none) = BodyFit.Shoulder;
         Assert.Equal(0, BodyFit.Alpha(none, whole, none));
         Assert.Equal(1, BodyFit.Alpha(whole, whole, none));
         // The shoulder joint itself (2.5) is half drawn at most: the arm's round top never shows whole over the torso.
         Assert.InRange(BodyFit.Alpha(2.5, whole, none), 0.01, 0.5);
-        Assert.Null(BodyFit.FadeOf("lowerArm"));
+        Assert.Null(BodyFit.FadeOf("leg"));
     }
 
     [Fact]
-    public void ACatchersUpperArmKeepsItsTopForTheReceiverStrappedThere()
+    public void ACatchersArmKeepsItsTopForTheReceiverStrappedThere()
     {
         foreach (var gear in CreatureLooks.Heroes.Values.SelectMany(look => look.Gear))
-            Assert.Null(BodyFit.FadeOf($"{gear.Body}_upperArm"));
+        {
+            Assert.Null(BodyFit.FadeOf($"{gear.Body}_arm"));
+        }
     }
 
     [Fact]
