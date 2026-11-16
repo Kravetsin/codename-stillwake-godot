@@ -51,6 +51,22 @@ public class VesselLightsTests(ITestOutputHelper output)
     }
 
     [Fact]
+    public void OneTankerIsLitAsPinnedItsAirlockUnderItsBridgeRed()
+    {
+        var v = Of("tanker", 1);
+        var lights = new VesselLights(v);
+        string states = string.Concat(lights.Lamps.Select(l => l.State switch { LampState.Red => 'r', LampState.Dying => 'y', _ => '.' }));
+        Assert.Equal(".r...rrr...r.rrrr..r..........rrr.rr.yrr..r.r.r....rrr", states);
+        Assert.All(lights.Lamps, l => Assert.Equal(V.Lamp, l.Kind));
+        var (sx, sy) = Shipyard.Door(v);
+        var airlock = v.Compartments.Single(c => c.Holds(sx, sy));
+        Assert.Contains(lights.Lamps, l => airlock.Holds(l.X, l.Y));
+        Assert.All(lights.Lamps.Where(l => airlock.Holds(l.X, l.Y)), l => Assert.Equal(LampState.Red, l.State));
+        // Every room lit by its lamps, the tall tank rooms too.
+        Assert.All(v.Compartments, c => Assert.Contains(lights.Lamps, l => c.Holds(l.X, l.Y)));
+    }
+
+    [Fact]
     public void TheVesselsOwnLampsAreItsCeilingLampsClaimedFromThePowersLightAndBoltsAndNoOtherMachineIs()
     {
         var v = Of("freighter", 4);
