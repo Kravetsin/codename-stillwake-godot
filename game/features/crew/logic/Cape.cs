@@ -58,7 +58,7 @@ public sealed class Cape
     /// <summary>How the swing grows down it, as a power of how far down: under 1 the sheet turns more nearly whole, so swung far its back edge, inside the curl, is not squeezed.</summary>
     private const double Curl = 0.7;
     /// <summary>
-    /// Where the top is pinned, front to back, from the feet: clasped at the throat under the chin (<see cref="Clasp"/>), round
+    /// Where the top is pinned, front to back, from the feet: clasped at the throat under the chin, round
     /// the neck and over the shoulder to the back, under its collar.
     /// </summary>
     private static readonly (double X, double Y)[] Pins =
@@ -80,9 +80,6 @@ public sealed class Cape
     private const double HoodWind = 0.4;
     /// <summary>The cape's row the hood lies on, whose swing it takes.</summary>
     private const int HoodOn = 2;
-
-    /// <summary>Where its clasp is, from the feet: its front pin, at the throat.</summary>
-    public static (double X, double Y) Clasp => Pins[0];
 
     private (double X, double Y)? _shoulders;
     private double _speedX, _speedY, _phase;
