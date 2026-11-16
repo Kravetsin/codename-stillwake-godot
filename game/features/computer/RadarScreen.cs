@@ -660,7 +660,7 @@ public partial class RadarScreen : Control
     /// <summary>A derelict from the side, <paramref name="wide"/> long: a shuttle stubby with two decks, a freighter long and low.</summary>
     private void Silhouette(Vector2 at, float wide, string cls, bool hot, float alpha)
     {
-        bool big = cls == "freighter";
+        bool big = cls != "shuttle";
         float tall = big ? wide * 0.2f : wide * 0.38f, x0 = at.X - wide / 2, x1 = at.X + wide / 2, y0 = at.Y - tall / 2, y1 = at.Y + tall / 2;
         if (hot) DrawCircle(at, wide * 0.6f, Amber with { A = 0.18f * alpha });
         Vector2[] hull = big

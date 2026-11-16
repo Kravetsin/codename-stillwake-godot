@@ -12,7 +12,7 @@ using Xunit;
 namespace Stillwake.Sim.Tests;
 
 /// <summary>Going to a generated vessel (vessel-worlds): a surface of its own opened by the jump, closed once nobody is on it.</summary>
-public class PlacesTests
+public class PlacesTests(Xunit.Abstractions.ITestOutputHelper output)
 {
     private static readonly string Axe = Weapons.Axe.Item;
 
@@ -70,6 +70,7 @@ public class PlacesTests
     [Theory]
     [InlineData("shuttle")]
     [InlineData("freighter")]
+    [InlineData("liner")]
     public void TheHeroStandsOnTheDeckJustInsideTheDoorWithRoomForItsBody(string cls)
     {
         var (w, id) = Visited(cls);
@@ -203,6 +204,23 @@ public class PlacesTests
         Assert.Equal([("gear", 3), ("rotor", 1)], Machines.Get(Vessels.Machine).Cost);
         Assert.Equal([("wire", 6), ("copper", 2)], Machines.Get(Vessels.Rack).Cost);
         Assert.Equal([("plate", 4), ("planks", 6), ("wire", 2)], Machines.Get(Vessels.Cargo).Cost);
+        // A liner's (big-vessels): the design's yields in existing items.
+        Assert.Equal([("planks", 3), ("glass", 2), ("plate", 1)], Machines.Get(Vessels.Bar).Cost);
+        Assert.Equal([("planks", 4), ("wire", 3), ("copper", 1)], Machines.Get(Vessels.Piano).Cost);
+        Assert.Equal([("planks", 1), ("cloth", 1)], Machines.Get(Vessels.RoundTable).Cost);
+        Assert.Equal([("planks", 1)], Machines.Get(Vessels.Chair).Cost);
+        Assert.Equal([("frame", 1), ("cloth", 1)], Machines.Get(Vessels.Lounger).Cost);
+        Assert.Equal([("frame", 2), ("planks", 1)], Machines.Get(Vessels.Diving).Cost);
+        Assert.Equal([("plate", 6), ("tube", 2)], Machines.Get(Vessels.Pool).Cost);
+        Assert.Equal([("glass", 3), ("wire", 2), ("copper", 1)], Machines.Get(Vessels.Chandelier).Cost);
+        Assert.Equal([("plate", 2), ("coil", 1), ("wire", 1)], Machines.Get(Vessels.Stove).Cost);
+        Assert.Equal([("plate", 2)], Machines.Get(Vessels.Counter).Cost);
+        Assert.Equal([("plate", 10), ("tube", 4)], Machines.Get(Vessels.Capsule).Cost);
+        Assert.Equal([("plate", 14), ("wire", 6), ("glass", 2), ("tube", 3)], Machines.Get(Vessels.ShuttleGull).Cost);
+        Assert.Equal([("plate", 20), ("frame", 4), ("tube", 4)], Machines.Get(Vessels.ShuttleMule).Cost);
+        Assert.Equal([("plate", 12), ("gear", 4), ("rotor", 1)], Machines.Get(Vessels.ShuttleBeetle).Cost);
+        Assert.Equal([("plate", 16), ("glass", 6), ("cloth", 4)], Machines.Get(Vessels.ShuttleWhale).Cost);
+        Assert.Equal([("plate", 12), ("frame", 3), ("copper", 1)], Machines.Get(Vessels.ShuttleHeron).Cost);
         Assert.All(Vessels.Furniture, r => Assert.Contains(r.Kind, Vessels.Machines));
         Assert.All(Vessels.Furniture, r => Assert.Null(r.Menu));
         Assert.All(Vessels.Furniture, r => Assert.All(r.Cost, c => Assert.True(Content.Items.TryGet(c.Item, out _), c.Item)));
@@ -453,20 +471,23 @@ public class PlacesTests
         }
     }
 
-    /// <summary>The freighter's jump tick on the new game's world: its world opened, its vessel written, Rooms and the rest after it.</summary>
-    [Fact]
-    public void AFreightersJumpTickStaysUnderItsCeiling()
+    /// <summary>A jump tick on the new game's world: its world opened, its vessel written, Rooms and the rest after it; a liner's too.</summary>
+    [Theory]
+    [InlineData("freighter")]
+    [InlineData("liner")]
+    public void AJumpTickStaysUnderItsCeiling(string cls)
     {
         // A hitch of a few frames once per visit, as a load is.
         const int CeilingMs = 200;
-        var (w, _) = Visited();
+        var (w, _) = Visited(cls);
         w.Do(new Transfer(0)).Run();
-        w.Do(new Find("freighter")).Run();
+        w.Do(new Find(cls)).Run();
         w.Do(new Jump(w.M.Places.Contacts[^1].Id));
         var clock = Stopwatch.StartNew();
         w.Run();
         clock.Stop();
         Assert.Empty(w.Refusals);
+        output.WriteLine($"{cls}: {clock.ElapsedMilliseconds} ms");
         Assert.True(clock.ElapsedMilliseconds < CeilingMs, $"{clock.ElapsedMilliseconds} ms");
     }
 }

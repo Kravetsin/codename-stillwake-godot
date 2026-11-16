@@ -47,6 +47,7 @@ public static partial class Ru
         ["computer.radar.closeHow"] = "Esc или клик по пустой карте",
         ["computer.radar.class.shuttle"] = "Шаттл",
         ["computer.radar.class.freighter"] = "Грузовоз",
+        ["computer.radar.class.liner"] = "Лайнер",
         ["computer.radar.length"] = "Размер",
         ["computer.radar.cells"] = "{n} клеток в длину",
         ["computer.radar.decks"] = "Палубы",

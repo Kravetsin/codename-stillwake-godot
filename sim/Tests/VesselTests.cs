@@ -71,7 +71,7 @@ public class VesselTests
     /// cells, doors and hatches from the stern door comes to, a hatch with no ladder under it, a machine standing on one; null
     /// when it could.
     /// </summary>
-    private static string? Unreached(Vessel v, IReadOnlyList<VesselPart> parts)
+    internal static string? Unreached(Vessel v, IReadOnlyList<VesselPart> parts)
     {
         var walls = parts.Where(p => p.Kind == "wall").Select(p => (p.X, p.Y)).ToHashSet();
         var inside = parts.Where(p => p.Layer == "back").Select(p => (p.X, p.Y)).ToHashSet();
@@ -81,13 +81,17 @@ public class VesselTests
             foreach (var n in (ReadOnlySpan<(int, int)>)[(c.X + 1, c.Y), (c.X - 1, c.Y), (c.X, c.Y + 1), (c.X, c.Y - 1)])
                 if (inside.Contains(n) && !walls.Contains(n) && seen.Add(n)) queue.Enqueue(n);
         foreach (var room in v.Compartments)
-            if (!seen.Contains((room.Left, room.Top + Content.Vessels.Open - 1))) return $"{room.Role} on deck {room.Deck} at {room.Left} unreached";
+            if (!seen.Contains((room.Left, room.Floor - 1))) return $"{room.Role} on deck {room.Deck} at {room.Left} unreached";
         var machines = parts.Where(p => p.Layer == "machine").SelectMany(Shipyard.Covers).ToHashSet();
         foreach (var hatch in v.Hatches)
         {
             if (!parts.Any(p => p.Kind == "ladder" && p.X == hatch.X && p.Y == hatch.Y + 1)) return $"no ladder under the hatch at ({hatch.X}, {hatch.Y})";
             if (machines.Contains((hatch.X, hatch.Y - 1)) || machines.Contains((hatch.X + 1, hatch.Y - 1))) return $"a machine on the hatch at ({hatch.X}, {hatch.Y})";
         }
+        // Nor on a ladder (big-vessels): the way down stays clear.
+        foreach (var ladder in parts.Where(p => p.Kind == "ladder"))
+            foreach (var c in Shipyard.Covers(ladder))
+                if (machines.Contains(c)) return $"a machine on the ladder at {c}";
         return null;
     }
 
@@ -99,10 +103,12 @@ public class VesselTests
         foreach (var role in (VesselRole[])[VesselRole.Engine, VesselRole.Bridge, VesselRole.Hold, VesselRole.Quarters])
             Assert.Contains(vessel.Compartments, c => c.Role == role);
         Assert.InRange(vessel.Decks.Count, 2, v.Class.Decks.Max);
-        // A main engine on every deck below the first, against the stern armour, by its nozzle.
+        // A main engine on every deck below the first, against the stern armour, by its nozzle; a liner's over its bottom band.
         int start = Section(vessel, Vessel.SectionKind.Body).Left + v.Class.ArmourDepth;
         var engines = vessel.Fittings.Where(f => Content.Vessels.SalvageOf(f.Kind)?.Kind == "salvageMainEngine").Select(f => (f.X, f.Y));
-        Assert.Equal(vessel.Decks.Skip(1).Select(d => (start, d.Top)), engines);
+        int low = v.Class.Layout == VesselLayout.Liner ? Content.Vessels.Liner.LowDecks : 0;
+        Assert.Equal(vessel.Decks.Skip(1).SkipLast(low).Select(d => (start, d.Top)), engines);
+        if (v.Class.Layout != VesselLayout.Rooms) return;
         // A six-row door between each two rooms of a deck.
         var doors = parts.Where(p => p.Kind == "door").Select(p => (p.X, p.Y)).ToHashSet();
         foreach (var deck in vessel.Compartments.Where(c => c.Deck >= 0).GroupBy(c => c.Deck))
@@ -119,13 +125,14 @@ public class VesselTests
         var glass = parts.Where(p => p.Material == Content.Vessels.Glass).ToList();
         Assert.NotEmpty(glass);
         var inside = parts.Where(p => p.Layer == "back").Select(p => (p.X, p.Y)).ToHashSet();
+        // A raised bridge's, a liner's promenade's and dome's too (big-vessels); else the cockpit's in the bow.
         var where = v.Class.BridgeKind == VesselBridge.Raised
-            ? vessel.Sections.Single(s => s.Kind == Vessel.SectionKind.Bridge)
-            : vessel.Sections.Single(s => s.Kind == Vessel.SectionKind.Bow);
+            ? vessel.Sections.Where(s => s.Kind is Vessel.SectionKind.Bridge or Vessel.SectionKind.Tier).ToList()
+            : [vessel.Sections.Single(s => s.Kind == Vessel.SectionKind.Bow)];
         int a = v.Class.ArmourDepth;
         foreach (var g in glass)
         {
-            Assert.InRange(g.X, where.Left, where.Left + where.Width - 1);
+            Assert.Contains(where, s => g.X >= s.Left && g.X < s.Left + s.Width && g.Y >= s.Top && g.Y <= s.Bottom);
             Assert.False(inside.Contains((g.X, g.Y)), $"a back wall behind the glass at ({g.X}, {g.Y})");
             bool space = false;
             for (int k = 1; k <= a; k++)
@@ -173,9 +180,11 @@ public class VesselTests
         // No bell: left of the stern armour only the nozzles' cells.
         Assert.All(parts.Where(p => p.X < stern), p => Assert.Equal(("machine", Content.Vessels.Nozzle), (p.Layer, p.Kind)));
         var nozzles = parts.Where(p => p.Kind == Content.Vessels.Nozzle).ToList();
-        Assert.Equal(vessel.Decks.Count - 1, nozzles.Count);
+        // One by each engine room: a deck below the first, a liner's over its bottom band.
+        var engineDecks = vessel.Decks.Skip(1).SkipLast(v.Class.Layout == VesselLayout.Liner ? Content.Vessels.Liner.LowDecks : 0).ToList();
+        Assert.Equal(engineDecks.Count, nozzles.Count);
         var walls = parts.Where(p => p.Kind == "wall").Select(p => (p.X, p.Y)).ToHashSet();
-        foreach (var deck in vessel.Decks.Skip(1))
+        foreach (var deck in engineDecks)
         {
             var nozzle = Assert.Single(nozzles, n => n.Y == deck.Top);
             Assert.Equal(stern, nozzle.X + size.W);
@@ -232,6 +241,13 @@ public class VesselTests
             return;
         }
         Assert.Equal((0, 1, 0, 0), (Count(Content.Vessels.Mast), Count(Content.Vessels.MastTall), Count(Content.Vessels.Solar), Count(Content.Vessels.Tank)));
+        // A liner's mast and dish on its bridge, its other parts outside a stage of their own (big-vessels).
+        if (v.Class.Layout == VesselLayout.Liner)
+        {
+            int nozzles = vessel.Decks.Count - Content.Vessels.Liner.LowDecks - 1;
+            Assert.Equal(4 + 1 + 1 + nozzles, vessel.Outside.Count);
+            return;
+        }
         Assert.InRange(Count(Content.Vessels.Radiator), Content.Vessels.Radiators.Min, Content.Vessels.Radiators.Max);
         Assert.Equal((1, 1), (Count(Content.Vessels.Collar), Count(Content.Vessels.Boom)));
         Assert.True(Count(Content.Vessels.Truss) > 0);
@@ -307,9 +323,11 @@ public class VesselTests
                 var vessel = Shipyard.Describe(cls, seed);
                 var machines = Shipyard.Stamp(vessel).Where(p => p.Layer == "machine").ToList();
                 Assert.DoesNotContain(machines, p => p.Kind is "lamp" or "emergencyLamp" or "arcLamp");
-                Assert.All(machines.Where(p => Machines.Is(p.Kind, MachineTrait.Hangs)), p => Assert.Equal(Content.Vessels.Lamp, p.Kind));
+                // A liner's restaurant hangs chandeliers (big-vessels), a lamp of the vessel's.
+                string[] lamps = [Content.Vessels.Lamp, Content.Vessels.Chandelier];
+                Assert.All(machines.Where(p => Machines.Is(p.Kind, MachineTrait.Hangs)), p => Assert.Contains(p.Kind, lamps));
                 foreach (var c in vessel.Compartments)
-                    Assert.Contains(machines, p => p.Kind == Content.Vessels.Lamp && p.Y == c.Top && p.X >= c.Left && p.X < c.Left + c.Width);
+                    Assert.Contains(machines, p => lamps.Contains(p.Kind) && p.Y == c.Top && p.X >= c.Left && p.X < c.Left + c.Width);
             }
         var lamp = Machines.Get(Content.Vessels.Lamp);
         Assert.Equal((2, 1, false), (lamp.Width, lamp.Height, lamp.Powered));
@@ -329,7 +347,27 @@ public class VesselTests
             [Content.Vessels.Rack] = [VesselRole.Engine],
             [Content.Vessels.Console] = [VesselRole.Bridge],
             [Content.Vessels.Seat] = [VesselRole.Bridge],
-            [Content.Vessels.Cargo] = [VesselRole.Hold],
+            [Content.Vessels.Cargo] = [VesselRole.Hold, VesselRole.Hangar],
+            // A liner's (big-vessels).
+            [Content.Vessels.Bar] = [VesselRole.Restaurant],
+            [Content.Vessels.Piano] = [VesselRole.Restaurant],
+            [Content.Vessels.Chandelier] = [VesselRole.Restaurant],
+            [Content.Vessels.RoundTable] = [VesselRole.Restaurant, VesselRole.Lounge],
+            [Content.Vessels.Chair] = [VesselRole.Restaurant, VesselRole.Lounge],
+            [Content.Vessels.Lounger] = [VesselRole.Lounge, VesselRole.Pool],
+            [Content.Vessels.Pool] = [VesselRole.Pool],
+            [Content.Vessels.Diving] = [VesselRole.Pool],
+            [Content.Vessels.Stove] = [VesselRole.Galley],
+            [Content.Vessels.Counter] = [VesselRole.Galley],
+            [Content.Vessels.Bed] = [VesselRole.Infirmary],
+            [Content.Vessels.MedCab] = [VesselRole.Infirmary],
+            [Content.Vessels.FuelCart] = [VesselRole.Hangar],
+            [Content.Vessels.Capsule] = [VesselRole.FuelBay],
+            [Content.Vessels.ShuttleGull] = [VesselRole.Hangar],
+            [Content.Vessels.ShuttleMule] = [VesselRole.Hangar],
+            [Content.Vessels.ShuttleBeetle] = [VesselRole.Hangar],
+            [Content.Vessels.ShuttleWhale] = [VesselRole.Hangar],
+            [Content.Vessels.ShuttleHeron] = [VesselRole.Hangar],
         };
         Assert.Equal(Content.Vessels.Furniture.Select(r => Content.Vessels.FirstLook(r.Kind)).Distinct().Where(k => k != Content.Vessels.Lamp).Order(), roles.Keys.Order());
         var seen = new HashSet<string>();
@@ -341,7 +379,7 @@ public class VesselTests
                 {
                     string kind = Content.Vessels.FirstLook(f.Kind);
                     if (!roles.TryGetValue(kind, out var allowed)) continue;
-                    var room = vessel.Compartments.Single(c => f.X >= c.Left && f.X < c.Left + c.Width && f.Y >= c.Top && f.Y < c.Top + Content.Vessels.Open);
+                    var room = vessel.Compartments.Single(c => c.Holds(f.X, f.Y));
                     Assert.Contains(room.Role, allowed);
                     seen.Add(f.Kind);
                 }
@@ -409,7 +447,7 @@ public class VesselTests
         var parts = Shipyard.Stamp(vessel);
         var walls = parts.Where(p => p.Kind == "wall").Select(p => (p.X, p.Y)).ToHashSet();
         var backs = CellsOf(parts, "back");
-        var rooms = vessel.Sections.Where(s => s.Kind is Vessel.SectionKind.Body or Vessel.SectionKind.Bow or Vessel.SectionKind.Bridge).ToList();
+        var rooms = vessel.Sections.Where(s => s.Kind is Vessel.SectionKind.Body or Vessel.SectionKind.Bow or Vessel.SectionKind.Bridge or Vessel.SectionKind.Tier).ToList();
         bool Rooms(int x, int y) => rooms.Any(s => x >= s.Left && x < s.Left + s.Width && y >= s.RowsAt(x).Top && y <= s.RowsAt(x).Bottom);
         foreach (var s in vessel.Sections.Where(s => s.Kind is Vessel.SectionKind.Module or Vessel.SectionKind.Rib or Vessel.SectionKind.Housing))
             for (int y = s.Top; y <= s.Bottom; y++)
@@ -420,7 +458,7 @@ public class VesselTests
                 }
         // Every room's open rows: a back wall, no wall of the hull in any of them.
         foreach (var c in vessel.Compartments)
-            for (int y = c.Top; y < c.Top + Content.Vessels.Open; y++)
+            for (int y = c.Top; y < c.Floor; y++)
                 for (int x = c.Left; x < c.Left + c.Width; x++)
                 {
                     Assert.Contains((x, y), backs);
@@ -510,7 +548,8 @@ public class VesselTests
             {
                 var stern = All(v, Vessel.SectionKind.Module)[0];
                 var body = Section(v, Vessel.SectionKind.Body);
-                return body.Top - stern.Top == Content.Vessels.SternBulge.Max && stern.Bottom - body.Bottom == Content.Vessels.SternBulge.Max;
+                int down = cls.Layout == VesselLayout.Liner ? Content.Vessels.Liner.BulgeDown : Content.Vessels.SternBulge.Max;
+                return body.Top - stern.Top == Content.Vessels.SternBulge.Max && stern.Bottom - body.Bottom == down;
             });
             var parts = Shipyard.Stamp(vessel);
             var blocks = CellsOf(parts);
@@ -623,7 +662,7 @@ public class VesselTests
         var drawn = Content.Vessels.Interiors.SelectMany(i => Layout.Parse(i.Rows).Machines().Select(m => (i.Role, m.Kind))).ToList();
         foreach (var s in Content.Vessels.Salvage.Where(s => s.Roles.Count > 0))
             Assert.Contains(drawn, d => d.Kind == s.Kind && s.Roles.Contains(d.Role));
-        foreach (var role in Enum.GetValues<VesselRole>())
+        foreach (var role in Content.Vessels.Interiors.Select(i => i.Role).Distinct())
             Assert.Contains(drawn, d => d.Role == role && Content.Vessels.SalvageOf(d.Kind) != null);
     }
 
