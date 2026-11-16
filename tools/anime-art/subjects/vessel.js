@@ -347,9 +347,39 @@ function letters(w, h, cap) {
   return c;
 }
 
+/**
+ * A cell of a liner's bow visor (VesselDress.Visor), the hull's grey the livery tints: a plate (0), a plate over a lap seam (1), the
+ * heavy beam it hangs from (2), the beam with a hinge's knuckle and pin (3), the heavy frame at its aft edge (4), the two met (5), the
+ * ramp's lip across it (6).
+ */
+const visorPiece = (kind) => (a) => {
+  a.shape(band(-1, -1, 9, 9), PLATE, { outer: false, edge: false });
+  const beam = kind === 2 || kind === 3 || kind === 5, frame = kind === 4 || kind === 5;
+  if (kind === 1) { a.flat(band(-1, 6.9, 9, 7.6), SEAM); a.flat(band(-1, 7.6, 9, 8), grey(224)); }
+  if (kind === 6) { a.flat(band(-1, 2.6, 9, 5.4), grey(96)); a.flat(band(-1, 2.6, 9, 3.2), grey(206)); a.flat(band(-1, 5.4, 9, 5.9), grey(60)); }
+  if (beam) { a.flat(band(-1, 0, 9, 3.4), grey(112)); a.flat(band(-1, 0, 9, .8), grey(214)); a.flat(band(-1, 3.4, 9, 4), grey(58)); }
+  if (frame) { a.flat(band(0, -1, 2.8, 9), grey(104)); a.flat(band(0, -1, .8, 9), grey(210)); a.flat(band(2.8, -1, 3.4, 9), grey(58)); }
+  if (kind === 3) {
+    a.flat(ell(4.3, 2.4, 2.5), grey(52));
+    a.flat(ell(4, 2.1, 2.2), grey(150));
+    a.flat(ell(3.4, 1.5, .9, .6), grey(222));
+    a.flat(ell(4, 2.1, .7), grey(40));
+  }
+  if (kind === 0) { a.flat(ell(6.3, 6.3, .55), grey(96)); a.flat(ell(6.1, 6.1, .45), grey(228)); }
+};
+
+/** vessel_visor_chevron: hazard chevrons along a bow visor's edge, painted over its plate, a cell. */
+function visorChevron(a) {
+  hazardFoot(a, 0, 1.2, 8, 5.6, band(0, 1.2, 8, 6.8));
+  a.line('M0 1.2L8 1.2', { w: .5 });
+  a.line('M0 6.8L8 6.8', { w: .5 });
+}
+
 function skin() {
   const bake = (w, draw) => Anime.bake({ w, h: 8, tile: true, draw });
   out('vessel_hull', sheet([0, 1, 2].flatMap((role) => [0, 1, 2].map((v) => bake(64, plates(role, v)))), 1));
+  out('vessel_visor', sheet([0, 1, 2, 3, 4, 5, 6].map((k) => Anime.bake({ w: 8, h: 8, draw: visorPiece(k) })), 7));
+  out('vessel_visor_chevron', Anime.bake({ w: 8, h: 8, draw: visorChevron }));
   out('vessel_rib', sheet([0, 1, 2].map((role) => bake(16, ribRow(role))), 1));
   out('vessel_stripe', sheet([0, 1, 2, 3].map((s) => bake(8, stripeCell(s))), 4));
   for (const run of [1, 2]) for (const bottom of [false, true]) for (const glass of [false, true])
@@ -458,9 +488,8 @@ const WARM = palOf('#5e5a44'), BUNK = palOf('#6b5c49'), SEAT = palOf('#6a4a3a'),
 /** The lamp's housing: pale bare metal, lighter than the ship's lamp; its lens unlit, the game's light shines through it. */
 const PALE = { base: '#aeb3b6', shade: '#878c90', deep: '#64696d', lite: '#cdd1d3', spec: '#eef0f1', ink: INK };
 const LENS = { base: '#c9c2ad', shade: '#a49d89', deep: '#7f7969', lite: '#e2dccb', spec: '#f6f2e6', ink: INK };
-/** The cargo containers' colours, a look each (Vessels.ContainerColours), the mockup's CONT; and each keel container's stencilled number. */
+/** The cargo containers' colours, a look each (Vessels.ContainerColours), the mockup's CONT; each one's number is the game's (vessel_digit_*). */
 const CONT = ['#8a4a35', '#3d6275', '#9b7b3a', '#5b6b4a', '#767b83', '#6d4a5e'];
-const NUMBERS = ['27', '41', '63', '18', '85', '52'];
 
 /** machine_vesselLamp: a flat ceiling fixture, two cells across and a cell tall, its lens strip under a pale housing. */
 function lamp(a) {
@@ -565,16 +594,13 @@ function rack(a) {
   rivets(a, [3, 2.4], [29, 2.4]);
 }
 
-/** The corrugation, castings and wear of a cargo container w × h pixels in `col`; the keel's stencilled `num` on a plate if given. */
-const container = (w, h, col, num) => (a) => {
+/** The corrugation, castings and wear of a cargo container w × h pixels in `col`; a bare plate where the game stencils its number. */
+const container = (w, h, col) => (a) => {
   const pal = palOf(col), d = band(0, 0, w, h);
   a.shape(d, pal, { lite: band(0, 0, w, 2.4), shade: band(0, h - 3.6, w, h), deep: band(0, h - 1.4, w, h) });
   for (let x = 5.6; x < w - 4; x += 4.8) { a.flat(band(x, 2.8, x + 1, h - 2.8), pal.shade, { clip: d }); a.flat(band(x + 1, 2.8, x + 1.5, h - 2.8), pal.lite, { clip: d }); }
   for (const [x, y] of [[0, 0], [w - 4, 0], [0, h - 4], [w - 4, h - 4]]) a.flat(band(x, y, x + 4, y + 4), '#25272b');
-  if (num) {
-    a.flat(band(12, 7.2, 30, 17.6), pal.base);
-    stencil(a, num, 14, 8.8, 'rgba(235,228,212,.78)');
-  }
+  a.flat(band(14.4, 7.2, 33.6, 16.8), pal.base);
   a.flat(band(w * .7, h - 7.2, w * .7 + 7.2, h - 3.2), 'rgba(110,70,45,.55)', { clip: d });
   patch(a, w * .3, h - 4.6, 2.2, 1, RUST, d, 241 + w);
 };
@@ -606,8 +632,10 @@ function furniture() {
   CONT.forEach((col, k) => {
     const look = k === 0 ? '' : String(k + 1);
     out('machine_vesselCargo' + look, Anime.bake({ w: 64, h: 32, draw: container(64, 32, col) }));
-    out('machine_vesselContainer' + look, Anime.bake({ w: 80, h: 32, draw: container(80, 32, col, NUMBERS[k]) }));
+    out('machine_vesselContainer' + look, Anime.bake({ w: 80, h: 32, draw: container(80, 32, col) }));
   });
+  // A container's stencilled number, a digit a cell over its plate (VesselDress.Digit), drawn by the game from the vessel's seed.
+  for (let n = 0; n < 10; n++) out('vessel_digit_' + n, Anime.bake({ w: 8, h: 8, draw: (a) => stencil(a, String(n), 1.7, .4, 'rgba(235,228,212,.82)') }));
 }
 
 // ---- A liner's rooms (big-vessels, the mockup's drawItem and SHUTTLE_DRAW): the restaurant, the pool, the galley, the infirmary,
@@ -615,8 +643,8 @@ function furniture() {
 const WOOD = palOf('#5e4330'), WOOD_DARK = palOf('#2f2119'), BLACK = palOf('#1d1d20'), CLOTH = palOf('#d6d1c4'), PALE_METAL = palOf('#d0d6d8');
 const ORANGE = palOf('#c8722e'), SHEET = palOf('#bdbab2'), CAB = palOf('#a9aca8'), STEEL_GREY = palOf('#8a9096');
 const NOZZLE = palOf('#494d55'), CANOPY = '#1b3640';
-/** The mockup's CONTENTS, a capsule's look each: fuel, water, oxygen, nitrogen, coolant (Vessels.CapsuleContents). */
-const CONTENTS = ['#9a5a2e', '#4f6f86', '#a7bcc6', '#7d8590', '#4f7a5a'];
+/** The mockup's CONTENTS, a capsule's look each: fuel, water, oxygen (Vessels.CapsuleContents, Vessels.Liquids); no other liquid is an item. */
+const CONTENTS = ['#9a5a2e', '#4f6f86', '#a7bcc6'];
 /** x mirrored about a picture w wide when it faces the other way. */
 const mirror = (w, flip) => (pts) => flip ? pts.map((v, i) => (i % 2 ? v : w - v)) : pts;
 
@@ -731,7 +759,7 @@ function fuelCart(a) {
   for (const x of [4.8, 19.2]) a.shape(ell(x, 13.6, 2.4), palOf('#1f2125'), {});
 }
 
-/** machine_vesselCapsule and its looks: a horizontal tank on two saddles in its contents' paint, bands at its seams. 14 × 11 cells. */
+/** machine_vesselCapsule and its looks: a horizontal tank on two saddles in its contents' paint, bands at its seams, its contents stencilled between them. 14 × 11 cells. */
 function capsule(col) {
   return (a) => {
     const pal = palOf(col), d = Anime.rr(.8, 1.6, 110.4, 70.4, 35);
@@ -1093,8 +1121,8 @@ function pad(a) {
 }
 
 // ---- A tanker's rooms (big-vessels, the mockup's drawItem): the pump room's pump and valves, a bay's tall tanks, the fuel column.
-/** The mockup's CONTENTS by name, a stencil on each tank: fuel, water, oxygen, nitrogen, coolant. */
-const CONTENT_IDS = ['FUEL', 'H2O', 'O2', 'N2', 'COOLANT'];
+/** The CONTENTS by name, stencilled on each tank: fuel, water, oxygen. */
+const CONTENT_IDS = ['FUEL', 'H2O', 'O2'];
 const PUMP_BODY = palOf('#4f5a62');
 
 /** A handwheel at (x, y) of radius r in `col`: its rim, four spokes and the hub. */
@@ -1116,10 +1144,11 @@ function pump(a) {
   patch(a, 25, 24, 2.4, 1.2, RUST, d, 401);
 }
 
-/** machine_vesselValves: the pump room's wall panel, three pipes down it, a handwheel on each, red, brass, red. 3 × 4 cells. */
+/** machine_vesselValves: the pump room's wall panel floor to ceiling, three pipes down it from their flanges, a handwheel on each, red, brass, red. 3 × 6 cells. */
 function valves(a) {
-  ['#5d646e', '#7a5a3e', '#5d646e'].forEach((c, k) => a.tube(`M${4 + k * 8} 0L${4 + k * 8} 32`, 1.8, palOf(c), { spec: false }));
-  ['#a33a2a', '#c9a03a', '#a33a2a'].forEach((c, k) => wheel(a, 4 + k * 8, 8 + k * 7.2, 3.4, c));
+  ['#5d646e', '#7a5a3e', '#5d646e'].forEach((c, k) => a.tube(`M${4 + k * 8} 0L${4 + k * 8} 48`, 1.8, palOf(c), { spec: false }));
+  for (let k = 0; k < 3; k++) lit(a, 1.6 + k * 8, 0, 6.4 + k * 8, 2.4, DARK);
+  ['#a33a2a', '#c9a03a', '#a33a2a'].forEach((c, k) => wheel(a, 4 + k * 8, 24 + k * 7.2, 3.4, c));
 }
 
 /** A stencilled word on a baked picture `c` (4 px a world pixel), centred on (x, y), `size` tall, at most `wide` across. */
@@ -1222,10 +1251,10 @@ function dome(a) {
   wheel(a, 16, 9.6, 3.2, '#3a3e45');
   lit(a, 0, 14.4, 32, 16, DARK);
 }
-/** machine_vesselSphere: a spherical tank slung under the keel on two struts, an ochre band round its middle. 10 × 11 cells. */
+/** machine_vesselSphere and its looks: a spherical tank slung under the keel on two struts (Vessels.SpherePosts), an ochre band round its middle, its contents stencilled. 10 × 11 cells. */
 function sphere(a) {
-  for (const [x0, x1] of [[16, 22], [64, 58]]) a.tube(`M${x0} 0L${x1} 18`, 2.4, MID, { spec: false });
-  lit(a, 12, 0, 68, 2.4, DARK);
+  for (const [x0, x1] of [[20, 26], [60, 54]]) a.tube(`M${x0} 0L${x1} 18`, 2.4, MID, { spec: false });
+  lit(a, 15, 0, 65, 2.4, DARK);
   const d = ell(40, 48, 38.4);
   a.shape(d, SPHERE, { lite: ell(28, 30, 16, 12), shade: [band(0, 62, 80, 88), band(62, 10, 80, 88)], deep: band(0, 78, 80, 88) });
   a.flat(band(0, 45.6, 80, 50.4), OCHRE, { clip: d });
@@ -1256,7 +1285,9 @@ function outsides() {
   out('machine_vesselRiser', Anime.bake({ w: 8, h: 8, draw: riser }));
   out('machine_vesselRiser2', Anime.bake({ w: 8, h: 8, draw: riserValve }));
   out('machine_vesselDome', Anime.bake({ w: 32, h: 16, draw: dome }));
-  out('machine_vesselSphere', Anime.bake({ w: 80, h: 88, draw: sphere }));
+  // A look a content but fuel, as a tall tank's (Vessels.SphereContents): it holds what the bay over it does.
+  for (let k = 1; k < CONTENTS.length; k++)
+    out('machine_vesselSphere' + (k === 1 ? '' : String(k)), stencilled(Anime.bake({ w: 80, h: 88, draw: sphere }), CONTENT_IDS[k], 40, 62, 10, 44));
   out('vessel_bay_door', Anime.bake({ w: 64, h: 16, tile: true, draw: bayDoor }));
   out('vessel_bay_door_left', Anime.bake({ w: 16, h: 16, draw: bayDoorEnd(false) }));
   out('vessel_bay_door_right', Anime.bake({ w: 16, h: 16, draw: bayDoorEnd(true) }));
@@ -1264,7 +1295,7 @@ function outsides() {
 
 function tanker() {
   out('machine_vesselPump', Anime.bake({ w: 32, h: 32, draw: pump }));
-  out('machine_vesselValves', Anime.bake({ w: 24, h: 32, draw: valves }));
+  out('machine_vesselValves', Anime.bake({ w: 24, h: 48, draw: valves }));
   // A look a content but fuel, the capsule's after its first (Vessels.TankTallContents).
   for (let k = 1; k < CONTENTS.length; k++)
     out('machine_vesselTankTall' + (k === 1 ? '' : String(k)), stencilled(Anime.bake({ w: 64, h: 88, draw: tallTank(64, 88, CONTENTS[k]) }), CONTENT_IDS[k], 32, 50, 9, 52));
@@ -1287,7 +1318,7 @@ function liner() {
   out('machine_vesselBed', Anime.bake({ w: 32, h: 16, draw: bed }));
   out('machine_vesselMedCab', Anime.bake({ w: 16, h: 40, draw: medCab }));
   out('machine_vesselFuelCart', Anime.bake({ w: 24, h: 16, draw: fuelCart }));
-  CONTENTS.forEach((col, k) => out('machine_vesselCapsule' + (k === 0 ? '' : String(k + 1)), Anime.bake({ w: 112, h: 88, draw: capsule(col) })));
+  CONTENTS.forEach((col, k) => out('machine_vesselCapsule' + (k === 0 ? '' : String(k + 1)), stencilled(Anime.bake({ w: 112, h: 88, draw: capsule(col) }), CONTENT_IDS[k], 56, 34, 12, 26)));
   out('machine_vesselShuttleGull', Anime.bake({ w: 168, h: 56, draw: gull }));
   out('machine_vesselShuttleMule', Anime.bake({ w: 192, h: 72, draw: mule }));
   out('machine_vesselShuttleBeetle', Anime.bake({ w: 128, h: 72, draw: beetle }));

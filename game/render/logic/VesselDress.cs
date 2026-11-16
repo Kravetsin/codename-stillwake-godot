@@ -32,6 +32,18 @@ public sealed class VesselDress
     /// <summary>The livery stripe's sheet: a cell plain, then scuffed ones.</summary>
     public const string StripeSheet = "vessel_stripe";
 
+    /// <summary>A bow visor's sheet (big-vessels), a cell a piece of it in one row (<see cref="Visor"/>), tinted as the hull is.</summary>
+    public const string VisorSheet = "vessel_visor";
+
+    /// <summary>A bow visor's pieces: a plate, one over a lap seam, the beam it hangs from, a hinge on the beam, its aft frame, the two met, the ramp's lip.</summary>
+    public enum Visor : byte { Plate, Seam, Beam, Hinge, Frame, Corner, Lip }
+
+    /// <summary>A bow visor's hinges stand on its beam every this many columns.</summary>
+    public const int HingeEvery = 4;
+
+    /// <summary>A bow visor's plates lap every this many rows under its beam.</summary>
+    public const int VisorSeamEvery = 4;
+
     /// <summary>How many stripe cells the sheet holds: plain, then scuffs.</summary>
     public const int Stripes = 4;
 
@@ -72,7 +84,7 @@ public sealed class VesselDress
     /// </summary>
     public sealed record Label(string Text, bool Large, int Left, int Top, int Width, int Height, int Row, int TextY);
 
-    private enum Kind : byte { None, Plate, Rib }
+    private enum Kind : byte { None, Plate, Rib, Visor }
 
     private struct Look
     {
@@ -168,6 +180,16 @@ public sealed class VesselDress
                 (look.Bow, look.Run, look.Piece, look.Glass) = ((byte)(bottom ? 2 : 1), (byte)bow.Run, (byte)(i % bow.Run), wall[y * w + x] == 2);
             }
         }
+
+        // A bow visor over a hangar at the bow (big-vessels): the bow's hull from the beam over the hangar down, a piece by where it lies.
+        if (VisorOf(vessel) is { } visor)
+            for (int x = bow.Left; x < bow.Left + bow.Width; x++)
+                for (int y = visor.Top; y <= bow.RowsAt(x).Bottom; y++)
+                {
+                    if (!Hull(x, y)) continue;
+                    ref var look = ref _looks[y * w + x];
+                    (look.Kind, look.Column, look.Row) = (Kind.Visor, (byte)VisorPiece(x - bow.Left, y - visor.Top, y == visor.Lip), 0);
+                }
 
         // The stripe along the body's bottom armour, its inner row, to where the bow's slope takes it.
         int stripe = body.Bottom - 1;
@@ -279,8 +301,55 @@ public sealed class VesselDress
             var fin = Machines.Get(Vessels.Fin);
             decor.Add(new Decor("vessel_emblem", f.X, f.Y, fin.Width, fin.Height, false, [(f.X, f.Y)], DecorOn.Machine, Vessels.Fin, DecorTint.Stripe));
         }
+        // Chevrons along a bow visor's edge: the cells over the hull's outermost along its bottom and its slope, in reading order.
+        if (VisorOf(vessel) is { } visor)
+        {
+            var bow = vessel.Sections.First(s => s.Kind == Vessel.SectionKind.Bow);
+            bool Wall(int x, int y) => x >= 0 && y >= 0 && x < vessel.Width && y < vessel.Height && wall[y * vessel.Width + x] == 1;
+            bool Outer(int x, int y) => Wall(x, y) && !Wall(x, y + 1);
+            for (int y = visor.Top + 1; y < vessel.Height; y++)
+                for (int x = bow.Left; x < bow.Left + bow.Width; x++)
+                    if (Wall(x, y) && !Outer(x, y) && (Outer(x, y + 1) || Outer(x + 1, y + 1) && !Wall(x + 1, y)))
+                        Add(Chevron, x, y, 1, 1, tiled: false, DecorOn.Wall);
+        }
+        // Every cargo container's stencilled number, a digit a cell over its plate, while it stands.
+        foreach (var f in vessel.Fittings.Concat(vessel.Outside))
+        {
+            if (Vessels.FirstLook(f.Kind) is not (Vessels.Container or Vessels.Cargo)) continue;
+            int n = ContainerNumber(vessel.Seed, f.X, f.Y, vessel.Width);
+            for (int k = 0; k < 2; k++)
+                decor.Add(new Decor(Digit(k == 0 ? n / 10 : n % 10), f.X + NumberAt.X + k, f.Y + NumberAt.Y, 1, 1, false, [(f.X, f.Y)], DecorOn.Machine, f.Kind));
+        }
         return decor;
     }
+
+    /// <summary>A bow visor's chevrons, a cell along its edge.</summary>
+    public const string Chevron = "vessel_visor_chevron";
+
+    /// <summary>A stencilled digit, a cell, for a container's number.</summary>
+    public static string Digit(int digit) => $"vessel_digit_{digit}";
+
+    /// <summary>The cell of a container's number's first digit, from its top-left: over the bare plate its picture leaves.</summary>
+    public static readonly (int X, int Y) NumberAt = (2, 1);
+
+    /// <summary>The number stencilled on the container whose top-left is (<paramref name="x"/>, <paramref name="y"/>) of a frame <paramref name="width"/> wide: 1 to 99.</summary>
+    public static int ContainerNumber(uint seed, int x, int y, int width) => 1 + Looks.Below(seed, Looks.Salt.Container, y * width + x, 99);
+
+    /// <summary>
+    /// A bow visor's rows (big-vessels), where a hangar meets the bow: from the floor row over the hangar, its beam, to the bow's bottom;
+    /// <c>Lip</c> the hangar's floor row, the ramp's lip. Null without such a hangar.
+    /// </summary>
+    public static (int Top, int Lip)? VisorOf(Vessel vessel)
+    {
+        var bow = vessel.Sections.First(s => s.Kind == Vessel.SectionKind.Bow);
+        var hangar = vessel.Compartments.FirstOrDefault(c => c.Role == VesselRole.Hangar && c.Left + c.Width == bow.Left);
+        return hangar == null ? null : (hangar.Top - 1, hangar.Floor);
+    }
+
+    /// <summary>The piece of a bow visor <paramref name="fx"/> columns past the bow's start and <paramref name="fy"/> rows under its beam.</summary>
+    public static Visor VisorPiece(int fx, int fy, bool lip) =>
+        fy == 0 ? (fx == 0 ? Visor.Corner : fx % HingeEvery == HingeEvery / 2 ? Visor.Hinge : Visor.Beam)
+        : fx == 0 ? Visor.Frame : lip ? Visor.Lip : fy % VisorSeamEvery == 0 ? Visor.Seam : Visor.Plate;
 
     /// <summary>
     /// Whether <paramref name="decor"/> still shows on <paramref name="grid"/>, by what it lies on: every cell it was stamped bare still a hull
@@ -356,7 +425,7 @@ public sealed class VesselDress
             }
         }
         if (glass || look.Kind == Kind.None) return default;
-        var wall = new Piece(look.Kind == Kind.Rib ? RibSheet : HullSheet, look.Column, look.Row);
+        var wall = new Piece(look.Kind switch { Kind.Rib => RibSheet, Kind.Visor => VisorSheet, _ => HullSheet }, look.Column, look.Row);
         return new Dress(wall, true, InkOf(space, room), look.Stripe >= 0 ? new Piece(StripeSheet, look.Stripe, 0) : null,
             look.PaintX >= 0 ? (look.PaintX, look.PaintY) : null, Cut: false);
     }

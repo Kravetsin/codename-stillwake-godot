@@ -131,7 +131,7 @@ public static class VesselLooks
     public static readonly (float X, float Y) CableTip = (15, 21.5f), BurstAt = (32, 7.5f);
 
     /// <summary>Why a look is drawn, mixed into its draw so two looks of one cell differ.</summary>
-    public enum Salt : uint { Livery = 1, Name, Prefix, Number, Panel, Stripe, Lamp, Dying, Console, Glitch, Jam, Phase, Flicker, SignCount, SignKinds, Sign, SignDir }
+    public enum Salt : uint { Livery = 1, Name, Prefix, Number, Panel, Stripe, Lamp, Dying, Console, Glitch, Jam, Phase, Flicker, SignCount, SignKinds, Sign, SignDir, Container }
 
     /// <summary>
     /// A look's draw (SplitMix64, fixed here): the same <paramref name="seed"/>, <paramref name="salt"/> and <paramref name="cell"/>
