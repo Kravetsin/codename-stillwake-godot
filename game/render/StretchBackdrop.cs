@@ -39,9 +39,11 @@ public partial class StretchBackdrop : Node2D
     /// The stretch shown (<see cref="StretchShown"/>): <paramref name="look"/>, <paramref name="grow"/> of its warning run and
     /// <paramref name="since"/> ticks since it began, gone once <paramref name="melt"/> is past 0. Its row starts with its warning, the
     /// same picked and in the same place for every peer and after a load, and passes out after it has gone.
+    /// A look with no far picture (a planet's weather) draws nothing.
     /// </summary>
     public void Show(StretchLooks.Look? look, float grow, float melt, int since)
     {
+        if (look is { Far: null }) look = null;
         if (look != null && melt <= 0)
         {
             if (look != _look || _ending) Start(look);
@@ -57,9 +59,9 @@ public partial class StretchBackdrop : Node2D
     private void Start(StretchLooks.Look look)
     {
         (_look, _lead, _last, _ending, _places) = (look, null, null, false, (0, -1));
-        _pictures = look.Far.Pictures.Select(PixelArt.Far).ToArray();
-        _atlas = look.Far.Scattered is { } field ? ImageTexture.CreateFromImage(HiRes.Mipped(HiRes.Load(field.Atlas)!)) : null;
-        var veil = look.Far.Scattered?.Veil ?? StretchLooks.Veil;
+        _pictures = look.Far!.Pictures.Select(PixelArt.Far).ToArray();
+        _atlas = look.Far!.Scattered is { } field ? ImageTexture.CreateFromImage(HiRes.Mipped(HiRes.Load(field.Atlas)!)) : null;
+        var veil = look.Far!.Scattered?.Veil ?? StretchLooks.Veil;
         Modulate = new Color(veil.R, veil.G, veil.B);
     }
 
@@ -67,7 +69,7 @@ public partial class StretchBackdrop : Node2D
     public void Follow(Vector2 camera, float zoom, Vector2 screen, double seconds)
     {
         if (!Visible || _look == null) return;
-        var far = _look.Far;
+        var far = _look.Far!;
         zoom = Mathf.Max(zoom, ShipCamera.FarthestZoom(screen));
         var centre = Scatter.Centre(camera.X, camera.Y, StretchLooks.Parallax, far.Speed, seconds);
         double half = screen.X / 2 / zoom, period = far.Width * (1 + far.Gap);
@@ -100,7 +102,7 @@ public partial class StretchBackdrop : Node2D
     public override void _Draw()
     {
         if (_look == null) return;
-        var far = _look.Far;
+        var far = _look.Far!;
         double period = far.Width * (1 + far.Gap);
         for (long place = _places.First; place <= _places.Last; place++)
         {
@@ -119,7 +121,7 @@ public partial class StretchBackdrop : Node2D
     private void DrawField(StretchLooks.Field field, long place, float x)
     {
         _spots.Clear();
-        StretchLooks.PiecesAt(field, place, _seed, _look!.Far.Width, _spots);
+        StretchLooks.PiecesAt(field, place, _seed, _look!.Far!.Width, _spots);
         foreach (var spot in _spots)
         {
             var (px, py, w, h) = field.Pieces[spot.Piece];

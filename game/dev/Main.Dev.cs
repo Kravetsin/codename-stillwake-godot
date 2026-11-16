@@ -44,6 +44,14 @@ public partial class Main
         return true;
     }
 
+    /// <summary><c>--cape-film=&lt;path&gt;</c>: the cape through a run, filmed and saved, nothing else made; whether it was given.</summary>
+    private bool CapeFilmOnly()
+    {
+        if (_dev.Value("--cape-film") is not { } film) return false;
+        AddChild(new Dev.CapeFilm(film));
+        return true;
+    }
+
     /// <summary><c>--gesture-sheet=&lt;folder&gt;</c>: every gesture played through and written, nothing else made; whether it was given.</summary>
     private bool GestureSheetOnly()
     {

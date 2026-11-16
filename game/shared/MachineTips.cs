@@ -17,6 +17,9 @@ public sealed class MachineTips(Ui ui, params MachineTips.Speaker[] speakers)
     /// <summary>What a feature says of <paramref name="machine"/> in the tip's lines, read from <paramref name="m"/>; null for one it does not speak of.</summary>
     public delegate IReadOnlyList<TipLine>? Speaker(Registry m, Machine machine, MachineSpec spec);
 
+    /// <summary>Cells still dark on this surface (a derelict's unseen inside, hidden-rooms): a machine there is not named.</summary>
+    public System.Func<int, bool> Hidden { get; set; } = _ => false;
+
     private (int Machine, int Tick) _told = (-1, -1);
     private IReadOnlyList<TipLine>? _said;
 
@@ -29,6 +32,7 @@ public sealed class MachineTips(Ui ui, params MachineTips.Speaker[] speakers)
         }
         int width = m.Grid.Width, height = m.Grid.Height;
         var machine = ui.Hand.Get() != Holding.Card && pointer is { } p && p.X >= 0 && p.Y >= 0 && p.X < width && p.Y < height
+            && !Hidden((int)p.Y * width + (int)p.X)
             ? m.Grid.MachineAt((int)p.Y * width + (int)p.X)
             : null;
         var said = machine == null ? null

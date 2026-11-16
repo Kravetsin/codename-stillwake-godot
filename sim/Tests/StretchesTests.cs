@@ -23,12 +23,16 @@ public class StretchesTests
     private static Scenario Ship() => new(PodRoom, doubled: true);
 
     private static readonly Spec.Stretch Belt = Spec.IceBelt, Drift = Spec.ContrabandDrift;
+    private static readonly DebrisZone BeltZone = Belt.Zone!, DriftZone = Drift.Zone!;
 
     /// <summary>A cell of open space right of the hull: vacuum, no back wall.</summary>
     private const int Beyond = 6 * 30 + 25;
 
     private static SkyState S(Scenario w) => (SkyState)w.M.Sky.Slice;
     private static SkyNow Now(Scenario w) => w.M.Sky.Now;
+
+    /// <summary>The sky with no stretch chosen, coming or running, at the start of a day.</summary>
+    private static readonly SkyNow Calm = new(0, false, 0, null, null, 0);
 
     /// <summary><paramref name="item"/> obtained by the crew, as a catch counts it.</summary>
     private static Scenario Obtain(Scenario w, string item)
@@ -62,7 +66,7 @@ public class StretchesTests
     public void NothingObtainedOpensNothingAndDrawsNothing()
     {
         var w = Ship().Run(2000);
-        Assert.Equal(default, Now(w));
+        Assert.Equal(Calm, Now(w));
         Assert.Contains("\"sky\":{\"time\":0}", w.World.Save());
     }
 
@@ -77,11 +81,11 @@ public class StretchesTests
         int first = S(w).NextIn;
         InSpan(Belt.First, first);
         // Unseen till its warning.
-        w.Run(first - Spec.Warning - 1);
+        w.Run(first - Belt.Warning - 1);
         Assert.Equal((null, null, 0), (Now(w).Stretch, Now(w).Coming, Now(w).ComingIn));
         w.Run();
-        Assert.Equal((null, Belt.Id, Spec.Warning), (Now(w).Stretch, Now(w).Coming, Now(w).ComingIn));
-        w.Run(Spec.Warning - 1);
+        Assert.Equal((null, Belt.Id, Belt.Warning), (Now(w).Stretch, Now(w).Coming, Now(w).ComingIn));
+        w.Run(Belt.Warning - 1);
         Assert.Equal((null, Belt.Id, 1), (Now(w).Stretch, Now(w).Coming, Now(w).ComingIn));
         w.Run();
         Assert.Equal((Belt.Id, null, 0, Belt.Chill, 0), (Now(w).Stretch, Now(w).Coming, Now(w).ComingIn, Now(w).Chill, Now(w).Ran));
@@ -91,7 +95,7 @@ public class StretchesTests
         w.Run(left - 1);
         Assert.Equal((Belt.Id, left - 1), (Now(w).Stretch, Now(w).Ran));
         w.Run();
-        Assert.Equal(default, Now(w));
+        Assert.Equal(Calm, Now(w));
         // Its gap measured from the end, drawn on the tick it ended; the drift never opened.
         Assert.Equal(Belt.Id, S(w).Next);
         InSpan(Belt.Gap, S(w).NextIn);
@@ -152,8 +156,8 @@ public class StretchesTests
         Assert.Empty(w.Refusals);
         Assert.Equal([Belt.Id, Drift.Id], S(w).Opened);
         // Counted down on the tick it came, as any wait is.
-        Assert.Equal((Drift.Id, Spec.Warning - 1), (Now(w).Coming, Now(w).ComingIn));
-        w.Run(Spec.Warning - 1);
+        Assert.Equal((Drift.Id, Drift.Warning - 1), (Now(w).Coming, Now(w).ComingIn));
+        w.Run(Drift.Warning - 1);
         Assert.Equal(Drift.Id, Now(w).Stretch);
         // The belt, chosen before and never come, comes next.
         RunUntil(w, () => Now(w).Stretch == null);
@@ -162,7 +166,7 @@ public class StretchesTests
     }
 
     [Fact]
-    public void StretchNowIsRefusedForOneUnknownOrOnASurfaceWithNoneAndWhileOneRuns()
+    public void StretchNowIsRefusedForOneUnknownOrOfAnotherSurfacesKindAndWhileOneRuns()
     {
         var w = Ship();
         w.Do(new StretchNow("noSuchStretch")).Run();
@@ -174,10 +178,11 @@ public class StretchesTests
         Assert.Empty(w.Refusals);
         w.Do(new StretchNow(Belt.Id)).Run();
         Assert.Equal("sky.noStretch", Assert.Single(w.Refusals).Reason);
-        Assert.Empty(((SkyState)w.On(1).Sky.Slice).Opened);
+        // A planet has its own: the belt is not among them.
+        Assert.Equal([Content.Stretches.DustStorm.Id, Content.Stretches.RainStorm.Id], ((SkyState)w.On(1).Sky.Slice).Opened);
 
         var ship = Ship();
-        ship.Do(new StretchNow(Belt.Id)).Run(Spec.Warning);
+        ship.Do(new StretchNow(Belt.Id)).Run(Belt.Warning);
         Assert.Equal(Belt.Id, Now(ship).Stretch);
         int left = S(ship).Left;
         ship.Do(new StretchNow(Drift.Id)).Run();
@@ -191,7 +196,7 @@ public class StretchesTests
     public void ARunningStretchSavesLoadsAndPlaysOnTheSame()
     {
         var w = Ship();
-        Obtain(w, Content.Helmet.Quilted).Do(new StretchNow(Belt.Id)).Run(Spec.Warning + 10);
+        Obtain(w, Content.Helmet.Quilted).Do(new StretchNow(Belt.Id)).Run(Belt.Warning + 10);
         Assert.Equal(Belt.Id, Now(w).Stretch);
         var loaded = Ship().Reload(w.World.Save());
         Assert.Equal(w.World.Hash(), loaded.World.Hash());
@@ -220,13 +225,13 @@ public class StretchesTests
         Assert.Null(w.M.Grid.BackAt(Beyond));
         Assert.False(w.M.Atmosphere.AiredAt(Beyond));
         int before = Reading();
-        w.Do(new StretchNow(Belt.Id)).Run(Spec.Warning - 1);
+        w.Do(new StretchNow(Belt.Id)).Run(Belt.Warning - 1);
         Assert.Equal(before - Belt.Chill, Reading());
         Assert.Equal(Belt.Id, Now(w).Stretch);
         // A room aired by a vaporizer's vent (AirTesting.Vaporized) stays a room's warmth.
         var room = new Scenario(AirTesting.Vaporized(["#########", "#V......#", "#TT.....#", "#TT.....#", "#########"], ["", " ---", " o -", "   -"]), doubled: true);
         int aired = room.At(4, 1);
-        room.Run(60).Do(new StretchNow(Belt.Id)).Run(Spec.Warning);
+        room.Run(60).Do(new StretchNow(Belt.Id)).Run(Belt.Warning);
         Assert.Equal(Belt.Id, Now(room).Stretch);
         Assert.True(room.M.Atmosphere.AiredAt(aired));
         Assert.Equal(Content.Temperature.Room, room.M.Crew.TemperatureAt(aired));
@@ -259,15 +264,15 @@ public class StretchesTests
     {
         var w = Ship();
         // The belt brought by hand: it starts on tick Warning.
-        var spawns = Spawns(w, 2 * Spec.Warning + Belt.Duration.Most, new StretchNow(Belt.Id));
+        var spawns = Spawns(w, 2 * Belt.Warning + Belt.Duration.Most, new StretchNow(Belt.Id));
         Assert.Null(Now(w).Stretch);
-        var ice = spawns.Where(s => s.Piece.Zone == Belt.Zone.Id).ToList();
+        var ice = spawns.Where(s => s.Piece.Zone == BeltZone.Id).ToList();
         Assert.True(ice.Count > 1);
         Assert.All(ice, s => Assert.Equal(("iceBlock", Belt.Id), (s.Piece.Item, s.Running)));
-        Assert.Equal(Spec.Warning + Belt.Zone.Every, ice[0].Tick);
+        Assert.Equal(Belt.Warning + BeltZone.Every, ice[0].Tick);
         Assert.Contains(spawns, s => s.Piece.Zone == Content.Debris.Ship.Id && s.Running == null);
         Assert.Contains(spawns, s => s.Piece.Zone == Content.Debris.Ship.Id && s.Running == Belt.Id);
-        Assert.DoesNotContain(spawns, s => s.Piece.Zone == Drift.Zone.Id);
+        Assert.DoesNotContain(spawns, s => s.Piece.Zone == DriftZone.Id);
     }
 
     [Fact]
@@ -275,7 +280,7 @@ public class StretchesTests
     {
         var w = Ship();
         Assert.True(Belt.Thins > 1);
-        w.Do(new StretchNow(Belt.Id)).Run(Spec.Warning);
+        w.Do(new StretchNow(Belt.Id)).Run(Belt.Warning);
         Assert.Equal(Belt.Id, Now(w).Stretch);
         // Over a span the belt surely runs through, and as long again after it.
         int span = Belt.Duration.Least - 1;
@@ -291,11 +296,11 @@ public class StretchesTests
     public void AStretchsZoneBeatsAgainABeatAfterEachStart()
     {
         var w = Ship();
-        w.Do(new StretchNow(Belt.Id)).Run(Spec.Warning);
+        w.Do(new StretchNow(Belt.Id)).Run(Belt.Warning);
         RunUntil(w, () => Now(w).Stretch == null);
-        Assert.DoesNotContain(((DebrisState)w.M.Debris.Slice).Beats, b => b.Zone == Belt.Zone.Id);
-        var spawns = Spawns(w, Spec.Warning + Belt.Zone.Every, new StretchNow(Belt.Id));
-        Assert.Equal(Spec.Warning + Belt.Zone.Every, spawns.First(s => s.Piece.Zone == Belt.Zone.Id).Tick);
+        Assert.DoesNotContain(((DebrisState)w.M.Debris.Slice).Beats, b => b.Zone == BeltZone.Id);
+        var spawns = Spawns(w, Belt.Warning + BeltZone.Every, new StretchNow(Belt.Id));
+        Assert.Equal(Belt.Warning + BeltZone.Every, spawns.First(s => s.Piece.Zone == BeltZone.Id).Tick);
     }
 
     [Fact]
@@ -318,51 +323,81 @@ public class StretchesTests
     /// <summary>A step of the property: an unlock obtained, a stretch brought, ticks run, or a wait or a run cut short.</summary>
     public enum Act { Obtain, Bring, Run, Hurry }
 
-    private static readonly string[] Unlocks = [.. Spec.All.SelectMany(s => s.Unlock)];
+    /// <summary>Every item that opens a stretch of the ship's: obtained on a planet too, where it opens nothing.</summary>
+    private static readonly string[] Unlocks = [.. Spec.Ship.SelectMany(s => s.Unlock)];
+
+    /// <summary>Every stretch of every kind and one unknown, so each surface is brought another's too and refuses it.</summary>
+    private static readonly string[] Ids = [.. Spec.Ship.Concat(Spec.FirstPlanet).Select(s => s.Id), "noSuchStretch"];
 
     /// <summary>
-    /// Whatever is obtained and brought, and however waits and runs fall: at most one stretch chosen or running, never both; a running
-    /// one's ticks left within its duration; <c>Opened</c> and <c>Came</c> only growing, each id once in content order, <c>Came</c>
-    /// within <c>Opened</c>; and the ship's chill the running stretch's alone.
+    /// The ship, or the test strip under the first planet's rules (its storms) with hero 0 beamed down; and the surface whose sky
+    /// the property reads.
+    /// </summary>
+    private static (Scenario World, int Surface) Surface(bool planet)
+    {
+        if (!planet) return (Ship(), 0);
+        var w = Ship();
+        w.Do(new Enter(Beyond)).Do(new OpenSurface(Content.Surfaces.TestStrip.Id)).Run();
+        return (w.Do(new Transfer(1)).Run(), 1);
+    }
+
+    /// <summary>
+    /// Whatever is obtained and brought, and however waits and runs fall, aboard and on a planet: at most one stretch chosen, coming
+    /// or running, never two; one coming only in its own warning, and always then; a running one's ticks left within its duration and
+    /// a chosen one's wait within the longer of its first and its gap; <c>Opened</c> and <c>Came</c> only growing, each id once and
+    /// only the surface's own, in its order, <c>Came</c> within <c>Opened</c>; and the chill the running stretch's and the night's alone.
     /// </summary>
     [Property(MaxTest = 60)]
-    public Property AtMostOneIsChosenOrRunningItsTicksWithinItsDurationAndWhatOpenedOrCameOnlyGrows()
+    public Property AtMostOneIsChosenComingOrRunningWithinItsOwnSpansAndWhatOpenedOrCameOnlyGrows()
     {
         var step = from act in Gen.Frequency((1, Gen.Constant(Act.Obtain)), (1, Gen.Constant(Act.Bring)), (3, Gen.Constant(Act.Run)), (2, Gen.Constant(Act.Hurry)))
                    from n in Gen.Choose(0, 1000)
                    select (act, n);
-        var cases = from n in Gen.Choose(1, 60) from steps in step.ArrayOf(n) select steps;
-        return Prop.ForAll(cases.ToArbitrary(), steps =>
+        var cases = from planet in Gen.Elements(false, true) from n in Gen.Choose(1, 60) from steps in step.ArrayOf(n) select (planet, steps);
+        return Prop.ForAll(cases.ToArbitrary(), c =>
             {
-                var w = Ship();
+                var (w, surface) = Surface(c.planet);
+                var kind = w.On(surface).Rules;
+                var ids = kind.Stretches.Select(x => x.Id).ToList();
+                SkyState Slice() => (SkyState)w.On(surface).Sky.Slice;
                 List<string> opened = [], came = [];
-                foreach (var (act, n) in steps)
+                foreach (var (act, n) in c.steps)
                 {
-                    var s = S(w);
+                    var s = Slice();
                     switch (act)
                     {
                         case Act.Obtain: Obtain(w, Unlocks[n % Unlocks.Length]); break;
-                        case Act.Bring: w.Do(new StretchNow(n % 5 == 4 ? "noSuchStretch" : Spec.All[n % Spec.All.Count].Id)); break;
+                        case Act.Bring: w.Do(new StretchNow(Ids[n % Ids.Length])); break;
                         case Act.Run: break;
-                        // Lowered only, so what the schedule drew stays within its span.
+                        // Lowered only, so what the schedule drew stays within its span; a wait now and then past a short warning.
                         case Act.Hurry when s.Active != null: s.Left = Math.Min(s.Left, 1 + n % 50); break;
-                        case Act.Hurry when s.Next != null: s.NextIn = Math.Min(s.NextIn, 1 + n % 50); break;
+                        case Act.Hurry when s.Next != null: s.NextIn = Math.Min(s.NextIn, 1 + n); break;
                     }
                     w.Run(1 + n % 40);
-                    s = S(w);
+                    s = Slice();
+                    var now = w.On(surface).Sky.Now;
                     Assert.False(s.Active != null && s.Next != null);
                     if (s.Active is { } active)
-                        Assert.InRange(s.Left, 1, Spec.Get(active)!.Duration.Most);
+                        Assert.InRange(s.Left, 1, kind.StretchOf(active)!.Duration.Most);
                     else
                         Assert.Equal(0, s.Left);
                     Assert.Equal(s.Next == null, s.NextIn == 0);
+                    if (s.Next is { } next)
+                    {
+                        var chosen = kind.StretchOf(next)!;
+                        Assert.InRange(s.NextIn, 1, Math.Max(chosen.First.Most, chosen.Gap.Most));
+                        Assert.Equal(s.NextIn <= chosen.Warning ? ((string?)next, s.NextIn) : (null, 0), (now.Coming, now.ComingIn));
+                    }
+                    else
+                        Assert.Equal(((string?)null, 0), (now.Coming, now.ComingIn));
                     Assert.Equal(s.Opened.Distinct().Count(), s.Opened.Count);
-                    Assert.Equal(Spec.All.Select(x => x.Id).Where(s.Opened.Contains), s.Opened);
-                    Assert.Equal(Spec.All.Select(x => x.Id).Where(s.Came.Contains), s.Came);
+                    Assert.Equal(ids.Where(s.Opened.Contains), s.Opened);
+                    Assert.Equal(ids.Where(s.Came.Contains), s.Came);
                     Assert.Subset(s.Opened.ToHashSet(), s.Came.ToHashSet());
                     Assert.Subset(s.Opened.ToHashSet(), opened.ToHashSet());
                     Assert.Subset(s.Came.ToHashSet(), came.ToHashSet());
-                    Assert.Equal(s.Active is { } a ? Spec.Get(a)!.Chill : 0, Now(w).Chill);
+                    int night = now.Night ? kind.Cycle!.Chill : 0;
+                    Assert.Equal((s.Active is { } a ? kind.StretchOf(a)!.Chill : 0) + night, now.Chill);
                     (opened, came) = ([.. s.Opened], [.. s.Came]);
                 }
             });

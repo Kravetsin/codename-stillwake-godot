@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using Godot;
 using Stillwake.Game.Features.Building;
 using Stillwake.Game.Features.Crafting;
@@ -47,8 +48,9 @@ public static class SurfaceViews
         }),
         // What still moves on the wreck: nothing on a surface with no tear of it (2026-10-31-the-scoop).
         new(c => new WreckMotionView(c.M.Grid), Fades: true),
-        // Frost creeping over the hull's outer walls before the ice belt, where stretches come (docs/decisions/2026-11-15-stretches-of-space.md).
-        new(c => c.M.Rules.Stretches.Count > 0 ? new Features.Sky.FrostView(c.M.Grid, c.M.Sky, () => c.Tick() + c.Progress()) : null, Fades: true),
+        // Frost creeping over the hull's outer walls before the ice belt, where a stretch frosts it (docs/decisions/2026-11-15-stretches-of-space.md).
+        new(c => c.M.Rules.Stretches.Any(s => StretchLooks.Of(s.Id) is { Frost: true })
+            ? new Features.Sky.FrostView(c.M.Grid, c.M.Sky, c.M.Rules, () => c.Tick() + c.Progress()) : null, Fades: true),
         new(c => new DigView(c.M.Grid, c.M.Building)),
         new(c => new Features.Flora.FloraView(c.M.Grid, c.M.Building, c.Heroes)),
         new(c => c.M.Rules is Content.PlanetType p ? new Features.Flora.CaveView(c.M.Grid, c.M.Building, p, c.HeadLamps, c.Seed) : null),
@@ -96,8 +98,15 @@ public static class SurfaceViews
         new(c => Features.Light.VesselLights.For(c.M.Rules, c.Seed) is { } inside ? new Features.Light.VesselLamps(c.M.Grid, inside) : null),
         // What was left behind inside it: frost, a sparking cable, soot, a burst pipe, a fallen panel, a toppled crate (derelict-looks).
         new(c => Features.Grid.VesselSigns.For(c.M.Rules, c.Seed) is { } signs ? new Features.Grid.VesselSignsView(c.M.Grid, signs) : null),
+        // Its inside dark till a hero has seen it, over all of the above (hidden-rooms).
+        new(c => Features.Unseen.UnseenView.Of(c.M.Grid, c.M.Rules, c.HeroBodies)),
         // The fires last, before the light Main makes after these: each frame a fire picks its picture, then its light follows it.
         new(c => new FurnaceView(c.M.Grid, c.M.Furnace), Fades: true),
+        // A planet's weather blowing over its open sky, and its wind heard, where a stretch of it brings one (docs/plans/surface-storms.md).
+        new(c => c.M.Rules.Stretches.Any(s => StretchLooks.Of(s.Id) is { Weather: not null })
+            ? new Features.Sky.StormView(c.M.Grid, c.M.Sky, c.M.Rules, () => c.Tick() + c.Progress()) : null),
+        // A storm's lightning: its glow over the zone, the bolt, sparks, soot and thunder, where a stretch brings one (surface-storms).
+        new(c => c.M.Rules.Stretches.Any(s => s.Bolt != null) ? new Features.Hazards.BoltView(c.M.Grid, c.M.Hazards, c.M.Crew, c.Peer, c.Heroes, c.Progress, c.Tick) : null),
         // A planet's fog at its sides (fog-edges): a screen layer over all of these and the heroes, under what is read.
         new(c => FogEdges.Of(c.M.Grid, c.M.Rules) is { } fog ? new Features.Fog.FogView(fog, PlanetLooks.Of[c.M.Rules.Id].Fog) : null),
     ];

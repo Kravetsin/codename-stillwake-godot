@@ -188,8 +188,8 @@ public partial class ComputerPanel : CanvasLayer
         if (_stretchOf != world) (_stretch, _stretchOf) = (new StretchShown(), world);
         _clock += ReadEvery * Sim.World.TicksPerSecond;
         var now = world.Sky.Now;
-        _stretch.See(now.Stretch, now.Coming, now.ComingIn, _clock);
-        _radar.Stretch = _stretch.Look is { Band: var (r, g, b) } ? (new Color(r, g, b), _stretch.Grow, _stretch.Shown) : null;
+        _stretch.See(world.Rules, now.Stretch, now.Coming, now.ComingIn, _clock);
+        _radar.Stretch = _stretch.Look is { Band: { } band } ? (new Color(band.R, band.G, band.B), _stretch.Grow, _stretch.Shown) : null;
     }
 
     /// <summary>The one tooltip: what the radar shows under the pointer; else a button's program; none behind the menu.</summary>

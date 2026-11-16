@@ -98,6 +98,7 @@ public partial class Stars : CanvasLayer
         {
             _day?.QueueFree();
             AddChild(_day = new PlanetSky(backdrop) { Modulate = new Color(_tint.R, _tint.G, _tint.B) });
+            _day.Weather(_weather.Haze, _weather.Share, _weather.Top, _weather.Blow);
             MoveChild(_day, 0);
             _set = backdrop;
         }
@@ -110,6 +111,7 @@ public partial class Stars : CanvasLayer
                 AddChild(land);
                 MoveChild(land, _day != null ? 1 : 0);
                 land.Tint = _tint;
+                land.Storm(_weather.Haze, _weather.Share);
             }
         }
         _tops = backdrop != null ? tops : null;
@@ -129,6 +131,20 @@ public partial class Stars : CanvasLayer
         else _far.Clear();
     }
 
+    /// <summary>
+    /// A planet's weather over its sky and land (docs/plans/surface-storms.md): both turned <paramref name="share"/> of the way toward
+    /// <paramref name="haze"/>, the sky from <paramref name="top"/> of it at the screen's top, the land by its layers' depth; the high
+    /// cloud drifting <paramref name="blow"/> pixels of art a second faster. A share of 0 is none.
+    /// </summary>
+    public void Weather((float R, float G, float B) haze, float share, float top, float blow)
+    {
+        if (_weather == (haze, share, top, blow)) return;
+        _weather = (haze, share, top, blow);
+        _day?.Weather(haze, share, top, blow);
+        _land?.Storm(haze, share);
+    }
+
+    private ((float R, float G, float B) Haze, float Share, float Top, float Blow) _weather = ((1, 1, 1), 0, 0, 0);
     private BackdropView? _land;
     private int[]? _tops;
     private (float R, float G, float B) _tint = (1, 1, 1);

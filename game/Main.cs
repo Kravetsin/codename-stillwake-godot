@@ -227,7 +227,7 @@ public partial class Main : Node2D, ITogether
         // Before anything is made that says anything.
         var language = _dev.Value("--lang");
         Speaking = language != null ? Languages.Named(language) ?? Language.English : Settings.Language();
-        if (PoseSheetOnly() || DressSheetOnly() || GestureSheetOnly() || SuitCardsOnly()) return;
+        if (PoseSheetOnly() || DressSheetOnly() || CapeFilmOnly() || GestureSheetOnly() || SuitCardsOnly()) return;
         QuitAfterAWhile();
         // First of all at its layer, before every shimmer (0075).
         AddChild(Shimmer.NewScreenCopy());
@@ -567,6 +567,7 @@ public partial class Main : Node2D, ITogether
         // A derelict's own lamps burn on their battery, lit by their own view and with no bolt over them; one a hero builds there has both.
         Func<Sim.Grid.Machine, bool> own = View<Features.Light.VesselLamps>() is { } inside ? inside.Claims : _ => false;
         _hands.Unmarked = own;
+        _hands.Unseen = View<Features.Unseen.UnseenView>() is { } unseen ? unseen.Hides : _ => false;
         AddChild(_light = new LightView(_m.Grid, Game.Light.SkyOf(_m.Rules), ground: _m.Rules is Content.PlanetType)
         {
             // --lit: every lamp at full power, to measure the light on the reference world; --dark: every lamp out, to see what glows.
@@ -736,7 +737,8 @@ public partial class Main : Node2D, ITogether
 
     /// <summary>
     /// The planet's hour as light (2026-11-07-night-chills): the light through its open sky, its backdrop and the fog at its sides
-    /// at <see cref="Daylight"/>'s colours of the moment; whole aboard.
+    /// at <see cref="Daylight"/>'s colours of the moment; whole aboard. A weather (docs/plans/surface-storms.md) dims them all, turns the
+    /// sky and land toward its haze and blows the plants, as far as it has come.
     /// </summary>
     private void ShowDaylight()
     {
@@ -746,6 +748,18 @@ public partial class Main : Node2D, ITogether
             int time = _m.Sky.Now.Time;
             (sky, tint) = (Daylight.Sky(look, time, cycle), Daylight.Backdrop(look, time, cycle));
         }
+        var storm = View<Features.Sky.StormView>();
+        var now = storm?.Now ?? Features.Sky.Storm.None;
+        if (storm?.Weather is { } weather)
+        {
+            var dim = now.Dim(weather);
+            sky = (sky.R * dim.R, sky.G * dim.G, sky.B * dim.B);
+            tint = (tint.R * dim.R, tint.G * dim.G, tint.B * dim.B);
+            _stars.Weather(weather.Haze, weather.HazeMost * now.Hazed, Features.Sky.Storm.SkyTop, Features.Sky.Storm.CloudBlow * now.Wind);
+        }
+        else _stars.Weather((1, 1, 1), 0, 0, 0);
+        if (storm != null) (storm.Light, storm.Eye) = (tint, _hero is { } eye ? MiddleOf(eye.Current) : null);
+        if (View<Features.Flora.FloraView>() is { } flora) flora.Storm = now.Wind * StretchLooks.Weather.SwayGain;
         Lit.Sky(sky);
         _stars.Tint = tint;
         if (View<Features.Fog.FogView>() is { } fog) fog.Tint = tint;
@@ -763,7 +777,7 @@ public partial class Main : Node2D, ITogether
     {
         if (_stretchOf != _m) (_stretch, _stretchOf) = (new StretchShown(), _m);
         var now = _m.Sky.Now;
-        _stretch.See(now.Stretch, now.Coming, now.ComingIn, clock, now.Ran);
+        _stretch.See(_m.Rules, now.Stretch, now.Coming, now.ComingIn, clock, now.Ran);
         _stars.Stretch(_stretch.Look, _stretch.Grow, _stretch.Melt, _stretch.Since);
     }
 

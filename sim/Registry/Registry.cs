@@ -100,7 +100,7 @@ public sealed class Registry
         // Water made before Building, which reads what its cisterns hold; it still runs and saves last.
         Water = new WaterModule(Grid, Items, Items, Pipes, Power, Atmosphere, Atmosphere);
         Building = new BuildingModule(Grid, Grid, Items, Items, Power, Power, Research, Crafting, Crafting, Crew, Crew, Pipes, Atmosphere, Water, Fuel);
-        Hazards = new HazardsModule(Grid, Power, Power, Research, Building);
+        Hazards = new HazardsModule(Grid, Power, Power, Research, Building, Sky, Crew, Crew);
         Debris = new DebrisModule(Grid, Crew, Crew, Rooms, Items, Items, Knowledge, Knowledge, Sky);
         Furnace = new FurnaceModule(Grid, Items, Items, Atmosphere, Atmosphere, Power, Power, Crafting, Crafting, Fuel, Fuel);
         Logistics = new LogisticsModule(Grid, Atmosphere, Items, Items, Crafting, Debris, Debris, Rooms);

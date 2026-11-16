@@ -1,10 +1,12 @@
 using System.Text.Json.Serialization;
 using Stillwake.Content;
 using Stillwake.Sim.Building;
+using Stillwake.Sim.Crew;
 using Stillwake.Sim.Grid;
 using Stillwake.Sim.Items;
 using Stillwake.Sim.Power;
 using Stillwake.Sim.Research;
+using Stillwake.Sim.Sky;
 
 namespace Stillwake.Sim.Hazards;
 
@@ -18,8 +20,8 @@ public sealed record Meteor(int Cell, int Power, int Left);
 public sealed class HazardsState
 {
     /// <summary>
-    /// No meteors, no flares drawn: a world whose map did not ask for hazards (<c>Layout.Meteors</c>), a test's, a dev world's, or one
-    /// calmed from the dev panel (<see cref="SetCalm"/>). Off, not written.
+    /// No meteors, no flares, no storms' bolts drawn: a world whose map did not ask for hazards (<c>Layout.Meteors</c>), a test's, a
+    /// dev world's, or one calmed from the dev panel (<see cref="SetCalm"/>). Off, not written.
     /// </summary>
     [JsonInclude, JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)] internal bool Calm { get; set; }
     /// <summary>Ticks till the next meteor is seen coming; 0 before the first is drawn.</summary>
@@ -28,6 +30,12 @@ public sealed class HazardsState
     [JsonInclude, JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)] internal Meteor? Incoming { get; set; }
     /// <summary>Ticks till the magnetic flare drawn strikes, its warning the last of them; 0 while none is drawn.</summary>
     [JsonInclude, JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)] internal int FlareIn { get; set; }
+    /// <summary>Ticks till the running storm's bolt is aimed and starts to glow; 0 for none drawn.</summary>
+    [JsonInclude, JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)] internal int BoltIn { get; set; }
+    /// <summary>The bolt glowing over its cell, if one is.</summary>
+    [JsonInclude, JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] internal Strike? Strike { get; set; }
+    /// <summary>The forks of the world's Rng the bolts have drawn here, each salted by the count before it; 0 in a save made before.</summary>
+    [JsonInclude, JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)] internal int Drawn { get; set; }
 }
 
 /// <summary>
@@ -39,11 +47,15 @@ public sealed record MeteorHit(int Cell, int? Power = null) : Command;
 
 /// <summary>
 /// The world calmed, or stirred again, from the dev panel: <c>On</c>, no meteors fall and no flares are drawn till it is turned off.
-/// Either way the meteor seen coming and the flare drawn are dropped and the countdowns start over, as in a new world.
+/// Either way the meteor seen coming, the flare drawn and the storm's bolt, drawn or glowing, are dropped and the countdowns start
+/// over, as in a new world.
 /// </summary>
 public sealed record SetCalm(bool On) : Command;
 
-/// <summary>Meteors breaking the hull (packages/sim/src/modules/hazards; 2026-10-28-hull-meteors), magnetic flares breaking machines (2026-10-30-magnetic-flare).</summary>
+/// <summary>
+/// Meteors breaking the hull (packages/sim/src/modules/hazards; 2026-10-28-hull-meteors), magnetic flares breaking machines
+/// (2026-10-30-magnetic-flare), a storm's lightning on a planet (docs/plans/surface-storms.md).
+/// </summary>
 public sealed partial class HazardsModule : Module<HazardsState>
 {
     private readonly IGridQueries _grid;
@@ -51,28 +63,39 @@ public sealed partial class HazardsModule : Module<HazardsState>
     private readonly IPowerOps _powerOps;
     private readonly IResearchQueries _research;
     private readonly IBuildingOps _building;
+    private readonly ISkyQueries _sky;
+    private readonly ICrewQueries _crew;
+    private readonly ICrewOps _crewOps;
     private readonly List<int> _targets = [];
 
     public override string Id => "hazards";
 
-    public HazardsModule(IGridQueries grid, IPowerQueries power, IPowerOps powerOps, IResearchQueries research, IBuildingOps building)
+    public HazardsModule(IGridQueries grid, IPowerQueries power, IPowerOps powerOps, IResearchQueries research, IBuildingOps building,
+        ISkyQueries sky, ICrewQueries crew, ICrewOps crewOps)
     {
         _grid = grid;
         _power = power;
         _powerOps = powerOps;
         _research = research;
         _building = building;
+        _sky = sky;
+        _crew = crew;
+        _crewOps = crewOps;
         Handles<MeteorHit>(c => HitProblem(c.Cell), c =>
         {
-            if (c.Power is int power) Strike(c.Cell, power, Shower ?? Meteors.StartingSpace);
+            if (c.Power is int power) StrikeMeteor(c.Cell, power, Shower ?? Meteors.StartingSpace);
             else _building.Burst(FloorStack.Nobody, c.Cell, _grid.WallAt(c.Cell)!.Strength, 0, Spoils.Lost);
         });
         Handles<FlareNow>(FlareNowProblem, c => State.FlareIn = c.Ticks);
-        Handles<SetCalm>(_ => null, c => (State.Calm, State.Incoming, State.NextIn, State.FlareIn) = (c.On, null, 0, 0));
+        Handles<BoltNow>(BoltNowProblem, BringBolt);
+        Handles<SetCalm>(_ => null, c =>
+            (State.Calm, State.Incoming, State.NextIn, State.FlareIn, State.BoltIn, State.Strike) = (c.On, null, 0, 0, 0, null));
         // In construction, as a command would: building drops a mark on the broken wall and the rooms see the hole on its tick.
         System(Phase.Construction, Fall);
         // A flare too, so Power's derivation sees what it broke on its tick.
         System(Phase.Construction, Flare);
+        // And the bolt, after both: its crater seen on its tick, as a meteor's.
+        System(Phase.Construction, Bolt);
     }
 
     /// <summary>Whether no meteors fall and no flares are drawn: a calm map, or calmed from the dev panel.</summary>
@@ -100,7 +123,7 @@ public sealed partial class HazardsModule : Module<HazardsState>
     }
 
     /// <summary>
-    /// A tick of the place's shower: the meteor seen coming strikes when its time is up (<see cref="Strike"/>); else, when the next
+    /// A tick of the place's shower: the meteor seen coming strikes when its time is up (<see cref="StrikeMeteor"/>); else, when the next
     /// is due, one is drawn at a wall open to the drift.
     /// </summary>
     private void Fall()
@@ -115,7 +138,7 @@ public sealed partial class HazardsModule : Module<HazardsState>
                 return;
             }
             s.Incoming = null;
-            Strike(meteor.Cell, meteor.Power, shower);
+            StrikeMeteor(meteor.Cell, meteor.Power, shower);
             s.NextIn = Interval(shower);
             return;
         }
@@ -136,7 +159,7 @@ public sealed partial class HazardsModule : Module<HazardsState>
     /// from it within the shower's <c>Reach</c>, what it pays for lost, its back walls too, and what it reaches but cannot pay for,
     /// the wall struck first, cracked. A wall gone since it was seen coming, or one that never breaks, takes nothing.
     /// </summary>
-    private void Strike(int cell, int power, Meteors.Shower shower)
+    private void StrikeMeteor(int cell, int power, Meteors.Shower shower)
     {
         if (HitProblem(cell) == null) _building.Burst(FloorStack.Nobody, cell, Charge(power, shower), shower.Reach, Spoils.Lost);
     }
@@ -191,13 +214,14 @@ public sealed partial class HazardsModule : Module<HazardsState>
     /// <summary>
     /// Meteors by hand, rarely: every hit cracks or opens the world a little more. Mostly at a standing wall, now
     /// and then anywhere: off the grid, into space, at a wall already gone. As rarely a flare striking at once, so the
-    /// suites' short runs see machines broken, and the world calmed or stirred.
+    /// suites' short runs see machines broken, and the world calmed or stirred; and as rarely a bolt aimed at the sender, glowing and striking.
     /// </summary>
     public override Command? Fuzz(Rng rng, int from)
     {
         ulong roll = rng.Below(64);
         if (roll == 1) return new FlareNow(1) { From = from };
         if (roll == 2) return new SetCalm(rng.Below(2) == 0) { From = from };
+        if (roll == 3) return new BoltNow { From = from };
         if (roll != 0) return null;
         var structure = _grid.StructureLayer;
         var walls = new List<int>();

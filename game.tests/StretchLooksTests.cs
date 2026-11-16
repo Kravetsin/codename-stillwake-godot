@@ -11,36 +11,53 @@ namespace Stillwake.Game.Tests;
 public class StretchLooksTests
 {
     private const string Belt = "iceBelt";
-    private static readonly int Warning = Content.Stretches.Warning;
+    private static readonly int Warning = Content.Stretches.IceBelt.Warning;
+    private static readonly Content.Surfaces.Kind Ship = Content.Surfaces.Ship;
 
     [Fact]
     public void StretchShownGrowsOverTheWarningAndIsWholeWhileItRuns()
     {
         var shown = new StretchShown();
-        shown.See(null, Belt, Warning, 0);
+        shown.See(Ship, null, Belt, Warning, 0);
         Assert.Equal(Belt, shown.Look?.Id);
         Assert.Equal(0, shown.Grow);
-        shown.See(null, Belt, Warning / 2, Warning / 2);
+        shown.See(Ship, null, Belt, Warning / 2, Warning / 2);
         Assert.Equal(0.5f, shown.Grow, 3);
-        shown.See(Belt, null, 0, Warning);
+        shown.See(Ship, Belt, null, 0, Warning);
         Assert.Equal(1, shown.Grow);
         Assert.Equal(1, shown.Shown);
+    }
+
+    /// <summary>Each stretch grows over its own warning: the planet's storms over their 40 s, not the ship's 3 minutes; they draw no far picture and no band.</summary>
+    [Fact]
+    public void AStormGrowsOverItsOwnWarningWithNoFarPictureOrBand()
+    {
+        var storm = Content.Stretches.DustStorm;
+        var planet = Content.PlanetTypes.First;
+        Assert.True(storm.Warning < Warning);
+        var shown = new StretchShown();
+        shown.See(planet, null, storm.Id, storm.Warning / 2, 0);
+        Assert.Equal(0.5f, shown.Grow, 3);
+        Assert.Equal(storm.Warning / 2, shown.Since);
+        shown.See(planet, storm.Id, null, 0, storm.Warning, ran: 10);
+        Assert.Equal(storm.Warning + 10, shown.Since);
+        Assert.True(shown.Look is { Far: null, Band: null, Frost: false });
     }
 
     [Fact]
     public void StretchShownEasesBackOverTheThawThenShowsNone()
     {
         var shown = new StretchShown();
-        shown.See(Belt, null, 0, 100);
-        shown.See(null, null, 0, 100);
+        shown.See(Ship, Belt, null, 0, 100);
+        shown.See(Ship, null, null, 0, 100);
         Assert.Equal(0, shown.After);
-        shown.See(null, null, 0, 100 + StretchLooks.Thaw / 2.0);
+        shown.See(Ship, null, null, 0, 100 + StretchLooks.Thaw / 2.0);
         Assert.Equal(0.5f, shown.Melt, 3);
         Assert.Equal(0.5f, shown.Shown, 3);
-        shown.See(null, null, 0, 100 + StretchLooks.Thaw * 1.2);
+        shown.See(Ship, null, null, 0, 100 + StretchLooks.Thaw * 1.2);
         Assert.Equal(1, shown.Melt);
         Assert.NotNull(shown.Look);
-        shown.See(null, null, 0, 100 + StretchLooks.Thaw * StretchLooks.Dry);
+        shown.See(Ship, null, null, 0, 100 + StretchLooks.Thaw * StretchLooks.Dry);
         Assert.Null(shown.Look);
         Assert.Equal(0, shown.Grow);
     }
@@ -50,24 +67,25 @@ public class StretchLooksTests
     public void APeerJoiningMidWarningSeesWhatTheOthersDo()
     {
         var all = new StretchShown();
-        for (int left = Warning; left >= Warning / 3; left -= 60) all.See(null, Belt, left, Warning - left);
+        for (int left = Warning; left >= Warning / 3; left -= 60) all.See(Ship, null, Belt, left, Warning - left);
         var joiner = new StretchShown();
-        joiner.See(null, Belt, Warning / 3, Warning - Warning / 3);
+        joiner.See(Ship, null, Belt, Warning / 3, Warning - Warning / 3);
         Assert.Equal((all.Grow, all.Since), (joiner.Grow, joiner.Since));
         Assert.Equal(Warning - Warning / 3, joiner.Since);
         // One loading a world mid-stretch knows when it began: its far picture is the one shown before, where it was.
         var running = new StretchShown();
-        running.See(Belt, null, 0, 0, ran: 500);
+        running.See(Ship, Belt, null, 0, 0, ran: 500);
         Assert.Equal(Warning + 500, running.Since);
         var late = new StretchShown();
-        late.See(null, null, 0, 5 * Warning);
+        late.See(Ship, null, null, 0, 5 * Warning);
         Assert.Null(late.Look);
     }
 
     [Fact]
     public void EveryStretchHasItsLook()
     {
-        foreach (var stretch in Content.Stretches.All) Assert.NotNull(StretchLooks.Of(stretch.Id));
+        foreach (var kind in Content.Surfaces.All.Prepend(Ship))
+            foreach (var stretch in kind.Stretches) Assert.NotNull(StretchLooks.Of(stretch.Id));
         Assert.True(StretchLooks.Of(Belt)!.Frost);
         Assert.False(StretchLooks.Of(Content.Stretches.ContrabandDrift.Id)!.Frost);
     }
@@ -78,10 +96,11 @@ public class StretchLooksTests
         string hd = Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "game", "art", "hd");
         foreach (var look in StretchLooks.All)
         {
-            Assert.True(look.Far.Speed > 0, look.Id);
-            Assert.True(look.Far.Pictures.Count > 0 != (look.Far.Scattered != null), $"{look.Id}: pictures or a field, one of them");
-            foreach (var picture in look.Far.Pictures) Assert.True(File.Exists(Path.Combine(hd, picture + ".png")), picture);
-            int count = look.Far.Pictures.Count;
+            if (look.Far is not { } far) continue;
+            Assert.True(far.Speed > 0, look.Id);
+            Assert.True(far.Pictures.Count > 0 != (far.Scattered != null), $"{look.Id}: pictures or a field, one of them");
+            foreach (var picture in far.Pictures) Assert.True(File.Exists(Path.Combine(hd, picture + ".png")), picture);
+            int count = far.Pictures.Count;
             if (count == 0) continue;
             var taken = Enumerable.Range(-10, 30).Select(place => StretchLooks.PictureAt(place, 1234, count)).ToList();
             Assert.Equal(count, taken.Distinct().Count());
@@ -96,7 +115,7 @@ public class StretchLooksTests
         string hd = Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "game", "art", "hd");
         foreach (var look in StretchLooks.All)
         {
-            if (look.Far.Scattered is not { } field) continue;
+            if (look.Far?.Scattered is not { } field) continue;
             using (var file = File.OpenRead(Path.Combine(hd, field.Atlas + ".png")))
             {
                 var header = new byte[24];

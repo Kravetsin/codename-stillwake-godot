@@ -120,8 +120,14 @@ public static class Layers
     /// <summary>Dust, sparks, embers and air over everything in the world, plans included (effects).</summary>
     public const int Effects = 25;
 
+    /// <summary>A planet's weather: its wash over the world in view, the effects included, then its streaks and wisps; under what an overlay shows (docs/plans/surface-storms.md).</summary>
+    public const int Weather = 26;
+
+    /// <summary>A derelict's inside not yet seen (hidden-rooms): over all in it, the effects included; with the weather, which blows only on a planet.</summary>
+    public const int Unseen = 26;
+
     // An overlay over the whole world (air, pipes, power), what it marks, and the cable dragged in it.
-    public const int Overlay = 26, OverlayMarks = 27, OverlayHands = 28;
+    public const int Overlay = 27, OverlayMarks = 28, OverlayHands = 29;
 }
 
 /// <summary>
@@ -151,6 +157,12 @@ public static class ScreenLayers
 
     /// <summary>A hurt's wash at the screen's edges (<c>Features.Crew.HurtView</c>), with the visor's fog, under all that is read (2026-11-08-hurts-are-shown).</summary>
     public const int Hurt = VisorFog;
+
+    /// <summary>A lightning strike's shade, the scene sunk in blue round the channel's light (<c>Features.Hazards.BoltView</c>, surface-storms), under the frost.</summary>
+    public const int BoltShade = Fog;
+
+    /// <summary>A strike's channel burnt into the view of a hero in its zone (<c>Features.Hazards.BoltView</c>), with the hurts' wash it stands in for.</summary>
+    public const int BoltBurn = Hurt;
 
     /// <summary>The top of the screen: the suit's gauge, the hotbar, the inventory and crafts, pick-ups over a head.</summary>
     public const int Hud = 4;

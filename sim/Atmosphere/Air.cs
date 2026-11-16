@@ -600,7 +600,7 @@ public sealed partial class AtmosphereModule
             while (next < was.Count && was[next].Generator < m.Id) next++;
             int part = next < was.Count && was[next].Generator == m.Id ? was[next].Part : 0;
             bool endless = s.Endless.Contains(m.Id);
-            var store = TankOf(m.Id, sorted);
+            var store = TankOf(State.Tanks, m.Id, sorted);
             int room = Content.Air.GeneratorStore - (store?.Oxygen ?? 0), liquid = endless ? int.MaxValue : LiquidBehind(s, m.Id);
             if (room > 0 && liquid > 0)
             {
@@ -686,10 +686,9 @@ public sealed partial class AtmosphereModule
         return false;
     }
 
-    /// <summary>Tank <paramref name="id"/>'s oxygen among the first <paramref name="count"/> tanks, which are in id order; null for none.</summary>
-    private TankAir? TankOf(int id, int count)
+    /// <summary>Tank <paramref name="id"/>'s oxygen among the first <paramref name="count"/> of <paramref name="tanks"/>, which are in id order; null for none.</summary>
+    private static TankAir? TankOf(List<TankAir> tanks, int id, int count)
     {
-        var tanks = State.Tanks;
         int lo = 0, hi = count - 1;
         while (lo <= hi)
         {
