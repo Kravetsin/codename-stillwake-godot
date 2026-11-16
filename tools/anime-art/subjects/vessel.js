@@ -856,6 +856,75 @@ function pad(a) {
   hazardFoot(a, 0, 0, 64, 3.2, band(0, 0, 64, 8));
 }
 
+// ---- A tanker's rooms (big-vessels, the mockup's drawItem): the pump room's pump and valves, a bay's tall tanks, the fuel column.
+/** The mockup's CONTENTS by name, a stencil on each tank: fuel, water, oxygen, nitrogen, coolant. */
+const CONTENT_IDS = ['FUEL', 'H2O', 'O2', 'N2', 'COOLANT'];
+const PUMP_BODY = palOf('#4f5a62');
+
+/** A handwheel at (x, y) of radius r in `col`: its rim, four spokes and the hub. */
+function wheel(a, x, y, r, col) {
+  a.shape(ell(x, y, r), palOf(col), { shade: .45 });
+  a.flat(ell(x, y, r * .62), '#1f2125');
+  for (const [dx, dy] of [[1, 0], [0, 1]]) a.line(`M${x - dx * r * .62} ${y - dy * r * .62}L${x + dx * r * .62} ${y + dy * r * .62}`, { c: col, w: .7 });
+  a.flat(ell(x, y, r * .22), col);
+}
+
+/** machine_vesselPump: a pump housing on the floor, its pipe up out of it, its red handwheel, chevrons along its foot. 4 × 4 cells. */
+function pump(a) {
+  a.tube('M8 0L8 9', 2.2, PIPE, { spec: false });
+  const d = band(0, 8, 32, 32);
+  lit(a, 0, 8, 32, 32, PUMP_BODY);
+  hazardFoot(a, 0, 28.8, 32, 3.2, d);
+  wheel(a, 16, 19.2, 6.4, '#a33a2a');
+  rivets(a, [3, 11], [29, 11]);
+  patch(a, 25, 24, 2.4, 1.2, RUST, d, 401);
+}
+
+/** machine_vesselValves: the pump room's wall panel, three pipes down it, a handwheel on each, red, brass, red. 3 × 4 cells. */
+function valves(a) {
+  ['#5d646e', '#7a5a3e', '#5d646e'].forEach((c, k) => a.tube(`M${4 + k * 8} 0L${4 + k * 8} 32`, 1.8, palOf(c), { spec: false }));
+  ['#a33a2a', '#c9a03a', '#a33a2a'].forEach((c, k) => wheel(a, 4 + k * 8, 8 + k * 7.2, 3.4, c));
+}
+
+/** A stencilled word on a baked picture `c` (4 px a world pixel), centred on (x, y), `size` tall, at most `wide` across. */
+function stencilled(c, text, x, y, size, wide) {
+  const S = 4, g = c.getContext('2d');
+  g.save();
+  g.fillStyle = 'rgba(235,228,212,.78)'; g.textAlign = 'center'; g.textBaseline = 'middle';
+  g.font = `700 ${size * S}px Bahnschrift, "Arial Narrow", Consolas, sans-serif`;
+  const k = Math.min(1, (wide * S) / g.measureText(text).width);
+  g.translate(x * S, y * S); g.scale(k, 1); g.fillText(text, 0, 0);
+  g.restore();
+  return c;
+}
+
+/**
+ * machine_vesselTankTall and its looks, machine_vesselFuelColumn3 and 4: an upright tank w × h pixels in its contents' paint, its
+ * domed top with a flange where its pipe left, bands round it at its seams, a pale streak down its lit side.
+ */
+const tallTank = (w, h, col) => (a) => {
+  const pal = palOf(col), dh = Math.min(24, w * .3), top = 3.2;
+  const pts = [];
+  for (let i = 0; i <= 12; i++) { const t = Math.PI + (Math.PI * i) / 12; pts.push(w / 2 + Math.cos(t) * w / 2, top + dh + Math.sin(t) * dh); }
+  const d = poly(...pts, w, h, 0, h);
+  lit(a, w / 2 - 4, 0, w / 2 + 4, top + 1, MID);
+  a.shape(d, pal, { lite: band(0, 0, w * .12, h), shade: band(w * .78, 0, w, h), deep: band(0, h - 3.2, w, h) });
+  for (let y = top + h * .3; y < h - 8; y += h * .28) a.flat(band(0, y, w, y + 3.6), pal.shade, { clip: d });
+  a.flat(band(w * .18, top, w * .28, h), 'rgba(255,255,255,.08)', { clip: d });
+  rivets(a, [w * .12, h - 6], [w * .88, h - 6]);
+  patch(a, w * .7, h * .62, 3, 1.6, RUST, d, 409 + w + h);
+};
+
+function tanker() {
+  out('machine_vesselPump', Anime.bake({ w: 32, h: 32, draw: pump }));
+  out('machine_vesselValves', Anime.bake({ w: 24, h: 32, draw: valves }));
+  // A look a content but fuel, the capsule's after its first (Vessels.TankTallContents).
+  for (let k = 1; k < CONTENTS.length; k++)
+    out('machine_vesselTankTall' + (k === 1 ? '' : String(k)), stencilled(Anime.bake({ w: 64, h: 88, draw: tallTank(64, 88, CONTENTS[k]) }), CONTENT_IDS[k], 32, 50, 9, 52));
+  for (const [decks, h] of [[3, 152], [4, 208]])
+    out('machine_vesselFuelColumn' + decks, stencilled(Anime.bake({ w: 80, h, draw: tallTank(80, h, CONTENTS[0]) }), CONTENT_IDS[0], 40, h * .5, 16, 64));
+}
+
 function liner() {
   out('machine_vesselBar', Anime.bake({ w: 56, h: 24, draw: bar }));
   out('machine_vesselPiano', Anime.bake({ w: 40, h: 24, draw: piano }));
@@ -888,6 +957,7 @@ Subjects.vessel = function () {
   skin();
   furniture();
   liner();
+  tanker();
   out('vessel_frost', Anime.bake({ w: 40, h: 48, draw: frost }));
   out('vessel_cable', Anime.bake({ w: 24, h: 32, draw: cable }));
   out('vessel_soot', Anime.bake({ w: 48, h: 40, draw: soot }));

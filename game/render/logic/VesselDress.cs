@@ -116,8 +116,8 @@ public sealed class VesselDress
         Seed = vessel.Seed;
         Livery = Looks.LiveryOf(vessel.Class, Seed);
         Colours = Looks.LiveriesOf(vessel.Class)[Livery];
-        Name = Looks.NameOf(Seed);
-        Code = Looks.CodeOf(Seed);
+        Name = Looks.NameOf(vessel.Class, Seed);
+        Code = Looks.CodeOf(vessel.Class, Seed);
         _corner = (Vessels.Margin, Vessels.Margin);
         int w = _width = vessel.Width, h = _height = vessel.Height;
         _looks = new Look[w * h];

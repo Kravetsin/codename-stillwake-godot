@@ -61,6 +61,24 @@ public class VesselDressTests
     }
 
     [Fact]
+    public void OneTankerIsPaintedAsPinnedInItsOwnLiveryNameAndLetters()
+    {
+        var dress = new VesselDress(Of("tanker", 1));
+        Assert.Equal(("GRAVITAS", "TK-4769", 1), (dress.Name, dress.Code, dress.Livery));
+        Assert.Same(VesselLooks.TankerLiveries[dress.Livery], dress.Colours);
+        Assert.Same(VesselLooks.TankerLiveries, VesselLooks.LiveriesOf("tanker"));
+        // Every tanker's name its own, its code its letters; its one decor a hangar's pad, where it has a hangar.
+        for (uint seed = 1; seed <= 16; seed++)
+        {
+            var v = Of("tanker", seed);
+            var other = new VesselDress(v);
+            Assert.Equal(v.Compartments.Any(c => c.Role == VesselRole.Hangar) ? ["vessel_pad"] : [], other.Decors.Select(d => d.Picture));
+            Assert.Contains(other.Name, VesselLooks.TankerNames);
+            Assert.StartsWith(VesselLooks.TankerPrefix + "-", other.Code);
+        }
+    }
+
+    [Fact]
     public void ADecorIsHiddenOnceOneOfItsCellsChangesEvenOnOneDeckOfATallRoom()
     {
         var v = Of("liner", 2);
@@ -84,6 +102,7 @@ public class VesselDressTests
     [InlineData("freighter", 5u)]
     [InlineData("shuttle", 9u)]
     [InlineData("liner", 3u)]
+    [InlineData("tanker", 4u)]
     public void TheSameSeedIsDressedAlikeTwice(string cls, uint seed)
     {
         var m = Laid(Of(cls, seed));
