@@ -108,6 +108,9 @@ public static partial class Ru
         ["skin.platedSuit"] = "Клёпаный",
         ["skin.rescueSuit"] = "Спасатель",
         ["skin.mummySuit"] = "Мумия",
+        ["skin.tarpCape"] = "Брезент",
+        ["skin.blanketCape"] = "Термоодеяло",
+        ["skin.woolCape"] = "Шерсть",
         ["skin.fire"] = "Пламя",
         ["skin.rift"] = "Разлом",
     };

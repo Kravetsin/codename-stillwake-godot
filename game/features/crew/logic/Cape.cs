@@ -10,7 +10,7 @@ namespace Stillwake.Game.Features.Crew;
 /// so the two always meet at the back edge and the hem. It is posed, not simulated (2026-10-28-the-cape-flows): its cut
 /// swung back about the nape (<see cref="Flow"/>) by an angle set by how the hero moves, little standing, far at a sprint
 /// whichever way, down rising from a jump and up falling, each row easing toward it the slower the lower, so a change runs
-/// down it as a whip, and a breeze always running down it. No point of it comes more than <see cref="Give"/> forward of
+/// down it as a whip, and a slow wave always running down it, faster and higher as the air streams past. No point of it comes more than <see cref="Give"/> forward of
 /// where it hangs as cut, so it never wraps the hero; never under the feet but afloat. What the hero wears on its back
 /// does not shape it. A picture is laid over the grid (<see cref="Uv"/>). Afloat it opens out behind on a slow wave
 /// (<see cref="AfloatRest"/>). Its hood, down on the back under a fur collar, swings with the cape's top rows
@@ -22,24 +22,31 @@ public sealed class Cape
     public const int Cols = 4, Rows = 9;
     /// <summary>
     /// How far it swings, in radians at the hem (<see cref="Flow"/>): <see cref="Calm"/> standing, up to <see cref="Sweep"/>
-    /// at a sprint; <see cref="Sink"/> less rising from a jump at <see cref="Plunge"/> pixels a step, so it trails down, and
+    /// at a sprint, so it trails at a slant rather than standing out level (<see cref="AfloatSweep"/> afloat); <see cref="Sink"/> less rising from a jump at <see cref="Plunge"/> pixels a step, so it trails down, and
     /// <see cref="Soar"/> more falling as fast, so it streams up; never past <see cref="Most"/>, where the sheet would
     /// begin to fold, nor below none.
     /// </summary>
-    private const double Calm = 0.1, Sweep = 1.0, Sink = 0.5, Soar = 0.7, Most = 1.6, Plunge = 5;
+    private const double Calm = 0.1, Sweep = 0.45, AfloatSweep = 1.0, Sink = 0.5, Soar = 0.7, Most = 1.6, Plunge = 5;
     /// <summary>
     /// How each row eases toward the swing, as a spring: <see cref="Spring"/> of the gap a step a step at the shoulders,
     /// <see cref="Lag"/> of that less at the hem, <see cref="Damp"/> of its speed kept a step, so it overshoots a little,
     /// the hem last: a change runs down it as a whip. Turned about, every row is thrown back to <see cref="Flung"/> of its
     /// swing, so it swings out behind afresh.
     /// </summary>
-    private const double Spring = 0.02, Lag = 0.75, Damp = 0.9, Flung = 0.3;
+    private const double Spring = 0.04, Lag = 0.75, Damp = 0.9, Flung = 0.3;
     /// <summary>
-    /// The hero's breeze: a wave runs across it from the shoulders to the hem, <see cref="WaveLag"/> of a turn behind at the
-    /// hem, <see cref="Ripple"/> pixels at the hem standing and <see cref="RippleRun"/> at a sprint, once every
-    /// <see cref="WaveSteps"/> steps standing and <see cref="RunWaveSteps"/> at a sprint.
+    /// The air it runs through: a wave runs across it from the shoulders to the hem, <see cref="WaveLag"/> of a turn behind at
+    /// the hem, once every <see cref="WaveSteps"/> steps standing and <see cref="RunWaveSteps"/> at a sprint, never with the feet: a wave
+    /// a footfall made it jitter. <see cref="Ripple"/> pixels at the hem standing, a gentle sway, up to <see cref="RippleRun"/>
+    /// at a sprint. Afloat it runs as slow as standing.
     /// </summary>
-    private const double Ripple = 0.8, RippleRun = 1.6, WaveSteps = 100, RunWaveSteps = 18, WaveLag = 0.75;
+    private const double Ripple = 0.8, RippleRun = 1.6, RunWaveSteps = 45, WaveSteps = 100, WaveLag = 0.75;
+    /// <summary>
+    /// The flap: running, each wave swings it up and back by up to <see cref="Flap"/> radians at the hem, running down it
+    /// <see cref="FlapLag"/> of a wave behind at the hem, its strength drifting by <see cref="Gust"/> over <see cref="GustWaves"/>
+    /// waves, so a sprint never holds it still in one pose.
+    /// </summary>
+    private const double Flap = 0.18, FlapLag = 0.8, Gust = 0.3, GustWaves = 3.7;
     /// <summary>Afloat it opens out to <see cref="Spread"/> and a sprint's sweep at most, on a slow wave of <see cref="Wave"/> pixels.</summary>
     private const double Spread = 0.7, Wave = 1.2;
     /// <summary>
@@ -51,14 +58,19 @@ public sealed class Cape
     private const double Give = 1;
     /// <summary>How far its inside's front edge is carried forward of the outside's, at the shoulders and at the hem, hanging: the cape round the far side; less as it swings away, none swung level.</summary>
     private const double WrapAtShoulders = 2, WrapAtHem = 4;
-    /// <summary>How fast the wrap goes as it leaves hanging straight down: as the power of how nearly straight down it runs, so at 45° it is all but gone.</summary>
+    /// <summary>How far its front edge goes from hanging still before the wrap is gone, in pixels: less wrap the farther it is.</summary>
     private const double Tuck = 8;
     /// <summary>Where it swings about, just behind its back pin: every point in front of or below it, so swung far it turns as one and never folds.</summary>
     private static readonly (double X, double Y) Nape = (-10, -(Rig.Neck - 1.5));
-    /// <summary>How the swing grows down it, as a power of how far down: under 1 the sheet turns more nearly whole, so swung far its back edge, inside the curl, is not squeezed.</summary>
-    private const double Curl = 0.7;
     /// <summary>
-    /// Where the top is pinned, front to back, from the feet: clasped at the throat under the chin (<see cref="Clasp"/>), round
+    /// How the swing grows down it, as a share of the hem's: fast from the shoulders (<see cref="Curl"/>, a power of how far down),
+    /// then less again toward the hem by <see cref="Droop"/>, so swung back its lower part sags under its weight rather than curling up.
+    /// </summary>
+    private const double Curl = 0.5, Droop = 0.45;
+
+    private static double Profile(double v, double droop) => Math.Pow(v, Curl) * (1 - droop * v) / (1 - droop);
+    /// <summary>
+    /// Where the top is pinned, front to back, from the feet: clasped at the throat under the chin, round
     /// the neck and over the shoulder to the back, under its collar.
     /// </summary>
     private static readonly (double X, double Y)[] Pins =
@@ -80,9 +92,6 @@ public sealed class Cape
     private const double HoodWind = 0.4;
     /// <summary>The cape's row the hood lies on, whose swing it takes.</summary>
     private const int HoodOn = 2;
-
-    /// <summary>Where its clasp is, from the feet: its front pin, at the throat.</summary>
-    public static (double X, double Y) Clasp => Pins[0];
 
     private (double X, double Y)? _shoulders;
     private double _speedX, _speedY, _phase;
@@ -129,7 +138,7 @@ public sealed class Cape
     /// Where point <paramref name="i"/> is posed with the cape swung by <paramref name="swing"/> radians at the hem, in the
     /// figure's frame: its cut turned back and up about its <see cref="Nape"/>, less toward the shoulders, so it curves.
     /// </summary>
-    public static (double X, double Y) Flow(int i, double swing) => Swung(Nape, Rest(i), swing * Math.Pow(Uv(i).V, Curl));
+    public static (double X, double Y) Flow(int i, double swing, double droop = 0) => Swung(Nape, Rest(i), swing * Profile(Uv(i).V, droop));
 
     /// <summary>Where point <paramref name="i"/> opens to afloat and still: its <see cref="Flow"/> swung by <see cref="Spread"/>.</summary>
     public static (double X, double Y) AfloatRest(int i) => Flow(i, Spread);
@@ -173,7 +182,9 @@ public sealed class Cape
         _shoulders = at;
         double run = Math.Pow(Math.Min(1, Math.Abs(_speedX) / Sprint), 1.5);
         double rise = afloat ? 0 : Math.Clamp(-_speedY / Plunge, 0, 1), fall = afloat ? 0 : Math.Clamp(_speedY / Plunge, 0, 1);
-        double calm = afloat ? Spread : Calm, goal = Math.Clamp(calm + (Math.Max(calm, Sweep) - calm) * run - Sink * rise + Soar * fall, 0, Most);
+        double calm = afloat ? Spread : Calm, goal = Math.Clamp(calm + (Math.Max(calm, afloat ? AfloatSweep : Sweep) - calm) * run - Sink * rise + Soar * fall, 0, Most);
+        // Falling it streams up, all its weight on the air: no sag then.
+        double droop = afloat ? 0 : Droop * (1 - fall);
         for (int r = 1; r < Rows; r++)
         {
             double spring = Spring * (1 - Lag * (r - 1) / (Rows - 2));
@@ -192,8 +203,9 @@ public sealed class Cape
         {
             int r = i / Cols;
             double v = Uv(i).V;
-            var (x, y) = r == 0 ? Pins[i] : Flow(i, _swing[r]);
-            var (dx, dy) = Breeze(v, _swing[r] * Math.Pow(v, Curl), wave);
+            double flap = afloat ? 0 : Flap * run * (1 - Gust + Gust * Math.Sin(_phase / GustWaves * 2 * Math.PI)) * Math.Sin((_phase - FlapLag * v) * 2 * Math.PI);
+            var (x, y) = r == 0 ? Pins[i] : Flow(i, Math.Clamp(_swing[r] + flap, 0, Most), droop);
+            var (dx, dy) = Breeze(v, _swing[r] * Profile(v, droop), wave);
             _points[i] = (Math.Min(x + dx, Rest(i).X + Give), Math.Min(y + dy, floor));
         }
         for (int i = 0; i < _hoodPoints.Length; i++)
@@ -207,10 +219,10 @@ public sealed class Cape
         {
             var (u, v) = Uv(i);
             // Swung away from the body it no longer wraps round it: its far side lies behind its near side, not past its edge.
-            // How far it hangs: how nearly straight down it runs from the row above (the top row, to the row below).
-            int below = i < Cols ? i + Cols : i;
-            double dx = _points[below].X - _points[below - Cols].X, dy = _points[below].Y - _points[below - Cols].Y, d = Math.Sqrt(dx * dx + dy * dy);
-            double hangs = d == 0 ? 1 : Math.Pow(Math.Max(0, dy / d), Tuck);
+            // How far it hangs: how near its row's front edge is to hanging still, so a lower part sagging back down still lies off the body.
+            int f = i - i % Cols;
+            var (hx, hy) = Flow(f, Calm, Droop);
+            double hangs = Math.Max(0, 1 - Math.Sqrt((_points[f].X - hx) * (_points[f].X - hx) + (_points[f].Y - hy) * (_points[f].Y - hy)) / Tuck);
             _inside[i] = (_points[i].X + (1 - u) * (WrapAtShoulders + (WrapAtHem - WrapAtShoulders) * v) * hangs, _points[i].Y);
         }
     }

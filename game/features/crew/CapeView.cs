@@ -1,4 +1,3 @@
-using System;
 using System.Linq;
 using Godot;
 using Stillwake.Game.Render;
@@ -9,7 +8,7 @@ namespace Stillwake.Game.Features.Crew;
 /// A side of a cape on a figure (a prototype, <see cref="Cape"/>): its sheet drawn as one mesh of triangles. The outside
 /// shows its picture all over: posed, it never folds over itself (2026-10-28-the-cape-flows). The inside, the same sheet
 /// wrapped round the far side of the body, shows the lining all over. A child of the figure's frame, so its points are drawn where the cape
-/// gives them; lit as the figure is. The outside wears its hood, its fur collar and its clasp.
+/// gives them; lit as the figure is. The outside wears its hood and its fur collar.
 /// </summary>
 public partial class CapeView(Cape cape, bool inside) : Node2D
 {
@@ -17,10 +16,8 @@ public partial class CapeView(Cape cape, bool inside) : Node2D
     private Texture2D _outside = PixelArt.Picture("hero_cape"), _lining = PixelArt.Picture("hero_cape_lining"),
         _hoodPicture = PixelArt.Picture("hero_cape_hood"), _collar = PixelArt.Picture("hero_cape_collar");
     private string _picture = Stillwake.Content.Cape.Item;
-    /// <summary>Where the collar lies, its top left, from the feet: round the neck over the cape's top, from the back to the clasp.</summary>
+    /// <summary>Where the collar lies, its top left, from the feet: round the neck over the cape's top, from the back to the throat.</summary>
     private static readonly Vector2 CollarAt = new(-10.5f, (float)-(Rig.Neck + 1.5));
-    /// <summary>The clasp at the throat, a pixel of brass on the outside.</summary>
-    private static readonly Color Brass = new("c9a35a");
     private static readonly Vector2[] Uvs = MakeUvs();
     private static readonly Vector2[] HoodUvs = MakeHoodUvs();
     private static readonly Color[] Colours = [.. Uvs.Select(_ => Colors.White)], HoodColours = [.. HoodUvs.Select(_ => Colors.White)];
@@ -49,11 +46,9 @@ public partial class CapeView(Cape cape, bool inside) : Node2D
     {
         RenderingServer.CanvasItemAddTriangleArray(GetCanvasItem(), Cape.Triangles, _points, Colours, Uvs, texture: (inside ? _lining : _outside).GetRid());
         if (inside) return;
-        // The hood on the back; the collar over its opening and the cape's top, the clasp at the throat.
+        // The hood on the back; the collar over its opening and the cape's top.
         RenderingServer.CanvasItemAddTriangleArray(GetCanvasItem(), Cape.HoodTriangles, _hood, HoodColours, HoodUvs, texture: _hoodPicture.GetRid());
         DrawTexture(_collar, CollarAt);
-        var (cx, cy) = Cape.Clasp;
-        DrawRect(new Rect2((float)Math.Floor(cx) - 1, (float)Math.Floor(cy), 2, 2), Brass);
     }
 
     private static Vector2[] MakeHoodUvs()
