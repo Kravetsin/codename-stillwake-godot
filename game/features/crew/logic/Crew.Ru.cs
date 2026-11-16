@@ -38,6 +38,7 @@ public static partial class Ru
         ["suit.key"] = "Режим костюма ({key:suit})",
         ["markers.home"] = "Спасательная капсула",
         ["markers.friend"] = "Напарник",
+        ["markers.ping"] = "Метка",
         ["markers.body"] = "Твоё тело",
         ["markers.delivery"] = "Доставка мафии",
         ["markers.lost"] = "Доставка мафии пролетела мимо",

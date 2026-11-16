@@ -156,9 +156,11 @@ public class GestureTests
 
     [Theory]
     [InlineData(0, -40, Gesture.Yes)]
-    [InlineData(40, 5, Gesture.Come)]
-    [InlineData(-3, 40, Gesture.No)]
-    [InlineData(-40, -10, Gesture.Wave)]
+    [InlineData(5, -40, Gesture.Yes)]
+    [InlineData(35, 20, Gesture.No)]
+    [InlineData(40, -5, Gesture.No)]
+    [InlineData(-35, 20, Gesture.Wave)]
+    [InlineData(-40, -5, Gesture.Wave)]
     public void LettingGoPicksTheSideThePointerMovedToward(double dx, double dy, Gesture picked)
     {
         var wheel = new GestureWheel();

@@ -38,6 +38,7 @@ public static partial class En
         ["suit.key"] = "Suit mode ({key:suit})",
         ["markers.home"] = "Lifepod",
         ["markers.friend"] = "Crewmate",
+        ["markers.ping"] = "A marked spot",
         ["markers.body"] = "Your body",
         ["markers.delivery"] = "The mafia's delivery",
         ["markers.lost"] = "The mafia's delivery drifted past",
