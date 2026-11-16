@@ -180,8 +180,9 @@ public static class Shipyard
             int w = Interior(c.Interior).Width;
             foreach (var (drawn, cell) in Drawn(c.Interior).Machines())
             {
-                // A salvage of several looks wears one drawn here, so vessels differ.
-                string kind = Vessels.SalvageOf(drawn) is { Looks: > 1 } s ? Vessels.LookKind(s, (int)rng.Below((uint)s.Looks)) : drawn;
+                // A machine of several looks wears one drawn here, so vessels differ.
+                int looks = Vessels.LooksOf(drawn);
+                string kind = looks > 1 ? Vessels.LookKind(drawn, (int)rng.Below((uint)looks)) : drawn;
                 IReadOnlyList<(string Item, int Count)> loot = Machines.Is(kind, MachineTrait.Container) ? Loot(rng, c.Role) : [];
                 fittings.Add(new(kind, c.Left + cell % w, c.Top + cell / w, loot));
             }
@@ -319,10 +320,12 @@ public static class Shipyard
         foreach (int t in segments)
         {
             bool hangs = shape.Below(Vessels.TrussEmptyOneIn) != 0;
+            // Its container's colour, one of its looks.
+            int colour = hangs ? (int)shape.Below((uint)Vessels.LooksOf(Vessels.TrussContainer)) : 0;
             if (!Put(Vessels.Truss, t, level)) continue;
             foreach (int post in Vessels.TrussPosts)
                 for (int y = Under(t + post, 1) + 1; y < level; y++) Put(Vessels.Pylon, t + post, y);
-            if (hangs) Put(Vessels.TrussContainer, t + (truss.Width - container.Width) / 2, level + truss.Height);
+            if (hangs) Put(Vessels.LookKind(Vessels.TrussContainer, colour), t + (truss.Width - container.Width) / 2, level + truss.Height);
         }
         var (tipTop, tipBottom) = bowSection.RowsAt(tip - 1);
         Put(Vessels.Boom, tip, tipTop + (tipBottom - tipTop + 1 - Machines.Get(Vessels.Boom).Height) / 2);

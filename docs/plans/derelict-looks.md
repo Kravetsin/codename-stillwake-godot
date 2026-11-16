@@ -64,7 +64,7 @@ airlock is not drawn: always shut), then outside parts in the table's order. So 
 | `vesselRadiator` | freighter | 16×6, 1–3 | on top, from the aft rooms toward the housing | copper 4, plate 3, tube 2 |
 | `vesselCollar` | freighter | 6×3 | on top after the radiators, else past the bridge | plate 4, gear 2 |
 | `vesselTruss` | freighter | 11×3 a segment | under the keel, from the aft rooms to 6 short of the bow | frame 2, scrap 2 |
-| `salvageContainer` | freighter | as it is | under a truss segment, 4 in 5 segments | as it is |
+| `vesselContainer` | freighter | 10×4, 6 colours | under a truss segment, 4 in 5 segments, its colour drawn | plate 6, planks 8, wire 3, tube 2 |
 | `vesselBoom` | freighter | 8×2 | at the bow tip, mid-height | wire 2, circuit 1 |
 
   Item ids are the nearest existing ones; the implementer checks each against `Items` and says where one differs.
@@ -96,6 +96,16 @@ airlock is not drawn: always shut), then outside parts in the table's order. So 
   its dot, reopened it is jammed again. Beacons: red on each mast, white strobe on the boom or the shuttle's bow tip.
 - **Signs:** 3–5 on a freighter, 2–3 on a shuttle, fewer where no room fits one, each on cells of rooms other than the
   airlock and bridge, hidden once its cells change.
+
+## Fixes after play (confirmed with the user, 2026-11-17)
+
+- `salvageContainer` stands only inside. Under the keel hang `vesselContainer`s: corrugated, dark corner castings, a stencilled
+  number, in the mockup's six colours, a look each (`Vessels.Coloured`), the colour drawn from stream 2.
+- Inside, the mockup's furniture (`Vessels.Furniture`, Hp, footprint, Gives, no menu card), by role: quarters bunks, a locker, a
+  table; life tanks; the engine room a cable rack and a machine block; bridge and cockpit a console and a pilot's seat beside a
+  salvage console; holds a cargo container (`vesselCargo`, the keel's colours) beside crates. Salvage stays, mixed in.
+- No soil clod on a vessel (`salvageClod` kept in no room, so a world saved on a vessel still loads).
+- One lamp on vessels, `vesselLamp`: flat, 2×1 on the ceiling row, pale, no power; `VesselLights` and the bolt filter key on it.
 
 ## Stages
 

@@ -447,8 +447,172 @@ function toppled(a) {
   }
 }
 
+
+// ---- Furniture inside (derelict-looks, the mockup's drawItem): what a hero takes apart in a derelict's rooms, lit from the side by
+// the game's light, worn and left, never repaired. Each picture is its machine's footprint, eight pixels a cell.
+const hexRgb = (h) => [1, 3, 5].map((i) => parseInt(h.substr(i, 2), 16));
+const mixed = (h, to, f) => '#' + hexRgb(h).map((v, i) => Math.round(v + (hexRgb(to)[i] - v) * f).toString(16).padStart(2, '0')).join('');
+/** The mockup's palOf: a paint, lit and shaded from it. */
+const palOf = (h) => ({ base: h, lite: mixed(h, '#ffffff', .26), spec: mixed(h, '#ffffff', .5), shade: mixed(h, '#000000', .3), deep: mixed(h, '#000000', .55), ink: INK });
+const WARM = palOf('#5e5a44'), BUNK = palOf('#6b5c49'), SEAT = palOf('#6a4a3a'), LIFE = palOf('#56676d'), WORKS = palOf('#4a5049');
+/** The lamp's housing: pale bare metal, lighter than the ship's lamp; its lens unlit, the game's light shines through it. */
+const PALE = { base: '#aeb3b6', shade: '#878c90', deep: '#64696d', lite: '#cdd1d3', spec: '#eef0f1', ink: INK };
+const LENS = { base: '#c9c2ad', shade: '#a49d89', deep: '#7f7969', lite: '#e2dccb', spec: '#f6f2e6', ink: INK };
+/** The cargo containers' colours, a look each (Vessels.ContainerColours), the mockup's CONT; and each keel container's stencilled number. */
+const CONT = ['#8a4a35', '#3d6275', '#9b7b3a', '#5b6b4a', '#767b83', '#6d4a5e'];
+const NUMBERS = ['27', '41', '63', '18', '85', '52'];
+
+/** machine_vesselLamp: a flat ceiling fixture, two cells across and a cell tall, its lens strip under a pale housing. */
+function lamp(a) {
+  a.shape(band(.4, -.4, 15.6, 3.8), PALE, { lite: band(.4, -.4, 15.6, 1), shade: band(.4, 2.8, 15.6, 3.8) });
+  rivets(a, [2.4, 1.6], [13.6, 1.6]);
+  a.shape(band(2, 3.8, 14, 5.4), LENS, { lite: band(2, 3.8, 14, 4.3), shade: .4 });
+  for (const x of [5, 8, 11]) a.line(`M${x} 3.9L${x} 5.3`, { c: '#8c8676', w: .4 });
+}
+
+/** machine_vesselBunk: two berths on posts, a mattress each on its frame, a blanket thrown back on the lower. 5 × 5 cells. */
+function bunk(a) {
+  for (const x of [0, 37.2]) lit(a, x, 0, x + 2.8, 40, MID, { lite: band(x, 0, x + 1, 40), shade: band(x + 1.9, 0, x + 2.8, 40) });
+  for (const by of [11.2, 31.2]) {
+    lit(a, 2.8, by + 3.6, 37.2, by + 6.4, DARK);
+    a.shape(Anime.rr(3.2, by - .4, 33.6, 4.4, 1.2), BUNK, { lite: band(3.2, by - .4, 36.8, by + .8), shade: band(3.2, by + 2.8, 36.8, by + 4) });
+  }
+  a.shape(Anime.rr(5, 8.6, 6, 2.6, 1), palOf('#8a8270'), { shade: .5 });
+  a.shape(poly(18, 30.4, 36.4, 30.4, 36.4, 34.6, 22, 34.6), palOf('#4f5b66'), { lite: band(18, 30.4, 36.4, 31.2), lines: ['M24 30.6L26.6 34.4'] });
+  patch(a, 38.6, 24, .8, 1.6, RUST, band(37.2, 0, 40, 40), 211);
+}
+
+/** machine_vesselLocker: tall and narrow, vent slats at its top, a handle, a dent in its door. 2 × 5 cells. */
+function locker(a) {
+  const d = band(.4, 0, 15.6, 40);
+  lit(a, .4, 0, 15.6, 40, MID, { lines: ['M2 38.4L14 38.4'] });
+  for (let y = 4; y < 11.2; y += 2) { a.flat(band(2.4, y, 13.6, y + .9), DARK.deep); a.flat(band(2.4, y + .9, 13.6, y + 1.3), MID.lite); }
+  a.shape(band(11.2, 19.2, 12.8, 24.8), { base: '#b8b2a2', shade: '#8e897b', deep: '#6a665b', lite: '#d4cfc1', spec: '#f0ece2', ink: INK }, { shade: .4 });
+  a.line('M4.4 26L6 27.6L5.4 29.4', { w: .5 });
+  patch(a, 4, 35, 1.8, 1.2, RUST, d, 223);
+}
+
+/** machine_vesselTable: a top of worn board on one leg and its foot. 3 × 2 cells. */
+function table(a) {
+  lit(a, 10.4, 3.2, 13.6, 14.6, MID);
+  lit(a, 5.6, 14, 18.4, 16, DARK);
+  a.shape(band(0, 0, 24, 3.2), WARM, { lite: band(0, 0, 24, 1), shade: band(0, 2.4, 24, 3.2), lines: ['M8 .6L8 2.6', 'M16.4 .6L16.4 2.6'] });
+}
+
+/** machine_vesselSeat: a pilot's seat facing the bow, its back on the left, a cushion on a post. 2 × 3 cells. */
+function seat(a) {
+  lit(a, 7, 17.6, 9.8, 22.4, MID);
+  lit(a, 3.6, 22.4, 13.2, 24, DARK);
+  a.shape(Anime.rr(1.2, 0, 5.6, 16.4, 1.6), SEAT, { lite: band(1.2, 0, 6.8, 2), shade: band(5, 0, 6.8, 16.4) });
+  a.shape(Anime.rr(1.2, 12.8, 14.4, 4.8, 1.4), SEAT, { lite: band(1.2, 12.8, 15.6, 14), shade: band(1.2, 16.4, 15.6, 17.6) });
+  a.line('M3 4L5 4', { w: .5 });
+  a.line('M8 13.4L12 13.2', { c: '#8e6a54', w: .6 });
+}
+
+/** machine_vesselLifeTank: a squat cylinder, its shoulders bevelled, a yellow band round it and its pipe up into the wall. 4 × 4 cells. */
+function lifeTank(a) {
+  a.tube('M16 4L16 1.6Q16 .8 17 .8L32 .8', 1.6, MID);
+  const d = poly(1.6, 9.6, 6.4, 4, 25.6, 4, 30.4, 9.6, 30.4, 32, 1.6, 32);
+  a.shape(d, LIFE, { lite: poly(1.6, 9.6, 6.4, 4, 25.6, 4, 30.4, 9.6, 30.4, 11, 1.6, 11), shade: band(24, 4, 31, 32), deep: band(28, 4, 31, 32) });
+  a.flat(band(1.6, 19.2, 30.4, 21.6), '#c9b25a', { clip: d });
+  a.flat(band(1.6, 21.6, 30.4, 22.2), '#8f7d3c', { clip: d });
+  lit(a, 12, 25, 20, 29, DARK);
+  a.flat(ell(16, 27, 1.4), '#b33a2a');
+  rivets(a, [5, 14], [27, 14]);
+  patch(a, 8, 30, 2.6, 1.2, RUST, d, 229);
+}
+
+/** machine_vesselConsole: a body of switches under a slanted screen (Light.ConsoleScreens), dark till the game lights it. 4 × 3 cells. */
+function consoleDesk(a) {
+  lit(a, 0, 8.8, 32, 24, MID, { lines: ['M1.2 19.2L30.8 19.2'] });
+  a.shape(poly(2.4, 8.8, 5.6, 0, 29.6, 0, 29.6, 8.8), DARK, { lite: poly(5.6, 0, 29.6, 0, 29.6, .8, 5.3, .8), shade: .5 });
+  a.flat(band(7.2, 1.6, 27.2, 7.6), '#0c1d20');
+  a.flat(band(7.6, 2, 12, 2.6), '#163036');
+  for (let k = 0; k < 4; k++) a.flat(band(4.8 + k * 6.4, 12, 7.6 + k * 6.4, 13.6), '#7d848d');
+  for (const [x, c] of [[8, '#5a2420'], [11, '#2c4a2c'], [14, '#5a4a20']]) a.flat(ell(x, 16.4, .9), c);
+  patch(a, 26, 22, 2, .9, RUST, band(0, 8.8, 32, 24), 233);
+}
+
+/** machine_vesselMachine: a machine block, a gear wheel in its face, a copper stripe, hazard paint along its foot. 6 × 4 cells. */
+function machineBlock(a) {
+  const d = band(0, 0, 48, 32);
+  lit(a, 0, 0, 48, 32, WORKS);
+  const teeth = [];
+  for (let i = 0; i < 24; i++) { const t = (i / 24) * Math.PI * 2, r = i % 2 ? 7 : 8.4; teeth.push(14.4 + Math.cos(t) * r, 14.4 + Math.sin(t) * r); }
+  a.shape(poly(teeth), palOf('#2f3330'), { shade: .8 });
+  a.shape(ell(14.4, 14.4, 2.8), palOf('#6b7168'), { shade: .4 });
+  a.shape(band(28.8, 6.4, 41.6, 10.4), COPPER, { lite: band(28.8, 6.4, 41.6, 7.4) });
+  for (let y = 15; y < 24; y += 2.4) a.line(`M29 ${y}L42 ${y}`, { c: WORKS.deep, w: .5 });
+  hazardFoot(a, 0, 28.4, 48, 2.4, d);
+  patch(a, 40, 26, 2.6, 1.2, RUST, d, 239);
+}
+/** Yellow and black paint in slanting bands from x to x + w. */
+function hazardFoot(a, x, y, w, h, clip) {
+  a.flat(band(x, y, x + w, y + h), '#d6a12c', { clip });
+  for (let u = x - h; u < x + w; u += 3.6) a.flat(poly(u, y + h, u + 1.8, y + h, u + 1.8 + h, y, u + h, y), '#17181b', { clip });
+}
+
+/** machine_vesselRack: a dark frame of cables, four colours looping down it between a top bar and a foot. 4 × 4 cells. */
+function rack(a) {
+  lit(a, 0, 0, 32, 32, DARK);
+  const cols = ['#a63b2c', '#c9a03a', '#3b6aa0', '#7a7f86'];
+  cols.forEach((c, k) => {
+    const x = 4.8 + k * 6.8;
+    a.tube(`M${x} 2.4Q${x + 2.4} 19.2 ${x} 29.6`, 1.4, palOf(c), { spec: false });
+  });
+  lit(a, 1.2, 1.2, 30.8, 3.6, MID);
+  lit(a, 1.2, 28.4, 30.8, 30.8, MID);
+  rivets(a, [3, 2.4], [29, 2.4]);
+}
+
+/** The corrugation, castings and wear of a cargo container w × h pixels in `col`; the keel's stencilled `num` on a plate if given. */
+const container = (w, h, col, num) => (a) => {
+  const pal = palOf(col), d = band(0, 0, w, h);
+  a.shape(d, pal, { lite: band(0, 0, w, 2.4), shade: band(0, h - 3.6, w, h), deep: band(0, h - 1.4, w, h) });
+  for (let x = 5.6; x < w - 4; x += 4.8) { a.flat(band(x, 2.8, x + 1, h - 2.8), pal.shade, { clip: d }); a.flat(band(x + 1, 2.8, x + 1.5, h - 2.8), pal.lite, { clip: d }); }
+  for (const [x, y] of [[0, 0], [w - 4, 0], [0, h - 4], [w - 4, h - 4]]) a.flat(band(x, y, x + 4, y + 4), '#25272b');
+  if (num) {
+    a.flat(band(12, 7.2, 30, 17.6), pal.base);
+    stencil(a, num, 14, 8.8, 'rgba(235,228,212,.78)');
+  }
+  a.flat(band(w * .7, h - 7.2, w * .7 + 7.2, h - 3.2), 'rgba(110,70,45,.55)', { clip: d });
+  patch(a, w * .3, h - 4.6, 2.2, 1, RUST, d, 241 + w);
+};
+/** Seven-segment stencil digits, each 4.6 wide and 7.2 tall with its bridges left open, from (x, y). */
+function stencil(a, text, x, y, c) {
+  const SEG = { 0: 'abcdef', 1: 'bc', 2: 'abged', 3: 'abgcd', 4: 'fgbc', 5: 'afgcd', 6: 'afgedc', 7: 'abc', 8: 'abcdefg', 9: 'abcdfg' };
+  const t = 1.2, W = 4.6, H = 7.2, m = H / 2;
+  [...text].forEach((ch, i) => {
+    const X = x + i * 7.4, seg = {
+      a: band(X + .5, y, X + W - .5, y + t), g: band(X + .5, y + m - t / 2, X + W - .5, y + m + t / 2), d: band(X + .5, y + H - t, X + W - .5, y + H),
+      f: band(X, y + .5, X + t, y + m - .7), b: band(X + W - t, y + .5, X + W, y + m - .7),
+      e: band(X, y + m + .7, X + t, y + H - .5), c: band(X + W - t, y + m + .7, X + W, y + H - .5),
+    };
+    for (const s of SEG[ch]) a.flat(seg[s], c);
+  });
+}
+
+function furniture() {
+  out('machine_vesselLamp', Anime.bake({ w: 16, h: 8, draw: lamp }));
+  out('machine_vesselBunk', Anime.bake({ w: 40, h: 40, draw: bunk }));
+  out('machine_vesselLocker', Anime.bake({ w: 16, h: 40, draw: locker }));
+  out('machine_vesselTable', Anime.bake({ w: 24, h: 16, draw: table }));
+  out('machine_vesselSeat', Anime.bake({ w: 16, h: 24, draw: seat }));
+  out('machine_vesselLifeTank', Anime.bake({ w: 32, h: 32, draw: lifeTank }));
+  out('machine_vesselConsole', Anime.bake({ w: 32, h: 24, draw: consoleDesk }));
+  out('machine_vesselMachine', Anime.bake({ w: 48, h: 32, draw: machineBlock }));
+  out('machine_vesselRack', Anime.bake({ w: 32, h: 32, draw: rack }));
+  // A colour a look, the first the kind itself (Vessels.LookKind).
+  CONT.forEach((col, k) => {
+    const look = k === 0 ? '' : String(k + 1);
+    out('machine_vesselCargo' + look, Anime.bake({ w: 64, h: 32, draw: container(64, 32, col) }));
+    out('machine_vesselContainer' + look, Anime.bake({ w: 80, h: 32, draw: container(80, 32, col, NUMBERS[k]) }));
+  });
+}
+
 Subjects.vessel = function () {
   skin();
+  furniture();
   out('vessel_frost', Anime.bake({ w: 40, h: 48, draw: frost }));
   out('vessel_cable', Anime.bake({ w: 24, h: 32, draw: cable }));
   out('vessel_soot', Anime.bake({ w: 48, h: 40, draw: soot }));

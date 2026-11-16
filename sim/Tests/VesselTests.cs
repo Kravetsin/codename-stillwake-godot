@@ -211,7 +211,7 @@ public class VesselTests
             var cells = Shipyard.Covers(new VesselPart(f.X, f.Y, "machine", f.Kind)).ToList();
             Assert.All(cells, c => Assert.False(structures.Contains(c) || backs.Contains(c), $"{f.Kind} at ({f.X}, {f.Y}) over the hull at {c}"));
             // A container hangs under its truss segment, wholly under it; every other part against the hull or on its pylons.
-            if (f.Kind == Content.Vessels.TrussContainer)
+            if (Content.Vessels.FirstLook(f.Kind) == Content.Vessels.TrussContainer)
                 Assert.Contains(trusses, t => t.Y + truss.Height == f.Y && t.X <= f.X && f.X + Machines.Get(f.Kind).Width <= t.X + truss.Width);
             else
                 Assert.Contains(cells, c => held.Contains((c.X + 1, c.Y)) || held.Contains((c.X - 1, c.Y)) || held.Contains((c.X, c.Y + 1)) || held.Contains((c.X, c.Y - 1)));
@@ -222,7 +222,7 @@ public class VesselTests
     public Property EachClassCarriesItsOutsideParts() => Prop.ForAll(Vessels(), v =>
     {
         var vessel = Shipyard.Describe(v.Class, v.Seed);
-        int Count(string kind) => vessel.Outside.Count(f => f.Kind == kind);
+        int Count(string kind) => vessel.Outside.Count(f => Content.Vessels.FirstLook(f.Kind) == kind);
         Assert.Equal(4, Count(Content.Vessels.Rcs));
         Assert.Equal(1, Count(Content.Vessels.Dish));
         if (v.Class.Id == "shuttle")
@@ -258,10 +258,97 @@ public class VesselTests
         {
             var vessel = Shipyard.Describe(freighter, seed);
             segments += vessel.Outside.Count(f => f.Kind == Content.Vessels.Truss);
-            held += vessel.Outside.Count(f => f.Kind == Content.Vessels.TrussContainer);
+            held += vessel.Outside.Count(f => Content.Vessels.FirstLook(f.Kind) == Content.Vessels.TrussContainer);
         }
         // Four in five, roughly.
         Assert.InRange(held * Content.Vessels.TrussEmptyOneIn, segments * 3, segments * Content.Vessels.TrussEmptyOneIn - 1);
+    }
+
+    [Fact]
+    public void UnderTheKeelHangOnlyCargoContainersEveryColourOnSomeAndTheGreenOneStandsOnlyInside()
+    {
+        var colours = new HashSet<string>();
+        var looks = Enumerable.Range(0, Content.Vessels.ContainerColours).Select(k => Content.Vessels.LookKind(Content.Vessels.Container, k)).ToList();
+        foreach (var cls in Content.Vessels.Classes)
+            for (uint seed = 1; seed <= 40; seed++)
+            {
+                var vessel = Shipyard.Describe(cls, seed);
+                Assert.DoesNotContain(vessel.Outside, f => f.Kind == "salvageContainer");
+                foreach (var f in vessel.Outside.Where(f => Content.Vessels.FirstLook(f.Kind) == Content.Vessels.Container))
+                {
+                    Assert.Contains(f.Kind, looks);
+                    colours.Add(f.Kind);
+                }
+            }
+        Assert.Equal(looks.Order(), colours.Order());
+        Assert.Equal(Content.Vessels.Container, Content.Vessels.TrussContainer);
+        Assert.Contains(Content.Vessels.Interiors, i => Layout.Parse(i.Rows).Machines().Any(m => m.Kind == "salvageContainer"));
+        // A colour is a look: its row alike but for its kind.
+        var first = Machines.Get(Content.Vessels.Container);
+        Assert.All(looks, k => Assert.Equal((first.Width, first.Height, first.Hp, first.Cost), (Machines.Get(k).Width, Machines.Get(k).Height, Machines.Get(k).Hp, Machines.Get(k).Cost)));
+    }
+
+    [Fact]
+    public void NoSoilClodStandsOnAnyVessel()
+    {
+        foreach (var cls in Content.Vessels.Classes)
+            for (uint seed = 1; seed <= 200; seed++)
+                foreach (var cause in (VesselCause[])[VesselCause.None, VesselCause.Breach])
+                    Assert.DoesNotContain(Shipyard.Make(cls, seed, cause), p => p.Layer == "machine" && Content.Vessels.SalvageOf(p.Kind)?.From == "soilClod");
+        Assert.DoesNotContain(string.Concat(Content.Vessels.Interiors.SelectMany(i => i.Rows)), c => c == 'z');
+    }
+
+    [Fact]
+    public void EveryRoomHasTheDerelictsLampOnItsCeilingAndNoneIsTheShipsLamp()
+    {
+        foreach (var cls in Content.Vessels.Classes)
+            for (uint seed = 1; seed <= 40; seed++)
+            {
+                var vessel = Shipyard.Describe(cls, seed);
+                var machines = Shipyard.Stamp(vessel).Where(p => p.Layer == "machine").ToList();
+                Assert.DoesNotContain(machines, p => p.Kind is "lamp" or "emergencyLamp" or "arcLamp");
+                Assert.All(machines.Where(p => Machines.Is(p.Kind, MachineTrait.Hangs)), p => Assert.Equal(Content.Vessels.Lamp, p.Kind));
+                foreach (var c in vessel.Compartments)
+                    Assert.Contains(machines, p => p.Kind == Content.Vessels.Lamp && p.Y == c.Top && p.X >= c.Left && p.X < c.Left + c.Width);
+            }
+        var lamp = Machines.Get(Content.Vessels.Lamp);
+        Assert.Equal((2, 1, false), (lamp.Width, lamp.Height, lamp.Powered));
+        Assert.True(lamp.Is(MachineTrait.Glow));
+    }
+
+    [Fact]
+    public void EachPieceOfFurnitureStandsInRoomsOfItsRoleOnSomeVessels()
+    {
+        var roles = new Dictionary<string, VesselRole[]>
+        {
+            [Content.Vessels.Bunk] = [VesselRole.Quarters],
+            [Content.Vessels.Locker] = [VesselRole.Quarters],
+            [Content.Vessels.Table] = [VesselRole.Quarters],
+            [Content.Vessels.LifeTank] = [VesselRole.Life],
+            [Content.Vessels.Machine] = [VesselRole.Engine],
+            [Content.Vessels.Rack] = [VesselRole.Engine],
+            [Content.Vessels.Console] = [VesselRole.Bridge],
+            [Content.Vessels.Seat] = [VesselRole.Bridge],
+            [Content.Vessels.Cargo] = [VesselRole.Hold],
+        };
+        Assert.Equal(Content.Vessels.Furniture.Select(r => Content.Vessels.FirstLook(r.Kind)).Distinct().Where(k => k != Content.Vessels.Lamp).Order(), roles.Keys.Order());
+        var seen = new HashSet<string>();
+        foreach (var cls in Content.Vessels.Classes)
+            for (uint seed = 1; seed <= 40; seed++)
+            {
+                var vessel = Shipyard.Describe(cls, seed);
+                foreach (var f in vessel.Fittings)
+                {
+                    string kind = Content.Vessels.FirstLook(f.Kind);
+                    if (!roles.TryGetValue(kind, out var allowed)) continue;
+                    var room = vessel.Compartments.Single(c => f.X >= c.Left && f.X < c.Left + c.Width && f.Y >= c.Top && f.Y < c.Top + Content.Vessels.Open);
+                    Assert.Contains(room.Role, allowed);
+                    seen.Add(f.Kind);
+                }
+            }
+        // Every piece, and every colour of the hold's cargo container.
+        Assert.All(roles.Keys, k => Assert.Contains(k, seen));
+        Assert.All(Enumerable.Range(0, Content.Vessels.ContainerColours), k => Assert.Contains(Content.Vessels.LookKind(Content.Vessels.Cargo, k), seen));
     }
 
     [Fact]

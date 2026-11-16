@@ -62,10 +62,10 @@ public class MachineFootTests
     }
 
     /// <summary>
-    /// The lamps, hung from the ceiling by their plug at the top, the debris net, hung on the hull, and the parts outside a derelict,
+    /// The lamps (a derelict's too), hung from the ceiling by their plug at the top, the debris net, hung on the hull, and the parts outside a derelict,
     /// against its hull any way (derelict-looks): nothing of theirs stands on the floor.
     /// </summary>
-    private static readonly string[] Hung = ["arcLamp", "emergencyLamp", "lamp", "net", .. Stillwake.Content.Vessels.Outside.Select(o => o.Kind)];
+    private static readonly string[] Hung = ["arcLamp", "emergencyLamp", "lamp", "net", Stillwake.Content.Vessels.Lamp, .. Stillwake.Content.Vessels.Outside.Select(o => o.Kind)];
 
     [Fact]
     public void EveryMachineStandsOnItsPicturesFoot()

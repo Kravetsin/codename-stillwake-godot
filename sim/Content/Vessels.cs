@@ -162,7 +162,8 @@ public static class Vessels
         // An engine's piece already gives much; five of it would flood the hold with gears.
         new("salvageEngine", "engineBlock", 's', [VesselRole.Engine], Times: 2),
         new("salvageRack", "cableRack", 't', [VesselRole.Bridge]),
-        new("salvageClod", "soilClod", 'z', [VesselRole.Quarters]),
+        // No soil clod stands aboard (derelict-looks): kept in no room, so a world saved on a vessel that had one still loads.
+        new("salvageClod", "soilClod", 'z', []),
         // A hold module's piece gives as much as an engine's.
         new("salvageHold", "cargoHold", '3', [VesselRole.Hold], Times: 2),
         // Spares in a hold; and what tore the hull, left by a breach on the deck by its crater.
@@ -193,6 +194,30 @@ public static class Vessels
         return cost;
     }
 
+    /// <summary>
+    /// The machines aboard but salvage that come in several looks (derelict-looks), each a machine row alike but for its picture
+    /// (<see cref="LookKind(string, int)"/>), one drawn for each stamped: the cargo containers, a colour a look.
+    /// </summary>
+    public static readonly IReadOnlyList<(string Kind, int Looks)> Coloured = [(Container, ContainerColours), (Cargo, ContainerColours)];
+
+    /// <summary>How many looks a machine aboard of first look <paramref name="kind"/> comes in: one for any but those of several.</summary>
+    public static int LooksOf(string kind)
+    {
+        foreach (var s in Salvage) if (s.Kind == kind) return s.Looks;
+        foreach (var (k, looks) in Coloured) if (k == kind) return looks;
+        return 1;
+    }
+
+    /// <summary>The first look of any look <paramref name="kind"/> is: the kind it is drawn as in interiors and named by in rules.</summary>
+    public static string FirstLook(string kind)
+    {
+        if (SalvageOf(kind) is { } s) return s.Kind;
+        foreach (var (k, looks) in Coloured)
+            for (int look = 0; look < looks; look++)
+                if (LookKind(k, look) == kind) return k;
+        return kind;
+    }
+
     /// <summary>The salvage that <paramref name="kind"/> is, any of its looks; null for any other machine.</summary>
     public static VesselSalvage? SalvageOf(string kind)
     {
@@ -203,7 +228,14 @@ public static class Vessels
     }
 
     /// <summary>The machine row of <paramref name="s"/>'s look <paramref name="look"/>: its own kind for the first, numbered from 2 after it.</summary>
-    public static string LookKind(VesselSalvage s, int look) => look == 0 ? s.Kind : s.Kind + (look + 1);
+    public static string LookKind(VesselSalvage s, int look) => LookKind(s.Kind, look);
+
+    /// <summary>The machine row of <paramref name="kind"/>'s look <paramref name="look"/>: the kind itself for the first, numbered from 2 after it.</summary>
+    public static string LookKind(string kind, int look) => look == 0 ? kind : kind + (look + 1);
+
+    /// <summary><paramref name="row"/> in <paramref name="looks"/> looks, a row each, alike but for the kind; the first keeps its character.</summary>
+    private static IEnumerable<MachineSpec> Looked(MachineSpec row, int looks) =>
+        Enumerable.Range(0, looks).Select(look => look == 0 ? row : row with { Kind = LookKind(row.Kind, look), Char = null, Means = null });
 
     /// <summary>The machine rows of <see cref="Salvage"/>, a row a look, piles with no menu card, joined to <c>Machines.All</c>.</summary>
     public static readonly IReadOnlyList<MachineSpec> SalvageRows = Salvage.SelectMany(s =>
@@ -244,6 +276,28 @@ public static class Vessels
         new(Truss, 11, 3, [], [("frame", 2), ("scrap", 2)], BuildTicks: 160, Hp: 12),
         new(Pylon, 1, 1, [], [("scrap", 1)], BuildTicks: 80, Hp: 4),
         new(Boom, 8, 2, [], [("wire", 2), ("circuit", 1)], BuildTicks: 160, Hp: 8),
+        // The mockup's tooltip: plates and the cargo inside, here a hold's planks, wire and tubes.
+        .. Looked(new(Container, 10, 4, [], [("plate", 6), ("planks", 8), ("wire", 3), ("tube", 2)], BuildTicks: 160, Hp: 14), ContainerColours),
+    ];
+
+    /// <summary>
+    /// What furnishes a vessel's rooms but salvage (derelict-looks, the mockup's furniture), each a machine row with no menu card, taken
+    /// apart for what the mockup's tooltips say, in existing items: the ceiling lamp every room has, burning on the vessel's own battery
+    /// with no power; bunks, a locker, a table and a pilot's seat; life support's tanks; a console; a machine block and a cable rack; a
+    /// hold's cargo container, in the keel's colours.
+    /// </summary>
+    public static readonly IReadOnlyList<MachineSpec> Furniture =
+    [
+        new(Lamp, 2, 1, [], [("wire", 1), ("glass", 1)], BuildTicks: 60, Hp: 4, Has: MachineTrait.Glow | MachineTrait.Hangs, Char: '*', Means: "a derelict's ceiling lamp, on its own battery"),
+        new(Bunk, 5, 5, [], [("plate", 2), ("cloth", 2)], BuildTicks: 160, Hp: 8, Char: '[', Means: "a derelict's bunks: draw its whole footprint"),
+        new(Locker, 2, 5, [], [("plate", 2)], BuildTicks: 120, Hp: 6, Char: ']', Means: "a derelict's locker: draw its whole footprint"),
+        new(Table, 3, 2, [], [("plate", 1)], BuildTicks: 80, Hp: 4, Char: '+', Means: "a derelict's table: draw its whole footprint"),
+        new(Seat, 2, 3, [], [("plate", 1), ("cloth", 1)], BuildTicks: 80, Hp: 4, Char: '@', Means: "a derelict's pilot's seat: draw its whole footprint"),
+        new(LifeTank, 4, 4, [], [("canister", 2), ("tube", 2)], BuildTicks: 160, Hp: 8, Char: '0', Means: "a derelict's life-support tank: draw its whole footprint"),
+        new(Console, 4, 3, [], [("circuit", 2), ("wire", 3)], BuildTicks: 160, Hp: 8, Char: '>', Means: "a derelict's console: draw its whole footprint"),
+        new(Machine, 6, 4, [], [("gear", 3), ("rotor", 1)], BuildTicks: 160, Hp: 12, Char: '{', Means: "a derelict's machine block: draw its whole footprint"),
+        new(Rack, 4, 4, [], [("wire", 6), ("copper", 2)], BuildTicks: 160, Hp: 8, Char: '}', Means: "a derelict's cable rack: draw its whole footprint"),
+        .. Looked(new(Cargo, 8, 4, [], [("plate", 4), ("planks", 6), ("wire", 2)], BuildTicks: 160, Hp: 12, Char: '7', Means: "a derelict's cargo container: draw its whole footprint"), ContainerColours),
     ];
 
     /// <summary>How many radiators a freighter carries on top, least and most: as many of them as fit.</summary>
@@ -270,11 +324,20 @@ public static class Vessels
     /// <summary>A truss segment holds no container under it one time in this many.</summary>
     public const int TrussEmptyOneIn = 5;
 
-    /// <summary>What hangs under a truss segment: the hold's container, as it is aboard.</summary>
-    public const string TrussContainer = "salvageContainer";
+    /// <summary>What hangs under a truss segment: a cargo container, its colour drawn.</summary>
+    public const string TrussContainer = Container;
+
+    /// <summary>The furniture inside a vessel and the keel's cargo container (derelict-looks), by the names <see cref="Furniture"/> and <see cref="Outside"/> give them.</summary>
+    public const string Lamp = "vesselLamp", Bunk = "vesselBunk", Locker = "vesselLocker", Table = "vesselTable", Seat = "vesselSeat",
+        LifeTank = "vesselLifeTank", Console = "vesselConsole", Machine = "vesselMachine", Rack = "vesselRack", Cargo = "vesselCargo",
+        Container = "vesselContainer";
+
+    /// <summary>How many colours a cargo container comes in, a look each: the mockup's rust red, faded blue, ochre, olive, grey, plum.</summary>
+    public const int ContainerColours = 6;
 
     /// <summary>The machines a vessel may hold: fair loot that keeps no state in another module by its id.</summary>
-    public static readonly IReadOnlyList<string> Machines = ["crate", "lamp", .. SalvageRows.Select(r => r.Kind), .. Outside.Select(r => r.Kind)];
+    public static readonly IReadOnlyList<string> Machines =
+        ["crate", .. SalvageRows.Select(r => r.Kind), .. Outside.Select(r => r.Kind), .. Furniture.Select(r => r.Kind)];
 
     /// <summary>Columns from a module's start to the next's past the aft rooms, least and most (derelict-looks).</summary>
     public static readonly (int Min, int Max) ModuleEvery = (22, 38);
@@ -297,9 +360,9 @@ public static class Vessels
     public static readonly IReadOnlyList<VesselClass> Classes =
     [
         new("shuttle", Length: 72, Decks: (2, 2), BowFlat: 3, BowRun: (1, 2), BowTip: 5, ArmourDepth: 2, BridgeKind: VesselBridge.Cockpit,
-            Extras: (0, 1), ExtraRoles: [VesselRole.Hold, VesselRole.Quarters, VesselRole.Life], Crater: 6, Yield: (1700, 2800)),
+            Extras: (0, 1), ExtraRoles: [VesselRole.Hold, VesselRole.Quarters, VesselRole.Life], Crater: 6, Yield: (1600, 2600)),
         new("freighter", Length: 200, Decks: (2, 3), BowFlat: 8, BowRun: (1, 2), BowTip: 8, ArmourDepth: 2, BridgeKind: VesselBridge.Raised,
-            Extras: (5, 10), ExtraRoles: [VesselRole.Hold, VesselRole.Quarters, VesselRole.Life], Crater: 14, Yield: (3600, 6600)),
+            Extras: (5, 10), ExtraRoles: [VesselRole.Hold, VesselRole.Quarters, VesselRole.Life], Crater: 14, Yield: (3300, 6000)),
     ];
 
     /// <summary>The surface kind each class's vessel lies on (vessel-worlds), in the order of <see cref="Classes"/>.</summary>
@@ -340,13 +403,14 @@ public static class Vessels
 
     public static readonly IReadOnlyList<VesselInterior> Interiors =
     [
-        // Salvage stands on the deck, its bottom row the interior's last: j container, l crate, m pod, p tanks, r machine
-        // block, s engine block, t cable rack, z soil clod, 3 cargo hold, 1 hull section, 2 shield slab, 4 the main engine, 5 a
-        // console, 6 a vending machine; K a storage crate, L a lamp, = a shelf or bunk.
+        // Salvage stands on the deck, its bottom row the interior's last: j container, l crate, m pod, p tanks, r machine block,
+        // s engine block, t cable rack, 3 cargo hold, 1 hull section, 2 shield slab, 4 the main engine, 5 a console, 6 a vending
+        // machine. Furniture (derelict-looks): * the ceiling lamp on the first row, [ bunks, ] a locker, + a table, @ a pilot's seat,
+        // 0 a life-support tank, > a console, { a machine block, } a cable rack, 7 a cargo container; K a storage crate, = a shelf.
         new("holdContainer", VesselRole.Hold,
         [
-            "............LL..",
-            "............LL..",
+            "............**..",
+            "................",
             "..jjjjjjjj......",
             "..jjjjjjjj......",
             "..jjjjjjjj.lll..",
@@ -354,26 +418,26 @@ public static class Vessels
         ]),
         new("holdCrates", VesselRole.Hold,
         [
-            "....LL......LL..",
-            "....LL......LL..",
+            "....**......**..",
             "................",
-            "................",
-            "..lll.lll.KKKK..",
-            "..lll.lll.KKKK..",
+            "..lll.77777777..",
+            "..lll.77777777..",
+            "..KKKK77777777..",
+            "..KKKK77777777..",
         ]),
         new("holdContainers", VesselRole.Hold,
         [
-            "..........LL..........",
-            "..........LL..........",
-            "..jjjjjjjj..jjjjjjjj..",
-            "..jjjjjjjj..jjjjjjjj..",
-            "..jjjjjjjj..jjjjjjjj..",
-            "..jjjjjjjj..jjjjjjjj..",
+            "..........**..........",
+            "......................",
+            "..jjjjjjjj..77777777..",
+            "..jjjjjjjj..77777777..",
+            "..jjjjjjjj..77777777..",
+            "..jjjjjjjj..77777777..",
         ]),
         new("holdBay", VesselRole.Hold,
         [
-            "..333333333333..LL..",
-            "..333333333333..LL..",
+            "..333333333333..**..",
+            "..333333333333......",
             "..333333333333......",
             "..333333333333......",
             "..333333333333.lll..",
@@ -381,8 +445,8 @@ public static class Vessels
         ]),
         new("holdSpares", VesselRole.Hold,
         [
-            "....LL........LL....",
-            "....LL........LL....",
+            "....**........**....",
+            "....................",
             "..111111..22222222..",
             "..111111..22222222..",
             "..111111..22222222..",
@@ -390,111 +454,111 @@ public static class Vessels
         ]),
         new("quartersBunks", VesselRole.Quarters,
         [
-            "......LL........",
-            "......LL........",
-            "..=====...zzzz..",
-            "..........zzzz..",
-            "..=====mm.zzzz..",
-            ".......mm.zzzz..",
+            "......**........",
+            "..[[[[[.]]......",
+            "..[[[[[.]]......",
+            "..[[[[[.]]......",
+            "..[[[[[.]].+++..",
+            "..[[[[[.]].+++..",
         ]),
         new("quartersStores", VesselRole.Quarters,
         [
-            "....LL....LL....",
-            "....LL....LL....",
-            "................",
-            "................",
-            "..lll..mm.KKKK..",
-            "..lll..mm.KKKK..",
+            "....**....**....",
+            ".........]].....",
+            ".........]].....",
+            ".........]].....",
+            "..lll.mm.]]KKKK.",
+            "..lll.mm.]]KKKK.",
         ]),
         new("mess", VesselRole.Quarters,
         [
-            "....LL..........",
-            "....LL....6666..",
-            "..........6666..",
+            "....**..........",
+            "..mm......6666..",
+            "..mm......6666..",
             "..====....6666..",
-            "..lll.mm..6666..",
-            "..lll.mm..6666..",
+            "..lll.+++.6666..",
+            "..lll.+++.6666..",
         ]),
         new("cabin", VesselRole.Quarters,
         [
-            "....LL......",
-            "....LL......",
-            "..====......",
-            "............",
-            "..lll..mm...",
-            "..lll..mm...",
+            ".......**...",
+            "..[[[[[.....",
+            "..[[[[[.....",
+            "..[[[[[.....",
+            "..[[[[[.lll.",
+            "..[[[[[.lll.",
         ]),
         new("engineRoom", VesselRole.Engine,
         [
-            "....LL..........",
-            "....LL..........",
-            "..rrrrrr..======",
-            "..rrrrrr........",
-            "..rrrrrr..KKKK..",
-            "..rrrrrr..KKKK..",
+            "....**..........",
+            "................",
+            "..rrrrrr.}}}}...",
+            "..rrrrrr.}}}}...",
+            "..rrrrrr.}}}}...",
+            "..rrrrrr.}}}}...",
         ]),
         new("engineHall", VesselRole.Engine,
         [
-            "..ssssssssss....LL..",
-            "..ssssssssss....LL..",
-            "..ssssssssssrrrrrr..",
-            "..ssssssssssrrrrrr..",
-            "..ssssssssssrrrrrr..",
-            "..ssssssssssrrrrrr..",
+            "..ssssssssss....**..",
+            "..ssssssssss........",
+            "..ssssssssss{{{{{{..",
+            "..ssssssssss{{{{{{..",
+            "..ssssssssss{{{{{{..",
+            "..ssssssssss{{{{{{..",
         ]),
         new("engineCell", VesselRole.Engine,
         [
-            "..LL........",
-            "..LL........",
-            "..rrrrrr....",
-            "..rrrrrr....",
-            "..rrrrrr.mm.",
-            "..rrrrrr.mm.",
+            "..**........",
+            "............",
+            "..{{{{{{....",
+            "..{{{{{{....",
+            "..{{{{{{.mm.",
+            "..{{{{{{.mm.",
         ]),
         new("lifeSupport", VesselRole.Life,
         [
-            "......LL........",
-            "......LL........",
-            "..pppp..pppp....",
-            "..pppp..pppp....",
-            "..pppp..pppp.mm.",
-            "..pppp..pppp.mm.",
+            "......**........",
+            "................",
+            "..0000.pppp.0000",
+            "..0000.pppp.0000",
+            "..0000.pppp.0000",
+            "..0000.pppp.0000",
         ]),
         new("mainEngine", VesselRole.Engine,
         [
-            "444444444444..LL..",
-            "444444444444..LL..",
+            "444444444444..**..",
             "444444444444......",
-            "444444444444......",
-            "444444444444.KKKK.",
-            "444444444444.KKKK.",
+            "444444444444.}}}}.",
+            "444444444444.}}}}.",
+            "444444444444.}}}}.",
+            "444444444444.}}}}.",
         ], Main: true),
         new("mainEngineHall", VesselRole.Engine,
         [
-            "444444444444....LL....",
-            "444444444444....LL....",
-            "444444444444..rrrrrr..",
-            "444444444444..rrrrrr..",
-            "444444444444..rrrrrr..",
-            "444444444444..rrrrrr..",
+            "444444444444....**....",
+            "444444444444..........",
+            "444444444444..{{{{{{..",
+            "444444444444..{{{{{{..",
+            "444444444444..{{{{{{..",
+            "444444444444..{{{{{{..",
         ], Main: true),
         new("bridge", VesselRole.Bridge,
         [
-            "......LL......LL..",
-            "......LL......LL..",
+            "......**......**..",
+            "..................",
             "..............tttt",
-            "..5555..5555..tttt",
-            "..5555..5555..tttt",
-            "..5555..5555..tttt",
+            "..5555.@@.>>>>tttt",
+            "..5555.@@.>>>>tttt",
+            "..5555.@@.>>>>tttt",
         ]),
         new("cockpit", VesselRole.Bridge,
         [
-            "....LL........",
-            "....LL........",
+            "....**........",
             "..............",
-            "..5555..5555..",
-            "..5555..5555..",
-            "..5555..5555..",
+            "..............",
+            "..>>>>.@@.5555",
+            "..>>>>.@@.5555",
+            "..>>>>.@@.5555",
         ]),
     ];
 

@@ -307,6 +307,8 @@ public static class Machines
         .. Vessels.SalvageRows,
         // What stands outside a vessel's hull (derelict-looks), taken apart for what it gives.
         .. Vessels.Outside,
+        // What furnishes a vessel's rooms but salvage (derelict-looks): its lamps, bunks, consoles and the like.
+        .. Vessels.Furniture,
     ];
 
     private static readonly Dictionary<string, MachineSpec> ByKind = All.ToDictionary(m => m.Kind, StringComparer.Ordinal);
