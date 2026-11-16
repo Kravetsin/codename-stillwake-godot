@@ -6,65 +6,73 @@ using Stillwake.Game.Render;
 namespace Stillwake.Game.Features.Crew;
 
 /// <summary>
-/// A side of a cape on a figure (a prototype, <see cref="Cape"/>), drawn as its rigid pieces (<see cref="Cape.Pieces"/>), so no
-/// picture stretches. The outside shows its picture, the whole cape painted as it hangs, hood, gathered neck and clasp in it
-/// (<see cref="Cape.Painted"/>). The inside, the same pieces wrapped round the far side of the body, shows the lining all over.
-/// A child of the figure's frame; lit as the figure is.
+/// A side of a cape on a figure (a prototype, <see cref="Cape"/>): its sheet drawn as one mesh of triangles. The outside
+/// shows its picture all over: posed, it never folds over itself (2026-10-28-the-cape-flows). The inside, the same sheet
+/// wrapped round the far side of the body, shows the lining all over. A child of the figure's frame, so its points are drawn where the cape
+/// gives them; lit as the figure is. The outside wears its hood, its fur collar and its clasp.
 /// </summary>
 public partial class CapeView(Cape cape, bool inside) : Node2D
 {
     /// <summary>The cape's pictures, by its picture id (skins): the item's own, `cape`, or a skin's.</summary>
-    private Texture2D _outside = PixelArt.Picture("hero_cape"), _lining = PixelArt.Picture("hero_cape_lining");
+    private Texture2D _outside = PixelArt.Picture("hero_cape"), _lining = PixelArt.Picture("hero_cape_lining"),
+        _hoodPicture = PixelArt.Picture("hero_cape_hood"), _collar = PixelArt.Picture("hero_cape_collar");
     private string _picture = Stillwake.Content.Cape.Item;
-    private static readonly Vector2[] Uvs = MakeUvs(Cape.Uv);
+    /// <summary>Where the collar lies, its top left, from the feet: round the neck over the cape's top, from the back to the clasp.</summary>
+    private static readonly Vector2 CollarAt = new(-10.5f, (float)-(Rig.Neck + 1.5));
+    /// <summary>The clasp at the throat, a pixel of brass on the outside.</summary>
+    private static readonly Color Brass = new("c9a35a");
+    private static readonly Vector2[] Uvs = MakeUvs();
+    private static readonly Vector2[] HoodUvs = MakeHoodUvs();
+    private static readonly Color[] Colours = [.. Uvs.Select(_ => Colors.White)], HoodColours = [.. HoodUvs.Select(_ => Colors.White)];
+    private readonly Vector2[] _points = new Vector2[Cape.Cols * Cape.Rows], _hood = new Vector2[Cape.HoodCols * Cape.HoodRows];
 
-    /// <summary>Draws the cape in <paramref name="picture"/>'s pictures: <c>hero_{picture}</c> and its lining.</summary>
+    /// <summary>Draws the cape in <paramref name="picture"/>'s pictures: <c>hero_{picture}</c>, its lining, hood and collar.</summary>
     public void Wear(string picture)
     {
         if (picture == _picture) return;
         _picture = picture;
         (_outside, _lining) = (PixelArt.Picture($"hero_{picture}"), PixelArt.Picture($"hero_{picture}_lining"));
+        (_hoodPicture, _collar) = (PixelArt.Picture($"hero_{picture}_hood"), PixelArt.Picture($"hero_{picture}_collar"));
         QueueRedraw();
     }
 
     /// <summary>Takes the cape's points as it last moved, to draw them.</summary>
-    public void Refresh() => QueueRedraw();
+    public void Refresh()
+    {
+        var points = inside ? cape.Inside : cape.Points;
+        for (int i = 0; i < points.Length; i++) _points[i] = new Vector2((float)points[i].X, (float)points[i].Y);
+        for (int i = 0; i < _hood.Length; i++) _hood[i] = new Vector2((float)cape.Hood[i].X, (float)cape.Hood[i].Y);
+        QueueRedraw();
+    }
 
     public override void _Draw()
     {
-        // Piece by piece, the lowest first: each overlaps the one under it by a row, hidden under its foot. The inside lies on the
-        // same pieces, its front edge carried forward as far as the sheet wraps round the body now.
-        for (int k = Cape.Pieces.Length - 1; k >= 0; k--)
-        {
-            var piece = PieceOf[k];
-            for (int i = 0; i < piece.Points.Length; i++)
-            {
-                int at = piece.First + i;
-                var (x, y) = cape.OnPiece(k, Cape.Rest(at));
-                float wrap = inside ? (float)(cape.Inside[at].X - cape.Points[at].X) : 0;
-                piece.Points[i] = new Vector2((float)x + wrap, (float)y);
-            }
-            RenderingServer.CanvasItemAddTriangleArray(GetCanvasItem(), piece.Triangles, piece.Points, piece.Colours,
-                inside ? piece.LiningUvs : piece.Uvs, texture: (inside ? _lining : _outside).GetRid());
-        }
+        RenderingServer.CanvasItemAddTriangleArray(GetCanvasItem(), Cape.Triangles, _points, Colours, Uvs, texture: (inside ? _lining : _outside).GetRid());
+        if (inside) return;
+        // The hood on the back; the collar over its opening and the cape's top, the clasp at the throat.
+        RenderingServer.CanvasItemAddTriangleArray(GetCanvasItem(), Cape.HoodTriangles, _hood, HoodColours, HoodUvs, texture: _hoodPicture.GetRid());
+        DrawTexture(_collar, CollarAt);
+        var (cx, cy) = Cape.Clasp;
+        DrawRect(new Rect2((float)Math.Floor(cx) - 1, (float)Math.Floor(cy), 2, 2), Brass);
     }
 
-    /// <summary>A piece of the outside as drawn: the sheet's points from the row over its top (none over the first) to its bottom.</summary>
-    private sealed record Piece(int First, Vector2[] Points, Vector2[] Uvs, Vector2[] LiningUvs, int[] Triangles, Color[] Colours);
-
-    private static readonly Piece[] PieceOf = [.. Cape.Pieces.Select((p, k) =>
+    private static Vector2[] MakeHoodUvs()
     {
-        int top = k == 0 ? p.Top : p.Top - 1, rows = p.Bottom - top + 1, first = top * Cape.Cols;
-        var uvs = Enumerable.Range(first, rows * Cape.Cols).Select(i => { var (u, v) = Cape.PaintedUv(i); return new Vector2((float)u, (float)v); }).ToArray();
-        return new Piece(first, new Vector2[uvs.Length], uvs, [.. Uvs.Skip(first).Take(uvs.Length)], Cape.GridTriangles(rows), [.. uvs.Select(_ => Colors.White)]);
-    })];
+        var uvs = new Vector2[Cape.HoodCols * Cape.HoodRows];
+        for (int i = 0; i < uvs.Length; i++)
+        {
+            var (u, v) = Cape.HoodUv(i);
+            uvs[i] = new Vector2((float)u, (float)v);
+        }
+        return uvs;
+    }
 
-    private static Vector2[] MakeUvs(Func<int, (double U, double V)> uv)
+    private static Vector2[] MakeUvs()
     {
         var uvs = new Vector2[Cape.Cols * Cape.Rows];
         for (int i = 0; i < uvs.Length; i++)
         {
-            var (u, v) = uv(i);
+            var (u, v) = Cape.Uv(i);
             uvs[i] = new Vector2((float)u, (float)v);
         }
         return uvs;

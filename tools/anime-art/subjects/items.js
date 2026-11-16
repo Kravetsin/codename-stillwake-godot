@@ -832,6 +832,17 @@ P.jetpack = (a) => {
   for (const y of [5, 9.8]) a.shape(rr(.7, y, 14.6, 1.5, .2), GUN, { lite: band(.7, y, 15.3, y + .5), shade: band(.7, y + 1, 15.3, y + 1.5) });
   rivets(a, [8, 5.7], [8, 10.5]);
 };
+P.cape = (a) => {
+  // The cloak bundled on itself, tied at the top: sand canvas in a few long folds, its teal lining turned out at both corners.
+  const CANVAS = { base: '#a8895e', shade: '#755c44', deep: '#544234', lite: '#c8ac80', spec: '#e0cca4' };
+  const LINING = { base: '#4a7470', shade: '#325450', deep: '#243e3c', lite: '#70989a', spec: '#a8c8c8' };
+  a.shape('M8 1.8C11 1.8 12.8 3.6 13.4 6.4C14 9 14.8 11 15.2 13L13.6 14.8L2.4 14.8L.8 13C1.2 11 2 9 2.6 6.4C3.2 3.6 5 1.8 8 1.8Z', CANVAS, {
+    lite: 'M8 1.8C5.4 1.8 3.8 3.4 3 6C2.4 8.8 1.8 10.8 1.4 12.6L4.4 13.4C4.6 9.6 5.4 5 8 1.8Z', shade: 'M10.4 2.6C12 3.4 13 4.8 13.4 6.4C14 9 14.8 11 15.2 13L13.6 14.8L11.8 14.8C12 10 11.4 6 10.4 2.6Z', deep: 'M3 13.6L13.4 13.6L13.6 14.8L2.4 14.8Z',
+    lines: ['M6.6 3.2C5.2 6.4 4.4 10 4.4 13.6', 'M8.8 3.2C8.2 6.8 8 10.4 8.2 14.4', 'M10.4 3.2C11.4 6.6 11.8 10.4 11.8 14'] });
+  a.shape('M.8 13L3.6 13.2L4.4 14.8L2.4 14.8Z', LINING, { outer: false, shade: 'M2 14L4 14L4.4 14.8L2.4 14.8Z' });
+  a.shape('M15.2 13L12.4 13.2L11.6 14.8L13.6 14.8Z', LINING, { outer: false, shade: 'M12 14L14 14L13.6 14.8L11.6 14.8Z' });
+  a.shape(rr(6.2, 1.2, 3.6, 1.3, .4), SOIL, { lite: band(6.2, 1.2, 9.8, 1.6) });
+};
 
 // ---------- what lives ----------
 P.cloth = (a) => {

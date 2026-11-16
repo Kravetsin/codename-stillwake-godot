@@ -90,7 +90,6 @@ public sealed class Cape
     private readonly double[] _swing = new double[Rows], _swingSpeed = new double[Rows];
     private readonly (double X, double Y)[] _points = new (double, double)[Cols * Rows], _inside = new (double, double)[Cols * Rows],
         _hoodPoints = new (double, double)[HoodCols * HoodRows];
-    private readonly (double X, double Y, double Turn)[] _pieces = new (double, double, double)[Pieces.Length];
 
     public Cape() => Reset();
 
@@ -143,69 +142,6 @@ public sealed class Cape
 
     /// <summary>Where point <paramref name="i"/> lies on the cape's picture, 0 to 1 across (front edge to back) and down.</summary>
     public static (double U, double V) Uv(int i) => ((double)(i % Cols) / (Cols - 1), (double)(i / Cols) / (Rows - 1));
-
-    /// <summary>
-    /// The box its outside's picture covers, in the figure's frame: the whole cape painted as it hangs as cut, hood and gathered
-    /// neck and all, so standing it shows as painted and moving the sheet bends it.
-    /// </summary>
-    public static readonly (double X, double Y, double W, double H) Painted = (-22, -31, 26.5, 30);
-
-    /// <summary>Where point <paramref name="i"/> lies on the outside's picture, 0 to 1 across and down <see cref="Painted"/>: where it hangs as cut.</summary>
-    public static (double U, double V) PaintedUv(int i)
-    {
-        var (x, y) = Rest(i);
-        return ((x - Painted.X) / Painted.W, (y - Painted.Y) / Painted.H);
-    }
-
-    /// <summary>
-    /// The rows the outside is cut into, top to bottom, each piece drawn whole and unbent, turned at its top joint as the
-    /// sheet's rows under it swing: the picture never stretches, the cape bends only where its pieces meet.
-    /// </summary>
-    public static readonly (int Top, int Bottom)[] Pieces = [(0, 2), (2, 5), (5, Rows - 1)];
-
-    /// <summary>The triangles of a grid <see cref="Cols"/> across and <paramref name="rows"/> down, as <see cref="Triangles"/>.</summary>
-    public static int[] GridTriangles(int rows) => MakeTriangles(Cols, rows);
-
-    /// <summary>Each of <see cref="Pieces"/> as last posed: its top joint in the figure's frame and its turn from its cut, in radians.</summary>
-    public ReadOnlySpan<(double X, double Y, double Turn)> PiecePoses => _pieces;
-
-    /// <summary>Where <paramref name="point"/> of the sheet as cut is drawn on piece <paramref name="piece"/> as posed.</summary>
-    public (double X, double Y) OnPiece(int piece, (double X, double Y) point)
-    {
-        var (jx, jy, turn) = _pieces[piece];
-        var (mx, my) = RestMid(Pieces[piece].Top);
-        double dx = point.X - mx, dy = point.Y - my;
-        return (jx + dx * Math.Cos(turn) - dy * Math.Sin(turn), jy + dx * Math.Sin(turn) + dy * Math.Cos(turn));
-    }
-
-    // The pieces chained from the top row's middle: each turned as the line between its rows' middles turned, the next hung from its foot.
-    private void PosePieces()
-    {
-        var (jx, jy) = Mid(_points, 0);
-        for (int k = 0; k < Pieces.Length; k++)
-        {
-            var (a, b) = Pieces[k];
-            var (ra, rb, pa, pb) = (RestMid(a), RestMid(b), Mid(_points, a), Mid(_points, b));
-            double turn = Math.Atan2(pb.Y - pa.Y, pb.X - pa.X) - Math.Atan2(rb.Y - ra.Y, rb.X - ra.X);
-            _pieces[k] = (jx, jy, turn);
-            double dx = rb.X - ra.X, dy = rb.Y - ra.Y;
-            (jx, jy) = (jx + dx * Math.Cos(turn) - dy * Math.Sin(turn), jy + dx * Math.Sin(turn) + dy * Math.Cos(turn));
-        }
-    }
-
-    private static (double X, double Y) Mid(ReadOnlySpan<(double X, double Y)> points, int row)
-    {
-        double x = 0, y = 0;
-        for (int c = 0; c < Cols; c++) (x, y) = (x + points[row * Cols + c].X, y + points[row * Cols + c].Y);
-        return (x / Cols, y / Cols);
-    }
-
-    private static (double X, double Y) RestMid(int row)
-    {
-        double x = 0, y = 0;
-        for (int c = 0; c < Cols; c++) (x, y) = (x + Rest(row * Cols + c).X, y + Rest(row * Cols + c).Y);
-        return (x / Cols, y / Cols);
-    }
 
     /// <summary>Whether triangle <paramref name="t"/> (of <see cref="Triangles"/>) is turned over, its other side toward the eye.</summary>
     public bool Flipped(int t)
@@ -277,7 +213,6 @@ public sealed class Cape
             double hangs = d == 0 ? 1 : Math.Pow(Math.Max(0, dy / d), Tuck);
             _inside[i] = (_points[i].X + (1 - u) * (WrapAtShoulders + (WrapAtHem - WrapAtShoulders) * v) * hangs, _points[i].Y);
         }
-        PosePieces();
     }
 
     /// <summary>Where the breeze carries a point <paramref name="v"/> of the way down, across a sheet turned by <paramref name="turn"/>.</summary>
