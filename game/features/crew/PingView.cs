@@ -1,28 +1,28 @@
 using System.Collections.Generic;
 using Godot;
-using Stillwake.Game.Render;
 
 namespace Stillwake.Game.Features.Crew;
 
 /// <summary>
-/// The pings in the world (<see cref="Ping"/>): a soft dot of light in its player's colour, a bright core in a breathing halo, added
-/// over what lies there, so it reads on dark hull and bright ground alike. No ring and no words.
+/// The pings in the world (<see cref="Ping"/>): a small dot in its player's colour, rimmed dark so it reads on hull and ground alike,
+/// blinking gently. Unlit: the scene's light and shadow never dim it. No ring and no words.
 /// </summary>
 public partial class PingView : Node2D
 {
-    /// <summary>The halo's and the core's radius in the world's pixels (a cell 8), and how fast the halo breathes, in breaths a second.</summary>
-    private const float Halo = 22, Core = 4.5f, Breaths = 1.1f;
+    /// <summary>The dot's radius and its dark rim's width in the world's pixels (a cell 8), and its blinks a second.</summary>
+    private const float Radius = 3.5f, Rim = 1, Blinks = 1.5f;
+
+    /// <summary>How faint the dot gets at the bottom of a blink, 0 to 1.</summary>
+    private const float Faintest = 0.45f;
+
+    private static readonly Color RimColour = new(0.02f, 0.03f, 0.06f, 0.85f);
 
     /// <summary>One ping drawn: where, in the world's pixels; its colour, 0xRRGGBB; how much of it shows, 0 to 1; how long it has shown.</summary>
     public readonly record struct Dot(Vector2 At, int Colour, float Shown, float Seconds);
 
     private readonly List<Dot> _dots = [];
 
-    public PingView()
-    {
-        Material = new CanvasItemMaterial { BlendMode = CanvasItemMaterial.BlendModeEnum.Add };
-        TextureFilter = TextureFilterEnum.Linear;
-    }
+    public PingView() => Material = new CanvasItemMaterial { LightMode = CanvasItemMaterial.LightModeEnum.Unshaded };
 
     /// <summary>Draws <paramref name="dots"/> this frame in place of the last.</summary>
     public void Show(IReadOnlyList<Dot> dots)
@@ -37,14 +37,10 @@ public partial class PingView : Node2D
     {
         foreach (var dot in _dots)
         {
-            var colour = new Color((uint)dot.Colour << 8 | 0xff);
-            float breath = 0.5f - 0.5f * Mathf.Cos(Mathf.Tau * Breaths * dot.Seconds);
-            // Come in with a little swell, then breathe: the halo grows and dims as one.
-            float swell = 1 + 0.6f * Mathf.Max(0, 1 - dot.Seconds / 0.4f);
-            float halo = Halo * swell * (0.85f + 0.3f * breath);
-            DrawTextureRect(SoftDots.Puff, new Rect2(dot.At - Vector2.One * halo, Vector2.One * 2 * halo), false, colour with { A = dot.Shown * (0.55f - 0.2f * breath) });
-            DrawTextureRect(SoftDots.Dot, new Rect2(dot.At - Vector2.One * 2.5f * Core, Vector2.One * 5 * Core), false, colour.Lightened(0.35f) with { A = dot.Shown });
-            DrawCircle(dot.At, Core * 0.45f, Colors.White with { A = dot.Shown * 0.9f });
+            float blink = 1 - (1 - Faintest) * (0.5f - 0.5f * Mathf.Cos(Mathf.Tau * Blinks * dot.Seconds));
+            float a = dot.Shown * blink;
+            DrawCircle(dot.At, Radius + Rim, RimColour with { A = RimColour.A * a }, antialiased: true);
+            DrawCircle(dot.At, Radius, new Color((uint)dot.Colour << 8 | 0xff) with { A = a }, antialiased: true);
         }
     }
 }
