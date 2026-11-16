@@ -11,7 +11,7 @@ namespace Stillwake.Game.Dev;
 /// <c>-- --dress-sheet=&lt;path.png&gt;</c>: a contact sheet of the hero as it may be dressed (2026-10-27-suits-are-worn), drawn
 /// alone and saved, then the game quits. A row each bare, in the helmet only, in the body only and suited, across the four
 /// player colours, fully lit; then in the dark, suited with its lamp and without, bare with a lamp it cannot wear, and a body
-/// lying bare and suited; a jetpack on a bare back and on the air pack. Then every player helmet on every suit and every
+/// lying bare and suited; a jetpack on a bare back and on the air pack. Then every player helmet on every suit, every suit skin, and every
 /// catcher's outfit (helmets-fit-the-suit): looking up, ahead and down with the lamp on, its beam's way drawn as a line; walking,
 /// running and climbing with the scanner; and aiming up, the near arm raised past the face.
 /// </summary>
@@ -50,6 +50,9 @@ public partial class DressSheet(string path) : Node
         foreach (string body in new[] { suit, "regenSuit", "heatSuit" })
             foreach (string h in helmets)
                 rows.Add(Turns(Suits.All[0], h, body, aimed: true, tracked: true));
+        // Every suit skin over the basic helmet, as a body of its own is drawn (skins).
+        foreach (var skin in Skins.All.Where(s => s.Kind == Skins.Suit))
+            rows.Add(Turns(Suits.All[0], helmet, skin.Id, aimed: true, tracked: true));
         foreach (var gear in CreatureLooks.Heroes.Values.SelectMany(look => look.Gear))
             rows.Add(Turns(Suits.All[2], gear.Helmet, gear.Body, aimed: false, tracked: false));
         for (int r = 0; r < rows.Count; r++)

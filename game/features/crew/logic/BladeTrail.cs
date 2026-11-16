@@ -31,7 +31,6 @@ public sealed class BladeTrail
     private readonly List<Sample> _samples = [];
     // The edges of samples gone, kept to be filled again: a swing would otherwise make one each frame.
     private readonly Stack<(double X, double Y)[]> _spare = [];
-    private readonly List<(double X, double Y)> _was = [], _now = [];
     private readonly double _lifeMs;
     private double _clock;
     private int _made;
@@ -88,19 +87,33 @@ public sealed class BladeTrail
     /// </summary>
     public void Draw(Ink ink, Func<(double X, double Y), (double X, double Y)> local, Ink.Tone tone)
     {
-        for (int i = 1; i < _samples.Count; i++)
+        var samples = Smoothed();
+        // One sheet a run of stretches that show, from the sample before its first, each edge in its stretch's strength, blended
+        // between: one smooth sweep, not a band a frame.
+        for (int i = 1; i < samples.Count; i++)
         {
-            var (was, now) = (_samples[i - 1], _samples[i]);
-            if (now.Shown <= 0) continue;
-            double left = Left(now);
-            // The stretch swept between two frames: the band from the edge as it was to the edge as it is, its ends the blade's shape.
-            _was.Clear();
-            _now.Clear();
-            foreach (var p in was.Edge) _was.Add(local(p));
-            foreach (var p in now.Edge) _now.Add(local(p));
-            ink.Band(_was, _now, tone.Faded((float)(now.Shown * left * left)));
+            if (samples[i].Shown <= 0) continue;
+            int from = i - 1;
+            while (i + 1 < samples.Count && samples[i + 1].Shown > 0) i++;
+            _lines.Clear();
+            _tones.Clear();
+            for (int k = from; k <= i; k++)
+            {
+                double left = Left(samples[k]);
+                if (k - from == _kept.Count) _kept.Add([]);
+                var line = _kept[k - from];
+                line.Clear();
+                foreach (var p in samples[k].Edge) line.Add(local(p));
+                _lines.Add(line);
+                _tones.Add(tone.Faded((float)(samples[Math.Max(k, from + 1)].Shown * left * left)));
+            }
+            ink.Sheet(_lines, _tones);
         }
     }
+
+    private readonly List<List<(double X, double Y)>> _kept = [];
+    private readonly List<IReadOnlyList<(double X, double Y)>> _lines = [];
+    private readonly List<Ink.Tone> _tones = [];
 
     /// <summary>
     /// Its samples with more put between each two of a stretch that shows, on a curve through them and their neighbours, no step

@@ -37,10 +37,12 @@ public class BladeTrailTests
         // 8 px a frame: 480 px a second, over the speed a trail is whole at.
         for (int i = 0; i <= 5; i++) trail.Step(Frame, Edge(i * 8));
         Assert.True(trail.Live);
-        var (points, _) = Drawn(trail);
-        Assert.NotEmpty(points);
-        Assert.All(points, p => Assert.InRange(p.X, 0, 40));
-        Assert.All(points, p => Assert.InRange(p.Y, 0, 6));
+        var (points, alphas) = Drawn(trail);
+        // What is seen: the feather beyond the edge's ends is drawn clear.
+        var seen = points.Where((_, i) => alphas[i] > 0).ToList();
+        Assert.NotEmpty(seen);
+        Assert.All(seen, p => Assert.InRange(p.X, 0, 40));
+        Assert.All(seen, p => Assert.InRange(p.Y, 0, 6));
     }
 
     [Fact]
