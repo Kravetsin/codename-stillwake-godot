@@ -380,7 +380,7 @@ public sealed partial class AtmosphereModule : Module<AtmosphereState>, IAtmosph
     {
         foreach (var m in _grid.MachinesWith(MachineTrait.AirSource))
         {
-            if (Content.Machines.Get(m.Kind).SlotTakes is not (int at, string canister) || State.Own.Exists(t => t.Tank == m.Id)) continue;
+            if (Content.Machines.Get(m.Kind).SlotTakes is not (int at, string canister) || TankOf(State.Own, m.Id, State.Own.Count) != null) continue;
             var held = _items.Crate(m.Id);
             if (at >= held.Count || held[at]?.Item != canister) continue;
             _itemsOps.Consume(m.Id, at);
