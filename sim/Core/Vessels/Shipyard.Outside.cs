@@ -22,7 +22,7 @@ public static partial class Shipyard
     /// the client's. A tanker: a radiator past its bridge, then the manifold, the keel truss turned upward: segments in one line some rows
     /// over the hull's highest along it, a dome hatch at each tank bay's middle, a riser down from the manifold past the middle of each tank
     /// bay and the fuel bay under a valve's wheel over it, a strut of pylons down from each segment's posts where its column is clear; one
-    /// draw for spheres under the keel at each tank bay's middle; the sensor boom at the bow's tip.
+    /// draw for spheres under the keel near each tank bay's middle, both struts on the hull; the sensor boom at the bow's tip.
     /// </summary>
     private static void Big(Outfitter o, VesselLayout layout, IReadOnlyList<Vessel.Compartment> rooms, int aftEnd)
     {
@@ -96,8 +96,16 @@ public static partial class Shipyard
         if (o.Shape.Below(100) < F.SpherePercent)
             foreach (var b in bays.Where(b => b.Role == VesselRole.TankBay))
             {
-                int x = b.Left + (b.Width - Size(Vessels.Sphere).W) / 2;
-                o.Put(Vessels.Sphere, x, o.Under(x, Size(Vessels.Sphere).W) + 1);
+                // Nearest the bay's middle, within its columns, where the hull's bottom is one row over both struts so each reaches it;
+                // none where none is (a rib under the bay, deeper than the hull either side).
+                int mid = b.Left + (b.Width - Size(Vessels.Sphere).W) / 2, slide = mid - b.Left;
+                for (int k = 0; k <= 2 * slide; k++)
+                {
+                    int x = mid + (k % 2 == 0 ? k / 2 : -(k + 1) / 2);
+                    if (x + Size(Vessels.Sphere).W > b.Left + b.Width) continue;
+                    var bottoms = Vessels.SpherePosts.Select(p => o.Under(x + p, 1)).Distinct().ToList();
+                    if (bottoms.Count == 1 && o.Put(Vessels.Sphere, x, bottoms[0] + 1)) break;
+                }
             }
         int tip = bow + bowSection.Width;
         var (tipTop, tipBottom) = bowSection.RowsAt(tip - 1);

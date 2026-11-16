@@ -214,6 +214,32 @@ public class VesselTests
         Assert.NotNull(Unheld(lifted));
     }
 
+    [Fact]
+    public void ASphereHungUnderTheDeepestHullOverItsWidthWithAStrutShortOfTheHullHoldsNothing()
+    {
+        // The old placement: under the hull's lowest row over all its columns. Where a deeper module stands over its middle, a strut's
+        // column ends rows higher and the strut hangs short of it.
+        int floating = 0;
+        var tanker = Content.Vessels.Class("tanker")!;
+        var w = Machines.Get(Content.Vessels.Sphere).Width;
+        for (uint seed = 1; seed <= 64; seed++)
+        {
+            var vessel = Shipyard.Describe(tanker, seed);
+            var sphere = vessel.Outside.FirstOrDefault(f => Content.Vessels.FirstLook(f.Kind) == Content.Vessels.Sphere);
+            if (sphere == null) continue;
+            Assert.Null(Unheld(vessel));
+            var walls = Shipyard.Stamp(vessel).Where(p => p.Kind == "wall").Select(p => (p.X, p.Y)).ToHashSet();
+            int Bottom(int x) => walls.Where(c => c.X == x).Max(c => c.Y);
+            var bay = vessel.Compartments.First(c => c.Role == VesselRole.TankBay && c.Left <= sphere.X && sphere.X < c.Left + c.Width);
+            int mid = bay.Left + (bay.Width - w) / 2, y = Enumerable.Range(mid, w).Max(Bottom) + 1;
+            if (Content.Vessels.SpherePosts.All(p => Bottom(mid + p) == y - 1)) continue;
+            floating++;
+            var old = vessel with { Outside = [.. vessel.Outside.Select(f => f == sphere ? f with { X = mid, Y = y } : f)] };
+            Assert.NotNull(Unheld(old));
+        }
+        Assert.True(floating > 0, "no sphere where the old placement left a strut short");
+    }
+
     /// <summary>
     /// Why a part outside <paramref name="v"/> is not held, null when every one is: each stands in space; the truss in one line, the
     /// manifold in another (big-vessels); a strut, a column of pylons or of risers, runs from the hull down to a truss segment's post or up
@@ -255,6 +281,8 @@ public class VesselTests
                 ? trusses.Exists(t => t.Y + truss.Height == f.Y && t.X <= f.X && f.X + Machines.Get(f.Kind).Width <= t.X + truss.Width)
                 : f.Kind == valve
                 ? manifolds.Exists(m => m.Y == f.Y + 1 && f.X >= m.X && f.X < m.X + manifold.Width) && strutCells.Contains((f.X, f.Y + 1 + manifold.Height))
+                : Content.Vessels.FirstLook(f.Kind) == Content.Vessels.Sphere
+                ? Content.Vessels.SpherePosts.All(p => walls.Contains((f.X + p, f.Y - 1)))
                 : f.Kind == Content.Vessels.Manifold || cells.Exists(Touches);
             if (!held) return $"{f.Kind} at ({f.X}, {f.Y}) holds to nothing";
         }
@@ -297,7 +325,7 @@ public class VesselTests
             Assert.Equal((1, 1, 0, 0), (Count(Content.Vessels.Radiator), Count(Content.Vessels.Boom), liner, freighter));
             Assert.True(Count(Content.Vessels.Manifold) > 0);
             Assert.Equal(bays, Count(Content.Vessels.Dome));
-            Assert.Contains(Count(Content.Vessels.Sphere), (int[])[0, bays]);
+            Assert.InRange(Count(Content.Vessels.Sphere), 0, bays);
         }
         else
         {

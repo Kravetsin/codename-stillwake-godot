@@ -451,6 +451,13 @@ public static partial class Shipyard
             for (int y = deck.Top; y < deck.Floor; y++)
                 for (int x = body.Left + a; x < body.Left + body.Width; x++)
                     if (In(x, y) && !open[y * w + x]) solid[y * w + x] = 1;
+        // A big class's bow solid through (big-vessels): its rooms end where it starts. A vessel of rooms has its cockpit in its bow.
+        if (cls.Layout != VesselLayout.Rooms)
+        {
+            var bow = v.Sections.First(s => s.Kind == Vessel.SectionKind.Bow);
+            for (int x = bow.Left; x < bow.Left + bow.Width; x++)
+                for (int y = bow.RowsAt(x).Top; y <= bow.RowsAt(x).Bottom; y++) solid[y * w + x] = 1;
+        }
         // The modules' bulges, the ribs and the housing: hull where the rooms' hull is not, solid through.
         var hull = (bool[])inside.Clone();
         foreach (var s in v.Sections.Where(s => Added(s.Kind)))

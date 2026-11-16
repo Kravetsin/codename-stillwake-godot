@@ -203,6 +203,30 @@ public class PlacesTests(Xunit.Abstractions.ITestOutputHelper output)
         Hammered(w, v, v.Grid.Machines.First(m => Vessels.FirstLook(m.Kind) == kind));
     }
 
+    [Fact]
+    public void ATankHoldsTheLiquidItWasDescribedWithAndSpillsItBrokenByTheSledgehammer()
+    {
+        var w = new Scenario(Registry.Wreck);
+        w.Do(new Enter(w.M.Crew.Spawn)).Run();
+        w.GiveItems(0, (Weapons.Sledgehammer.Item, 1));
+        var tanker = Vessels.Class("tanker")!;
+        static bool Water(Vessel.Fitting f) => f.Kind == Vessels.Sphere && f.Loot[0].Item == Content.Water.Item;
+        bool Carries(Contact k) => k.Class == "tanker" && Shipyard.Describe(tanker, k.Seed).Outside.Any(Water);
+        for (int i = 0; i < Vessels.MaxContacts && !w.M.Places.Contacts.Any(Carries); i++) w.Do(new Find("tanker")).Run();
+        var contact = w.M.Places.Contacts.Last(k => k.Class == "tanker");
+        Assert.True(Carries(contact));
+        var (_, id) = Visited("tanker", w);
+        var v = w.On(id);
+        var described = Shipyard.Describe(tanker, contact.Seed).Outside.First(Water);
+        var (item, count) = Assert.Single(described.Loot);
+        var sphere = v.Grid.MachineAt(InFrame(v, described.X, described.Y))!;
+        Assert.Equal(described.Kind, sphere.Kind);
+        Assert.Equal(count, v.Items.Crate(sphere.Id).Sum(s => s?.Item == item ? s.Count : 0));
+        Hammered(w, v, sphere);
+        // Spilled where it stood, for anyone: in the hero's hands or on the floor.
+        Assert.Equal(count, v.Items.Inventory(0).Sum(s => s?.Item == item ? s.Count : 0) + v.Items.Floor.Sum(s => s.Item == item ? s.Count : 0));
+    }
+
     /// <summary>The furniture inside a vessel and its lamp, a row each, every look but the first alike.</summary>
     public static TheoryData<string> Furniture() => [.. Vessels.Furniture.Select(r => Vessels.FirstLook(r.Kind)).Distinct()];
 

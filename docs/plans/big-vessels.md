@@ -14,18 +14,23 @@ after its fuel bay). A *raised room* stands above the hull (deck −1; the dome 
 - **Tanker**: 4–5 decks, hull 260–340 columns. The bridge raised over the stern. Right after the engine rooms one huge
   vertical FUEL tank spanning decks 1 to the last (3 decks on a 4-deck tanker, 4 on a 5-deck one). Then tank bays two decks
   tall (one horizontal capsule or two vertical tanks, contents other than fuel), pump rooms between. A dorsal manifold with
-  a riser and valve over each bay, dome hatches; sometimes spherical tanks under the keel; sometimes a hangar on the bottom
-  two decks of a block at 15–40% of the length past the service block; a sensor boom; a radiator.
+  a riser and valve over each bay, dome hatches; sometimes spherical tanks under the keel, both struts on the hull; a sensor
+  boom; a radiator. No hangar and no shuttle: shuttles are the liner's only (the user, 2026-11-17).
 - **Liner**: 5–6 decks, hull 260–320, a light livery. The bottom two decks are one band of two-deck rooms only: at the stern
   one big fuel tank by the engines, in the middle holds with cargo containers stacked 2–3 high and crate stacks, at the bow
-  always a hangar with a shuttle. Deck 0 is cabins. Decks 1–2 always hold a pool and a restaurant, each two decks tall
+  always a hangar with a shuttle, the bow over it drawn as a hinged cargo visor (a look; the bow is solid hull). Deck 0 is cabins. Decks 1–2 always hold a pool and a restaurant, each two decks tall
   (pool: half-drained murky water with an old waterline, tiles, ladder, diving board, lounger, lifebuoy; restaurant:
   wainscot, bar with bottle shelves, tables with cloths and chairs, a grand piano, two chandeliers); a lounge above the pool,
   a galley above the restaurant; an infirmary among the public rooms. A promenade with a glazed roof, a dome on it, the
   bridge forward with a housing; a fin with the owner's emblem; escape pods along the top, about half gone (empty cradles).
 - Every room is reachable from the airlock: a door between two rooms where both floors meet, otherwise a hatch with a ladder.
+  Two wells on every big vessel, ladders down through every floor: past the aft block and by the last block's right, the
+  liner's hold band reached by both.
 - A hangar holds one of five shuttles (GULL, MULE, BEETLE, WHALE, HERON) and a fuel cart; shuttles only come apart.
-- Tanks and cisterns only come apart: no liquid. The pool's water is part of its picture.
+- Every tank is labelled FUEL, H2O or O2 (no other liquid) and, taken apart, spills its liquid on top of what it gives: biofuel,
+  water, canisters; a tall tank or a sphere 5–15, a capsule 10–25, a fuel column or the liner's fuel tank 15–35, drawn per
+  tank. The pool's water is part of its picture.
+- Every cargo container shows a stencilled number 01–99, drawn by the client from the seed.
 - **The radar draws classes by weight**: shuttle 4, freighter 3, tanker 1, liner 1 (the user's pick), tunable content.
 - **The mockup is the art pick** for every new picture, as for the derelict looks; fixed in game where the user asks.
 - As the derelict-looks ADR rules: intact abandoned, damage inside only, everything a hero takes apart, looks from class and
@@ -83,7 +88,7 @@ Footprints and yields start from the design's two tables ("New furniture rows", 
 1. **The liner, whole inside:** bands, tall rooms, doors, hatches, raised rooms with glass, light livery; pool, restaurant,
    lounge, galley, infirmary, cabins, holds, fuel tank, hangar with the five shuttles, decor; the fingerprint, the seed sweep,
    the jump-tick pin.
-2. **The tanker, whole inside:** stern bridge, fuel column, tank bays, pump rooms, the occasional hangar.
+2. **The tanker, whole inside:** stern bridge, fuel column, tank bays, pump rooms.
 3. **Both outsides and the radar:** fin and emblem, pods and cradles, manifold, risers, domes, spheres, boom, radiators, bay
    doors, signs in one-deck rooms; class weights; yields measured; frame budget measured on `--vessel=liner`.
 
@@ -104,7 +109,7 @@ Ship once the user has played all three: the ADR (the multi-deck mechanic, the t
 
 ## Deliberately not handled
 
-- Liquid in tanks, spheres or the pool; flying a hangar shuttle; no "use" text on them: the pointer names them, a tool takes
+- Liquid as a fluid in tanks, spheres or the pool (a tank spills items, opened by E as a crate is); flying a hangar shuttle; no "use" text on them: the pointer names them, a tool takes
   them apart.
 - Signs only in one-deck rooms: tall halls are already the richest.
 - A ladder taken apart can cut a room off (the well is the only way into the hold band); ladders are buildable on a vessel

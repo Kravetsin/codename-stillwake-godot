@@ -15,20 +15,31 @@ public static partial class Shipyard
     /// </summary>
     private static void Fit(Rng rng, Vessel.Compartment c, HashSet<int> kept, List<Vessel.Fitting> into)
     {
-        int right = c.Left + c.Width, cx = c.Left;
+        int right = c.Left + c.Width, cx = c.Left, mine = into.Count;
         bool Free(int x, int w)
         {
             for (int k = x; k < x + w; k++)
                 if (kept.Contains(k)) return false;
             return true;
         }
+        // Whether a thing h tall on the floor from column x would cross one this room already has: a panel floor to ceiling, a lamp.
+        bool Crosses(int x, int w, int h)
+        {
+            for (int i = mine; i < into.Count; i++)
+            {
+                var f = into[i];
+                var s = Machines.Get(f.Kind);
+                if (x < f.X + s.Width && f.X < x + w && c.Floor - h < f.Y + s.Height && f.Y < c.Floor) return true;
+            }
+            return false;
+        }
         void Add(string kind, int x, int y) => into.Add(new(kind, x, y, []));
-        // A thing on the floor at the first free columns from the cursor, short of limit; null where none is left.
+        // A thing on the floor at the first free columns from the cursor, short of limit, crossing nothing; null where none is left.
         (int X, int Y)? Put(string kind, int? limit = null)
         {
             var spec = Machines.Get(kind);
             int end = limit ?? right;
-            while (cx + spec.Width <= end && !Free(cx, spec.Width)) cx++;
+            while (cx + spec.Width <= end && (!Free(cx, spec.Width) || Crosses(cx, spec.Width, spec.Height))) cx++;
             if (cx + spec.Width > end) return null;
             var at = (cx, c.Floor - spec.Height);
             Add(kind, at.Item1, at.Item2);
@@ -150,6 +161,32 @@ public static partial class Shipyard
                     if (Put(Look(Vessels.Cargo), limit) is { } box) Add(Look(Vessels.Cargo), box.X, box.Y - Machines.Get(Vessels.Cargo).Height);
                     break;
                 }
+        }
+    }
+
+    /// <summary>
+    /// Each tank's liquid (big-vessels), drawn after everything else on <paramref name="rng"/> so every draw before stays: inside in their
+    /// order, then outside; the item its label says (<see cref="Vessels.ContentsOf"/>), as much as its size: a tall tank or a sphere small, a
+    /// capsule medium, a fuel bay's tank large. A sphere takes the contents of the tank in the lowest bay over it.
+    /// </summary>
+    private static void Fill(Rng rng, IReadOnlyList<Vessel.Compartment> rooms, List<Vessel.Fitting> inside, List<Vessel.Fitting> outside)
+    {
+        for (int i = 0; i < inside.Count; i++)
+        {
+            var f = inside[i];
+            if (Vessels.ContentsOf(f.Kind) is not int contents) continue;
+            var room = rooms.First(c => c.Holds(f.X, f.Y));
+            var size = Vessels.FirstLook(f.Kind) == Vessels.TankTall ? F.SmallTank : room.Role == VesselRole.FuelBay ? F.LargeTank : F.MediumTank;
+            inside[i] = f with { Loot = [(Vessels.Liquids[contents], Between(rng, size))] };
+        }
+        int w = Machines.Get(Vessels.Sphere).Width;
+        for (int i = 0; i < outside.Count; i++)
+        {
+            var f = outside[i];
+            if (f.Kind != Vessels.Sphere) continue;
+            var bay = rooms.Where(c => c.Role == VesselRole.TankBay && c.Left <= f.X && f.X + w <= c.Left + c.Width).MaxBy(c => c.Top)!;
+            int contents = inside.Select(t => bay.Holds(t.X, t.Y) ? Vessels.ContentsOf(t.Kind) : null).First(k => k != null)!.Value;
+            outside[i] = f with { Kind = Vessels.LookKind(Vessels.Sphere, contents - 1), Loot = [(Vessels.Liquids[contents], Between(rng, F.SmallTank))] };
         }
     }
 }

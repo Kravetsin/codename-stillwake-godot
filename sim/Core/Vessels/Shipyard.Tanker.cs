@@ -9,8 +9,7 @@ public static partial class Shipyard
     /// A tanker (big-vessels) from <paramref name="seed"/>, one band over every deck. Stream 0: its decks and length drawn, then its
     /// blocks: the aft block (the way in over engine rooms, two columns past its drawings for the hatches down them, since the fuel
     /// bay beside it walls them off), the fuel bay (a pipeway over one fuel tank from the second deck to the last), the service block, then tank bays (a pipeway, tanks two decks tall, a pump room on a deck left over) and blocks of pump
-    /// rooms by turns, now and then a hangar (a pipeway and pump rooms over a hangar on the last two decks) where it was drawn along the
-    /// run, the forward block of storage; then the raised bridge over the stern, its hatch where the airlock's drawing leaves room for
+    /// rooms by turns (no hangar: shuttles are a liner's), the forward block of storage; then the raised bridge over the stern, its hatch where the airlock's drawing leaves room for
     /// its ladder. Then laid as every big class is (<see cref="Lay"/>), a ladder up each tank's side.
     /// </summary>
     private static Vessel Tanker(VesselClass cls, uint seed)
@@ -30,17 +29,11 @@ public static partial class Shipyard
         int x = service.Left + service.Width + 2;
 
         int forwardWidth = Between(rng, T.Forward), end = start + run - forwardWidth;
-        int hangarAt = rng.Below(100) < T.HangarPercent ? x + (end - x) * Between(rng, T.HangarAt) / 100 : int.MaxValue;
         bool bay = true;
         for (int guard = 0; guard < 90; guard++)
         {
             Block b;
-            if (x >= hangarAt)
-            {
-                b = new(Between(rng, T.Hangar), [Pipeway(), .. Enumerable.Range(1, decks - 3).Select(Pumps), new(decks - 2, 2, VesselRole.Hangar, "")]);
-                hangarAt = int.MaxValue;
-            }
-            else if (bay)
+            if (bay)
             {
                 var stack = new List<Stacked> { Pipeway() };
                 int d = 1;

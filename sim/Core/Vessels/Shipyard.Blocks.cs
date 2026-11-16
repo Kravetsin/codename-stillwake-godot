@@ -39,9 +39,10 @@ public static partial class Shipyard
     /// aft one (the way in over the engine rooms), its last the forward one, and <paramref name="raised"/> over the hull. Stream 2: its
     /// modules, none bulging up under a raised room or the <paramref name="housing"/> nor more than <paramref name="bulgeDown"/> rows
     /// under the keel; ribs; the bow. Then stream 0 on from <paramref name="rng"/>: the inner doors' states, a door where both rooms'
-    /// floors meet; hatches, laid before furniture: the well down <paramref name="service"/>'s left, the raised rooms', then a repair pass
-    /// till every room is reached; with <paramref name="tankLadders"/> a ladder up the side of each tall tank room no ladder runs down;
-    /// then each room's furniture in reading order. A nozzle by each engine room of the aft block; the parts outside but a freighter's keel.
+    /// floors meet; hatches, laid before furniture: a well down <paramref name="service"/>'s left and one by the last block's right, the
+    /// raised rooms', then a repair pass till every room is reached; with <paramref name="tankLadders"/> a ladder up the side of each tall
+    /// tank room no ladder runs down; then each room's furniture in reading order. A nozzle by each engine room of the aft block; the parts
+    /// outside but a freighter's keel. Last, on stream 0 still, each tank's liquid (<see cref="Fill"/>).
     /// </summary>
     private static Vessel Lay(VesselClass cls, uint seed, Rng rng, int decks, IReadOnlyList<List<Block>> bands, Block service,
         IReadOnlyList<Raised> raised, int housing, int bulgeDown, bool tankLadders)
@@ -133,10 +134,12 @@ public static partial class Shipyard
             Link(upperRoom, lowerRoom);
         }
         void Down(int col, Vessel.Compartment upperRoom, Vessel.Compartment lowerRoom) => Hatch(col, upperRoom, lowerRoom, upperRoom.Floor, lowerRoom.Top, lowerRoom.Height);
-        int well = service.Left;
-        for (int d = 0; d + 1 < decks; d++)
-            if (RoomAt(well, d) is { } p && RoomAt(well + 1, d) == p && RoomAt(well, d + 1) is { } q && RoomAt(well + 1, d + 1) == q && p != q && p.Floor + 1 == q.Top)
-                Down(well, p, q);
+        // Two wells, at the service block's left and two columns short of the first band's last block's right (past its drawings).
+        var last = bands[0][^1];
+        foreach (int well in (int[])[service.Left, last.Left + last.Width - 2])
+            for (int d = 0; d + 1 < decks; d++)
+                if (RoomAt(well, d) is { } p && RoomAt(well + 1, d) == p && RoomAt(well, d + 1) is { } q && RoomAt(well + 1, d + 1) == q && p != q && p.Floor + 1 == q.Top)
+                    Down(well, p, q);
         // A raised room's hatch over its first columns, its ladder through the armour under it: a second tier's runs on through the first.
         var lifted = rooms.Where(c => c.Deck < 0).OrderByDescending(c => c.Deck).ThenBy(c => c.Left).ToList();
         foreach (var c in lifted)
@@ -217,6 +220,7 @@ public static partial class Shipyard
         foreach (var s in aft.Stack.Where(s => s.Role == VesselRole.Engine))
             outside.Add(new(Vessels.Nozzle, hull - Vessels.NozzleSize.W, deckList[s.Deck].Top, []));
         Outfit(shape, sections, outside, start + aft.Width, raised.First(r => r.Kind == Vessel.SectionKind.Bridge).Left, a, cls.Layout, rooms);
+        Fill(rng, rooms, fittings, outside);
         int width = Math.Max(bow + bowWidth, outside.Max(f => f.X + Machines.Get(f.Kind).Width));
         int height = Math.Max(bottom + 1 + under, outside.Max(f => f.Y + Machines.Get(f.Kind).Height));
         var vessel = new Vessel(cls.Id, seed, width, height, sections, deckList, shafts, doors, hatches, rooms, fittings, outside);
