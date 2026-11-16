@@ -915,6 +915,117 @@ const tallTank = (w, h, col) => (a) => {
   patch(a, w * .7, h * .62, 3, 1.6, RUST, d, 409 + w + h);
 };
 
+// ---- The big classes' outsides (big-vessels, the mockup's drawPart): a liner's fin and pods, a tanker's manifold, domes and spheres,
+// the bay doors under a hangar. What the livery paints (the fin's band and emblem, the doors' leaves) is drawn grey and tinted by the game.
+const FIN = palOf('#b4b6b1'), POD = palOf('#cfcac0'), SPHERE = palOf('#b4ad9f'), MANIFOLD = palOf('#7a5a3e');
+
+/** machine_vesselFin: the liner's fin over its service block, swept back, a radiator's slats along its foot. 13 × 10 cells. */
+function fin(a) {
+  const d = poly(0, 80, 32, 3.2, 68.8, 0, 104, 80);
+  a.shape(d, FIN, { lite: poly(0, 80, 32, 3.2, 36, 3, 6, 80), shade: poly(68.8, 0, 104, 80, 92, 80, 64, 4), deep: band(0, 77, 104, 80) });
+  for (let x = 16; x < 96; x += 5.6) a.line(`M${x} 57L${x} 77`, { c: 'rgba(60,64,70,.45)', w: .6 });
+  a.line('M12 56L98 56', { w: .6 });
+  rivets(a, [44, 20], [60, 20], [30, 50], [76, 50]);
+  patch(a, 84, 66, 3.4, 1.6, RUST, d, 501);
+}
+
+/** vessel_emblem: the owner's band and ring on the fin, in the stripe's grey (the livery tints it), the fin showing through the ring. 13 × 10 cells. */
+function emblem(a) {
+  const S = { base: grey(222), lite: grey(242), shade: grey(186), deep: grey(160), spec: grey(250), ink: INK };
+  a.shape(poly(17.6, 40, 88, 40, 92, 49.6, 12.8, 49.6), S, { shade: .5 });
+  a.shape(ell(59.2, 22.4, 10.4), S, { lite: ell(56, 18.4, 4.8, 3.2), shade: .8 });
+  a.cut(ell(59.2, 22.4, 4.8));
+}
+
+/** The arms a pod hangs from, out of its cradle's rail at x, leaning out by `lean`. */
+function arms(a, x, foot, lean) {
+  for (const [ax, k] of [[x + 8, -lean], [x + 32, lean]]) a.tube(`M${ax} ${foot}L${ax + k * 9.6} ${foot - 15}`, 2.6, MID, { spec: false });
+}
+/** machine_vesselPod: an escape pod in its cradle, cream with an orange band and a porthole. 5 × 4 cells. */
+function pod(a) {
+  arms(a, 0, 30, 0);
+  const d = Anime.rr(1.6, 5.6, 36.8, 20, 10);
+  a.shape(d, POD, { lite: band(0, 5.6, 40, 10), shade: band(0, 20, 40, 26) });
+  a.flat(band(12.8, 5.6, 16.8, 26), '#c8722e', { clip: d });
+  a.flat(ell(28, 15.6, 3.6), CANOPY);
+  a.flat(ell(27, 14.4, 1.2, .8), 'rgba(220,240,240,.5)');
+  lit(a, 3.2, 28.4, 36.8, 32, DARK);
+  patch(a, 33, 22, 1.6, 1, RUST, d, 503);
+}
+/** machine_vesselCradle: a pod's cradle, its pod gone, the arms flung open, hazard paint along its rail. 5 × 3 cells. */
+function cradle(a) {
+  arms(a, 0, 22, .6);
+  lit(a, 3.2, 20.4, 36.8, 24, DARK);
+  hazardFoot(a, 3.2, 20.4, 33.6, 1.6, band(3.2, 20.4, 36.8, 22));
+}
+
+/** machine_vesselManifold: a segment of the dorsal manifold, a brown pipe over a pale one, clamps across both, its strut seats under. 12 × 2 cells. */
+function manifold(a) {
+  lit(a, 0, 1, 96, 5.4, MANIFOLD);
+  lit(a, 0, 6.6, 96, 10.6, LIGHT);
+  for (let x = 12; x < 96; x += 24) lit(a, x, 0, x + 2, 11.6, CONE);
+  // Seats over the struts, in columns 2 and 8 (Vessels.Fits.ManifoldPosts).
+  for (const x of [16, 64]) lit(a, x, 10.6, x + 8, 16, DARK);
+  patch(a, 52, 3, 2.4, 1, RUST, band(0, 1, 96, 5.4), 505);
+}
+/** machine_vesselRiser: a length of the riser down from the manifold to a bay. 1 × 1 cell. */
+function riser(a) {
+  lit(a, 1.6, 0, 6.4, 8, LIGHT, { lite: band(1.6, 0, 2.6, 8), shade: band(5.4, 0, 6.4, 8) });
+}
+/** machine_vesselRiser2: the riser's top over the manifold, its valve's red wheel. 1 × 1 cell. */
+function riserValve(a) {
+  lit(a, 2.4, 4, 5.6, 8, LIGHT);
+  wheel(a, 4, 4, 3.6, '#a33a2a');
+}
+/** machine_vesselDome: a tank bay's dome hatch on the hull, its wheel on top. 4 × 2 cells. */
+function dome(a) {
+  const pts = [];
+  for (let i = 0; i <= 12; i++) { const t = Math.PI + (Math.PI * i) / 12; pts.push(16 + Math.cos(t) * 15.2, 16 + Math.sin(t) * 10.4); }
+  const d = poly(pts);
+  a.shape(d, palOf('#5f5a52'), { lite: poly(1, 16, 4, 9, 12, 6, 16, 5.6, 16, 8, 6, 16), shade: band(22, 0, 32, 16) });
+  wheel(a, 16, 9.6, 3.2, '#3a3e45');
+  lit(a, 0, 14.4, 32, 16, DARK);
+}
+/** machine_vesselSphere: a spherical tank slung under the keel on two struts, an ochre band round its middle. 10 × 11 cells. */
+function sphere(a) {
+  for (const [x0, x1] of [[16, 22], [64, 58]]) a.tube(`M${x0} 0L${x1} 18`, 2.4, MID, { spec: false });
+  lit(a, 12, 0, 68, 2.4, DARK);
+  const d = ell(40, 48, 38.4);
+  a.shape(d, SPHERE, { lite: ell(28, 30, 16, 12), shade: [band(0, 62, 80, 88), band(62, 10, 80, 88)], deep: band(0, 78, 80, 88) });
+  a.flat(band(0, 45.6, 80, 50.4), OCHRE, { clip: d });
+  a.line('M4 40Q40 30 76 40', { w: .6 });
+  rivets(a, [12, 48], [68, 48]);
+  patch(a, 56, 70, 4, 2, RUST, d, 507);
+}
+
+/** vessel_bay_door: a hangar's bay doors in the bottom armour, a panel of a leaf in the hull's grey (the livery tints it), a tile that repeats. 8 × 2 cells. */
+function bayDoor(a) {
+  const D = { base: grey(162), lite: grey(196), shade: grey(122), deep: grey(92), spec: grey(214), ink: INK };
+  lit(a, 0, 0, 64, 16, D, { lines: ['M0.6 0L0.6 16', 'M0 8L64 8'] });
+  for (const x of [16, 48]) a.line(`M${x} 2L${x} 14`, { c: grey(120), w: .6 });
+  rivets(a, [4, 4], [60, 4], [4, 12], [60, 12]);
+}
+/** vessel_bay_door_left and _right: the doors' ends, hazard paint where the leaves part from the hull. 2 × 2 cells. */
+const bayDoorEnd = (right) => (a) => {
+  hazardFoot(a, 0, 9.6, 16, 6.4, band(0, 9.6, 16, 16));
+  a.line(right ? 'M15.4 0L15.4 16' : 'M0.6 0L0.6 16', { w: 1 });
+};
+
+function outsides() {
+  out('machine_vesselFin', Anime.bake({ w: 104, h: 80, draw: fin }));
+  out('vessel_emblem', Anime.bake({ w: 104, h: 80, draw: emblem }));
+  out('machine_vesselPod', Anime.bake({ w: 40, h: 32, draw: pod }));
+  out('machine_vesselCradle', Anime.bake({ w: 40, h: 24, draw: cradle }));
+  out('machine_vesselManifold', Anime.bake({ w: 96, h: 16, draw: manifold }));
+  out('machine_vesselRiser', Anime.bake({ w: 8, h: 8, draw: riser }));
+  out('machine_vesselRiser2', Anime.bake({ w: 8, h: 8, draw: riserValve }));
+  out('machine_vesselDome', Anime.bake({ w: 32, h: 16, draw: dome }));
+  out('machine_vesselSphere', Anime.bake({ w: 80, h: 88, draw: sphere }));
+  out('vessel_bay_door', Anime.bake({ w: 64, h: 16, tile: true, draw: bayDoor }));
+  out('vessel_bay_door_left', Anime.bake({ w: 16, h: 16, draw: bayDoorEnd(false) }));
+  out('vessel_bay_door_right', Anime.bake({ w: 16, h: 16, draw: bayDoorEnd(true) }));
+}
+
 function tanker() {
   out('machine_vesselPump', Anime.bake({ w: 32, h: 32, draw: pump }));
   out('machine_vesselValves', Anime.bake({ w: 24, h: 32, draw: valves }));
@@ -958,6 +1069,7 @@ Subjects.vessel = function () {
   furniture();
   liner();
   tanker();
+  outsides();
   out('vessel_frost', Anime.bake({ w: 40, h: 48, draw: frost }));
   out('vessel_cable', Anime.bake({ w: 24, h: 32, draw: cable }));
   out('vessel_soot', Anime.bake({ w: 48, h: 40, draw: soot }));

@@ -53,8 +53,9 @@ public class VesselDressTests
         var dress = new VesselDress(Of("liner", 1));
         Assert.Equal(("LOON", "TN-4769", 1), (dress.Name, dress.Code, dress.Livery));
         Assert.Same(VesselLooks.LinerLiveries[dress.Livery], dress.Colours);
-        // Its decor in reading order of its rooms: the pool's, the restaurant's, the hangar's pad.
-        Assert.Equal(["vessel_pool_tiles", "vessel_lifebuoy", "vessel_wainscot", "vessel_bottles", "vessel_pad"], dress.Decors.Select(d => d.Picture));
+        // Its decor in reading order of its rooms: the pool's, the restaurant's, the hangar's pad and bay doors; then the fin's emblem.
+        Assert.Equal(["vessel_pool_tiles", "vessel_lifebuoy", "vessel_wainscot", "vessel_bottles", "vessel_pad", .. BayDoors, "vessel_emblem"],
+            dress.Decors.Select(d => d.Picture));
         // The old classes keep their four, in order.
         Assert.Same(VesselLooks.Liveries, VesselLooks.LiveriesOf("freighter"));
         Assert.Equal(4, VesselLooks.Liveries.Count);
@@ -67,12 +68,12 @@ public class VesselDressTests
         Assert.Equal(("GRAVITAS", "TK-4769", 1), (dress.Name, dress.Code, dress.Livery));
         Assert.Same(VesselLooks.TankerLiveries[dress.Livery], dress.Colours);
         Assert.Same(VesselLooks.TankerLiveries, VesselLooks.LiveriesOf("tanker"));
-        // Every tanker's name its own, its code its letters; its one decor a hangar's pad, where it has a hangar.
+        // Every tanker's name its own, its code its letters; its decor a hangar's pad and bay doors, where it has a hangar.
         for (uint seed = 1; seed <= 16; seed++)
         {
             var v = Of("tanker", seed);
             var other = new VesselDress(v);
-            Assert.Equal(v.Compartments.Any(c => c.Role == VesselRole.Hangar) ? ["vessel_pad"] : [], other.Decors.Select(d => d.Picture));
+            Assert.Equal(v.Compartments.Any(c => c.Role == VesselRole.Hangar) ? ["vessel_pad", .. BayDoors] : [], other.Decors.Select(d => d.Picture));
             Assert.Contains(other.Name, VesselLooks.TankerNames);
             Assert.StartsWith(VesselLooks.TankerPrefix + "-", other.Code);
         }
@@ -84,18 +85,64 @@ public class VesselDressTests
         var v = Of("liner", 2);
         var m = Laid(v);
         var dress = new VesselDress(v);
-        Assert.All(dress.Decors, d => Assert.True(dress.Shows(m.Grid, d), d.Picture));
+        // Its rooms' decor and bay doors; the fin's emblem shows only with its fin, a machine, which this grid leaves out.
+        Assert.All(dress.Decors, d => Assert.Equal(d.On != VesselDress.DecorOn.Machine, dress.Shows(m.Grid, d)));
         // The pool hall's tiles reach up past the floor of the deck it spans first: a cell on that upper deck stripped hides them.
         var tiles = dress.Decors.Single(d => d.Picture == "vessel_pool_tiles");
         var pool = v.Compartments.Single(c => c.Role == VesselRole.Pool);
         var high = tiles.Cells.First(c => c.Y < v.Decks[pool.Deck].Floor);
         m.Grid.Clear(dress.CellOf(high.X, high.Y, m.Grid.Width), "back");
         Assert.False(dress.Shows(m.Grid, tiles));
-        Assert.All(dress.Decors.Where(d => d != tiles), d => Assert.True(dress.Shows(m.Grid, d), d.Picture));
+        Assert.All(dress.Decors.Where(d => d != tiles && d.On != VesselDress.DecorOn.Machine), d => Assert.True(dress.Shows(m.Grid, d), d.Picture));
         // The wainscot under a wall built over it.
         var wainscot = dress.Decors.Single(d => d.Picture == "vessel_wainscot");
         m.Grid.Place(dress.CellOf(wainscot.Cells[3].X, wainscot.Cells[3].Y, m.Grid.Width), Placement.Wall());
         Assert.False(dress.Shows(m.Grid, wainscot));
+    }
+
+    /// <summary>A hangar's bay doors: its ends and leaves, a picture each.</summary>
+    private static readonly string[] BayDoors = ["vessel_bay_door_left", "vessel_bay_door", "vessel_bay_door_right"];
+
+    [Fact]
+    public void BayDoorsLieInTheBottomArmourUnderEachHangarAndGoOnceACellOfThemIsNoLongerAHullWall()
+    {
+        var v = Of("liner", 2);
+        var m = Laid(v);
+        var dress = new VesselDress(v);
+        var hangar = v.Compartments.Single(c => c.Role == VesselRole.Hangar);
+        var doors = dress.Decors.Where(d => d.On == VesselDress.DecorOn.Wall).ToList();
+        Assert.Equal(BayDoors, doors.Select(d => d.Picture));
+        // Along the hangar's floor, inset at both ends, over the armour's rows; every cell of them a hull wall, as stamped.
+        Assert.Equal((hangar.Left + VesselDress.BayDoorInset, hangar.Left + hangar.Width - VesselDress.BayDoorInset), (doors[0].X, doors[^1].X + doors[^1].Width));
+        Assert.All(doors, d => Assert.Equal((hangar.Floor, V.Class("liner")!.ArmourDepth, d.Width * d.Height), (d.Y, d.Height, d.Cells.Count)));
+        Assert.Equal(VesselDress.DecorTint.Hull, doors[1].Tint);
+        Assert.All(doors, d => Assert.True(dress.Shows(m.Grid, d), d.Picture));
+        // A cell of a leaf cut away: that leaf goes, the ends stay; a wall built back there of plain stuff does not bring it back.
+        var cut = doors[1].Cells[5];
+        int cell = dress.CellOf(cut.X, cut.Y, m.Grid.Width);
+        m.Grid.Clear(cell, "structure");
+        Assert.Equal([true, false, true], doors.Select(d => dress.Shows(m.Grid, d)));
+        m.Grid.Place(cell, Placement.Wall());
+        Assert.False(dress.Shows(m.Grid, doors[1]));
+    }
+
+    [Fact]
+    public void TheFinsEmblemShowsInTheStripesColourWhileItsFinStands()
+    {
+        var v = Of("liner", 2);
+        var m = Laid(v);
+        var dress = new VesselDress(v);
+        var fin = v.Outside.Single(f => f.Kind == V.Fin);
+        var emblem = Assert.Single(dress.Decors, d => d.On == VesselDress.DecorOn.Machine);
+        Assert.Equal(("vessel_emblem", fin.X, fin.Y, V.Fin, VesselDress.DecorTint.Stripe), (emblem.Picture, emblem.X, emblem.Y, emblem.Machine, emblem.Tint));
+        int cell = dress.CellOf(fin.X, fin.Y, m.Grid.Width);
+        Assert.False(dress.Shows(m.Grid, emblem));
+        m.Grid.Place(cell, new Placement("machine", V.Fin));
+        Assert.True(dress.Shows(m.Grid, emblem));
+        m.Grid.Clear(cell, "machine");
+        Assert.False(dress.Shows(m.Grid, emblem));
+        // No fin on a tanker, so no emblem.
+        Assert.DoesNotContain(new VesselDress(Of("tanker", 1)).Decors, d => d.Picture == "vessel_emblem");
     }
 
     [Theory]
