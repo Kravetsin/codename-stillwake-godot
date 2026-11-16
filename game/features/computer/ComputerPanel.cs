@@ -40,25 +40,19 @@ public partial class ComputerPanel : CanvasLayer
         AutowrapMode = TextServer.AutowrapMode.WordSmart,
         MouseFilter = Control.MouseFilterEnum.Ignore,
     };
-    private readonly RadarScreen _radar = new() { Visible = false };
-    /// <summary>
-    /// Under the radar while a contact is selected, the jump to it (<c>places</c>' <c>Jump</c>); while a system planet is, the course
-    /// to it (<c>landing</c>'s <c>SetCourse</c>), dim with its reason but for the crew away, when a press calls them home.
-    /// </summary>
-    private readonly Button _setOff = SetOffButton();
+    private readonly RadarScreen _radar;
     private readonly List<(Panel Box, TextureRect Icon, ProgramSpec Program)> _buttons = [];
     private readonly TipSpots _tips;
     private Reading _reading = new(false, []);
-    /// <summary>The system planet this player selected on the radar's strip; null for none.</summary>
-    private int? _planet;
     private double _sinceRead;
 
     /// <param name="ui">Which computer is open, set by the crew's E, and cleared here when it is put away.</param>
     /// <param name="world">The world the computer stands in; null with none played.</param>
-    /// <param name="send">Sends a command as this player: the set-off button's jump.</param>
+    /// <param name="send">Sends a command as this player: the radar's course and jump.</param>
     public ComputerPanel(Ui ui, Func<Registry?> world, Action<Command> send)
     {
         (_ui, _world, _send) = (ui, world, send);
+        _radar = new RadarScreen(ui) { Visible = false, SetCourse = planet => _send(new SetCourse(planet)), Jump = contact => _send(new Jump(contact)) };
         _tips = new TipSpots(ui.Tip);
         Layer = ScreenLayers.Handbook;
         var root = new Control { MouseFilter = Control.MouseFilterEnum.Ignore, Theme = new Theme { DefaultFont = Style.Mono, DefaultFontSize = 20 } };
@@ -73,30 +67,13 @@ public partial class ComputerPanel : CanvasLayer
         _radar.SetAnchorsPreset(Control.LayoutPreset.FullRect);
         _screen.AddChild(_radar);
         _screen.AddChild(_text);
-        _radar.AddChild(_setOff);
-        // The jump beside the selected contact (generated-vessels): the vessel comes right of the ship, the contact gone.
-        _setOff.Pressed += () =>
-        {
-            if (_planet is int planet) _send(new SetCourse(planet));
-            else if (_ui.RadarContact.Get() is { } contact) _send(new Jump(contact));
-        };
-        // A click on the radar selects the planet or the contact under it, letting the other go; on empty screen, none.
-        _screen.GuiInput += e =>
-        {
-            if (e is not InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.Left } || !_radar.IsVisibleInTree()) return;
-            var mouse = _screen.GetViewport().GetMousePosition();
-            _planet = _radar.PlanetAt(mouse);
-            _ui.RadarContact.Set(_planet == null ? _radar.ContactAt(mouse) : null);
-            ShowSelected();
-            _screen.AcceptEvent();
-        };
         foreach (var program in Programs.All) AddButton(program);
         _frame.Visible = false;
         ui.OpenComputer.Subscribe(() =>
         {
             // Each time it opens, on no program: the player picks again.
             _ui.ComputerProgram.Set(null);
-            _planet = null;
+            _radar.Reset();
             _sinceRead = ReadEvery;
         });
     }
@@ -106,6 +83,9 @@ public partial class ComputerPanel : CanvasLayer
 
     /// <summary>Puts it away: E, or Esc through the menu's <c>Escape</c>.</summary>
     public void Close() => _ui.OpenComputer.Set(null);
+
+    /// <summary>Puts away the radar's open callout, Esc's first step before the window: whether there was one.</summary>
+    public bool LetGo() => Shown && _radar.IsVisibleInTree() && _radar.LetGo();
 
     private void AddButton(ProgramSpec program)
     {
@@ -159,12 +139,12 @@ public partial class ComputerPanel : CanvasLayer
         // The system and where the ship is in it (solar-system).
         var landing = _world()!.Landing;
         _radar.At = landing.At;
-        _radar.Flight = landing.Course is { } course ? (course.To, Features.Landing.Warp.Along(course.TicksLeft, Content.Landing.FlightTicks, 0)) : null;
-        ShowSelected();
+        _radar.Course = landing.Course is { } course ? (course.To, course.TicksLeft) : null;
+        _radar.Problems = [.. Enumerable.Range(0, Content.Landing.Planets.Count).Select(landing.CourseProblem)];
         Paint();
     }
 
-    /// <summary>The one tooltip: what the radar shows under the pointer, a contact, my ship or the planet; else a button's program; none behind the menu.</summary>
+    /// <summary>The one tooltip: what the radar shows under the pointer; else a button's program; none behind the menu.</summary>
     private void Tips()
     {
         if (_ui.MenuOpen.Get())
@@ -173,8 +153,7 @@ public partial class ComputerPanel : CanvasLayer
             return;
         }
         var mouse = _frame.GetViewport().GetMousePosition();
-        if (_setOff.IsVisibleInTree() && _setOff.GetGlobalRect().HasPoint(mouse)) _tips.Show(null);
-        else if (_radar.IsVisibleInTree() && _radar.KeyAt(mouse) is { } key) _tips.Show(new Tip(T(key)));
+        if (_radar.IsVisibleInTree() && _radar.GetGlobalRect().HasPoint(mouse)) _tips.Show(_radar.TipAt(mouse));
         else _tips.Frame(mouse);
     }
 
@@ -223,65 +202,6 @@ public partial class ComputerPanel : CanvasLayer
         if (e is not InputEventKey { Pressed: true, Echo: false } key || !key.Is(Bind.Use) || !Shown) return;
         Close();
         GetViewport().SetInputAsHandled();
-    }
-
-    /// <summary>
-    /// The radar's selection as this player has it: framed on the screen, the button under it while there is one; for a planet it
-    /// says why no course can be set, but for the crew away, which a press calls home.
-    /// </summary>
-    private void ShowSelected()
-    {
-        _radar.Selected = _ui.RadarContact.Get();
-        _radar.Planet = _planet;
-        _setOff.Visible = _radar.Selected != null || _planet != null;
-        // Read each time, so a language changed in the menu shows.
-        if (_planet is not int planet || _world() is not { } world)
-        {
-            _setOff.Disabled = false;
-            _setOff.Text = T("computer.radar.setOff");
-            return;
-        }
-        if (world.Landing.Course is { } course)
-        {
-            // In flight the button counts the seconds to arrival.
-            _setOff.Disabled = true;
-            _setOff.Text = T("computer.radar.flying", ("s", (course.TicksLeft + Sim.World.TicksPerSecond - 1) / Sim.World.TicksPerSecond));
-            return;
-        }
-        string? problem = world.Landing.CourseProblem(planet);
-        bool ready = problem is null or "landing.crewAway";
-        _setOff.Disabled = !ready;
-        _setOff.Text = ready ? T("computer.radar.setCourse") : T(problem!, ("fuel", Content.Landing.JumpFuel));
-    }
-
-    /// <summary>The set-off button, in the radar's green, at the bottom of its screen in the middle; hidden till a contact is selected.</summary>
-    private static Button SetOffButton()
-    {
-        var button = new Button
-        {
-            Visible = false,
-            FocusMode = Control.FocusModeEnum.None,
-            CustomMinimumSize = new Vector2(220, 44),
-            AnchorLeft = 0.5f,
-            AnchorRight = 0.5f,
-            AnchorTop = 1,
-            AnchorBottom = 1,
-            OffsetBottom = -14,
-            GrowHorizontal = Control.GrowDirection.Both,
-            GrowVertical = Control.GrowDirection.Begin,
-        };
-        foreach (var (state, fill) in new[] { ("normal", LitBack), ("hover", new Color("143826")), ("pressed", new Color("1d4a30")), ("disabled", new Color("10161d")) })
-        {
-            var look = new StyleBoxFlat { BgColor = fill, BorderColor = Lit };
-            look.SetBorderWidthAll(2);
-            look.SetCornerRadiusAll(2);
-            button.AddThemeStyleboxOverride(state, look);
-        }
-        button.AddThemeColorOverride("font_color", Lit);
-        button.AddThemeColorOverride("font_hover_color", new Color("7dffa8"));
-        button.AddThemeColorOverride("font_pressed_color", new Color("7dffa8"));
-        button.AddThemeColorOverride("font_disabled_color", Warning);
-        return button;
     }
 
     private static Panel Boxed(Color fill, int border, int corner)

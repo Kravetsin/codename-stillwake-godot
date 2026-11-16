@@ -394,7 +394,7 @@ public partial class Main : Node2D, ITogether
             {
                 // A search in the build menu, on the research board or the dev panel goes first, then a card in hand (right-lets-go),
                 // what else is open staying so.
-                if (dev.DropSearch() || _hands.Menu.DropSearch() || tech.DropSearch() || _hands.Plan.LetGo()) return;
+                if (dev.DropSearch() || _hands.Menu.DropSearch() || tech.DropSearch() || computer.LetGo() || _hands.Plan.LetGo()) return;
                 _items?.Panel.Close();
                 handbook.Close();
                 computer.Close();
