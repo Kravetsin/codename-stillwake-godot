@@ -59,7 +59,7 @@ public sealed class PlanetScenario : DevScenario
     public override void Started(Client client)
     {
         if (!Down) return;
-        client.Send(new OpenSurface((Strip ? Content.Surfaces.TestStrip : Content.PlanetTypes.First).Id));
+        client.Send(new OpenSurface(Strip ? Content.Surfaces.TestStrip.Id : Args.Value("--planet-type") ?? Content.PlanetTypes.First.Id));
         if (!Valleys && !Charges) client.Send(new Transfer(client.World.Surfaces.Count));
     }
 

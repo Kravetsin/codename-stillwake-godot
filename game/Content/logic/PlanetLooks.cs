@@ -27,6 +27,13 @@ public static class PlanetLooks
         /// first planet, "ochre and slate": an ochre dusk into a cold blue-grey night.
         /// </summary>
         public (float R, float G, float B) DuskSky { get; init; } = (0.88f, 0.64f, 0.4f);
+
+        /// <summary>
+        /// Its day (planet-variety): what the light through the open sky and the backdrop are multiplied by in daylight, the whole
+        /// surface's cast; white for the first planet's.
+        /// </summary>
+        public (float R, float G, float B) DaySky { get; init; } = (1f, 1f, 1f);
+        public (float R, float G, float B) DayBackdrop { get; init; } = (1f, 1f, 1f);
         public (float R, float G, float B) NightSky { get; init; } = (0.09f, 0.105f, 0.14f);
         public (float R, float G, float B) DuskBackdrop { get; init; } = (0.9f, 0.66f, 0.44f);
         public (float R, float G, float B) NightBackdrop { get; init; } = (0.16f, 0.19f, 0.26f);
@@ -42,10 +49,27 @@ public static class PlanetLooks
     public static readonly Look First = new("planet", StrataFrom: 100, Fog: (0.74f, 0.79f, 0.72f));
 
     /// <summary>The scorched planet's (planet-variety): the first's sky, its ground rust-red, its haze a dry ochre.</summary>
-    public static readonly Look Scorched = First with { Fog = (0.8f, 0.68f, 0.52f), Ground = (1f, 0.78f, 0.62f), DuskSky = (0.95f, 0.58f, 0.34f) };
+    public static readonly Look Scorched = First with
+    {
+        Fog = (0.8f, 0.6f, 0.42f),
+        Ground = (1f, 0.72f, 0.55f),
+        DaySky = (1f, 0.8f, 0.62f),
+        DayBackdrop = (1f, 0.7f, 0.48f),
+        DuskSky = (0.95f, 0.52f, 0.3f),
+        DuskBackdrop = (0.92f, 0.5f, 0.32f),
+    };
 
     /// <summary>The icy planet's (planet-variety): the first's sky, its ground frosted blue-grey, its haze a cold white.</summary>
-    public static readonly Look Icy = First with { Fog = (0.8f, 0.86f, 0.92f), Ground = (0.8f, 0.88f, 1f), NightSky = (0.07f, 0.1f, 0.16f) };
+    public static readonly Look Icy = First with
+    {
+        Fog = (0.84f, 0.9f, 0.97f),
+        Ground = (0.78f, 0.86f, 1f),
+        DaySky = (0.8f, 0.9f, 1f),
+        DayBackdrop = (0.74f, 0.86f, 1f),
+        DuskSky = (0.7f, 0.66f, 0.8f),
+        DuskBackdrop = (0.68f, 0.66f, 0.82f),
+        NightSky = (0.07f, 0.1f, 0.16f),
+    };
 
     /// <summary>By surface kind: every planet type, and the test strip, drawn under the first planet's rules and sky.</summary>
     public static readonly IReadOnlyDictionary<string, Look> Of = new Dictionary<string, Look>

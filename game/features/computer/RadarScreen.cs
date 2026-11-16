@@ -475,7 +475,8 @@ public partial class RadarScreen : Control
         var (anchor, radius) = card.Anchor;
         float open = Mathf.Clamp((_time - _opened) / 0.2f, 0, 1), wide = 270;
         bool reason = card.Button is { Lit: false, Reason: not null };
-        float tall = 76 + card.Rows.Length * 20 + (card.Button != null ? 50 : 6) + (reason ? 16 : 0);
+        var lines = Wrapped(card.Rows, wide - 32);
+        float tall = 76 + lines.Count * 20 + (card.Button != null ? 50 : 6) + (reason ? 16 : 0);
         var (x, y) = NavMap.Callout(anchor.X, anchor.Y, radius, wide, tall, Size.X, Size.Y);
         (x, y) = (Mathf.Round(x), Mathf.Round(y + (1 - open) * 8));
         var box = new Rect2(x, y, wide, tall);
@@ -492,10 +493,32 @@ public partial class RadarScreen : Control
         card.Picture(frame.GetCenter());
         Words(card.Title, new Vector2(x + 86, y + 32), Title, Text with { A = open });
         Words(card.Sub, new Vector2(x + 86, y + 52), Tiny, Mute with { A = open });
-        for (int i = 0; i < card.Rows.Length; i++)
-            Words(card.Rows[i].Text, new Vector2(x + 16, y + 88 + i * 20), Small, (card.Rows[i].Colour ?? Text) with { A = open });
+        for (int i = 0; i < lines.Count; i++)
+            Words(lines[i].Text, new Vector2(x + 16, y + 88 + i * 20), Small, (lines[i].Colour ?? Text) with { A = open });
         Close(new Vector2(x + wide - 26, y + 6));
-        if (card.Button is { } button) Button(new Rect2(x + 14, y + 78 + card.Rows.Length * 20, wide - 28, 34), button, open);
+        if (card.Button is { } button) Button(new Rect2(x + 14, y + 78 + lines.Count * 20, wide - 28, 34), button, open);
+    }
+
+    /// <summary>The callout's rows broken at spaces into lines no wider than <paramref name="room"/>, a row's colour kept on each of its lines.</summary>
+    private List<Row> Wrapped(Row[] rows, float room)
+    {
+        var lines = new List<Row>();
+        foreach (var row in rows)
+        {
+            string line = "";
+            foreach (var word in row.Text.Split(' '))
+            {
+                string longer = line.Length == 0 ? word : $"{line} {word}";
+                if (line.Length > 0 && Width(longer, Small) > room)
+                {
+                    lines.Add(row with { Text = line });
+                    line = word;
+                }
+                else line = longer;
+            }
+            lines.Add(row with { Text = line });
+        }
+        return lines;
     }
 
     /// <summary>The callout's line of ink to its thing, written again only when either end moves.</summary>
