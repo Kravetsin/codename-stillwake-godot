@@ -744,76 +744,312 @@ function capsule(col) {
   };
 }
 
-/** The mockup's shuttle points, cells to pixels, lowered by dy so its feet stand on the picture's foot. */
-const s8 = (pts, dy) => pts.map((v, i) => (i % 2 ? v * 8 + dy : v * 8));
+// The hangar shuttles' parts, placed in pixels from the mockup's cells (docs/plans/big-vessels-mockup.html, SHUTTLE_DRAW). A flat erases the ink under its whole box, so paint on a hull stops short of the hull's outline.
+const SHUTTLE_GLASS = palOf(CANOPY), SHUTTLE_GROOVE = 'rgba(14,16,24,.5)', SHUTTLE_LIP = 'rgba(255,255,255,.16)';
+/** Block letters for the shuttles' painted names, five rows each. */
+const SHUTTLE_GLYPHS = {
+  A: ['###', '#.#', '###', '#.#', '#.#'], B: ['##.', '#.#', '##.', '#.#', '##.'], E: ['###', '#..', '##.', '#..', '###'],
+  G: ['###', '#..', '#.#', '#.#', '###'], H: ['#.#', '#.#', '###', '#.#', '#.#'], L: ['#..', '#..', '#..', '#..', '###'],
+  M: ['#...#', '##.##', '#.#.#', '#...#', '#...#'], N: ['#..#', '##.#', '#.##', '#..#', '#..#'], O: ['###', '#.#', '#.#', '#.#', '###'],
+  R: ['##.', '#.#', '##.', '#.#', '#.#'], T: ['###', '.#.', '.#.', '.#.', '.#.'], U: ['#.#', '#.#', '#.#', '#.#', '###'],
+  W: ['#...#', '#...#', '#.#.#', '##.##', '#...#'],
+};
+/** A shuttle's name stencilled on its hull, h tall from (x, y). */
+function shuttleName(a, text, x, y, h, col) {
+  const u = h / 5;
+  for (const ch of text) {
+    const g = SHUTTLE_GLYPHS[ch];
+    g.forEach((row, j) => {
+      for (let i = 0; i < row.length; i++) {
+        if (row[i] !== '#') continue;
+        let k = i; while (row[k] === '#') k++;
+        a.flat(band(x + i * u, y + j * u, x + k * u, y + (j + 1) * u), col);
+        i = k;
+      }
+    });
+    x += (g[0].length + 1) * u;
+  }
+}
+/** A quadratic's points from (x0, y0) by (cx, cy) to (x1, y1), its start left out. */
+const shuttleQ = (x0, y0, cx, cy, x1, y1) => Array.from({ length: 8 }, (_, i) => { const t = (i + 1) / 8, u = 1 - t; return [u * u * x0 + 2 * u * t * cx + t * t * x1, u * u * y0 + 2 * u * t * cy + t * t * y1]; }).flat();
+/** Where a closed outline of points first and last crosses the upright at x (or the row at y, `across`), half a pixel inside. */
+function shuttleSpan(pts, v, across) {
+  const k = across ? 1 : 0;
+  let lo = Infinity, hi = -Infinity;
+  for (let i = 0; i < pts.length; i += 2) {
+    const j = (i + 2) % pts.length, a0 = pts[i + k], a1 = pts[j + k];
+    if ((a0 - v) * (a1 - v) > 0 || a0 === a1) continue;
+    const w = pts[i + 1 - k] + (pts[j + 1 - k] - pts[i + 1 - k]) * (v - a0) / (a1 - a0);
+    lo = Math.min(lo, w); hi = Math.max(hi, w);
+  }
+  return [lo + .5, hi - .5];
+}
+/** A band of paint across a hull from y0 to y1, between x0 and x1 at most. */
+function shuttleBand(a, pts, y0, y1, col, x0 = -Infinity, x1 = Infinity) {
+  const [l0, h0] = shuttleSpan(pts, y0, true), [l1, h1] = shuttleSpan(pts, y1, true);
+  a.flat(band(Math.max(l0, l1, x0), y0, Math.min(h0, h1, x1), y1), col);
+}
+/** A seam between hull plates, upright at x (or along the row at y, `across`): a dark groove, its far lip catching the light. */
+function shuttleSeam(a, pts, v, across, from = -Infinity, to = Infinity) {
+  const [lo, hi] = shuttleSpan(pts, v, across), s0 = Math.max(lo, from), s1 = Math.min(hi, to);
+  if (across) { a.flat(band(s0, v - .3, s1, v + .3), SHUTTLE_GROOVE); a.flat(band(s0, v + .3, s1, v + .7), SHUTTLE_LIP); }
+  else { a.flat(band(v - .3, s0, v + .3, s1), SHUTTLE_GROOVE); a.flat(band(v + .3, s0, v + .7, s1), SHUTTLE_LIP); }
+}
+/** A porthole of radius r: its ring, the dark glass, a glint; warm when a lamp burns behind it. */
+function shuttlePort(a, x, y, r, warm) {
+  a.shape(ell(x, y, r + 1), MID, { lite: band(x - r - 2, y - r - 2, x + r + 2, y - r * .5), shade: band(x - r - 2, y + r * .4, x + r + 2, y + r + 2) });
+  a.shape(ell(x + .1, y + .1, r), warm ? palOf('#e8c27a') : SHUTTLE_GLASS, { outer: false, shade: band(x - r, y + r * .3, x + r, y + r + 1) });
+  a.flat(ell(x - r * .38, y - r * .38, r * .32, r * .22), 'rgba(214,232,236,.6)');
+}
+/** A hatch let into a hull, w × h from (x, y): its seam round it, a lit head, two hinges, a handle; a porthole in it if `port`. */
+function shuttleHatch(a, x, y, w, h, port) {
+  for (const b of [band(x, y, x + w, y + .6), band(x, y + h - .6, x + w, y + h), band(x, y, x + .6, y + h), band(x + w - .6, y, x + w, y + h)]) a.flat(b, SHUTTLE_GROOVE);
+  a.flat(band(x + .6, y + .6, x + w - .6, y + 1.2), SHUTTLE_LIP);
+  for (const k of [.2, .8]) a.flat(band(x - .4, y + h * k - 1, x + .9, y + h * k + 1), '#2f3238');
+  a.flat(band(x + w - 2.8, y + h * .55 - .5, x + w - 1.2, y + h * .55 + .5), '#24262b');
+  if (port) shuttlePort(a, x + w / 2, y + 2 + Math.min(2.6, w * .2), Math.min(2.4, w * .2));
+}
+/** A canopy of points: its frame, the dark glass shaded low, mullions along `bars` [x0, y0, x1, y1], a glint at (gx, gy). */
+function shuttleCanopy(a, pts, bars, gx, gy) {
+  const d = poly(pts);
+  a.tube(d, 1.8, MID, { spec: false });
+  a.shape(d, SHUTTLE_GLASS, { outer: false, shade: 1.6, deep: 3.4 });
+  for (const [x0, y0, x1, y1] of bars) a.tube(`M${x0} ${y0}L${x1} ${y1}`, 1.1, MID, { spec: false });
+  a.flat(poly(gx - 2, gy + 1.4, gx - .6, gy + 1.4, gx + 2, gy - 1.4, gx + .6, gy - 1.4), 'rgba(206,228,232,.5)');
+}
+/** A quad of manoeuvring thrusters on a block, 4.4 × 3.2 from (x, y): two bells up, two down, one outward (out −1 left, 1 right). */
+function shuttleRcs(a, x, y, out) {
+  for (const u of [1.3, 3.1]) { cone(a, x + u, y, 0, -1.9, .9); cone(a, x + u, y + 3.2, 0, 1.9, .9); }
+  cone(a, out < 0 ? x : x + 4.4, y + 1.6, out * 2.1, 0, 1.2);
+  lit(a, x, y, x + 4.4, y + 3.2, BLOCK);
+  a.flat(band(x + .5, y + 1.3, x + 3.9, y + 1.9), OCHRE);
+}
+/** A whip aerial from a boss at (x, y) up to (tx, ty). */
+function shuttleAerial(a, x, y, tx, ty) {
+  a.tube(`M${x} ${y}L${tx} ${ty}`, .6, LIGHT, { spec: false });
+  a.shape(ell(tx, ty, .9), OLD, {});
+  lit(a, x - 2, y - 1.4, x + 2, y + .4, MID);
+}
+/** The red beacon's glass on its base, standing on the hull at (x, y): dark, the game's light shines through it. */
+function shuttleBeacon(a, x, y) {
+  a.shape(ell(x, y - 1.6, 1.5, 1.4), RED, { lite: band(x - 2, y - 3.2, x + 2, y - 2.3) });
+  lit(a, x - 2.2, y - 1, x + 2.2, y + .4, DARK);
+}
+/** A thruster bell, its throat at (tx, ty), opening left (or down) over len from half-width h0 to h1: brass where the burn was hottest, violet beyond. */
+function shuttleBell(a, tx, ty, down, len, h0, h1) {
+  const hw = (t) => h0 + (h1 - h0) * Math.pow(t, 1.3);
+  const at = (t, k) => (down ? [tx + k * hw(t), ty + t * len] : [tx - t * len, ty + k * hw(t)]);
+  const zone = (t0, t1, k0, k1) => { const p = []; for (let i = 0; i <= 8; i++) p.push(...at(t0 + (t1 - t0) * i / 8, k0)); for (let i = 8; i >= 0; i--) p.push(...at(t0 + (t1 - t0) * i / 8, k1)); return poly(p); };
+  const tone = (t0, t1, m, o) => a.shape(zone(t0, t1, -1, 1), m, { lite: zone(t0, t1, -1.1, -.5), shade: zone(t0, t1, .3, 1.1), deep: zone(t0, t1, .72, 1.1), ...o });
+  tone(0, 1, STEEL);
+  for (const [t0, t1, m] of [[0, .22, BRONZE], [.22, .36, BRONZE2], [.36, .58, VIOLET], [.58, .72, VIOLET2]]) tone(t0, t1, m, { outer: false, edge: false });
+  for (const t of [.36, .72]) a.line(`M${at(t, -.98).join(' ')}L${at(t, .98).join(' ')}`, { w: 2 });
+  const [mx, my] = at(1, 0), r = h1 * (down ? .2 : .3);
+  a.shape(down ? ell(mx, my, h1, r) : ell(mx, my, r, h1), STEEL, { lite: down ? band(mx - h1 - 1, my - r - 1, mx - h1 * .4, my + r + 1) : band(mx - r - 1, my - h1 - 1, mx + r + 1, my - h1 * .45), shade: .9 });
+  a.flat(down ? ell(mx + .3, my + .2, h1 - 1.4, r - .9) : ell(mx + .3, my + .2, r - .9, h1 - 1.4), '#121419');
+  a.shape(down ? band(tx - h0 * 1.3, ty - 1.6, tx + h0 * 1.3, ty + .8) : band(tx - .8, ty - h0 * 1.3, tx + 1.6, ty + h0 * 1.3), OLD, { shade: .7 });
+}
+/**
+ * A landing leg from its hinge (hx, hy) to an ankle over x = fx: an oleo sleeve, its bright piston, a drag brace from `brace` if given;
+ * a pad pw wide standing on y = foot, or none (pw 0) when the ankle stands on a skid at foot.
+ */
+function shuttleGear(a, hx, hy, fx, foot, pw, brace) {
+  const fy = pw ? foot - 3.6 : foot, at = (t) => [hx + (fx - hx) * t, hy + (fy - hy) * t];
+  const [kx, ky] = at(.5), [bx, by] = at(.74), [px, py] = at(.38);
+  if (brace) a.tube(`M${brace[0]} ${brace[1]}L${bx} ${by}`, 1.1, DARK, { spec: false });
+  a.tube(`M${px} ${py}L${fx} ${fy}`, 1.4, LIGHT);
+  a.tube(`M${hx} ${hy}L${kx} ${ky}`, 2.8, MID, { spec: false });
+  a.shape(ell(kx, ky, 1.7), OLD, { shade: .6 });
+  if (brace) a.shape(ell(bx, by, .9), OLD, {});
+  if (pw) {
+    a.shape(poly(fx - pw / 2, foot, fx + pw / 2, foot, fx + pw / 2 - 1.2, foot - 3, fx - pw / 2 + 1.2, foot - 3), DARK, { lite: band(fx - pw, foot - 3, fx + pw, foot - 2.3) });
+    hazardFoot(a, fx - pw / 2 + 1.6, foot - 2.1, pw - 3.2, 1.2);
+  }
+  a.shape(ell(fx, fy, 1.4), OLD, { shade: .6 });
+}
+
 /** machine_vesselShuttleGull: a courier, a light hull with its orange stripe on two skids. 21 × 7 cells. */
 function gull(a) {
-  const dy = 4;
-  a.shape(poly(s8([0, 2.3, 2.2, 2.9, 2.2, 4.3, 0, 4.9], dy)), NOZZLE, {});
-  for (const [x0, x1] of [[5.5, 4.8], [15, 15.7]]) a.line(`M${x0 * 8} ${5.2 * 8 + dy}L${x1 * 8} ${6.4 * 8 + dy}`, { c: '#5a6069', w: 1.6 });
-  lit(a, 30, 54.4, 136, 56, DARK);
-  const hull = poly(s8([2.2, 2.4, 5.2, 1.2, 12.4, .9, 16.6, 1.6, 21, 3.5, 19.8, 4.7, 13.4, 5.2, 3.2, 5.2, 2.2, 4.4], dy));
-  a.shape(hull, palOf('#c9c6bd'), { lite: band(0, 0, 168, 18) });
-  a.flat(band(16, 3.6 * 8 + dy, 160, 4.05 * 8 + dy), '#c8722e', { clip: hull });
-  a.flat(poly(s8([12.6, 1.05, 16.2, 1.75, 18.6, 3, 13.6, 2.7], dy)), CANOPY);
+  const P = palOf('#c9c6bd');
+  shuttleBell(a, 18.4, 32.4, false, 15.6, 5.8, 9.8);
+  shuttleGear(a, 48, 45.2, 42, 53.4, 0, [58, 45.4]);
+  shuttleGear(a, 120, 45.2, 126, 53.4, 0, [108, 45.4]);
+  const skid = [28, 53.4, 134, 53.4, ...shuttleQ(134, 53.4, 139.2, 53.4, 140.4, 49.6), 142.4, 50.2, ...shuttleQ(142.4, 50.2, 141, 56, 134, 56), 30, 56, ...shuttleQ(30, 56, 27.6, 56, 27.6, 54.6)];
+  a.shape(poly(skid), DARK, { lite: band(0, 53, 168, 54.2) });
+  for (const x of [30, 122]) hazardFoot(a, x, 54.4, 10, 1.2);
+  const pts = [17.6, 23.2, ...shuttleQ(17.6, 23.2, 27, 15.6, 41.6, 13.6), 99.2, 11.2, ...shuttleQ(99.2, 11.2, 118, 11.6, 132.8, 16.8), 160, 28.4,
+    ...shuttleQ(160, 28.4, 168.4, 32, 165.6, 35.4), 158.4, 41.6, ...shuttleQ(158.4, 41.6, 154, 44.6, 146, 45), 107.2, 45.6, 25.6, 45.6, 17.6, 39.2];
+  const hull = poly(pts);
+  a.shape(hull, P, { lite: band(0, 0, 168, 16.4), shade: [2.4, band(0, 40, 168, 46)], deep: band(0, 43.6, 168, 46) });
+  // Plates, the painted stripe and name, the side hatch with its warning sill.
+  for (const x of [40, 62, 86, 112]) shuttleSeam(a, pts, x);
+  shuttleSeam(a, pts, 29.2, true, 0, 66); shuttleSeam(a, pts, 29.2, true, 80, 150);
+  shuttleBand(a, pts, 32.8, 36.4, '#c8722e'); shuttleBand(a, pts, 37.2, 37.8, '#6e3a1a');
+  shuttleName(a, 'GULL', 44, 18.8, 5, 'rgba(28,28,30,.8)');
+  shuttleHatch(a, 66, 16.8, 14, 26, true);
+  hazardFoot(a, 66, 43.2, 14, 1.4);
+  rivets(a, [24, 30.6], [36, 30.6], [46, 30.6], [56, 30.6], [92, 30.6], [104, 30.6], [130, 30.6], [144, 30.6], [44, 43], [100, 43]);
+  patch(a, 61, 43.2, 2, .8, RUST, hull, 401); patch(a, 112.8, 30.6, 1.4, 1, RUST, hull, 403); patch(a, 40.4, 38.6, 1.1, .8, RUST, hull, 405);
+  patch(a, 22.6, 36, 2.4, 1.6, SCORCH, hull, 407);
+  a.line('M128 38.2L130.2 40.4L129.8 41.8');
+  // What stands on it: the canopy, a porthole, thrusters, aerials, the beacon.
+  shuttlePort(a, 93, 20.4, 2.2);
+  shuttleCanopy(a, [100.8, 12.6, ...shuttleQ(100.8, 12.6, 118, 13.2, 129.6, 17.8), 148.4, 27.6, ...shuttleQ(148.4, 27.6, 128, 27.6, 108.8, 25.6)],
+    [[114.6, 13.8, 117.6, 26.4], [132.4, 19.4, 134.4, 27.4]], 123, 18.6);
+  shuttleRcs(a, 24.4, 23.6, -1); shuttleRcs(a, 148, 37.4, 1);
+  a.shape(poly(50, 13.6, 56.4, 13.4, 53.6, 8.2, 51.4, 8.4), MID, { shade: .6 });
+  shuttleAerial(a, 84, 11.8, 87.6, 2);
+  shuttleBeacon(a, 72, 12.4);
 }
 /** machine_vesselShuttleMule: a cargo hauler, its cab forward over a yellow box, on two struts. 24 × 9 cells. */
 function mule(a) {
-  const dy = 4;
-  for (const by of [1.6, 4]) a.shape(poly(s8([0, by, 2, by + .5, 2, by + 1.6, 0, by + 2.1], dy)), NOZZLE, {});
-  for (const x of [44, 160]) lit(a, x, 6 * 8 + dy, x + 3.2, 72, DARK);
-  a.shape(band(16, 1.6 * 8 + dy, 128, 2.3 * 8 + dy), MID, {});
-  a.shape(band(16, 1.6 * 8 + dy, 35.2, 6.2 * 8 + dy), DARK, {});
-  const box = band(36.8, 2.5 * 8 + dy, 124.8, 6.9 * 8 + dy);
-  a.shape(box, palOf('#c9a03a'), { lines: Array.from({ length: 12 }, (_, i) => `M${43 + i * 6.8} ${2.9 * 8 + dy}L${43 + i * 6.8} ${6.5 * 8 + dy}`) });
-  const cab = poly(s8([15.6, .6, 21.4, .6, 24, 2.6, 24, 5.6, 15.6, 5.6], dy));
-  a.shape(cab, palOf('#b8b3a6'), { lite: band(124, 0, 192, 12) });
-  hazardFoot(a, 124.8, 4.8 * 8 + dy, 67.2, 4.4, cab);
-  a.flat(poly(s8([21.2, .9, 23.6, 2.8, 21.6, 2.8], dy)), CANOPY);
-  lit(a, 36, 69.6, 176, 72, DARK);
+  for (const cy of [25.2, 44.4]) shuttleBell(a, 16.4, cy, false, 13.6, 4.4, 7.8);
+  shuttleGear(a, 50, 58.4, 46, 72, 12, [62, 58.8]);
+  shuttleGear(a, 160, 48, 164, 72, 12, [148, 48.4]);
+  // The spine beam, its lightening holes; the engine block, its grille and access panel.
+  lit(a, 16, 16.8, 128, 22.4, MID);
+  for (let x = 44; x < 124; x += 12) { a.flat(ell(x, 19.8, 2.6, 1.2), '#1e2228'); a.flat(band(x - 2, 20.6, x + 2, 21.2), 'rgba(255,255,255,.12)'); }
+  lit(a, 16, 16.8, 35.2, 53.6, DARK);
+  for (let y = 21.6; y < 31; y += 2) { a.flat(band(19.6, y, 31.6, y + .9), '#13161b'); a.flat(band(19.6, y + .9, 31.6, y + 1.3), 'rgba(255,255,255,.12)'); }
+  shuttleHatch(a, 19.6, 33.6, 12, 13.6);
+  rivets(a, [18.4, 19.2], [32.8, 19.2], [18.4, 48.8], [32.8, 48.8]);
+  hazardFoot(a, 16.8, 50.2, 17.6, 2.4);
+  patch(a, 19.2, 30, 1.4, 2.6, SCORCH, band(16, 16.8, 35.2, 53.6), 411);
+  // The cargo box: corrugation, corner castings, its door's lock rods, the hold's number.
+  const Y = palOf('#c9a03a'), box = band(36.8, 24, 124.8, 59.2);
+  a.shape(box, Y, { lite: band(36.8, 24, 124.8, 26.4), shade: band(36.8, 54.8, 124.8, 59.2), deep: band(36.8, 57.6, 124.8, 59.2) });
+  for (let x = 40.8; x < 120; x += 6.8) { a.flat(band(x, 27.2, x + 1, 56.4), Y.shade); a.flat(band(x + 1, 27.2, x + 1.5, 56.4), Y.lite); }
+  for (const [x, y] of [[37.3, 24.5], [120.8, 24.5], [37.3, 54.7], [120.8, 54.7]]) a.flat(band(x, y, x + 3.6, y + 4), '#2a2c30');
+  a.flat(band(44.8, 30.4, 62.4, 40.8), Y.base);
+  stencil(a, '07', 47.2, 32, 'rgba(30,26,20,.72)');
+  for (const x of [106.4, 113.2]) { a.tube(`M${x} 27.6L${x} 55.6`, .9, LIGHT, { spec: false }); a.flat(band(x - .2, 40, x + 2.4, 41.2), '#2a2c30'); }
+  patch(a, 70, 56.2, 2.2, .9, RUST, box, 413); patch(a, 96, 26.4, 1.4, .7, RUST, box, 415); patch(a, 52, 56.4, 1.2, .7, RUST, box, 417);
+  // The cab: plates, the door with its window over a warning sill, the name, the canopy, thrusters, aerial and beacon.
+  const C = palOf('#b8b3a6');
+  const pts = [124.8, 8.8, 169.6, 8.8, ...shuttleQ(169.6, 8.8, 174, 8.8, 177.6, 11.6), 190, 21.6, ...shuttleQ(190, 21.6, 191.6, 23, 191.6, 26), 191.6, 48.8, 124.8, 48.8];
+  const cab = poly(pts);
+  a.shape(cab, C, { lite: band(124, 8.8, 192, 12.2), shade: [2.2, band(124, 40.4, 192, 48.8)], deep: band(124, 46.6, 192, 48.8) });
+  shuttleSeam(a, pts, 168.8); shuttleSeam(a, pts, 28.8, true, 0, 149.6); shuttleSeam(a, pts, 28.8, true, 163.2, 192);
+  hazardFoot(a, 125.4, 42.4, 65.6, 4);
+  shuttleHatch(a, 149.6, 12, 13.6, 29.6, true);
+  shuttleName(a, 'MULE', 128.8, 15.2, 4.8, 'rgba(28,28,30,.8)');
+  rivets(a, [128, 30.4], [145.6, 30.4], [166.4, 30.4], [188, 30.4], [128, 39.6], [188, 39.6]);
+  patch(a, 186, 37, 1.6, .9, RUST, cab, 419); patch(a, 132, 38.4, 1.2, .8, RUST, cab, 421);
+  a.line('M140 32L141.8 34.2L141.4 35.6');
+  shuttleCanopy(a, [170.4, 12, 175.6, 12, 187.6, 22.4, 187.6, 26.4, 172.4, 26.4], [[179.6, 14.8, 179.6, 26]], 175.2, 18.4);
+  shuttleRcs(a, 180, 31.6, 1); shuttleRcs(a, 18.4, 13.6, -1);
+  shuttleAerial(a, 136, 8.8, 138.4, 1.2);
+  shuttleBeacon(a, 158, 8.8);
 }
 /** machine_vesselShuttleBeetle: a tug, an orange dome on three legs, its claw arm forward. 16 × 9 cells. */
 function beetle(a) {
-  const dy = 4;
-  for (const [lx, fx] of [[3.5, 2.2], [8, 8], [12.4, 13.6]]) {
-    a.line(`M${lx * 8} ${5.6 * 8 + dy}L${fx * 8} ${8.1 * 8 + dy}`, { c: '#5a6069', w: 1.8 });
-    lit(a, fx * 8 - 4.8, 68.4, fx * 8 + 4.8, 72, DARK);
-  }
-  const shell = [];
-  for (let i = 0; i <= 16; i++) { const t = Math.PI + Math.PI * i / 16; shell.push(64 + Math.cos(t) * 49.6, 5.6 * 8 + dy + Math.sin(t) * 36.8); }
-  const d = poly(shell);
-  a.shape(d, palOf('#c8722e'), { lite: band(0, 0, 128, 14) });
-  a.flat(band(12.8, 4.4 * 8 + dy, 115.2, 4.8 * 8 + dy), '#6a3f22', { clip: d });
-  a.flat(ell(83.2, 2.9 * 8 + dy, 8.8, 7.2), CANOPY);
-  a.tube(`M107.2 ${4.4 * 8 + dy}L121.6 ${5.4 * 8 + dy}L126.4 ${6.6 * 8 + dy}`, 1.8, LIGHT, { spec: false });
+  const O = palOf('#c8722e'), cx = 64, cy = 48.8, rx = 49.6, ry = 36.8;
+  shuttleBell(a, 18.8, 41.6, false, 13.6, 3, 5.6);
+  shuttleGear(a, 30, 46, 18.4, 72, 10, [42, 47.6]);
+  shuttleGear(a, 64, 47.6, 64, 72, 10);
+  shuttleGear(a, 98, 46, 109.6, 72, 10, [86, 47.6]);
+  for (const x of [43, 85]) lit(a, x, 14, x + 2.4, 18, MID);
+  const pts = [];
+  for (let i = 0; i <= 32; i++) { const t = Math.PI + Math.PI * i / 32; pts.push(cx + Math.cos(t) * rx, cy + Math.sin(t) * ry); }
+  const shell = poly(pts);
+  a.shape(shell, O, { lite: band(0, 0, 128, 15.2), shade: [3.2, band(0, 40, 128, 50)], deep: band(0, 45.2, 128, 50) });
+  // Plates: two rings of seams round the dome, a meridian up its middle and one curving over its bow.
+  shuttleSeam(a, pts, 22.4, true); shuttleSeam(a, pts, 33.6, true); shuttleSeam(a, pts, 64, false, 22.4, 38.4);
+  const s = .82, mer = Array.from({ length: 9 }, (_, i) => { const l = Math.asin(10.4 / ry) + (1.2 - Math.asin(10.4 / ry)) * i / 8; return `${(cx + s * rx * Math.cos(l)).toFixed(2)} ${(cy - ry * Math.sin(l)).toFixed(2)}`; });
+  a.line('M' + mer.join('L'), { c: 'rgba(14,16,24,.55)', w: 3.6 });
+  shuttleName(a, 'BEETLE', 27.2, 27.2, 4.4, 'rgba(30,20,15,.8)');
+  shuttleHatch(a, 49.6, 19.2, 11.2, 18.4);
+  rivets(a, [24, 35], [40, 35], [76, 35], [100, 35], [36, 23.8], [96, 23.8]);
+  patch(a, 44, 33.6, 1.6, .9, RUST, shell, 431); patch(a, 99, 22.6, 1.2, .8, RUST, shell, 433); patch(a, 22, 44.6, 2.2, 1.4, SCORCH, shell, 435);
+  a.line('M70 30L71.6 32.2L71.2 33.4');
+  // The bumper ring it pushes with, hazard-striped fore and aft.
+  const bump = Anime.rr(13.6, 38.4, 100.8, 4.8, 1.6);
+  a.shape(bump, palOf('#34302c'), { lite: band(0, 38.4, 128, 39.4), shade: band(0, 41.8, 128, 43.2), lines: [26.4, 39.2, 52, 64.8, 77.6, 90.4].map((x) => `M${x} 38.4L${x} 43.2`) });
+  hazardFoot(a, 15.6, 39.4, 10, 2.8); hazardFoot(a, 101.6, 39.4, 10.6, 2.8);
+  // The canopy, a round port in a riveted ring; thrusters, aerial, beacon.
+  a.shape(ell(83.2, 27.2, 10, 8.4), MID, { lite: band(70, 17, 97, 21.4), shade: band(70, 32.6, 97, 37) });
+  a.shape(ell(83.6, 27.6, 7.6, 6.2), SHUTTLE_GLASS, { outer: false, shade: 1.6, deep: 3.4 });
+  a.tube('M84.4 21.6L84.4 33.6', 1, MID, { spec: false });
+  a.flat(poly(77.6, 27, 79.2, 27, 81.6, 23.4, 80, 23.4), 'rgba(206,228,232,.5)');
+  rivets(a, ...[0, 1, 2, 3, 4, 5, 6, 7].map((k) => [83.2 + Math.cos(k * Math.PI / 4) * 8.8, 27.2 + Math.sin(k * Math.PI / 4) * 7.3]));
+  shuttleRcs(a, 42, 11.8, -1); shuttleRcs(a, 84, 12.6, 1);
+  shuttleAerial(a, 60, 12.4, 57, 1.6);
+  shuttleBeacon(a, 70, 12.6);
+  // The claw arm, forward: its shoulder, a ram along the upper arm, the elbow, the forearm and two fingers.
+  a.tube('M101.6 31.6L115.6 40.8', .9, COPPER);
+  a.tube('M106.4 36.8L119.2 44.8', 3, LIGHT);
+  a.tube('M119.2 44.8L123.6 54.4', 2.2, LIGHT);
+  a.tube('M123.6 54.4L120.4 58.4L121.6 61.6', 1.2, DARK, { spec: false });
+  a.tube('M123.6 54.4L126.6 58.6L125 61.6', 1.2, DARK, { spec: false });
+  a.shape(ell(106.4, 36.8, 3), MID, { shade: .9 });
+  a.shape(ell(119.2, 44.8, 2.2), OLD, { shade: .6 });
+  a.shape(ell(123.6, 54.4, 1.6), OLD, { shade: .5 });
+  rivets(a, [106.4, 36.8]);
 }
 /** machine_vesselShuttleWhale: a lifeboat, long and pale, a row of portholes, its blue stripe. 24 × 7 cells. */
 function whale(a) {
-  const dy = 6;
-  a.shape(poly(s8([0, 2.2, 2, 2.6, 2, 3.8, 0, 4.2], dy)), NOZZLE, {});
-  a.shape(poly(s8([2.4, 1.5, 5, 1.5, 3.6, .2, 2.4, .2], dy)), MID, {});
-  a.shape(poly(s8([2.4, 5, 5, 5, 3.6, 6.2, 2.4, 6.2], dy)), MID, {});
-  const nose = [];
-  for (let i = 0; i <= 10; i++) { const t = -Math.PI / 2 + Math.PI * i / 10; nose.push(21.6 + Math.cos(t) * 2.2, 3 + Math.sin(t) * 2.2); }
-  const hull = poly(s8([2, .8, ...nose, 2, 5.2], dy));
-  a.shape(hull, palOf('#d0cec6'), { lite: band(0, 0, 192, 14) });
-  a.flat(band(16, 4.1 * 8 + dy, 184, 4.55 * 8 + dy), '#2d5a8a', { clip: hull });
-  for (let x = 6; x < 20; x += 2) a.flat(ell(x * 8, 2.6 * 8 + dy, 3.6), x % 6 === 0 ? '#e8c27a' : CANOPY);
-  lit(a, 24, 5.2 * 8 + dy, 168, 56, DARK);
+  const W = palOf('#d0cec6');
+  shuttleBell(a, 16.8, 31.6, false, 14, 4.4, 8);
+  shuttleGear(a, 72, 46.8, 70, 56, 10);
+  shuttleGear(a, 144, 46.8, 146, 56, 10);
+  // The tail fins, hazard-tipped.
+  for (const [p, hy] of [[[19.2, 18, 40, 18, 28.8, 7.6, 19.2, 7.6], 8.2], [[19.2, 46, 40, 46, 28.8, 55.6, 19.2, 55.6], 53.2]]) {
+    const fin = poly(p);
+    a.shape(fin, MID, { lite: band(0, 7, 192, 9.2), shade: band(0, 50, 192, 56), lines: ['M22 9L22 54'] });
+    hazardFoot(a, 19.8, hy, 8, 1.8);
+  }
+  const pts = [16, 12.4];
+  for (let i = 0; i <= 16; i++) { const t = -Math.PI / 2 + Math.PI * i / 16; pts.push(172.8 + Math.cos(t) * 17.6, 30 + Math.sin(t) * 17.6); }
+  pts.push(16, 47.6);
+  const hull = poly(pts);
+  a.shape(hull, W, { lite: band(0, 0, 192, 16.8), shade: [3, band(0, 40.8, 192, 48)], deep: band(0, 45.2, 192, 48) });
+  // Plates and the nose cap, the stripe, the name, the emergency hatch with its warning sill and pull.
+  for (const x of [40, 72, 104, 136, 172.8]) shuttleSeam(a, pts, x);
+  shuttleSeam(a, pts, 20, true, 0, 151.2); shuttleSeam(a, pts, 20, true, 167.2, 172.4);
+  shuttleBand(a, pts, 38.8, 42.4, '#2d5a8a'); shuttleBand(a, pts, 43.2, 43.8, '#1f3d5e');
+  shuttleName(a, 'WHALE', 49.6, 32.8, 4.4, 'rgba(28,28,30,.8)');
+  shuttleHatch(a, 151.2, 15.2, 16, 22.4);
+  hazardFoot(a, 151.2, 44.4, 16, 1.8);
+  a.flat(band(164.4, 24.4, 165.8, 29.2), '#b8452c');
+  rivets(a, [24, 21.6], [56, 21.6], [88, 21.6], [120, 21.6], [146, 21.6], [24, 44.8], [88, 44.8], [120, 44.8]);
+  patch(a, 104.4, 44.6, 1.6, .9, RUST, hull, 441); patch(a, 136.4, 21.2, 1.2, .8, RUST, hull, 443); patch(a, 40.4, 35.6, 1, .8, RUST, hull, 445);
+  patch(a, 21, 30, 2.2, 1.6, SCORCH, hull, 447);
+  a.line('M84 36L85.6 38L85.2 38.6');
+  // Portholes, three lit within; thrusters, aerials, beacon.
+  for (let x = 48; x <= 144; x += 16) shuttlePort(a, x, 26.8, 2.7, x % 48 === 0);
+  shuttleRcs(a, 46, 9.2, -1); shuttleRcs(a, 174.4, 17.6, 1);
+  a.shape(poly(86, 12.6, 92.4, 12.4, 89.6, 7.6, 87.6, 7.8), MID, { shade: .6 });
+  shuttleAerial(a, 120, 12.4, 123.2, 1.6);
+  shuttleBeacon(a, 104, 12.4);
 }
 /** machine_vesselShuttleHeron: a lander, a green hull high on three legs, its belly nozzle. 16 × 11 cells. */
 function heron(a) {
-  const dy = 7.2;
-  for (const [lx, ly, fx] of [[4.2, 6, .8], [8, 6.4, 8], [11.8, 6, 15.2]]) {
-    a.line(`M${lx * 8} ${ly * 8 + dy}L${fx * 8} ${86}`, { c: '#5a6069', w: 2 });
-    lit(a, Math.max(0, fx * 8 - 5.6), 84.4, Math.min(128, fx * 8 + 5.6), 88, DARK);
-  }
-  a.shape(poly(s8([7, 6.4, 9, 6.4, 9.8, 8, 6.2, 8], dy)), NOZZLE, {});
-  const hull = poly(s8([4, 1.4, 11.4, 1.4, 13.4, 3.2, 13.4, 6.4, 3, 6.4, 3, 2.4], dy));
-  a.shape(hull, palOf('#6f7d6a'), { lite: band(0, 0, 128, 20) });
-  a.flat(band(24, 5.3 * 8 + dy, 108, 5.65 * 8 + dy), '#c9b25a', { clip: hull });
-  a.flat(poly(s8([11.2, 1.7, 13, 3.3, 11, 3.3], dy)), CANOPY);
-  a.line(`M43.2 ${1.4 * 8 + dy}L43.2 ${dy}`, { c: '#7c838c', w: 1 });
+  const G = palOf('#6f7d6a');
+  shuttleGear(a, 64, 58, 64, 88, 12);
+  shuttleBell(a, 64, 58.4, true, 12.8, 7.2, 14);
+  shuttleGear(a, 34, 55.2, 8.8, 88, 12, [46, 58]);
+  shuttleGear(a, 94.4, 55.2, 119.2, 88, 12, [82, 58]);
+  const pts = [32, 18.4, 91.2, 18.4, 107.2, 32.8, 107.2, 58.4, 24, 58.4, 24, 26.4];
+  const hull = poly(pts);
+  a.shape(hull, G, { lite: band(0, 0, 128, 22.4), shade: [3, band(0, 51.2, 128, 58.4)], deep: band(0, 55.6, 128, 58.4) });
+  // Plates, the gold stripe, the name in pale paint, the side door over its warning sill.
+  for (const x of [56, 80]) shuttleSeam(a, pts, x);
+  shuttleSeam(a, pts, 36, true, 0, 60); shuttleSeam(a, pts, 36, true, 74.4, 128);
+  shuttleBand(a, pts, 49.6, 52.4, '#c9b25a');
+  shuttleName(a, 'HERON', 29.6, 40.8, 4.8, 'rgba(232,230,218,.8)');
+  shuttleHatch(a, 60, 24, 14.4, 23.2, true);
+  hazardFoot(a, 60, 53.6, 14.4, 1.6);
+  rivets(a, [28, 37.4], [40, 37.4], [52, 37.4], [84, 37.4], [96, 37.4], [104, 37.4], [28, 55.6], [104, 55.6]);
+  patch(a, 56.4, 50.8, 1.4, 1, RUST, hull, 451); patch(a, 100, 55.8, 1.6, .8, RUST, hull, 453); patch(a, 27, 44, 1.2, .9, RUST, hull, 455);
+  a.line('M86 44L87.8 46.2L87.4 47.4');
+  // The belly nozzle's fairing, striped; the canopy, thrusters, aerials and beacon.
+  lit(a, 50.4, 56.8, 77.6, 60.8, DARK);
+  hazardFoot(a, 51.2, 58.8, 25.6, 1.4);
+  shuttleCanopy(a, [88.8, 21.2, 91.4, 21.2, 103.2, 31.8, 103.2, 33.6, 87.6, 33.6], [[95.2, 23.4, 95.2, 33.2]], 91.8, 27.6);
+  shuttleRcs(a, 25.6, 29.6, -1); shuttleRcs(a, 101.6, 40, 1);
+  a.shape(poly(70, 18.6, 76, 18.4, 73.2, 13.6, 71.2, 13.8), MID, { shade: .6 });
+  shuttleAerial(a, 43.2, 18.4, 45.6, 3.2);
+  shuttleBeacon(a, 84, 18.4);
 }
 
 /** vessel_pool_tiles: the pool hall's tiled wall, a tile that repeats. 8 × 8 cells. */
