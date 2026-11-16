@@ -492,10 +492,12 @@ public partial class GridView : Node2D
     {
         // Where the cell lies in its doorway, along it from the top or left end the panel slides into and across its thickness.
         var spot = DoorShape.SpotOf(cell, _grid.Width, _doorLinksOf ??= DoorLinksOf, Doorways.Lies(_drawn.Structure[cell]));
-        // Eased (0075): slow off, quick through the middle, slow into its slot.
+        // Eased (0075): slow off, quick through the middle, slow into its slot. A derelict's jammed door goes only part way (derelict-looks).
+        double most = _vessel != null && _vessel.Jammed(cell % _grid.Width, cell / _grid.Width) ? VesselLooks.JammedOpen : 1;
+        bool closed = Doorways.IsClosed(_drawn.Structure[cell]);
         var (picture, quarter) = _slides.OpenOf(cell) is double open
-            ? DoorShape.TileOf(spot, (int)Math.Round(DoorLight.Ease(open) * spot.Length * Cell))
-            : DoorShape.TileOf(spot, closed: Doorways.IsClosed(_drawn.Structure[cell]));
+            ? DoorShape.TileOf(spot, (int)Math.Round(DoorLight.Ease(open) * most * spot.Length * Cell))
+            : most < 1 && !closed ? DoorShape.TileOf(spot, (int)Math.Round(most * spot.Length * Cell)) : DoorShape.TileOf(spot, closed);
         _doors.SetCell(CellOf(cell), ShipTiles.Source, _tiles.At(picture) + new Vector2I(quarter.X, quarter.Y));
     }
 

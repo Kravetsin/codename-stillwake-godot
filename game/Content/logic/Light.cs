@@ -139,6 +139,49 @@ public static class Light
             [Stillwake.Content.Vessels.Boom] = (Strobe, (61.4f, 7)),
         };
 
+    /// <summary>
+    /// Inside a derelict (derelict-looks), the mockup's pick: a red lamp breathes, <see cref="EmergencyBreathe"/> under whole at its
+    /// dimmest, <see cref="EmergencyRate"/> radians a second; a screen hums <see cref="ScreenHum"/> under whole at
+    /// <see cref="ScreenHumRate"/>, a glitching one drops to <see cref="GlitchLow"/> on <see cref="GlitchOdds"/> of
+    /// <see cref="GlitchRate"/> steps a second.
+    /// </summary>
+    public const float EmergencyBreathe = 0.36f, EmergencyRate = 1.4f, ScreenHum = 0.1f, ScreenHumRate = 7f,
+        GlitchLow = 0.25f, GlitchOdds = 0.12f, GlitchRate = 9f;
+
+    /// <summary>
+    /// The dying lamp: in a burst <see cref="DyingBurstOdds"/> of the time, judged <see cref="DyingBurstRate"/> times a second; it
+    /// cuts out on <see cref="DyingBurstOff"/> of <see cref="DyingBurstSteps"/> steps a second in a burst, <see cref="DyingCalmOff"/>
+    /// of <see cref="DyingCalmSteps"/> between, to <see cref="DyingLow"/>; lit, it hums <see cref="DyingHum"/> under whole.
+    /// </summary>
+    public const float DyingBurstOdds = 0.35f, DyingBurstRate = 0.6f, DyingBurstOff = 0.45f, DyingBurstSteps = 14f, DyingCalmOff = 0.07f,
+        DyingCalmSteps = 5f, DyingLow = 0.06f, DyingHum = 0.24f, DyingHumRate = 50f;
+
+    /// <summary>A lit console's screen in a derelict: its pale cyan light and halo, a little weaker than a red lamp's.</summary>
+    public static readonly LampLight DerelictScreen = new((0.31f, 0.86f, 0.8f), 0.45f, ScreenReach, ScreenKeep, 0x50dccdff);
+
+    /// <summary>How opaque a lit screen's face is added over its picture at full light.</summary>
+    public const float ScreenFace = 0.4f;
+
+    /// <summary>
+    /// The red dot over a shut door in a derelict: its light, cast from each side of the door, and its colour; drawn
+    /// <see cref="DoorDotSize"/> pixels across, <see cref="DoorDotDown"/> pixels under the doorway's top.
+    /// </summary>
+    public static readonly LampLight DoorDot = new((1f, 0.27f, 0.2f), 0.3f, 3, 0.6f, 0xff4632e6);
+    public const float DoorDotSize = 2.5f, DoorDotDown = 3f;
+
+    /// <summary>
+    /// Where a derelict's console's screens are in its picture, by kind, in pixels from its top-left: a rectangle each, or a disc
+    /// in it (<c>Round</c>).
+    /// </summary>
+    public static readonly IReadOnlyDictionary<string, IReadOnlyList<(float X, float Y, float W, float H, bool Round)>> ConsoleScreens =
+        new Dictionary<string, IReadOnlyList<(float, float, float, float, bool)>>(System.StringComparer.Ordinal)
+        {
+            ["salvageConsole"] = [(9, 2, 16, 4.5f, false)],
+            ["salvageConsole2"] = [(8, 2.5f, 16, 7.5f, false)],
+            ["salvageConsole3"] = [(3.5f, 3.5f, 9, 8, true)],
+            ["salvageConsole4"] = [(2, 2.5f, 11, 4.5f, false), (17, 2.5f, 11, 4.5f, false)],
+        };
+
     public static readonly (float R, float G, float B) Fire = (1f, 0.48f, 0.14f);
     public const float FireKeep = 0.849f;
     // An ember's light is a bright point, not a wash: the furnace's fire lights the room round it anyway.

@@ -503,6 +503,7 @@ public partial class Main : Node2D, ITogether
             LampShare = Has("--lit") ? _ => 1f : Has("--dark") ? _ => 0f : lamp => Features.Light.LampPower.ShareOf(Stillwake.Content.Machines.Get(lamp.Kind).Draws, power.Satisfaction(lamp.Id))
                 * Features.Hazards.FlareLook.LampShare(Features.Hazards.FlareLook.Near(hazards.FlareLeft, (_session as Session)?.Progress ?? 0, hazards.FlareRules.Warning)),
             Fire = m => fires.BlazeOf(m.Id),
+            Skips = View<Features.Light.VesselLamps>() is { } inside ? inside.Claims : _ => false,
             FireAt = FurnaceView.LightAt,
             HeadLamps = () => _hero?.HeadLamps() ?? [],
             // The creatures live across surfaces: their view is made once, not with these.

@@ -58,8 +58,23 @@ public static class VesselLooks
 
     public static readonly (int W, int H) LargeGlyph = (7, 12), SmallGlyph = (6, 10);
 
+    /// <summary>
+    /// Of a hundred lamps inside, but the airlock's (always red) and the one dying, how many still burn red on their battery; the
+    /// rest are dead.
+    /// </summary>
+    public const int LampRedPercent = 45;
+
+    /// <summary>A console's screen is dark one time in this many; of those lit, one in <see cref="GlitchOneIn"/> glitches.</summary>
+    public const int ConsoleDarkOneIn = 4, GlitchOneIn = 4;
+
+    /// <summary>A door stamped open is jammed one time in this many, drawn <see cref="JammedOpen"/> open while it stands open.</summary>
+    public const int JamOneIn = 3;
+
+    /// <summary>How far open a jammed door is drawn, a share of its doorway: its panel stuck a little past half-way down (the mockup's).</summary>
+    public const double JammedOpen = 0.45;
+
     /// <summary>Why a look is drawn, mixed into its draw so two looks of one cell differ.</summary>
-    public enum Salt : uint { Livery = 1, Name, Prefix, Number, Panel, Stripe }
+    public enum Salt : uint { Livery = 1, Name, Prefix, Number, Panel, Stripe, Lamp, Dying, Console, Glitch, Jam, Phase, Flicker }
 
     /// <summary>
     /// A look's draw (SplitMix64, fixed here): the same <paramref name="seed"/>, <paramref name="salt"/> and <paramref name="cell"/>

@@ -84,6 +84,8 @@ public sealed class VesselDress
     }
 
     private readonly Look[] _looks;
+    /// <summary>The cells of the frame in a doorway stamped open and jammed (<see cref="Jammed"/>).</summary>
+    private readonly HashSet<int> _jammed = [];
     private readonly int _width, _height;
     private readonly (int X, int Y) _corner;
 
@@ -120,7 +122,8 @@ public sealed class VesselDress
         // The stamped vessel: its walls, hull or glass, and what is no space (a structure or a back wall).
         var wall = new byte[w * h];
         var taken = new bool[w * h];
-        foreach (var part in Shipyard.Stamp(vessel))
+        var parts = Shipyard.Stamp(vessel);
+        foreach (var part in parts)
         {
             if (part.Layer == "machine") continue;
             foreach (var (x, y) in Shipyard.Covers(part))
@@ -171,6 +174,16 @@ public sealed class VesselDress
             if (!Hull(x, stripe) || _looks[cell].Bow != 0) continue;
             _looks[cell].Stripe = (sbyte)(Looks.Below(Seed, Looks.Salt.Stripe, cell, Looks.StripeScuffOneIn) == 0
                 ? 1 + Looks.Below(Seed, Looks.Salt.Stripe, cell + w * h, Stripes - 1) : 0);
+        }
+
+        // The doorways stamped open, each from its first piece, none of it over it: one in JamOneIn jammed, every cell of it.
+        var open = parts.Where(p => p.Layer == "structure" && p.Kind == "door" && p.Open).ToList();
+        var pieces = open.ToDictionary(p => (p.X, p.Y));
+        foreach (var first in open.Where(p => !pieces.ContainsKey((p.X, p.Y - 2))))
+        {
+            if (Looks.Below(Seed, Looks.Salt.Jam, first.Y * w + first.X, Looks.JamOneIn) != 0) continue;
+            for (int y = first.Y; pieces.TryGetValue((first.X, y), out var piece); y += 2)
+                foreach (var (x, cy) in Shipyard.Covers(piece)) _jammed.Add(cy * w + x);
         }
 
         Labels = Lay(vessel, body);
@@ -272,6 +285,16 @@ public sealed class VesselDress
         if (!Structures.Is(grid.StructureAt(cell), Trait.Terrain)) return default;
         var (space, room) = Sides(cell, grid.Width, grid.Height, grid.StructureLayer, grid.BackLayer);
         return Of(grid.MaterialLayer[cell], cell % grid.Width, cell / grid.Width, space, room);
+    }
+
+    /// <summary>
+    /// Whether grid cell (<paramref name="x"/>, <paramref name="y"/>) lies in a doorway the vessel was stamped with open and that is
+    /// jammed: drawn <see cref="Looks.JammedOpen"/> open while the grid says it is open; shut, it is drawn as any shut door.
+    /// </summary>
+    public bool Jammed(int x, int y)
+    {
+        int fx = x - _corner.X, fy = y - _corner.Y;
+        return fx >= 0 && fy >= 0 && fx < _width && fy < _height && _jammed.Contains(fy * _width + fx);
     }
 
     /// <summary>The grid cell of the vessel's frame's cell (<paramref name="x"/>, <paramref name="y"/>).</summary>

@@ -15,7 +15,7 @@ public class VesselDressTests
     private static Vessel Of(string cls, uint seed) => Shipyard.Describe(V.Class(cls)!, seed);
 
     /// <summary>A vessel world's grid with <paramref name="v"/> laid as <c>Places</c> lays it, its frame at the margin; machines left out.</summary>
-    private static Registry Laid(Vessel v)
+    internal static Registry Laid(Vessel v)
     {
         var m = new Registry();
         Stillwake.Sim.World.Create(1, Shipyard.Space(v), m.All);

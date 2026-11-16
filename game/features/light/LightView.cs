@@ -24,7 +24,7 @@ public partial class LightView : Node2D
     private const int Cell = ShipCamera.Cell;
     /// <summary>A lit lamp's glow, its colour its <see cref="L.LampLight.Halo"/>: how far across it reaches, in cells, and how opaque at full light: a faint halo.</summary>
     private static Color GlowOf(Machine lamp) => new(L.Lamps[lamp.Kind].Halo);
-    private const float GlowCells = 3.5f, GlowAlpha = 0.4f;
+    internal const float GlowCells = 3.5f, GlowAlpha = 0.4f;
     /// <summary>
     /// A burning fire's glow at its machine's mouth, how far across it reaches, in cells, and how opaque it
     /// is at the fire's full light: it shows the fire as the source of its light where a lamp already
@@ -75,6 +75,9 @@ public partial class LightView : Node2D
     /// until the power module is ported (G-04), which answers it from a lamp's satisfaction.
     /// </summary>
     public Func<Machine, float> LampShare { get; set; } = _ => 1f;
+
+    /// <summary>Lamps another view lights in its own way: a derelict's (<see cref="VesselLamps"/>). None till it answers.</summary>
+    public Func<Machine, bool> Skips { get; set; } = _ => false;
 
     /// <summary>
     /// How brightly a furnace's or a generator's fire burns, as a share of <see cref="L.Fire"/>: 0 while
@@ -164,7 +167,7 @@ public partial class LightView : Node2D
     {
         foreach (var node in _lamps.GetChildren()) node.QueueFree();
         _shown.Clear();
-        foreach (var lamp in _machines.Where(m => Stillwake.Content.Machines.Is(m.Kind, Stillwake.Content.MachineTrait.Glow)))
+        foreach (var lamp in _machines.Where(m => Stillwake.Content.Machines.Is(m.Kind, Stillwake.Content.MachineTrait.Glow) && !Skips(m)))
         {
             var light = L.Lamps[lamp.Kind];
             bool glass = light.Glass;
