@@ -56,6 +56,13 @@ public partial class DressSheet(string path) : Node
         var skins = Skins.All.Where(s => s.Kind == Skins.Suit).Select(s => s.Id).ToList();
         foreach (var skin in skins)
             rows.Add(Turns(Suits.All[0], helmet, skin, aimed: true, tracked: true));
+        // Every helmet skin over the basic suit, then with the suit skin of its set (brassHelmet with brassSuit) where there is one.
+        var heads = Skins.All.Where(s => s.Kind == Skins.Head).Select(s => s.Id).ToList();
+        foreach (var head in heads)
+            rows.Add(Turns(Suits.All[0], head, suit, aimed: true, tracked: true));
+        foreach (var head in heads)
+            if (Skins.Of(head.Replace("Helmet", "Suit")) is { } set)
+                rows.Add(Turns(Suits.All[0], head, set.Id, aimed: true, tracked: true));
         // The cape and every cape skin, over the basic helmet and suit.
         foreach (var cape in Skins.All.Where(s => s.Kind == Skins.Cape).Select(s => s.Id).Prepend(Stillwake.Content.Cape.Item))
             rows.Add(Turns(Suits.All[0], helmet, suit, aimed: true, tracked: true, cape: cape));

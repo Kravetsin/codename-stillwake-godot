@@ -140,8 +140,8 @@ This hero and others', client-authoritative (0002): only commands reach the sim.
 - **Crew** made at `Spawn`; passed out, lies, takes no orders (0061). `Enter` when the sim's room or side differ,
   each `Crew.ReportEvery` ticks off its cell, each tick threatened; none out (0050); host gone: `Leave`.
 - **Dressed as worn**, colour on the shin, a switched body lit by `SuitOn` (hero-lights); **limbs** one picture, bent
-  (whole-limbs); the **hand** its own, glove or bare (hand-at-wrist); **helmets** turn (helmets-fit-the-suit), collar under a raised
-  arm; **skins** over worn items, an effect replacing the haze (hero-skins).
+  (whole-limbs); the **hand** glove or bare (hand-at-wrist); **helmets** turn (helmets-fit-the-suit), collar under a raised
+  arm; **skins** over worn items, an effect for the haze (hero-skins, fancy-skins).
 - **Tracker** blinks (`SignalOf`); **catchers**: heroes in gear, untracked, tumble killed (tracker-catchers).
 
 ## Others' heroes

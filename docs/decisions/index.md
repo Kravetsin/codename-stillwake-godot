@@ -383,6 +383,7 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [trash-slot](2026-11-15-trash-slot.md) | A trash slot in creative mode | accepted |  |
 | [cape-billows](2026-11-16-cape-billows.md) | The cape is painted raw and billows slowly at a run | accepted |  |
 | [crew-pings](2026-11-16-crew-pings.md) | Pings: a tap of F marks the spot | accepted |  |
+| [fancy-skins](2026-11-16-fancy-skins.md) | Fancy skins: nine helmets and their suits | accepted |  |
 | [fuel-liquid](2026-11-16-fuel-liquid.md) | Fuel is a liquid | accepted |  |
 | [gestures-for-words](2026-11-16-gestures-for-words.md) | Gestures, in place of words | accepted |  |
 | [hand-at-wrist](2026-11-16-hand-at-wrist.md) | The hand is its own picture, hung at the wrist | accepted |  |
