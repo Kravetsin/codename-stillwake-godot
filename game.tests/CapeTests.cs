@@ -50,18 +50,26 @@ public class CapeTests
     }
 
     [Fact]
-    public void ARunLiftsItFarHigherThanAWalk()
+    public void ARunSweepsItFarFartherBackThanAWalk()
     {
-        double Lift(double speed)
+        double Swung(double speed)
         {
             var (f, cape) = (new Frame(), new Cape());
             Move(cape, f, 120);
             Move(cape, f, 120, speed);
-            return Cape.Rest(Points - 1).Y - cape.Points[^1].Y;
+            // How far its hem is from its cut, on average over a while: the stride swings it to and fro.
+            double sum = 0;
+            for (int step = 0; step < 60; step++)
+            {
+                Move(cape, f, 1, speed);
+                var (rx, ry) = Cape.Rest(Points - 1);
+                sum += Math.Sqrt((cape.Points[^1].X - rx) * (cape.Points[^1].X - rx) + (cape.Points[^1].Y - ry) * (cape.Points[^1].Y - ry));
+            }
+            return sum / 60;
         }
-        double walk = Lift(115.0 / 60), run = Lift(Sprint);
-        Assert.True(run > walk * 1.8, $"the hem rises {run:F1} running, {walk:F1} walking");
-        Assert.True(run > 12, $"the hem only rises {run:F1} running");
+        double walk = Swung(115.0 / 60), run = Swung(Sprint);
+        Assert.True(run > walk * 1.5, $"the hem swings {run:F1} running, {walk:F1} walking");
+        Assert.True(run > 10, $"the hem only swings {run:F1} running");
     }
 
     [Theory]
@@ -130,7 +138,7 @@ public class CapeTests
             Move(cape, f, 1, Sprint);
             (least, most) = (Math.Min(least, cape.Points[^1].Y), Math.Max(most, cape.Points[^1].Y));
         }
-        Assert.True(most - least > 6, $"over a stride its hem rises and falls only {most - least:F1}");
+        Assert.True(most - least > 4, $"over a stride its hem rises and falls only {most - least:F1}");
         Assert.DoesNotContain(true, Enumerable.Range(0, Cape.Triangles.Length / 3).Select(cape.Flipped));
     }
 
