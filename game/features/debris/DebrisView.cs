@@ -41,6 +41,8 @@ public partial class DebrisView(Ui ui) : Node2D
     private sealed class Shown(Sprite2D picture, WreckInk? cracks)
     {
         public Sprite2D Picture { get; } = picture;
+        /// <summary>The item of the piece it shows: what its hit throws.</summary>
+        public string Item { get; set; } = "";
         /// <summary>A wreck's cracks over its picture; none for a small piece. A wreck's picture goes back to the wrecks' pool.</summary>
         public WreckInk? Cracks { get; } = cracks;
         public bool Wreck => Cracks != null;
@@ -149,7 +151,7 @@ public partial class DebrisView(Ui ui) : Node2D
             var gone = _shown[id];
             // Gone from the world, not only from the view: broken, or faded out at its end.
             if (!_out.Contains(id) && Fading.Broken(gone.Wreck, debris.CaughtFrom(id) != null, gone.X, gone.Speed, gone.End, client.World.Tick - gone.Tick))
-                Burst(gone.Picture, _own.Ran(id));
+                Burst(gone.Picture, gone.Item, _own.Ran(id));
             gone.Picture.Visible = false;
             (gone.Wreck ? _wrecks : _small).Push(gone);
             _shown.Remove(id);
@@ -197,6 +199,7 @@ public partial class DebrisView(Ui ui) : Node2D
             picture.Rotation = (float)(turn + JoltTurn * jolt * (piece.Id % 2 == 0 ? 1 : -1));
             _turns[piece.Id] = picture.Rotation;
             if (piece.Delivery != 0) Tagged(piece, picture);
+            else if (piece.Item == ContrabandCrate) Lamp(piece, picture);
             if (aimed is { } a && a.Id == piece.Id)
                 _aimed.Add(picture.Texture, picture.Position, picture.Rotation, picture.Scale.X, (a.Refused ? AimRefused : AimReady) with { A = picture.Modulate.A });
         }
@@ -217,7 +220,7 @@ public partial class DebrisView(Ui ui) : Node2D
         picture.Texture = PictureOf(piece.Item, piece.Id);
         picture.Scale = Vector2.One;
         picture.Visible = true;
-        (one.Damage, one.JoltMs, one.Away, one.Flash) = (piece.Damage, 0, Vector2.Zero, 0);
+        (one.Item, one.Damage, one.JoltMs, one.Away, one.Flash) = (piece.Item, piece.Damage, 0, Vector2.Zero, 0);
         if (wreck) ShowCracks(one, piece);
         return one;
     }
@@ -246,6 +249,42 @@ public partial class DebrisView(Ui ui) : Node2D
         _beacons.Add(at, on, picture.Modulate.A);
     }
 
+    /// <summary>The contraband drift's crates (docs/decisions/2026-11-15-stretches-of-space.md), their amber lamps blinking each its look's way (<see cref="CrateLamps"/>).</summary>
+    private const string ContrabandCrate = StretchLooks.ContrabandCrate;
+    private const float LampLight = 0.7f;
+    private static readonly Color LampAmber = new(1, 170 / 255f, 60 / 255f);
+
+    /// <summary>
+    /// A contraband crate's amber lamps over <paramref name="picture"/>, as its look blinks them, out of step with the next crate's,
+    /// lighting what is round them while lit; dark, a lens is the picture's own. One light a crate, at the lamps lit.
+    /// </summary>
+    private void Lamp(Piece piece, Sprite2D picture)
+    {
+        if (!_tags.TryGetValue(piece.Id, out var tag))
+        {
+            var glow = new Glow();
+            AddChild(glow);
+            _tags[piece.Id] = tag = new Tag(Vector2.Zero, glow);
+        }
+        int look = Content.Looks.Of(piece.Item, piece.Id);
+        var lamps = CrateLamps.Of[look];
+        double seconds = _clockMs / 1000 + piece.Id * 0.37;
+        Vector2 sum = Vector2.Zero;
+        int lit = 0;
+        for (int i = 0; i < lamps.Count; i++)
+        {
+            if (!CrateLamps.Lit(look, i, seconds)) continue;
+            var at = picture.Position + (new Vector2(lamps[i].X, lamps[i].Y) * picture.Scale).Rotated(picture.Rotation);
+            _beacons.AddLamp(at, lamps[i].R * picture.Scale.X, picture.Modulate.A);
+            sum += at;
+            lit++;
+        }
+        tag.Glow.Visible = lit > 0;
+        if (lit == 0) return;
+        tag.Glow.Position = sum / lit;
+        tag.Glow.Colour = LampAmber * LampLight;
+    }
+
     private void Untag(int id)
     {
         _tags[id].Glow.QueueFree();
@@ -257,12 +296,30 @@ public partial class DebrisView(Ui ui) : Node2D
     {
         private readonly List<(Vector2 At, float On, float Alpha)> _lit = [];
 
-        public void Clear() => _lit.Clear();
+        private readonly List<(Vector2 At, float R, float Alpha)> _lamps = [];
+
+        public void Clear()
+        {
+            _lit.Clear();
+            _lamps.Clear();
+        }
 
         public void Add(Vector2 at, float on, float alpha) => _lit.Add((at, on, alpha));
 
+        /// <summary>A contraband crate's lamp lit, its lens <paramref name="r"/> across half: its soft amber halo, the lamp and its pale core, as the pick drew it.</summary>
+        public void AddLamp(Vector2 at, float r, float alpha) => _lamps.Add((at, r, alpha));
+
         public override void _Draw()
         {
+            foreach (var (at, r, alpha) in _lamps)
+            {
+                DrawCircle(at, 6.7f * r, LampAmber with { A = 0.12f * alpha });
+                DrawCircle(at, 3.4f * r, LampAmber with { A = 0.24f * alpha });
+                DrawSetTransform(at, 0, new Vector2(1, 0.86f));
+                DrawCircle(Vector2.Zero, r, new Color("f2a23c") with { A = alpha });
+                DrawCircle(new Vector2(-0.15f, -0.17f) * r, 0.45f * r, new Color("ffe6b0") with { A = alpha });
+                DrawSetTransform(Vector2.Zero);
+            }
             foreach (var (at, on, alpha) in _lit)
             {
                 if (on > 0)
@@ -332,7 +389,7 @@ public partial class DebrisView(Ui ui) : Node2D
         double share = Features.Effects.Impacts.ShareOf(tool);
         var hits = Stages.Of(Layers.Effects).Hits;
         // A tool's haze in it throws its own (spark-rule); anything else that hits it, from the face.
-        if (!ui.HazeTouched.Contains(id)) hits.Throw(HitLooks.Of[Impact.Wreck], point.X, point.Y, -away.X, -away.Y, share);
+        if (!ui.HazeTouched.Contains(id)) hits.Throw(HitLooks.Of[HitLooks.PieceOf(one.Item)], point.X, point.Y, -away.X, -away.Y, share);
         one.Flash = Math.Max(one.Flash, share);
         if (!own) return;
         HitBy(tool).PlayAt(side);
@@ -363,7 +420,7 @@ public partial class DebrisView(Ui ui) : Node2D
     private const float BitMargin = 4;
 
     private const double FrameMs = 1000.0 / 60;
-    private static readonly (int, int, int) BreakGlint = (255, 214, 150), ShockColour = (255, 236, 210);
+    private static readonly (int, int, int) ShockColour = (255, 236, 210);
     /// <summary>How much brighter a struck wreck's picture flares, warm, as its flash dies away by <see cref="FlashDecay"/> a 60 Hz frame.</summary>
     private static readonly Color FlashTint = new(0.16f, 0.14f, 0.12f, 0);
     private const double FlashDecay = 0.84;
@@ -377,20 +434,37 @@ public partial class DebrisView(Ui ui) : Node2D
     private Heard2D HitBy(string tool) => S.WreckHitOf(tool) is var hit && hit == S.HammerBlow ? _hammerBlow : hit == S.SpearHit ? _spearHit : _chop;
 
     /// <summary>
-    /// A wreck broken at <paramref name="at"/> (0075): its picture cut into pieces flying apart with glowing torn edges
-    /// (<see cref="BreakView"/>), a big glint, sparks curling every way, fine dust, a slow cloud, a fast faint shock
-    /// ring and a flash of light dying away; the break heard if this player's own hit broke it (<paramref name="own"/>,
-    /// 0042), after the last hit's own sound, heard as it was sent (0014). A bigger picture, a derelict's, bursts with more,
-    /// twice as much for the biggest.
+    /// A wreck of <paramref name="item"/> broken at <paramref name="at"/> (0075), as its <see cref="BreakLooks"/> has it: its picture cut
+    /// into pieces flying apart (<see cref="BreakView"/>), a big glint, a metal one's sparks curling every way, fine dust and a slow cloud,
+    /// the druse's glitter, a fast faint shock ring and a flash of light dying away; the break heard if this player's own hit broke it
+    /// (<paramref name="own"/>, 0042), after the last hit's own sound, heard as it was sent (0014). A bigger picture, a derelict's,
+    /// bursts with more, twice as much for the biggest.
     /// </summary>
-    private void Burst(Sprite2D picture, bool own)
+    private void Burst(Sprite2D picture, string item, bool own)
     {
         var at = picture.Position;
         var size = picture.Texture.GetSize() * picture.Scale;
         float big = Math.Clamp(size.Length() / 26f, 1f, 2f);
-        AddChild(new BreakView(picture.Texture, at, picture.Rotation, picture.Scale.X));
+        var look = BreakLooks.Of(item);
+        AddChild(new BreakView(picture.Texture, at, picture.Rotation, picture.Scale.X, look));
         var glims = Stages.Of(Layers.Effects).Glims;
         double spread = 3 * big;
+        for (int i = 0; i < Math.Round(look.Glitter * big * Fx.Count); i++)
+        {
+            double a = glims.Between(0, Math.Tau), s = glims.Between(20, 90);
+            glims.Add(BreakLooks.Glitter, at.X + glims.Between(-2 * spread, 2 * spread), at.Y + glims.Between(-spread, spread), Math.Cos(a) * s, Math.Sin(a) * s);
+        }
+        if (look.Sparks) Strewn(at, big, spread);
+        Stages.Of(Layers.Effects).Flares.Glint(at.X, at.Y, 18 * Math.Sqrt(big), look.Glint);
+        Stages.Of(Layers.Effects).Flares.Shock(at.X, at.Y, 4, 4 + 40 * big * Fx.Length, 14 * FrameMs, ShockColour, 0.4 * Fx.Glow, 0.32);
+        Stages.Of(Layers.Effects).Flares.Flash(at.X, at.Y, look.Flash, BreakFlash * Fx.Glow, 4, 0.45f, 0.9);
+        if (own) _break.PlayAt(at);
+    }
+
+    /// <summary>A metal wreck's sparks, dust and cloud as it breaks at <paramref name="at"/>.</summary>
+    private static void Strewn(Vector2 at, float big, double spread)
+    {
+        var glims = Stages.Of(Layers.Effects).Glims;
         for (int i = 0; i < Math.Round(BreakSparks * big * Fx.Count); i++)
         {
             double a = glims.Between(0, Math.Tau), s = glims.Between(40, 150);
@@ -408,10 +482,6 @@ public partial class DebrisView(Ui ui) : Node2D
             glims.Add(Luminous.Vapour, at.X + Math.Cos(a) * 3 * big, at.Y + Math.Sin(a) * 2 * big, Math.Cos(a) * s, Math.Sin(a) * s,
                 size: glims.Between(3, 4.5) * big);
         }
-        Stages.Of(Layers.Effects).Flares.Glint(at.X, at.Y, 18 * Math.Sqrt(big), BreakGlint);
-        Stages.Of(Layers.Effects).Flares.Shock(at.X, at.Y, 4, 4 + 40 * big * Fx.Length, 14 * FrameMs, ShockColour, 0.4 * Fx.Glow, 0.32);
-        Stages.Of(Layers.Effects).Flares.Flash(at.X, at.Y, (255, 226, 180), BreakFlash * Fx.Glow, 4, 0.45f, 0.9);
-        if (own) _break.PlayAt(at);
     }
 
     /// <summary>Sparks and dust a breaking wreck throws, the puffs of its cloud: a derelict's up to twice as many.</summary>
@@ -439,7 +509,7 @@ public partial class DebrisView(Ui ui) : Node2D
         {
             var size = one.Picture.Texture.GetSize() * one.Picture.Scale;
             var blows = BlowsOf(piece, size);
-            cracks.Show(blows, NetOf(piece, blows, size), (double)piece.Damage / hp, piece.Id);
+            cracks.Show(blows, NetOf(piece, blows, size), (double)piece.Damage / hp, piece.Id, DamageLooks.InkOf(piece.Item));
         }
     }
 
@@ -461,7 +531,7 @@ public partial class DebrisView(Ui ui) : Node2D
                 int ix = (int)Math.Floor((x + size.X / 2) * perX), iy = (int)Math.Floor((y + size.Y / 2) * perY);
                 return ix >= 0 && iy >= 0 && ix < image.GetWidth() && iy < image.GetHeight() && image.GetPixel(ix, iy).A > DamageLooks.Opaque;
             };
-        return _nets[piece.Id] = WreckCracks.Network(blows[0], solid, piece.Id);
+        return _nets[piece.Id] = WreckCracks.Network(blows[0], solid, piece.Id, DamageLooks.InkOf(piece.Item));
     }
 
     /// <summary>The blows seen on <paramref name="piece"/>; one seen damaged first, with none, struck in its middle (<see cref="WreckCracks.Unseen"/>).</summary>

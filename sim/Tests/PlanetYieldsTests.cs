@@ -316,17 +316,17 @@ public class PlanetYieldsTests
     private static readonly IReadOnlyList<(string Item, int Count)> Motor = Content.Crafts.Get("motor").Cost;
 
     [Fact]
-    public void AMotorIsPressedOfARotorCopperAndMagnetiteAtTheFormerAlone()
+    public void AMotorIsPressedOfARotorCopperAndCoilsAtTheFormerAlone()
     {
         var w = Workshop().GiveItems(0, Motor.ToArray());
         int former = w.M.Grid.MachinesOf("former").Single().Id, pod = w.M.Grid.MachinesOf("lifepod").Single().Id;
         int ticks = Content.Crafts.Get("motor").Ticks;
-        Assert.Equal(["rotor", "copper", "magnetite"], Motor.Select(c => c.Item));
+        Assert.Equal(["rotor", "copper", "coil"], Motor.Select(c => c.Item));
         w.Do(new Craft(pod, "motor", 1)).Run();
         Assert.Equal(["crafting.notHere"], w.Refusals.Select(r => r.Reason));
         w.Do(new Craft(former, "motor", 1)).Run();
         Assert.Single(w.Refusals);
-        Assert.Equal((0, 0, 0), (Count(w, "rotor"), Count(w, "copper"), Count(w, "magnetite")));
+        Assert.Equal((0, 0, 0), (Count(w, "rotor"), Count(w, "copper"), Count(w, "coil")));
         w.Run(ticks - 2);
         Assert.Equal(0, Held(w, former, "motor"));
         w.Run();
@@ -342,6 +342,6 @@ public class PlanetYieldsTests
         for (int i = 0; i < Motor.Count; i++) Put(w, former, Motor[i].Item, Motor[i].Count, i);
         w.Do(new Craft(former, "motor", 1, FromInputs: true)).Run(Content.Crafts.Get("motor").Ticks + 1);
         Assert.Empty(w.Refusals);
-        Assert.Equal((1, 0, 0, 0), (Held(w, former, "motor"), Held(w, former, "rotor"), Held(w, former, "copper"), Held(w, former, "magnetite")));
+        Assert.Equal((1, 0, 0, 0), (Held(w, former, "motor"), Held(w, former, "rotor"), Held(w, former, "copper"), Held(w, former, "coil")));
     }
 }

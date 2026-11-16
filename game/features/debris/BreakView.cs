@@ -5,13 +5,12 @@ using Stillwake.Game.Render;
 namespace Stillwake.Game.Features.Debris;
 
 /// <summary>
-/// A wreck breaking apart (0075): its picture cut into <see cref="Wedges"/> pieces that fly out from its middle,
-/// tumbling, lit as it was, their torn edges glowing orange and cooling over a second, each trailing a few
-/// embers while young, and fading out rather than blinking. Frees itself once the last piece is gone.
+/// A wreck breaking apart (0075): its picture cut into wedges that fly out from its middle, tumbling, lit as it was, fading out
+/// rather than blinking, as its <see cref="BreakLook"/> has it: a metal one's torn edges glowing orange and cooling over a second, each
+/// trailing a few embers while young; the druse's a cold pale line. Frees itself once the last piece is gone.
 /// </summary>
 public partial class BreakView : Node2D
 {
-    private const int Wedges = 6;
     /// <summary>How long the torn edges glow, and a piece's life: fading over its last <see cref="FadeMs"/>.</summary>
     private const double HotMs = 1000, FadeMs = 25 * 1000.0 / 60, ShortestMs = 70 * 1000.0 / 60, LongestMs = 100 * 1000.0 / 60;
     /// <summary>How long a piece trails embers, and how often.</summary>
@@ -30,7 +29,8 @@ public partial class BreakView : Node2D
         public double TrailMs;
     }
 
-    private readonly Piece[] _pieces = new Piece[Wedges];
+    private readonly BreakLook _look;
+    private readonly Piece[] _pieces;
     private readonly Node2D _edges = new()
     {
         Material = new CanvasItemMaterial
@@ -49,17 +49,20 @@ public partial class BreakView : Node2D
 
     /// <summary>
     /// <paramref name="picture"/>, a wreck's, at <paramref name="at"/> turned <paramref name="turn"/> and scaled
-    /// <paramref name="scale"/>, broken: cut into wedges round its middle, clipped to the picture, flying apart.
+    /// <paramref name="scale"/>, broken as <paramref name="look"/>: cut into wedges round its middle, clipped to the picture, flying apart.
     /// </summary>
-    public BreakView(Texture2D picture, Vector2 at, float turn, float scale)
+    public BreakView(Texture2D picture, Vector2 at, float turn, float scale, BreakLook look)
     {
+        _look = look;
+        var cuts = look.Cuts;
+        _pieces = new Piece[cuts.Length];
         var size = picture.GetSize();
         _half = size / 2;
         float reach = size.Length();
         var rect = new[] { -_half, new Vector2(_half.X, -_half.Y), _half, new Vector2(-_half.X, _half.Y) };
-        for (int i = 0; i < Wedges; i++)
+        for (int i = 0; i < cuts.Length; i++)
         {
-            float a0 = i * Mathf.Tau / Wedges + 0.3f, a1 = (i + 1) * Mathf.Tau / Wedges + 0.3f, am = (a0 + a1) / 2;
+            float a0 = cuts[i], a1 = i + 1 < cuts.Length ? cuts[i + 1] : cuts[0] + Mathf.Tau, am = (a0 + a1) / 2;
             var wedge = new[] { Vector2.Zero, Vector2.FromAngle(a0) * reach, Vector2.FromAngle(a1) * reach };
             var cut = Geometry2D.IntersectPolygons(wedge, rect);
             var polygon = cut.Count > 0 ? cut[0] : wedge;
@@ -68,9 +71,9 @@ public partial class BreakView : Node2D
             var body = new Polygon2D { Texture = picture, Polygon = polygon, UV = uv, Position = at, Rotation = turn, Scale = Vector2.One * scale };
             Lit.Set(body);
             AddChild(body);
-            double speed = Between(22, 42);
+            double speed = Between(look.Speed.From, look.Speed.To);
             var v = Vector2.FromAngle(am).Rotated(turn) * (float)speed + new Vector2(0, -4);
-            _pieces[i] = new Piece(body, v, (float)Between(-3.5, 3.5), Between(ShortestMs, LongestMs), a0, a1);
+            _pieces[i] = new Piece(body, v, (float)Between(-look.Spin, look.Spin), Between(ShortestMs, LongestMs), a0, a1);
         }
         AddChild(_edges);
         _edges.Draw += DrawEdges;
@@ -92,7 +95,7 @@ public partial class BreakView : Node2D
             body.Modulate = Colors.White with { A = (float)Math.Clamp((p.LifeMs - _ageMs) / FadeMs, 0, 1) };
             body.Visible = _ageMs < p.LifeMs;
             any |= body.Visible;
-            if (_ageMs >= TrailMs || !body.Visible) continue;
+            if (!_look.Hot || _ageMs >= TrailMs || !body.Visible) continue;
             p.TrailMs += ms;
             for (; p.TrailMs >= TrailEveryMs; p.TrailMs -= TrailEveryMs)
                 Stages.Of(Layers.Effects).Glims.Add(Luminous.ShardEmber, body.Position.X + Between(-1, 1), body.Position.Y + Between(-1, 1),
@@ -106,12 +109,15 @@ public partial class BreakView : Node2D
         _edges.QueueRedraw();
     }
 
-    /// <summary>Each piece's two torn edges, glowing from its point out, cooling from white-orange to red, and a glow on its point.</summary>
+    /// <summary>
+    /// Each piece's two torn edges from its point out: a hot one's glowing, cooling from white-orange to red, a glow on its point; a
+    /// cold one's pale, as long as the piece shows.
+    /// </summary>
     private void DrawEdges()
     {
-        double heat = 1 - _ageMs / HotMs;
+        double heat = _look.Hot ? 1 - _ageMs / HotMs : _look.TornAlpha;
         if (heat <= 0) return;
-        var rgb = LuminousMath.RampAt(Cooling, 1 - heat);
+        var rgb = _look.Hot ? LuminousMath.RampAt(Cooling, 1 - heat) : _look.Torn;
         var colour = new Color((float)rgb.R / 255, (float)rgb.G / 255, (float)rgb.B / 255);
         foreach (var p in _pieces)
         {
@@ -126,6 +132,7 @@ public partial class BreakView : Node2D
                 (_edgeColours[0], _edgeColours[1], _edgeColours[2]) = (colour with { A = 0.95f * a }, colour with { A = 0.6f * a }, colour with { A = 0 });
                 _edges.DrawPolylineColors(_edge, _edgeColours, Math.Max(0.4f, 1.1f / _zoom), true);
             }
+            if (!_look.Hot) continue;
             const float glow = 5;
             var at = xf * Vector2.Zero;
             _edges.DrawTextureRect(PixelArt.Glow, new Rect2(at - Vector2.One * glow / 2, Vector2.One * glow), false,

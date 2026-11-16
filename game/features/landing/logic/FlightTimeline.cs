@@ -48,6 +48,12 @@ public static class FlightTimeline
     /// <summary>Seconds since flight <paramref name="f"/> launched, <paramref name="progress"/> the share of the next tick drawn.</summary>
     public static double Seconds(Flight f, double progress) => (Total(f) - f.TicksLeft + progress) / World.TicksPerSecond;
 
+    /// <summary>The ride's length in seconds: a pod's flight or a shuttle's voyage.</summary>
+    public static double Length(Ride r) => r.Total / (double)World.TicksPerSecond;
+
+    /// <summary>Seconds since ride <paramref name="r"/> set off, <paramref name="progress"/> the share of the next tick drawn.</summary>
+    public static double Seconds(Ride r, double progress) => (r.Total - r.TicksLeft + progress) / World.TicksPerSecond;
+
     /// <summary>How open the deck is drawn, 0 shut to 1 apart: sliding open, then shut behind the pod.</summary>
     public static double Open(double s) => Math.Min(Ease(s / OpenS), 1 - Ease((s - ShutFrom) / (DropTo - ShutFrom)));
 

@@ -28,7 +28,7 @@ public partial class InventoryPanel
             _slots.RemoveAll(s => s.Place.Crate != null && !_lent.Contains(s));
             _shown.RemoveChild(_frame);
             _frame.QueueFree();
-            (_frame, _progress, _problem, _tooCold, _crateGrid, _crateKey, _send, _draw, _drawCount, _switch, _liquid) = (null, null, null, null, null, null, null, null, null, null, null);
+            (_frame, _progress, _problem, _tooCold, _crateGrid, _crateKey, _send, _draw, _drawCount, _switch, _liquid, _lasts) = (null, null, null, null, null, null, null, null, null, null, null, null);
             _chargerLines.Clear();
         }
         if (want is not var (crate, kind)) return;
@@ -58,6 +58,8 @@ public partial class InventoryPanel
             _ when spec.Is(Content.MachineTrait.Sells) => TradeBody(crate, spec),
             _ when spec.Is(Content.MachineTrait.Gas) => DrawBody(crate, spec, n => new Stillwake.Sim.Atmosphere.DrawCanister(crate, n)),
             _ when spec.Is(Content.MachineTrait.HoldsWater) => DrawBody(crate, spec, n => new Stillwake.Sim.Water.DrawWater(crate, n)),
+            // A fuel store that is nothing else (a fuel tank, the pod, the engine); a fire's or a station's draw row comes under its body.
+            _ when spec.Is(Content.MachineTrait.HoldsFuel) && !spec.Is(Content.MachineTrait.Fire) && station == null => DrawBody(crate, spec, DrawFuel(crate)),
             _ when spec.Is(Content.MachineTrait.AirSource) && spec.SlotTakes != null => VaporizerBody(crate, spec),
             _ when spec.Is(Content.MachineTrait.Fire) && spec.Inputs > 0 => FurnaceBody(crate, spec),
             _ when spec.Is(Content.MachineTrait.Fire) => GeneratorBody(crate, spec),
@@ -66,6 +68,9 @@ public partial class InventoryPanel
             _ when spec.Charges => ChargerBody(crate, spec.Slots ?? 1),
             _ => _crateGrid = Grid(Enumerable.Range(0, spec.Slots ?? 0).Select(i => new Place(i, crate))),
         });
+        if (spec.Is(Content.MachineTrait.HoldsFuel) && (spec.Is(Content.MachineTrait.Fire) || station != null)) _frame.Add(DrawRow(DrawFuel(crate)));
+        if (spec.Is(Content.MachineTrait.HoldsFuel))
+            _frame.Add(_lasts = new Label { LabelSettings = Style.Text(Style.Mono, 11, Style.Slate400), MouseFilter = Control.MouseFilterEnum.Ignore });
         // Its module sockets under its body, for a machine that takes any (0086).
         if (Sockets(crate, kind) is { } sockets) _frame.Add(sockets);
         // A drop pod's key under its slot: Descend, or Return off the ship.
@@ -274,6 +279,16 @@ public partial class InventoryPanel
     {
         var body = Style.Gap(new VBoxContainer { MouseFilter = Control.MouseFilterEnum.Ignore }, 6);
         body.AddChild(_crateGrid = Grid(Enumerable.Range(0, spec.Slots ?? 0).Select(i => new Place(i, crate))));
+        body.AddChild(DrawRow(draw));
+        return body;
+    }
+
+    /// <summary>The draw command of fuel store <paramref name="crate"/> for a count of cans (fuel-liquid).</summary>
+    private static Func<int, Command> DrawFuel(int crate) => n => new Stillwake.Sim.Fuel.DrawFuel(crate, n);
+
+    /// <summary>A store's slider of how many to draw out and the key beside it, <paramref name="draw"/> the command for a count.</summary>
+    private HBoxContainer DrawRow(Func<int, Command> draw)
+    {
         var row = Style.Gap(new HBoxContainer(), 8);
         row.AddChild(_drawCount = new HSlider
         {
@@ -286,9 +301,8 @@ public partial class InventoryPanel
             SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
             SizeFlagsVertical = Control.SizeFlags.ShrinkCenter,
         });
-        row.AddChild(_draw = Style.Button("", () => Send(draw((int)_drawCount.Value))));
-        body.AddChild(row);
-        return body;
+        row.AddChild(_draw = Style.Button("", () => Send(draw((int)_drawCount!.Value))));
+        return row;
     }
 
     /// <summary>
@@ -324,6 +338,17 @@ public partial class InventoryPanel
         int held = Water.WaterIn(cistern), peer = _client.Id;
         ShowDraw(held / Content.Water.Bottle, n => Water.DrawProblem(cistern, peer, n),
             n => T("cistern.draw", ("n", n), ("held", Litres.Of(held)), ("all", Litres.Of(Content.Water.CisternCapacity)), ("whole", held / Content.Water.Bottle)));
+    }
+
+    /// <summary>A fuel store's draw key: cans out of the whole litres it holds, of its capacity (fuel-liquid).</summary>
+    private void ShowFuel(int store, Content.MachineSpec spec)
+    {
+        if (Fuel == null || _client == null) return;
+        int held = Fuel.FuelIn(store), peer = _client.Id;
+        ShowDraw(held / Content.Fuel.Can, n => Fuel.DrawProblem(store, peer, n),
+            n => T("fuel.draw", ("n", n), ("held", Litres.Of(held)), ("all", Litres.Of(spec.FuelCapacity)), ("whole", held / Content.Fuel.Can)));
+        string lasts = Features.Fuel.FuelShows.Lasting(Fuel.Lasts(store));
+        if (_lasts != null && _lasts.Text != lasts) _lasts.Text = lasts;
     }
 
     /// <summary>The tank's draw key: canisters out of what it holds, of its capacity.</summary>
@@ -362,6 +387,7 @@ public partial class InventoryPanel
             if (_switch.Text != said) _switch.Text = said;
         }
         if (spec?.Is(Content.MachineTrait.HoldsWater) == true && Crate is int cistern) ShowCistern(cistern);
+        if (spec?.Is(Content.MachineTrait.HoldsFuel) == true && Crate is int store) ShowFuel(store, spec);
         if (_liquid != null && Air != null && Crate is int vaporizer)
         {
             string held = T("vaporizer.liquid", ("n", Litres.Of(Air.LiquidFor(vaporizer))));

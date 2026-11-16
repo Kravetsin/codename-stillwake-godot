@@ -33,7 +33,7 @@ public partial class LaunchKey : WristKey
         SizeFlagsHorizontal = SizeFlags.ShrinkCenter;
         _tips = new TipSpots(tip);
         _tips.Add(this, () => _problem == null ? null
-            : new Tip(T(_word), new TipLine(T(_problem, ("fuel", Content.Landing.DescentFuel)), Tone.Bad)));
+            : new Tip(T(_word), new TipLine(T(_problem, ("fuel", Content.Fuel.Descent / Content.Fuel.Can)), Tone.Bad)));
         Read();
     }
 

@@ -90,6 +90,8 @@ public partial class InventoryPanel : CanvasLayer
     private Button? _switch;
     /// <summary>The open vaporizer's liquid, behind it and its own (industrial-oxygen).</summary>
     private Label? _liquid;
+    /// <summary>How long an open fuel store's fuel lasts at its outflow (fuel-liquid).</summary>
+    private Label? _lasts;
     private SortSweep _sweep = null!;
     /// <summary>The trash's slot and its burst as a stack it held is destroyed (trash-effect A).</summary>
     private SlotBox _trashBox = null!;
@@ -173,6 +175,9 @@ public partial class InventoryPanel : CanvasLayer
 
     /// <summary>The water, for an open cistern: what it holds and whether bottles can be drawn out (industrial-oxygen).</summary>
     public Stillwake.Sim.Water.WaterModule? Water { get; set; }
+
+    /// <summary>The fuel, for an open fuel store: what it holds and whether cans can be drawn out (fuel-liquid).</summary>
+    public Stillwake.Sim.Fuel.FuelModule? Fuel { get; set; }
     /// <summary>The power, for an open machine that switches: whether it is off (industrial-oxygen).</summary>
     public Stillwake.Sim.Power.PowerModule? Switching { get; set; }
 

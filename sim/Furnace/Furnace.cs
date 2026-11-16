@@ -1,6 +1,7 @@
 using System.Text.Json.Serialization;
 using Stillwake.Sim.Atmosphere;
 using Stillwake.Sim.Crafting;
+using Stillwake.Sim.Fuel;
 using Stillwake.Sim.Grid;
 using Stillwake.Sim.Items;
 using Stillwake.Sim.Power;
@@ -9,9 +10,15 @@ namespace Stillwake.Sim.Furnace;
 
 /// <summary>
 /// A fire burning, a furnace's or a burner generator's, by machine id: <c>Fuel</c> is the ticks of fire left, above 0;
-/// <c>Blown</c> while it takes its breaths from the tanks on its liquid input (industrial-oxygen).
+/// <c>Blown</c> while it takes its breaths from the tanks on its liquid input (industrial-oxygen). A fire burning from a fuel store (the
+/// biofuel generator, fuel-liquid) pays a tick's share of a litre each tick; <c>Owed</c> is what it owes toward its next millilitre,
+/// in millilitres times <c>BurnTicks × Furnace.Blown</c>.
 /// </summary>
-public sealed record Fire(int Machine, int Fuel, [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)] bool Blown = false);
+public sealed record Fire(
+    int Machine,
+    int Fuel,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)] bool Blown = false,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)] int Owed = 0);
 
 /// <summary>
 /// A furnace or a burner generator as its panel shows it: whether its fire burns; for a furnace with
@@ -44,13 +51,17 @@ public sealed class FurnaceModule : Module<FurnaceState>
     private readonly IPowerOps _powerOps;
     private readonly ICraftingQueries _crafting;
     private readonly ICraftingOps _craftingOps;
+    private readonly IFuelQueries _fuel;
+    private readonly IFuelOps _fuelOps;
 
     public override string Id => "furnace";
 
     public FurnaceModule(
         IGridQueries grid, IItemsQueries items, IItemsOps itemsOps, IAtmosphereQueries air, IAtmosphereOps airOps,
-        IPowerQueries power, IPowerOps powerOps, ICraftingQueries crafting, ICraftingOps craftingOps)
+        IPowerQueries power, IPowerOps powerOps, ICraftingQueries crafting, ICraftingOps craftingOps, IFuelQueries fuel, IFuelOps fuelOps)
     {
+        _fuel = fuel;
+        _fuelOps = fuelOps;
         _power = power;
         _grid = grid;
         _items = items;
@@ -117,9 +128,16 @@ public sealed class FurnaceModule : Module<FurnaceState>
 
     private static string? SlotItem(IReadOnlyList<Stack?> slots, int slot) => slot < slots.Count ? slots[slot]?.Item : null;
 
-    /// <summary>The ticks one of the fuel in machine <paramref name="m"/>'s fuel slot burns for, or null for none there.</summary>
-    private int? FuelIn(Machine m) =>
-        SlotItem(_items.Crate(m.Id), Content.Machines.Get(m.Kind).FuelSlot!.Value) is { } f ? Content.Items.Get(f).BurnTicks : null;
+    /// <summary>
+    /// The ticks one of the fuel in machine <paramref name="m"/>'s fuel slot burns for, or null for none there; for one holding
+    /// fuel (the biofuel generator, fuel-liquid), a litre's while its store holds any, paid tick by tick, its slot only its hopper.
+    /// </summary>
+    private int? FuelIn(Machine m)
+    {
+        if (Content.Machines.Is(m.Kind, Content.MachineTrait.HoldsFuel))
+            return _fuel.FuelIn(m.Id) > 0 ? Content.Items.Get(Content.Fuel.Item).BurnTicks : null;
+        return SlotItem(_items.Crate(m.Id), Content.Machines.Get(m.Kind).FuelSlot!.Value) is { } f ? Content.Items.Get(f).BurnTicks : null;
+    }
 
     /// <summary>Machine <paramref name="id"/>'s fire, or null.</summary>
     private Fire? FireOf(int id)
@@ -166,13 +184,13 @@ public sealed class FurnaceModule : Module<FurnaceState>
         {
             while (next < fires.Count && fires[next].Machine < m.Id) next++;
             var was = next < fires.Count && fires[next].Machine == m.Id ? fires[next] : null;
-            if (Burn(m, was?.Fuel ?? 0, was?.Blown ?? false) is { } fire) kept.Add(fire);
+            if (Burn(m, was?.Fuel ?? 0, was?.Blown ?? false, was?.Owed ?? 0) is { } fire) kept.Add(fire);
         }
         State.Fires = kept;
     }
 
     /// <summary>Machine <paramref name="m"/>'s fire a tick on from <paramref name="fuel"/> left: null when it is out.</summary>
-    private Fire? Burn(Machine m, int fuel, bool blown)
+    private Fire? Burn(Machine m, int fuel, bool blown, int owed)
     {
         int cell = AiredCell(m);
         if (fuel == 0) (fuel, blown) = Light(m, cell);
@@ -190,10 +208,26 @@ public sealed class FurnaceModule : Module<FurnaceState>
             // Given less, its fire goes out and the fuel left is lost.
             if (!fromTanks && (cell < 0 || _airOps.Breathe(cell, Content.Furnace.Breath) < Content.Furnace.Breath)) return null;
         }
+        // A store's fire pays its tick's share, so the store drains as it burns; one gone dry puts it out.
+        if (Content.Machines.Is(m.Kind, Content.MachineTrait.HoldsFuel) && !PayTick(m, blown, ref owed)) return null;
         fuel -= 1;
         // Its last tick of fuel burnt, the next is lit at once: a fire fed in time never blinks out.
         if (fuel == 0) (fuel, blown) = Light(m, cell);
-        return fuel > 0 ? new Fire(m.Id, fuel, blown) : null;
+        return fuel > 0 ? new Fire(m.Id, fuel, blown, owed) : null;
+    }
+
+    /// <summary>
+    /// A tick of a fuel store's fire (fuel-liquid): a litre over the ticks a fuel burns, <c>Furnace.Blown</c> / <c>Furnace.BlownOf</c>
+    /// as long blown, owed by the millilitre and paid as each comes due, so the ticks of a litre pay exactly a litre. False when the
+    /// store cannot pay what is due.
+    /// </summary>
+    private bool PayTick(Machine m, bool blown, ref int owed)
+    {
+        int burns = Content.Items.Get(Content.Fuel.Item).BurnTicks!.Value * Content.Furnace.Blown;
+        owed += Content.Fuel.Litre * (blown ? Content.Furnace.BlownOf : Content.Furnace.Blown);
+        int due = owed / burns;
+        owed -= due * burns;
+        return due == 0 || _fuelOps.Take(m.Id, due) == due;
     }
 
     /// <summary>Ticks of fuel blown: <c>Furnace.Blown</c> / <c>Furnace.BlownOf</c> of them, rounded down.</summary>
@@ -212,7 +246,8 @@ public sealed class FurnaceModule : Module<FurnaceState>
         if (spec.Makes == null && !(Content.Stations.Get(m.Kind).Fed ? _crafting.CanSmelt(m.Id) : _crafting.HasWork(m.Id))) return (0, false);
         // A generator burns only what its network would take: a fuel lit burns to its end, the next waits (0101).
         if (spec.Makes != null && (!_power.Needed(m.Id) || _power.IsOff(m.Id))) return (0, false);
-        _itemsOps.Consume(m.Id, spec.FuelSlot!.Value);
+        // A store's fire pays as it burns (PayTick); a slot's fuel is used up as it lights.
+        if (!spec.Is(Content.MachineTrait.HoldsFuel)) _itemsOps.Consume(m.Id, spec.FuelSlot!.Value);
         return (blown ? Blown(burns) : burns, blown);
     }
 }

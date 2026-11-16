@@ -50,6 +50,7 @@ public static class DevModes
         new("--dark", DevShape.Flag, "every lamp out, to see what glows"),
         new("--gallery", DevShape.Flag, "every picture"),
         new("--beam-back", DevShape.Flag, "with --planet or --strip, back aboard two seconds in"),
+        new("--planet-type", DevShape.Equals, "with --planet, the type grown: scorched, icy (planet-variety); the first planet's by default"),
         new("--no-homes", DevShape.Flag, "a planet's homes and spires left undrawn, to measure what they cost"),
         new("--homes", DevShape.Next, "the homes' mood, lit or dark"),
         // The hero.

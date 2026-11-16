@@ -103,14 +103,15 @@ public static class Flora
     /// <summary>
     /// A kind of cave growth (0080). In each slot of its anchor — an open cave cell over a wall, one under a whole wall,
     /// or a natural wall beside a cave — the generator draws a number under 10000 and sets the kind whose chance there, in
-    /// this list's order among those of that anchor, it falls in: <c>Chances</c> by its planet type's depth band
-    /// (<see cref="PlanetType.Bands"/>), scaled by the patch noise there (<see cref="PlanetType.PatchMost"/>), so they gather,
+    /// this list's order among those of that anchor, it falls in: <c>Chances</c> at the temperatures of <see cref="Degrees"/>,
+    /// read at its planet type's band's temperature (planet-variety), or by band for one <see cref="CaveKind.ByDepth"/>,
+    /// scaled by the patch noise there (<see cref="PlanetType.PatchMost"/>), so they gather,
     /// and in a great hall by <see cref="PlanetType.Hall"/>. It needs
     /// its <c>Tall</c> cells open and free, the cells <c>Wide</c> either side open over the same wall, walls
     /// all (Terraria's rule) — and none of its kind nearer than <c>Apart</c> cells along the row; one on
     /// a floor or a ceiling, nothing of its anchor in the cell before it.
     /// </summary>
-    /// <param name="Chances">In ten-thousandths of a slot, in each band, the coldest first.</param>
+    /// <param name="Chances">In ten-thousandths of a slot, at each of <see cref="Degrees"/>, the coldest first.</param>
     public sealed record CaveKind(string Id, Anchor Holds, int Tall, int Wide, int Apart, IReadOnlyList<int> Chances) : Growth(Id, Tall)
     {
         public override Anchor On => Holds;
@@ -123,7 +124,20 @@ public static class Flora
 
         /// <summary>Only in its planet type's lodes, scaled by the lode, not the patch noise (<see cref="PlanetType.LodeMost"/>): crystals in the veins' rich rock.</summary>
         public bool Lode { get; init; }
+
+        /// <summary>
+        /// Its chances by depth band, whatever the band's temperature: the opal caches, one kind a band, more opals the deeper
+        /// on every type (planet-variety).
+        /// </summary>
+        public bool ByDepth { get; init; }
     }
+
+    /// <summary>
+    /// The temperatures the caves' chances (<see cref="CaveKind.Chances"/>) stand at, in degrees: the first planet's four bands'
+    /// (planet-variety), so its caves grow as they did; another type's band reads between them, straight from one to the next and
+    /// held past the ends.
+    /// </summary>
+    public static readonly IReadOnlyList<int> Degrees = [-30, -15, 15, 60];
 
     /// <summary>
     /// The caves' growths (0080), the catalog every planet type takes its caves' from (0095), with the first planet's chances
@@ -162,10 +176,10 @@ public static class Flora
         new(Ruins.SpireLamp, Anchor.Rock, Tall: 2, Wide: 0, Apart: 2, Chances: [0, 0, 0, 0]),
         // The deep caches (blasting-charge), last so they take only the rolls nothing took: a find in the rock by a cave, glowing in
         // its band's colour, one kind a band, more opals the deeper.
-        new("frostCache", Anchor.Rock, Tall: 2, Wide: 0, Apart: 200, Chances: [3, 0, 0, 0]) { Yields = [("opal", 1)] },
-        new("bloomCache", Anchor.Rock, Tall: 2, Wide: 0, Apart: 200, Chances: [0, 3, 0, 0]) { Yields = [("opal", 2)] },
-        new("amberCache", Anchor.Rock, Tall: 2, Wide: 0, Apart: 200, Chances: [0, 0, 3, 0]) { Yields = [("opal", 4)] },
-        new("emberCache", Anchor.Rock, Tall: 2, Wide: 0, Apart: 200, Chances: [0, 0, 0, 3]) { Yields = [("opal", 7)] },
+        new("frostCache", Anchor.Rock, Tall: 2, Wide: 0, Apart: 200, Chances: [3, 0, 0, 0]) { ByDepth = true, Yields = [("opal", 1)] },
+        new("bloomCache", Anchor.Rock, Tall: 2, Wide: 0, Apart: 200, Chances: [0, 3, 0, 0]) { ByDepth = true, Yields = [("opal", 2)] },
+        new("amberCache", Anchor.Rock, Tall: 2, Wide: 0, Apart: 200, Chances: [0, 0, 3, 0]) { ByDepth = true, Yields = [("opal", 4)] },
+        new("emberCache", Anchor.Rock, Tall: 2, Wide: 0, Apart: 200, Chances: [0, 0, 0, 3]) { ByDepth = true, Yields = [("opal", 7)] },
     ];
 
     /// <summary>

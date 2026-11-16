@@ -85,7 +85,7 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [0077](0077-a-planets-ground-grows-from-its-seed-and-is-dug-by-hits.md) | A planet's ground grows from its seed and is dug by hits | accepted | fan-of-rays, veins-and-stairs, tool-edge (in part) |
 | [0078](0078-two-handed-items-are-held-as-a-rifle.md) | Two-handed items are held as a rifle | superseded | one-arm-holds |
 | [0079](0079-a-planets-surface-has-its-look-and-grows-plants.md) | A planet's surface has its look, and grows plants from its seed | accepted | 0082, composed-backdrops (in part) |
-| [0080](0080-caves-glow-by-depth.md) | Caves glow by depth: what grows in them is the surface's flora, held by floor, ceiling or rock | accepted | veins-and-stairs (in part) |
+| [0080](0080-caves-glow-by-depth.md) | Caves glow by depth: what grows in them is the surface's flora, held by floor, ceiling or rock | accepted | veins-and-stairs, planet-variety (in part) |
 | [0081](0081-the-wrist-is-one-column-of-gauges-and-keys.md) | The wrist is one column: segmented gauges that never step, and hardware keys | accepted | hud-vitals (in part) |
 | [0082](0082-the-grounds-chipped-look-details-and-living-edge.md) | The ground's chipped look: details over it and a living edge on top | accepted |  |
 | [0083](0083-the-handbook-is-a-tablet.md) | The Handbook is a tablet | accepted |  |
@@ -124,15 +124,15 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [plan-modes](2026-10-24-plan-modes.md) | The plan has modes: building, wiring, piping | accepted |  |
 | [the-launch-platform](2026-10-24-the-launch-platform.md) | The launch platform is a deck of joined pieces that opens with power | accepted |  |
 | [fan-of-rays](2026-10-25-fan-of-rays.md) | A tool's hit is a fan of rays | accepted | melee-edge (in part) |
-| [the-drop-pod](2026-10-25-the-drop-pod.md) | The drop pod is a bell a hero boards on a launch platform | accepted |  |
-| [the-engine-through-the-hull](2026-10-25-the-engine-through-the-hull.md) | The engine stands at the stern, its nozzle out through the hull | accepted |  |
+| [the-drop-pod](2026-10-25-the-drop-pod.md) | The drop pod is a bell a hero boards on a launch platform | accepted | fuel-liquid (in part) |
+| [the-engine-through-the-hull](2026-10-25-the-engine-through-the-hull.md) | The engine stands at the stern, its nozzle out through the hull | accepted | planet-variety (in part) |
 | [title-scene](2026-10-25-title-scene.md) | The title is a drawn scene of despair | accepted |  |
 | [veins-and-stairs](2026-10-25-veins-and-stairs.md) | A planet's ground is a stair, with veins of ore in its lodes | accepted | ore-pockets (in part) |
 | [compact-wire](2026-10-26-compact-wire.md) | A compact wire | accepted |  |
 | [creatures-are-composed](2026-10-26-creatures-are-composed.md) | Creatures are composed | accepted |  |
 | [fog-edges](2026-10-26-fog-edges.md) | Fog at a planet's edges | accepted |  |
 | [shots-are-the-sims](2026-10-26-shots-are-the-sims.md) | Shots are the sim's | accepted | sentry-arc, shots-pierce (in part) |
-| [the-descent](2026-10-26-the-descent.md) | The drop pod flies its rider down to the planet and back | accepted |  |
+| [the-descent](2026-10-26-the-descent.md) | The drop pod flies its rider down to the planet and back | accepted | fuel-liquid (in part) |
 | [arcs-are-hairlines](2026-10-27-arcs-are-hairlines.md) | Arcs are hairlines | accepted |  |
 | [effects-on-their-layer](2026-10-27-effects-on-their-layer.md) | Effects on their layer | accepted |  |
 | [one-arm-holds](2026-10-27-one-arm-holds.md) | Every item is held in one hand | accepted |  |
@@ -266,7 +266,7 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [no-ice-canister](2026-11-06-no-ice-canister.md) | Canisters are salvaged, not frozen of ice | accepted |  |
 | [quick-stash](2026-11-06-quick-stash.md) | The bag stashed into nearby crates with one key | accepted |  |
 | [settings-menu](2026-11-06-settings-menu.md) | The Esc menu on the tablet, Settings in categories | accepted |  |
-| [the-power-chain](2026-11-06-the-power-chain.md) | The power chain | accepted |  |
+| [the-power-chain](2026-11-06-the-power-chain.md) | The power chain | accepted | fuel-liquid (in part) |
 | [trade-station-later](2026-11-06-trade-station-later.md) | The trade station comes with circuits | accepted | one-to-understand (in part) |
 | [air-feedback](2026-11-07-air-feedback.md) | Air and power answer the player loudly | accepted |  |
 | [back-focus-clear](2026-11-07-back-focus-clear.md) | The back walls' focus hides the front | accepted | back-focus-faint (in part) |
@@ -300,7 +300,7 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [blasting-charge](2026-11-08-blasting-charge.md) | The blasting charge and the deep caches | accepted | unified-damage, builders-raw (in part) |
 | [board-names](2026-11-08-board-names.md) | The board names what was never had | accepted |  |
 | [composed-backdrops](2026-11-08-composed-backdrops.md) | Composed backdrops | accepted |  |
-| [computer-after-planet](2026-11-08-computer-after-planet.md) | The computer and the radar after a planet | accepted |  |
+| [computer-after-planet](2026-11-08-computer-after-planet.md) | The computer and the radar after a planet | accepted | planet-variety (in part) |
 | [crusher-heard](2026-11-08-crusher-heard.md) | Crusher heard | accepted |  |
 | [deep-sulfur](2026-11-08-deep-sulfur.md) | Sulfur lies in the deep stone | accepted |  |
 | [edge-flash](2026-11-08-edge-flash.md) | A find flashes along the tablet's edge, once a batch; the bulb and the flight go | accepted |  |
@@ -314,13 +314,13 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [mafia-reputation](2026-11-08-mafia-reputation.md) | The black market opens by the mafia's reputation | accepted |  |
 | [planet-frame-rate](2026-11-08-planet-frame-rate.md) | Planet frame rate | accepted |  |
 | [planet-layers](2026-11-08-planet-layers.md) | A planet's layers show, and a rift shows the way down | accepted |  |
-| [radar-contacts](2026-11-08-radar-contacts.md) | Radar contacts | accepted |  |
+| [radar-contacts](2026-11-08-radar-contacts.md) | Radar contacts | accepted | solar-system (in part) |
 | [scrap-to-iron](2026-11-08-scrap-to-iron.md) | Scrap to iron: four scrap smelt into an iron at any furnace | accepted |  |
 | [switched-off-sign](2026-11-08-switched-off-sign.md) | Switched-off sign | accepted |  |
 | [catcher-combat](2026-11-09-catcher-combat.md) | Catcher combat | accepted |  |
 | [catcher-paths](2026-11-09-catcher-paths.md) | Catcher paths | accepted | catcher-combat, damage-scale (in part) |
 | [damage-scale](2026-11-09-damage-scale.md) | One damage scale; the own ship takes a tenth | accepted | one-damage-rule (in part) |
-| [liquid-volumes](2026-11-09-liquid-volumes.md) | Liquid volumes | accepted | liquid-cards (in part) |
+| [liquid-volumes](2026-11-09-liquid-volumes.md) | Liquid volumes | accepted | liquid-cards, fuel-liquid (in part) |
 | [round-blasts](2026-11-09-round-blasts.md) | Blasts are round | accepted | unified-damage (in part) |
 | [tracker-catchers](2026-11-09-tracker-catchers.md) | Catchers | accepted | catcher-combat, catcher-paths, catcher-loot (in part) |
 | [unified-damage](2026-11-09-unified-damage.md) | One rule for damage | accepted | damage-scale (in part) |
@@ -379,8 +379,13 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [liquid-cards](2026-11-15-liquid-cards.md) | A canister's and a bottle's litres are food's rows | accepted |  |
 | [spark-rule](2026-11-15-spark-rule.md) | A tool's haze in matter throws that matter's look, whatever was hit | accepted |  |
 | [spear-trail](2026-11-15-spear-trail.md) | The plain spear trails haze outside its thrust | accepted |  |
+| [stretches-of-space](2026-11-15-stretches-of-space.md) | Stretches of space | accepted |  |
 | [trash-slot](2026-11-15-trash-slot.md) | A trash slot in creative mode | accepted |  |
+| [fuel-liquid](2026-11-16-fuel-liquid.md) | Fuel is a liquid | accepted |  |
 | [gestures-for-words](2026-11-16-gestures-for-words.md) | Gestures, in place of words | accepted |  |
 | [hand-at-wrist](2026-11-16-hand-at-wrist.md) | The hand is its own picture, hung at the wrist | accepted |  |
 | [hero-skins](2026-11-16-hero-skins.md) | Skins: how a hero looks, apart from what it wears | accepted |  |
+| [planet-variety](2026-11-16-planet-variety.md) | Planets differ: types and ore sets | accepted |  |
+| [shuttle-flight](2026-11-16-shuttle-flight.md) | The crew flies to a vessel in the shuttle and back | accepted |  |
+| [solar-system](2026-11-16-solar-system.md) | The ship flies between the planets of its solar system | accepted |  |
 | [whole-limbs](2026-11-16-whole-limbs.md) | One picture an arm or leg | accepted |  |

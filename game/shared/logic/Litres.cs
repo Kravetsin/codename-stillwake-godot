@@ -2,6 +2,7 @@ using System;
 using System.Globalization;
 using Air = Stillwake.Content.Air;
 using Crew = Stillwake.Content.Crew;
+using Fuel = Stillwake.Content.Fuel;
 using Water = Stillwake.Content.Water;
 using World = Stillwake.Sim.World;
 
@@ -18,9 +19,9 @@ public static class Litres
 
     /// <summary>
     /// The millilitres one of <paramref name="item"/> holds: a canister's oxygen, a bottle's water, 3 litres each
-    /// (liquid-volumes); null for an item that holds no liquid.
+    /// (liquid-volumes), a can's biofuel, a litre (fuel-liquid); null for an item that holds no liquid.
     /// </summary>
-    public static int? In(string item) => item == Crew.Canister ? Air.Canister : item == Water.Item ? Water.Bottle : null;
+    public static int? In(string item) => item == Crew.Canister ? Air.Canister : item == Water.Item ? Water.Bottle : item == Fuel.Item ? Fuel.Can : null;
 
     /// <summary>
     /// A rate of units every <c>Air.LeakEvery</c> ticks as litres a minute, to a tenth of a millilitre rounded down: a wall

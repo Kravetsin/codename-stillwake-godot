@@ -22,9 +22,11 @@ effect, so a release build has none of this folder and no `*Demo.cs` anywhere.
 | `DebrisScenarios.cs` | `--debris` (seeded hosting too), `--fly`, `--asteroid`, `--sortie`, `--net`, `--net-press` |
 | `MeteorScenario.cs` | `--meteors`: the new game's wreck with its first meteor seen coming at once; `=N` its power |
 | `VesselScenario.cs` | `--vessel`: the new game's hero on a vessel's world, `=class` (vessel-worlds) |
+| `ShuttleScenario.cs` | `--trip`: the testbed's hero by the crew shuttle, a freighter found and the course set by commands; `=auto` flies there and home (shuttle-flight) |
 | `PilesScenario.cs` | `--piles`: the hold with an axe in hand, a sledgehammer, the scanner worn; `--autopilot` breaks the piles. |
 | `CapsuleScenario.cs` | The wreck with its trade station's capsule just gone or about to come home (--capsule) |
 | `MarketScenario.cs` | `--market`: a trade station, credits and the first two levels' goods with scrap, to raise the mafia's reputation |
+| `FuelScenario.cs` | `--fuel`: a fermenter piped to a fuel tank piped on to a drop pod; a biofuel generator to pipe by hand |
 | `FlareScenario.cs` | `--flare`: the new game's wreck with a magnetic flare's warning begun at once; `=repair` a lamp half repaired |
 | `PlanetScenarios.cs` | `--planet` (with `--valley`, `--catcher`, `--fight`), `--strip` (with `--beam-back`), `--creatures` and its modifiers, `--nailer`, `--railgun`, `--hitboxes`, `--pickaxe`, `--ore-shine` (`=off` without the lamp), `--lake`, `--pour` |
 | `TabletHands.cs` | A script's hands on the research tablet: `--tree`, `--board` |

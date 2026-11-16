@@ -27,6 +27,25 @@ public static class DamageLooks
 
     public static readonly Ink.Tone DentInk = Ink.Tone.Of(16, 17, 24, 0.9f), DentLit = Ink.Tone.Of(214, 222, 232, 0.5f), Dent = Ink.Tone.Of(20, 20, 28, 0.55f);
 
+    /// <summary>
+    /// How a wreck's cracks are inked: each line turning by up to <paramref name="Wander"/> a step; its <paramref name="Under"/> line
+    /// <paramref name="UnderWidth"/> of its width, <paramref name="Drop"/> below it, then its <paramref name="Over"/> line
+    /// <paramref name="OverWidth"/> of it; its dents in <paramref name="Dented"/>.
+    /// </summary>
+    public sealed record CrackInk(double Wander, Ink.Tone Under, double UnderWidth, double Drop, Ink.Tone Over, double OverWidth, Ink.Tone Dented);
+
+    /// <summary>Every wreck's: dark ink wandering, its far wall's lit edge under it.</summary>
+    public static readonly CrackInk Wreck = new(NetWander, DentLit, 0.55, DentLitDrop, DentInk, 1, Dent);
+
+    /// <summary>
+    /// The ice belt's druse (docs/decisions/2026-11-15-stretches-of-space.md, the pick «Друза»): cracks along straight planes, a dark line under a bright one,
+    /// white where it was struck.
+    /// </summary>
+    public static readonly CrackInk Ice = new(0, Ink.Tone.Of(46, 74, 96, 0.85f), 1.5, 0, Ink.Tone.Of(242, 248, 251, 0.9f), 0.6, Ink.Tone.Of(232, 244, 250, 0.5f));
+
+    /// <summary>The cracks of wreck <paramref name="item"/>: the ice belt's druse its own, every other the same.</summary>
+    public static CrackInk InkOf(string item) => item == StretchLooks.IceBlock ? Ice : Wreck;
+
     /// <summary>A blow nearer an earlier one than this deepens it rather than starting its own dent.</summary>
     public const double BlowsApart = 3;
 

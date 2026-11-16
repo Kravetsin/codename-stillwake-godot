@@ -1,6 +1,6 @@
 # The engine stands at the stern, its nozzle out through the hull
 
-- Status: accepted
+- Status: accepted; the motor's magnetite and the igniter's crystal superseded by [planet-variety](2026-11-16-planet-variety.md)
 - Date: 2026-10-25
 
 ## Context

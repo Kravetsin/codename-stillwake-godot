@@ -5,6 +5,7 @@ using Stillwake.Sim.Crafting;
 using Stillwake.Sim.Creatures;
 using Stillwake.Sim.Crew;
 using Stillwake.Sim.Debris;
+using Stillwake.Sim.Fuel;
 using Stillwake.Sim.Furnace;
 using Stillwake.Sim.Grid;
 using Stillwake.Sim.Hazards;
@@ -39,7 +40,7 @@ public sealed class Registry
     /// <summary>The world's, one for all its surfaces: what is granted and analysed.</summary>
     public KnowledgeModule Knowledge { get; }
     public GridModule Grid { get; }
-    /// <summary>The planet's day and night (2026-11-07-night-chills): right after the grid, before the crew that feels its chill.</summary>
+    /// <summary>The planet's day and night (2026-11-07-night-chills), the ship's stretches: after the grid, before the crew that feels its chill and the debris.</summary>
     public SkyModule Sky { get; }
     public RoomsModule Rooms { get; }
     public ItemsModule Items { get; }
@@ -58,6 +59,7 @@ public sealed class Registry
     public CreaturesModule Creatures { get; }
     public TradeModule Trade { get; }
     public WaterModule Water { get; }
+    public FuelModule Fuel { get; }
     public LiquidsModule Liquids { get; }
     public PlacesModule Places { get; }
 
@@ -79,34 +81,39 @@ public sealed class Registry
         Players = ship?.Players ?? new PlayersModule();
         Knowledge = ship?.Knowledge ?? new KnowledgeModule(ResearchModule.Ids);
         Grid = new GridModule();
-        Sky = new SkyModule();
+        Sky = new SkyModule(Knowledge);
         Rooms = new RoomsModule(Grid);
         Items = new ItemsModule(Grid, Rooms, Knowledge, Knowledge);
         Power = new PowerModule(Grid, Rooms, Items, Items);
         Research = new ResearchModule(Grid, Items, Knowledge, Knowledge);
-        Crafting = new CraftingModule(Grid, Items, Items, Research, Power, Power);
+        Pipes = new PipesModule(Grid, Items, Items);
+        // Fuel (fuel-liquid): made before the crafting, the fires and the pods that fill and burn its stores; new to format 67,
+        // run and saved last.
+        Fuel = new FuelModule(Grid, Items, Items, Pipes, Power);
+        Crafting = new CraftingModule(Grid, Items, Items, Research, Power, Power, Fuel, Fuel);
         // Liquids: water in the cells, after building digs and builds, before what will read it; new to format 56.
         Liquids = new LiquidsModule(Grid);
-        Pipes = new PipesModule(Grid, Items, Items);
         Atmosphere = new AtmosphereModule(Grid, Items, Items, Rooms, Pipes, Power);
         Crew = new CrewModule(Atmosphere, Atmosphere, Grid, Items, Items, Players, Players, Sky);
         // Building reads where heroes are and the pipes only as its commands apply, never in a system, so it keeps its place in
         // the run order and the saves', before pipes and crew (0077: a wall does not finish on a hero; 2026-10-29-typed-ports).
-        Building = new BuildingModule(Grid, Grid, Items, Items, Power, Power, Research, Crafting, Crafting, Crew, Crew, Pipes);
+        // Water made before Building, which reads what its cisterns hold; it still runs and saves last.
+        Water = new WaterModule(Grid, Items, Items, Pipes, Power, Atmosphere, Atmosphere);
+        Building = new BuildingModule(Grid, Grid, Items, Items, Power, Power, Research, Crafting, Crafting, Crew, Crew, Pipes, Atmosphere, Water, Fuel);
         Hazards = new HazardsModule(Grid, Power, Power, Research, Building);
-        Debris = new DebrisModule(Grid, Crew, Crew, Rooms, Items, Items, Knowledge, Knowledge);
-        Furnace = new FurnaceModule(Grid, Items, Items, Atmosphere, Atmosphere, Power, Power, Crafting, Crafting);
+        Debris = new DebrisModule(Grid, Crew, Crew, Rooms, Items, Items, Knowledge, Knowledge, Sky);
+        Furnace = new FurnaceModule(Grid, Items, Items, Atmosphere, Atmosphere, Power, Power, Crafting, Crafting, Fuel, Fuel);
         Logistics = new LogisticsModule(Grid, Atmosphere, Items, Items, Crafting, Debris, Debris, Rooms);
         // Last, after crew, as its system reads where heroes are; saved last, so its slice is the newest.
         Creatures = new CreaturesModule(Grid, Crew, Crew, Items, Items, Debris, Debris, Building, Building, Rooms, Knowledge);
         // The launch platform, opened with power; new to format 30, run and saved after the rest.
-        Landing = new LandingModule(Grid, Grid, Power, Power, Crew, Items, Items);
+        Landing = new LandingModule(Grid, Grid, Power, Power, Crew, Items, Items, Fuel, Fuel);
         Trade = new TradeModule(Grid, Items, Items, Knowledge);
-        // Water: cisterns and electrolysers, after the air, whose tanks it fills; new to format 45, run and saved last.
-        Water = new WaterModule(Grid, Items, Items, Pipes, Power, Atmosphere, Atmosphere);
+        // Water: cisterns and electrolysers, after the air, whose tanks it fills; new to format 45, run and saved after the rest
+        // (made above, before Building).
         // Vessels beside the ship (generated-vessels): new to format 57, run and saved last.
-        Places = new PlacesModule(Grid, Grid, Items, Crew, Landing);
-        Module[] surface = [Grid, Sky, Rooms, Items, Power, Research, Crafting, Building, Liquids, Pipes, Atmosphere, Crew, Hazards, Debris, Furnace, Logistics, Creatures, Landing, Trade, Water, Places];
+        Places = new PlacesModule(Grid, Grid, Items, Crew, Landing, Landing);
+        Module[] surface = [Grid, Sky, Rooms, Items, Power, Research, Crafting, Building, Liquids, Pipes, Atmosphere, Crew, Hazards, Debris, Furnace, Logistics, Creatures, Landing, Trade, Water, Places, Fuel];
         All = new Set(this, ship == null ? [Players, Knowledge, .. surface] : surface);
     }
 

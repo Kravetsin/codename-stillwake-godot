@@ -385,7 +385,7 @@ public class ItemCardTests
     [Fact]
     public void SayACanistersAndABottlesLitresAsFoodsRowsAndAStacksAllToldButNoneOfWhatHoldsNoLiquid()
     {
-        // A canister and a bottle hold 3 litres each (liquid-volumes), a row under their contents as food's; biofuel is counted, not poured.
+        // A canister and a bottle hold 3 litres each (liquid-volumes), a row under their contents as food's.
         foreach (var item in new[] { Spec.Crew.Canister, Spec.Water.Item })
         {
             var card = ItemCards.Of(item);
@@ -394,8 +394,9 @@ public class ItemCardTests
             Assert.Equal([("3 l", "Volume")], Said(card.Rows));
             Assert.Equal((CardSign.Tank, CardGroup.Holds), (card.Rows[0].Sign, card.Rows[0].Group));
         }
-        Assert.False(ItemCards.Of("biofuel").Liquid);
-        Assert.Empty(ItemCards.Of("biofuel").Rows);
+        // A can of biofuel is a litre (fuel-liquid).
+        Assert.True(ItemCards.Of("biofuel").Liquid);
+        Assert.Equal([("1 l", "Volume")], Said(ItemCards.Of("biofuel").Rows));
         Assert.Empty(ItemCards.Of("iron").Rows);
         var four = With(false).TipOf(new Stack(Spec.Crew.Canister, 4)).Card!;
         Assert.Equal([("3 l", "Volume"), ("12 l", "In all")], Said(four.Rows));

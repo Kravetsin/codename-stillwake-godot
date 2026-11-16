@@ -183,7 +183,7 @@ public static class Lit
     {
         if (at == _seeThrough && least == _seeLeast && bare == _seeBare && radius == _seeRadius) return;
         (_seeThrough, _seeLeast, _seeBare, _seeRadius) = (at, least, bare, radius);
-        foreach (var material in Made.Values) See(material);
+        foreach (var material in Every) See(material);
     }
 
     /// <summary>How much of the walls is left at the pointer as a hand digs the back layer (0107): about a third.</summary>
@@ -226,7 +226,7 @@ public static class Lit
     public static void Ambient((float R, float G, float B) ambient)
     {
         _ambient = new Vector3(ambient.R, ambient.G, ambient.B);
-        foreach (var (_, material) in Made) material.SetShaderParameter("ambient", _ambient);
+        foreach (var material in Every) material.SetShaderParameter("ambient", _ambient);
     }
 
     private static Vector3 _sky = Vector3.One;
@@ -240,7 +240,24 @@ public static class Lit
         var now = new Vector3(sky.R, sky.G, sky.B);
         if (now == _sky) return;
         _sky = now;
-        foreach (var (_, material) in Made) material.SetShaderParameter("sky", _sky);
+        foreach (var material in Every) material.SetShaderParameter("sky", _sky);
+    }
+
+    /// <summary>Every material made here, kept lit as the world's light changes: <see cref="Made"/>'s and each <see cref="Painted"/>.</summary>
+    private static readonly List<ShaderMaterial> Every = [];
+
+    /// <summary>
+    /// A material of its own lit as <see cref="Set"/>'s with <paramref name="share"/>, its picture's colour first changed by
+    /// <paramref name="paint"/>, statements run at the start of the fragment on <c>COLOR</c>, beside <paramref name="declarations"/>
+    /// (uniforms, varyings) and a <paramref name="vertex"/> function of its own, which must set <c>world</c> as the plain one does: the
+    /// frost on the hull (stretches), grown and melted in its shader. Made once by its user, never freed.
+    /// </summary>
+    public static ShaderMaterial Painted(string declarations, string vertex, string paint, float share)
+    {
+        var body = Body.Replace("void fragment() {", "void fragment() {\n" + paint + "\n", System.StringComparison.Ordinal);
+        if (body == Body) throw new System.InvalidOperationException("Lit's fragment moved: nowhere to paint");
+        var made = new ShaderMaterial { Shader = new Shader { Code = Head + declarations + vertex + body } };
+        return Prepared(made, share, false, false);
     }
 
     private static ShaderMaterial MaterialOf(float share, bool shines, bool bends, bool windy, bool bare)
@@ -248,6 +265,12 @@ public static class Lit
         if (Made.TryGetValue((share, shines, bends, windy, bare), out var kept)) return kept;
         kept = new ShaderMaterial { Shader = bends ? Bending : Plain };
         if (bends) Bend.Add(kept, windy);
+        return Made[(share, shines, bends, windy, bare)] = Prepared(kept, share, shines, bare);
+    }
+
+    /// <summary><paramref name="kept"/> given the world's light as it is now, and kept so from now on.</summary>
+    private static ShaderMaterial Prepared(ShaderMaterial kept, float share, bool shines, bool bare)
+    {
         kept.SetShaderParameter("share", share);
         kept.SetShaderParameter("blocks", share < 1f);
         kept.SetShaderParameter("bare", bare);
@@ -259,7 +282,8 @@ public static class Lit
         if (_lightmaps is var (main, spots)) ShowMaps(kept, main, spots);
         Place(kept);
         See(kept);
-        return Made[(share, shines, bends, windy, bare)] = kept;
+        Every.Add(kept);
+        return kept;
     }
 
     /// <summary>
@@ -270,14 +294,14 @@ public static class Lit
     public static void ShowStarlight(Texture2DArray tiles, Rect2 rect, Vector2I cells, int tile)
     {
         _starlight = (tiles, rect, cells, tile);
-        foreach (var material in Made.Values) ShowStars(material, _starlight.Value);
+        foreach (var material in Every) ShowStars(material, _starlight.Value);
     }
 
     /// <summary>The lamps' and fires' lightmap and the spots', from now on, wherever <see cref="PlaceLightmaps"/> lays them.</summary>
     public static void ShowLightmaps(Texture2D main, Texture2D spots)
     {
         _lightmaps = (main, spots);
-        foreach (var material in Made.Values) ShowMaps(material, main, spots);
+        foreach (var material in Every) ShowMaps(material, main, spots);
     }
 
     /// <summary>Where the lightmaps lie this frame: their corner, in pixels, and how many pixels a texel spans.</summary>
@@ -285,7 +309,7 @@ public static class Lit
     {
         if (_placed == (at, texel)) return;
         _placed = (at, texel);
-        foreach (var material in Made.Values) Place(material);
+        foreach (var material in Every) Place(material);
     }
 
     private static void ShowStars(ShaderMaterial material, (Texture2DArray Tiles, Rect2 Rect, Vector2I Cells, int Tile) stars)

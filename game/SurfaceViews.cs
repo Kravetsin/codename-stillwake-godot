@@ -38,9 +38,16 @@ public static class SurfaceViews
 {
     public static readonly IReadOnlyList<SurfaceView> All =
     [
-        new(c => new GridView(c.M.Grid, c.M.Rules is Content.PlanetType p ? new Features.Grid.Strata(p, PlanetLooks.Of[p.Id].StrataFrom) : null) { HeldBack = c.Arrivals.Holds, HeldBackVersion = () => c.Arrivals.Version }),
+        new(c => new GridView(c.M.Grid, c.M.Rules is Content.PlanetType p ? new Features.Grid.Strata(p, PlanetLooks.Of[p.Id].StrataFrom) : null)
+        {
+            HeldBack = c.Arrivals.Holds,
+            HeldBackVersion = () => c.Arrivals.Version,
+            Tint = PlanetLooks.Of.TryGetValue(c.M.Rules.Id, out var look) ? new Color(look.Ground.R, look.Ground.G, look.Ground.B) : Colors.White,
+        }),
         // What still moves on the wreck: nothing on a surface with no tear of it (2026-10-31-the-scoop).
         new(c => new WreckMotionView(c.M.Grid), Fades: true),
+        // Frost creeping over the hull's outer walls before the ice belt, where stretches come (docs/decisions/2026-11-15-stretches-of-space.md).
+        new(c => c.M.Rules.Stretches.Count > 0 ? new Features.Sky.FrostView(c.M.Grid, c.M.Sky, () => c.Tick() + c.Progress()) : null, Fades: true),
         new(c => new DigView(c.M.Grid, c.M.Building)),
         new(c => new Features.Flora.FloraView(c.M.Grid, c.M.Building, c.Heroes)),
         new(c => c.M.Rules is Content.PlanetType p ? new Features.Flora.CaveView(c.M.Grid, c.M.Building, p, c.HeadLamps, c.Seed) : null),
@@ -58,10 +65,14 @@ public static class SurfaceViews
         // A seated hero behind its pod's porthole, then the pod's lamps and the glint on its glass over it.
         new(c => new Features.Crew.SeatedHeroes(c.M.Grid, c.M.Landing, c.M.Players, c.M.Items, c.Arrivals.Holds), Fades: true),
         new(c => new Features.Landing.PodSeats(c.M.Grid, c.M.Landing, c.Arrivals), Fades: true),
+        // A shuttle's slits lit warm, one a rider; the riders never seen.
+        new(c => new Features.Landing.ShuttleLights(c.M.Grid, c.M.Landing, c.M.Places), Fades: true),
         // A pod in the air from this surface: the deck sliding, the pod falling through (the descent's pictures).
         new(c => new Features.Landing.PodFlights(c.M.Grid, c.M.Landing, c.M.Crew, c.Progress, c.Arrivals), Fades: true),
         new(c => new Features.Atmosphere.TankLooks(c.M.Grid, c.M.Atmosphere), Fades: true),
+        new(c => c.M.Rules is Content.PlanetType ? null : new Features.Landing.EngineFlame(c.M.Grid, c.M.Landing, c.Progress)),
         new(c => new Features.Water.WaterLooks(c.M.Grid, c.M.Water), Fades: true),
+        new(c => new Features.Fuel.FuelLooks(c.M.Grid, c.M.Fuel), Fades: true),
         // What each debris net holds, over its booms and behind its net (2026-11-03-debris-net).
         new(c => new Features.Debris.NetView(c.M.Grid, c.M.Debris), Fades: true),
         new(c => new PodView(c.M.Grid, c.M.Crafting, c.M.Items, c.M.Crew), Fades: true),

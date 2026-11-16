@@ -24,7 +24,10 @@ public sealed record PlanetType(string Id, Ground Ground) : Surfaces.Kind(Id, []
     /// <summary>What grows on its surface (0079): kinds of <see cref="Flora.All"/>, in the order they are drawn, with their chances.</summary>
     public required IReadOnlyList<Flora.Kind> Plants { get; init; }
 
-    /// <summary>What grows in its caves (0080), veins among them: kinds of <see cref="Flora.Cave"/>, a chance for each of its bands.</summary>
+    /// <summary>
+    /// What grows in its caves (0080): kinds of <see cref="Flora.Cave"/>, each's chance in a band read at the band's temperature
+    /// (planet-variety). Every type grows the whole catalog; a test leaves kinds out.
+    /// </summary>
     public required IReadOnlyList<Flora.CaveKind> Caves { get; init; }
 
     /// <summary>
@@ -82,6 +85,20 @@ public sealed record PlanetType(string Id, Ground Ground) : Surfaces.Kind(Id, []
 
     /// <summary>What lives on it (0102): each species where it spawns, drawn by weight; none for a lifeless type.</summary>
     public IReadOnlyList<Content.Creatures.Habitat> Creatures { get; init; } = [];
+
+    /// <summary>
+    /// How strongly each ore of <see cref="Landing.Ores"/> but mica leans to a planet of this type when the system's ores are dealt
+    /// (planet-variety): weights, not chances, an ore not listed never dealt to it.
+    /// </summary>
+    public IReadOnlyList<(string Ore, int Weight)> OreWeights { get; init; } = [];
+
+    /// <summary>The weight <paramref name="ore"/> leans to this type with (<see cref="OreWeights"/>); 0 for one not listed.</summary>
+    public int WeightOf(string ore)
+    {
+        foreach (var (o, weight) in OreWeights)
+            if (o == ore) return weight;
+        return 0;
+    }
 }
 
 /// <summary>The planet types there are (0095): each a surface kind a world may open (<see cref="Surfaces.All"/>).</summary>
@@ -188,6 +205,7 @@ public static class PlanetTypes
         LodeWave = 96,
         LodeOver = 42000,
         LodeMost = 1000,
+        OreWeights = [("copperOre", 4), ("ironOre", 4), ("ice", 4), ("sulfur", 2), ("magnetite", 2), ("crystal", 2)],
         // Spawned by habitat (the user's rule, 2026-10-22), each hero's herd of its own depth band: the neutral loper, tapir and
         // sixleg on the open ground; hostile lurkers below (cave-hostiles): the capback in the teal garden, the geode snail in the
         // amber deep. The cold band and the core wait for their kinds.
@@ -200,6 +218,49 @@ public static class PlanetTypes
             new(Content.Creatures.GeodeSnail.Id, Content.Creatures.Place.Band, 1, Band: 2),
         ],
     };
+
+    /// <summary>
+    /// The icy planet (planet-variety): the first's ground, colder through and through — its surface and cold band inside a
+    /// basic suit's limit only just, its deep no warmer than the first's amber band — so ice runs in veins down to the amber band
+    /// and the amber crystals grow only over the core. No trees or bells: rocks and grass; tapirs, a few lopers, capbacks below.
+    /// </summary>
+    public static readonly PlanetType Icy = First with
+    {
+        Id = "icy",
+        Temperatures = [-35, -30, -10, 40],
+        Plants = [Plant("bush", 120), Plant("rock", 180), Plant("tuft", 320)],
+        Veins = [First.Veins[0] with { Widths = [1800, 1800, 1200, 0] }, .. First.Veins.Skip(1)],
+        Creatures =
+        [
+            new(Content.Creatures.Tapir.Id, Content.Creatures.Place.Surface, 3),
+            new(Content.Creatures.Loper.Id, Content.Creatures.Place.Surface, 1),
+            new(Content.Creatures.Capback.Id, Content.Creatures.Place.Band, 1, Band: 1),
+        ],
+        OreWeights = [("copperOre", 2), ("ironOre", 2), ("ice", 6), ("sulfur", 6), ("magnetite", 1), ("crystal", 1)],
+    };
+
+    /// <summary>
+    /// The scorched planet (planet-variety): the first's ground, hot from the surface down, the basic suit near its limit but in the
+    /// cooler band under the surface, so its heat's cracks and ember crystals rise near the top. Dry scrub, rocks and amber bells,
+    /// no teal or violet; sixlegs, a few lopers, geode snails deep.
+    /// </summary>
+    public static readonly PlanetType Scorched = First with
+    {
+        Id = "scorched",
+        Temperatures = [45, 30, 50, 70],
+        Plants = [Plant("acacia", 120), Plant("bush", 100), Plant("rock", 160), Plant("bellAmber", 200), Plant("tuft", 150)],
+        Creatures =
+        [
+            new(Content.Creatures.Sixleg.Id, Content.Creatures.Place.Surface, 3),
+            new(Content.Creatures.Loper.Id, Content.Creatures.Place.Surface, 1),
+            new(Content.Creatures.GeodeSnail.Id, Content.Creatures.Place.Band, 1, Band: 2),
+            new(Content.Creatures.GeodeSnail.Id, Content.Creatures.Place.Band, 1, Band: 3),
+        ],
+        OreWeights = [("copperOre", 2), ("ironOre", 3), ("ice", 1), ("sulfur", 2), ("magnetite", 6), ("crystal", 6)],
+    };
+
+    /// <summary>The surface plant <paramref name="id"/> of <see cref="Flora.All"/> at another chance, for a type of its own.</summary>
+    private static Flora.Kind Plant(string id, int chance) => Flora.All.First(k => k.Id == id) with { Chance = chance };
 
     /// <summary>
     /// The first planet grown small, 128 × 96, for tests and the fuzz: the same generator, a fraction of the cells. Low hills,
@@ -257,5 +318,5 @@ public static class PlanetTypes
     };
 
     /// <summary>Every type, in the order <see cref="Surfaces.All"/> lists them; ids never reused, for saves hold them.</summary>
-    public static readonly IReadOnlyList<PlanetType> All = [First, Small, SmallSpire];
+    public static readonly IReadOnlyList<PlanetType> All = [First, Small, SmallSpire, Icy, Scorched];
 }

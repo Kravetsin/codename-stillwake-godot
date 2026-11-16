@@ -27,6 +27,13 @@ public static partial class Terrain
 
     public static Layout Generate(PlanetType t, uint seed) => Generate(t, seed, out _, out _, out _);
 
+    /// <summary>
+    /// The ground of a planet holding only the ores <paramref name="ores"/> of <see cref="Content.Landing.Ores"/> (planet-variety),
+    /// null for all: an absent ore's veins leave plain stone, its pockets and the cave growths yielding it are not grown, and
+    /// everything else grows on the same cells as with all.
+    /// </summary>
+    public static Layout Generate(PlanetType t, uint seed, IReadOnlyList<string>? ores) => Generate(t, seed, out _, out _, out _, out _, ores);
+
     /// <param name="hall">Each cell a great hall opened, where the caves' growth is densest (0080): for tests.</param>
     internal static Layout Generate(PlanetType t, uint seed, out bool[] hall) => Generate(t, seed, out hall, out _, out _);
 
@@ -44,8 +51,10 @@ public static partial class Terrain
     /// <param name="surface">Each column's surface, its first row of ground before caves and landmarks open it: for tests.</param>
     /// <param name="spires">Each spire stamped (0085), its left column and its top row: for tests.</param>
     /// <param name="homes">Each home stamped (0091), its left column, its top row and its scheme: for tests.</param>
+    /// <param name="ores">The ores of <see cref="Content.Landing.Ores"/> it holds, null for all (planet-variety).</param>
     internal static Layout Generate(
-        PlanetType t, uint seed, out bool[] hall, out int[] surface, out List<(int X, int Y)> spires, out List<(int X, int Y, Ruins.Home Home)> homes)
+        PlanetType t, uint seed, out bool[] hall, out int[] surface, out List<(int X, int Y)> spires, out List<(int X, int Y, Ruins.Home Home)> homes,
+        IReadOnlyList<string>? ores = null)
     {
         var g = t.Ground;
         int w = g.Width, h = g.Height, floor = h - g.CoreRows;
@@ -163,7 +172,7 @@ public static partial class Terrain
         }
         Seal(g, top, kind, codes, hall, bedrock);
         surface = top;
-        PaintVeins(t, seed, kind, codes, stone);
+        var claimed = PaintVeins(t, seed, kind, codes, stone, ores);
 
         var rows = new char[h][];
         for (int y = 0; y < h; y++)
@@ -174,8 +183,8 @@ public static partial class Terrain
         var spawn = SpawnOf(rows, w, h, g.Clear);
         var surfaceTop = TopsOf(rows, w, h);
         var flora = Flora(t, seed, rows, codes, soil, spawn % w, surfaceTop);
-        var grown = CaveFlora(t, seed, rows, codes, hall, surfaceTop, flora);
-        PaintPockets(t, seed, kind, codes, stone, grown);
+        var grown = CaveFlora(t, seed, rows, codes, hall, surfaceTop, flora, ores, claimed);
+        PaintPockets(t, seed, kind, codes, stone, grown, ores);
         spires = Spires(g, seed, top, rows, codes, flora);
         homes = Homes(g, seed, top, rows, codes, flora, spires);
         // Found column by column and row by row; kept by cell, as every list of cells is.
@@ -193,11 +202,17 @@ public static partial class Terrain
     /// the lode it lies, full from halfway to its heart; the first vein in the list that takes it has it. Painted after the caves
     /// and landmarks opened the ground, so a vein shows in a cave's walls, never its back wall.
     /// </summary>
-    private static void PaintVeins(PlanetType t, uint seed, byte[] kind, int[] codes, int stone)
+    /// <returns>
+    /// The cells an absent ore's vein (<see cref="Absent"/>) holds, left plain stone that nothing else takes, so every other vein,
+    /// growth and pocket stands where it would; null when none is absent.
+    /// </returns>
+    private static bool[]? PaintVeins(PlanetType t, uint seed, byte[] kind, int[] codes, int stone, IReadOnlyList<string>? ores)
     {
         var g = t.Ground;
         int w = g.Width, floor = g.Height - g.CoreRows;
-        if (t.Veins.Count == 0) return;
+        if (t.Veins.Count == 0) return null;
+        var gone = t.Veins.Select(v => Absent(Materials.Get(v.Material).Cost, ores)).ToArray();
+        var claimed = gone.Contains(true) ? new bool[w * g.Height] : null;
         var lodes = new Field(seed, Lodes, t.LodeWave, t.LodeWave, w);
         var lode = new int[w];
         var veins = new (int Code, Field Coarse, Field Fine)[t.Veins.Count];
@@ -229,27 +244,30 @@ public static partial class Terrain
                     if (t.Veins[i].Widths[band] == 0) continue;
                     int width = (int)(t.Veins[i].Widths[band] * into / Whole);
                     if (Math.Abs(((3 * veins[i].Coarse.At(x) + veins[i].Fine.At(x)) >> 2) - Whole / 2) >= width) continue;
-                    codes[cell] = veins[i].Code;
+                    if (gone[i]) claimed![cell] = true;
+                    else codes[cell] = veins[i].Code;
                     break;
                 }
             }
         }
+        return claimed;
     }
 
     /// <summary>
     /// The ores' pockets (<see cref="Vein.Pockets"/>), painted after the caves' growths so every growth stays where it grew: row by
     /// row from the top, each row from the left, a solid cell still of plain stone, no vein's and no growth's, is an ore's where
-    /// that ore's pocket noise reaches its band's mark; the first ore in the list that takes it has it. Only which material a
-    /// solid cell is changes, never whether it is open.
+    /// that ore's pocket noise reaches its band's mark; the first ore in the list that takes it has it, an absent ore's
+    /// (<see cref="Absent"/>) leaving it plain stone. Only which material a solid cell is changes, never whether it is open.
     /// </summary>
-    private static void PaintPockets(PlanetType t, uint seed, byte[] kind, int[] codes, int stone, bool[] taken)
+    private static void PaintPockets(PlanetType t, uint seed, byte[] kind, int[] codes, int stone, bool[] taken, IReadOnlyList<string>? present)
     {
         var g = t.Ground;
         int w = g.Width, floor = g.Height - g.CoreRows;
         var ores = new List<(int Code, IReadOnlyList<int> Marks, int Wave, Field Noise)>();
         for (int i = 0; i < t.Veins.Count; i++)
             if (t.Veins[i].Pockets is { } p)
-                ores.Add((Materials.Get(t.Veins[i].Material).Code, p.Marks, p.Wave, new Field(seed, PocketSalt + (uint)i, p.Wave, p.Tall, w)));
+                ores.Add((Absent(Materials.Get(t.Veins[i].Material).Cost, present) ? -1 : Materials.Get(t.Veins[i].Material).Code, p.Marks, p.Wave,
+                    new Field(seed, PocketSalt + (uint)i, p.Wave, p.Tall, w)));
         int from = g.BedrockSide, to = w - g.BedrockSide;
         for (int y = 1; y < floor; y++)
         {
@@ -267,7 +285,10 @@ public static partial class Terrain
                     for (int x = Math.Max(from, i * wave); x < Math.Min(to, (i + 1) * wave); x++)
                     {
                         int cell = y * w + x;
-                        if (kind[cell] == 1 && codes[cell] == stone && !taken[cell] && noise.At(x) >= mark) codes[cell] = code;
+                        if (kind[cell] != 1 || codes[cell] != stone || taken[cell] || noise.At(x) < mark) continue;
+                        // An absent ore's pocket holds its cells, stone, as its vein does.
+                        if (code < 0) taken[cell] = true;
+                        else codes[cell] = code;
                     }
                 }
             }
@@ -313,6 +334,49 @@ public static partial class Terrain
             (last[k], lastX, lastLevel, lastAcross) = (x, x, kind.Level, kind.Across);
         }
         return flora;
+    }
+
+    /// <summary>
+    /// Whether what a vein or growth gives, <paramref name="yields"/>, holds an ore of <see cref="Content.Landing.Ores"/> missing from
+    /// <paramref name="ores"/> (planet-variety): then it is not grown. Null ores hold every one.
+    /// </summary>
+    internal static bool Absent(IReadOnlyList<(string Item, int Count)> yields, IReadOnlyList<string>? ores)
+    {
+        if (ores == null) return false;
+        foreach (var (item, _) in yields)
+            if (Content.Landing.Ores.Contains(item) && !ores.Contains(item)) return true;
+        return false;
+    }
+
+    /// <summary>
+    /// Each cave kind's chance in each depth band of <paramref name="t"/> (planet-variety): its <see cref="Content.Flora.CaveKind.Chances"/>
+    /// read at the band's temperature between the <see cref="Content.Flora.Degrees"/> they stand at, straight from one to the next,
+    /// rounded down, held past the ends; a kind <see cref="Content.Flora.CaveKind.ByDepth"/> by the band itself.
+    /// </summary>
+    internal static int[][] CaveChances(PlanetType t)
+    {
+        var at = Content.Flora.Degrees;
+        var table = new int[t.Caves.Count][];
+        for (int k = 0; k < table.Length; k++)
+        {
+            var kind = t.Caves[k];
+            table[k] = new int[t.Bands.Count + 1];
+            for (int band = 0; band < table[k].Length; band++)
+                table[k][band] = kind.ByDepth ? kind.Chances[Math.Min(band, kind.Chances.Count - 1)] : Between(kind.Chances, at, t.Temperatures[band]);
+        }
+        return table;
+
+        static int Between(IReadOnlyList<int> chances, IReadOnlyList<int> degrees, int t)
+        {
+            if (t <= degrees[0]) return chances[0];
+            for (int i = 1; i < degrees.Count; i++)
+                if (t <= degrees[i])
+                {
+                    long rise = (long)(chances[i] - chances[i - 1]) * (t - degrees[i - 1]);
+                    return chances[i - 1] + (int)Math.DivRem(rise, degrees[i] - degrees[i - 1], out long left) - (left < 0 ? 1 : 0);
+                }
+            return chances[^1];
+        }
     }
 
     /// <summary>Each column's top: its first row of ground, open or not, under the sky.</summary>
@@ -369,10 +433,13 @@ public static partial class Terrain
     /// whole wall (a floor), one under a whole wall (a ceiling), a stone wall beside a cave cell (rock) — one draw under 10000
     /// picks a kind of that anchor by its chance in the row's band, scaled by the patch noise there and in a great hall, set
     /// where it has room (<see cref="Content.Flora.CaveKind"/>). Only in the caves: an open cell under the sky is no slot, nor a
-    /// wall beside only the sky.
+    /// wall beside only the sky. A kind yielding an absent ore (<see cref="Absent"/>) grows as it would and holds its cells, but is
+    /// not set: they stay bare, and every other kind stands where it would.
     /// </summary>
+    /// <param name="claimed">The cells an absent ore's vein holds, which nothing takes; null for none.</param>
     /// <returns>Each cell a growth took: its own, and those it lies, stands or hangs in.</returns>
-    private static bool[] CaveFlora(PlanetType t, uint seed, char[][] rows, int[] codes, bool[] hall, int[] top, List<(int, string)> into)
+    private static bool[] CaveFlora(
+        PlanetType t, uint seed, char[][] rows, int[] codes, bool[] hall, int[] top, List<(int, string)> into, IReadOnlyList<string>? ores, bool[]? claimed)
     {
         var g = t.Ground;
         int w = g.Width, h = g.Height, floor = h - g.CoreRows, stone = Materials.Get(t.Stone).Code;
@@ -382,10 +449,11 @@ public static partial class Terrain
         // Each anchor's kinds, in the list's order, and each kind's chance by band: looked up a slot at a time.
         var byAnchor = new int[3][];
         for (int on = 0; on < 3; on++) byAnchor[on] = Enumerable.Range(0, kinds.Count).Where(k => (int)kinds[k].Holds == on).ToArray();
-        var chances = kinds.Select(k => k.Chances.ToArray()).ToArray();
+        var chances = CaveChances(t);
+        var absent = kinds.Select(k => Absent(k.Yields, ores)).ToArray();
         var last = new int[kinds.Count];
         var lastOn = new int[3];
-        var taken = new bool[w * h];
+        var taken = claimed is null ? new bool[w * h] : (bool[])claimed.Clone();
         var patches = new Field(seed, CavePatch, t.PatchWave, t.PatchWave, w);
         var patch = new int[w];
         // The same lodes the veins run in: crystals gather by them.
@@ -470,7 +538,7 @@ public static partial class Terrain
                 for (int dx = 0; dx <= right; dx++)
                     for (int i = 0, at = cell + dx; i < kind.Tall; i++, at += step) taken[at] = true;
             }
-            into.Add((cell, kind.Id));
+            if (!absent[k]) into.Add((cell, kind.Id));
             (last[k], lastOn[(int)on]) = (x, x);
         }
     }

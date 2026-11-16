@@ -33,7 +33,9 @@ public class FermenterTests
 
     private static int Fermenter(Scenario w) => w.M.Grid.MachinesOf("fermenter").Single().Id;
     private static int Demand(Scenario w) => w.M.Power.NetworkOf(0)!.Demand;
-    private static int Held(Scenario w, int machine, string item) => w.M.Items.Crate(machine).Sum(s => s?.Item == item ? s.Count : 0);
+    /// <summary>What <paramref name="machine"/> holds of <paramref name="item"/>; of biofuel, the whole litres of its store (fuel-liquid).</summary>
+    private static int Held(Scenario w, int machine, string item) =>
+        w.M.Items.Crate(machine).Sum(s => s?.Item == item ? s.Count : 0) + (item == Content.Fuel.Item ? w.M.Fuel.FuelIn(machine) / Content.Fuel.Can : 0);
     private static readonly int Ticks = Content.Items.Get("biomass").SmeltTicks!.Value;
     private static readonly int Draws = Machines.Get("fermenter").Draws!.Value;
 
@@ -79,6 +81,23 @@ public class FermenterTests
         Assert.Equal(("ferment", Ticks), (Content.Items.Get("fat").Process, Content.Items.Get("fat").SmeltTicks));
         Put(w, fermenter, "fat", 2).Run(2 * Ticks);
         Assert.Equal((0, 2), (Held(w, fermenter, "fat"), Held(w, fermenter, "biofuel")));
+    }
+
+    /// <summary>Its output is its 20 litre store (fuel-liquid): with no litre of room there it begins nothing, resting; drawn from, it works on.</summary>
+    [Fact]
+    public void IdlesWhileItsStoreHasNoLitreOfRoomAndWorksOnOnceDrawnFrom()
+    {
+        var w = World();
+        int fermenter = Fermenter(w);
+        w.M.Fuel.Fill(fermenter, 20 * Content.Fuel.Litre - Content.Fuel.Litre / 2);
+        Put(w, fermenter, "biomass", 2).Run(Ticks);
+        Assert.Equal((2, 19), (Held(w, fermenter, "biomass"), Held(w, fermenter, "biofuel")));
+        Assert.False(w.M.Crafting.Works(fermenter));
+        Assert.Equal(0, Demand(w));
+        w.Do(new Stillwake.Sim.Fuel.DrawFuel(fermenter, 1)).Run(3 * Ticks);
+        Assert.Empty(w.Refusals);
+        Assert.Equal((1, 19), (Held(w, fermenter, "biomass"), Held(w, fermenter, "biofuel")));
+        Assert.Equal(0, Demand(w));
     }
 
     /// <summary>What is not of its process is taken in and sits unworked, the fermenter resting: a seed, a scrap chunk.</summary>

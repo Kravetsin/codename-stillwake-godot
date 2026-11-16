@@ -189,8 +189,8 @@ public class SurfacesTests
         var w = new Scenario(Ship);
         w.Do(new Enter(w.M.Crew.Spawn)).Do(new SetCreative(true)).Run();
         var where = w.M.Landing.Where;
-        int id = where.OpenPlanet();
-        Assert.Equal(id, where.OpenPlanet());
+        int id = where.OpenPlanet(Content.Landing.Planet, null);
+        Assert.Equal(id, where.OpenPlanet(Content.Landing.Planet, null));
         where.Send(0, id);
         w.Run();
         Assert.Equal([Surface.Ship, Content.Landing.Planet], w.World.Surfaces.Select(s => s.Kind));
@@ -198,12 +198,50 @@ public class SurfacesTests
         Assert.True(w.On(id).Items.Creative(0));
     }
 
+    /// <summary>Surfaces asked for while the surfaces run open once they all have, in the order asked, each taking the id it was told, and take who is sent to them.</summary>
+    [Fact]
+    public void SurfacesAskedForOpenAfterThePhasesInTheOrderAskedAndTakeWhoIsSentThere()
+    {
+        var w = new Scenario(Ship);
+        w.Do(new Enter(w.M.Crew.Spawn)).Do(new Enter(w.M.Crew.Spawn + 1) { From = 1 }).Run();
+        var where = w.M.Landing.Where;
+        int shuttle = where.Open("vessel.shuttle", 7), freighter = where.Open("vessel.freighter", 8);
+        Assert.Equal((1, 2), (shuttle, freighter));
+        Assert.Single(w.World.Surfaces);
+        where.Send(1, freighter);
+        where.Send(0, shuttle);
+        w.Run();
+        Assert.Equal([Surface.Ship, "vessel.shuttle", "vessel.freighter"], w.World.Surfaces.Select(s => s.Kind));
+        Assert.Equal([0u, 7u, 8u], w.World.Surfaces.Select(s => s.Seed));
+        Assert.Equal((1, 2), (w.World.SurfaceOf(0), w.World.SurfaceOf(1)));
+        Assert.Throws<ArgumentOutOfRangeException>(() => where.Send(0, 3));
+    }
+
+    /// <summary>A planet asked for draws its seed from the world's random numbers as it opens, as before: a vessel asked for first, its seed given, draws none.</summary>
+    [Fact]
+    public void APlanetsSeedIsDrawnAsBeforeWhateverIsAskedForWithIt()
+    {
+        static Surface Planet(bool vessel)
+        {
+            var w = new Scenario(Ship);
+            w.Do(new Enter(w.M.Crew.Spawn)).Run();
+            if (vessel) w.M.Landing.Where.Open("vessel.shuttle", 7);
+            int id = w.M.Landing.Where.OpenPlanet(Content.Landing.Planet, null);
+            Assert.Equal(id, w.M.Landing.Where.OpenPlanet(Content.Landing.Planet, null));
+            w.Run();
+            return w.World.Surfaces[id];
+        }
+        var (alone, after) = (Planet(false), Planet(true));
+        Assert.Equal((1, 2), (alone.Id, after.Id));
+        Assert.Equal(alone.Seed, after.Seed);
+    }
+
     [Fact]
     public void APlanetAlreadyOpenIsTheOneAskedForAndNoneOpens()
     {
         var w = new Scenario(Ship);
         w.Do(new OpenSurface(Strip)).Do(new OpenSurface(Content.PlanetTypes.Small.Id)).Run();
-        Assert.Equal(2, w.M.Landing.Where.OpenPlanet());
+        Assert.Equal(2, w.M.Landing.Where.OpenPlanet(Content.Landing.Planet, null));
         w.Run();
         Assert.Equal(3, w.World.Surfaces.Count);
     }

@@ -45,7 +45,7 @@ plan, piping, valves on joints, and the networks they join, along which air flow
   12 cells from its start (`PipeNetworks.FromLayout`). A lone pipe joining nothing is dropped. They count as paid. The
   machines a drawing connected are connected the same (`DoubledTests`).
 
-- **Ports** (2026-10-29-typed-ports) take (`In`) or give (`Out`) one fluid (`Content.Fluids`). A **line** is a network with
+- **Ports** (2026-10-29-typed-ports) take (`In`) or give (`Out`) one fluid (`Content.Fluids`: air, water, liquid oxygen, fuel). A **line** is a network with
   every valve counted open; its fluid is its first port's in cell order, none with no port. Lines are found on the first
   read after a span changed or the grid moved, so commands of one tick see each other; finding them moves no `Version`.
   A span is refused, after `pipes.twice`, joining two ports that give (`pipes.bothGive`) or take (`pipes.bothTake`), or
@@ -57,7 +57,8 @@ plan, piping, valves on joints, and the networks they join, along which air flow
 ## API
 
 - **Queries** (`IPipesQueries`): `NetworkAt(cell)`, `NetworksOf(machineId)`, `Network(id)`, `Networks`, `Version` as
-  before; `Spans`, `Valves`, `ValveAt(cell)`; `LayProblem(peer, a, b)` and `ValveProblem(peer, cell, valve)` — why that
+  before; `NetworkOf(machine, way, fluid)` — the network its first port of that way and fluid stands on, and `MachinesOn(trait, way,
+  fluid, network)` — the machines of a trait with such a port on it, in id order: where a store's line begins and ends (Water, Fuel); `Spans`, `Valves`, `ValveAt(cell)`; `LayProblem(peer, a, b)` and `ValveProblem(peer, cell, valve)` — why that
   command would be refused, for the piping's ghost; `FluidProblem(a, b)` — the ports' refusals alone, what the piping lights;
   `FluidAt(cell)`; `SeatProblem(kind, cell)` — why a machine there would break the ports' rules, for Building; `AfterToggles(commands)` — whether each valve the `SetValve`s among
   them name would be open, for what a client shows before its tick runs (0014). Static: `LengthOf(width, a, b)`,
