@@ -10,7 +10,7 @@ namespace Stillwake.Game.Features.Crew;
 /// so the two always meet at the back edge and the hem. It is posed, not simulated (2026-10-28-the-cape-flows): its cut
 /// swung back about the nape (<see cref="Flow"/>) by an angle set by how the hero moves, little standing, far at a sprint
 /// whichever way, down rising from a jump and up falling, each row easing toward it the slower the lower, so a change runs
-/// down it as a whip, and a slow wave running down it as the air streams past, none standing. No point of it comes more than <see cref="Give"/> forward of
+/// down it as a whip, and a slow wave always running down it, faster and higher as the air streams past. No point of it comes more than <see cref="Give"/> forward of
 /// where it hangs as cut, so it never wraps the hero; never under the feet but afloat. What the hero wears on its back
 /// does not shape it. A picture is laid over the grid (<see cref="Uv"/>). Afloat it opens out behind on a slow wave
 /// (<see cref="AfloatRest"/>). Its hood, down on the back under a fur collar, swings with the cape's top rows
@@ -36,11 +36,11 @@ public sealed class Cape
     private const double Spring = 0.04, Lag = 0.75, Damp = 0.9, Flung = 0.3;
     /// <summary>
     /// The air it runs through: a wave runs across it from the shoulders to the hem, <see cref="WaveLag"/> of a turn behind at
-    /// the hem, once every <see cref="RunWaveSteps"/> steps at a sprint and slower as slower it goes, never with the feet: a
-    /// wave a footfall made it jitter. Up to <see cref="RippleRun"/> pixels at the hem at a sprint, none standing: aboard no
-    /// air stirs it. Afloat a slow one runs once every <see cref="WaveSteps"/> steps.
+    /// the hem, once every <see cref="WaveSteps"/> steps standing and <see cref="RunWaveSteps"/> at a sprint, never with the feet: a wave
+    /// a footfall made it jitter. <see cref="Ripple"/> pixels at the hem standing, a gentle sway, up to <see cref="RippleRun"/>
+    /// at a sprint. Afloat it runs as slow as standing.
     /// </summary>
-    private const double RippleRun = 1.6, RunWaveSteps = 45, WaveSteps = 100, WaveLag = 0.75;
+    private const double Ripple = 0.8, RippleRun = 1.6, RunWaveSteps = 45, WaveSteps = 100, WaveLag = 0.75;
     /// <summary>
     /// The flap: running, each wave swings it up and back by up to <see cref="Flap"/> radians at the hem, running down it
     /// <see cref="FlapLag"/> of a wave behind at the hem, its strength drifting by <see cref="Gust"/> over <see cref="GustWaves"/>
@@ -195,8 +195,8 @@ public sealed class Cape
                 _swing[r] = Math.Clamp(_swing[r] + _swingSpeed[r] * k, 0, Most);
             }
         }
-        double wave = afloat ? Wave : RippleRun * run;
-        _phase += steps / (afloat ? WaveSteps : RunWaveSteps) * (afloat ? 1 : run);
+        double wave = afloat ? Wave : Ripple + (RippleRun - Ripple) * run;
+        _phase += steps / (afloat ? WaveSteps : WaveSteps + (RunWaveSteps - WaveSteps) * run);
         // Afloat there is no floor to keep it off.
         double floor = afloat ? double.MaxValue : -0.3;
         for (int i = 0; i < _points.Length; i++)

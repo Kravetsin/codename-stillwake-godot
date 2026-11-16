@@ -107,24 +107,26 @@ public class CapeTests
     }
 
     [Fact]
-    public void StandingAboardItHangsStillAndWalkingItRipples()
+    public void StandingAboardItSwaysGentlyAndWalkingMore()
     {
         var (f, cape) = (new Frame(), new Cape());
         double Stir(int steps, double by)
         {
-            double least = double.MaxValue, most = double.MinValue;
+            // How far its hem moves about, every way.
+            double left = double.MaxValue, right = double.MinValue, top = double.MaxValue, bottom = double.MinValue;
             for (int step = 0; step < steps; step++)
             {
                 Move(cape, f, 1, by);
-                double hem = cape.Points[^1].X;
-                (least, most) = (Math.Min(least, hem), Math.Max(most, hem));
+                var (x, y) = cape.Points[^1];
+                (left, right, top, bottom) = (Math.Min(left, x), Math.Max(right, x), Math.Min(top, y), Math.Max(bottom, y));
             }
-            return most - least;
+            return Math.Sqrt((right - left) * (right - left) + (bottom - top) * (bottom - top));
         }
         Move(cape, f, 300);
-        Assert.True(Stir(120, 0) < 0.01, "standing, it stirs by itself");
+        double standing = Stir(300, 0);
+        Assert.InRange(standing, 0.3, 2);
         Move(cape, f, 120, Walk);
-        Assert.InRange(Stir(120, Walk), 0.3, 6);
+        Assert.InRange(Stir(300, Walk), standing + 0.3, 6);
     }
 
     [Fact]
