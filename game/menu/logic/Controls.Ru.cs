@@ -34,6 +34,8 @@ public static partial class Ru
         ["bind.air"] = "Слой воздуха",
         ["bind.zoomIn"] = "Приблизить",
         ["bind.zoomOut"] = "Отдалить",
+        ["bind.point"] = "Указать",
+        ["bind.wave"] = "Помахать",
         ["key.space"] = "Пробел",
         ["key.tab"] = "Tab",
         ["key.capslock"] = "Caps Lock",

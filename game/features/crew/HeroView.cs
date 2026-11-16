@@ -86,6 +86,8 @@ public partial class HeroView : Node2D
         public DrillPace Drill;
         /// <summary>Its power driver's motor, heard where it works while the sim says it runs (power-driver).</summary>
         public readonly DriverHeard Driver = new();
+        /// <summary>Its gesture, played here from where its peer began it (emotes).</summary>
+        public readonly GesturePlay Gesture = new();
     }
 
     /// <summary>Each other hero drawn, by peer id.</summary>
@@ -231,6 +233,9 @@ public partial class HeroView : Node2D
     private string? _eat;
     /// <summary>Whether the player asked to switch its suit's mode, by V or its edge key, since the last frame.</summary>
     private bool _switchSuit;
+    /// <summary>A gesture asked for by its key since the last frame (emotes), and the one this hero plays.</summary>
+    private Gesture? _gestureAsked;
+    private readonly GesturePlay _gesture = new();
     // A canister breathed is heard in the helmet, never muffled; a friend's on World, where it is.
     private readonly AudioStreamPlayer _breathes = Cues.Player(S.AirFill, S.Helmet), _eats = Cues.Player(S.Eat, S.Helmet), _retches = Cues.Player(S.Retch, S.Helmet);
     private readonly Heard2D _othersBreathe = Cues.Player2D(S.AirFill, S.World, voices: 2);
@@ -706,6 +711,8 @@ public partial class HeroView : Node2D
         // Breathe (R) takes a canister as a right click on one does; Suit (V) switches the suit's mode (2026-11-03-the-regen-suit).
         if (key.Is(Bind.Breathe)) _breathe = true;
         if (key.Is(Bind.Suit)) _switchSuit = true;
+        if (key.Is(Bind.Point)) _gestureAsked = Gesture.Point;
+        if (key.Is(Bind.Wave)) _gestureAsked = Gesture.Wave;
     }
 
     /// <summary>The input for the next controller step, by the keys' places on the keyboard; a jump counts for one step only.</summary>

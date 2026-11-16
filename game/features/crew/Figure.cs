@@ -166,6 +166,8 @@ public partial class Figure : Node2D
     private readonly Dictionary<Sprite2D, Vector2> _joints = new();
     /// <summary>The boots: the shin's picture below the ankle, turning there (2026-11-04-hero-gait).</summary>
     private readonly HashSet<Sprite2D> _soles = [];
+    /// <summary>The near hand, its frame shaped by a gesture (emotes).</summary>
+    private Sprite2D? _frontHand;
     private int? _colour;
 
     /// <summary>The player's mark, a tracker strapped to the near shin (2026-11-02-hero-clothes): the strap lit as the hero is, its light unlit, so it reads in a dark room, tinted by the player's colour.</summary>
@@ -569,6 +571,12 @@ public partial class Figure : Node2D
 
     /// <summary>Where the harpoon or the drill held aims, in pixels of the world: the arm straight, the barrel's or the bit's line through it; none to let it hang.</summary>
     public Vector2? Aim { get; set; }
+
+    /// <summary>
+    /// The sign the near hand makes (emotes): which, how many milliseconds in, and where a point points, in pixels of the world;
+    /// none between. Played over the arm the pose gives while the hands are at nothing else.
+    /// </summary>
+    public (Gesture Kind, double Ms, Vector2 At)? Gesture { get; set; }
 
     /// <summary>
     /// The back hand at work over its pose (catcher-motion): its arm bent to <c>Arm</c> by <c>Share</c> of the way, gripping <c>Item</c>
@@ -1204,6 +1212,7 @@ public partial class Figure : Node2D
             var wrist = new Node2D { Position = new Vector2(0, (float)Rig.Wrist) };
             var hand = Part("hand", far, banded: false);
             hand.Hframes = HandFrames;
+            if (!far) _frontHand = hand;
             wrist.AddChild(hand);
             bend.AddChild(wrist);
         }
@@ -1544,6 +1553,14 @@ public partial class Figure : Node2D
         // The spring only round a run and a while after it: a landing or a pose's own swing moves the arm as it is.
         if (carried && _sinceCarryMs < HeroMotion.Carry.SpringAfterMs) frontArm = frontArm with { Upper = _armSpring.Follow(frontArm.Upper, elapsedMs) };
         else _armSpring.Hold(frontArm.Upper);
+        // A gesture over whatever the pose gives the arm, eased in and out; the hand opens or points once it is mostly in (emotes).
+        double signed = 0;
+        if (Gesture is { } sign && !working && !holding && !chopping && !aiming && pose is Pose.Stand or Pose.Walk or Pose.Run or Pose.Air or Pose.Float)
+        {
+            signed = Gestures.WeightAt(sign.Kind, sign.Ms);
+            frontArm = Mix(frontArm, Gestures.ArmAt(sign.Kind, sign.Ms, FromShoulder(sign.At)), signed);
+        }
+        if (_frontHand != null) _frontHand.Frame = signed > 0.5 && !inHand ? Gestures.FrameOf(Gesture!.Value.Kind) : Gestures.GripFrame;
         _swingArm.Drew(frontArm);
         // A shot's recoil throws the aimed arm up, past where it aims (body-answers); it was aimed before the kick, and fires so.
         frontArm = frontArm with { Upper = frontArm.Upper + body.Kick };

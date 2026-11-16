@@ -34,6 +34,10 @@ public enum Bind
     Air,
     ZoomIn,
     ZoomOut,
+    /// <summary>Points the near hand at the pointer for a second, a word said without words (emotes).</summary>
+    Point,
+    /// <summary>Waves the near hand overhead (emotes).</summary>
+    Wave,
 }
 
 /// <summary>
@@ -68,6 +72,8 @@ public sealed partial class Binds
         [Bind.Air] = "Q",
         [Bind.ZoomIn] = "Equal",
         [Bind.ZoomOut] = "Minus",
+        [Bind.Point] = "F",
+        [Bind.Wave] = "H",
     });
 
     /// <summary>

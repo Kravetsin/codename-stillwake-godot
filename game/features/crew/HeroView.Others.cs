@@ -35,6 +35,7 @@ public partial class HeroView
                 shown.Figure.Visible = false;
                 (shown.Tether, shown.Busy, shown.Work) = (null, null, null);
                 shown.Swing.Stop();
+                shown.Gesture.Stop();
                 ShowRod(id, shown, null, null, false, elapsedMs);
             }
         foreach (var (id, seen) in others)
@@ -76,7 +77,9 @@ public partial class HeroView
                 Struck(_othersGroundHits, m, lead, running!, hero, id);
             // Its stroke shown only while the body drawn, 150 ms behind, holds the tool it was heard swinging.
             var drawnSwing = ReferenceEquals(Strokes.Of(seen.Wields), shown.Swing.Stroke) ? shown.Swing : default;
-            ShowHands(shown.Figure, seen.Wields, Fittings.Of(m.Items, id, seen.Wields), seen.Busy, drawnSwing);
+            shown.Gesture.Hear(seen.Busy);
+            shown.Gesture.Step(elapsedMs);
+            ShowHands(shown.Figure, seen.Wields, Fittings.Of(m.Items, id, seen.Wields), seen.Busy, drawnSwing, shown.Gesture);
             // A friend's drill running points where it drills, its harpoon where its rod flies or sticks, else
             // either hangs; the drill spins while the sim says it runs.
             var rodAim = shown.Rod.AimAt(seen.Rod, PieceDrawnAt);

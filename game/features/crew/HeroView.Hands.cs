@@ -197,13 +197,20 @@ public partial class HeroView
             : _armUp && pointer is { } at ? new Vector2((float)(at.X * Rig.Cell), (float)(at.Y * Rig.Cell)) : null;
         _figure.Loaded = shooter != null ? _guns.Ready : _harpoon.Ready;
         _wields = passedOut ? null : _ui.Wielded.Get();
-        _busy = working ? new Busy(Handwork.Work, square is { } box ? Middle(box.X, box.Y, side) : Middle(aim!.Cell))
+        var work = working ? new Busy(Handwork.Work, square is { } box ? Middle(box.X, box.Y, side) : Middle(aim!.Cell))
             : _swing.Phase != null ? new Busy(Handwork.Chop, _swing.At, _swing.Count)
             : runs ? new Busy(Handwork.Drill, Aiming.PointOf(pointer!.Value))
             : _beamLeftMs > 0 && !handFree && !passedOut ? new Busy(Handwork.Beam, _beamAt)
-            : null;
+            : (Busy?)null;
+        // A gesture plays while nothing else takes the hands: any work, an aimed arm, the plan or the pose cuts it off (emotes).
+        if (!Gestures.CanStart(pose, work != null || _armUp || passedOut || seated, holdsPlan: !handFree)) _gesture.Stop();
+        else if (_gestureAsked == Gesture.Wave) _gesture.Start(Gesture.Wave, default);
+        else if (_gestureAsked == Gesture.Point && pointer is { } pointed) _gesture.Start(Gesture.Point, Aiming.PointOf(pointed));
+        _gestureAsked = null;
+        _gesture.Step(elapsedMs);
+        _busy = work ?? _gesture.Sent;
         _driverHeard.Step(drives && working, _busy is { Work: Handwork.Work, At: var worked } ? Pixels(worked) : null, elapsedMs / 1000);
-        ShowHands(_figure, _wields, Fittings.Of(m.Items, client.Id, _wields), _busy, _swing);
+        ShowHands(_figure, _wields, Fittings.Of(m.Items, client.Id, _wields), _busy, _swing, _gesture);
         // The computer opens its own window; every other machine its slots under the inventory.
         if (uses.Open is int open && m.Grid.MachineById(open) is { } machine)
         {
@@ -493,12 +500,13 @@ public partial class HeroView
     /// A figure's hands as <paramref name="wields"/> and <paramref name="busy"/> say, the stroke playing aimed
     /// <paramref name="swing"/>'s offset from where the figure is now (swing-motions): this machine's hero's and the others' alike.
     /// </summary>
-    private static void ShowHands(Figure figure, string? wields, IReadOnlyList<Content.ModuleSpec> fitted, Busy? busy, AxeSwing swing)
+    private static void ShowHands(Figure figure, string? wields, IReadOnlyList<Content.ModuleSpec> fitted, Busy? busy, AxeSwing swing, GesturePlay gesture)
     {
         figure.Wields = wields;
         figure.Fitted = fitted;
         figure.Chop(swing is { Phase: double phase, Play: { } play } ? (Pixels(swing.Aim), phase, play) : null);
         figure.Work(busy is { Work: Handwork.Work, At: var plan } ? Pixels(plan) : null);
+        figure.Gesture = gesture.Kind is { } kind ? (kind, gesture.Ms, Pixels(gesture.At)) : null;
     }
 
     /// <summary>
