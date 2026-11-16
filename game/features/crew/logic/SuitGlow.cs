@@ -27,10 +27,9 @@ public static class SuitGlow
     /// <summary>How far up the body a part's bands sit, 0 at the boots to 1 at the collar; none for a part with none.</summary>
     public static double? UpOf(string part) => part switch
     {
-        "shin" => 0.04,
-        "thigh" => 0.18,
-        "forearm" => 0.22,
-        "upperArm" => 0.32,
+        // A limb is one picture (whole-limbs): its bands light as one, between its knee's or elbow's two halves.
+        "leg" => 0.11,
+        "arm" => 0.27,
         "pack" => 0.58,
         "torso" => 0.7,
         _ => null,

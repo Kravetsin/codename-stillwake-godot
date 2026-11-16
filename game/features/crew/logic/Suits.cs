@@ -15,8 +15,12 @@ public static class Suits
     public static int Of(IPlayersQueries players, int id) =>
         players.ColourOf(id) is int i && i >= 0 && i < All.Length ? All[i] : All[0];
 
-    /// <summary>The helmet and the suit's body <paramref name="peer"/> wears, their items or null (2026-10-27-suits-are-worn): what its figure is drawn in.</summary>
-    public static (string? Helmet, string? Body) WornBy(IItemsQueries items, int peer) =>
-        (items.WornIn(peer, Stillwake.Content.Helmet.Slot), items.WornIn(peer, Stillwake.Content.Suit.Slot));
+    /// <summary>
+    /// What <paramref name="peer"/>'s figure is drawn in: its helmet, suit's body and cape, items or none (2026-10-27-suits-are-worn),
+    /// in the skins it chose (hero-skins). The one lookup every figure of a peer's hero goes through.
+    /// </summary>
+    public static Dressed DressedAs(IItemsQueries items, IPlayersQueries players, int peer) => Skins.Dress(
+        items.WornIn(peer, Stillwake.Content.Helmet.Slot), items.WornIn(peer, Stillwake.Content.Suit.Slot),
+        items.WornIn(peer, Stillwake.Content.Cape.Slot), players.SkinsOf(peer));
 
 }

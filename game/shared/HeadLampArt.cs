@@ -12,12 +12,15 @@ public static class HeadLampArt
     /// <summary>The lamp's picture, from the side, facing +x.</summary>
     public static Texture2D Picture => PixelArt.Picture("hero_headLamp");
 
-    /// <summary>Where the picture's top left sits on the helmet's picture, in the helmet's pixels: on its brow.</summary>
-    public static readonly Vector2 On = new(8, -2);
+    /// <summary>Where the picture's top left sits on the basic helmet's picture, in its pixels: on its brow.</summary>
+    public static Vector2 On => OnOf(null);
 
-    /// <summary>Where it sits on <paramref name="helmet"/>'s picture (an item id; null or the basic one, <see cref="On"/>): the heavy helmet's on its cap, the quilted one's on its crown.</summary>
-    public static Vector2 OnOf(string? helmet) =>
-        helmet == Stillwake.Content.Helmet.Heavy ? new Vector2(6, -4.8f) : helmet == Stillwake.Content.Helmet.Quilted ? new Vector2(7.2f, -3.4f) : On;
+    /// <summary>Where it sits on <paramref name="helmet"/>'s picture, a helmet's or a skin's picture id (<see cref="LampMounts"/>).</summary>
+    public static Vector2 OnOf(string? helmet)
+    {
+        var (x, y) = LampMounts.Of(helmet);
+        return new Vector2((float)x, (float)y);
+    }
 
     /// <summary>The lens's middle on the lamp's picture, in its pixels: one pixel wide, two high, at its front.</summary>
     public static readonly Vector2 Lens = new(5.5f, 2);

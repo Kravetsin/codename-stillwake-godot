@@ -7,7 +7,7 @@ const { ell, rr, poly } = Anime;
 
 /** The outfits, built once the hero's kit is there: subjects load in name order, hero.js after this. */
 function outfits() {
-  const { limb, wedge, folds, mat, glove, boot, BACK_TORSO, GL, band, BST, BELL_BRASS, BELL_RUBBER, rustAt, hose, port, UNLIT, rivet, torsoDeep } = window.HeroKit;
+  const { limb, wedge, folds, mat, boot, BACK_TORSO, GL, band, BST, BELL_BRASS, BELL_RUBBER, rustAt, hose, port, UNLIT, rivet, torsoDeep } = window.HeroKit;
   const WHITE = '#ffffff';
   /** A tall boot: its shaft straight up the shin, no wider than it, over the hero's own foot, so the foot turns at the ankle as the hero's. */
   const tallBoot = (a, M, top, lines, toe) => {
@@ -64,7 +64,6 @@ function outfits() {
         },
         forearm(a) {
           a.shape(limb(4, 3.6, 2.5, 2.9, 6.6), OIL, folds([1, 4.2, 3.8, 5, .7]));
-          glove(a, HIDE);
           a.shape('M.1 5.1L4.9 4.9L5.1 6.9C3.6 7.4 1.4 7.4 -.1 6.9Z', OIL, { shade: .4, lines: ['M.3 6L4.8 5.9'] });
         },
         thigh(a) {
@@ -144,7 +143,6 @@ function outfits() {
           a.shape(limb(3.6, 3.2, 2.5, 2.9, 6.6), RUB, folds([1, 3.2, 3.8, 3.8, .5]));
           a.shape('M.3 3.4L4.7 3.2L4.8 6.2L.2 6.4Z', OX, { shade: .35, lines: ['M.3 4.4L4.7 4.2', 'M.3 5.4L4.7 5.2'] });
           a.flat(rr(3.7, 4.05, .7, .5, .1), BELL_BRASS.base); a.flat(rr(3.7, 5.05, .7, .5, .1), BELL_BRASS.base);
-          glove(a, RUB);
           a.shape('M.4 6.2L4.6 6.1L4.9 7.6C3.4 8 1.6 8 .1 7.6Z', RUB, { shade: .35 });
         },
         thigh(a) {
@@ -232,7 +230,6 @@ function outfits() {
         },
         forearm(a) {
           a.shape(limb(3.8, 3.4, 2.5, 2.9, 6.6), JACK, { lines: quilted(1.2, 4, 1, 3, 1.2) });
-          glove(a, STRAP);
           a.shape('M.8 7.1L4 7.1L4.2 8.5L.6 8.7Z', LAME, { outer: false, shade: .3 });
           a.shape('M.1 2.9L4.9 2.7L5 6.8L0 7Z', PLATE, { shade: .5, lite: band(.2, 2.8, 4.8, 3.3), lines: ['M3.4 2.9L3.5 6.8'] });
           rivet(a, .6, 3.6, .24); rivet(a, .6, 6.2, .24);
@@ -319,7 +316,6 @@ function outfits() {
         forearm(a) {
           a.shape(limb(3.6, 3.2, 2.5, 2.9, 6.6), JERK, folds([1, 3.4, 3.8, 3.9, .5]));
           a.shape('M.4 3.8L4.6 3.6L4.7 6.8L.3 7Z', HOOD, { shade: .35, lines: ['M2.2 3.9L2.9 4.6L2.2 5.3L2.9 6L2.2 6.7'] });
-          glove(a, BELT);
         },
         thigh(a) {
           a.shape(limb(4.4, 3.4, 3, 2.5, 11.3), TROU, { deep: 'M-1 11.4L7 11.4L7 15L-1 15Z', ...folds([1.2, 4, 4.6, 3.4, .7], [1.2, 9.2, 4.6, 10, .9]) });

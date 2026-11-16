@@ -307,5 +307,7 @@ public static partial class Ru
         ["items.flat"] = "Батареи сели",
         ["items.notRunning"] = "Не работает",
         ["items.creative"] = "творческий",
+        ["items.looks"] = "Внешний вид: скины",
+        ["items.gear"] = "Экипировка",
     };
 }

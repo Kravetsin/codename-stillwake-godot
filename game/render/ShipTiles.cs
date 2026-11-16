@@ -86,6 +86,7 @@ public sealed class ShipTiles
         }
         var fineMade = new Dictionary<string, Image>();
         AddWreckDress(pictures, fineMade);
+        AddVesselDress(pictures, fineMade);
         foreach (var name in (string[])[.. HullBacks, "back_iron_plain", "back_iron_grille", .. StructureTiles])
             pictures.Add(Picture(name, Relief.None));
         foreach (var natural in Materials.All.Where(m => m.Natural)) pictures.Add(Picture(BackName(natural.Id), Relief.None));
@@ -178,7 +179,7 @@ public sealed class ShipTiles
             // Cut a cell at a time, a cell drawing the piece where it lies: sheets laid over the world, and the 16 px pictures of what
             // fills a map's character's cells, two by two or two across (0104): a ladder, a floor, iron's panels.
             bool cut = name.StartsWith("wall_") || name.StartsWith("detail_") || HullBacks.Contains(name) || name.StartsWith("back_") && MadeImages.ContainsKey(name)
-                || CutDrawn(name) || name.StartsWith("door_") || name.StartsWith("hatch_");
+                || CutDrawn(name) || name.StartsWith("door_") || name.StartsWith("hatch_") || name.StartsWith("vessel_");
             if (cut)
             {
                 for (int j = 0; j < size.Y; j++)
@@ -262,6 +263,38 @@ public sealed class ShipTiles
             if (fineMasks == null || fineScrap == null) continue;
             var fineTorn = WreckDress.Torn(fineScrap.GetRegion(new Rect2I(inWall * HiRes.Scale, side, side)).GetData(), fineMasks.GetRegion(new Rect2I(inSheet.Position * HiRes.Scale, side, side)).GetData());
             fine[WreckDress.TornName(x, y)] = Image.CreateFromData(side, side, false, Image.Format.Rgba8, fineTorn);
+        }
+    }
+
+    /// <summary>
+    /// An abandoned vessel's skin (<see cref="VesselDress"/>): its sheets of plates, ribs and stripe, cut a cell at a time; its bow's
+    /// slopes; and its ink a tile for each way of sides heavy and light, laid from the sides' pictures.
+    /// </summary>
+    private static void AddVesselDress(List<(string Name, Image Diffuse, Image Normal)> pictures, Dictionary<string, Image> fine)
+    {
+        foreach (var name in (string[])[VesselDress.HullSheet, VesselDress.RibSheet, VesselDress.StripeSheet])
+            pictures.Add(Picture(name, Relief.None));
+        foreach (int run in VesselDress.Runs())
+            foreach (bool bottom in (bool[])[false, true])
+                foreach (bool glass in (bool[])[false, true])
+                    pictures.Add(Picture(VesselDress.BowName(run, bottom, glass), Relief.None));
+        Image Laid(int space, int room, Func<string, Image?> load, int side)
+        {
+            var image = Image.CreateEmpty(side, side, false, Image.Format.Rgba8);
+            foreach (int s in (int[])[1, 2, 4, 8])
+                if (((space | room) & s) != 0 && load(VesselDress.InkSideName((space & s) != 0, s)) is { } loaded)
+                {
+                    var piece = (Image)loaded.Duplicate();
+                    piece.Convert(Image.Format.Rgba8);
+                    image.BlendRect(piece, new Rect2I(Vector2I.Zero, piece.GetSize()), Vector2I.Zero);
+                }
+            return image;
+        }
+        foreach (var (space, room) in VesselDress.Inks())
+        {
+            string name = VesselDress.InkName(space, room);
+            pictures.Add(Picture(name, Laid(space, room, Art, Cell), Relief.None));
+            fine[name] = Laid(space, room, HiRes.Load, Cell * HiRes.Scale);
         }
     }
 

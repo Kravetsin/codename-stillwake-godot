@@ -47,43 +47,38 @@ public partial class Figure : Node2D
         ["hair"] = new(8.5f, 14),
         ["torso"] = new(6, 0),
         ["pack"] = new(0, 0),
-        ["upperArm"] = new(2.5f, 2.5f),
-        ["forearm"] = new(2.5f, 2.9f),
-        ["thigh"] = new(3, 2.5f),
-        ["shin"] = new(3, 2.18f),
+        // A limb is one picture (whole-limbs) hung from its elbow or knee, its shoulder or hip 2.5 down its box.
+        ["arm"] = new(2.5f, (float)(2.5 + Rig.Arm.Upper)),
+        ["leg"] = new(3, (float)(2.5 + Rig.Leg.Upper)),
         ["sheet"] = new(0, 5),
+        // The hand hangs from the wrist (hand-at-wrist), a frame of its strip 6 by 7 px, the wrist 3 in and 2 down: the cuff hides those 2 px.
+        ["hand"] = new(3, 2),
     };
 
-    private sealed record Limb(Node2D Upper, Node2D Lower, Node2D? Ankle, BentPicture[] Pictures, Sprite2D UpperPart, Sprite2D LowerPart, double Joint)
+    /// <summary>
+    /// The frames of a hand's strip (<c>hero_hand_glove</c>, <c>hero_hand_skin</c>, the far hand's <c>hero_hand_far_*</c>): as it hangs
+    /// and grips, open, pointing, the thumb up.
+    /// </summary>
+    private const int HandFrames = 4;
+
+    /// <summary>A limb hanging from its shoulder or hip, its lower bone's node at the elbow or knee, its boot's at the ankle; its picture and light.</summary>
+    private sealed record Limb(Node2D Upper, Node2D Lower, Node2D? Ankle, BentPicture[] Pictures)
     {
-        private (Texture2D? Upper, Texture2D? Lower) _seamOf;
-        private (double From, double To) _seam = BentLimb.Plain;
-
-        /// <summary>Where its two pictures meet as worn now (<see cref="BentLimb.SeamOf"/>), found again only when either picture changes.</summary>
-        private (double From, double To) Seam()
-        {
-            if (_seamOf == (UpperPart.Texture, LowerPart.Texture)) return _seam;
-            _seamOf = (UpperPart.Texture, LowerPart.Texture);
-            return _seam = BentLimb.SeamOf(SuitArt.RowsOf(UpperPart.Texture), UpperPart.Offset.Y - Joint, SuitArt.RowsOf(LowerPart.Texture),
-                LowerPart.Offset.Y, 1.0 / HiRes.Scale);
-        }
-
         /// <summary>
         /// Rotations run clockwise and the figure faces +x, so forward, and a boot's toe up (<paramref name="foot"/>), is negative;
-        /// the pictures bent as one piece at the joint (bent-limbs).
+        /// the picture bent as one piece at the joint (bent-limbs, whole-limbs).
         /// </summary>
         public void Bend(Bend b, double foot = 0)
         {
             Upper.Rotation = (float)-b.Upper;
             Lower.Rotation = (float)-b.Lower;
             if (Ankle != null) Ankle.Rotation = (float)-foot;
-            var seam = Seam();
-            foreach (var picture in Pictures) picture.Show(b.Lower, seam);
+            foreach (var picture in Pictures) picture.Show(b.Lower);
         }
     }
 
     /// <summary>
-    /// How far the boot's picture reaches up under the shin's, in pixels (2026-11-04-hero-gait): the shin's picture is cut at the
+    /// How far the boot's picture reaches up under the leg's, in pixels (2026-11-04-hero-gait): the leg's picture is cut at the
     /// ankle and the boot turns on its own, so no gap opens beside the cut as it turns.
     /// </summary>
     private const float BootOverlap = 1f;
@@ -171,12 +166,19 @@ public partial class Figure : Node2D
     private readonly Dictionary<Sprite2D, Vector2> _joints = new();
     /// <summary>The boots: the shin's picture below the ankle, turning there (2026-11-04-hero-gait).</summary>
     private readonly HashSet<Sprite2D> _soles = [];
+    /// <summary>The near hand and the wrist it turns at, shaped by a gesture (gestures-for-words); its pictures from the back and from the palm.</summary>
+    private Sprite2D? _frontHand;
+    private Node2D? _frontWrist;
+    private Texture2D? _handBack, _handPalm;
+    /// <summary>How far a gesture nods the head this frame, radians down.</summary>
+    private double _signNod;
     private int? _colour;
 
     /// <summary>The player's mark, a tracker strapped to the near shin (2026-11-02-hero-clothes): the strap lit as the hero is, its light unlit, so it reads in a dark room, tinted by the player's colour.</summary>
     private readonly Sprite2D _trackerLight = new() { Centered = false, Offset = TrackerAt, Material = new CanvasItemMaterial { LightMode = CanvasItemMaterial.LightModeEnum.Unshaded } };
     private readonly Sprite2D _tracker = new() { Centered = false, Offset = TrackerAt };
-    private static readonly Vector2 TrackerAt = -Joints["shin"] - new Vector2(HiRes.FigureMargin, HiRes.FigureMargin);
+    // The strap is drawn in the old shin's box, its knee at 3, 2.18 (hero.js's trackerStrap).
+    private static readonly Vector2 TrackerAt = -new Vector2(3, 2.18f) - new Vector2(HiRes.FigureMargin, HiRes.FigureMargin);
     private static Texture2D? _trackerStrapPicture, _trackerLightPicture;
 
     private Limbs? _shown;
@@ -252,6 +254,13 @@ public partial class Figure : Node2D
     private readonly Spring _armSpring = new(HeroMotion.Carry.SpringHz, HeroMotion.Carry.SpringDamping);
     /// <summary>The swipe of light the axe leaves on its downstroke (0075).</summary>
     private readonly ReachAir _air = new();
+    /// <summary>The effect skin on a struck blade (hero-skins), drawn where the haze is; the parts its lip was read from, and the lip.</summary>
+    private readonly BladeFxView _fx = new();
+    private HeldParts? _fxParts;
+    private IReadOnlyList<EdgeLip.Point> _fxLip = [];
+
+    /// <summary>The hero's weapon effect skin (hero-skins): on any struck blade held without an arc module it replaces the haze; none for none.</summary>
+    public EffectLook? EffectSkin { get; set; }
     /// <summary>Whether the swing playing bit something, and is drawn held at the strike (<see cref="AxeSwing.Shown"/>); the phase last drawn.</summary>
     private bool _bit;
     private double _lastPhase;
@@ -297,12 +306,12 @@ public partial class Figure : Node2D
     {
         _own = own;
         AddChild(_boots = new Voices(S.World, voices: 1, placed: !own));
-        _backLeg = MakeLimb(Rig.Leg, "thigh", "shin", far: true, out var backLeg);
+        _backLeg = MakeLimb(Rig.Leg, "leg", far: true, out var backLeg);
         _backHip = backLeg;
-        _backArm = MakeLimb(Rig.Arm, "upperArm", "forearm", far: true, out var backArm);
-        _frontLeg = MakeLimb(Rig.Leg, "thigh", "shin", far: false, out var frontLeg);
+        _backArm = MakeLimb(Rig.Arm, "arm", far: true, out var backArm);
+        _frontLeg = MakeLimb(Rig.Leg, "leg", far: false, out var frontLeg);
         _frontHip = frontLeg;
-        _frontArm = MakeLimb(Rig.Arm, "upperArm", "forearm", far: false, out var frontArm);
+        _frontArm = MakeLimb(Rig.Arm, "arm", far: false, out var frontArm);
         _frontArmNode = frontArm;
         backLeg.Position = new Vector2((float)-Rig.HipApart, (float)-Rig.Hip);
         frontLeg.Position = new Vector2((float)Rig.HipApart, (float)-Rig.Hip);
@@ -396,7 +405,7 @@ public partial class Figure : Node2D
         foreach (var n in new Node2D[] { _waistBehind, backLeg, frontLeg, _waist }) parts.AddChild(n);
         foreach (var n in new Node2D[] { _offHeld, backArm }) _waistBehind.AddChild(n);
         foreach (var n in new Node2D[] { torso, _helmet, _belt }) _waist.AddChild(n);
-        _hands = [_plan, _tool, _held, frontArm, _collar, _air];
+        _hands = [_plan, _tool, _held, frontArm, _collar, _air, _fx];
         foreach (var n in _hands) _waist.AddChild(n);
         (_capeInside, _capeOutside) = (new CapeView(_cape, inside: true) { Visible = false }, new CapeView(_cape, inside: false) { Visible = false });
         Lit.Set(_capeInside);
@@ -406,7 +415,7 @@ public partial class Figure : Node2D
         // The inside lies in the cape's shadow: darker, so it reads as depth behind the hero.
         _capeInside.SelfModulate = new Color(0.72f, 0.72f, 0.78f);
         _waist.AddChild(_capeOutside);
-        _air.Position = new Vector2(0, (float)-Rig.Shoulder);
+        _air.Position = _fx.Position = new Vector2(0, (float)-Rig.Shoulder);
         AddChild(_body);
         // A retch's bile (food-tuning): on the glass, clipped to it; out of the mouth, free of the figure, puddles behind it.
         _helmetPictures[VisorPicture].AddChild(_bile);
@@ -568,6 +577,12 @@ public partial class Figure : Node2D
     public Vector2? Aim { get; set; }
 
     /// <summary>
+    /// The sign the near hand makes (gestures-for-words): which, how many milliseconds in, and where a point points, in pixels of the world;
+    /// none between. Played over the arm the pose gives while the hands are at nothing else.
+    /// </summary>
+    public (GestureMotion Motion, double Ms, Vector2 At)? Gesture { get; set; }
+
+    /// <summary>
     /// The back hand at work over its pose (catcher-motion): its arm bent to <c>Arm</c> by <c>Share</c> of the way, gripping <c>Item</c>
     /// turned <c>Hold</c> back from the forearm (none for empty), its fuse sparking as <c>Fuse</c> draws it (none unlit); null as the pose has it.
     /// </summary>
@@ -600,6 +615,9 @@ public partial class Figure : Node2D
 
     /// <summary>Whether it wears the tracker on its shin: every hero does; a catcher drawn as one does not (tracker-catchers).</summary>
     public bool Tracked { get; set; } = true;
+
+    /// <summary>Whether its head and helmet are left undrawn: a suit's card shows the suit alone (<c>Dev.SuitCards</c>).</summary>
+    public bool Headless { set => _helmet.Visible = !value; }
 
     /// <summary>
     /// The world's layer its near arm and what it holds are drawn on, over the tufts its feet stand in (held-over-grass); none for a
@@ -648,17 +666,27 @@ public partial class Figure : Node2D
         set => _jetpack.Visible = value;
     }
 
-    /// <summary>Whether the hero wears a cape (2026-10-27-the-cape-is-worn): a sheet of cloth from the shoulders to the floor.</summary>
-    public bool WearsCape
+    /// <summary>
+    /// The cape the hero wears (2026-10-27-the-cape-is-worn), a sheet of cloth from the shoulders to the floor: its picture id,
+    /// the item's own or a skin's (hero-skins); none for no cape.
+    /// </summary>
+    public string? CapeWorn
     {
-        get => _capeOutside.Visible;
+        get => _capeOutside.Visible ? _capePicture : null;
         set
         {
-            if (value == _capeOutside.Visible) return;
-            _capeInside.Visible = _capeOutside.Visible = value;
+            if (value != null && value != _capePicture)
+            {
+                _capePicture = value;
+                _capeInside.Wear(value);
+                _capeOutside.Wear(value);
+            }
+            if ((value != null) == _capeOutside.Visible) return;
+            _capeInside.Visible = _capeOutside.Visible = value != null;
             _cape.Reset();
         }
     }
+    private string _capePicture = Stillwake.Content.Cape.Item;
 
     /// <summary>Whether the hero wears the helmet lamp (0077): it shows on the helmet's brow and shines, only on a helmet.</summary>
     public bool HeadLamp
@@ -688,9 +716,7 @@ public partial class Figure : Node2D
     {
         _scanner.Visible = _scannerWorn && _helmetWorn != null;
         if (!_scanner.Visible) return;
-        var (name, (x, y)) = _helmetWorn == Stillwake.Content.Helmet.Heavy ? ("hero_heavyHelmet_scanner", ScannerInk.OnHeavy)
-            : _helmetWorn == Stillwake.Content.Helmet.Quilted ? ("hero_quiltedHelmet_scanner", ScannerInk.OnQuilted)
-            : ("hero_scanner", ScannerInk.On);
+        var (name, x, y) = ScannerInk.Of(_helmetWorn!);
         _scanner.Texture = PixelArt.Picture(name);
         _scanner.Offset = _scannerDot.Offset = new Vector2((float)x - ScannerInk.Margin, (float)y - ScannerInk.Margin) - Joints["helmet"];
         for (int i = 0; i < _scannerDots.Length; i++) _scannerDots[i] = PixelArt.Picture($"{name}_lit_{i}");
@@ -912,9 +938,28 @@ public partial class Figure : Node2D
                 int from = Math.Clamp((int)Math.Round(sprite.RegionRect.Position.Y), 0, h), to = Math.Clamp((int)Math.Round(sprite.RegionRect.End.Y), from, h);
                 (data, h) = (data[(from * w * 4)..(to * w * 4)], to - from);
             }
+            if (sprite.Hframes > 1)
+            {
+                // A hand: only its frame's columns of the strip.
+                int fw = w / sprite.Hframes, x0 = sprite.Frame * fw;
+                var frame = new byte[fw * h * 4];
+                for (int y = 0; y < h; y++) Array.Copy(data, (y * w + x0) * 4, frame, y * fw * 4, fw * 4);
+                (data, w) = (frame, fw);
+            }
+            if (_uppers.TryGetValue(sprite, out var upper))
+            {
+                // A limb breaks along its two bones: the rows above the joint with the upper bone, the rest with the lower.
+                int above = Math.Clamp((int)Math.Round(-sprite.Offset.Y), 0, h);
+                PixelBursts.Paint(into, upper.Node.GlobalTransform * new Transform2D(0, sprite.Offset + new Vector2(0, (float)upper.Bone)), w, above, data[..(above * w * 4)]);
+                PixelBursts.Paint(into, sprite.GlobalTransform * new Transform2D(0, sprite.Offset + new Vector2(0, above)), w, h - above, data[(above * w * 4)..]);
+                continue;
+            }
             PixelBursts.Paint(into, sprite.GlobalTransform * new Transform2D(0, sprite.Offset), w, h, data);
         }
     }
+
+    /// <summary>Each limb's picture's upper bone (whole-limbs): its node, and its length, where the picture's joint is down it.</summary>
+    private readonly Dictionary<Sprite2D, (Node2D Node, double Bone)> _uppers = new();
 
     /// <summary>
     /// The figure in <paramref name="colour"/>, 0xRRGGBB, the player's, wearing a suit's <paramref name="helmet"/> (its item, null for
@@ -929,9 +974,11 @@ public partial class Figure : Node2D
         int skin = HeroLooks.Wrap(look.Skin, HeroLooks.Skins.Length), hair = HeroLooks.Wrap(look.HairColour, HeroLooks.Hairs.Length);
         foreach (var (sprite, part, isFar) in _parts)
         {
-            sprite.Texture = SuitArt.Of(PictureOf(part), colour, skin, hair, isFar);
+            sprite.Texture = SuitArt.Of(PictureOf(part, isFar), colour, skin, hair, isFar);
             sprite.Offset = _joints[sprite] - (sprite.Texture is CanvasTexture ? new Vector2(HiRes.FigureMargin, HiRes.FigureMargin) : Vector2.Zero);
-            if (part == "shin") CutAtTheAnkle(sprite, _soles.Contains(sprite));
+            if (part == "leg") CutAtTheAnkle(sprite, _soles.Contains(sprite));
+            if (part == "arm") CutAtTheWrist(sprite);
+            if (sprite == _frontHand) (_handBack, _handPalm) = (sprite.Texture, SuitArt.Of(PictureOf(part, far: true), colour, skin, hair, false));
         }
         (_headLit.Offset, _faceLit.Offset) = (_headPart.Offset, _facePart.Offset);
         _pack.Visible = body != null;
@@ -952,7 +999,7 @@ public partial class Figure : Node2D
     }
 
     /// <summary>
-    /// A shin's picture cut at the ankle (2026-11-04-hero-gait): the shin above it, or the <paramref name="boot"/> below it, from
+    /// A leg's picture cut at the ankle (2026-11-04-hero-gait): the leg above it, or the <paramref name="boot"/> below it, from
     /// <see cref="BootOverlap"/> over it, placed from the ankle it turns at.
     /// </summary>
     private static void CutAtTheAnkle(Sprite2D sprite, bool boot)
@@ -968,6 +1015,14 @@ public partial class Figure : Node2D
         float top = ankle - BootOverlap;
         sprite.RegionRect = new Rect2(0, top, size.X, size.Y - top);
         sprite.Offset = new Vector2(sprite.Offset.X, -BootOverlap);
+    }
+
+    /// <summary>An arm's picture cut at the wrist (hand-at-wrist): above it the arm, below it its old glove never drawn; the hand is its own.</summary>
+    private static void CutAtTheWrist(Sprite2D sprite)
+    {
+        float wrist = -sprite.Offset.Y + (float)Rig.Wrist;
+        (sprite.RegionEnabled, sprite.RegionFilterClipEnabled) = (true, true);
+        sprite.RegionRect = new Rect2(0, 0, sprite.Texture.GetSize().X, wrist);
     }
 
     /// <summary>
@@ -1007,12 +1062,18 @@ public partial class Figure : Node2D
         return bent;
     }
 
-    /// <summary>The picture a part is drawn with: bare, the look's clothes in place of the suit; the look's face, hair and beard.</summary>
-    private string PictureOf(string part) => part switch
+    /// <summary>
+    /// The picture a part is drawn with: bare, the look's clothes in place of the suit; the look's face, hair and beard; the
+    /// <paramref name="far"/> hand seen from its palm.
+    /// </summary>
+    private string PictureOf(string part, bool far = false) => part switch
     {
-        "torso" or "upperArm" or "forearm" or "thigh" or "shin" when _bodyWorn == null => $"outfit_{HeroLooks.Wrap(_look.Outfit, HeroLooks.Outfits)}_{part}",
+        "torso" or "arm" or "leg" when _bodyWorn == null => $"outfit_{HeroLooks.Wrap(_look.Outfit, HeroLooks.Outfits)}_{part}",
         // A later body's own pictures, as a later helmet's (2026-11-03-the-regen-suit).
-        "torso" or "pack" or "upperArm" or "forearm" or "thigh" or "shin" when _bodyWorn is { } body && body != Stillwake.Content.Suit.Basic => $"{body}_{part}",
+        "torso" or "pack" or "arm" or "leg" when _bodyWorn is { } body && body != Stillwake.Content.Suit.Basic => $"{body}_{part}",
+        // Two hands for every body (hand-at-wrist): the glove, or bare in the look's skin; the near seen from outside, the far from its palm.
+        "hand" when _bodyWorn == null && !HeroLooks.OutfitGloved[HeroLooks.Wrap(_look.Outfit, HeroLooks.Outfits)] => far ? "hand_far_skin" : "hand_skin",
+        "hand" => far ? "hand_far_glove" : "hand_glove",
         "face" => $"face_{HeroLooks.Wrap(_look.Face, HeroLooks.Faces)}",
         "hair" => $"hair_{HeroLooks.Wrap(_look.Hair, HeroLooks.HairStyles)}",
         "beard" => $"beard_{Math.Max(HeroLooks.Wrap(_look.Beard, HeroLooks.Beards + 1) - 1, 0)}",
@@ -1133,27 +1194,38 @@ public partial class Figure : Node2D
     }
 
     /// <summary>
-    /// A limb hanging from its joint in two pictures, the upper over the lower, its nodes turned at the joint and at the elbow or
-    /// knee, and each picture drawn bent as one piece round the elbow or knee (<see cref="BentPicture"/>, bent-limbs).
+    /// A limb hanging from its joint, one picture (whole-limbs) on the lower bone's node at the elbow or knee, bent there as one piece
+    /// (<see cref="BentPicture"/>, bent-limbs): above the joint rigid with the upper bone, below it with the lower.
     /// </summary>
-    private Limb MakeLimb(Segments size, string upper, string lower, bool far, out Node2D view)
+    private Limb MakeLimb(Segments size, string name, bool far, out Node2D view)
     {
         view = new Node2D();
         var bend = new Node2D { Position = new Vector2(0, (float)size.Upper) };
         Node2D? ankle = null;
-        if (lower == "shin")
+        if (name == "leg")
         {
-            // The boot under the shin, turning at the ankle on its own (2026-11-04-hero-gait).
+            // The boot under the leg, turning at the ankle on its own (2026-11-04-hero-gait).
             ankle = new Node2D { Position = new Vector2(0, (float)Rig.ToAnkle.Lower) };
-            var boot = Part(lower, far, banded: false);
+            var boot = Part(name, far, banded: false);
             _soles.Add(boot);
             ankle.AddChild(boot);
             bend.AddChild(ankle);
         }
+        if (name == "arm")
+        {
+            // The hand under the arm on its own node at the wrist, as the boot at the ankle (hand-at-wrist): never bent, the elbow far above.
+            var wrist = new Node2D { Position = new Vector2(0, (float)Rig.Wrist) };
+            var hand = Part("hand", far, banded: false);
+            hand.Hframes = HandFrames;
+            if (!far) (_frontHand, _frontWrist) = (hand, wrist);
+            wrist.AddChild(hand);
+            bend.AddChild(wrist);
+        }
         var pictures = new List<BentPicture>();
-        var lowerPart = Bendable(Part(lower, far), 0, lower: true, pictures);
-        bend.AddChild(lowerPart);
-        if (lower == "shin" && !far)
+        var part = Bendable(Part(name, far), 0, lower: true, pictures);
+        _uppers[part] = (view, size.Upper);
+        bend.AddChild(part);
+        if (name == "leg" && !far)
         {
             Lit.Set(_tracker);
             _tracker.Texture = _trackerStrapPicture ??= HiRes.Texture(HiRes.Load("hero_tracker")!);
@@ -1163,9 +1235,7 @@ public partial class Figure : Node2D
             Gives(_trackerLight, _trackerGlow).Position = TrackerAt + HiRes.MiddleOf("hero_tracker_light");
         }
         view.AddChild(bend);
-        var upperPart = Bendable(Part(upper, far), size.Upper, lower: false, pictures);
-        view.AddChild(upperPart);
-        return new Limb(view, bend, ankle, [.. pictures], upperPart, lowerPart, size.Upper);
+        return new Limb(view, bend, ankle, [.. pictures]);
     }
 
     /// <summary>
@@ -1335,7 +1405,9 @@ public partial class Figure : Node2D
         _workMs = working ? _workMs + elapsedMs : 0;
         bool holding = holdsPlan && Poses.HoldsIn(pose) && !working;
         var item = HeldLook.Of(Wields);
-        bool inHand = item != null && Poses.HoldsIn(pose) && !working && !holding;
+        // Signing, what the near hand held is stowed till the gesture ends (gestures-for-words).
+        bool signing = Gesture != null && !working && !holding && pose is Pose.Stand or Pose.Walk or Pose.Run or Pose.Air or Pose.Float;
+        bool inHand = item != null && Poses.HoldsIn(pose) && !working && !holding && !signing;
         // Struck with by hand: the axe, the sledgehammer swung, the spear thrust (Strokes).
         var stroke = Strokes.Of(Wields);
         bool chopping = _chop != null && stroke != null && item != null && inHand;
@@ -1488,6 +1560,27 @@ public partial class Figure : Node2D
         // The spring only round a run and a while after it: a landing or a pose's own swing moves the arm as it is.
         if (carried && _sinceCarryMs < HeroMotion.Carry.SpringAfterMs) frontArm = frontArm with { Upper = _armSpring.Follow(frontArm.Upper, elapsedMs) };
         else _armSpring.Hold(frontArm.Upper);
+        // A gesture over whatever the pose gives the arm, eased in and out; the hand opens or points once it is mostly in (gestures-for-words).
+        double signed = 0, signWrist = 0;
+        _signNod = 0;
+        GestureMotion? motion = null;
+        if (signing && Gesture is { } sign)
+        {
+            motion = sign.Motion;
+            signed = Gestures.WeightAt(motion, sign.Ms);
+            var (arm, wristTurn, nod) = Gestures.ArmAt(motion, sign.Ms, FromShoulder(sign.At));
+            frontArm = Mix(frontArm, arm, signed);
+            (signWrist, _signNod) = (wristTurn * signed, nod * signed);
+        }
+        if (_frontHand != null && _frontWrist != null)
+        {
+            bool shaped = signed > 0.5 && motion != null;
+            _frontHand.Frame = shaped ? motion!.Frame : GestureMotions.GripFrame;
+            _frontHand.Scale = new Vector2(shaped && motion!.Mirrored ? -1 : 1, 1);
+            var picture = shaped && motion!.Side == HandSide.Palm ? _handPalm : _handBack;
+            if (picture != null && _frontHand.Texture != picture) _frontHand.Texture = picture;
+            _frontWrist.Rotation = (float)-signWrist;
+        }
         _swingArm.Drew(frontArm);
         // A shot's recoil throws the aimed arm up, past where it aims (body-answers); it was aimed before the kick, and fires so.
         frontArm = frontArm with { Upper = frontArm.Upper + body.Kick };
@@ -1513,7 +1606,7 @@ public partial class Figure : Node2D
         _head = Settle(_head, awake ? look : 0, elapsedMs, HeadSettleMs);
         // On the floor the head takes back some of the body's lean, so a run looks ahead, not at the floor.
         // In an answer it keeps the eyes up as the body leans.
-        _gaze = _head - (pose is Pose.Stand or Pose.Walk or Pose.Run ? shown.Tilt * HeroMotion.Run.HeadSteady : 0) - BodyAnswers.HeadSteady * body.Lean;
+        _gaze = _head - (pose is Pose.Stand or Pose.Walk or Pose.Run ? shown.Tilt * HeroMotion.Run.HeadSteady : 0) - BodyAnswers.HeadSteady * body.Lean + _signNod;
         // Retching the head goes down with the torso and further, over what comes up.
         if (_retchMs < Retching.Ms) _gaze += Retching.Nod(_retchMs) + (pose is Pose.Stand or Pose.Walk or Pose.Run ? BodyAnswers.HeadSteady * Retching.Lean(_retchMs) : 0);
         // Each part of the helmet turns its fit's way about its pivot (helmets-fit-the-suit); its pictures bend only if it is soft.
@@ -1522,8 +1615,8 @@ public partial class Figure : Node2D
         _face.Transform = Turned(face);
         _shellTurn.Transform = Turned(shell);
         _crown.Transform = Turned(crown);
-        foreach (var picture in _helmetPictures) picture.Show(bend, BentLimb.Seamless);
-        _sealBent.Show(_fit.SealBy(_gaze), BentLimb.Seamless);
+        foreach (var picture in _helmetPictures) picture.Show(bend);
+        _sealBent.Show(_fit.SealBy(_gaze));
         ShowRetch(elapsedMs, feetY);
         // The sheet is in the front hand, tilted to face the eyes: up toward them looking up, flatter
         // looking down at it.
@@ -1621,7 +1714,11 @@ public partial class Figure : Node2D
         WheelRadius = zone is { Disc: true } disc ? disc.Size : null;
         // The plain spear trails as a swung blade does, but not in its thrust (the lens is the thrust's, spear-trail); the arc spear's bolts are its own.
         bool spearTrails = struckHeld && item!.Aimed && jabMs == null && Wields == Stillwake.Content.Weapons.Spear.Item && PartsOf(item) is not { Crackles.Count: > 0 };
-        _air.Follow(zone, elapsedMs, bladeHeld || spearTrails ? _edge : null);
+        // An effect skin replaces the haze on a struck blade with no arc module (hero-skins): its trail, and its rest state on the blade's lip.
+        var skinned = struckHeld && EffectSkin != null && PartsOf(item!) is { Crackles.Count: 0 } bare ? bare : null;
+        bool trails = bladeHeld || spearTrails;
+        _air.Follow(zone, elapsedMs, trails && skinned == null ? _edge : null);
+        _fx.Follow(skinned != null ? EffectSkin : null, elapsedMs, skinned != null ? FxHeld(skinned) : null, trails && skinned != null ? _edge : null);
         Helix = zone is { Disc: false } bit ? HelixOf(bit) : null;
         _beamMs = Math.Max(0, _beamMs - elapsedMs);
         ShowBeams(holding);
@@ -1685,6 +1782,16 @@ public partial class Figure : Node2D
 
     /// <summary>A point of the held item's picture in the world, as it is drawn now.</summary>
     private Vector2 HeldAt((double X, double Y) p) => _held.ToGlobal(new Vector2((float)p.X, (float)p.Y) + _held.Offset);
+
+    /// <summary>The blade <paramref name="parts"/> as held this frame, for its effect skin: its lip read once a picture and set of layers.</summary>
+    private BladeFx.Held FxHeld(HeldParts parts)
+    {
+        if (parts != _fxParts)
+            (_fxParts, _fxLip) = (parts, EdgeLip.Of(HeldArt.AreaOf(parts.Look.Picture, parts.Layers, parts.Look.EdgeBox()), parts.Look));
+        return new(_fxAt ??= p => { var v = HeldAt(p); return (v.X, v.Y); }, _fxLip, _edge);
+    }
+
+    private Func<(double X, double Y), (double X, double Y)>? _fxAt;
 }
 
 /// <summary>
@@ -1730,29 +1837,7 @@ public static class SuitArt
         var made = HiRes.Texture(fine);
         Made[key] = made;
         Bytes[made] = (small.GetWidth(), small.GetHeight(), small.GetData());
-        Rows[made] = WidthsOf(fine);
         return made;
-    }
-
-    // Each made picture's opaque width row by row: where a limb's two pictures meet bent (BentLimb.SeamOf).
-    private static readonly Dictionary<Texture2D, float[]> Rows = new();
-
-    /// <summary>A made picture's opaque width in the world's pixels, each row of its hi-res picture; none for a picture not made here.</summary>
-    public static float[]? RowsOf(Texture2D? texture) => texture != null && Rows.TryGetValue(texture, out var rows) ? rows : null;
-
-    private static float[] WidthsOf(Image fine)
-    {
-        int w = fine.GetWidth(), h = fine.GetHeight();
-        var data = fine.GetData();
-        var rows = new float[h];
-        for (int y = 0; y < h; y++)
-        {
-            int opaque = 0;
-            for (int x = 0; x < w; x++)
-                if (data[(y * w + x) * 4 + 3] > 127) opaque++;
-            rows[y] = opaque / (float)HiRes.Scale;
-        }
-        return rows;
     }
 
     /// <summary>

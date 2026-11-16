@@ -69,12 +69,21 @@ public partial class HeroView
 
         // The press is taken every frame, so one made out of reach is spent rather than kept. The left
         // button grabs debris too: out in space, with the keys held and the mouse aiming, E is a stretch.
+        // The gesture key: a tap points, held its wheel opens by the arrow (gestures-for-words); clicks meanwhile use nothing.
+        float wheelScale = Slots.SizeOf(_ui.SlotScale.Get()) / 40f;
+        bool wheelKey = pointer != null && BindKeys.Held(Bind.Gesture) && GetViewport().GuiGetFocusOwner() is not LineEdit;
+        var mouse = GetViewport().GetMousePosition();
+        var asked = _wheel.Step(wheelKey, elapsedMs, (mouse.X, mouse.Y), GestureWheel.Middle * wheelScale);
+        _wheelView.Show(_wheel, wheelScale);
+        // A tap pings the spot for the crew, whatever the hands are doing; the point is played only if they are free.
+        if (asked == Gesture.Point && pointer is { } pinged && !passedOut) _ping.Place(Aiming.PointOf(pinged));
+        _ping.Step(elapsedMs);
         bool pressed = (_autopilot?.TakePress() ?? false) | TakeUse();
         bool clicked = _mouse.Buttons.TakeClick();
         // With the harpoon's rod out of the gun, a click is the gun's: hooked, it reels, even on a piece in reach.
         bool grab = clicked && aim?.Piece != null && !(gun && _harpoon.Rod != Rod.Seated);
         // Seated or flying, what is in hand works nothing: no swing, run, shot or canister's breath (Seating.Held).
-        bool acts = !passedOut && !Seating.Held(m, client.Id) && handFree;
+        bool acts = !passedOut && !Seating.Held(m, client.Id) && handFree && !_wheel.Open;
         bool builds = acts && driver != null && _mouse.Buttons.HoldsLeft;
         if (seated && pressed && !passedOut)
         {
@@ -197,13 +206,18 @@ public partial class HeroView
             : _armUp && pointer is { } at ? new Vector2((float)(at.X * Rig.Cell), (float)(at.Y * Rig.Cell)) : null;
         _figure.Loaded = shooter != null ? _guns.Ready : _harpoon.Ready;
         _wields = passedOut ? null : _ui.Wielded.Get();
-        _busy = working ? new Busy(Handwork.Work, square is { } box ? Middle(box.X, box.Y, side) : Middle(aim!.Cell))
+        var work = working ? new Busy(Handwork.Work, square is { } box ? Middle(box.X, box.Y, side) : Middle(aim!.Cell))
             : _swing.Phase != null ? new Busy(Handwork.Chop, _swing.At, _swing.Count)
             : runs ? new Busy(Handwork.Drill, Aiming.PointOf(pointer!.Value))
             : _beamLeftMs > 0 && !handFree && !passedOut ? new Busy(Handwork.Beam, _beamAt)
-            : null;
+            : (Busy?)null;
+        // A gesture plays while nothing else takes the hands: any work, an aimed arm, the plan or the pose cuts it off (gestures-for-words).
+        if (!Gestures.CanStart(pose, work != null || _armUp || passedOut || seated, holdsPlan: !handFree)) _gesture.Stop();
+        else if (asked is { } sign && pointer is { } pointed) _gesture.Start(sign, Aiming.PointOf(pointed));
+        _gesture.Step(elapsedMs);
+        _busy = work ?? _gesture.Sent;
         _driverHeard.Step(drives && working, _busy is { Work: Handwork.Work, At: var worked } ? Pixels(worked) : null, elapsedMs / 1000);
-        ShowHands(_figure, _wields, Fittings.Of(m.Items, client.Id, _wields), _busy, _swing);
+        ShowHands(_figure, _wields, Fittings.Of(m.Items, client.Id, _wields), _busy, _swing, _gesture);
         // The computer opens its own window; every other machine its slots under the inventory.
         if (uses.Open is int open && m.Grid.MachineById(open) is { } machine)
         {
@@ -492,12 +506,13 @@ public partial class HeroView
     /// A figure's hands as <paramref name="wields"/> and <paramref name="busy"/> say, the stroke playing aimed
     /// <paramref name="swing"/>'s offset from where the figure is now (swing-motions): this machine's hero's and the others' alike.
     /// </summary>
-    private static void ShowHands(Figure figure, string? wields, IReadOnlyList<Content.ModuleSpec> fitted, Busy? busy, AxeSwing swing)
+    private static void ShowHands(Figure figure, string? wields, IReadOnlyList<Content.ModuleSpec> fitted, Busy? busy, AxeSwing swing, GesturePlay gesture)
     {
         figure.Wields = wields;
         figure.Fitted = fitted;
         figure.Chop(swing is { Phase: double phase, Play: { } play } ? (Pixels(swing.Aim), phase, play) : null);
         figure.Work(busy is { Work: Handwork.Work, At: var plan } ? Pixels(plan) : null);
+        figure.Gesture = gesture.Kind is { } kind ? (GestureMotions.Of(kind), gesture.Ms, Pixels(gesture.At)) : null;
     }
 
     /// <summary>

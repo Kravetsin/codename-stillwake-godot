@@ -34,6 +34,8 @@ public enum Bind
     Air,
     ZoomIn,
     ZoomOut,
+    /// <summary>A tap points the near hand at the pointer; held, a wheel of signs in place of words (gestures-for-words).</summary>
+    Gesture,
 }
 
 /// <summary>
@@ -68,6 +70,7 @@ public sealed partial class Binds
         [Bind.Air] = "Q",
         [Bind.ZoomIn] = "Equal",
         [Bind.ZoomOut] = "Minus",
+        [Bind.Gesture] = "F",
     });
 
     /// <summary>

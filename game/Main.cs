@@ -90,6 +90,17 @@ public partial class Main : Node2D, ITogether
     private HeroView? _hero;
     /// <summary>The look this player chose (2026-10-28-looks-are-printed): null on a first run till the look editor closes; look 0 in a dev run.</summary>
     private Sim.Players.Look? _look;
+    /// <summary>Keeps <paramref name="ids"/> as this player's skins, for the next run too unless a dev run, and sends them.</summary>
+    private void PickSkins(IReadOnlyList<string> ids)
+    {
+        _skins = ids;
+        if (_dev.None) Settings.KeepSkins(ids);
+        _hero?.SkinsChanged();
+    }
+
+    /// <summary>The skins this player picked (hero-skins), kept from an earlier run; what of them it owns goes out (<see cref="Owned"/>).</summary>
+    private IReadOnlyList<string> _skins = [];
+    private Owned _owned = new(false, _ => false);
     private Features.Crew.LookEditor? _lookEditor;
     private ItemsView? _items;
     private FabricatorPanel? _fabricator;
@@ -183,10 +194,13 @@ public partial class Main : Node2D, ITogether
         _playerKey = Profile.Key(_dev.All);
         _cheat = Has("--cheat");
         _look = Settings.Look() ?? (_dev.None ? null : Sim.Players.Look.Zero);
+        // A dev run picks none, as it keeps no look; a debug build owns every skin unless told it owns none.
+        _skins = _dev.None ? Settings.Skins() : _dev.Value("--wear")?.Split(',') ?? [];
+        _owned = new Owned(OS.IsDebugBuild() && !Has("--own-none"), _ => false);
         // Before anything is made that says anything.
         var language = _dev.Value("--lang");
         Speaking = language != null ? Languages.Named(language) ?? Language.English : Settings.Language();
-        if (PoseSheetOnly() || DressSheetOnly()) return;
+        if (PoseSheetOnly() || DressSheetOnly() || GestureSheetOnly() || SuitCardsOnly()) return;
         QuitAfterAWhile();
         // First of all at its layer, before every shimmer (0075).
         AddChild(Shimmer.NewScreenCopy());
@@ -237,9 +251,11 @@ public partial class Main : Node2D, ITogether
         if (!Has("--perf") && !Has("--gallery"))
         {
             var script = DevScript();
-            AddChild(_hero = new HeroView(_hands.Ui, _hands.Mouse, script) { Look = () => _look });
+            AddChild(_hero = new HeroView(_hands.Ui, _hands.Mouse, script) { Look = () => _look, Skins = () => _owned.Sendable(_skins) });
             PlaceHero(_hero);
             AddChild(_items = new ItemsView(_hands.Ui));
+            // The equipment's screen turns to the skins (hero-skins): picked, they are kept and sent.
+            _items.Panel.Appearance = size => new AppearanceView(_hands.Ui, size, () => _skins, _owned.Has, PickSkins);
             // A queued station's inputs are the items feature's slots, laid out in the crafting feature's panel.
             AddChild(_fabricator = new FabricatorPanel(_hands.Ui, peer => AsciiArt.Colour((uint)Suits.Of(_m.Players, peer))) { Lend = _items.Panel.Lend, LendSockets = _items.Panel.LendSockets, ShiftOut = _items.Panel.ShiftOut });
             // The drone badge is the logistics feature's, put in the items' and crafting panels' headers where drones have work (0062).
@@ -521,6 +537,9 @@ public partial class Main : Node2D, ITogether
         _grid = View<GridView>();
         var fires = View<FurnaceView>()!;
         var (power, hazards) = (_m.Power, _m.Hazards);
+        // A derelict's own lamps burn on their battery, lit by their own view and with no bolt over them; one a hero builds there has both.
+        Func<Sim.Grid.Machine, bool> own = View<Features.Light.VesselLamps>() is { } inside ? inside.Claims : _ => false;
+        _hands.Unmarked = own;
         AddChild(_light = new LightView(_m.Grid, Game.Light.SkyOf(_m.Rules), ground: _m.Rules is Content.PlanetType)
         {
             // --lit: every lamp at full power, to measure the light on the reference world; --dark: every lamp out, to see what glows.
@@ -528,6 +547,7 @@ public partial class Main : Node2D, ITogether
             LampShare = Has("--lit") ? _ => 1f : Has("--dark") ? _ => 0f : lamp => Features.Light.LampPower.ShareOf(Stillwake.Content.Machines.Get(lamp.Kind).Draws, power.Satisfaction(lamp.Id))
                 * Features.Hazards.FlareLook.LampShare(Features.Hazards.FlareLook.Near(hazards.FlareLeft, (_session as Session)?.Progress ?? 0, hazards.FlareRules.Warning)),
             Fire = m => fires.BlazeOf(m.Id),
+            Skips = own,
             FireAt = FurnaceView.LightAt,
             HeadLamps = () => _hero?.HeadLamps() ?? [],
             // The creatures live across surfaces: their view is made once, not with these.

@@ -37,10 +37,12 @@ public class BladeTrailTests
         // 8 px a frame: 480 px a second, over the speed a trail is whole at.
         for (int i = 0; i <= 5; i++) trail.Step(Frame, Edge(i * 8));
         Assert.True(trail.Live);
-        var (points, _) = Drawn(trail);
-        Assert.NotEmpty(points);
-        Assert.All(points, p => Assert.InRange(p.X, 0, 40));
-        Assert.All(points, p => Assert.InRange(p.Y, 0, 6));
+        var (points, alphas) = Drawn(trail);
+        // What is seen: the feather beyond the edge's ends is drawn clear.
+        var seen = points.Where((_, i) => alphas[i] > 0).ToList();
+        Assert.NotEmpty(seen);
+        Assert.All(seen, p => Assert.InRange(p.X, 0, 40));
+        Assert.All(seen, p => Assert.InRange(p.Y, 0, 6));
     }
 
     [Fact]
@@ -126,5 +128,32 @@ public class BladeTrailTests
         Assert.Equal(5, x, 6);
         Assert.Equal(2, y, 6);
         Assert.Equal((5.0, 0.0), (look with { Bow = 0 }).EdgePoint(0.5));
+    }
+
+    [Fact]
+    public void ItsSmoothedSweepPassesThroughItsSamplesOnACurveBetween()
+    {
+        var trail = new BladeTrail();
+        // The edge swung round the origin a tenth of a turn a frame, 30 px out: 18 px a frame, a straight chord between frames.
+        static (double X, double Y)[] At(int i) => [(30 * Math.Cos(i * 0.6), 30 * Math.Sin(i * 0.6)), (36 * Math.Cos(i * 0.6), 36 * Math.Sin(i * 0.6))];
+        for (int i = 0; i <= 4; i++) trail.Step(Frame, At(i));
+        var fine = trail.Smoothed(1.5);
+        Assert.True(fine.Count > 20);
+        foreach (var s in trail.Samples) Assert.Contains(fine, f => f.Edge[0] == s.Edge[0]);
+        // Between the frames it keeps near the circle the edge swung on, where a chord would cut inside it by 1.3 px.
+        Assert.All(fine, f => Assert.InRange(Math.Sqrt(f.Edge[0].X * f.Edge[0].X + f.Edge[0].Y * f.Edge[0].Y), 29.6, 30.4));
+        Assert.Equal(fine.OrderBy(f => f.Place).Select(f => f.Place), fine.Select(f => f.Place));
+    }
+
+    [Fact]
+    public void ItsSmoothedSweepPutsNothingAcrossAJump()
+    {
+        var trail = new BladeTrail();
+        trail.Step(Frame, Edge(0));
+        trail.Step(Frame, Edge(8));
+        trail.Step(Frame, Edge(8 + BladeTrail.Jump + 5));
+        trail.Step(Frame, Edge(8 + BladeTrail.Jump + 13));
+        var fine = trail.Smoothed(1.5);
+        Assert.DoesNotContain(fine, f => f.Edge[0].X > 8 && f.Edge[0].X < 8 + BladeTrail.Jump + 5);
     }
 }

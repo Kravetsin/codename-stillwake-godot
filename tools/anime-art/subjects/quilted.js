@@ -9,8 +9,8 @@ const HEAD = { right: 13, top: -0.8, height: 15.6 };
 Subjects.quilted = function () {
   const { s, at } = Traced.onHead('quilted', HEAD), ops = Traced.placed('quilted', s, at), u = TRACED.quilted.fit.units;
   const glass = ops.filter((o) => o.mat === 'glass').map((o) => o.d).join('');
-  const [shell, visor] = HeroKit.cut(Traced.drawer('quilted', ops, u * s), glass, []);
-  out('hero_quiltedHelmet_shell', shell);
+  // Its shell is painted raw (suits.js); its glass is drawn here.
+  const [, visor] = HeroKit.cut(Traced.drawer('quilted', ops, u * s), glass, []);
   out('hero_quiltedHelmet_visor', visor);
   out('items/quiltedHelmet', Traced.icon('quilted'));
 };

@@ -33,7 +33,9 @@ public partial class GridView : Node2D
     private readonly IGridQueries _grid;
     private readonly ShipTiles _tiles = ShipTiles.Shared;
     private readonly ShadowTiles _shadows = ShadowTiles.Shared;
-    private readonly TileMapLayer _back, _shade, _walls, _details, _edges, _dress, _tops, _topsFront, _fixtures, _doors, _machines;
+    private readonly TileMapLayer _back, _shade, _walls, _hull, _stripe, _details, _edges, _dress, _tops, _topsFront, _fixtures, _doors, _machines;
+    /// <summary>An abandoned vessel's name and code, cut in cells from the picture painted as its surface loaded; null off a vessel.</summary>
+    private readonly TileMapLayer? _paint;
     /// <summary>The layers a cell is drawn in; machines are drawn apart, over their footprints.</summary>
     private readonly TileMapLayer[] _cellLayers;
     private readonly Node2D _sockets = new() { ZIndex = Layers.Sockets };
@@ -50,11 +52,15 @@ public partial class GridView : Node2D
     /// <summary>A planet's depth bands, its stone drawn by band (2026-11-08-planet-layers); null on a ship.</summary>
     private readonly Strata? _strata;
 
+    /// <summary>An abandoned vessel's skin (derelict-looks); null on any other surface.</summary>
+    private readonly VesselDress? _vessel;
 
-    public GridView(IGridQueries grid, Strata? strata = null)
+
+    public GridView(IGridQueries grid, Strata? strata = null, VesselDress? vessel = null)
     {
         _grid = grid;
         _strata = strata;
+        _vessel = vessel;
         _corner = WreckDress.CornerIn(grid.Width, grid.Height);
         _drawn = new DrawnLayers(grid.Width, grid.Height);
         _reveal = new ChunkReveal(grid.Width, grid.Height);
@@ -75,6 +81,21 @@ public partial class GridView : Node2D
         };
         AddChild(_shade);
         _walls = Layer(Layers.Walls, L.WallIn, shines: true);
+        // A vessel's plates in its livery's tone, its stripe in the stripe's, its name in its paint, over the walls' layer (derelict-looks).
+        _hull = Layer(Layers.Walls, L.WallIn);
+        _stripe = Layer(Layers.Walls, L.WallIn);
+        if (vessel != null)
+        {
+            var livery = VesselLooks.Liveries[vessel.Livery];
+            _hull.SelfModulate = LiveryTint(livery.Hull, VesselLooks.HullGrey);
+            _stripe.SelfModulate = LiveryTint(livery.Stripe, VesselLooks.StripeGrey);
+            if (VesselPaint.Of(vessel) is { } paint)
+            {
+                _paint = new TileMapLayer { TileSet = paint, ZIndex = Layers.Walls, CollisionEnabled = false, NavigationEnabled = false, SelfModulate = LiveryTint(livery.Paint, VesselLooks.PaintGrey) };
+                Lit.Set(_paint, L.WallIn);
+                AddChild(_paint);
+            }
+        }
         // A planet's pebbles and roots over its ground, under its edges: added after the walls, before them (0082).
         _details = Layer(Layers.Walls, L.WallIn);
         _edges = Layer(Layers.Edges, L.WallIn);
@@ -89,7 +110,7 @@ public partial class GridView : Node2D
         _fixtures = Layer(Layers.Fixtures);
         _doors = Layer(Layers.Doors, L.WallIn);
         _machines = Layer(Layers.Machines);
-        _cellLayers = [_back, _shade, _walls, _details, _edges, _dress, _fixtures, _doors];
+        _cellLayers = [_back, _shade, _walls, _hull, _stripe, .. (_paint != null ? (TileMapLayer[])[_paint] : []), _details, _edges, _dress, _fixtures, _doors];
         AddChild(_sockets);
         foreach (var player in (Node[])[_opens, _closes]) AddChild(player);
     }
@@ -99,9 +120,14 @@ public partial class GridView : Node2D
     {
         foreach (var layer in (CanvasItem[])[_back, _shade]) layer.Modulate = _tint with { A = alpha.Back };
         foreach (var layer in (CanvasItem[])[_walls, _details, _edges, _dress]) layer.Modulate = _tint with { A = alpha.Front };
-        foreach (var layer in (CanvasItem[])[_tops, _topsFront]) layer.Modulate = new Color(1, 1, 1, alpha.Front);
+        foreach (var layer in (CanvasItem?[])[_hull, _stripe, _paint, _tops, _topsFront])
+            if (layer != null) layer.Modulate = new Color(1, 1, 1, alpha.Front);
         foreach (var layer in (CanvasItem[])[_fixtures, _doors, _machines, _sockets]) layer.Modulate = new Color(1, 1, 1, alpha.Front);
     }
+
+    /// <summary>What a picture painted in <paramref name="grey"/> is multiplied by to come out <paramref name="rgb"/> (0xRRGGBB).</summary>
+    private static Color LiveryTint(uint rgb, int grey) =>
+        new((rgb >> 16 & 0xff) / (float)grey, (rgb >> 8 & 0xff) / (float)grey, (rgb & 0xff) / (float)grey);
 
     private TileMapLayer Layer(int z, float share = 1, bool shines = false)
     {
@@ -335,15 +361,22 @@ public partial class GridView : Node2D
         // Stars show through a tear's cuts, so it draws no back wall while its wall stands.
         int open = spec.Draw == StructureDraw.Autotile ? ~WalledSides(cell) & (Up | Right | Down | Left) : 0;
         var dress = spec.Draw == StructureDraw.Autotile ? WreckDress.Of(_drawn.Material[cell], x, y, _corner, open) : default;
+        var skin = spec.Draw == StructureDraw.Autotile && _vessel != null ? SkinOf(cell, x, y) : default;
 
         if (_drawn.Back[cell] == Back.Wall)
         {
-            if (dress.Torn == null) DrawBack(at, _drawn.BackMaterial[cell], BandAt(cell, _drawn.BackMaterial[cell]));
+            if (dress.Torn == null && !skin.Cut) DrawBack(at, _drawn.BackMaterial[cell], BandAt(cell, _drawn.BackMaterial[cell]));
             DrawShade(cell, blank);
         }
 
         switch (spec.Draw)
         {
+            case StructureDraw.Autotile when skin.Wall is { } plate:
+                (skin.Tinted ? _hull : _walls).SetCell(at, ShipTiles.Source, _tiles.CutAt(plate.Sheet, plate.X, plate.Y));
+                if (skin.Ink != null) Put(_edges, at, skin.Ink);
+                if (skin.Stripe is { } stripe) _stripe.SetCell(at, ShipTiles.Source, _tiles.CutAt(stripe.Sheet, stripe.X, stripe.Y));
+                if (skin.Paint is { } paint) _paint?.SetCell(at, VesselPaint.Source, new Vector2I(paint.X, paint.Y));
+                break;
             case StructureDraw.Autotile:
                 {
                     int band = BandAt(cell, _drawn.Material[cell]);
@@ -378,6 +411,15 @@ public partial class GridView : Node2D
                     break;
                 }
         }
+    }
+
+    /// <summary>What a wall of the vessel at <paramref name="cell"/> wears as drawn (<see cref="VesselDress.Of"/>): nothing but for its hull and its cockpit's glass.</summary>
+    private VesselDress.Dress SkinOf(int cell, int x, int y)
+    {
+        int code = _drawn.Material[cell];
+        if (code != VesselDress.HullCode && code != VesselDress.GlassCode) return default;
+        var (space, room) = VesselDress.Sides(cell, _grid.Width, _grid.Height, _drawn.Structure, _drawn.Back);
+        return _vessel!.Of(code, x, y, space, room);
     }
 
     /// <summary>A joined piece's links, as a hatch's: another of its kind on the left, on the right.</summary>
@@ -467,10 +509,12 @@ public partial class GridView : Node2D
     {
         // Where the cell lies in its doorway, along it from the top or left end the panel slides into and across its thickness.
         var spot = DoorShape.SpotOf(cell, _grid.Width, _doorLinksOf ??= DoorLinksOf, Doorways.Lies(_drawn.Structure[cell]));
-        // Eased (0075): slow off, quick through the middle, slow into its slot.
+        // Eased (0075): slow off, quick through the middle, slow into its slot. A derelict's jammed door goes only part way (derelict-looks).
+        double most = _vessel != null && _vessel.Jammed(cell % _grid.Width, cell / _grid.Width) ? VesselLooks.JammedOpen : 1;
+        bool closed = Doorways.IsClosed(_drawn.Structure[cell]);
         var (picture, quarter) = _slides.OpenOf(cell) is double open
-            ? DoorShape.TileOf(spot, (int)Math.Round(DoorLight.Ease(open) * spot.Length * Cell))
-            : DoorShape.TileOf(spot, closed: Doorways.IsClosed(_drawn.Structure[cell]));
+            ? DoorShape.TileOf(spot, (int)Math.Round(DoorLight.Ease(open) * most * spot.Length * Cell))
+            : most < 1 && !closed ? DoorShape.TileOf(spot, (int)Math.Round(most * spot.Length * Cell)) : DoorShape.TileOf(spot, closed);
         _doors.SetCell(CellOf(cell), ShipTiles.Source, _tiles.At(picture) + new Vector2I(quarter.X, quarter.Y));
     }
 

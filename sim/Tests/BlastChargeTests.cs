@@ -89,10 +89,27 @@ public class BlastChargeTests
         Assert.DoesNotContain(14 * W + 20, opened);
         Assert.True(CrackAt(w, 14 * W + 20) > 0);
         Assert.All(opened, c => Assert.True(Math.Abs(c % W - 20) <= Blast.Reach && c / W - 8 <= Blast.Reach));
-        // Each stone it broke lies where it was as a gravel, anyone's: quick, but no rock to build with.
+        // Each stone it broke lies as a gravel, anyone's: quick, but no rock to build with.
         Assert.Equal(opened.Count, Lying(w, "gravel"));
         Assert.Equal(0, Lying(w, "rock") + Count(w, "rock"));
         Assert.All(w.M.Items.Floor, s => Assert.Equal(FloorStack.Nobody, s.By));
+    }
+
+    [Fact]
+    public void WhatItBreaksIsThrownFromWhereItBurstInAFewPiecesThatComeToRestInTheCrater()
+    {
+        var w = Pit('t');
+        var end = Thrown(w, At(20, 8, Down));
+        int burst = end.Burst;
+        // A stack a broken cell would carpet the crater: the gravel flies out in a few pieces instead (2026-11-16-loot-pieces).
+        Assert.True(Opened(w).Count > Content.Floor.BurstPieces);
+        Assert.Equal(Content.Floor.BurstPieces, w.M.Items.Floor.Count);
+        Assert.All(w.M.Items.Floor, s => Assert.True(Math.Abs(s.Cell % W - burst % W) <= 1 && Math.Abs(s.Cell / W - burst / W) <= 1, $"{s.Cell}"));
+        Assert.Contains(w.M.Items.Floor, s => s.Vx < 0);
+        Assert.Contains(w.M.Items.Floor, s => s.Vx > 0);
+        w.Run(200);
+        Assert.Equal(Opened(w).Count, Lying(w, "gravel"));
+        Assert.All(w.M.Items.Floor, s => Assert.Equal((0, 0), (s.Vx, s.Vy)));
     }
 
     [Fact]

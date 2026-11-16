@@ -35,6 +35,8 @@ public partial class HeroView
                 shown.Figure.Visible = false;
                 (shown.Tether, shown.Busy, shown.Work) = (null, null, null);
                 shown.Swing.Stop();
+                shown.Gesture.Stop();
+                shown.Ping.Clear();
                 ShowRod(id, shown, null, null, false, elapsedMs);
             }
         foreach (var (id, seen) in others)
@@ -50,7 +52,7 @@ public partial class HeroView
             var hero = seen.Hero;
             bool out_ = (crew.HeroOf(id)?.Out ?? 0) > 0;
             shown.Figure.Visible = m.Landing.SeatOf(id) == null && m.Landing.FlightOf(id) == null && m.Landing.VoyageOf(id) == null;
-            var (helmet, body) = Suits.WornBy(m.Items, id);
+            var (helmet, body, cape, effect) = Suits.DressedAs(m.Items, m.Players, id);
             shown.Figure.Wear(Suits.Of(m.Players, id), helmet, body, m.Players.LookOf(id));
             shown.Figure.Suit = SuitGlow.Of(crew, m.Items, id, _client.World.Tick);
             shown.Figure.Signal = crew.SignalOf(id);
@@ -76,7 +78,11 @@ public partial class HeroView
                 Struck(_othersGroundHits, m, lead, running!, hero, id);
             // Its stroke shown only while the body drawn, 150 ms behind, holds the tool it was heard swinging.
             var drawnSwing = ReferenceEquals(Strokes.Of(seen.Wields), shown.Swing.Stroke) ? shown.Swing : default;
-            ShowHands(shown.Figure, seen.Wields, Fittings.Of(m.Items, id, seen.Wields), seen.Busy, drawnSwing);
+            shown.Gesture.Hear(seen.Busy);
+            shown.Gesture.Step(elapsedMs);
+            shown.Ping.Hear(seen.Ping);
+            shown.Ping.Step(elapsedMs);
+            ShowHands(shown.Figure, seen.Wields, Fittings.Of(m.Items, id, seen.Wields), seen.Busy, drawnSwing, shown.Gesture);
             // A friend's drill running points where it drills, its harpoon where its rod flies or sticks, else
             // either hangs; the drill spins while the sim says it runs.
             var rodAim = shown.Rod.AimAt(seen.Rod, PieceDrawnAt);
@@ -90,7 +96,8 @@ public partial class HeroView
             shown.Figure.Jetpack = m.Items.Equipped(id, Content.Jetpack.Item);
             shown.Figure.HeadLamp = m.Items.Equipped(id, Content.HelmetLamp.Item);
             shown.Figure.Scanner = m.Items.Equipped(id, Content.Helmet.Scanner);
-            shown.Figure.WearsCape = m.Items.Equipped(id, Content.Cape.Item);
+            shown.Figure.CapeWorn = cape;
+            shown.Figure.EffectSkin = SkinEffects.Of(effect);
             shown.Figure.FloorRoom = FloorRoom(m.Grid, hero);
             shown.Figure.Room = RoomOf(ship, hero);
             shown.Figure.Footing = FootingOf(m, hero, shown.Figure.Footing);
@@ -218,6 +225,23 @@ public partial class HeroView
             else shown.Drum.Stop();
         }
         DrawRod(rod.Rod, rod.Tip, rod.Heading, figure.Muzzle, ref shown.Line, shown.RodPicture, RodLook.Of(wields), shown.Light, peer, elapsedMs);
+    }
+
+    /// <summary>Every ping shown, this player's and its friends' here, drawn in their colours and listed for the markers (gesture-pings).</summary>
+    private void ShowPings(Registry m)
+    {
+        var pings = new List<(int, Point)>();
+        var dots = new List<PingView.Dot>();
+        void Add(int peer, Ping ping)
+        {
+            if (ping.At is not { } at) return;
+            pings.Add((peer, at));
+            dots.Add(new PingView.Dot(Pixels(at), Suits.Of(m.Players, peer), (float)ping.Shown, (float)(ping.Ms / 1000)));
+        }
+        Add(_client!.Id, _ping);
+        foreach (var (id, shown) in _shownOthers) Add(id, shown.Ping);
+        Pings = pings;
+        _pingView.Show(dots);
     }
 
     /// <summary>A point in thousandths of a cell, in the world's pixels.</summary>

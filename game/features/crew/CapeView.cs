@@ -13,8 +13,10 @@ namespace Stillwake.Game.Features.Crew;
 /// </summary>
 public partial class CapeView(Cape cape, bool inside) : Node2D
 {
-    private static readonly Texture2D Outside = PixelArt.Picture("hero_cape"), Lining = PixelArt.Picture("hero_cape_lining"),
-        Hood = PixelArt.Picture("hero_cape_hood"), Collar = PixelArt.Picture("hero_cape_collar");
+    /// <summary>The cape's pictures, by its picture id (hero-skins): the item's own, `cape`, or a skin's.</summary>
+    private Texture2D _outside = PixelArt.Picture("hero_cape"), _lining = PixelArt.Picture("hero_cape_lining"),
+        _hoodPicture = PixelArt.Picture("hero_cape_hood"), _collar = PixelArt.Picture("hero_cape_collar");
+    private string _picture = Stillwake.Content.Cape.Item;
     /// <summary>Where the collar lies, its top left, from the feet: round the neck over the cape's top, from the back to the clasp.</summary>
     private static readonly Vector2 CollarAt = new(-10.5f, (float)-(Rig.Neck + 1.5));
     /// <summary>The clasp at the throat, a pixel of brass on the outside.</summary>
@@ -23,6 +25,16 @@ public partial class CapeView(Cape cape, bool inside) : Node2D
     private static readonly Vector2[] HoodUvs = MakeHoodUvs();
     private static readonly Color[] Colours = [.. Uvs.Select(_ => Colors.White)], HoodColours = [.. HoodUvs.Select(_ => Colors.White)];
     private readonly Vector2[] _points = new Vector2[Cape.Cols * Cape.Rows], _hood = new Vector2[Cape.HoodCols * Cape.HoodRows];
+
+    /// <summary>Draws the cape in <paramref name="picture"/>'s pictures: <c>hero_{picture}</c>, its lining, hood and collar.</summary>
+    public void Wear(string picture)
+    {
+        if (picture == _picture) return;
+        _picture = picture;
+        (_outside, _lining) = (PixelArt.Picture($"hero_{picture}"), PixelArt.Picture($"hero_{picture}_lining"));
+        (_hoodPicture, _collar) = (PixelArt.Picture($"hero_{picture}_hood"), PixelArt.Picture($"hero_{picture}_collar"));
+        QueueRedraw();
+    }
 
     /// <summary>Takes the cape's points as it last moved, to draw them.</summary>
     public void Refresh()
@@ -35,11 +47,11 @@ public partial class CapeView(Cape cape, bool inside) : Node2D
 
     public override void _Draw()
     {
-        RenderingServer.CanvasItemAddTriangleArray(GetCanvasItem(), Cape.Triangles, _points, Colours, Uvs, texture: (inside ? Lining : Outside).GetRid());
+        RenderingServer.CanvasItemAddTriangleArray(GetCanvasItem(), Cape.Triangles, _points, Colours, Uvs, texture: (inside ? _lining : _outside).GetRid());
         if (inside) return;
         // The hood on the back; the collar over its opening and the cape's top, the clasp at the throat.
-        RenderingServer.CanvasItemAddTriangleArray(GetCanvasItem(), Cape.HoodTriangles, _hood, HoodColours, HoodUvs, texture: Hood.GetRid());
-        DrawTexture(Collar, CollarAt);
+        RenderingServer.CanvasItemAddTriangleArray(GetCanvasItem(), Cape.HoodTriangles, _hood, HoodColours, HoodUvs, texture: _hoodPicture.GetRid());
+        DrawTexture(_collar, CollarAt);
         var (cx, cy) = Cape.Clasp;
         DrawRect(new Rect2((float)Math.Floor(cx) - 1, (float)Math.Floor(cy), 2, 2), Brass);
     }

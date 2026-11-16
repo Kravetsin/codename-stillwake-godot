@@ -111,6 +111,59 @@ public sealed class Ink
         Add(x + nx * edge, y + ny * edge, tone with { A = 0 });
     }
 
+    /// <summary>
+    /// A line <paramref name="width"/> wide along <paramref name="line"/>, unbroken through its turns (each point's way across
+    /// the mean of its two stretches'), its sides feathered; round to its start if <paramref name="closed"/>.
+    /// </summary>
+    public void Stroke(IReadOnlyList<(double X, double Y)> line, double width, Tone tone, bool closed = false)
+    {
+        int n = line.Count;
+        if (n < 2) return;
+        int first = Points.Count;
+        for (int i = 0; i < n; i++)
+        {
+            var prev = line[i > 0 ? i - 1 : closed ? n - 1 : 0];
+            var next = line[i < n - 1 ? i + 1 : closed ? 0 : n - 1];
+            double dx = next.X - prev.X, dy = next.Y - prev.Y, l = Math.Sqrt(dx * dx + dy * dy);
+            Across(line[i].X, line[i].Y, l > 1e-9 ? -dy / l : 0, l > 1e-9 ? dx / l : 1, width / 2, tone);
+        }
+        for (int i = 0; i < (closed ? n : n - 1); i++)
+        {
+            int a = first + 4 * i, b = first + 4 * ((i + 1) % n);
+            for (int k = 0; k < 3; k++) Quad(a + k, a + k + 1, b + k, b + k + 1);
+        }
+    }
+
+    /// <summary>
+    /// A sheet across <paramref name="lines"/> of as many points, each line in its own of <paramref name="tones"/>, blended between
+    /// them; its long sides, where the lines start and end, feathered outward along them.
+    /// </summary>
+    public void Sheet(IReadOnlyList<IReadOnlyList<(double X, double Y)>> lines, IReadOnlyList<Tone> tones)
+    {
+        if (lines.Count < 2) return;
+        int n = lines[0].Count, first = Points.Count;
+        if (n < 2) return;
+        for (int i = 0; i < lines.Count; i++)
+        {
+            var (line, tone) = (lines[i], tones[i]);
+            var (start, end) = (Out(line[0], line[1]), Out(line[n - 1], line[n - 2]));
+            Add(start.X, start.Y, tone with { A = 0 });
+            for (int j = 0; j < n; j++) Add(line[j].X, line[j].Y, tone);
+            Add(end.X, end.Y, tone with { A = 0 });
+        }
+        int m = n + 2;
+        for (int i = 0; i + 1 < lines.Count; i++)
+            for (int c = 0; c + 1 < m; c++)
+                Quad(first + i * m + c, first + (i + 1) * m + c, first + i * m + c + 1, first + (i + 1) * m + c + 1);
+    }
+
+    // The point a feather beyond `end`, the way from `inner` to it.
+    private (double X, double Y) Out((double X, double Y) end, (double X, double Y) inner)
+    {
+        double dx = end.X - inner.X, dy = end.Y - inner.Y, l = Math.Sqrt(dx * dx + dy * dy);
+        return l > 1e-9 ? (end.X + dx / l * Feather, end.Y + dy / l * Feather) : end;
+    }
+
     /// <summary>A shape round <paramref name="middle"/>, filled from it (a blob is), its rim feathered outward.</summary>
     public void Fill(IReadOnlyList<(double X, double Y)> shape, (double X, double Y) middle, Tone tone)
     {

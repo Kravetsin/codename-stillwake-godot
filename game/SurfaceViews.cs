@@ -39,7 +39,8 @@ public static class SurfaceViews
 {
     public static readonly IReadOnlyList<SurfaceView> All =
     [
-        new(c => new GridView(c.M.Grid, c.M.Rules is Content.PlanetType p ? new Features.Grid.Strata(p, PlanetLooks.Of[p.Id].StrataFrom) : null)
+        new(c => new GridView(c.M.Grid, c.M.Rules is Content.PlanetType p ? new Features.Grid.Strata(p, PlanetLooks.Of[p.Id].StrataFrom) : null,
+            Render.VesselDress.For(c.M.Rules, c.Seed))
         {
             HeldBack = c.Arrivals.Holds,
             HeldBackVersion = () => c.Arrivals.Version,
@@ -91,6 +92,12 @@ public static class SurfaceViews
         new(c => c.M.Rules.Meteors != null ? new Features.Hazards.MeteorView(c.M.Grid, c.M.Rooms, c.M.Atmosphere, c.M.Hazards, c.Progress, c.Tick) : null),
         // A magnetic flare's aurora over the stars and its flash, wherever one may strike: by hand on any surface (magnetic-flare).
         new(c => new Features.Hazards.AuroraView(c.M.Grid, c.M.Power, c.M.Hazards, c.Progress, c.Tick)),
+        // A derelict's beacons blinking outside its hull (derelict-looks), from the vessel its seed describes.
+        new(c => c.M.Rules is Content.VesselKind k ? new Features.Light.BeaconLights(c.M.Grid, Shipyard.Describe(Content.Vessels.Class(k.Class)!, c.Seed)) : null),
+        // Its dark inside: red lamps, the one dying, screens, a dot over each shut door (derelict-looks).
+        new(c => Features.Light.VesselLights.For(c.M.Rules, c.Seed) is { } inside ? new Features.Light.VesselLamps(c.M.Grid, inside) : null),
+        // What was left behind inside it: frost, a sparking cable, soot, a burst pipe, a fallen panel, a toppled crate (derelict-looks).
+        new(c => Features.Grid.VesselSigns.For(c.M.Rules, c.Seed) is { } signs ? new Features.Grid.VesselSignsView(c.M.Grid, signs) : null),
         // The fires last, before the light Main makes after these: each frame a fire picks its picture, then its light follows it.
         new(c => new FurnaceView(c.M.Grid, c.M.Furnace), Fades: true),
         // A planet's weather blowing over its open sky, and its wind heard, where a stretch of it brings one (docs/plans/surface-storms.md).

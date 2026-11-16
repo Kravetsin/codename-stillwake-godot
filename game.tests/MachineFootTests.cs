@@ -61,8 +61,11 @@ public class MachineFootTests
         return pa <= pb && pa <= pc ? a : pb <= pc ? b : c;
     }
 
-    /// <summary>The lamps, hung from the ceiling by their plug at the top, and the debris net, hung on the hull: nothing of theirs stands on the floor.</summary>
-    private static readonly string[] Hung = ["arcLamp", "emergencyLamp", "lamp", "net"];
+    /// <summary>
+    /// The lamps (a derelict's too), hung from the ceiling by their plug at the top, the debris net, hung on the hull, and the parts outside a derelict,
+    /// against its hull any way (derelict-looks): nothing of theirs stands on the floor.
+    /// </summary>
+    private static readonly string[] Hung = ["arcLamp", "emergencyLamp", "lamp", "net", Stillwake.Content.Vessels.Lamp, .. Stillwake.Content.Vessels.Outside.Select(o => o.Kind)];
 
     [Fact]
     public void EveryMachineStandsOnItsPicturesFoot()

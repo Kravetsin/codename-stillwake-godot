@@ -1,0 +1,302 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using Stillwake.Content;
+using Stillwake.Sim;
+using Stillwake.Sim.Grid;
+using Looks = Stillwake.Game.VesselLooks;
+
+namespace Stillwake.Game.Render;
+
+/// <summary>
+/// How an abandoned vessel's hull is painted (derelict-looks), a rule of drawing, never the sim's: plates by their place in an
+/// eight-cell panel and their row (lit top, middle, shaded bottom), rusted or pitted by <see cref="Looks.LookRng"/>; ribs in their
+/// own tone; one diagonal tile on each cell of the bow's slopes; the livery's stripe along the bottom armour; the name and the code
+/// painted in pieces a cell; a heavy ink line where a side faces space, a light one where it faces a room. What may be painted comes
+/// only from the vessel its seed describes, stamped; the live grid decides only whether each shows: a hull wall of it still there.
+/// </summary>
+public sealed class VesselDress
+{
+    /// <summary>The sides of a cell, as <c>GridView</c> counts them.</summary>
+    private const int Up = 1, Right = 2, Down = 4, Left = 8;
+
+    /// <summary>Cells of a panel along the hull, its seam at its left.</summary>
+    public const int Panel = 8;
+
+    /// <summary>The plates' sheet: <see cref="Panel"/> columns, a row for each role and its variant (<see cref="Role"/> × 3 + variant).</summary>
+    public const string HullSheet = "vessel_hull";
+
+    /// <summary>The ribs' sheet: two columns, a row a role.</summary>
+    public const string RibSheet = "vessel_rib";
+
+    /// <summary>The livery stripe's sheet: a cell plain, then scuffed ones.</summary>
+    public const string StripeSheet = "vessel_stripe";
+
+    /// <summary>How many stripe cells the sheet holds: plain, then scuffs.</summary>
+    public const int Stripes = 4;
+
+    /// <summary>A plate's row: lit along a top open to space or a room, in shade along a bottom over space, plain between.</summary>
+    public enum Role { Top, Middle, Bottom }
+
+    /// <summary>A bow slope's diagonal over <paramref name="run"/> cells, its top's or its bottom's, of hull or of the cockpit's glass.</summary>
+    public static string BowName(int run, bool bottom, bool glass) => $"vessel_bow_{run}_{(bottom ? "bottom" : "top")}{(glass ? "_glass" : "")}";
+
+    /// <summary>The ink round a hull cell: heavy on the sides <paramref name="space"/>, light on the sides <paramref name="room"/>.</summary>
+    public static string InkName(int space, int room) => $"vessel_ink_{space}_{room}";
+
+    /// <summary>The side pictures an ink tile is laid from: heavy or light, a side each.</summary>
+    public static string InkSideName(bool heavy, int side) => $"vessel_ink_{(heavy ? "heavy" : "light")}_{side}";
+
+    /// <summary>Every ink tile: each way of sides heavy and light, none on both.</summary>
+    public static IEnumerable<(int Space, int Room)> Inks() =>
+        from space in Enumerable.Range(0, 16) from room in Enumerable.Range(0, 16) where (space & room) == 0 && (space | room) != 0 select (space, room);
+
+    /// <summary>The runs a bow's slope may take, over every class: a diagonal picture each.</summary>
+    public static IEnumerable<int> Runs() => Vessels.Classes.SelectMany(c => Enumerable.Range(c.BowRun.Min, c.BowRun.Max - c.BowRun.Min + 1)).Distinct().Order();
+
+    public static readonly int HullCode = Materials.Get(Vessels.Hull).Code, GlassCode = Materials.Get(Vessels.Glass).Code;
+
+    /// <summary>A cell of a sheet in the atlas.</summary>
+    public readonly record struct Piece(string Sheet, int X, int Y);
+
+    /// <summary>
+    /// What a wall cell draws: its plate in place of its wall's picture (<paramref name="Tinted"/> by the livery's hull, or as it is for
+    /// glass), its ink in place of its edges, its stripe and its piece of paint over it; <paramref name="Cut"/> for a diagonal, which
+    /// draws no back wall, the stars showing past its slope.
+    /// </summary>
+    public readonly record struct Dress(Piece? Wall, bool Tinted, string? Ink, Piece? Stripe, (int X, int Y)? Paint, bool Cut);
+
+    /// <summary>
+    /// A painted label: its text in the large letters or the small, over the cells <c>Left</c>, <c>Top</c>, <c>Width</c> by <c>Height</c> of
+    /// the vessel's frame, laid in the paint sheet from its row <c>Row</c>; its letters from pixel <c>TextY</c> of its top.
+    /// </summary>
+    public sealed record Label(string Text, bool Large, int Left, int Top, int Width, int Height, int Row, int TextY);
+
+    private enum Kind : byte { None, Plate, Rib }
+
+    private struct Look
+    {
+        public Kind Kind;
+        public byte Column, Row, Bow, Run, Piece;
+        public bool Glass;
+        public sbyte Stripe;
+        public short PaintX, PaintY;
+    }
+
+    private readonly Look[] _looks;
+    /// <summary>The cells of the frame in a doorway stamped open and jammed (<see cref="Jammed"/>).</summary>
+    private readonly HashSet<int> _jammed = [];
+    private readonly int _width, _height;
+    private readonly (int X, int Y) _corner;
+
+    /// <summary>The vessel's seed: what every look of it is drawn from.</summary>
+    public uint Seed { get; }
+
+    /// <summary>Its livery, by its place in <see cref="Looks.Liveries"/>.</summary>
+    public int Livery { get; }
+
+    public string Name { get; }
+    public string Code { get; }
+
+    /// <summary>The labels painted on it, the code's first; none that fits nowhere.</summary>
+    public IReadOnlyList<Label> Labels { get; }
+
+    /// <summary>The paint sheet's size in cells: every label stacked, a clear row between.</summary>
+    public (int Width, int Height) PaintCells { get; }
+
+    /// <summary>The dress of the vessel a surface of <paramref name="rules"/> holds from <paramref name="seed"/>; none off a vessel.</summary>
+    public static VesselDress? For(Surfaces.Kind rules, uint seed) =>
+        rules is VesselKind kind ? new VesselDress(Shipyard.Describe(Vessels.Class(kind.Class)!, seed)) : null;
+
+    /// <param name="vessel">The vessel, its frame's top-left at (<c>Vessels.Margin</c>, <c>Margin</c>) of the grid as a vessel world lays it.</param>
+    public VesselDress(Vessel vessel)
+    {
+        Seed = vessel.Seed;
+        Livery = Looks.LiveryOf(Seed);
+        Name = Looks.NameOf(Seed);
+        Code = Looks.CodeOf(Seed);
+        _corner = (Vessels.Margin, Vessels.Margin);
+        int w = _width = vessel.Width, h = _height = vessel.Height;
+        _looks = new Look[w * h];
+
+        // The stamped vessel: its walls, hull or glass, and what is no space (a structure or a back wall).
+        var wall = new byte[w * h];
+        var taken = new bool[w * h];
+        var parts = Shipyard.Stamp(vessel);
+        foreach (var part in parts)
+        {
+            if (part.Layer == "machine") continue;
+            foreach (var (x, y) in Shipyard.Covers(part))
+                if (x >= 0 && y >= 0 && x < w && y < h) taken[y * w + x] = true;
+            if (part.Kind == "wall") wall[part.Y * w + part.X] = part.Material == Vessels.Glass ? (byte)2 : (byte)1;
+        }
+        bool Hull(int x, int y) => x >= 0 && y >= 0 && x < w && y < h && wall[y * w + x] == 1;
+        bool Walled(int x, int y) => x >= 0 && y >= 0 && x < w && y < h && wall[y * w + x] != 0;
+        bool Space(int x, int y) => x < 0 || y < 0 || x >= w || y >= h || !taken[y * w + x];
+
+        var body = vessel.Sections.First(s => s.Kind == Vessel.SectionKind.Body);
+        var ribs = vessel.Sections.Where(s => s.Kind == Vessel.SectionKind.Rib).ToList();
+        for (int y = 0; y < h; y++)
+            for (int x = 0; x < w; x++)
+            {
+                int cell = y * w + x;
+                if (!Hull(x, y)) continue;
+                ref var look = ref _looks[cell];
+                var role = !Walled(x, y - 1) ? Role.Top : Space(x, y + 1) ? Role.Bottom : Role.Middle;
+                var rib = ribs.FirstOrDefault(r => x >= r.Left && x < r.Left + r.Width && y >= r.Top && y <= r.Bottom);
+                ulong draw = Looks.LookRng(Seed, Looks.Salt.Panel, cell);
+                int variant = draw % Looks.RustOneIn == 0 ? 1 : draw / Looks.RustOneIn % Looks.PitOneIn == 0 ? 2 : 0;
+                (look.Kind, look.Column) = rib != null ? (Kind.Rib, (byte)(x - rib.Left)) : (Kind.Plate, (byte)(((x - body.Left) % Panel + Panel) % Panel));
+                look.Row = (byte)(rib != null ? (int)role : (int)role * 3 + variant);
+                look.Stripe = -1;
+                look.PaintX = look.PaintY = -1;
+            }
+
+        // The bow's slopes: from Run columns before its first step, a cell a column on the hull's edge, the line through each step's corner.
+        var bow = vessel.Sections.First(s => s.Kind == Vessel.SectionKind.Bow);
+        foreach (bool bottom in (bool[])[false, true])
+        {
+            int steps = bottom ? bow.Rise : bow.Fall, start = bow.Left + bow.Flat - bow.Run;
+            for (int i = 0; i < steps * bow.Run; i++)
+            {
+                int x = start + i, y = bottom ? bow.Bottom - i / bow.Run : bow.Top + i / bow.Run;
+                if (!Walled(x, y) || Walled(x, bottom ? y + 1 : y - 1)) continue;
+                ref var look = ref _looks[y * w + x];
+                (look.Bow, look.Run, look.Piece, look.Glass) = ((byte)(bottom ? 2 : 1), (byte)bow.Run, (byte)(i % bow.Run), wall[y * w + x] == 2);
+            }
+        }
+
+        // The stripe along the body's bottom armour, its inner row, to where the bow's slope takes it.
+        int stripe = body.Bottom - 1;
+        for (int x = body.Left; x < bow.Left + bow.Width; x++)
+        {
+            int cell = stripe * w + x;
+            if (!Hull(x, stripe) || _looks[cell].Bow != 0) continue;
+            _looks[cell].Stripe = (sbyte)(Looks.Below(Seed, Looks.Salt.Stripe, cell, Looks.StripeScuffOneIn) == 0
+                ? 1 + Looks.Below(Seed, Looks.Salt.Stripe, cell + w * h, Stripes - 1) : 0);
+        }
+
+        // The doorways stamped open, each from its first piece, none of it over it: one in JamOneIn jammed, every cell of it.
+        var open = parts.Where(p => p.Layer == "structure" && p.Kind == "door" && p.Open).ToList();
+        var pieces = open.ToDictionary(p => (p.X, p.Y));
+        foreach (var first in open.Where(p => !pieces.ContainsKey((p.X, p.Y - 2))))
+        {
+            if (Looks.Below(Seed, Looks.Salt.Jam, first.Y * w + first.X, Looks.JamOneIn) != 0) continue;
+            for (int y = first.Y; pieces.TryGetValue((first.X, y), out var piece); y += 2)
+                foreach (var (x, cy) in Shipyard.Covers(piece)) _jammed.Add(cy * w + x);
+        }
+
+        Labels = Lay(vessel, body);
+        foreach (var label in Labels)
+            for (int dy = 0; dy < label.Height; dy++)
+                for (int dx = 0; dx < label.Width; dx++)
+                {
+                    int x = label.Left + dx, y = label.Top + dy;
+                    if (!Hull(x, y)) continue;
+                    ref var look = ref _looks[y * w + x];
+                    (look.PaintX, look.PaintY) = ((short)dx, (short)(label.Row + dy));
+                }
+        PaintCells = Labels.Count == 0 ? (0, 0) : (Labels.Max(l => l.Width), Labels[^1].Row + Labels[^1].Height);
+    }
+
+    /// <summary>
+    /// Where the code and the name are painted: each in the top band of a module, its solid hull from the module's top to the body's
+    /// top armour's last row; the code on the stern's module, the name on the next that holds it whole, else after the code.
+    /// </summary>
+    private IReadOnlyList<Label> Lay(Vessel vessel, Vessel.Section body)
+    {
+        int armour = Vessels.Class(vessel.Class)!.ArmourDepth;
+        var modules = vessel.Sections.Where(s => s.Kind == Vessel.SectionKind.Module).OrderBy(s => s.Left).ToList();
+        var labels = new List<Label>();
+        int row = 0;
+        Label? Fit(string text, bool large, Vessel.Section module, int left)
+        {
+            var (gw, gh) = large ? Looks.LargeGlyph : Looks.SmallGlyph;
+            int width = (text.Length * gw + Camera.Cell - 1) / Camera.Cell, top = module.Top, height = body.Top + armour - module.Top;
+            // Clear of the ribs at its ends.
+            if (left + width > module.Left + module.Width - 2 || height * Camera.Cell < gh) return null;
+            return new Label(text, large, left, top, width, height, row, (height * Camera.Cell - gh) / 2);
+        }
+        void Add(Label label)
+        {
+            labels.Add(label);
+            row += label.Height + 1;
+        }
+        if (modules.Count == 0) return labels;
+        if (Fit(Code, false, modules[0], modules[0].Left + Looks.CodeInset) is { } code) Add(code);
+        var name = modules.Skip(1).Select(m => Fit(Name, true, m, m.Left + Looks.NameInset)).FirstOrDefault(l => l != null)
+            ?? (labels.Count == 1 ? Fit(Name, true, modules[0], labels[0].Left + labels[0].Width + 2) : null);
+        if (name != null) Add(name);
+        return labels;
+    }
+
+    /// <summary>
+    /// What a wall of material <paramref name="code"/> at grid cell (<paramref name="x"/>, <paramref name="y"/>) draws, its sides facing space
+    /// <paramref name="space"/> and facing a room <paramref name="room"/> (<see cref="Sides"/>): nothing but for a hull wall the vessel was
+    /// stamped with, still hull, or a cockpit window on the bow's slope. A diagonal shows only while the side it faces out of is space.
+    /// </summary>
+    public Dress Of(int code, int x, int y, int space, int room)
+    {
+        int fx = x - _corner.X, fy = y - _corner.Y;
+        if (fx < 0 || fy < 0 || fx >= _width || fy >= _height) return default;
+        var look = _looks[fy * _width + fx];
+        bool glass = code == GlassCode;
+        if (!glass && code != HullCode) return default;
+        if (look.Bow != 0 && look.Glass == glass)
+        {
+            bool bottom = look.Bow == 2;
+            int outward = bottom ? Down : Up;
+            if ((space & outward) != 0)
+            {
+                int covered = outward | Right;
+                return new Dress(new Piece(BowName(look.Run, bottom, glass), look.Piece, 0), !glass, InkOf(space & ~covered, room & ~covered), null, null, Cut: true);
+            }
+        }
+        if (glass || look.Kind == Kind.None) return default;
+        var wall = new Piece(look.Kind == Kind.Rib ? RibSheet : HullSheet, look.Column, look.Row);
+        return new Dress(wall, true, InkOf(space, room), look.Stripe >= 0 ? new Piece(StripeSheet, look.Stripe, 0) : null,
+            look.PaintX >= 0 ? (look.PaintX, look.PaintY) : null, Cut: false);
+    }
+
+    private static string? InkOf(int space, int room) => (space | room) == 0 ? null : InkName(space, room);
+
+    /// <summary>
+    /// The sides of <paramref name="cell"/> facing space (no structure and no back wall, or the grid's edge) and those facing a room (no
+    /// wall, but a back wall or a structure), of layers <paramref name="width"/> by <paramref name="height"/>.
+    /// </summary>
+    public static (int Space, int Room) Sides(int cell, int width, int height, ReadOnlySpan<int> structure, ReadOnlySpan<int> back)
+    {
+        int x = cell % width, y = cell / width, space = 0, room = 0;
+        foreach (var (side, dx, dy) in (ReadOnlySpan<(int, int, int)>)[(Up, 0, -1), (Right, 1, 0), (Down, 0, 1), (Left, -1, 0)])
+        {
+            int nx = x + dx, ny = y + dy;
+            if (nx < 0 || ny < 0 || nx >= width || ny >= height) { space |= side; continue; }
+            int n = ny * width + nx;
+            if (Structures.Is(structure[n], Trait.Terrain)) continue;
+            if (structure[n] == Structure.Empty && back[n] == Back.None) space |= side;
+            else room |= side;
+        }
+        return (space, room);
+    }
+
+    /// <summary>What <paramref name="cell"/> of <paramref name="grid"/> draws now (<see cref="Of"/>): nothing unless it is a wall.</summary>
+    public Dress At(IGridQueries grid, int cell)
+    {
+        if (!Structures.Is(grid.StructureAt(cell), Trait.Terrain)) return default;
+        var (space, room) = Sides(cell, grid.Width, grid.Height, grid.StructureLayer, grid.BackLayer);
+        return Of(grid.MaterialLayer[cell], cell % grid.Width, cell / grid.Width, space, room);
+    }
+
+    /// <summary>
+    /// Whether grid cell (<paramref name="x"/>, <paramref name="y"/>) lies in a doorway the vessel was stamped with open and that is
+    /// jammed: drawn <see cref="Looks.JammedOpen"/> open while the grid says it is open; shut, it is drawn as any shut door.
+    /// </summary>
+    public bool Jammed(int x, int y)
+    {
+        int fx = x - _corner.X, fy = y - _corner.Y;
+        return fx >= 0 && fy >= 0 && fx < _width && fy < _height && _jammed.Contains(fy * _width + fx);
+    }
+
+    /// <summary>The grid cell of the vessel's frame's cell (<paramref name="x"/>, <paramref name="y"/>).</summary>
+    public int CellOf(int x, int y, int gridWidth) => (y + _corner.Y) * gridWidth + x + _corner.X;
+}

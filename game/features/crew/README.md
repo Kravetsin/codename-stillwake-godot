@@ -8,13 +8,13 @@ This hero and others', client-authoritative (0002): only commands reach the sim.
 | --- | --- |
 | `logic/Hero.cs` | `Hero`, `Step` |
 | `logic/Rig.cs` | joints, limbs, fist |
-| `logic/Pose.cs` | poses, head, air |
+| `logic/Pose.cs` | poses |
 | `logic/Motion.cs` | lean and landing |
 | `logic/Splashes.cs` | water heard |
-| `logic/LookTint.cs` | skin, hair tints |
-| `logic/Aim.cs` | reach, aim, sends |
+| `logic/LookTint.cs` | tints |
+| `logic/Aim.cs` | aim |
 | `logic/AxeSwing.cs` | stroke clock |
-| `logic/Strokes.cs` | tool strokes |
+| `logic/Strokes.cs` | strokes |
 | `logic/MotionPlay.cs` | its motion |
 | `ReachAir.cs` | grinder haze |
 | `logic/AirCuts.cs` | dust, brush |
@@ -27,50 +27,62 @@ This hero and others', client-authoritative (0002): only commands reach the sim.
 | `logic/BodyPlay.cs` | its answers |
 | `logic/HaftGrip.cs` | far hand |
 | `logic/ArmUp.cs` | aim up |
-| `logic/HarpoonShot.cs` | harpoon, grapple |
+| `logic/HarpoonShot.cs` | harpoon |
 | `logic/HarpoonLine.cs` | its line |
 | `logic/Prompt.cs` | what E does |
-| `logic/Seating.cs` | seats; hands tied |
+| `logic/Seating.cs` | seats |
 | `logic/FogMove.cs` | across fog |
-| `logic/Fittings.cs` | modules in hand |
+| `logic/Fittings.cs` | modules |
 | `SeatedHeroes.cs` | porthole |
 | `UsePrompt.cs` | it shown |
 | `logic/Tether.cs` | tether |
-| `logic/DrillPace.cs` | drill hits |
-| `logic/RunSounds.cs` | tools heard |
+| `logic/DrillPace.cs` | drill |
+| `logic/RunSounds.cs` | sounds |
 | `logic/ToolEdge.cs` | cutter beam |
 | `logic/ToolRays.cs` | tool hits |
-| `WreckPixels.cs` | wrecks' pixels |
-| `ToolWork.cs` | tools at work |
+| `WreckPixels.cs` | wrecks |
+| `ToolWork.cs` | tools |
 | `logic/ToolHaze.cs` | tool hazes |
-| `logic/CutterJet.cs` | cutter jet |
-| `logic/Motor.cs` | `Run` till agreed |
-| `logic/Remote.cs` | heroes sent |
-| `logic/RemoteRod.cs` | another's rod |
+| `logic/CutterJet.cs` | jet |
+| `logic/Motor.cs` | motors |
+| `logic/Remote.cs` | sent |
+| `logic/RemoteRod.cs` | rods |
 | `logic/RodFlourish.cs` | its lights |
 | `logic/Suits.cs` | suits worn |
-| `logic/SuitGlow.cs` | body lights |
-| `logic/TrackerBlink.cs` | tracker blink |
-| `SuitKeys.cs` | V on the tablet |
-| `Figure.cs` | the rig, lit, dressed |
-| `logic/BodyFit.cs` | helmets fit |
+| `logic/Skins.cs` | skins |
+| `logic/Appearance.cs` | their tab |
+| `AppearanceView.cs` | it shown |
+| `SkinSlot.cs` | a slot |
+| `logic/BladeFx.cs` | effects |
+| `logic/FireFx.cs` | fire |
+| `logic/RiftFx.cs` | rift |
+| `BladeFxView.cs` | drawn |
+| `logic/Gestures.cs` | gestures |
+| `GestureWheelView.cs` | wheel |
+| `logic/Pings.cs` | pings |
+| `PingView.cs` | drawn |
+| `logic/SuitGlow.cs` | lights |
+| `logic/TrackerBlink.cs` | tracker |
+| `SuitKeys.cs` | V |
+| `Figure.cs` | the figure |
+| `logic/BodyFit.cs` | fits |
 | `logic/Cape.cs` | a cape's cloth |
-| `logic/Spring.cs` | arm's swing |
-| `CapeView.cs` | it drawn, lined |
-| `HeroView.cs` | keys, steps, camera |
+| `logic/Spring.cs` | spring |
+| `CapeView.cs` | drawn |
+| `HeroView.cs` | the hero |
 | `HeroView.Hands.cs` | its hands |
 | `HeroView.Guns.cs` | its gun |
 | `HeroView.Feel.cs` | air, body |
 | `logic/GunHand.cs` | gun cooldown |
 | `HeroView.Others.cs` | others |
-| `logic/CameraFollow.cs` | camera aim |
-| `JetPlume.cs` | jetpack plume |
+| `logic/CameraFollow.cs` | camera |
+| `JetPlume.cs` | plume |
 | `logic/PlumeWay.cs` | its way |
 | `RodLight.cs` | harpoon light |
-| `AimOutline.cs` | aim outline |
+| `AimOutline.cs` | outline |
 | `ModeGlyph.cs` | driver's mark |
 | `logic/DriverMode.cs` | its dots |
-| `HeroAutopilot.cs` | scripted runs |
+| `HeroAutopilot.cs` | scripted |
 | `logic/Report.cs` | Enter reports |
 | `Frost.cs` | the cold |
 | `Haze.cs` | the heat |
@@ -78,28 +90,28 @@ This hero and others', client-authoritative (0002): only commands reach the sim.
 | `logic/Danger.cs` | gauge read |
 | `logic/AirCues.cs` | air back |
 | `logic/CanistersSeen.cs` | tanks |
-| `AirSwirl.cs` | fling, breath, leak |
+| `AirSwirl.cs` | air swirls |
 | `SuitGauge.cs` | air row |
-| `MealSlots.cs` | meals, purge |
+| `MealSlots.cs` | meals |
 | `logic/Retching.cs` | a retch |
-| `logic/RetchSpray.cs` | its bile |
+| `logic/RetchSpray.cs` | bile |
 | `InkLayer.cs` | bile drawn |
-| `logic/MealTips.cs` | food cards |
+| `logic/MealTips.cs` | cards |
 | `Thermometer.cs` | degrees |
 | `logic/Thermometers.cs` | read |
-| `logic/Tunnel.cs` | last breath |
+| `logic/Tunnel.cs` | tunnel |
 | `TunnelView.cs` | it drawn |
-| `logic/VisorFog.cs` | visor fog |
+| `logic/VisorFog.cs` | fog |
 | `VisorFogView.cs` | it drawn |
 | `logic/HurtSeen.cs` | hurt |
 | `HurtView.cs` | shown |
 | `SuitColours.cs` | colours |
-| `LookEditor.cs` | look editor |
+| `LookEditor.cs` | editor |
 | `logic/Markers.cs` | markers |
 | `MarkerLayer.cs` | arrows |
 | `logic/Bodies.cs` | bodies |
-| `BodyView.cs` | bodies, beacons |
-| `logic/Rams.cs` | rams and arcs |
+| `BodyView.cs` | drawn |
+| `logic/Rams.cs` | rams |
 | `HunterView.cs` | catchers |
 | `CatcherFxView.cs` | its light |
 | `Glitch.cs` | in bands |
@@ -111,56 +123,53 @@ This hero and others', client-authoritative (0002): only commands reach the sim.
 ## Guarantees
 
 - Lengths, speeds: thousandths of a cell (`Content.Hero`); step 1000/60 ms.
-- A step never ends in a wall, shut door, hatch, off the grid; afloat, no jetpack, the middle stays within
-  `Hero.Tether` of its anchor. A shut door pushes it `Hero.PushStep` to a fit (0089).
-- Doors go as this peer shows them (0014); a press sends `SetDoor`/`SetValve` (0071), `SetPlatform`.
+- A step never ends in a wall, shut door, hatch, off the grid; afloat, unjetted, within `Hero.Tether` of its anchor; a
+  shut door pushes it `Hero.PushStep` to a fit (0089). Doors go as shown here (0014); presses send `SetDoor`, `SetValve`
+  (0071), `SetPlatform`.
 - **Holes, floors, steps** (0106): falls in holes it fits; down drops through; jump wins; a cell up or down, two stop it.
-- **Jump** (0089): coyote, buffer, short hop.
-- **The figure answers its motion** (0090, hero-gait).
-- **Rammed** (0103) **or arced** (`Rams.Hits`): `HitBy`/`Bolted` sent, thrown, keys masked.
+- **Jump** (0089): coyote, buffer, short hop; **the figure answers its motion** (0090, hero-gait).
+- **Rammed** (0103), **arced** (`Rams.Hits`): `HitBy`/`Bolted` sent, thrown, keys masked.
 - **Surfaces** (0076): `Ship.Of` rules, gravity the kind's `Fall`; fog glides a seam (`FogMove`, fog-edges).
-- **Camera:** leads, eases, snaps. **Markers** (0061): home, last body, friends heard, deliveries, a catcher. **Hurts**
-  (hurts-are-shown) tint edges and gauge.
+- **Camera** leads, eases, snaps; **markers** (0061): home, last body, friends heard, deliveries, a catcher, pings;
+  **hurts** tint edges, gauge (hurts-are-shown).
 - **Water** (liquids): swum `SwimDepth` deep, left by Space or shore; wading splashes.
-- **Swim, haul, jetpack** (0047, tether-haul, jet-cruise): afloat through floors, tied where it left the hull;
-  Shift hauls in along its bends (`Wraps`); a jetpack unties; Shift vents unless `Hero.Cruising`.
-- **A canister** (0047, 0081): RMB, R send `Refill`, V `SuitMode` (regen-suit) if taken. Cooling greys the O₂ sign
-  in a ring; too soon, red (canister-mark).
-- **Meals:** RMB sends `Eat`, chewed; refused, slots blink (hud-vitals); the 4th held 3 s, `Purge` (food-tuning).
-  **Degrees** over them (the-thermometer).
-- **Crew:** made at `Spawn`; passed out, lies at its cell, takes no orders (0061). `Enter` goes when the sim's room or side
-  differ, each `Crew.ReportEvery` ticks off its cell, each tick threatened; none out (0050); host gone: `Leave`.
-- **Dressed as worn**, colour on the shin; a switched body lit by `SuitOn`, charge (hero-lights).
-  **Limbs bend** whole (bent-limbs); **helmets** turn (helmets-fit-the-suit), collar under a raised arm.
+- **Swim, haul, jetpack** (0047, tether-haul, jet-cruise): afloat through floors, tied where it left the hull; Shift hauls
+  along bends (`Wraps`); a jetpack unties; Shift vents unless `Hero.Cruising`.
+- **Canister** (0047, 0081): RMB, R `Refill`; V `SuitMode` (regen-suit); O₂ sign grey cooling, red too soon (canister-mark).
+- **Meals:** RMB `Eat`; refused, slots blink (hud-vitals); 4th held 3 s, `Purge` (food-tuning); degrees over (the-thermometer).
+- **Crew** made at `Spawn`; passed out, lies, takes no orders (0061). `Enter` when the sim's room or side differ,
+  each `Crew.ReportEvery` ticks off its cell, each tick threatened; none out (0050); host gone: `Leave`.
+- **Dressed as worn**, colour on the shin, a switched body lit by `SuitOn` (hero-lights); **limbs** one picture, bent
+  (whole-limbs); the **hand** its own, glove or bare (hand-at-wrist); **helmets** turn (helmets-fit-the-suit), collar under a raised
+  arm; **skins** over worn items, an effect replacing the haze (hero-skins).
 - **Tracker** blinks (`SignalOf`); **catchers**: heroes in gear, untracked, tumble killed (tracker-catchers).
 
 ## Others' heroes
 
-- Sent (`SentHero`) every 50 ms while it changes, each second still, at once on a rod's change (0002, 0065); hands by
-  item and `Busy` (0037).
-- Drawn 150 ms behind (0013), walking 100 ms past the last, hidden 3 silent s on; only those
-  here (0076). A friend's tool strikes per number heard (0038), from the hero sent with it; its rod plays out by `RemoteRod`
-  (0065); its drill, driver run as the sim says (0055).
+- Sent (`SentHero`) each 50 ms while changing, each second still, at once on a rod's change (0002, 0065); hands by item
+  and `Busy` (0037).
+- Drawn 150 ms behind (0013), walking 100 ms past the last, hidden at 3 silent s; only those here (0076). Tools strike
+  per number heard (0038), rods play out (`RemoteRod`, 0065), drills, drivers run as the sim says (0055).
 
 ## The hands
 
 - **What the hand holds shows** (`HeldLook`); a builder twists a plan, a motor (`Twist`, `Driven`).
-- **Aimed only in use** (aim-on-use): up in use, `LingerMs` after, at the pointer; shots and hits wait for it.
-- **Left is the front, right the back** (0107, 0108): left, a screwdriver works plans, repairs;
-  the plan, wiring, lays cables; right, a tool, nothing.
-- **One aim** (`Aiming.AimAt`): a plan (back walls first), machine (0099), tank, door, valve, a wreck
-  pointed at, else the nearest small piece. Outlined green/red, `UsePrompt` why; plan in hand, E idle. Armed: small ones.
-- **Hits are rays** (tool-reach, hits-pass-wrecks): a fan (`ToolRays`) to a wall, through wrecks; ground rings.
-- **Sparks are the haze's** (spark-rule): a haze throws its ground's look.
-- **Struck tools** (0038, swing-motions): by sector, hit as the blade crosses the aim, leaned into.
+- **Aimed only in use** (aim-on-use): up in use and `LingerMs` after, at the pointer; shots, hits wait.
+- **Left front, right back** (0107, 0108): left, a screwdriver works plans, repairs; the plan, wiring, lays cables.
+- **One aim** (`Aiming.AimAt`): a plan (back walls first), machine (0099), tank, door, valve, wreck, else the nearest small
+  piece; outlined green/red, `UsePrompt` why; plan in hand, E idle. Armed: small ones.
+- **Hits are rays** (tool-reach, hits-pass-wrecks): a fan (`ToolRays`) to a wall, through wrecks; ground rings. **Sparks**
+  are the haze's (spark-rule). **Struck tools** (0038, swing-motions): by sector, hit as the blade crosses the aim.
 - **Harpoon, grapple** (0044, grapple-climbs): reel pieces, pull to walls; hung, refire; Space/RMB let go.
-- **A gun** (hold-to-fire): held fires each cooldown; a `Charge` one on release, full; flat, clicks. Kicks afloat, shoves standing (`Recoil`, body-answers).
+- **A gun** (hold-to-fire): held fires each cooldown, a `Charge` one full on release, flat, clicks; kicks (`Recoil`, body-answers).
 - **Drill, grinder, cutter** (0054, 0055): held runs it (`Run`), hits a `Pace`, the cutter's by beam (`ToolEdges`).
-- **Power driver** (driver-at-work, driver-order): charged, works a 2×2 square (`WorkedSquare`); RMB toggles (mode-glyph).
-- **Seated** (`Seating`): no tool; E leaves. **Ladders, ledges** (0092): grab, climb, slide, leap off; a hatch open climbs, shut floors (0112); a jump a foot short mantles.
+- **Power driver** (driver-at-work, driver-order): charged, a 2×2 `WorkedSquare`; RMB toggles (mode-glyph).
+- **Gestures** (gestures-for-words): F tap points, pings (crew-pings); hold: a wheel (yes, no, wave); item stowed.
+- **Seated** (`Seating`): no tool; E leaves. **Ladders, ledges** (0092, 0112): grab, climb, slide, leap off; a hatch open
+  climbs, shut floors; a short jump mantles.
 
 ## Deliberately not handled
 
-- Friends are marked only while heard, unnamed; markers one way overlap.
-- A body is dressed as its peer now (gone, the first colour); it and a seated hero show no suit lights.
+- Friends marked only while heard, unnamed; markers one way overlap.
+- A body dressed as its peer now (gone: first colour); it and a seated hero show no suit lights.
 - Others' swings do not hold on contact; a friend's gun hangs, unaimed, unrecoiled.

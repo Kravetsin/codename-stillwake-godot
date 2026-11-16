@@ -34,7 +34,6 @@ public partial class MarkerLayer : CanvasLayer
     private readonly Dictionary<(MarkerIcon, int?), Badge> _badges = new();
     private readonly HashSet<(MarkerIcon, int?)> _seen = [];
     private readonly List<Box> _boxes = [];
-    private readonly Texture2D _pod = PodSilhouette();
     private Vector2? _mouse;
     /// <summary>The deliveries lost as last read: one more, and a delivery marker gone this frame was lost.</summary>
     private int _lost;
@@ -59,16 +58,6 @@ public partial class MarkerLayer : CanvasLayer
         AddChild(_beep);
     }
 
-    /// <summary>The pod's picture, every pixel white and its clear ones clear, mipmapped so it shrinks to a badge cleanly.</summary>
-    private static Texture2D PodSilhouette()
-    {
-        var image = HiRes.Load("machine_lifepod")!;
-        for (int y = 0; y < image.GetHeight(); y++)
-            for (int x = 0; x < image.GetWidth(); x++)
-                image.SetPixel(x, y, new Color(1, 1, 1, image.GetPixel(x, y).A));
-        return HiRes.Texture(image);
-    }
-
     public override void _Input(InputEvent e)
     {
         if (e is InputEventMouse mouse) _mouse = mouse.Position;
@@ -87,7 +76,8 @@ public partial class MarkerLayer : CanvasLayer
             if (Markers.HunterCame(_hunter, hunter?.Id) || signal == Sim.Crew.Signal.Coming && _signal != signal) _beep.Play();
             _signal = signal;
             _hunter = hunter?.Id;
-            Show(Markers.Of(m.Crew.Spawn, m.Grid.Width, friends, body, DeliveriesOf(m), hunter), hero.Current.Middle, hero.PromptCovers, delta);
+            var pings = hero.Pings.Select(p => (p.Peer, p.At, Suits.Of(m.Players, p.Peer))).ToList();
+            Show(Markers.Of(m.Crew.Spawn, m.Grid.Width, friends, body, DeliveriesOf(m), hunter, pings), hero.Current.Middle, hero.PromptCovers, delta);
             lost = m.Knowledge.Lost > _lost;
             _lost = m.Knowledge.Lost;
         }
@@ -148,7 +138,7 @@ public partial class MarkerLayer : CanvasLayer
             _seen.Add(key);
             if (!_badges.TryGetValue(key, out var badge))
             {
-                AddChild(badge = _badges[key] = new Badge(_pod));
+                AddChild(badge = _badges[key] = new Badge());
                 var made = badge;
                 _tips.Add(badge, () => TipOf(made));
             }
@@ -170,11 +160,11 @@ public partial class MarkerLayer : CanvasLayer
 
     /// <summary>What the pointer says over a marker: what it points at and how many cells away.</summary>
     private static Tip? TipOf(Badge badge) => badge.Marker is { } marker
-        ? new Tip(T(marker.Icon switch { MarkerIcon.Home => "markers.home", MarkerIcon.Body => "markers.body", MarkerIcon.Delivery => badge.Lost > 0 ? "markers.lost" : "markers.delivery", MarkerIcon.Hunter => "markers.hunter", _ => "markers.friend" }), new TipLine(T("markers.cells", ("cells", badge.Cells)), Tone.Dim))
+        ? new Tip(T(marker.Icon switch { MarkerIcon.Home => "markers.home", MarkerIcon.Body => "markers.body", MarkerIcon.Delivery => badge.Lost > 0 ? "markers.lost" : "markers.delivery", MarkerIcon.Hunter => "markers.hunter", MarkerIcon.Ping => "markers.ping", _ => "markers.friend" }), new TipLine(T("markers.cells", ("cells", badge.Cells)), Tone.Dim))
         : null;
 
     /// <summary>One marker: a dark badge ringed in its colour holding its icon, and a chevron outside the ring toward the target.</summary>
-    private sealed partial class Badge(Texture2D pod) : Control
+    private sealed partial class Badge : Control
     {
         /// <summary>The side a tool's icon in a delivery's badge is baked at: the badge at its largest.</summary>
         private const int IconBake = 48;
@@ -211,8 +201,11 @@ public partial class MarkerLayer : CanvasLayer
             DrawArc(middle, r - 0.75f * s, 0, Mathf.Tau, 32, colour, 1.5f * s, antialiased: true);
             if (marker.Icon == MarkerIcon.Home)
             {
-                float icon = 1.15f * r;
-                DrawTextureRect(pod, new Rect2(middle - Vector2.One * icon / 2, Vector2.One * icon), false, colour);
+                // A house: a roof over its eaves, walls under it, a dark door in them. Home at a glance.
+                Vector2 At(float x, float y) => middle + new Vector2(x, y) * r;
+                DrawColoredPolygon([At(0, -0.62f), At(0.62f, -0.06f), At(-0.62f, -0.06f)], colour);
+                DrawRect(new Rect2(At(-0.44f, -0.1f), new Vector2(0.88f, 0.6f) * r), colour);
+                DrawRect(new Rect2(At(-0.12f, 0.16f), new Vector2(0.24f, 0.34f) * r), Back);
             }
             else if (marker.Icon == MarkerIcon.Delivery && marker.Good is { } good)
             {
@@ -232,6 +225,12 @@ public partial class MarkerLayer : CanvasLayer
                 DrawArc(middle, 0.42f * r, 0, Mathf.Tau, 24, colour, 0.14f * r, antialiased: true);
                 foreach (var way in (Vector2[])[Vector2.Up, Vector2.Down, Vector2.Left, Vector2.Right])
                     DrawLine(middle + way * 0.18f * r, middle + way * 0.7f * r, colour, 0.14f * r, antialiased: true);
+            }
+            else if (marker.Icon == MarkerIcon.Ping)
+            {
+                // A dot in a ring: a spot marked, not the one who marked it.
+                DrawArc(middle, 0.5f * r, 0, Mathf.Tau, 24, colour, 0.13f * r, antialiased: true);
+                DrawCircle(middle, 0.22f * r, colour);
             }
             else DrawCircle(middle, 0.45f * r, colour);
         }

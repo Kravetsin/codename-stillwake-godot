@@ -102,4 +102,32 @@ public class ItemsSprayTests
         Assert.Contains(Floor(w), s => s.Vy > 0);
         Assert.Contains(Floor(w), s => s.Vy < 0);
     }
+
+    [Fact]
+    public void FallingOnTheFloorMetalBouncesBackSoilThudsAndBothComeToRest()
+    {
+        foreach (var (item, bounces) in new[] { ("iron", true), ("soil", false) })
+        {
+            var w = Room();
+            w.M.Items.DropAt(FloorStack.Nobody, [(item, 1)], At(5, 1));
+            bool rose = false;
+            for (int i = 0; i < 80; i++)
+            {
+                w.Run();
+                rose |= Floor(w).Single().Vy < 0;
+            }
+            // Iron keeps a share of its speed off the floor (2026-11-16-loot-pieces); soil keeps none.
+            Assert.Equal(bounces, rose);
+            Assert.Equal((At(5, 3), 0, 0), (Floor(w).Single().Cell, Floor(w).Single().Vx, Floor(w).Single().Vy));
+        }
+    }
+
+    [Fact]
+    public void ABounceBelowTheLeastStops()
+    {
+        Assert.True(Tune.BounceOf("crystal") > Tune.BounceOf("iron") && Tune.BounceOf("iron") > Tune.BounceOf("rock"));
+        Assert.Equal(0, Tune.BounceOf("soil"));
+        // Unnamed items bounce as stone.
+        Assert.Equal(Tune.BounceOf("rock"), Tune.BounceOf("screwdriver"));
+    }
 }

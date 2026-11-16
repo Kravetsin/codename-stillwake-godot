@@ -105,7 +105,7 @@ public partial class BodyView : Node2D
             shown!.Seen = true;
             int colour = Suits.Of(m.Players, pile.Peer);
             var hero = new Hero((int)Math.Round(pile.X), (int)Math.Round(pile.Y), 0, 0, false, pile.Peer % 2 == 0 ? 1 : -1);
-            var (helmet, body) = Suits.WornBy(m.Items, pile.Peer);
+            var (helmet, body, _, _) = Suits.DressedAs(m.Items, m.Players, pile.Peer);
             shown.Figure.Wear(colour, helmet, body, m.Players.LookOf(pile.Peer));
             // On its back aboard and afloat alike, found already lying: long past the fall.
             shown.Figure.Show(hero, Pose.Lie, 0, false, made ? Poses.Faint.Ms * 2 : elapsedMs);

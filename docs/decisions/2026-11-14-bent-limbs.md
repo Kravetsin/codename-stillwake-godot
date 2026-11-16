@@ -1,6 +1,6 @@
 # Limbs bent whole at the joint
 
-- Status: accepted
+- Status: accepted; its two pictures meeting at a seam superseded by [whole-limbs](2026-11-16-whole-limbs.md)
 - Date: 2026-11-14
 
 ## Context
