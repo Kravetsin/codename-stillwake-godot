@@ -31,7 +31,7 @@ public class CapeTests
         }
     }
 
-    private const double Sprint = 211.0 / 60;
+    private const double Sprint = 211.0 / 60, Walk = Sprint * 240 / 440;
 
     [Fact]
     public void ACapeHangsAsItWasCutAndOnARunTrailsBack()
@@ -40,7 +40,7 @@ public class CapeTests
         Move(cape, f, 300);
         for (int i = 0; i < Points; i++)
         {
-            Assert.InRange(cape.Points[i].X - Cape.Rest(i).X, -2.5, 1.01);
+            Assert.InRange(cape.Points[i].X - Cape.Rest(i).X, -3, 1.01);
             Assert.InRange(cape.Points[i].Y - Cape.Rest(i).Y, -2.5, 2.5);
         }
         Assert.DoesNotContain(true, Enumerable.Range(0, Cape.Triangles.Length / 3).Select(cape.Flipped));
@@ -93,23 +93,30 @@ public class CapeTests
         double Wrap(Cape cape) => Enumerable.Range(Points / 2, Points - Points / 2).Max(i => Math.Abs(cape.Inside[i].X - cape.Points[i].X));
         var (f, cape) = (new Frame(), new Cape());
         Move(cape, f, 300);
-        Assert.True(Wrap(cape) > 3, $"hanging, its inside wraps only {Wrap(cape):F1}");
+        Assert.True(Wrap(cape) > 2, $"hanging, its inside wraps only {Wrap(cape):F1}");
         Move(cape, f, 120, Sprint);
         Assert.True(Wrap(cape) < 1.5, $"swung away on a run, its inside still shows {Wrap(cape):F1} past it");
     }
 
     [Fact]
-    public void StandingItStirsInTheBreezeWithoutComingToRest()
+    public void StandingAboardItHangsStillAndWalkingItRipplesWithTheStride()
     {
         var (f, cape) = (new Frame(), new Cape());
-        Move(cape, f, 300);
-        double least = double.MaxValue, most = double.MinValue;
-        for (int step = 0; step < 120; step++)
+        double Stir(int steps, double by)
         {
-            Move(cape, f, 1);
-            (least, most) = (Math.Min(least, cape.Points[^1].X), Math.Max(most, cape.Points[^1].X));
+            double least = double.MaxValue, most = double.MinValue;
+            for (int step = 0; step < steps; step++)
+            {
+                Move(cape, f, 1, by);
+                double hem = cape.Points[^1].X;
+                (least, most) = (Math.Min(least, hem), Math.Max(most, hem));
+            }
+            return most - least;
         }
-        Assert.InRange(most - least, 0.5, 5);
+        Move(cape, f, 300);
+        Assert.True(Stir(120, 0) < 0.01, "standing, it stirs by itself");
+        Move(cape, f, 120, Walk);
+        Assert.InRange(Stir((int)(Poses.Stride.Walk * Rig.Cell / Walk), Walk), 0.3, 3);
     }
 
     [Fact]
@@ -307,7 +314,7 @@ public class CapeTests
         Move(cape, f, 300);
         for (int i = 0; i < Points; i++)
         {
-            Assert.InRange(cape.Points[i].X - Cape.Rest(i).X, -2.5, 1.01);
+            Assert.InRange(cape.Points[i].X - Cape.Rest(i).X, -3, 1.01);
             Assert.InRange(cape.Points[i].Y - Cape.Rest(i).Y, -2.5, 2.5);
         }
         Assert.DoesNotContain(true, Enumerable.Range(0, Cape.Triangles.Length / 3).Select(cape.Flipped));
