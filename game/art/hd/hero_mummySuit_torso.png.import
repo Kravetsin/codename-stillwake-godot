@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://blk4g1wspgd8a"
-path="res://.godot/imported/hero_regenSuit_arm_lit.png-eb94e618a2ce1e2b5d90946a16b0f1f4.ctex"
+uid="uid://82x01j314yw4"
+path="res://.godot/imported/hero_mummySuit_torso.png-a913315219b973bd6519ee223538b8d4.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://art/hd/hero_regenSuit_arm_lit.png"
-dest_files=["res://.godot/imported/hero_regenSuit_arm_lit.png-eb94e618a2ce1e2b5d90946a16b0f1f4.ctex"]
+source_file="res://art/hd/hero_mummySuit_torso.png"
+dest_files=["res://.godot/imported/hero_mummySuit_torso.png-a913315219b973bd6519ee223538b8d4.ctex"]
 
 [params]
 

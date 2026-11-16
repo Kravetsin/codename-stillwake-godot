@@ -143,15 +143,15 @@ const beardFull = hairOf((a) => {
 });
 
 // ---------- hands and feet ----------
-/** The hanging hand from outside: the back of it, the fingers curled under and shaded, the thumb a dark sliver at the front edge, behind the fingers. */
+/** The hanging hand from outside: the back of it, four fingers curled under and shaded, the thumb a dark sliver at the front edge, behind the fingers. */
 const hand = (a, S) => {
   a.shape('M3.5 7.9C4.1 7.8 4.7 8.2 4.8 8.9C4.9 9.5 4.6 10.1 4.1 10.1C3.7 10 3.4 9.5 3.3 8.9Z', { ...S, base: S.shade, lite: S.shade, shade: S.deep }, { outer: false, shade: 'M3 9.3L5.2 9.3L5.2 10.6L3 10.6Z' });
-  a.shape('M1.2 7.3L3.9 7.3C4.1 7.9 4.1 8.6 4 9.3C4.2 9.8 4.1 10.4 3.8 10.8C3.2 11.2 2.4 11.2 1.8 10.9C1.3 10.6 1 10 .9 9.4C.8 8.6 .9 7.9 1.2 7.3Z', S, { shade: 'M0 9.5L5 9.3L5 12L0 12Z', lines: ['M1 9.4L4 9.3', 'M2 9.5L2.1 11', 'M3 9.4L3.1 11.1', 'M1.8 7.6L1.9 8.8', 'M2.8 7.6L2.9 8.8'] });
+  a.shape('M1.2 7.3L3.9 7.3C4.1 7.9 4.1 8.6 4 9.3C4.2 9.8 4.1 10.4 3.8 10.8C3.2 11.2 2.4 11.2 1.8 10.9C1.3 10.6 1 10 .9 9.4C.8 8.6 .9 7.9 1.2 7.3Z', S, { shade: 'M0 9.5L5 9.3L5 12L0 12Z', lines: ['M1 9.4L4 9.3', 'M1.7 9.5L1.8 10.9', 'M2.5 9.45L2.6 11.1', 'M3.3 9.4L3.35 11', 'M1.8 7.6L1.9 8.8', 'M2.8 7.6L2.9 8.8'] });
 };
-/** The same hand in a work glove: a little larger, a seam across the knuckles, the thumb again at the front and behind. */
+/** The same hand, five digits, in a work glove: a little larger, a seam across the knuckles, the thumb again at the front and behind. */
 const glove = (a, S) => {
   a.shape('M3.7 7.7C4.4 7.6 5.1 8 5.2 8.8C5.3 9.5 4.9 10.1 4.4 10.1C3.9 10 3.6 9.5 3.5 8.9Z', { ...S, base: S.shade, lite: S.shade, shade: S.deep }, { outer: false, shade: 'M3 9.2L5.6 9.2L5.6 10.6L3 10.6Z' });
-  a.shape('M.9 7L4.1 7C4.4 7.8 4.4 8.6 4.3 9.3C4.5 9.8 4.4 10.5 4 10.9C3.3 11.4 2.2 11.4 1.6 11C1 10.7 .7 10 .6 9.4C.5 8.4 .6 7.6 .9 7Z', S, { shade: 'M0 9.6L5.4 9.4L5.4 12L0 12Z', lines: ['M.7 9.5L4.3 9.3', 'M1.9 9.6L2 11.1', 'M3.1 9.5L3.2 11.2'] });
+  a.shape('M.9 7L4.1 7C4.4 7.8 4.4 8.6 4.3 9.3C4.5 9.8 4.4 10.5 4 10.9C3.3 11.4 2.2 11.4 1.6 11C1 10.7 .7 10 .6 9.4C.5 8.4 .6 7.6 .9 7Z', S, { shade: 'M0 9.6L5.4 9.4L5.4 12L0 12Z', lines: ['M.7 9.5L4.3 9.3', 'M1.5 9.6L1.6 11', 'M2.45 9.55L2.55 11.25', 'M3.4 9.45L3.45 11.1'] });
 };
 const SOLE = '#191716';
 /** A boot flat on the floor, the sole at 11, as every shin stands. `top`: where the leg goes in. */
@@ -625,7 +625,6 @@ const powerDriver = (st) => (a) => {
 // The hero's pictures: lit from above, drawn Px pixels a world pixel; a rig's part has Margin round it.
 const LIGHT = [0, -1], Margin = 3, Px = 4;
 const part = (p) => bake({ ...p, margin: Margin, light: LIGHT });
-const SUIT = { torso: 's_torso', pack: 's_pack', upperArm: 's_upper', forearm: 's_fore', thigh: 's_thigh', shin: 's_shin' };
 const BOXES = { torso: ['b_torso', 12, 15, 6, 0], upperArm: ['b_upper', 5, 9, 2.5, 2.5], forearm: ['b_fore', 5, 10, 2.5, 2.9], thigh: ['b_thigh', 6, 12, 3, 2.5], shin: ['b_shin', 9, 11, 3, 2.18] };
 const SKIN_PAINTS = new Set([SK.base, SK.shade, SK.deep, SK.lite, '#7e4c40']);
 /** What a part's draw reaches: only its skin, or only what is not, so skin can take a look's tint under cloth that stays as drawn. */
@@ -635,7 +634,6 @@ const only = (a, skin) => ({
   line(d, o) { if (!skin) a.line(d, o); },
   tube(d, w, m, o) { if (!skin) a.tube(d, w, m, o); },
 });
-const suitPart = (id) => ({ w: { s_pack: 4, s_torso: 12, s_upper: 5, s_fore: 5, s_thigh: 6, s_shin: 9 }[id], h: { s_pack: 12, s_torso: 15, s_upper: 9, s_fore: 10, s_thigh: 12, s_shin: 11 }[id], draw: faded[id] });
 
 /** The tracker's light, white for Modulate to tint: hard in the middle, a soft ring so it carries far off. On the strap's joint and margin. */
 function trackerLight() {
@@ -669,76 +667,11 @@ const hose = (a, p, w, ribs) => {
 };
 const port = (a, d, lite) => a.shape(d, GL, { outer: false, lite });
 
-// ---------- The regen suit, as picked (2026-11-03-the-regen-suit): the "cable harness". Quilted grey, cables in copper bands spiral
-// from a battery socket at the hip to a brass ionizer collar with vent slits. Its whole body on the basic suit's boxes and joints;
-// its lights baked apart, white-violet, for the game to show by its mode: the bands (a wave up them after each breath), the
-// arcs in the slits, and the red pip of an empty belt. ----------
-const BAND_COPPER = { base: '#8e5838', shade: '#633a2a', deep: '#452820', lite: '#ad7650', spec: '#d0a07a' };
-const GUNM = { base: '#596069', shade: '#3c414c', deep: '#2a2e38', lite: '#7a828e', spec: '#b8c0ca' };
-const DARKM = { base: '#3a404e', shade: '#242842', deep: '#171a30', lite: '#5a6276', spec: '#cdd8e8' };
-const QUILT = mat('#45464c', '#303136', '#212227', '#5c5d64');
-const CABLE = { base: '#2a2725', shade: '#1a1817', deep: '#111010', lite: '#3e3a36', spec: '#6a6058' };
-const UNLIT = '#14100e', ARC_CORE = '#ece0ff', ARC_HALO = '#9a78e8', PIP = '#c8402c';
-const n3 = (v) => +v.toFixed(3);
+const UNLIT = '#14100e';
 const rivet = (a, x, y, r = .3) => { a.flat(ell(x, y, r), '#262a34'); a.flat(ell(x - r * .3, y - r * .35, r * .4), '#8e96a2'); };
 const torsoDeep = 'M-1 12.4C3 13.4 9 13.4 13 12.2L13 16L-1 16Z';
 /** A rotated rectangle, for a band across a cable. */
 const across = (x, y, ang, w, h) => { const c = Math.cos(ang), s = Math.sin(ang); return poly(...[[-w / 2, -h / 2], [w / 2, -h / 2], [w / 2, h / 2], [-w / 2, h / 2]].flatMap(([u, v]) => [x + u * c - v * s, y + u * s + v * c])); };
-const qAt = (p, t) => { const s = 1 - t; return [s * s * p[0] + 2 * s * t * p[2] + t * t * p[4], s * s * p[1] + 2 * s * t * p[3] + t * t * p[5]]; };
-const qPath = (p) => `M${p[0]} ${p[1]}Q${p[2]} ${p[3]} ${p[4]} ${p[5]}`;
-/** The copper bands across a quadratic cable, n of them, evenly along it. */
-const bandsOn = (p, n, w = 1.35, h = .42) => {
-  const out = [];
-  for (let i = 1; i <= n; i++) {
-    const t = i / (n + 1), A = qAt(p, t), B = qAt(p, t + .01);
-    out.push(across(A[0], A[1], Math.atan2(B[1] - A[1], B[0] - A[0]) + Math.PI / 2, w, h));
-  }
-  return out;
-};
-const quilt = (x0, y0, x1, y1, s = 1.7) => { const l = [], h = y1 - y0; for (let x = x0 - h; x < x1; x += s) l.push(`M${n3(x)} ${n3(y1)}L${n3(x + h)} ${n3(y0)}`, `M${n3(x)} ${n3(y0)}L${n3(x + h)} ${n3(y1)}`); return l; };
-const cable = (a, p, n) => { a.tube(qPath(p), 1.05, CABLE, { spec: false }); for (const d of bandsOn(p, n)) a.flat(d, BAND_COPPER.base); };
-const BIB = 'M2.6 -1.3C4.4 -1.9 7.8 -1.9 9.6 -1.3L10.8 1.4L11.1 5.4C10.3 5.9 9.1 5.9 8.2 5.4L7.8 3.4C5.6 3.9 3.6 3.7 1.8 3.1L1.5 1.2Z';
-const VENTS = [8.6, 9.35, 10.1];
-/** Each part's cables, as quadratics, and how many bands each carries. */
-const HARNESS = {
-  torso: [[[2.2, 12.8, .7, 7.6, 2.6, 2.4], 5], [[10.2, 10.4, 11.5, 7.8, 10, 5.2], 3]],
-  pack: [[[3.4, 11.8, .4, 6, 3.6, -.6], 5]],
-  upperArm: [[[.2, 3.2, 2.5, 3.9, 4.8, 5.2], 2], [[.2, 6.4, 2.5, 7.1, 4.8, 8.4], 2]],
-  forearm: [[[.5, 3.2, 2.5, 4.1, 4.5, 5.4], 2]],
-  thigh: [[[.3, 3.6, 3, 4.6, 5.7, 6.2], 2], [[.3, 7.4, 3, 8.4, 5.7, 10], 2]],
-  shin: [[[.8, .7, 3, 1.4, 5.2, 2.8], 2]],
-};
-const harnessCables = (a, name) => { for (const [p, n] of HARNESS[name]) cable(a, p, n); };
-const regenSuit = {
-  torso(a) {
-    a.shape(BACK_TORSO, QUILT, { deep: torsoDeep, lines: quilt(1, 1, 11.2, 12.6, 2.6) });
-    a.shape('M1.4 8.8C4 9.4 8 9.4 10.8 8.8L10.8 10.2C8 10.8 4 10.8 1.4 10.2Z', CABLE, { outer: false, shade: .3 });
-    harnessCables(a, 'torso');
-    a.shape(rr(8.8, 10.3, 2.8, 2.3, .4), GUNM, { lite: band(8.9, 10.3, 11.5, 10.8), shade: band(8.8, 12, 11.6, 12.6) });
-    a.flat(ell(10.2, 11.5, .4), UNLIT);
-    a.shape(BIB, BELL_BRASS, { lite: 'M2.8 -1.2C4.6 -1.7 7.6 -1.7 9.4 -1.2L9.7 -.5C7.6 -1 4.6 -1 2.6 -.5Z', shade: 'M1.6 2.2C3.6 2.9 5.8 3.1 7.9 2.7L8.4 5.4C9.2 5.9 10.4 5.9 11.1 5.4L11.1 6L1 6Z', lines: ['M2 1.4C4.6 2 7.6 2 10.6 1.4'] });
-    for (const x of VENTS) a.flat(rr(x, 3.1, .42, 1.9, .15), UNLIT);
-    rivet(a, 2.6, .4); rivet(a, 9.8, .4);
-    rustAt(a, 3.4, 2.4, .4);
-  },
-  pack(a) {
-    a.shape(rr(.4, .2, 4, 11.4, 1.2), QUILT, { lines: quilt(.4, .2, 4.4, 11.6, 2.3), deep: band(0, 10.4, 5, 12) });
-    harnessCables(a, 'pack');
-  },
-  upperArm(a) { a.shape(limb(4.2, 3.8, 2.5, 2.5, 8.6), QUILT, { lines: quilt(.3, .4, 4.7, 10.4, 2.4) }); harnessCables(a, 'upperArm'); },
-  forearm(a) {
-    a.shape(limb(3.8, 3.4, 2.5, 2.9, 7), QUILT, { lines: quilt(.5, 1, 4.5, 7.4, 2.4) });
-    harnessCables(a, 'forearm');
-    a.shape(rr(.4, 5.8, 4.2, 1.2, .35), BELL_BRASS, { outer: false, lite: band(.4, 5.8, 4.6, 6.2), shade: band(.4, 6.6, 4.6, 7) });
-    glove(a, BELL_RUBBER);
-  },
-  thigh(a) { a.shape(limb(5, 4, 3, 2.5, 11.3), QUILT, { deep: 'M-1 11.4L7 11.4L7 15L-1 15Z', lines: quilt(.4, .4, 5.6, 13, 2.5) }); harnessCables(a, 'thigh'); },
-  shin(a) {
-    a.shape(limb(4.2, 3.8, 3, 2.18, 6.6), QUILT, { lines: quilt(1, .3, 5, 7, 2.4) });
-    harnessCables(a, 'shin');
-    boot(a, BELL_RUBBER, 6.2, ['M4 6.8L4.5 9', 'M5.2 6.9L5.6 9']);
-  },
-};
 /** A light drawn straight on a part's canvas, at its margin: a soft halo, then its core. */
 function lightPicture(w, h, draw) {
   const c = canvas((w + 2 * Margin) * Px, (h + 2 * Margin) * Px), x = c.getContext('2d');
@@ -816,19 +749,6 @@ Subjects.hero = function () {
   icon('hero_powerDriver_held', { w: DRIVER_W, h: DRIVER_H, draw: powerDriver({ f: 0, mode: 'idle' }) });
   out('hero_powerDriver', strip('run'));
   out('hero_powerDriver_flat', strip('flat'));
-  // The regen suit's parts in the basic's boxes, each part's bands lit apart, the collar's arcs and the empty belt's pip.
-  for (const [name, id] of Object.entries(SUIT)) {
-    const { w, h } = suitPart(id);
-    out(`hero_regenSuit_${name}`, part({ w, h, draw: regenSuit[name] }));
-    out(`hero_regenSuit_${name}_lit`, lightPicture(w, h, (paint) => { for (const [p, n] of HARNESS[name]) for (const d of bandsOn(p, n)) paint(d, ARC_CORE, ARC_HALO); }));
-  }
-  out('hero_regenSuit_arcs', lightPicture(12, 15, (paint) => {
-    for (const x of VENTS) {
-      paint(rr(x, 3.1, .42, 1.9, .15), ARC_CORE, ARC_HALO);
-      paint(`M${x + .2} 3.3L${x + .08} 3.8L${x + .3} 4.3L${x + .15} 4.85`, '#ffffff', ARC_HALO, false, .16);
-    }
-  }));
-  out('hero_regenSuit_pip', lightPicture(12, 15, (paint) => paint(ell(10.2, 11.5, .4), PIP, PIP)));
 };
 
 /** A helmet's two pictures: the shell with its glass taken out (what crosses the glass, <paramref name="bars"/>, kept), and the glass alone at GLASS_SEEN over the face. */

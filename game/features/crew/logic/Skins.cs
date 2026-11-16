@@ -28,6 +28,7 @@ public static class Skins
         new("diverSuit", Suit, DlcAppId: 0),
         new("platedSuit", Suit, DlcAppId: 0),
         new("rescueSuit", Suit, DlcAppId: 0),
+        new("mummySuit", Suit, DlcAppId: 0),
         new(SkinEffects.Fire, Effect, DlcAppId: 0),
         new(SkinEffects.Rift, Effect, DlcAppId: 0),
     ];

@@ -102,6 +102,7 @@ public static partial class En
         ["skin.diverSuit"] = "Diver",
         ["skin.platedSuit"] = "Riveted",
         ["skin.rescueSuit"] = "Rescue",
+        ["skin.mummySuit"] = "Mummy",
         ["skin.fire"] = "Fire",
         ["skin.rift"] = "Rift",
     };
