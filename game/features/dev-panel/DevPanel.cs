@@ -96,6 +96,7 @@ public partial class DevPanel : CanvasLayer
         buttons.AddChild(Style.Button("meteor", Meteor));
         // A magnetic flare from its aurora, its whole warning first (magnetic-flare).
         buttons.AddChild(Style.Button("flare", () => Send(new Sim.Hazards.FlareNow(_modules().Hazards.FlareRules.Warning))));
+        buttons.AddChild(Style.Button("bolt", () => Send(new Sim.Hazards.BoltNow())));
         // Read at the click, as creative is: two quick clicks must switch it back.
         buttons.AddChild(_calm = Style.Button("calm", () => Send(new SetCalm(!_modules().Hazards.Calm))));
         // The planet's hour (2026-11-07-night-chills): dusk starting, night a minute on; or the day's start. Refused aboard.
