@@ -25,6 +25,15 @@ public static class Skins
     /// <summary>Every skin, rows added with their art.</summary>
     public static readonly IReadOnlyList<Skin> All =
     [
+        new("brassHelmet", Head, DlcAppId: 0),
+        new("beakHelmet", Head, DlcAppId: 0),
+        new("roninHelmet", Head, DlcAppId: 0),
+        new("knightHelmet", Head, DlcAppId: 0),
+        new("reliquaryHelmet", Head, DlcAppId: 0),
+        new("skullHelmet", Head, DlcAppId: 0),
+        new("ramHelmet", Head, DlcAppId: 0),
+        new("bathysphereHelmet", Head, DlcAppId: 0),
+        new("paradeHelmet", Head, DlcAppId: 0),
         new("diverSuit", Suit, DlcAppId: 0),
         new("platedSuit", Suit, DlcAppId: 0),
         new("rescueSuit", Suit, DlcAppId: 0),
