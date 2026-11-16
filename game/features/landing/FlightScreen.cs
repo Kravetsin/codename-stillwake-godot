@@ -8,12 +8,14 @@ namespace Stillwake.Game.Features.Landing;
 /// <summary>
 /// What the rider sees of its flight (the descent's slice 2, its storyboard): no planet, only speed. The pod held in the middle at
 /// the world's scale, the stars torn past it into lines, faster and longer as it goes; on the way up it leaves a planet's blue sky
-/// first, clouds ripped past, the lines rushing down. Every mark is placed from the flight's seconds alone, in one draw.
+/// first, clouds ripped past, the lines rushing down. The crew shuttle's rider sees it flying right, skids up, its stern burning, the
+/// stars torn into lines rushing left past it («A — Под днищем»). Every mark is placed from the flight's seconds alone, in one draw.
 /// </summary>
 public partial class FlightScreen : Control
 {
     private const int Lines = 400, Clouds = 10;
     private static readonly Texture2D Pod = PixelArt.Picture("machine_dropPod");
+    private static readonly Texture2D Shuttle = PixelArt.Picture("crewShuttle_fold_2");
     /// <summary>The vignette: nothing in the middle to black at the rim.</summary>
     private static readonly GradientTexture2D Rim = new()
     {
@@ -26,8 +28,8 @@ public partial class FlightScreen : Control
     };
     private readonly Vector2[] _quad = new Vector2[4];
     private readonly Color[] _colours = new Color[4];
-    private double _s, _length;
-    private bool _up;
+    private double _s, _k;
+    private bool _up, _shuttle;
     private float _zoom = 1;
 
     public FlightScreen()
@@ -36,17 +38,22 @@ public partial class FlightScreen : Control
         SetAnchorsPreset(LayoutPreset.FullRect);
     }
 
-    /// <summary>Shows the flight <paramref name="s"/> seconds in, of <paramref name="length"/>, up or down, at the world's <paramref name="zoom"/>.</summary>
-    public void Show(double s, double length, bool up, float zoom)
+    /// <summary>Shows <paramref name="ride"/> <paramref name="s"/> seconds in, at the world's <paramref name="zoom"/>.</summary>
+    public void Show(Ride ride, double s, float zoom)
     {
-        (_s, _length, _up, _zoom) = (s, length, up, zoom);
+        (_s, _up, _shuttle, _k, _zoom) = (s, ride.Up, ride.Shuttle, ride.Fraction(s), zoom);
         QueueRedraw();
     }
 
     public override void _Draw()
     {
         float z = Math.Max(_zoom, 0.5f), w = Size.X / z, h = Size.Y / z;
-        double s = _s, k = Fraction(s, _length);
+        if (_shuttle)
+        {
+            Sideways(z, w, h);
+            return;
+        }
+        double s = _s, k = _k;
         float air = (float)Air(k, _up);
         // Pixels a second the stars rush past, quickly at full speed; up, they rush down.
         float speed = (float)(Lerp(900, 2600, Smooth(k / 0.3)) * (1 - air * 0.35));
@@ -90,6 +97,34 @@ public partial class FlightScreen : Control
         if (air > 0) for (int i = Clouds - 3; i < Clouds; i++) Cloud(i, true, s, speed, w, h, air);
 
         // The vignette, pulling the eye to the pod.
+        DrawSetTransform(Vector2.Zero, 0, Vector2.One);
+        DrawTextureRect(Rim, new Rect2(-Size.X * 0.25f, -Size.Y * 0.25f, Size.X * 1.5f, Size.Y * 1.5f), false, new Color(1, 1, 1, 0.35f));
+    }
+
+    /// <summary>
+    /// The shuttle's flight: black space, the stars torn into lines rushing left, faster and longer as it speeds, and the shuttle held
+    /// in the middle facing right, skids up, its stern's flames burning long.
+    /// </summary>
+    private void Sideways(float z, float w, float h)
+    {
+        double t = _s - ShuttleTimeline.DipPeak, ramp = Smooth(t / 1.4);
+        var top = new Color(0.012f, 0.016f, 0.03f);
+        Quad(0, 0, w, h, top, top, top, top);
+        var jolt = new Vector2((float)(Hash(Math.Floor(_s * 60)) - 0.5) * 0.6f, (float)(Hash(Math.Floor(_s * 60) + 7) - 0.5) * 0.6f);
+        DrawSetTransform(jolt * z, 0, new Vector2(z, z));
+        int count = Math.Min(Lines, (int)(160 * w * h / (320 * 180)));
+        var tint = new Color(0.86f, 0.89f, 0.96f);
+        for (int i = 0; i < count; i++)
+        {
+            float v = (float)((300 + Hash(i) * 900) * (0.3 + ramp)), len = (float)((8 + Hash(i + 9) * 60) * (0.2 + ramp * 1.6));
+            float span = w + len, x = (float)(((Hash(i + 3) * w * 3 - t * v) % span + span) % span) - len, y = (float)Hash(i + 7) * h;
+            var bright = tint with { A = (float)(0.3 + Hash(i + 11) * 0.55) };
+            // Bright at the end the stars rush toward: the trailing end fades.
+            Quad(x, y, len, 1, bright, tint with { A = 0 }, bright, tint with { A = 0 });
+        }
+        var corner = new Vector2(w / 2 - 96, h / 2 - 44);
+        PodFlights.Stern(this, corner, _s, 0.9, 0.9, 1);
+        DrawTexture(Shuttle, corner);
         DrawSetTransform(Vector2.Zero, 0, Vector2.One);
         DrawTextureRect(Rim, new Rect2(-Size.X * 0.25f, -Size.Y * 0.25f, Size.X * 1.5f, Size.Y * 1.5f), false, new Color(1, 1, 1, 0.35f));
     }

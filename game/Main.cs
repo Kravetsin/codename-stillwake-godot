@@ -144,19 +144,46 @@ public partial class Main : Node2D, ITogether
     private World? _arrivalsWorld;
 
     /// <summary>
-    /// Tells the arrivals this frame's pods: a world loaded or resynced (a new <c>World</c>) shows nothing coming down; this
-    /// player's own pod comes down the frame its flight is gone and it sits in one.
+    /// Tells the arrivals this frame's pods and shuttles: a world loaded or resynced (a new <c>World</c>) shows nothing coming down;
+    /// this player's own pod or shuttle comes the frame its flight or voyage is gone and it sits in one.
     /// </summary>
     private void SeeArrivals(Client client, double delta)
     {
         int surface = client.World.SurfaceOf(client.Id);
         bool newWorld = !ReferenceEquals(client.World, _arrivalsWorld);
         _arrivalsWorld = client.World;
-        bool flies = _m.Landing.FlightOf(client.Id) != null;
+        bool flies = _m.Landing.FlightOf(client.Id) != null || _m.Landing.VoyageOf(client.Id) != null;
         int? landed = _flewLast && !flies ? _m.Landing.SeatOf(client.Id) : null;
         _flewLast = flies;
-        var pods = _m.Grid.MachinesWith(Content.MachineTrait.Lands).Where(p => Content.Machines.Get(p.Kind).Riders == 1).Select(p => (p.Id, _m.Landing.RiderOf(p.Id) != null)).ToList();
-        _arrivals.Frame(surface, surface == 0, pods, landed, newWorld, delta);
+        var landers = _m.Grid.MachinesWith(Content.MachineTrait.Lands);
+        var pods = landers.Where(p => Content.Machines.Get(p.Kind).Riders == 1).Select(p => (p.Id, _m.Landing.RiderOf(p.Id) != null)).ToList();
+        var shuttles = landers.Where(p => Content.Machines.Get(p.Kind).Riders > 1).Select(p => (p.Id, _m.Landing.RidersOf(p.Id).Count)).ToList();
+        _arrivals.Frame(surface, surface == 0, pods, landed, newWorld, delta, shuttles);
+    }
+
+    /// <summary>
+    /// The rider's camera on its shuttle's trip (shuttle-flight): pulled out from the follow to the far frame as the shuttle leaves,
+    /// and closed back in as it comes; every other player's left to the follow.
+    /// </summary>
+    private void BlendCamera(Client client, double progress)
+    {
+        int width = _m.Grid.Width;
+        Features.Landing.ShuttleTimeline.Moment? moment = null;
+        int cell = 0;
+        if (_m.Landing.VoyageOf(client.Id) is { } voyage)
+        {
+            double s = Features.Landing.FlightTimeline.Seconds(Features.Landing.Ride.Of(voyage), progress);
+            (moment, cell) = (Features.Landing.ShuttleTimeline.Leaving(s, voyage.Out != null), voyage.From);
+        }
+        else if (_m.Landing.SeatOf(client.Id) is int seat && _arrivals.ShuttleSince(seat) is var (a, aboard) && _m.Grid.MachineById(seat) is { } shuttle)
+            (moment, cell) = (Features.Landing.ShuttleTimeline.Arriving(a, aboard), shuttle.Cell);
+        if (moment == null)
+        {
+            _camera.Blend(Vector2.Zero, 0);
+            return;
+        }
+        var (x, y) = Features.Landing.ShuttleTimeline.Middle(cell, width, moment);
+        _camera.Blend(new Vector2((float)x, (float)y), (float)moment.Blend);
     }
 
     /// <summary>
@@ -277,10 +304,10 @@ public partial class Main : Node2D, ITogether
                 : null;
             _items.Panel.Launch = LaunchOf;
             AddChild(_jumpCall = new Features.Landing.JumpCall());
-            // A shuttle's voyage shows as a pod's descent of its length (shuttle-flight, plain pictures).
+            // The rider's own flight: a pod's, or a shuttle's voyage, cut to as it is gone under the belly (shuttle-flight).
             Features.Landing.Ride? OwnRide(int peer) => _m.Landing.FlightOf(peer) is { } f ? Features.Landing.Ride.Of(f) : _m.Landing.VoyageOf(peer) is { } v ? Features.Landing.Ride.Of(v) : null;
             AddChild(new Features.Landing.FlightOverlay(() => _session is Session s ? (s.Client.World.SurfaceOf(s.Client.Id), OwnRide(s.Client.Id)) : null,
-                () => (_session as Session)?.Progress ?? 0, () => _camera.CurrentZoom));
+                () => (_session as Session)?.Progress ?? 0, () => _camera.OwnZoom));
             // The vitals at the bottom-left (hud-vitals): the belt's charge under the suit's air, whatever is held. Before the
             // suit's gauge, so the red edges cover it as they cover the rest of the HUD.
             var energy = new EnergyBar(() => _session is Session s ? EnergyRead.Of(_m.Items.Inventory(s.Client.Id), _m.Items.BeltCharge(s.Client.Id), p => _m.Items.SlotOpen(s.Client.Id, p), _m.Items.Running(s.Client.Id)) : null, _hands.Ui);
@@ -646,6 +673,7 @@ public partial class Main : Node2D, ITogether
         if (client.World.Tick != before) ShakeFalling(client);
         _frameLog?.Mark("light");
         _hero?.Frame(client, _m, _camera, heard, session.Progress, session.Drift, session.Host != null, delta * 1000);
+        BlendCamera(client, session.Progress);
         _frameLog?.Mark("hero");
         // After the hero, so a door it toggles shows on the frame E is pressed (0014).
         SyncGrid(client);

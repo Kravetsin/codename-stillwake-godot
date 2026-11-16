@@ -11,7 +11,8 @@ namespace Stillwake.Game.Features.Landing;
 /// Each shuttle's canopy, without a word: pane i lit warm while place i is taken, its rider never seen behind the tint; and its
 /// course lamp, lit while a course is set (shuttle-flight). Each is a picture of the shuttle's whole frame with only that light
 /// painted (<c>crewShuttle_seat_{i}</c>, <c>crewShuttle_course</c>). The seats, the course and the shuttles are compared every
-/// frame, a handful at most, and drawn again only on a change.
+/// frame, a handful at most, and drawn again only on a change. A shuttle held by <see cref="Arrivals"/>, or in flight, is drawn
+/// moving by <see cref="PodFlights"/>, its panes with it: not here.
 /// </summary>
 public partial class ShuttleLights : Node2D
 {
@@ -23,12 +24,15 @@ public partial class ShuttleLights : Node2D
     private readonly IGridQueries _grid;
     private readonly LandingModule _landing;
     private readonly PlacesModule _places;
+    private readonly Arrivals? _arrivals;
     private Seat[] _seen = [];
     private int[] _shuttles = [];
     private bool _course;
+    private int _held;
 
-    public ShuttleLights(IGridQueries grid, LandingModule landing, PlacesModule places)
+    public ShuttleLights(IGridQueries grid, LandingModule landing, PlacesModule places, Arrivals? arrivals = null)
     {
+        _arrivals = arrivals;
         _grid = grid;
         _landing = landing;
         _places = places;
@@ -41,8 +45,9 @@ public partial class ShuttleLights : Node2D
     {
         bool course = _places.Course != null;
         var shuttles = _grid.MachinesOf(Shuttle);
-        if (_landing.Seats.SequenceEqual(_seen) && course == _course && shuttles.Select(m => m.Cell).SequenceEqual(_shuttles)) return;
-        (_seen, _course, _shuttles) = ([.. _landing.Seats], course, [.. shuttles.Select(m => m.Cell)]);
+        int held = _arrivals?.Version ?? 0;
+        if (_landing.Seats.SequenceEqual(_seen) && course == _course && held == _held && shuttles.Select(m => m.Cell).SequenceEqual(_shuttles)) return;
+        (_seen, _course, _held, _shuttles) = ([.. _landing.Seats], course, held, [.. shuttles.Select(m => m.Cell)]);
         QueueRedraw();
     }
 
@@ -52,10 +57,11 @@ public partial class ShuttleLights : Node2D
     public override void _Draw()
     {
         if (_course)
-            foreach (int cell in _shuttles) DrawTexture(Course, Corner(Shuttle, cell));
+            foreach (int cell in _shuttles)
+                if (_grid.MachineAt(cell) is not { } m || _arrivals?.Holds(m.Id) != true) DrawTexture(Course, Corner(Shuttle, cell));
         foreach (var seat in _seen)
         {
-            if (_grid.MachineById(seat.Pod) is not { Kind: Shuttle } shuttle || seat.Place >= Seats.Length) continue;
+            if (_grid.MachineById(seat.Pod) is not { Kind: Shuttle } shuttle || seat.Place >= Seats.Length || _arrivals?.Holds(shuttle.Id) == true) continue;
             DrawTexture(Seats[seat.Place], Corner(shuttle.Kind, shuttle.Cell));
         }
     }

@@ -3,7 +3,8 @@
 // one low at the stern, two long skids on swinging links. The craft is 9 cells tall in its footprint of 24 × 10 (192 × 80): drawn in
 // its own 72-tall frame and shifted 8 px down, so its skids stand on the platform at row 80 and the top 8 px stay empty.
 // `machine_crewShuttle`, unlit; its fuel input at the stern and the fuel up its sight glass (`crewShuttle_level`, fuel-liquid);
-// `crewShuttle_seat_0` … `_3`, a canopy pane lit warm per seat taken, stern to nose; `crewShuttle_course`, its course lamp lit.
+// `crewShuttle_seat_0` … `_3`, a canopy pane lit warm per seat taken, stern to nose; `crewShuttle_course`, its course lamp lit;
+// `crewShuttle_fold_1`, `_2`, the craft in flight, its skids half up and up.
 (function () {
 'use strict';
 const { ell, rr, poly, star } = Anime;
@@ -186,10 +187,7 @@ function fuelPlate(a) {
   rivets(a, [1.6, 57.6], [6.4, 57.6], [1.6, 62.4], [6.4, 62.4]);
 }
 
-/**
- * The skids on their swinging links, in three frames: 0 down, 1 half, 2 up. Only frame 0 is drawn (into the body): the craft has no
- * launch in the world yet, so the others are kept for when it does.
- */
+/** The skids on their swinging links, in three frames: 0 down (in the body), 1 half and 2 up (crewShuttle_fold_1, _2, its flight). */
 function skids(a, f) {
   const E = [[-3, 70], [-6, 67.6], [-8.4, 64.4]][f], sy = [69.6, 67.2, 64][f], dx = [0, -3, -5.4][f];
   for (const [x0, x1] of [[34, 100], [112, 178]]) {
@@ -201,21 +199,23 @@ function skids(a, f) {
   }
 }
 
-function shuttle(a) {
+const shuttle = (fold) => (a) => {
   desant(scaled(a, K9));
   glassBody(a);
-  skids(a, 0);
+  skids(a, fold);
   fuelPipe(a);
   for (const [x, y, c, r] of LAMPS) lampOff(a, x, y, c, r);
   lampOff(a, COURSE[0], COURSE[1], OFF.course, COURSE[2]);
   fuelPlate(a);
-}
+};
 
 /** A picture of the footprint, the craft's frame dropped onto the platform. */
 const picture = (draw) => Anime.bake({ w: 192, h: 80, shift: [0, DROP], draw });
 
 Subjects.shuttle = function () {
-  out('machine_crewShuttle', picture(shuttle));
+  out('machine_crewShuttle', picture(shuttle(0)));
+  // The whole craft in flight, skids half up and up (shuttle-flight, «A — Под днищем»).
+  for (const f of [1, 2]) out(`crewShuttle_fold_${f}`, picture(shuttle(f)));
   out('crewShuttle_level', picture(level));
   out('crewShuttle_level_top', picture(levelTop));
   for (let i = 0; i < 4; i++) out(`crewShuttle_seat_${i}`, picture((a) => pane(a, i)));

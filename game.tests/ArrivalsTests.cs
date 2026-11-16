@@ -95,4 +95,78 @@ public class ArrivalsTests
         a.Frame(Planet, false, [(7, true)], null, false, 2.0);
         Assert.Equal(Arrivals.MostDelta, a.SecondsSince(7));
     }
+
+    private const int Vessel = 2;
+
+    /// <summary>A frame on <paramref name="surface"/> with no pods and these shuttles, each with its riders.</summary>
+    private static void Shuttles(Arrivals a, int surface, int? ownLanded, params (int Shuttle, int Riders)[] shuttles) =>
+        a.Frame(surface, surface == Ship, [], ownLanded, false, Frame, shuttles);
+
+    [Fact]
+    public void AShuttleComeWithItsRidersIsHeldOffTheShipTillTheCameraHasClosedIn()
+    {
+        var a = new Arrivals();
+        a.Frame(Vessel, false, [], null, true, Frame);
+        Shuttles(a, Vessel, null, (9, 2));
+        Assert.True(a.Holds(9));
+        Assert.Equal((0.0, false), a.ShuttleSince(9));
+        int frames = 0;
+        while (a.Holds(9) && frames < 1000)
+        {
+            Shuttles(a, Vessel, null, (9, 2));
+            frames++;
+        }
+        Assert.Equal(ShuttleTimeline.Hold(false), frames * Frame, 1);
+        Assert.Null(a.ShuttleSince(9));
+    }
+
+    [Fact]
+    public void AShuttleComeHomeIsHeldAboardForItsRiseThroughTheRun()
+    {
+        var a = new Arrivals();
+        a.Frame(Vessel, false, [], null, true, Frame);
+        // Its rider's own, the frame its voyage ends and the hero is home: another shuttle there stands.
+        Shuttles(a, Ship, ownLanded: 9, (9, 1), (4, 0), (5, 2));
+        Assert.Equal((0.0, true), a.ShuttleSince(9));
+        Assert.False(a.Holds(4));
+        Assert.False(a.Holds(5));
+        int frames = 0;
+        while (a.Holds(9) && frames < 1000)
+        {
+            Shuttles(a, Ship, null, (9, 1), (4, 0), (5, 2));
+            frames++;
+        }
+        Assert.Equal(ShuttleTimeline.Hold(true), frames * Frame, 1);
+        // Not heard docking as a pod is: it is drawn.
+        Assert.Null(a.DockedSince(9));
+    }
+
+    [Fact]
+    public void AShuttleIsLetGoAtOnceWhenARiderGetsOut()
+    {
+        var a = new Arrivals();
+        a.Frame(Vessel, false, [], null, true, Frame);
+        Shuttles(a, Vessel, null, (9, 1));
+        // A second rider sits down in it, come on the same voyage: it is still coming.
+        Shuttles(a, Vessel, null, (9, 2));
+        Assert.True(a.Holds(9));
+        int version = a.Version;
+        Shuttles(a, Vessel, null, (9, 1));
+        Assert.False(a.Holds(9));
+        Assert.NotEqual(version, a.Version);
+        // Nor does it come again when the rider sits back in it.
+        Shuttles(a, Vessel, null, (9, 2));
+        Assert.False(a.Holds(9));
+    }
+
+    [Fact]
+    public void AnEmptyShuttleOrOneInAWorldJustLoadedDoesNotArrive()
+    {
+        var a = new Arrivals();
+        a.Frame(Vessel, false, [], null, true, Frame, [(9, 2)]);
+        Assert.False(a.Holds(9));
+        Shuttles(a, Vessel, null, (9, 2), (11, 0));
+        Assert.False(a.Holds(9));
+        Assert.False(a.Holds(11));
+    }
 }
