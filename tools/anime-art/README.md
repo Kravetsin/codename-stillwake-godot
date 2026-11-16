@@ -30,8 +30,8 @@ finish is `wash.js`, one for every subject.
 
 | Subject | Pictures |
 | --- | --- |
-| `hero` | `hero_<part>`: the suits' parts (the regen suit's lights `_lit`, `_arcs`, `_pip`); `hero_outfit_<n>_<part>`, `_skin` under bare skin; hair, faces, beards by `LookTint`; cape, jetpack, lamp, sheet, tools; `hero_tracker`, `_light`: white, tinted by Modulate. Top-lit |
-| `catchergear` | catchers' outfits: `hero_catcher<Body>_<part>`, `_upperArm_lit`; `hero_catcher<Helmet>_shell`, `_visor`, `_lit`, by `HeroKit` |
+| `hero` | `hero_<part>`: the suits' parts (the regen suit's lights `_lit`, `_arcs`, `_pip`), an arm or leg drawn in halves and joined by `limbs.js` (whole-limbs); `hero_outfit_<n>_<part>`, `_skin` under bare skin; hair, faces, beards by `LookTint`; cape, jetpack, lamp, sheet, tools; `hero_tracker`, `_light`: white, tinted by Modulate. Top-lit |
+| `catchergear` | catchers' outfits: `hero_catcher<Body>_<part>`, `_arm_lit`; `hero_catcher<Helmet>_shell`, `_visor`, `_lit`, by `HeroKit` |
 | `machines` | `machine_<kind>`, working overlays (fire, fills, bubbles); a `fitting` on its port (`Machines.Ports`); exposes `AnimeKit` |
 | `zfittings` | `pipe_run`, `pipe_<arms>`, valves, sockets, hatches, platforms, ladder, floor, drone, lamps, held tools; after `machines`, for `AnimeKit` |
 | `items` | `items/<id>`; an `_empty` state is the full picture's calls, only the changing part dark; `tool_screwdriver` |

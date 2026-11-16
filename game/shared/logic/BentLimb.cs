@@ -4,17 +4,12 @@ using System.Collections.Generic;
 namespace Stillwake.Game.Shared;
 
 /// <summary>
-/// One picture of a limb bent at its elbow or knee as a whole piece (bent-limbs): a grid over the picture, rigid with its bone away
-/// from the joint and, within <see cref="Band"/> of it, each row turned about the joint by a smooth share of the bend. Turning rows
-/// about the joint, not blending their places, keeps the limb's width through a sharp bend.
+/// One picture of a limb bent at its elbow or knee as a whole piece (bent-limbs, whole-limbs): a grid over the picture, rigid with its
+/// bone away from the joint and, within <see cref="Band"/> of it, each row turned about the joint by a smooth share of the bend.
+/// Turning rows about the joint, not blending their places, keeps the limb's width through a sharp bend.
 /// <para>
-/// The two pictures meet at a seam round the joint (<see cref="SeamOf"/>), where both are full width, so neither's rounded end
-/// shows and nothing marks where the elbow or knee is: the upper is drawn down to the seam's end, fading out across it over the
-/// lower, drawn from the seam's start.
-/// </para>
-/// <para>
-/// A creature's leg, neck or tail is one picture bent so (creatures-bend), <see cref="Seamless"/>: no end of a picture anywhere near
-/// its knee. A neck or tail lies along its own axis, not straight down its picture; its rows cross that axis.
+/// A hero's arm and leg, a creature's leg, neck or tail are each one picture bent so (creatures-bend): no end of a picture anywhere
+/// near the joint. A neck or tail lies along its own axis, not straight down its picture; its rows cross that axis.
 /// </para>
 /// </summary>
 public sealed class BentLimb
@@ -32,15 +27,6 @@ public sealed class BentLimb
     /// </summary>
     public const int Columns = 9;
 
-    /// <summary>How far round the joint the parts' pictures are looked at for their full width, pixels, and how much of it is full.</summary>
-    private const double SeamReach = 3, Full = 0.85;
-
-    /// <summary>The seam where no picture's widths are known: a pixel's fade across the joint.</summary>
-    public static readonly (double From, double To) Plain = (-0.5, 0.5);
-
-    /// <summary>No seam: a picture drawn whole, as a soft helmet's are (helmets-fit-the-suit) and a creature's legs (creatures-bend).</summary>
-    public static readonly (double From, double To) Seamless = (double.NegativeInfinity, double.PositiveInfinity);
-
     private readonly double _joint, _band, _axis;
     private readonly bool _lower;
     private readonly Vec[] _rest;
@@ -51,9 +37,6 @@ public sealed class BentLimb
     /// <summary>Each point's place in the picture, in its pixels from its top-left corner.</summary>
     public Vec[] Uvs { get; }
 
-    /// <summary>How opaque the picture is at each point: the upper fading out across the seam, all else whole.</summary>
-    public double[] Alphas { get; }
-
     /// <summary>The grid's triangles, three points each, by index.</summary>
     public int[] Triangles { get; }
 
@@ -63,25 +46,21 @@ public sealed class BentLimb
     /// <param name="left">The picture's left edge in its bone's frame, pixels, as it hangs straight down.</param>
     /// <param name="top">Its top edge.</param>
     /// <param name="width">Its width, pixels.</param>
-    /// <param name="height">Its height, pixels; a shin cut at the ankle only its cut.</param>
-    /// <param name="joint">Where the elbow or knee is down the frame: the upper bone's length for an upper picture, 0 for a lower one.</param>
-    /// <param name="lower">Whether the picture hangs from the lower bone (forearm, shin) rather than the upper.</param>
-    /// <param name="seam">Where the pictures meet, from and to, pixels down from the joint (<see cref="SeamOf"/>).</param>
+    /// <param name="height">Its height, pixels; a leg cut at the ankle only its cut.</param>
+    /// <param name="joint">Where the elbow or knee is down the frame: the upper bone's length for a picture hung from it, 0 for one hung from the lower.</param>
+    /// <param name="lower">Whether the picture hangs from the lower bone (a hero's arm and leg) rather than the upper.</param>
     /// <param name="band">How tall the band it bends in is, pixels: <see cref="Band"/> for a limb, a helmet's own for its seal (helmets-fit-the-suit).</param>
     /// <param name="axis">
     /// Which way its bone runs from the frame's origin, radians clockwise from straight down: 0 for a limb, down its picture; a
     /// creature's neck or tail its own, the grid then over the picture's box turned onto the bone.
     /// </param>
-    public BentLimb(double left, double top, double width, double height, double joint, bool lower, (double From, double To) seam, double band = Band, double axis = 0)
+    public BentLimb(double left, double top, double width, double height, double joint, bool lower, double band = Band, double axis = 0)
     {
         (_joint, _lower, _band, _axis) = (joint, lower, band, axis);
         var (pictureLeft, pictureTop) = (left, top);
         (left, top, width, height) = OnBone(left, top, width, height, axis);
-        double from = lower ? Math.Max(top, joint + seam.From) : top, to = lower ? top + height : Math.Min(top + height, joint + seam.To);
-        if (to <= from) (from, to) = (top, top);
+        double from = top, to = top + height;
         var rows = new List<double> { from, to };
-        foreach (double y in (double[])[joint + seam.From, joint + seam.To])
-            if (y > from && y < to && !rows.Contains(y)) rows.Add(y);
         for (int i = 0; i < BandRows; i++)
         {
             double y = joint - band / 2 + band * i / (BandRows - 1);
@@ -90,16 +69,14 @@ public sealed class BentLimb
         rows.Sort();
         _rest = new Vec[rows.Count * Columns];
         Uvs = new Vec[_rest.Length];
-        Alphas = new double[_rest.Length];
         for (int r = 0; r < rows.Count; r++)
         {
             double y = rows[r];
-            double fade = lower || seam.To <= seam.From || double.IsInfinity(seam.To) ? 1 : Math.Clamp((joint + seam.To - y) / (seam.To - seam.From), 0, 1);
             for (int c = 0; c < Columns; c++)
             {
                 var rest = new Vec(left + width * c / (Columns - 1), y);
                 var inPicture = Turned(rest, axis);
-                (_rest[r * Columns + c], Uvs[r * Columns + c], Alphas[r * Columns + c]) = (rest, new Vec(inPicture.X - pictureLeft, inPicture.Y - pictureTop), fade);
+                (_rest[r * Columns + c], Uvs[r * Columns + c]) = (rest, new Vec(inPicture.X - pictureLeft, inPicture.Y - pictureTop));
             }
         }
         Points = Array.ConvertAll(_rest, p => Turned(p, axis));
@@ -164,40 +141,5 @@ public sealed class BentLimb
         double turn = lower ? (1 - share) * bend : -share * bend;
         double c = Math.Cos(turn), s = Math.Sin(turn), y = rest.Y - joint;
         return new Vec(rest.X * c - y * s, joint + rest.X * s + y * c);
-    }
-
-    /// <summary>
-    /// Where the two pictures of a limb meet, pixels down from the joint: from where the lower is full width, past its rounded top, to
-    /// where the upper still is, before its rounded end; a gap between them closed at its middle. Each picture by its opaque width
-    /// row by row, <paramref name="rowHeight"/> pixels a row, its first row <paramref name="upperTop"/> or <paramref name="lowerTop"/>
-    /// pixels down from the joint; <see cref="Plain"/> without them.
-    /// </summary>
-    public static (double From, double To) SeamOf(IReadOnlyList<float>? upper, double upperTop, IReadOnlyList<float>? lower, double lowerTop, double rowHeight)
-    {
-        if (upper == null || lower == null) return Plain;
-        // The upper from above the joint down, while full; the lower from below it up.
-        double? to = Edge(upper, upperTop, rowHeight, down: true), from = Edge(lower, lowerTop, rowHeight, down: false);
-        if (to is not double t || from is not double f) return Plain;
-        return f <= t ? (f, t) : ((f + t) / 2, (f + t) / 2);
-    }
-
-    /// <summary>
-    /// How far down from the joint a picture stays full width toward its rounded end, down for the upper, up for the lower: from the
-    /// joint's row, or the nearest full one on the bone's side, within <see cref="SeamReach"/> of the joint.
-    /// </summary>
-    private static double? Edge(IReadOnlyList<float> widths, double top, double rowHeight, bool down)
-    {
-        int Row(double along) => (int)Math.Floor((along - top) / rowHeight);
-        int first = Math.Max(0, Row(-SeamReach)), last = Math.Min(widths.Count - 1, Row(SeamReach));
-        if (first > last) return null;
-        float most = 0;
-        for (int r = first; r <= last; r++) most = Math.Max(most, widths[r]);
-        if (most <= 0) return null;
-        bool Whole(int r) => r >= first && r <= last && widths[r] >= most * Full;
-        int step = down ? 1 : -1, at = Math.Clamp(Row(0), first, last);
-        while (!Whole(at) && at - step >= first && at - step <= last) at -= step;
-        if (!Whole(at)) return null;
-        while (Whole(at + step)) at += step;
-        return top + (down ? at + 1 : at) * rowHeight;
     }
 }

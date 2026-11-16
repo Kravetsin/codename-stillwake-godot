@@ -192,7 +192,7 @@ public partial class CreatureBody : Node2D
             d.White.Transform = mat;
             if (d.Glow != null) d.Glow.Transform = mat;
             // A bent picture's bend is BentLimb's, which turns what lies past its joint the other way.
-            foreach (var bent in d.Bent) bent.Show(-pose.Joints[d.Node].Bend, BentLimb.Seamless);
+            foreach (var bent in d.Bent) bent.Show(-pose.Joints[d.Node].Bend);
         }
         _flash.Visible = white > 0.01;
         _flash.Modulate = new Color(1, 1, 1, (float)white);

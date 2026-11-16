@@ -131,7 +131,7 @@ public static class BodyFit
     public static IEnumerable<string> Fitted => Fits.Keys;
 
     /// <summary>
-    /// The rows of an upper arm's picture, from its box's top (its shoulder joint at 2.5), over which its top fades in from nothing:
+    /// The rows of an arm's picture, from its box's top (its shoulder joint at 2.5), over which its top fades in from nothing:
     /// no round end shows at the shoulder, over the torso or a collar, however the arm turns.
     /// </summary>
     public static readonly (double Whole, double None) Shoulder = (4.5, 1.5);
@@ -142,19 +142,16 @@ public static class BodyFit
     /// </summary>
     public static bool CollarOverArm(Bend arm) => Math.Cos(arm.Upper) >= 0 && Rig.EndOf(arm, Rig.Arm).Y >= 0;
 
-    /// <summary>Bodies whose upper arm keeps its top: a catcher's receiver is strapped there (tracker-catchers).</summary>
+    /// <summary>Bodies whose arm keeps its top: a catcher's receiver is strapped there (tracker-catchers).</summary>
     private static readonly HashSet<string> Receivers = CreatureLooks.Heroes.Values.SelectMany(look => look.Gear).Select(gear => gear.Body).ToHashSet();
 
     /// <summary>
     /// The rows of the part's picture <paramref name="picture"/> (<c>hero_</c> left off, its light <c>_lit</c> too) that fade, from
-    /// whole to none, in its box's pixels: an upper arm's top, a helmet's shell's bottom; none for any other.
+    /// whole to none, in its box's pixels: an arm's top, a helmet's shell's bottom; none for any other.
     /// </summary>
     public static (double Whole, double None)? FadeOf(string picture)
     {
         string name = picture.EndsWith("_lit", StringComparison.Ordinal) ? picture[..^4] : picture;
-        if (name == "upperArm" || name.EndsWith("_upperArm", StringComparison.Ordinal))
-            return Receivers.Contains(name.Length > 9 ? name[..^9] : "") ? null : Shoulder;
-        // A whole arm's top is its upper arm's (whole-limbs, a try).
         if (name == "arm" || name.EndsWith("_arm", StringComparison.Ordinal))
             return Receivers.Contains(name.Length > 4 ? name[..^4] : "") ? null : Shoulder;
         string? helmet = name.EndsWith("_shell", StringComparison.Ordinal) ? name[..^6] : name.EndsWith("_collar", StringComparison.Ordinal) ? name[..^7] : null;

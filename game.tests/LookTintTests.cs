@@ -52,7 +52,7 @@ public class LookTintTests
     {
         int deepest = HeroLooks.Skins.Length - 1;
         Assert.True(LookTint.Of("head", deepest, 0)!.Value.Apply(0.8f, 0.7f, 0.2f).R < 0.8f);
-        Assert.True(LookTint.Of("outfit_1_upperArm_skin", deepest, 0)!.Value.Apply(0.8f, 0.7f, 0.2f).R < 0.8f);
-        Assert.Null(LookTint.Of("outfit_1_upperArm", deepest, 0));
+        Assert.True(LookTint.Of("outfit_1_arm_skin", deepest, 0)!.Value.Apply(0.8f, 0.7f, 0.2f).R < 0.8f);
+        Assert.Null(LookTint.Of("outfit_1_arm", deepest, 0));
     }
 }

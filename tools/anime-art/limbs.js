@@ -1,19 +1,20 @@
-// Whole limbs (whole-limbs, a try): every limb's two pictures joined into one straight picture in the rest pose, run on the page's
-// pictures once every subject has drawn. `X_upperArm` over `X_forearm` makes `X_arm`, `X_thigh` over `X_shin` makes `X_leg`, each
-// with its `_lit` and `_skin` beside it; a half without one counts as empty. Joined by the seam the game drew them with
-// (bent-limbs, BentLimb.SeamOf): the lower from where it is full width, the upper fading out over it down to where it still is.
+// Whole limbs (whole-limbs): a hero's arm and leg are each one picture. A subject that draws a limb in two halves has them joined
+// here, once every subject has drawn, into one straight picture in the rest pose, and only that is written: `X_upperArm` over
+// `X_forearm` makes `X_arm`, `X_thigh` over `X_shin` makes `X_leg`, each with its `_lit` and `_skin` beside it; a half without
+// one counts as empty. Joined at a seam where both are full width: the lower from there, the upper fading out over it down to
+// where it still is, so neither's rounded end shows. A raw suit's sheet has its arm and leg whole already (suits.js).
 (function () {
 'use strict';
 /** Pixels a world pixel and the margin round a rig's part (HiRes.Scale, HiRes.FigureMargin). */
 const PX = 4, MARGIN = 3;
-/** Rig.cs: the arm's upper bone H * 0.145, the leg's Hip * 0.5, H 42 and Hip H * 0.42 (WholeLimbsTests ties them). */
-const H = 42, ARM = H * 0.145, LEG = H * 0.42 * 0.5;
-/** Each limb: its picture, its two halves, the upper bone's length and each half's joint (Figure.cs's Joints). */
+/** The upper bones' lengths, world pixels: Rig.Arm.Upper and Rig.Leg.Upper (WholeLimbsTests ties them). */
+const ARM = 6.09, LEG = 8.82;
+/** Each limb: its picture, its two halves, the upper bone's length and each half's joint in its box (the whole's at the upper's). */
 const LIMBS = [
   { whole: 'arm', upper: 'upperArm', lower: 'forearm', bone: ARM, upperJoint: [2.5, 2.5], lowerJoint: [2.5, 2.9] },
   { whole: 'leg', upper: 'thigh', lower: 'shin', bone: LEG, upperJoint: [3, 2.5], lowerJoint: [3, 2.18] },
 ];
-/** BentLimb's seam: how far round the joint widths are looked at, how much of the widest counts as full, and none known. */
+/** The seam: how far round the joint widths are looked at, how much of the widest counts as full, and where none is found. */
 const SEAM_REACH = 3, FULL = 0.85, PLAIN = [-0.5, 0.5];
 
 /** A canvas's opaque width in world pixels, row by row, over a second canvas laid under it (a skin under clothes, SuitArt.Inked). */
@@ -31,7 +32,7 @@ function widths(c, under) {
   return rows;
 }
 
-/** BentLimb.Edge: how far down from the joint a picture stays full width toward its rounded end; null if it never is. */
+/** How far down from the joint a picture stays full width toward its rounded end; null if it never is. */
 function edge(rows, top, down) {
   const row = (along) => Math.floor((along - top) * PX);
   const first = Math.max(0, row(-SEAM_REACH)), last = Math.min(rows.length - 1, row(SEAM_REACH));
@@ -48,7 +49,7 @@ function edge(rows, top, down) {
   return top + (down ? at + 1 : at) / PX;
 }
 
-/** BentLimb.SeamOf: where the halves meet, world pixels down from the joint; each half's first row `upperTop`, `lowerTop` from it. */
+/** Where the halves meet, world pixels down from the joint; each half's first row `upperTop`, `lowerTop` from it. */
 function seamOf(upper, upperTop, lower, lowerTop) {
   const to = edge(upper, upperTop, true), from = edge(lower, lowerTop, false);
   if (to == null || from == null) return PLAIN;
@@ -59,7 +60,7 @@ const blank = (w, h) => Object.assign(document.createElement('canvas'), { width:
 
 /**
  * The two halves joined, the upper's box at the top-left: the lower `dy` rows down from where the seam starts (`cut`, a row of the
- * whole), the upper over it, whole down to `fade`, gone by `gone`, a straight line between, as BentLimb fades it.
+ * whole), the upper over it, whole down to `fade`, gone by `gone`, a straight line between.
  */
 function join(upper, lower, dy, w, h, cut, fade, gone) {
   const c = blank(w, h), x = c.getContext('2d');
@@ -81,7 +82,7 @@ function join(upper, lower, dy, w, h, cut, fade, gone) {
 }
 
 window.Limbs = {
-  /** Adds the whole limbs of every pair among `made` ([name, canvas], the last of a name winning) to it. */
+  /** Joins every pair of halves among `made` ([name, canvas], the last of a name winning) into its whole, leaving no hero's half in it. */
   join(made) {
     const byName = new Map(made);
     for (const [name] of made) for (const L of LIMBS) {
@@ -105,6 +106,8 @@ window.Limbs = {
         byName.set(stem + L.whole + s, c);
       }
     }
+    const half = /^hero_.*(upperArm|forearm|thigh|shin)(_lit|_skin)?$/;
+    for (let i = made.length - 1; i >= 0; i--) if (half.test(made[i][0])) made.splice(i, 1);
   },
 };
 })();
