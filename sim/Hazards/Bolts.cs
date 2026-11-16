@@ -107,7 +107,7 @@ public sealed partial class HazardsModule
         for (int i = 0; i < heroes.Count; i++)
         {
             var hero = heroes[i];
-            if (_crew.OpenSky(hero.Cell) && Math.Abs(hero.Cell % width - x) <= strike.Spread) _crewOps.Shock(hero.Id, rule.Shock, Harm.Shock);
+            if (_crew.OpenSky(hero.Cell) && Math.Abs(hero.Cell % width - x) <= strike.Spread) _crewOps.Shock(hero.Id, rule.Shock, Harm.Lightning);
         }
     }
 

@@ -21,8 +21,12 @@ public static class HurtLook
         Harm.Shock => "8fd8ff",
         Harm.Poison => "c6e260",
         Harm.Burn => "ff8a2a",
+        Harm.Lightning => "b48cff",
         _ => "ffffff",
     };
+
+    /// <summary>Whether a kind washes the edges: all but lightning, whose channel burns into the view instead (surface-storms).</summary>
+    public static bool Washes(Harm harm) => harm != Harm.Lightning;
 
     /// <summary>The edge's opacity <paramref name="seconds"/> after a hurt: a quick rise, an eased fade, nothing outside.</summary>
     public static double Edge(double seconds)

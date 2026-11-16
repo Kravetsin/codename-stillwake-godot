@@ -66,13 +66,6 @@ public static class BoltLook
         }
     }
 
-    /// <summary>How likely a zone cell sparks an arc this frame: more as the glow grows and nearer the middle, most on the struck cell.</summary>
-    public static double GlowRate(double grown, float off, bool struck) =>
-        struck ? 0.25 + 0.5 * grown : (0.015 + 0.07 * grown) * (1 - 0.6 * off);
-
-    /// <summary>How bright the glow's arcs are: dim at first, near whole by the strike.</summary>
-    public static double GlowIntensity(double grown) => 0.35 + 0.55 * grown;
-
     /// <summary>How many of the channel's points the leader has reached, <paramref name="seconds"/> before the strike, in whole steps.</summary>
     public static int LeaderReach(int points, double seconds)
     {
@@ -95,4 +88,73 @@ public static class BoltLook
 
     /// <summary>Whether the branches burn: in the first stroke only.</summary>
     public static bool Branched(double since) => since >= 0 && since < Strokes[0].To;
+
+    /// <summary>
+    /// How hard the channel lights the scene and shades the rest («Свет от канала»), 0 to 1, <paramref name="since"/> seconds after
+    /// the strike: whole in a stroke, stronger than the channel's own glow between, a faint tail to <see cref="LightTail"/>.
+    /// </summary>
+    public static double ChannelLight(double since)
+    {
+        if (since < 0) return 0;
+        double bright = Brightness(since), tail = 0.12 * (1 - Smooth(0, LightTail, since));
+        bool stroke = Array.Exists(Strokes, s => since >= s.From && since < s.To);
+        return Math.Clamp((stroke ? bright : bright * 1.4) + tail, 0, 1);
+    }
+
+    /// <summary>Seconds the scene stays lit by a strike, its tail included.</summary>
+    public const double LightTail = 0.9;
+
+    /// <summary>How strong the zone's fires show («Огни святого Эльма»): plain early and to the zone's edge, so its reach reads at a glance.</summary>
+    public static double FireStrength(double grown, float off) => (0.25 + 0.75 * grown) * (1 - 0.45 * off);
+
+    /// <summary>Whether the fire seeded <paramref name="seed"/> burns yet: more of them light as the glow grows.</summary>
+    public static bool FireLit(int seed, double grown) => Hash(seed, 12) < 0.35 + 0.65 * grown;
+
+    /// <summary>A hero's helmet fire's strength: lit past a third of the glow, flickering.</summary>
+    public static double HelmetFire(double grown, double seconds) =>
+        grown <= 0.35 ? 0 : Math.Clamp((grown - 0.35) * 1.6, 0, 1) * (0.7 + 0.3 * Math.Sin(seconds * 4.1));
+
+    /// <summary>
+    /// The channel's afterimage over a hero's view in the zone («Ожог на сетчатке»), 0 to 1, <paramref name="since"/> seconds
+    /// after the strike: in by 0.3 s, held, paling from 4 s, out by <see cref="BurnDone"/> (the user's, 2026-11-16); and its white edge flash, 0 to 1, gone by <see cref="EdgeFlash"/>.
+    /// </summary>
+    public static double Burn(double since) => Smooth(0.03, 0.3, since) * (1 - Smooth(4, BurnDone, since));
+
+    public static double Edge(double since) => since < 0 || since >= EdgeFlash ? 0 : 1 - since / EdgeFlash;
+
+    public const double EdgeFlash = 0.16, BurnDone = 6;
+
+    /// <summary>A number in [0, 1) fixed by <paramref name="a"/> and <paramref name="b"/>: the same fire in the same place each frame.</summary>
+    public static double Hash(int a, int b)
+    {
+        uint h = unchecked((uint)a * 374761393u + (uint)b * 668265263u);
+        h = unchecked((h ^ (h >> 13)) * 1274126177u);
+        return (h ^ (h >> 16)) / 4294967296.0;
+    }
+
+    /// <summary>A jagged line from <paramref name="from"/> to <paramref name="to"/>, kinked across its way by up to <paramref name="rough"/> of its length.</summary>
+    public static List<(double X, double Y)> Jag(Random random, (double X, double Y) from, (double X, double Y) to, double rough, int depth)
+    {
+        var points = new List<(double X, double Y)> { from, to };
+        double nx = from.Y - to.Y, ny = to.X - from.X, wander = rough;
+        for (int d = 0; d < depth; d++, wander *= 0.55)
+        {
+            var next = new List<(double X, double Y)>(points.Count * 2) { points[0] };
+            for (int i = 1; i < points.Count; i++)
+            {
+                var (a, b) = (points[i - 1], points[i]);
+                double k = (random.NextDouble() - 0.5) * wander;
+                next.Add(((a.X + b.X) / 2 + nx * k, (a.Y + b.Y) / 2 + ny * k));
+                next.Add(b);
+            }
+            points = next;
+        }
+        return points;
+    }
+
+    private static double Smooth(double from, double to, double x)
+    {
+        double t = Math.Clamp((x - from) / (to - from), 0, 1);
+        return t * t * (3 - 2 * t);
+    }
 }

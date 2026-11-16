@@ -58,10 +58,31 @@ public class BoltLookTests
     }
 
     [Fact]
-    public void The_glow_crackles_more_as_it_grows_most_on_the_struck_cell_least_at_the_zone_s_edge()
+    public void The_channel_lights_the_scene_hardest_in_a_stroke_and_lets_go_by_its_tail()
     {
-        Assert.True(BoltLook.GlowRate(1, 0, false) > BoltLook.GlowRate(0, 0, false));
-        Assert.True(BoltLook.GlowRate(0.5, 0, true) > BoltLook.GlowRate(0.5, 0, false));
-        Assert.True(BoltLook.GlowRate(0.5, 0, false) > BoltLook.GlowRate(0.5, 1, false));
+        Assert.Equal(1, BoltLook.ChannelLight(0.01));
+        Assert.InRange(BoltLook.ChannelLight(0.12), 0.3, 0.6);
+        Assert.Equal(0, BoltLook.ChannelLight(BoltLook.LightTail));
+        Assert.Equal(0, BoltLook.ChannelLight(-0.1));
+    }
+
+    [Fact]
+    public void The_burn_holds_about_five_seconds_then_is_gone()
+    {
+        Assert.Equal(1, BoltLook.Burn(0.5));
+        Assert.Equal(1, BoltLook.Burn(3.9));
+        Assert.InRange(BoltLook.Burn(5), 0.1, 0.9);
+        Assert.Equal(0, BoltLook.Burn(BoltLook.BurnDone));
+        Assert.True(BoltLook.Edge(0.01) > 0.9 && BoltLook.Edge(BoltLook.EdgeFlash) == 0);
+    }
+
+    [Fact]
+    public void A_jag_runs_between_its_ends_and_the_hash_stays_in_one()
+    {
+        var jag = BoltLook.Jag(new Random(1), (0, 0), (40, 0), 0.3, 3);
+        Assert.Equal((0.0, 0.0), jag[0]);
+        Assert.Equal((40.0, 0.0), jag[^1]);
+        Assert.Contains(jag, p => p.Y != 0);
+        Assert.All(Enumerable.Range(0, 500), i => Assert.InRange(BoltLook.Hash(i, 12), 0, 0.99999999));
     }
 }

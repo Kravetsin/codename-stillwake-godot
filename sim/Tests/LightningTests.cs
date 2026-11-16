@@ -211,7 +211,7 @@ public class LightningTests
         Assert.Equal(new Strike(Top, Bolt.Glow - 1, 20), Glowing(w));
         Strikes(w);
         Hero near = HeroOf(w, 0), far = HeroOf(w, 1), sheltered = HeroOf(w, 2);
-        Assert.Equal((1, Harm.Shock), (near.Hurts, near.Hurt));
+        Assert.Equal((1, Harm.Lightning), (near.Hurts, near.Hurt));
         Assert.Equal((0, 0), (far.Hurts, sheltered.Hurts));
         // A basic suit's air cannot pay the shock: it empties and the last breath pays the rest, past its end.
         Assert.True(Bolt.Shock > far.Air);
