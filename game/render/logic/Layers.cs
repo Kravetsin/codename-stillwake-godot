@@ -123,6 +123,9 @@ public static class Layers
     /// <summary>A planet's weather: its wash over the world in view, the effects included, then its streaks and wisps; under what an overlay shows (docs/plans/surface-storms.md).</summary>
     public const int Weather = 26;
 
+    /// <summary>A derelict's inside not yet seen (hidden-rooms): over all in it, the effects included; with the weather, which blows only on a planet.</summary>
+    public const int Unseen = 26;
+
     // An overlay over the whole world (air, pipes, power), what it marks, and the cable dragged in it.
     public const int Overlay = 27, OverlayMarks = 28, OverlayHands = 29;
 }

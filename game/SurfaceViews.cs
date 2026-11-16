@@ -98,6 +98,8 @@ public static class SurfaceViews
         new(c => Features.Light.VesselLights.For(c.M.Rules, c.Seed) is { } inside ? new Features.Light.VesselLamps(c.M.Grid, inside) : null),
         // What was left behind inside it: frost, a sparking cable, soot, a burst pipe, a fallen panel, a toppled crate (derelict-looks).
         new(c => Features.Grid.VesselSigns.For(c.M.Rules, c.Seed) is { } signs ? new Features.Grid.VesselSignsView(c.M.Grid, signs) : null),
+        // Its inside dark till a hero has seen it, over all of the above (hidden-rooms).
+        new(c => Features.Unseen.UnseenView.Of(c.M.Grid, c.M.Rules, c.HeroBodies)),
         // The fires last, before the light Main makes after these: each frame a fire picks its picture, then its light follows it.
         new(c => new FurnaceView(c.M.Grid, c.M.Furnace), Fades: true),
         // A planet's weather blowing over its open sky, and its wind heard, where a stretch of it brings one (docs/plans/surface-storms.md).

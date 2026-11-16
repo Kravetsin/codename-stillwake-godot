@@ -540,6 +540,7 @@ public partial class Main : Node2D, ITogether
         // A derelict's own lamps burn on their battery, lit by their own view and with no bolt over them; one a hero builds there has both.
         Func<Sim.Grid.Machine, bool> own = View<Features.Light.VesselLamps>() is { } inside ? inside.Claims : _ => false;
         _hands.Unmarked = own;
+        _hands.Unseen = View<Features.Unseen.UnseenView>() is { } unseen ? unseen.Hides : _ => false;
         AddChild(_light = new LightView(_m.Grid, Game.Light.SkyOf(_m.Rules), ground: _m.Rules is Content.PlanetType)
         {
             // --lit: every lamp at full power, to measure the light on the reference world; --dark: every lamp out, to see what glows.
