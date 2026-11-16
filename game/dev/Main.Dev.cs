@@ -44,6 +44,14 @@ public partial class Main
         return true;
     }
 
+    /// <summary><c>--suit-cards=&lt;art folder&gt;</c>: every suit's card drawn from the hero and written, nothing else made; whether it was given.</summary>
+    private bool SuitCardsOnly()
+    {
+        if (_dev.Value("--suit-cards") is not { } folder) return false;
+        AddChild(new Dev.SuitCards(folder));
+        return true;
+    }
+
     /// <summary><c>--for=seconds</c>: quits after a while.</summary>
     private void QuitAfterAWhile()
     {

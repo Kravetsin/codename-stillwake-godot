@@ -596,6 +596,9 @@ public partial class Figure : Node2D
     /// <summary>Whether it wears the tracker on its shin: every hero does; a catcher drawn as one does not (tracker-catchers).</summary>
     public bool Tracked { get; set; } = true;
 
+    /// <summary>Whether its head and helmet are left undrawn: a suit's card shows the suit alone (<c>Dev.SuitCards</c>).</summary>
+    public bool Headless { set => _helmet.Visible = !value; }
+
     /// <summary>
     /// The world's layer its near arm and what it holds are drawn on, over the tufts its feet stand in (held-over-grass); none for a
     /// figure drawn whole on its own layer: a body, a seated hero, the title's.
