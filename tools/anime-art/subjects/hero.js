@@ -380,54 +380,6 @@ const trackerStrap = { w: 9, h: 11, jx: 3, jy: 2.18, draw(a) {
 } };
 
 // ---------- what the hero wears ----------
-const CANVAS = { base: '#9a7350', shade: '#6d4e39', deep: '#4b3429', lite: '#b8926a', spec: '#d4bb94', rim: '#b8926a' };
-const LINING = { base: '#4d7570', shade: '#365753', deep: '#26403f', lite: '#739c94', spec: '#a4c4b8', rim: '#739c94' };
-const FUR = { base: '#c6b99c', shade: '#8f8269', deep: '#655a4b', lite: '#e0d6bf', spec: '#f0e9d6', rim: '#e0d6bf' };
-const band = (x0, y0, x1, y1) => poly(x0, y0, x1, y0, x1, y1, x0, y1);
-// The cape's cut: its hem is frayed, the same on both sides, for the two are one sheet.
-const HEM = 'M-1 -1L15 -1L15 29.1L13.3 29.7L12.8 29.1L11 29.8L9.2 29.5L8.8 28.8L8.2 29.6L6 29.9L4.2 29.5L3.6 29L2.8 29.8L1 29.5L-1 29.9Z';
-const capeOutside = (a) => {
-  a.shape(HEM, CANVAS, {
-    // The front panel takes the light from the yoke down; the skirt falls away into the dark by the hem.
-    lite: ['M3 -1L14 -1L14 2.4C10 3 6.6 3 5.4 2.6L5.4 12L3 12.4Z'],
-    shade: ['M5.7 9C6.2 14 5.6 22 6.2 30L7.3 30C7.1 22 7.5 14 6.7 9Z', 'M9.9 6.5C10.5 12 9.8 22 10.4 30L11.5 30C11.3 22 11.7 12 10.8 6.5Z', 'M8 18C8.3 22 7.9 26 8.2 30L9 30C8.9 26 9.2 22 8.8 18Z', band(13.2, -1, 15, 31)],
-    deep: ['M-1 28.2L6 27.9L9 28.3L15 27.9L15 31L-1 31Z'],
-    lines: ['M6.2 9C6.6 14 6 22 6.6 29', 'M10.4 6.5C11 12 10.2 22 10.8 28.8', 'M3.2 2.8C7 3.3 10 3.2 13.6 2.6', 'M8.4 18C8.7 22 8.3 25 8.5 28'] });
-  // The turned-back front edge shows its lining, a seam between.
-  a.shape('M-1 -1L2.4 -1C2.6 9 2.2 20 2.5 29.4L1 29.5L-1 29.9Z', LINING, { outer: false, lite: band(-1, -1, 1.2, 12), shade: band(1.5, -1, 3, 30), deep: band(-1, 28.3, 3, 31) });
-  a.line('M2.7 -1C2.9 9 2.5 20 2.8 29.4', { w: 2.4 });
-  // A patch let in long ago, its stitches showing; a tear at the hem never mended.
-  a.shape('M7.6 14.2L11.4 13.8L11.7 17.4L7.9 17.8Z', { ...CANVAS, base: '#83614a', lite: '#9c7a5c', shade: '#5f4434' }, { outer: false, lite: 'M7.6 14.2L11.4 13.8L11.4 14.5L7.7 14.9Z' });
-  a.line('M7.8 14.1L8.1 14.5M8.9 14L9.1 14.4M10 13.9L10.2 14.3M11.3 14.4L11 14.6M11.5 15.8L11.2 15.9M11.5 17.1L11.2 17.1M9.8 17.5L9.9 17.8M8.2 17.6L8.3 17.9', { w: .9 });
-  a.cut('M12.2 29.2L12.6 26.8L13 29.2Z');
-  a.line('M12.5 26.8C12.4 26.2 12.4 25.8 12.6 25.4', { w: .9 });
-  a.flat('M4.2 22.4L4.9 22.2L5 22.9L4.3 23Z', CANVAS.shade);
-};
-const capeLining = (a) => {
-  a.shape(HEM, LINING, {
-    lite: ['M3 -1L13 -1L13 2.6C10 3 8 3 6 2.8L6 11.6L3.4 12L3 2.8L-1 2.8L-1 -1Z'],
-    shade: ['M6.2 11C6.6 16 6 24 6.5 30L7.5 30C7.3 24 7.8 16 7.1 11Z', 'M10.2 7C10.8 13 10.1 23 10.7 30L11.7 30C11.5 23 12 13 11.1 7Z', 'M8.1 20C8.4 24 8 27 8.3 30L9 30C8.9 27 9.3 24 8.9 20Z', band(-1, 3, .4, 31), band(13, -1, 15, 31)],
-    deep: ['M-1 28.2L6 27.9L9 28.3L15 27.9L15 31L-1 31Z'],
-    lines: ['M6.7 11C7.1 16 6.5 24 7 29', 'M10.7 7C11.3 13 10.6 23 11.2 28.8', 'M3 2.9C7 3.2 10 3.1 13 2.7'] });
-  a.cut('M12.2 29.2L12.6 26.8L13 29.2Z');
-  a.line('M3 12.2C4 12.1 5 12 6 11.8', { w: .9, c: '#26403f' });
-};
-const capeHood = (a) => {
-  const hood = 'M.5 1.4C2 .4 4 .1 5.4 .2C7 .3 8.6 .7 9.5 1.5C9.8 3.6 9.6 5.4 8.8 6.8C8 8 6.6 9.2 5 9.7C3.6 9.2 2 8 1.3 6.8C.5 5.4 .2 3.4 .5 1.4Z';
-  a.shape(hood, CANVAS, { lite: 'M4 .2C6 .1 8 .6 9.3 1.5L9.2 4C7.4 3 5.6 2.6 4.4 2.8Z', shade: ['M-1 3L2 3.6C2.4 5.6 3.4 7.4 5 9L5 11L-1 11Z'], deep: 'M0 8L10 7.4L10 11L0 11Z', rim: .26,
-    lines: ['M2.8 1C2.4 3.6 3 6 4.6 8', 'M6.6 3.2C6.8 5 6.4 6.8 5.4 8.4', 'M.8 2C2.6 1.5 4.4 1.4 6.2 1.5'] });
-  a.line('M7.2 7.4L7.5 7.9M8 6.6L8.4 7', { w: .9 });
-};
-const capeCollar = (a) => {
-  // Rough pelt: a body laid along the neck, then each lock in by hand, longest toward the back.
-  a.shape('M.4 3.2L1.2 2.2L1.4 1L2.8 1.2L3.4 .3L4.8 .9L5.8 .2L7 .9L8.2 .3L9.2 1L10.2 1.1L11.2 1.8L12.4 2.2L13.8 3L14.8 3.8L13.6 4.2L12.6 5L10.8 4.8L9.6 5.6L8 5.2L6.6 5.8L5 5.2L3.4 5.6L2.2 4.8L.9 4.8L1.2 4Z', FUR, { shade: 'M0 4L15 4L15 6L0 6Z', rim: .2 });
-  // Tufts lying toward the back, each pointed, no line round them: the pen goes only along the strands.
-  for (const d of ['M3.4 1.2L5 1.6L4.2 2.2L5 3L3.2 2.8L1.8 3.8L2.2 2.4Z', 'M6.6 .9L8 1.4L7.4 2L8.2 2.8L6.4 2.6L5.2 3.4L5.4 2Z', 'M9.6 1.5L11.2 2.2L10.4 2.6L11.2 3.4L9.4 3.1L8.4 3.8L8.6 2.6Z', 'M5 3.2L6.4 3.6L5.8 4.1L6.4 4.8L4.8 4.6L3.6 5.2L3.9 4Z', 'M8.2 3.3L9.6 3.8L9 4.2L9.6 4.9L7.9 4.7L6.8 5.3L7.1 4.2Z'])
-    a.flat(d, FUR.lite);
-  a.line('M4.6 1.7C3.8 2 3 2.6 2.4 3.4M4.4 2.6C3.8 2.8 3.2 3.2 2.8 3.6M7.6 1.4C6.8 1.8 6.2 2.2 5.6 3M7.6 2.6C7 2.7 6.4 3 6 3.3', { w: 1, c: '#655a4b' });
-  a.line('M10.8 2.3C10 2.6 9.4 3 8.8 3.6M10.8 3.3C10.2 3.3 9.6 3.4 9.2 3.7M6 3.7C5.2 4 4.6 4.4 4 5M9.2 3.9C8.4 4.2 7.8 4.6 7.2 5.1', { w: 1, c: '#655a4b' });
-  a.line('M1.6 4.4L2 4.7M3.2 4.6L3.4 5M5 4.6L5.2 5M7.8 4.7L8 5.1M9.6 4.4L9.8 4.9M11.2 4.2L11.3 4.6M12.6 3.6L13 3.9', { w: .9, c: '#655a4b' });
-};
 // The jetpack: a blue fuel bottle in a dark frame, two straps, a valve on top and a nozzle below (Figure.NozzleAt).
 const BOTTLE = { base: '#2f6fa4', shade: '#1f4a78', deep: '#173a60', lite: '#5a9cca', spec: '#a4d0ea', rim: '#5a9cca' };
 const jetpack = (a) => {
@@ -712,10 +664,6 @@ Subjects.hero = function () {
   out('hero_sheet_screen', plain(12, 5, sheetScreen));
   out('hero_jetpack', plain(6, 14, jetpack));
   out('hero_headLamp', plain(6, 4, headLamp));
-  out('hero_cape', plain(14, 30, capeOutside));
-  out('hero_cape_lining', plain(14, 30, capeLining));
-  out('hero_cape_hood', plain(10, 10, capeHood));
-  out('hero_cape_collar', plain(15, 6, capeCollar));
   // The tools. A state differs from its plain picture only by what changes: baked alike and, where the sizes differ, cropped.
   // A held tool's icon (icons/<its picture>): the same drawing at many pixels a world pixel, so an icon fitted from it stays sharp.
   const icon = (name, pic) => out(`icons/${name}`, bake({ light: LIGHT, ...pic, px: Math.ceil(Anime.ICON_LONG / pic.w) }));
