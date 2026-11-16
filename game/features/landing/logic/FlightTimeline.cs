@@ -69,7 +69,10 @@ public static class FlightTimeline
         s < DipFrom || s > DipTo ? 0 : s < DipPeak ? (s - DipFrom) / (DipPeak - DipFrom) : (DipTo - s) / (DipTo - DipPeak);
 
     /// <summary>The flight screen's fraction, 0 at the dip to 1 at the white, the flight <paramref name="length"/> seconds long.</summary>
-    public static double Fraction(double s, double length) => Clamp01((s - DipFrom) / (length - 2));
+    public static double Fraction(double s, double length) => Fraction(s, DipFrom, length);
+
+    /// <summary>The same for a flight whose dip begins at <paramref name="from"/>: to the white, its last second.</summary>
+    public static double Fraction(double s, double from, double length) => Clamp01((s - from) / (length - from - 1));
 
     /// <summary>
     /// How deep in a planet's air the pod is at fraction <paramref name="k"/>: leaving it on the way up; down, the flight is space

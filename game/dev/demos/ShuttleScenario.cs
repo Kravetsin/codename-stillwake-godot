@@ -10,16 +10,18 @@ namespace Stillwake.Game.Dev;
 /// <summary>
 /// The testbed's hero by the crew shuttle in its hangar (shuttle-flight): as it starts, a freighter is found and the course set to
 /// it, both sent as commands, so the radar shows the route and the shuttle its lamp. <c>--trip=auto</c> plays the trip by itself:
-/// boards, sets off, gets out three seconds after arriving by the vessel, boards again and flies home, for a sheet of frames.
+/// boards, sets off, gets out a second after its arrival is seen through by the vessel, boards again and flies home, for a sheet of frames.
 /// </summary>
-[Dev("--trip", "the testbed's hero by the crew shuttle, a freighter found and the course set to it; =auto boards, sets off, gets out 3 s after arriving, boards again and flies home (ShuttleScenario)", Shape = DevShape.Either, Order = 1)]
+[Dev("--trip", "the testbed's hero by the crew shuttle, a freighter found and the course set to it; =auto boards, sets off, gets out once it has come in by the vessel, boards again and flies home (ShuttleScenario)", Shape = DevShape.Either, Order = 1)]
 public sealed class ShuttleScenario : TestbedScenario
 {
     /// <summary>Ticks from the first frame till the hero boards with <c>=auto</c>, the course set; it sets off <see cref="Wait"/> ticks later.</summary>
     private const int BoardAt = 40;
     private const int Wait = 10;
-    /// <summary>Ticks seated by the vessel before it gets out, and seated again before it flies home.</summary>
-    private const int StayFor = 3 * World.TicksPerSecond;
+    /// <summary>Ticks seated by the vessel before it gets out: the shuttle come in and the camera closed in, and a second.</summary>
+    private static readonly int StayFor = (int)Math.Ceiling((Features.Landing.ShuttleTimeline.Hold(false) + 1) * World.TicksPerSecond);
+    /// <summary>Ticks out of it before boarding again.</summary>
+    private const int OutFor = World.TicksPerSecond;
     private const string Shuttle = "crewShuttle";
 
     private bool _found, _coursed;
@@ -67,7 +69,7 @@ public sealed class ShuttleScenario : TestbedScenario
         }
     }
 
-    /// <summary><c>=auto</c>: board and set off; by the vessel, out three seconds after arriving, back in, and home.</summary>
+    /// <summary><c>=auto</c>: board and set off; by the vessel, out once its arrival is seen through, back in, and home.</summary>
     private void Play(Client client, Registry m, int tick, Action<string> log)
     {
         int surface = client.World.SurfaceOf(client.Id);
@@ -96,8 +98,8 @@ public sealed class ShuttleScenario : TestbedScenario
         }
         int since = tick - _arrivedAt.Value;
         if (_step == 2 && since >= StayFor && Next()) client.Send(new Alight());
-        if (_step == 3 && since >= 2 * StayFor && m.Grid.MachinesOf(Shuttle).FirstOrDefault() is { } parked && Next()) client.Send(new Board(parked.Id));
-        if (_step == 4 && since >= 2 * StayFor + Wait && Next())
+        if (_step == 3 && since >= StayFor + OutFor && m.Grid.MachinesOf(Shuttle).FirstOrDefault() is { } parked && Next()) client.Send(new Board(parked.Id));
+        if (_step == 4 && since >= StayFor + OutFor + Wait && Next())
         {
             log($"flying home: {m.Places.SetOffProblem(client.Id) ?? "ready"}");
             client.Send(new SetOff());

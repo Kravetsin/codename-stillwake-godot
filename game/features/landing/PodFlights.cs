@@ -17,6 +17,10 @@ namespace Stillwake.Game.Features.Landing;
 /// planet: a pod just come down, lowered from above on its retro flame into the dust it blows sideways, with a little bounce; and
 /// one lifting off, rising on its flame out of a cloud of dust. The grid draws the run open and no flying pod, and holds an
 /// arriving one back (<see cref="Arrivals"/>): this draws over it. Lit as the ship is; the flames and dust unlit.
+/// The crew shuttle's trip as «A — Под днищем» (<see cref="ShuttleTimeline"/>): aboard, its run sliding open, the craft sinking
+/// through it, skids folding, and flying off right under the belly, or off the ship lifting off and flying off right past the vessel;
+/// arriving, in from the far left on its retros, skids out, and stopped by the vessel, or home rising through its run drawn open
+/// over the grid's shut one. Its canopy never changes; moving, it is drawn by a light of its own too, so it reads in a dark hangar.
 /// </summary>
 public partial class PodFlights : Node2D
 {
@@ -25,17 +29,31 @@ public partial class PodFlights : Node2D
     private const float Tall = 56;
     private static readonly Texture2D Pod = PixelArt.Lit("machine_dropPod");
     private static readonly Color Flame = new(1f, 0.71f, 0.35f), Core = new(1f, 0.94f, 0.78f), Dust = new(0.75f, 0.63f, 0.47f);
+    /// <summary>The shuttle's kind, and its picture with its skids down, half up and up.</summary>
+    private const string Shuttle = "crewShuttle";
+    private static readonly Texture2D[] Craft = [PixelArt.Lit($"machine_{Shuttle}"), PixelArt.Lit($"{Shuttle}_fold_1"), PixelArt.Lit($"{Shuttle}_fold_2")];
+    /// <summary>The shuttle by its own light, unshaded: as it shows in the ship's light, never darker.</summary>
+    private static readonly Color Own = new(0.8f, 0.8f, 0.85f);
+    /// <summary>The shuttle's stern nozzles' mouths and its nose retros', in its picture's pixels, and each flame's size (the pick's NOZ, RETRO; the retros longer, to read at the far frame).</summary>
+    private static readonly (Vector2 At, float K)[] Nozzles = [(new(2, 19.25f), 0.8f), (new(11, 42.2f), 0.75f), (new(0.6f, 62), 1)];
+    private static readonly (Vector2 At, float K)[] Retros = [(new(183.4f, 67.4f), 0.7f), (new(133, 20.6f), 0.5f)];
+    /// <summary>A flame's layers from its rim to its core, each as wide and long as a share of the whole (the pick's tongue).</summary>
+    private static readonly (Color Colour, float Wide, float Long)[] Tongue =
+        [(new(0.78f, 0.23f, 0.08f, 0.9f), 1, 1), (new(0.94f, 0.42f, 0.13f), 0.72f, 0.82f), (new(1f, 0.69f, 0.4f), 0.46f, 0.6f), (new(1f, 0.96f, 0.78f), 0.22f, 0.34f)];
+    private static readonly Vector2[] Jet = new Vector2[5];
 
     private readonly IGridQueries _grid;
     private readonly LandingModule _landing;
     private readonly CrewModule _crew;
     private readonly Func<double> _progress;
     private readonly Arrivals? _arrivals;
-    private readonly Sketch _lit, _flames;
+    private readonly Sketch _lit, _flames, _jets;
     /// <summary>This frame's pods in motion, kept between frames: falling from home, coming down, lifting off.</summary>
     private readonly List<(Flight Flight, double S)> _falling = [];
     private readonly List<(int Cell, double A)> _coming = [];
     private readonly List<(int Cell, double S)> _lifting = [];
+    /// <summary>This frame's shuttles in motion: the cell each stands from, the run under it, its moment and seconds, its run drawn open.</summary>
+    private readonly List<(int Cell, int Under, ShuttleTimeline.Moment M, double T, bool Opened)> _shuttles = [];
     private readonly PodSounds _sounds = new();
 
     public PodFlights(IGridQueries grid, LandingModule landing, CrewModule crew, Func<double> progress, Arrivals? arrivals = null)
@@ -44,6 +62,9 @@ public partial class PodFlights : Node2D
         _lit = new Sketch(Layers.Screens, lit: true) { Paint = PaintLit };
         Lit.Set(_lit);
         _flames = new Sketch(Layers.Screens) { Paint = PaintFlames };
+        // The shuttle's flames under its hull, coming out of its nozzles' mouths.
+        _jets = new Sketch(Layers.Screens) { Paint = PaintJets };
+        AddChild(_jets);
         AddChild(_lit);
         AddChild(_flames);
         AddChild(_sounds);
@@ -51,10 +72,11 @@ public partial class PodFlights : Node2D
 
     public override void _Process(double delta)
     {
-        bool were = _falling.Count + _coming.Count + _lifting.Count > 0;
+        bool were = _falling.Count + _coming.Count + _lifting.Count + _shuttles.Count > 0;
         _falling.Clear();
         _coming.Clear();
         _lifting.Clear();
+        _shuttles.Clear();
         double progress = _progress();
         // A flight is drawn on the surface it left until it ends: its hero is in this surface's crew till then.
         foreach (var hero in _crew.Heroes)
@@ -67,10 +89,31 @@ public partial class PodFlights : Node2D
         if (_arrivals != null)
             foreach (var pod in _grid.MachinesWith(Content.MachineTrait.Lands).Where(p => Content.Machines.Get(p.Kind).Riders == 1))
                 if (_arrivals.SecondsSince(pod.Id) is double a) _coming.Add((pod.Cell, a));
+        SeeShuttles(progress);
         Hear(delta);
-        if (!were && _falling.Count + _coming.Count + _lifting.Count == 0) return;
+        if (!were && _falling.Count + _coming.Count + _lifting.Count + _shuttles.Count == 0) return;
         _lit.QueueRedraw();
         _flames.QueueRedraw();
+        _jets.QueueRedraw();
+    }
+
+    /// <summary>
+    /// The shuttles moving on this surface: each leaving it, till it is gone off to the right; each just come, held by
+    /// <see cref="Arrivals"/>.
+    /// </summary>
+    private void SeeShuttles(double progress)
+    {
+        int tall = Content.Machines.Get(Shuttle).Height * _grid.Width;
+        foreach (var v in _landing.Voyages)
+        {
+            double s = FlightTimeline.Seconds(Ride.Of(v), progress);
+            if (v.TicksLeft == 0 || s >= ShuttleTimeline.PassTo) continue;
+            _shuttles.Add((v.From, v.From + tall, ShuttleTimeline.Leaving(s, v.Out != null), s, false));
+        }
+        if (_arrivals == null) return;
+        foreach (var m in _grid.MachinesOf(Shuttle))
+            if (_arrivals.ShuttleSince(m.Id) is var (a, aboard))
+                _shuttles.Add((m.Cell, m.Cell + tall, ShuttleTimeline.Arriving(a, aboard), a, aboard));
     }
 
     /// <summary>Each moving pod's engine and knocks, placed at its bottom, where its flame comes out.</summary>
@@ -107,6 +150,67 @@ public partial class PodFlights : Node2D
         }
         foreach (var (cell, a) in _coming) g.DrawTexture(Pod, PodAt(cell) - new Vector2(0, (float)Touchdown(a)));
         foreach (var (cell, s) in _lifting) g.DrawTexture(Pod, PodAt(cell) - new Vector2(0, (float)Lift(s)));
+        foreach (var (cell, under, m, _, opened) in _shuttles)
+        {
+            if (opened && m.Open != null) Opened(g, under);
+            g.DrawTexture(Craft[m.Fold], ShuttleAt(cell, m));
+            if (m.Open is double open) Deck(g, under, open);
+        }
+    }
+
+    /// <summary>Where a shuttle standing from <paramref name="cell"/> is drawn at moment <paramref name="m"/>: its picture's corner.</summary>
+    private Vector2 ShuttleAt(int cell, ShuttleTimeline.Moment m) =>
+        new Vector2(cell % _grid.Width, cell / _grid.Width - ShipTiles.RiseOf(Shuttle)) * Cell + new Vector2((float)m.X, (float)m.Y);
+
+    /// <summary>The run under <paramref name="under"/> drawn open over the grid's shut one: what a shuttle home rises through.</summary>
+    private void Opened(Sketch g, int under)
+    {
+        var (first, length) = LandingModule.RunOf(_grid, under);
+        int width = _grid.Width, x0 = first % width * Cell, y = first / width * Cell;
+        for (int piece = 0; piece < length; piece += 2)
+        {
+            int links = (piece > 0 ? 8 : 0) | (piece + 2 < length ? 2 : 0);
+            g.DrawTexture(PixelArt.Lit(ShipTiles.JoinedName("platform_open", links)), new Vector2(x0 + piece * Cell, y));
+        }
+    }
+
+    /// <summary>The shuttles' flames, drawn under their hulls: the stern's pushing it on, the nose retros' braking it.</summary>
+    private void PaintJets(Sketch g)
+    {
+        foreach (var (cell, _, m, t, _) in _shuttles)
+        {
+            var at = ShuttleAt(cell, m);
+            Stern(g, at, t, m.Stern0, m.Stern1, m.Stern2);
+            if (m.Retro > 0) foreach (var (nozzle, k) in Retros) Burn(g, at + nozzle, 1, k, m.Retro, t);
+        }
+    }
+
+    /// <summary>
+    /// A shuttle's stern flames, its picture's corner at <paramref name="at"/>, each nozzle's 0 to 1 long, flickering by
+    /// <paramref name="t"/>: for the world and its rider's flight screen alike.
+    /// </summary>
+    public static void Stern(CanvasItem g, Vector2 at, double t, double s0, double s1, double s2)
+    {
+        for (int i = 0; i < Nozzles.Length; i++)
+            if ((i == 0 ? s0 : i == 1 ? s1 : s2) is var strength and > 0) Burn(g, at + Nozzles[i].At, -1, Nozzles[i].K, strength, t + i * 0.37);
+    }
+
+    /// <summary>A flame <paramref name="strength"/> long, 0 to 1, out of a nozzle's mouth at <paramref name="mouth"/>, along <paramref name="way"/> (−1 astern, 1 ahead).</summary>
+    private static void Burn(CanvasItem g, Vector2 mouth, float way, float k, double strength, double t)
+    {
+        float flicker = 0.9f + 0.2f * Hash(Math.Floor(t * 30)), wide = 12 * k, along = (float)(38 * strength * k) * flicker * way;
+        // A flame just lit or dying is a sliver Godot cannot triangulate: under half a pixel it is not drawn.
+        if (Math.Abs(along) < 0.5f) return;
+        foreach (var (colour, w, l) in Tongue)
+        {
+            float half = wide * w / 2, reach = along * l;
+            Jet[0] = mouth + new Vector2(0, -half);
+            Jet[1] = mouth + new Vector2(reach * 0.55f, -half * 0.75f);
+            Jet[2] = mouth + new Vector2(reach, 0);
+            Jet[3] = mouth + new Vector2(reach * 0.55f, half * 0.75f);
+            Jet[4] = mouth + new Vector2(0, half);
+            g.DrawColoredPolygon(Jet, colour);
+        }
     }
 
     /// <summary>
@@ -133,6 +237,9 @@ public partial class PodFlights : Node2D
 
     private void PaintFlames(Sketch g)
     {
+        // The shuttles by their own light over the ship's, faded in as one sets off and out as it settles.
+        foreach (var (cell, _, m, _, _) in _shuttles)
+            if (m.Glow > 0) g.DrawTexture(Craft[m.Fold], ShuttleAt(cell, m), Own with { A = (float)m.Glow });
         foreach (var (f, s) in _falling)
             if (s >= DropFrom) Thrust(g, PodAt(f.Home) + new Vector2(0, (float)Drop(s)), s, 0);
         foreach (var (cell, a) in _coming)

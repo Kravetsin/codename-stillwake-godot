@@ -15,6 +15,6 @@ public static class Shuttle
     /// <summary>Ticks a flight lasts, out or home, whatever the distance.</summary>
     public const int FlightTicks = 200;
 
-    /// <summary>Ticks from setting off aboard until the run it fell through shuts: the shuttle is through by then.</summary>
-    public const int FallTicks = 20;
+    /// <summary>Ticks from setting off aboard until the run it fell through shuts: the shuttle is under the belly by then.</summary>
+    public const int FallTicks = 60;
 }
