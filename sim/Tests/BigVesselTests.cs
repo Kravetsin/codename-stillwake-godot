@@ -55,9 +55,10 @@ public class BigVesselTests(ITestOutputHelper output)
     [Fact]
     public void TheLinerIsMadeAsBeforeTheTanker()
     {
+        // Re-recorded once as its parts outside came (big-vessels stage 3): its rooms and shape as they were.
         ulong made = Fingerprint("liner", 16);
         output.WriteLine($"liner: 0x{made:X16}UL");
-        Assert.Equal(0x0219098ECBC5BF56UL, made);
+        Assert.Equal(0xA8D3B12CEA9B870DUL, made);
     }
 
     private static readonly VesselClass Liner = Content.Vessels.Class("liner")!;
@@ -370,5 +371,99 @@ public class BigVesselTests(ITestOutputHelper output)
         int last = v.Hatches.Count - 1;
         var cut = v with { Hatches = [.. v.Hatches.Take(last)], Shafts = [.. v.Shafts.Where(s => s != v.Shafts[last])] };
         Assert.NotNull(VesselTests.Unreached(cut, Shipyard.Stamp(cut)));
+    }
+
+    [Fact]
+    public void AboutHalfALinersPodsAreGoneTheirCradlesLeft()
+    {
+        int pods = 0, cradles = 0;
+        for (uint seed = 1; seed <= 64; seed++)
+        {
+            var v = Of(seed);
+            pods += v.Outside.Count(f => f.Kind == Content.Vessels.Pod);
+            cradles += v.Outside.Count(f => f.Kind == Content.Vessels.Cradle);
+        }
+        output.WriteLine($"{pods} pods, {cradles} cradles");
+        // PodPercent in a hundred still there, give or take ten.
+        Assert.InRange(pods * 100 / (pods + cradles), Content.Vessels.Fits.PodPercent - 10, Content.Vessels.Fits.PodPercent + 10);
+        Assert.InRange(Content.Vessels.Fits.PodPercent, 35, 65);
+    }
+
+    [Fact]
+    public void ATankersManifoldRunsOnOneLevelOnStrutsToTheHullARiserAndValveOverEachTankBayItSpans()
+    {
+        var manifold = Machines.Get(Content.Vessels.Manifold);
+        string valve = Content.Vessels.LookKind(Content.Vessels.Riser, 1);
+        for (uint seed = 1; seed <= 64; seed++)
+        {
+            var v = Tanker(seed);
+            var walls = Shipyard.Stamp(v).Where(p => p.Kind == "wall").Select(p => (p.X, p.Y)).ToHashSet();
+            var segments = v.Outside.Where(f => f.Kind == Content.Vessels.Manifold).OrderBy(f => f.X).ToList();
+            Assert.NotEmpty(segments);
+            Assert.Single(segments.Select(s => s.Y).Distinct());
+            // Segments end to end, each on at least one strut standing on the hull.
+            for (int i = 1; i < segments.Count; i++) Assert.Equal(segments[i - 1].X + manifold.Width, segments[i].X);
+            int under = segments[0].Y + manifold.Height;
+            var struts = v.Outside.Where(f => f.Kind is Content.Vessels.Pylon or Content.Vessels.Riser).ToList();
+            bool Reaches(int x)
+            {
+                int y = under;
+                while (struts.Exists(s => s.X == x && s.Y == y)) y++;
+                return y > under && walls.Contains((x, y));
+            }
+            foreach (var s in segments) Assert.Contains(Enumerable.Range(s.X, manifold.Width), Reaches);
+            // A riser down to each tank bay under the run, its valve over the manifold, its column the bay's middle and RiserPast.
+            int from = segments[0].X, to = segments[^1].X + manifold.Width;
+            foreach (int left in v.Compartments.Where(c => c.Role == VesselRole.TankBay).Select(c => c.Left).Distinct())
+            {
+                var bay = v.Compartments.First(c => c.Left == left);
+                int x = bay.Left + bay.Width / 2 + Content.Vessels.Fits.RiserPast;
+                if (x < from || x >= to) continue;
+                Assert.True(Reaches(x) && v.Outside.Any(f => f.Kind == Content.Vessels.Riser && f.X == x), $"tanker {seed}: no riser at {x}");
+                Assert.Contains(v.Outside, f => f.Kind == valve && (f.X, f.Y) == (x, segments[0].Y - 1));
+            }
+            Assert.Equal(v.Outside.Count(f => f.Kind == valve), v.Outside.Count(f => f.Kind == Content.Vessels.Riser && f.Y == under));
+        }
+    }
+
+    [Fact]
+    public void SpheresHangOnlyUnderATankBayEachAgainstTheKeelAndOnSomeTankers()
+    {
+        int with = 0;
+        for (uint seed = 1; seed <= 64; seed++)
+        {
+            var v = Tanker(seed);
+            var walls = Shipyard.Stamp(v).Where(p => p.Kind == "wall").Select(p => (p.X, p.Y)).ToHashSet();
+            var spheres = v.Outside.Where(f => f.Kind == Content.Vessels.Sphere).ToList();
+            if (spheres.Count > 0) with++;
+            var sphere = Machines.Get(Content.Vessels.Sphere);
+            foreach (var s in spheres)
+            {
+                Assert.Contains(v.Compartments, c => c.Role == VesselRole.TankBay && c.Left <= s.X && s.X + sphere.Width <= c.Left + c.Width);
+                Assert.Contains(Enumerable.Range(s.X, sphere.Width), x => walls.Contains((x, s.Y - 1)));
+            }
+        }
+        // SpherePercent of a hundred, give or take.
+        Assert.InRange(with * 100 / 64, Content.Vessels.Fits.SpherePercent - 20, Content.Vessels.Fits.SpherePercent + 20);
+        Assert.DoesNotContain(Enumerable.Range(1, 16).Select(s => Of((uint)s)), v => v.Outside.Any(f => f.Kind == Content.Vessels.Sphere));
+    }
+
+    [Fact]
+    public void TheRadarsWeightsAreEachClassesAndSumAboveNothing()
+    {
+        Assert.Equal([("shuttle", 4), ("freighter", 3), ("liner", 1), ("tanker", 1)], Content.Vessels.Classes.Select(c => (c.Id, c.Weight)));
+        Assert.All(Content.Vessels.Classes, c => Assert.True(c.Weight >= 0, c.Id));
+        Assert.True(Content.Vessels.Weights(Content.Vessels.Classes) > 0);
+    }
+
+    [Fact]
+    public void EachDrawFallsOnAClassAsOftenAsItsWeightAndNeverOnOneOfWeightNothing()
+    {
+        var c = Content.Vessels.Classes;
+        VesselClass[] classes = [c[0] with { Weight = 2 }, c[1] with { Weight = 0 }, c[2] with { Weight = 3 }, c[3] with { Weight = 0 }];
+        int sum = Content.Vessels.Weights(classes);
+        var drawn = Enumerable.Range(0, sum).Select(d => Content.Vessels.Weighed(classes, d).Id).ToList();
+        Assert.Equal(["shuttle", "shuttle", "liner", "liner", "liner"], drawn);
+        Assert.Throws<ArgumentOutOfRangeException>(() => Content.Vessels.Weighed(classes, sum));
     }
 }

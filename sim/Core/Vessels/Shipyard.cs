@@ -193,7 +193,7 @@ public static partial class Shipyard
         // A nozzle a deck below the first, against the stern armour by its main engine, on the deck's open rows and floor.
         var outside = new List<Vessel.Fitting>();
         for (int d = 1; d < decks; d++) outside.Add(new(Vessels.Nozzle, hull - Vessels.NozzleSize.W, deckList[d].Top, []));
-        Outfit(shape, sections, outside, start + aftWidth, forward, cls.ArmourDepth);
+        Outfit(shape, sections, outside, start + aftWidth, forward, cls.ArmourDepth, cls.Layout);
         int width = Math.Max(bow + bowWidth, outside.Max(f => f.X + Machines.Get(f.Kind).Width));
         int height = Math.Max(bottom + 1 + under, outside.Max(f => f.Y + Machines.Get(f.Kind).Height));
         var vessel = new Vessel(cls.Id, seed, width, height, sections, deckList, shafts, doors, hatches, compartments, fittings, outside);
@@ -209,13 +209,17 @@ public static partial class Shipyard
     /// near the bow, a solar panel by the stern, a tank under the middle of its belly. One with a raised bridge as a freighter: its
     /// mast and dish on the bridge; radiators then a docking collar on top from the stern's RCS, past the bridge and its housing
     /// where they would reach them, the collar on the housing where it fits nowhere else; a keel truss in segments in one line under it from
-    /// the aft rooms, on pylons where the hull is shallower, a container under most; a sensor boom at the bow's tip.
+    /// the aft rooms, on pylons where the hull is shallower, a container under most; a sensor boom at the bow's tip. A liner and a
+    /// tanker (big-vessels) by their own after the mast and the dish (<see cref="Big"/>).
     /// </summary>
     /// <param name="aftEnd">The column past the aft rooms.</param>
     /// <param name="forward">A raised bridge's first column inside its armour.</param>
-    /// <param name="keel">Whether the radiators, the collar, the keel truss and the boom follow the mast and the dish: a freighter's, not a big class's.</param>
-    private static void Outfit(Rng shape, IReadOnlyList<Vessel.Section> sections, List<Vessel.Fitting> outside, int aftEnd, int forward, int armour, bool keel = true)
+    /// <param name="layout">The class's layout: a vessel of rooms is a shuttle or a freighter.</param>
+    /// <param name="rooms">A big class's rooms, which its parts stand over.</param>
+    private static void Outfit(Rng shape, IReadOnlyList<Vessel.Section> sections, List<Vessel.Fitting> outside, int aftEnd, int forward, int armour,
+        VesselLayout layout = VesselLayout.Rooms, IReadOnlyList<Vessel.Compartment>? rooms = null)
     {
+        bool keel = layout == VesselLayout.Rooms;
         var body = sections.First(s => s.Kind == Vessel.SectionKind.Body);
         var bowSection = sections.First(s => s.Kind == Vessel.SectionKind.Bow);
         var bridge = sections.FirstOrDefault(s => s.Kind == Vessel.SectionKind.Bridge);
@@ -292,8 +296,11 @@ public static partial class Shipyard
         int inside = bridge.Left + armour, end = bridge.Left + bridge.Width - armour;
         OnTop(Vessels.MastTall, inside + 1);
         OnTop(Vessels.Dish, end - W(Vessels.Dish));
-        // A liner and a tanker carry no radiators, collar, truss or boom yet (big-vessels, their outsides a stage of their own).
-        if (!keel) return;
+        if (!keel)
+        {
+            Big(new Outfitter(shape, sections, outside, Free, Put, OnTop, Beneath, Over, Under), layout, rooms!, aftEnd);
+            return;
+        }
         // Along the top from the stern's RCS, jumping the housing and the bridge, short of the fore RCS: as many radiators as were
         // drawn and fit with the collar after them, at least one where one fits alone.
         int calmLeft = housing?.Left ?? bridge.Left, calmRight = bridge.Left + bridge.Width;

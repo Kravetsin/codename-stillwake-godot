@@ -216,7 +216,7 @@ public static partial class Shipyard
         var outside = new List<Vessel.Fitting>();
         foreach (var s in aft.Stack.Where(s => s.Role == VesselRole.Engine))
             outside.Add(new(Vessels.Nozzle, hull - Vessels.NozzleSize.W, deckList[s.Deck].Top, []));
-        Outfit(shape, sections, outside, start + aft.Width, raised.First(r => r.Kind == Vessel.SectionKind.Bridge).Left, a, keel: false);
+        Outfit(shape, sections, outside, start + aft.Width, raised.First(r => r.Kind == Vessel.SectionKind.Bridge).Left, a, cls.Layout, rooms);
         int width = Math.Max(bow + bowWidth, outside.Max(f => f.X + Machines.Get(f.Kind).Width));
         int height = Math.Max(bottom + 1 + under, outside.Max(f => f.Y + Machines.Get(f.Kind).Height));
         var vessel = new Vessel(cls.Id, seed, width, height, sections, deckList, shafts, doors, hatches, rooms, fittings, outside);

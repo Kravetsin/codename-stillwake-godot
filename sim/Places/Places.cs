@@ -147,7 +147,7 @@ public sealed class PlacesModule : Module<PlacesState>
 
     /// <summary>
     /// The radar's watch, aboard, each tick (2026-11-08-radar-contacts): every contact's time runs down and one run out goes;
-    /// then the countdown, the first started at <c>First</c>; at 0 a contact of a class drawn evenly comes, while the radar has
+    /// then the countdown, the first started at <c>First</c>; at 0 a contact of a class drawn by its weight comes (big-vessels), while the radar has
     /// room, and the next is drawn. Gone before found, so with <c>Lasts</c> no more than <c>EveryMin</c> two of its own are
     /// never up at once.
     /// </summary>
@@ -164,7 +164,7 @@ public sealed class PlacesModule : Module<PlacesState>
         if (s.Course != null && Course == null) s.Course = null;
         if (s.NextIn == 0) s.NextIn = Content.Contacts.First;
         if (--s.NextIn > 0) return;
-        if (s.Contacts.Count < Vessels.MaxContacts) Add(Vessels.Classes[(int)Random.Below((uint)Vessels.Classes.Count)].Id);
+        if (s.Contacts.Count < Vessels.MaxContacts) Add(Vessels.Weighed(Vessels.Classes, (int)Random.Below((uint)Vessels.Weights(Vessels.Classes))).Id);
         s.NextIn = Content.Contacts.EveryMin + (int)Random.Below((uint)(Content.Contacts.EveryMax - Content.Contacts.EveryMin + 1));
     }
 

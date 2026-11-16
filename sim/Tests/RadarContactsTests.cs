@@ -57,6 +57,26 @@ public class RadarContactsTests
     }
 
     [Fact]
+    public void TheRadarFindsEachClassAsOftenAsItsWeightSays()
+    {
+        // The first contact of each of many worlds, each a draw of its own: a class's share of them its weight's, give or take.
+        const int Worlds = 180;
+        var found = new Dictionary<string, int>(StringComparer.Ordinal);
+        for (uint seed = 1; seed <= Worlds; seed++)
+        {
+            var w = Ship(seed).Run(Rules.First);
+            string cls = Assert.Single(w.M.Places.Contacts).Class;
+            found[cls] = found.GetValueOrDefault(cls) + 1;
+        }
+        int sum = Vessels.Weights(Vessels.Classes);
+        foreach (var c in Vessels.Classes)
+        {
+            int expected = Worlds * c.Weight / sum, seen = found.GetValueOrDefault(c.Id);
+            Assert.InRange(seen, expected * 6 / 10, expected * 14 / 10 + 1);
+        }
+    }
+
+    [Fact]
     public void ContactsLieOnBothSidesBetweenNearestAndReachOfEveryClass()
     {
         // Found by hand, placed as the radar's own are drawn: a full radar on each of a few seeds.

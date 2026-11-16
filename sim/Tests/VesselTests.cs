@@ -198,34 +198,68 @@ public class VesselTests
     public Property EveryOutsidePartStandsInSpaceAgainstTheHull() => Prop.ForAll(Vessels(), v =>
     {
         var vessel = Shipyard.Describe(v.Class, v.Seed);
-        var parts = Shipyard.Stamp(vessel);
-        var structures = CellsOf(parts, "structure");
-        var backs = CellsOf(parts, "back");
-        var walls = parts.Where(p => p.Kind == "wall").Select(p => (p.X, p.Y)).ToHashSet();
         Assert.NotEmpty(vessel.Outside);
-        var trusses = vessel.Outside.Where(f => f.Kind == Content.Vessels.Truss).ToList();
-        var truss = Machines.Get(Content.Vessels.Truss);
-        // The truss in one line; a pylon hangs from the hull or the pylon over it, down to a truss segment's post.
-        Assert.True(trusses.Select(t => t.Y).Distinct().Count() <= 1, "a stepped truss");
-        var held = new HashSet<(int X, int Y)>(walls);
-        foreach (var p in vessel.Outside.Where(f => f.Kind == Content.Vessels.Pylon).OrderBy(f => f.Y))
+        Assert.Null(Unheld(vessel));
+    });
+
+    [Fact]
+    public void AManifoldWithItsStrutsGoneOrAPylonOffItsColumnHoldsNothing()
+    {
+        var vessel = Shipyard.Describe(Content.Vessels.Class("tanker")!, 5);
+        Assert.Null(Unheld(vessel));
+        var bare = vessel with { Outside = [.. vessel.Outside.Where(f => Content.Vessels.FirstLook(f.Kind) is not (Content.Vessels.Pylon or Content.Vessels.Riser))] };
+        Assert.NotNull(Unheld(bare));
+        var pylon = vessel.Outside.First(f => f.Kind == Content.Vessels.Pylon);
+        var lifted = vessel with { Outside = [.. vessel.Outside.Select(f => f == pylon ? f with { Y = f.Y - 1 } : f)] };
+        Assert.NotNull(Unheld(lifted));
+    }
+
+    /// <summary>
+    /// Why a part outside <paramref name="v"/> is not held, null when every one is: each stands in space; the truss in one line, the
+    /// manifold in another (big-vessels); a strut, a column of pylons or of risers, runs from the hull down to a truss segment's post or up
+    /// to a manifold segment; each manifold segment on a strut, each valve on the manifold over its riser; a container wholly under its
+    /// truss segment; every other part against the hull or a strut.
+    /// </summary>
+    private static string? Unheld(Vessel v)
+    {
+        var parts = Shipyard.Stamp(v);
+        var hull = CellsOf(parts, "structure");
+        hull.UnionWith(CellsOf(parts, "back"));
+        var walls = parts.Where(p => p.Kind == "wall").Select(p => (p.X, p.Y)).ToHashSet();
+        var trusses = v.Outside.Where(f => f.Kind == Content.Vessels.Truss).ToList();
+        var manifolds = v.Outside.Where(f => f.Kind == Content.Vessels.Manifold).ToList();
+        var (truss, manifold) = (Machines.Get(Content.Vessels.Truss), Machines.Get(Content.Vessels.Manifold));
+        string valve = Content.Vessels.LookKind(Content.Vessels.Riser, 1);
+        if (trusses.Select(t => t.Y).Distinct().Count() > 1) return "a stepped truss";
+        if (manifolds.Select(t => t.Y).Distinct().Count() > 1) return "a stepped manifold";
+        var struts = v.Outside.Where(f => f.Kind is Content.Vessels.Pylon or Content.Vessels.Riser).ToList();
+        var strutCells = struts.Select(f => (f.X, f.Y)).ToHashSet();
+        foreach (var s in struts)
         {
-            Assert.Contains((p.X, p.Y - 1), held);
-            held.Add((p.X, p.Y));
-            Assert.True(vessel.Outside.Any(f => f.Kind == Content.Vessels.Pylon && (f.X, f.Y) == (p.X, p.Y + 1))
-                || trusses.Any(t => t.Y == p.Y + 1 && Content.Vessels.TrussPosts.Contains(p.X - t.X)), $"a pylon at ({p.X}, {p.Y}) holds nothing");
+            int top = s.Y, bottom = s.Y;
+            while (strutCells.Contains((s.X, top - 1))) top--;
+            while (strutCells.Contains((s.X, bottom + 1))) bottom++;
+            bool hangs = walls.Contains((s.X, top - 1)) && trusses.Exists(t => t.Y == bottom + 1 && Content.Vessels.TrussPosts.Contains(s.X - t.X));
+            bool stands = walls.Contains((s.X, bottom + 1)) && manifolds.Exists(m => m.Y + manifold.Height == top && s.X >= m.X && s.X < m.X + manifold.Width);
+            if (!hangs && !stands) return $"a strut at ({s.X}, {s.Y}) holds nothing";
         }
-        foreach (var f in vessel.Outside)
+        foreach (var m in manifolds)
+            if (!struts.Exists(s => s.Y == m.Y + manifold.Height && s.X >= m.X && s.X < m.X + manifold.Width)) return $"a manifold at ({m.X}, {m.Y}) on no strut";
+        bool Touches((int X, int Y) c) =>
+            ((IEnumerable<(int, int)>)[(c.X + 1, c.Y), (c.X - 1, c.Y), (c.X, c.Y + 1), (c.X, c.Y - 1)]).Any(n => walls.Contains(n) || strutCells.Contains(n));
+        foreach (var f in v.Outside)
         {
             var cells = Shipyard.Covers(new VesselPart(f.X, f.Y, "machine", f.Kind)).ToList();
-            Assert.All(cells, c => Assert.False(structures.Contains(c) || backs.Contains(c), $"{f.Kind} at ({f.X}, {f.Y}) over the hull at {c}"));
-            // A container hangs under its truss segment, wholly under it; every other part against the hull or on its pylons.
-            if (Content.Vessels.FirstLook(f.Kind) == Content.Vessels.TrussContainer)
-                Assert.Contains(trusses, t => t.Y + truss.Height == f.Y && t.X <= f.X && f.X + Machines.Get(f.Kind).Width <= t.X + truss.Width);
-            else
-                Assert.Contains(cells, c => held.Contains((c.X + 1, c.Y)) || held.Contains((c.X - 1, c.Y)) || held.Contains((c.X, c.Y + 1)) || held.Contains((c.X, c.Y - 1)));
+            if (cells.Exists(hull.Contains)) return $"{f.Kind} at ({f.X}, {f.Y}) over the hull";
+            bool held = Content.Vessels.FirstLook(f.Kind) == Content.Vessels.TrussContainer
+                ? trusses.Exists(t => t.Y + truss.Height == f.Y && t.X <= f.X && f.X + Machines.Get(f.Kind).Width <= t.X + truss.Width)
+                : f.Kind == valve
+                ? manifolds.Exists(m => m.Y == f.Y + 1 && f.X >= m.X && f.X < m.X + manifold.Width) && strutCells.Contains((f.X, f.Y + 1 + manifold.Height))
+                : f.Kind == Content.Vessels.Manifold || cells.Exists(Touches);
+            if (!held) return $"{f.Kind} at ({f.X}, {f.Y}) holds to nothing";
         }
-    });
+        return null;
+    }
 
     [Property]
     public Property EachClassCarriesItsOutsideParts() => Prop.ForAll(Vessels(), v =>
@@ -241,17 +275,38 @@ public class VesselTests
             return;
         }
         Assert.Equal((0, 1, 0, 0), (Count(Content.Vessels.Mast), Count(Content.Vessels.MastTall), Count(Content.Vessels.Solar), Count(Content.Vessels.Tank)));
-        // A big class's mast and dish on its bridge, its other parts outside a stage of their own (big-vessels).
-        if (v.Class.Layout != VesselLayout.Rooms)
+        int liner = Count(Content.Vessels.Fin) + Count(Content.Vessels.Pod) + Count(Content.Vessels.Cradle);
+        int tanker = Count(Content.Vessels.Manifold) + Count(Content.Vessels.Riser) + Count(Content.Vessels.Dome) + Count(Content.Vessels.Sphere);
+        int freighter = Count(Content.Vessels.Collar) + Count(Content.Vessels.Truss) + Count(Content.Vessels.TrussContainer);
+        if (v.Class.Layout == VesselLayout.Liner)
         {
-            int nozzles = vessel.Decks.Count - (v.Class.Layout == VesselLayout.Liner ? Content.Vessels.Liner.LowDecks : 0) - 1;
-            Assert.Equal(4 + 1 + 1 + nozzles, vessel.Outside.Count);
-            return;
+            // Its fin on the service block, its deck's second room; a radiator aft; pods or their cradles; no boom, the strobe at the bow's tip.
+            Assert.Equal((1, 1, 0, 0, 0), (Count(Content.Vessels.Fin), Count(Content.Vessels.Radiator), tanker, freighter, Count(Content.Vessels.Boom)));
+            var service = vessel.Compartments.Where(c => c.Deck == 0).OrderBy(c => c.Left).ElementAt(1);
+            Assert.Equal(service.Left + Content.Vessels.Fits.FinInto, vessel.Outside.Single(f => f.Kind == Content.Vessels.Fin).X);
+            Assert.True(Count(Content.Vessels.Pod) + Count(Content.Vessels.Cradle) > 0, "no pods");
+            // None on or by a raised room or the housing.
+            var raised = vessel.Sections.Where(s => s.Kind is Vessel.SectionKind.Bridge or Vessel.SectionKind.Tier or Vessel.SectionKind.Housing).ToList();
+            Assert.All(vessel.Outside.Where(f => f.Kind is Content.Vessels.Pod or Content.Vessels.Cradle), f =>
+                Assert.DoesNotContain(raised, s => f.X < s.Left + s.Width + Content.Vessels.PartGap && f.X + Machines.Get(f.Kind).Width + Content.Vessels.PartGap > s.Left));
         }
-        Assert.InRange(Count(Content.Vessels.Radiator), Content.Vessels.Radiators.Min, Content.Vessels.Radiators.Max);
-        Assert.Equal((1, 1), (Count(Content.Vessels.Collar), Count(Content.Vessels.Boom)));
-        Assert.True(Count(Content.Vessels.Truss) > 0);
-        Assert.InRange(Count(Content.Vessels.TrussContainer), 0, Count(Content.Vessels.Truss));
+        else if (v.Class.Layout == VesselLayout.Tanker)
+        {
+            // A radiator, the manifold, a dome on each tank bay, a sphere under each or none, the boom.
+            int bays = vessel.Compartments.Where(c => c.Role == VesselRole.TankBay).Select(c => c.Left).Distinct().Count();
+            Assert.Equal((1, 1, 0, 0), (Count(Content.Vessels.Radiator), Count(Content.Vessels.Boom), liner, freighter));
+            Assert.True(Count(Content.Vessels.Manifold) > 0);
+            Assert.Equal(bays, Count(Content.Vessels.Dome));
+            Assert.Contains(Count(Content.Vessels.Sphere), (int[])[0, bays]);
+        }
+        else
+        {
+            Assert.Equal((0, 0), (liner, tanker));
+            Assert.InRange(Count(Content.Vessels.Radiator), Content.Vessels.Radiators.Min, Content.Vessels.Radiators.Max);
+            Assert.Equal((1, 1), (Count(Content.Vessels.Collar), Count(Content.Vessels.Boom)));
+            Assert.True(Count(Content.Vessels.Truss) > 0);
+            Assert.InRange(Count(Content.Vessels.TrussContainer), 0, Count(Content.Vessels.Truss));
+        }
         // The mast and the dish on the bridge's roof; the boom from the bow's tip, its middle rows.
         var bridge = Section(vessel, Vessel.SectionKind.Bridge);
         Assert.All(vessel.Outside.Where(f => f.Kind is Content.Vessels.MastTall or Content.Vessels.Dish), f =>
@@ -259,6 +314,7 @@ public class VesselTests
             Assert.Equal(bridge.Top, f.Y + Machines.Get(f.Kind).Height);
             Assert.InRange(f.X, bridge.Left, bridge.Left + bridge.Width - Machines.Get(f.Kind).Width);
         });
+        if (v.Class.Layout == VesselLayout.Liner) return;
         var bow = Section(vessel, Vessel.SectionKind.Bow);
         var boom = vessel.Outside.Single(f => f.Kind == Content.Vessels.Boom);
         var (top, bottom) = bow.RowsAt(bow.Left + bow.Width - 1);
