@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using Godot;
 using Stillwake.Game.Render;
 using Stillwake.Game.Shared;
@@ -10,10 +9,11 @@ using S = Stillwake.Game.Sound;
 namespace Stillwake.Game.Features.Sky;
 
 /// <summary>
-/// A planet's weather (docs/plans/surface-storms.md) blowing over its open sky: its streaks (<see cref="Streaks"/>), laid in
-/// view each frame from the time alone and drawn in one triangle array, only over air with no back wall above the surface's top
-/// row, read once as the surface loads; and its wind's loop, as loud as the storm is high, stopped once silent. Main reads
-/// <see cref="Now"/> and <see cref="Weather"/> to dim the daylight, haze the sky and land and blow the plants.
+/// A planet's weather (docs/plans/surface-storms.md) blowing over its open sky: its streaks, drawn by one shader over the view from
+/// the time alone, in the slanting cells <see cref="Streaks.Cells"/> lays out, nothing laid on the CPU a frame, only above each
+/// column's first wall or back wall from the top, kept as the grid changes; its wash under them; and its wind's loop, as loud as the
+/// storm is high, stopped once silent. Main reads <see cref="Now"/> and <see cref="Weather"/> to dim the daylight, haze the sky and
+/// land and blow the plants.
 /// </summary>
 public partial class StormView : Node2D
 {
@@ -26,30 +26,31 @@ public partial class StormView : Node2D
     private readonly StretchShown _stretch = new();
     private readonly int[] _tops;
     private readonly float[] _line;
-    private readonly Func<float, float, bool> _open;
-    private readonly Func<float, float> _ground;
-    private readonly List<Streaks.Line> _lines = [];
+    private readonly Image _columns;
+    private readonly ImageTexture _columnsTexture;
+    private readonly ShaderMaterial _material = new() { Shader = StreaksShader };
+    private int _seen;
+    private Rect2 _view;
+    private bool _shown;
     private AudioStreamPlayer? _wind;
     private S.Cue? _windCue;
-    private bool _drawn;
-    private Vector2[] _points = new Vector2[256];
-    private Color[] _colours = new Color[256];
-    private int[] _indices = new int[255];
-    private static readonly int[] Quad = [0, 1, 2, 0, 2, 3];
-    private static readonly CanvasItemMaterial Unlit = new() { LightMode = CanvasItemMaterial.LightModeEnum.Unshaded };
 
     /// <param name="clock">The world's ticks now, between them too: what the sky's easing back and the streaks' flight count by.</param>
     public StormView(IGridQueries grid, ISkyQueries sky, Content.Surfaces.Kind rules, Func<double> clock)
     {
         (_grid, _sky, _rules, _clock) = (grid, sky, rules, clock);
-        // Once, as the surface loads: digging and building do not move where the sky ends.
+        // Once, as the surface loads; then a column at a time, as it is built or dug in (Follow).
         _tops = Backdrop.GroundLine.Tops(grid.StructureLayer, grid.BackLayer, grid.Width, grid.Height);
-        _open = Open;
         _line = Streaks.Smoothed(_tops, Streaks.GroundReach, Cell);
-        _ground = x => Streaks.GroundAt(_line, x, Cell);
+        _columns = Image.CreateEmpty(grid.Width, 1, false, Image.Format.Rgf);
+        for (int x = 0; x < grid.Width; x++) _columns.SetPixel(x, 0, new Color(_tops[x] * Cell, _line[x], 0));
+        _columnsTexture = ImageTexture.CreateFromImage(_columns);
+        _seen = grid.Version;
+        _material.SetShaderParameter("columns", _columnsTexture);
+        _material.SetShaderParameter("cell_px", (float)Cell);
+        _material.SetShaderParameter("low_reach", Streaks.LowReach);
         ZIndex = Layers.Weather;
-        // Lit by the daylight they are drawn in (Light), not again by the world's lamps and its dark ambient, as the wash is.
-        Material = Unlit;
+        Material = _material;
         AddChild(_wash);
     }
 
@@ -62,28 +63,189 @@ public partial class StormView : Node2D
     /// <summary>The daylight on the land behind now (<c>Daylight.Backdrop</c>, dimmed by the storm): what the streaks and the wash's haze are drawn in, as dim as what they cross.</summary>
     public (float R, float G, float B) Light { get; set; } = (1, 1, 1);
 
-    public override void _Process(double delta)
-    {
-        var now = _sky.Now;
-        _stretch.See(_rules, now.Stretch, now.Coming, now.ComingIn, _clock(), now.Ran);
-        Weather = _stretch.Look?.Weather;
-        Now = Storm.Of(_stretch);
-        Hear();
-        Lay();
-        if (_lines.Count > 0 || _drawn) QueueRedraw();
-        _reach = Eye is { } eye ? Storm.Reach(eye.Y - _ground(eye.X)) : 1;
-        float washed = Weather?.Visibility != null ? Now.Washed * _reach : 0;
-        _wash.Show(Weather?.Visibility, washed, Light, Weather?.Haze ?? (1, 1, 1), GetViewport());
-    }
-
     /// <summary>The middle of this player's hero's body, in pixels of the world: how deep under the land the weather is felt (<see cref="Storm.Reach"/>). None with no hero.</summary>
     public Vector2? Eye { get; set; }
 
     private readonly Washout _wash = new();
     private float _reach = 1;
 
-    /// <summary>A pixel of the screen in pixels of the world, as last laid: the thinnest a streak is drawn.</summary>
-    private float _pixel = 1;
+    public override void _Process(double delta)
+    {
+        long started = Game.Dev.FrameLog.Begin();
+        var now = _sky.Now;
+        _stretch.See(_rules, now.Stretch, now.Coming, now.ComingIn, _clock(), now.Ran);
+        Weather = _stretch.Look?.Weather;
+        Now = Storm.Of(_stretch);
+        _reach = Eye is { } eye ? Storm.Reach(eye.Y - Streaks.GroundAt(_line, eye.X, Cell)) : 1;
+        Hear();
+        Blow();
+        Game.Dev.FrameLog.End("storm", started);
+        float washed = Weather?.Visibility != null ? Now.Washed * _reach : 0;
+        _wash.Show(Weather?.Visibility, washed, Light, Weather?.Haze ?? (1, 1, 1), GetViewport());
+    }
+
+    /// <summary>The streaks' shader given the weather and the time; the view drawn again only as it moves, or as they come or go.</summary>
+    private void Blow()
+    {
+        int count = Weather is { } shown ? Now.Streaks(shown) : 0;
+        bool shows = count > 0;
+        if (shows)
+        {
+            Follow();
+            var weather = Weather!;
+            if (weather != _given) Give(weather);
+            _material.SetShaderParameter("seconds", Streaks.Flown(_clock() / Sim.World.TicksPerSecond));
+            _material.SetShaderParameter("density", count / (float)weather.Count);
+            _material.SetShaderParameter("light", new Vector3(Light.R, Light.G, Light.B));
+        }
+        var view = GetViewport().GetCanvasTransform().AffineInverse() * GetViewport().GetVisibleRect();
+        if (shows == _shown && (!shows || view == _view)) return;
+        (_shown, _view) = (shows, view);
+        QueueRedraw();
+    }
+
+    /// <summary>The weather whose streaks the shader was last given (<see cref="Give"/>).</summary>
+    private StretchLooks.Weather? _given;
+
+    /// <summary>The shader given <paramref name="weather"/>'s streaks, which hold while it blows.</summary>
+    private void Give(StretchLooks.Weather weather)
+    {
+        _given = weather;
+        var spec = weather.Streaks;
+        var (along, across) = Streaks.Cells(weather);
+        _material.SetShaderParameter("dir", new Vector2(-MathF.Cos(spec.Angle), MathF.Sin(spec.Angle)));
+        _material.SetShaderParameter("cells", new Vector2(along, across));
+        _material.SetShaderParameter("speed", new Vector2(spec.Speed.Least, spec.Speed.Most));
+        _material.SetShaderParameter("len", new Vector2(spec.Length.Least, spec.Length.Most));
+        _material.SetShaderParameter("width", spec.Width);
+        _material.SetShaderParameter("low", spec.Low);
+        var colours = new Vector4[3];
+        for (int k = 0; k < 3; k++)
+        {
+            var (r, g, b, a) = spec.Colours[k % spec.Colours.Count];
+            colours[k] = new Vector4(r, g, b, a);
+        }
+        _material.SetShaderParameter("colours", colours);
+    }
+
+    public override void _Draw()
+    {
+        if (_shown) DrawRect(_view.Grow(2), Colors.White);
+    }
+
+    /// <summary>Each column built or dug in since last seen read again, its sky's end moved in the shader's columns; every column if the log has run past.</summary>
+    private void Follow()
+    {
+        int version = _grid.Version;
+        if (version == _seen) return;
+        var changes = _grid.ChangedSince(_seen);
+        _seen = version;
+        int width = _grid.Width;
+        bool moved = false;
+        if (changes == null)
+            for (int x = 0; x < width; x++) moved |= Read(x);
+        else
+            foreach (var change in changes)
+                if ((change.Layers & (GridLayers.Structure | GridLayers.Back)) != 0) moved |= Read(change.Cell % width);
+        if (moved) _columnsTexture.Update(_columns);
+    }
+
+    /// <summary>Column <paramref name="x"/>'s top read again: whether it moved.</summary>
+    private bool Read(int x)
+    {
+        int top = Backdrop.GroundLine.Top(_grid.StructureLayer, _grid.BackLayer, _grid.Width, _grid.Height, x);
+        if (top == _tops[x]) return false;
+        _tops[x] = top;
+        _columns.SetPixel(x, 0, new Color(top * Cell, _line[x], 0));
+        return true;
+    }
+
+    /// <summary>
+    /// The streaks, as <c>Streaks.Fill</c> laid them on the CPU before: the world cut into cells along the fall (<c>cells.x</c>) and
+    /// across it (<c>cells.y</c>), each lane across falling at its own speed; a cell holds a streak at <c>density</c>, its head anywhere
+    /// in it, so a pixel reads its own cell and the next, whose streak may reach back into it. Each tapers from its head to its tail,
+    /// at least a screen pixel wide at its own alpha; a low weather's thin with the height over the smoothed ground, jitter, and some
+    /// carry a speck of grit. None at or under a column's first wall or back wall from the top.
+    /// </summary>
+    private static readonly Shader StreaksShader = new()
+    {
+        Code = """
+            shader_type canvas_item;
+            render_mode unshaded;
+            uniform sampler2D columns : filter_nearest, repeat_enable;
+            uniform float cell_px = 8.0;
+            uniform float seconds = 0.0;
+            uniform vec2 dir = vec2(-1.0, 0.0);
+            uniform vec2 cells = vec2(12.0, 10.0);
+            uniform vec2 speed = vec2(100.0, 200.0);
+            uniform vec2 len = vec2(4.0, 8.0);
+            uniform float width = 0.4;
+            uniform bool low = false;
+            uniform float low_reach = 70.0;
+            uniform float density = 0.0;
+            uniform vec4 colours[3];
+            uniform vec3 light = vec3(1.0);
+            varying vec2 world;
+
+            void vertex() {
+                world = VERTEX;
+            }
+
+            float hash(int x, int y, uint k) {
+                uint h = uint(x) * 374761393u ^ uint(y) * 668265263u ^ k * 3266489917u;
+                h = (h ^ (h >> 13u)) * 1274126177u;
+                h ^= h >> 16u;
+                h *= 2654435761u;
+                h ^= h >> 15u;
+                return float(h >> 8u) / 16777216.0;
+            }
+
+            vec2 column(float c) {
+                float n = float(textureSize(columns, 0).x);
+                return texelFetch(columns, ivec2(int(mod(c, n)), 0), 0).rg;
+            }
+
+            float ground(float x) {
+                float at = x / cell_px - 0.5;
+                float left = floor(at);
+                return mix(column(left).g, column(left + 1.0).g, at - left);
+            }
+
+            void fragment() {
+                float px = length(dFdx(world));
+                if (world.y >= column(floor(world.x / cell_px)).r) discard;
+                vec2 across = vec2(-dir.y, dir.x);
+                int lane = int(floor(dot(world, across) / cells.y));
+                float s = mix(speed.x, speed.y, hash(lane, 0, 1u));
+                int first = int(floor((dot(world, dir) - s * seconds) / cells.x));
+                vec3 lit = vec3(0.0);
+                float cover = 0.0;
+                for (int k = 0; k < 2; k++) {
+                    int i = first + k;
+                    if (hash(i, lane, 2u) >= density) continue;
+                    float jitter = low ? sin(mod(seconds * 7.0, 6.2831853) + hash(i, lane, 7u) * 6.0) * 0.8 : 0.0;
+                    vec2 head = dir * ((float(i) + hash(i, lane, 3u)) * cells.x + s * seconds)
+                        + across * ((float(lane) + 0.15 + 0.7 * hash(i, lane, 4u)) * cells.y) + vec2(0.0, jitter);
+                    if (low && hash(i, lane, 8u) >= clamp(1.0 - (ground(head.x) - head.y) / low_reach, 0.0, 1.0)) continue;
+                    vec4 tint = colours[int(hash(i, lane, 9u) * 2.999)];
+                    vec2 d = world - head;
+                    float behind = -dot(d, dir);
+                    float f = 1.0 - behind / mix(len.x, len.y, hash(i, lane, 5u));
+                    float w = max(width * (0.7 + 0.6 * hash(i, lane, 6u)), px);
+                    float a = behind >= 0.0 && f >= 0.0 ? clamp((w * f * 0.5 + 0.5 * px - abs(dot(d, across))) / px, 0.0, 1.0) : 0.0;
+                    if (low && hash(i, lane, 10u) < 0.35) {
+                        vec2 o = abs(world - head - vec2(6.0 * hash(i, lane, 11u) + 0.25, 3.0 * (hash(i, lane, 12u) - 0.5) + 0.225));
+                        if (o.x < 0.5 * px && o.y < 0.5 * px) a = max(a, min(1.0, 0.225 / (px * px)));
+                    }
+                    a *= tint.a;
+                    lit = tint.rgb * a + lit * (1.0 - a);
+                    cover = a + cover * (1.0 - a);
+                }
+                if (cover <= 0.0) discard;
+                COLOR = vec4(lit / cover * light, cover);
+            }
+            """,
+    };
 
     /// <summary>
     /// The weather's wash (<see cref="StretchLooks.Wash"/>, «Блёклый мир») over the world in view, under the overlays and what is read:
@@ -172,89 +334,5 @@ public partial class StormView : Node2D
         if (_wind == null) AddChild(_wind = Cues.Player(cue!, S.World));
         _wind.VolumeDb = cue!.VolumeDb + Mathf.LinearToDb(loudness);
         if (!_wind.Playing) _wind.Play();
-    }
-
-    /// <summary>The streaks in view now, laid from the time alone; none with no storm.</summary>
-    private void Lay()
-    {
-        _lines.Clear();
-        if (Weather is not { } weather || Now.Share <= 0) return;
-        var canvas = GetViewport().GetCanvasTransform();
-        var view = canvas.AffineInverse() * GetViewport().GetVisibleRect();
-        var box = (view.Position.X, view.Position.Y, view.End.X, view.End.Y);
-        double seconds = _clock() / Sim.World.TicksPerSecond;
-        Streaks.Fill(weather, Now, box, seconds, _open, _ground, _lines);
-        _pixel = 1 / Math.Max(canvas.Scale.X, 1e-3f);
-    }
-
-    public override void _Draw()
-    {
-        _drawn = false;
-        if (Weather is not { } weather || _lines.Count == 0) return;
-        DrawLines(weather, new Color(Light.R, Light.G, Light.B));
-        _drawn = true;
-    }
-
-    /// <summary>Every streak a sliver from its head to its tail, and its speck, in one triangle array.</summary>
-    private void DrawLines(StretchLooks.Weather weather, Color light)
-    {
-        var spec = weather.Streaks;
-        float dx = -MathF.Cos(spec.Angle), dy = MathF.Sin(spec.Angle);
-        int points = 0, indices = 0;
-        foreach (var line in _lines)
-        {
-            Room(points + 7, indices + 9);
-            var (r, g, b, a) = spec.Colours[line.Colour];
-            // A sliver thinner than a screen pixel is not drawn at all: widened to one, at its own alpha, about as it read on the page.
-            float width = Math.Max(line.Width, _pixel);
-            var colour = new Color(r * light.R, g * light.G, b * light.B, a);
-            float half = width / 2;
-            _points[points] = new Vector2(line.TailX, line.TailY);
-            _points[points + 1] = new Vector2(line.HeadX + dy * half, line.HeadY - dx * half);
-            _points[points + 2] = new Vector2(line.HeadX - dy * half, line.HeadY + dx * half);
-            for (int k = 0; k < 3; k++) (_colours[points + k], _indices[indices + k]) = (colour, points + k);
-            (points, indices) = (points + 3, indices + 3);
-            if (line.Speck is not { } speck) continue;
-            var (sx, sy) = speck;
-            _points[points] = new Vector2(sx, sy);
-            _points[points + 1] = new Vector2(sx + 0.5f, sy);
-            _points[points + 2] = new Vector2(sx + 0.5f, sy + 0.45f);
-            _points[points + 3] = new Vector2(sx, sy + 0.45f);
-            for (int k = 0; k < 4; k++) _colours[points + k] = colour;
-            for (int k = 0; k < 6; k++) _indices[indices + k] = points + Quad[k];
-            (points, indices) = (points + 4, indices + 6);
-        }
-        // Past the last streak, triangles of one point: nothing drawn, the arrays kept for the next frame.
-        Array.Clear(_indices, indices, _indices.Length - indices);
-        RenderingServer.CanvasItemAddTriangleArray(GetCanvasItem(), _indices, _points, _colours);
-    }
-
-    /// <summary>The arrays grown, doubling, to hold <paramref name="points"/> points and <paramref name="indices"/> indices.</summary>
-    private void Room(int points, int indices)
-    {
-        if (points > _points.Length)
-        {
-            int size = Math.Max(points, _points.Length * 2);
-            Array.Resize(ref _points, size);
-            Array.Resize(ref _colours, size);
-        }
-        // Godot draws no triangle array whose indices are not a whole number of triangles.
-        if (indices > _indices.Length) Array.Resize(ref _indices, (Math.Max(indices, _indices.Length * 2) + 2) / 3 * 3);
-    }
-
-    /// <summary>Whether a pixel of the world is open sky: above its column's top row as loaded, and still neither wall nor back wall.</summary>
-    private bool Open(float x, float y)
-    {
-        int row = (int)MathF.Floor(y / Cell), column = Column(x);
-        if (row < 0) return true;
-        if (row >= _tops[column]) return false;
-        int cell = row * _grid.Width + column;
-        return _grid.StructureLayer[cell] == 0 && _grid.BackLayer[cell] == 0;
-    }
-
-    private int Column(float x)
-    {
-        int width = _tops.Length, column = (int)MathF.Floor(x / Cell);
-        return ((column % width) + width) % width;
     }
 }

@@ -105,46 +105,6 @@ public class StormTests
     }
 
     [Fact]
-    public void AFullStormLaysItsCountOfStreaksInEachBoxAndHalfAStormHalf()
-    {
-        Assert.Equal(Rain.Count, InFirstBox(Lines(Rain, Full)).Count);
-        Assert.Equal((int)MathF.Round(Rain.Count * 0.5f), InFirstBox(Lines(Rain, new Storm(1, 0.5f))).Count);
-        Assert.Empty(Lines(Rain, new Storm(1, 0)));
-    }
-
-    [Fact]
-    public void StreaksLieOnlyWhereBothEndsAreOpenSky()
-    {
-        Assert.Empty(Lines(Rain, Full, open: (_, _) => false));
-        var lines = Lines(Rain, Full, open: (_, y) => y < 60);
-        Assert.NotEmpty(lines);
-        Assert.All(lines, l => Assert.True(l.HeadY < 60 && l.TailY < 60));
-    }
-
-    [Fact]
-    public void StreaksAreTheSameForTheSameMomentAndFlyLeftAndDown()
-    {
-        Assert.Equal(Lines(Rain, Full, seconds: 3600.25), Lines(Rain, Full, seconds: 3600.25));
-        Assert.NotEqual(Lines(Rain, Full, seconds: 1), Lines(Rain, Full, seconds: 1.1));
-        // Their heads lead: the tail is up and to the right of each.
-        Assert.All(Lines(Rain, Full), l => Assert.True(l.TailX > l.HeadX && l.TailY < l.HeadY));
-        Assert.All(Lines(Dust, Full, ground: _ => 140), l => Assert.True(l.TailX > l.HeadX && l.TailY < l.HeadY));
-    }
-
-    [Fact]
-    public void DustKeepsLowThickestByTheGroundAndNoneHigherThanItsReach()
-    {
-        const float ground = 400;
-        var view = (0f, 0f, 4 * Streaks.Wide, ground);
-        var lines = Lines(Dust, Full, view, ground: _ => ground);
-        Assert.All(lines, l => Assert.True(ground - l.HeadY <= Streaks.LowReach + 1));
-        int low = lines.Count(l => ground - l.HeadY < Streaks.LowReach / 2), high = lines.Count - low;
-        Assert.True(low > 2 * high, $"{low} low, {high} high");
-        Assert.Contains(lines, l => l.Speck != null);
-        Assert.DoesNotContain(Lines(Rain, Full), l => l.Speck != null);
-    }
-
-    [Fact]
     public void AStormBlowsThePlantsItsWayInTheCalmAndDropsThemWhenItEases()
     {
         var gusts = new Gusts(FloraLooks.Breeze, () => 0.5) { Storm = 0.9 * StretchLooks.Weather.SwayGain };
@@ -194,14 +154,35 @@ public class StormTests
         Assert.Equal(line[0], Streaks.GroundAt(line, 200 * cell + cell / 2f, cell), 3);
     }
 
-    private static List<Streaks.Line> InFirstBox(List<Streaks.Line> lines) =>
-        [.. lines.Where(l => l.HeadX >= 0 && l.HeadX < Streaks.Wide && l.HeadY >= 0 && l.HeadY < Streaks.Tall)];
-
-    private static List<Streaks.Line> Lines(StretchLooks.Weather weather, Storm storm, (float, float, float, float)? view = null,
-        double seconds = 12.5, Func<float, float, bool>? open = null, Func<float, float>? ground = null)
+    [Fact]
+    public void EachCellHoldsItsLongestStreakAndTheCellsKeepThePicksCountOverItsBox()
     {
-        var into = new List<Streaks.Line>();
-        Streaks.Fill(weather, storm, view ?? (0, 0, Streaks.Wide, Streaks.Tall), seconds, open ?? ((_, _) => true), ground ?? (_ => 10_000), into);
-        return into;
+        foreach (var weather in new[] { Dust, Rain })
+        {
+            var (along, across) = Streaks.Cells(weather);
+            Assert.True(along > weather.Streaks.Length.Most, $"{along} along");
+            Assert.Equal(weather.Count, Streaks.Wide * Streaks.Tall / (along * across), 3);
+        }
+    }
+
+    [Fact]
+    public void TheStreaksClockStartsOverOncePeriodSoAWorldHoursOldStaysPrecise()
+    {
+        Assert.Equal(12.5f, Streaks.Flown(12.5));
+        Assert.Equal(0.25f, Streaks.Flown(Streaks.Period * 7 + 0.25), 3);
+        Assert.InRange(Streaks.Flown(36_000.75), 0, (float)Streaks.Period);
+    }
+
+    [Fact]
+    public void AColumnsTopIsItsFirstWallOrBackWallFromTheTopAsAllTopsReadIt()
+    {
+        const int width = 3, height = 6;
+        int[] structure = new int[width * height], back = new int[width * height];
+        structure[4 * width + 0] = 1;
+        back[2 * width + 1] = 1;
+        structure[5 * width + 1] = 1;
+        var tops = Features.Backdrop.GroundLine.Tops(structure, back, width, height);
+        Assert.Equal([4, 2, height], tops);
+        for (int x = 0; x < width; x++) Assert.Equal(tops[x], Features.Backdrop.GroundLine.Top(structure, back, width, height, x));
     }
 }
