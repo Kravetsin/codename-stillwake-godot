@@ -75,7 +75,7 @@
 | `Style.cs` | The panels' colours and boxes as Godot style boxes and label settings. |
 | `WorldButtons.cs` | The mouse over the world for `Buttons`, unless a panel took it. |
 
-The backdrop behind the ship, client only, never in the sim. Numbers: `Content/logic/Backdrop.cs`
+The backdrop behind the ship, client only. Numbers: `Content/logic/Backdrop.cs`
 and constants; the rest in `///` summaries.
 
 ## Rules
@@ -84,21 +84,22 @@ and constants; the rest in `///` summaries.
   giant, drifting cloud and sun (`art/hd/planet`, the set its kind's `PlanetLooks.Backdrop` names, 0095); sun, giant and
   clouds at fixed shares of the screen. In front, the land composed by `features/backdrop` (composed-backdrops), both on
   its ground line round the camera.
-- **Three planes in space, far to near** (no ADR), on `ScreenLayers.Stars`, under the world and panels; the ship's
-  back walls hide them. None is lit by `Lit`.
-  - *Stars*: a filtered tile repeated over the screen, a screen pixel a star at any zoom, streaming on local time.
-  - *Far wrecks*: each a core of one of the wrecks' pictures (`art/debris`) with up to five pieces gathered round it.
+- **Three planes in space, far to near**, on `ScreenLayers.Stars`, under the world and panels; the ship's back walls
+  hide them. Unlit.
+  - *Stars*: a filtered tile over the screen, a screen pixel a star at any zoom, streaming on local time; in
+    the ship's flight (`Warp`) 60 times faster, torn into lines, wrecks and dust faded.
+  - *Far wrecks*: each a core of one of the wrecks' pictures (`art/debris`), up to five pieces round it.
     One grey mipmapped atlas made at start, lightness lifted to `WreckLift`, tinted between space's clear colour and
     `WreckTint` by size; soft, never outlined.
   - *Dust*: specks one or two screen pixels wide at every zoom, drawn filtered so they glide by fractions of a pixel;
     faster than the wrecks, slower than the debris.
-- **A plane** (`DriftLayer`, no ADR): a point `(x, y)` is on screen at `screen/2 + ((x, y) − centre) × zoom`, the centre
+- **A plane** (`DriftLayer`): a point `(x, y)` is on screen at `screen/2 + ((x, y) − centre) × zoom`, the centre
   the camera's times its parallax plus its drift (`Scatter.Centre`): it moves its parallax at every zoom and zooms about
   the screen's middle without reshuffling. Past `ShipCamera.FarthestZoom` it is drawn as at that zoom.
-- **Placed by a hash** (`Scatter`, no ADR): each tile holds `Mean` things, rounded down or up by a hash of the plane's
+- **Placed by a hash** (`Scatter`): each tile holds `Mean` things, rounded down or up by a hash of the plane's
   seed and the tile; each thing's place and looks come from its own hash, so panning away and back shows the same
   (`ScatterTests`). Wrecks and dust drift by the world's time (`Stars.Seconds`), alike for every peer; stars by local time.
-- **Drawn once** (no ADR): a plane is drawn into its canvas item, moved by its node, and redrawn only when the screen
+- **Drawn once**: a plane is drawn into its canvas item, moved by its node, redrawn only when the screen
   passes the tiles drawn (a tile of margin) or the zoom changes.
 - **A tool's icon** (2026-10-27-tool-icons): a held look has no 16 px picture. `ItemIcons.Icon(item, side)` bakes its icon
   picture (`icons/`, driver-icons) for the side it is drawn at (`ToolIcon`), filtered by itself. `Icon(item)` is the world's, at its real size:

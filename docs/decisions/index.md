@@ -314,7 +314,7 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [mafia-reputation](2026-11-08-mafia-reputation.md) | The black market opens by the mafia's reputation | accepted |  |
 | [planet-frame-rate](2026-11-08-planet-frame-rate.md) | Planet frame rate | accepted |  |
 | [planet-layers](2026-11-08-planet-layers.md) | A planet's layers show, and a rift shows the way down | accepted |  |
-| [radar-contacts](2026-11-08-radar-contacts.md) | Radar contacts | accepted |  |
+| [radar-contacts](2026-11-08-radar-contacts.md) | Radar contacts | accepted | solar-system (in part) |
 | [scrap-to-iron](2026-11-08-scrap-to-iron.md) | Scrap to iron: four scrap smelt into an iron at any furnace | accepted |  |
 | [switched-off-sign](2026-11-08-switched-off-sign.md) | Switched-off sign | accepted |  |
 | [catcher-combat](2026-11-09-catcher-combat.md) | Catcher combat | accepted |  |
@@ -383,3 +383,4 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [trash-slot](2026-11-15-trash-slot.md) | A trash slot in creative mode | accepted |  |
 | [fuel-liquid](2026-11-16-fuel-liquid.md) | Fuel is a liquid | accepted |  |
 | [shuttle-flight](2026-11-16-shuttle-flight.md) | The crew flies to a vessel in the shuttle and back | accepted |  |
+| [solar-system](2026-11-16-solar-system.md) | The ship flies between the planets of its solar system | accepted |  |
