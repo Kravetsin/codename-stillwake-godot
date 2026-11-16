@@ -19,6 +19,9 @@ public sealed record Stack(
     /// those merge, onto a slot, on the floor or in a drone's cargo; a move of one onto the other otherwise swaps them.
     /// </summary>
     public bool Alike(Stack other) => Item == other.Item && Charge == other.Charge && Module == other.Module;
+
+    /// <summary>Whether this is alike a new stack of <paramref name="item"/>, which holds nothing of its own.</summary>
+    public bool Alike(string item) => Item == item && Charge == 0 && Module == null;
 }
 
 /// <summary>Where a stack is: a slot of machine <c>Crate</c>, or of the sender's own inventory when there is none.</summary>
