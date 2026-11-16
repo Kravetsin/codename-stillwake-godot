@@ -9,7 +9,8 @@ namespace Stillwake.Game.Render;
 /// away and streaming slowly by as the ship moves. Unlit, on a canvas layer of its own behind the world.
 /// They glide a fraction of a pixel a frame: the tile is filtered, as Pixi filtered the TypeScript tile,
 /// and read where the camera is this frame, once it has followed the hero. Over them, nearer, the far
-/// wrecks and the dust (<see cref="FarWrecks"/>, <see cref="Dust"/>), still under the world.
+/// wrecks and the dust (<see cref="FarWrecks"/>, <see cref="Dust"/>), still under the world. In the warp of a flight between
+/// planets (<see cref="Warp"/>) the stars rush by, drawn out into streaks, and the wrecks and dust are left behind.
 /// </summary>
 public partial class Stars : CanvasLayer
 {
@@ -17,17 +18,25 @@ public partial class Stars : CanvasLayer
     private const int Tile = 512, Count = 420;
     /// <summary>How fast the stars stream by, in screen pixels a second.</summary>
     public const float Speed = 8;
+    /// <summary>How many times faster the stars stream at full warp.</summary>
+    private const float WarpSpeed = 60;
+    /// <summary>The streaks of full warp, and the longest, in screen pixels.</summary>
+    private const int StreakCount = 90;
+    private const float StreakLength = 220;
     /// <summary>How much of the camera's movement the stars follow.</summary>
     private const float Parallax = 0.08f;
     private static readonly Color Star = new(223 / 255f, 232 / 255f, 245 / 255f);
 
     private readonly Sprite2D _sky;
+    /// <summary>A stretch of space's far picture, behind the far wrecks (<see cref="StretchLooks"/>): none till one comes.</summary>
+    private readonly StretchBackdrop _far = new() { Visible = false };
     /// <summary>A planet's sky behind its ground, drawn over the screen in place of space (0076, 0079); its set's pictures.</summary>
     private PlanetSky? _day;
     private string? _set;
     private readonly FarWrecks _wrecks = new();
     private readonly Dust _dust = new();
     private float _stream;
+    private readonly Streaks _streaks = new();
 
     public Stars()
     {
@@ -36,9 +45,14 @@ public partial class Stars : CanvasLayer
         ProcessPriority = 1;
         _sky = Sky();
         AddChild(_sky);
+        AddChild(_far);
         AddChild(_wrecks);
         AddChild(_dust);
+        AddChild(_streaks);
     }
+
+    /// <summary>How deep in a flight's warp the ship is, 0 to 1 (<c>Features.Landing.Warp</c>): 0 standing.</summary>
+    public float Warp { get; set; }
 
     /// <summary>
     /// The stars over a screen: a sprite of the star tile, repeated, its region set to the screen and moved as they stream by.
@@ -84,6 +98,7 @@ public partial class Stars : CanvasLayer
         {
             _day?.QueueFree();
             AddChild(_day = new PlanetSky(backdrop) { Modulate = new Color(_tint.R, _tint.G, _tint.B) });
+            _day.Weather(_weather.Haze, _weather.Share, _weather.Top, _weather.Blow);
             MoveChild(_day, 0);
             _set = backdrop;
         }
@@ -96,6 +111,7 @@ public partial class Stars : CanvasLayer
                 AddChild(land);
                 MoveChild(land, _day != null ? 1 : 0);
                 land.Tint = _tint;
+                land.Storm(_weather.Haze, _weather.Share);
             }
         }
         _tops = backdrop != null ? tops : null;
@@ -104,6 +120,31 @@ public partial class Stars : CanvasLayer
         _sky.Visible = _wrecks.Visible = _dust.Visible = _tops == null;
     }
 
+    /// <summary>
+    /// A stretch of space seen coming, running or easing back (<see cref="StretchShown"/>): its far picture behind the far wrecks,
+    /// <paramref name="grow"/> of its warning run and <paramref name="since"/> ticks since it began, gone once <paramref name="melt"/> is
+    /// past 0. Space only: a planet's sky is its own.
+    /// </summary>
+    public void Stretch(StretchLooks.Look? look, float grow, float melt, int since)
+    {
+        if (_tops == null) _far.Show(look, grow, melt, since);
+        else _far.Clear();
+    }
+
+    /// <summary>
+    /// A planet's weather over its sky and land (docs/plans/surface-storms.md): both turned <paramref name="share"/> of the way toward
+    /// <paramref name="haze"/>, the sky from <paramref name="top"/> of it at the screen's top, the land by its layers' depth; the high
+    /// cloud drifting <paramref name="blow"/> pixels of art a second faster. A share of 0 is none.
+    /// </summary>
+    public void Weather((float R, float G, float B) haze, float share, float top, float blow)
+    {
+        if (_weather == (haze, share, top, blow)) return;
+        _weather = (haze, share, top, blow);
+        _day?.Weather(haze, share, top, blow);
+        _land?.Storm(haze, share);
+    }
+
+    private ((float R, float G, float B) Haze, float Share, float Top, float Blow) _weather = ((1, 1, 1), 0, 0, 0);
     private BackdropView? _land;
     private int[]? _tops;
     private (float R, float G, float B) _tint = (1, 1, 1);
@@ -129,7 +170,7 @@ public partial class Stars : CanvasLayer
 
     public override void _Process(double delta)
     {
-        _stream = (_stream + (float)delta * Speed) % Tile;
+        _stream = (_stream + (float)delta * Speed * (1 + (WarpSpeed - 1) * Warp)) % Tile;
         var viewport = GetViewport();
         var screen = viewport.GetVisibleRect().Size;
         var camera = viewport.GetCamera2D();
@@ -142,7 +183,48 @@ public partial class Stars : CanvasLayer
             _day!.Follow(centre, zoom, screen, ground, Seconds);
             _land?.Follow(centre, zoom, screen, ground);
         }
+        _far.Follow(centre, zoom, screen, Seconds);
         _wrecks.Follow(centre, zoom, screen, Seconds);
         _dust.Follow(centre, zoom, screen, Seconds);
+        // Left behind as the warp builds: they drift with the ship's orbit, not its flight.
+        _wrecks.Modulate = _dust.Modulate = new Color(1, 1, 1, 1 - Warp);
+        _streaks.Show(Warp, (float)delta, screen, _sky.Visible);
+    }
+
+    /// <summary>The warp's streaks: lines of starlight rushing by, the longer and brighter the deeper the warp; none standing.</summary>
+    private sealed partial class Streaks : Node2D
+    {
+        private readonly (float Y, float X, float Pace, float Length)[] _lines = new (float, float, float, float)[StreakCount];
+        private float _depth, _run;
+        private Vector2 _screen;
+
+        public Streaks()
+        {
+            var rng = new RandomNumberGenerator { Seed = 11 };
+            for (int i = 0; i < _lines.Length; i++)
+                _lines[i] = (rng.Randf(), rng.Randf(), 0.5f + rng.Randf(), 0.3f + 0.7f * rng.Randf());
+        }
+
+        public void Show(float depth, float delta, Vector2 screen, bool space)
+        {
+            depth = space ? depth : 0;
+            if (depth <= 0 && _depth <= 0) return;
+            _run += delta * depth;
+            (_depth, _screen) = (depth, screen);
+            QueueRedraw();
+        }
+
+        public override void _Draw()
+        {
+            if (_depth <= 0.02f) return;
+            float wide = _screen.X + StreakLength;
+            foreach (var (y, x, pace, length) in _lines)
+            {
+                float head = Mathf.PosMod(x * wide - _run * pace * 2400, wide) - StreakLength / 2;
+                float tail = head + length * StreakLength * _depth;
+                var at = y * _screen.Y;
+                DrawLine(new Vector2(head, at), new Vector2(tail, at), new Color(Star, 0.55f * _depth * length), 1.5f);
+            }
+        }
     }
 }

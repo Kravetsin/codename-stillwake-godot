@@ -2,5 +2,6 @@
   <ItemGroup>
     <ProjectReference Include="../Power/Power.csproj" />
     <ProjectReference Include="../Research/Research.csproj" />
+    <ProjectReference Include="../Fuel/Fuel.csproj" />
   </ItemGroup>
 </Project>

@@ -15,6 +15,7 @@ namespace Stillwake.Game.Dev;
 [Dev("--planet", "a planet grown from its seed, the hero beamed down with the axe, the drill and the helmet lamp (0077); F9 blows a gust (plant-stirs)", Order = 5)]
 [Dev("--strip", "the test strip (0076); with --autopilot played by a script (HeroAutopilot.PlanetRun)", Order = 5)]
 [Dev("--dusk", "with --planet or --strip, the planet's dusk starting two seconds in, its night a minute on (2026-11-07-night-chills)", Order = 5)]
+[Dev("--storm", "with --planet or --strip, that storm (dustStorm, rainStorm) called two seconds in, its warning whole, the hero in creative mode so the cold spares it; --frames counts from ten seconds into it (surface-storms)", Order = 5, Shape = DevShape.Equals)]
 [Dev("--valley", "with --planet, the hero beamed down into the planet's deepest valley rather than at the pod, to see the land behind follow (composed-backdrops)", Order = 5)]
 [Dev("--beam-twice", "with --planet, back aboard two seconds in and down again two seconds later: the second descent (heard-every-other)", Order = 5)]
 [Dev("--charges", "with --planet, fifty blasting charges in the third slot, the spear in the fourth, and the hero beamed into the cave by the shallowest deep cache (blasting-charge)", Order = 5)]
@@ -23,7 +24,7 @@ namespace Stillwake.Game.Dev;
 [Dev("--dig", "with --planet, the ground under the hero hewn at the drill's pace from four seconds in, so it digs down: to measure what digging costs a frame; =SECONDS stops then, --frames counting afresh, to measure the depth reached", Order = 5, Shape = DevShape.Either)]
 public sealed class PlanetScenario : DevScenario
 {
-    private bool _beamedBack, _beamedAgain, _dusk, _valley, _tracked;
+    private bool _beamedBack, _beamedAgain, _dusk, _valley, _tracked, _storm, _stormCounted;
     private int _dug;
     private bool _stopped;
 
@@ -59,7 +60,7 @@ public sealed class PlanetScenario : DevScenario
     public override void Started(Client client)
     {
         if (!Down) return;
-        client.Send(new OpenSurface((Strip ? Content.Surfaces.TestStrip : Content.PlanetTypes.First).Id));
+        client.Send(new OpenSurface(Strip ? Content.Surfaces.TestStrip.Id : Args.Value("--planet-type") ?? Content.PlanetTypes.First.Id));
         if (!Valleys && !Charges) client.Send(new Transfer(client.World.Surfaces.Count));
     }
 
@@ -129,6 +130,18 @@ public sealed class PlanetScenario : DevScenario
         Track(client, m, log);
         if (client.World.Tick < 2 * World.TicksPerSecond) return;
         Dig(client, m);
+        if (!_storm && Args.Value("--storm") is { } storm)
+        {
+            _storm = true;
+            client.Send(new Sim.Sky.StretchNow(storm));
+            client.Send(new Sim.Items.SetCreative(true));
+        }
+        // --frames counts afresh once the storm has risen whole, Storm.RiseTo seconds in: what the storm itself costs a frame.
+        if (_storm && !_stormCounted && m.Sky.Now.Stretch != null && m.Sky.Now.Ran >= 10 * World.TicksPerSecond)
+        {
+            _stormCounted = true;
+            Dev.FrameLog.Active?.Restart();
+        }
         if (!_dusk && Args.Has("--dusk") && m.Rules.Cycle is { } day)
         {
             _dusk = true;

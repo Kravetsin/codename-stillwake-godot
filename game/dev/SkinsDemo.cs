@@ -8,7 +8,7 @@ using Stillwake.Game.Features.Items;
 namespace Stillwake.Game.Dev;
 
 /// <summary>
-/// <c>-- --skins</c>: the Appearance tab, for recording (skins). The script opens the inventory, turns the equipment's screen
+/// <c>-- --skins</c>: the Appearance tab, for recording (hero-skins). The script opens the inventory, turns the equipment's screen
 /// to the skins by its key, opens the weapon effect's strip and points at «Пламя» in it; with <c>--own-none</c> it shows locked.
 /// </summary>
 public partial class SkinsDemo : Control

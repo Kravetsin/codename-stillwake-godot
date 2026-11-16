@@ -51,9 +51,10 @@ public class DropPodTests
         var spec = Machines.Get("dropPod");
         Assert.Equal((4, 6), (spec.Width, spec.Height));
         Assert.Equal(["frame", "plate", "glass", "tube", "processor", "display"], spec.Cost.Select(c => c.Item));
-        Assert.Equal(MachineTrait.Seats | MachineTrait.Lands, spec.Traits);
+        Assert.Equal(MachineTrait.Seats | MachineTrait.Lands | MachineTrait.HoldsFuel, spec.Traits);
         Assert.Equal(1, spec.Slots);
-        Assert.Equal("biofuel", spec.Takes);
+        Assert.Equal((0, "biofuel"), spec.SlotTakes);
+        Assert.Equal(20, spec.FuelHolds);
         Assert.Equal(MenuTabs.Ship, spec.Menu!.Tab);
         // Its blueprint opens with the computer's parts analysed: late in space.
         Assert.DoesNotContain("dropPod", Content.Research.StartKnown);
@@ -94,7 +95,10 @@ public class DropPodTests
         public void Send(int peer, int surface) => throw new NotSupportedException();
         public bool CanOpen => false;
         public bool Landed => false;
-        public int OpenPlanet() => throw new NotSupportedException();
+        public bool Away => false;
+        public void LeavePlanet() => throw new NotSupportedException();
+        public int OpenPlanet(string kind, IReadOnlyList<string>? ores) => throw new NotSupportedException();
+        public int Open(string kind, uint seed) => throw new NotSupportedException();
         public uint Seed => 0;
         public int Visit(int peer, string kind, uint seed) => throw new NotSupportedException();
     }
@@ -178,6 +182,9 @@ public class DropPodTests
         w.Do(new Move(new Stillwake.Sim.Items.Place(Slot("scrap")), new Target(null, pod), 2)).Run();
         Assert.Equal(["items.notTaken"], Reasons(w));
         w.Do(new Move(new Stillwake.Sim.Items.Place(Slot("biofuel")), new Target(null, pod), 3)).Run();
-        Assert.Equal(new Stack("biofuel", 3), w.M.Items.Crate(pod)[0]);
+        // Its hopper pours a can a tick into its store (fuel-liquid).
+        Assert.Equal((new Stack("biofuel", 2), Content.Fuel.Can), (w.M.Items.Crate(pod)[0], w.M.Fuel.FuelIn(pod)));
+        w.Run(2);
+        Assert.Equal((null, 3 * Content.Fuel.Can), (w.M.Items.Crate(pod)[0], w.M.Fuel.FuelIn(pod)));
     }
 }

@@ -15,11 +15,13 @@ public partial class Frost : CanvasLayer
 {
     private const double RefreshS = 0.25;
     // Made once: a string passed each frame would make a StringName each frame for the GC to finalize.
-    private static readonly StringName Strength = "strength";
+    private static readonly StringName Strength = "strength", Fading = "fade";
 
     private const string Shader = """
         shader_type canvas_item;
         uniform float strength = 0.0;
+        // How much of it shows (ScreenEase.Fade): it fades out whole as the cold runs out.
+        uniform float fade = 0.0;
         uniform sampler2D screen : hint_screen_texture, filter_linear, repeat_disable;
 
         // Dave Hoskins' hash without sine: no blocks where sin loses precision far from the origin.
@@ -58,8 +60,8 @@ public partial class Frost : CanvasLayer
             // How far in from the nearest edge, in screen heights, the corners rounded: the ice gathers there first.
             vec2 a = abs(SCREEN_UV - 0.5) * 2.0;
             float d = smin((1.0 - a.x) * 0.5 * aspect, (1.0 - a.y) * 0.5, 0.18);
-            // How far it reaches, wavering slowly; it thins all the way there, so no line shows where it ends.
-            float reach = 0.42 * s * (0.62 + 0.76 * fbm(q * 2.2 + vec2(0.0, TIME * 0.015))) + 0.001;
+            // How far it reaches, wavering slowly; it thins all the way there, so no line shows where it ends, however short it reaches.
+            float reach = 0.42 * s * (0.62 + 0.76 * fbm(q * 2.2 + vec2(0.0, TIME * 0.015))) + 0.06;
             float m = smoothstep(0.0, 1.0, 1.0 - d / reach);
             m *= m;
             COLOR = vec4(0.0);
@@ -79,7 +81,7 @@ public partial class Frost : CanvasLayer
                 vec3 ice = mix(world, vec3(grey), 0.35) * vec3(0.86, 0.94, 1.06) + vec3(0.03, 0.05, 0.08) + vec3(0.12, 0.15, 0.18) * m * s;
                 float lit = pow(clamp(dot(normalize(vec3(-n * 0.5, 1.0)), normalize(vec3(-0.45, -0.6, 0.66))), 0.0, 1.0), 20.0);
                 vec3 colour = ice + vec3(0.95) * lit * 0.3 * m * s + vec3(0.85, 0.92, 1.0) * crest * 0.12 * m;
-                COLOR = vec4(colour, clamp(m * (0.85 + 0.15 * s), 0.0, 1.0));
+                COLOR = vec4(colour, clamp(m * (0.85 + 0.15 * s), 0.0, 1.0) * fade);
             }
         }
         """;
@@ -112,6 +114,8 @@ public partial class Frost : CanvasLayer
         }
         _shown = ScreenEase.Toward(_shown, _cold, delta);
         _screen.Visible = _shown > 0;
-        if (_screen.Visible) _material.SetShaderParameter(Strength, (float)_shown);
+        if (!_screen.Visible) return;
+        _material.SetShaderParameter(Strength, (float)_shown);
+        _material.SetShaderParameter(Fading, ScreenEase.Fade(_shown));
     }
 }

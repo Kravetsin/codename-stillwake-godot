@@ -14,13 +14,6 @@ public sealed record PourWater(int Cistern) : Command;
 /// <summary>Takes <c>Count</c> bottles' water out of cistern <c>Cistern</c> as bottles into the sender's inventory, one at least (industrial-oxygen).</summary>
 public sealed record DrawWater(int Cistern, int Count = 1) : Command;
 
-/// <summary>The water a cistern holds, by its machine id.</summary>
-internal sealed class Held
-{
-    public int Machine { get; set; }
-    public int Amount { get; set; }
-}
-
 /// <summary>An electrolyser's work toward its next unit: a unit is <c>Air.LeakEvery × 1000</c>.</summary>
 internal sealed class Work
 {
@@ -32,7 +25,7 @@ internal sealed class Work
 public sealed class WaterState
 {
     /// <summary>The water in each cistern holding any, by machine id, in id order.</summary>
-    [JsonInclude] internal List<Held> Cisterns { get; set; } = [];
+    [JsonInclude] internal List<Stored> Cisterns { get; set; } = [];
     /// <summary>Each electrolyser's work toward its next unit, by machine id, in id order.</summary>
     [JsonInclude] internal List<Work> Making { get; set; } = [];
 }
@@ -89,9 +82,7 @@ public sealed partial class WaterModule : Module<WaterState>, IWaterQueries
         {
             int count = Math.Max(1, c.Count);
             itemsOps.Give(c.From, [(Content.Water.Item, count)]);
-            var held = State.Cisterns.Find(h => h.Machine == c.Cistern)!;
-            held.Amount -= count * Content.Water.Bottle;
-            if (held.Amount == 0) State.Cisterns.Remove(held);
+            Stores.Take(State.Cisterns, c.Cistern, count * Content.Water.Bottle);
         });
         // A cistern taken apart takes its water with it: a few cisterns at most, looked at every tick.
         System(Phase.Construction, () => State.Cisterns.RemoveAll(h => _grid.MachineById(h.Machine) == null));
@@ -105,7 +96,7 @@ public sealed partial class WaterModule : Module<WaterState>, IWaterQueries
 
     protected override WaterState Init(Layout layout) => new();
 
-    public int WaterIn(int machine) => State.Cisterns.Find(h => h.Machine == machine)?.Amount ?? 0;
+    public int WaterIn(int machine) => Stores.AmountIn(State.Cisterns, machine);
 
     public string? PourProblem(int machine, int peer)
     {
@@ -127,16 +118,7 @@ public sealed partial class WaterModule : Module<WaterState>, IWaterQueries
     private bool BottleFits(int machine) => WaterIn(machine) + Content.Water.Bottle <= Content.Water.CisternCapacity;
 
     /// <summary>A bottle's water into cistern <paramref name="machine"/>.</summary>
-    private void AddBottle(int machine)
-    {
-        var held = State.Cisterns.Find(h => h.Machine == machine);
-        if (held != null) held.Amount += Content.Water.Bottle;
-        else
-        {
-            State.Cisterns.Add(new Held { Machine = machine, Amount = Content.Water.Bottle });
-            State.Cisterns.Sort((a, b) => a.Machine.CompareTo(b.Machine));
-        }
-    }
+    private void AddBottle(int machine) => Stores.Add(State.Cisterns, machine, Content.Water.Bottle);
 
     /// <summary>
     /// Each cistern in id order pours the bottle in its hopper (<c>SlotTakes</c>) when it fits, as one poured by hand
@@ -210,78 +192,30 @@ public sealed partial class WaterModule : Module<WaterState>, IWaterQueries
     /// <c>Water.CisternFlow</c> into the cisterns whose input is on its output's network, in id order, as much as each has room
     /// for. A later cistern pours on in the same tick, so a line fills from its last.
     /// </summary>
-    private void Pour()
-    {
-        bool added = false;
-        foreach (var m in _grid.MachinesWith(MachineTrait.HoldsWater))
-        {
-            if (State.Cisterns.Find(h => h.Machine == m.Id) is not { } giver) continue;
-            int left = Math.Min(giver.Amount, Content.Water.CisternFlow);
-            if (left == 0) continue;
-            foreach (int other in On(MachineTrait.HoldsWater, Way.In, NetworkOf(m, Way.Out)))
-            {
-                if (left == 0) break;
-                if (other == m.Id) continue;
-                var taker = State.Cisterns.Find(h => h.Machine == other);
-                int poured = Math.Min(left, Content.Water.CisternCapacity - (taker?.Amount ?? 0));
-                if (poured <= 0) continue;
-                if (taker == null)
-                {
-                    State.Cisterns.Add(taker = new Held { Machine = other });
-                    added = true;
-                }
-                taker.Amount += poured;
-                giver.Amount -= poured;
-                left -= poured;
-            }
-        }
-        if (added) State.Cisterns.Sort((a, b) => a.Machine.CompareTo(b.Machine));
-    }
+    private void Pour() =>
+        Stores.Pour(State.Cisterns, _grid.MachinesWith(MachineTrait.HoldsWater).Select(m => m.Id),
+            id => Cisterns(Way.In, _pipes.NetworkOf(_grid.MachineById(id)!, Way.Out, Fluids.Water)), _ => Content.Water.CisternCapacity,
+            Content.Water.CisternFlow);
 
     /// <summary>
     /// The cisterns whose output stands on electrolyser <paramref name="m"/>'s input's network, and the tanks whose input stands
     /// on its output's, each in id order.
     /// </summary>
-    private (List<int> Cisterns, List<int> Tanks) Ends(Machine m) =>
-        (On(MachineTrait.HoldsWater, Way.Out, NetworkOf(m, Way.In)), On(MachineTrait.Gas, Way.In, NetworkOf(m, Way.Out)));
+    private (IReadOnlyList<int> Cisterns, IReadOnlyList<int> Tanks) Ends(Machine m) =>
+        (Cisterns(Way.Out, _pipes.NetworkOf(m, Way.In, Fluids.Water)),
+            _pipes.MachinesOn(MachineTrait.Gas, Way.In, Fluids.LiquidOxygen, _pipes.NetworkOf(m, Way.Out, Fluids.LiquidOxygen)));
 
-    /// <summary>The network machine <paramref name="m"/>'s port of <paramref name="way"/> stands on; null for none, or no such port.</summary>
-    private int? NetworkOf(Machine m, Way way)
-    {
-        var cells = _grid.PortsOf(m);
-        var ports = Machines.Get(m.Kind).Ports;
-        for (int i = 0; i < cells.Count; i++)
-            if (ports[i].Way == way) return _pipes.NetworkAt(cells[i]);
-        return null;
-    }
+    /// <summary>The cisterns with a water port of <paramref name="way"/> on <paramref name="network"/>, in id order.</summary>
+    private IReadOnlyList<int> Cisterns(Way way, int? network) => _pipes.MachinesOn(MachineTrait.HoldsWater, way, Fluids.Water, network);
 
-    /// <summary>The machines of <paramref name="trait"/> with a port of <paramref name="way"/> on <paramref name="network"/>, in id order.</summary>
-    private List<int> On(MachineTrait trait, Way way, int? network)
-    {
-        var found = new List<int>();
-        if (network == null) return found;
-        foreach (var m in _grid.MachinesWith(trait))
-        {
-            var cells = _grid.PortsOf(m);
-            var ports = Machines.Get(m.Kind).Ports;
-            for (int i = 0; i < cells.Count; i++)
-                if (ports[i].Way == way && _pipes.NetworkAt(cells[i]) == network)
-                {
-                    found.Add(m.Id);
-                    break;
-                }
-        }
-        return found;
-    }
-
-    private int WaterOf(List<int> cisterns)
+    private int WaterOf(IReadOnlyList<int> cisterns)
     {
         int sum = 0;
         foreach (int c in cisterns) sum += WaterIn(c);
         return sum;
     }
 
-    private int Room(List<int> tanks)
+    private int Room(IReadOnlyList<int> tanks)
     {
         int sum = 0;
         foreach (int t in tanks) sum += Air.TankCapacity - _air.OxygenIn(t);

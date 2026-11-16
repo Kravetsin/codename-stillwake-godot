@@ -8,7 +8,7 @@ using Stillwake.Game.Render;
 namespace Stillwake.Game.Dev;
 
 /// <summary>
-/// <c>-- --suit-cards=&lt;art folder&gt;</c>: every suit's card, and every suit skin's, cut from the hero wearing it (skins): standing
+/// <c>-- --suit-cards=&lt;art folder&gt;</c>: every suit's card, and every suit skin's, cut from the hero wearing it (hero-skins): standing
 /// headless on nothing, from its collar down to just under its hips, fitted to the card. A suit's is written as
 /// <c>items/&lt;id&gt;.png</c>, a skin's as <c>skins/&lt;id&gt;.png</c>; then the game quits. A suit drawn in new parts gets its card
 /// from the rig that wears it, never by hand.

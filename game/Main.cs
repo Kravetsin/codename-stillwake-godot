@@ -98,7 +98,7 @@ public partial class Main : Node2D, ITogether
         _hero?.SkinsChanged();
     }
 
-    /// <summary>The skins this player picked (skins), kept from an earlier run; what of them it owns goes out (<see cref="Owned"/>).</summary>
+    /// <summary>The skins this player picked (hero-skins), kept from an earlier run; what of them it owns goes out (<see cref="Owned"/>).</summary>
     private IReadOnlyList<string> _skins = [];
     private Owned _owned = new(false, _ => false);
     private Features.Crew.LookEditor? _lookEditor;
@@ -109,6 +109,23 @@ public partial class Main : Node2D, ITogether
     private readonly Features.Scanner.ScannerView _scanner = new();
     private Hands _hands = null!;
     private FrameLog? _frameLog;
+    private Features.Landing.JumpCall? _jumpCall;
+    private (World? World, bool Flying) _flight;
+
+    /// <summary>
+    /// The burn as a course sets off and the thud as it arrives, between two ticks of one world (solar-system): never on a load, a
+    /// join or a resync. A course runs only with everyone aboard, so the surface seen is the ship's.
+    /// </summary>
+    private void HearJump(World world)
+    {
+        bool flying = _m.Landing.Course != null;
+        if (ReferenceEquals(_flight.World, world) && flying != _flight.Flying)
+        {
+            if (flying) _jumpCall?.Burn();
+            else _jumpCall?.Arrive();
+        }
+        _flight = (world, flying);
+    }
     private AllocationSampler? _allocs;
     private readonly Platform.GcPace _gcPace = new();
     /// <summary>Where this machine stands on the network, for the dev panel; none alone.</summary>
@@ -138,7 +155,7 @@ public partial class Main : Node2D, ITogether
         bool flies = _m.Landing.FlightOf(client.Id) != null;
         int? landed = _flewLast && !flies ? _m.Landing.SeatOf(client.Id) : null;
         _flewLast = flies;
-        var pods = _m.Grid.MachinesWith(Content.MachineTrait.Lands).Select(p => (p.Id, _m.Landing.RiderOf(p.Id) != null)).ToList();
+        var pods = _m.Grid.MachinesWith(Content.MachineTrait.Lands).Where(p => Content.Machines.Get(p.Kind).Riders == 1).Select(p => (p.Id, _m.Landing.RiderOf(p.Id) != null)).ToList();
         _arrivals.Frame(surface, surface == 0, pods, landed, newWorld, delta);
     }
 
@@ -183,7 +200,7 @@ public partial class Main : Node2D, ITogether
         // Before anything is made that says anything.
         var language = _dev.Value("--lang");
         Speaking = language != null ? Languages.Named(language) ?? Language.English : Settings.Language();
-        if (PoseSheetOnly() || DressSheetOnly() || CapeFilmOnly() || SuitCardsOnly()) return;
+        if (PoseSheetOnly() || DressSheetOnly() || CapeFilmOnly() || GestureSheetOnly() || SuitCardsOnly()) return;
         QuitAfterAWhile();
         // First of all at its layer, before every shimmer (0075).
         AddChild(Shimmer.NewScreenCopy());
@@ -237,7 +254,7 @@ public partial class Main : Node2D, ITogether
             AddChild(_hero = new HeroView(_hands.Ui, _hands.Mouse, script) { Look = () => _look, Skins = () => _owned.Sendable(_skins) });
             PlaceHero(_hero);
             AddChild(_items = new ItemsView(_hands.Ui));
-            // The equipment's screen turns to the skins (skins): picked, they are kept and sent.
+            // The equipment's screen turns to the skins (hero-skins): picked, they are kept and sent.
             _items.Panel.Appearance = size => new AppearanceView(_hands.Ui, size, () => _skins, _owned.Has, PickSkins);
             // A queued station's inputs are the items feature's slots, laid out in the crafting feature's panel.
             AddChild(_fabricator = new FabricatorPanel(_hands.Ui, peer => AsciiArt.Colour((uint)Suits.Of(_m.Players, peer))) { Lend = _items.Panel.Lend, LendSockets = _items.Panel.LendSockets, ShiftOut = _items.Panel.ShiftOut });
@@ -250,11 +267,19 @@ public partial class Main : Node2D, ITogether
             _items.Panel.Supplied = (id, item) => _m.Logistics.Supplied(id, item);
             _fabricator.Served = BadgeOf;
             // A drop pod's Descend or Return key is the landing feature's, under its slot; the white of its flight over the screen.
+            // A shuttle's panel is its seats and its Set off key.
+            (Sim.Landing.LandingModule, int)? Rider() => _session is Session s ? (_m.Landing, s.Client.Id) : null;
+            (Sim.Landing.LandingModule, Sim.Places.PlacesModule, int)? ShuttleRider() => _session is Session s ? (_m.Landing, _m.Places, s.Client.Id) : null;
             Control? LaunchOf(int machine) => _m.Grid.MachineById(machine) is { } pod && Content.Machines.Is(pod.Kind, Content.MachineTrait.Lands)
-                ? new Features.Landing.LaunchKey(() => _session is Session s ? (_m.Landing, s.Client.Id) : null, SendNow, _hands.Ui.Tip)
+                ? Content.Machines.Get(pod.Kind).Riders is var riders and > 1
+                    ? Features.Landing.ShuttleKey.Panel(machine, riders, ShuttleRider, SendNow, _hands.Ui.Tip)
+                    : new Features.Landing.LaunchKey(Rider, SendNow, _hands.Ui.Tip)
                 : null;
             _items.Panel.Launch = LaunchOf;
-            AddChild(new Features.Landing.FlightOverlay(() => _session is Session s ? (s.Client.World.SurfaceOf(s.Client.Id), _m.Landing.FlightOf(s.Client.Id)) : null,
+            AddChild(_jumpCall = new Features.Landing.JumpCall());
+            // A shuttle's voyage shows as a pod's descent of its length (shuttle-flight, plain pictures).
+            Features.Landing.Ride? OwnRide(int peer) => _m.Landing.FlightOf(peer) is { } f ? Features.Landing.Ride.Of(f) : _m.Landing.VoyageOf(peer) is { } v ? Features.Landing.Ride.Of(v) : null;
+            AddChild(new Features.Landing.FlightOverlay(() => _session is Session s ? (s.Client.World.SurfaceOf(s.Client.Id), OwnRide(s.Client.Id)) : null,
                 () => (_session as Session)?.Progress ?? 0, () => _camera.CurrentZoom));
             // The vitals at the bottom-left (hud-vitals): the belt's charge under the suit's air, whatever is held. Before the
             // suit's gauge, so the red edges cover it as they cover the rest of the HUD.
@@ -392,7 +417,7 @@ public partial class Main : Node2D, ITogether
             {
                 // A search in the build menu, on the research board or the dev panel goes first, then a card in hand (right-lets-go),
                 // what else is open staying so.
-                if (dev.DropSearch() || _hands.Menu.DropSearch() || tech.DropSearch() || _hands.Plan.LetGo()) return;
+                if (dev.DropSearch() || _hands.Menu.DropSearch() || tech.DropSearch() || computer.LetGo() || _hands.Plan.LetGo()) return;
                 _items?.Panel.Close();
                 handbook.Close();
                 computer.Close();
@@ -512,6 +537,9 @@ public partial class Main : Node2D, ITogether
         _grid = View<GridView>();
         var fires = View<FurnaceView>()!;
         var (power, hazards) = (_m.Power, _m.Hazards);
+        // A derelict's own lamps burn on their battery, lit by their own view and with no bolt over them; one a hero builds there has both.
+        Func<Sim.Grid.Machine, bool> own = View<Features.Light.VesselLamps>() is { } inside ? inside.Claims : _ => false;
+        _hands.Unmarked = own;
         AddChild(_light = new LightView(_m.Grid, Game.Light.SkyOf(_m.Rules), ground: _m.Rules is Content.PlanetType)
         {
             // --lit: every lamp at full power, to measure the light on the reference world; --dark: every lamp out, to see what glows.
@@ -519,6 +547,7 @@ public partial class Main : Node2D, ITogether
             LampShare = Has("--lit") ? _ => 1f : Has("--dark") ? _ => 0f : lamp => Features.Light.LampPower.ShareOf(Stillwake.Content.Machines.Get(lamp.Kind).Draws, power.Satisfaction(lamp.Id))
                 * Features.Hazards.FlareLook.LampShare(Features.Hazards.FlareLook.Near(hazards.FlareLeft, (_session as Session)?.Progress ?? 0, hazards.FlareRules.Warning)),
             Fire = m => fires.BlazeOf(m.Id),
+            Skips = own,
             FireAt = FurnaceView.LightAt,
             HeadLamps = () => _hero?.HeadLamps() ?? [],
             // The creatures live across surfaces: their view is made once, not with these.
@@ -586,7 +615,12 @@ public partial class Main : Node2D, ITogether
         int desyncs = session.Desyncs.Count;
         foreach (var report in session.Frame(delta * 1000))
             foreach (var refused in report.Refused)
+            {
+                // A course set with the crew away is the call to everyone (solar-system): every peer runs every command.
+                if (refused.Reason == "landing.crewAway") _jumpCall?.Call();
                 Log($"tick {report.Tick}: {refused.Command.GetType().Name} from {refused.Command.From} refused, {refused.Reason}");
+            }
+        if (client.World.Tick != before) HearJump(client.World);
         foreach (var report in session.Desyncs.Skip(desyncs))
         {
             Log($"desync, resynced from the host: {report}");
@@ -596,6 +630,7 @@ public partial class Main : Node2D, ITogether
         Follow(client);
         Snap(client);
         _stars.Seconds = (client.World.Tick + session.Progress) / World.TicksPerSecond;
+        _stars.Warp = Features.Landing.Warp.Depth(_m.Landing.Course?.TicksLeft, Content.Landing.FlightTicks, session.Progress);
         if (_allocs != null) _allocs.Counting = client.World.Tick > 5 * World.TicksPerSecond;
         if (_role != "alone" && client.World.Tick / 100 != before / 100) Log($"tick {client.World.Tick} hash {client.World.Hash():x16}");
         if (_worldId != null && _role != "guest" && client.World.Tick - _lastSaveTick >= AutosaveTicks) SaveNow();
@@ -604,6 +639,7 @@ public partial class Main : Node2D, ITogether
         DevTick(client, before);
         ShowWorld();
         ShowDaylight();
+        ShowStretch(client.World.Tick + session.Progress);
         SeeArrivals(client, delta);
         _frameLog?.Mark("sim");
         if (client.World.Tick != before) SyncLight();
@@ -618,6 +654,7 @@ public partial class Main : Node2D, ITogether
         if (_items != null) _items.Panel.Trade = _m.Trade;
         if (_items != null) _items.Panel.Air = _m.Atmosphere;
         if (_items != null) _items.Panel.Water = _m.Water;
+        if (_items != null) _items.Panel.Fuel = _m.Fuel;
         if (_items != null) _items.Panel.Switching = _m.Power;
         if (_items != null) (_items.Panel.Charger, _items.Panel.ChargeRate) = (_m.Power.Charges, _m.Power.ChargeRate);
         if (_items != null) _items.Panel.Draw = _m.Power.Draw;
@@ -671,7 +708,8 @@ public partial class Main : Node2D, ITogether
 
     /// <summary>
     /// The planet's hour as light (2026-11-07-night-chills): the light through its open sky, its backdrop and the fog at its sides
-    /// at <see cref="Daylight"/>'s colours of the moment; whole aboard.
+    /// at <see cref="Daylight"/>'s colours of the moment; whole aboard. A weather (docs/plans/surface-storms.md) dims them all, turns the
+    /// sky and land toward its haze and blows the plants, as far as it has come.
     /// </summary>
     private void ShowDaylight()
     {
@@ -681,9 +719,37 @@ public partial class Main : Node2D, ITogether
             int time = _m.Sky.Now.Time;
             (sky, tint) = (Daylight.Sky(look, time, cycle), Daylight.Backdrop(look, time, cycle));
         }
+        var storm = View<Features.Sky.StormView>();
+        var now = storm?.Now ?? Features.Sky.Storm.None;
+        if (storm?.Weather is { } weather)
+        {
+            var dim = now.Dim(weather);
+            sky = (sky.R * dim.R, sky.G * dim.G, sky.B * dim.B);
+            tint = (tint.R * dim.R, tint.G * dim.G, tint.B * dim.B);
+            _stars.Weather(weather.Haze, weather.HazeMost * now.Hazed, Features.Sky.Storm.SkyTop, Features.Sky.Storm.CloudBlow * now.Wind);
+        }
+        else _stars.Weather((1, 1, 1), 0, 0, 0);
+        if (storm != null) (storm.Light, storm.Eye) = (tint, _hero is { } eye ? MiddleOf(eye.Current) : null);
+        if (View<Features.Flora.FloraView>() is { } flora) flora.Storm = now.Wind * StretchLooks.Weather.SwayGain;
         Lit.Sky(sky);
         _stars.Tint = tint;
         if (View<Features.Fog.FogView>() is { } fog) fog.Tint = tint;
+    }
+
+    /// <summary>The stretch of space seen in the backdrop: read again for each surface shown, none carried from the last.</summary>
+    private StretchShown _stretch = new();
+    private Registry? _stretchOf;
+
+    /// <summary>
+    /// A stretch of space coming, running or just gone (docs/decisions/2026-11-15-stretches-of-space.md), its far picture sailing in behind the far wrecks:
+    /// from the sky's <c>Now</c>, at <paramref name="clock"/>, the world's ticks.
+    /// </summary>
+    private void ShowStretch(double clock)
+    {
+        if (_stretchOf != _m) (_stretch, _stretchOf) = (new StretchShown(), _m);
+        var now = _m.Sky.Now;
+        _stretch.See(_m.Rules, now.Stretch, now.Coming, now.ComingIn, clock, now.Ran);
+        _stars.Stretch(_stretch.Look, _stretch.Grow, _stretch.Melt, _stretch.Since);
     }
 
     /// <summary>The surface's view of type <typeparamref name="T"/>; none where this surface has none (lava aboard).</summary>

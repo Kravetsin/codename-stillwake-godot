@@ -16,7 +16,8 @@
 | `State.cs` | The saved slice: `Plan`, `Crack`, `Repairing`, `BuildingState`. |
 
 - **Depends on:** `Grid`, `Items` (queries, ops); `Crew` (`Heroes`; `Shock`, `Loot`, `Works`); `Power`
-  (`Unplug`, `Plug`; `IsBroken`, `Mend`); `Research` (`Knows`); `Crafting` (`Queue`, `Scrap`); `Pipes` (`SeatProblem`). Creatures uses `ShotTakes`, `Surplus`, `Hit`, `Burst`, Hazards `Burst`.
+  (`Unplug`, `Plug`; `IsBroken`, `Mend`); `Research` (`Knows`); `Crafting` (`Queue`, `Scrap`); `Pipes` (`SeatProblem`); `Atmosphere`, `Water`, `Fuel`.
+  Creatures uses `ShotTakes`, `Surplus`, `Hit`, `Burst`, Hazards `Burst`.
 - **State** (`BuildingState`, all saved): `Plans` in order made, each with `Progress` ticks and, for a blueprint,
   `Delivered` stacks in first-given order; `NextPlanId`; `Cracks`, sorted by cell (`Crack(Cell, Damage, At, Back)`);
   `Felled` growths' cells, ascending; `Clock`; `Instant`; `Repairs` paid, by machine. Derived (`Flora.cs`): growths grown and
@@ -28,11 +29,11 @@
   (`Surfaces.Kind.Builds`, 0076); `building.unknown` (but to a creative sender; bedrock, cardless machines always); the
   grid's `PlacementProblem` keys; plans' shaft keys too; `building.noFloor` (machines-stand: `Footing` under a
   standing machine, built or, not instant, planned); `building.planned`; ports (`SeatProblem`, `pipes.*`).
-  A machine covers its footprint, a ladder or door segment 2×2, a hatch 2×1. Soil and stone walls are blueprints too.
+  Soil and stone walls are blueprints too.
 - **Marks**: one thing takes one mark and needs something in that layer; none where
   `ToolsBreak` (`building.notHere`, old ones not worked). A
-  machine holding items, a fitted module or queued crafts is marked only empty, `building.notEmpty`,
-  checked again when worked, as is `building.holdsMachine` (under a standing machine). A mark is kept at a machine's top-left, a piece's first cell (`PieceOf`);
+  machine holding items, a fitted module, queued crafts or over a litre of liquid (`building.holdsLiquid`) is marked only
+  empty, `building.notEmpty`, checked again when worked, as is `building.holdsMachine` (under a standing machine). A mark is kept at a machine's top-left, a piece's first cell (`PieceOf`);
   taking it apart takes the piece. Its cables stay on a peg (`Unplug`); a machine built is `Plug`ged in.
 - **`Work`**, sent `Screwdriver.Work` a tick while a builder is held on it (power-driver), no tool checked, is worth the
   sender's `Works` (food-and-the-body), 0 to 2 ticks; a second never finishes a plan nor begins an unpaid part. A blueprint takes its `BuildTicks`; a mark those
@@ -41,7 +42,7 @@
 - **Paid a part at a time** (0063): N parts for N cost items, part k starting at tick `BuildTicks * k / N`, rounded
   down. The tick that starts an unpaid part takes from the sender's stock (own slots, then crates) the first item in cost
   order still lacking, else is refused `items.notEnough`. Within a paid part anyone works; a creative worker pays from nothing.
-- **Repair** (free-repair): worth what a `Work` is, free; the last tick `Mend`s. A broken machine refunds in full.
+- **Repair** (free-repair): worth a `Work`, free; the last tick `Mend`s. A broken machine refunds in full.
 - **Instant** (`SetInstant`, dev): blueprints built free, removals refunded.
 - **Cancelling** a blueprint drops exactly what was put in (`DropAt`); a mark drops nothing. Anyone may cancel
   or work any plan; a mark on what broke drops in derivation, refunding nothing.
@@ -60,8 +61,8 @@
 - **`Burst(peer, cell, power, reach, Spoils)`** (damage-scale): a `Wave`, steps `Damage.Step`; a cell costs its
   strength left (a pile's read as tenths), a piece or machine once, by the one rule; bedrock, lava, fog, the lifepod stop
   it. Paid ones break, unpaid crack at their head by what was left.
-  `Drop` (a charge): all for anyone, `Crushed` if set; `Lost` (a meteor): costs gone, and back walls entered where what is
-  left pays. A machine broken by a hit `Spill`s and `Scrap`s (`Unbuild`), cables on a peg; a net lays its cost down; a felled cradle
+  `Drop` (a charge): `Spray`ed from `cell`, `Crushed` if set (loot-pieces); `Lost` (a meteor): costs gone, and back walls entered where what is
+  left pays. A machine broken `Spill`s and `Scrap`s (`Unbuild`), cables on a peg; a net lays its cost down; a felled cradle
   shocks `peer` once.
 - **Cracks heal** (0077): dropped once `Builds.CrackHeals` ticks unhit, or in derivation once their wall or plant is gone.
 - **Growths** (0079, 0080) grow from the seed with `Terrain`, each held by an `Anchor`.

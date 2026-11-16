@@ -8,6 +8,7 @@ using Stillwake.Game.Render;
 using Stillwake.Game.Shared;
 using Stillwake.Net;
 using Stillwake.Sim;
+using Stillwake.Sim.Grid;
 using Stillwake.Sim.Power;
 
 namespace Stillwake.Game.Features.Power;
@@ -69,6 +70,22 @@ public partial class PowerView : Node2D
     private double _since = RefreshMs, _timeMs;
     private int _shownTick = -1;
     private (int W, int H) _size;
+
+    /// <summary>
+    /// Machines a surface lights in its own way, which carry no bolt: a derelict's own lamps, burning on their battery
+    /// (derelict-looks). None till the surface's views answer; set again with each.
+    /// </summary>
+    public Func<Machine, bool> Unmarked
+    {
+        set
+        {
+            _unmarked = value;
+            _boltsShown.Clear();
+            _boltsShown.Add(-1);
+        }
+    }
+
+    private Func<Machine, bool> _unmarked = _ => false;
 
     public PowerView(Ui ui)
     {
@@ -243,7 +260,7 @@ public partial class PowerView : Node2D
         {
             bool broken = m.Power.IsBroken(machine.Id), off = !broken && m.Power.IsOff(machine.Id);
             int satisfaction = m.Power.Satisfaction(machine.Id);
-            if (!broken && !off && (Machines.Get(machine.Kind).Draws == null || satisfaction >= 1000)) continue;
+            if (!broken && !off && (Machines.Get(machine.Kind).Draws == null || satisfaction >= 1000 || _unmarked(machine))) continue;
             _key.Add(machine.Id);
             _key.Add(machine.Cell);
             _key.Add(broken ? 2 : off ? 3 : satisfaction == 0 ? 0 : 1);
@@ -323,7 +340,7 @@ public partial class PowerView : Node2D
             var spec = Machines.Get(machine.Kind);
             bool broken = m.Power.IsBroken(machine.Id), off = !broken && m.Power.IsOff(machine.Id);
             int satisfaction = m.Power.Satisfaction(machine.Id);
-            if (!broken && !off && (spec.Draws == null || satisfaction >= 1000)) continue;
+            if (!broken && !off && (spec.Draws == null || satisfaction >= 1000 || _unmarked(machine))) continue;
             var at = CableShape.MiddleOf(m.Grid, machine.Cell);
             var texture = broken ? Signs.Broken() : off ? Signs.Off() : Signs.Bolt(satisfaction == 0);
             var bolt = new Sprite2D

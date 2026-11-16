@@ -1,6 +1,7 @@
 using Stillwake.Content;
 using Stillwake.Sim.Grid;
 using Stillwake.Sim.Knowledge;
+using Stillwake.Sim.Sky;
 
 namespace Stillwake.Sim.Debris;
 
@@ -162,8 +163,29 @@ public sealed partial class DebrisModule
         if (!Rules.Debris) return;
         // Before the zones' beats, so ids keep ascending in spawn order.
         SpawnDelivery();
+        _running = _sky.Now.Stretch;
         var zones = Content.Debris.Zones;
-        for (int i = 0; i < zones.Count; i++) Beat(zones[i]);
+        for (int i = 0; i < zones.Count; i++)
+        {
+            // A stretch's zone beats only while it runs, its beat dropped between, so each run's first piece comes a beat after it starts.
+            if (zones[i].Stretch is { } stretch && stretch != _running) DropBeat(zones[i]);
+            else Beat(zones[i]);
+        }
+    }
+
+    /// <summary>The stretch running this tick, as the zones' beats found it (<c>ISkyQueries.Now</c>); null for none.</summary>
+    private string? _running;
+
+    /// <summary>Forgets <paramref name="zone"/>'s beat, if it has one.</summary>
+    private void DropBeat(DebrisZone zone)
+    {
+        var beats = State.Beats;
+        for (int i = 0; i < beats.Count; i++)
+            if (beats[i].Zone == zone.Id)
+            {
+                beats.RemoveAt(i);
+                return;
+            }
     }
 
     /// <summary>Every hero's reported cell, in id order, as a column and row; one off the grid, which only the fuzz and an old save hold, is nowhere.</summary>
@@ -213,8 +235,10 @@ public sealed partial class DebrisModule
             if (b.Zone == zone.Id) beat = b;
         if (beat == null) s.Beats.Add(beat = new Beat { Zone = zone.Id, Next = s.Clock + zone.Every });
         if (s.Clock < beat.Next) return;
+        // A stretch running thins the stream always by the hull (Stretch.Thins).
+        int thins = zone.Stretch == null && zone.Anchor is ByHull && _running != null ? Rules.StretchOf(_running)!.Thins : 1;
         // No jitter, no draw: a beat that spawns nothing takes nothing from the world's Rng.
-        beat.Next = s.Clock + zone.Every + (zone.Jitter > 0 ? (int)Random.Below((uint)zone.Jitter + 1) : 0);
+        beat.Next = s.Clock + thins * (zone.Every + (zone.Jitter > 0 ? (int)Random.Below((uint)zone.Jitter + 1) : 0));
         switch (zone.Anchor)
         {
             case ByHull byHull:
@@ -401,11 +425,17 @@ public sealed partial class DebrisModule
         }
     }
 
-    /// <summary>Whether (<paramref name="x"/>, <paramref name="y"/>) is in the box of a zone by the hull: the hull grown by its lead across and its margin up and down.</summary>
-    private static bool InStream(int x, int y, (int Left, int Right, int Top, int Bottom) hull)
+    private bool InStream(int x, int y, (int Left, int Right, int Top, int Bottom) hull) => InStream(x, y, hull, Content.Debris.Zones, _running);
+
+    /// <summary>
+    /// Whether (<paramref name="x"/>, <paramref name="y"/>) is in the box of a zone of <paramref name="zones"/> by the hull: the hull grown by
+    /// its lead across and its margin up and down; a stretch's zone only while <paramref name="running"/> is its stretch.
+    /// </summary>
+    internal static bool InStream(int x, int y, (int Left, int Right, int Top, int Bottom) hull, IReadOnlyList<DebrisZone> zones, string? running)
     {
-        foreach (var zone in Content.Debris.Zones)
-            if (zone.Anchor is ByHull h && x >= hull.Left - h.Lead && x <= hull.Right + h.Lead && y >= hull.Top - h.Margin && y <= hull.Bottom + h.Margin)
+        foreach (var zone in zones)
+            if (zone.Anchor is ByHull h && (zone.Stretch == null || zone.Stretch == running)
+                && x >= hull.Left - h.Lead && x <= hull.Right + h.Lead && y >= hull.Top - h.Margin && y <= hull.Bottom + h.Margin)
                 return true;
         return false;
     }

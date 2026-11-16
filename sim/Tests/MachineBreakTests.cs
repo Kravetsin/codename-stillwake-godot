@@ -74,7 +74,7 @@ public class MachineBreakTests
     private static int Slot(Scenario w, string item) => w.M.Items.Inventory(0).ToList().FindIndex(s => s?.Item == item);
 
     [Fact]
-    public void AChargeAboardCracksABuiltMachineByATenthAFullBurstBreaksItItsCostOreAndModuleFallingThereForAnyone()
+    public void AChargeAboardCracksABuiltMachineByATenthAFullBurstBreaksItItsCostThrownItsOreAndModuleSpilledThereForAnyone()
     {
         var w = Room(["crusher"]).GiveItems(0, ("arcModule", 1), ("asteroidOre", 4)).Run();
         var crusher = Of(w, "crusher");
@@ -94,7 +94,7 @@ public class MachineBreakTests
         Assert.All(expected, e => Assert.Equal(e.Value, Lying(w, e.Key)));
         Assert.Equal(expected.Values.Sum(), w.M.Items.Floor.Sum(s => s.Count));
         Assert.All(w.M.Items.Floor, s => Assert.Equal(FloorStack.Nobody, s.By));
-        Assert.All(w.M.Items.Floor, s => Assert.Equal(crusher.Cell, s.Cell));
+        Assert.All(w.M.Items.Floor.Where(s => s.Item is "asteroidOre" or "arcModule"), s => Assert.Equal(crusher.Cell, s.Cell));
         Assert.Empty(w.M.Items.Crate(crusher.Id));
         Assert.Empty(w.M.Items.FittedTo(crusher.Id));
     }

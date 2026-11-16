@@ -36,6 +36,17 @@ public class ScreenEaseTests
         int frames = 0;
         while (shown > 0 && frames < 1000) (shown, frames) = (ScreenEase.Toward(shown, 0, 1 / 60.0), frames + 1);
         Assert.Equal(0, shown);
-        Assert.InRange(frames, 200, 400);
+        Assert.InRange(frames, 120, 220);
+    }
+
+    [Fact]
+    public void FadesOutWholeUnderAQuarterSoNoThinBandLingers()
+    {
+        Assert.Equal(0f, ScreenEase.Fade(0));
+        Assert.Equal(0.5f, ScreenEase.Fade(ScreenEase.FadeBelow / 2), 3);
+        Assert.Equal(1f, ScreenEase.Fade(ScreenEase.FadeBelow));
+        Assert.Equal(1f, ScreenEase.Fade(1));
+        // Where the shown strength lands on nothing, it is already all but invisible.
+        Assert.True(ScreenEase.Fade(ScreenEase.Snap) < 0.01f);
     }
 }

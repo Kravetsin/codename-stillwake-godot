@@ -4,7 +4,7 @@ using System.Collections.Generic;
 namespace Stillwake.Game.Render;
 
 /// <summary>
-/// A held blade's lip (skins): the outline of its area round the edge (<see cref="HeldLook.EdgeBox"/>) that faces the way the
+/// A held blade's lip (hero-skins): the outline of its area round the edge (<see cref="HeldLook.EdgeBox"/>) that faces the way the
 /// edge does, out of its bow, ordered from the edge's one end to the other. What an effect skin's rest state grows from.
 /// </summary>
 public static class EdgeLip

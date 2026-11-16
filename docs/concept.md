@@ -17,13 +17,17 @@ A living document: what is decided about the game and what is still open. Techni
 - **The arc:** a castaway, alone in a small fragment of a wrecked ship, drifts and survives on what
   floats by; sets up the first processes and builds floor upon floor, filling them with machines.
   The first stage ends with an engine and a radar. The radar finds what happens within its range —
-  places and events; the ship stays where it is, and the crew goes there, each place a world of its own opened for the
+  places and events; the ship stays where it is, and the crew flies there in its shuttle, up to four, a course set on the
+  radar ([shuttle-flight](decisions/2026-11-16-shuttle-flight.md)), each place a world of its own opened for the
   visit and closed once everyone is home ([vessel-worlds](decisions/2026-11-09-vessel-worlds.md)). From then on the ship is improved
   and production automated, to bring the technology that fends off what is out there and reaches
   further places.
 - **Places and their dangers:** the starting space is mild — debris, light meteors every few minutes
   that break a weak hull now and then, and now and then a random event such as a great cluster of
-  debris or another wreck. Harder places bring their own dangers (see meteors below).
+  debris or another wreck. Harder places bring their own dangers (see meteors below). As the crew gets further, the ship
+  drifts through stretches of space, seen coming for three minutes: the ice belt, once a warm helmet is found, bitter cold
+  and ice to mine; the contraband drift, once the railgun is, the mafia's crates that bring the catchers
+  ([stretches-of-space](decisions/2026-11-15-stretches-of-space.md)).
 - **No hand-holding:** no tutorial text and no highlighted "click here". The player learns by trying,
   picks their own path and pace; the world hints by colour, light and motion only.
 - **Who:** a scavenger who was a slave aboard a ship, thin, in what was issued, a tracker still on the leg.
@@ -226,7 +230,7 @@ A living document: what is decided about the game and what is still open. Techni
 
 - Which dangers besides meteors and flares, how often, how they are telegraphed; a peaceful mode as in Raft?
   Directions so far: enemies living in other wrecks, pirate raids.
-- How the crew reaches a place the radar found (a craft of its own), what it costs, and what the engine is for.
+- What the engine is for.
 - How resources move between machines: belts, drones, or hired crew carrying them. In side view
   this shapes the ship's layout; carrying by hand comes first, so automation is felt as relief.
 - Co-op start: one shared wreck, or separate wrecks that dock later?

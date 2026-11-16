@@ -10,6 +10,7 @@ using Stillwake.Game.Overlays;
 using Stillwake.Game.Render;
 using Stillwake.Net;
 using Stillwake.Sim;
+using Stillwake.Sim.Grid;
 
 namespace Stillwake.Game.Shared;
 
@@ -40,6 +41,9 @@ public partial class Hands : Node2D
     private const double CarriedEveryMs = 250;
     private double _sinceCarried = CarriedEveryMs;
 
+    /// <summary>Machines the power's bolts pass over on this surface (<see cref="PowerView.Unmarked"/>).</summary>
+    public Func<Machine, bool> Unmarked { set => _power.Unmarked = value; }
+
     public Hands()
     {
         Plan = new PlanHand(Ui);
@@ -49,11 +53,12 @@ public partial class Hands : Node2D
         _air = new AirView(Ui);
         Menu = new BuildMenu(Plan, Ui);
         _tip = new PointerTip(Ui);
-        // What the pointer on a machine tells: water's, the air's, then a debris net's count; its power under any of them.
+        // What the pointer on a machine tells: water's, the air's, a fuel store's, then a debris net's count; its power under any of them.
         static IReadOnlyList<TipLine>? Plain(string[]? lines) => lines?.Select(line => new TipLine(line)).ToList();
         _machines = new MachineTips(Ui,
             (m, x, spec) => Plain(Features.Water.WaterShows.Says(spec, m.Water.WaterIn(x.Id), m.Water.Stalled(x.Id), m.Power.Satisfaction(x.Id))),
             (m, x, spec) => Features.Atmosphere.AirSays.Says(spec, m.Atmosphere.OxygenIn(x.Id), m.Atmosphere.MakesAt(x.Id)),
+            (m, x, spec) => Plain(Features.Fuel.FuelShows.Says(spec, m.Fuel.FuelIn(x.Id), m.Fuel.Lasts(x.Id))),
             (m, x, spec) => spec.Is(Stillwake.Content.MachineTrait.Catches) ? Plain(Features.Debris.NetShows.Says(spec, m.Debris.HeldIn(x.Id).Count)) : null);
         Air = new AirKey(Ui);
         foreach (var node in (Node[])[Mouse, _air, _power, _pipesBuilt, _pipes, _building, Menu, Air, _tip]) AddChild(node);

@@ -4,7 +4,7 @@ using Xunit;
 
 namespace Stillwake.Game.Tests;
 
-/// <summary>The Appearance tab's strip and picks (skins).</summary>
+/// <summary>The Appearance tab's strip and picks (hero-skins).</summary>
 public class AppearanceTests
 {
     private static readonly IReadOnlyList<Skin> Catalogue =

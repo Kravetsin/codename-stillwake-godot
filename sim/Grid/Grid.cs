@@ -142,6 +142,8 @@ public interface IGridQueries
     string? PlacementProblem(int cell, Placement placement);
     /// <summary>Whether a machine of <paramref name="kind"/> from <paramref name="cell"/> stands over a launch platform's run, every cell under it a platform's, shut or open.</summary>
     bool OnRun(string kind, int cell);
+    /// <summary>Whether machine <paramref name="machineId"/>'s nozzle still goes out through the hull into space, as when it was built (<c>grid.noExhaust</c>); true for one with none.</summary>
+    bool Exhausts(int machineId);
     /// <summary>Whether something solid stands at <paramref name="cell"/>, a structure or a machine: what a platform's shaft must be empty of.</summary>
     bool Taken(int cell);
     /// <summary>Whether every cell under <paramref name="cell"/> in its column, to the grid's edge, is empty of anything solid: a platform's shaft.</summary>
@@ -675,7 +677,8 @@ public sealed partial class GridModule : Module<GridState>, IGridQueries, IGridO
                     return "grid.noExhaust";
                 if (Content.Machines.Is(p.Kind, MachineTrait.Catches) && !HangsOnHull(cell, Content.Machines.Get(p.Kind))) return "grid.notOnHull";
                 if (!Content.Machines.Is(p.Kind, MachineTrait.Lands)) return null;
-                // Off the ship a pod is only ever landed by its module, on the ground.
+                // Off the ship a pod is only ever landed by its module, on the ground; where nothing falls (a vessel world), a shuttle stops in open space.
+                if (Surfaces is { Here: not 0 } && Rules.Floats) return null;
                 if (Surfaces is { Here: not 0 }) return RowUnder(p.Kind, cell, Solid) ? null : "grid.noGround";
                 return OnRun(p.Kind, cell) ? null : "grid.noPlatform";
             default:
@@ -684,6 +687,9 @@ public sealed partial class GridModule : Module<GridState>, IGridQueries, IGridO
     }
 
     public bool OnRun(string kind, int cell) => RowUnder(kind, cell, c => Doorways.IsPlatform(State.Structure[c]));
+
+    public bool Exhausts(int machineId) =>
+        MachineById(machineId) is not { } m || Content.Machines.Get(m.Kind) is not { Exhaust: int reach } spec || ExhaustsThroughHull(m.Cell, spec.Height, reach);
 
     public bool Taken(int cell) => State.Structure[cell] != Structure.Empty || State.Occupancy[cell] != 0;
 

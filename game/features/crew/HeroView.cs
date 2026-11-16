@@ -86,6 +86,10 @@ public partial class HeroView : Node2D
         public DrillPace Drill;
         /// <summary>Its power driver's motor, heard where it works while the sim says it runs (power-driver).</summary>
         public readonly DriverHeard Driver = new();
+        /// <summary>Its gesture, played here from where its peer began it (gestures-for-words).</summary>
+        public readonly GesturePlay Gesture = new();
+        /// <summary>The spot its player pinged, shown here from when it came.</summary>
+        public readonly Ping Ping = new();
     }
 
     /// <summary>Each other hero drawn, by peer id.</summary>
@@ -120,12 +124,12 @@ public partial class HeroView : Node2D
 
     /// <summary>The look this player chose, sent before the pod prints its hero; null holds the hero out till it chooses. Look 0 unless set.</summary>
     public Func<Look?> Look { get; set; } = () => Sim.Players.Look.Zero;
-    /// <summary>The skins this player owns of its picks (skins), sent once a join, the empty set too, so a world never keeps stale ones.</summary>
+    /// <summary>The skins this player owns of its picks (hero-skins), sent once a join, the empty set too, so a world never keeps stale ones.</summary>
     public Func<IReadOnlyList<string>> Skins { get; set; } = () => [];
     /// <summary>The session this player's skins were sent to.</summary>
     private Client? _skinsSentTo;
 
-    /// <summary>Sends this player's skins again on the next frame: they were picked anew (skins).</summary>
+    /// <summary>Sends this player's skins again on the next frame: they were picked anew (hero-skins).</summary>
     public void SkinsChanged() => _skinsSentTo = null;
 
     private double _clockMs;
@@ -231,6 +235,13 @@ public partial class HeroView : Node2D
     private string? _eat;
     /// <summary>Whether the player asked to switch its suit's mode, by V or its edge key, since the last frame.</summary>
     private bool _switchSuit;
+    /// <summary>The gesture key and its wheel (gestures-for-words), the wheel drawn, and the gesture this hero plays.</summary>
+    private readonly GestureWheel _wheel = new();
+    private readonly GestureWheelView _wheelView = new();
+    private readonly GesturePlay _gesture = new();
+    /// <summary>The spot this player last pinged with a tap of the gesture key, and every ping shown, this one's and friends'.</summary>
+    private readonly Ping _ping = new();
+    private readonly PingView _pingView = new() { ZIndex = Layers.Glows };
     // A canister breathed is heard in the helmet, never muffled; a friend's on World, where it is.
     private readonly AudioStreamPlayer _breathes = Cues.Player(S.AirFill, S.Helmet), _eats = Cues.Player(S.Eat, S.Helmet), _retches = Cues.Player(S.Retch, S.Helmet);
     private readonly Heard2D _othersBreathe = Cues.Player2D(S.AirFill, S.World, voices: 2);
@@ -276,6 +287,8 @@ public partial class HeroView : Node2D
         AddChild(_figure);
         AddChild(_outline);
         AddChild(_glyph);
+        AddChild(_wheelView);
+        AddChild(_pingView);
         AddChild(_prompt);
         AddChild(_act);
         // The lines and the rod over this machine's hero: they leave its gun's muzzle.
@@ -366,6 +379,9 @@ public partial class HeroView : Node2D
 
     /// <summary>Other heroes where they are drawn this frame, by peer: what sways the cables besides this one, what the markers point at.</summary>
     public IReadOnlyList<(int Id, Hero Hero)> Others { get; private set; } = [];
+
+    /// <summary>Every ping shown this frame, by the peer that placed it, this machine's among them: what the markers point at.</summary>
+    public IReadOnlyList<(int Peer, Point At)> Pings { get; private set; } = [];
 
     /// <summary>Where the hero's helmet and feet are drawn this frame, for what hangs over its head; null while it is not shown.</summary>
     public (Vector2 Head, Vector2 Feet)? Shown => _placed && _figure.Visible ? (_figure.HeadAt, _figure.Stance.Feet) : null;
@@ -474,7 +490,16 @@ public partial class HeroView : Node2D
             if (thrust != null) _thrust = thrust;
             var input = passedOut || seat != null
                 ? new HeroInput(0, 0, false, Jetpack: jetpack)
-                : taken with { Face = faces, Swings = swinging || _armUp, Pull = pull, PullBy = _harpoon.PullBy, Jetpack = jetpack, Thrust = thrust };
+                : taken with
+                {
+                    Face = faces,
+                    Swings = swinging || _armUp,
+                    Pull = pull,
+                    PullBy = _harpoon.PullBy,
+                    Jetpack = jetpack,
+                    Thrust = thrust,
+                    Slowed = 1000 - m.Crew.PaceAt(_current.BodyCell(ship.Width)),
+                };
             // Rammed, the hero is thrown, not walked: no keys, no ladder, a held Up or Space taken by nothing (0103).
             if (_reel > 0)
             {
@@ -596,7 +621,8 @@ public partial class HeroView : Node2D
         ShowHarpoon(elapsedMs);
         _tether = Tie(_tether, 0, _current.Anchor, Tether.ClipOf(x, y), elapsedMs);
         // Stamped with its step's time, so others place it by when it was there, not when it came.
-        _sender.Step(elapsedMs, new Seen(_current, ownLook, holdsPlan, _wields, _busy, _harpoon.Seen), _steps * Hero.StepMs);
+        _sender.Step(elapsedMs, new Seen(_current, ownLook, holdsPlan, _wields, _busy, _harpoon.Seen, _ping.Sent), _steps * Hero.StepMs);
+        ShowPings(m);
         _tethers.QueueRedraw();
         _lines.QueueRedraw();
         var hazes = Hazes();

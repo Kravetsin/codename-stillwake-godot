@@ -13,13 +13,16 @@ public static class GroundLine
     public static int[] Tops(ReadOnlySpan<int> structure, ReadOnlySpan<int> back, int width, int height)
     {
         var tops = new int[width];
-        for (int x = 0; x < width; x++)
-        {
-            int y = 0;
-            while (y < height && structure[y * width + x] == 0 && back[y * width + x] == 0) y++;
-            tops[x] = y;
-        }
+        for (int x = 0; x < width; x++) tops[x] = Top(structure, back, width, height, x);
         return tops;
+    }
+
+    /// <summary>Column <paramref name="x"/>'s surface row, as <see cref="Tops"/> reads each: how a column built or dug in is read again.</summary>
+    public static int Top(ReadOnlySpan<int> structure, ReadOnlySpan<int> back, int width, int height, int x)
+    {
+        int y = 0;
+        while (y < height && structure[y * width + x] == 0 && back[y * width + x] == 0) y++;
+        return y;
     }
 
     /// <summary>The mean of <paramref name="tops"/> over <paramref name="reach"/> columns either side of <paramref name="column"/>, any column, wrapping.</summary>

@@ -35,11 +35,12 @@ public class ShipComputerTests
     [Theory]
     [InlineData("computer")]
     [InlineData("radarAntenna")]
-    public void EachTakesAPlanetsCopperAndMagnetiteSoItIsBuiltAfterTheFirstLanding(string kind)
+    public void EachTakesAPlanetsCopperSoItIsBuiltAfterTheFirstLanding(string kind)
     {
         var raw = Machines.Get(kind).Cost.Select(c => c.Item).SelectMany(Raw).Distinct().Order(StringComparer.Ordinal);
-        // Iron and scrap from hulls, silicon of asteroids' rock and glass of silicon, and a planet's copper and magnetite: no mica or shard.
-        Assert.Equal(["copper", "glass", "iron", "magnetite", "scrap", "silicon"], raw);
+        // Iron and scrap from hulls, silicon of asteroids' rock and glass of silicon, and a planet's copper: no mica, shard or
+        // ore only some planets hold (planet-variety).
+        Assert.Equal(["copper", "glass", "iron", "scrap", "silicon"], raw);
     }
 
     [Fact]

@@ -47,11 +47,11 @@ public sealed record HeldLook(
         return (EdgeFrom.X + dx * t - dy * outward, EdgeFrom.Y + dy * t + dx * outward);
     }
 
-    /// <summary>How far round its edge, in pixels of its picture, an effect skin lives on it at rest (skins).</summary>
+    /// <summary>How far round its edge, in pixels of its picture, an effect skin lives on it at rest (hero-skins).</summary>
     public const double EdgeMargin = 2;
 
     /// <summary>
-    /// The box an effect skin lives in at rest (skins): round its edge's ends and its bowed middle, <see cref="EdgeMargin"/>
+    /// The box an effect skin lives in at rest (hero-skins): round its edge's ends and its bowed middle, <see cref="EdgeMargin"/>
     /// out on every side, in pixels of its picture; the effect takes the picture's drawn pixels in it.
     /// </summary>
     public (double X0, double Y0, double X1, double Y1) EdgeBox()

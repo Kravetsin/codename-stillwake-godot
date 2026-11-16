@@ -89,6 +89,16 @@ public interface IPipesQueries
     /// those refused: what a client shows of its own toggles before their tick runs (0014). The world is untouched.
     /// </summary>
     IReadOnlyDictionary<int, bool> AfterToggles(IReadOnlyList<Command> toggles);
+    /// <summary>
+    /// The network machine <paramref name="m"/>'s first port of <paramref name="way"/> and <paramref name="fluid"/> stands on;
+    /// null for none, or no such port. Where a store's line begins or ends (tanks-in-a-line).
+    /// </summary>
+    int? NetworkOf(Machine m, Content.Way way, string fluid);
+    /// <summary>
+    /// The machines of <paramref name="trait"/> with a port of <paramref name="way"/> and <paramref name="fluid"/> on
+    /// <paramref name="network"/>, in id order; none for no network.
+    /// </summary>
+    IReadOnlyList<int> MachinesOn(Content.MachineTrait trait, Content.Way way, string fluid, int? network);
 }
 
 /// <summary>
@@ -175,6 +185,24 @@ public sealed partial class PipesModule : Module<PipesState>, IPipesQueries
 
     public Network? Network(int id) => State.Networks.Find(n => n.Id == id);
     public IReadOnlyList<Network> Networks => State.Networks;
+
+    public int? NetworkOf(Machine m, Content.Way way, string fluid)
+    {
+        var cells = _grid.PortsOf(m);
+        var ports = Content.Machines.Get(m.Kind).Ports;
+        for (int i = 0; i < cells.Count; i++)
+            if (ports[i].Way == way && ports[i].Fluid == fluid) return NetworkAt(cells[i]);
+        return null;
+    }
+
+    public IReadOnlyList<int> MachinesOn(Content.MachineTrait trait, Content.Way way, string fluid, int? network)
+    {
+        var found = new List<int>();
+        if (network == null) return found;
+        foreach (var m in _grid.MachinesWith(trait))
+            if (NetworkOf(m, way, fluid) == network) found.Add(m.Id);
+        return found;
+    }
     public int Version => State.Version;
     public IReadOnlyList<PipeSpan> Spans => State.Spans;
     public IReadOnlyList<Valve> Valves => State.Valves;

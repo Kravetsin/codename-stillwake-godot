@@ -19,7 +19,7 @@ public sealed record Look(int Skin, int Hair, int HairColour, int Face, int Bear
 public sealed record PeerLook(int Peer, Look Worn, Look Next);
 
 /// <summary>
-/// Peer <c>Peer</c>'s skins (skins): ids the client draws its hero's gear in, a set never checked; the client knows each
+/// Peer <c>Peer</c>'s skins (hero-skins): ids the client draws its hero's gear in, a set never checked; the client knows each
 /// id's kind and draws an unknown one as the item's own.
 /// </summary>
 public sealed record PeerSkins(int Peer, IReadOnlyList<string> Ids);
@@ -32,7 +32,15 @@ public sealed class PlayersState
     /// <summary>The look of each peer that chose one, with a hero or not, in peer order.</summary>
     [JsonInclude] internal List<PeerLook> Looks { get; set; } = [];
     /// <summary>The skins of each peer that chose any, with a hero or not, in peer order.</summary>
-    [JsonInclude] internal List<PeerSkins> Skins { get; set; } = [];
+    [JsonIgnore] internal List<PeerSkins> Skins { get; set; } = [];
+
+    /// <summary><see cref="Skins"/> as a save writes it: left out while nobody chose one, as a save from before skins.</summary>
+    [JsonInclude, JsonPropertyName("skins"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    internal List<PeerSkins>? SkinsSaved
+    {
+        get => Skins.Count == 0 ? null : Skins;
+        set => Skins = value ?? [];
+    }
 }
 
 /// <summary>What any module or the client may read of the players.</summary>

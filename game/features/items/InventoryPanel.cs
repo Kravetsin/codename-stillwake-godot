@@ -90,6 +90,8 @@ public partial class InventoryPanel : CanvasLayer
     private Button? _switch;
     /// <summary>The open vaporizer's liquid, behind it and its own (industrial-oxygen).</summary>
     private Label? _liquid;
+    /// <summary>How long an open fuel store's fuel lasts at its outflow (fuel-liquid).</summary>
+    private Label? _lasts;
     private SortSweep _sweep = null!;
     /// <summary>The trash's slot and its burst as a stack it held is destroyed (trash-effect A).</summary>
     private SlotBox _trashBox = null!;
@@ -173,6 +175,9 @@ public partial class InventoryPanel : CanvasLayer
 
     /// <summary>The water, for an open cistern: what it holds and whether bottles can be drawn out (industrial-oxygen).</summary>
     public Stillwake.Sim.Water.WaterModule? Water { get; set; }
+
+    /// <summary>The fuel, for an open fuel store: what it holds and whether cans can be drawn out (fuel-liquid).</summary>
+    public Stillwake.Sim.Fuel.FuelModule? Fuel { get; set; }
     /// <summary>The power, for an open machine that switches: whether it is off (industrial-oxygen).</summary>
     public Stillwake.Sim.Power.PowerModule? Switching { get; set; }
 
@@ -378,7 +383,7 @@ public partial class InventoryPanel : CanvasLayer
         var body = new WristScreen(WristPieces.Body, WristArt.Screen, 4, lit: true);
         body.AddChild(_bodyShows = new VBoxContainer());
         _bodyShows.AddChild(column);
-        // The appearance key on the metal's left edge, as the bag's sort key is on its right (skins).
+        // The appearance key on the metal's left edge, as the bag's sort key is on its right (hero-skins).
         var key = _looksKey = new LooksButton(new Vector2(WristLook.SideKeyWidth, WristLook.SideKeyHeight), () =>
         {
             _ui.Click();
@@ -393,7 +398,7 @@ public partial class InventoryPanel : CanvasLayer
     }
 
     /// <summary>
-    /// Makes the equipment's screen show the skins in its place (skins), another feature's (crew's <c>AppearanceView</c>), built
+    /// Makes the equipment's screen show the skins in its place (hero-skins), another feature's (crew's <c>AppearanceView</c>), built
     /// at the slot size given and again with it; set by <c>Main</c>. None: no appearance key.
     /// </summary>
     public Func<int, Control>? Appearance

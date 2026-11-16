@@ -47,20 +47,23 @@ public class TemperatureTests
         w.Run(count * Content.Crew.BreathEvery - w.Crew().Clock % Content.Crew.BreathEvery);
 
     /// <summary>A surface of <paramref name="kind"/> as the crew and the sky see it: the one a test puts them on.</summary>
-    private sealed class On(Content.Surfaces.Kind kind) : ISurfaces
+    internal sealed class On(Content.Surfaces.Kind kind) : ISurfaces
     {
         public int Here => 1;
         public Content.Surfaces.Kind Kind => kind;
         public void Send(int peer, int surface) => throw new NotSupportedException("no one is sent anywhere");
         public bool CanOpen => false;
         public bool Landed => false;
-        public int OpenPlanet() => throw new NotSupportedException("no planet is opened");
+        public bool Away => false;
+        public void LeavePlanet() => throw new NotSupportedException();
+        public int OpenPlanet(string kind, IReadOnlyList<string>? ores) => throw new NotSupportedException("no planet is opened");
+        public int Open(string kind, uint seed) => throw new NotSupportedException("no surface is opened");
         public uint Seed => 0;
         public int Visit(int peer, string kind, uint seed) => throw new NotSupportedException();
     }
 
     /// <summary>The <see cref="Open"/> map as a surface of <paramref name="kind"/>, hero 0 in it, at night when <paramref name="night"/>.</summary>
-    private static Scenario OpenGround(Content.Surfaces.Kind kind, bool night, bool bare = false)
+    internal static Scenario OpenGround(Content.Surfaces.Kind kind, bool night, bool bare = false)
     {
         var w = new Scenario(Open, doubled: true) { Bare = bare };
         w.M.Crew.Where = w.M.Sky.Where = new On(kind);
@@ -71,7 +74,7 @@ public class TemperatureTests
     private static int Cell(Scenario w, int x, int y) => y * w.M.Grid.Width + x;
 
     /// <summary>The first planet with every row a test's map has in band <paramref name="band"/>, every band as warm as that one.</summary>
-    private static Content.PlanetType InBand(int band) => Content.PlanetTypes.First with
+    internal static Content.PlanetType InBand(int band) => Content.PlanetTypes.First with
     {
         Bands = [.. Content.PlanetTypes.First.Bands.Select((bottom, i) => i < band ? -1000 - 1000 * (band - i) : bottom)],
         Temperatures = [.. Content.PlanetTypes.First.Temperatures.Select(_ => Content.PlanetTypes.First.Temperatures[band])],

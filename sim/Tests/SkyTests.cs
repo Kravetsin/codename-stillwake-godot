@@ -89,13 +89,13 @@ public class SkyTests
         var sky = w.On(1).Sky;
         // A command applies before the hour advances on its tick.
         w.Do(new SetTime(NightAt - 2)).Run();
-        Assert.Equal(new SkyNow(NightAt - 1, false, 0), sky.Now);
+        Assert.Equal(new SkyNow(NightAt - 1, false, 0, null, null, 0), sky.Now);
         w.Run();
-        Assert.Equal(new SkyNow(NightAt, true, Day.Chill), sky.Now);
+        Assert.Equal(new SkyNow(NightAt, true, Day.Chill, null, null, 0), sky.Now);
         w.Do(new SetTime(Day.Length - 2)).Run();
-        Assert.Equal(new SkyNow(Day.Length - 1, true, Day.Chill), sky.Now);
+        Assert.Equal(new SkyNow(Day.Length - 1, true, Day.Chill, null, null, 0), sky.Now);
         w.Run();
-        Assert.Equal(new SkyNow(0, false, 0), sky.Now);
+        Assert.Equal(new SkyNow(0, false, 0, null, null, 0), sky.Now);
     }
 
     [Theory]
@@ -111,14 +111,14 @@ public class SkyTests
     }
 
     [Fact]
-    public void TheShipHasNoDaySetTimeIsRefusedThereAndItsSkyIsAllZeros()
+    public void TheShipHasNoDaySetTimeIsRefusedThereAndItsSkyIsCalm()
     {
         var w = new Scenario(Ship);
         w.Do(new Enter(w.M.Crew.Spawn)).Run();
         string before = w.World.Save();
         w.Do(new SetTime(NightAt)).Run();
         Assert.Equal("sky.noDay", Assert.Single(w.Refusals).Reason);
-        Assert.Equal(default, w.M.Sky.Now);
+        Assert.Equal(new SkyNow(0, false, 0, null, null, 0), w.M.Sky.Now);
         Assert.Equal(0, ((SkyState)w.M.Sky.Slice).Time);
         Assert.Contains("\"sky\":{\"time\":0}", before);
     }

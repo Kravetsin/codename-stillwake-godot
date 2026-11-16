@@ -1,0 +1,188 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using Stillwake.Game.Features.Flora;
+using Stillwake.Game.Features.Sky;
+using Xunit;
+
+namespace Stillwake.Game.Tests;
+
+/// <summary>A planet's weather seen and heard (docs/plans/surface-storms.md): how far it has come, its streaks, its wind.</summary>
+public class StormTests
+{
+    private static readonly StretchLooks.Weather Dust = StretchLooks.Of(Content.Stretches.DustStorm.Id)!.Weather!;
+    private static readonly StretchLooks.Weather Rain = StretchLooks.Of(Content.Stretches.RainStorm.Id)!.Weather!;
+    private const int Warning = 800, Second = Sim.World.TicksPerSecond;
+    private static readonly Storm Full = new(1, 1);
+
+    [Fact]
+    public void BothStormsHaveTheirPickedLooksTheDustItsWindTheRainItsRainAndBothTheWash()
+    {
+        Assert.Equal(240, Dust.Count);
+        Assert.True(Dust.Streaks.Low);
+        Assert.Same(Sound.StormWind, Dust.Wind);
+        Assert.True(Sound.StormWind.Loops);
+        Assert.Equal(210, Rain.Count);
+        Assert.False(Rain.Streaks.Low);
+        Assert.Same(Sound.StormRain, Rain.Wind);
+        Assert.True(Sound.StormRain.Loops);
+        Assert.Same(StretchLooks.Washed, Dust.Visibility);
+        Assert.Same(StretchLooks.Washed, Rain.Visibility);
+    }
+
+    [Fact]
+    public void NoWeatherIsNoStormAndItsWindIsSilent()
+    {
+        var shown = new StretchShown();
+        Assert.Equal(Storm.None, Storm.Of(shown));
+        shown.See(Content.Surfaces.Ship, "iceBelt", null, 0, 0, ran: 100);
+        Assert.Equal(Storm.None, Storm.Of(shown));
+        Assert.Equal(0, Storm.None.Heard(Dust));
+        Assert.Equal(0, Full.Heard(null));
+        Assert.Equal((1f, 1f, 1f), Storm.None.Dim(Dust));
+        Assert.Equal(0, Storm.None.Streaks(Dust));
+    }
+
+    [Fact]
+    public void TheWeatherReachesAHeroWholeOnTheSurfaceAndNotAtAllAShaftDown()
+    {
+        Assert.Equal(1, Storm.Reach(-40));
+        Assert.Equal(1, Storm.Reach(0));
+        Assert.Equal(0.5f, Storm.Reach(Storm.Deep / 2));
+        Assert.Equal(0, Storm.Reach(Storm.Deep));
+        Assert.Equal(0, Storm.Reach(Storm.Deep * 4));
+    }
+
+    [Fact]
+    public void TheWarningRisesFirstThenTheStormWholeSomeSecondsInThenBothEaseToNothing()
+    {
+        var before = Storm.At(0, 0, Warning, 0);
+        Assert.Equal(Storm.None, before);
+        var half = Storm.At(0.5f, Warning / 2, Warning, 0);
+        Assert.Equal(0.5f, half.Warn, 3);
+        Assert.Equal(0, half.Share);
+        Assert.True(half.Heard(Dust) > 0);
+        Assert.Equal(0, Storm.At(1, Warning - 2 * Second, Warning, 0).Share);
+        var started = Storm.At(1, Warning, Warning, 0);
+        Assert.InRange(started.Share, 0.01f, 0.5f);
+        var whole = Storm.At(1, Warning + 9 * Second, Warning, 0);
+        Assert.Equal(new Storm(1, 1), whole);
+        Assert.Equal(1, whole.Dimmed, 3);
+        var dim = whole.Dim(Dust);
+        Assert.Equal(Dust.Dim.R, dim.R, 4);
+        Assert.Equal(Dust.Dim.B, dim.B, 4);
+        Assert.Equal(Dust.Count, whole.Streaks(Dust));
+        var easing = Storm.At(1, Warning + 60 * Second, Warning, 11 * Second);
+        Assert.InRange(easing.Share, 0.1f, 0.9f);
+        var gone = Storm.At(1, Warning + 60 * Second, Warning, Storm.Ease * Second);
+        Assert.Equal(Storm.None, gone);
+        Assert.Equal(0, gone.Heard(Dust));
+        Assert.Equal(0, gone.Heard(Rain));
+        Assert.Equal(0, gone.Washed);
+    }
+
+    [Fact]
+    public void ARunningStormIsReadFromTheSkyTheSameForAGuestJoiningMidStorm()
+    {
+        var shown = new StretchShown();
+        shown.See(Content.PlanetTypes.First, Content.Stretches.DustStorm.Id, null, 0, 5000, ran: 30 * Second);
+        var storm = Storm.Of(shown);
+        Assert.Equal(new Storm(1, 1), storm);
+        Assert.Equal(1, storm.Heard(Dust), 3);
+        shown.See(Content.PlanetTypes.First, null, null, 0, 5000);
+        shown.See(Content.PlanetTypes.First, null, null, 0, 5000 + Storm.Ease * Second);
+        Assert.Equal(Storm.None, Storm.Of(shown));
+    }
+
+    [Fact]
+    public void TheLandsFarthestLayerTakesAllTheHazeAndTheNearestThePicksLeast()
+    {
+        Assert.Equal(1, Storm.Veil(0, 3));
+        Assert.Equal(0.85f, Storm.Veil(1, 3), 4);
+        Assert.Equal(0.65f, Storm.Veil(2, 3), 4);
+        Assert.Equal(0.65f, Storm.Veil(4, 5), 4);
+        Assert.Equal(1, Storm.Veil(0, 1));
+    }
+
+    [Fact]
+    public void AStormBlowsThePlantsItsWayInTheCalmAndDropsThemWhenItEases()
+    {
+        var gusts = new Gusts(FloraLooks.Breeze, () => 0.5) { Storm = 0.9 * StretchLooks.Weather.SwayGain };
+        gusts.Advance(1 / 60.0);
+        Assert.True(gusts.Blowing);
+        Assert.Equal(Gusts.StormWay, gusts.Way);
+        Assert.InRange(gusts.Strength, -2.25f * 1.01f, -2.25f * 0.69f);
+        gusts.Storm = 0;
+        gusts.Advance(1 / 60.0);
+        Assert.False(gusts.Blowing);
+        Assert.Equal(0, gusts.Strength);
+    }
+
+    [Fact]
+    public void TheRainsLoopRisesWithTheStormAndReachesSilenceAsTheDustsWindDoes()
+    {
+        Assert.Equal(0, Storm.None.Heard(Rain));
+        Assert.True(Storm.At(0.5f, Warning / 2, Warning, 0).Heard(Rain) > 0);
+        Assert.Equal(1, Full.Heard(Rain), 3);
+        Assert.Equal(0, Storm.At(1, Warning + 60 * Second, Warning, Storm.Ease * Second).Heard(Rain));
+    }
+
+    [Fact]
+    public void TheWashIsAQuarterInTheWarningWholeInTheStormAndGoneAsItEases()
+    {
+        Assert.Equal(0, Storm.None.Washed);
+        Assert.Equal(0.125f, Storm.At(0.5f, Warning / 2, Warning, 0).Washed, 3);
+        Assert.Equal(0.25f, Storm.At(1, Warning - 2 * Second, Warning, 0).Washed, 3);
+        Assert.Equal(1, Full.Washed, 3);
+        Assert.Equal(0.5625f, Storm.At(1, Warning + 60 * Second, Warning, 11 * Second).Washed, 3);
+    }
+
+    [Fact]
+    public void TheSmoothedGroundNeverStepsWithALedgeAndChangesSlowlyAcrossIt()
+    {
+        const int cell = 8, reach = Streaks.GroundReach;
+        int[] tops = [.. Enumerable.Range(0, 200).Select(x => x < 100 ? 40 : 60)];
+        var line = Streaks.Smoothed(tops, reach, cell);
+        Assert.Equal(40 * cell, line[50], 3);
+        Assert.Equal(60 * cell, line[150], 3);
+        float step = 20f * cell / (2 * reach + 1);
+        for (int x = 0; x < tops.Length; x++)
+            Assert.True(MathF.Abs(line[(x + 1) % tops.Length] - line[x]) <= step + 1e-3f, $"column {x}");
+        // Between columns it slides, never holding a column's height and jumping at its edge.
+        float a = Streaks.GroundAt(line, 100 * cell, cell), b = Streaks.GroundAt(line, 100 * cell + 1, cell);
+        Assert.InRange(b - a, 1e-4f, step / cell + 1e-3f);
+        Assert.Equal(line[0], Streaks.GroundAt(line, 200 * cell + cell / 2f, cell), 3);
+    }
+
+    [Fact]
+    public void EachCellHoldsItsLongestStreakAndTheCellsKeepThePicksCountOverItsBox()
+    {
+        foreach (var weather in new[] { Dust, Rain })
+        {
+            var (along, across) = Streaks.Cells(weather);
+            Assert.True(along > weather.Streaks.Length.Most, $"{along} along");
+            Assert.Equal(weather.Count, Streaks.Wide * Streaks.Tall / (along * across), 3);
+        }
+    }
+
+    [Fact]
+    public void TheStreaksClockStartsOverOncePeriodSoAWorldHoursOldStaysPrecise()
+    {
+        Assert.Equal(12.5f, Streaks.Flown(12.5));
+        Assert.Equal(0.25f, Streaks.Flown(Streaks.Period * 7 + 0.25), 3);
+        Assert.InRange(Streaks.Flown(36_000.75), 0, (float)Streaks.Period);
+    }
+
+    [Fact]
+    public void AColumnsTopIsItsFirstWallOrBackWallFromTheTopAsAllTopsReadIt()
+    {
+        const int width = 3, height = 6;
+        int[] structure = new int[width * height], back = new int[width * height];
+        structure[4 * width + 0] = 1;
+        back[2 * width + 1] = 1;
+        structure[5 * width + 1] = 1;
+        var tops = Features.Backdrop.GroundLine.Tops(structure, back, width, height);
+        Assert.Equal([4, 2, height], tops);
+        for (int x = 0; x < width; x++) Assert.Equal(tops[x], Features.Backdrop.GroundLine.Top(structure, back, width, height, x));
+    }
+}

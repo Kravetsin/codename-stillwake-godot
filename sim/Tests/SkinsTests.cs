@@ -4,7 +4,7 @@ using Xunit;
 
 namespace Stillwake.Sim.Tests;
 
-/// <summary>Skins chosen (skins): a peer's set, worn at once, replaced whole by its next choice; the sim checks no id.</summary>
+/// <summary>Skins chosen (hero-skins): a peer's set, worn at once, replaced whole by its next choice; the sim checks no id.</summary>
 public class SkinsTests
 {
     private const string Room = """

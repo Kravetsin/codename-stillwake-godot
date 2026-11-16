@@ -58,7 +58,8 @@ public class DescentTests
             int slot = w.M.Items.Inventory(peer).ToList().FindIndex(s => s?.Item == "biofuel");
             w.Do(new Move(new Stillwake.Sim.Items.Place(slot), new Target(null, PodAt(w, peer == 0 ? LeftHome : RightHome)), fuel) { From = peer });
         }
-        return w.Do(new Board(PodAt(w, LeftHome))).Run();
+        // Its hopper pours a can a tick into its store.
+        return w.Do(new Board(PodAt(w, LeftHome))).Run(Math.Max(1, fuel));
     }
 
     private static int PodAt(Scenario w, int cell) => w.M.Grid.MachineAt(cell)!.Id;
@@ -67,7 +68,8 @@ public class DescentTests
     /// <summary>The pod standing on surface <paramref name="surface"/> off the ship, by id order.</summary>
     private static Machine Landed(Scenario w, int surface, int nth = 0) => w.On(surface).Grid.MachinesWith(MachineTrait.Seats)[nth];
 
-    private static int Biofuel(Registry m, int pod) => m.Items.HeldFor(pod, "biofuel");
+    /// <summary>The litres pod <paramref name="pod"/> holds: its store's whole litres and the cans in its hopper.</summary>
+    private static int Biofuel(Registry m, int pod) => m.Items.HeldFor(pod, "biofuel") + m.Fuel.FuelIn(pod) / Content.Fuel.Can;
 
     [Fact]
     public void BurnsFiveOpensTheRunAndShutsItOnceThePodIsThrough()
@@ -79,7 +81,7 @@ public class DescentTests
         Assert.Null(w.M.Grid.MachineById(pod));
         Assert.Null(w.M.Landing.SeatOf(0));
         var flight = w.M.Landing.FlightOf(0)!;
-        Assert.Equal((false, LeftHome, LandingModule.FloorOf(LeftHome, Wide), new Stack("biofuel", 2)), (flight.Up, flight.Home, flight.Floor, flight.Load));
+        Assert.Equal((false, LeftHome, LandingModule.FloorOf(LeftHome, Wide), null, 2 * Content.Fuel.Can), (flight.Up, flight.Home, flight.Floor, flight.Load, flight.Fuel));
         Assert.Equal(Structure.PlatformOpen, w.M.Grid.StructureAt(Under(LeftHome)));
         w.Run(Fall - 2);
         Assert.Equal(Structure.PlatformOpen, w.M.Grid.StructureAt(Under(LeftHome)));
@@ -169,7 +171,10 @@ public class DescentTests
         public void Send(int peer, int surface) => throw new NotSupportedException();
         public bool CanOpen => canOpen;
         public bool Landed => false;
-        public int OpenPlanet() => throw new NotSupportedException();
+        public bool Away => false;
+        public void LeavePlanet() => throw new NotSupportedException();
+        public int OpenPlanet(string kind, IReadOnlyList<string>? ores) => throw new NotSupportedException();
+        public int Open(string kind, uint seed) => throw new NotSupportedException();
         public uint Seed => 0;
         public int Visit(int peer, string kind, uint seed) => throw new NotSupportedException();
     }
@@ -346,7 +351,7 @@ public class DescentTests
     [Fact]
     public void LaunchesWithJustItsFuelAndLandsAndDocksEmpty()
     {
-        var w = Ready(fuel: Content.Landing.DescentFuel).Do(new Launch()).Run();
+        var w = Ready(fuel: Content.Fuel.Descent / Content.Fuel.Can).Do(new Launch()).Run();
         Assert.Null(w.M.Landing.FlightOf(0)!.Load);
         w.Run(Down);
         var pod = Landed(w, 1);
@@ -417,7 +422,7 @@ public class DescentTests
             w.Do(new Move(new Stillwake.Sim.Items.Place(slot), new Target(null, PodAt(w, home)), 5) { From = peer })
                 .Do(new Board(PodAt(w, home)) { From = peer });
         }
-        w.Run().Do(new Launch()).Run(5).Do(new Launch { From = 1 }).Run();
+        w.Run(5).Do(new Launch()).Run(5).Do(new Launch { From = 1 }).Run();
         Assert.Empty(w.Refusals);
         Assert.Equal(Structure.PlatformOpen, w.M.Grid.StructureAt(Under(LeftHome)));
         // The first flight shuts it at its count, the second pod through already; the second's shut finds it shut.
@@ -500,7 +505,7 @@ public class DescentTests
             seated.AddRange(m.Landing.Seats.Select(x => x.Peer));
             var standing = m.Grid.MachinesWith(MachineTrait.Seats);
             pods += standing.Count + m.Landing.Flights.Count;
-            fuel += standing.Sum(p => Biofuel(m, p.Id)) + m.Landing.Flights.Sum(f => f.Load?.Item == "biofuel" ? f.Load.Count : 0);
+            fuel += standing.Sum(p => Biofuel(m, p.Id)) + m.Landing.Flights.Sum(f => (f.Load?.Item == "biofuel" ? f.Load.Count : 0) + f.Fuel / Content.Fuel.Can);
             fuel += m.Items.Floor.Where(f => f.Item == "biofuel").Sum(f => f.Count);
             fuel += new[] { 0, 1 }.Sum(p => m.Items.Inventory(p).Sum(x => x?.Item == "biofuel" ? x.Count : 0));
             foreach (var o in ((LandingState)m.Landing.Slice).Owners)
@@ -513,6 +518,6 @@ public class DescentTests
         if (pods != 2) return $"{pods} pods standing and flying";
         if (flying.Count != flying.Distinct().Count()) return $"a hero in two flights: {string.Join(", ", flying)}";
         if (flying.Intersect(seated).Any()) return $"a flying hero seated: {string.Join(", ", flying.Intersect(seated))}";
-        return fuel == 14 - Content.Landing.DescentFuel * descents ? null : $"{fuel} biofuel after {descents} descents";
+        return fuel == 14 - Content.Fuel.Descent / Content.Fuel.Can * descents ? null : $"{fuel} biofuel after {descents} descents";
     }
 }

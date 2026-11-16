@@ -21,9 +21,11 @@ public partial class BackdropLayer : Node2D
             uniform float dark_share;
             uniform vec3 haze;
             uniform float haze_share;
+            uniform vec3 storm;
+            uniform float storm_share = 0.0;
             uniform vec3 tint = vec3(1.0);
             void fragment() {
-                vec3 c = mix(mix(COLOR.rgb, dark, dark_share), haze, haze_share);
+                vec3 c = mix(mix(mix(COLOR.rgb, dark, dark_share), haze, haze_share), storm, storm_share);
                 COLOR.rgb = c * tint;
             }
             """,
@@ -52,6 +54,13 @@ public partial class BackdropLayer : Node2D
     public (float R, float G, float B) Tint
     {
         set => _veil.SetShaderParameter("tint", new Vector3(value.R, value.G, value.B));
+    }
+
+    /// <summary>A planet's weather veiling the layer (docs/plans/surface-storms.md): <paramref name="share"/> of the way toward <paramref name="colour"/>, before the day's tint.</summary>
+    public void Storm((float R, float G, float B) colour, float share)
+    {
+        _veil.SetShaderParameter("storm", new Vector3(colour.R, colour.G, colour.B));
+        _veil.SetShaderParameter("storm_share", share);
     }
 
     public override void _Draw()

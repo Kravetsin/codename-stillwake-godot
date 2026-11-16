@@ -120,7 +120,7 @@ public partial class ItemsView : Node2D
             _flights.Update(chest, elapsedMs);
         }
         _stashed = [];
-        _floor.Update(grid, items, rooms, Reach.PickingUp(client.InFlight), client.World.Tick, progress, elapsedMs);
+        _floor.Update(grid, items, rooms, Reach.PickingUp(client.InFlight), hero, client.World.Tick, progress, elapsedMs);
         Panel.Frame(client, items, grid, hero, elapsedMs);
     }
 

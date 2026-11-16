@@ -41,6 +41,10 @@ public partial class DevPanel : CanvasLayer
     private readonly GridContainer _readings = new() { Columns = 2 };
     private readonly VBoxContainer _slices = new();
     private readonly HFlowContainer _sounds = Style.Gap(new HFlowContainer { Visible = false }, 4);
+    /// <summary>A stretch of this surface coming now, its whole warning first (docs/decisions/2026-11-15-stretches-of-space.md): the ship's, a planet's storm.</summary>
+    private readonly HFlowContainer _stretches = Style.Gap(new HFlowContainer(), 8);
+    /// <summary>The stretches <see cref="_stretches"/> holds a button for: rebuilt when the hero's surface has others.</summary>
+    private IReadOnlyList<Content.Stretches.Stretch>? _stretchesOf;
     private readonly Button _speed, _creative, _instant, _calm, _items;
     /// <summary>A vessel asked for and found, but not jumped to yet: its class, the last contact id before, and how long it has waited.</summary>
     private (string Class, int After, double WaitedMs)? _summoning;
@@ -100,6 +104,7 @@ public partial class DevPanel : CanvasLayer
         // A place on the radar at once (2026-11-08-radar-contacts): a vessel of a random class, where places draws it on the orbit.
         buttons.AddChild(Style.Button("radar place", () => Send(new Find(Content.Vessels.Classes[(int)(GD.Randi() % (uint)Content.Vessels.Classes.Count)].Id))));
         column.AddChild(buttons);
+        column.AddChild(_stretches);
         // Surfaces (0076): a planet (0077) or the test strip opened, and this hero beamed between the last opened and the ship.
         var surfaces = Style.Gap(new HBoxContainer(), 8);
         surfaces.AddChild(Style.Button("open planet", () => Send(new OpenSurface(Content.PlanetTypes.First.Id))));
@@ -417,7 +422,18 @@ public partial class DevPanel : CanvasLayer
         Style.Paint(_instant, instant ? Style.Amber700 : Style.Slate700, instant ? Amber600 : Style.Slate600);
         bool calm = m.Hazards.Calm;
         Style.Paint(_calm, calm ? Style.Amber700 : Style.Slate700, calm ? Amber600 : Style.Slate600);
+        ShowStretches(m.Rules.Stretches);
         ShowSlices(client.World, client.World.SurfaceOf(client.Id), m);
+    }
+
+    /// <summary>A button for each of <paramref name="stretches"/>, this surface's, built anew only when they are others; refused while one runs.</summary>
+    private void ShowStretches(IReadOnlyList<Content.Stretches.Stretch> stretches)
+    {
+        if (ReferenceEquals(stretches, _stretchesOf)) return;
+        _stretchesOf = stretches;
+        foreach (var child in _stretches.GetChildren()) child.QueueFree();
+        foreach (var stretch in stretches)
+            _stretches.AddChild(Style.Button(stretch.Id, () => Send(new Sim.Sky.StretchNow(stretch.Id))));
     }
 
     private void ShowReadings(IReadOnlyList<(string Name, string Value)> lines)

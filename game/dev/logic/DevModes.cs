@@ -50,6 +50,7 @@ public static class DevModes
         new("--dark", DevShape.Flag, "every lamp out, to see what glows"),
         new("--gallery", DevShape.Flag, "every picture"),
         new("--beam-back", DevShape.Flag, "with --planet or --strip, back aboard two seconds in"),
+        new("--planet-type", DevShape.Equals, "with --planet, the type grown: scorched, icy (planet-variety); the first planet's by default"),
         new("--no-homes", DevShape.Flag, "a planet's homes and spires left undrawn, to measure what they cost"),
         new("--homes", DevShape.Next, "the homes' mood, lit or dark"),
         // The hero.
@@ -65,6 +66,7 @@ public static class DevModes
         new("--suit-cards", DevShape.Equals, "every suit's and suit skin's card, cut from the hero wearing it, written into that art folder, nothing else made (SuitCards)"),
         new("--cape-film", DevShape.Equals, "the hero in its cape standing, running and stopping, every 3rd step on a sheet saved to that PNG, nothing else made (CapeFilm)"),
         new("--dress-sheet", DevShape.Equals, "the hero bare, in a helmet, a body and suited, in every colour, saved to that PNG, nothing else made (DressSheet)"),
+        new("--gesture-sheet", DevShape.Equals, "every gesture played through, a strip of frames each, written into that folder with a list, nothing else made (GestureSheet)"),
         // Ship and doors.
         new("--doors", DevShape.Flag, "opens and shuts doors for recordings (Autopilot.At)"),
         new("--toggle", DevShape.Flag, "the first doorway opened and shut on alternate ticks, one always in flight"),
@@ -109,8 +111,8 @@ public static class DevModes
         new("--frames", DevShape.Either, "logs every frame and prints the worst with their causes on quitting, =vsync with it (FrameLog)"),
         new("--ablate", DevShape.Either, "each node's processing switched off in turn, the frame time it saves printed, then quits; =Name for that node's children (ProcessAblation)"),
         new("--allocs", DevShape.Flag, "with --frames, what was allocated, by type (AllocationSampler)"),
-        new("--own-none", DevShape.Flag, "a debug build owns no DLC skin: the appearance tab shows them locked (skins)"),
-        new("--wear", DevShape.Equals, "the skins worn, a comma list of ids, for a recording, keeping nothing (skins)"),
+        new("--own-none", DevShape.Flag, "a debug build owns no DLC skin: the appearance tab shows them locked (hero-skins)"),
+        new("--wear", DevShape.Equals, "the skins worn, a comma list of ids, for a recording, keeping nothing (hero-skins)"),
         new("--fx-bench", DevShape.Flag, "a busy scene of luminous effects round the view's middle to measure (FxBench)"),
     ];
 

@@ -93,13 +93,18 @@ public interface IItemsOps
     void GiveStock(int peer, IReadOnlyList<(string Item, int Count)> cost);
     void Smelt(int id, IReadOnlyList<(string Item, int Count)> besides);
     void Consume(int id, int slot);
+    /// <summary>
+    /// Uses up one smelt of machine <paramref name="id"/>'s first slot and counts its yields obtained, made into a store rather
+    /// than its slots (the fermenter's fuel, fuel-liquid); returns them. The caller checks the input holds a smelt.
+    /// </summary>
+    IReadOnlyList<(string Item, int Count)> SmeltOut(int id);
     void Output(int id, IReadOnlyList<(string Item, int Count)> cost);
     void TakeInputs(int id, IReadOnlyList<(string Item, int Count)> cost);
     /// <summary>Gives what fits, the rest falling at <paramref name="cell"/>; <paramref name="noted"/> false for a gain its caller shows itself (<see cref="ItemsModule.Gains"/>).</summary>
     IReadOnlyList<(string Item, int Count)> GiveOrDrop(int peer, IReadOnlyList<(string Item, int Count)> cost, int cell, bool noted = true);
     IReadOnlyList<(string Item, int Count)> GiveWhatFits(int peer, IReadOnlyList<(string Item, int Count)> cost);
     void DropAt(int peer, IReadOnlyList<(string Item, int Count)> cost, int cell);
-    void Spray(IReadOnlyList<(string Item, int Count)> loot, int cell, int away);
+    void Spray(IReadOnlyList<(string Item, int Count)> loot, int cell, int away, int most = Content.Floor.SprayMost);
     void Caught(IReadOnlyList<(string Item, int Count)> loot);
     void Charge(int id, int slot, int amount);
     bool Drain(int peer, int amount);
@@ -482,6 +487,17 @@ public sealed partial class ItemsModule : Module<ItemsState>, IItemsQueries, IIt
         SetMachine(id, [.. left.Take(inputs), .. outputs]);
     }
 
+    public IReadOnlyList<(string Item, int Count)> SmeltOut(int id)
+    {
+        var slots = Crate(id);
+        if (slots.Count == 0 || slots[0] is not { } input || Content.Items.Get(input.Item) is not { Yields: { } yields } spec
+            || Stacks.TakenFrom(slots, 0, spec.SmeltTakes, out var left, out _) != null)
+            throw new InvalidOperationException("items.smeltOut: nothing to smelt");
+        Obtained(yields);
+        SetMachine(id, left);
+        return yields;
+    }
+
     /// <summary>Uses up one of what slot <paramref name="slot"/> of machine <paramref name="id"/> holds: fuel burnt. The caller checks it holds one.</summary>
     public void Consume(int id, int slot)
     {
@@ -573,13 +589,14 @@ public sealed partial class ItemsModule : Module<ItemsState>, IItemsQueries, IIt
     /// <summary>
     /// Throws <paramref name="loot"/> out of cell <paramref name="cell"/> for anyone to take (2026-10-29-kill-feel): in pieces
     /// (<see cref="SprayRules.Pieces"/>), each flying to the side <paramref name="away"/> points, or a drawn side for 0, at a drawn
-    /// speed and lift; afloat a share of them, up or down. Drawn from the world's Rng, so every peer throws the same.
+    /// speed and lift; afloat a share of them, up or down. Drawn from the world's Rng, so every peer throws the same. At most
+    /// <paramref name="most"/> pieces, every item at least one.
     /// </summary>
-    public void Spray(IReadOnlyList<(string Item, int Count)> loot, int cell, int away)
+    public void Spray(IReadOnlyList<(string Item, int Count)> loot, int cell, int away, int most = Content.Floor.SprayMost)
     {
         Obtained(loot);
         bool afloat = _rooms.Afloat(cell);
-        foreach (var (item, count) in SprayRules.Pieces(Stacks.Entries(loot), Content.Floor.SprayMost))
+        foreach (var (item, count) in SprayRules.Pieces(Stacks.Entries(loot), most))
         {
             int side = away != 0 ? Math.Sign(away) : Random.Below(2) == 0 ? -1 : 1;
             int vx = side * (Content.Floor.SprayLeast + (int)Random.Below(Content.Floor.SprayFastest - Content.Floor.SprayLeast + 1));

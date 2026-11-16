@@ -17,10 +17,10 @@ public class BuildMenuDataTests
             "structure: wallScrap wallCastScrap wallIron wallGlass wallMica wallHide wallSoil wallStone wallAlloy backWallScrap backWallCastScrap backWallIron backWallGlass "
                 + "backWallMica backWallHide backWallSoil backWallStone "
                 + "backWallAlloy floor ladder door hatch",
-            "air: vent tank cistern generator electrolyser",
+            "air: vent generator electrolyser",
             "power: solarPanel treadWheel burnerGenerator biofuelGenerator lamp arcLamp charger capacitorBank",
             "production: furnace workbench tradeStation autoTradeStation former crusher smelter assembler growCapsule galley fermenter arcBench",
-            "storage: crate net droneBay",
+            "storage: crate net droneBay tank cistern fuelTank",
             "ship: launchPlatform dropPod computer radarAntenna crewShuttle engine",
         ], Tools.Tabs.Select(Ids));
     }
@@ -50,7 +50,7 @@ public class BuildMenuDataTests
         var tabs = Tools.TabsOf(Materials.All, Builds.All, [.. Machines.All, press, shed, unlisted]);
 
         Assert.Equal("power: solarPanel treadWheel burnerGenerator biofuelGenerator lamp arcLamp press charger capacitorBank", Ids(tabs.Single(t => t.Id == "power")));
-        Assert.Equal("storage: shed crate net droneBay", Ids(tabs.Single(t => t.Id == "storage")));
+        Assert.Equal("storage: shed crate net droneBay tank cistern fuelTank", Ids(tabs.Single(t => t.Id == "storage")));
         Assert.DoesNotContain(tabs.SelectMany(t => t.Tools), t => t.Id == "unlisted");
         var card = Assert.IsType<PlaceTool>(tabs.SelectMany(t => t.Tools).Single(t => t.Id == "press"));
         Assert.Equal(new Sim.Grid.Placement("machine", "press"), card.Placement);
@@ -64,7 +64,7 @@ public class BuildMenuDataTests
         var slots = Machines.All.Select(m => m.Menu).Concat(Builds.All.Select(b => b.Menu))
             .Concat(Materials.All.SelectMany(m => new[] { m.Menu, m.BackMenu })).OfType<MenuSlot>();
         Assert.All(slots, s => Assert.Contains(s.Tab, MenuTabs.All));
-        Assert.Equal(["lifepod", "pileHull", "pileScrap", "pileCargo", "pileBits", "emergencyLamp", .. Vessels.SalvageRows.Select(r => r.Kind)],
+        Assert.Equal(["lifepod", "pileHull", "pileScrap", "pileCargo", "pileBits", "emergencyLamp", .. Vessels.SalvageRows.Select(r => r.Kind), .. Vessels.Outside.Select(r => r.Kind), .. Vessels.Furniture.Select(r => r.Kind)],
             Machines.All.Where(m => m.Menu == null).Select(m => m.Kind));
         Assert.All(Builds.All, b => Assert.NotNull(b.Menu));
         Assert.All(Materials.All, m => Assert.Equal(m.Built, m.Menu != null && m.BackMenu != null));

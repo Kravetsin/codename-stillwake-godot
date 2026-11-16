@@ -23,8 +23,12 @@ constant rate, so every change of temperature showed as a step.
   hero being cold), its six-armed crystals along the front (snowflakes hanging in the screen), the ice glass's crisp rim and the
   glints running round it (an edge to the effect), and frost ferns over the glass (looked bad).
 - **The easing** (`ScreenEase`), shared by the frost and the haze: what is shown closes 1 − 1/e of its gap to what was read every
-  0.6 s, the same at any frame rate, and lands on it within 0.0005, so the layer hides at nothing. The ice grows from nothing:
+  0.6 s, the same at any frame rate, and lands on it within 0.01, so the layer hides at nothing. The ice grows from nothing:
   nothing is drawn at a fixed strength the moment the cold appears.
+- **Fading out whole** (`ScreenEase.Fade`, 2026-11-15): under a quarter of its strength a layer, the frost, the haze and its
+  sparks alike, fades out whole rather than shrinking to the edges, and the frost's edge stays soft however short it reaches.
+  Before, a thawing frost hung on for seconds as a thin band with a hard line, and sparks kept flying after the heat; the user
+  asked for them gone.
 
 ## Consequences
 

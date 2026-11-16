@@ -44,7 +44,7 @@ public static class KillLooks
     public const float HopFirst = 3, HopSecond = 1;
 
     /// <summary>The rare drops that glint lying on the floor, now and then, to be seen from afar.</summary>
-    public static readonly System.Collections.Generic.IReadOnlySet<string> Glints = new System.Collections.Generic.HashSet<string> { "seed" };
+    public static readonly System.Collections.Generic.IReadOnlySet<string> Glints = new System.Collections.Generic.HashSet<string> { "seed", "quartz", "crystal", "opal", "arcShard" };
 
     /// <summary>How often a rare drop on the floor glints, in seconds.</summary>
     public const double GlintEvery = 1.6;

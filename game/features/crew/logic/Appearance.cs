@@ -4,7 +4,7 @@ using System.Collections.Generic;
 namespace Stillwake.Game.Features.Crew;
 
 /// <summary>
-/// The Appearance tab (skins), Godot-free: its slots in rows, the strip a slot opens, and what a pick makes of the skins kept.
+/// The Appearance tab (hero-skins), Godot-free: its slots in rows, the strip a slot opens, and what a pick makes of the skins kept.
 /// </summary>
 public static class Appearance
 {
