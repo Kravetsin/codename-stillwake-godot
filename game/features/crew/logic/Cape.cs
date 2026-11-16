@@ -10,7 +10,7 @@ namespace Stillwake.Game.Features.Crew;
 /// so the two always meet at the back edge and the hem. It is posed, not simulated (2026-10-28-the-cape-flows): its cut
 /// swung back about the nape (<see cref="Flow"/>) by an angle set by how the hero moves, little standing, far at a sprint
 /// whichever way, down rising from a jump and up falling, each row easing toward it the slower the lower, so a change runs
-/// down it as a whip, and a ripple running down it at each footfall, none standing. No point of it comes more than <see cref="Give"/> forward of
+/// down it as a whip, and a slow wave running down it as the air streams past, none standing. No point of it comes more than <see cref="Give"/> forward of
 /// where it hangs as cut, so it never wraps the hero; never under the feet but afloat. What the hero wears on its back
 /// does not shape it. A picture is laid over the grid (<see cref="Uv"/>). Afloat it opens out behind on a slow wave
 /// (<see cref="AfloatRest"/>). Its hood, down on the back under a fur collar, swings with the cape's top rows
@@ -35,17 +35,18 @@ public sealed class Cape
     /// </summary>
     private const double Spring = 0.04, Lag = 0.75, Damp = 0.9, Flung = 0.3;
     /// <summary>
-    /// The hero's stride in it: a wave runs across it from the shoulders to the hem, <see cref="WaveLag"/> of a turn behind at
-    /// the hem, one a footfall (<see cref="Poses.Stride"/>), up to <see cref="RippleRun"/> pixels at the hem at a sprint and
-    /// none standing: aboard no air stirs it. Afloat a slow one runs once every <see cref="WaveSteps"/> steps.
+    /// The air it runs through: a wave runs across it from the shoulders to the hem, <see cref="WaveLag"/> of a turn behind at
+    /// the hem, once every <see cref="RunWaveSteps"/> steps at a sprint and slower as slower it goes, never with the feet: a
+    /// wave a footfall made it jitter. Up to <see cref="RippleRun"/> pixels at the hem at a sprint, none standing: aboard no
+    /// air stirs it. Afloat a slow one runs once every <see cref="WaveSteps"/> steps.
     /// </summary>
-    private const double RippleRun = 1.6, WaveSteps = 100, WaveLag = 0.75;
+    private const double RippleRun = 1.6, RunWaveSteps = 45, WaveSteps = 100, WaveLag = 0.75;
     /// <summary>
-    /// The stride's flap: running, each stride swings it up and back by up to <see cref="Flap"/> radians at the hem, a wave
-    /// running down it <see cref="FlapLag"/> of a stride behind at the hem, its strength drifting by <see cref="Gust"/> over
-    /// <see cref="GustStrides"/> strides, so a sprint never holds it still in one pose.
+    /// The flap: running, each wave swings it up and back by up to <see cref="Flap"/> radians at the hem, running down it
+    /// <see cref="FlapLag"/> of a wave behind at the hem, its strength drifting by <see cref="Gust"/> over <see cref="GustWaves"/>
+    /// waves, so a sprint never holds it still in one pose.
     /// </summary>
-    private const double Flap = 0.18, FlapLag = 0.8, Gust = 0.3, GustStrides = 3.7;
+    private const double Flap = 0.18, FlapLag = 0.8, Gust = 0.3, GustWaves = 3.7;
     /// <summary>Afloat it opens out to <see cref="Spread"/> and a sprint's sweep at most, on a slow wave of <see cref="Wave"/> pixels.</summary>
     private const double Spread = 0.7, Wave = 1.2;
     /// <summary>
@@ -195,15 +196,14 @@ public sealed class Cape
             }
         }
         double wave = afloat ? Wave : RippleRun * run;
-        double footfall = Rig.Cell * (Poses.Stride.Walk + (Poses.Stride.Run - Poses.Stride.Walk) * run) / 2;
-        _phase += afloat ? steps / WaveSteps : Math.Abs(_speedX) * steps / footfall;
+        _phase += steps / (afloat ? WaveSteps : RunWaveSteps) * (afloat ? 1 : run);
         // Afloat there is no floor to keep it off.
         double floor = afloat ? double.MaxValue : -0.3;
         for (int i = 0; i < _points.Length; i++)
         {
             int r = i / Cols;
             double v = Uv(i).V;
-            double flap = afloat ? 0 : Flap * run * (1 - Gust + Gust * Math.Sin(_phase / 2 / GustStrides * 2 * Math.PI)) * Math.Sin((_phase / 2 - FlapLag * v) * 2 * Math.PI);
+            double flap = afloat ? 0 : Flap * run * (1 - Gust + Gust * Math.Sin(_phase / GustWaves * 2 * Math.PI)) * Math.Sin((_phase - FlapLag * v) * 2 * Math.PI);
             var (x, y) = r == 0 ? Pins[i] : Flow(i, Math.Clamp(_swing[r] + flap, 0, Most), droop);
             var (dx, dy) = Breeze(v, _swing[r] * Profile(v, droop), wave);
             _points[i] = (Math.Min(x + dx, Rest(i).X + Give), Math.Min(y + dy, floor));

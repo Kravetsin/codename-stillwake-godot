@@ -107,7 +107,7 @@ public class CapeTests
     }
 
     [Fact]
-    public void StandingAboardItHangsStillAndWalkingItRipplesWithTheStride()
+    public void StandingAboardItHangsStillAndWalkingItRipples()
     {
         var (f, cape) = (new Frame(), new Cape());
         double Stir(int steps, double by)
@@ -124,21 +124,27 @@ public class CapeTests
         Move(cape, f, 300);
         Assert.True(Stir(120, 0) < 0.01, "standing, it stirs by itself");
         Move(cape, f, 120, Walk);
-        Assert.InRange(Stir((int)(Poses.Stride.Walk * Rig.Cell / Walk), Walk), 0.3, 6);
+        Assert.InRange(Stir(120, Walk), 0.3, 6);
     }
 
     [Fact]
-    public void AtASprintItsHemFlapsWithTheStrideRatherThanHoldingOnePose()
+    public void AtASprintItsHemBillowsSlowlyRatherThanHoldingOnePoseOrJittering()
     {
         var (f, cape) = (new Frame(), new Cape());
         Move(cape, f, 300, Sprint);
-        double least = double.MaxValue, most = double.MinValue;
-        for (int step = 0; step < Poses.Stride.Run * Rig.Cell / Sprint; step++)
+        double least = double.MaxValue, most = double.MinValue, last = cape.Points[^1].Y, way = 0;
+        int turns = 0;
+        for (int step = 0; step < 90; step++)
         {
             Move(cape, f, 1, Sprint);
-            (least, most) = (Math.Min(least, cape.Points[^1].Y), Math.Max(most, cape.Points[^1].Y));
+            double hem = cape.Points[^1].Y, d = hem - last;
+            (least, most, last) = (Math.Min(least, hem), Math.Max(most, hem), hem);
+            if (Math.Abs(d) < 0.02) continue;
+            if (way != 0 && Math.Sign(d) != way) turns++;
+            way = Math.Sign(d);
         }
-        Assert.True(most - least > 4, $"over a stride its hem rises and falls only {most - least:F1}");
+        Assert.True(most - least > 4, $"over a while its hem rises and falls only {most - least:F1}");
+        Assert.True(turns <= 6, $"in a second and a half its hem turned {turns} times: jitter");
         Assert.DoesNotContain(true, Enumerable.Range(0, Cape.Triangles.Length / 3).Select(cape.Flipped));
     }
 
@@ -221,7 +227,13 @@ public class CapeTests
         Move(cape, f, 300);
         var still = cape.Points.ToArray();
         Move(cape, f, 300, Sprint);
-        var swept = cape.Points.ToArray();
+        // Swept, on average over its waves.
+        var swept = new (double X, double Y)[Points];
+        for (int step = 0; step < 90; step++)
+        {
+            Move(cape, f, 1, Sprint);
+            for (int i = 0; i < Points; i++) swept[i].Y += cape.Points[i].Y / 90;
+        }
         var (f2, early) = (new Frame(), new Cape());
         Move(early, f2, 300);
         Move(early, f2, 15, Sprint);
