@@ -1,13 +1,14 @@
 using System.Collections.Generic;
 using Godot;
 using Stillwake.Game.Render;
+using Stillwake.Game.Shared;
 using Stillwake.Sim.Grid;
 using Stillwake.Sim.Water;
 
 namespace Stillwake.Game.Features.Water;
 
 /// <summary>
-/// Water without a word (water): each cistern's water up its sight glass, each electrolyser's bubbles rising while it works and
+/// Water without a word (water): each cistern's water up its sight glass by any level (<see cref="GlassLevel"/>), each electrolyser's bubbles rising while it works and
 /// its lamp green or red (<see cref="WaterShows"/>). The glass and the lamps drawn unlit, for they glow; the bubbles lit, as their machine.
 /// </summary>
 public partial class WaterLooks : Node2D
@@ -21,6 +22,8 @@ public partial class WaterLooks : Node2D
     private readonly IWaterQueries _water;
     /// <summary>Each machine's glowing overlay, by machine id, and an electrolyser's bubbles, shown while it works.</summary>
     private readonly Dictionary<int, (Sprite2D Over, Sprite2D? Bubbles)> _shown = new();
+    /// <summary>Each cistern's glass, by machine id.</summary>
+    private readonly Dictionary<int, GlassLevel> _glasses = new();
     private readonly HashSet<int> _seen = new();
     private readonly List<int> _gone = new();
     private double _sinceRead = RefreshMs, _ms;
@@ -49,11 +52,24 @@ public partial class WaterLooks : Node2D
     {
         _seen.Clear();
         foreach (var m in _grid.MachinesWith(Stillwake.Content.MachineTrait.HoldsWater))
-            Show(m, PixelArt.Picture($"cistern_fill_{WaterShows.CisternFrame(_water.WaterIn(m.Id))}"), null);
+        {
+            _seen.Add(m.Id);
+            if (!_glasses.TryGetValue(m.Id, out var glass)) AddChild(_glasses[m.Id] = glass = new GlassLevel("cistern"));
+            glass.Position = new Vector2(m.Cell % _grid.Width, m.Cell / _grid.Width) * ShipCamera.Cell;
+            glass.Show(_water.WaterIn(m.Id), Stillwake.Content.Water.CisternCapacity);
+        }
         foreach (var m in _grid.MachinesWith(Stillwake.Content.MachineTrait.Electrolyses))
         {
             bool works = _water.Stalled(m.Id) == null;
             Show(m, PixelArt.Picture(works ? "electrolyser_working" : "electrolyser_stalled"), works);
+        }
+        _gone.Clear();
+        foreach (int id in _glasses.Keys)
+            if (!_seen.Contains(id)) _gone.Add(id);
+        foreach (int id in _gone)
+        {
+            _glasses[id].QueueFree();
+            _glasses.Remove(id);
         }
         _gone.Clear();
         foreach (int id in _shown.Keys)

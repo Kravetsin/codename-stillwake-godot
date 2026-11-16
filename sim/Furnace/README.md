@@ -11,7 +11,7 @@ fuel and breathes its room's air. A furnace's fire heats it, so `Crafting` smelt
 into what it yields, the way caught debris becomes materials (a fed station,
 [0057](../../docs/decisions/0057-stations-one-model-for-every-crafting-machine.md)); a burner generator
 makes power while it burns ([0045](../../docs/decisions/0045-a-burner-generator-shares-the-furnaces-fire.md)), and so does the
-biofuel generator, its slot taking biofuel alone (`Takes`; [power-chain](../../docs/decisions/2026-11-06-the-power-chain.md)): a row of data, run by these rules.
+biofuel generator ([power-chain](../../docs/decisions/2026-11-06-the-power-chain.md)), from its fuel store: a row of data, run by these rules.
 Ported from `packages/sim/src/modules/furnace`; its rules hold here, but a fire fed in time relights at
 once, and smelting has moved to `Crafting`.
 
@@ -32,8 +32,9 @@ once, and smelting has moved to `Crafting`.
 ## Rules
 
 - A machine's slots live in `Items`: the furnace's input, its fuel, then its outputs; the galley's fuel, then its outputs; the generator's
-  one fuel slot, the biofuel generator's of biofuel only. Which slot burns is the machine's `FuelSlot` in `Content.Machines`. Both are opened
-  with E as a crate is.
+  one fuel slot. Which slot burns is the machine's `FuelSlot` in `Content.Machines`. Both are opened with E as a crate is.
+- **A store's fire** (the biofuel generator) lights while its store holds any, and pays a tick's share of a
+  litre each tick it burns, less blown (`Fire.Owed`): a fuel's ticks pay a litre; a dry store puts it out.
 - Each tick, in the simulation phase, furnaces and generators together in machine id order:
   - **lit** only when it has none, with fuel in its fuel slot (an item with `BurnTicks`) and air in a
     cell of it or a breath in its tanks (blown); a furnace also only with what it can smelt (`ICraftingQueries.CanSmelt`: salvage in its

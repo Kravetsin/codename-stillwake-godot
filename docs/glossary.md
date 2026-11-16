@@ -10,14 +10,18 @@ Game words → code. One line a term: Russian / English → identifiers → modu
 - свойство конструкции / structure trait **≠** → `Trait` (`Blocks`, `Supports`, `Climbable`, `Seals`, `BlocksLight`, `Terrain`, `Opening`, `BlocksFromBelow`) in c/`Structures.cs`, `Structures.Of(code)`, `IGridQueries.Solid(cell)` and the like; material traits `Hurts`, `Grows`, `Footing`, `Look`; machine traits `Container`, `Gas`, `Vents`, `Zone`, `Glow` (0112) → Grid
 - дверь / door → `Structure.DoorClosed`, `Structure.DoorOpen`, command `SetDoor`; `Doorways`, r/`DoorShape`, f/grid `DoorSlides` → Grid
 - лестница / ladder → `Structure.Ladder`, `tool.ladder`; climbing in f/crew `Hero` → Grid, Crew
-- бортовой компьютер / ship computer → machine `computer` (`MachineTrait.Computer`), f/computer `ComputerPanel`; радарная антенна / radar antenna → `radarAntenna`; программа / program, радар / radar → c/`Programs.cs`, f/computer `RadarScreen`; точка на радаре / radar contact, «заброшенный корабль» / "derelict ship" → places' `Contact` (its `Offset`, `Left`; c/`Contacts.cs`), its selection `Ui.RadarContact`, «Отправиться» / "Set off" its `Jump`; их детали / their parts → items `processor`, `display`, `transceiver` (circuit assembler) → Crafting
-- двигатель / engine → machine `engine` (`Exhaust`, `Takes`: biofuel), its nozzle out through the stern's wall (`grid.noExhaust`); сопло / nozzle, топливный насос / fuel pump, запал / igniter → items `nozzle`, `fuelPump` (Former), `igniter` (circuit assembler) → Crafting
+- бортовой компьютер / ship computer → machine `computer` (`MachineTrait.Computer`), f/computer `ComputerPanel`; радарная антенна / radar antenna → `radarAntenna`; программа / program, радар / radar → c/`Programs.cs`, f/computer `RadarScreen`; точка на радаре / radar contact, «заброшенный корабль» / "derelict ship" → places' `Contact` (its `Offset`, `Left`; c/`Contacts.cs`), its selection `Ui.RadarContact`, its callout's «Проложить маршрут» the shuttle's route; их детали / their parts → items `processor`, `display`, `transceiver` (circuit assembler) → Crafting
+- солнечная система / solar system, планета системы / system planet → `Content.Landing.Planets` (`SystemPlanet`: type, technology), `LandingModule.At`; курс / перелёт / the ship's course, flight → `Landing.Course`, command `PlotCourse` (the radar's «Проложить курс»), `JumpFuel`, `FlightTicks`; the call home → `landing.crewAway`, f/landing `JumpCall`; карта радара / radar map → f/computer `RadarScreen`, `logic/NavMap.cs`; выноска / callout → its callout → Landing
+- двигатель / engine → machine `engine` (`Exhaust`, a 20 l fuel store, its fuel input on its right), its nozzle out through the stern's wall (`grid.noExhaust`); сопло / nozzle, топливный насос / fuel pump, запал / igniter → items `nozzle`, `fuelPump` (Former), `igniter` (circuit assembler) → Crafting
 - платформа / platform **≠** → `Structure.Floor`, `tool.floor`, build `"floor"` → Grid
 - опора, «стоит на полу» / footing **≠** → `Structures.Footing`, `IGridQueries.Footing` (wall, floor, grate; no doorway); standing machines `Machines.Stands`, hung ones `MachineTrait.Hangs` (lamps, vent); `building.noFloor`, `building.holdsMachine` → Building, Grid
 - открывающаяся (посадочная) платформа / launch platform **≠** → `Structure.PlatformClosed`, `Structure.PlatformOpen`, build `Builds.Platform` = `"launchPlatform"`, a run doorway (`StructureGroup.Platform`, `Join.Run`), command `SetPlatform`; f/power `PlatformLamps`; item `deckDrive` → Landing, Grid
-- капсула / посадочная капсула / колокол / drop pod **≠** → machine `"dropPod"` (`MachineTrait.Seats`, `Lands`), commands `Board`, `Alight`, `Launch` (descend / return), `LandingModule.Seats`, `Flights`, `Owners`; art `machine_dropPod.png`, `dropPod_porthole.png`, `dropPod_lit.png`; f/landing `PodSeats`, f/crew `SeatedHeroes` → Landing
+- капсула / посадочная капсула / колокол / drop pod **≠** → machine `"dropPod"` (`MachineTrait.Seats`, `Lands`, a 20 l fuel store), commands `Board`, `Alight`, `Launch` (descend / return), `LandingModule.Seats`, `Flights`, `Owners`; art `machine_dropPod.png`, `dropPod_porthole.png`, `dropPod_lit.png`; f/landing `PodSeats`, f/crew `SeatedHeroes` → Landing
 - беговое колесо / колесо / treadmill wheel → machine `"treadWheel"` (`Seats` without `Lands`, `MachineSpec.Anywhere`): makes 4 while its rider runs (`Exert`), rested by `LandingModule.Turning`; f/crew `SeatedHeroes` → Landing, Power
-- шатл / шаттл / челнок / «Ледокол» / crew shuttle **≠** → machine `"crewShuttle"` (`MachineTrait.Lands`, no seat yet): the crew's craft to the vessels, on a launch platform its whole length; art `machine_crewShuttle.png` (anime-art `shuttle`). Not the vessel class `shuttle` (a derelict) → Landing
+- шатл / шаттл / челнок / «Ледокол» / crew shuttle **≠** → machine `"crewShuttle"` (`Seats`, `Lands`, `Riders` 4, `Seat.Place`, a 200 l fuel store piped at its stern): the crew's craft to the vessels, on a launch platform its whole length; `LandingModule.Voyages`, `Parked`; f/landing `ShuttleKey`, `ShuttleLights`; art `machine_crewShuttle.png` (anime-art `shuttle`). Not the vessel class `shuttle` (a derelict) → Landing
+- маршрут / course → `Places.Course`, command `SetCourse` (the radar's «Проложить маршрут»), its fuel `PlacesModule.CostOf`, burnt from the shuttle's store on setting off → Places
+- отправиться / set off → command `SetOff` (places'), `ILandingOps.SetOff`, `SetOffHome`; the shuttle's «Отправиться» key → Places, Landing
+- рейс / voyage → `Voyage` (sim/Landing): the shuttle in the air with its riders and its fuel, `Content.Shuttle.FlightTicks`; client `Ride` → Landing
 - шахта под платформой / platform shaft → the column under a launch platform to the grid's edge, kept empty: `grid.underPlatform`, `grid.shaftBlocked`, `IGridQueries.ClearBelow`, `Taken`, `landing.shaftBlocked`; f/building `Shafts` → Grid, Building
 - стена / wall → `Structure.Wall` + a material (`c/Materials.cs`), `tool.wall`, `tool.wallScrap` … → Grid
 - задняя стена / back wall → `Back.Wall`, layer `"back"`, `tool.backWall` → Grid
@@ -59,6 +63,10 @@ Game words → code. One line a term: Russian / English → identifiers → modu
 - аккумулятор / accumulator → item `accumulator` (belt equipment); the machine is `capacitorBank` "Capacitor bank" **≠** → Items, Power
 - батарея / battery → item `battery` (belt), charged at `charger` "Charging station" → Items, Power
 - танк, бак / tank → machine `tank`, `TankAir`; f/atmosphere `TankLooks` → Atmosphere
+- топливный бак / fuel tank → machine `fuelTank` (a 100 l fuel store, «Бочка на ложементе») → Fuel
+- топливо, биотопливо / fuel, biofuel **≠** → item `biofuel` (a 1 l can) and fluid `fuel` (`Content.Fuel`); the litres a machine holds are its store: `FuelHolds`, `MachineTrait.HoldsFuel`, `IFuelQueries.FuelIn`, `DrawFuel`, `Lasts` (how long it lasts) → Fuel
+- бункер, приёмник / hopper → a store's slot that takes its one item and pours it in (`SlotTakes`): a tank's canisters, a cistern's bottles, a fuel store's cans → Atmosphere, Water, Fuel
+- смотровое стекло, уровень / sight glass, level → `GlassLevel`, `SightGlass` (game/shared), pictures `{kind}_level`, `{kind}_level_top` → Atmosphere, Water, Fuel (client)
 
 ## Items, crafting, research
 
@@ -69,7 +77,7 @@ Game words → code. One line a term: Russian / English → identifiers → modu
 - плавильня / electric smelter → machine `smelter` (station in `c/Stations.cs`), f/crafting `SmelterHeat` → Crafting
 - печь / furnace → machine `furnace`, `FurnaceModule`, `Fire` → Furnace
 - побочный продукт, шанс / byproduct → `ItemSpec.Byproducts` (`LootEntry`, its `OneIn`), drawn as a fed station's smelt completes; several a smelt → `ItemSpec.SmeltTakes`, `TooFew` → Crafting
-- ферментёр / fermenter → machine `fermenter` (process `ferment`): biomass and fat into biofuel, the only way to it → Crafting
+- ферментёр, перегонный аппарат / fermenter → machine `fermenter` (process `ferment`): biomass and fat into its 20 l fuel store, the only way to biofuel → Crafting, Fuel
 - капсула / grow capsule → machine `growCapsule` → Crafting. Lifepod **≠**: machine `lifepod`, its station "Fabricator" (`station.lifepod`)
 - доска / the board **≠** → `BoardPage` in `ResearchTablet` on the tablet (T); `BoardSlots`, `BoardView`, `BoardPile` (client) → Research. The tech tree is gone (the-board): the board learns, the black market sells
 - заметка, силуэт, нить / note, silhouette (shape), thread → `BoardView`, `BoardThreads`, `BoardPencil` (how far a shape has come) (client)

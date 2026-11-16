@@ -14,21 +14,21 @@ Pieces drifting by in zones and the mafia's deliveries; caught by hand or net, r
 
 - **Depends on:** `Grid` (size, `Version`, the log, the hull's bounds, machines and their traits), `Crew` (heroes;
   `Loot` of what one breaks), `Knowledge` (deliveries), `Rooms` (what is space), `Items` (weapons and bags;
-  `GiveOrDrop`, `GiveWhatFits`, `DropAt`). Runs after `Hazards` and before `Furnace`. Creatures reads it
+  `GiveOrDrop`, `GiveWhatFits`, `DropAt`), `Sky` (the stretch running). Runs after `Hazards`, before `Furnace`. Creatures reads it
   (`Breaks`) and changes it (`Unreel`, `Hit`).
 - **State** (`DebrisState`, saved): `Pieces` in id order, each `{ Id, Zone, Item, X, Y, Speed, Start, End, Damage,
   Cut, Reel, Struck, SeenAt, Delivery }`, in thousandths of a cell; `NextId`, never reused; `Clock`; `Beats`, each zone's next due
   clock; `AtStart`; `Found` (0066), `FoundKind { Kind, Items, Looks }` in the order first found; `Held`, every net's
-  entries `{ Net, Id, Kind, Cell, Items }` in catch order, not written while empty. **Unsaved, unhashed:** the last
-  `CaughtKept` (64) grabs and collected entries, by catcher (`CaughtFrom`). **Derived:** the hull's bounds (0051); the
-  grid version the nets were last checked at.
+  entries `{ Net, Id, Kind, Cell, Items }` in catch order. **Unsaved:** the last `CaughtKept` (64) grabs and collected
+  entries, by catcher (`CaughtFrom`). **Derived:** the hull's bounds (0051); the grid version nets were checked at.
 
 ## Zones
 
 `Content.Debris.Zones`, in order, each an anchor and tiers of kinds by weight by distance from the hull's box,
 `d = max(dx, 2·dy)` (`TierOf`, 0052): **`ship`**, the stream (`ByHull`: the hull grown by `Lead` columns and `Margin`
 rows; the only one with clods, 0060); **`far`** (`AroundHeroes`: round every hero out of every stream's box,
-farther ones bigger, 0050, 0056); **`asteroids`** (`HullBand`, 0054: rows above and below).
+farther ones bigger, 0050, 0056); **`asteroids`** (`HullBand`, 0054: rows above and below); each stretch's
+(`ByHull` with a `Stretch` id, [stretches-of-space](../../docs/decisions/2026-11-15-stretches-of-space.md)).
 
 ## Rules
 
@@ -38,6 +38,7 @@ farther ones bigger, 0050, 0056); **`asteroids`** (`HullBand`, 0054: rows above 
 - **No zone on a surface without debris** (`Surfaces.Kind.Debris`, 0076): nothing spawns or is drawn.
 - **A hero's view** (`Debris.View`, past the farthest zoom): no zone spawns or removes a piece in one but at the grid's edge (0052).
 - **A beat** is due `Every` plus `Below(Jitter + 1)` on; no jitter draws nothing. A zone with no beat gets one (0052).
+  A stretch's zone beats only while it runs, out of the streams' box else; the `ship` stream's is `Thins` times longer meanwhile.
 - **Stream and band beats** spawn while fewer than `Max` of the zone are out and there is a hull (structure within
   `Built`, 0048). Draws: row, kind, speed. A piece starts `Lead` right of the hull, ends `Lead` left
   of it; a start in a hero's view is pushed past every view it lands in (0052). A band row off the grid spawns nothing but takes its draws (0054).
@@ -47,7 +48,7 @@ farther ones bigger, 0050, 0056); **`asteroids`** (`HullBand`, 0054: rows above 
 - **Despawn**, far pieces only (0052): seen in some hero's `Keep` box, it stays; else while in a `Hard` box,
   seen under `Linger` ago.
 - **First tick:** `Layout.DebrisAtStart` of the stream goes out (at most `Max`), spread along its way. Nothing collides (0006) but a net.
-- **`Grab(Piece)`** (0034): the sender gets the item, or a container's (crate, pod, fridge) `Loot`, the rest floating at the
+- **`Grab(Piece)`** (0034): the sender gets the item, or a container's (crate, pod, fridge) `Loot`, the rest at the
   hero (`GiveOrDrop`). Refused `debris.gone`, `debris.notOutside` (either not in space), `debris.tooBig` (a wreck).
 - **Wreckage** (0034, 0041, 0054, 0056): a kind with hit points in `Wreckage`; every weapon breaks every kind.
   `HewWrecks(Tool, X, Y, Heading)`: each fan ray strikes the first wreck whose box covers a cell
@@ -58,8 +59,8 @@ farther ones bigger, 0050, 0056); **`asteroids`** (`HullBand`, 0054: rows above 
 - **Deliveries** ([mafia-deliveries](../../docs/decisions/2026-11-08-mafia-deliveries.md)): on the ship, before the beats, the first queued one with
   no piece out spawns at the stream's start on a trade station's row, spaced by `DeliveryGap`, zone `delivery`, never netted. A
   `parcel` is grabbed, a `deliveryCrate` or the container broken, only the container found; past its `End`, lost.
-- **Found** (0066): every catch (grab, break, net, salvage drone) records the kind, the
-  items `LootOf` drew (the same roll, overflow too) and the look worn (`Content.Looks.Of`, by id, alike on all peers), each once.
+- **Found** (0066): every catch (grab, break, net, drone) records the kind, the items `LootOf` drew (the same roll) and the
+  look worn (`Content.Looks.Of`), each once.
 - **The harpoon** (0044): `Reel(Piece, ToX, ToY)` pulls it to the point, clamped to the grid, over the longer
   axis's ticks at `ReelSpeed`, at least one (`Reel { By, ToX, ToY, Left }`; `X += (ToX − X) / Left`, truncating), then it drifts on.
   The last wins; refused as `Grab`; caught or broken, its reel goes too.
@@ -67,9 +68,8 @@ farther ones bigger, 0050, 0056); **`asteroids`** (`HullBand`, 0054: rows above 
   with under `NetHolds` (10) entries: an entry, a container's loot rolled then, `Found` recorded; no `CaughtFrom`. A salvage drone's `Catch(piece)`
   takes one so, counted obtained: its loot, or null if gone.
 - **`Collect(Machine)`**: that net's entries in catch order each give what fits (`GiveWhatFits`, counted obtained), reported
-  as a grab's (`CaughtFrom`); an emptied one goes. Refused `debris.noNet`
-  (no `Catches` machine), `debris.netEmpty`, `debris.bagFull` (nothing fits).
-- **A net gone** (a meteor, a screwdriver): when the grid's `Version` moved, each entry whose net is no `Catches` machine
+  as a grab's (`CaughtFrom`); an emptied one goes. Refused `debris.noNet`, `debris.netEmpty`, `debris.bagFull`.
+- **A net gone**: when the grid's `Version` moved, each entry whose net is no `Catches` machine
   drops its items at its `Cell` (`DropAt(Nobody)`), in catch order. A net built again is empty.
 
 ## Invariants
@@ -86,11 +86,10 @@ farther ones bigger, 0050, 0056); **`asteroids`** (`HullBand`, 0054: rows above 
 
 ## Deliberately not handled
 
-- Reach, what an edge touches, the weapon in hand, its pace, the harpoon's shot and cooldown: the client's (0044).
+- Reach, aim, pace and the harpoon's shot: the client's (0044).
 - A stale reported cell, a window over 1920×1080 or a narrow grid may show a spawn; a stream pushed right by a hero is
   thinned by the cap; heroes share one far field's density (0052). A half-broken far wreck can despawn.
-- Two grabs of one piece on a tick: host order; the second is `debris.gone`.
-- A catch's popup is lost to a load or resync (0066); a floor stack picked up is not recorded.
+- Two grabs of one piece on a tick: host order, the second `debris.gone`.
+- A catch's popup is lost to a load or resync (0066); a floor stack picked up is not found.
 - A wreck is judged by its middle cell: over the hull it cannot be hit. An asteroid reeled out of its band stays out.
-- Nets: no drone touches one (no slots); a piece through two is caught by the first; a partly collected container
-  keeps its look; a full net raises no alert.
+- Nets: no drone touches one; a piece through two is caught by the first; a full net raises no alert.

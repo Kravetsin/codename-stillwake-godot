@@ -50,7 +50,7 @@ namespace Stillwake.Content;
 /// and a module fitted with it as the target goes onto that tool's stack. Its other slots are what it crafts; its crafts are
 /// paid by hand, and drones never touch it.
 /// </param>
-/// <param name="Takes">The one item its slots hold, put in by hand or by drones: the engine's biofuel. Any when not given.</param>
+/// <param name="Takes">The one item its slots hold, put in by hand or by drones. Any when not given.</param>
 /// <param name="SlotTakes">
 /// One slot that holds only one item, which goes into no other slot: a drone bay's fuel slot of canisters (salvage-drones); a
 /// tank's or a cistern's hopper, poured in as it fits (industrial-oxygen).
@@ -61,9 +61,18 @@ namespace Stillwake.Content;
 /// wall or more from its side, then space, the nozzle's tip in space. Its picture is as much wider, the nozzle drawn over the
 /// wall. None for a machine standing wholly in its footprint.
 /// </param>
+/// <param name="FuelHolds">
+/// The litres of biofuel its store holds (fuel-liquid), filled from its hopper and its fuel input, drawn out as cans: a fuel tank,
+/// the drop pod, the biofuel generator, the engine, the fermenter. None for one holding none; it implies
+/// <see cref="MachineTrait.HoldsFuel"/>.
+/// </param>
 /// <param name="Has">
 /// What it is to the systems that ask (0113), a flag a trait; never <see cref="MachineTrait.Fire"/>, which its
 /// <paramref name="FuelSlot"/> implies.
+/// </param>
+/// <param name="Riders">
+/// How many heroes sit in it at once, a place each, for a machine that <see cref="MachineTrait.Seats"/>: one for the drop pod and
+/// the treadmill wheel, four for the crew shuttle. Above one only on a machine that seats and lands, which the pod's launch never flies.
 /// </param>
 /// <param name="Hp">
 /// Its hit points: broken by tools anywhere, each hit taking the weapon's damage as a wreck's do, giving its cost; never marked
@@ -95,7 +104,9 @@ public sealed record MachineSpec(
     string? Takes = null,
     (int Slot, string Item)? SlotTakes = null,
     int? Exhaust = null,
+    int? FuelHolds = null,
     MachineTrait Has = MachineTrait.None,
+    int Riders = 1,
     int? Hp = null,
     MenuSlot? Menu = null,
     char? Char = null,
@@ -104,8 +115,15 @@ public sealed record MachineSpec(
     /// <summary>Whether it is a node cables end on: it makes power, draws it or stores it.</summary>
     public bool Powered => Makes != null || Draws != null || Store != null;
 
-    /// <summary>Its traits: those it <see cref="Has"/>, and <see cref="MachineTrait.Fire"/> with a <see cref="FuelSlot"/>.</summary>
-    public MachineTrait Traits => Has | (FuelSlot != null ? MachineTrait.Fire : MachineTrait.None);
+    /// <summary>
+    /// Its traits: those it <see cref="Has"/>, <see cref="MachineTrait.Fire"/> with a <see cref="FuelSlot"/> and
+    /// <see cref="MachineTrait.HoldsFuel"/> with <see cref="FuelHolds"/>.
+    /// </summary>
+    public MachineTrait Traits =>
+        Has | (FuelSlot != null ? MachineTrait.Fire : MachineTrait.None) | (FuelHolds != null ? MachineTrait.HoldsFuel : MachineTrait.None);
+
+    /// <summary>What its fuel store holds full, in millilitres; none for one with no store.</summary>
+    public int FuelCapacity => (FuelHolds ?? 0) * Fuel.Litre;
 
     /// <summary>Whether it has any of <paramref name="trait"/>.</summary>
     public bool Is(MachineTrait trait) => (Traits & trait) != 0;
@@ -177,6 +195,8 @@ public enum MachineTrait
     /// light. The vaporizer, the electrolyser and the generators that burn.
     /// </summary>
     Switches = 65536,
+    /// <summary>Holds biofuel in a store of <see cref="MachineSpec.FuelHolds"/> litres (Fuel): implied by it, never declared.</summary>
+    HoldsFuel = 131072,
 }
 
 /// <summary>
@@ -190,9 +210,12 @@ public static class Machines
 {
     public static readonly IReadOnlyList<MachineSpec> All =
     [
-        new("tank", 4, 4, [new(0, 2, Way.In, Fluids.LiquidOxygen), new(3, 2, Way.Out, Fluids.LiquidOxygen)], [("plate", 8), ("tube", 2), ("gear", 2)], BuildTicks: 160, Slots: 1, SlotTakes: (0, Crew.Canister), Has: MachineTrait.Gas, Menu: new(MenuTabs.Air, 20), Char: 'T', Means: "oxygen tank: draw its whole footprint"),
+        new("tank", 4, 4, [new(0, 2, Way.In, Fluids.LiquidOxygen), new(3, 2, Way.Out, Fluids.LiquidOxygen)], [("plate", 8), ("tube", 2), ("gear", 2)], BuildTicks: 160, Slots: 1, SlotTakes: (0, Crew.Canister), Has: MachineTrait.Gas, Menu: new(MenuTabs.Storage, 25), Char: 'T', Means: "oxygen tank: draw its whole footprint"),
         // Holds water poured in by the bottle and gives it on to an electrolyser (water); it needs no power and air ignores it.
-        new("cistern", 4, 4, [new(0, 2, Way.In, Fluids.Water), new(3, 2, Way.Out, Fluids.Water)], [("plate", 4), ("tube", 2)], BuildTicks: 160, Slots: 1, SlotTakes: (0, Water.Item), Has: MachineTrait.HoldsWater, Menu: new(MenuTabs.Air, 25), Char: 'c', Means: "cistern: draw its whole footprint"),
+        new("cistern", 4, 4, [new(0, 2, Way.In, Fluids.Water), new(3, 2, Way.Out, Fluids.Water)], [("plate", 4), ("tube", 2)], BuildTicks: 160, Slots: 1, SlotTakes: (0, Water.Item), Has: MachineTrait.HoldsWater, Menu: new(MenuTabs.Storage, 30), Char: 'c', Means: "cistern: draw its whole footprint"),
+        // Holds 100 litres of biofuel poured in by the can or piped in, given on through its output (fuel-liquid). Its size and cost
+        // wait for its picture. Tanks and cisterns are storage (the user's word).
+        new("fuelTank", 4, 4, [new(0, 2, Way.In, Fluids.Fuel), new(3, 2, Way.Out, Fluids.Fuel)], [("plate", 6), ("tube", 2)], BuildTicks: 160, Slots: 1, SlotTakes: (0, Fuel.Item), FuelHolds: 100, Menu: new(MenuTabs.Storage, 35), Char: '!', Means: "fuel tank: draw its whole footprint"),
         new("generator", 4, 4, [new(0, 2, Way.In, Fluids.LiquidOxygen), new(3, 0, Way.Out, Fluids.Air)], [("frame", 2), ("rotor", 2), ("tube", 2), ("wire", 4)], BuildTicks: 200, Draws: 4, Plug: (16, 5), Slots: 1, SlotTakes: (0, Crew.Canister), Has: MachineTrait.AirSource | MachineTrait.Switches, Menu: new(MenuTabs.Air, 30), Char: 'G', Means: "oxygen generator: draw its whole footprint"),
         // Splits a cistern's water into liquid oxygen for a tank, the hydrogen let go (water): water in on its left, oxygen out on its right.
         // Its electrodes are a planet's copper, so it is understood and built there first (industrial-oxygen).
@@ -224,9 +247,9 @@ public static class Machines
         // A drum a hero runs in (power-chain): 4 while an awake rider runs, anywhere, rested by Landing otherwise. Mostly planks,
         // a gear and a coil: the first power there is, at a quarter of the burner's iron and scrap, paid for in a hero's time.
         new("treadWheel", 6, 6, [], [("planks", 6), ("gear", 1), ("coil", 1)], BuildTicks: 160, Makes: 4, Anywhere: true, Plug: (45, 46), Has: MachineTrait.Seats, Menu: new(MenuTabs.Power, 15), Char: 'w', Means: "treadmill wheel: draw its whole footprint"),
-        // A heavier burner of biofuel alone (power-chain): 16 a tick, 25 600 a biofuel against the burner's 9 600. Its fuel pump is a
-        // planet's part, so it is built at the planet stage.
-        new("biofuelGenerator", 6, 4, [new(0, 2, Way.In, Fluids.LiquidOxygen)], [("fuelPump", 1), ("frame", 3), ("plate", 8), ("coil", 4), ("tube", 4)], BuildTicks: 240, Makes: 16, Plug: (45, 22), Slots: 1, FuelSlot: 0, Takes: "biofuel", Has: MachineTrait.Switches, Menu: new(MenuTabs.Power, 25), Char: 'q', Means: "biofuel generator: draw its whole footprint"),
+        // A heavier burner of biofuel alone (power-chain): 16 a tick, 25 600 a litre against the burner's 9 600 a can. Its fuel pump is
+        // a planet's part, so it is built at the planet stage. It burns from its 20 litre store, filled by its hopper or its fuel line.
+        new("biofuelGenerator", 6, 4, [new(0, 1, Way.In, Fluids.Fuel), new(0, 2, Way.In, Fluids.LiquidOxygen)], [("fuelPump", 1), ("frame", 3), ("plate", 8), ("coil", 4), ("tube", 4)], BuildTicks: 240, Makes: 16, Plug: (45, 22), Slots: 1, FuelSlot: 0, SlotTakes: (0, Fuel.Item), FuelHolds: 20, Has: MachineTrait.Switches, Menu: new(MenuTabs.Power, 25), Char: 'q', Means: "biofuel generator: draw its whole footprint"),
         // Fills a battery with what it draws: 3 a tick fills 1800 in 600 ticks at full power.
         new("charger", 2, 4, [], [("frame", 1), ("coil", 2), ("wire", 6), ("circuit", 2)], BuildTicks: 120, Draws: 3, Plug: (8, 10), Slots: 2, Charges: true, ChargesEach: true, Menu: new(MenuTabs.Power, 50), Char: 'C', Means: "charging station: draw its whole footprint"),
         // Keeps what its network makes and nothing draws, and gives it back when the network draws more than it makes (0101):
@@ -244,8 +267,9 @@ public static class Machines
         new("assembler", 4, 4, [], [("frame", 3), ("rotor", 2), ("glass", 4), ("coil", 2), ("wire", 10), ("circuit", 1)], BuildTicks: 200, Draws: 2, Plug: (4, 25), Slots: 7, Inputs: 4, Menu: new(MenuTabs.Production, 50), Char: 'Y', Means: "circuit assembler: draw its whole footprint"),
         // Grows what is planted in it on power (Stations), sealed under glass, needing no air: a seed in, biomass and seeds out. Rests idle.
         new("growCapsule", 4, 6, [], [("frame", 2), ("glass", 6), ("soil", 8), ("circuit", 2), ("wire", 4)], BuildTicks: 200, Draws: 2, Plug: (4, 42), Slots: 3, Inputs: 1, Menu: new(MenuTabs.Production, 60), Char: 'g', Means: "grow capsule: draw its whole footprint"),
-        // Ferments biomass and fat into biofuel on power (Stations), the grow capsule's tier: its input, then its output. Rests idle.
-        new("fermenter", 4, 4, [], [("frame", 2), ("glass", 4), ("tube", 4), ("plate", 4), ("circuit", 1)], BuildTicks: 200, Draws: 2, Plug: (5, 27), Slots: 2, Inputs: 1, Menu: new(MenuTabs.Production, 65), Char: 'u', Means: "fermenter: draw its whole footprint"),
+        // Ferments biomass and fat into biofuel on power (Stations), the grow capsule's tier: its input slot, its output a 20 litre
+        // store given on down its fuel line (fuel-liquid). Rests idle, and idles while its store has no litre of room.
+        new("fermenter", 4, 4, [new(3, 2, Way.Out, Fluids.Fuel)], [("frame", 2), ("glass", 4), ("tube", 4), ("plate", 4), ("circuit", 1)], BuildTicks: 200, Draws: 2, Plug: (5, 27), Slots: 1, Inputs: 1, FuelHolds: 20, Menu: new(MenuTabs.Production, 65), Char: 'u', Means: "fermenter: draw its whole footprint"),
         // The galley (food-and-the-body): a cast-iron range cooking dishes paid by hand, as the workbench does, with no power; its
         // three slots what it made. Its oven window's glass sets it at the grow capsule's tier, with the fruit it cooks.
         new("galley", 4, 5, [new(0, 2, Way.In, Fluids.LiquidOxygen)], [("frame", 2), ("plate", 8), ("tube", 4), ("glass", 2)], BuildTicks: 160, Slots: 4, Inputs: 1, FuelSlot: 0, Menu: new(MenuTabs.Production, 62), Char: '&', Means: "galley: draw its whole footprint, three characters tall on a 16 px map (its top cells open)"),
@@ -272,13 +296,13 @@ public static class Machines
         new("radarAntenna", 4, 6, [], [("frame", 3), ("plate", 8), ("tube", 4), ("rotor", 2), ("gear", 6), ("transceiver", 2), ("solarCell", 2), ("copper", 6), ("magnetite", 4)], BuildTicks: 200, Draws: 1, Plug: (13, 42), Menu: new(MenuTabs.Ship, 107), Char: 'N', Means: "radar antenna: draw its whole footprint, a mast with a dish atop (radar-mast)"),
         // The engine (2026-10-25-the-engine-through-the-hull): the last thing built, of a planet's parts; its nozzle out through
         // the stern's wall, its tank of biofuel, its pumps and igniter kept ready on power. It does not run yet: the jump is to come.
-        new("engine", 6, 4, [], [("nozzle", 1), ("fuelPump", 1), ("igniter", 1), ("frame", 4), ("plate", 12), ("motor", 1)], BuildTicks: 240, Draws: 2, Plug: (39, 12), Slots: 1, Takes: "biofuel", Exhaust: 3, Menu: new(MenuTabs.Ship, 110), Char: 'X', Means: "engine: draw its whole footprint, a hull wall on its left with space past it"),
+        new("engine", 6, 4, [new(5, 2, Way.In, Fluids.Fuel)], [("nozzle", 1), ("fuelPump", 1), ("igniter", 1), ("frame", 4), ("plate", 12), ("motor", 1)], BuildTicks: 240, Draws: 2, Plug: (39, 12), Slots: 1, SlotTakes: (0, Fuel.Item), Exhaust: 3, FuelHolds: 20, Menu: new(MenuTabs.Ship, 110), Char: 'X', Means: "engine: draw its whole footprint, a hull wall on its left with space past it"),
         // The drop pod, the bell (the capsule concepts' 2C): a dome with a round porthole on a wide skirt, standing on a launch platform
         // two pieces wide. A hero sits in it; its one slot holds the biofuel it will burn going down. Guided by a processor and a display.
-        new("dropPod", 4, 6, [], [("frame", 6), ("plate", 16), ("glass", 8), ("tube", 6), ("processor", 1), ("display", 1)], BuildTicks: 240, Slots: 1, Takes: "biofuel", Has: MachineTrait.Seats | MachineTrait.Lands, Menu: new(MenuTabs.Ship, 105), Char: 'Z', Means: "drop pod: draw its whole footprint, on a launch platform"),
-        // The crew's shuttle to the wrecks, the «Ледокол» pick: a heavy prow, frosted slits nobody shows through. Only built for now,
-        // on a launch platform as the drop pod is, the whole run under its 24 cells.
-        new("crewShuttle", 24, 10, [], [("frame", 16), ("plate", 48), ("glass", 4), ("tube", 12), ("nozzle", 3), ("processor", 2), ("display", 1)], BuildTicks: 600, Has: MachineTrait.Lands, Menu: new(MenuTabs.Ship, 108), Char: '^', Means: "crew shuttle: draw its whole footprint, on a launch platform"),
+        new("dropPod", 4, 6, [new(0, 4, Way.In, Fluids.Fuel)], [("frame", 6), ("plate", 16), ("glass", 8), ("tube", 6), ("processor", 1), ("display", 1)], BuildTicks: 240, Slots: 1, SlotTakes: (0, Fuel.Item), FuelHolds: 20, Has: MachineTrait.Seats | MachineTrait.Lands, Menu: new(MenuTabs.Ship, 105), Char: 'Z', Means: "drop pod: draw its whole footprint, on a launch platform"),
+        // The crew's shuttle to the wrecks, the «Ледокол» pick: a heavy prow, four frosted slits nobody shows through, a seat behind
+        // each. On a launch platform as the drop pod is, the whole run under its 24 cells; its 200 l store piped at its stern.
+        new("crewShuttle", 24, 10, [new(0, 8, Way.In, Fluids.Fuel)], [("frame", 16), ("plate", 48), ("glass", 4), ("tube", 12), ("nozzle", 3), ("processor", 2), ("display", 1), ("copper", 12), ("magnetite", 6)], BuildTicks: 600, Slots: 1, SlotTakes: (0, Fuel.Item), FuelHolds: 200, Has: MachineTrait.Seats | MachineTrait.Lands, Riders: 4, Menu: new(MenuTabs.Ship, 108), Char: '^', Means: "crew shuttle: draw its whole footprint, on a launch platform"),
         // A vessel's salvage aboard (plan V-1b): piles copied from the debris that drifts by, worked out in Vessels.
         .. Vessels.SalvageRows,
         // What stands outside a vessel's hull (derelict-looks), taken apart for what it gives.

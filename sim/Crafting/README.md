@@ -14,15 +14,15 @@ crew (0028); a **fed** one (furnace, smelter, crusher, capsule, fermenter) turns
 smelt, crush, grow (0060), ferment (power-chain).
 
 - **Depends on:** `Grid` (`Machines`, `MachineById`); `Items` (queries `Crate`, `CanSmelt`, `ShortOfStock`, `FullForStock`,
-  `OutputFull`, `InputsLack`, `Boost`; ops `TakeStock`, `GiveStock`, `Output`, `Smelt`, `TakeInputs`); `Research` (`Knows`);
-  `Power` (`Satisfaction`; `Rest`); the world's `Rng`, for seeds and byproducts.
+  `OutputFull`, `InputsLack`, `Boost`; ops `TakeStock`, `GiveStock`, `Output`, `Smelt`, `SmeltOut`, `TakeInputs`); `Research` (`Knows`);
+  `Power` (`Satisfaction`; `Rest`); `Fuel` (`RoomIn`; `Fill`); the world's `Rng`, for seeds and byproducts.
 - **Depended on by:** `Building` (`Queue`: a station with crafts queued is not taken apart; `Scrap`); `Furnace` (`CanSmelt`,
   `TooCold`, `TooFew`, `WorkOf`, `Progress`; op `Heat`); `Logistics`' drones read `Queue` and `Progress` (0062).
 - **State** (`CraftingState`, saved): `Queues`, each queued station ever crafted at, by machine id: `Machine`, `Next`
   (next entry id), `Progress` (the head's unit, thousandths of a tick) and `Entries`, `Entry(Id, Recipe, Count, By,
   FromInputs, Endless)` in queue order, `Count` the units left with the one at work; an emptied queue is kept so ids
-  keep counting. `Smelts`: `Smelt(Machine, Item, Progress)` by machine id. Derived: `Heated`, each fed station whose fire
-  burns this tick, with its speed share (blown, more), by `Furnace`.
+  keep counting. `Smelts`: `Smelt(Machine, Item, Progress)` by machine id. Derived: `Heated`, each burning fed station's
+  share (blown, more), set by `Furnace`.
 
 ## Rules
 
@@ -40,8 +40,8 @@ smelt, crush, grow (0060), ferment (power-chain).
 ### Queued stations
 
 - A craft is named by the item it makes; cost and `Ticks` per unit come from `Content.Crafts`; a unit takes
-  `Ticks × 1000` of work; crafts layer parts, components, products (0046). Rosters are content's: the pod's the suit and
-  screwdriver, the workbench's tools, the Former's parts, the assembler's electronics, the galley's dishes, the arc bench's shard crafts (0099).
+  `Ticks × 1000` of work; crafts layer parts, components, products (0046). What each makes is
+  content's (`Content.Stations` rows; the arc bench's, 0099).
 - **Inputs** (0057): as many slots as the most distinct items any of its crafts needs (`ContentTests`). The pod, the
   workbench have none, the arc bench's one is a vise (0099), the galley's its fuel: a craft from inputs there is refused `crafting.noInputs`.
 - **`Craft(Machine, Recipe, Count, FromInputs, Endless)`**: paid (the default) takes all `Count` units' cost from the
@@ -74,6 +74,7 @@ smelt, crush, grow (0060), ferment (power-chain).
   (`Loots.Roll`), a fruit's seed among them; none for an item without them. A crop gives only its fruit
   ([fruit-not-biomass](../../docs/decisions/2026-11-12-fruit-not-biomass.md)). It works only with room for its yields
   and each byproduct's `Max` (`MostMade`).
+- **One holding fuel** (the fermenter) smelts into its store, only with room (`SmeltOut`, `Fill`).
 - **A furnace smelts while its fire burns at the tick's start** (0057): `Furnace` calls `Heat` in construction from
   the fire as the last tick left it, so it starts the tick after lighting and smelts on the tick it goes out.
 

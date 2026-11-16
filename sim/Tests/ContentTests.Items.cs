@@ -28,7 +28,8 @@ public partial class ContentTests
             if (m.Slots != null) Assert.True(m.Slots > 0, m.Kind);
             if (m.Inputs == null) continue;
             Assert.NotNull(m.Slots);
-            Assert.True(m.Inputs >= 0 && m.Inputs < m.Slots, m.Kind);
+            // A station whose output is its fuel store (the fermenter, fuel-liquid) has inputs alone.
+            Assert.True(m.Inputs >= 0 && (m.Inputs < m.Slots || m.FuelHolds != null && m.Inputs == m.Slots), m.Kind);
         }
     }
 

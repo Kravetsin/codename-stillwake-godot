@@ -51,15 +51,44 @@ public interface ISurfaces
     /// <summary>Whether this world can open surfaces: one whose modules cannot make another set is the ship alone.</summary>
     bool CanOpen { get; }
 
-    /// <summary>Whether a planet has been opened: a hero has landed on one, or a dev opened it. Planets stay open.</summary>
+    /// <summary>Whether a planet has ever been opened, one left since too: a hero has landed on one, or a dev opened it.</summary>
     bool Landed { get; }
+
+    /// <summary>Whether some peer's hero stands off the ship. One who left the game was sent aboard; one not yet entered counts aboard.</summary>
+    bool Away { get; }
+
+    /// <summary>
+    /// Leaves the planet below for good (solar-system): every open planet closes in id order, its modules dropped, its slot
+    /// kept closed, as a vessel world's. Only from a command as it applies, with nobody on one: else it throws, our bug.
+    /// </summary>
+    void LeavePlanet();
 
     /// <summary>
     /// The planet a descent lands on, opened if need be — a change to the world, so called only by a system on its tick: the lowest-id
-    /// open surface of a planet's kind, else one opening this tick, else one of <c>Content.Landing.Planet</c> opened once every
+    /// open surface of a planet's kind, never one left (solar-system), else one opening this tick, else one of <c>Content.Landing.Planet</c> opened once every
     /// surface has run, before the sends. Returns its id, to <see cref="Send"/> to.
     /// </summary>
     int OpenPlanet();
+
+    /// <summary>
+    /// Opens a surface of kind <paramref name="kind"/> from <paramref name="seed"/>, keeping what this surface keeps for a new one —
+    /// a change to the world, so called only by a system on its tick: opened once every surface has run, in the order asked, before
+    /// the sends. Returns the id it will take, to <see cref="Send"/> to.
+    /// </summary>
+    int Open(string kind, uint seed);
+}
+
+/// <summary>
+/// A module holding what outlives its surface, a transient one closing (shuttle-flight): the shuttle standing on a vessel world,
+/// or flying home from it. Its twin on the ship takes it.
+/// </summary>
+public interface IOutlives
+{
+    /// <summary>What outlives this surface, which is closing; null for nothing.</summary>
+    object? Closing();
+
+    /// <summary>Takes <paramref name="left"/>, what the twin on a closing surface gave up, on the ship.</summary>
+    void Outlived(object left);
 }
 
 /// <summary>

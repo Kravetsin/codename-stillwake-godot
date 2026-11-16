@@ -17,8 +17,8 @@ picked in two rounds on pick pages: where it stands, then how it looks.
   or a clamp would each be a new mechanic. It is the `Lands` trait the drop pod has, so the grid's one rule covers it: the
   whole row under its 24 columns a run of platform pieces, open or shut (`grid.noPlatform` otherwise).
 - **Machine `crewShuttle`, 24 cells by 10**, on the ship tab beside the drop pod, of frames, plates, glass, tubes, three
-  nozzles, two processors and a display. The nozzles are a planet's, as the engine's are: it opens after a landing, as the
-  radar that finds where it flies does.
+  nozzles, two processors, a display, twelve copper and six magnetite (added 2026-11-15, the user's word). The nozzles
+  are a planet's, as the engine's are: it opens after a landing, as the radar that finds where it flies does.
 - **Its look is «Ледокол»** (H of the second round; the first round's four were all turned down): a heavy prow of worn red
   plates over a grey ice belt, a stack of three stubby thrusters at the stern, two keel blocks on the platform. Its glass is
   four frosted slits nobody shows through, the user's rule: the crew is never seen through it; when it is boarded the slits
@@ -30,5 +30,6 @@ picked in two rounds on pick pages: where it stands, then how it looks.
 ## Deliberately not handled
 
 - **Boarding, the fuel slot, the launch and the flight to a vessel** are the next slices: no seat (`landing.noPod`), no slot.
+  (Boarding and the flight: [shuttle-flight](2026-11-16-shuttle-flight.md); fuel waits for fuel-liquid.)
 - **A run longer than the shuttle** takes it anywhere along it; nothing centres it.
 - **Its lit states** (lamps, slits, flame) are drawn on the pick page, not exported yet: nothing shows them.

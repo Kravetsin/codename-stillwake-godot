@@ -102,7 +102,7 @@ public class TestbedTests
         var m = new Registry();
         var world = Testbed.Create(m.All);
         int pod = IdOf(m, "dropPod");
-        Assert.Equal(Testbed.PodFuel, m.Items.HeldFor(pod, "biofuel"));
+        Assert.Equal(Testbed.PodFuel * Spec.Fuel.Can, m.Fuel.FuelIn(pod));
         // A hero in the airlock boards it; its run is powered and its shaft clear, so it flies.
         world.Step([new Stillwake.Sim.Crew.Enter(Testbed.Map.Width * 15 + 98), new Stillwake.Sim.Landing.Board(pod)]);
         Assert.Null(m.Landing.LaunchProblem(0));

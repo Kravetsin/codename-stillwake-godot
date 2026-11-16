@@ -20,7 +20,9 @@ public partial class ContentTests
             var spec = Machines.Get(station.Machine);
             int outputs = spec.Slots!.Value - spec.Inputs!.Value;
             foreach (var item in Content.Items.All.Where(i => i.Yields != null && i.Process == station.Process))
-                Assert.True(SlotsFor(Sim.Items.ItemsModule.MostMade(item)) <= outputs, $"{station.Machine}: {item.Id}");
+                // One making into its fuel store makes nothing else (fuel-liquid).
+                if (spec.FuelHolds != null) Assert.True(item.Yields!.All(y => y.Item == Content.Fuel.Item) && item.Byproducts == null, $"{station.Machine}: {item.Id}");
+                else Assert.True(SlotsFor(Sim.Items.ItemsModule.MostMade(item)) <= outputs, $"{station.Machine}: {item.Id}");
         }
     }
 
@@ -451,7 +453,7 @@ public partial class ContentTests
     }
 
     /// <summary>What no one buys: wreckage whole, tools, what is worn, what stores or flies by itself, the arc's, the photosensitive panel nothing makes.</summary>
-    private static readonly string[] Unpriced = ["arcShard", "arcModule", "supplyPod", "fridge", "cargoCrate", "hullSection", "cargoContainer", "machineBlock", "cableRack", "tankCluster", "shieldSlab", "soilClod", "asteroid", "asteroidSmall", "asteroidLarge", "asteroidRich", "engineBlock", "cargoHold", "podCluster", "parcel", "deliveryCrate", "confiscated", "photoPanel", "drone", "salvageDrone", "screwdriver", "fireAxe", "harpoon", "grapple", "nailer", "railgun", "drill", "powerDriver", "grinder", "plasmaCutter", "spear", "sledgehammer", "pickaxe", "jetpack", "helmetLamp", "scanner", "battery", "accumulator", "helmet", "suit", "heavyHelmet", "quiltedHelmet", "regenSuit", "heatSuit", "cape"];
+    private static readonly string[] Unpriced = ["arcShard", "arcModule", "supplyPod", "fridge", "cargoCrate", "hullSection", "cargoContainer", "machineBlock", "cableRack", "tankCluster", "shieldSlab", "soilClod", "asteroid", "asteroidSmall", "asteroidLarge", "asteroidRich", "engineBlock", "cargoHold", "podCluster", "parcel", "deliveryCrate", "confiscated", "iceBlock", "contrabandCrate", "photoPanel", "drone", "salvageDrone", "screwdriver", "fireAxe", "harpoon", "grapple", "nailer", "railgun", "drill", "powerDriver", "grinder", "plasmaCutter", "spear", "sledgehammer", "pickaxe", "jetpack", "helmetLamp", "scanner", "battery", "accumulator", "helmet", "suit", "heavyHelmet", "quiltedHelmet", "regenSuit", "heatSuit", "cape"];
 
     /// <summary>Everything is priced or named here as what no one buys; raw salvage is, so the first credits need nothing made.</summary>
     [Fact]
@@ -513,15 +515,17 @@ public partial class ContentTests
 
     /// <summary>
     /// What the planet's caves give (0080) is had there alone: copper ore from its veins, smelted into copper at the furnace,
-    /// magnetite from the heat's cracks over the bedrock, and the motor of both at the Former; ice, crystal, spores and mica.
+    /// magnetite from the heat's cracks over the bedrock, and the motor of both at the Former; crystal, spores and mica. Ice too, but for the
+    /// ice belt's blocks aboard (docs/decisions/2026-11-15-stretches-of-space.md).
     /// Aboard, none of them; and no motor without the deepest band's magnetite.
     /// </summary>
     [Fact]
     public void WhatTheCavesGiveComesFromAPlanetAloneAndTheMotorNeedsItsCopperAndItsDeepestMagnetite()
     {
-        string[] planetary = ["copperOre", "copper", "magnetite", "motor", "ice", "crystal", "spore", "mica", "sulfur"];
+        string[] planetary = ["copperOre", "copper", "magnetite", "motor", "crystal", "spore", "mica", "sulfur"];
         var aboard = Reachable(Stations.All).Items;
         Assert.All(planetary, item => Assert.DoesNotContain(item, aboard));
+        Assert.Contains("ice", aboard);
         var (down, known) = Reachable(Stations.All, planet: true);
         Assert.All(planetary, item => Assert.Contains(item, down));
         Assert.Contains("motor", known);

@@ -97,6 +97,9 @@ public partial class DevPanel : CanvasLayer
         // The planet's hour (2026-11-07-night-chills): dusk starting, night a minute on; or the day's start. Refused aboard.
         buttons.AddChild(Style.Button("dusk", () => Send(new Sim.Sky.SetTime(_modules().Rules.Cycle is { } day ? day.Length - day.Night - Daylight.Dusk : 0))));
         buttons.AddChild(Style.Button("day", () => Send(new Sim.Sky.SetTime(0))));
+        // A stretch of space coming now, its whole warning first (docs/decisions/2026-11-15-stretches-of-space.md); refused off the ship or while one runs.
+        foreach (var stretch in Content.Stretches.All)
+            buttons.AddChild(Style.Button(stretch.Id, () => Send(new Sim.Sky.StretchNow(stretch.Id))));
         // A place on the radar at once (2026-11-08-radar-contacts): a vessel of a random class, where places draws it on the orbit.
         buttons.AddChild(Style.Button("radar place", () => Send(new Find(Content.Vessels.Classes[(int)(GD.Randi() % (uint)Content.Vessels.Classes.Count)].Id))));
         column.AddChild(buttons);

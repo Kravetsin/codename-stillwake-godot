@@ -14,6 +14,7 @@ public static partial class En
         ["handbook.row.wrecks"] = "Drifts by the ship, broken by a weapon",
         ["handbook.row.asteroids"] = "In the asteroid band, above and below the ship",
         ["handbook.row.derelicts"] = "Far out from the ship",
+        ["handbook.row.stretches"] = "In a passing stretch of space",
         ["handbook.hp"] = "Hit points {hp}",
         ["handbook.anyWeapon"] = "Any weapon breaks it",
         ["handbook.byHand"] = "Caught by hand",
