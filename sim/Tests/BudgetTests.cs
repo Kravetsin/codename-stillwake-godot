@@ -443,7 +443,7 @@ public class BudgetTests(ITestOutputHelper output)
         output.WriteLine($"tick: {ticks.Mean:F3} ms mean, {ticks.Max:F3} ms max");
         Assert.True(burning > 1000 && selling > 1000, "the machines stand idle");
         // Two thousand machines, more than a world will hold: twice the budget. A desk took about 2.6 ms before liquid oxygen,
-        // 3.2–3.7 ms with a vaporizer and a panel to each room.
+        // 3.2–3.7 ms with a vaporizer and a panel to each room, 4 by 2026-11-16; 3.1 once the panels' stars were kept.
         Assert.True(ticks.Mean < Within(4), "a tick is far over its budget");
     }
 

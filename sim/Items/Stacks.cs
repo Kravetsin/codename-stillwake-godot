@@ -121,6 +121,46 @@ internal static class Stacks
     }
 
     /// <summary>
+    /// Whether <paramref name="cost"/> fits into <paramref name="slots"/> from slot <paramref name="from"/> on, as
+    /// <see cref="Placed"/> would place it there, though nothing is made: what each fed station asks every tick.
+    /// </summary>
+    public static bool Fits(IReadOnlyList<Stack?> slots, int from, IReadOnlyList<(string Item, int Count)> cost)
+    {
+        int n = Math.Max(0, slots.Count - from);
+        // Each slot's count as the cost goes in, and the entry an empty one took, -1 for none: what Placed's copy would hold.
+        Span<int> count = stackalloc int[n];
+        Span<int> took = stackalloc int[n];
+        for (int i = 0; i < n; i++)
+        {
+            count[i] = slots[from + i]?.Count ?? 0;
+            took[i] = -1;
+        }
+        for (int k = 0; k < cost.Count; k++)
+        {
+            var (item, left) = cost[k];
+            if (left < 0) throw new ArgumentException($"items: {left} {item} is not a whole amount");
+            int limit = Content.Items.Get(item).Stack;
+            for (int i = 0; i < n && left > 0; i++)
+            {
+                bool alike = took[i] >= 0 ? cost[took[i]].Item == item : slots[from + i] is { } s && s.Alike(item);
+                if (!alike || count[i] >= limit) continue;
+                int added = Math.Min(left, limit - count[i]);
+                count[i] += added;
+                left -= added;
+            }
+            for (int i = 0; i < n && left > 0; i++)
+            {
+                if (took[i] >= 0 || slots[from + i] != null) continue;
+                count[i] = Math.Min(left, limit);
+                took[i] = k;
+                left -= count[i];
+            }
+            if (left > 0) return false;
+        }
+        return true;
+    }
+
+    /// <summary>
     /// <paramref name="slots"/> with as much of <paramref name="cost"/> added as fits, as <see cref="Placed"/>
     /// adds it, and what did not fit: what falls to the floor when an inventory is full.
     /// </summary>

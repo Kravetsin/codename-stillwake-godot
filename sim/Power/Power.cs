@@ -160,6 +160,10 @@ public sealed partial class PowerModule : Module<PowerState>, IPowerQueries, IPo
     private readonly Func<int, int> _stored;
     private readonly Predicate<StoreCharge> _storeStanding;
     private readonly Func<int, bool> _broken;
+    private readonly Func<Machine, bool> _seesStars;
+    /// <summary>Derived: whether each maker that needs the stars sees them, by machine id, found at the grid and rooms versions <see cref="_starsAt"/> names.</summary>
+    private readonly Dictionary<int, bool> _stars = [];
+    private (int Grid, int Rooms)? _starsAt;
 
     public override string Id => "power";
 
@@ -175,6 +179,17 @@ public sealed partial class PowerModule : Module<PowerState>, IPowerQueries, IPo
         _stored = StoredIn;
         _storeStanding = s => _grid.MachineById(s.Machine) != null;
         _broken = IsBroken;
+        // Walls and rooms move rarely, the panels are looked at every tick: each one walked only after they moved.
+        _seesStars = m =>
+        {
+            if (_starsAt != (_grid.Version, _rooms.Version))
+            {
+                _stars.Clear();
+                _starsAt = (_grid.Version, _rooms.Version);
+            }
+            if (!_stars.TryGetValue(m.Id, out bool sees)) _stars[m.Id] = sees = UnderStars(_grid, _rooms, m);
+            return sees;
+        };
         Handles<Lay>(c => LayProblem(c.From, c.A, c.B), ApplyLay);
         Handles<Move>(c => MoveProblem(c.Node, c.To, c.Cable), ApplyMove);
         Handles<Cut>(CutProblem, ApplyCut);
@@ -197,13 +212,20 @@ public sealed partial class PowerModule : Module<PowerState>, IPowerQueries, IPo
             if (!State.Off.TrueForAll(_standing)) State.Off = State.Off.FindAll(_standing);
             if (!State.Stores.TrueForAll(_storeStanding)) State.Stores = State.Stores.FindAll(_storeStanding);
             if (!State.Broken.TrueForAll(_standing)) State.Broken = State.Broken.FindAll(_standing);
-            Rebuild();
+            Refind();
         });
     }
 
     protected override PowerState Init(Layout layout) => new() { Cables = StartingCables(layout) };
 
-    public override void Rebuild() => (State.Networks, State.Satisfaction, State.Flows) = Find(_grid, _rooms, State.Cables, _draw, _making, _stored, _broken);
+    // The versions start over after a load, so what was found before it goes.
+    public override void Rebuild()
+    {
+        _starsAt = null;
+        Refind();
+    }
+
+    private void Refind() => (State.Networks, State.Satisfaction, State.Flows) = Find(_grid, State.Cables, _seesStars, _draw, _making, _stored, _broken);
 
     /// <summary>Where store <paramref name="machineId"/> stands in <c>Stores</c>, or its complement where it would go.</summary>
     private int StoreIndex(int machineId)
