@@ -36,6 +36,10 @@ public partial class GridView : Node2D
     private readonly TileMapLayer _back, _shade, _walls, _hull, _stripe, _details, _edges, _dress, _tops, _topsFront, _fixtures, _doors, _machines;
     /// <summary>An abandoned vessel's name and code, cut in cells from the picture painted as its surface loaded; null off a vessel.</summary>
     private readonly TileMapLayer? _paint;
+    /// <summary>A vessel's rooms dressed on their back walls (big-vessels, <see cref="VesselDress.Decors"/>), each while its cells stand as stamped.</summary>
+    private readonly Sketch? _decor;
+    private readonly bool[] _decorShows = [];
+    private int _decorVersion = -1;
     /// <summary>The layers a cell is drawn in; machines are drawn apart, over their footprints.</summary>
     private readonly TileMapLayer[] _cellLayers;
     private readonly Node2D _sockets = new() { ZIndex = Layers.Sockets };
@@ -86,7 +90,7 @@ public partial class GridView : Node2D
         _stripe = Layer(Layers.Walls, L.WallIn);
         if (vessel != null)
         {
-            var livery = VesselLooks.Liveries[vessel.Livery];
+            var livery = vessel.Colours;
             _hull.SelfModulate = LiveryTint(livery.Hull, VesselLooks.HullGrey);
             _stripe.SelfModulate = LiveryTint(livery.Stripe, VesselLooks.StripeGrey);
             if (VesselPaint.Of(vessel) is { } paint)
@@ -95,6 +99,13 @@ public partial class GridView : Node2D
                 Lit.Set(_paint, L.WallIn);
                 AddChild(_paint);
             }
+        }
+        if (vessel is { Decors.Count: > 0 })
+        {
+            _decor = new Sketch(Layers.Pipes, lit: true) { Paint = PaintDecor };
+            Lit.Set(_decor);
+            AddChild(_decor);
+            _decorShows = new bool[vessel.Decors.Count];
         }
         // A planet's pebbles and roots over its ground, under its edges: added after the walls, before them (0082).
         _details = Layer(Layers.Walls, L.WallIn);
@@ -119,10 +130,49 @@ public partial class GridView : Node2D
     public void Fade((float Front, float Back) alpha)
     {
         foreach (var layer in (CanvasItem[])[_back, _shade]) layer.Modulate = _tint with { A = alpha.Back };
+        if (_decor != null) _decor.Modulate = new Color(1, 1, 1, alpha.Back);
         foreach (var layer in (CanvasItem[])[_walls, _details, _edges, _dress]) layer.Modulate = _tint with { A = alpha.Front };
         foreach (var layer in (CanvasItem?[])[_hull, _stripe, _paint, _tops, _topsFront])
             if (layer != null) layer.Modulate = new Color(1, 1, 1, alpha.Front);
         foreach (var layer in (CanvasItem[])[_fixtures, _doors, _machines, _sockets]) layer.Modulate = new Color(1, 1, 1, alpha.Front);
+    }
+
+    /// <summary>Which of the vessel's decor still shows, read again when the grid changed; drawn again when any changed.</summary>
+    private void FollowDecor(int version)
+    {
+        _decorVersion = version;
+        bool changed = false;
+        for (int i = 0; i < _decorShows.Length; i++)
+        {
+            bool shows = _vessel!.Shows(_grid, _vessel.Decors[i]);
+            changed |= shows != _decorShows[i];
+            _decorShows[i] = shows;
+        }
+        if (changed) _decor!.QueueRedraw();
+    }
+
+    /// <summary>Each decor that shows: its picture at its box's top-left, or laid again and again across its box, the last cut short.</summary>
+    private void PaintDecor(Sketch g)
+    {
+        int m = Content.Vessels.Margin;
+        for (int i = 0; i < _decorShows.Length; i++)
+        {
+            if (!_decorShows[i]) continue;
+            var d = _vessel!.Decors[i];
+            var picture = PixelArt.Picture(d.Picture);
+            var at = new Vector2(d.X + m, d.Y + m) * Cell;
+            if (!d.Tiled)
+            {
+                g.DrawTexture(picture, at);
+                continue;
+            }
+            var size = picture.GetSize();
+            for (float x = 0, across = d.Width * Cell; x < across; x += size.X)
+            {
+                float piece = Math.Min(size.X, across - x);
+                g.DrawTextureRectRegion(picture, new Rect2(at + new Vector2(x, 0), new Vector2(piece, size.Y)), new Rect2(0, 0, piece, size.Y));
+            }
+        }
     }
 
     /// <summary>What a picture painted in <paramref name="grey"/> is multiplied by to come out <paramref name="rgb"/> (0xRRGGBB).</summary>
@@ -168,6 +218,7 @@ public partial class GridView : Node2D
         _shadows.Flush();
         if (version != _machinesVersion && MachinesMoved() && !_drawnMachines.SequenceEqual(_grid.Machines)) DrawMachines();
         _machinesVersion = version;
+        if (_decor != null && version != _decorVersion) FollowDecor(version);
     }
 
     /// <summary>

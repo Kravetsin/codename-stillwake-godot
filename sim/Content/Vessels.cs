@@ -484,6 +484,9 @@ public static class Vessels
 
         /// <summary>The hangar's shuttle stands this many columns short of its right; the fuel cart and stacks from this column past its left.</summary>
         public const int ShuttleFromRight = 4, HangarFrom = 3;
+
+        /// <summary>The salvage a hold and a hangar stack, and the galley's fridge.</summary>
+        public const string Crate = "salvageCrate", Fridge = "salvageVending";
     }
 
     /// <summary>The surface kind each class's vessel lies on (vessel-worlds), in the order of <see cref="Classes"/>.</summary>

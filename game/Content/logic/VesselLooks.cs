@@ -22,6 +22,17 @@ public static class VesselLooks
         new(0x848991, 0x2d4569, 0xe3e3dd),
     ];
 
+    /// <summary>A liner's three, light (big-vessels, the picked mockup's): hull pale, stripe and paint dark.</summary>
+    public static readonly IReadOnlyList<Livery> LinerLiveries =
+    [
+        new(0xb9bab4, 0x2d4a7a, 0x1f2a36),
+        new(0xb6b2a8, 0x8a2f2a, 0x2a2626),
+        new(0xaeb6b7, 0x2f6f6a, 0x1d272c),
+    ];
+
+    /// <summary>The liveries a vessel of class <paramref name="cls"/> is painted in: a liner's own, the derelicts' for the rest.</summary>
+    public static IReadOnlyList<Livery> LiveriesOf(string cls) => cls == "liner" ? LinerLiveries : Liveries;
+
     /// <summary>Names painted on a vessel's side, in Latin for every player: content, not i18n keys.</summary>
     public static readonly IReadOnlyList<string> Names =
     [
@@ -75,7 +86,7 @@ public static class VesselLooks
 
     /// <summary>How many signs of abandonment a vessel of each class shows inside, fewest and most; fewer where no room fits one.</summary>
     public static readonly IReadOnlyDictionary<string, (int Least, int Most)> Signs =
-        new Dictionary<string, (int, int)>(System.StringComparer.Ordinal) { ["shuttle"] = (2, 3), ["freighter"] = (3, 5) };
+        new Dictionary<string, (int, int)>(System.StringComparer.Ordinal) { ["shuttle"] = (2, 3), ["freighter"] = (3, 5), ["liner"] = (4, 6) };
 
     /// <summary>What soot may lie over, by its first look: a burnt console or machine, never a crate or a pod.</summary>
     public static readonly IReadOnlyList<string> SootOver = ["salvageConsole", "salvageMachine", "salvageEngine", "salvageRack", "salvageTanks", "salvageVending",
@@ -125,8 +136,8 @@ public static class VesselLooks
     /// <summary>A draw below <paramref name="n"/>.</summary>
     public static int Below(uint seed, Salt salt, int cell, int n) => (int)(LookRng(seed, salt, cell) % (ulong)n);
 
-    /// <summary>The livery of the vessel of <paramref name="seed"/>, by its place in <see cref="Liveries"/>.</summary>
-    public static int LiveryOf(uint seed) => Below(seed, Salt.Livery, 0, Liveries.Count);
+    /// <summary>The livery of the vessel of class <paramref name="cls"/> and <paramref name="seed"/>, by its place in <see cref="LiveriesOf"/>.</summary>
+    public static int LiveryOf(string cls, uint seed) => Below(seed, Salt.Livery, 0, LiveriesOf(cls).Count);
 
     /// <summary>The name painted on the vessel of <paramref name="seed"/>.</summary>
     public static string NameOf(uint seed) => Names[Below(seed, Salt.Name, 0, Names.Count)];

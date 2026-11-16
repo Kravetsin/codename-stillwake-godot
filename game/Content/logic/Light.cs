@@ -116,6 +116,8 @@ public static class Light
         ["arcLamp"] = new(ArcLamp, ArcLampStrength, ArcLampReach, ArcLampKeep, 0xb4dcffff, Glass: true),
         // A derelict's flat ceiling lamp (derelict-looks): a little whiter and brighter than the starter lamp, from its lens strip.
         [Stillwake.Content.Vessels.Lamp] = new((0.86f, 0.74f, 0.55f), 1.2f, LampReach + 2, LampKeep, 0xffe4b8ff, At: (8, 4.5f)),
+        // A liner's chandelier (big-vessels): warmer and further, from among its glass, burning as the ceiling lamp does.
+        [Stillwake.Content.Vessels.Chandelier] = new((0.95f, 0.78f, 0.52f), 1.3f, LampReach + 4, LampKeep, 0xffdca0ff, At: (12, 11)),
         // A derelict's vending machine (food-and-the-body): only its sign and screen still lit, faint, from the header: the enamel
         // cabinet's pale green tube, the glass case's oxblood one.
         ["salvageVending"] = new((0.72f, 0.86f, 0.77f), 0.45f, VendingReach, LampKeep, 0xb8dcc4ff, Alight: "machine_salvageVending_lit", At: (16, 4)),

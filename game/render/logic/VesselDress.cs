@@ -92,8 +92,10 @@ public sealed class VesselDress
     /// <summary>The vessel's seed: what every look of it is drawn from.</summary>
     public uint Seed { get; }
 
-    /// <summary>Its livery, by its place in <see cref="Looks.Liveries"/>.</summary>
+    /// <summary>Its livery, by its place in its class's (<see cref="Looks.LiveriesOf"/>); <see cref="Colours"/> it.</summary>
     public int Livery { get; }
+
+    public Looks.Livery Colours { get; }
 
     public string Name { get; }
     public string Code { get; }
@@ -112,7 +114,8 @@ public sealed class VesselDress
     public VesselDress(Vessel vessel)
     {
         Seed = vessel.Seed;
-        Livery = Looks.LiveryOf(Seed);
+        Livery = Looks.LiveryOf(vessel.Class, Seed);
+        Colours = Looks.LiveriesOf(vessel.Class)[Livery];
         Name = Looks.NameOf(Seed);
         Code = Looks.CodeOf(Seed);
         _corner = (Vessels.Margin, Vessels.Margin);
@@ -197,6 +200,65 @@ public sealed class VesselDress
                     (look.PaintX, look.PaintY) = ((short)dx, (short)(label.Row + dy));
                 }
         PaintCells = Labels.Count == 0 ? (0, 0) : (Labels.Max(l => l.Width), Labels[^1].Row + Labels[^1].Height);
+
+        var built = new bool[w * h];
+        foreach (var part in parts.Where(p => p.Layer == "structure"))
+            foreach (var (x, y) in Shipyard.Covers(part))
+                if (x >= 0 && y >= 0 && x < w && y < h) built[y * w + x] = true;
+        Decors = DecorOf(vessel, built);
+    }
+
+    /// <summary>
+    /// A room's dress on its back wall (big-vessels), by its role: a picture over cells <c>X</c>, <c>Y</c>, <c>Width</c> by <c>Height</c> of
+    /// the frame, repeated across when <c>Tiled</c>; shown while every cell of <c>Cells</c>, those of its box stamped bare of structure, stays so.
+    /// </summary>
+    public sealed record Decor(string Picture, int X, int Y, int Width, int Height, bool Tiled, IReadOnlyList<(int X, int Y)> Cells);
+
+    /// <summary>The pictures the vessel's rooms are dressed with, in reading order of its rooms: a pool's tiles and lifebuoy, a restaurant's wainscot and bottles, a hangar's pad.</summary>
+    public IReadOnlyList<Decor> Decors { get; }
+
+    /// <summary>The pool hall's tiles rise this many rows from its floor, the restaurant's wainscot this many; its bottles' shelves this far up.</summary>
+    public const int TileRows = 8, WainscotRows = 3, BottlesUp = 9;
+
+    private static List<Decor> DecorOf(Vessel vessel, bool[] built)
+    {
+        var decor = new List<Decor>();
+        void Add(string picture, int x, int y, int width, int height, bool tiled)
+        {
+            var cells = new List<(int, int)>();
+            for (int cy = y; cy < y + height; cy++)
+                for (int cx = x; cx < x + width; cx++)
+                    if (!built[cy * vessel.Width + cx]) cells.Add((cx, cy));
+            decor.Add(new Decor(picture, x, y, width, height, tiled, cells));
+        }
+        foreach (var c in vessel.Compartments)
+            switch (c.Role)
+            {
+                case VesselRole.Pool:
+                    Add("vessel_pool_tiles", c.Left, c.Floor - TileRows, c.Width, TileRows, tiled: true);
+                    Add("vessel_lifebuoy", c.Left + (c.Width - 10) / 2, c.Top + 2, 2, 2, tiled: false);
+                    break;
+                case VesselRole.Restaurant:
+                    Add("vessel_wainscot", c.Left, c.Floor - WainscotRows, c.Width, WainscotRows, tiled: true);
+                    Add("vessel_bottles", c.Left + 2, c.Floor - BottlesUp, 7, 4, tiled: false);
+                    break;
+                case VesselRole.Hangar when vessel.Fittings.FirstOrDefault(f => Vessels.Shuttles.Contains(f.Kind) && c.Holds(f.X, f.Y)) is { } shuttle:
+                    int left = Math.Max(c.Left, shuttle.X - 2), width = Math.Min(Machines.Get(shuttle.Kind).Width + 4, c.Left + c.Width - left);
+                    Add("vessel_pad", left, c.Floor - 1, width, 1, tiled: true);
+                    break;
+            }
+        return decor;
+    }
+
+    /// <summary>Whether <paramref name="decor"/> still shows on <paramref name="grid"/>: every cell it was stamped bare still a hull back wall with no structure.</summary>
+    public bool Shows(IGridQueries grid, Decor decor)
+    {
+        foreach (var (x, y) in decor.Cells)
+        {
+            int cell = CellOf(x, y, grid.Width);
+            if (grid.StructureAt(cell) != Structure.Empty || grid.BackAt(cell)?.Id != Vessels.Hull) return false;
+        }
+        return true;
     }
 
     /// <summary>

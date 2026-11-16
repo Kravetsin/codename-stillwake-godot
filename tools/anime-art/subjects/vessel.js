@@ -610,9 +610,284 @@ function furniture() {
   });
 }
 
+// ---- A liner's rooms (big-vessels, the mockup's drawItem and SHUTTLE_DRAW): the restaurant, the pool, the galley, the infirmary,
+// the hangar and its five shuttles, the fuel tank; and the decor its rooms are dressed with (VesselDress.Decor), on the back wall.
+const WOOD = palOf('#5e4330'), WOOD_DARK = palOf('#2f2119'), BLACK = palOf('#1d1d20'), CLOTH = palOf('#d6d1c4'), PALE_METAL = palOf('#d0d6d8');
+const ORANGE = palOf('#c8722e'), SHEET = palOf('#bdbab2'), CAB = palOf('#a9aca8'), STEEL_GREY = palOf('#8a9096');
+const NOZZLE = palOf('#494d55'), CANOPY = '#1b3640';
+/** The mockup's CONTENTS, a capsule's look each: fuel, water, oxygen, nitrogen, coolant (Vessels.CapsuleContents). */
+const CONTENTS = ['#9a5a2e', '#4f6f86', '#a7bcc6', '#7d8590', '#4f7a5a'];
+/** x mirrored about a picture w wide when it faces the other way. */
+const mirror = (w, flip) => (pts) => flip ? pts.map((v, i) => (i % 2 ? v : w - v)) : pts;
+
+/** machine_vesselBar: the restaurant's bar, panelled wood under a dark top, a brass rail along its foot. 7 × 3 cells. */
+function bar(a) {
+  const d = band(0, 2.8, 56, 24);
+  lit(a, 0, 2.8, 56, 24, WOOD, { lines: [9.6, 20.8, 32, 43.2].map((x) => `M${x} 5.6L${x} 21.6`) });
+  lit(a, -1, 0, 57, 3.2, WOOD_DARK);
+  a.line('M1 19.2L55 19.2', { c: '#c9a03a', w: .9 });
+  patch(a, 44, 12, 2, 1, RUST, d, 301);
+}
+
+/** machine_vesselPiano: a grand piano from its side, its lid propped up, its keys out front, on two legs. 5 × 3 cells. */
+function piano(a) {
+  for (const x of [3.2, 35.2]) lit(a, x, 15.2, x + 1.8, 24, BLACK);
+  a.line('M2.4 8L26 0', { c: '#1d1d20', w: 1.4 });
+  a.line('M18 8L22 1.6', { c: '#5d646e', w: .6 });
+  a.shape(poly(0, 8, 26, 8, 40, 10.4, 40, 15.2, 0, 15.2), BLACK, { lite: band(0, 8, 40, 9.2) });
+  a.flat(band(-1, 9.6, 1, 11.6), '#e8e4da');
+}
+
+/** machine_vesselRoundTable: a round table under its cloth, on one pedestal and its foot. 3 × 2 cells. */
+function roundTable(a) {
+  lit(a, 10.8, 9, 13.2, 14.6, DARK);
+  lit(a, 5.6, 14, 18.4, 16, DARK);
+  a.shape(poly(2.4, 0, 21.6, 0, 24, 10.4, 0, 10.4), CLOTH, { lite: band(0, 0, 24, 1.4), shade: band(0, 8.4, 24, 10.4), lines: ['M8 1L7 10', 'M16 1L17 10'] });
+}
+
+/** machine_vesselChair, machine_vesselChair2: a dining chair, its back on the left (or mirrored), its seat and a front leg. 1 × 3 cells. */
+function chair(flip) {
+  return (a) => {
+    const m = mirror(8, flip);
+    a.shape(poly(m([0, 0, 2.8, 0, 2.8, 11.2, 8, 11.2, 8, 14, 2.8, 14, 2.8, 24, 0, 24])), WOOD, { shade: .4 });
+    a.shape(poly(m([6.6, 14, 8, 14, 8, 24, 6.6, 24])), WOOD, { shade: .4 });
+    a.flat(poly(m([.6, 2, 2.2, 2, 2.2, 9, .6, 9])), '#7b2e2a');
+  };
+}
+
+/** machine_vesselLounger: a deck lounger, striped canvas on a frame, its back raised at the right, on two legs. 4 × 2 cells. */
+function lounger(a) {
+  for (const x of [2.4, 22.4]) lit(a, x, 12, x + 1.2, 16, MID);
+  const d = poly(0, 8.8, 22.4, 8.8, 28.8, 0, 32, 1.6, 25.6, 12, 0, 12);
+  a.shape(d, ORANGE, { shade: band(0, 10.4, 32, 12) });
+  for (let x = 3.2; x < 25.6; x += 7.2) a.flat(band(x, 0, x + 3.2, 16), '#e6dfcf', { clip: d });
+}
+
+/** machine_vesselDiving: the diving board on its post at the right, the board out over the basin's far end. 5 × 8 cells. */
+function diving(a) {
+  lit(a, 33.6, 4.8, 37.6, 64, LIGHT);
+  for (let y = 16; y < 62; y += 7.2) a.line(`M37.6 ${y}L40 ${y}`, { c: '#7d848d', w: .7 });
+  a.shape(band(0, 2.4, 40, 4.8), PALE_METAL, { lite: band(0, 2.4, 40, 3.2) });
+  lit(a, 30.4, 4.8, 38.4, 7.2, DARK);
+}
+
+/** machine_vesselPool: the basin half drained, tiles above an old waterline, murky water below, a ladder down its near end. 20 × 5 cells. */
+function pool(a) {
+  const d = band(0, 2.8, 160, 40);
+  a.shape(d, palOf('#8fb6c2'), { lite: band(0, 2.8, 160, 4) });
+  for (let x = 4.8; x < 160; x += 4.8) a.line(`M${x} 3.2L${x} 39`, { c: 'rgba(80,110,120,.35)', w: .35 });
+  for (let y = 7.6; y < 40; y += 4.8) a.line(`M1 ${y}L159 ${y}`, { c: 'rgba(80,110,120,.35)', w: .35 });
+  a.line('M1.6 10L158.4 10', { c: '#3e5250', w: .9 });
+  a.flat(band(1.6, 21.6, 158.4, 38.4), 'rgba(34,82,80,.92)', { clip: d });
+  a.line('M1.6 21.6L158.4 21.6', { c: '#7cb8ae', w: .9 });
+  a.shape(band(-1, 0, 161, 2.8), palOf('#d8d6cc'), { lite: band(-1, 0, 161, .8) });
+  for (const x of [6.4, 12.8]) a.tube(`M${x} 38L${x} 1Q${x} -1 ${x - 3.2} 0`, .9, LIGHT, { spec: false });
+  for (let y = 6; y < 36; y += 5.6) a.line(`M6.4 ${y}L12.8 ${y}`, { c: '#c9ced2', w: .7 });
+  patch(a, 120, 30, 6, 2, ['rgba(40,60,50,.5)', 'rgba(20,40,30,.6)'], d, 307);
+}
+
+/** machine_vesselChandelier: a chandelier on its chain, brass arms and crystal drops round lamps the game lights. 3 × 3 cells. */
+function chandelier(a) {
+  a.line('M12 0L12 7', { c: '#8c7a4a', w: .9 });
+  a.tube('M2.4 12Q12 17.6 21.6 12', 1.1, palOf('#a8873a'), { spec: false });
+  lit(a, 9.6, 6.4, 14.4, 14.4, palOf('#a8873a'));
+  for (const x of [2.4, 12, 21.6]) a.shape(ell(x, 10, 1.8, 2.2), LENS, { lite: ell(x - .5, 9.2, .7, .8) });
+  for (const x of [4.8, 8, 12, 16, 19.2]) a.shape(poly(x - .8, 15, x + .8, 15, x, 22), CLEAR, {});
+}
+
+/** machine_vesselStove: the galley's range, its burners on top, the oven's dark door. 4 × 3 cells. */
+function stove(a) {
+  lit(a, 0, 4.8, 32, 24, MID, { lines: ['M2 7.2L30 7.2'] });
+  a.flat(band(3.2, 11.2, 28.8, 20), '#1f2125');
+  for (const x of [6.4, 17.6, 25.6]) lit(a, x - 3.2, 2.4, x + 3.2, 4.8, DARK);
+  a.line('M4 9.4L28 9.4', { c: '#b8b2a2', w: .7 });
+}
+
+/** machine_vesselCounter: a galley counter, steel doors along it. 5 × 2 cells. */
+function counter(a) {
+  lit(a, 0, 0, 40, 16, STEEL_GREY, { lines: [8, 20.8, 33.6].map((x) => `M${x} 4L${x} 15`) });
+  a.flat(band(-.5, 0, 40.5, 1.6), '#5d646e');
+}
+
+/** machine_vesselBed: an infirmary bed, a white sheet on its frame, four short legs. 4 × 2 cells. */
+function bed(a) {
+  for (const x of [1.6, 28]) lit(a, x, 10.4, x + 2.4, 16, DARK);
+  lit(a, 0, 7.2, 32, 10.4, MID);
+  a.shape(Anime.rr(1.6, 3.2, 28.8, 4.4, 1.6), SHEET, { lite: band(1.6, 3.2, 30.4, 4.2) });
+  a.shape(Anime.rr(2.4, 1.6, 7.2, 3.2, 1.4), palOf('#e3e0d8'), {});
+}
+
+/** machine_vesselMedCab: a medicine cabinet, the red cross on its door. 2 × 5 cells. */
+function medCab(a) {
+  lit(a, .4, 0, 15.6, 40, CAB, { lines: ['M2 20L14 20'] });
+  a.flat(band(6.8, 6.4, 9.2, 15.2), '#a3332a');
+  a.flat(band(3.6, 9.6, 12.4, 12), '#a3332a');
+  a.flat(band(12, 24, 13.2, 29.6), '#7d848d');
+}
+
+/** machine_vesselFuelCart: a fuel cart, a rust-red tank on two wheels. 3 × 2 cells. */
+function fuelCart(a) {
+  lit(a, 0, 1.6, 24, 12, palOf('#8a4a35'), { lines: ['M8 2L8 11'] });
+  for (const x of [4.8, 19.2]) a.shape(ell(x, 13.6, 2.4), palOf('#1f2125'), {});
+}
+
+/** machine_vesselCapsule and its looks: a horizontal tank on two saddles in its contents' paint, bands at its seams. 14 × 11 cells. */
+function capsule(col) {
+  return (a) => {
+    const pal = palOf(col), d = Anime.rr(.8, 1.6, 110.4, 70.4, 35);
+    for (const x of [20, 76]) a.shape(poly(x, 56, x + 17.6, 56, x + 22.4, 88, x - 4.8, 88), DARK, { shade: .5 });
+    a.shape(d, pal, { lite: band(0, 1.6, 112, 12), shade: band(0, 54, 112, 72), deep: band(0, 64, 112, 72) });
+    for (const x of [36, 72]) a.flat(band(x, 1.6, x + 4.8, 72), pal.shade, { clip: d });
+    a.flat(band(0, 18, 112, 24), 'rgba(255,255,255,.08)', { clip: d });
+    rivets(a, [38.4, 30], [74.4, 30]);
+    patch(a, 90, 50, 6, 2.4, RUST, d, 311);
+  };
+}
+
+/** The mockup's shuttle points, cells to pixels, lowered by dy so its feet stand on the picture's foot. */
+const s8 = (pts, dy) => pts.map((v, i) => (i % 2 ? v * 8 + dy : v * 8));
+/** machine_vesselShuttleGull: a courier, a light hull with its orange stripe on two skids. 21 × 7 cells. */
+function gull(a) {
+  const dy = 4;
+  a.shape(poly(s8([0, 2.3, 2.2, 2.9, 2.2, 4.3, 0, 4.9], dy)), NOZZLE, {});
+  for (const [x0, x1] of [[5.5, 4.8], [15, 15.7]]) a.line(`M${x0 * 8} ${5.2 * 8 + dy}L${x1 * 8} ${6.4 * 8 + dy}`, { c: '#5a6069', w: 1.6 });
+  lit(a, 30, 54.4, 136, 56, DARK);
+  const hull = poly(s8([2.2, 2.4, 5.2, 1.2, 12.4, .9, 16.6, 1.6, 21, 3.5, 19.8, 4.7, 13.4, 5.2, 3.2, 5.2, 2.2, 4.4], dy));
+  a.shape(hull, palOf('#c9c6bd'), { lite: band(0, 0, 168, 18) });
+  a.flat(band(16, 3.6 * 8 + dy, 160, 4.05 * 8 + dy), '#c8722e', { clip: hull });
+  a.flat(poly(s8([12.6, 1.05, 16.2, 1.75, 18.6, 3, 13.6, 2.7], dy)), CANOPY);
+}
+/** machine_vesselShuttleMule: a cargo hauler, its cab forward over a yellow box, on two struts. 24 × 9 cells. */
+function mule(a) {
+  const dy = 4;
+  for (const by of [1.6, 4]) a.shape(poly(s8([0, by, 2, by + .5, 2, by + 1.6, 0, by + 2.1], dy)), NOZZLE, {});
+  for (const x of [44, 160]) lit(a, x, 6 * 8 + dy, x + 3.2, 72, DARK);
+  a.shape(band(16, 1.6 * 8 + dy, 128, 2.3 * 8 + dy), MID, {});
+  a.shape(band(16, 1.6 * 8 + dy, 35.2, 6.2 * 8 + dy), DARK, {});
+  const box = band(36.8, 2.5 * 8 + dy, 124.8, 6.9 * 8 + dy);
+  a.shape(box, palOf('#c9a03a'), { lines: Array.from({ length: 12 }, (_, i) => `M${43 + i * 6.8} ${2.9 * 8 + dy}L${43 + i * 6.8} ${6.5 * 8 + dy}`) });
+  const cab = poly(s8([15.6, .6, 21.4, .6, 24, 2.6, 24, 5.6, 15.6, 5.6], dy));
+  a.shape(cab, palOf('#b8b3a6'), { lite: band(124, 0, 192, 12) });
+  hazardFoot(a, 124.8, 4.8 * 8 + dy, 67.2, 4.4, cab);
+  a.flat(poly(s8([21.2, .9, 23.6, 2.8, 21.6, 2.8], dy)), CANOPY);
+  lit(a, 36, 69.6, 176, 72, DARK);
+}
+/** machine_vesselShuttleBeetle: a tug, an orange dome on three legs, its claw arm forward. 16 × 9 cells. */
+function beetle(a) {
+  const dy = 4;
+  for (const [lx, fx] of [[3.5, 2.2], [8, 8], [12.4, 13.6]]) {
+    a.line(`M${lx * 8} ${5.6 * 8 + dy}L${fx * 8} ${8.1 * 8 + dy}`, { c: '#5a6069', w: 1.8 });
+    lit(a, fx * 8 - 4.8, 68.4, fx * 8 + 4.8, 72, DARK);
+  }
+  const shell = [];
+  for (let i = 0; i <= 16; i++) { const t = Math.PI + Math.PI * i / 16; shell.push(64 + Math.cos(t) * 49.6, 5.6 * 8 + dy + Math.sin(t) * 36.8); }
+  const d = poly(shell);
+  a.shape(d, palOf('#c8722e'), { lite: band(0, 0, 128, 14) });
+  a.flat(band(12.8, 4.4 * 8 + dy, 115.2, 4.8 * 8 + dy), '#6a3f22', { clip: d });
+  a.flat(ell(83.2, 2.9 * 8 + dy, 8.8, 7.2), CANOPY);
+  a.tube(`M107.2 ${4.4 * 8 + dy}L121.6 ${5.4 * 8 + dy}L126.4 ${6.6 * 8 + dy}`, 1.8, LIGHT, { spec: false });
+}
+/** machine_vesselShuttleWhale: a lifeboat, long and pale, a row of portholes, its blue stripe. 24 × 7 cells. */
+function whale(a) {
+  const dy = 6;
+  a.shape(poly(s8([0, 2.2, 2, 2.6, 2, 3.8, 0, 4.2], dy)), NOZZLE, {});
+  a.shape(poly(s8([2.4, 1.5, 5, 1.5, 3.6, .2, 2.4, .2], dy)), MID, {});
+  a.shape(poly(s8([2.4, 5, 5, 5, 3.6, 6.2, 2.4, 6.2], dy)), MID, {});
+  const nose = [];
+  for (let i = 0; i <= 10; i++) { const t = -Math.PI / 2 + Math.PI * i / 10; nose.push(21.6 + Math.cos(t) * 2.2, 3 + Math.sin(t) * 2.2); }
+  const hull = poly(s8([2, .8, ...nose, 2, 5.2], dy));
+  a.shape(hull, palOf('#d0cec6'), { lite: band(0, 0, 192, 14) });
+  a.flat(band(16, 4.1 * 8 + dy, 184, 4.55 * 8 + dy), '#2d5a8a', { clip: hull });
+  for (let x = 6; x < 20; x += 2) a.flat(ell(x * 8, 2.6 * 8 + dy, 3.6), x % 6 === 0 ? '#e8c27a' : CANOPY);
+  lit(a, 24, 5.2 * 8 + dy, 168, 56, DARK);
+}
+/** machine_vesselShuttleHeron: a lander, a green hull high on three legs, its belly nozzle. 16 × 11 cells. */
+function heron(a) {
+  const dy = 7.2;
+  for (const [lx, ly, fx] of [[4.2, 6, .8], [8, 6.4, 8], [11.8, 6, 15.2]]) {
+    a.line(`M${lx * 8} ${ly * 8 + dy}L${fx * 8} ${86}`, { c: '#5a6069', w: 2 });
+    lit(a, Math.max(0, fx * 8 - 5.6), 84.4, Math.min(128, fx * 8 + 5.6), 88, DARK);
+  }
+  a.shape(poly(s8([7, 6.4, 9, 6.4, 9.8, 8, 6.2, 8], dy)), NOZZLE, {});
+  const hull = poly(s8([4, 1.4, 11.4, 1.4, 13.4, 3.2, 13.4, 6.4, 3, 6.4, 3, 2.4], dy));
+  a.shape(hull, palOf('#6f7d6a'), { lite: band(0, 0, 128, 20) });
+  a.flat(band(24, 5.3 * 8 + dy, 108, 5.65 * 8 + dy), '#c9b25a', { clip: hull });
+  a.flat(poly(s8([11.2, 1.7, 13, 3.3, 11, 3.3], dy)), CANOPY);
+  a.line(`M43.2 ${1.4 * 8 + dy}L43.2 ${dy}`, { c: '#7c838c', w: 1 });
+}
+
+/** vessel_pool_tiles: the pool hall's tiled wall, a tile that repeats. 8 × 8 cells. */
+function poolTiles(a) {
+  a.flat(band(0, 0, 64, 64), '#4d6b73');
+  for (let x = 6.4; x < 64; x += 6.4) a.flat(band(x - .25, 0, x + .25, 64), '#3f5960');
+  for (let y = 6.4; y < 64; y += 6.4) a.flat(band(0, y - .25, 64, y + .25), '#3f5960');
+  a.flat(band(0, 0, 64, 1), '#6d8f98');
+}
+/** vessel_lifebuoy: a lifebuoy on the pool hall's wall, red and cream. 2 × 2 cells. */
+function lifebuoy(a) {
+  a.shape(ell(8, 8, 6.4), palOf('#c8522e'), { lite: ell(6.4, 5.6, 2.4, 1.6) });
+  for (const t of [0, Math.PI / 2, Math.PI, Math.PI * 1.5]) {
+    const at = (r, k) => [8 + Math.cos(t + k) * r, 8 + Math.sin(t + k) * r];
+    a.flat(poly(...at(6.6, -.35), ...at(6.6, .35), ...at(3, .4), ...at(3, -.4)), '#e6dfcf');
+  }
+  a.cut(ell(8, 8, 3));
+}
+/** vessel_wainscot: the restaurant's panelled wainscot along its floor, a tile that repeats. 8 × 3 cells. */
+function wainscot(a) {
+  a.flat(band(0, 0, 64, 24), '#4b3324');
+  a.flat(band(0, 0, 64, 2.4), '#6b4a33');
+  for (let x = 2; x < 64; x += 16) { a.flat(band(x, 5.6, x + 12.8, 21), '#432d20'); a.flat(band(x, 5.6, x + 12.8, 6.2), '#3a271b'); }
+}
+/** vessel_bottles: two shelves of bottles over the bar. 7 × 4 cells. */
+function bottles(a) {
+  const cols = ['#3f6b3a', '#8a5a2a', '#cfd8d0', '#6a2f2a', '#c9a03a'], r = rng(331);
+  for (const sy of [14.4, 32]) {
+    lit(a, 0, sy - 1.6, 56, sy, WOOD);
+    for (let x = 2.4; x < 54; x += 4.4) {
+      const h = 4.8 + r() * 4, c = cols[Math.floor(r() * cols.length)];
+      a.flat(band(x, sy - 1.6 - h, x + 2.6, sy - 1.6), c);
+      a.flat(band(x + .8, sy - 3.6 - h, x + 1.8, sy - 1.6 - h), c);
+    }
+  }
+}
+/** vessel_pad: the hangar's landing pad along its floor, hazard paint on its edge, a tile that repeats. 8 × 1 cells. */
+function pad(a) {
+  a.flat(band(0, 0, 64, 8), '#2c3138');
+  hazardFoot(a, 0, 0, 64, 3.2, band(0, 0, 64, 8));
+}
+
+function liner() {
+  out('machine_vesselBar', Anime.bake({ w: 56, h: 24, draw: bar }));
+  out('machine_vesselPiano', Anime.bake({ w: 40, h: 24, draw: piano }));
+  out('machine_vesselRoundTable', Anime.bake({ w: 24, h: 16, draw: roundTable }));
+  out('machine_vesselChair', Anime.bake({ w: 8, h: 24, draw: chair(false) }));
+  out('machine_vesselChair2', Anime.bake({ w: 8, h: 24, draw: chair(true) }));
+  out('machine_vesselLounger', Anime.bake({ w: 32, h: 16, draw: lounger }));
+  out('machine_vesselDiving', Anime.bake({ w: 40, h: 64, draw: diving }));
+  out('machine_vesselPool', Anime.bake({ w: 160, h: 40, draw: pool }));
+  out('machine_vesselChandelier', Anime.bake({ w: 24, h: 24, draw: chandelier }));
+  out('machine_vesselStove', Anime.bake({ w: 32, h: 24, draw: stove }));
+  out('machine_vesselCounter', Anime.bake({ w: 40, h: 16, draw: counter }));
+  out('machine_vesselBed', Anime.bake({ w: 32, h: 16, draw: bed }));
+  out('machine_vesselMedCab', Anime.bake({ w: 16, h: 40, draw: medCab }));
+  out('machine_vesselFuelCart', Anime.bake({ w: 24, h: 16, draw: fuelCart }));
+  CONTENTS.forEach((col, k) => out('machine_vesselCapsule' + (k === 0 ? '' : String(k + 1)), Anime.bake({ w: 112, h: 88, draw: capsule(col) })));
+  out('machine_vesselShuttleGull', Anime.bake({ w: 168, h: 56, draw: gull }));
+  out('machine_vesselShuttleMule', Anime.bake({ w: 192, h: 72, draw: mule }));
+  out('machine_vesselShuttleBeetle', Anime.bake({ w: 128, h: 72, draw: beetle }));
+  out('machine_vesselShuttleWhale', Anime.bake({ w: 192, h: 56, draw: whale }));
+  out('machine_vesselShuttleHeron', Anime.bake({ w: 128, h: 88, draw: heron }));
+  out('vessel_pool_tiles', Anime.bake({ w: 64, h: 64, tile: true, draw: poolTiles }));
+  out('vessel_lifebuoy', Anime.bake({ w: 16, h: 16, draw: lifebuoy }));
+  out('vessel_wainscot', Anime.bake({ w: 64, h: 24, tile: true, draw: wainscot }));
+  out('vessel_bottles', Anime.bake({ w: 56, h: 32, draw: bottles }));
+  out('vessel_pad', Anime.bake({ w: 64, h: 8, tile: true, draw: pad }));
+}
+
 Subjects.vessel = function () {
   skin();
   furniture();
+  liner();
   out('vessel_frost', Anime.bake({ w: 40, h: 48, draw: frost }));
   out('vessel_cable', Anime.bake({ w: 24, h: 32, draw: cable }));
   out('vessel_soot', Anime.bake({ w: 48, h: 40, draw: soot }));

@@ -66,8 +66,8 @@ public static partial class Shipyard
                     if (Put(Vessels.Lounger) == null || Put(Vessels.RoundTable) == null) break;
                 break;
             case VesselRole.Galley:
-                foreach (var kind in (string[])[Vessels.Stove, Vessels.Counter, "salvageVending", Vessels.Counter, "salvageVending"])
-                    if (Put(kind == "salvageVending" ? Look(kind) : kind) == null) break;
+                foreach (var kind in (string[])[Vessels.Stove, Vessels.Counter, F.Fridge, Vessels.Counter, F.Fridge])
+                    if (Put(kind == F.Fridge ? Look(kind) : kind) == null) break;
                 break;
             case VesselRole.Infirmary:
                 _ = Put(Vessels.Bed) != null && Put(Vessels.Bed) != null && Put(Vessels.MedCab) != null;
@@ -112,9 +112,9 @@ public static partial class Shipyard
                     }
                     else
                     {
-                        if (Put("salvageCrate") is not { } crate) break;
-                        int h = Machines.Get("salvageCrate").Height;
-                        for (int k = 1, n = Between(rng, F.CratesOver); k <= n; k++) Add("salvageCrate", crate.X, crate.Y - h * k);
+                        if (Put(F.Crate) is not { } crate) break;
+                        int h = Machines.Get(F.Crate).Height;
+                        for (int k = 1, n = Between(rng, F.CratesOver); k <= n; k++) Add(F.Crate, crate.X, crate.Y - h * k);
                     }
                 }
                 break;
@@ -130,7 +130,7 @@ public static partial class Shipyard
                     cx = c.Left + F.HangarFrom;
                     int limit = sx - F.HangarFrom;
                     Put(Vessels.FuelCart, limit);
-                    if (Put("salvageCrate", limit) is { } crate) Add("salvageCrate", crate.X, crate.Y - Machines.Get("salvageCrate").Height);
+                    if (Put(F.Crate, limit) is { } crate) Add(F.Crate, crate.X, crate.Y - Machines.Get(F.Crate).Height);
                     if (Put(Look(Vessels.Cargo), limit) is { } box) Add(Look(Vessels.Cargo), box.X, box.Y - Machines.Get(Vessels.Cargo).Height);
                     break;
                 }
