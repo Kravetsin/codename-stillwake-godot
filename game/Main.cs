@@ -183,7 +183,7 @@ public partial class Main : Node2D, ITogether
         // Before anything is made that says anything.
         var language = _dev.Value("--lang");
         Speaking = language != null ? Languages.Named(language) ?? Language.English : Settings.Language();
-        if (PoseSheetOnly() || DressSheetOnly() || SuitCardsOnly()) return;
+        if (PoseSheetOnly() || DressSheetOnly() || CapeFilmOnly() || SuitCardsOnly()) return;
         QuitAfterAWhile();
         // First of all at its layer, before every shimmer (0075).
         AddChild(Shimmer.NewScreenCopy());
