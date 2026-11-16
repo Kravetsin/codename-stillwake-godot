@@ -147,3 +147,9 @@ public sealed class BreatheScenario : DevScenario
         if (c.Items != null) c.Add(new BreatheDemo(c.Items, c.M, canister: Canister));
     }
 }
+
+[Dev("--skins", "the Appearance tab opened, the weapon effect's strip shown (SkinsDemo)")]
+public sealed class SkinsScenario : DevScenario
+{
+    public override void Attach(DevContext c) => c.Add(new SkinsDemo());
+}

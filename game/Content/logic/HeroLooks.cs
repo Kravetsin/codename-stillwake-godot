@@ -40,6 +40,9 @@ public static class HeroLooks
     /// <summary>The pictures of each kind: <c>hero_hair_*</c>, <c>hero_face_*</c>, <c>hero_beard_*</c> and sets of <c>hero_outfit_*</c>; a look's beard 0 is none.</summary>
     public const int HairStyles = 6, Faces = 5, Beards = 2, Outfits = 4;
 
+    /// <summary>Which outfits wear the glove (<c>hero_hand_glove</c>), the Трюмный's gauntlet; the others the bare hand, in the look's skin.</summary>
+    public static readonly bool[] OutfitGloved = [false, false, true, false];
+
     /// <summary>
     /// A look's index <paramref name="i"/> among <paramref name="count"/>: wrapped, never negative, so an index the sim kept as
     /// sent from a stale or altered client still draws (2026-10-28-looks-are-printed).

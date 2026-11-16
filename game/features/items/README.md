@@ -10,7 +10,7 @@ and changes it only by sending `Move`, `Drop`, `PickUp`, `Sort`, `Stash`, `Fit` 
 | --- | --- |
 | `logic/Click.cs` | click rules, quick equip, shift, sockets; each shift's `Flight` and landing |
 | `logic/Hotbar.cs` | the row of nine and the wheel; each slot's digit and key |
-| `logic/Equipment.cs` | the equipment slots by kind, and which glow while a stack is carried (0047) |
+| `logic/Equipment.cs` | equipment slots by kind; which glow for a carried stack (0047) |
 | `logic/Reading.cs` | slots with own moves in flight (0014); marks, ghosts, tips; the module host |
 | `logic/Reach.cs` | `HeroSpot`; pick-ups and the magnet |
 | `logic/FloorFeel.cs` | a stack's landing |
@@ -22,6 +22,7 @@ and changes it only by sending `Move`, `Drop`, `PickUp`, `Sort`, `Stash`, `Fit` 
 | `PickUpFlights.cs` | icons and sparks flying home (0075) |
 | `SortButton.cs` | the sort key, a wrist hardware key (0008, 0081) |
 | `StashButton.cs` | the stash key under it, the fan glyph |
+| `LooksButton.cs` | the appearance key left of the equipment, a hanger |
 | `FavouriteStar.cs` | the kept mark, in a slot and by the pointer |
 | `SortSweep.cs` | a sort's light across the sorted grid (0081) |
 | `TrashBurst.cs` | it, drawn |
@@ -39,30 +40,29 @@ and changes it only by sending `Move`, `Drop`, `PickUp`, `Sort`, `Stash`, `Fit` 
 | `logic/Items.En.cs` | player text |
 | `logic/Items.Ru.cs` | Russian |
 
-The wrist's metal, screens, keys and gauge (0074, 0081) are `game/shared/`'s (`Wrist*`); charge on screen is
-`game/shared/logic/Charges.cs`. Files in `logic/` are Godot-free, tested in `game.tests/`.
+The wrist's metal, screens, keys and gauge (0074, 0081) are `game/shared/`'s (`Wrist*`), charge on screen its
+`logic/Charges.cs`.
 
 ## Guarantees
 
 - **What the slots show** is the world with this peer's own commands in flight made (`Reading`,
   0014), read every 100 ms and after each send.
-- **Clicks** (no ADR): left picks a stack and puts it; right picks half, rounded up, or puts one, or breathes an own
+- **Clicks**: left picks a stack and puts it; right picks half, rounded up, or puts one, or breathes an own
   canister (0047). A drag let go over a slot puts, over the world throws, over a panel or bezel nothing; along
   the closed hotbar it only chooses.
 - **Shift** sends a stack to the open machine (a fuel to its `FuelSlot`; a queued station's own kind, else first
   empty input); else quick equip (0047) for a worn kind, swapping with the first worn when none is free; else between
-  bag and hotbar (no ADR), onto the first alike stack with room or empty slot, the slot shaking when there is none.
-  The sim decides; a refused move changes nothing.
+  bag and hotbar, onto the first alike stack with room or empty slot, the slot shaking when there is none.
 - **Every shift that sends flies** (0075): `Clicks.On`/`OnSocket` decide its `Flight`, at most `Fx.MostRibbons`.
 - **One hand** (0022): 1–9 and the wheel choose a hotbar slot and free the hand; Tab opens the inventory; Q throws the
   chosen stack (not while a card is in hand). `Ui.Wielded` is the chosen item while the hand is free (0034).
   Esc or passing out closes the inventory and crate, before the menu. `Ui.OpenCrate` is set by crew's E within reach.
 - **Layout and size** (0058): hotbar top-left, gauges under it, then the grid, in creative the trash under it
-  (trash-slot), the open machine under them,
-  equipment at the right edge; every slot `Ui.Slot` wide, rebuilt when the setting changes. Tints by
-  `Slots.TintOf`: tools amber, worn items green.
+  (trash-slot), the open machine under them, equipment at the right edge; every slot `Ui.Slot` wide, rebuilt when
+  the setting changes. Tints by `Slots.TintOf`: tools amber, worn items green.
 - **Equipment** (0047, 0058): head, back, belt rows; while a stack is carried, slots that would wear it glow, others
-  dim. The screwdriver is a hotbar item (0107): no hands row.
+  dim. Its left key (`LooksButton`) turns the screen to **Appearance** (hero-skins), crew's tab, which `Main` sets as
+  `Appearance`; unset, no key.
 - **Look** (0074): hotbar, bag, equipment in the wrist's metal, content fading in; a machine's window a hologram in
   its station's tone, beamed from it (`MachineHolo`, machine-holograms).
 - **One machine frame** (0058): name, and for a powered one a bolt with its power (`IPowerQueries.Draw`, modules in),

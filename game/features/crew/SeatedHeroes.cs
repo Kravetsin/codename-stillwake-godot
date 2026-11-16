@@ -82,7 +82,7 @@ public partial class SeatedHeroes : Node2D
             }
             // Over the seat's picture, which rises over its footprint as a tall machine's does (0099).
             shown.Holder.Position = new Vector2(pod.Cell % _grid.Width, pod.Cell / _grid.Width - ShipTiles.RiseOf(pod.Kind)) * ShipCamera.Cell;
-            var (helmet, body) = Suits.WornBy(_items, seat.Peer);
+            var (helmet, body, _, _) = Suits.DressedAs(_items, _players, seat.Peer);
             shown.Figure.Wear(colour, helmet, body, _players.LookOf(seat.Peer));
             if (flies)
             {

@@ -342,7 +342,7 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [glowberry-bush](2026-11-13-glowberry-bush.md) | Spores grow a glowberry bush | accepted |  |
 | [gourd-vine](2026-11-13-gourd-vine.md) | The grow capsule grows a gourd vine | accepted |  |
 | [hud-vitals](2026-11-13-hud-vitals.md) | The vitals: air, charge and meals as frameless light at the bottom-left | accepted | hungry-respawn (in part) |
-| [bent-limbs](2026-11-14-bent-limbs.md) | Limbs bent whole at the joint | accepted |  |
+| [bent-limbs](2026-11-14-bent-limbs.md) | Limbs bent whole at the joint | accepted | whole-limbs (in part) |
 | [creatures-bend](2026-11-14-creatures-bend.md) | Creatures bend like the hero | accepted |  |
 | [drill-contact](2026-11-14-drill-contact.md) | The drill shows its reach as a turning double helix, and its sparks ride it out of a wreck | accepted | spark-rule (in part) |
 | [drill-redrawn](2026-11-14-drill-redrawn.md) | The drill traced from a picked reference, its bit drawn to turn | accepted | raw-tool-pictures (in part) |
@@ -382,6 +382,10 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [stretches-of-space](2026-11-15-stretches-of-space.md) | Stretches of space | accepted |  |
 | [trash-slot](2026-11-15-trash-slot.md) | A trash slot in creative mode | accepted |  |
 | [fuel-liquid](2026-11-16-fuel-liquid.md) | Fuel is a liquid | accepted |  |
+| [gestures-for-words](2026-11-16-gestures-for-words.md) | Gestures, in place of words | accepted |  |
+| [hand-at-wrist](2026-11-16-hand-at-wrist.md) | The hand is its own picture, hung at the wrist | accepted |  |
+| [hero-skins](2026-11-16-hero-skins.md) | Skins: how a hero looks, apart from what it wears | accepted |  |
 | [planet-variety](2026-11-16-planet-variety.md) | Planets differ: types and ore sets | accepted |  |
 | [shuttle-flight](2026-11-16-shuttle-flight.md) | The crew flies to a vessel in the shuttle and back | accepted |  |
 | [solar-system](2026-11-16-solar-system.md) | The ship flies between the planets of its solar system | accepted |  |
+| [whole-limbs](2026-11-16-whole-limbs.md) | One picture an arm or leg | accepted |  |

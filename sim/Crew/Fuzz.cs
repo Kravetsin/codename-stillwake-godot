@@ -25,7 +25,13 @@ public sealed partial class CrewModule
         if (rng.Below(40) == 0) return new Track((int)rng.Below(400)) { From = from };
         if (rng.Below(10) == 0) return new SuitMode(rng.Below(2) == 0) { From = from };
         if (rng.Below(5) == 0) return new PickColour((int)rng.Below(Content.Crew.Colours + 1)) { From = from };
-        if (rng.Below(10) == 0) return new ChooseLook(new Look(Pick(), Pick(), Pick(), Pick(), Pick(), Pick())) { From = from };
+        if (rng.Below(10) == 0)
+        {
+            var look = new Look(Pick(), Pick(), Pick(), Pick(), Pick(), Pick());
+            // Skins half the time, drawn from the look's own numbers: no draw more, so every other fuzz plays as before.
+            return look.Skin % 2 == 0 ? new ChooseLook(look) { From = from }
+                : new ChooseSkins(SkinSets[(look.Hair + 2) % SkinSets.Length]) { From = from };
+        }
         int cells = _grid.Width * _grid.Height;
         int cell = rng.Below(4) != 0 ? State.Spawn + (int)rng.Below(9) - 4 : (int)rng.Below((ulong)cells + 100) - 50;
         return new Enter(cell) { From = from };
@@ -33,6 +39,9 @@ public sealed partial class CrewModule
         // Any index, a negative or a large one now and then: the sim takes them as sent.
         int Pick() => (int)rng.Below(12) - 2;
     }
+
+    /// <summary>What a client may send as skins, the sim knowing none: none, one, an unknown id, two of one kind, one of another kind.</summary>
+    private static readonly string[][] SkinSets = [[], ["suit_a"], ["nobody's"], ["suit_a", "suit_b"], ["suit_a", "effect_a"]];
 
     /// <summary>What a hero tries to eat: the foods, a fruit drawing its seed, a seed, a dish and a canister, no food.</summary>
     private static readonly string[] Edible = [Content.Foods.Ration, Content.Foods.CannedMeat, Content.Foods.Fruit, Content.Foods.Seed, Content.Foods.Porridge, Content.Crew.Canister];

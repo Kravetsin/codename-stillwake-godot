@@ -34,6 +34,7 @@ public static partial class En
         ["bind.air"] = "Air overlay",
         ["bind.zoomIn"] = "Zoom in",
         ["bind.zoomOut"] = "Zoom out",
+        ["bind.gesture"] = "Gestures; tap to point",
         ["key.space"] = "Space",
         ["key.tab"] = "Tab",
         ["key.capslock"] = "Caps Lock",

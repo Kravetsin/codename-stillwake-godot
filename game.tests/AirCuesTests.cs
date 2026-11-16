@@ -53,7 +53,7 @@ public class AirCuesTests
     [Fact]
     public void TheSuitsWaveClimbsFromTheBootsToTheCollar()
     {
-        double shin = SuitGlow.UpOf("shin")!.Value, torso = SuitGlow.UpOf("torso")!.Value;
+        double shin = SuitGlow.UpOf("leg")!.Value, torso = SuitGlow.UpOf("torso")!.Value;
         Assert.True(SuitGlow.Bands(0.02, shin) > SuitGlow.Bands(0.02, torso));
         Assert.True(SuitGlow.Bands(torso * SuitGlow.Climb, torso) > SuitGlow.Bands(torso * SuitGlow.Climb, shin));
         Assert.Equal(1, SuitGlow.Bands(torso * SuitGlow.Climb, torso), 6);
