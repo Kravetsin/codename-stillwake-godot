@@ -179,9 +179,12 @@ Game words → code. One line a term: Russian / English → identifiers → modu
 - вода в пещерах, озеро / water, lake **≠** → liquid in the cells (`Content.Liquids.Water`), `LiquidsModule`, `ILiquidsQueries.AmountAt`; not the item `water` → Liquids
 - лава / lava → `c/Lava.cs`, f/grid `LavaView` → planets
 - вылазка / sortie → `OpenSurface`, `Transfer` (sim/Core `Surface.cs`) → Core
-- корабль, корабль-находка / vessel **≠** → `Vessel`, `Shipyard` (sim/Core `Vessels/`), `Content.Vessels`; written beside the ship → Places
+- корабль, корабль-находка / vessel **≠** → `Vessel`, `Shipyard` (sim/Core `Vessels/`), `Content.Vessels`; a world of its own (vessel-worlds) → Places
+- заброшенный корабль, его вид / derelict, its looks → the client's from class and seed: `VesselDress` (обшивка / skin, ливрея / livery, имя и код / name and code), `VesselLights` (аварийные лампы / emergency lamps, умирающая лампа / the dying lamp, точки над дверями / door dots, заклиненная дверь / jammed door), `VesselSigns` (следы заброшенности / signs: иней, искрящий кабель, копоть, упавшая панель, перевёрнутый ящик, газ) → Places, Light, Grid
+- детали снаружи корабля / outside parts → `Vessels.Outside`: `vesselNozzle` (сопло), `vesselRcs` (маневровый блок), `vesselMast` (антенна, маячок / beacon), `vesselDish` (тарелка), `vesselSolar`, `vesselTank`, `vesselRadiator`, `vesselCollar` (стыковочный узел), `vesselTruss` and `vesselPylon` (килевая ферма), `vesselContainer` (контейнер под килем), `vesselBoom` (сенсорная штанга) → Places
+- мебель корабля / a vessel's furniture → `Vessels.Furniture` (койки, шкафчик, стол, баки, пульт, кресло, блок механизмов, кабельная стойка, `vesselCargo`); лампа корабля / vessel lamp → `vesselLamp` → Places
 - находка на корабле / salvage aboard → `Vessels.Salvage`, `VesselSalvage`, a pile (`salvageTanks`, …) copied from a debris piece, five times its loot → Places, Building
-- главный двигатель, пульт корабля / main engine, console → `salvageMainEngine` (one a vessel, by the stern), `salvageConsole` (the bridge) → Places
+- главный двигатель, пульт корабля / main engine, console → `salvageMainEngine` (one a lower deck, by the stern), `salvageConsole` (the bridge) → Places
 - отсек, комната корабля / a vessel's room → `Vessel.Compartment`, placed by `VesselRoomRule`; doors between, hatches down the well → Places
 - разбитый корабль / wrecked vessel → a vessel after `Shipyard.Damage` (`VesselCause.Breach`); not the starting wreck, nor wreckage → Places
 - контакт, прыжок / contact, jump → `Contact`, `Find`, `Jump` → Places

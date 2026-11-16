@@ -44,9 +44,11 @@ its own for a contact's vessel and moves its sender there. The vessel itself is 
 - **The vessel world** (Core's `World.Open`): space, the frame (`Vessel.Width` × `Height`) and `Vessels.Margin` round it, the
   frame's top-left at (`Margin`, `Margin`), the spawn at `Shipyard.Door`. Once every module stands, Places' `Opened` writes
   the vessel there: its parts laid (`Grid.Lay`) in reading order of their top-left cells, so machine ids follow it, the
-  spawn's own back wall kept; its crates filled (`PutIn`) and their loot counted obtained (`Caught`, the-board). Compartments
-  hold salvage, piles copied from drifting debris (`Content.Vessels.Salvage`, five times a piece's mean loot, broken by tools
-  as any pile). A vessel is as built, wrecks to come (the user's word).
+  spawn's own back wall kept, an open door's piece turned open (`SetDoorway`); its crates filled (`PutIn`) and their loot
+  counted obtained (`Caught`, the-board). Compartments hold furniture (`Vessels.Furniture`) and salvage, piles copied from
+  drifting debris (`Content.Vessels.Salvage`, five times a piece's mean loot, broken by tools as any pile); outside the hull
+  stand its parts (`Vessels.Outside`, [derelict-looks](../../docs/decisions/2026-11-17-derelict-looks.md)). A vessel is as
+  built, wrecks to come (the user's word); its looks are the client's, from its class and seed.
 - **Its kind's rules** (`VesselKind`): the ship's space (no gravity in the open, vacuum, starlight), no debris, no meteors;
   built as a planet allows, no machines; tools break what stands, nothing is marked (`ToolsBreak`), as on a planet.
 - **It closes** at the end of the tick no peer stands on it (`Kind.Transient`, Core): gone home, died and woke aboard, or left
@@ -81,5 +83,4 @@ its own for a contact's vessel and moves its sender there. The vessel itself is 
 - The jump's tick is long: a registry made and a freighter written, once per visit, like a load (`PlacesTests` pins 200 ms).
 - Content changed between `Find` and `Jump` makes a pending contact come out differently; a written vessel is saved, never
   regenerated.
-- Air and power in a vessel: its rooms start empty, its lamps dead.
-- The soil clod aboard wears its drifting picture, a little above the deck: the user did not choose it to be drawn whole.
+- Air and power in a vessel: its rooms start empty; its lamps burn as a look of the client, on no power of the sim.

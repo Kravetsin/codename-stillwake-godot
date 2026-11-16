@@ -4,18 +4,22 @@
 
 | File | Purpose |
 | --- | --- |
+| `BeaconLights.cs` | A derelict's beacons. |
+| `logic/Beacons.cs` | Where they are, their blink. |
 | `Crackle.cs` | The arc makers' arcs crackling (0091, `Emits.Arc`). |
-| `logic/LampPower.cs` | How much of its light a lamp's power gives it; full for one drawing none. |
-| `logic/Flicker.cs` | How brightly a lamp short of power shines, flickering. |
-| `LampSparks.cs` | A lamp short of power, in light (0075): glints, sparks, arcs. |
-| `LightView.cs` | Gathers every light each frame for the lightmap (0019, 0029, 0070). |
-| `Lightmap.cs` | All light composed on the GPU each frame into two maps over the view (0029). |
-| `logic/Sources.cs` | What the shader reads: walls and doors light stops at, and each light. |
+| `logic/LampPower.cs` | A lamp's share of its light by its power; whole drawing none. |
+| `logic/Flicker.cs` | A lamp short of power flickering. |
+| `LampSparks.cs` | Its glints, sparks, arcs (0075). |
+| `LightView.cs` | Gathers every light each frame (0019, 0029, 0070). |
+| `Lightmap.cs` | All light composed on the GPU each frame into two maps (0029). |
+| `logic/Sources.cs` | What the shader reads: what stops light, and each light. |
 | `logic/StarField.cs` | Starlight cell by cell (0019, 0070). |
-| `Starlight.cs` | The starlight, tiles of a texel a cell, for `render/Lit.cs`. |
+| `Starlight.cs` | Starlight in tiles of a texel a cell, for `render/Lit.cs`. |
 | `logic/StarTiles.cs` | Starlight and occupancy tiles: those a change wrote. |
+| `VesselLamps.cs` | A derelict's lamps, screens, door dots. |
+| `logic/VesselLights.cs` | Their looks, by its seed. |
 
-A dim ship lit by its lamps, fires, whatever glows, and the stars, whole in open space and falling off
+A dim ship lit by lamps, fires, glows and the stars, whole in open space, falling off
 within a few cells of a hole (0019, 0029, 0070). Drawn only: nothing reaches the sim. Tuned at the 8 px
 cell (0104); the shader walks up to 160 cells a line. Numbers: `game/Content/logic/Light.cs`; `LightView` holds
 the reaches of fire, particles, screens.
@@ -27,20 +31,20 @@ the reaches of fire, particles, screens.
   texel, sending its tile (`Lightmap.Follow`); one past the texture lays it out anew over `Built`.
   Lamps relaid when a machine moved. Starlight is redone round changed structure, back or
   machine cells within its reach and the sky's, down apart from across (`StarField.Follow`,
-  planet-frame-rate) as a full redo would (`BuiltBoundsTests`); only tiles it wrote are sent. A first look
+  planet-frame-rate) as a full redo would; only tiles it wrote are sent. A first look
   or one past the log redoes all over `Built` and `StarField.Margin`; beyond, open stars, `Lit` reading the edge texel.
 - **No Godot lights** (0029): at most 15 light a thing.
 - **Lightmap:** two HDR `SubViewport`s over the view and a margin, a texel spare so the camera never
   resizes them; cleared each frame, a texel a world pixel (more past
   `MostTexels`). *Main* takes lamps and fires; *Spots* embers, sparks, glows, capped apart by `Lit`. Each
-  light touching the view is one additive multimesh quad (`Sources.Pack`), falling off by its keep a cell.
+  light touching the view is an additive multimesh quad (`Sources.Pack`).
 - **Shadows to the pixel:** the shader walks from each texel to the light through an occupancy texture
   (`Sources.Occupy`: wall, closed door, open, by doorway shape, 0067) and drops the texel behind a wall or a
   closed door's panel: the columns of `door_closed_0` across the doorway (0104), far column in
   `Sources.DoorFar`. A closed hatch stops light across its row (0111). Walls a texel is in are passed until
   the line leaves them, so walls are lit on faces light reaches; in a door's cell only a texel on the panel
   passes, so a door is lit whole, the back wall beside it dark to light beyond. Soft edges: a lamp
-  or fire is a line (`LampSize`, `FireSize`); its ends are walked, and seven points between if they differ.
+  or fire is a line (`LampSize`, `FireSize`), its ends walked, seven points between if they differ.
 - **Lamps:** every `Glow` machine (0113) lights by its `Light.Lamps` row (colour, strength, reach, keep,
   halo, arc glass); a new lamp is a row. Brightness is
   `LightView.LampShare`, its power, flickering when short (`Flicker`). Short of power (`LampSparks`, 0075) a
@@ -53,7 +57,7 @@ the reaches of fire, particles, screens.
 - **Spots,** in order: `Flares` flashes (0075) at their own strength, keep, reach; arcs but fine ones, at
   their middle in cyan by `Fx.BoltLight`, less when short; luminous particles (`Luminous.Light`) at
   `Light.Particle` × `Fx.ParticleLight`, at most `Fx.MostLights`; each `Glow` by its own `Reach` and `Keep`.
-- **Starlight** (0070, `StarField`, tested): stars shine in every open cell with no back wall and
+- **Starlight** (0070, `StarField`): stars shine in every open cell with no back wall and
   past the grid, as bright as its sky is open: of the cells within `StarSky`, a lone hole gives `StarHole`,
   `StarFullSky` or more the whole. Row and column sweeps spread it by `StarKeep` a cell (`StarMachine`
   through a machine): a hole lights near itself, not the room. `Starlight` hands it to `render/Lit.cs`,
@@ -72,7 +76,7 @@ the reaches of fire, particles, screens.
 - **Lit:** cells, machines, cables, floor stacks, debris, heroes; not fire, glows, particles, plans, overlays.
 - **Helmet lamps** (0077, `HeroView.HeadLamps()`): a `HeadLamp` beam within
   `HeadLampHalfAngle` of the head's way, plus `HeadGlow` round, both from its lens, or in a wall the open
-  point next to it toward the neck (`Sources.HeadLamp`). A beam is a `LightSource` with a `Toward` (`beam_cos`, `beam_soft`).
+  point next to it toward the neck (`Sources.HeadLamp`). A beam is a `LightSource` with a `Toward`.
 - **Underground is black** (0077): no ambient (`Lit.Ambient` from the sky; the ship keeps `Light.Ambient`).
   Daylight keeps `GroundKeep` a cell of air in from the open, `GroundDownKeep` down a shaft. Lamps and
   beams enter solid ground by `wall_keep` a cell (`through`), aboard too; on a planet

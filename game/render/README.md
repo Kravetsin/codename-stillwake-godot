@@ -32,6 +32,7 @@
 | `logic/HazePoint.cs` | A point of a tool's haze and its way (spark-rule). |
 | `logic/IconCanvas.cs` | A glowing line icon's pixels (`IconLooks`). |
 | `logic/WreckDress.cs` | Rust, stripes and tears on wreck plates; a torn cell's pixels. |
+| `logic/VesselDress.cs` | A derelict's skin from its seed (derelict-looks). |
 | `logic/ToolIcon.cs` | A tool's icon: its held picture turned up-right and fitted. |
 | `logic/IconShow.cs` | Where and how a glowing line icon is drawn (0086, 0097). |
 | `logic/Ink.cs` | The picked looks' pen, blob and band as triangles (damage-looks). |
@@ -39,7 +40,7 @@
 | `HiRes.cs` | The anime art's pictures at 4x. |
 | `GoodIcons.cs` | A good the mafia sells, as a picture. |
 | `Greyed.cs` | A picture greyed (canister-mark). |
-| `ItemIcons.cs` | Each item's 16 px picture, a tool's baked icon a side, silhouettes. |
+| `ItemIcons.cs` | Each item's picture, tools' baked icons, silhouettes. |
 | `logic/Layers.cs` | Where each thing in the world is drawn, back to front. |
 | `LeafLayer.cs` | `Leaves` drawn, lit, in a multimesh a picture. |
 | `logic/Leaves.cs` | Falling leaves (plant-stirs). |
@@ -62,18 +63,18 @@
 | `logic/Scatter.cs` | Where the backdrop's things lie, by a hash of seed and tile. |
 | `ShadowTiles.cs` | `GroundShadow`'s shadows as tiles of one `TileSet` (0088). |
 | `Shimmer.cs` | Heat shimmer (0075). |
-| `ShipCamera.cs` | The camera: centring, zoom steps with `-` and `=`. |
+| `ShipCamera.cs` | The camera over the ship: centring, zoom steps. |
 | `ShipTiles.cs` | Every cell picture in one atlas with its normal and ore maps (`Shared`). |
 | `Signs.cs` | The power bolt, its warnings, the credit chip (ink-signs). |
-| `Sketch.cs` | A node drawn by a callback: lines, boxes, dots a view works out. |
+| `Sketch.cs` | A node drawn by a callback: lines, boxes, dots. |
 | `SoftDots.cs` | Soft round pictures luminous things are drawn with (0075). |
-| `logic/Stages.cs` | Each draw layer's effects, a stage a z, the figures' held stages. |
+| `logic/Stages.cs` | Each draw layer's effects by z; figures' held stages. |
 | `logic/Stirs.cs` | Grass pushed by bodies' feet, springing back (plant-stirs). |
 | `Stars.cs` | Space behind the ship and the title: a tile of stars. |
 | `StretchBackdrop.cs` | A stretch's far picture, behind the far wrecks. |
-| `WorldShot.cs` | The world as the camera sees it, without the HUD: the title's cards. |
+| `WorldShot.cs` | The world as the camera sees it, no HUD: the title's cards. |
 | `Strokes.cs` | Soft-edged strokes of light in one draw call (0075). |
-| `Style.cs` | The panels' colours and boxes as Godot style boxes and label settings. |
+| `Style.cs` | The panels' colours and boxes as Godot styles. |
 | `WorldButtons.cs` | The mouse over the world for `Buttons`, unless a panel took it. |
 
 The backdrop behind the ship, client only. Numbers: `Content/logic/Backdrop.cs`

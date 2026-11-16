@@ -118,7 +118,7 @@ public class PlacesTests
     }
 
     [Fact]
-    public void AVesselsRoomsAreRoomsOfTheirOwnBehindItsDoorsAndHatches()
+    public void AVesselsDoorsLeftOpenAreLaidOpenAndItsRoomsAreRoomsOfTheirOwnBehindItsShutDoorsAndHatches()
     {
         var w = new Scenario(Registry.Wreck);
         w.Do(new Enter(w.M.Crew.Spawn)).Run();
@@ -127,9 +127,122 @@ public class PlacesTests
         var (_, id) = Visited(w: w);
         var v = w.On(id);
         var vessel = Shipyard.Describe(Vessels.Class("freighter")!, seed);
+        // Every cell of a door as it was left: open or shut, the way in shut.
+        Assert.Contains(vessel.Doors, d => d.Open);
+        foreach (var door in vessel.Doors)
+            for (int y = door.Y; y < door.Y + Vessels.Open; y++)
+                for (int x = door.X; x < door.X + 2; x++)
+                {
+                    int code = v.Grid.StructureAt(InFrame(v, x, y));
+                    Assert.True(Doorways.IsDoor(code));
+                    Assert.Equal(door.Open, Doorways.IsOpen(code));
+                }
+        // Rooms an open door joins are one; the rest each a room of its own.
+        var group = Enumerable.Range(0, vessel.Compartments.Count).ToArray();
+        int Root(int i) => group[i] == i ? i : Root(group[i]);
+        foreach (var door in vessel.Doors.Where(d => d.Open))
+        {
+            int left = vessel.Compartments.ToList().FindIndex(c => c.Top == door.Y && c.Left + c.Width == door.X);
+            int right = vessel.Compartments.ToList().FindIndex(c => c.Top == door.Y && c.Left == door.X + 2);
+            group[Root(left)] = Root(right);
+        }
         var rooms = vessel.Compartments.Select(c => v.Rooms.RoomAt(InFrame(v, c.Left, c.Top + Vessels.Open - 1))).ToList();
         Assert.All(rooms, r => Assert.NotNull(r));
-        Assert.Equal(rooms.Count, rooms.Distinct().Count());
+        for (int i = 0; i < rooms.Count; i++)
+            for (int j = i + 1; j < rooms.Count; j++) Assert.Equal(Root(i) == Root(j), rooms[i] == rooms[j]);
+    }
+
+    /// <summary>Every part outside a vessel's hull, with a class that carries it.</summary>
+    public static TheoryData<string, string> OutsideParts() => new()
+    {
+        { "shuttle", Vessels.Nozzle }, { "freighter", Vessels.Nozzle }, { "shuttle", Vessels.Rcs }, { "shuttle", Vessels.Mast },
+        { "freighter", Vessels.MastTall }, { "shuttle", Vessels.Dish }, { "shuttle", Vessels.Solar }, { "shuttle", Vessels.Tank },
+        { "freighter", Vessels.Radiator }, { "freighter", Vessels.Collar }, { "freighter", Vessels.Truss }, { "freighter", Vessels.Pylon }, { "freighter", Vessels.Boom },
+        { "freighter", Vessels.Container },
+    };
+
+    [Fact]
+    public void EveryOutsidePartIsTakenApartForWhatThePlanSays()
+    {
+        Assert.Equal(Vessels.Outside.Select(r => Vessels.FirstLook(r.Kind)).Distinct().Order(), OutsideParts().Select(d => (string)d[1]).Distinct().Order());
+        Assert.Equal([("plate", 4), ("copper", 2)], Machines.Get(Vessels.Nozzle).Cost);
+        Assert.Equal([("tube", 2), ("scrap", 3)], Machines.Get(Vessels.Rcs).Cost);
+        Assert.Equal(Machines.Get(Vessels.Mast).Cost, Machines.Get(Vessels.MastTall).Cost);
+        Assert.Equal([("wire", 2), ("circuit", 1)], Machines.Get(Vessels.Boom).Cost);
+        Assert.Equal([("plate", 6), ("planks", 8), ("wire", 3), ("tube", 2)], Machines.Get(Vessels.Container).Cost);
+        Assert.All(Vessels.Outside, r => Assert.DoesNotContain(r.Cost, c => c.Item == "nozzle"));
+        Assert.All(Vessels.Outside, r => Assert.Contains(r.Kind, Vessels.Machines));
+        Assert.All(Vessels.Outside, r => Assert.Null(r.Menu));
+    }
+
+    [Theory]
+    [MemberData(nameof(OutsideParts))]
+    public void AnOutsidePartBrokenByTheSledgehammerGivesWhatItGivesCountedObtained(string cls, string kind)
+    {
+        var w = new Scenario(Registry.Wreck);
+        w.Do(new Enter(w.M.Crew.Spawn)).Run();
+        w.GiveItems(0, (Weapons.Sledgehammer.Item, 1));
+        var (_, id) = Visited(cls, w);
+        var v = w.On(id);
+        Hammered(w, v, v.Grid.Machines.First(m => Vessels.FirstLook(m.Kind) == kind));
+    }
+
+    /// <summary>The furniture inside a vessel and its lamp, a row each, every look but the first alike.</summary>
+    public static TheoryData<string> Furniture() => [.. Vessels.Furniture.Select(r => Vessels.FirstLook(r.Kind)).Distinct()];
+
+    [Fact]
+    public void EveryPieceOfFurnitureIsTakenApartForWhatTheMockupSays()
+    {
+        Assert.Equal([("wire", 1), ("glass", 1)], Machines.Get(Vessels.Lamp).Cost);
+        Assert.Equal([("plate", 2), ("cloth", 2)], Machines.Get(Vessels.Bunk).Cost);
+        Assert.Equal([("plate", 2)], Machines.Get(Vessels.Locker).Cost);
+        Assert.Equal([("plate", 1)], Machines.Get(Vessels.Table).Cost);
+        Assert.Equal([("plate", 1), ("cloth", 1)], Machines.Get(Vessels.Seat).Cost);
+        Assert.Equal([("canister", 2), ("tube", 2)], Machines.Get(Vessels.LifeTank).Cost);
+        Assert.Equal([("circuit", 2), ("wire", 3)], Machines.Get(Vessels.Console).Cost);
+        Assert.Equal([("gear", 3), ("rotor", 1)], Machines.Get(Vessels.Machine).Cost);
+        Assert.Equal([("wire", 6), ("copper", 2)], Machines.Get(Vessels.Rack).Cost);
+        Assert.Equal([("plate", 4), ("planks", 6), ("wire", 2)], Machines.Get(Vessels.Cargo).Cost);
+        Assert.All(Vessels.Furniture, r => Assert.Contains(r.Kind, Vessels.Machines));
+        Assert.All(Vessels.Furniture, r => Assert.Null(r.Menu));
+        Assert.All(Vessels.Furniture, r => Assert.All(r.Cost, c => Assert.True(Content.Items.TryGet(c.Item, out _), c.Item)));
+    }
+
+    [Theory]
+    [MemberData(nameof(Furniture))]
+    public void APieceOfFurnitureBrokenByTheSledgehammerGivesWhatItGivesCountedObtained(string kind)
+    {
+        var w = new Scenario(Registry.Wreck);
+        w.Do(new Enter(w.M.Crew.Spawn)).Run();
+        w.GiveItems(0, (Weapons.Sledgehammer.Item, 1));
+        var (_, id) = Visited("freighter", w);
+        var v = w.On(id);
+        // Set in the space round the vessel, clear of it: what it gives does not hang on the room it stands in.
+        int cell = Vessels.Margin / 2 * v.Grid.Width + Vessels.Margin / 2;
+        v.Grid.Place(cell, new Placement("machine", kind));
+        Hammered(w, v, v.Grid.MachineAt(cell)!);
+    }
+
+    /// <summary>
+    /// <paramref name="part"/> on the vessel world <paramref name="v"/> broken by the hero's sledgehammer from inside its top-left cell,
+    /// straight up, where every ray meets it first; what it gives in the hero's inventory and counted obtained.
+    /// </summary>
+    private static void Hammered(Scenario w, Registry v, Machine part)
+    {
+        string hammer = Weapons.Sledgehammer.Item;
+        int width = v.Grid.Width;
+        var gives = Machines.Get(part.Kind).Cost;
+        var before = gives.Select(c => w.M.Knowledge.ObtainedOf(c.Item)).ToList();
+        w.Do(new Enter(part.Cell)).Run();
+        for (int blow = 0; blow < 12 && v.Grid.MachineById(part.Id) != null; blow++)
+            w.Do(new Hew(hammer, part.Cell % width * 1000 + 500, part.Cell / width * 1000 + 500, HewTesting.Up)).Run(Weapons.Sledgehammer.Pace);
+        Assert.Empty(w.Refusals);
+        Assert.Null(v.Grid.MachineById(part.Id));
+        for (int i = 0; i < gives.Count; i++)
+        {
+            Assert.Equal(gives[i].Count, v.Items.Inventory(0).Sum(s => s?.Item == gives[i].Item ? s.Count : 0));
+            Assert.Equal(before[i] + gives[i].Count, w.M.Knowledge.ObtainedOf(gives[i].Item));
+        }
     }
 
     [Fact]

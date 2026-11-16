@@ -114,11 +114,83 @@ public static class Light
         ["emergencyLamp"] = new((1f, 0.22f, 0.16f), 0.75f, LampReach, LampKeep, 0xff3a2cff),
         // An arc makers' lamp (0091): their cold light, brighter and further.
         ["arcLamp"] = new(ArcLamp, ArcLampStrength, ArcLampReach, ArcLampKeep, 0xb4dcffff, Glass: true),
+        // A derelict's flat ceiling lamp (derelict-looks): a little whiter and brighter than the starter lamp, from its lens strip.
+        [Stillwake.Content.Vessels.Lamp] = new((0.86f, 0.74f, 0.55f), 1.2f, LampReach + 2, LampKeep, 0xffe4b8ff, At: (8, 4.5f)),
         // A derelict's vending machine (food-and-the-body): only its sign and screen still lit, faint, from the header: the enamel
         // cabinet's pale green tube, the glass case's oxblood one.
         ["salvageVending"] = new((0.72f, 0.86f, 0.77f), 0.45f, VendingReach, LampKeep, 0xb8dcc4ff, Alight: "machine_salvageVending_lit", At: (16, 4)),
         ["salvageVending2"] = new((0.85f, 0.53f, 0.45f), 0.45f, VendingReach, LampKeep, 0xd88872ff, Alight: "machine_salvageVending2_lit", At: (16, 3)),
     };
+    /// <summary>
+    /// A derelict's beacon outside its hull (derelict-looks): its light's colour, strength, reach and keep; its halo's colour, as
+    /// <c>0xRRGGBBAA</c>, and how far across it is in cells; and its blink, lit <c>Duty</c> of every <c>PeriodMs</c>.
+    /// </summary>
+    public sealed record BeaconLight((float R, float G, float B) Colour, float Strength, int Reach, float Keep, uint Halo, float HaloCells,
+        int PeriodMs, float Duty);
+
+    /// <summary>The red beacon on a mast's top, a slow blink; the white strobe on a boom's tip or a shuttle's bow, a short sharp flash.</summary>
+    public static readonly BeaconLight RedBeacon = new((1f, 0.24f, 0.18f), 0.9f, 10, LampKeep, 0xff3c2dff, 3f, 1600, 0.14f),
+        Strobe = new((1f, 1f, 0.96f), 1.4f, 14, LampKeep, 0xfffff5ff, 4f, 1150, 0.06f);
+
+    /// <summary>The parts outside a derelict that carry a beacon, by kind: which, and where its glass is in their picture, in pixels from its top-left.</summary>
+    public static readonly IReadOnlyDictionary<string, (BeaconLight Look, (float X, float Y) At)> Beacons =
+        new Dictionary<string, (BeaconLight, (float, float))>(System.StringComparer.Ordinal)
+        {
+            [Stillwake.Content.Vessels.Mast] = (RedBeacon, (8, 4.4f)),
+            [Stillwake.Content.Vessels.MastTall] = (RedBeacon, (8, 4.4f)),
+            [Stillwake.Content.Vessels.Boom] = (Strobe, (61.4f, 7)),
+        };
+
+    /// <summary>
+    /// Inside a derelict (derelict-looks), the mockup's pick: a red lamp breathes, <see cref="EmergencyBreathe"/> under whole at its
+    /// dimmest, <see cref="EmergencyRate"/> radians a second; a screen hums <see cref="ScreenHum"/> under whole at
+    /// <see cref="ScreenHumRate"/>, a glitching one drops to <see cref="GlitchLow"/> on <see cref="GlitchOdds"/> of
+    /// <see cref="GlitchRate"/> steps a second.
+    /// </summary>
+    public const float EmergencyBreathe = 0.36f, EmergencyRate = 1.4f, ScreenHum = 0.1f, ScreenHumRate = 7f,
+        GlitchLow = 0.25f, GlitchOdds = 0.12f, GlitchRate = 9f;
+
+    /// <summary>
+    /// The dying lamp: in a burst <see cref="DyingBurstOdds"/> of the time, judged <see cref="DyingBurstRate"/> times a second; it
+    /// cuts out on <see cref="DyingBurstOff"/> of <see cref="DyingBurstSteps"/> steps a second in a burst, <see cref="DyingCalmOff"/>
+    /// of <see cref="DyingCalmSteps"/> between, to <see cref="DyingLow"/>; lit, it hums <see cref="DyingHum"/> under whole.
+    /// </summary>
+    public const float DyingBurstOdds = 0.35f, DyingBurstRate = 0.6f, DyingBurstOff = 0.45f, DyingBurstSteps = 14f, DyingCalmOff = 0.07f,
+        DyingCalmSteps = 5f, DyingLow = 0.06f, DyingHum = 0.24f, DyingHumRate = 50f;
+
+    /// <summary>A lit console's screen in a derelict: its pale cyan light and halo, a little weaker than a red lamp's.</summary>
+    public static readonly LampLight DerelictScreen = new((0.31f, 0.86f, 0.8f), 0.45f, ScreenReach, ScreenKeep, 0x50dccdff);
+
+    /// <summary>How opaque a lit screen's face is added over its picture at full light.</summary>
+    public const float ScreenFace = 0.4f;
+
+    /// <summary>
+    /// The red dot over a shut door in a derelict: its light, cast from each side of the door, and its colour; drawn
+    /// <see cref="DoorDotSize"/> pixels across, <see cref="DoorDotDown"/> pixels under the doorway's top.
+    /// </summary>
+    public static readonly LampLight DoorDot = new((1f, 0.27f, 0.2f), 0.3f, 3, 0.6f, 0xff4632e6);
+    public const float DoorDotSize = 2.5f, DoorDotDown = 3f;
+
+    /// <summary>
+    /// The brief flash as a derelict's hanging cable throws its sparks (derelict-looks, <c>VesselLooks.SparkFlashMs</c>): warm, a few
+    /// cells round, fading out over the flash.
+    /// </summary>
+    public static readonly LampLight SparkFlash = new((1f, 0.75f, 0.43f), 0.75f, 5, 0.75f, 0xffbe6eff);
+
+    /// <summary>
+    /// Where a derelict's console's screens are in its picture, by kind, in pixels from its top-left: a rectangle each, or a disc
+    /// in it (<c>Round</c>).
+    /// </summary>
+    public static readonly IReadOnlyDictionary<string, IReadOnlyList<(float X, float Y, float W, float H, bool Round)>> ConsoleScreens =
+        new Dictionary<string, IReadOnlyList<(float, float, float, float, bool)>>(System.StringComparer.Ordinal)
+        {
+            ["salvageConsole"] = [(9, 2, 16, 4.5f, false)],
+            ["salvageConsole2"] = [(8, 2.5f, 16, 7.5f, false)],
+            ["salvageConsole3"] = [(3.5f, 3.5f, 9, 8, true)],
+            ["salvageConsole4"] = [(2, 2.5f, 11, 4.5f, false), (17, 2.5f, 11, 4.5f, false)],
+            [Stillwake.Content.Vessels.Console] = [(7, 1.6f, 20, 6, false)],
+        };
+
     public static readonly (float R, float G, float B) Fire = (1f, 0.48f, 0.14f);
     public const float FireKeep = 0.849f;
     // An ember's light is a bright point, not a wash: the furnace's fire lights the room round it anyway.
