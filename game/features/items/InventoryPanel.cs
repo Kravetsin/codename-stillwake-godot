@@ -310,7 +310,7 @@ public partial class InventoryPanel : CanvasLayer
         foreach (var socket in _lentSockets) _tipSpots.Add(socket, () => SocketTip(socket));
         _tipSpots.Show(null);
         _built = null;
-        (_frame, _progress, _problem, _tooCold, _hovered, _crateGrid, _crateKey) = (null, null, null, null, null, null, null);
+        (_frame, _progress, _problem, _tooCold, _hovered, _crateGrid, _crateKey, _appearance) = (null, null, null, null, null, null, null, null);
         _chargerLines.Clear();
     }
 
@@ -368,7 +368,7 @@ public partial class InventoryPanel : CanvasLayer
     /// </summary>
     private WristScreen Body(int size)
     {
-        var column = Style.Gap(new VBoxContainer(), 2);
+        var column = _gear = Style.Gap(new VBoxContainer(), 2);
         foreach (var kinds in Equipment.Rows)
         {
             var row = Style.Gap(new HBoxContainer { Alignment = BoxContainer.AlignmentMode.Center }, Slots.Gap);
@@ -376,8 +376,52 @@ public partial class InventoryPanel : CanvasLayer
             column.AddChild(row);
         }
         var body = new WristScreen(WristPieces.Body, WristArt.Screen, 4, lit: true);
-        body.AddChild(column);
+        body.AddChild(_bodyShows = new VBoxContainer());
+        _bodyShows.AddChild(column);
+        // The appearance key on the metal's left edge, as the bag's sort key is on its right (skins).
+        var key = _looksKey = new LooksButton(new Vector2(WristLook.SideKeyWidth, WristLook.SideKeyHeight), () =>
+        {
+            _ui.Click();
+            _looks = !_looks;
+            ShowLooks();
+        })
+        { Visible = Appearance != null };
+        _tipSpots.Add(key, () => new Tip(T(_looks ? "items.gear" : "items.looks")));
+        body.Mount(key, _ => new Vector2(-WristLook.SideKeyOut - WristLook.SideKeyWidth, WristLook.SideKeyDown));
+        ShowLooks();
         return body;
+    }
+
+    /// <summary>
+    /// Makes the equipment's screen show the skins in its place (skins), another feature's (crew's <c>AppearanceView</c>), built
+    /// at the slot size given and again with it; set by <c>Main</c>. None: no appearance key.
+    /// </summary>
+    public Func<int, Control>? Appearance
+    {
+        get => _appearanceOf;
+        set
+        {
+            _appearanceOf = value;
+            _looksKey.Visible = value != null;
+        }
+    }
+
+    private Func<int, Control>? _appearanceOf;
+    private LooksButton _looksKey = null!;
+
+    private VBoxContainer _gear = null!, _bodyShows = null!;
+    private Control? _appearance;
+    /// <summary>Whether the equipment's screen shows the skins, kept while the panel is built again.</summary>
+    private bool _looks;
+
+    private void ShowLooks()
+    {
+        if (_looks && _appearance == null && Appearance != null) _bodyShows.AddChild(_appearance = Appearance(_ui.Slot));
+        _gear.Visible = !_looks || _appearance == null;
+        if (_appearance == null) return;
+        _appearance.Visible = _looks;
+        // As wide as the equipment, so the screen keeps its size and a strip has room.
+        _appearance.CustomMinimumSize = new Vector2(_gear.GetCombinedMinimumSize().X, 0);
     }
 
     /// <summary>One kind's slots in a row under its name.</summary>
@@ -554,6 +598,8 @@ public partial class InventoryPanel : CanvasLayer
         Hologram(delta);
         Cooling(delta);
         // The equipment keeps its margin from the right edge, whatever the window's width and its own.
+        // As small as what it shows: the skins' strip closed or the equipment back, it shrinks again.
+        if (_body.GetCombinedMinimumSize() is var least && _body.Size != least) _body.Size = least;
         _body.Position = new Vector2(_root.GetViewportRect().Size.X - Slots.Margin - _body.Size.X, Slots.InventoryTop(_ui.Slot));
         var grid = _inventory.GetGlobalRect();
         _ui.InventoryFoot.Set(_shown.Visible ? (grid.Position.X, (_trash.Visible ? _trash.GetGlobalRect() : grid).End.Y) : null);

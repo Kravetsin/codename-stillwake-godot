@@ -90,5 +90,16 @@ public static partial class En
         ["use.alight.treadWheel"] = "[{key:walkLeft}/{key:walkRight}] Run · [{key:use}] Get out",
         ["use.openValve"] = "[{key:use}] Open valve",
         ["use.closeValve"] = "[{key:use}] Close valve",
+        ["skins.head"] = "HELMET",
+        ["skins.suit"] = "SUIT",
+        ["skins.cape"] = "CAPE",
+        ["skins.effect"] = "WEAPON",
+        ["skins.none"] = "No skin",
+        ["skins.locked"] = "Not owned: comes with a DLC",
+        ["skins.notOwned"] = "Not owned on this PC: your hero wears the gear's own look",
+        ["skins.effectWhere"] = "On a blade in hand: axe, sledgehammer, pickaxe, spear",
+        ["skins.arcWins"] = "An arc module fitted shows its own charge instead",
+        ["skin.fire"] = "Fire",
+        ["skin.rift"] = "Rift",
     };
 }

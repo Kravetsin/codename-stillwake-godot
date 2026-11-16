@@ -124,6 +124,10 @@ public partial class HeroView : Node2D
     public Func<IReadOnlyList<string>> Skins { get; set; } = () => [];
     /// <summary>The session this player's skins were sent to.</summary>
     private Client? _skinsSentTo;
+
+    /// <summary>Sends this player's skins again on the next frame: they were picked anew (skins).</summary>
+    public void SkinsChanged() => _skinsSentTo = null;
+
     private double _clockMs;
     private int _workedOnTick = -1;
     /// <summary>

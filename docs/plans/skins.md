@@ -11,7 +11,7 @@ A player cannot change how their hero looks without changing what the hero wears
 2. Each slot shows the chosen skin's icon, or the slot's ghost when none is chosen.
 3. The player clicks the body slot. A strip opens with every body skin and a "none" entry; the ones they do not own show locked and cannot be picked.
 4. They pick one. Their hero behind the panel is redrawn in the skin straight away, and so is that hero on every friend's screen.
-5. They pick a weapon effect and take the fire axe in hand. The blade fizzes at rest and tears bolts off as it swings. With no struck item in hand, nothing shows.
+5. They pick a weapon effect, «Пламя» or «Разлом», and take the fire axe in hand. The effect lives on the blade at rest and replaces the haze on a swing. With no struck item in hand, nothing shows.
 6. They take the helmet off. The head is bare, even though a helmet skin is chosen.
 
 When it goes wrong: the player chose a DLC skin on a PC that owns it, then joins from a PC that does not. On that PC the strip shows the skin locked, the client does not send it, and the hero is drawn in its item's own pictures.
@@ -212,7 +212,7 @@ PR. S-1…S-5 are one try on `feat/skins`, played by the user, then shipped toge
 - No skin of these kinds ships yet: the change is proven by the current helmets and cape drawing as on `main`
   (`DressSheet` frame) and a catalogue test, run on a test-only helmet and cape row, that every such row has its table rows.
 
-### S-4 — The effect skin
+### S-4 — The effect skin ✅ on feat/skins (`BladeFx`, `FireFx`, `RiftFx`, `BladeFxView`, `EdgeLip`; the trail smoothed between frames, `BladeTrail.Smoothed`)
 The user, after the first pick page (recoloured arcs): an effect skin is not the arc in another colour but a new effect
 of its own that **replaces the haze**. So:
 - The swing's haze is already split: `BladeTrail` is where the edge has been, `ReachAir` draws it as haze ("what it is
@@ -227,7 +227,7 @@ of its own that **replaces the haze**. So:
   it; `ChargeOn` becomes the choice between the module's charge, the skin's effect and the haze.
 - Test: with the arc fitted the skin draws nothing; with no effect skin the haze draws as on `main`.
 
-### S-5 — The Appearance tab and the body skin
+### S-5 — The Appearance tab and the body skin (the tab ✅ on feat/skins: `AppearanceView`, `SkinSlot`, `LooksButton`; `-- --skins` records it)
 - `game/features/items`: a wrist key beside the equipment block switches it to Appearance: `SlotBox` per kind in rows
   `[head]`, `[suit, cape]`, `[effect]`; a click opens the strip (the kind's skins and "none", unowned locked); a pick keeps
   it in `Settings` and sends `ChooseSkins`. i18n keys in `Items.En.cs`/`.Ru.cs`.

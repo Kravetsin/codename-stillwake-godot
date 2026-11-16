@@ -90,5 +90,16 @@ public static partial class Ru
         ["use.alight.treadWheel"] = "[{key:walkLeft}/{key:walkRight}] Бежать · [{key:use}] Выйти",
         ["use.openValve"] = "[{key:use}] Открыть клапан",
         ["use.closeValve"] = "[{key:use}] Закрыть клапан",
+        ["skins.head"] = "ШЛЕМ",
+        ["skins.suit"] = "СКАФАНДР",
+        ["skins.cape"] = "ПЛАЩ",
+        ["skins.effect"] = "ОРУЖИЕ",
+        ["skins.none"] = "Без скина",
+        ["skins.locked"] = "Не куплено: входит в DLC",
+        ["skins.notOwned"] = "Не куплено на этом ПК: герой в своём снаряжении",
+        ["skins.effectWhere"] = "На клинке в руке: топор, кувалда, кирка, копьё",
+        ["skins.arcWins"] = "С модулем дуги видна его молния, а не скин",
+        ["skin.fire"] = "Пламя",
+        ["skin.rift"] = "Разлом",
     };
 }

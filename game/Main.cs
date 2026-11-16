@@ -90,6 +90,14 @@ public partial class Main : Node2D, ITogether
     private HeroView? _hero;
     /// <summary>The look this player chose (2026-10-28-looks-are-printed): null on a first run till the look editor closes; look 0 in a dev run.</summary>
     private Sim.Players.Look? _look;
+    /// <summary>Keeps <paramref name="ids"/> as this player's skins, for the next run too unless a dev run, and sends them.</summary>
+    private void PickSkins(IReadOnlyList<string> ids)
+    {
+        _skins = ids;
+        if (_dev.None) Settings.KeepSkins(ids);
+        _hero?.SkinsChanged();
+    }
+
     /// <summary>The skins this player picked (skins), kept from an earlier run; what of them it owns goes out (<see cref="Owned"/>).</summary>
     private IReadOnlyList<string> _skins = [];
     private Owned _owned = new(false, _ => false);
@@ -229,6 +237,8 @@ public partial class Main : Node2D, ITogether
             AddChild(_hero = new HeroView(_hands.Ui, _hands.Mouse, script) { Look = () => _look, Skins = () => _owned.Sendable(_skins) });
             PlaceHero(_hero);
             AddChild(_items = new ItemsView(_hands.Ui));
+            // The equipment's screen turns to the skins (skins): picked, they are kept and sent.
+            _items.Panel.Appearance = size => new AppearanceView(_hands.Ui, size, () => _skins, _owned.Has, PickSkins);
             // A queued station's inputs are the items feature's slots, laid out in the crafting feature's panel.
             AddChild(_fabricator = new FabricatorPanel(_hands.Ui, peer => AsciiArt.Colour((uint)Suits.Of(_m.Players, peer))) { Lend = _items.Panel.Lend, LendSockets = _items.Panel.LendSockets, ShiftOut = _items.Panel.ShiftOut });
             // The drone badge is the logistics feature's, put in the items' and crafting panels' headers where drones have work (0062).
