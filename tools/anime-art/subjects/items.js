@@ -833,15 +833,24 @@ P.jetpack = (a) => {
   rivets(a, [8, 5.7], [8, 10.5]);
 };
 P.suit = (a) => {
-  // The suit laid out flat: amber, the belt and straps grey, the collar's ring, red-brown toward the hem as the hero wears it.
-  a.shape('M4.6 2.2L11.4 2.2L14.6 4L15.4 11.6L13 12.4L12.2 7.2L12 14.4L9 15.2L8 11.6L7 15.2L4 14.4L3.8 7.2L3 12.4L.6 11.6L1.4 4Z', SUIT, {
+  // The patched coverall laid out flat (the basic suit, painted raw): drab olive canvas, the belt and straps grey, the collar's
+  // ring, rust-brown patches let in at the chest and a knee, stitched round.
+  const CANVAS = { base: '#7e7052', shade: '#5c5040', deep: '#433a30', lite: '#9c8e68', spec: '#bcae88' };
+  const MEND = { base: '#8a5a3e', shade: '#64402e', deep: '#4a3024', lite: '#a8744e' };
+  a.shape('M4.6 2.2L11.4 2.2L14.6 4L15.4 11.6L13 12.4L12.2 7.2L12 14.4L9 15.2L8 11.6L7 15.2L4 14.4L3.8 7.2L3 12.4L.6 11.6L1.4 4Z', CANVAS, {
     lite: 'M4.6 2.2L8 2.2L7 5L4 6L3.6 7L3 12.4L2 12L2.4 4.2Z', shade: 'M11.4 2.2L14.6 4L15.4 11.6L14 12L13.4 5.4L12.2 7.2L12 14.4L10.6 14.8L10.8 3.6Z', deep: 'M4 13.4L7.4 13.4L7 15.2L4 14.4ZM8.6 13.4L12 13.4L12 14.4L9 15.2Z',
     lines: ['M8 3.4L8 11.6', 'M3.8 7.2L3.2 4.4', 'M12.2 7.2L12.8 4.4'] });
+  const mend = (x, y, w, h) => {
+    a.shape(poly(x, y + .1, x + w, y, x + w + .1, y + h, x + .1, y + h + .1), MEND, { outer: false, shade: poly(x, y + h - .5, x + w + .1, y + h - .5, x + w + .1, y + h, x + .1, y + h + .1) });
+    let st = '';
+    for (let i = x + .3; i < x + w; i += .7) st += `M${i} ${y - .1}L${i + .1} ${y + .25}M${i} ${y + h - .15}L${i + .1} ${y + h + .2}`;
+    a.line(st, { w: .8 });
+  };
+  mend(9.2, 5, 2.2, 2); mend(4.6, 11.2, 2, 1.8);
   a.shape(rr(3.8, 9, 8.4, 1.3, .15), GUN, { lite: band(3.8, 9, 12.2, 9.4), shade: band(3.8, 9.9, 12.2, 10.3) });
   a.flat(rr(7.1, 8.8, 1.8, 1.7, .2), '#c0c8d0');
   a.shape(ell(8, 2.6, 2.7, 1.3), DARK, { outer: false, deep: ell(8, 2.8, 2, .8) });
   a.tube('M5.6 3.4L5.2 9', .8, GUN, { spec: false, bare: true }); a.tube('M10.4 3.4L10.8 9', .8, GUN, { spec: false, bare: true });
-  a.flat(rr(5.5, 5.4, 1.3, 1, .15), '#c0c8d0');
 };
 P.cape = (a) => {
   // The cloak bundled on itself, tied at the top: sand canvas in a few long folds, its teal lining turned out at both corners.

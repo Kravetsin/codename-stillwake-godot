@@ -99,7 +99,6 @@ public static partial class Ru
         ["skins.notOwned"] = "Не куплено на этом ПК: герой в своём снаряжении",
         ["skins.effectWhere"] = "На клинке в руке: топор, кувалда, кирка, копьё",
         ["skins.arcWins"] = "С модулем дуги видна его молния, а не скин",
-        ["skin.patchedSuit"] = "Латаный",
         ["skin.diverSuit"] = "Водолаз",
         ["skin.platedSuit"] = "Клёпаный",
         ["skin.rescueSuit"] = "Спасатель",

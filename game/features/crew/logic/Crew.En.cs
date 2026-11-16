@@ -99,7 +99,6 @@ public static partial class En
         ["skins.notOwned"] = "Not owned on this PC: your hero wears the gear's own look",
         ["skins.effectWhere"] = "On a blade in hand: axe, sledgehammer, pickaxe, spear",
         ["skins.arcWins"] = "An arc module fitted shows its own charge instead",
-        ["skin.patchedSuit"] = "Patched",
         ["skin.diverSuit"] = "Diver",
         ["skin.platedSuit"] = "Riveted",
         ["skin.rescueSuit"] = "Rescue",

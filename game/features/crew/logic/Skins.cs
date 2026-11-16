@@ -25,7 +25,6 @@ public static class Skins
     /// <summary>Every skin, rows added with their art.</summary>
     public static readonly IReadOnlyList<Skin> All =
     [
-        new("patchedSuit", Suit, DlcAppId: 0),
         new("diverSuit", Suit, DlcAppId: 0),
         new("platedSuit", Suit, DlcAppId: 0),
         new("rescueSuit", Suit, DlcAppId: 0),

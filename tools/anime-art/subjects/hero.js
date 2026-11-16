@@ -769,7 +769,7 @@ function lightPicture(w, h, draw) {
 }
 
 Subjects.hero = function () {
-  for (const [name, id] of Object.entries(SUIT)) out('hero_' + name, part(suitPart(id)));
+  // The basic suit's own parts are painted raw (suits.js); `faded` stays an outfit and the suits' cut.
   OUTFITS.forEach((clothes, n) => {
     for (const [name, [id, w, h]] of Object.entries(BOXES)) {
       const draw = clothes[id];
