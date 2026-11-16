@@ -3,18 +3,18 @@ using System.Collections.Generic;
 namespace Stillwake.Game.Features.Crew;
 
 /// <summary>
-/// A skin (skins): <c>Id</c>, the picture id its gear is drawn by; <c>Kind</c>, one of <see cref="Skins.Kinds"/>; <c>DlcAppId</c>,
+/// A skin (hero-skins): <c>Id</c>, the picture id its gear is drawn by; <c>Kind</c>, one of <see cref="Skins.Kinds"/>; <c>DlcAppId</c>,
 /// the Steam DLC that unlocks it, none for a free one. Its art ships in every build: owning only lets a player pick it.
 /// </summary>
 public sealed record Skin(string Id, string Kind, uint? DlcAppId = null);
 
 /// <summary>
-/// What a hero is drawn in (skins): the helmet's, the body's and the cape's picture ids, each the skin chosen while its slot
+/// What a hero is drawn in (hero-skins): the helmet's, the body's and the cape's picture ids, each the skin chosen while its slot
 /// holds an item, else the item's own, none for an empty slot; and the weapon effect chosen, none without.
 /// </summary>
 public readonly record struct Dressed(string? Helmet, string? Body, string? Cape, string? Effect);
 
-/// <summary>The skins' catalogue (skins), the client's alone: the sim keeps a peer's ids and never reads them.</summary>
+/// <summary>The skins' catalogue (hero-skins), the client's alone: the sim keeps a peer's ids and never reads them.</summary>
 public static class Skins
 {
     public const string Head = "head", Suit = "suit", Cape = "cape", Effect = "effect";

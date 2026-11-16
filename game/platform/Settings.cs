@@ -149,7 +149,7 @@ public static class Settings
         if (kept.Save(File) != Error.Ok) GD.PrintErr($"[settings] cannot keep the look in {File}: it holds for this run alone");
     }
 
-    /// <summary>The skins this player picked (skins), one a kind in <see cref="Features.Crew.Skins.Kinds"/>' order, kept from an earlier run; none before.</summary>
+    /// <summary>The skins this player picked (hero-skins), one a kind in <see cref="Features.Crew.Skins.Kinds"/>' order, kept from an earlier run; none before.</summary>
     public static IReadOnlyList<string> Skins()
     {
         var kept = new ConfigFile();

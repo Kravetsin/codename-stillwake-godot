@@ -3,7 +3,7 @@ using System;
 namespace Stillwake.Game.Features.Crew;
 
 /// <summary>
-/// How a gesture plays on the near arm (emotes): its motion (<see cref="GestureMotions"/>) over the arm the pose gives, blended in and
+/// How a gesture plays on the near arm (gestures-for-words): its motion (<see cref="GestureMotions"/>) over the arm the pose gives, blended in and
 /// out, whatever the hand held stowed meanwhile; who may start one, and how one goes over the wire. Client only: a gesture changes
 /// nothing the world holds.
 /// </summary>
@@ -68,7 +68,7 @@ public static class Gestures
 }
 
 /// <summary>
-/// A gesture as it plays on one hero (emotes): this machine's, started by its keys, or another's, heard from what its peer sends.
+/// A gesture as it plays on one hero (gestures-for-words): this machine's, started by its keys, or another's, heard from what its peer sends.
 /// <see cref="Count"/> numbers them, so the same gesture made twice is news, as a chop's swings are (<see cref="Busy"/>).
 /// </summary>
 public sealed class GesturePlay
@@ -120,7 +120,7 @@ public sealed class GesturePlay
 }
 
 /// <summary>
-/// The gesture key (emotes): a tap points at the pointer; held, a wheel opens round where the pointer was, a hand per side, and letting
+/// The gesture key (gestures-for-words): a tap points at the pointer; held, a wheel opens round where the pointer was, a hand per side, and letting
 /// go picks the one the pointer has moved toward, or none from the middle. A quick flick toward one picks it without waiting.
 /// Distances are the screen's pixels, the caller's to scale.
 /// </summary>

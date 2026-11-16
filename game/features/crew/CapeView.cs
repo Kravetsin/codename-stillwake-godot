@@ -13,7 +13,7 @@ namespace Stillwake.Game.Features.Crew;
 /// </summary>
 public partial class CapeView(Cape cape, bool inside) : Node2D
 {
-    /// <summary>The cape's pictures, by its picture id (skins): the item's own, `cape`, or a skin's.</summary>
+    /// <summary>The cape's pictures, by its picture id (hero-skins): the item's own, `cape`, or a skin's.</summary>
     private Texture2D _outside = PixelArt.Picture("hero_cape"), _lining = PixelArt.Picture("hero_cape_lining"),
         _hoodPicture = PixelArt.Picture("hero_cape_hood"), _collar = PixelArt.Picture("hero_cape_collar");
     private string _picture = Stillwake.Content.Cape.Item;

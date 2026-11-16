@@ -5,7 +5,7 @@ using Stillwake.Game.Features.Crew;
 namespace Stillwake.Game.Platform;
 
 /// <summary>
-/// What skins this player owns (skins), the one place that says: a free skin always; a DLC's when <paramref name="everything"/>
+/// What skins this player owns (hero-skins), the one place that says: a free skin always; a DLC's when <paramref name="everything"/>
 /// (a debug build without <c>--own-none</c>) or when <paramref name="dlc"/> says its app is owned. No release build owns a
 /// DLC till Steam is in: anything else would give paid skins away in builds already shipped.
 /// </summary>

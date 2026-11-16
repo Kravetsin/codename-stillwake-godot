@@ -31,6 +31,12 @@ disk, the logs, updates.
     screen, a frameless window over the whole screen); an unknown word is a window.
   - **Keys**: `[binds]`, an action's id and Godot's name of its physical key, only those changed from the defaults
     (2026-11-04-key-binds, `shared/logic/Binds`); read by putting each on the defaults in turn, so none is shared.
+  - **Skins** (hero-skins): `[skins]`, a key per kind (`head`, `suit`, `cape`, `effect`) and its skin's id, empty for none
+    (`Skins()`, `KeepSkins`). A dev run keeps none and starts in `--wear`'s, none without it.
+- **Owned skins** (`Owned`, hero-skins) is the one answer to what this player owns: a skin with no DLC app id
+  always; a DLC's in a debug build unless `--own-none`, and never in a release build until GodotSteam asks Steam (any
+  other answer gives paid skins away in builds already shipped). Owning gates only the pick: the art ships in every build.
+  `Sendable` is what `ChooseSkins` carries on every join and pick: the kept skins owned, one a kind, the empty set too.
 - **A new world** (`NewWorlds`) draws its Rng's seed and its id, each on its own, so no two start alike; dev runs keep
   seed 1, so a frame or a script is the same every time.
 - **Logs** are Godot's own (`Logs`): `user://logs/godot.log` a run, the last five kept, a release's too, its first line
@@ -38,7 +44,7 @@ disk, the logs, updates.
   with its stack, the game playing on. Every print is flushed (`application/run/flush_stdout_on_print`): a run that
   dies keeps what it printed.
 
-Tested by `ScreensTests`, `BindsTests` (reading the keys back), `WorldIndexTests`, `NewWorldsTests`, `SavesTests`, `RosterTests`, `UpdatesTests`, `GcPaceTests`.
+Tested by `ScreensTests`, `BindsTests` (reading the keys back), `WorldIndexTests`, `NewWorldsTests`, `SavesTests`, `RosterTests`, `UpdatesTests`, `GcPaceTests`, `SkinLookupTests` (owning, sending).
 
 ## Deliberately not handled
 

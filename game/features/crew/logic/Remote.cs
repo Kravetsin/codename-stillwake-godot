@@ -23,7 +23,7 @@ public readonly record struct RodSeen(Rod Rod, Point? At = null, int? Piece = nu
 
 /// <summary>
 /// What a hero's hands work: a plan with the screwdriver (0030), a wreck with what they wield (0034), plans beamed in by the planner, the
-/// drill running aimed at a point (0054); or a sign made in place of words (<see cref="Gestures"/>, emotes).
+/// drill running aimed at a point (0054); or a sign made in place of words (<see cref="Gestures"/>, gestures-for-words).
 /// </summary>
 public enum Handwork { Work, Chop, Beam, Drill, Point, Wave, Come, Yes, No }
 

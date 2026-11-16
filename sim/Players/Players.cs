@@ -19,7 +19,7 @@ public sealed record Look(int Skin, int Hair, int HairColour, int Face, int Bear
 public sealed record PeerLook(int Peer, Look Worn, Look Next);
 
 /// <summary>
-/// Peer <c>Peer</c>'s skins (skins): ids the client draws its hero's gear in, a set never checked; the client knows each
+/// Peer <c>Peer</c>'s skins (hero-skins): ids the client draws its hero's gear in, a set never checked; the client knows each
 /// id's kind and draws an unknown one as the item's own.
 /// </summary>
 public sealed record PeerSkins(int Peer, IReadOnlyList<string> Ids);

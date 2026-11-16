@@ -6,7 +6,7 @@ using Pens = Stillwake.Game.Render.Ink.Draw;
 namespace Stillwake.Game.Features.Crew;
 
 /// <summary>
-/// A weapon effect skin at work (skins): it replaces the haze as the drawer of the blade's trail (<see cref="BladeTrail"/>),
+/// A weapon effect skin at work (hero-skins): it replaces the haze as the drawer of the blade's trail (<see cref="BladeTrail"/>),
 /// and lives on the blade at rest, on its lip (<see cref="EdgeLip"/>), all the while it is held. Its loose bits (embers,
 /// cinders) are its own, in the world, stepped with it; it draws into three inks, under, dark and over, as the view lays them.
 /// </summary>

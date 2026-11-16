@@ -7,7 +7,7 @@ using Stillwake.Game.Shared;
 namespace Stillwake.Game.Features.Crew;
 
 /// <summary>
-/// One slot of the Appearance tab (skins), as an equipment slot looks: a skin's card (a suit's cut from the hero wearing it,
+/// One slot of the Appearance tab (hero-skins), as an equipment slot looks: a skin's card (a suit's cut from the hero wearing it,
 /// <c>skins/&lt;id&gt;</c>), a weapon effect's own swing caught still (<see cref="BladeFx"/>), or for none a slashed ring; a skin this player may not pick dimmed under a padlock.
 /// </summary>
 public partial class SkinSlot : Control

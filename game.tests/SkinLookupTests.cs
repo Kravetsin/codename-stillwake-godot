@@ -4,7 +4,7 @@ using Xunit;
 
 namespace Stillwake.Game.Tests;
 
-/// <summary>What a hero is drawn in and what its client sends (skins), over a catalogue of test rows.</summary>
+/// <summary>What a hero is drawn in and what its client sends (hero-skins), over a catalogue of test rows.</summary>
 public class SkinLookupTests
 {
     private static readonly Skin[] Catalogue =

@@ -4,7 +4,7 @@ using Godot;
 namespace Stillwake.Game.Features.Items;
 
 /// <summary>
-/// The appearance key (skins), on the equipment's metal at its left edge, lit as the sort key is: a coat hanger. A press
+/// The appearance key (hero-skins), on the equipment's metal at its left edge, lit as the sort key is: a coat hanger. A press
 /// turns the equipment's screen to the skins (Appearance) and back; its tip, set by its panel, says which.
 /// </summary>
 public partial class LooksButton(Vector2 size, Action pressed) : SortButton(size, pressed)

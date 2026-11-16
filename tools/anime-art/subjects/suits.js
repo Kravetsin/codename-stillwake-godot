@@ -1,8 +1,8 @@
-// The suits and helmets painted raw (skins): GPT's paint on a sheet of the rig's parts (a suit's four: torso, pack, arm, leg;
+// The suits and helmets painted raw (hero-skins): GPT's paint on a sheet of the rig's parts (a suit's four: torso, pack, arm, leg;
 // whole-limbs), in ink and watercolour, shrunk by area to the hd size and laid side by side in traced/suit<Name>.png. Each part goes
 // out as it is, its margin included: `out` + the part's name. An arm and a leg are drawn straight, the elbow 8.59 and the knee 11.32
 // down their boxes, the arm only down to its cuff's hem 11 px below the shoulder (row 66 of the hd box): the game cuts it there and
-// hangs the hand below, a strip laid the same way (suitHands: the glove and the bare skin, near from outside and far from the palm, four frames each, hand). A sheet with
+// hangs the hand below, a strip laid the same way (suitHands: the glove and the bare skin, near from outside and far from the palm, four frames each, hand-at-wrist). A sheet with
 // no `out` is kept for later, not drawn. A suit that glows (`lit`) has its lights cut from its own
 // paint, by hue: `out` + part + `_lit`, and its pip.
 (function () {

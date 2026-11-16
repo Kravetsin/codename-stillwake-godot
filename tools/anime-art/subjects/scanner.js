@@ -91,7 +91,7 @@ public static class ScannerInk
     public const int Margin = ${MARGIN};
 
     /// <summary>
-    /// By a helmet's picture id, an item's or a skin's (skins): the scanner's picture hugging its dome, and where the picture's
+    /// By a helmet's picture id, an item's or a skin's (hero-skins): the scanner's picture hugging its dome, and where the picture's
     /// box's top left sits on the helmet's picture, in its pixels.
     /// </summary>
     public static readonly IReadOnlyDictionary<string, (string Picture, double X, double Y)> On = new Dictionary<string, (string Picture, double X, double Y)>

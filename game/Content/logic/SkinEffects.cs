@@ -3,7 +3,7 @@ using System.Collections.Generic;
 namespace Stillwake.Game;
 
 /// <summary>
-/// A weapon effect skin's look (skins): an effect of its own that replaces the swing's haze and lives on the blade at rest, the
+/// A weapon effect skin's look (hero-skins): an effect of its own that replaces the swing's haze and lives on the blade at rest, the
 /// user's picks «Пламя» and «Разлом» (effect-skins). Its trail's stretches are seen <see cref="LifeMs"/>; lengths are world px.
 /// </summary>
 public abstract record EffectLook(double LifeMs);
@@ -74,7 +74,7 @@ public sealed record RiftLook() : EffectLook(320)
     public double BreathMs { get; init; } = 1900;
 }
 
-/// <summary>The effect skins' looks by skin id (skins): every effect row of the catalogue has one.</summary>
+/// <summary>The effect skins' looks by skin id (hero-skins): every effect row of the catalogue has one.</summary>
 public static class SkinEffects
 {
     public const string Fire = "fire", Rift = "rift";

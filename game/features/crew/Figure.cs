@@ -51,7 +51,7 @@ public partial class Figure : Node2D
         ["arm"] = new(2.5f, (float)(2.5 + Rig.Arm.Upper)),
         ["leg"] = new(3, (float)(2.5 + Rig.Leg.Upper)),
         ["sheet"] = new(0, 5),
-        // The hand hangs from the wrist (hand), a frame of its strip 6 by 7 px, the wrist 3 in and 2 down: the cuff hides those 2 px.
+        // The hand hangs from the wrist (hand-at-wrist), a frame of its strip 6 by 7 px, the wrist 3 in and 2 down: the cuff hides those 2 px.
         ["hand"] = new(3, 2),
     };
 
@@ -166,7 +166,7 @@ public partial class Figure : Node2D
     private readonly Dictionary<Sprite2D, Vector2> _joints = new();
     /// <summary>The boots: the shin's picture below the ankle, turning there (2026-11-04-hero-gait).</summary>
     private readonly HashSet<Sprite2D> _soles = [];
-    /// <summary>The near hand and the wrist it turns at, shaped by a gesture (emotes); its pictures from the back and from the palm.</summary>
+    /// <summary>The near hand and the wrist it turns at, shaped by a gesture (gestures-for-words); its pictures from the back and from the palm.</summary>
     private Sprite2D? _frontHand;
     private Node2D? _frontWrist;
     private Texture2D? _handBack, _handPalm;
@@ -254,12 +254,12 @@ public partial class Figure : Node2D
     private readonly Spring _armSpring = new(HeroMotion.Carry.SpringHz, HeroMotion.Carry.SpringDamping);
     /// <summary>The swipe of light the axe leaves on its downstroke (0075).</summary>
     private readonly ReachAir _air = new();
-    /// <summary>The effect skin on a struck blade (skins), drawn where the haze is; the parts its lip was read from, and the lip.</summary>
+    /// <summary>The effect skin on a struck blade (hero-skins), drawn where the haze is; the parts its lip was read from, and the lip.</summary>
     private readonly BladeFxView _fx = new();
     private HeldParts? _fxParts;
     private IReadOnlyList<EdgeLip.Point> _fxLip = [];
 
-    /// <summary>The hero's weapon effect skin (skins): on any struck blade held without an arc module it replaces the haze; none for none.</summary>
+    /// <summary>The hero's weapon effect skin (hero-skins): on any struck blade held without an arc module it replaces the haze; none for none.</summary>
     public EffectLook? EffectSkin { get; set; }
     /// <summary>Whether the swing playing bit something, and is drawn held at the strike (<see cref="AxeSwing.Shown"/>); the phase last drawn.</summary>
     private bool _bit;
@@ -577,7 +577,7 @@ public partial class Figure : Node2D
     public Vector2? Aim { get; set; }
 
     /// <summary>
-    /// The sign the near hand makes (emotes): which, how many milliseconds in, and where a point points, in pixels of the world;
+    /// The sign the near hand makes (gestures-for-words): which, how many milliseconds in, and where a point points, in pixels of the world;
     /// none between. Played over the arm the pose gives while the hands are at nothing else.
     /// </summary>
     public (GestureMotion Motion, double Ms, Vector2 At)? Gesture { get; set; }
@@ -668,7 +668,7 @@ public partial class Figure : Node2D
 
     /// <summary>
     /// The cape the hero wears (2026-10-27-the-cape-is-worn), a sheet of cloth from the shoulders to the floor: its picture id,
-    /// the item's own or a skin's (skins); none for no cape.
+    /// the item's own or a skin's (hero-skins); none for no cape.
     /// </summary>
     public string? CapeWorn
     {
@@ -1017,7 +1017,7 @@ public partial class Figure : Node2D
         sprite.Offset = new Vector2(sprite.Offset.X, -BootOverlap);
     }
 
-    /// <summary>An arm's picture cut at the wrist (hand): above it the arm, below it its old glove never drawn; the hand is its own.</summary>
+    /// <summary>An arm's picture cut at the wrist (hand-at-wrist): above it the arm, below it its old glove never drawn; the hand is its own.</summary>
     private static void CutAtTheWrist(Sprite2D sprite)
     {
         float wrist = -sprite.Offset.Y + (float)Rig.Wrist;
@@ -1071,7 +1071,7 @@ public partial class Figure : Node2D
         "torso" or "arm" or "leg" when _bodyWorn == null => $"outfit_{HeroLooks.Wrap(_look.Outfit, HeroLooks.Outfits)}_{part}",
         // A later body's own pictures, as a later helmet's (2026-11-03-the-regen-suit).
         "torso" or "pack" or "arm" or "leg" when _bodyWorn is { } body && body != Stillwake.Content.Suit.Basic => $"{body}_{part}",
-        // Two hands for every body (hand): the glove, or bare in the look's skin; the near seen from outside, the far from its palm.
+        // Two hands for every body (hand-at-wrist): the glove, or bare in the look's skin; the near seen from outside, the far from its palm.
         "hand" when _bodyWorn == null && !HeroLooks.OutfitGloved[HeroLooks.Wrap(_look.Outfit, HeroLooks.Outfits)] => far ? "hand_far_skin" : "hand_skin",
         "hand" => far ? "hand_far_glove" : "hand_glove",
         "face" => $"face_{HeroLooks.Wrap(_look.Face, HeroLooks.Faces)}",
@@ -1213,7 +1213,7 @@ public partial class Figure : Node2D
         }
         if (name == "arm")
         {
-            // The hand under the arm on its own node at the wrist, as the boot at the ankle (hand): never bent, the elbow far above.
+            // The hand under the arm on its own node at the wrist, as the boot at the ankle (hand-at-wrist): never bent, the elbow far above.
             var wrist = new Node2D { Position = new Vector2(0, (float)Rig.Wrist) };
             var hand = Part("hand", far, banded: false);
             hand.Hframes = HandFrames;
@@ -1405,7 +1405,7 @@ public partial class Figure : Node2D
         _workMs = working ? _workMs + elapsedMs : 0;
         bool holding = holdsPlan && Poses.HoldsIn(pose) && !working;
         var item = HeldLook.Of(Wields);
-        // Signing, what the near hand held is stowed till the gesture ends (emotes).
+        // Signing, what the near hand held is stowed till the gesture ends (gestures-for-words).
         bool signing = Gesture != null && !working && !holding && pose is Pose.Stand or Pose.Walk or Pose.Run or Pose.Air or Pose.Float;
         bool inHand = item != null && Poses.HoldsIn(pose) && !working && !holding && !signing;
         // Struck with by hand: the axe, the sledgehammer swung, the spear thrust (Strokes).
@@ -1560,7 +1560,7 @@ public partial class Figure : Node2D
         // The spring only round a run and a while after it: a landing or a pose's own swing moves the arm as it is.
         if (carried && _sinceCarryMs < HeroMotion.Carry.SpringAfterMs) frontArm = frontArm with { Upper = _armSpring.Follow(frontArm.Upper, elapsedMs) };
         else _armSpring.Hold(frontArm.Upper);
-        // A gesture over whatever the pose gives the arm, eased in and out; the hand opens or points once it is mostly in (emotes).
+        // A gesture over whatever the pose gives the arm, eased in and out; the hand opens or points once it is mostly in (gestures-for-words).
         double signed = 0, signWrist = 0;
         _signNod = 0;
         GestureMotion? motion = null;
@@ -1714,7 +1714,7 @@ public partial class Figure : Node2D
         WheelRadius = zone is { Disc: true } disc ? disc.Size : null;
         // The plain spear trails as a swung blade does, but not in its thrust (the lens is the thrust's, spear-trail); the arc spear's bolts are its own.
         bool spearTrails = struckHeld && item!.Aimed && jabMs == null && Wields == Stillwake.Content.Weapons.Spear.Item && PartsOf(item) is not { Crackles.Count: > 0 };
-        // An effect skin replaces the haze on a struck blade with no arc module (skins): its trail, and its rest state on the blade's lip.
+        // An effect skin replaces the haze on a struck blade with no arc module (hero-skins): its trail, and its rest state on the blade's lip.
         var skinned = struckHeld && EffectSkin != null && PartsOf(item!) is { Crackles.Count: 0 } bare ? bare : null;
         bool trails = bladeHeld || spearTrails;
         _air.Follow(zone, elapsedMs, trails && skinned == null ? _edge : null);

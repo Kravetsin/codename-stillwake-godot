@@ -86,7 +86,7 @@ public partial class HeroView : Node2D
         public DrillPace Drill;
         /// <summary>Its power driver's motor, heard where it works while the sim says it runs (power-driver).</summary>
         public readonly DriverHeard Driver = new();
-        /// <summary>Its gesture, played here from where its peer began it (emotes).</summary>
+        /// <summary>Its gesture, played here from where its peer began it (gestures-for-words).</summary>
         public readonly GesturePlay Gesture = new();
     }
 
@@ -122,12 +122,12 @@ public partial class HeroView : Node2D
 
     /// <summary>The look this player chose, sent before the pod prints its hero; null holds the hero out till it chooses. Look 0 unless set.</summary>
     public Func<Look?> Look { get; set; } = () => Sim.Players.Look.Zero;
-    /// <summary>The skins this player owns of its picks (skins), sent once a join, the empty set too, so a world never keeps stale ones.</summary>
+    /// <summary>The skins this player owns of its picks (hero-skins), sent once a join, the empty set too, so a world never keeps stale ones.</summary>
     public Func<IReadOnlyList<string>> Skins { get; set; } = () => [];
     /// <summary>The session this player's skins were sent to.</summary>
     private Client? _skinsSentTo;
 
-    /// <summary>Sends this player's skins again on the next frame: they were picked anew (skins).</summary>
+    /// <summary>Sends this player's skins again on the next frame: they were picked anew (hero-skins).</summary>
     public void SkinsChanged() => _skinsSentTo = null;
 
     private double _clockMs;
@@ -233,7 +233,7 @@ public partial class HeroView : Node2D
     private string? _eat;
     /// <summary>Whether the player asked to switch its suit's mode, by V or its edge key, since the last frame.</summary>
     private bool _switchSuit;
-    /// <summary>The gesture key and its wheel (emotes), the wheel drawn, and the gesture this hero plays.</summary>
+    /// <summary>The gesture key and its wheel (gestures-for-words), the wheel drawn, and the gesture this hero plays.</summary>
     private readonly GestureWheel _wheel = new();
     private readonly GestureWheelView _wheelView = new();
     private readonly GesturePlay _gesture = new();

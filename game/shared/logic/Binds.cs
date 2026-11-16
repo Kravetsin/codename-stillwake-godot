@@ -34,7 +34,7 @@ public enum Bind
     Air,
     ZoomIn,
     ZoomOut,
-    /// <summary>A tap points the near hand at the pointer; held, a wheel of signs in place of words (emotes).</summary>
+    /// <summary>A tap points the near hand at the pointer; held, a wheel of signs in place of words (gestures-for-words).</summary>
     Gesture,
 }
 

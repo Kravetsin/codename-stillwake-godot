@@ -378,7 +378,7 @@ public partial class InventoryPanel : CanvasLayer
         var body = new WristScreen(WristPieces.Body, WristArt.Screen, 4, lit: true);
         body.AddChild(_bodyShows = new VBoxContainer());
         _bodyShows.AddChild(column);
-        // The appearance key on the metal's left edge, as the bag's sort key is on its right (skins).
+        // The appearance key on the metal's left edge, as the bag's sort key is on its right (hero-skins).
         var key = _looksKey = new LooksButton(new Vector2(WristLook.SideKeyWidth, WristLook.SideKeyHeight), () =>
         {
             _ui.Click();
@@ -393,7 +393,7 @@ public partial class InventoryPanel : CanvasLayer
     }
 
     /// <summary>
-    /// Makes the equipment's screen show the skins in its place (skins), another feature's (crew's <c>AppearanceView</c>), built
+    /// Makes the equipment's screen show the skins in its place (hero-skins), another feature's (crew's <c>AppearanceView</c>), built
     /// at the slot size given and again with it; set by <c>Main</c>. None: no appearance key.
     /// </summary>
     public Func<int, Control>? Appearance

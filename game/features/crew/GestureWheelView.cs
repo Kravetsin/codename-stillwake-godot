@@ -5,7 +5,7 @@ using Stillwake.Game.Render;
 namespace Stillwake.Game.Features.Crew;
 
 /// <summary>
-/// The gesture wheel (emotes): round where the key was pressed, a dark disc a side with the hand's own frame enlarged, turned as the
+/// The gesture wheel (gestures-for-words): round where the key was pressed, a dark disc a side with the hand's own frame enlarged, turned as the
 /// gesture shows it, the one the pointer has moved toward lit; a ring for the middle, which picks nothing. No words: the hands say it.
 /// </summary>
 public partial class GestureWheelView : CanvasLayer

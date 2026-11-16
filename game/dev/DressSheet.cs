@@ -52,13 +52,13 @@ public partial class DressSheet(string path) : Node
         foreach (string body in new[] { suit, "regenSuit", "heatSuit" })
             foreach (string h in helmets)
                 rows.Add(Turns(Suits.All[0], h, body, aimed: true, tracked: true));
-        // Every suit skin over the basic helmet, as a body of its own is drawn (skins).
+        // Every suit skin over the basic helmet, as a body of its own is drawn (hero-skins).
         var skins = Skins.All.Where(s => s.Kind == Skins.Suit).Select(s => s.Id).ToList();
         foreach (var skin in skins)
             rows.Add(Turns(Suits.All[0], helmet, skin, aimed: true, tracked: true));
         // Every body standing bare-headed on nothing, one after another: what a suit's card is cut from.
         rows.Add([.. new[] { suit, "regenSuit", "heatSuit" }.Concat(skins).Select(body => new Case(Suits.All[0], null, body, Look: 0, Tracked: false, Clear: true))]);
-        // Gestures (emotes): pointing up and down, waving through its sway, suited and bare; then walking, running, afloat, with an axe.
+        // Gestures (gestures-for-words): pointing up and down, waving through its sway, suited and bare; then walking, running, afloat, with an axe.
         (Gesture, double, Vector2) Up = (Gesture.Point, 600, new Vector2(40, -60)), Down = (Gesture.Point, 600, new Vector2(40, 0));
         (Gesture, double, Vector2) Wave(double ms) => (Gesture.Wave, ms, Vector2.Zero);
         (Gesture, double, Vector2) Sign(Gesture g, double ms) => (g, ms, Vector2.Zero);

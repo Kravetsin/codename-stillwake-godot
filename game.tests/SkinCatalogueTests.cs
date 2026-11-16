@@ -7,7 +7,7 @@ using Xunit;
 namespace Stillwake.Game.Tests;
 
 /// <summary>
-/// Every helmet's picture, an item's or a skin's (skins), has where the lamp and the scanner sit on it and how it fits the
+/// Every helmet's picture, an item's or a skin's (hero-skins), has where the lamp and the scanner sit on it and how it fits the
 /// suit: a helmet skin drawn without them would wear the basic helmet's lamp and crest on its own dome.
 /// </summary>
 public class SkinCatalogueTests

@@ -17,7 +17,7 @@ public static class Suits
 
     /// <summary>
     /// What <paramref name="peer"/>'s figure is drawn in: its helmet, suit's body and cape, items or none (2026-10-27-suits-are-worn),
-    /// in the skins it chose (skins). The one lookup every figure of a peer's hero goes through.
+    /// in the skins it chose (hero-skins). The one lookup every figure of a peer's hero goes through.
     /// </summary>
     public static Dressed DressedAs(IItemsQueries items, IPlayersQueries players, int peer) => Skins.Dress(
         items.WornIn(peer, Stillwake.Content.Helmet.Slot), items.WornIn(peer, Stillwake.Content.Suit.Slot),

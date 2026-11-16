@@ -98,7 +98,7 @@ public partial class Main : Node2D, ITogether
         _hero?.SkinsChanged();
     }
 
-    /// <summary>The skins this player picked (skins), kept from an earlier run; what of them it owns goes out (<see cref="Owned"/>).</summary>
+    /// <summary>The skins this player picked (hero-skins), kept from an earlier run; what of them it owns goes out (<see cref="Owned"/>).</summary>
     private IReadOnlyList<string> _skins = [];
     private Owned _owned = new(false, _ => false);
     private Features.Crew.LookEditor? _lookEditor;
@@ -237,7 +237,7 @@ public partial class Main : Node2D, ITogether
             AddChild(_hero = new HeroView(_hands.Ui, _hands.Mouse, script) { Look = () => _look, Skins = () => _owned.Sendable(_skins) });
             PlaceHero(_hero);
             AddChild(_items = new ItemsView(_hands.Ui));
-            // The equipment's screen turns to the skins (skins): picked, they are kept and sent.
+            // The equipment's screen turns to the skins (hero-skins): picked, they are kept and sent.
             _items.Panel.Appearance = size => new AppearanceView(_hands.Ui, size, () => _skins, _owned.Has, PickSkins);
             // A queued station's inputs are the items feature's slots, laid out in the crafting feature's panel.
             AddChild(_fabricator = new FabricatorPanel(_hands.Ui, peer => AsciiArt.Colour((uint)Suits.Of(_m.Players, peer))) { Lend = _items.Panel.Lend, LendSockets = _items.Panel.LendSockets, ShiftOut = _items.Panel.ShiftOut });

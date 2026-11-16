@@ -33,7 +33,7 @@ public sealed record PickColour(int Colour) : Command;
 public sealed record ChooseLook(Look Look) : Command;
 
 /// <summary>
-/// The sender's hero wears skins <c>Ids</c> from now on, in place of every one before (skins): with a hero or none yet,
+/// The sender's hero wears skins <c>Ids</c> from now on, in place of every one before (hero-skins): with a hero or none yet,
 /// never refused, never checked. Its client sends the ones its player owns on every join and whenever a pick changes.
 /// </summary>
 public sealed record ChooseSkins(IReadOnlyList<string> Ids) : Command;

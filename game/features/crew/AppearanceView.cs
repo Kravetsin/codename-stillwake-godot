@@ -8,7 +8,7 @@ using static Stillwake.Game.I18n.En;
 namespace Stillwake.Game.Features.Crew;
 
 /// <summary>
-/// The Appearance tab (skins), shown on the equipment's screen in its place: a slot a kind in rows (<see cref="Appearance.Rows"/>),
+/// The Appearance tab (hero-skins), shown on the equipment's screen in its place: a slot a kind in rows (<see cref="Appearance.Rows"/>),
 /// each under its name, showing the skin chosen. A click opens the kind's strip under them, "none" and every skin of it, those
 /// this player does not own locked; a pick closes it and goes to <c>picked</c>, which keeps it and sends it. Built at the
 /// slot size and built again with it.

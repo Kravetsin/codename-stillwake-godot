@@ -109,8 +109,8 @@ public static class DevModes
         new("--frames", DevShape.Either, "logs every frame and prints the worst with their causes on quitting, =vsync with it (FrameLog)"),
         new("--ablate", DevShape.Either, "each node's processing switched off in turn, the frame time it saves printed, then quits; =Name for that node's children (ProcessAblation)"),
         new("--allocs", DevShape.Flag, "with --frames, what was allocated, by type (AllocationSampler)"),
-        new("--own-none", DevShape.Flag, "a debug build owns no DLC skin: the appearance tab shows them locked (skins)"),
-        new("--wear", DevShape.Equals, "the skins worn, a comma list of ids, for a recording, keeping nothing (skins)"),
+        new("--own-none", DevShape.Flag, "a debug build owns no DLC skin: the appearance tab shows them locked (hero-skins)"),
+        new("--wear", DevShape.Equals, "the skins worn, a comma list of ids, for a recording, keeping nothing (hero-skins)"),
         new("--fx-bench", DevShape.Flag, "a busy scene of luminous effects round the view's middle to measure (FxBench)"),
     ];
 

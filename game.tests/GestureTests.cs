@@ -4,7 +4,7 @@ using Xunit;
 
 namespace Stillwake.Game.Tests;
 
-/// <summary>Signs made with the near hand in place of words (emotes): when one starts, how it plays and ends, and how a friend's is heard.</summary>
+/// <summary>Signs made with the near hand in place of words (gestures-for-words): when one starts, how it plays and ends, and how a friend's is heard.</summary>
 public class GestureTests
 {
     public static TheoryData<Gesture> All => new(Enum.GetValues<Gesture>());

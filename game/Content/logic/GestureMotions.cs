@@ -7,7 +7,7 @@ namespace Stillwake.Game;
 public enum HandSide { Back, Palm }
 
 /// <summary>
-/// One key of a gesture (emotes): at <paramref name="Share"/> of it, the upper arm <paramref name="Upper"/> radians from hanging, ahead
+/// One key of a gesture (gestures-for-words): at <paramref name="Share"/> of it, the upper arm <paramref name="Upper"/> radians from hanging, ahead
 /// positive (for an aimed gesture, from the line to its target), the elbow bent <paramref name="Elbow"/>, the hand turned
 /// <paramref name="Wrist"/> against the forearm, ahead positive, and the head <paramref name="Head"/> radians down; eased in from the
 /// key before by <paramref name="Ease"/>.
@@ -15,7 +15,7 @@ public enum HandSide { Back, Palm }
 public readonly record struct GestureKey(double Share, double Upper, double Elbow, double Wrist = 0, double Head = 0, Ease Ease = Ease.Sine);
 
 /// <summary>
-/// How a gesture moves (emotes): <paramref name="Ms"/> long, the hand's frame <paramref name="Frame"/> of its strip shown from
+/// How a gesture moves (gestures-for-words): <paramref name="Ms"/> long, the hand's frame <paramref name="Frame"/> of its strip shown from
 /// <paramref name="Side"/>, mirrored about the wrist if <paramref name="Mirrored"/>, the arm through <paramref name="Keys"/>, laid along
 /// the line to its target if <paramref name="Aimed"/>. It is blended in over the pose and out again by the figure.
 /// </summary>
@@ -45,13 +45,13 @@ public sealed record GestureMotion(double Ms, int Frame, IReadOnlyList<GestureKe
     }
 }
 
-/// <summary>A sign a hero makes with its near hand in place of words (emotes).</summary>
+/// <summary>A sign a hero makes with its near hand in place of words (gestures-for-words).</summary>
 public enum Gesture { Point, Wave, Come, Yes, No }
 
-/// <summary>Each gesture's motion (emotes): the table the figure plays.</summary>
+/// <summary>Each gesture's motion (gestures-for-words): the table the figure plays.</summary>
 public static class GestureMotions
 {
-    /// <summary>The hand's frames in its strip (hand): 0 the grip it hangs and holds in, 1 open, 2 pointing, 3 the thumb out ahead.</summary>
+    /// <summary>The hand's frames in its strip (hand-at-wrist): 0 the grip it hangs and holds in, 1 open, 2 pointing, 3 the thumb out ahead.</summary>
     public const int GripFrame = 0, OpenFrame = 1, PointFrame = 2, ThumbFrame = 3;
 
     /// <summary>A straight arm along the line to the target: the elbow all but locked.</summary>
@@ -59,7 +59,7 @@ public static class GestureMotions
 
     /// <summary>
     /// Picked by the user 2026-11-16 from candidates drawn on the hero: two jabs at the target, the forearm rocked ahead of the helmet,
-    /// the arm scooping in toward the chest, the thumb up with two nods, the thumb down shown from the palm (emotes).
+    /// the arm scooping in toward the chest, the thumb up with two nods, the thumb down shown from the palm (gestures-for-words).
     /// </summary>
     private static readonly Dictionary<Gesture, GestureMotion> Table = new()
     {

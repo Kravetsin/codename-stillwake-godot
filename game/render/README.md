@@ -11,17 +11,18 @@
 | `logic/Blueprint.cs` | How plans join the plans beside them when drawn. |
 | `BlueprintArt.cs` | A placement as built: for plans, ghosts and build menu thumbnails. |
 | `logic/Bolts.cs` | The electric arcs in the world (0075). |
-| `logic/Breath.cs` | How what is aimed at breathes: outline and glowing faces on one clock. |
+| `logic/Breath.cs` | How what is aimed at breathes: outline, glowing faces on one clock. |
 | `BuiltParts.cs` | What of the plans being built is already real (0063). |
-| `logic/Buttons.cs` | The mouse buttons as the world reads them, since the last take. |
+| `logic/Buttons.cs` | The mouse buttons as the world reads them. |
 | `logic/CableShape.cs` | A cable as drawn: ends at nodes, hang, way through the hull. |
 | `logic/DoorShape.cs` | A doorway's pictures by the joins of its cells (0067). |
 | `DriftLayer.cs` | A plane of the backdrop, things scattered over its tiles by `Scatter`. |
 | `DrillLight.cs` | A drill's own light while it runs (0054, 0075, 0094). |
 | `Dust.cs` | Faint dust between the far wrecks and the ship. |
 | `logic/EffectArea.cs` | Where a held tool's effect lives: drawn pixels in a box. |
+| `logic/EdgeLip.cs` | A blade's lip, its edge's rim out: where an effect skin rests. |
 | `FarWrecks.cs` | Wreckage far behind the ship, from the wrecks' own pictures. |
-| `logic/Flares.cs` | Glints, shock lines and flashes of the world's key moments (0075). |
+| `logic/Flares.cs` | Glints, shock lines, flashes of the world's key moments (0075). |
 | `Glow.cs` | A point that lights what is round it a little while it is shown. |
 | `GroundArt.cs` | A planet's ground pictures made, not drawn (0077, 0079). |
 | `logic/GroundDetails.cs` | Pictures laid over a planet's ground (0082). |
@@ -64,7 +65,7 @@
 | `ShipCamera.cs` | The camera over the ship: centring and zoom steps with `-` and `=`. |
 | `ShipTiles.cs` | Every cell picture in one atlas with its normal and ore maps (`Shared`). |
 | `Signs.cs` | The power bolt, its warnings, the credit chip (ink-signs). |
-| `Sketch.cs` | A node drawn by a callback: lines, boxes and dots a view works out itself. |
+| `Sketch.cs` | A node drawn by a callback: lines, boxes, dots a view works out. |
 | `SoftDots.cs` | Soft round pictures luminous things are drawn with (0075). |
 | `logic/Stages.cs` | Each draw layer's effects, a stage a z, and the figures' held stages. |
 | `logic/Stirs.cs` | Grass pushed by bodies' feet, springing back (plant-stirs). |
@@ -74,7 +75,7 @@
 | `Style.cs` | The panels' colours and boxes as Godot style boxes and label settings. |
 | `WorldButtons.cs` | The mouse over the world for `Buttons`, unless a panel took it. |
 
-The backdrop behind the ship, client only, never in the sim. Numbers: `Content/logic/Backdrop.cs`
+The backdrop behind the ship, never in the sim. Numbers: `Content/logic/Backdrop.cs`
 and constants; the rest in `///` summaries.
 
 ## Rules
@@ -83,7 +84,7 @@ and constants; the rest in `///` summaries.
   giant, drifting cloud and sun (`art/hd/planet`, the set its kind's `PlanetLooks.Backdrop` names, 0095); sun, giant and
   clouds at fixed shares of the screen. In front, the land composed by `features/backdrop` (composed-backdrops), both on
   its ground line round the camera.
-- **Three planes in space, far to near** (no ADR), on `ScreenLayers.Stars`, under the world and every panel; the ship's
+- **Three planes in space, far to near**, on `ScreenLayers.Stars`, under the world and every panel; the ship's
   back walls hide them. None is lit by `Lit`.
   - *Stars*: a filtered tile repeated over the screen, a screen pixel a star at any zoom, streaming on local time.
   - *Far wrecks*: each a core of one of the wrecks' pictures (`art/debris`) with up to five pieces gathered round it.
@@ -91,13 +92,13 @@ and constants; the rest in `///` summaries.
     `WreckTint` by size; opaque and soft, never outlined, overlaps not darkening.
   - *Dust*: specks one or two screen pixels wide at every zoom, drawn filtered so they glide by fractions of a pixel;
     faster than the wrecks, slower than the debris.
-- **A plane** (`DriftLayer`, no ADR): a point `(x, y)` is on screen at `screen/2 + ((x, y) − centre) × zoom`, the centre
+- **A plane** (`DriftLayer`): a point `(x, y)` is on screen at `screen/2 + ((x, y) − centre) × zoom`, the centre
   the camera's times its parallax plus its drift (`Scatter.Centre`): it moves its parallax at every zoom and zooms about
   the screen's middle without reshuffling. Past `ShipCamera.FarthestZoom` (a dev view's) it is drawn as at that zoom.
-- **Placed by a hash** (`Scatter`, no ADR): each tile holds `Mean` things, rounded down or up by a hash of the plane's
+- **Placed by a hash** (`Scatter`): each tile holds `Mean` things, rounded down or up by a hash of the plane's
   seed and the tile; each thing's place and looks come from its own hash, so panning away and back shows the same
   (`ScatterTests`). Wrecks and dust drift by the world's time (`Stars.Seconds`), alike for every peer; stars by local time.
-- **Drawn once** (no ADR): a plane is drawn into its canvas item, moved by its node, and redrawn only when the screen
+- **Drawn once**: a plane is drawn into its canvas item, moved by its node, and redrawn only when the screen
   passes the tiles drawn (a tile of margin) or the zoom changes.
 - **A tool's icon** (2026-10-27-tool-icons): a held look has no 16 px picture. `ItemIcons.Icon(item, side)` bakes its icon
   picture (`icons/`, driver-icons) for the side it is drawn at (`ToolIcon`), filtered by itself. `Icon(item)` is the world's, at its real size:

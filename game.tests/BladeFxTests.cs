@@ -6,7 +6,7 @@ using Xunit;
 
 namespace Stillwake.Game.Tests;
 
-/// <summary>An effect skin replaces the swing's haze and lives on the blade at rest (skins): «Пламя» and «Разлом».</summary>
+/// <summary>An effect skin replaces the swing's haze and lives on the blade at rest (hero-skins): «Пламя» and «Разлом».</summary>
 public class BladeFxTests
 {
     private const double Frame = 1000.0 / 60;
