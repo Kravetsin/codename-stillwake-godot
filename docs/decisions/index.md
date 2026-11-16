@@ -151,7 +151,7 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [meteor-blast](2026-10-28-meteor-blast.md) | A meteor breaks an area | accepted |  |
 | [one-head](2026-10-28-one-head.md) | One head for every hero | accepted |  |
 | [smelt-chances](2026-10-28-smelt-chances.md) | Byproducts by chance and smelts of several | accepted |  |
-| [the-cape-flows](2026-10-28-the-cape-flows.md) | The cape flows | accepted |  |
+| [the-cape-flows](2026-10-28-the-cape-flows.md) | The cape flows | accepted | cape-billows (in part) |
 | [the-crusher](2026-10-28-the-crusher.md) | The crusher and the first cost pass | accepted |  |
 | [the-workbench](2026-10-28-the-workbench.md) | The workbench | accepted |  |
 | [body-bag](2026-10-29-body-bag.md) | A body holds its things | accepted |  |
@@ -381,6 +381,7 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [spear-trail](2026-11-15-spear-trail.md) | The plain spear trails haze outside its thrust | accepted |  |
 | [stretches-of-space](2026-11-15-stretches-of-space.md) | Stretches of space | accepted | surface-storms (in part) |
 | [trash-slot](2026-11-15-trash-slot.md) | A trash slot in creative mode | accepted |  |
+| [cape-billows](2026-11-16-cape-billows.md) | The cape is painted raw and billows slowly at a run | accepted |  |
 | [crew-pings](2026-11-16-crew-pings.md) | Pings: a tap of F marks the spot | accepted |  |
 | [fuel-liquid](2026-11-16-fuel-liquid.md) | Fuel is a liquid | accepted |  |
 | [gestures-for-words](2026-11-16-gestures-for-words.md) | Gestures, in place of words | accepted |  |
