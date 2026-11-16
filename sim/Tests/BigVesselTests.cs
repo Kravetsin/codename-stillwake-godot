@@ -19,12 +19,12 @@ public class BigVesselTests(ITestOutputHelper output)
         return h;
     }
 
-    /// <summary>Everything <paramref name="cls"/> makes over seeds 1–64, described and stamped, as one hash.</summary>
-    private static ulong Fingerprint(string cls)
+    /// <summary>Everything <paramref name="cls"/> makes over seeds 1 to <paramref name="seeds"/>, described and stamped, as one hash.</summary>
+    private static ulong Fingerprint(string cls, uint seeds = 64)
     {
         var c = Content.Vessels.Class(cls)!;
         var text = new System.Text.StringBuilder();
-        for (uint seed = 1; seed <= 64; seed++)
+        for (uint seed = 1; seed <= seeds; seed++)
         {
             var v = Shipyard.Describe(c, seed);
             text.Append($"{v.Width},{v.Height}|");
@@ -50,6 +50,14 @@ public class BigVesselTests(ITestOutputHelper output)
         ulong made = Fingerprint(cls);
         output.WriteLine($"{cls}: 0x{made:X16}UL");
         Assert.Equal(pinned, made);
+    }
+
+    [Fact]
+    public void TheLinerIsMadeAsBeforeTheTanker()
+    {
+        ulong made = Fingerprint("liner", 16);
+        output.WriteLine($"liner: 0x{made:X16}UL");
+        Assert.Equal(0x0219098ECBC5BF56UL, made);
     }
 
     private static readonly VesselClass Liner = Content.Vessels.Class("liner")!;
