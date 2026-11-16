@@ -222,7 +222,145 @@ function boom(a) {
   rivets(a, [9.5, 5.8]);
 }
 
+// ---- The skin (derelict-looks, the mockup's drawStatic): a vessel's hull in neutral greys, which the game tints by its livery
+// (VesselLooks.HullGrey and the rest): plates, ribs, the bow's slopes, the stripe, the ink round it, the letters of its name.
+const grey = (v) => '#' + Math.round(v).toString(16).padStart(2, '0').repeat(3);
+const PLATE = { base: grey(196), lite: grey(236), shade: grey(137), deep: grey(92), spec: grey(240), ink: INK };
+const RIB = { base: grey(170), lite: grey(214), shade: grey(120), deep: grey(82), spec: grey(226), ink: INK };
+const STRIPE = { base: grey(222), lite: grey(242), shade: grey(186), deep: grey(160), spec: grey(250), ink: INK };
+/** Drawn bright: a livery's tint darkens it to the mockup's rust. */
+const SKIN_RUST = ['#b27a52', '#7a4c34'];
+const SEAM = grey(98), PIT = grey(56), INK_HEAVY = '#0b0e13';
+const GLASS_PANE = { base: '#7d9c9f', shade: '#62828a', deep: '#4e6c74', lite: '#b0cccb', spec: '#e4f0ee', ink: '#10202a' };
+/** The letters a vessel's name and code are painted in (VesselLooks.Glyphs), in this order. */
+const GLYPHS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-';
+
+/** Pictures of one size laid in a sheet, `across` a row. */
+function sheet(pics, across) {
+  const w = pics[0].width, h = pics[0].height, c = Anime.canvas(w * across, h * Math.ceil(pics.length / across)), x = c.getContext('2d');
+  pics.forEach((p, i) => x.drawImage(p, (i % across) * w, Math.floor(i / across) * h));
+  return c;
+}
+
+/**
+ * A row of an 8-cell panel: its seam at the left, lit along its top (role 0), plain (1) or in shade over space (2); bare (variant
+ * 0), its cells rusted (1) or pitted (2). Each cell's wear stays in it, for a cell takes its variant alone.
+ */
+const plates = (role, variant) => (a) => {
+  const r = rng(0x5e1 + role * 7 + variant * 31);
+  a.shape(band(-2, 0, 66, 8), PLATE, { outer: false, edge: false,
+    shade: role === 2 ? band(-2, 0, 66, 8) : undefined,
+    deep: role === 2 ? band(-2, 5.4, 66, 8) : undefined });
+  // Its top catching the star: a lighter band, brightest at the very edge (the mockup's solid, tl .45).
+  if (role === 0) { a.flat(band(-2, 0, 66, 3.4), grey(222)); a.flat(band(-2, 0, 66, .9), grey(238)); }
+  a.flat(band(-.36, 0, .36, 8), SEAM);
+  a.flat(band(.36, 0, .9, 8), role === 2 ? grey(160) : grey(226));
+  const ry = role === 0 ? 4.4 : role === 2 ? 3.6 : null;
+  if (ry !== null) for (const x of [2.8, 61.2]) { a.flat(ell(x + .25, ry + .35, .8), grey(role === 2 ? 60 : 96)); a.flat(ell(x, ry, .68), grey(role === 2 ? 172 : 232)); }
+  for (let c = 0; c < 8; c++) {
+    const cell = band(c * 8 + .7, .5, c * 8 + 7.3, 7.5);
+    if (variant === 1) {
+      const x = c === 0 ? 3.8 : c === 7 ? 60.2 : c * 8 + 2.5 + r() * 3, y = role === 0 ? 3.4 + r() * 2 : role === 2 ? 3 + r() * 2.6 : 2 + r() * 4;
+      patch(a, x, y, 1.5 + r() * .9, 1.1 + r() * .6, SKIN_RUST, cell, 100 + c + role * 9);
+    } else if (variant === 2) {
+      for (let k = 0, n = 2 + Math.floor(r() * 2); k < n; k++) {
+        const x = c * 8 + 1.4 + r() * 5.2, y = 1.2 + r() * 5.6;
+        a.flat(ell(x, y, .5, .45), PIT);
+        a.flat(ell(x + .1, y + .55, .35, .18), grey(226));
+      }
+    } else if (role === 0 && r() < .35) {
+      const x = c * 8 + 1 + r() * 3, y = 1.2 + r() * 2.2;
+      a.line(`M${x} ${y}L${x + 2 + r() * 2.4} ${y + (r() - .5) * .8}`, { c: grey(238), w: .8 });
+    }
+  }
+};
+
+/** A row of a rib, two cells: a strap over the plates lit on its left, in shade on its right, a rivet a cell. */
+const ribRow = (role) => (a) => {
+  a.shape(band(-1, 0, 17, 8), RIB, { outer: false, edge: false,
+    lite: role === 0 ? band(-1, 0, 17, 3.4) : undefined,
+    shade: role === 2 ? band(-1, 0, 17, 8) : undefined,
+    deep: role === 2 ? band(-1, 5.4, 17, 8) : undefined });
+  a.flat(band(.4, 0, 1.4, 8), RIB.lite);
+  a.flat(band(14.4, 0, 15.6, 8), RIB.shade);
+  for (const x of [0, 15.6]) a.flat(band(x, 0, x + .4, 8), grey(48));
+  for (const x of [4.6, 11.4]) { a.flat(ell(x + .2, 4.3, .6), grey(76)); a.flat(ell(x, 4, .55), grey(218)); }
+};
+
+/** A cell of the livery stripe, a band and its pin line under it; scuffed ones lose paint at its edges. */
+const stripeCell = (scuff) => (a) => {
+  const r = rng(0x57a + scuff * 13);
+  a.shape(band(-1, 3.2, 9, 6.8), STRIPE, { outer: false, edge: false, lite: band(-1, 3.2, 9, 3.9), shade: band(-1, 6.1, 9, 6.8) });
+  a.flat(band(-1, 7.3, 9, 7.9), STRIPE.base);
+  for (let k = 0; k < scuff * 2; k++) a.cut(ell(1 + r() * 6, r() < .5 ? 3.3 : 6.7, .7 + r() * 1.1, .5 + r() * .6));
+};
+
+/**
+ * A bow's slope over `run` cells, one row: the hull below the line from its top-left to its bottom-right (above it, mirrored, for
+ * the bottom's), lit along the line on top, in shade under; the heavy ink on the line. Glass: the cockpit's pane instead.
+ */
+function bowSlope(run, bottom, glass) {
+  const W = 8 * run, f = (y) => (bottom ? 8 - y : y);
+  const P = (...xy) => poly(xy.map((v, i) => (i % 2 ? f(v) : v)));
+  const t = 2.25 * Math.hypot(1, 8 / W), along = (k) => P(0, 0, W, 8, W - (k * W) / 8, 8, 0, k);
+  const draw = (a) => {
+    const hull = P(0, 0, W, 8, 0, 8);
+    if (glass) a.shape(hull, GLASS_PANE, { outer: false, edge: false, lite: P(W * .25, 2, W * .25 + 2, 2, W * .25 - 2, 8, W * .25 - 4, 8) });
+    else a.shape(hull, PLATE, { outer: false, edge: false, lite: bottom ? undefined : along(3.4), shade: bottom ? along(4.6) : undefined, deep: bottom ? along(t + 1) : undefined });
+  };
+  const c = Anime.bake({ w: W, h: 8, draw }), x = c.getContext('2d'), S = c.width / W;
+  if (glass) { x.globalCompositeOperation = 'destination-out'; x.fillStyle = 'rgba(0,0,0,.41)'; x.fillRect(0, 0, c.width, c.height); x.globalCompositeOperation = 'source-over'; }
+  // The line: heavy, swelling a little along it.
+  x.fillStyle = INK_HEAVY;
+  x.beginPath();
+  const n = 10 * run;
+  for (let i = 0; i <= n; i++) { const px = (W * i) / n; x.lineTo(px * S, f((8 * i) / n) * S); }
+  for (let i = n; i >= 0; i--) { const px = (W * i) / n, k = t * (1 + .16 * Math.sin((Math.PI * 2 * i) / 10)); x.lineTo(px * S, f(Math.min(8, (8 * i) / n + k)) * S); }
+  x.closePath(); x.fill();
+  return c;
+}
+
+/** The ink along one side of a hull cell (up 1, right 2, down 4, left 8): heavy where it meets space, light where it meets a room. */
+function inkSide(heavy, side) {
+  const c = Anime.canvas(32, 32), x = c.getContext('2d'), n = 16, t0 = heavy ? 9 : 2.6;
+  x.translate(16, 16); x.rotate({ 1: 0, 2: Math.PI / 2, 4: Math.PI, 8: -Math.PI / 2 }[side]); x.translate(-16, -16);
+  x.fillStyle = heavy ? INK_HEAVY : 'rgba(20,23,29,.7)';
+  x.beginPath(); x.moveTo(0, 0);
+  // Swelling and thinning a little, the same at both ends so cells join.
+  for (let i = 0; i <= n; i++) x.lineTo((i * 32) / n, t0 * (1 + .07 * Math.sin((Math.PI * 2 * i) / n) + .05 * Math.sin((Math.PI * 6 * i) / n + (heavy ? 0 : 1.3))));
+  x.lineTo(32, 0); x.closePath(); x.fill();
+  return c;
+}
+
+/** The painted letters, a slot of w × h logical pixels each in GLYPHS' order, their capitals cap tall: worn, specks of paint gone. */
+function letters(w, h, cap) {
+  const S = 4, c = Anime.canvas(GLYPHS.length * w * S, h * S), x = c.getContext('2d');
+  x.fillStyle = grey(232); x.textAlign = 'center'; x.textBaseline = 'alphabetic';
+  x.font = `700 ${(cap * S) / .7}px Bahnschrift, "Arial Narrow", Consolas, sans-serif`;
+  [...GLYPHS].forEach((ch, i) => {
+    const k = Math.min(1, ((w - 1) * S) / x.measureText(ch).width);
+    x.save(); x.translate((i + .5) * w * S, ((h + cap) * S) / 2); x.scale(k, 1); x.fillText(ch, 0, 0); x.restore();
+  });
+  const r = rng(0xa11 + w);
+  x.globalCompositeOperation = 'destination-out';
+  for (let k = 0; k < (c.width * c.height) / 80; k++) { x.fillStyle = `rgba(0,0,0,${.45 + r() * .55})`; x.fillRect(r() * c.width, r() * c.height, 1 + r() * 2.5, 1 + r() * 2); }
+  return c;
+}
+
+function skin() {
+  const bake = (w, draw) => Anime.bake({ w, h: 8, tile: true, draw });
+  out('vessel_hull', sheet([0, 1, 2].flatMap((role) => [0, 1, 2].map((v) => bake(64, plates(role, v)))), 1));
+  out('vessel_rib', sheet([0, 1, 2].map((role) => bake(16, ribRow(role))), 1));
+  out('vessel_stripe', sheet([0, 1, 2, 3].map((s) => bake(8, stripeCell(s))), 4));
+  for (const run of [1, 2]) for (const bottom of [false, true]) for (const glass of [false, true])
+    out(`vessel_bow_${run}_${bottom ? 'bottom' : 'top'}${glass ? '_glass' : ''}`, bowSlope(run, bottom, glass));
+  for (const heavy of [true, false]) for (const side of [1, 2, 4, 8]) out(`vessel_ink_${heavy ? 'heavy' : 'light'}_${side}`, inkSide(heavy, side));
+  out('vessel_letters', letters(7, 12, 8));
+  out('vessel_letters_small', letters(6, 10, 6.4));
+}
+
 Subjects.vessel = function () {
+  skin();
   out('machine_vesselNozzle', Anime.bake({ w: 64, h: 56, draw: nozzle }));
   out('machine_vesselRcs', Anime.bake({ w: 24, h: 16, draw: rcs }));
   out('machine_vesselMast', Anime.bake({ w: 16, h: 64, draw: mast(64) }));

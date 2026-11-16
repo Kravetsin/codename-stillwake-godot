@@ -13,6 +13,7 @@
 | `LavaView.cs` | The planet's lava (its core, `Content.Lava`), drawn as the cave concepts drew it (0087): over its own tiles, unlit … |
 | `logic/Grid.En.cs` | Its player text (`En`) |
 | `logic/Grid.Ru.cs` | Russian |
+| `VesselPaint.cs` | A derelict's name and code painted as it loads, a tile a cell (derelict-looks). |
 | `logic/Strata.cs` | Which depth band's stone a planet's cell is drawn in: its row's band, the boundary wobbling a few cells, plain … |
 | `logic/WreckMotion.cs` | What still moves on the wreck: wires, arcs and a thread of vapour, each while its tear shows (2026-10-31-the-scoop). |
 | `WreckMotionView.cs` | Steps `WreckMotion` and paints its wires, unlit, over the hull. |

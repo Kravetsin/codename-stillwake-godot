@@ -38,7 +38,8 @@ public static class SurfaceViews
 {
     public static readonly IReadOnlyList<SurfaceView> All =
     [
-        new(c => new GridView(c.M.Grid, c.M.Rules is Content.PlanetType p ? new Features.Grid.Strata(p, PlanetLooks.Of[p.Id].StrataFrom) : null) { HeldBack = c.Arrivals.Holds, HeldBackVersion = () => c.Arrivals.Version }),
+        new(c => new GridView(c.M.Grid, c.M.Rules is Content.PlanetType p ? new Features.Grid.Strata(p, PlanetLooks.Of[p.Id].StrataFrom) : null,
+            Render.VesselDress.For(c.M.Rules, c.Seed)) { HeldBack = c.Arrivals.Holds, HeldBackVersion = () => c.Arrivals.Version }),
         // What still moves on the wreck: nothing on a surface with no tear of it (2026-10-31-the-scoop).
         new(c => new WreckMotionView(c.M.Grid), Fades: true),
         new(c => new DigView(c.M.Grid, c.M.Building)),
