@@ -657,7 +657,7 @@ public partial class RadarScreen : Control
         _ => (new Color("8eaa72"), new Color("5d7a4c"), new Color("25331f"), new Color("7b6c47")),
     };
 
-    /// <summary>A derelict from the side, <paramref name="wide"/> long: a shuttle stubby with two decks, a freighter long and low.</summary>
+    /// <summary>A derelict from the side, <paramref name="wide"/> long: a shuttle stubby with two decks, a bigger one long and low, a tanker's bridge over its stern.</summary>
     private void Silhouette(Vector2 at, float wide, string cls, bool hot, float alpha)
     {
         bool big = cls != "shuttle";
@@ -670,6 +670,12 @@ public partial class RadarScreen : Control
                 new(x1 - wide * 0.08f, y1), new(x0 + wide * 0.06f, y1), new(x0, y1 - tall * 0.2f)];
         DrawColoredPolygon(hull, Hull with { A = alpha });
         DrawPolyline([.. hull, hull[0]], (hot ? Amber : Ink) with { A = 0.86f * alpha }, 1, true);
+        if (cls == "tanker")
+        {
+            Vector2[] bridge = [new(x0 + wide * 0.07f, y0), new(x0 + wide * 0.07f, y0 - tall * 0.5f), new(x0 + wide * 0.15f, y0 - tall * 0.5f), new(x0 + wide * 0.16f, y0)];
+            DrawColoredPolygon(bridge, Hull with { A = alpha });
+            DrawPolyline(bridge, (hot ? Amber : Ink) with { A = 0.86f * alpha }, 1, true);
+        }
         int decks = big ? 3 : 2;
         for (int k = 1; k < decks; k++)
         {

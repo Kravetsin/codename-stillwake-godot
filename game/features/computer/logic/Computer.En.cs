@@ -48,6 +48,7 @@ public static partial class En
         ["computer.radar.class.shuttle"] = "Shuttle",
         ["computer.radar.class.freighter"] = "Freighter",
         ["computer.radar.class.liner"] = "Liner",
+        ["computer.radar.class.tanker"] = "Tanker",
         ["computer.radar.length"] = "Size",
         ["computer.radar.cells"] = "{n} cells long",
         ["computer.radar.decks"] = "Decks",
