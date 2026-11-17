@@ -12,12 +12,42 @@ public class BodyHeatTests
 {
     private const double Frame = 1 / 60.0;
 
-    /// <summary>Steps <paramref name="body"/> a frame at a time for <paramref name="seconds"/>, or until it dies; the seconds it lived, or null.</summary>
+    /// <summary>Steps <paramref name="body"/> a frame at a time for <paramref name="seconds"/>, or until it reaches a death; the seconds that took, or null.</summary>
     private static double? DiesWithin(BodyHeat body, double seconds, int felt, int heat)
     {
         for (int i = 1; i <= seconds / Frame; i++)
-            if (body.Step(Frame, felt, heat)) return i * Frame;
+        {
+            body.Step(Frame, felt, heat);
+            if (BodyHeat.Dead(body.Degrees)) return i * Frame;
+        }
         return null;
+    }
+
+    [Fact]
+    public void PastADeathItLivesALastBreathOfTenSecondsThenIsGoneAndStaysSo()
+    {
+        var body = new BodyHeat();
+        DiesWithin(body, 60, 900, 0);
+        Assert.InRange(body.GaspLeft, Content.Crew.LastBreath - 1, Content.Crew.LastBreath);
+        double lived = 0;
+        while (!body.Step(Frame, 900, 0)) lived += Frame;
+        Assert.InRange(lived, BodyHeat.LastBreathS - 2 * Frame, BodyHeat.LastBreathS);
+        Assert.True(body.Gone);
+        Assert.Equal(1, body.GaspLeft);
+        body.Reset();
+        Assert.Equal((false, 0, BodyHeat.Normal), (body.Gone, body.GaspLeft, body.Degrees));
+    }
+
+    [Fact]
+    public void WarmedBackInsideItsLastBreathItLivesOn()
+    {
+        var body = new BodyHeat();
+        DiesWithin(body, 60, 90, 0);
+        for (int i = 0; i < 300; i++) Assert.False(body.Step(Frame, 90, 0));
+        Assert.InRange(body.GaspLeft, 1, Content.Crew.LastBreath / 2 + 2);
+        for (int i = 0; i < 60; i++) Assert.False(body.Step(Frame, 0, 0));
+        Assert.Equal((false, 0), (body.Gone, body.GaspLeft));
+        Assert.False(BodyHeat.Dead(body.Degrees));
     }
 
     [Fact]

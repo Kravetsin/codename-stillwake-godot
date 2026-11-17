@@ -340,7 +340,9 @@ public partial class Main : Node2D, ITogether
             AddChild(new Haze(() => _session is Session s && _hero is { Placed: true } h && !_m.Items.Creative(s.Client.Id)
                 ? Report.Heat(_m.Crew.Heat(s.Client.Id, h.Current.BodyCell(_m.Grid.Width))) : 0));
             AddChild(new HurtView(() => _session is Session s && _m.Crew.HeroOf(s.Client.Id) is { } hurt ? (hurt.Hurts, hurt.Hurt) : null, gauge));
-            AddChild(new TunnelView(() => _session is Session s && _m.Crew.HeroOf(s.Client.Id) is { } me ? (me.Gasp, me.Out) : null, () => _hero?.Shown));
+            // The last breath out of air or past a death of the body (body-temperature), whichever ends first.
+            AddChild(new TunnelView(() => _session is Session s && _m.Crew.HeroOf(s.Client.Id) is { } me
+                ? (Tunnel.Sooner(me.Gasp, _hero?.BodyGasp ?? 0), me.Out) : null, () => _hero?.Shown));
             // Home and friends off the screen, pointed at from its edge, clear of the HUD's panels.
             var (panel, fabricator, building) = (_items.Panel, _fabricator, _hands.Menu);
             IEnumerable<Rect2> Hud()

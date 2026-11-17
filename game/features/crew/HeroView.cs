@@ -366,6 +366,9 @@ public partial class HeroView : Node2D
     /// <summary>This machine's hero's body temperature in degrees (body-temperature): kept here, never by the sim.</summary>
     public float Body => _body.Degrees;
 
+    /// <summary>The ticks left of the body's last breath past a death, as <c>Hero.Gasp</c> counts the air's; 0 with none.</summary>
+    public int BodyGasp => _body.GaspLeft;
+
     /// <summary>Whether the hero stands in the world yet: until its first frame in a session, <see cref="Current"/> is nowhere.</summary>
     public bool Placed => _placed;
 
@@ -468,7 +471,7 @@ public partial class HeroView : Node2D
         // The body (body-temperature), from the degrees the sim says it feels where it stands; at either death the sim is told once.
         // Out, it stays as it was, so one frozen to death lies frosted over; it is well again on waking.
         if (known == null || woke || m.Items.Creative(client.Id)) _body.Reset();
-        else if (!passedOut && !_body.IsDead
+        else if (!passedOut && !_body.Gone
             && _body.Step(elapsedMs / 1000, m.Crew.Felt(client.Id, _current.BodyCell(grid.Width)), m.Crew.Heat(client.Id, _current.BodyCell(grid.Width))))
             client.Send(new Sim.Crew.Succumb());
         // The hero faces the pointer's side and looks at it, read where the camera was last frame.
