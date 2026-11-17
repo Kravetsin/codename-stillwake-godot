@@ -334,8 +334,11 @@ public partial class Main : Node2D, ITogether
             AddChild(new Thermometer(() => _session is Session s && _m.Crew.HeroOf(s.Client.Id) is { Out: 0 } && _hero is { Placed: true } h
                 ? (ThermometerReading?)Thermometers.Read(_m.Crew, s.Client.Id, h.Current.BodyCell(_m.Grid.Width), h.Body) : null, _hands.Ui));
             if (_hero is { } breathing) gauge.BreathesAgain += breathing.BreathesAgain;
-            AddChild(new Frost(() => _session is Session s && _hero is { Placed: true } h ? Report.ColdOf(h.Body) : 0));
-            AddChild(new Haze(() => _session is Session s && _hero is { Placed: true } h ? Report.HeatOf(h.Body) : 0));
+            // The place's cold or heat on the screen at once; the body follows it on the thermometer and the suit (body-temperature).
+            AddChild(new Frost(() => _session is Session s && _hero is { Placed: true } h && !_m.Items.Creative(s.Client.Id)
+                ? Report.Cold(_m.Crew.Felt(s.Client.Id, h.Current.BodyCell(_m.Grid.Width))) : 0));
+            AddChild(new Haze(() => _session is Session s && _hero is { Placed: true } h && !_m.Items.Creative(s.Client.Id)
+                ? Report.Heat(_m.Crew.Heat(s.Client.Id, h.Current.BodyCell(_m.Grid.Width))) : 0));
             AddChild(new HurtView(() => _session is Session s && _m.Crew.HeroOf(s.Client.Id) is { } hurt ? (hurt.Hurts, hurt.Hurt) : null, gauge));
             AddChild(new TunnelView(() => _session is Session s && _m.Crew.HeroOf(s.Client.Id) is { } me ? (me.Gasp, me.Out) : null, () => _hero?.Shown));
             // Home and friends off the screen, pointed at from its edge, clear of the HUD's panels.

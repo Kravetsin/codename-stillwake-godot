@@ -258,12 +258,12 @@ public class SuitsTests
     }
 
     [Fact]
-    public void OffTheGridAHeavyHelmetKeepsItsAirAndSpacesColdIsFeltPastTheSuit()
+    public void OffTheGridAHeavyHelmetKeepsItsAirAndTheDeepsColdIsFeltPastTheSuit()
     {
-        // Space's −200° on a basic suit's −110°: 90 felt, for the client's body; the tank buys no reach (body-temperature).
+        // Off the grid the deep's −2000° on a basic suit's −110°: 1890 felt, for the client's body; the tank buys no reach (body-temperature).
         var w = Heavy(-5);
         Breaths(w, 3);
-        Assert.Equal((100 - 3, 0, 0, 90), (HeroOf(w).Air, HeroOf(w).Gasp, HeroOf(w).Out, w.M.Crew.Felt(0, -5)));
+        Assert.Equal((100 - 3, 0, 0, 1890), (HeroOf(w).Air, HeroOf(w).Gasp, HeroOf(w).Out, w.M.Crew.Felt(0, -5)));
     }
 
     [Fact]

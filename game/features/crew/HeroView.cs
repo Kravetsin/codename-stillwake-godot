@@ -463,14 +463,14 @@ public partial class HeroView : Node2D
             _previous = _current = Hero.At(ship, known.Cell);
             _snap = true;
         }
+        bool woke = _wasOut && !passedOut;
         _wasOut = passedOut;
-        // The body (body-temperature), from the degrees the sim says it feels where it stands; at either death the sim is told.
-        if (known == null || passedOut || m.Items.Creative(client.Id)) _body.Reset();
-        else if (_body.Step(elapsedMs / 1000, m.Crew.Felt(client.Id, _current.BodyCell(grid.Width)), m.Crew.Heat(client.Id, _current.BodyCell(grid.Width))))
-        {
+        // The body (body-temperature), from the degrees the sim says it feels where it stands; at either death the sim is told once.
+        // Out, it stays as it was, so one frozen to death lies frosted over; it is well again on waking.
+        if (known == null || woke || m.Items.Creative(client.Id)) _body.Reset();
+        else if (!passedOut && !_body.IsDead
+            && _body.Step(elapsedMs / 1000, m.Crew.Felt(client.Id, _current.BodyCell(grid.Width)), m.Crew.Heat(client.Id, _current.BodyCell(grid.Width))))
             client.Send(new Sim.Crew.Succumb());
-            _body.Reset();
-        }
         // The hero faces the pointer's side and looks at it, read where the camera was last frame.
         var pointed = Pointer();
         int? face = Poses.FaceOf(pointed, _current);
@@ -548,7 +548,7 @@ public partial class HeroView : Node2D
         if (!passedOut && Report.ExertOf(m.Crew, client.Id, exerting) is { } exert) client.Send(exert);
         // Off as Shift is let go, aboard, the jetpack taken off or the suit empty: the sim stops venting it.
         // A cruise at full speed along the thrust is free (jet-cruise): only a start, turn, brake or dodge vents the suit.
-        _venting = _thrust is { } dir && !Hero.Cruising(_current.Vx, _current.Vy, dir, BodyHeat.SpeedOf(Body));
+        _venting = _thrust is { } dir && !Hero.Cruising(_current.Vx, _current.Vy, dir);
         if (Report.ThrustOf(m.Crew, client.Id, _venting) is { } thrusts) client.Send(thrusts);
         HearThrust(elapsedMs);
         for (int burnt = _burns.Due(elapsedMs, Burns(m, known), 1 / S.LavaBurnEveryS); burnt > 0; burnt--) _burn.Play();
@@ -612,6 +612,8 @@ public partial class HeroView : Node2D
         _figure.Scanner = m.Items.Equipped(client.Id, Content.Helmet.Scanner);
         _figure.CapeWorn = cape;
         _figure.EffectSkin = SkinEffects.Of(effect);
+        // The suit frosts over or scorches with the body, not the place (body-temperature, picks F2 and H3).
+        _figure.Suffers(Report.ColdOf(Body), Report.HeatOf(Body));
         _figure.FloorRoom = FloorRoom(m.Grid, drawn);
         _figure.Room = RoomOf(ship, drawn);
         _figure.Footing = FootingOf(m, drawn, _figure.Footing);

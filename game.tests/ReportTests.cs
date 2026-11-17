@@ -216,4 +216,15 @@ public class ReportTests
         for (float body = 37; body > 28; body -= 0.1f) Assert.True(Report.ColdOf(body - 0.1f) >= Report.ColdOf(body), $"{body}");
     }
 
+    [Fact]
+    public void DrawsTheScreensFrostAndHazeAtTheDegreesFeltAtOnceWholeAtThirty()
+    {
+        // The place's verdict, not the body's: shown the moment it is felt (body-temperature).
+        Assert.Equal((0f, 0f), (Report.Cold(0), Report.Heat(0)));
+        Assert.Equal(0.75f, Report.Cold(Report.FeltFull / 2), 3);
+        Assert.Equal(1f, Report.Cold(Report.FeltFull));
+        Assert.Equal(1f, Report.Cold(1890));
+        Assert.Equal(0.75f, Report.Heat(Report.FeltFull / 2), 3);
+    }
+
 }

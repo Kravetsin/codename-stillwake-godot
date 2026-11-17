@@ -2,7 +2,7 @@ namespace Stillwake.Content;
 
 /// <summary>
 /// The field round the build zone (0048): out to <see cref="Margin"/> cells past the zone's edge space cools from
-/// <c>Temperature.Hull</c> to <c>Temperature.Space</c>, holding there past it (body-temperature).
+/// <c>Temperature.Hull</c> to <c>Temperature.Space</c>, and past it on to <c>Temperature.Deep</c> at the world's edge (body-temperature).
 /// </summary>
 public static class Field
 {

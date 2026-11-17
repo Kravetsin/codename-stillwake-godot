@@ -20,7 +20,10 @@ public partial class Thermometer : CanvasLayer
     // larger than the pieces are tall.
     private const float Sign = Vitals.Icon, TextSize = 14, Grow = Sign / 16.5f;
     private static readonly Color Calm = new("d3dee9"), FrostLight = new("9ed8ff"), FrostDeep = new("3a86e0"), Rime = new("e6f7ff");
-    private static readonly Color HeatLight = new("ffc46e"), HeatDeep = new("ff5a26");
+    private static readonly Color HeatLight = new("ffc46e"), HeatDeep = new("ff5a26"), Danger = new("ff4a3a");
+
+    // The scale (body-temperature): where it starts past the number, its length, its notches' heights.
+    private const float ScaleGap = 50, ScaleWidth = 112, Notch = 2.5f, LongNotch = 4.5f;
 
     /// <summary>The rime's strokes: an angle round the star, a length, when in the frost it starts, whether it forks.</summary>
     private static readonly (float Angle, float Length, float At, bool Fork)[] Strokes = MakeStrokes();
@@ -33,6 +36,7 @@ public partial class Thermometer : CanvasLayer
     private double _sinceRead = RefreshS;
     private ThermometerReading _sim;
     private float _glided;
+    private float _target = Thermometers.Normal;
     private bool _shown;
     private double _clock;
 
@@ -46,7 +50,7 @@ public partial class Thermometer : CanvasLayer
         _face = new Face(this)
         {
             Position = new Vector2(Vitals.SignX - Sign / 2, Vitals.ColdY - Sign / 2),
-            Size = new Vector2(Vitals.RowLeft - Vitals.SignX + Sign / 2 + 40, Sign),
+            Size = new Vector2(Vitals.RowLeft - Vitals.SignX + Sign / 2 + ScaleGap + ScaleWidth + 6, Sign),
             MouseFilter = Control.MouseFilterEnum.Ignore,
         };
         _root.AddChild(_face);
@@ -68,7 +72,7 @@ public partial class Thermometer : CanvasLayer
             if (read is { } now)
             {
                 // Shown again (a first read, waking up): the reading as it is, nothing to glide from.
-                if (!_shown) _glided = now.Body / 100f;
+                if (!_shown) (_glided, _target) = (now.Body / 100f, now.Target / 100f);
                 _sim = now;
             }
             _shown = read != null;
@@ -79,11 +83,11 @@ public partial class Thermometer : CanvasLayer
             return;
         }
         _clock += delta;
-        float glided = Thermometers.Glide(_glided, _sim.Body / 100f, delta);
-        // The shimmer moves while the body is hot: drawn each frame then.
-        if (glided != _glided || _glided > Thermometers.Normal)
+        float glided = Thermometers.Glide(_glided, _sim.Body / 100f, delta), target = Thermometers.Glide(_target, _sim.Target / 100f, delta);
+        // The shimmer moves while the body is hot, the target slides and a death's mark pulses: drawn each frame then.
+        if (glided != _glided || target != _target || _glided > Thermometers.Normal || Thermometers.OnScale(_target).Past)
         {
-            _glided = glided;
+            (_glided, _target) = (glided, target);
             _face.QueueRedraw();
         }
         else if (_face.Drawn != Thermometers.Shown(_glided)) _face.QueueRedraw();
@@ -129,6 +133,41 @@ public partial class Thermometer : CanvasLayer
             if (warm) Glow(at + new Vector2(size.X / 2, -TextSize * 0.3f), size.X * 0.7f, colour with { A = 0.18f + 0.2f * hot });
             DrawString(Style.Mono, at, text, HorizontalAlignment.Left, -1, (int)TextSize, colour);
             if (warm) DrawShimmer(at with { Y = Sign / 2 }, size.X, hot, swap);
+            DrawScale(at.X + ScaleGap, colour);
+        }
+
+        /// <summary>
+        /// The scale from the cold's death to the heat's (body-temperature): a notch a degree, the body's normal long; the body a
+        /// filled run from its normal; where what it feels draws it a hollow mark, faint, the place's verdict before the body
+        /// gets there. A mark past a death sits red on that end and pulses: stay and the hero dies.
+        /// </summary>
+        private void DrawScale(float left, Color body)
+        {
+            const float mid = Sign / 2;
+            float at(float share) => left + share * ScaleWidth;
+            DrawLine(new Vector2(left, mid), new Vector2(left + ScaleWidth, mid), Calm with { A = 0.3f }, 1, true);
+            foreach (var (share, isLong) in Thermometers.Notches())
+            {
+                float h = isLong ? LongNotch : Notch;
+                DrawLine(new Vector2(at(share), mid - h), new Vector2(at(share), mid + h), Calm with { A = isLong ? 0.55f : 0.3f }, 1, true);
+            }
+            foreach (float end in new[] { 0f, 1f })
+                DrawLine(new Vector2(at(end), mid - LongNotch), new Vector2(at(end), mid + LongNotch), Danger with { A = 0.6f }, 1.2f, true);
+            float normal = Thermometers.OnScale(Thermometers.Normal).At, now = Thermometers.OnScale(owner._glided).At;
+            if (Math.Abs(now - normal) * ScaleWidth >= 0.5f)
+                DrawLine(new Vector2(at(normal), mid), new Vector2(at(now), mid), body with { A = 0.85f }, 3, true);
+            DrawCircle(new Vector2(at(now), mid), 2.2f, body);
+            var (aim, past) = Thermometers.OnScale(owner._target);
+            if (!past && Math.Abs(aim - now) * ScaleWidth < 1.5f) return;
+            var mark = past ? Danger with { A = Vitals.Pulse(owner._clock * 2) } : Calm with { A = 0.6f };
+            var tip = new Vector2(at(aim), mid - 3.5f);
+            Vector2[] head = [tip, tip + new Vector2(-3.5f, -5), tip + new Vector2(3.5f, -5), tip];
+            if (past)
+            {
+                Glow(tip + new Vector2(0, -2), 9, Danger with { A = 0.35f * mark.A });
+                DrawColoredPolygon(head[..3], mark);
+            }
+            else DrawPolyline(head, mark, 1, true);
         }
 
         /// <summary>Thin wavering strokes rising off the number: more and brighter as the heat deepens.</summary>

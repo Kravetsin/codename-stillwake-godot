@@ -97,14 +97,15 @@ public partial class ContentTests
     }
 
     [Fact]
-    public void TheBodyIsWellBetweenItsDeathsSlowsPastItsEaseAndNeverStops()
+    public void TheBodyIsWellBetweenItsDeathsSlowsFromItsNormalAndNeverStops()
     {
-        // body-temperature: each death past the ease either way, so a body slows before it dies; the least speed is some.
-        var t = (Content.Temperature.ColdDeath, Content.Temperature.Normal, Content.Temperature.Easy, Content.Temperature.HeatDeath);
-        Assert.True(t.ColdDeath < t.Normal - t.Easy && t.Normal + t.Easy < t.HeatDeath && t.Easy >= 0, $"{t}");
+        // body-temperature: a death either way of normal, so a body slows before it dies; the least speed is some; space colder outward.
+        var t = (Content.Temperature.ColdDeath, Content.Temperature.Normal, Content.Temperature.HeatDeath);
+        Assert.True(t.ColdDeath < t.Normal && t.Normal < t.HeatDeath, $"{t}");
         Assert.InRange(Content.Temperature.Least, 1, 999);
         Assert.InRange(Content.Temperature.Pull, 1, 1000);
-        Assert.True(Content.Temperature.Sway > 0 && Content.Temperature.Space < Content.Temperature.Hull);
+        Assert.True(Content.Temperature.Drift > 0 && Content.Temperature.Sway > 0);
+        Assert.True(Content.Temperature.Deep < Content.Temperature.Space && Content.Temperature.Space < Content.Temperature.Hull);
     }
 
     [Fact]

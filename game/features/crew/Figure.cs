@@ -424,6 +424,30 @@ public partial class Figure : Node2D
         Wear(colour);
     }
 
+    /// <summary>The suit's frost and heat (<see cref="SuitFxView"/>), made the first time either shows.</summary>
+    private SuitFxView? _suitFx;
+
+    /// <summary>The parts the suit's frost and heat show on: what covers the body, never the head, face, hair or glass.</summary>
+    private static readonly HashSet<string> SuitParts = ["leg", "arm", "hand", "pack", "torso", "shell", "collar", "seal"];
+
+    /// <summary>How far the suit shows its wearer's body cold or hot, each 0 to 1 (body-temperature): frost greys it, heat chars it.</summary>
+    public void Suffers(float frost, float heat)
+    {
+        if (_suitFx == null)
+        {
+            if (frost <= 0 && heat <= 0) return;
+            var parts = new List<(Sprite2D, bool)>();
+            foreach (var (sprite, part, _) in _parts)
+                if (SuitParts.Contains(part)) parts.Add((sprite, part == "hand"));
+            AddChild(_suitFx = new SuitFxView(parts, SuitAt));
+        }
+        _suitFx.Show(frost, heat, PictureOf("hand").EndsWith("_skin", StringComparison.Ordinal));
+    }
+
+    /// <summary>Where <paramref name="local"/>, in <paramref name="sprite"/>'s frame, is drawn now: above a bent limb's joint, rigid with its upper bone.</summary>
+    private Vector2 SuitAt(Sprite2D sprite, Vector2 local) =>
+        _uppers.TryGetValue(sprite, out var upper) && local.Y < 0 ? upper.Node.ToGlobal(local + new Vector2(0, (float)upper.Bone)) : sprite.ToGlobal(local);
+
     /// <summary>The boots' <paramref name="cue"/> at the feet, on the World bus, silent while floating.</summary>
     private void Boots(S.Cue cue, float tune = 1, float offsetDb = 0) => _boots.Play(cue, GlobalPosition, tune, offsetDb);
 

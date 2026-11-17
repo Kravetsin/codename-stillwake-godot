@@ -68,6 +68,18 @@ public static class Report
         return Eased((body - normal) / (death - normal));
     }
 
+    /// <summary>The degrees felt past a limit at which the frost or the haze on the screen is whole.</summary>
+    public const int FeltFull = 30;
+
+    /// <summary>
+    /// The frost on the screen at <paramref name="felt"/> degrees past the cold's limit, 0 to 1, eased (body-temperature): the
+    /// place's cold, shown the moment it is felt, while the body (<see cref="ColdOf"/>) only follows it.
+    /// </summary>
+    public static float Cold(int felt) => Eased(felt / (float)FeltFull);
+
+    /// <summary>The haze on the screen at <paramref name="heat"/> degrees past the heat's limit, 0 to 1, eased as the frost.</summary>
+    public static float Heat(int heat) => Eased(heat / (float)FeltFull);
+
     /// <summary>A share of the cold or the heat, clamped to 0 to 1 and eased out (2s − s²): what the frost, the haze and the thermometer draw.</summary>
     public static float Eased(float share)
     {

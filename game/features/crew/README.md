@@ -64,33 +64,36 @@ This hero and others', client-authoritative (0002): only commands reach the sim.
 | `logic/SuitGlow.cs` | lights |
 | `logic/TrackerBlink.cs` | tracker |
 | `SuitKeys.cs` | V |
-| `Figure.cs` | the figure |
+| `Figure.cs` | figure |
 | `logic/BodyFit.cs` | fits |
-| `logic/Cape.cs` | a cape's cloth |
+| `logic/Cape.cs` | cape |
 | `logic/Spring.cs` | spring |
 | `CapeView.cs` | drawn |
-| `HeroView.cs` | the hero |
+| `HeroView.cs` | hero |
 | `HeroView.Hands.cs` | its hands |
 | `HeroView.Guns.cs` | its gun |
 | `HeroView.Feel.cs` | air, body |
-| `logic/GunHand.cs` | gun cooldown |
+| `logic/GunHand.cs` | cooldown |
 | `HeroView.Others.cs` | others |
 | `logic/CameraFollow.cs` | camera |
 | `JetPlume.cs` | plume |
 | `logic/PlumeWay.cs` | its way |
-| `RodLight.cs` | harpoon light |
+| `RodLight.cs` | rod light |
 | `AimOutline.cs` | outline |
-| `ModeGlyph.cs` | driver's mark |
+| `ModeGlyph.cs` | mark |
 | `logic/DriverMode.cs` | its dots |
 | `HeroAutopilot.cs` | scripted |
-| `logic/Report.cs` | Enter reports |
+| `logic/Report.cs` | reports |
 | `Frost.cs` | the cold |
 | `Haze.cs` | the heat |
+| `logic/BodyHeat.cs` | body |
+| `SuitFxView.cs` | suit fx |
+| `logic/SuitFx.cs` | sums |
 | `logic/ScreenEase.cs` | eased |
-| `logic/Danger.cs` | gauge read |
+| `logic/Danger.cs` | gauge |
 | `logic/AirCues.cs` | air back |
 | `logic/CanistersSeen.cs` | tanks |
-| `AirSwirl.cs` | air swirls |
+| `AirSwirl.cs` | swirls |
 | `SuitGauge.cs` | air row |
 | `MealSlots.cs` | meals |
 | `logic/Retching.cs` | a retch |
@@ -133,7 +136,7 @@ This hero and others', client-authoritative (0002): only commands reach the sim.
 - **Camera** leads, eases, snaps; **markers** (0061): home, last body, friends heard, deliveries, a catcher, pings;
   **hurts** tint edges, gauge (hurts-are-shown).
 - **Water** (liquids): swum `SwimDepth` deep, left by Space or shore; wading splashes.
-- **Swim, haul, jetpack** (0047, tether-haul, jet-cruise): afloat through floors, tied where it left the hull; Shift hauls
+- **Swim, haul, jetpack** (0047, tether-haul, jet-cruise): afloat through floors, tied where it left; Shift hauls
   along bends (`Wraps`); a jetpack unties; Shift vents unless `Hero.Cruising`.
 - **Canister** (0047, 0081): RMB, R `Refill`; V `SuitMode` (regen-suit); O₂ sign grey cooling, red too soon (canister-mark).
 - **Meals:** RMB `Eat`; refused, slots blink (hud-vitals); 4th held 3 s, `Purge` (food-tuning); degrees over (the-thermometer).
@@ -161,10 +164,10 @@ This hero and others', client-authoritative (0002): only commands reach the sim.
 - **Hits are rays** (tool-reach, hits-pass-wrecks): a fan (`ToolRays`) to a wall, through wrecks; ground rings. **Sparks**
   are the haze's (spark-rule). **Struck tools** (0038, swing-motions): by sector, hit as the blade crosses the aim.
 - **Harpoon, grapple** (0044, grapple-climbs): reel pieces, pull to walls; hung, refire; Space/RMB let go.
-- **A gun** (hold-to-fire): held fires each cooldown, a `Charge` one full on release, flat, clicks; kicks (`Recoil`, body-answers).
+- **A gun** (hold-to-fire): held fires each cooldown, a `Charge` one on release; kicks (`Recoil`, body-answers).
 - **Drill, grinder, cutter** (0054, 0055): held runs it (`Run`), hits a `Pace`, the cutter's by beam (`ToolEdges`).
 - **Power driver** (driver-at-work, driver-order): charged, a 2×2 `WorkedSquare`; RMB toggles (mode-glyph).
-- **Gestures** (gestures-for-words): F tap points, pings (crew-pings); hold: a wheel (yes, no, wave); item stowed.
+- **Gestures** (gestures-for-words): F tap points, pings (crew-pings); hold: a wheel; item stowed.
 - **Seated** (`Seating`): no tool; E leaves. **Ladders, ledges** (0092, 0112): grab, climb, slide, leap off; a hatch open
   climbs, shut floors; a short jump mantles.
 

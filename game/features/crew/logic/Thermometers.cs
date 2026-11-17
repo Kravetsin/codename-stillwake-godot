@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Globalization;
 using Stillwake.Game.Shared;
 using Stillwake.Sim.Crew;
@@ -13,7 +14,9 @@ namespace Stillwake.Game.Features.Crew;
 /// <param name="Felt">The degrees it feels past <paramref name="Low"/>.</param>
 /// <param name="Heat">The degrees it feels past <paramref name="High"/>.</param>
 /// <param name="Body">Its body's temperature, in hundredths of a degree (body-temperature).</param>
-public readonly record struct ThermometerReading(int Degrees, int Low, int High, int Felt, int Heat, int Body = Content.Temperature.Normal);
+/// <param name="Target">Where what it feels draws its body, in hundredths of a degree: past a death the body never stops short of it.</param>
+public readonly record struct ThermometerReading(int Degrees, int Low, int High, int Felt, int Heat, int Body = Content.Temperature.Normal,
+    int Target = Content.Temperature.Normal);
 
 /// <summary>
 /// What the vitals' thermometer says (the-thermometer, body-temperature): the hero's body to a tenth, calm at its normal,
@@ -24,7 +27,8 @@ public static class Thermometers
 {
     /// <summary>What the thermometer reads for hero <paramref name="peer"/> at <paramref name="cell"/>, its body's, its <paramref name="body"/> in degrees as its client keeps it.</summary>
     public static ThermometerReading Read(ICrewQueries crew, int peer, int cell, float body) =>
-        new(crew.TemperatureAt(cell), crew.LowOf(peer), crew.HighOf(peer), crew.Felt(peer, cell), crew.Heat(peer, cell), (int)MathF.Round(body * 100));
+        new(crew.TemperatureAt(cell), crew.LowOf(peer), crew.HighOf(peer), crew.Felt(peer, cell), crew.Heat(peer, cell), (int)MathF.Round(body * 100),
+            (int)MathF.Round(BodyHeat.Target(crew.Felt(peer, cell), crew.Heat(peer, cell)) * 100));
 
     /// <summary>
     /// How deep the reading's frost is at a <paramref name="body"/> of so many degrees, 0 to 1: as the screen's frost is
@@ -42,7 +46,7 @@ public static class Thermometers
     public static float Swap(float body) => Math.Clamp((body - Normal) / SwapDegrees, 0, 1);
 
     /// <summary>The seconds in which the shown body closes about two thirds of its way to the sim's (<see cref="Glide"/>): a breath's step slides.</summary>
-    public const double GlideS = 1.0;
+    public const double GlideS = 0.25;
 
     /// <summary>How near the sim's body, in degrees, the shown one settles on it.</summary>
     public const float Snap = 0.05f;
@@ -58,6 +62,23 @@ public static class Thermometers
     {
         float left = body - shown;
         return Math.Abs(left) < Snap ? body : shown + left * (float)(1 - Math.Exp(-delta / GlideS));
+    }
+
+    /// <summary>The scale's ends, in degrees: the cold's death at its left, the heat's at its right.</summary>
+    public const float Coldest = Content.Temperature.ColdDeath / 100f, Hottest = Content.Temperature.HeatDeath / 100f;
+
+    /// <summary>
+    /// Where <paramref name="degrees"/> stand along the scale (body-temperature), 0 at the cold's death to 1 at the heat's, and
+    /// whether they lie past either end: a target past a death, which the body reaches and never stops at, is pinned there.
+    /// </summary>
+    public static (float At, bool Past) OnScale(float degrees) =>
+        (Math.Clamp((degrees - Coldest) / (Hottest - Coldest), 0, 1), degrees <= Coldest || degrees >= Hottest);
+
+    /// <summary>The scale's notches, in whole degrees from death to death; long at each fifth and at the body's normal.</summary>
+    public static IEnumerable<(float At, bool Long)> Notches()
+    {
+        for (int d = (int)MathF.Ceiling(Coldest); d <= (int)Hottest; d++)
+            yield return (OnScale(d).At, d % 5 == 0 || d == (int)MathF.Round(Normal));
     }
 
     /// <summary>A glided body as it is drawn: the nearest tenth of a degree, in tenths.</summary>

@@ -18,8 +18,14 @@ public static class Temperature
     /// <summary>An aired cell's, on any surface and at any depth: a sealed room is a shelter.</summary>
     public const int Room = 20;
 
-    /// <summary>Space's far from the ship: an airless cell afloat at and past the field's line, and any cell off the grid on any surface.</summary>
+    /// <summary>Space's at the field's line: an airless cell afloat there, colder past it toward <see cref="Deep"/>.</summary>
     public const int Space = -200;
+
+    /// <summary>
+    /// Space's at the world's edge, and any cell off the grid: past the field's line it falls straight to this (body-temperature).
+    /// The body cools by the degrees felt (<see cref="Drift"/>), so no suit's wearer, however fast it flies, reaches the edge alive.
+    /// </summary>
+    public const int Deep = -2000;
 
     /// <summary>Space's by the ship: an airless cell afloat in the build zone, cooling to <see cref="Space"/> across the field.</summary>
     public const int Hull = -100;
@@ -34,14 +40,11 @@ public static class Temperature
     public const int Pull = 250;
 
     /// <summary>
-    /// The most hundredths of a degree a body moves away from <see cref="Normal"/> a second, however deep the cold or the heat: 37°
-    /// to <see cref="ColdDeath"/> takes 36 s at the least, so a hero flying out too far feels it slow before it dies. Back toward
-    /// normal it is unbounded.
+    /// The most thousandths of a degree a body moves away from <see cref="Normal"/> a second for each degree felt past a limit: 90
+    /// past a basic suit at the field's line, 0.27° a second, 33 s to <see cref="ColdDeath"/>; deeper out faster. Back toward normal
+    /// it is unbounded.
     /// </summary>
-    public const int Drift = 25;
-
-    /// <summary>Hundredths of a degree off <see cref="Normal"/> a body moves and works at full speed within.</summary>
-    public const int Easy = 200;
+    public const int Drift = 3;
 
     /// <summary>The body's temperature, in hundredths of a degree, at or under which a hero passes out of the cold.</summary>
     public const int ColdDeath = 2800;
@@ -49,6 +52,9 @@ public static class Temperature
     /// <summary>The body's temperature, in hundredths of a degree, at or over which a hero passes out of the heat.</summary>
     public const int HeatDeath = 4200;
 
-    /// <summary>Thousandths of its speed a hero moves and works at with its body at <see cref="ColdDeath"/> or <see cref="HeatDeath"/>: the least.</summary>
+    /// <summary>
+    /// Thousandths of its speed a hero moves on foot and works at with its body at <see cref="ColdDeath"/> or <see cref="HeatDeath"/>:
+    /// the least, reached straight from whole at <see cref="Normal"/>, every tenth of a degree its share.
+    /// </summary>
     public const int Least = 200;
 }

@@ -41,9 +41,24 @@ public class ThermometerTests
         Assert.Equal(0f, Thermometers.Hot(30));
         Assert.Equal(0.75f, Thermometers.Hot(39.5f), 3);
         Assert.Equal(1f, Thermometers.Hot(42));
-        // The screen's frost and haze are drawn at the same shares.
+        // The body's own shares, as its suit shows them.
         Assert.Equal(Report.ColdOf(33), Thermometers.Frost(33));
         Assert.Equal(Report.HeatOf(40), Thermometers.Hot(40));
+    }
+
+    [Fact]
+    public void ItsScaleRunsFromDeathToDeathANotchADegreeAndPinsATargetPastEitherToItsEnd()
+    {
+        Assert.Equal((0f, true), Thermometers.OnScale(28));
+        Assert.Equal((1f, true), Thermometers.OnScale(42));
+        Assert.Equal((0f, true), Thermometers.OnScale(-341));
+        Assert.Equal((1f, true), Thermometers.OnScale(55));
+        var (normal, past) = Thermometers.OnScale(37);
+        Assert.False(past);
+        Assert.Equal(9 / 14f, normal, 4);
+        var notches = Thermometers.Notches().ToList();
+        Assert.Equal(15, notches.Count);
+        Assert.Equal([30, 35, 37, 40], notches.Select((n, i) => (n, d: 28 + i)).Where(x => x.n.Long).Select(x => x.d));
     }
 
     [Fact]
@@ -71,9 +86,9 @@ public class ThermometerTests
             seen.Add(Thermometers.Shown(shown));
         }
         Assert.Equal(32f, shown);
-        // GlideS 1 s: two thirds of the way in a second, the last 0.05° snapped some 4.6 s in.
-        Assert.InRange(seconds, 4, 5);
-        Assert.True(seen.Distinct().Count() > 40, $"it passes the tenths between: {seen.Distinct().Count()} shown");
+        // GlideS a quarter second: the body is the client's, read four times a second; the last 0.05° snapped some 1.15 s in.
+        Assert.InRange(seconds, 1, 1.3);
+        Assert.True(seen.Distinct().Count() > 25, $"it passes the tenths between: {seen.Distinct().Count()} shown");
         Assert.Equal(seen.OrderByDescending(d => d), seen);
         Assert.Equal(32f, Thermometers.Glide(32, 32, 1 / 60.0));
         Assert.Equal(36f, Thermometers.Glide(35.96f, 36, 1 / 60.0));
@@ -98,7 +113,8 @@ public class ThermometerTests
         int spawn = w.M.Crew.Spawn, suit = Spec.Inventory.Slots + Spec.Inventory.Equipment.ToList().IndexOf(Spec.Suit.Slot);
         w.Step(new Enter(spawn) { From = 0 });
         Assert.Equal(
-            new ThermometerReading(Spec.Temperature.Hull, Spec.Temperature.BareLow, Spec.Temperature.BareHigh, -Spec.Temperature.Hull, 0, 3512),
+            new ThermometerReading(Spec.Temperature.Hull, Spec.Temperature.BareLow, Spec.Temperature.BareHigh, -Spec.Temperature.Hull, 0, 3512,
+                Spec.Temperature.Normal + Spec.Temperature.Hull * Spec.Temperature.Sway),
             Thermometers.Read(w.M.Crew, 0, spawn, 35.12f));
         w.Step(new Sim.Items.SetCreative(true), new Sim.Items.Spawn(Spec.Suit.Basic, 1) { From = 0 });
         int bag = w.M.Items.Inventory(0).ToList().FindIndex(s => s?.Item == Spec.Suit.Basic);

@@ -10,7 +10,7 @@ namespace Stillwake.Sim.Tests;
 
 /// <summary>
 /// The field round the build zone (0048) and its degrees (body-temperature): the hull's by the ship, colder across the field to
-/// space's at its line and past it; the cold there moves the body, never the air.
+/// space's at its line, falling to the deep's at the world's edge; the cold there moves the body, never the air.
 /// </summary>
 public class FieldTests
 {
@@ -25,7 +25,7 @@ public class FieldTests
         """;
 
     private const int Width = Content.World.Width, Height = Content.World.Height;
-    private const int Hull = Content.Temperature.Hull, Space = Content.Temperature.Space;
+    private const int Hull = Content.Temperature.Hull, Space = Content.Temperature.Space, Deep = Content.Temperature.Deep;
     /// <summary>The field's edges, the zone grown by <c>Field.Margin</c>: 384 cells from the grid's left and right, 128 from its top and bottom.</summary>
     private const int Left = (Width - Content.World.ZoneWidth) / 2 - FieldSpec.Margin, Right = Width - 1 - Left;
     private const int Top = (Height - Content.World.ZoneHeight) / 2 - FieldSpec.Margin, Bottom = Height - 1 - Top;
@@ -79,23 +79,25 @@ public class FieldTests
         Assert.Equal(-101, Degrees(zone.Left - 2, MidY));
         Assert.Equal((-150, -150), (Degrees(zone.Left - FieldSpec.Margin / 2, MidY), Degrees(zone.Left - FieldSpec.Margin / 2, zone.Top - 10)));
         Assert.Equal((-150, -150), (Degrees(MidX, zone.Bottom + FieldSpec.Margin / 2), Degrees(zone.Right + FieldSpec.Margin / 2, MidY)));
-        Assert.Equal((Space, Space, Space), (Degrees(Left, MidY), Degrees(Right + 1, Bottom + 1), Degrees(0, 0)));
-        for (int x = zone.Left; x > 0; x--)
+        Assert.Equal(Space, Degrees(Left, MidY));
+        for (int x = zone.Left; x > Left; x--)
             Assert.InRange(Degrees(x, MidY) - Degrees(x - 1, MidY), 0, 1);
     }
 
     [Fact]
-    public void HoldsAtSpacesEveryWayOnTheFieldsLinePastItHalfWayToTheEdgeAndAtTheWorldsEdge()
+    public void PastTheFieldsLineFallsStraightToTheDeepsAtTheWorldsEdgeByTheDeeperAxis()
     {
+        // The edge stays out of reach (body-temperature): every way, from space's on the line to the deep's at the grid's end.
         foreach (int cell in new[] { At(Left, MidY), At(Right, MidY), At(MidX, Top), At(MidX, Bottom), At(Left, Top), At(Right, Bottom) })
             Assert.Equal(Space, Degrees(cell));
-        foreach (int cell in new[] { At(Left - 1, MidY), At(Right + 1, MidY), At(MidX, Top - 1), At(MidX, Bottom + 1), At(Left - 1, Top - 1) })
-            Assert.Equal(Space, Degrees(cell));
+        int half = (Space + Deep) / 2;
         foreach (int cell in new[] { At(Left / 2, MidY), At(Right + Left / 2, MidY), At(MidX, Top / 2), At(MidX, Bottom + Top / 2), At(Left / 2, Top - 10) })
-            Assert.Equal(Space, Degrees(cell));
+            Assert.Equal(half, Degrees(cell));
         foreach (int cell in new[] { At(0, MidY), At(Width - 1, MidY), At(MidX, 0), At(Width - 1, Height - 1) })
-            Assert.Equal(Space, Degrees(cell));
-        Assert.Equal((Space, Space), (Degrees(-1), Degrees(Width * Height)));
+            Assert.Equal(Deep, Degrees(cell));
+        Assert.Equal((Deep, Deep), (Degrees(-1), Degrees(Width * Height)));
+        for (int x = Left; x > 0; x--)
+            Assert.True(Degrees(x - 1, MidY) <= Degrees(x, MidY), $"{x}");
     }
 
     [Fact]
@@ -106,13 +108,14 @@ public class FieldTests
     }
 
     [Fact]
-    public void PastTheFieldTheColdCostsNoAirAndIsFeltNinetyDegreesPastABasicSuit()
+    public void PastTheFieldTheColdCostsNoAirAndIsFeltNinetyPastABasicSuitOnItsLineDeeperOut()
     {
-        // Space's −200° on a basic suit's −110°: 90 felt, for the client's body to cool by; the air pays the breath alone.
-        foreach (int cell in new[] { At(Left - 1, MidY), At(0, MidY), At(MidX, 0), -5 })
+        // Space's −200° on a basic suit's −110°: 90 felt on the line, 1890 at the edge, for the client's body to cool by; the air
+        // pays the breath alone.
+        foreach (var (cell, felt) in new[] { (At(Left, MidY), 90), (At(0, MidY), 1890), (At(MidX, 0), 1890), (-5, 1890) })
         {
             var w = Breaths(BroughtIn(cell), 3);
-            Assert.Equal((Scenario.Full - 3, 0, 0, 90), (HeroOf(w).Air, HeroOf(w).Out, HeroOf(w).Gasp, w.M.Crew.Felt(0, cell)));
+            Assert.Equal((Scenario.Full - 3, 0, 0, felt), (HeroOf(w).Air, HeroOf(w).Out, HeroOf(w).Gasp, w.M.Crew.Felt(0, cell)));
         }
     }
 
@@ -151,12 +154,12 @@ public class FieldTests
     }
 
     [Fact]
-    public void IsTheHullsAnywhereOnAMapThatSetsNoZoneAndSpacesOffIt()
+    public void IsTheHullsAnywhereOnAMapThatSetsNoZoneAndTheDeepsOffIt()
     {
         // A test map's zone is the whole map, so its field reaches past the grid every way.
         var w = new Scenario(PodRoom);
         Assert.All(Enumerable.Range(0, w.Layout.Width * w.Layout.Height), cell => Assert.Equal(Hull, w.M.Crew.TemperatureAt(cell)));
-        Assert.Equal((Space, Space), (w.M.Crew.TemperatureAt(-1), w.M.Crew.TemperatureAt(w.Layout.Width * w.Layout.Height)));
+        Assert.Equal((Deep, Deep), (w.M.Crew.TemperatureAt(-1), w.M.Crew.TemperatureAt(w.Layout.Width * w.Layout.Height)));
     }
 
     // Invariants.
@@ -165,7 +168,7 @@ public class FieldTests
         from x in Gen.Choose(0, Width - 1) from y in Gen.Choose(0, Height - 1) select (x, y);
 
     [Property(MaxTest = 500)]
-    public Property TheDegreesAreTheHullsInTheZoneSpacesPastTheFieldAndNeverWarmerFartherOut()
+    public Property TheDegreesAreTheHullsInTheZoneSpacesOrColderPastTheFieldAndNeverWarmerFartherOut()
     {
         var zone = Still.Value.M.Grid.Zone;
         return Prop.ForAll(Cells.ToArbitrary(), c =>
@@ -174,8 +177,8 @@ public class FieldTests
             bool inZone = c.X >= zone.Left && c.X <= zone.Right && c.Y >= zone.Top && c.Y <= zone.Bottom;
             bool inside = c.X > Left && c.X < Right && c.Y > Top && c.Y < Bottom;
             if (inZone && degrees != Hull) return false.Label($"{degrees} in the zone");
-            if (!inside && degrees != Space) return false.Label($"{degrees} past the field");
-            if (degrees < Space || degrees > Hull) return false.Label($"{degrees}");
+            if (!inside && (degrees > Space || degrees < Deep)) return false.Label($"{degrees} past the field");
+            if (degrees < Deep || degrees > Hull) return false.Label($"{degrees}");
             // A cell farther from the middle on either axis is no warmer.
             int outX = c.X < MidX ? c.X - 1 : c.X + 1, outY = c.Y < MidY ? c.Y - 1 : c.Y + 1;
             if (outX >= 0 && outX < Width && Degrees(outX, c.Y) > degrees) return false.Label("warmer farther out sideways");

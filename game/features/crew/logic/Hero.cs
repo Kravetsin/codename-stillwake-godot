@@ -26,8 +26,8 @@ public readonly record struct Point(int X, int Y);
 /// jump rises, it rises less (<c>Hero.JumpCut</c>); the step <see cref="Jump"/> is set counts as held too. <see cref="Reeling"/>,
 /// knocked by a ram (0103): the keys aside, no ladder taken, the knock's speed kept in the air and braked on the floor.
 /// <see cref="Slowed"/>, thousandths taken off the walk's and the run's top speed: a storm's under the open sky (<c>ICrewQueries.PaceAt</c>).
-/// <see cref="Move"/>, the thousandths of its speed the body moves at (<c>ICrewQueries.MoveOf</c>, body-temperature): the walk, run,
-/// climb and swims, the jetpack's gain and top, and a jump's height; 0, as a default input has it, counts as whole.
+/// <see cref="Move"/>, the thousandths of its speed the body moves at (<c>BodyHeat.SpeedOf</c>, body-temperature): the walk, run,
+/// climb, the swim in water and a jump's height, never afloat, where nothing weighs; 0, as a default input has it, counts as whole.
 /// </summary>
 public readonly record struct HeroInput(
     int X, int Y, bool Jump, int? Face = null, bool Sprint = false, bool Swings = false, Point? Pull = null,
@@ -582,7 +582,8 @@ public readonly record struct Hero(
     private static Hero Swim(Ship ship, Hero hero, HeroInput input, int facing)
     {
         // A jetpack takes the kick into its flight, to drag off as any speed does; swimming, it drifts on besides, fading.
-        var (vx, vy) = input.Jetpack ? Flown(hero.Vx + hero.Kx, hero.Vy + hero.Ky, input) : (input.X * Moved(Spec.Swim, input) + hero.Kx, input.Y * Moved(Spec.Swim, input) + hero.Ky);
+        // Afloat nothing weighs: the body's cold or heat slows no swim nor flight (body-temperature).
+        var (vx, vy) = input.Jetpack ? Flown(hero.Vx + hero.Kx, hero.Vy + hero.Ky, input) : (input.X * Spec.Swim + hero.Kx, input.Y * Spec.Swim + hero.Ky);
         var (kx, ky) = input.Jetpack ? (0, 0) : (Faded(hero.Kx), Faded(hero.Ky));
         int nx = MoveX(ship, hero.X, hero.Y, vx);
         int ny = vy > 0 ? SwimDown(ship, nx, hero.Y, vy) : MoveY(ship, nx, hero.Y, vy, false);
@@ -635,16 +636,15 @@ public readonly record struct Hero(
     /// <summary>
     /// A jetpack's speed after a step from (<paramref name="vx"/>, <paramref name="vy"/>), never past
     /// <c>Jetpack.Top</c> (a fall carried out into space is cut to it): thrusting, gaining <c>Jetpack.Accel</c>
-    /// along the thrust; coasting, nearing what the keys swim by <c>Jetpack.Drag</c>, landing on it. The gain, the top and the swim
-    /// are the body's <see cref="HeroInput.Move"/> of theirs (body-temperature).
+    /// along the thrust; coasting, nearing what the keys swim by <c>Jetpack.Drag</c>, landing on it.
     /// </summary>
     public static (int X, int Y) Flown(int vx, int vy, HeroInput input)
     {
-        double x = vx, y = vy, accel = (double)Pack.Accel * MoveOf(input) / 1000, top = (double)Pack.Top * MoveOf(input) / 1000;
+        double x = vx, y = vy, accel = Pack.Accel, top = Pack.Top;
         if (input.Thrust is Point dir) (x, y) = (x + dir.X * accel / Unit, y + dir.Y * accel / Unit);
         else
         {
-            int swim = Moved(Spec.Swim, input), tx = input.X * swim, ty = input.Y * swim;
+            int swim = Spec.Swim, tx = input.X * swim, ty = input.Y * swim;
             double dx = x - tx, dy = y - ty, off = Distance(dx, dy);
             (x, y) = off <= Pack.Drag ? (tx, ty) : (x - dx / off * Pack.Drag, y - dy / off * Pack.Drag);
         }
@@ -655,13 +655,12 @@ public readonly record struct Hero(
 
     /// <summary>
     /// Whether a jetpack thrusting along <paramref name="dir"/> only holds a flight at (<paramref name="vx"/>, <paramref name="vy"/>):
-    /// at <c>Jetpack.Top</c>, within a few degrees of the thrust, both <paramref name="move"/> thousandths of theirs (body-temperature).
-    /// Such a cruise costs no air; a start, turn, brake or dodge does.
+    /// at <c>Jetpack.Top</c>, within a few degrees of the thrust. Such a cruise costs no air; a start, turn, brake or dodge does.
     /// </summary>
-    public static bool Cruising(int vx, int vy, Point dir, int move = 1000)
+    public static bool Cruising(int vx, int vy, Point dir)
     {
         double speed = Distance(vx, vy);
-        return speed >= (double)(Pack.Top - Pack.Accel) * move / 1000 && (vx * (double)dir.X + vy * (double)dir.Y) / (speed * Unit) >= CruiseCos;
+        return speed >= Pack.Top - Pack.Accel && (vx * (double)dir.X + vy * (double)dir.Y) / (speed * Unit) >= CruiseCos;
     }
 
     /// <summary>The thousandths of its speed <paramref name="input"/>'s body moves at (<see cref="HeroInput.Move"/>): whole for a default input.</summary>

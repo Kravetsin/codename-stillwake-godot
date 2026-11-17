@@ -72,18 +72,18 @@ public class TemperatureTests
     };
 
     [Fact]
-    public void AboardAnAirlessCellInTheZoneIsTheHullsAndOffTheGridIsSpaceOnAnySurface()
+    public void AboardAnAirlessCellInTheZoneIsTheHullsAndOffTheGridIsTheDeepsOnAnySurface()
     {
         var w = new Scenario(PodRoom);
         w.Do(new Enter(Beyond) { From = 0 }).Run();
         int size = w.M.Grid.Width * w.M.Grid.Height;
         Assert.Equal(Content.Temperature.Hull, w.M.Crew.TemperatureAt(Beyond));
-        Assert.Equal((Content.Temperature.Space, Content.Temperature.Space), (w.M.Crew.TemperatureAt(-1), w.M.Crew.TemperatureAt(size)));
+        Assert.Equal((Content.Temperature.Deep, Content.Temperature.Deep), (w.M.Crew.TemperatureAt(-1), w.M.Crew.TemperatureAt(size)));
         var planet = OpenGround(Content.PlanetTypes.First, night: true);
         int width = planet.M.Grid.Width;
         // A small negative cell rounds into row 0, one past the bottom into the deepest band: neither is a cell.
-        Assert.Equal(Content.Temperature.Space, planet.M.Crew.TemperatureAt(-1));
-        Assert.Equal(Content.Temperature.Space, planet.M.Crew.TemperatureAt(width * planet.M.Grid.Height + width));
+        Assert.Equal(Content.Temperature.Deep, planet.M.Crew.TemperatureAt(-1));
+        Assert.Equal(Content.Temperature.Deep, planet.M.Crew.TemperatureAt(width * planet.M.Grid.Height + width));
     }
 
     [Fact]

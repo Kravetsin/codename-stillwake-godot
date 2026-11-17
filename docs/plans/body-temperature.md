@@ -160,10 +160,23 @@ nobody could fetch it. Two changes:
   where the hero stands; at either death the client sends `Succumb`, which passes the hero out as any death does. The sim keeps
   the degrees, the limits and the command; it no longer holds, saves or hashes a body. Co-op among friends trusts the client
   with this as it does with the hero's movement.
-- **Cooling is capped.** Away from normal the body moves at most `Temperature.Drift` (0.25°) a second: death from 37° takes
-  36 s at the least, slowing starts some 8 s in. Back toward normal it is unbounded, so the warmth brings it back fast.
+- **Cooling is capped by the cold.** Away from normal the body moves at most `Temperature.Drift` thousandths of a degree a second
+  for each degree felt: 90 felt on the field's line, 0.27° a second, 33 s to death. Back toward normal it is unbounded.
 - **Accepted:** others' strokes and drills are drawn at full pace (only the picture: what breaks is decided by its own client);
   a rejoin starts the body well; nothing of the body reaches another peer.
+
+### Changed after the second play: the edge, the warning, the slowing
+
+- **The edge is out of reach.** Past the field's line space falls straight from `Space` (−200°) to `Temperature.Deep` (−2000°)
+  at the world's edge, by the deeper axis; off the grid it is the deep's. The cooling grows with it: at the jetpack's top speed
+  straight out a basic suit dies some 24 cells short of the edge.
+- **The player sees when to turn back.** The screen's frost and haze show the place at once (`Report.Cold`/`Heat`, whole at 30
+  felt); the thermometer has a scale from 28° to 42°, a notch a degree, the body on it, and a hollow mark where the place draws
+  it (`BodyHeat.Target`), pinned red and pulsing at the end when that is past death; the suit itself frosts over or scorches
+  with the body (picks F2 and H3, `SuitFx`).
+- **Slowing is smooth and only on foot.** `SpeedOf` falls straight from 1000 at normal to `Least` (200) at either death, each
+  hundredth of a degree its share: about 0.9% a tenth of a degree cold, 1.6% hot. It slows the walk, run, climb, a jump, the
+  swim in water and hand tools; afloat nothing weighs, so neither the space swim nor the jetpack slows.
 
 ## Phase 2: weight and gravity
 

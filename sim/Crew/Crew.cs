@@ -85,9 +85,9 @@ public interface ICrewQueries
     /// <summary>Whether a hero in <paramref name="cell"/> draws the lifepod's air: within <c>Crew.PodReach</c> of it.</summary>
     bool ByPod(int cell);
     /// <summary>
-    /// <paramref name="cell"/>'s temperature in degrees (2026-11-14-temperature-in-degrees): <c>Temperature.Space</c> off the grid,
-    /// <c>Temperature.Room</c> aired; afloat <c>Temperature.Hull</c> by the ship, falling to space's at the field's line and holding
-    /// past it (body-temperature); on a planet its depth's (<c>Terrain.TemperatureOf</c>), the top band <c>SkyNow.Chill</c> colder
+    /// <paramref name="cell"/>'s temperature in degrees (2026-11-14-temperature-in-degrees): <c>Temperature.Deep</c> off the grid,
+    /// <c>Temperature.Room</c> aired; afloat <c>Temperature.Hull</c> by the ship, falling to space's at the field's line and on
+    /// to the deep's at the world's edge (body-temperature); on a planet its depth's (<c>Terrain.TemperatureOf</c>), the top band <c>SkyNow.Chill</c> colder
     /// where the cell has no back wall. What moves a hero's body, which its client keeps.
     /// </summary>
     int TemperatureAt(int cell);
@@ -561,7 +561,7 @@ public sealed partial class CrewModule : Module<CrewState>, ICrewQueries, ICrewO
     public int TemperatureAt(int cell)
     {
         int width = _grid.Width;
-        if (cell < 0 || cell >= width * _grid.Height) return Content.Temperature.Space;
+        if (cell < 0 || cell >= width * _grid.Height) return Content.Temperature.Deep;
         if (_air.AiredAt(cell)) return Content.Temperature.Room;
         int row = cell / width;
         int degrees = Rules is Content.PlanetType planet ? Terrain.TemperatureOf(planet, row) : Rules.Floats ? Afloat(cell) : Rules.Temperatures[0];
@@ -581,17 +581,25 @@ public sealed partial class CrewModule : Module<CrewState>, ICrewQueries, ICrewO
 
     /// <summary>
     /// An airless cell's degrees afloat: <c>Temperature.Hull</c> in the zone and a vessel's box, falling straight to the kind's own
-    /// (space's, <c>Temperature.Space</c>) at the field's line, <c>Field.Margin</c> cells out by the farther axis, and holding past it;
-    /// rounded toward the warmer. How far out a hero goes is its suit's <c>Low</c> to decide (body-temperature).
+    /// (space's, <c>Temperature.Space</c>) at the field's line, <c>Field.Margin</c> cells out by the farther axis; past it on to
+    /// <c>Temperature.Deep</c> at the world's edge, by the deeper axis's share of the way there (body-temperature). Rounded toward
+    /// the warmer. A field reaching past the grid, as a test map's, has no deep.
     /// </summary>
     private int Afloat(int cell)
     {
-        int width = _grid.Width, x = cell % width, y = cell / width;
+        int width = _grid.Width, height = _grid.Height, x = cell % width, y = cell / width;
         var zone = _grid.Zone;
         int beyond = Math.Max(Math.Max(zone.Left - x, x - zone.Right), Math.Max(zone.Top - y, y - zone.Bottom));
-        int far = Rules.Temperatures[0], near = Content.Temperature.Hull;
-        return near + (far - near) * Math.Clamp(beyond, 0, Content.Field.Margin) / Content.Field.Margin;
+        int far = Rules.Temperatures[0], near = Content.Temperature.Hull, margin = Content.Field.Margin;
+        if (beyond <= margin) return near + (far - near) * Math.Max(0, beyond) / margin;
+        int left = zone.Left - margin, right = zone.Right + margin, top = zone.Top - margin, bottom = zone.Bottom + margin;
+        int deep = Math.Max(Math.Max(Share(left - x, left), Share(x - right, width - 1 - right)),
+            Math.Max(Share(top - y, top), Share(y - bottom, height - 1 - bottom)));
+        return far + (Content.Temperature.Deep - far) * deep / 1000;
     }
+
+    /// <summary><paramref name="beyond"/> cells past the field's line of the <paramref name="span"/> from it to the grid's edge, in thousandths, rounded down; none inside.</summary>
+    private static int Share(int beyond, int span) => beyond <= 0 || span <= 0 ? 0 : Math.Min(1000, beyond * 1000 / span);
 
     public int LowOf(int peer) => Caped(peer, SuitOf(peer)?.Low ?? Content.Temperature.BareLow);
 
