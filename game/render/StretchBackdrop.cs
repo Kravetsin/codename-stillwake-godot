@@ -30,24 +30,34 @@ public partial class StretchBackdrop : Node2D
     private (long First, long Last) _places = (0, -1);
     private readonly List<StretchLooks.Spot> _spots = [];
 
-    // Softens a far picture by its look's Blur: sampled that many mip levels coarser.
-    private static readonly Shader Soft = new()
+    // Sinks a far picture into space by StretchLooks.Deep: greyed, flattened, hazed; all zero leaves a field's pieces as they are.
+    private static readonly Shader Sink = new()
     {
         Code = """
             shader_type canvas_item;
-            uniform float blur = 0.0;
+            uniform float grey = 0.0;
+            uniform float flatten = 0.0;
+            uniform float pivot = 0.0;
+            uniform float haze = 0.0;
+            uniform vec3 space = vec3(0.0);
             varying vec4 tint;
             void vertex() { tint = COLOR; }
-            void fragment() { COLOR = texture(TEXTURE, UV, blur) * tint; }
+            void fragment() {
+                vec4 t = texture(TEXTURE, UV);
+                vec3 c = mix(t.rgb, vec3(dot(t.rgb, vec3(0.299, 0.587, 0.114))), grey);
+                c = pivot + (c - pivot) * (1.0 - flatten);
+                c = mix(c, space, haze);
+                COLOR = vec4(clamp(c, 0.0, 1.0), t.a) * tint;
+            }
             """,
     };
 
-    private readonly ShaderMaterial _soft = new() { Shader = Soft };
+    private readonly ShaderMaterial _sink = new() { Shader = Sink };
 
     public StretchBackdrop()
     {
         TextureFilter = TextureFilterEnum.LinearWithMipmaps;
-        Material = _soft;
+        Material = _sink;
     }
 
     /// <summary>
@@ -76,9 +86,14 @@ public partial class StretchBackdrop : Node2D
         (_look, _lead, _last, _ending, _places) = (look, null, null, false, (0, -1));
         _pictures = look.Far!.Pictures.Select(PixelArt.Far).ToArray();
         _atlas = look.Far!.Scattered is { } field ? ImageTexture.CreateFromImage(HiRes.Mipped(HiRes.Load(field.Atlas)!)) : null;
-        var veil = look.Far!.Scattered?.Veil ?? StretchLooks.Veil;
+        var veil = look.Far!.Scattered?.Veil ?? (1, 1, 1);
         Modulate = new Color(veil.R, veil.G, veil.B);
-        _soft.SetShaderParameter("blur", look.Far!.Blur);
+        var deep = look.Far!.Scattered == null ? StretchLooks.Deep : new StretchLooks.Depth(0, 0, 0, 0, (0, 0, 0));
+        _sink.SetShaderParameter("grey", deep.Grey);
+        _sink.SetShaderParameter("flatten", deep.Flatten);
+        _sink.SetShaderParameter("pivot", deep.Pivot);
+        _sink.SetShaderParameter("haze", deep.Haze);
+        _sink.SetShaderParameter("space", new Vector3(deep.Space.R, deep.Space.G, deep.Space.B));
     }
 
     /// <summary>Lays the row under a camera centred on <paramref name="camera"/> at <paramref name="zoom"/>, over a <paramref name="screen"/>, <paramref name="seconds"/> of the world on.</summary>
