@@ -3,6 +3,7 @@ using System.Linq;
 using Godot;
 using Stillwake.Game.Features.Crew;
 using Stillwake.Game.Render;
+using Person = Stillwake.Sim.Players.Look;
 using Spec = Stillwake.Content.Hero;
 
 namespace Stillwake.Game.Dev;
@@ -12,7 +13,7 @@ namespace Stillwake.Game.Dev;
 /// alone and saved, then the game quits. A row each bare, in the helmet only, in the body only and suited, across the four
 /// player colours, fully lit; then in the dark, suited with its lamp and without, bare with a lamp it cannot wear, and a body
 /// lying bare and suited; a jetpack on a bare back and on the air pack. Then every player helmet on every suit, every suit skin,
-/// the cape in each of its skins, and every catcher's outfit (helmets-fit-the-suit): looking up, ahead and down with the lamp on, its beam's way drawn as a line; walking,
+/// the cape in each of its skins, every outfit worn bare, and every catcher's outfit (helmets-fit-the-suit): looking up, ahead and down with the lamp on, its beam's way drawn as a line; walking,
 /// running and climbing with the scanner; and aiming up, the near arm raised past the face.
 /// </summary>
 public partial class DressSheet(string path) : Node
@@ -26,7 +27,7 @@ public partial class DressSheet(string path) : Node
 
     private readonly record struct Case(int Colour, string? Helmet, string? Body, bool Lamp = false, bool InDark = false, bool Lying = false,
         bool Jetpack = false, Pose Pose = Pose.Stand, double Look = 0.15, bool Scanner = false, bool Aimed = false, bool Tracked = true, bool Clear = false,
-        (Gesture Kind, double Ms, Vector2 At)? Sign = null, string? Wields = null, string? Cape = null);
+        (Gesture Kind, double Ms, Vector2 At)? Sign = null, string? Wields = null, string? Cape = null, Person? Person = null);
 
     private readonly List<(Case Case, int Column, int Row)> _cases = [];
     private SubViewport _view = null!;
@@ -79,6 +80,9 @@ public partial class DressSheet(string path) : Node
             new(Suits.All[0], helmet, suit, Pose: Pose.Float, Sign: Up), new(Suits.All[0], helmet, suit, Pose: Pose.Float, Sign: Wave(500)),
             new(Suits.All[0], helmet, suit, Sign: Up, Wields: "fireAxe"), new(Suits.All[0], helmet, suit, Sign: Wave(600), Wields: "fireAxe"),
             new(Suits.All[0], helmet, suit, Pose: Pose.Walk, Sign: Wave(700), Wields: "fireAxe")]);
+        // Every outfit worn bare, each on another skin: its clothes over the skin tinted apart from them.
+        for (int outfit = 0; outfit < HeroLooks.Outfits; outfit++)
+            rows.Add(Turns(Suits.All[0], null, null, aimed: true, tracked: true, person: Person.Zero with { Outfit = outfit, Skin = outfit }));
         foreach (var gear in CreatureLooks.Heroes.Values.SelectMany(look => look.Gear))
             rows.Add(Turns(Suits.All[2], gear.Helmet, gear.Body, aimed: false, tracked: false));
         for (int r = 0; r < rows.Count; r++)
@@ -98,11 +102,12 @@ public partial class DressSheet(string path) : Node
     /// A row of one outfit turning its head and moving: each look with the lamp on, walking, running, climbing, and aiming up if
     /// <paramref name="aimed"/>; a catcher's without the tracker, as <c>HunterView</c> draws it (tracker-catchers).
     /// </summary>
-    private static List<Case> Turns(int colour, string helmet, string body, bool aimed, bool tracked, string? cape = null)
+    private static List<Case> Turns(int colour, string? helmet, string? body, bool aimed, bool tracked, string? cape = null, Person? person = null)
     {
-        var row = Looks.Select(look => new Case(colour, helmet, body, Lamp: true, Look: look, Tracked: tracked, Cape: cape)).ToList();
-        foreach (var pose in new[] { Pose.Walk, Pose.Run, Pose.Climb }) row.Add(new(colour, helmet, body, Pose: pose, Scanner: true, Tracked: tracked, Cape: cape));
-        if (aimed) row.Add(new(colour, helmet, body, Aimed: true, Look: -0.6, Tracked: tracked, Cape: cape));
+        var row = Looks.Select(look => new Case(colour, helmet, body, Lamp: helmet != null, Look: look, Tracked: tracked, Cape: cape, Person: person)).ToList();
+        foreach (var pose in new[] { Pose.Walk, Pose.Run, Pose.Climb })
+            row.Add(new(colour, helmet, body, Pose: pose, Scanner: true, Tracked: tracked, Cape: cape, Person: person));
+        if (aimed) row.Add(new(colour, helmet, body, Aimed: true, Look: -0.6, Tracked: tracked, Cape: cape, Person: person));
         return row;
     }
 
@@ -123,7 +128,7 @@ public partial class DressSheet(string path) : Node
         (_ground.Visible, _view.TransparentBg) = (!c.Clear, c.Clear);
         Lit.Ambient(c.InDark ? Dark : (1, 1, 1));
         _figure = new Figure(c.Colour, own: false) { Tracked = c.Tracked };
-        _figure.Wear(c.Colour, c.Helmet, c.Body);
+        _figure.Wear(c.Colour, c.Helmet, c.Body, c.Person);
         _figure.CapeWorn = c.Cape;
         _figure.HeadLamp = c.Lamp;
         _figure.Scanner = c.Scanner;

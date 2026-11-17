@@ -28,7 +28,6 @@ const patch = (a, x, y, w, h, mat) => {
   for (let i = x + .3; i < x + w; i += .8) s += `M${i} ${y - .12}L${i + .1} ${y + .28}M${i} ${y + h - .2}L${i + .1} ${y + h + .22}`;
   a.line(s, { w: .9 });
 };
-const taped = (a, x, y, w, c) => { a.flat(poly(x, y, x + w, y - .1, x + w, y + .8, x, y + .9), c); a.line(`M${x + .5} ${y}L${x + .7} ${y + .9}M${x + w - .6} ${y}L${x + w - .4} ${y + .85}`, { w: .8 }); };
 const mat = (base, shade, deep, lite) => ({ base, shade, deep, lite });
 
 // ---------- the head, the skull 9.3 pixels tall in its 12 pixel box, the neck still at the joint ----------
@@ -152,212 +151,9 @@ const boot = (a, M, top, lines, toe = 8.6) => {
   a.flat(poly(-.2, 10.1, toe + .15, 10.1, toe + .05, 10.95, -.15, 10.95), SOLE);
 };
 
-// ---------- the suit's pieces: drab, the rig's boxes, nothing shining ----------
+// The suit's back, its rig box's outline: what HeroKit lends the catchers' gear.
 const BACK_TORSO = 'M3.2 .5C4.4 0 7.8 0 8.9 .5C10.3 1 11 2 11 3.6L10.6 8.4C10.5 10 10.8 11.6 10.6 13.2C10.1 14.6 9 15.1 7.6 15.1L4.4 15.1C3 15.1 1.9 14.6 1.4 13.2C1.2 11.6 1.5 10 1.4 8.4L1 3.6C1 2 1.7 1 3.2 .5Z';
-const suitParts = (c) => {
-  const M = c.M, P = c.P, mend = c.mend || {};
-  return {
-    s_torso(a) {
-      a.shape(rr(c.ringX ?? 3.6, -1.1, 5, 2.1, .5), P, { shade: .4 });
-      a.shape(c.torso || BACK_TORSO, M, { deep: 'M-1 12.4C3 13.4 9 13.4 13 12.2L13 16L-1 16Z', ...folds([2, 6.6, 5.4, 7.6, .9], [10, 5.2, 7, 6.6, .9], [2.2, 11, 5, 11.8, .7], [9.8, 11, 7, 11.8, .7]) });
-      a.shape('M1.5 8.6C4 9.2 8 9.2 10.6 8.6L10.6 10C8 10.6 4 10.6 1.5 10Z', P, { outer: false, shade: .4, lines: ['M4 9L4 10.4', 'M8 9L8 10.4'] });
-      if (mend.torso) mend.torso(a);
-    },
-    s_upper(a) {
-      a.shape(limb(4, 3.6, 2.5, 2.5, 8.6), M, folds([1, 5.2, 3.6, 6, .8], [.8, 7, 4, 7.6, .7]));
-      a.shape('M.4 2.4C.4 .9 1.3 .1 2.5 .1C3.7 .1 4.6 .9 4.6 2.4C4.6 3.2 4.4 3.8 4 4.1C3 4.5 2 4.5 1 4.1C.6 3.8 .4 3.2 .4 2.4Z', P, { outer: false, shade: .5 });
-      if (mend.upper) mend.upper(a);
-    },
-    s_fore(a) {
-      a.shape(limb(3.6, 3.2, 2.5, 2.9, 7), M, folds([1, 4.4, 3.8, 5.2, .7]));
-      a.shape('M.6 5.9L4.4 5.9L4.5 7.3C3.4 7.7 1.6 7.7 .5 7.3Z', P, { outer: false, shade: .35 });
-      if (mend.fore) mend.fore(a);
-    },
-    s_thigh(a) {
-      a.shape(limb(5, 4, 3, 2.5, 11.3), M, { deep: 'M-1 11.4L7 11.4L7 15L-1 15Z', ...folds([1.2, 3.8, 4.6, 3.2, .7], [1, 9.2, 4.8, 10, .9]) });
-      if (mend.thigh) mend.thigh(a);
-    },
-    s_shin(a) {
-      a.shape(limb(4.2, 3.8, 3, 2.18, 6.6), M, folds([1.2, 3.4, 4.8, 3.8, .6]));
-      boot(a, c.B || P, c.bootTop ?? 6.3, ['M4 6.8L4.5 9', 'M5.2 6.9L5.6 9'], c.toe);
-      a.shape('M1 -.2C2 -.7 4 -.7 5 -.2C5.4 .6 5.4 2.2 4.9 3C3.9 3.4 2.1 3.4 1.1 3C.6 2.2 .6 .6 1 -.2Z', P, { outer: false, shade: .45 });
-      if (mend.shin) mend.shin(a);
-    },
-  };
-};
 const neck = (a, sk, x0, x1) => a.shape(`M${x0 + .1} -2.6L${x1 - .1} -2.6L${x1 + .2} 1L${x0 - .2} 1Z`, sk, { outer: false, shade: `M${x0 - 1} -1.4L${x1 + 1} -1.4L${x1 + 1} 1.2L${x0 - 1} 1.2Z`, lines: [`M${x0 + .9} -2.2L${x0 + 1.1} .6`] });
-
-// ---------- Каторжник: faded rust issue coverall, a stencilled number ----------
-const ROBE = mat('#96603f', '#6c4231', '#4a2e28', '#ab7a58');
-const ROBE2 = mat('#845238', '#5e3a2c', '#422a25', '#976a4c');
-const K_TORSO = 'M3.6 .5C4.6 .1 7.6 .1 8.6 .5C9.8 .9 10.4 1.8 10.4 3.2L10 8C9.9 9.6 10.1 11.4 10 13C9.6 14.4 8.6 15 7.4 15L4.6 15C3.4 15 2.4 14.4 2 13C1.9 11.4 2.1 9.6 2 8L1.6 3.2C1.6 1.8 2.2 .9 3.6 .5Z';
-const stencil = (a, x, y) => {
-  a.flat(rr(x, y, 2.5, 1.9, .1), '#a87c5c');
-  a.line(`M${x + .3} ${y + .3}L${x + .3} ${y + 1}L${x + .85} ${y + 1}M${x + .85} ${y + .3}L${x + .85} ${y + 1.6}`, { w: 1.7, c: '#2a1a18' });
-  a.line(`M${x + 1.3} ${y + .45}L${x + 1.55} ${y + .3}L${x + 1.55} ${y + 1.6}`, { w: 1.7, c: '#2a1a18' });
-  a.line(`M${x + 2} ${y + .3}L${x + 2.3} ${y + .3}L${x + 2.05} ${y + 1.6}`, { w: 1.7, c: '#2a1a18' });
-};
-const katorzhnik = {
-    b_torso(a) {
-      neck(a, SK, 5, 7.6);
-      a.shape(K_TORSO, ROBE, { deep: 'M0 12.2C3 13.2 9 13.2 12 12L12 16L0 16Z', shade: ['M.8 3L2.6 3.6L3 7.6L1 8Z', ...folds([2.4, 6.6, 6, 7.6, .9], [9.6, 8.4, 6.6, 9.6, .9], [2.4, 10.6, 5.2, 11.4, .7]).shade], lines: ['M7.2 .8L7.2 11.4', 'M2 9.4C4.6 9.9 7.6 9.9 10 9.4', crease(2.4, 6.6, 6, 7.6), crease(9.6, 8.4, 6.6, 9.6)] });
-      a.shape('M4.4 .1L6.2 1.5L7.8 .1L8.6 .5L7.6 2.4L6.2 1.9L4.8 2.4L3.6 .5Z', ROBE2, { outer: false, shade: .3 });
-      stencil(a, 7.6, 3);
-      a.flat('M3 12.4L5 12.2L5.2 13.6L3.4 13.8Z', ROBE.deep);
-    },
-    b_upper(a) { a.shape(limb(3.6, 3.2, 2.5, 2.5, 8.6), ROBE, folds([.9, 3.2, 3.8, 3.8, .6], [1, 6.8, 4, 7.4, .8])); },
-    b_fore(a) {
-      a.shape(limb(2.5, 2.2, 2.5, 5.5, 8.6), SK, { shade: .4 });
-      a.shape(limb(3.2, 2.9, 2.5, 2.9, 6.2), ROBE, folds([1, 3.8, 3.8, 4.5, .7]));
-      a.shape('M.9 5.8L4.1 5.8L4.2 7L.8 7Z', ROBE2, { outer: false, shade: .3 });
-    },
-    b_thigh(a) { a.shape(limb(4.4, 3.4, 3, 2.5, 11.3), ROBE, { deep: 'M-1 11.6L7 11.6L7 15L-1 15Z', ...folds([1.2, 3.8, 4.6, 3.2, .7], [1.2, 9.2, 4.6, 10, .9], [4.4, 6, 2.2, 6.8, .6]) }); },
-    b_shin(a) {
-      a.shape(limb(3.7, 3.4, 3, 2.18, 6.8), ROBE, folds([1.2, 3.2, 4.8, 3.8, .7]));
-      boot(a, mat('#4d4a44', '#34322e', '#242220', '#5f5c54'), 6.5, ['M1 7.8L5.6 7.8', 'M4 6.8L4.4 7.8']);
-    },
-  };
-
-// ---------- Списанный: filthy grey-olive overall, sleeves torn off, rags on the hands, a brand on the bare arm ----------
-const OLIVE = mat('#6b6b53', '#4a4b3c', '#33342c', '#80806a');
-const RAG = mat('#8a8270', '#60594c', '#443f38', '#a09884');
-const S_TORSO = 'M3.8 .5L4.2 .9L5 .3C6.2 .1 7.4 .1 8.3 .4L8.8 .9L9.3 .7C9.9 1.1 10.2 1.9 10.2 3L9.8 8C9.7 9.6 9.9 11.4 9.8 13C9.5 14.3 8.5 15 7.4 15L4.6 15C3.5 15 2.5 14.3 2.2 13C2.1 11.4 2.3 9.6 2.2 8L1.8 3C1.8 2 2.2 1.2 2.9 .9Z';
-const rags = (a, y0, y1) => {
-  const d = `M.9 ${y0}L4.1 ${y0 - .2}L3.9 ${y1 - .2}L1.1 ${y1}Z`;
-  let lines = '';
-  for (let y = y0 + .5; y < y1; y += .9) lines += `M.9 ${y + .4}L4 ${y - .2}`;
-  a.shape(d, RAG, { shade: `M0 ${y1 - .9}L5 ${y1 - 1}L5 ${y1 + 1}L0 ${y1 + 1}Z`, lines: [lines] });
-};
-const spisanny = {
-    b_torso(a) {
-      neck(a, SK, 5, 7.6);
-      a.shape(S_TORSO, OLIVE, { deep: 'M0 12.4C3 13.2 9 13.2 12 12.2L12 16L0 16Z', shade: ['M1 2.6L2.8 3.2L3.2 7.4L1 7.8Z', ...folds([2.6, 6.4, 5.8, 7.4, .9], [9.4, 7.4, 6.6, 8.6, .9]).shade], lines: ['M7.4 .9L7.4 8.4', crease(2.6, 6.4, 5.8, 7.4), crease(9.4, 7.4, 6.6, 8.6)] });
-      // Dirt where hands wipe and where it sat.
-      a.flat('M7.6 5.4C8.4 5 9.4 5.2 9.6 6C9.6 6.8 8.8 7.2 8 7C7.6 6.6 7.4 6 7.6 5.4Z', OLIVE.shade);
-      a.flat('M3.2 12L5.4 11.8L5.8 13.4L3.6 13.8Z', '#2b2c25');
-      // The rope it is tied with, frayed at the knot.
-      a.tube('M2.2 9.2C4.6 9.8 7.6 9.8 9.8 9.2', .45, RAG, { spec: false });
-      a.shape(ell(8.4, 9.7, .5, .45), RAG, { outer: false });
-      a.line('M8.4 10L8.2 11.6M8.7 10L8.9 11.3', { w: 1.4, c: RAG.base });
-    },
-    b_upper(a) {
-      a.shape(limb(2.9, 2.6, 2.5, 2.8, 8.6), SK, { shade: 'M0 8L5 8L5 11L0 11Z', lines: ['M1.6 3.2L1.8 7.8'] });
-      // The brand, an old burn: a bar in a ring.
-      a.flat(ell(2.7, 6, 1, .95), SK.deep);
-      a.flat(ell(2.7, 6, .55, .5), SK.base);
-      a.flat(poly(2.45, 5.2, 2.95, 5.2, 2.95, 6.8, 2.45, 6.8), '#7e4c40');
-      // The sleeve's stump, torn off.
-      a.shape('M.3 2.4C.3 .9 1.3 .1 2.5 .1C3.7 .1 4.7 .9 4.7 2.4L4.6 3.9L4 3.3L3.5 4.3L2.8 3.5L2.2 4.5L1.6 3.6L1 4.2L.4 3.6Z', OLIVE, { shade: 'M0 3L5 3L5 5L0 5Z' });
-      a.line('M1.6 3.6L1.5 5M3.5 4.3L3.6 5.2', { w: 1.2, c: RAG.shade });
-    },
-    b_fore(a) {
-      a.shape(limb(2.7, 2.4, 2.5, 2.9, 8.6), SK, { shade: .4 });
-      rags(a, 4.4, 7.6);
-      // The wrap round the wrist, cut at the wrist line with the arm: the hand is its own picture (hero_hand_skin).
-      a.shape('M.9 7.2L4.1 7.2L4.1 9L.9 9.3Z', RAG, { outer: false, shade: 'M0 8.5L5 8.4L5 10L0 10Z', lines: ['M.9 8.2L4 7.5', 'M.9 9L4 8.3'] });
-      a.line('M1 4.6L-.2 5.6M-.2 5.6L.2 6.4', { w: 1.6, c: RAG.shade });
-    },
-    b_thigh(a) {
-      a.shape(limb(4.2, 3.2, 3, 2.5, 11.3), OLIVE, { deep: 'M-1 11.6L7 11.6L7 15L-1 15Z', ...folds([1.2, 3.8, 4.6, 3.2, .7], [1.2, 9.2, 4.6, 10, .9]) });
-      a.flat('M1.6 5.2C2.4 4.8 3.8 5 4 5.8C4 6.8 3 7.2 2.2 7C1.6 6.6 1.4 5.8 1.6 5.2Z', OLIVE.shade);
-      a.flat('M3.2 8.4L4.2 8.2L4 9L3.3 9.1Z', '#25261f');
-      a.line('M3.2 8.4L4.1 9', { w: 1 });
-    },
-    b_shin(a) {
-      a.shape(limb(3.4, 3.2, 3, 2.18, 5.4), OLIVE, folds([1.2, 3, 4.8, 3.6, .7]));
-      a.shape(limb(3.5, 3.5, 3, 5.4, 6.8), RAG, { lines: ['M1.2 6.2L4.8 5.2', 'M1.2 7.2L4.8 6.2'] });
-      boot(a, mat('#514537', '#382f27', '#26201c', '#63563f'), 6.6, ['M1 7.4L5.6 8.4', 'M1 8.4L6 9.4', 'M5.4 8.6L7.4 9.8', 'M6.6 9.4L7.9 9.8'], 8.2);
-    },
-  };
-
-// ---------- Трюмный: a heavy waxed apron and rubber gauntlets over a coverall ----------
-const COVER = mat('#57574f', '#3d3d39', '#2a2a28', '#6c6c62');
-const WAX = mat('#3b2f29', '#261e1b', '#171211', '#55463b');
-const RUBBER = mat('#2c2a28', '#1b1a1a', '#111112', '#42403c');
-const T_TORSO = 'M3 1.4C3.8 .5 6.2 .1 7.6 .2C9 .3 10 1 10.3 2.4L10.4 8C10.4 9.6 10.2 11.4 10 13C9.6 14.4 8.6 15 7.4 15L4.2 15C3 15 2 14.2 1.8 13C1.8 11.4 1.8 9.6 1.6 8L.9 4.6C.7 3.4 1.6 2.2 3 1.4Z';
-const T_APRON = 'M6.6 1.8L10 1.6L10.9 5L11.4 10L11.6 15L5.4 15L5.4 10L5.8 5Z';
-const apronMarks = (a) => {
-  a.flat('M7 7.2C7.8 6.8 9 7 9.4 7.8C9.4 8.6 8.6 9 7.8 8.8C7.2 8.6 6.9 7.9 7 7.2Z', WAX.deep);
-  a.flat('M8.4 11.6L10.2 11.4L10.4 12.6L8.8 12.8Z', '#4b3a2c');
-  a.line('M6.6 4.6L10.5 4.2', { w: 1.1 });
-};
-const tryumny = {
-    b_torso(a) {
-      neck(a, SK, 5, 7.6);
-      a.shape(T_TORSO, COVER, { deep: 'M0 12.2C3 13.2 9 13.2 12 12L12 16L0 16Z', shade: ['M.4 3.6L2.6 3L3.2 8L1 8.4Z'], lines: ['M2.8 2.4C4 1.6 5 1.4 6 1.4', 'M1.8 9C3 9.4 4.4 9.5 5.6 9.4'] });
-      // The hump of the back, in one fold under the collar.
-      a.shape('M3 1.4C4 .5 5.4 .2 6.6 .4L6 1.6C5 1.5 3.8 2 3 2.6Z', COVER, { outer: false, shade: .3 });
-      a.tube('M6.8 2L5.4 .4', .4, WAX, { spec: false });
-      a.shape(T_APRON, WAX, { deep: 'M4 12.6L12 12.4L12 16L4 16Z', shade: 'M5 5L7 4.6L6.6 15L5 15Z', lines: ['M6.6 2.2L10 2'] });
-      apronMarks(a);
-      a.line('M2 8.8L5.6 9', { w: 1.6, c: WAX.deep });
-    },
-    b_upper(a) { a.shape(limb(3.9, 3.5, 2.5, 2.5, 8.6), COVER, folds([.9, 3.4, 3.9, 4, .7], [.9, 6.8, 4.1, 7.4, .8])); },
-    b_fore(a) {
-      // A rubber gauntlet to the elbow, its cuff standing off the arm; the glove is the hand's own picture (hero_hand_glove).
-      a.shape('M.8 4.4L4.2 4.4L4 7.4L1 7.4Z', RUBBER, { shade: 'M3 4L5 4L5 8L3.4 8Z', lines: ['M1.4 6L3.8 6'] });
-      a.shape('M.1 2.4L4.9 2.4L4.5 4.8C3.4 5.2 1.6 5.2 .5 4.8Z', RUBBER, { deep: 'M0 4.2L5 4.2L5 5.4L0 5.4Z', lines: ['M.4 3.2L4.6 3.2'] });
-    },
-    b_thigh(a) {
-      a.shape(limb(4.6, 3.6, 3, 2.5, 11.3), COVER, { deep: 'M-1 11.6L7 11.6L7 15L-1 15Z', ...folds([1.2, 9.2, 4.6, 10, .9]) });
-      a.shape('M2.6 1L5.5 1L5.7 9.8L2.9 10Z', WAX, { outer: false, shade: 'M2 8.2L6 8L6 11L2 11Z', lines: ['M3.2 5L5.6 4.8'] });
-      a.flat('M3.4 6.2L4.8 6L5 7.2L3.6 7.4Z', '#4b3a2c');
-    },
-    b_shin(a) {
-      a.shape(limb(3.8, 3.6, 3, 2.18, 6.4), COVER, folds([1.2, 3, 4.8, 3.6, .7]));
-      boot(a, RUBBER, 6, ['M.4 6.8L5.6 6.8', 'M1 8.6L4.8 8.4'], 9);
-    },
-  };
-
-// ---------- Выцветший: the yellow gone to dull mustard and grime, patched. Its cut is every hero's suit ----------
-const MUST = mat('#a38749', '#745c38', '#503f2d', '#b89e66');
-const MUST2 = mat('#8f7640', '#655132', '#463729', '#a48b58');
-const CLOTH = mat('#4a4438', '#322e27', '#23201c', '#5c5548');
-const GLASS_SEEN = 0.62;
-const V_TORSO = 'M3.2 .5C4.4 0 7.6 0 8.8 .5C10.2 1 10.8 2.1 10.8 3.6L10.4 8.2C10.3 9.8 10.6 11.4 10.4 13C10 14.4 9 15 7.6 15L4.4 15C3 15 2 14.4 1.6 13C1.4 11.4 1.7 9.8 1.6 8.2L1.2 3.6C1.2 2.1 1.8 1 3.2 .5Z';
-const faded = ((M, M2, Sk, Pad) => ({
-  ...suitParts({ M: M2, P: Pad, torso: V_TORSO, mend: {
-    torso(a) { patch(a, 7.8, 2.6, 2.3, 2.2, M); taped(a, 2.4, 5.8, 3, '#2f2c28'); a.flat('M3 12.2L5.4 12L5.6 13.4L3.4 13.6Z', M.deep); },
-    upper(a) { patch(a, 1, 4.8, 2.8, 1.8, M); },
-    thigh(a) { taped(a, 1, 6.4, 4, '#2f2c28'); a.line('M3.6 3.6L4.4 4.6M4.4 3.6L3.6 4.6', { w: 1.2 }); },
-    shin(a) { a.line('M1.6 4L4.4 4.2', { w: 1.2 }); },
-  } }),
-  s_pack(a) {
-    a.shape('M2 3L5.6 3L5.6 3.8L2 3.8Z', Pad, { outer: false });
-    a.shape('M2 8.6L5.6 8.6L5.6 9.4L2 9.4Z', Pad, { outer: false });
-    a.shape(rr(1.4, -1, 2.2, 1.5, .3), Pad, { shade: .3 });
-    a.shape('M.7 1.2C.7 .4 1.3 0 2 0L2.9 0C3.7 0 4.3 .4 4.3 1.2L4.3 10.8C4.3 11.6 3.7 12 2.9 12L2 12C1.3 12 .7 11.6 .7 10.8Z', mat('#6e6c64', '#4b4a44', '#35342f', '#807e74'), { deep: 'M0 10L5 10L5 13L0 13Z', lines: ['M.7 2.6C1.8 3 3.2 3 4.3 2.6', 'M.7 9.5C1.8 9.9 3.2 9.9 4.3 9.5'] });
-    a.flat('M1.2 5L2 4.8L2.8 5.6L1.8 6.2Z', '#4a4842');
-    taped(a, .7, 6.4, 3.6, '#2f2c28');
-  },
-  b_torso(a) {
-    neck(a, Sk, 5, 7.6);
-    a.shape(V_TORSO, M, { deep: 'M0 12.2C3 13.2 9 13.2 12 12L12 16L0 16Z', shade: ['M.6 3L2.4 3.6L2.8 7.8L.8 8.2Z', ...folds([2.4, 6.4, 5.8, 7.2, .8], [9.8, 6.8, 7.2, 7.9, .8]).shade], lines: ['M7.2 .8L7.2 8.4', crease(2.4, 6.4, 5.8, 7.2), crease(9.8, 6.8, 7.2, 7.9)] });
-    a.line('M8 3.2L10.1 3.2L10 5.4L8.2 5.4Z', { w: 1.2 });
-    patch(a, 2.8, 2.6, 1.8, 1.8, M2);
-    a.flat('M3.4 12.2L5.6 12L5.8 13.4L3.6 13.6Z', M.deep);
-    a.shape('M1.6 8.6C4 9.1 8 9.1 10.4 8.6L10.4 9.8C8 10.3 4 10.3 1.6 9.8Z', CLOTH, { outer: false, shade: .3 });
-    a.flat(rr(7.2, 8.6, 1.5, 1.4, .1), '#3d3a34');
-    a.shape('M4.4 .1L6.2 1.5L7.8 .1L8.6 .5L7.6 2.4L6.2 1.9L4.8 2.4L3.6 .5Z', M2, { outer: false, shade: .3 });
-  },
-  b_upper(a) { a.shape(limb(3.8, 3.4, 2.5, 2.5, 8.6), M, folds([.9, 3.2, 3.9, 3.8, .6], [.9, 6.8, 4.1, 7.4, .8])); },
-  b_fore(a) {
-    a.shape(limb(2.7, 2.4, 2.5, 3.8, 8.6), Sk, { shade: .35 });
-    a.shape(limb(3.5, 3.2, 2.5, 2.9, 4), M, folds([1, 3.4, 3.8, 3.9, .5]));
-    a.shape('M.8 4L4.2 4L4.3 5.4C3.4 5.8 1.6 5.8 .7 5.4Z', M2, { outer: false, shade: .4, lines: ['M1 4.5L4 4.5'] });
-  },
-  b_thigh(a) {
-    a.shape(limb(4.4, 3.4, 3, 2.5, 11.3), M, { deep: 'M-1 11.6L7 11.6L7 15L-1 15Z', ...folds([1.2, 3.8, 4.6, 3.2, .7], [1.2, 9.2, 4.6, 10, .9]) });
-    patch(a, 2, 5.4, 2.2, 2.2, M2);
-  },
-  b_shin(a) {
-    a.shape(limb(3.7, 3.4, 3, 2.18, 6.8), M, folds([1.2, 3.2, 4.8, 3.8, .7]));
-    boot(a, mat('#57453a', '#3b2f28', '#29211d', '#6a5647'), 6.4, ['M4 6.9L4.5 8.8', 'M5 7L5.5 8.8', 'M1 9.2L4 9.2']);
-  },
-}))(MUST, MUST2, SK, CLOTH);
-
-// The clothes a look picks among, in Look.Outfit's order; their limbs differ a little, in the same boxes on the same joints.
-const OUTFITS = [katorzhnik, spisanny, tryumny, faded];
 
 // ---------- the tracker on the near shin: a strap with its box; its light a picture of its own, tinted and unlit ----------
 const PLASTIC = { base: '#1d1e21', shade: '#121316', deep: '#0b0c0e', lite: '#2e2f33' };
@@ -612,7 +408,6 @@ const powerDriver = (st) => (a) => {
 // The hero's pictures: lit from above, drawn Px pixels a world pixel; a rig's part has Margin round it.
 const LIGHT = [0, -1], Margin = 3, Px = 4;
 const part = (p) => bake({ ...p, margin: Margin, light: LIGHT });
-const BOXES = { torso: ['b_torso', 12, 15, 6, 0], upperArm: ['b_upper', 5, 9, 2.5, 2.5], forearm: ['b_fore', 5, 10, 2.5, 2.9], thigh: ['b_thigh', 6, 12, 3, 2.5], shin: ['b_shin', 9, 11, 3, 2.18] };
 const SKIN_PAINTS = new Set([SK.base, SK.shade, SK.deep, SK.lite, '#7e4c40']);
 /** What a part's draw reaches: only its skin, or only what is not, so skin can take a look's tint under cloth that stays as drawn. */
 const only = (a, skin) => ({
@@ -676,16 +471,7 @@ function lightPicture(w, h, draw) {
 }
 
 Subjects.hero = function () {
-  // The basic suit's own parts are painted raw (suits.js); `faded` stays an outfit and the suits' cut.
-  OUTFITS.forEach((clothes, n) => {
-    for (const [name, [id, w, h]] of Object.entries(BOXES)) {
-      const draw = clothes[id];
-      out(`hero_outfit_${n}_${name}`, part({ w, h, draw: (a) => draw(only(a, false)) }));
-      let bare = false;
-      draw({ shape(d, m) { bare = bare || !!m.skin; }, flat() {}, line() {}, tube() {} });
-      if (bare) out(`hero_outfit_${n}_${name}_skin`, part({ w, h, draw: (a) => draw(only(a, true)) }));
-    }
-  });
+  // The basic suit's parts and the four outfits (`hero_outfit_<n>_<part>`, `_skin`) are painted raw, never drawn here (suits.js, outfits-painted).
   out('hero_head', part(headPic));
   [faceHollow, faceSquint, faceSleepless, faceHooded, faceBurned].forEach((p, i) => out(`hero_face_${i}`, part(p)));
   [hairCrop, hairStubble, hairMatted, hairRag, hairThin, hairTail].forEach((p, i) => out(`hero_hair_${i}`, part(p)));
@@ -738,6 +524,8 @@ Subjects.hero = function () {
   out('hero_powerDriver_flat', strip('flat'));
 };
 
+/** How much of what is behind a helmet's glass shows through it. */
+const GLASS_SEEN = 0.62;
 /** A helmet's two pictures: the shell with its glass taken out (what crosses the glass, <paramref name="bars"/>, kept), and the glass alone at GLASS_SEEN over the face. */
 function cut(draw, glassD, bars) {
   const helmet = part({ w: 13, h: 12, draw });

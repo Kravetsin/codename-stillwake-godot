@@ -29,8 +29,8 @@ public static class Rig
     /// <summary>Where the joints sit, in pixels above the feet.</summary>
     public const double Hip = H * 0.42, Shoulder = H * 0.61, Neck = H * 0.71;
 
-    /// <summary>Hips apart, so two legs read as two even standing still.</summary>
-    public const double HipApart = W * 0.14;
+    /// <summary>Hips apart, so two legs read as two standing still; close enough that a thigh's top never shows past the torso's hem.</summary>
+    public const double HipApart = W * 0.07;
 
     /// <summary>
     /// How far a hip <paramref name="hipX"/> ahead sits higher in the body turned <paramref name="tilt"/>, so the hips stay level as
