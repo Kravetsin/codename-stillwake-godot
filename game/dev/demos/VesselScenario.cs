@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.Text.Json.Nodes;
 using Stillwake.Net;
 using Stillwake.Sim;
@@ -13,6 +14,7 @@ namespace Stillwake.Game.Dev;
 /// breaks hulls, creative, to try the damage scale on the vessel and the ship alike (damage-scale).
 /// </summary>
 [Dev("--vessel", "the new game's world with the hero on a vessel's world: =class, a freighter by default (VesselScenario)", Shape = DevShape.Either)]
+[Dev("--dock", "with --vessel, the hero arrives beside its first guard's dock: =spider (by default) or =escort (derelict-enemies)", Shape = DevShape.Either)]
 [Dev("--breakers", "with --vessel, the pickaxe, sledgehammer, fire axe, fifty blasting charges and the railgun with nails on 1-6, a battery on the belt, creative (damage-scale)")]
 public sealed class VesselScenario : DevScenario
 {
@@ -22,9 +24,30 @@ public sealed class VesselScenario : DevScenario
 
     public override Layout? Map => Registry.Wreck;
 
+    public override Func<Registry, int?>? Arrive => Args.Given("--dock") is { } species ? m => Beside(m, Species(species)) : null;
+
+    private static string Species(string given) => given.Length == 0 ? Content.Vessels.Aboard.Capsule.Species : given;
+
+    /// <summary>Whether contact <paramref name="k"/>'s vessel has a dock of <paramref name="species"/>'s guard.</summary>
+    private static bool Docks(Contact k, string species) =>
+        Shipyard.Guards(Shipyard.Describe(Content.Vessels.Class(k.Class)!, k.Seed)).Any(d => d.Species == species);
+
+    /// <summary>
+    /// The cell a hero's feet stand on beside the first dock of <paramref name="species"/>'s guard, on its floor: two columns past its right
+    /// side where open, else two before its left; null on a surface with none.
+    /// </summary>
+    private static int? Beside(Registry m, string species)
+    {
+        if (m.Creatures.Docks.FirstOrDefault(d => d.Species == species) is not { } dock) return null;
+        int margin = Content.Vessels.Margin, w = m.Grid.Width, y = margin + dock.Y + dock.Height - 1;
+        int right = margin + dock.X + dock.Width + 1, left = margin + dock.X - 2;
+        return m.Grid.Solid(y * w + right) || m.Grid.Solid((y - 4) * w + right) ? y * w + left : y * w + right;
+    }
+
     public override World Seed(World world, DevSeed seed)
     {
-        world.Step([new Find(Args.Given("--vessel") ?? "freighter")]);
+        // With --dock, every contact the radar holds, so one whose vessel has that guard's dock is jumped to.
+        for (int i = Args.Given("--dock") == null ? 1 : Content.Vessels.MaxContacts; i > 0; i--) world.Step([new Find(Args.Given("--vessel") ?? "freighter")]);
         if (!Breakers) return world;
         (string Item, int Count)[] hotbar =
         [
@@ -51,6 +74,6 @@ public sealed class VesselScenario : DevScenario
         }
         if (_jumped || client.World.SurfaceOf(client.Id) != 0) return;
         _jumped = true;
-        client.Send(new Jump(1));
+        client.Send(new Jump(Args.Given("--dock") is { } species && m.Places.Contacts.FirstOrDefault(k => Docks(k, Species(species))) is { } docked ? docked.Id : 1));
     }
 }

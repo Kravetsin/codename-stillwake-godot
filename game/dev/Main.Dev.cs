@@ -92,6 +92,7 @@ public partial class Main
         if (_dev.Value("--edge") is { } edge)
             hero.Start = m => m.Grid.Height / 2 * m.Grid.Width + Math.Max(0, m.Grid.Zone.Left - Content.Field.Margin - int.Parse(edge));
         else if (_scenarios.Select(s => s.Start).FirstOrDefault(s => s != null) is { } start) hero.Start = start;
+        hero.Arrive = _scenarios.Select(s => s.Arrive).FirstOrDefault(a => a != null);
     }
 
     /// <summary>The scenarios' nodes, made last, over every panel and menu they work, and the measuring tools.</summary>

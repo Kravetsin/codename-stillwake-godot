@@ -355,6 +355,9 @@ public partial class HeroView : Node2D
     /// <summary>Where a dev run places the hero first (<c>--edge</c>), not the crew's spawn; it wakes at the spawn as ever.</summary>
     public Func<Registry, int>? Start { get; set; }
 
+    /// <summary>Where a dev run places the hero as it arrives on another surface (<c>--dock</c>); null where it lands.</summary>
+    public Func<Registry, int?>? Arrive { get; set; }
+
     /// <summary>Where the prompt for E lies on the screen while it shows: what the markers keep out of.</summary>
     public Rect2? PromptCovers => _prompt.Covers;
 
@@ -440,16 +443,17 @@ public partial class HeroView : Node2D
             ResetGuns();
             _guns.Drop();
         }
+        int? arrives = moved ? Arrive?.Invoke(m) : null;
         // Waking from passing out, the sim has put the hero at the spawn: so does the client. Moved to another surface, it
         // stands where it arrived.
         if (moved && known != null)
         {
-            _previous = _current = Hero.At(ship, known.Cell);
+            _previous = _current = Hero.At(ship, arrives ?? known.Cell);
             _snap = true;
         }
         else if (!_placed || (_wasOut && !passedOut) || moved)
         {
-            _previous = _current = Hero.At(ship, !_placed && Start != null ? Start(m) : m.Crew.Spawn);
+            _previous = _current = Hero.At(ship, arrives ?? (!_placed && Start != null ? Start(m) : m.Crew.Spawn));
             _placed = _snap = true;
         }
         // Passing out it dies where the sim has it (0061), where its body falls: it lies there, not a report behind.
