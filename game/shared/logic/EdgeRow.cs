@@ -21,11 +21,25 @@ public static class EdgeRow
     {
         int count = 0;
         foreach (bool s in shown) count += s ? 1 : 0;
-        float left = middle - ((count - 1) * stride + wide) / 2;
+        float left = FirstLeft(count, middle, wide, stride);
         var lefts = new float?[shown.Count];
         for (int i = 0, at = 0; i < shown.Count; i++)
             if (shown[i]) lefts[i] = left + at++ * stride;
         return lefts;
+    }
+
+    /// <summary>Where the first of <paramref name="count"/> keys shown lies, the row centred on <paramref name="middle"/>.</summary>
+    public static float FirstLeft(int count, float middle, float wide, float stride) => middle - ((count - 1) * stride + wide) / 2;
+
+    /// <summary>
+    /// Where the full row of <paramref name="keys"/> starts over the rim in a window <paramref name="windowWide"/> wide, the keys grown
+    /// <paramref name="grown"/> times: what the vitals' air stops short of (<see cref="Vitals.AirEnd"/>), the same whichever keys
+    /// show now and whichever tablet is up, so the bar never moves as they come and go.
+    /// </summary>
+    public static float RimLeft(float windowWide, int keys, float grown)
+    {
+        var (left, wide) = TabletPeek.RimArt(windowWide);
+        return FirstLeft(keys, TabletPeek.RowAt(left, 0, wide).Middle, TabletPeek.KeySide * grown, TabletPeek.KeyStride * grown);
     }
 
     /// <summary>How many times their own size the holograms are drawn: as the slots are, against the normal slot (<see cref="Ui.Slot"/>).</summary>

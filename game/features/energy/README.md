@@ -11,7 +11,8 @@ pieces of light are `game/shared/`'s (`logic/Vitals.cs`, `LightStrip.cs`).
 
 | File | Holds |
 | --- | --- |
-| `EnergyBar.cs` | the row: the bolt, a piece a store, their light added over them, a tip a store |
+| `EnergyBar.cs` | the dial: the bolt, an arc a store, their light added over them, the number under it, a tip a store |
+| `logic/EnergyCount.cs` | the number under the dial: whole power units in groups of thousands, a fall gliding |
 | `logic/EnergyRead.cs` | what it reads: the belt summed, each open belt slot's store and its item, the running tool's draw |
 | `logic/EnergyRing.cs` | what each store shows: its share gliding, the store drained, a store put on, the hop to the next |
 | `logic/BoltPulse.cs` | the bolt: its beat and current, its sputter and kindling, its discharges |

@@ -59,4 +59,18 @@ public class EdgeRowTests
         Assert.Equal(632 + 28 - 28 * 1.4f, EdgeRow.Top(632, 28, 1.4f), 3);
         Assert.Equal(TabletPeek.RowLeast, EdgeRow.Top(TabletPeek.RowLeast, 28, 1.4f));
     }
+
+    [Fact]
+    public void TheFullRowOverTheRimStartsWhereAllItsKeysShownStart()
+    {
+        // At 1280 wide the rim's art is 12 to 1268, the keys' middle 632 (the vitals pick page's measures).
+        Assert.Equal((12f, 1256f), TabletPeek.RimArt(1280));
+        float grown = EdgeRow.Grown(Slots.SizeOf(SlotScale.Normal));
+        float first = EdgeRow.Lefts([true, true, true, true, true, true], 632, TabletPeek.KeySide * grown, TabletPeek.KeyStride * grown)[0]!.Value;
+        Assert.Equal(first, EdgeRow.RimLeft(1280, 6, grown), 3);
+        Assert.Equal(513.2f, EdgeRow.RimLeft(1280, 6, grown), 3);
+        Assert.Equal(483.5f, EdgeRow.RimLeft(1280, 6, EdgeRow.Grown(Slots.SizeOf(SlotScale.Large))), 3);
+        // A wider window moves it right with the rim's middle.
+        Assert.Equal(EdgeRow.RimLeft(1280, 6, grown) + 320, EdgeRow.RimLeft(1920, 6, grown), 3);
+    }
 }

@@ -6,8 +6,8 @@ namespace Stillwake.Game.Shared;
 
 /// <summary>
 /// The vitals' pieces of light (hud-vitals, look D): a wash with a wandering tide line, baked by <c>gauge.js</c> per tone in two
-/// variants so neighbours differ. A row's piece is the long strip cut to its length, its start then its own end; a meal's
-/// time light is the thin one stretched. The glow under a lit part is the strip again, added and spread.
+/// variants so neighbours differ. A row's piece is the long strip cut to its length, its start then its own end; a dial's ring
+/// is the strip bent round (<see cref="RingLight"/>). The glow under a lit part is the strip again, added and spread.
 /// </summary>
 public static class LightStrip
 {
@@ -16,9 +16,6 @@ public static class LightStrip
 
     /// <summary>The long strip of <paramref name="tone"/>: sky, red, pale, white, green, paleGreen, amber, darkSky, darkRed, darkGreen.</summary>
     public static Texture2D Of(string tone, int variant) => PixelArt.Picture($"gauge_strip_{tone}_{variant & 1}");
-
-    /// <summary>The thin time light of <paramref name="tone"/>: time, hunger, darkMeal.</summary>
-    public static Texture2D Thin(string tone, int variant) => PixelArt.Picture($"gauge_thin_{tone}_{variant & 1}");
 
     /// <summary>
     /// The part from <paramref name="from"/> to <paramref name="to"/> along a piece <paramref name="length"/> long at
@@ -44,17 +41,6 @@ public static class LightStrip
         if (b - a <= 0.01f) return;
         float tall = strip.GetSize().Y;
         on.DrawTextureRectRegion(strip, new Rect2(x + a, top - Margin * ky, b - a, tall * ky), new Rect2(Margin + a + shift, 0, b - a, tall), modulate);
-    }
-
-    /// <summary>A thin light stretched over <paramref name="box"/>, its margin round it; only the columns left of <paramref name="clipTo"/>.</summary>
-    public static void Stretched(CanvasItem on, Texture2D thin, Rect2 box, Color modulate, float clipTo = float.MaxValue)
-    {
-        if (modulate.A <= 0.004f) return;
-        var size = thin.GetSize();
-        float kx = box.Size.X / (size.X - 2 * Margin), ky = box.Size.Y / (size.Y - 2 * Margin);
-        float left = box.Position.X - Margin * kx, right = Math.Min(box.End.X + Margin * kx, clipTo);
-        if (right - left <= 0.01f) return;
-        on.DrawTextureRectRegion(thin, new Rect2(left, box.Position.Y - Margin * ky, right - left, size.Y * ky), new Rect2(0, 0, (right - left) / kx, size.Y), modulate);
     }
 
     /// <summary>The even glow under a lit part, drawn on an added layer: the strip again, spread above and below it.</summary>

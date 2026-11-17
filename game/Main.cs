@@ -309,7 +309,7 @@ public partial class Main : Node2D, ITogether
             Features.Landing.Ride? OwnRide(int peer) => _m.Landing.FlightOf(peer) is { } f ? Features.Landing.Ride.Of(f) : _m.Landing.VoyageOf(peer) is { } v ? Features.Landing.Ride.Of(v) : null;
             AddChild(new Features.Landing.FlightOverlay(() => _session is Session s ? (s.Client.World.SurfaceOf(s.Client.Id), OwnRide(s.Client.Id)) : null,
                 () => (_session as Session)?.Progress ?? 0, () => _camera.OwnZoom));
-            // The vitals at the bottom-left (hud-vitals): the belt's charge under the suit's air, whatever is held. Before the
+            // The vitals at the bottom-left (hud-vitals): six dials over the suit's long air bar, the belt's charge the first, whatever is held. Before the
             // suit's gauge, so the red edges cover it as they cover the rest of the HUD.
             var energy = new EnergyBar(() => _session is Session s ? EnergyRead.Of(_m.Items.Inventory(s.Client.Id), _m.Items.BeltCharge(s.Client.Id), p => _m.Items.SlotOpen(s.Client.Id, p), _m.Items.Running(s.Client.Id)) : null, _hands.Ui);
             AddChild(energy);
@@ -320,7 +320,7 @@ public partial class Main : Node2D, ITogether
             var gauge = new SuitGauge(() => _session is Session s ? Danger.Read(_m.Crew, _m.Atmosphere, s.Client.Id) : (1, 1, SuitDanger.None, true),
                 CanisterIn, () => _session is Session s ? _m.Crew.PartsOf(s.Client.Id) : [], _hands.Ui);
             AddChild(gauge);
-            // The hero's meals, the vitals' bottom row (hud-vitals).
+            // The hero's meals, the vitals' third to fifth dials, and the purge spot the sixth (hud-vitals).
             AddChild(new MealSlots(() => _session is Session s && _m.Crew.HeroOf(s.Client.Id) is { } fed
                 ? (fed.Meals.Select(m => (m.Food, m.Left)).ToList(), _m.Crew.Hungry(s.Client.Id)) : null, Purge, _hands.Ui));
             // Held three seconds on the purge spot (food-tuning): refused as the sim would, else sent.
@@ -331,7 +331,7 @@ public partial class Main : Node2D, ITogether
                 s.Client.Send(new Stillwake.Sim.Crew.Purge());
                 return null;
             }
-            // The hero's body, under the charge (the-thermometer, body-temperature); gone while it is passed out.
+            // The hero's body, the vitals' second dial (the-thermometer, body-temperature); gone while it is passed out.
             AddChild(new Thermometer(() => _session is Session s && _m.Crew.HeroOf(s.Client.Id) is { Out: 0 } && _hero is { Placed: true } h
                 ? (ThermometerReading?)Thermometers.Read(_m.Crew, s.Client.Id, h.Current.BodyCell(_m.Grid.Width), h.Body, h.BodyGasp) : null, _hands.Ui));
             if (_hero is { } breathing) gauge.BreathesAgain += breathing.BreathesAgain;

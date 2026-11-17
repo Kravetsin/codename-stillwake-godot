@@ -13,7 +13,7 @@ namespace Stillwake.Game.Shared;
 public partial class EdgeKey : Control
 {
     /// <summary>The screen's side, and how far below its foot the number's baseline lies.</summary>
-    public const int Side = 28, NumberDown = 5;
+    public const int Side = TabletPeek.KeySide, NumberDown = 5;
     private const int Inset = 5, Icon = Side - 2 * Inset, GlowPad = 6;
     private static readonly Color Green = Rgb(124, 240, 150), Amber = Rgb(255, 168, 60), Flared = Rgb(255, 250, 235);
     private static readonly Font NumberFont = Style.Mono;

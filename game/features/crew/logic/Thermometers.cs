@@ -75,21 +75,31 @@ public static class Thermometers
         return Math.Abs(left) < Snap ? body : shown + left * (float)(1 - Math.Exp(-delta / GlideS));
     }
 
-    /// <summary>The scale's ends, in degrees: the cold's death at its left, the heat's at its right.</summary>
+    /// <summary>The scale's ends, in degrees: the cold's death and the heat's.</summary>
     public const float Coldest = Content.Temperature.ColdDeath / 100f, Hottest = Content.Temperature.HeatDeath / 100f;
 
-    /// <summary>
-    /// Where <paramref name="degrees"/> stand along the scale (body-temperature), 0 at the cold's death to 1 at the heat's, and
-    /// whether they lie past either end: a target past a death, which the body reaches and never stops at, is pinned there.
-    /// </summary>
-    public static (float At, bool Past) OnScale(float degrees) =>
-        (Math.Clamp((degrees - Coldest) / (Hottest - Coldest), 0, 1), degrees <= Coldest || degrees >= Hottest);
+    /// <summary>Whether <paramref name="degrees"/> lie at or past either death: a target there, which the body reaches and never stops at.</summary>
+    public static bool Past(float degrees) => degrees <= Coldest || degrees >= Hottest;
 
-    /// <summary>The scale's notches, in whole degrees from death to death; long at each fifth and at the body's normal.</summary>
-    public static IEnumerable<(float At, bool Long)> Notches()
+    /// <summary>
+    /// Where <paramref name="degrees"/> stand round the temperature dial's ring, in screen radians (y down, the top at −π/2): the
+    /// normal at the top, the heat clockwise and the cold counter-clockwise, each linear to its death at the bottom, where a
+    /// target past either is pinned.
+    /// </summary>
+    public static float RingAngle(float degrees)
     {
+        const float top = -MathF.PI / 2;
+        return degrees >= Normal
+            ? top + MathF.PI * Math.Min(1, (degrees - Normal) / (Hottest - Normal))
+            : top - MathF.PI * Math.Min(1, (Normal - degrees) / (Normal - Coldest));
+    }
+
+    /// <summary>The ring's notches, a whole degree each from death to death but the normal, which has a pointer; long at each fifth.</summary>
+    public static IEnumerable<(float Angle, bool Long)> RingNotches()
+    {
+        int normal = (int)MathF.Round(Normal);
         for (int d = (int)MathF.Ceiling(Coldest); d <= (int)Hottest; d++)
-            yield return (OnScale(d).At, d % 5 == 0 || d == (int)MathF.Round(Normal));
+            if (d != normal) yield return (RingAngle(d), d % 5 == 0);
     }
 
     /// <summary>A glided body as it is drawn: the nearest tenth of a degree, in tenths.</summary>

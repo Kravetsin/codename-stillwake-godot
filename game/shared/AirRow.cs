@@ -7,7 +7,8 @@ using Look = Stillwake.Game.WristLook;
 
 namespace Stillwake.Game.Shared;
 
-/// The air row of the vitals (hud-vitals): the oxygen sign and one piece of light as long as the suit holds, in units
+/// The air row of the vitals (hud-vitals): the oxygen sign in its circle under the charge dial and one long piece of light as long
+/// as the suit holds, in units
 /// (<see cref="Units"/>), parted as its air is (<see cref="Parts"/>), lit as far as <see cref="Motion"/> shows, a bright line leading it while it moves. Low, it turns red
 /// and pulses, its last units blinking faster; what is lost stays lit white a moment, then drains, chips falling off; refilling,
 /// light runs along it and pale motes rise; a canister breathed surges (<see cref="Surge"/>), air breathed again sends a wave
@@ -22,6 +23,8 @@ public partial class AirRow : Control
     private const double LastUnits = 5, ResizeS = 0.45;
     private const float Top = Vitals.AirY - Vitals.PieceHeight / 2, Height = Vitals.PieceHeight;
     private static readonly Rect2 SignAt = new(Vitals.SignX - Vitals.Icon / 2, Vitals.AirY - Vitals.Icon / 2, Vitals.Icon, Vitals.Icon);
+    /// <summary>Where the bar may end, in block units, until the edge's keys are first laid: the pick's reach.</summary>
+    private float _end = Vitals.AirReach;
 
     private readonly Texture2D _icon;
     private readonly Texture2D? _shortIcon;
@@ -93,8 +96,8 @@ public partial class AirRow : Control
     public Action<CanvasItem>? LightMark { get; set; }
 
     /// <summary>
-    /// How many units the hero's air holds, every part together: the piece's length, fitted to the row. A change after the first
-    /// grows or shrinks the piece over <see cref="ResizeS"/>.
+    /// How many units the hero's air holds, every part together: the piece's length, fitted short of the edge's keys
+    /// (<see cref="Vitals.AirLength"/>). A change after the first grows or shrinks the piece over <see cref="ResizeS"/>.
     /// </summary>
     public int Units
     {
@@ -102,7 +105,7 @@ public partial class AirRow : Control
         set
         {
             if (value == _units) return;
-            float length = Vitals.Fit([value], Vitals.AirPerUnit)[0].Width;
+            float length = Vitals.AirLength(value, Count, _end);
             (_lengthFrom, _lengthTo, _resize) = _units == 0 ? (length, length, 1) : (_length, length, 0);
             _units = value;
             if (_resize >= 1) _length = length;
@@ -119,11 +122,12 @@ public partial class AirRow : Control
         set => _parts = [.. value];
     }
 
-    /// <summary>The row's place, the block's origin on the screen, and its size.</summary>
-    public void Place(Vector2 origin, float scale)
+    /// <summary>The row's place, the block's origin on the screen, its size, and where its bar may end (<see cref="Vitals.AirEnd"/>).</summary>
+    public void Place(Vector2 origin, float scale, float end)
     {
         Position = _at = origin;
         Scale = new Vector2(scale, scale);
+        _end = end;
     }
 
     /// <summary>A canister breathed: a white sweep runs over the piece, the air it gave glows pale, motes rise thick and the row shakes.</summary>
@@ -145,11 +149,14 @@ public partial class AirRow : Control
         _surge = Math.Max(0, _surge - delta);
         if (_wave >= 0) _wave = _wave + delta < Look.WaveS ? _wave + delta : -1;
         if (_hurt >= 0) _hurt = _hurt + delta < HurtLook.BlinkS ? _hurt + delta : -1;
+        // Refitted at once when the room or the parts change; a new capacity grows or shrinks it over the resize.
+        _lengthTo = Vitals.AirLength(_units, Count, _end);
         if (_resize < 1)
         {
             _resize = Math.Min(1, _resize + delta / ResizeS);
             _length = Mathf.Lerp(_lengthFrom, _lengthTo, Mathf.SmoothStep(0, 1, (float)_resize));
         }
+        else _length = _lengthTo;
         int count = Count;
         for (int k = 0; k < _spots.Count; k++)
         {

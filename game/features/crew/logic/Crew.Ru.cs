@@ -32,6 +32,8 @@ public static partial class Ru
         ["crew.hungerWork"] = "Скорость работы −{n}%",
         ["crew.mealFree"] = "Место для блюда",
         ["crew.mealHow"] = "Съесть еду — правой кнопкой",
+        ["crew.mealMinutes"] = "{n}м",
+        ["crew.mealSeconds"] = "{n}с",
         ["crew.withstands"] = "Выдерживает до {n}°",
         ["crew.withstandsHeat"] = "Выдерживает жар до {n}°",
         ["crew.here"] = "Здесь {n}",

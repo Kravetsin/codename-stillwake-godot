@@ -1,3 +1,4 @@
+using System;
 using System.Linq;
 using Stillwake.Game.Features.Crew;
 using Stillwake.Game.Shared;
@@ -47,18 +48,26 @@ public class ThermometerTests
     }
 
     [Fact]
-    public void ItsScaleRunsFromDeathToDeathANotchADegreeAndPinsATargetPastEitherToItsEnd()
+    public void ItsRingRunsFromTheNormalAtTheTopToBothDeathsAtTheBottomANotchADegreeAndPinsATargetPastEither()
     {
-        Assert.Equal((0f, true), Thermometers.OnScale(28));
-        Assert.Equal((1f, true), Thermometers.OnScale(42));
-        Assert.Equal((0f, true), Thermometers.OnScale(-341));
-        Assert.Equal((1f, true), Thermometers.OnScale(55));
-        var (normal, past) = Thermometers.OnScale(37);
-        Assert.False(past);
-        Assert.Equal(9 / 14f, normal, 4);
-        var notches = Thermometers.Notches().ToList();
-        Assert.Equal(15, notches.Count);
-        Assert.Equal([30, 35, 37, 40], notches.Select((n, i) => (n, d: 28 + i)).Where(x => x.n.Long).Select(x => x.d));
+        const float top = -MathF.PI / 2;
+        // The normal at the top; the heat clockwise, the cold counter-clockwise, each linear to its death at the bottom.
+        Assert.Equal(top, Thermometers.RingAngle(37), 4);
+        Assert.Equal(top + MathF.PI, Thermometers.RingAngle(42), 4);
+        Assert.Equal(top - MathF.PI, Thermometers.RingAngle(28), 4);
+        Assert.Equal(top + MathF.PI / 2, Thermometers.RingAngle(39.5f), 4);
+        Assert.Equal(top - MathF.PI / 3, Thermometers.RingAngle(34), 4);
+        // A little cold: a short way counter-clockwise from the top, as 36.6° is.
+        Assert.Equal(top - MathF.PI * 0.4f / 9, Thermometers.RingAngle(36.6f), 4);
+        // Past either death, pinned at the bottom.
+        Assert.Equal(top + MathF.PI, Thermometers.RingAngle(55), 4);
+        Assert.Equal(top - MathF.PI, Thermometers.RingAngle(-341), 4);
+        Assert.True(Thermometers.Past(28) && Thermometers.Past(42) && Thermometers.Past(-341) && Thermometers.Past(55));
+        Assert.False(Thermometers.Past(37));
+        // A notch each whole degree but the normal, which has a pointer; long at each fifth.
+        var notches = Thermometers.RingNotches().ToList();
+        Assert.Equal(14, notches.Count);
+        Assert.Equal([Thermometers.RingAngle(30), Thermometers.RingAngle(35), Thermometers.RingAngle(40)], notches.Where(n => n.Long).Select(n => n.Angle));
     }
 
     [Fact]

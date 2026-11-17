@@ -1,4 +1,6 @@
+using System;
 using Stillwake.Game.Shared;
+using Stillwake.Sim;
 using static Stillwake.Game.I18n.En;
 using Diet = Stillwake.Content.Diet;
 
@@ -9,6 +11,16 @@ public static class MealTips
 {
     /// <summary>A meal pulses in its last minute, when the same food may be eaten again to refresh it.</summary>
     public static bool Pulsing(int left) => left <= Diet.RefreshWithin;
+
+    /// <summary>
+    /// The time a meal has left under its dial, from its <paramref name="ticks"/> (format A1): whole minutes rounded up, "32m";
+    /// seconds in its last minute, "45s", a part second counted whole as on its card (<see cref="ItemCards.Clock"/>).
+    /// </summary>
+    public static string Clock(int ticks)
+    {
+        int seconds = (Math.Max(0, ticks) + World.TicksPerSecond - 1) / World.TicksPerSecond;
+        return seconds > 60 ? T("crew.mealMinutes", ("n", (seconds + 59) / 60)) : T("crew.mealSeconds", ("n", seconds));
+    }
 
     /// <summary>How much more air a hungry hero's running breath costs than a fed one's, in percent.</summary>
     public static int SprintPercent => (Diet.HungrySprint - Diet.Sprint) * 100 / Diet.Sprint;

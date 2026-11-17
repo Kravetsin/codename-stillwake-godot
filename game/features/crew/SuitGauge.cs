@@ -86,15 +86,18 @@ public partial class SuitGauge : CanvasLayer
     {
         get
         {
-            var (x, y, w, h) = Vitals.Covers(GetViewport().GetVisibleRect().Size.Y, _ui.Slot);
+            var (x, y, w, h) = Vitals.Covers(GetViewport().GetVisibleRect().Size.Y, _ui.Slot, KeysLeft);
             return new Rect2(x, y, w, h);
         }
     }
 
+    /// <summary>Where the edge's full row of keys starts, which the air's bar stops short of; till it is first laid, as at the pick's reach.</summary>
+    private float KeysLeft => _ui.EdgeKeysLeft ?? Slots.Margin + (Vitals.AirReach * Vitals.ScaleOf(_ui.Slot)) + Vitals.KeysGap;
+
     public override void _Process(double delta)
     {
         var (x, y) = Vitals.Origin(GetViewport().GetVisibleRect().Size.Y, _ui.Slot);
-        _gauge.Place(new Vector2(x, y), Vitals.ScaleOf(_ui.Slot));
+        _gauge.Place(new Vector2(x, y), Vitals.ScaleOf(_ui.Slot), Vitals.AirEnd(KeysLeft, _ui.Slot));
         _tips.Frame(!_ui.MenuOpen.Get() ? GetViewport().GetMousePosition() : null);
         _sinceRead += delta;
         if (_sinceRead >= RefreshS)
@@ -143,7 +146,7 @@ public partial class SuitGauge : CanvasLayer
         return new Tip(T("hud.holds", ("name", name), ("n", size)), []);
     }
 
-    /// <summary>The ring's radius round the oxygen sign, in block units, grown with the sign; how wide it is drawn.</summary>
+    /// <summary>The ring's radius round the oxygen sign, in block units, its circle the dials' (hud-vitals); how wide it is drawn.</summary>
     private const float RingRadius = Vitals.RingRadius, RingWidth = 2;
     private static readonly Color Refused = new(1, 70 / 255f, 60 / 255f);
 

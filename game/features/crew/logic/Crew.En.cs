@@ -32,6 +32,8 @@ public static partial class En
         ["crew.hungerWork"] = "Work speed −{n}%",
         ["crew.mealFree"] = "Room for a meal",
         ["crew.mealHow"] = "Eat a food with the right button",
+        ["crew.mealMinutes"] = "{n}m",
+        ["crew.mealSeconds"] = "{n}s",
         ["crew.withstands"] = "Withstands down to {n}°",
         ["crew.withstandsHeat"] = "Withstands heat up to {n}°",
         ["crew.here"] = "Here {n}",
