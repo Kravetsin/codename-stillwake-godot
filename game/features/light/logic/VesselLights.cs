@@ -45,12 +45,13 @@ public sealed class VesselLights
     /// <summary>What a bridge's consoles are, by their first look: the salvage's and the mockup's.</summary>
     public static readonly IReadOnlyList<string> ConsoleKinds = ["salvageConsole", Vessels.Console];
 
-    public VesselLights(Vessel vessel)
+    public VesselLights(Built built)
     {
+        var vessel = built.Vessel;
         Seed = vessel.Seed;
-        var parts = Shipyard.Stamp(vessel);
-        // The airlock: the room a hero first steps into, just inside the first door, as tall as it is.
-        var (sx, sy) = Shipyard.Door(vessel);
+        var parts = built.Parts;
+        // The airlock: the room a hero first steps into, just inside the way in, as tall as it is.
+        var (sx, sy) = Shipyard.Door(built);
         var airlock = vessel.Compartments.First(c => c.Holds(sx, sy));
         bool InAirlock(VesselPart p) => airlock.Holds(p.X, p.Y);
 
@@ -83,9 +84,12 @@ public sealed class VesselLights
         double Phase(VesselPart p) => Looks.Below(Seed, Looks.Salt.Phase, Cell(p), 6000);
     }
 
-    /// <summary>The light inside the vessel a surface of <paramref name="rules"/> holds from <paramref name="seed"/>; none off a vessel.</summary>
-    public static VesselLights? For(Surfaces.Kind rules, uint seed) =>
-        rules is VesselKind kind ? new VesselLights(Shipyard.Describe(Vessels.Class(kind.Class)!, seed)) : null;
+    /// <summary>
+    /// The light inside the vessel a surface of <paramref name="rules"/> holds from <paramref name="seed"/> and its forced chain
+    /// <paramref name="wreck"/> (vessel-wrecks); none off a vessel.
+    /// </summary>
+    public static VesselLights? For(Surfaces.Kind rules, uint seed, IReadOnlyList<WreckStep>? wreck = null) =>
+        rules is VesselKind kind ? new VesselLights(Shipyard.Build(Vessels.Class(kind.Class)!, seed, wreck)) : null;
 
     /// <summary>The grid cell of the frame's (<paramref name="x"/>, <paramref name="y"/>), the frame's top-left at <c>Vessels.Margin</c> every way.</summary>
     public static int CellOf(int x, int y, int gridWidth) => (y + Vessels.Margin) * gridWidth + x + Vessels.Margin;

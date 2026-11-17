@@ -156,7 +156,7 @@ public class SightTests
     {
         var vessel = Shipyard.Describe(V.Class(cls)!, seed);
         int w = vessel.Width, h = vessel.Height;
-        var parts = Shipyard.Stamp(vessel);
+        var parts = Made.Of(vessel).Parts;
         var back = new bool[w * h];
         var seals = new bool[w * h];
         foreach (var p in parts)
@@ -170,7 +170,7 @@ public class SightTests
             if (p.Kind == Content.Builds.Hatch) seals[p.Y * w + p.X] = seals[p.Y * w + p.X + 1] = true;
         }
         var sight = new Sight(w, h, c => back[c] && !seals[c], c => seals[c]);
-        var (fx, fy) = Shipyard.Door(vessel);
+        var (fx, fy) = Shipyard.Door(Made.Of(vessel));
         int hero = (fy - 2) * w + fx;
         sight.Look([hero], changed: false, 0);
 

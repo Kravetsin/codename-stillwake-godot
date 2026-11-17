@@ -19,7 +19,7 @@ public class VesselLightsTests(ITestOutputHelper output)
     [Fact]
     public void OneSeedIsLitAsPinned()
     {
-        var lights = new VesselLights(Of("freighter", 1));
+        var lights = new VesselLights(Made.Of(Of("freighter", 1)));
         output.WriteLine(string.Concat(lights.Consoles.Select(c => c.Lit ? c.Glitching ? 'G' : 'L' : '-')));
         var dying = lights.Lamps[lights.Dying!.Value];
         Assert.Equal((LampState.Dying, 88, 27), (dying.State, dying.X, dying.Y));
@@ -33,13 +33,13 @@ public class VesselLightsTests(ITestOutputHelper output)
     public void OneLinerIsLitAsPinnedItsChandeliersLampsAndItsAirlockFoundByItsRoom()
     {
         var v = Of("liner", 1);
-        var lights = new VesselLights(v);
+        var lights = new VesselLights(Made.Of(v));
         string states = string.Concat(lights.Lamps.Select(l => l.State switch { LampState.Red => 'r', LampState.Dying => 'y', _ => '.' }));
         Assert.Equal("rrrrrrr...r.r...r....rr.rrrrrr....y...rrrrr.r....rr.r.rr..r..rr..r.r.r..rrr...r...", states);
         Assert.Equal(2, lights.Lamps.Count(l => l.Kind == V.Chandelier));
         Assert.True(Light.Lamps.ContainsKey(V.Chandelier));
         // The airlock is the room just inside the way in, its lamps red.
-        var (sx, sy) = Shipyard.Door(v);
+        var (sx, sy) = Shipyard.Door(Made.Of(v));
         var airlock = v.Compartments.Single(c => c.Holds(sx, sy));
         Assert.Contains(lights.Lamps, l => airlock.Holds(l.X, l.Y));
         Assert.All(lights.Lamps.Where(l => airlock.Holds(l.X, l.Y)), l => Assert.Equal(LampState.Red, l.State));
@@ -54,14 +54,14 @@ public class VesselLightsTests(ITestOutputHelper output)
     public void OneTankerIsLitAsPinnedItsAirlockUnderItsBridgeRed()
     {
         var v = Of("tanker", 1);
-        var lights = new VesselLights(v);
+        var lights = new VesselLights(Made.Of(v));
         string states = string.Concat(lights.Lamps.Select(l => l.State switch { LampState.Red => 'r', LampState.Dying => 'y', _ => '.' }));
         output.WriteLine(states);
         // Re-recorded once its boom widened its frame (big-vessels stage 3), and once its hangar went and a second well came (big-vessels
         // fixes): a lamp's draw is by its cell in the frame.
         Assert.Equal("rrrrrrrrrrrrr...rr...r.r.r..rr.r.rr..rr.ry..r.r..r...", states);
         Assert.All(lights.Lamps, l => Assert.Equal(V.Lamp, l.Kind));
-        var (sx, sy) = Shipyard.Door(v);
+        var (sx, sy) = Shipyard.Door(Made.Of(v));
         var airlock = v.Compartments.Single(c => c.Holds(sx, sy));
         Assert.Contains(lights.Lamps, l => airlock.Holds(l.X, l.Y));
         Assert.All(lights.Lamps.Where(l => airlock.Holds(l.X, l.Y)), l => Assert.Equal(LampState.Red, l.State));
@@ -74,7 +74,7 @@ public class VesselLightsTests(ITestOutputHelper output)
     {
         var v = Of("freighter", 4);
         var m = VesselDressTests.Laid(v);
-        var lights = new VesselLights(v);
+        var lights = new VesselLights(Made.Of(v));
         var cells = lights.LampCells(m.Grid.Width);
         foreach (var l in lights.Lamps) m.Grid.Place(VesselLights.CellOf(l.X, l.Y, m.Grid.Width), new Placement("machine", l.Kind));
         Assert.Equal(lights.Lamps.Count, m.Grid.Machines.Count(machine => VesselLights.Claims(machine, cells)));
@@ -93,9 +93,9 @@ public class VesselLightsTests(ITestOutputHelper output)
         foreach (var (cls, seed) in Many())
         {
             var v = Of(cls, seed);
-            var lights = new VesselLights(v);
+            var lights = new VesselLights(Made.Of(v));
             Assert.True(lights.Lamps.Count(l => l.State == LampState.Dying) <= 1, $"{cls} {seed}");
-            var (sx, sy) = Shipyard.Door(v);
+            var (sx, sy) = Shipyard.Door(Made.Of(v));
             var airlock = v.Compartments.Single(c => sx >= c.Left && sx < c.Left + c.Width && sy >= c.Top && sy < c.Top + V.Open);
             var inside = lights.Lamps.Where(l => l.X >= airlock.Left && l.X < airlock.Left + airlock.Width && l.Y >= airlock.Top && l.Y < airlock.Top + V.Open).ToList();
             Assert.NotEmpty(inside);
@@ -108,7 +108,7 @@ public class VesselLightsTests(ITestOutputHelper output)
     [Fact]
     public void ThreeConsolesInFourAreLitAndOneInFourOfThoseGlitches()
     {
-        var consoles = Many().SelectMany(v => new VesselLights(Of(v.Cls, v.Seed)).Consoles).ToList();
+        var consoles = Many().SelectMany(v => new VesselLights(Made.Of(Of(v.Cls, v.Seed))).Consoles).ToList();
         int lit = consoles.Count(c => c.Lit), glitching = consoles.Count(c => c.Glitching);
         Assert.All(consoles, c => Assert.True(c.Lit || !c.Glitching));
         Assert.InRange(lit * 100 / consoles.Count, 60, 90);
@@ -121,7 +121,7 @@ public class VesselLightsTests(ITestOutputHelper output)
     {
         var v = Of("freighter", 4);
         var m = VesselDressTests.Laid(v);
-        var lamp = new VesselLights(v).Lamps.First(l => l.State == LampState.Red);
+        var lamp = new VesselLights(Made.Of(v)).Lamps.First(l => l.State == LampState.Red);
         int cell = VesselLights.CellOf(lamp.X, lamp.Y, m.Grid.Width);
         Assert.False(VesselLights.Stands(m.Grid, lamp.Kind, cell));
         m.Grid.Place(cell, new Placement("machine", lamp.Kind));
@@ -135,7 +135,7 @@ public class VesselLightsTests(ITestOutputHelper output)
     {
         var v = Of("freighter", 2);
         var m = VesselDressTests.Laid(v);
-        var lights = new VesselLights(v);
+        var lights = new VesselLights(Made.Of(v));
         Assert.Equal(v.Doors.Select(d => (d.X, d.Y)).Order(), lights.Doors.Select(d => (d.X, d.Y)).Order());
         Assert.All(lights.Doors, d => Assert.Equal(V.Open, d.Rows));
         foreach (var door in lights.Doors)
@@ -163,8 +163,8 @@ public class VesselLightsTests(ITestOutputHelper output)
         foreach (var (cls, seed) in Many())
         {
             var v = Of(cls, seed);
-            VesselDress a = new(v), b = new(Of(cls, seed));
-            var doors = new VesselLights(v).Doors;
+            VesselDress a = new(Made.Of(v)), b = new(Made.Of(Of(cls, seed)));
+            var doors = new VesselLights(Made.Of(v)).Doors;
             for (int y = 0; y < v.Height; y++)
                 for (int x = 0; x < v.Width; x++)
                 {

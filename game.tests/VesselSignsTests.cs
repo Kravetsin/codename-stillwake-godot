@@ -21,7 +21,7 @@ public class VesselSignsTests
     [Fact]
     public void OneSeedIsSignedAsPinned()
     {
-        var signs = new VesselSigns(Of("freighter", 1)).Signs;
+        var signs = new VesselSigns(Made.Of(Of("freighter", 1))).Signs;
         Assert.Equal("Crate@127,23< Panel@130,27< Soot@49,20 Gas@34,27", Say(signs));
         var soot = signs.Single(s => s.Kind == SignKind.Soot);
         Assert.Equal(("vesselLifeTank", 50, 22), (soot.Machine, soot.MachineX, soot.MachineY));
@@ -38,11 +38,11 @@ public class VesselSignsTests
             foreach (uint seed in Enumerable.Range(1, 60).Select(s => (uint)s))
             {
                 var v = Of(cls, seed);
-                var signs = new VesselSigns(v).Signs;
+                var signs = new VesselSigns(Made.Of(v)).Signs;
                 Assert.True(signs.Count <= most, $"{cls} {seed}: {Say(signs)}");
                 if (signs.Count < least) fewer++;
                 Assert.Equal(signs.Count, signs.Select(s => s.Kind).Distinct().Count());
-                var (sx, sy) = Shipyard.Door(v);
+                var (sx, sy) = Shipyard.Door(Made.Of(v));
                 bool In(Vessel.Compartment c, int x, int y) => x >= c.Left && x < c.Left + c.Width && y >= c.Top && y < c.Top + V.Open;
                 var barred = v.Compartments.Where(c => c.Role == Content.VesselRole.Bridge || In(c, sx, sy)).ToList();
                 foreach (var sign in signs)
@@ -63,7 +63,7 @@ public class VesselSignsTests
     {
         foreach (var (cls, seed) in Many())
         {
-            var (a, b) = (new VesselSigns(Of(cls, seed)).Signs, new VesselSigns(Of(cls, seed)).Signs);
+            var (a, b) = (new VesselSigns(Made.Of(Of(cls, seed))).Signs, new VesselSigns(Made.Of(Of(cls, seed))).Signs);
             Assert.Equal(Say(a), Say(b));
             Assert.Equal(a.SelectMany(s => s.Cells), b.SelectMany(s => s.Cells));
         }
@@ -74,7 +74,7 @@ public class VesselSignsTests
     {
         var v = Of("freighter", 1);
         var m = VesselDressTests.Laid(v);
-        var signs = new VesselSigns(v).Signs;
+        var signs = new VesselSigns(Made.Of(v)).Signs;
         Assert.All(signs, s => Assert.True(VesselSigns.Shows(m.Grid, s), s.Kind.ToString()));
         var crate = signs.Single(s => s.Kind == SignKind.Crate);
         var (x, y) = crate.Cells[^1];

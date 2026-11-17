@@ -64,6 +64,7 @@ public partial class Main : Node2D, ITogether
 
     /// <summary>The seed of the surface drawn, 0 aboard.</summary>
     private uint _seed;
+    private IReadOnlyList<Content.WreckStep>? _wreck;
     /// <summary>The ship's registry, surface 0's, made with the world: a load or a resync brings a new one.</summary>
     private Registry _ship = null!;
     /// <summary>The registry the views draw: a load or a resync brings a new one.</summary>
@@ -530,6 +531,7 @@ public partial class Main : Node2D, ITogether
         _m = here;
         // What its creatures' looks grow from, with their ids (0102): the same individuals on every peer.
         _seed = surface == 0 ? 0 : client.World.Surfaces.First(s => s.Id == surface).Seed;
+        _wreck = surface == 0 ? null : client.World.Surfaces.First(s => s.Id == surface).Wreck;
         _items?.Panel.Close();
         _hands.Ui.OpenCrate.Set(null);
         _hands.Ui.OpenComputer.Set(null);
@@ -553,7 +555,7 @@ public partial class Main : Node2D, ITogether
         var context = new SurfaceContext(_m, _hands, () => (_session as Session)?.Progress ?? 0, () => _hero?.HeadLamps() ?? [], HeroBodies,
             Homes: !Has("--no-homes"), HomesMood: Arg("--homes") switch { "lit" => true, "dark" => false, _ => null },
             Peer: () => (_session as Session)?.Client.Id ?? 0, Tick: () => (_session as Session)?.Client.World.Tick ?? 0,
-            Hosts: () => (_session as Session)?.Host != null, Arrivals: _arrivals, Seed: _seed, Heroes: HeroFeet);
+            Hosts: () => (_session as Session)?.Host != null, Arrivals: _arrivals, Seed: _seed, Heroes: HeroFeet, Wreck: _wreck);
         foreach (var each in SurfaceViews.All)
         {
             if (each.Make(context) is not { } view) continue;

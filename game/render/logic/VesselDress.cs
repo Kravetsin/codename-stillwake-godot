@@ -118,13 +118,17 @@ public sealed class VesselDress
     /// <summary>The paint sheet's size in cells: every label stacked, a clear row between.</summary>
     public (int Width, int Height) PaintCells { get; }
 
-    /// <summary>The dress of the vessel a surface of <paramref name="rules"/> holds from <paramref name="seed"/>; none off a vessel.</summary>
-    public static VesselDress? For(Surfaces.Kind rules, uint seed) =>
-        rules is VesselKind kind ? new VesselDress(Shipyard.Describe(Vessels.Class(kind.Class)!, seed)) : null;
+    /// <summary>
+    /// The dress of the vessel a surface of <paramref name="rules"/> holds from <paramref name="seed"/> and its forced chain
+    /// <paramref name="wreck"/> (vessel-wrecks); none off a vessel.
+    /// </summary>
+    public static VesselDress? For(Surfaces.Kind rules, uint seed, IReadOnlyList<WreckStep>? wreck = null) =>
+        rules is VesselKind kind ? new VesselDress(Shipyard.Build(Vessels.Class(kind.Class)!, seed, wreck)) : null;
 
-    /// <param name="vessel">The vessel, its frame's top-left at (<c>Vessels.Margin</c>, <c>Margin</c>) of the grid as a vessel world lays it.</param>
-    public VesselDress(Vessel vessel)
+    /// <param name="made">The vessel as built, its frame's top-left at (<c>Vessels.Margin</c>, <c>Margin</c>) of the grid as a vessel world lays it.</param>
+    public VesselDress(Built made)
     {
+        var vessel = made.Vessel;
         Seed = vessel.Seed;
         Livery = Looks.LiveryOf(vessel.Class, Seed);
         Colours = Looks.LiveriesOf(vessel.Class)[Livery];
@@ -134,16 +138,16 @@ public sealed class VesselDress
         int w = _width = vessel.Width, h = _height = vessel.Height;
         _looks = new Look[w * h];
 
-        // The stamped vessel: its walls, hull or glass, and what is no space (a structure or a back wall).
+        // The built vessel: its walls, hull or glass, and what is no space (a structure or a back wall).
         var wall = new byte[w * h];
         var taken = new bool[w * h];
-        var parts = Shipyard.Stamp(vessel);
+        var parts = made.Parts;
         foreach (var part in parts)
         {
             if (part.Layer == "machine") continue;
             foreach (var (x, y) in Shipyard.Covers(part))
                 if (x >= 0 && y >= 0 && x < w && y < h) taken[y * w + x] = true;
-            if (part.Kind == "wall") wall[part.Y * w + part.X] = part.Material == Vessels.Glass ? (byte)2 : (byte)1;
+            if (part.Kind == "wall" && part.X >= 0 && part.Y >= 0 && part.X < w && part.Y < h) wall[part.Y * w + part.X] = part.Material == Vessels.Glass ? (byte)2 : (byte)1;
         }
         bool Hull(int x, int y) => x >= 0 && y >= 0 && x < w && y < h && wall[y * w + x] == 1;
         bool Walled(int x, int y) => x >= 0 && y >= 0 && x < w && y < h && wall[y * w + x] != 0;
