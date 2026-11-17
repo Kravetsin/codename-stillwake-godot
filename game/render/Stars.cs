@@ -147,6 +147,12 @@ public partial class Stars : CanvasLayer
     private ((float R, float G, float B) Haze, float Share, float Top, float Blow) _weather = ((1, 1, 1), 0, 0, 0);
     private BackdropView? _land;
     private int[]? _tops;
+
+    /// <summary>Whether a planet's sky and land are shown, not space.</summary>
+    public bool OnPlanet => _tops != null;
+
+    /// <summary>How far across a planet's sky its sun is (<see cref="Daylight.Sun"/>), null while it is down.</summary>
+    public float? Sun { get; set; }
     private (float R, float G, float B) _tint = (1, 1, 1);
 
     /// <summary>
@@ -180,7 +186,8 @@ public partial class Stars : CanvasLayer
         if (_tops is { } tops)
         {
             float ground = (float)GroundLine.Mean(tops, centre.X / ShipCamera.Cell, BackdropLooks.First.Reach) * ShipCamera.Cell;
-            _day!.Follow(centre, zoom, screen, ground, Seconds);
+            _day!.Day = Sun;
+            _day.Follow(centre, zoom, screen, ground, Seconds);
             _land?.Follow(centre, zoom, screen, ground);
         }
         _far.Follow(centre, zoom, screen, Seconds);

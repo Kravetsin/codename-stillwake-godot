@@ -20,11 +20,17 @@ public partial class PlanetSky : Node2D
     private const float CloudDrift = 1.5f;
 
     /// <summary>
-    /// Where the sun and the giant hang, their middles as shares of the screen across and down: on the screen, not by the
+    /// Where the giant hangs and the sun is at noon, their middles as shares of the screen across and down: on the screen, not by the
     /// ground, so they stay in the sky however near the camera is. The clouds' top, likewise.
     /// </summary>
-    private static readonly Vector2 Sun = new(0.8f, 0.16f), Giant = new(0.17f, 0.22f);
+    private static readonly Vector2 Noon = new(0.5f, 0.12f), Giant = new(0.17f, 0.22f);
     private const float CloudsAt = 0.02f;
+
+    /// <summary>Shares of the screen across where the sun rises and sets, on the horizon: it crosses the sky left to right as the day goes.</summary>
+    private const float Rises = 0.06f, Sets = 0.94f;
+
+    /// <summary>How far across the sky the sun is, 0 rising to 1 setting (<c>Daylight.Sun</c>); null while it is down.</summary>
+    public float? Day { get; set; }
 
     private readonly ColorRect _above = new() { MouseFilter = Control.MouseFilterEnum.Ignore };
     private readonly Sprite2D _sky, _giant, _clouds, _sun;
@@ -65,8 +71,14 @@ public partial class PlanetSky : Node2D
         _sky.Scale = new Vector2(screen.X / gradient.X, zoom);
         _giant.Position = screen * Giant - _giant.Texture.GetSize() * zoom / 2;
         _giant.Scale = Vector2.One * zoom;
-        _sun.Position = screen * Sun - _sun.Texture.GetSize() * zoom / 2;
-        _sun.Scale = Vector2.One * zoom;
+        _sun.Visible = Day != null;
+        if (Day is float day)
+        {
+            // An arc over the horizon, up to noon's height: it sinks behind the land in front where it rises and sets.
+            var at = new Vector2(Mathf.Lerp(Rises, Sets, day) * screen.X, Mathf.Lerp(sky, Noon.Y * screen.Y, Mathf.Sin(Mathf.Pi * day)));
+            _sun.Position = at - _sun.Texture.GetSize() * zoom / 2;
+            _sun.Scale = Vector2.One * zoom;
+        }
         Spread(_clouds, centre.X * CloudFollows + (float)(seconds * CloudDrift + _blown), zoom, screen, screen.Y * CloudsAt);
         if (_haze.Share > 0 && (_haze.Horizon != sky || _haze.Screen != screen))
         {

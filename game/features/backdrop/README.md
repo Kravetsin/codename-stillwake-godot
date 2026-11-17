@@ -14,6 +14,7 @@ sky's pictures (`render/PlanetSky.cs`), both drawn by `render/Stars.cs`. Client 
 | `BackdropAtlas.cs` | the pictures a land places, packed once into one texture at half the hi-res detail |
 | `BackdropLayer.cs` | one layer drawn once into its canvas item, its veil shader |
 | `BackdropView.cs` | the three layers made from a planet type, look and seed, laid each frame for the camera |
+| `FocusView.cs` | the sky and the land behind out of focus by the look's `Far`, the play plane sharp |
 
 ## Rules
 
