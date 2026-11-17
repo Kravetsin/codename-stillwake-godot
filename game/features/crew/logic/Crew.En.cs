@@ -88,6 +88,7 @@ public static partial class En
         ["use.open.vesselTankTall2"] = "[{key:use}] Open tank",
         ["use.open.vesselFuelColumn3"] = "[{key:use}] Open fuel column",
         ["use.open.vesselFuelColumn4"] = "[{key:use}] Open fuel column",
+        ["use.open.vesselBody"] = "[{key:use}] Search the body",
         ["use.catch"] = "[{key:use}] Catch",
         ["use.collect"] = "[{key:use}] Empty the net",
         ["use.chop"] = "[Hold LMB] Break",

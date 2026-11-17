@@ -247,8 +247,8 @@ internal sealed partial class Hulk
             if (room == null) continue;
             if (room == origin && Vessels.FirstLook(t.Kind) is "crate" or "salvageCrate" && Math.Abs(2 * t.X + t.W - seat2) <= 2 * Wrecks.SeatReach && !ProtThing(t))
             {
-                var bits = Machines.Get("pileBits");
-                (t.Kind, t.Y, t.W, t.H, t.Holds) = ("pileBits", t.Y + t.H - bits.Height, bits.Width, bits.Height, null);
+                var bits = Machines.Get(Wrecks.Bits);
+                (t.Kind, t.Y, t.W, t.H, t.Holds) = (Wrecks.Bits, t.Y + t.H - bits.Height, bits.Width, bits.Height, null);
             }
             else if (t.Holds != null)
                 for (int k = t.Holds.Count - 1; k >= 0; k--)

@@ -35,7 +35,7 @@ public class BigVesselTests(ITestOutputHelper output)
             foreach (var h in v.Hatches) text.Append(h).Append('|');
             foreach (var r in v.Compartments) text.Append($"{r.Deck},{r.Left},{r.Width},{r.Top},{r.Role},{r.Interior}|");
             foreach (var f in v.Fittings.Concat(v.Outside)) text.Append($"{f.Kind},{f.X},{f.Y},{string.Join("+", f.Loot)}|");
-            foreach (var p in Shipyard.Build(c, seed).Parts)
+            foreach (var p in Shipyard.Build(c, seed, null, 0).Parts)
                 text.Append($"{p.X},{p.Y},{p.Layer},{p.Kind},{p.Material},{p.Open},{string.Join("+", p.Holds ?? [])};");
         }
         return Fnv(text.ToString());

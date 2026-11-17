@@ -33,12 +33,12 @@ finish is `wash.js`, one for every subject.
 | `hero` | `hero_<part>`: suits' parts (the regen's lights `_lit`, `_arcs`, `_pip`), limbs by `limbs.js`; not the outfits, painted raw (outfits-painted); hair, faces, beards by `LookTint`; cape, jetpack, lamp, sheet, tools; `hero_tracker`, `_light`: white, tinted by Modulate. Top-lit |
 | `catchergear` | catchers' outfits: `hero_catcher<Body>_<part>`, `_arm_lit`; `hero_catcher<Helmet>_shell`, `_visor`, `_lit`, by `HeroKit` |
 | `machines` | `machine_<kind>`, working overlays (fire, fills, bubbles); a `fitting` on its port (`Machines.Ports`); exposes `AnimeKit` |
-| `zfittings` | `pipe_run`, `pipe_<arms>`, valves, sockets, hatches, platforms, ladder, floor, drone, lamps, held tools; after `machines`, for `AnimeKit` |
+| `zfittings` | `pipe_run`, `pipe_<arms>`, valves, sockets, hatches, platforms, ladder, floor, drone, lamps, held tools; uses `AnimeKit` |
 | `items` | `items/<id>`; an `_empty` state is the full picture's calls, only the changing part dark; `tool_screwdriver` |
 | `room` | `wall_`, `wall-edge_` and `back_` of scrap (rusted by `wreck`'s `AnimeSheetRust`), cast scrap (clean) and iron, `door_*` |
 | `wreck` | `wreck_dress`, `wreck_tears` (a mask, no finish), from `Wreck.cs`; its rust grows from `wall_scrap`'s seams |
-| `piles`, `smelter` | `machine_pile*`: the hold's heaps; `machine_smelter`, `smelter_work_*` |
-| `shipwalls`, `grounds`, `doors` | `wall_`, `back_`, `wall-edge_`, `detail_`, `top_` of glass, mica, hide, alloy, bedrock, lava, plaster; `door_*_0` and the links `room` leaves |
+| `piles`, `smelter` | `machine_pile*`: the hold's heaps, a wreck's `pileRock`; `machine_smelter`, `smelter_work_*` |
+| `shipwalls`, `grounds`, `doors` | `wall_`, `back_`, `wall-edge_`, `detail_`, `top_` of glass, mica, hide, alloy, bedrock, lava, plaster; `door_*_0`, links `room` leaves |
 | `caves` | stone, ice, copper veins and soil (`wall_`, `back_`, `wall-edge_`, `top_`, `detail_`), `caves/moss*_*`, `caves/crystalIce*` |
 | `creatures` | `creatures/<id>/<part>`, numbers in `CreatureInk.cs`: traced rigs |
 | `tick`, `warden`, `cavehostiles`, `lurkerattacks` | `creatures/ink<Kind>/*`, `<Rig>Ink.cs`: guards, lurkers, a capback's gas |
@@ -47,19 +47,20 @@ finish is `wash.js`, one for every subject.
 | `shrubs` | `planet/bush_*`, `rock_*`, `bell*_*`: dead thorn, boulders, hooded bells; light only in `_glow` |
 | `leaves` | `planet/leaf_<look>_<plant>_<n>[_back]`: falling leaves |
 | `heavens` | `planet/sky`, `clouds` (far layers, any size), `giant`, `sun` |
-| `cavelife` | `caves/` crystals, dripstone, fungi, threads, roots, cracks, geodes, fossils, opal and spire caches, lamp; dim `_glow` |
-| `homes`, `homeskeep`, `homeslights`, `homeswall`, `homesruin` | `homes/*`, `_dark`, `_fed`, `_glow`; `ruins/spireLens_*`; `homes.js` exposes `HomeKit`, the others sort after it |
-| `debris` | `debris/*`: rocks lit from a side, crates, plates, pods, scrap, derelicts; unlettered, they turn |
+| `cavelife` | `caves/` crystals, dripstone, fungi, threads, roots, cracks, geodes, fossils, caches, lamp; dim `_glow` |
+| `homes`, `homeskeep`, `homeslights`, `homeswall`, `homesruin` | `homes/*`, `_dark`, `_fed`, `_glow`; `ruins/spireLens_*`; `HomeKit` in `homes.js` |
+| `debris` | `debris/*`: rocks, crates, plates, pods, scrap, derelicts; they turn |
 | `aboard`, `shuttle` | `machine_salvage*`: salvage on the deck, numbered engines and consoles, one per vessel; `machine_crewShuttle` |
+| `vessel` | `vessel_*` dress, `machine_vessel*`, `machine_vesselBody` (a placeholder) |
 | `net` | `machine_net` (booms), `net_mount`, `net_front_<n>` (holding n); `NetInk.cs` |
 | `bay`, `salvage` | `machine_droneBay`, `droneBay_*`, `salvage_*`, `items/salvageDrone`; `BayInk.cs`, `SalvageInk.cs` |
 | `scanner` | `hero_scanner`, `hero_<helmet>_scanner`, `_lit_<n>`, `items/scanner`; `ScannerInk.cs` |
 | `helmets`, `quilted`, `heatSuit` | traced: `hero_<helmet>_shell`, `_visor` (`_collar`; bell `_seal`; `hero_visor`, card `hero_helmet`), `items/<id>`; `hero_heatSuit_<part>` |
 | `charge`, `missile` | `hero_blastCharge` (`icons/` lit), `shot_blastCharge_spark`: its fuse in flight; `shot_missile` |
 | `edgekeys` | `holo_<key>`, `_glow`: the edge keys' masks |
-| `signs`, `credit`, `capsule`, `gauge` | `sign_*`: bolts, plug, wrench, tips; `credit`, the chip; `capsule`, `capsule_flame_<n>`; `gauge_*`, the vitals' light |
+| `signs`, `credit`, `capsule`, `gauge` | `sign_*`: bolts, plug, wrench, tips; `credit`; `capsule`, `capsule_flame_<n>`; `gauge_*`, the vitals' light |
 | `upgrades` | `upgrade_bag`, `_belt`, `_tradeSlots`, `_canister`: wares, no item |
-| `zleftovers` | the arc bench's and lamp's glows, `machine_emergencyLamp`, `module_arc_coil`, the pod's lit state and porthole, `wrist_*`, `tablet_*` |
+| `zleftovers` | the arc bench's and lamp's glows, `machine_emergencyLamp`, `module_arc_coil`, the pod's lit porthole, `wrist_*`, `tablet_*` |
 
 ## Run
 

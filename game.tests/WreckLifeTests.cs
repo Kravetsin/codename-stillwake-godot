@@ -111,7 +111,7 @@ public class WreckLifeTests
         {
             var b = Shipyard.Build(V.Class("liner")!, seed, WreckChain.Parse("blast,fire"));
             wrecked += new Features.Grid.VesselSigns(b).Signs.Count(x => x.Kind is Features.Grid.SignKind.Soot or Features.Grid.SignKind.Frost);
-            intact += new Features.Grid.VesselSigns(Shipyard.Build(V.Class("liner")!, seed)).Signs.Count(x => x.Kind is Features.Grid.SignKind.Soot or Features.Grid.SignKind.Frost);
+            intact += new Features.Grid.VesselSigns(Shipyard.Build(V.Class("liner")!, seed, [])).Signs.Count(x => x.Kind is Features.Grid.SignKind.Soot or Features.Grid.SignKind.Frost);
         }
         Assert.Equal(0, wrecked);
         Assert.True(intact > 0);

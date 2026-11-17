@@ -28,7 +28,7 @@ public class VesselTests
     public void SeedsMakeVesselsThatDiffer()
     {
         var freighter = Content.Vessels.Class("freighter")!;
-        var made = Enumerable.Range(1, 8).Select(s => Key(Shipyard.Build(freighter, (uint)s).Parts)).Distinct().Count();
+        var made = Enumerable.Range(1, 8).Select(s => Key(Shipyard.Build(freighter, (uint)s, []).Parts)).Distinct().Count();
         Assert.True(made > 4, $"{made} kinds of 8");
     }
 
@@ -619,7 +619,7 @@ public class VesselTests
     {
         foreach (var cls in Content.Vessels.Classes)
         {
-            var built = Enumerable.Range(1, 400).Select(s => Shipyard.Build(cls, (uint)s)).First(b =>
+            var built = Enumerable.Range(1, 400).Select(s => Shipyard.Build(cls, (uint)s, [])).First(b =>
             {
                 var stern = All(b.Vessel, Vessel.SectionKind.Module)[0];
                 var body = Section(b.Vessel, Vessel.SectionKind.Body);
@@ -748,7 +748,7 @@ public class VesselTests
     {
         foreach (var cls in Content.Vessels.Classes)
             for (uint seed = 1; seed <= 40; seed++)
-                Assert.InRange(Yield(Shipyard.Build(cls, seed).Parts), cls.Yield.Min, cls.Yield.Max);
+                Assert.InRange(Yield(Shipyard.Build(cls, seed, []).Parts), cls.Yield.Min, cls.Yield.Max);
     }
 
     /// <summary>Whole items <paramref name="parts"/> give taken apart, every kind counted alike: walls, back walls, pieces, machines, what crates hold.</summary>

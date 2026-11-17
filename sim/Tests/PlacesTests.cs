@@ -89,7 +89,7 @@ public class PlacesTests(Xunit.Abstractions.ITestOutputHelper output)
     {
         var w = new Scenario(Registry.Wreck);
         w.Do(new Enter(w.M.Crew.Spawn)).Run();
-        w.Do(new Find("shuttle")).Run();
+        w.Do(new Find("shuttle", [])).Run();
         uint seed = w.M.Places.Contacts[^1].Seed;
         var (_, id) = Visited("shuttle", w);
         var v = w.On(id);
@@ -123,7 +123,7 @@ public class PlacesTests(Xunit.Abstractions.ITestOutputHelper output)
     {
         var w = new Scenario(Registry.Wreck);
         w.Do(new Enter(w.M.Crew.Spawn)).Run();
-        w.Do(new Find("freighter")).Run();
+        w.Do(new Find("freighter", [])).Run();
         uint seed = w.M.Places.Contacts[^1].Seed;
         var (_, id) = Visited(w: w);
         var v = w.On(id);

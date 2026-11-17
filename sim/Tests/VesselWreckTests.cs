@@ -62,7 +62,7 @@ public class VesselWreckTests(ITestOutputHelper output)
     /// </summary>
     private static void TheArrivalRoomStands(VesselClass cls, uint seed, Built b)
     {
-        var intact = Shipyard.Build(cls, seed);
+        var intact = Shipyard.Build(cls, seed, []);
         var (ix, iy) = Shipyard.Door(intact);
         var (bx, by) = Shipyard.Door(b);
         int dx = bx - ix, dy = by - iy;
@@ -143,12 +143,22 @@ public class VesselWreckTests(ITestOutputHelper output)
     });
 
     [Fact]
+    public void AContactIsAWreckWreckPercentTimesInAHundredItsChainFromItsSeed()
+    {
+        foreach (var cls in Content.Vessels.Classes)
+        {
+            int wrecks = Enumerable.Range(1, 200).Count(s => Shipyard.Build(cls, (uint)s).Wreck != null);
+            Assert.InRange(wrecks * 100 / 200, Wrecks.WreckPercent - 12, Wrecks.WreckPercent + 12);
+        }
+    }
+
+    [Fact]
     public void ASeedThatDrawsNoWreckStampsTheIntactVessel()
     {
         foreach (var cls in Content.Vessels.Classes)
             for (uint seed = 1; seed <= 8; seed++)
             {
-                var b = Shipyard.Build(cls, seed);
+                var b = Shipyard.Build(cls, seed, null, 0);
                 Assert.Null(b.Wreck);
                 Assert.Equal(Keys(Shipyard.Stamp(Shipyard.Describe(cls, seed))), Keys(b.Parts));
                 Assert.Equal(Keys(b.Parts), Keys(Shipyard.Build(cls, seed, []).Parts));
@@ -184,7 +194,7 @@ public class VesselWreckTests(ITestOutputHelper output)
             int arrival = b.Vessel.Compartments.ToList().FindIndex(c => c.Holds(sx, sy));
             Assert.Equal(Enumerable.Range(0, b.Vessel.Compartments.Count).Where(i => i != arrival), ice.Compartments);
             Assert.Empty(ice.Carved);
-            Assert.Equal(Keys(Shipyard.Build(cls, 5).Parts), Keys(b.Parts));
+            Assert.Equal(Keys(Shipyard.Build(cls, 5, []).Parts), Keys(b.Parts));
         }
     }
 
@@ -208,7 +218,7 @@ public class VesselWreckTests(ITestOutputHelper output)
         foreach (var id in (string[])["freighter", "liner", "tanker"])
             for (uint seed = 1; seed <= 6; seed++)
             {
-                var intact = Shipyard.Build(C(id), seed);
+                var intact = Shipyard.Build(C(id), seed, []);
                 var b = Shipyard.Build(C(id), seed, [new(WreckKind.Icing, Old: true)]);
                 Assert.True(b.Wreck!.Scavenged);
                 Assert.Equal(Keys(intact.Parts.Where(p => p.Layer == "machine")), Keys(b.Parts.Where(p => p.Layer == "machine")));
@@ -256,7 +266,7 @@ public class VesselWreckTests(ITestOutputHelper output)
         int caused = 0, overloads = 0;
         for (uint seed = 1; seed <= 24; seed++)
         {
-            var intact = Shipyard.Build(cls, seed);
+            var intact = Shipyard.Build(cls, seed, []);
             var v = intact.Vessel;
             var (sx, sy) = Shipyard.Door(intact);
             var room = v.Compartments.First(c => c.Holds(sx, sy));
@@ -375,7 +385,7 @@ public class VesselWreckTests(ITestOutputHelper output)
             {
                 var b = Shipyard.Build(C(id), seed, Chain(WreckKind.Fire));
                 if (b.Wreck == null) continue;
-                foreach (var crate in Shipyard.Build(C(id), seed).Parts.Where(p => p.Layer == "machine" && p.Holds != null))
+                foreach (var crate in Shipyard.Build(C(id), seed, []).Parts.Where(p => p.Layer == "machine" && p.Holds != null))
                 {
                     var now = b.Parts.FirstOrDefault(p => p.Layer == "machine" && p.X == crate.X && p.Y == crate.Y && p.Kind == crate.Kind);
                     if (now == null || now.Holds != null && now.Holds.SequenceEqual(crate.Holds!)) continue;

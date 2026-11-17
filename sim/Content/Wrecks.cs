@@ -12,8 +12,8 @@ public sealed record WreckStep(WreckKind Kind, bool Old = false);
 /// </summary>
 public static class Wrecks
 {
-    /// <summary>A contact is a wreck this many times in a hundred; 0 till wrecks come among the contacts (W-4).</summary>
-    public const int WreckPercent = 0;
+    /// <summary>A contact is a wreck this many times in a hundred, its chain drawn from its seed; the rest intact.</summary>
+    public const int WreckPercent = 60;
 
     /// <summary>The last group of a chain is fresh this many times in a hundred, else old; every earlier group is old.</summary>
     public const int FreshPercent = 50;
@@ -44,8 +44,11 @@ public static class Wrecks
     /// </summary>
     public const int LostSmall = 80, LostOther = 45, PullLostPercent = 35;
 
-    /// <summary>A crate this many columns or fewer from where a fire started becomes a pile of bits.</summary>
+    /// <summary>A crate this many columns or fewer from where a fire started becomes a pile of bits, <see cref="Bits"/>.</summary>
     public const int SeatReach = 8;
+
+    /// <summary>What a crate by a fire's seat becomes: a pile of bits, its loot a bits pile's as anywhere.</summary>
+    public const string Bits = "pileBits";
 
     /// <summary>Cells round the arrival room that no event touches, every side: its walls and doors stand.</summary>
     public const int ProtectRing = 2;
