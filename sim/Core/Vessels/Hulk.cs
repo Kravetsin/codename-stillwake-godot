@@ -70,7 +70,7 @@ internal sealed partial class Hulk
         public WreckKind Kind;
         public int X, Y, Radius, DirX, DirY;
         public readonly List<(int X, int Y)> Carved = [], Stones = [];
-        public readonly List<int> Compartments = [];
+        public readonly List<int> Compartments = [], Heats = [];
         public WreckBreak? Break;
         public WreckKind? Cause;
     }

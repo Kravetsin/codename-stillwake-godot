@@ -238,6 +238,7 @@ internal sealed partial class Hulk
             if (!rec.Compartments.Contains(rm.Index)) rec.Compartments.Add(rm.Index);
         }
         rec.Compartments.Sort();
+        foreach (int c in rec.Compartments) rec.Heats.Add(burnt.Where(b => b.Room.Index == c).Max(b => b.Heat));
         foreach (var t in _things)
         {
             if (t.Gone || !t.Machine || t.Outside) continue;

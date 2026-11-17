@@ -66,8 +66,20 @@ internal sealed partial class Hulk
         {
             var e = _records[k];
             var carved = e.Carved.Where(c => c.X >= 0 && c.Y >= 0 && c.X < _w && c.Y < _h).Select(c => c.Y * _w + c.X).Distinct().Order().ToList();
-            events.Add(new(e.Kind, ages[k].Old, ages[k].Group, e.X, e.Y, e.Radius, e.DirX, e.DirY, carved, [.. e.Compartments], e.Break, [.. e.Stones], e.Cause));
+            events.Add(new(e.Kind, ages[k].Old, ages[k].Group, e.X, e.Y, e.Radius, e.DirX, e.DirY, carved, [.. e.Compartments], e.Break, [.. e.Stones], e.Cause)
+            {
+                Heats = [.. e.Heats],
+            });
         }
-        return new Built(vessel, new VesselWreck(events, scavenged, patches), parts) { Entry = moved };
+        // The rooms the air left, as the chain and the scavengers leave them: by their floor's middle, as a fire finds them sealed.
+        Vent();
+        var vented = new List<int>();
+        foreach (var rm in _rooms)
+        {
+            int x = rm.Left + rm.Width / 2, y = rm.Top + rm.Height - 1;
+            if (In(x, y) && _vented[I(x, y)] && !vented.Contains(rm.Index)) vented.Add(rm.Index);
+        }
+        vented.Sort();
+        return new Built(vessel, new VesselWreck(events, scavenged, patches) { Vented = vented }, parts) { Entry = moved };
     }
 }

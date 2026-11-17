@@ -7,7 +7,11 @@ namespace Stillwake.Sim;
 /// holes they patched. What the client draws its looks from, never re-running the damage. Coordinates are in the frame after the
 /// whole chain: a break moved every earlier event's with its half.
 /// </summary>
-public sealed record VesselWreck(IReadOnlyList<WreckEvent> Events, bool Scavenged, IReadOnlyList<WreckPatch> Patches);
+public sealed record VesselWreck(IReadOnlyList<WreckEvent> Events, bool Scavenged, IReadOnlyList<WreckPatch> Patches)
+{
+    /// <summary>The compartments the air left once the chain and the scavengers were done, by index: what the looks frost and lamps go dark in.</summary>
+    public IReadOnlyList<int> Vented { get; init; } = [];
+}
 
 /// <summary>
 /// One event of a wreck's chain: its kind, its group's age and the group (events that follow as a consequence share it); its
@@ -21,7 +25,11 @@ public sealed record WreckEvent(
     int X, int Y, int Radius, int DirX, int DirY,
     IReadOnlyList<int> Carved,
     IReadOnlyList<int> Compartments,
-    WreckBreak? Break, IReadOnlyList<(int X, int Y)> Stones, WreckKind? Cause);
+    WreckBreak? Break, IReadOnlyList<(int X, int Y)> Stones, WreckKind? Cause)
+{
+    /// <summary>A fire's heat in each compartment it burnt, in <see cref="Compartments"/>' order, 0 to 100: its seat 100, falling off with the way the fire ran.</summary>
+    public IReadOnlyList<int> Heats { get; init; } = [];
+}
 
 /// <summary>A break: the column it cut at, the columns between the halves, and the rows the stern and the bow moved (down is plus).</summary>
 public sealed record WreckBreak(int Column, int Gap, int SternRows, int BowRows);
