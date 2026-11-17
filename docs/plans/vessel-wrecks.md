@@ -6,7 +6,7 @@ Every vessel on the radar arrives whole today ("wrecks to come", Places README).
 places that each read and play differently: a crater is a new way in, an opened room floats, a burnt hold holds less, a
 broken ship is two halves. The story is told without words: what happened, in what order, how long ago.
 
-The look was picked on a mockup drawn from real stamped vessels (seed 7 of each class), version 4:
+The look was picked on a mockup drawn from real stamped vessels (seed 7 of each class), version 5:
 https://claude.ai/artifact/X9dqanpx3SFFVFXDsUt3Z8 — its `fates.js` is the reference for every event's shape below.
 This plan replaces V-2 of `vessels.md` (blast, cut in two, scavenged).
 
@@ -20,20 +20,24 @@ This plan replaces V-2 of `vessels.md` (blast, cut in two, scavenged).
   - **Fire** burns only rooms still sealed and not yet burnt, through open doors, stopped by shut ones. First: it starts in
     the galley (liner) or life support (others). Right after an explosion: in the sealed rooms next to the blast. It may
     repeat while sealed unburnt rooms remain; with none, it cannot be drawn.
-  - **Icing** at most once: after a breach (explosion, asteroid, break), round the latest one; as the first event, power
-    loss: the hull whole, every room frozen inside, windows frosted, dark.
+  - **Icing** at most once: after a breach not already frozen (explosion, break), round the latest one; as the first
+    event, power loss: the hull whole, every room frozen inside, windows frosted, dark.
   - **Asteroid** a crater several rooms deep, decks under it sunk one or two rows, a shower of 1–3 small holes downrange,
-    stones of the rock left in the crater. Twice at most on the liner and tanker, three crater widths apart; once on the
-    others.
+    stones of the rock left in the crater. It always freezes its own breach (an asteroid alone reads dull): the icing of
+    that crater is part of the strike, not a separate event. Twice at most on the liner and tanker, three crater widths
+    apart; once on the others.
   - **Break** at most once, never on the shuttle: the ship split at a rib, the halves moved apart by a gap of whole
     columns and a few whole rows. At an earlier explosion or asteroid if there was one (that is its cause), else overload.
 - **Age per event:** the last independent event is fresh or old, evenly; earlier ones are old. An event that directly
   follows its cause shares its time: explosion→fire, a breach→icing, explosion or asteroid→break. Old: dull, sparse,
-  no embers. If the first event is old, the hull is pitted, its paint faded, and scavengers took the engines and some skin
-  panels (ribs left).
+  no embers. If the first event is old, the hull is pitted, its paint faded, and scavengers took some skin panels (ribs
+  left).
 - **Rooms no event reached keep everything that stood in them.** Only a room a hole opens into loses loose things (pulled
   to the hole, some out of it); scavengers take nothing from rooms.
-- No crew remains for now.
+- **Engines stay** unless an event destroyed them (an explosion in the engine room, a crater through it). A whole engine
+  room with no engine reads wrong.
+- **Crew remains: bodies in suits.** Their look is a pick of its own (W-2), on a page of candidates.
+- **Radar:** a wreck is learnt on arrival; the radar shows the class as today.
 
 ## Design
 
@@ -68,7 +72,11 @@ are drawn per cell from the Rng (the mockup's float hashes become `Rng.Below`). 
 - **Fire:** a flood from the start rooms through sealed cells and open doors (shut doors and hatches stop it), each room
   burnt by distance. In the sim: crates in the seat's room become a bits pile, other crates in burnt rooms lose a share
   of what they hold (`Vessels.BurntLoss`), the origin's shut door to a neighbour opened if it had none open.
-- **Icing:** nothing in the sim. It is looks only (rime, icicles, frost, crystals).
+- **Icing:** nothing in the sim. It is looks only (rime, icicles, frost, crystals), also laid by every asteroid round its
+  own crater.
+- **Bodies in suits:** 0–2 per event in rooms it reached (by a shut door a fire stopped at, near a hole, afloat outside a
+  breach), none in the arrival room; a part of their own (a `vesselBody` piece, breakable for a suit's scrap). Count and
+  loot are tunables in `sim/Content`.
 - **Asteroid:** the crater carved (ribs at the skin kept across it), armour round it pushed in one row, decks under it
   sunk up to two rows where nothing stands, the shower's small holes, stones as `salvage` piles (a `pileRock` kind: new
   art, the mockup's stone) lodged in the crater floor; what stood in the crater lost.
@@ -76,8 +84,8 @@ are drawn per cell from the Rng (the mockup's float hashes become `Rng.Below`). 
   lost; faces torn one or two cells deeper per row; deck plates at the faces bent down one row. Everything earlier
   events left moves with its half (the mockup's `remapAll`).
 - **Pulled things:** loose machines in a room a hole opens into slide toward it, the nearest small ones lost through it.
-- **Scavenged (old first event):** engines and nozzles gone, the stern cut clean behind them; skin panels gone round 2–4
-  ribs, ribs kept; up to two crude patches over holes. Nothing taken from rooms.
+- **Scavenged (old first event):** skin panels gone round 2–4 ribs, ribs kept; up to two crude patches over holes.
+  Engines and everything in rooms stay.
 
 The margin round the frame (`Vessels.Margin`, 128) holds the break's shift; the frame stays as described.
 
@@ -119,9 +127,11 @@ Each stage is a try the user plays (`godot --path game -- --vessel=liner --wreck
 ### W-1 — The chain and its geometry
 
 - `Shipyard.Build`, `Wreck`, the chain draw and its rules, the five events on the parts, the pull, scavenging, the
-  arrival room kept; every caller on `Build`; `Damage`/`VesselCause` removed; `pileRock` piece with art from the mockup.
+  arrival room kept; every caller on `Build`; `Damage`/`VesselCause` removed; `pileRock` piece with art from the mockup;
+  bodies placed as `vesselBody` with a placeholder picture until W-2's pick.
 - **Tests:** a scenario per event and per rule (count bounds per class, once-only events, no break on a shuttle, icing
-  first only as power loss, fire refused with no sealed room, break at its cause, asteroid twice apart); a property over
+  first only as power loss, icing refused right after an asteroid, engines kept by scavengers, fire refused with no
+  sealed room, break at its cause, asteroid twice apart, bodies only in rooms an event reached); a property over
   seeds 1–500 per class that the rules hold, the arrival room is whole and its door stands; same seed → same parts; the
   intact fingerprint unchanged; a test proven to bite.
 - Check on a frame: a hero crosses a 20-cell break gap in zero-g; if not, the gap's upper bound drops to what can be crossed.
@@ -130,6 +140,7 @@ Each stage is a try the user plays (`godot --path game -- --vessel=liner --wreck
 ### W-2 — Looks
 
 - The wreck feature's looks per event and age, the old hull (pits, fade), lamps by event.
+- Bodies in suits: candidates drawn on a pick page (lying, slumped by a door, afloat), the pick exported through `tools/`.
 - **Done when** the user plays wrecks of each class and the looks match the mockup.
 
 ### W-3 — Motion and budget
@@ -137,15 +148,15 @@ Each stage is a try the user plays (`godot --path game -- --vessel=liner --wreck
 - Particles, drifters, sparks, vents, glints, embers; frame budget on the liner with three events.
 - **Done when** the budget test passes on a desk and the user plays it.
 
-### W-4 — Wrecks on the radar
+### W-4 — Wrecks among the contacts
 
-- `WreckPercent` on, the radar's contacts include wrecks; what the radar shows of one is the user's answer (Open).
+- `WreckPercent` on: the radar's contacts include wrecks, shown as their class; the wreck is learnt on arrival.
 - Ship: ADR `YYYY-MM-DD-vessel-wrecks.md`, Places README (the wreck rules, under 8 KB), map and glossary lines,
   `vessels.md` V-2 removed.
 
 ## Not in this plan
 
-Crew remains; hazards aboard (live cables, fire still burning, cold that hurts); ice as water and stones as ore (Open);
+A wreck's look on the radar; hazards aboard (live cables, fire still burning, cold that hurts); ice as water and stones as ore (Open);
 debris near the wreck as salvage the net catches; air simulated aboard (rooms stay empty of air, as today); an in-game
 replay of the event (the mockup's replay was a design aid).
 
@@ -160,6 +171,5 @@ replay of the event (the mockup's replay was a design aid).
 
 ## Open
 
-- **Radar:** a broken silhouette on the radar, or learnt on arrival? Default: on arrival, the radar unchanged.
 - **Ice and stones for play:** ice as water, stones as ore — the user's call before W-4.
 - `WreckPercent` and `BurntLoss`: a first pass in W-1, tuned in play.
