@@ -165,13 +165,21 @@ The speeds are rounded for display.
 - **Is −10% noticed?** Run drops from 440 to 396 px/s. Taking the suit off in a room or on the planet feels lighter, yet
   the start is not sluggish.
 
-## Phase 3: clothes and the loadout swap
+## Phase 3: clothes under the suit
 
-- **Leather clothes.** The first worn clothing for the first planet: about −15° to +35°, little weight; the look picked on
-  a page.
-- **The loadout button.** It swaps the body (and the back, if one exists) with a second set; the helmet stays.
-- **No back slot today.** The air tank lives in the helmet, so a back slot is phase 3's own question.
-- Phase 3 gets its own short design once 1 and 2 are played.
+Two layers, as in 7 Days to Die: clothes always, the suit over them. The choice a player makes is "take the suit off or
+keep it on", never a second set to swap.
+
+- **A clothes slot.** A tab «Одежда» in the gear, under the suit's slot; one item, worn with a suit or without.
+- **Warmth.** A clothing item has a `Warmth` in degrees. It lowers `Low` only, the hero's with a suit or bare, added the
+  way the cape's is; `High` stays. Warm clothes never make heat worse, and never help with it.
+- **Leather.** The first clothes, for the first planet: about 15° of warmth, little weight. A bare hero then holds down to
+  about −15°, so the planet's nights and storms stop biting; under the basic suit (−110) it reaches −125.
+- **Weight** (phase 2) counts clothes like any worn item.
+- **No loadout button.** Keeping the suit on or off is the swap; the clothes stay on either way.
+- **Assets.** The clothes' and the quilted suit's pictures are drawn in another session; this phase sets their numbers
+  (`Warmth`, `Low`, `High`, `Weight`) and wires the slot.
+- **Not here:** a back slot (the air tank lives in the helmet), clothes against heat.
 
 ## Users of the mechanic
 
