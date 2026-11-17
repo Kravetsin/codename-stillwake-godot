@@ -7,7 +7,7 @@ namespace Stillwake.Sim;
 /// holds, then damaged by what wrecked it. Pure: the same class, seed and cause give the same parts on every peer. Draws come from
 /// a local <see cref="Rng"/> of the seed mixed with the class's place in <see cref="Vessels.Classes"/>, never the world's.
 /// </summary>
-public static class Shipyard
+public static partial class Shipyard
 {
     /// <summary>The parts of a vessel of <paramref name="cls"/> from <paramref name="seed"/>, wrecked by <paramref name="cause"/>.</summary>
     public static IReadOnlyList<VesselPart> Make(VesselClass cls, uint seed, VesselCause cause)
@@ -50,7 +50,7 @@ public static class Shipyard
     private static int Between(Rng rng, (int Min, int Max) range) => range.Min + (int)rng.Below((uint)(range.Max - range.Min + 1));
 
     /// <summary>
-    /// A vessel of <paramref name="cls"/> from <paramref name="seed"/> (a vessel of rooms): its decks drawn, then its rooms, each
+    /// A vessel of <paramref name="cls"/> from <paramref name="seed"/>: a liner's or a tanker's by its own layout (<see cref="Liner"/>, <see cref="Tanker"/>). A vessel of rooms: its decks drawn, then its rooms, each
     /// furnished by its role. An aft room a deck: the way in on the first, below it engine rooms, each holding a main engine against
     /// the stern. Then a hold and a cockpit, each on the shortest deck its rule allows, and the extras on the shortest of all, sorted
     /// aft to fore; an extra that would run its deck past <c>Length</c> is not built. The body is as long as the longest deck, a
@@ -61,6 +61,8 @@ public static class Shipyard
     /// </summary>
     public static Vessel Describe(VesselClass cls, uint seed)
     {
+        if (cls.Layout == VesselLayout.Liner) return Liner(cls, seed);
+        if (cls.Layout == VesselLayout.Tanker) return Tanker(cls, seed);
         var rng = Draws(cls, seed, 0);
         int decks = Between(rng, cls.Decks);
         int a = cls.ArmourDepth, body = cls.BodyHeight(decks);
@@ -191,7 +193,7 @@ public static class Shipyard
         // A nozzle a deck below the first, against the stern armour by its main engine, on the deck's open rows and floor.
         var outside = new List<Vessel.Fitting>();
         for (int d = 1; d < decks; d++) outside.Add(new(Vessels.Nozzle, hull - Vessels.NozzleSize.W, deckList[d].Top, []));
-        Outfit(shape, sections, outside, start + aftWidth, forward, cls.ArmourDepth);
+        Outfit(shape, sections, outside, start + aftWidth, forward, cls.ArmourDepth, cls.Layout);
         int width = Math.Max(bow + bowWidth, outside.Max(f => f.X + Machines.Get(f.Kind).Width));
         int height = Math.Max(bottom + 1 + under, outside.Max(f => f.Y + Machines.Get(f.Kind).Height));
         var vessel = new Vessel(cls.Id, seed, width, height, sections, deckList, shafts, doors, hatches, compartments, fittings, outside);
@@ -207,12 +209,17 @@ public static class Shipyard
     /// near the bow, a solar panel by the stern, a tank under the middle of its belly. One with a raised bridge as a freighter: its
     /// mast and dish on the bridge; radiators then a docking collar on top from the stern's RCS, past the bridge and its housing
     /// where they would reach them, the collar on the housing where it fits nowhere else; a keel truss in segments in one line under it from
-    /// the aft rooms, on pylons where the hull is shallower, a container under most; a sensor boom at the bow's tip.
+    /// the aft rooms, on pylons where the hull is shallower, a container under most; a sensor boom at the bow's tip. A liner and a
+    /// tanker (big-vessels) by their own after the mast and the dish (<see cref="Big"/>).
     /// </summary>
     /// <param name="aftEnd">The column past the aft rooms.</param>
     /// <param name="forward">A raised bridge's first column inside its armour.</param>
-    private static void Outfit(Rng shape, IReadOnlyList<Vessel.Section> sections, List<Vessel.Fitting> outside, int aftEnd, int forward, int armour)
+    /// <param name="layout">The class's layout: a vessel of rooms is a shuttle or a freighter.</param>
+    /// <param name="rooms">A big class's rooms, which its parts stand over.</param>
+    private static void Outfit(Rng shape, IReadOnlyList<Vessel.Section> sections, List<Vessel.Fitting> outside, int aftEnd, int forward, int armour,
+        VesselLayout layout = VesselLayout.Rooms, IReadOnlyList<Vessel.Compartment>? rooms = null)
     {
+        bool keel = layout == VesselLayout.Rooms;
         var body = sections.First(s => s.Kind == Vessel.SectionKind.Body);
         var bowSection = sections.First(s => s.Kind == Vessel.SectionKind.Bow);
         var bridge = sections.FirstOrDefault(s => s.Kind == Vessel.SectionKind.Bridge);
@@ -270,9 +277,11 @@ public static class Shipyard
 
         int rcs = W(Vessels.Rcs), fore = bow - rcs;
         int foreTop = bridge != null && fore < bridge.Left + bridge.Width && fore + rcs > bridge.Left ? bridge.Left + bridge.Width + 1 : fore;
+        // A big class's a gap clear of its bridge's windows, which face space.
+        if (!keel && bridge != null) foreTop = Math.Max(foreTop, bridge.Left + bridge.Width + gap);
         OnTop(Vessels.Rcs, stern + 1);
         Beneath(Vessels.Rcs, stern + 1);
-        OnTop(Vessels.Rcs, foreTop);
+        OnTop(Vessels.Rcs, foreTop, keel ? Vessels.PartSlide : 0);
         Beneath(Vessels.Rcs, fore);
 
         if (bridge == null)
@@ -287,6 +296,11 @@ public static class Shipyard
         int inside = bridge.Left + armour, end = bridge.Left + bridge.Width - armour;
         OnTop(Vessels.MastTall, inside + 1);
         OnTop(Vessels.Dish, end - W(Vessels.Dish));
+        if (!keel)
+        {
+            Big(new Outfitter(shape, sections, outside, Free, Put, OnTop, Beneath, Over, Under), layout, rooms!, aftEnd);
+            return;
+        }
         // Along the top from the stern's RCS, jumping the housing and the bridge, short of the fore RCS: as many radiators as were
         // drawn and fit with the collar after them, at least one where one fits alone.
         int calmLeft = housing?.Left ?? bridge.Left, calmRight = bridge.Left + bridge.Width;
@@ -414,14 +428,36 @@ public static class Shipyard
                 for (int k = 1; k <= a && solid[y * w + x] == 0; k++)
                     if (!In(x - k, y) || !In(x + k, y) || !In(x, y - k) || !In(x, y + k)) solid[y * w + x] = 1;
             }
-        // A deck's floor between it and the next, and the bridge's over the body's top armour.
+        // A deck's floor between it and the next, but across a tall room between its decks; and a raised room's over the hull's top
+        // armour under it.
+        var open = new bool[w * h];
+        foreach (var c in v.Compartments)
+            for (int y = c.Top; y < c.Floor; y++)
+                for (int x = c.Left; x < c.Left + c.Width; x++) open[y * w + x] = true;
         for (int d = 0; d + 1 < v.Decks.Count; d++)
             for (int x = 0; x < w; x++)
-                if (In(x, v.Decks[d].Floor)) solid[v.Decks[d].Floor * w + x] = 1;
-        if (v.Sections.FirstOrDefault(s => s.Kind == Vessel.SectionKind.Bridge) is { } bridge)
-            for (int y = bridge.Bottom + 1; y <= bridge.Bottom + a; y++)
-                for (int x = bridge.Left; x < bridge.Left + bridge.Width; x++)
+                if (In(x, v.Decks[d].Floor) && !open[v.Decks[d].Floor * w + x]) solid[v.Decks[d].Floor * w + x] = 1;
+        foreach (var raised in v.Sections.Where(s => s.Kind is Vessel.SectionKind.Bridge or Vessel.SectionKind.Tier))
+            for (int y = raised.Bottom + 1; y <= raised.Bottom + a; y++)
+                for (int x = raised.Left; x < raised.Left + raised.Width; x++)
                     if (In(x, y)) solid[y * w + x] = 1;
+        // Between two blocks a door where floors meet, hull on the gap's other decks (big-vessels): the body's open rows no room and
+        // no door holds. A vessel of rooms has none such, its rooms and doors filling every deck.
+        foreach (var door in v.Doors)
+            for (int y = door.Y; y < door.Y + Vessels.Open; y++)
+                for (int x = door.X; x < door.X + 2; x++) open[y * w + x] = true;
+        var body = v.Sections.First(s => s.Kind == Vessel.SectionKind.Body);
+        foreach (var deck in v.Decks)
+            for (int y = deck.Top; y < deck.Floor; y++)
+                for (int x = body.Left + a; x < body.Left + body.Width; x++)
+                    if (In(x, y) && !open[y * w + x]) solid[y * w + x] = 1;
+        // A big class's bow solid through (big-vessels): its rooms end where it starts. A vessel of rooms has its cockpit in its bow.
+        if (cls.Layout != VesselLayout.Rooms)
+        {
+            var bow = v.Sections.First(s => s.Kind == Vessel.SectionKind.Bow);
+            for (int x = bow.Left; x < bow.Left + bow.Width; x++)
+                for (int y = bow.RowsAt(x).Top; y <= bow.RowsAt(x).Bottom; y++) solid[y * w + x] = 1;
+        }
         // The modules' bulges, the ribs and the housing: hull where the rooms' hull is not, solid through.
         var hull = (bool[])inside.Clone();
         foreach (var s in v.Sections.Where(s => Added(s.Kind)))
@@ -452,6 +488,7 @@ public static class Shipyard
         }
         foreach (var c in v.Compartments)
         {
+            if (c.Interior.Length == 0) continue;
             var rows = Interior(c.Interior).Rows;
             for (int y = 0; y < rows.Count; y++)
                 for (int x = 0; x < rows[y].Length; x++)
@@ -476,7 +513,7 @@ public static class Shipyard
     private static bool Added(Vessel.SectionKind kind) => kind is Vessel.SectionKind.Module or Vessel.SectionKind.Rib or Vessel.SectionKind.Housing;
 
     /// <summary>
-    /// The bridge's windows, walls of the hull turned glass, with nothing behind them: a raised bridge's forward armour across the
+    /// The bridge's windows, walls of the hull turned glass, with nothing behind them: a raised bridge's forward armour (a tanker's aft too) across the
     /// middle of its open rows; a cockpit's the bow's top armour over its first <c>Vessels.CockpitGlass</c> columns, down its slope.
     /// </summary>
     private static HashSet<(int X, int Y)> Glass(Vessel v, VesselClass cls, byte[] solid)
@@ -486,9 +523,29 @@ public static class Shipyard
         bool Wall(int x, int y) => solid[y * v.Width + x] == 1;
         if (v.Sections.FirstOrDefault(s => s.Kind == Vessel.SectionKind.Bridge) is { } bridge)
         {
-            for (int x = bridge.Left + bridge.Width - a; x < bridge.Left + bridge.Width; x++)
-                for (int y = bridge.Top + a + 1; y < bridge.Top + a + Vessels.Open - 1; y++)
-                    if (Wall(x, y)) glass.Add((x, y));
+            // A liner's tiers too (big-vessels): windows fore, the dome's whole roof, the promenade's roof in panels clear of the dome.
+            var tiers = v.Sections.Where(s => s.Kind == Vessel.SectionKind.Tier).OrderBy(s => s.Top).ToList();
+            foreach (var raised in tiers.Append(bridge))
+                for (int x = raised.Left + raised.Width - a; x < raised.Left + raised.Width; x++)
+                    for (int y = raised.Top + a + 1; y < raised.Top + a + Vessels.Open - 1; y++)
+                        if (Wall(x, y)) glass.Add((x, y));
+            // A tanker's bridge over its stern looks aft too, over its deck.
+            if (cls.Layout == VesselLayout.Tanker)
+                for (int x = bridge.Left; x < bridge.Left + a; x++)
+                    for (int y = bridge.Top + a + 1; y < bridge.Top + a + Vessels.Open - 1; y++)
+                        if (Wall(x, y)) glass.Add((x, y));
+            if (tiers.Count == 2)
+            {
+                var (dome, promenade) = (tiers[0], tiers[1]);
+                for (int y = dome.Top; y < dome.Top + a; y++)
+                    for (int x = dome.Left + a; x < dome.Left + dome.Width - a; x++)
+                        if (Wall(x, y)) glass.Add((x, y));
+                for (int left = promenade.Left + a + 1; left + Vessels.Liner.PanelWidth <= promenade.Left + promenade.Width - a; left += Vessels.Liner.PanelEvery)
+                    for (int x = left; x < left + Vessels.Liner.PanelWidth; x++)
+                        if (x < dome.Left - a || x >= dome.Left + dome.Width + a)
+                            for (int y = promenade.Top; y < promenade.Top + a; y++)
+                                if (Wall(x, y)) glass.Add((x, y));
+            }
         }
         else
         {

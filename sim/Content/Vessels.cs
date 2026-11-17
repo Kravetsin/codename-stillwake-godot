@@ -1,7 +1,14 @@
 namespace Stillwake.Content;
 
-/// <summary>What a vessel's compartment is for: its interior and its crates' loot follow it (generated-vessels).</summary>
-public enum VesselRole { Hold, Quarters, Engine, Life, Bridge }
+/// <summary>
+/// What a vessel's compartment is for: its interior and its crates' loot follow it (generated-vessels). The big classes' rooms
+/// after the first five (big-vessels), furnished by code; a liner's promenade and dome are lounges, a tanker's pipeway its first deck over
+/// its bays.
+/// </summary>
+public enum VesselRole { Hold, Quarters, Engine, Life, Bridge, Pool, Restaurant, Lounge, Galley, Infirmary, Hangar, TankBay, FuelBay, PumpRoom, Pipeway }
+
+/// <summary>How a class's vessel is laid out (big-vessels): rooms a deck tall along its decks, or a big class's blocks in bands.</summary>
+public enum VesselLayout { Rooms, Liner, Tanker }
 
 /// <summary>What wrecked a vessel, which its damage pass follows: none for one intact.</summary>
 public enum VesselCause { None, Breach }
@@ -34,6 +41,8 @@ public sealed record VesselRoomRule(VesselRole Role, VesselDeck Deck, int Order)
 /// <param name="ExtraRoles">What an extra room is, each as likely.</param>
 /// <param name="Crater">A breach's radius, in cells.</param>
 /// <param name="Yield">Whole items, every kind counted alike, a vessel of this class gives taken apart whole, least and most (a content test).</param>
+/// <param name="Weight">How often the radar finds one against the others (big-vessels): one of weight 0 it never finds.</param>
+/// <param name="Layout">How its rooms are laid out: a vessel of rooms, or a liner's blocks (big-vessels, <see cref="Vessels.Liner"/>).</param>
 public sealed record VesselClass(
     string Id,
     int Length,
@@ -46,8 +55,13 @@ public sealed record VesselClass(
     (int Min, int Max) Extras,
     IReadOnlyList<VesselRole> ExtraRoles,
     int Crater,
-    (int Min, int Max) Yield)
+    (int Min, int Max) Yield,
+    int Weight,
+    VesselLayout Layout = VesselLayout.Rooms)
 {
+    /// <summary>Raised rooms stacked over the body: a liner's dome stands on its promenade, a freighter's bridge alone.</summary>
+    public int Tiers => Layout == VesselLayout.Liner ? 2 : 1;
+
     /// <summary>Rows of the body for <paramref name="decks"/> decks: armour, six open rows a deck and a floor between each two.</summary>
     public int BodyHeight(int decks) => 2 * ArmourDepth + Vessels.Pitch * decks - 1;
 
@@ -60,7 +74,7 @@ public sealed record VesselClass(
     /// <summary>
     /// A box every vessel of the class fits, columns by rows: its frame. The nozzles left of the stern; a rib over the highest bulge
     /// above and below the body, a raised bridge above instead where it stands higher, the tallest mast over either; a truss and its
-    /// container under the rib; the bow at its longest run and a boom past its tip.
+    /// container under the rib, or a tanker's sphere where it hangs lower; the bow at its longest run and a boom past its tip.
     /// </summary>
     public (int Width, int Height) Frame
     {
@@ -69,8 +83,9 @@ public sealed record VesselClass(
             int body = BodyHeight(Decks.Max), rib = Math.Max(Vessels.Bulge.Max, Vessels.SternBulge.Max) + 1;
             var (boom, mast, truss, container) = (Machines.Get(Vessels.Boom), Machines.Get(Vessels.MastTall), Machines.Get(Vessels.Truss),
                 Machines.Get(Vessels.TrussContainer));
+            int keel = Math.Max(truss.Height + container.Height, Machines.Get(Vessels.Sphere).Height);
             return (Vessels.NozzleSize.W + ArmourDepth + Length + BowFlat + BowRun.Max * BowSteps(body).Rise + boom.Width,
-                Math.Max(BridgeHeight, rib) + mast.Height + body + rib + truss.Height + container.Height);
+                Math.Max(BridgeHeight * Tiers, rib) + mast.Height + body + rib + keel);
         }
     }
 }
@@ -155,7 +170,7 @@ public static class Vessels
     public static readonly IReadOnlyList<VesselSalvage> Salvage =
     [
         new("salvageContainer", "cargoContainer", 'j', [VesselRole.Hold]),
-        new("salvageCrate", "cargoCrate", 'l', [VesselRole.Hold, VesselRole.Quarters], Size: (3, 2), Hp: 6),
+        new("salvageCrate", "cargoCrate", 'l', [VesselRole.Hold, VesselRole.Quarters, VesselRole.Hangar], Size: (3, 2), Hp: 6),
         new("salvagePod", "supplyPod", 'm', [VesselRole.Quarters, VesselRole.Life], Size: (2, 2), Hp: 6),
         new("salvageTanks", "tankCluster", 'p', [VesselRole.Life]),
         new("salvageMachine", "machineBlock", 'r', [VesselRole.Engine]),
@@ -175,7 +190,7 @@ public static class Vessels
         new("salvageConsole", "cableRack", '5', [VesselRole.Bridge], Size: (4, 3), Looks: 4),
         // A vending machine in the mess (food-and-the-body): a fridge's food, its sign still lit by a battery of its own, as the
         // emergency lamp is; an enamel cabinet or a glass case.
-        new("salvageVending", "fridge", '6', [VesselRole.Quarters], Size: (4, 5), Hp: 8, Looks: 2, Has: MachineTrait.Glow),
+        new("salvageVending", "fridge", '6', [VesselRole.Quarters, VesselRole.Galley], Size: (4, 5), Hp: 8, Looks: 2, Has: MachineTrait.Glow),
     ];
 
     /// <summary>
@@ -198,7 +213,9 @@ public static class Vessels
     /// The machines aboard but salvage that come in several looks (derelict-looks), each a machine row alike but for its picture
     /// (<see cref="LookKind(string, int)"/>), one drawn for each stamped: the cargo containers, a colour a look.
     /// </summary>
-    public static readonly IReadOnlyList<(string Kind, int Looks)> Coloured = [(Container, ContainerColours), (Cargo, ContainerColours)];
+    public static readonly IReadOnlyList<(string Kind, int Looks)> Coloured =
+        [(Container, ContainerColours), (Cargo, ContainerColours), (Capsule, CapsuleContents), (Chair, ChairFacings), (TankTall, TankTallContents), (Riser, RiserLooks),
+            (Sphere, SphereContents)];
 
     /// <summary>How many looks a machine aboard of first look <paramref name="kind"/> comes in: one for any but those of several.</summary>
     public static int LooksOf(string kind)
@@ -259,6 +276,22 @@ public static class Vessels
         Boom = "vesselBoom";
 
     /// <summary>
+    /// The big classes' parts outside (big-vessels), by the names <see cref="Outside"/> gives them: a liner's fin, its escape pods and
+    /// the cradles of those gone; a tanker's manifold, its risers down to the bays, the dome hatches on them, the spheres under its keel.
+    /// </summary>
+    public const string Fin = "vesselFin", Pod = "vesselPod", Cradle = "vesselCradle", Manifold = "vesselManifold", Riser = "vesselRiser",
+        Dome = "vesselDome", Sphere = "vesselSphere";
+
+    /// <summary>A riser's looks: a length of pipe, and the one over the manifold carrying its valve's wheel.</summary>
+    public const int RiserLooks = 2;
+
+    /// <summary>A sphere's looks, its contents as a tall tank's: water, oxygen; it holds what the bay over it does.</summary>
+    public const int SphereContents = TankTallContents;
+
+    /// <summary>The columns of a sphere its two struts rise from, from its left: each reaches the hull's bottom row right over it.</summary>
+    public static readonly IReadOnlyList<int> SpherePosts = [2, 7];
+
+    /// <summary>
     /// The parts outside a vessel's hull (derelict-looks), each a machine row with no menu card, taken apart for what it gives; each
     /// stands in space against the hull, nothing behind it. A shuttle's mast is <c>Mast</c>, a freighter's on its bridge <c>MastTall</c>.
     /// </summary>
@@ -278,6 +311,14 @@ public static class Vessels
         new(Boom, 8, 2, [], [("wire", 2), ("circuit", 1)], BuildTicks: 160, Hp: 8),
         // The mockup's tooltip: plates and the cargo inside, here a hold's planks, wire and tubes.
         .. Looked(new(Container, 10, 4, [], [("plate", 6), ("planks", 8), ("wire", 3), ("tube", 2)], BuildTicks: 160, Hp: 14), ContainerColours),
+        // The big classes' (big-vessels, the design's outside rows): a pod's seat its cloth, the valve on a riser its own pipe.
+        new(Fin, 13, 10, [], [("plate", 8), ("copper", 4)], BuildTicks: 240, Hp: 24),
+        new(Pod, 5, 4, [], [("plate", 4), ("cloth", 1), ("wire", 2)], BuildTicks: 160, Hp: 12),
+        new(Cradle, 5, 3, [], [("frame", 2)], BuildTicks: 120, Hp: 8),
+        new(Manifold, 12, 2, [], [("tube", 6), ("gear", 1)], BuildTicks: 160, Hp: 12),
+        .. Looked(new(Riser, 1, 1, [], [("tube", 1)], BuildTicks: 60, Hp: 4), RiserLooks),
+        new(Dome, 4, 2, [], [("plate", 2), ("gear", 1)], BuildTicks: 120, Hp: 8),
+        .. Looked(new(Sphere, 10, 11, [], [("plate", 10), ("tube", 4)], BuildTicks: 240, Hp: 30, Slots: TankSlots), SphereContents),
     ];
 
     /// <summary>
@@ -298,7 +339,86 @@ public static class Vessels
         new(Machine, 6, 4, [], [("gear", 3), ("rotor", 1)], BuildTicks: 160, Hp: 12, Char: '{', Means: "a derelict's machine block: draw its whole footprint"),
         new(Rack, 4, 4, [], [("wire", 6), ("copper", 2)], BuildTicks: 160, Hp: 8, Char: '}', Means: "a derelict's cable rack: draw its whole footprint"),
         .. Looked(new(Cargo, 8, 4, [], [("plate", 4), ("planks", 6), ("wire", 2)], BuildTicks: 160, Hp: 12, Char: '7', Means: "a derelict's cargo container: draw its whole footprint"), ContainerColours),
+        // A liner's (big-vessels, the mockup's furnish and its tooltips), set by code, never drawn in an interior: the restaurant's bar,
+        // piano, round tables, chairs (facing either way) and chandeliers, burning as the ceiling lamp does; the pool's basin (its
+        // half-drained water drawn in), diving board and loungers; the galley's stove and counters; the infirmary's beds and cabinet.
+        new(Bar, 7, 3, [], [("planks", 3), ("glass", 2), ("plate", 1)], BuildTicks: 160, Hp: 10),
+        new(Piano, 5, 3, [], [("planks", 4), ("wire", 3), ("copper", 1)], BuildTicks: 160, Hp: 10),
+        new(RoundTable, 3, 2, [], [("planks", 1), ("cloth", 1)], BuildTicks: 80, Hp: 4),
+        .. Looked(new(Chair, 1, 3, [], [("planks", 1)], BuildTicks: 60, Hp: 3), ChairFacings),
+        new(Lounger, 4, 2, [], [("frame", 1), ("cloth", 1)], BuildTicks: 80, Hp: 4),
+        new(Diving, 5, 8, [], [("frame", 2), ("planks", 1)], BuildTicks: 120, Hp: 8),
+        new(Pool, 20, 5, [], [("plate", 6), ("tube", 2)], BuildTicks: 240, Hp: 20),
+        new(Chandelier, 3, 3, [], [("glass", 3), ("wire", 2), ("copper", 1)], BuildTicks: 120, Hp: 6, Has: MachineTrait.Glow | MachineTrait.Hangs),
+        new(Stove, 4, 3, [], [("plate", 2), ("coil", 1), ("wire", 1)], BuildTicks: 120, Hp: 8),
+        new(Counter, 5, 2, [], [("plate", 2)], BuildTicks: 80, Hp: 6),
+        new(Bed, 4, 2, [], [("frame", 1), ("cloth", 1)], BuildTicks: 80, Hp: 4),
+        new(MedCab, 2, 5, [], [("plate", 2), ("glass", 1), ("canister", 1)], BuildTicks: 120, Hp: 6),
+        // The hangar's fuel cart and the fuel tank by a liner's engines, a look a content (fuel first; the tanker's bays the rest).
+        new(FuelCart, 3, 2, [], [("plate", 2), ("tube", 1)], BuildTicks: 80, Hp: 6),
+        .. Looked(new(Capsule, 14, 11, [], [("plate", 10), ("tube", 4)], BuildTicks: 240, Hp: 30, Slots: TankSlots), CapsuleContents),
+        // A tanker's (big-vessels, the mockup's furnish): the pump room's pump and its wall panel of valves, a pipeway's too; a bay's
+        // tall tanks, a look a content but fuel (water, oxygen); the fuel bay's column, one for a span of three decks, one for four. The
+        // valves' panel stands floor to ceiling of a deck. Every tank holds its liquid (Fits.SmallTank and on), spilled as it breaks.
+        new(Pump, 4, 4, [], [("gear", 2), ("tube", 3), ("rotor", 1)], BuildTicks: 160, Hp: 12),
+        new(Valves, 3, Open, [], [("tube", 3), ("gear", 1)], BuildTicks: 120, Hp: 8),
+        .. Looked(new(TankTall, 8, 11, [], [("plate", 6), ("tube", 2)], BuildTicks: 200, Hp: 20, Slots: TankSlots), TankTallContents),
+        new(FuelColumn3, 10, 19, [], [("plate", 14), ("tube", 4)], BuildTicks: 300, Hp: 40, Slots: TankSlots),
+        new(FuelColumn4, 10, 26, [], [("plate", 18), ("tube", 4)], BuildTicks: 360, Hp: 48, Slots: TankSlots),
+        // A hangar's shuttle, one of five models (the mockup's SHUTTLE_DRAW and yields; its motor a rotor, its small nozzle copper): only taken apart.
+        new(ShuttleGull, 21, 7, [], [("plate", 14), ("wire", 6), ("glass", 2), ("tube", 3)], BuildTicks: 240, Hp: 30),
+        new(ShuttleMule, 24, 9, [], [("plate", 20), ("frame", 4), ("tube", 4)], BuildTicks: 240, Hp: 36),
+        new(ShuttleBeetle, 16, 9, [], [("plate", 12), ("gear", 4), ("rotor", 1)], BuildTicks: 240, Hp: 30),
+        new(ShuttleWhale, 24, 7, [], [("plate", 16), ("glass", 6), ("cloth", 4)], BuildTicks: 240, Hp: 32),
+        new(ShuttleHeron, 16, 11, [], [("plate", 12), ("frame", 3), ("copper", 1)], BuildTicks: 240, Hp: 30),
     ];
+
+    /// <summary>A liner's furniture (big-vessels), by the names <see cref="Furniture"/> gives it.</summary>
+    public const string Bar = "vesselBar", Piano = "vesselPiano", RoundTable = "vesselRoundTable", Chair = "vesselChair", Lounger = "vesselLounger",
+        Diving = "vesselDiving", Pool = "vesselPool", Chandelier = "vesselChandelier", Stove = "vesselStove", Counter = "vesselCounter",
+        Bed = "vesselBed", MedCab = "vesselMedCab", FuelCart = "vesselFuelCart", Capsule = "vesselCapsule";
+
+    /// <summary>A tanker's furniture (big-vessels), by the names <see cref="Furniture"/> gives it.</summary>
+    public const string Pump = "vesselPump", Valves = "vesselValves", TankTall = "vesselTankTall", FuelColumn3 = "vesselFuelColumn3",
+        FuelColumn4 = "vesselFuelColumn4";
+
+    /// <summary>The fuel column standing in a fuel bay <paramref name="decks"/> decks tall: three or four.</summary>
+    public static string FuelColumn(int decks) => decks == 3 ? FuelColumn3 : decks == 4 ? FuelColumn4
+        : throw new ArgumentOutOfRangeException(nameof(decks), decks, "a fuel column spans three decks or four");
+
+    /// <summary>A tall tank's looks, its contents: water, oxygen (the capsule's but fuel).</summary>
+    public const int TankTallContents = CapsuleContents - 1;
+
+    /// <summary>The five shuttles a hangar may hold, one a vessel (big-vessels): GULL, MULE, BEETLE, WHALE, HERON.</summary>
+    public const string ShuttleGull = "vesselShuttleGull", ShuttleMule = "vesselShuttleMule", ShuttleBeetle = "vesselShuttleBeetle",
+        ShuttleWhale = "vesselShuttleWhale", ShuttleHeron = "vesselShuttleHeron";
+
+    public static readonly IReadOnlyList<string> Shuttles = [ShuttleGull, ShuttleMule, ShuttleBeetle, ShuttleWhale, ShuttleHeron];
+
+    /// <summary>A capsule tank's looks, its contents (<see cref="Liquids"/>): fuel, water, oxygen; fuel the first.</summary>
+    public const int CapsuleContents = 3;
+
+    /// <summary>
+    /// What a tank aboard holds, by its contents' place (the label stencilled on it): fuel is biofuel, water water, oxygen canisters.
+    /// A capsule's look is its place; a tall tank's and a sphere's one past it (never fuel); a fuel column's fuel.
+    /// </summary>
+    public static readonly IReadOnlyList<string> Liquids = [Fuel.Item, Water.Item, Crew.Canister];
+
+    /// <summary>Slots a tank holds its liquid in: the most a large tank holds (<see cref="Fits.LargeTank"/>) of the item that stacks fewest.</summary>
+    public const int TankSlots = 7;
+
+    /// <summary>The place in <see cref="Liquids"/> of what a tank of <paramref name="kind"/> (any look) holds; null for no tank.</summary>
+    public static int? ContentsOf(string kind)
+    {
+        if (kind is FuelColumn3 or FuelColumn4) return 0;
+        foreach (var (first, past) in (ReadOnlySpan<(string, int)>)[(Capsule, 0), (TankTall, 1), (Sphere, 1)])
+            for (int look = 0; look < LooksOf(first); look++)
+                if (LookKind(first, look) == kind) return look + past;
+        return null;
+    }
+
+    /// <summary>A chair's looks: its back on the left, or mirrored.</summary>
+    public const int ChairFacings = 2;
 
     /// <summary>How many radiators a freighter carries on top, least and most: as many of them as fit.</summary>
     public static readonly (int Min, int Max) Radiators = (1, 3);
@@ -360,10 +480,151 @@ public static class Vessels
     public static readonly IReadOnlyList<VesselClass> Classes =
     [
         new("shuttle", Length: 72, Decks: (2, 2), BowFlat: 3, BowRun: (1, 2), BowTip: 5, ArmourDepth: 2, BridgeKind: VesselBridge.Cockpit,
-            Extras: (0, 1), ExtraRoles: [VesselRole.Hold, VesselRole.Quarters, VesselRole.Life], Crater: 6, Yield: (1600, 2600)),
+            Extras: (0, 1), ExtraRoles: [VesselRole.Hold, VesselRole.Quarters, VesselRole.Life], Crater: 6, Yield: (1600, 2600), Weight: 1),
         new("freighter", Length: 200, Decks: (2, 3), BowFlat: 8, BowRun: (1, 2), BowTip: 8, ArmourDepth: 2, BridgeKind: VesselBridge.Raised,
-            Extras: (5, 10), ExtraRoles: [VesselRole.Hold, VesselRole.Quarters, VesselRole.Life], Crater: 14, Yield: (3300, 6000)),
+            Extras: (5, 10), ExtraRoles: [VesselRole.Hold, VesselRole.Quarters, VesselRole.Life], Crater: 14, Yield: (3300, 6000), Weight: 3),
+        // A liner (big-vessels): its length is its blocks' (Liner.Run), no extras; seeds 1–200 gave 17 486 to 25 161.
+        new("liner", Length: 320, Decks: (5, 6), BowFlat: 6, BowRun: (1, 1), BowTip: 9, ArmourDepth: 2, BridgeKind: VesselBridge.Raised,
+            Extras: (0, 0), ExtraRoles: [], Crater: 18, Yield: (16500, 26500), Weight: 5, Layout: VesselLayout.Liner),
+        // A tanker (big-vessels): one band over every deck, its length its blocks' (Tanker.Run), no extras; a blunt bow; seeds 1–200 gave 14 133 to 22 053.
+        new("tanker", Length: 340, Decks: (4, 5), BowFlat: 5, BowRun: (1, 2), BowTip: 20, ArmourDepth: 2, BridgeKind: VesselBridge.Raised,
+            Extras: (0, 0), ExtraRoles: [], Crater: 18, Yield: (13000, 23500), Weight: 4, Layout: VesselLayout.Tanker),
     ];
+
+    /// <summary>The classes' weights summed: what the radar draws below.</summary>
+    public static int Weights(IReadOnlyList<VesselClass> classes) => classes.Sum(c => c.Weight);
+
+    /// <summary>
+    /// The class of <paramref name="classes"/> a draw below their <see cref="Weights"/> falls on (big-vessels): each in order takes as many
+    /// draws as its weight, so a class of weight 0 none.
+    /// </summary>
+    public static VesselClass Weighed(IReadOnlyList<VesselClass> classes, int draw)
+    {
+        foreach (var c in classes)
+        {
+            if (draw < c.Weight) return c;
+            draw -= c.Weight;
+        }
+        throw new ArgumentOutOfRangeException(nameof(draw), draw, "past the classes' weights");
+    }
+
+    /// <summary>
+    /// A liner's layout (big-vessels), in columns unless said: blocks across its bands, each a width and a stack of rooms; the raised
+    /// rooms over them. Where a share of its length is drawn it is whole percent, the column rounded down.
+    /// </summary>
+    public static class Liner
+    {
+        /// <summary>Columns of rooms inside its armour, from the stern's to the bow's: drawn, the forward block taking what is left.</summary>
+        public static readonly (int Min, int Max) Run = (260, 320);
+
+        /// <summary>The bottom band's decks: holds, the fuel tank and the hangar, each this many decks tall.</summary>
+        public const int LowDecks = 2;
+
+        /// <summary>A block's width, least and most: the service block, a block of cabins, a public block, the pool's and the restaurant's, the forward one.</summary>
+        public static readonly (int Min, int Max) Service = (12, 14), Cabins = (12, 14), Public = (16, 20), Tall = (34, 38), Forward = (20, 22);
+
+        /// <summary>A block past the service block is a public one this many times in a hundred, else cabins; past the pool and the restaurant.</summary>
+        public const int PublicPercent = 15;
+
+        /// <summary>Where along its run, in whole percent, the pool, the infirmary's public block and the restaurant start: the first block from there.</summary>
+        public static readonly (int Min, int Max) PoolAt = (22, 30), InfirmaryAt = (36, 44), RestaurantAt = (50, 58);
+
+        /// <summary>The bottom band: a hold's width, least and most; the hangar at the bow at least this wide.</summary>
+        public static readonly (int Min, int Max) Hold = (24, 32);
+
+        public const int HangarMin = 38;
+
+        /// <summary>
+        /// The promenade over the first block at least <see cref="PromenadePast"/> columns past the service block, drawn this wide, at
+        /// least <see cref="PromenadeMin"/> or none; the dome on its stern end at most <see cref="DomeMax"/> wide and <see cref="DomeShort"/> short of it.
+        /// </summary>
+        public static readonly (int Min, int Max) Promenade = (44, 60);
+
+        public const int PromenadePast = 10, PromenadeMin = 24, DomeMax = 18, DomeShort = 4;
+
+        /// <summary>Columns kept between the promenade's hull and the bridge's housing.</summary>
+        public const int PromenadeGap = 3;
+
+        /// <summary>Rows a module bulges under the hull at most: a liner's keel is smooth.</summary>
+        public const int BulgeDown = 1;
+
+        /// <summary>The promenade's glazed roof: a panel this many columns wide every <see cref="PanelEvery"/>, clear of the dome.</summary>
+        public const int PanelWidth = 3, PanelEvery = 5;
+    }
+
+    /// <summary>
+    /// A tanker's layout (big-vessels), in columns unless said: one band of blocks over every deck, the raised bridge over the stern.
+    /// Where a share of its length is drawn it is whole percent, the column rounded down.
+    /// </summary>
+    public static class Tanker
+    {
+        /// <summary>Columns of rooms inside its armour, from the stern's to the bow's: drawn, the forward block taking what is left.</summary>
+        public static readonly (int Min, int Max) Run = (260, 340);
+
+        /// <summary>
+        /// A block's width, least and most: the fuel bay's past the engine rooms, the service block, a tank bay's (wide enough for two
+        /// tall tanks and a ladder), a block of pump rooms, the forward one. A tanker has no hangar: shuttles are a liner's.
+        /// </summary>
+        public static readonly (int Min, int Max) FuelBay = (16, 18), Service = (12, 14), Bay = (22, 26), Pumps = (11, 13), Forward = (18, 20);
+
+        /// <summary>The bridge's room stands at least this many columns past the stern's armour, its hatch where the airlock's drawing keeps two columns clear.</summary>
+        public const int BridgeFrom = 8;
+    }
+
+    /// <summary>How the big classes' rooms are furnished by code (big-vessels, the mockup's furnish): sizes in cells, odds in whole percent.</summary>
+    public static class Fits
+    {
+        /// <summary>Columns a room keeps clear at its left, a walkway, and a room's width past which it hangs two ceiling lamps.</summary>
+        public const int Walkway = 2, TwoLampsPast = 26;
+
+        /// <summary>Groups of furniture at most: a lounge's loungers and tables, a promenade's, a restaurant's tables, a hold's stacks.</summary>
+        public const int LoungeGroups = 4, PromenadeGroups = 9, RestaurantTables = 6, HoldStacks = 9;
+
+        /// <summary>A hold's stack is containers this often, else crates; how many more stand on the first, least and most.</summary>
+        public const int ContainerPercent = 62;
+
+        public static readonly (int Min, int Max) ContainersOver = (1, 2), CratesOver = (1, 3);
+
+        /// <summary>The restaurant's piano stands this many columns from its right; its chandeliers at a third and two thirds across.</summary>
+        public const int PianoFromRight = 7;
+
+        /// <summary>The hangar's shuttle stands this many columns short of its right; the fuel cart and stacks from this column past its left.</summary>
+        public const int ShuttleFromRight = 4, HangarFrom = 3;
+
+        /// <summary>A tanker's bay holds two tall tanks this often, else one capsule; a ladder up a tank room's side this many columns from its right.</summary>
+        public const int TallTanksPercent = 35, TankLadderFromRight = 3;
+
+        /// <summary>The salvage a hold and a hangar stack, and the galley's fridge.</summary>
+        public const string Crate = "salvageCrate", Fridge = "salvageVending";
+
+        // Outside (big-vessels, the mockup's outside parts), on top unless said.
+
+        /// <summary>
+        /// A liner's fin stands this many columns into its service block; its escape pods from this many columns past the fin, one
+        /// every <c>PodEvery</c> columns where none is near, short of the bow by <c>PodShort</c>; a pod still in its cradle this often, else
+        /// the cradle left empty.
+        /// </summary>
+        public const int FinInto = 1, PodPast = 2, PodEvery = 6, PodShort = 4, PodPercent = 45;
+
+        /// <summary>
+        /// A tanker's manifold: segments in one line from a part's gap past its radiator to <c>ManifoldShort</c> columns short of the bow,
+        /// <c>ManifoldRise</c> rows over the hull's highest row along it; a strut down from each of its segment's posts; a riser
+        /// <c>RiserPast</c> columns past the middle of each tank bay and the fuel bay, a valve's wheel over it.
+        /// </summary>
+        public const int ManifoldShort = 4, ManifoldRise = 4, RiserPast = 2;
+
+        /// <summary>The columns of a manifold segment its struts hang from, from its left (the truss's own, turned upward).</summary>
+        public static readonly IReadOnlyList<int> ManifoldPosts = [2, 8];
+
+        /// <summary>A tanker carries a sphere under the keel at each tank bay's middle this often, else none.</summary>
+        public const int SpherePercent = 55;
+
+        /// <summary>
+        /// The liquid a tank holds, least and most, drawn per tank: a small one (a tall tank, a sphere), a medium one (a bay's capsule), a
+        /// large one (a fuel column, a liner's fuel tank by its engines).
+        /// </summary>
+        public static readonly (int Min, int Max) SmallTank = (5, 15), MediumTank = (10, 25), LargeTank = (15, 35);
+    }
 
     /// <summary>The surface kind each class's vessel lies on (vessel-worlds), in the order of <see cref="Classes"/>.</summary>
     public static readonly IReadOnlyList<VesselKind> Kinds = [.. Classes.Select(c => new VesselKind(c.Id))];

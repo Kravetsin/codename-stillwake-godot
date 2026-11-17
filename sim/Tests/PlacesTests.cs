@@ -12,7 +12,7 @@ using Xunit;
 namespace Stillwake.Sim.Tests;
 
 /// <summary>Going to a generated vessel (vessel-worlds): a surface of its own opened by the jump, closed once nobody is on it.</summary>
-public class PlacesTests
+public class PlacesTests(Xunit.Abstractions.ITestOutputHelper output)
 {
     private static readonly string Axe = Weapons.Axe.Item;
 
@@ -70,6 +70,8 @@ public class PlacesTests
     [Theory]
     [InlineData("shuttle")]
     [InlineData("freighter")]
+    [InlineData("liner")]
+    [InlineData("tanker")]
     public void TheHeroStandsOnTheDeckJustInsideTheDoorWithRoomForItsBody(string cls)
     {
         var (w, id) = Visited(cls);
@@ -158,7 +160,8 @@ public class PlacesTests
         { "shuttle", Vessels.Nozzle }, { "freighter", Vessels.Nozzle }, { "shuttle", Vessels.Rcs }, { "shuttle", Vessels.Mast },
         { "freighter", Vessels.MastTall }, { "shuttle", Vessels.Dish }, { "shuttle", Vessels.Solar }, { "shuttle", Vessels.Tank },
         { "freighter", Vessels.Radiator }, { "freighter", Vessels.Collar }, { "freighter", Vessels.Truss }, { "freighter", Vessels.Pylon }, { "freighter", Vessels.Boom },
-        { "freighter", Vessels.Container },
+        { "freighter", Vessels.Container }, { "liner", Vessels.Fin }, { "liner", Vessels.Pod }, { "liner", Vessels.Cradle },
+        { "tanker", Vessels.Manifold }, { "tanker", Vessels.Riser }, { "tanker", Vessels.Dome }, { "tanker", Vessels.Sphere },
     };
 
     [Fact]
@@ -170,6 +173,15 @@ public class PlacesTests
         Assert.Equal(Machines.Get(Vessels.Mast).Cost, Machines.Get(Vessels.MastTall).Cost);
         Assert.Equal([("wire", 2), ("circuit", 1)], Machines.Get(Vessels.Boom).Cost);
         Assert.Equal([("plate", 6), ("planks", 8), ("wire", 3), ("tube", 2)], Machines.Get(Vessels.Container).Cost);
+        // The big classes' (big-vessels, the design's outside rows): a riser's valve its own pipe, every look of it alike.
+        Assert.Equal([("plate", 8), ("copper", 4)], Machines.Get(Vessels.Fin).Cost);
+        Assert.Equal([("plate", 4), ("cloth", 1), ("wire", 2)], Machines.Get(Vessels.Pod).Cost);
+        Assert.Equal([("frame", 2)], Machines.Get(Vessels.Cradle).Cost);
+        Assert.Equal([("tube", 6), ("gear", 1)], Machines.Get(Vessels.Manifold).Cost);
+        Assert.Equal([("tube", 1)], Machines.Get(Vessels.Riser).Cost);
+        Assert.Equal(Machines.Get(Vessels.Riser).Cost, Machines.Get(Vessels.LookKind(Vessels.Riser, 1)).Cost);
+        Assert.Equal([("plate", 2), ("gear", 1)], Machines.Get(Vessels.Dome).Cost);
+        Assert.Equal([("plate", 10), ("tube", 4)], Machines.Get(Vessels.Sphere).Cost);
         Assert.All(Vessels.Outside, r => Assert.DoesNotContain(r.Cost, c => c.Item == "nozzle"));
         Assert.All(Vessels.Outside, r => Assert.Contains(r.Kind, Vessels.Machines));
         Assert.All(Vessels.Outside, r => Assert.Null(r.Menu));
@@ -182,9 +194,37 @@ public class PlacesTests
         var w = new Scenario(Registry.Wreck);
         w.Do(new Enter(w.M.Crew.Spawn)).Run();
         w.GiveItems(0, (Weapons.Sledgehammer.Item, 1));
+        // A part only some vessels of the class carry (a tanker's spheres): contacts found till the last carries it.
+        bool Carries(Contact k) => Shipyard.Describe(Vessels.Class(cls)!, k.Seed).Outside.Any(f => Vessels.FirstLook(f.Kind) == kind);
+        for (int i = 0; i < Vessels.MaxContacts && !w.M.Places.Contacts.Any(k => k.Class == cls && Carries(k)); i++) w.Do(new Find(cls)).Run();
+        Assert.True(Carries(w.M.Places.Contacts.Last(k => k.Class == cls)));
         var (_, id) = Visited(cls, w);
         var v = w.On(id);
         Hammered(w, v, v.Grid.Machines.First(m => Vessels.FirstLook(m.Kind) == kind));
+    }
+
+    [Fact]
+    public void ATankHoldsTheLiquidItWasDescribedWithAndSpillsItBrokenByTheSledgehammer()
+    {
+        var w = new Scenario(Registry.Wreck);
+        w.Do(new Enter(w.M.Crew.Spawn)).Run();
+        w.GiveItems(0, (Weapons.Sledgehammer.Item, 1));
+        var tanker = Vessels.Class("tanker")!;
+        static bool Water(Vessel.Fitting f) => f.Kind == Vessels.Sphere && f.Loot[0].Item == Content.Water.Item;
+        bool Carries(Contact k) => k.Class == "tanker" && Shipyard.Describe(tanker, k.Seed).Outside.Any(Water);
+        for (int i = 0; i < Vessels.MaxContacts && !w.M.Places.Contacts.Any(Carries); i++) w.Do(new Find("tanker")).Run();
+        var contact = w.M.Places.Contacts.Last(k => k.Class == "tanker");
+        Assert.True(Carries(contact));
+        var (_, id) = Visited("tanker", w);
+        var v = w.On(id);
+        var described = Shipyard.Describe(tanker, contact.Seed).Outside.First(Water);
+        var (item, count) = Assert.Single(described.Loot);
+        var sphere = v.Grid.MachineAt(InFrame(v, described.X, described.Y))!;
+        Assert.Equal(described.Kind, sphere.Kind);
+        Assert.Equal(count, v.Items.Crate(sphere.Id).Sum(s => s?.Item == item ? s.Count : 0));
+        Hammered(w, v, sphere);
+        // Spilled where it stood, for anyone: in the hero's hands or on the floor.
+        Assert.Equal(count, v.Items.Inventory(0).Sum(s => s?.Item == item ? s.Count : 0) + v.Items.Floor.Sum(s => s.Item == item ? s.Count : 0));
     }
 
     /// <summary>The furniture inside a vessel and its lamp, a row each, every look but the first alike.</summary>
@@ -203,6 +243,29 @@ public class PlacesTests
         Assert.Equal([("gear", 3), ("rotor", 1)], Machines.Get(Vessels.Machine).Cost);
         Assert.Equal([("wire", 6), ("copper", 2)], Machines.Get(Vessels.Rack).Cost);
         Assert.Equal([("plate", 4), ("planks", 6), ("wire", 2)], Machines.Get(Vessels.Cargo).Cost);
+        // A liner's (big-vessels): the design's yields in existing items.
+        Assert.Equal([("planks", 3), ("glass", 2), ("plate", 1)], Machines.Get(Vessels.Bar).Cost);
+        Assert.Equal([("planks", 4), ("wire", 3), ("copper", 1)], Machines.Get(Vessels.Piano).Cost);
+        Assert.Equal([("planks", 1), ("cloth", 1)], Machines.Get(Vessels.RoundTable).Cost);
+        Assert.Equal([("planks", 1)], Machines.Get(Vessels.Chair).Cost);
+        Assert.Equal([("frame", 1), ("cloth", 1)], Machines.Get(Vessels.Lounger).Cost);
+        Assert.Equal([("frame", 2), ("planks", 1)], Machines.Get(Vessels.Diving).Cost);
+        Assert.Equal([("plate", 6), ("tube", 2)], Machines.Get(Vessels.Pool).Cost);
+        Assert.Equal([("glass", 3), ("wire", 2), ("copper", 1)], Machines.Get(Vessels.Chandelier).Cost);
+        Assert.Equal([("plate", 2), ("coil", 1), ("wire", 1)], Machines.Get(Vessels.Stove).Cost);
+        Assert.Equal([("plate", 2)], Machines.Get(Vessels.Counter).Cost);
+        Assert.Equal([("plate", 10), ("tube", 4)], Machines.Get(Vessels.Capsule).Cost);
+        Assert.Equal([("plate", 14), ("wire", 6), ("glass", 2), ("tube", 3)], Machines.Get(Vessels.ShuttleGull).Cost);
+        Assert.Equal([("plate", 20), ("frame", 4), ("tube", 4)], Machines.Get(Vessels.ShuttleMule).Cost);
+        Assert.Equal([("plate", 12), ("gear", 4), ("rotor", 1)], Machines.Get(Vessels.ShuttleBeetle).Cost);
+        Assert.Equal([("plate", 16), ("glass", 6), ("cloth", 4)], Machines.Get(Vessels.ShuttleWhale).Cost);
+        Assert.Equal([("plate", 12), ("frame", 3), ("copper", 1)], Machines.Get(Vessels.ShuttleHeron).Cost);
+        // A tanker's (big-vessels): the design's yields.
+        Assert.Equal([("gear", 2), ("tube", 3), ("rotor", 1)], Machines.Get(Vessels.Pump).Cost);
+        Assert.Equal([("tube", 3), ("gear", 1)], Machines.Get(Vessels.Valves).Cost);
+        Assert.Equal([("plate", 6), ("tube", 2)], Machines.Get(Vessels.TankTall).Cost);
+        Assert.Equal([("plate", 14), ("tube", 4)], Machines.Get(Vessels.FuelColumn(3)).Cost);
+        Assert.Equal([("plate", 18), ("tube", 4)], Machines.Get(Vessels.FuelColumn(4)).Cost);
         Assert.All(Vessels.Furniture, r => Assert.Contains(r.Kind, Vessels.Machines));
         Assert.All(Vessels.Furniture, r => Assert.Null(r.Menu));
         Assert.All(Vessels.Furniture, r => Assert.All(r.Cost, c => Assert.True(Content.Items.TryGet(c.Item, out _), c.Item)));
@@ -453,20 +516,24 @@ public class PlacesTests
         }
     }
 
-    /// <summary>The freighter's jump tick on the new game's world: its world opened, its vessel written, Rooms and the rest after it.</summary>
-    [Fact]
-    public void AFreightersJumpTickStaysUnderItsCeiling()
+    /// <summary>A jump tick on the new game's world: its world opened, its vessel written, Rooms and the rest after it; a liner's and a tanker's too.</summary>
+    [Theory]
+    [InlineData("freighter")]
+    [InlineData("liner")]
+    [InlineData("tanker")]
+    public void AJumpTickStaysUnderItsCeiling(string cls)
     {
         // A hitch of a few frames once per visit, as a load is.
         const int CeilingMs = 200;
-        var (w, _) = Visited();
+        var (w, _) = Visited(cls);
         w.Do(new Transfer(0)).Run();
-        w.Do(new Find("freighter")).Run();
+        w.Do(new Find(cls)).Run();
         w.Do(new Jump(w.M.Places.Contacts[^1].Id));
         var clock = Stopwatch.StartNew();
         w.Run();
         clock.Stop();
         Assert.Empty(w.Refusals);
+        output.WriteLine($"{cls}: {clock.ElapsedMilliseconds} ms");
         Assert.True(clock.ElapsedMilliseconds < CeilingMs, $"{clock.ElapsedMilliseconds} ms");
     }
 }

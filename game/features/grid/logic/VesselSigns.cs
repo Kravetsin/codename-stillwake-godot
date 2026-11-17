@@ -89,7 +89,7 @@ public sealed class VesselSigns
         bool Wall(int x, int y) => In(x, y) && wall[y * w + x];
 
         var (sx, sy) = Shipyard.Door(vessel);
-        bool Holds(Vessel.Compartment c, int x, int y) => x >= c.Left && x < c.Left + c.Width && y >= c.Top && y < c.Top + Vessels.Open;
+        bool Holds(Vessel.Compartment c, int x, int y) => c.Holds(x, y);
         // A room reaches over the free columns at its ends, to a door or a wall: the bow's hollow past the last room is that room's.
         var all = vessel.Compartments.Select(c =>
         {
@@ -99,7 +99,8 @@ public sealed class VesselSigns
             while (Free(right)) right++;
             return c with { Left = left, Width = right - left };
         }).ToList();
-        var rooms = all.Where(c => c.Role != VesselRole.Bridge && !Holds(c, sx, sy)).ToList();
+        // Only in rooms a deck tall (big-vessels): tall halls are already the richest.
+        var rooms = all.Where(c => c.Role != VesselRole.Bridge && c.Decks == 1 && !Holds(c, sx, sy)).ToList();
         Vessel.Compartment? RoomOf(int x, int y) => all.FirstOrDefault(c => Holds(c, x, y));
 
         var (least, most) = Looks.Signs[vessel.Class];

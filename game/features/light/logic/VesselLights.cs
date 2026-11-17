@@ -37,8 +37,10 @@ public sealed class VesselLights
     /// <summary>The lamp the vessel's one dying lamp is, by its place in <see cref="Lamps"/>; null with none.</summary>
     public int? Dying { get; }
 
-    /// <summary>The derelict's own ceiling lamp, the only lamp its rooms are stamped with.</summary>
+    /// <summary>The derelict's own ceiling lamp; a liner's restaurant hangs chandeliers too (big-vessels), lamps alike.</summary>
     public const string LampKind = Vessels.Lamp;
+
+    public static readonly IReadOnlyList<string> LampKinds = [Vessels.Lamp, Vessels.Chandelier];
 
     /// <summary>What a bridge's consoles are, by their first look: the salvage's and the mockup's.</summary>
     public static readonly IReadOnlyList<string> ConsoleKinds = ["salvageConsole", Vessels.Console];
@@ -47,12 +49,12 @@ public sealed class VesselLights
     {
         Seed = vessel.Seed;
         var parts = Shipyard.Stamp(vessel);
-        // The airlock: the room a hero first steps into, just inside the first door.
+        // The airlock: the room a hero first steps into, just inside the first door, as tall as it is.
         var (sx, sy) = Shipyard.Door(vessel);
-        var airlock = vessel.Compartments.First(c => sx >= c.Left && sx < c.Left + c.Width && sy >= c.Top && sy < c.Top + Vessels.Open);
-        bool InAirlock(VesselPart p) => p.X >= airlock.Left && p.X < airlock.Left + airlock.Width && p.Y >= airlock.Top && p.Y < airlock.Top + Vessels.Open;
+        var airlock = vessel.Compartments.First(c => c.Holds(sx, sy));
+        bool InAirlock(VesselPart p) => airlock.Holds(p.X, p.Y);
 
-        var lamps = parts.Where(p => p.Layer == "machine" && p.Kind == LampKind).ToList();
+        var lamps = parts.Where(p => p.Layer == "machine" && LampKinds.Contains(p.Kind)).ToList();
         var others = lamps.Where(p => !InAirlock(p)).ToList();
         var dying = others.Count == 0 ? null : others[Looks.Below(Seed, Looks.Salt.Dying, 0, others.Count)];
         Lamps = lamps.Select(p => new VesselLamp(p.X, p.Y, p.Kind,
@@ -95,7 +97,7 @@ public sealed class VesselLights
     /// Whether <paramref name="machine"/> is one of the vessel's own lamps, at one of <paramref name="lampCells"/>: lit by its own view on
     /// its battery, never by the light's power share, and carrying no power bolt. One a hero builds there is not.
     /// </summary>
-    public static bool Claims(Machine machine, IReadOnlySet<int> lampCells) => machine.Kind == LampKind && lampCells.Contains(machine.Cell);
+    public static bool Claims(Machine machine, IReadOnlySet<int> lampCells) => LampKinds.Contains(machine.Kind) && lampCells.Contains(machine.Cell);
 
     /// <summary>Whether a machine of <paramref name="kind"/> still stands with its top-left at grid cell <paramref name="cell"/>.</summary>
     public static bool Stands(IGridQueries grid, string kind, int cell) => grid.MachineAt(cell) is { } m && m.Kind == kind && m.Cell == cell;

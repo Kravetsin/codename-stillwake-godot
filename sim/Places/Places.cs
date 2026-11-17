@@ -26,6 +26,12 @@ public sealed record Jump(int Contact) : Command;
 /// <summary>Sets the course to contact <c>Contact</c> (shuttle-flight): where every shuttle aboard flies once set off. The radar's «Set course» sends it.</summary>
 public sealed record SetCourse(int Contact) : Command;
 
+/// <summary>Clears the course: no shuttle aboard has anywhere to fly till one is set again. The radar's «Clear route» sends it.</summary>
+public sealed record ClearCourse : Command;
+
+/// <summary>Takes contact <c>Contact</c> off the radar for everyone, and the course with it if it was the course's. The radar's «Forget» sends it.</summary>
+public sealed record Forget(int Contact) : Command;
+
 /// <summary>
 /// The shuttle the sender sits in sets off with its riders (shuttle-flight): aboard to the course's vessel, the contact used up; off the
 /// ship home. The shuttle's panel sends it, its «Set off» key.
@@ -70,6 +76,8 @@ public sealed class PlacesModule : Module<PlacesState>
         Handles<Find>(FindProblem, ApplyFind);
         Handles<Jump>(JumpProblem, ApplyJump);
         Handles<SetCourse>(CourseProblem, c => State.Course = c.Contact);
+        Handles<ClearCourse>(_ => Aboard, _ => State.Course = null);
+        Handles<Forget>(ForgetProblem, ApplyForget);
         Handles<SetOff>(c => SetOffProblem(c.From), ApplySetOff);
         System(Phase.Simulation, Watch);
     }
@@ -85,6 +93,20 @@ public sealed class PlacesModule : Module<PlacesState>
     {
         int km = (contact.Offset < 0 ? -contact.Offset : contact.Offset) * Content.Contacts.KmPerUnit;
         return 2 * ((km + Content.Shuttle.KmPerLitre - 1) / Content.Shuttle.KmPerLitre);
+    }
+
+    /// <summary>Null aboard; off the ship <c>places.notAboard</c>: the radar is the ship's.</summary>
+    private string? Aboard => Rules != Content.Surfaces.Ship ? "places.notAboard" : null;
+
+    /// <summary>Why <paramref name="c"/>'s contact cannot be forgotten: off the ship, or one the radar does not hold (<c>places.noContact</c>).</summary>
+    private string? ForgetProblem(Forget c) =>
+        Aboard ?? (State.Contacts.Exists(k => k.Id == c.Contact) ? null : "places.noContact");
+
+    /// <summary>The contact gone from the radar, and the course with it if it was the course's.</summary>
+    private void ApplyForget(Forget c)
+    {
+        State.Contacts.RemoveAll(k => k.Id == c.Contact);
+        if (State.Course == c.Contact) State.Course = null;
     }
 
     /// <summary>Why a course cannot be set to <paramref name="c"/>'s contact: off the ship (<c>places.notAboard</c>), or one the radar does not hold (<c>places.noContact</c>).</summary>
@@ -147,7 +169,7 @@ public sealed class PlacesModule : Module<PlacesState>
 
     /// <summary>
     /// The radar's watch, aboard, each tick (2026-11-08-radar-contacts): every contact's time runs down and one run out goes;
-    /// then the countdown, the first started at <c>First</c>; at 0 a contact of a class drawn evenly comes, while the radar has
+    /// then the countdown, the first started at <c>First</c>; at 0 a contact of a class drawn by its weight comes (big-vessels), while the radar has
     /// room, and the next is drawn. Gone before found, so with <c>Lasts</c> no more than <c>EveryMin</c> two of its own are
     /// never up at once.
     /// </summary>
@@ -164,7 +186,7 @@ public sealed class PlacesModule : Module<PlacesState>
         if (s.Course != null && Course == null) s.Course = null;
         if (s.NextIn == 0) s.NextIn = Content.Contacts.First;
         if (--s.NextIn > 0) return;
-        if (s.Contacts.Count < Vessels.MaxContacts) Add(Vessels.Classes[(int)Random.Below((uint)Vessels.Classes.Count)].Id);
+        if (s.Contacts.Count < Vessels.MaxContacts) Add(Vessels.Weighed(Vessels.Classes, (int)Random.Below((uint)Vessels.Weights(Vessels.Classes))).Id);
         s.NextIn = Content.Contacts.EveryMin + (int)Random.Below((uint)(Content.Contacts.EveryMax - Content.Contacts.EveryMin + 1));
     }
 
@@ -218,22 +240,28 @@ public sealed class PlacesModule : Module<PlacesState>
     }
 
     /// <summary>
-    /// Now and then, as a jump opens a whole surface: a contact found, of a class or none; a jump to one, or a course set to one, held or
-    /// not; a set off, mostly refused but from a shuttle's rider.
+    /// Now and then, as a jump opens a whole surface: a contact found, of a class or none; a jump to one, a course set to one or one
+    /// forgotten, held or not; the course cleared; a set off, mostly refused but from a shuttle's rider.
     /// </summary>
     public override Command? Fuzz(Rng rng, int from)
     {
         if (rng.Below(16) != 0) return null;
-        uint what = rng.Below(4);
+        uint what = rng.Below(6);
         if (what == 0)
         {
             string cls = rng.Below(5) == 0 ? "nothing" : Vessels.Classes[(int)rng.Below((uint)Vessels.Classes.Count)].Id;
             return new Find(cls) { From = from };
         }
         if (what == 3) return new SetOff { From = from };
+        if (what == 4) return new ClearCourse { From = from };
         int contact = State.Contacts.Count > 0 && rng.Below(4) != 0
             ? State.Contacts[(int)rng.Below((uint)State.Contacts.Count)].Id
             : (int)rng.Below(4);
-        return what == 1 ? new Jump(contact) { From = from } : new SetCourse(contact) { From = from };
+        return what switch
+        {
+            1 => new Jump(contact) { From = from },
+            2 => new SetCourse(contact) { From = from },
+            _ => new Forget(contact) { From = from },
+        };
     }
 }

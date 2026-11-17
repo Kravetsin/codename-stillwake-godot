@@ -53,7 +53,14 @@ public partial class ComputerPanel : CanvasLayer
     public ComputerPanel(Ui ui, Func<Registry?> world, Action<Command> send)
     {
         (_ui, _world, _send) = (ui, world, send);
-        _radar = new RadarScreen(ui) { Visible = false, PlotCourse = planet => _send(new PlotCourse(planet)), SetRoute = contact => _send(new SetCourse(contact)) };
+        _radar = new RadarScreen(ui)
+        {
+            Visible = false,
+            PlotCourse = planet => _send(new PlotCourse(planet)),
+            SetRoute = contact => _send(new SetCourse(contact)),
+            ClearRoute = () => _send(new ClearCourse()),
+            Forget = contact => _send(new Forget(contact)),
+        };
         _tips = new TipSpots(ui.Tip);
         Layer = ScreenLayers.Handbook;
         var root = new Control { MouseFilter = Control.MouseFilterEnum.Ignore, Theme = new Theme { DefaultFont = Style.Mono, DefaultFontSize = 20 } };
