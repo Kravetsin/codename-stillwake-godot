@@ -27,10 +27,10 @@ public partial class PlanetSky : Node2D
     private const float CloudsAt = 0.02f;
 
     /// <summary>
-    /// Shares of the screen across where the sun rises and sets, and down where it does: about the far mountains' tops, so it clears
-    /// them early in the day and sinks into them only in the dusk (the user's, 2026-11-17). It crosses the sky left to right.
+    /// The share of the screen down where the sun rises and sets: about the far mountains' tops, so it is soon clear of them (the
+    /// user's, 2026-11-17). It crosses the sky left to right, from wholly past the screen's left edge to wholly past its right.
     /// </summary>
-    private const float Rises = 0.06f, Sets = 0.94f, Rim = 0.22f;
+    private const float Rim = 0.22f;
 
     /// <summary>How far across the sky the sun is, 0 rising to 1 setting (<c>Daylight.Sun</c>); null while it is down.</summary>
     public float? Day { get; set; }
@@ -77,10 +77,12 @@ public partial class PlanetSky : Node2D
         _sun.Visible = Day != null;
         if (Day is float day)
         {
-            // An arc from the rim up to noon's height, steep at its ends: the sun is soon high and low only near its rise and set.
+            // An arc from the rim up to noon's height, steep at its ends: the sun is soon high and low only near its rise and set. It
+            // comes in and goes out past the screen's sides, glow and all, so it is never seen to vanish.
+            var half = _sun.Texture.GetSize() * zoom / 2;
             float high = Mathf.Sqrt(Mathf.Max(0, Mathf.Sin(Mathf.Pi * day)));
-            var at = new Vector2(Mathf.Lerp(Rises, Sets, day) * screen.X, Mathf.Lerp(Rim, Noon.Y, high) * screen.Y);
-            _sun.Position = at - _sun.Texture.GetSize() * zoom / 2;
+            var at = new Vector2(Mathf.Lerp(-half.X, screen.X + half.X, day), Mathf.Lerp(Rim, Noon.Y, high) * screen.Y);
+            _sun.Position = at - half;
             _sun.Scale = Vector2.One * zoom;
         }
         Spread(_clouds, centre.X * CloudFollows + (float)(seconds * CloudDrift + _blown), zoom, screen, screen.Y * CloudsAt);
