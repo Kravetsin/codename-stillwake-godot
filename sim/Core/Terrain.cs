@@ -409,8 +409,9 @@ public static partial class Terrain
     /// <summary>
     /// Row <paramref name="row"/>'s temperature on a planet of type <paramref name="t"/>, in whole degrees (2026-11-14-temperature-in-degrees):
     /// each band's <see cref="Surfaces.Kind.Temperatures"/> holds at its middle, and between two middles it runs straight from one
-    /// to the next, rounded toward the upper band's; above the top band's middle and below the last's it holds. No step at a
-    /// band's edge, and a reading rarely a round number.
+    /// to the next, rounded toward the upper band's; below the last's it holds. Above the top band's middle it holds too, or, with
+    /// an <see cref="PlanetType.Air"/>, runs from the air at the surface's middle row and above. No step at a band's edge, and a
+    /// reading rarely a round number.
     /// </summary>
     public static int TemperatureOf(PlanetType t, int row)
     {
@@ -419,6 +420,8 @@ public static partial class Terrain
         long down = (long)(row - g.Surface) * 1000 / span;
         var degrees = t.Temperatures;
         long Middle(int band) => ((band == 0 ? 0 : t.Bands[band - 1]) + (long)(band == degrees.Count - 1 ? 1000 : t.Bands[band])) / 2;
+        if (t.Air is int air && down < Middle(0))
+            return down <= 0 ? air : (int)(air + (degrees[0] - air) * down / Math.Max(1, Middle(0)));
         if (down <= Middle(0)) return degrees[0];
         for (int band = 1; band < degrees.Count; band++)
         {

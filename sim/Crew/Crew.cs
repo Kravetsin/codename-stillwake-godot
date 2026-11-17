@@ -360,9 +360,9 @@ public sealed partial class CrewModule : Module<CrewState>, ICrewQueries, ICrewO
                     covered = net >= 0;
                 }
                 // The cold and the heat (2026-11-14-temperature-in-degrees, 2026-11-14-heat-limits): the degrees felt past either limit, on
-                // their own schedule, thin air or not; the edge's besides.
+                // their own schedule, thin air or not; the edge's besides, and a storm's grit, the suit's own air alike.
                 int felt = Felt(hero.Id, hero.Cell) + Heat(hero.Id, hero.Cell);
-                int cold = Chills(felt) + EdgeCost(hero.Cell);
+                int cold = Chills(felt) + EdgeCost(hero.Cell) + GritAt(hero.Cell);
                 int burn = Burns(hero.Cell) ? Content.Lava.Burn : 0;
                 if (burn > 0) Hurt(hero, Harm.Burn);
                 int left = hero.Air + net - cold;
@@ -587,6 +587,10 @@ public sealed partial class CrewModule : Module<CrewState>, ICrewQueries, ICrewO
 
     public int PaceAt(int cell) =>
         cell < 0 || cell >= _grid.Width * _grid.Height || _air.AiredAt(cell) || !OpenSky(cell) ? 1000 : _sky.Now.Pace;
+
+    /// <summary>Units of a hero's own air a breath the running storm's grit grinds out at <paramref name="cell"/>: under the open sky, unaired; 0 elsewhere.</summary>
+    public int GritAt(int cell) =>
+        cell < 0 || cell >= _grid.Width * _grid.Height || _air.AiredAt(cell) || !OpenSky(cell) ? 0 : _sky.Now.Grit;
 
     public bool OpenSky(int cell) =>
         cell >= 0 && cell < _grid.Width * _grid.Height

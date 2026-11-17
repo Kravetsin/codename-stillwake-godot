@@ -63,7 +63,7 @@ public class StormsTests
     [Fact]
     public void BothStormsAreOpenFromTheFirstTickEachFirstWithinItsFirstAndEveryLaterOneWithinGapOfTheLastEnd()
     {
-        Assert.Equal((Storm.First, Storm.Gap, Storm.Duration, Storm.Chill, Storm.Warning), (Rain.First, Rain.Gap, Rain.Duration, Rain.Chill, Rain.Warning));
+        Assert.Equal((Storm.First, Storm.Gap, Storm.Duration, Storm.Warning), (Rain.First, Rain.Gap, Rain.Duration, Rain.Warning));
         var w = new Scenario(Ship);
         w.Do(new Enter(w.M.Crew.Spawn)).Do(new OpenSurface(Strip.Id)).Run();
         // Opened on the strip's first tick: the dust storm chosen, its wait drawn and counted down from it.
@@ -210,30 +210,31 @@ public class StormsTests
         Assert.Equal(before, WorldRng(w));
     }
 
-    // The cold.
+    // The cold, mild up top (the user's, 2026-11-17).
 
     [Fact]
-    public void TheOpenSkyIsMinus50InAStormByDayOrAtNightAndMinus70InBoth()
+    public void TheOpenSkyIsMildByDayAndTheNightOrAStormOnlyCoolsIt()
     {
-        Assert.Equal((-30, 20, 20), (Strip.Temperatures[0], Day.Chill, Storm.Chill));
+        Assert.Equal((12, 20, 10, 5), (Strip.Temperatures[0], Day.Chill, Storm.Chill, Rain.Chill));
         var w = Down();
         var crew = w.On(1).Crew;
         int shelter = crew.Spawn;
         Assert.NotNull(w.On(1).Grid.BackAt(shelter));
         Assert.Null(w.On(1).Grid.BackAt(Open));
-        Assert.Equal((-30, -30), (crew.TemperatureAt(Open), crew.TemperatureAt(shelter)));
+        Assert.Equal((12, 12), (crew.TemperatureAt(Open), crew.TemperatureAt(shelter)));
         w.Do(new SetTime(NightAt)).Run();
-        Assert.Equal((-50, -30), (crew.TemperatureAt(Open), crew.TemperatureAt(shelter)));
-        w.Do(new StretchNow(Rain.Id)).Run(Storm.Warning);
+        Assert.Equal((-8, 12), (crew.TemperatureAt(Open), crew.TemperatureAt(shelter)));
+        w.Do(new StretchNow(Rain.Id)).Run(Rain.Warning);
         Assert.Equal(Rain.Id, Now(w).Stretch);
-        Assert.Equal((-70, -30), (crew.TemperatureAt(Open), crew.TemperatureAt(shelter)));
+        Assert.Equal((-13, 12), (crew.TemperatureAt(Open), crew.TemperatureAt(shelter)));
         w.Do(new SetTime(0)).Run();
-        Assert.Equal((-50, -30), (crew.TemperatureAt(Open), crew.TemperatureAt(shelter)));
+        Assert.Equal((7, 12), (crew.TemperatureAt(Open), crew.TemperatureAt(shelter)));
         // Off on the tick it ends.
         w.Run(S(w).Left);
         Assert.Null(Now(w).Stretch);
-        Assert.Equal(-30, crew.TemperatureAt(Open));
+        Assert.Equal(12, crew.TemperatureAt(Open));
     }
+
 
     [Fact]
     public void AStormHalvesAHerosPaceUnderTheOpenSkyOnlyWhileItRunsNeitherInItsWarningNorUnderABackWall()
@@ -267,38 +268,77 @@ public class StormsTests
     }
 
     /// <summary>
-    /// The air hero 0, out on the flat in a basic suit, loses to the cold over a storm brought at the hour <paramref name="time"/>: what it
-    /// loses there less what a hero on a calm day loses over the same ticks, breathing's own cost; the air topped up each tick.
+    /// The air hero 0, out on the flat in a basic suit, loses over <paramref name="storm"/> brought at the hour <paramref name="time"/>:
+    /// what it loses there less what a hero on a calm day loses over the same ticks, breathing's own cost; the air topped up each tick.
     /// </summary>
-    private static int ColdOverAStorm(int time)
+    private static int LostOverAStorm(Spec.Stretch storm, int time)
     {
-        var storm = Down();
+        var stormy = Down();
         var calm = Down();
-        storm.Do(new Enter(Open)).Do(new SetTime(time)).Do(new StretchNow(Storm.Id)).Run(Storm.Warning);
-        calm.Do(new Enter(Open)).Do(new SetTime(0)).Run(Storm.Warning);
-        Assert.Equal(Storm.Id, Now(storm).Stretch);
+        stormy.Do(new Enter(Open)).Do(new SetTime(time)).Do(new StretchNow(storm.Id)).Run(storm.Warning);
+        calm.Do(new Enter(Open)).Do(new SetTime(0)).Run(storm.Warning);
+        Assert.Equal(storm.Id, Now(stormy).Stretch);
         Assert.Null(Now(calm).Stretch);
         int lost = 0, ticks = 0;
-        while (Now(storm).Stretch != null)
+        while (Now(stormy).Stretch != null)
         {
-            Hero a = storm.On(1).Crew.HeroOf(0)!, b = calm.On(1).Crew.HeroOf(0)!;
+            Hero a = stormy.On(1).Crew.HeroOf(0)!, b = calm.On(1).Crew.HeroOf(0)!;
             (a.Air, b.Air) = (Scenario.Full, Scenario.Full);
-            storm.Run();
+            stormy.Run();
             calm.Run();
             lost += (Scenario.Full - a.Air) - (Scenario.Full - b.Air);
             ticks++;
         }
-        Assert.InRange(ticks, Storm.Duration.Least - 1, Storm.Duration.Most);
-        Assert.Equal(Open, storm.On(1).Crew.HeroOf(0)!.Cell);
+        Assert.InRange(ticks, storm.Duration.Least - 1, storm.Duration.Most);
+        Assert.Equal(Open, stormy.On(1).Crew.HeroOf(0)!.Cell);
         return lost;
     }
 
     [Fact]
-    public void ABasicSuitInTheOpenLosesTwelveToEighteenUnitsOverAStormByDayAndThirtySixToFiftyFourAtNight()
+    public void ABasicSuitFeelsNoColdInTheRainEvenAtNight()
     {
-        Assert.InRange(ColdOverAStorm(0), 12, 18);
-        Assert.InRange(ColdOverAStorm(NightAt), 36, 54);
-        // A basic helmet's whole air: a storm at night in the open may empty it.
-        Assert.Equal(45, Scenario.Full);
+        Assert.Equal(-40, Content.Items.Get(Content.Suit.Basic).Low);
+        Assert.Equal(0, LostOverAStorm(Rain, NightAt));
+    }
+
+    // The grit.
+
+    [Fact]
+    public void TheDustStormsGritGrindsTwoUnitsASecondOutOfASuitInTheOpen()
+    {
+        Assert.Equal((2, 0), (Storm.Grit, Rain.Grit));
+        // A breath a second, 60 to 90 s: a basic helmet's 45 gone in some 20 s.
+        int least = Storm.Duration.Least / Content.Crew.BreathEvery, most = Storm.Duration.Most / Content.Crew.BreathEvery;
+        Assert.InRange(LostOverAStorm(Storm, 0), 2 * (least - 1), 2 * (most + 1));
+    }
+
+    [Fact]
+    public void GritGrindsOnlyUnderTheOpenSkyWhileTheDustStormRuns()
+    {
+        var w = Down();
+        var crew = w.On(1).Crew;
+        int shelter = crew.Spawn;
+        w.Do(new StretchNow(Storm.Id)).Run();
+        Assert.Equal(Storm.Id, Now(w).Coming);
+        Assert.Equal(0, crew.GritAt(Open));
+        w.Run(Storm.Warning);
+        Assert.Equal(Storm.Id, Now(w).Stretch);
+        Assert.Equal((2, 0), (crew.GritAt(Open), crew.GritAt(shelter)));
+        w.Run(S(w).Left);
+        Assert.Null(Now(w).Stretch);
+        Assert.Equal(0, crew.GritAt(Open));
+        w.Do(new StretchNow(Rain.Id)).Run(Rain.Warning + 1);
+        Assert.Equal((Rain.Id, 0), (Now(w).Stretch, crew.GritAt(Open)));
+    }
+
+    [Fact]
+    public void GritRunsAHeroInTheOpenOutOfAirIntoItsLastBreath()
+    {
+        var w = Down();
+        w.Do(new Enter(Open)).Do(new StretchNow(Storm.Id)).Run(Storm.Warning);
+        var hero = w.On(1).Crew.HeroOf(0)!;
+        w.Run(25 * Content.Crew.BreathEvery);
+        Assert.Equal(0, hero.Air);
+        Assert.True(hero.Gasp > 0 || hero.Out > 0);
     }
 }

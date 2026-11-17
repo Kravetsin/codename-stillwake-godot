@@ -285,13 +285,14 @@ public class LightningTests
         Strikes(w);
         Assert.Equal((1, 1), (HeroOf(w, 0).Hurts, HeroOf(w, 1).Hurts));
 
-        // Two heroes far apart, each by a pillar of its own: over seeds, each is drawn.
+        // Two heroes far apart, each by a pillar of its own: over seeds, each is drawn. In the rain, whose zones still miss each
+        // other's pillar: the dust's grit would run them out of air while they wait.
         var struck = new HashSet<int>();
         for (uint seed = 1; seed <= 12; seed++)
         {
             var apart = Land((x, y) => x is 6 or 57 && y == Ground - 1 ? '#' : null, seed: seed);
             apart.Do(new Enter(Stand(3))).Do(new Enter(Stand(60)) { From = 1 }).Run();
-            Storm(apart, Dust);
+            Storm(apart, Rain);
             RunUntil(apart, () => Glowing(apart) != null);
             struck.Add(Glowing(apart)!.Cell);
         }

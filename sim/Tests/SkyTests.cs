@@ -36,22 +36,26 @@ public class SkyTests
     private static int Beat => Strip.ThinAir!.Value * Content.Crew.BreathEvery;
 
     /// <summary>
-    /// The air the night's cold under the open sky takes from a suit over <paramref name="beats"/> beats, <paramref name="warmth"/>
-    /// degrees lower with a cape: the degrees felt past the suit's limit at <c>Bite</c> a breath (2026-11-14-temperature-in-degrees), whole.
+    /// The air the night's cold under the open sky takes from a hero with no suit over <paramref name="beats"/> beats, <paramref name="warmth"/>
+    /// degrees lower with a cape: the degrees felt past the bare body's limit at <c>Bite</c> a breath (2026-11-14-temperature-in-degrees), whole.
     /// </summary>
-    private static int NightCold(int beats = 1, int warmth = 0)
+    private static int NightCold(int beats, int warmth = 0)
     {
-        int felt = Content.Items.Get(Content.Suit.Basic).Low!.Value - warmth - (Strip.Temperatures[0] - Day.Chill);
+        int felt = Content.Temperature.BareLow - warmth - (Strip.Temperatures[0] - Day.Chill);
         int thousandths = beats * felt * Content.Temperature.Bite * Strip.ThinAir!.Value;
         Assert.Equal(0, thousandths % 1000);
         return thousandths / 1000;
     }
 
-    /// <summary>The ship with the strip opened and hero 0 beamed down to it, wearing the cape when <paramref name="caped"/>.</summary>
+    /// <summary>
+    /// The ship with the strip opened and hero 0 beamed down to it in a helmet and no suit, wearing the cape when <paramref name="caped"/>:
+    /// the strip's mild night is felt only past a bare body's limit (2026-11-17-mild-climate).
+    /// </summary>
     private static Scenario Down(bool caped = false)
     {
-        var w = new Scenario(Ship);
+        var w = new Scenario(Ship) { Bare = true };
         w.Do(new Enter(w.M.Crew.Spawn)).Do(new OpenSurface(Strip.Id)).Run();
+        w.Wear(0, Content.Helmet.Basic);
         if (caped) w.Wear(0, Content.Cape.Item);
         return w.Do(new Transfer(1)).Run();
     }
@@ -137,12 +141,23 @@ public class SkyTests
     [Fact]
     public void AtNightAHeroUnderTheOpenSkyPaysTheChillOnTopOfThinAir()
     {
-        Assert.True(NightCold() > 0);
-        Assert.Equal(1, Lost(Down(), Open, 0));
-        Assert.Equal(1 + NightCold(), Lost(Down(), Open, NightAt));
-        Assert.Equal(3 * (1 + NightCold()), Lost(Down(), Open, NightAt, beats: 3));
-        // Late in the night, a beat before dawn, it still bites.
-        Assert.Equal(1 + NightCold(), Lost(Down(), Open, Day.Length - 2 * Beat));
+        // Five beats: 8 degrees felt are 4 whole units.
+        Assert.True(NightCold(5) > 0);
+        Assert.Equal(5, Lost(Down(), Open, 0, beats: 5));
+        Assert.Equal(5 + NightCold(5), Lost(Down(), Open, NightAt, beats: 5));
+        Assert.Equal(10 + NightCold(10), Lost(Down(), Open, NightAt, beats: 10));
+        // Late in the night, five beats before dawn, it still bites.
+        Assert.Equal(5 + NightCold(5), Lost(Down(), Open, Day.Length - 6 * Beat, beats: 5));
+    }
+
+    [Fact]
+    public void ABasicSuitFeelsNothingOfTheMildNight()
+    {
+        var w = new Scenario(Ship);
+        w.Do(new Enter(w.M.Crew.Spawn)).Do(new OpenSurface(Strip.Id)).Run();
+        w.Do(new Transfer(1)).Run();
+        Assert.Equal(5, Lost(w, Open, NightAt, beats: 5));
+        Assert.Equal(0, w.On(1).Crew.Felt(0, Open));
     }
 
     [Fact]
@@ -151,7 +166,7 @@ public class SkyTests
         var w = Down();
         var crew = w.On(1).Crew;
         w.Do(new Enter(Open)).Do(new SetTime(NightAt)).Run();
-        Assert.Equal((Strip.Temperatures[0] - Day.Chill, 10), (crew.TemperatureAt(Open), crew.Felt(0, Open)));
+        Assert.Equal((Strip.Temperatures[0] - Day.Chill, 8), (crew.TemperatureAt(Open), crew.Felt(0, Open)));
         w.Do(new SetTime(0)).Run();
         Assert.Equal((Strip.Temperatures[0], 0), (crew.TemperatureAt(Open), crew.Felt(0, Open)));
     }
@@ -182,14 +197,14 @@ public class SkyTests
                 if (y == top || x == left || x == right) m.Grid.Place(Cell(x, y), Placement.Wall());
         int inside = Cell(left + 2, floor - 1);
         Assert.Null(m.Grid.BackAt(inside));
-        Assert.Equal(1 + NightCold(), Lost(w, inside, NightAt));
+        Assert.Equal(5 + NightCold(5), Lost(w, inside, NightAt, beats: 5));
     }
 
     [Fact]
     public void TheCapesDegreesLeaveLessOfTheNightsCold()
     {
-        // Over two beats the cape's degrees are whole units of cold: 5 of 10 felt (2026-11-14-temperature-in-degrees).
-        const int beats = 2;
+        // Over ten beats the cape's degrees are whole units of cold: 3 of 8 felt (2026-11-14-temperature-in-degrees).
+        const int beats = 10;
         Assert.True(NightCold(beats, Content.Cape.Warmth) < NightCold(beats));
         Assert.Equal(beats + NightCold(beats, Content.Cape.Warmth), Lost(Down(caped: true), Open, NightAt, beats));
     }
