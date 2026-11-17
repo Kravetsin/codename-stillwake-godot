@@ -30,7 +30,7 @@ finish is `wash.js`, one for every subject.
 
 | Subject | Pictures |
 | --- | --- |
-| `hero` | `hero_<part>`: suits' parts (the regen's lights `_lit`, `_arcs`, `_pip`), limbs by `limbs.js`; `hero_outfit_<n>_<part>`, `_skin` under skin; hair, faces, beards by `LookTint`; cape, jetpack, lamp, sheet, tools; `hero_tracker`, `_light`: white, tinted by Modulate. Top-lit |
+| `hero` | `hero_<part>`: suits' parts (the regen's lights `_lit`, `_arcs`, `_pip`), limbs by `limbs.js`; not the outfits, painted raw (outfits-painted); hair, faces, beards by `LookTint`; cape, jetpack, lamp, sheet, tools; `hero_tracker`, `_light`: white, tinted by Modulate. Top-lit |
 | `catchergear` | catchers' outfits: `hero_catcher<Body>_<part>`, `_arm_lit`; `hero_catcher<Helmet>_shell`, `_visor`, `_lit`, by `HeroKit` |
 | `machines` | `machine_<kind>`, working overlays (fire, fills, bubbles); a `fitting` on its port (`Machines.Ports`); exposes `AnimeKit` |
 | `zfittings` | `pipe_run`, `pipe_<arms>`, valves, sockets, hatches, platforms, ladder, floor, drone, lamps, held tools; after `machines`, for `AnimeKit` |

@@ -399,4 +399,5 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [big-vessels](2026-11-17-big-vessels.md) | The liner and the tanker: vessels of rooms several decks tall | accepted |  |
 | [derelict-looks](2026-11-17-derelict-looks.md) | A derelict looks like a ship someone owned and left | accepted |  |
 | [hidden-rooms](2026-11-17-hidden-rooms.md) | A derelict's rooms are dark till a hero has seen them | accepted |  |
+| [outfits-painted](2026-11-17-outfits-painted.md) | The four outfits are painted raw, worn hard; the hips closer | accepted |  |
 | [shuttle-trip-look](2026-11-17-shuttle-trip-look.md) | The shuttle's trip is seen: «A — Под днищем» | accepted |  |
