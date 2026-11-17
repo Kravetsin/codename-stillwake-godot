@@ -397,6 +397,7 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [surface-storms](2026-11-16-surface-storms.md) | Surface storms | accepted |  |
 | [whole-limbs](2026-11-16-whole-limbs.md) | One picture an arm or leg | accepted |  |
 | [big-vessels](2026-11-17-big-vessels.md) | The liner and the tanker: vessels of rooms several decks tall | accepted |  |
+| [clothes-painted](2026-11-17-clothes-painted.md) | Eleven warm clothes, painted, worn as outfits for now | accepted |  |
 | [derelict-looks](2026-11-17-derelict-looks.md) | A derelict looks like a ship someone owned and left | accepted |  |
 | [hidden-rooms](2026-11-17-hidden-rooms.md) | A derelict's rooms are dark till a hero has seen them | accepted |  |
 | [outfits-painted](2026-11-17-outfits-painted.md) | The four outfits are painted raw, worn hard; the hips closer | accepted |  |
