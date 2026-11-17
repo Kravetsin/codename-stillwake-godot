@@ -97,9 +97,8 @@ reads. Three phases, each its own branch and its own play.
   | heat | −110° | +60° | the heat is its trait |
   | quilted (new) | −150° | +50° | |
 
-- **The quilted suit** is new: the basic suit padded with cloth at the workbench, like the quilted helmet.
-  - **Try:** a placeholder recipe and a tint of the basic suit.
-  - **Ship:** its own look, picked on a page.
+- **The quilted suit and the clothes** are made in another session by the user (2026-11-17). Phase 1 builds the
+  mechanic with today's three suits; once the new items land, their `Low`/`High` are set to this table.
 - **Bare:** `BareLow` 0°, `BareHigh` +30°, as today.
 - **Cards** state the fact: «Выдерживает до −110°», «Жар до +50°».
 
@@ -232,3 +231,84 @@ reads. Three phases, each its own branch and its own play.
   - the Crew README;
   - an ADR superseding `temperature-in-degrees`' air cost, 0050 and the heavy helmet's off-grid guarantee.
 - **Size:** about 500 lines.
+
+## Plan (phase 1)
+
+Built on `feat/mild-climate`. Each step builds and its tests pass before the next.
+
+### 1. Content
+
+- `Temperature`:
+  - `Hull` −100, `Space` −200;
+  - `Bite` out;
+  - in: `Normal` 3700, `Sway` 20, `Pull` 250, `Easy` 200, `ColdDeath` 2800, `HeatDeath` 4200, `Least` 200, each with
+    its `///` saying what it is for.
+- `Field.EdgeCost` and `Field.OffGrid` out; `Field.Margin` stays (the ramp's length).
+- `Items`: `Suit.Basic`, `Suit.Regen` and `Suit.Heat` at `Low: -110`; `High` unchanged.
+
+### 2. Crew (sim)
+
+- **`Hero.Body`:** hundredths off `Normal`, `[JsonInclude, JsonIgnore(WhenWritingDefault)]`, 0 well.
+- **The breath step:** right after `if (!breath) continue;`, a private `Warm(hero)`:
+  - felt = `Felt` or `Heat` at `hero.Cell`;
+  - target = `−Sway × felt` or `+Sway × heat`;
+  - step = `(target − Body) × Pull / 1000`, rounded away from zero, never past the target;
+  - if `Body ≤ ColdDeath − Normal` or `≥ HeatDeath − Normal`: `PassOut(hero); continue;`.
+- **Resets:**
+  - `PassOut` sets `Body = 0`;
+  - the creative branch sets `Body = 0` before its `continue`.
+- **The air section:**
+  - `cold` is `GritAt` alone; `Chills`, `EdgeCost` and the `felt` term go;
+  - the last breath clears on `covered && cold == 0 && burn == 0` and starts on `net < 0 || cold > 0 || burn > 0`, so
+    grit still counts.
+- **Queries** (`ICrewQueries`):
+  - `BodyOf(peer)`: hundredths, `Normal + Body`, `Normal` with no hero;
+  - `MoveOf(peer)` and `WorkOf(peer)`: 1000 within `Easy` of `Normal`, else linear to `Least` at the death lines,
+    computed in `long`, rounded down;
+  - `EdgeCost` out;
+  - docs on `Felt`, `Heat` and `TemperatureAt` updated.
+- `Afloat` is unchanged in code: it already holds at `Space` past `Field.Margin`. Off the grid stays `Space`.
+
+### 3. Client
+
+- **Movement:** `HeroInput` gets `Move` (thousandths), filled in `HeroView.cs` beside `Slowed` from
+  `m.Crew.MoveOf(client.Id)`. `Hero.cs` scales:
+  - `Paced`'s top (times `Slowed`'s);
+  - climb up and down, swim, water swim;
+  - the jetpack's `Accel` and `Top`;
+  - the jump speed (and the ladder's and the water's) by √(Move/1000), so the height scales by `Move`.
+
+  Floats are fine here.
+- **Work:**
+  - `AxeSwing`: the stroke's `PaceMs` × 1000 / `WorkOf`;
+  - `DrillPace.Due`: pace × 1000 / `WorkOf`, rounded up, own drill and others' replay alike (`HeroView.Others.cs`).
+- **Thermometer:**
+  - `Thermometers.Read` carries `Body` (from `BodyOf`) beside the place's degrees;
+  - the number is the body to a tenth, glided (`GlideS` 1.0, snap 0.05°);
+  - depth is `Eased` of the cold share `(Normal − body)/(Normal − ColdDeath)` or the heat share
+    `(body − Normal)/(HeatDeath − Normal)`;
+  - the hover: «Здесь {n}°» and both limits, the crossed one red;
+  - keys in `logic/*.En.cs` and `*.Ru.cs`.
+- **Frost and haze:** `Report.Cold` and `Report.Heat` from the same shares of `BodyOf`; `FeltFull` and the edge share
+  go.
+
+### 4. Tests
+
+- **New:** `BodyTests` (sim) for every scenario in the design's Tests section, and FsCheck for the body never passing
+  its target and the factors staying within [`Least`, 1000].
+- **Updated** wherever cold cost air:
+  - sim: `SkyTests`, `TemperatureTests`, `PlanetRulesTests`, `RegenSuitTests`, `FogBandsTests`, `LavaTests`,
+    `SuitsTests`, `ContentTests`, `ContentTests.Hero`, `FieldTests` (edge cases become the degrees' ramp), and the storm
+    and lightning tests that topped up air against the cold;
+  - client: `ReportTests`, `GustsTests`, `SoundReachTests`.
+
+  Each rewritten assertion asserts the body or the factors, not the air.
+- **Client unit tests:**
+  - `MoveOf` scaling in `Hero.Step`;
+  - the drill and swing pace at 500‰;
+  - the thermometer's shares and text.
+
+### 5. Try
+
+`tools/test.ps1` on `sim/Tests` filters `Body|Temperature|Sky|Field|Suit|Regen|Planet|Lava|Storm|Lightning`, then
+`game.tests`; `dotnet build game`; commit; launch the plain game for the user.
