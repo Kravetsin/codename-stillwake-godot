@@ -571,6 +571,31 @@ public static class Vessels
         public const int BridgeFrom = 8;
     }
 
+    /// <summary>
+    /// Guards aboard an intact vessel (derelict-enemies): a spider asleep in a capsule on a small room's back wall, a robot in a stand on
+    /// a big room's floor. One of a kind for every <see cref="Rule.Per"/> rooms of its size, rounded up, each in a room of its own,
+    /// never the arrival room, nor one where its dock's box fits nowhere clear of every fitting, ladder and shelf.
+    /// </summary>
+    public static class Aboard
+    {
+        /// <summary>
+        /// One kind of guard: its <paramref name="Species"/> (<c>Creatures</c>), one for every <paramref name="Per"/> rooms of its size,
+        /// <paramref name="Big"/> rooms more than a deck tall, else one deck tall; its dock's box, <paramref name="Width"/> columns by
+        /// <paramref name="Height"/> rows, standing on its room's floor, the guard asleep on the floor in the middle of it.
+        /// </summary>
+        public sealed record Rule(string Species, int Per, bool Big, int Width, int Height);
+
+        /// <summary>
+        /// A spider for every five small rooms, its capsule G1 «Зрачок — впадина» 4¾ cells across, its bottom just above the floor; a
+        /// robot for every three big rooms, its stand S1 «Люлька» some 6⅝ cells across and 8 tall.
+        /// </summary>
+        public static readonly Rule Spider = new("spider", Per: 5, Big: false, Width: 5, Height: 5),
+            Robot = new("escort", Per: 3, Big: true, Width: 7, Height: 8);
+
+        /// <summary>In the order a vessel's docks are listed: spiders first.</summary>
+        public static readonly IReadOnlyList<Rule> Rules = [Spider, Robot];
+    }
+
     /// <summary>How the big classes' rooms are furnished by code (big-vessels, the mockup's furnish): sizes in cells, odds in whole percent.</summary>
     public static class Fits
     {

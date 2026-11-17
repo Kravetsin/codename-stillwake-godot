@@ -43,7 +43,7 @@ public static partial class Shipyard
         return new Layout(width, height, rows);
     }
 
-    /// <summary>A local draw of stream <paramref name="stream"/>: describing is 0, damage 1.</summary>
+    /// <summary>A local draw of stream <paramref name="stream"/>: describing is 0, damage 1, the shape 2, the guards 3.</summary>
     private static Rng Draws(VesselClass cls, uint seed, uint stream) =>
         new(new RngState { S = unchecked(seed ^ ((uint)Vessels.IndexOf(cls.Id) + 1) * 0x9E3779B9u ^ (stream + 1) * 0x85EBCA6Bu) });
 
