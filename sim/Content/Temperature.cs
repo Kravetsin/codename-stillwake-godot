@@ -5,7 +5,7 @@ namespace Stillwake.Content;
 /// (<see cref="Surfaces.Kind.Temperatures"/>); a hero withstands down to its body's <c>Low</c>, or <see cref="BareLow"/>
 /// with none, and up to its <c>High</c>, or <see cref="BareHigh"/> (2026-11-14-heat-limits), the cape's <see cref="Cape.Warmth"/> lower
 /// both. Each degree felt past either moves the hero's body (body-temperature): its own temperature, in hundredths of a degree,
-/// drawn toward a target off <see cref="Normal"/> a breath; it passes out at <see cref="ColdDeath"/> or <see cref="HeatDeath"/>.
+/// kept by the hero's client and drawn toward a target off <see cref="Normal"/>; it passes out at <see cref="ColdDeath"/> or <see cref="HeatDeath"/>.
 /// </summary>
 public static class Temperature
 {
@@ -30,8 +30,15 @@ public static class Temperature
     /// <summary>Hundredths of a degree a body settles off <see cref="Normal"/> for each degree felt past a limit.</summary>
     public const int Sway = 20;
 
-    /// <summary>Thousandths of its gap to its target a body closes a breath: a wider gap moves it faster.</summary>
+    /// <summary>Thousandths of its gap to its target a body closes a second, compounded: a wider gap moves it faster, up to <see cref="Drift"/> away from <see cref="Normal"/>.</summary>
     public const int Pull = 250;
+
+    /// <summary>
+    /// The most hundredths of a degree a body moves away from <see cref="Normal"/> a second, however deep the cold or the heat: 37°
+    /// to <see cref="ColdDeath"/> takes 36 s at the least, so a hero flying out too far feels it slow before it dies. Back toward
+    /// normal it is unbounded.
+    /// </summary>
+    public const int Drift = 25;
 
     /// <summary>Hundredths of a degree off <see cref="Normal"/> a body moves and works at full speed within.</summary>
     public const int Easy = 200;

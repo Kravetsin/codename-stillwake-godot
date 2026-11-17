@@ -146,7 +146,6 @@ public class TemperatureTests
         HeroOf(w).Air = 0;
         Breaths(w, 2 * Content.Crew.LastBreath / Content.Crew.BreathEvery);
         Assert.Equal((0, 0), (HeroOf(w).Out, HeroOf(w).Gasp));
-        Assert.Equal(-200, HeroOf(w).Body);
     }
 
     /// <summary>The first planet with every band at <paramref name="degrees"/>: a test's open ground reads them by day.</summary>
@@ -205,8 +204,8 @@ public class TemperatureTests
             Breaths(w, 10);
         }
         Assert.Equal(HeroOf(calm).Air, HeroOf(hot).Air);
-        Assert.Equal(0, HeroOf(calm).Body);
-        Assert.InRange(HeroOf(hot).Body, 1, (caped ? 15 : 10) * Content.Temperature.Sway);
+        Assert.Equal(0, calm.M.Crew.Heat(0, HeroOf(calm).Cell));
+        Assert.Equal(caped ? 15 : 10, hot.M.Crew.Heat(0, HeroOf(hot).Cell));
     }
 
     [Fact]
@@ -219,7 +218,7 @@ public class TemperatureTests
         Assert.Equal(10, w.M.Crew.Heat(0, HeroOf(w).Cell));
         HeroOf(w).Air = 0;
         Breaths(w, 2 * Content.Crew.LastBreath / Content.Crew.BreathEvery);
-        Assert.Equal((0, 0, 200), (HeroOf(w).Out, HeroOf(w).Gasp, HeroOf(w).Body));
+        Assert.Equal((0, 0), (HeroOf(w).Out, HeroOf(w).Gasp));
     }
 
     /// <summary>Any body or none, caped or not, at any degrees a planet may read: the cold and the heat are never felt at once.</summary>
@@ -241,12 +240,12 @@ public class TemperatureTests
     [Fact]
     public void TheColdLeavesTheCapesRemainderForBlowsAlone()
     {
-        // Bare and caped at −10°: 5 felt, the body cooled, the cape's remainder untouched.
+        // Bare and caped at −10°: 5 felt, the cape's remainder untouched.
         var w = InHeat(-10, null, caped: true);
         w.M.Crew.Blow(0, 3, Harm.Blow);
         Assert.Equal(600, HeroOf(w).Spared);
         Breaths(w, 10);
         Assert.Equal(600, HeroOf(w).Spared);
-        Assert.True(HeroOf(w).Body < 0);
+        Assert.Equal(5, w.M.Crew.Felt(0, HeroOf(w).Cell));
     }
 }

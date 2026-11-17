@@ -51,17 +51,9 @@ public static class Report
     public static int Every(bool threatened) => threatened ? Stillwake.Content.Crew.ReportThreatened : Stillwake.Content.Crew.ReportEvery;
 
     /// <summary>
-    /// How cold hero <paramref name="peer"/>'s body is, 0 to 1 (body-temperature): <see cref="ColdOf"/> its <c>BodyOf</c>. What the
-    /// frost on the screen is drawn at.
-    /// </summary>
-    public static float Cold(ICrewQueries crew, int peer) => ColdOf(crew.BodyOf(peer) / 100f);
-
-    /// <summary>How hot hero <paramref name="peer"/>'s body is, 0 to 1: <see cref="HeatOf"/> its <c>BodyOf</c>. What the haze on the screen is drawn at.</summary>
-    public static float Heat(ICrewQueries crew, int peer) => HeatOf(crew.BodyOf(peer) / 100f);
-
-    /// <summary>
-    /// The cold's share at a <paramref name="body"/> of so many degrees, 0 to 1: how far under <c>Temperature.Normal</c> it is of the
-    /// way to <c>ColdDeath</c>, eased out (<see cref="Eased"/>) so a little cold shows plainly.
+    /// The cold's share at a <paramref name="body"/> of so many degrees, 0 to 1 (body-temperature): how far under
+    /// <c>Temperature.Normal</c> it is of the way to <c>ColdDeath</c>, eased out (<see cref="Eased"/>) so a little cold shows plainly.
+    /// What the frost on the screen is drawn at, from the body <c>HeroView</c> keeps.
     /// </summary>
     public static float ColdOf(float body)
     {

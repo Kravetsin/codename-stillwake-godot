@@ -130,7 +130,7 @@ public class RegenSuitTests
     [Fact]
     public void AcrossTheFieldTheBreathIsGivenBackAndTheColdTakesNoAir()
     {
-        // The map in the reference world: half way across its field, −150° on the suit's −110°, the cold cools the body alone
+        // The map in the reference world: half way across its field, −150° on the suit's −110°, the cold felt, not paid in air
         // (body-temperature).
         var w = new Scenario(Layout.Parse(PodRoom).Doubled().InWorld()) { Bare = true }.Wear(0, Helmet.Heavy).Wear(0, Suit.Regen);
         w.Put(Belt, new Stack("battery", 1, Full));
@@ -138,10 +138,9 @@ public class RegenSuitTests
         Assert.Equal(-150, w.M.Crew.TemperatureAt(cell));
         w.Do(new Enter(cell) { From = 0 }).Run().Do(new SuitMode(true) { From = 0 }).Run();
         Breaths(w, 1);
-        int air = HeroOf(w).Air, charge = Charge0(w), body = HeroOf(w).Body;
+        int air = HeroOf(w).Air, charge = Charge0(w);
         Breaths(w, 2);
         Assert.Equal((air, charge - 2 * Cost), (HeroOf(w).Air, Charge0(w)));
-        Assert.True(HeroOf(w).Body < body && body < 0, $"{body} then {HeroOf(w).Body}");
     }
 
     [Fact]

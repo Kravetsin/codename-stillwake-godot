@@ -102,37 +102,28 @@ public class FieldTests
     public void ABasicSuitFeelsNothingInTheZoneAndBreathesThereAsAnywhere()
     {
         var w = Breaths(BroughtIn(At(Left + FieldSpec.Margin, MidY)), 5);
-        Assert.Equal((Scenario.Full - 5, 0, 0), (HeroOf(w).Air, HeroOf(w).Body, w.M.Crew.Felt(0, HeroOf(w).Cell)));
+        Assert.Equal((Scenario.Full - 5, 0), (HeroOf(w).Air, w.M.Crew.Felt(0, HeroOf(w).Cell)));
     }
 
     [Fact]
-    public void PastTheFieldTheColdCostsNoAirAndPassesASuitedHeroOutByItsBody()
+    public void PastTheFieldTheColdCostsNoAirAndIsFeltNinetyDegreesPastABasicSuit()
     {
-        // Space's −200° on a basic suit's −110°: 90 felt, a target of 37 − 18 = 19°; 37 → 32.5 → 29.12 → 26.59, out on the third.
+        // Space's −200° on a basic suit's −110°: 90 felt, for the client's body to cool by; the air pays the breath alone.
         foreach (int cell in new[] { At(Left - 1, MidY), At(0, MidY), At(MidX, 0), -5 })
         {
-            var w = Breaths(BroughtIn(cell), 2);
-            Assert.Equal((Scenario.Full - 2, -788, 0), (HeroOf(w).Air, HeroOf(w).Body, HeroOf(w).Out));
-            Breaths(w, 1);
-            Assert.Equal((Content.Crew.PassOut, 0, 0), (HeroOf(w).Out, HeroOf(w).Body, HeroOf(w).Gasp));
-            // Out on a breath's tick, it wakes on one: looked at then, before the next breath is paid.
-            w.Run(Content.Crew.PassOut - 1);
-            Assert.Equal(1, HeroOf(w).Out);
-            w.Run();
-            Assert.Equal((w.M.Crew.Spawn, Scenario.Full, 0, 0), (HeroOf(w).Cell, HeroOf(w).Air, HeroOf(w).Out, HeroOf(w).Body));
-            Assert.True(w.M.Crew.ByPod(HeroOf(w).Cell));
+            var w = Breaths(BroughtIn(cell), 3);
+            Assert.Equal((Scenario.Full - 3, 0, 0, 90), (HeroOf(w).Air, HeroOf(w).Out, HeroOf(w).Gasp, w.M.Crew.Felt(0, cell)));
         }
     }
 
     [Fact]
-    public void StopsCoolingOnTheTickTheReportFromInsideLands()
+    public void ACellsColdIsFeltFromTheTickTheReportFromItLands()
     {
-        // Half way across the field, −150° on −110°: 40 felt, a target of −800; a breath closes a quarter, −200.
+        // Half way across the field, −150° on −110°: 40 felt; back in the zone, nothing, on the tick the report lands.
         var w = Breaths(BroughtIn(At(Left + FieldSpec.Margin / 2, MidY)), 1);
-        Assert.Equal((-200, Scenario.Full - 1), (HeroOf(w).Body, HeroOf(w).Air));
-        // Back in the zone on the breath's tick: nothing felt, it warms a quarter of its gap home.
+        Assert.Equal((40, Scenario.Full - 1), (w.M.Crew.Felt(0, HeroOf(w).Cell), HeroOf(w).Air));
         ToBreath(w).Do(new Enter(At(Left + FieldSpec.Margin + 10, MidY)) { From = 0 }).Run();
-        Assert.Equal((-150, Scenario.Full - 2), (HeroOf(w).Body, HeroOf(w).Air));
+        Assert.Equal((0, Scenario.Full - 2), (w.M.Crew.Felt(0, HeroOf(w).Cell), HeroOf(w).Air));
     }
 
     [Fact]
@@ -142,10 +133,10 @@ public class FieldTests
         int cell = At(Left + FieldSpec.Margin / 2, MidY);
         w.Do(new Enter(cell) { From = 0 }).Do(new Enter(cell) { From = 1 }).Do(new Thrust(true) { From = 0 }).Run();
         Breaths(w, 1);
-        // Hero 1 breathes; hero 0 too, and vents 20 ticks of thrust on top; the cold takes neither's air, it cools both bodies alike.
+        // Hero 1 breathes; hero 0 too, and vents 20 ticks of thrust on top; the cold takes neither's air, felt by both alike.
         Assert.Equal(Scenario.Full - 1, HeroOf(w, 1).Air);
         Assert.Equal(Scenario.Full - 1 - Content.Crew.BreathEvery / JetpackSpec.TicksPerUnit, HeroOf(w, 0).Air);
-        Assert.Equal((-200, -200), (HeroOf(w, 0).Body, HeroOf(w, 1).Body));
+        Assert.Equal((40, 40), (w.M.Crew.Felt(0, cell), w.M.Crew.Felt(1, cell)));
     }
 
     [Fact]

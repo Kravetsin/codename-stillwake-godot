@@ -361,6 +361,11 @@ public partial class HeroView : Node2D
     /// <summary>Whether this machine's hero is passed out, as the sim said this frame: it picks nothing up and its inventory closes.</summary>
     public bool PassedOut => _wasOut;
 
+    private readonly BodyHeat _body = new();
+
+    /// <summary>This machine's hero's body temperature in degrees (body-temperature): kept here, never by the sim.</summary>
+    public float Body => _body.Degrees;
+
     /// <summary>Whether the hero stands in the world yet: until its first frame in a session, <see cref="Current"/> is nowhere.</summary>
     public bool Placed => _placed;
 
@@ -459,6 +464,13 @@ public partial class HeroView : Node2D
             _snap = true;
         }
         _wasOut = passedOut;
+        // The body (body-temperature), from the degrees the sim says it feels where it stands; at either death the sim is told.
+        if (known == null || passedOut || m.Items.Creative(client.Id)) _body.Reset();
+        else if (_body.Step(elapsedMs / 1000, m.Crew.Felt(client.Id, _current.BodyCell(grid.Width)), m.Crew.Heat(client.Id, _current.BodyCell(grid.Width))))
+        {
+            client.Send(new Sim.Crew.Succumb());
+            _body.Reset();
+        }
         // The hero faces the pointer's side and looks at it, read where the camera was last frame.
         var pointed = Pointer();
         int? face = Poses.FaceOf(pointed, _current);
@@ -499,7 +511,7 @@ public partial class HeroView : Node2D
                     Jetpack = jetpack,
                     Thrust = thrust,
                     Slowed = 1000 - m.Crew.PaceAt(_current.BodyCell(ship.Width)),
-                    Move = m.Crew.MoveOf(client.Id),
+                    Move = BodyHeat.SpeedOf(Body),
                 };
             // Rammed, the hero is thrown, not walked: no keys, no ladder, a held Up or Space taken by nothing (0103).
             if (_reel > 0)
@@ -536,7 +548,7 @@ public partial class HeroView : Node2D
         if (!passedOut && Report.ExertOf(m.Crew, client.Id, exerting) is { } exert) client.Send(exert);
         // Off as Shift is let go, aboard, the jetpack taken off or the suit empty: the sim stops venting it.
         // A cruise at full speed along the thrust is free (jet-cruise): only a start, turn, brake or dodge vents the suit.
-        _venting = _thrust is { } dir && !Hero.Cruising(_current.Vx, _current.Vy, dir, m.Crew.MoveOf(client.Id));
+        _venting = _thrust is { } dir && !Hero.Cruising(_current.Vx, _current.Vy, dir, BodyHeat.SpeedOf(Body));
         if (Report.ThrustOf(m.Crew, client.Id, _venting) is { } thrusts) client.Send(thrusts);
         HearThrust(elapsedMs);
         for (int burnt = _burns.Due(elapsedMs, Burns(m, known), 1 / S.LavaBurnEveryS); burnt > 0; burnt--) _burn.Play();

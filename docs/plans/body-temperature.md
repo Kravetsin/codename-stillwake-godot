@@ -151,6 +151,20 @@ The speeds are rounded for display.
   private to the breath step.
 - **Determinism:** integers only; `long` where products may grow.
 
+### Changed after the first play: the body lives on the client
+
+Playing it, flying fast out past the field killed the hero in three seconds, with no chance to notice, and its loot lay where
+nobody could fetch it. Two changes:
+
+- **The body is the client's.** `BodyHeat` in `game/features/crew/logic/` keeps it each frame from the sim's `Felt` and `Heat`
+  where the hero stands; at either death the client sends `Succumb`, which passes the hero out as any death does. The sim keeps
+  the degrees, the limits and the command; it no longer holds, saves or hashes a body. Co-op among friends trusts the client
+  with this as it does with the hero's movement.
+- **Cooling is capped.** Away from normal the body moves at most `Temperature.Drift` (0.25°) a second: death from 37° takes
+  36 s at the least, slowing starts some 8 s in. Back toward normal it is unbounded, so the warmth brings it back fast.
+- **Accepted:** others' strokes and drills are drawn at full pace (only the picture: what breaks is decided by its own client);
+  a rejoin starts the body well; nothing of the body reaches another peer.
+
 ## Phase 2: weight and gravity
 
 - **Weight.** An item may have a `Weight`: thousandths of movement it takes at the ship's gravity.

@@ -1,4 +1,3 @@
-using System.Text.Json.Nodes;
 using Stillwake.Game.Features.Crew;
 using Stillwake.Sim.Crew;
 using Xunit;
@@ -38,9 +37,8 @@ public class DangerTests
             """).Doubled());
         // A cell in the room past the pod's reach: the block (7, 3)'s bottom right, the map doubled (0104).
         int byPod = w.M.Crew.Spawn, away = 7 * 18 + 15;
-        // In a basic suit and no helmet: low by the lungs' capacity, the suit adding none, its body warm by the hull (body-temperature).
+        // Bare, as a peer's first heroes are: low by the lungs' capacity.
         int lungs = Suits.Lungs, low = (int)Math.Ceiling(lungs * Danger.Low) - 1;
-        w.Edit(root => root["slices"]!["items"]!["inventories"] = new JsonArray(Suited(0), Suited(1)));
         w.Step(new Enter(away) { From = 0 }).Step(new Enter(away) { From = 1 });
         while (w.M.Crew.HeroOf(0)!.Air > low) w.Step();
         w.Step(new Enter(byPod) { From = 1 });
@@ -48,16 +46,6 @@ public class DangerTests
         Assert.Equal((lungs, SuitDanger.Low, false), (read.Capacity, read.Danger, read.InAir));
         Assert.True(read.Air <= low);
         Assert.Equal(SuitDanger.None, Danger.Read(w.M.Crew, w.M.Atmosphere, 1).Danger);
-    }
-
-    /// <summary>Peer <paramref name="peer"/>'s inventory as saved: a basic suit worn, nothing else.</summary>
-    private static JsonObject Suited(int peer)
-    {
-        var slots = new JsonArray();
-        int worn = Stillwake.Content.Inventory.Slots + Stillwake.Content.Inventory.Equipment.ToList().IndexOf(Stillwake.Content.Suit.Slot);
-        for (int i = 0; i < Stillwake.Content.Inventory.Total; i++)
-            slots.Add(i == worn ? new JsonObject { ["item"] = Stillwake.Content.Suit.Basic, ["count"] = 1 } : null);
-        return new JsonObject { ["id"] = peer, ["slots"] = slots };
     }
 
     [Fact]

@@ -98,12 +98,11 @@ public class ThermometerTests
         int spawn = w.M.Crew.Spawn, suit = Spec.Inventory.Slots + Spec.Inventory.Equipment.ToList().IndexOf(Spec.Suit.Slot);
         w.Step(new Enter(spawn) { From = 0 });
         Assert.Equal(
-            new ThermometerReading(Spec.Temperature.Hull, Spec.Temperature.BareLow, Spec.Temperature.BareHigh, -Spec.Temperature.Hull, 0, w.M.Crew.BodyOf(0)),
-            Thermometers.Read(w.M.Crew, 0, spawn));
+            new ThermometerReading(Spec.Temperature.Hull, Spec.Temperature.BareLow, Spec.Temperature.BareHigh, -Spec.Temperature.Hull, 0, 3512),
+            Thermometers.Read(w.M.Crew, 0, spawn, 35.12f));
         w.Step(new Sim.Items.SetCreative(true), new Sim.Items.Spawn(Spec.Suit.Basic, 1) { From = 0 });
         int bag = w.M.Items.Inventory(0).ToList().FindIndex(s => s?.Item == Spec.Suit.Basic);
         w.Step(new Sim.Items.Move(new Sim.Items.Place(bag), new Sim.Items.Target(suit), 1) { From = 0 });
-        // Creative holds the body at its normal (body-temperature).
-        Assert.Equal(new ThermometerReading(Spec.Temperature.Hull, -110, 50, 0, 0, Spec.Temperature.Normal), Thermometers.Read(w.M.Crew, 0, spawn));
+        Assert.Equal(new ThermometerReading(Spec.Temperature.Hull, -110, 50, 0, 0, Spec.Temperature.Normal), Thermometers.Read(w.M.Crew, 0, spawn, BodyHeat.Normal));
     }
 }

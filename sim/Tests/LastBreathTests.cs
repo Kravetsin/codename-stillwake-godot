@@ -55,20 +55,14 @@ public class LastBreathTests
     }
 
     [Fact]
-    public void BareInVacuumTheColdPassesAHeroOutBeforeItsAirRunsDry()
+    public void BareTheColdCutsNoLastBreath()
     {
-        // The body freezes in a few breaths (body-temperature), long before the air or a last breath runs out.
-        var w = new Scenario(PodRoom) { Bare = true };
-        w.Do(new Enter(Beyond) { From = 0 }).Run();
-        int breaths = 0;
-        while (HeroOf(w).Out == 0 && breaths < 10)
-        {
-            Assert.Equal(0, HeroOf(w).Gasp);
-            Breaths(w, 1);
-            breaths++;
-        }
+        // The cold moves the body, which the client keeps, never the air (body-temperature).
+        var w = Dry(bare: true);
+        w.Run(Content.Crew.LastBreath - 1);
+        Assert.Equal((1, 0), (HeroOf(w).Gasp, HeroOf(w).Out));
+        w.Run();
         Assert.Equal(Content.Crew.PassOut, HeroOf(w).Out);
-        Assert.InRange(breaths, 1, 4);
     }
 
     [Fact]

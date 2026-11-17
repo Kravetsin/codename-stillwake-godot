@@ -70,12 +70,12 @@ public class CapeTests
     }
 
     [Fact]
-    public void BareInVacuumTheCapeAddsFiveDegreesSoTheBodyCoolsSlowerAndTheAirPaysTheBreathAlone()
+    public void BareInVacuumTheCapeTakesFiveDegreesOffTheColdFeltAndTheAirPaysTheBreathAlone()
     {
-        // The hull's −100° on a bare hero's 0°: 100 felt, a breath to 32.0°; caped, 95, to 32.25° (body-temperature).
+        // The hull's −100° on a bare hero's 0°: 100 felt; caped, 95 (body-temperature).
         var bare = InVacuum(caped: false);
         var caped = InVacuum(caped: true);
-        Assert.Equal((-500, -475), (HeroOf(bare).Body, HeroOf(caped).Body));
+        Assert.Equal((100, 95), (bare.M.Crew.Felt(0, HeroOf(bare).Cell), caped.M.Crew.Felt(0, HeroOf(caped).Cell)));
         Assert.Equal((Lungs - 1, Lungs - 1), (HeroOf(bare).Air, HeroOf(caped).Air));
         // The cold is no blow: nothing of it is kept for the cape's guard.
         Assert.Equal(0, HeroOf(caped).Spared);
@@ -237,7 +237,7 @@ public class CapeTests
             foreach (var s in all)
             {
                 var hero = HeroOf(w);
-                (hero.Air, hero.Body) = (Lungs, 0);
+                hero.Air = Lungs;
                 int kept = hero.Spared;
                 bool worn = w.M.Items.Equipped(0, Cape);
                 (int Charged, int Kept) Soften(int units, int share)

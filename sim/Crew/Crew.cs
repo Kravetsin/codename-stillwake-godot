@@ -60,6 +60,12 @@ public sealed record Eat(string Item) : Command;
 public sealed record Purge : Command;
 
 /// <summary>
+/// The sender's hero passes out of its body's cold or heat (body-temperature): its client keeps the body, from the degrees the sim
+/// says it feels, and sends this as it reaches <c>Temperature.ColdDeath</c> or <c>HeatDeath</c>.
+/// </summary>
+public sealed record Succumb : Command;
+
+/// <summary>
 /// The sender's hero switches its suit's mode on (<c>On</c>) or off: V, or its key on the tablet's edge; on only in a body
 /// with <c>Switch</c> (2026-11-03-the-regen-suit).
 /// </summary>
@@ -82,7 +88,7 @@ public interface ICrewQueries
     /// <paramref name="cell"/>'s temperature in degrees (2026-11-14-temperature-in-degrees): <c>Temperature.Space</c> off the grid,
     /// <c>Temperature.Room</c> aired; afloat <c>Temperature.Hull</c> by the ship, falling to space's at the field's line and holding
     /// past it (body-temperature); on a planet its depth's (<c>Terrain.TemperatureOf</c>), the top band <c>SkyNow.Chill</c> colder
-    /// where the cell has no back wall. What moves a hero's body (<see cref="BodyOf"/>).
+    /// where the cell has no back wall. What moves a hero's body, which its client keeps.
     /// </summary>
     int TemperatureAt(int cell);
     /// <summary>
@@ -102,7 +108,7 @@ public interface ICrewQueries
     int LowOf(int peer);
     /// <summary>
     /// The degrees <paramref name="cell"/> is colder than hero <paramref name="peer"/> withstands (<see cref="LowOf"/>), 0 within
-    /// it, and 0 with no hero: each draws its body <c>Temperature.Sway</c> hundredths under <c>Temperature.Normal</c> (body-temperature).
+    /// it, and 0 with no hero: each draws its body, kept by its client, <c>Temperature.Sway</c> hundredths under <c>Temperature.Normal</c> (body-temperature).
     /// </summary>
     int Felt(int peer, int cell);
     /// <summary>
@@ -112,26 +118,12 @@ public interface ICrewQueries
     int HighOf(int peer);
     /// <summary>
     /// The degrees <paramref name="cell"/> is hotter than hero <paramref name="peer"/> withstands (<see cref="HighOf"/>), 0 within
-    /// it, and 0 with no hero: each draws its body <c>Temperature.Sway</c> hundredths over <c>Temperature.Normal</c>, never felt
+    /// it, and 0 with no hero: each draws its body, kept by its client, <c>Temperature.Sway</c> hundredths over <c>Temperature.Normal</c>, never felt
     /// with <see cref="Felt"/> at once (body-temperature).
     /// </summary>
     int Heat(int peer, int cell);
-    /// <summary>
-    /// Hero <paramref name="peer"/>'s body temperature in hundredths of a degree (body-temperature): <c>Temperature.Normal</c> well
-    /// and with no hero. What the thermometer, the frost and the haze show.
-    /// </summary>
-    int BodyOf(int peer);
-    /// <summary>
-    /// The thousandths of its speed hero <paramref name="peer"/> moves at by its body (body-temperature): 1000 within
-    /// <c>Temperature.Easy</c> of <c>Temperature.Normal</c>, falling straight to <c>Temperature.Least</c> at <c>ColdDeath</c> and
-    /// <c>HeatDeath</c>; 1000 with no hero or one passed out. The client scales its own hero's movement by it; the sim never reads it.
-    /// </summary>
-    int MoveOf(int peer);
-    /// <summary>
-    /// The thousandths of its speed hero <paramref name="peer"/> works its hand tools at by its body (body-temperature): as
-    /// <see cref="MoveOf"/>. The client times each stroke and run tool by it; the sim never reads it.
-    /// </summary>
-    int WorkOf(int peer);
+    /// <summary>Why hero <paramref name="peer"/> cannot succumb to its body's cold or heat now (<see cref="Succumb"/>); null when it can.</summary>
+    string? SuccumbProblem(int peer);
     /// <summary>Hero <paramref name="id"/>, played by that peer; null while the sim has none (TypeScript's <c>hero</c>).</summary>
     Hero? HeroOf(int id);
     /// <summary>Every hero, in id order: live and read-only, for counting who breathes where.</summary>
@@ -287,6 +279,7 @@ public sealed partial class CrewModule : Module<CrewState>, ICrewQueries, ICrewO
             hero.Eaten.Clear();
             hero.Purges += 1;
         });
+        Handles<Succumb>(c => SuccumbProblem(c.From), c => PassOut(HeroOf(c.From)!));
         Handles<SuitMode>(c => c.On ? SuitModeProblem(c.From) : HeroOf(c.From) == null ? "crew.noHero" : null, c => HeroOf(c.From)!.SuitOn = c.On);
         Handles<Track>(c => HeroOf(c.From) == null ? "crew.noHero" : null, c => Track(HeroOf(c.From)!, c.Short));
         // After atmosphere in the simulation phase, so a breath reads this tick's air.
@@ -332,10 +325,9 @@ public sealed partial class CrewModule : Module<CrewState>, ICrewQueries, ICrewO
                 if (breath) Drain(hero);
                 if (_items.Creative(hero.Id))
                 {
-                    // A creative peer's air is endless, its body well, and its hero takes no room's air.
+                    // A creative peer's air is endless, and its hero takes no room's air.
                     hero.Air = capacity;
                     hero.Gasp = 0;
-                    hero.Body = 0;
                     continue;
                 }
                 // The last breath (2026-11-05-the-last-breath): any air back ends it; run down, the hero passes out.
@@ -346,7 +338,6 @@ public sealed partial class CrewModule : Module<CrewState>, ICrewQueries, ICrewO
                     continue;
                 }
                 if (!breath) continue;
-                if (Warm(hero)) continue;
                 // The pod's air first, for the breath and the suit alike; then one draw from the room for
                 // what is left of both, the room's refill as before. What the air falls short of the breath the
                 // hero's own air pays, and the cold after that, its own air alone.
@@ -411,23 +402,6 @@ public sealed partial class CrewModule : Module<CrewState>, ICrewQueries, ICrewO
         hero.Hurt = harm;
     }
 
-    /// <summary>
-    /// A breath of <paramref name="hero"/>'s body (body-temperature): it closes <c>Temperature.Pull</c> thousandths of its gap to
-    /// what the degrees it feels draw it to, <c>Temperature.Sway</c> hundredths a degree off <c>Normal</c>, rounded away from zero so
-    /// it lands exactly; at <c>ColdDeath</c> or <c>HeatDeath</c> it passes out. True when it has.
-    /// </summary>
-    private bool Warm(Hero hero)
-    {
-        int target = Content.Temperature.Sway * (Heat(hero.Id, hero.Cell) - Felt(hero.Id, hero.Cell));
-        long s = (long)(target - hero.Body) * Content.Temperature.Pull;
-        int step = (int)(s >= 0 ? (s + 999) / 1000 : -((-s + 999) / 1000));
-        hero.Body = step >= 0 ? Math.Min(target, hero.Body + step) : Math.Max(target, hero.Body + step);
-        int normal = Content.Temperature.Normal;
-        if (hero.Body > Content.Temperature.ColdDeath - normal && hero.Body < Content.Temperature.HeatDeath - normal) return false;
-        PassOut(hero);
-        return true;
-    }
-
     /// <summary>Passing out is death (0061): what it carried stays where it fell, off the grid at the spawn.</summary>
     private void PassOut(Hero hero)
     {
@@ -439,7 +413,6 @@ public sealed partial class CrewModule : Module<CrewState>, ICrewQueries, ICrewO
         hero.Eaten.Clear();
         hero.Owed = 0;
         hero.Worked = 0;
-        hero.Body = 0;
         CallOff(hero);
         hero.Exerting = false;
         hero.Thrusting = false;
@@ -532,6 +505,9 @@ public sealed partial class CrewModule : Module<CrewState>, ICrewQueries, ICrewO
     }
 
     /// <summary>Why hero <paramref name="peer"/> could not purge: none, or out (<c>crew.noHero</c>), or nothing eaten (<c>crew.noMeals</c>). Null when it could.</summary>
+    // A creative hero never freezes: its client keeps its body well, so one sent anyway is a stale one.
+    public string? SuccumbProblem(int peer) => HeroOf(peer) is not { Out: 0 } || _items.Creative(peer) ? "crew.noHero" : null;
+
     public string? PurgeProblem(int peer)
     {
         if (HeroOf(peer) is not { Out: 0 } hero) return "crew.noHero";
@@ -630,20 +606,6 @@ public sealed partial class CrewModule : Module<CrewState>, ICrewQueries, ICrewO
     public int Felt(int peer, int cell) => HeroOf(peer) == null ? 0 : Math.Max(0, LowOf(peer) - TemperatureAt(cell));
 
     public int Heat(int peer, int cell) => HeroOf(peer) == null ? 0 : Math.Max(0, TemperatureAt(cell) - HighOf(peer));
-
-    public int BodyOf(int peer) => Content.Temperature.Normal + (HeroOf(peer)?.Body ?? 0);
-
-    public int MoveOf(int peer)
-    {
-        if (HeroOf(peer) is not { Out: 0 } hero) return 1000;
-        int normal = Content.Temperature.Normal, easy = Content.Temperature.Easy, least = Content.Temperature.Least;
-        int span = hero.Body < 0 ? normal - Content.Temperature.ColdDeath - easy : Content.Temperature.HeatDeath - normal - easy;
-        int off = Math.Abs(hero.Body) - easy;
-        // Within Easy off is negative and the speed clamps to whole; past it the share taken is rounded down.
-        return Math.Clamp(1000 - (int)((long)off * (1000 - least) / span), least, 1000);
-    }
-
-    public int WorkOf(int peer) => MoveOf(peer);
 
     private string? ColourProblem(int peer, int colour)
     {

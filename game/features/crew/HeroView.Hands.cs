@@ -116,7 +116,7 @@ public partial class HeroView
         var swingAt = pointer is { } aimed ? Aiming.PointOf(aimed) : default;
         var place = AxeSwing.PlaceOf(_current);
         double? angle = wanted ? AimAngle(_figure, AxeSwing.OffsetOf(swingAt, place), _current) : null;
-        var swung = _swing.Advance(elapsedMs, wanted, swingAt, place, stroke, angle, AxeSwing.SlowOf(m.Crew.WorkOf(client.Id)));
+        var swung = _swing.Advance(elapsedMs, wanted, swingAt, place, stroke, angle, AxeSwing.SlowOf(BodyHeat.SpeedOf(Body)));
         if (swung.Begun)
         {
             _swingFace = AxeSwing.FaceOf(_swing.Aim, _current);
@@ -236,7 +236,7 @@ public partial class HeroView
     /// </summary>
     private void Drill(Client client, Registry m, EdgeHit? hit, string? drill)
     {
-        if (!_drillPace.Due(client.World.Tick, hit != null && drill != null, DrillPace.Slowed(Content.Weapons.Of(drill)?.Pace ?? 1, m.Crew.WorkOf(client.Id)))) return;
+        if (!_drillPace.Due(client.World.Tick, hit != null && drill != null, DrillPace.Slowed(Content.Weapons.Of(drill)?.Pace ?? 1, BodyHeat.SpeedOf(Body)))) return;
         var sent = ToolEdges.CommandsOf(m, client.Id, drill!, hit!);
         if (sent.Cells is { } cells)
         {

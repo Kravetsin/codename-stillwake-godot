@@ -36,13 +36,12 @@ public class SkyTests
     private static int Beat => Strip.ThinAir!.Value * Content.Crew.BreathEvery;
 
     /// <summary>
-    /// Where the night's cold under the open sky settles the body of a hero with no suit, <paramref name="warmth"/> degrees lower with
-    /// a cape: <c>Sway</c> hundredths under its normal a degree felt past the bare body's limit (body-temperature).
+    /// The degrees the night under the open sky is felt past the limit of a hero with no suit, <paramref name="warmth"/> fewer with a
+    /// cape: what draws its body, which its client keeps (body-temperature).
     /// </summary>
-    private static int NightBody(int warmth = 0) =>
-        -Content.Temperature.Sway * (Content.Temperature.BareLow - warmth - (Strip.Temperatures[0] - Day.Chill));
+    private static int NightFelt(int warmth = 0) => Content.Temperature.BareLow - warmth - (Strip.Temperatures[0] - Day.Chill);
 
-    private static int BodyOf(Scenario w) => w.On(1).Crew.HeroOf(0)!.Body;
+    private static int FeltOf(Scenario w) => w.On(1).Crew.Felt(0, w.On(1).Crew.HeroOf(0)!.Cell);
 
     /// <summary>
     /// The ship with the strip opened and hero 0 beamed down to it in a helmet and no suit, wearing the cape when <paramref name="caped"/>:
@@ -136,19 +135,19 @@ public class SkyTests
     }
 
     [Fact]
-    public void AtNightAHeroUnderTheOpenSkyCoolsItsBodyAndPaysOnlyThinAir()
+    public void AtNightAHeroUnderTheOpenSkyFeelsTheColdAndPaysOnlyThinAir()
     {
         // 8 degrees felt settle a bare body at 35.4° within five beats, its air paying thin air alone (body-temperature).
-        Assert.Equal(-160, NightBody());
+        Assert.Equal(8, NightFelt());
         var day = Down();
-        Assert.Equal((5, 0), (Lost(day, Open, 0, beats: 5), BodyOf(day)));
+        Assert.Equal((5, 0), (Lost(day, Open, 0, beats: 5), FeltOf(day)));
         var night = Down();
-        Assert.Equal((5, NightBody()), (Lost(night, Open, NightAt, beats: 5), BodyOf(night)));
+        Assert.Equal((5, NightFelt()), (Lost(night, Open, NightAt, beats: 5), FeltOf(night)));
         var longer = Down();
-        Assert.Equal((10, NightBody()), (Lost(longer, Open, NightAt, beats: 10), BodyOf(longer)));
+        Assert.Equal((10, NightFelt()), (Lost(longer, Open, NightAt, beats: 10), FeltOf(longer)));
         // Late in the night, five beats before dawn, it still bites.
         var late = Down();
-        Assert.Equal((5, NightBody()), (Lost(late, Open, Day.Length - 6 * Beat, beats: 5), BodyOf(late)));
+        Assert.Equal((5, NightFelt()), (Lost(late, Open, Day.Length - 6 * Beat, beats: 5), FeltOf(late)));
     }
 
     [Fact]
@@ -179,11 +178,11 @@ public class SkyTests
         // The shelter cut into the cliff's foot, where heroes beam down: its back the rock.
         int shelter = w.On(1).Crew.Spawn;
         Assert.NotNull(w.On(1).Grid.BackAt(shelter));
-        Assert.Equal((1, 0), (Lost(w, shelter, NightAt), BodyOf(w)));
+        Assert.Equal((1, 0), (Lost(w, shelter, NightAt), FeltOf(w)));
         // A back wall put up over a cell of the open flat shelters it as well.
         var v = Down();
         v.On(1).Grid.Place(Open, Placement.BackWall());
-        Assert.Equal((1, 0), (Lost(v, Open, NightAt), BodyOf(v)));
+        Assert.Equal((1, 0), (Lost(v, Open, NightAt), FeltOf(v)));
     }
 
     [Fact]
@@ -198,7 +197,7 @@ public class SkyTests
                 if (y == top || x == left || x == right) m.Grid.Place(Cell(x, y), Placement.Wall());
         int inside = Cell(left + 2, floor - 1);
         Assert.Null(m.Grid.BackAt(inside));
-        Assert.Equal((5, NightBody()), (Lost(w, inside, NightAt, beats: 5), BodyOf(w)));
+        Assert.Equal((5, NightFelt()), (Lost(w, inside, NightAt, beats: 5), FeltOf(w)));
     }
 
     [Fact]
@@ -206,9 +205,9 @@ public class SkyTests
     {
         // 3 of 8 felt with the cape (2026-11-14-temperature-in-degrees): its body settles at 36.4°, its air paying thin air alone.
         const int beats = 10;
-        Assert.Equal(-60, NightBody(Content.Cape.Warmth));
+        Assert.Equal(3, NightFelt(Content.Cape.Warmth));
         var w = Down(caped: true);
-        Assert.Equal((beats, NightBody(Content.Cape.Warmth)), (Lost(w, Open, NightAt, beats), BodyOf(w)));
+        Assert.Equal((beats, NightFelt(Content.Cape.Warmth)), (Lost(w, Open, NightAt, beats), FeltOf(w)));
     }
 
     [Fact]

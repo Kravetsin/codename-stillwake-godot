@@ -64,7 +64,7 @@ public partial class HeroView
             double? angle = stroke != null && chop is { At: var sentAt } ? AimAngle(shown.Figure, AxeSwing.OffsetOf(sentAt, heard.From), hero) : null;
             // Its blade heard and seen where it bites the ground as it is played here, as its own peer strikes it (0093, tool-reach),
             // in the front layer: which button its peer swings with is not sent.
-            bool hits = shown.Swing.Follow(elapsedMs, stroke != null ? chop : null, heard.From, stroke, angle, AxeSwing.SlowOf(crew.WorkOf(id))).Hits;
+            bool hits = shown.Swing.Follow(elapsedMs, stroke != null ? chop : null, heard.From, stroke, angle).Hits;
             // Swinging, it faces the side its stroke is aimed at, however its delayed body was turned.
             if (shown.Swing.Phase != null) hero = hero with { Facing = AxeSwing.FaceOf(shown.Swing.Aim, hero) };
             if (hits) StruckBy(m, id, hero, shown.Swing.Toward(hero), strikes!);
@@ -73,7 +73,7 @@ public partial class HeroView
             bool drills = HeldLook.IsDrill(running) && seen.Busy is { Work: Handwork.Drill };
             var edged = drills ? EdgeOf(m, hero, running!, shown.Figure) : null;
             shown.Work = drills ? WorkOf(m, id, hero, edged, running!, shown.Figure) : null;
-            if (shown.Drill.Due(_client.World.Tick, drills, DrillPace.Slowed(Content.Weapons.Of(running)?.Pace ?? 1, crew.WorkOf(id))) && edged != null
+            if (shown.Drill.Due(_client.World.Tick, drills, Content.Weapons.Of(running)?.Pace ?? 1) && edged != null
                 && m.Items.BlockDamage(id, running!) != 0 && ToolEdges.LeadOf(m, edged) is int lead)
                 Struck(_othersGroundHits, m, lead, running!, hero, id);
             // Its stroke shown only while the body drawn, 150 ms behind, holds the tool it was heard swinging.

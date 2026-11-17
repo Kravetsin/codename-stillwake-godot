@@ -216,17 +216,4 @@ public class ReportTests
         for (float body = 37; body > 28; body -= 0.1f) Assert.True(Report.ColdOf(body - 0.1f) >= Report.ColdOf(body), $"{body}");
     }
 
-    [Fact]
-    public void DrawsNoFrostOnAWellBodyThenTheBodysAsTheColdTakesItAndNoneWithNoHero()
-    {
-        // A bare hero by the hull: well when it comes in, its body cooling breath by breath, the frost drawn from it alone.
-        var w = new TestWorld(Layout.Parse(["S"]).InWorld());
-        Assert.Equal(0f, Report.Cold(w.M.Crew, 0));
-        w.Step(new Enter(w.M.Crew.Spawn) { From = 0 });
-        for (int t = 0; t < 2 * Stillwake.Content.Crew.BreathEvery && w.M.Crew.BodyOf(0) == Stillwake.Content.Temperature.Normal; t++) w.Step();
-        float body = w.M.Crew.BodyOf(0) / 100f;
-        Assert.True(body < 37);
-        Assert.Equal((Report.ColdOf(body), 0f), (Report.Cold(w.M.Crew, 0), Report.Heat(w.M.Crew, 0)));
-        Assert.True(Report.Cold(w.M.Crew, 0) > 0);
-    }
 }

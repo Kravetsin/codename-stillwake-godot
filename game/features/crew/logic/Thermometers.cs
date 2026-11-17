@@ -22,9 +22,9 @@ public readonly record struct ThermometerReading(int Degrees, int Low, int High,
 /// </summary>
 public static class Thermometers
 {
-    /// <summary>What the thermometer reads for hero <paramref name="peer"/> at <paramref name="cell"/>, its body's.</summary>
-    public static ThermometerReading Read(ICrewQueries crew, int peer, int cell) =>
-        new(crew.TemperatureAt(cell), crew.LowOf(peer), crew.HighOf(peer), crew.Felt(peer, cell), crew.Heat(peer, cell), crew.BodyOf(peer));
+    /// <summary>What the thermometer reads for hero <paramref name="peer"/> at <paramref name="cell"/>, its body's, its <paramref name="body"/> in degrees as its client keeps it.</summary>
+    public static ThermometerReading Read(ICrewQueries crew, int peer, int cell, float body) =>
+        new(crew.TemperatureAt(cell), crew.LowOf(peer), crew.HighOf(peer), crew.Felt(peer, cell), crew.Heat(peer, cell), (int)MathF.Round(body * 100));
 
     /// <summary>
     /// How deep the reading's frost is at a <paramref name="body"/> of so many degrees, 0 to 1: as the screen's frost is
