@@ -22,8 +22,8 @@ public partial class Thermometer : CanvasLayer
     private static readonly Color Silver = new("c8d2de"), Glass = new("aac3e1");
 
     // The face's own units are the block's; the row's centre line sits Mid down it.
-    // The tube as tall as the other rows' pieces.
-    private const float Mid = 20, Tube = 112, TubeR = Vitals.PieceHeight / 2, Left = Vitals.RowLeft;
+    // The tube as tall as the other rows' pieces, its rounded end flush with where theirs start; Left is the cold's death.
+    private const float Mid = 20, Tube = 112, TubeR = Vitals.PieceHeight / 2, Left = Vitals.RowLeft + TubeR;
     // The sign was laid out at an icon of 22 and the tube's details at a radius of 3.4: each grows from there.
     private const float G = Vitals.Icon / 22f, K = TubeR / 3.4f;
     // The sign: its stem's half width and its cap's centre, the bulb's radius and centre.
@@ -283,8 +283,6 @@ public partial class Thermometer : CanvasLayer
                 DrawLine(new Vector2(x, foot + 1.6f), new Vector2(x, foot + 1.6f + length),
                     Calm with { A = isNormal ? 0.7f : isLong ? 0.55f : 0.28f }, isNormal ? 1.1f : 0.9f, true);
             }
-            foreach (float x in new[] { Left, Left + Tube })
-                DrawLine(new Vector2(x, top - 1.6f), new Vector2(x, foot + 1.6f), Danger with { A = 0.6f }, 1.1f, true);
             float nx = Left + normalAt * Tube;
             DrawColoredPolygon([new(nx, top - 1.1f), new(nx - 1.7f, top - 3.7f), new(nx + 1.7f, top - 3.7f)], Calm with { A = 0.6f });
             // The thread: whole, or breaking into beads through the last breath.
