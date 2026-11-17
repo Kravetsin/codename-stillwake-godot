@@ -78,7 +78,7 @@ public partial class VesselLamps : Node2D, ILightSource
         {
             var lamp = _vessel.Lamps[i];
             if (!_lampStands[i] || lamp.State == LampState.Dead) continue;
-            var look = L.Lamps[lamp.State == LampState.Red ? "emergencyLamp" : lamp.Kind];
+            var look = L.Lamps[VesselLights.Emergency(lamp.State) ? "emergencyLamp" : lamp.Kind];
             float shines = VesselLights.Shines(lamp.State, _timeMs, lamp.PhaseMs);
             var at = _lamps[i].At;
             _lights.Add(new LightSource(at.X, at.Y, look.Colour, shines * look.Strength, look.Reach, look.Keep, L.LampMost, L.LampSize));
@@ -123,7 +123,7 @@ public partial class VesselLamps : Node2D, ILightSource
             var lamp = _vessel.Lamps[i];
             if (!_lampStands[i] || lamp.State == LampState.Dead) continue;
             float shines = VesselLights.Shines(lamp.State, _timeMs, lamp.PhaseMs);
-            var colour = new Color(L.Lamps[lamp.State == LampState.Red ? "emergencyLamp" : lamp.Kind].Halo);
+            var colour = new Color(L.Lamps[VesselLights.Emergency(lamp.State) ? "emergencyLamp" : lamp.Kind].Halo);
             DrawTextureRect(glow, new Rect2(_lamps[i].At - Vector2.One * halo / 2, Vector2.One * halo), false, colour with { A = shines * LightView.GlowAlpha });
         }
         var screen = new Color(L.DerelictScreen.Halo);

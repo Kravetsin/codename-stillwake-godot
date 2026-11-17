@@ -48,6 +48,8 @@ public static class DevModes
         new("--built", DevShape.Next, "with --perf, tiles over WxH of it from the top-left; all of it by default"),
         new("--lit", DevShape.Flag, "every lamp at full power, to measure the light"),
         new("--dark", DevShape.Flag, "every lamp out, to see what glows"),
+        new("--bright", DevShape.Flag, "everything lit whole, to look at what is drawn where no lamp reaches"),
+        new("--seen", DevShape.Flag, "a vessel's rooms all seen from the start: no dark over what no hero has looked at (hidden-rooms)"),
         new("--gallery", DevShape.Flag, "every picture"),
         new("--beam-back", DevShape.Flag, "with --planet or --strip, back aboard two seconds in"),
         new("--planet-type", DevShape.Equals, "with --planet, the type grown: scorched, icy (planet-variety); the first planet's by default"),

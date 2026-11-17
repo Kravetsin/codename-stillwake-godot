@@ -132,6 +132,9 @@ public sealed class VesselDress
         Seed = vessel.Seed;
         Livery = Looks.LiveryOf(vessel.Class, Seed);
         Colours = Looks.LiveriesOf(vessel.Class)[Livery];
+        // A scavenged wreck's paint long faded (vessel-wrecks).
+        if (made.Wreck is { Scavenged: true })
+            Colours = Looks.Faded(Colours);
         Name = Looks.NameOf(vessel.Class, Seed);
         Code = Looks.CodeOf(vessel.Class, Seed);
         _corner = (Vessels.Margin, Vessels.Margin);

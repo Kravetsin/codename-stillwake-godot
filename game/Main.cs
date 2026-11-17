@@ -553,7 +553,7 @@ public partial class Main : Node2D, ITogether
         _faded.Clear();
         _light?.QueueFree();
         var context = new SurfaceContext(_m, _hands, () => (_session as Session)?.Progress ?? 0, () => _hero?.HeadLamps() ?? [], HeroBodies,
-            Homes: !Has("--no-homes"), HomesMood: Arg("--homes") switch { "lit" => true, "dark" => false, _ => null },
+            Homes: !Has("--no-homes"), Seen: Has("--seen"), HomesMood: Arg("--homes") switch { "lit" => true, "dark" => false, _ => null },
             Peer: () => (_session as Session)?.Client.Id ?? 0, Tick: () => (_session as Session)?.Client.World.Tick ?? 0,
             Hosts: () => (_session as Session)?.Host != null, Arrivals: _arrivals, Seed: _seed, Heroes: HeroFeet, Wreck: _wreck);
         foreach (var each in SurfaceViews.All)
@@ -570,7 +570,7 @@ public partial class Main : Node2D, ITogether
         Func<Sim.Grid.Machine, bool> own = View<Features.Light.VesselLamps>() is { } inside ? inside.Claims : _ => false;
         _hands.Unmarked = own;
         _hands.Unseen = View<Features.Unseen.UnseenView>() is { } unseen ? unseen.Hides : _ => false;
-        AddChild(_light = new LightView(_m.Grid, Game.Light.SkyOf(_m.Rules), ground: _m.Rules is Content.PlanetType)
+        AddChild(_light = new LightView(_m.Grid, Game.Light.SkyOf(_m.Rules), ground: _m.Rules is Content.PlanetType, bright: Has("--bright"))
         {
             // --lit: every lamp at full power, to measure the light on the reference world; --dark: every lamp out, to see what glows.
             // A flare coming makes them falter as one short of power does (magnetic-flare).

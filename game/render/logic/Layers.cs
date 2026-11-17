@@ -53,6 +53,12 @@ public static class Layers
     /// <summary>Grommets, pegs and plugs on the wall's face, then the bolts over machines short of power (power).</summary>
     public const int Fittings = 6, Bolts = 7;
 
+    /// <summary>
+    /// A wreck's looks (vessel-wrecks): soot, smoke and rime kept to its rooms' open cells, over what stands in them as the mockup lays
+    /// them; then frost, petals, cables and the marks on burnt machines over the hull and its machines.
+    /// </summary>
+    public const int WreckRooms = Sockets, WreckOver = Fittings;
+
     /// <summary>What a hero left where it died, a limp figure under its stacks (crew, 0061).</summary>
     public const int Bodies = 8;
 

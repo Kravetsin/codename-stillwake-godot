@@ -88,6 +88,14 @@ public static class VesselLooks
     /// </summary>
     public const int LampRedPercent = 45;
 
+    /// <summary>
+    /// A wreck's lamps (vessel-wrecks): a broken stern's blink, on half of each period, in ms; a lamp in a room a breach or a fire left
+    /// dark still stutters this many times in a hundred while its last group is fresh (the mockup's 18).
+    /// </summary>
+    public const double BlinkMs = 1200;
+
+    public const int StutterPercent = 18;
+
     /// <summary>A console's screen is dark one time in this many; of those lit, one in <see cref="GlitchOneIn"/> glitches.</summary>
     public const int ConsoleDarkOneIn = 4, GlitchOneIn = 4;
 
@@ -151,6 +159,19 @@ public static class VesselLooks
 
     /// <summary>The livery of the vessel of class <paramref name="cls"/> and <paramref name="seed"/>, by its place in <see cref="LiveriesOf"/>.</summary>
     public static int LiveryOf(string cls, uint seed) => Below(seed, Salt.Livery, 0, LiveriesOf(cls).Count);
+
+    /// <summary>
+    /// <paramref name="livery"/> long faded, as a scavenged wreck's (vessel-wrecks, the mockup's liveryOf): the hull, the stripe and the
+    /// paint each toward a grey of its own.
+    /// </summary>
+    public static Livery Faded(Livery livery) =>
+        new(Mix(livery.Hull, 0x8f8b84, 0.45), Mix(livery.Stripe, 0x8a8782, 0.6), Mix(livery.Paint, 0x8c8a86, 0.5));
+
+    private static uint Mix(uint a, uint b, double t)
+    {
+        uint Ch(int s) => (uint)System.Math.Round(((a >> s) & 255) + ((((b >> s) & 255) - (double)((a >> s) & 255)) * t)) & 255;
+        return (Ch(16) << 16) | (Ch(8) << 8) | Ch(0);
+    }
 
     /// <summary>The name painted on the vessel of class <paramref name="cls"/> and <paramref name="seed"/>: a tanker's from its own names.</summary>
     public static string NameOf(string cls, uint seed)
