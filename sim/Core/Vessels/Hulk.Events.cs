@@ -143,7 +143,6 @@ internal sealed partial class Hulk
         _damage = (WreckKind.Explosion, cx2);
         (rec.X, rec.Y, rec.Radius) = (cx2 / 2, cy2 / 2, radius);
         (rec.DirX, rec.DirY) = breach != null ? (-1, 0) : (0, toTop ? -1 : 1);
-        Bodies(r, rec);
     }
 
     /// <summary>The row bands a cut runs in: over the body, each deck down to its floor, and under the last.</summary>
@@ -260,7 +259,6 @@ internal sealed partial class Hulk
                 }
         }
         (rec.X, rec.Y, rec.Radius, rec.DirX, rec.DirY) = (seat2 / 2, origin.Floor - 1, _cls.FireReach, 0, -1);
-        FireBodies(r, rec, burnt.ConvertAll(b => b.Room), seat2, origin);
     }
 
     /// <summary>The fire's reach from <paramref name="seeds"/> in half steps, -1 where it never came: a step 2, a step up 1.</summary>
@@ -412,7 +410,6 @@ internal sealed partial class Hulk
         _rocks.Add(cx);
         _damage = (WreckKind.Asteroid, ccx2);
         (rec.X, rec.Y, rec.Radius, rec.DirX, rec.DirY) = (ccx2 / 2, top, R, side * dir.X, dir.Y);
-        Bodies(r, rec);
     }
 
     /// <summary>A stone dropped down column <paramref name="x"/> (its middle) from row <paramref name="y"/> to the first hull under it, where it fits.</summary>
@@ -595,101 +592,6 @@ internal sealed partial class Hulk
         rec.Break = new WreckBreak(c0, gap, dyS, dyB);
         rec.Cause = _damage?.Kind;
         (rec.X, rec.Y, rec.Radius, rec.DirX, rec.DirY) = (gcx2 / 2, (gy0 + gy1) / 2, gap / 2, 1, 0);
-        Bodies(r, rec);
-    }
-
-    // ---------- bodies ----------
-
-    /// <summary>
-    /// The bodies a breach leaves (0 to 2): each on the floor of a compartment it opened into, the nearest spot to the event's centre, or
-    /// one time in three in space just outside the breach; never in the arrival room.
-    /// </summary>
-    private void Bodies(Rng r, Record rec)
-    {
-        int count = Shipyard.Between(r, Wrecks.BodiesPerEvent);
-        var rooms = Opened(rec).FindAll(rm => rm.Index != _arrival);
-        for (int k = 0; k < count; k++)
-        {
-            bool outside = r.Below(3) == 0;
-            if (outside && _last != null && Afloat(_last)) continue;
-            Lay(rooms, 2 * rec.X, 2 * rec.Y);
-        }
-    }
-
-    /// <summary>A body set in space just outside <paramref name="b"/>, along its direction out; whether one fit.</summary>
-    private bool Afloat(Breach b)
-    {
-        var occ = Occupancy();
-        var spec = Machines.Get(Vessels.Body);
-        for (int d = 2; d <= 8; d++)
-        {
-            int x = b.X + b.DirX * d - spec.Width / 2, y = b.Y + b.DirY * d - spec.Height / 2;
-            bool free = x >= 0 && y >= 0 && x + spec.Width <= _w && y + spec.Height <= _h;
-            for (int yy = y; yy < y + spec.Height && free; yy++)
-                for (int xx = x; xx < x + spec.Width && free; xx++) free = At(xx, yy) == Space && occ[I(xx, yy)] < 0 && !Prot(xx, yy);
-            if (!free) continue;
-            AddBody(x, y);
-            return true;
-        }
-        return false;
-    }
-
-    /// <summary>A body on the floor of one of <paramref name="rooms"/>, the free spot nearest doubled (<paramref name="cx2"/>, <paramref name="cy2"/>); whether one fit.</summary>
-    private bool Lay(List<Room> rooms, int cx2, int cy2)
-    {
-        var occ = Occupancy();
-        var spec = Machines.Get(Vessels.Body);
-        var probe = new Thing { Layer = "machine", Kind = Vessels.Body, W = spec.Width, H = spec.Height };
-        (long D, int X, int Y)? best = null;
-        foreach (var rm in rooms)
-        {
-            int y = rm.Floor - spec.Height;
-            for (int x = rm.Left; x + spec.Width <= rm.Left + rm.Width; x++)
-            {
-                if (!CanPlace(occ, -1, probe, x, y)) continue;
-                long dx = 2 * x + spec.Width - cx2, dy = 2 * y + spec.Height - cy2, d = dx * dx + dy * dy;
-                if (best is not { } b || d < b.D || d == b.D && (y < b.Y || y == b.Y && x < b.X)) best = (d, x, y);
-            }
-        }
-        if (best is not { } at) return false;
-        AddBody(at.X, at.Y);
-        return true;
-    }
-
-    private void AddBody(int x, int y)
-    {
-        var spec = Machines.Get(Vessels.Body);
-        _things.Add(new Thing { Layer = "machine", Kind = Vessels.Body, X = x, Y = y, W = spec.Width, H = spec.Height, Holds = [.. Vessels.BodyHolds] });
-    }
-
-    /// <summary>
-    /// The bodies a fire leaves (0 to 2): each by a shut door it stopped at, on its burnt side, else on the floor of a burnt compartment
-    /// nearest the seat.
-    /// </summary>
-    private void FireBodies(Rng r, Record rec, List<Room> burnt, int seat2, Room origin)
-    {
-        int count = Shipyard.Between(r, Wrecks.BodiesPerEvent);
-        var spec = Machines.Get(Vessels.Body);
-        var stops = new List<(int X, int Y)>();
-        foreach (var t in _things)
-        {
-            if (t.Gone || t.Door < 0 || t.Open || DoorTop(t) != t.Y || DoorProt(t)) continue;
-            bool left = burnt.Exists(b => b.C.Holds(t.X - 1, t.Y + 1)), right = burnt.Exists(b => b.C.Holds(t.X + 2, t.Y + 1));
-            if (left == right) continue;
-            stops.Add((left ? t.X - spec.Width : t.X + 2, t.Y + Vessels.Open - spec.Height));
-        }
-        var probe = new Thing { Layer = "machine", Kind = Vessels.Body, W = spec.Width, H = spec.Height };
-        for (int k = 0; k < count; k++)
-        {
-            var occ = Occupancy();
-            int at = stops.FindIndex(s => CanPlace(occ, -1, probe, s.X, s.Y));
-            if (at >= 0)
-            {
-                AddBody(stops[at].X, stops[at].Y);
-                stops.RemoveAt(at);
-            }
-            else Lay(burnt.FindAll(b => b.Index != _arrival), seat2, 2 * origin.Floor - 2);
-        }
     }
 
     // ---------- scavengers ----------

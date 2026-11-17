@@ -381,15 +381,7 @@ public static class Vessels
         new(ShuttleBeetle, 16, 9, [], [("plate", 12), ("gear", 4), ("rotor", 1)], BuildTicks: 240, Hp: 30),
         new(ShuttleWhale, 24, 7, [], [("plate", 16), ("glass", 6), ("cloth", 4)], BuildTicks: 240, Hp: 32),
         new(ShuttleHeron, 16, 11, [], [("plate", 12), ("frame", 3), ("copper", 1)], BuildTicks: 240, Hp: 30),
-        // A body in a suit (vessel-wrecks), lying where the wreck left it: its suit's scrap in its slots (BodyHolds).
-        new(Body, 5, 2, [], [("cloth", 1)], BuildTicks: 80, Hp: 4, Slots: 2),
     ];
-
-    /// <summary>A body in a suit aboard a wreck (vessel-wrecks): its picture a placeholder till its look is picked (W-2).</summary>
-    public const string Body = "vesselBody";
-
-    /// <summary>What a body in a suit holds in its slots: its suit's scrap.</summary>
-    public static readonly IReadOnlyList<(string Item, int Count)> BodyHolds = [("scrap", 3)];
 
     /// <summary>
     /// The machines a breach pulls (vessel-wrecks), by their first look: crates, chairs, tables, loungers, seats, carts and cargo.

@@ -51,7 +51,7 @@ described, stamped, then wrecked, `Hulk`), from `Content.Vessels` and `Content.W
   from those allowed: explosion, fire, icing, asteroid, break. A forced chain (`Find`'s `Wreck`, carried by the contact, the
   voyage and `Surface.Wreck`) replaces the draw, a step not allowed at its turn skipped; an empty one is intact. The arrival
   room and two cells round it are never touched; engines stay unless carved; rooms not reached keep everything. The radar
-  shows only the class. `Opened` lays `Build`'s parts, bodies' scrap put in as crates' loot.
+  shows only the class. `Opened` lays `Build`'s parts.
 - **Its kind's rules** (`VesselKind`): the ship's space (no gravity in the open, vacuum, starlight), no debris, no meteors;
   built as a planet allows, no machines; tools break what stands, nothing is marked (`ToolsBreak`), as on a planet.
 - **It closes** at the end of the tick no peer stands on it (`Kind.Transient`, Core): gone home, died and woke aboard, or left

@@ -509,20 +509,6 @@ internal sealed partial class Hulk
 
     private List<Room> SealedRooms() => _rooms.FindAll(Sealed);
 
-    /// <summary>The rooms a breach opens into this event: a cell <paramref name="rec"/> carved inside one or within a cell of its bounds.</summary>
-    private List<Room> Opened(Record rec)
-    {
-        var list = new List<Room>();
-        foreach (var rm in _rooms)
-            foreach (var (x, y) in rec.Carved)
-                if (x >= rm.Left - 1 && x <= rm.Left + rm.Width && y >= rm.Top - 1 && y <= rm.Floor)
-                {
-                    list.Add(rm);
-                    break;
-                }
-        return list;
-    }
-
     /// <summary>The rooms within <paramref name="b"/>'s cold whose floor's middle the air left: what icing on it froze.</summary>
     private List<int> Frozen(Breach b)
     {

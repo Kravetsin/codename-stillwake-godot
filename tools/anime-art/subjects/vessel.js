@@ -538,23 +538,6 @@ function seat(a) {
   a.line('M8 13.4L12 13.2', { c: '#8e6a54', w: .6 });
 }
 
-/**
- * machine_vesselBody: a body in a suit lying on its side on the deck (vessel-wrecks), a placeholder till its look is picked (W-2): the
- * helmet's dark visor to the left, a worn grey-ochre suit, its pack under it, boots to the right. 5 × 2 cells.
- */
-function body(a) {
-  const SUIT = { base: '#8a7d62', shade: '#655b47', deep: '#463f32', lite: '#a69a7c', spec: '#c8bea2', ink: INK };
-  a.shape(Anime.rr(10, 9.2, 15, 5.6, 2), DARK, { lite: band(10, 9.2, 25, 10.4), shade: band(10, 13.4, 25, 14.8) });
-  a.shape(poly(9, 6.4, 13, 4.6, 26, 5, 30, 7, 30, 13.6, 25, 15.4, 12, 15.4, 9, 13.8), SUIT, { lite: poly(9, 6.4, 13, 4.6, 26, 5, 30, 7, 30, 8, 9, 8), shade: band(9, 13, 30, 15.4) });
-  a.shape(poly(29, 7.6, 37.4, 8.2, 38.6, 11, 38.4, 15.4, 29, 15.4), SUIT, { lite: band(29, 7.6, 38.6, 9), shade: band(29, 13.8, 38.6, 15.4) });
-  a.shape(Anime.rr(35, 9.6, 4.4, 5.8, 1.2), DARK, { lite: band(35, 9.6, 39.4, 10.6), shade: band(35, 14.2, 39.4, 15.4) });
-  a.shape(ell(6, 10.2, 5.2, 5.2), STEEL, { lite: band(0.8, 5, 11.2, 7.4), shade: band(0.8, 13, 11.2, 15.4) });
-  a.shape(poly(2.6, 8.2, 7.4, 7.2, 8.6, 11.6, 4, 13.2, 1.8, 11.4), CONE, { spec: poly(3.4, 8.6, 5, 8.2, 3.6, 10.4) });
-  a.line('M14 7.6L14.4 13.4', { w: .5 });
-  a.line('M22 6.6L22.6 13.8', { w: .5 });
-  a.flat(band(17, 8.4, 20.4, 10), '#b05a2a');
-}
-
 /** machine_vesselLifeTank: a squat cylinder, its shoulders bevelled, a yellow band round it and its pipe up into the wall. 4 × 4 cells. */
 function lifeTank(a) {
   a.tube('M16 4L16 1.6Q16 .8 17 .8L32 .8', 1.6, MID);
@@ -645,7 +628,6 @@ function furniture() {
   out('machine_vesselConsole', Anime.bake({ w: 32, h: 24, draw: consoleDesk }));
   out('machine_vesselMachine', Anime.bake({ w: 48, h: 32, draw: machineBlock }));
   out('machine_vesselRack', Anime.bake({ w: 32, h: 32, draw: rack }));
-  out('machine_vesselBody', Anime.bake({ w: 40, h: 16, draw: body }));
   // A colour a look, the first the kind itself (Vessels.LookKind).
   CONT.forEach((col, k) => {
     const look = k === 0 ? '' : String(k + 1);

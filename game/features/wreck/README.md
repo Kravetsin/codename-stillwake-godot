@@ -41,4 +41,3 @@ and the built vessel alone; the damage is never run again here. Namespace `Featu
 ## Deliberately not handled
 
 - Drifters are flat shapes and pictures, not inked art; a repainted chunk can cost a frame about 11 ms.
-- The body in a suit is a placeholder picture till its pick.

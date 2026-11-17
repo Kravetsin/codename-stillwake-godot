@@ -51,7 +51,7 @@ finish is `wash.js`, one for every subject.
 | `homes`, `homeskeep`, `homeslights`, `homeswall`, `homesruin` | `homes/*`, `_dark`, `_fed`, `_glow`; `ruins/spireLens_*`; `HomeKit` in `homes.js` |
 | `debris` | `debris/*`: rocks, crates, plates, pods, scrap, derelicts; they turn |
 | `aboard`, `shuttle` | `machine_salvage*`: salvage on the deck, numbered engines and consoles, one per vessel; `machine_crewShuttle` |
-| `vessel` | `vessel_*` dress, `machine_vessel*`, `machine_vesselBody` (a placeholder) |
+| `vessel` | `vessel_*` dress, `machine_vessel*` furniture |
 | `net` | `machine_net` (booms), `net_mount`, `net_front_<n>` (holding n); `NetInk.cs` |
 | `bay`, `salvage` | `machine_droneBay`, `droneBay_*`, `salvage_*`, `items/salvageDrone`; `BayInk.cs`, `SalvageInk.cs` |
 | `scanner` | `hero_scanner`, `hero_<helmet>_scanner`, `_lit_<n>`, `items/scanner`; `ScannerInk.cs` |

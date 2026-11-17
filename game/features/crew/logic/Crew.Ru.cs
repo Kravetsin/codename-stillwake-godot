@@ -88,7 +88,6 @@ public static partial class Ru
         ["use.open.vesselTankTall2"] = "[{key:use}] Открыть бак",
         ["use.open.vesselFuelColumn3"] = "[{key:use}] Открыть топливную колонну",
         ["use.open.vesselFuelColumn4"] = "[{key:use}] Открыть топливную колонну",
-        ["use.open.vesselBody"] = "[{key:use}] Обыскать тело",
         ["use.catch"] = "[{key:use}] Поймать",
         ["use.collect"] = "[{key:use}] Опустошить сеть",
         ["use.chop"] = "[Удерж. ЛКМ] Ломать",

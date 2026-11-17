@@ -342,41 +342,6 @@ public class VesselWreckTests(ITestOutputHelper output)
     }
 
     [Fact]
-    public void BodiesLieOnlyInCompartmentsTheirEventsReachedNeverTheArrivalRoom()
-    {
-        int bodies = 0;
-        WreckKind[][] chains = [[WreckKind.Explosion, WreckKind.Fire], [WreckKind.Asteroid, WreckKind.Break], [WreckKind.Fire], [WreckKind.Asteroid, WreckKind.Asteroid, WreckKind.Explosion]];
-        foreach (var id in (string[])["freighter", "liner", "tanker"])
-            for (uint seed = 1; seed <= 16; seed++)
-                foreach (var chain in chains)
-                {
-                    var b = Shipyard.Build(C(id), seed, Chain(chain));
-                    if (b.Wreck == null) continue;
-                    var v = b.Vessel;
-                    var (sx, sy) = Shipyard.Door(b);
-                    var reached = new HashSet<int>(b.Wreck.Events.SelectMany(e => e.Compartments));
-                    var carved = b.Wreck.Events.SelectMany(e => e.Carved).Select(i => (X: i % v.Width, Y: i / v.Width)).ToList();
-                    for (int c = 0; c < v.Compartments.Count; c++)
-                    {
-                        var k = v.Compartments[c];
-                        if (carved.Exists(p => p.X >= k.Left - 1 && p.X <= k.Left + k.Width && p.Y >= k.Top - 1 && p.Y <= k.Floor)) reached.Add(k.Of >= 0 ? k.Of : c);
-                    }
-                    foreach (var body in b.Parts.Where(p => p.Kind == Content.Vessels.Body))
-                    {
-                        bodies++;
-                        Assert.Equal(Content.Vessels.BodyHolds, body.Holds);
-                        int at = v.Compartments.ToList().FindIndex(k => k.Holds(body.X + 2, body.Y + 1));
-                        // One afloat just outside its breach is in no compartment.
-                        if (at < 0) continue;
-                        var room = v.Compartments[at];
-                        Assert.False(room.Holds(sx, sy), $"{id} {seed}: a body in the arrival room");
-                        Assert.Contains(room.Of >= 0 ? room.Of : at, reached);
-                    }
-                }
-        Assert.True(bodies > 20, $"{bodies} bodies");
-    }
-
-    [Fact]
     public void AFireBurnsHalfOfEachStackInACrateItReachedRoundedDown()
     {
         int burnt = 0, odd = 0;

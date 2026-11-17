@@ -21,9 +21,6 @@ public static class Wrecks
     /// <summary>The share, in whole percent, of each stack in a crate a fire burns in a compartment it reached, rounded down.</summary>
     public const int BurntLoss = 50;
 
-    /// <summary>Bodies in suits an explosion, a fire, an asteroid or a break leaves, least and most.</summary>
-    public static readonly (int Min, int Max) BodiesPerEvent = (0, 2);
-
     /// <summary>Asteroid strikes a liner or a tanker takes at most, and any other class.</summary>
     public const int RocksBig = 2, Rocks = 1;
 

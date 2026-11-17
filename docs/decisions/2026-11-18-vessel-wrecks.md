@@ -9,8 +9,6 @@ Every vessel the radar found arrived whole ([generated-vessels](2026-10-30-gener
 the same four classes into places that read and play differently: a crater is a new way in, an opened room floats, a burnt hold
 holds less, a broken ship is two halves; the story told without words: what happened, in what order, how long ago. The user
 picked the look on a mockup drawn from real stamped vessels: https://claude.ai/artifact/X9dqanpx3SFFVFXDsUt3Z8 (version 5).
-Bodies in suits have a pick page of their own, https://claude.ai/artifact/VhnfPuF5M6Fruf8MSucWMx; the pick is pending and the
-body is a placeholder picture till then.
 
 ## Decision
 
@@ -34,8 +32,6 @@ body is a placeholder picture till then.
   them; rooms not reached keep everything (scavengers take nothing from rooms).
 - **The arrival room** (the compartment just inside the intact vessel's first door) and two cells round it are never touched; a
   break leaves it whole on one side, the spawn following its door.
-- **Bodies in suits,** 0–2 per explosion, fire, asteroid or break, in compartments the event reached (by a shut door a fire
-  stopped at, by a breach, or afloat just outside one), never in the arrival room: `vesselBody`, breakable, a suit's scrap in it.
 - **The radar is unchanged:** a contact shows its class only; a wreck is learnt on arrival.
 - **One builder:** `Shipyard.Build(cls, seed, forced)` returns `Built(Vessel, VesselWreck?, Parts)`: described, stamped, wrecked
   (`Hulk`, a port of the mockup's geometry on integers), every caller on it (`Places.Opened`, `World.Open`, the client's dress,
@@ -48,6 +44,12 @@ body is a placeholder picture till then.
   compartments (a fire's heat each), break, stones and cause; the vented compartments; the patches. The client draws from it alone
   and never re-runs the damage: looks painted once per 32-cell chunk (`game/features/wreck`), motes as one multimesh a kind and
   chunk swaying in their shader, drifters, sparks and vents from the chunks in view, lamps by event (`VesselLights`).
+
+## Later
+
+- **Bodies in suits** come in a change of their own, their look being picked on https://claude.ai/artifact/VhnfPuF5M6Fruf8MSucWMx.
+  Their placement as designed: 0–2 per explosion, fire, asteroid or break, in compartments the event reached (by a shut door a
+  fire stopped at, by a breach, or afloat just outside one), never in the arrival room; breakable, a suit's scrap in them.
 
 ## Deliberately not handled
 

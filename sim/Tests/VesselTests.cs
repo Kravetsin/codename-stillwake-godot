@@ -443,8 +443,7 @@ public class VesselTests
             [Content.Vessels.ShuttleWhale] = [VesselRole.Hangar],
             [Content.Vessels.ShuttleHeron] = [VesselRole.Hangar],
         };
-        // A body in a suit lies only where a wreck left it (vessel-wrecks), in no room of its own.
-        Assert.Equal(Content.Vessels.Furniture.Select(r => Content.Vessels.FirstLook(r.Kind)).Distinct().Where(k => k != Content.Vessels.Lamp && k != Content.Vessels.Body).Order(), roles.Keys.Order());
+        Assert.Equal(Content.Vessels.Furniture.Select(r => Content.Vessels.FirstLook(r.Kind)).Distinct().Where(k => k != Content.Vessels.Lamp).Order(), roles.Keys.Order());
         var seen = new HashSet<string>();
         foreach (var cls in Content.Vessels.Classes)
             for (uint seed = 1; seed <= 40; seed++)
