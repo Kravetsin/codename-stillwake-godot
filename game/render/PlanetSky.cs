@@ -23,11 +23,14 @@ public partial class PlanetSky : Node2D
     /// Where the giant hangs and the sun is at noon, their middles as shares of the screen across and down: on the screen, not by the
     /// ground, so they stay in the sky however near the camera is. The clouds' top, likewise.
     /// </summary>
-    private static readonly Vector2 Noon = new(0.5f, 0.12f), Giant = new(0.17f, 0.22f);
+    private static readonly Vector2 Noon = new(0.5f, 0.08f), Giant = new(0.17f, 0.22f);
     private const float CloudsAt = 0.02f;
 
-    /// <summary>Shares of the screen across where the sun rises and sets, on the horizon: it crosses the sky left to right as the day goes.</summary>
-    private const float Rises = 0.06f, Sets = 0.94f;
+    /// <summary>
+    /// Shares of the screen across where the sun rises and sets, and down where it does: about the far mountains' tops, so it clears
+    /// them early in the day and sinks into them only in the dusk (the user's, 2026-11-17). It crosses the sky left to right.
+    /// </summary>
+    private const float Rises = 0.06f, Sets = 0.94f, Rim = 0.22f;
 
     /// <summary>How far across the sky the sun is, 0 rising to 1 setting (<c>Daylight.Sun</c>); null while it is down.</summary>
     public float? Day { get; set; }
@@ -74,8 +77,9 @@ public partial class PlanetSky : Node2D
         _sun.Visible = Day != null;
         if (Day is float day)
         {
-            // An arc over the horizon, up to noon's height: it sinks behind the land in front where it rises and sets.
-            var at = new Vector2(Mathf.Lerp(Rises, Sets, day) * screen.X, Mathf.Lerp(sky, Noon.Y * screen.Y, Mathf.Sin(Mathf.Pi * day)));
+            // An arc from the rim up to noon's height, steep at its ends: the sun is soon high and low only near its rise and set.
+            float high = Mathf.Sqrt(Mathf.Max(0, Mathf.Sin(Mathf.Pi * day)));
+            var at = new Vector2(Mathf.Lerp(Rises, Sets, day) * screen.X, Mathf.Lerp(Rim, Noon.Y, high) * screen.Y);
             _sun.Position = at - _sun.Texture.GetSize() * zoom / 2;
             _sun.Scale = Vector2.One * zoom;
         }
