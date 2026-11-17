@@ -15,8 +15,9 @@ namespace Stillwake.Game.Features.Crew;
 /// <param name="Heat">The degrees it feels past <paramref name="High"/>.</param>
 /// <param name="Body">Its body's temperature, in hundredths of a degree (body-temperature).</param>
 /// <param name="Target">Where what it feels draws its body, in hundredths of a degree: past a death the body never stops short of it.</param>
+/// <param name="Gasp">The ticks left of its body's last breath past a death (<see cref="BodyHeat.GaspLeft"/>); 0 while none runs.</param>
 public readonly record struct ThermometerReading(int Degrees, int Low, int High, int Felt, int Heat, int Body = Content.Temperature.Normal,
-    int Target = Content.Temperature.Normal);
+    int Target = Content.Temperature.Normal, int Gasp = 0);
 
 /// <summary>
 /// What the vitals' thermometer says (the-thermometer, body-temperature): the hero's body to a tenth, calm at its normal,
@@ -25,10 +26,26 @@ public readonly record struct ThermometerReading(int Degrees, int Low, int High,
 /// </summary>
 public static class Thermometers
 {
-    /// <summary>What the thermometer reads for hero <paramref name="peer"/> at <paramref name="cell"/>, its body's, its <paramref name="body"/> in degrees as its client keeps it.</summary>
-    public static ThermometerReading Read(ICrewQueries crew, int peer, int cell, float body) =>
+    /// <summary>
+    /// What the thermometer reads for hero <paramref name="peer"/> at <paramref name="cell"/>: its <paramref name="body"/> in degrees
+    /// and the ticks left of its last breath, <paramref name="gasp"/>, as its client keeps them.
+    /// </summary>
+    public static ThermometerReading Read(ICrewQueries crew, int peer, int cell, float body, int gasp = 0) =>
         new(crew.TemperatureAt(cell), crew.LowOf(peer), crew.HighOf(peer), crew.Felt(peer, cell), crew.Heat(peer, cell), (int)MathF.Round(body * 100),
-            (int)MathF.Round(BodyHeat.Target(crew.Felt(peer, cell), crew.Heat(peer, cell)) * 100));
+            (int)MathF.Round(BodyHeat.Target(crew.Felt(peer, cell), crew.Heat(peer, cell)) * 100), gasp);
+
+    /// <summary>How far the body's last breath has gone, 0 at its start to 1 at its end, from its <paramref name="gasp"/> ticks left; −1 while none runs.</summary>
+    public static float Breath(int gasp) => gasp > 0 ? Math.Clamp(1 - gasp / (float)Content.Crew.LastBreath, 0, 1) : -1;
+
+    /// <summary>
+    /// The heart's beat the mercury pulses red with through the last breath, 0 to about 1 at <paramref name="clockS"/>: a beat and its
+    /// echo, slowing as the cold takes the body, racing as the heat does, faster still toward the end.
+    /// </summary>
+    public static float Beat(double clockS, bool cold, float breath)
+    {
+        double per = 60.0 / (cold ? 44 - 20 * breath : 140 + 30 * breath), p = (clockS % per + per) % per;
+        return (float)(Math.Exp(-Math.Pow((p - 0.04) / 0.07, 2)) + 0.55 * Math.Exp(-Math.Pow((p - 0.3) / 0.08, 2)));
+    }
 
     /// <summary>
     /// How deep the reading's frost is at a <paramref name="body"/> of so many degrees, 0 to 1: as the screen's frost is
@@ -38,12 +55,6 @@ public static class Thermometers
 
     /// <summary>How deep the reading's heat is at a <paramref name="body"/> of so many degrees, 0 to 1: as the screen's haze is (<see cref="Report.HeatOf"/>).</summary>
     public static float Hot(float body) => Report.HeatOf(body);
-
-    /// <summary>The degrees over its normal across which the body's frost star gives way to the heat's flame (2026-11-14-heat-limits).</summary>
-    public const float SwapDegrees = 1.5f;
-
-    /// <summary>How far the star has given way to the flame, 0 to 1, at a <paramref name="body"/> of so many degrees.</summary>
-    public static float Swap(float body) => Math.Clamp((body - Normal) / SwapDegrees, 0, 1);
 
     /// <summary>The seconds in which the shown body closes about two thirds of its way to the sim's (<see cref="Glide"/>): a breath's step slides.</summary>
     public const double GlideS = 0.25;

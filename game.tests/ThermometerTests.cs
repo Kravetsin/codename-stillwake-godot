@@ -62,13 +62,26 @@ public class ThermometerTests
     }
 
     [Fact]
-    public void AboveTheNormalTheStarGivesWayToTheFlameOverADegreeAndAHalf()
+    public void TheLastBreathRunsFromNoneThroughHalfToItsEndAndTheHeartSlowsInTheColdAndRacesInTheHeat()
     {
-        Assert.Equal(0f, Thermometers.Swap(30));
-        Assert.Equal(0f, Thermometers.Swap(37));
-        Assert.Equal(0.5f, Thermometers.Swap(37.75f), 3);
-        Assert.Equal(1f, Thermometers.Swap(37 + Thermometers.SwapDegrees));
-        Assert.Equal(1f, Thermometers.Swap(42));
+        Assert.Equal(-1f, Thermometers.Breath(0));
+        Assert.Equal(0f, Thermometers.Breath(Spec.Crew.LastBreath));
+        Assert.Equal(0.5f, Thermometers.Breath(Spec.Crew.LastBreath / 2), 3);
+        Assert.Equal(1f, Thermometers.Breath(1), 1);
+        // Beats in two seconds: a cold heart at 44 a minute beats once or twice, a hot one at 140 four or five times.
+        static int Beats(bool cold)
+        {
+            int n = 0;
+            for (double t = 0, last = 0; t < 2; t += 0.005)
+            {
+                double now = Thermometers.Beat(t, cold, 0);
+                if (now > 0.9 && last <= 0.9) n++;
+                last = now;
+            }
+            return n;
+        }
+        Assert.InRange(Beats(true), 1, 2);
+        Assert.InRange(Beats(false), 4, 5);
     }
 
     [Fact]

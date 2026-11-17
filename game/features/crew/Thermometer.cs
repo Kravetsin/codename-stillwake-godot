@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using Godot;
 using Stillwake.Game.Render;
 using Stillwake.Game.Shared;
@@ -6,27 +7,26 @@ using Stillwake.Game.Shared;
 namespace Stillwake.Game.Features.Crew;
 
 /// <summary>
-/// The vitals' thermometer, a row under the charge (the-thermometer, the user's pick B): the frost star in the signs' column and
-/// the hero's body to a tenth (body-temperature), gliding between breaths. Calm and pale at its normal; colder the number turns
-/// frost-blue, deeper toward the cold's death, a cold light gathers behind and rime creeps over the star from its edge, laid on top,
-/// the sign's own paint untouched. Hotter (2026-11-14-heat-limits, the user's pick C) the star gives way to the heat's flame, the
-/// number turns ember and a shimmer rises off it. Hover: the body, the degrees where it stands and both limits. Hidden with no hero
-/// or passed out. Reads the sim four times a second.
+/// The vitals' thermometer, a row under the charge (body-temperature, the user's pick «Ртуть» G4 K1 N3): a small upright
+/// thermometer in the signs' column, its bulb a test tube's that flames lick in the heat and a crust of frost climbs in the cold, and
+/// a glass tube from the cold's death to the heat's with the body's mercury in it, frost-blue below its normal and ember above.
+/// Glints run along the glass toward where the place draws the body, red and quicker when that is past a death; the frost fogs
+/// the glass, the heat makes it waver; through the last breath the thread breaks into beads that pulse with the heart. No number:
+/// the hover names the body, the degrees where it stands and both limits. Hidden with no hero or passed out. Reads four times a second.
 /// </summary>
 public partial class Thermometer : CanvasLayer
 {
     private const double RefreshS = 0.25;
-    // The star drawn as tall as the oxygen sign and the bolt show (some 17 units: their pictures have more margin), its number
-    // larger than the pieces are tall.
-    private const float Sign = Vitals.Icon, TextSize = 14, Grow = Sign / 16.5f;
     private static readonly Color Calm = new("d3dee9"), FrostLight = new("9ed8ff"), FrostDeep = new("3a86e0"), Rime = new("e6f7ff");
-    private static readonly Color HeatLight = new("ffc46e"), HeatDeep = new("ff5a26"), Danger = new("ff4a3a");
+    private static readonly Color HeatLight = new("ffc46e"), HeatDeep = new("ff5a26"), Danger = new("ff4a3a"), Ink = new("0c0e14");
+    private static readonly Color Silver = new("c8d2de"), Glass = new("aac3e1");
 
-    // The scale (body-temperature): where it starts past the number, its length, its notches' heights.
-    private const float ScaleGap = 50, ScaleWidth = 112, Notch = 2.5f, LongNotch = 4.5f;
-
-    /// <summary>The rime's strokes: an angle round the star, a length, when in the frost it starts, whether it forks.</summary>
-    private static readonly (float Angle, float Length, float At, bool Fork)[] Strokes = MakeStrokes();
+    // The face's own units are the block's; the row's centre line sits Mid down it.
+    private const float Mid = 16, Tube = 112, TubeR = 3.4f, Left = Vitals.RowLeft;
+    // The sign: its stem's half width and its cap's centre, the bulb's radius and centre.
+    private const float StemR = 2.3f, StemTop = Mid - 11, BulbR = 4, BulbY = Mid + 4.4f, Cx = Vitals.SignX;
+    private static readonly float StemFoot = BulbY - MathF.Sqrt(BulbR * BulbR - StemR * StemR);
+    private static readonly Vector2[] Outline = MakeOutline(), Capsule = MakeCapsule(), BulbEdge = Circle(new Vector2(Cx, BulbY), BulbR + 0.7f, 28);
 
     private readonly Func<ThermometerReading?> _read;
     private readonly Control _root = new() { MouseFilter = Control.MouseFilterEnum.Ignore };
@@ -49,8 +49,8 @@ public partial class Thermometer : CanvasLayer
         Layer = ScreenLayers.Hud;
         _face = new Face(this)
         {
-            Position = new Vector2(Vitals.SignX - Sign / 2, Vitals.ColdY - Sign / 2),
-            Size = new Vector2(Vitals.RowLeft - Vitals.SignX + Sign / 2 + ScaleGap + ScaleWidth + 6, Sign),
+            Position = new Vector2(0, Vitals.ColdY - Mid),
+            Size = new Vector2(Left + Tube + TubeR + 2, 2 * Mid),
             MouseFilter = Control.MouseFilterEnum.Ignore,
         };
         _root.AddChild(_face);
@@ -84,131 +84,279 @@ public partial class Thermometer : CanvasLayer
         }
         _clock += delta;
         float glided = Thermometers.Glide(_glided, _sim.Body / 100f, delta), target = Thermometers.Glide(_target, _sim.Target / 100f, delta);
-        // The shimmer moves while the body is hot, the target slides and a death's mark pulses: drawn each frame then.
-        if (glided != _glided || target != _target || _glided > Thermometers.Normal || Thermometers.OnScale(_target).Past)
-        {
-            (_glided, _target) = (glided, target);
-            _face.QueueRedraw();
-        }
-        else if (_face.Drawn != Thermometers.Shown(_glided)) _face.QueueRedraw();
+        // Flames, fog, haze, glints and the heart move: drawn each frame unless the body is calm and going nowhere.
+        bool still = Thermometers.Shown(glided) == Thermometers.Shown(Thermometers.Normal) && !Ghosted(glided, target) && _sim.Gasp == 0;
+        if (!still || glided != _glided || target != _target) _face.QueueRedraw();
+        (_glided, _target) = (glided, target);
         _tips.Frame(!_ui.MenuOpen.Get() ? GetViewport().GetMousePosition() : null);
     }
 
-    private static (float, float, float, bool)[] MakeStrokes()
+    /// <summary>Where <paramref name="degrees"/> stand along the tube, in the face's units.</summary>
+    private static float X(float degrees) => Left + Thermometers.OnScale(degrees).At * Tube;
+
+    /// <summary>Whether the glints run: the place draws the body somewhere it is not yet, or past a death.</summary>
+    private static bool Ghosted(float body, float target) => Thermometers.OnScale(target).Past || Math.Abs(X(target) - X(body)) > 1.2f;
+
+    /// <summary>The mercury's colour at <paramref name="degrees"/>: calm at the normal, frost-blue below, ember above, deeper toward either death.</summary>
+    private static Color ColourAt(float degrees)
     {
-        static float Hash(float n)
+        int tenths = Thermometers.Shown(degrees), normal = Thermometers.Shown(Thermometers.Normal);
+        return tenths < normal ? FrostLight.Lerp(FrostDeep, Thermometers.Frost(degrees))
+            : tenths > normal ? HeatLight.Lerp(HeatDeep, Thermometers.Hot(degrees)) : Calm;
+    }
+
+    private static Vector2[] MakeOutline()
+    {
+        var points = new List<Vector2> { new(Cx - StemR, StemFoot) };
+        for (int i = 0; i <= 8; i++)
         {
-            double s = Math.Sin(n * 127.1 + 311.7) * 43758.5453;
-            return (float)(s - Math.Floor(s));
+            float a = MathF.PI + MathF.PI * i / 8;
+            points.Add(new Vector2(Cx + StemR * MathF.Cos(a), StemTop + StemR * MathF.Sin(a)));
         }
-        var strokes = new (float, float, float, bool)[12];
-        for (int i = 0; i < strokes.Length; i++)
-            strokes[i] = (Hash(i * 5.3f) * Mathf.Tau, 2.5f + Hash(i * 9.1f) * 3.5f, i / 12f, Hash(i * 2.7f) > 0.4f);
-        return strokes;
+        points.Add(new Vector2(Cx + StemR, StemFoot));
+        float side = MathF.Asin(StemR / BulbR), from = -MathF.PI / 2 + side, to = -MathF.PI / 2 - side + Mathf.Tau;
+        for (int i = 1; i < 24; i++)
+        {
+            float a = from + (to - from) * i / 24;
+            points.Add(new Vector2(Cx + BulbR * MathF.Cos(a), BulbY + BulbR * MathF.Sin(a)));
+        }
+        return [.. points];
+    }
+
+    private static Vector2[] MakeCapsule()
+    {
+        var points = new List<Vector2>();
+        for (int i = 0; i <= 10; i++)
+        {
+            float a = -MathF.PI / 2 + MathF.PI * i / 10;
+            points.Add(new Vector2(Left + Tube + TubeR * MathF.Cos(a), Mid + TubeR * MathF.Sin(a)));
+        }
+        for (int i = 0; i <= 10; i++)
+        {
+            float a = MathF.PI / 2 + MathF.PI * i / 10;
+            points.Add(new Vector2(Left + TubeR * MathF.Cos(a), Mid + TubeR * MathF.Sin(a)));
+        }
+        return [.. points];
+    }
+
+    private static Vector2[] Circle(Vector2 centre, float radius, int n)
+    {
+        var points = new Vector2[n];
+        for (int i = 0; i < n; i++) points[i] = centre + radius * Vector2.FromAngle(Mathf.Tau * i / n);
+        return points;
+    }
+
+    private static float Hash(float n)
+    {
+        double h = Math.Sin(n * 127.1 + 311.7) * 43758.5453;
+        return (float)(h - Math.Floor(h));
     }
 
     private sealed partial class Face(Thermometer owner) : Control
     {
-        /// <summary>The tenths of a degree last drawn.</summary>
-        public int Drawn { get; private set; }
+        private float _t, _hot;
+        private bool _warm;
 
         public override void _Draw()
         {
-            int tenths = Thermometers.Shown(owner._glided), normal = Thermometers.Shown(Thermometers.Normal);
-            Drawn = tenths;
-            // Cold or hot as the number reads: a body gliding the last hundredths home shows calm.
-            bool cold = tenths < normal, warm = tenths > normal;
-            float frost = Thermometers.Frost(owner._glided), hot = Thermometers.Hot(owner._glided), swap = Thermometers.Swap(owner._glided);
-            var centre = new Vector2(Sign / 2, Sign / 2);
-            var colour = cold ? FrostLight.Lerp(FrostDeep, frost) : warm ? HeatLight.Lerp(HeatDeep, hot) : Calm;
-            if (cold) Glow(centre, 13 * Grow, FrostLight with { A = 0.3f * (0.4f + 0.6f * frost) });
-            var box = new Rect2(Vector2.Zero, new Vector2(Sign, Sign));
-            if (swap < 1) DrawTextureRect(Signs.Cold(), box, false, Colors.White with { A = 1 - swap });
-            if (swap > 0) DrawTextureRect(Signs.Heat(), box, false, Colors.White with { A = swap });
-            if (cold) DrawRime(centre, frost);
-            string text = Thermometers.Body(tenths);
-            var at = new Vector2(Vitals.RowLeft - (Vitals.SignX - Sign / 2), Sign / 2 + TextSize * Style.MonoMiddle);
-            var size = Style.Mono.GetStringSize(text, HorizontalAlignment.Left, -1, (int)TextSize);
-            if (cold) Glow(at + new Vector2(size.X / 2, -TextSize * 0.3f), size.X * 0.7f, colour with { A = 0.25f + 0.25f * frost });
-            if (warm) Glow(at + new Vector2(size.X / 2, -TextSize * 0.3f), size.X * 0.7f, colour with { A = 0.18f + 0.2f * hot });
-            DrawString(Style.Mono, at, text, HorizontalAlignment.Left, -1, (int)TextSize, colour);
-            if (warm) DrawShimmer(at with { Y = Sign / 2 }, size.X, hot, swap);
-            DrawScale(at.X + ScaleGap, colour);
+            float body = owner._glided, target = owner._target, breath = Thermometers.Breath(owner._sim.Gasp);
+            int tenths = Thermometers.Shown(body), normal = Thermometers.Shown(Thermometers.Normal);
+            bool cold = tenths < normal, gasping = breath >= 0, coldSide = body < Thermometers.Normal;
+            _t = (float)owner._clock;
+            (_warm, _hot) = (tenths > normal, Thermometers.Hot(body));
+            float frost = Thermometers.Frost(body), beat = gasping ? Thermometers.Beat(owner._clock, coldSide, breath) : 0;
+            var colour = ColourAt(body);
+            var still = cold || _warm ? colour : Silver;
+            var mercury = gasping ? still.Lerp(Danger, 0.3f + 0.5f * beat) : still;
+            float coldK = gasping && coldSide ? 1 : cold ? frost : 0, hotK = gasping && !coldSide ? 1 : _warm ? _hot : 0;
+            DrawSign(body, mercury, gasping, beat, coldK, hotK);
+            DrawTube(body, target, colour, mercury, cold, frost, breath);
         }
 
-        /// <summary>
-        /// The scale from the cold's death to the heat's (body-temperature): a notch a degree, the body's normal long; the body a
-        /// filled run from its normal; where what it feels draws it a hollow mark, faint, the place's verdict before the body
-        /// gets there. A mark past a death sits red on that end and pulses: stay and the hero dies.
-        /// </summary>
-        private void DrawScale(float left, Color body)
+        /// <summary>The sign: the glass with its mercury, flames licking the bulb in the heat, a crust of frost climbing it in the cold.</summary>
+        private void DrawSign(float body, Color mercury, bool gasping, float beat, float coldK, float hotK)
         {
-            const float mid = Sign / 2;
-            float at(float share) => left + share * ScaleWidth;
-            DrawLine(new Vector2(left, mid), new Vector2(left + ScaleWidth, mid), Calm with { A = 0.3f }, 1, true);
-            foreach (var (share, isLong) in Thermometers.Notches())
+            var bulb = new Vector2(Cx, BulbY);
+            var edge = gasping ? Calm.Lerp(Danger, 0.5f + 0.5f * beat) : Calm;
+            DrawColoredPolygon(Outline, Silver with { A = 0.08f });
+            if (gasping) Glow(bulb, 6 + 2 * beat, Danger with { A = 0.3f + 0.5f * beat });
+            DrawCircle(bulb, 2.5f, mercury with { A = 0.95f });
+            float share = Math.Clamp((body - Thermometers.Coldest) / (Thermometers.Hottest - Thermometers.Coldest), 0, 1);
+            float top = StemFoot + 0.6f - (StemFoot + 0.6f - StemTop) * share;
+            DrawRect(new Rect2(Cx - 0.95f, top, 1.9f, BulbY - top), mercury with { A = 0.95f });
+            DrawPolyline([.. Outline, Outline[0]], edge with { A = 0.85f }, 1.1f, true);
+            foreach (float y in new[] { StemTop + 2.5f, StemTop + 5.5f, StemTop + 8.5f })
+                DrawLine(new Vector2(Cx + StemR + 0.9f, y), new Vector2(Cx + StemR + 2.3f, y), edge with { A = 0.5f }, 0.6f, true);
+            if (hotK > 0)
             {
-                float h = isLong ? LongNotch : Notch;
-                DrawLine(new Vector2(at(share), mid - h), new Vector2(at(share), mid + h), Calm with { A = isLong ? 0.55f : 0.3f }, 1, true);
+                float k = Math.Clamp(hotK * 2.5f, 0, 1);
+                int n = 3 + (int)MathF.Round(2 * hotK);
+                for (int i = 0; i < n; i++)
+                {
+                    float x = Cx + (i - (n - 1) / 2f) * (5.2f / Math.Max(1, n - 1)) * 1.4f, flicker = 0.7f + 0.3f * MathF.Sin(_t * 13 + i * 2.1f);
+                    float height = (2.6f + 4.5f * hotK) * flicker * (i == 0 || i == n - 1 ? 0.75f : 1);
+                    Tongue(new Vector2(x, BulbY + BulbR + 1.4f), height, 1.1f, MathF.Sin(_t * 9 + i) * 0.9f, k);
+                }
+                Glow(bulb + new Vector2(0, 2), 7, HeatDeep with { A = 0.3f * k });
             }
-            foreach (float end in new[] { 0f, 1f })
-                DrawLine(new Vector2(at(end), mid - LongNotch), new Vector2(at(end), mid + LongNotch), Danger with { A = 0.6f }, 1.2f, true);
-            float normal = Thermometers.OnScale(Thermometers.Normal).At, now = Thermometers.OnScale(owner._glided).At;
-            if (Math.Abs(now - normal) * ScaleWidth >= 0.5f)
-                DrawLine(new Vector2(at(normal), mid), new Vector2(at(now), mid), body with { A = 0.85f }, 3, true);
-            DrawCircle(new Vector2(at(now), mid), 2.2f, body);
-            var (aim, past) = Thermometers.OnScale(owner._target);
-            if (!past && Math.Abs(aim - now) * ScaleWidth < 1.5f) return;
-            var mark = past ? Danger with { A = Vitals.Pulse(owner._clock * 2) } : Calm with { A = 0.6f };
-            var tip = new Vector2(at(aim), mid - 3.5f);
-            Vector2[] head = [tip, tip + new Vector2(-3.5f, -5), tip + new Vector2(3.5f, -5), tip];
-            if (past)
-            {
-                Glow(tip + new Vector2(0, -2), 9, Danger with { A = 0.35f * mark.A });
-                DrawColoredPolygon(head[..3], mark);
-            }
-            else DrawPolyline(head, mark, 1, true);
+            if (coldK > 0) DrawCrust(Math.Clamp(coldK * 1.3f, 0, 1));
         }
 
-        /// <summary>Thin wavering strokes rising off the number: more and brighter as the heat deepens.</summary>
-        private void DrawShimmer(Vector2 at, float width, float hot, float swap)
+        /// <summary>A tongue of flame from <paramref name="foot"/> up: an ember outside, a light within.</summary>
+        private void Tongue(Vector2 foot, float height, float width, float sway, float alpha)
         {
-            int n = 3 + (int)MathF.Round(3 * hot);
-            var points = new Vector2[7];
-            float clock = (float)owner._clock;
-            for (int i = 0; i < n; i++)
+            if (alpha <= 0.01f || height <= 0.2f) return;
+            var tip = foot + new Vector2(sway, -height);
+            var outer = new List<Vector2>();
+            Curve(outer, foot + new Vector2(-width, 0), foot + new Vector2(-width * 1.1f, -height * 0.45f), tip);
+            Curve(outer, tip, foot + new Vector2(width * 1.1f, -height * 0.45f), foot + new Vector2(width, 0));
+            Curve(outer, foot + new Vector2(width, 0), foot + new Vector2(0, width * 0.8f), foot + new Vector2(-width, 0));
+            DrawColoredPolygon([.. outer], HeatDeep with { A = 0.8f * alpha });
+            var inner = new List<Vector2>();
+            var core = foot + new Vector2(sway * 0.6f, -height * 0.6f);
+            Curve(inner, foot + new Vector2(-width * 0.45f, 0), foot + new Vector2(-width * 0.5f, -height * 0.3f), core);
+            Curve(inner, core, foot + new Vector2(width * 0.5f, -height * 0.3f), foot + new Vector2(width * 0.45f, 0));
+            DrawColoredPolygon([.. inner], HeatLight with { A = 0.85f * alpha });
+        }
+
+        /// <summary>Adds a quadratic curve's points to <paramref name="into"/>, its last left for the next.</summary>
+        private static void Curve(List<Vector2> into, Vector2 from, Vector2 control, Vector2 to)
+        {
+            for (int i = 0; i < 6; i++)
             {
-                float phase = (clock * 0.55f + Hash(i * 3.1f)) % 1, x = at.X + width * (i + 0.5f) / n, y = at.Y - 6 - phase * 13;
-                float alpha = (1 - phase) * Math.Min(1, phase * 5) * (0.35f + 0.5f * hot) * swap;
-                if (alpha <= 0.01f) continue;
-                for (int k = 0; k < points.Length; k++) points[k] = new Vector2(x + MathF.Sin(k * 1.2f + clock * 6 + i * 2) * 1.1f, y - k * 1.1f);
-                DrawPolyline(points, HeatLight with { A = alpha }, 0.8f, true);
+                float s = i / 6f;
+                into.Add(from.Lerp(control, s).Lerp(control.Lerp(to, s), s));
             }
         }
 
-        private static float Hash(float n)
+        /// <summary>Frost climbing the bulb from its foot, <paramref name="cover"/> of the way up, a ring of rime about it.</summary>
+        private void DrawCrust(float cover)
         {
-            double h = Math.Sin(n * 127.1 + 311.7) * 43758.5453;
-            return (float)(h - Math.Floor(h));
+            float level = BulbY + BulbR - 2 * BulbR * cover;
+            var crust = new List<Vector2> { new(Cx - BulbR - 1, BulbY + BulbR + 1) };
+            for (float x = Cx - BulbR - 1; x <= Cx + BulbR + 1.01f; x += 0.7f)
+                crust.Add(new Vector2(x, level + MathF.Sin(x * 4.1f) * 0.6f + (Hash(x * 3.3f) - 0.5f) * 0.9f));
+            crust.Add(new Vector2(Cx + BulbR + 1, BulbY + BulbR + 1));
+            foreach (var piece in Geometry2D.IntersectPolygons(crust.ToArray(), BulbEdge))
+            {
+                DrawColoredPolygon(piece, Rime with { A = 0.78f });
+                DrawPolyline([.. piece, piece[0]], Colors.White with { A = 0.9f }, 0.4f, true);
+            }
+            var bulb = new Vector2(Cx, BulbY);
+            for (int i = 0; i < 10; i++)
+            {
+                var at = new Vector2(Cx - BulbR + Hash(i * 2.7f) * 2 * BulbR, level + 0.6f + Hash(i * 5.9f) * 2 * BulbR * cover);
+                if (at.DistanceTo(bulb) <= BulbR + 0.3f) DrawCircle(at, 0.35f, FrostDeep with { A = 0.45f });
+            }
+            DrawArc(bulb, BulbR + 0.5f, 0, Mathf.Tau, 28, Rime with { A = 0.55f * cover }, 0.6f, true);
         }
 
-        /// <summary>Rime from the star's edge inward: more strokes, longer, the deeper the frost.</summary>
-        private void DrawRime(Vector2 centre, float frost)
+        /// <summary>How far the heat makes the glass waver at <paramref name="x"/>: more toward its hot end.</summary>
+        private float Wob(float x) => _warm ? MathF.Sin(x * 0.45f - _t * 7) * 0.9f * _hot * ((x - Left) / Tube) : 0;
+
+        /// <summary>The tube: its glass and notches, the mercury's thread, the frost's fog, the glints toward the target.</summary>
+        private void DrawTube(float body, float target, Color colour, Color mercury, bool cold, float frost, float breath)
         {
-            foreach (var (angle, length, from, fork) in Strokes)
+            float bx = X(body), tx = X(target), top = Mid - TubeR, foot = Mid + TubeR;
+            bool gasping = breath >= 0;
+            DrawColoredPolygon(Capsule, Glass with { A = 0.06f });
+            var glass = _warm ? Calm.Lerp(HeatLight, _hot) : Calm;
+            TubeLine(top, glass with { A = 0.4f }, 0.8f);
+            TubeLine(foot, glass with { A = 0.22f }, 0.8f);
+            TubeLine(top + 1, Colors.White with { A = 0.1f }, 0.5f);
+            DrawArc(new Vector2(Left, Mid), TubeR, MathF.PI / 2, 3 * MathF.PI / 2, 10, glass with { A = 0.3f }, 0.8f, true);
+            DrawArc(new Vector2(Left + Tube, Mid + Wob(Left + Tube)), TubeR, -MathF.PI / 2, MathF.PI / 2, 10, glass with { A = 0.3f }, 0.8f, true);
+            if (_warm)
             {
-                float k = Math.Clamp((frost * 1.15f - from) / 0.25f, 0, 1);
+                Glow(new Vector2(Left + Tube, Mid), 10 + 10 * _hot, HeatDeep with { A = 0.3f * _hot });
+                for (float x = bx; x < Left + Tube; x += 8) Glow(new Vector2(x, Mid + Wob(x)), 6, HeatLight with { A = 0.08f * _hot });
+            }
+            float normalAt = Thermometers.OnScale(Thermometers.Normal).At;
+            foreach (var (at, isLong) in Thermometers.Notches())
+            {
+                if (at <= 0 || at >= 1) continue;
+                bool isNormal = Math.Abs(at - normalAt) < 1e-4f;
+                float x = Left + at * Tube, length = isNormal ? 4 : isLong ? 3 : 1.3f;
+                DrawLine(new Vector2(x, foot + 1.6f), new Vector2(x, foot + 1.6f + length),
+                    Calm with { A = isNormal ? 0.7f : isLong ? 0.55f : 0.28f }, isNormal ? 1.1f : 0.9f, true);
+            }
+            foreach (float x in new[] { Left, Left + Tube })
+                DrawLine(new Vector2(x, top - 1.6f), new Vector2(x, foot + 1.6f), Danger with { A = 0.6f }, 1.1f, true);
+            float nx = Left + normalAt * Tube;
+            DrawColoredPolygon([new(nx, top - 1.1f), new(nx - 1.7f, top - 3.7f), new(nx + 1.7f, top - 3.7f)], Calm with { A = 0.6f });
+            // The thread: whole, or breaking into beads through the last breath.
+            int pieces = gasping ? 7 : 1;
+            float gap = gasping ? breath * 3 : 0, alpha = gasping ? 1 - 0.55f * breath : 1;
+            for (int i = 0; i < pieces; i++)
+            {
+                float x0 = Left + (bx - Left) * i / pieces + (i > 0 ? gap / 2 : 0), x1 = Left + (bx - Left) * (i + 1) / pieces - (i < pieces - 1 ? gap / 2 : 0);
+                Thread(x0, x1, mercury with { A = alpha }, 2.4f - (gasping ? breath : 0));
+                Thread(x0, x1, Colors.White with { A = 0.35f * alpha }, 0.5f, -0.6f);
+            }
+            DrawCircle(new Vector2(bx, Mid + Wob(bx)), 1.5f, mercury with { A = alpha });
+            if (cold || _warm) Glow(new Vector2(bx, Mid), 5, colour with { A = 0.3f });
+            if (cold) DrawFog(frost, top, foot);
+            if (Ghosted(body, target)) DrawGlints(bx, tx, target, top, foot);
+        }
+
+        private void TubeLine(float y, Color colour, float width)
+        {
+            var points = new Vector2[(int)(Tube / 2) + 1];
+            for (int i = 0; i < points.Length; i++)
+            {
+                float x = Left + i * 2;
+                points[i] = new Vector2(x, y + Wob(x));
+            }
+            DrawPolyline(points, colour, width, true);
+        }
+
+        private void Thread(float x0, float x1, Color colour, float width, float dy = 0)
+        {
+            if (x1 - x0 < 0.2f) return;
+            var points = new Vector2[13];
+            for (int i = 0; i < points.Length; i++)
+            {
+                float x = x0 + (x1 - x0) * i / 12;
+                points[i] = new Vector2(x, Mid + dy + Wob(x));
+            }
+            DrawPolyline(points, colour, width, true);
+        }
+
+        /// <summary>The glass fogging with frost, thickest at its cold end; rime spiking off it.</summary>
+        private void DrawFog(float frost, float top, float foot)
+        {
+            for (int i = 0; i < 150; i++)
+            {
+                float u = Hash(i * 1.37f), k = Math.Clamp((frost * (1.25f - 0.7f * u) - Hash(i * 3.3f) * 0.6f) * 3, 0, 1);
+                if (k > 0)
+                    DrawCircle(new Vector2(Left - 2 + u * (Tube + 4), Mid + (Hash(i * 2.11f) - 0.5f) * 7.4f), 0.35f + Hash(i * 4.7f) * 0.8f, Rime with { A = 0.45f * k });
+            }
+            for (int i = 0; i < 26; i++)
+            {
+                float u = Hash(i * 7.9f), k = Math.Clamp((frost * (1.2f - 0.8f * u) - 0.15f) * 3, 0, 1);
                 if (k <= 0) continue;
-                var outward = new Vector2(Mathf.Cos(angle), Mathf.Sin(angle));
-                var start = centre + outward * 9.5f * Grow;
-                var tip = start - outward * length * k * Grow;
-                var stroke = Rime with { A = 0.75f * k };
-                DrawLine(start, tip, stroke, 0.6f * Grow, true);
-                if (!fork || length * k <= 2) continue;
-                var mid = start - outward * length * k * 0.55f * Grow;
-                var side = new Vector2(-outward.X * 0.6f + outward.Y * 0.8f, -outward.Y * 0.6f - outward.X * 0.8f);
-                DrawLine(mid, mid + side * length * k * 0.4f * Grow, stroke, 0.6f * Grow, true);
+                float x = Left + u * Tube, length = (1 + Hash(i * 8.3f) * 2.6f) * k, lean = (Hash(i * 9.1f) - 0.5f) * 1.6f;
+                DrawLine(new Vector2(x, top), new Vector2(x + lean, top - length), Rime with { A = 0.7f * k }, 0.5f, true);
+                DrawLine(new Vector2(x, foot), new Vector2(x - lean, foot + length * 0.7f), Rime with { A = 0.5f * k }, 0.5f, true);
             }
+        }
+
+        /// <summary>Glints running from the body toward where the place draws it, a tick where they stop; red and quicker past a death.</summary>
+        private void DrawGlints(float bx, float tx, float target, float top, float foot)
+        {
+            bool past = Thermometers.OnScale(target).Past;
+            var colour = past ? Danger : ColourAt(target);
+            float alpha = past ? 0.55f + 0.45f * MathF.Cos(_t * MathF.PI * 2.2f) : 0.9f, dir = tx >= bx ? 1 : -1, speed = past ? 1.3f : 0.85f;
+            var streak = colour.Lerp(Colors.White, 0.4f);
+            for (int i = 0; i < 3; i++)
+            {
+                float p = (_t * speed + i / 3f) % 1, x = bx + (tx - bx) * p, s = MathF.Sin(MathF.PI * p);
+                Glow(new Vector2(x, Mid), 4.5f, colour with { A = 0.55f * s });
+                if (s > 0.01f) DrawLine(new Vector2(x - dir * 5 * s, Mid), new Vector2(x, Mid), streak with { A = 0.85f * s }, 1.4f, true);
+            }
+            DrawLine(new Vector2(tx, top - 1.8f), new Vector2(tx, foot + 1.8f), Ink with { A = 0.6f }, 2.4f, true);
+            DrawLine(new Vector2(tx, top - 1.6f), new Vector2(tx, foot + 1.6f), colour with { A = alpha }, 1, true);
+            if (past) Glow(new Vector2(tx, Mid), 10, Danger with { A = 0.45f * alpha });
         }
 
         private void Glow(Vector2 at, float radius, Color colour) =>

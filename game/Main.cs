@@ -332,7 +332,7 @@ public partial class Main : Node2D, ITogether
             }
             // The hero's body, under the charge (the-thermometer, body-temperature); gone while it is passed out.
             AddChild(new Thermometer(() => _session is Session s && _m.Crew.HeroOf(s.Client.Id) is { Out: 0 } && _hero is { Placed: true } h
-                ? (ThermometerReading?)Thermometers.Read(_m.Crew, s.Client.Id, h.Current.BodyCell(_m.Grid.Width), h.Body) : null, _hands.Ui));
+                ? (ThermometerReading?)Thermometers.Read(_m.Crew, s.Client.Id, h.Current.BodyCell(_m.Grid.Width), h.Body, h.BodyGasp) : null, _hands.Ui));
             if (_hero is { } breathing) gauge.BreathesAgain += breathing.BreathesAgain;
             // The place's cold or heat on the screen at once; the body follows it on the thermometer and the suit (body-temperature).
             AddChild(new Frost(() => _session is Session s && _hero is { Placed: true } h && !_m.Items.Creative(s.Client.Id)
