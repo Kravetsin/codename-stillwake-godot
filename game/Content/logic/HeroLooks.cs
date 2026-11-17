@@ -37,11 +37,14 @@ public static class HeroLooks
     /// <summary>The hair colour the pictures are drawn in.</summary>
     public const int HairDrawn = 1;
 
-    /// <summary>The pictures of each kind: <c>hero_hair_*</c>, <c>hero_face_*</c>, <c>hero_beard_*</c> and sets of <c>hero_outfit_*</c>; a look's beard 0 is none.</summary>
-    public const int HairStyles = 6, Faces = 5, Beards = 2, Outfits = 4;
+    /// <summary>
+    /// The pictures of each kind: <c>hero_hair_*</c>, <c>hero_face_*</c>, <c>hero_beard_*</c> and sets of <c>hero_outfit_*</c>, the
+    /// four robes and then the eleven warm clothes (clothes-painted); a look's beard 0 is none.
+    /// </summary>
+    public const int HairStyles = 6, Faces = 5, Beards = 2, Outfits = 15;
 
     /// <summary>Which outfits wear the glove (<c>hero_hand_glove</c>), the Трюмный's gauntlet; the others the bare hand, in the look's skin.</summary>
-    public static readonly bool[] OutfitGloved = [false, false, true, false];
+    public static readonly bool[] OutfitGloved = [false, false, true, false, .. new bool[11]];
 
     /// <summary>
     /// A look's index <paramref name="i"/> among <paramref name="count"/>: wrapped, never negative, so an index the sim kept as
