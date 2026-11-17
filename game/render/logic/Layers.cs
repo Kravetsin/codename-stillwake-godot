@@ -59,6 +59,12 @@ public static class Layers
     /// </summary>
     public const int WreckRooms = Sockets, WreckOver = Fittings;
 
+    /// <summary>
+    /// What still moves on a wreck (vessel-wrecks W-3): its motes, drifters and vents over its looks and its machines, under the heroes;
+    /// then its sparks, embers and glints, added over the heroes as the mockup lays them.
+    /// </summary>
+    public const int WreckMotes = Bolts, WreckSparks = Glows;
+
     /// <summary>What a hero left where it died, a limp figure under its stacks (crew, 0061).</summary>
     public const int Bodies = 8;
 

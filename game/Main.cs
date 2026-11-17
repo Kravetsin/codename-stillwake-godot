@@ -556,6 +556,13 @@ public partial class Main : Node2D, ITogether
             Homes: !Has("--no-homes"), Seen: Has("--seen"), HomesMood: Arg("--homes") switch { "lit" => true, "dark" => false, _ => null },
             Peer: () => (_session as Session)?.Client.Id ?? 0, Tick: () => (_session as Session)?.Client.World.Tick ?? 0,
             Hosts: () => (_session as Session)?.Host != null, Arrivals: _arrivals, Seed: _seed, Heroes: HeroFeet, Wreck: _wreck);
+        // --frame: a vessel world framed whole, the camera held there (a frame sheet of a wreck).
+        if (Has("--frame") && context.Built is { } framed)
+        {
+            int m = Content.Vessels.Margin;
+            _camera.Fit(new Rect2(m, m, framed.Vessel.Width, framed.Vessel.Height));
+        }
+        if (_hero != null) _hero.HoldsCamera = Has("--frame") && context.Built != null;
         foreach (var each in SurfaceViews.All)
         {
             if (each.Make(context) is not { } view) continue;

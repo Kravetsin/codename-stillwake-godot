@@ -42,7 +42,11 @@ public static class WreckLooks
     /// Every look of <paramref name="scene"/>'s wreck, in drawing order; <paramref name="hull"/> its livery's hull colour (faded when
     /// scavenged), <paramref name="picture"/> a machine's picture and its reach and rise in cells, null where there is none.
     /// </summary>
-    public static List<WreckMark> Of(WreckScene scene, uint hull, Func<string, (WreckPicture Picture, int Reach, int Rise)?> picture)
+    /// <summary>A hanging cable's or pipe's lower end, by its event: where W-3's sparks and frozen spray come from.</summary>
+    public sealed record End(int Event, double X, double Y, bool Pipe, bool Stern);
+
+    /// <param name="ends">Filled, when given, with every cable's and pipe's end the looks hang.</param>
+    public static List<WreckMark> Of(WreckScene scene, uint hull, Func<string, (WreckPicture Picture, int Reach, int Rise)?> picture, List<End>? ends = null)
     {
         var marks = new List<WreckMark>();
         var w = scene.Wreck;
@@ -52,7 +56,7 @@ public static class WreckLooks
         {
             var e = w.Events[k];
             var r = new Mulberry(seed * 2654435761u + (uint)k * 40503u + 17u);
-            var ctx = new Ctx(scene, marks, e, r, hull, picture, big, k == 0);
+            var ctx = new Ctx(scene, marks, e, r, hull, picture, big, k == 0) { Index = k, Ends = ends };
             switch (e.Kind)
             {
                 case WreckKind.Explosion: Blast(ctx); break;
@@ -79,6 +83,8 @@ public static class WreckLooks
         public readonly Func<string, (WreckPicture Picture, int Reach, int Rise)?> Picture = picture;
         public readonly bool Big = big, First = first;
         public readonly List<Cable> Spots = [];
+        public int Index;
+        public List<End>? Ends;
         public bool Old => E.Old;
 
         public uint Seed() => (uint)R.Int(1_000_000_000);
@@ -100,7 +106,7 @@ public static class WreckLooks
     }
 
     /// <summary>A cable or pipe hanging from where it tore: its top, how far it hangs and swings; null for the event's own draw.</summary>
-    private sealed record Cable(double X, double Y, double? Len = null, double? Sway = null, bool Pipe = false);
+    private sealed record Cable(double X, double Y, double? Len = null, double? Sway = null, bool Pipe = false, bool Stern = true);
 
     private static double Hyp(double x, double y) => Math.Sqrt(x * x + y * y);
 
@@ -676,7 +682,7 @@ public static class WreckLooks
                 int fx = Face(y, stern);
                 for (int k = 0, n = 1 + r.Int(3); k < n; k++)
                     c.Spots.Add(new(stern ? fx - 0.4 - k * 0.6 : fx + 0.4 + k * 0.6, y + r.Next() * 0.5, 3 + r.Next() * 6,
-                        (stern ? 1 : -1) * (0.6 + r.Next() * 2.2), r.Chance(0.35)));
+                        (stern ? 1 : -1) * (0.6 + r.Next() * 2.2), r.Chance(0.35), stern));
                 if (r.Chance(0.6)) RibStub(c, fx, band + 0.5, stern ? 1 : -1, 0.2, 1.5 + r.Next() * 2.5, 0, 0.4 + r.Next() * 1.4);
             }
         }
@@ -831,6 +837,7 @@ public static class WreckLooks
         {
             double len = (spot.Len ?? 2 + c.R.Next() * 4) * (c.Old ? 0.75 : 1), sway = (spot.Sway ?? (c.R.Next() - 0.5) * 1.6) * (c.Old ? 0.5 : 1);
             var (x, y, pipe) = (spot.X, spot.Y, spot.Pipe);
+            c.Ends?.Add(new(c.Index, x + sway * 1.1, y + len, pipe, spot.Stern));
             c.Add(pipe ? "pipe" : "cable", WreckLayer.Over, x - 3, y - 1, x + Math.Abs(sway) * 1.2 + 3, y + len + 1, p => Hang(p, x, y, len, sway, pipe));
         }
     }

@@ -109,6 +109,9 @@ public static class SurfaceViews
         new(c => c.Built is { } signed ? new Features.Grid.VesselSignsView(c.M.Grid, new Features.Grid.VesselSigns(signed)) : null),
         // A wreck's looks, from its wreck's record (vessel-wrecks W-2): soot, frost, petals, cables over its hull and in its rooms.
         new(c => Features.Wrecked.WreckView.Of(c.M.Grid, c.Built)),
+        // What still moves on it (vessel-wrecks W-3): dust, ash and ice, drifters outside, sparks, vents, embers; dust warm in a lamp's light.
+        new(c => c.Built is { Wreck: not null } moving ? Features.Wrecked.WreckLifeView.Of(moving,
+            [.. new Features.Light.VesselLights(moving).Lamps.Where(l => l.State != Features.Light.LampState.Dead).Select(l => (l.X + 1.0, l.Y + 0.75, 8.0))]) : null),
         // Its inside dark till a hero has seen it, over all of the above (hidden-rooms).
         new(c => c.Seen ? null : Features.Unseen.UnseenView.Of(c.M.Grid, c.M.Rules, c.HeroBodies)),
         // The fires last, before the light Main makes after these: each frame a fire picks its picture, then its light follows it.

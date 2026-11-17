@@ -120,6 +120,8 @@ public sealed class VesselSigns
         foreach (var kind in kinds)
         {
             if (signs.Count == count) break;
+            // A wreck's own soot and frost (vessel-wrecks) stand for these: none drawn at random beside them.
+            if (made.Wreck != null && kind is SignKind.Soot or SignKind.Frost) continue;
             var fits = Candidates(kind).Where(s => !Box(s).Any(used.Contains)).ToList();
             // A room of its own while one is left.
             var alone = fits.Where(s => !full.Contains((s.RoomLeft, s.RoomTop))).ToList();

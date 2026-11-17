@@ -126,6 +126,9 @@ public partial class HeroView : Node2D
     public Func<Look?> Look { get; set; } = () => Sim.Players.Look.Zero;
     /// <summary>The skins this player owns of its picks (hero-skins), sent once a join, the empty set too, so a world never keeps stale ones.</summary>
     public Func<IReadOnlyList<string>> Skins { get; set; } = () => [];
+
+    /// <summary>Whether the camera is held where it was put, the hero not followed: a dev's framing of a vessel (<c>--frame</c>).</summary>
+    public bool HoldsCamera { get; set; }
     /// <summary>The session this player's skins were sent to.</summary>
     private Client? _skinsSentTo;
 
@@ -575,7 +578,7 @@ public partial class HeroView : Node2D
         double between = _clock.Progress;
         double x = _previous.X + (_current.X - _previous.X) * between;
         double y = _previous.Y + (_current.Y - _previous.Y) * between;
-        Follow(camera, ship, x, y, elapsedMs);
+        if (!HoldsCamera) Follow(camera, ship, x, y, elapsedMs);
 
         // Aimed after following, so the pointer is read where the camera now is.
         var pointer = Pointer();

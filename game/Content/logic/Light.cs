@@ -180,6 +180,12 @@ public static class Light
     public static readonly LampLight SparkFlash = new((1f, 0.75f, 0.43f), 0.75f, 5, 0.75f, 0xffbe6eff);
 
     /// <summary>
+    /// Embers glowing on in a wreck's fresh burnt room (vessel-wrecks, the mockup's ember light): orange, low and breathing, the room's
+    /// width round them at most.
+    /// </summary>
+    public static readonly LampLight Embers = new((1f, 0.48f, 0.16f), 0.45f, 9, 0.6f, 0xff7a2aff);
+
+    /// <summary>
     /// Where a derelict's console's screens are in its picture, by kind, in pixels from its top-left: a rectangle each, or a disc
     /// in it (<c>Round</c>).
     /// </summary>
