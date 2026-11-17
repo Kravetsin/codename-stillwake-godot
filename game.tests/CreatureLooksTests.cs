@@ -10,7 +10,8 @@ public class CreatureLooksTests
 
     [Fact]
     public void EveryWalkerHasARig() =>
-        Assert.All(Spec.Creatures.All.Where(s => s.Body is Spec.Creatures.Walker && !CreatureLooks.Istukans.Contains(s.Look) && !CreatureLooks.Lurkers.Contains(s.Look)), s => Assert.True(CreatureLooks.Varieties.ContainsKey(s.Id), s.Id));
+        Assert.All(Spec.Creatures.All.Where(s => s.Body is Spec.Creatures.Walker && !CreatureLooks.Istukans.Contains(s.Look) && !CreatureLooks.Lurkers.Contains(s.Look)
+            && !CreatureLooks.Ticks.Contains(s.Look)), s => Assert.True(CreatureLooks.Varieties.ContainsKey(s.Id), s.Id));
 
     [Theory]
     [MemberData(nameof(Species))]

@@ -571,19 +571,23 @@ public static class Sound
     /// </summary>
     public sealed record TickCues(Cue Alert, Cue WindUp, Cue Charge, Cue Unclamp, Cue Clamp, Cue Snap, Cue Thrust, Cue Hit, Cue Death);
 
+    /// <summary>The sentry's cues, the spider's too (derelict-enemies: it keeps the tick's).</summary>
+    private static readonly TickCues SentryCues = new(
+        Alert: new(Shots("creatures/sentry-alert", 1), -1.5f, Heard: ToolReach),
+        WindUp: new(Shots("creatures/sentry-windup", 1), -1.5f, Heard: ToolReach),
+        Charge: new(Shots("creatures/sentry-charge", 1), -1.5f, Heard: ToolReach),
+        Unclamp: new(Shots("creatures/sentry-unclamp", 1), -1.5f, Heard: ToolReach),
+        Clamp: new(Shots("creatures/sentry-clamp", 1), -1.5f, Heard: ToolReach),
+        Snap: new(Shots("creatures/sentry-snap", 1), -1.5f, Heard: ToolReach),
+        Thrust: Thrust with { VolumeDb = -2, Heard = ToolReach },
+        Hit: Chop,
+        Death: new(Shots("creatures/sentry-death", 1), -1.5f, Heard: BreakReach));
+
     /// <summary>Each species drawn as a tick (<c>CreatureLooks.Ticks</c>): its cues, levelled alike on the audition page.</summary>
     public static readonly IReadOnlyDictionary<string, TickCues> Ticks = new Dictionary<string, TickCues>
     {
-        [Stillwake.Content.Creatures.Sentry.Id] = new(
-            Alert: new(Shots("creatures/sentry-alert", 1), -1.5f, Heard: ToolReach),
-            WindUp: new(Shots("creatures/sentry-windup", 1), -1.5f, Heard: ToolReach),
-            Charge: new(Shots("creatures/sentry-charge", 1), -1.5f, Heard: ToolReach),
-            Unclamp: new(Shots("creatures/sentry-unclamp", 1), -1.5f, Heard: ToolReach),
-            Clamp: new(Shots("creatures/sentry-clamp", 1), -1.5f, Heard: ToolReach),
-            Snap: new(Shots("creatures/sentry-snap", 1), -1.5f, Heard: ToolReach),
-            Thrust: Thrust with { VolumeDb = -2, Heard = ToolReach },
-            Hit: Chop,
-            Death: new(Shots("creatures/sentry-death", 1), -1.5f, Heard: BreakReach)),
+        [Stillwake.Content.Creatures.Sentry.Id] = SentryCues,
+        [Stillwake.Content.Creatures.Spider.Id] = SentryCues,
     };
 
     /// <summary>
@@ -593,18 +597,22 @@ public static class Sound
     /// </summary>
     public sealed record IstukanCues(Cue Wake, Cue Alert, Cue WindUp, Cue Pounce, Cue Land, Cue Hit, Cue Killed, Cue ShutDown);
 
+    /// <summary>The warden's cues, standing in for the escort's, silent of its own till its sounds are picked (derelict-enemies).</summary>
+    private static readonly IstukanCues WardenCues = new(
+        Wake: new(Shots("creatures/warden-wake", 1), -1.5f, Heard: ToolReach),
+        Alert: new(Shots("creatures/warden-alert", 1), -1.5f, Heard: ToolReach),
+        WindUp: new(Shots("creatures/warden-windup", 1), -1.5f, Heard: ToolReach),
+        Pounce: new(Shots("creatures/warden-pounce", 1), -1.5f, Heard: ToolReach),
+        Land: LandAlloy,
+        Hit: Ground["alloy"].Hit,
+        Killed: new(Shots("creatures/warden-death", 1), -1.5f, Heard: BreakReach),
+        ShutDown: new(Shots("creatures/warden-shutdown", 1), -1.5f, Heard: BreakReach));
+
     /// <summary>Each species drawn as the Istukan (<c>CreatureLooks.Istukans</c>): its cues, levelled as the sentry's.</summary>
     public static readonly IReadOnlyDictionary<string, IstukanCues> Istukans = new Dictionary<string, IstukanCues>
     {
-        [Stillwake.Content.Creatures.Warden.Id] = new(
-            Wake: new(Shots("creatures/warden-wake", 1), -1.5f, Heard: ToolReach),
-            Alert: new(Shots("creatures/warden-alert", 1), -1.5f, Heard: ToolReach),
-            WindUp: new(Shots("creatures/warden-windup", 1), -1.5f, Heard: ToolReach),
-            Pounce: new(Shots("creatures/warden-pounce", 1), -1.5f, Heard: ToolReach),
-            Land: LandAlloy,
-            Hit: Ground["alloy"].Hit,
-            Killed: new(Shots("creatures/warden-death", 1), -1.5f, Heard: BreakReach),
-            ShutDown: new(Shots("creatures/warden-shutdown", 1), -1.5f, Heard: BreakReach)),
+        [Stillwake.Content.Creatures.Warden.Id] = WardenCues,
+        [Stillwake.Content.Creatures.Escort.Id] = WardenCues,
     };
 
     /// <summary>
@@ -791,7 +799,7 @@ public static class Sound
     public static readonly IReadOnlyList<Cue> All = [Title, Space, Step, Land, Jump, Alarm, CatcherBeep, Screwdriver, PowerDriverBite, PowerDriverLoop, PowerDriverOff, Hiss, Click, Clink, VentHum, DoorOpen, DoorClose, Valve, Act, ActInSpace, Fire, Swing, Chop, Break, Shot, Drum, Ready, NailShot, DryClick, NailHit, NailReady, RailCharge, RailReady, RailShot, ChargeThrow, ChargeBurst, ArcStruck, ArcHit, CatcherAim, CatcherGather, CatcherBlink, CatcherLaunch, CatcherLaser, CatcherLock, MissileFlight, CapbackHiss, CapbackSplat, ShellClink, Hurt, AirFill, Inhale, Thrust, ChargerHum, ChargeFull, DrillWhir, FormerStroke, FormerMotor, SmelterHum, SmelterCrackle, CrusherRun, GalleyBoil, GalleyDone, Eat, Retch, DroneWhir, DroneDock, DroneGrab, SalvageThrust, MusicBox, Zap,
         StepGrass, StepSoil, StepStone, StepAlloy, LandSoft, LandHard, LandAlloy, HitSoil, HitStone, BreakSoil, BreakStone,
         ChopWood, TreeFall, Bush, Grass, Crystal, Glowcap, WoodBreak, ClothTear, GlassBreak, MetalBreak, CeramicBreak, LavaBed,
-        LavaBubble, LavaBurn, StormWind, StormRain, CaveDrip, SplashIn, SplashOut, SwimStroke, WaterPour, CreatureDeath, .. Ticks.Values.SelectMany(t => new[] { t.Alert, t.WindUp, t.Unclamp, t.Clamp, t.Snap, t.Death }), .. Istukans.Values.SelectMany(g => new[] { g.Wake, g.Alert, g.WindUp, g.Pounce, g.Killed, g.ShutDown }), .. RamHits.Values, .. Pod];
+        LavaBubble, LavaBurn, StormWind, StormRain, CaveDrip, SplashIn, SplashOut, SwimStroke, WaterPour, CreatureDeath, .. Ticks.Values.Distinct().SelectMany(t => new[] { t.Alert, t.WindUp, t.Unclamp, t.Clamp, t.Snap, t.Death }), .. Istukans.Values.Distinct().SelectMany(g => new[] { g.Wake, g.Alert, g.WindUp, g.Pounce, g.Killed, g.ShutDown }), .. RamHits.Values, .. Pod];
     // StepMoss and BushSoft play StepGrass's and Bush's files quieter: the sound board has those.
 
     /// <summary>The suit's alarm beeps this often, in seconds, while it runs low out of air.</summary>

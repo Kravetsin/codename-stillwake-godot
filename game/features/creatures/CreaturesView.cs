@@ -162,6 +162,8 @@ public partial class CreaturesView(Ui ui) : Node2D, ILightSource
             var c = all[i];
             _out.Add(c.Id);
             if (c.X < left || c.X > right || c.Y < top || c.Y > bottom) continue;
+            // A guard asleep in its dock is the dock's picture for now (DocksView, derelict-enemies G-1).
+            if (c.Posture == Posture.Docked) continue;
             if (CreatureLooks.Varieties.ContainsKey(c.Species)) _drawn.Add(c.Id);
             else if (CreatureLooks.Ticks.Contains(Spec.Creatures.Get(c.Species).Look)) _ticked.Add(c);
             else if (CreatureLooks.Istukans.Contains(Spec.Creatures.Get(c.Species).Look)) _posted.Add(c);

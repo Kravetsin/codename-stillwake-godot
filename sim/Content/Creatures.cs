@@ -419,9 +419,10 @@ public static class Creatures
     /// <summary>
     /// The guard robot, the escort («Конвоир», derelict-enemies), hung asleep in its stand in a big hall (<c>Vessels.Aboard</c>): a walker
     /// four cells by five, its antenna drawn only. About twice the sentry's hit points, more circuits and scrap. Asleep only, for now:
-    /// its moves come with its waking (the plan's G-3). Placeholder numbers, for a play pass.
+    /// its moves come with its waking, its look A1 «Конвоир» with its rig (the plan's G-3); till then the Istukan's look and sounds stand
+    /// in, never seen, for asleep it is its stand's picture. Placeholder numbers, for a play pass.
     /// </summary>
-    public static readonly Species Escort = new("escort", Look: "escort", Body: new Walker(Width: 4, Height: 5, Walk: 0, Run: 0, Jump: 0, JumpAcross: 0),
+    public static readonly Species Escort = new("escort", Look: Warden.Look, Body: new Walker(Width: 4, Height: 5, Walk: 0, Run: 0, Jump: 0, JumpAcross: 0),
         Life: new(Hp: 60, Knock: 0, Hop: 0), Faction: Machines, Lifetime: Lifetime.Aboard, Brain: [new Dock()], Moves: [],
         Yields: [new("scrapChunk", 5, 8), new("circuit", 3, 5)]);
 
