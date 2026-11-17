@@ -6,11 +6,18 @@ namespace Stillwake.Sim;
 public static partial class Shipyard
 {
     /// <summary>
-    /// A guard's dock aboard a vessel (derelict-enemies): the guard's species, the compartment it is in by its index, and the dock's box,
-    /// from its top-left (<paramref name="X"/>, <paramref name="Y"/>) in the vessel's frame, <paramref name="Width"/> by
-    /// <paramref name="Height"/>, standing on that room's floor.
+    /// A guard's dock aboard a vessel (derelict-enemies): its <paramref name="Rule"/> (a capsule or a stand, its guard's species and
+    /// box), the compartment it is in by its index, and its box's top-left (<paramref name="X"/>, <paramref name="Y"/>) in the
+    /// vessel's frame, standing on that room's floor.
     /// </summary>
-    public sealed record Dock(string Species, int Room, int X, int Y, int Width, int Height);
+    public sealed record Dock(Aboard.Rule Rule, int Room, int X, int Y)
+    {
+        public string Species => Rule.Species;
+
+        public int Width => Rule.Width;
+
+        public int Height => Rule.Height;
+    }
 
     /// <summary>
     /// The guards' docks aboard intact vessel <paramref name="v"/> (<see cref="Vessels.Aboard"/>), drawn from a stream of their own (3) so
@@ -48,7 +55,7 @@ public static partial class Shipyard
                 var c = v.Compartments[i];
                 var columns = Fits(c, rule, taken);
                 int x = columns[(int)rng.Below((uint)columns.Count)];
-                docks.Add(new(rule.Species, i, x, c.Floor - rule.Height, rule.Width, rule.Height));
+                docks.Add(new(rule, i, x, c.Floor - rule.Height));
             }
         }
         return docks;

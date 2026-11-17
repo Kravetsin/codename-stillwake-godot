@@ -63,13 +63,13 @@ public class GuardsAboardTests
         var docks = Shipyard.Guards(v);
         var stamped = Stamped(v);
         int arrival = Arrival(v);
-        Assert.Equal(docks, docks.OrderBy(d => Aboard.Rules.ToList().FindIndex(r => r.Species == d.Species)).ThenBy(d => d.Room));
+        Assert.Equal(docks, docks.OrderBy(d => Aboard.Rules.ToList().IndexOf(d.Rule)).ThenBy(d => d.Room));
         Assert.Equal(docks.Count, docks.Select(d => d.Room).Distinct().Count());
         Assert.InRange(docks.Count, 0, Spec.Max - 1);
         foreach (var rule in Aboard.Rules)
         {
             var rooms = RoomsOf(v, rule);
-            var mine = docks.Where(d => d.Species == rule.Species).ToList();
+            var mine = docks.Where(d => d.Rule == rule).ToList();
             int wanted = (rooms.Count + rule.Per - 1) / rule.Per;
             Assert.InRange(mine.Count, 0, wanted);
             foreach (var d in mine)

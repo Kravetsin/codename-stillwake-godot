@@ -586,14 +586,14 @@ public static class Vessels
         public sealed record Rule(string Species, int Per, bool Big, int Width, int Height);
 
         /// <summary>
-        /// A spider for every five small rooms, its capsule G1 «Зрачок — впадина» 4¾ cells across, its bottom just above the floor; a
-        /// robot for every three big rooms, its stand S1 «Люлька» some 6⅝ cells across and 8 tall.
+        /// A spider's capsule G1 «Зрачок — впадина» for every five small rooms, 4¾ cells across, its bottom just above the floor; a
+        /// robot's stand S1 «Люлька» for every three big rooms, some 6⅝ cells across and 8 tall.
         /// </summary>
-        public static readonly Rule Spider = new("spider", Per: 5, Big: false, Width: 5, Height: 5),
-            Robot = new("escort", Per: 3, Big: true, Width: 7, Height: 8);
+        public static readonly Rule Capsule = new("spider", Per: 5, Big: false, Width: 5, Height: 5),
+            Stand = new("escort", Per: 3, Big: true, Width: 7, Height: 8);
 
-        /// <summary>In the order a vessel's docks are listed: spiders first.</summary>
-        public static readonly IReadOnlyList<Rule> Rules = [Spider, Robot];
+        /// <summary>In the order a vessel's docks are listed: the spiders' capsules first.</summary>
+        public static readonly IReadOnlyList<Rule> Rules = [Capsule, Stand];
     }
 
     /// <summary>How the big classes' rooms are furnished by code (big-vessels, the mockup's furnish): sizes in cells, odds in whole percent.</summary>
