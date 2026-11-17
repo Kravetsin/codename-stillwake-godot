@@ -7,11 +7,11 @@ namespace Stillwake.Game.Features.Crew;
 
 /// <summary>
 /// The vitals' thermometer, a row under the charge (the-thermometer, the user's pick B): the frost star in the signs' column and
-/// the degrees where the hero stands, gliding to a new reading through the degrees between. Calm and pale inside its limits;
-/// past the low the number turns frost-blue, deeper the further, a cold light gathers behind and rime creeps over the star from its
-/// edge, laid on top, the sign's own paint untouched. Past the high (2026-11-14-heat-limits, the user's pick C) the star gives way to
-/// the heat's flame, the number turns ember and a shimmer rises off it. Hover: the reading and both limits. Hidden with no hero or
-/// passed out. Reads the sim four times a second.
+/// the hero's body to a tenth (body-temperature), gliding between breaths. Calm and pale at its normal; colder the number turns
+/// frost-blue, deeper toward the cold's death, a cold light gathers behind and rime creeps over the star from its edge, laid on top,
+/// the sign's own paint untouched. Hotter (2026-11-14-heat-limits, the user's pick C) the star gives way to the heat's flame, the
+/// number turns ember and a shimmer rises off it. Hover: the body, the degrees where it stands and both limits. Hidden with no hero
+/// or passed out. Reads the sim four times a second.
 /// </summary>
 public partial class Thermometer : CanvasLayer
 {
@@ -68,7 +68,7 @@ public partial class Thermometer : CanvasLayer
             if (read is { } now)
             {
                 // Shown again (a first read, waking up): the reading as it is, nothing to glide from.
-                if (!_shown) _glided = now.Degrees;
+                if (!_shown) _glided = now.Body / 100f;
                 _sim = now;
             }
             _shown = read != null;
@@ -79,14 +79,14 @@ public partial class Thermometer : CanvasLayer
             return;
         }
         _clock += delta;
-        float glided = Thermometers.Glide(_glided, _sim.Degrees, delta);
-        // The shimmer moves while the heat is felt: drawn each frame then.
-        if (glided != _glided || _glided > _sim.High)
+        float glided = Thermometers.Glide(_glided, _sim.Body / 100f, delta);
+        // The shimmer moves while the body is hot: drawn each frame then.
+        if (glided != _glided || _glided > Thermometers.Normal)
         {
             _glided = glided;
             _face.QueueRedraw();
         }
-        else if (_face.Drawn != (_sim.Low, _sim.High, Thermometers.Shown(_glided))) _face.QueueRedraw();
+        else if (_face.Drawn != Thermometers.Shown(_glided)) _face.QueueRedraw();
         _tips.Frame(!_ui.MenuOpen.Get() ? GetViewport().GetMousePosition() : null);
     }
 
@@ -105,30 +105,30 @@ public partial class Thermometer : CanvasLayer
 
     private sealed partial class Face(Thermometer owner) : Control
     {
-        /// <summary>The limits and the whole degrees last drawn.</summary>
-        public (int Low, int High, int Degrees) Drawn { get; private set; }
+        /// <summary>The tenths of a degree last drawn.</summary>
+        public int Drawn { get; private set; }
 
         public override void _Draw()
         {
-            var (low, high) = (owner._sim.Low, owner._sim.High);
-            float felt = Math.Max(0, low - owner._glided), frost = Thermometers.Depth(felt);
-            float heat = Math.Max(0, owner._glided - high), hot = Thermometers.Depth(heat), swap = Thermometers.Swap(heat);
-            int degrees = Thermometers.Shown(owner._glided);
-            Drawn = (low, high, degrees);
+            int tenths = Thermometers.Shown(owner._glided), normal = Thermometers.Shown(Thermometers.Normal);
+            Drawn = tenths;
+            // Cold or hot as the number reads: a body gliding the last hundredths home shows calm.
+            bool cold = tenths < normal, warm = tenths > normal;
+            float frost = Thermometers.Frost(owner._glided), hot = Thermometers.Hot(owner._glided), swap = Thermometers.Swap(owner._glided);
             var centre = new Vector2(Sign / 2, Sign / 2);
-            var colour = felt > 0 ? FrostLight.Lerp(FrostDeep, frost) : heat > 0 ? HeatLight.Lerp(HeatDeep, hot) : Calm;
-            if (felt > 0) Glow(centre, 13 * Grow, FrostLight with { A = 0.3f * (0.4f + 0.6f * frost) });
+            var colour = cold ? FrostLight.Lerp(FrostDeep, frost) : warm ? HeatLight.Lerp(HeatDeep, hot) : Calm;
+            if (cold) Glow(centre, 13 * Grow, FrostLight with { A = 0.3f * (0.4f + 0.6f * frost) });
             var box = new Rect2(Vector2.Zero, new Vector2(Sign, Sign));
             if (swap < 1) DrawTextureRect(Signs.Cold(), box, false, Colors.White with { A = 1 - swap });
             if (swap > 0) DrawTextureRect(Signs.Heat(), box, false, Colors.White with { A = swap });
-            if (felt > 0) DrawRime(centre, frost);
-            string text = Thermometers.Reading(degrees);
+            if (cold) DrawRime(centre, frost);
+            string text = Thermometers.Body(tenths);
             var at = new Vector2(Vitals.RowLeft - (Vitals.SignX - Sign / 2), Sign / 2 + TextSize * Style.MonoMiddle);
             var size = Style.Mono.GetStringSize(text, HorizontalAlignment.Left, -1, (int)TextSize);
-            if (felt > 0) Glow(at + new Vector2(size.X / 2, -TextSize * 0.3f), size.X * 0.7f, colour with { A = 0.25f + 0.25f * frost });
-            if (heat > 0) Glow(at + new Vector2(size.X / 2, -TextSize * 0.3f), size.X * 0.7f, colour with { A = 0.18f + 0.2f * hot });
+            if (cold) Glow(at + new Vector2(size.X / 2, -TextSize * 0.3f), size.X * 0.7f, colour with { A = 0.25f + 0.25f * frost });
+            if (warm) Glow(at + new Vector2(size.X / 2, -TextSize * 0.3f), size.X * 0.7f, colour with { A = 0.18f + 0.2f * hot });
             DrawString(Style.Mono, at, text, HorizontalAlignment.Left, -1, (int)TextSize, colour);
-            if (heat > 0) DrawShimmer(at with { Y = Sign / 2 }, size.X, hot, swap);
+            if (warm) DrawShimmer(at with { Y = Sign / 2 }, size.X, hot, swap);
         }
 
         /// <summary>Thin wavering strokes rising off the number: more and brighter as the heat deepens.</summary>

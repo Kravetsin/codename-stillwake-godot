@@ -189,12 +189,12 @@ public class PlanetRulesTests
     }
 
     [Fact]
-    public void APlanetCostsNoColdAtItsEdgeItsWholeGridIsItsField()
+    public void APlanetHasNoColdAtItsEdgeItsWholeGridIsItsField()
     {
         var w = Down();
         var crew = w.On(1).Crew;
         int cells = Width * 2 * Strip.Rows.Count;
-        Assert.All(Enumerable.Range(0, cells), cell => Assert.Equal(0, crew.EdgeCost(cell)));
+        Assert.All(Enumerable.Range(0, cells), cell => Assert.True(crew.TemperatureAt(cell) >= Strip.Temperatures[0], $"{cell}"));
         // At the strip's very corner, outside, the suit still pays its thin air alone.
         w.Do(new Enter(0)).Run(Strip.ThinAir!.Value * Content.Crew.BreathEvery);
         Assert.Equal(Scenario.Full - 1, crew.HeroOf(0)!.Air);

@@ -64,6 +64,11 @@ public sealed class Hero
     [JsonInclude, JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)] public int Owed { get; internal set; }
     /// <summary>Thousandths of a tick its <c>Work</c> commands have earned short of a whole one, 0 to 999, kept for the next (food-and-the-body).</summary>
     [JsonInclude, JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)] public int Worked { get; internal set; }
+    /// <summary>
+    /// Its body's temperature in hundredths of a degree off <c>Temperature.Normal</c>, 0 well (body-temperature): below it cold,
+    /// above it hot. Moved a breath toward what the degrees felt past its limits draw it to.
+    /// </summary>
+    [JsonInclude, JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)] public int Body { get; internal set; }
     /// <summary>What it has eaten, up to <c>Diet.Meals</c>, each with its ticks left; none, it is hungry (food-and-the-body).</summary>
     [JsonIgnore] internal List<Meal> Eaten { get; set; } = [];
     /// <summary>Its meals as saved: left out with none, as a field at its default is.</summary>

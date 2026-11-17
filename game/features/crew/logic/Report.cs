@@ -19,7 +19,7 @@ public static class Report
     /// them. Until the host releases it, the same <c>Enter</c> goes out again each frame — a few, and only
     /// on crossing an edge. Else, as the hero's report, while the sim holds it in another cell than the
     /// body's and <paramref name="every"/> ticks have gone since the last one sent (<paramref name="reported"/>,
-    /// at world tick <paramref name="tick"/>): what the cold past the field reads (0050), every tick it moves while a
+    /// at world tick <paramref name="tick"/>): what the degrees and the cold read (0050), every tick it moves while a
     /// creature threatens it (<see cref="Every"/>). Null otherwise.
     /// </summary>
     public static Command? Of(ICrewQueries crew, IRoomsQueries rooms, IAtmosphereQueries air, int width, int id, Hero hero, int tick, int reported,
@@ -50,27 +50,31 @@ public static class Report
     /// </summary>
     public static int Every(bool threatened) => threatened ? Stillwake.Content.Crew.ReportThreatened : Stillwake.Content.Crew.ReportEvery;
 
-    /// <summary>The degrees felt past a hero's limit that draw the frost full (2026-11-14-temperature-in-degrees).</summary>
-    public const int FeltFull = 30;
+    /// <summary>
+    /// How cold hero <paramref name="peer"/>'s body is, 0 to 1 (body-temperature): <see cref="ColdOf"/> its <c>BodyOf</c>. What the
+    /// frost on the screen is drawn at.
+    /// </summary>
+    public static float Cold(ICrewQueries crew, int peer) => ColdOf(crew.BodyOf(peer) / 100f);
+
+    /// <summary>How hot hero <paramref name="peer"/>'s body is, 0 to 1: <see cref="HeatOf"/> its <c>BodyOf</c>. What the haze on the screen is drawn at.</summary>
+    public static float Heat(ICrewQueries crew, int peer) => HeatOf(crew.BodyOf(peer) / 100f);
 
     /// <summary>
-    /// How hard the cold bites hero <paramref name="peer"/> at <paramref name="cell"/>, the body's own, 0 to 1: the degrees it
-    /// feels (<c>Felt</c>) over <see cref="FeltFull"/>, or the field edge's <c>EdgeCost</c> over <c>Field.EdgeCost</c>, whichever
-    /// is more (2026-11-14-temperature-in-degrees), eased out (2s − s²) so a little cold shows plainly and the edge is heavy well before
-    /// it is reached (0050). What the frost on the screen is drawn at.
+    /// The cold's share at a <paramref name="body"/> of so many degrees, 0 to 1: how far under <c>Temperature.Normal</c> it is of the
+    /// way to <c>ColdDeath</c>, eased out (<see cref="Eased"/>) so a little cold shows plainly.
     /// </summary>
-    public static float Cold(ICrewQueries crew, int peer, int cell)
+    public static float ColdOf(float body)
     {
-        float felt = (float)crew.Felt(peer, cell) / FeltFull;
-        float edge = (float)crew.EdgeCost(cell) / Stillwake.Content.Field.EdgeCost;
-        return Eased(Math.Max(felt, edge));
+        float normal = Stillwake.Content.Temperature.Normal / 100f, death = Stillwake.Content.Temperature.ColdDeath / 100f;
+        return Eased((normal - body) / (normal - death));
     }
 
-    /// <summary>
-    /// How hard the heat bites hero <paramref name="peer"/> at <paramref name="cell"/>, 0 to 1: the degrees past its high (<c>Heat</c>)
-    /// over <see cref="FeltFull"/>, eased as the cold is (2026-11-14-heat-limits). What the haze on the screen is drawn at.
-    /// </summary>
-    public static float Heat(ICrewQueries crew, int peer, int cell) => Eased((float)crew.Heat(peer, cell) / FeltFull);
+    /// <summary>The heat's share at a <paramref name="body"/> of so many degrees, 0 to 1: how far over its normal it is of the way to <c>HeatDeath</c>, eased as the cold's.</summary>
+    public static float HeatOf(float body)
+    {
+        float normal = Stillwake.Content.Temperature.Normal / 100f, death = Stillwake.Content.Temperature.HeatDeath / 100f;
+        return Eased((body - normal) / (death - normal));
+    }
 
     /// <summary>A share of the cold or the heat, clamped to 0 to 1 and eased out (2s − s²): what the frost, the haze and the thermometer draw.</summary>
     public static float Eased(float share)

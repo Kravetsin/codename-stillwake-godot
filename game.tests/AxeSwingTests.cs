@@ -87,6 +87,22 @@ public class AxeSwingTests
         Assert.False(swing.Advance(AxeSwing.MostPerFrameMs, false).Whooshes);
     }
 
+    [Fact]
+    public void ABodyWorkingAtHalfSwingsAtHalfThePaceItsHitsTwiceAsFarApart()
+    {
+        // WorkOf 500‰ (body-temperature): the stroke and its pace × 1000 / 500.
+        double slow = AxeSwing.SlowOf(500);
+        Assert.Equal(2, slow);
+        Assert.Equal(1, AxeSwing.SlowOf(1000));
+        var swing = new AxeSwing();
+        var hits = new List<double>();
+        for (int i = 0; i < 360; i++)
+            if (swing.Advance(Frame, true, slow: slow).Hits) hits.Add(i * Frame);
+        Assert.InRange(hits[0], 2 * HitMs - Frame, 2 * HitMs + Frame);
+        Assert.True(hits.Count > 2);
+        for (int i = 1; i < hits.Count; i++) Assert.InRange(hits[i] - hits[i - 1], 2 * Strokes.Axe.Ms - Frame, 2 * Strokes.Axe.Ms + Frame);
+    }
+
     [Theory]
     [InlineData(7)]
     [InlineData(33)]

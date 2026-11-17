@@ -34,6 +34,7 @@ public static partial class En
         ["crew.mealHow"] = "Eat a food with the right button",
         ["crew.withstands"] = "Withstands down to {n}°",
         ["crew.withstandsHeat"] = "Withstands heat up to {n}°",
+        ["crew.here"] = "Here {n}",
         ["crew.noSuitMode"] = "Your suit has no mode",
         ["suit.key"] = "Suit mode ({key:suit})",
         ["markers.home"] = "Lifepod",

@@ -134,6 +134,30 @@ public class HeroTests
     }
 
     [Fact]
+    public void AColdBodyAtHalfItsMoveWalksAndRunsAtHalfItsSpeedAndJumpsAsHighAsHalfItsLegsGive()
+    {
+        // MoveOf scales the speeds; a jump's speed by its root, so its height (speed squared) by the factor (body-temperature).
+        var (ship, hero) = Start(Room);
+        var half = Right with { Move = 500 };
+        Assert.Equal(Spec.Walk / 2, Run(ship, hero, half, 7).Vx);
+        Assert.Equal(Spec.Run / 2, Run(ship, hero, half with { Sprint = true }, 7).Vx);
+        Assert.Equal(Spec.Walk, Run(ship, hero, Right with { Move = 1000 }, 7).Vx);
+        // A room tall enough that a full jump's first step meets no ceiling.
+        var (tall, stood) = Start("""
+            ######
+            #....#
+            #....#
+            #....#
+            #....#
+            #S...#
+            ######
+            """);
+        int leap = (int)Math.Round(Spec.Jump * Math.Sqrt(0.5));
+        Assert.Equal(-leap + Spec.Gravity, stood.Step(Jump with { Move = 500 }, tall).Vy);
+        Assert.Equal(-Spec.Jump + Spec.Gravity, stood.Step(Jump, tall).Vy);
+    }
+
+    [Fact]
     public void RunsWithShiftHeldFasterThanItWalksButSwimsNoFasterForItInSpace()
     {
         var (ship, hero) = Start(Room);

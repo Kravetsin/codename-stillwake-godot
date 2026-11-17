@@ -90,13 +90,21 @@ public partial class ContentTests
     }
 
     [Fact]
-    public void OnlyHelmetsHoldAirEachMoreThanTheLungsAndTheEdgeEndsAnyInABreath()
+    public void OnlyHelmetsHoldAirEachMoreThanTheLungs()
     {
         foreach (var item in Content.Items.All)
             Assert.True((item.Equip == Content.Helmet.Slot) == (item.Tank > Content.Crew.Lungs) && item.Tank >= 0, item.Id);
-        Assert.True(Content.Field.OffGrid >= Content.Items.All.Max(i => i.Tank));
-        // The 1000 is the breath: a bare hero resting by the pod in vacuum holds against space's cold (2026-11-14-temperature-in-degrees).
-        Assert.True(1000 + (Content.Temperature.BareLow - Content.Temperature.Space) * Content.Temperature.Bite <= 1000 * Content.Crew.PodRefill);
+    }
+
+    [Fact]
+    public void TheBodyIsWellBetweenItsDeathsSlowsPastItsEaseAndNeverStops()
+    {
+        // body-temperature: each death past the ease either way, so a body slows before it dies; the least speed is some.
+        var t = (Content.Temperature.ColdDeath, Content.Temperature.Normal, Content.Temperature.Easy, Content.Temperature.HeatDeath);
+        Assert.True(t.ColdDeath < t.Normal - t.Easy && t.Normal + t.Easy < t.HeatDeath && t.Easy >= 0, $"{t}");
+        Assert.InRange(Content.Temperature.Least, 1, 999);
+        Assert.InRange(Content.Temperature.Pull, 1, 1000);
+        Assert.True(Content.Temperature.Sway > 0 && Content.Temperature.Space < Content.Temperature.Hull);
     }
 
     [Fact]
@@ -109,11 +117,12 @@ public partial class ContentTests
         }
         foreach (var item in Content.Items.All)
             Assert.True((item.Low != null) == (item.Equip == Content.Suit.Slot) && (item.Low ?? int.MinValue) < Content.Temperature.BareLow, item.Id);
-        Assert.True(Content.Cape.Warmth > 0 && Content.Temperature.Bite > 0);
-        // A suit holds out space aboard; the night on the first planet's surface bites it (2026-11-14-temperature-in-degrees).
+        Assert.True(Content.Cape.Warmth > 0);
+        // A suit feels nothing by the hull nor anywhere on the first planet, and space past the field bites it: its reach is its
+        // own (body-temperature).
         int suit = Content.Items.Get(Content.Suit.Basic).Low!.Value;
-        Assert.True(suit <= Content.Temperature.Space && suit <= Content.PlanetTypes.First.Temperatures[0]);
-        Assert.True(suit > Content.PlanetTypes.First.Temperatures[0] - Content.Sky.First.Chill);
+        Assert.True(suit <= Content.Temperature.Hull && suit > Content.Temperature.Space);
+        Assert.True(suit <= Content.PlanetTypes.First.Temperatures.Min() - Content.Sky.First.Chill);
     }
 
     [Fact]

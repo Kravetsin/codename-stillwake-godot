@@ -26,10 +26,12 @@ public readonly record struct Point(int X, int Y);
 /// jump rises, it rises less (<c>Hero.JumpCut</c>); the step <see cref="Jump"/> is set counts as held too. <see cref="Reeling"/>,
 /// knocked by a ram (0103): the keys aside, no ladder taken, the knock's speed kept in the air and braked on the floor.
 /// <see cref="Slowed"/>, thousandths taken off the walk's and the run's top speed: a storm's under the open sky (<c>ICrewQueries.PaceAt</c>).
+/// <see cref="Move"/>, the thousandths of its speed the body moves at (<c>ICrewQueries.MoveOf</c>, body-temperature): the walk, run,
+/// climb and swims, the jetpack's gain and top, and a jump's height; 0, as a default input has it, counts as whole.
 /// </summary>
 public readonly record struct HeroInput(
     int X, int Y, bool Jump, int? Face = null, bool Sprint = false, bool Swings = false, Point? Pull = null,
-    bool Jetpack = false, Point? Thrust = null, bool JumpHeld = false, bool Reeling = false, int PullBy = 0, int Slowed = 0);
+    bool Jetpack = false, Point? Thrust = null, bool JumpHeld = false, bool Reeling = false, int PullBy = 0, int Slowed = 0, int Move = 1000);
 
 /// <summary>
 /// The cells the hero moves against; which of them are space, where the
@@ -344,8 +346,8 @@ public readonly record struct Hero(
             // A jump lets go: straight up as from the floor, or to a side, leaping off across and less high (0092).
             if (input.Jump)
             {
-                int across = input.X * Spec.Run * Spec.LadderJumpAcross / 1000;
-                int rise = input.X == 0 ? Spec.Jump : Spec.Jump * Spec.LadderJumpRise / 1000;
+                int across = Leapt(input.X * Spec.Run * Spec.LadderJumpAcross / 1000, input);
+                int rise = Leapt(input.X == 0 ? Spec.Jump : Spec.Jump * Spec.LadderJumpRise / 1000, input);
                 return Fall(ship, hero.X, hero.Y, across, -rise, facing, held) with { Rising = true, LetGo = 0, Leaping = true };
             }
             // A side held in mid-air only turns the hero on it, so a jump that follows goes that way (0077); on the ground it
@@ -356,7 +358,7 @@ public readonly record struct Hero(
             // which it may not climb into: it stops on the ladder, or does not take it.
             int x = Centred(hero.X, LadderMiddle(ship, hero.X, hero.Y));
             if (x != hero.X && !Clear(ship, x, hero.Y)) x = hero.X;
-            int speed = input.Y < 0 ? Spec.ClimbUp : input.Sprint ? Spec.Slide : Spec.ClimbDown;
+            int speed = Moved(input.Y < 0 ? Spec.ClimbUp : input.Sprint ? Spec.Slide : Spec.ClimbDown, input);
             var climbed = Climb(ship, x, hero.Y, input.Y, speed, facing) with { LetGo = letGo };
             if (Clear(ship, climbed.X, climbed.Y)) return climbed;
             if (hero.Climbing) return hero with { X = x, Vx = 0, Vy = 0, Facing = facing, LetGo = letGo };
@@ -368,7 +370,7 @@ public readonly record struct Hero(
             return up with { LetGo = letGo, Leaping = true };
         int airborne = grounded ? 0 : Math.Min(hero.Airborne + 1, Spec.Coyote + 1);
         bool jumps = (input.Jump || hero.Buffered > 0) && airborne <= Spec.Coyote;
-        int vy = jumps ? -Spec.Jump : hero.Vy;
+        int vy = jumps ? -Leapt(Spec.Jump, input) : hero.Vy;
         bool rising = jumps || hero.Rising;
         if (rising && !held && vy < 0) (vy, rising) = (vy * Spec.JumpCut / 1000, false);
         var after = Fall(ship, hero.X, hero.Y, Paced(hero.Vx, input, grounded), vy, facing, held, input.Y > 0 && !input.Jump);
@@ -442,11 +444,12 @@ public readonly record struct Hero(
     /// <summary>
     /// The walk's speed after a step from <paramref name="vx"/>: gaining <c>Hero.WalkAccel</c> or <c>Hero.RunAccel</c>
     /// toward what the keys walk or run, else losing <c>Hero.Stop</c> toward it, landing on it; in the air by
-    /// <c>Hero.AirControl</c> of either (0089). Either top <see cref="HeroInput.Slowed"/> thousandths lower, rounded down.
+    /// <c>Hero.AirControl</c> of either (0089). Either top <see cref="HeroInput.Slowed"/> thousandths lower, rounded down, then the
+    /// body's <see cref="HeroInput.Move"/> of it (body-temperature).
     /// </summary>
     private static int Paced(int vx, HeroInput input, bool grounded)
     {
-        int top = (input.Sprint ? Spec.Run : Spec.Walk) * (1000 - input.Slowed) / 1000, target = input.X * top;
+        int top = Moved((input.Sprint ? Spec.Run : Spec.Walk) * (1000 - input.Slowed) / 1000, input), target = input.X * top;
         bool gains = input.X != 0 && (vx == 0 || Math.Sign(vx) == input.X) && Math.Abs(vx) <= top;
         int rate = gains ? (input.Sprint ? Spec.RunAccel : Spec.WalkAccel) : Spec.Stop;
         if (!grounded) rate = rate * Spec.AirControl / 1000;
@@ -579,7 +582,7 @@ public readonly record struct Hero(
     private static Hero Swim(Ship ship, Hero hero, HeroInput input, int facing)
     {
         // A jetpack takes the kick into its flight, to drag off as any speed does; swimming, it drifts on besides, fading.
-        var (vx, vy) = input.Jetpack ? Flown(hero.Vx + hero.Kx, hero.Vy + hero.Ky, input) : (input.X * Spec.Swim + hero.Kx, input.Y * Spec.Swim + hero.Ky);
+        var (vx, vy) = input.Jetpack ? Flown(hero.Vx + hero.Kx, hero.Vy + hero.Ky, input) : (input.X * Moved(Spec.Swim, input) + hero.Kx, input.Y * Moved(Spec.Swim, input) + hero.Ky);
         var (kx, ky) = input.Jetpack ? (0, 0) : (Faded(hero.Kx), Faded(hero.Ky));
         int nx = MoveX(ship, hero.X, hero.Y, vx);
         int ny = vy > 0 ? SwimDown(ship, nx, hero.Y, vy) : MoveY(ship, nx, hero.Y, vy, false);
@@ -599,9 +602,9 @@ public readonly record struct Hero(
         bool surface = above >= 0 && !ship.Wet(above) && !Solid(ship, CellOf(hero.X), CellOf(hero.Y - MiddleUp) - 1);
         bool shore = input.X != 0 && LedgeAhead(ship, hero.X, hero.Y, input.X) is int top && hero.Y - top <= Spec.Height;
         if (surface && (input.Jump || shore))
-            return Fall(ship, hero.X, hero.Y, input.X * Spec.WaterSwim, -Spec.Jump, facing, true) with { Rising = true, Leaping = true };
-        int vx = input.X * Spec.WaterSwim;
-        int vy = input.Y < 0 || input.Jump || input.JumpHeld ? -Spec.WaterSwim : input.Y > 0 ? Spec.WaterSwim : Spec.WaterSink;
+            return Fall(ship, hero.X, hero.Y, Leapt(input.X * Spec.WaterSwim, input), -Leapt(Spec.Jump, input), facing, true) with { Rising = true, Leaping = true };
+        int swim = Moved(Spec.WaterSwim, input), vx = input.X * swim;
+        int vy = input.Y < 0 || input.Jump || input.JumpHeld ? -swim : input.Y > 0 ? swim : Spec.WaterSink;
         int nx = MoveX(ship, hero.X, hero.Y, vx), y = hero.Y;
         if (nx != hero.X + vx && StepOnto(ship, hero.X, hero.Y, hero.X + vx) is int step) (nx, y) = (hero.X + vx, step);
         int ny = MoveY(ship, nx, y, vy, false);
@@ -632,32 +635,47 @@ public readonly record struct Hero(
     /// <summary>
     /// A jetpack's speed after a step from (<paramref name="vx"/>, <paramref name="vy"/>), never past
     /// <c>Jetpack.Top</c> (a fall carried out into space is cut to it): thrusting, gaining <c>Jetpack.Accel</c>
-    /// along the thrust; coasting, nearing what the keys swim by <c>Jetpack.Drag</c>, landing on it.
+    /// along the thrust; coasting, nearing what the keys swim by <c>Jetpack.Drag</c>, landing on it. The gain, the top and the swim
+    /// are the body's <see cref="HeroInput.Move"/> of theirs (body-temperature).
     /// </summary>
     public static (int X, int Y) Flown(int vx, int vy, HeroInput input)
     {
-        double x = vx, y = vy;
-        if (input.Thrust is Point dir) (x, y) = (x + (double)dir.X * Pack.Accel / Unit, y + (double)dir.Y * Pack.Accel / Unit);
+        double x = vx, y = vy, accel = (double)Pack.Accel * MoveOf(input) / 1000, top = (double)Pack.Top * MoveOf(input) / 1000;
+        if (input.Thrust is Point dir) (x, y) = (x + dir.X * accel / Unit, y + dir.Y * accel / Unit);
         else
         {
-            int tx = input.X * Spec.Swim, ty = input.Y * Spec.Swim;
+            int swim = Moved(Spec.Swim, input), tx = input.X * swim, ty = input.Y * swim;
             double dx = x - tx, dy = y - ty, off = Distance(dx, dy);
             (x, y) = off <= Pack.Drag ? (tx, ty) : (x - dx / off * Pack.Drag, y - dy / off * Pack.Drag);
         }
         double speed = Distance(x, y);
-        if (speed > Pack.Top) (x, y) = (x / speed * Pack.Top, y / speed * Pack.Top);
+        if (speed > top) (x, y) = (x / speed * top, y / speed * top);
         return ((int)Math.Round(x), (int)Math.Round(y));
     }
 
     /// <summary>
     /// Whether a jetpack thrusting along <paramref name="dir"/> only holds a flight at (<paramref name="vx"/>, <paramref name="vy"/>):
-    /// at <c>Jetpack.Top</c>, within a few degrees of the thrust. Such a cruise costs no air; a start, turn, brake or dodge does.
+    /// at <c>Jetpack.Top</c>, within a few degrees of the thrust, both <paramref name="move"/> thousandths of theirs (body-temperature).
+    /// Such a cruise costs no air; a start, turn, brake or dodge does.
     /// </summary>
-    public static bool Cruising(int vx, int vy, Point dir)
+    public static bool Cruising(int vx, int vy, Point dir, int move = 1000)
     {
         double speed = Distance(vx, vy);
-        return speed >= Pack.Top - Pack.Accel && (vx * (double)dir.X + vy * (double)dir.Y) / (speed * Unit) >= CruiseCos;
+        return speed >= (double)(Pack.Top - Pack.Accel) * move / 1000 && (vx * (double)dir.X + vy * (double)dir.Y) / (speed * Unit) >= CruiseCos;
     }
+
+    /// <summary>The thousandths of its speed <paramref name="input"/>'s body moves at (<see cref="HeroInput.Move"/>): whole for a default input.</summary>
+    private static int MoveOf(HeroInput input) => input.Move > 0 ? input.Move : 1000;
+
+    /// <summary><paramref name="speed"/> as the body moves it (<see cref="HeroInput.Move"/>), rounded toward zero.</summary>
+    private static int Moved(int speed, HeroInput input) => (int)((long)speed * MoveOf(input) / 1000);
+
+    /// <summary>
+    /// A jump's speed off at <paramref name="speed"/> as the body leaps it: by the root of <see cref="HeroInput.Move"/>, so the jump's
+    /// height, not its speed, scales by the move (body-temperature).
+    /// </summary>
+    private static int Leapt(int speed, HeroInput input) =>
+        MoveOf(input) >= 1000 ? speed : (int)Math.Round(speed * Math.Sqrt(MoveOf(input) / 1000.0));
 
     /// <summary>How close a flight lies to its thrust to cruise: within about six degrees.</summary>
     private const double CruiseCos = 0.995;

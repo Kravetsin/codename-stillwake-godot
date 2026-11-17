@@ -297,7 +297,7 @@ public class StormsTests
     [Fact]
     public void ABasicSuitFeelsNoColdInTheRainEvenAtNight()
     {
-        Assert.Equal(-40, Content.Items.Get(Content.Suit.Basic).Low);
+        Assert.Equal(-110, Content.Items.Get(Content.Suit.Basic).Low);
         Assert.Equal(0, LostOverAStorm(Rain, NightAt));
     }
 

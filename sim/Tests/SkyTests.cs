@@ -36,16 +36,13 @@ public class SkyTests
     private static int Beat => Strip.ThinAir!.Value * Content.Crew.BreathEvery;
 
     /// <summary>
-    /// The air the night's cold under the open sky takes from a hero with no suit over <paramref name="beats"/> beats, <paramref name="warmth"/>
-    /// degrees lower with a cape: the degrees felt past the bare body's limit at <c>Bite</c> a breath (2026-11-14-temperature-in-degrees), whole.
+    /// Where the night's cold under the open sky settles the body of a hero with no suit, <paramref name="warmth"/> degrees lower with
+    /// a cape: <c>Sway</c> hundredths under its normal a degree felt past the bare body's limit (body-temperature).
     /// </summary>
-    private static int NightCold(int beats, int warmth = 0)
-    {
-        int felt = Content.Temperature.BareLow - warmth - (Strip.Temperatures[0] - Day.Chill);
-        int thousandths = beats * felt * Content.Temperature.Bite * Strip.ThinAir!.Value;
-        Assert.Equal(0, thousandths % 1000);
-        return thousandths / 1000;
-    }
+    private static int NightBody(int warmth = 0) =>
+        -Content.Temperature.Sway * (Content.Temperature.BareLow - warmth - (Strip.Temperatures[0] - Day.Chill));
+
+    private static int BodyOf(Scenario w) => w.On(1).Crew.HeroOf(0)!.Body;
 
     /// <summary>
     /// The ship with the strip opened and hero 0 beamed down to it in a helmet and no suit, wearing the cape when <paramref name="caped"/>:
@@ -139,15 +136,19 @@ public class SkyTests
     }
 
     [Fact]
-    public void AtNightAHeroUnderTheOpenSkyPaysTheChillOnTopOfThinAir()
+    public void AtNightAHeroUnderTheOpenSkyCoolsItsBodyAndPaysOnlyThinAir()
     {
-        // Five beats: 8 degrees felt are 4 whole units.
-        Assert.True(NightCold(5) > 0);
-        Assert.Equal(5, Lost(Down(), Open, 0, beats: 5));
-        Assert.Equal(5 + NightCold(5), Lost(Down(), Open, NightAt, beats: 5));
-        Assert.Equal(10 + NightCold(10), Lost(Down(), Open, NightAt, beats: 10));
+        // 8 degrees felt settle a bare body at 35.4° within five beats, its air paying thin air alone (body-temperature).
+        Assert.Equal(-160, NightBody());
+        var day = Down();
+        Assert.Equal((5, 0), (Lost(day, Open, 0, beats: 5), BodyOf(day)));
+        var night = Down();
+        Assert.Equal((5, NightBody()), (Lost(night, Open, NightAt, beats: 5), BodyOf(night)));
+        var longer = Down();
+        Assert.Equal((10, NightBody()), (Lost(longer, Open, NightAt, beats: 10), BodyOf(longer)));
         // Late in the night, five beats before dawn, it still bites.
-        Assert.Equal(5 + NightCold(5), Lost(Down(), Open, Day.Length - 6 * Beat, beats: 5));
+        var late = Down();
+        Assert.Equal((5, NightBody()), (Lost(late, Open, Day.Length - 6 * Beat, beats: 5), BodyOf(late)));
     }
 
     [Fact]
@@ -178,11 +179,11 @@ public class SkyTests
         // The shelter cut into the cliff's foot, where heroes beam down: its back the rock.
         int shelter = w.On(1).Crew.Spawn;
         Assert.NotNull(w.On(1).Grid.BackAt(shelter));
-        Assert.Equal(1, Lost(w, shelter, NightAt));
+        Assert.Equal((1, 0), (Lost(w, shelter, NightAt), BodyOf(w)));
         // A back wall put up over a cell of the open flat shelters it as well.
         var v = Down();
         v.On(1).Grid.Place(Open, Placement.BackWall());
-        Assert.Equal(1, Lost(v, Open, NightAt));
+        Assert.Equal((1, 0), (Lost(v, Open, NightAt), BodyOf(v)));
     }
 
     [Fact]
@@ -197,16 +198,17 @@ public class SkyTests
                 if (y == top || x == left || x == right) m.Grid.Place(Cell(x, y), Placement.Wall());
         int inside = Cell(left + 2, floor - 1);
         Assert.Null(m.Grid.BackAt(inside));
-        Assert.Equal(5 + NightCold(5), Lost(w, inside, NightAt, beats: 5));
+        Assert.Equal((5, NightBody()), (Lost(w, inside, NightAt, beats: 5), BodyOf(w)));
     }
 
     [Fact]
     public void TheCapesDegreesLeaveLessOfTheNightsCold()
     {
-        // Over ten beats the cape's degrees are whole units of cold: 3 of 8 felt (2026-11-14-temperature-in-degrees).
+        // 3 of 8 felt with the cape (2026-11-14-temperature-in-degrees): its body settles at 36.4°, its air paying thin air alone.
         const int beats = 10;
-        Assert.True(NightCold(beats, Content.Cape.Warmth) < NightCold(beats));
-        Assert.Equal(beats + NightCold(beats, Content.Cape.Warmth), Lost(Down(caped: true), Open, NightAt, beats));
+        Assert.Equal(-60, NightBody(Content.Cape.Warmth));
+        var w = Down(caped: true);
+        Assert.Equal((beats, NightBody(Content.Cape.Warmth)), (Lost(w, Open, NightAt, beats), BodyOf(w)));
     }
 
     [Fact]

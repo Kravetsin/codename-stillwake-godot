@@ -266,9 +266,9 @@ public static class Items
         // The basic suit (2026-10-27-suits-are-worn): the helmet's tank the hero's air while worn, the body withstanding the
         // cold down to its Low (2026-11-14-temperature-in-degrees) and the heat up to its High (2026-11-14-heat-limits); both free at the pod.
         new(Helmet.Basic, 1, Equip: Helmet.Slot, Gear: true, Group: ItemGroup.Wearable, Tank: 25),
-        new(Suit.Basic, 1, Equip: Suit.Slot, Gear: true, Group: ItemGroup.Wearable, Low: -40, High: 50),
-        new(Suit.Regen, 1, Equip: Suit.Slot, Gear: true, Group: ItemGroup.Wearable, Switch: true, Low: -40, High: 50),
-        new(Suit.Heat, 1, Equip: Suit.Slot, Gear: true, Group: ItemGroup.Wearable, Low: -40, High: 60),
+        new(Suit.Basic, 1, Equip: Suit.Slot, Gear: true, Group: ItemGroup.Wearable, Low: -110, High: 50),
+        new(Suit.Regen, 1, Equip: Suit.Slot, Gear: true, Group: ItemGroup.Wearable, Switch: true, Low: -110, High: 50),
+        new(Suit.Heat, 1, Equip: Suit.Slot, Gear: true, Group: ItemGroup.Wearable, Low: -110, High: 60),
         // For the jetpack's long flights (2026-11-03-the-heavy-helmet): 100, not twice 45, so it reads as more than a doubling.
         new(Helmet.Heavy, 1, Equip: Helmet.Slot, Gear: true, Group: ItemGroup.Wearable, Tank: 80),
         // The middle step, made rather than bought (2026-11-14-quilted-helmet-and-traced-art).

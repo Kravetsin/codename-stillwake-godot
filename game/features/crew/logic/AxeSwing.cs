@@ -31,9 +31,9 @@ public struct AxeSwing
     /// held there for <see cref="StopMs"/>, then the rest of it hurried to end with the stroke, so the arm stops on
     /// contact while the stroke's clock, and every hit it times, runs on untouched.
     /// </summary>
-    public static double Shown(double phase, Stroke stroke)
+    public static double Shown(double phase, Stroke stroke, double slow = 1)
     {
-        double hit = stroke.HitShare, stop = StopMs / stroke.Ms;
+        double hit = stroke.HitShare, stop = StopMs / (stroke.Ms * slow);
         if (phase <= hit) return phase;
         if (phase <= hit + stop) return hit;
         return hit + (phase - hit - stop) * (1 - hit) / (1 - hit - stop);
@@ -47,14 +47,24 @@ public struct AxeSwing
 
     private double? _ms;
     private bool _struck, _whooshed;
-    /// <summary>Real time run, in ms, and when each stroke last began by it: every tool keeps its own pace, none another's.</summary>
+    /// <summary>Real time run, in ms, and when each stroke may begin again by it: every tool keeps its own pace, none another's.</summary>
     private double _clock;
-    private Dictionary<Stroke, double>? _begunAt;
+    private Dictionary<Stroke, double>? _readyAt;
     /// <summary>The stroke playing: the axe's, or the tool's it began with (<see cref="Strokes"/>).</summary>
     private Stroke? _stroke;
+    private double _slow;
 
     /// <summary>The stroke playing or last played: the axe's before any.</summary>
     public readonly Stroke Stroke => _stroke ?? Strokes.Axe;
+
+    /// <summary>
+    /// How many times its <see cref="Stroke.Ms"/> and <see cref="Stroke.PaceMs"/> the stroke playing or last played lasts: the body's
+    /// <see cref="SlowOf"/> as it began (body-temperature), 1 before any.
+    /// </summary>
+    public readonly double Slow => _slow > 0 ? _slow : 1;
+
+    /// <summary>How many times its own a stroke lasts with the body working at <paramref name="work"/> thousandths (<c>ICrewQueries.WorkOf</c>).</summary>
+    public static double SlowOf(int work) => 1000.0 / Math.Max(1, work);
     /// <summary>Following another's hero, the last of its swings shown.</summary>
     private int? _followed;
 
@@ -62,7 +72,7 @@ public struct AxeSwing
     public int Count { get; private set; }
 
     /// <summary>How far through its stroke the tool is, from 0 to 1; none between strokes, nor while one rests out its pace.</summary>
-    public readonly double? Phase => _ms is double ms && ms < Stroke.Ms ? ms / Stroke.Ms : null;
+    public readonly double? Phase => _ms is double ms && ms < Stroke.Ms * Slow ? ms / (Stroke.Ms * Slow) : null;
 
     /// <summary>
     /// The point of the world the stroke playing was aimed at as it began, in thousandths of a cell: the pointer, or the point
@@ -84,9 +94,9 @@ public struct AxeSwing
     /// <paramref name="place"/> when <paramref name="wanted"/> and none is playing: the left button held or clicked, or, for
     /// another's hero, a swing sent and not yet shown. <paramref name="angle"/> is the aim angle <paramref name="at"/> has from the
     /// shoulder of the figure faced to strike it (<see cref="Sectors"/>); none, the offset's own. A stroke just begun is drawn
-    /// from its start.
+    /// from its start. Each stroke begun lasts <paramref name="slow"/> times its own (<see cref="Slow"/>, body-temperature).
     /// </summary>
-    public SwingStep Advance(double elapsedMs, bool wanted, Point at = default, Point place = default, Stroke? stroke = null, double? angle = null)
+    public SwingStep Advance(double elapsedMs, bool wanted, Point at = default, Point place = default, Stroke? stroke = null, double? angle = null, double slow = 1)
     {
         bool begun = false, hits = false, whooshes = false;
         _clock += elapsedMs;
@@ -94,12 +104,12 @@ public struct AxeSwing
         // A stroke of another tool than the one playing ends it: its pace is its own, the next tool's waits for none of it.
         if (_ms != null && stroke != null && !ReferenceEquals(stroke, _stroke)) _ms = null;
         if (_ms is double playing) ms = playing + Math.Min(elapsedMs, MostPerFrameMs);
-        else if (wanted && Ready(stroke ?? Strokes.Axe)) (ms, begun) = (0, Begin(at, place, stroke, angle));
+        else if (wanted && Ready(stroke ?? Strokes.Axe)) (ms, begun) = (0, Begin(at, place, stroke, angle, slow));
         else return default;
         var now = Stroke;
-        if (!_whooshed && ms >= now.WhooshMsOf(Play!.Motion)) whooshes = _whooshed = true;
-        if (!_struck && ms >= now.HitShare * now.Ms) hits = _struck = true;
-        if (ms >= now.PaceMs)
+        if (!_whooshed && ms >= now.WhooshMsOf(Play!.Motion, Slow)) whooshes = _whooshed = true;
+        if (!_struck && ms >= now.HitShare * now.Ms * Slow) hits = _struck = true;
+        if (ms >= now.PaceMs * Slow)
         {
             if (!wanted)
             {
@@ -107,8 +117,8 @@ public struct AxeSwing
                 return new(begun, hits, whooshes);
             }
             // Held, the next begins where this one's pace ended, so the rhythm keeps the tool's pace exactly.
-            ms -= now.PaceMs;
-            begun = Begin(at, place, stroke, angle, ms);
+            ms -= now.PaceMs * Slow;
+            begun = Begin(at, place, stroke, angle, slow, ms);
         }
         _ms = ms;
         return new(begun, hits, whooshes);
@@ -118,11 +128,11 @@ public struct AxeSwing
     /// Another's hero, as sent: <paramref name="sent"/> is the last chop heard from it (<see cref="Busy.Chopping"/>),
     /// the swings it has begun and the point of the latest, and <paramref name="place"/> where it was in the packet that brought
     /// that swing (<see cref="Busy.Hear"/>); none while it does not wield the axe. Each number not shown yet is swung once, aimed
-    /// from the hero as it was sent, after the swing playing, if any, ends; numbers passed meanwhile are swung as one.
+    /// from the hero as it was sent, after the swing playing, if any, ends; numbers passed meanwhile are swung as one; each <paramref name="slow"/> times its own.
     /// </summary>
-    public SwingStep Follow(double elapsedMs, Busy? sent, Point place = default, Stroke? stroke = null, double? angle = null)
+    public SwingStep Follow(double elapsedMs, Busy? sent, Point place = default, Stroke? stroke = null, double? angle = null, double slow = 1)
     {
-        var step = Advance(elapsedMs, sent is { Swings: var now } && now != _followed, sent?.At ?? default, place, stroke, angle);
+        var step = Advance(elapsedMs, sent is { Swings: var now } && now != _followed, sent?.At ?? default, place, stroke, angle, slow);
         if (step.Begun) _followed = sent!.Value.Swings;
         return step;
     }
@@ -130,13 +140,14 @@ public struct AxeSwing
     /// <summary>Ends a swing at once, unstruck: the axe put away, the hand taken, the hero out.</summary>
     public void Stop() => _ms = null;
 
-    /// <summary>Whether <paramref name="stroke"/>'s tool has rested out its pace since its own last stroke began, whatever was swung since.</summary>
-    public readonly bool Ready(Stroke stroke) => _begunAt?.GetValueOrDefault(stroke, double.NegativeInfinity) is not double at || _clock - at >= stroke.PaceMs;
+    /// <summary>Whether <paramref name="stroke"/>'s tool has rested out its pace, as slow as its last stroke began, since that stroke began, whatever was swung since.</summary>
+    public readonly bool Ready(Stroke stroke) => _readyAt?.GetValueOrDefault(stroke, double.NegativeInfinity) is not double at || _clock >= at;
 
-    private bool Begin(Point at, Point place, Stroke? stroke, double? angle, double agoMs = 0)
+    private bool Begin(Point at, Point place, Stroke? stroke, double? angle, double slow, double agoMs = 0)
     {
         _stroke = stroke ?? Strokes.Axe;
-        (_begunAt ??= new(ReferenceEqualityComparer.Instance))[_stroke] = _clock - agoMs;
+        _slow = slow;
+        (_readyAt ??= new(ReferenceEqualityComparer.Instance))[_stroke] = _clock - agoMs + _stroke.PaceMs * Slow;
         Count++;
         (At, Aim) = (at, OffsetOf(at, place));
         Play = MotionPlay.Of(_stroke, angle ?? AngleOf(Aim));

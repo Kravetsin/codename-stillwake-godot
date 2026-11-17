@@ -116,7 +116,7 @@ public partial class HeroView
         var swingAt = pointer is { } aimed ? Aiming.PointOf(aimed) : default;
         var place = AxeSwing.PlaceOf(_current);
         double? angle = wanted ? AimAngle(_figure, AxeSwing.OffsetOf(swingAt, place), _current) : null;
-        var swung = _swing.Advance(elapsedMs, wanted, swingAt, place, stroke, angle);
+        var swung = _swing.Advance(elapsedMs, wanted, swingAt, place, stroke, angle, AxeSwing.SlowOf(m.Crew.WorkOf(client.Id)));
         if (swung.Begun)
         {
             _swingFace = AxeSwing.FaceOf(_swing.Aim, _current);
@@ -236,7 +236,7 @@ public partial class HeroView
     /// </summary>
     private void Drill(Client client, Registry m, EdgeHit? hit, string? drill)
     {
-        if (!_drillPace.Due(client.World.Tick, hit != null && drill != null, Content.Weapons.Of(drill)?.Pace ?? 1)) return;
+        if (!_drillPace.Due(client.World.Tick, hit != null && drill != null, DrillPace.Slowed(Content.Weapons.Of(drill)?.Pace ?? 1, m.Crew.WorkOf(client.Id)))) return;
         var sent = ToolEdges.CommandsOf(m, client.Id, drill!, hit!);
         if (sent.Cells is { } cells)
         {
@@ -510,7 +510,7 @@ public partial class HeroView
     {
         figure.Wields = wields;
         figure.Fitted = fitted;
-        figure.Chop(swing is { Phase: double phase, Play: { } play } ? (Pixels(swing.Aim), phase, play) : null);
+        figure.Chop(swing is { Phase: double phase, Play: { } play } ? (Pixels(swing.Aim), phase, play, swing.Slow) : null);
         figure.Work(busy is { Work: Handwork.Work, At: var plan } ? Pixels(plan) : null);
         figure.Gesture = gesture.Kind is { } kind ? (GestureMotions.Of(kind), gesture.Ms, Pixels(gesture.At)) : null;
     }

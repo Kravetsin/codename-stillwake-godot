@@ -32,8 +32,10 @@ public class SuitsTests
         """;
 
     private static readonly int Lungs = Content.Crew.Lungs, Full = Scenario.Full;
-    // The cold by the hull felt bare (2026-11-14-temperature-in-degrees), and what it costs over five breaths: whole units, whatever the clock.
-    private static readonly int Felt = Content.Temperature.BareLow - Content.Temperature.Hull, Cold5 = 5 * Felt * Content.Temperature.Bite / 1000;
+    // The cold by the hull felt bare (2026-11-14-temperature-in-degrees): 100°, the body 37 → 32 → 28.25, out on the third breath
+    // (body-temperature).
+    private static readonly int Felt = Content.Temperature.BareLow - Content.Temperature.Hull;
+    private const int TwoBreathsBare = -875;
     private static readonly int HeadSlot = SlotOf(Content.Helmet.Slot), BodySlot = SlotOf(Content.Suit.Slot);
     private static int SlotOf(string kind) => Content.Inventory.Slots + Content.Inventory.Equipment.ToList().IndexOf(kind);
     private static string Helmet => Content.Helmet.Basic;
@@ -100,13 +102,13 @@ public class SuitsTests
     }
 
     [Fact]
-    public void BareInVacuumABreathCostsTheColdBesidesSuitedItDoesNot()
+    public void BareInVacuumTheColdCoolsTheBodyNotTheAirSuitedItFeelsNothing()
     {
-        var bare = Breaths(InVacuum(Beyond), 5);
-        Assert.Equal(Lungs - 5 - Cold5, HeroOf(bare).Air);
+        var bare = Breaths(InVacuum(Beyond), 2);
+        Assert.Equal((Lungs - 2, TwoBreathsBare), (HeroOf(bare).Air, HeroOf(bare).Body));
         Assert.Equal(Felt, bare.M.Crew.Felt(0, HeroOf(bare).Cell));
         var suited = Breaths(InVacuum(Beyond, suited: true), 5);
-        Assert.Equal(Full - 5, HeroOf(suited).Air);
+        Assert.Equal((Full - 5, 0), (HeroOf(suited).Air, HeroOf(suited).Body));
         Assert.Equal(0, suited.M.Crew.Felt(0, HeroOf(suited).Cell));
     }
 
@@ -161,13 +163,14 @@ public class SuitsTests
     }
 
     [Fact]
-    public void AHelmetWithoutABodyHoldsTheAirButTheColdBitesABodyWithoutAHelmetTheOtherWay()
+    public void AHelmetWithoutABodyHoldsTheAirButTheColdCoolsTheBodyABodyWithoutAHelmetTheOtherWay()
     {
         var helmeted = InVacuum(Beyond, suited: true);
         TakeOff(Breaths(helmeted, 1), BodySlot);
         int air = HeroOf(helmeted).Air;
-        Breaths(helmeted, 5);
-        Assert.Equal((Full, air - 5 - Cold5, Felt), (helmeted.M.Crew.CapacityOf(0), HeroOf(helmeted).Air, helmeted.M.Crew.Felt(0, HeroOf(helmeted).Cell)));
+        Breaths(helmeted, 2);
+        Assert.Equal((Full, air - 2, Felt), (helmeted.M.Crew.CapacityOf(0), HeroOf(helmeted).Air, helmeted.M.Crew.Felt(0, HeroOf(helmeted).Cell)));
+        Assert.Equal(TwoBreathsBare, HeroOf(helmeted).Body);
 
         var bodied = InVacuum(Beyond, suited: true);
         TakeOff(Breaths(bodied, 1), HeadSlot);
@@ -208,19 +211,19 @@ public class SuitsTests
     }
 
     [Fact]
-    public void BareByThePodInVacuumAtRestTheAirHoldsWithinAUnit()
+    public void BareByThePodInVacuumTheAirHoldsButTheColdPassesItOut()
     {
-        // The pod gives back the breath and what the cold took; space's cold takes a unit on four breaths of five.
-        var w = Breaths(InVacuum(Hatch), 10);
-        Assert.InRange(HeroOf(w).Air, Lungs - 1, Lungs);
-        Breaths(w, 10);
-        Assert.InRange(HeroOf(w).Air, Lungs - 1, Lungs);
+        // The pod gives back the breath; the hull's cold takes the body, not the air (body-temperature).
+        var w = Breaths(InVacuum(Hatch), 2);
+        Assert.Equal((Lungs, TwoBreathsBare), (HeroOf(w).Air, HeroOf(w).Body));
+        Breaths(w, 1);
+        Assert.Equal((Content.Crew.PassOut, 0), (HeroOf(w).Out, HeroOf(w).Body));
     }
 
     [Fact]
     public void ACanisterBreathedBareFillsTheLungsNoFurther()
     {
-        var w = Breaths(InVacuum(Beyond), 5).GiveItems(0, (Content.Crew.Canister, 2));
+        var w = Breaths(InVacuum(Beyond), 2).GiveItems(0, (Content.Crew.Canister, 2));
         w.Do(new Refill { From = 0 }).Run();
         Assert.Equal(Lungs, HeroOf(w).Air);
         w.Do(new Refill { From = 0 }).Run();
@@ -259,13 +262,15 @@ public class SuitsTests
     }
 
     [Fact]
-    public void OffTheGridEvenAFullHeavyHelmetEndsInABreathItsLastBreathAfter()
+    public void OffTheGridAHeavyHelmetKeepsItsAirButSpacesColdPassesTheBodyOut()
     {
+        // Space's −200° on a basic suit's −110°: 37 → 32.5 → 29.12 → out on the third breath; the tank no longer buys reach
+        // (body-temperature).
         var w = Heavy(-5);
+        Breaths(w, 2);
+        Assert.Equal((100 - 2, -788, 0), (HeroOf(w).Air, HeroOf(w).Body, HeroOf(w).Gasp));
         Breaths(w, 1);
-        Assert.Equal((0, Content.Crew.LastBreath), (HeroOf(w).Air, HeroOf(w).Gasp));
-        w.Run(Content.Crew.LastBreath);
-        Assert.Equal((0, Content.Crew.PassOut), (HeroOf(w).Air, HeroOf(w).Out));
+        Assert.Equal((Content.Crew.PassOut, 0), (HeroOf(w).Out, HeroOf(w).Body));
     }
 
     [Fact]
@@ -274,10 +279,9 @@ public class SuitsTests
         var w = new Scenario(PodRoom) { Bare = true }.Wear(0, Content.Jetpack.Item);
         w.Do(EnterAt(Beyond)).Run();
         Breaths(w, 1);
-        int clock = w.Crew().Clock, cold = TemperatureTests.ColdOn(clock, Felt) + TemperatureTests.ColdOn(clock + Content.Crew.BreathEvery, Felt);
         w.Do(new Thrust(true) { From = 0 }).Run();
         Breaths(w, 1);
-        Assert.Equal(Lungs - 2 - cold - Content.Crew.BreathEvery / Content.Jetpack.TicksPerUnit, HeroOf(w).Air);
+        Assert.Equal(Lungs - 2 - Content.Crew.BreathEvery / Content.Jetpack.TicksPerUnit, HeroOf(w).Air);
     }
 
     [Fact]

@@ -203,7 +203,8 @@ public class CatchersTests
     {
         // A hero in the middle of a field too narrow for the ring: nothing comes, and the hunt waits.
         var w = new Scenario(Layout.Parse([.. Enumerable.Repeat(new string(' ', 100), 20), new string('#', 100)]) with { Kind = Spec.Surfaces.TestStrip.Id });
-        Arrive(w, 50, y: 19);
+        // Its own grid's cell, 100 wide: Cell counts on the 480-wide field's, which would stand it off this one, in space's cold.
+        w.Do(new Enter(19 * 100 + 50) { From = 0 }).Do(new SetCreative(false) { From = 0 }).Run();
         Full(w);
         w.Run(4 * Tune.Beat);
         Assert.Empty(w.M.Creatures.Creatures);
