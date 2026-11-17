@@ -772,7 +772,7 @@ function capsule(col) {
   };
 }
 
-// The hangar shuttles' parts, placed in pixels from the mockup's cells (docs/plans/big-vessels-mockup.html, SHUTTLE_DRAW). A flat erases the ink under its whole box, so paint on a hull stops short of the hull's outline.
+// The hangar shuttles' parts, placed in pixels from the mockup's cells (the big-vessels pick, SHUTTLE_DRAW; docs/decisions/2026-11-17-big-vessels.md). A flat erases the ink under its whole box, so paint on a hull stops short of the hull's outline.
 const SHUTTLE_GLASS = palOf(CANOPY), SHUTTLE_GROOVE = 'rgba(14,16,24,.5)', SHUTTLE_LIP = 'rgba(255,255,255,.16)';
 /** Block letters for the shuttles' painted names, five rows each. */
 const SHUTTLE_GLYPHS = {

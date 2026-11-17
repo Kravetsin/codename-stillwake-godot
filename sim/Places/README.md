@@ -46,7 +46,8 @@ its own for a contact's vessel and moves its sender there. The vessel itself is 
   frame's top-left at (`Margin`, `Margin`), the spawn at `Shipyard.Door`. Once every module stands, Places' `Opened` writes
   the vessel there: its parts laid (`Grid.Lay`) in reading order of their top-left cells, so machine ids follow it, the
   spawn's own back wall kept, an open door's piece turned open (`SetDoorway`); its crates filled (`PutIn`) and their loot
-  counted obtained (`Caught`, the-board). Compartments hold furniture (`Vessels.Furniture`) and salvage, piles copied from
+  counted obtained (`Caught`, the-board), a tank's liquid put in its slots alike. Liners and tankers have rooms several decks
+  tall ([big-vessels](../../docs/decisions/2026-11-17-big-vessels.md)). Compartments hold furniture (`Vessels.Furniture`) and salvage, piles copied from
   drifting debris (`Content.Vessels.Salvage`, five times a piece's mean loot, broken by tools as any pile); outside the hull
   stand its parts (`Vessels.Outside`, [derelict-looks](../../docs/decisions/2026-11-17-derelict-looks.md)). A vessel is as
   built, wrecks to come (the user's word); its looks are the client's, from its class and seed.
