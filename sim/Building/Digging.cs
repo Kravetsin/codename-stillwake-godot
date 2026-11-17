@@ -295,12 +295,14 @@ public sealed partial class BuildingModule
 
     /// <summary>
     /// A hit of <paramref name="hit"/>, the weapon's damage as on a wreck, on <paramref name="pile"/> (2026-11-07-pile-hit-points): at its hit
-    /// points it goes, and gives <paramref name="peer"/> what it holds.
+    /// points it goes, and gives <paramref name="peer"/> what it is made of; what its slots hold (a vessel's tank's liquid, big-vessels) spilled
+    /// where it stood for anyone, as a machine broken by a burst spills.
     /// </summary>
     private void HitPile(int peer, Machine pile, int hit)
     {
         var spec = Machines.Get(pile.Kind);
         if (Cracked(pile.Cell, spec.Strength!.Value, hit) == null) return;
+        if (spec.Slots != null) _itemsOps.Spill(pile.Id, pile.Cell);
         _gridOps.Clear(pile.Cell, "machine");
         Yield(peer, spec.Cost, pile.Cell);
     }

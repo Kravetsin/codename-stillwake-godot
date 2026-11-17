@@ -272,7 +272,7 @@ public sealed class ShipTiles
     /// </summary>
     private static void AddVesselDress(List<(string Name, Image Diffuse, Image Normal)> pictures, Dictionary<string, Image> fine)
     {
-        foreach (var name in (string[])[VesselDress.HullSheet, VesselDress.RibSheet, VesselDress.StripeSheet])
+        foreach (var name in (string[])[VesselDress.HullSheet, VesselDress.RibSheet, VesselDress.StripeSheet, VesselDress.VisorSheet])
             pictures.Add(Picture(name, Relief.None));
         foreach (int run in VesselDress.Runs())
             foreach (bool bottom in (bool[])[false, true])

@@ -105,6 +105,12 @@ public partial class RadarScreen : Control
     /// <summary>Sets the shuttle's route to a contact by id: <c>places</c>' <c>SetCourse</c>.</summary>
     public Action<int>? SetRoute { get; set; }
 
+    /// <summary>Clears the shuttle's route: <c>places</c>' <c>ClearCourse</c>.</summary>
+    public Action? ClearRoute { get; set; }
+
+    /// <summary>Takes a contact by id off the radar for everyone: <c>places</c>' <c>Forget</c>.</summary>
+    public Action<int>? Forget { get; set; }
+
     public RadarScreen(Ui ui)
     {
         _ui = ui;
@@ -351,8 +357,8 @@ public partial class RadarScreen : Control
             var at = Screen(NavMap.Contact(At, c.Offset));
             bool going = c.Left < Going;
             var contact = c;
-            float wide = Vessels.Class(c.Class)?.Length >= 150 ? 34 : 20;
-            var hit = Hit.Round($"contact{c.Id}", at, 20, () => Select(null, contact.Id), _ui.RadarContact.Get() == c.Id ? null
+            float wide = RadarModels.Long(c.Class, RadarModels.MapPerCell, RadarModels.MapLeast, RadarModels.MapMost);
+            var hit = Hit.Round($"contact{c.Id}", at, Mathf.Max(20, wide / 2), () => Select(null, contact.Id), _ui.RadarContact.Get() == c.Id ? null
                 : () => new Tip(ClassName(contact.Class), [new TipLine(T("computer.radar.km", ("n", RadarOrbit.Km(contact.Offset)))),
                     new TipLine(Leaves(contact.Left), contact.Left < Going ? Tone.Bad : Tone.Plain)]));
             if (Route == c.Id) DrawDashedLine(Screen(NavMap.Ship(At)), at, Loop with { A = 0.8f * shown }, 1.4f, 6, true, true);
@@ -360,7 +366,7 @@ public partial class RadarScreen : Control
             Words(T("computer.radar.km", ("n", RadarOrbit.Km(c.Offset))), at + new Vector2(0, 22), Tiny, (Hovered(hit) ? Colors.White : Text) with { A = shown }, true);
             if (going) Words(Clock(c.Left), at + new Vector2(0, 36), Tiny, Amber with { A = shown }, true);
             if (shown > 0.5f) _hits.Add(hit);
-            if (_ui.RadarContact.Get() == c.Id) HandLoop(at, 27, 22, c.Id);
+            if (_ui.RadarContact.Get() == c.Id) HandLoop(at, Mathf.Max(27, wide / 2 + 8), 22, c.Id);
         }
     }
 
@@ -468,15 +474,16 @@ public partial class RadarScreen : Control
         _hits.Add(hit);
     }
 
-    /// <summary>The selected thing's callout: beside it, tied by a line of ink, its picture, name and facts, and its action.</summary>
+    /// <summary>The selected thing's callout: beside it, tied by a line of ink, its picture, name and facts, and its actions one under another.</summary>
     private void DrawCallout()
     {
         if (CardNow() is not { } card) return;
         var (anchor, radius) = card.Anchor;
         float open = Mathf.Clamp((_time - _opened) / 0.2f, 0, 1), wide = 270;
-        bool reason = card.Button is { Lit: false, Reason: not null };
         var lines = Wrapped(card.Rows, wide - 32);
-        float tall = 76 + lines.Count * 20 + (card.Button != null ? 50 : 6) + (reason ? 16 : 0);
+        float buttons = 0;
+        foreach (var b in card.Buttons) buttons += ButtonStep + (b is { Lit: false, Reason: not null } ? 16 : 0);
+        float tall = 76 + lines.Count * 20 + (card.Buttons.Length > 0 ? buttons - ButtonStep + 50 : 6);
         var (x, y) = NavMap.Callout(anchor.X, anchor.Y, radius, wide, tall, Size.X, Size.Y);
         (x, y) = (Mathf.Round(x), Mathf.Round(y + (1 - open) * 8));
         var box = new Rect2(x, y, wide, tall);
@@ -496,8 +503,17 @@ public partial class RadarScreen : Control
         for (int i = 0; i < lines.Count; i++)
             Words(lines[i].Text, new Vector2(x + 16, y + 88 + i * 20), Small, (lines[i].Colour ?? Text) with { A = open });
         Close(new Vector2(x + wide - 26, y + 6));
-        if (card.Button is { } button) Button(new Rect2(x + 14, y + 78 + lines.Count * 20, wide - 28, 34), button, open);
+        float top = y + 78 + lines.Count * 20;
+        for (int i = 0; i < card.Buttons.Length; i++)
+        {
+            var button = card.Buttons[i];
+            Button(new Rect2(x + 14, top, wide - 28, 34), button, open, i);
+            top += ButtonStep + (button is { Lit: false, Reason: not null } ? 16 : 0);
+        }
     }
+
+    /// <summary>A callout's button and the gap under it, before the next.</summary>
+    private const float ButtonStep = 42;
 
     /// <summary>The callout's rows broken at spaces into lines no wider than <paramref name="room"/>, a row's colour kept on each of its lines.</summary>
     private List<Row> Wrapped(Row[] rows, float room)
@@ -542,7 +558,7 @@ public partial class RadarScreen : Control
         _hits.Add(hit);
     }
 
-    private void Button(Rect2 box, ButtonSpec button, float open)
+    private void Button(Rect2 box, ButtonSpec button, float open, int n)
     {
         if (button.Busy is float busy)
         {
@@ -558,9 +574,10 @@ public partial class RadarScreen : Control
             if (button.Reason is { } reason) Words(reason, new Vector2(box.GetCenter().X, box.End.Y + 16), Tiny, Warn with { A = open }, true);
             return;
         }
-        var hit = Hit.Box("action", box, button.Press, null);
+        var hit = Hit.Box($"action{n}", box, button.Press, null);
         bool over = Hovered(hit);
-        DrawRect(box, Loop with { A = (over ? 0.22f : 0.1f) * open });
+        // A quiet one (Forget) is drawn without the action's amber, so the way on stands out.
+        if (!button.Quiet || over) DrawRect(box, Loop with { A = (over ? 0.22f : 0.1f) * open });
         SketchBox(box, 9.1f, (over ? Colors.White : Ink) with { A = open }, 1.4f);
         Words(button.Label, box.GetCenter() + new Vector2(0, 5), Small, new Color("f4f6fa") with { A = open }, true);
         _hits.Add(hit);
@@ -583,7 +600,7 @@ public partial class RadarScreen : Control
             }
             var anchor = Screen(NavMap.Planet(p));
             return new CardView((anchor, Px(NavMap.PlanetRadius) + 6), PlanetName(p), T($"computer.radar.type.{spec.Type}"), [.. rows],
-                at => DrawPlanet(at, 20, spec.Type), PlanetButton(p, here));
+                at => DrawPlanet(at, 20, spec.Type), PlanetButton(p, here) is { } button ? [button] : []);
         }
         if (_ui.RadarContact.Get() is not int id || NearShown < 0.4f) return null;
         Contact? c = null;
@@ -601,10 +618,14 @@ public partial class RadarScreen : Control
             new(Leaves(c.Left), going ? (_blink ? Amber : Amber with { A = 0.5f }) : null),
         ];
         string kind = c.Class;
-        return new CardView((Screen(NavMap.Contact(At, c.Offset)), 18), ClassName(c.Class), T("computer.radar.vessel"), facts,
-            at => Silhouette(at, 40 * (cls?.Length ?? 100) / 200f + 6, kind, false, 1),
-            Route == id ? new ButtonSpec(T("computer.radar.route"), false, null, null, 1)
-                : new ButtonSpec(T("computer.radar.setCourse"), true, null, () => SetRoute?.Invoke(id), null));
+        float onMap = RadarModels.Long(kind, RadarModels.MapPerCell, RadarModels.MapLeast, RadarModels.MapMost);
+        float inCard = RadarModels.Long(kind, RadarModels.CardPerCell, RadarModels.CardLeast, RadarModels.CardMost);
+        // The course's contact clears it in place of setting it; any contact can be forgotten, for everyone.
+        var way = Route == id ? new ButtonSpec(T("computer.radar.clearRoute"), true, null, () => ClearRoute?.Invoke(), null)
+            : new ButtonSpec(T("computer.radar.setCourse"), true, null, () => SetRoute?.Invoke(id), null);
+        return new CardView((Screen(NavMap.Contact(At, c.Offset)), Mathf.Max(18, onMap / 2)), ClassName(c.Class), T("computer.radar.vessel"), facts,
+            at => Silhouette(at, inCard, kind, false, 1),
+            [way, new ButtonSpec(T("computer.radar.forget"), true, null, () => Forget?.Invoke(id), null, Quiet: true)]);
     }
 
     private ButtonSpec? PlanetButton(int p, bool here)
@@ -657,25 +678,27 @@ public partial class RadarScreen : Control
         _ => (new Color("8eaa72"), new Color("5d7a4c"), new Color("25331f"), new Color("7b6c47")),
     };
 
-    /// <summary>A derelict from the side, <paramref name="wide"/> long: a shuttle stubby with two decks, a freighter long and low.</summary>
+    /// <summary>
+    /// A derelict from the side, <paramref name="wide"/> long, its middle at <paramref name="at"/>: its class's model (<see cref="RadarModels"/>),
+    /// written once at a unit's length and drawn scaled, its ink hairlines.
+    /// </summary>
     private void Silhouette(Vector2 at, float wide, string cls, bool hot, float alpha)
     {
-        bool big = cls == "freighter";
-        float tall = big ? wide * 0.2f : wide * 0.38f, x0 = at.X - wide / 2, x1 = at.X + wide / 2, y0 = at.Y - tall / 2, y1 = at.Y + tall / 2;
-        if (hot) DrawCircle(at, wide * 0.6f, Amber with { A = 0.18f * alpha });
-        Vector2[] hull = big
-            ? [new(x0 + wide * 0.04f, y0), new(x1 - wide * 0.1f, y0), new(x1 - wide * 0.07f, y0 - tall * 0.35f), new(x1 - wide * 0.015f, y0 - tall * 0.35f),
-                new(x1, y0 + tall * 0.3f), new(x1, y1), new(x0 + wide * 0.06f, y1), new(x0 + wide * 0.02f, y1 - tall * 0.25f), new(x0, at.Y - tall * 0.12f)]
-            : [new(x0, y0 + tall * 0.15f), new(x1 - wide * 0.3f, y0), new(x1 - wide * 0.08f, y0 + tall * 0.1f), new(x1, at.Y + tall * 0.15f),
-                new(x1 - wide * 0.08f, y1), new(x0 + wide * 0.06f, y1), new(x0, y1 - tall * 0.2f)];
-        DrawColoredPolygon(hull, Hull with { A = alpha });
-        DrawPolyline([.. hull, hull[0]], (hot ? Amber : Ink) with { A = 0.86f * alpha }, 1, true);
-        int decks = big ? 3 : 2;
-        for (int k = 1; k < decks; k++)
+        var model = RadarModels.Of(cls);
+        DrawSetTransform(at - new Vector2(0, model.Mid * wide), 0, new Vector2(wide, wide));
+        if (hot) DrawCircle(new Vector2(0, model.Mid), 0.6f, Amber with { A = 0.18f * alpha });
+        Color fill = Hull with { A = alpha }, line = (hot ? Amber : Ink) with { A = 0.86f * alpha };
+        for (int i = 0; i < model.Back.Length; i++)
         {
-            float y = y0 + tall * k / decks;
-            DrawLine(new Vector2(x0 + wide * 0.06f, y), new Vector2(x1 - wide * (big ? 0.04f : 0.14f), y), Mute with { A = 0.45f * alpha }, 1);
+            DrawColoredPolygon(model.Back[i], fill);
+            DrawPolyline(model.BackLines[i], line, -1);
         }
+        DrawColoredPolygon(model.Hull, fill);
+        foreach (var glass in model.Glass) DrawColoredPolygon(glass, ShipColour with { A = 0.42f * alpha });
+        if (model.Lines.Length > 0) DrawMultiline(model.Lines, Mute with { A = 0.55f * alpha }, -1);
+        foreach (var (centre, r) in model.Rings) DrawArc(centre, r, 0, Mathf.Tau, 20, Mute with { A = 0.6f * alpha }, -1);
+        DrawPolyline(model.HullLine, line, -1);
+        DrawSetTransform(Vector2.Zero);
     }
 
     /// <summary>The orange loop the board marks a thing with, drawn round as it is selected.</summary>
@@ -737,9 +760,9 @@ public partial class RadarScreen : Control
     private sealed record Row(string Text, Color? Colour = null);
 
     /// <summary>A callout's button: its words, whether it can be pressed, why not, what a press does, how far a flight it counts is.</summary>
-    private sealed record ButtonSpec(string Label, bool Lit, string? Reason, Action? Press, float? Busy);
+    private sealed record ButtonSpec(string Label, bool Lit, string? Reason, Action? Press, float? Busy, bool Quiet = false);
 
-    private sealed record CardView((Vector2 At, float Radius) Anchor, string Title, string Sub, Row[] Rows, Action<Vector2> Picture, ButtonSpec? Button);
+    private sealed record CardView((Vector2 At, float Radius) Anchor, string Title, string Sub, Row[] Rows, Action<Vector2> Picture, ButtonSpec[] Buttons);
 
     /// <summary>Something the pointer finds on the map: a circle or a box, what a click on it does, its tooltip made when first shown.</summary>
     private sealed record Hit(string Key, Vector2 Centre, float Radius, Rect2? Area, Action? Click, Func<Tip>? Tip)

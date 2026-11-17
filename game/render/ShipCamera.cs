@@ -67,8 +67,35 @@ public partial class ShipCamera : Camera2D
 
     private void Apply()
     {
-        float zoom = _fixed ?? FarthestZoom(GetViewportRect().Size) * _level;
+        float zoom = OwnZoom;
         Zoom = new Vector2(zoom, zoom);
+    }
+
+    /// <summary>A shuttle rider's far frame (shuttle-flight): this share of the farthest zoom, set outright as <see cref="Fit"/> sets one.</summary>
+    public const float FarFrame = 0.8f;
+
+    private bool _blended;
+
+    /// <summary>The zoom the player's level or a dev view sets: what the view comes back to once a blend ends.</summary>
+    public float OwnZoom => _fixed ?? FarthestZoom(GetViewportRect().Size) * _level;
+
+    /// <summary>
+    /// A shuttle rider's view pulled out by <paramref name="blend"/> toward its craft's middle at <paramref name="toward"/>, in world
+    /// pixels, after the follow has placed it this frame: 0 the follow's own view and zoom, 1 the far frame, centred between the
+    /// follow and the craft. The zoom eases evenly on its log, so the pull reads the same at every level.
+    /// </summary>
+    public void Blend(Vector2 toward, float blend)
+    {
+        if (blend <= 0)
+        {
+            if (_blended) Apply();
+            _blended = false;
+            return;
+        }
+        _blended = true;
+        float near = OwnZoom, far = FarFrame * FarthestZoom(GetViewportRect().Size), zoom = near * Mathf.Pow(far / near, blend);
+        Zoom = new Vector2(zoom, zoom);
+        Position = Position.Lerp((Position + toward) / 2, blend);
     }
 
     /// <summary>Centres a world point, in cells.</summary>

@@ -68,14 +68,14 @@ public static class SurfaceViews
         // A seated hero behind its pod's porthole, then the pod's lamps and the glint on its glass over it.
         new(c => new Features.Crew.SeatedHeroes(c.M.Grid, c.M.Landing, c.M.Players, c.M.Items, c.Arrivals.Holds), Fades: true),
         new(c => new Features.Landing.PodSeats(c.M.Grid, c.M.Landing, c.Arrivals), Fades: true),
-        // A shuttle's slits lit warm, one a rider; the riders never seen.
-        new(c => new Features.Landing.ShuttleLights(c.M.Grid, c.M.Landing, c.M.Places), Fades: true),
+        // A shuttle's course lamp; its riders never seen, its canopy unchanged.
+        new(c => new Features.Landing.ShuttleLights(c.M.Grid, c.M.Places, c.Arrivals), Fades: true),
         // A pod in the air from this surface: the deck sliding, the pod falling through (the descent's pictures).
         new(c => new Features.Landing.PodFlights(c.M.Grid, c.M.Landing, c.M.Crew, c.Progress, c.Arrivals), Fades: true),
         new(c => new Features.Atmosphere.TankLooks(c.M.Grid, c.M.Atmosphere), Fades: true),
         new(c => c.M.Rules is Content.PlanetType ? null : new Features.Landing.EngineFlame(c.M.Grid, c.M.Landing, c.Progress)),
         new(c => new Features.Water.WaterLooks(c.M.Grid, c.M.Water), Fades: true),
-        new(c => new Features.Fuel.FuelLooks(c.M.Grid, c.M.Fuel), Fades: true),
+        new(c => new Features.Fuel.FuelLooks(c.M.Grid, c.M.Fuel) { HeldBack = c.Arrivals.Holds }, Fades: true),
         // What each debris net holds, over its booms and behind its net (2026-11-03-debris-net).
         new(c => new Features.Debris.NetView(c.M.Grid, c.M.Debris), Fades: true),
         new(c => new PodView(c.M.Grid, c.M.Crafting, c.M.Items, c.M.Crew), Fades: true),
@@ -98,6 +98,8 @@ public static class SurfaceViews
         new(c => Features.Light.VesselLights.For(c.M.Rules, c.Seed) is { } inside ? new Features.Light.VesselLamps(c.M.Grid, inside) : null),
         // What was left behind inside it: frost, a sparking cable, soot, a burst pipe, a fallen panel, a toppled crate (derelict-looks).
         new(c => Features.Grid.VesselSigns.For(c.M.Rules, c.Seed) is { } signs ? new Features.Grid.VesselSignsView(c.M.Grid, signs) : null),
+        // Its inside dark till a hero has seen it, over all of the above (hidden-rooms).
+        new(c => Features.Unseen.UnseenView.Of(c.M.Grid, c.M.Rules, c.HeroBodies)),
         // The fires last, before the light Main makes after these: each frame a fire picks its picture, then its light follows it.
         new(c => new FurnaceView(c.M.Grid, c.M.Furnace), Fades: true),
         // A planet's weather blowing over its open sky, and its wind heard, where a stretch of it brings one (docs/plans/surface-storms.md).

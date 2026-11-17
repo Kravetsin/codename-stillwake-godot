@@ -27,7 +27,7 @@ public partial class FlightOverlay : CanvasLayer
 
     /// <param name="read">The surface this player's hero is on and its own flight, a pod's or a shuttle's; null outside a session.</param>
     /// <param name="progress">The share of the next tick drawn, so the pictures move between ticks.</param>
-    /// <param name="zoom">The world's camera zoom: the flight is drawn at the world's scale.</param>
+    /// <param name="zoom">The world's camera zoom as the follow has it: the flight is drawn at the world's scale.</param>
     public FlightOverlay(Func<(int Surface, Ride? Own)?> read, Func<double> progress, Func<float> zoom)
     {
         (_read, _progress, _zoom) = (read, progress, zoom);
@@ -50,9 +50,9 @@ public partial class FlightOverlay : CanvasLayer
         var flight = read?.Own;
         double s = flight is { } f ? FlightTimeline.Seconds(f, _progress()) : 0;
         // The screen shows from the dip's darkest moment to the flight's end, under the white.
-        _screen.Visible = flight != null && s >= FlightTimeline.DipPeak;
-        if (_screen.Visible) _screen.Show(s, FlightTimeline.Length(flight!), flight!.Up, _zoom());
-        float dip = flight != null ? (float)FlightTimeline.Dip(s) : 0;
+        _screen.Visible = flight != null && s >= flight.ScreenFrom;
+        if (_screen.Visible) _screen.Show(flight!, s, _zoom());
+        float dip = flight != null ? (float)flight.Dip(s) : 0;
         _dip.Visible = dip > 0;
         _dip.Modulate = new Color(1, 1, 1, dip);
         Hear(flight, s);
@@ -65,15 +65,15 @@ public partial class FlightOverlay : CanvasLayer
     /// </summary>
     private void Hear(Ride? flight, double s)
     {
-        bool flies = flight != null && s >= FlightTimeline.DipPeak;
+        bool flies = flight != null && s >= flight.ScreenFrom;
         if (flies && !_rumble.Playing) _rumble.Play();
         else if (!flies && _rumble.Playing) _rumble.Stop();
-        if (flies) _rumble.VolumeDb = S.PodRumble.VolumeDb + Mathf.LinearToDb(0.3f + 0.7f * (float)FlightTimeline.Fraction(s, FlightTimeline.Length(flight!)));
-        // The engine from inside, from the moment it fires (the drop's kick, or the lift-off) to the white, louder with the speed.
-        bool burns = flight != null && s >= (flight.Up ? 0 : FlightTimeline.DropFrom);
+        if (flies) _rumble.VolumeDb = S.PodRumble.VolumeDb + Mathf.LinearToDb(0.3f + 0.7f * (float)flight!.Fraction(s));
+        // The engine from inside, from the moment it fires (the drop's kick, the lift-off, the shuttle's sinking) to the white, louder with the speed.
+        bool burns = flight != null && s >= flight.BurnsFrom;
         if (burns && !_engine.Playing) _engine.Play();
         else if (!burns && _engine.Playing) _engine.Stop();
-        if (burns) _engine.VolumeDb = S.PodThrust.VolumeDb - 4 + Mathf.LinearToDb(0.5f + 0.5f * (float)FlightTimeline.Fraction(s, FlightTimeline.Length(flight!)));
+        if (burns) _engine.VolumeDb = S.PodThrust.VolumeDb - 4 + Mathf.LinearToDb(0.5f + 0.5f * (float)flight!.Fraction(s));
         if (flight is { TicksLeft: <= 1 } && !_flashed) _flash.Play();
         _flashed = flight is { TicksLeft: <= 1 } || (_flashed && flight != null);
     }

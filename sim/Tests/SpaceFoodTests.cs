@@ -76,7 +76,8 @@ public class SpaceFoodTests
     {
         var vending = Vessels.Salvage.Single(s => s.From == Fridge);
         Assert.Equal(("salvageVending", 2, (4, 5)), (vending.Kind, vending.Looks, vending.Size!.Value));
-        Assert.Equal([VesselRole.Quarters], vending.Roles);
+        // And a liner's galley's fridges (big-vessels).
+        Assert.Equal([VesselRole.Quarters, VesselRole.Galley], vending.Roles);
         Assert.Equal([(Foods.Ration, 10), (Foods.CannedMeat, 5)], Vessels.SalvageCost(vending));
         foreach (var kind in new[] { "salvageVending", "salvageVending2" })
         {

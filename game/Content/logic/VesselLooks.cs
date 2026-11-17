@@ -22,6 +22,25 @@ public static class VesselLooks
         new(0x848991, 0x2d4569, 0xe3e3dd),
     ];
 
+    /// <summary>A liner's three, light (big-vessels, the picked mockup's): hull pale, stripe and paint dark.</summary>
+    public static readonly IReadOnlyList<Livery> LinerLiveries =
+    [
+        new(0xb9bab4, 0x2d4a7a, 0x1f2a36),
+        new(0xb6b2a8, 0x8a2f2a, 0x2a2626),
+        new(0xaeb6b7, 0x2f6f6a, 0x1d272c),
+    ];
+
+    /// <summary>A tanker's three (big-vessels, the picked mockup's): hull dark, a bold stripe, its name in pale paint.</summary>
+    public static readonly IReadOnlyList<Livery> TankerLiveries =
+    [
+        new(0x6f6a62, 0xb8452f, 0xe2d9c6),
+        new(0x5f6b6a, 0xd0a23a, 0xe6e2d6),
+        new(0x6d6c73, 0x2f6f5f, 0xe0e0da),
+    ];
+
+    /// <summary>The liveries a vessel of class <paramref name="cls"/> is painted in: a liner's and a tanker's own, the derelicts' for the rest.</summary>
+    public static IReadOnlyList<Livery> LiveriesOf(string cls) => cls switch { "liner" => LinerLiveries, "tanker" => TankerLiveries, _ => Liveries };
+
     /// <summary>Names painted on a vessel's side, in Latin for every player: content, not i18n keys.</summary>
     public static readonly IReadOnlyList<string> Names =
     [
@@ -31,6 +50,11 @@ public static class VesselLooks
 
     /// <summary>An owner's two letters before a vessel's number: <c>KT-0412</c>.</summary>
     public static readonly IReadOnlyList<string> CodePrefixes = ["SZ", "KT", "GR", "TN", "VL", "OK"];
+
+    /// <summary>A tanker's names (big-vessels, the picked mockup's) and its owner's letters before its number.</summary>
+    public static readonly IReadOnlyList<string> TankerNames = ["BULWARK", "ATLAS", "GRAVITAS", "OBELISK", "KRAKEN", "TITAN", "HAULMARK", "MONOLITH"];
+
+    public const string TankerPrefix = "TK";
 
     /// <summary>The numbers a code takes, below this: four digits.</summary>
     public const int CodeNumbers = 10_000;
@@ -75,7 +99,7 @@ public static class VesselLooks
 
     /// <summary>How many signs of abandonment a vessel of each class shows inside, fewest and most; fewer where no room fits one.</summary>
     public static readonly IReadOnlyDictionary<string, (int Least, int Most)> Signs =
-        new Dictionary<string, (int, int)>(System.StringComparer.Ordinal) { ["shuttle"] = (2, 3), ["freighter"] = (3, 5) };
+        new Dictionary<string, (int, int)>(System.StringComparer.Ordinal) { ["shuttle"] = (2, 3), ["freighter"] = (3, 5), ["liner"] = (4, 6), ["tanker"] = (4, 6) };
 
     /// <summary>What soot may lie over, by its first look: a burnt console or machine, never a crate or a pod.</summary>
     public static readonly IReadOnlyList<string> SootOver = ["salvageConsole", "salvageMachine", "salvageEngine", "salvageRack", "salvageTanks", "salvageVending",
@@ -107,7 +131,7 @@ public static class VesselLooks
     public static readonly (float X, float Y) CableTip = (15, 21.5f), BurstAt = (32, 7.5f);
 
     /// <summary>Why a look is drawn, mixed into its draw so two looks of one cell differ.</summary>
-    public enum Salt : uint { Livery = 1, Name, Prefix, Number, Panel, Stripe, Lamp, Dying, Console, Glitch, Jam, Phase, Flicker, SignCount, SignKinds, Sign, SignDir }
+    public enum Salt : uint { Livery = 1, Name, Prefix, Number, Panel, Stripe, Lamp, Dying, Console, Glitch, Jam, Phase, Flicker, SignCount, SignKinds, Sign, SignDir, Container }
 
     /// <summary>
     /// A look's draw (SplitMix64, fixed here): the same <paramref name="seed"/>, <paramref name="salt"/> and <paramref name="cell"/>
@@ -125,13 +149,18 @@ public static class VesselLooks
     /// <summary>A draw below <paramref name="n"/>.</summary>
     public static int Below(uint seed, Salt salt, int cell, int n) => (int)(LookRng(seed, salt, cell) % (ulong)n);
 
-    /// <summary>The livery of the vessel of <paramref name="seed"/>, by its place in <see cref="Liveries"/>.</summary>
-    public static int LiveryOf(uint seed) => Below(seed, Salt.Livery, 0, Liveries.Count);
+    /// <summary>The livery of the vessel of class <paramref name="cls"/> and <paramref name="seed"/>, by its place in <see cref="LiveriesOf"/>.</summary>
+    public static int LiveryOf(string cls, uint seed) => Below(seed, Salt.Livery, 0, LiveriesOf(cls).Count);
 
-    /// <summary>The name painted on the vessel of <paramref name="seed"/>.</summary>
-    public static string NameOf(uint seed) => Names[Below(seed, Salt.Name, 0, Names.Count)];
+    /// <summary>The name painted on the vessel of class <paramref name="cls"/> and <paramref name="seed"/>: a tanker's from its own names.</summary>
+    public static string NameOf(string cls, uint seed)
+    {
+        var names = cls == "tanker" ? TankerNames : Names;
+        return names[Below(seed, Salt.Name, 0, names.Count)];
+    }
 
-    /// <summary>The code painted by its stern: two letters and four digits.</summary>
-    public static string CodeOf(uint seed) =>
-        CodePrefixes[Below(seed, Salt.Prefix, 0, CodePrefixes.Count)] + "-" + Below(seed, Salt.Number, 0, CodeNumbers).ToString("0000", CultureInfo.InvariantCulture);
+    /// <summary>The code painted by its stern: two letters and four digits, a tanker's letters always its own.</summary>
+    public static string CodeOf(string cls, uint seed) =>
+        (cls == "tanker" ? TankerPrefix : CodePrefixes[Below(seed, Salt.Prefix, 0, CodePrefixes.Count)]) + "-"
+        + Below(seed, Salt.Number, 0, CodeNumbers).ToString("0000", CultureInfo.InvariantCulture);
 }

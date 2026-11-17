@@ -63,12 +63,18 @@ public sealed class OpenScenario : DevScenario
     public override void Attach(DevContext c) =>
         c.Add(new OpenDemo(c.Ui, Kind, c.M, Args.Arg("--open-at") is { } at ? double.Parse(at, CultureInfo.InvariantCulture) : 1.0, Args.Value("--program")));
 
-    /// <summary>On the radar, two contacts found at once, where places draws them, so a recording shows them, the first selected.</summary>
+    /// <summary>
+    /// On the radar, a contact of each class found at once, where places draws them, so a recording shows them: the first, a liner,
+    /// selected and the course set to it.
+    /// </summary>
     public override void Started(Client client)
     {
         if (Args.Value("--program") != Content.Programs.Radar) return;
-        client.Send(new Sim.Places.Find("shuttle"));
+        client.Send(new Sim.Places.Find("liner"));
+        client.Send(new Sim.Places.Find("tanker"));
         client.Send(new Sim.Places.Find("freighter"));
+        client.Send(new Sim.Places.Find("shuttle"));
+        client.Send(new Sim.Places.SetCourse(1));
     }
 }
 

@@ -15,6 +15,7 @@ its screen. Only the radar so far: the solar system and the ship's course in it,
 | `ComputerPanel.cs` | The window: the monitor, the side panel's buttons, the screen's line or program |
 | `logic/NavMap.cs` | Where the radar's map puts the sun, planets, ship, contacts and a callout; its zoom and course curve |
 | `RadarScreen.cs` | The radar program: the system from above, zoomed to the ship's planet and its contacts, callouts, its ink kept |
+| `RadarModels.cs` | The radar's model of each vessel class, from the side, and how long it is drawn: by its frame, within a least and a most |
 | `ComputerScreens.cs` | Each computer's screen in the world: dark, running text, or the radar's sweep; its rack's lights; its glow |
 
 Content: `c/Programs.cs` (`ProgramSpec`: a program and the machine kind bringing it), `MachineTrait.Computer` on the
@@ -42,8 +43,9 @@ computer's row in `c/Machines.cs`. Files in `logic/` are Godot-free and tested i
 - **A click** on a planet or a contact opens its callout, rows wrapped to its width (`Ui.RadarContact` for a contact, the player's own), on the side
   away from the middle, tied by ink: a planet's number, type, ruins, ores (`OresOf`), flight, fuel and `Plot course` (landing's `PlotCourse`,
   dim with the sim's reason but `crewAway`, which sends: the call); a contact's class, size, decks, distance
-  (`RadarOrbit.Km`), the shuttle's litres there and back (`PlacesModule.CostOf`), when it leaves, and `Set course` (places'
-  `SetCourse`). Esc, its ✕ or empty map puts it away; a contact gone is let go on the next read.
+  (`RadarOrbit.Km`), the shuttle's litres there and back (`PlacesModule.CostOf`), when it leaves, `Set course` (places'
+  `SetCourse`; on the course's own contact `Clear route`, `ClearCourse`) and `Forget` (`Forget`, for everyone). Esc, its ✕
+  or empty map puts it away; a contact gone is let go on the next read. A model is drawn long by its class's frame (`RadarModels`).
 - **The route** (`Places.Course`, every player's): a dashed line from the ship to its contact and its words on top.
 - **A stretch of space** ([stretches-of-space](../../../docs/decisions/2026-11-15-stretches-of-space.md)) is a band on the
   ship's orbit in its colour (`RadarBand` across the old strip, mapped round as contacts are): ahead of the ship as its
