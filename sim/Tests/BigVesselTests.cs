@@ -35,16 +35,15 @@ public class BigVesselTests(ITestOutputHelper output)
             foreach (var h in v.Hatches) text.Append(h).Append('|');
             foreach (var r in v.Compartments) text.Append($"{r.Deck},{r.Left},{r.Width},{r.Top},{r.Role},{r.Interior}|");
             foreach (var f in v.Fittings.Concat(v.Outside)) text.Append($"{f.Kind},{f.X},{f.Y},{string.Join("+", f.Loot)}|");
-            foreach (var cause in (VesselCause[])[VesselCause.None, VesselCause.Breach])
-                foreach (var p in Shipyard.Make(c, seed, cause))
-                    text.Append($"{p.X},{p.Y},{p.Layer},{p.Kind},{p.Material},{p.Open},{string.Join("+", p.Holds ?? [])};");
+            foreach (var p in Shipyard.Build(c, seed).Parts)
+                text.Append($"{p.X},{p.Y},{p.Layer},{p.Kind},{p.Material},{p.Open},{string.Join("+", p.Holds ?? [])};");
         }
         return Fnv(text.ToString());
     }
 
     [Theory]
-    [InlineData("shuttle", 0x649E21D68D96DC46UL)]
-    [InlineData("freighter", 0xFE3B6FEDE7D90D02UL)]
+    [InlineData("shuttle", 0xF3924CF8538154B5UL)]
+    [InlineData("freighter", 0x854F09669AF781A1UL)]
     public void TheShuttleAndTheFreighterAreMadeAsBeforeTheLiner(string cls, ulong pinned)
     {
         ulong made = Fingerprint(cls);
@@ -59,7 +58,15 @@ public class BigVesselTests(ITestOutputHelper output)
         // (big-vessels fixes).
         ulong made = Fingerprint("liner", 16);
         output.WriteLine($"liner: 0x{made:X16}UL");
-        Assert.Equal(0xDFC44D3D8A5F71E2UL, made);
+        Assert.Equal(0x67E03E5BC49C8A80UL, made);
+    }
+
+    [Fact]
+    public void TheTankerIsMadeAsBeforeItsWrecks()
+    {
+        ulong made = Fingerprint("tanker", 16);
+        output.WriteLine($"tanker: 0x{made:X16}UL");
+        Assert.Equal(0xBF56B190920103E5UL, made);
     }
 
     private static readonly VesselClass Liner = Content.Vessels.Class("liner")!;

@@ -34,6 +34,9 @@ public interface ISurfaces
     /// <summary>The seed the surface this module runs on grew from: a vessel world's vessel is described by it (vessel-worlds).</summary>
     uint Seed { get; }
 
+    /// <summary>The forced chain the vessel on the surface this module runs on is wrecked by (vessel-wrecks); null for its seed's own.</summary>
+    IReadOnlyList<Content.WreckStep>? Wreck { get; }
+
     /// <summary>
     /// Moves peer <paramref name="peer"/>'s hero and what it carries to <paramref name="surface"/>, at its spawn, once
     /// every surface has run this tick, in the order asked: no module sees another surface change under it. Never to a
@@ -46,7 +49,8 @@ public interface ISurfaces
     /// hero there at once, at its spawn (vessel-worlds). Only from a command as it applies, the moment a <c>Transfer</c> is
     /// made, so no module sees a surface appear under it; called while the surfaces run, it throws. Returns the new id.
     /// </summary>
-    int Visit(int peer, string kind, uint seed);
+    /// <param name="wreck">A vessel's forced chain (vessel-wrecks); null for its seed's own.</param>
+    int Visit(int peer, string kind, uint seed, IReadOnlyList<Content.WreckStep>? wreck = null);
 
     /// <summary>Whether this world can open surfaces: one whose modules cannot make another set is the ship alone.</summary>
     bool CanOpen { get; }
@@ -76,7 +80,8 @@ public interface ISurfaces
     /// a change to the world, so called only by a system on its tick: opened once every surface has run, in the order asked, before
     /// the sends. Returns the id it will take, to <see cref="Send"/> to.
     /// </summary>
-    int Open(string kind, uint seed);
+    /// <param name="wreck">A vessel's forced chain (vessel-wrecks); null for its seed's own.</param>
+    int Open(string kind, uint seed, IReadOnlyList<Content.WreckStep>? wreck = null);
 }
 
 /// <summary>

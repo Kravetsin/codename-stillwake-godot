@@ -10,9 +10,6 @@ public enum VesselRole { Hold, Quarters, Engine, Life, Bridge, Pool, Restaurant,
 /// <summary>How a class's vessel is laid out (big-vessels): rooms a deck tall along its decks, or a big class's blocks in bands.</summary>
 public enum VesselLayout { Rooms, Liner, Tanker }
 
-/// <summary>What wrecked a vessel, which its damage pass follows: none for one intact.</summary>
-public enum VesselCause { None, Breach }
-
 /// <summary>Where a vessel's bridge is: a cockpit in the bow on the first deck, or raised over the hull toward the bow.</summary>
 public enum VesselBridge { Cockpit, Raised }
 
@@ -39,9 +36,13 @@ public sealed record VesselRoomRule(VesselRole Role, VesselDeck Deck, int Order)
 /// <param name="BridgeKind">A cockpit in the bow, or a bridge raised on top.</param>
 /// <param name="Extras">How many rooms past the ones every vessel has, least and most.</param>
 /// <param name="ExtraRoles">What an extra room is, each as likely.</param>
-/// <param name="Crater">A breach's radius, in cells.</param>
+/// <param name="Rock">An asteroid's crater's radius, in cells (vessel-wrecks).</param>
 /// <param name="Yield">Whole items, every kind counted alike, a vessel of this class gives taken apart whole, least and most (a content test).</param>
 /// <param name="Weight">How often the radar finds one against the others (big-vessels): one of weight 0 it never finds.</param>
+/// <param name="Events">How many events wreck one, least and most, each count as likely (vessel-wrecks).</param>
+/// <param name="Blast">An explosion's radius, least and most, in cells.</param>
+/// <param name="Gap">The columns a break opens between the halves, least and most; none for a class that never breaks.</param>
+/// <param name="FireReach">How far a fire runs from where it starts, in steps (a step up counts half).</param>
 /// <param name="Layout">How its rooms are laid out: a vessel of rooms, or a liner's blocks (big-vessels, <see cref="Vessels.Liner"/>).</param>
 public sealed record VesselClass(
     string Id,
@@ -54,9 +55,13 @@ public sealed record VesselClass(
     VesselBridge BridgeKind,
     (int Min, int Max) Extras,
     IReadOnlyList<VesselRole> ExtraRoles,
-    int Crater,
+    int Rock,
     (int Min, int Max) Yield,
     int Weight,
+    (int Min, int Max) Events,
+    (int Min, int Max) Blast,
+    (int Min, int Max) Gap,
+    int FireReach,
     VesselLayout Layout = VesselLayout.Rooms)
 {
     /// <summary>Raised rooms stacked over the body: a liner's dome stands on its promenade, a freighter's bridge alone.</summary>
@@ -191,7 +196,12 @@ public static class Vessels
         // A vending machine in the mess (food-and-the-body): a fridge's food, its sign still lit by a battery of its own, as the
         // emergency lamp is; an enamel cabinet or a glass case.
         new("salvageVending", "fridge", '6', [VesselRole.Quarters, VesselRole.Galley], Size: (4, 5), Hp: 8, Looks: 2, Has: MachineTrait.Glow),
+        // A stone an asteroid left in its crater (vessel-wrecks): a small asteroid's rock, once; never stood in a room.
+        new(Stone, "asteroidSmall", '9', [], Times: 1, Size: (3, 2)),
     ];
+
+    /// <summary>A stone an asteroid left on its crater's floor (vessel-wrecks).</summary>
+    public const string Stone = "pileRock";
 
     /// <summary>
     /// What <paramref name="s"/> gives: for each entry of its piece's loot (<see cref="Loot"/>), <c>Times</c> × its mean count ×
@@ -371,7 +381,23 @@ public static class Vessels
         new(ShuttleBeetle, 16, 9, [], [("plate", 12), ("gear", 4), ("rotor", 1)], BuildTicks: 240, Hp: 30),
         new(ShuttleWhale, 24, 7, [], [("plate", 16), ("glass", 6), ("cloth", 4)], BuildTicks: 240, Hp: 32),
         new(ShuttleHeron, 16, 11, [], [("plate", 12), ("frame", 3), ("copper", 1)], BuildTicks: 240, Hp: 30),
+        // A body in a suit (vessel-wrecks), lying where the wreck left it: its suit's scrap in its slots (BodyHolds).
+        new(Body, 5, 2, [], [("cloth", 1)], BuildTicks: 80, Hp: 4, Slots: 2),
     ];
+
+    /// <summary>A body in a suit aboard a wreck (vessel-wrecks): its picture a placeholder till its look is picked (W-2).</summary>
+    public const string Body = "vesselBody";
+
+    /// <summary>What a body in a suit holds in its slots: its suit's scrap.</summary>
+    public static readonly IReadOnlyList<(string Item, int Count)> BodyHolds = [("scrap", 3)];
+
+    /// <summary>
+    /// The machines a breach pulls (vessel-wrecks), by their first look: crates, chairs, tables, loungers, seats, carts and cargo.
+    /// One of at most <see cref="SmallCells"/> cells is small, pulled out more often.
+    /// </summary>
+    public static readonly IReadOnlyList<string> Loose = ["crate", "salvageCrate", Chair, Table, RoundTable, Lounger, Seat, FuelCart, Cargo];
+
+    public const int SmallCells = 6;
 
     /// <summary>A liner's furniture (big-vessels), by the names <see cref="Furniture"/> gives it.</summary>
     public const string Bar = "vesselBar", Piano = "vesselPiano", RoundTable = "vesselRoundTable", Chair = "vesselChair", Lounger = "vesselLounger",
@@ -480,15 +506,19 @@ public static class Vessels
     public static readonly IReadOnlyList<VesselClass> Classes =
     [
         new("shuttle", Length: 72, Decks: (2, 2), BowFlat: 3, BowRun: (1, 2), BowTip: 5, ArmourDepth: 2, BridgeKind: VesselBridge.Cockpit,
-            Extras: (0, 1), ExtraRoles: [VesselRole.Hold, VesselRole.Quarters, VesselRole.Life], Crater: 6, Yield: (1600, 2600), Weight: 1),
+            Extras: (0, 1), ExtraRoles: [VesselRole.Hold, VesselRole.Quarters, VesselRole.Life], Rock: 4, Yield: (1600, 2600), Weight: 1,
+            Events: (1, 1), Blast: (5, 5), Gap: (0, 0), FireReach: 48),
         new("freighter", Length: 200, Decks: (2, 3), BowFlat: 8, BowRun: (1, 2), BowTip: 8, ArmourDepth: 2, BridgeKind: VesselBridge.Raised,
-            Extras: (5, 10), ExtraRoles: [VesselRole.Hold, VesselRole.Quarters, VesselRole.Life], Crater: 14, Yield: (3300, 6000), Weight: 3),
+            Extras: (5, 10), ExtraRoles: [VesselRole.Hold, VesselRole.Quarters, VesselRole.Life], Rock: 7, Yield: (3300, 6000), Weight: 3,
+            Events: (1, 2), Blast: (8, 8), Gap: (8, 11), FireReach: 48),
         // A liner (big-vessels): its length is its blocks' (Liner.Run), no extras; seeds 1–200 gave 17 486 to 25 161.
         new("liner", Length: 320, Decks: (5, 6), BowFlat: 6, BowRun: (1, 1), BowTip: 9, ArmourDepth: 2, BridgeKind: VesselBridge.Raised,
-            Extras: (0, 0), ExtraRoles: [], Crater: 18, Yield: (16500, 26500), Weight: 5, Layout: VesselLayout.Liner),
+            Extras: (0, 0), ExtraRoles: [], Rock: 9, Yield: (16500, 26500), Weight: 5,
+            Events: (1, 3), Blast: (8, 8), Gap: (11, 16), FireReach: 70, Layout: VesselLayout.Liner),
         // A tanker (big-vessels): one band over every deck, its length its blocks' (Tanker.Run), no extras; a blunt bow; seeds 1–200 gave 14 133 to 22 053.
         new("tanker", Length: 340, Decks: (4, 5), BowFlat: 5, BowRun: (1, 2), BowTip: 20, ArmourDepth: 2, BridgeKind: VesselBridge.Raised,
-            Extras: (0, 0), ExtraRoles: [], Crater: 18, Yield: (13000, 23500), Weight: 4, Layout: VesselLayout.Tanker),
+            Extras: (0, 0), ExtraRoles: [], Rock: 10, Yield: (13000, 23500), Weight: 4,
+            Events: (1, 3), Blast: (10, 12), Gap: (12, 18), FireReach: 70, Layout: VesselLayout.Tanker),
     ];
 
     /// <summary>The classes' weights summed: what the radar draws below.</summary>

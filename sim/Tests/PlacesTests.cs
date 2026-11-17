@@ -60,8 +60,7 @@ public class PlacesTests(Xunit.Abstractions.ITestOutputHelper output)
         Assert.Equal(before.Back, after.Back);
         Assert.Equal(before.Machine, after.Machine);
         var v = w.On(id);
-        var vessel = Shipyard.Describe(Vessels.Class("freighter")!, contact.Seed);
-        var (dx, dy) = Shipyard.Door(vessel);
+        var (dx, dy) = Shipyard.Door(Shipyard.Build(Vessels.Class("freighter")!, contact.Seed));
         Assert.Equal(InFrame(v, dx, dy), v.Crew.Spawn);
         Assert.Equal(v.Crew.Spawn, v.Crew.HeroOf(0)!.Cell);
         Assert.Null(w.M.Crew.HeroOf(0));

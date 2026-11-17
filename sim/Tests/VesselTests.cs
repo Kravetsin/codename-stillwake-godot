@@ -20,15 +20,15 @@ public class VesselTests
     [Property]
     public Property TheSameClassAndSeedMakeTheSameVesselIntactAndWrecked() => Prop.ForAll(Vessels(), v =>
     {
-        foreach (var cause in (VesselCause[])[VesselCause.None, VesselCause.Breach])
-            Assert.Equal(Key(Shipyard.Make(v.Class, v.Seed, cause)), Key(Shipyard.Make(v.Class, v.Seed, cause)));
+        foreach (var chain in (IReadOnlyList<WreckStep>?[])[null, [new(WreckKind.Explosion), new(WreckKind.Fire), new(WreckKind.Asteroid)], [new(WreckKind.Break, true)]])
+            Assert.Equal(Key(Shipyard.Build(v.Class, v.Seed, chain).Parts), Key(Shipyard.Build(v.Class, v.Seed, chain).Parts));
     });
 
     [Fact]
     public void SeedsMakeVesselsThatDiffer()
     {
         var freighter = Content.Vessels.Class("freighter")!;
-        var made = Enumerable.Range(1, 8).Select(s => Key(Shipyard.Make(freighter, (uint)s, VesselCause.None))).Distinct().Count();
+        var made = Enumerable.Range(1, 8).Select(s => Key(Shipyard.Build(freighter, (uint)s).Parts)).Distinct().Count();
         Assert.True(made > 4, $"{made} kinds of 8");
     }
 
@@ -140,22 +140,6 @@ public class VesselTests
                     space |= !parts.Any(p => p.X == x && p.Y == y);
             Assert.True(space, $"glass at ({g.X}, {g.Y}) not on the outside");
         }
-    });
-
-    [Property]
-    public Property ABreachTakesThingsWholeAndAddsOnlyWhatToreTheHull() => Prop.ForAll(Vessels(), v =>
-    {
-        var vessel = Shipyard.Describe(v.Class, v.Seed);
-        var intact = Shipyard.Stamp(vessel);
-        var wrecked = Shipyard.Damage(intact, vessel, VesselCause.Breach);
-        Assert.True(wrecked.Count < intact.Count);
-        // Only what tore the hull is new: a torn salvage object, lying where nothing else is.
-        var added = wrecked.Where(p => !intact.Contains(p)).ToList();
-        Assert.All(added, p => Assert.True(Content.Vessels.SalvageOf(p.Kind) is { Torn: true }, p.Kind));
-        Assert.InRange(added.Count, 0, 2);
-        var taken = new HashSet<(int, int)>();
-        foreach (var p in wrecked.Where(p => p.Layer != "back"))
-            foreach (var c in Shipyard.Covers(p)) Assert.True(taken.Add(c), $"{p} over another at {c}");
     });
 
     // Shape (derelict-looks).
@@ -393,8 +377,8 @@ public class VesselTests
     {
         foreach (var cls in Content.Vessels.Classes)
             for (uint seed = 1; seed <= 200; seed++)
-                foreach (var cause in (VesselCause[])[VesselCause.None, VesselCause.Breach])
-                    Assert.DoesNotContain(Shipyard.Make(cls, seed, cause), p => p.Layer == "machine" && Content.Vessels.SalvageOf(p.Kind)?.From == "soilClod");
+                foreach (var chain in (IReadOnlyList<WreckStep>?[])[null, [new(WreckKind.Explosion), new(WreckKind.Asteroid)]])
+                    Assert.DoesNotContain(Shipyard.Build(cls, seed, chain).Parts, p => p.Layer == "machine" && Content.Vessels.SalvageOf(p.Kind)?.From == "soilClod");
         Assert.DoesNotContain(string.Concat(Content.Vessels.Interiors.SelectMany(i => i.Rows)), c => c == 'z');
     }
 
@@ -459,7 +443,8 @@ public class VesselTests
             [Content.Vessels.ShuttleWhale] = [VesselRole.Hangar],
             [Content.Vessels.ShuttleHeron] = [VesselRole.Hangar],
         };
-        Assert.Equal(Content.Vessels.Furniture.Select(r => Content.Vessels.FirstLook(r.Kind)).Distinct().Where(k => k != Content.Vessels.Lamp).Order(), roles.Keys.Order());
+        // A body in a suit lies only where a wreck left it (vessel-wrecks), in no room of its own.
+        Assert.Equal(Content.Vessels.Furniture.Select(r => Content.Vessels.FirstLook(r.Kind)).Distinct().Where(k => k != Content.Vessels.Lamp && k != Content.Vessels.Body).Order(), roles.Keys.Order());
         var seen = new HashSet<string>();
         foreach (var cls in Content.Vessels.Classes)
             for (uint seed = 1; seed <= 40; seed++)
@@ -634,19 +619,19 @@ public class VesselTests
     {
         foreach (var cls in Content.Vessels.Classes)
         {
-            var vessel = Enumerable.Range(1, 400).Select(s => Shipyard.Describe(cls, (uint)s)).First(v =>
+            var built = Enumerable.Range(1, 400).Select(s => Shipyard.Build(cls, (uint)s)).First(b =>
             {
-                var stern = All(v, Vessel.SectionKind.Module)[0];
-                var body = Section(v, Vessel.SectionKind.Body);
+                var stern = All(b.Vessel, Vessel.SectionKind.Module)[0];
+                var body = Section(b.Vessel, Vessel.SectionKind.Body);
                 int down = cls.Layout == VesselLayout.Liner ? Content.Vessels.Liner.BulgeDown : Content.Vessels.SternBulge.Max;
                 // A tanker's bridge stands over its stern module, which bulges up under nothing.
                 int up = cls.Layout == VesselLayout.Tanker ? 0 : Content.Vessels.SternBulge.Max;
                 return body.Top - stern.Top == up && stern.Bottom - body.Bottom == down;
             });
-            var parts = Shipyard.Stamp(vessel);
+            var (vessel, parts) = (built.Vessel, built.Parts);
             var blocks = CellsOf(parts);
             var backs = CellsOf(parts, "back");
-            var (x, y) = Shipyard.Door(vessel);
+            var (x, y) = Shipyard.Door(built);
             Assert.Equal((vessel.Doors[0].X + 2, vessel.Doors[0].Y + Content.Vessels.Open - 1), (x, y));
             for (int up = 0; up < Content.Vessels.Open; up++)
                 for (int across = 0; across < 2; across++)
@@ -763,7 +748,7 @@ public class VesselTests
     {
         foreach (var cls in Content.Vessels.Classes)
             for (uint seed = 1; seed <= 40; seed++)
-                Assert.InRange(Yield(Shipyard.Make(cls, seed, VesselCause.None)), cls.Yield.Min, cls.Yield.Max);
+                Assert.InRange(Yield(Shipyard.Build(cls, seed).Parts), cls.Yield.Min, cls.Yield.Max);
     }
 
     /// <summary>Whole items <paramref name="parts"/> give taken apart, every kind counted alike: walls, back walls, pieces, machines, what crates hold.</summary>
