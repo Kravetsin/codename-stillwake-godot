@@ -31,12 +31,12 @@ public class GuardsAboardTests
         return Enumerable.Range(0, v.Compartments.Count).Single(i => v.Compartments[i].Holds(x, y));
     }
 
-    /// <summary>The cells the stamped vessel's structures and machines cover, and those with a back wall: what a dock is read against.</summary>
-    private static (HashSet<(int, int)> Covered, HashSet<(int, int)> Backed) Stamped(Vessel v)
+    /// <summary>The cells a vessel's stamped structures and machines cover, and those with a back wall: what a dock is read against.</summary>
+    private static (HashSet<(int, int)> Covered, HashSet<(int, int)> Backed) Stamped(IReadOnlyList<VesselPart> parts)
     {
         var covered = new HashSet<(int, int)>();
         var backed = new HashSet<(int, int)>();
-        foreach (var p in Shipyard.Stamp(v))
+        foreach (var p in parts)
             if (p.Layer == "back") backed.Add((p.X, p.Y));
             else covered.UnionWith(Shipyard.Covers(p));
         return (covered, backed);
@@ -56,12 +56,23 @@ public class GuardsAboardTests
         c.Floor - rule.Height >= c.Top
         && Enumerable.Range(c.Left, Math.Max(0, c.Width - rule.Width + 1)).Any(x => Clear(s, x, c.Floor - rule.Height, rule.Width, rule.Height));
 
+    /// <summary>Whether <paramref name="rule"/>'s box stands on room <paramref name="c"/>'s floor at some column clear of every ladder: wide and tall enough.</summary>
+    private static bool WideEnough(HashSet<(int, int)> ladders, Vessel.Compartment c, Aboard.Rule rule) =>
+        c.Floor - rule.Height >= c.Top && Enumerable.Range(c.Left, Math.Max(0, c.Width - rule.Width + 1)).Any(x =>
+            !Enumerable.Range(c.Floor - rule.Height, rule.Height).Any(y => Enumerable.Range(x, rule.Width).Any(cx => ladders.Contains((cx, y)))));
+
+    /// <summary>Whether part <paramref name="p"/> has a cell in dock <paramref name="d"/>'s box.</summary>
+    private static bool In(VesselPart p, Shipyard.Dock d) => Shipyard.Covers(p).Any(c => c.X >= d.X && c.X < d.X + d.Width && c.Y >= d.Y && c.Y < d.Y + d.Height);
+
     [Property]
-    public Property EachKindIsOnePerItsRoomsRoundedUpEachInARoomOfItsOwnClearOfFurnitureNeverTheArrivalRoom() => Prop.ForAll(Vessels(), cv =>
+    public Property EachKindIsOnePerItsRoomsRoundedUpEachInARoomOfItsOwnNeverTheArrivalRoomACapsuleInFurnituresPlace() => Prop.ForAll(Vessels(), cv =>
     {
         var v = Shipyard.Describe(cv.Class, cv.Seed);
         var docks = Shipyard.Guards(v);
-        var stamped = Stamped(v);
+        var whole = Shipyard.Stamp(v);
+        var laid = Shipyard.Docked(whole, docks);
+        var (before, after) = (Stamped(whole), Stamped(laid));
+        var ladders = whole.Where(p => p.Kind == "ladder").SelectMany(Shipyard.Covers).ToHashSet();
         int arrival = Arrival(v);
         Assert.Equal(docks, docks.OrderBy(d => Aboard.Rules.ToList().IndexOf(d.Rule)).ThenBy(d => d.Room));
         Assert.Equal(docks.Count, docks.Select(d => d.Room).Distinct().Count());
@@ -71,7 +82,6 @@ public class GuardsAboardTests
             var rooms = RoomsOf(v, rule);
             var mine = docks.Where(d => d.Rule == rule).ToList();
             int wanted = (rooms.Count + rule.Per - 1) / rule.Per;
-            Assert.InRange(mine.Count, 0, wanted);
             foreach (var d in mine)
             {
                 var c = v.Compartments[d.Room];
@@ -79,15 +89,43 @@ public class GuardsAboardTests
                 Assert.NotEqual(arrival, d.Room);
                 Assert.Equal((rule.Width, rule.Height, c.Floor), (d.Width, d.Height, d.Y + d.Height));
                 Assert.True(d.X >= c.Left && d.X + d.Width <= c.Left + c.Width && d.Y >= c.Top, $"{d} out of its room {c}");
-                Assert.True(Clear(stamped, d.X, d.Y, d.Width, d.Height), $"{d} over something stamped in {cv.Class.Id} {cv.Seed}");
+                // Never over a piece laid; over furniture it took the place of only where its room had no clear stretch.
+                Assert.True(Clear(after, d.X, d.Y, d.Width, d.Height), $"{d} over something laid in {cv.Class.Id} {cv.Seed}");
+                if (FitsSomewhere(before, c, rule)) Assert.True(Clear(before, d.X, d.Y, d.Width, d.Height), $"{d} took furniture's place needlessly");
             }
+            if (rule.Replaces)
+            {
+                // No shortfall from furniture: as many as the rule asks while rooms wide enough last.
+                Assert.Equal(Math.Min(wanted, rooms.Count(i => i != arrival && WideEnough(ladders, v.Compartments[i], rule))), mine.Count);
+                continue;
+            }
+            Assert.InRange(mine.Count, 0, wanted);
             // Fewer than the rule asks only where no other room of the size has room for one.
             if (mine.Count < wanted)
                 foreach (int i in rooms)
                     if (i != arrival && !mine.Exists(d => d.Room == i))
-                        Assert.False(FitsSomewhere(stamped, v.Compartments[i], rule), $"{rule.Species} short in {cv.Class.Id} {cv.Seed}, room {i} has room");
+                        Assert.False(FitsSomewhere(before, v.Compartments[i], rule), $"{rule.Species} short in {cv.Class.Id} {cv.Seed}, room {i} has room");
         }
+        // Left out: exactly the pieces with a cell in a replacing dock's box, but walls; every other piece of its room still laid.
+        var replacing = docks.Where(d => d.Rule.Replaces).ToList();
+        Assert.Equal(whole.Where(p => p.Layer == "back" || p.Kind == "wall" || !replacing.Exists(d => In(p, d))), laid);
     });
+
+    [Fact]
+    public void ACapsuleWithNoClearStretchTakesFurnituresPlaceTheRestOfItsRoomLaid()
+    {
+        var freighter = Content.Vessels.Class("freighter")!;
+        var (v, d) = Enumerable.Range(1, 50).Select(s => Shipyard.Describe(freighter, (uint)s))
+            .SelectMany(v => Shipyard.Guards(v).Select(d => (v, d))).First(t => !FitsSomewhere(Stamped(Shipyard.Stamp(t.v)), t.v.Compartments[t.d.Room], t.d.Rule));
+        var whole = Shipyard.Stamp(v);
+        var laid = Shipyard.Docked(whole, Shipyard.Guards(v));
+        var room = v.Compartments[d.Room];
+        bool InRoom(VesselPart p) => p.Layer != "back" && p.Kind != "wall" && Shipyard.Covers(p).Any(c => room.Holds(c.X, c.Y));
+        var gone = whole.Where(InRoom).Except(laid).ToList();
+        Assert.NotEmpty(gone);
+        Assert.All(gone, p => Assert.True(In(p, d), $"{p} gone from outside the capsule's box"));
+        Assert.Contains(laid, InRoom);
+    }
 
     [Fact]
     public void TheSameVesselDocksItsGuardsAlikeAndSeedsDockThemApart()

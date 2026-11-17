@@ -96,7 +96,7 @@ public class PlacesTests(Xunit.Abstractions.ITestOutputHelper output)
         var v = w.On(id);
         var vessel = Shipyard.Describe(Vessels.Class("shuttle")!, seed);
         Assert.Equal((vessel.Width + 2 * Vessels.Margin, vessel.Height + 2 * Vessels.Margin), (v.Grid.Width, v.Grid.Height));
-        foreach (var part in Shipyard.Stamp(vessel))
+        foreach (var part in Shipyard.Docked(Shipyard.Stamp(vessel), Shipyard.Guards(vessel)))
         {
             int cell = InFrame(v, part.X, part.Y);
             switch (part.Layer)

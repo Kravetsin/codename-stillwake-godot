@@ -581,15 +581,17 @@ public static class Vessels
         /// <summary>
         /// One kind of guard: its <paramref name="Species"/> (<c>Creatures</c>), one for every <paramref name="Per"/> rooms of its size,
         /// <paramref name="Big"/> rooms more than a deck tall, else one deck tall; its dock's box, <paramref name="Width"/> columns by
-        /// <paramref name="Height"/> rows, standing on its room's floor, the guard asleep on the floor in the middle of it.
+        /// <paramref name="Height"/> rows, standing on its room's floor, the guard asleep on the floor in the middle of it. One that
+        /// <paramref name="Replaces"/> furniture takes a room where no stretch is clear of it, and what its box covers is not laid.
         /// </summary>
-        public sealed record Rule(string Species, int Per, bool Big, int Width, int Height);
+        public sealed record Rule(string Species, int Per, bool Big, int Width, int Height, bool Replaces = false);
 
         /// <summary>
         /// A spider's capsule G1 «Зрачок — впадина» for every five small rooms, 4¾ cells across, its bottom just above the floor; a
-        /// robot's stand S1 «Люлька» for every three big rooms, some 6⅝ cells across and 8 tall.
+        /// robot's stand S1 «Люлька» for every three big rooms, some 6⅝ cells across and 8 tall. A capsule takes the place of furniture
+        /// where its room has no clear stretch (the user's word); a stand keeps to clear floor.
         /// </summary>
-        public static readonly Rule Capsule = new("spider", Per: 5, Big: false, Width: 5, Height: 5),
+        public static readonly Rule Capsule = new("spider", Per: 5, Big: false, Width: 5, Height: 5, Replaces: true),
             Stand = new("escort", Per: 3, Big: true, Width: 7, Height: 8);
 
         /// <summary>In the order a vessel's docks are listed: the spiders' capsules first.</summary>

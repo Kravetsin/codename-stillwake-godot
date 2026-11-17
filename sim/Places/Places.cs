@@ -220,7 +220,8 @@ public sealed class PlacesModule : Module<PlacesState>
         if (Rules is not VesselKind kind) return;
         var vessel = Shipyard.Describe(Vessels.Class(kind.Class)!, Surfaces.Seed);
         int width = _grid.Width, m = Vessels.Margin;
-        var parts = Shipyard.Stamp(vessel);
+        // Furniture where a guard's capsule took its place is left out (derelict-enemies).
+        var parts = Shipyard.Docked(Shipyard.Stamp(vessel), Shipyard.Guards(vessel));
         foreach (var part in parts)
         {
             int cell = (m + part.Y) * width + m + part.X;
