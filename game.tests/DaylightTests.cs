@@ -48,6 +48,29 @@ public class DaylightTests
     }
 
     [Fact]
+    public void The_sun_rises_halfway_through_dawn_and_sets_halfway_through_dusk_crossing_steadily()
+    {
+        int rise = Day.Length - Daylight.Dawn / 2, set = Line - Daylight.Dusk / 2;
+        Assert.Equal(0f, Daylight.Sun(rise, Day));
+        Assert.Equal(1f, Daylight.Sun(set, Day));
+        Assert.Null(Daylight.Sun(set + 1, Day));
+        Assert.Null(Daylight.Sun(rise - 1, Day));
+        Assert.Null(Daylight.Sun(Line + Day.Night / 2, Day));
+        // Noon halfway between, the same a day later or earlier.
+        float up = set + Day.Length - rise;
+        Assert.Equal(0.5f, Daylight.Sun((int)(rise + up / 2) % Day.Length, Day)!.Value, 4);
+        Assert.Equal(Daylight.Sun(100, Day), Daylight.Sun(100 + 3 * Day.Length, Day));
+        Assert.Equal(Daylight.Sun(100, Day), Daylight.Sun(100 - Day.Length, Day));
+        float? was = null;
+        for (int t = rise; t <= rise + (int)up; t++)
+        {
+            float now = Daylight.Sun(t, Day)!.Value;
+            if (was is float w) Assert.InRange(now - w, 0.99f / up, 1.01f / up);
+            was = now;
+        }
+    }
+
+    [Fact]
     public void No_step_between_neighbouring_ticks_is_more_than_a_fades_share()
     {
         // The largest change a tick may bring: from whole to night's darkest over half a fade.

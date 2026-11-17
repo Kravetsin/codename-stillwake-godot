@@ -268,6 +268,7 @@ public partial class Main : Node2D, ITogether
         ItemIcons.MakeSilhouettes();
         _debris = new DebrisView(_hands.Ui);
         AddChild(_stars = new Stars());
+        AddChild(new Features.Backdrop.FocusView(() => _stars.OnPlanet && PlanetLooks.Of.TryGetValue(_m.Rules.Id, out var look) ? look.Far : 0));
         AddChild(_debris);
         AddChild(_scanner);
         AddChild(_camera = new ShipCamera());
@@ -753,6 +754,7 @@ public partial class Main : Node2D, ITogether
             int time = _m.Sky.Now.Time;
             (sky, tint) = (Daylight.Sky(look, time, cycle), Daylight.Backdrop(look, time, cycle));
         }
+        _stars.Sun = _m.Rules.Cycle is { } day ? Daylight.Sun(_m.Sky.Now.Time, day) : null;
         var storm = View<Features.Sky.StormView>();
         var now = storm?.Now ?? Features.Sky.Storm.None;
         if (storm?.Weather is { } weather)
