@@ -22,6 +22,8 @@ public enum Posture
     Charge,
     /// <summary>Fleeing after its move, hit or missed: a flight that never turns back.</summary>
     Escape,
+    /// <summary>A vessel's guard asleep in its dock: folded in its capsule, hung in its stand (derelict-enemies).</summary>
+    Docked,
 }
 
 /// <summary>The phase of an act: crouched for it, then under way.</summary>

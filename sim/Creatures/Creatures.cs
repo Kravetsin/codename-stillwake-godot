@@ -177,7 +177,7 @@ public sealed partial class CreaturesModule : Module<CreaturesState>
     public string? ReleaseProblem(string species, int cell)
     {
         var spec = Spec.Get(species);
-        if (spec.Lifetime == Spec.Lifetime.Posted) return "creatures.notHere";
+        if (spec.Lifetime is Spec.Lifetime.Posted or Spec.Lifetime.Aboard) return "creatures.notHere";
         if (cell < 0 || cell >= _grid.Width * _grid.Height) return "creatures.blocked";
         if (State.Creatures.Count(c => !c.Dead) >= Spec.Max) return "creatures.full";
         return RuleBook.Body(spec.Body).ReleaseProblem(this, spec, cell);

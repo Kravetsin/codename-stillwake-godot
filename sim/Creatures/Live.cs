@@ -118,7 +118,9 @@ public sealed partial class CreaturesModule
         {
             var creature = all[i];
             var spec = Spec.Get(creature.Species);
-            if (spec.Lifetime == Spec.Lifetime.Hunter ? Gone(creature, spec) : !Kept(creature)) continue;
+            // A vessel's guard is never swept: a vessel is wider than a keep box.
+            bool gone = spec.Lifetime switch { Spec.Lifetime.Hunter => Gone(creature, spec), Spec.Lifetime.Aboard => false, _ => !Kept(creature) };
+            if (gone) continue;
             // Gone here, never by the Dead mark, which is not saved and rolls a drop.
             if (spec.Lifetime == Spec.Lifetime.Posted && StoodDown(creature, spec)) continue;
             Behave(creature, spec);

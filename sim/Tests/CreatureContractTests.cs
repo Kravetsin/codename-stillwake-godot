@@ -85,8 +85,9 @@ public class CreatureContractTests
     [Fact]
     public void EverySpeciesStruckTurnsToSomethingAndAClampedSentryGuards()
     {
-        // A hit some drive claims, or a cut act would only begin again (2026-10-26-creatures-are-composed). A posted one is never let out: SpireGuardTests.
-        Assert.All(Tune.All.Where(s => s.Lifetime != Tune.Lifetime.Posted), s =>
+        // A hit some drive claims, or a cut act would only begin again (2026-10-26-creatures-are-composed). A posted one is never let out:
+        // SpireGuardTests; nor a vessel's guard, asleep at its dock: GuardsAboardTests.
+        Assert.All(Tune.All.Where(s => s.Lifetime is not (Tune.Lifetime.Posted or Tune.Lifetime.Aboard)), s =>
         {
             var (w, c) = LetOut(s);
             int drive = c.Drive;
@@ -112,6 +113,9 @@ public class CreatureContractTests
         { "capback", "Guard | Vent Shoot" },
         { "geodeSnail", "Guard Shell | Lunge" },
         { "catcher", "Hunt | Pounce Shoot" },
+        // A vessel's guards (derelict-enemies) live only in vessel worlds, which a game's load closes: their orders may grow while they are built.
+        { "spider", "Dock | Pounce Shoot" },
+        { "escort", "Dock | " },
     };
 
     [Fact]

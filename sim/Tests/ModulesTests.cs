@@ -196,6 +196,49 @@ public class ModulesTests
         Assert.True(held > 0 && collected > 0, $"nets held {held} at most and {collected} collects applied");
     }
 
+    /// <summary>
+    /// The suites aboard a vessel world with its guards asleep at their docks (derelict-enemies): two worlds fed the same commands kept
+    /// alike, then the one saved, loaded and played on beside the live one, while the fuzz runs on the vessel's modules too.
+    /// </summary>
+    [Theory]
+    [InlineData(6u)]
+    [InlineData(13u)]
+    public void KeepsTwoWorldsAlikeAndSavesLoadsAndPlaysOnAboardAFreighterWithItsGuards(uint seed)
+    {
+        var rng = new Rng(new RngState { S = seed });
+        var (a, b) = (new Registry(), new Registry());
+        var first = World.Create(seed, Registry.Wreck, a.All);
+        var second = World.Create(seed, Registry.Wreck, b.All);
+        void Both(Command c)
+        {
+            first.Step([c]);
+            second.Step([c]);
+        }
+        Both(new Crew.Enter(a.Crew.Spawn));
+        Both(new Places.Find("freighter"));
+        Both(new Places.Jump(a.Places.Contacts[^1].Id));
+        var aboard = Registry.On(first, first.SurfaceOf(0));
+        Assert.NotEmpty(aboard.Creatures.Docks);
+        Assert.Equal(aboard.Creatures.Docks.Count, aboard.Creatures.Creatures.Count);
+        Assert.Equal(first.Hash(), second.Hash());
+        for (int i = 0; i < 200; i++)
+        {
+            var commands = RandomCommands(first, rng);
+            first.Step(commands);
+            second.Step(commands);
+            Assert.Equal(first.Hash(), second.Hash());
+        }
+        var loaded = World.Load(first.Save(), new Registry().All);
+        Assert.Equal(first.Hash(), loaded.Hash());
+        for (int i = 0; i < 100; i++)
+        {
+            var commands = RandomCommands(first, rng);
+            first.Step(commands);
+            loaded.Step(commands);
+        }
+        Assert.Equal(first.Hash(), loaded.Hash());
+    }
+
     [Fact]
     public void DrawsTheCommandsOfEveryModuleThatHasAny()
     {

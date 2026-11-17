@@ -64,8 +64,10 @@ public static class Creatures
     /// its post or its arena's relic is gone or its drive calms. Never let out: no post, no guard.
     /// <see cref="Hunter"/>, a catcher (tracker-catchers): kept while it hunts, whatever the keep boxes say, gone once it has left every
     /// hero's view.
+    /// <see cref="Aboard"/>, a vessel's guard (derelict-enemies): spawned at its dock as the vessel world opens, never swept by the keep
+    /// boxes (a vessel is wider than one); gone only killed, or with its world. Never let out.
     /// </summary>
-    public enum Lifetime { Wild, Posted, Hunter }
+    public enum Lifetime { Wild, Posted, Hunter, Aboard }
 
     /// <summary>Something a creature may want to do, ranked by its place in a brain.</summary>
     public abstract record Drive;
@@ -117,6 +119,9 @@ public static class Creatures
     /// arena and no blow, it goes, whole again on a later beat.
     /// </summary>
     public sealed record Ward(int Wake, int Stuck, int Calm) : Drive;
+
+    /// <summary>Asleep in its dock aboard a vessel (derelict-enemies): still, folded in its capsule or hung in its stand. Nothing wakes it yet.</summary>
+    public sealed record Dock : Drive;
 
     /// <summary>
     /// Hunting one hero (tracker-catchers): <paramref name="Ticks"/> on its way to it from the tick it comes, running its path on the
@@ -403,7 +408,24 @@ public static class Creatures
         Yields: [new("scrapChunk", 2, 4), new("circuit", 1, 1), new("crystal", 1, 1, OneIn: 5), new("opal", 1, 1, OneIn: 10)],
         Purse: new(150, 300));
 
-    public static readonly IReadOnlyList<Species> All = [Loper, Tapir, Sixleg, Sentry, Warden, Capback, GeodeSnail, Catcher];
+    /// <summary>
+    /// The spider (derelict-enemies): the sentry aboard an intact vessel, asleep in its capsule on a small room's back wall
+    /// (<c>Vessels.Aboard</c>); its look, life, moves and yields the sentry's, in a walker three cells by three. Asleep only, for now: its
+    /// waking, walk and climb come next (the plan's G-2).
+    /// </summary>
+    public static readonly Species Spider = new("spider", Look: Sentry.Look, Body: new Walker(Width: 3, Height: 3, Walk: 0, Run: 0, Jump: 0, JumpAcross: 0),
+        Life: Sentry.Life, Faction: Machines, Lifetime: Lifetime.Aboard, Brain: [new Dock()], Moves: Sentry.Moves, Yields: Sentry.Yields);
+
+    /// <summary>
+    /// The guard robot, the escort («Конвоир», derelict-enemies), hung asleep in its stand in a big hall (<c>Vessels.Aboard</c>): a walker
+    /// four cells by five, its antenna drawn only. About twice the sentry's hit points, more circuits and scrap. Asleep only, for now:
+    /// its moves come with its waking (the plan's G-3). Placeholder numbers, for a play pass.
+    /// </summary>
+    public static readonly Species Escort = new("escort", Look: "escort", Body: new Walker(Width: 4, Height: 5, Walk: 0, Run: 0, Jump: 0, JumpAcross: 0),
+        Life: new(Hp: 60, Knock: 0, Hop: 0), Faction: Machines, Lifetime: Lifetime.Aboard, Brain: [new Dock()], Moves: [],
+        Yields: [new("scrapChunk", 5, 8), new("circuit", 3, 5)]);
+
+    public static readonly IReadOnlyList<Species> All = [Loper, Tapir, Sixleg, Sentry, Warden, Capback, GeodeSnail, Catcher, Spider, Escort];
 
     /// <summary>
     /// A species that comes with debris pieces of some kinds as they drift in, clamped to a perch on one's top (<c>Wreckage.Perches</c>):
