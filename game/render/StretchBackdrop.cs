@@ -30,9 +30,24 @@ public partial class StretchBackdrop : Node2D
     private (long First, long Last) _places = (0, -1);
     private readonly List<StretchLooks.Spot> _spots = [];
 
+    // Softens a far picture by its look's Blur: sampled that many mip levels coarser.
+    private static readonly Shader Soft = new()
+    {
+        Code = """
+            shader_type canvas_item;
+            uniform float blur = 0.0;
+            varying vec4 tint;
+            void vertex() { tint = COLOR; }
+            void fragment() { COLOR = texture(TEXTURE, UV, blur) * tint; }
+            """,
+    };
+
+    private readonly ShaderMaterial _soft = new() { Shader = Soft };
+
     public StretchBackdrop()
     {
         TextureFilter = TextureFilterEnum.LinearWithMipmaps;
+        Material = _soft;
     }
 
     /// <summary>
@@ -63,6 +78,7 @@ public partial class StretchBackdrop : Node2D
         _atlas = look.Far!.Scattered is { } field ? ImageTexture.CreateFromImage(HiRes.Mipped(HiRes.Load(field.Atlas)!)) : null;
         var veil = look.Far!.Scattered?.Veil ?? StretchLooks.Veil;
         Modulate = new Color(veil.R, veil.G, veil.B);
+        _soft.SetShaderParameter("blur", look.Far!.Blur);
     }
 
     /// <summary>Lays the row under a camera centred on <paramref name="camera"/> at <paramref name="zoom"/>, over a <paramref name="screen"/>, <paramref name="seconds"/> of the world on.</summary>

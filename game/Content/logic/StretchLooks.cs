@@ -63,8 +63,9 @@ public static class StretchLooks
     /// <paramref name="Scattered"/>'s pieces; its middle <paramref name="Above"/> of the screen above the screen's when it first shows.
     /// It passes right to left at <paramref name="Speed"/> pixels a second, steady: its leading edge comes in at the right edge as the
     /// warning starts, and once the stretch has gone the row ends where the screen's right edge is then, so its trailing edge passes out too.
+    /// Its pictures drawn <paramref name="Blur"/> mip levels softer, out of focus as far things are.
     /// </summary>
-    public sealed record Backdrop(IReadOnlyList<string> Pictures, float Width, float Gap, float Speed, float Above, Field? Scattered = null);
+    public sealed record Backdrop(IReadOnlyList<string> Pictures, float Width, float Gap, float Speed, float Above, Field? Scattered = null, float Blur = 0);
 
     /// <summary>
     /// A field of pieces cut from one picture, <paramref name="Atlas"/> (under <c>art/hd</c>), each of <paramref name="Pieces"/> its
@@ -78,14 +79,15 @@ public static class StretchLooks
 
     /// <summary>
     /// The ice belt: a field of ice cut from the picked pictures, small and middling pieces over the whole sky, frosting the hull.
-    /// The contraband drift: one derelict of three, slow, reaching the ship as the drift starts and gone about as it ends.
+    /// The contraband drift: one derelict of three, slow, reaching the ship as the drift starts and gone about as it ends; small, dim
+    /// and soft, so it reads as far off, not as a wreck by the ship (the user's, 2026-11-17).
     /// </summary>
     public static readonly IReadOnlyList<Look> All =
     [
         new(Content.Stretches.IceBelt.Id, new([], Width: 500, Gap: 0, Speed: 8, Above: 0,
             new("stretches/ice_pieces", IcePieces, Each: 18, Tall: 1400, Small: 0.07f, Large: 0.15f, Veil: (0.24f, 0.29f, 0.38f))), (0.64f, 0.8f, 0.92f), Frost: true),
         new(Content.Stretches.ContrabandDrift.Id,
-            new(["stretches/hulk_1", "stretches/hulk_2", "stretches/hulk_3"], Width: 1100, Gap: 3, Speed: 4, Above: 0.16f),
+            new(["stretches/hulk_1", "stretches/hulk_2", "stretches/hulk_3"], Width: 480, Gap: 8, Speed: 4, Above: 0.16f, Blur: 1.5f),
             (0.98f, 0.58f, 0.26f), Frost: false),
         // The first planet's storms (docs/plans/surface-storms.md), no far picture and no band: the dust storm «Пыльная буря» (A),
         // grit blown almost along the ground in an ochre haze; the rain storm «Косой дождь» (B), slanting rain in a cold grey-blue one.
@@ -145,8 +147,8 @@ public static class StretchLooks
         }
     }
 
-    /// <summary>The colour a far picture is drawn in: its paint is pale already, so only a little darker and cooler, its detail kept.</summary>
-    public static readonly (float R, float G, float B) Veil = (0.56f, 0.6f, 0.68f);
+    /// <summary>The colour a far picture is drawn in: darker and cooler than its pale paint, sunk into space behind the drifting wrecks.</summary>
+    public static readonly (float R, float G, float B) Veil = (0.42f, 0.46f, 0.54f);
 
     /// <summary>Ticks a stretch's look takes to ease back once it has gone: the frost melts, the far picture and the band fade (a minute).</summary>
     public const int Thaw = 60 * 20;
