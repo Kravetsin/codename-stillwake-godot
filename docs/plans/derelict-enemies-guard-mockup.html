@@ -1,0 +1,967 @@
+<title>Робот-охранник и стенд</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Exo+2:wght@500;700&family=Inter:wght@400;500&family=JetBrains+Mono:wght@400;700&display=swap">
+<style>
+/* Plates from a salvage survey stacked down the page; one dark look, by choice. */
+:root {
+  --bg: #07090e;
+  --window: #020308;
+  --line: #1c2430;
+  --fg: #d8dee7;
+  --muted: #8791a2;
+  --accent: #e2a64c;
+  --display: "Exo 2", "Segoe UI", system-ui, sans-serif;
+  --body: Inter, "Segoe UI", system-ui, sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, Consolas, monospace;
+  color-scheme: dark;
+}
+body { background: var(--bg); color: var(--fg); font-family: var(--body); font-size: 15px; line-height: 1.55; overflow-x: hidden; margin: 0; }
+.wrap {
+  max-width: 1280px; margin: 0 auto; display: grid; gap: 26px; min-width: 0;
+  padding-block: 28px 56px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+header { display: grid; gap: 10px; max-width: 760px; }
+.eyebrow { font-family: var(--mono); font-size: 12px; letter-spacing: .12em; text-transform: uppercase; color: var(--accent); }
+h1 { font-family: var(--display); font-weight: 700; font-size: clamp(28px, 4.4vw, 44px); line-height: 1.08; margin: 0; text-wrap: balance; letter-spacing: .01em; }
+.lede { margin: 0; color: var(--muted); max-width: 70ch; }
+.bar { position: sticky; top: 0; z-index: 10; background: var(--bg); border-bottom: 1px solid var(--line); padding-block: 10px; min-width: 0; }
+.row { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; min-width: 0; }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; }
+.seg button { border: 0; border-radius: 0; }
+.seg button[aria-pressed="true"] { background: #1a2330; color: var(--fg); }
+button {
+  font: 500 13px/1 var(--body); color: var(--muted); background: transparent; cursor: pointer;
+  border: 1px solid var(--line); border-radius: 6px; padding: 8px 12px;
+}
+button:hover { color: var(--fg); border-color: #2c3746; }
+button:disabled { opacity: .45; cursor: default; }
+button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.hint { font-size: 13px; color: var(--muted); }
+.sect { display: grid; gap: 12px; min-width: 0; }
+.sect > h2 { font-family: var(--display); font-weight: 700; font-size: 28px; margin: 0; letter-spacing: .02em; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.chips .lab { font-family: var(--mono); font-size: 12px; color: var(--muted); margin-right: 4px; }
+.chips button { padding: 6px 10px; font-size: 12px; }
+.chips button[aria-pressed="true"] { color: var(--fg); border-color: var(--accent); }
+.plates { display: grid; gap: 30px; min-width: 0; }
+.plate { display: grid; gap: 8px; min-width: 0; }
+.frame { overflow-x: auto; overflow-y: hidden; border: 1px solid var(--line); border-radius: 4px; background: var(--window); }
+.frame canvas { display: block; margin: 0 auto; }
+.plate.chosen .frame { border-color: var(--accent); }
+.cap { display: flex; flex-wrap: wrap; gap: 6px 18px; align-items: center; justify-content: space-between; }
+.cap h3 { font-family: var(--display); font-weight: 500; font-size: 20px; margin: 0; letter-spacing: .02em; }
+.cap h3 .code { font-family: var(--mono); font-size: 14px; color: var(--accent); margin-right: 10px; letter-spacing: .06em; }
+.cap .right { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; min-width: 0; }
+.state { font-family: var(--mono); font-size: 12.5px; color: var(--fg); min-width: 0; }
+.state::before { content: "● "; color: #e0412c; }
+.desc { margin: 0; color: var(--muted); font-size: 14px; max-width: 86ch; }
+.choose[aria-pressed="true"] { color: #1a1206; background: var(--accent); border-color: var(--accent); }
+.pick { display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: center; border-top: 1px solid var(--line); padding-top: 20px; }
+.pick .lab { font-family: var(--mono); font-size: 12px; letter-spacing: .1em; text-transform: uppercase; color: var(--accent); }
+#pickText { font-family: var(--mono); font-size: 14px; user-select: all; min-width: 0; }
+#pickStatus { font-size: 13px; color: var(--muted); }
+.notes { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 18px 28px; border-top: 1px solid var(--line); padding-top: 24px; }
+.notes h4 { font-family: var(--mono); font-size: 12px; letter-spacing: .1em; text-transform: uppercase; color: var(--accent); margin: 0 0 6px; font-weight: 400; }
+.notes p { margin: 0; color: var(--muted); font-size: 14px; min-width: 0; }
+.notes .off h4 { color: var(--muted); }
+</style>
+
+<div class="wrap">
+  <header>
+    <div class="eyebrow">Stillwake · набросок, не код игры</div>
+    <h1>Робот-охранник и стенд</h1>
+    <p class="lede">Целые брошенные корабли охраняет робот: клешня для удара, гаусс на плече, красная лампа на голове. Он проходит в дверь (проём 6 клеток) и открывает её сам. Спит он в стенде в большом отсеке лайнера или танкера и просыпается, когда входит герой. Второй круг: три варианта робота A «Конвоир» в духе охраны казённого исследовательского комплекса 80–90-х (эмаль, трафареты, бирки, камера вместо головы) и три варианта стенда «Люлька», ниже прежнего: робот висит чуть над полом. В каждом стенде стоит выбранный робот.</p>
+  </header>
+
+  <div class="bar">
+    <div class="row">
+      <div class="seg" role="group" aria-label="Масштаб">
+        <button type="button" id="zBig" aria-pressed="true">Крупно ×4</button>
+        <button type="button" id="zGame" aria-pressed="false">Как в игре ×2</button>
+      </div>
+      <button type="button" id="play">Пауза</button>
+      <button type="button" id="restart">Сначала</button>
+      <span class="hint">Клетка 8 px; герой рядом для роста.</span>
+    </div>
+  </div>
+
+  <section class="sect" aria-labelledby="hRobot">
+    <h2 id="hRobot">Робот</h2>
+    <p class="lede">Один сценарий на всех трёх, в одно время: патруль, дверь, выстрел издалека, рывок с клешнёй вблизи, выстрел вверх по герою на галерее, уход в соседний отсек.</p>
+    <div class="chips" id="chipsR"><span class="lab">Перейти:</span></div>
+    <div class="plates" id="robots"></div>
+  </section>
+
+  <section class="sect" aria-labelledby="hStand">
+    <h2 id="hStand">Стенд</h2>
+    <p class="lede">Трюм на две палубы; стенд приземистый: консоль в 1,5–2 клетках над головой робота, сам робот висит в 0,4 клетки над полом. Во всех стендах стоит робот <b id="standRobot">A1 «Конвоир»</b>. У каждого стенда своё пробуждение.</p>
+    <div class="chips" id="chipsS"><span class="lab">Перейти:</span></div>
+    <div class="plates" id="stands"></div>
+  </section>
+
+  <section class="pick" aria-live="polite">
+    <span class="lab">Выбор</span>
+    <span id="pickText">Робот: не выбран; стенд: не выбран</span>
+    <button type="button" id="copy" disabled>Скопировать выбор</button>
+    <span id="pickStatus"></span>
+  </section>
+
+  <section class="notes">
+    <div><h4>Что показано</h4><p>Каждый вариант робота в движении через все свои состояния; сценарий заранее расписан, у всех одинаковые времена. Духа «научного комплекса» взято только общее настроение жанра, ни один чужой робот не скопирован. Каждый стенд: сон, герой входит, пробуждение, робот сходит, пустой стенд.</p></div>
+    <div><h4>Размеры</h4><p>Дверь 6 клеток. Рост робота: A1 5,15 (антенна 5,4), A2 5,15, A3 5,4 клетки; ширина 3–4. Герой около 5 клеток. Стенды от пола до верха: S1 7,3 (с маячком 7,9), S2 7,7, S3 6,8 с роботом и 7,45 на стоянке. «Как в игре» — ×2, а не ×1: при ×1 клешня и лампа в 2–3 пикселя и не читаются.</p></div>
+    <div><h4>Выстрел</h4><p>Гаусс: прямой быстрый трассер, отдача ствола и корпуса, искры там, куда попал. Взрыва нет. Катушки на стволе вспыхивают перед выстрелом.</p></div>
+    <div class="off"><h4>Не показано</h4><p>Звук. Настоящий свет игры: луч лампы нарисован плоско, отсеки не освещаются. Хитбоксы, урон и здоровье. Поиск пути и решения робота — здесь сценарий, а не ИИ. Кооп.</p></div>
+  </section>
+</div>
+
+<script>
+(() => {
+'use strict';
+const RM = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+/* ---------- small maths ---------- */
+function mulberry(a) { return function () { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+const clamp01 = v => v < 0 ? 0 : v > 1 ? 1 : v;
+const lerp = (a, b, f) => a + (b - a) * f;
+const L2 = (p, q, f) => [lerp(p[0], q[0], f), lerp(p[1], q[1], f)];
+const seg = (t, a, b) => clamp01((t - a) / (b - a));
+const ease = f => f * f * (3 - 2 * f);
+const ES = (t, a, b) => ease(seg(t, a, b));
+const pulse = (t, a, b, c, d) => ES(t, a, b) * (1 - ES(t, c, d));
+function parse(h) { h = h.replace('#', ''); return [0, 2, 4].map(i => parseInt(h.substr(i, 2), 16)); }
+function hex(a) { return '#' + a.map(v => Math.max(0, Math.min(255, Math.round(v))).toString(16).padStart(2, '0')).join(''); }
+function mix(a, b, f) { const p = parse(a), q = parse(b); return hex(p.map((v, i) => v + (q[i] - v) * f)); }
+function palOf(h) { return { base: h, light: mix(h, '#ffffff', 0.26), shade: mix(h, '#000000', 0.3), deep: mix(h, '#000000', 0.55) }; }
+
+/* ---------- palette: cool grey metals, worn copper; saturation only for the lamp, the trace and hazard ---------- */
+const INK = '#0b0e13';
+const STEEL = palOf('#737a83'), STEEL_B = palOf('#6c7479'), STEEL_D = palOf('#555c66'), DARK = palOf('#383d45'), GUNM = palOf('#474d56');
+const COPPER = palOf('#9a6842'), COIL_ON = palOf('#a8ecff'), WALL = palOf('#454b54'), M_MID = palOf('#4e5560'), SUIT = palOf('#a8875a');
+const BACK = '#1b1f26', BACK_SEAM = '#14171c', PASSAGE = '#0f1215', SEAM = '#2a2f36';
+const RUST = '#7a3a22', RUST_D = '#4a2214', RED = '#ff2b1c', TRACE_CORE = '#f4fbff', TRACE_EDGE = '#6fd0ff';
+
+/* ---------- pen and paint (borrowed from the earlier pick pages) ---------- */
+let PS = 1;
+const nr = () => mulberry((PS++) * 7919 + 13);
+const rect = (x, y, w, h) => [[x, y], [x + w, y], [x + w, y + h], [x, y + h]];
+function trace(ctx, pts) { ctx.moveTo(pts[0][0], pts[0][1]); for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i][0], pts[i][1]); ctx.closePath(); }
+function solid(ctx, pts, pal, o) {
+  o = o || {};
+  const tl = o.tl ?? 0.42, ts = o.ts ?? 0.9, td = o.td ?? 0.32, ls = o.ls ?? 0.2;
+  ctx.beginPath(); trace(ctx, pts); ctx.fillStyle = pal.base; ctx.fill();
+  ctx.save(); ctx.clip();
+  if (o.extra) o.extra(ctx);
+  ctx.lineCap = 'square';
+  const n = pts.length;
+  for (let i = 0; i < n; i++) {
+    const [ax, ay] = pts[i], [bx, by] = pts[(i + 1) % n];
+    const dx = bx - ax, dy = by - ay, L = Math.hypot(dx, dy); if (L < 1e-6) continue;
+    const nx = dy / L, ny = -dx / L;
+    const sg = (c, w) => { ctx.strokeStyle = c; ctx.lineWidth = w * 2; ctx.beginPath(); ctx.moveTo(ax, ay); ctx.lineTo(bx, by); ctx.stroke(); };
+    if (ny < -0.3) sg(pal.light, tl);
+    else if (ny > 0.3) { sg(pal.shade, ts); sg(pal.deep, td); }
+    else if (nx < 0) sg(pal.light, ls);
+    else sg(pal.shade, ls * 1.6);
+  }
+  ctx.restore();
+}
+function wander(pts, closed, rnd, amp) {
+  const out = [], n = pts.length, segs = closed ? n : n - 1;
+  for (let i = 0; i < segs; i++) {
+    const a = pts[i], b = pts[(i + 1) % n], L = Math.hypot(b[0] - a[0], b[1] - a[1]) || 1;
+    const k = Math.max(1, Math.round(L / 1.4)), nx = -(b[1] - a[1]) / L, ny = (b[0] - a[0]) / L;
+    for (let j = 0; j < k; j++) { const t = j / k, w = j === 0 ? 0 : (rnd() - 0.5) * 2 * amp; out.push([a[0] + (b[0] - a[0]) * t + nx * w, a[1] + (b[1] - a[1]) * t + ny * w]); }
+  }
+  if (!closed) out.push(pts[n - 1]);
+  return out;
+}
+function ink(ctx, pts, w, rnd, o) {
+  o = o || {};
+  const p = wander(pts, !o.open, rnd, o.amp ?? 0.05);
+  ctx.save();
+  ctx.strokeStyle = o.color || INK; ctx.lineJoin = 'round'; ctx.lineCap = 'round';
+  if (o.alpha != null) ctx.globalAlpha *= o.alpha;
+  ctx.lineWidth = w; ctx.beginPath(); ctx.moveTo(p[0][0], p[0][1]); for (let i = 1; i < p.length; i++) ctx.lineTo(p[i][0], p[i][1]); if (!o.open) ctx.closePath(); ctx.stroke();
+  ctx.lineWidth = w * 1.7; ctx.globalAlpha *= 0.55;
+  for (let i = 0; i + 2 < p.length; i += 3) if (rnd() < 0.35) { ctx.beginPath(); ctx.moveTo(p[i][0], p[i][1]); ctx.lineTo(p[i + 1][0], p[i + 1][1]); ctx.lineTo(p[i + 2][0], p[i + 2][1]); ctx.stroke(); }
+  ctx.restore();
+}
+function line(ctx, x1, y1, x2, y2, c, w, a) { ctx.save(); if (a != null) ctx.globalAlpha *= a; ctx.strokeStyle = c; ctx.lineWidth = w; ctx.lineCap = 'round'; ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke(); ctx.restore(); }
+function chevrons(ctx, x, y, w, h, step) {
+  ctx.save(); ctx.beginPath(); ctx.rect(x, y, w, h); ctx.clip();
+  ctx.fillStyle = '#d6a12c'; ctx.fillRect(x, y, w, h);
+  ctx.fillStyle = '#17181b';
+  for (let s = -h - w; s < w + h; s += step * 2) { ctx.beginPath(); ctx.moveTo(x + s, y + h); ctx.lineTo(x + s + step, y + h); ctx.lineTo(x + s + step + h, y); ctx.lineTo(x + s + h, y); ctx.closePath(); ctx.fill(); }
+  ctx.restore();
+}
+function fixWind(pts) { let a = 0; for (let i = 0; i < pts.length; i++) { const p = pts[i], q = pts[(i + 1) % pts.length]; a += p[0] * q[1] - q[0] * p[1]; } return a < 0 ? pts.slice().reverse() : pts; }
+function part(g, pts, pal, o) {
+  o = o || {}; pts = fixWind(pts);
+  solid(g, pts, pal, { tl: o.tl ?? 0.12, ts: o.ts ?? 0.18, td: o.td ?? 0.07, ls: o.ls ?? 0.07, extra: o.extra });
+  ink(g, pts, o.ink ?? 0.07, nr(), { alpha: 0.92, amp: o.amp ?? 0.022 });
+}
+const THIN = { tl: 0.03, ts: 0.04, td: 0.015, ls: 0.015, ink: 0.045 };
+function circ(cx, cy, r, n) { n = n || 12; return Array.from({ length: n }, (_, i) => [cx + Math.cos(i / n * 6.2832) * r, cy + Math.sin(i / n * 6.2832) * r]); }
+function disc(g, c, r, pal, o) { part(g, circ(c[0], c[1], r, 10), pal, Object.assign({ tl: 0.06, ts: 0.08, td: 0.03, ls: 0.03, ink: 0.05 }, o || {})); }
+function limb(g, a, b, w, pal, o) {
+  const dx = b[0] - a[0], dy = b[1] - a[1], L = Math.hypot(dx, dy) || 1e-6, nx = dy / L * w / 2, ny = -dx / L * w / 2;
+  const ex = (o && o.ext) || 0.06, ux = dx / L * ex, uy = dy / L * ex;
+  part(g, [[a[0] + nx - ux, a[1] + ny - uy], [b[0] + nx + ux, b[1] + ny + uy], [b[0] - nx + ux, b[1] - ny + uy], [a[0] - nx - ux, a[1] - ny - uy]], pal, o);
+}
+function blobAt(g, cx, cy, rad, r) { g.beginPath(); for (let i = 0; i < 9; i++) { const a = i / 9 * 6.2832, rr = rad * (0.6 + r() * 0.5), X = cx + Math.cos(a) * rr, Y = cy + Math.sin(a) * rr * 0.8; i ? g.lineTo(X, Y) : g.moveTo(X, Y); } g.closePath(); g.fill(); }
+function rust(g, x, y, rad) { const r = nr(); g.save(); g.globalAlpha *= 0.85; g.fillStyle = RUST; blobAt(g, x, y, rad, r); g.fillStyle = RUST_D; blobAt(g, x + rad * 0.1, y + rad * 0.12, rad * 0.5, r); g.restore(); }
+function rivet(g, x, y) { g.fillStyle = '#23272d'; g.fillRect(x - 0.06, y - 0.06, 0.12, 0.12); g.fillStyle = '#a3abb4'; g.fillRect(x - 0.06, y - 0.06, 0.06, 0.04); }
+function ik(h, f, l1, l2, bend) {
+  const dx = f[0] - h[0], dy = f[1] - h[1], d = Math.min(Math.hypot(dx, dy), l1 + l2 - 0.001), a = Math.atan2(dy, dx);
+  const b = Math.acos(Math.max(-1, Math.min(1, (l1 * l1 + d * d - l2 * l2) / (2 * l1 * d))));
+  const an = a - bend * b; return [h[0] + Math.cos(an) * l1, h[1] + Math.sin(an) * l1];
+}
+
+/* ---------- the robot kit: local units are cells, feet at 0, facing right, y down ---------- */
+function common(p) { return { bob: -Math.abs(Math.sin(p.ph)) * 0.09 * p.mv, jx: -p.recoil * 0.14 }; }
+function gunAng(D, p) {
+  const { bob, jx } = common(p), pv = [D.piv[0] + jx, D.piv[1] + bob];
+  let a = D.restAng + p.stow * D.stowAng;
+  if (p.at && p.aimMix > 0) { let ta = Math.atan2(p.at[1] - pv[1], p.at[0] - pv[0]); ta = Math.max(-1.25, Math.min(0.5, ta)); a = lerp(a, ta, p.aimMix); }
+  return { pv, a, len: D.len * (1 - p.stow * 0.3) };
+}
+function muzzleLocal(D, p) { const g = gunAng(D, p), l = g.len - p.recoil * 0.35; return [g.pv[0] + Math.cos(g.a) * l, g.pv[1] + Math.sin(g.a) * l]; }
+const toWorld = (p, q) => [p.x + p.dir * q[0], p.y + q[1]];
+function clawPts(D, p) {
+  const K = D.claw, { bob, jx } = common(p);
+  const b0 = L2(K.rest[0], K.fold[0], p.fold), b1 = L2(K.rest[1], K.fold[1], p.fold);
+  const el = L2(b0, K.ext[0], p.claw), wr = L2(b1, K.ext[1], p.claw), ang = Math.atan2(wr[1] - el[1], wr[0] - el[0]);
+  return { sh: K.sh, el, wr, ang, tip: [wr[0] + Math.cos(ang) * K.jaw + jx, wr[1] + Math.sin(ang) * K.jaw + bob] };
+}
+function lamp(g, x, y, r, on) {
+  g.fillStyle = '#121418'; g.beginPath(); g.arc(x, y, r + 0.05, 0, 6.2832); g.fill();
+  g.fillStyle = on > 0.5 ? RED : '#3a1915'; g.beginPath(); g.arc(x, y, r, 0, 6.2832); g.fill();
+  if (on > 0.5) { g.fillStyle = '#ffd0c4'; g.beginPath(); g.arc(x + r * 0.25, y - r * 0.25, r * 0.38, 0, 6.2832); g.fill(); }
+  else { g.fillStyle = '#5a2a22'; g.fillRect(x - r * 0.1, y - r * 0.6, r * 0.5, r * 0.2); }
+}
+/* facility hardware: enamel panels, stencils, tags, hoses, bolt rings */
+const ENAMEL1 = palOf('#b8b3a2'), ENAMEL2 = palOf('#7a8b7b'), ENAMEL2L = palOf('#869786'), ENAMEL3 = palOf('#6f8296');
+function stencilW(g, x, y, txt, size, col, a) { g.save(); g.globalAlpha *= a ?? 0.85; g.font = `700 ${size}px "JetBrains Mono", Consolas, monospace`; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillStyle = col; g.fillText(txt, x, y); g.restore(); }
+function stencilR(g, p, x, y, txt, size, col, a) { g.save(); g.translate(x, y); if (p.dir < 0) g.scale(-1, 1); stencilW(g, 0, 0, txt, size, col, a); g.restore(); }
+function warnTag(g, x, y, s) { g.fillStyle = '#d6a12c'; g.fillRect(x, y, s, s); g.strokeStyle = INK; g.lineWidth = s * 0.09; g.beginPath(); g.moveTo(x + s / 2, y + s * 0.18); g.lineTo(x + s * 0.84, y + s * 0.8); g.lineTo(x + s * 0.16, y + s * 0.8); g.closePath(); g.stroke(); g.fillStyle = INK; g.fillRect(x + s * 0.46, y + s * 0.4, s * 0.08, s * 0.22); }
+function chip(g, x, y, r) { const q = nr(); g.fillStyle = '#5c626a'; blobAt(g, x, y, r, q); g.fillStyle = RUST_D; blobAt(g, x, y, r * 0.35, q); }
+function boltRing(g, c, r) { for (let i = 0; i < 6; i++) rivet(g, c[0] + Math.cos(i * 1.047 + 0.3) * r, c[1] + Math.sin(i * 1.047 + 0.3) * r); }
+function hose(g, a, b, sag, w) { g.save(); g.strokeStyle = '#1b1d21'; g.lineWidth = w || 0.1; g.lineCap = 'round'; g.beginPath(); g.moveTo(a[0], a[1]); g.quadraticCurveTo((a[0] + b[0]) / 2, (a[1] + b[1]) / 2 + sag, b[0], b[1]); g.stroke(); g.restore(); g.fillStyle = '#9a6842'; g.fillRect(a[0] - 0.07, a[1] - 0.07, 0.14, 0.14); g.fillRect(b[0] - 0.07, b[1] - 0.07, 0.14, 0.14); }
+function vents(g, x, y, w, n, step) { for (let i = 0; i < n; i++) { g.fillStyle = '#1e2227'; g.fillRect(x, y + i * step, w, step * 0.45); } }
+
+function drawGun(g, kind, pv, a, len, recoil, coil, o) {
+  o = o || {};
+  g.save(); g.translate(pv[0], pv[1]); g.rotate(a); g.translate(-recoil * 0.35, 0);
+  const cc = coil ? COIL_ON : COPPER, big = kind === 'fin';
+  line(g, -0.75, 0.12, -1.0, 0.42, '#1d2024', 0.09);
+  if (o.cap) { part(g, rect(-0.62, 0.22, 0.75, 0.28), COPPER, { ink: 0.06 }); line(g, -0.4, 0.22, -0.4, 0.5, '#5a3b24', 0.04); line(g, -0.15, 0.22, -0.15, 0.5, '#5a3b24', 0.04); }
+  part(g, big ? rect(-0.85, -0.3, 1.15, 0.6) : rect(-0.75, -0.24, 1.0, 0.48), GUNM, { ink: 0.09 });
+  part(g, rect(0.2, -0.22, len - 0.2, 0.09), DARK, THIN);
+  part(g, rect(0.2, 0.13, len - 0.2, 0.09), DARK, THIN);
+  if (big) for (let x = 0.45; x < len - 0.4; x += 0.28) part(g, rect(x - 0.05, -0.42, 0.1, 0.2), DARK, THIN);
+  for (let x = 0.45; x < len - 0.3; x += 0.36) part(g, rect(x - 0.07, -0.17, 0.14, 0.34), cc, THIN);
+  part(g, rect(len - 0.22, -0.27, 0.24, 0.54), GUNM, { ink: 0.08 });
+  if (o.stripe) chevrons(g, len - 0.6, -0.3, 0.32, 0.08, 0.08);
+  rivet(g, -0.5, -0.1); rivet(g, -0.1, -0.1);
+  if (o.tag) warnTag(g, -0.45, -0.12, 0.26);
+  rust(g, 0.15, 0.24, 0.07);
+  g.restore();
+}
+function leg2(g, p, hip, Lg, far) {
+  const ph = p.ph + (far ? Math.PI : 0), s = Math.sin(ph) * Lg.stride * p.mv, lift = Math.max(0, Math.cos(ph)) * Lg.lift * p.mv;
+  const ank = [Lg.fx + s + (far ? -0.12 : 0.12), -Lg.ank - lift], knee = ik(hip, ank, Lg.l1, Lg.l2, Lg.bend);
+  const pal = far ? STEEL_D : Lg.pal, pal2 = far ? DARK : GUNM;
+  limb(g, hip, knee, Lg.wt, pal, { ink: 0.08 });
+  if (Lg.hose && !far) hose(g, [hip[0] - 0.2, hip[1] + 0.15], [lerp(knee[0], ank[0], 0.35) - 0.2, lerp(knee[1], ank[1], 0.35)], 0.15, 0.08);
+  if (Lg.piston) { const a = [lerp(hip[0], knee[0], 0.25) - 0.18, lerp(hip[1], knee[1], 0.25)], b = [lerp(knee[0], ank[0], 0.62) - 0.16, lerp(knee[1], ank[1], 0.62)];
+    line(g, a[0], a[1], lerp(a[0], b[0], 0.55), lerp(a[1], b[1], 0.55), far ? '#5a5048' : '#3b4048', Lg.pw || 0.12); line(g, a[0], a[1], b[0], b[1], far ? '#6a5a48' : '#b8bec4', 0.06); }
+  limb(g, knee, ank, Lg.ws, pal2, { ink: 0.08 });
+  disc(g, knee, Lg.wt * 0.5, far ? DARK : COPPER);
+  if (Lg.bolts && !far) boltRing(g, knee, Lg.wt * 0.36);
+  const ax = ank[0], ay = ank[1], A = Lg.ank;
+  if (Lg.foot === 'flat') { part(g, [[ax - 0.42, ay], [ax + 0.45, ay], [ax + 0.62, ay + A], [ax - 0.5, ay + A]], pal2, { ink: 0.08 }); if (!far) part(g, rect(ax + 0.3, ay + A - 0.16, 0.38, 0.16), DARK, THIN); }
+  else if (Lg.foot === 'wide') { part(g, [[ax - 0.55, ay], [ax + 0.5, ay], [ax + 0.74, ay + A], [ax - 0.64, ay + A]], pal2, { ink: 0.09 }); if (!far) { chevrons(g, ax + 0.25, ay + 0.1, 0.4, 0.14, 0.1); rust(g, ax - 0.4, ay + A - 0.08, 0.08); } }
+  else part(g, [[ax - 0.32, ay], [ax + 0.15, ay - 0.02], [ax + 0.8, ay + A - 0.07], [ax + 0.74, ay + A], [ax - 0.45, ay + A]], pal2, { ink: 0.08 });
+  disc(g, ank, 0.12, DARK);
+}
+function head(g, p, pivot, k, fn) { g.save(); g.translate(pivot[0], pivot[1]); g.rotate(p.fold * k); g.translate(-pivot[0], -pivot[1]); fn(); g.restore(); }
+function pincer(g, open, pu, pl) {
+  part(g, rect(-0.12, -0.25, 0.42, 0.5), DARK, { ink: 0.08 }); rivet(g, 0.1, 0);
+  g.save(); g.translate(0.24, -0.08); g.rotate(-open * 0.55); part(g, [[0, -0.12], [0.5, -0.17], [0.82, -0.02], [0.8, 0.1], [0.62, 0.0], [0, 0.06]], pu, { ink: 0.07 }); g.restore();
+  g.save(); g.translate(0.24, 0.08); g.rotate(open * 0.55); part(g, [[0, 0.12], [0.5, 0.17], [0.82, 0.02], [0.8, -0.1], [0.62, 0.0], [0, -0.06]], pl, { ink: 0.07 }); g.restore();
+}
+function clawArm(g, p, D, o) {
+  const c = clawPts(D, p);
+  limb(g, c.sh, c.el, o.wu, o.pu || STEEL, { ink: 0.09 });
+  line(g, c.sh[0] - 0.12, c.sh[1] + 0.25, lerp(c.el[0], c.wr[0], 0.45), lerp(c.el[1], c.wr[1], 0.45) + 0.12, '#a9afb5', o.wp || 0.07);
+  if (o.hose) hose(g, [c.sh[0] - 0.2, c.sh[1] + 0.05], [lerp(c.el[0], c.wr[0], 0.6), lerp(c.el[1], c.wr[1], 0.6) - 0.12], 0.45, 0.08);
+  limb(g, c.el, c.wr, o.wf, o.pf || GUNM, { ink: 0.09 });
+  disc(g, c.el, o.wu * 0.45, COPPER); if (o.bolts) boltRing(g, c.el, o.wu * 0.32);
+  g.save(); g.translate(c.wr[0], c.wr[1]); g.rotate(c.ang); g.scale(o.sx || 1, o.sy || 1); pincer(g, p.open, STEEL, STEEL_D); g.restore();
+  return c;
+}
+
+/* A1: the Convoy guard, rebuilt as research-complex security: cream enamel, camera head, stencils, hoses */
+function drawA1(g, p, D) {
+  const { bob, jx } = common(p), hip = [-0.1 + jx, -2.4 + bob];
+  const LG = { l1: 1.15, l2: 1.15, ank: 0.36, stride: 0.7, lift: 0.42, bend: 1, fx: 0.05, wt: 0.52, ws: 0.46, foot: 'flat', pal: STEEL, piston: true, bolts: true, hose: true };
+  leg2(g, p, hip, LG, true);
+  g.save(); g.translate(jx, bob);
+  limb(g, [-0.72, -4.4], [-0.5, -4.92], 0.26, DARK);
+  const ga = gunAng(D, p); drawGun(g, 'rail', D.piv, ga.a, ga.len, p.recoil, p.coil, { cap: true, tag: true, stripe: true });
+  part(g, [[-1.45, -4.2], [-0.95, -4.25], [-0.95, -2.9], [-1.38, -2.98]], DARK, { ink: 0.1 });
+  for (let i = 0; i < 5; i++) line(g, -1.4, -4.0 + i * 0.22, -1.0, -4.0 + i * 0.22, '#23272d', 0.05);
+  rust(g, -1.25, -3.02, 0.1);
+  hose(g, [-1.15, -4.22], [-0.25, -4.78], -0.4);
+  part(g, rect(-0.72, -2.8, 1.4, 0.55), DARK, { ink: 0.09 }); vents(g, -0.6, -2.7, 1.1, 3, 0.13);
+  part(g, [[-1.0, -4.5], [0.7, -4.5], [1.05, -3.7], [0.85, -2.65], [-0.85, -2.65], [-1.1, -3.6]], STEEL, { ink: 0.12, tl: 0.16, ts: 0.22 });
+  part(g, [[-0.88, -4.4], [0.64, -4.4], [0.92, -3.78], [-0.92, -3.78]], ENAMEL1, { ink: 0.06 });
+  part(g, [[-0.78, -3.64], [0.88, -3.64], [0.74, -2.82], [-0.76, -2.82]], ENAMEL1, { ink: 0.06 });
+  stencilR(g, p, -0.12, -4.1, 'ОХР-07', 0.3, '#2b2f35');
+  line(g, -0.82, -3.92, 0.85, -3.92, '#9a3a26', 0.07);
+  warnTag(g, 0.32, -3.45, 0.28);
+  vents(g, -0.6, -3.45, 0.7, 4, 0.12);
+  chip(g, 0.62, -4.36, 0.1); chip(g, -0.85, -3.84, 0.09); chip(g, 0.78, -2.92, 0.11); chip(g, -0.7, -2.88, 0.08);
+  rivet(g, -0.8, -4.32); rivet(g, 0.55, -4.32); rivet(g, -0.7, -2.92); rivet(g, 0.66, -2.92);
+  rust(g, 0.3, -2.7, 0.12); rust(g, -0.98, -3.62, 0.08);
+  head(g, p, [0.1, -4.5], 0.3, () => {
+    line(g, -0.3, -5.02, -0.42, -5.38, '#2a2e35', 0.06); g.fillStyle = '#9a3a26'; g.fillRect(-0.47, -5.42, 0.1, 0.08);
+    part(g, [[-0.4, -5.05], [0.5, -5.05], [0.6, -4.95], [0.6, -4.5], [-0.4, -4.5]], ENAMEL1, { ink: 0.11 });
+    part(g, rect(0.5, -4.93, 0.34, 0.44), DARK, { ink: 0.08 });
+    part(g, rect(0.82, -4.97, 0.1, 0.52), GUNM, THIN);
+    lamp(g, 0.8, -4.71, 0.16, p.lamp);
+    part(g, rect(0.02, -5.0, 0.32, 0.14), DARK, THIN); g.fillStyle = '#3d5560'; g.fillRect(0.24, -4.97, 0.07, 0.07);
+    stencilR(g, p, -0.05, -4.72, '07', 0.24, '#2b2f35');
+    chip(g, -0.32, -4.58, 0.07);
+  });
+  g.restore();
+  leg2(g, p, hip, LG, false);
+  g.save(); g.translate(jx, bob);
+  clawArm(g, p, D, { wu: 0.46, wf: 0.5, hose: true, bolts: true });
+  part(g, [[0.02, -4.52], [0.85, -4.46], [0.98, -4.0], [0.2, -3.82]], COPPER, { ink: 0.09, extra: q => chevrons(q, 0.1, -4.5, 0.85, 0.16, 0.16) });
+  rivet(g, 0.3, -4.1); rivet(g, 0.7, -4.1); rust(g, 0.85, -3.98, 0.08);
+  g.restore();
+}
+/* A2: boxier and heavier, a cabinet on short legs with a heavy pincer and a finned rail on a bracket */
+function drawA2(g, p, D) {
+  const { bob, jx } = common(p), hip = [-0.05 + jx, -1.95 + bob];
+  const LG = { l1: 0.95, l2: 0.95, ank: 0.4, stride: 0.6, lift: 0.36, bend: 1, fx: 0.05, wt: 0.6, ws: 0.54, foot: 'wide', pal: STEEL, piston: true, pw: 0.15, bolts: true };
+  leg2(g, p, hip, LG, true);
+  g.save(); g.translate(jx, bob);
+  part(g, rect(-1.08, -4.85, 0.55, 0.32), DARK, THIN); limb(g, [-0.85, -4.6], [-0.8, -4.92], 0.22, DARK);
+  const ga = gunAng(D, p); drawGun(g, 'fin', D.piv, ga.a, ga.len, p.recoil, p.coil, { tag: true });
+  hose(g, [-1.0, -4.55], [-1.15, -3.2], -0.1, 0.12);
+  part(g, rect(-1.15, -4.55, 2.2, 2.6), ENAMEL2, { ink: 0.13, tl: 0.16, ts: 0.22 });
+  part(g, rect(-1.22, -4.64, 2.34, 0.18), DARK, THIN);
+  part(g, rect(-1.08, -2.1, 2.06, 0.2), DARK, THIN);
+  vents(g, -1.0, -4.38, 0.6, 5, 0.11);
+  part(g, rect(-0.28, -4.3, 1.12, 1.78), ENAMEL2L, { ink: 0.06 });
+  g.fillStyle = '#23272d'; g.fillRect(-0.32, -4.15, 0.1, 0.22); g.fillRect(-0.32, -2.95, 0.1, 0.22);
+  part(g, rect(0.66, -3.62, 0.09, 0.42), STEEL, THIN);
+  stencilR(g, p, 0.28, -3.98, 'К-12', 0.34, '#22262c');
+  g.fillStyle = '#a9aca0'; g.fillRect(-1.0, -3.55, 0.5, 0.3); line(g, -0.95, -3.46, -0.56, -3.46, '#555a5f', 0.03); line(g, -0.95, -3.36, -0.62, -3.36, '#555a5f', 0.03);
+  warnTag(g, -0.98, -2.68, 0.3);
+  chevrons(g, -1.15, -2.32, 2.2, 0.14, 0.16);
+  chip(g, 1.0, -4.45, 0.12); chip(g, -1.1, -3.05, 0.1); chip(g, 0.8, -2.55, 0.1); chip(g, 0.1, -2.5, 0.07);
+  ink(g, [[0.45, -2.75], [0.6, -2.62], [0.72, -2.72]], 0.04, nr(), { open: true, alpha: 0.7 });
+  rust(g, -0.6, -2.0, 0.13); rust(g, 0.7, -2.02, 0.1); rust(g, -1.12, -4.5, 0.08);
+  for (const [x, y] of [[-1.05, -4.45], [0.95, -4.45], [-1.05, -2.2], [0.95, -2.2]]) rivet(g, x, y);
+  head(g, p, [0.4, -4.6], 0.28, () => {
+    part(g, rect(0.12, -4.74, 0.56, 0.14), DARK, THIN);
+    part(g, [[0.0, -5.08], [0.72, -5.08], [0.84, -4.98], [0.84, -4.62], [0.0, -4.62]], GUNM, { ink: 0.1 });
+    part(g, [[0.5, -5.12], [0.98, -5.04], [0.98, -4.96], [0.5, -4.98]], DARK, THIN);
+    lamp(g, 0.84, -4.82, 0.15, p.lamp);
+    g.fillStyle = '#3d5560'; g.fillRect(0.12, -4.98, 0.08, 0.08);
+    stencilR(g, p, 0.3, -4.8, '12', 0.2, '#c9c3b5', 0.7);
+  });
+  g.restore();
+  leg2(g, p, hip, LG, false);
+  g.save(); g.translate(jx, bob);
+  clawArm(g, p, D, { wu: 0.6, wf: 0.62, wp: 0.1, bolts: true, sx: 1.2, sy: 1.2 });
+  part(g, [[0.55, -4.55], [1.25, -4.5], [1.32, -3.6], [0.62, -3.55]], COPPER, { ink: 0.09 });
+  rivet(g, 0.75, -4.35); rivet(g, 1.1, -4.35); rivet(g, 0.8, -3.7); rust(g, 1.2, -3.65, 0.09);
+  g.restore();
+}
+/* A3: leaner and taller, long legs with open pistons, a long arm, the rail on a turret over the shoulders */
+function drawA3(g, p, D) {
+  const { bob, jx } = common(p), hip = [-0.1 + jx, -2.75 + bob];
+  const LG = { l1: 1.38, l2: 1.36, ank: 0.3, stride: 0.8, lift: 0.48, bend: 1, fx: 0.05, wt: 0.38, ws: 0.32, foot: 'toe', pal: STEEL, piston: true, pw: 0.1 };
+  leg2(g, p, hip, LG, true);
+  g.save(); g.translate(jx, bob);
+  part(g, [[-1.1, -4.3], [-0.72, -4.3], [-0.72, -3.1], [-1.05, -3.15]], DARK, { ink: 0.09 });
+  line(g, -0.9, -4.25, -0.9, -3.2, SEAM, 0.05); rust(g, -1.0, -3.2, 0.08);
+  part(g, rect(-0.8, -4.78, 1.1, 0.32), DARK, { ink: 0.08, extra: q => { for (let x = -0.7; x < 0.3; x += 0.2) { q.fillStyle = '#23272d'; q.fillRect(x, -4.7, 0.08, 0.16); } } });
+  limb(g, [-0.25, -4.78], [-0.25, -5.1], 0.3, GUNM);
+  const ga = gunAng(D, p); drawGun(g, 'rail', D.piv, ga.a, ga.len, p.recoil, p.coil, { stripe: true });
+  part(g, rect(-0.5, -3.05, 0.9, 0.4), DARK, THIN);
+  part(g, [[-0.72, -4.48], [0.55, -4.48], [0.8, -3.78], [0.6, -2.95], [-0.6, -2.95], [-0.82, -3.7]], ENAMEL3, { ink: 0.12, tl: 0.14, ts: 0.2 });
+  line(g, -0.15, -4.46, -0.18, -2.98, SEAM, 0.05);
+  stencilR(g, p, -0.05, -4.12, 'ПОСТ 3', 0.24, '#e3e0d6', 0.8);
+  chevrons(g, -0.72, -3.45, 1.45, 0.15, 0.13);
+  vents(g, 0.05, -3.3, 0.5, 3, 0.11);
+  chip(g, 0.5, -4.4, 0.09); chip(g, -0.7, -3.75, 0.08); chip(g, 0.55, -3.05, 0.09);
+  rivet(g, -0.6, -4.38); rivet(g, 0.42, -4.38); rust(g, -0.4, -2.98, 0.1);
+  head(g, p, [0.35, -4.4], 0.32, () => {
+    limb(g, [0.35, -4.4], [0.8, -4.68], 0.2, DARK);
+    hose(g, [0.2, -4.45], [0.75, -4.55], 0.18, 0.07);
+    line(g, 0.75, -4.95, 0.68, -5.25, '#2a2e35', 0.05);
+    part(g, [[0.6, -4.95], [1.25, -4.95], [1.38, -4.85], [1.38, -4.5], [0.6, -4.5]], ENAMEL3, { ink: 0.1 });
+    part(g, rect(1.0, -4.9, 0.32, 0.38), DARK, THIN);
+    lamp(g, 1.3, -4.71, 0.14, p.lamp);
+    g.fillStyle = '#3d5560'; g.fillRect(0.72, -4.88, 0.07, 0.07);
+    chip(g, 0.66, -4.56, 0.06);
+  });
+  g.restore();
+  leg2(g, p, hip, LG, false);
+  g.save(); g.translate(jx, bob);
+  clawArm(g, p, D, { wu: 0.36, wf: 0.32, hose: true, sx: 1.25, sy: 0.85 });
+  part(g, [[0.1, -4.5], [0.72, -4.45], [0.78, -4.0], [0.2, -3.9]], COPPER, { ink: 0.08 });
+  rivet(g, 0.35, -4.2); rust(g, 0.7, -4.0, 0.07);
+  g.restore();
+}
+
+const ROBOTS = [
+  { id: 'A1', label: 'Конвоир', seed: 101, h: 5.15, hip: 2.4, draw: drawA1, piv: [-0.5, -4.92], restAng: 0.03, stowAng: 0.55, len: 2.35, lamp: [0.8, -4.71], phk: 2 * Math.PI / 2.8,
+    claw: { sh: [0.45, -4.08], rest: [[0.55, -3.05], [1.2, -3.0]], fold: [[0.35, -3.1], [0.85, -3.4]], ext: [[1.35, -3.85], [2.8, -3.7]], jaw: 1.05 },
+    desc: 'Тот же конвоир, собранный как охрана исследовательского комплекса: кремовая эмаль со сколами, камера вместо головы, трафарет «ОХР-07», бирки, шланги у колен и локтя, конденсатор под рельсом.' },
+  { id: 'A2', label: 'Шкаф', seed: 202, h: 5.15, hip: 1.95, draw: drawA2, piv: [-0.8, -4.92], restAng: 0.02, stowAng: 0.45, len: 2.2, lamp: [0.84, -4.82], phk: 2 * Math.PI / 2.4,
+    claw: { sh: [1.0, -4.0], rest: [[1.15, -3.05], [1.4, -2.55]], fold: [[1.0, -3.1], [1.15, -3.45]], ext: [[1.75, -3.7], [2.6, -3.55]], jaw: 1.27 },
+    desc: 'Ниже и тяжелее: корпус — железный шкаф с дверцей, решёткой и номером «К-12», ноги короче, клешня массивнее, рельс с рёбрами на кронштейне над спиной. Казённая зелёная эмаль.' },
+  { id: 'A3', label: 'Цапля', seed: 303, h: 5.4, hip: 2.75, draw: drawA3, piv: [-0.25, -5.12], restAng: 0.02, stowAng: 0.5, len: 2.3, lamp: [1.3, -4.71], phk: 2 * Math.PI / 3.2,
+    claw: { sh: [0.4, -4.1], rest: [[0.55, -2.9], [1.15, -2.35]], fold: [[0.35, -3.0], [0.9, -3.3]], ext: [[1.6, -3.9], [3.0, -3.75]], jaw: 1.3 },
+    desc: 'Легче и выше: тонкий корпус, длинные ноги с открытыми поршнями, длинная рука с узкими щипцами, гаусс на поворотной турели над плечами, камера на шее. Выцветшая серо-синяя эмаль, «ПОСТ 3».' },
+];
+function drawRobot(g, D, p) { PS = D.seed; g.save(); g.translate(p.x, p.y); if (p.dir < 0) g.scale(-1, 1); if (p.lean) g.rotate(p.lean * 0.22); D.draw(g, p, D); g.restore(); }
+function beam(g, D, p) {
+  if (p.lamp < 0.5) return;
+  const { bob, jx } = common(p), lp = toWorld(p, [D.lamp[0] + jx, D.lamp[1] + bob]);
+  const a = p.aimMix > 0.3 && p.atW ? Math.atan2(p.atW[1] - lp[1], p.atW[0] - lp[0]) : (p.dir > 0 ? 0.16 : Math.PI - 0.16);
+  const cone = (len, half, al) => { g.save(); g.globalAlpha = al; g.fillStyle = RED; g.beginPath(); g.moveTo(lp[0], lp[1]); g.lineTo(lp[0] + Math.cos(a - half) * len, lp[1] + Math.sin(a - half) * len); g.lineTo(lp[0] + Math.cos(a + half) * len, lp[1] + Math.sin(a + half) * len); g.closePath(); g.fill(); g.restore(); };
+  cone(7, 0.2, 0.07); cone(4.5, 0.1, 0.08);
+}
+
+/* ---------- the hero, for size (the series' hero) ---------- */
+function drawHero(g, h) {
+  PS = 777;
+  const { x, y } = h, suit = SUIT, sw = h.climb ? 0 : Math.sin(h.phase * 1.7) * 0.22, hb = (X, Y, W, H, pal, o) => part(g, rect(X, Y, W, H), pal, o);
+  g.save();
+  if (h.tilt) { g.translate(x, y); g.rotate(h.tilt); g.translate(-x, -y); }
+  if (h.dir < 0) { g.translate(2 * x, 0); g.scale(-1, 1); }
+  hb(x - 1.55, y - 3.9, 0.75, 1.9, M_MID, { tl: 0.12, ts: 0.15, ink: 0.08 });
+  hb(x - 0.75 + sw, y - 2.25, 0.62, 1.75, suit, { tl: 0.08, ts: 0.15, ink: 0.08 });
+  hb(x + 0.08 - sw, y - 2.25, 0.62, 1.75, suit, { tl: 0.08, ts: 0.15, ink: 0.08 });
+  hb(x - 0.8 + sw, y - 0.55, 0.72, 0.55, palOf('#3a3530'), { tl: 0.05, ts: 0.05, ink: 0.07 });
+  hb(x + 0.05 - sw, y - 0.55, 0.78, 0.55, palOf('#3a3530'), { tl: 0.05, ts: 0.05, ink: 0.07 });
+  hb(x - 0.9, y - 3.85, 1.75, 1.7, suit, { tl: 0.15, ts: 0.25, ink: 0.09, extra: c => { c.fillStyle = '#3f3a33'; c.fillRect(x - 0.9, y - 2.45, 1.75, 0.22); } });
+  hb(x + 0.25, y - 3.6, 0.5, 1.45, suit, { tl: 0.08, ts: 0.12, ink: 0.08 });
+  const hp = Array.from({ length: 14 }, (_, i) => [x + 0.05 + Math.cos(i / 14 * 6.283) * 0.74, y - 4.4 + Math.sin(i / 14 * 6.283) * 0.74]);
+  solid(g, hp, palOf('#c9c3b5'), { tl: 0.2, ts: 0.25, td: 0.08, ls: 0.1 }); ink(g, hp, 0.09, nr());
+  g.beginPath(); g.ellipse(x + 0.38, y - 4.38, 0.4, 0.32, 0, 0, 6.283); g.fillStyle = '#1b3a44'; g.fill();
+  g.fillStyle = '#7fb9c4'; g.fillRect(x + 0.3, y - 4.6, 0.25, 0.08);
+  g.restore();
+}
+
+/* ---------- effects: no explosions, a trace and sparks ---------- */
+function sparkBurst(g, x, y, u, ang, spread, n, len, seed) {
+  if (u < 0 || u > 1) return; const r = mulberry(seed); g.save(); g.lineCap = 'round';
+  for (let i = 0; i < n; i++) { const a = ang + (r() - 0.5) * 2 * spread, L = len * (0.5 + r() * 0.6), s = u * L, e = Math.min(L, s + 0.35);
+    g.globalAlpha = 1 - u; g.strokeStyle = i % 2 ? '#ffd36b' : '#fff2c4'; g.lineWidth = 0.07; g.beginPath(); g.moveTo(x + Math.cos(a) * s, y + Math.sin(a) * s); g.lineTo(x + Math.cos(a) * e, y + Math.sin(a) * e); g.stroke(); }
+  g.restore();
+}
+function puffs(g, x, y, u, seed, col, n, rise, side) {
+  if (u <= 0 || u >= 1) return; const r = mulberry(seed); g.save(); g.fillStyle = col;
+  for (let i = 0; i < n; i++) { const dx = (r() - 0.5) * 1.2 + (side || 0) * u * (0.6 + r()) + (side ? 0 : (r() - 0.5) * 2 * u), dy = -rise * u * (0.4 + r());
+    g.globalAlpha = (1 - u) * 0.5; blobAt(g, x + dx, y + dy, 0.22 + u * 0.55 * (0.6 + r() * 0.6), r); }
+  g.restore();
+}
+function shotFx(g, m, hit, u) {
+  if (u < 0 || u > 0.45) return;
+  const k = Math.min(1, u / 0.05), ex = m[0] + (hit[0] - m[0]) * k, ey = m[1] + (hit[1] - m[1]) * k, fade = u < 0.08 ? 1 : 1 - (u - 0.08) / 0.37;
+  g.save(); g.lineCap = 'round';
+  g.globalAlpha = fade * 0.55; g.strokeStyle = TRACE_EDGE; g.lineWidth = 0.26; g.beginPath(); g.moveTo(m[0], m[1]); g.lineTo(ex, ey); g.stroke();
+  g.globalAlpha = fade; g.strokeStyle = TRACE_CORE; g.lineWidth = 0.09; g.beginPath(); g.moveTo(m[0], m[1]); g.lineTo(ex, ey); g.stroke();
+  if (u < 0.08) { g.globalAlpha = 1; g.fillStyle = TRACE_CORE; g.fillRect(ex - 0.16, ey - 0.16, 0.32, 0.32); }
+  if (u < 0.12) { const a = Math.atan2(hit[1] - m[1], hit[0] - m[0]); g.globalAlpha = 1; g.strokeStyle = TRACE_EDGE; g.lineWidth = 0.07;
+    for (const d of [-0.5, 0, 0.5]) { g.beginPath(); g.moveTo(m[0], m[1]); g.lineTo(m[0] + Math.cos(a + d) * (d ? 0.5 : 0.9), m[1] + Math.sin(a + d) * (d ? 0.5 : 0.9)); g.stroke(); }
+    for (const d of [-1.57, 1.57]) { g.beginPath(); g.moveTo(m[0], m[1]); g.lineTo(m[0] + Math.cos(a + d) * 0.35, m[1] + Math.sin(a + d) * 0.35); g.stroke(); } }
+  g.restore();
+  sparkBurst(g, hit[0], hit[1], (u - 0.04) / 0.35, Math.atan2(m[1] - hit[1], m[0] - hit[0]), 0.9, 7, 1.1, 41);
+}
+function speedLines(g, p, u) {
+  for (let j = 0; j < 3; j++) { const y = p.y - 1.2 - j * 1.3, x0 = p.x - p.dir * 2.2, x1 = x0 - p.dir * (1.8 * (1 - u) + 0.3); line(g, x0, y, x1, y, '#8b939d', 0.06, 0.6 * (1 - u)); }
+}
+
+/* ---------- stages: in cells; rooms are [x, y, w, h, big] ---------- */
+function doorway(g, x, y) {
+  g.fillStyle = PASSAGE; g.fillRect(x, y, 1, 6);
+  g.fillStyle = '#2d3239'; g.fillRect(x, y, 0.12, 6); g.fillRect(x + 0.88, y, 0.12, 6);
+  g.fillStyle = '#2a2e35'; g.fillRect(x + 0.25, y - 0.5, 0.5, 0.32);
+}
+function doorPanel(g, x, y, a) {
+  PS = Math.round(x * 31 + y);
+  const ph = Math.max(0.15, 6 * (1 - a));
+  part(g, rect(x + 0.2, y, 0.6, ph), M_MID, { tl: 0.06, ts: 0.12, ink: 0.07, extra: c => { line(c, x + 0.5, y, x + 0.5, y + ph, '#2c3037', 0.05); if (ph > 0.7) chevrons(c, x + 0.2, y + ph - 0.55, 0.6, 0.35, 0.16); } });
+  g.fillStyle = a > 0.5 ? '#5fd07a' : '#e2a64c'; g.fillRect(x + 0.35, y - 0.44, 0.3, 0.2);
+}
+function drawRoom(g, r, st) {
+  const [x, y, w, h, big] = r;
+  g.fillStyle = BACK; g.fillRect(x, y, w, h);
+  for (let sx = x + 2.4; sx < x + w - 0.2; sx += 2.4) line(g, sx, y, sx, y + h, BACK_SEAM, 0.07);
+  line(g, x, y + h - 1.6, x + w, y + h - 1.6, BACK_SEAM, 0.07);
+  g.fillStyle = '#20252c'; g.fillRect(x, y + 0.35, w, 0.22);
+  if (big) {
+    for (let rx = x + 3; rx < x + w - 1; rx += 6.5) { g.fillStyle = '#21262d'; g.fillRect(rx, y, 0.55, h); for (let ry = y + 0.8; ry < y + h; ry += 1.6) { g.fillStyle = '#2b3038'; g.fillRect(rx + 0.2, ry, 0.12, 0.12); } }
+    g.fillStyle = '#242930'; g.fillRect(x, y + 5.6, w, 0.8); line(g, x, y + 5.6, x + w, y + 5.6, BACK_SEAM, 0.06); line(g, x, y + 6.4, x + w, y + 6.4, '#15181d', 0.08);
+    if (st.stencil) { g.save(); g.fillStyle = '#2f353e'; g.font = '700 1.2px "JetBrains Mono", Consolas, monospace'; g.fillText(st.stencil, x + 2.2, y + 3.0); g.restore(); }
+  }
+  g.fillStyle = WALL.light; g.fillRect(x, y + h, w, 0.14);
+  g.fillStyle = WALL.deep; g.fillRect(x, y - 0.18, w, 0.18);
+  g.fillStyle = WALL.shade; g.fillRect(x - 0.14, y, 0.14, h); g.fillRect(x + w, y, 0.14, h);
+  ink(g, rect(x, y, w, h), 0.07, nr(), { alpha: 0.7 });
+  rust(g, x + 0.35, y + h + 0.32, 0.2); rust(g, x + w - 0.5, y + h + 0.3, 0.16);
+}
+function renderStatic(st, k) {
+  const c = document.createElement('canvas'); c.width = Math.round(st.W * k); c.height = Math.round(st.H * k);
+  const g = c.getContext('2d'); g.setTransform(k, 0, 0, k, 0, 0); PS = st.seed;
+  g.fillStyle = WALL.base; g.fillRect(0, 0, st.W, st.H);
+  for (let y = 0, row = 0; y < st.H; y += 1.75, row++) { line(g, 0, y, st.W, y, '#3b414a', 0.06); for (let x = (row % 2) * 1.5; x < st.W; x += 3) line(g, x, y, x, y + 1.75, '#3b414a', 0.05); }
+  for (const r of st.rooms) drawRoom(g, r, st);
+  for (const d of st.doors) doorway(g, d[0], d[1]);
+  st.front(g);
+  const n = c.getContext('2d'); n.setTransform(1, 0, 0, 1, 0, 0); n.globalCompositeOperation = 'source-atop'; n.globalAlpha = 0.09; n.fillStyle = n.createPattern(NOISE, 'repeat'); n.fillRect(0, 0, c.width, c.height); n.globalAlpha = 1; n.globalCompositeOperation = 'source-over';
+  return c;
+}
+const NOISE = (() => { const c = document.createElement('canvas'); c.width = c.height = 160; const g = c.getContext('2d'), d = g.createImageData(160, 160), r = mulberry(99); for (let i = 0; i < d.data.length; i += 4) { const v = r() < 0.5 ? 0 : 255; d.data[i] = d.data[i + 1] = d.data[i + 2] = v; d.data[i + 3] = Math.floor(r() * 120); } g.putImageData(d, 0, 0); return c; })();
+function crate(g, x, y, w, h, pal) { part(g, rect(x, y - h, w, h), pal, { ink: 0.08, extra: c => { line(c, x, y - h, x + w, y, '#00000040', 0.08); } }); rust(g, x + 0.2, y - 0.2, 0.12); }
+
+const RSTAGE = { W: 69, H: 15, seed: 5, stencil: 'ТРЮМ 2',
+  rooms: [[1, 8, 18, 6, 0], [20, 1, 34, 13, 1], [55, 8, 13, 6, 0], [55, 1, 13, 6, 0]],
+  doors: [[19, 8], [54, 8], [54, 1]],
+  front(g) {
+    part(g, rect(44, 7, 10, 0.6), WALL, { ink: 0.09, tl: 0.1 });
+    for (let x = 44.4; x < 53.8; x += 0.5) line(g, x, 7.18, x, 7.42, '#2c3138', 0.07);
+    line(g, 52.5, 9.8, 50.0, 7.6, '#30353d', 0.16);
+    part(g, rect(52.4, 7.6, 0.45, 6.4), DARK, { ink: 0.07 });
+    for (let x = 44.3; x <= 53.8; x += 1.9) line(g, x, 5.8, x, 7, '#8a919a', 0.09);
+    line(g, 44.3, 5.8, 54, 5.8, '#8a919a', 0.1); line(g, 44.3, 6.4, 54, 6.4, '#6a717a', 0.07);
+    line(g, 42.6, 6.0, 42.6, 14, '#8a919a', 0.1); line(g, 43.5, 6.0, 43.5, 14, '#8a919a', 0.1);
+    for (let y = 6.6; y < 14; y += 0.6) line(g, 42.6, y, 43.5, y, '#737a83', 0.08);
+    chevrons(g, 44, 7.6, 8.4, 0.22, 0.25);
+    crate(g, 62, 14, 2.2, 1.8, palOf('#5c4a3a')); crate(g, 64.4, 14, 1.6, 1.4, palOf('#4d5a52'));
+    crate(g, 2, 14, 1.8, 1.5, palOf('#4d5a52'));
+    part(g, rect(58, 4.2, 0.9, 2.8), DARK, { ink: 0.07 }); part(g, rect(59.1, 4.2, 0.9, 2.8), DARK, { ink: 0.07 });
+  } };
+const SSTAGE = { W: 44, H: 15, seed: 9, stencil: 'ДОК 3',
+  rooms: [[1, 8, 8, 6, 0], [10, 1, 33, 13, 1]],
+  doors: [[9, 8], [0, 8]],
+  front(g) {
+    chevrons(g, 26.2, 14.14, 9.6, 0.24, 0.25);
+    crate(g, 37.5, 14, 2.0, 1.7, palOf('#5c4a3a')); crate(g, 39.8, 14, 1.6, 2.6, palOf('#4d5a52'));
+  } };
+
+/* ---------- the robot's script: one for all three ---------- */
+function track(pts) {
+  const D = [0]; for (let i = 1; i < pts.length; i++) D.push(D[i - 1] + Math.hypot(pts[i][1] - pts[i - 1][1], pts[i][2] - pts[i - 1][2]));
+  return t => {
+    if (t <= pts[0][0]) return { x: pts[0][1], y: pts[0][2], v: 0, d: 0 };
+    for (let i = 0; i < pts.length - 1; i++) { const a = pts[i], b = pts[i + 1]; if (t < b[0]) { const f = (t - a[0]) / (b[0] - a[0] || 1), sl = Math.hypot(b[1] - a[1], b[2] - a[2]); return { x: lerp(a[1], b[1], f), y: lerp(a[2], b[2], f), v: sl / (b[0] - a[0] || 1), d: D[i] + sl * f }; } }
+    const z = pts[pts.length - 1]; return { x: z[1], y: z[2], v: 0, d: D[D.length - 1] };
+  };
+}
+function dirAt(list, t) { let d = list[0][1]; for (const [tt, dd] of list) if (t >= tt) d = dd; return d; }
+function stateIdx(list, t) { let k = 0; for (let i = 0; i < list.length; i++) if (t >= list[i][0]) k = i; return k; }
+const R_LEN = 40, FIRE = [16.6, 25.6];
+const R_STATES = [[0, 'Патруль', 'Патруль: ходит по отсеку'], [11, 'Дверь', 'Закрытая дверь: открывает сам и проходит'], [15.2, 'Выстрел', 'Герой далеко: встаёт, целится, выстрел гаусса'], [18.1, 'Клешня', 'Герой близко: рывок и удар клешнёй'], [22, 'Вверх', 'Герой выше: целится вверх и стреляет'], [28.8, 'Уходит', 'Не достать: уходит в соседний отсек']];
+const RP = track([[0, 5, 14], [3, 12, 14], [3.6, 12, 14], [6.6, 5, 14], [7.2, 5, 14], [11, 16.9, 14], [12.7, 16.9, 14], [15.2, 25, 14], [20.0, 25, 14], [20.45, 29.8, 14], [21.7, 29.8, 14], [23.9, 38.5, 14], [30.4, 38.5, 14], [33.9, 21.8, 14], [35.0, 21.8, 14], [38.2, 12, 14], [40, 12, 14]]);
+const RD = [[0, 1], [3.3, -1], [6.9, 1], [30.1, -1]];
+const HP = track([[0, 50, 14], [16.62, 50, 14], [16.9, 51, 14], [18.3, 51, 14], [20.25, 33.6, 14], [20.5, 33.6, 14], [20.85, 36, 14], [21.7, 36, 14], [22.9, 43.05, 14], [24.1, 43.05, 7], [24.7, 47, 7], [25.62, 47, 7], [25.8, 47.5, 7], [26.6, 47.5, 7], [27.3, 52.4, 7], [27.9, 52.4, 7], [28.7, 58, 7], [40, 58, 7]]);
+const HD = [[0, -1], [21.5, 1], [24.9, -1], [26.5, 1]];
+function heroR(t) {
+  const h = HP(t);
+  const tilt = 0.22 * pulse(t, 16.62, 16.72, 17.0, 17.6) + 0.38 * pulse(t, 20.5, 20.62, 21.0, 21.6) + 0.22 * pulse(t, 25.62, 25.72, 26.0, 26.5);
+  return { x: h.x, y: h.y, dir: dirAt(HD, t), phase: h.d * 1.4, climb: Math.abs(h.x - 43.05) < 0.01 && h.y < 13.99 && h.y > 7.01, tilt };
+}
+function robotR(t, D, h) {
+  const m = RP(t), dir = dirAt(RD, t);
+  let rec = 0, coil = 0; for (const f of FIRE) { if (t >= f && t < f + 0.5) rec = Math.max(rec, (1 - (t - f) / 0.5) ** 2); if (t >= f - 0.35 && t < f + 0.06) coil = 1; }
+  const strike = pulse(t, 20.25, 20.5, 20.85, 21.4), tap = Math.max(pulse(t, 11.0, 11.35, 11.6, 11.95), pulse(t, 33.95, 34.3, 34.55, 34.9)) * 0.3;
+  const open = strike > 0.001 ? (t < 20.47 ? 1 : 0.06) : tap > 0.001 ? 0.2 : 0.35;
+  const aimMix = Math.max(pulse(t, 15.5, 16.2, 17.6, 18.1), pulse(t, 24.3, 25.1, 28.9, 29.6)), atW = [h.x, h.y - 3.0];
+  const p = { x: m.x, y: m.y, dir, ph: m.d * D.phk, mv: m.v > 0.05 ? Math.min(1, m.v / 1.6) : 0, lamp: 1, aimMix, atW, stow: 0, fold: 0, claw: Math.max(strike, tap), open, recoil: rec, coil, lean: pulse(t, 19.95, 20.1, 20.4, 20.6) };
+  p.at = [(atW[0] - p.x) * dir, atW[1] - p.y];
+  return p;
+}
+function robotScene(t, D) {
+  const h = heroR(t), r = robotR(t, D, h), st = stateIdx(R_STATES, t);
+  return { t, D, r, h, st, focus: st >= 2 && st <= 4 ? (r.x + h.x) / 2 : r.x,
+    doors: [ES(t, 11.6, 12.4) * (1 - ES(t, 16.0, 16.8)) + ES(t, 34.5, 35.2) * (1 - ES(t, 38.6, 39.4)), 0, ES(t, 27.3, 27.9) * (1 - ES(t, 29.2, 29.8))] };
+}
+function drawRobotScene(g, sc) {
+  const { t, D, r, h } = sc;
+  doorPanel(g, 19, 8, sc.doors[0]); doorPanel(g, 54, 8, sc.doors[1]); doorPanel(g, 54, 1, sc.doors[2]);
+  beam(g, D, r);
+  if (t > 20.0 && t < 20.55) speedLines(g, r, seg(t, 20.0, 20.55));
+  drawRobot(g, D, r);
+  drawHero(g, h);
+  for (const f of FIRE) if (t >= f && t < f + 0.5) { const hf = heroR(f), rf = robotR(f, D, hf); shotFx(g, toWorld(rf, muzzleLocal(D, rf)), [hf.x, hf.y - 3.0], t - f); }
+  puffs(g, 25, 14, seg(t, 20.0, 20.6), 7, '#59606a', 5, 0.8, -1);
+  puffs(g, 29.8, 14, seg(t, 20.45, 21.05), 8, '#59606a', 5, 0.8, 1);
+  if (t >= 20.5 && t < 20.85) { const rf = robotR(20.5, D, heroR(20.5)), c = clawPts(D, rf), tw = toWorld(rf, c.tip); sparkBurst(g, tw[0], tw[1], seg(t, 20.5, 20.85), Math.PI * (rf.dir > 0 ? 1 : 0), 1.0, 6, 0.9, 77); }
+}
+
+/* ---------- the stands ---------- */
+const S_LEN = 22;
+const S_STATES = [[0, 'Сон', 'Спит в стенде: лампа тёмная, идёт зарядка'], [2.0, 'Герой', 'Входит герой'], [8.5, 'Пробуждение', 'Пробуждение'], [12.6, 'Сходит', 'Сходит со стенда'], [15.7, 'Пусто', 'Стенд пуст']];
+const HS = track([[0, -2, 14], [2.0, -2, 14], [3.9, 7.3, 14], [4.7, 7.3, 14], [7.4, 16, 14], [13.0, 16, 14], [14.4, 12.5, 14], [15.4, 12.5, 14], [16.7, -2.5, 14], [22, -2.5, 14]]);
+const HSD = [[0, 1], [15.3, -1]];
+const OUT = [[15.7, 22, 14], [18.6, 7, 14], [19.0, 4.5, 14], [20.4, -3.5, 14], [22, -3.5, 14]];
+const SRAB = track([[0, 31, 14], [12.6, 31, 14], [14.4, 22, 14]].concat(OUT));
+const hangS = t => 0.4 * (1 - ES(seg(t, 8.5, 12.5), 0.5, 0.85));
+const lampFlick = (u, a, b) => u < a ? 0 : u > b ? 1 : (Math.floor(u * 90) % 4 < 2 ? 1 : 0);
+const CX = 31;
+const robotTopYoke = s => 14 - hangS(s.t) - s.D.h - 0.3;
+function hatch(g, x, y, w, h, label) {
+  part(g, rect(x, y, w, h), GUNM, { ink: 0.07, tl: 0.06, ts: 0.08 });
+  g.strokeStyle = '#23272d'; g.lineWidth = 0.04; g.strokeRect(x + 0.1, y + 0.1, w - 0.2, h - 0.2);
+  for (const [a, b] of [[x + 0.07, y + 0.07], [x + w - 0.07, y + 0.07], [x + 0.07, y + h - 0.07], [x + w - 0.07, y + h - 0.07]]) rivet(g, a, b);
+  line(g, x + w - 0.2, y + h * 0.4, x + w - 0.2, y + h * 0.6, '#a3abb4', 0.07);
+  if (label) stencilW(g, x + w * 0.45, y + h * 0.3, label, 0.26, '#c9c3b5', 0.75);
+}
+function statusPanel(g, x, y, s) {
+  part(g, rect(x, y, 0.9, 1.2), DARK, THIN);
+  g.fillStyle = '#0d2422'; g.fillRect(x + 0.12, y + 0.12, 0.66, 0.42);
+  const on = s.t >= 8.5 && s.t < 15.7, lv = s.t < 8.5 ? 0.35 + 0.3 * ((s.t * 0.4) % 1) : on ? Math.min(1, 0.4 + 2 * seg(s.u, 0, 0.3)) : 0.06;
+  g.fillStyle = s.t < 15.7 ? '#4fb08a' : '#a0402c'; g.fillRect(x + 0.18, y + 0.38, 0.54 * lv, 0.08);
+  g.fillStyle = '#24443c'; g.fillRect(x + 0.18, y + 0.2, 0.3, 0.05);
+  const L = [s.t < 8.5 && Math.floor(s.t * 1.5) % 2 ? '#3f8a55' : '#1a2a1f', on && Math.floor(s.t * 4) % 2 ? '#ffae2e' : '#3a2d16', s.t >= 15.7 && Math.floor(s.t * 2) % 2 ? '#d8432f' : '#2a1512'];
+  L.forEach((c, i) => { g.fillStyle = c; g.fillRect(x + 0.16 + i * 0.22, y + 0.78, 0.16, 0.16); });
+}
+function drum(g, c, r, ang) {
+  disc(g, c, r, STEEL_D, { ink: 0.07 });
+  g.save(); g.strokeStyle = '#1b1d21'; g.lineWidth = 0.05; for (let k = 0.55; k < 0.95; k += 0.13) { g.beginPath(); g.arc(c[0], c[1], r * k, 0, 6.2832); g.stroke(); } g.restore();
+  for (let i = 0; i < 3; i++) { const a = ang + i * 2.094; line(g, c[0], c[1], c[0] + Math.cos(a) * r * 0.5, c[1] + Math.sin(a) * r * 0.5, '#a3abb4', 0.06); }
+  disc(g, c, r * 0.22, DARK);
+}
+function beacon(g, x, y, s) {
+  const on = s.t >= 8.5 && s.t < 15.7 && Math.floor(s.t * 4) % 2 === 0;
+  part(g, rect(x - 0.25, y, 0.5, 0.3), DARK, THIN); g.fillStyle = on ? '#ffae2e' : '#4a3a1c'; g.fillRect(x - 0.17, y - 0.3, 0.34, 0.3);
+  line(g, x - 0.17, y - 0.15, x + 0.17, y - 0.15, '#1b1d21', 0.04);
+}
+function drawYoke(g, x, yb, rel) {
+  for (const side of [-1, 1]) {
+    g.save(); g.translate(x + side * 1.25, yb); g.rotate(-side * rel * 0.9);
+    part(g, rect(-0.12, 0, 0.24, 1.05), STEEL, THIN); part(g, rect(side < 0 ? 0 : -0.32, 0.86, 0.32, 0.2), STEEL, THIN);
+    g.restore();
+  }
+  part(g, rect(x - 1.35, yb - 0.32, 2.7, 0.34), STEEL, { ink: 0.09, extra: c => chevrons(c, x - 1.2, yb - 0.26, 2.4, 0.2, 0.2) });
+  part(g, rect(x - 0.18, yb - 0.5, 0.36, 0.2), DARK, THIN);
+  rivet(g, x - 1.2, yb - 0.16); rivet(g, x + 1.2, yb - 0.16);
+}
+function waistLatch(g, s, x1, slide) {
+  const y = 14 - 0.4 - s.D.hip - 0.15, x0 = CX + 0.6 + slide;
+  if (x1 - x0 < 0.05) return;
+  part(g, rect(x0, y - 0.18, x1 - x0, 0.36), STEEL, { ink: 0.07, extra: c => chevrons(c, x0 + 0.25, y - 0.12, Math.min(0.6, x1 - x0 - 0.3), 0.24, 0.14) });
+  part(g, rect(x0 - 0.15, y - 0.36, 0.2, 0.72), DARK, THIN);
+}
+const STANDS = [
+  { id: 'S1', label: 'Люлька', l0: 0.4, l1: 0.55,
+    desc: 'Мачта за спиной и короткая консоль над головой. Барабан под консолью стравливает трос, зажим с пояса уходит вверх, ярмо раскрывает крюки. Лючок обслуживания, щиток состояния, маячок на конце консоли.',
+    back(g, s) {
+      const cx = CX, hang = hangS(s.t), yb = robotTopYoke(s) - 0.3 * ES(s.u, 0.86, 1);
+      part(g, rect(cx - 2.9, 13.6, 6.6, 0.4), DARK, { ink: 0.08, extra: c => chevrons(c, cx - 2.8, 13.66, 4.8, 0.26, 0.26) });
+      hose(g, [cx + 3.5, 13.62], [cx + 3.15, 11.6], 0.2, 0.12); hose(g, [cx + 3.6, 13.62], [cx + 3.2, 7.4], 0.3, 0.1);
+      part(g, rect(cx + 2.3, 6.95, 1.0, 6.65), GUNM, { ink: 0.1 });
+      part(g, [[cx + 1.9, 13.6], [cx + 2.3, 12.6], [cx + 3.3, 12.6], [cx + 3.7, 13.6]], DARK, { ink: 0.08 });
+      chevrons(g, cx + 2.3, 12.0, 1.0, 0.55, 0.22);
+      hatch(g, cx + 2.42, 10.25, 0.76, 1.5, '04');
+      statusPanel(g, cx + 2.35, 7.9, s);
+      rust(g, cx + 2.35, 12.62, 0.16); rust(g, cx + 3.25, 9.7, 0.1); chip(g, cx + 2.4, 7.3, 0.08);
+      part(g, [[cx - 2.0, 6.7], [cx + 3.3, 6.7], [cx + 3.3, 7.25], [cx - 1.6, 7.25]], GUNM, { ink: 0.1 });
+      for (let x = cx - 1.5; x < cx + 2.2; x += 0.8) line(g, x, 6.78, x + 0.4, 7.17, '#2a2f37', 0.06);
+      stencilW(g, cx + 0.75, 6.98, 'СТЕНД 01', 0.3, '#c9c3b5', 0.7);
+      chevrons(g, cx - 1.95, 6.75, 0.5, 0.45, 0.14);
+      beacon(g, cx - 1.75, 6.4, s);
+      part(g, rect(cx + 1.2, 7.25, 1.05, 0.55), DARK, { ink: 0.07 }); vents(g, cx + 1.3, 7.35, 0.4, 3, 0.12);
+      drum(g, [cx + 0.85, 7.62], 0.36, (0.4 - hang) * 9);
+      part(g, rect(cx - 0.5, 7.25, 1.0, 0.3), DARK, THIN); disc(g, [cx, 7.55], 0.16, GUNM);
+      line(g, cx + 0.6, 7.35, cx + 0.15, 7.45, '#16181c', 0.07);
+      line(g, cx - 0.2, 7.55, cx - 0.2, yb - 0.5, '#16181c', 0.08); line(g, cx + 0.2, 7.55, cx + 0.2, yb - 0.5, '#16181c', 0.08);
+      s.yb = yb;
+    },
+    front(g, s) {
+      drawYoke(g, CX, s.yb, ES(s.u, 0.85, 0.95));
+      const P = [CX + 2.3, 14 - 0.4 - s.D.hip - 0.15], ang = 1.3 * ES(s.u, 0, 0.25);
+      g.save(); g.translate(P[0], P[1]); g.rotate(ang);
+      line(g, 0.4, 0.9, -0.7, 0.15, '#a9afb5', 0.1); line(g, 0.4, 0.9, -0.1, 0.55, '#3b4048', 0.16);
+      part(g, rect(-1.45, -0.2, 1.45, 0.4), STEEL, { ink: 0.08, extra: c => chevrons(c, -1.15, -0.14, 0.7, 0.28, 0.16) });
+      part(g, [[-1.78, -0.45], [-1.4, -0.45], [-1.4, 0.45], [-1.78, 0.45]], DARK, { ink: 0.08 });
+      disc(g, [0, 0], 0.2, DARK);
+      g.restore();
+    },
+    fx(g, s) { puffs(g, CX + 2.2, 14 - 0.4 - s.D.hip, seg(s.t, 8.5, 9.6), 12, '#9aa3ab', 5, 1.2, -1); puffs(g, CX, 14, seg(s.t, 11.9, 12.5), 13, '#59606a', 4, 0.5, 0); } },
+  { id: 'S2', label: 'Кронштейн', l0: 0.4, l1: 0.55,
+    desc: 'Консоль на стенной плите, без мачты на полу. Защёлки уходят в плиту, гидроцилиндр опускает консоль, ярмо раскрывается, и пустая консоль поднимается. Два барабана на плите, поддон с жёлтым кантом под ногами.',
+    phi(s) { const down = -Math.asin((0.4 - hangS(s.t)) / 2.9); return lerp(down, 0.12, ES(s.t, 12.4, 13.8)); },
+    back(g, s) {
+      const cx = CX, P = [cx + 2.9, 7.05], phi = this.phi(s), hang = hangS(s.t);
+      const hp = [P[0] - 2.9 * Math.cos(phi), P[1] - 2.9 * Math.sin(phi) + 0.42];
+      part(g, rect(cx - 2.3, 13.72, 4.6, 0.28), DARK, { ink: 0.07, extra: c => chevrons(c, cx - 2.3, 13.72, 4.6, 0.1, 0.12) });
+      part(g, rect(cx + 0.5, 6.3, 3.4, 5.4), DARK, { ink: 0.1, tl: 0.08 });
+      for (const [x, y] of [[cx + 0.65, 6.45], [cx + 3.75, 6.45], [cx + 0.65, 11.55], [cx + 3.75, 11.55], [cx + 2.2, 11.55]]) rivet(g, x, y);
+      stencilW(g, cx + 2.2, 6.62, 'СТЕНД 02', 0.28, '#c9c3b5', 0.7);
+      drum(g, [cx + 1.35, 7.95], 0.4, (0.4 - hang) * 9); drum(g, [cx + 2.35, 7.95], 0.4, -(0.4 - hang) * 9);
+      line(g, cx + 1.35, 7.55, P[0] - 0.4, P[1] + 0.2, '#16181c', 0.06);
+      hatch(g, cx + 0.75, 9.1, 0.95, 1.4, '02');
+      statusPanel(g, cx + 2.85, 9.1, s);
+      rust(g, cx + 0.6, 11.6, 0.15); chip(g, cx + 3.8, 8.3, 0.09); rust(g, cx + 3.5, 11.6, 0.1);
+      const rodEnd = [P[0] - 1.6 * Math.cos(phi) - 0.3 * Math.sin(phi), P[1] - 1.6 * Math.sin(phi) + 0.3 * Math.cos(phi)], base = [cx + 3.4, 11.2];
+      limb(g, base, L2(base, rodEnd, 0.55), 0.32, GUNM, { ink: 0.07 }); line(g, base[0], base[1], rodEnd[0], rodEnd[1], '#b8bec4', 0.1); disc(g, base, 0.14, DARK);
+      hose(g, [cx + 3.7, 10.6], [base[0] + 0.05, base[1] - 0.6], 0.2, 0.08);
+      g.save(); g.translate(P[0], P[1]); g.rotate(phi);
+      part(g, rect(-4.4, -0.28, 4.75, 0.55), GUNM, { ink: 0.1 });
+      for (let x = -4.0; x < -0.2; x += 0.75) line(g, x, -0.2, x + 0.38, 0.2, '#2a2f37', 0.06);
+      chevrons(g, -4.35, -0.24, 0.55, 0.47, 0.14);
+      part(g, rect(-3.15, 0.27, 0.5, 0.18), DARK, THIN); disc(g, [-2.9, 0.42], 0.15, GUNM);
+      disc(g, [0, 0], 0.26, DARK); boltRing(g, [0, 0], 0.16);
+      g.restore();
+      const tip = [P[0] - 4.2 * Math.cos(phi) + 0.28 * Math.sin(phi), P[1] - 4.2 * Math.sin(phi) - 0.28 * Math.cos(phi)];
+      beacon(g, tip[0], tip[1], s);
+      const ybR = robotTopYoke(s), ybP = hp[1] + 0.85, yb = lerp(ybR, ybP, ES(s.t, 11.95, 12.9));
+      line(g, hp[0], hp[1], cx, yb - 0.5, '#16181c', 0.08);
+      s.yb = yb;
+    },
+    front(g, s) {
+      drawYoke(g, CX, s.yb, ES(s.u, 0.85, 0.95));
+      const slide = 1.1 * ES(s.u, 0, 0.25);
+      waistLatch(g, s, CX + 1.7, slide);
+      const y2 = 14 - 0.4 - s.D.h + 1.3, x0 = CX + 0.7 + slide;
+      if (CX + 1.7 - x0 > 0.05) { part(g, rect(x0, y2 - 0.15, CX + 1.7 - x0, 0.3), STEEL, THIN); part(g, rect(x0 - 0.12, y2 - 0.3, 0.18, 0.6), DARK, THIN); }
+    },
+    fx(g, s) { puffs(g, CX + 1.8, 14 - 0.4 - s.D.hip, seg(s.t, 8.5, 9.5), 31, '#9aa3ab', 4, 1.0, 1); puffs(g, CX, 14, seg(s.t, 11.9, 12.5), 32, '#59606a', 4, 0.5, 0); } },
+  { id: 'S3', label: 'Журавль', l0: 0.45, l1: 0.6,
+    desc: 'Стрела на поворотной тумбе с противовесом за спиной робота. Упор отходит, стрела опускает робота, ярмо раскрывается, и стрела уходит вверх и назад на стоянку.',
+    tip(s) {
+      const P = [CX + 2.6, 12.3], Lb = 5.56, ty = robotTopYoke(s) - 0.32 - 0.45, dy = P[1] - ty, dx = Math.sqrt(Math.max(0.01, Lb * Lb - dy * dy));
+      const a = lerp(Math.atan2(-dy, -dx), Math.atan2(-Math.sqrt(Lb * Lb - 0.25), 0.5), ES(s.t, 12.4, 14.0));
+      return [P[0] + Math.cos(a) * Lb, P[1] + Math.sin(a) * Lb, a];
+    },
+    back(g, s) {
+      const cx = CX, P = [cx + 2.6, 12.3], T = this.tip(s), hang = hangS(s.t);
+      part(g, rect(cx + 3.85, 11.15, 1.05, 2.5), DARK, { ink: 0.09, extra: c => chevrons(c, cx + 3.85, 11.15, 1.05, 0.5, 0.2) });
+      stencilW(g, cx + 4.37, 12.2, '3т', 0.3, '#c9c3b5', 0.7);
+      const ram0 = [cx + 3.7, 12.2], ram1 = L2(P, T, 0.38);
+      limb(g, ram0, L2(ram0, ram1, 0.55), 0.3, GUNM, { ink: 0.07 }); line(g, ram0[0], ram0[1], ram1[0], ram1[1], '#b8bec4', 0.09);
+      limb(g, P, T, 0.45, GUNM, { ink: 0.1 });
+      for (let k = 0.12; k < 0.88; k += 0.12) { const a = L2(P, T, k), b = L2(P, T, k + 0.06); line(g, a[0] - 0.12, a[1], b[0] + 0.12, b[1], '#2a2f37', 0.05); }
+      const ch = L2(P, T, 0.86); chevrons(g, ch[0] - 0.2, ch[1] - 0.25, 0.4, 0.4, 0.13);
+      stencilW(g, lerp(P[0], T[0], 0.5) + 0.45, lerp(P[1], T[1], 0.5), '03', 0.28, '#c9c3b5', 0.7);
+      part(g, rect(cx + 1.7, 12.2, 2.3, 1.55), GUNM, { ink: 0.1 });
+      part(g, rect(cx + 1.55, 13.72, 3.4, 0.28), DARK, { ink: 0.07 });
+      for (let x = cx + 1.7; x < cx + 4.8; x += 0.45) rivet(g, x, 13.86);
+      hatch(g, cx + 1.82, 12.32, 0.8, 1.3, 'Б-3');
+      statusPanel(g, cx + 2.75, 12.42, s);
+      drum(g, [cx + 3.3, 11.85], 0.38, (0.4 - hang) * 9);
+      line(g, cx + 3.3, 11.47, T[0], T[1] - 0.18, '#16181c', 0.06);
+      disc(g, P, 0.28, DARK); boltRing(g, P, 0.18);
+      disc(g, [T[0], T[1]], 0.2, STEEL_D);
+      rust(g, cx + 1.8, 13.7, 0.15); rust(g, cx + 4.6, 13.6, 0.12); chip(g, cx + 3.9, 12.3, 0.08);
+      beacon(g, cx + 4.37, 11.15, s);
+      const ybR = robotTopYoke(s) - 0.3 * ES(s.u, 0.86, 1), ybT = T[1] + 0.45 + 0.5 + 0.32, f = ES(s.t, 11.95, 12.5);
+      const yx = lerp(CX, T[0], f), yb = lerp(ybR, ybT, f);
+      line(g, T[0], T[1], yx, yb - 0.5, '#16181c', 0.08);
+      s.yb = yb; s.yx = yx;
+    },
+    front(g, s) {
+      drawYoke(g, s.yx, s.yb, ES(s.u, 0.85, 0.95));
+      waistLatch(g, s, CX + 1.75, 1.1 * ES(s.u, 0, 0.25));
+    },
+    fx(g, s) { puffs(g, CX + 1.8, 13.7, seg(s.t, 8.5, 9.6), 41, '#9aa3ab', 5, 1.2, 1); puffs(g, CX, 14, seg(s.t, 11.9, 12.5), 42, '#59606a', 4, 0.5, 0); } },
+];
+function standScene(t, S, D) {
+  const u = seg(t, 8.5, 12.5), hm = HS(t), h = { x: hm.x, y: hm.y, dir: dirAt(HSD, t), phase: hm.d * 1.4, climb: false, tilt: 0 };
+  const m = SRAB(t), y = t < 12.6 ? 14 - hangS(t) : m.y;
+  const fold = 1 - ES(u, 0.82, 1), aimMix = pulse(t, 14.4, 15.0, 15.6, 16.0), atW = [h.x, h.y - 3];
+  const r = { x: m.x, y, dir: -1, ph: m.d * D.phk, mv: m.v > 0.05 ? Math.min(1, m.v / 1.6) : 0, lamp: t < 8.5 ? 0 : lampFlick(u, S.l0, S.l1), aimMix, atW, stow: fold, fold, claw: 0, open: 0.3, recoil: 0, coil: 0, lean: 0 };
+  r.at = [(atW[0] - r.x) * -1, atW[1] - r.y];
+  const st = stateIdx(S_STATES, t);
+  const focus = t < 2 ? CX : t < 8.5 ? lerp(h.x, CX, 0.55) : t < 15.7 ? (h.x + r.x) / 2 : t < 19.6 ? Math.max(r.x, 14) : CX;
+  return { t, u, D, S, r, h, st, focus, door: ES(t, 3.9, 4.5) * (1 - ES(t, 19.8, 20.4)) };
+}
+function drawStandScene(g, sc) {
+  doorPanel(g, 9, 8, sc.door);
+  PS = 500; sc.S.back(g, sc);
+  beam(g, sc.D, sc.r);
+  drawRobot(g, sc.D, sc.r);
+  PS = 600; sc.S.front(g, sc);
+  drawHero(g, sc.h);
+  sc.S.fx(g, sc);
+}
+
+/* ---------- cards ---------- */
+const ZOOMS = { big: 4, game: 2 };
+let zoom = ZOOMS.big, dpr = 1, playing = !RM, dirty = true;
+let tR = RM ? 16.64 : 0, tS = RM ? 1 : 0;
+const cards = [], BG = {};
+const PICKS = {
+  robot: { doc: 'picks/derelict-guard', list: ROBOTS, cards: [], chosen: null, saving: false, pending: null },
+  stand: { doc: 'picks/derelict-guard-stand', list: STANDS, cards: [], chosen: null, saving: false, pending: null },
+};
+const io = 'IntersectionObserver' in window ? new IntersectionObserver(es => { for (const e of es) { const c = cards.find(q => q.frame === e.target); if (c) { c.visible = e.isIntersecting; if (c.visible) c.dirty = true; } } }, { rootMargin: '120px' }) : null;
+function makeCard(kind, item, host) {
+  const el = document.createElement('article'); el.className = 'plate';
+  el.innerHTML = `<div class="cap"><h3><span class="code">${item.id}</span>${item.label}</h3><div class="right"><span class="state"></span><button type="button" class="choose" aria-pressed="false">Выбрать</button></div></div><p class="desc"></p><div class="frame"><canvas></canvas></div>`;
+  el.querySelector('.desc').textContent = item.desc;
+  host.appendChild(el);
+  const c = { kind, item, el, frame: el.querySelector('.frame'), canvas: el.querySelector('canvas'), stateEl: el.querySelector('.state'), btn: el.querySelector('.choose'), cam: 0, snap: true, visible: !io, dirty: true };
+  c.ctx = c.canvas.getContext('2d');
+  c.canvas.setAttribute('role', 'img');
+  c.canvas.setAttribute('aria-label', (kind === 'robot' ? 'Робот ' : 'Стенд ') + item.id + ' «' + item.label + '» в движении');
+  c.btn.addEventListener('click', () => choose(kind, item.id));
+  PICKS[kind].cards.push(c); cards.push(c);
+  if (io) io.observe(c.frame);
+}
+ROBOTS.forEach(r => makeCard('robot', r, document.getElementById('robots')));
+STANDS.forEach(s => makeCard('stand', s, document.getElementById('stands')));
+const standRobot = () => ROBOTS.find(q => q.id === (PICKS.robot.chosen || 'A1'));
+
+function layout() {
+  dpr = Math.min(2, window.devicePixelRatio || 1);
+  const ppc = 8 * zoom, k = ppc * dpr;
+  BG.robot = renderStatic(RSTAGE, k); BG.stand = renderStatic(SSTAGE, k);
+  for (const c of cards) {
+    const st = c.kind === 'robot' ? RSTAGE : SSTAGE, fw = Math.max(200, c.frame.clientWidth);
+    const cssW = Math.min(fw, st.W * ppc), cssH = st.H * ppc;
+    c.viewW = cssW / ppc;
+    c.canvas.style.width = cssW + 'px'; c.canvas.style.height = cssH + 'px';
+    c.canvas.width = Math.round(cssW * dpr); c.canvas.height = Math.round(cssH * dpr);
+    c.snap = true; c.dirty = true;
+  }
+  dirty = true;
+}
+function drawCard(c, dt) {
+  const robot = c.kind === 'robot', st = robot ? RSTAGE : SSTAGE, t = robot ? tR : tS, LEN = robot ? R_LEN : S_LEN;
+  const sc = robot ? robotScene(t, c.item) : standScene(t, c.item, standRobot());
+  const target = Math.max(0, Math.min(st.W - c.viewW, sc.focus - c.viewW / 2));
+  if (c.snap) { c.cam = target; c.snap = false; } else c.cam += (target - c.cam) * Math.min(1, dt * 2.5);
+  const g = c.ctx, k = 8 * zoom * dpr, bg = BG[c.kind];
+  g.setTransform(1, 0, 0, 1, 0, 0); g.imageSmoothingEnabled = false;
+  const sx = Math.max(0, Math.min(bg.width - c.canvas.width, Math.round(c.cam * k)));
+  g.drawImage(bg, sx, 0, c.canvas.width, c.canvas.height, 0, 0, c.canvas.width, c.canvas.height);
+  g.setTransform(k, 0, 0, k, -sx, 0);
+  robot ? drawRobotScene(g, sc) : drawStandScene(g, sc);
+  const f = Math.max(1 - t / 0.3, (t - (LEN - 0.3)) / 0.3);
+  if (f > 0) { g.setTransform(1, 0, 0, 1, 0, 0); g.globalAlpha = Math.min(1, f); g.fillStyle = '#020308'; g.fillRect(0, 0, c.canvas.width, c.canvas.height); g.globalAlpha = 1; }
+  const states = robot ? R_STATES : S_STATES, label = states[sc.st][2];
+  if (c.stateEl.textContent !== label) c.stateEl.textContent = label;
+  c.dirty = false;
+}
+
+/* ---------- controls ---------- */
+const playBtn = document.getElementById('play');
+function syncPlay() { playBtn.textContent = playing ? 'Пауза' : 'Играть'; playBtn.setAttribute('aria-pressed', playing ? 'true' : 'false'); }
+playBtn.addEventListener('click', () => { playing = !playing; syncPlay(); });
+document.getElementById('restart').addEventListener('click', () => { tR = 0.31; tS = 0.31; for (const c of cards) c.snap = true; dirty = true; });
+const zBig = document.getElementById('zBig'), zGame = document.getElementById('zGame');
+function setZoom(z) { zoom = z; zBig.setAttribute('aria-pressed', String(z === ZOOMS.big)); zGame.setAttribute('aria-pressed', String(z === ZOOMS.game)); layout(); }
+zBig.addEventListener('click', () => setZoom(ZOOMS.big)); zGame.addEventListener('click', () => setZoom(ZOOMS.game));
+function makeChips(id, states, set) {
+  const host = document.getElementById(id), btns = [];
+  states.forEach((s, i) => { const b = document.createElement('button'); b.type = 'button'; b.textContent = s[1]; b.title = s[2]; b.setAttribute('aria-pressed', 'false'); b.addEventListener('click', () => { set(s[0] + (i === 0 ? 0.31 : 0.01)); dirty = true; }); host.appendChild(b); btns.push(b); });
+  return btns;
+}
+const chipsR = makeChips('chipsR', R_STATES, t => { tR = t; for (const c of PICKS.robot.cards) c.snap = true; });
+const chipsS = makeChips('chipsS', S_STATES, t => { tS = t; for (const c of PICKS.stand.cards) c.snap = true; });
+let lastR = -1, lastS = -1;
+function syncChips() {
+  const r = stateIdx(R_STATES, tR), s = stateIdx(S_STATES, tS);
+  if (r !== lastR) { chipsR.forEach((b, i) => b.setAttribute('aria-pressed', String(i === r))); lastR = r; }
+  if (s !== lastS) { chipsS.forEach((b, i) => b.setAttribute('aria-pressed', String(i === s))); lastS = s; }
+}
+syncPlay();
+layout();
+if ('ResizeObserver' in window) { let w0 = 0; new ResizeObserver(es => { const w = Math.round(es[0].contentRect.width); if (w !== w0) { w0 = w; layout(); } }).observe(document.getElementById('robots')); }
+else addEventListener('resize', layout);
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => layout());
+
+let lastNow = 0;
+function frame(now) {
+  requestAnimationFrame(frame);
+  if (now - lastNow < 32) return;
+  const dt = lastNow ? Math.min(0.1, (now - lastNow) / 1000) : 0;
+  lastNow = now;
+  if (playing) { tR = (tR + dt) % R_LEN; tS = (tS + dt) % S_LEN; }
+  if (!playing && !dirty && !cards.some(c => c.dirty && c.visible)) return;
+  for (const c of cards) if (c.visible && (playing || dirty || c.dirty)) drawCard(c, playing ? dt : 0);
+  else if (dirty) c.dirty = true;
+  dirty = false;
+  syncChips();
+}
+requestAnimationFrame(frame);
+
+/* ---------- the pick ---------- */
+const pickText = document.getElementById('pickText'), pickStatus = document.getElementById('pickStatus'), copyBtn = document.getElementById('copy');
+const status = s => { pickStatus.textContent = s; };
+let db = null;
+function updatePickText() {
+  const r = ROBOTS.find(q => q.id === PICKS.robot.chosen), s = STANDS.find(q => q.id === PICKS.stand.chosen);
+  pickText.textContent = `Робот: ${r ? `${r.id} «${r.label}»` : 'не выбран'}; стенд: ${s ? `${s.id} «${s.label}»` : 'не выбран'}`;
+  copyBtn.disabled = !(r || s);
+  const sr = standRobot(); document.getElementById('standRobot').textContent = `${sr.id} «${sr.label}»` + (PICKS.robot.chosen ? '' : ' (пока робот не выбран)');
+}
+function setChosen(kind, id) {
+  const P = PICKS[kind]; P.chosen = id;
+  for (const c of P.cards) { const on = c.item.id === id; c.el.classList.toggle('chosen', on); c.btn.setAttribute('aria-pressed', String(on)); c.btn.textContent = on ? 'Выбран' : 'Выбрать'; }
+  updatePickText();
+  if (kind === 'robot') for (const c of PICKS.stand.cards) c.dirty = true;
+  dirty = true;
+}
+async function save(kind, id) {
+  const P = PICKS[kind], c = P.list.find(q => q.id === id);
+  if (P.saving) { P.pending = id; return; }
+  P.saving = true; status('Сохраняю…');
+  try { await db.doc(P.doc).set({ candidate: c.id, label: c.label, at: new Date().toISOString() }); status('Выбор сохранён.'); }
+  catch (e) { status('Не сохранилось: скопируй выбор кнопкой.'); }
+  P.saving = false;
+  if (P.pending && P.pending !== id) { const q = P.pending; P.pending = null; save(kind, q); } else P.pending = null;
+}
+function choose(kind, id) {
+  setChosen(kind, id);
+  if (!db) { status('Здесь выбор не сохраняется: скопируй его кнопкой.'); return; }
+  save(kind, id);
+}
+copyBtn.addEventListener('click', () => {
+  const txt = pickText.textContent;
+  const select = () => { try { const r = document.createRange(); r.selectNodeContents(pickText); const s = getSelection(); s.removeAllRanges(); s.addRange(r); } catch (e) {} status('Текст выделен: скопируй его сам.'); };
+  try {
+    const p = navigator.clipboard && navigator.clipboard.writeText(txt);
+    if (p && typeof p.then === 'function') p.then(() => status('Скопировано.'), select); else select();
+  } catch (e) { select(); }
+});
+updatePickText();
+(async () => {
+  try {
+    const cl = window.claude;
+    if (cl && typeof cl.use === 'function') db = await cl.use('db');
+  } catch (e) { db = null; }
+  if (!db) return;
+  const WAIT = 'Сохранённый выбор пока не загрузился.';
+  let heard = 0;
+  const timer = setTimeout(() => { if (heard < 2) status(WAIT); }, 10000);
+  for (const kind of ['robot', 'stand']) {
+    const P = PICKS[kind];
+    let got = false;
+    try {
+      db.doc(P.doc).onSnapshot(snap => {
+        if (!got && (!snap.metadata || !snap.metadata.fromCache)) { got = true; heard++; if (heard >= 2) { clearTimeout(timer); if (pickStatus.textContent === WAIT) status(''); } }
+        const d = snap.exists ? snap.data() : null;
+        if (d && typeof d.candidate === 'string' && P.list.some(q => q.id === d.candidate) && !P.saving && d.candidate !== P.chosen) setChosen(kind, d.candidate);
+      }, () => { clearTimeout(timer); status('Сохранённый выбор недоступен: скопируй его кнопкой.'); });
+    } catch (e) { clearTimeout(timer); }
+  }
+})();
+})();
+</script>
