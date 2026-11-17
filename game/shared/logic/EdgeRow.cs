@@ -29,7 +29,7 @@ public static class EdgeRow
     }
 
     /// <summary>How many times their own size the holograms are drawn: as the slots are, against the normal slot (<see cref="Ui.Slot"/>).</summary>
-    public static float Grown(int slot) => slot / (float)Slots.SizeOf(SlotScale.Normal);
+    public static float Grown(int slot) => slot / (float)Slots.Base;
 
     /// <summary>
     /// Where the row's top lies for keys <paramref name="tall"/> high at their own size grown <paramref name="grown"/> times, their feet where

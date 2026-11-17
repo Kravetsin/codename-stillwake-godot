@@ -48,8 +48,8 @@ public class EdgeRowTests
     [Fact]
     public void TheyGrowWithTheInterfacesSize()
     {
-        Assert.Equal(1, EdgeRow.Grown(Slots.SizeOf(SlotScale.Normal)));
-        Assert.Equal(1.4f, EdgeRow.Grown(Slots.SizeOf(SlotScale.Large)), 3);
+        Assert.Equal(1.2f, EdgeRow.Grown(Slots.SizeOf(SlotScale.Normal)), 3);
+        Assert.Equal(1.5f, EdgeRow.Grown(Slots.SizeOf(SlotScale.Large)), 3);
     }
 
     [Fact]

@@ -18,10 +18,10 @@ public static class Vitals
     /// Every icon's side, in block units: the signs (oxygen, the bolt by its height, the thermometer's, hunger's), each meal's
     /// picture and the purge spot's ring, all one size.
     /// </summary>
-    public const float Icon = 22;
+    public const float Icon = 30;
 
     /// <summary>One row's centre line to the next's: the air, the charge, the thermometer and the meals, evenly spaced.</summary>
-    public const float Pitch = 30;
+    public const float Pitch = 36;
 
     /// <summary>Where the signs centre across.</summary>
     public const float SignX = 20;
@@ -59,8 +59,8 @@ public static class Vitals
     /// <summary>animate-pulse: down to half and back every two seconds, what a low row and a short sign breathe by.</summary>
     public static float Pulse(double clock) => 0.75f + 0.25f * (float)Math.Cos(clock * Math.PI);
 
-    /// <summary>How large the block is drawn at a slot of <paramref name="slot"/> px: 1 at normal, 1.4 at large.</summary>
-    public static float ScaleOf(int slot) => slot / (float)Slots.SizeOf(SlotScale.Normal);
+    /// <summary>How large the block is drawn at a slot of <paramref name="slot"/> px: 1.2 at normal, 1.5 at large.</summary>
+    public static float ScaleOf(int slot) => slot / (float)Slots.Base;
 
     /// <summary>The block's origin on a screen <paramref name="screenHeight"/> tall: its unit (0, 0), in screen pixels.</summary>
     public static (float X, float Y) Origin(float screenHeight, int slot) => (Slots.Margin, screenHeight - Below - Foot * ScaleOf(slot));

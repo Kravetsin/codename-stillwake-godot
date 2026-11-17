@@ -66,7 +66,7 @@ public class VitalsTests
     [Fact]
     public void TheBlockGrowsWithTheSlots()
     {
-        Assert.Equal(1, Vitals.ScaleOf(Slots.SizeOf(SlotScale.Normal)));
-        Assert.Equal(1.4f, Vitals.ScaleOf(Slots.SizeOf(SlotScale.Large)), 4);
+        Assert.Equal(1.2f, Vitals.ScaleOf(Slots.SizeOf(SlotScale.Normal)), 4);
+        Assert.Equal(1.5f, Vitals.ScaleOf(Slots.SizeOf(SlotScale.Large)), 4);
     }
 }

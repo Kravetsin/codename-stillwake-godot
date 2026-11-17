@@ -70,7 +70,7 @@ public partial class HeroView
         // The press is taken every frame, so one made out of reach is spent rather than kept. The left
         // button grabs debris too: out in space, with the keys held and the mouse aiming, E is a stretch.
         // The gesture key: a tap points, held its wheel opens by the arrow (gestures-for-words); clicks meanwhile use nothing.
-        float wheelScale = Slots.SizeOf(_ui.SlotScale.Get()) / 40f;
+        float wheelScale = _ui.Slot / (float)Slots.Base;
         bool wheelKey = pointer != null && BindKeys.Held(Bind.Gesture) && GetViewport().GuiGetFocusOwner() is not LineEdit;
         var mouse = GetViewport().GetMousePosition();
         var asked = _wheel.Step(wheelKey, elapsedMs, (mouse.X, mouse.Y), GestureWheel.Middle * wheelScale);

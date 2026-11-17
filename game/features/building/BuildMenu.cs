@@ -222,7 +222,7 @@ public partial class BuildMenu : CanvasLayer
         _focus.OffsetTop = _modes.OffsetTop;
         _focus.OffsetBottom = _focus.OffsetTop + focus.Y;
         // The hint's screen from the tablet's right edge, just under the layers' wing, down to the screen's foot.
-        float grown = _hints.Grown = _pointerHint.Grown = (float)_ui.Slot / Slots.SizeOf(SlotScale.Normal);
+        float grown = _hints.Grown = _pointerHint.Grown = (float)_ui.Slot / Slots.Base;
         _hints.OffsetLeft = _focus.OffsetLeft + PlanWing.Tuck;
         _hints.OffsetRight = _hints.OffsetLeft + HintWing.Width * grown;
         _hints.OffsetTop = _focus.OffsetBottom + HintBelowWing;

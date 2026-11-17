@@ -22,11 +22,14 @@ public partial class Thermometer : CanvasLayer
     private static readonly Color Silver = new("c8d2de"), Glass = new("aac3e1");
 
     // The face's own units are the block's; the row's centre line sits Mid down it.
-    private const float Mid = 16, Tube = 112, TubeR = 3.4f, Left = Vitals.RowLeft;
+    // The tube as tall as the other rows' pieces.
+    private const float Mid = 20, Tube = 112, TubeR = Vitals.PieceHeight / 2, Left = Vitals.RowLeft;
+    // The sign was laid out at an icon of 22 and the tube's details at a radius of 3.4: each grows from there.
+    private const float G = Vitals.Icon / 22f, K = TubeR / 3.4f;
     // The sign: its stem's half width and its cap's centre, the bulb's radius and centre.
-    private const float StemR = 2.3f, StemTop = Mid - 11, BulbR = 4, BulbY = Mid + 4.4f, Cx = Vitals.SignX;
+    private const float StemR = 2.3f * G, StemTop = Mid - 11 * G, BulbR = 4 * G, BulbY = Mid + 4.4f * G, Cx = Vitals.SignX;
     private static readonly float StemFoot = BulbY - MathF.Sqrt(BulbR * BulbR - StemR * StemR);
-    private static readonly Vector2[] Outline = MakeOutline(), Capsule = MakeCapsule(), BulbEdge = Circle(new Vector2(Cx, BulbY), BulbR + 0.7f, 28);
+    private static readonly Vector2[] Outline = MakeOutline(), Capsule = MakeCapsule(), BulbEdge = Circle(new Vector2(Cx, BulbY), BulbR + 0.7f * G, 28);
 
     private readonly Func<ThermometerReading?> _read;
     private readonly Control _root = new() { MouseFilter = Control.MouseFilterEnum.Ignore };
@@ -179,25 +182,25 @@ public partial class Thermometer : CanvasLayer
             var bulb = new Vector2(Cx, BulbY);
             var edge = gasping ? Calm.Lerp(Danger, 0.5f + 0.5f * beat) : Calm;
             DrawColoredPolygon(Outline, Silver with { A = 0.08f });
-            if (gasping) Glow(bulb, 6 + 2 * beat, Danger with { A = 0.3f + 0.5f * beat });
-            DrawCircle(bulb, 2.5f, mercury with { A = 0.95f });
+            if (gasping) Glow(bulb, (6 + 2 * beat) * G, Danger with { A = 0.3f + 0.5f * beat });
+            DrawCircle(bulb, 2.5f * G, mercury with { A = 0.95f });
             float share = Math.Clamp((body - Thermometers.Coldest) / (Thermometers.Hottest - Thermometers.Coldest), 0, 1);
-            float top = StemFoot + 0.6f - (StemFoot + 0.6f - StemTop) * share;
-            DrawRect(new Rect2(Cx - 0.95f, top, 1.9f, BulbY - top), mercury with { A = 0.95f });
-            DrawPolyline([.. Outline, Outline[0]], edge with { A = 0.85f }, 1.1f, true);
-            foreach (float y in new[] { StemTop + 2.5f, StemTop + 5.5f, StemTop + 8.5f })
-                DrawLine(new Vector2(Cx + StemR + 0.9f, y), new Vector2(Cx + StemR + 2.3f, y), edge with { A = 0.5f }, 0.6f, true);
+            float top = StemFoot + 0.6f * G - (StemFoot + 0.6f * G - StemTop) * share;
+            DrawRect(new Rect2(Cx - 0.95f * G, top, 1.9f * G, BulbY - top), mercury with { A = 0.95f });
+            DrawPolyline([.. Outline, Outline[0]], edge with { A = 0.85f }, 1.1f * G, true);
+            foreach (float y in new[] { StemTop + 2.5f * G, StemTop + 5.5f * G, StemTop + 8.5f * G })
+                DrawLine(new Vector2(Cx + StemR + 0.9f * G, y), new Vector2(Cx + StemR + 2.3f * G, y), edge with { A = 0.5f }, 0.6f * G, true);
             if (hotK > 0)
             {
                 float k = Math.Clamp(hotK * 2.5f, 0, 1);
                 int n = 3 + (int)MathF.Round(2 * hotK);
                 for (int i = 0; i < n; i++)
                 {
-                    float x = Cx + (i - (n - 1) / 2f) * (5.2f / Math.Max(1, n - 1)) * 1.4f, flicker = 0.7f + 0.3f * MathF.Sin(_t * 13 + i * 2.1f);
-                    float height = (2.6f + 4.5f * hotK) * flicker * (i == 0 || i == n - 1 ? 0.75f : 1);
-                    Tongue(new Vector2(x, BulbY + BulbR + 1.4f), height, 1.1f, MathF.Sin(_t * 9 + i) * 0.9f, k);
+                    float x = Cx + (i - (n - 1) / 2f) * (5.2f * G / Math.Max(1, n - 1)) * 1.4f, flicker = 0.7f + 0.3f * MathF.Sin(_t * 13 + i * 2.1f);
+                    float height = (2.6f + 4.5f * hotK) * G * flicker * (i == 0 || i == n - 1 ? 0.75f : 1);
+                    Tongue(new Vector2(x, BulbY + BulbR + 1.4f * G), height, 1.1f * G, MathF.Sin(_t * 9 + i) * 0.9f * G, k);
                 }
-                Glow(bulb + new Vector2(0, 2), 7, HeatDeep with { A = 0.3f * k });
+                Glow(bulb + new Vector2(0, 2 * G), 7 * G, HeatDeep with { A = 0.3f * k });
             }
             if (coldK > 0) DrawCrust(Math.Clamp(coldK * 1.3f, 0, 1));
         }
@@ -233,26 +236,26 @@ public partial class Thermometer : CanvasLayer
         private void DrawCrust(float cover)
         {
             float level = BulbY + BulbR - 2 * BulbR * cover;
-            var crust = new List<Vector2> { new(Cx - BulbR - 1, BulbY + BulbR + 1) };
-            for (float x = Cx - BulbR - 1; x <= Cx + BulbR + 1.01f; x += 0.7f)
-                crust.Add(new Vector2(x, level + MathF.Sin(x * 4.1f) * 0.6f + (Hash(x * 3.3f) - 0.5f) * 0.9f));
-            crust.Add(new Vector2(Cx + BulbR + 1, BulbY + BulbR + 1));
+            var crust = new List<Vector2> { new(Cx - BulbR - G, BulbY + BulbR + G) };
+            for (float u = -BulbR / G - 1; u <= BulbR / G + 1.01f; u += 0.7f)
+                crust.Add(new Vector2(Cx + u * G, level + (MathF.Sin(u * 4.1f) * 0.6f + (Hash(u * 3.3f) - 0.5f) * 0.9f) * G));
+            crust.Add(new Vector2(Cx + BulbR + G, BulbY + BulbR + G));
             foreach (var piece in Geometry2D.IntersectPolygons(crust.ToArray(), BulbEdge))
             {
                 DrawColoredPolygon(piece, Rime with { A = 0.78f });
-                DrawPolyline([.. piece, piece[0]], Colors.White with { A = 0.9f }, 0.4f, true);
+                DrawPolyline([.. piece, piece[0]], Colors.White with { A = 0.9f }, 0.4f * G, true);
             }
             var bulb = new Vector2(Cx, BulbY);
             for (int i = 0; i < 10; i++)
             {
-                var at = new Vector2(Cx - BulbR + Hash(i * 2.7f) * 2 * BulbR, level + 0.6f + Hash(i * 5.9f) * 2 * BulbR * cover);
-                if (at.DistanceTo(bulb) <= BulbR + 0.3f) DrawCircle(at, 0.35f, FrostDeep with { A = 0.45f });
+                var at = new Vector2(Cx - BulbR + Hash(i * 2.7f) * 2 * BulbR, level + 0.6f * G + Hash(i * 5.9f) * 2 * BulbR * cover);
+                if (at.DistanceTo(bulb) <= BulbR + 0.3f * G) DrawCircle(at, 0.35f * G, FrostDeep with { A = 0.45f });
             }
-            DrawArc(bulb, BulbR + 0.5f, 0, Mathf.Tau, 28, Rime with { A = 0.55f * cover }, 0.6f, true);
+            DrawArc(bulb, BulbR + 0.5f * G, 0, Mathf.Tau, 28, Rime with { A = 0.55f * cover }, 0.6f * G, true);
         }
 
         /// <summary>How far the heat makes the glass waver at <paramref name="x"/>: more toward its hot end.</summary>
-        private float Wob(float x) => _warm ? MathF.Sin(x * 0.45f - _t * 7) * 0.9f * _hot * ((x - Left) / Tube) : 0;
+        private float Wob(float x) => _warm ? MathF.Sin(x * 0.45f - _t * 7) * 0.9f * K * _hot * ((x - Left) / Tube) : 0;
 
         /// <summary>The tube: its glass and notches, the mercury's thread, the frost's fog, the glints toward the target.</summary>
         private void DrawTube(float body, float target, Color colour, Color mercury, bool cold, float frost, float breath)
@@ -286,15 +289,15 @@ public partial class Thermometer : CanvasLayer
             DrawColoredPolygon([new(nx, top - 1.1f), new(nx - 1.7f, top - 3.7f), new(nx + 1.7f, top - 3.7f)], Calm with { A = 0.6f });
             // The thread: whole, or breaking into beads through the last breath.
             int pieces = gasping ? 7 : 1;
-            float gap = gasping ? breath * 3 : 0, alpha = gasping ? 1 - 0.55f * breath : 1;
+            float gap = gasping ? breath * 3 * K : 0, alpha = gasping ? 1 - 0.55f * breath : 1;
             for (int i = 0; i < pieces; i++)
             {
                 float x0 = Left + (bx - Left) * i / pieces + (i > 0 ? gap / 2 : 0), x1 = Left + (bx - Left) * (i + 1) / pieces - (i < pieces - 1 ? gap / 2 : 0);
-                Thread(x0, x1, mercury with { A = alpha }, 2.4f - (gasping ? breath : 0));
-                Thread(x0, x1, Colors.White with { A = 0.35f * alpha }, 0.5f, -0.6f);
+                Thread(x0, x1, mercury with { A = alpha }, (2.4f - (gasping ? breath : 0)) * K);
+                Thread(x0, x1, Colors.White with { A = 0.35f * alpha }, 0.5f * K, -0.6f * K);
             }
-            DrawCircle(new Vector2(bx, Mid + Wob(bx)), 1.5f, mercury with { A = alpha });
-            if (cold || _warm) Glow(new Vector2(bx, Mid), 5, colour with { A = 0.3f });
+            DrawCircle(new Vector2(bx, Mid + Wob(bx)), 1.5f * K, mercury with { A = alpha });
+            if (cold || _warm) Glow(new Vector2(bx, Mid), 5 * K, colour with { A = 0.3f });
             if (cold) DrawFog(frost, top, foot);
             if (Ghosted(body, target)) DrawGlints(bx, tx, target, top, foot);
         }
@@ -329,7 +332,7 @@ public partial class Thermometer : CanvasLayer
             {
                 float u = Hash(i * 1.37f), k = Math.Clamp((frost * (1.25f - 0.7f * u) - Hash(i * 3.3f) * 0.6f) * 3, 0, 1);
                 if (k > 0)
-                    DrawCircle(new Vector2(Left - 2 + u * (Tube + 4), Mid + (Hash(i * 2.11f) - 0.5f) * 7.4f), 0.35f + Hash(i * 4.7f) * 0.8f, Rime with { A = 0.45f * k });
+                    DrawCircle(new Vector2(Left - 2 + u * (Tube + 4), Mid + (Hash(i * 2.11f) - 0.5f) * (2 * TubeR + 0.6f)), 0.35f + Hash(i * 4.7f) * 0.8f, Rime with { A = 0.45f * k });
             }
             for (int i = 0; i < 26; i++)
             {
@@ -351,8 +354,8 @@ public partial class Thermometer : CanvasLayer
             for (int i = 0; i < 3; i++)
             {
                 float p = (_t * speed + i / 3f) % 1, x = bx + (tx - bx) * p, s = MathF.Sin(MathF.PI * p);
-                Glow(new Vector2(x, Mid), 4.5f, colour with { A = 0.55f * s });
-                if (s > 0.01f) DrawLine(new Vector2(x - dir * 5 * s, Mid), new Vector2(x, Mid), streak with { A = 0.85f * s }, 1.4f, true);
+                Glow(new Vector2(x, Mid), 4.5f * K, colour with { A = 0.55f * s });
+                if (s > 0.01f) DrawLine(new Vector2(x - dir * 5 * K * s, Mid), new Vector2(x, Mid), streak with { A = 0.85f * s }, 1.4f * K, true);
             }
             DrawLine(new Vector2(tx, top - 1.8f), new Vector2(tx, foot + 1.8f), Ink with { A = 0.6f }, 2.4f, true);
             DrawLine(new Vector2(tx, top - 1.6f), new Vector2(tx, foot + 1.6f), colour with { A = alpha }, 1, true);
