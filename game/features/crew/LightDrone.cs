@@ -22,11 +22,15 @@ public partial class LightDrone : Node2D
 
     private static readonly Color Ink = new("16171b"), BackBand = new("4d5157"), FrontBand = new("6c7178"), Edge = new(0.745f, 0.769f, 0.792f, 0.45f);
     private static readonly Color MarkFront = new(0.808f, 0.776f, 0.667f, 0.9f), MarkBack = new(0.588f, 0.565f, 0.486f, 0.7f);
-    private static readonly Color Lamp = new(1f, 0.831f, 0.588f), Scan = new(0.463f, 0.925f, 0.808f);
+    /// <summary>Its lens's colour shining and scanning, the mode wheel's too.</summary>
+    internal static readonly Color Lamp = new(1f, 0.831f, 0.588f), Scan = new(0.463f, 0.925f, 0.808f);
 
     private static Texture2D? _body;
     private readonly DroneFloat _float = new();
-    private Vector2 _toward = Vector2.Right;
+    /// <summary>How long it takes to turn most of the way to a new aim, in ms.</summary>
+    private const double TurnMs = 90;
+
+    private float _angle;
     private double _timeMs;
 
     public LightDrone()
@@ -46,23 +50,30 @@ public partial class LightDrone : Node2D
     {
         var (x, y) = _float.Follow((neck.X, neck.Y), facing, elapsedMs, timeMs);
         GlobalPosition = new Vector2((float)x, (float)y);
-        (_toward, _timeMs) = (toward, timeMs);
+        // It turns after the pointer, eased, never snapping across.
+        float off = Mathf.Wrap(Mathf.Atan2(toward.Y, toward.X) - _angle, -Mathf.Pi, Mathf.Pi);
+        _angle = Mathf.Wrap(_angle + off * (float)(1 - Math.Exp(-elapsedMs / TurnMs)), -Mathf.Pi, Mathf.Pi);
+        _timeMs = timeMs;
         QueueRedraw();
     }
 
     public override void _Draw()
     {
         _body ??= HiRes.Texture(HiRes.Load("drone_disc") ?? throw new InvalidOperationException("No picture drone_disc"));
-        float angle = Mathf.Atan2(_toward.Y, _toward.X);
+        float angle = _angle;
+        var toward = Vector2.FromAngle(angle);
         var colour = Scanning ? Scan : Lamp;
         float marks = (float)(_timeMs / 1000) * (Scanning ? ScanTurning : Turning);
         Band(false, marks, colour);
+        // The nearest of its pictures, turned the rest of the way: its light from above is off by a few degrees at most.
         int turn = ((int)Math.Round(angle / Mathf.Tau * Turns) % Turns + Turns) % Turns;
+        DrawSetTransform(Vector2.Zero, Mathf.Wrap(angle - turn * Mathf.Tau / Turns, -Mathf.Pi, Mathf.Pi));
         DrawTextureRectRegion(_body, new Rect2(-Box / 2f, -Box / 2f, Box, Box), new Rect2(turn * Box, 0, Box, Box));
-        var lens = _toward * LensAhead;
+        DrawSetTransform(Vector2.Zero, 0);
+        var lens = toward * LensAhead;
         for (int i = 4; i >= 1; i--) DrawCircle(lens, 0.9f * i, new Color(colour, 0.09f));
         DrawColoredPolygon(Ellipse(lens, LensX, LensY, angle), colour.Lerp(Colors.White, 0.3f));
-        DrawColoredPolygon(Ellipse(lens + _toward * 0.15f, 0.25f, 0.45f, angle), colour.Lerp(Colors.White, 0.78f));
+        DrawColoredPolygon(Ellipse(lens + toward * 0.15f, 0.25f, 0.45f, angle), colour.Lerp(Colors.White, 0.78f));
         Band(true, marks, colour);
     }
 

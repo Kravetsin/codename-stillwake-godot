@@ -19,7 +19,6 @@ public partial class WheelView : CanvasLayer
     /// <summary>A hand frame of the strip, in its pictures' pixels.</summary>
     private const int FrameW = 48, FrameH = 52;
     /// <summary>The drone's lamp and scan colours, as <see cref="LightDrone"/> draws them.</summary>
-    private static readonly Color Lamp = new(1f, 0.831f, 0.588f), Scan = new(0.463f, 0.925f, 0.808f);
 
     private static Texture2D? _hand, _palm;
     private readonly Control _plate = new() { MouseFilter = Control.MouseFilterEnum.Ignore, Visible = false };
@@ -105,7 +104,7 @@ public partial class WheelView : CanvasLayer
     public static void Drone(CanvasItem on, Vector2 at, float height, DroneMode mode)
     {
         float lens = height * 0.17f, outer = height * 0.42f;
-        var colour = mode == DroneMode.Scan ? Scan : Lamp;
+        var colour = mode == DroneMode.Scan ? LightDrone.Scan : LightDrone.Lamp;
         if (mode == DroneMode.Scan)
         {
             // The sweep up and to the right, a fading wedge behind it.
