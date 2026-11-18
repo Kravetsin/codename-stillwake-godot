@@ -17,8 +17,11 @@ public sealed record BoardBlock(string District, double X, double Y, double Wide
 /// </summary>
 public sealed class BoardLayout
 {
-    /// <summary>The background grid's step, which everything stands on: a frame 3 by 3 of it, a frame and its gap 4, the gap between columns of other depths, a block's caption and its margin, the gap between blocks.</summary>
-    public const double Grid = 30, FrameWide = 3 * Grid, FrameTall = 3 * Grid, Cell = 4 * Grid, Row = 4 * Grid, Gap = Grid, Head = 3 * Grid, Pad = Grid, Apart = 3 * Grid;
+    /// <summary>
+    /// The board's pattern (the background grid draws it): a frame 3 by 3 small cells and a gutter of one, so every frame stands on a big cell of one pitch.
+    /// A block's caption, its margin and the gaps between blocks and lanes keep every block on that pitch too.
+    /// </summary>
+    public const double Grid = 30, FrameWide = 3 * Grid, FrameTall = 3 * Grid, Cell = 4 * Grid, Row = 4 * Grid, Head = 3 * Grid, Pad = Grid, Apart = 3 * Grid, Lanes = 5 * Grid;
 
     /// <summary>The most frames a column holds before the depth takes another column.</summary>
     public const int Rows = 6;
@@ -63,17 +66,17 @@ public sealed class BoardLayout
                     for (int i = 0; i < things.Count; i++)
                         frames[things[i]] = new BoardFrame(things[i], district.Id, column.Key, x + i / Rows * Cell + FrameWide / 2, top + Head + i % Rows * Row + FrameTall / 2);
                     rows = Math.Max(rows, Math.Min(Rows, things.Count));
-                    x += across * Cell + Gap;
+                    x += across * Cell;
                 }
-                double blockWide = x - Gap - (Cell - FrameWide) + Pad - left, blockTall = Head + rows * Row - (Row - FrameTall) + Pad;
+                double blockWide = x - (Cell - FrameWide) + Pad - left, blockTall = Head + rows * Row - (Row - FrameTall) + Pad;
                 blocks.Add(new BoardBlock(district.Id, left, top, blockWide, blockTall));
                 left += blockWide + Apart;
                 tall = Math.Max(tall, blockTall);
             }
             wide = Math.Max(wide, left - Apart);
-            top += tall + Apart;
+            top += tall + Lanes;
         }
-        return new BoardLayout(frames, blocks, wide, Math.Max(0, top - Apart));
+        return new BoardLayout(frames, blocks, wide, Math.Max(0, top - Lanes));
     }
 
     /// <summary>

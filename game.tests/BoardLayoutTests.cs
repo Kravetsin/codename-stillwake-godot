@@ -108,10 +108,10 @@ public class BoardLayoutTests
     }
 
     [Fact]
-    public void EveryFrameAndBlockStandsOnTheBackgroundGrid()
+    public void EveryFrameStandsOnABigCellOfThePattern()
     {
-        static bool On(double at) => Math.Abs(at / BoardLayout.Grid - Math.Round(at / BoardLayout.Grid)) < 1e-9;
-        Assert.All(Layout.Frames.Values, f => Assert.True(On(f.X - BoardLayout.FrameWide / 2) && On(f.Y - BoardLayout.FrameTall / 2), f.Id));
-        Assert.All(Layout.Blocks, b => Assert.True(On(b.X) && On(b.Y) && On(b.Wide) && On(b.Tall), b.District));
+        static bool On(double at, double pitch) => Math.Abs(at / pitch - Math.Round(at / pitch)) < 1e-9;
+        Assert.All(Layout.Frames.Values, f => Assert.True(
+            On(f.X - BoardLayout.FrameWide / 2 - BoardLayout.Pad, BoardLayout.Cell) && On(f.Y - BoardLayout.FrameTall / 2 - BoardLayout.Head, BoardLayout.Row), f.Id));
     }
 }

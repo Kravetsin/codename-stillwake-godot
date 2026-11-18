@@ -603,16 +603,19 @@ public sealed class BoardPage : ITabletPage
         DrawTies();
     }
 
-    /// <summary>A thin grid on the screen, as wide apart as the zoom keeps it readable.</summary>
+    /// <summary>The board's pattern on the screen: a big cell under every frame's place and a gutter between, both edges of each gutter drawn.</summary>
     private void DrawGrid(Vector2 size)
     {
-        float step = (float)(BoardLayout.Grid * _camera.Zoom);
-        // Always the frames' own grid, fading as it grows dense: a coarser one would miss the frames, which stand a small cell apart.
-        if (step < 5) return;
-        var line = GridLine with { A = GridLine.A * Math.Clamp((step - 5) / 9, 0, 1) };
-        float left = (float)((_camera.X + Margin * _camera.Zoom) % step), top = (float)((_camera.Y + Margin * _camera.Zoom) % step);
-        for (float x = left < 0 ? left + step : left; x < size.X; x += step) _back.DrawLine(new Vector2(MathF.Round(x) + 0.5f, 0), new Vector2(MathF.Round(x) + 0.5f, size.Y), line);
-        for (float y = top < 0 ? top + step : top; y < size.Y; y += step) _back.DrawLine(new Vector2(0, MathF.Round(y) + 0.5f), new Vector2(size.X, MathF.Round(y) + 0.5f), line);
+        float z = (float)_camera.Zoom, pitch = (float)(BoardLayout.Cell * z), frame = (float)(BoardLayout.FrameWide * z);
+        if (pitch < 12) return;
+        var line = GridLine with { A = GridLine.A * 1.6f * Math.Clamp((pitch - 12) / 24, 0, 1) };
+        float left = (float)(_camera.X + (Margin + BoardLayout.Pad) * z) % pitch, top = (float)(_camera.Y + (Margin + BoardLayout.Head) * z) % pitch;
+        for (float x = (left < 0 ? left + pitch : left) - pitch; x < size.X; x += pitch)
+            foreach (float at in (ReadOnlySpan<float>)[x, x + frame])
+                _back.DrawLine(new Vector2(MathF.Round(at) + 0.5f, 0), new Vector2(MathF.Round(at) + 0.5f, size.Y), line);
+        for (float y = (top < 0 ? top + pitch : top) - pitch; y < size.Y; y += pitch)
+            foreach (float at in (ReadOnlySpan<float>)[y, y + frame])
+                _back.DrawLine(new Vector2(0, MathF.Round(at) + 0.5f), new Vector2(size.X, MathF.Round(at) + 0.5f), line);
     }
 
     /// <summary>The pinned goal's chain, breathing; and the ties of what is hovered or picked: what it is made of, and what is made of it that the board names.</summary>
