@@ -675,34 +675,39 @@ public sealed class BoardPage : ITabletPage
         for (int i = seen.Batches.Count - 1; i >= 0; i--) _rows.AddChild(RowOf(seen.Batches[i]));
     }
 
-    /// <summary>A line of the finds: its cause, and what it brought.</summary>
+    /// <summary>
+    /// A card of the finds: what it opened as pictures, what it brought closer as silhouettes, and small under them what caused it. A click on a picture
+    /// flies to it; on the card, to the first opened.
+    /// </summary>
     private Control RowOf(BoardBatch batch)
     {
         bool unread = _keep.Seen.Unread(batch);
         var row = new PanelContainer { MouseFilter = Control.MouseFilterEnum.Stop, MouseDefaultCursorShape = Control.CursorShape.PointingHand };
-        var box = new StyleBoxFlat { BgColor = unread ? Amber with { A = 0.06f } : Colors.Transparent, BorderColor = unread ? Amber : Colors.Transparent, BorderWidthLeft = 2 };
+        var box = new StyleBoxFlat { BgColor = unread ? Amber with { A = 0.06f } : Colors.White with { A = 0.02f }, BorderColor = unread ? Amber : LineColour, BorderWidthLeft = 2 };
         (box.CornerRadiusTopRight, box.CornerRadiusBottomRight) = (6, 6);
-        box.SetContentMarginAll(6);
-        box.ContentMarginLeft = 8;
+        box.SetContentMarginAll(8);
         row.AddThemeStyleboxOverride("panel", box);
-        string Names(IEnumerable<string> ids) => string.Join(" · ", ids.Select(_strip.NameOf));
-        string cause = batch.Cause switch
+        var card = Style.Gap(new VBoxContainer { MouseFilter = Control.MouseFilterEnum.Ignore }, 6);
+        var opened = batch.Things.Where(t => !batch.By.Contains(t)).ToList();
+        card.AddChild(Chips(opened.Count > 0 ? opened : batch.Things, false, 8));
+        if (batch.Closer is { Count: > 0 } closer)
         {
-            BoardSeen.CauseFound => T("research.finds.found", ("what", Names(batch.By.Take(3)) + (batch.By.Count > 3 ? " …" : ""))),
-            BoardSeen.CauseBuilt => T("research.finds.built", ("what", Names(batch.By.Take(3)))),
-            _ => T("research.finds.opened"),
+            card.AddChild(StripParts.Text(T("research.finds.closer"), Dim, 11));
+            card.AddChild(Chips(closer, true, 6));
+        }
+        string? cause = batch.Cause switch
+        {
+            BoardSeen.CauseFound => T("research.finds.found", ("what", string.Join(", ", batch.By.Take(3).Select(_strip.NameOf)) + (batch.By.Count > 3 ? " …" : ""))),
+            BoardSeen.CauseBuilt => T("research.finds.built", ("what", string.Join(", ", batch.By.Take(3).Select(_strip.NameOf)))),
+            _ => null,
         };
-        var brought = batch.Things.Where(t => !batch.By.Contains(t)).ToList();
-        string text = $"[b]{Escape(cause)}[/b]";
-        if (brought.Count > 0) text += $"[color=#{Faint.ToHtml(false)}]  →  [/color]{Escape(Names(brought.Take(5)))}" + (brought.Count > 5 ? $" [color=#{Dim.ToHtml(false)}]+{brought.Count - 5}[/color]" : "");
-        if (batch.Almost > 0) text += $" [color=#{Dim.ToHtml(false)}]{Escape(T("research.finds.almost", ("n", batch.Almost)))}[/color]";
-        var words = new RichTextLabel { BbcodeEnabled = true, FitContent = true, ScrollActive = false, AutowrapMode = TextServer.AutowrapMode.WordSmart, MouseFilter = Control.MouseFilterEnum.Ignore, Text = text };
-        words.AddThemeFontOverride("normal_font", Style.Clear);
-        words.AddThemeFontOverride("bold_font", Style.Bold);
-        words.AddThemeFontSizeOverride("normal_font_size", 13);
-        words.AddThemeFontSizeOverride("bold_font_size", 13);
-        words.AddThemeColorOverride("default_color", Bright);
-        row.AddChild(words);
+        if (cause != null)
+        {
+            var why = StripParts.Text(cause, Faint, 11);
+            why.AutowrapMode = TextServer.AutowrapMode.WordSmart;
+            card.AddChild(why);
+        }
+        row.AddChild(card);
         row.GuiInput += e =>
         {
             if (e is not InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.Left }) return;
@@ -710,6 +715,46 @@ public sealed class BoardPage : ITabletPage
             if (FirstOf(batch) is { } id) Pick(id, true);
         };
         return row;
+    }
+
+    /// <summary>Pictures with their names, at most <paramref name="most"/> and a count of the rest; <paramref name="dim"/> draws them as silhouettes.</summary>
+    private Control Chips(IReadOnlyList<string> ids, bool dim, int most)
+    {
+        var flow = new HFlowContainer { MouseFilter = Control.MouseFilterEnum.Ignore };
+        flow.AddThemeConstantOverride("h_separation", 4);
+        flow.AddThemeConstantOverride("v_separation", 4);
+        foreach (string id in ids.Take(most))
+        {
+            var chip = new PanelContainer { MouseFilter = Control.MouseFilterEnum.Stop, MouseDefaultCursorShape = Control.CursorShape.PointingHand };
+            var chipBox = new StyleBoxFlat { BgColor = dim ? AlmostFill : KnownFill, BorderColor = dim ? UnknownEdge : LineColour };
+            chipBox.SetBorderWidthAll(1);
+            chipBox.SetCornerRadiusAll(4);
+            chipBox.SetContentMarginAll(3);
+            chipBox.ContentMarginRight = 6;
+            chip.AddThemeStyleboxOverride("panel", chipBox);
+            var line = Style.Gap(new HBoxContainer { MouseFilter = Control.MouseFilterEnum.Ignore }, 4);
+            var picture = _strip.Picture(id, 20);
+            if (dim) picture.Material = new ShaderMaterial { Shader = Silhouette };
+            line.AddChild(picture);
+            var name = StripParts.Text(_strip.NameOf(id), dim ? Dim : Bright, 12);
+            name.VerticalAlignment = VerticalAlignment.Center;
+            line.AddChild(name);
+            chip.AddChild(line);
+            chip.GuiInput += e =>
+            {
+                if (e is not InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.Left }) return;
+                chip.AcceptEvent();
+                Pick(id, true);
+            };
+            flow.AddChild(chip);
+        }
+        if (ids.Count > most)
+        {
+            var more = StripParts.Text($"+{ids.Count - most}", Dim, 12);
+            more.VerticalAlignment = VerticalAlignment.Center;
+            flow.AddChild(more);
+        }
+        return flow;
     }
 
     private static string Escape(string text) => text.Replace("[", "[lb]");
@@ -949,7 +994,7 @@ public sealed class BoardPage : ITabletPage
     private Tip? TipOver(string id)
     {
         var mouse = _board.GetGlobalMousePosition();
-        if (!_board.GetGlobalRect().HasPoint(mouse) || (_goal.Visible && _goal.GetGlobalRect().HasPoint(mouse)) || (_legend.Visible && _legend.GetGlobalRect().HasPoint(mouse))) return null;
+        if (!_board.GetGlobalRect().HasPoint(mouse) || (_goal.Visible && _goal.GetGlobalRect().HasPoint(mouse)) || (_legend.Visible && _legend.GetGlobalRect().HasPoint(mouse)) || (_side.Visible && _side.GetGlobalRect().HasPoint(mouse))) return null;
         if (!_views.TryGetValue(id, out var view)) return null;
         return view.State switch
         {

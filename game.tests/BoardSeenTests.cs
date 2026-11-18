@@ -49,6 +49,18 @@ public sealed class BoardSeenTests : IDisposable
     }
 
     [Fact]
+    public void AFindNamesWhatItBroughtCloserAndALaterOneThatAddsNoPartDoesNot()
+    {
+        var seen = Kept();
+        seen.Read(Nothing);
+        seen.Read(Read(["scrap"], []));
+        Assert.Contains("nail", Assert.Single(seen.Batches).Closer!);
+        seen.Read(Read(["scrap", "rock"], []));
+        Assert.Equal(2, seen.Batches.Count);
+        Assert.DoesNotContain("nail", seen.Batches[^1].Closer!);
+    }
+
+    [Fact]
     public void ACraftGrantedOnceItsMachineStandsFormsABuiltBatch()
     {
         var seen = Kept();

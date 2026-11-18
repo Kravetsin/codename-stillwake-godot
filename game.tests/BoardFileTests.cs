@@ -18,12 +18,12 @@ public sealed class BoardFileTests : IDisposable
     public void WhatWasKeptComesBack()
     {
         string path = BoardFile.PathOf(_folder, 7);
-        Assert.True(BoardFile.Write(path, new BoardKept(["scrap"], 2, null, [new BoardBatch(BoardSeen.CauseFound, ["scrap"], ["scrap", "nail"], 3)], "plate")));
+        Assert.True(BoardFile.Write(path, new BoardKept(["scrap"], 2, null, [new BoardBatch(BoardSeen.CauseFound, ["scrap"], ["scrap", "nail"], ["plate"])], "plate")));
         var kept = BoardFile.Read(path);
         Assert.Equal("scrap", Assert.Single(kept.Seen!));
         Assert.Equal(2, kept.Orders);
         var batch = Assert.Single(kept.Batches!);
-        Assert.Equal((BoardSeen.CauseFound, "scrap", 2, 3), (batch.Cause, Assert.Single(batch.By), batch.Things.Count, batch.Almost));
+        Assert.Equal((BoardSeen.CauseFound, "scrap", 2, "plate"), (batch.Cause, Assert.Single(batch.By), batch.Things.Count, Assert.Single(batch.Closer!)));
         Assert.Equal("plate", kept.Pinned);
     }
 

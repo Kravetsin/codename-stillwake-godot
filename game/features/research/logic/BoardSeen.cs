@@ -8,8 +8,8 @@ namespace Stillwake.Game.Features.Research;
 /// <param name="Cause"><see cref="BoardSeen.CauseFound"/>, <see cref="BoardSeen.CauseBuilt"/> or <see cref="BoardSeen.CauseOpened"/>.</param>
 /// <param name="By">What caused it: the items newly obtained in Obtained order, or the machines newly standing; none for what was opened.</param>
 /// <param name="Things">What became known, a cause among them if it did.</param>
-/// <param name="Almost">How many things became almost.</param>
-public sealed record BoardBatch(string Cause, List<string> By, List<string> Things, int Almost);
+/// <param name="Closer">What came closer in it: almost now, with more of its parts had than before; null in a file written before it.</param>
+public sealed record BoardBatch(string Cause, List<string> By, List<string> Things, List<string>? Closer = null);
 
 /// <summary>
 /// What is new on the board for this player (docs/plans/board-islands.md): each read that brought something known is a batch, its cause fixed then; a
@@ -34,7 +34,10 @@ public sealed class BoardSeen(IEnumerable<string>? seen, int? orders = null, IEn
     private bool _open;
 
     /// <summary>What the last read knew, had, saw standing and saw almost: what the next is compared with; null before this run's first read.</summary>
-    private HashSet<string>? _known, _had, _standing, _almost;
+    private HashSet<string>? _known, _had, _standing;
+
+    /// <summary>How many parts each almost thing had at the last read.</summary>
+    private Dictionary<string, int>? _almost;
 
     /// <summary>What was seen, to keep.</summary>
     public IReadOnlyCollection<string> Seen => _seen ?? [];
@@ -71,7 +74,7 @@ public sealed class BoardSeen(IEnumerable<string>? seen, int? orders = null, IEn
     {
         var known = BoardThings.Ids.Where(read.Knows).ToHashSet(StringComparer.Ordinal);
         var standing = BoardThings.Machines.Where(read.Stands).ToHashSet(StringComparer.Ordinal);
-        var almost = BoardThings.Ids.Where(id => !known.Contains(id) && BoardView.PencilOf(id, read) > 0).ToHashSet(StringComparer.Ordinal);
+        var almost = BoardThings.Ids.Where(id => !known.Contains(id) && BoardView.PencilOf(id, read) > 0).ToDictionary(id => id, id => BoardView.PartsOf(id, read).Had, StringComparer.Ordinal);
         if (_seen == null)
         {
             _seen = known;
@@ -87,16 +90,16 @@ public sealed class BoardSeen(IEnumerable<string>? seen, int? orders = null, IEn
         (_known, _had, _standing, _almost) = (known, read.Found.ToHashSet(StringComparer.Ordinal), standing, almost);
     }
 
-    private void Compare(BoardRead read, HashSet<string> known, HashSet<string> standing, HashSet<string> almost)
+    private void Compare(BoardRead read, HashSet<string> known, HashSet<string> standing, Dictionary<string, int> almost)
     {
         var things = BoardThings.Ids.Where(id => known.Contains(id) && !_known!.Contains(id)).ToList();
         if (things.Count == 0) return;
         var had = read.Found.Where(i => !_had!.Contains(i)).ToList();
         var built = BoardThings.Machines.Where(m => standing.Contains(m) && !_standing!.Contains(m)).ToList();
-        int newlyAlmost = almost.Count(id => !_almost!.Contains(id));
-        _batches.Add(had.Count > 0 ? new BoardBatch(CauseFound, had, things, newlyAlmost)
-            : built.Count > 0 ? new BoardBatch(CauseBuilt, built, things, newlyAlmost)
-            : new BoardBatch(CauseOpened, [], things, newlyAlmost));
+        var closer = BoardThings.Ids.Where(id => almost.TryGetValue(id, out int now) && (!_almost!.TryGetValue(id, out int was) || now > was)).ToList();
+        _batches.Add(had.Count > 0 ? new BoardBatch(CauseFound, had, things, closer)
+            : built.Count > 0 ? new BoardBatch(CauseBuilt, built, things, closer)
+            : new BoardBatch(CauseOpened, [], things, closer));
         while (_batches.Count > Kept)
         {
             _seen!.UnionWith(_batches[0].Things);
