@@ -48,7 +48,7 @@ public sealed partial class HazardsModule
     /// <summary>
     /// A tick of the bolts: one glowing counts down and strikes as it reaches 0, calm or not. Then, while a storm with a bolt runs and
     /// the world is not calm: on its first tick the wait drawn; counted down while nothing glows, and at 0 a hero drawn and the bolt
-    /// aimed near it. With no such storm running, a wait drawn is dropped.
+    /// aimed near it, the next wait drawn when the rule has one. With no such storm running, a wait drawn is dropped.
     /// </summary>
     private void Bolt()
     {
@@ -76,6 +76,8 @@ public sealed partial class HazardsModule
         }
         if (s.BoltIn == 0 || s.Strike != null || --s.BoltIn > 0) return;
         Aim(bolt);
+        // Counted down once this one has struck: nothing counts while a bolt glows.
+        if (bolt.Again is { } again) s.BoltIn = Draw(again);
     }
 
     /// <summary>

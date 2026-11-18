@@ -69,7 +69,7 @@ Shared: `game/shared/` (`Ui`, `Hands`, `PointerTip`, `Tablet`, `TabletMotion`, `
 - **A mark's tip** (0064, `MarkTip`): its card's picture and name, then what it gives back, green (`RefundOf`).
 - **The menu is a docked tablet of fixed size** (0073, 0107): bottom middle, 10 by 2 cards, the card in hand edged sky blue; the wheel over it scrolls a row, never the
   hotbar. B slides it in and out; put away it takes no input. Picking a card leaves it open; one
-  taken by G is scrolled into view; it opens on its last tab.
+  taken by G is scrolled into view; it opens on its last tab. Its wings' keys keep their foot at every slot size.
 - **Search** (0073, `/` or a click): every tab's known cards whose names hold the words. Enter or a click
   elsewhere ends typing, Esc clears first (`DropSearch`); a tab or G ends it; put away, it is forgotten.
 - **Hints** (build-hints): a line per action open now, its press drawn and two words; the build line flashes as
@@ -77,9 +77,9 @@ Shared: `game/shared/` (`Ui`, `Hands`, `PointerTip`, `Tablet`, `TabletMotion`, `
 - **Plans are ghosts** (0064, `PlanTiles`): greyed, unlit, joined to what is planned and built beside them; back
   walls fainter, just over the rooms' air (`PlanBacks`), the rest over the ship, under the heroes (driver-order). The
   ghost in hand is green where the sim takes it, red where not (0022).
-- **Dashes** (0064): round each group of plans (a machine alone) marching
+- **Dashes** (0064): round each group of plans marching
   dashes run along the silhouette, shared sides cancelled; a planned machine a "+". Pipes and
-  valves unoutlined unless marked. Rebuilt on a change of plans, grid or view.
+  valves unoutlined unless marked. Rebuilt on a change.
 - **A blueprint turns real as worked** (0063): bottom up (floors and conduits from the left), the cut at
   `Progress / TicksFor`, by ticks; the real share lit, the
   rest the ghost. No bars. No node, material or shader parameter a plan (`PlanCut`, `BuiltParts`).

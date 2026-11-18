@@ -17,6 +17,9 @@ public static class TabletPeek
     /// <summary>The keys' row (hologram-keys): a key's stride, how far its top floats above the bezel's, and the highest it goes, so the keys stay on screen over a tablet at rest.</summary>
     public const int KeyStride = 34, RowAbove = 33, RowLeast = 2;
 
+    /// <summary>A key's side at its own size (<c>EdgeKey</c>), before the interface's size grows it.</summary>
+    public const int KeySide = 28;
+
     /// <summary>How much more of the art's width lies on the stylus's side than the other: the row's middle is that much left of the art's.</summary>
     private const int StylusSide = 16;
 
@@ -27,6 +30,14 @@ public static class TabletPeek
     /// <summary>Where that screen's left lies, the art between the window's sides.</summary>
     public static float ScreenLeft(float windowWide) =>
         MathF.Round((windowWide - ScreenWidth(windowWide) - TabletLayout.ArtAround * TabletLayout.ArtScale) / 2 + TabletLayout.ScreenLeft * TabletLayout.ArtScale);
+
+    /// <summary>
+    /// Where the rim's art lies across a window <paramref name="windowWide"/> wide: its left and width, the frame round the rim's
+    /// screen as <c>Tablet.LayAsRim</c> lays it.
+    /// </summary>
+    public static (float Left, float Wide) RimArt(float windowWide) => (
+        ScreenLeft(windowWide) - TabletLayout.ScreenLeft * TabletLayout.ArtScale,
+        ScreenWidth(windowWide) + TabletLayout.ArtAround * TabletLayout.ArtScale);
 
     /// <summary>Where the rim's screen starts in a window <paramref name="windowTall"/> high.</summary>
     public static float ScreenTop(float windowTall) => windowTall - ScreenShows;

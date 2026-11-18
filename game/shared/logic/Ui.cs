@@ -318,6 +318,12 @@ public sealed class Ui
     public float? EdgeTop { get; set; }
 
     /// <summary>
+    /// Where the tablet edge's full row of keys starts over the rim (<see cref="EdgeRow.RimLeft"/>), in screen pixels; null until it
+    /// is first laid. Set by <c>TabletEdge</c> every frame; the vitals' air stops short of it.
+    /// </summary>
+    public float? EdgeKeysLeft { get; set; }
+
+    /// <summary>
     /// Every hero's chest as drawn this frame, in the world's pixels, this machine's own first. Set by
     /// <c>crew</c> every frame; <c>building</c> throws a plan's sparks from its side facing the nearest.
     /// </summary>

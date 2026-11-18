@@ -37,6 +37,12 @@ public sealed record PlanetType(string Id, Ground Ground) : Surfaces.Kind(Id, []
     public required IReadOnlyList<int> Bands { get; init; }
 
     /// <summary>
+    /// The air at the surface's middle row (<c>Ground.Surface</c>) and above, where it differs from the top band's: from it the degrees run
+    /// straight to the top band's middle, so a mild surface may lie over cold caves; null, the top band's throughout.
+    /// </summary>
+    public int? Air { get; init; }
+
+    /// <summary>
     /// How its caves' growth gathers: chances scaled by a smooth noise, a swell every <see cref="PatchWave"/> cells, from nothing
     /// to <see cref="PatchMost"/> percent, so it comes in patches and clusters and much of the rock stays bare.
     /// </summary>
@@ -181,7 +187,9 @@ public static class PlanetTypes
         Plants = Flora.All,
         Caves = Flora.Cave,
         Bands = [250, 600, 850],
-        // The cold band, the surface's too, inside a suit's limit by day; the garden; the amber deep; the ember band (2026-11-14-temperature-in-degrees).
+        // A mild surface over cold caves (the user's, 2026-11-17): up top the storms threaten, not the cold.
+        Air = 12,
+        // The cold band and its ice caves; the garden; the amber deep; the ember band (2026-11-14-temperature-in-degrees).
         Temperatures = [-30, -15, 15, 60],
         PatchWave = 24,
         PatchMost = 220,
@@ -230,6 +238,7 @@ public static class PlanetTypes
         Id = "icy",
         // No weather of its own yet: the first's storm would come with it.
         Stretches = [],
+        Air = null,
         Temperatures = [-35, -30, -10, 40],
         Plants = [Plant("bush", 120), Plant("rock", 180), Plant("tuft", 320)],
         Veins = [First.Veins[0] with { Widths = [1800, 1800, 1200, 0] }, .. First.Veins.Skip(1)],
@@ -252,6 +261,7 @@ public static class PlanetTypes
         Id = "scorched",
         // No weather of its own yet: the first's storm would come with it.
         Stretches = [],
+        Air = null,
         Temperatures = [45, 30, 50, 70],
         Plants = [Plant("acacia", 120), Plant("bush", 100), Plant("rock", 160), Plant("bellAmber", 200), Plant("tuft", 150)],
         Creatures =

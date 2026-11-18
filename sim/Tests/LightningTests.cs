@@ -100,24 +100,55 @@ public class LightningTests
         {
             var b = storm.Bolt!;
             Assert.True(b.At.Most + b.Glow < storm.Duration.Least, storm.Id);
-            Assert.Equal((200, 1000, 60, 24, 2, 100), (b.At.Least, b.At.Most, b.Glow, b.Columns, b.Reach, b.Shock));
+            Assert.Equal((60, 24, 2, 100), (b.Glow, b.Columns, b.Reach, b.Shock));
         }
         Assert.Equal((10, 20), (Dust.Bolt!.Spread, Rain.Bolt!.Spread));
+        // The dust's one bolt; the rain's every 12 to 18 s, glow included (the user's, 2026-11-17).
+        Assert.Equal((new Spec.Span(200, 1000), null), (Dust.Bolt!.At, Dust.Bolt!.Again));
+        Assert.Equal((new Spec.Span(180, 300), new Spec.Span(180, 300)), (Rain.Bolt!.At, Rain.Bolt!.Again));
         Assert.All(Spec.Ship, s => Assert.Null(s.Bolt));
     }
 
-    // One a storm.
+    [Fact]
+    public void TheRainStrikesAgainAndAgainEachNextWithinItsSpanOfTheLastTillItEnds()
+    {
+        var again = Rain.Bolt!.Again!;
+        // The hero under a back wall, out of the bolts' reach; they strike the pillar, then the open ground nearest.
+        var w = Land((x, y) => x is >= 8 and <= 12 && y == Ground - 1 ? '.' : Pillar(x, y)).Do(new Enter(Stand(10))).Run();
+        Storm(w, Rain);
+        int strikes = 0, since = -1;
+        bool was = false;
+        while (w.M.Sky.Now.Stretch != null)
+        {
+            w.Run();
+            bool glows = Glowing(w) != null;
+            if (glows && !was)
+            {
+                // Counted from the tick the last one struck.
+                if (since >= 0) Assert.InRange(since + 1, again.Least - 1, again.Most);
+                strikes++;
+            }
+            since = glows ? -1 : was ? 0 : since < 0 ? since : since + 1;
+            was = glows;
+        }
+        Assert.InRange(strikes, Rain.Duration.Least / (again.Most + Bolt.Glow), Rain.Duration.Most / (again.Least + Bolt.Glow) + 1);
+        Assert.Equal(0, HeroOf(w, 0).Hurts);
+        Assert.Equal(0, S(w).BoltIn);
+    }
+
+    // One a dust storm.
 
     [Fact]
     public void AStormStrikesOnceSeenGlowingItsGlowFirstAndItsCellHoldsWhenTheHeroWalksAway()
     {
-        var w = Storm(Land(Pillar).Do(new Enter(Stand(10))).Run(), Rain);
+        var w = Storm(Land(Pillar).Do(new Enter(Stand(10))).Run(), Dust);
         int wait = S(w).BoltIn;
         Assert.InRange(wait, Bolt.At.Least, Bolt.At.Most);
-        Assert.Equal(wait, RunUntil(w, () => Glowing(w) != null));
-        Assert.Equal(new Strike(Top, Bolt.Glow, Rain.Bolt!.Spread), Glowing(w));
+        // Its air topped up while it waits in the open: the dust's grit would run it out first.
+        Assert.Equal(wait, RunUntil(w, () => (HeroOf(w, 0).Air = Scenario.Full) > 0 && Glowing(w) != null));
+        Assert.Equal(new Strike(Top, Bolt.Glow, Dust.Bolt!.Spread), Glowing(w));
         w.Do(new Enter(Stand(60))).Run(Bolt.Glow - 1);
-        Assert.Equal(new Strike(Top, 1, Rain.Bolt!.Spread), Glowing(w));
+        Assert.Equal(new Strike(Top, 1, Dust.Bolt!.Spread), Glowing(w));
         Assert.NotNull(w.M.Grid.WallAt(Top));
         w.Run();
         Assert.Null(Glowing(w));
@@ -285,13 +316,14 @@ public class LightningTests
         Strikes(w);
         Assert.Equal((1, 1), (HeroOf(w, 0).Hurts, HeroOf(w, 1).Hurts));
 
-        // Two heroes far apart, each by a pillar of its own: over seeds, each is drawn.
+        // Two heroes far apart, each by a pillar of its own: over seeds, each is drawn. In the rain, whose zones still miss each
+        // other's pillar: the dust's grit would run them out of air while they wait.
         var struck = new HashSet<int>();
         for (uint seed = 1; seed <= 12; seed++)
         {
             var apart = Land((x, y) => x is 6 or 57 && y == Ground - 1 ? '#' : null, seed: seed);
             apart.Do(new Enter(Stand(3))).Do(new Enter(Stand(60)) { From = 1 }).Run();
-            Storm(apart, Dust);
+            Storm(apart, Rain);
             RunUntil(apart, () => Glowing(apart) != null);
             struck.Add(Glowing(apart)!.Cell);
         }
@@ -365,7 +397,8 @@ public class LightningTests
         before = WorldRng(w);
         w.Run();
         Assert.NotNull(Glowing(w));
-        Assert.Equal((before, 2), (WorldRng(w), S(w).Drawn));
+        // The hero drawn, and the rain's next wait.
+        Assert.Equal((before, 3), (WorldRng(w), S(w).Drawn));
     }
 
     // The invariant.
@@ -385,7 +418,7 @@ public class LightningTests
     /// wait, its hero and its target fall.
     /// </summary>
     [Property(MaxTest = 8)]
-    public Property AStormStrikesAtMostOnce() => Prop.ForAll(Seeds, seed =>
+    public Property ADustStormStrikesAtMostOnceTheRainAtMostOnceInItsShortestRound() => Prop.ForAll(Seeds, seed =>
     {
         var w = new Scenario(Ship, seed);
         w.Do(new Enter(w.M.Crew.Spawn)).Do(new OpenSurface(Content.PlanetTypes.Small.Id)).Run();
@@ -397,6 +430,7 @@ public class LightningTests
         int strikes = 0;
         while (planet.Sky.Now.Stretch != null || planet.Hazards.Strike != null)
             if (w.Run().On(1).Hazards.Strike?.Left == storm.Bolt!.Glow) strikes++;
-        return (strikes <= 1).Label($"{strikes} strikes in one storm");
+        int most = storm.Bolt!.Again is { } again ? storm.Duration.Most / (again.Least - 1 + storm.Bolt.Glow) + 1 : 1;
+        return (strikes <= most).Label($"{strikes} strikes in one {storm.Id}");
     });
 }

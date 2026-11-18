@@ -268,6 +268,7 @@ public partial class Main : Node2D, ITogether
         ItemIcons.MakeSilhouettes();
         _debris = new DebrisView(_hands.Ui);
         AddChild(_stars = new Stars());
+        AddChild(new Features.Backdrop.FocusView(() => _stars.OnPlanet && PlanetLooks.Of.TryGetValue(_m.Rules.Id, out var look) ? look.Far : 0));
         AddChild(_debris);
         AddChild(_scanner);
         AddChild(_camera = new ShipCamera());
@@ -308,7 +309,7 @@ public partial class Main : Node2D, ITogether
             Features.Landing.Ride? OwnRide(int peer) => _m.Landing.FlightOf(peer) is { } f ? Features.Landing.Ride.Of(f) : _m.Landing.VoyageOf(peer) is { } v ? Features.Landing.Ride.Of(v) : null;
             AddChild(new Features.Landing.FlightOverlay(() => _session is Session s ? (s.Client.World.SurfaceOf(s.Client.Id), OwnRide(s.Client.Id)) : null,
                 () => (_session as Session)?.Progress ?? 0, () => _camera.OwnZoom));
-            // The vitals at the bottom-left (hud-vitals): the belt's charge under the suit's air, whatever is held. Before the
+            // The vitals at the bottom-left (hud-vitals): six dials over the suit's long air bar, the belt's charge the first, whatever is held. Before the
             // suit's gauge, so the red edges cover it as they cover the rest of the HUD.
             var energy = new EnergyBar(() => _session is Session s ? EnergyRead.Of(_m.Items.Inventory(s.Client.Id), _m.Items.BeltCharge(s.Client.Id), p => _m.Items.SlotOpen(s.Client.Id, p), _m.Items.Running(s.Client.Id)) : null, _hands.Ui);
             AddChild(energy);
@@ -319,7 +320,7 @@ public partial class Main : Node2D, ITogether
             var gauge = new SuitGauge(() => _session is Session s ? Danger.Read(_m.Crew, _m.Atmosphere, s.Client.Id) : (1, 1, SuitDanger.None, true),
                 CanisterIn, () => _session is Session s ? _m.Crew.PartsOf(s.Client.Id) : [], _hands.Ui);
             AddChild(gauge);
-            // The hero's meals, the vitals' bottom row (hud-vitals).
+            // The hero's meals, the vitals' third to fifth dials, and the purge spot the sixth (hud-vitals).
             AddChild(new MealSlots(() => _session is Session s && _m.Crew.HeroOf(s.Client.Id) is { } fed
                 ? (fed.Meals.Select(m => (m.Food, m.Left)).ToList(), _m.Crew.Hungry(s.Client.Id)) : null, Purge, _hands.Ui));
             // Held three seconds on the purge spot (food-tuning): refused as the sim would, else sent.
@@ -330,14 +331,19 @@ public partial class Main : Node2D, ITogether
                 s.Client.Send(new Stillwake.Sim.Crew.Purge());
                 return null;
             }
-            // The degrees where the hero stands, under the charge (the-thermometer); gone while it is passed out.
+            // The hero's body, the vitals' second dial (the-thermometer, body-temperature); gone while it is passed out.
             AddChild(new Thermometer(() => _session is Session s && _m.Crew.HeroOf(s.Client.Id) is { Out: 0 } && _hero is { Placed: true } h
-                ? (ThermometerReading?)Thermometers.Read(_m.Crew, s.Client.Id, h.Current.BodyCell(_m.Grid.Width)) : null, _hands.Ui));
+                ? (ThermometerReading?)Thermometers.Read(_m.Crew, s.Client.Id, h.Current.BodyCell(_m.Grid.Width), h.Body, h.BodyGasp) : null, _hands.Ui));
             if (_hero is { } breathing) gauge.BreathesAgain += breathing.BreathesAgain;
-            AddChild(new Frost(() => _session is Session s && _hero is { Placed: true } h ? Report.Cold(_m.Crew, s.Client.Id, h.Current.BodyCell(_m.Grid.Width)) : 0));
-            AddChild(new Haze(() => _session is Session s && _hero is { Placed: true } h ? Report.Heat(_m.Crew, s.Client.Id, h.Current.BodyCell(_m.Grid.Width)) : 0));
+            // The place's cold or heat on the screen at once; the body follows it on the thermometer and the suit (body-temperature).
+            AddChild(new Frost(() => _session is Session s && _hero is { Placed: true } h && !_m.Items.Creative(s.Client.Id)
+                ? Report.Cold(_m.Crew.Felt(s.Client.Id, h.Current.BodyCell(_m.Grid.Width))) : 0));
+            AddChild(new Haze(() => _session is Session s && _hero is { Placed: true } h && !_m.Items.Creative(s.Client.Id)
+                ? Report.Heat(_m.Crew.Heat(s.Client.Id, h.Current.BodyCell(_m.Grid.Width))) : 0));
             AddChild(new HurtView(() => _session is Session s && _m.Crew.HeroOf(s.Client.Id) is { } hurt ? (hurt.Hurts, hurt.Hurt) : null, gauge));
-            AddChild(new TunnelView(() => _session is Session s && _m.Crew.HeroOf(s.Client.Id) is { } me ? (me.Gasp, me.Out) : null, () => _hero?.Shown));
+            // The last breath out of air or past a death of the body (body-temperature), whichever ends first.
+            AddChild(new TunnelView(() => _session is Session s && _m.Crew.HeroOf(s.Client.Id) is { } me
+                ? (Tunnel.Sooner(me.Gasp, _hero?.BodyGasp ?? 0), me.Out) : null, () => _hero?.Shown));
             // Home and friends off the screen, pointed at from its edge, clear of the HUD's panels.
             var (panel, fabricator, building) = (_items.Panel, _fabricator, _hands.Menu);
             IEnumerable<Rect2> Hud()
@@ -373,7 +379,7 @@ public partial class Main : Node2D, ITogether
         // The Handbook (0066): each section a feature's own page; what opening it puts away is wired here, so no feature reaches into another.
         var debrisPage = new HandbookPage(_hands.Ui, () => _session != null ? _ship.Debris : null);
         // The tablet: put away and putting away as the computer's window.
-        var tech = _tablet = new ResearchTablet(_hands.Ui, () => _session != null && _hero != null, () => _session != null ? _m : null, command => _session?.Client.Send(command), () => _session?.Client.World.Id ?? 0);
+        var tech = _tablet = new ResearchTablet(_hands.Ui, () => _session != null && _hero != null, () => _session != null ? _m : null, command => _session?.Client.Send(command), () => _session?.Client.World.Id ?? 0, () => _session?.Client.World);
         var handbook = new HandbookPanel(_hands.Ui, () => _session != null && _hero != null, [new HandbookSection(T("handbook.debris"), debrisPage, debrisPage.Tally)])
         {
             Opening = () =>
@@ -748,6 +754,7 @@ public partial class Main : Node2D, ITogether
             int time = _m.Sky.Now.Time;
             (sky, tint) = (Daylight.Sky(look, time, cycle), Daylight.Backdrop(look, time, cycle));
         }
+        _stars.Sun = _m.Rules.Cycle is { } day ? Daylight.Sun(_m.Sky.Now.Time, day) : null;
         var storm = View<Features.Sky.StormView>();
         var now = storm?.Now ?? Features.Sky.Storm.None;
         if (storm?.Weather is { } weather)

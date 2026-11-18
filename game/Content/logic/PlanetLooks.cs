@@ -37,6 +37,12 @@ public static class PlanetLooks
         public (float R, float G, float B) NightSky { get; init; } = (0.09f, 0.105f, 0.14f);
         public (float R, float G, float B) DuskBackdrop { get; init; } = (0.9f, 0.66f, 0.44f);
         public (float R, float G, float B) NightBackdrop { get; init; } = (0.16f, 0.19f, 0.26f);
+
+        /// <summary>
+        /// How out of focus its sky and the land behind are (<c>Features.Backdrop.FocusView</c>): mip levels at 1080 rows, 0 sharp. The
+        /// user's 0.4 (2026-11-17), tried with the moods.
+        /// </summary>
+        public float Far { get; init; } = 0.4f;
     }
 
     /// <summary>The pictures a backdrop set holds, <c>art/{Backdrop}/{name}.png</c>: the sky <c>Render.PlanetSky</c> draws; the land is composed (<c>Features.Backdrop</c>).</summary>

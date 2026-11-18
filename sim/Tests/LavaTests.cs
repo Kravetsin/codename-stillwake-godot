@@ -66,11 +66,11 @@ public class LavaTests
     }
 
     [Fact]
-    public void BareTheLavaBurnsTheSameAndTheColdBesidesSoTheLungsAndTheLastBreathGoOnTheSecondBreath()
+    public void BareTheLavaBurnsTheSameTheColdTakingNoAirSoTheLungsAndTheLastBreathGoOnTheSecondBreath()
     {
         var w = BroughtIn(OnLava, bare: true);
-        int cold = TemperatureTests.ColdOn(w.Crew().Clock, w.M.Crew.Felt(0, OnLava));
-        Assert.Equal(Content.Crew.Lungs - 1 - LavaSpec.Burn - cold, HeroOf(w).Air);
+        Assert.True(w.M.Crew.Felt(0, OnLava) > 0);
+        Assert.Equal(Content.Crew.Lungs - 1 - LavaSpec.Burn, HeroOf(w).Air);
         w.Run(Content.Crew.BreathEvery);
         // What the burn takes past the lungs cuts the last breath, more units than it has breaths (2026-11-05-the-last-breath).
         Assert.True((LavaSpec.Burn - 1) * Content.Crew.LastBreathPerUnit > Content.Crew.LastBreath);

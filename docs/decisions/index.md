@@ -55,7 +55,7 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [0047](0047-equipment-the-jetpack-and-the-slower-swim.md) | Equipment, the jetpack and the slower swim | accepted | 0058, 0068, jet-cruise (in part) |
 | [0048](0048-a-big-world-a-build-zone-inside-it.md) | A big world, a build zone inside it | accepted |  |
 | [0049](0049-design-the-mechanic-not-its-first-use.md) | Design the mechanic, not its first use | accepted |  |
-| [0050](0050-the-edge-is-made-of-oxygen.md) | The edge is made of oxygen | accepted |  |
+| [0050](0050-the-edge-is-made-of-oxygen.md) | The edge is made of oxygen | accepted | body-temperature (in part) |
 | [0051](0051-the-grid-keeps-a-log-of-changed-cells.md) | The grid keeps a log of changed cells | accepted |  |
 | [0052](0052-debris-by-zones-around-every-hero.md) | Debris by zones, around every hero | accepted |  |
 | [0053](0053-charge-belongs-to-the-item.md) | Charge belongs to the item; batteries and the charging station | accepted |  |
@@ -63,7 +63,7 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [0055](0055-an-electric-tool-draws-while-it-runs.md) | An electric tool draws while it runs | accepted |  |
 | [0056](0056-rich-finds-far-out.md) | Rich finds far out | accepted |  |
 | [0057](0057-stations-one-model-for-every-crafting-machine.md) | Stations: one model for every crafting machine | accepted |  |
-| [0058](0058-one-place-for-every-machine-window.md) | One place for every machine window; equipment at the right edge | accepted | machine-holograms (in part) |
+| [0058](0058-one-place-for-every-machine-window.md) | One place for every machine window; equipment at the right edge | accepted | machine-holograms, hud-dials (in part) |
 | [0059](0059-machines-heard-at-work.md) | Machines heard at work, and the suit heard over space | accepted |  |
 | [0060](0060-the-farm-a-grow-capsule-is-a-fed-station.md) | The farm: a grow capsule is a fed station | accepted |  |
 | [0061](0061-death-leaves-a-body.md) | Death leaves a body | accepted | body-bag (in part) |
@@ -190,10 +190,10 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [iron-and-dress-in-ink](2026-11-01-iron-and-dress-in-ink.md) | Iron and the wreck's dress in ink | accepted |  |
 | [moss-in-ink](2026-11-01-moss-in-ink.md) | Moss in ink | accepted |  |
 | [player-colour-mark](2026-11-01-player-colour-mark.md) | The player's colour is a mark | superseded | hero-clothes |
-| [board-edges](2026-11-02-board-edges.md) | The board has edges, and what is bought stands by its parts | accepted |  |
-| [board-pile](2026-11-02-board-pile.md) | New finds come to the board as a pile | accepted |  |
-| [board-room](2026-11-02-board-room.md) | The camera stops at a size, and the player has room for heaps | accepted |  |
-| [board-thoughts](2026-11-02-board-thoughts.md) | The board says what the hero is thinking | accepted | one-to-understand (in part) |
+| [board-edges](2026-11-02-board-edges.md) | The board has edges, and what is bought stands by its parts | accepted | board-islands (in part) |
+| [board-pile](2026-11-02-board-pile.md) | New finds come to the board as a pile | accepted | board-islands (in part) |
+| [board-room](2026-11-02-board-room.md) | The camera stops at a size, and the player has room for heaps | accepted | board-islands (in part) |
+| [board-thoughts](2026-11-02-board-thoughts.md) | The board says what the hero is thinking | accepted | one-to-understand, board-islands (in part) |
 | [bulb-signal](2026-11-02-bulb-signal.md) | A bulb over the hero says something new waits on the board | superseded | hologram-keys |
 | [far-land-in-ink](2026-11-02-far-land-in-ink.md) | The far land in ink | accepted | composed-backdrops (in part) |
 | [hero-clothes](2026-11-02-hero-clothes.md) | One body, four sets of clothes | accepted |  |
@@ -251,7 +251,7 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [damage-looks](2026-11-05-damage-looks.md) | Damage and work drawn in ink | accepted | tool-reach, cracks-to-end, drill-contact, grinder-contact, blade-sparks, cutter-contact, spark-rule (in part) |
 | [hologram-keys](2026-11-05-hologram-keys.md) | The edge's keys are holograms of what can be used, and the bulb bursts at the screen's top | accepted | edge-flash (in part) |
 | [melee-edge](2026-11-05-melee-edge.md) | A stroke hits with its swept blade | accepted | tool-reach (in part) |
-| [the-board](2026-11-05-the-board.md) | Things are learned by having them, on the scavenger's board | accepted | one-to-understand (in part) |
+| [the-board](2026-11-05-the-board.md) | Things are learned by having them, on the scavenger's board | accepted | one-to-understand, board-islands (in part) |
 | [the-last-breath](2026-11-05-the-last-breath.md) | The last breath | accepted |  |
 | [tip-signs](2026-11-05-tip-signs.md) | Tips speak in signs and the bubble's numbers | accepted |  |
 | [tool-contact](2026-11-05-tool-contact.md) | A running tool is seen at work all along | accepted | damage-looks, tool-edge, spark-rule (in part) |
@@ -281,7 +281,7 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [hits-pass-wrecks](2026-11-07-hits-pass-wrecks.md) | A tool's rays pass through wrecks and hit all they cross | accepted |  |
 | [machine-holograms](2026-11-07-machine-holograms.md) | Machine windows are station holograms | accepted |  |
 | [machines-stand](2026-11-07-machines-stand.md) | Machines stand on a floor | accepted |  |
-| [night-chills](2026-11-07-night-chills.md) | Night chills a planet's open sky | accepted | temperature-in-degrees (in part) |
+| [night-chills](2026-11-07-night-chills.md) | Night chills a planet's open sky | accepted | temperature-in-degrees, moving-sun (in part) |
 | [no-charge-flash](2026-11-07-no-charge-flash.md) | A flat press blinks the energy tab red | accepted |  |
 | [ore-pockets](2026-11-07-ore-pockets.md) | Ore lies at every depth, in pockets, and glints now and then | accepted |  |
 | [pick-reach](2026-11-07-pick-reach.md) | The pickaxe cuts close by | accepted |  |
@@ -298,7 +298,7 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [the-scanner](2026-11-07-the-scanner.md) | The scanner reads a wreck's hit points | accepted |  |
 | [tool-card-rows](2026-11-07-tool-card-rows.md) | A tool's card lists its numbers as rows with icons | accepted |  |
 | [blasting-charge](2026-11-08-blasting-charge.md) | The blasting charge and the deep caches | accepted | unified-damage, builders-raw (in part) |
-| [board-names](2026-11-08-board-names.md) | The board names what was never had | accepted |  |
+| [board-names](2026-11-08-board-names.md) | The board names what was never had | accepted | board-islands (in part) |
 | [composed-backdrops](2026-11-08-composed-backdrops.md) | Composed backdrops | accepted |  |
 | [computer-after-planet](2026-11-08-computer-after-planet.md) | The computer and the radar after a planet | accepted | planet-variety (in part) |
 | [crusher-heard](2026-11-08-crusher-heard.md) | Crusher heard | accepted |  |
@@ -341,7 +341,7 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [one-to-understand](2026-11-12-one-to-understand.md) | One of each part is enough to understand a thing | accepted |  |
 | [glowberry-bush](2026-11-13-glowberry-bush.md) | Spores grow a glowberry bush | accepted |  |
 | [gourd-vine](2026-11-13-gourd-vine.md) | The grow capsule grows a gourd vine | accepted |  |
-| [hud-vitals](2026-11-13-hud-vitals.md) | The vitals: air, charge and meals as frameless light at the bottom-left | accepted | hungry-respawn (in part) |
+| [hud-vitals](2026-11-13-hud-vitals.md) | The vitals: air, charge and meals as frameless light at the bottom-left | superseded | hungry-respawn, hud-dials |
 | [bent-limbs](2026-11-14-bent-limbs.md) | Limbs bent whole at the joint | accepted | whole-limbs (in part) |
 | [creatures-bend](2026-11-14-creatures-bend.md) | Creatures bend like the hero | accepted |  |
 | [drill-contact](2026-11-14-drill-contact.md) | The drill shows its reach as a turning double helix, and its sparks ride it out of a wreck | accepted | spark-rule (in part) |
@@ -352,7 +352,7 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [grapple-and-nailer-traced](2026-11-14-grapple-and-nailer-traced.md) | The grappling gun and the nailer traced from picked references | accepted | raw-tool-pictures (in part) |
 | [grinder-contact](2026-11-14-grinder-contact.md) | The grinder's sparks leave its haze's rim where it comes out of a wreck | accepted | drill-contact, spark-rule (in part) |
 | [grinder-redrawn](2026-11-14-grinder-redrawn.md) | The grinder drawn raw from a picked reference, its wheel spun in code | accepted |  |
-| [heat-limits](2026-11-14-heat-limits.md) | Heat: the other side of the degrees | accepted |  |
+| [heat-limits](2026-11-14-heat-limits.md) | Heat: the other side of the degrees | accepted | body-temperature (in part) |
 | [helmets-fit-the-suit](2026-11-14-helmets-fit-the-suit.md) | Helmets fit the suit, each turning its own way | accepted |  |
 | [helmets-traced](2026-11-14-helmets-traced.md) | The basic and heavy helmets, traced | accepted |  |
 | [homemade-cutter](2026-11-14-homemade-cutter.md) | The plasma cutter is the homemade one | accepted |  |
@@ -362,9 +362,9 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [raw-tool-pictures](2026-11-14-raw-tool-pictures.md) | Held tools ship their picked reference's own paint | accepted |  |
 | [salvage-tools-raw](2026-11-14-salvage-tools-raw.md) | Cutter, spear and sledgehammer drawn raw | accepted | homemade-cutter (in part) |
 | [spear-effects](2026-11-14-spear-effects.md) | The spear's effects | accepted |  |
-| [temperature-gradients](2026-11-14-temperature-gradients.md) | Temperature gradients: colder away from the ship, smooth down the bands | accepted |  |
-| [temperature-in-degrees](2026-11-14-temperature-in-degrees.md) | Temperature in degrees | accepted |  |
-| [the-thermometer](2026-11-14-the-thermometer.md) | The thermometer: a frost star and the degrees, a row under the charge | accepted |  |
+| [temperature-gradients](2026-11-14-temperature-gradients.md) | Temperature gradients: colder away from the ship, smooth down the bands | accepted | body-temperature (in part) |
+| [temperature-in-degrees](2026-11-14-temperature-in-degrees.md) | Temperature in degrees | accepted | body-temperature (in part) |
+| [the-thermometer](2026-11-14-the-thermometer.md) | The thermometer: a frost star and the degrees, a row under the charge | superseded | body-temperature, hud-dials |
 | [tool-card-pictures](2026-11-14-tool-card-pictures.md) | A tool's card shows its picture enlarged | accepted |  |
 | [tool-in-hand](2026-11-14-tool-in-hand.md) | The tool in hand is the one that works | accepted |  |
 | [air-segments](2026-11-15-air-segments.md) | Air segments | accepted |  |
@@ -379,7 +379,7 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [liquid-cards](2026-11-15-liquid-cards.md) | A canister's and a bottle's litres are food's rows | accepted |  |
 | [spark-rule](2026-11-15-spark-rule.md) | A tool's haze in matter throws that matter's look, whatever was hit | accepted |  |
 | [spear-trail](2026-11-15-spear-trail.md) | The plain spear trails haze outside its thrust | accepted |  |
-| [stretches-of-space](2026-11-15-stretches-of-space.md) | Stretches of space | accepted | surface-storms (in part) |
+| [stretches-of-space](2026-11-15-stretches-of-space.md) | Stretches of space | accepted | surface-storms, moving-sun (in part) |
 | [trash-slot](2026-11-15-trash-slot.md) | A trash slot in creative mode | accepted |  |
 | [cape-billows](2026-11-16-cape-billows.md) | The cape is painted raw and billows slowly at a run | accepted |  |
 | [crew-pings](2026-11-16-crew-pings.md) | Pings: a tap of F marks the spot | accepted |  |
@@ -393,8 +393,8 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [shuttle-desant](2026-11-16-shuttle-desant.md) | The crew shuttle looks as «Десант — Салазки» | accepted |  |
 | [shuttle-flight](2026-11-16-shuttle-flight.md) | The crew flies to a vessel in the shuttle and back | accepted |  |
 | [solar-system](2026-11-16-solar-system.md) | The ship flies between the planets of its solar system | accepted |  |
-| [storm-lightning](2026-11-16-storm-lightning.md) | Storm lightning | accepted |  |
-| [surface-storms](2026-11-16-surface-storms.md) | Surface storms | accepted |  |
+| [storm-lightning](2026-11-16-storm-lightning.md) | Storm lightning | accepted | mild-surface (in part) |
+| [surface-storms](2026-11-16-surface-storms.md) | Surface storms | accepted | mild-surface (in part) |
 | [whole-limbs](2026-11-16-whole-limbs.md) | One picture an arm or leg | accepted |  |
 | [big-vessels](2026-11-17-big-vessels.md) | The liner and the tanker: vessels of rooms several decks tall | accepted |  |
 | [clothes-painted](2026-11-17-clothes-painted.md) | Eleven warm clothes, painted, worn as outfits for now | accepted |  |
@@ -402,3 +402,9 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [hidden-rooms](2026-11-17-hidden-rooms.md) | A derelict's rooms are dark till a hero has seen them | accepted |  |
 | [outfits-painted](2026-11-17-outfits-painted.md) | The four outfits are painted raw, worn hard; the hips closer | accepted |  |
 | [shuttle-trip-look](2026-11-17-shuttle-trip-look.md) | The shuttle's trip is seen: «A — Под днищем» | accepted |  |
+| [bell-no-skirt](2026-11-18-bell-no-skirt.md) | The heavy bell sits as the helmet skins do, its shoulder piece gone | accepted |  |
+| [board-islands](2026-11-18-board-islands.md) | The board is fixed district islands on a grid | accepted |  |
+| [body-temperature](2026-11-18-body-temperature.md) | The hero's body temperature | accepted |  |
+| [hud-dials](2026-11-18-hud-dials.md) | The vitals as a row of dials over a long air bar | accepted |  |
+| [mild-surface](2026-11-18-mild-surface.md) | The first planet's surface is mild; its storms are the threat | accepted |  |
+| [moving-sun](2026-11-18-moving-sun.md) | The sun moves by the hour, and what is far stays behind | accepted |  |

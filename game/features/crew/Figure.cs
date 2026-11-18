@@ -240,9 +240,9 @@ public partial class Figure : Node2D
     private static readonly (int R, int G, int B) ChargeLight = (95, 216, 255);
     /// <summary>
     /// A stroke playing (<see cref="AxeSwing"/>, swing-motions): where it is aimed from the feet, in pixels of the world's axes,
-    /// how far through it is, and the motion it plays.
+    /// how far through it is, the motion it plays, and how many times its own it lasts (<see cref="AxeSwing.Slow"/>).
     /// </summary>
-    private (Vector2 Aim, double Phase, MotionPlay Play)? _chop;
+    private (Vector2 Aim, double Phase, MotionPlay Play, double Slow)? _chop;
     /// <summary>How far the feet are stepped up or down as the figure was last drawn, in pixels (<see cref="StepEase"/>).</summary>
     private double _stepLift;
     /// <summary>The front arm straight through a swing and eased into and out of it (0040).</summary>
@@ -424,6 +424,30 @@ public partial class Figure : Node2D
         Wear(colour);
     }
 
+    /// <summary>The suit's frost and heat (<see cref="SuitFxView"/>), made the first time either shows.</summary>
+    private SuitFxView? _suitFx;
+
+    /// <summary>The parts the suit's frost and heat show on: what covers the body, never the head, face, hair or glass.</summary>
+    private static readonly HashSet<string> SuitParts = ["leg", "arm", "hand", "pack", "torso", "shell", "collar", "seal"];
+
+    /// <summary>How far the suit shows its wearer's body cold or hot, each 0 to 1 (body-temperature): frost greys it, heat chars it.</summary>
+    public void Suffers(float frost, float heat)
+    {
+        if (_suitFx == null)
+        {
+            if (frost <= 0 && heat <= 0) return;
+            var parts = new List<(Sprite2D, bool)>();
+            foreach (var (sprite, part, _) in _parts)
+                if (SuitParts.Contains(part)) parts.Add((sprite, part == "hand"));
+            AddChild(_suitFx = new SuitFxView(parts, SuitAt));
+        }
+        _suitFx.Show(frost, heat, PictureOf("hand").EndsWith("_skin", StringComparison.Ordinal));
+    }
+
+    /// <summary>Where <paramref name="local"/>, in <paramref name="sprite"/>'s frame, is drawn now: above a bent limb's joint, rigid with its upper bone.</summary>
+    private Vector2 SuitAt(Sprite2D sprite, Vector2 local) =>
+        _uppers.TryGetValue(sprite, out var upper) && local.Y < 0 ? upper.Node.ToGlobal(local + new Vector2(0, (float)upper.Bone)) : sprite.ToGlobal(local);
+
     /// <summary>The boots' <paramref name="cue"/> at the feet, on the World bus, silent while floating.</summary>
     private void Boots(S.Cue cue, float tune = 1, float offsetDb = 0) => _boots.Play(cue, GlobalPosition, tune, offsetDb);
 
@@ -472,7 +496,7 @@ public partial class Figure : Node2D
     /// Has the hero play the stroke of the tool it wields aimed <paramref name="swing"/>'s offset from its feet, in pixels of the
     /// world's axes, as far through as its phase says, the motion it plays; null between strokes.
     /// </summary>
-    public void Chop((Vector2 Aim, double Phase, MotionPlay Play)? swing) => _chop = swing;
+    public void Chop((Vector2 Aim, double Phase, MotionPlay Play, double Slow)? swing) => _chop = swing;
 
     /// <summary>The swing playing bit something: its arm is drawn stopped on contact for a moment (0075), the sim untouched.</summary>
     public void Bit() => _bit = true;
@@ -1450,9 +1474,9 @@ public partial class Figure : Node2D
         // The body answers the weapon (body-answers): a stroke leaned into on its own clock, held with the arm at a bite; a shot's recoil.
         _recoilMs += elapsedMs;
         BodyState? answer = null;
-        if (chopping && _chop is { Phase: var bodyPhase } && BodyAnswers.StrokeOf(Wields) is var (strokeAnswer, heft))
+        if (chopping && _chop is { Phase: var bodyPhase, Slow: var bodySlow } && BodyAnswers.StrokeOf(Wields) is var (strokeAnswer, heft))
         {
-            double at = (_bit && bodyPhase >= _lastPhase ? AxeSwing.Shown(bodyPhase, stroke!) : bodyPhase) - stroke!.HitShare;
+            double at = (_bit && bodyPhase >= _lastPhase ? AxeSwing.Shown(bodyPhase, stroke!, bodySlow) : bodyPhase) - stroke!.HitShare;
             answer = BodyPlay.At(strokeAnswer, at, heft);
         }
         if (_retchMs < Retching.Ms)
@@ -1515,13 +1539,13 @@ public partial class Figure : Node2D
         (double Angle, double Phase)? swung = null;
         double? jabMs = null;
         double elbow = item?.Elbow ?? 0, wrist = 0;
-        if (chopping && _chop is { Aim: var aimed, Phase: var phase, Play: var play })
+        if (chopping && _chop is { Aim: var aimed, Phase: var phase, Play: var play, Slow: var slow })
         {
             // Toward its aim from where the hero is now, from the shoulder: the motion chosen at the press, played along it till
             // the blade, not the hand, crosses the line to it (0040, swing-motions).
             if (phase < _lastPhase) _bit = false;
             _lastPhase = phase;
-            double drawn = _bit ? AxeSwing.Shown(phase, stroke!) : phase;
+            double drawn = _bit ? AxeSwing.Shown(phase, stroke!, slow) : phase;
             (elbow, wrist) = (play.ElbowAt(drawn), play.WristAt(drawn));
             // The spear: aimed as a gun is, the shaft's line through the point, the elbow cocked and straightened (the jab).
             if (play.Motion.Kind == MotionKind.Thrust)

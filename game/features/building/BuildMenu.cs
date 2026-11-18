@@ -222,7 +222,7 @@ public partial class BuildMenu : CanvasLayer
         _focus.OffsetTop = _modes.OffsetTop;
         _focus.OffsetBottom = _focus.OffsetTop + focus.Y;
         // The hint's screen from the tablet's right edge, just under the layers' wing, down to the screen's foot.
-        float grown = _hints.Grown = _pointerHint.Grown = (float)_ui.Slot / Slots.SizeOf(SlotScale.Normal);
+        float grown = _hints.Grown = _pointerHint.Grown = (float)_ui.Slot / Slots.Base;
         _hints.OffsetLeft = _focus.OffsetLeft + PlanWing.Tuck;
         _hints.OffsetRight = _hints.OffsetLeft + HintWing.Width * grown;
         _hints.OffsetTop = _focus.OffsetBottom + HintBelowWing;
@@ -244,14 +244,15 @@ public partial class BuildMenu : CanvasLayer
         int mode = (shown - 2 * pad - 2 * gap) / 3 / 2 * 2;
         for (int i = 0; i < _modeKeys.Count; i++)
         {
-            _modeKeys[i].CustomMinimumSize = _modeKeys[i].Size = new Vector2(_at.Card, mode);
+            // The least size first: a key shrinking after a larger interface is held at the old least otherwise.
+            _modeKeys[i].Size = _modeKeys[i].CustomMinimumSize = new Vector2(_at.Card, mode);
             _modeKeys[i].Position = new Vector2(pad, pad + i * (mode + gap));
         }
         _modes.Size = new Vector2(pad + _at.Card + pad + PlanWing.Tuck, height);
         const int layer = LayerKey, clear = PlanWing.Tuck + TabletLayout.StylusOut * TabletLayout.ArtScale + gap;
         for (int i = 0; i < _layerKeys.Count; i++)
         {
-            _layerKeys[i].CustomMinimumSize = _layerKeys[i].Size = new Vector2(layer, layer);
+            _layerKeys[i].Size = _layerKeys[i].CustomMinimumSize = new Vector2(layer, layer);
             _layerKeys[i].Position = new Vector2(clear, pad + i * (layer + gap));
         }
         _focus.Size = new Vector2(clear + layer + pad, pad + 2 * layer + gap + pad);

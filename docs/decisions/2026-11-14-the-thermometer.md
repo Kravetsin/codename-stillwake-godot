@@ -1,6 +1,7 @@
 # The thermometer: a frost star and the degrees, a row under the charge
 
-- Status: accepted
+- Status: superseded by [body-temperature](2026-11-18-body-temperature.md) (the body shown, not the place) and
+  [hud-dials](2026-11-18-hud-dials.md) (the temperature dial)
 - Date: 2026-11-14
 - Extends: [hud-vitals](2026-11-13-hud-vitals.md)'s block; built as step T-2 of
   [temperature-in-degrees](2026-11-14-temperature-in-degrees.md)

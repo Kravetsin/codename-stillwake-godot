@@ -32,16 +32,6 @@ public class TemperatureTests
 
     private static Hero HeroOf(Scenario w, int id = 0) => w.M.Crew.HeroOf(id)!;
 
-    /// <summary>
-    /// The whole units <paramref name="felt"/> degrees cost the breath on tick <paramref name="clock"/> of its surface's crew:
-    /// <c>Bite</c> thousandths each, paid as the breaths counted pass whole units.
-    /// </summary>
-    internal static int ColdOn(int clock, int felt)
-    {
-        long rate = (long)felt * Content.Temperature.Bite, n = clock / Content.Crew.BreathEvery;
-        return (int)((n + 1) * rate / 1000 - n * rate / 1000);
-    }
-
     /// <summary>Runs whole breaths: from just after one beat to just after the <paramref name="count"/>-th next.</summary>
     private static Scenario Breaths(Scenario w, int count) =>
         w.Run(count * Content.Crew.BreathEvery - w.Crew().Clock % Content.Crew.BreathEvery);
@@ -73,37 +63,42 @@ public class TemperatureTests
 
     private static int Cell(Scenario w, int x, int y) => y * w.M.Grid.Width + x;
 
-    /// <summary>The first planet with every row a test's map has in band <paramref name="band"/>, every band as warm as that one.</summary>
+    /// <summary>The first planet with every row a test's map has in band <paramref name="band"/>, every band as warm as that one, its surface's air too.</summary>
     internal static Content.PlanetType InBand(int band) => Content.PlanetTypes.First with
     {
+        Air = null,
         Bands = [.. Content.PlanetTypes.First.Bands.Select((bottom, i) => i < band ? -1000 - 1000 * (band - i) : bottom)],
         Temperatures = [.. Content.PlanetTypes.First.Temperatures.Select(_ => Content.PlanetTypes.First.Temperatures[band])],
     };
 
     [Fact]
-    public void AboardAnAirlessCellInTheZoneIsTheHullsAndOffTheGridIsSpaceOnAnySurface()
+    public void AboardAnAirlessCellInTheZoneIsTheHullsAndOffTheGridIsTheDeepsOnAnySurface()
     {
         var w = new Scenario(PodRoom);
         w.Do(new Enter(Beyond) { From = 0 }).Run();
         int size = w.M.Grid.Width * w.M.Grid.Height;
         Assert.Equal(Content.Temperature.Hull, w.M.Crew.TemperatureAt(Beyond));
-        Assert.Equal((Content.Temperature.Space, Content.Temperature.Space), (w.M.Crew.TemperatureAt(-1), w.M.Crew.TemperatureAt(size)));
+        Assert.Equal((Content.Temperature.Deep, Content.Temperature.Deep), (w.M.Crew.TemperatureAt(-1), w.M.Crew.TemperatureAt(size)));
         var planet = OpenGround(Content.PlanetTypes.First, night: true);
         int width = planet.M.Grid.Width;
         // A small negative cell rounds into row 0, one past the bottom into the deepest band: neither is a cell.
-        Assert.Equal(Content.Temperature.Space, planet.M.Crew.TemperatureAt(-1));
-        Assert.Equal(Content.Temperature.Space, planet.M.Crew.TemperatureAt(width * planet.M.Grid.Height + width));
+        Assert.Equal(Content.Temperature.Deep, planet.M.Crew.TemperatureAt(-1));
+        Assert.Equal(Content.Temperature.Deep, planet.M.Crew.TemperatureAt(width * planet.M.Grid.Height + width));
     }
 
     [Fact]
     public void APlanetsDegreesRunFromTheTopBandsToTheLastsADegreeARowAtMostWithNoStepAtABandsEdge()
     {
-        // The user's ask: no band reads one round number all through (2026-11-14-temperature-in-degrees).
+        // The user's ask: no band reads one round number all through (2026-11-14-temperature-in-degrees). The mild air up top cools to
+        // the cold band's middle, then the planet warms to its core (2026-11-17-mild-climate).
         var t = Content.PlanetTypes.First;
         var rows = Enumerable.Range(0, t.Ground.Height).Select(row => Terrain.TemperatureOf(t, row)).ToList();
-        Assert.Equal((t.Temperatures[0], t.Temperatures[^1]), (rows[0], rows[^1]));
+        Assert.Equal((t.Air!.Value, t.Temperatures[^1]), (rows[0], rows[^1]));
+        Assert.Equal(t.Air.Value, rows[t.Ground.Surface]);
+        int coldest = rows.IndexOf(rows.Min());
+        Assert.Equal(t.Temperatures[0], rows[coldest]);
         for (int row = 1; row < rows.Count; row++)
-            Assert.InRange(rows[row] - rows[row - 1], 0, 1);
+            Assert.InRange(rows[row] - rows[row - 1], row <= coldest ? -1 : 0, row <= coldest ? 0 : 1);
         Assert.All(t.Temperatures, degrees => Assert.Contains(degrees, rows));
         // Where the cold band gives way to the garden, a reading between theirs.
         int edge = Enumerable.Range(0, t.Ground.Height).First(row => Terrain.BandOf(t, row) == 1);
@@ -131,31 +126,32 @@ public class TemperatureTests
         w.Do(new Enter(Beyond) { From = 0 }).Run();
         Assert.Equal(Content.Temperature.BareLow, w.M.Crew.LowOf(0));
         w.Wear(0, Content.Suit.Basic);
-        Assert.Equal(-40, w.M.Crew.LowOf(0));
+        Assert.Equal(-110, w.M.Crew.LowOf(0));
         w.Wear(0, Content.Cape.Item);
-        Assert.Equal(-40 - Content.Cape.Warmth, w.M.Crew.LowOf(0));
+        Assert.Equal(-110 - Content.Cape.Warmth, w.M.Crew.LowOf(0));
         Assert.Equal(0, w.M.Crew.Felt(0, Beyond));
         // No hero, nothing felt.
         Assert.Equal(0, w.M.Crew.Felt(1, Beyond));
     }
 
     [Fact]
-    public void ARegenSuitWithNoAirOutAtNightPassesOutThoughItCoversEveryBreath()
+    public void ARegenSuitWithNoAirOutInTheColdBreathesOnForTheColdTakesNoAir()
     {
-        // It gives back each breath, but not the cold: the last breath runs on through the breaths the cold's schedule skips.
-        var w = OpenGround(Content.PlanetTypes.First, night: true, bare: true)
+        // It gives back each breath, and the cold moves the body, not the air (body-temperature): the last breath ends.
+        var w = OpenGround(At(-120), night: false, bare: true)
             .Wear(0, Content.Helmet.Basic).Wear(0, Content.Suit.Regen);
         w.Put(Content.Inventory.Slots + Content.Inventory.Equipment.ToList().IndexOf(Content.Charge.Belt), new Items.Stack("battery", 1, Content.Charge.Battery));
         w.Do(new SuitMode(true) { From = 0 }).Run();
         Assert.Equal(10, w.M.Crew.Felt(0, HeroOf(w).Cell));
         HeroOf(w).Air = 0;
-        for (int i = 0; i < 2 * Content.Crew.LastBreath && HeroOf(w).Out == 0; i++) w.Run();
-        Assert.True(HeroOf(w).Out > 0);
+        Breaths(w, 2 * Content.Crew.LastBreath / Content.Crew.BreathEvery);
+        Assert.Equal((0, 0), (HeroOf(w).Out, HeroOf(w).Gasp));
     }
 
     /// <summary>The first planet with every band at <paramref name="degrees"/>: a test's open ground reads them by day.</summary>
     private static Content.PlanetType At(int degrees) => Content.PlanetTypes.First with
     {
+        Air = null,
         Temperatures = [.. Content.PlanetTypes.First.Temperatures.Select(_ => degrees)],
     };
 
@@ -196,10 +192,10 @@ public class TemperatureTests
     }
 
     [Theory]
-    // Ten breaths: 10° felt are 2 units more than none, 15° 3 (Bite 20‰ a degree a breath).
-    [InlineData(false, 2)]
-    [InlineData(true, 3)]
-    public void HeatCostsAsTheColdDoesBiteABreathADegree(bool caped, int more)
+    // Ten breaths: 10° felt, 15° caped, warm the body toward 39.0° and 40.0°, and cost the air nothing (body-temperature).
+    [InlineData(false)]
+    [InlineData(true)]
+    public void HeatWarmsTheBodyAndCostsNoAir(bool caped)
     {
         var (calm, hot) = (InHeat(45, Content.Suit.Basic), InHeat(60, Content.Suit.Basic, caped));
         foreach (var w in new[] { calm, hot })
@@ -207,20 +203,22 @@ public class TemperatureTests
             HeroOf(w).Air = w.M.Crew.CapacityOf(0);
             Breaths(w, 10);
         }
-        Assert.Equal(more, HeroOf(calm).Air - HeroOf(hot).Air);
+        Assert.Equal(HeroOf(calm).Air, HeroOf(hot).Air);
+        Assert.Equal(0, calm.M.Crew.Heat(0, HeroOf(calm).Cell));
+        Assert.Equal(caped ? 15 : 10, hot.M.Crew.Heat(0, HeroOf(hot).Cell));
     }
 
     [Fact]
-    public void ARegenSuitWithNoAirInTheEmberPassesOutForItGivesNoneOfTheHeatBack()
+    public void ARegenSuitWithNoAirInTheEmberBreathesOnForTheHeatTakesNoAir()
     {
-        // It gives back each breath, not the heat: the last breath runs on through the breaths the heat's schedule skips.
+        // It gives back each breath, and the heat moves the body, not the air (body-temperature): the last breath ends.
         var w = InHeat(60, Content.Suit.Regen);
         w.Put(Content.Inventory.Slots + Content.Inventory.Equipment.ToList().IndexOf(Content.Charge.Belt), new Items.Stack("battery", 1, Content.Charge.Battery));
         w.Do(new SuitMode(true) { From = 0 }).Run();
         Assert.Equal(10, w.M.Crew.Heat(0, HeroOf(w).Cell));
         HeroOf(w).Air = 0;
-        for (int i = 0; i < 2 * Content.Crew.LastBreath && HeroOf(w).Out == 0; i++) w.Run();
-        Assert.True(HeroOf(w).Out > 0);
+        Breaths(w, 2 * Content.Crew.LastBreath / Content.Crew.BreathEvery);
+        Assert.Equal((0, 0), (HeroOf(w).Out, HeroOf(w).Gasp));
     }
 
     /// <summary>Any body or none, caped or not, at any degrees a planet may read: the cold and the heat are never felt at once.</summary>
@@ -242,38 +240,12 @@ public class TemperatureTests
     [Fact]
     public void TheColdLeavesTheCapesRemainderForBlowsAlone()
     {
-        var w = new Scenario(PodRoom) { Bare = true }.Wear(0, Content.Cape.Item);
-        w.Do(new Enter(Beyond) { From = 0 }).Run();
+        // Bare and caped at −10°: 5 felt, the cape's remainder untouched.
+        var w = InHeat(-10, null, caped: true);
         w.M.Crew.Blow(0, 3, Harm.Blow);
         Assert.Equal(600, HeroOf(w).Spared);
         Breaths(w, 10);
         Assert.Equal(600, HeroOf(w).Spared);
-    }
-
-    /// <summary>
-    /// A hero in vacuum aboard, in a body or bare, caped or not, breathing <c>k</c> breaths from any tick: its air pays the breaths
-    /// and, within a unit, <c>k</c> × felt × <c>Bite</c> thousandths; and more felt never pays less.
-    /// </summary>
-    [Property(MaxTest = 40)]
-    public Property PaysTheDegreesFeltAtBiteABreathWithinAUnit()
-    {
-        var cases = from bodied in Gen.Elements(false, true)
-                    from caped in Gen.Elements(false, true)
-                    from start in Gen.Choose(0, 200)
-                    from k in Gen.Choose(1, 10)
-                    select (bodied, caped, start, k);
-        return Prop.ForAll(cases.ToArbitrary(), c =>
-        {
-            var w = new Scenario(PodRoom) { Bare = !c.bodied };
-            if (c.caped) w.Wear(0, Content.Cape.Item);
-            w.Do(new Enter(Beyond) { From = 0 }).Run(1 + c.start);
-            while (w.Crew().Clock % Content.Crew.BreathEvery != 0) w.Run();
-            int felt = w.M.Crew.Felt(0, Beyond);
-            HeroOf(w).Air = w.M.Crew.CapacityOf(0);
-            Breaths(w, c.k);
-            int paid = w.M.Crew.CapacityOf(0) - HeroOf(w).Air - c.k;
-            int owed = c.k * felt * Content.Temperature.Bite;
-            return (paid * 1000 > owed - 1000 && paid * 1000 < owed + 1000).Label($"felt {felt} over {c.k}: paid {paid}, owed {owed}‰");
-        });
+        Assert.Equal(5, w.M.Crew.Felt(0, HeroOf(w).Cell));
     }
 }

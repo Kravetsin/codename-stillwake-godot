@@ -41,7 +41,7 @@ public partial class Haze : CanvasLayer
     private double _sinceRead = RefreshS, _shown;
     private float _heat;
 
-    /// <param name="read">How hot this player's hero is, 0 to 1: <see cref="Report.Heat"/> at its body's cell.</param>
+    /// <param name="read">How hot this player's hero is, 0 to 1: its body's, <see cref="Report.Heat"/>.</param>
     public Haze(Func<float> read)
     {
         _read = read;

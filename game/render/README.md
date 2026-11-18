@@ -4,26 +4,26 @@
 
 | File | Purpose |
 | --- | --- |
-| `AsciiArt.cs` | Small pictures drawn as ASCII in code, kept under a key. |
+| `AsciiArt.cs` | ASCII pictures drawn in code. |
 | `logic/ArcBurst.cs` | A charge's fizz and bolts on a moving blade (spear-effects). |
 | `Bend.cs` | Grass bent by `Stirs` (plant-stirs). |
 | `BladeCharge.cs` | `ArcBurst` drawn on a held blade. |
 | `logic/Blueprint.cs` | How plans join the plans beside them when drawn. |
-| `BlueprintArt.cs` | A placement as built: plans, ghosts, build menu thumbnails. |
+| `BlueprintArt.cs` | A placement as built: plans, ghosts, thumbnails. |
 | `logic/Bolts.cs` | The electric arcs in the world (0075). |
 | `logic/Breath.cs` | How what is aimed at breathes: outline, glowing faces on one clock. |
-| `BuiltParts.cs` | What of the plans being built is already real (0063). |
+| `BuiltParts.cs` | What of a plan in work is real (0063). |
 | `logic/Buttons.cs` | The mouse buttons as the world reads them. |
-| `logic/CableShape.cs` | A cable as drawn: ends at nodes, hang, way through the hull. |
+| `logic/CableShape.cs` | A cable drawn: ends, hang, way through the hull. |
 | `logic/DoorShape.cs` | A doorway's pictures by the joins of its cells (0067). |
 | `DriftLayer.cs` | A backdrop plane, things scattered over its tiles by `Scatter`. |
 | `DrillLight.cs` | A drill's own light while it runs (0054, 0075, 0094). |
 | `Dust.cs` | Faint dust between the far wrecks and the ship. |
 | `logic/EffectArea.cs` | Where a held tool's effect lives: drawn pixels in a box. |
 | `logic/EdgeLip.cs` | A blade's lip, its edge's rim out: where an effect skin rests. |
-| `FarWrecks.cs` | Wreckage far behind the ship, from the wrecks' pictures. |
-| `logic/Flares.cs` | Glints, shock lines, flashes of the world's key moments (0075). |
-| `Glow.cs` | A point lighting what is round it a little while shown. |
+| `FarWrecks.cs` | Far wreckage, from the wrecks' pictures. |
+| `logic/Flares.cs` | Glints, shock lines, flashes (0075). |
+| `Glow.cs` | A point lighting round it a while. |
 | `GroundArt.cs` | A planet's ground pictures made, not drawn (0077, 0079). |
 | `logic/GroundDetails.cs` | Pictures laid over a planet's ground (0082). |
 | `logic/GroundShadow.cs` | The soft shadow walls cast on a natural back wall (0088). |
@@ -63,7 +63,7 @@
 | `logic/Scatter.cs` | Where the backdrop's things lie, by a hash of seed and tile. |
 | `ShadowTiles.cs` | `GroundShadow`'s shadows as tiles of one `TileSet` (0088). |
 | `Shimmer.cs` | Heat shimmer (0075). |
-| `ShipCamera.cs` | The camera over the ship: centring, zoom steps. |
+| `ShipCamera.cs` | The camera: centring, zoom steps; farthest 160 by 90 cells. |
 | `ShipTiles.cs` | Every cell picture in one atlas with its normal and ore maps (`Shared`). |
 | `Signs.cs` | The power bolt, its warnings, the credit chip (ink-signs). |
 | `Sketch.cs` | A node drawn by a callback: lines, boxes, dots. |
@@ -72,10 +72,10 @@
 | `logic/Stirs.cs` | Grass pushed by bodies' feet, springing back (plant-stirs). |
 | `Stars.cs` | Space behind the ship and the title: a tile of stars. |
 | `StretchBackdrop.cs` | A stretch's far picture, behind the far wrecks. |
-| `WorldShot.cs` | The world as the camera sees it, no HUD: the title's cards. |
+| `WorldShot.cs` | The world without the HUD: the title's cards. |
 | `Strokes.cs` | Soft-edged strokes of light in one draw call (0075). |
 | `Style.cs` | The panels' colours and boxes as Godot styles. |
-| `WorldButtons.cs` | The mouse over the world for `Buttons`, unless a panel took it. |
+| `WorldButtons.cs` | The mouse over the world, unless a panel took it. |
 
 The backdrop behind the ship, client only. Numbers: `Content/logic/Backdrop.cs`
 and constants; the rest in `///` summaries.
@@ -83,8 +83,9 @@ and constants; the rest in `///` summaries.
 ## Rules
 
 - **A planet's sky** (`PlanetSky`, 0079) replaces space on a surface with daylight, shown by `Stars`: gradient, gas
-  giant, drifting cloud and sun (`art/hd/planet`, the set its kind's `PlanetLooks.Backdrop` names, 0095); sun, giant and
-  clouds at fixed shares of the screen. In front, the land composed by `features/backdrop` (composed-backdrops), both on
+  giant, drifting cloud and sun (`art/hd/planet`, the set its kind's `PlanetLooks.Backdrop` names, 0095); giant and clouds
+  at fixed shares of the screen; the sun by the hour (`Daylight.Sun`, moving-sun), on an arc from the rim to noon's height,
+  in and out past the screen's sides. In front, the land composed by `features/backdrop` (composed-backdrops), both on
   its ground line round the camera.
 - **Three planes in space, far to near**, on `ScreenLayers.Stars`, under the world and panels; the ship's back walls
   hide them. Unlit.

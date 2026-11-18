@@ -79,8 +79,8 @@ Game words → code. One line a term: Russian / English → identifiers → modu
 - побочный продукт, шанс / byproduct → `ItemSpec.Byproducts` (`LootEntry`, its `OneIn`), drawn as a fed station's smelt completes; several a smelt → `ItemSpec.SmeltTakes`, `TooFew` → Crafting
 - ферментёр, перегонный аппарат / fermenter → machine `fermenter` (process `ferment`): biomass and fat into its 20 l fuel store, the only way to biofuel → Crafting, Fuel
 - капсула / grow capsule → machine `growCapsule` → Crafting. Lifepod **≠**: machine `lifepod`, its station "Fabricator" (`station.lifepod`)
-- доска / the board **≠** → `BoardPage` in `ResearchTablet` on the tablet (T); `BoardSlots`, `BoardView`, `BoardPile` (client) → Research. The tech tree is gone (the-board): the board learns, the black market sells
-- заметка, силуэт, нить / note, silhouette (shape), thread → `BoardView`, `BoardThreads`, `BoardPencil` (how far a shape has come) (client)
+- доска / the board **≠** → `BoardPage` in `ResearchTablet` on the tablet (T); `BoardLayout`, `BoardDistricts`, `BoardView` (client) → Research. Fixed district islands (board-islands); the board learns, the black market sells
+- район, силуэт, находки, цель / district, silhouette, finds, goal → `BoardDistricts`, `BoardView` (almost), `BoardSeen` (batches as cards), `BoardChain` (a pinned goal), `BoardPencil` (how far a silhouette has come) (client)
 - найдено, счёт / obtained, count → `Knowledge.Obtained` (`Tally`), `ObtainedOf`, counted in `Items` → Knowledge, Items
 - понять / understood (the rule: one of each part, a machine for a craft) → `ResearchModule`'s walk, `Knowledge.Granted` → Research
 - продано / sold → `Knowledge.Sold`, `SoldOf`, counted at a capsule's launch → Knowledge, Trade
@@ -143,12 +143,14 @@ Game words → code. One line a term: Russian / English → identifiers → modu
 - планета / planet → `PlanetType` (`c/PlanetTypes.cs`), `Surface`, `Terrain` (sim/Core) → Core, Building
 - тип планеты: выжженная, ледяная / planet type: scorched, icy → `PlanetTypes.Scorched`, `Icy`, `PlanetType.OreWeights`; its look → `PlanetLooks` (gc) → Core
 - набор руд / a planet's ores → `Content.Landing.Ores`, `Starting`, `Varying`, `LandingModule.OresOf`, `Surface.Ores` → Landing, Core
-- фон, задний план, параллакс / backdrop, the land behind → `PlanetSky` (r/, the sky), `BackdropView`, `BackdropPlan` (f/backdrop, the land), `BackdropLooks` (gc) → client only
+- фон, задний план, параллакс / backdrop, the land behind → `PlanetSky` (r/, the sky; солнце / sun by the hour, `Daylight.Sun`), размытие / out of focus `FocusView`, `PlanetLooks.Look.Far` (moving-sun), `BackdropView`, `BackdropPlan` (f/backdrop, the land), `BackdropLooks` (gc) → client only
 - сутки, день, ночь, время суток / day, night, hour → `Sky.Cycle` (`c/Sky.cs`), `SkyNow`, `SetTime` (sim/Sky); fades `Daylight` (gc) → Sky
-- буря, пыльная буря, ливень, непогода / storm, dust storm, rain storm, weather **≠** → a planet's stretch: `Stretches.DustStorm`, `RainStorm` (`"dustStorm"`, `"rainStorm"`), `SkyNow.Pace`, `ICrewQueries.PaceAt`; looks `StretchLooks.Weather`, f/sky `StormView` → Sky, Crew
-- молния, удар молнии, гроза / lightning, bolt, strike → `Stretch.Bolt` (`BoltRule`, c/`Stretches.cs`), `Strike`, `BoltNow` (sim/Hazards `Bolts.cs`), `Harm.Lightning`; f/hazards `BoltView` → Hazards, Crew
-- ночной холод, мороз / the night's chill → `Cycle.Chill` (degrees), frost `Report.Cold` → Crew
-- температура, градусы, предел / temperature, degrees, a hero's limit → `TemperatureAt`, `LowOf`, `Felt` (sim/Crew), `Temperature`, `Kind.Temperatures`, `ItemSpec.Low`, `Cape.Warmth` (c/) → Crew
+- буря, пыльная буря, ливень, непогода / storm, dust storm, rain storm, weather **≠** → a planet's stretch: `Stretches.DustStorm`, `RainStorm` (`"dustStorm"`, `"rainStorm"`), `SkyNow.Pace`, `ICrewQueries.PaceAt`; песок / grit `Stretch.Grit`, `GritAt` (mild-surface); looks `StretchLooks.Weather`, f/sky `StormView` → Sky, Crew
+- полоса космоса, ледяной пояс, дрейф контрабанды / stretch of space, ice belt, contraband drift → `Stretches.IceBelt`, `ContrabandDrift`, `StretchShown` (gc/`StretchLooks`); its far picture r/`StretchBackdrop`, дымка глубины / depth haze `StretchLooks.Deep` (moving-sun) → Sky
+- молния, удар молнии, гроза / lightning, bolt, strike → `Stretch.Bolt` (`BoltRule`, `Again`: the rain's every 12–18 s, c/`Stretches.cs`), `Strike`, `BoltNow` (sim/Hazards `Bolts.cs`), `Harm.Lightning`; f/hazards `BoltView` → Hazards, Crew
+- ночной холод, мороз / the night's chill → `Cycle.Chill` (degrees), the screen's frost `Report.Cold` → Crew
+- температура, градусы, предел / temperature, degrees, a hero's limit → `TemperatureAt`, `LowOf`, `Felt`, `HighOf`, `Heat` (sim/Crew), `Temperature`, `Kind.Temperatures`, `PlanetType.Air`, `ItemSpec.Low`, `High`, `Cape.Warmth` (c/) → Crew
+- температура тела, замёрз, перегрелся / body temperature, frozen, overheated → the client's `BodyHeat` (f/crew; `Temperature.Normal`, `ColdDeath`, `HeatDeath`, `Drift`), its slowness `SpeedOf`, the death `Succumb` (sim/Crew), the suit frosted or scorched `SuitFx` (body-temperature) → Crew
 - копать / dig → `Dig`, `Crack` (sim/Building `Digging.cs`) → Building
 - жила, руда / vein, ore → `Vein` (`c/Veins.cs`), materials `copperVein`, `iceVein`, `ironVein`, `sulfurVein` (сера, item `sulfur`; `Material.In`), drawn in `Terrain` → Core
 - залежь, рудный карман / ore pocket → `Pockets` (`c/Veins.cs`), `Terrain.PaintPockets` → Core
@@ -201,4 +203,6 @@ Game words → code. One line a term: Russian / English → identifiers → modu
 - хост / host, co-op → net/Net `Host`, `Client`, `Session`; game/menu `Together`; `game/Main.Sessions.cs` → net
 - справочник / Handbook → f/handbook `HandbookPanel`, `game/Content/logic/Handbook.cs` → UI
 - подсказка / tooltip → `game/shared/logic/Tip.cs`, `PointerTip` → UI
+- показатели, циферблаты, полоса воздуха / vitals, dials, air bar → `Vitals`, `RingLight`, `DialNumber`, `AirRow`, `AirMotion` (game/shared), `EnergyBar` (f/energy), `SuitGauge`, `MealSlots` (f/crew) (hud-dials) → UI
+- термометр, «Ртуть» / thermometer **≠** the temperature dial → `Thermometer`, `Thermometers` (f/crew), the body to a tenth → UI
 - дев-аргумент, демо / dev argument, demo → `-- --<name>`: one `DevMode` each in `game/dev/logic/DevModes.cs`, wired in `game/dev/Main.Dev.cs` → Dev tools

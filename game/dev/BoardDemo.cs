@@ -10,13 +10,14 @@ using Stillwake.Sim.Grid;
 namespace Stillwake.Game.Dev;
 
 /// <summary>
-/// <c>-- --board</c>: the board on the tablet, a world's counts seeded through its save and nothing obtained during the run (docs/decisions/2026-11-05-the-board.md).
-/// Bare it is blank; <c>=first</c>, <c>=near</c>, <c>=burst</c>, <c>=circuit</c> and <c>=late</c> are stills along the way. Script: finds
-/// that light the key (with something seeded; 6 with <c>=burst</c>, 15 with <c>=late</c>), T, three entries clicked down, the rest taken at once, a click on the first note, a
-/// click on a shape, the wheel out, a click off everything, the first note dragged away, the board itself dragged, T again, a press on the key; each step is printed with its time.
-/// <c>=bought</c> has everything found and the solar panel bought: T, a click on it, the wheel all the way out, the first note carried to the edge. <c>=search</c>, the same world: the board's search typed in, a pick by the arrows and Enter, a name not there, Esc. <c>=tools</c>, the same world wheeled all the way in over the screwdriver and it clicked: tool icons at the board's most zoom.
+/// <c>-- --board</c>: the board on the tablet, a world's counts seeded through its save and nothing obtained during the run (board-islands).
+/// Bare it is all «?»; <c>=first</c>, <c>=near</c>, <c>=burst</c>, <c>=circuit</c> and <c>=late</c> are stills along the way. Script: finds that light the
+/// key (with something seeded; 6 with <c>=burst</c>, 15 with <c>=late</c>), T, a frame pointed at, the newest find clicked, a silhouette clicked, the wheel
+/// out, the board dragged, T again, a press on the key; each step is printed with its time. <c>=bought</c> has everything found and the solar panel bought:
+/// T, a click on it, the wheel all the way out. <c>=search</c>, the same world: the board's search typed in, a pick by the arrows and Enter, a name not
+/// there, Esc. <c>=tools</c>, the same world wheeled all the way in over the screwdriver and it clicked: tool icons at the board's most zoom.
 /// </summary>
-public partial class BoardDemo(Func<Registry> m, string? value) : Node
+public partial class BoardDemo(Func<Registry> m, Func<World?> world, string? value) : Node
 {
     private const int Plenty = 40;
 
@@ -69,12 +70,12 @@ public partial class BoardDemo(Func<Registry> m, string? value) : Node
     private TabletHands _hands = null!;
     private ResearchTablet _tablet = null!;
 
-    /// <summary>The thing first in the board's list that shows as <paramref name="show"/>; null for none.</summary>
-    private string? First(BoardShow show)
+    /// <summary>The thing first on the board that shows as <paramref name="state"/>; null for none.</summary>
+    private string? First(BoardState state)
     {
-        var read = BoardPage.ReadOf(m());
-        var picture = BoardView.Of(BoardSlots.Of(read.Found, BoardThings.All, read.Granted), BoardThings.All, read, null);
-        return picture.Shows.FirstOrDefault(s => s.Value == show).Key;
+        if (world() is not { } w) return null;
+        var read = BoardRead.Of(w);
+        return BoardThings.Ids.FirstOrDefault(id => BoardView.StateOf(id, read) == state);
     }
 
     /// <summary>Things new found, for the key to light for: what the seed had not got to.</summary>
@@ -87,29 +88,15 @@ public partial class BoardDemo(Func<Registry> m, string? value) : Node
         foreach (string item in InSpace.Where(i => knowledge.ObtainedOf(i) == 0).Take(count)) knowledge.Obtain(item, 1);
     }
 
-    /// <summary>A press and release at <paramref name="at"/> while an entry is shown.</summary>
-    private void PressWhileReading(Vector2 at)
-    {
-        if (!_tablet.Reading) return;
-        _hands.Mouse(at, MouseButton.Left, true);
-        _hands.Mouse(at, MouseButton.Left, false);
-    }
-
     private void Click(string? id)
     {
         if (id == null) return;
         _hands.Mouse(_tablet.ScreenOf(id), MouseButton.Left, true);
     }
 
-    private void Drag(Vector2 by)
-    {
-        if (First(BoardShow.Note) != null) _hands.Move(_hands.Last + by, MouseButton.Left);
-    }
+    private void Drag(Vector2 by) => _hands.Move(_hands.Last + by, MouseButton.Left);
 
-    private void LetGo()
-    {
-        if (First(BoardShow.Note) != null) _hands.Mouse(_hands.Last, MouseButton.Left, false);
-    }
+    private void LetGo() => _hands.Mouse(_hands.Last, MouseButton.Left, false);
 
     public override void _Process(double delta)
     {
@@ -118,50 +105,33 @@ public partial class BoardDemo(Func<Registry> m, string? value) : Node
         _tablet ??= GetParent().GetChildren().OfType<ResearchTablet>().First();
         (double At, string What, Action Do)[] script =
         [
-            (0.5, "a find: the key lit", Find),
-            (1.5, "T opens it on the board, the first entry large", () => TabletHands.Press(Key.T)),
-            (2.5, "click the entry: it flies to its place", () => PressWhileReading(_tablet.EntryAt)),
-            (3.3, "the next", () => PressWhileReading(_tablet.EntryAt)),
-            (3.5, "the next, not waiting for the landing", () => PressWhileReading(_tablet.EntryAt)),
-            (4.4, "take all: the rest at once", () => PressWhileReading(_tablet.TakeAllAt)),
-            (6.0, "click the first note", () => Click(First(BoardShow.Note))),
-            (6.05, "let go: its ties lit", LetGo),
-            (7.2, "click a shape", () => Click(First(BoardShow.Silhouette))),
-            (7.25, "let go: what it takes", LetGo),
-            (8.4, "wheel out", () => _hands.Wheel(GetViewport().GetVisibleRect().GetCenter(), MouseButton.WheelDown, 5)),
-            (9.0, "click off everything", () => { if (First(BoardShow.Note) is { } note) _hands.Mouse(_tablet.ScreenOf(note) + new Vector2(-300, 120), MouseButton.Left, true); }),
-            (9.05, "let go: nothing picked", LetGo),
-            (9.6, "take the first note", () => Click(First(BoardShow.Note))),
-            (9.7, "drag it", () => Drag(new Vector2(60, 30))),
-            (9.8, "on", () => Drag(new Vector2(90, 45))),
-            (9.9, "and on", () => Drag(new Vector2(90, 45))),
-            (10.0, "let go: it stays, its threads with it", LetGo),
-            (10.1, "take the board itself", () => { if (First(BoardShow.Note) is { } note) _hands.Mouse(_tablet.ScreenOf(note) + new Vector2(-300, 120), MouseButton.Left, true); }),
-            (10.2, "drag it up and left", () => Drag(new Vector2(-200, -100))),
-            (10.3, "on: its corner out of the view, the threads still there", () => Drag(new Vector2(-200, -100))),
-            (10.4, "let go", LetGo),
-            (10.6, "T puts it away: nothing new, the lamp dark", () => TabletHands.Press(Key.T)),
-            (12.0, "press the key: the tablet again", () => _hands.Mouse(_tablet.KeyCovers.GetCenter(), MouseButton.Left, true)),
-            (12.05, "let go", () => _hands.Mouse(_hands.Last, MouseButton.Left, false)),
+            (0.5, "a find: the key lit, its count a batch", Find),
+            (1.5, "T opens it on the board at the newest find, its frames glowing", () => TabletHands.Press(Key.T)),
+            (2.5, "point at a frame: its ties lit, its glow out", () => { if (First(BoardState.Known) is { } id) _hands.Point(_tablet.ScreenOf(id)); }),
+            (3.5, "click the newest line of finds: the board flies there", () => _hands.Mouse(_tablet.FirstFindAt, MouseButton.Left, true)),
+            (3.55, "let go", LetGo),
+            (4.5, "click a silhouette: what it lacks in the strip", () => Click(First(BoardState.Almost))),
+            (4.55, "let go", LetGo),
+            (5.5, "wheel out: the whole board, the districts' captions over them", () => _hands.Wheel(GetViewport().GetVisibleRect().GetCenter(), MouseButton.WheelDown, 8)),
+            (6.5, "take the board", () => _hands.Mouse(GetViewport().GetVisibleRect().GetCenter(), MouseButton.Left, true)),
+            (6.6, "drag it", () => Drag(new Vector2(-200, -100))),
+            (6.7, "let go", LetGo),
+            (7.5, "T puts it away", () => TabletHands.Press(Key.T)),
+            (9.0, "press the key: the tablet again", () => _hands.Mouse(_tablet.KeyCovers.GetCenter(), MouseButton.Left, true)),
+            (9.05, "let go", () => _hands.Mouse(_hands.Last, MouseButton.Left, false)),
         ];
         if (value == "bought")
             script =
             [
                 (0.5, "T opens it on the board", () => TabletHands.Press(Key.T)),
-                (1.0, "take all: what the walk just understood", () => PressWhileReading(_tablet.TakeAllAt)),
                 (2.5, "click the solar panel", () => Click("solarPanel")),
                 (2.55, "let go: its ties lit", LetGo),
                 (4.0, "click off and wheel all the way out", () => { LetGo(); _hands.Wheel(GetViewport().GetVisibleRect().GetCenter(), MouseButton.WheelDown, 30); }),
-                (5.0, "take the first note", () => Click(First(BoardShow.Note))),
-                (5.1, "carry it", () => Drag(new Vector2(400, 200))),
-                (5.2, "on, past the edge", () => Drag(new Vector2(400, 200))),
-                (5.3, "let go: it stands at the edge", LetGo),
             ];
         if (value == "tools")
             script =
             [
                 (0.5, "T opens it on the board", () => TabletHands.Press(Key.T)),
-                (1.0, "take all", () => PressWhileReading(_tablet.TakeAllAt)),
                 (4.0, "wheel all the way in over the screwdriver: the tools drawn large", () => _hands.Wheel(_tablet.ScreenOf("screwdriver"), MouseButton.WheelUp, 10)),
                 (5.0, "click the screwdriver: its card's picture too", () => Click("screwdriver")),
                 (5.05, "let go", LetGo),
@@ -170,7 +140,6 @@ public partial class BoardDemo(Func<Registry> m, string? value) : Node
             script =
             [
                 (0.5, "T opens it on the board", () => TabletHands.Press(Key.T)),
-                (1.0, "take all", () => PressWhileReading(_tablet.TakeAllAt)),
                 (2.5, "wheel all the way out", () => _hands.Wheel(GetViewport().GetVisibleRect().GetCenter(), MouseButton.WheelDown, 30)),
                 (3.0, "/ puts the keys in the board's search", () => TabletHands.Press(Key.Slash)),
                 (3.3, "type iron's name: iron, then what it ties to, the board lit by the list", () => TabletHands.Type(I18n.En.T("item.iron").ToLowerInvariant())),

@@ -139,13 +139,12 @@ public partial class ContentTests
     }
 
     [Fact]
-    public void LeavesBandsOfColdBetweenTheFieldAndTheWorldsEdgeThatEmptyAFullSuitThere()
+    public void LeavesRoomPastTheFieldEveryWayBeforeTheWorldsEdge()
     {
         AllPositive(typeof(Field));
         // Room past the field every way, so its line is crossed before the grid's wall.
         Assert.True(Content.World.ZoneWidth + 2 * Field.Margin < Content.World.Width);
         Assert.True(Content.World.ZoneHeight + 2 * Field.Margin < Content.World.Height);
-        Assert.True(Field.EdgeCost <= Scenario.Full && Field.EdgeCost <= Field.OffGrid);
         Assert.InRange(Content.Crew.ReportEvery, 1, Content.Crew.PassOut);
     }
 

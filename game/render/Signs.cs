@@ -32,13 +32,7 @@ public static class Signs
     /// <summary>The power symbol over a machine a player switched off (industrial-oxygen): steady, never the bolt's blink.</summary>
     public static Texture2D Off() => PixelArt.Picture("sign_off");
 
-    /// <summary>A frost star: the vitals' thermometer's sign (the-thermometer).</summary>
-    public static Texture2D Cold() => PixelArt.Picture("sign_cold");
-
-    /// <summary>The thermometer's heat sign: a flame in ember, the star's place once past the body's high (2026-11-14-heat-limits).</summary>
-    public static Texture2D Heat() => PixelArt.Picture("sign_heat");
-
-    /// <summary>Hunger's sign: the vitals' meals row's, lit while every meal slot is empty.</summary>
+    /// <summary>Hunger's sign: the vitals' last dial while no meal is eaten (hud-dials).</summary>
     public static Texture2D Hunger() => PixelArt.Picture("sign_hunger");
 
     /// <summary>The chip credits are written with, before every amount.</summary>

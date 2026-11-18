@@ -4,14 +4,14 @@
 
 | File | Purpose |
 | --- | --- |
-| `Bolts.cs` | A storm's one bolt of lightning: drawn, aimed, glowing, striking; `BoltNow` by hand. |
+| `Bolts.cs` | A storm's lightning: drawn, aimed, glowing, striking; `BoltNow` by hand. |
 | `Flares.cs` | Magnetic flares breaking machines: drawn, counted down, striking; `FlareNow` by hand. |
 | `Hazards.cs` | Meteors breaking the hull: the place's shower falling by itself, and struck by hand. |
 
 Meteors breaking the hull ([meteor-wave](../../docs/decisions/2026-10-29-meteor-wave.md), [hull-meteors](../../docs/decisions/2026-10-28-hull-meteors.md), [meteor-blast](../../docs/decisions/2026-10-28-meteor-blast.md),
 [holes-not-planned](../../docs/decisions/2026-10-29-holes-not-planned.md), [weak-meteors-till-landing](../../docs/decisions/2026-10-29-weak-meteors-till-landing.md)): a place's shower
-(`Surfaces.Kind.Meteors`, `Content/Meteors.cs`) falls by itself; the dev panel strikes one. Ported from `packages/sim/src/modules/hazards`; its rules hold
-here unchanged. Magnetic flares break machines ([magnetic-flare](../../docs/decisions/2026-10-30-magnetic-flare.md),
+(`Surfaces.Kind.Meteors`, `Content/Meteors.cs`) falls by itself; the dev panel strikes one. Ported from `packages/sim/src/modules/hazards`; its rules hold.
+Magnetic flares break machines ([magnetic-flare](../../docs/decisions/2026-10-30-magnetic-flare.md),
 `Surfaces.Kind.Flares`, `Content/MagneticFlares.cs`).
 
 - **Depends on:** `Grid`, through `IGridQueries` (reads walls, what is built); `Power` (`IsBroken`, `NetworkOf`; `Break`);
@@ -55,7 +55,7 @@ here unchanged. Magnetic flares break machines ([magnetic-flare](../../docs/deci
 - `FlareNow(ticks)` (dev) sets `FlareIn`, replacing a flare drawn and not yet coming, in any world; a place with no
   `Flares` strikes with `StartingSpace`'s.
 - **A bolt** ([storm-lightning](../../docs/decisions/2026-11-16-storm-lightning.md)), after the flare: a `Strike` counts down, strikes at 0, calm or not.
-  A storm with a `Bolt` draws `BoltIn` in `At` on its first tick (not calm), dropped when no such storm runs; at 0 one hero awake
+  A storm with a `Bolt` draws `BoltIn` in `At` on its first tick (not calm), dropped when no such storm runs, `Again` after a strike; at 0 one hero awake
   on the grid is drawn, in id order, and the bolt aimed: of the columns within `Columns` of its, in the zone, each one's top wall
   under open sky only, the highest, ties nearest then left. None: no bolt. It strikes `Burst(Nobody, cell, Power, Reach, Lost)`,
   then `Shock(Shock, Harm.Lightning)` to each hero in `Spread` columns under the open sky.

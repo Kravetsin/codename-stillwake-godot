@@ -124,7 +124,7 @@ public class FogBandsTests
     }
 
     [Fact]
-    public void NoCellOfEitherPlanetPaysTheCold()
+    public void NoPlanetsDegreesFallTowardItsEdge()
     {
         foreach (var type in PlanetTypes.All)
         {
@@ -137,10 +137,10 @@ public class FogBandsTests
             w.Do(new OpenSurface(type.Id)).Run();
             var m = w.On(1);
             int width = m.Grid.Width, height = m.Grid.Height;
-            // The cost grows toward the world's edge by the deeper axis: none on the outermost cells, none inside.
+            // Afloat space cools toward the field's line; a planet's outermost cells read their rows' degrees, by day no chill (body-temperature).
             var ring = Enumerable.Range(0, width).SelectMany(x => new[] { x, (height - 1) * width + x })
                 .Concat(Enumerable.Range(0, height).SelectMany(y => new[] { y * width, y * width + width - 1 }));
-            Assert.All(ring, cell => Assert.Equal(0, m.Crew.EdgeCost(cell)));
+            Assert.All(ring, cell => Assert.Equal(Terrain.TemperatureOf(type, cell / width), m.Crew.TemperatureAt(cell)));
         }
     }
 
