@@ -1,9 +1,10 @@
 // A vessel's guards' docks, as picked (derelict-enemies): capsule G1 «Зрачок — впадина» on a small room's back wall and stand S1 «Люлька»
 // on a big room's floor, ported from the pick pages' draw code (mountG, faceLamp, CAP_G1; STANDS[0]). Asleep: the capsule shut behind its
-// smoked iris, its hazard lamp dark (the game blinks its amber pip); the stand without its robot, drawn in front of it later.
+// smoked iris, its hazard lamp dark (the game blinks its amber pip); the stand without its robot and without what moves.
 // `guard_capsule_open` is the capsule awake, its iris open (the game draws the blades opening over it, then the lamp red).
-// `guard_capsule`, 40 × 48: its dock's 5 × 5 cells and the row over them, the floor at its foot. `guard_stand`, 56 × 64, and
-// `guard_stand_front` (yoke and waist clamp, over the robot): its dock's 7 × 8 cells, the robot's middle 3 cells from its left.
+// `guard_capsule`, 40 × 48: its dock's 5 × 5 cells and the row over them, the floor at its foot. `guard_stand`, 56 × 64: its dock's
+// 7 × 8 cells, the robot's middle 3 cells from its left. Its moving parts (drum, yoke, hook, waist clamp, beacon) are `creatures/inkStand/*`,
+// their pivots in Content/logic/StandInk.cs; the cables from the console to the yoke are the game's lines. Exposes `GuardKit`.
 (function () {
 'use strict';
 const { ell, poly } = Anime;
@@ -88,26 +89,33 @@ function capsule(a, shut) {
 }
 
 /* ---------- stand S1, drawn in cells as the page drew it: the floor at 14, the robot's middle at 31; mapped to world pixels ---------- */
-const CX = 31, LEFT = CX - 3, TOP = 6, YB = 14 - .4 - 5.15 - .3, HIP = 14 - .4 - 2.4 - .15;
-const X = (x) => (x - LEFT) * 8, Y = (y) => (y - TOP) * 8;
-const at = (pts) => pts.map(([x, y]) => [X(x), Y(y)]);
-const R8 = (x, y, w, h) => at(rect(x, y, w, h));
-const thin = (a, x, y, w, h, m) => a.shape(path(R8(x, y, w, h)), m, { lite: path(R8(x, y, w, Math.min(h, .1))), shade: .4 });
-const solid = (a, pts, m) => a.shape(path(at(pts)), m, { shade: 1, deep: .4, lite: path(at(rect(pts[0][0], pts[0][1], 99, .14))) });
-const stripes = (a, x, y, w, h, step) => chevrons(a, X(x), Y(y), w * 8, h * 8, step * 8);
-const rivet = (a, x, y) => { a.flat(path(R8(x - .06, y - .06, .12, .12)), '#23272d'); a.flat(path(R8(x - .06, y - .06, .06, .04)), '#a3abb4'); };
-const cable = (a, x0, y0, x1, y1, w, c) => a.line(open([[X(x0), Y(y0)], [X(x1), Y(y1)]]), { w: w * 8 / .14 / 1.6, c: c || "#16181c" });
-function hose(a, p, q, sag, w) {
-  const mx = (p[0] + q[0]) / 2, my = (p[1] + q[1]) / 2 + sag;
-  a.line(`M${X(p[0])} ${Y(p[1])}Q${X(mx)} ${Y(my)} ${X(q[0])} ${Y(q[1])}`, { w: (w || .1) * 8 / .14 / 1.6, c: "#1b1d21" });
-  for (const [x, y] of [p, q]) a.flat(path(R8(x - .07, y - .07, .14, .14)), '#9a6842');
+const CX = 31, LEFT = CX - 3, TOP = 6;
+/** Drawing in cells, as the pick pages did, mapped to a picture's world pixels: 8 a cell, the cell (ox, oy) at its origin. */
+function cells(ox, oy) {
+  const X = (x) => (x - ox) * 8, Y = (y) => (y - oy) * 8;
+  const at = (pts) => pts.map(([x, y]) => [X(x), Y(y)]);
+  const R8 = (x, y, w, h) => at(rect(x, y, w, h));
+  const thin = (a, x, y, w, h, m) => a.shape(path(R8(x, y, w, h)), m, { lite: path(R8(x, y, w, Math.min(h, .1))), shade: .4 });
+  const solid = (a, pts, m) => a.shape(path(at(pts)), m, { shade: 1, deep: .4, lite: path(at(rect(pts[0][0], pts[0][1], 99, .14))) });
+  const stripes = (a, x, y, w, h, step) => chevrons(a, X(x), Y(y), w * 8, h * 8, step * 8);
+  const rivet = (a, x, y) => { a.flat(path(R8(x - .06, y - .06, .12, .12)), '#23272d'); a.flat(path(R8(x - .06, y - .06, .06, .04)), '#a3abb4'); };
+  const cable = (a, x0, y0, x1, y1, w, c) => a.line(open([[X(x0), Y(y0)], [X(x1), Y(y1)]]), { w: w * 8 / .14 / 1.6, c: c || "#16181c" });
+  /** A hose from p to q, sagging by `sag` and bowing sideways by `side`, its couplings copper. */
+  function hose(a, p, q, sag, w, side) {
+    const mx = (p[0] + q[0]) / 2 + (side || 0), my = (p[1] + q[1]) / 2 + sag;
+    a.line(`M${X(p[0])} ${Y(p[1])}Q${X(mx)} ${Y(my)} ${X(q[0])} ${Y(q[1])}`, { w: (w || .1) * 8 / .14 / 1.6, c: "#1b1d21" });
+    for (const [x, y] of [p, q]) a.flat(path(R8(x - .07, y - .07, .14, .14)), '#9a6842');
+  }
+  /** The cable drum, its spokes turned by `ang`. */
+  function drum(a, c, r, ang) {
+    a.shape(ell(X(c[0]), Y(c[1]), r * 8), STEEL_D, { shade: .8, lite: crescent(X(c[0]), Y(c[1]), r * 8, .8) });
+    for (let k = .55; k < .95; k += .13) a.line(path(ring(X(c[0]), Y(c[1]), r * 8 * k, 20)), { w: 1.2, c: '#1b1d21' });
+    for (let i = 0; i < 3; i++) { const q = ang + i * 2.094; cable(a, c[0], c[1], c[0] + Math.cos(q) * r * .5, c[1] + Math.sin(q) * r * .5, .06, '#a3abb4'); }
+    a.flat(ell(X(c[0]), Y(c[1]), r * 8 * .22), DARK.base);
+  }
+  return { X, Y, at, R8, thin, solid, stripes, rivet, cable, hose, drum };
 }
-function drum(a, c, r) {
-  a.shape(ell(X(c[0]), Y(c[1]), r * 8), STEEL_D, { shade: .8, lite: crescent(X(c[0]), Y(c[1]), r * 8, .8) });
-  for (let k = .55; k < .95; k += .13) a.line(path(ring(X(c[0]), Y(c[1]), r * 8 * k, 20)), { w: 1.2, c: '#1b1d21' });
-  for (let i = 0; i < 3; i++) { const q = 3.6 + i * 2.094; cable(a, c[0], c[1], c[0] + Math.cos(q) * r * .5, c[1] + Math.sin(q) * r * .5, .06, '#a3abb4'); }
-  a.flat(ell(X(c[0]), Y(c[1]), r * 8 * .22), DARK.base);
-}
+const { X, Y, R8, thin, solid, stripes, rivet, cable, hose } = cells(LEFT, TOP);
 function stand(a) {
   const cx = CX;
   a.shape(path(R8(cx - 2.9, 13.6, 6.6, .4)), DARK, { shade: .4 });
@@ -137,37 +145,107 @@ function stand(a) {
   cable(a, cx - 1.92, 6.25, cx - 1.58, 6.25, .04, '#1b1d21');
   thin(a, cx + 1.2, 7.25, 1.05, .55, DARK);
   for (let i = 0; i < 3; i++) a.flat(path(R8(cx + 1.3, 7.35 + i * .12, .4, .054)), '#1e2227');
-  drum(a, [cx + .85, 7.62], .36);
   thin(a, cx - .5, 7.25, 1, .3, DARK);
   a.shape(ell(X(cx), Y(7.55), 1.28), GUNM, { shade: .3 });
   cable(a, cx + .6, 7.35, cx + .15, 7.45, .07);
-  cable(a, cx - .2, 7.55, cx - .2, YB - .5, .08);
-  cable(a, cx + .2, 7.55, cx + .2, YB - .5, .08);
 }
-/** What holds the robot from in front of it: the yoke's bar and hooks at its shoulders, the waist clamp off the mast, shut. */
-function standFront(a) {
-  for (const side of [-1, 1]) {
-    const x = CX + side * 1.25;
-    thin(a, x - .12, YB, .24, 1.05, STEEL);
-    thin(a, side < 0 ? x : x - .32, YB + .86, .32, .2, STEEL);
+/* ---------- the stand's moving parts, each in cells about its pivot: the game turns, lifts and lights them ---------- */
+/** The yoke's bar, its pivot the middle of the bar's bottom edge. */
+function yoke(a) {
+  const k = cells(0, 0);
+  a.shape(path(k.R8(-1.35, -.32, 2.7, .34)), STEEL, { shade: .5 });
+  k.stripes(a, -1.2, -.26, 2.4, .2, .2);
+  k.thin(a, -.18, -.5, .36, .2, DARK);
+  k.rivet(a, -1.2, -.16); k.rivet(a, 1.2, -.16);
+}
+/** The left hook, hanging from its hinge, its foot turned in to the robot: the game mirrors it for the right. */
+function hook(a) {
+  const k = cells(0, 0);
+  k.thin(a, -.12, 0, .24, 1.05, STEEL);
+  k.thin(a, 0, .86, .32, .2, STEEL);
+}
+/** The waist clamp off the mast, shut: its hinge P at the origin. */
+function clamp(a) {
+  const k = cells(0, 0);
+  k.cable(a, .4, .9, -.7, .15, .1, '#a9afb5');
+  k.cable(a, .4, .9, -.1, .55, .16, '#3b4048');
+  a.shape(path(k.R8(-1.45, -.2, 1.45, .4)), STEEL, { shade: .5 });
+  k.stripes(a, -1.15, -.14, .7, .28, .16);
+  k.solid(a, [[-1.78, -.45], [-1.4, -.45], [-1.4, .45], [-1.78, .45]], DARK);
+  a.shape(ell(0, 0, 1.6), DARK, { shade: .3 });
+}
+/** The beacon at the console's tip, its housing's top middle at the origin, its lens dark. */
+function beacon(a) {
+  const k = cells(0, 0);
+  k.thin(a, -.25, 0, .5, .3, DARK);
+  a.flat(path(k.R8(-.17, -.3, .34, .3)), '#4a3a1c');
+  k.cable(a, -.17, -.15, .17, -.15, .04, '#1b1d21');
+}
+
+/* ---------- parts posed by the game: each its own picture, its pivot its origin (as warden.js's) ---------- */
+const MARGIN = 1.5;
+const num = (v) => (Number.isInteger(v) ? String(v) : `${+v.toFixed(3)}f`);
+/** A part from its bounds in cells about its pivot; `light`, drawn plain in world pixels (it shines). */
+const cellBox = (l, t, r, b, draw, light) => ({ w: (r - l) * 8, h: (b - t) * 8, px: -l * 8, py: -t * 8, light, draw });
+/** A part with whole bounds and a whole pivot, as a picture is whole pixels: its drawing keeps its place. */
+const snapped = (q) => { const px = Math.ceil(q.px), py = Math.ceil(q.py); return { ...q, px, py, w: Math.ceil(q.w + px - q.px), h: Math.ceil(q.h + py - q.py) }; };
+const snapAll = (parts) => Object.fromEntries(Object.entries(parts).map(([n, q]) => [n, snapped(q)]));
+/** A part that shines, as it is: plain paths, no water. */
+function plain(q) {
+  const cv = Anime.canvas((q.w + MARGIN * 2) * 4, (q.h + MARGIN * 2) * 4), c = cv.getContext('2d');
+  c.setTransform(4, 0, 0, 4, (q.px + MARGIN) * 4, (q.py + MARGIN) * 4);
+  c.lineCap = c.lineJoin = 'round';
+  q.draw(c);
+  return cv;
+}
+/** Every part to creatures/<id>/<name>; a part's `after(c)` draws plainly over its finished picture, in world pixels about its pivot. */
+function bakeAll(id, parts) {
+  for (const [name, q] of Object.entries(parts)) {
+    const cv = q.light ? plain(q) : Anime.bake({ w: q.w, h: q.h, margin: MARGIN, shift: [q.px, q.py], draw: q.draw });
+    if (q.after) {
+      const c = cv.getContext('2d'), s = cv.width / (q.w + MARGIN * 2);
+      c.save(); c.setTransform(s, 0, 0, s, (q.px + MARGIN) * s, (q.py + MARGIN) * s); q.after(c); c.restore();
+    }
+    out(`creatures/${id}/${name}`, cv);
   }
-  a.shape(path(R8(CX - 1.35, YB - .32, 2.7, .34)), STEEL, { shade: .5 });
-  stripes(a, CX - 1.2, YB - .26, 2.4, .2, .2);
-  thin(a, CX - .18, YB - .5, .36, .2, DARK);
-  rivet(a, CX - 1.2, YB - .16); rivet(a, CX + 1.2, YB - .16);
-  const px = CX + 2.3, py = HIP;
-  cable(a, px + .4, py + .9, px - .7, py + .15, .1, '#a9afb5');
-  cable(a, px + .4, py + .9, px - .1, py + .55, .16, '#3b4048');
-  a.shape(path(R8(px - 1.45, py - .2, 1.45, .4)), STEEL, { shade: .5 });
-  stripes(a, px - 1.15, py - .14, .7, .28, .16);
-  solid(a, [[px - 1.78, py - .45], [px - 1.4, py - .45], [px - 1.4, py + .45], [px - 1.78, py + .45]], DARK);
-  a.shape(ell(X(px), Y(py), 1.6), DARK, { shade: .3 });
 }
+/** A PartsDesign field: its parts' sizes and pivots in world pixels, the margin in, as warden.js writes its parts. */
+const partsDesign = (field, id, summary, parts) => `    /// <summary>${summary}</summary>
+    public static readonly PartsDesign ${field} = new("${id}", new Dictionary<string, Part>
+    {
+${Object.entries(parts).map(([name, q]) => `        ["${name}"] = new(${q.w + MARGIN * 2}, ${q.h + MARGIN * 2}, ${num(q.px + MARGIN)}, ${num(q.py + MARGIN)}, []),`).join('\n')}
+    });`;
+/** A generated C# file of CreatureArt fields. */
+const generated = (by, body) => `// Generated by tools/anime-art/subjects/${by}: export again, never edit.
+using System.Collections.Generic;
+
+namespace Stillwake.Game;
+
+public static partial class CreatureArt
+{
+${body}
+}
+`;
+
+window.GuardKit = { pal, mix, INK, STEEL, STEEL_D, DARK, GUNM, RUST, RUST_D, ring, arc, path, open, rect, wear, crescent, chevrons, cells, cellBox, snapAll, bakeAll, partsDesign, generated };
 
 Subjects.guards = function () {
   out('guard_capsule', Anime.bake({ w: 40, h: 48, draw: (a) => capsule(a, true) }));
   out('guard_capsule_open', Anime.bake({ w: 40, h: 48, draw: (a) => capsule(a, false) }));
   out('guard_stand', Anime.bake({ w: 56, h: 64, draw: stand }));
-  out('guard_stand_front', Anime.bake({ w: 56, h: 64, draw: standFront }));
+  const parts = snapAll({
+    drum: cellBox(-.45, -.45, .45, .45, (a) => cells(0, 0).drum(a, [0, 0], .36, 0)),
+    yoke: cellBox(-1.45, -.6, 1.45, .12, yoke),
+    hook: cellBox(-.22, -.1, .42, 1.15, hook),
+    clamp: cellBox(-1.88, -.55, .55, 1.05, clamp),
+    beacon: cellBox(-.35, -.4, .35, .4, beacon),
+    beacon_lit: cellBox(-.35, -.4, .35, .4, (c) => {
+      c.fillStyle = '#ffae2e'; c.fillRect(-.17 * 8, -.3 * 8, .34 * 8, .3 * 8);
+      c.fillStyle = '#1b1d21'; c.fillRect(-.17 * 8, -.17 * 8, .34 * 8, .04 * 8);
+    }, true),
+  });
+  bakeAll('inkStand', parts);
+  writeText('../../Content/logic/StandInk.cs', generated('guards.js', partsDesign('InkStand', 'inkStand',
+    "The guard stand's moving parts in ink, in <c>art/hd/creatures/inkStand</c>: drum, yoke, the left hook, waist clamp, beacon.", parts)));
 };
 })();

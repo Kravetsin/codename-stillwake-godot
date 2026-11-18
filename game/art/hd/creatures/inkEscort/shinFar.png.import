@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://tcwn6rg50o1t"
-path="res://.godot/imported/guard_stand_front.png-69a4ba1a5847617f862e45e02edadd1a.ctex"
+uid="uid://b5rk5k0sjgqfj"
+path="res://.godot/imported/shinFar.png-c257536173a1040f38b4886404e78748.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://art/hd/guard_stand_front.png"
-dest_files=["res://.godot/imported/guard_stand_front.png-69a4ba1a5847617f862e45e02edadd1a.ctex"]
+source_file="res://art/hd/creatures/inkEscort/shinFar.png"
+dest_files=["res://.godot/imported/shinFar.png-c257536173a1040f38b4886404e78748.ctex"]
 
 [params]
 
