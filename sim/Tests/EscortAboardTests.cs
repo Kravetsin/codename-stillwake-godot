@@ -53,6 +53,9 @@ public class EscortAboardTests
 
         public int Feet => Room.Floor - 1;
 
+        /// <summary>The row a hero standing on its floor reports: its body's middle's, 2.6 cells over its feet.</summary>
+        public int Body => Room.Floor - 3;
+
         public int Column => Escort.X / U;
 
         public int Cell(int x, int y) => y * V.Grid.Width + x;
@@ -106,9 +109,9 @@ public class EscortAboardTests
         var a = new Aboard();
         var door = a.Doors.Single(d => d.X == a.Room.Left - 2);
         a.W.Do(new SetDoor(a.Cell(door.X, door.Y), true));
-        a.Hero(door.X - 3, a.Feet).Run(40).Hero(door.X + 1, a.Feet).Run(40);
+        a.Hero(door.X - 3, a.Body).Run(40).Hero(door.X + 1, a.Body).Run(40);
         Assert.Equal(Posture.Docked, a.Escort.Posture);
-        a.Hero(a.Room.Left, a.Feet).Run();
+        a.Hero(a.Room.Left, a.Body).Run();
         Assert.Equal(Posture.Waking, a.Escort.Posture);
         a.Run(Wake - 2);
         Assert.Equal(Posture.Waking, a.Escort.Posture);
@@ -136,12 +139,14 @@ public class EscortAboardTests
     {
         var a = new Aboard().Woken();
         // Out of its claw's reach, on its floor, in line: it stands and fires once its charge is done.
-        a.Hero(a.Column - Patrol.Strike - 6, a.Feet).Run();
+        a.Hero(a.Column - Patrol.Strike - 6, a.Body).Run();
         Assert.Equal(typeof(Spec.Shoot), a.Act);
         int air = a.Air, x = a.Escort.X;
         Assert.True(a.RunTill(() => a.V.Creatures.Ended.Any(e => e.Projectile == Gauss.Projectile), Gauss.WindUp + 2));
         var end = a.V.Creatures.Ended.Single(e => e.Projectile == Gauss.Projectile);
         Assert.True(end.Met);
+        // It met him about his middle's height, aimed from its gun down to there.
+        Assert.InRange(end.Cell / a.V.Grid.Width, a.Body - 1, a.Body + 1);
         Assert.Equal(-1, end.Burst);
         Assert.Equal(air - Content.Shots.Gauss.Damage, a.Air);
         Assert.Equal(x, a.Escort.X);
@@ -169,7 +174,7 @@ public class EscortAboardTests
     public void AHeroNearOnItsFloorIsLungedAtAndClawed()
     {
         var a = new Aboard().Woken();
-        a.Hero(a.Column - Patrol.Strike + 1, a.Feet).Run();
+        a.Hero(a.Column - Patrol.Strike + 1, a.Body).Run();
         Assert.Equal(typeof(Spec.Lunge), a.Act);
         int x = a.Escort.X;
         var lunge = Spec.Escort.Moves.OfType<Spec.Lunge>().Single();
@@ -189,7 +194,7 @@ public class EscortAboardTests
         var a = new Aboard().Woken();
         var door = a.Doors.Single(d => d.X == a.Room.Left - 2);
         a.W.Do(new SetDoor(a.Cell(door.X, door.Y), true));
-        a.Run(30).Hero(door.X - 4, a.Feet).Run();
+        a.Run(30).Hero(door.X - 4, a.Body).Run();
         Assert.Equal(typeof(Spec.Shoot), a.Act);
         // Its aim taken, the door shut: the shot meets it.
         a.Run(Gauss.WindUp - Gauss.Lock + 1);
@@ -225,7 +230,7 @@ public class EscortAboardTests
         var a = new Aboard().Woken();
         var door = a.Doors.Single(d => d.X == a.Room.Left + a.Room.Width);
         a.W.Do(new SetDoor(a.Cell(door.X, door.Y), false));
-        a.Hero(door.X + 8, a.Feet).Run();
+        a.Hero(door.X + 8, a.Body).Run();
         Assert.Null(a.Act);
         Assert.True(a.RunTill(() => !a.Shut(door.X, door.Y), 300), $"at {a.Column}");
         // Through it in line: shot.

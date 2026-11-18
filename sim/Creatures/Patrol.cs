@@ -61,9 +61,17 @@ internal sealed class PatrolDrive : DriveRule
         return true;
     }
 
-    /// <summary>Whether nothing solid lies between <paramref name="c"/>'s middle and the middle of the hero standing in cell <paramref name="at"/>: where its gauss flies.</summary>
-    internal static bool Sees(CreaturesModule m, Creature c, Spec.Species spec, (int X, int Y) at) =>
-        m.FirstSolid(c.X, c.Y - spec.Body.Height * Unit / 2, m.Middle(at.X), (at.Y + 1) * Unit - Content.Hero.Height / 2) == null;
+    /// <summary>
+    /// Whether nothing solid lies between <paramref name="c"/>'s muzzle (<see cref="CreaturesModule.MuzzleY"/>, its middle with no shot) and
+    /// the middle of cell <paramref name="at"/>, a hero's reported cell, its body's middle's: where its gauss flies.
+    /// </summary>
+    internal static bool Sees(CreaturesModule m, Creature c, Spec.Species spec, (int X, int Y) at)
+    {
+        int y = c.Y - spec.Body.Height * Unit / 2;
+        foreach (var mv in spec.Moves)
+            if (mv is Spec.Shoot shoot) y = MuzzleY(c, spec, shoot);
+        return m.FirstSolid(c.X, y, m.Middle(at.X), m.Middle(at.Y)) == null;
+    }
 
     /// <summary>A tick of its walk: toward its quarry on its deck, else its way along it; a shut door ahead pried; a wall, or the hull's end, turning it.</summary>
     private static void Walk(CreaturesModule m, Creature c, Spec.Walker w, Spec.Patrol patrol, (int X, int Y) q, bool level, int floor, int top, int feet)

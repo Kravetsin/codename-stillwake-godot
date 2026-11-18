@@ -258,10 +258,11 @@ public static class Creatures
     /// ticks and laying its patch as it lands (lurker-attacks). With a <paramref name="Through"/> it is a beam (catcher-combat): it runs
     /// on past that point, that many cells off in all, to the first wall, and hurts a hero touching any of it all its <paramref name="Lingers"/>.
     /// With a <paramref name="Speed"/> (the escort's gauss, derelict-enemies) it is no arc but a shot flown at that speed a tick on the longer
-    /// axis, at the middle of the hero aimed at, <paramref name="Reach"/> cells' worth at most: stopped by the first solid cell or awake hero.
+    /// axis, at the middle of the hero aimed at, <paramref name="Reach"/> cells' worth at most: stopped by the first solid cell or awake hero;
+    /// it leaves <paramref name="Muzzle"/> thousandths of a cell over its feet (its gun's height), 0 for its middle.
     /// </summary>
     public sealed record Shoot(int WindUp, int Lock, int Recover, string Projectile, int Reach, int Lingers, int From = 0, string? Leaves = null, int Through = 0,
-        int Speed = 0) : Move(Damage: 0);
+        int Speed = 0, int Muzzle = 0) : Move(Damage: 0);
 
     /// <summary>
     /// A vent (the capback's gas, lurker-attacks): no wind-up; a <paramref name="Patch"/> laid round its middle at once, then
@@ -448,14 +449,16 @@ public static class Creatures
     /// four cells by five, its antenna drawn only, never jumping. A hero walking into its hall, or a blow, wakes it in two seconds: lowered,
     /// let go, its lamp lit. Then it hunts the crew on its deck at 7 cells a second: a hero within 6 columns on its deck it claws, a crouch
     /// of half a second and a dash of 32 cells a second, 0.4 s, six units of a suit; one in line within 40 cells, above it too, it shoots:
-    /// 0.6 s charging, its aim held the last 0.2 s, a gauss (<c>Shots.Gauss</c>) across its reach in a tick, then 1.5 s before it moves.
+    /// 0.6 s charging, its aim held the last 0.2 s, a gauss (<c>Shots.Gauss</c>) from its rail gun's height, 4.85 cells up, across its reach in
+    /// a tick, then 1.5 s before it moves.
     /// It pries a shut door two seconds. Sixty hit points, twice the sentry's; never knocked. It gives more circuits and scrap than the
     /// sentry. Silent till its sounds are picked. Placeholder numbers, for a play pass.
     /// </summary>
     public static readonly Species Escort = new("escort", Look: "escort", Body: new Walker(Width: 4, Height: 5, Walk: 350, Run: 350, Jump: 0, JumpAcross: 0),
         Life: new(Hp: 60, Knock: 0, Hop: 0), Faction: Machines, Lifetime: Lifetime.Aboard,
         Brain: [new Dock(Wake: 40), new Patrol(Strike: 6, Notice: 40, Pry: 40)],
-        Moves: [new Lunge(WindUp: 10, Speed: 1600, Ticks: 8, Past: 2, Damage: 6), new Shoot(WindUp: 12, Lock: 4, Recover: 30, Projectile: "gauss", Reach: 40, Lingers: 0, Speed: 40_000)],
+        Moves: [new Lunge(WindUp: 10, Speed: 1600, Ticks: 8, Past: 2, Damage: 6), new Shoot(WindUp: 12, Lock: 4, Recover: 30, Projectile: "gauss", Reach: 40, Lingers: 0, Speed: 40_000,
+            Muzzle: 4_850)],
         Yields: [new("scrapChunk", 6, 9), new("circuit", 4, 6)]);
 
     public static readonly IReadOnlyList<Species> All = [Loper, Tapir, Sixleg, Sentry, Warden, Capback, GeodeSnail, Catcher, Spider, Escort];
