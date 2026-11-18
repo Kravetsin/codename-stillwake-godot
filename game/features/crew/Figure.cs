@@ -1503,6 +1503,12 @@ public partial class Figure : Node2D
             double at = (_bit && bodyPhase >= _lastPhase ? AxeSwing.Shown(bodyPhase, stroke!, bodySlow) : bodyPhase) - stroke!.HitShare;
             answer = BodyPlay.At(strokeAnswer, at, heft);
         }
+        // A still helmet cannot nod (light-drone, a try): on the floor the upper body bends a share of the look instead.
+        if (_helmetWorn != null && pose is Pose.Stand or Pose.Walk or Pose.Run && _head != 0)
+        {
+            var looked = BodyState.Rest with { Lean = BodyAnswers.LookLean * _head };
+            answer = answer is { } stroke0 ? stroke0.Plus(looked) : looked;
+        }
         if (_retchMs < Retching.Ms)
         {
             var retch = BodyState.Rest with { Lean = Retching.Lean(_retchMs) };
