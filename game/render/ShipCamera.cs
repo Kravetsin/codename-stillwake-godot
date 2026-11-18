@@ -17,13 +17,13 @@ public partial class ShipCamera : Camera2D
     /// <summary>
     /// The most of the world a screen shows, in cells, at the farthest zoom, where a game starts: the same
     /// for every player whatever their screen, as Terraria keeps it; a bigger screen draws it larger. Within
-    /// the debris' <c>Debris.View</c> both ways, so no piece appears or vanishes in sight (0052). Two steps nearer than the first
-    /// 192 by 108 (the user's, 2026-11-17): a hero sees less of the world, and is small in it.
+    /// the debris' <c>Debris.View</c> both ways, so no piece appears or vanishes in sight (0052). One step nearer than the first
+    /// 192 by 108 (the user's, 2026-11-18, after two steps proved too near): a hero sees less of the world.
     /// </summary>
-    public static readonly Vector2 Farthest = new Vector2(192, 108) / 1.4f;
+    public static readonly Vector2 Farthest = new Vector2(192, 108) / 1.2f;
 
     /// <summary>How near the player may zoom, as a multiple of the farthest, and one key press's step: as near as ever, three times the first farthest.</summary>
-    public const float LevelMax = 3 / 1.4f, LevelStep = 0.2f;
+    public const float LevelMax = 3 / 1.2f, LevelStep = 0.2f;
 
     /// <summary>How far <see cref="Fit"/> may zoom out to frame a whole world in development.</summary>
     private const float FitMin = 0.1f;
