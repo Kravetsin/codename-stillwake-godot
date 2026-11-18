@@ -243,7 +243,7 @@ public static class ItemCards
     /// <summary>
     /// A worn item's card and its rows (2026-11-14-food-and-gear-cards), what it guarantees in the units the HUD shows: a helmet's
     /// air in O₂; a body's coldest it withstands (2026-11-14-temperature-in-degrees), the regen suit's air made a second and the charge
-    /// each unit costs; the cape's share off blows in percent and the degrees it adds; the jetpack's top speed and the air its thrust spends a second; the helmet lamp's reach,
+    /// each unit costs; the cape's share off blows in percent and the degrees it adds; the jetpack's top speed and the air its thrust spends a second; the light drone's reach,
     /// its beam across (<see cref="Light.HeadLampReach"/>) and its draw. A battery's number is its charge, set per stack.
     /// </summary>
     private static ItemCard Worn(ItemCard card)
@@ -270,7 +270,7 @@ public static class ItemCards
             double spent = (double)World.TicksPerSecond / Spec.Jetpack.TicksPerUnit;
             rows.Add(Row(CardSign.Tank, CardGroup.Move, T("card.oxygenPerSecond", ("n", Number(spent))), "card.thrustAir"));
         }
-        if (card.Item == Spec.HelmetLamp.Item)
+        if (card.Item == Spec.LightDrone.Item)
         {
             int beam = (int)Math.Round(Light.HeadLampHalfAngle * 2 * 180 / Math.PI);
             rows.Add(Row(CardSign.Light, CardGroup.Light, T("card.cells", ("n", Light.HeadLampReach)), "card.range"));

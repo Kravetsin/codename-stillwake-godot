@@ -27,7 +27,7 @@ public partial class BoardDemo(Func<Registry> m, Func<World?> world, string? val
         "scrapChunk", "hullPlate", "planks", "scrap", "iron", "nail", "wire", "plate", "gear", "tube", "rotor", "coil", "frame", "canister",
         "cargoCrate", "rock", "quartz", "ice", "gravel", "ironOre", "asteroidOre", "silicon", "glass", "solarCell", "photoPanel", "circuit",
         "deckDrive", "battery", "drone", "processor", "display", "transceiver", "nozzle", "screwdriver", "fireAxe", "harpoon", "nailer",
-        "helmetLamp", "jetpack", "drill",
+        "lightDrone", "jetpack", "drill",
     ];
 
     /// <summary>What each value seeds: what was obtained, in order, and how many.</summary>

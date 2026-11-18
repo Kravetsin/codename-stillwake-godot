@@ -110,7 +110,7 @@ Game words → code. One line a term: Russian / English → identifiers → modu
 ## Crew and tools
 
 - герой / hero → `Hero` (sim/Crew `State.cs`; client f/crew `Hero.cs`) → Crew
-- шлем / helmet → helmet lamp: item `helmetLamp`, `c/HelmetLamp.cs`; the helmet is drawn in f/crew `Figure` → Crew
+- шлем / helmet → light drone: item `lightDrone`, `c/LightDrone.cs`; the helmet is drawn in f/crew `Figure` → Crew
 - джетпак / jetpack → item `jetpack`, `Thrust`, `c/Jetpack.cs` → Crew
 - гарпун / harpoon → item `harpoon`, `c/Harpoon.cs`, f/crew `HarpoonShot`, `HarpoonLine`; `Reel` → Crew, Debris
 - топор / fire axe → item `fireAxe`, f/crew `AxeSwing`, `HeldLook.FireAxe` → Crew
@@ -127,7 +127,7 @@ Game words → code. One line a term: Russian / English → identifiers → modu
 - роба, одежда без скафандра, тёплая одежда / outfit, clothes → `Look.Outfit`, `HeroLooks.Outfits` (0–3 robes, 4–14 clothes), pictures `hero_outfit_<n>_<part>` and `_skin` under them, painted raw (outfits-painted, clothes-painted) → Crew
 - скин, внешний вид (вкладка) / skin, Appearance (tab) → `Skin`, `Skins` (kinds `head`, `suit`, `cape`, `effect`; sets such as `brassHelmet` + `brassSuit`), `Dressed`, `Suits.DressedAs`, `AppearanceView`, `SkinSlot` (f/crew), `LooksButton` (f/items); `ChooseSkins`, `SkinsOf`, `PeerSkins`; `Owned` (game/platform) → Players, Crew; эффект оружия, «Пламя», «Разлом» / weapon effect, Fire, Rift → `BladeFx`, `FireFx`, `RiftFx` (f/crew), `SkinEffects` (gc)
 - плащ / cape → `cape` (`Content.Cape`, slot `cape`, `Guard`, `Warmth`), `Hero.Spared`, `ICrewOps.Blow`; `Figure.CapeWorn`, `Cape`, `CapeView` (f/crew); skins `tarpCape`, `blanketCape`, `woolCape` → Crew, Items
-- фонарик на шлем / helmet lamp → `helmetLamp`, slot `mount` (`Helmet.Mount`), for whatever sits on a helmet → Items
+- световой дрон, фонарик на шлем / light drone, helmet lamp → `lightDrone`, slot `mount` (`Helmet.Mount`, shown as Drone), for whatever sits on a helmet → Items
 - смерть, тело / death, body → `Bodies`, `BodyView` (0061) → Crew, Items
 - трекер, браслет, розыск / tracker, wanted → `Hero.Wanted`, `Need`, `Coming`, `Signal`, `SignalOf`, `ICrewOps.Loot`, c/`Wanted.cs`; начальный пояс / starting belt → `Wanted.Belt`, `Wanted.Drain`; f/crew `TrackerBlink` → Crew
 - ловец / catcher → species `catcher` (`Lifetime.Hunter`, `Hunt`, `Flyer`, `Purse`), `Bounty`, `HunterOf`; drawn as a hero, f/crew `HunterView` → Creatures; телепорт / blink → `Blink`, залп / salvo → `Salvo` (`shell`), стрельба на бегу → `Gunfire`, лазер / laser → `laser`, `Shoot.Through`, `Arc.Burns`, `FightOf`, `MarksOf` → Creatures; ракета, захват / missile, lock → `Hunt.Missile` (`missile`, `Homing`, `Shot.Heading`, `Launch`, `LaunchLeft`), c/`ShotLooks.Missile`, f/crew `CatcherFx.LockOf` → Creatures

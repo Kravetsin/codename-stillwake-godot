@@ -127,7 +127,7 @@ Parts stay conversions; machines take several times more of them. A frame grows 
 | display | 2 glass, 1 circuit, 4 wire | 4 glass, 2 circuit, 6 wire |
 | transceiver | 3 coil, 2 circuit, 1 tube, 1 glass | 4 coil, 3 circuit, 2 tube, 2 glass |
 | battery | 1 plate, 1 coil, 2 wire, 1 circuit | 2 plate, 2 coil, 4 wire, 1 circuit |
-| helmetLamp | 1 plate, 2 wire, 1 silicon | 1 plate, 2 wire, 1 coil (before any silicon) |
+| lightDrone | 1 plate, 2 wire, 1 silicon | 1 plate, 2 wire, 1 coil (before any silicon) |
 | drone | 1 rotor, 2 plate, 1 circuit, 1 battery | 2 rotor, 3 plate, 2 circuit, 1 battery |
 | deckDrive | 2 circuit, 1 rotor, 1 coil | 3 circuit, 2 rotor, 2 coil |
 | motor | 1 rotor, 2 copper, 1 magnetite | 1 rotor, 4 copper, 2 magnetite |
@@ -178,7 +178,7 @@ hero before the furnace).
 
 A **workbench** takes the rest of the start: no power, slow (the pod's fifth of speed), built of raw salvage with
 no smelting (scrap chunks, hull plates, planks), as the furnace is. It makes the basic parts (wire, plate, gear,
-tube, nails) and the first tools (axe, harpoon, nailer, helmet lamp). Everything else moves to the **Former**:
+tube, nails) and the first tools (axe, harpoon, nailer, light drone). Everything else moves to the **Former**:
 assemblies (frame, coil, rotor, motor) and the advanced gear (jetpack, battery, drill).
 
 So power comes before the jetpack, and the Former is the first real decision. That forces two costs down a tier:

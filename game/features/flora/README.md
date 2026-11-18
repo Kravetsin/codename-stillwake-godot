@@ -53,7 +53,7 @@ Light that changes with depth, glow moss and alien threads: cold blue near the s
 warm amber and red near the bottom.
 
 - **Reads:** `BuildingModule.Plants` of a cave kind (`Content.Flora.Cave`), `IGridQueries.StructureAt` and
-  `ChangedSince`, `Terrain.BandOf`, and where each helmet lamp shines (`HeroView.HeadLamps`).
+  `ChangedSince`, `Terrain.BandOf`, and where each light drone shines (`HeroView.HeadLamps`).
 - **Draws** by chunks of 64 × 64 cells within a chunk of the view, let go past three: a chunk is two canvas
   items, pictures `Lit` and glows added unlit, both at `Layers.Flora`, each from one atlas of every cave picture
   (`art/caves`), so a chunk is a batch apiece; no node per growth.

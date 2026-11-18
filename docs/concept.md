@@ -146,7 +146,7 @@ A living document: what is decided about the game and what is still open. Techni
   the body to a tenth on a dial beside the charge's and the meals' ([hud-dials](decisions/2026-11-18-hud-dials.md)).
 - **Night on a planet:** a day of twenty minutes, the last six of them night. At night the open sky is 20° colder: a bare hero with no
   back wall behind feels it; caves, tunnels and back walls shelter. Dusk dims the light a minute before, and the dark is lit
-  by the helmet lamp ([night-chills](decisions/2026-11-07-night-chills.md)); the sun crosses the sky by the hour
+  by the light drone ([night-chills](decisions/2026-11-07-night-chills.md)); the sun crosses the sky by the hour
   ([moving-sun](decisions/2026-11-18-moving-sun.md)). Storms come: the dust's grit grinds a suit's air out in the open, the
   rain's lightning strikes every 12–18 s ([mild-surface](decisions/2026-11-18-mild-surface.md)).
 - **Hunting:** a planet's grazers, met in small herds of one kind, drop what they are made of, by their size: biomass, now and then a seed, hide and fat;
@@ -171,7 +171,7 @@ A living document: what is decided about the game and what is still open. Techni
   side by side make one surface; the hero's parts are pictures too, moved and turned smoothly by
   its rig.
 - **Look: simple textures carried by light.** Light also tells the ship's state: an unpowered room is
-  dark but for helmet lamps, a venting room flashes red, starlight comes in through windows.
+  dark but for light drones, a venting room flashes red, starlight comes in through windows.
 - **Oxygen works like a power grid.** It comes as liquid: canisters are poured into tanks, and a powered
   vaporizer turns the liquid of the tanks piped to its input into air for the vents piped to its output
   ([liquid-oxygen](decisions/2026-10-30-liquid-oxygen.md)); canisters are salvaged, not made
@@ -214,7 +214,7 @@ A living document: what is decided about the game and what is still open. Techni
   and motion: a room losing air pulses red, pipes carrying oxygen glow, a low suit reddens the
   screen's edges, air escaping through the hull is seen leaving. Text is on demand, in overlays and by
   the pointer.
-- **Light comes from sources, air has a view of its own.** Lamps on the power network, helmet lamps
+- **Light comes from sources, air has a view of its own.** Lamps on the power network, light drones
   and starlight through windows light the ship; a dark room means no light, never no air. Air is
   seen in its own view, as in Oxygen Not Included: the air overlay, cell by cell.
 - **Meteors belong to places.** Each place throws meteors of some power at the hull from the side the

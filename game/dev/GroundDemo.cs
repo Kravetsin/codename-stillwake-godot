@@ -12,7 +12,7 @@ namespace Stillwake.Game.Dev;
 
 /// <summary>
 /// <c>-- --ground=cave</c>, <c>--ground=drill</c> or <c>--ground=shaft</c> (0077): a planet opened, its hero carrying the axe and the drill with the
-/// helmet lamp worn, for recording the ground and digging. <c>cave</c> beams the hero down into the cave nearest under the
+/// light drone worn, for recording the ground and digging. <c>cave</c> beams the hero down into the cave nearest under the
 /// spawn, deep in the dark, and digs a tunnel into the stone beside its head, by the lamp's light; <c>shaft</c> beams it to
 /// the spawn and digs a shaft down under its feet, so it drops in as it goes; <c>drill</c> digs the tunnel with the drill in the
 /// hero's hands, aimed by <see cref="GroundHands"/> as a mouse would; <c>poses</c> aims the drill round the hero eight ways near
@@ -54,7 +54,7 @@ public sealed class GroundDemo(string mode)
     private readonly List<int> _cells = [];
 
     /// <summary>
-    /// The world with peer 0 carrying the axe and the drill, a full battery on its belt and the helmet lamp on its head; with
+    /// The world with peer 0 carrying the axe and the drill, a full battery on its belt and the light drone on its head; with
     /// <paramref name="module"/> (<c>--arc-drill</c>), a drill with that module fitted in the first slot, held, and the axe in the
     /// third, to dig down fast (0098).
     /// </summary>
@@ -68,7 +68,7 @@ public sealed class GroundDemo(string mode)
             slots.Add(i == 0 ? module != null ? Testbed.FittedDrill(module) : Stack(Spec.Weapons.Axe.Item)
                 : i == 1 ? Stack(Spec.Weapons.Drill.Item)
                 : i == 2 && module != null ? Stack(Spec.Weapons.Axe.Item)
-                : i == lamp ? Stack(Spec.HelmetLamp.Item)
+                : i == lamp ? Stack(Spec.LightDrone.Item)
                 : i == belt ? new JsonObject { ["item"] = "battery", ["count"] = 1, ["charge"] = Spec.Charge.Battery }
                 : null);
         items["inventories"] = new JsonArray(new JsonObject { ["id"] = 0, ["slots"] = slots });

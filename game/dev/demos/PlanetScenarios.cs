@@ -12,7 +12,7 @@ namespace Stillwake.Game.Dev;
 /// A planet opened and the hero beamed down at once (0077), or the test strip (0076). After the hero's own scenarios, whose
 /// scripts (--ladders, --feel, --hills) win over the strip's.
 /// </summary>
-[Dev("--planet", "a planet grown from its seed, the hero beamed down with the axe, the drill and the helmet lamp (0077); F9 blows a gust (plant-stirs)", Order = 5)]
+[Dev("--planet", "a planet grown from its seed, the hero beamed down with the axe, the drill and the light drone (0077); F9 blows a gust (plant-stirs)", Order = 5)]
 [Dev("--strip", "the test strip (0076); with --autopilot played by a script (HeroAutopilot.PlanetRun)", Order = 5)]
 [Dev("--dusk", "with --planet or --strip, the planet's dusk starting two seconds in, its night a minute on (2026-11-07-night-chills)", Order = 5)]
 [Dev("--storm", "with --planet or --strip, that storm (dustStorm, rainStorm) called two seconds in, its warning whole, the hero in creative mode so the cold spares it; --frames counts from ten seconds into it (surface-storms)", Order = 5, Shape = DevShape.Equals)]
@@ -40,7 +40,7 @@ public sealed class PlanetScenario : DevScenario
     private bool Charges => Args.Has("--charges") && !Strip;
     private bool _cached;
 
-    // The hero carries the axe and the drill and wears the helmet lamp, to try the caves; --ground seeds the same.
+    // The hero carries the axe and the drill and wears the light drone, to try the caves; --ground seeds the same.
     public override World Seed(World world, DevSeed seed)
     {
         var seeded = Args.Value("--ground") == null && (Args.Has("--planet") || Args.Given("--creatures") != null) ? GroundDemo.Seed(world, seed.Modules, ArcDrill) : world;
@@ -260,7 +260,7 @@ public sealed class RailgunScenario : DevScenario
 
 /// <summary>
 /// The pickaxe (the-pickaxe) to try by hand beside the drill and the axe: the hero beamed into a cave under the spawn, the pickaxe in the first
-/// slot, the drill on a full battery in the second, the axe in the third, the helmet lamp worn.
+/// slot, the drill on a full battery in the second, the axe in the third, the light drone worn.
 /// </summary>
 [Dev("--pickaxe", "a planet's cave with the pickaxe, the drill on a full battery and the axe in slots 1 to 3, to dig stone by hand (the-pickaxe)")]
 public sealed class PickaxeScenario : DevScenario
@@ -292,10 +292,10 @@ public sealed class PickaxeScenario : DevScenario
 
 /// <summary>
 /// Ore shining in lamp light (2026-11-07-ore-pockets): the first planet, the hero beamed onto a dark cave's floor facing the cave's wall
-/// richest in copper and iron at head height, the helmet lamp on, creative so the air never runs out; <c>=off</c> without the lamp, to
+/// richest in copper and iron at head height, the light drone on, creative so the air never runs out; <c>=off</c> without the lamp, to
 /// see the same ore as dark as its rock.
 /// </summary>
-[Dev("--ore-shine", "a dark cave's floor facing copper and iron veins, the helmet lamp on (=off without), creative (2026-11-07-ore-pockets)", Shape = DevShape.Either)]
+[Dev("--ore-shine", "a dark cave's floor facing copper and iron veins, the light drone on (=off without), creative (2026-11-07-ore-pockets)", Shape = DevShape.Either)]
 public sealed class OreShineScenario : DevScenario
 {
     private bool _beamed, _creative;
@@ -309,7 +309,7 @@ public sealed class OreShineScenario : DevScenario
         // A lamp shines only on a helmet: both worn, or the helmet alone.
         for (int i = 0; i < Content.Inventory.Total; i++)
             slots.Add(i == Worn(Content.Helmet.Slot) ? new JsonObject { ["item"] = Content.Helmet.Basic, ["count"] = 1 }
-                : i == Worn(Content.Helmet.Mount) && Args.Given("--ore-shine") != "off" ? new JsonObject { ["item"] = Content.HelmetLamp.Item, ["count"] = 1 }
+                : i == Worn(Content.Helmet.Mount) && Args.Given("--ore-shine") != "off" ? new JsonObject { ["item"] = Content.LightDrone.Item, ["count"] = 1 }
                 : null);
         root["slices"]!["items"]!["inventories"] = new JsonArray(new JsonObject { ["id"] = 0, ["slots"] = slots });
         return World.Load(root.ToJsonString(), seed.Modules());
@@ -368,7 +368,7 @@ public sealed class OreShineScenario : DevScenario
 
 /// <summary>
 /// A grown lake to swim in and dig open (flowing-liquids): the first planet, the hero beamed onto the floor beside the lake
-/// nearest the middle, the pickaxe and the drill in hand's reach, the helmet lamp on, creative so the air never runs out.
+/// nearest the middle, the pickaxe and the drill in hand's reach, the light drone on, creative so the air never runs out.
 /// </summary>
 [Dev("--lake", "the first planet's lake nearest the middle, the hero on its bank with the pickaxe, the drill and the lamp, creative (liquids)")]
 [Dev("--pour", "--lake with a shaft dug down beside the lake at once, so it pours: streams to look at (liquids)")]
@@ -390,7 +390,7 @@ public sealed class LakeScenario : DevScenario
         for (int i = 0; i < Content.Inventory.Total; i++)
             slots.Add(i < tools.Length ? new JsonObject { ["item"] = tools[i], ["count"] = 1 }
                 : i == Worn(Content.Helmet.Slot) ? new JsonObject { ["item"] = Content.Helmet.Basic, ["count"] = 1 }
-                : i == Worn(Content.Helmet.Mount) ? new JsonObject { ["item"] = Content.HelmetLamp.Item, ["count"] = 1 }
+                : i == Worn(Content.Helmet.Mount) ? new JsonObject { ["item"] = Content.LightDrone.Item, ["count"] = 1 }
                 : null);
         root["slices"]!["items"]!["inventories"] = new JsonArray(new JsonObject { ["id"] = 0, ["slots"] = slots });
         return World.Load(root.ToJsonString(), seed.Modules());

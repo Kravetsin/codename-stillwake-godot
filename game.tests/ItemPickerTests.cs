@@ -18,7 +18,7 @@ public class ItemPickerTests
     public void FindsAnItemByAPartOfItsNameOrItsIdCaseIgnored()
     {
         Assert.Contains(ItemPicker.Matching("OXYGEN can"), i => i.Id == "canister");
-        Assert.Contains(ItemPicker.Matching("helmetla"), i => i.Id == "helmetLamp");
+        Assert.Contains(ItemPicker.Matching("lightdr"), i => i.Id == "lightDrone");
         Assert.DoesNotContain(ItemPicker.Matching("oxygen"), i => i.Id == "iron");
         Assert.Empty(ItemPicker.Matching("no such thing"));
     }

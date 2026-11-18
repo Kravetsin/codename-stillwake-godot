@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://dd67omt5efvyt"
-path="res://.godot/imported/helmetLamp.png-a049389eb9b0f1e30ad7632f94fd525f.ctex"
+uid="uid://beyfdqd4ifj3n"
+path="res://.godot/imported/drone_disc.png-570a09d5edbfea3e04a5efb09a34d67d.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://art/hd/items/helmetLamp.png"
-dest_files=["res://.godot/imported/helmetLamp.png-a049389eb9b0f1e30ad7632f94fd525f.ctex"]
+source_file="res://art/hd/drone_disc.png"
+dest_files=["res://.godot/imported/drone_disc.png-570a09d5edbfea3e04a5efb09a34d67d.ctex"]
 
 [params]
 

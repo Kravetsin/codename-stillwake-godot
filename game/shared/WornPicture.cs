@@ -48,7 +48,7 @@ public partial class WornPicture : Control
     {
         MouseFilter = MouseFilterEnum.Ignore;
         ClipContents = true;
-        bool lamp = card.Item == Content.HelmetLamp.Item;
+        bool lamp = card.Item == Content.LightDrone.Item;
         CustomMinimumSize = new Vector2(lamp ? LampWidth : Side, Side);
         int scale = lamp ? CardLook.HelmetScale : CardLook.WornScale;
         var texture = lamp ? PixelArt.Picture("hero_helmet") : ItemIcons.Icon(card.Picture);

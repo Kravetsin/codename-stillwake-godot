@@ -259,7 +259,7 @@ public static class Items
         // Equipment, worn in a slot of its kind (Inventory.Equipment).
         new("jetpack", 1, Equip: "back", Gear: true, Group: ItemGroup.Wearable),
         // A soft warm light round the head (0077): free, drawing no power.
-        new("helmetLamp", 1, Equip: Helmet.Mount, Gear: true, Group: ItemGroup.Wearable),
+        new("lightDrone", 1, Equip: Helmet.Mount, Gear: true, Group: ItemGroup.Wearable),
         // Shows a wreck's hit points under the pointer (2026-11-07-the-scanner): on the mount, so worn the lamp comes off.
         new(Helmet.Scanner, 1, Equip: Helmet.Mount, Gear: true, Group: ItemGroup.Wearable),
         // Holds charge for any electric tool, worn on the belt; filled at a charging station.

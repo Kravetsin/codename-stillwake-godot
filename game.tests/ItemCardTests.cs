@@ -182,9 +182,9 @@ public class ItemCardTests
     }
 
     [Fact]
-    public void WearEquipmentOnTheMediumCardTheHelmetLampWithItsReachFromItsLight()
+    public void WearEquipmentOnTheMediumCardTheLightDroneWithItsReachFromItsLight()
     {
-        var lamp = ItemCards.Of(Spec.HelmetLamp.Item);
+        var lamp = ItemCards.Of(Spec.LightDrone.Item);
         Assert.True(lamp.Worn);
         Assert.False(lamp.Tool);
         // As content stands: 18 of the 8 px cells (0104), 30 degrees either side; it draws nothing, a bolt and 0.

@@ -401,4 +401,43 @@ public class MigrationsTests
         Assert.Equal([(Content.Foods.Ration, 800)], w.M.Crew.HeroOf(0)!.Meals.Select(m => (m.Food, m.Left)));
         Assert.True(w.M.Crew.Hungry(1));
     }
+
+    [Fact]
+    public void MakesEveryHelmetLampOfAFormatSixtySevenSaveALightDrone()
+    {
+        // A lamp in a slot, one on the floor, one made into the workbench and one queued there, its blueprint known: as format 67
+        // had them, the old id in each and the blueprints sorted with it.
+        const string Room = """
+            ##########
+            #........#
+            #.OOOII..#
+            #.OOOII..#
+            #.OOOII..#
+            ##########
+            """;
+        const int Bench = 2;
+        var w = new Scenario(Layout.Parse(Room) with { Known = [] }, doubled: true)
+            .GiveItems(0, (Content.LightDrone.Item, 2), ("plate", 2), ("wire", 4), ("coil", 2));
+        w.M.Knowledge.Grant(Content.LightDrone.Item);
+        w.Do(new Items.Drop(new Items.Place(0), 1, w.At(7, 4), 1)).Run(30);
+        w.Do(new Crafting.Craft(Bench, Content.LightDrone.Item, 1)).Run(Content.Crafts.Get(Content.LightDrone.Item).Ticks * 1000 / Content.Stations.Get("workbench").Speed + 1);
+        w.Do(new Crafting.Craft(Bench, Content.LightDrone.Item, 1)).Run();
+        Assert.Empty(w.Refusals);
+        var save = JsonNode.Parse(w.World.Save().Replace("\"lightDrone\"", "\"helmetLamp\""))!.AsObject();
+        save["format"] = 67;
+        var granted = save["slices"]!["knowledge"]!["granted"]!.AsArray();
+        var known = granted.Select(g => g!.GetValue<string>()).Order(StringComparer.Ordinal).ToList();
+        save["slices"]!["knowledge"]!["granted"] = new JsonArray([.. known.Select(k => (JsonNode)k)]);
+        Assert.Contains("helmetLamp", known);
+
+        string upgraded = Migrations.Upgrade(save.ToJsonString());
+        Assert.DoesNotContain("helmetLamp", upgraded);
+        w.Reload(upgraded);
+        Assert.Contains(new Items.Stack(Content.LightDrone.Item, 1), w.M.Items.Inventory(0));
+        Assert.Equal(Content.LightDrone.Item, Assert.Single(w.M.Items.Floor).Item);
+        Assert.Equal(new Items.Stack(Content.LightDrone.Item, 1), w.M.Items.Crate(Bench)[0]);
+        Assert.Equal([Content.LightDrone.Item], w.M.Crafting.Queue(Bench).Select(e => e.Recipe));
+        // Found by its blueprint's place in the sorted list.
+        Assert.True(w.M.Knowledge.Granted(Content.LightDrone.Item));
+    }
 }

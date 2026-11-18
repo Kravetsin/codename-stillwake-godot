@@ -390,7 +390,48 @@ public static class Migrations
             }
             return root;
         },
+        // 67 → 68 (light-drone): the helmet lamp is the light drone. Every string in the save that is the old id is the item, its
+        // craft or its blueprint, wherever it lies; the lists kept sorted by id are sorted again.
+        root =>
+        {
+            Renamed68(root);
+            foreach (var slices in new[] { root["slices"]! }.Concat((root["surfaces"]?.AsArray() ?? []).Select(s => s!["slices"]).OfType<JsonNode>()))
+            {
+                if (slices["knowledge"] is not JsonObject knowledge) continue;
+                if (knowledge["granted"] is JsonArray granted) SortedBy68(granted, g => g!.GetValue<string>());
+                if (knowledge["sold"] is JsonArray sold) SortedBy68(sold, t => t!["item"]!.GetValue<string>());
+                if (knowledge["reputation"]?["base"] is JsonArray goods) SortedBy68(goods, t => t!["item"]!.GetValue<string>());
+            }
+            return root;
+        },
     ];
+
+    /// <summary><paramref name="node"/> with every string value <c>helmetLamp</c> in it, however deep, made <c>lightDrone</c>.</summary>
+    private static void Renamed68(JsonNode? node)
+    {
+        static JsonNode? Of(JsonNode? n) => n is JsonValue v && v.TryGetValue(out string? s) && s == "helmetLamp" ? JsonValue.Create("lightDrone") : null;
+        switch (node)
+        {
+            case JsonObject o:
+                foreach (var key in o.Select(p => p.Key).ToList())
+                    if (Of(o[key]) is { } renamed) o[key] = renamed;
+                    else Renamed68(o[key]);
+                break;
+            case JsonArray a:
+                for (int i = 0; i < a.Count; i++)
+                    if (Of(a[i]) is { } renamed) a[i] = renamed;
+                    else Renamed68(a[i]);
+                break;
+        }
+    }
+
+    /// <summary><paramref name="list"/> sorted ordinally by <paramref name="key"/>, in place.</summary>
+    private static void SortedBy68(JsonArray list, Func<JsonNode?, string> key)
+    {
+        var sorted = list.OrderBy(key, StringComparer.Ordinal).ToList();
+        list.Clear();
+        foreach (var n in sorted) list.Add(n);
+    }
 
     /// <summary>The slices with liquids' empty one after building's, where its module runs: a save holds them in that order.</summary>
     private static JsonObject Inserted56(JsonObject slices)

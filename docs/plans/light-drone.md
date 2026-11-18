@@ -79,9 +79,11 @@ since danger comes unasked. Fire has no sim state outside furnaces, so no fire a
 
 ## Build order, each step playable
 
-1. The item and the disc, lamp only: `lightDrone` replaces `helmetLamp` and `scanner` in Content, with the migration; the
-   stand-in becomes the disc.
-2. The F wheel with the client's mode, lamp and scanner; gestures move to their own key in the same step, or the keys clash.
+1. The item and the disc, lamp only: `lightDrone` replaces `helmetLamp` in Content, with the migration; the stand-in becomes
+   the disc (tools/anime-art `drone.js`: the body per angle; the band, lens and haze drawn by `LightDrone`). The scanner
+   item stays until step 2, its node being what opens the mode.
+2. The F wheel with the client's mode, lamp and scanner; the `scanner` item goes (a saved one becomes a drone, its node
+   the mode's unlock); gestures move to their own key in the same step, or the keys clash.
 3. Holograms from `Busy`.
 4. Magnet, behind its research node.
 5. Alarms, after their short design.
