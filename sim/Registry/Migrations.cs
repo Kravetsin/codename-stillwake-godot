@@ -419,7 +419,26 @@ public static class Migrations
             }
             return root;
         },
+        // 69 → 70 (drone-companion): the mount slot is gone, the drone a pairing. An inventory of format 69's 47 slots loses its
+        // seventh equipment slot; a peer whose drone sat there is paired. Nothing else of old saves is kept (saves break at release).
+        root =>
+        {
+            var paired = new SortedSet<int>();
+            foreach (var slices in new[] { root["slices"]! }.Concat((root["surfaces"]?.AsArray() ?? []).Select(s => s!["slices"]).OfType<JsonNode>()))
+                foreach (var held in slices["items"]!["inventories"]!.AsArray())
+                {
+                    var slots = held!["slots"]!.AsArray();
+                    if (slots.Count != Mount70 + 3) continue;
+                    if (slots[Mount70] is JsonObject drone && drone["item"]!.GetValue<string>() == "lightDrone") paired.Add(held["id"]!.GetValue<int>());
+                    slots.RemoveAt(Mount70);
+                }
+            if (root["slices"]!["players"] is JsonObject players) players["drones"] = new JsonArray([.. paired.Select(p => (JsonNode)p)]);
+            return root;
+        },
     ];
+
+    /// <summary>Format 69's mount slot: the seventh equipment slot after 38 own ones, the cape and the trash after it.</summary>
+    private const int Mount70 = 44;
 
     /// <summary>Every stack in <paramref name="node"/>, however deep, of <c>scanner</c> made <c>lightDrone</c>; whether there was one.</summary>
     private static bool Drones69(JsonNode? node)

@@ -60,6 +60,12 @@ public sealed record Eat(string Item) : Command;
 public sealed record Purge : Command;
 
 /// <summary>
+/// The sender's hero pairs with a light drone it carries (drone-companion), a right click with it in hand: the item taken, the
+/// pairing its player's for good, its bag rows open.
+/// </summary>
+public sealed record PairDrone : Command;
+
+/// <summary>
 /// The sender's hero passes out of its body's cold or heat (body-temperature): its client keeps the body, from the degrees the sim
 /// says it feels, and sends this as it reaches <c>Temperature.ColdDeath</c> or <c>HeatDeath</c>.
 /// </summary>
@@ -210,6 +216,7 @@ public sealed partial class CrewModule : Module<CrewState>, ICrewQueries, ICrewO
     private readonly ISkyQueries _sky;
 
     private static readonly IReadOnlyList<(string Item, int Count)> Canister = [(Content.Crew.Canister, 1)];
+    private static readonly IReadOnlyList<(string Item, int Count)> Drone = [(Content.LightDrone.Item, 1)];
 
     public CrewModule(
         IAtmosphereQueries air, IAtmosphereOps atmosphere, IGridQueries grid, IItemsQueries items, IItemsOps itemsOps, IPlayersQueries players, IPlayersOps playersOps,
@@ -272,6 +279,11 @@ public sealed partial class CrewModule : Module<CrewState>, ICrewQueries, ICrewO
             // A fruit eaten raw draws the rolls its crushing would: its seed back now and then (fruit-not-biomass).
             if (Content.Items.Get(c.Item).Byproducts is { } kept && Loots.Roll(kept, Random) is { Count: > 0 } back)
                 _itemsOps.GiveOrDrop(c.From, back, hero.Cell);
+        });
+        Handles<PairDrone>(c => PairProblem(c.From), c =>
+        {
+            _itemsOps.Take(c.From, Drone);
+            _playersOps.Pair(c.From);
         });
         Handles<Purge>(c => PurgeProblem(c.From), c =>
         {
@@ -502,6 +514,17 @@ public sealed partial class CrewModule : Module<CrewState>, ICrewQueries, ICrewO
         if (_items.ShortOf(peer, [(item, 1)]) is { } none) return none;
         if (hero.Eaten.Find(m => m.Food == item) is { } meal) return meal.Left > Diet.RefreshWithin ? "crew.sameFood" : null;
         return hero.Eaten.Count >= Diet.Meals ? "crew.mealsFull" : null;
+    }
+
+    /// <summary>
+    /// Why hero <paramref name="peer"/> could not pair with a light drone now: none or passed out (<c>crew.noHero</c>), its player
+    /// paired already (<c>crew.hasDrone</c>), or no drone carried (<c>items.notEnough</c>, never in creative). Null when it could.
+    /// </summary>
+    public string? PairProblem(int peer)
+    {
+        if (HeroOf(peer) is not { Out: 0 }) return "crew.noHero";
+        if (_players.HasDrone(peer)) return "crew.hasDrone";
+        return _items.ShortOf(peer, Drone);
     }
 
     /// <summary>Why hero <paramref name="peer"/> could not purge: none, or out (<c>crew.noHero</c>), or nothing eaten (<c>crew.noMeals</c>). Null when it could.</summary>

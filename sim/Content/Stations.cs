@@ -34,12 +34,13 @@ public static class Stations
 {
     public static readonly IReadOnlyList<Station> All =
     [
-        // The lifepod's Fabricator: what a castaway is given, the suit and the screwdriver, at a fifth of full speed (0046).
-        new("lifepod", Speed: 200, QueueMost: 4, Rows: [["helmet", "suit", "screwdriver"]]),
+        // The lifepod's Fabricator: what a castaway is given, the suit and the screwdriver, at a fifth of full speed (0046); and the
+        // drone it pairs with (drone-companion), its card shown only to a hero not paired yet.
+        new("lifepod", Speed: 200, QueueMost: 4, Rows: [["helmet", "suit", "screwdriver"], ["lightDrone"]]),
         // The workbench, of raw salvage: the basic parts by hand, and everything assembled rather than stamped: the tools, the
         // jetpack, the drill, the cape and the quilted helmet; and the battery, so the drill's power comes with it
         // (battery-workbench). At the pod's speed and with no power.
-        new("workbench", Speed: 200, QueueMost: 4, Rows: [["wire", "plate", "gear", "tube"], ["coil", "rotor", "battery"], ["fireAxe", "harpoon", "nailer", "nail"], ["lightDrone", "jetpack", "heatedHelmet", "cape"], ["drill", "grinder", "spear", "sledgehammer"], ["pickaxe", "grapple", "blastCharge", "heatSuit"], ["heatHelmet"]]),
+        new("workbench", Speed: 200, QueueMost: 4, Rows: [["wire", "plate", "gear", "tube"], ["coil", "rotor", "battery"], ["fireAxe", "harpoon", "nailer", "nail"], ["jetpack", "heatedHelmet", "cape"], ["drill", "grinder", "spear", "sledgehammer"], ["pickaxe", "grapple", "blastCharge", "heatSuit"], ["heatHelmet"]]),
         new("furnace", Speed: 1000, QueueMost: 0, Rows: [], Heat: 1),
         // Crushes rock and asteroid ore on power (economy rework): gravel, iron ore and quartz, the only way to silicon and glass.
         new("crusher", Speed: 1000, QueueMost: 0, Rows: [], Heat: 1, Process: "crush"),

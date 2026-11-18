@@ -19,8 +19,8 @@ public class UpgradesTests
     ];
     private static readonly int Belt = Inventory.Slots + Inventory.Equipment.ToList().IndexOf("belt");
 
-    /// <summary>A world knowing what a new game does, the gates' deposits aside: a test opens each gate it needs.</summary>
-    private static Scenario World() => new(Layout.Parse(Rows, null) with { Known = [] }, doubled: true);
+    /// <summary>A world knowing what a new game does, the gates' deposits aside, peer 0 paired: a test opens each gate it needs.</summary>
+    private static Scenario World() => new Scenario(Layout.Parse(Rows, null) with { Known = [] }, doubled: true).Pair(0);
 
     private static int Station(Scenario w) => w.M.Grid.MachinesOf("tradeStation")[0].Id;
 

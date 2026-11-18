@@ -7,9 +7,10 @@ public static class ItemsTesting
 {
     private static ItemsState StateOf(Scenario w) => (ItemsState)w.M.Items.Slice;
 
-    /// <summary>Puts <paramref name="cost"/> into <paramref name="peer"/>'s inventory; throws when it does not fit.</summary>
+    /// <summary>Puts <paramref name="cost"/> into <paramref name="peer"/>'s inventory, pairing it first (<see cref="Scenario.Pair"/>); throws when it does not fit.</summary>
     public static Scenario GiveItems(this Scenario w, int peer, params (string Item, int Count)[] cost)
     {
+        w.Pair(peer);
         var state = StateOf(w);
         var slots = Stacks.Placed(Stacks.InventoryOf(state, peer), cost, Content.Inventory.Slots)
             ?? throw new InvalidOperationException($"peer {peer}'s inventory has no room for that");
@@ -43,6 +44,7 @@ public static class ItemsTesting
     /// <summary>Puts <paramref name="stack"/> in slot <paramref name="slot"/> of <paramref name="peer"/>'s inventory, or of machine <paramref name="crate"/>: a battery holding some charge.</summary>
     public static Scenario Put(this Scenario w, int slot, Stack stack, int peer = 0, int? crate = null)
     {
+        if (crate == null) w.Pair(peer);
         var state = StateOf(w);
         var slots = (crate is int id ? w.M.Items.Crate(id) : Stacks.InventoryOf(state, peer)).ToArray();
         slots[slot] = stack;
