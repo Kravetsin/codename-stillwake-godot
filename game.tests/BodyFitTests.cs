@@ -35,9 +35,9 @@ public class BodyFitTests
     {
         Assert.Equal(HelmetTurn.Soft, BodyFit.Of(Stillwake.Content.Helmet.Basic).Turn);
         Assert.Equal(HelmetTurn.Ring, BodyFit.Of(Stillwake.Content.Helmet.Heavy).Turn);
-        // The raw painted helmets (gear-roles) sit as the skins do.
-        Assert.Same(BodyFit.Of("brassHelmet"), BodyFit.Of(Stillwake.Content.Helmet.Heated));
-        Assert.Same(BodyFit.Of("brassHelmet"), BodyFit.Of(Stillwake.Content.Helmet.HeatProof));
+        // The raw painted helmets (gear-roles) sit and nod as the basic ball does.
+        foreach (string helmet in (string[])[Stillwake.Content.Helmet.Heated, Stillwake.Content.Helmet.HeatProof, "dustHelmet", "hideHelmet", "boilerHelmet"])
+            Assert.Same(BodyFit.Of(Stillwake.Content.Helmet.Basic), BodyFit.Of(helmet));
     }
 
     [Fact]

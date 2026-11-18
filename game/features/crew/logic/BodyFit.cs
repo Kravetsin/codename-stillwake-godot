@@ -106,12 +106,13 @@ public static class BodyFit
         ["ramHelmet"] = Shell,
         ["bathysphereHelmet"] = Shell,
         ["paradeHelmet"] = Shell,
-        ["dustHelmet"] = Shell,
-        ["hideHelmet"] = Shell,
-        ["boilerHelmet"] = Shell,
-        // The raw painted helmets (gear-roles) are laid as the skins are.
-        [Stillwake.Content.Helmet.Heated] = Shell,
-        [Stillwake.Content.Helmet.HeatProof] = Shell,
+        // The raw painted helmets (gear-roles): laid in the basic ball's box on its rubber collar, nodding as it does, the best fit
+        // in play; their own painted neck ring cut off.
+        ["dustHelmet"] = Ball,
+        ["hideHelmet"] = Ball,
+        ["boilerHelmet"] = Ball,
+        [Stillwake.Content.Helmet.Heated] = Ball,
+        [Stillwake.Content.Helmet.HeatProof] = Ball,
         // The bell turns whole on its rubber gasket as the skins do on theirs, with no shoulder piece: it met no suit well.
         [Stillwake.Content.Helmet.Heavy] = Shell,
         ["catcherHood"] = Hood,

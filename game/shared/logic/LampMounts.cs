@@ -4,7 +4,7 @@ namespace Stillwake.Game.Shared;
 
 /// <summary>
 /// Where the helmet lamp's picture's top left sits on each helmet's picture, in its pixels, by the helmet's picture id: an
-/// item's or a skin's (hero-skins). The basic one's on its brow, the heavy one's on its cap, the quilted one's on its crown.
+/// item's or a skin's (hero-skins). The basic one's on its brow, the heavy one's on its cap.
 /// </summary>
 public static class LampMounts
 {
@@ -12,7 +12,8 @@ public static class LampMounts
     {
         [Stillwake.Content.Helmet.Basic] = (8, -2),
         [Stillwake.Content.Helmet.Heavy] = (6, -4.8),
-        [Stillwake.Content.Helmet.Heated] = (8, -2.1),
+        // The raw painted helmets (gear-roles), laid in the basic ball's box: on its brow too.
+        [Stillwake.Content.Helmet.Heated] = (8, -2),
         [Stillwake.Content.Helmet.HeatProof] = (8, -2),
         // The helmet skins: on the brow of each painted dome, over its face opening as on the basic one.
         ["brassHelmet"] = (8, -2.4),
@@ -24,8 +25,8 @@ public static class LampMounts
         ["ramHelmet"] = (8, -2.2),
         ["bathysphereHelmet"] = (8, -2.9),
         ["paradeHelmet"] = (8, -2.2),
-        ["dustHelmet"] = (8, -1.5),
-        ["hideHelmet"] = (8, -2.5),
+        ["dustHelmet"] = (8, -2),
+        ["hideHelmet"] = (8, -2),
         ["boilerHelmet"] = (8, -2),
     };
 
