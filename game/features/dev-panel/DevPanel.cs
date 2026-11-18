@@ -118,7 +118,8 @@ public partial class DevPanel : CanvasLayer
         // A vessel world (vessel-worlds): a contact of each class jumped to, its world opened and this hero moved in by its door; home
         // is "to ship", which closes it once nobody is left there.
         // Which state they summon it in: abandoned (intact) or wrecked, the button's words switched on each press (vessel-wrecks).
-        var summon = Style.Gap(new HBoxContainer(), 8);
+        // Flowing: in one row the last class falls off the panel.
+        var summon = Style.Gap(new HFlowContainer(), 8);
         Button state = null!;
         state = Style.Button("abandoned", () =>
         {
