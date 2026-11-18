@@ -15,7 +15,8 @@ public partial class LightDrone : Node2D
     public LightDrone()
     {
         TopLevel = true;
-        ZIndex = 1;
+        // Over the hero and what its near hand holds, as the other drones fly.
+        (ZAsRelative, ZIndex) = (false, Render.Layers.Drones);
         Visible = false;
         Material = new CanvasItemMaterial { LightMode = CanvasItemMaterial.LightModeEnum.Unshaded };
     }
