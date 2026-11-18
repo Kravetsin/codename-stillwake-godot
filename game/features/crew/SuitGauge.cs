@@ -152,39 +152,37 @@ public partial class SuitGauge : CanvasLayer
 
     /// <summary>
     /// The canister's ring round the oxygen sign (canister-mark, as picked): while it cools a sky arc sweeps clockwise from the
-    /// top over a dark ring, a bright dot at its head; asked for too soon, the sign and a ring blink red and jolt; ready, a pale
-    /// ring flashes and fades.
+    /// top over a dark ring, a bright dot at its head; asked for too soon, the sign and the arc left to cool blink red and jolt,
+    /// the swept arc kept sky; ready, a pale ring flashes and fades.
     /// </summary>
     private void DrawRing(CanvasItem on)
     {
-        var centre = _gauge.IconAt.GetCenter();
-        float bright = _gauge.Bright;
-        if (_refused.Red > 0)
-        {
-            float red = (float)_refused.Red;
-            var jolt = new Vector2(_refused.Jolt.X, _refused.Jolt.Y);
-            on.DrawTextureRect(RedSign, new Rect2(_gauge.IconAt.Position + jolt, _gauge.IconAt.Size), false, Colors.White with { A = red * bright });
-            Ring(on, centre + jolt, -Mathf.Pi / 2, 3 * Mathf.Pi / 2, Refused with { A = 0.9f * red * bright });
-            return;
-        }
+        float bright = _gauge.Bright, red = (float)_refused.Red;
+        var jolt = red > 0 ? new Vector2(_refused.Jolt.X, _refused.Jolt.Y) : Vector2.Zero;
+        var centre = _gauge.IconAt.GetCenter() + jolt;
         if (_cooling.Cooling)
         {
-            float end = HandAngle;
+            var (swept, left) = CanisterCooling.Arcs(_cooling.Passed);
             Ring(on, centre, -Mathf.Pi / 2, 3 * Mathf.Pi / 2, Style.Slate700 with { A = 0.95f * bright });
-            Ring(on, centre, -Mathf.Pi / 2, end, Style.Sky400 with { A = 0.85f * bright });
-            on.DrawRect(new Rect2(centre + RingAt(end) - Vector2.One, new Vector2(2, 2)), Style.Sky200 with { A = bright });
-            return;
+            Ring(on, centre, swept.From, swept.To, Style.Sky400 with { A = 0.85f * bright });
+            if (red > 0) Ring(on, centre, left.From, left.To, Refused with { A = 0.9f * red * bright });
+            on.DrawRect(new Rect2(centre + RingAt(swept.To) - Vector2.One, new Vector2(2, 2)), Style.Sky200 with { A = bright });
         }
-        if (_cooling.Ready > 0) Ring(on, centre, -Mathf.Pi / 2, 3 * Mathf.Pi / 2, Style.Sky200 with { A = (float)_cooling.Ready * bright });
+        else if (_cooling.Ready > 0)
+        {
+            Ring(on, centre, -Mathf.Pi / 2, 3 * Mathf.Pi / 2, Style.Sky200 with { A = (float)_cooling.Ready * bright });
+            if (red > 0) Ring(on, centre, -Mathf.Pi / 2, 3 * Mathf.Pi / 2, Refused with { A = 0.9f * red * bright });
+        }
+        if (red > 0) on.DrawTextureRect(RedSign, new Rect2(_gauge.IconAt.Position + jolt, _gauge.IconAt.Size), false, Colors.White with { A = red * bright });
     }
 
-    /// <summary>The ring's light, added: red round a refused sign, sky as it turns ready, a spark at the sweep's head.</summary>
+    /// <summary>The ring's light, added: red on a refused sign, inside the ring so the sweep keeps its sky; sky as it turns ready; a spark at the sweep's head.</summary>
     private void LightRing(CanvasItem on)
     {
-        var centre = _gauge.IconAt.GetCenter();
-        float bright = _gauge.Bright;
-        if (_refused.Red > 0) Glow(on, centre + new Vector2(_refused.Jolt.X, 0), 20, Refused with { A = 0.45f * (float)_refused.Red * bright });
-        else if (_cooling.Cooling) Glow(on, centre + RingAt(HandAngle), 4, Style.Sky400 with { A = 0.5f * bright });
+        float bright = _gauge.Bright, red = (float)_refused.Red;
+        var centre = _gauge.IconAt.GetCenter() + (red > 0 ? new Vector2(_refused.Jolt.X, _refused.Jolt.Y) : Vector2.Zero);
+        if (red > 0) Glow(on, centre, Vitals.Icon / 2, Refused with { A = 0.45f * red * bright });
+        if (_cooling.Cooling) Glow(on, centre + RingAt(HandAngle), 4, Style.Sky400 with { A = 0.5f * bright });
         if (_cooling.Ready > 0) Glow(on, centre, 20, Style.Sky400 with { A = 0.55f * (float)_cooling.Ready * bright });
     }
 

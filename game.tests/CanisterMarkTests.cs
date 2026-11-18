@@ -22,6 +22,18 @@ public class CanisterMarkTests
         Assert.Equal(Read / 2 * World.TicksPerSecond / CrewSpec.CanisterCooldown, c.Passed, 6);
     }
 
+    [Theory]
+    [InlineData(0)]
+    [InlineData(0.3)]
+    [InlineData(1)]
+    public void ARefusalBlinksOnlyTheArcLeftToCoolFromTheSweepsHeadRoundToTheTop(double passed)
+    {
+        var (swept, left) = CanisterCooling.Arcs(passed);
+        float top = -System.MathF.PI / 2, head = top + 2 * System.MathF.PI * (float)passed;
+        Assert.Equal((top, head), (swept.From, swept.To));
+        Assert.Equal((head, top + 2 * System.MathF.PI), (left.From, left.To));
+    }
+
     [Fact]
     public void GlowsAsTheCountRunsOutAndOnceOnlyThoughTheSimLagsIt()
     {
