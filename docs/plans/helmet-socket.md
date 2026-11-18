@@ -27,21 +27,18 @@ helmet's pictures are.
 
 | Part | Owner | What it is |
 | --- | --- | --- |
-| **Rim line** | engine | The basic shell's own bottom outline, from box row 8.25 (hd 44) down. Every dome ends exactly on it. |
-| **Seal** | engine | The basic rubber ring (`hero_helmet_collar`), drawn under the dome. It bends, and nothing else does. |
+| **Neck** | engine | The basic helmet's narrow band under its ball, from its dark lip line down onto the rubber (`LIP` in the tool), laid on in the dome's own colour. Every dome ends on the lip, so every helmet meets the rubber as the basic one does. |
+| **Rim line** | engine | Behind and in front of the neck, the basic shell's own bottom outline from box row 8.25 (hd 44) down. |
+| **Seal** | engine | The basic rubber collar (`hero_helmet_collar`), under the dome and neck. |
 | **Glass** | engine | The basic visor's place and shape, the face behind it. A helmet may tint it: the heat helmet is gold. |
 | **Mounts** | engine | The lamp at (8, −2) and the scanner at (6.2, −1.9), the basic helmet's, for every socket helmet. |
 | **Must zone** | GPT | The basic shell's silhouette. It must be painted: the lamp's and scanner's mounts sit on its brow. |
 | **May zone** | GPT | One polygon, drawn once in the tool: one world px round the must zone at its top and back, above the rim line, and at the front 2 world px past the glass, down to the rim line. The front reach is for a snout, a mask or a filter; its first user is the dust wrap's filter. |
 | **Never** | — | Anything below the rim line, or outside the may zone. |
 
-**One way to turn.** Every socket helmet turns whole about the seal's middle (`SealY` 11.75), and only the engine's seal
-bends: the skins' fit, `BodyFit.Shell`, unchanged. The soft `Ball` fit is not enough: the dome's own bottom, rows 9.75 to
-12.5 of the box, lies in its bending band (`SealY` ± 2), and the dust wrap's filter stretched there. Under `Shell` nothing
-painted bends, whatever GPT draws there.
-
-**The basic helmet.** It is the template and stays soft (`Ball`), the user's pick of PR 579. In the try, the F8 key shows it
-on the socket fit too. If play prefers the socket, it moves over and the soft fit is left to the hoods.
+**One way to turn: the basic helmet's.** Every socket helmet nods as the basic one does (`BodyFit.Ball`): the ball whole, the
+neck and rubber bending. A first try turned them whole on the skins' seal (`Shell`) with no neck: in play none read as sitting
+on the rubber, only the basic helmet did. Painted detail just above the lip may bend a little in the band's top rows.
 
 ## Making one
 A tool in `tools/anime-art/socket/` (node), committed, in three steps.
@@ -51,10 +48,12 @@ A tool in `tools/anime-art/socket/` (node), committed, in three steps.
    prompt (kept in the tool) asks GPT to paint the dome in the grey, to end on the black seal as the basic helmet does, and
    to change nothing else. The candidate's own picture goes with it as a reference.
 2. **Cut and check** (`cut.js`). It cuts each cell by the grid to 76 × 72, measured against the reference cell. Then:
-   - everything outside the may zone or below the rim line is dropped;
+   - everything outside the may zone, below the lip or below the rim line is dropped;
    - whatever GPT painted over the glass is dropped; the engine's glass is under it;
    - the rim line is inked in the darkest colour of the dome's own outline, so the seam is in its paint, not the basic
-     helmet's. This is the only style step code takes.
+     helmet's;
+   - the neck is laid on: the basic one's pixels, each channel scaled by the dome's mean colour just above the lip over the
+     basic ball's there, so its ink stays dark. These two are the only style steps code takes.
 
    A candidate is **refused** when less than 98% of the must zone is painted: it would leave a hole under the lamp or the
    glass. Refused cells are drawn again. Everything else is shape that was cropped. The report gives each candidate's
@@ -67,12 +66,11 @@ open where the dome stands in front of it. The game draws the glass over the dom
 would hide behind it otherwise.
 
 ## In the game
-- `Figure.PictureOf`: a socket helmet's seal is `helmet_collar`, its collar is none, and its visor is `visor` unless it has
-  its own.
-- A list of socket helmets in `BodyFit` gives each the `Shell` fit; the rows of the five gear-roles helmets go.
+- `Figure.PictureOf`: a socket helmet's collar is `helmet_collar`.
+- A list of socket helmets in `BodyFit` gives each the basic helmet's fit; the rows of the five gear-roles helmets go.
 - `LampMounts` and `ScannerInk` lose the five helmets' rows: their `Of` already falls back to the basic one's.
 - One test in `SkinCatalogueTests`: every socket helmet has its shell and card, no seal or collar picture of its own, and
-  the `Shell` fit.
+  the basic helmet's fit.
 - The five gear-roles helmets are drawn again through the tool; their `_seal`, `_collar` and copied visor files go.
 - Checked on the dress sheet: a dead socket helmet's crumble, and the eyes' glow (`hero_<helmet>_lit`) inside one.
 

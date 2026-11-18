@@ -125,11 +125,11 @@ public static class BodyFit
     public static HelmetFit Of(string? helmet) =>
         helmet == null || FitOf(helmet) is not { } fit ? Whole : Trial is { } turn ? As(helmet, fit, turn) : fit;
 
-    private static HelmetFit? FitOf(string helmet) => Fits.TryGetValue(helmet, out var fit) ? fit : IsSocket(helmet) ? Shell : null;
+    private static HelmetFit? FitOf(string helmet) => Fits.TryGetValue(helmet, out var fit) ? fit : IsSocket(helmet) ? Ball : null;
 
     /// <summary>
-    /// The socket helmets (helmet-socket): only a painted dome of their own, on the basic helmet's rim, rubber seal and glass,
-    /// turning whole on that seal so nothing painted ever bends. Every new helmet is one.
+    /// The socket helmets (helmet-socket): only a painted dome of their own, on the basic helmet's neck (in the dome's colour),
+    /// rubber seal and glass, nodding as the basic ball does, the neck and seal bending. Every new helmet is one.
     /// </summary>
     public static readonly IReadOnlyList<string> Sockets =
         [Stillwake.Content.Helmet.Heated, Stillwake.Content.Helmet.HeatProof, "dustHelmet", "hideHelmet", "boilerHelmet"];

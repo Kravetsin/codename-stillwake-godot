@@ -1064,8 +1064,7 @@ public partial class Figure : Node2D
         Rows(_shell, double.NegativeInfinity, cut);
         Rows(_visor, double.NegativeInfinity, cut);
         Rows(_collarPart, _fit.Cut ?? double.NegativeInfinity, double.PositiveInfinity);
-        // A socket helmet's rubber is its seal, bending: no collar beside it.
-        _collarPart.Visible = helmet != null && !BodyFit.IsSocket(helmet) && (_fit.Cut == null || _collarPart.RegionRect.Size.Y > 0);
+        _collarPart.Visible = helmet != null && (_fit.Cut == null || _collarPart.RegionRect.Size.Y > 0);
     }
 
     /// <summary>A helmet's picture drawn only from row <paramref name="from"/> to <paramref name="to"/> of its box, each where it is.</summary>
@@ -1103,9 +1102,9 @@ public partial class Figure : Node2D
         "hair" => $"hair_{HeroLooks.Wrap(_look.Hair, HeroLooks.HairStyles)}",
         "beard" => $"beard_{Math.Max(HeroLooks.Wrap(_look.Beard, HeroLooks.Beards + 1) - 1, 0)}",
         // A later helmet's own pictures (2026-11-03-the-heavy-helmet); the basic one's keep their first names.
-        // A socket helmet (helmet-socket) is its dome on the basic one's glass, seal and rim: its own glass only when tinted.
-        "visor" when BodyFit.IsSocket(_helmetWorn) => HiRes.Has($"hero_{_helmetWorn}_visor") ? $"{_helmetWorn}_visor" : "visor",
-        "seal" or "collar" when BodyFit.IsSocket(_helmetWorn) => "helmet_collar",
+        // A socket helmet (helmet-socket) is its dome and neck on the basic one's rubber collar; its glass the basic one's, tinted or
+        // opened where the dome stands in front of it.
+        "collar" when BodyFit.IsSocket(_helmetWorn) => "helmet_collar",
         "shell" or "visor" when _helmetWorn is { } worn && worn != Stillwake.Content.Helmet.Basic => $"{worn}_{part}",
         "shell" => "helmet_shell",
         // A collar of its own (helmets-fit-the-suit), else the shell's rows from its cut.

@@ -29,7 +29,7 @@ public class SkinCatalogueTests
     [Fact]
     public void ASocketHelmetIsItsDomeAloneOnTheBasicOnesMountsAndSeal()
     {
-        // helmet-socket: the rim, seal, glass, lamp and scanner are the basic helmet's; it turns whole, only the seal bending.
+        // helmet-socket: the neck, rubber collar, lamp and scanner are the basic helmet's, and it nods as the basic one does.
         foreach (var helmet in BodyFit.Sockets)
         {
             Assert.Contains(helmet, HelmetPictures);
@@ -37,7 +37,7 @@ public class SkinCatalogueTests
             Assert.True(Png.Has($"items/{helmet}") || Png.Has($"skins/{helmet}"), $"{helmet}'s card");
             Assert.False(Png.Has($"hero_{helmet}_seal") || Png.Has($"hero_{helmet}_collar"), $"{helmet} has a seal or collar of its own");
             Assert.False(LampMounts.On.ContainsKey(helmet) || ScannerInk.On.ContainsKey(helmet), $"{helmet} has a mount row of its own");
-            Assert.Equal((HelmetTurn.Ring, true), (BodyFit.Of(helmet).Turn, BodyFit.Of(helmet).Sealed));
+            Assert.Same(BodyFit.Of(Content.Helmet.Basic), BodyFit.Of(helmet));
         }
     }
 

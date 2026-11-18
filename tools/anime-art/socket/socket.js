@@ -27,13 +27,25 @@ const glassAt = (x, y) => alpha(basicVisor, x, y) > 0;
 const mustAt = (x, y) => alpha(basicShell, x, y) > 40 || glassAt(x, y);
 const vb = bbox(basicVisor), bb = bbox(basicShell);
 
+/**
+ * The basic helmet's neck: the narrow band under its ball, from the dark lip line down onto the seal, as a row per column (the
+ * lip's row at x, read off its picture). Every socket helmet wears it, in its own colour: the dome ends on the lip.
+ */
+const LIP = [[16, 54], [27, 54], [31, 55], [35, 56], [40, 57], [44, 58], [54, 58], [56, 57]];
+const lipAt = (x) => {
+  if (x > LIP[LIP.length - 1][0]) return Infinity;
+  if (x <= LIP[0][0]) return LIP[0][1];
+  for (let k = 1; k < LIP.length; k++) if (x <= LIP[k][0]) { const [x0, y0] = LIP[k - 1], [x1, y1] = LIP[k]; return y0 + (y1 - y0) * (x - x0) / (x1 - x0); }
+};
+const neckAt = (x, y) => alpha(basicShell, x, y) > 0 && y >= lipAt(x) - 1;
+
 /** Where paint may be: the must zone, one world px round it at the top, back and front above the rim, and a snout's reach past the glass. */
 const may = new Uint8Array(W * H);
 for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
   let ok = mustAt(x, y);
   if (!ok && y < RIM) for (let d = -GROW; d <= GROW && !ok; d++) for (let e = -GROW; e <= GROW && !ok; e++) ok = d * d + e * e <= GROW * GROW && mustAt(x + e, y + d);
   if (!ok && x >= vb.x0 && x <= vb.x1 + SNOUT && y >= (vb.y0 + vb.y1) >> 1 && y <= bb.y1 && !alpha(seal, x, y)) ok = true;
-  may[y * W + x] = ok ? 1 : 0;
+  may[y * W + x] = ok && y < lipAt(x) - 1 ? 1 : 0;
 }
 
 function template(out) {
@@ -144,12 +156,21 @@ function cut(sheetFile, ids, write) {
     for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
       const i = y * W + x; if (!dome[i * 4 + 3]) continue;
       let cutNear = dropped[i] === 2;
-      for (let d = -1; d <= 1 && !cutNear; d++) for (let e = -1; e <= 1 && !cutNear; e++) { const p = x + e, q = y + d; cutNear = p >= 0 && q >= 0 && p < W && q < H && dropped[q * W + p] === 1; }
+      for (let d = -1; d <= 1 && !cutNear; d++) for (let e = -1; e <= 1 && !cutNear; e++) { const p = x + e, q = y + d; cutNear = p >= 0 && q >= 0 && p < W && q < H && dropped[q * W + p] === 1 && !neckAt(p, q); }
       if (cutNear) { dome[i * 4] = ink[0]; dome[i * 4 + 1] = ink[1]; dome[i * 4 + 2] = ink[2]; dome[i * 4 + 3] = 255; }
+    }
+    // the neck laid on, the basic one's pixels in the dome's colour just above its lip (its ink kept dark): one shape for all
+    const band = (img) => { const t = [0, 0, 0, 0]; for (let y = 40; y < 60; y++) for (let x = 22; x <= 52; x++) { const q = (y * W + x) * 4; if (y < lipAt(x) - 7 || y >= lipAt(x) - 1 || img[q + 3] < 200 || img[q] + img[q + 1] + img[q + 2] < 150) continue; for (let k = 0; k < 3; k++) t[k] += img[q + k]; t[3]++; } return t.slice(0, 3).map((v) => v / Math.max(1, t[3])); };
+    const tint = band(dome), base = band(basicShell.px);
+    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+      if (!neckAt(x, y)) continue;
+      const q = (y * W + x) * 4, A = basicShell.px[q + 3] / 255, B = dome[q + 3] / 255, out = A + B * (1 - A);
+      for (let k = 0; k < 3; k++) dome[q + k] = (Math.min(255, basicShell.px[q + k] * tint[k] / base[k]) * A + dome[q + k] * B * (1 - A)) / out;
+      dome[q + 3] = Math.round(out * 255);
     }
     // the check: the must zone painted, so the lamp and the glass's rim have their surface; its edge 2 px in aside, the soft edge
     // and the basic helmet's own knobs (its valve at the back) with it
-    const inner = (x, y) => { if (!mustAt(x, y) || glassAt(x, y)) return false; for (let d = -2; d <= 2; d++) for (let e = -2; e <= 2; e++) if (!mustAt(x + e, y + d)) return false; return true; };
+    const inner = (x, y) => { if (!mustAt(x, y) || glassAt(x, y) || neckAt(x, y)) return false; for (let d = -2; d <= 2; d++) for (let e = -2; e <= 2; e++) if (!mustAt(x + e, y + d)) return false; return true; };
     let must = 0, held = 0;
     for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) if (inner(x, y)) { must++; if (a(dome, x, y) >= 128) held++; }
     const cover = held / must, ok = cover >= MUST;
